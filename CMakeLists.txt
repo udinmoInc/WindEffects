@@ -214,37 +214,45 @@ endfunction()
 # -----------------------------------------------------------------------------
 # Main Application Target
 # -----------------------------------------------------------------------------
-# Define files (includes Core Logger)
-file(GLOB_RECURSE SOURCES 
-    "Source/*.cpp"
-    "Source/*.hpp"
+# Define files for HStyle
+file(GLOB_RECURSE HSTYLE_SOURCES
+    "Engine/Source/Editor/Framework/HouseUI/Core/Style.hpp"
+    "Engine/Source/Editor/Framework/HouseUI/Core/Theme.hpp"
+    "Engine/Source/Editor/Framework/HouseUI/Core/Theme.cpp"
 )
 
-# Explicitly list new HouseUI widget files to ensure they're included
-list(APPEND SOURCES
-    "Source/HouseUI/Core/Animation.cpp"
-    "Source/HouseUI/Core/Icon.cpp"
-    "Source/HouseUI/Rendering/IconRenderer.cpp"
-    "Source/HouseUI/Widgets/ToolButton.cpp"
-    "Source/HouseUI/Widgets/TreeView.cpp"
-    "Source/HouseUI/Widgets/TabWidget.cpp"
-    "Source/HouseUI/Widgets/PropertyEditor.cpp"
-    "Source/HouseUI/Widgets/SearchBox.cpp"
-    "Source/HouseUI/Widgets/Panel.cpp"
-    "Source/HouseUI/Widgets/MenuBar.cpp"
-    "Source/HouseUI/Widgets/TitleBar.cpp"
-    "Source/HouseUI/Widgets/Toolbar.cpp"
-    "Source/HouseUI/Widgets/ViewportOverlay.cpp"
-    "Source/HouseUI/Widgets/ContentBrowser.cpp"
-    "Source/HouseUI/Widgets/StatusBar.cpp"
-    "Source/HouseUI/Layout/OverlayManager.cpp"
-    "Source/HouseUI/Widgets/DropdownMenu.cpp"
+# Define files for HUI
+file(GLOB_RECURSE HUI_SOURCES
+    "Engine/Source/Editor/Framework/HouseUI/*.cpp"
+    "Engine/Source/Editor/Framework/HouseUI/*.hpp"
+)
+list(REMOVE_ITEM HUI_SOURCES ${HSTYLE_SOURCES})
+
+# Define files for Engine Core
+file(GLOB_RECURSE ENGINE_SOURCES
+    "Engine/Source/Runtime/Core/*.cpp"
+    "Engine/Source/Runtime/Core/*.hpp"
+    "Engine/Source/Runtime/Camera/*.cpp"
+    "Engine/Source/Runtime/Camera/*.hpp"
+    "Engine/Source/Runtime/Renderer/*.cpp"
+    "Engine/Source/Runtime/Renderer/*.hpp"
+    "Engine/Source/Runtime/Scene/*.cpp"
+    "Engine/Source/Runtime/Scene/*.hpp"
+)
+
+# Define files for Editor
+file(GLOB_RECURSE EDITOR_SOURCES
+    "Engine/Source/Editor/Legacy/*.cpp"
+    "Engine/Source/Editor/Legacy/*.hpp"
+    "Engine/Source/Editor/Application/*.cpp"
+    "Engine/Source/Editor/Application/*.hpp"
+    "Engine/Source/Programs/WindEffects/Main.cpp"
 )
 
 # Shaders
 file(GLOB_RECURSE SHADER_SOURCES
-    "Source/Shaders/*.vert"
-    "Source/Shaders/*.frag"
+    "Engine/Source/Runtime/Shaders/*.vert"
+    "Engine/Source/Runtime/Shaders/*.frag"
 )
 
 # Compile all shaders
@@ -253,18 +261,47 @@ foreach(SHADER IN LISTS SHADER_SOURCES)
     compile_shader(${SHADER})
 endforeach()
 
+# Create HStyle DLL
+add_library(WindEffects-HStyle SHARED ${HSTYLE_SOURCES})
+set_target_properties(WindEffects-HStyle PROPERTIES WINDOWS_EXPORT_ALL_SYMBOLS ON)
+target_include_directories(WindEffects-HStyle PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/Engine/Source/Editor/Framework)
+
+# Create Engine DLL
+add_library(WindEffects-Engine SHARED ${ENGINE_SOURCES})
+set_target_properties(WindEffects-Engine PROPERTIES WINDOWS_EXPORT_ALL_SYMBOLS ON)
+target_include_directories(WindEffects-Engine PUBLIC 
+    ${CMAKE_CURRENT_SOURCE_DIR}/Engine/Source/Runtime
+)
+target_link_libraries(WindEffects-Engine PUBLIC imgui SDL3::SDL3 Vulkan::Headers volk glm::glm)
+
+# Create HUI DLL
+add_library(WindEffects-HUI SHARED ${HUI_SOURCES})
+set_target_properties(WindEffects-HUI PROPERTIES WINDOWS_EXPORT_ALL_SYMBOLS ON)
+target_include_directories(WindEffects-HUI PUBLIC 
+    ${CMAKE_CURRENT_SOURCE_DIR}/Engine/Source/Editor/Framework
+    ${CMAKE_CURRENT_SOURCE_DIR}/Engine/Source/Runtime
+    ${stb_SOURCE_DIR}
+    ${nanosvg_SOURCE_DIR}/src
+)
+target_link_libraries(WindEffects-HUI PUBLIC WindEffects-HStyle WindEffects-Engine imgui SDL3::SDL3 Vulkan::Headers volk glm::glm)
+
 # Add executable
-add_executable(WindEffects ${SOURCES} ${SPV_SHADERS_OUT})
+add_executable(WindEffects ${EDITOR_SOURCES} ${SPV_SHADERS_OUT})
 
 # Include Directories
 target_include_directories(WindEffects PRIVATE 
-    ${CMAKE_CURRENT_SOURCE_DIR}/Source
+    ${CMAKE_CURRENT_SOURCE_DIR}/Engine/Source/Editor/Application
+    ${CMAKE_CURRENT_SOURCE_DIR}/Engine/Source/Editor/Legacy
+    ${CMAKE_CURRENT_SOURCE_DIR}/Engine/Source/Editor/Framework
+    ${CMAKE_CURRENT_SOURCE_DIR}/Engine/Source/Runtime
     ${stb_SOURCE_DIR}
     ${nanosvg_SOURCE_DIR}/src
 )
 
 # Link Libraries
 target_link_libraries(WindEffects PRIVATE 
+    WindEffects-HUI
+    WindEffects-Engine
     imgui
     SDL3::SDL3
     Vulkan::Headers
@@ -274,8 +311,17 @@ target_link_libraries(WindEffects PRIVATE
 
 # Compiler-specific settings
 if(MSVC)
+    target_compile_options(WindEffects-HStyle PRIVATE /W3 /permissive- /Z7)
+    target_compile_definitions(WindEffects-HStyle PRIVATE _CRT_SECURE_NO_WARNINGS)
+    
+    target_compile_options(WindEffects-Engine PRIVATE /W3 /permissive- /Z7)
+    target_compile_definitions(WindEffects-Engine PRIVATE _CRT_SECURE_NO_WARNINGS)
+    target_link_libraries(WindEffects-Engine PRIVATE dbghelp dwmapi)
+    
+    target_compile_options(WindEffects-HUI PRIVATE /W3 /permissive- /Z7)
+    target_compile_definitions(WindEffects-HUI PRIVATE _CRT_SECURE_NO_WARNINGS)
+
     target_compile_options(WindEffects PRIVATE /W3 /permissive- /Z7)
-    # Disable some noisy warnings for external libraries if needed
     target_compile_definitions(WindEffects PRIVATE _CRT_SECURE_NO_WARNINGS)
     target_link_libraries(WindEffects PRIVATE dbghelp dwmapi)
 endif()
