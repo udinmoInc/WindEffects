@@ -11,8 +11,12 @@ MenuBar::MenuBar()
 {}
 
 Size MenuBar::Measure(const Size& availableSize) {
-    CalculateMenuGeometries();
-    return Size{ availableSize.width, m_Height };
+    float totalWidth = 8.0f; // initial padding
+    for (const auto& menu : m_Menus) {
+        float textWidth = menu.label.length() * 13.0f * 0.6f;
+        totalWidth += textWidth + 24.0f; // padding per item
+    }
+    return Size{ totalWidth, m_Height };
 }
 
 void MenuBar::Arrange(const Rect& allottedRect) {
@@ -21,17 +25,6 @@ void MenuBar::Arrange(const Rect& allottedRect) {
 }
 
 void MenuBar::Paint(PaintContext& context) {
-    // Draw background
-    context.DrawRect(m_Geometry, m_Style.background.color);
-    
-    // Draw separator line at bottom
-    Rect separatorRect{
-        m_Geometry.x,
-        m_Geometry.y + m_Geometry.height - 1.0f,
-        m_Geometry.width,
-        1.0f
-    };
-    context.DrawRect(separatorRect, Theme::Get().BorderDefault);
     
     // Draw menu items
     for (size_t i = 0; i < m_Menus.size(); ++i) {
@@ -39,15 +32,16 @@ void MenuBar::Paint(PaintContext& context) {
         
         // Draw hover background
         if (menu.hovered) {
-            context.DrawRect(menu.geometry, Theme::Get().HoverOverlay);
+            context.DrawRoundedRect(menu.geometry, Theme::Get().HoverOverlay, 2.0f);
         }
         
         // Draw menu label
         float textX = menu.geometry.x + 12.0f;
-        float textY = menu.geometry.y + (m_Height - 13.0f) / 2.0f;
+        float textSize = Theme::Get().TextSizeBody;
+        float textY = menu.geometry.y + (menu.geometry.height - textSize) / 2.0f;
         
         Color textColor = Theme::Get().TextPrimary;
-        context.DrawText(menu.label, Point{ textX, textY }, textColor, 13.0f);
+        context.DrawText(menu.label, Point{ textX, textY }, textColor, textSize);
     }
 }
 
@@ -98,10 +92,10 @@ void MenuBar::CalculateMenuGeometries() {
     float x = m_Geometry.x + 8.0f;
     
     for (auto& menu : m_Menus) {
-        float textWidth = menu.label.length() * 13.0f * 0.6f;
+        float textSize = Theme::Get().TextSizeBody;
+        float textWidth = menu.label.length() * textSize * 0.6f;
         float width = textWidth + 24.0f; // padding
-        
-        menu.geometry = Rect{ x, m_Geometry.y, width, m_Height };
+        menu.geometry = Rect{ x, m_Geometry.y, width, m_Geometry.height };
         x += width;
     }
 }

@@ -63,101 +63,107 @@ public:
 // Full reference: https://fonts.google.com/icons
 namespace Icons {
     // Selection tools
-    constexpr int Cursor     = 0xE8B8; // arrow_selector_tool
-    constexpr int Move       = 0xE89F; // open_with
-    constexpr int Rotate     = 0xE84D; // rotate_90_degrees_cw
-    constexpr int Scale      = 0xE8FF; // aspect_ratio
+    constexpr int Cursor     = 0xEAA0; // arrow-small-up
+    constexpr int Move       = 0xEB22; // move
+    constexpr int Rotate     = 0xEB37; // refresh
+    constexpr int Scale      = 0xEB4C; // screen-full
 
     // Playback
-    constexpr int Play       = 0xE037; // play_arrow
-    constexpr int Pause      = 0xE034; // pause
-    constexpr int Stop       = 0xE047; // stop
+    constexpr int Play       = 0xEB2C; // play
+    constexpr int Pause      = 0xEAD1; // debug-pause
+    constexpr int Stop       = 0xEAD7; // debug-stop
 
     // View modes
-    constexpr int Perspective = 0xE8B4; // view_in_ar
-    constexpr int Lit         = 0xE7F7; // wb_sunny (sun = lit mode)
-    constexpr int Wireframe   = 0xEF4A; // grid_on
+    constexpr int Perspective = 0xEB29; // package
+    constexpr int Lit        = 0xEA61; // lightbulb
+    constexpr int Wireframe  = 0xEB01; // globe
 
     // Camera
-    constexpr int Camera      = 0xE3B0; // camera
+    constexpr int Camera     = 0xEADA; // device-camera
 
     // Tools
-    constexpr int Snap        = 0xE2BD; // magnet
-    constexpr int Grid        = 0xE3EC; // grid_view
+    constexpr int Snap       = 0xEBAE; // magnet
+    constexpr int Grid       = 0xEBEB; // layout
 
     // Objects
-    constexpr int Cube        = 0xE1B3; // widgets (close enough to cube)
-    constexpr int Sphere      = 0xE9AB; // sphere (if available) / lens
-    constexpr int Plane       = 0xE8F4; // horizontal_rule
-    constexpr int Cylinder    = 0xF1B8; // cylinder
+    constexpr int Cube       = 0xEB29; // package
+    constexpr int Sphere     = 0xEB01; // globe
+    constexpr int Plane      = 0xEABA; // chrome-minimize
+    constexpr int Cylinder   = 0xEACE; // database
 
     // Lighting
-    constexpr int Light       = 0xE0F0; // lightbulb
-    constexpr int Sun         = 0xE7F7; // wb_sunny
-    constexpr int PointLight  = 0xE798; // flare
+    constexpr int Light      = 0xEA61; // lightbulb
+    constexpr int Sun        = 0xEA61; // lightbulb
+    constexpr int PointLight = 0xEB13; // lightbulb-autofix
 
     // Materials
-    constexpr int Material    = 0xE24F; // texture
-    constexpr int Shader      = 0xEA01; // code
-    constexpr int Texture     = 0xE24F; // texture
+    constexpr int Material   = 0xEB2A; // paintcan
+    constexpr int Shader     = 0xEAC4; // code
+    constexpr int Texture    = 0xEAEA; // file-media
 
     // File operations
-    constexpr int Save        = 0xE161; // save
-    constexpr int Open        = 0xE2C8; // folder_open
-    constexpr int New         = 0xE85E; // add_box
-    constexpr int Folder      = 0xE2C7; // folder
+    constexpr int Save       = 0xEB4B; // save
+    constexpr int Open       = 0xEAF7; // folder-opened
+    constexpr int New        = 0xEA7F; // new-file
+    constexpr int Folder     = 0xEA83; // folder
+    constexpr int Document   = 0xEA7B; // file
+    
+    // Compilation/Build
+    constexpr int Code       = 0xEAC4; // code
+    constexpr int Build      = 0xEB65; // wrench
+    constexpr int Package    = 0xEB29; // package
 
     // Edit
-    constexpr int Undo        = 0xE166; // undo
-    constexpr int Redo        = 0xE15A; // redo
-    constexpr int Copy        = 0xE14D; // content_copy
-    constexpr int Paste       = 0xE14F; // content_paste
-    constexpr int Delete      = 0xE872; // delete
+    constexpr int Undo       = 0xEAE2; // discard
+    constexpr int Redo       = 0xEBB0; // redo
+    constexpr int Copy       = 0xEBCC; // copy
+    constexpr int Paste      = 0xEBA4; // pass
+    constexpr int Delete     = 0xEA81; // trash
 
     // UI
-    constexpr int Search      = 0xE8B6; // search
-    constexpr int Settings    = 0xE8B8; // settings ... reuse tune
-    constexpr int Menu        = 0xE5D2; // menu
-    constexpr int More        = 0xE5D4; // more_vert
+    constexpr int Search     = 0xEA6D; // search
+    constexpr int Settings   = 0xEB51; // settings-gear
+    constexpr int Menu       = 0xEB94; // menu
+    constexpr int More       = 0xEA7C; // ellipsis
 
     // Tree
-    constexpr int ChevronRight = 0xE5CC; // chevron_right
-    constexpr int ChevronDown  = 0xE5CF; // expand_more
-    constexpr int ChevronLeft  = 0xE5CB; // chevron_left
+    constexpr int ChevronRight = 0xEAB6; // chevron-right
+    constexpr int ChevronDown = 0xEAB4; // chevron-down
+    constexpr int ChevronLeft = 0xEAB5; // chevron-left
 
     // Visibility
-    constexpr int Eye         = 0xE8F4; // visibility
-    constexpr int EyeOff      = 0xE8F5; // visibility_off
-    constexpr int Lock        = 0xE897; // lock
-    constexpr int Unlock      = 0xE898; // lock_open
+    constexpr int Eye        = 0xEA70; // eye
+    constexpr int EyeOff     = 0xEAE7; // eye-closed
+    constexpr int Lock       = 0xEA75; // lock
+    constexpr int Unlock     = 0xEB74; // unlock
 
     // Panels
-    constexpr int Layers      = 0xE53B; // layers
-    constexpr int Hierarchy   = 0xE870; // account_tree
-    constexpr int Properties  = 0xE8D1; // tune
-    constexpr int Console     = 0xE86F; // terminal
-    constexpr int Profiler    = 0xE1DB; // bar_chart
+    constexpr int Layers     = 0xEB78; // versions
+    constexpr int Hierarchy  = 0xEBB9; // type-hierarchy
+    constexpr int Properties = 0xEB51; // settings-gear
+    constexpr int Console    = 0xEA85; // terminal
+    constexpr int Profiler   = 0xEB03; // graph
 
     // Content browser
-    constexpr int List        = 0xE8EF; // view_list
-    constexpr int Refresh     = 0xE5D5; // refresh
-    constexpr int Star        = 0xE838; // star_border
-    constexpr int StarFilled  = 0xE838; // star
+    constexpr int List       = 0xEB84; // list-flat
+    constexpr int Refresh    = 0xEB37; // refresh
+    constexpr int Star       = 0xEA6A; // star-empty
+    constexpr int StarFilled = 0xEB59; // star-full
 
     // Misc
-    constexpr int Plus        = 0xE145; // add
-    constexpr int Minus       = 0xE15B; // remove
-    constexpr int X           = 0xE5CD; // close
-    constexpr int Check       = 0xE876; // check
-    constexpr int Info        = 0xE88E; // info
-    constexpr int Warning     = 0xE002; // warning
-    constexpr int Error       = 0xE000; // error
-    constexpr int Success     = 0xE86C; // task_alt
+    constexpr int Plus       = 0xEA60; // add
+    constexpr int Minus      = 0xEB3B; // remove
+    constexpr int X          = 0xEA76; // close
+    constexpr int Check      = 0xEAB2; // check
+    constexpr int Info       = 0xEA74; // info
+    constexpr int Warning    = 0xEA6C; // warning
+    constexpr int Error      = 0xEA87; // error
+    constexpr int Success    = 0xEAB2; // check
 
     // Window Controls
-    constexpr int Minimize    = 0xE15B; // remove
-    constexpr int Maximize    = 0xE3C6; // crop_square
-    constexpr int Restore     = 0xE3D3; // filter_none
+    constexpr int Minimize   = 0xEABA; // chrome-minimize
+    constexpr int Maximize   = 0xEAB9; // chrome-maximize
+    constexpr int Restore    = 0xEABB; // chrome-restore
 
     // String-name aliases (for backwards compatibility with AddTool calls)
     constexpr const char* CursorName     = "cursor";
@@ -187,6 +193,10 @@ namespace Icons {
     constexpr const char* OpenName       = "open";
     constexpr const char* NewName        = "new";
     constexpr const char* FolderName     = "folder";
+    constexpr const char* DocumentName   = "document";
+    constexpr const char* CodeName       = "code";
+    constexpr const char* BuildName      = "build";
+    constexpr const char* PackageName    = "package";
     constexpr const char* UndoName       = "undo";
     constexpr const char* RedoName       = "redo";
     constexpr const char* CopyName       = "copy";
@@ -246,6 +256,10 @@ namespace Icons {
         if (name == "save")          return Save;
         if (name == "open")          return Open;
         if (name == "new")           return New;
+        if (name == "document")      return Document;
+        if (name == "code")          return Code;
+        if (name == "build")         return Build;
+        if (name == "package")       return Package;
         if (name == "undo")          return Undo;
         if (name == "redo")          return Redo;
         if (name == "delete")        return Delete;

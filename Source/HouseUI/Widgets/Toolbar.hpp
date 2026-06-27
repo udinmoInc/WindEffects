@@ -22,7 +22,7 @@ public:
     void Paint(PaintContext& context) override;
 
     // Tool management
-    void AddTool(const std::string& iconName, std::function<void()> onClick, const std::string& tooltip = "");
+    void AddTool(const std::string& iconName, const std::string& label, std::function<void()> onClick, const std::string& tooltip = "", bool isPlayButton = false);
     void AddSeparator();
     void AddGroup(const std::vector<std::pair<std::string, std::function<void()>>>& tools);
     void Clear();
@@ -34,12 +34,15 @@ public:
     // Styling
     void SetHeight(float height) { m_Height = height; }
     void SetIconSize(float size) { m_IconSize = size; }
+    void SetFloating(bool floating) { m_IsFloating = floating; }
 
 private:
     struct ToolInfo {
         std::string iconName;
+        std::string label;
         std::function<void()> onClick;
         std::string tooltip;
+        bool isPlayButton = false;
         std::shared_ptr<Widget> button;
         bool isSeparator = false;
     };
@@ -47,10 +50,11 @@ private:
     std::vector<ToolInfo> m_Tools;
     std::string m_ActiveTool;
     
-    float m_Height = 40.0f;
+    float m_Height = 52.0f;
     float m_IconSize = 20.0f;
     float m_Spacing = 4.0f;
     float m_GroupSpacing = 12.0f;
+    bool m_IsFloating = false;
 
     WidgetStyle m_Style;
 };
@@ -65,7 +69,7 @@ public:
     void Arrange(const Rect& allottedRect) override;
     void Paint(PaintContext& context) override;
 
-    void AddTool(const std::string& iconName, std::function<void()> onClick, const std::string& tooltip = "");
+    void AddTool(const std::string& iconName, const std::string& label, std::function<void()> onClick, const std::string& tooltip = "");
     void Clear();
 
 private:

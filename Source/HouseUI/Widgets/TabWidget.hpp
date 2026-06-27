@@ -56,7 +56,7 @@ private:
     int m_ActiveTab = -1;
     int m_HoveredTab = -1;
 
-    float m_TabHeight = 32.0f;
+    float m_TabHeight = 34.0f;
     float m_TabMinWidth = 80.0f;
     float m_TabSpacing = 0.0f;
 

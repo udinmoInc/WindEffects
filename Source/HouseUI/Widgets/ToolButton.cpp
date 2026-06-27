@@ -6,18 +6,27 @@
 
 namespace HouseEngine::UI {
 
-ToolButton::ToolButton(const std::string& iconName, std::function<void()> onClicked, const std::string& tooltip)
+ToolButton::ToolButton(const std::string& iconName, const std::string& label, std::function<void()> onClicked, const std::string& tooltip)
     : m_IconName(iconName)
+    , m_Label(label)
     , m_Tooltip(tooltip)
     , m_OnClicked(onClicked)
     , m_Style(WidgetStyle::ToolButton())
 {}
 
 Size ToolButton::Measure(const Size& availableSize) {
-    float iconSize = 20.0f; // Standard icon size
-    float padding = Theme::Get().PaddingIconBtn.left + Theme::Get().PaddingIconBtn.right;
+    float height = std::min(36.0f, availableSize.height); // AAA standard toolbar button height
+    float paddingX = 8.0f; // Tighter padding
+    float iconSize = 20.0f; // 20x20 strict icon size
     
-    return Size{ iconSize + padding, iconSize + padding };
+    float width = paddingX * 2.0f + iconSize;
+    if (!m_Label.empty()) {
+        width += 6.0f; // 6px gap between icon and text
+        width += m_Label.length() * 7.5f; // Rough text width estimate for 14px text
+    }
+    
+    m_DesiredSize = Size{ width, height };
+    return m_DesiredSize;
 }
 
 void ToolButton::Arrange(const Rect& allottedRect) {
@@ -35,38 +44,70 @@ void ToolButton::Paint(PaintContext& context) {
     m_PressAnim += (targetPress - m_PressAnim) * animSpeed * 0.016f;
     m_ActiveAnim += (targetActive - m_ActiveAnim) * animSpeed * 0.016f;
     
+    Rect renderRect = m_Geometry;
+    
+    // Global button scale animation on press (all buttons shrink to 95%)
+    if (m_PressAnim > 0.01f) {
+        float scale = 1.0f - (m_PressAnim * 0.05f); // Scale to 95%
+        float shrinkW = renderRect.width * (1.0f - scale) * 0.5f;
+        float shrinkH = renderRect.height * (1.0f - scale) * 0.5f;
+        renderRect.x += shrinkW;
+        renderRect.y += shrinkH;
+        renderRect.width -= shrinkW * 2.0f;
+        renderRect.height -= shrinkH * 2.0f;
+    }
+    
     // Determine background color based on state
     Color bgColor = m_Style.background.color;
+    bgColor.a = 0.0f; // Transparent by default
+    
+    if (m_ButtonStyle == ToolButtonStyle::PlayButton) {
+        bgColor = Color{0.13f, 0.77f, 0.37f, 0.0f}; // Base play button isn't filled until hover
+        if (m_HoverAnim > 0.01f) {
+            bgColor = Color::Lerp(bgColor, Color{0.13f, 0.77f, 0.37f, 0.2f}, m_HoverAnim); // Soft green highlight
+        }
+    } else {
     if (m_ActiveAnim > 0.01f) {
-        bgColor = Color::Lerp(bgColor, Theme::Get().SelectedAccent * 0.3f, m_ActiveAnim);
-    }
-    if (m_HoverAnim > 0.01f) {
-        bgColor = Color::Lerp(bgColor, m_Style.backgroundHover.color, m_HoverAnim);
+        bgColor = Color::Lerp(bgColor, Theme::Get().HoverOverlay, m_ActiveAnim);
     }
     if (m_PressAnim > 0.01f) {
-        bgColor = Color::Lerp(bgColor, m_Style.backgroundPressed.color, m_PressAnim);
+        bgColor = Color::Lerp(bgColor, Theme::Get().PressedOverlay, m_PressAnim);
+    }
     }
     
-    // Draw background with rounded corners
+    // Draw background with rounded corners (8px)
     if (bgColor.a > 0.01f) {
-        context.DrawRoundedRect(m_Geometry, bgColor, m_Style.background.cornerRadius);
+        context.DrawRoundedRect(renderRect, bgColor, Theme::Get().CornerRadiusMedium);
     }
     
-    // Draw icon using Material Icons codepoint
-    float iconSize = 18.0f;
-    float iconX = m_Geometry.x + (m_Geometry.width - iconSize) / 2.0f;
-    float iconY = m_Geometry.y + (m_Geometry.height - iconSize) / 2.0f;
+    float iconSize = 20.0f;
     
-    Color iconColor = Theme::Get().TextPrimary;
-    if (m_Active) {
-        iconColor = Theme::Get().SelectedAccent;
-    } else if (m_HoverAnim > 0.1f) {
-        iconColor = Color::Lerp(Theme::Get().TextPrimary, Theme::Get().TextSecondary, 0.3f);
+    float contentWidth = iconSize;
+    if (!m_Label.empty()) {
+        contentWidth += 6.0f + m_Label.length() * 7.5f;
+    }
+    
+    float currentX = renderRect.x + (renderRect.width - contentWidth) / 2.0f;
+    float centerY = renderRect.y + renderRect.height / 2.0f;
+    
+    Color iconColor = Theme::Get().TextSecondary;
+    if (m_ButtonStyle == ToolButtonStyle::PlayButton) {
+        iconColor = Theme::Get().Success; // Green icon
+    } else if (m_ActiveAnim > 0.01f) {
+        iconColor = Color::Lerp(Theme::Get().TextPrimary, Theme::Get().SelectedAccent, m_ActiveAnim);
+    } else if (m_HoverAnim > 0.01f) {
+        iconColor = Color::Lerp(Theme::Get().TextSecondary, Theme::Get().TextPrimary, m_HoverAnim);
     }
     
     int codepoint = Icons::GetCodepoint(m_IconName);
     if (codepoint != 0) {
-        context.DrawIcon(codepoint, Point{ iconX, iconY + iconSize }, iconColor, iconSize);
+        context.DrawIcon(codepoint, Point{ currentX, centerY - iconSize/2.0f }, iconColor, iconSize);
+    }
+    
+    currentX += iconSize + 6.0f;
+    
+    if (!m_Label.empty()) {
+        context.DrawText(m_Label, Point{ currentX, centerY - 7.0f }, Theme::Get().TextPrimary, 14.0f);
     }
 }
 

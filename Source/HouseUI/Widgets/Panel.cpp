@@ -73,8 +73,8 @@ void Panel::Paint(PaintContext& context) {
     
     // Draw collapse/expand chevron
     if (m_Collapsible) {
-        float chevronSize = 14.0f;
-        float chevronX = m_HeaderRect.x + 8.0f;
+        float chevronSize = 12.0f; // Smaller collapse arrow
+        float chevronX = m_HeaderRect.x + 6.0f; // Tighter padding
         float chevronY = m_HeaderRect.y + (m_HeaderHeight - chevronSize) / 2.0f;
         
         Rect chevronRect{ chevronX, chevronY, chevronSize, chevronSize };
@@ -83,9 +83,10 @@ void Panel::Paint(PaintContext& context) {
     }
     
     // Draw title
-    float titleX = m_HeaderRect.x + (m_Collapsible ? 28.0f : 12.0f);
-    float titleY = m_HeaderRect.y + (m_HeaderHeight - 14.0f) / 2.0f;
-    context.DrawText(m_Title, Point{ titleX, titleY }, Theme::Get().TextPrimary, 14.0f, true);
+    float titleX = m_HeaderRect.x + (m_Collapsible ? 22.0f : 8.0f);
+    float textSize = Theme::Get().TextSizeHeader;
+    float titleY = m_HeaderRect.y + (m_HeaderHeight - textSize) / 2.0f;
+    context.DrawText(m_Title, Point{ titleX, titleY }, Theme::Get().TextPrimary, textSize, true);
     
     // Draw header actions
     for (const auto& action : m_HeaderActions) {

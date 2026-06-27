@@ -101,7 +101,7 @@ void ViewportOverlay::Paint(PaintContext& context) {
         for (const auto& btn : m_NavButtons) {
             int codepoint = Icons::GetCodepoint(btn.iconName);
             if (codepoint != 0) {
-                context.DrawIcon(codepoint, Point{ btn.geometry.x, btn.geometry.y + m_NavButtonSize }, Theme::Get().TextPrimary, m_NavButtonSize);
+                context.DrawIcon(codepoint, Point{ btn.geometry.x, btn.geometry.y }, Theme::Get().TextPrimary, m_NavButtonSize);
             }
         }
     }
@@ -238,7 +238,7 @@ void NavigationControls::Paint(PaintContext& context) {
         Color iconColor = btn.hovered ? Theme::Get().SelectedAccent : Theme::Get().TextPrimary;
         int codepoint = Icons::GetCodepoint(btn.iconName);
         if (codepoint != 0) {
-            context.DrawIcon(codepoint, Point{ btn.geometry.x, btn.geometry.y + m_ButtonSize }, iconColor, m_ButtonSize);
+            context.DrawIcon(codepoint, Point{ btn.geometry.x, btn.geometry.y }, iconColor, m_ButtonSize);
         }
     }
 }

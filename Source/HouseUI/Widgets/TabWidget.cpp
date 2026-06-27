@@ -70,7 +70,23 @@ void TabWidget::Paint(PaintContext& context) {
         float textY = tab.geometry.y + (m_TabHeight - style.text.size) / 2.0f;
         
         Color textColor = style.text.color;
+        if (isActive) textColor = Theme::Get().TextPrimary;
+        else if (isHovered) textColor = Color::Lerp(Theme::Get().TextPrimary, Theme::Get().TextSecondary, 0.2f);
+        else textColor = Theme::Get().TextSecondary;
+        
         context.DrawText(tab.label, Point{ textX, textY }, textColor, style.text.size);
+        
+        // Draw active tab underline & glow
+        if (isActive) {
+            Rect underlineRect{ tab.geometry.x, tab.geometry.y + m_TabHeight - 2.0f, tab.geometry.width, 2.0f };
+            context.DrawRect(underlineRect, Theme::Get().SelectedAccent);
+            
+            // Subtle glow (simplified as a translucent rect above underline)
+            Rect glowRect{ tab.geometry.x, tab.geometry.y + m_TabHeight - 6.0f, tab.geometry.width, 4.0f };
+            Color glowColor = Theme::Get().SelectedAccent;
+            glowColor.a = 0.2f;
+            context.DrawRect(glowRect, glowColor);
+        }
     }
     
     // Draw separator line below tabs

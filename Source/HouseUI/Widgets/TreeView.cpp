@@ -56,21 +56,32 @@ void TreeView::Paint(PaintContext& context) {
         
         // Determine background color
         Color bgColor = Color{0, 0, 0, 0};
+        
+        // Alternating row colors
+        bool isEven = (&item - &m_RenderList[0]) % 2 == 0;
+        if (isEven) {
+            bgColor = Color{1.0f, 1.0f, 1.0f, 0.02f};
+        }
+        
         if (node->id == m_SelectedId) {
-            bgColor = Theme::Get().SelectedAccent * 0.3f;
+            bgColor = Theme::Get().SelectedAccent * 0.4f; // More visible blue accent
         } else if (node->id == m_HoveredId) {
             bgColor = Theme::Get().HoverOverlay;
         }
         
-        if (bgColor.a > 0.01f) {
-            context.DrawRoundedRect(item.geometry, bgColor, 2.0f);
+        if (bgColor.a > 0.001f) {
+            // Draw full width flat rectangle for row highlights
+            Rect rowRect = item.geometry;
+            rowRect.x = m_Geometry.x; // Span full width
+            rowRect.width = m_Geometry.width;
+            context.DrawRect(rowRect, bgColor);
         }
         
         // Draw expand/collapse chevron
         if (!node->children.empty()) {
             float chevronSize = 14.0f;
             float chevronX = item.geometry.x + 4.0f + item.depth * m_IndentWidth;
-            float chevronY = item.geometry.y + (m_ItemHeight + chevronSize) / 2.0f;
+            float chevronY = item.geometry.y + (m_ItemHeight - chevronSize) / 2.0f;
             
             int chevronIcon = node->expanded ? Icons::ChevronDown : Icons::ChevronRight;
             context.DrawIcon(chevronIcon, Point{ chevronX, chevronY }, Theme::Get().TextSecondary, chevronSize);
@@ -80,7 +91,7 @@ void TreeView::Paint(PaintContext& context) {
         if (!node->iconName.empty()) {
             float iconSize = 16.0f;
             float iconX = item.geometry.x + 20.0f + item.depth * m_IndentWidth;
-            float iconY = item.geometry.y + (m_ItemHeight + iconSize) / 2.0f;
+            float iconY = item.geometry.y + (m_ItemHeight - iconSize) / 2.0f;
             
             int iconCode = Icons::GetCodepoint(node->iconName);
             if (iconCode != 0) {
@@ -102,7 +113,7 @@ void TreeView::Paint(PaintContext& context) {
         // Draw visibility eye icon
         float eyeSize = 14.0f;
         float eyeX = item.geometry.x + item.geometry.width - eyeSize - 8.0f;
-        float eyeY = item.geometry.y + (m_ItemHeight + eyeSize) / 2.0f;
+        float eyeY = item.geometry.y + (m_ItemHeight - eyeSize) / 2.0f;
         
         int eyeIcon = node->visible ? Icons::Eye : Icons::EyeOff;
         Color eyeColor = node->visible ? Theme::Get().TextSecondary : Theme::Get().TextSecondary * 0.5f;
@@ -112,7 +123,7 @@ void TreeView::Paint(PaintContext& context) {
         if (node->locked) {
             float lockSize = 14.0f;
             float lockX = eyeX - lockSize - 4.0f;
-            float lockY = item.geometry.y + (m_ItemHeight + lockSize) / 2.0f;
+            float lockY = item.geometry.y + (m_ItemHeight - lockSize) / 2.0f;
             
             context.DrawIcon(Icons::Lock, Point{ lockX, lockY }, Theme::Get().Warning, lockSize);
         }

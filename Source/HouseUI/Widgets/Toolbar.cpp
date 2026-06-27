@@ -14,13 +14,12 @@ Toolbar::Toolbar()
 Size Toolbar::Measure(const Size& availableSize) {
     float totalWidth = 8.0f; // left padding
     
-    for (size_t i = 0; i < m_Tools.size(); ++i) {
-        const auto& tool = m_Tools[i];
-        
+    for (auto& tool : m_Tools) {
         if (tool.isSeparator) {
             totalWidth += ToolSeparator::SEPARATOR_WIDTH + m_Spacing;
-        } else {
-            totalWidth += m_IconSize + Theme::Get().PaddingIconBtn.left + Theme::Get().PaddingIconBtn.right + m_Spacing;
+        } else if (tool.button) {
+            Size btnSize = tool.button->Measure(availableSize);
+            totalWidth += btnSize.width + m_Spacing;
         }
     }
     
@@ -49,25 +48,20 @@ void Toolbar::Arrange(const Rect& allottedRect) {
             
             x += ToolSeparator::SEPARATOR_WIDTH + m_Spacing;
         } else {
-            float btnWidth = m_IconSize + Theme::Get().PaddingIconBtn.left + Theme::Get().PaddingIconBtn.right;
-            float btnHeight = m_IconSize + Theme::Get().PaddingIconBtn.top + Theme::Get().PaddingIconBtn.bottom;
-            
-            if (!tool.button) {
-                tool.button = std::make_shared<ToolButton>(tool.iconName, tool.onClick, tool.tooltip);
-                tool.button->SetActive(tool.iconName == m_ActiveTool);
+            if (tool.button) {
+                Size btnSize = tool.button->GetDesiredSize();
+                float y = allottedRect.y + (m_Height - btnSize.height) / 2.0f;
+                Rect btnRect{ x, y, btnSize.width, btnSize.height };
+                tool.button->Arrange(btnRect);
+                x += btnSize.width + m_Spacing;
             }
-            
-            Rect btnRect{ x, y, btnWidth, btnHeight };
-            tool.button->Arrange(btnRect);
-            
-            x += btnWidth + m_Spacing;
         }
     }
 }
 
 void Toolbar::Paint(PaintContext& context) {
     // Draw background
-    context.DrawRect(m_Geometry, m_Style.background.color);
+    context.DrawRect(m_Geometry, Theme::Get().ToolbarBackground);
     
     // Draw separator line at bottom
     Rect separatorRect{
@@ -76,8 +70,9 @@ void Toolbar::Paint(PaintContext& context) {
         m_Geometry.width,
         1.0f
     };
-    context.DrawRect(separatorRect, Theme::Get().BorderDefault);
+    context.DrawRect(separatorRect, Theme::Get().Separator);
     
+
     // Draw tools
     for (const auto& tool : m_Tools) {
         if (tool.button) {
@@ -86,12 +81,21 @@ void Toolbar::Paint(PaintContext& context) {
     }
 }
 
-void Toolbar::AddTool(const std::string& iconName, std::function<void()> onClick, const std::string& tooltip) {
+void Toolbar::AddTool(const std::string& iconName, const std::string& label, std::function<void()> onClick, const std::string& tooltip, bool isPlayButton) {
     ToolInfo tool;
     tool.iconName = iconName;
+    tool.label = label;
     tool.onClick = onClick;
     tool.tooltip = tooltip;
+    tool.isPlayButton = isPlayButton;
     tool.isSeparator = false;
+    
+    auto btn = std::make_shared<ToolButton>(iconName, label, onClick, tooltip);
+    if (isPlayButton) {
+        btn->SetButtonStyle(ToolButtonStyle::PlayButton);
+    }
+    tool.button = btn;
+    
     m_Tools.push_back(tool);
 }
 
@@ -107,7 +111,7 @@ void Toolbar::AddGroup(const std::vector<std::pair<std::string, std::function<vo
     }
     
     for (const auto& [iconName, onClick] : tools) {
-        AddTool(iconName, onClick);
+        AddTool(iconName, "", onClick);
     }
 }
 
@@ -168,8 +172,8 @@ void ToolbarGroup::Paint(PaintContext& context) {
     }
 }
 
-void ToolbarGroup::AddTool(const std::string& iconName, std::function<void()> onClick, const std::string& tooltip) {
-    auto tool = std::make_shared<ToolButton>(iconName, onClick, tooltip);
+void ToolbarGroup::AddTool(const std::string& iconName, const std::string& label, std::function<void()> onClick, const std::string& tooltip) {
+    auto tool = std::make_shared<ToolButton>(iconName, label, onClick, tooltip);
     m_Tools.push_back(tool);
 }
 

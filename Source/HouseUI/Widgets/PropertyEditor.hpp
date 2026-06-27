@@ -91,9 +91,9 @@ private:
     std::vector<CategoryGroup> m_Categories;
     
     float m_ScrollOffset = 0.0f;
-    float m_PropertyHeight = 28.0f;
+    float m_PropertyHeight = 24.0f; // Compact property height
     float m_LabelWidth = 120.0f;
-    float m_CategoryHeaderHeight = 32.0f;
+    float m_CategoryHeaderHeight = 28.0f; // Compact category header
     
     std::string m_HoveredProperty;
     std::string m_HoveredCategory;

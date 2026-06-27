@@ -40,6 +40,15 @@ void ViewportWidget::Arrange(const Rect& allottedRect) {
         m_PendingHeight = static_cast<uint32_t>(allottedRect.height);
         m_ResizePending = true;
     }
+
+    // Arrange integrated compact toolbar at top (assuming it's the first child)
+    if (!m_Children.empty()) {
+        auto toolbar = m_Children[0];
+        // 34px compact height
+        float compactHeight = 34.0f;
+        toolbar->Measure(Size{ allottedRect.width, compactHeight });
+        toolbar->Arrange(Rect{ allottedRect.x, allottedRect.y, allottedRect.width, compactHeight });
+    }
 }
 
 void ViewportWidget::FlushPendingResize() {
@@ -149,6 +158,11 @@ void ViewportWidget::Paint(PaintContext& context) {
         context.DrawRect(Rect{ endPoint.x - 3.0f, endPoint.y - 3.0f, 6.0f, 6.0f }, axis.color, 3.0f);
         context.DrawText(axis.label, Point{ endPoint.x + 4.0f, endPoint.y - 6.0f }, Color::White(), 10.0f);
     }
+    
+    // 4. Paint children (e.g., floating toolbar)
+    for (auto& child : m_Children) {
+        child->Paint(context);
+    }
 }
 
 void ViewportWidget::OnMouseDown(const MouseEvent& event) {
@@ -163,6 +177,17 @@ void ViewportWidget::OnMouseDown(const MouseEvent& event) {
     float dy = event.position.y - gizmoCenter.y;
     if (dx * dx + dy * dy <= 900.0f) {
         m_Camera->Reset();
+        return; // Intercepted
+    }
+    
+    // Check children first
+    for (auto it = m_Children.rbegin(); it != m_Children.rend(); ++it) {
+        auto& child = *it;
+        if (event.position.x >= child->GetGeometry().x && event.position.x <= child->GetGeometry().x + child->GetGeometry().width &&
+            event.position.y >= child->GetGeometry().y && event.position.y <= child->GetGeometry().y + child->GetGeometry().height) {
+            child->OnMouseDown(event);
+            return; // Intercepted
+        }
     }
 }
 
@@ -190,6 +215,11 @@ void ViewportWidget::OnMouseMove(const MouseEvent& event) {
     }
 
     m_LastMousePos = event.position;
+
+    // Route to children
+    for (auto& child : m_Children) {
+        child->OnMouseMove(event);
+    }
 }
 
 void ViewportWidget::OnMouseUp(const MouseEvent& event) {
@@ -199,6 +229,11 @@ void ViewportWidget::OnMouseUp(const MouseEvent& event) {
     }
     if (event.button == MouseButton::Left) m_LeftMouseDown = false;
     if (event.button == MouseButton::Middle) m_MiddleMouseDown = false;
+
+    // Route to children
+    for (auto& child : m_Children) {
+        child->OnMouseUp(event);
+    }
 }
 
 void ViewportWidget::OnMouseWheel(const MouseEvent& event) {

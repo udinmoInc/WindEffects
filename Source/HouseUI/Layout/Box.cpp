@@ -82,8 +82,24 @@ void Box::Arrange(const Rect& allottedRect) {
         }
     }
 
+    // Count how many children share the max width/height to distribute overflow
+    int numMaxWidths = 0;
+    int numMaxHeights = 0;
+    for (size_t i = 0; i < m_Children.size(); ++i) {
+        if (!m_Children[i]->IsVisible()) continue;
+        Size childDesired = m_Children[i]->GetDesiredSize();
+        if (m_Orientation == Orientation::Horizontal) {
+            if (std::abs(childDesired.width - maxChildWidth) < 0.1f) numMaxWidths++;
+        } else {
+            if (std::abs(childDesired.height - maxChildHeight) < 0.1f) numMaxHeights++;
+        }
+    }
+
     float widthOverflow = std::max(0.0f, totalDesiredWidth - contentWidth);
     float heightOverflow = std::max(0.0f, totalDesiredHeight - contentHeight);
+    
+    float widthShrinkPerElement = numMaxWidths > 0 ? (widthOverflow / numMaxWidths) : 0.0f;
+    float heightShrinkPerElement = numMaxHeights > 0 ? (heightOverflow / numMaxHeights) : 0.0f;
 
     for (size_t i = 0; i < m_Children.size(); ++i) {
         const auto& child = m_Children[i];
@@ -96,7 +112,7 @@ void Box::Arrange(const Rect& allottedRect) {
             if (!first) currentX += m_Spacing;
             
             float childWidth = childDesired.width;
-            if (i == largestWidthIdx) childWidth -= widthOverflow;
+            if (std::abs(childDesired.width - maxChildWidth) < 0.1f) childWidth -= widthShrinkPerElement;
             if (isLast && currentX + childWidth < allottedRect.x + allottedRect.width) {
                 childWidth = allottedRect.x + allottedRect.width - currentX; // Fill remaining if any
             }
@@ -112,7 +128,7 @@ void Box::Arrange(const Rect& allottedRect) {
             float childWidth = std::min(contentWidth, childDesired.width);
             
             float childHeight = childDesired.height;
-            if (i == largestHeightIdx) childHeight -= heightOverflow;
+            if (std::abs(childDesired.height - maxChildHeight) < 0.1f) childHeight -= heightShrinkPerElement;
             if (isLast && currentY + childHeight < allottedRect.y + allottedRect.height) {
                 childHeight = allottedRect.y + allottedRect.height - currentY; // Fill remaining if any
             }

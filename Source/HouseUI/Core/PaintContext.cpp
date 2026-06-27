@@ -46,6 +46,28 @@ void PaintContext::DrawRoundedRect(const Rect& rect, const Color& color, float r
     m_Commands.push_back(cmd);
 }
 
+void PaintContext::DrawGradient(const Rect& rect, const Color& topColor, const Color& bottomColor, float radius) {
+    DrawCommand cmd{};
+    cmd.type = DrawCommandType::Gradient;
+    cmd.rect = rect;
+    cmd.color = topColor;
+    cmd.colorBottom = bottomColor;
+    cmd.clipRect = GetCurrentClipRect();
+    cmd.borderRadius = radius;
+    m_Commands.push_back(cmd);
+}
+
+void PaintContext::DrawShadow(const Rect& rect, const Color& color, float radius, float blur) {
+    DrawCommand cmd{};
+    cmd.type = DrawCommandType::Shadow;
+    cmd.rect = rect;
+    cmd.color = color;
+    cmd.clipRect = GetCurrentClipRect();
+    cmd.borderRadius = radius;
+    cmd.blur = blur;
+    m_Commands.push_back(cmd);
+}
+
 void PaintContext::DrawRoundedRectOutline(const Rect& rect, const Color& color, float thickness, float radius) {
     // For now, simulate outline by drawing lines (could be improved with proper outline rendering)
     DrawLine(Point{rect.x, rect.y}, Point{rect.x + rect.width, rect.y}, color, thickness);
@@ -96,11 +118,11 @@ void PaintContext::DrawLine(const Point& start, const Point& end, const Color& c
     m_Commands.push_back(cmd);
 }
 
-void PaintContext::DrawTexture(const Rect& rect, VkDescriptorSet textureId) {
+void PaintContext::DrawTexture(const Rect& rect, VkDescriptorSet textureId, const Color& tint) {
     DrawCommand cmd{};
     cmd.type = DrawCommandType::Texture;
     cmd.rect = rect;
-    cmd.color = Color::White(); // Default tint
+    cmd.color = tint;
     cmd.clipRect = GetCurrentClipRect();
     cmd.textureId = textureId;
     m_Commands.push_back(cmd);

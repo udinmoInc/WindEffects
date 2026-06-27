@@ -43,7 +43,7 @@ bool UIRenderer::Init(const std::shared_ptr<VulkanContext>& context, VkRenderPas
     
     // 2.b Initialize Icon Atlas (Material Icons Classic, starting at E000, 4096 chars)
     m_IconAtlas = std::make_shared<FontAtlas>();
-    if (!m_IconAtlas->Init(m_Context, "MaterialIcons-Regular.ttf", 0xE000, 4096, 1024, 1024)) {
+    if (!m_IconAtlas->Init(m_Context, "codicon.ttf", 0xEA60, 2000, 1024, 1024)) {
         HE_ERROR("UIRenderer: Failed to load icon atlas, icons will not render.");
     }
 
@@ -383,40 +383,74 @@ void UIRenderer::BuildGeometry(const std::vector<DrawCommand>& commands, uint32_
         uint32_t startIndex = static_cast<uint32_t>(m_Vertices.size());
         uint32_t cmdIndexCount = 0;
 
-        if (cmd.type == DrawCommandType::Rect || cmd.type == DrawCommandType::Texture) {
+        if (cmd.type == DrawCommandType::Rect || cmd.type == DrawCommandType::Texture || cmd.type == DrawCommandType::Gradient || cmd.type == DrawCommandType::Shadow) {
             float x = cmd.rect.x;
             float y = cmd.rect.y;
             float w = cmd.rect.width;
             float h = cmd.rect.height;
 
-            float type = (cmd.type == DrawCommandType::Rect && cmd.borderRadius > 0.0f) ? 1.0f : 0.0f;
+            if (cmd.type == DrawCommandType::Shadow) {
+                // Approximate soft shadow using multiple expanded semi-transparent rects
+                const int numLayers = 4;
+                float shadowSpread = cmd.blur / numLayers;
+                float baseAlpha = cmd.color.a / (numLayers * 1.5f);
+                
+                for (int i = 0; i < numLayers; ++i) {
+                    float expand = (i + 1) * shadowSpread;
+                    float sx = x - expand;
+                    float sy = y - expand;
+                    float sw = w + expand * 2.0f;
+                    float sh = h + expand * 2.0f;
+                    float alpha = baseAlpha * (1.0f - (float)i / numLayers);
+                    
+                    float type = 1.0f; // SDF Rect
+                    float r = cmd.borderRadius + expand; // Increase corner radius for outer layers
+                    
+                    UIVertex v0{ {sx,      sy},      {0.5f, 0.5f}, {cmd.color.r, cmd.color.g, cmd.color.b, alpha}, {sx, sy, sw, sh}, {r, type, 0.0f, 0.0f} };
+                    UIVertex v1{ {sx + sw, sy},      {0.5f, 0.5f}, {cmd.color.r, cmd.color.g, cmd.color.b, alpha}, {sx, sy, sw, sh}, {r, type, 0.0f, 0.0f} };
+                    UIVertex v2{ {sx + sw, sy + sh}, {0.5f, 0.5f}, {cmd.color.r, cmd.color.g, cmd.color.b, alpha}, {sx, sy, sw, sh}, {r, type, 0.0f, 0.0f} };
+                    UIVertex v3{ {sx,      sy + sh}, {0.5f, 0.5f}, {cmd.color.r, cmd.color.g, cmd.color.b, alpha}, {sx, sy, sw, sh}, {r, type, 0.0f, 0.0f} };
 
-            UIVertex v0{ {x,     y},     {0.0f, 0.0f}, {cmd.color.r, cmd.color.g, cmd.color.b, cmd.color.a}, {x, y, w, h}, {cmd.borderRadius, type, 0.0f, 0.0f} };
-            UIVertex v1{ {x + w, y},     {1.0f, 0.0f}, {cmd.color.r, cmd.color.g, cmd.color.b, cmd.color.a}, {x, y, w, h}, {cmd.borderRadius, type, 0.0f, 0.0f} };
-            UIVertex v2{ {x + w, y + h}, {1.0f, 1.0f}, {cmd.color.r, cmd.color.g, cmd.color.b, cmd.color.a}, {x, y, w, h}, {cmd.borderRadius, type, 0.0f, 0.0f} };
-            UIVertex v3{ {x,     y + h}, {0.0f, 1.0f}, {cmd.color.r, cmd.color.g, cmd.color.b, cmd.color.a}, {x, y, w, h}, {cmd.borderRadius, type, 0.0f, 0.0f} };
+                    uint32_t currentStartIndex = static_cast<uint32_t>(m_Vertices.size());
+                    m_Vertices.push_back(v0); m_Vertices.push_back(v1); m_Vertices.push_back(v2); m_Vertices.push_back(v3);
+                    m_Indices.push_back(currentStartIndex + 0); m_Indices.push_back(currentStartIndex + 1); m_Indices.push_back(currentStartIndex + 2);
+                    m_Indices.push_back(currentStartIndex + 2); m_Indices.push_back(currentStartIndex + 3); m_Indices.push_back(currentStartIndex + 0);
+                    
+                    cmdIndexCount += 6;
+                }
+            } else {
+                float type = ((cmd.type == DrawCommandType::Rect || cmd.type == DrawCommandType::Gradient) && cmd.borderRadius > 0.0f) ? 1.0f : 0.0f;
+                
+                Color colorTop = cmd.color;
+                Color colorBottom = (cmd.type == DrawCommandType::Gradient) ? cmd.colorBottom : cmd.color;
 
-            // If it's a flat rect (textured or not), map to center of dummy texture
-            if (cmd.type == DrawCommandType::Rect) {
-                v0.uv[0] = 0.5f; v0.uv[1] = 0.5f;
-                v1.uv[0] = 0.5f; v1.uv[1] = 0.5f;
-                v2.uv[0] = 0.5f; v2.uv[1] = 0.5f;
-                v3.uv[0] = 0.5f; v3.uv[1] = 0.5f;
+                UIVertex v0{ {x,     y},     {0.0f, 0.0f}, {colorTop.r, colorTop.g, colorTop.b, colorTop.a},       {x, y, w, h}, {cmd.borderRadius, type, 0.0f, 0.0f} };
+                UIVertex v1{ {x + w, y},     {1.0f, 0.0f}, {colorTop.r, colorTop.g, colorTop.b, colorTop.a},       {x, y, w, h}, {cmd.borderRadius, type, 0.0f, 0.0f} };
+                UIVertex v2{ {x + w, y + h}, {1.0f, 1.0f}, {colorBottom.r, colorBottom.g, colorBottom.b, colorBottom.a}, {x, y, w, h}, {cmd.borderRadius, type, 0.0f, 0.0f} };
+                UIVertex v3{ {x,     y + h}, {0.0f, 1.0f}, {colorBottom.r, colorBottom.g, colorBottom.b, colorBottom.a}, {x, y, w, h}, {cmd.borderRadius, type, 0.0f, 0.0f} };
+
+                // If it's a flat rect or gradient, map to center of dummy texture
+                if (cmd.type == DrawCommandType::Rect || cmd.type == DrawCommandType::Gradient) {
+                    v0.uv[0] = 0.5f; v0.uv[1] = 0.5f;
+                    v1.uv[0] = 0.5f; v1.uv[1] = 0.5f;
+                    v2.uv[0] = 0.5f; v2.uv[1] = 0.5f;
+                    v3.uv[0] = 0.5f; v3.uv[1] = 0.5f;
+                }
+
+                m_Vertices.push_back(v0);
+                m_Vertices.push_back(v1);
+                m_Vertices.push_back(v2);
+                m_Vertices.push_back(v3);
+
+                m_Indices.push_back(startIndex + 0);
+                m_Indices.push_back(startIndex + 1);
+                m_Indices.push_back(startIndex + 2);
+                m_Indices.push_back(startIndex + 2);
+                m_Indices.push_back(startIndex + 3);
+                m_Indices.push_back(startIndex + 0);
+
+                cmdIndexCount = 6;
             }
-
-            m_Vertices.push_back(v0);
-            m_Vertices.push_back(v1);
-            m_Vertices.push_back(v2);
-            m_Vertices.push_back(v3);
-
-            m_Indices.push_back(startIndex + 0);
-            m_Indices.push_back(startIndex + 1);
-            m_Indices.push_back(startIndex + 2);
-            m_Indices.push_back(startIndex + 2);
-            m_Indices.push_back(startIndex + 3);
-            m_Indices.push_back(startIndex + 0);
-
-            cmdIndexCount = 6;
 
         } else if (cmd.type == DrawCommandType::Line) {
             float dx = cmd.lineEnd.x - cmd.lineStart.x;
@@ -489,6 +523,7 @@ void UIRenderer::BuildGeometry(const std::vector<DrawCommand>& commands, uint32_
                     cmdIndexCount += 6;
                 }
             } else if (cmd.type == DrawCommandType::Text) {
+                ypos += cmd.fontSize * 0.85f; // Convert Top-Left Y to Baseline Y
                 for (char c : cmd.text) {
                     GlyphInfo q;
                     if (m_FontAtlas->GetCharQuad(c, &xpos, &ypos, q)) {

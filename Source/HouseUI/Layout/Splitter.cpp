@@ -1,5 +1,6 @@
 #include "Splitter.hpp"
 #include "../Core/PaintContext.hpp"
+#include "../Core/Theme.hpp"
 #include <algorithm>
 
 namespace HouseEngine::UI {
@@ -99,7 +100,7 @@ void Splitter::Paint(PaintContext& context) {
 
     // Draw Splitter Bar
     Rect barRect = GetSplitterBarRect();
-    Color barColor = m_Dragging ? Color{ 0.35f, 0.35f, 0.40f, 1.0f } : Color{ 0.20f, 0.20f, 0.22f, 1.0f };
+    Color barColor = m_Dragging ? Theme::Get().SelectedAccent : Theme::Get().Separator;
     context.DrawRect(barRect, barColor);
 }
 

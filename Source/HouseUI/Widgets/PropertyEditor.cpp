@@ -46,14 +46,17 @@ void PropertyEditor::Paint(PaintContext& context) {
         }
         
         // Draw category header
-        Rect headerRect{ m_Geometry.x + 4.0f, y, m_Geometry.width - 8.0f, m_CategoryHeaderHeight };
+        Rect headerRect{ m_Geometry.x, y, m_Geometry.width, m_CategoryHeaderHeight };
         
-        Color headerBg = Theme::Get().ToolbarBackground;
+        Color headerBg = Theme::Get().HeaderBackground;
         if (cat.name == m_HoveredCategory) {
             headerBg = Theme::Get().HoverOverlay;
         }
         
         context.DrawRoundedRect(headerRect, headerBg, 4.0f);
+        
+        // Draw 1px separator at bottom of header
+        context.DrawRect({ m_Geometry.x, y + m_CategoryHeaderHeight - 1.0f, m_Geometry.width, 1.0f }, Theme::Get().Separator);
         
         // Draw expand/collapse chevron
         float chevronSize = 12.0f;
@@ -66,8 +69,8 @@ void PropertyEditor::Paint(PaintContext& context) {
         
         // Draw category name
         float textX = chevronX + chevronSize + 8.0f;
-        float textY = headerRect.y + (m_CategoryHeaderHeight - 14.0f) / 2.0f;
-        context.DrawText(cat.name, Point{ textX, textY }, Theme::Get().TextPrimary, 14.0f, true);
+        float textY = headerRect.y + (m_CategoryHeaderHeight - Theme::Get().TextSizeHeader) / 2.0f;
+        context.DrawText(cat.name, Point{ textX, textY }, Theme::Get().TextPrimary, Theme::Get().TextSizeHeader, true);
         
         y += m_CategoryHeaderHeight;
         
@@ -91,13 +94,19 @@ void PropertyEditor::Paint(PaintContext& context) {
                 
                 // Draw property label
                 float labelX = propRect.x + 4.0f;
-                float labelY = propRect.y + (m_PropertyHeight - 12.0f) / 2.0f;
+                float labelY = propRect.y + (m_PropertyHeight - Theme::Get().TextSizeBody) / 2.0f;
                 Color labelColor = prop.hasOverride ? Theme::Get().SelectedAccent : Theme::Get().TextSecondary;
-                context.DrawText(prop.name, Point{ labelX, labelY }, labelColor, 12.0f);
+                context.DrawText(prop.name, Point{ labelX, labelY }, labelColor, Theme::Get().TextSizeBody);
                 
-                // Draw property value
-                float valueX = propRect.x + m_LabelWidth;
-                float valueY = propRect.y + (m_PropertyHeight - 13.0f) / 2.0f;
+                // Draw property value as a rounded input box
+                float valueWidth = propRect.width - m_LabelWidth - 8.0f;
+                Rect valueRect{ propRect.x + m_LabelWidth, propRect.y + (m_PropertyHeight - 20.0f) / 2.0f, valueWidth, 20.0f };
+                
+                context.DrawRoundedRect(valueRect, Theme::Get().InputBackground, 4.0f); // Input box background
+                context.DrawRoundedRectOutline(valueRect, Theme::Get().BorderDefault, 1.0f, 4.0f); // Input box border
+                
+                float valueX = valueRect.x + 6.0f;
+                float valueY = valueRect.y + (20.0f - 13.0f) / 2.0f;
                 context.DrawText(prop.value, Point{ valueX, valueY }, Theme::Get().TextPrimary, 13.0f);
                 
                 // Draw reset button if has override

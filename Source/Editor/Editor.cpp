@@ -25,6 +25,104 @@
 #include <stdexcept>
 #include <chrono>
 
+#define NANOSVG_IMPLEMENTATION
+#include <nanosvg.h>
+#define NANOSVGRAST_IMPLEMENTATION
+#include <nanosvgrast.h>
+
+#include "../HouseUI/Widgets/LogoSVG.hpp"
+
+static VkDescriptorSet LoadSVGSingle(std::shared_ptr<HouseEngine::VulkanContext>& context, HouseEngine::UI::UIRenderer* uiRenderer, int width, int height) {
+    std::string svgStr = g_WindEffectsLogoSVG;
+    std::vector<char> svgCopy(svgStr.begin(), svgStr.end());
+    svgCopy.push_back('\0');
+
+    NSVGimage* image = nsvgParse(svgCopy.data(), "px", 96);
+    if (!image) {
+        HE_ERROR("Failed to parse embedded SVG");
+        return VK_NULL_HANDLE;
+    }
+
+    // Force all shapes to be white
+    for (NSVGshape* shape = image->shapes; shape != NULL; shape = shape->next) {
+        shape->fill.type = NSVG_PAINT_COLOR; // 1 = NSVG_PAINT_COLOR
+        shape->fill.color = 0xFFFFFFFF; // White with full alpha
+    }
+    
+    NSVGrasterizer* rast = nsvgCreateRasterizer();
+    if (!rast) {
+        nsvgDelete(image);
+        return VK_NULL_HANDLE;
+    }
+
+    std::vector<uint8_t> rgbaBuffer(width * height * 4, 0);
+    float scale = (float)width / image->width;
+    float scaleY = (float)height / image->height;
+    if (scaleY < scale) scale = scaleY; // fit
+    
+    nsvgRasterize(rast, image, 0, 0, scale, rgbaBuffer.data(), width, height, width * 4);
+    
+    nsvgDeleteRasterizer(rast);
+    nsvgDelete(image);
+
+    // Vulkan upload
+    VkDevice device = context->GetDevice();
+    VkDeviceSize imageSize = width * height * 4;
+    VkBuffer stagingBuffer;
+    VkDeviceMemory stagingBufferMemory;
+    
+    context->CreateBuffer(imageSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+        stagingBuffer, stagingBufferMemory);
+
+    void* data;
+    vkMapMemory(device, stagingBufferMemory, 0, imageSize, 0, &data);
+    memcpy(data, rgbaBuffer.data(), (size_t)imageSize);
+    vkUnmapMemory(device, stagingBufferMemory);
+
+    VkImage vkImage;
+    VkDeviceMemory vkMemory;
+    context->CreateImage(width, height, VK_FORMAT_R8G8B8A8_UNORM,
+        VK_IMAGE_TILING_OPTIMAL,
+        VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+        vkImage, vkMemory);
+
+    context->TransitionImageLayout(vkImage, VK_FORMAT_R8G8B8A8_UNORM,
+        VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+
+    VkCommandBuffer cmd = context->BeginSingleTimeCommands();
+    VkBufferImageCopy region{};
+    region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    region.imageSubresource.layerCount = 1;
+    region.imageExtent = { (uint32_t)width, (uint32_t)height, 1 };
+    vkCmdCopyBufferToImage(cmd, stagingBuffer, vkImage, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
+    context->EndSingleTimeCommands(cmd);
+
+    context->TransitionImageLayout(vkImage, VK_FORMAT_R8G8B8A8_UNORM,
+        VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+
+    vkDestroyBuffer(device, stagingBuffer, nullptr);
+    vkFreeMemory(device, stagingBufferMemory, nullptr);
+
+    VkImageView view = context->CreateImageView(vkImage, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_ASPECT_COLOR_BIT);
+    
+    VkSamplerCreateInfo samplerInfo{};
+    samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+    samplerInfo.magFilter = VK_FILTER_LINEAR;
+    samplerInfo.minFilter = VK_FILTER_LINEAR;
+    samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+    samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+    samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+    samplerInfo.anisotropyEnable = VK_FALSE;
+    samplerInfo.unnormalizedCoordinates = VK_FALSE;
+    
+    VkSampler sampler;
+    vkCreateSampler(device, &samplerInfo, nullptr, &sampler);
+
+    return uiRenderer->RegisterTexture(view, sampler);
+}
+
 namespace HouseEngine {
 
 Editor::Editor() {
@@ -152,46 +250,66 @@ void Editor::BuildEditorUI() {
     
     menuBar->AddMenu("View", viewItems);
     
-    // Create custom TitleBar and add it instead of raw MenuBar
-    m_TitleBar = std::make_shared<UI::TitleBar>(m_Window, "LevelDesignProject", menuBar);
-    rootVBox->AddChild(m_TitleBar);
+    // Assets menu
+    std::vector<std::shared_ptr<UI::MenuItem>> assetsItems;
+    menuBar->AddMenu("Assets", assetsItems);
 
-    // 3. Toolbar
+    // Build menu
+    std::vector<std::shared_ptr<UI::MenuItem>> buildItems;
+    menuBar->AddMenu("Build", buildItems);
+
+    // Tools menu
+    std::vector<std::shared_ptr<UI::MenuItem>> toolsItems;
+    menuBar->AddMenu("Tools", toolsItems);
+
+    // Window menu
+    std::vector<std::shared_ptr<UI::MenuItem>> windowItems;
+    menuBar->AddMenu("Window", windowItems);
+
+    // Help menu
+    std::vector<std::shared_ptr<UI::MenuItem>> helpItems;
+    menuBar->AddMenu("Help", helpItems);
+
+    // 3. Main Toolbar
     auto toolbar = std::make_shared<UI::Toolbar>();
+    toolbar->SetHeight(48.0f); // 48px height
     
-    // Selection tools
-    toolbar->AddTool(UI::Icons::CursorName, []() { /* TODO: Select tool */ }, "Select");
-    toolbar->AddTool(UI::Icons::MoveName, []() { /* TODO: Move tool */ }, "Move");
-    toolbar->AddTool(UI::Icons::RotateName, []() { /* TODO: Rotate tool */ }, "Rotate");
-    toolbar->AddTool(UI::Icons::ScaleName, []() { /* TODO: Scale tool */ }, "Scale");
+    // File
+    toolbar->AddTool(UI::Icons::DocumentName, "New", []() { /* TODO */ }, "New Scene");
+    toolbar->AddTool(UI::Icons::FolderName, "Open", []() { /* TODO */ }, "Open Scene");
+    toolbar->AddTool(UI::Icons::SaveName, "Save", []() { /* TODO */ }, "Save Scene");
     toolbar->AddSeparator();
     
-    // Playback controls
-    toolbar->AddTool(UI::Icons::PlayName, []() { /* TODO: Play */ }, "Play");
-    toolbar->AddTool(UI::Icons::PauseName, []() { /* TODO: Pause */ }, "Pause");
-    toolbar->AddTool(UI::Icons::StopName, []() { /* TODO: Stop */ }, "Stop");
+    // History
+    toolbar->AddTool(UI::Icons::UndoName, "Undo", []() { /* TODO */ }, "Undo");
+    toolbar->AddTool(UI::Icons::RedoName, "Redo", []() { /* TODO */ }, "Redo");
+    toolbar->AddSeparator();
+
+    // Compile
+    toolbar->AddTool(UI::Icons::CodeName, "Compile", []() { /* TODO */ }, "Compile Code");
+    toolbar->AddTool(UI::Icons::BuildName, "Build", []() { /* TODO */ }, "Build Project");
     toolbar->AddSeparator();
     
-    // View modes
-    toolbar->AddTool(UI::Icons::LitName, [this]() {
-        for (auto& entity : m_Scene->GetEntities()) entity.Mode = 0;
-    }, "Lit");
-    toolbar->AddTool(UI::Icons::WireframeName, [this]() {
-        for (auto& entity : m_Scene->GetEntities()) entity.Mode = 2;
-    }, "Wireframe");
+    // Playback
+    toolbar->AddTool(UI::Icons::PlayName, "Play", []() { /* TODO */ }, "Play", true); // isPlayButton = true
+    toolbar->AddTool(UI::Icons::PauseName, "Pause", []() { /* TODO */ }, "Pause");
+    toolbar->AddTool(UI::Icons::StopName, "Stop", []() { /* TODO */ }, "Stop");
     toolbar->AddSeparator();
+
+    // Package
+    toolbar->AddTool(UI::Icons::PackageName, "Package", []() { /* TODO */ }, "Package Project");
+    toolbar->AddTool(UI::Icons::LayersName, "Launch", []() { /* TODO */ }, "Launch Project");
     
-    // Add objects
-    toolbar->AddTool(UI::Icons::CubeName, [this]() {
-        m_Scene->CreateEntity("Cube", EntityType::Cube, m_Renderer->GetCameraBuffer());
-    }, "Add Cube");
-    toolbar->AddTool(UI::Icons::PlaneName, [this]() {
-        m_Scene->CreateEntity("Ground Plane", EntityType::Plane, m_Renderer->GetCameraBuffer());
-    }, "Add Plane");
-    toolbar->AddTool(UI::Icons::SphereName, [this]() {
-        m_Scene->CreateEntity("Sphere", EntityType::Cube, m_Renderer->GetCameraBuffer());
-    }, "Add Sphere");
+    // Load SVG Logo
+    VkDescriptorSet logoDesc = LoadSVGSingle(m_Context, m_UIRenderer.get(), 20, 20);
+
+    // Create custom TitleBar
+    m_TitleBar = std::make_shared<UI::TitleBar>(m_Window, "WindEffects Engine", logoDesc, menuBar);
+    m_TitleBar->Construct();
+    rootVBox->AddChild(m_TitleBar);
     
+    // Add Row 2 (Main Toolbar)
+    toolbar->SetHeight(36.0f); // Make it 36px high as requested
     rootVBox->AddChild(toolbar);
 
     // 4. Main Splitter Panel (Left sidebar vs Right workspace)
@@ -220,9 +338,56 @@ void Editor::BuildEditorUI() {
     // Center layout: Viewport (Top) vs Bottom panels
     auto centerSplitter = std::make_shared<UI::Splitter>(UI::Orientation::Vertical, 0.70f);
 
-    // Viewport with overlay
+    // Main Tab Area
+    auto mainTabWidget = std::make_shared<UI::TabWidget>();
+    mainTabWidget->SetTabHeight(32.0f);
+    
+    mainTabWidget->AddTab("Viewport");
+    
+    auto viewportContainer = std::make_shared<UI::VerticalBox>();
+    viewportContainer->SetSpacing(0.0f);
+    
     m_ViewportWidget = std::make_shared<UI::ViewportWidget>(m_Renderer, m_Camera, m_Scene, m_UIRenderer.get());
-    centerSplitter->SetFirstChild(m_ViewportWidget);
+    
+    // Create Embedded Viewport Toolbar
+    auto viewportToolbar = std::make_shared<UI::Toolbar>();
+    viewportToolbar->SetHeight(32.0f); // 32px compact height
+    viewportToolbar->SetFloating(false);
+    
+    viewportToolbar->AddTool(UI::Icons::EyeName, "", []() { /* TODO */ }, "Move");
+    viewportToolbar->AddTool(UI::Icons::LayersName, "", []() { /* TODO */ }, "Rotate");
+    viewportToolbar->AddTool(UI::Icons::CubeName, "", []() { /* TODO */ }, "Scale");
+    viewportToolbar->AddSeparator();
+    viewportToolbar->AddTool(UI::Icons::PlaneName, "", []() { /* TODO */ }, "Local");
+    viewportToolbar->AddTool(UI::Icons::InfoName, "", []() { /* TODO */ }, "World");
+    viewportToolbar->AddTool(UI::Icons::SnapName, "", []() { /* TODO */ }, "Snap");
+    viewportToolbar->AddSeparator();
+    viewportToolbar->AddTool(UI::Icons::PerspectiveName, "", []() { /* TODO */ }, "Perspective");
+    viewportToolbar->AddTool(UI::Icons::LitName, "", []() { /* TODO */ }, "Lit");
+    viewportToolbar->AddTool(UI::Icons::CameraName, "", []() { /* TODO */ }, "Camera");
+    viewportToolbar->AddSeparator();
+    viewportToolbar->AddTool(UI::Icons::GridName, "", []() { /* TODO */ }, "Grid");
+    viewportToolbar->AddTool(UI::Icons::SettingsName, "", []() { /* TODO */ }, "Statistics");
+    
+    viewportContainer->AddChild(viewportToolbar);
+    viewportContainer->AddChild(m_ViewportWidget);
+    
+    mainTabWidget->SetTabContent(0, viewportContainer);
+    
+    // Add stub tabs
+    mainTabWidget->AddTab("World");
+    mainTabWidget->SetTabContent(1, std::make_shared<UI::Panel>("World Settings"));
+    
+    mainTabWidget->AddTab("Blueprints");
+    mainTabWidget->SetTabContent(2, std::make_shared<UI::Panel>("Blueprints"));
+    
+    mainTabWidget->AddTab("Animation");
+    mainTabWidget->SetTabContent(3, std::make_shared<UI::Panel>("Animation Graph"));
+
+    mainTabWidget->AddTab("Material");
+    mainTabWidget->SetTabContent(4, std::make_shared<UI::Panel>("Material Editor"));
+
+    centerSplitter->SetFirstChild(mainTabWidget);
     
     // Bottom area: Content Browser and Console (Tabbed)
     auto bottomTabWidget = std::make_shared<UI::TabWidget>();
@@ -231,24 +396,51 @@ void Editor::BuildEditorUI() {
     // Content Browser tab
     bottomTabWidget->AddTab("Content Browser");
     auto contentBrowser = std::make_shared<UI::ContentBrowser>();
-    // Add some sample content
-    UI::ContentItem folder;
-    folder.id = "0";
-    folder.name = "Assets";
-    folder.type = "folder";
-    folder.iconName = UI::Icons::FolderName;
-    folder.isFolder = true;
-    contentBrowser->AddItem(folder);
+    
+    // Add some sample content (Folders)
+    UI::ContentItem folder1{"0", "Maps", "folder", UI::Icons::FolderName, true, false};
+    UI::ContentItem folder2{"1", "Materials", "folder", UI::Icons::FolderName, true, false};
+    UI::ContentItem folder3{"2", "Meshes", "folder", UI::Icons::FolderName, true, false};
+    UI::ContentItem folder4{"3", "Textures", "folder", UI::Icons::FolderName, true, false};
+    contentBrowser->AddItem(folder1);
+    contentBrowser->AddItem(folder2);
+    contentBrowser->AddItem(folder3);
+    contentBrowser->AddItem(folder4);
+    
+    // Add sample content (Assets)
+    UI::ContentItem asset1{"10", "PlayerCharacter", "Blueprint", UI::Icons::DocumentName, false, true};
+    UI::ContentItem asset2{"11", "M_Concrete", "Material", UI::Icons::MaterialName, false, false};
+    UI::ContentItem asset3{"12", "SM_Crate", "StaticMesh", UI::Icons::CubeName, false, false};
+    UI::ContentItem asset4{"13", "T_Brick_D", "Texture2D", UI::Icons::TextureName, false, false};
+    UI::ContentItem asset5{"14", "Level_01", "Map", UI::Icons::LayersName, false, true};
+    contentBrowser->AddItem(asset1);
+    contentBrowser->AddItem(asset2);
+    contentBrowser->AddItem(asset3);
+    contentBrowser->AddItem(asset4);
+    contentBrowser->AddItem(asset5);
+    
     bottomTabWidget->SetTabContent(0, contentBrowser);
     
-    // Console tab
+    // Output Log tab
     bottomTabWidget->AddTab("Output Log");
-    auto consolePanel = std::make_shared<UI::Panel>("Console");
-    consolePanel->SetCollapsible(false);
+    auto logPanel = std::make_shared<UI::Panel>("Output Log");
+    logPanel->SetCollapsible(false);
     m_ConsoleList = std::make_shared<UI::VerticalBox>();
     m_ConsoleList->SetSpacing(2.0f);
-    consolePanel->SetContent(m_ConsoleList);
-    bottomTabWidget->SetTabContent(1, consolePanel);
+    logPanel->SetContent(m_ConsoleList);
+    bottomTabWidget->SetTabContent(1, logPanel);
+    
+    // Console tab
+    bottomTabWidget->AddTab("Console");
+    auto consolePanel = std::make_shared<UI::Panel>("Console");
+    consolePanel->SetCollapsible(false);
+    bottomTabWidget->SetTabContent(2, consolePanel);
+
+    // Profiler tab
+    bottomTabWidget->AddTab("Profiler");
+    auto profilerPanel = std::make_shared<UI::Panel>("Profiler Data");
+    profilerPanel->SetCollapsible(false);
+    bottomTabWidget->SetTabContent(3, profilerPanel);
     
     centerSplitter->SetSecondChild(bottomTabWidget);
     workspaceRightSplitter->SetFirstChild(centerSplitter);
@@ -266,7 +458,7 @@ void Editor::BuildEditorUI() {
     
     // 5. Status Bar
     auto statusBar = std::make_shared<UI::StatusBar>();
-    statusBar->SetMessage("Ready");
+    statusBar->Construct();
     m_StatusBar = statusBar;
     rootVBox->AddChild(statusBar);
     m_RootWidget = rootVBox;

@@ -11,7 +11,7 @@ SearchBox::SearchBox()
 {}
 
 Size SearchBox::Measure(const Size& availableSize) {
-    return Size{ availableSize.width, m_Height };
+    return Size{ 200.0f, m_Height };
 }
 
 void SearchBox::Arrange(const Rect& allottedRect) {

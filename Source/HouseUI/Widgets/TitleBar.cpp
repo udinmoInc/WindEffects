@@ -2,153 +2,141 @@
 #include "../Core/PaintContext.hpp"
 #include "../Core/Theme.hpp"
 #include "../Core/Icon.hpp"
+#include "../Layout/Spacer.hpp"
+#include "IconWidget.hpp"
+#include "Label.hpp"
+#include "ToolButton.hpp"
+#include "SearchBox.hpp"
+#include "Panel.hpp"
+#include "Image.hpp"
 #include <iostream>
 
 namespace HouseEngine::UI {
 
-TitleBar::TitleBar(SDL_Window* window, const std::string& title, std::shared_ptr<MenuBar> menuBar)
-    : m_Window(window), m_Title(title), m_MenuBar(menuBar)
+TitleBar::TitleBar(SDL_Window* window, const std::string& title, VkDescriptorSet logoSet, std::shared_ptr<MenuBar> menuBar)
+    : m_Window(window), m_Title(title), m_LogoSet(logoSet), m_MenuBar(menuBar)
 {
+    SetPadding(Margin{ 8.0f, 0.0f, 8.0f, 0.0f });
+    SetSpacing(8.0f);
+}
+
+void TitleBar::Construct() {
+
+    // Left Container
+    if (m_LogoSet != VK_NULL_HANDLE) {
+        auto img = std::make_shared<Image>(m_LogoSet);
+        img->SetSize(Size{ 20.0f, 20.0f });
+        img->SetTintColor(Theme::Get().TextPrimary);
+        AddChild(img);
+    } else {
+        AddChild(std::make_shared<IconWidget>(Icons::CameraName, 20.0f));
+    }
+    
     if (m_MenuBar) {
+        // We do not want MenuBar to be huge, just natural size
         AddChild(m_MenuBar);
+    } else {
+        auto engineLabel = std::make_shared<Label>("WindEffects");
+        engineLabel->SetStyle(TextStyle::Body());
+        AddChild(engineLabel);
+    }
+
+    // First Spacer to push Project Badge to center
+    AddChild(std::make_shared<Spacer>());
+
+    // Center Container (Project Badge)
+    auto projectBadge = std::make_shared<Label>(m_Title);
+    projectBadge->SetStyle(TextStyle::Small());
+    AddChild(projectBadge);
+
+    // Second Spacer to push right controls to right
+    AddChild(std::make_shared<Spacer>());
+
+    // Right Container
+    m_SearchWidget = std::make_shared<SearchBox>();
+    AddChild(m_SearchWidget);
+
+    auto gitBtn = std::make_shared<ToolButton>(Icons::UndoName, "");
+    auto notifBtn = std::make_shared<ToolButton>(Icons::InfoName, "");
+    auto settingsBtn = std::make_shared<ToolButton>(Icons::SettingsName, "");
+    auto profileBtn = std::make_shared<ToolButton>(Icons::PropertiesName, ""); // fallback for user
+    
+    AddChild(gitBtn);
+    AddChild(notifBtn);
+    AddChild(settingsBtn);
+    AddChild(profileBtn);
+
+    m_MinimizeWidget = std::make_shared<ToolButton>(Icons::MinimizeName, "");
+    m_MaximizeWidget = std::make_shared<ToolButton>(Icons::MaximizeName, "");
+    m_CloseWidget = std::make_shared<ToolButton>(Icons::XName, "");
+
+    AddChild(m_MinimizeWidget);
+    AddChild(m_MaximizeWidget);
+    AddChild(m_CloseWidget);
+
+    m_InteractableWidgets.push_back(m_SearchWidget);
+    m_InteractableWidgets.push_back(gitBtn);
+    m_InteractableWidgets.push_back(notifBtn);
+    m_InteractableWidgets.push_back(settingsBtn);
+    m_InteractableWidgets.push_back(profileBtn);
+    m_InteractableWidgets.push_back(m_MinimizeWidget);
+    m_InteractableWidgets.push_back(m_MaximizeWidget);
+    m_InteractableWidgets.push_back(m_CloseWidget);
+    
+    if (m_MenuBar) {
+        m_InteractableWidgets.push_back(m_MenuBar);
     }
 }
 
 Size TitleBar::Measure(const Size& availableSize) {
-    float height = 32.0f; // Fixed height for title bar
-    
-    if (m_MenuBar) {
-        // Menu bar gets the available space minus controls and title
-        m_MenuBar->Measure(Size{ availableSize.width - 200.0f, height });
-    }
-    
-    return Size{ availableSize.width, height };
+    HorizontalBox::Measure(availableSize);
+    m_DesiredSize = Size{ availableSize.width, 36.0f }; // Force 36px height
+    return m_DesiredSize;
 }
 
 void TitleBar::Arrange(const Rect& allottedRect) {
-    m_Geometry = allottedRect;
-    
-    // Controls
-    float controlWidth = 46.0f;
-    float currentX = m_Geometry.x + m_Geometry.width - controlWidth * 3.0f;
-    
-    m_MinimizeRect = Rect{ currentX, m_Geometry.y, controlWidth, m_Geometry.height };
-    currentX += controlWidth;
-    m_MaximizeRect = Rect{ currentX, m_Geometry.y, controlWidth, m_Geometry.height };
-    currentX += controlWidth;
-    m_CloseRect = Rect{ currentX, m_Geometry.y, controlWidth, m_Geometry.height };
-    
-    // Menu Bar
-    if (m_MenuBar) {
-        float menuWidth = m_MenuBar->GetDesiredSize().width;
-        m_MenuBar->Arrange(Rect{ m_Geometry.x + 32.0f, m_Geometry.y, menuWidth, m_Geometry.height });
-    }
+    HorizontalBox::Arrange(allottedRect);
 }
 
 void TitleBar::Paint(PaintContext& context) {
     // Draw background
-    context.DrawRect(m_Geometry, Theme::Get().BackgroundDark);
+    context.DrawRect(m_Geometry, Theme::Get().HeaderBackground);
     
-    // Draw icon on the far left
-    Rect iconRect = { m_Geometry.x + 8.0f, m_Geometry.y + (m_Geometry.height - 16.0f) / 2.0f, 16.0f, 16.0f };
-    IconPainter::DrawIcon(context, Icons::Camera, iconRect, Theme::Get().PrimaryAccent); // Engine icon
-
-    // Draw Title centered
-    float titleWidth = m_Title.length() * 7.0f; // rough estimate
-    Point titlePos = { m_Geometry.x + (m_Geometry.width - titleWidth) / 2.0f, m_Geometry.y + (m_Geometry.height - 13.0f) / 2.0f };
-    context.DrawText(m_Title, titlePos, Theme::Get().TextPrimary, 13.0f);
-    
-    // Child painting (MenuBar)
-    for (auto& child : m_Children) {
-        child->Paint(context);
-    }
-    
-    // Draw Window Controls
-    // Minimize
-    if (m_HoveredControl == 0) {
-        context.DrawRect(m_MinimizeRect, Theme::Get().HoverOverlay);
-    }
-    Rect minIconRect = { m_MinimizeRect.x + (m_MinimizeRect.width - 16.0f) / 2.0f, m_MinimizeRect.y + (m_MinimizeRect.height - 16.0f) / 2.0f, 16.0f, 16.0f };
-    IconPainter::DrawIcon(context, Icons::Minimize, minIconRect, Theme::Get().TextPrimary);
-    
-    // Maximize/Restore
-    if (m_HoveredControl == 1) {
-        context.DrawRect(m_MaximizeRect, Theme::Get().HoverOverlay);
-    }
-    Rect maxIconRect = { m_MaximizeRect.x + (m_MaximizeRect.width - 16.0f) / 2.0f, m_MaximizeRect.y + (m_MaximizeRect.height - 16.0f) / 2.0f, 16.0f, 16.0f };
-    bool isMaximized = (SDL_GetWindowFlags(m_Window) & SDL_WINDOW_MAXIMIZED) != 0;
-    IconPainter::DrawIcon(context, isMaximized ? Icons::Restore : Icons::Maximize, maxIconRect, Theme::Get().TextPrimary);
-    
-    // Close
-    if (m_HoveredControl == 2) {
-        context.DrawRect(m_CloseRect, Color{ 0.9f, 0.2f, 0.2f, 1.0f }); // Red close button hover
-    }
-    Rect closeIconRect = { m_CloseRect.x + (m_CloseRect.width - 16.0f) / 2.0f, m_CloseRect.y + (m_CloseRect.height - 16.0f) / 2.0f, 16.0f, 16.0f };
-    IconPainter::DrawIcon(context, Icons::X, closeIconRect, Theme::Get().TextPrimary);
+    // Draw children
+    HorizontalBox::Paint(context);
 }
 
 void TitleBar::OnMouseDown(const MouseEvent& event) {
-    if (event.button != MouseButton::Left) return;
-    
-    if (m_HoveredControl == 0) {
-        SDL_MinimizeWindow(m_Window);
-    } else if (m_HoveredControl == 1) {
-        bool isMaximized = (SDL_GetWindowFlags(m_Window) & SDL_WINDOW_MAXIMIZED) != 0;
-        if (isMaximized) {
-            SDL_RestoreWindow(m_Window);
-        } else {
-            SDL_MaximizeWindow(m_Window);
-        }
-    } else if (m_HoveredControl == 2) {
-        SDL_Event quitEvent;
-        quitEvent.type = SDL_EVENT_QUIT;
-        SDL_PushEvent(&quitEvent);
-    } else if (m_MenuBar) {
-        // Forward to menu bar if in menu bar rect
-        if (event.position.x >= m_MenuBar->GetGeometry().x &&
-            event.position.x <= m_MenuBar->GetGeometry().x + m_MenuBar->GetGeometry().width) {
-            m_MenuBar->OnMouseDown(event);
-        }
-    }
+    HorizontalBox::OnMouseDown(event);
 }
 
 void TitleBar::OnMouseMove(const MouseEvent& event) {
-    m_HoveredControl = -1;
-    if (event.position.x >= m_MinimizeRect.x && event.position.x <= m_MinimizeRect.x + m_MinimizeRect.width &&
-        event.position.y >= m_MinimizeRect.y && event.position.y <= m_MinimizeRect.y + m_MinimizeRect.height) {
-        m_HoveredControl = 0;
-    } else if (event.position.x >= m_MaximizeRect.x && event.position.x <= m_MaximizeRect.x + m_MaximizeRect.width &&
-               event.position.y >= m_MaximizeRect.y && event.position.y <= m_MaximizeRect.y + m_MaximizeRect.height) {
-        m_HoveredControl = 1;
-    } else if (event.position.x >= m_CloseRect.x && event.position.x <= m_CloseRect.x + m_CloseRect.width &&
-               event.position.y >= m_CloseRect.y && event.position.y <= m_CloseRect.y + m_CloseRect.height) {
-        m_HoveredControl = 2;
-    }
-    
-    if (m_MenuBar) {
-        m_MenuBar->OnMouseMove(event);
-    }
+    HorizontalBox::OnMouseMove(event);
 }
 
 SDL_HitTestResult TitleBar::HitTest(SDL_Point point) {
-    // Determine if the point (in window coordinates) is within title bar draggable area
-    // Let's assume the TitleBar is always at y=0 to height
-    if (point.y > m_Geometry.height) return SDL_HITTEST_NORMAL;
+    Point p{ (float)point.x, (float)point.y };
     
-    // Check if in controls
-    if (point.x >= m_MinimizeRect.x && point.x <= m_CloseRect.x + m_CloseRect.width) {
-        return SDL_HITTEST_NORMAL; // Intercepted by UI controls
-    }
-    
-    // Check if in Menu Bar
-    if (m_MenuBar) {
-        if (point.x >= m_MenuBar->GetGeometry().x && point.x <= m_MenuBar->GetGeometry().x + m_MenuBar->GetGeometry().width) {
-            return SDL_HITTEST_NORMAL; // Let menu bar handle it
+    // Check if clicking inside interactable widgets
+    for (const auto& w : m_InteractableWidgets) {
+        if (p.x >= w->GetGeometry().x && p.x <= w->GetGeometry().x + w->GetGeometry().width &&
+            p.y >= w->GetGeometry().y && p.y <= w->GetGeometry().y + w->GetGeometry().height) {
+            
+            if (w == m_MinimizeWidget) return SDL_HITTEST_NORMAL;
+            if (w == m_MaximizeWidget) return SDL_HITTEST_NORMAL;
+            if (w == m_CloseWidget) return SDL_HITTEST_NORMAL;
+            
+            return SDL_HITTEST_NORMAL; // Search box and other buttons
         }
     }
     
-    // If not in controls, it's draggable
-    return SDL_HITTEST_DRAGGABLE;
+    // If inside titlebar but not on a button, draggable
+    if (p.x >= m_Geometry.x && p.x <= m_Geometry.x + m_Geometry.width &&
+        p.y >= m_Geometry.y && p.y <= m_Geometry.y + m_Geometry.height) {
+        return SDL_HITTEST_DRAGGABLE;
+    }
+    
+    return SDL_HITTEST_NORMAL;
 }
 
 } // namespace HouseEngine::UI

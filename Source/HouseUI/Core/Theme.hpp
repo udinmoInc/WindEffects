@@ -8,46 +8,68 @@ namespace HouseEngine::UI {
 
 struct Theme {
     // ------------------------------------------------------------------------
-    // Colors (Premium M3-inspired Dark Mode)
+    // Colors (AAA Neutral Dark Theme - Industrial 2026 Style)
     // ------------------------------------------------------------------------
-    Color PrimaryBackground = { 0.035f, 0.035f, 0.043f, 1.0f }; // #09090B (Deep background)
-    Color PanelBackground   = { 0.094f, 0.094f, 0.105f, 0.85f }; // #18181B with glassmorphism transparency
-    Color ToolbarBackground = { 0.094f, 0.094f, 0.105f, 0.95f }; // #18181B slightly more opaque
+    // Core UI Colors
+    Color WindowBackground  = { 0.118f, 0.118f, 0.118f, 1.0f }; // #1E1E1E
+    Color WorkspaceBackground = { 0.118f, 0.118f, 0.118f, 1.0f }; // #1E1E1E
+    Color ToolbarBackground = { 0.176f, 0.176f, 0.188f, 1.0f }; // #2D2D30
+    Color PanelBackground   = { 0.145f, 0.145f, 0.149f, 1.0f }; // #252526
+    Color HeaderBackground  = { 0.145f, 0.145f, 0.149f, 1.0f }; // #252526
+    Color ViewportBackground = { 0.118f, 0.118f, 0.118f, 1.0f }; // #1E1E1E
+    Color MenuBarBackground = { 0.118f, 0.118f, 0.118f, 1.0f }; // #1E1E1E
+    Color TabBackground     = { 0.145f, 0.145f, 0.149f, 1.0f }; // #252526
+    Color PopupBackground   = { 0.145f, 0.145f, 0.149f, 1.0f }; // #252526
     
-    Color HoverOverlay      = { 0.152f, 0.152f, 0.164f, 1.0f }; // #27272A
-    Color SelectedAccent    = { 0.545f, 0.360f, 0.964f, 1.0f }; // #8B5CF6 (Vibrant Purple/Violet)
-    
-    Color TextPrimary       = { 0.980f, 0.980f, 0.980f, 1.0f }; // #FAFAFA
-    Color TextSecondary     = { 0.631f, 0.631f, 0.666f, 1.0f }; // #A1A1AA
-    
-    Color BorderDefault     = { 0.152f, 0.152f, 0.164f, 1.0f }; // #27272A (Subtle border)
-    
-    // Status Colors
-    Color Error             = { 0.937f, 0.266f, 0.266f, 1.0f }; // #EF4444 (Vibrant Red)
-    Color Warning           = { 0.964f, 0.584f, 0.117f, 1.0f }; // #F59E0B (Vibrant Amber)
-    Color Success           = { 0.133f, 0.772f, 0.368f, 1.0f }; // #22C55E (Vibrant Green)
+    // Borders (rgba(255,255,255,0.06))
+    Color BorderDefault     = { 1.0f, 1.0f, 1.0f, 0.06f };
+    Color BorderLight       = { 1.0f, 1.0f, 1.0f, 0.06f };
+    Color BorderDark        = { 1.0f, 1.0f, 1.0f, 0.06f };
+    Color Separator         = { 1.0f, 1.0f, 1.0f, 0.06f };
+
+    // Interactive States
+    Color HoverOverlay      = { 0.200f, 0.200f, 0.216f, 1.0f }; // #333337
+    Color PressedOverlay    = { 0.250f, 0.250f, 0.260f, 1.0f }; // Darker/Lighter for press
+    Color SelectedBg        = { 0.227f, 0.478f, 0.996f, 0.3f }; // #3A7AFE (Translucent for bg)
+
+    // Text & Content
+    Color TextPrimary       = { 0.941f, 0.941f, 0.941f, 1.0f }; // #F0F0F0
+    Color TextSecondary     = { 0.604f, 0.604f, 0.604f, 1.0f }; // #9A9A9A
+    Color TextDisabled      = { 0.400f, 0.400f, 0.400f, 1.0f }; // #666666
+
+    // Accents
+    Color SelectedAccent    = { 0.227f, 0.478f, 0.996f, 1.0f }; // #3A7AFE (Accent Blue)
+    Color ActiveTabLine     = { 0.227f, 0.478f, 0.996f, 1.0f }; // #3A7AFE
+    Color Success           = { 0.180f, 0.800f, 0.443f, 1.0f };
+    Color Warning           = { 0.945f, 0.768f, 0.058f, 1.0f };
+
+    // Input Fields
+    Color InputBackground   = { 0.118f, 0.118f, 0.118f, 1.0f }; // #1E1E1E
+    Color SearchBoxBg       = { 0.118f, 0.118f, 0.118f, 1.0f }; // #1E1E1E
 
     // ------------------------------------------------------------------------
+    // Geometry & Layout Constants
+    // ------------------------------------------------------------------------
+    float CornerRadiusSmall = 2.0f;
+    float CornerRadiusMedium= 4.0f;
+    float CornerRadiusLarge = 4.0f; 
+    
     // Typography
-    // ------------------------------------------------------------------------
-    float TextSizeMenu      = 14.0f;
-    float TextSizeToolbar   = 14.0f;
-    float TextSizeHeader    = 15.0f;
-    float TextSizeBody      = 14.0f;
-    float TextSizeSmall     = 12.0f;
-
-    // ------------------------------------------------------------------------
-    // Layout & Styling
-    // ------------------------------------------------------------------------
-    float CornerRadiusSmall = 6.0f;
-    float CornerRadiusLarge = 12.0f;
+    float TextSizeHeader    = 15.0f; // Section title
+    float TextSizeLarge     = 14.0f;
+    float TextSizeNormal    = 13.0f; // Default
+    float TextSizeToolbar   = 13.0f;
+    float TextSizeBody      = 13.0f; 
+    float TextSizeMenu      = 13.0f;
+    float TextSizeSmall     = 11.0f; // Captions
     
-    float BorderWidth       = 1.5f;
+    float BorderWidth       = 1.0f;
     
-    Margin PaddingWindow    = { 12.0f, 12.0f, 12.0f, 12.0f };
-    Margin PaddingPanel     = { 8.0f, 8.0f, 8.0f, 8.0f };
-    Margin PaddingButton    = { 16.0f, 8.0f, 16.0f, 8.0f };
-    Margin PaddingIconBtn   = { 6.0f, 6.0f, 6.0f, 6.0f };
+    // Core metrics (8px grid)
+    Margin PaddingWindow    = { 0.0f, 0.0f, 0.0f, 0.0f }; // Viewport dominates, no window border padding
+    Margin PaddingPanel     = { 4.0f, 4.0f, 4.0f, 4.0f }; // Minimal padding
+    Margin PaddingButton    = { 8.0f, 4.0f, 8.0f, 4.0f }; // Clickable areas
+    Margin PaddingIconBtn   = { 4.0f, 4.0f, 4.0f, 4.0f };
 
     // ------------------------------------------------------------------------
     // Global Management

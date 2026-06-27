@@ -8,10 +8,15 @@
 
 namespace HouseEngine::UI {
 
-// Icon-only button for toolbar use
+enum class ToolButtonStyle {
+    Normal,
+    PlayButton
+};
+
+// Icon and text button for toolbar use
 class ToolButton : public Widget {
 public:
-    ToolButton(const std::string& iconName, std::function<void()> onClicked = nullptr, const std::string& tooltip = "");
+    ToolButton(const std::string& iconName, const std::string& label = "", std::function<void()> onClicked = nullptr, const std::string& tooltip = "");
     virtual ~ToolButton() = default;
 
     Size Measure(const Size& availableSize) override;
@@ -27,13 +32,16 @@ public:
     void SetOnClicked(std::function<void()> onClicked) { m_OnClicked = onClicked; }
     void SetActive(bool active) { m_Active = active; }
     bool IsActive() const { return m_Active; }
+    void SetButtonStyle(ToolButtonStyle style) { m_ButtonStyle = style; }
 
 private:
     std::string m_IconName;
+    std::string m_Label;
     std::string m_Tooltip;
     std::function<void()> m_OnClicked;
     bool m_Active = false;
     bool m_Pressed = false;
+    ToolButtonStyle m_ButtonStyle = ToolButtonStyle::Normal;
 
     // Animation states [0.0, 1.0]
     float m_HoverAnim = 0.0f;

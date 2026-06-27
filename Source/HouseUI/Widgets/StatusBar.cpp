@@ -2,176 +2,101 @@
 #include "../Core/PaintContext.hpp"
 #include "../Core/Theme.hpp"
 #include "../Core/Icon.hpp"
-#include <algorithm>
+#include "Label.hpp"
+#include "IconWidget.hpp"
+#include "../Layout/Spacer.hpp"
+#include <iomanip>
+#include <sstream>
 
 namespace HouseEngine::UI {
 
-StatusBar::StatusBar()
-    : m_Style(WidgetStyle::Panel())
-{}
-
-Size StatusBar::Measure(const Size& availableSize) {
-    CalculateLayout();
-    return Size{ availableSize.width, m_Height };
+StatusBar::StatusBar() {
+    SetPadding(Margin{ 16.0f, 0.0f, 16.0f, 0.0f });
 }
 
-void StatusBar::Arrange(const Rect& allottedRect) {
-    m_Geometry = allottedRect;
-    CalculateLayout();
+void StatusBar::Construct() {
+    // Left side
+    auto leftBox = std::make_shared<HorizontalBox>();
+    leftBox->SetSpacing(24.0f);
+
+    auto createStat = [](const std::string& icon, std::shared_ptr<Label>& labelOut, const std::string& initial) {
+        auto box = std::make_shared<HorizontalBox>();
+        box->SetSpacing(6.0f);
+        if (!icon.empty()) box->AddChild(std::make_shared<IconWidget>(icon, 16.0f));
+        labelOut = std::make_shared<Label>(initial);
+        labelOut->SetStyle(TextStyle::Small());
+        box->AddChild(labelOut);
+        return box;
+    };
+
+    leftBox->AddChild(createStat(Icons::ListName, m_FPSLabel, "FPS: 60.0"));
+    leftBox->AddChild(createStat(Icons::SettingsName, m_GPULabel, "GPU: RTX 4090"));
+    leftBox->AddChild(createStat(Icons::InfoName, m_MemoryLabel, "Mem: 1.2 GB"));
+    leftBox->AddChild(createStat(Icons::LayersName, m_DrawCallsLabel, "Draws: 142"));
+
+    AddChild(leftBox);
+
+    // Spacer
+    AddChild(std::make_shared<Spacer>());
+
+    // Right side
+    auto rightBox = std::make_shared<HorizontalBox>();
+    rightBox->SetSpacing(24.0f);
+
+    rightBox->AddChild(createStat(Icons::CheckName, m_CompileLabel, "Compile: Success"));
+    rightBox->AddChild(createStat(Icons::UndoName, m_GitLabel, "main"));
+
+    AddChild(rightBox);
+}
+
+Size StatusBar::Measure(const Size& availableSize) {
+    HorizontalBox::Measure(availableSize);
+    m_DesiredSize = Size{ availableSize.width, m_Height };
+    return m_DesiredSize;
 }
 
 void StatusBar::Paint(PaintContext& context) {
     // Draw background
-    context.DrawRect(m_Geometry, m_Style.background.color);
-    
-    // Draw separator line at top
-    Rect separatorRect{
-        m_Geometry.x,
-        m_Geometry.y,
-        m_Geometry.width,
-        1.0f
-    };
+    context.DrawRect(m_Geometry, Theme::Get().WindowBackground); // Or a specific status bar color
+
+    // Draw top separator
+    Rect separatorRect{ m_Geometry.x, m_Geometry.y, m_Geometry.width, 1.0f };
     context.DrawRect(separatorRect, Theme::Get().BorderDefault);
-    
-    // Draw sections
-    for (const auto& section : m_Sections) {
-        float contentX = section.geometry.x + 4.0f;
-        // Draw icon if present
-        if (!section.iconName.empty()) {
-            float iconSize = 14.0f;
-            float iconY = section.geometry.y + (m_Height + iconSize) / 2.0f;
-            
-            int codepoint = Icons::GetCodepoint(section.iconName);
-            if (codepoint != 0) {
-                context.DrawIcon(codepoint, Point{ contentX, iconY }, Theme::Get().TextSecondary, iconSize);
-            }
-            contentX += iconSize + 4.0f;
-        }
-        
-        // Draw text
-        float textY = section.geometry.y + (m_Height - 12.0f) / 2.0f;
-        
-        context.DrawText(section.text, Point{ contentX, textY }, Theme::Get().TextSecondary, 12.0f);
+
+    // Draw children
+    HorizontalBox::Paint(context);
+}
+
+void StatusBar::SetFPS(float fps) {
+    if (m_FPSLabel) {
+        std::stringstream ss;
+        ss << "FPS: " << std::fixed << std::setprecision(1) << fps;
+        m_FPSLabel->SetText(ss.str());
     }
 }
 
-void StatusBar::AddSection(const std::string& text, const std::string& iconName, float width) {
-    StatusSection section;
-    section.text = text;
-    section.iconName = iconName;
-    section.width = width;
-    section.geometry = Rect{};
-    m_Sections.push_back(section);
-    CalculateLayout();
+void StatusBar::SetGPU(const std::string& name) {
+    if (m_GPULabel) m_GPULabel->SetText("GPU: " + name);
 }
 
-void StatusBar::SetSectionText(size_t index, const std::string& text) {
-    if (index < m_Sections.size()) {
-        m_Sections[index].text = text;
-        CalculateLayout();
+void StatusBar::SetMemory(float gb) {
+    if (m_MemoryLabel) {
+        std::stringstream ss;
+        ss << "Mem: " << std::fixed << std::setprecision(2) << gb << " GB";
+        m_MemoryLabel->SetText(ss.str());
     }
 }
 
-void StatusBar::RemoveSection(size_t index) {
-    if (index < m_Sections.size()) {
-        m_Sections.erase(m_Sections.begin() + index);
-        CalculateLayout();
-    }
+void StatusBar::SetDrawCalls(int calls) {
+    if (m_DrawCallsLabel) m_DrawCallsLabel->SetText("Draws: " + std::to_string(calls));
 }
 
-void StatusBar::Clear() {
-    m_Sections.clear();
-    CalculateLayout();
+void StatusBar::SetCompileStatus(const std::string& status) {
+    if (m_CompileLabel) m_CompileLabel->SetText("Compile: " + status);
 }
 
-void StatusBar::SetMessage(const std::string& message) {
-    if (m_Sections.empty()) {
-        AddSection(message);
-    } else {
-        SetSectionText(0, message);
-    }
-}
-
-void StatusBar::SetCoordinates(float x, float y, float z) {
-    char coords[64];
-    snprintf(coords, sizeof(coords), "X: %.2f Y: %.2f Z: %.2f", x, y, z);
-    
-    // Find or create coordinates section
-    bool found = false;
-    for (size_t i = 0; i < m_Sections.size(); ++i) {
-        if (m_Sections[i].iconName == Icons::MoveName) {
-            SetSectionText(i, coords);
-            found = true;
-            break;
-        }
-    }
-    
-    if (!found) {
-        AddSection(coords, Icons::MoveName, 150.0f);
-    }
-}
-
-void StatusBar::SetSelectionInfo(size_t count) {
-    char info[32];
-    snprintf(info, sizeof(info), "%zu selected", count);
-    
-    bool found = false;
-    for (size_t i = 0; i < m_Sections.size(); ++i) {
-        if (m_Sections[i].iconName == Icons::CursorName) {
-            SetSectionText(i, info);
-            found = true;
-            break;
-        }
-    }
-    
-    if (!found) {
-        AddSection(info, Icons::CursorName, 100.0f);
-    }
-}
-
-void StatusBar::SetMemoryUsage(size_t usedMB, size_t totalMB) {
-    char mem[32];
-    snprintf(mem, sizeof(mem), "Mem: %zu/%zu MB", usedMB, totalMB);
-    
-    bool found = false;
-    for (size_t i = 0; i < m_Sections.size(); ++i) {
-        if (m_Sections[i].iconName == Icons::InfoName) {
-            SetSectionText(i, mem);
-            found = true;
-            break;
-        }
-    }
-    
-    if (!found) {
-        AddSection(mem, Icons::InfoName, 120.0f);
-    }
-}
-
-void StatusBar::CalculateLayout() {
-    float x = m_Geometry.x + m_Padding;
-    float availableWidth = m_Geometry.width - m_Padding * 2.0f;
-    
-    // First pass: calculate total width of fixed sections
-    float totalFixedWidth = 0.0f;
-    int autoSections = 0;
-    
-    for (const auto& section : m_Sections) {
-        if (section.width > 0.0f) {
-            totalFixedWidth += section.width + m_SectionSpacing;
-        } else {
-            autoSections++;
-        }
-    }
-    
-    // Calculate width for auto sections
-    float autoSectionWidth = autoSections > 0 ? (availableWidth - totalFixedWidth) / autoSections : 0.0f;
-    
-    // Second pass: assign geometries
-    for (auto& section : m_Sections) {
-        float width = section.width > 0.0f ? section.width : autoSectionWidth;
-        section.geometry = Rect{ x, m_Geometry.y, width, m_Height };
-        x += width + m_SectionSpacing;
-    }
+void StatusBar::SetGitBranch(const std::string& branch) {
+    if (m_GitLabel) m_GitLabel->SetText(branch);
 }
 
 } // namespace HouseEngine::UI

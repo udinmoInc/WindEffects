@@ -131,7 +131,7 @@ struct WidgetStyle {
     
     static WidgetStyle TextBox() {
         WidgetStyle style;
-        style.background = BackgroundStyle{ Theme::Get().PrimaryBackground, Theme::Get().CornerRadiusSmall };
+        style.background = BackgroundStyle{ Theme::Get().WindowBackground, Theme::Get().CornerRadiusSmall };
         style.border = BorderStyle::Thin();
         style.text = TextStyle::Body();
         style.shadow = ShadowStyle::None();
