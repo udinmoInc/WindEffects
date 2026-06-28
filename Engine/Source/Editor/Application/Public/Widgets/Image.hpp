@@ -1,7 +1,7 @@
 #pragma once
 
 #include <volk.h>
-#include "../Core/Widget.hpp"
+#include "Core/Widget.hpp"
 
 namespace we::UI {
 

@@ -1,5 +1,5 @@
-#include "OverlayManager.hpp"
-#include "../Core/PaintContext.hpp"
+#include "Layout/OverlayManager.hpp"
+#include "Core/PaintContext.hpp"
 
 namespace we::UI {
 

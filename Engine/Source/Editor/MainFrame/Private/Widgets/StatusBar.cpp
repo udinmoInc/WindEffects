@@ -1,10 +1,10 @@
-#include "StatusBar.hpp"
-#include "../Core/PaintContext.hpp"
-#include "../Core/Theme.hpp"
-#include "../Core/Icon.hpp"
-#include "Label.hpp"
-#include "IconWidget.hpp"
-#include "../Layout/Spacer.hpp"
+#include "Widgets/StatusBar.hpp"
+#include "Core/PaintContext.hpp"
+#include "Core/Theme.hpp"
+#include "Core/Icon.hpp"
+#include "Widgets/Label.hpp"
+#include "Widgets/IconWidget.hpp"
+#include "Layout/Spacer.hpp"
 #include <iomanip>
 #include <sstream>
 

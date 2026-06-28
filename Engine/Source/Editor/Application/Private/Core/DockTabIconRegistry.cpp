@@ -1,4 +1,4 @@
-#include "DockTabIconRegistry.hpp"
+#include "Core/DockTabIconRegistry.hpp"
 
 namespace we::UI {
 

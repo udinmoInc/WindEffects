@@ -1,8 +1,8 @@
-#include "Label.hpp"
-#include "../Core/PaintContext.hpp"
-#include "../Core/Theme.hpp"
-#include "../Core/Style.hpp"
-#include "../Core/DPIContext.hpp"
+#include "Widgets/Label.hpp"
+#include "Core/PaintContext.hpp"
+#include "Core/Theme.hpp"
+#include "Core/Style.hpp"
+#include "Core/DPIContext.hpp"
 
 namespace we::UI {
 

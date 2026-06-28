@@ -1,7 +1,7 @@
 #pragma once
 
-#include "../Core/Widget.hpp"
-#include "Box.hpp"
+#include "Core/Widget.hpp"
+#include "Layout/Box.hpp"
 
 namespace we::UI {
 

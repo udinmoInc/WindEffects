@@ -1,5 +1,5 @@
-#include "GridRenderer.hpp"
-#include "ShaderHelper.hpp"
+#include "Renderer/GridRenderer.hpp"
+#include "Renderer/ShaderHelper.hpp"
 #include <array>
 #include <iostream>
 #include <stdexcept>

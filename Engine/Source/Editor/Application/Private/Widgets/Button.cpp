@@ -1,9 +1,9 @@
-#include "Button.hpp"
-#include "../Core/PaintContext.hpp"
-#include "../Core/Theme.hpp"
-#include "../Core/Style.hpp"
-#include "../Core/DPIContext.hpp"
-#include "../Core/Animator.hpp"
+#include "Widgets/Button.hpp"
+#include "Core/PaintContext.hpp"
+#include "Core/Theme.hpp"
+#include "Core/Style.hpp"
+#include "Core/DPIContext.hpp"
+#include "Core/Animator.hpp"
 
 namespace we::UI {
 

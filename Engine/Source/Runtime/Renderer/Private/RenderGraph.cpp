@@ -1,4 +1,4 @@
-#include "RenderGraph.hpp"
+#include "Renderer/RenderGraph.hpp"
 #include <array>
 
 namespace we::runtime::renderer {

@@ -28,18 +28,36 @@ IModuleInterface* ModuleManager::LoadModule(const std::string& ModuleName)
         return LoadedModules[ModuleName].Interface;
     }
 
-    std::string LibraryName = ModuleName;
+    std::string BaseName = ModuleName;
+    std::string LibName;
+    std::string ModName;
+    std::string LoadedLibraryName;
+
 #ifdef _WIN32
-    LibraryName += ".dll";
-    void* Handle = LoadLibraryA(LibraryName.c_str());
+    LibName = BaseName + ".dll";
+    ModName = "Modules\\" + LibName;
+    void* Handle = LoadLibraryExA(ModName.c_str(), NULL, LOAD_WITH_ALTERED_SEARCH_PATH);
+    if (Handle) {
+        LoadedLibraryName = ModName;
+    } else {
+        Handle = LoadLibraryA(LibName.c_str());
+        if (Handle) LoadedLibraryName = LibName;
+    }
 #else
-    LibraryName = "lib" + LibraryName + ".so";
-    void* Handle = dlopen(LibraryName.c_str(), RTLD_NOW);
+    LibName = "lib" + BaseName + ".so";
+    ModName = "Modules/" + LibName;
+    void* Handle = dlopen(ModName.c_str(), RTLD_NOW);
+    if (Handle) {
+        LoadedLibraryName = ModName;
+    } else {
+        Handle = dlopen(LibName.c_str(), RTLD_NOW);
+        if (Handle) LoadedLibraryName = LibName;
+    }
 #endif
 
     if (!Handle)
     {
-        std::cerr << "Failed to load module: " << LibraryName << std::endl;
+        std::cerr << "Failed to load module: " << ModuleName << " (searched Modules/ and root)" << std::endl;
         return nullptr;
     }
 
@@ -51,7 +69,7 @@ IModuleInterface* ModuleManager::LoadModule(const std::string& ModuleName)
 
     if (!InitFunc)
     {
-        std::cerr << "Failed to find InitializeModule in: " << LibraryName << std::endl;
+        std::cerr << "Failed to find InitializeModule in: " << LoadedLibraryName << std::endl;
 #ifdef _WIN32
         FreeLibrary((HMODULE)Handle);
 #else

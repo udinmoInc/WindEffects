@@ -1,6 +1,6 @@
-#include "SceneRenderer.hpp"
-#include "../Core/Logger.hpp"
-#include "ShaderHelper.hpp"
+#include "Renderer/SceneRenderer.hpp"
+#include "Core/Logger.hpp"
+#include "Renderer/ShaderHelper.hpp"
 #include <array>
 #include <iostream>
 #include <stdexcept>

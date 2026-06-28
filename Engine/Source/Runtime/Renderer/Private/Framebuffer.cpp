@@ -1,5 +1,5 @@
-#include "Framebuffer.hpp"
-#include "../Core/Logger.hpp"
+#include "Renderer/Framebuffer.hpp"
+#include "Core/Logger.hpp"
 #include <stdexcept>
 #include <array>
 #include <iostream>

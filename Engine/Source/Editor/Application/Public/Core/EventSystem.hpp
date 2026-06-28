@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Geometry.hpp"
+#include "Core/Geometry.hpp"
 #include <memory>
 #include <SDL3/SDL_keycode.h>
 

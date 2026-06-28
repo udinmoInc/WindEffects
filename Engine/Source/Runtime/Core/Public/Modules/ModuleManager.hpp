@@ -1,6 +1,6 @@
 #pragma once
 
-#include "IModuleInterface.hpp"
+#include "Modules/IModuleInterface.hpp"
 #include <string>
 #include <unordered_map>
 #include <memory>

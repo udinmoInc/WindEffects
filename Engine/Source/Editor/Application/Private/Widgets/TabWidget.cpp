@@ -1,8 +1,8 @@
-#include "TabWidget.hpp"
-#include "../Core/PaintContext.hpp"
-#include "../Core/Theme.hpp"
-#include "../Core/Icon.hpp"
-#include "../Core/DockTabIconRegistry.hpp"
+#include "Widgets/TabWidget.hpp"
+#include "Core/PaintContext.hpp"
+#include "Core/Theme.hpp"
+#include "Core/Icon.hpp"
+#include "Core/DockTabIconRegistry.hpp"
 #include <algorithm>
 
 namespace we::UI {

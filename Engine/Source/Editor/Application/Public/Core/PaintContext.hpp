@@ -2,7 +2,7 @@
 
 #include <vector>
 #include <string>
-#include "Geometry.hpp"
+#include "Core/Geometry.hpp"
 #include <volk.h>
 
 namespace we::UI {

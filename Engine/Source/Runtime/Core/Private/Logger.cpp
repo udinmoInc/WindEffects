@@ -1,9 +1,10 @@
-#include "Logger.hpp"
+#include "Core/Logger.hpp"
 #include <SDL3/SDL_messagebox.h>
 #include <iostream>
 #include <iomanip>
 #include <chrono>
 #include <csignal>
+#include <filesystem>
 
 #if defined(_WIN32)
 #include <windows.h>
@@ -21,7 +22,13 @@ void Logger::Init() {
     std::lock_guard<std::mutex> lock(s_Mutex);
     if (s_Initialized) return;
 
-    s_LogFile.open("WindEffects.log", std::ios::out | std::ios::trunc);
+    std::error_code ec;
+    std::filesystem::create_directories("logs", ec);
+    s_LogFile.open("logs/WindEffects.log", std::ios::out | std::ios::trunc);
+
+    if (!s_LogFile.is_open()) {
+        s_LogFile.open("WindEffects.log", std::ios::out | std::ios::trunc);
+    }
     s_Initialized = true;
 
     // Log startup
@@ -129,7 +136,7 @@ std::string Logger::LevelToString(Level level) {
 
 void Logger::SetupCrashHandler() {
     // 1. Register standard POSIX signals
-    std::signal(SIGSEGV, SignalHandler);
+    // std::signal(SIGSEGV, SignalHandler);
     std::signal(SIGFPE, SignalHandler);
     std::signal(SIGILL, SignalHandler);
     std::signal(SIGABRT, SignalHandler);

@@ -1,7 +1,7 @@
 #pragma once
 
-#include "../Core/Widget.hpp"
-#include "MenuBar.hpp" // For MenuItem
+#include "Core/Widget.hpp"
+#include "Widgets/MenuBar.hpp" // For MenuItem
 #include <vector>
 #include <memory>
 

@@ -1,5 +1,5 @@
-#include "Renderer.hpp"
-#include "../Core/Logger.hpp"
+#include "Renderer/Renderer.hpp"
+#include "Core/Logger.hpp"
 
 #include <stdexcept>
 #include <array>

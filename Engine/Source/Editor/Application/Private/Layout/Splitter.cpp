@@ -1,6 +1,6 @@
-#include "Splitter.hpp"
-#include "../Core/PaintContext.hpp"
-#include "../Core/Theme.hpp"
+#include "Layout/Splitter.hpp"
+#include "Core/PaintContext.hpp"
+#include "Core/Theme.hpp"
 #include <algorithm>
 
 namespace we::UI {

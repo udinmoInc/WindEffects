@@ -1,7 +1,7 @@
-#include "DropdownMenu.hpp"
-#include "../Core/PaintContext.hpp"
-#include "../Core/Theme.hpp"
-#include "../Layout/OverlayManager.hpp"
+#include "Widgets/DropdownMenu.hpp"
+#include "Core/PaintContext.hpp"
+#include "Core/Theme.hpp"
+#include "Layout/OverlayManager.hpp"
 
 namespace we::UI {
 

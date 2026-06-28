@@ -1,14 +1,12 @@
 #pragma once
 
 #include <volk.h>
-#include "../Core/Widget.hpp"
+#include "Core/Widget.hpp"
 #include <memory>
 
-namespace we::editor::viewport {
-class Renderer;
-class EditorCamera;
-class Scene;
-}
+namespace we::runtime::renderer { class Renderer; }
+namespace we::runtime::engine { class EditorCamera; }
+namespace we::runtime::scene { class Scene; }
 
 namespace we::UI {
 
@@ -16,9 +14,9 @@ class UIRenderer;
 
 class ViewportWidget : public Widget {
 public:
-    ViewportWidget(const std::shared_ptr<Renderer>& renderer,
-                   const std::shared_ptr<EditorCamera>& camera,
-                   const std::shared_ptr<Scene>& scene,
+    ViewportWidget(const std::shared_ptr<we::runtime::renderer::Renderer>& renderer,
+                   const std::shared_ptr<we::runtime::engine::EditorCamera>& camera,
+                   const std::shared_ptr<we::runtime::scene::Scene>& scene,
                    UIRenderer* uiRenderer = nullptr);
     virtual ~ViewportWidget();
 
@@ -38,9 +36,9 @@ public:
     void FlushPendingResize();
 
 private:
-    std::shared_ptr<Renderer> m_Renderer;
-    std::shared_ptr<EditorCamera> m_Camera;
-    std::shared_ptr<Scene> m_Scene;
+    std::shared_ptr<we::runtime::renderer::Renderer> m_Renderer;
+    std::shared_ptr<we::runtime::engine::EditorCamera> m_Camera;
+    std::shared_ptr<we::runtime::scene::Scene> m_Scene;
     UIRenderer* m_uiRenderer = nullptr;
 
     VkDescriptorSet m_ViewportTextureSet = VK_NULL_HANDLE;

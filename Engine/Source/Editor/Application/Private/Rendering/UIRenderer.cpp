@@ -1,8 +1,8 @@
-#include "UIRenderer.hpp"
+#include "Rendering/UIRenderer.hpp"
 #include "Renderer/VulkanContext.hpp"
 #include "Renderer/ShaderHelper.hpp"
 #include "Core/Logger.hpp"
-#include "../Core/Widget.hpp"
+#include "Core/Widget.hpp"
 #include <array>
 #include <cmath>
 
@@ -12,7 +12,7 @@ UIRenderer::~UIRenderer() {
     Shutdown();
 }
 
-bool UIRenderer::Init(const std::shared_ptr<VulkanContext>& context, VkRenderPass renderPass) {
+bool UIRenderer::Init(const std::shared_ptr<we::runtime::renderer::VulkanContext>& context, VkRenderPass renderPass) {
     m_Context = context;
     VkDevice device = m_Context->GetDevice();
 
@@ -43,14 +43,15 @@ bool UIRenderer::Init(const std::shared_ptr<VulkanContext>& context, VkRenderPas
 
     // 2. Initialize Font Atlas
     m_FontAtlas = std::make_shared<FontAtlas>();
-    if (!m_FontAtlas->Init(m_Context, "Inter-Regular.ttf", 32, 96, 512, 512)) {
-        return false;
+    if (!m_FontAtlas->Init(m_Context, "Assets/Fonts/Roboto-Medium.ttf", 32, 96, 512, 512)) {
+        throw std::runtime_error("Failed to initialize HouseUI Renderer!");
     }
     
     // 2.b Initialize Icon Atlas (Material Icons Classic, starting at E000, 4096 chars)
     m_IconAtlas = std::make_shared<FontAtlas>();
-    if (!m_IconAtlas->Init(m_Context, "codicon.ttf", 0xEA60, 2000, 1024, 1024)) {
+    if (!m_IconAtlas->Init(m_Context, "Assets/Fonts/codicon.ttf", 0xEA60, 2000, 1024, 1024)) {
         HE_ERROR("UIRenderer: Failed to load icon atlas, icons will not render.");
+        m_IconAtlas.reset();
     }
 
     // 3. Create Dummy White Texture
@@ -181,11 +182,11 @@ void UIRenderer::CreateDummyTexture() {
 void UIRenderer::CreatePipeline(VkRenderPass renderPass) {
     VkDevice device = m_Context->GetDevice();
 
-    std::vector<char> vertCode = ReadShaderFile("UI.vert.spv");
-    std::vector<char> fragCode = ReadShaderFile("UI.frag.spv");
+    std::vector<char> vertCode = we::runtime::renderer::ReadShaderFile("UI.vert.spv");
+    std::vector<char> fragCode = we::runtime::renderer::ReadShaderFile("UI.frag.spv");
 
-    VkShaderModule vertShaderModule = CreateShaderModule(device, vertCode);
-    VkShaderModule fragShaderModule = CreateShaderModule(device, fragCode);
+    VkShaderModule vertShaderModule = we::runtime::renderer::CreateShaderModule(device, vertCode);
+    VkShaderModule fragShaderModule = we::runtime::renderer::CreateShaderModule(device, fragCode);
 
     VkPipelineShaderStageCreateInfo vertShaderStageInfo{};
     vertShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;

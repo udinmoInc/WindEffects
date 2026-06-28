@@ -1,18 +1,18 @@
-#include "ViewportWidget.hpp"
+#include "Widgets/ViewportWidget.hpp"
 #include "Renderer/Renderer.hpp"
-#include "Camera/EditorCamera.hpp"
+#include "EditorCamera.hpp"
 #include "Scene/Scene.hpp"
-#include "../Core/PaintContext.hpp"
-#include "../Rendering/UIRenderer.hpp"
+#include "Core/PaintContext.hpp"
+#include "Rendering/UIRenderer.hpp"
 #include <SDL3/SDL_keyboard.h>
 #include <algorithm>
 #include <glm/gtc/type_ptr.hpp>
 
 namespace we::UI {
 
-ViewportWidget::ViewportWidget(const std::shared_ptr<Renderer>& renderer,
-                               const std::shared_ptr<EditorCamera>& camera,
-                               const std::shared_ptr<Scene>& scene,
+ViewportWidget::ViewportWidget(const std::shared_ptr<we::runtime::renderer::Renderer>& renderer,
+                               const std::shared_ptr<we::runtime::engine::EditorCamera>& camera,
+                               const std::shared_ptr<we::runtime::scene::Scene>& scene,
                                UIRenderer* uiRenderer)
     : m_Renderer(renderer), m_Camera(camera), m_Scene(scene), m_uiRenderer(uiRenderer) {}
 
@@ -95,7 +95,7 @@ void ViewportWidget::Paint(PaintContext& context) {
     uint32_t drawCallCount = 0;
     for (const auto& entity : m_Scene->GetEntities()) {
         drawCallCount++;
-        if (entity.Type == EntityType::Plane) {
+        if (entity.Type == we::runtime::scene::EntityType::Plane) {
             triangleCount += 2;
         } else {
             triangleCount += 12; // Cube

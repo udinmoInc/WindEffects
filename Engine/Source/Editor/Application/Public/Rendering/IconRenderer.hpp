@@ -4,13 +4,11 @@
 #include <memory>
 #include <unordered_map>
 #include <string>
-#include "../Core/Geometry.hpp"
-#include "../Core/Icon.hpp"
-#include "../Core/Theme.hpp"
+#include "Core/Geometry.hpp"
+#include "Core/Icon.hpp"
+#include "Core/Theme.hpp"
 
-namespace we::editor::application {
-class VulkanContext;
-}
+#include "Renderer/VulkanContext.hpp"
 
 namespace we::UI {
 
@@ -31,7 +29,7 @@ public:
     IconRenderer();
     ~IconRenderer();
     
-    bool Init(const std::shared_ptr<VulkanContext>& context, VkDescriptorSetLayout textureLayout);
+    bool Init(const std::shared_ptr<we::runtime::renderer::VulkanContext>& context, VkDescriptorSetLayout textureLayout);
     void Shutdown();
     
     // Get or create icon texture at specified size
@@ -50,7 +48,7 @@ private:
     // Destroy texture resources
     void DestroyTexture(IconTexture& texture);
     
-    std::shared_ptr<VulkanContext> m_Context;
+    std::shared_ptr<we::runtime::renderer::VulkanContext> m_Context;
     VkDescriptorSetLayout m_TextureLayout = VK_NULL_HANDLE;
     
     // Icon cache: key = "iconName_size", value = texture

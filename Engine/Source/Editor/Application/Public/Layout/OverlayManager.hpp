@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../Core/Widget.hpp"
+#include "Core/Widget.hpp"
 #include <memory>
 #include <vector>
 

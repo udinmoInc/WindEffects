@@ -1,8 +1,8 @@
 #pragma once
 
-#include "../Core/Widget.hpp"
-#include "../Core/Icon.hpp"
-#include "../Core/Theme.hpp"
+#include "Core/Widget.hpp"
+#include "Core/Icon.hpp"
+#include "Core/Theme.hpp"
 #include <string>
 
 namespace we::UI {

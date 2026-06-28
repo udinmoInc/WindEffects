@@ -1,15 +1,15 @@
 #pragma once
 
-#include "../Core/Widget.hpp"
-#include "../Core/Style.hpp"
-#include "../Core/Icon.hpp"
+#include "Core/Widget.hpp"
+#include "Core/Style.hpp"
+#include "Core/Icon.hpp"
 #include <string>
 #include <vector>
 #include <functional>
 #include <memory>
 #include <volk.h>
-#include "ContentBrowserModel.hpp"
-#include "ContentBrowserController.hpp"
+#include "Models/ContentBrowserModel.hpp"
+#include "Controllers/ContentBrowserController.hpp"
 
 namespace we::UI {
 

@@ -1,5 +1,5 @@
-#include "EventSystem.hpp"
-#include "Widget.hpp"
+#include "Core/EventSystem.hpp"
+#include "Core/Widget.hpp"
 
 namespace we::UI {
 
