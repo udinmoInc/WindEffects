@@ -1,7 +1,7 @@
-#include "ToolButton.hpp"
-#include "../Core/PaintContext.hpp"
-#include "../Core/Theme.hpp"
-#include "../Core/Icon.hpp"
+#include "Widgets/ToolButton.hpp"
+#include "Core/PaintContext.hpp"
+#include "Core/Theme.hpp"
+#include "Core/Icon.hpp"
 #include <algorithm>
 
 namespace we::UI {

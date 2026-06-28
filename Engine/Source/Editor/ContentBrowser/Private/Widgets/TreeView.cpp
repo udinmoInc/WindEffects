@@ -1,7 +1,7 @@
-#include "TreeView.hpp"
-#include "../Core/PaintContext.hpp"
-#include "../Core/Theme.hpp"
-#include "../Core/Icon.hpp"
+#include "Widgets/TreeView.hpp"
+#include "Core/PaintContext.hpp"
+#include "Core/Theme.hpp"
+#include "Core/Icon.hpp"
 #include <algorithm>
 #include <SDL3/SDL.h>
 

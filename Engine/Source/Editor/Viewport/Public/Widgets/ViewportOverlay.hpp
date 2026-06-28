@@ -1,8 +1,8 @@
 #pragma once
 
-#include "../Core/Widget.hpp"
-#include "../Core/Style.hpp"
-#include "../Core/Icon.hpp"
+#include "Core/Widget.hpp"
+#include "Core/Style.hpp"
+#include "Core/Icon.hpp"
 #include <string>
 #include <functional>
 

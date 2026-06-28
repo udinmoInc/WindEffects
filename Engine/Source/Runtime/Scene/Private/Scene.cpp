@@ -1,12 +1,16 @@
-#include "Scene.hpp"
-#include "../Core/Logger.hpp"
+#include "Scene/Scene.hpp"
+#include "Core/Logger.hpp"
 #include <stdexcept>
 #include <iostream>
 
 namespace we::runtime::scene {
 
-Scene::Scene(const std::shared_ptr<VulkanContext>& context, const std::shared_ptr<SceneRenderer>& renderer)
-    : m_Context(context), m_Renderer(renderer) {}
+Scene::Scene(const std::shared_ptr<we::runtime::renderer::VulkanContext>& context, const std::shared_ptr<we::runtime::renderer::SceneRenderer>& renderer)
+    : m_Context(context), m_Renderer(renderer) {
+    volkInitialize();
+    volkLoadInstance(m_Context->GetInstance());
+    volkLoadDevice(m_Context->GetDevice());
+}
 
 Scene::~Scene() {
     DestroyEntity(0xFFFFFFFF); // Clean up all
@@ -55,7 +59,7 @@ void Scene::CreateEntity(const std::string& name, EntityType type, VkBuffer came
     entity.Mode = 0;
 
     // Allocate Uniform Buffer for object matrices/properties
-    VkDeviceSize bufferSize = sizeof(SceneObjectUniform);
+    VkDeviceSize bufferSize = sizeof(we::runtime::renderer::SceneObjectUniform);
     m_Context->CreateBuffer(
         bufferSize,
         VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
@@ -122,14 +126,14 @@ void Scene::Update() {
 
     // Map each entity's uniform buffer and update model matrix, color, and mode
     for (auto& entity : m_Entities) {
-        SceneObjectUniform ubo{};
+        we::runtime::renderer::SceneObjectUniform ubo{};
         ubo.model = entity.GetModelMatrix();
         ubo.color = entity.Color;
         ubo.mode = entity.Mode;
 
         void* data;
-        vkMapMemory(device, entity.UniformMemory, 0, sizeof(SceneObjectUniform), 0, &data);
-        memcpy(data, &ubo, sizeof(SceneObjectUniform));
+        vkMapMemory(device, entity.UniformMemory, 0, sizeof(we::runtime::renderer::SceneObjectUniform), 0, &data);
+        memcpy(data, &ubo, sizeof(we::runtime::renderer::SceneObjectUniform));
         vkUnmapMemory(device, entity.UniformMemory);
     }
 }

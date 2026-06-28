@@ -1,7 +1,7 @@
 #pragma once
 
-#include "../Core/Widget.hpp"
-#include "../Core/Style.hpp"
+#include "Core/Widget.hpp"
+#include "Core/Style.hpp"
 #include <string>
 #include <vector>
 #include <functional>

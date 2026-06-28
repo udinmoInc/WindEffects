@@ -1,4 +1,4 @@
-#include "ThumbnailManager.hpp"
+#include "Services/ThumbnailManager.hpp"
 #include <chrono>
 
 namespace we::editor::contentbrowser {

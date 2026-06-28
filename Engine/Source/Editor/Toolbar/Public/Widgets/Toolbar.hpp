@@ -1,11 +1,11 @@
 #pragma once
 
-#include "../Core/Widget.hpp"
-#include "../Layout/Box.hpp"
-#include "../Layout/Spacer.hpp"
-#include "../Core/Style.hpp"
-#include "../Core/Icon.hpp"
-#include "ToolButton.hpp"
+#include "Core/Widget.hpp"
+#include "Layout/Box.hpp"
+#include "Layout/Spacer.hpp"
+#include "Core/Style.hpp"
+#include "Core/Icon.hpp"
+#include "Widgets/ToolButton.hpp"
 #include <string>
 #include <functional>
 #include <memory>

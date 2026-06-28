@@ -1,4 +1,4 @@
-#include "Widget.hpp"
+#include "Core/Widget.hpp"
 #include <algorithm>
 
 namespace we::UI {

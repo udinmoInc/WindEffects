@@ -1,5 +1,5 @@
-#include "ScrollLayout.hpp"
-#include "../Core/PaintContext.hpp"
+#include "Layout/ScrollLayout.hpp"
+#include "Core/PaintContext.hpp"
 #include <algorithm>
 
 namespace we::UI {

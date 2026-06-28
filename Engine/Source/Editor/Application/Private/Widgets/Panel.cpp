@@ -1,8 +1,8 @@
-#include "Panel.hpp"
-#include "../Core/PaintContext.hpp"
-#include "../Core/Theme.hpp"
-#include "../Core/Icon.hpp"
-#include "../Core/DockTabIconRegistry.hpp"
+#include "Widgets/Panel.hpp"
+#include "Core/PaintContext.hpp"
+#include "Core/Theme.hpp"
+#include "Core/Icon.hpp"
+#include "Core/DockTabIconRegistry.hpp"
 #include <functional>
 
 namespace we::UI {
@@ -30,7 +30,7 @@ Size Panel::Measure(const Size& availableSize) {
         totalHeight += contentSize.height;
     }
     
-    return Size{ availableSize.width, totalHeight };
+    return Size{ availableSize.width, std::max(totalHeight, availableSize.height) };
 }
 
 void Panel::Arrange(const Rect& allottedRect) {

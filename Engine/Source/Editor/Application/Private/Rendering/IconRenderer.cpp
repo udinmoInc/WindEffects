@@ -1,5 +1,5 @@
-#include "IconRenderer.hpp"
-#include "../Core/Theme.hpp"
+#include "Rendering/IconRenderer.hpp"
+#include "Core/Theme.hpp"
 #include <volk.h>
 #include <stdexcept>
 
@@ -11,7 +11,7 @@ IconRenderer::~IconRenderer() {
     Shutdown();
 }
 
-bool IconRenderer::Init(const std::shared_ptr<VulkanContext>& context, VkDescriptorSetLayout textureLayout) {
+bool IconRenderer::Init(const std::shared_ptr<we::runtime::renderer::VulkanContext>& context, VkDescriptorSetLayout textureLayout) {
     m_Context = context;
     m_TextureLayout = textureLayout;
     

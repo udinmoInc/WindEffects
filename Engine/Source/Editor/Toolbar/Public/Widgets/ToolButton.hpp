@@ -1,9 +1,9 @@
 #pragma once
 
-#include "../Core/Widget.hpp"
-#include "../Core/Style.hpp"
-#include "../Core/Icon.hpp"
-#include "../Core/Animation.hpp"
+#include "Core/Widget.hpp"
+#include "Core/Style.hpp"
+#include "Core/Icon.hpp"
+#include "Core/Animation.hpp"
 #include <functional>
 
 namespace we::UI {

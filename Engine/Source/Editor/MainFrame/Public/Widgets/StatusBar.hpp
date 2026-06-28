@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../Layout/Box.hpp"
+#include "Layout/Box.hpp"
 #include <string>
 #include <vector>
 #include <functional>

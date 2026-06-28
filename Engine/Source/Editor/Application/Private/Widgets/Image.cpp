@@ -1,5 +1,5 @@
-#include "Image.hpp"
-#include "../Core/PaintContext.hpp"
+#include "Widgets/Image.hpp"
+#include "Core/PaintContext.hpp"
 
 namespace we::UI {
 

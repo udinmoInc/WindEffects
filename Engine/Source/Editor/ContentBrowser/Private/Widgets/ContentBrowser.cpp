@@ -1,7 +1,7 @@
-#include "ContentBrowser.hpp"
-#include "../Core/PaintContext.hpp"
-#include "../Core/Theme.hpp"
-#include "../Core/Icon.hpp"
+#include "Widgets/ContentBrowser.hpp"
+#include "Core/PaintContext.hpp"
+#include "Core/Theme.hpp"
+#include "Core/Icon.hpp"
 #include <algorithm>
 #include <cctype>
 #include <algorithm>

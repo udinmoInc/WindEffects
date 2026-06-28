@@ -6,9 +6,7 @@
 #include <vector>
 #include <stb_truetype.h>
 
-namespace we::editor::application {
-class VulkanContext;
-}
+#include "Renderer/VulkanContext.hpp"
 
 namespace we::UI {
 
@@ -24,7 +22,7 @@ public:
     ~FontAtlas();
 
     // Load font from path, baking a specific range of codepoints
-    bool Init(const std::shared_ptr<VulkanContext>& context, const std::string& fontName, int firstChar = 32, int numChars = 96, int width = 512, int height = 512);
+    bool Init(const std::shared_ptr<we::runtime::renderer::VulkanContext>& context, const std::string& fontName, int firstChar = 32, int numChars = 96, int width = 512, int height = 512);
     void Shutdown();
 
     // Get UV coordinates and vertex offsets for a single character
@@ -37,7 +35,7 @@ public:
     float GetFontHeight() const { return m_FontHeight; }
 
 private:
-    std::shared_ptr<VulkanContext> m_Context;
+    std::shared_ptr<we::runtime::renderer::VulkanContext> m_Context;
 
     // Font parameters
     float m_FontHeight = 18.0f;

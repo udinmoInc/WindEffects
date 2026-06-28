@@ -1,4 +1,4 @@
-#include "DockSpace.hpp"
+#include "Layout/DockSpace.hpp"
 #include "Core/PaintContext.hpp"
 #include "Core/Theme.hpp"
 #include <algorithm>

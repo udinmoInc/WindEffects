@@ -3,13 +3,11 @@
 #include <volk.h>
 #include <memory>
 #include <vector>
-#include "../Core/Geometry.hpp"
-#include "../Core/PaintContext.hpp"
-#include "FontAtlas.hpp"
+#include "Core/Geometry.hpp"
+#include "Core/PaintContext.hpp"
+#include "Rendering/FontAtlas.hpp"
 
-namespace we::editor::application {
-class VulkanContext;
-}
+#include "Renderer/VulkanContext.hpp"
 
 namespace we::UI {
 
@@ -28,7 +26,7 @@ public:
     UIRenderer() = default;
     ~UIRenderer();
 
-    bool Init(const std::shared_ptr<VulkanContext>& context, VkRenderPass renderPass);
+    bool Init(const std::shared_ptr<we::runtime::renderer::VulkanContext>& context, VkRenderPass renderPass);
     void Shutdown();
 
     // Render the UI widget tree
@@ -48,7 +46,7 @@ private:
     void BuildGeometry(const std::vector<DrawCommand>& commands, uint32_t width, uint32_t height);
     void UpdateBuffers();
 
-    std::shared_ptr<VulkanContext> m_Context;
+    std::shared_ptr<we::runtime::renderer::VulkanContext> m_Context;
     std::shared_ptr<FontAtlas> m_FontAtlas;
     std::shared_ptr<FontAtlas> m_IconAtlas;
     // Pipeline resources

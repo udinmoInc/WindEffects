@@ -1,4 +1,4 @@
-#include "Entity.hpp"
+#include "Scene/Entity.hpp"
 #include <glm/gtc/matrix_transform.hpp>
 
 namespace we::runtime::scene {

@@ -1,9 +1,9 @@
-#include "MenuBar.hpp"
-#include "DropdownMenu.hpp"
-#include "../Layout/OverlayManager.hpp"
-#include "../Core/PaintContext.hpp"
-#include "../Core/Theme.hpp"
-#include "../Core/Icon.hpp"
+#include "Widgets/MenuBar.hpp"
+#include "Widgets/DropdownMenu.hpp"
+#include "Layout/OverlayManager.hpp"
+#include "Core/PaintContext.hpp"
+#include "Core/Theme.hpp"
+#include "Core/Icon.hpp"
 #include <algorithm>
 
 namespace we::UI {

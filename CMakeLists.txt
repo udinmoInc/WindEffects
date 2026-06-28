@@ -26,9 +26,9 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/Build/Win64")
 # Set MSVC multi-config outputs explicitly to avoid it appending 'Debug' to our path, we want it perfectly aligned or we let it do its thing.
 foreach(OUTPUTCONFIG ${CMAKE_CONFIGURATION_TYPES})
     string(TOUPPER ${OUTPUTCONFIG} OUTPUTCONFIG_UPPER)
-    set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_${OUTPUTCONFIG_UPPER} "${CMAKE_SOURCE_DIR}/Build/Win64/${OUTPUTCONFIG}/Engine/Binaries")
-    set(CMAKE_LIBRARY_OUTPUT_DIRECTORY_${OUTPUTCONFIG_UPPER} "${CMAKE_SOURCE_DIR}/Build/Win64/${OUTPUTCONFIG}/Engine/Binaries")
-    set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY_${OUTPUTCONFIG_UPPER} "${CMAKE_SOURCE_DIR}/Build/Win64/${OUTPUTCONFIG}/Engine/Intermediate")
+    set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_${OUTPUTCONFIG_UPPER} "${CMAKE_SOURCE_DIR}/Build/Win64/${OUTPUTCONFIG}")
+    set(CMAKE_LIBRARY_OUTPUT_DIRECTORY_${OUTPUTCONFIG_UPPER} "${CMAKE_SOURCE_DIR}/Build/Win64/${OUTPUTCONFIG}")
+    set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY_${OUTPUTCONFIG_UPPER} "${CMAKE_SOURCE_DIR}/Build/Win64/${OUTPUTCONFIG}/Intermediate")
 endforeach()
 
 
@@ -204,5 +204,38 @@ foreach(SEARCH_PATH IN LISTS MODULE_SEARCH_PATHS)
                 endif()
             endif()
         endforeach()
+    endif()
+endforeach()
+
+# -----------------------------------------------------------------------------
+# Move Feature Modules to Modules/ Directory
+# -----------------------------------------------------------------------------
+set(FEATURE_MODULES
+    WindEffects-ContentBrowser
+    WindEffects-Details
+    WindEffects-Docking
+    WindEffects-MainFrame
+    WindEffects-Menus
+    WindEffects-PropertyEditor
+    WindEffects-Toolbar
+    WindEffects-Viewport
+    WindEffects-WorldOutliner
+)
+
+foreach(MOD IN LISTS FEATURE_MODULES)
+    if(TARGET ${MOD})
+        foreach(OUTPUTCONFIG ${CMAKE_CONFIGURATION_TYPES})
+            string(TOUPPER ${OUTPUTCONFIG} OUTPUTCONFIG_UPPER)
+            set_target_properties(${MOD} PROPERTIES 
+                RUNTIME_OUTPUT_DIRECTORY_${OUTPUTCONFIG_UPPER} "${CMAKE_SOURCE_DIR}/Build/Win64/${OUTPUTCONFIG}/Modules"
+                LIBRARY_OUTPUT_DIRECTORY_${OUTPUTCONFIG_UPPER} "${CMAKE_SOURCE_DIR}/Build/Win64/${OUTPUTCONFIG}/Modules"
+            )
+        endforeach()
+        if(NOT CMAKE_CONFIGURATION_TYPES)
+            set_target_properties(${MOD} PROPERTIES 
+                RUNTIME_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/Build/Win64/$<CONFIG>/Modules"
+                LIBRARY_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/Build/Win64/$<CONFIG>/Modules"
+            )
+        endif()
     endif()
 endforeach()

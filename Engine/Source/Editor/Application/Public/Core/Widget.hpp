@@ -1,7 +1,7 @@
 #pragma once
 
-#include "Geometry.hpp"
-#include "EventSystem.hpp"
+#include "Core/Geometry.hpp"
+#include "Core/EventSystem.hpp"
 #include <memory>
 #include <vector>
 #include <string>

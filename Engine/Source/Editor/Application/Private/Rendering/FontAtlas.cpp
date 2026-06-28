@@ -1,4 +1,4 @@
-#include "FontAtlas.hpp"
+#include "Rendering/FontAtlas.hpp"
 #include "Renderer/VulkanContext.hpp"
 #include "Core/Logger.hpp"
 
@@ -15,7 +15,7 @@ FontAtlas::~FontAtlas() {
     Shutdown();
 }
 
-bool FontAtlas::Init(const std::shared_ptr<VulkanContext>& context, const std::string& fontName, int firstChar, int numChars, int width, int height) {
+bool FontAtlas::Init(const std::shared_ptr<we::runtime::renderer::VulkanContext>& context, const std::string& fontName, int firstChar, int numChars, int width, int height) {
     m_Context = context;
     VkDevice device = m_Context->GetDevice();
     
@@ -30,9 +30,6 @@ bool FontAtlas::Init(const std::shared_ptr<VulkanContext>& context, const std::s
     std::vector<std::string> searchPaths = {
         "Fonts/" + fontName,
         "../Fonts/" + fontName,
-        "../../Fonts/" + fontName,
-        "Build/bin/Fonts/" + fontName,
-        "../Build/bin/Fonts/" + fontName,
         fontName
     };
 

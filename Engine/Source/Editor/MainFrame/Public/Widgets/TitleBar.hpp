@@ -1,8 +1,8 @@
 #pragma once
 
-#include "../Core/Widget.hpp"
-#include "MenuBar.hpp"
-#include "../Layout/Box.hpp"
+#include "Core/Widget.hpp"
+namespace we::UI { class MenuBar; }
+#include "Layout/Box.hpp"
 #include <volk.h>
 #include <SDL3/SDL.h>
 #include <string>

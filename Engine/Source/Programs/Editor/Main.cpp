@@ -1,12 +1,16 @@
 #include "Modules/ModuleManager.hpp"
+#include "Editor.hpp"
+#include <SDL3/SDL.h>
 #include <iostream>
 #include <exception>
+#include "Core/Logger.hpp"
 
 int main(int argc, char* argv[]) {
     (void)argc;
     (void)argv;
     
     try {
+        we::runtime::core::Logger::Init();
         std::cout << "WindEffects Engine Bootstrapping...\n";
         
         ModuleManager& ModuleManager = ModuleManager::Get();
@@ -28,17 +32,36 @@ int main(int argc, char* argv[]) {
         // for (const auto& Plugin : Plugins) {
         //     ModuleManager.LoadModule(Plugin);
         // }
-
-        // Note: The main loop would typically be driven by the Application module here.
-        // e.g. IApplicationModule* App = (IApplicationModule*)ModuleManager.GetModule("WindEffects-Application");
-        // App->Run();
         
         std::cout << "Engine successfully initialized and modules loaded.\n";
+
+        if (!SDL_Init(SDL_INIT_VIDEO)) {
+            throw std::runtime_error("Failed to initialize SDL");
+        }
+
+        SDL_WindowFlags window_flags = (SDL_WindowFlags)(
+            SDL_WINDOW_VULKAN |
+            SDL_WINDOW_RESIZABLE |
+            SDL_WINDOW_HIGH_PIXEL_DENSITY |
+            SDL_WINDOW_HIDDEN |
+            SDL_WINDOW_BORDERLESS
+        );
+
+        SDL_Window* window = SDL_CreateWindow("WindEffects Editor", 1280, 720, window_flags);
+        if (!window) {
+            throw std::runtime_error("Failed to create SDL Window");
+        }
+
+        we::programs::editor::Editor editor(window);
+        SDL_ShowWindow(window);
+        editor.Run();
         
-        // Simulating main loop for now...
+        SDL_DestroyWindow(window);
+        SDL_Quit();
         
     } catch (const std::exception& e) {
         std::cerr << "Fatal Exception: " << e.what() << "\n";
+        HE_ERROR(std::string("Fatal Exception: ") + e.what());
         return -1;
     }
     

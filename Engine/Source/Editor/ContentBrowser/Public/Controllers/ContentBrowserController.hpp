@@ -1,6 +1,6 @@
 #pragma once
 
-#include "ContentBrowserModel.hpp"
+#include "Models/ContentBrowserModel.hpp"
 #include <memory>
 #include <algorithm>
 

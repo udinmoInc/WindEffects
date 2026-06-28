@@ -1,7 +1,7 @@
 #pragma once
 
-#include "Geometry.hpp"
-#include "Theme.hpp"
+#include "Core/Geometry.hpp"
+#include "Core/Theme.hpp"
 #include <string>
 #include <memory>
 #include <unordered_map>

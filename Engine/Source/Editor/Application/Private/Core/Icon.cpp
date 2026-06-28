@@ -1,5 +1,5 @@
-#include "Icon.hpp"
-#include "PaintContext.hpp"
+#include "Core/Icon.hpp"
+#include "Core/PaintContext.hpp"
 #include <sstream>
 #include <algorithm>
 
