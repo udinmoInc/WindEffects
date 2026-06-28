@@ -4,7 +4,7 @@
 #include <memory>
 #include "Editor.hpp" // For now, wrapping the existing Editor
 
-namespace HouseEngine {
+namespace we::editor::application {
 
 class EditorApplication : public EngineApplication {
 public:
@@ -24,4 +24,4 @@ private:
     std::unique_ptr<Editor> m_LegacyEditor;
 };
 
-} // namespace HouseEngine
+} // namespace we::editor::application

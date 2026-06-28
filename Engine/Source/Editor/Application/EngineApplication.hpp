@@ -5,7 +5,7 @@
 #include <memory>
 #include <string>
 
-namespace HouseEngine {
+namespace we::editor::application {
 
 class EngineApplication {
 public:
@@ -35,4 +35,4 @@ private:
     static SDL_HitTestResult SDLCALL HitTestCallback(SDL_Window* win, const SDL_Point* area, void* data);
 };
 
-} // namespace HouseEngine
+} // namespace we::editor::application

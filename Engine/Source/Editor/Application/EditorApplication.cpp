@@ -1,7 +1,7 @@
 #include "EditorApplication.hpp"
 #include "Core/Logger.hpp"
 
-namespace HouseEngine {
+namespace we::editor::application {
 
 EditorApplication::EditorApplication() {
 }
@@ -44,4 +44,4 @@ void EditorApplication::OnEvent(const SDL_Event& event) {
     // Empty for now
 }
 
-} // namespace HouseEngine
+} // namespace we::editor::application

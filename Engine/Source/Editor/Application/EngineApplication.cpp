@@ -3,7 +3,7 @@
 #include <stdexcept>
 #include <chrono>
 
-namespace HouseEngine {
+namespace we::editor::application {
 
 EngineApplication::EngineApplication() {
 }
@@ -105,4 +105,4 @@ SDL_HitTestResult SDLCALL EngineApplication::HitTestCallback(SDL_Window* win, co
     return SDL_HITTEST_NORMAL;
 }
 
-} // namespace HouseEngine
+} // namespace we::editor::application
