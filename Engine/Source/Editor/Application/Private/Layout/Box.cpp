@@ -117,15 +117,31 @@ void Box::Arrange(const Rect& allottedRect) {
                 childWidth = allottedRect.x + allottedRect.width - currentX; // Fill remaining if any
             }
             
-            float childHeight = std::min(contentHeight, childDesired.height);
-            float childY = currentY + (contentHeight - childHeight) * 0.5f;
+            float childHeight = childDesired.height;
+            if (child->GetVerticalAlignment() == VerticalAlignment::Fill) {
+                childHeight = contentHeight;
+            } else {
+                childHeight = std::min(contentHeight, childDesired.height);
+            }
+            
+            float childY = currentY;
+            if (child->GetVerticalAlignment() == VerticalAlignment::Center) {
+                childY = currentY + (contentHeight - childHeight) * 0.5f;
+            } else if (child->GetVerticalAlignment() == VerticalAlignment::Bottom) {
+                childY = currentY + contentHeight - childHeight;
+            }
 
             child->Arrange(Rect{ currentX, childY, childWidth, childHeight });
             currentX += childWidth;
         } else {
             if (!first) currentY += m_Spacing;
 
-            float childWidth = std::min(contentWidth, childDesired.width);
+            float childWidth = childDesired.width;
+            if (child->GetHorizontalAlignment() == HorizontalAlignment::Fill) {
+                childWidth = contentWidth;
+            } else {
+                childWidth = std::min(contentWidth, childDesired.width);
+            }
             
             float childHeight = childDesired.height;
             if (std::abs(childDesired.height - maxChildHeight) < 0.1f) childHeight -= heightShrinkPerElement;
@@ -133,7 +149,12 @@ void Box::Arrange(const Rect& allottedRect) {
                 childHeight = allottedRect.y + allottedRect.height - currentY; // Fill remaining if any
             }
             
-            float childX = currentX + (contentWidth - childWidth) * 0.5f;
+            float childX = currentX;
+            if (child->GetHorizontalAlignment() == HorizontalAlignment::Center) {
+                childX = currentX + (contentWidth - childWidth) * 0.5f;
+            } else if (child->GetHorizontalAlignment() == HorizontalAlignment::Right) {
+                childX = currentX + contentWidth - childWidth;
+            }
 
             child->Arrange(Rect{ childX, currentY, childWidth, childHeight });
             currentY += childHeight;

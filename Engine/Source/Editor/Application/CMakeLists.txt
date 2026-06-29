@@ -5,6 +5,7 @@ file(GLOB_RECURSE SOURCE_FILES
     "Private/*.cpp"
     "Private/*.hpp"
 )
+# Trigger CMake glob refresh
 
 file(GLOB_RECURSE PUBLIC_HEADERS
     "Public/*.hpp"

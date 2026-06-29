@@ -4,13 +4,63 @@
 #include <array>
 #include <iostream>
 #include <stdexcept>
+#include <algorithm>
+#include <glm/geometric.hpp>
+#include <cstring>
 
 namespace we::runtime::renderer {
 
 SceneRenderer::SceneRenderer(const std::shared_ptr<VulkanContext>& context, VkRenderPass renderPass, VkDescriptorSetLayout cameraDescLayout)
     : m_Context(context), m_CameraDescLayout(cameraDescLayout) {
-    
-    // 1. Create Descriptor Set Layout for objects (includes both camera and object UBOs)
+    // 1. Create descriptor set layout for procedural editor sky UBO
+    VkDescriptorSetLayoutBinding skyBinding{};
+    skyBinding.binding = 0;
+    skyBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    skyBinding.descriptorCount = 1;
+    skyBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+
+    VkDescriptorSetLayoutCreateInfo skyLayoutInfo{};
+    skyLayoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+    skyLayoutInfo.bindingCount = 1;
+    skyLayoutInfo.pBindings = &skyBinding;
+    if (vkCreateDescriptorSetLayout(m_Context->GetDevice(), &skyLayoutInfo, nullptr, &m_SkyDescLayout) != VK_SUCCESS) {
+        throw std::runtime_error("Failed to create procedural sky descriptor set layout!");
+    }
+
+    m_Context->CreateBuffer(
+        sizeof(ProceduralSkySettings),
+        VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+        m_SkyBuffer,
+        m_SkyBufferMemory
+    );
+
+    VkDescriptorSetAllocateInfo skyAllocInfo{};
+    skyAllocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+    skyAllocInfo.descriptorPool = m_Context->GetDescriptorPool();
+    skyAllocInfo.descriptorSetCount = 1;
+    skyAllocInfo.pSetLayouts = &m_SkyDescLayout;
+    if (vkAllocateDescriptorSets(m_Context->GetDevice(), &skyAllocInfo, &m_SkyDescSet) != VK_SUCCESS) {
+        throw std::runtime_error("Failed to allocate procedural sky descriptor set!");
+    }
+
+    VkDescriptorBufferInfo skyBufferInfo{};
+    skyBufferInfo.buffer = m_SkyBuffer;
+    skyBufferInfo.offset = 0;
+    skyBufferInfo.range = sizeof(ProceduralSkySettings);
+
+    VkWriteDescriptorSet skyWrite{};
+    skyWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    skyWrite.dstSet = m_SkyDescSet;
+    skyWrite.dstBinding = 0;
+    skyWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    skyWrite.descriptorCount = 1;
+    skyWrite.pBufferInfo = &skyBufferInfo;
+    vkUpdateDescriptorSets(m_Context->GetDevice(), 1, &skyWrite, 0, nullptr);
+
+    UpdateProceduralSkyBufferIfDirty();
+
+    // 2. Create Descriptor Set Layout for objects (includes both camera and object UBOs)
     VkDescriptorSetLayoutBinding cameraBinding{};
     cameraBinding.binding = 0;
     cameraBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
@@ -33,10 +83,10 @@ SceneRenderer::SceneRenderer(const std::shared_ptr<VulkanContext>& context, VkRe
         throw std::runtime_error("Failed to create object descriptor set layout!");
     }
 
-    // 2. Create Pipelines
+    // 3. Create Pipelines
     CreatePipelines(renderPass);
 
-    // 3. Create Ground Plane and Cube Meshes
+    // 4. Create Ground Plane and Cube Meshes
     CreateMeshes();
 }
 
@@ -50,16 +100,18 @@ SceneRenderer::~SceneRenderer() {
     if (m_UnlitPipeline != VK_NULL_HANDLE) vkDestroyPipeline(device, m_UnlitPipeline, nullptr);
     if (m_WireframePipeline != VK_NULL_HANDLE) vkDestroyPipeline(device, m_WireframePipeline, nullptr);
 
+    if (m_SkyPipelineLayout != VK_NULL_HANDLE) vkDestroyPipelineLayout(device, m_SkyPipelineLayout, nullptr);
     if (m_PipelineLayout != VK_NULL_HANDLE) vkDestroyPipelineLayout(device, m_PipelineLayout, nullptr);
+    if (m_SkyBuffer != VK_NULL_HANDLE) vkDestroyBuffer(device, m_SkyBuffer, nullptr);
+    if (m_SkyBufferMemory != VK_NULL_HANDLE) vkFreeMemory(device, m_SkyBufferMemory, nullptr);
+    if (m_SkyDescLayout != VK_NULL_HANDLE) vkDestroyDescriptorSetLayout(device, m_SkyDescLayout, nullptr);
     if (m_ObjectDescLayout != VK_NULL_HANDLE) vkDestroyDescriptorSetLayout(device, m_ObjectDescLayout, nullptr);
 }
 
 void SceneRenderer::CreatePipelines(VkRenderPass renderPass) {
     VkDevice device = m_Context->GetDevice();
 
-    // -------------------------------------------------------------------------
-    // A. Pipeline Layout (takes the object descriptor layout)
-    // -------------------------------------------------------------------------
+    // Mesh pipeline layout (takes the object descriptor layout)
     VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
     pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
     pipelineLayoutInfo.setLayoutCount = 1;
@@ -68,6 +120,15 @@ void SceneRenderer::CreatePipelines(VkRenderPass renderPass) {
 
     if (vkCreatePipelineLayout(device, &pipelineLayoutInfo, nullptr, &m_PipelineLayout) != VK_SUCCESS) {
         throw std::runtime_error("Failed to create scene object pipeline layout!");
+    }
+
+    // Sky pipeline layout (only sky settings UBO)
+    VkPipelineLayoutCreateInfo skyPipelineLayoutInfo{};
+    skyPipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+    skyPipelineLayoutInfo.setLayoutCount = 1;
+    skyPipelineLayoutInfo.pSetLayouts = &m_SkyDescLayout;
+    if (vkCreatePipelineLayout(device, &skyPipelineLayoutInfo, nullptr, &m_SkyPipelineLayout) != VK_SUCCESS) {
+        throw std::runtime_error("Failed to create procedural sky pipeline layout!");
     }
 
     // Common configurations
@@ -150,7 +211,7 @@ void SceneRenderer::CreatePipelines(VkRenderPass renderPass) {
         pipelineInfo.pDepthStencilState = &depthStencil;
         pipelineInfo.pColorBlendState = &colorBlending;
         pipelineInfo.pDynamicState = &dynamicState;
-        pipelineInfo.layout = m_PipelineLayout;
+        pipelineInfo.layout = m_SkyPipelineLayout;
         pipelineInfo.renderPass = renderPass;
         pipelineInfo.subpass = 0;
 
@@ -370,10 +431,43 @@ void SceneRenderer::DestroyMeshes() {
     m_Meshes.clear();
 }
 
-void SceneRenderer::DrawSkybox(VkCommandBuffer cmd, VkDescriptorSet cameraDescSet) const {
+void SceneRenderer::DrawSkybox(VkCommandBuffer cmd) const {
+    if (!m_EnableProceduralSky) {
+        return;
+    }
+
+    const_cast<SceneRenderer*>(this)->UpdateProceduralSkyBufferIfDirty();
+
     vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_SkyboxPipeline);
-    vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_PipelineLayout, 0, 1, &cameraDescSet, 0, nullptr);
+    vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_SkyPipelineLayout, 0, 1, &m_SkyDescSet, 0, nullptr);
     vkCmdDraw(cmd, 6, 1, 0, 0); // Draws fullscreen sky gradient
+}
+
+void SceneRenderer::SetProceduralSkySettings(const ProceduralSkySettings& settings) {
+    ProceduralSkySettings sanitized = settings;
+    sanitized.gradientStrength = std::max(0.0f, sanitized.gradientStrength);
+    sanitized.hazeIntensity = std::max(0.0f, sanitized.hazeIntensity);
+    sanitized.exposure = std::max(0.01f, sanitized.exposure);
+    if (glm::dot(sanitized.sunDirection, sanitized.sunDirection) < 1e-5f) {
+        sanitized.sunDirection = glm::vec3(0.0f, 1.0f, 0.0f);
+    } else {
+        sanitized.sunDirection = glm::normalize(sanitized.sunDirection);
+    }
+
+    m_ProceduralSkySettings = sanitized;
+    m_ProceduralSkyDirty = true;
+}
+
+void SceneRenderer::UpdateProceduralSkyBufferIfDirty() {
+    if (!m_ProceduralSkyDirty || m_SkyBufferMemory == VK_NULL_HANDLE) {
+        return;
+    }
+
+    void* data = nullptr;
+    vkMapMemory(m_Context->GetDevice(), m_SkyBufferMemory, 0, sizeof(ProceduralSkySettings), 0, &data);
+    std::memcpy(data, &m_ProceduralSkySettings, sizeof(ProceduralSkySettings));
+    vkUnmapMemory(m_Context->GetDevice(), m_SkyBufferMemory);
+    m_ProceduralSkyDirty = false;
 }
 
 void SceneRenderer::DrawMesh(VkCommandBuffer cmd, const std::string& meshName, VkDescriptorSet descriptorSet, int mode) const {

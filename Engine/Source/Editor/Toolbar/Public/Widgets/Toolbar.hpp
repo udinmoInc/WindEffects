@@ -32,6 +32,7 @@ public:
     void OnMouseDown(const MouseEvent& event) override;
     void OnMouseMove(const MouseEvent& event) override;
     void OnMouseUp(const MouseEvent& event) override;
+    bool ShowsPointerCursor(const Point& position) const override;
 
     // Tool management
     std::shared_ptr<ToolButton> AddTool(const std::string& iconName, const std::string& label, std::function<void()> onClick, const std::string& tooltip = "", bool isPlayButton = false, ToolbarAlignment align = ToolbarAlignment::Left);

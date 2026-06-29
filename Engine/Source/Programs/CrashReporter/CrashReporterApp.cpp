@@ -49,16 +49,50 @@ void CrashReporterApp::MainLoop() {
                 m_Running = false;
             }
 
-            we::UI::MouseEvent mouseEvent{};
-            if (event.type == SDL_EVENT_MOUSE_MOTION) {
-                mouseEvent.type = we::UI::MouseEventType::MouseMove;
-                mouseEvent.position = we::UI::Point{ (float)event.motion.x, (float)event.motion.y };
+            if (event.type == SDL_EVENT_MOUSE_MOTION ||
+                event.type == SDL_EVENT_MOUSE_BUTTON_DOWN ||
+                event.type == SDL_EVENT_MOUSE_BUTTON_UP ||
+                event.type == SDL_EVENT_MOUSE_WHEEL) {
+
+                we::UI::MouseEvent mouseEvent{};
+                mouseEvent.position = we::UI::Point{ static_cast<float>(event.motion.x), static_cast<float>(event.motion.y) };
+
+                if (event.type == SDL_EVENT_MOUSE_MOTION) {
+                    mouseEvent.type = we::UI::MouseEventType::MouseMove;
+                } else if (event.type == SDL_EVENT_MOUSE_BUTTON_DOWN || event.type == SDL_EVENT_MOUSE_BUTTON_UP) {
+                    mouseEvent.type = (event.type == SDL_EVENT_MOUSE_BUTTON_DOWN)
+                        ? we::UI::MouseEventType::MouseDown
+                        : we::UI::MouseEventType::MouseUp;
+                    mouseEvent.position = we::UI::Point{ static_cast<float>(event.button.x), static_cast<float>(event.button.y) };
+
+                    if (event.button.button == SDL_BUTTON_LEFT)   mouseEvent.button = we::UI::MouseButton::Left;
+                    else if (event.button.button == SDL_BUTTON_RIGHT)  mouseEvent.button = we::UI::MouseButton::Right;
+                    else if (event.button.button == SDL_BUTTON_MIDDLE) mouseEvent.button = we::UI::MouseButton::Middle;
+                } else if (event.type == SDL_EVENT_MOUSE_WHEEL) {
+                    mouseEvent.type = we::UI::MouseEventType::MouseWheel;
+                    mouseEvent.wheelDeltaX = static_cast<float>(event.wheel.x);
+                    mouseEvent.wheelDeltaY = static_cast<float>(event.wheel.y);
+                }
+
+                const SDL_Keymod mods = SDL_GetModState();
+                mouseEvent.altDown   = (mods & SDL_KMOD_ALT) != 0;
+                mouseEvent.shiftDown = (mods & SDL_KMOD_SHIFT) != 0;
+                mouseEvent.ctrlDown  = (mods & SDL_KMOD_CTRL) != 0;
+
                 m_UIEventSystem->ProcessMouseEvent(mouseEvent);
-            } else if (event.type == SDL_EVENT_MOUSE_BUTTON_DOWN || event.type == SDL_EVENT_MOUSE_BUTTON_UP) {
-                mouseEvent.type = (event.type == SDL_EVENT_MOUSE_BUTTON_DOWN) ? we::UI::MouseEventType::MouseDown : we::UI::MouseEventType::MouseUp;
-                mouseEvent.position = we::UI::Point{ (float)event.button.x, (float)event.button.y };
-                if (event.button.button == SDL_BUTTON_LEFT) mouseEvent.button = we::UI::MouseButton::Left;
-                m_UIEventSystem->ProcessMouseEvent(mouseEvent);
+            } else if (event.type == SDL_EVENT_KEY_DOWN || event.type == SDL_EVENT_KEY_UP) {
+                we::UI::KeyEvent keyEvent{};
+                keyEvent.type = (event.type == SDL_EVENT_KEY_DOWN)
+                    ? we::UI::KeyEventType::KeyDown
+                    : we::UI::KeyEventType::KeyUp;
+                keyEvent.keycode = event.key.key;
+
+                const SDL_Keymod mods = event.key.mod;
+                keyEvent.altDown   = (mods & SDL_KMOD_ALT) != 0;
+                keyEvent.shiftDown = (mods & SDL_KMOD_SHIFT) != 0;
+                keyEvent.ctrlDown  = (mods & SDL_KMOD_CTRL) != 0;
+
+                m_UIEventSystem->ProcessKeyEvent(keyEvent);
             }
         }
 

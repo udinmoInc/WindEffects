@@ -18,10 +18,14 @@ public:
     const std::string& GetText() const { return m_Text; }
     void SetStyle(const TextStyle& style) { m_Style = style; }
     const TextStyle& GetStyle() const { return m_Style; }
+    void SetWrapText(bool wrap) { m_WrapText = wrap; }
+    bool GetWrapText() const { return m_WrapText; }
 
 private:
     std::string m_Text;
     TextStyle m_Style;
+    bool m_WrapText = false;
+    std::vector<std::string> m_WrappedLines;
 };
 
 } // namespace we::editor::application::UI

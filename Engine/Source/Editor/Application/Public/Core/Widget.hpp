@@ -10,6 +10,20 @@ namespace we::UI {
 
 class PaintContext;
 
+enum class HorizontalAlignment {
+    Left,
+    Center,
+    Right,
+    Fill
+};
+
+enum class VerticalAlignment {
+    Top,
+    Center,
+    Bottom,
+    Fill
+};
+
 class Widget : public std::enable_shared_from_this<Widget> {
 public:
     Widget() = default;
@@ -31,6 +45,7 @@ public:
     virtual void OnMouseUp(const MouseEvent&) {}
     virtual void OnMouseWheel(const MouseEvent&) {}
     virtual void OnKeyDown(const KeyEvent&) {}
+    virtual bool ShowsPointerCursor(const Point&) const { return false; }
     virtual void OnFocus() { m_Focused = true; }
     virtual void OnBlur() { m_Focused = false; }
     
@@ -58,6 +73,13 @@ public:
     bool IsVisible() const { return m_Visible; }
     void SetVisible(bool visible) { m_Visible = visible; }
 
+    // Alignment
+    HorizontalAlignment GetHorizontalAlignment() const { return m_HAlign; }
+    void SetHorizontalAlignment(HorizontalAlignment align) { m_HAlign = align; }
+
+    VerticalAlignment GetVerticalAlignment() const { return m_VAlign; }
+    void SetVerticalAlignment(VerticalAlignment align) { m_VAlign = align; }
+
 protected:
     std::weak_ptr<Widget> m_Parent;
     std::vector<std::shared_ptr<Widget>> m_Children;
@@ -69,6 +91,9 @@ protected:
     bool m_Hovered = false;
     bool m_Visible = true;
     bool m_IsActive = false;
+
+    HorizontalAlignment m_HAlign = HorizontalAlignment::Fill;
+    VerticalAlignment m_VAlign = VerticalAlignment::Center;
 };
 
 } // namespace we::editor::application::UI

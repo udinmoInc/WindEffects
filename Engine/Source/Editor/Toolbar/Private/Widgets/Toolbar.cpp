@@ -6,6 +6,10 @@
 #include <algorithm>
 
 namespace we::UI {
+namespace {
+    constexpr float kToolbarItemSpacing = 2.0f;
+    constexpr float kToolbarSeparatorSpacing = 6.0f;
+}
 
 Toolbar::Toolbar()
     : m_Style(WidgetStyle::Panel())
@@ -52,16 +56,16 @@ void Toolbar::Arrange(const Rect& allottedRect) {
             if (tool->isSeparator && tool->button) {
                 if (!isFirstButton) {
                     float w = tool->button->GetDesiredSize().width;
-                    float margin = m_GroupSpacing / 2.0f; // Half before
+                    float margin = kToolbarSeparatorSpacing / 2.0f; // Half before
                     items.push_back({tool->button, w, margin});
-                    pendingSpacing = m_GroupSpacing / 2.0f; // Half after
+                    pendingSpacing = kToolbarSeparatorSpacing / 2.0f; // Half after
                 }
             } else if (tool->button) {
                 float w = tool->button->GetDesiredSize().width;
                 float margin = isFirstButton ? 0.0f : pendingSpacing;
-                if (!isFirstButton && pendingSpacing == 0.0f) margin = m_ButtonSpacing; // fallback
+                if (!isFirstButton && pendingSpacing == 0.0f) margin = kToolbarItemSpacing; // fallback
                 items.push_back({tool->button, w, margin});
-                pendingSpacing = m_ButtonSpacing;
+                pendingSpacing = kToolbarItemSpacing;
                 isFirstButton = false;
             }
         }
@@ -98,14 +102,14 @@ void Toolbar::Arrange(const Rect& allottedRect) {
         for (auto* tool : tools) {
             if (tool->isSeparator && tool->button) {
                 if (!isFirstButton) {
-                    totalWidth += m_GroupSpacing / 2.0f + tool->button->GetDesiredSize().width;
-                    pendingSpacing = m_GroupSpacing / 2.0f;
+                    totalWidth += kToolbarSeparatorSpacing / 2.0f + tool->button->GetDesiredSize().width;
+                    pendingSpacing = kToolbarSeparatorSpacing / 2.0f;
                 }
             } else if (tool->button) {
                 float margin = isFirstButton ? 0.0f : pendingSpacing;
-                if (!isFirstButton && pendingSpacing == 0.0f) margin = m_ButtonSpacing;
+                if (!isFirstButton && pendingSpacing == 0.0f) margin = kToolbarItemSpacing;
                 totalWidth += margin + tool->button->GetDesiredSize().width;
-                pendingSpacing = m_ButtonSpacing;
+                pendingSpacing = kToolbarItemSpacing;
                 isFirstButton = false;
             }
         }
@@ -215,6 +219,13 @@ void Toolbar::OnMouseUp(const MouseEvent& event) {
     if (auto hit = HitToolAt(event.position)) {
         hit->OnMouseUp(event);
     }
+}
+
+bool Toolbar::ShowsPointerCursor(const Point& position) const {
+    if (auto hit = HitToolAt(position)) {
+        return hit->ShowsPointerCursor(position);
+    }
+    return false;
 }
 
 // ToolbarSeparator is rendered as a subtle 1px vertical divider

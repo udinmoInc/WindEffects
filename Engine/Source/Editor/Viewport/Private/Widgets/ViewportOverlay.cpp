@@ -138,8 +138,8 @@ void ViewportOverlay::CalculateLayout() {
     // Axis gizmo (top-right)
     if (m_GizmoVisible) {
         m_GizmoRect = Rect{
-            m_Geometry.x + m_Geometry.width - m_GizmoSize - 8.0f,
-            m_Geometry.y + 8.0f,
+            m_Geometry.x + m_Geometry.width - m_GizmoSize - 16.0f,
+            m_Geometry.y + 16.0f,
             m_GizmoSize,
             m_GizmoSize
         };

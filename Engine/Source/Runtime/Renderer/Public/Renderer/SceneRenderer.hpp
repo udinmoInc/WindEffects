@@ -54,6 +54,17 @@ struct SceneObjectUniform {
 
 class SceneRenderer {
 public:
+    struct ProceduralSkySettings {
+        glm::vec3 topColor{ 0.24f, 0.39f, 0.70f };
+        float gradientStrength = 1.0f;
+        glm::vec3 horizonColor{ 0.66f, 0.74f, 0.84f };
+        float hazeIntensity = 0.35f;
+        glm::vec3 groundColor{ 0.19f, 0.20f, 0.22f };
+        float exposure = 1.0f;
+        glm::vec3 sunDirection{ 0.35f, 0.82f, 0.44f };
+        float padding = 0.0f;
+    };
+
     SceneRenderer(const std::shared_ptr<VulkanContext>& context, VkRenderPass renderPass, VkDescriptorSetLayout cameraDescLayout);
     ~SceneRenderer();
 
@@ -61,7 +72,11 @@ public:
     SceneRenderer(const SceneRenderer&) = delete;
     SceneRenderer& operator=(const SceneRenderer&) = delete;
 
-    void DrawSkybox(VkCommandBuffer cmd, VkDescriptorSet cameraDescSet) const;
+    void DrawSkybox(VkCommandBuffer cmd) const;
+    void SetProceduralSkySettings(const ProceduralSkySettings& settings);
+    const ProceduralSkySettings& GetProceduralSkySettings() const { return m_ProceduralSkySettings; }
+    void SetProceduralSkyEnabled(bool enabled) { m_EnableProceduralSky = enabled; }
+    bool IsProceduralSkyEnabled() const { return m_EnableProceduralSky; }
     
     void DrawMesh(VkCommandBuffer cmd, const std::string& meshName, VkDescriptorSet descriptorSet, int mode) const;
 
@@ -73,6 +88,7 @@ public:
 private:
     void CreatePipelines(VkRenderPass renderPass);
     void CreateMeshes();
+    void UpdateProceduralSkyBufferIfDirty();
     
     void CreateMeshBuffers(const std::string& name, const std::vector<Vertex>& vertices, const std::vector<uint32_t>& indices);
     void DestroyMeshes();
@@ -89,6 +105,14 @@ private:
     VkDescriptorSetLayout m_CameraDescLayout = VK_NULL_HANDLE;
     VkDescriptorSetLayout m_ObjectDescLayout = VK_NULL_HANDLE;
     VkPipelineLayout m_PipelineLayout = VK_NULL_HANDLE;
+    VkPipelineLayout m_SkyPipelineLayout = VK_NULL_HANDLE;
+    VkDescriptorSetLayout m_SkyDescLayout = VK_NULL_HANDLE;
+    VkDescriptorSet m_SkyDescSet = VK_NULL_HANDLE;
+    VkBuffer m_SkyBuffer = VK_NULL_HANDLE;
+    VkDeviceMemory m_SkyBufferMemory = VK_NULL_HANDLE;
+    ProceduralSkySettings m_ProceduralSkySettings{};
+    bool m_ProceduralSkyDirty = true;
+    bool m_EnableProceduralSky = false;
 
     // Pipelines
     VkPipeline m_SkyboxPipeline = VK_NULL_HANDLE;
