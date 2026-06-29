@@ -11,6 +11,8 @@ std::shared_ptr<we::UI::Panel> CreateToolbarPanel() {
     panel->SetCollapsible(false);
 
     auto toolbar = std::make_shared<we::UI::Toolbar>();
+    toolbar->SetHeight(30.0f);
+    toolbar->SetIconSize(16.0f);
 
     // ── Left: transform tools ─────────────────────────────────────────────────
     toolbar->AddTool(we::UI::Icons::CursorName, "", []() {}, "Select (Q)");
@@ -28,7 +30,7 @@ std::shared_ptr<we::UI::Panel> CreateToolbarPanel() {
     stopBtn->SetButtonStyle(we::UI::ToolButtonStyle::TransportButton);
 
     // ── Right: platform | settings (inline, title bar hosts these in Editor.cpp) ─
-    auto platformBtn = toolbar->AddTool(we::UI::Icons::PackageName, "Windows", []() {}, "Platform", false, we::UI::ToolbarAlignment::Right);
+    auto platformBtn = toolbar->AddTool(we::UI::Icons::PackageName, "Platform", []() {}, "Platform", false, we::UI::ToolbarAlignment::Right);
     platformBtn->SetButtonStyle(we::UI::ToolButtonStyle::ToolbarInline);
     platformBtn->SetIsDropdown(true);
 

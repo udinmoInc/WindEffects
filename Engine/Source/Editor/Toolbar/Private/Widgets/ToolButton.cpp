@@ -3,8 +3,39 @@
 #include "Core/Theme.hpp"
 #include "Core/Icon.hpp"
 #include <algorithm>
+#include <cctype>
 
 namespace we::UI {
+namespace {
+    constexpr int kMissingIconFallback = 0xE001;
+
+    float ApproxInlineTextWidth(const std::string& text, float textSize) {
+        float width = 0.0f;
+        for (unsigned char ch : text) {
+            if (std::isspace(ch)) {
+                width += textSize * 0.32f;
+            } else if (std::isdigit(ch)) {
+                width += textSize * 0.54f;
+            } else if (std::isupper(ch)) {
+                width += textSize * 0.58f;
+            } else {
+                switch (ch) {
+                    case 'i': case 'l': case 't': case 'f': case 'r': case 'j':
+                    case '.': case ',': case ':': case ';': case '!': case '|':
+                        width += textSize * 0.30f;
+                        break;
+                    case 'm': case 'w':
+                        width += textSize * 0.75f;
+                        break;
+                    default:
+                        width += textSize * 0.52f;
+                        break;
+                }
+            }
+        }
+        return width;
+    }
+}
 
 ToolButton::ToolButton(const std::string& iconName, const std::string& label, std::function<void()> onClicked, const std::string& tooltip)
     : m_IconName(iconName)
@@ -26,16 +57,30 @@ Size ToolButton::Measure(const Size& availableSize) {
     }
 
     if (m_ButtonStyle == ToolButtonStyle::ToolbarInline) {
-        const float padH     = 4.0f;
-        const float iconSz   = 14.0f;
-        const float iconGap  = 4.0f;
-        const float chevW    = 10.0f;
+        const float padH     = 6.0f;  // extra-compact inline horizontal padding
+        const float iconSz   = 16.0f;
+        const float iconGap  = 3.0f;
+        const float chevGap  = 1.0f;
+        const float chevW    = 8.0f;
         const float textSize = 13.0f;
-        float textW = m_Label.empty() ? 0.0f : m_Label.length() * textSize * 0.6f;
-        float width = padH + iconSz + (m_Label.empty() ? 0.0f : iconGap + textW);
-        if (m_IsDropdown) width += 4.0f + chevW;
-        width += padH;
-        m_DesiredSize = Size{ width, 28.0f };
+        const int iconCp     = m_IconName.empty() ? 0 : Icons::GetCodepoint(m_IconName);
+        const bool hasIcon   = (iconCp != 0 && iconCp != kMissingIconFallback);
+        
+        float textW = m_Label.empty() ? 0.0f : ApproxInlineTextWidth(m_Label, textSize);
+        
+        float width = padH * 2.0f; // both sides
+        if (hasIcon) {
+            width += iconSz;
+            if (!m_Label.empty()) {
+                width += iconGap;
+            }
+        }
+        width += textW;
+        if (m_IsDropdown) {
+            width += chevGap + chevW;
+        }
+        
+        m_DesiredSize = Size{ width, 30.0f };
         return m_DesiredSize;
     }
 
@@ -163,29 +208,35 @@ void ToolButton::Paint(PaintContext& context) {
             context.DrawRoundedRect(renderRect, hbg, 3.0f);
         }
 
-        const float iconSize  = 14.0f;
-        const float textSize  = 13.0f; // matches menu bar typography
-        const float iconGap   = 4.0f;
+        const float iconSize  = 16.0f;
+        const float textSize  = 13.0f;
+        const float iconGap   = 3.0f;
+        const float padLeft   = 6.0f;
+        const float padRight  = 4.0f;
         Color textColor = Theme::Get().TextPrimary;
         if (m_HoverAnim > 0.01f) textColor = Color::White();
 
-        float currentX = renderRect.x + 4.0f;
+        float currentX = renderRect.x + padLeft;
         int cp = Icons::GetCodepoint(m_IconName);
-        if (cp != 0) {
+        bool hasIcon = (cp != 0 && cp != kMissingIconFallback);
+        if (hasIcon) {
             context.DrawIcon(cp, Point{ currentX, centerY - iconSize / 2.0f }, textColor, iconSize);
-            currentX += iconSize + iconGap;
+            currentX += iconSize;
+            if (!m_Label.empty()) {
+                currentX += iconGap;
+            }
         }
 
         if (!m_Label.empty()) {
             context.DrawText(m_Label, Point{ currentX, centerY - textSize / 2.0f }, textColor, textSize);
-            currentX += m_Label.length() * textSize * 0.6f + 4.0f;
         }
 
         if (m_IsDropdown) {
             int chevCp = Icons::GetCodepoint(Icons::ChevronDownName);
             if (chevCp != 0) {
                 const float chevSize = 8.0f;
-                context.DrawIcon(chevCp, Point{ currentX, centerY - chevSize / 2.0f }, textColor, chevSize);
+                float chevX = renderRect.x + renderRect.width - padRight - chevSize;
+                context.DrawIcon(chevCp, Point{ chevX, centerY - chevSize / 2.0f }, textColor, chevSize);
             }
         }
         return;
@@ -290,7 +341,7 @@ void ToolButton::OnMouseDown(const MouseEvent& event) {
 void ToolButton::OnMouseUp(const MouseEvent& event) {
     if (event.button == MouseButton::Left && m_Pressed) {
         m_Pressed = false;
-        if (m_OnClicked) {
+        if (m_Geometry.Contains(event.position) && m_OnClicked) {
             m_OnClicked();
         }
     }

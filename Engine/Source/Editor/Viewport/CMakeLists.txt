@@ -21,6 +21,7 @@ target_link_libraries(${MODULE_NAME} PUBLIC
     WindEffects-Core
     WindEffects-Application
     WindEffects-ToolsPanel
+    WindEffects-Toolbar
     WindEffects-Engine
     WindEffects-Scene
     WindEffects-Renderer 

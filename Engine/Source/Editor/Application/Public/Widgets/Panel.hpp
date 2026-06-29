@@ -22,6 +22,7 @@ public:
     void OnMouseDown(const MouseEvent& event) override;
     void OnMouseMove(const MouseEvent& event) override;
     void OnMouseUp(const MouseEvent& event) override;
+    void OnMouseWheel(const MouseEvent& event) override;
 
     // Content management
     void SetContent(const std::shared_ptr<Widget>& content);
@@ -46,6 +47,8 @@ public:
     // Styling
     void SetHeaderHeight(float height) { m_HeaderHeight = height; }
     void SetCollapsible(bool collapsible) { m_Collapsible = collapsible; }
+    void SetBackgroundColor(const Color& color) { m_Style.background.color = color; }
+    void SetStyle(const WidgetStyle& style) { m_Style = style; }
 
 private:
     struct HeaderAction {

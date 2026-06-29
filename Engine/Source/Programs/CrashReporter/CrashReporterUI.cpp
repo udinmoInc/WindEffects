@@ -1,12 +1,12 @@
 #include "CrashReporterUI.hpp"
 #include "Widgets/Panel.hpp"
 #include "Layout/Box.hpp"
-#include "Layout/Splitter.hpp"
 #include "Layout/ScrollLayout.hpp"
 #include "Layout/Spacer.hpp"
 #include "Widgets/Label.hpp"
 #include "Widgets/Button.hpp"
 #include "Widgets/TextBox.hpp"
+#include "Widgets/CheckBox.hpp"
 #include "Core/Logger.hpp"
 #include "ConfigManager.hpp"
 #include <fstream>
@@ -58,133 +58,85 @@ void CrashReporterUI::Construct() {
 
     auto rootBox = std::make_shared<VerticalBox>();
     rootBox->SetPadding(Margin{16.0f, 16.0f, 16.0f, 16.0f});
-    rootBox->SetSpacing(16.0f);
+    rootBox->SetSpacing(12.0f);
     
     const auto& cfg = ConfigManager::Get().GetConfig();
+    std::string projName = m_CrashData.value("Project", "WindEffectsProject");
 
-    // Top Header
-    auto headerBox = std::make_shared<HorizontalBox>();
-    headerBox->SetSpacing(16.0f);
-    
-    auto headerTitles = std::make_shared<VerticalBox>();
-    headerTitles->AddChild(std::make_shared<Label>(cfg.engineName + " - Crash Reporter", Color::White(), 24.0f));
-    headerTitles->AddChild(std::make_shared<Label>("Project: " + m_CrashData.value("Project", "Unknown") + " | Build: " + m_CrashData.value("BuildConfiguration", "Unknown"), Color{0.7f, 0.7f, 0.7f, 1.0f}, 14.0f));
-    
-    headerBox->AddChild(headerTitles);
-    rootBox->AddChild(headerBox);
+    // 1. Header Label
+    auto header = std::make_shared<Label>("An Unreal process has crashed: " + projName, Color{0.9f, 0.9f, 0.9f, 1.0f}, 18.0f);
+    header->SetHorizontalAlignment(HorizontalAlignment::Left);
+    rootBox->AddChild(header);
 
-    // Main Splitter
-    auto mainSplitter = std::make_shared<Splitter>(Orientation::Horizontal, 0.65f);
-    
-    // LEFT PANEL (65%)
-    auto leftScroll = std::make_shared<ScrollLayout>();
-    auto leftPanel = std::make_shared<VerticalBox>();
-    leftPanel->SetSpacing(24.0f);
-    leftPanel->SetPadding(Margin{0.0f, 0.0f, 16.0f, 0.0f});
+    // 2. Apology & Instructions
+    std::string apology = "We are very sorry that this crash occurred. Our goal is to prevent crashes like this from occurring in the future. Please help us track down and fix this crash by providing detailed information about what you were doing so that we may reproduce the crash and fix it quickly. You can also log a Bug Report with us using the Bug Submission Form and work directly with support staff to report this issue.\n\nThanks for your help in improving the WindEffects Engine.";
+    auto apologyLabel = std::make_shared<Label>(apology, Color{0.75f, 0.75f, 0.75f, 1.0f}, 12.0f);
+    apologyLabel->SetHorizontalAlignment(HorizontalAlignment::Left);
+    apologyLabel->SetWrapText(true);
+    rootBox->AddChild(apologyLabel);
 
-    // Crash Summary Card
-    auto summaryCard = std::make_shared<VerticalBox>();
-    summaryCard->SetSpacing(8.0f);
-    summaryCard->AddChild(std::make_shared<Label>("WindEffects Engine has crashed", Color{1.0f, 0.3f, 0.3f, 1.0f}, 20.0f));
-    summaryCard->AddChild(std::make_shared<Label>("A crash report has been generated automatically. The information below will help diagnose the problem.", Color::White(), 14.0f));
-    leftPanel->AddChild(summaryCard);
+    // 3. User Input (Placeholder via Label for now)
+    auto inputPanel = std::make_shared<VerticalBox>();
+    inputPanel->SetPadding(Margin{8.0f, 8.0f, 8.0f, 8.0f});
+    auto inputLabel = std::make_shared<Label>("Please provide detailed information about what you were doing when the crash occurred.", Color{0.5f, 0.5f, 0.5f, 1.0f}, 12.0f);
+    inputLabel->SetHorizontalAlignment(HorizontalAlignment::Left);
+    inputPanel->AddChild(inputLabel);
+    rootBox->AddChild(inputPanel);
 
-    // Exception Details
-    auto exceptionCard = std::make_shared<VerticalBox>();
-    exceptionCard->SetSpacing(4.0f);
-    
-    auto exceptionContent = std::make_shared<VerticalBox>();
-    exceptionContent->SetSpacing(4.0f);
-    exceptionContent->SetVisible(false); // Collapsed by default
-    exceptionContent->AddChild(std::make_shared<Label>("Message: " + m_ExceptionData.value("Message", "Unknown"), Color{1.0f, 0.5f, 0.5f, 1.0f}, 14.0f));
-    exceptionContent->AddChild(std::make_shared<Label>("Module: " + m_ExceptionData.value("Module", "Unknown") + " | Code: " + m_ExceptionData.value("Code", "N/A")));
-    exceptionContent->AddChild(std::make_shared<Label>("Address: " + m_ExceptionData.value("Address", "N/A")));
-    
-    auto toggleExceptionBtn = std::make_shared<Button>("Exception Details (Toggle)", [exceptionContent]() {
-        exceptionContent->SetVisible(!exceptionContent->IsVisible());
-    });
-    
-    exceptionCard->AddChild(toggleExceptionBtn);
-    exceptionCard->AddChild(exceptionContent);
-    leftPanel->AddChild(exceptionCard);
+    // 4. Directory Link
+    auto dirBox = std::make_shared<HorizontalBox>();
+    dirBox->SetSpacing(4.0f);
+    dirBox->SetHorizontalAlignment(HorizontalAlignment::Left);
+    auto dirLabel1 = std::make_shared<Label>("Crash reports comprise diagnostics files (", Color{0.6f, 0.6f, 0.6f, 1.0f}, 12.0f);
+    dirBox->AddChild(dirLabel1);
+    dirBox->AddChild(std::make_shared<Button>("click here to view directory", [this]{ OnOpenCrashFolder(); }));
+    auto dirLabel2 = std::make_shared<Label>(") and the following summary information:", Color{0.6f, 0.6f, 0.6f, 1.0f}, 12.0f);
+    dirBox->AddChild(dirLabel2);
+    rootBox->AddChild(dirBox);
 
-    // Call Stack
-    auto callStackCard = std::make_shared<VerticalBox>();
-    callStackCard->SetSpacing(4.0f);
-    callStackCard->AddChild(std::make_shared<Label>("Call Stack", Color{0.9f, 0.9f, 0.9f, 1.0f}, 18.0f));
+    // 5. Diagnostic Summary (Scrollable Terminal)
     auto stackScroll = std::make_shared<ScrollLayout>();
-    stackScroll->SetContent(std::make_shared<Label>(m_StackTrace, Color{0.7f, 0.7f, 0.7f, 1.0f}, 12.0f));
-    callStackCard->AddChild(stackScroll);
-    leftPanel->AddChild(callStackCard);
-
-    // Logs
-    auto logsCard = std::make_shared<VerticalBox>();
-    logsCard->SetSpacing(4.0f);
-    logsCard->AddChild(std::make_shared<Label>("Recent Engine Logs", Color{0.9f, 0.9f, 0.9f, 1.0f}, 18.0f));
-    auto logScroll = std::make_shared<ScrollLayout>();
-    logScroll->SetContent(std::make_shared<Label>(m_EngineLog, Color{0.6f, 0.8f, 0.6f, 1.0f}, 12.0f));
-    logsCard->AddChild(logScroll);
-    leftPanel->AddChild(logsCard);
-
-    leftScroll->SetContent(leftPanel);
-    mainSplitter->SetFirstChild(leftScroll);
-
-    // RIGHT PANEL (35%)
-    auto rightScroll = std::make_shared<ScrollLayout>();
-    auto rightPanel = std::make_shared<VerticalBox>();
-    rightPanel->SetSpacing(24.0f);
-    rightPanel->SetPadding(Margin{16.0f, 0.0f, 0.0f, 0.0f});
-
-    // Quick Actions
-    auto actionsCard = std::make_shared<VerticalBox>();
-    actionsCard->SetSpacing(8.0f);
-    actionsCard->AddChild(std::make_shared<Label>("Quick Actions", Color::White(), 16.0f));
+    auto stackPanel = std::make_shared<VerticalBox>();
+    stackPanel->SetPadding(Margin{8.0f, 8.0f, 8.0f, 8.0f});
     
-    if (cfg.allowRestart) {
-        actionsCard->AddChild(std::make_shared<Button>("Restart Editor", [this]{ OnRestartEditor(); }));
-    }
-    actionsCard->AddChild(std::make_shared<Button>("Open Crash Folder", [this]{ OnOpenCrashFolder(); }));
-    if (cfg.allowZipExport) {
-        actionsCard->AddChild(std::make_shared<Button>("Export ZIP", [this]{ OnExportZip(); }));
-    }
-    rightPanel->AddChild(actionsCard);
+    std::string summaryStr = "LoginId: " + m_SystemData.value("LoginId", "Unknown") + "\n";
+    summaryStr += "EpicAccountId: " + m_SystemData.value("EpicAccountId", "Unknown") + "\n\n";
+    summaryStr += "Caught signal\n\n";
+    summaryStr += m_StackTrace.empty() ? "No stack trace available." : m_StackTrace;
 
-    // User Comments
-    auto commentsCard = std::make_shared<VerticalBox>();
-    commentsCard->SetSpacing(8.0f);
-    commentsCard->AddChild(std::make_shared<Label>("User Comments", Color::White(), 16.0f));
-    // Simulated textbox placeholder for now
-    commentsCard->AddChild(std::make_shared<Label>("What were you doing before the crash?", Color{0.5f, 0.5f, 0.5f, 1.0f}, 12.0f));
-    rightPanel->AddChild(commentsCard);
+    auto stackLabel = std::make_shared<Label>(summaryStr, Color{0.8f, 0.8f, 0.8f, 1.0f}, 11.0f);
+    stackLabel->SetHorizontalAlignment(HorizontalAlignment::Left);
+    stackPanel->AddChild(stackLabel);
+    
+    auto bgPanel = std::make_shared<Panel>();
+    bgPanel->SetBackgroundColor(Color{0.05f, 0.05f, 0.05f, 1.0f});
+    bgPanel->SetContent(stackPanel);
+    stackScroll->SetContent(bgPanel);
+    
+    // Fill remaining space with the scroll layout
+    rootBox->AddChild(stackScroll);
 
-    // System Info
-    auto sysCard = std::make_shared<VerticalBox>();
-    sysCard->SetSpacing(4.0f);
-    sysCard->AddChild(std::make_shared<Label>("System Information", Color::White(), 16.0f));
-    sysCard->AddChild(std::make_shared<Label>("CPU: " + m_SystemData.value("CPU", "Unknown")));
-    sysCard->AddChild(std::make_shared<Label>("GPU: " + m_SystemData.value("GPU", "Unknown")));
-    sysCard->AddChild(std::make_shared<Label>("RAM: " + m_SystemData.value("RAM", "Unknown")));
-    sysCard->AddChild(std::make_shared<Label>("OS: " + m_SystemData.value("OS", "Unknown")));
-    rightPanel->AddChild(sysCard);
+    // 6. Consent Checkboxes
+    auto check1 = std::make_shared<CheckBox>("Include log files with submission. I understand that logs contain some personal information such as my system and user name.", true);
+    check1->SetHorizontalAlignment(HorizontalAlignment::Left);
+    rootBox->AddChild(check1);
 
-    // Support
-    auto supportCard = std::make_shared<VerticalBox>();
-    supportCard->SetSpacing(4.0f);
-    supportCard->AddChild(std::make_shared<Label>("Support", Color::White(), 16.0f));
-    supportCard->AddChild(std::make_shared<Label>("Email: " + cfg.supportEmail));
-    supportCard->AddChild(std::make_shared<Label>("Website: " + cfg.supportWebsite));
-    rightPanel->AddChild(supportCard);
+    auto check2 = std::make_shared<CheckBox>("I agree to be contacted by Epic Games via email if additional information about this crash would help fix it.", true);
+    check2->SetHorizontalAlignment(HorizontalAlignment::Left);
+    rootBox->AddChild(check2);
 
-    rightScroll->SetContent(rightPanel);
-    mainSplitter->SetSecondChild(rightScroll);
+    // 7. Bottom Action Bar
+    auto bottomBar = std::make_shared<HorizontalBox>();
+    bottomBar->AddChild(std::make_shared<Button>("Close Without Sending", [this]{ exit(0); }));
+    bottomBar->AddChild(std::make_shared<Spacer>()); // Push rest to the right
+    bottomBar->AddChild(std::make_shared<Button>("Send and Close", [this]{ OnExportZip(); exit(0); }));
+    
+    // Add small spacer between right buttons
+    auto smallSpacer = std::make_shared<Spacer>();
+    bottomBar->AddChild(smallSpacer);
+    bottomBar->AddChild(std::make_shared<Button>("Send and Restart", [this]{ OnExportZip(); OnRestartEditor(); }));
 
-    // Fill remaining space with splitter
-    rootBox->AddChild(mainSplitter);
-
-    // Status bar (bottom)
-    auto statusBar = std::make_shared<Panel>("");
-    statusBar->SetHeaderHeight(30.0f);
-    rootBox->AddChild(statusBar);
+    rootBox->AddChild(bottomBar);
 
     m_RootLayout = rootBox;
 }

@@ -226,7 +226,9 @@ void ViewportWidget::OnMouseMove(const MouseEvent& event) {
         m_ToolsPanel->OnMouseMove(event);
     }
 
-    if (!m_Focused) return;
+    if (!m_Focused && !m_LeftMouseDown && !m_RightMouseDown && !m_MiddleMouseDown) {
+        return;
+    }
 
     float dx = event.position.x - m_LastMousePos.x;
     float dy = event.position.y - m_LastMousePos.y;
@@ -293,7 +295,7 @@ void ViewportWidget::Tick(float deltaTime) {
     m_FPS = 1.0f / (deltaTime > 0.0f ? deltaTime : 0.016f);
     m_FrameTime = deltaTime * 1000.0f;
 
-    if (m_RightMouseDown && m_Focused) {
+    if (m_RightMouseDown) {
         const bool* state = SDL_GetKeyboardState(nullptr);
         bool keys[512] = { false };
         keys[SDL_SCANCODE_W] = state[SDL_SCANCODE_W];

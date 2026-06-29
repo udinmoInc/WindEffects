@@ -34,7 +34,7 @@ void StatusBar::Construct() {
     auto leftBox = std::make_shared<HorizontalBox>();
     leftBox->SetSpacing(0.0f);
 
-    auto platformBtn = std::make_shared<ToolButton>(Icons::PackageName, "Windows", [](){}, "Platform");
+    auto platformBtn = std::make_shared<ToolButton>(Icons::PackageName, "Platform", [](){}, "Platform");
     auto settingsBtn = std::make_shared<ToolButton>(Icons::SettingsName, "Settings", [](){}, "Editor Settings");
     platformBtn->SetButtonStyle(ToolButtonStyle::ToolbarInline);
     settingsBtn->SetButtonStyle(ToolButtonStyle::ToolbarInline);
