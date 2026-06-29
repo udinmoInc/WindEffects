@@ -4,9 +4,64 @@
 #include <iostream>
 #include <stdexcept>
 #include <algorithm>
+#include <cmath>
 #include <cstring>
 
 namespace we::runtime::renderer {
+
+namespace {
+
+constexpr float kLodSizes[] = { 0.01f, 0.1f, 1.0f, 10.0f, 100.0f, 1000.0f };
+constexpr int kLodCount = static_cast<int>(sizeof(kLodSizes) / sizeof(kLodSizes[0]));
+
+// Target minor-line width in pixels at the look-at distance (tuned for UE5-like 1 m at ~15 m orbit).
+constexpr float kTargetPixelsPerCell = 56.0f;
+
+struct GridLodSelection {
+    float cellA = 1.0f;
+    float cellB = 1.0f;
+    float blend = 0.0f;
+    float originSnap = 1.0f;
+};
+
+float Smoothstep(float edge0, float edge1, float x) {
+    float t = std::clamp((x - edge0) / std::max(edge1 - edge0, 1e-6f), 0.0f, 1.0f);
+    return t * t * (3.0f - 2.0f * t);
+}
+
+GridLodSelection SelectGridLod(float cameraDistance, float fovDegrees, float viewportHeight) {
+    GridLodSelection result{};
+
+    const float dist = std::max(cameraDistance, 0.5f);
+    const float tanHalfFov = std::tan(fovDegrees * 0.5f * 3.14159265f / 180.0f);
+    const float visibleMeters = 2.0f * dist * tanHalfFov;
+    const float metersPerPixel = visibleMeters / std::max(viewportHeight, 1.0f);
+    float idealCell = metersPerPixel * kTargetPixelsPerCell;
+    idealCell = std::clamp(idealCell, kLodSizes[0], kLodSizes[kLodCount - 1]);
+
+    int idxA = 0;
+    for (int i = 0; i < kLodCount - 1; ++i) {
+        const float boundary = std::sqrt(kLodSizes[i] * kLodSizes[i + 1]);
+        if (idealCell >= boundary) {
+            idxA = i + 1;
+        }
+    }
+
+    const int idxB = std::min(idxA + 1, kLodCount - 1);
+    result.cellA = kLodSizes[idxA];
+    result.cellB = kLodSizes[idxB];
+
+    if (idxA < idxB) {
+        const float boundary = std::sqrt(result.cellA * result.cellB);
+        const float blendWidth = boundary * 0.04f;
+        result.blend = Smoothstep(boundary - blendWidth * 0.5f, boundary + blendWidth * 0.5f, idealCell);
+    }
+
+    result.originSnap = (result.blend > 0.5f) ? result.cellB : result.cellA;
+    return result;
+}
+
+} // namespace
 
 GridRenderer::GridRenderer(const std::shared_ptr<VulkanContext>& context, VkRenderPass renderPass, VkDescriptorSetLayout cameraDescLayout)
     : m_Context(context), m_CameraDescLayout(cameraDescLayout) {
@@ -88,8 +143,16 @@ void GridRenderer::SetGridLodIntensity(float intensity) {
     m_GridSettingsDirty = true;
 }
 
-void GridRenderer::SetGridOriginWeight(float weight) {
-    m_GridSettings.originWeight = std::clamp(weight, 0.0f, 2.0f);
+void GridRenderer::UpdateFromCamera(float lodDistance, float fovDegrees, float viewportHeight, float projYScale) {
+    const GridLodSelection lod = SelectGridLod(lodDistance, fovDegrees, viewportHeight);
+
+    m_GridSettings.cellSizeA = lod.cellA;
+    m_GridSettings.cellSizeB = lod.cellB;
+    m_GridSettings.lodBlend = lod.blend;
+    m_GridSettings.originSnap = lod.originSnap;
+
+    const float zoomFactor = 2.0f / std::max(std::abs(projYScale), 1e-4f);
+    m_GridSettings.thicknessScale = std::clamp(zoomFactor * 0.45f, 0.40f, 1.6f);
     m_GridSettingsDirty = true;
 }
 
@@ -161,7 +224,7 @@ void GridRenderer::CreatePipeline(VkRenderPass renderPass) {
     VkPipelineDepthStencilStateCreateInfo depthStencil{};
     depthStencil.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
     depthStencil.depthTestEnable = VK_TRUE;
-    depthStencil.depthWriteEnable = VK_TRUE;
+    depthStencil.depthWriteEnable = VK_FALSE;
     depthStencil.depthCompareOp = VK_COMPARE_OP_LESS_OR_EQUAL;
     depthStencil.depthBoundsTestEnable = VK_FALSE;
     depthStencil.stencilTestEnable = VK_FALSE;

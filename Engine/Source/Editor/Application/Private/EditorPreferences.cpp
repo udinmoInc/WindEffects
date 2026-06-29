@@ -19,20 +19,21 @@ EditorPreferences::EditorPreferences() {
     using Bg = we::runtime::renderer::SceneRenderer::EditorBackgroundSettings;
 
     Bg defaults{};
-    // Tight neutral charcoal anchor — shader enforces <=6% span and exposure clamps.
-    defaults.zenithColor = HexToNeutralGray(0x1B, 0x1B, 0x1B);
-    defaults.upperSkyColor = HexToNeutralGray(0x1A, 0x1A, 0x1A);
-    defaults.midSkyColor = HexToNeutralGray(0x19, 0x19, 0x19);
-    defaults.horizonColor = HexToNeutralGray(0x18, 0x18, 0x18);
-    defaults.bottomColor = HexToNeutralGray(0x17, 0x17, 0x17);
+    // UE5-style almost pure black: zenith (#090909), subtle bottom (#0E0E0E).
+    defaults.zenithColor = HexToNeutralGray(0x09, 0x09, 0x09);
+    defaults.upperSkyColor = HexToNeutralGray(0x0A, 0x0A, 0x0A);
+    defaults.midSkyColor = HexToNeutralGray(0x0B, 0x0B, 0x0B);
+    defaults.horizonColor = HexToNeutralGray(0x0C, 0x0C, 0x0C);
+    defaults.bottomColor = HexToNeutralGray(0x0E, 0x0E, 0x0E);
 
     defaults.backgroundBrightness = 1.0f;
-    defaults.gradientStrength = 1.0f;
+    defaults.gradientStrength = 0.55f;
     defaults.horizonFade = 0.0f;
     defaults.backgroundContrast = 1.0f;
 
     m_EditorBackground = defaults;
-    m_GridFadeDistance = 200.0f;
+    m_GridFadeDistance = 8000.0f;
+    m_GridLodIntensity = 1.0f;
 }
 
 void EditorPreferences::ApplyEditorViewportIfDirty(
@@ -45,7 +46,6 @@ void EditorPreferences::ApplyEditorViewportIfDirty(
     if (gridRenderer && m_GridDirty) {
         gridRenderer->SetGridFadeDistance(m_GridFadeDistance);
         gridRenderer->SetGridLodIntensity(m_GridLodIntensity);
-        gridRenderer->SetGridOriginWeight(m_GridOriginWeight);
         m_GridDirty = false;
     }
 }

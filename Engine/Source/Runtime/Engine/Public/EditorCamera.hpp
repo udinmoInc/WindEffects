@@ -29,7 +29,11 @@ public:
     glm::vec3 GetForward() const;
     glm::vec3 GetRight() const;
     glm::vec3 GetUp() const;
-    
+
+    float GetDistance() const { return m_Distance; }
+    float GetFov() const { return m_Fov; }
+    float GetGridLodDistance() const;
+
     float GetPitch() const { return m_Pitch; }
     float GetYaw() const { return m_Yaw; }
     

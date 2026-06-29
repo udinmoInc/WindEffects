@@ -100,9 +100,9 @@ void ViewportWidget::Paint(PaintContext& context) {
     if (m_ViewportTextureSet != VK_NULL_HANDLE) {
         context.DrawTexture(m_Geometry, m_ViewportTextureSet);
     } else {
-        // Vertical gradient: Top #232427, Bottom #17181A
-        Color gradTop{0.137f, 0.141f, 0.153f, 1.0f};
-        Color gradBottom{0.090f, 0.094f, 0.102f, 1.0f};
+        // UE5 charcoal fallback when viewport texture is not ready
+        Color gradTop{0.102f, 0.102f, 0.102f, 1.0f};   // #1A1A1A
+        Color gradBottom{0.125f, 0.125f, 0.125f, 1.0f}; // #202020
         context.DrawGradient(m_Geometry, gradTop, gradBottom);
     }
 

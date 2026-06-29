@@ -15,19 +15,26 @@ public:
     GridRenderer& operator=(const GridRenderer&) = delete;
 
     void Draw(VkCommandBuffer cmd, VkDescriptorSet cameraDescSet) const;
+
     void SetGridFadeDistance(float distance);
     void SetGridLodIntensity(float intensity);
-    void SetGridOriginWeight(float weight);
+
+    // Selects grid LOD once per frame from camera distance / zoom, then uploads uniforms.
+    void UpdateFromCamera(float lodDistance, float fovDegrees, float viewportHeight, float projYScale);
 
 private:
     void CreatePipeline(VkRenderPass renderPass);
     void UpdateGridSettingsBufferIfDirty();
 
     struct GridSettings {
-        float fadeDistance = 200.0f;
-        float lodIntensity = 1.0f;
-        float originWeight = 1.0f;
+        float cellSizeA = 1.0f;
+        float cellSizeB = 1.0f;
+        float lodBlend = 0.0f;
         float hdrScale = 1.0f;
+        float fadeDistance = 8000.0f;
+        float lodIntensity = 1.0f;
+        float originSnap = 1.0f;
+        float thicknessScale = 1.0f;
     };
 
     std::shared_ptr<VulkanContext> m_Context;

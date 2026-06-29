@@ -9,12 +9,17 @@ cbuffer CameraBuffer : register(b0, space0)
     float    cameraPadding;
 };
 
+// Grid LOD is chosen once per frame on the CPU — every pixel uses the same spacing.
 cbuffer GridSettings : register(b0, space1)
 {
-    float fadeDistance;   // base LOD reference (world units)
-    float lodIntensity;   // global grid strength multiplier
-    float originWeight;   // origin-distance LOD influence
-    float hdrScale;       // HDR output scale
+    float cellSizeA;
+    float cellSizeB;
+    float lodBlend;
+    float hdrScale;
+    float fadeDistance;
+    float lodIntensity;
+    float originSnap;
+    float thicknessScale;
 };
 
 struct VSOutput
@@ -39,36 +44,47 @@ VSOutput VSMain(uint vertexId : SV_VertexID)
     return o;
 }
 
-// Logarithmic fade — smooth across orders of magnitude, no LOD pops.
-float WE_LogFade(float dist, float fadeStart, float fadeEnd)
+float WE_HorizonFade(float groundDist, float refDist)
 {
-    float logD = log(max(dist, 0.05));
-    float logA = log(max(fadeStart, 0.1));
-    float logB = log(max(fadeEnd, fadeStart + 0.1));
+    float fadeStart = refDist * 0.55;
+    float fadeEnd   = refDist * 2.6;
+    float logD = log(max(groundDist, 0.5));
+    float logA = log(max(fadeStart, 1.0));
+    float logB = log(max(fadeEnd, fadeStart + 1.0));
     return 1.0 - smoothstep(logA, logB, logD);
 }
 
-// Exponential distance falloff for fine control near thresholds.
-float WE_ExpRangeFade(float dist, float range, float power)
+float2 WE_CameraRelativeXZ(float2 worldXZ, float snapCell)
 {
-    return exp(-pow(saturate(dist / max(range, 0.01)), power));
+    float snap = max(snapCell, 1e-4);
+    float2 origin = floor(cameraPos.xz / snap) * snap;
+    return worldXZ - origin;
 }
 
-// Procedural anti-aliased grid line (no textures). Returns line coverage [0,1].
-float WE_GridLineAA(float2 worldXZ, float cellSize, float thicknessScale)
+float WE_LineAA(float2 relXZ, float cellSize, float thicknessScale)
 {
-    float2 coord = worldXZ / cellSize;
-    float2 fw = max(fwidth(coord) * thicknessScale, float2(1e-5, 1e-5));
-    float2 cellLine = abs(frac(coord - 0.5) - 0.5);
-    float2 lines = cellLine / fw;
-    return 1.0 - saturate(min(lines.x, lines.y));
+    float2 coord = relXZ / max(cellSize, 1e-4);
+    float2 fw    = max(fwidth(coord) * thicknessScale, float2(1e-4, 1e-4));
+    float2 dist  = abs(frac(coord - 0.5) - 0.5);
+    float lineX  = 1.0 - saturate(dist.x / fw.x);
+    float lineZ  = 1.0 - saturate(dist.y / fw.y);
+    return max(lineX, lineZ);
 }
 
-// Anti-aliased world-space axis line.
 float WE_AxisLineAA(float distToAxis, float thicknessScale)
 {
-    float fw = max(fwidth(distToAxis) * thicknessScale, 1e-5);
+    float fw = max(fwidth(distToAxis) * thicknessScale, 1e-4);
     return 1.0 - saturate(abs(distToAxis) / fw);
+}
+
+float WE_RenderGridTier(float2 relXZ, float cellSize, float thicknessScale)
+{
+    float primary = WE_LineAA(relXZ, cellSize, thicknessScale) * 0.26;
+
+    float majorSize = cellSize * 10.0;
+    float major = WE_LineAA(relXZ, majorSize, thicknessScale * 1.12) * 0.48;
+
+    return max(primary, major);
 }
 
 struct PSOutput
@@ -92,84 +108,48 @@ PSOutput PSMain(VSOutput input)
     float4 clipSpacePos = mul(proj, mul(view, float4(fragPos3D, 1.0)));
     o.depth = clipSpacePos.z / clipSpacePos.w;
 
-    // Camera / viewport metrics for zoom-aware LOD.
-    float zoomFactor = 2.0 / max(abs(proj[1][1]), 1e-4);
-    float distCam = length(fragPos3D - cameraPos);
-    float distOrigin = length(fragPos3D.xz);
-    float camOriginDist = length(cameraPos.xz);
-
-    float lodRef = max(fadeDistance, 10.0) * zoomFactor;
-    float lodMetric = distCam * lerp(1.0, distOrigin / max(camOriginDist, 1.0), saturate(originWeight));
-
-    // Auto line thickness — wider when zoomed out, thinner when zoomed in.
-    float thicknessScale = clamp(zoomFactor * 0.65, 0.6, 2.8);
-
-    // Per-level LOD fades (logarithmic ranges). Fine fades first, coarse last.
-    float fineFade   = WE_LogFade(lodMetric, lodRef * 0.06, lodRef * 0.28);
-    float mediumFade = WE_LogFade(lodMetric, lodRef * 0.20, lodRef * 0.62);
-    float coarseFade = WE_LogFade(lodMetric, lodRef * 0.48, lodRef * 1.05);
-
-    // Axes fade independently and persist longer than grid lines.
-    float axisXFade  = WE_LogFade(lodMetric, lodRef * 0.55, lodRef * 1.80);
-    float axisYFade  = WE_LogFade(lodMetric, lodRef * 0.70, lodRef * 2.40);
-    float axisZFade  = WE_LogFade(lodMetric, lodRef * 0.60, lodRef * 2.00);
-
-    // Global fade — grid nearly disappears when extremely far / zoomed out.
-    float globalFade = WE_LogFade(lodMetric, lodRef * 1.10, lodRef * 2.80);
-    globalFade *= WE_ExpRangeFade(distOrigin, lodRef * 3.5, 1.6);
-
-    float intensity = max(lodIntensity, 0.0);
-    float hdr = max(hdrScale, 0.01);
+    float groundDist = length(fragPos3D.xz - cameraPos.xz);
+    float lodRef     = max(fadeDistance, 200.0);
 
     float2 worldXZ = fragPos3D.xz;
+    float2 relXZ   = WE_CameraRelativeXZ(worldXZ, originSnap);
 
-    // Three procedural LOD scales (UE5-style 1 / 10 / 100 unit hierarchy).
-    float fineLine   = WE_GridLineAA(worldXZ, 1.0,   thicknessScale) * fineFade;
-    float mediumLine = WE_GridLineAA(worldXZ, 10.0,  thicknessScale) * mediumFade;
-    float coarseLine = WE_GridLineAA(worldXZ, 100.0, thicknessScale) * coarseFade;
+    float gridA = WE_RenderGridTier(relXZ, cellSizeA, thicknessScale);
+    float gridB = WE_RenderGridTier(relXZ, cellSizeB, thicknessScale);
+    float gridLine = lerp(gridA, gridB, lodBlend);
 
-    float3 minorColor = float3(0.18, 0.18, 0.18);
-    float3 majorColor = float3(0.24, 0.24, 0.24);
+    float3 lineColor  = float3(0.092, 0.094, 0.097);
+    float3 majorColor = float3(0.125, 0.129, 0.135);
+    float3 gridColor  = lerp(lineColor, majorColor, saturate(gridLine * 2.8));
 
-    float gridAlpha = saturate(fineLine * 0.55 + mediumLine * 0.35 + coarseLine * 0.22);
-    float3 gridRgb = lerp(minorColor, majorColor, saturate(coarseLine)) * hdr;
+    float intensity = max(lodIntensity, 0.0);
+    float hdr       = max(hdrScale, 0.01);
 
-    // Independent axis lines (HDR linear; axes tinted, fade separately).
-    float axisXLine = WE_AxisLineAA(fragPos3D.z, thicknessScale * 1.15);
-    float axisZLine = WE_AxisLineAA(fragPos3D.x, thicknessScale * 1.15);
-    float axisYLine = WE_AxisLineAA(length(fragPos3D.xz), thicknessScale * 0.85);
+    float horizonFade = WE_HorizonFade(groundDist, lodRef);
+    float fade        = horizonFade * intensity;
 
-    float3 axisXColor = float3(0.55, 0.18, 0.16) * hdr;
-    float3 axisYColor = float3(0.18, 0.52, 0.20) * hdr;
-    float3 axisZColor = float3(0.16, 0.22, 0.52) * hdr;
+    float axisXLine = WE_AxisLineAA(fragPos3D.z, thicknessScale * 1.1);
+    float axisZLine = WE_AxisLineAA(fragPos3D.x, thicknessScale * 1.1);
 
-    float fade = globalFade * intensity;
+    float3 axisXColor = float3(0.58, 0.20, 0.17) * hdr;
+    float3 axisZColor = float3(0.17, 0.34, 0.72) * hdr;
+    float3 axisYColor = float3(0.20, 0.58, 0.22) * hdr;
 
-    float3 finalColor = gridRgb;
-    float finalAlpha = gridAlpha * fade;
+    float3 finalColor = gridColor * hdr;
+    float finalAlpha  = gridLine * fade;
 
-    float axX = axisXLine * axisXFade * fade;
-    if (axX > finalAlpha)
-    {
-        finalColor = axisXColor;
-        finalAlpha = axX;
-    }
+    float axX = axisXLine * fade * 0.85;
+    if (axX > finalAlpha) { finalColor = axisXColor; finalAlpha = axX; }
 
-    float axZ = axisZLine * axisZFade * fade;
-    if (axZ > finalAlpha)
-    {
-        finalColor = axisZColor;
-        finalAlpha = axZ;
-    }
+    float axZ = axisZLine * fade;
+    if (axZ > finalAlpha) { finalColor = axisZColor; finalAlpha = axZ; }
 
-    float axY = axisYLine * axisYFade * fade;
-    if (axY > finalAlpha)
-    {
-        finalColor = axisYColor;
-        finalAlpha = axY;
-    }
+    float yMark = WE_AxisLineAA(length(fragPos3D.xz), thicknessScale * 2.5);
+    yMark *= exp(-dot(fragPos3D.xz, fragPos3D.xz) / 0.25);
+    float axY = yMark * fade * 0.70;
+    if (axY > finalAlpha) { finalColor = axisYColor; finalAlpha = axY; }
 
-    if (finalAlpha < 0.004)
+    if (finalAlpha < 0.002)
         discard;
 
     o.color = float4(finalColor, finalAlpha);

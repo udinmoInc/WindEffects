@@ -185,4 +185,11 @@ glm::vec3 EditorCamera::GetUp() const {
     return glm::normalize(glm::cross(GetRight(), GetForward()));
 }
 
+float EditorCamera::GetGridLodDistance() const {
+    if (m_FPSMode) {
+        return std::max(m_Position.y, 0.5f);
+    }
+    return std::max(m_Distance, 0.5f);
+}
+
 } // namespace we::runtime::engine

@@ -577,10 +577,21 @@ void Editor::MainLoop() {
             }
 
             m_RenderGraph->BeginOffscreenPass(cmd);
-            m_SceneRenderer->SetEditorBackgroundEnabled(!m_Scene->HasSkyEnvironment());
+            m_SceneRenderer->SetEditorBackgroundEnabled(true);
             EditorPreferences::Get().ApplyEditorViewportIfDirty(m_SceneRenderer, m_GridRenderer);
             m_SceneRenderer->DrawEditorBackground(cmd, m_Renderer->GetCameraDescSet());
-            m_GridRenderer->Draw(cmd, m_Renderer->GetCameraDescSet());
+            m_Scene->Draw(cmd);
+            if (m_Scene->ShouldDrawEditorGrid()) {
+                const auto& offscreenFB = m_Renderer->GetOffscreenFramebuffer();
+                const glm::mat4& proj = cameraUBO.proj;
+                m_GridRenderer->UpdateFromCamera(
+                    m_Camera->GetGridLodDistance(),
+                    m_Camera->GetFov(),
+                    static_cast<float>(offscreenFB.GetHeight()),
+                    proj[1][1]
+                );
+                m_GridRenderer->Draw(cmd, m_Renderer->GetCameraDescSet());
+            }
             m_RenderGraph->EndOffscreenPass(cmd);
 
             m_RenderGraph->BeginSwapchainPass(cmd);

@@ -17,8 +17,8 @@ void RenderGraph::BeginOffscreenPass(VkCommandBuffer cmd) const {
     renderPassInfo.renderArea.extent = { offscreenFB.GetWidth(), offscreenFB.GetHeight() };
 
     std::array<VkClearValue, 2> clearValues{};
-    // Match empty-world bottom tone (#171717) so the clear blends into the procedural backdrop.
-    constexpr float kEmptyWorldGray = 23.0f / 255.0f;
+    // Match empty-world mid-tone (#0D0D0D) so the clear blends into the procedural backdrop.
+    constexpr float kEmptyWorldGray = 11.0f / 255.0f;
     clearValues[0].color = { { kEmptyWorldGray, kEmptyWorldGray, kEmptyWorldGray, 1.0f } };
     clearValues[1].depthStencil = { 1.0f, 0 };
 
@@ -56,7 +56,7 @@ void RenderGraph::BeginSwapchainPass(VkCommandBuffer cmd) const {
     renderPassInfo.renderArea.offset = { 0, 0 };
     renderPassInfo.renderArea.extent = { m_Renderer->GetSwapchainWidth(), m_Renderer->GetSwapchainHeight() };
 
-    constexpr float kEmptyWorldGray = 23.0f / 255.0f;
+    constexpr float kEmptyWorldGray = 11.0f / 255.0f;
     VkClearValue clearColor = { { { kEmptyWorldGray, kEmptyWorldGray, kEmptyWorldGray, 1.0f } } };
     renderPassInfo.clearValueCount = 1;
     renderPassInfo.pClearValues = &clearColor;
