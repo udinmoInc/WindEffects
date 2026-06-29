@@ -36,6 +36,7 @@ public:
 
     // Styling
     void SetFillWidth(bool fill) { m_FillWidth = fill; }
+    void SetWidth(float width) { m_Width = width; }
 
 private:
     void UpdateCaretBlink(float deltaTime);
@@ -46,7 +47,7 @@ private:
     std::string m_Placeholder = "Search...";
     size_t m_CaretPosition = 0;
     
-    float m_Height = 26.0f; // 26-28px height
+    float m_Height = 30.0f; // 30px – matches toolbar controls for consistent height
     float m_Width = 150.0f;
     bool m_FillWidth = false;
     float m_CaretBlinkTime = 0.0f;

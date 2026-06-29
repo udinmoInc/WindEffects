@@ -50,6 +50,9 @@ void ContentBrowser::Arrange(const Rect& allottedRect) {
 }
 
 void ContentBrowser::Paint(PaintContext& context) {
+    // Draw background
+    context.DrawRect(m_Geometry, Theme::Get().ContentBrowserBackground);
+
     // Draw items
     for (const auto& renderItem : m_RenderList) {
         const auto& item = renderItem.item;
@@ -62,12 +65,13 @@ void ContentBrowser::Paint(PaintContext& context) {
         
         // Draw selection background
         if (IsSelected(item.id)) {
-            // Selected: Subtle dark fill with thin blue outline (#3B82F6)
-            context.DrawRoundedRect(renderItem.geometry, Color{0.1f, 0.1f, 0.1f, 0.3f}, 4.0f);
-            context.DrawRoundedRectOutline(renderItem.geometry, Color{0.231f, 0.51f, 0.965f, 1.0f}, 1.0f, 4.0f);
+            Color cbSelected = Color{ 0.271f, 0.290f, 0.322f, 1.0f }; // #454A52
+            context.DrawRoundedRect(renderItem.geometry, cbSelected, 4.0f);
+            Color cbBorder = Color{ 0.439f, 0.467f, 0.502f, 1.0f }; // #707780
+            context.DrawRoundedRectOutline(renderItem.geometry, cbBorder, 1.0f, 4.0f);
         } else if (item.id == m_HoveredId) {
-            // Hovered: #303030
-            context.DrawRoundedRect(renderItem.geometry, Color{0.188f, 0.188f, 0.188f, 1.0f}, 4.0f);
+            Color cbHover = Color{ 0.196f, 0.208f, 0.231f, 1.0f }; // #32353B
+            context.DrawRoundedRect(renderItem.geometry, cbHover, 4.0f);
         }
         
         if (m_Model->viewMode == ContentViewMode::Grid) {
@@ -99,7 +103,8 @@ void ContentBrowser::Paint(PaintContext& context) {
             }
             
             float labelX = renderItem.geometry.x + (m_GridItemSize - textWidth) / 2.0f;
-            context.DrawText(displayName, Point{ labelX, labelY }, Theme::Get().TextPrimary, 12.0f);
+            Color textColor = IsSelected(item.id) ? Color::White() : Theme::Get().TextPrimary;
+            context.DrawText(displayName, Point{ labelX, labelY }, textColor, 12.0f);
             
             // Draw favorite star
             if (item.isFavorite) {
@@ -125,7 +130,8 @@ void ContentBrowser::Paint(PaintContext& context) {
             // Draw name
             float nameX = iconX + iconSize + 8.0f;
             float nameY = renderItem.geometry.y + (m_ListRowHeight - 13.0f) / 2.0f;
-            context.DrawText(item.name, Point{ nameX, nameY }, Theme::Get().TextPrimary, 13.0f);
+            Color textColor = IsSelected(item.id) ? Color::White() : Theme::Get().TextPrimary;
+            context.DrawText(item.name, Point{ nameX, nameY }, textColor, 13.0f);
             
             // Draw type
             float typeX = renderItem.geometry.x + renderItem.geometry.width - item.type.length() * 12.0f * 0.6f - 8.0f;
@@ -142,8 +148,8 @@ void ContentBrowser::Paint(PaintContext& context) {
         float maxY = std::max(m_SelectStart.y, m_SelectEnd.y);
         Rect selectBox{minX, minY, maxX - minX, maxY - minY};
         
-        context.DrawRect(selectBox, Color{0.231f, 0.51f, 0.965f, 0.15f}); // Semi-transparent blue fill
-        context.DrawRoundedRectOutline(selectBox, Color{0.231f, 0.51f, 0.965f, 0.8f}, 1.0f, 0.0f); // Blue border
+        context.DrawRect(selectBox, Color{Theme::Get().SelectedAccent.r, Theme::Get().SelectedAccent.g, Theme::Get().SelectedAccent.b, 0.15f}); // Semi-transparent fill
+        context.DrawRoundedRectOutline(selectBox, Theme::Get().SelectedAccent, 1.0f, 0.0f); // Border
     }
     
     // Draw drag ghost

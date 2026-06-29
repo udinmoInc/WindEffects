@@ -20,6 +20,7 @@ target_include_directories(${MODULE_NAME} PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/P
 target_link_libraries(${MODULE_NAME} PUBLIC 
     WindEffects-Core
     WindEffects-Application
+    WindEffects-ToolsPanel
     WindEffects-Engine
     WindEffects-Scene
     WindEffects-Renderer 

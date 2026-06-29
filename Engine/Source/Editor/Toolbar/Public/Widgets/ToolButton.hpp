@@ -10,11 +10,13 @@ namespace we::UI {
 
 enum class ToolButtonStyle {
     Normal,
-    PlayButton,
+    PlayButton,      // Legacy – kept for compatibility
+    TransportButton, // Play / Pause / Stop – compact icon-only
     WindowControl,
     WindowClose,
     TitleBarTool,
-    ToolbarIconOnly
+    ToolbarIconOnly,
+    ToolbarInline    // Transparent inline item – icon + label + chevron, hover only
 };
 
 // Icon and text button for toolbar use

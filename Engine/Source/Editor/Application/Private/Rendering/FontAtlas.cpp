@@ -28,10 +28,20 @@ bool FontAtlas::Init(const std::shared_ptr<we::runtime::renderer::VulkanContext>
 
     // 1. Locate and read font file
     std::vector<std::string> searchPaths = {
+        fontName,
+        "Assets/Fonts/" + fontName,
         "Fonts/" + fontName,
+        "../Assets/Fonts/" + fontName,
         "../Fonts/" + fontName,
-        fontName
     };
+
+    // If caller passed a full relative path like Assets/Fonts/foo.ttf, also try basename only.
+    const auto slash = fontName.find_last_of("/\\");
+    if (slash != std::string::npos) {
+        const std::string baseName = fontName.substr(slash + 1);
+        searchPaths.push_back("Assets/Fonts/" + baseName);
+        searchPaths.push_back("Fonts/" + baseName);
+    }
 
     std::string fontPath = "";
     std::vector<char> fontBuffer;
@@ -57,8 +67,14 @@ bool FontAtlas::Init(const std::shared_ptr<we::runtime::renderer::VulkanContext>
 
     // 2. Rasterize glyphs using stb_truetype into a temporary alpha buffer
     std::vector<uint8_t> alphaBuffer(m_AtlasWidth * m_AtlasHeight);
+    int offset = stbtt_GetFontOffsetForIndex(reinterpret_cast<const unsigned char*>(fontBuffer.data()), 0);
+    if (offset < 0) {
+        HE_ERROR("FontAtlas: Invalid font data or unsupported font format (stbtt_GetFontOffsetForIndex returned " + std::to_string(offset) + ")");
+        return false;
+    }
+
     int res = stbtt_BakeFontBitmap(
-        reinterpret_cast<const unsigned char*>(fontBuffer.data()), 0,
+        reinterpret_cast<const unsigned char*>(fontBuffer.data()), offset,
         m_FontHeight,
         alphaBuffer.data(), m_AtlasWidth, m_AtlasHeight,
         m_FirstChar, m_NumChars,

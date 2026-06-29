@@ -87,11 +87,8 @@ void Toolbar::Arrange(const Rect& allottedRect) {
         return totalWidth;
     };
     
-    // Left group hugs the left edge (with 8px padding)
-    layoutGroup(leftTools, allottedRect.x + 8.0f, false);
-    
-    // Right group hugs the right edge (with 8px padding)
-    layoutGroup(rightTools, allottedRect.x + allottedRect.width - 8.0f, true);
+    layoutGroup(leftTools, allottedRect.x + m_LeftInset, false);
+    layoutGroup(rightTools, allottedRect.x + allottedRect.width - m_EdgePadding, true);
     
     // Center group remains perfectly centered within the viewport region
     auto computeWidth = [&](const std::vector<ToolInfo*>& tools) -> float {
@@ -121,30 +118,15 @@ void Toolbar::Arrange(const Rect& allottedRect) {
 }
 
 void Toolbar::Paint(PaintContext& context) {
-    // Top: #2B2B2B, Bottom: #272727
-    Color gradientTop{0.1686f, 0.1686f, 0.1686f, 1.0f};
-    Color gradientBottom{0.1529f, 0.1529f, 0.1529f, 1.0f};
-    
-    // Draw the gentle gradient background
-    context.DrawGradient(m_Geometry, gradientTop, gradientBottom);
-    
-    // Soft 1px highlight along the top edge (white at ~6% opacity)
-    Rect topHighlightRect{
-        m_Geometry.x,
-        m_Geometry.y,
-        m_Geometry.width,
-        1.0f
-    };
-    context.DrawRect(topHighlightRect, Color{1.0f, 1.0f, 1.0f, 0.06f});
+    context.DrawRect(m_Geometry, Theme::Get().ToolbarBackground);
 
-    // Subtle 1px shadow along the bottom edge (black at ~22% opacity)
-    Rect bottomShadowRect{
+    Rect bottomBorder{
         m_Geometry.x,
         m_Geometry.y + m_Geometry.height - 1.0f,
         m_Geometry.width,
         1.0f
     };
-    context.DrawRect(bottomShadowRect, Color{0.0f, 0.0f, 0.0f, 0.22f});
+    context.DrawRect(bottomBorder, Theme::Get().BorderSecondary);
     
     for (auto& tool : m_Tools) {
         if (tool.button && tool.button->IsVisible()) {
@@ -205,6 +187,33 @@ void Toolbar::SetActiveTool(const std::string& iconName) {
                 toolBtn->SetActive(tool.iconName == iconName);
             }
         }
+    }
+}
+
+std::shared_ptr<Widget> Toolbar::HitToolAt(const Point& position) const {
+    for (auto it = m_Tools.rbegin(); it != m_Tools.rend(); ++it) {
+        if (it->button && it->button->IsVisible() && it->button->GetGeometry().Contains(position)) {
+            return it->button;
+        }
+    }
+    return nullptr;
+}
+
+void Toolbar::OnMouseDown(const MouseEvent& event) {
+    if (auto hit = HitToolAt(event.position)) {
+        hit->OnMouseDown(event);
+    }
+}
+
+void Toolbar::OnMouseMove(const MouseEvent& event) {
+    if (auto hit = HitToolAt(event.position)) {
+        hit->OnMouseMove(event);
+    }
+}
+
+void Toolbar::OnMouseUp(const MouseEvent& event) {
+    if (auto hit = HitToolAt(event.position)) {
+        hit->OnMouseUp(event);
     }
 }
 

@@ -118,11 +118,12 @@ void PaintContext::DrawLine(const Point& start, const Point& end, const Color& c
     m_Commands.push_back(cmd);
 }
 
-void PaintContext::DrawTexture(const Rect& rect, VkDescriptorSet textureId, const Color& tint) {
+void PaintContext::DrawTexture(const Rect& rect, VkDescriptorSet textureId, const Color& tint, const Color& tintBottom) {
     DrawCommand cmd{};
     cmd.type = DrawCommandType::Texture;
     cmd.rect = rect;
     cmd.color = tint;
+    cmd.colorBottom = (tintBottom.a > 0.0f) ? tintBottom : tint;
     cmd.clipRect = GetCurrentClipRect();
     cmd.textureId = textureId;
     m_Commands.push_back(cmd);

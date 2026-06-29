@@ -3,29 +3,55 @@
 #include "Core/Theme.hpp"
 #include "Core/Icon.hpp"
 #include "Widgets/Label.hpp"
-#include "Widgets/IconWidget.hpp"
+#include "Widgets/ToolButton.hpp"
 #include "Layout/Spacer.hpp"
 #include <iomanip>
 #include <sstream>
 
 namespace we::UI {
 
+namespace {
+    class FixedGap : public Widget {
+    public:
+        explicit FixedGap(float width) : m_Width(width) {}
+        Size Measure(const Size& availableSize) override {
+            m_DesiredSize = Size{ m_Width, 1.0f };
+            return m_DesiredSize;
+        }
+        void Arrange(const Rect& allottedRect) override { m_Geometry = allottedRect; }
+        void Paint(PaintContext& context) override {}
+    private:
+        float m_Width;
+    };
+}
+
 StatusBar::StatusBar() {
-    SetPadding(Margin{ 8.0f, 0.0f, 8.0f, 0.0f }); // 8px padding
+    SetPadding(Margin{ 8.0f, 0.0f, 8.0f, 0.0f });
+    SetSpacing(0.0f);
 }
 
 void StatusBar::Construct() {
-    // Left side
     auto leftBox = std::make_shared<HorizontalBox>();
-    leftBox->SetSpacing(8.0f);
+    leftBox->SetSpacing(0.0f);
+
+    auto platformBtn = std::make_shared<ToolButton>(Icons::PackageName, "Windows", [](){}, "Platform");
+    auto settingsBtn = std::make_shared<ToolButton>(Icons::SettingsName, "Settings", [](){}, "Editor Settings");
+    platformBtn->SetButtonStyle(ToolButtonStyle::ToolbarInline);
+    settingsBtn->SetButtonStyle(ToolButtonStyle::ToolbarInline);
+    platformBtn->SetIsDropdown(true);
+    settingsBtn->SetIsDropdown(true);
+    m_PlatformBtn = platformBtn;
+    m_SettingsBtn = settingsBtn;
+
+    leftBox->AddChild(platformBtn);
+    leftBox->AddChild(std::make_shared<FixedGap>(8.0f));
+    leftBox->AddChild(settingsBtn);
     AddChild(leftBox);
 
-    // Spacer to push right box
     AddChild(std::make_shared<Spacer>());
 
-    // Right side
     auto rightBox = std::make_shared<HorizontalBox>();
-    rightBox->SetSpacing(8.0f); // 8px spacing
+    rightBox->SetSpacing(8.0f);
 
     auto createStat = [](std::shared_ptr<Label>& labelOut, const std::string& initial) {
         labelOut = std::make_shared<Label>(initial);

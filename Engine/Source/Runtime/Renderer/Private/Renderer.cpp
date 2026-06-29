@@ -12,9 +12,17 @@ Renderer::Renderer(const std::shared_ptr<VulkanContext>& context, SDL_Window* wi
     : m_Context(context), m_Window(window) {
     
     HE_INFO("Renderer: Querying window size...");
-    int width, height;
-    SDL_GetWindowSize(window, &width, &height);
-    HE_INFO("Renderer: Window size: " + std::to_string(width) + "x" + std::to_string(height));
+    int width = 0;
+    int height = 0;
+    if (!SDL_GetWindowSizeInPixels(window, &width, &height) || width <= 0 || height <= 0) {
+        SDL_GetWindowSize(window, &width, &height);
+    }
+    if (width <= 0 || height <= 0) {
+        width = 1280;
+        height = 720;
+        HE_INFO("Renderer: Window not yet visible; using fallback size 1280x720 for swapchain.");
+    }
+    HE_INFO("Renderer: Window pixel size: " + std::to_string(width) + "x" + std::to_string(height));
 
     HE_INFO("Renderer: Creating Render Passes...");
     CreateRenderPasses();
@@ -144,8 +152,8 @@ void Renderer::CreateRenderPasses() {
     colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
     colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
     colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-    colorAttachment.initialLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL; // Starts as read by ImGui
-    colorAttachment.finalLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;   // Transitions back to read for ImGui
+    colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+    colorAttachment.finalLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
     VkAttachmentDescription depthAttachment{};
     depthAttachment.format = VK_FORMAT_D32_SFLOAT;
@@ -457,8 +465,11 @@ bool Renderer::BeginFrame() {
     );
 
     if (result == VK_ERROR_OUT_OF_DATE_KHR) {
-        int w, h;
-        SDL_GetWindowSize(m_Window, &w, &h);
+        int w = 0;
+        int h = 0;
+        if (!SDL_GetWindowSizeInPixels(m_Window, &w, &h) || w <= 0 || h <= 0) {
+            SDL_GetWindowSize(m_Window, &w, &h);
+        }
         RecreateSwapchain(static_cast<uint32_t>(w), static_cast<uint32_t>(h));
         return false;
     } else if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR) {
@@ -522,8 +533,11 @@ void Renderer::EndFrame() {
 
     if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR || m_FramebufferResized) {
         m_FramebufferResized = false;
-        int w, h;
-        SDL_GetWindowSize(m_Window, &w, &h);
+        int w = 0;
+        int h = 0;
+        if (!SDL_GetWindowSizeInPixels(m_Window, &w, &h) || w <= 0 || h <= 0) {
+            SDL_GetWindowSize(m_Window, &w, &h);
+        }
         RecreateSwapchain(static_cast<uint32_t>(w), static_cast<uint32_t>(h));
     } else if (result != VK_SUCCESS) {
         throw std::runtime_error("Failed to present Vulkan swapchain image!");

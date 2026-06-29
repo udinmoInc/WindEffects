@@ -6,6 +6,7 @@
 #include "Core/Geometry.hpp"
 #include "Core/PaintContext.hpp"
 #include "Rendering/FontAtlas.hpp"
+#include "Rendering/IconRenderer.hpp"
 
 #include "Renderer/VulkanContext.hpp"
 
@@ -39,6 +40,17 @@ public:
     // Helpers
     VkDescriptorSetLayout GetTextureLayout() const { return m_TextureDescLayout; }
     std::shared_ptr<FontAtlas> GetFontAtlas() const { return m_FontAtlas; }
+    std::shared_ptr<IconRenderer> GetIconRenderer() const { return m_IconRenderer; }
+
+    struct FrameStats {
+        uint32_t drawCommands = 0;
+        uint32_t vertices = 0;
+        uint32_t indices = 0;
+        uint32_t batches = 0;
+        uint32_t width = 0;
+        uint32_t height = 0;
+    };
+    const FrameStats& GetLastFrameStats() const { return m_LastFrameStats; }
 
 private:
     void CreatePipeline(VkRenderPass renderPass);
@@ -49,6 +61,7 @@ private:
     std::shared_ptr<we::runtime::renderer::VulkanContext> m_Context;
     std::shared_ptr<FontAtlas> m_FontAtlas;
     std::shared_ptr<FontAtlas> m_IconAtlas;
+    std::shared_ptr<IconRenderer> m_IconRenderer;
     // Pipeline resources
     VkDescriptorSetLayout m_TextureDescLayout = VK_NULL_HANDLE;
     VkPipelineLayout m_PipelineLayout = VK_NULL_HANDLE;
@@ -82,6 +95,8 @@ private:
         Rect scissor;
     };
     std::vector<DrawBatch> m_Batches;
+
+    FrameStats m_LastFrameStats{};
 };
 
 } // namespace we::editor::application::UI

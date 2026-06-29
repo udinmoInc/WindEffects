@@ -35,6 +35,9 @@ public:
     // without touching GPU resources mid command-buffer recording.
     void FlushPendingResize();
 
+    void SetToolsPanel(const std::shared_ptr<Widget>& toolsPanel);
+    std::shared_ptr<Widget> GetToolsPanel() const { return m_ToolsPanel; }
+
 private:
     std::shared_ptr<we::runtime::renderer::Renderer> m_Renderer;
     std::shared_ptr<we::runtime::engine::EditorCamera> m_Camera;
@@ -56,6 +59,9 @@ private:
     uint32_t m_PendingWidth  = 0;
     uint32_t m_PendingHeight = 0;
     bool     m_ResizePending = false;
+
+    std::shared_ptr<Widget> m_ToolsPanel;
+    float m_ToolsPanelWidth = 0.0f;
 };
 
 } // namespace we::editor::viewport::UI

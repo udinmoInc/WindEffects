@@ -14,7 +14,9 @@ Panel::Panel(const std::string& title)
 {}
 
 void Panel::SetToolbar(const std::shared_ptr<Widget>& toolbar) {
+    if (m_Toolbar) RemoveChild(m_Toolbar);
     m_Toolbar = toolbar;
+    if (m_Toolbar) AddChild(m_Toolbar);
 }
 
 Size Panel::Measure(const Size& availableSize) {
@@ -178,23 +180,53 @@ void Panel::Paint(PaintContext& context) {
 }
 
 void Panel::OnMouseDown(const MouseEvent& event) {
-    // Check if clicked on header
     if (m_HeaderRect.Contains(event.position)) {
-        // Check if clicked on header action
         HeaderAction* action = GetActionAtPosition(event.position);
         if (action && action->onClick) {
             action->onClick();
             return;
         }
+        return;
+    }
+
+    if (m_Toolbar && m_ToolbarRect.Contains(event.position)) {
+        m_Toolbar->OnMouseDown(event);
+        return;
+    }
+
+    if (m_Content && m_ContentRect.Contains(event.position)) {
+        m_Content->OnMouseDown(event);
     }
 }
 
 void Panel::OnMouseMove(const MouseEvent& event) {
     m_HeaderHovered = m_HeaderRect.Contains(event.position);
+
+    if (m_Toolbar && m_ToolbarRect.Contains(event.position)) {
+        m_Toolbar->OnMouseMove(event);
+        return;
+    }
+
+    if (m_Content && m_ContentRect.Contains(event.position)) {
+        m_Content->OnMouseMove(event);
+    }
+}
+
+void Panel::OnMouseUp(const MouseEvent& event) {
+    if (m_Toolbar && m_ToolbarRect.Contains(event.position)) {
+        m_Toolbar->OnMouseUp(event);
+        return;
+    }
+
+    if (m_Content && m_ContentRect.Contains(event.position)) {
+        m_Content->OnMouseUp(event);
+    }
 }
 
 void Panel::SetContent(const std::shared_ptr<Widget>& content) {
+    if (m_Content) RemoveChild(m_Content);
     m_Content = content;
+    if (m_Content) AddChild(m_Content);
 }
 
 void Panel::SetExpanded(bool expanded) {

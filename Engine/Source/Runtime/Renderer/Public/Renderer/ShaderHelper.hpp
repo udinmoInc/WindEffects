@@ -11,10 +11,12 @@ namespace we::runtime::renderer {
 
 inline std::vector<char> ReadShaderFile(const std::string& filename) {
     std::ifstream file;
-    
+    std::string resolvedPath;
+
     std::vector<std::string> searchPaths = {
         "Assets/Shaders/" + filename,
         "Shaders/" + filename,
+        "../Assets/Shaders/" + filename,
         "../Shaders/" + filename,
         filename
     };
@@ -22,14 +24,17 @@ inline std::vector<char> ReadShaderFile(const std::string& filename) {
     for (const auto& path : searchPaths) {
         file.open(path, std::ios::ate | std::ios::binary);
         if (file.is_open()) {
+            resolvedPath = path;
             break;
         }
         file.clear();
     }
 
     if (!file.is_open()) {
-        throw std::runtime_error("Failed to open shader file: " + filename);
+        throw std::runtime_error("Failed to open shader file: " + filename + " (searched Assets/Shaders/, Shaders/, and cwd)");
     }
+
+    std::cout << "[Shader] Loaded " << filename << " from " << resolvedPath << " (" << file.tellg() << " bytes)\n";
 
     size_t fileSize = (size_t)file.tellg();
     std::vector<char> buffer(fileSize);

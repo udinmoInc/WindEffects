@@ -23,7 +23,7 @@ void Image::Paint(PaintContext& context) {
     if (!m_Visible) return;
 
     if (m_TextureId != VK_NULL_HANDLE) {
-        context.DrawTexture(m_Geometry, m_TextureId, m_TintColor);
+        context.DrawTexture(m_Geometry, m_TextureId, m_TintColor, m_TintBottom);
     } else {
         // Placeholder checkboard or solid color
         context.DrawRect(m_Geometry, Color{ 0.15f, 0.15f, 0.18f, 1.0f });

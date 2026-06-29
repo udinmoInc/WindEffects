@@ -82,7 +82,7 @@ SDL_HitTestResult SDLCALL EngineApplication::HitTestCallback(SDL_Window* win, co
     int w, h;
     SDL_GetWindowSize(win, &w, &h);
     const int resizeBorder = 8;
-    const int titleBarHeight = 32;
+    const int titleBarHeight = 40;
 
     bool left = area->x < resizeBorder;
     bool right = area->x >= w - resizeBorder;

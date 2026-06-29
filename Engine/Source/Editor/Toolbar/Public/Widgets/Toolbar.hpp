@@ -29,6 +29,10 @@ public:
     void Arrange(const Rect& allottedRect) override;
     void Paint(PaintContext& context) override;
 
+    void OnMouseDown(const MouseEvent& event) override;
+    void OnMouseMove(const MouseEvent& event) override;
+    void OnMouseUp(const MouseEvent& event) override;
+
     // Tool management
     std::shared_ptr<ToolButton> AddTool(const std::string& iconName, const std::string& label, std::function<void()> onClick, const std::string& tooltip = "", bool isPlayButton = false, ToolbarAlignment align = ToolbarAlignment::Left);
     void AddSeparator(ToolbarAlignment align = ToolbarAlignment::Left);
@@ -43,6 +47,7 @@ public:
     void SetHeight(float height) { m_Height = height; }
     void SetIconSize(float size) { m_IconSize = size; }
     void SetFloating(bool floating) { m_IsFloating = floating; }
+    void SetLeftInset(float inset) { m_LeftInset = inset; }
 
 private:
     struct ToolInfo {
@@ -55,13 +60,17 @@ private:
     std::vector<ToolInfo> m_Tools;
     std::string m_ActiveTool;
     
-    float m_Height = 32.0f; // Height to approximately 32px
-    float m_IconSize = 16.0f; // 16px artwork on 24x24 canvas
-    float m_ButtonSpacing = 8.0f; // 8px spacing between icons within each group
-    float m_GroupSpacing = 18.0f; // 18-20px spacing between groups
+    float m_Height = 40.0f;
+    float m_IconSize = 16.0f;
+    float m_ButtonSpacing = 4.0f;
+    float m_GroupSpacing = 10.0f;
+    float m_EdgePadding = 12.0f;
+    float m_LeftInset = 8.0f;    // Standard edge padding
     bool m_IsFloating = false;
 
     WidgetStyle m_Style;
+
+    std::shared_ptr<Widget> HitToolAt(const Point& position) const;
 };
 
 // Separator for toolbar grouping

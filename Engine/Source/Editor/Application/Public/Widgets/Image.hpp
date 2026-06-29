@@ -21,13 +21,15 @@ public:
     void SetWidth(float w) { m_CustomSize.width = w; m_UseCustomSize = true; }
     void SetHeight(float h) { m_CustomSize.height = h; m_UseCustomSize = true; }
 
-    void SetTintColor(const Color& tint) { m_TintColor = tint; }
+    void SetTintColor(const Color& tint) { m_TintColor = tint; m_TintBottom = Color::Transparent(); }
+    void SetGradientTintColor(const Color& top, const Color& bottom) { m_TintColor = top; m_TintBottom = bottom; }
 
 private:
     VkDescriptorSet m_TextureId = VK_NULL_HANDLE;
     Size m_CustomSize = { 64.0f, 64.0f };
     bool m_UseCustomSize = false;
     Color m_TintColor = Color::White();
+    Color m_TintBottom = Color::Transparent();
 };
 
 } // namespace we::editor::application::UI

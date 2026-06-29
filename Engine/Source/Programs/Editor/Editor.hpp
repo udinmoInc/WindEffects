@@ -4,6 +4,8 @@
 #include <SDL3/SDL.h>
 #include <memory>
 #include <vector>
+#include <unordered_map>
+#include <functional>
 
 #include "Renderer/VulkanContext.hpp"
 #include "Renderer/Renderer.hpp"
@@ -17,6 +19,8 @@
 #include "Core/Widget.hpp"
 #include "Core/EventSystem.hpp"
 #include "Rendering/UIRenderer.hpp"
+#include "Widgets/Panel.hpp"
+#include "Widgets/StatusBar.hpp"
 
 namespace we::programs::editor {
 class Editor {
@@ -53,6 +57,15 @@ private:
     std::shared_ptr<UI::Widget> m_RootWidget;
     std::shared_ptr<UI::EventSystem> m_UIEventSystem;
     std::unique_ptr<we::UI::UIRenderer> m_UIRenderer;
+
+    // Viewport widget (needs special handling for resize flush)
+    std::shared_ptr<we::UI::Widget> m_ViewportWidget;
+    std::shared_ptr<we::UI::StatusBar> m_StatusBar;
+
+    void EnsureVisibleSwapchain();
+    void LogWidgetTreeLayout(const std::shared_ptr<UI::Widget>& widget, const std::string& name, int depth = 0);
+    void ValidateEditorPanels(const std::unordered_map<std::string, std::function<std::shared_ptr<UI::Panel>()>>& factories);
+
 };
 
 } // namespace we::programs::editor

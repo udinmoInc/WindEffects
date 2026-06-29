@@ -3,6 +3,7 @@
 #include "Core/Widget.hpp"
 #include "Core/Style.hpp"
 #include <string>
+#include <vector>
 #include <functional>
 #include <memory>
 
@@ -32,12 +33,19 @@ public:
     void OnMouseMove(const MouseEvent& event) override;
 
     // Menu management
-    void AddMenu(const std::string& label, const std::vector<std::shared_ptr<MenuItem>>& items);
+    void AddMenu(const std::string& label, const std::vector<std::shared_ptr<MenuItem>>& items) {
+        MenuInfo menu;
+        menu.label = label;
+        menu.items = items;
+        m_Menus.push_back(menu);
+        CalculateMenuGeometries();
+    }
     void RemoveMenu(const std::string& label);
     void Clear();
 
     // Styling
     void SetHeight(float height) { m_Height = height; }
+    void SetItemSpacing(float spacing) { m_ItemSpacing = spacing; CalculateMenuGeometries(); }
 
 private:
     struct MenuInfo {
@@ -51,7 +59,9 @@ private:
     MenuInfo* GetMenuAtPosition(const Point& pos);
 
     std::vector<MenuInfo> m_Menus;
-    float m_Height = 34.0f;
+    float m_Height = 40.0f;
+    float m_ItemSpacing = 0.0f;
+    float m_ItemPaddingH = 6.0f;
     int m_HoveredMenu = -1;
     bool m_MenuOpen = false;
 

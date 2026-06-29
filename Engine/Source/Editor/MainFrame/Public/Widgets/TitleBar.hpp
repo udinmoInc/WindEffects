@@ -11,6 +11,8 @@ namespace we::UI {
 
 class TitleBar : public HorizontalBox {
 public:
+    static constexpr float LogoDisplaySize = 18.0f;
+
     TitleBar(SDL_Window* window, const std::string& title, VkDescriptorSet logoSet = VK_NULL_HANDLE, std::shared_ptr<MenuBar> menuBar = nullptr);
     virtual ~TitleBar() = default;
 
@@ -33,12 +35,16 @@ public:
     // Replaced explicit mock geometries with layout.
     // We only keep the HitTest implementation
     
-    // For HitTest, we can cache specific widgets to check if they are being hovered
-    std::shared_ptr<Widget> m_SearchWidget;
+    // For HitTest, cache interactable widgets
+    std::shared_ptr<Widget> m_LogoWidget;
     std::shared_ptr<Widget> m_MinimizeWidget;
     std::shared_ptr<Widget> m_MaximizeWidget;
     std::shared_ptr<Widget> m_CloseWidget;
     std::vector<std::shared_ptr<Widget>> m_InteractableWidgets;
+
+    std::shared_ptr<HorizontalBox> m_LeftContainer;
+    std::shared_ptr<HorizontalBox> m_CenterContainer;
+    std::shared_ptr<HorizontalBox> m_RightContainer;
 };
 
 } // namespace we::editor::mainframe::UI

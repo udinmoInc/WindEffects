@@ -28,8 +28,10 @@ public:
     void SetHeight(float height) { m_Height = height; }
 
 private:
-    float m_Height = 24.0f;
+    float m_Height = 28.0f;
 
+    std::shared_ptr<class ToolButton> m_PlatformBtn;
+    std::shared_ptr<class ToolButton> m_SettingsBtn;
     std::shared_ptr<class Label> m_FPSLabel;
     std::shared_ptr<class Label> m_GPULabel;
     std::shared_ptr<class Label> m_CPULabel;

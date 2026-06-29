@@ -3,7 +3,32 @@
 #include <SDL3/SDL.h>
 #include <iostream>
 #include <exception>
+#include <filesystem>
 #include "Core/Logger.hpp"
+
+#if defined(_WIN32)
+#define WIN32_LEAN_AND_MEAN
+#include <windows.h>
+#endif
+
+namespace {
+
+void SetWorkingDirectoryToExecutable() {
+#if defined(_WIN32)
+    wchar_t exePath[MAX_PATH]{};
+    const DWORD len = GetModuleFileNameW(nullptr, exePath, MAX_PATH);
+    if (len == 0 || len >= MAX_PATH) {
+        HE_INFO("[Startup] Could not resolve executable path; asset loading uses process CWD.");
+        return;
+    }
+    std::filesystem::current_path(std::filesystem::path(exePath).parent_path());
+    HE_INFO("[Startup] Working directory set to executable folder.");
+#else
+    HE_INFO("[Startup] Non-Windows platform: using process CWD for assets.");
+#endif
+}
+
+} // namespace
 
 int main(int argc, char* argv[]) {
     (void)argc;
@@ -11,33 +36,42 @@ int main(int argc, char* argv[]) {
     
     try {
         we::runtime::core::Logger::Init();
+        SetWorkingDirectoryToExecutable();
+
         std::cout << "WindEffects Engine Bootstrapping...\n";
+        HE_INFO("[Startup] === WindEffects Editor bootstrap begin ===");
         
         ModuleManager& ModuleManager = ModuleManager::Get();
 
-        // 1. Load Editor Modules
-        ModuleManager.LoadModule("WindEffects-Application");
-        ModuleManager.LoadModule("WindEffects-MainFrame");
-        ModuleManager.LoadModule("WindEffects-Docking");
-        ModuleManager.LoadModule("WindEffects-Viewport");
-        ModuleManager.LoadModule("WindEffects-ContentBrowser");
-        ModuleManager.LoadModule("WindEffects-WorldOutliner");
-        ModuleManager.LoadModule("WindEffects-PropertyEditor");
-        ModuleManager.LoadModule("WindEffects-Details");
-        ModuleManager.LoadModule("WindEffects-Toolbar");
-        ModuleManager.LoadModule("WindEffects-Menus");
-
-        // 2. Discover Plugins
-        // std::vector<std::string> Plugins = PluginManager::DiscoverPlugins();
-        // for (const auto& Plugin : Plugins) {
-        //     ModuleManager.LoadModule(Plugin);
-        // }
+        // 1. Load Editor Modules (runs REGISTER_EDITOR_PANEL static initializers)
+        HE_INFO("[Startup] Loading editor feature modules...");
+        const char* modules[] = {
+            "WindEffects-Application",
+            "WindEffects-MainFrame",
+            "WindEffects-Docking",
+            "WindEffects-Viewport",
+            "WindEffects-ContentBrowser",
+            "WindEffects-WorldOutliner",
+            "WindEffects-PropertyEditor",
+            "WindEffects-Details",
+            "WindEffects-Toolbar",
+            "WindEffects-Menus",
+            "WindEffects-ToolsPanel",
+        };
+        for (const char* mod : modules) {
+            if (!ModuleManager.LoadModule(mod)) {
+                HE_ERROR(std::string("[Startup] Failed to load module: ") + mod);
+            } else {
+                HE_INFO(std::string("[Startup]   Loaded module: ") + mod);
+            }
+        }
         
         std::cout << "Engine successfully initialized and modules loaded.\n";
 
         if (!SDL_Init(SDL_INIT_VIDEO)) {
             throw std::runtime_error("Failed to initialize SDL");
         }
+        HE_INFO("[Startup] SDL video initialized.");
 
         SDL_WindowFlags window_flags = (SDL_WindowFlags)(
             SDL_WINDOW_VULKAN |
@@ -51,13 +85,18 @@ int main(int argc, char* argv[]) {
         if (!window) {
             throw std::runtime_error("Failed to create SDL Window");
         }
+        HE_INFO("[Startup] SDL window created (1280x720, hidden until UI is ready).");
+
+        // Show the window BEFORE Vulkan/swapchain creation so surface extent is valid.
+        SDL_ShowWindow(window);
+        HE_INFO("[Startup] Window shown — swapchain will use visible pixel dimensions.");
 
         we::programs::editor::Editor editor(window);
-        SDL_ShowWindow(window);
         editor.Run();
         
         SDL_DestroyWindow(window);
         SDL_Quit();
+        HE_INFO("[Startup] === WindEffects Editor shutdown complete ===");
         
     } catch (const std::exception& e) {
         std::cerr << "Fatal Exception: " << e.what() << "\n";

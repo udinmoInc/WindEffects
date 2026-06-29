@@ -107,10 +107,10 @@ struct WidgetStyle {
     
     static WidgetStyle Button() {
         WidgetStyle style;
-        style.background = BackgroundStyle::Toolbar();
-        style.border = BorderStyle::Thin();
+        style.background = BackgroundStyle::None();
+        style.border = BorderStyle::None();
         style.text = TextStyle::Toolbar();
-        style.shadow = ShadowStyle::Small();
+        style.shadow = ShadowStyle::None();
         style.padding = Theme::Get().PaddingButton;
         style.backgroundHover = BackgroundStyle::Hover();
         style.backgroundPressed = BackgroundStyle{ Theme::Get().HoverOverlay * 0.8f, Theme::Get().CornerRadiusSmall };
@@ -164,22 +164,22 @@ struct WidgetStyle {
     
     static WidgetStyle Tab() {
         WidgetStyle style;
-        style.background = BackgroundStyle::Toolbar();
-        style.border = BorderStyle{ 1.0f, Theme::Get().BorderDefault, Theme::Get().CornerRadiusSmall, Theme::Get().CornerRadiusSmall, 0.0f, 0.0f };
+        style.background = BackgroundStyle::None();
+        style.border = BorderStyle::None();
         style.text = TextStyle::Toolbar();
         style.shadow = ShadowStyle::None();
-        style.padding = Margin{ 16.0f, 6.0f, 16.0f, 6.0f };
+        style.padding = Margin{ 16.0f, 8.0f, 16.0f, 8.0f };
         style.backgroundHover = BackgroundStyle::Hover();
         return style;
     }
     
     static WidgetStyle TabActive() {
         WidgetStyle style;
-        style.background = BackgroundStyle::Panel();
-        style.border = BorderStyle{ 1.0f, Theme::Get().BorderDefault, Theme::Get().CornerRadiusSmall, Theme::Get().CornerRadiusSmall, 0.0f, 0.0f };
+        style.background = BackgroundStyle::None();
+        style.border = BorderStyle::None();
         style.text = TextStyle{ Theme::Get().TextPrimary, Theme::Get().TextSizeToolbar, true, false };
         style.shadow = ShadowStyle::None();
-        style.padding = Margin{ 16.0f, 6.0f, 16.0f, 6.0f };
+        style.padding = Margin{ 16.0f, 8.0f, 16.0f, 8.0f };
         return style;
     }
 };

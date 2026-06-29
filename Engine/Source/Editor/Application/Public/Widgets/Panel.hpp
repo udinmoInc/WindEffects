@@ -21,6 +21,7 @@ public:
 
     void OnMouseDown(const MouseEvent& event) override;
     void OnMouseMove(const MouseEvent& event) override;
+    void OnMouseUp(const MouseEvent& event) override;
 
     // Content management
     void SetContent(const std::shared_ptr<Widget>& content);

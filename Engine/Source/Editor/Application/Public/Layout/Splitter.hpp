@@ -21,6 +21,9 @@ public:
     void SetFirstChild(const std::shared_ptr<Widget>& child);
     void SetSecondChild(const std::shared_ptr<Widget>& child);
 
+    void SetSplitRatio(float ratio);
+    [[nodiscard]] float GetSplitRatio() const { return m_SplitRatio; }
+
 private:
     Rect GetSplitterBarRect() const;
     Rect GetSplitterHitRect() const; // Wider area for grabbing

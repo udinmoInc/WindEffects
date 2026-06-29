@@ -17,55 +17,52 @@ Size SearchBox::Measure(const Size& availableSize) {
 }
 
 void SearchBox::Arrange(const Rect& allottedRect) {
-    m_Geometry = allottedRect;
+    float h = std::min(m_Height, allottedRect.height);
+    float y = allottedRect.y + (allottedRect.height - h) * 0.5f;
+    m_Geometry = Rect{ allottedRect.x, y, allottedRect.width, h };
 }
 
 void SearchBox::Paint(PaintContext& context) {
-    // Draw background
-    Color bgColor = Color{ 0.117f, 0.117f, 0.117f, 1.0f }; // #1E1E1E
-    if (IsFocused()) {
-        bgColor = Color{ 0.14f, 0.14f, 0.14f, 1.0f };
-    }
-    
-    float cornerRadius = 4.0f;
+    // Draw background – slightly lighter than toolbar for definition
+    Color bgColor = Color{ 0.137f, 0.137f, 0.137f, 1.0f }; // #232323
+
+    const float cornerRadius = 4.0f; // 4px – matches button/dropdown radius
     context.DrawRoundedRect(m_Geometry, bgColor, cornerRadius);
-    
-    // Draw border
-    Color borderColor = Color{ 0.227f, 0.227f, 0.227f, 1.0f }; // #3A3A3A
+
+    // Border: slightly brighter than toolbar to define the field
+    Color borderColor = Color{ 0.235f, 0.235f, 0.235f, 1.0f }; // #3C3C3C
     if (IsFocused()) {
-        borderColor = Theme::Get().SelectedAccent;
+        borderColor = Color{ 0.431f, 0.455f, 0.490f, 1.0f }; // #6E747D focused
     }
-    
     context.DrawRoundedRectOutline(m_Geometry, borderColor, 1.0f, cornerRadius);
-    
-    // Draw search icon
+
+    // Search icon – 12px from left edge, vertically centered
     float iconSize = 14.0f;
-    float iconX = m_Geometry.x + 8.0f; // 8px left padding
-    float iconY = m_Geometry.y + (m_Height - iconSize) / 2.0f;
-    
+    float iconX = m_Geometry.x + 12.0f;
+    float iconY = m_Geometry.y + (m_Geometry.height - iconSize) / 2.0f;
+
     Rect iconRect{ iconX, iconY, iconSize, iconSize };
-    IconPainter::DrawIcon(context, Icons::Search, iconRect, Color{0.556f, 0.556f, 0.556f, 1.0f});
-    
+    IconPainter::DrawIcon(context, Icons::Search, iconRect, Color{0.478f, 0.478f, 0.478f, 1.0f});
+
     // Draw text or placeholder
     Rect textRect = GetTextRect();
-    
+
     if (m_Text.empty()) {
-        Color placeholderColor = Color{ 0.556f, 0.556f, 0.556f, 1.0f }; // #8E8E8E
+        Color placeholderColor = Theme::Get().SearchPlaceholder;
         context.DrawText(m_Placeholder, Point{ textRect.x, textRect.y }, placeholderColor, 12.0f);
     } else {
-        context.DrawText(m_Text, Point{ textRect.x, textRect.y }, Color{0.878f, 0.878f, 0.878f, 1.0f}, 12.0f);
-        
+        context.DrawText(m_Text, Point{ textRect.x, textRect.y }, Theme::Get().TextPrimary, 12.0f);
+
         // Draw caret if focused
         if (IsFocused() && m_ShowCaret) {
             float caretX = textRect.x + context.GetTextWidth(m_Text.substr(0, m_CaretPosition), 12.0f);
             float caretY = textRect.y;
             float caretHeight = 12.0f;
-            
             Rect caretRect{ caretX, caretY, 1.5f, caretHeight };
             context.DrawRect(caretRect, Theme::Get().TextPrimary);
         }
     }
-    
+
     // Draw clear button if text exists
     if (!m_Text.empty()) {
         Rect clearRect = GetClearButtonRect();
@@ -187,23 +184,24 @@ void SearchBox::UpdateCaretBlink(float deltaTime) {
 }
 
 Rect SearchBox::GetTextRect() const {
-    float iconSize = 14.0f;
-    float iconWidth = 8.0f + iconSize + 8.0f; // left padding + icon + gap
-    float clearWidth = m_Text.empty() ? 0.0f : 24.0f;
-    
+    const float iconSize   = 14.0f;
+    const float iconWidth  = 12.0f + iconSize + 8.0f;
+    const float clearW     = m_Text.empty() ? 0.0f : 28.0f;
+    const float rightPad   = 12.0f;
+    const float textH      = 12.0f;
     return Rect{
         m_Geometry.x + iconWidth,
-        m_Geometry.y + (m_Height - 12.0f) / 2.0f,
-        m_Geometry.width - iconWidth - clearWidth - 8.0f,
-        12.0f
+        m_Geometry.y + (m_Geometry.height - textH) / 2.0f,
+        std::max(0.0f, m_Geometry.width - iconWidth - clearW - rightPad),
+        textH
     };
 }
 
 Rect SearchBox::GetClearButtonRect() const {
     float clearSize = 16.0f;
     return Rect{
-        m_Geometry.x + m_Geometry.width - clearSize - 8.0f,
-        m_Geometry.y + (m_Height - clearSize) / 2.0f,
+        m_Geometry.x + m_Geometry.width - clearSize - 12.0f,
+        m_Geometry.y + (m_Geometry.height - clearSize) / 2.0f,
         clearSize,
         clearSize
     };

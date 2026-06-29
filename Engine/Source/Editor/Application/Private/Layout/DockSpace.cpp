@@ -146,7 +146,11 @@ void DockSpace::PaintNode(std::shared_ptr<DockNode> node, PaintContext& context,
         PaintNode(node->ChildB, context, rectB);
 
         // Draw splitter (1px line visually, but logic has 4px hit area)
-        context.DrawRect({ splitterRect.x + splitterRect.width/2.0f, splitterRect.y, 1.0f, splitterRect.height }, Theme::Get().Separator);
+        if (node->SplitDirection == DockDirection::Left || node->SplitDirection == DockDirection::Right) {
+            context.DrawRect({ splitterRect.x + splitterRect.width/2.0f, splitterRect.y, 1.0f, splitterRect.height }, Theme::Get().Separator);
+        } else {
+            context.DrawRect({ splitterRect.x, splitterRect.y + splitterRect.height/2.0f, splitterRect.width, 1.0f }, Theme::Get().Separator);
+        }
 
     } else {
         // Panel Background
@@ -156,20 +160,28 @@ void DockSpace::PaintNode(std::shared_ptr<DockNode> node, PaintContext& context,
         if (!node->Tabs.empty()) {
             float tabHeight = 32.0f;
             Rect tabHeaderRect = { rect.x, rect.y, rect.width, tabHeight };
-            context.DrawRect(tabHeaderRect, Theme::Get().HeaderBackground);
+            Color dockHeaderBg = Color{0.165f, 0.173f, 0.188f, 1.0f}; // #2A2C30
+            context.DrawRect(tabHeaderRect, dockHeaderBg);
 
             float currentX = rect.x;
             for (size_t i = 0; i < node->Tabs.size(); ++i) {
-                std::string title = "Tab " + std::to_string(i); // Replace with widget title later
-                float tabWidth = 100.0f; 
+                std::string title = "Tab " + std::to_string(i);
+                if (node->Tabs[i]) {
+                    title = "Tab " + std::to_string(i); // Fallback
+                }
+                
+                float tabWidth = 100.0f; // Simplified for now
                 Rect tabRect = { currentX, rect.y, tabWidth, tabHeight };
 
                 if ((int)i == node->ActiveTab) {
-                    context.DrawRect(tabRect, Theme::Get().TabBackground);
-                    // Active Tab Line
-                    context.DrawRect({ tabRect.x, tabRect.y + tabRect.height - 2.0f, tabRect.width, 2.0f }, Theme::Get().ActiveTabLine);
-                    context.DrawText(title, { tabRect.x + 8.0f, tabRect.y + 8.0f }, Theme::Get().TextPrimary, Theme::Get().TextSizeNormal);
+                    Color activeBg{0.141f, 0.149f, 0.165f, 1.0f}; // #24262A
+                    context.DrawRect(tabRect, activeBg);
+                    
+                    // Top Accent Border
+                    context.DrawRect({ tabRect.x, tabRect.y, tabRect.width, 1.0f }, Theme::Get().ActiveTabLine);
+                    context.DrawText(title, { tabRect.x + 8.0f, tabRect.y + 8.0f }, Color::White(), Theme::Get().TextSizeNormal);
                 } else {
+                    // Inactive tab background is already drawn by tabHeaderRect
                     context.DrawText(title, { tabRect.x + 8.0f, tabRect.y + 8.0f }, Theme::Get().TextSecondary, Theme::Get().TextSizeNormal);
                 }
 

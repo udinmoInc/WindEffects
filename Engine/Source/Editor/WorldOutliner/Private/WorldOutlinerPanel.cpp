@@ -4,7 +4,7 @@
 #include "Widgets/SearchBox.hpp"
 #include "Layout/Box.hpp"
 #include "Core/Icon.hpp"
-#include "Runtime/Core/Localization.hpp"
+#include "Localization.hpp"
 
 namespace we::programs::editor {
 

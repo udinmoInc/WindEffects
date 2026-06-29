@@ -60,7 +60,7 @@ public:
 // Full reference: https://fonts.google.com/icons
 namespace Icons {
     // Selection tools
-    constexpr int Cursor     = 0xEA8C; // pointer
+    constexpr int Cursor     = 0xEC5C; // pointer
     constexpr int Move       = 0xEB22; // move
     constexpr int Rotate     = 0xEB37; // refresh
     constexpr int Scale      = 0xEB4C; // screen-full
@@ -232,6 +232,12 @@ namespace Icons {
     constexpr const char* MaximizeName   = "maximize";
     constexpr const char* RestoreName    = "restore";
 
+    // Editor tool modes
+    constexpr const char* CompassName    = "compass";
+    constexpr const char* EraserName     = "eraser";
+    constexpr const char* BrushName      = "brush";
+    constexpr const char* RecordName     = "record";
+
     // Get Material Icons codepoint by string name
     inline int GetCodepoint(const std::string& name) {
         if (name == "cursor")        return Cursor;
@@ -294,6 +300,10 @@ namespace Icons {
         if (name == "minimize")      return Minimize;
         if (name == "maximize")      return Maximize;
         if (name == "restore")       return Restore;
+        if (name == "compass")       return Grid;
+        if (name == "eraser")        return Delete;
+        if (name == "brush")         return Material;
+        if (name == "record")        return Play;
         return 0xE001; // fallback: generic error icon
     }
 }

@@ -9,7 +9,10 @@
 #if defined(_WIN32)
 #include <windows.h>
 #include <dbghelp.h>
+#include <psapi.h>
 #endif
+#include <nlohmann/json.hpp>
+
 
 namespace we::runtime::core {
 
@@ -154,9 +157,9 @@ long __stdcall Logger::EngineCrashHandler(struct _EXCEPTION_POINTERS* exceptionI
 
     switch (code) {
         case EXCEPTION_ACCESS_VIOLATION:          exceptionName = "ACCESS VIOLATION (Null pointer dereference or invalid memory read/write)"; break;
-        case EXCEPTION_INT_DIVIDE_BY_ZERO:         exceptionName = "INTEGER DIVIDE BY ZERO"; break;
+        case EXCEPTION_INT_DIVIDE_BY_ZERO:        exceptionName = "INTEGER DIVIDE BY ZERO"; break;
         case EXCEPTION_STACK_OVERFLOW:            exceptionName = "STACK OVERFLOW"; break;
-        case EXCEPTION_ILLEGAL_INSTRUCTION:        exceptionName = "ILLEGAL INSTRUCTION"; break;
+        case EXCEPTION_ILLEGAL_INSTRUCTION:       exceptionName = "ILLEGAL INSTRUCTION"; break;
         case EXCEPTION_ARRAY_BOUNDS_EXCEEDED:     exceptionName = "ARRAY BOUNDS EXCEEDED"; break;
         case EXCEPTION_FLT_DIVIDE_BY_ZERO:        exceptionName = "FLOATING POINT DIVIDE BY ZERO"; break;
         case EXCEPTION_PRIV_INSTRUCTION:          exceptionName = "PRIVILEGED INSTRUCTION VIOLATION"; break;
@@ -174,48 +177,143 @@ long __stdcall Logger::EngineCrashHandler(struct _EXCEPTION_POINTERS* exceptionI
 
     Logger::Log(Level::Error, crashDetails);
 
-    // Write crash Minidump file
+    // Ensure Crash directories exist
+    std::string crashDir = "Saved/Logs/Crashes/Latest";
+    if (std::filesystem::exists(crashDir)) {
+        std::string backupDir = "Saved/Logs/Crashes/Crash_" + std::to_string(std::chrono::system_clock::now().time_since_epoch().count());
+        std::error_code ec;
+        std::filesystem::rename(crashDir, backupDir, ec);
+    }
+    std::filesystem::create_directories(crashDir);
+
+    // 1. Minidump
     HANDLE hFile = CreateFileA(
-        "WindEffects.dmp",
+        (crashDir + "/WindEffects.dmp").c_str(),
         GENERIC_READ | GENERIC_WRITE,
         0, nullptr,
         CREATE_ALWAYS,
         FILE_ATTRIBUTE_NORMAL,
         nullptr
     );
-
-    bool dumpSuccess = false;
     if (hFile != INVALID_HANDLE_VALUE) {
         MINIDUMP_EXCEPTION_INFORMATION mdei{};
         mdei.ThreadId = GetCurrentThreadId();
         mdei.ExceptionPointers = exceptionInfo;
         mdei.ClientPointers = FALSE;
-
-        dumpSuccess = MiniDumpWriteDump(
-            GetCurrentProcess(),
-            GetCurrentProcessId(),
-            hFile,
-            MiniDumpNormal,
-            &mdei,
-            nullptr,
-            nullptr
-        );
+        MiniDumpWriteDump(GetCurrentProcess(), GetCurrentProcessId(), hFile, MiniDumpNormal, &mdei, nullptr, nullptr);
         CloseHandle(hFile);
     }
 
-    std::string popupMsg = "A fatal engine crash occurred!\n\n" + crashDetails + "\n\n";
-    if (dumpSuccess) {
-        popupMsg += "A crash dump file was successfully saved to:\nWindEffects.dmp\n\n";
-    }
-    popupMsg += "Please review WindEffects.log for details.";
+    // 2. Exception.json
+    nlohmann::json exJson;
+    exJson["ExceptionCode"] = code;
+    exJson["ExceptionName"] = exceptionName;
+    exJson["Address"] = addressStr;
+    std::ofstream exFile(crashDir + "/Exception.json");
+    exFile << exJson.dump(4);
+    exFile.close();
 
-    // Show native error message box
-    SDL_ShowSimpleMessageBox(
-        SDL_MESSAGEBOX_ERROR,
-        "WindEffects Engine - Fatal Crash",
-        popupMsg.c_str(),
-        nullptr
-    );
+    // 3. Crash.json
+    nlohmann::json crashJson;
+    crashJson["CrashTime"] = GetCurrentTimestamp();
+    crashJson["CrashType"] = "Unhandled Exception";
+    crashJson["Project"] = "WindEffects";
+    crashJson["EngineVersion"] = "1.0.0";
+    crashJson["Thread"] = std::to_string(GetCurrentThreadId());
+    std::ofstream cFile(crashDir + "/Crash.json");
+    cFile << crashJson.dump(4);
+    cFile.close();
+
+    // 4. System.json
+    nlohmann::json sysJson;
+    sysJson["WindowsVersion"] = "Windows";
+    std::ofstream sysFile(crashDir + "/System.json");
+    sysFile << sysJson.dump(4);
+    sysFile.close();
+
+    // 5. Memory.json
+    PROCESS_MEMORY_COUNTERS pmc;
+    nlohmann::json memJson;
+    if (GetProcessMemoryInfo(GetCurrentProcess(), &pmc, sizeof(pmc))) {
+        memJson["WorkingSetSize"] = pmc.WorkingSetSize;
+        memJson["PagefileUsage"] = pmc.PagefileUsage;
+    }
+    std::ofstream memFile(crashDir + "/Memory.json");
+    memFile << memJson.dump(4);
+    memFile.close();
+
+    // 6. Modules.json
+    nlohmann::json modJson = nlohmann::json::array();
+    HMODULE hMods[1024];
+    DWORD cbNeeded;
+    if (EnumProcessModules(GetCurrentProcess(), hMods, sizeof(hMods), &cbNeeded)) {
+        for (unsigned int i = 0; i < (cbNeeded / sizeof(HMODULE)); i++) {
+            char szModName[MAX_PATH];
+            if (GetModuleFileNameExA(GetCurrentProcess(), hMods[i], szModName, sizeof(szModName) / sizeof(char))) {
+                nlohmann::json mod;
+                mod["Path"] = szModName;
+                mod["BaseAddress"] = (uint64_t)hMods[i];
+                modJson.push_back(mod);
+            }
+        }
+    }
+    std::ofstream modFile(crashDir + "/Modules.json");
+    modFile << modJson.dump(4);
+    modFile.close();
+
+    // 7. StackTrace.txt
+    std::ofstream stackFile(crashDir + "/StackTrace.txt");
+    HANDLE process = GetCurrentProcess();
+    HANDLE thread = GetCurrentThread();
+    SymInitialize(process, NULL, TRUE);
+    
+    STACKFRAME64 stackFrame{};
+    stackFrame.AddrPC.Mode = AddrModeFlat;
+    stackFrame.AddrFrame.Mode = AddrModeFlat;
+    stackFrame.AddrStack.Mode = AddrModeFlat;
+    stackFrame.AddrPC.Offset = exceptionInfo->ContextRecord->Rip;
+    stackFrame.AddrFrame.Offset = exceptionInfo->ContextRecord->Rbp;
+    stackFrame.AddrStack.Offset = exceptionInfo->ContextRecord->Rsp;
+
+    char buffer[sizeof(SYMBOL_INFO) + MAX_SYM_NAME * sizeof(TCHAR)];
+    PSYMBOL_INFO pSymbol = (PSYMBOL_INFO)buffer;
+    pSymbol->SizeOfStruct = sizeof(SYMBOL_INFO);
+    pSymbol->MaxNameLen = MAX_SYM_NAME;
+
+    for (int frameNum = 0; frameNum < 64; ++frameNum) {
+        if (!StackWalk64(IMAGE_FILE_MACHINE_AMD64, process, thread, &stackFrame, exceptionInfo->ContextRecord, NULL, SymFunctionTableAccess64, SymGetModuleBase64, NULL)) {
+            break;
+        }
+        if (stackFrame.AddrPC.Offset == 0) {
+            break;
+        }
+        DWORD64 displacement = 0;
+        if (SymFromAddr(process, stackFrame.AddrPC.Offset, &displacement, pSymbol)) {
+            stackFile << pSymbol->Name << " - 0x" << std::hex << stackFrame.AddrPC.Offset << std::endl;
+        } else {
+            stackFile << "Unknown Function - 0x" << std::hex << stackFrame.AddrPC.Offset << std::endl;
+        }
+    }
+    SymCleanup(process);
+    stackFile.close();
+
+    // Copy Engine.log
+    if (s_LogFile.is_open()) {
+        s_LogFile.close();
+    }
+    std::error_code ec_copy;
+    std::filesystem::copy_file("logs/WindEffects.log", crashDir + "/Engine.log", std::filesystem::copy_options::overwrite_existing, ec_copy);
+
+    // Launch WeCrashReporter.exe
+    STARTUPINFOA si{};
+    si.cb = sizeof(si);
+    PROCESS_INFORMATION pi{};
+    std::string reporterPath = "WeCrashReporter.exe";
+    CreateProcessA(nullptr, (LPSTR)reporterPath.c_str(), nullptr, nullptr, FALSE, DETACHED_PROCESS, nullptr, nullptr, &si, &pi);
+    if (pi.hProcess) {
+        CloseHandle(pi.hProcess);
+        CloseHandle(pi.hThread);
+    }
 
     Shutdown();
     return EXCEPTION_EXECUTE_HANDLER;
@@ -233,15 +331,50 @@ void Logger::SignalHandler(int signal) {
 
     Logger::Log(Level::Error, "Fatal Signal Intercepted: " + sigName);
 
-    SDL_ShowSimpleMessageBox(
-        SDL_MESSAGEBOX_ERROR,
-        "WindEffects Engine - Fatal Crash",
-        ("A fatal platform signal was intercepted:\n\n" + sigName + "\n\nEngine shutting down.").c_str(),
-        nullptr
-    );
+    // Ensure Crash directories exist
+    std::string crashDir = "Saved/Logs/Crashes/Latest";
+    if (std::filesystem::exists(crashDir)) {
+        std::string backupDir = "Saved/Logs/Crashes/Crash_" + std::to_string(std::chrono::system_clock::now().time_since_epoch().count());
+        std::error_code ec;
+        std::filesystem::rename(crashDir, backupDir, ec);
+    }
+    std::filesystem::create_directories(crashDir);
+
+    nlohmann::json crashJson;
+    crashJson["CrashTime"] = GetCurrentTimestamp();
+    crashJson["CrashType"] = "Fatal Signal";
+    crashJson["Project"] = "WindEffects";
+    crashJson["EngineVersion"] = "1.0.0";
+    
+    std::ofstream cFile(crashDir + "/Crash.json");
+    cFile << crashJson.dump(4);
+    cFile.close();
+
+    nlohmann::json exJson;
+    exJson["ExceptionName"] = sigName;
+    std::ofstream exFile(crashDir + "/Exception.json");
+    exFile << exJson.dump(4);
+    exFile.close();
+
+    if (s_LogFile.is_open()) {
+        s_LogFile.close();
+    }
+    std::error_code ec_copy;
+    std::filesystem::copy_file("logs/WindEffects.log", crashDir + "/Engine.log", std::filesystem::copy_options::overwrite_existing, ec_copy);
+
+#if defined(_WIN32)
+    STARTUPINFOA si{};
+    si.cb = sizeof(si);
+    PROCESS_INFORMATION pi{};
+    std::string reporterPath = "WeCrashReporter.exe";
+    CreateProcessA(nullptr, (LPSTR)reporterPath.c_str(), nullptr, nullptr, FALSE, DETACHED_PROCESS, nullptr, nullptr, &si, &pi);
+    if (pi.hProcess) {
+        CloseHandle(pi.hProcess);
+        CloseHandle(pi.hThread);
+    }
+#endif
 
     Shutdown();
     exit(1);
 }
-
 } // namespace we::runtime::core

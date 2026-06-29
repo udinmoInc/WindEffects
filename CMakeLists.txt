@@ -85,6 +85,16 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(glm)
 
+# 6. nlohmann/json
+message(STATUS "Fetching nlohmann/json...")
+FetchContent_Declare(
+    nlohmann_json
+    GIT_REPOSITORY https://github.com/nlohmann/json.git
+    GIT_TAG v3.11.3
+    GIT_SHALLOW TRUE
+)
+FetchContent_MakeAvailable(nlohmann_json)
+
 # 6. Dear ImGui (Docking Branch)
 message(STATUS "Fetching Dear ImGui (Docking Branch)...")
 FetchContent_Declare(
@@ -151,7 +161,7 @@ set(FONT_BOLD "${FONT_DIR}/Inter-Bold.ttf")
 if(NOT EXISTS "${FONT_REGULAR}")
     message(STATUS "Downloading Inter-Regular.ttf...")
     file(DOWNLOAD 
-        "https://github.com/rsms/inter/raw/master/docs/font-files/Inter-Regular.ttf"
+        "https://github.com/google/fonts/raw/main/ofl/inter/static/Inter-Regular.ttf"
         "${FONT_REGULAR}"
         SHOW_PROGRESS
     )
@@ -159,7 +169,7 @@ endif()
 if(NOT EXISTS "${FONT_BOLD}")
     message(STATUS "Downloading Inter-Bold.ttf...")
     file(DOWNLOAD 
-        "https://github.com/rsms/inter/raw/master/docs/font-files/Inter-Bold.ttf"
+        "https://github.com/google/fonts/raw/main/ofl/inter/static/Inter-Bold.ttf"
         "${FONT_BOLD}"
         SHOW_PROGRESS
     )
@@ -220,6 +230,7 @@ set(FEATURE_MODULES
     WindEffects-Toolbar
     WindEffects-Viewport
     WindEffects-WorldOutliner
+    WindEffects-ToolsPanel
 )
 
 foreach(MOD IN LISTS FEATURE_MODULES)

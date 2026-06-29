@@ -33,7 +33,7 @@ void PropertyEditor::Arrange(const Rect& allottedRect) {
 
 void PropertyEditor::Paint(PaintContext& context) {
     // Draw background
-    context.DrawRect(m_Geometry, Theme::Get().PanelBackground);
+    context.DrawRect(m_Geometry, Theme::Get().ContentBrowserBackground); // #25272B
     
     float y = m_Geometry.y - m_ScrollOffset;
     
@@ -48,7 +48,7 @@ void PropertyEditor::Paint(PaintContext& context) {
         // Draw category header
         Rect headerRect{ m_Geometry.x, y, m_Geometry.width, m_CategoryHeaderHeight };
         
-        Color headerBg = Theme::Get().HeaderBackground;
+        Color headerBg = Theme::Get().BorderDark; // #2E3136
         if (cat.name == m_HoveredCategory) {
             headerBg = Theme::Get().HoverOverlay;
         }

@@ -16,36 +16,57 @@ ToolButton::ToolButton(const std::string& iconName, const std::string& label, st
 
 Size ToolButton::Measure(const Size& availableSize) {
     if (m_ButtonStyle == ToolButtonStyle::WindowControl || m_ButtonStyle == ToolButtonStyle::WindowClose) {
-        m_DesiredSize = Size{ 40.0f, 30.0f }; // Compact hit area for window controls
+        m_DesiredSize = Size{ 30.0f, 30.0f };
         return m_DesiredSize;
     }
     
     if (m_ButtonStyle == ToolButtonStyle::TitleBarTool) {
-        m_DesiredSize = Size{ 30.0f, 30.0f }; // 30x30 hit area matching standard
+        m_DesiredSize = Size{ 26.0f, 26.0f };
+        return m_DesiredSize;
+    }
+
+    if (m_ButtonStyle == ToolButtonStyle::ToolbarInline) {
+        const float padH     = 4.0f;
+        const float iconSz   = 14.0f;
+        const float iconGap  = 4.0f;
+        const float chevW    = 10.0f;
+        const float textSize = 13.0f;
+        float textW = m_Label.empty() ? 0.0f : m_Label.length() * textSize * 0.6f;
+        float width = padH + iconSz + (m_Label.empty() ? 0.0f : iconGap + textW);
+        if (m_IsDropdown) width += 4.0f + chevW;
+        width += padH;
+        m_DesiredSize = Size{ width, 28.0f };
+        return m_DesiredSize;
+    }
+
+    // TransportButton: Play / Pause / Stop – compact 24×24 hit area
+    if (m_ButtonStyle == ToolButtonStyle::TransportButton || m_ButtonStyle == ToolButtonStyle::PlayButton) {
+        m_DesiredSize = Size{ 24.0f, 24.0f };
         return m_DesiredSize;
     }
 
     if (m_ButtonStyle == ToolButtonStyle::ToolbarIconOnly) {
-        float width = 30.0f; // 30x30 standard hit area
-        if (m_IsDropdown) width += 16.0f; // 10px chevron + 6px spacing
-        m_DesiredSize = Size{ width, 30.0f }; // Strict 30px height
+        m_DesiredSize = Size{ 24.0f, 24.0f };
         return m_DesiredSize;
     }
 
-    float height = 30.0f; // AAA 30px button standard
-    float paddingX = 8.0f; // 8px horizontal padding
-    float iconSize = 16.0f; // 16px icon size
-    
-    float width = paddingX * 2.0f + iconSize; // base width
+    // Normal – used for labeled dropdowns (Platform, Settings)
+    const float height  = 30.0f;
+    const float padL    = 12.0f; // left padding (icon start) – 12px for breathing room
+    const float padR    = 10.0f; // right padding (after chevron) – 10px
+    const float iconSz  = 16.0f;
+    const float iconGap = 6.0f;  // gap between icon and text
+    const float chevW   = 16.0f; // chevron area (icon 8px + gap 8px)
+
+    float width = padL + iconSz;
     if (!m_Label.empty()) {
-        width += 4.0f; // gap between icon and text compressed to 4px
-        width += m_Label.length() * 7.5f; // Rough text width estimate
+        width += iconGap + m_Label.length() * 7.2f;
     }
-    
     if (m_IsDropdown) {
-        width += 14.0f; // 8px chevron + 6px spacing from text
+        width += chevW;
     }
-    
+    width += padR;
+
     m_DesiredSize = Size{ width, height };
     return m_DesiredSize;
 }
@@ -55,148 +76,206 @@ void ToolButton::Arrange(const Rect& allottedRect) {
 }
 
 void ToolButton::Paint(PaintContext& context) {
-    // Update animations
-    float targetHover = m_Hovered ? 1.0f : 0.0f;
-    float targetPress = m_Pressed ? 1.0f : 0.0f;
-    float targetActive = m_Active ? 1.0f : 0.0f;
-    
-    const float animSpeed = 8.33f; // ~120ms transition speed
-    m_HoverAnim += (targetHover - m_HoverAnim) * animSpeed * 0.016f;
-    m_PressAnim += (targetPress - m_PressAnim) * animSpeed * 0.016f;
-    m_ActiveAnim += (targetActive - m_ActiveAnim) * animSpeed * 0.016f;
-    
+    // Animate hover / press / active
+    const float animSpeed = 8.33f;
+    m_HoverAnim  += ((m_Hovered ? 1.0f : 0.0f) - m_HoverAnim)  * animSpeed * 0.016f;
+    m_PressAnim  += ((m_Pressed ? 1.0f : 0.0f) - m_PressAnim)  * animSpeed * 0.016f;
+    m_ActiveAnim += ((m_Active  ? 1.0f : 0.0f) - m_ActiveAnim) * animSpeed * 0.016f;
+
     Rect renderRect = m_Geometry;
-    
-    bool isWindowControl = (m_ButtonStyle == ToolButtonStyle::WindowControl || m_ButtonStyle == ToolButtonStyle::WindowClose);
-    bool isTitleBarTool = (m_ButtonStyle == ToolButtonStyle::TitleBarTool);
-    
-    // Global button scale animation removed for AAA clean appearance
-    
-    float iconSize = 24.0f; 
-    if (isWindowControl) iconSize = 12.0f;
-    if (isTitleBarTool) iconSize = 16.0f; // Uniform 16px
-    
-    // For toolbar tools, iconSize is fixed to 16, play buttons slightly larger
-    bool isToolbarIcon = (m_ButtonStyle == ToolButtonStyle::ToolbarIconOnly);
-    bool isPlayButton = (m_ButtonStyle == ToolButtonStyle::PlayButton);
-    bool isNormalButton = (m_ButtonStyle == ToolButtonStyle::Normal);
-    if (isToolbarIcon || isNormalButton) iconSize = 16.0f;
-    if (isPlayButton) iconSize = 17.9f; // Approximately 12% larger than 16px
-    
-    float contentWidth = iconSize;
-    if (!m_Label.empty()) {
-        contentWidth += 4.0f + m_Label.length() * 7.5f;
-    }
-    
-    float currentX = renderRect.x + (renderRect.width - contentWidth) / 2.0f;
-    float centerY = renderRect.y + renderRect.height / 2.0f;
-    
+    float centerY   = renderRect.y + renderRect.height / 2.0f;
+
+    const bool isWindowControl = (m_ButtonStyle == ToolButtonStyle::WindowControl ||
+                                   m_ButtonStyle == ToolButtonStyle::WindowClose);
+    const bool isTransport     = (m_ButtonStyle == ToolButtonStyle::TransportButton ||
+                                   m_ButtonStyle == ToolButtonStyle::PlayButton);
+    const bool isToolbarIcon   = (m_ButtonStyle == ToolButtonStyle::ToolbarIconOnly);
+    const bool isInline        = (m_ButtonStyle == ToolButtonStyle::ToolbarInline);
+    const bool isNormal        = (m_ButtonStyle == ToolButtonStyle::Normal);
+
+    // ── Window controls (Minimize / Maximize / Close) ────────────────────────
     if (isWindowControl) {
         if (m_HoverAnim > 0.01f) {
-            Color hoverBg = (m_ButtonStyle == ToolButtonStyle::WindowClose) 
-                            ? Color{ 0.8f, 0.2f, 0.2f, m_HoverAnim } // Red hover for close
-                            : Color{ 0.3f, 0.3f, 0.3f, m_HoverAnim * 0.5f }; // Subtle dark gray
-            context.DrawRect(renderRect, hoverBg);
+            Color hoverBg = (m_ButtonStyle == ToolButtonStyle::WindowClose)
+                            ? Color{ 0.8f, 0.2f, 0.2f, m_HoverAnim }
+                            : Color{ 0.196f, 0.196f, 0.196f, m_HoverAnim };
+            context.DrawRoundedRect(renderRect, hoverBg, 4.0f);
         }
-        
-        Color iconColor = Color{ 0.72f, 0.72f, 0.72f, 1.0f }; // #B8B8B8 Muted gray
-        if (m_ButtonStyle == ToolButtonStyle::WindowClose && m_HoverAnim > 0.5f) {
-            iconColor = Color{ 1.0f, 1.0f, 1.0f, 1.0f }; // White when hovering close
-        }
-        
-        int codepoint = Icons::GetCodepoint(m_IconName);
-        if (codepoint != 0) {
-            context.DrawIcon(codepoint, Point{ currentX, centerY - iconSize/2.0f }, iconColor, iconSize);
-        }
-    } else {
-        if (isToolbarIcon || isPlayButton || isNormalButton) {
-            // Uncluttered AAA Desktop Style (UE5 Starship, Rider)
-            // Borderless by default. Hover/press get subtle backgrounds.
-            // Dropdowns get a thin 1px border.
-            
-            Color bg = Color{ 0.0f, 0.0f, 0.0f, 0.0f }; // Transparent by default
-            bool drawBg = false;
+        Color iconColor = Color{ 0.69f, 0.69f, 0.69f, 1.0f };
+        if (m_HoverAnim > 0.01f) iconColor = Color::Lerp(iconColor, Color::White(), m_HoverAnim);
+        if (m_ButtonStyle == ToolButtonStyle::WindowClose && m_HoverAnim > 0.5f)
+            iconColor = Color{ 1.0f, 1.0f, 1.0f, 1.0f };
+        float iconSize = 16.0f;
+        float drawX = renderRect.x + (renderRect.width - iconSize) / 2.0f;
+        int cp = Icons::GetCodepoint(m_IconName);
+        if (cp != 0) context.DrawIcon(cp, Point{ drawX, centerY - iconSize / 2.0f }, iconColor, iconSize);
+        return;
+    }
 
-            if (m_PressAnim > 0.01f) {
-                // Pressed #3A3A3A
-                bg = Color{ 0.227f, 0.227f, 0.227f, 1.0f };
-                drawBg = true;
-            } else if (m_HoverAnim > 0.01f) {
-                // Hover #323232
-                bg = Color{ 0.196f, 0.196f, 0.196f, 1.0f };
-                drawBg = true;
-            } else if (m_Active) {
-                // Checked #3B82F6
-                bg = Color{ 0.231f, 0.510f, 0.965f, 1.0f };
-                drawBg = true;
-            }
+    // ── Transport buttons (Play / Pause / Stop) ──────────────────────────────
+    if (isTransport) {
+        // Hover / press: subtle rounded rect background
+        if (m_PressAnim > 0.01f) {
+            context.DrawRoundedRect(renderRect, Theme::Get().PressedOverlay, 3.0f);
+        } else if (m_HoverAnim > 0.01f) {
+            Color hbg = Color::Lerp(Color{0,0,0,0}, Theme::Get().HoverButton, m_HoverAnim);
+            context.DrawRoundedRect(renderRect, hbg, 3.0f);
+        } else if (m_Active) {
+            context.DrawRoundedRect(renderRect, Theme::Get().SelectedBg, 3.0f);
+        }
+        // 18px icon centered in the 24px hit area
+        const float iconSize = 18.0f;
+        Color iconColor = Theme::Get().TextSecondary;
+        if (m_HoverAnim > 0.01f)
+            iconColor = Color::Lerp(iconColor, Theme::Get().TextPrimary, m_HoverAnim);
+        if (m_Active || m_PressAnim > 0.5f)
+            iconColor = Theme::Get().SelectedAccent; // amber when active
+        float drawX = renderRect.x + (renderRect.width  - iconSize) / 2.0f;
+        float drawY = renderRect.y + (renderRect.height - iconSize) / 2.0f;
+        int cp = Icons::GetCodepoint(m_IconName);
+        if (cp != 0) context.DrawIcon(cp, Point{ drawX, drawY }, iconColor, iconSize);
+        return;
+    }
 
-            if (drawBg) {
-                context.DrawRoundedRect(renderRect, bg, 4.0f); // 4px corner radius for modern AAA look
-            }
-            
-            // Dropdowns get no border in AAA, or just the same hover effect
-            if (m_IsDropdown && drawBg) {
-                // No extra border, just draw background
+    // ── TitleBar tool buttons ────────────────────────────────────────────────
+    if (m_ButtonStyle == ToolButtonStyle::TitleBarTool) {
+        if (m_HoverAnim > 0.01f) {
+            Color hbg = Color::Lerp(Color{0,0,0,0}, Theme::Get().HoverButton, m_HoverAnim);
+            context.DrawRoundedRect(renderRect, hbg, 3.0f);
+        }
+        const float iconSize = 15.0f;
+        Color iconColor = Theme::Get().TextSecondary;
+        if (m_HoverAnim > 0.01f) iconColor = Color::Lerp(iconColor, Theme::Get().TextPrimary, m_HoverAnim);
+        if (m_Active || m_PressAnim > 0.01f) iconColor = Theme::Get().SelectedAccent;
+        float drawX = renderRect.x + (renderRect.width  - iconSize) / 2.0f;
+        float drawY = renderRect.y + (renderRect.height - iconSize) / 2.0f;
+        int cp = Icons::GetCodepoint(m_IconName);
+        if (cp != 0) context.DrawIcon(cp, Point{ drawX, drawY }, iconColor, iconSize);
+        return;
+    }
+
+    // ── Inline toolbar items (Platform / Settings) – transparent, hover only ─
+    if (isInline) {
+        if (m_PressAnim > 0.01f) {
+            context.DrawRoundedRect(renderRect, Theme::Get().PressedOverlay, 3.0f);
+        } else if (m_HoverAnim > 0.01f) {
+            Color hbg = Color::Lerp(Color{0,0,0,0}, Theme::Get().HoverButton, m_HoverAnim);
+            context.DrawRoundedRect(renderRect, hbg, 3.0f);
+        }
+
+        const float iconSize  = 14.0f;
+        const float textSize  = 13.0f; // matches menu bar typography
+        const float iconGap   = 4.0f;
+        Color textColor = Theme::Get().TextPrimary;
+        if (m_HoverAnim > 0.01f) textColor = Color::White();
+
+        float currentX = renderRect.x + 4.0f;
+        int cp = Icons::GetCodepoint(m_IconName);
+        if (cp != 0) {
+            context.DrawIcon(cp, Point{ currentX, centerY - iconSize / 2.0f }, textColor, iconSize);
+            currentX += iconSize + iconGap;
+        }
+
+        if (!m_Label.empty()) {
+            context.DrawText(m_Label, Point{ currentX, centerY - textSize / 2.0f }, textColor, textSize);
+            currentX += m_Label.length() * textSize * 0.6f + 4.0f;
+        }
+
+        if (m_IsDropdown) {
+            int chevCp = Icons::GetCodepoint(Icons::ChevronDownName);
+            if (chevCp != 0) {
+                const float chevSize = 8.0f;
+                context.DrawIcon(chevCp, Point{ currentX, centerY - chevSize / 2.0f }, textColor, chevSize);
             }
         }
-        
-        // Icon color rules:
-        // - PlayButton style: ALWAYS blue (#4DA3FF) — the only permanently colored tool
-        // - Active (e.g., selected transform): blue
-        // - Hovered: white
-        // - Default: neutral gray #BFBFBF
-        Color iconColor;
-        if (isPlayButton) {
-            // Play is the ONLY permanently colored icon
-            iconColor = Color{ 0.30f, 0.64f, 1.0f, 1.0f }; // #4DA3FF blue always
-            if (m_HoverAnim > 0.01f) {
-                // Slightly brighter blue on hover
-                iconColor = Color{ 0.45f, 0.76f, 1.0f, 1.0f };
-            }
-            if (m_PressAnim > 0.01f) {
-                iconColor = Color{ 0.20f, 0.50f, 0.90f, 1.0f }; // Darker blue on press
+        return;
+    }
+
+    // ── Toolbar icon-only buttons ────────────────────────────────────────────
+    if (isToolbarIcon) {
+        if (m_PressAnim > 0.01f) {
+            context.DrawRoundedRect(renderRect, Theme::Get().PressedOverlay, 3.0f);
+        } else if (m_HoverAnim > 0.01f) {
+            Color hbg = Color::Lerp(Color{0,0,0,0}, Theme::Get().HoverButton, m_HoverAnim);
+            context.DrawRoundedRect(renderRect, hbg, 3.0f);
+        } else if (m_Active) {
+            context.DrawRoundedRect(renderRect, Theme::Get().SelectedBg, 3.0f);
+        }
+        const float iconSize = 16.0f;
+        Color iconColor = Theme::Get().TextSecondary;
+        if (m_HoverAnim > 0.01f) iconColor = Color::Lerp(iconColor, Theme::Get().TextPrimary, m_HoverAnim);
+        if (m_Active || m_PressAnim > 0.01f) iconColor = Theme::Get().SelectedAccent;
+        float drawX = renderRect.x + (renderRect.width - iconSize) / 2.0f;
+        float drawY = renderRect.y + (renderRect.height - iconSize) / 2.0f;
+        int cp = Icons::GetCodepoint(m_IconName);
+        if (cp != 0) context.DrawIcon(cp, Point{ drawX, drawY }, iconColor, iconSize);
+        return;
+    }
+
+    // ── Normal labeled buttons (legacy dropdown style) ───────────────────────
+    if (isNormal) {
+        const bool isDropdownControl = m_IsDropdown;
+        Color bg{ 0.0f, 0.0f, 0.0f, 0.0f };
+        bool drawBg = false;
+        if (m_PressAnim > 0.01f) {
+            bg = Theme::Get().PressedOverlay; drawBg = true;
+        } else if (m_HoverAnim > 0.01f) {
+            bg = Color::Lerp(Color{0,0,0,0}, Theme::Get().HoverButton, m_HoverAnim); drawBg = true;
+        } else if (m_Active) {
+            bg = Theme::Get().SelectedBg; drawBg = true;
+        } else if (isDropdownControl) {
+            bg = Color{ 0.137f, 0.137f, 0.137f, 1.0f }; // #232323
+            drawBg = true;
+        }
+
+        if (drawBg) context.DrawRoundedRect(renderRect, bg, 4.0f);
+
+        if (isDropdownControl) {
+            Color borderCol = m_HoverAnim > 0.01f
+                ? Color{ 0.298f, 0.298f, 0.298f, 1.0f }  // #4C4C4C
+                : Color{ 0.227f, 0.227f, 0.227f, 1.0f }; // #3A3A3A
+            context.DrawRoundedRectOutline(renderRect, borderCol, 1.0f, 4.0f);
+        }
+
+        // Icon color
+        Color iconColor = Theme::Get().TextSecondary;
+        if (m_HoverAnim > 0.01f) iconColor = Color::Lerp(iconColor, Theme::Get().TextPrimary, m_HoverAnim);
+        if (m_Active || m_PressAnim > 0.01f) iconColor = Theme::Get().SelectedAccent;
+
+        const float iconSize = 16.0f;
+        float currentX;
+
+        int cp = Icons::GetCodepoint(m_IconName);
+        if (cp != 0) {
+            if (m_Label.empty() && !m_IsDropdown) {
+                float drawX = renderRect.x + (renderRect.width - iconSize) / 2.0f;
+                context.DrawIcon(cp, Point{ drawX, centerY - iconSize / 2.0f }, iconColor, iconSize);
+            } else if (m_Label.empty() && m_IsDropdown) {
+                currentX = renderRect.x + 8.0f;
+                context.DrawIcon(cp, Point{ currentX, centerY - iconSize / 2.0f }, iconColor, iconSize);
+            } else {
+                currentX = renderRect.x + 12.0f;
+                context.DrawIcon(cp, Point{ currentX, centerY - iconSize / 2.0f }, iconColor, iconSize);
+                currentX += iconSize + 6.0f;
             }
         } else {
-            iconColor = Color{ 0.75f, 0.75f, 0.75f, 1.0f }; // #BFBFBF neutral gray
-            if (m_HoverAnim > 0.01f) {
-                iconColor = Color::Lerp(iconColor, Color::White(), m_HoverAnim); // fade to white on hover
-            }
-            if (m_Active || (m_PressAnim > 0.01f)) {
-                iconColor = Color{ 0.30f, 0.64f, 1.0f, 1.0f }; // #4DA3FF when active/pressed
-            }
+            currentX = renderRect.x + 12.0f;
         }
-        
-        float actualIconSize = iconSize; // Use the dynamically set iconSize (16px or 18px)
-        
-        int codepoint = Icons::GetCodepoint(m_IconName);
-        if (codepoint != 0) {
-            float drawX = currentX;
-            if (m_Label.empty()) {
-                // Center icon in its designated space
-                float spaceWidth = renderRect.width;
-                if (m_IsDropdown) spaceWidth -= 16.0f; // Leave space for chevron
-                drawX = renderRect.x + (spaceWidth - actualIconSize) / 2.0f;
-            } else {
-                drawX = renderRect.x + 8.0f; // 8px left padding when there is text
-            }
-            context.DrawIcon(codepoint, Point{ drawX, centerY - actualIconSize/2.0f }, iconColor, actualIconSize);
-            currentX = drawX + actualIconSize + 6.0f; // 6px gap before text
-        }
-        
+
         if (!m_Label.empty()) {
-            Color textColor = iconColor;
-            context.DrawText(m_Label, Point{ currentX, centerY - (Theme::Get().TextSizeToolbar / 2.0f) }, textColor, Theme::Get().TextSizeToolbar);
+            const float textSize = Theme::Get().TextSizeToolbar;
+            context.DrawText(m_Label, Point{ currentX, centerY - textSize / 2.0f }, iconColor, textSize);
         }
-        
+
+        // Chevron for dropdowns – sits 10px from right edge
         if (m_IsDropdown) {
-            int chevronCodepoint = Icons::GetCodepoint(Icons::ChevronDownName);
-            if (chevronCodepoint != 0) {
-                float chevronSize = 8.0f; // 8px exact size
-                float chevronX = renderRect.x + renderRect.width - 8.0f - chevronSize; // paddingX is 8px
-                context.DrawIcon(chevronCodepoint, Point{ chevronX, centerY - chevronSize/2.0f }, iconColor, chevronSize);
-                // Bold effect:
-                context.DrawIcon(chevronCodepoint, Point{ chevronX + 0.5f, centerY - chevronSize/2.0f }, iconColor, chevronSize);
+            int chevCp = Icons::GetCodepoint(Icons::ChevronDownName);
+            if (chevCp != 0) {
+                const float chevSize = 8.0f;
+                float chevX = renderRect.x + renderRect.width - 10.0f - chevSize;
+                context.DrawIcon(chevCp, Point{ chevX, centerY - chevSize / 2.0f }, iconColor, chevSize);
+                // Sub-pixel bold pass for crispness
+                context.DrawIcon(chevCp, Point{ chevX + 0.5f, centerY - chevSize / 2.0f }, iconColor, chevSize);
             }
         }
     }

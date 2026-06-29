@@ -20,6 +20,10 @@ void Splitter::SetSecondChild(const std::shared_ptr<Widget>& child) {
     AddChild(child);
 }
 
+void Splitter::SetSplitRatio(float ratio) {
+    m_SplitRatio = std::clamp(ratio, 0.05f, 0.95f);
+}
+
 Rect Splitter::GetSplitterBarRect() const {
     if (m_Orientation == Orientation::Horizontal) {
         float x = m_Geometry.x + (m_Geometry.width - m_BarThickness) * m_SplitRatio;

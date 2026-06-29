@@ -1,9 +1,11 @@
 #include "Widgets/ViewportWidget.hpp"
+#include "Widgets/ToolsPanel.hpp"
 #include "Renderer/Renderer.hpp"
 #include "EditorCamera.hpp"
 #include "Scene/Scene.hpp"
 #include "Core/PaintContext.hpp"
 #include "Rendering/UIRenderer.hpp"
+#include "Core/Theme.hpp"
 #include <SDL3/SDL_keyboard.h>
 #include <algorithm>
 #include <glm/gtc/type_ptr.hpp>
@@ -41,14 +43,25 @@ void ViewportWidget::Arrange(const Rect& allottedRect) {
         m_ResizePending = true;
     }
 
+  if (m_ToolsPanel) {
+        if (auto* toolsPanel = dynamic_cast<we::programs::editor::ToolsPanel*>(m_ToolsPanel.get())) {
+            m_ToolsPanelWidth = toolsPanel->GetOccupiedWidth();
+            m_ToolsPanel->Measure(Size{ m_ToolsPanelWidth, allottedRect.height });
+            m_ToolsPanel->Arrange(Rect{ allottedRect.x, allottedRect.y, m_ToolsPanelWidth, allottedRect.height });
+        }
+    }
+
     // Arrange integrated compact toolbar at top (assuming it's the first child)
     if (!m_Children.empty()) {
         auto toolbar = m_Children[0];
-        // 34px compact height
         float compactHeight = 34.0f;
         toolbar->Measure(Size{ allottedRect.width, compactHeight });
         toolbar->Arrange(Rect{ allottedRect.x, allottedRect.y, allottedRect.width, compactHeight });
     }
+}
+
+void ViewportWidget::SetToolsPanel(const std::shared_ptr<Widget>& toolsPanel) {
+    m_ToolsPanel = toolsPanel;
 }
 
 void ViewportWidget::FlushPendingResize() {
@@ -87,7 +100,10 @@ void ViewportWidget::Paint(PaintContext& context) {
     if (m_ViewportTextureSet != VK_NULL_HANDLE) {
         context.DrawTexture(m_Geometry, m_ViewportTextureSet);
     } else {
-        context.DrawRect(m_Geometry, Color{ 0.1f, 0.1f, 0.1f, 1.0f });
+        // Vertical gradient: Top #232427, Bottom #17181A
+        Color gradTop{0.137f, 0.141f, 0.153f, 1.0f};
+        Color gradBottom{0.090f, 0.094f, 0.102f, 1.0f};
+        context.DrawGradient(m_Geometry, gradTop, gradBottom);
     }
 
     // 2. Draw Stats Overlay (Top-Left)
@@ -103,7 +119,7 @@ void ViewportWidget::Paint(PaintContext& context) {
     }
 
     Color overlayColor = Color{ 0.85f, 0.85f, 0.85f, 1.0f };
-    float overlayX = m_Geometry.x + 15.0f;
+    float overlayX = m_Geometry.x + m_ToolsPanelWidth + 15.0f;
     float overlayY = m_Geometry.y + 15.0f;
 
     context.DrawText("FPS: " + std::to_string(static_cast<int>(m_FPS)) + " (" + std::to_string(m_FrameTime).substr(0, 4) + " ms)", Point{ overlayX, overlayY }, overlayColor, 12.0f);
@@ -159,7 +175,12 @@ void ViewportWidget::Paint(PaintContext& context) {
         context.DrawText(axis.label, Point{ endPoint.x + 4.0f, endPoint.y - 6.0f }, Color::White(), 10.0f);
     }
     
-    // 4. Paint children (e.g., floating toolbar)
+    // 4. Paint tools drawer overlay (left)
+    if (m_ToolsPanel) {
+        m_ToolsPanel->Paint(context);
+    }
+
+    // 5. Paint children (e.g., floating toolbar)
     for (auto& child : m_Children) {
         child->Paint(context);
     }
@@ -167,6 +188,15 @@ void ViewportWidget::Paint(PaintContext& context) {
 
 void ViewportWidget::OnMouseDown(const MouseEvent& event) {
     m_LastMousePos = event.position;
+
+    if (m_ToolsPanel) {
+        if (auto* toolsPanel = dynamic_cast<we::programs::editor::ToolsPanel*>(m_ToolsPanel.get())) {
+            if (toolsPanel->HitTest(event.position)) {
+                m_ToolsPanel->OnMouseDown(event);
+                return;
+            }
+        }
+    }
 
     if (event.button == MouseButton::Right) m_RightMouseDown = true;
     if (event.button == MouseButton::Left) m_LeftMouseDown = true;
@@ -192,6 +222,10 @@ void ViewportWidget::OnMouseDown(const MouseEvent& event) {
 }
 
 void ViewportWidget::OnMouseMove(const MouseEvent& event) {
+    if (m_ToolsPanel) {
+        m_ToolsPanel->OnMouseMove(event);
+    }
+
     if (!m_Focused) return;
 
     float dx = event.position.x - m_LastMousePos.x;
@@ -223,6 +257,10 @@ void ViewportWidget::OnMouseMove(const MouseEvent& event) {
 }
 
 void ViewportWidget::OnMouseUp(const MouseEvent& event) {
+    if (m_ToolsPanel) {
+        m_ToolsPanel->OnMouseUp(event);
+    }
+
     if (event.button == MouseButton::Right) {
         m_RightMouseDown = false;
         m_Camera->SetFPSMode(false);
@@ -241,6 +279,17 @@ void ViewportWidget::OnMouseWheel(const MouseEvent& event) {
 }
 
 void ViewportWidget::Tick(float deltaTime) {
+    if (m_ToolsPanel) {
+        m_ToolsPanel->Tick(deltaTime);
+        if (auto* toolsPanel = dynamic_cast<we::programs::editor::ToolsPanel*>(m_ToolsPanel.get())) {
+            float occupiedWidth = toolsPanel->GetOccupiedWidth();
+            if (std::abs(m_ToolsPanelWidth - occupiedWidth) > 0.5f) {
+                m_ToolsPanelWidth = occupiedWidth;
+                Arrange(m_Geometry); // Re-layout the Viewport
+            }
+        }
+    }
+
     m_FPS = 1.0f / (deltaTime > 0.0f ? deltaTime : 0.016f);
     m_FrameTime = deltaTime * 1000.0f;
 

@@ -3,6 +3,7 @@
 #include "Renderer/ShaderHelper.hpp"
 #include "Core/Logger.hpp"
 #include "Core/Widget.hpp"
+#include "AssetRegistry.hpp"
 #include <array>
 #include <cmath>
 
@@ -43,15 +44,25 @@ bool UIRenderer::Init(const std::shared_ptr<we::runtime::renderer::VulkanContext
 
     // 2. Initialize Font Atlas
     m_FontAtlas = std::make_shared<FontAtlas>();
-    if (!m_FontAtlas->Init(m_Context, "Assets/Fonts/Roboto-Medium.ttf", 32, 96, 512, 512)) {
+    const std::string uiFontPath = we::core::AssetRegistry::Get().GetFontPath("Font_UI");
+    const std::string fontToLoad = uiFontPath.empty() ? "Assets/Fonts/Inter-Regular.ttf" : uiFontPath;
+    if (!m_FontAtlas->Init(m_Context, fontToLoad, 32, 96, 1024, 1024)) {
         throw std::runtime_error("Failed to initialize HouseUI Renderer!");
     }
     
-    // 2.b Initialize Icon Atlas (Material Icons Classic, starting at E000, 4096 chars)
+    // 2.b Initialize Icon Atlas (codicon font)
     m_IconAtlas = std::make_shared<FontAtlas>();
-    if (!m_IconAtlas->Init(m_Context, "Assets/Fonts/codicon.ttf", 0xEA60, 2000, 1024, 1024)) {
+    const std::string iconFontPath = we::core::AssetRegistry::Get().GetFontPath("Font_Icons");
+    const std::string iconToLoad = iconFontPath.empty() ? "Assets/Fonts/codicon.ttf" : iconFontPath;
+    if (!m_IconAtlas->Init(m_Context, iconToLoad, 0xEA60, 2000, 1024, 1024)) {
         HE_ERROR("UIRenderer: Failed to load icon atlas, icons will not render.");
         m_IconAtlas.reset();
+    }
+
+    // 2.c Initialize SVG Icon Renderer
+    m_IconRenderer = std::make_shared<IconRenderer>();
+    if (!m_IconRenderer->Init(m_Context, m_TextureDescLayout)) {
+        HE_ERROR("UIRenderer: Failed to initialize IconRenderer.");
     }
 
     // 3. Create Dummy White Texture
@@ -92,6 +103,12 @@ bool UIRenderer::Init(const std::shared_ptr<we::runtime::renderer::VulkanContext
     if (m_IconAtlas) {
         m_IconAtlas->GetDescriptorSetRef() = RegisterTexture(m_IconAtlas->GetImageView(), m_IconAtlas->GetSampler());
     }
+
+    we::core::AssetRegistry::Get().RegisterTexture("Font_UI_Atlas", m_FontAtlas->GetImageView(), m_FontAtlas->GetSampler());
+    if (m_IconAtlas) {
+        we::core::AssetRegistry::Get().RegisterTexture("Font_Icons_Atlas", m_IconAtlas->GetImageView(), m_IconAtlas->GetSampler());
+    }
+    we::core::AssetRegistry::Get().RegisterTexture("UI_DummyWhite", m_DummyImageView, m_DummySampler);
 
     // 5. Create pipeline
     CreatePipeline(renderPass);
@@ -429,7 +446,7 @@ void UIRenderer::BuildGeometry(const std::vector<DrawCommand>& commands, uint32_
                 float type = ((cmd.type == DrawCommandType::Rect || cmd.type == DrawCommandType::Gradient) && cmd.borderRadius > 0.0f) ? 1.0f : 0.0f;
                 
                 Color colorTop = cmd.color;
-                Color colorBottom = (cmd.type == DrawCommandType::Gradient) ? cmd.colorBottom : cmd.color;
+                Color colorBottom = (cmd.type == DrawCommandType::Gradient || cmd.type == DrawCommandType::Texture) ? cmd.colorBottom : cmd.color;
 
                 UIVertex v0{ {x,     y},     {0.0f, 0.0f}, {colorTop.r, colorTop.g, colorTop.b, colorTop.a},       {x, y, w, h}, {cmd.borderRadius, type, 0.0f, 0.0f} };
                 UIVertex v1{ {x + w, y},     {1.0f, 0.0f}, {colorTop.r, colorTop.g, colorTop.b, colorTop.a},       {x, y, w, h}, {cmd.borderRadius, type, 0.0f, 0.0f} };
@@ -530,16 +547,31 @@ void UIRenderer::BuildGeometry(const std::vector<DrawCommand>& commands, uint32_
                     cmdIndexCount += 6;
                 }
             } else if (cmd.type == DrawCommandType::Text) {
-                ypos += cmd.fontSize * 0.85f; // Convert Top-Left Y to Baseline Y
+                float scale = 1.0f;
+                if (m_FontAtlas && m_FontAtlas->GetFontHeight() > 0.0f) {
+                    scale = cmd.fontSize / m_FontAtlas->GetFontHeight();
+                }
+                float logicalX = 0.0f;
+                float logicalY = 0.0f;
+                float startX = xpos;
+                float startY = ypos + cmd.fontSize * 0.85f; // Convert Top-Left Y to Baseline Y
+
                 for (char c : cmd.text) {
                     GlyphInfo q;
-                    if (m_FontAtlas->GetCharQuad(c, &xpos, &ypos, q)) {
+                    if (m_FontAtlas && m_FontAtlas->GetCharQuad(c, &logicalX, &logicalY, q)) {
                         uint32_t charStart = static_cast<uint32_t>(m_Vertices.size());
 
-                        UIVertex v0{ {q.x0, q.y0}, {q.u0, q.v0}, {cmd.color.r, cmd.color.g, cmd.color.b, cmd.color.a}, {q.x0, q.y0, q.x1 - q.x0, q.y1 - q.y0}, {0.0f, 0.0f, 0.0f, 0.0f} };
-                        UIVertex v1{ {q.x1, q.y0}, {q.u1, q.v0}, {cmd.color.r, cmd.color.g, cmd.color.b, cmd.color.a}, {q.x0, q.y0, q.x1 - q.x0, q.y1 - q.y0}, {0.0f, 0.0f, 0.0f, 0.0f} };
-                        UIVertex v2{ {q.x1, q.y1}, {q.u1, q.v1}, {cmd.color.r, cmd.color.g, cmd.color.b, cmd.color.a}, {q.x0, q.y0, q.x1 - q.x0, q.y1 - q.y0}, {0.0f, 0.0f, 0.0f, 0.0f} };
-                        UIVertex v3{ {q.x0, q.y1}, {q.u0, q.v1}, {cmd.color.r, cmd.color.g, cmd.color.b, cmd.color.a}, {q.x0, q.y0, q.x1 - q.x0, q.y1 - q.y0}, {0.0f, 0.0f, 0.0f, 0.0f} };
+                        float px0 = startX + q.x0 * scale;
+                        float py0 = startY + q.y0 * scale;
+                        float px1 = startX + q.x1 * scale;
+                        float py1 = startY + q.y1 * scale;
+                        float w = px1 - px0;
+                        float h = py1 - py0;
+
+                        UIVertex v0{ {px0, py0}, {q.u0, q.v0}, {cmd.color.r, cmd.color.g, cmd.color.b, cmd.color.a}, {px0, py0, w, h}, {0.0f, 0.0f, 0.0f, 0.0f} };
+                        UIVertex v1{ {px1, py0}, {q.u1, q.v0}, {cmd.color.r, cmd.color.g, cmd.color.b, cmd.color.a}, {px0, py0, w, h}, {0.0f, 0.0f, 0.0f, 0.0f} };
+                        UIVertex v2{ {px1, py1}, {q.u1, q.v1}, {cmd.color.r, cmd.color.g, cmd.color.b, cmd.color.a}, {px0, py0, w, h}, {0.0f, 0.0f, 0.0f, 0.0f} };
+                        UIVertex v3{ {px0, py1}, {q.u0, q.v1}, {cmd.color.r, cmd.color.g, cmd.color.b, cmd.color.a}, {px0, py0, w, h}, {0.0f, 0.0f, 0.0f, 0.0f} };
 
                         m_Vertices.push_back(v0);
                         m_Vertices.push_back(v1);
@@ -640,18 +672,45 @@ void UIRenderer::UpdateBuffers() {
 }
 
 void UIRenderer::Render(VkCommandBuffer cmd, uint32_t width, uint32_t height, const std::shared_ptr<Widget>& root) {
-    if (!root) return;
+    if (!root) {
+        HE_ERROR("UIRenderer::Render called with null root widget.");
+        return;
+    }
 
-    // 1. Run Layout and Paint traversals
+    // 1. Layout then paint (update/Tick is handled by the editor main loop before this call)
     root->Measure(Size{ static_cast<float>(width), static_cast<float>(height) });
     root->Arrange(Rect{ 0.0f, 0.0f, static_cast<float>(width), static_cast<float>(height) });
 
     PaintContext paintCtx;
     root->Paint(paintCtx);
 
+    const auto& commands = paintCtx.GetCommands();
+
     // 2. Generate and update GPU buffers
-    BuildGeometry(paintCtx.GetCommands(), width, height);
+    BuildGeometry(commands, width, height);
     UpdateBuffers();
+
+    m_LastFrameStats = {};
+    m_LastFrameStats.drawCommands = static_cast<uint32_t>(commands.size());
+    m_LastFrameStats.vertices = static_cast<uint32_t>(m_Vertices.size());
+    m_LastFrameStats.indices = static_cast<uint32_t>(m_Indices.size());
+    m_LastFrameStats.batches = static_cast<uint32_t>(m_Batches.size());
+    m_LastFrameStats.width = width;
+    m_LastFrameStats.height = height;
+
+    static uint32_t s_LoggedFrames = 0;
+    if (s_LoggedFrames < 5) {
+        HE_INFO("[UIRenderer] Frame " + std::to_string(s_LoggedFrames)
+            + ": layout=" + std::to_string(width) + "x" + std::to_string(height)
+            + ", commands=" + std::to_string(m_LastFrameStats.drawCommands)
+            + ", vertices=" + std::to_string(m_LastFrameStats.vertices)
+            + ", indices=" + std::to_string(m_LastFrameStats.indices)
+            + ", batches=" + std::to_string(m_LastFrameStats.batches));
+        if (m_LastFrameStats.vertices == 0 || m_LastFrameStats.batches == 0) {
+            HE_ERROR("[UIRenderer] Empty draw list — UI geometry was not generated.");
+        }
+        ++s_LoggedFrames;
+    }
 
     // 3. Always bind pipeline and set dynamic state even if no geometry.
     //    An early return here would leave the active render pass open,
@@ -725,6 +784,11 @@ void UIRenderer::Render(VkCommandBuffer cmd, uint32_t width, uint32_t height, co
 }
 
 void UIRenderer::Shutdown() {
+    if (m_IconRenderer) {
+        m_IconRenderer->Shutdown();
+        m_IconRenderer.reset();
+    }
+
     if (!m_Context) return;
     VkDevice device = m_Context->GetDevice();
 

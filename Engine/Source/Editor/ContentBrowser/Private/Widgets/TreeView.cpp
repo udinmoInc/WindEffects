@@ -42,7 +42,7 @@ void TreeView::Arrange(const Rect& allottedRect) {
 
 void TreeView::Paint(PaintContext& context) {
     // Draw background
-    context.DrawRect(m_Geometry, Theme::Get().PanelBackground);
+    context.DrawRect(m_Geometry, Theme::Get().ContentBrowserBackground);
     
     // Draw items
     for (const auto& item : m_RenderList) {
@@ -64,9 +64,9 @@ void TreeView::Paint(PaintContext& context) {
         }
         
         if (node->id == m_SelectedId) {
-            bgColor = Theme::Get().SelectedAccent * 0.4f; // More visible blue accent
+            bgColor = Color{0.271f, 0.290f, 0.322f, 1.0f}; // #454A52
         } else if (node->id == m_HoveredId) {
-            bgColor = Theme::Get().HoverOverlay;
+            bgColor = Color{0.192f, 0.204f, 0.227f, 1.0f}; // #31343A
         }
         
         if (bgColor.a > 0.001f) {
