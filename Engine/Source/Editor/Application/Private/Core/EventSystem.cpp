@@ -1,7 +1,20 @@
 #include "Core/EventSystem.hpp"
 #include "Core/Widget.hpp"
+#include <SDL3/SDL_mouse.h>
 
 namespace we::UI {
+
+namespace {
+SDL_Cursor* GetArrowCursor() {
+    static SDL_Cursor* cursor = SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_DEFAULT);
+    return cursor;
+}
+
+SDL_Cursor* GetPointerCursor() {
+    static SDL_Cursor* cursor = SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_POINTER);
+    return cursor;
+}
+} // namespace
 
 std::shared_ptr<Widget> EventSystem::HitTest(const std::shared_ptr<Widget>& root, const Point& pos) {
     if (!root || !root->IsVisible()) return nullptr;
@@ -35,23 +48,44 @@ void EventSystem::ProcessMouseEvent(const MouseEvent& event) {
         m_HoveredWidget = hitWidget;
     }
 
+    if (event.type == MouseEventType::MouseMove) {
+        UpdateCursorForWidget(hitWidget, event.position);
+    }
+
     // Process mouse actions
-    if (hitWidget) {
+    std::shared_ptr<Widget> targetWidget = hitWidget;
+    if (event.type == MouseEventType::MouseMove || event.type == MouseEventType::MouseUp) {
+        if (auto focused = m_FocusedWidget.lock()) {
+            targetWidget = focused;
+        }
+    }
+
+    if (targetWidget) {
         if (event.type == MouseEventType::MouseDown) {
-            SetFocusedWidget(hitWidget);
-            hitWidget->OnMouseDown(event);
+            SetFocusedWidget(targetWidget);
+            targetWidget->OnMouseDown(event);
         } else if (event.type == MouseEventType::MouseUp) {
-            hitWidget->OnMouseUp(event);
+            targetWidget->OnMouseUp(event);
         } else if (event.type == MouseEventType::MouseMove) {
-            hitWidget->OnMouseMove(event);
+            targetWidget->OnMouseMove(event);
         } else if (event.type == MouseEventType::MouseWheel) {
-            hitWidget->OnMouseWheel(event);
+            targetWidget->OnMouseWheel(event);
         }
     } else {
         if (event.type == MouseEventType::MouseDown) {
             SetFocusedWidget(nullptr);
         }
     }
+}
+
+void EventSystem::UpdateCursorForWidget(const std::shared_ptr<Widget>& widget, const Point& position) {
+    const bool shouldUsePointerCursor = widget && widget->ShowsPointerCursor(position);
+    if (shouldUsePointerCursor == m_UsingPointerCursor) {
+        return;
+    }
+
+    SDL_SetCursor(shouldUsePointerCursor ? GetPointerCursor() : GetArrowCursor());
+    m_UsingPointerCursor = shouldUsePointerCursor;
 }
 
 void EventSystem::ProcessKeyEvent(const KeyEvent& event) {

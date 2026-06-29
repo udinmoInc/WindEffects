@@ -2,6 +2,8 @@
 #include "Core/Logger.hpp"
 #include <stdexcept>
 #include <iostream>
+#include <algorithm>
+#include <cctype>
 
 namespace we::runtime::scene {
 
@@ -136,6 +138,23 @@ void Scene::Update() {
         memcpy(data, &ubo, sizeof(we::runtime::renderer::SceneObjectUniform));
         vkUnmapMemory(device, entity.UniformMemory);
     }
+}
+
+bool Scene::HasSkyEnvironment() const {
+    for (const auto& entity : m_Entities) {
+        std::string nameLower = entity.Name;
+        std::transform(nameLower.begin(), nameLower.end(), nameLower.begin(),
+            [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+
+        // Supports common scene naming conventions until dedicated sky components are added.
+        if (nameLower.find("sky") != std::string::npos ||
+            nameLower.find("atmosphere") != std::string::npos ||
+            nameLower.find("skydome") != std::string::npos ||
+            nameLower.find("skybox") != std::string::npos) {
+            return true;
+        }
+    }
+    return false;
 }
 
 } // namespace we::runtime::scene

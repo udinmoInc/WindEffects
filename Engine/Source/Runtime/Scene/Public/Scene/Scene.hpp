@@ -28,6 +28,8 @@ public:
     int GetSelectedEntityIndex() const { return m_SelectedEntityIndex; }
     void SetSelectedEntityIndex(int index) { m_SelectedEntityIndex = index; }
 
+    bool HasSkyEnvironment() const;
+
     void Update();
 
 private:

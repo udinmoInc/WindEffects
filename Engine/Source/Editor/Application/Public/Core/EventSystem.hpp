@@ -66,9 +66,12 @@ public:
     static std::shared_ptr<Widget> HitTest(const std::shared_ptr<Widget>& root, const Point& pos);
 
 private:
+    void UpdateCursorForWidget(const std::shared_ptr<Widget>& widget, const Point& position);
+
     std::shared_ptr<Widget> m_Root;
     std::weak_ptr<Widget> m_FocusedWidget;
     std::weak_ptr<Widget> m_HoveredWidget;
+    bool m_UsingPointerCursor = false;
 };
 
 } // namespace we::editor::application::UI

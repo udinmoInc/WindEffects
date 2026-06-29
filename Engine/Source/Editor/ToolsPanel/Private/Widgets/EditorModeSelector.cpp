@@ -124,6 +124,9 @@ void EditorModeSelector::Refresh() {
     if (const auto* mode = EditorToolsRegistry::Get().FindMode(modeId)) {
         m_Label = mode->label;
         m_IconName = mode->iconName;
+        if (we::UI::Icons::GetCodepoint(m_IconName) == 0xE001) {
+            m_IconName = we::UI::Icons::CursorName;
+        }
     } else {
         m_Label = "Select";
         m_IconName = we::UI::Icons::CursorName;
@@ -132,8 +135,8 @@ void EditorModeSelector::Refresh() {
 
 Size EditorModeSelector::Measure(const Size& availableSize) {
     (void)availableSize;
-    const float labelWidth = (std::max)(40.0f, m_Label.length() * 7.0f);
-    m_DesiredSize = Size{ kPadding + kIconSize + kIconGap + labelWidth + 4.0f + kChevronWidth + kPadding, kHeight };
+    const float labelWidth = (std::max)(48.0f, m_Label.length() * 7.4f);
+    m_DesiredSize = Size{ kPadding + kIconSize + kIconGap + labelWidth + 8.0f + kChevronWidth + kPadding, kHeight };
     return m_DesiredSize;
 }
 

@@ -32,6 +32,7 @@ public:
     void OnMouseDown(const MouseEvent& event) override;
     void OnMouseUp(const MouseEvent& event) override;
     void OnMouseMove(const MouseEvent& event) override;
+    bool ShowsPointerCursor(const Point& position) const override { return m_Geometry.Contains(position); }
 
     void SetIcon(const std::string& iconName) { m_IconName = iconName; }
     void SetTooltip(const std::string& tooltip) { m_Tooltip = tooltip; }

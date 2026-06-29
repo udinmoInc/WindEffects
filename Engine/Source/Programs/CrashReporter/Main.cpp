@@ -29,10 +29,11 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
         SDL_WINDOW_HIDDEN // | SDL_WINDOW_BORDERLESS
     );
 
-    SDL_Window* window = SDL_CreateWindow("WindEffects Crash Reporter", 1024, 768, window_flags);
+    SDL_Window* window = SDL_CreateWindow("WindEffects Crash Reporter", 1200, 760, window_flags);
     if (!window) {
         return -1;
     }
+    SDL_SetWindowMinimumSize(window, 1200, 760);
 
     SDL_ShowWindow(window);
 

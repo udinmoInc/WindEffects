@@ -2,18 +2,17 @@
 #include "Widgets/Panel.hpp"
 #include "Core/Icon.hpp"
 #include "Widgets/Label.hpp"
-
 #include "Widgets/Toolbar.hpp"
 #include "Widgets/ToolButton.hpp"
 
 namespace we::programs::editor {
 
-std::shared_ptr<we::UI::Panel> CreateViewportPanel() {
-    auto panel = std::make_shared<we::UI::Panel>("Viewport");
+std::shared_ptr<we::UI::Panel> CreateGamePanel() {
+    auto panel = std::make_shared<we::UI::Panel>("Game");
     panel->SetHeaderHeight(30.0f);
     panel->AddHeaderAction(we::UI::Icons::XName, []() {});
 
-    // Create Level-2 Toolbar for Scene Viewport
+    // Create Level-2 Toolbar for Game Viewport
     auto toolbar = std::make_shared<we::UI::Toolbar>();
     toolbar->SetHeight(28.0f); // 28-30px toolbar height
     toolbar->SetIconSize(16.0f); // Compact size
@@ -22,10 +21,10 @@ std::shared_ptr<we::UI::Panel> CreateViewportPanel() {
     using we::UI::ToolbarAlignment;
     namespace Icons = we::UI::Icons;
 
-    // Viewport dropdown
-    auto btnViewport = toolbar->AddTool(Icons::PerspectiveName, "Viewport", [](){}, "Viewport Type");
-    btnViewport->SetButtonStyle(ToolButtonStyle::ToolbarInline);
-    btnViewport->SetIsDropdown(true);
+    // Game dropdown
+    auto btnGame = toolbar->AddTool(Icons::PlayName, "Game", [](){}, "Game View Options");
+    btnGame->SetButtonStyle(ToolButtonStyle::ToolbarInline);
+    btnGame->SetIsDropdown(true);
 
     toolbar->AddSeparator();
 
@@ -36,33 +35,40 @@ std::shared_ptr<we::UI::Panel> CreateViewportPanel() {
 
     toolbar->AddSeparator();
 
-    // Render Mode dropdown
-    auto btnLit = toolbar->AddTool(Icons::LitName, "Lit", [](){}, "Render Mode");
-    btnLit->SetButtonStyle(ToolButtonStyle::ToolbarInline);
-    btnLit->SetIsDropdown(true);
+    // Resolution dropdown
+    auto btnResolution = toolbar->AddTool(Icons::MaximizeName, "Auto Resolution", [](){}, "Select Resolution");
+    btnResolution->SetButtonStyle(ToolButtonStyle::ToolbarInline);
+    btnResolution->SetIsDropdown(true);
 
     toolbar->AddSeparator();
 
-    // Camera dropdown
-    auto btnCamera = toolbar->AddTool(Icons::CameraName, "Camera", [](){}, "Camera Settings");
-    btnCamera->SetButtonStyle(ToolButtonStyle::ToolbarInline);
-    btnCamera->SetIsDropdown(true);
+    // Aspect Ratio dropdown
+    auto btnAspect = toolbar->AddTool(Icons::CameraName, "Free Aspect", [](){}, "Aspect Ratio");
+    btnAspect->SetButtonStyle(ToolButtonStyle::ToolbarInline);
+    btnAspect->SetIsDropdown(true);
 
     toolbar->AddSeparator();
 
-    // Show dropdown
-    auto btnShow = toolbar->AddTool(Icons::EyeName, "Show", [](){}, "Show/Hide Elements");
-    btnShow->SetButtonStyle(ToolButtonStyle::ToolbarInline);
-    btnShow->SetIsDropdown(true);
+    // Scale dropdown
+    auto btnScale = toolbar->AddTool(Icons::ScaleName, "1x", [](){}, "View Scale");
+    btnScale->SetButtonStyle(ToolButtonStyle::ToolbarInline);
+    btnScale->SetIsDropdown(true);
+
+    toolbar->AddSeparator();
+
+    // Play Focus
+    auto btnPlayFocus = toolbar->AddTool(Icons::PlayName, "Play Focus", [](){}, "Play Focus Mode");
+    btnPlayFocus->SetButtonStyle(ToolButtonStyle::ToolbarInline);
+    btnPlayFocus->SetIsDropdown(true);
 
     toolbar->AddSeparator();
 
     // Stats
     auto btnStats = toolbar->AddTool(Icons::ProfilerName, "Stats", [](){}, "Toggle Stats");
     btnStats->SetButtonStyle(ToolButtonStyle::ToolbarInline);
-
-    toolbar->AddSeparator();
     
+    toolbar->AddSeparator();
+
     // Gizmos
     auto btnGizmos = toolbar->AddTool(Icons::GridName, "Gizmos", [](){}, "Toggle Gizmos");
     btnGizmos->SetButtonStyle(ToolButtonStyle::ToolbarInline);
@@ -70,16 +76,13 @@ std::shared_ptr<we::UI::Panel> CreateViewportPanel() {
 
     panel->SetToolbar(toolbar);
 
-    // ViewportWidget requires Renderer, Camera, Scene, UIRenderer which
-    // are not available at static registration time. Set an empty placeholder
-    // content for now — the real ViewportWidget will be injected later by
-    // the editor application once the runtime services are initialized.
+    // Placeholder for actual game view rendering
     auto placeholder = std::make_shared<we::UI::Label>("");
     panel->SetContent(placeholder);
 
     return panel;
 }
 
-REGISTER_EDITOR_PANEL(Viewport, CreateViewportPanel)
+REGISTER_EDITOR_PANEL(Game, CreateGamePanel)
 
 } // namespace we::programs::editor

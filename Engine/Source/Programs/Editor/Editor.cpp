@@ -19,6 +19,7 @@
 #include "Widgets/StatusBar.hpp"
 #include "Widgets/ViewportWidget.hpp"
 #include "Widgets/ToolsPanel.hpp"
+#include "Widgets/DockContainer.hpp"
 #include "Widgets/EditorModeSelector.hpp"
 #include "EditorModeController.hpp"
 #include "EditorLayoutController.hpp"
@@ -32,6 +33,7 @@
 #include <unordered_map>
 #include <vector>
 #include <filesystem>
+#include <glm/geometric.hpp>
 
 #define NANOSVG_IMPLEMENTATION
 #include <nanosvg.h>
@@ -60,6 +62,18 @@ Editor::Editor(SDL_Window* window) : m_Window(window) {
     m_RenderGraph = std::make_shared<RenderGraph>(m_Renderer);
     m_SceneRenderer = std::make_shared<SceneRenderer>(m_Context, m_Renderer->GetOffscreenRenderPass(), m_Renderer->GetCameraDescLayout());
     m_GridRenderer = std::make_shared<GridRenderer>(m_Context, m_Renderer->GetOffscreenRenderPass(), m_Renderer->GetCameraDescLayout());
+    m_SceneRenderer->SetProceduralSkyEnabled(true);
+    {
+        we::runtime::renderer::SceneRenderer::ProceduralSkySettings skySettings{};
+        skySettings.topColor = glm::vec3(0.23f, 0.37f, 0.66f);
+        skySettings.horizonColor = glm::vec3(0.72f, 0.78f, 0.86f);
+        skySettings.groundColor = glm::vec3(0.19f, 0.20f, 0.22f);
+        skySettings.hazeIntensity = 0.42f;
+        skySettings.exposure = 1.05f;
+        skySettings.sunDirection = glm::normalize(glm::vec3(0.30f, 0.82f, 0.48f));
+        skySettings.gradientStrength = 1.08f;
+        m_SceneRenderer->SetProceduralSkySettings(skySettings);
+    }
 
     m_Camera = std::make_shared<EditorCamera>();
     m_Scene = std::make_shared<Scene>(m_Context, m_SceneRenderer);
@@ -199,9 +213,9 @@ void Editor::BuildDynamicEditorUI() {
     EditorModeController::Get().InitializeFromRegistry();
 
     auto toolbar = std::make_shared<Toolbar>();
-    toolbar->SetHeight(40.0f);
-    toolbar->SetLeftInset(8.0f);   // Standard edge padding — no logo to clear
-    toolbar->SetIconSize(24.0f);
+    toolbar->SetHeight(30.0f);
+    toolbar->SetLeftInset(0.0f);   // Flush to border: no leading gap
+    toolbar->SetIconSize(16.0f);
 
     auto modeSelector = std::make_shared<we::programs::editor::EditorModeSelector>();
     toolbar->AddWidget(modeSelector);
@@ -236,14 +250,14 @@ void Editor::BuildDynamicEditorUI() {
     settingsBtn->SetButtonStyle(ToolButtonStyle::ToolbarInline);
     settingsBtn->SetIsDropdown(true);
 
-    auto platformBtn = toolbar->AddTool(Icons::PackageName, "Windows", [](){}, "Platform", false, ToolbarAlignment::Right);
+    auto platformBtn = toolbar->AddTool(Icons::PackageName, "Platform", [](){}, "Platform", false, ToolbarAlignment::Right);
     platformBtn->SetButtonStyle(ToolButtonStyle::ToolbarInline);
     platformBtn->SetIsDropdown(true);
 
     toolbar->SetActiveTool(Icons::CursorName);
     HE_INFO("[UI] Toolbar created with mode selector and tools.");
 
-    // ===== 4. Create Viewport =====
+    // ===== 4. Create Viewports =====
     auto viewportWidget = std::make_shared<ViewportWidget>(m_Renderer, m_Camera, m_Scene, m_UIRenderer.get());
     m_ViewportWidget = viewportWidget;
 
@@ -252,10 +266,32 @@ void Editor::BuildDynamicEditorUI() {
     // ToolsPanel is now handled as a left sidebar in the main layout, not an overlay
     HE_INFO("[UI] Mode tool drawer prepared.");
     
-    auto viewportPanel = std::make_shared<Panel>("Viewport");
-    viewportPanel->SetHeaderHeight(30.0f);
-    viewportPanel->SetContent(viewportWidget);
-    HE_INFO("[UI] Viewport panel created with 3D ViewportWidget.");
+    std::shared_ptr<Panel> viewportPanel;
+    if (panelFactories.count("Viewport")) {
+        viewportPanel = panelFactories.at("Viewport")();
+        viewportPanel->SetContent(viewportWidget);
+        HE_INFO("[UI] Viewport panel created from registry with 3D ViewportWidget.");
+    } else {
+        viewportPanel = std::make_shared<Panel>("Viewport");
+        viewportPanel->SetHeaderHeight(30.0f);
+        viewportPanel->SetContent(viewportWidget);
+        HE_INFO("[UI] Viewport panel created (fallback).");
+    }
+
+    std::shared_ptr<Panel> gamePanel;
+    if (panelFactories.count("Game")) {
+        gamePanel = panelFactories.at("Game")();
+        HE_INFO("[UI] Game panel created from registry.");
+    } else {
+        gamePanel = std::make_shared<Panel>("Game");
+        gamePanel->SetHeaderHeight(30.0f);
+        HE_INFO("[UI] Game panel created (fallback).");
+    }
+
+    // Group Viewport and Game into a single tabbed dock container
+    auto centralDock = std::make_shared<DockContainer>();
+    centralDock->AddPanel(viewportPanel);
+    centralDock->AddPanel(gamePanel);
 
     // ===== 5. Create World Outliner =====
     std::shared_ptr<Panel> worldOutlinerPanel;
@@ -302,7 +338,7 @@ void Editor::BuildDynamicEditorUI() {
     // ├── Toolbar (32px)
     // ├── Splitter (Vertical - fills remaining)
     // │   ├── Splitter (Horizontal, 0.7 ratio) -- top area
-    // │   │   ├── Viewport panel (left, 70%)
+    // │   │   ├── centralDock (left, 70%)
     // │   │   └── Splitter (Vertical, 0.5 ratio) -- right sidebar
     // │   │       ├── WorldOutliner (top 50%)
     // │   │       └── Details (bottom 50%)
@@ -315,9 +351,9 @@ void Editor::BuildDynamicEditorUI() {
     rightSideSplitter->SetSecondChild(detailsPanel);
     HE_INFO("[UI] Right sidebar splitter: WorldOutliner | Details.");
 
-    // Main area: Viewport / Content Browser
+    // Main area: Viewports / Content Browser
     auto centerVSplitter = std::make_shared<Splitter>(Orientation::Vertical, 0.7f);
-    centerVSplitter->SetFirstChild(viewportPanel);
+    centerVSplitter->SetFirstChild(centralDock);
     centerVSplitter->SetSecondChild(contentBrowserPanel);
     EditorLayoutController::Get().SetContentBrowserSplitter(centerVSplitter);
     HE_INFO("[UI] Vertical splitter: Viewport (70%) | ContentBrowser (30%).");
@@ -428,10 +464,6 @@ void Editor::LogWidgetTreeLayout(const std::shared_ptr<UI::Widget>& widget, cons
 }
 
 void Editor::Run() {
-    // Deliberate null pointer dereference to test WeCrashReporter
-    volatile int* crashPointer = nullptr;
-    *crashPointer = 42;
-
     MainLoop();
 }
 
@@ -448,16 +480,50 @@ void Editor::MainLoop() {
             }
 
             // Simple event processing
-            UI::MouseEvent mouseEvent{};
-            if (event.type == SDL_EVENT_MOUSE_MOTION) {
-                mouseEvent.type = UI::MouseEventType::MouseMove;
-                mouseEvent.position = UI::Point{ event.motion.x, event.motion.y };
+            if (event.type == SDL_EVENT_MOUSE_MOTION ||
+                event.type == SDL_EVENT_MOUSE_BUTTON_DOWN ||
+                event.type == SDL_EVENT_MOUSE_BUTTON_UP ||
+                event.type == SDL_EVENT_MOUSE_WHEEL) {
+
+                UI::MouseEvent mouseEvent{};
+                mouseEvent.position = UI::Point{ static_cast<float>(event.motion.x), static_cast<float>(event.motion.y) };
+
+                if (event.type == SDL_EVENT_MOUSE_MOTION) {
+                    mouseEvent.type = UI::MouseEventType::MouseMove;
+                } else if (event.type == SDL_EVENT_MOUSE_BUTTON_DOWN || event.type == SDL_EVENT_MOUSE_BUTTON_UP) {
+                    mouseEvent.type = (event.type == SDL_EVENT_MOUSE_BUTTON_DOWN)
+                        ? UI::MouseEventType::MouseDown
+                        : UI::MouseEventType::MouseUp;
+                    mouseEvent.position = UI::Point{ static_cast<float>(event.button.x), static_cast<float>(event.button.y) };
+
+                    if (event.button.button == SDL_BUTTON_LEFT)   mouseEvent.button = UI::MouseButton::Left;
+                    else if (event.button.button == SDL_BUTTON_RIGHT)  mouseEvent.button = UI::MouseButton::Right;
+                    else if (event.button.button == SDL_BUTTON_MIDDLE) mouseEvent.button = UI::MouseButton::Middle;
+                } else if (event.type == SDL_EVENT_MOUSE_WHEEL) {
+                    mouseEvent.type = UI::MouseEventType::MouseWheel;
+                    mouseEvent.wheelDeltaX = static_cast<float>(event.wheel.x);
+                    mouseEvent.wheelDeltaY = static_cast<float>(event.wheel.y);
+                }
+
+                const SDL_Keymod mods = SDL_GetModState();
+                mouseEvent.altDown   = (mods & SDL_KMOD_ALT) != 0;
+                mouseEvent.shiftDown = (mods & SDL_KMOD_SHIFT) != 0;
+                mouseEvent.ctrlDown  = (mods & SDL_KMOD_CTRL) != 0;
+
                 m_UIEventSystem->ProcessMouseEvent(mouseEvent);
-            } else if (event.type == SDL_EVENT_MOUSE_BUTTON_DOWN || event.type == SDL_EVENT_MOUSE_BUTTON_UP) {
-                mouseEvent.type = (event.type == SDL_EVENT_MOUSE_BUTTON_DOWN) ? UI::MouseEventType::MouseDown : UI::MouseEventType::MouseUp;
-                mouseEvent.position = UI::Point{ event.button.x, event.button.y };
-                if (event.button.button == SDL_BUTTON_LEFT) mouseEvent.button = UI::MouseButton::Left;
-                m_UIEventSystem->ProcessMouseEvent(mouseEvent);
+            } else if (event.type == SDL_EVENT_KEY_DOWN || event.type == SDL_EVENT_KEY_UP) {
+                UI::KeyEvent keyEvent{};
+                keyEvent.type = (event.type == SDL_EVENT_KEY_DOWN)
+                    ? UI::KeyEventType::KeyDown
+                    : UI::KeyEventType::KeyUp;
+                keyEvent.keycode = event.key.key;
+
+                const SDL_Keymod mods = event.key.mod;
+                keyEvent.altDown   = (mods & SDL_KMOD_ALT) != 0;
+                keyEvent.shiftDown = (mods & SDL_KMOD_SHIFT) != 0;
+                keyEvent.ctrlDown  = (mods & SDL_KMOD_CTRL) != 0;
+
+                m_UIEventSystem->ProcessKeyEvent(keyEvent);
             }
         }
 
@@ -498,7 +564,8 @@ void Editor::MainLoop() {
             }
 
             m_RenderGraph->BeginOffscreenPass(cmd);
-            m_SceneRenderer->DrawSkybox(cmd, m_Renderer->GetCameraDescSet());
+            m_SceneRenderer->SetProceduralSkyEnabled(!m_Scene->HasSkyEnvironment());
+            m_SceneRenderer->DrawSkybox(cmd);
             m_GridRenderer->Draw(cmd, m_Renderer->GetCameraDescSet());
             m_RenderGraph->EndOffscreenPass(cmd);
 

@@ -68,21 +68,27 @@ void TabWidget::Paint(PaintContext& context) {
         bool isHovered = (static_cast<int>(i) == m_HoveredTab);
         
         // Draw tab background
+        Color tabBg = isActive ? Color{0.1725f, 0.1725f, 0.1725f, 1.0f} : 
+                     (isHovered ? Color{0.150f, 0.150f, 0.150f, 1.0f} : Color{0.1372f, 0.1372f, 0.1372f, 1.0f});
+                     
+        Rect tabRect = tab.geometry;
+        if (isActive) tabRect.height += 1.0f; // Cover the 1px separator
+        
+        context.DrawRoundedRect(tabRect, tabBg, 4.0f);
+        
+        float flattenHeight = 4.0f;
+        context.DrawRect(Rect{tabRect.x, tabRect.y + tabRect.height - flattenHeight, tabRect.width, flattenHeight}, tabBg);
+        
         if (isActive) {
-            // Raised active tab: #303030
-            Color activeBg = Color{0.188f, 0.188f, 0.188f, 1.0f}; // #303030
-            // Draw slightly taller so it covers the separator line below it
-            Rect activeTabRect = tab.geometry;
-            activeTabRect.height += 1.0f; // Cover the 1px separator
-            context.DrawRect(activeTabRect, activeBg);
+            Color tabBorder{0.227f, 0.227f, 0.227f, 1.0f};
+            context.DrawRoundedRectOutline(tabRect, tabBorder, 1.0f, 4.0f);
+            context.DrawRect(Rect{tabRect.x, tabRect.y + tabRect.height - flattenHeight, 1.0f, flattenHeight}, tabBorder);
+            context.DrawRect(Rect{tabRect.x + tabRect.width - 1.0f, tabRect.y + tabRect.height - flattenHeight, 1.0f, flattenHeight}, tabBorder);
+            context.DrawRect(Rect{tabRect.x + 1.0f, tabRect.y + tabRect.height - 1.0f, tabRect.width - 2.0f, 1.0f}, tabBg);
             
             // Subtle accent line (2px blue underline) at the bottom
             Rect underlineRect{ tab.geometry.x, tab.geometry.y + m_TabHeight - 2.0f, tab.geometry.width, 2.0f };
             context.DrawRect(underlineRect, Color{0.231f, 0.51f, 0.965f, 1.0f}); // #3B82F6
-        } else if (isHovered) {
-            // Hovered inactive tab: #323232
-            Color hoverBg = Color{0.196f, 0.196f, 0.196f, 1.0f}; // #323232
-            context.DrawRect(tab.geometry, hoverBg);
         }
         
         // Draw tab label and icon
@@ -168,6 +174,15 @@ void TabWidget::OnMouseMove(const MouseEvent& event) {
             return;
         }
     }
+}
+
+bool TabWidget::ShowsPointerCursor(const Point& position) const {
+    for (const auto& tab : m_Tabs) {
+        if (tab.geometry.Contains(position)) {
+            return true;
+        }
+    }
+    return false;
 }
 
 void TabWidget::AddTab(const std::string& label) {
@@ -256,7 +271,7 @@ void TabWidget::CalculateTabGeometries() {
         float tabWidth = std::max(m_TabMinWidth, textWidth + padding);
         
         tab.geometry = Rect{ x, m_Geometry.y, tabWidth, m_TabHeight };
-        x += tabWidth + m_TabSpacing;
+        x += tabWidth;
     }
 }
 

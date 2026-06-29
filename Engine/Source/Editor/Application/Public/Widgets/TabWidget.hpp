@@ -22,6 +22,7 @@ public:
 
     void OnMouseDown(const MouseEvent& event) override;
     void OnMouseMove(const MouseEvent& event) override;
+    bool ShowsPointerCursor(const Point& position) const override;
 
     // Tab management
     void AddTab(const std::string& label);
