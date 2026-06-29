@@ -54,15 +54,18 @@ struct SceneObjectUniform {
 
 class SceneRenderer {
 public:
-    struct ProceduralSkySettings {
-        glm::vec3 topColor{ 0.24f, 0.39f, 0.70f };
+    // Editor-only empty world backdrop (no scene lighting contribution).
+    struct EditorBackgroundSettings {
+        glm::vec3 zenithColor{ 27.0f / 255.0f, 27.0f / 255.0f, 27.0f / 255.0f };
+        float backgroundBrightness = 1.0f;
+        glm::vec3 upperSkyColor{ 26.0f / 255.0f, 26.0f / 255.0f, 26.0f / 255.0f };
         float gradientStrength = 1.0f;
-        glm::vec3 horizonColor{ 0.66f, 0.74f, 0.84f };
-        float hazeIntensity = 0.35f;
-        glm::vec3 groundColor{ 0.19f, 0.20f, 0.22f };
-        float exposure = 1.0f;
-        glm::vec3 sunDirection{ 0.35f, 0.82f, 0.44f };
-        float padding = 0.0f;
+        glm::vec3 midSkyColor{ 25.0f / 255.0f, 25.0f / 255.0f, 25.0f / 255.0f };
+        float horizonFade = 0.0f;
+        glm::vec3 horizonColor{ 24.0f / 255.0f, 24.0f / 255.0f, 24.0f / 255.0f };
+        float padding0 = 0.0f;
+        glm::vec3 bottomColor{ 23.0f / 255.0f, 23.0f / 255.0f, 23.0f / 255.0f };
+        float backgroundContrast = 1.0f;
     };
 
     SceneRenderer(const std::shared_ptr<VulkanContext>& context, VkRenderPass renderPass, VkDescriptorSetLayout cameraDescLayout);
@@ -72,11 +75,11 @@ public:
     SceneRenderer(const SceneRenderer&) = delete;
     SceneRenderer& operator=(const SceneRenderer&) = delete;
 
-    void DrawSkybox(VkCommandBuffer cmd) const;
-    void SetProceduralSkySettings(const ProceduralSkySettings& settings);
-    const ProceduralSkySettings& GetProceduralSkySettings() const { return m_ProceduralSkySettings; }
-    void SetProceduralSkyEnabled(bool enabled) { m_EnableProceduralSky = enabled; }
-    bool IsProceduralSkyEnabled() const { return m_EnableProceduralSky; }
+    void DrawEditorBackground(VkCommandBuffer cmd, VkDescriptorSet cameraDescSet) const;
+    void SetEditorBackgroundSettings(const EditorBackgroundSettings& settings);
+    const EditorBackgroundSettings& GetEditorBackgroundSettings() const { return m_EditorBackgroundSettings; }
+    void SetEditorBackgroundEnabled(bool enabled) { m_EnableEditorBackground = enabled; }
+    bool IsEditorBackgroundEnabled() const { return m_EnableEditorBackground; }
     
     void DrawMesh(VkCommandBuffer cmd, const std::string& meshName, VkDescriptorSet descriptorSet, int mode) const;
 
@@ -88,7 +91,7 @@ public:
 private:
     void CreatePipelines(VkRenderPass renderPass);
     void CreateMeshes();
-    void UpdateProceduralSkyBufferIfDirty();
+    void UpdateEditorBackgroundBufferIfDirty();
     
     void CreateMeshBuffers(const std::string& name, const std::vector<Vertex>& vertices, const std::vector<uint32_t>& indices);
     void DestroyMeshes();
@@ -110,9 +113,9 @@ private:
     VkDescriptorSet m_SkyDescSet = VK_NULL_HANDLE;
     VkBuffer m_SkyBuffer = VK_NULL_HANDLE;
     VkDeviceMemory m_SkyBufferMemory = VK_NULL_HANDLE;
-    ProceduralSkySettings m_ProceduralSkySettings{};
-    bool m_ProceduralSkyDirty = true;
-    bool m_EnableProceduralSky = false;
+    EditorBackgroundSettings m_EditorBackgroundSettings{};
+    bool m_EditorBackgroundDirty = true;
+    bool m_EnableEditorBackground = false;
 
     // Pipelines
     VkPipeline m_SkyboxPipeline = VK_NULL_HANDLE;

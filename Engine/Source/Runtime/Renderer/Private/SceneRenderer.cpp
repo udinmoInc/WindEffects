@@ -12,7 +12,7 @@ namespace we::runtime::renderer {
 
 SceneRenderer::SceneRenderer(const std::shared_ptr<VulkanContext>& context, VkRenderPass renderPass, VkDescriptorSetLayout cameraDescLayout)
     : m_Context(context), m_CameraDescLayout(cameraDescLayout) {
-    // 1. Create descriptor set layout for procedural editor sky UBO
+    // 1. Create descriptor set layout for procedural editor sky UBO + camera
     VkDescriptorSetLayoutBinding skyBinding{};
     skyBinding.binding = 0;
     skyBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
@@ -28,7 +28,7 @@ SceneRenderer::SceneRenderer(const std::shared_ptr<VulkanContext>& context, VkRe
     }
 
     m_Context->CreateBuffer(
-        sizeof(ProceduralSkySettings),
+        sizeof(EditorBackgroundSettings),
         VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
         VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
         m_SkyBuffer,
@@ -47,7 +47,7 @@ SceneRenderer::SceneRenderer(const std::shared_ptr<VulkanContext>& context, VkRe
     VkDescriptorBufferInfo skyBufferInfo{};
     skyBufferInfo.buffer = m_SkyBuffer;
     skyBufferInfo.offset = 0;
-    skyBufferInfo.range = sizeof(ProceduralSkySettings);
+    skyBufferInfo.range = sizeof(EditorBackgroundSettings);
 
     VkWriteDescriptorSet skyWrite{};
     skyWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
@@ -58,7 +58,7 @@ SceneRenderer::SceneRenderer(const std::shared_ptr<VulkanContext>& context, VkRe
     skyWrite.pBufferInfo = &skyBufferInfo;
     vkUpdateDescriptorSets(m_Context->GetDevice(), 1, &skyWrite, 0, nullptr);
 
-    UpdateProceduralSkyBufferIfDirty();
+    UpdateEditorBackgroundBufferIfDirty();
 
     // 2. Create Descriptor Set Layout for objects (includes both camera and object UBOs)
     VkDescriptorSetLayoutBinding cameraBinding{};
@@ -122,11 +122,12 @@ void SceneRenderer::CreatePipelines(VkRenderPass renderPass) {
         throw std::runtime_error("Failed to create scene object pipeline layout!");
     }
 
-    // Sky pipeline layout (only sky settings UBO)
+    // Sky pipeline layout: sky settings + shared camera UBO
+    std::array<VkDescriptorSetLayout, 2> skySetLayouts = { m_SkyDescLayout, m_CameraDescLayout };
     VkPipelineLayoutCreateInfo skyPipelineLayoutInfo{};
     skyPipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-    skyPipelineLayoutInfo.setLayoutCount = 1;
-    skyPipelineLayoutInfo.pSetLayouts = &m_SkyDescLayout;
+    skyPipelineLayoutInfo.setLayoutCount = static_cast<uint32_t>(skySetLayouts.size());
+    skyPipelineLayoutInfo.pSetLayouts = skySetLayouts.data();
     if (vkCreatePipelineLayout(device, &skyPipelineLayoutInfo, nullptr, &m_SkyPipelineLayout) != VK_SUCCESS) {
         throw std::runtime_error("Failed to create procedural sky pipeline layout!");
     }
@@ -162,8 +163,8 @@ void SceneRenderer::CreatePipelines(VkRenderPass renderPass) {
     // 1. Skybox / Background Gradient Pipeline
     // -------------------------------------------------------------------------
     {
-        std::vector<char> vertCode = ReadShaderFile("Skybox.vert.spv");
-        std::vector<char> fragCode = ReadShaderFile("Skybox.frag.spv");
+        std::vector<char> vertCode = LoadShaderBytecode("EditorBackground", ShaderStage::Vertex);
+        std::vector<char> fragCode = LoadShaderBytecode("EditorBackground", ShaderStage::Pixel);
         VkShaderModule vertModule = CreateShaderModule(device, vertCode);
         VkShaderModule fragModule = CreateShaderModule(device, fragCode);
 
@@ -171,13 +172,13 @@ void SceneRenderer::CreatePipelines(VkRenderPass renderPass) {
         vertStage.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
         vertStage.stage = VK_SHADER_STAGE_VERTEX_BIT;
         vertStage.module = vertModule;
-        vertStage.pName = "main";
+        vertStage.pName = ShaderStageEntryPoint(ShaderStage::Vertex);
 
         VkPipelineShaderStageCreateInfo fragStage{};
         fragStage.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
         fragStage.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
         fragStage.module = fragModule;
-        fragStage.pName = "main";
+        fragStage.pName = ShaderStageEntryPoint(ShaderStage::Pixel);
 
         std::array<VkPipelineShaderStageCreateInfo, 2> stages = { vertStage, fragStage };
 
@@ -227,8 +228,8 @@ void SceneRenderer::CreatePipelines(VkRenderPass renderPass) {
     // 2. Lit / Unlit / Wireframe Pipelines (Mesh rendering)
     // -------------------------------------------------------------------------
     {
-        std::vector<char> vertCode = ReadShaderFile("SceneObject.vert.spv");
-        std::vector<char> fragCode = ReadShaderFile("SceneObject.frag.spv");
+        std::vector<char> vertCode = LoadShaderBytecode("SceneObject", ShaderStage::Vertex);
+        std::vector<char> fragCode = LoadShaderBytecode("SceneObject", ShaderStage::Pixel);
         VkShaderModule vertModule = CreateShaderModule(device, vertCode);
         VkShaderModule fragModule = CreateShaderModule(device, fragCode);
 
@@ -236,13 +237,13 @@ void SceneRenderer::CreatePipelines(VkRenderPass renderPass) {
         vertStage.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
         vertStage.stage = VK_SHADER_STAGE_VERTEX_BIT;
         vertStage.module = vertModule;
-        vertStage.pName = "main";
+        vertStage.pName = ShaderStageEntryPoint(ShaderStage::Vertex);
 
         VkPipelineShaderStageCreateInfo fragStage{};
         fragStage.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
         fragStage.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
         fragStage.module = fragModule;
-        fragStage.pName = "main";
+        fragStage.pName = ShaderStageEntryPoint(ShaderStage::Pixel);
 
         std::array<VkPipelineShaderStageCreateInfo, 2> stages = { vertStage, fragStage };
 
@@ -431,43 +432,50 @@ void SceneRenderer::DestroyMeshes() {
     m_Meshes.clear();
 }
 
-void SceneRenderer::DrawSkybox(VkCommandBuffer cmd) const {
-    if (!m_EnableProceduralSky) {
+void SceneRenderer::DrawEditorBackground(VkCommandBuffer cmd, VkDescriptorSet cameraDescSet) const {
+    if (!m_EnableEditorBackground) {
         return;
     }
 
-    const_cast<SceneRenderer*>(this)->UpdateProceduralSkyBufferIfDirty();
+    const_cast<SceneRenderer*>(this)->UpdateEditorBackgroundBufferIfDirty();
 
     vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_SkyboxPipeline);
-    vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_SkyPipelineLayout, 0, 1, &m_SkyDescSet, 0, nullptr);
-    vkCmdDraw(cmd, 6, 1, 0, 0); // Draws fullscreen sky gradient
+    VkDescriptorSet descriptorSets[] = { m_SkyDescSet, cameraDescSet };
+    vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_SkyPipelineLayout, 0, 2, descriptorSets, 0, nullptr);
+    vkCmdDraw(cmd, 6, 1, 0, 0);
 }
 
-void SceneRenderer::SetProceduralSkySettings(const ProceduralSkySettings& settings) {
-    ProceduralSkySettings sanitized = settings;
-    sanitized.gradientStrength = std::max(0.0f, sanitized.gradientStrength);
-    sanitized.hazeIntensity = std::max(0.0f, sanitized.hazeIntensity);
-    sanitized.exposure = std::max(0.01f, sanitized.exposure);
-    if (glm::dot(sanitized.sunDirection, sanitized.sunDirection) < 1e-5f) {
-        sanitized.sunDirection = glm::vec3(0.0f, 1.0f, 0.0f);
-    } else {
-        sanitized.sunDirection = glm::normalize(sanitized.sunDirection);
-    }
+void SceneRenderer::SetEditorBackgroundSettings(const EditorBackgroundSettings& settings) {
+    auto neutralize = [](const glm::vec3& c) {
+        const float g = (c.r + c.g + c.b) / 3.0f;
+        return glm::vec3(g);
+    };
 
-    m_ProceduralSkySettings = sanitized;
-    m_ProceduralSkyDirty = true;
+    EditorBackgroundSettings sanitized = settings;
+    sanitized.zenithColor = neutralize(sanitized.zenithColor);
+    sanitized.upperSkyColor = neutralize(sanitized.upperSkyColor);
+    sanitized.midSkyColor = neutralize(sanitized.midSkyColor);
+    sanitized.horizonColor = neutralize(sanitized.horizonColor);
+    sanitized.bottomColor = neutralize(sanitized.bottomColor);
+    sanitized.backgroundBrightness = std::clamp(sanitized.backgroundBrightness, 0.85f, 1.0f);
+    sanitized.gradientStrength = std::clamp(sanitized.gradientStrength, 0.0f, 1.0f);
+    sanitized.horizonFade = 0.0f;
+    sanitized.backgroundContrast = 1.0f;
+
+    m_EditorBackgroundSettings = sanitized;
+    m_EditorBackgroundDirty = true;
 }
 
-void SceneRenderer::UpdateProceduralSkyBufferIfDirty() {
-    if (!m_ProceduralSkyDirty || m_SkyBufferMemory == VK_NULL_HANDLE) {
+void SceneRenderer::UpdateEditorBackgroundBufferIfDirty() {
+    if (!m_EditorBackgroundDirty || m_SkyBufferMemory == VK_NULL_HANDLE) {
         return;
     }
 
     void* data = nullptr;
-    vkMapMemory(m_Context->GetDevice(), m_SkyBufferMemory, 0, sizeof(ProceduralSkySettings), 0, &data);
-    std::memcpy(data, &m_ProceduralSkySettings, sizeof(ProceduralSkySettings));
+    vkMapMemory(m_Context->GetDevice(), m_SkyBufferMemory, 0, sizeof(EditorBackgroundSettings), 0, &data);
+    std::memcpy(data, &m_EditorBackgroundSettings, sizeof(EditorBackgroundSettings));
     vkUnmapMemory(m_Context->GetDevice(), m_SkyBufferMemory);
-    m_ProceduralSkyDirty = false;
+    m_EditorBackgroundDirty = false;
 }
 
 void SceneRenderer::DrawMesh(VkCommandBuffer cmd, const std::string& meshName, VkDescriptorSet descriptorSet, int mode) const {

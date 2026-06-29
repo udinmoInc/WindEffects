@@ -14,10 +14,12 @@ target_link_libraries(${PROGRAM_NAME} PRIVATE
 
 target_include_directories(${PROGRAM_NAME} PRIVATE "${CMAKE_SOURCE_DIR}/Engine/Source")
 
-# Deploy next to the editor
-add_custom_command(TARGET ${PROGRAM_NAME} POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different
-        "$<TARGET_FILE:${PROGRAM_NAME}>"
-        "$<TARGET_FILE_DIR:WindEffectsEditor>"
-    COMMENT "Deploying ${PROGRAM_NAME} next to WindEffectsEditor"
-)
+# Deploy next to the editor (Editor target is registered after CrashReporter during discovery)
+if(TARGET WindEffectsEditor)
+    add_custom_command(TARGET ${PROGRAM_NAME} POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "$<TARGET_FILE:${PROGRAM_NAME}>"
+            "$<TARGET_FILE_DIR:WindEffectsEditor>"
+        COMMENT "Deploying ${PROGRAM_NAME} next to WindEffectsEditor"
+    )
+endif()

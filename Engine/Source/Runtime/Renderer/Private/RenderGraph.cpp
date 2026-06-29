@@ -17,8 +17,9 @@ void RenderGraph::BeginOffscreenPass(VkCommandBuffer cmd) const {
     renderPassInfo.renderArea.extent = { offscreenFB.GetWidth(), offscreenFB.GetHeight() };
 
     std::array<VkClearValue, 2> clearValues{};
-    // Dark sky gray editor background clear color
-    clearValues[0].color = { { 0.12f, 0.12f, 0.14f, 1.0f } };
+    // Match empty-world bottom tone (#171717) so the clear blends into the procedural backdrop.
+    constexpr float kEmptyWorldGray = 23.0f / 255.0f;
+    clearValues[0].color = { { kEmptyWorldGray, kEmptyWorldGray, kEmptyWorldGray, 1.0f } };
     clearValues[1].depthStencil = { 1.0f, 0 };
 
     renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
@@ -55,7 +56,8 @@ void RenderGraph::BeginSwapchainPass(VkCommandBuffer cmd) const {
     renderPassInfo.renderArea.offset = { 0, 0 };
     renderPassInfo.renderArea.extent = { m_Renderer->GetSwapchainWidth(), m_Renderer->GetSwapchainHeight() };
 
-    VkClearValue clearColor = { { { 0.08f, 0.08f, 0.09f, 1.0f } } }; // Very dark base for ImGui dockspace background
+    constexpr float kEmptyWorldGray = 23.0f / 255.0f;
+    VkClearValue clearColor = { { { kEmptyWorldGray, kEmptyWorldGray, kEmptyWorldGray, 1.0f } } };
     renderPassInfo.clearValueCount = 1;
     renderPassInfo.pClearValues = &clearColor;
 

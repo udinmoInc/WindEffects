@@ -192,6 +192,11 @@ if(NOT EXISTS "${ICONS_DIR}")
 endif()
 
 # -----------------------------------------------------------------------------
+# HLSL-first shader pipeline (DXC -> SPIR-V; future Vulkan/Metal cross-compile)
+# -----------------------------------------------------------------------------
+include(cmake/ShaderPipeline.cmake)
+
+# -----------------------------------------------------------------------------
 # Automatic Module Discovery
 # -----------------------------------------------------------------------------
 # We search for CMakeLists.txt in the following subdirectories:

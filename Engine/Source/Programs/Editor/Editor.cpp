@@ -24,7 +24,9 @@
 #include "EditorModeController.hpp"
 #include "EditorLayoutController.hpp"
 #include "Runtime/Core/AssetRegistry.hpp"
+#include "EditorPreferences.hpp"
 #include "Core/Theme.hpp"
+#include "Renderer/Shader/ShaderLibrary.hpp"
 
 #include <SDL3/SDL.h>
 #include <algorithm>
@@ -33,7 +35,6 @@
 #include <unordered_map>
 #include <vector>
 #include <filesystem>
-#include <glm/geometric.hpp>
 
 #define NANOSVG_IMPLEMENTATION
 #include <nanosvg.h>
@@ -56,24 +57,36 @@ Editor::Editor(SDL_Window* window) : m_Window(window) {
     volkInitialize();
     volkLoadInstance(m_Context->GetInstance());
     volkLoadDevice(m_Context->GetDevice());
+
+    {
+        std::string shaderRoot = "Engine/Shaders";
+        std::string bytecodeRoot = "Assets/Shaders";
+        for (const char* candidate : {"Engine/Shaders", "../Engine/Shaders", "../../Engine/Shaders"})
+        {
+            if (std::filesystem::exists(candidate))
+            {
+                shaderRoot = candidate;
+                break;
+            }
+        }
+        for (const char* candidate : {"Assets/Shaders", "../Assets/Shaders"})
+        {
+            if (std::filesystem::exists(candidate))
+            {
+                bytecodeRoot = candidate;
+                break;
+            }
+        }
+        ShaderLibrary::Get().Initialize(shaderRoot, bytecodeRoot);
+    }
     
     HE_INFO("[Startup] Stage 2/6: Renderer, scene, and camera...");
     m_Renderer = std::make_shared<Renderer>(m_Context, m_Window);
     m_RenderGraph = std::make_shared<RenderGraph>(m_Renderer);
     m_SceneRenderer = std::make_shared<SceneRenderer>(m_Context, m_Renderer->GetOffscreenRenderPass(), m_Renderer->GetCameraDescLayout());
     m_GridRenderer = std::make_shared<GridRenderer>(m_Context, m_Renderer->GetOffscreenRenderPass(), m_Renderer->GetCameraDescLayout());
-    m_SceneRenderer->SetProceduralSkyEnabled(true);
-    {
-        we::runtime::renderer::SceneRenderer::ProceduralSkySettings skySettings{};
-        skySettings.topColor = glm::vec3(0.23f, 0.37f, 0.66f);
-        skySettings.horizonColor = glm::vec3(0.72f, 0.78f, 0.86f);
-        skySettings.groundColor = glm::vec3(0.19f, 0.20f, 0.22f);
-        skySettings.hazeIntensity = 0.42f;
-        skySettings.exposure = 1.05f;
-        skySettings.sunDirection = glm::normalize(glm::vec3(0.30f, 0.82f, 0.48f));
-        skySettings.gradientStrength = 1.08f;
-        m_SceneRenderer->SetProceduralSkySettings(skySettings);
-    }
+    m_SceneRenderer->SetEditorBackgroundEnabled(true);
+    EditorPreferences::Get().ApplyEditorViewportIfDirty(m_SceneRenderer, m_GridRenderer);
 
     m_Camera = std::make_shared<EditorCamera>();
     m_Scene = std::make_shared<Scene>(m_Context, m_SceneRenderer);
@@ -564,8 +577,9 @@ void Editor::MainLoop() {
             }
 
             m_RenderGraph->BeginOffscreenPass(cmd);
-            m_SceneRenderer->SetProceduralSkyEnabled(!m_Scene->HasSkyEnvironment());
-            m_SceneRenderer->DrawSkybox(cmd);
+            m_SceneRenderer->SetEditorBackgroundEnabled(!m_Scene->HasSkyEnvironment());
+            EditorPreferences::Get().ApplyEditorViewportIfDirty(m_SceneRenderer, m_GridRenderer);
+            m_SceneRenderer->DrawEditorBackground(cmd, m_Renderer->GetCameraDescSet());
             m_GridRenderer->Draw(cmd, m_Renderer->GetCameraDescSet());
             m_RenderGraph->EndOffscreenPass(cmd);
 

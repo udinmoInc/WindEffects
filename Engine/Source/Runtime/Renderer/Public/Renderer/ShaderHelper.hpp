@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Renderer/Shader/ShaderLibrary.hpp"
+#include "Renderer/Shader/ShaderTypes.hpp"
 #include <volk.h>
 #include <vector>
 #include <string>
@@ -9,6 +11,35 @@
 
 namespace we::runtime::renderer {
 
+inline std::vector<char> LoadShaderBytecode(const std::string& shaderName, ShaderStage stage, uint32_t permutationFlags = 0)
+{
+    const ShaderBytecode bytecode = ShaderLibrary::Get().GetBytecode(shaderName, stage, permutationFlags);
+    if (bytecode.data.empty())
+    {
+        throw std::runtime_error(
+            "Failed to load shader bytecode: " + shaderName
+            + ShaderLibrary::Get().ResolveBytecodeFilename(shaderName, stage, permutationFlags));
+    }
+
+    std::cout << "[Shader] Loaded " << shaderName
+              << ShaderLibrary::Get().ResolveBytecodeFilename(shaderName, stage, permutationFlags).substr(shaderName.size())
+              << " (" << bytecode.data.size() << " bytes)\n";
+
+    return std::vector<char>(bytecode.data.begin(), bytecode.data.end());
+}
+
+inline const char* ShaderStageEntryPoint(ShaderStage stage)
+{
+    switch (stage)
+    {
+    case ShaderStage::Vertex: return "VSMain";
+    case ShaderStage::Pixel: return "PSMain";
+    case ShaderStage::Compute: return "CSMain";
+    default: return "main";
+    }
+}
+
+// Legacy helper — prefer LoadShaderBytecode(shaderName, stage).
 inline std::vector<char> ReadShaderFile(const std::string& filename) {
     std::ifstream file;
     std::string resolvedPath;

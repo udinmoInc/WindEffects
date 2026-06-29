@@ -150,7 +150,9 @@ bool Scene::HasSkyEnvironment() const {
         if (nameLower.find("sky") != std::string::npos ||
             nameLower.find("atmosphere") != std::string::npos ||
             nameLower.find("skydome") != std::string::npos ||
-            nameLower.find("skybox") != std::string::npos) {
+            nameLower.find("skybox") != std::string::npos ||
+            nameLower.find("hdri") != std::string::npos ||
+            nameLower.find("environment") != std::string::npos) {
             return true;
         }
     }
