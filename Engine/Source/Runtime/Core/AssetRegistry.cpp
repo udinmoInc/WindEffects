@@ -93,38 +93,38 @@ bool AssetRegistry::LoadDefaultEditorAssets() {
 
     const std::vector<std::pair<std::string, std::vector<std::string>>> shaders = {
         {"Shader_UI_Vert", {
-            "Assets/Shaders/UI.vert.spv",
-            "Shaders/UI.vert.spv",
-            "../Assets/Shaders/UI.vert.spv"
+            "Assets/Shaders/UI_VS.spv",
+            "Shaders/UI_VS.spv",
+            "../Assets/Shaders/UI_VS.spv"
         }},
         {"Shader_UI_Frag", {
-            "Assets/Shaders/UI.frag.spv",
-            "Shaders/UI.frag.spv",
-            "../Assets/Shaders/UI.frag.spv"
+            "Assets/Shaders/UI_PS.spv",
+            "Shaders/UI_PS.spv",
+            "../Assets/Shaders/UI_PS.spv"
         }},
         {"Shader_Grid_Vert", {
-            "Assets/Shaders/Grid.vert.spv",
-            "Shaders/Grid.vert.spv"
+            "Assets/Shaders/Grid_VS.spv",
+            "Shaders/Grid_VS.spv"
         }},
         {"Shader_Grid_Frag", {
-            "Assets/Shaders/Grid.frag.spv",
-            "Shaders/Grid.frag.spv"
+            "Assets/Shaders/Grid_PS.spv",
+            "Shaders/Grid_PS.spv"
         }},
-        {"Shader_Skybox_Vert", {
-            "Assets/Shaders/Skybox.vert.spv",
-            "Shaders/Skybox.vert.spv"
+        {"Shader_EditorBackground_Vert", {
+            "Assets/Shaders/EditorBackground_VS.spv",
+            "Shaders/EditorBackground_VS.spv"
         }},
-        {"Shader_Skybox_Frag", {
-            "Assets/Shaders/Skybox.frag.spv",
-            "Shaders/Skybox.frag.spv"
+        {"Shader_EditorBackground_Frag", {
+            "Assets/Shaders/EditorBackground_PS.spv",
+            "Shaders/EditorBackground_PS.spv"
         }},
         {"Shader_SceneObject_Vert", {
-            "Assets/Shaders/SceneObject.vert.spv",
-            "Shaders/SceneObject.vert.spv"
+            "Assets/Shaders/SceneObject_VS.spv",
+            "Shaders/SceneObject_VS.spv"
         }},
         {"Shader_SceneObject_Frag", {
-            "Assets/Shaders/SceneObject.frag.spv",
-            "Shaders/SceneObject.frag.spv"
+            "Assets/Shaders/SceneObject_PS.spv",
+            "Shaders/SceneObject_PS.spv"
         }},
     };
 

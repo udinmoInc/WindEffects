@@ -199,8 +199,8 @@ void UIRenderer::CreateDummyTexture() {
 void UIRenderer::CreatePipeline(VkRenderPass renderPass) {
     VkDevice device = m_Context->GetDevice();
 
-    std::vector<char> vertCode = we::runtime::renderer::ReadShaderFile("UI.vert.spv");
-    std::vector<char> fragCode = we::runtime::renderer::ReadShaderFile("UI.frag.spv");
+    std::vector<char> vertCode = we::runtime::renderer::LoadShaderBytecode("UI", we::runtime::renderer::ShaderStage::Vertex);
+    std::vector<char> fragCode = we::runtime::renderer::LoadShaderBytecode("UI", we::runtime::renderer::ShaderStage::Pixel);
 
     VkShaderModule vertShaderModule = we::runtime::renderer::CreateShaderModule(device, vertCode);
     VkShaderModule fragShaderModule = we::runtime::renderer::CreateShaderModule(device, fragCode);
@@ -209,13 +209,13 @@ void UIRenderer::CreatePipeline(VkRenderPass renderPass) {
     vertShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
     vertShaderStageInfo.stage = VK_SHADER_STAGE_VERTEX_BIT;
     vertShaderStageInfo.module = vertShaderModule;
-    vertShaderStageInfo.pName = "main";
+    vertShaderStageInfo.pName = we::runtime::renderer::ShaderStageEntryPoint(we::runtime::renderer::ShaderStage::Vertex);
 
     VkPipelineShaderStageCreateInfo fragShaderStageInfo{};
     fragShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
     fragShaderStageInfo.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
     fragShaderStageInfo.module = fragShaderModule;
-    fragShaderStageInfo.pName = "main";
+    fragShaderStageInfo.pName = we::runtime::renderer::ShaderStageEntryPoint(we::runtime::renderer::ShaderStage::Pixel);
 
     std::array<VkPipelineShaderStageCreateInfo, 2> shaderStages = { vertShaderStageInfo, fragShaderStageInfo };
 

@@ -3,11 +3,59 @@
 #include <array>
 #include <iostream>
 #include <stdexcept>
+#include <algorithm>
+#include <cstring>
 
 namespace we::runtime::renderer {
 
 GridRenderer::GridRenderer(const std::shared_ptr<VulkanContext>& context, VkRenderPass renderPass, VkDescriptorSetLayout cameraDescLayout)
     : m_Context(context), m_CameraDescLayout(cameraDescLayout) {
+    VkDescriptorSetLayoutBinding gridBinding{};
+    gridBinding.binding = 0;
+    gridBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    gridBinding.descriptorCount = 1;
+    gridBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+
+    VkDescriptorSetLayoutCreateInfo gridLayoutInfo{};
+    gridLayoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+    gridLayoutInfo.bindingCount = 1;
+    gridLayoutInfo.pBindings = &gridBinding;
+    if (vkCreateDescriptorSetLayout(m_Context->GetDevice(), &gridLayoutInfo, nullptr, &m_GridDescLayout) != VK_SUCCESS) {
+        throw std::runtime_error("Failed to create grid settings descriptor set layout!");
+    }
+
+    m_Context->CreateBuffer(
+        sizeof(GridSettings),
+        VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+        m_GridSettingsBuffer,
+        m_GridSettingsMemory
+    );
+
+    VkDescriptorSetAllocateInfo allocInfo{};
+    allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+    allocInfo.descriptorPool = m_Context->GetDescriptorPool();
+    allocInfo.descriptorSetCount = 1;
+    allocInfo.pSetLayouts = &m_GridDescLayout;
+    if (vkAllocateDescriptorSets(m_Context->GetDevice(), &allocInfo, &m_GridDescSet) != VK_SUCCESS) {
+        throw std::runtime_error("Failed to allocate grid settings descriptor set!");
+    }
+
+    VkDescriptorBufferInfo bufferInfo{};
+    bufferInfo.buffer = m_GridSettingsBuffer;
+    bufferInfo.offset = 0;
+    bufferInfo.range = sizeof(GridSettings);
+
+    VkWriteDescriptorSet write{};
+    write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    write.dstSet = m_GridDescSet;
+    write.dstBinding = 0;
+    write.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    write.descriptorCount = 1;
+    write.pBufferInfo = &bufferInfo;
+    vkUpdateDescriptorSets(m_Context->GetDevice(), 1, &write, 0, nullptr);
+
+    UpdateGridSettingsBufferIfDirty();
     CreatePipeline(renderPass);
 }
 
@@ -19,14 +67,49 @@ GridRenderer::~GridRenderer() {
     if (m_PipelineLayout != VK_NULL_HANDLE) {
         vkDestroyPipelineLayout(device, m_PipelineLayout, nullptr);
     }
+    if (m_GridSettingsBuffer != VK_NULL_HANDLE) {
+        vkDestroyBuffer(device, m_GridSettingsBuffer, nullptr);
+    }
+    if (m_GridSettingsMemory != VK_NULL_HANDLE) {
+        vkFreeMemory(device, m_GridSettingsMemory, nullptr);
+    }
+    if (m_GridDescLayout != VK_NULL_HANDLE) {
+        vkDestroyDescriptorSetLayout(device, m_GridDescLayout, nullptr);
+    }
+}
+
+void GridRenderer::SetGridFadeDistance(float distance) {
+    m_GridSettings.fadeDistance = std::max(10.0f, distance);
+    m_GridSettingsDirty = true;
+}
+
+void GridRenderer::SetGridLodIntensity(float intensity) {
+    m_GridSettings.lodIntensity = std::clamp(intensity, 0.0f, 2.0f);
+    m_GridSettingsDirty = true;
+}
+
+void GridRenderer::SetGridOriginWeight(float weight) {
+    m_GridSettings.originWeight = std::clamp(weight, 0.0f, 2.0f);
+    m_GridSettingsDirty = true;
+}
+
+void GridRenderer::UpdateGridSettingsBufferIfDirty() {
+    if (!m_GridSettingsDirty || m_GridSettingsMemory == VK_NULL_HANDLE) {
+        return;
+    }
+
+    void* data = nullptr;
+    vkMapMemory(m_Context->GetDevice(), m_GridSettingsMemory, 0, sizeof(GridSettings), 0, &data);
+    std::memcpy(data, &m_GridSettings, sizeof(GridSettings));
+    vkUnmapMemory(m_Context->GetDevice(), m_GridSettingsMemory);
+    m_GridSettingsDirty = false;
 }
 
 void GridRenderer::CreatePipeline(VkRenderPass renderPass) {
     VkDevice device = m_Context->GetDevice();
 
-    // 1. Load Shaders
-    std::vector<char> vertCode = ReadShaderFile("Grid.vert.spv");
-    std::vector<char> fragCode = ReadShaderFile("Grid.frag.spv");
+    std::vector<char> vertCode = LoadShaderBytecode("Grid", ShaderStage::Vertex);
+    std::vector<char> fragCode = LoadShaderBytecode("Grid", ShaderStage::Pixel);
 
     VkShaderModule vertShaderModule = CreateShaderModule(device, vertCode);
     VkShaderModule fragShaderModule = CreateShaderModule(device, fragCode);
@@ -35,52 +118,46 @@ void GridRenderer::CreatePipeline(VkRenderPass renderPass) {
     vertShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
     vertShaderStageInfo.stage = VK_SHADER_STAGE_VERTEX_BIT;
     vertShaderStageInfo.module = vertShaderModule;
-    vertShaderStageInfo.pName = "main";
+    vertShaderStageInfo.pName = ShaderStageEntryPoint(ShaderStage::Vertex);
 
     VkPipelineShaderStageCreateInfo fragShaderStageInfo{};
     fragShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
     fragShaderStageInfo.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
     fragShaderStageInfo.module = fragShaderModule;
-    fragShaderStageInfo.pName = "main";
+    fragShaderStageInfo.pName = ShaderStageEntryPoint(ShaderStage::Pixel);
 
     std::array<VkPipelineShaderStageCreateInfo, 2> shaderStages = { vertShaderStageInfo, fragShaderStageInfo };
 
-    // 2. Vertex Input (No attributes needed as grid is procedural in vert shader)
     VkPipelineVertexInputStateCreateInfo vertexInputInfo{};
     vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
     vertexInputInfo.vertexBindingDescriptionCount = 0;
     vertexInputInfo.vertexAttributeDescriptionCount = 0;
 
-    // 3. Input Assembly
     VkPipelineInputAssemblyStateCreateInfo inputAssembly{};
     inputAssembly.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
     inputAssembly.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
     inputAssembly.primitiveRestartEnable = VK_FALSE;
 
-    // 4. Viewport State (Dynamic Viewport/Scissor)
     VkPipelineViewportStateCreateInfo viewportState{};
     viewportState.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
     viewportState.viewportCount = 1;
     viewportState.scissorCount = 1;
 
-    // 5. Rasterization State
     VkPipelineRasterizationStateCreateInfo rasterizer{};
     rasterizer.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
     rasterizer.depthClampEnable = VK_FALSE;
     rasterizer.rasterizerDiscardEnable = VK_FALSE;
     rasterizer.polygonMode = VK_POLYGON_MODE_FILL;
     rasterizer.lineWidth = 1.0f;
-    rasterizer.cullMode = VK_CULL_MODE_NONE; // Visible from both sides
+    rasterizer.cullMode = VK_CULL_MODE_NONE;
     rasterizer.frontFace = VK_FRONT_FACE_CLOCKWISE;
     rasterizer.depthBiasEnable = VK_FALSE;
 
-    // 6. Multisample State
     VkPipelineMultisampleStateCreateInfo multisampling{};
     multisampling.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
     multisampling.sampleShadingEnable = VK_FALSE;
     multisampling.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
 
-    // 7. Depth Stencil State
     VkPipelineDepthStencilStateCreateInfo depthStencil{};
     depthStencil.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
     depthStencil.depthTestEnable = VK_TRUE;
@@ -89,7 +166,6 @@ void GridRenderer::CreatePipeline(VkRenderPass renderPass) {
     depthStencil.depthBoundsTestEnable = VK_FALSE;
     depthStencil.stencilTestEnable = VK_FALSE;
 
-    // 8. Color Blending (Alpha blending is required for grid fading)
     VkPipelineColorBlendAttachmentState colorBlendAttachment{};
     colorBlendAttachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
     colorBlendAttachment.blendEnable = VK_TRUE;
@@ -106,7 +182,6 @@ void GridRenderer::CreatePipeline(VkRenderPass renderPass) {
     colorBlending.attachmentCount = 1;
     colorBlending.pAttachments = &colorBlendAttachment;
 
-    // 9. Dynamic States
     std::array<VkDynamicState, 2> dynamicStates = {
         VK_DYNAMIC_STATE_VIEWPORT,
         VK_DYNAMIC_STATE_SCISSOR
@@ -116,18 +191,17 @@ void GridRenderer::CreatePipeline(VkRenderPass renderPass) {
     dynamicState.dynamicStateCount = static_cast<uint32_t>(dynamicStates.size());
     dynamicState.pDynamicStates = dynamicStates.data();
 
-    // 10. Pipeline Layout
+    std::array<VkDescriptorSetLayout, 2> setLayouts = { m_CameraDescLayout, m_GridDescLayout };
     VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
     pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-    pipelineLayoutInfo.setLayoutCount = 1;
-    pipelineLayoutInfo.pSetLayouts = &m_CameraDescLayout;
+    pipelineLayoutInfo.setLayoutCount = static_cast<uint32_t>(setLayouts.size());
+    pipelineLayoutInfo.pSetLayouts = setLayouts.data();
     pipelineLayoutInfo.pushConstantRangeCount = 0;
 
     if (vkCreatePipelineLayout(device, &pipelineLayoutInfo, nullptr, &m_PipelineLayout) != VK_SUCCESS) {
         throw std::runtime_error("Failed to create grid pipeline layout!");
     }
 
-    // 11. Create Graphics Pipeline
     VkGraphicsPipelineCreateInfo pipelineInfo{};
     pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
     pipelineInfo.stageCount = static_cast<uint32_t>(shaderStages.size());
@@ -149,15 +223,17 @@ void GridRenderer::CreatePipeline(VkRenderPass renderPass) {
         throw std::runtime_error("Failed to create grid graphics pipeline!");
     }
 
-    // Clean up temporary shader modules
     vkDestroyShaderModule(device, vertShaderModule, nullptr);
     vkDestroyShaderModule(device, fragShaderModule, nullptr);
 }
 
 void GridRenderer::Draw(VkCommandBuffer cmd, VkDescriptorSet cameraDescSet) const {
+    const_cast<GridRenderer*>(this)->UpdateGridSettingsBufferIfDirty();
+
     vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_Pipeline);
-    vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_PipelineLayout, 0, 1, &cameraDescSet, 0, nullptr);
-    vkCmdDraw(cmd, 6, 1, 0, 0); // Procedural fullscreen quad
+    VkDescriptorSet sets[] = { cameraDescSet, m_GridDescSet };
+    vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_PipelineLayout, 0, 2, sets, 0, nullptr);
+    vkCmdDraw(cmd, 6, 1, 0, 0);
 }
 
 } // namespace we::runtime::renderer

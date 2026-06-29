@@ -42,61 +42,11 @@ set_property(TARGET ${PROGRAM_NAME} APPEND_STRING PROPERTY LINK_FLAGS
 target_include_directories(${PROGRAM_NAME} PRIVATE "${CMAKE_SOURCE_DIR}/Engine/Source")
 
 # -----------------------------------------------------------------------------
-# Shader compilation (GLSL -> SPIR-V)
+# Shader compilation (HLSL -> SPIR-V via root cmake/ShaderPipeline.cmake)
 # -----------------------------------------------------------------------------
-set(SHADER_SOURCE_DIR "${CMAKE_SOURCE_DIR}/Engine/Source/Runtime/Shaders")
-set(SHADER_OUTPUT_DIR "${CMAKE_BINARY_DIR}/Generated/Shaders")
-file(MAKE_DIRECTORY "${SHADER_OUTPUT_DIR}")
+add_dependencies(${PROGRAM_NAME} WindEffects_CompileShaders)
 
-find_program(GLSLC_EXECUTABLE NAMES glslc HINTS "$ENV{VULKAN_SDK}/Bin" "$ENV{VULKAN_SDK}/bin")
-
-if(NOT GLSLC_EXECUTABLE)
-    file(GLOB VULKAN_SDK_DIRS "C:/VulkanSDK/*")
-    foreach(SDK_DIR IN LISTS VULKAN_SDK_DIRS)
-        if(EXISTS "${SDK_DIR}/Bin/glslc.exe")
-            set(GLSLC_EXECUTABLE "${SDK_DIR}/Bin/glslc.exe")
-            break()
-        endif()
-    endforeach()
-endif()
-
-set(SHADER_GLSL_SOURCES
-    "${SHADER_SOURCE_DIR}/UI.vert"
-    "${SHADER_SOURCE_DIR}/UI.frag"
-    "${SHADER_SOURCE_DIR}/Grid.vert"
-    "${SHADER_SOURCE_DIR}/Grid.frag"
-    "${SHADER_SOURCE_DIR}/Skybox.vert"
-    "${SHADER_SOURCE_DIR}/Skybox.frag"
-    "${SHADER_SOURCE_DIR}/SceneObject.vert"
-    "${SHADER_SOURCE_DIR}/SceneObject.frag"
-)
-
-set(SHADER_SPV_OUTPUTS "")
-foreach(SHADER_SOURCE ${SHADER_GLSL_SOURCES})
-    if(EXISTS "${SHADER_SOURCE}")
-        get_filename_component(SHADER_FILENAME "${SHADER_SOURCE}" NAME)
-        set(SPV_OUTPUT "${SHADER_OUTPUT_DIR}/${SHADER_FILENAME}.spv")
-        if(GLSLC_EXECUTABLE)
-            add_custom_command(
-                OUTPUT "${SPV_OUTPUT}"
-                COMMAND "${GLSLC_EXECUTABLE}" "${SHADER_SOURCE}" -o "${SPV_OUTPUT}"
-                DEPENDS "${SHADER_SOURCE}"
-                COMMENT "Compiling shader ${SHADER_FILENAME}"
-                VERBATIM
-            )
-            list(APPEND SHADER_SPV_OUTPUTS "${SPV_OUTPUT}")
-        endif()
-    endif()
-endforeach()
-
-if(NOT GLSLC_EXECUTABLE)
-    message(WARNING "glslc not found. Install Vulkan SDK (set VULKAN_SDK) to compile shaders. Existing SPIR-V in ${SHADER_OUTPUT_DIR} will be used if present.")
-endif()
-
-if(GLSLC_EXECUTABLE AND SHADER_SPV_OUTPUTS)
-    add_custom_target(WindEffects_CompileShaders DEPENDS ${SHADER_SPV_OUTPUTS})
-    add_dependencies(${PROGRAM_NAME} WindEffects_CompileShaders)
-endif()
+set(SHADER_OUTPUT_DIR "${WE_SHADER_OUTPUT_DIR}")
 
 # Create clean runtime layout and copy assets
 add_custom_command(TARGET ${PROGRAM_NAME} POST_BUILD
