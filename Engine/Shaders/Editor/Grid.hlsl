@@ -9,17 +9,16 @@ cbuffer CameraBuffer : register(b0, space0)
     float    cameraPadding;
 };
 
-// Grid LOD is chosen once per frame on the CPU — every pixel uses the same spacing.
+// Spacing is chosen once per frame on the CPU to keep ~20–40 cells across the viewport.
 cbuffer GridSettings : register(b0, space1)
 {
-    float cellSizeA;
-    float cellSizeB;
-    float lodBlend;
+    float cellSize;
+    float majorCellSize;
     float hdrScale;
     float fadeDistance;
     float lodIntensity;
-    float originSnap;
     float thicknessScale;
+    float2 padding;
 };
 
 struct VSOutput
@@ -46,24 +45,14 @@ VSOutput VSMain(uint vertexId : SV_VertexID)
 
 float WE_HorizonFade(float groundDist, float refDist)
 {
-    float fadeStart = refDist * 0.55;
-    float fadeEnd   = refDist * 2.6;
-    float logD = log(max(groundDist, 0.5));
-    float logA = log(max(fadeStart, 1.0));
-    float logB = log(max(fadeEnd, fadeStart + 1.0));
-    return 1.0 - smoothstep(logA, logB, logD);
+    float fadeStart = refDist * 0.80;
+    float fadeEnd   = refDist * 1.02;
+    return 1.0 - smoothstep(fadeStart, fadeEnd, groundDist);
 }
 
-float2 WE_CameraRelativeXZ(float2 worldXZ, float snapCell)
+float WE_LineAA(float2 worldXZ, float spacing, float thicknessScale)
 {
-    float snap = max(snapCell, 1e-4);
-    float2 origin = floor(cameraPos.xz / snap) * snap;
-    return worldXZ - origin;
-}
-
-float WE_LineAA(float2 relXZ, float cellSize, float thicknessScale)
-{
-    float2 coord = relXZ / max(cellSize, 1e-4);
+    float2 coord = worldXZ / max(spacing, 1e-4);
     float2 fw    = max(fwidth(coord) * thicknessScale, float2(1e-4, 1e-4));
     float2 dist  = abs(frac(coord - 0.5) - 0.5);
     float lineX  = 1.0 - saturate(dist.x / fw.x);
@@ -77,14 +66,16 @@ float WE_AxisLineAA(float distToAxis, float thicknessScale)
     return 1.0 - saturate(abs(distToAxis) / fw);
 }
 
-float WE_RenderGridTier(float2 relXZ, float cellSize, float thicknessScale)
+float WE_RenderActiveGrid(float2 worldXZ, float spacing, float majorSpacing, float thicknessScale)
 {
-    float primary = WE_LineAA(relXZ, cellSize, thicknessScale) * 0.26;
+    float primary = WE_LineAA(worldXZ, spacing, thicknessScale) * 0.24;
 
-    float majorSize = cellSize * 10.0;
-    float major = WE_LineAA(relXZ, majorSize, thicknessScale * 1.12) * 0.48;
-
-    return max(primary, major);
+    if (majorSpacing > spacing + 1e-3)
+    {
+        float major = WE_LineAA(worldXZ, majorSpacing, thicknessScale) * 0.36;
+        return max(primary, major);
+    }
+    return primary;
 }
 
 struct PSOutput
@@ -109,27 +100,26 @@ PSOutput PSMain(VSOutput input)
     o.depth = clipSpacePos.z / clipSpacePos.w;
 
     float groundDist = length(fragPos3D.xz - cameraPos.xz);
-    float lodRef     = max(fadeDistance, 200.0);
+    float maxDist    = max(fadeDistance, 1.0);
 
-    float2 worldXZ = fragPos3D.xz;
-    float2 relXZ   = WE_CameraRelativeXZ(worldXZ, originSnap);
+    if (groundDist > maxDist)
+        discard;
 
-    float gridA = WE_RenderGridTier(relXZ, cellSizeA, thicknessScale);
-    float gridB = WE_RenderGridTier(relXZ, cellSizeB, thicknessScale);
-    float gridLine = lerp(gridA, gridB, lodBlend);
+    // Snap to camera-relative coords for stable lines and better precision at large world positions.
+    float snap = max(cellSize, 1e-4);
+    float2 gridOrigin = floor(cameraPos.xz / snap) * snap;
+    float2 worldXZ = fragPos3D.xz - gridOrigin;
+    float gridLine = WE_RenderActiveGrid(worldXZ, cellSize, majorCellSize, thicknessScale);
 
-    float3 lineColor  = float3(0.092, 0.094, 0.097);
-    float3 majorColor = float3(0.125, 0.129, 0.135);
-    float3 gridColor  = lerp(lineColor, majorColor, saturate(gridLine * 2.8));
+    float3 gridColor = float3(0.108, 0.110, 0.114);
 
-    float intensity = max(lodIntensity, 0.0);
-    float hdr       = max(hdrScale, 0.01);
-
-    float horizonFade = WE_HorizonFade(groundDist, lodRef);
+    float intensity   = max(lodIntensity, 0.0);
+    float hdr         = max(hdrScale, 0.01);
+    float horizonFade = WE_HorizonFade(groundDist, maxDist);
     float fade        = horizonFade * intensity;
 
-    float axisXLine = WE_AxisLineAA(fragPos3D.z, thicknessScale * 1.1);
-    float axisZLine = WE_AxisLineAA(fragPos3D.x, thicknessScale * 1.1);
+    float axisXLine = WE_AxisLineAA(fragPos3D.z, thicknessScale);
+    float axisZLine = WE_AxisLineAA(fragPos3D.x, thicknessScale);
 
     float3 axisXColor = float3(0.58, 0.20, 0.17) * hdr;
     float3 axisZColor = float3(0.17, 0.34, 0.72) * hdr;
@@ -144,7 +134,7 @@ PSOutput PSMain(VSOutput input)
     float axZ = axisZLine * fade;
     if (axZ > finalAlpha) { finalColor = axisZColor; finalAlpha = axZ; }
 
-    float yMark = WE_AxisLineAA(length(fragPos3D.xz), thicknessScale * 2.5);
+    float yMark = WE_AxisLineAA(length(fragPos3D.xz), thicknessScale);
     yMark *= exp(-dot(fragPos3D.xz, fragPos3D.xz) / 0.25);
     float axY = yMark * fade * 0.70;
     if (axY > finalAlpha) { finalColor = axisYColor; finalAlpha = axY; }

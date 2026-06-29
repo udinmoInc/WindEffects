@@ -11,54 +11,81 @@ namespace we::runtime::renderer {
 
 namespace {
 
-constexpr float kLodSizes[] = { 0.01f, 0.1f, 1.0f, 10.0f, 100.0f, 1000.0f };
-constexpr int kLodCount = static_cast<int>(sizeof(kLodSizes) / sizeof(kLodSizes[0]));
+// UE5-style discrete spacing ladder (meters).
+constexpr float kSpacingLadder[] = { 1.0f, 2.0f, 5.0f, 10.0f, 20.0f, 50.0f, 100.0f, 200.0f, 500.0f, 1000.0f };
+constexpr int kSpacingCount = static_cast<int>(sizeof(kSpacingLadder) / sizeof(kSpacingLadder[0]));
 
-// Target minor-line width in pixels at the look-at distance (tuned for UE5-like 1 m at ~15 m orbit).
-constexpr float kTargetPixelsPerCell = 56.0f;
+constexpr float kMinCellsAcross = 20.0f;
+constexpr float kMaxCellsAcross = 40.0f;
+constexpr float kTargetCellsAcross = 30.0f;
 
-struct GridLodSelection {
-    float cellA = 1.0f;
-    float cellB = 1.0f;
-    float blend = 0.0f;
-    float originSnap = 1.0f;
-};
+float ComputeVisibleSpanMeters(float cameraDistance, float fovDegrees, float viewportWidth, float viewportHeight) {
+    const float dist = std::max(cameraDistance, 0.5f);
+    const float tanHalfFovY = std::tan(fovDegrees * 0.5f * 3.14159265f / 180.0f);
+    const float aspect = viewportWidth / std::max(viewportHeight, 1.0f);
+    const float tanHalfFovX = tanHalfFovY * aspect;
 
-float Smoothstep(float edge0, float edge1, float x) {
-    float t = std::clamp((x - edge0) / std::max(edge1 - edge0, 1e-6f), 0.0f, 1.0f);
-    return t * t * (3.0f - 2.0f * t);
+    const float visibleHeight = 2.0f * dist * tanHalfFovY;
+    const float visibleWidth = 2.0f * dist * tanHalfFovX;
+    return std::max(visibleHeight, visibleWidth);
 }
 
-GridLodSelection SelectGridLod(float cameraDistance, float fovDegrees, float viewportHeight) {
-    GridLodSelection result{};
+int FindInitialSpacingIndex(float visibleSpanMeters) {
+    const float idealSpacing = visibleSpanMeters / kTargetCellsAcross;
 
-    const float dist = std::max(cameraDistance, 0.5f);
-    const float tanHalfFov = std::tan(fovDegrees * 0.5f * 3.14159265f / 180.0f);
-    const float visibleMeters = 2.0f * dist * tanHalfFov;
-    const float metersPerPixel = visibleMeters / std::max(viewportHeight, 1.0f);
-    float idealCell = metersPerPixel * kTargetPixelsPerCell;
-    idealCell = std::clamp(idealCell, kLodSizes[0], kLodSizes[kLodCount - 1]);
-
-    int idxA = 0;
-    for (int i = 0; i < kLodCount - 1; ++i) {
-        const float boundary = std::sqrt(kLodSizes[i] * kLodSizes[i + 1]);
-        if (idealCell >= boundary) {
-            idxA = i + 1;
+    int best = kSpacingCount - 1;
+    float bestDelta = 1e30f;
+    for (int i = 0; i < kSpacingCount; ++i) {
+        const float delta = std::abs(kSpacingLadder[i] - idealSpacing);
+        if (delta < bestDelta) {
+            bestDelta = delta;
+            best = i;
         }
     }
+    return best;
+}
 
-    const int idxB = std::min(idxA + 1, kLodCount - 1);
-    result.cellA = kLodSizes[idxA];
-    result.cellB = kLodSizes[idxB];
+int ClampSpacingIndexToCellBudget(float visibleSpanMeters, int spacingIndex) {
+    spacingIndex = std::clamp(spacingIndex, 0, kSpacingCount - 1);
 
-    if (idxA < idxB) {
-        const float boundary = std::sqrt(result.cellA * result.cellB);
-        const float blendWidth = boundary * 0.04f;
-        result.blend = Smoothstep(boundary - blendWidth * 0.5f, boundary + blendWidth * 0.5f, idealCell);
+    while (spacingIndex < kSpacingCount - 1) {
+        const float cells = visibleSpanMeters / kSpacingLadder[spacingIndex];
+        if (cells <= kMaxCellsAcross) {
+            break;
+        }
+        ++spacingIndex;
     }
 
-    result.originSnap = (result.blend > 0.5f) ? result.cellB : result.cellA;
-    return result;
+    while (spacingIndex > 0) {
+        const float cells = visibleSpanMeters / kSpacingLadder[spacingIndex];
+        if (cells >= kMinCellsAcross) {
+            break;
+        }
+        --spacingIndex;
+    }
+
+    return spacingIndex;
+}
+
+int SelectSpacingIndex(float visibleSpanMeters, int currentIndex) {
+    const int idealIndex = FindInitialSpacingIndex(visibleSpanMeters);
+    if (currentIndex < 0 || currentIndex >= kSpacingCount) {
+        currentIndex = idealIndex;
+    } else if (currentIndex != idealIndex) {
+        // Step at most one ladder rung per frame to reduce popping when zooming.
+        currentIndex += (idealIndex > currentIndex) ? 1 : -1;
+    }
+    return ClampSpacingIndexToCellBudget(visibleSpanMeters, currentIndex);
+}
+
+float PickMajorSpacing(float minorSpacing) {
+    const float desiredMajor = minorSpacing * 10.0f;
+    for (int i = 0; i < kSpacingCount; ++i) {
+        if (kSpacingLadder[i] >= desiredMajor - 1e-3f) {
+            return kSpacingLadder[i];
+        }
+    }
+    return 0.0f;
 }
 
 } // namespace
@@ -134,7 +161,7 @@ GridRenderer::~GridRenderer() {
 }
 
 void GridRenderer::SetGridFadeDistance(float distance) {
-    m_GridSettings.fadeDistance = std::max(10.0f, distance);
+    m_UserFadeDistance = std::max(10.0f, distance);
     m_GridSettingsDirty = true;
 }
 
@@ -143,16 +170,20 @@ void GridRenderer::SetGridLodIntensity(float intensity) {
     m_GridSettingsDirty = true;
 }
 
-void GridRenderer::UpdateFromCamera(float lodDistance, float fovDegrees, float viewportHeight, float projYScale) {
-    const GridLodSelection lod = SelectGridLod(lodDistance, fovDegrees, viewportHeight);
+void GridRenderer::UpdateFromCamera(float cameraDistance, float fovDegrees, float viewportWidth, float viewportHeight) {
+    const float visibleSpan = ComputeVisibleSpanMeters(cameraDistance, fovDegrees, viewportWidth, viewportHeight);
+    m_ActiveSpacingIndex = SelectSpacingIndex(visibleSpan, m_ActiveSpacingIndex);
 
-    m_GridSettings.cellSizeA = lod.cellA;
-    m_GridSettings.cellSizeB = lod.cellB;
-    m_GridSettings.lodBlend = lod.blend;
-    m_GridSettings.originSnap = lod.originSnap;
+    const float cellSize = kSpacingLadder[m_ActiveSpacingIndex];
+    m_GridSettings.cellSize = cellSize;
+    m_GridSettings.majorCellSize = PickMajorSpacing(cellSize);
 
-    const float zoomFactor = 2.0f / std::max(std::abs(projYScale), 1e-4f);
-    m_GridSettings.thicknessScale = std::clamp(zoomFactor * 0.45f, 0.40f, 1.6f);
+    // Cap fade to slightly beyond the viewport so we never shade millions of cells at fine spacing.
+    const float viewportFadeCap = visibleSpan * 1.15f;
+    const float cellBudgetFadeCap = cellSize * kMaxCellsAcross * 1.25f;
+    m_GridSettings.fadeDistance = std::min({ m_UserFadeDistance, viewportFadeCap, cellBudgetFadeCap });
+
+    m_GridSettings.thicknessScale = 0.42f;
     m_GridSettingsDirty = true;
 }
 

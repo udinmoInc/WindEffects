@@ -19,22 +19,21 @@ public:
     void SetGridFadeDistance(float distance);
     void SetGridLodIntensity(float intensity);
 
-    // Selects grid LOD once per frame from camera distance / zoom, then uploads uniforms.
-    void UpdateFromCamera(float lodDistance, float fovDegrees, float viewportHeight, float projYScale);
+    // Picks one grid spacing per frame to keep ~20–40 cells visible across the viewport.
+    void UpdateFromCamera(float cameraDistance, float fovDegrees, float viewportWidth, float viewportHeight);
 
 private:
     void CreatePipeline(VkRenderPass renderPass);
     void UpdateGridSettingsBufferIfDirty();
 
     struct GridSettings {
-        float cellSizeA = 1.0f;
-        float cellSizeB = 1.0f;
-        float lodBlend = 0.0f;
+        float cellSize = 1.0f;
+        float majorCellSize = 10.0f;
         float hdrScale = 1.0f;
         float fadeDistance = 8000.0f;
         float lodIntensity = 1.0f;
-        float originSnap = 1.0f;
-        float thicknessScale = 1.0f;
+        float thicknessScale = 0.42f;
+        float padding[2] = {};
     };
 
     std::shared_ptr<VulkanContext> m_Context;
@@ -47,6 +46,8 @@ private:
     VkPipeline m_Pipeline = VK_NULL_HANDLE;
     GridSettings m_GridSettings{};
     bool m_GridSettingsDirty = true;
+    float m_UserFadeDistance = 8000.0f;
+    int m_ActiveSpacingIndex = -1;
 };
 
 } // namespace we::runtime::renderer

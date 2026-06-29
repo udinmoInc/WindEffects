@@ -583,12 +583,11 @@ void Editor::MainLoop() {
             m_Scene->Draw(cmd);
             if (m_Scene->ShouldDrawEditorGrid()) {
                 const auto& offscreenFB = m_Renderer->GetOffscreenFramebuffer();
-                const glm::mat4& proj = cameraUBO.proj;
                 m_GridRenderer->UpdateFromCamera(
                     m_Camera->GetGridLodDistance(),
                     m_Camera->GetFov(),
-                    static_cast<float>(offscreenFB.GetHeight()),
-                    proj[1][1]
+                    static_cast<float>(offscreenFB.GetWidth()),
+                    static_cast<float>(offscreenFB.GetHeight())
                 );
                 m_GridRenderer->Draw(cmd, m_Renderer->GetCameraDescSet());
             }
