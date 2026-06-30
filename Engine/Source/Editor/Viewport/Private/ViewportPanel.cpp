@@ -1,4 +1,5 @@
 #include "EditorRegistry.hpp"
+#include "ViewportToolbarState.hpp"
 #include "Widgets/Panel.hpp"
 #include "Core/Icon.hpp"
 #include "Widgets/Label.hpp"
@@ -67,6 +68,23 @@ std::shared_ptr<we::UI::Panel> CreateViewportPanel() {
     auto btnGizmos = toolbar->AddTool(Icons::GridName, "Gizmos", [](){}, "Toggle Gizmos");
     btnGizmos->SetButtonStyle(ToolButtonStyle::ToolbarInline);
     btnGizmos->SetIsDropdown(true);
+
+    toolbar->AddSeparator(ToolbarAlignment::Right);
+
+    // UE5-style camera speed (default 4, max 50).
+    auto btnCameraSpeed = toolbar->AddTool(
+        Icons::CameraName,
+        "4",
+        []() { ShowViewportCameraSpeedPopup(); },
+        "Camera Speed",
+        false,
+        ToolbarAlignment::Right);
+    btnCameraSpeed->SetButtonStyle(ToolButtonStyle::ToolbarInline);
+    btnCameraSpeed->SetIsDropdown(true);
+    btnCameraSpeed->SetOnMouseWheel([](float wheelDeltaY) {
+        AdjustViewportCameraSpeedFromWheel(wheelDeltaY);
+    });
+    SetViewportCameraSpeedIndicator(btnCameraSpeed);
 
     panel->SetToolbar(toolbar);
 

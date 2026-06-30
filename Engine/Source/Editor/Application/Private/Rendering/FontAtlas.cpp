@@ -174,7 +174,12 @@ bool FontAtlas::Init(const std::shared_ptr<we::runtime::renderer::VulkanContext>
     samplerInfo.unnormalizedCoordinates = VK_FALSE;
     samplerInfo.compareEnable = VK_FALSE;
     samplerInfo.compareOp = VK_COMPARE_OP_ALWAYS;
-    samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
+    // Font atlas is created with a single mip level.
+    // Keep LOD clamped so sampling never reaches undefined mip levels.
+    samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_NEAREST;
+    samplerInfo.minLod = 0.0f;
+    samplerInfo.maxLod = 0.0f;
+    samplerInfo.mipLodBias = 0.0f;
 
     if (vkCreateSampler(device, &samplerInfo, nullptr, &m_Sampler) != VK_SUCCESS) {
         HE_ERROR("FontAtlas: Failed to create Vulkan Sampler!");

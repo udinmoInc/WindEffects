@@ -32,21 +32,13 @@ EditorPreferences::EditorPreferences() {
     defaults.backgroundContrast = 1.0f;
 
     m_EditorBackground = defaults;
-    m_GridFadeDistance = 8000.0f;
-    m_GridLodIntensity = 1.0f;
 }
 
 void EditorPreferences::ApplyEditorViewportIfDirty(
-    const std::shared_ptr<we::runtime::renderer::SceneRenderer>& sceneRenderer,
-    const std::shared_ptr<we::runtime::renderer::GridRenderer>& gridRenderer) {
+    const std::shared_ptr<we::runtime::renderer::SceneRenderer>& sceneRenderer) {
     if (sceneRenderer && m_BackgroundDirty) {
         sceneRenderer->SetEditorBackgroundSettings(m_EditorBackground);
         m_BackgroundDirty = false;
-    }
-    if (gridRenderer && m_GridDirty) {
-        gridRenderer->SetGridFadeDistance(m_GridFadeDistance);
-        gridRenderer->SetGridLodIntensity(m_GridLodIntensity);
-        m_GridDirty = false;
     }
 }
 

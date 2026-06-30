@@ -13,8 +13,7 @@ ViewportOverlay::ViewportOverlay()
     m_NavButtons = {
         { Icons::PlusName, "zoom-in", Rect{} },
         { Icons::MinusName, "zoom-out", Rect{} },
-        { Icons::CameraName, "reset-camera", Rect{} },
-        { Icons::GridName, "toggle-grid", Rect{} }
+        { Icons::CameraName, "reset-camera", Rect{} }
     };
 }
 

@@ -20,7 +20,8 @@ void RenderGraph::BeginOffscreenPass(VkCommandBuffer cmd) const {
     // Match empty-world mid-tone (#0D0D0D) so the clear blends into the procedural backdrop.
     constexpr float kEmptyWorldGray = 11.0f / 255.0f;
     clearValues[0].color = { { kEmptyWorldGray, kEmptyWorldGray, kEmptyWorldGray, 1.0f } };
-    clearValues[1].depthStencil = { 1.0f, 0 };
+    // Reverse-Z: clear to far depth (0.0), geometry writes toward 1.0 near camera.
+    clearValues[1].depthStencil = { 0.0f, 0 };
 
     renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
     renderPassInfo.pClearValues = clearValues.data();

@@ -18,6 +18,7 @@
 #include "Widgets/MenuBar.hpp"
 #include "Widgets/StatusBar.hpp"
 #include "Widgets/ViewportWidget.hpp"
+#include "ViewportToolbarState.hpp"
 #include "Widgets/ToolsPanel.hpp"
 #include "Widgets/DockContainer.hpp"
 #include "Widgets/EditorModeSelector.hpp"
@@ -25,6 +26,7 @@
 #include "EditorLayoutController.hpp"
 #include "Runtime/Core/AssetRegistry.hpp"
 #include "EditorPreferences.hpp"
+#include "EditorGridRenderer.hpp"
 #include "Core/Theme.hpp"
 #include "Renderer/Shader/ShaderLibrary.hpp"
 
@@ -84,11 +86,17 @@ Editor::Editor(SDL_Window* window) : m_Window(window) {
     m_Renderer = std::make_shared<Renderer>(m_Context, m_Window);
     m_RenderGraph = std::make_shared<RenderGraph>(m_Renderer);
     m_SceneRenderer = std::make_shared<SceneRenderer>(m_Context, m_Renderer->GetOffscreenRenderPass(), m_Renderer->GetCameraDescLayout());
-    m_GridRenderer = std::make_shared<GridRenderer>(m_Context, m_Renderer->GetOffscreenRenderPass(), m_Renderer->GetCameraDescLayout());
     m_SceneRenderer->SetEditorBackgroundEnabled(true);
-    EditorPreferences::Get().ApplyEditorViewportIfDirty(m_SceneRenderer, m_GridRenderer);
+    EditorPreferences::Get().ApplyEditorViewportIfDirty(m_SceneRenderer);
+
+    we::editor::grid::EditorGridRenderer::Get().Initialize(
+        m_Context,
+        m_Renderer->GetOffscreenRenderPass(),
+        m_Renderer->GetCameraDescLayout());
 
     m_Camera = std::make_shared<EditorCamera>();
+    m_Camera->SetCameraSpeed(EditorCamera::kDefaultCameraSpeed);
+    BindViewportCamera(m_Camera);
     m_Scene = std::make_shared<Scene>(m_Context, m_SceneRenderer);
     m_Scene->InitializeDefaultScene(m_Renderer->GetCameraBuffer());
 
@@ -578,19 +586,11 @@ void Editor::MainLoop() {
 
             m_RenderGraph->BeginOffscreenPass(cmd);
             m_SceneRenderer->SetEditorBackgroundEnabled(true);
-            EditorPreferences::Get().ApplyEditorViewportIfDirty(m_SceneRenderer, m_GridRenderer);
+            EditorPreferences::Get().ApplyEditorViewportIfDirty(m_SceneRenderer);
             m_SceneRenderer->DrawEditorBackground(cmd, m_Renderer->GetCameraDescSet());
             m_Scene->Draw(cmd);
-            if (m_Scene->ShouldDrawEditorGrid()) {
-                const auto& offscreenFB = m_Renderer->GetOffscreenFramebuffer();
-                m_GridRenderer->UpdateFromCamera(
-                    m_Camera->GetGridLodDistance(),
-                    m_Camera->GetFov(),
-                    static_cast<float>(offscreenFB.GetWidth()),
-                    static_cast<float>(offscreenFB.GetHeight())
-                );
-                m_GridRenderer->Draw(cmd, m_Renderer->GetCameraDescSet());
-            }
+            we::editor::grid::EditorGridRenderer::Get().Render(cmd, m_Renderer->GetCameraDescSet(), *m_Camera);
+            we::programs::editor::UpdateViewportCameraSpeedIndicator();
             m_RenderGraph->EndOffscreenPass(cmd);
 
             m_RenderGraph->BeginSwapchainPass(cmd);
@@ -629,7 +629,7 @@ void Editor::Shutdown() {
 
     m_Scene.reset();
     m_Camera.reset();
-    m_GridRenderer.reset();
+    we::editor::grid::EditorGridRenderer::Get().Shutdown();
     m_SceneRenderer.reset();
     m_RenderGraph.reset();
     m_Renderer.reset();

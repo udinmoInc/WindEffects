@@ -26,16 +26,24 @@ public:
     glm::mat4 GetViewMatrix() const;
     glm::mat4 GetProjectionMatrix() const;
     glm::vec3 GetPosition() const { return m_Position; }
+    glm::vec3 GetLookAt() const { return m_LookAt; }
     glm::vec3 GetForward() const;
     glm::vec3 GetRight() const;
     glm::vec3 GetUp() const;
 
     float GetDistance() const { return m_Distance; }
-    float GetFov() const { return m_Fov; }
     float GetGridLodDistance() const;
+    float GetFov() const { return m_Fov; }
 
     float GetPitch() const { return m_Pitch; }
     float GetYaw() const { return m_Yaw; }
+
+    static constexpr float kMinCameraSpeed = 1.0f;
+    static constexpr float kMaxCameraSpeed = 50.0f;
+    static constexpr float kDefaultCameraSpeed = 4.0f;
+
+    float GetCameraSpeed() const { return m_MoveSpeed; }
+    void SetCameraSpeed(float speed);
     
     void Focus(const glm::vec3& target);
     void Reset();
@@ -61,10 +69,10 @@ private:
     float m_Fov = 45.0f;
     float m_AspectRatio = 1.777f;
     float m_Near = 0.1f;
-    float m_Far = 1000.0f;
+    float m_Far = 100000.0f;
 
     bool m_FPSMode = false;
-    float m_MoveSpeed = 10.0f;
+    float m_MoveSpeed = kDefaultCameraSpeed;
     float m_Sensitivity = 0.15f;
     float m_LerpSpeed = 12.0f; // Higher is faster/snappier, lower is smoother
 };

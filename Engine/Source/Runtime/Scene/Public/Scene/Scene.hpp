@@ -30,8 +30,6 @@ public:
 
     void Update();
 
-    bool HasGroundCoverage() const;
-    bool ShouldDrawEditorGrid() const { return !HasGroundCoverage(); }
     void Draw(VkCommandBuffer cmd) const;
 
 private:

@@ -10,7 +10,6 @@
 #include "Renderer/VulkanContext.hpp"
 #include "Renderer/Renderer.hpp"
 #include "Renderer/RenderGraph.hpp"
-#include "Renderer/GridRenderer.hpp"
 #include "Renderer/SceneRenderer.hpp"
 #include "EditorCamera.hpp"
 #include "Scene/Scene.hpp"
@@ -48,7 +47,6 @@ private:
     std::shared_ptr<we::runtime::renderer::VulkanContext> m_Context;
     std::shared_ptr<we::runtime::renderer::Renderer> m_Renderer;
     std::shared_ptr<we::runtime::renderer::RenderGraph> m_RenderGraph;
-    std::shared_ptr<we::runtime::renderer::GridRenderer> m_GridRenderer;
     std::shared_ptr<we::runtime::renderer::SceneRenderer> m_SceneRenderer;
     std::shared_ptr<we::runtime::engine::EditorCamera> m_Camera;
     std::shared_ptr<we::runtime::scene::Scene> m_Scene;

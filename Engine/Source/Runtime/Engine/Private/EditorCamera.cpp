@@ -1,5 +1,6 @@
 #include "EditorCamera.hpp"
 #include <glm/gtc/matrix_transform.hpp>
+#include <glm/ext/matrix_clip_space.hpp>
 #include <algorithm>
 #include <iostream>
 
@@ -8,6 +9,10 @@ namespace we::runtime::engine {
 EditorCamera::EditorCamera() {
     UpdateCameraVectors();
     Reset();
+}
+
+void EditorCamera::SetCameraSpeed(float speed) {
+    m_MoveSpeed = std::clamp(speed, kMinCameraSpeed, kMaxCameraSpeed);
 }
 
 void EditorCamera::Reset() {
@@ -91,17 +96,18 @@ void EditorCamera::Update(float dt) {
 void EditorCamera::ProcessMouseScroll(float yoffset) {
     if (m_FPSMode) return; // Zoom is disabled in FPS mode
 
-    // Exponential zoom speed based on distance
-    float speed = std::max(0.5f, m_TargetDistance * 0.1f);
-    m_TargetDistance -= yoffset * speed;
+    // Zoom scales with orbit distance and camera speed (UE5-style).
+    const float speedScale = m_MoveSpeed / kDefaultCameraSpeed;
+    float zoomStep = std::max(0.5f, m_TargetDistance * 0.1f) * speedScale;
+    m_TargetDistance -= yoffset * zoomStep;
     m_TargetDistance = std::max(1.0f, m_TargetDistance);
 }
 
 void EditorCamera::ProcessMousePan(float dx, float dy) {
     if (m_FPSMode) return;
 
-    // Pan speed scales with distance to keep mouse matched to screen space
-    float panSpeed = std::max(0.01f, m_TargetDistance * 0.0015f);
+    const float speedScale = m_MoveSpeed / kDefaultCameraSpeed;
+    float panSpeed = std::max(0.01f, m_TargetDistance * 0.0015f) * speedScale;
 
     glm::vec3 right = GetRight();
     glm::vec3 up = GetUp();
@@ -168,7 +174,9 @@ glm::mat4 EditorCamera::GetViewMatrix() const {
 }
 
 glm::mat4 EditorCamera::GetProjectionMatrix() const {
-    glm::mat4 proj = glm::perspective(glm::radians(m_Fov), m_AspectRatio, m_Near, m_Far);
+    const float farPlane = std::max(m_Far, m_TargetDistance * 120.0f);
+    // Reverse-Z projection improves depth precision at distance.
+    glm::mat4 proj = glm::perspectiveRH_ZO(glm::radians(m_Fov), m_AspectRatio, farPlane, m_Near);
     proj[1][1] *= -1.0f; // Flip Y for Vulkan
     return proj;
 }

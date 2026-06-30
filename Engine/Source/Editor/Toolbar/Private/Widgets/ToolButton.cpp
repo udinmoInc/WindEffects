@@ -351,6 +351,12 @@ void ToolButton::OnMouseMove(const MouseEvent& event) {
     // Hover state is handled by EventSystem
 }
 
+void ToolButton::OnMouseWheel(const MouseEvent& event) {
+    if (m_OnMouseWheel && m_Geometry.Contains(event.position)) {
+        m_OnMouseWheel(event.wheelDeltaY);
+    }
+}
+
 // ToolSeparator implementation
 ToolSeparator::ToolSeparator() {}
 

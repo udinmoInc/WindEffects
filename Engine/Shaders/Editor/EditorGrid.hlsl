@@ -1,0 +1,218 @@
+#include "../Common/Camera.hlsli"
+#include "../Common/Math.hlsli"
+#include "../Common/Color.hlsli"
+
+// Blender-style flat XZ editor grid. Fullscreen raycast — full viewport coverage.
+
+cbuffer GridSettings : register(b0, space0)
+{
+    float4 levelSizes;      // 1, 10, 100, 1000 m
+    float4 levelFadeStart;
+    float4 levelFadeEnd;
+
+    float4 level0Color;     // minor 1 m   (rgba)
+    float4 level1Color;     // medium 10 m
+    float4 level2Color;     // large 100 m
+    float4 level3Color;     // major 1000 m
+    float4 axisXColor;      // rgba
+    float4 axisZColor;      // rgba
+
+    float4 renderParams0;   // x=renderRadius, y=planeHeight, z=lineThicknessMinor, w=lineThicknessMajor
+    float4 renderParams1;   // x=baseOpacity, y=lineThicknessAxis, w=antiAliasScale
+    float4 renderParams2;   // x=depthBiasConstant, y=depthBiasSlope, z=cameraDistance, w=radiusFadeStart
+    float4 snappedOrigin;   // xyz = snapped center, w = cull radius
+
+    int4   gridFlags;       // x=enableGrid, y=enableAxis, z=antiAliasingEnabled
+    float4 depthParams;     // x=depthOffset, y=radiusFadeEnd
+};
+
+cbuffer CameraBuffer : register(b0, space1)
+{
+    float4x4 view;
+    float4x4 proj;
+    float3   cameraPos;
+    float    cameraPadding;
+};
+
+struct VSOutput
+{
+    float4 position  : SV_Position;
+    float3 nearPoint : TEXCOORD0;
+    float3 farPoint  : TEXCOORD1;
+};
+
+static const float3 kFullscreenPositions[6] = {
+    float3(-1, -1, 0), float3(1, -1, 0), float3(1, 1, 0),
+    float3(-1, -1, 0), float3(1,  1, 0), float3(-1, 1, 0)
+};
+
+VSOutput VSMain(uint vertexId : SV_VertexID)
+{
+    VSOutput o;
+    const float3 p = kFullscreenPositions[vertexId];
+    // Reverse-Z projection maps near -> 1 and far -> 0.
+    o.nearPoint = WE_UnprojectPoint(p.x, p.y, 1.0, view, proj);
+    o.farPoint  = WE_UnprojectPoint(p.x, p.y, 0.0, view, proj);
+    o.position  = float4(p, 1.0);
+    return o;
+}
+
+float LevelVisibility(float cameraDistance, float fadeStart, float fadeEnd)
+{
+    if (fadeEnd <= fadeStart + 1e-4)
+        return 1.0;
+    return 1.0 - smoothstep(fadeStart, fadeEnd, cameraDistance);
+}
+
+float LineStrength(float2 worldXZ, float cellSize, float lineWidth, bool useAA)
+{
+    const float2 uv = worldXZ / max(cellSize, 1e-4);
+    const float2 grid = abs(frac(uv - 0.5) - 0.5);
+    const float aa = max(renderParams1.w, 0.5);
+    const float2 derivative = max(fwidth(uv) * lineWidth * aa, float2(1e-4, 1e-4));
+
+    if (useAA)
+    {
+        const float lineX = 1.0 - smoothstep(0.0, derivative.x, grid.x);
+        const float lineY = 1.0 - smoothstep(0.0, derivative.y, grid.y);
+        return saturate(max(lineX, lineY));
+    }
+
+    return (grid.x < derivative.x || grid.y < derivative.y) ? 1.0 : 0.0;
+}
+
+float AxisLineMask(float axisCoord, float distToAxis, float lineWidthPx, bool useAA)
+{
+    const float aa = max(renderParams1.w, 0.5);
+    // Screen-space constant thickness: threshold in world units is fwidth(axisCoord) * pixels.
+    // Clamp pixels so we never widen the axis at distance.
+    const float px = clamp(lineWidthPx, 0.75, 1.1);
+    const float derivative = max(fwidth(axisCoord) * px * aa, 1e-4);
+    if (useAA)
+        return saturate(1.0 - smoothstep(0.0, derivative, distToAxis));
+    return distToAxis < derivative ? 1.0 : 0.0;
+}
+
+struct PSOutput
+{
+    float4 color : SV_Target0;
+    float  depth : SV_Depth;
+};
+
+PSOutput PSMain(VSOutput input)
+{
+    PSOutput o;
+
+    if (gridFlags.x == 0)
+        discard;
+
+    const float planeHeight  = renderParams0.y;
+    const float depthOffset  = depthParams.x;
+    const float groundY      = planeHeight + depthOffset;
+    const float renderRadius = renderParams0.x;
+
+    if (abs(input.farPoint.y - input.nearPoint.y) < 1e-6)
+        discard;
+
+    const float t = (groundY - input.nearPoint.y) / (input.farPoint.y - input.nearPoint.y);
+    if (t < 0.0)
+        discard;
+
+    const float3 fragPos = input.nearPoint + t * (input.farPoint - input.nearPoint);
+    const float2 worldXZ = fragPos.xz;
+    const float2 localXZ = worldXZ - float2(snappedOrigin.x, snappedOrigin.z);
+    const float radialDist = length(localXZ);
+    const float distToCamera = length(fragPos - cameraPos);
+
+    if (radialDist > snappedOrigin.w)
+        discard;
+
+    const bool useAA = (gridFlags.z != 0);
+    const float camDist = renderParams2.z;
+    const float lineMinor = renderParams0.z;
+    const float lineMajor = renderParams0.w;
+
+    const float radiusFadeStart = renderParams2.w * renderRadius;
+    const float radiusFadeEnd   = max(depthParams.y * renderRadius, radiusFadeStart + 1.0);
+    const float edgeFade = 1.0 - smoothstep(radiusFadeStart, radiusFadeEnd, radialDist);
+
+    const float fade0 = LevelVisibility(camDist, levelFadeStart.x, levelFadeEnd.x);
+    const float fade1 = LevelVisibility(camDist, levelFadeStart.y, levelFadeEnd.y);
+    const float fade2 = LevelVisibility(camDist, levelFadeStart.z, levelFadeEnd.z);
+    const float fade3 = LevelVisibility(camDist, levelFadeStart.w, levelFadeEnd.w);
+
+    const float s0 = LineStrength(worldXZ, levelSizes.x, lineMinor, useAA) * fade0;
+    const float s1 = LineStrength(worldXZ, levelSizes.y, lineMinor, useAA) * fade1;
+    const float s2 = LineStrength(worldXZ, levelSizes.z, lineMinor, useAA) * fade2;
+    const float s3 = LineStrength(worldXZ, levelSizes.w, lineMajor, useAA) * fade3;
+
+    const float lineMask = max(max(s0, s1), max(s2, s3));
+
+    // Coarsest visible level sets line color — subtle stepped contrast like Blender.
+    float3 color = level0Color.rgb;
+    float alpha = 0.0;
+    if (s3 > 1e-4)
+    {
+        color = level3Color.rgb;
+        alpha = s3 * level3Color.a;
+    }
+    else if (s2 > 1e-4)
+    {
+        color = level2Color.rgb;
+        alpha = s2 * level2Color.a;
+    }
+    else if (s1 > 1e-4)
+    {
+        color = level1Color.rgb;
+        alpha = s1 * level1Color.a;
+    }
+    else if (s0 > 1e-4)
+    {
+        color = level0Color.rgb;
+        alpha = s0 * level0Color.a;
+    }
+
+    if (gridFlags.y != 0)
+    {
+        const float axisWidth = renderParams1.y;
+        const float onXAxis = AxisLineMask(worldXZ.y, abs(worldXZ.y), axisWidth, useAA);
+        const float onZAxis = AxisLineMask(worldXZ.x, abs(worldXZ.x), axisWidth, useAA);
+
+        // Render exactly one axis line per axis, no LOD stacking, no intersection alpha accumulation.
+        const float xCov = saturate(onXAxis);
+        const float zCov = saturate(onZAxis);
+        const float axisCov = max(xCov, zCov);
+
+        if (axisCov > 1e-5)
+        {
+            const bool useX = (xCov >= zCov);
+            const float3 axisRgb = useX ? axisXColor.rgb : axisZColor.rgb;
+            const float axisA = axisCov * (useX ? axisXColor.a : axisZColor.a);
+
+            // Axis renders independently from grid to avoid “white” mixing with bright major lines.
+            // Clamp coverage + alpha so AA can’t create a halo and RGB never exceeds configured axis color.
+            color = axisRgb;
+            alpha = saturate(axisA);
+        }
+    }
+
+    // Fade grid opacity with physical distance (no hard clipping / no shimmery cutoff).
+    const float distanceFade = exp(-distToCamera * 0.0032);
+    alpha = saturate(alpha * renderParams1.x * edgeFade * distanceFade);
+
+    // Treat configured colors as display-space values and map through a linear/filmic path.
+    float3 linearColor = WE_sRGBToLinear(saturate(color));
+    const float haze = 1.0 - exp(-distToCamera * 0.0055);
+    const float3 hazeColor = float3(0.009, 0.009, 0.009);
+    linearColor = lerp(linearColor, hazeColor, saturate(haze * 0.55));
+    color = WE_LinearToSRGB(WE_ApplyFilmicTonemap(linearColor, WE_ExposureFromEV100(2.0)));
+    color = min(color, float3(0.9, 0.9, 0.9));
+
+    if (lineMask <= 1e-5 && alpha <= 1e-5)
+        discard;
+
+    const float4 clipPos = mul(proj, mul(view, float4(fragPos.x, groundY, fragPos.z, 1.0)));
+    o.depth = clipPos.z / clipPos.w;
+    o.color = float4(color, alpha);
+    return o;
+}

@@ -102,14 +102,6 @@ bool AssetRegistry::LoadDefaultEditorAssets() {
             "Shaders/UI_PS.spv",
             "../Assets/Shaders/UI_PS.spv"
         }},
-        {"Shader_Grid_Vert", {
-            "Assets/Shaders/Grid_VS.spv",
-            "Shaders/Grid_VS.spv"
-        }},
-        {"Shader_Grid_Frag", {
-            "Assets/Shaders/Grid_PS.spv",
-            "Shaders/Grid_PS.spv"
-        }},
         {"Shader_EditorBackground_Vert", {
             "Assets/Shaders/EditorBackground_VS.spv",
             "Shaders/EditorBackground_VS.spv"
@@ -117,6 +109,14 @@ bool AssetRegistry::LoadDefaultEditorAssets() {
         {"Shader_EditorBackground_Frag", {
             "Assets/Shaders/EditorBackground_PS.spv",
             "Shaders/EditorBackground_PS.spv"
+        }},
+        {"Shader_EditorGrid_Vert", {
+            "Assets/Shaders/EditorGrid_VS.spv",
+            "Shaders/EditorGrid_VS.spv"
+        }},
+        {"Shader_EditorGrid_Frag", {
+            "Assets/Shaders/EditorGrid_PS.spv",
+            "Shaders/EditorGrid_PS.spv"
         }},
         {"Shader_SceneObject_Vert", {
             "Assets/Shaders/SceneObject_VS.spv",

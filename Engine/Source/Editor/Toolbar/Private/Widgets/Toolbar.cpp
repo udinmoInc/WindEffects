@@ -221,6 +221,12 @@ void Toolbar::OnMouseUp(const MouseEvent& event) {
     }
 }
 
+void Toolbar::OnMouseWheel(const MouseEvent& event) {
+    if (auto hit = HitToolAt(event.position)) {
+        hit->OnMouseWheel(event);
+    }
+}
+
 bool Toolbar::ShowsPointerCursor(const Point& position) const {
     if (auto hit = HitToolAt(position)) {
         return hit->ShowsPointerCursor(position);

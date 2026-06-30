@@ -4,7 +4,7 @@
 namespace we::runtime::renderer::shaders {
 
 inline constexpr const char* EditorBackground = "EditorBackground";
-inline constexpr const char* Grid = "Grid";
+inline constexpr const char* EditorGrid = "EditorGrid";
 inline constexpr const char* SceneObject = "SceneObject";
 inline constexpr const char* UI = "UI";
 

@@ -2,8 +2,6 @@
 #include "Core/Logger.hpp"
 #include <stdexcept>
 #include <iostream>
-#include <algorithm>
-#include <cctype>
 #include <cmath>
 
 namespace we::runtime::scene {
@@ -31,12 +29,10 @@ Scene::~Scene() {
 }
 
 void Scene::InitializeDefaultScene(VkBuffer cameraBuffer) {
-    // Empty-level default: no ground mesh — the editor grid provides spatial reference.
-
     // 1. Editor Cube
     CreateEntity("Editor Cube", EntityType::Cube, cameraBuffer);
     Entity& cube = m_Entities.back();
-    cube.Position = glm::vec3(0.0f, 0.5f, 0.0f); // Sit on ground
+    cube.Position = glm::vec3(0.0f, 0.5f, 0.0f); // Center on origin XZ, bottom face on Y=0
     cube.Scale = glm::vec3(1.0f);
     cube.Color = glm::vec4(0.8f, 0.3f, 0.3f, 1.0f); // Matte red cube
     cube.Mode = 0; // Lit
@@ -144,48 +140,6 @@ void Scene::Update() {
         memcpy(data, &ubo, sizeof(we::runtime::renderer::SceneObjectUniform));
         vkUnmapMemory(device, entity.UniformMemory);
     }
-}
-
-bool Scene::HasGroundCoverage() const {
-    constexpr float kPlaneMeshHalfExtent = 50.0f;
-    constexpr float kLargeGroundThreshold = 8.0f;
-
-    for (const auto& entity : m_Entities) {
-        std::string nameLower = entity.Name;
-        std::transform(nameLower.begin(), nameLower.end(), nameLower.begin(),
-            [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
-
-        if (nameLower.find("landscape") != std::string::npos ||
-            nameLower.find("terrain") != std::string::npos ||
-            nameLower.find("landmesh") != std::string::npos ||
-            nameLower.find("bsp") != std::string::npos) {
-            return true;
-        }
-
-        const bool namedGround =
-            nameLower.find("ground") != std::string::npos ||
-            nameLower.find("floor") != std::string::npos;
-
-        if (entity.Type != EntityType::Plane) {
-            if (namedGround) {
-                return true;
-            }
-            continue;
-        }
-
-        if (std::abs(entity.Rotation.x) > 8.0f || std::abs(entity.Rotation.z) > 8.0f) {
-            continue;
-        }
-
-        const float halfExtentX = kPlaneMeshHalfExtent * std::abs(entity.Scale.x);
-        const float halfExtentZ = kPlaneMeshHalfExtent * std::abs(entity.Scale.z);
-        const float coverage = std::max(halfExtentX, halfExtentZ);
-        if (namedGround || coverage >= kLargeGroundThreshold) {
-            return true;
-        }
-    }
-
-    return false;
 }
 
 void Scene::Draw(VkCommandBuffer cmd) const {
