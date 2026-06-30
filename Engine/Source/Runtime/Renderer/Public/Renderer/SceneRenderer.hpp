@@ -56,15 +56,15 @@ class SceneRenderer {
 public:
     // Editor-only empty world backdrop (no scene lighting contribution).
     struct EditorBackgroundSettings {
-        glm::vec3 zenithColor{ 27.0f / 255.0f, 27.0f / 255.0f, 27.0f / 255.0f };
+        glm::vec3 zenithColor{ 9.0f / 255.0f, 9.0f / 255.0f, 9.0f / 255.0f };
         float backgroundBrightness = 1.0f;
-        glm::vec3 upperSkyColor{ 26.0f / 255.0f, 26.0f / 255.0f, 26.0f / 255.0f };
-        float gradientStrength = 1.0f;
-        glm::vec3 midSkyColor{ 25.0f / 255.0f, 25.0f / 255.0f, 25.0f / 255.0f };
+        glm::vec3 upperSkyColor{ 10.0f / 255.0f, 10.0f / 255.0f, 10.0f / 255.0f };
+        float gradientStrength = 0.55f;
+        glm::vec3 midSkyColor{ 11.0f / 255.0f, 11.0f / 255.0f, 11.0f / 255.0f };
         float horizonFade = 0.0f;
-        glm::vec3 horizonColor{ 24.0f / 255.0f, 24.0f / 255.0f, 24.0f / 255.0f };
+        glm::vec3 horizonColor{ 12.0f / 255.0f, 12.0f / 255.0f, 12.0f / 255.0f };
         float padding0 = 0.0f;
-        glm::vec3 bottomColor{ 23.0f / 255.0f, 23.0f / 255.0f, 23.0f / 255.0f };
+        glm::vec3 bottomColor{ 14.0f / 255.0f, 14.0f / 255.0f, 14.0f / 255.0f };
         float backgroundContrast = 1.0f;
     };
 

@@ -1,4 +1,5 @@
 #include "../Common/Camera.hlsli"
+#include "../Common/Color.hlsli"
 
 struct VSInput
 {
@@ -44,21 +45,39 @@ VSOutput VSMain(VSInput input)
 
 float4 PSMain(VSOutput input) : SV_Target
 {
+    const float3 albedo = WE_sRGBToLinear(saturate(color.rgb));
+
     if (mode == 1 || mode == 2)
-        return color;
+    {
+        const float3 mapped = WE_ApplyFilmicTonemap(albedo, WE_ExposureFromEV100(1.85));
+        return float4(WE_LinearToSRGB(mapped), color.a);
+    }
 
     float3 normal = normalize(input.worldNormal);
-    float3 lightDir = normalize(float3(0.5, 1.0, 0.3));
+    float3 lightDir = normalize(float3(0.38, 0.92, 0.18));
     float3 viewDir = normalize(cameraPos - input.worldPos);
 
-    float3 ambient = 0.25 * float3(1.0, 1.0, 1.0);
+    // Dark editor ambience: hemi ambient + soft key + very low spec.
+    const float upN = saturate(normal.y * 0.5 + 0.5);
+    const float3 hemiGround = float3(0.006, 0.006, 0.006);
+    const float3 hemiSky = float3(0.018, 0.018, 0.018);
+    const float3 ambient = lerp(hemiGround, hemiSky, upN);
+
     float diff = max(dot(normal, lightDir), 0.0);
-    float3 diffuse = diff * float3(0.85, 0.85, 0.85);
+    float3 diffuse = diff * float3(0.11, 0.11, 0.11);
 
     float3 reflectDir = reflect(-lightDir, normal);
-    float spec = pow(max(dot(viewDir, reflectDir), 0.0), 16.0);
-    float3 specular = 0.2 * spec * float3(1.0, 1.0, 1.0);
+    float spec = pow(max(dot(viewDir, reflectDir), 0.0), 32.0);
+    float3 specular = 0.03 * spec * float3(1.0, 1.0, 1.0);
 
-    float3 finalLight = (ambient + diffuse + specular) * color.rgb;
-    return float4(finalLight, color.a);
+    float3 litLinear = albedo * (ambient + diffuse) + specular;
+
+    // Gentle aerial perspective to reveal depth without brightening the scene.
+    const float distToCamera = length(cameraPos - input.worldPos);
+    const float haze = 1.0 - exp(-distToCamera * 0.0045);
+    const float3 hazeColor = float3(0.010, 0.010, 0.010);
+    litLinear = lerp(litLinear, hazeColor, saturate(haze * 0.45));
+
+    const float3 mapped = WE_ApplyFilmicTonemap(litLinear, WE_ExposureFromEV100(1.85));
+    return float4(WE_LinearToSRGB(mapped), color.a);
 }

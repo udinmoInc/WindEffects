@@ -32,6 +32,7 @@ public:
     void OnMouseDown(const MouseEvent& event) override;
     void OnMouseMove(const MouseEvent& event) override;
     void OnMouseUp(const MouseEvent& event) override;
+    void OnMouseWheel(const MouseEvent& event) override;
     bool ShowsPointerCursor(const Point& position) const override;
 
     // Tool management

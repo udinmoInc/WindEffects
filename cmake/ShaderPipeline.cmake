@@ -107,7 +107,7 @@ endmacro()
 set(WE_SHADER_SPV_OUTPUTS "")
 
 we_compile_hlsl_shader(EditorBackground "${WE_SHADER_ROOT}/Editor/EditorBackground.hlsl" VSMain PSMain)
-we_compile_hlsl_shader(Grid             "${WE_SHADER_ROOT}/Editor/Grid.hlsl"             VSMain PSMain)
+we_compile_hlsl_shader(EditorGrid       "${WE_SHADER_ROOT}/Editor/EditorGrid.hlsl"       VSMain PSMain)
 we_compile_hlsl_shader(SceneObject       "${WE_SHADER_ROOT}/Rendering/SceneObject.hlsl" VSMain PSMain)
 we_compile_hlsl_shader(UI                "${WE_SHADER_ROOT}/Rendering/UI.hlsl"          VSMain PSMain)
 

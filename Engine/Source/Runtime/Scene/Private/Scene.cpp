@@ -2,10 +2,20 @@
 #include "Core/Logger.hpp"
 #include <stdexcept>
 #include <iostream>
-#include <algorithm>
-#include <cctype>
+#include <cmath>
 
 namespace we::runtime::scene {
+
+namespace {
+
+const char* MeshNameForEntityType(EntityType type) {
+    switch (type) {
+    case EntityType::Plane: return "Plane";
+    default: return "Cube";
+    }
+}
+
+} // namespace
 
 Scene::Scene(const std::shared_ptr<we::runtime::renderer::VulkanContext>& context, const std::shared_ptr<we::runtime::renderer::SceneRenderer>& renderer)
     : m_Context(context), m_Renderer(renderer) {
@@ -19,23 +29,15 @@ Scene::~Scene() {
 }
 
 void Scene::InitializeDefaultScene(VkBuffer cameraBuffer) {
-    // 1. Ground Plane
-    CreateEntity("Ground Plane", EntityType::Plane, cameraBuffer);
-    Entity& plane = m_Entities.back();
-    plane.Position = glm::vec3(0.0f, 0.0f, 0.0f);
-    plane.Scale = glm::vec3(1.0f);
-    plane.Color = glm::vec4(0.25f, 0.25f, 0.25f, 1.0f); // Dark gray ground
-    plane.Mode = 0; // Lit
-
-    // 2. Editor Cube
+    // 1. Editor Cube
     CreateEntity("Editor Cube", EntityType::Cube, cameraBuffer);
     Entity& cube = m_Entities.back();
-    cube.Position = glm::vec3(0.0f, 0.5f, 0.0f); // Sit on ground
+    cube.Position = glm::vec3(0.0f, 0.5f, 0.0f); // Center on origin XZ, bottom face on Y=0
     cube.Scale = glm::vec3(1.0f);
     cube.Color = glm::vec4(0.8f, 0.3f, 0.3f, 1.0f); // Matte red cube
     cube.Mode = 0; // Lit
 
-    // 3. Directional Light Icon
+    // 2. Directional Light Icon
     CreateEntity("Directional Light", EntityType::DirectionalLight, cameraBuffer);
     Entity& light = m_Entities.back();
     light.Position = glm::vec3(5.0f, 8.0f, -2.0f);
@@ -43,7 +45,7 @@ void Scene::InitializeDefaultScene(VkBuffer cameraBuffer) {
     light.Color = glm::vec4(0.95f, 0.95f, 0.6f, 1.0f); // Yellow light icon
     light.Mode = 1; // Unlit
 
-    // 4. Camera Icon
+    // 3. Camera Icon
     CreateEntity("Main Camera Icon", EntityType::CameraIcon, cameraBuffer);
     Entity& cam = m_Entities.back();
     cam.Position = glm::vec3(0.0f, 6.0f, 12.0f);
@@ -140,23 +142,10 @@ void Scene::Update() {
     }
 }
 
-bool Scene::HasSkyEnvironment() const {
+void Scene::Draw(VkCommandBuffer cmd) const {
     for (const auto& entity : m_Entities) {
-        std::string nameLower = entity.Name;
-        std::transform(nameLower.begin(), nameLower.end(), nameLower.begin(),
-            [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
-
-        // Supports common scene naming conventions until dedicated sky components are added.
-        if (nameLower.find("sky") != std::string::npos ||
-            nameLower.find("atmosphere") != std::string::npos ||
-            nameLower.find("skydome") != std::string::npos ||
-            nameLower.find("skybox") != std::string::npos ||
-            nameLower.find("hdri") != std::string::npos ||
-            nameLower.find("environment") != std::string::npos) {
-            return true;
-        }
+        m_Renderer->DrawMesh(cmd, MeshNameForEntityType(entity.Type), entity.DescriptorSet, entity.Mode);
     }
-    return false;
 }
 
 } // namespace we::runtime::scene

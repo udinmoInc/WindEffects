@@ -32,9 +32,13 @@ public:
     void OnMouseDown(const MouseEvent& event) override;
     void OnMouseUp(const MouseEvent& event) override;
     void OnMouseMove(const MouseEvent& event) override;
+    void OnMouseWheel(const MouseEvent& event) override;
     bool ShowsPointerCursor(const Point& position) const override { return m_Geometry.Contains(position); }
 
     void SetIcon(const std::string& iconName) { m_IconName = iconName; }
+    void SetLabel(const std::string& label) { m_Label = label; }
+    const std::string& GetLabel() const { return m_Label; }
+    void SetOnMouseWheel(std::function<void(float wheelDeltaY)> onMouseWheel) { m_OnMouseWheel = std::move(onMouseWheel); }
     void SetTooltip(const std::string& tooltip) { m_Tooltip = tooltip; }
     void SetOnClicked(std::function<void()> onClicked) { m_OnClicked = onClicked; }
     void SetActive(bool active) { m_Active = active; }
@@ -48,6 +52,7 @@ private:
     std::string m_Label;
     std::string m_Tooltip;
     std::function<void()> m_OnClicked;
+    std::function<void(float)> m_OnMouseWheel;
     bool m_Active = false;
     bool m_Pressed = false;
     bool m_IsDropdown = false;

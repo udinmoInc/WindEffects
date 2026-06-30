@@ -28,9 +28,9 @@ public:
     int GetSelectedEntityIndex() const { return m_SelectedEntityIndex; }
     void SetSelectedEntityIndex(int index) { m_SelectedEntityIndex = index; }
 
-    bool HasSkyEnvironment() const;
-
     void Update();
+
+    void Draw(VkCommandBuffer cmd) const;
 
 private:
     std::shared_ptr<we::runtime::renderer::VulkanContext> m_Context;

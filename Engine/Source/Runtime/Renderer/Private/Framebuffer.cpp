@@ -23,9 +23,12 @@ Framebuffer::Framebuffer(const VulkanContext& context, uint32_t width, uint32_t 
     samplerInfo.unnormalizedCoordinates = VK_FALSE;
     samplerInfo.compareEnable = VK_FALSE;
     samplerInfo.compareOp = VK_COMPARE_OP_ALWAYS;
-    samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
+    // Offscreen framebuffer images are created with a single mip level.
+    // Enabling mip filtering or allowing maxLod > 0 makes the GPU sample undefined mip levels
+    // (especially at grazing angles / high derivatives), producing screen-space bands/cross artifacts.
+    samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_NEAREST;
     samplerInfo.minLod = 0.0f;
-    samplerInfo.maxLod = 1.0f;
+    samplerInfo.maxLod = 0.0f;
     samplerInfo.mipLodBias = 0.0f;
 
     if (vkCreateSampler(m_Context.GetDevice(), &samplerInfo, nullptr, &m_Sampler) != VK_SUCCESS) {

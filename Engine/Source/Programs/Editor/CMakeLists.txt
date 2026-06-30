@@ -21,6 +21,7 @@ target_link_libraries(${PROGRAM_NAME} PRIVATE
     WindEffects-Menus
     WindEffects-Details
     WindEffects-ToolsPanel
+    WindEffects-EditorGridRenderer
     SDL3::SDL3
     delayimp
 )
@@ -54,7 +55,7 @@ add_custom_command(TARGET ${PROGRAM_NAME} POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E make_directory "$<TARGET_FILE_DIR:${PROGRAM_NAME}>/Assets/Fonts"
     COMMAND ${CMAKE_COMMAND} -E make_directory "$<TARGET_FILE_DIR:${PROGRAM_NAME}>/Assets/Icons"
     COMMAND ${CMAKE_COMMAND} -E make_directory "$<TARGET_FILE_DIR:${PROGRAM_NAME}>/Assets/Editor"
-    COMMAND ${CMAKE_COMMAND} -E make_directory "$<TARGET_FILE_DIR:${PROGRAM_NAME}>/Config"
+    COMMAND ${CMAKE_COMMAND} -E make_directory "$<TARGET_FILE_DIR:${PROGRAM_NAME}>/Config/editor"
     COMMAND ${CMAKE_COMMAND} -E make_directory "$<TARGET_FILE_DIR:${PROGRAM_NAME}>/Saved/logs"
     COMMAND ${CMAKE_COMMAND} -E make_directory "$<TARGET_FILE_DIR:${PROGRAM_NAME}>/Plugins"
     COMMAND ${CMAKE_COMMAND} -E make_directory "$<TARGET_FILE_DIR:${PROGRAM_NAME}>/Modules"

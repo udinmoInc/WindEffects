@@ -1,9 +1,14 @@
 
 set(MODULE_NAME WindEffects-Viewport)
 
-file(GLOB_RECURSE SOURCE_FILES
-    "Private/*.cpp"
-    "Private/*.hpp"
+set(SOURCE_FILES
+    Private/GamePanel.cpp
+    Private/ViewportModule.cpp
+    Private/ViewportPanel.cpp
+    Private/ViewportToolbarState.cpp
+    Private/Widgets/ViewportOverlay.cpp
+    Private/Widgets/ViewportSliderPopup.cpp
+    Private/Widgets/ViewportWidget.cpp
 )
 
 file(GLOB_RECURSE PUBLIC_HEADERS
