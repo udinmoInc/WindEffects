@@ -16,6 +16,7 @@
 #include <glm/glm.hpp>
 
 #include <algorithm>
+#include <vector>
 #include <cstdio>
 #include <functional>
 #include <memory>
@@ -650,8 +651,11 @@ void InitializeEditor(
     });
 
     if (outliner) {
-        outliner->SetOnSelectionChanged([scene](const std::string& id) {
-            const std::uint64_t entityId = std::strtoull(id.c_str(), nullptr, 10);
+        outliner->SetOnSelectionChanged([scene](const std::vector<std::string>& ids) {
+            if (ids.empty()) {
+                return;
+            }
+            const std::uint64_t entityId = std::strtoull(ids.back().c_str(), nullptr, 10);
             if (entityId == 0) {
                 return;
             }
@@ -659,6 +663,30 @@ void InitializeEditor(
                 scene->SetSelectedEntityIndex(index);
                 g_LastSelectedEntityId = 0;
                 RefreshDetailsPanel();
+            }
+        });
+
+        outliner->SetOnRenameCommitted([scene](const std::string& id, const std::string& newLabel) {
+            const std::uint64_t entityId = std::strtoull(id.c_str(), nullptr, 10);
+            if (entityId == 0) {
+                return;
+            }
+            if (Entity* entity = scene->FindEntityById(entityId)) {
+                entity->Name = newLabel;
+                RefreshOutliner();
+                RefreshDetailsPanel();
+            }
+        });
+
+        outliner->SetOnReparentRequested([scene](const std::string& childId, const std::string& newParentId) {
+            const std::uint64_t childEntityId = std::strtoull(childId.c_str(), nullptr, 10);
+            const std::uint64_t parentEntityId = std::strtoull(newParentId.c_str(), nullptr, 10);
+            if (childEntityId == 0 || parentEntityId == 0 || childEntityId == parentEntityId) {
+                return;
+            }
+            if (Entity* child = scene->FindEntityById(childEntityId)) {
+                child->ParentId = parentEntityId;
+                RefreshOutliner();
             }
         });
     }

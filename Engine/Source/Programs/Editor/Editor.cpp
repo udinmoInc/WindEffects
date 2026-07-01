@@ -29,6 +29,9 @@
 #include "Widgets/Label.hpp"
 #include "EditorModeController.hpp"
 #include "EditorLayoutController.hpp"
+#include "EditorPanelController.hpp"
+#include "EditorLayoutPersistence.hpp"
+#include "Core/DockTabBrandRegistry.hpp"
 #include "Runtime/Core/AssetRegistry.hpp"
 #include "EditorPreferences.hpp"
 #include "EditorGridRenderer.hpp"
@@ -39,7 +42,6 @@
 #include "Runtime/World/DefaultScene/DefaultSceneBuilder.h"
 #include "Runtime/World/Environment/EnvironmentSystem.h"
 #include "Widgets/PropertyEditor.hpp"
-#include "Widgets/ExplorerPanelHeader.hpp"
 #include "Widgets/TreeView.hpp"
 
 #include <SDL3/SDL.h>
@@ -195,14 +197,34 @@ void Editor::BuildDynamicEditorUI() {
     editItems.push_back(cutItem); editItems.push_back(copyItem); editItems.push_back(pasteItem);
     menuBar->AddMenu("Edit", editItems);
 
-    // Window menu
+    // Window menu — wired to dockable panel visibility
     std::vector<std::shared_ptr<MenuItem>> windowItems;
-    auto vpItem = std::make_shared<MenuItem>(); vpItem->label = "Viewport";
-    auto cbItem = std::make_shared<MenuItem>(); cbItem->label = "Content Browser";
-    auto woItem = std::make_shared<MenuItem>(); woItem->label = "World Outliner";
-    auto dtItem = std::make_shared<MenuItem>(); dtItem->label = "Details";
-    windowItems.push_back(vpItem); windowItems.push_back(cbItem); windowItems.push_back(woItem); windowItems.push_back(dtItem);
+    auto makeWindowItem = [](const std::string& label, EditorPanelId panelId) {
+        auto item = std::make_shared<MenuItem>();
+        item->label = label;
+        item->checked = true;
+        item->onClick = [panelId]() {
+            EditorPanelController::Get().TogglePanelVisibility(panelId);
+        };
+        return item;
+    };
+
+    auto vpItem = makeWindowItem("Viewport", EditorPanelId::Viewport);
+    auto cbItem = makeWindowItem("Content Browser", EditorPanelId::ContentBrowser);
+    auto woItem = makeWindowItem("Explorer", EditorPanelId::Explorer);
+    auto dtItem = makeWindowItem("Details", EditorPanelId::Details);
+    windowItems.push_back(vpItem);
+    windowItems.push_back(cbItem);
+    windowItems.push_back(woItem);
+    windowItems.push_back(dtItem);
     menuBar->AddMenu("Window", windowItems);
+
+    EditorPanelController::Get().SetOnPanelVisibilityChanged([vpItem, cbItem, woItem, dtItem]() {
+        vpItem->checked = EditorPanelController::Get().IsPanelVisible(EditorPanelId::Viewport);
+        cbItem->checked = EditorPanelController::Get().IsPanelVisible(EditorPanelId::ContentBrowser);
+        woItem->checked = EditorPanelController::Get().IsPanelVisible(EditorPanelId::Explorer);
+        dtItem->checked = EditorPanelController::Get().IsPanelVisible(EditorPanelId::Details);
+    });
 
     // Tools menu
     std::vector<std::shared_ptr<MenuItem>> toolsItems;
@@ -372,9 +394,11 @@ void Editor::BuildDynamicEditorUI() {
                 displayScale = static_cast<float>(pixelW) / static_cast<float>(logicalW);
             }
         }
-        const int logoPx = static_cast<int>(std::round(we::UI::ExplorerPanelHeader::kLogoLogicalSize * displayScale));
+        const float logoLogical = we::programs::editor::GetExplorerDockTabLogoSize();
+        const int logoPx = static_cast<int>(std::round(logoLogical * displayScale));
         VkDescriptorSet explorerLogo = m_UIRenderer->GetIconRenderer()->GetIcon("Assets/Editor/windeffects.svg", logoPx);
-        we::programs::editor::BindExplorerBrandLogo(explorerLogo, we::UI::ExplorerPanelHeader::kLogoLogicalSize);
+        we::UI::DockTabBrandRegistry::Get().RegisterBrand("Explorer", explorerLogo, logoLogical);
+        we::programs::editor::BindExplorerBrandLogo(explorerLogo, logoLogical);
     }
 
     // ===== 6. Create Details Panel =====
@@ -398,11 +422,35 @@ void Editor::BuildDynamicEditorUI() {
         HE_INFO("[UI] Viewport Navigation panel created (fallback).");
     }
 
-    auto rightBottomDock = std::make_shared<DockContainer>();
-    rightBottomDock->AddPanel(detailsPanel);
-    rightBottomDock->AddPanel(viewportNavigationPanel);
-    EditorLayoutController::Get().SetRightBottomDock(rightBottomDock);
-    EditorLayoutController::Get().SetViewportNavigationTabIndex(1);
+    auto explorerDock = std::make_shared<DockContainer>();
+    explorerDock->AddPanel(worldOutlinerPanel);
+    explorerDock->SetOnTabClosed([](const std::shared_ptr<Panel>& panel) {
+        if (panel && panel->GetTitle() == "Explorer") {
+            EditorPanelController::Get().SetPanelVisible(EditorPanelId::Explorer, false);
+        }
+    });
+    explorerDock->SetOnTabDragStarted([](const std::shared_ptr<Panel>& panel, const Point&) {
+        if (panel && panel->GetTitle() == "Explorer") {
+            EditorPanelController::Get().FloatPanel(EditorPanelId::Explorer);
+        }
+    });
+
+    auto inspectorDock = std::make_shared<DockContainer>();
+    inspectorDock->AddPanel(viewportNavigationPanel);
+    inspectorDock->SetVisible(false);
+    inspectorDock->SetOnTabClosed([](const std::shared_ptr<Panel>& panel) {
+        if (panel && panel->GetTitle() == "Viewport Navigation") {
+            EditorPanelController::Get().SetPanelVisible(EditorPanelId::ViewportNavigation, false);
+        }
+    });
+    inspectorDock->SetOnTabDragStarted([](const std::shared_ptr<Panel>& panel, const Point&) {
+        if (panel && panel->GetTitle() == "Viewport Navigation") {
+            EditorPanelController::Get().FloatPanel(EditorPanelId::ViewportNavigation);
+        }
+    });
+
+    EditorLayoutController::Get().SetRightBottomDock(inspectorDock);
+    EditorLayoutController::Get().SetViewportNavigationTabIndex(0);
 
     std::shared_ptr<TreeView> worldOutlinerTree = we::programs::editor::GetExplorerTreeView();
     std::shared_ptr<PropertyEditor> detailsEditor;
@@ -432,6 +480,24 @@ void Editor::BuildDynamicEditorUI() {
     debugContent->SetStyle(debugStyle);
     debugPanel->SetContent(debugContent);
     HE_INFO("[UI] Debug panel created.");
+
+    EditorPanelController::Get().RegisterDockZone(EditorDockZone::Left, toolsDock);
+    EditorPanelController::Get().RegisterDockZone(EditorDockZone::Center, centralDock);
+    EditorPanelController::Get().RegisterDockZone(EditorDockZone::Right, explorerDock);
+    EditorPanelController::Get().RegisterDockZone(EditorDockZone::RightInspector, inspectorDock);
+    EditorPanelController::Get().RegisterPanel(EditorPanelId::Tools, "Tools", toolsPanel, EditorDockZone::Left);
+    EditorPanelController::Get().RegisterPanel(EditorPanelId::Viewport, "Viewport", viewportPanel, EditorDockZone::Center);
+    EditorPanelController::Get().RegisterPanel(EditorPanelId::Game, "Game", gamePanel, EditorDockZone::Center);
+    EditorPanelController::Get().RegisterPanel(EditorPanelId::Explorer, "Explorer", worldOutlinerPanel, EditorDockZone::Right);
+    EditorPanelController::Get().RegisterPanel(EditorPanelId::Details, "Details", detailsPanel, EditorDockZone::Right);
+    EditorPanelController::Get().RegisterPanel(EditorPanelId::ViewportNavigation, "Viewport Navigation", viewportNavigationPanel, EditorDockZone::RightInspector);
+    EditorPanelController::Get().RegisterPanel(EditorPanelId::ContentBrowser, "Content Browser", contentBrowserPanel, EditorDockZone::Bottom);
+    EditorPanelController::Get().RegisterPanel(EditorPanelId::Debug, "Debug", debugPanel, EditorDockZone::Bottom);
+
+    vpItem->checked = EditorPanelController::Get().IsPanelVisible(EditorPanelId::Viewport);
+    cbItem->checked = EditorPanelController::Get().IsPanelVisible(EditorPanelId::ContentBrowser);
+    woItem->checked = EditorPanelController::Get().IsPanelVisible(EditorPanelId::Explorer);
+    dtItem->checked = EditorPanelController::Get().IsPanelVisible(EditorPanelId::Details);
 
     // ===== 8. Create Status Bar =====
     m_StatusBar = std::make_shared<StatusBar>();
@@ -467,16 +533,14 @@ void Editor::BuildDynamicEditorUI() {
     // │   │   │   ├── Tools / Actors panel
     // │   │   │   └── Viewport dock
     // │   │   └── Content Browser (full width of left+center column)
-    // │   └── Splitter (Vertical) — right sidebar
-    // │       ├── WorldOutliner (top 50%)
-    // │       └── Details / Viewport Navigation (bottom 50%)
+    // │   └── Splitter (Vertical) — Explorer dock over Details panel
     // └── StatusBar (28px)
 
-    // Right sidebar: WorldOutliner + Details / Viewport Navigation tabs
-    auto rightSideSplitter = std::make_shared<Splitter>(Orientation::Vertical, 0.5f);
-    rightSideSplitter->SetFirstChild(worldOutlinerPanel);
-    rightSideSplitter->SetSecondChild(rightBottomDock);
-    HE_INFO("[UI] Right sidebar splitter: WorldOutliner | Details/Preferences.");
+    // Right sidebar: Explorer (tabbed) stacked above Details (always visible, not a tab)
+    auto rightSideSplitter = std::make_shared<Splitter>(Orientation::Vertical, 0.40f);
+    rightSideSplitter->SetFirstChild(explorerDock);
+    rightSideSplitter->SetSecondChild(detailsPanel);
+    HE_INFO("[UI] Right sidebar: Explorer dock over Details panel.");
 
     // Top row inside left+center: Tools | Viewport (content browser sits below both)
     auto editorTopRow = std::make_shared<Splitter>(Orientation::Horizontal, 0.18f);
@@ -494,11 +558,14 @@ void Editor::BuildDynamicEditorUI() {
     EditorLayoutController::Get().SetBottomPanels(contentBrowserPanel, debugPanel);
     HE_INFO("[UI] Left/center column: [Tools | Viewport] over full-width Content Browser.");
 
-    // Main body: left+center column | right sidebar
-    auto mainHSplitter = std::make_shared<Splitter>(Orientation::Horizontal, 0.72f);
+    // Main body: left+center column | right sidebar (narrow)
+    auto mainHSplitter = std::make_shared<Splitter>(Orientation::Horizontal, 0.78f);
     mainHSplitter->SetFirstChild(leftCenterColumn);
     mainHSplitter->SetSecondChild(rightSideSplitter);
-    HE_INFO("[UI] Horizontal splitter: Left/Center (72%) | Sidebar (28%).");
+    HE_INFO("[UI] Horizontal splitter: Left/Center (78%) | Right sidebar (22%).");
+
+    EditorLayoutPersistence::Get().BindLayout(mainHSplitter, leftCenterColumn, editorTopRow, rightSideSplitter, explorerDock, centralDock);
+    EditorLayoutPersistence::Get().Load();
 
     // Root VBox
     auto rootVBox = std::make_shared<VerticalBox>();
@@ -545,7 +612,7 @@ void Editor::ValidateEditorPanels(const std::unordered_map<std::string, std::fun
         }
     }
     HE_INFO("[UI] MainFrame shell: TitleBar + StatusBar built inline.");
-    HE_INFO("[UI] DockManager/DockSpace: module loaded but layout uses Splitter widgets (docking UI not wired yet).");
+    HE_INFO("[UI] DockManager: Explorer is a branded dock tab with layout persistence.");
 }
 
 void Editor::EnsureVisibleSwapchain() {
@@ -757,6 +824,8 @@ void Editor::MainLoop() {
 }
 
 void Editor::Shutdown() {
+    EditorLayoutPersistence::Get().Save();
+
     if (m_Window) {
         SDL_SetWindowRelativeMouseMode(m_Window, false);
     }

@@ -1,0 +1,62 @@
+WindEffects Engine — Software License Notice
+================================================
+
+Copyright (c) [● Year] WindEffects. All rights reserved.
+
+WindEffects Engine (the "Software") is proprietary software owned by WindEffects.
+Use of the Software is governed by the WindEffects Engine End User License
+Agreement and Software License Agreement ("EULA").
+
+FULL AGREEMENT
+--------------
+The complete, binding license terms are in:
+
+  Legal/EULA.md
+
+By downloading, installing, accessing, or using the Software, you agree to the EULA.
+
+SUMMARY (NON-BINDING)
+---------------------
+Permitted:
+  - Free download and use
+  - Commercial and non-commercial development
+  - Create, publish, distribute, and sell games, simulations, films,
+    visualizations, plugins, and applications built with the Software
+  - Use by individuals, students, indies, studios, enterprises, and
+    educational institutions
+  - Cloud builds, CI/CD, and AI-assisted development (subject to the EULA)
+
+Not permitted without separate written agreement:
+  - Redistributing, selling, sublicensing, or repackaging the engine
+  - Creating or distributing a competing game engine based on the Software
+  - Removing copyright or trademark notices
+  - Impersonating WindEffects or claiming ownership of the engine
+
+Your projects and content remain yours. The engine, editor, tools, source code,
+binaries, branding, trademarks, and documentation remain the property of
+WindEffects.
+
+Future optional commercial programs (subscriptions, enterprise licenses,
+royalty programs, or other terms) may be offered separately. They apply only
+if explicitly announced and accepted. No fees or royalties apply under the
+current EULA version unless you enter a separate agreement.
+
+THIRD-PARTY SOFTWARE
+--------------------
+The Software may include open-source and third-party components subject to
+their own licenses. See Legal/THIRD_PARTY_NOTICES.md and in-product notices.
+
+NO WARRANTY
+-----------
+THE SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND. SEE THE EULA
+FOR FULL WARRANTY DISCLAIMERS AND LIMITATION OF LIABILITY.
+
+CONTACT
+-------
+  Legal:      legal@udinmo.com
+  Security:   security@udinmo.com
+  Privacy:    privacy@udinmo.com
+  Enterprise: enterprise@udinmo.com
+
+This summary does not replace or modify the EULA. In case of conflict, the
+EULA controls.

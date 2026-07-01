@@ -1,16 +1,107 @@
 #include "Widgets/TreeView.hpp"
+#include "Layout/OverlayManager.hpp"
 #include "Core/PaintContext.hpp"
 #include "Core/Theme.hpp"
 #include "Core/Icon.hpp"
 #include <algorithm>
+#include <cmath>
+#include <functional>
 #include <SDL3/SDL.h>
 
 namespace we::UI {
 
+namespace {
+
+struct TreeMenuItem {
+    std::string label;
+    std::function<void()> onClick;
+    bool enabled = true;
+};
+
+class TreeContextMenu : public Widget {
+public:
+    TreeContextMenu(std::vector<TreeMenuItem> items, std::function<void()> onDismiss)
+        : m_Items(std::move(items)), m_OnDismiss(std::move(onDismiss)) {}
+
+    Size Measure(const Size& availableSize) override {
+        (void)availableSize;
+        float maxWidth = 200.0f;
+        for (const auto& item : m_Items) {
+            maxWidth = std::max(maxWidth, 24.0f + static_cast<float>(item.label.size()) * 7.0f + 24.0f);
+        }
+        m_DesiredSize = Size{ maxWidth, 6.0f + m_Items.size() * 26.0f };
+        return m_DesiredSize;
+    }
+
+    void Arrange(const Rect& allottedRect) override { m_Geometry = allottedRect; }
+
+    void Paint(PaintContext& context) override {
+        const auto& theme = Theme::Get();
+        context.DrawShadow(m_Geometry, Color{ 0.0f, 0.0f, 0.0f, 0.2f }, 4.0f, 10.0f);
+        context.DrawRoundedRect(m_Geometry, theme.PopupBackground, theme.CornerRadiusSmall);
+        context.DrawRoundedRectOutline(m_Geometry, theme.BorderDefault, 1.0f, theme.CornerRadiusSmall);
+
+        float y = m_Geometry.y + 3.0f;
+        for (size_t i = 0; i < m_Items.size(); ++i) {
+            const auto& item = m_Items[i];
+            Rect row{ m_Geometry.x + 2.0f, y, m_Geometry.width - 4.0f, 24.0f };
+            if (!item.enabled) {
+                y += 26.0f;
+                continue;
+            }
+            if (static_cast<int>(i) == m_Hovered) {
+                context.DrawRoundedRect(row, theme.HoverOverlay, 3.0f);
+            }
+            context.DrawText(item.label, Point{ row.x + 10.0f, row.y + 5.0f }, theme.TextPrimary, 11.0f);
+            y += 26.0f;
+        }
+    }
+
+    void OnMouseMove(const MouseEvent& event) override {
+        m_Hovered = -1;
+        float y = m_Geometry.y + 3.0f;
+        for (size_t i = 0; i < m_Items.size(); ++i) {
+            Rect row{ m_Geometry.x + 2.0f, y, m_Geometry.width - 4.0f, 24.0f };
+            if (row.Contains(event.position)) {
+                m_Hovered = static_cast<int>(i);
+                break;
+            }
+            y += 26.0f;
+        }
+    }
+
+    void OnMouseDown(const MouseEvent& event) override {
+        if (event.button != MouseButton::Left) {
+            return;
+        }
+        float y = m_Geometry.y + 3.0f;
+        for (size_t i = 0; i < m_Items.size(); ++i) {
+            Rect row{ m_Geometry.x + 2.0f, y, m_Geometry.width - 4.0f, 24.0f };
+            if (row.Contains(event.position) && m_Items[i].enabled && m_Items[i].onClick) {
+                m_Items[i].onClick();
+                if (auto* overlay = OverlayManager::Get()) {
+                    overlay->CloseAllPopups();
+                }
+                if (m_OnDismiss) {
+                    m_OnDismiss();
+                }
+                return;
+            }
+            y += 26.0f;
+        }
+    }
+
+private:
+    std::vector<TreeMenuItem> m_Items;
+    std::function<void()> m_OnDismiss;
+    int m_Hovered = -1;
+};
+
+} // namespace
+
 TreeView::TreeView()
     : m_Style(WidgetStyle::TreeItem())
 {
-    // Create a default root node
     m_Root = std::make_shared<TreeNode>();
     m_Root->id = "root";
     m_Root->label = "Root";
@@ -18,18 +109,19 @@ TreeView::TreeView()
 
 Size TreeView::Measure(const Size& availableSize) {
     BuildRenderList();
-    
-    float totalHeight = static_cast<float>(m_RenderList.size()) * m_ItemHeight;
-    return Size{ availableSize.width, totalHeight };
+    m_ContentHeight = static_cast<float>(m_RenderList.size()) * m_ItemHeight;
+    return Size{ availableSize.width, availableSize.height };
 }
 
 void TreeView::Arrange(const Rect& allottedRect) {
     m_Geometry = allottedRect;
     BuildRenderList();
-    
-    // Update render item geometries
+    UpdateVisibleRange();
+
     float y = m_Geometry.y - m_ScrollOffset;
-    for (auto& item : m_RenderList) {
+    for (size_t i = 0; i < m_RenderList.size(); ++i) {
+        auto& item = m_RenderList[i];
+        item.flatIndex = static_cast<int>(i);
         item.geometry = Rect{
             m_Geometry.x + item.depth * m_IndentWidth,
             y,
@@ -40,258 +132,484 @@ void TreeView::Arrange(const Rect& allottedRect) {
     }
 }
 
+void TreeView::Tick(float deltaTime) {
+    Widget::Tick(deltaTime);
+    if (!m_RenamingId.empty()) {
+        m_RenameCursorBlink += deltaTime;
+    }
+}
+
 void TreeView::Paint(PaintContext& context) {
-    // Draw background
-    context.DrawRect(m_Geometry, Theme::Get().ContentBrowserBackground);
-    
-    // Draw items
-    for (const auto& item : m_RenderList) {
+    const auto& theme = Theme::Get();
+    const Color bg = m_ExplorerStyle ? Color{0.118f, 0.118f, 0.118f, 1.0f} : theme.ContentBrowserBackground;
+    context.DrawRect(m_Geometry, bg);
+
+    if (m_RenderList.empty()) {
+        return;
+    }
+
+    UpdateVisibleRange();
+
+    for (int i = m_FirstVisibleIndex; i <= m_LastVisibleIndex && i < static_cast<int>(m_RenderList.size()); ++i) {
+        const auto& item = m_RenderList[static_cast<size_t>(i)];
         const auto& node = item.node;
-        
-        // Skip if outside visible area
+
         if (item.geometry.y + item.geometry.height < m_Geometry.y ||
             item.geometry.y > m_Geometry.y + m_Geometry.height) {
             continue;
         }
-        
-        // Determine background color
-        Color bgColor = Color{0, 0, 0, 0};
-        
-        // Alternating row colors
-        bool isEven = (&item - &m_RenderList[0]) % 2 == 0;
-        if (isEven) {
-            bgColor = Color{1.0f, 1.0f, 1.0f, 0.02f};
-        }
-        
-        if (node->id == m_SelectedId) {
-            bgColor = Color{0.271f, 0.290f, 0.322f, 1.0f}; // #454A52
+
+        Color bgColor{0, 0, 0, 0};
+        const bool selected = IsSelected(node->id);
+        if (selected) {
+            bgColor = Color{0.22f, 0.22f, 0.22f, 1.0f};
         } else if (node->id == m_HoveredId) {
-            bgColor = Color{0.192f, 0.204f, 0.227f, 1.0f}; // #31343A
+            bgColor = Color{0.17f, 0.17f, 0.17f, 1.0f};
+        } else if (m_ExplorerStyle && item.flatIndex % 2 == 0) {
+            bgColor = Color{1.0f, 1.0f, 1.0f, 0.015f};
         }
-        
+
         if (bgColor.a > 0.001f) {
-            // Draw full width flat rectangle for row highlights
             Rect rowRect = item.geometry;
-            rowRect.x = m_Geometry.x; // Span full width
+            rowRect.x = m_Geometry.x;
             rowRect.width = m_Geometry.width;
             context.DrawRect(rowRect, bgColor);
         }
-        
-        // Draw expand/collapse chevron
-        if (!node->children.empty()) {
-            float chevronSize = 14.0f;
-            float chevronX = item.geometry.x + 4.0f + item.depth * m_IndentWidth;
-            float chevronY = item.geometry.y + (m_ItemHeight - chevronSize) / 2.0f;
-            
-            int chevronIcon = node->expanded ? Icons::ChevronDown : Icons::ChevronRight;
-            context.DrawIcon(chevronIcon, Point{ chevronX, chevronY }, Theme::Get().TextSecondary, chevronSize);
+
+        if (node->id == m_DropTargetId && m_Dragging) {
+            Rect dropLine{ m_Geometry.x + 4.0f, item.geometry.y, m_Geometry.width - 8.0f, 2.0f };
+            context.DrawRect(dropLine, theme.SelectedAccent);
         }
-        
-        // Draw item icon
+
+        if (!node->children.empty()) {
+            const float chevronSize = 12.0f;
+            const float chevronX = item.geometry.x + 4.0f;
+            const float chevronY = item.geometry.y + (m_ItemHeight - chevronSize) * 0.5f;
+            const int chevronIcon = node->expanded ? Icons::ChevronDown : Icons::ChevronRight;
+            context.DrawIcon(chevronIcon, Point{ chevronX, chevronY }, theme.TextSecondary, chevronSize);
+        }
+
         if (!node->iconName.empty()) {
-            float iconSize = 16.0f;
-            float iconX = item.geometry.x + 20.0f + item.depth * m_IndentWidth;
-            float iconY = item.geometry.y + (m_ItemHeight - iconSize) / 2.0f;
-            
-            int iconCode = Icons::GetCodepoint(node->iconName);
+            const float iconSize = 14.0f;
+            const float iconX = item.geometry.x + 18.0f;
+            const float iconY = item.geometry.y + (m_ItemHeight - iconSize) * 0.5f;
+            const int iconCode = Icons::GetCodepoint(node->iconName);
             if (iconCode != 0) {
-                context.DrawIcon(iconCode, Point{ iconX, iconY }, Theme::Get().TextPrimary, iconSize);
+                context.DrawIcon(iconCode, Point{ iconX, iconY }, theme.TextPrimary, iconSize);
             }
         }
-        
-        // Draw label
-        float textX = item.geometry.x + 44.0f + item.depth * m_IndentWidth;
-        float textY = item.geometry.y + (m_ItemHeight - m_Style.text.size) / 2.0f;
-        
-        Color textColor = node->locked ? Theme::Get().TextSecondary * 0.6f : Theme::Get().TextPrimary;
+
+        const float textX = item.geometry.x + 38.0f;
+        const float textY = item.geometry.y + (m_ItemHeight - m_Style.text.size) * 0.5f;
+        Color textColor = node->locked ? theme.TextSecondary * 0.6f : theme.TextPrimary;
         if (!node->visible) {
-            textColor = Theme::Get().TextSecondary * 0.4f;
+            textColor = theme.TextSecondary * 0.45f;
         }
-        
-        context.DrawText(node->label, Point{ textX, textY }, textColor, m_Style.text.size);
-        
-        // Draw visibility eye icon
-        float eyeSize = 14.0f;
-        float eyeX = item.geometry.x + item.geometry.width - eyeSize - 8.0f;
-        float eyeY = item.geometry.y + (m_ItemHeight - eyeSize) / 2.0f;
-        
-        int eyeIcon = node->visible ? Icons::Eye : Icons::EyeOff;
-        Color eyeColor = node->visible ? Theme::Get().TextSecondary : Theme::Get().TextSecondary * 0.5f;
+
+        if (node->id == m_RenamingId) {
+            Rect editBg{ textX - 4.0f, item.geometry.y + 2.0f, item.geometry.width - 80.0f, m_ItemHeight - 4.0f };
+            context.DrawRoundedRect(editBg, theme.InputBackground, 3.0f);
+            context.DrawRoundedRectOutline(editBg, theme.SelectedAccent, 1.0f, 3.0f);
+            context.DrawText(m_RenameBuffer, Point{ textX, textY }, theme.TextPrimary, m_Style.text.size);
+            if (static_cast<int>(m_RenameCursorBlink * 2.0f) % 2 == 0) {
+                const float cursorX = textX + context.GetTextWidth(m_RenameBuffer, m_Style.text.size) + 1.0f;
+                context.DrawRect(Rect{ cursorX, textY, 1.0f, m_Style.text.size }, theme.TextPrimary);
+            }
+        } else {
+            context.DrawText(node->label, Point{ textX, textY }, textColor, m_Style.text.size);
+        }
+
+        const float eyeSize = 13.0f;
+        const float eyeX = item.geometry.x + item.geometry.width - eyeSize - 8.0f;
+        const float eyeY = item.geometry.y + (m_ItemHeight - eyeSize) * 0.5f;
+        const int eyeIcon = node->visible ? Icons::Eye : Icons::EyeOff;
+        const Color eyeColor = node->visible ? theme.TextSecondary : theme.TextSecondary * 0.45f;
         context.DrawIcon(eyeIcon, Point{ eyeX, eyeY }, eyeColor, eyeSize);
-        
-        // Draw lock icon if locked
-        if (node->locked) {
-            float lockSize = 14.0f;
-            float lockX = eyeX - lockSize - 4.0f;
-            float lockY = item.geometry.y + (m_ItemHeight - lockSize) / 2.0f;
-            
-            context.DrawIcon(Icons::Lock, Point{ lockX, lockY }, Theme::Get().Warning, lockSize);
-        }
+
+        const float lockSize = 13.0f;
+        const float lockX = eyeX - lockSize - 4.0f;
+        const float lockY = item.geometry.y + (m_ItemHeight - lockSize) * 0.5f;
+        const int lockIcon = node->locked ? Icons::Lock : Icons::Unlock;
+        const Color lockColor = node->locked ? theme.Warning : theme.TextSecondary * 0.55f;
+        context.DrawIcon(lockIcon, Point{ lockX, lockY }, lockColor, lockSize);
     }
 }
 
 void TreeView::OnMouseDown(const MouseEvent& event) {
+    if (event.button == MouseButton::Right) {
+        RenderItem* item = GetItemAtPosition(event.position);
+        if (item) {
+            HandleSelection(item->node->id, event.shiftDown, event.ctrlDown);
+            ShowContextMenu(item->node->id, event.position);
+        }
+        return;
+    }
+
+    if (!m_RenamingId.empty()) {
+        CommitRename();
+    }
+
     RenderItem* item = GetItemAtPosition(event.position);
-    if (!item) return;
-    
+    if (!item) {
+        return;
+    }
+
     const auto& node = item->node;
-    
-    // Check if clicked on chevron
+
     if (!node->children.empty()) {
-        float chevronX = item->geometry.x + 4.0f + item->depth * m_IndentWidth;
-        float chevronSize = 12.0f;
-        Rect chevronRect{ chevronX, item->geometry.y + (m_ItemHeight - chevronSize) / 2.0f, chevronSize, chevronSize };
-        
-        if (event.position.x >= chevronRect.x && event.position.x <= chevronRect.x + chevronRect.width &&
-            event.position.y >= chevronRect.y && event.position.y <= chevronRect.y + chevronRect.height) {
+        const float chevronSize = 12.0f;
+        const float chevronX = item->geometry.x + 4.0f;
+        Rect chevronRect{ chevronX, item->geometry.y + (m_ItemHeight - chevronSize) * 0.5f, chevronSize, chevronSize };
+        if (chevronRect.Contains(event.position)) {
             ToggleExpand(node->id);
             return;
         }
     }
-    
-    // Check if clicked on visibility eye
-    float eyeSize = 14.0f;
-    float eyeX = item->geometry.x + item->geometry.width - eyeSize - 8.0f;
-    Rect eyeRect{ eyeX, item->geometry.y + (m_ItemHeight - eyeSize) / 2.0f, eyeSize, eyeSize };
-    
-    if (event.position.x >= eyeRect.x && event.position.x <= eyeRect.x + eyeRect.width &&
-        event.position.y >= eyeRect.y && event.position.y <= eyeRect.y + eyeRect.height) {
+
+    const float lockSize = 13.0f;
+    const float eyeSize = 13.0f;
+    const float eyeX = item->geometry.x + item->geometry.width - eyeSize - 8.0f;
+    const float lockX = eyeX - lockSize - 4.0f;
+    Rect lockRect{ lockX, item->geometry.y + (m_ItemHeight - lockSize) * 0.5f, lockSize, lockSize };
+    if (lockRect.Contains(event.position)) {
+        node->locked = !node->locked;
+        if (m_OnLockToggled) {
+            m_OnLockToggled(node->id, node->locked);
+        }
+        return;
+    }
+
+    Rect eyeRect{ eyeX, item->geometry.y + (m_ItemHeight - eyeSize) * 0.5f, eyeSize, eyeSize };
+    if (eyeRect.Contains(event.position)) {
         node->visible = !node->visible;
         if (m_OnVisibilityToggled) {
             m_OnVisibilityToggled(node->id, node->visible);
         }
         return;
     }
-    
-    // Select item
-    SetSelectedId(node->id);
-    if (m_OnSelectionChanged) {
-        m_OnSelectionChanged(node->id);
-    }
+
+    HandleSelection(node->id, event.shiftDown, event.ctrlDown);
+    m_Dragging = false;
+    m_DragSourceId = node->id;
+    m_DragStart = event.position;
 }
 
 void TreeView::OnMouseUp(const MouseEvent& event) {
-    // Handle double-click detection
+    if (m_Dragging && !m_DropTargetId.empty() && m_DropTargetId != m_DragSourceId) {
+        if (m_OnReparentRequested) {
+            m_OnReparentRequested(m_DragSourceId, m_DropTargetId);
+        }
+    }
+    m_Dragging = false;
+    m_DropTargetId.clear();
+
     static std::string lastClickedId;
     static uint64_t lastClickTime = 0;
-    
+
     RenderItem* item = GetItemAtPosition(event.position);
-    if (item) {
-        uint64_t now = SDL_GetPerformanceCounter();
-        uint64_t freq = SDL_GetPerformanceFrequency();
-        double elapsed = static_cast<double>(now - lastClickTime) / freq;
-        
-        if (item->node->id == lastClickedId && elapsed < 0.3) {
-            if (m_OnItemDoubleClicked) {
-                m_OnItemDoubleClicked(item->node->id);
-            }
-        }
-        
-        lastClickedId = item->node->id;
-        lastClickTime = now;
+    if (!item) {
+        return;
     }
+
+    const uint64_t now = SDL_GetPerformanceCounter();
+    const uint64_t freq = SDL_GetPerformanceFrequency();
+    const double elapsed = static_cast<double>(now - lastClickTime) / static_cast<double>(freq);
+
+    if (item->node->id == lastClickedId && elapsed < 0.3) {
+        if (m_OnItemDoubleClicked) {
+            m_OnItemDoubleClicked(item->node->id);
+        }
+        BeginRename(item->node->id);
+    }
+
+    lastClickedId = item->node->id;
+    lastClickTime = now;
 }
 
 void TreeView::OnMouseMove(const MouseEvent& event) {
     RenderItem* item = GetItemAtPosition(event.position);
     m_HoveredId = item ? item->node->id : "";
+
+    if (!m_DragSourceId.empty()) {
+        const float dx = event.position.x - m_DragStart.x;
+        const float dy = event.position.y - m_DragStart.y;
+        if (!m_Dragging && std::sqrt(dx * dx + dy * dy) > 5.0f) {
+            m_Dragging = true;
+        }
+        if (m_Dragging) {
+            m_DropTargetId = item ? item->node->id : "";
+        }
+    }
 }
 
 void TreeView::OnMouseWheel(const MouseEvent& event) {
-    float scrollAmount = event.wheelDeltaY * m_ItemHeight * 0.5f;
+    const float scrollAmount = event.wheelDeltaY * m_ItemHeight * 0.75f;
     m_ScrollOffset -= scrollAmount;
-    
-    // Clamp scroll
-    float maxScroll = std::max(0.0f, static_cast<float>(m_RenderList.size()) * m_ItemHeight - m_Geometry.height);
+
+    const float maxScroll = std::max(0.0f, m_ContentHeight - m_Geometry.height);
     m_ScrollOffset = std::max(0.0f, std::min(m_ScrollOffset, maxScroll));
-    
+
     Arrange(m_Geometry);
 }
 
 void TreeView::OnKeyDown(const KeyEvent& event) {
-    // TODO: Implement keyboard navigation
+    if (!m_RenamingId.empty()) {
+        if (event.keycode == SDLK_ESCAPE) {
+            CancelRename();
+            return;
+        }
+        if (event.keycode == SDLK_RETURN || event.keycode == SDLK_KP_ENTER) {
+            CommitRename();
+            return;
+        }
+        if (event.keycode == SDLK_BACKSPACE && !m_RenameBuffer.empty()) {
+            m_RenameBuffer.pop_back();
+            return;
+        }
+        if (event.keycode >= 32 && event.keycode <= 126 && m_RenameBuffer.size() < 96) {
+            m_RenameBuffer.push_back(static_cast<char>(event.keycode));
+        }
+        return;
+    }
+
+    if (event.keycode == SDLK_F2 && !m_SelectedIds.empty()) {
+        BeginRename(m_SelectedIds.back());
+    }
 }
 
 void TreeView::SetRoot(const std::shared_ptr<TreeNode>& root) {
     m_Root = root;
-    m_SelectedId.clear();
+    m_SelectedIds.clear();
     BuildRenderList();
 }
 
 void TreeView::AddItem(const std::shared_ptr<TreeNode>& item, const std::string& parentId) {
     if (parentId.empty()) {
         m_Root->children.push_back(item);
-    } else {
-        // Find parent and add
-        // TODO: Implement recursive search
+    } else if (auto parent = FindNode(parentId)) {
+        parent->children.push_back(item);
     }
     BuildRenderList();
 }
 
 void TreeView::RemoveItem(const std::string& id) {
-    // TODO: Implement recursive removal
+    std::function<bool(std::vector<std::shared_ptr<TreeNode>>&)> removeRecursive =
+        [&](std::vector<std::shared_ptr<TreeNode>>& nodes) -> bool {
+            for (auto it = nodes.begin(); it != nodes.end(); ++it) {
+                if ((*it)->id == id) {
+                    nodes.erase(it);
+                    return true;
+                }
+                if (removeRecursive((*it)->children)) {
+                    return true;
+                }
+            }
+            return false;
+        };
+    removeRecursive(m_Root->children);
     BuildRenderList();
 }
 
 void TreeView::Clear() {
     m_Root->children.clear();
-    m_SelectedId.clear();
+    m_SelectedIds.clear();
     BuildRenderList();
 }
 
 void TreeView::SetSelectedId(const std::string& id) {
-    m_SelectedId = id;
+    m_SelectedIds = id.empty() ? std::vector<std::string>{} : std::vector<std::string>{ id };
+}
+
+void TreeView::SetSelectedIds(const std::vector<std::string>& ids) {
+    m_SelectedIds = ids;
+}
+
+std::string TreeView::GetSelectedId() const {
+    return m_SelectedIds.empty() ? std::string{} : m_SelectedIds.back();
 }
 
 void TreeView::BuildRenderList() {
     m_RenderList.clear();
-    
-    std::function<void(const std::shared_ptr<TreeNode>&, int)> buildRecursive = 
+
+    std::function<void(const std::shared_ptr<TreeNode>&, int)> buildRecursive =
         [&](const std::shared_ptr<TreeNode>& node, int depth) {
-            if (node->id != "root") { // Skip root
-                m_RenderList.push_back({ node, depth, Rect{} });
+            if (node->id != "root") {
+                m_RenderList.push_back({ node, depth, 0, Rect{} });
             }
-            
             if (node->expanded) {
                 for (const auto& child : node->children) {
                     buildRecursive(child, depth + 1);
                 }
             }
         };
-    
+
     for (const auto& child : m_Root->children) {
         buildRecursive(child, 0);
     }
+
+    m_ContentHeight = static_cast<float>(m_RenderList.size()) * m_ItemHeight;
+}
+
+void TreeView::UpdateVisibleRange() {
+    if (m_RenderList.empty()) {
+        m_FirstVisibleIndex = 0;
+        m_LastVisibleIndex = -1;
+        return;
+    }
+
+    const float viewTop = m_Geometry.y;
+    const float viewBottom = m_Geometry.y + m_Geometry.height;
+    const int overscan = 2;
+
+    m_FirstVisibleIndex = static_cast<int>(std::floor(m_ScrollOffset / m_ItemHeight));
+    m_FirstVisibleIndex = std::max(0, m_FirstVisibleIndex - overscan);
+
+    const int visibleCount = static_cast<int>(std::ceil(m_Geometry.height / m_ItemHeight)) + overscan * 2;
+    m_LastVisibleIndex = std::min(static_cast<int>(m_RenderList.size()) - 1, m_FirstVisibleIndex + visibleCount);
+
+    (void)viewTop;
+    (void)viewBottom;
 }
 
 TreeView::RenderItem* TreeView::GetItemAtPosition(const Point& pos) {
     for (auto& item : m_RenderList) {
-        if (pos.x >= item.geometry.x && pos.x <= item.geometry.x + item.geometry.width &&
-            pos.y >= item.geometry.y && pos.y <= item.geometry.y + item.geometry.height) {
+        if (item.geometry.Contains(pos)) {
             return &item;
         }
     }
     return nullptr;
 }
 
-void TreeView::ToggleExpand(const std::string& id) {
-    std::function<void(std::shared_ptr<TreeNode>&)> toggleRecursive = 
-        [&](std::shared_ptr<TreeNode>& node) {
+std::shared_ptr<TreeNode> TreeView::FindNode(const std::string& id) {
+    std::function<std::shared_ptr<TreeNode>(const std::shared_ptr<TreeNode>&)> findRecursive =
+        [&](const std::shared_ptr<TreeNode>& node) -> std::shared_ptr<TreeNode> {
             if (node->id == id) {
-                node->expanded = !node->expanded;
-                return;
+                return node;
             }
-            for (auto& child : node->children) {
-                toggleRecursive(child);
+            for (const auto& child : node->children) {
+                if (auto found = findRecursive(child)) {
+                    return found;
+                }
             }
+            return nullptr;
         };
-    
-    for (auto& child : m_Root->children) {
-        toggleRecursive(child);
+
+    if (m_Root->id == id) {
+        return m_Root;
     }
-    
+    for (const auto& child : m_Root->children) {
+        if (auto found = findRecursive(child)) {
+            return found;
+        }
+    }
+    return nullptr;
+}
+
+void TreeView::ToggleExpand(const std::string& id) {
+    if (auto node = FindNode(id)) {
+        node->expanded = !node->expanded;
+    }
     BuildRenderList();
     Arrange(m_Geometry);
 }
 
-} // namespace we::editor::contentbrowser::UI
+void TreeView::BeginRename(const std::string& id) {
+    if (auto node = FindNode(id)) {
+        m_RenamingId = id;
+        m_RenameBuffer = node->label;
+        m_RenameCursorBlink = 0.0f;
+    }
+}
+
+void TreeView::CommitRename() {
+    if (m_RenamingId.empty()) {
+        return;
+    }
+    if (auto node = FindNode(m_RenamingId)) {
+        if (!m_RenameBuffer.empty() && m_RenameBuffer != node->label) {
+            node->label = m_RenameBuffer;
+            if (m_OnRenameCommitted) {
+                m_OnRenameCommitted(m_RenamingId, m_RenameBuffer);
+            }
+        }
+    }
+    m_RenamingId.clear();
+    m_RenameBuffer.clear();
+}
+
+void TreeView::CancelRename() {
+    m_RenamingId.clear();
+    m_RenameBuffer.clear();
+}
+
+void TreeView::ShowContextMenu(const std::string& id, const Point& position) {
+    auto makeItem = [](const std::string& label, std::function<void()> onClick, bool enabled = true) {
+        TreeMenuItem item;
+        item.label = label;
+        item.onClick = std::move(onClick);
+        item.enabled = enabled;
+        return item;
+    };
+
+    std::vector<TreeMenuItem> items;
+    items.push_back(makeItem("Rename", [this, id]() { BeginRename(id); }));
+    items.push_back(makeItem("Duplicate", []() {}));
+    items.push_back(makeItem("Delete", []() {}));
+    items.push_back(makeItem("Create Child Actor", []() {}));
+
+    auto menu = std::make_shared<TreeContextMenu>(items, nullptr);
+    if (auto* overlay = OverlayManager::Get()) {
+        overlay->CloseAllPopups();
+        overlay->ShowPopup(menu, position);
+    }
+}
+
+void TreeView::HandleSelection(const std::string& id, bool shift, bool ctrl) {
+    if (ctrl) {
+        auto it = std::find(m_SelectedIds.begin(), m_SelectedIds.end(), id);
+        if (it != m_SelectedIds.end()) {
+            m_SelectedIds.erase(it);
+        } else {
+            m_SelectedIds.push_back(id);
+        }
+    } else if (shift && !m_SelectedIds.empty()) {
+        const std::string anchor = m_SelectedIds.back();
+        bool inRange = false;
+        m_SelectedIds.clear();
+        for (const auto& item : m_RenderList) {
+            if (item.node->id == anchor || item.node->id == id) {
+                inRange = !inRange;
+                m_SelectedIds.push_back(item.node->id);
+                if (item.node->id == anchor && item.node->id == id) {
+                    break;
+                }
+                if (!inRange && (item.node->id == anchor || item.node->id == id)) {
+                    break;
+                }
+                continue;
+            }
+            if (inRange) {
+                m_SelectedIds.push_back(item.node->id);
+            }
+        }
+        if (m_SelectedIds.empty()) {
+            m_SelectedIds.push_back(id);
+        }
+    } else {
+        m_SelectedIds = { id };
+    }
+
+    if (m_OnSelectionChanged) {
+        m_OnSelectionChanged(m_SelectedIds);
+    }
+}
+
+bool TreeView::IsSelected(const std::string& id) const {
+    return std::find(m_SelectedIds.begin(), m_SelectedIds.end(), id) != m_SelectedIds.end();
+}
+
+int TreeView::GetVisibleRowCount() const {
+    return static_cast<int>(std::ceil(m_Geometry.height / m_ItemHeight));
+}
+
+} // namespace we::UI

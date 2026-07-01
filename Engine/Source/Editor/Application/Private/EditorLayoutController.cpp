@@ -1,4 +1,5 @@
 #include "EditorLayoutController.hpp"
+#include "EditorPanelController.hpp"
 #include "Layout/Splitter.hpp"
 #include "Widgets/DockContainer.hpp"
 #include "Core/Widget.hpp"
@@ -45,13 +46,8 @@ void EditorLayoutController::SetRightBottomDock(const std::shared_ptr<we::UI::Do
 }
 
 void EditorLayoutController::FocusViewportNavigationPanel() {
-    auto dock = m_RightBottomDock.lock();
-    if (!dock) {
-        HE_ERROR("[EditorLayout] Right-bottom dock not registered.");
-        return;
-    }
-
-    dock->SetActiveTab(m_ViewportNavigationTabIndex);
+    EditorPanelController::Get().SetPanelVisible(EditorPanelId::ViewportNavigation, true);
+    EditorPanelController::Get().FloatPanel(EditorPanelId::ViewportNavigation);
 }
 
 void EditorLayoutController::SetBottomPanels(

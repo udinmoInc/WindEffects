@@ -24,10 +24,12 @@ struct TreeNode {
 // Tree view widget for hierarchical data
 class TreeView : public Widget {
 public:
-    using OnSelectionChanged = std::function<void(const std::string& id)>;
+    using OnSelectionChanged = std::function<void(const std::vector<std::string>& ids)>;
     using OnItemDoubleClicked = std::function<void(const std::string& id)>;
     using OnVisibilityToggled = std::function<void(const std::string& id, bool visible)>;
     using OnLockToggled = std::function<void(const std::string& id, bool locked)>;
+    using OnRenameCommitted = std::function<void(const std::string& id, const std::string& newLabel)>;
+    using OnReparentRequested = std::function<void(const std::string& childId, const std::string& newParentId)>;
 
     TreeView();
     virtual ~TreeView() = default;
@@ -35,6 +37,7 @@ public:
     Size Measure(const Size& availableSize) override;
     void Arrange(const Rect& allottedRect) override;
     void Paint(PaintContext& context) override;
+    void Tick(float deltaTime) override;
 
     void OnMouseDown(const MouseEvent& event) override;
     void OnMouseUp(const MouseEvent& event) override;
@@ -50,46 +53,74 @@ public:
 
     // Selection
     void SetSelectedId(const std::string& id);
-    std::string GetSelectedId() const { return m_SelectedId; }
+    void SetSelectedIds(const std::vector<std::string>& ids);
+    std::string GetSelectedId() const;
+    const std::vector<std::string>& GetSelectedIds() const { return m_SelectedIds; }
 
     // Callbacks
     void SetOnSelectionChanged(OnSelectionChanged callback) { m_OnSelectionChanged = callback; }
     void SetOnItemDoubleClicked(OnItemDoubleClicked callback) { m_OnItemDoubleClicked = callback; }
     void SetOnVisibilityToggled(OnVisibilityToggled callback) { m_OnVisibilityToggled = callback; }
     void SetOnLockToggled(OnLockToggled callback) { m_OnLockToggled = callback; }
+    void SetOnRenameCommitted(OnRenameCommitted callback) { m_OnRenameCommitted = callback; }
+    void SetOnReparentRequested(OnReparentRequested callback) { m_OnReparentRequested = callback; }
 
     // Styling
     void SetItemHeight(float height) { m_ItemHeight = height; }
     void SetIndentWidth(float width) { m_IndentWidth = width; }
+    void SetExplorerStyle(bool enabled) { m_ExplorerStyle = enabled; }
 
 private:
     struct RenderItem {
         std::shared_ptr<TreeNode> node;
         int depth;
+        int flatIndex;
         Rect geometry;
     };
 
     void BuildRenderList();
+    void UpdateVisibleRange();
     RenderItem* GetItemAtPosition(const Point& pos);
+    std::shared_ptr<TreeNode> FindNode(const std::string& id);
     void ToggleExpand(const std::string& id);
+    void BeginRename(const std::string& id);
+    void CommitRename();
+    void CancelRename();
+    void ShowContextMenu(const std::string& id, const Point& position);
+    void HandleSelection(const std::string& id, bool shift, bool ctrl);
+    bool IsSelected(const std::string& id) const;
+    int GetVisibleRowCount() const;
 
     std::shared_ptr<TreeNode> m_Root;
     std::vector<RenderItem> m_RenderList;
-    std::string m_SelectedId;
+    std::vector<std::string> m_SelectedIds;
     std::string m_HoveredId;
+    std::string m_DropTargetId;
 
     float m_ScrollOffset = 0.0f;
+    float m_ContentHeight = 0.0f;
+    int m_FirstVisibleIndex = 0;
+    int m_LastVisibleIndex = 0;
     float m_ItemHeight = 24.0f;
     float m_IndentWidth = 20.0f;
+    bool m_ExplorerStyle = false;
+
+    std::string m_RenamingId;
+    std::string m_RenameBuffer;
+    float m_RenameCursorBlink = 0.0f;
+
+    bool m_Dragging = false;
+    Point m_DragStart{};
+    std::string m_DragSourceId;
 
     OnSelectionChanged m_OnSelectionChanged;
     OnItemDoubleClicked m_OnItemDoubleClicked;
     OnVisibilityToggled m_OnVisibilityToggled;
     OnLockToggled m_OnLockToggled;
+    OnRenameCommitted m_OnRenameCommitted;
+    OnReparentRequested m_OnReparentRequested;
 
     WidgetStyle m_Style;
-    bool m_Dragging = false;
-    Point m_DragStart;
 };
 
-} // namespace we::editor::contentbrowser::UI
+} // namespace we::UI

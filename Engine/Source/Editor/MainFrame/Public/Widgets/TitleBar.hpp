@@ -11,7 +11,7 @@ namespace we::UI {
 
 class TitleBar : public HorizontalBox {
 public:
-    static constexpr float LogoDisplaySize = 18.0f;
+    static constexpr float LogoDisplaySize = 22.0f;
 
     TitleBar(SDL_Window* window, const std::string& title, VkDescriptorSet logoSet = VK_NULL_HANDLE, std::shared_ptr<MenuBar> menuBar = nullptr);
     virtual ~TitleBar() = default;

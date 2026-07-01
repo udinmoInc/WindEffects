@@ -1,6 +1,5 @@
-#include "Explorer/WorldOutlinerApi.h"
-
 #include "Explorer/ExplorerPanelAssets.hpp"
+#include "Explorer/WorldOutlinerApi.h"
 #include "Widgets/TreeView.hpp"
 
 #include <memory>
@@ -34,6 +33,10 @@ void RegisterExplorerTreeView(const std::shared_ptr<we::UI::TreeView>& treeView)
 
 std::shared_ptr<we::UI::TreeView> GetExplorerTreeView() {
     return g_ExplorerTreeView.lock();
+}
+
+float GetExplorerDockTabLogoSize() {
+    return 17.0f;
 }
 
 } // namespace we::programs::editor

@@ -3,12 +3,8 @@
 #include "Explorer/ExplorerPanelAssets.hpp"
 #include "Core/DockTabIconRegistry.hpp"
 #include "Widgets/Panel.hpp"
-#include "Widgets/ExplorerPanelHeader.hpp"
 #include "Widgets/TreeView.hpp"
-#include "Widgets/SearchBox.hpp"
-#include "Layout/Box.hpp"
-#include "Core/Icon.hpp"
-#include "Localization.hpp"
+#include "Core/Theme.hpp"
 
 namespace we::programs::editor {
 
@@ -26,29 +22,13 @@ std::shared_ptr<we::UI::Panel> CreateWorldOutlinerPanel() {
     panel->SetHeaderHeight(0.0f);
     panel->SetCollapsible(false);
 
-    auto header = std::make_shared<we::UI::ExplorerPanelHeader>();
-    header->SetTitle("Explorer");
-    header->SetHeight(we::UI::ExplorerPanelHeader::kDefaultHeight);
-
-    auto searchRow = std::make_shared<we::UI::HorizontalBox>();
-    searchRow->SetPadding(we::UI::Margin{ 8.0f, 4.0f, 8.0f, 6.0f });
-
-    auto searchBox = std::make_shared<we::UI::SearchBox>();
-    searchBox->SetFillWidth(true);
-    const auto searchPlaceholder = we::core::Localization::Get().GetString("UI_SearchPlaceholder", "Search actors...");
-    searchBox->SetPlaceholder(std::string(searchPlaceholder));
-    searchRow->AddChild(searchBox);
-
     auto treeView = std::make_shared<we::UI::TreeView>();
+    treeView->SetExplorerStyle(true);
+    treeView->SetItemHeight(22.0f);
+    treeView->SetIndentWidth(18.0f);
     RegisterExplorerTreeView(treeView);
 
-    auto content = std::make_shared<we::UI::VerticalBox>();
-    content->SetSpacing(0.0f);
-    content->AddChild(header);
-    content->AddChild(searchRow);
-    content->AddChild(treeView);
-
-    panel->SetContent(content);
+    panel->SetContent(treeView);
     return panel;
 }
 
