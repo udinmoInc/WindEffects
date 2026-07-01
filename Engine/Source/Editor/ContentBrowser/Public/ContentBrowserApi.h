@@ -9,4 +9,4 @@ namespace we::programs::editor {
 void InitializeContentBrowserService(we::UI::IconRenderer* iconRenderer);
 void ShutdownContentBrowserService();
 
-} // namespace we::programs::editor
+}

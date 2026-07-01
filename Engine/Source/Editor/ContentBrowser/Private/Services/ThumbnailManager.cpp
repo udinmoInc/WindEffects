@@ -7,7 +7,7 @@
 namespace we::editor::contentbrowser {
 
 namespace {
-constexpr uint64_t kThumbnailCacheSchema = 4; // dedicated folder tile artwork
+constexpr uint64_t kThumbnailCacheSchema = 5; // folders use shared Lucide icon (no baked thumbnail)
 }
 
 ThumbnailManager::ThumbnailManager() {
@@ -39,11 +39,11 @@ BitmapRGBA ThumbnailManager::GenerateBitmap(const ThumbnailRequest& request) {
 
     BitmapRGBA bitmap;
     if (request.isFolder) {
-        bitmap = ThumbnailRenderer::RenderContentBrowserFolderThumbnail(ThumbnailRenderer::kThumbnailSize);
-    } else {
-        if (const auto* asset = ContentAssetRegistry::Get().FindById(request.id)) {
-            bitmap = ThumbnailRenderer::Render(*asset);
-        }
+        return bitmap;
+    }
+
+    if (const auto* asset = ContentAssetRegistry::Get().FindById(request.id)) {
+        bitmap = ThumbnailRenderer::Render(*asset);
     }
 
     if (!bitmap.pixels.empty() && m_DiskCache) {

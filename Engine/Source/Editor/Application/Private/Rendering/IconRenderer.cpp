@@ -8,6 +8,8 @@
 #include <algorithm>
 #include <functional>
 
+#include <unordered_set>
+
 #define NANOSVG_IMPLEMENTATION
 #include <nanosvg.h>
 #define NANOSVGRAST_IMPLEMENTATION
@@ -51,13 +53,16 @@ std::string IconRenderer::ResolveLucideSvgPath(const std::string& lucideName) {
     return {};
 }
 
-VkDescriptorSet IconRenderer::GetLucideIcon(const std::string& iconName, uint32_t size, const Color& color) {
+VkDescriptorSet IconRenderer::GetLucideIcon(const std::string& iconName, uint32_t size, const Color& color, float strokeWidth) {
     if (!m_Context) return VK_NULL_HANDLE;
 
     const std::string lucideName = Icons::ResolveLucideName(iconName);
     const std::string svgPath = ResolveLucideSvgPath(lucideName);
     if (svgPath.empty()) {
-        HE_ERROR("[UI] Lucide icon not found: " + lucideName);
+        static std::unordered_set<std::string> s_ReportedMissing;
+        if (s_ReportedMissing.insert(lucideName).second) {
+            HE_ERROR("[UI] Lucide icon not found: " + lucideName);
+        }
         return VK_NULL_HANDLE;
     }
 
@@ -65,14 +70,15 @@ VkDescriptorSet IconRenderer::GetLucideIcon(const std::string& iconName, uint32_
         + std::to_string(static_cast<int>(color.r * 255.0f)) + "_"
         + std::to_string(static_cast<int>(color.g * 255.0f)) + "_"
         + std::to_string(static_cast<int>(color.b * 255.0f)) + "_"
-        + std::to_string(static_cast<int>(color.a * 255.0f));
+        + std::to_string(static_cast<int>(color.a * 255.0f)) + "_"
+        + std::to_string(static_cast<int>(strokeWidth * 100.0f));
 
     auto it = m_Cache.find(key);
     if (it != m_Cache.end()) {
         return it->second.descriptorSet;
     }
 
-    std::vector<uint8_t> bitmap = RenderSVGToBitmap(svgPath, size, color);
+    std::vector<uint8_t> bitmap = RenderSVGToBitmap(svgPath, size, color, strokeWidth);
     if (bitmap.empty()) return VK_NULL_HANDLE;
 
     IconTexture texture;
@@ -129,7 +135,7 @@ void IconRenderer::ClearCache() {
     m_Cache.clear();
 }
 
-std::vector<uint8_t> IconRenderer::RenderSVGToBitmap(const std::string& svgPath, uint32_t size, const Color& color) {
+std::vector<uint8_t> IconRenderer::RenderSVGToBitmap(const std::string& svgPath, uint32_t size, const Color& color, float strokeWidth) {
     std::string finalPath = svgPath;
     if (!std::filesystem::exists(finalPath)) {
         if (std::filesystem::exists("../" + svgPath)) finalPath = "../" + svgPath;
@@ -148,6 +154,12 @@ std::vector<uint8_t> IconRenderer::RenderSVGToBitmap(const std::string& svgPath,
     if (width <= 0 || height <= 0) {
         nsvgDelete(image);
         return {};
+    }
+
+    if (strokeWidth > 0.0f) {
+        for (NSVGshape* shape = image->shapes; shape != nullptr; shape = shape->next) {
+            shape->strokeWidth = strokeWidth;
+        }
     }
 
     NSVGrasterizer* rast = nsvgCreateRasterizer();

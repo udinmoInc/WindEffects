@@ -166,13 +166,16 @@ long __stdcall Logger::EngineCrashHandler(struct _EXCEPTION_POINTERS* exceptionI
     }
 
     void* exceptionAddress = exceptionInfo->ExceptionRecord->ExceptionAddress;
-    std::string addressStr;
     std::stringstream ss;
-    ss << "0x" << std::hex << exceptionAddress;
-    addressStr = ss.str();
+    ss << "0x" << std::hex << std::uppercase << code;
+    const std::string codeStr = ss.str();
+    ss.str({});
+    ss.clear();
+    ss << "0x" << exceptionAddress;
+    const std::string addressStr = ss.str();
 
     std::string crashDetails = "Fatal Exception Intercepted:\n"
-                               "Code: 0x" + std::to_string(code) + " (" + exceptionName + ")\n"
+                               "Code: " + codeStr + " (" + exceptionName + ")\n"
                                "Address: " + addressStr;
 
     Logger::Log(Level::Error, crashDetails);

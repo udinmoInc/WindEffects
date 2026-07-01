@@ -1,8 +1,10 @@
 #include "Widgets/TreeView.hpp"
 #include "Layout/OverlayManager.hpp"
+#include "Services/ContentBrowserFolderArt.hpp"
 #include "Core/PaintContext.hpp"
 #include "Core/Theme.hpp"
 #include "Core/Icon.hpp"
+#include "Core/IconManager.hpp"
 #include <algorithm>
 #include <cmath>
 #include <functional>
@@ -196,6 +198,8 @@ void TreeView::Paint(PaintContext& context) {
             Rect iconRect{ iconX, iconY, iconSize, iconSize };
             if (node->iconTexture != VK_NULL_HANDLE) {
                 context.DrawTexture(iconRect, node->iconTexture);
+            } else if (node->iconName == IconManager::FolderIcon) {
+                we::editor::contentbrowser::ContentBrowserFolderArt::Get().PaintSmallIcon(context, iconRect, false);
             } else {
                 IconPainter::DrawIcon(context, node->iconName, iconRect, theme.TextPrimary);
             }

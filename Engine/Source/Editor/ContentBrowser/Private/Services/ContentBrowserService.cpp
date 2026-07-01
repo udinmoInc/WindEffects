@@ -1,6 +1,7 @@
 #include "Services/ContentBrowserService.hpp"
+#include "Services/ContentBrowserFolderArt.hpp"
 #include "Registry/AssetTypeResolver.hpp"
-#include "Services/ThumbnailRenderer.hpp"
+#include "Core/IconManager.hpp"
 #include "Rendering/IconRenderer.hpp"
 #include "Core/Logger.hpp"
 #include <filesystem>
@@ -16,14 +17,13 @@ void ContentBrowserService::Initialize(we::UI::IconRenderer* iconRenderer, const
     if (m_Initialized) return;
 
     m_IconRenderer = iconRenderer;
+    ContentBrowserFolderArt::Get().Initialize(iconRenderer);
     m_DiskCache.SetCacheDirectory(std::filesystem::path("Saved/Cache/Thumbnails"));
     m_ThumbnailManager.SetDiskCache(&m_DiskCache);
     m_ThumbnailManager.SetFolderPreviewGenerator(&m_FolderPreview);
 
     ContentAssetRegistry::Get().Initialize(contentRoot);
     ContentAssetRegistry::Get().SetOnRegistryRefreshed([this]() { OnRegistryRefreshed(); });
-
-    EnsureFolderThumbnail();
 
     m_Initialized = true;
     HE_INFO("[ContentBrowserService] Initialized");
@@ -34,6 +34,7 @@ void ContentBrowserService::Shutdown() {
     ContentAssetRegistry::Get().Shutdown();
     m_ThumbnailManager.InvalidateAll();
     m_FolderPreview.InvalidateAll();
+    ContentBrowserFolderArt::Get().InvalidateCache();
     m_Initialized = false;
 }
 
@@ -50,15 +51,8 @@ void ContentBrowserService::SetCurrentFolder(const std::string& virtualPath) {
     }
 }
 
-void ContentBrowserService::EnsureFolderThumbnail() {
-    if (m_FolderThumbnailTexture != VK_NULL_HANDLE || !m_IconRenderer) return;
-    const auto bitmap = ThumbnailRenderer::RenderContentBrowserFolderThumbnail(128);
-    m_FolderThumbnailTexture = UploadBitmap(bitmap);
-}
-
 void ContentBrowserService::RefreshBrowserModel(const std::shared_ptr<we::UI::ContentBrowserModel>& model) {
     if (!model) return;
-    EnsureFolderThumbnail();
     m_Model = model;
     model->items.clear();
 
@@ -71,11 +65,8 @@ void ContentBrowserService::RefreshBrowserModel(const std::shared_ptr<we::UI::Co
         item.path = asset->virtualPath;
         item.isFolder = asset->isFolder;
         item.isFavorite = asset->isFavorite;
-        item.iconName = asset->isFolder ? "folder" : AssetTypeToKey(asset->type);
-        if (asset->isFolder) {
-            item.iconTexture = m_FolderThumbnailTexture;
-            item.thumbnailRequested = true;
-        } else {
+        item.iconName = asset->isFolder ? we::UI::IconManager::FolderIcon : AssetTypeToKey(asset->type);
+        if (!asset->isFolder) {
             item.iconTexture = m_ThumbnailManager.GetCachedTexture(asset->id);
             item.thumbnailRequested = item.iconTexture != VK_NULL_HANDLE;
         }
@@ -101,10 +92,8 @@ void ContentBrowserService::RequestThumbnailForItem(const std::string& id) {
     request.id = asset->id;
     request.type = AssetTypeToKey(asset->type);
     request.path = asset->virtualPath;
-    request.isFolder = asset->isFolder;
-    request.sourceVersion = asset->isFolder
-        ? ContentAssetRegistry::Get().GetFolderContentVersion(asset->virtualPath)
-        : asset->modifiedTime;
+    request.isFolder = false;
+    request.sourceVersion = asset->modifiedTime;
     request.folderVersion = ContentAssetRegistry::Get().GetFolderContentVersion(asset->virtualPath);
     m_ThumbnailManager.RequestThumbnail(request);
 }
@@ -144,7 +133,7 @@ void ContentBrowserService::OnRegistryRefreshed() {
 }
 
 size_t ContentBrowserService::GetMemoryUsageBytes() const {
-    return m_ThumbnailManager.HasCachedTexture("") ? 0 : 0; // placeholder metric
+    return m_ThumbnailManager.HasCachedTexture("") ? 0 : 0;
 }
 
 } // namespace we::editor::contentbrowser

@@ -1,15 +1,20 @@
 
 set(MODULE_NAME WindEffects-Application)
 
-file(GLOB_RECURSE SOURCE_FILES
+file(GLOB_RECURSE SOURCE_FILES CONFIGURE_DEPENDS
     "Private/*.cpp"
     "Private/*.hpp"
 )
-# Trigger CMake glob refresh
 
-file(GLOB_RECURSE PUBLIC_HEADERS
+file(GLOB_RECURSE PUBLIC_HEADERS CONFIGURE_DEPENDS
     "Public/*.hpp"
 )
+
+# Ensure IconManager is always compiled (used by ContentBrowser via Application DLL exports).
+list(APPEND SOURCE_FILES
+    "${CMAKE_CURRENT_SOURCE_DIR}/Private/Core/IconManager.cpp"
+)
+list(REMOVE_DUPLICATES SOURCE_FILES)
 
 add_library(${MODULE_NAME} SHARED ${SOURCE_FILES} ${PUBLIC_HEADERS})
 set_target_properties(${MODULE_NAME} PROPERTIES WINDOWS_EXPORT_ALL_SYMBOLS ON)

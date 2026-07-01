@@ -1,10 +1,15 @@
 
 set(MODULE_NAME WindEffects-ContentBrowser)
 
-file(GLOB_RECURSE SOURCE_FILES
+file(GLOB_RECURSE SOURCE_FILES CONFIGURE_DEPENDS
     "Private/*.cpp"
     "Private/*.hpp"
 )
+
+list(APPEND SOURCE_FILES
+    "${CMAKE_CURRENT_SOURCE_DIR}/Private/Services/ContentBrowserFolderArt.cpp"
+)
+list(REMOVE_DUPLICATES SOURCE_FILES)
 
 file(GLOB_RECURSE PUBLIC_HEADERS
     "Public/*.hpp"
@@ -25,5 +30,7 @@ target_link_libraries(${MODULE_NAME} PUBLIC
     volk 
     SDL3::SDL3
 )
+
+add_dependencies(${MODULE_NAME} WindEffects-Application)
 
 target_include_directories(${MODULE_NAME} PRIVATE ${stb_SOURCE_DIR} ${nanosvg_SOURCE_DIR}/src)

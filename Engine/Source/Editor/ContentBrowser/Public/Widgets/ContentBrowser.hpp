@@ -94,8 +94,10 @@ private:
 
     void PaintGridItem(PaintContext& context, const RenderItem& renderItem);
     void PaintListItem(PaintContext& context, const RenderItem& renderItem);
+    void PaintTileChrome(PaintContext& context, const Rect& cell, bool selected, float hoverAlpha);
     void PaintAssetThumbnail(PaintContext& context, const Rect& thumbRect, const ContentItem& item, bool selected, bool hovered);
-    void PaintItemLabel(PaintContext& context, const Rect& cell, const std::string& name, float maxWidth);
+    void PaintItemLabel(PaintContext& context, const Rect& cell, const std::string& name, float maxWidth, int maxLines = 2);
+    std::vector<std::string> WrapLabelText(PaintContext& context, const std::string& text, float maxWidth, float fontSize, int maxLines) const;
 
     std::shared_ptr<ContentBrowserModel> m_Model;
     std::shared_ptr<ContentBrowserController> m_Controller;
@@ -104,6 +106,7 @@ private:
     std::vector<RenderItem> m_RenderList;
     std::string m_LastSelectedId;
     std::string m_HoveredId;
+    float m_ItemHoverAlpha = 0.0f;
 
     Point m_SelectStart{0,0};
     Point m_SelectEnd{0,0};

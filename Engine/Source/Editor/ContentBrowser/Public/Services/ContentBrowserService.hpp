@@ -39,8 +39,6 @@ public:
     void RequestThumbnailForItem(const std::string& id);
     void SetVisibleItemIds(const std::unordered_set<std::string>& ids);
 
-    VkDescriptorSet GetFolderThumbnailTexture() const { return m_FolderThumbnailTexture; }
-
     void SetOnThumbnailReady(std::function<void(const std::string&, VkDescriptorSet)> callback) {
         m_OnThumbnailReady = std::move(callback);
     }
@@ -50,11 +48,9 @@ public:
 private:
     void OnRegistryRefreshed();
     void ProcessThumbnails();
-    void EnsureFolderThumbnail();
     VkDescriptorSet UploadBitmap(const struct BitmapRGBA& bitmap);
 
     we::UI::IconRenderer* m_IconRenderer = nullptr;
-    VkDescriptorSet m_FolderThumbnailTexture = VK_NULL_HANDLE;
     ThumbnailManager m_ThumbnailManager;
     DiskThumbnailCache m_DiskCache;
     FolderPreviewGenerator m_FolderPreview;

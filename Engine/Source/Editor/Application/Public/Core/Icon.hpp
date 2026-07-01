@@ -85,7 +85,7 @@ namespace Icons {
     constexpr const char* SearchName     = "search";
     constexpr const char* SettingsName   = "settings";
     constexpr const char* MenuName       = "menu";
-    constexpr const char* MoreName       = "ellipsis-vertical";
+    constexpr const char* MoreName       = "more-vertical";
     constexpr const char* ChevronRightName = "chevron-right";
     constexpr const char* ChevronDownName  = "chevron-down";
     constexpr const char* ChevronLeftName  = "chevron-left";
@@ -161,6 +161,7 @@ namespace Icons {
             {"settings", SettingsName},
             {"menu", MenuName},
             {"more", MoreName},
+            {"ellipsis-vertical", MoreName},
             {"chevron-right", ChevronRightName},
             {"chevron-down", ChevronDownName},
             {"chevron-left", ChevronLeftName},

@@ -1,0 +1,41 @@
+#pragma once
+
+#include "Core/Geometry.hpp"
+#include <cstdint>
+#include <string>
+#include <unordered_map>
+#include <volk.h>
+
+namespace we::UI {
+class IconRenderer;
+class PaintContext;
+}
+
+namespace we::editor::contentbrowser {
+
+// Dedicated UE5-style filled folder artwork for Content Browser (not Lucide).
+class ContentBrowserFolderArt {
+public:
+    static ContentBrowserFolderArt& Get();
+
+    void Initialize(we::UI::IconRenderer* iconRenderer);
+    void InvalidateCache();
+
+    static constexpr float kThumbnailWidthFill = 0.825f;
+    static constexpr float kThumbnailHeightFill = 0.725f;
+    static constexpr float kFolderAspectRatio = 1.45f; // 146 / 100 viewBox
+
+    void PaintThumbnail(we::UI::PaintContext& context, const we::UI::Rect& thumbRect, bool hovered) const;
+    void PaintSmallIcon(we::UI::PaintContext& context, const we::UI::Rect& iconRect, bool hovered) const;
+
+    static we::UI::Rect ComputeFolderRect(const we::UI::Rect& bounds,
+        float widthFill = kThumbnailWidthFill, float heightFill = kThumbnailHeightFill);
+
+private:
+    VkDescriptorSet GetTexture(uint32_t heightPx, bool hovered) const;
+
+    we::UI::IconRenderer* m_Renderer = nullptr;
+    mutable std::unordered_map<std::string, VkDescriptorSet> m_Cache;
+};
+
+} // namespace we::editor::contentbrowser

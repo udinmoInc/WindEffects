@@ -23,6 +23,16 @@ struct Theme {
     Color TabBackground          = { 0.114f, 0.114f, 0.114f, 1.0f }; // #1D1D1D
     Color PopupBackground        = { 0.137f, 0.137f, 0.137f, 1.0f }; // #232323
     Color ContentBrowserBackground = { 0.137f, 0.137f, 0.137f, 1.0f }; // #232323
+    Color ContentBrowserFolderIcon   = { 0.647f, 0.671f, 0.710f, 1.0f }; // #A5ABB5
+    Color ContentBrowserItemLabel    = { 0.827f, 0.839f, 0.859f, 1.0f }; // #D3D6DB
+    Color ContentBrowserHoverBg      = { 0.157f, 0.157f, 0.161f, 1.0f }; // subtle lift on hover
+    Color ContentBrowserSelectedFill = { 0.0f, 0.0f, 0.0f, 0.22f };      // subtle dark selection fill
+
+    // Content Browser folder thumbnail (filled artwork — not Lucide)
+    Color ContentBrowserFolderBody      = { 0.718f, 0.624f, 0.451f, 1.0f }; // #B79F73
+    Color ContentBrowserFolderTab       = { 0.776f, 0.690f, 0.510f, 1.0f }; // #C6B082
+    Color ContentBrowserFolderShadow    = { 0.541f, 0.463f, 0.333f, 1.0f }; // #8A7655
+    Color ContentBrowserFolderHighlight = { 0.847f, 0.780f, 0.608f, 1.0f }; // #D8C79B
     
     // Borders
     Color BorderDefault     = { 0.188f, 0.188f, 0.188f, 1.0f }; // #303030
@@ -43,6 +53,7 @@ struct Theme {
     Color TextPrimary       = { 0.835f, 0.835f, 0.835f, 1.0f }; // #D5D5D5 (Menu text)
     Color TextSecondary     = { 0.784f, 0.784f, 0.784f, 1.0f }; // #C8C8C8 (Inactive icons)
     Color TextDisabled      = { 0.478f, 0.478f, 0.478f, 1.0f }; // #7A7A7A (Disabled)
+    Color IconMuted         = { 0.580f, 0.608f, 0.651f, 1.0f }; // Slate gray for Lucide icons
     Color TextWindowLabel   = { 0.835f, 0.835f, 0.835f, 1.0f }; // #D5D5D5
 
     // Accents

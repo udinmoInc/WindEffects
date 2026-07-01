@@ -34,7 +34,7 @@ public:
     
     // Get or create icon texture at specified size (path or lucide name).
     VkDescriptorSet GetIcon(const std::string& iconName, uint32_t size);
-    VkDescriptorSet GetLucideIcon(const std::string& iconName, uint32_t size, const Color& color);
+    VkDescriptorSet GetLucideIcon(const std::string& iconName, uint32_t size, const Color& color, float strokeWidth = 0.0f);
 
     // Create a texture from raw RGBA bitmap data (for thumbnails)
     VkDescriptorSet CreateTextureFromBitmap(const std::vector<uint8_t>& bitmap, uint32_t width, uint32_t height);
@@ -46,7 +46,7 @@ private:
     static std::string ResolveLucideSvgPath(const std::string& lucideName);
 
     // Parse SVG path and render to bitmap
-    std::vector<uint8_t> RenderSVGToBitmap(const std::string& svgPath, uint32_t size, const Color& color);
+    std::vector<uint8_t> RenderSVGToBitmap(const std::string& svgPath, uint32_t size, const Color& color, float strokeWidth = 0.0f);
     
     // Create Vulkan texture from bitmap
     bool CreateTexture(const std::vector<uint8_t>& bitmap, uint32_t width, uint32_t height, IconTexture& outTexture);

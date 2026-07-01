@@ -6,7 +6,7 @@
 
 namespace we::editor::contentbrowser {
 
-// Folders use a single shared flat icon. Opening a folder shows asset thumbnails in the grid.
+// Folders use dedicated UE-style filled artwork via ContentBrowserFolderArt.
 class FolderPreviewGenerator {
 public:
     BitmapRGBA Generate(const std::string& folderVirtualPath, uint32_t folderVersion);

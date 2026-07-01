@@ -1,6 +1,5 @@
 #include "Services/FolderPreviewGenerator.hpp"
 #include "Services/ThumbnailRenderer.hpp"
-#include "Services/ThumbnailRenderer.hpp"
 
 namespace we::editor::contentbrowser {
 
@@ -12,11 +11,10 @@ BitmapRGBA FolderPreviewGenerator::Generate(const std::string& folderVirtualPath
         if (cached != m_BitmapCache.end()) return cached->second;
     }
 
-    // UE5: folders are quiet flat icons — content previews appear when the folder is opened.
-    BitmapRGBA preview = ThumbnailRenderer::RenderContentBrowserFolderThumbnail();
-    m_BitmapCache[folderVirtualPath] = preview;
+    BitmapRGBA bmp = ThumbnailRenderer::RenderContentBrowserFolder(ThumbnailRenderer::kThumbnailSize, 0.0f);
+    m_BitmapCache[folderVirtualPath] = bmp;
     m_VersionCache[folderVirtualPath] = folderVersion;
-    return preview;
+    return bmp;
 }
 
 void FolderPreviewGenerator::Invalidate(const std::string& folderVirtualPath) {

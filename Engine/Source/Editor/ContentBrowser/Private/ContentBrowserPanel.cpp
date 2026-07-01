@@ -9,6 +9,7 @@
 #include "Layout/Box.hpp"
 #include "Layout/Splitter.hpp"
 #include "Core/Icon.hpp"
+#include "Core/IconManager.hpp"
 #include "Localization.hpp"
 #include "Services/ContentBrowserService.hpp"
 #include "Registry/ContentAssetRegistry.hpp"
@@ -40,7 +41,7 @@ std::shared_ptr<we::UI::TreeNode> BuildFolderNode(const AssetRecord* folder) {
     auto node = std::make_shared<we::UI::TreeNode>();
     node->id = folder->id;
     node->label = folder->name;
-    node->iconName = "folder";
+    node->iconName = we::UI::IconManager::FolderIcon;
     node->expanded = folder->virtualPath == "/Game";
 
     for (const auto* child : ContentAssetRegistry::Get().GetChildren(folder->virtualPath)) {
@@ -129,6 +130,9 @@ void WireContentBrowser(
 } // namespace
 
 void InitializeContentBrowserService(we::UI::IconRenderer* iconRenderer) {
+    if (iconRenderer) {
+        we::UI::IconManager::Get().Initialize(iconRenderer);
+    }
     ContentBrowserService::Get().Initialize(iconRenderer, "Content");
 }
 

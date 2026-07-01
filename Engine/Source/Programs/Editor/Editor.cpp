@@ -57,11 +57,6 @@
 #include "../Windows/Win32WindowChrome.hpp"
 #endif
 
-#define NANOSVG_IMPLEMENTATION
-#include <nanosvg.h>
-#define NANOSVGRAST_IMPLEMENTATION
-#include <nanosvgrast.h>
-
 namespace we::programs::editor {
 
 using namespace we::UI;

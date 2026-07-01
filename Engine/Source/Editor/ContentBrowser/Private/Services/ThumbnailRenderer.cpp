@@ -1,5 +1,7 @@
 #include "Services/ThumbnailRenderer.hpp"
 #include "Registry/AssetTypeResolver.hpp"
+#include "Core/Theme.hpp"
+#include "Core/Logger.hpp"
 
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
@@ -10,6 +12,7 @@
 #include <nanosvgrast.h>
 
 #include <algorithm>
+#include <array>
 #include <cmath>
 #include <filesystem>
 #include <fstream>
@@ -28,20 +31,39 @@ std::string ResolvePath(const std::string& path) {
     return path;
 }
 
-bool IsInsideRoundedRect(int px, int py, int x, int y, int w, int h, int radius) {
-    if (px < x || py < y || px >= x + w || py >= y + h) return false;
-    radius = std::max(0, std::min(radius, std::min(w, h) / 2));
-    int dx = 0, dy = 0;
-    if (px < x + radius && py < y + radius) {
-        dx = (x + radius) - px; dy = (y + radius) - py;
-    } else if (px >= x + w - radius && py < y + radius) {
-        dx = px - (x + w - radius - 1); dy = (y + radius) - py;
-    } else if (px < x + radius && py >= y + h - radius) {
-        dx = (x + radius) - px; dy = py - (y + h - radius - 1);
-    } else if (px >= x + w - radius && py >= y + h - radius) {
-        dx = px - (x + w - radius - 1); dy = py - (y + h - radius - 1);
+std::string ResolveFolderSvgPath() {
+    const char* candidates[] = {
+        "Assets/Icons/content-browser-folder.svg",
+        "Icons/content-browser-folder.svg",
+        "../Assets/Icons/content-browser-folder.svg",
+        "../../Assets/Icons/content-browser-folder.svg",
+        "Engine/Content/Icons/content-browser-folder.svg",
+        "../Engine/Content/Icons/content-browser-folder.svg",
+    };
+    for (const char* path : candidates) {
+        if (std::filesystem::exists(path)) return path;
     }
-    return dx == 0 || dy == 0 || dx * dx + dy * dy <= radius * radius;
+    return {};
+}
+
+uint32_t SnapFolderRasterHeight(uint32_t heightPx) {
+    if (heightPx <= 72u) return 64u;
+    if (heightPx <= 112u) return 96u;
+    return 128u;
+}
+
+uint8_t BrightenChannel(uint8_t channel, float hoverBrightness) {
+    const float boost = std::clamp(hoverBrightness, 0.0f, 1.0f);
+    const float f = static_cast<float>(channel) / 255.0f;
+    return static_cast<uint8_t>(std::min(255.0f, (f + (1.0f - f) * 0.10f * boost) * 255.0f));
+}
+
+std::array<uint8_t, 3> ThemeRgb(const we::UI::Color& color, float hoverBrightness) {
+    return {
+        BrightenChannel(static_cast<uint8_t>(color.r * 255.0f), hoverBrightness),
+        BrightenChannel(static_cast<uint8_t>(color.g * 255.0f), hoverBrightness),
+        BrightenChannel(static_cast<uint8_t>(color.b * 255.0f), hoverBrightness),
+    };
 }
 
 } // namespace
@@ -317,120 +339,6 @@ BitmapRGBA ThumbnailRenderer::RenderGenericIcon(AssetType type) {
     return bmp;
 }
 
-BitmapRGBA ThumbnailRenderer::RenderContentBrowserFolderThumbnail(uint32_t size) {
-    auto bmp = CreateEmpty(size);
-    const int s = static_cast<int>(size);
-
-    // Match Content Browser panel background — folder floats on flat dark surface.
-    FillRect(bmp, 0, 0, s, s, 28, 28, 28, 255);
-
-    const float scale = static_cast<float>(size) / 128.0f;
-    const auto sc = [scale](int v) { return static_cast<int>(v * scale + 0.5f); };
-
-    // UE5 proportions: wide body, small left tab, unified thick silhouette.
-    const int bodyX = sc(16);
-    const int bodyY = sc(44);
-    const int bodyW = sc(96);
-    const int bodyH = sc(62);
-    const int bodyR = sc(7);
-    const int tabX = sc(20);
-    const int tabY = sc(30);
-    const int tabW = sc(40);
-    const int tabH = sc(18);
-    const int tabR = sc(5);
-
-    const int folderTop = tabY;
-    const int folderBottom = bodyY + bodyH;
-    const int folderHeight = std::max(1, folderBottom - folderTop);
-
-    auto insideFolder = [&](int lx, int ly) {
-        return IsInsideRoundedRect(lx, ly, tabX, tabY, tabW, tabH, tabR)
-            || IsInsideRoundedRect(lx, ly, bodyX, bodyY, bodyW, bodyH, bodyR);
-    };
-
-    // Soft drop shadow — blurred offset copies of the folder silhouette.
-    for (int layer = sc(10); layer >= sc(2); --layer) {
-        const int oy = layer;
-        const uint8_t alpha = static_cast<uint8_t>(std::clamp(34 - layer * 2, 4, 30));
-        for (int py = tabY + oy - 2; py < folderBottom + oy + sc(4); ++py) {
-            for (int px = bodyX - sc(2); px < bodyX + bodyW + sc(2); ++px) {
-                const int lx = px;
-                const int ly = py - oy;
-                if (!insideFolder(lx, ly)) continue;
-                AlphaBlendPixel(bmp, px, py, 0, 0, 0, alpha);
-            }
-        }
-    }
-
-    // Vertical warm gold gradient across the filled folder (lighter top, darker bottom).
-    constexpr uint8_t topR = 201, topG = 181, topB = 141;
-    constexpr uint8_t botR = 154, botG = 134, botB = 96;
-
-    for (int py = folderTop; py < folderBottom; ++py) {
-        const float t = static_cast<float>(py - folderTop) / static_cast<float>(folderHeight - 1);
-        const uint8_t r = static_cast<uint8_t>(topR + (botR - topR) * t);
-        const uint8_t g = static_cast<uint8_t>(topG + (botG - topG) * t);
-        const uint8_t b = static_cast<uint8_t>(topB + (botB - topB) * t);
-        for (int px = bodyX - 1; px < bodyX + bodyW + 1; ++px) {
-            if (!insideFolder(px, py)) continue;
-            SetPixel(bmp, px, py, r, g, b, 255);
-        }
-    }
-
-    // Thin top-edge highlight on body (UE5 subtle sheen).
-    const int highlightY = bodyY + sc(3);
-    constexpr uint8_t hiR = 228, hiG = 212, hiB = 172;
-    for (int px = bodyX + sc(8); px < bodyX + bodyW - sc(8); ++px) {
-        if (insideFolder(px, highlightY)) {
-            SetPixel(bmp, px, highlightY, hiR, hiG, hiB, 255);
-        }
-    }
-    for (int px = tabX + sc(5); px < tabX + tabW - sc(5); ++px) {
-        const int hy = tabY + sc(2);
-        if (insideFolder(px, hy)) {
-            SetPixel(bmp, px, hy, hiR, hiG, hiB, 220);
-        }
-    }
-
-    return bmp;
-}
-
-void ThumbnailRenderer::AlphaBlendPixel(BitmapRGBA& bmp, int x, int y, uint8_t r, uint8_t g, uint8_t b, uint8_t a) {
-    if (x < 0 || y < 0 || x >= static_cast<int>(bmp.width) || y >= static_cast<int>(bmp.height) || a == 0) return;
-    const size_t idx = (static_cast<size_t>(y) * bmp.width + static_cast<size_t>(x)) * 4;
-    const float srcA = a / 255.0f;
-    const float dstA = bmp.pixels[idx + 3] / 255.0f;
-    const float outA = srcA + dstA * (1.0f - srcA);
-    if (outA <= 0.0f) return;
-    bmp.pixels[idx]     = static_cast<uint8_t>((r * srcA + bmp.pixels[idx]     * dstA * (1.0f - srcA)) / outA);
-    bmp.pixels[idx + 1] = static_cast<uint8_t>((g * srcA + bmp.pixels[idx + 1] * dstA * (1.0f - srcA)) / outA);
-    bmp.pixels[idx + 2] = static_cast<uint8_t>((b * srcA + bmp.pixels[idx + 2] * dstA * (1.0f - srcA)) / outA);
-    bmp.pixels[idx + 3] = static_cast<uint8_t>(outA * 255.0f);
-}
-
-void ThumbnailRenderer::FillRoundedRect(BitmapRGBA& bmp, int x, int y, int w, int h, int radius,
-    uint8_t r, uint8_t g, uint8_t b, uint8_t a)
-{
-    radius = std::max(0, std::min(radius, std::min(w, h) / 2));
-    for (int py = y; py < y + h; ++py) {
-        for (int px = x; px < x + w; ++px) {
-            int dx = 0, dy = 0;
-            if (px < x + radius && py < y + radius) {
-                dx = (x + radius) - px; dy = (y + radius) - py;
-            } else if (px >= x + w - radius && py < y + radius) {
-                dx = px - (x + w - radius - 1); dy = (y + radius) - py;
-            } else if (px < x + radius && py >= y + h - radius) {
-                dx = (x + radius) - px; dy = py - (y + h - radius - 1);
-            } else if (px >= x + w - radius && py >= y + h - radius) {
-                dx = px - (x + w - radius - 1); dy = py - (y + h - radius - 1);
-            }
-            if (dx > 0 && dy > 0 && dx * dx + dy * dy > radius * radius) continue;
-            if (a == 255) SetPixel(bmp, px, py, r, g, b, a);
-            else AlphaBlendPixel(bmp, px, py, r, g, b, a);
-        }
-    }
-}
-
 BitmapRGBA ThumbnailRenderer::Render(const AssetRecord& asset) {
     switch (asset.type) {
         case AssetType::Texture:
@@ -461,6 +369,204 @@ BitmapRGBA ThumbnailRenderer::Render(const AssetRecord& asset) {
         default:
             return RenderGenericIcon(asset.type);
     }
+}
+
+void ThumbnailRenderer::AlphaBlend(BitmapRGBA& bmp, int x, int y, uint8_t r, uint8_t g, uint8_t b, uint8_t a) {
+    if (a == 0) return;
+    if (x < 0 || y < 0 || x >= static_cast<int>(bmp.width) || y >= static_cast<int>(bmp.height)) return;
+    const size_t idx = (static_cast<size_t>(y) * bmp.width + static_cast<size_t>(x)) * 4;
+    const float srcA = a / 255.0f;
+    const float dstA = bmp.pixels[idx + 3] / 255.0f;
+    const float outA = srcA + dstA * (1.0f - srcA);
+    if (outA <= 0.0f) return;
+    const float blend = srcA / outA;
+    bmp.pixels[idx]     = static_cast<uint8_t>(r * blend + bmp.pixels[idx] * (1.0f - blend));
+    bmp.pixels[idx + 1] = static_cast<uint8_t>(g * blend + bmp.pixels[idx + 1] * (1.0f - blend));
+    bmp.pixels[idx + 2] = static_cast<uint8_t>(b * blend + bmp.pixels[idx + 2] * (1.0f - blend));
+    bmp.pixels[idx + 3] = static_cast<uint8_t>(outA * 255.0f);
+}
+
+float ThumbnailRenderer::RoundedRectCoverage(float px, float py, float rx, float ry, float rw, float rh, float radius) {
+    const float r = std::max(0.0f, std::min(radius, std::min(rw, rh) * 0.5f));
+    const float cx = rx + rw * 0.5f;
+    const float cy = ry + rh * 0.5f;
+    const float hx = rw * 0.5f - r;
+    const float hy = rh * 0.5f - r;
+    const float dx = std::abs(px - cx) - hx;
+    const float dy = std::abs(py - cy) - hy;
+    const float ax = std::max(dx, 0.0f);
+    const float ay = std::max(dy, 0.0f);
+    const float outside = std::sqrt(ax * ax + ay * ay) - r;
+    const float inside = std::min(std::max(dx, dy), 0.0f);
+    const float sdf = outside + inside;
+    return std::clamp(0.65f - sdf, 0.0f, 1.0f);
+}
+
+void ThumbnailRenderer::FillRoundedRect(BitmapRGBA& bmp, float x, float y, float w, float h, float radius,
+    uint8_t r, uint8_t g, uint8_t b, uint8_t a)
+{
+    const int x0 = std::max(0, static_cast<int>(std::floor(x)));
+    const int y0 = std::max(0, static_cast<int>(std::floor(y)));
+    const int x1 = std::min(static_cast<int>(bmp.width), static_cast<int>(std::ceil(x + w)));
+    const int y1 = std::min(static_cast<int>(bmp.height), static_cast<int>(std::ceil(y + h)));
+    for (int py = y0; py < y1; ++py) {
+        for (int px = x0; px < x1; ++px) {
+            const float coverage = RoundedRectCoverage(px + 0.5f, py + 0.5f, x, y, w, h, radius);
+            if (coverage <= 0.0f) continue;
+            AlphaBlend(bmp, px, py, r, g, b, static_cast<uint8_t>(a * coverage));
+        }
+    }
+}
+
+void ThumbnailRenderer::FillRoundedRectVerticalGradient(BitmapRGBA& bmp, float x, float y, float w, float h, float radius,
+    uint8_t rTop, uint8_t gTop, uint8_t bTop, uint8_t rBot, uint8_t gBot, uint8_t bBot, uint8_t a)
+{
+    const int x0 = std::max(0, static_cast<int>(std::floor(x)));
+    const int y0 = std::max(0, static_cast<int>(std::floor(y)));
+    const int x1 = std::min(static_cast<int>(bmp.width), static_cast<int>(std::ceil(x + w)));
+    const int y1 = std::min(static_cast<int>(bmp.height), static_cast<int>(std::ceil(y + h)));
+    for (int py = y0; py < y1; ++py) {
+        const float t = h > 0.0f ? (py + 0.5f - y) / h : 0.0f;
+        const uint8_t r = static_cast<uint8_t>(rTop + (rBot - rTop) * t);
+        const uint8_t g = static_cast<uint8_t>(gTop + (gBot - gTop) * t);
+        const uint8_t b = static_cast<uint8_t>(bTop + (bBot - bTop) * t);
+        for (int px = x0; px < x1; ++px) {
+            const float coverage = RoundedRectCoverage(px + 0.5f, py + 0.5f, x, y, w, h, radius);
+            if (coverage <= 0.0f) continue;
+            AlphaBlend(bmp, px, py, r, g, b, static_cast<uint8_t>(a * coverage));
+        }
+    }
+}
+
+BitmapRGBA ThumbnailRenderer::RenderContentBrowserFolderProcedural(uint32_t w, uint32_t h, float hoverBrightness) {
+    // Procedural fallback mirrors the SVG path layout (nanosvg-compatible flat paths).
+    BitmapRGBA bmp;
+    bmp.width = w;
+    bmp.height = h;
+    bmp.pixels.assign(static_cast<size_t>(w) * h * 4, 0);
+
+    const we::UI::Theme& theme = we::UI::Theme::Get();
+    const auto shadow = ThemeRgb(theme.ContentBrowserFolderShadow, hoverBrightness);
+    const auto tabTop = ThemeRgb(theme.ContentBrowserFolderHighlight, hoverBrightness);
+    const auto tabBot = ThemeRgb(theme.ContentBrowserFolderTab, hoverBrightness);
+    const auto bodyTop = ThemeRgb(theme.ContentBrowserFolderTab, hoverBrightness);
+    const auto bodyMid = ThemeRgb(theme.ContentBrowserFolderBody, hoverBrightness);
+    const auto bodyBot = ThemeRgb({ theme.ContentBrowserFolderBody.r * 0.92f,
+        theme.ContentBrowserFolderBody.g * 0.92f, theme.ContentBrowserFolderBody.b * 0.92f, 1.0f }, hoverBrightness);
+    const auto highlight = ThemeRgb(theme.ContentBrowserFolderHighlight, hoverBrightness);
+
+    constexpr float kRefW = 146.0f;
+    constexpr float kRefH = 100.0f;
+    const float sx = static_cast<float>(w) / kRefW;
+    const float sy = static_cast<float>(h) / kRefH;
+    const float scale = std::min(sx, sy);
+    const auto X = [sx](float v) { return v * sx; };
+    const auto Y = [sy](float v) { return v * sy; };
+    const auto S = [scale](float v) { return v * scale; };
+
+    const float castX = X(2.8f);
+    const float castY = Y(3.2f);
+    FillRoundedRect(bmp, X(9.0f) + castX, Y(27.0f) + castY, X(132.0f), Y(67.0f), S(4.0f),
+        shadow[0], shadow[1], shadow[2], 77);
+    FillRoundedRect(bmp, X(9.0f) + castX, Y(10.0f) + castY, X(35.0f), Y(18.0f), S(4.0f),
+        shadow[0], shadow[1], shadow[2], 77);
+
+    FillRoundedRectVerticalGradient(bmp, X(9.0f), Y(27.0f), X(132.0f), Y(67.0f), S(4.0f),
+        bodyTop[0], bodyTop[1], bodyTop[2], bodyBot[0], bodyBot[1], bodyBot[2], 255);
+    FillRoundedRectVerticalGradient(bmp, X(9.0f), Y(27.0f), X(132.0f), Y(67.0f), S(4.0f),
+        bodyMid[0], bodyMid[1], bodyMid[2], bodyBot[0], bodyBot[1], bodyBot[2], 255);
+
+    FillRoundedRectVerticalGradient(bmp, X(9.0f), Y(10.0f), X(35.0f), Y(18.0f), S(4.0f),
+        tabTop[0], tabTop[1], tabTop[2], tabBot[0], tabBot[1], tabBot[2], 255);
+
+    FillRoundedRectVerticalGradient(bmp, X(9.0f), Y(52.0f), X(132.0f), Y(42.0f), S(4.0f),
+        shadow[0], shadow[1], shadow[2], shadow[0], shadow[1], shadow[2], 56);
+
+    FillRoundedRect(bmp, X(12.0f), Y(13.0f), X(28.0f), Y(1.4f), S(0.7f),
+        highlight[0], highlight[1], highlight[2], 158);
+    FillRoundedRect(bmp, X(50.0f), Y(28.5f), X(84.0f), Y(1.2f), S(0.6f),
+        highlight[0], highlight[1], highlight[2], 102);
+
+    return bmp;
+}
+
+BitmapRGBA ThumbnailRenderer::RasterizeFolderSvg(const std::string& resolved, uint32_t w, uint32_t h, float hoverBrightness) {
+    NSVGimage* image = nsvgParseFromFile(resolved.c_str(), "px", 96.0f);
+    if (!image) return {};
+
+    NSVGrasterizer* rast = nsvgCreateRasterizer();
+    if (!rast) {
+        nsvgDelete(image);
+        return {};
+    }
+
+    constexpr int kSSAA = 4;
+    const int rasterW = static_cast<int>(w) * kSSAA;
+    const int rasterH = static_cast<int>(h) * kSSAA;
+    const float scale = std::min(
+        static_cast<float>(rasterW) / static_cast<float>(image->width),
+        static_cast<float>(rasterH) / static_cast<float>(image->height));
+    const float offsetX = (static_cast<float>(rasterW) - image->width * scale) * 0.5f;
+    const float offsetY = (static_cast<float>(rasterH) - image->height * scale) * 0.5f;
+
+    std::vector<uint8_t> rasterData(static_cast<size_t>(rasterW) * static_cast<size_t>(rasterH) * 4, 0);
+    nsvgRasterize(rast, image, offsetX, offsetY, scale, rasterData.data(), rasterW, rasterH, rasterW * 4);
+    nsvgDeleteRasterizer(rast);
+    nsvgDelete(image);
+
+    BitmapRGBA bmp;
+    bmp.width = w;
+    bmp.height = h;
+    bmp.pixels.assign(static_cast<size_t>(w) * h * 4, 0);
+
+    for (uint32_t y = 0; y < h; ++y) {
+        for (uint32_t x = 0; x < w; ++x) {
+            uint32_t sumR = 0, sumG = 0, sumB = 0, sumA = 0;
+            for (int dy = 0; dy < kSSAA; ++dy) {
+                for (int dx = 0; dx < kSSAA; ++dx) {
+                    const int sx = static_cast<int>(x) * kSSAA + dx;
+                    const int sy = static_cast<int>(y) * kSSAA + dy;
+                    const size_t srcIdx = (static_cast<size_t>(sy) * static_cast<size_t>(rasterW) + static_cast<size_t>(sx)) * 4;
+                    const uint8_t a = rasterData[srcIdx + 3];
+                    sumR += rasterData[srcIdx] * a;
+                    sumG += rasterData[srcIdx + 1] * a;
+                    sumB += rasterData[srcIdx + 2] * a;
+                    sumA += a;
+                }
+            }
+            const size_t dstIdx = (static_cast<size_t>(y) * w + x) * 4;
+            if (sumA == 0) continue;
+            const uint8_t outA = static_cast<uint8_t>(sumA / (kSSAA * kSSAA));
+            bmp.pixels[dstIdx]     = BrightenChannel(static_cast<uint8_t>(sumR / sumA), hoverBrightness);
+            bmp.pixels[dstIdx + 1] = BrightenChannel(static_cast<uint8_t>(sumG / sumA), hoverBrightness);
+            bmp.pixels[dstIdx + 2] = BrightenChannel(static_cast<uint8_t>(sumB / sumA), hoverBrightness);
+            bmp.pixels[dstIdx + 3] = outA;
+        }
+    }
+
+    return bmp;
+}
+
+BitmapRGBA ThumbnailRenderer::RenderContentBrowserFolder(uint32_t heightPx, float hoverBrightness) {
+    const uint32_t h = std::max(16u, SnapFolderRasterHeight(heightPx));
+    const uint32_t w = std::max(16u, static_cast<uint32_t>(std::round(static_cast<float>(h) * kFolderAspectRatio)));
+
+    const std::string svgPath = ResolveFolderSvgPath();
+    if (!svgPath.empty()) {
+        const BitmapRGBA svgBmp = RasterizeFolderSvg(ResolvePath(svgPath), w, h, hoverBrightness);
+        if (!svgBmp.pixels.empty()) {
+            return svgBmp;
+        }
+        HE_WARN("[ContentBrowser] Failed to rasterize folder SVG; using procedural artwork.");
+    } else {
+        static bool s_ReportedMissingSvg = false;
+        if (!s_ReportedMissingSvg) {
+            HE_WARN("[ContentBrowser] Folder SVG not found (content-browser-folder.svg); using procedural artwork.");
+            s_ReportedMissingSvg = true;
+        }
+    }
+
+    return RenderContentBrowserFolderProcedural(w, h, hoverBrightness);
 }
 
 } // namespace we::editor::contentbrowser
