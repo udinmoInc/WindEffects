@@ -1,5 +1,7 @@
 ﻿# Third-Party Notices
 
+**Last Updated:** July 1, 2026
+
 WindEffects Engine incorporates third-party libraries and assets. Each component is subject to its own license terms.
 
 ## Open-source components
@@ -21,4 +23,4 @@ Until those files are published, refer to dependency manifests in the build syst
 
 When you distribute End Products, you are responsible for complying with attribution and notice requirements of any third-party components you include.
 
-For licensing questions: legal@windeffects.com
+For licensing questions: legal@udinmo.com

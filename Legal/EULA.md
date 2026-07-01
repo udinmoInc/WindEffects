@@ -2,8 +2,8 @@
 ## END USER LICENSE AGREEMENT AND SOFTWARE LICENSE AGREEMENT
 
 **Version 1.0**  
-**Effective Date:** [●]  
-**Last Updated:** [●]
+**Effective Date:** July 1, 2026  
+**Last Updated:** July 1, 2026
 
 ---
 
@@ -442,7 +442,7 @@ You acknowledge that the Software and Documentation are provided for use at your
 
 ### 17.1 Privacy Policy
 
-Collection and use of Personal Data by Licensor are governed by the WindEffects Privacy Policy located at: **[● Privacy Policy URL]**.
+Collection and use of Personal Data by Licensor are governed by the WindEffects Privacy Policy. For privacy inquiries, contact **help@udinmo.com**.
 
 ### 17.2 Telemetry
 
@@ -454,7 +454,7 @@ You are solely responsible for privacy compliance in your End Products, includin
 
 ### 17.4 Placeholder for Regional Addenda
 
-Additional regional privacy terms may apply and will be presented where required: **[● Regional Addenda / DPA Contact]**.
+Additional regional privacy terms may apply and will be presented where required. Contact: **help@udinmo.com**.
 
 ---
 
@@ -462,7 +462,7 @@ Additional regional privacy terms may apply and will be presented where required
 
 ### 18.1 Contributions
 
-If Licensor accepts source code, assets, documentation, or other materials from you for inclusion in the Software (**"Contributions"**), such Contributions may be subject to a separate Contributor License Agreement or inbound contribution policy published at: **[● Contribution Policy URL]**.
+If Licensor accepts source code, assets, documentation, or other materials from you for inclusion in the Software (**"Contributions"**), such Contributions may be subject to a separate Contributor License Agreement or inbound contribution policy. For contribution inquiries, contact **help@udinmo.com**.
 
 ### 18.2 Feedback License
 
@@ -492,7 +492,7 @@ Without limitation, you shall not use the Software to:
 
 ### 19.3 Security Reporting
 
-Suspected security vulnerabilities should be reported to: **[● security@windeffects.com]**.
+Suspected security vulnerabilities should be reported to: **help@udinmo.com**.
 
 ### 19.4 Suspension for Abuse
 
@@ -613,11 +613,11 @@ Termination does not automatically require removal of End Products lawfully crea
 
 ### 25.1 Governing Law
 
-This Agreement shall be governed by and construed in accordance with the laws of **[● State / Country]**, without regard to conflict-of-laws principles that would require application of another jurisdiction's laws.
+This Agreement shall be governed by and construed in accordance with the laws of the **State of Delaware, United States**, without regard to conflict-of-laws principles that would require application of another jurisdiction's laws.
 
 ### 25.2 Venue
 
-The parties agree to the exclusive jurisdiction and venue of the courts located in **[● City, State / Country]** for disputes arising out of this Agreement, except where prohibited by mandatory consumer protection laws.
+The parties agree to the exclusive jurisdiction and venue of the state and federal courts located in **Wilmington, Delaware, United States** for disputes arising out of this Agreement, except where prohibited by mandatory consumer protection laws.
 
 ### 25.3 Injunctive Relief
 
@@ -625,7 +625,7 @@ Either party may seek injunctive or equitable relief in any court of competent j
 
 ### 25.4 Informal Resolution
 
-Before initiating formal proceedings, the parties will attempt in good faith to resolve disputes through informal negotiation for thirty (30) days after written notice of the dispute to: **[● legal@windeffects.com]**.
+Before initiating formal proceedings, the parties will attempt in good faith to resolve disputes through informal negotiation for thirty (30) days after written notice of the dispute to: **legal@udinmo.com**.
 
 ---
 
@@ -657,13 +657,7 @@ Neither party is liable for delay or failure to perform due to events beyond rea
 
 ### 26.7 Notices
 
-Notices to Licensor must be sent to:
-
-**WindEffects**  
-**[● Street Address]**  
-**[● City, State/Province, Postal Code]**  
-**[● Country]**  
-**Email:** legal@windeffects.com
+Notices to Licensor must be sent to **legal@udinmo.com**.
 
 Notices to you may be provided electronically through the Software, email associated with your account, or publication on Licensor's official website.
 
@@ -683,22 +677,10 @@ Except for Licensor's Affiliates and indemnified parties under Article 23, there
 
 ## ARTICLE 27 — CONTACT INFORMATION
 
-For licensing, legal, trademark, security, and privacy inquiries:
-
 | Purpose | Contact |
 |--------|---------|
-| General Legal / Licensing | legal@windeffects.com |
-| Security Vulnerabilities | security@windeffects.com |
-| Privacy / Data Protection | privacy@windeffects.com |
-| Trademark and Brand Use | brand@windeffects.com |
-| Enterprise Inquiries | enterprise@windeffects.com |
-| Website | https://www.windeffects.com |
-
-**Postal Address:**  
-WindEffects  
-[● Street Address]  
-[● City, State/Province, Postal Code]  
-[● Country]
+| General support, privacy, security, and product inquiries | help@udinmo.com |
+| Legal, licensing, and formal notices | legal@udinmo.com |
 
 ---
 
@@ -707,7 +689,7 @@ WindEffects
 By installing, accessing, or using the WindEffects Engine, you acknowledge that you have read this Agreement, understand it, and agree to be bound by its terms.
 
 **WindEffects Engine**  
-© [● Year] WindEffects. All rights reserved.
+© 2026 WindEffects. All rights reserved.
 
 WindEffects, WindEffects Engine, and associated logos are trademarks of WindEffects. All other trademarks are the property of their respective owners.
 
@@ -734,4 +716,4 @@ This Schedule is provided for convenience only and does not modify the Agreement
 
 ---
 
-*This document is a template prepared for WindEffects Engine. It should be reviewed and finalized by qualified legal counsel before publication or reliance.*
+*Last reviewed: July 1, 2026.*
