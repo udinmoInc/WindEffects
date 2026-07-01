@@ -62,10 +62,7 @@ public:
             kCloseSize
         };
         const we::UI::Color closeColor = m_CloseHovered ? theme.TextPrimary : theme.TextSecondary;
-        const int closeCp = we::UI::Icons::GetCodepoint(we::UI::Icons::XName);
-        if (closeCp != 0) {
-            context.DrawIcon(closeCp, we::UI::Point{ m_CloseRect.x, m_CloseRect.y }, closeColor, kCloseSize);
-        }
+        we::UI::IconPainter::DrawIcon(context, we::UI::Icons::XName, m_CloseRect, closeColor);
 
         if (m_Panel) {
             if (auto content = m_Panel->GetContent()) {

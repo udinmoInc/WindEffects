@@ -61,11 +61,7 @@ namespace {
             if (m_LogoSet != VK_NULL_HANDLE) {
                 context.DrawTexture(logoRect, m_LogoSet, Theme::Get().TextSecondary);
             } else {
-                int cp = Icons::GetCodepoint(Icons::CameraName);
-                if (cp != 0) {
-                    context.DrawIcon(cp, Point{ logoRect.x, logoRect.y },
-                        Theme::Get().SelectedAccent, kIconSize);
-                }
+                IconPainter::DrawIcon(context, Icons::CameraName, logoRect, Theme::Get().SelectedAccent);
             }
         }
     private:
@@ -110,25 +106,19 @@ namespace {
 
             float centerY = m_Geometry.y + m_Geometry.height / 2.0f;
 
-            int folderCp = Icons::GetCodepoint(Icons::PackageName);
-            if (folderCp != 0) {
-                context.DrawIcon(folderCp,
-                    Point{ m_Geometry.x + kLeftPad, centerY - kIconSize / 2.0f },
-                    Theme::Get().TextSecondary, kIconSize);
-            }
+            IconPainter::DrawIcon(context, Icons::PackageName,
+                Rect{ m_Geometry.x + kLeftPad, centerY - kIconSize / 2.0f, kIconSize, kIconSize },
+                Theme::Get().TextSecondary);
 
             float textX = m_Geometry.x + kLeftPad + kIconSize + kIconGap;
             context.DrawText(kProjectName,
                 Point{ textX, centerY - kTextSize / 2.0f },
                 Theme::Get().TextPrimary, kTextSize);
 
-            int chevCp = Icons::GetCodepoint(Icons::ChevronDownName);
-            if (chevCp != 0) {
-                float chevX = m_Geometry.x + m_Geometry.width - kRightPad - kChevSize;
-                context.DrawIcon(chevCp,
-                    Point{ chevX, centerY - kChevSize / 2.0f },
-                    Color{ 0.549f, 0.549f, 0.549f, 1.0f }, kChevSize);
-            }
+            float chevX = m_Geometry.x + m_Geometry.width - kRightPad - kChevSize;
+            IconPainter::DrawIcon(context, Icons::ChevronDownName,
+                Rect{ chevX, centerY - kChevSize / 2.0f, kChevSize, kChevSize },
+                Color{ 0.549f, 0.549f, 0.549f, 1.0f });
         }
         void OnMouseMove(const MouseEvent& event) override { }
         void OnMouseDown(const MouseEvent& event) override { }

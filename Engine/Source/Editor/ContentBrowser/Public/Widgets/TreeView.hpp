@@ -6,6 +6,7 @@
 #include <functional>
 #include <string>
 #include <vector>
+#include <volk.h>
 
 namespace we::UI {
 
@@ -14,6 +15,7 @@ struct TreeNode {
     std::string id;
     std::string label;
     std::string iconName;
+    VkDescriptorSet iconTexture = VK_NULL_HANDLE;
     std::vector<std::shared_ptr<TreeNode>> children;
     bool expanded = true;
     bool visible = true;

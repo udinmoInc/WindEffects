@@ -100,10 +100,7 @@ void TabWidget::Paint(PaintContext& context) {
             Color iconColor = Color{0.878f, 0.878f, 0.878f, iconOpacity};
             float iconSize = 16.0f;
             float iconY = tab.geometry.y + (m_TabHeight - iconSize) / 2.0f;
-            int codepoint = Icons::GetCodepoint(iconName);
-            if (codepoint != 0) {
-                context.DrawIcon(codepoint, Point{ textX, iconY }, iconColor, iconSize);
-            }
+            IconPainter::DrawIcon(context, iconName, Rect{ textX, iconY, iconSize, iconSize }, iconColor);
             textX += 16.0f + 6.0f; // 16px icon + 6px spacing
         }
         
@@ -127,10 +124,7 @@ void TabWidget::Paint(PaintContext& context) {
             Color iconColor = Color{ 0.5f, 0.5f, 0.5f, 1.0f };
             if (isActive) iconColor = Color{ 0.7f, 0.7f, 0.7f, 1.0f };
             
-            int codepoint = Icons::GetCodepoint("x");
-            if (codepoint != 0) {
-                context.DrawIcon(codepoint, Point{ iconX, tab.geometry.y + (m_TabHeight - iconSize) / 2.0f }, iconColor, iconSize);
-            }
+            IconPainter::DrawIcon(context, Icons::XName, Rect{ iconX, tab.geometry.y + (m_TabHeight - iconSize) / 2.0f, iconSize, iconSize }, iconColor);
         }
     }
     

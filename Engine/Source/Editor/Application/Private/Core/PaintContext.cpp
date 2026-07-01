@@ -94,14 +94,14 @@ void PaintContext::DrawText(const std::string& text, const Point& pos, const Col
     m_Commands.push_back(cmd);
 }
 
-void PaintContext::DrawIcon(int codepoint, const Point& pos, const Color& color, float fontSize) {
+void PaintContext::DrawIcon(const std::string& iconName, const Point& pos, const Color& color, float size) {
     DrawCommand cmd{};
     cmd.type = DrawCommandType::Icon;
-    cmd.rect = { pos.x, pos.y, 0.0f, 0.0f };
+    cmd.rect = { pos.x, pos.y, size, size };
     cmd.color = color;
     cmd.clipRect = GetCurrentClipRect();
-    cmd.codepoint = codepoint;
-    cmd.fontSize = fontSize;
+    cmd.text = iconName;
+    cmd.fontSize = size;
     m_Commands.push_back(cmd);
 }
 

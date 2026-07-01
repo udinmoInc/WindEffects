@@ -10,19 +10,26 @@ namespace we::UI {
 struct ContentItem {
     std::string id;
     std::string name;
-    std::string type; // "folder", "mesh", "material", "texture", etc.
-    std::string path; // Full asset path
-    std::string iconName; // Fallback font icon name
-    VkDescriptorSet iconTexture = VK_NULL_HANDLE; // Crisp SVG texture
+    std::string type;
+    std::string path;
+    std::string iconName;
+    VkDescriptorSet iconTexture = VK_NULL_HANDLE;
     bool isFolder = false;
     bool isFavorite = false;
+    bool isDirty = false;
     bool thumbnailRequested = false;
     void* userData = nullptr;
 };
 
 enum class ContentViewMode {
-    Grid,
-    List
+    LargeIcons,
+    MediumIcons,
+    SmallIcons,
+    Tiles,
+    List,
+    Details,
+    Columns = Details,
+    Grid = LargeIcons
 };
 
 class ContentBrowserModel {
@@ -30,9 +37,13 @@ public:
     std::vector<ContentItem> items;
     std::vector<std::string> selectedIds;
     std::string filterText;
-    ContentViewMode viewMode = ContentViewMode::Grid;
+    std::string currentFolder = "/Game";
+    ContentViewMode viewMode = ContentViewMode::LargeIcons;
 
-    // Optional event delegates to notify the View when model changes
+    size_t assetCount = 0;
+    size_t folderCount = 0;
+    size_t memoryUsageBytes = 0;
+
     std::function<void()> onModelChanged;
 
     void NotifyChanged() {
@@ -42,4 +53,4 @@ public:
     }
 };
 
-} // namespace we::editor::contentbrowser::UI
+} // namespace we::UI

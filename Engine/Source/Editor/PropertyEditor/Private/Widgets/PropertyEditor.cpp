@@ -64,7 +64,7 @@ void PropertyEditor::Paint(PaintContext& context) {
         float chevronY = headerRect.y + (m_CategoryHeaderHeight - chevronSize) / 2.0f;
         
         Rect chevronRect{ chevronX, chevronY, chevronSize, chevronSize };
-        int chevronIcon = cat.expanded ? Icons::ChevronDown : Icons::ChevronRight;
+        const char* chevronIcon = cat.expanded ? Icons::ChevronDownName : Icons::ChevronRightName;
         IconPainter::DrawIcon(context, chevronIcon, chevronRect, Theme::Get().TextSecondary);
         
         // Draw category name
@@ -116,7 +116,7 @@ void PropertyEditor::Paint(PaintContext& context) {
                     float resetY = propRect.y + (m_PropertyHeight - resetSize) / 2.0f;
                     
                     Rect resetRect{ resetX, resetY, resetSize, resetSize };
-                    IconPainter::DrawIcon(context, Icons::X, resetRect, Theme::Get().TextSecondary);
+                    IconPainter::DrawIcon(context, Icons::XName, resetRect, Theme::Get().TextSecondary);
                 }
                 
                 y += m_PropertyHeight;
@@ -384,7 +384,7 @@ void BoolPropertyWidget::Paint(PaintContext& context) {
     // Draw checkmark if checked
     if (*m_Value) {
         Rect iconRect{ checkX + 2.0f, checkY + 2.0f, checkSize - 4.0f, checkSize - 4.0f };
-        IconPainter::DrawIcon(context, Icons::Check, iconRect, Color{1, 1, 1, 1});
+        IconPainter::DrawIcon(context, Icons::CheckName, iconRect, Color{1, 1, 1, 1});
     }
 }
 

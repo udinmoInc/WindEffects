@@ -42,7 +42,7 @@ void SearchBox::Paint(PaintContext& context) {
     float iconY = m_Geometry.y + (m_Geometry.height - iconSize) / 2.0f;
 
     Rect iconRect{ iconX, iconY, iconSize, iconSize };
-    IconPainter::DrawIcon(context, Icons::Search, iconRect, Color{0.478f, 0.478f, 0.478f, 1.0f});
+    IconPainter::DrawIcon(context, Icons::SearchName, iconRect, Color{0.478f, 0.478f, 0.478f, 1.0f});
 
     // Draw text or placeholder
     Rect textRect = GetTextRect();
@@ -66,7 +66,7 @@ void SearchBox::Paint(PaintContext& context) {
     // Draw clear button if text exists
     if (!m_Text.empty()) {
         Rect clearRect = GetClearButtonRect();
-        IconPainter::DrawIcon(context, Icons::X, clearRect, Theme::Get().TextSecondary);
+        IconPainter::DrawIcon(context, Icons::XName, clearRect, Theme::Get().TextSecondary);
     }
 }
 

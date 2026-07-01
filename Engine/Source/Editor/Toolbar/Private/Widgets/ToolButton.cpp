@@ -8,8 +8,6 @@
 
 namespace we::UI {
 namespace {
-    constexpr int kMissingIconFallback = 0xE001;
-
     float PressStrength(bool pressed, float pressAnim) {
         return pressed ? 1.0f : pressAnim;
     }
@@ -108,8 +106,7 @@ Size ToolButton::Measure(const Size& availableSize) {
         const float chevGap  = 1.0f;
         const float chevW    = 8.0f;
         const float textSize = 13.0f;
-        const int iconCp     = m_IconName.empty() ? 0 : Icons::GetCodepoint(m_IconName);
-        const bool hasIcon   = (iconCp != 0 && iconCp != kMissingIconFallback);
+        const bool hasIcon = !m_IconName.empty() && Icons::IsKnownIcon(m_IconName);
         
         float textW = m_Label.empty() ? 0.0f : ApproxInlineTextWidth(m_Label, textSize);
         
@@ -197,8 +194,7 @@ void ToolButton::Paint(PaintContext& context) {
             iconColor = Color{ 1.0f, 1.0f, 1.0f, 1.0f };
         float iconSize = 16.0f;
         float drawX = renderRect.x + (renderRect.width - iconSize) / 2.0f;
-        int cp = Icons::GetCodepoint(m_IconName);
-        if (cp != 0) context.DrawIcon(cp, Point{ drawX, centerY - iconSize / 2.0f }, iconColor, iconSize);
+        IconPainter::DrawIcon(context, m_IconName, Rect{ drawX, centerY - iconSize / 2.0f, iconSize, iconSize }, iconColor);
         return;
     }
 
@@ -210,8 +206,7 @@ void ToolButton::Paint(PaintContext& context) {
         Color iconColor = ResolveInteractiveIconColor(m_HoverAnim, pressStrength, m_Active);
         float drawX = renderRect.x + (renderRect.width  - iconSize) / 2.0f;
         float drawY = renderRect.y + (renderRect.height - iconSize) / 2.0f;
-        int cp = Icons::GetCodepoint(m_IconName);
-        if (cp != 0) context.DrawIcon(cp, Point{ drawX, drawY }, iconColor, iconSize);
+        IconPainter::DrawIcon(context, m_IconName, Rect{ drawX, drawY, iconSize, iconSize }, iconColor);
         return;
     }
 
@@ -223,8 +218,7 @@ void ToolButton::Paint(PaintContext& context) {
         Color iconColor = ResolveInteractiveIconColor(m_HoverAnim, pressStrength, m_Active);
         float drawX = renderRect.x + (renderRect.width  - iconSize) / 2.0f;
         float drawY = renderRect.y + (renderRect.height - iconSize) / 2.0f;
-        int cp = Icons::GetCodepoint(m_IconName);
-        if (cp != 0) context.DrawIcon(cp, Point{ drawX, drawY }, iconColor, iconSize);
+        IconPainter::DrawIcon(context, m_IconName, Rect{ drawX, drawY, iconSize, iconSize }, iconColor);
         return;
     }
 
@@ -240,10 +234,9 @@ void ToolButton::Paint(PaintContext& context) {
         Color textColor = ResolveInteractiveTextColor(m_HoverAnim, pressStrength, m_Active);
 
         float currentX = renderRect.x + padLeft;
-        int cp = Icons::GetCodepoint(m_IconName);
-        bool hasIcon = (cp != 0 && cp != kMissingIconFallback);
+        const bool hasIcon = !m_IconName.empty() && Icons::IsKnownIcon(m_IconName);
         if (hasIcon) {
-            context.DrawIcon(cp, Point{ currentX, centerY - iconSize / 2.0f }, textColor, iconSize);
+            IconPainter::DrawIcon(context, m_IconName, Rect{ currentX, centerY - iconSize / 2.0f, iconSize, iconSize }, textColor);
             currentX += iconSize;
             if (!m_Label.empty()) {
                 currentX += iconGap;
@@ -255,12 +248,9 @@ void ToolButton::Paint(PaintContext& context) {
         }
 
         if (m_IsDropdown) {
-            int chevCp = Icons::GetCodepoint(Icons::ChevronDownName);
-            if (chevCp != 0) {
-                const float chevSize = 8.0f;
-                float chevX = renderRect.x + renderRect.width - padRight - chevSize;
-                context.DrawIcon(chevCp, Point{ chevX, centerY - chevSize / 2.0f }, textColor, chevSize);
-            }
+            const float chevSize = 8.0f;
+            float chevX = renderRect.x + renderRect.width - padRight - chevSize;
+            IconPainter::DrawIcon(context, Icons::ChevronDownName, Rect{ chevX, centerY - chevSize / 2.0f, chevSize, chevSize }, textColor);
         }
         return;
     }
@@ -273,8 +263,7 @@ void ToolButton::Paint(PaintContext& context) {
         Color iconColor = ResolveInteractiveIconColor(m_HoverAnim, pressStrength, m_Active);
         float drawX = renderRect.x + (renderRect.width - iconSize) / 2.0f;
         float drawY = renderRect.y + (renderRect.height - iconSize) / 2.0f;
-        int cp = Icons::GetCodepoint(m_IconName);
-        if (cp != 0) context.DrawIcon(cp, Point{ drawX, drawY }, iconColor, iconSize);
+        IconPainter::DrawIcon(context, m_IconName, Rect{ drawX, drawY, iconSize, iconSize }, iconColor);
         return;
     }
 
@@ -311,17 +300,17 @@ void ToolButton::Paint(PaintContext& context) {
         const float iconSize = 16.0f;
         float currentX;
 
-        int cp = Icons::GetCodepoint(m_IconName);
-        if (cp != 0) {
+        const bool hasIcon = !m_IconName.empty() && Icons::IsKnownIcon(m_IconName);
+        if (hasIcon) {
             if (m_Label.empty() && !m_IsDropdown) {
                 float drawX = renderRect.x + (renderRect.width - iconSize) / 2.0f;
-                context.DrawIcon(cp, Point{ drawX, centerY - iconSize / 2.0f }, iconColor, iconSize);
+                IconPainter::DrawIcon(context, m_IconName, Rect{ drawX, centerY - iconSize / 2.0f, iconSize, iconSize }, iconColor);
             } else if (m_Label.empty() && m_IsDropdown) {
                 currentX = renderRect.x + 8.0f;
-                context.DrawIcon(cp, Point{ currentX, centerY - iconSize / 2.0f }, iconColor, iconSize);
+                IconPainter::DrawIcon(context, m_IconName, Rect{ currentX, centerY - iconSize / 2.0f, iconSize, iconSize }, iconColor);
             } else {
                 currentX = renderRect.x + 12.0f;
-                context.DrawIcon(cp, Point{ currentX, centerY - iconSize / 2.0f }, iconColor, iconSize);
+                IconPainter::DrawIcon(context, m_IconName, Rect{ currentX, centerY - iconSize / 2.0f, iconSize, iconSize }, iconColor);
                 currentX += iconSize + 6.0f;
             }
         } else {
@@ -333,16 +322,10 @@ void ToolButton::Paint(PaintContext& context) {
             context.DrawText(m_Label, Point{ currentX, centerY - textSize / 2.0f }, iconColor, textSize);
         }
 
-        // Chevron for dropdowns – sits 10px from right edge
         if (m_IsDropdown) {
-            int chevCp = Icons::GetCodepoint(Icons::ChevronDownName);
-            if (chevCp != 0) {
-                const float chevSize = 8.0f;
-                float chevX = renderRect.x + renderRect.width - 10.0f - chevSize;
-                context.DrawIcon(chevCp, Point{ chevX, centerY - chevSize / 2.0f }, iconColor, chevSize);
-                // Sub-pixel bold pass for crispness
-                context.DrawIcon(chevCp, Point{ chevX + 0.5f, centerY - chevSize / 2.0f }, iconColor, chevSize);
-            }
+            const float chevSize = 8.0f;
+            float chevX = renderRect.x + renderRect.width - 10.0f - chevSize;
+            IconPainter::DrawIcon(context, Icons::ChevronDownName, Rect{ chevX, centerY - chevSize / 2.0f, chevSize, chevSize }, iconColor);
         }
     }
 }

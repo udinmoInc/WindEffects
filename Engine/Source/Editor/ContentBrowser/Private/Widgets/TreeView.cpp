@@ -185,17 +185,19 @@ void TreeView::Paint(PaintContext& context) {
             const float chevronSize = 12.0f;
             const float chevronX = item.geometry.x + 4.0f;
             const float chevronY = item.geometry.y + (m_ItemHeight - chevronSize) * 0.5f;
-            const int chevronIcon = node->expanded ? Icons::ChevronDown : Icons::ChevronRight;
-            context.DrawIcon(chevronIcon, Point{ chevronX, chevronY }, theme.TextSecondary, chevronSize);
+            const char* chevronIcon = node->expanded ? Icons::ChevronDownName : Icons::ChevronRightName;
+            IconPainter::DrawIcon(context, chevronIcon, Rect{ chevronX, chevronY, chevronSize, chevronSize }, theme.TextSecondary);
         }
 
-        if (!node->iconName.empty()) {
+        if (!node->iconName.empty() || node->iconTexture != VK_NULL_HANDLE) {
             const float iconSize = 14.0f;
             const float iconX = item.geometry.x + 18.0f;
             const float iconY = item.geometry.y + (m_ItemHeight - iconSize) * 0.5f;
-            const int iconCode = Icons::GetCodepoint(node->iconName);
-            if (iconCode != 0) {
-                context.DrawIcon(iconCode, Point{ iconX, iconY }, theme.TextPrimary, iconSize);
+            Rect iconRect{ iconX, iconY, iconSize, iconSize };
+            if (node->iconTexture != VK_NULL_HANDLE) {
+                context.DrawTexture(iconRect, node->iconTexture);
+            } else {
+                IconPainter::DrawIcon(context, node->iconName, iconRect, theme.TextPrimary);
             }
         }
 
@@ -222,16 +224,16 @@ void TreeView::Paint(PaintContext& context) {
         const float eyeSize = 13.0f;
         const float eyeX = item.geometry.x + item.geometry.width - eyeSize - 8.0f;
         const float eyeY = item.geometry.y + (m_ItemHeight - eyeSize) * 0.5f;
-        const int eyeIcon = node->visible ? Icons::Eye : Icons::EyeOff;
         const Color eyeColor = node->visible ? theme.TextSecondary : theme.TextSecondary * 0.45f;
-        context.DrawIcon(eyeIcon, Point{ eyeX, eyeY }, eyeColor, eyeSize);
+        const char* eyeIcon = node->visible ? Icons::EyeName : Icons::EyeOffName;
+        IconPainter::DrawIcon(context, eyeIcon, Rect{ eyeX, eyeY, eyeSize, eyeSize }, eyeColor);
 
         const float lockSize = 13.0f;
         const float lockX = eyeX - lockSize - 4.0f;
         const float lockY = item.geometry.y + (m_ItemHeight - lockSize) * 0.5f;
-        const int lockIcon = node->locked ? Icons::Lock : Icons::Unlock;
         const Color lockColor = node->locked ? theme.Warning : theme.TextSecondary * 0.55f;
-        context.DrawIcon(lockIcon, Point{ lockX, lockY }, lockColor, lockSize);
+        const char* lockIcon = node->locked ? Icons::LockName : Icons::UnlockName;
+        IconPainter::DrawIcon(context, lockIcon, Rect{ lockX, lockY, lockSize, lockSize }, lockColor);
     }
 }
 

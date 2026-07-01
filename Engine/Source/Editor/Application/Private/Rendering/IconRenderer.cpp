@@ -6,6 +6,7 @@
 #include <filesystem>
 #include <cmath>
 #include <algorithm>
+#include <functional>
 
 #define NANOSVG_IMPLEMENTATION
 #include <nanosvg.h>
@@ -34,28 +35,90 @@ void IconRenderer::Shutdown() {
     ClearCache();
 }
 
-VkDescriptorSet IconRenderer::GetIcon(const std::string& iconName, uint32_t size) {
+std::string IconRenderer::ResolveLucideSvgPath(const std::string& lucideName) {
+    const std::string fileName = lucideName + ".svg";
+    const std::string candidates[] = {
+        "Assets/Icons/icons/" + fileName,
+        "Icons/icons/" + fileName,
+        "../Assets/Icons/icons/" + fileName,
+        "../../Assets/Icons/icons/" + fileName,
+        "Engine/Content/Icons/icons/" + fileName,
+        "../Engine/Content/Icons/icons/" + fileName,
+    };
+    for (const auto& path : candidates) {
+        if (std::filesystem::exists(path)) return path;
+    }
+    return {};
+}
+
+VkDescriptorSet IconRenderer::GetLucideIcon(const std::string& iconName, uint32_t size, const Color& color) {
     if (!m_Context) return VK_NULL_HANDLE;
 
-    // Convert requested size to string for cache key
-    std::string key = iconName + "_" + std::to_string(size);
+    const std::string lucideName = Icons::ResolveLucideName(iconName);
+    const std::string svgPath = ResolveLucideSvgPath(lucideName);
+    if (svgPath.empty()) {
+        HE_ERROR("[UI] Lucide icon not found: " + lucideName);
+        return VK_NULL_HANDLE;
+    }
+
+    const std::string key = lucideName + "_" + std::to_string(size) + "_"
+        + std::to_string(static_cast<int>(color.r * 255.0f)) + "_"
+        + std::to_string(static_cast<int>(color.g * 255.0f)) + "_"
+        + std::to_string(static_cast<int>(color.b * 255.0f)) + "_"
+        + std::to_string(static_cast<int>(color.a * 255.0f));
 
     auto it = m_Cache.find(key);
     if (it != m_Cache.end()) {
         return it->second.descriptorSet;
     }
 
-    std::vector<uint8_t> bitmap = RenderSVGToBitmap(iconName, size, m_DefaultColor);
-    if (bitmap.empty()) {
-        return VK_NULL_HANDLE;
-    }
+    std::vector<uint8_t> bitmap = RenderSVGToBitmap(svgPath, size, color);
+    if (bitmap.empty()) return VK_NULL_HANDLE;
 
     IconTexture texture;
     if (CreateTexture(bitmap, size, size, texture)) {
         m_Cache[key] = texture;
         return texture.descriptorSet;
     }
+    return VK_NULL_HANDLE;
+}
 
+VkDescriptorSet IconRenderer::GetIcon(const std::string& iconName, uint32_t size) {
+    if (!m_Context) return VK_NULL_HANDLE;
+
+    if (iconName.find('/') != std::string::npos || iconName.find('\\') != std::string::npos) {
+        std::string key = iconName + "_" + std::to_string(size);
+        auto it = m_Cache.find(key);
+        if (it != m_Cache.end()) {
+            return it->second.descriptorSet;
+        }
+
+        std::vector<uint8_t> bitmap = RenderSVGToBitmap(iconName, size, m_DefaultColor);
+        if (bitmap.empty()) return VK_NULL_HANDLE;
+
+        IconTexture texture;
+        if (CreateTexture(bitmap, size, size, texture)) {
+            m_Cache[key] = texture;
+            return texture.descriptorSet;
+        }
+        return VK_NULL_HANDLE;
+    }
+
+    return GetLucideIcon(iconName, size, m_DefaultColor);
+}
+
+VkDescriptorSet IconRenderer::CreateTextureFromBitmap(const std::vector<uint8_t>& bitmap, uint32_t width, uint32_t height) {
+    if (!m_Context || bitmap.empty() || width == 0 || height == 0) return VK_NULL_HANDLE;
+
+    IconTexture texture;
+    if (CreateTexture(bitmap, width, height, texture)) {
+        const std::string key = "thumb_" + std::to_string(width) + "x" + std::to_string(height) + "_" +
+            std::to_string(std::hash<std::string>{}(std::string(
+                reinterpret_cast<const char*>(bitmap.data()),
+                std::min(bitmap.size(), static_cast<size_t>(64)))));
+        m_Cache[key] = texture;
+        return texture.descriptorSet;
+    }
     return VK_NULL_HANDLE;
 }
 
@@ -143,6 +206,14 @@ std::vector<uint8_t> IconRenderer::RenderSVGToBitmap(const std::string& svgPath,
                 finalData[dstIdx] = 0;
                 finalData[dstIdx + 1] = 0;
                 finalData[dstIdx + 2] = 0;
+            }
+
+            const float mask = finalData[dstIdx + 3] / 255.0f;
+            if (mask > 0.0f) {
+                finalData[dstIdx]     = static_cast<uint8_t>(color.r * 255.0f);
+                finalData[dstIdx + 1] = static_cast<uint8_t>(color.g * 255.0f);
+                finalData[dstIdx + 2] = static_cast<uint8_t>(color.b * 255.0f);
+                finalData[dstIdx + 3] = static_cast<uint8_t>(mask * color.a * 255.0f);
             }
         }
     }

@@ -125,10 +125,7 @@ void Panel::Paint(PaintContext& context) {
         if (!panelIcon.empty()) {
             float pIconY = m_HeaderRect.y + (m_HeaderHeight - iconSize) / 2.0f;
             Color pIconColor = Color{0.878f, 0.878f, 0.878f, 1.0f};
-            int codepoint = Icons::GetCodepoint(panelIcon);
-            if (codepoint != 0) {
-                context.DrawIcon(codepoint, Point{ currentX, pIconY }, pIconColor, iconSize);
-            }
+            IconPainter::DrawIcon(context, panelIcon, Rect{ currentX, pIconY, iconSize, iconSize }, pIconColor);
             currentX += panelIconWidth;
         }
 
@@ -153,10 +150,7 @@ void Panel::Paint(PaintContext& context) {
                 action.geometry = Rect{ closeX, closeY, iconSize, iconSize };
 
                 Color closeColor = Theme::Get().TextSecondary;
-                int crossCp = Icons::GetCodepoint(Icons::XName);
-                if (crossCp != 0) {
-                    context.DrawIcon(crossCp, Point{ closeX, closeY }, closeColor, iconSize);
-                }
+                IconPainter::DrawIcon(context, Icons::XName, Rect{ closeX, closeY, iconSize, iconSize }, closeColor);
                 continue;
             }
 

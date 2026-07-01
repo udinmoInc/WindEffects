@@ -208,11 +208,8 @@ void DockContainer::PaintTab(PaintContext& context, TabInfo& tabInfo, int index,
         const std::string panelIcon = DockTabIconRegistry::Get().GetIcon(title);
         if (!panelIcon.empty()) {
             const float pIconY = tabRect.y + (tabRect.height - iconSize) * 0.5f;
-            const int codepoint = Icons::GetCodepoint(panelIcon);
-            if (codepoint != 0) {
-                const Color textColor = isActive ? theme.TextPrimary : theme.TextSecondary;
-                context.DrawIcon(codepoint, Point{ itemX, pIconY }, textColor, iconSize);
-            }
+            const Color iconColor = isActive ? theme.TextPrimary : theme.TextSecondary;
+            IconPainter::DrawIcon(context, panelIcon, Rect{ itemX, pIconY, iconSize, iconSize }, iconColor);
             itemX += iconSize + iconTextSpacing;
         }
     }
@@ -226,11 +223,8 @@ void DockContainer::PaintTab(PaintContext& context, TabInfo& tabInfo, int index,
         const float closeY = tabRect.y + (tabRect.height - iconSize) * 0.5f;
         tabInfo.closeRect = Rect{ closeX, closeY, iconSize, iconSize };
 
-        const int crossCp = Icons::GetCodepoint(Icons::XName);
-        if (crossCp != 0) {
-            const Color closeColor = tabInfo.isCloseHovered ? theme.TextPrimary : theme.TextSecondary;
-            context.DrawIcon(crossCp, Point{ closeX, closeY }, closeColor, iconSize);
-        }
+        const Color closeColor = tabInfo.isCloseHovered ? theme.TextPrimary : theme.TextSecondary;
+        IconPainter::DrawIcon(context, Icons::XName, tabInfo.closeRect, closeColor);
     } else {
         tabInfo.closeRect = {};
     }

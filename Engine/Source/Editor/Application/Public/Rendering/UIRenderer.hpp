@@ -61,7 +61,6 @@ private:
 
     std::shared_ptr<we::runtime::renderer::VulkanContext> m_Context;
     std::shared_ptr<FontAtlas> m_FontAtlas;
-    std::shared_ptr<FontAtlas> m_IconAtlas;
     std::shared_ptr<IconRenderer> m_IconRenderer;
     // Pipeline resources
     VkDescriptorSetLayout m_TextureDescLayout = VK_NULL_HANDLE;

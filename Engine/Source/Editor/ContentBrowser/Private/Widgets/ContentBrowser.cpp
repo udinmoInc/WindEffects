@@ -1,12 +1,21 @@
 #include "Widgets/ContentBrowser.hpp"
+#include "Controllers/FilterController.hpp"
+#include "Controllers/SearchController.hpp"
+#include "Services/ContentBrowserService.hpp"
 #include "Core/PaintContext.hpp"
 #include "Core/Theme.hpp"
 #include "Core/Icon.hpp"
+#include <SDL3/SDL.h>
 #include <algorithm>
 #include <cctype>
-#include <algorithm>
 
 namespace we::UI {
+
+namespace {
+using we::editor::contentbrowser::ContentBrowserService;
+using we::editor::contentbrowser::FilterController;
+using we::editor::contentbrowser::SearchController;
+}
 
 ContentBrowser::ContentBrowser()
     : m_Style(WidgetStyle::Panel())
@@ -15,428 +24,608 @@ ContentBrowser::ContentBrowser()
     m_Controller = std::make_shared<ContentBrowserController>(m_Model);
 }
 
+void ContentBrowser::SetModel(std::shared_ptr<ContentBrowserModel> model) {
+    m_Model = model;
+    if (m_Model) {
+        m_Model->onModelChanged = [this]() { BuildRenderList(); };
+        BuildRenderList();
+    }
+}
+
+ContentViewMode ContentBrowser::GetEffectiveViewMode() const {
+    if (!m_Model) return ContentViewMode::LargeIcons;
+    return m_Model->viewMode;
+}
+
+ContentBrowser::GridMetrics ContentBrowser::GetGridMetrics() const {
+    GridMetrics m;
+    switch (GetEffectiveViewMode()) {
+        case ContentViewMode::LargeIcons:
+            m.cellWidth = 104.0f; m.thumbSize = 88.0f;
+            m.cellHeight = m.thumbSize + m.labelLineHeight * m.labelLines + 14.0f;
+            break;
+        case ContentViewMode::MediumIcons:
+            m.cellWidth = 84.0f; m.thumbSize = 72.0f;
+            m.cellHeight = m.thumbSize + m.labelLineHeight * m.labelLines + 12.0f;
+            break;
+        case ContentViewMode::SmallIcons:
+            m.cellWidth = 72.0f; m.thumbSize = 56.0f;
+            m.cellHeight = m.thumbSize + m.labelLineHeight + 10.0f;
+            m.labelLines = 1.0f;
+            break;
+        case ContentViewMode::Tiles:
+            m.cellWidth = 148.0f; m.thumbSize = 96.0f;
+            m.cellHeight = m.thumbSize + m.labelLineHeight * 2.0f + 28.0f;
+            m.labelLines = 2.0f;
+            break;
+        default:
+            break;
+    }
+    return m;
+}
+
 Size ContentBrowser::Measure(const Size& availableSize) {
     BuildRenderList();
-    
-    float oldWidth = m_Geometry.width;
-    // Temporarily set width so CalculateGridLayout computes correct rows
+
+    const float oldWidth = m_Geometry.width;
     m_Geometry.width = std::max(1.0f, availableSize.width);
-    
-    if (m_Model->viewMode == ContentViewMode::Grid) {
-        CalculateGridLayout();
-    } else {
-        CalculateListLayout();
+
+    switch (GetEffectiveViewMode()) {
+        case ContentViewMode::List: CalculateListLayout(); break;
+        case ContentViewMode::Details: CalculateDetailsLayout(); break;
+        case ContentViewMode::Tiles: CalculateTilesLayout(); break;
+        default: CalculateGridLayout(); break;
     }
-    
+
     m_Geometry.width = oldWidth;
-    
+
     float totalHeight = 0.0f;
     for (const auto& item : m_RenderList) {
         totalHeight = std::max(totalHeight, item.geometry.y + item.geometry.height - m_Geometry.y);
     }
-    
-    m_DesiredSize = Size{ availableSize.width, totalHeight };
+
+    m_DesiredSize = Size{ availableSize.width, totalHeight + 16.0f };
     return m_DesiredSize;
 }
 
 void ContentBrowser::Arrange(const Rect& allottedRect) {
     m_Geometry = allottedRect;
-    
-    if (m_Model->viewMode == ContentViewMode::Grid) {
-        CalculateGridLayout();
+
+    switch (GetEffectiveViewMode()) {
+        case ContentViewMode::List: CalculateListLayout(); break;
+        case ContentViewMode::Details: CalculateDetailsLayout(); break;
+        case ContentViewMode::Tiles: CalculateTilesLayout(); break;
+        default: CalculateGridLayout(); break;
+    }
+
+    UpdateVisibleRange();
+    RequestVisibleThumbnails();
+}
+
+void ContentBrowser::Tick(float deltaTime) {
+    Widget::Tick(deltaTime);
+    ContentBrowserService::Get().Tick(deltaTime);
+    RequestVisibleThumbnails();
+}
+
+void ContentBrowser::UpdateVisibleRange() {
+    m_FirstVisibleIndex = 0;
+    m_LastVisibleIndex = static_cast<int>(m_RenderList.size()) - 1;
+    if (m_RenderList.empty()) return;
+
+    const float viewTop = m_Geometry.y;
+    const float viewBottom = m_Geometry.y + m_Geometry.height;
+
+    m_FirstVisibleIndex = static_cast<int>(m_RenderList.size());
+    m_LastVisibleIndex = -1;
+    for (int i = 0; i < static_cast<int>(m_RenderList.size()); ++i) {
+        const auto& geom = m_RenderList[static_cast<size_t>(i)].geometry;
+        if (geom.y + geom.height < viewTop || geom.y > viewBottom) continue;
+        m_FirstVisibleIndex = std::min(m_FirstVisibleIndex, i);
+        m_LastVisibleIndex = std::max(m_LastVisibleIndex, i);
+    }
+
+    if (m_LastVisibleIndex < m_FirstVisibleIndex) {
+        m_FirstVisibleIndex = 0;
+        m_LastVisibleIndex = -1;
+    }
+}
+
+void ContentBrowser::RequestVisibleThumbnails() {
+    if (!m_OnItemNeedsThumbnail) return;
+
+    std::unordered_set<std::string> visibleIds;
+    for (int i = m_FirstVisibleIndex; i <= m_LastVisibleIndex && i < static_cast<int>(m_RenderList.size()); ++i) {
+        const auto& item = m_RenderList[static_cast<size_t>(i)].item;
+        visibleIds.insert(item.id);
+        if (item.iconTexture == VK_NULL_HANDLE && !item.thumbnailRequested && !item.isFolder) {
+            m_OnItemNeedsThumbnail(item.id);
+            if (m_Model) {
+                for (auto& orig : m_Model->items) {
+                    if (orig.id == item.id) {
+                        orig.thumbnailRequested = true;
+                        break;
+                    }
+                }
+            }
+        }
+    }
+
+    if (m_OnVisibleItemsChanged) {
+        m_OnVisibleItemsChanged(visibleIds);
+    }
+}
+
+void ContentBrowser::PaintAssetThumbnail(PaintContext& context, const Rect& thumbRect,
+    const ContentItem& item, bool selected, bool hovered)
+{
+    const Color accent = Theme::Get().SelectedAccent;
+    const float radius = 6.0f;
+
+    if (!item.isFolder) {
+        Rect shadow{ thumbRect.x + 1.0f, thumbRect.y + 2.0f, thumbRect.width, thumbRect.height };
+        context.DrawShadow(shadow, Color{ 0.0f, 0.0f, 0.0f, 0.35f }, radius, 8.0f);
+    }
+
+    if (item.isFolder) {
+        // Dedicated UE5-style folder tile — shadow and shape are baked into the texture.
+        if (item.iconTexture != VK_NULL_HANDLE) {
+            context.DrawTexture(thumbRect, item.iconTexture);
+            if (hovered && !selected) {
+                context.DrawRoundedRect(thumbRect, Color{ 1.0f, 1.0f, 1.0f, 0.08f }, radius);
+            }
+        } else {
+            context.DrawRoundedRect(thumbRect, Color{ 0.66f, 0.59f, 0.44f, 1.0f }, radius);
+        }
+        if (selected) {
+            context.DrawRoundedRectOutline(thumbRect, accent, 1.0f, radius);
+        }
+        return;
+    }
+
+    const Color thumbBg{ 0.11f, 0.11f, 0.12f, 1.0f };
+    const Color border{ 0.22f, 0.22f, 0.24f, 1.0f };
+
+    if (hovered && !selected) {
+        context.DrawRoundedRect(thumbRect, Color{ 1.0f, 1.0f, 1.0f, 0.04f }, radius);
+    }
+
+    context.DrawRoundedRect(thumbRect, thumbBg, radius);
+    context.DrawRoundedRectOutline(thumbRect, border, 1.0f, radius);
+
+    if (item.iconTexture != VK_NULL_HANDLE) {
+        Rect inner{ thumbRect.x + 2.0f, thumbRect.y + 2.0f, thumbRect.width - 4.0f, thumbRect.height - 4.0f };
+        context.PushClipRect(inner);
+        context.DrawTexture(inner, item.iconTexture);
+        context.PopClipRect();
     } else {
-        CalculateListLayout();
+        Rect iconRect{
+            thumbRect.x + (thumbRect.width - 28.0f) * 0.5f,
+            thumbRect.y + (thumbRect.height - 28.0f) * 0.5f,
+            28.0f, 28.0f
+        };
+        IconPainter::DrawIcon(context, item.iconName, iconRect, Theme::Get().TextSecondary);
+    }
+
+    if (selected) {
+        context.DrawRoundedRectOutline(thumbRect, accent, 1.0f, radius);
+    }
+
+    if (item.isFavorite) {
+        Rect star{ thumbRect.x + thumbRect.width - 16.0f, thumbRect.y + 4.0f, 12.0f, 12.0f };
+        IconPainter::DrawIcon(context, Icons::StarFilledName, star, accent);
+    }
+    if (item.isDirty) {
+        Rect dot{ thumbRect.x + 4.0f, thumbRect.y + 4.0f, 6.0f, 6.0f };
+        context.DrawRoundedRect(dot, Theme::Get().Warning, 3.0f);
+    }
+}
+
+void ContentBrowser::PaintItemLabel(PaintContext& context, const Rect& cell, const std::string& name, float maxWidth) {
+    const float fontSize = 11.0f;
+    const float lineH = 13.0f;
+    std::string line1 = name;
+    if (context.GetTextWidth(line1, fontSize) > maxWidth) {
+        while (line1.length() > 3 && context.GetTextWidth(line1 + "...", fontSize) > maxWidth) {
+            line1.pop_back();
+        }
+        line1 += "...";
+    }
+    const float textW = context.GetTextWidth(line1, fontSize);
+    const float x = cell.x + (cell.width - textW) * 0.5f;
+    const float y = cell.y + cell.height - lineH - 2.0f;
+    context.DrawText(line1, Point{ x, y }, Theme::Get().TextPrimary, fontSize);
+}
+
+void ContentBrowser::PaintGridItem(PaintContext& context, const RenderItem& renderItem) {
+    const auto& item = renderItem.item;
+    const bool selected = IsSelected(item.id);
+    const bool hovered = item.id == m_HoveredId;
+
+    PaintAssetThumbnail(context, renderItem.thumbGeometry, item, selected, hovered);
+
+    PaintItemLabel(context, renderItem.geometry, item.name, renderItem.geometry.width - 4.0f);
+
+    if (GetEffectiveViewMode() == ContentViewMode::Tiles && !item.isFolder) {
+        const float typeW = context.GetTextWidth(item.type, 10.0f);
+        const float x = renderItem.geometry.x + (renderItem.geometry.width - typeW) * 0.5f;
+        const float y = renderItem.geometry.y + renderItem.geometry.height - 26.0f;
+        context.DrawText(item.type, Point{ x, y }, Theme::Get().TextSecondary, 10.0f);
+    }
+}
+
+void ContentBrowser::PaintListItem(PaintContext& context, const RenderItem& renderItem) {
+    const auto& item = renderItem.item;
+    const bool selected = IsSelected(item.id);
+    const bool hovered = item.id == m_HoveredId;
+
+    if (selected) {
+        context.DrawRect(renderItem.geometry, Color{ 0.20f, 0.20f, 0.22f, 1.0f });
+    } else if (hovered) {
+        context.DrawRect(renderItem.geometry, Color{ 1.0f, 1.0f, 1.0f, 0.03f });
+    }
+
+    const float iconSize = item.isFolder ? 16.0f : 20.0f;
+    const float iconX = renderItem.geometry.x + 10.0f;
+    const float iconY = renderItem.geometry.y + (renderItem.geometry.height - iconSize) * 0.5f;
+    Rect iconRect{ iconX, iconY, iconSize, iconSize };
+
+    if (item.isFolder && item.iconTexture != VK_NULL_HANDLE) {
+        context.DrawTexture(iconRect, item.iconTexture);
+    } else if (item.isFolder) {
+        IconPainter::DrawIcon(context, Icons::FolderName, iconRect, Theme::Get().TextSecondary);
+    } else if (item.iconTexture != VK_NULL_HANDLE) {
+        context.DrawTexture(iconRect, item.iconTexture);
+    } else {
+        IconPainter::DrawIcon(context, item.iconName, iconRect, Theme::Get().TextSecondary);
+    }
+
+    const float nameX = iconX + iconSize + 10.0f;
+    const float nameY = renderItem.geometry.y + (renderItem.geometry.height - 12.0f) * 0.5f;
+    context.DrawText(item.name, Point{ nameX, nameY }, Theme::Get().TextPrimary, 12.0f);
+
+    if (GetEffectiveViewMode() == ContentViewMode::Details) {
+        const float col2 = renderItem.geometry.x + renderItem.geometry.width * 0.42f;
+        const float col3 = renderItem.geometry.x + renderItem.geometry.width * 0.62f;
+        const float col4 = renderItem.geometry.x + renderItem.geometry.width * 0.80f;
+        context.DrawText(item.type, Point{ col2, nameY }, Theme::Get().TextSecondary, 11.0f);
+        context.DrawText(item.path, Point{ col3, nameY }, Theme::Get().TextSecondary, 11.0f);
+        if (item.isDirty) context.DrawText("*", Point{ col4, nameY }, Theme::Get().Warning, 11.0f);
+    } else {
+        const float typeW = context.GetTextWidth(item.type, 11.0f);
+        context.DrawText(item.type, Point{ renderItem.geometry.x + renderItem.geometry.width - typeW - 12.0f, nameY },
+            Theme::Get().TextSecondary, 11.0f);
     }
 }
 
 void ContentBrowser::Paint(PaintContext& context) {
-    // Draw background
-    context.DrawRect(m_Geometry, Theme::Get().ContentBrowserBackground);
+    context.DrawRect(m_Geometry, Color{ 0.10f, 0.10f, 0.11f, 1.0f });
+    UpdateVisibleRange();
 
-    // Draw items
-    for (const auto& renderItem : m_RenderList) {
-        const auto& item = renderItem.item;
-        
-        // Skip if outside visible area
+    const bool isGridLike = GetEffectiveViewMode() != ContentViewMode::List &&
+                            GetEffectiveViewMode() != ContentViewMode::Details;
+
+    for (int i = m_FirstVisibleIndex; i <= m_LastVisibleIndex && i < static_cast<int>(m_RenderList.size()); ++i) {
+        const auto& renderItem = m_RenderList[static_cast<size_t>(i)];
         if (renderItem.geometry.y + renderItem.geometry.height < m_Geometry.y ||
             renderItem.geometry.y > m_Geometry.y + m_Geometry.height) {
             continue;
         }
-        
-        // Draw selection background
-        if (IsSelected(item.id)) {
-            Color cbSelected = Color{ 0.271f, 0.290f, 0.322f, 1.0f }; // #454A52
-            context.DrawRoundedRect(renderItem.geometry, cbSelected, 4.0f);
-            Color cbBorder = Color{ 0.439f, 0.467f, 0.502f, 1.0f }; // #707780
-            context.DrawRoundedRectOutline(renderItem.geometry, cbBorder, 1.0f, 4.0f);
-        } else if (item.id == m_HoveredId) {
-            Color cbHover = Color{ 0.196f, 0.208f, 0.231f, 1.0f }; // #32353B
-            context.DrawRoundedRect(renderItem.geometry, cbHover, 4.0f);
-        }
-        
-        if (m_Model->viewMode == ContentViewMode::Grid) {
-            // Draw thumbnail/icon (48x48)
-            float iconSize = 48.0f; // m_ThumbnailSize
-            float iconX = renderItem.geometry.x + (m_GridItemSize - iconSize) / 2.0f;
-            float iconY = renderItem.geometry.y + 12.0f; // Center somewhat in top portion
-            
-            Rect iconRect{ iconX, iconY, iconSize, iconSize };
-            if (item.iconTexture != VK_NULL_HANDLE) {
-                context.DrawTexture(iconRect, item.iconTexture);
-            } else {
-                // Fallback
-                IconPainter::DrawIcon(context, item.iconName, iconRect, Theme::Get().TextPrimary);
-            }
-            
-            // Draw label
-            float labelY = renderItem.geometry.y + 68.0f;
-            
-            // Truncate text if too long
-            std::string displayName = item.name;
-            float textWidth = context.GetTextWidth(displayName, 12.0f);
-            if (textWidth > m_GridItemSize - 8.0f) {
-                while (displayName.length() > 3 && context.GetTextWidth(displayName + "...", 12.0f) > m_GridItemSize - 8.0f) {
-                    displayName.pop_back();
-                }
-                displayName += "...";
-                textWidth = context.GetTextWidth(displayName, 12.0f);
-            }
-            
-            float labelX = renderItem.geometry.x + (m_GridItemSize - textWidth) / 2.0f;
-            Color textColor = IsSelected(item.id) ? Color::White() : Theme::Get().TextPrimary;
-            context.DrawText(displayName, Point{ labelX, labelY }, textColor, 12.0f);
-            
-            // Draw favorite star
-            if (item.isFavorite) {
-                float starSize = 14.0f;
-                float starX = renderItem.geometry.x + renderItem.geometry.width - starSize - 4.0f;
-                float starY = renderItem.geometry.y + 4.0f;
-                Rect starRect{ starX, starY, starSize, starSize };
-                IconPainter::DrawIcon(context, Icons::StarFilled, starRect, Theme::Get().SelectedAccent);
-            }
-        } else {
-            // List view
-            float iconSize = 20.0f;
-            float iconX = renderItem.geometry.x + 8.0f;
-            float iconY = renderItem.geometry.y + (m_ListRowHeight - iconSize) / 2.0f;
-            
-            Rect iconRect{ iconX, iconY, iconSize, iconSize };
-            if (item.iconTexture != VK_NULL_HANDLE) {
-                context.DrawTexture(iconRect, item.iconTexture);
-            } else {
-                IconPainter::DrawIcon(context, item.iconName, iconRect, Theme::Get().TextPrimary);
-            }
-            
-            // Draw name
-            float nameX = iconX + iconSize + 8.0f;
-            float nameY = renderItem.geometry.y + (m_ListRowHeight - 13.0f) / 2.0f;
-            Color textColor = IsSelected(item.id) ? Color::White() : Theme::Get().TextPrimary;
-            context.DrawText(item.name, Point{ nameX, nameY }, textColor, 13.0f);
-            
-            // Draw type
-            float typeX = renderItem.geometry.x + renderItem.geometry.width - item.type.length() * 12.0f * 0.6f - 8.0f;
-            float typeY = renderItem.geometry.y + (m_ListRowHeight - 12.0f) / 2.0f;
-            context.DrawText(item.type, Point{ typeX, typeY }, Theme::Get().TextSecondary, 12.0f);
-        }
+        if (isGridLike) PaintGridItem(context, renderItem);
+        else PaintListItem(context, renderItem);
     }
-    
-    // Draw marquee selection box
+
     if (m_IsSelecting) {
-        float minX = std::min(m_SelectStart.x, m_SelectEnd.x);
-        float maxX = std::max(m_SelectStart.x, m_SelectEnd.x);
-        float minY = std::min(m_SelectStart.y, m_SelectEnd.y);
-        float maxY = std::max(m_SelectStart.y, m_SelectEnd.y);
-        Rect selectBox{minX, minY, maxX - minX, maxY - minY};
-        
-        context.DrawRect(selectBox, Color{Theme::Get().SelectedAccent.r, Theme::Get().SelectedAccent.g, Theme::Get().SelectedAccent.b, 0.15f}); // Semi-transparent fill
-        context.DrawRoundedRectOutline(selectBox, Theme::Get().SelectedAccent, 1.0f, 0.0f); // Border
+        const float minX = std::min(m_SelectStart.x, m_SelectEnd.x);
+        const float maxX = std::max(m_SelectStart.x, m_SelectEnd.x);
+        const float minY = std::min(m_SelectStart.y, m_SelectEnd.y);
+        const float maxY = std::max(m_SelectStart.y, m_SelectEnd.y);
+        Rect selectBox{ minX, minY, maxX - minX, maxY - minY };
+        context.DrawRect(selectBox, Color{ Theme::Get().SelectedAccent.r, Theme::Get().SelectedAccent.g, Theme::Get().SelectedAccent.b, 0.15f });
+        context.DrawRoundedRectOutline(selectBox, Theme::Get().SelectedAccent, 1.0f, 0.0f);
     }
-    
-    // Draw drag ghost
-    if (m_IsDragging && !m_Model->selectedIds.empty()) {
-        // Find the first selected item to use as a ghost
+
+    if (m_IsDragging && m_Model && !m_Model->selectedIds.empty()) {
         for (const auto& renderItem : m_RenderList) {
-            if (IsSelected(renderItem.item.id)) {
-                Rect ghostRect{ m_MousePos.x - m_GridItemSize/2.0f, m_MousePos.y - m_GridItemSize/2.0f, m_GridItemSize, m_GridItemSize };
-                context.DrawRoundedRect(ghostRect, Color{0.145f, 0.145f, 0.145f, 0.8f}, 4.0f);
-                context.DrawRoundedRectOutline(ghostRect, Color{0.231f, 0.51f, 0.965f, 1.0f}, 1.0f, 4.0f);
-                
-                // Draw icon inside ghost
-                Rect iconRect{ ghostRect.x + (m_GridItemSize - m_ThumbnailSize)/2.0f, ghostRect.y + 12.0f, m_ThumbnailSize, m_ThumbnailSize };
-                if (renderItem.item.iconTexture != VK_NULL_HANDLE) {
-                    context.DrawTexture(iconRect, renderItem.item.iconTexture);
-                }
-                
-                // Draw badge with count if multiple
-                if (m_Model->selectedIds.size() > 1) {
-                    std::string countStr = std::to_string(m_Model->selectedIds.size());
-                    Rect badgeRect{ ghostRect.x + ghostRect.width - 24.0f, ghostRect.y - 8.0f, 32.0f, 20.0f };
-                    context.DrawRoundedRect(badgeRect, Color{0.9f, 0.2f, 0.2f, 1.0f}, 10.0f);
-                    context.DrawText(countStr, Point{badgeRect.x + 8.0f, badgeRect.y + 2.0f}, Color::White(), 12.0f);
-                }
-                break;
+            if (!IsSelected(renderItem.item.id)) continue;
+            Rect ghostRect{ m_MousePos.x - 40.0f, m_MousePos.y - 40.0f, 80.0f, 80.0f };
+            context.DrawRoundedRect(ghostRect, Color{ 0.145f, 0.145f, 0.145f, 0.8f }, 4.0f);
+            context.DrawRoundedRectOutline(ghostRect, Theme::Get().SelectedAccent, 1.0f, 4.0f);
+            if (renderItem.item.iconTexture != VK_NULL_HANDLE) {
+                Rect iconRect{ ghostRect.x + 12.0f, ghostRect.y + 12.0f, 56.0f, 56.0f };
+                context.DrawTexture(iconRect, renderItem.item.iconTexture);
             }
+            if (m_Model->selectedIds.size() > 1) {
+                const std::string countStr = std::to_string(m_Model->selectedIds.size());
+                Rect badgeRect{ ghostRect.x + ghostRect.width - 24.0f, ghostRect.y - 8.0f, 32.0f, 20.0f };
+                context.DrawRoundedRect(badgeRect, Color{ 0.9f, 0.2f, 0.2f, 1.0f }, 10.0f);
+                context.DrawText(countStr, Point{ badgeRect.x + 8.0f, badgeRect.y + 2.0f }, Color::White(), 12.0f);
+            }
+            break;
         }
     }
 }
 
 void ContentBrowser::OnMouseDown(const MouseEvent& event) {
     RenderItem* renderItem = GetItemAtPosition(event.position);
-    
+
     if (event.button == MouseButton::Left) {
+        const double now = SDL_GetTicks() / 1000.0;
+        const bool isDoubleClick = renderItem &&
+            (now - m_LastClickTime) < 0.35 &&
+            std::abs(event.position.x - m_LastClickPos.x) < 4.0f &&
+            std::abs(event.position.y - m_LastClickPos.y) < 4.0f;
+
+        if (isDoubleClick && m_OnItemDoubleClicked) {
+            m_OnItemDoubleClicked(renderItem->item);
+            m_LastClickTime = 0.0;
+            return;
+        }
+        m_LastClickTime = now;
+        m_LastClickPos = event.position;
+
         if (renderItem) {
-            // Check modifiers
-            bool ctrlDown = event.ctrlDown;
-            bool shiftDown = event.shiftDown;
-            
+            const bool ctrlDown = event.ctrlDown;
+            const bool shiftDown = event.shiftDown;
+
             if (ctrlDown) {
-                if (IsSelected(renderItem->item.id)) {
-                    if (m_Controller) m_Controller->RemoveFromSelection(renderItem->item.id);
-                } else {
-                    if (m_Controller) m_Controller->AddToSelection(renderItem->item.id);
-                }
+                if (IsSelected(renderItem->item.id)) m_Controller->RemoveFromSelection(renderItem->item.id);
+                else m_Controller->AddToSelection(renderItem->item.id);
             } else if (shiftDown && !m_LastSelectedId.empty()) {
-                // Find indices
-                int startIdx = -1;
-                int endIdx = -1;
+                int startIdx = -1, endIdx = -1;
                 for (size_t i = 0; i < m_RenderList.size(); ++i) {
-                    if (m_RenderList[i].item.id == m_LastSelectedId) startIdx = (int)i;
-                    if (m_RenderList[i].item.id == renderItem->item.id) endIdx = (int)i;
+                    if (m_RenderList[i].item.id == m_LastSelectedId) startIdx = static_cast<int>(i);
+                    if (m_RenderList[i].item.id == renderItem->item.id) endIdx = static_cast<int>(i);
                 }
-                
                 if (startIdx != -1 && endIdx != -1) {
                     ClearSelection();
-                    int minIdx = std::min(startIdx, endIdx);
-                    int maxIdx = std::max(startIdx, endIdx);
-                    for (int i = minIdx; i <= maxIdx; ++i) {
-                        m_Model->selectedIds.push_back(m_RenderList[i].item.id);
-                    }
+                    const int minIdx = std::min(startIdx, endIdx);
+                    const int maxIdx = std::max(startIdx, endIdx);
+                    for (int i = minIdx; i <= maxIdx; ++i) m_Controller->AddToSelection(m_RenderList[static_cast<size_t>(i)].item.id);
                     m_LastSelectedId = renderItem->item.id;
                 } else {
-                    if (m_Controller) m_Controller->SetSelectedId(renderItem->item.id);
+                    m_Controller->SetSelectedId(renderItem->item.id);
                 }
             } else {
-                if (IsSelected(renderItem->item.id)) {
-                    // Might be dragging. Don't deselect others yet.
-                    m_DragStart = event.position;
-                    m_IsDragging = false;
-                } else {
-                    if (m_Controller) m_Controller->SetSelectedId(renderItem->item.id);
-                    m_DragStart = event.position;
-                    m_IsDragging = false;
-                }
+                if (!IsSelected(renderItem->item.id)) m_Controller->SetSelectedId(renderItem->item.id);
+                m_DragStart = event.position;
+                m_IsDragging = false;
             }
-            
-            if (m_OnItemSelected) {
-                m_OnItemSelected(renderItem->item);
-            }
+            m_LastSelectedId = renderItem->item.id;
+            if (m_OnItemSelected) m_OnItemSelected(renderItem->item);
         } else {
             ClearSelection();
-            
-            // Start marquee selection
             m_IsSelecting = true;
             m_SelectStart = event.position;
             m_SelectEnd = event.position;
-            m_IsDragging = false;
             m_DragStart = Point{0,0};
         }
     } else if (event.button == MouseButton::Right) {
         if (renderItem) {
-            // If right-clicking an unselected item, select it first
             if (!IsSelected(renderItem->item.id)) {
-                if (m_Controller) m_Controller->SetSelectedId(renderItem->item.id);
-                if (m_OnItemSelected) {
-                    m_OnItemSelected(renderItem->item);
-                }
+                m_Controller->SetSelectedId(renderItem->item.id);
+                if (m_OnItemSelected) m_OnItemSelected(renderItem->item);
             }
-            
-            if (m_OnItemRightClicked) {
-                m_OnItemRightClicked(renderItem->item, event.position);
-            }
+            if (m_OnItemRightClicked) m_OnItemRightClicked(renderItem->item, event.position);
         } else {
             ClearSelection();
-            if (m_OnBackgroundRightClicked) {
-                m_OnBackgroundRightClicked(event.position);
-            }
+            if (m_OnBackgroundRightClicked) m_OnBackgroundRightClicked(event.position);
         }
     }
 }
 
 void ContentBrowser::OnMouseMove(const MouseEvent& event) {
     m_MousePos = event.position;
-    
+
     if (m_IsSelecting) {
         m_SelectEnd = event.position;
-        
-        // Compute selection box
-        float minX = std::min(m_SelectStart.x, m_SelectEnd.x);
-        float maxX = std::max(m_SelectStart.x, m_SelectEnd.x);
-        float minY = std::min(m_SelectStart.y, m_SelectEnd.y);
-        float maxY = std::max(m_SelectStart.y, m_SelectEnd.y);
-        Rect selectBox{minX, minY, maxX - minX, maxY - minY};
-        
-        // Update selection dynamically
+        const float minX = std::min(m_SelectStart.x, m_SelectEnd.x);
+        const float maxX = std::max(m_SelectStart.x, m_SelectEnd.x);
+        const float minY = std::min(m_SelectStart.y, m_SelectEnd.y);
+        const float maxY = std::max(m_SelectStart.y, m_SelectEnd.y);
+        Rect selectBox{ minX, minY, maxX - minX, maxY - minY };
         ClearSelection();
         for (const auto& renderItem : m_RenderList) {
             Rect intersection = renderItem.geometry.Intersect(selectBox);
             if (intersection.width > 0.0f && intersection.height > 0.0f) {
-                if (m_Controller) m_Controller->AddToSelection(renderItem.item.id);
+                m_Controller->AddToSelection(renderItem.item.id);
             }
         }
     } else if (m_DragStart.x != 0.0f || m_DragStart.y != 0.0f) {
-        // Check drag threshold
-        float dx = event.position.x - m_DragStart.x;
-        float dy = event.position.y - m_DragStart.y;
-        if (dx*dx + dy*dy > 25.0f) { // 5px threshold
-            m_IsDragging = true;
-        }
+        const float dx = event.position.x - m_DragStart.x;
+        const float dy = event.position.y - m_DragStart.y;
+        if (dx * dx + dy * dy > 25.0f) m_IsDragging = true;
     }
-    
+
     RenderItem* renderItem = GetItemAtPosition(event.position);
     m_HoveredId = renderItem ? renderItem->item.id : "";
 }
 
 void ContentBrowser::OnMouseUp(const MouseEvent& event) {
-    if (event.button == MouseButton::Left) {
-        if (m_IsSelecting) {
-            m_IsSelecting = false;
-        } else if (m_IsDragging) {
-            m_IsDragging = false;
-            m_DragStart = Point{0,0};
-            // Trigger drop logic here if hovering over a folder
-            RenderItem* target = GetItemAtPosition(event.position);
-            if (target && target->item.isFolder && !IsSelected(target->item.id)) {
-                // Drop into folder logic
+    if (event.button != MouseButton::Left) return;
+
+    if (m_IsSelecting) {
+        m_IsSelecting = false;
+    } else if (m_IsDragging) {
+        m_IsDragging = false;
+        m_DragStart = Point{0,0};
+        RenderItem* target = GetItemAtPosition(event.position);
+        if (target && target->item.isFolder) {
+            for (const auto& id : m_Model->selectedIds) {
+                if (id == target->item.id) continue;
+                // Drop into folder - future filesystem move hook
             }
-        } else if (m_DragStart.x != 0.0f || m_DragStart.y != 0.0f) {
-            // It was just a click on a selected item without dragging
-            RenderItem* target = GetItemAtPosition(event.position);
-            if (target && IsSelected(target->item.id)) {
-                bool ctrlDown = event.ctrlDown;
-                bool shiftDown = event.shiftDown;
-                if (!ctrlDown && !shiftDown) {
-                    if (m_Controller) m_Controller->SetSelectedId(target->item.id);
-                }
-            }
-            m_DragStart = Point{0,0};
         }
+    } else {
+        m_DragStart = Point{0,0};
     }
 }
 
 void ContentBrowser::OnMouseWheel(const MouseEvent& event) {
-    float scrollAmount = event.wheelDeltaY * (GetViewMode() == ContentViewMode::Grid ? m_GridItemSize : m_ListRowHeight) * 0.5f;
+    const GridMetrics metrics = GetGridMetrics();
+    const float stride = (GetEffectiveViewMode() == ContentViewMode::List ||
+                          GetEffectiveViewMode() == ContentViewMode::Details)
+        ? m_ListRowHeight : metrics.cellHeight + metrics.vSpacing;
+    const float scrollAmount = event.wheelDeltaY * stride * 0.5f;
     m_ScrollOffset -= scrollAmount;
-    
-    // Clamp scroll
-    float totalHeight = Measure(Size{m_Geometry.width, m_Geometry.height}).height;
-    float maxScroll = std::max(0.0f, totalHeight - m_Geometry.height);
+    const float totalHeight = Measure(Size{ m_Geometry.width, m_Geometry.height }).height;
+    const float maxScroll = std::max(0.0f, totalHeight - m_Geometry.height);
     m_ScrollOffset = std::max(0.0f, std::min(m_ScrollOffset, maxScroll));
-    
     Arrange(m_Geometry);
 }
 
 void ContentBrowser::OnKeyDown(const KeyEvent& event) {
-    // TODO: Implement keyboard navigation
+    if (!m_Model || m_RenderList.empty()) return;
+    int current = -1;
+    for (size_t i = 0; i < m_RenderList.size(); ++i) {
+        if (IsSelected(m_RenderList[i].item.id)) { current = static_cast<int>(i); break; }
+    }
+    if (current < 0) current = 0;
+
+    if (event.keycode == SDLK_DOWN) current = std::min(current + 1, static_cast<int>(m_RenderList.size()) - 1);
+    else if (event.keycode == SDLK_UP) current = std::max(current - 1, 0);
+    else return;
+
+    m_Controller->SetSelectedId(m_RenderList[static_cast<size_t>(current)].item.id);
+    if (m_OnItemSelected) m_OnItemSelected(m_RenderList[static_cast<size_t>(current)].item);
 }
 
+void ContentBrowser::AddItem(const ContentItem& item) {
+    if (m_Controller) m_Controller->AddItem(item);
+}
 
+void ContentBrowser::RemoveItem(const std::string& id) {
+    if (m_Controller) m_Controller->RemoveItem(id);
+}
 
-
-
-
+void ContentBrowser::Clear() {
+    if (m_Controller) m_Controller->Clear();
+}
 
 bool ContentBrowser::IsSelected(const std::string& id) const {
+    if (!m_Model) return false;
     return std::find(m_Model->selectedIds.begin(), m_Model->selectedIds.end(), id) != m_Model->selectedIds.end();
 }
 
-
-
 void ContentBrowser::BuildRenderList() {
     m_RenderList.clear();
-    
+    if (!m_Model) return;
+
+    auto& service = ContentBrowserService::Get();
+    const auto& search = service.GetSearchController();
+    const auto& filters = service.GetFilterController();
+
+    int index = 0;
     for (const auto& item : m_Model->items) {
-        if (!m_Model->filterText.empty()) {
-            std::string itemNameLower = item.name;
-            std::transform(itemNameLower.begin(), itemNameLower.end(), itemNameLower.begin(), ::tolower);
-            if (itemNameLower.find(m_Model->filterText) == std::string::npos) {
-                continue;
-            }
+        if (const auto* asset = service.GetRegistry().FindById(item.id)) {
+            if (!search.Matches(*asset)) continue;
+            if (!filters.Matches(*asset)) continue;
+        } else if (!m_Model->filterText.empty()) {
+            std::string lowerName = item.name;
+            std::transform(lowerName.begin(), lowerName.end(), lowerName.begin(), ::tolower);
+            if (lowerName.find(m_Model->filterText) == std::string::npos) continue;
         }
-        
-        if (item.iconTexture == VK_NULL_HANDLE && !item.thumbnailRequested) {
-            if (m_OnItemNeedsThumbnail) {
-                m_OnItemNeedsThumbnail(item.id);
-            }
-            // We need to mark the original item in m_Model->items as requested so we don't spam
-            for (auto& origItem : m_Model->items) {
-                if (origItem.id == item.id) {
-                    origItem.thumbnailRequested = true;
-                    break;
-                }
-            }
-        }
-        
+
         RenderItem renderItem;
         renderItem.item = item;
+        renderItem.sourceIndex = index++;
         renderItem.geometry = Rect{};
         m_RenderList.push_back(renderItem);
     }
 }
 
 void ContentBrowser::CalculateGridLayout() {
-    float x = m_Geometry.x + 8.0f;
-    float y = m_Geometry.y + 8.0f - m_ScrollOffset;
-    int itemsPerRow = std::max(1, static_cast<int>((m_Geometry.width - 16.0f) / (m_GridItemSize + m_GridSpacing)));
-    
+    const GridMetrics m = GetGridMetrics();
+    float x = m_Geometry.x + m.padding;
+    float y = m_Geometry.y + m.padding - m_ScrollOffset;
+    const int itemsPerRow = std::max(1,
+        static_cast<int>((m_Geometry.width - m.padding * 2.0f + m.hSpacing) / (m.cellWidth + m.hSpacing)));
+
     for (size_t i = 0; i < m_RenderList.size(); ++i) {
-        int col = static_cast<int>(i) % itemsPerRow;
-        int row = static_cast<int>(i) / itemsPerRow;
-        
-        m_RenderList[i].geometry = Rect{
-            x + col * (m_GridItemSize + m_GridSpacing),
-            y + row * (m_GridItemSize + m_GridSpacing + 20.0f), // +20 for label
-            m_GridItemSize,
-            m_GridItemSize + 20.0f
+        const int col = static_cast<int>(i) % itemsPerRow;
+        const int row = static_cast<int>(i) / itemsPerRow;
+        const float cellX = x + col * (m.cellWidth + m.hSpacing);
+        const float cellY = y + row * (m.cellHeight + m.vSpacing);
+
+        const float thumbSize = m.thumbSize;
+        const float thumbX = cellX + (m.cellWidth - thumbSize) * 0.5f;
+        const float thumbY = cellY + 4.0f;
+
+        m_RenderList[i].geometry = Rect{ cellX, cellY, m.cellWidth, m.cellHeight };
+        m_RenderList[i].thumbGeometry = Rect{ thumbX, thumbY, thumbSize, thumbSize };
+    }
+}
+
+void ContentBrowser::CalculateTilesLayout() {
+    const GridMetrics m = GetGridMetrics();
+    float x = m_Geometry.x + m.padding;
+    float y = m_Geometry.y + m.padding - m_ScrollOffset;
+    const int itemsPerRow = std::max(1,
+        static_cast<int>((m_Geometry.width - m.padding * 2.0f + m.hSpacing) / (m.cellWidth + m.hSpacing)));
+
+    for (size_t i = 0; i < m_RenderList.size(); ++i) {
+        const int col = static_cast<int>(i) % itemsPerRow;
+        const int row = static_cast<int>(i) / itemsPerRow;
+        const float cellX = x + col * (m.cellWidth + m.hSpacing);
+        const float cellY = y + row * (m.cellHeight + m.vSpacing);
+        const float thumbSize = m.thumbSize;
+
+        m_RenderList[i].geometry = Rect{ cellX, cellY, m.cellWidth, m.cellHeight };
+        m_RenderList[i].thumbGeometry = Rect{
+            cellX + (m.cellWidth - thumbSize) * 0.5f,
+            cellY + 6.0f,
+            thumbSize, thumbSize
         };
     }
 }
 
 void ContentBrowser::CalculateListLayout() {
     float y = m_Geometry.y - m_ScrollOffset;
-    
     for (auto& renderItem : m_RenderList) {
-        renderItem.geometry = Rect{
-            m_Geometry.x,
-            y,
-            m_Geometry.width,
-            m_ListRowHeight
-        };
+        renderItem.geometry = Rect{ m_Geometry.x, y, m_Geometry.width, m_ListRowHeight };
+        renderItem.thumbGeometry = renderItem.geometry;
         y += m_ListRowHeight;
     }
 }
 
+void ContentBrowser::CalculateDetailsLayout() {
+    CalculateListLayout();
+}
+
 ContentBrowser::RenderItem* ContentBrowser::GetItemAtPosition(const Point& pos) {
     for (auto& renderItem : m_RenderList) {
-        if (pos.x >= renderItem.geometry.x && pos.x <= renderItem.geometry.x + renderItem.geometry.width &&
-            pos.y >= renderItem.geometry.y && pos.y <= renderItem.geometry.y + renderItem.geometry.height) {
-            return &renderItem;
-        }
+        if (renderItem.geometry.Contains(pos)) return &renderItem;
     }
     return nullptr;
 }
 
-// Breadcrumb implementation
-Breadcrumb::Breadcrumb() {}
+ContentBrowserStatusBar::ContentBrowserStatusBar() = default;
+
+Size ContentBrowserStatusBar::Measure(const Size& availableSize) {
+    (void)availableSize;
+    m_DesiredSize = Size{ availableSize.width, 22.0f };
+    return m_DesiredSize;
+}
+
+void ContentBrowserStatusBar::Arrange(const Rect& allottedRect) {
+    m_Geometry = allottedRect;
+}
+
+void ContentBrowserStatusBar::Paint(PaintContext& context) {
+    context.DrawRect(m_Geometry, Color{ 0.09f, 0.09f, 0.10f, 1.0f });
+    const size_t total = m_AssetCount + m_FolderCount;
+    std::string text = std::to_string(total) + " items";
+    if (m_SelectedCount > 0) {
+        text += "  ·  " + std::to_string(m_SelectedCount) + " selected";
+    }
+    context.DrawText(text, Point{ m_Geometry.x + 12.0f, m_Geometry.y + 4.0f }, Theme::Get().TextSecondary, 11.0f);
+}
+
+Breadcrumb::Breadcrumb() = default;
 
 Size Breadcrumb::Measure(const Size& availableSize) {
     CalculateLayout();
-    
-    float totalWidth = 0.0f;
-    for (const auto& crumb : m_Crumbs) {
-        totalWidth += crumb.geometry.width;
-    }
-    
-    return Size{ totalWidth, 24.0f };
+    return Size{ availableSize.width, 28.0f };
 }
 
 void Breadcrumb::Arrange(const Rect& allottedRect) {
@@ -445,27 +634,18 @@ void Breadcrumb::Arrange(const Rect& allottedRect) {
 }
 
 void Breadcrumb::Paint(PaintContext& context) {
+    context.DrawRect(m_Geometry, Color{ 0.11f, 0.11f, 0.12f, 1.0f });
     for (size_t i = 0; i < m_Crumbs.size(); ++i) {
         const auto& crumb = m_Crumbs[i];
-        
-        // Draw hover background
-        if (crumb.hovered) {
-            context.DrawRoundedRect(crumb.geometry, Theme::Get().HoverOverlay, 4.0f);
-        }
-        
-        // Draw crumb text
-        float textX = crumb.geometry.x + 8.0f;
-        float textY = crumb.geometry.y + (24.0f - 13.0f) / 2.0f;
-        
-        Color textColor = (static_cast<int>(i) == m_HoveredCrumb) ? Theme::Get().SelectedAccent : Theme::Get().TextPrimary;
-        context.DrawText(crumb.text, Point{ textX, textY }, textColor, 13.0f);
-        
-        // Draw separator (chevron)
+        if (crumb.hovered) context.DrawRoundedRect(crumb.geometry, Color{ 1.0f, 1.0f, 1.0f, 0.04f }, 3.0f);
+        const float textX = crumb.geometry.x + 6.0f;
+        const float textY = crumb.geometry.y + (m_Geometry.height - 12.0f) * 0.5f;
+        const Color textColor = static_cast<int>(i) == m_HoveredCrumb ? Theme::Get().SelectedAccent : Theme::Get().TextSecondary;
+        context.DrawText(crumb.text, Point{ textX, textY }, textColor, 12.0f);
         if (i < m_Crumbs.size() - 1) {
-            float sepX = crumb.geometry.x + crumb.geometry.width + m_CrumbSpacing;
-            float sepY = crumb.geometry.y + (24.0f - 12.0f) / 2.0f;
-            Rect sepRect{ sepX, sepY, 12.0f, 12.0f };
-            IconPainter::DrawIcon(context, Icons::ChevronRight, sepRect, Theme::Get().TextSecondary);
+            const float sepX = crumb.geometry.x + crumb.geometry.width + 2.0f;
+            const float sepY = crumb.geometry.y + (m_Geometry.height - 10.0f) * 0.5f;
+            context.DrawText("/", Point{ sepX, sepY }, Theme::Get().TextDisabled, 11.0f);
         }
     }
 }
@@ -473,45 +653,34 @@ void Breadcrumb::Paint(PaintContext& context) {
 void Breadcrumb::OnMouseDown(const MouseEvent& event) {
     CrumbInfo* crumb = GetCrumbAtPosition(event.position);
     if (crumb && m_OnCrumbClicked) {
-        size_t index = crumb - &m_Crumbs[0];
+        const size_t index = static_cast<size_t>(crumb - &m_Crumbs[0]);
         m_OnCrumbClicked(index);
     }
 }
 
 void Breadcrumb::OnMouseMove(const MouseEvent& event) {
     m_HoveredCrumb = -1;
-    
-    CrumbInfo* crumb = GetCrumbAtPosition(event.position);
-    if (crumb) {
+    for (size_t i = 0; i < m_Crumbs.size(); ++i) m_Crumbs[i].hovered = false;
+    if (CrumbInfo* crumb = GetCrumbAtPosition(event.position)) {
         m_HoveredCrumb = static_cast<int>(crumb - &m_Crumbs[0]);
-    }
-    
-    for (auto& c : m_Crumbs) {
-        c.hovered = false;
-    }
-    
-    if (m_HoveredCrumb >= 0) {
-        m_Crumbs[m_HoveredCrumb].hovered = true;
+        m_Crumbs[static_cast<size_t>(m_HoveredCrumb)].hovered = true;
     }
 }
 
 void Breadcrumb::SetPath(const std::vector<std::string>& path) {
+    m_PathSegments = path;
     m_Crumbs.clear();
-    
     for (const auto& crumb : path) {
         CrumbInfo info;
         info.text = crumb;
-        info.geometry = Rect{};
         m_Crumbs.push_back(info);
     }
-    
     CalculateLayout();
 }
 
 void Breadcrumb::AddCrumb(const std::string& crumb) {
     CrumbInfo info;
     info.text = crumb;
-    info.geometry = Rect{};
     m_Crumbs.push_back(info);
     CalculateLayout();
 }
@@ -521,25 +690,21 @@ void Breadcrumb::Clear() {
 }
 
 void Breadcrumb::CalculateLayout() {
-    float x = m_Geometry.x;
-    
+    float x = m_Geometry.x + 8.0f;
+    const float h = std::max(24.0f, m_Geometry.height);
     for (auto& crumb : m_Crumbs) {
-        float textWidth = crumb.text.length() * 13.0f * 0.6f;
-        float width = textWidth + 16.0f; // padding
-        
-        crumb.geometry = Rect{ x, m_Geometry.y, width, 24.0f };
-        x += width + m_SeparatorSpacing + m_CrumbSpacing;
+        const float textWidth = crumb.text.length() * 12.0f * 0.58f;
+        const float width = textWidth + 12.0f;
+        crumb.geometry = Rect{ x, m_Geometry.y + (h - 24.0f) * 0.5f, width, 24.0f };
+        x += width + 10.0f;
     }
 }
 
 Breadcrumb::CrumbInfo* Breadcrumb::GetCrumbAtPosition(const Point& pos) {
     for (auto& crumb : m_Crumbs) {
-        if (pos.x >= crumb.geometry.x && pos.x <= crumb.geometry.x + crumb.geometry.width &&
-            pos.y >= crumb.geometry.y && pos.y <= crumb.geometry.y + crumb.geometry.height) {
-            return &crumb;
-        }
+        if (crumb.geometry.Contains(pos)) return &crumb;
     }
     return nullptr;
 }
 
-} // namespace we::editor::contentbrowser::UI
+} // namespace we::UI

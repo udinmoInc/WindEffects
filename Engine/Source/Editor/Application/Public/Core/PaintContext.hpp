@@ -26,7 +26,6 @@ struct DrawCommand {
     Rect clipRect;      // Scissor clipping
     VkDescriptorSet textureId = VK_NULL_HANDLE; // Used for viewport or icons
     std::string text;
-    int codepoint = 0;
     float fontSize = 14.0f;
     float borderRadius = 0.0f;
     float thickness = 1.0f;
@@ -49,7 +48,7 @@ public:
     void DrawShadow(const Rect& rect, const Color& color, float radius, float blur);
     
     void DrawText(const std::string& text, const Point& pos, const Color& color, float fontSize = 14.0f, bool bold = false, bool italic = false);
-    void DrawIcon(int codepoint, const Point& pos, const Color& color, float fontSize = 16.0f);
+    void DrawIcon(const std::string& iconName, const Point& pos, const Color& color, float size = 16.0f);
     void DrawLine(const Point& start, const Point& end, const Color& color, float thickness = 1.0f);
     void DrawTexture(const Rect& rect, VkDescriptorSet textureId, const Color& tint = Color::White(), const Color& tintBottom = Color::Transparent());
     

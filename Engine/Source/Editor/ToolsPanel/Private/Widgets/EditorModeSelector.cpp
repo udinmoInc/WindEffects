@@ -127,7 +127,7 @@ void EditorModeSelector::Refresh() {
     if (const auto* mode = EditorToolsRegistry::Get().FindMode(modeId)) {
         m_Label = mode->label;
         m_IconName = mode->iconName;
-        if (we::UI::Icons::GetCodepoint(m_IconName) == 0xE001) {
+        if (!we::UI::Icons::IsKnownIcon(m_IconName)) {
             m_IconName = we::UI::Icons::CursorName;
         }
     } else {

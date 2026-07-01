@@ -30,6 +30,7 @@
 #include "EditorModeController.hpp"
 #include "EditorLayoutController.hpp"
 #include "EditorPanelController.hpp"
+#include "ContentBrowserApi.h"
 #include "EditorLayoutPersistence.hpp"
 #include "Core/DockTabBrandRegistry.hpp"
 #include "Runtime/Core/AssetRegistry.hpp"
@@ -132,6 +133,7 @@ Editor::Editor(SDL_Window* window) : m_Window(window) {
     if (!m_UIRenderer->Init(m_Context, m_Renderer->GetSwapchainRenderPass())) {
         throw std::runtime_error("Failed to initialize HouseUI Renderer!");
     }
+    InitializeContentBrowserService(m_UIRenderer->GetIconRenderer().get());
     m_UIEventSystem = std::make_shared<UI::EventSystem>();
 
   HE_INFO("[Startup] Stage 5/6: Modules and plugins...");
@@ -836,6 +838,7 @@ void Editor::Shutdown() {
 
     m_ViewportWidget.reset();
     m_RootWidget.reset();
+    ShutdownContentBrowserService();
     if (m_UIRenderer) {
         m_UIRenderer->Shutdown();
         m_UIRenderer.reset();

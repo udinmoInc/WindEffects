@@ -49,17 +49,7 @@ bool UIRenderer::Init(const std::shared_ptr<we::runtime::renderer::VulkanContext
     if (!m_FontAtlas->Init(m_Context, fontToLoad, 32, 96, 1024, 1024)) {
         throw std::runtime_error("Failed to initialize HouseUI Renderer!");
     }
-    
-    // 2.b Initialize Icon Atlas (codicon font)
-    m_IconAtlas = std::make_shared<FontAtlas>();
-    const std::string iconFontPath = we::core::AssetRegistry::Get().GetFontPath("Font_Icons");
-    const std::string iconToLoad = iconFontPath.empty() ? "Assets/Fonts/codicon.ttf" : iconFontPath;
-    if (!m_IconAtlas->Init(m_Context, iconToLoad, 0xEA60, 2000, 1024, 1024)) {
-        HE_ERROR("UIRenderer: Failed to load icon atlas, icons will not render.");
-        m_IconAtlas.reset();
-    }
 
-    // 2.c Initialize SVG Icon Renderer
     m_IconRenderer = std::make_shared<IconRenderer>();
     if (!m_IconRenderer->Init(m_Context, m_TextureDescLayout)) {
         HE_ERROR("UIRenderer: Failed to initialize IconRenderer.");
@@ -100,14 +90,7 @@ bool UIRenderer::Init(const std::shared_ptr<we::runtime::renderer::VulkanContext
         m_FontAtlas->GetDescriptorSetRef() = RegisterTexture(m_FontAtlas->GetImageView(), m_FontAtlas->GetSampler());
     }
 
-    if (m_IconAtlas) {
-        m_IconAtlas->GetDescriptorSetRef() = RegisterTexture(m_IconAtlas->GetImageView(), m_IconAtlas->GetSampler());
-    }
-
     we::core::AssetRegistry::Get().RegisterTexture("Font_UI_Atlas", m_FontAtlas->GetImageView(), m_FontAtlas->GetSampler());
-    if (m_IconAtlas) {
-        we::core::AssetRegistry::Get().RegisterTexture("Font_Icons_Atlas", m_IconAtlas->GetImageView(), m_IconAtlas->GetSampler());
-    }
     we::core::AssetRegistry::Get().RegisterTexture("UI_DummyWhite", m_DummyImageView, m_DummySampler);
 
     // 5. Create pipeline
@@ -420,16 +403,21 @@ void UIRenderer::BuildGeometry(const std::vector<DrawCommand>& commands, uint32_
         VkDescriptorSet texSet = m_DummyDescriptorSet;
         if (cmd.type == DrawCommandType::Text) {
             texSet = m_FontAtlas->GetDescriptorSet();
-        } else if (cmd.type == DrawCommandType::Icon && m_IconAtlas) {
-            texSet = m_IconAtlas->GetDescriptorSet();
+        } else if (cmd.type == DrawCommandType::Icon && m_IconRenderer) {
+            const uint32_t iconSize = static_cast<uint32_t>(std::max(8.0f, cmd.fontSize));
+            texSet = m_IconRenderer->GetLucideIcon(cmd.text, iconSize, cmd.color);
         } else if (cmd.type == DrawCommandType::Texture) {
             texSet = cmd.textureId;
+        }
+
+        if (cmd.type == DrawCommandType::Icon && texSet == VK_NULL_HANDLE) {
+            continue;
         }
 
         uint32_t startIndex = static_cast<uint32_t>(m_Vertices.size());
         uint32_t cmdIndexCount = 0;
 
-        if (cmd.type == DrawCommandType::Rect || cmd.type == DrawCommandType::Texture || cmd.type == DrawCommandType::Gradient || cmd.type == DrawCommandType::Shadow || cmd.type == DrawCommandType::RoundedOutline) {
+        if (cmd.type == DrawCommandType::Rect || cmd.type == DrawCommandType::Texture || cmd.type == DrawCommandType::Icon || cmd.type == DrawCommandType::Gradient || cmd.type == DrawCommandType::Shadow || cmd.type == DrawCommandType::RoundedOutline) {
             float x = cmd.rect.x;
             float y = cmd.rect.y;
             float w = cmd.rect.width;
@@ -476,6 +464,10 @@ void UIRenderer::BuildGeometry(const std::vector<DrawCommand>& commands, uint32_
                 
                 Color colorTop = cmd.color;
                 Color colorBottom = (cmd.type == DrawCommandType::Gradient || cmd.type == DrawCommandType::Texture) ? cmd.colorBottom : cmd.color;
+                if (cmd.type == DrawCommandType::Icon) {
+                    colorTop = Color::White();
+                    colorBottom = Color::White();
+                }
 
                 UIVertex v0{ {x,     y},     {0.0f, 0.0f}, {colorTop.r, colorTop.g, colorTop.b, colorTop.a},       {x, y, w, h}, {cmd.borderRadius, type, outlineThickness, 0.0f} };
                 UIVertex v1{ {x + w, y},     {1.0f, 0.0f}, {colorTop.r, colorTop.g, colorTop.b, colorTop.a},       {x, y, w, h}, {cmd.borderRadius, type, outlineThickness, 0.0f} };
@@ -540,82 +532,49 @@ void UIRenderer::BuildGeometry(const std::vector<DrawCommand>& commands, uint32_
                 cmdIndexCount = 6;
             }
 
-        } else if (cmd.type == DrawCommandType::Text || cmd.type == DrawCommandType::Icon) {
+        } else if (cmd.type == DrawCommandType::Text) {
             float xpos = cmd.rect.x;
             float ypos = cmd.rect.y;
 
-            if (cmd.type == DrawCommandType::Icon && m_IconAtlas) {
+            float scale = 1.0f;
+            if (m_FontAtlas && m_FontAtlas->GetFontHeight() > 0.0f) {
+                scale = cmd.fontSize / m_FontAtlas->GetFontHeight();
+            }
+            float logicalX = 0.0f;
+            float logicalY = 0.0f;
+            float startX = xpos;
+            float startY = ypos + cmd.fontSize * 0.85f;
+
+            for (char c : cmd.text) {
                 GlyphInfo q;
-                if (m_IconAtlas->GetCharQuad(cmd.codepoint, &xpos, &ypos, q)) {
+                if (m_FontAtlas && m_FontAtlas->GetCharQuad(c, &logicalX, &logicalY, q)) {
                     uint32_t charStart = static_cast<uint32_t>(m_Vertices.size());
-                    
-                    // Slightly scale the icon up since font atlas baking might make it small
-                    float scale = cmd.fontSize / m_IconAtlas->GetFontHeight();
-                    float w = (q.x1 - q.x0) * scale;
-                    float h = (q.y1 - q.y0) * scale;
-                    
-                    // We apply an offset to center the icon vertically
-                    float yoffset = (cmd.fontSize - h) * 0.5f;
-                    
-                    // Adjust position
-                    float qx0 = cmd.rect.x;
-                    float qy0 = cmd.rect.y + yoffset;
-                    float qx1 = qx0 + w;
-                    float qy1 = qy0 + h;
 
-                    UIVertex v0{ {qx0, qy0}, {q.u0, q.v0}, {cmd.color.r, cmd.color.g, cmd.color.b, cmd.color.a}, {qx0, qy0, w, h}, {0.0f, 0.0f, 0.0f, 0.0f} };
-                    UIVertex v1{ {qx1, qy0}, {q.u1, q.v0}, {cmd.color.r, cmd.color.g, cmd.color.b, cmd.color.a}, {qx0, qy0, w, h}, {0.0f, 0.0f, 0.0f, 0.0f} };
-                    UIVertex v2{ {qx1, qy1}, {q.u1, q.v1}, {cmd.color.r, cmd.color.g, cmd.color.b, cmd.color.a}, {qx0, qy0, w, h}, {0.0f, 0.0f, 0.0f, 0.0f} };
-                    UIVertex v3{ {qx0, qy1}, {q.u0, q.v1}, {cmd.color.r, cmd.color.g, cmd.color.b, cmd.color.a}, {qx0, qy0, w, h}, {0.0f, 0.0f, 0.0f, 0.0f} };
+                    float px0 = startX + q.x0 * scale;
+                    float py0 = startY + q.y0 * scale;
+                    float px1 = startX + q.x1 * scale;
+                    float py1 = startY + q.y1 * scale;
+                    float w = px1 - px0;
+                    float h = py1 - py0;
 
-                    m_Vertices.push_back(v0); m_Vertices.push_back(v1); m_Vertices.push_back(v2); m_Vertices.push_back(v3);
+                    UIVertex v0{ {px0, py0}, {q.u0, q.v0}, {cmd.color.r, cmd.color.g, cmd.color.b, cmd.color.a}, {px0, py0, w, h}, {0.0f, 0.0f, 0.0f, 0.0f} };
+                    UIVertex v1{ {px1, py0}, {q.u1, q.v0}, {cmd.color.r, cmd.color.g, cmd.color.b, cmd.color.a}, {px0, py0, w, h}, {0.0f, 0.0f, 0.0f, 0.0f} };
+                    UIVertex v2{ {px1, py1}, {q.u1, q.v1}, {cmd.color.r, cmd.color.g, cmd.color.b, cmd.color.a}, {px0, py0, w, h}, {0.0f, 0.0f, 0.0f, 0.0f} };
+                    UIVertex v3{ {px0, py1}, {q.u0, q.v1}, {cmd.color.r, cmd.color.g, cmd.color.b, cmd.color.a}, {px0, py0, w, h}, {0.0f, 0.0f, 0.0f, 0.0f} };
 
-                    m_Indices.push_back(charStart + 0); m_Indices.push_back(charStart + 1); m_Indices.push_back(charStart + 2);
-                    m_Indices.push_back(charStart + 2); m_Indices.push_back(charStart + 3); m_Indices.push_back(charStart + 0);
+                    m_Vertices.push_back(v0);
+                    m_Vertices.push_back(v1);
+                    m_Vertices.push_back(v2);
+                    m_Vertices.push_back(v3);
+
+                    m_Indices.push_back(charStart + 0);
+                    m_Indices.push_back(charStart + 1);
+                    m_Indices.push_back(charStart + 2);
+                    m_Indices.push_back(charStart + 2);
+                    m_Indices.push_back(charStart + 3);
+                    m_Indices.push_back(charStart + 0);
 
                     cmdIndexCount += 6;
-                }
-            } else if (cmd.type == DrawCommandType::Text) {
-                float scale = 1.0f;
-                if (m_FontAtlas && m_FontAtlas->GetFontHeight() > 0.0f) {
-                    scale = cmd.fontSize / m_FontAtlas->GetFontHeight();
-                }
-                float logicalX = 0.0f;
-                float logicalY = 0.0f;
-                float startX = xpos;
-                float startY = ypos + cmd.fontSize * 0.85f; // Convert Top-Left Y to Baseline Y
-
-                for (char c : cmd.text) {
-                    GlyphInfo q;
-                    if (m_FontAtlas && m_FontAtlas->GetCharQuad(c, &logicalX, &logicalY, q)) {
-                        uint32_t charStart = static_cast<uint32_t>(m_Vertices.size());
-
-                        float px0 = startX + q.x0 * scale;
-                        float py0 = startY + q.y0 * scale;
-                        float px1 = startX + q.x1 * scale;
-                        float py1 = startY + q.y1 * scale;
-                        float w = px1 - px0;
-                        float h = py1 - py0;
-
-                        UIVertex v0{ {px0, py0}, {q.u0, q.v0}, {cmd.color.r, cmd.color.g, cmd.color.b, cmd.color.a}, {px0, py0, w, h}, {0.0f, 0.0f, 0.0f, 0.0f} };
-                        UIVertex v1{ {px1, py0}, {q.u1, q.v0}, {cmd.color.r, cmd.color.g, cmd.color.b, cmd.color.a}, {px0, py0, w, h}, {0.0f, 0.0f, 0.0f, 0.0f} };
-                        UIVertex v2{ {px1, py1}, {q.u1, q.v1}, {cmd.color.r, cmd.color.g, cmd.color.b, cmd.color.a}, {px0, py0, w, h}, {0.0f, 0.0f, 0.0f, 0.0f} };
-                        UIVertex v3{ {px0, py1}, {q.u0, q.v1}, {cmd.color.r, cmd.color.g, cmd.color.b, cmd.color.a}, {px0, py0, w, h}, {0.0f, 0.0f, 0.0f, 0.0f} };
-
-                        m_Vertices.push_back(v0);
-                        m_Vertices.push_back(v1);
-                        m_Vertices.push_back(v2);
-                        m_Vertices.push_back(v3);
-
-                        m_Indices.push_back(charStart + 0);
-                        m_Indices.push_back(charStart + 1);
-                        m_Indices.push_back(charStart + 2);
-                        m_Indices.push_back(charStart + 2);
-                        m_Indices.push_back(charStart + 3);
-                        m_Indices.push_back(charStart + 0);
-
-                        cmdIndexCount += 6;
-                    }
                 }
             }
         }
@@ -858,11 +817,6 @@ void UIRenderer::Shutdown() {
     if (m_FontAtlas) {
         m_FontAtlas->Shutdown();
         m_FontAtlas.reset();
-    }
-    
-    if (m_IconAtlas) {
-        m_IconAtlas->Shutdown();
-        m_IconAtlas.reset();
     }
 
     if (m_Pipeline != VK_NULL_HANDLE) {

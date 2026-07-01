@@ -34,10 +34,7 @@ void CommandInput::Paint(PaintContext& context) {
     const float iconSize = 14.0f;
     const float iconX = m_Geometry.x + 10.0f;
     const float iconY = m_Geometry.y + (m_Geometry.height - iconSize) / 2.0f;
-    const int codepoint = Icons::GetCodepoint(Icons::ConsoleName);
-    if (codepoint != 0) {
-        context.DrawIcon(codepoint, Point{ iconX, iconY }, Theme::Get().TextSecondary, iconSize);
-    }
+    IconPainter::DrawIcon(context, Icons::ConsoleName, Rect{ iconX, iconY, iconSize, iconSize }, Theme::Get().TextSecondary);
 
     const float textX = m_Geometry.x + 10.0f + iconSize + 8.0f;
     const float fontSize = 12.0f;

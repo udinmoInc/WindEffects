@@ -82,13 +82,6 @@ bool AssetRegistry::LoadDefaultEditorAssets() {
             "bin/Fonts/Inter-Regular.ttf",
             "../../bin/Fonts/Inter-Regular.ttf"
         }},
-        {"Font_Icons", {
-            "Assets/Fonts/codicon.ttf",
-            "Fonts/codicon.ttf",
-            "../Assets/Fonts/codicon.ttf",
-            "bin/Fonts/codicon.ttf",
-            "../../bin/Fonts/codicon.ttf"
-        }},
     };
 
     const std::vector<std::pair<std::string, std::vector<std::string>>> shaders = {
@@ -129,10 +122,11 @@ bool AssetRegistry::LoadDefaultEditorAssets() {
     };
 
     const std::vector<std::pair<std::string, std::vector<std::string>>> icons = {
-        {"Icon_Atlas", {
-            "Assets/Fonts/codicon.ttf",
+        {"Icon_Lucide", {
             "Assets/Icons/icons",
-            "Icons/icons"
+            "Icons/icons",
+            "../Assets/Icons/icons",
+            "Engine/Content/Icons/icons"
         }},
     };
 

@@ -558,7 +558,7 @@ public:
             we::UI::Rect{ rect.x + 6.0f, rect.y + 6.0f, 16.0f, 16.0f }, we::UI::Theme::Get().TextPrimary);
         context.DrawText("Environment", we::UI::Point{ rect.x + 26.0f, rect.y + 7.0f },
             we::UI::Theme::Get().TextPrimary, 11.0f, true);
-        we::UI::IconPainter::DrawIcon(context, we::UI::Icons::ChevronDown,
+        we::UI::IconPainter::DrawIcon(context, we::UI::Icons::ChevronDownName,
             we::UI::Rect{ rect.x + rect.width - 16.0f, rect.y + 8.0f, 10.0f, 10.0f },
             we::UI::Theme::Get().TextSecondary);
     }

@@ -7,14 +7,13 @@
 #include <vector>
 #include <functional>
 #include <memory>
+#include <unordered_set>
 #include <volk.h>
 #include "Models/ContentBrowserModel.hpp"
 #include "Controllers/ContentBrowserController.hpp"
 
 namespace we::UI {
 
-
-// Content browser widget with grid/list views
 class ContentBrowser : public Widget {
 public:
     using OnItemDoubleClicked = std::function<void(const ContentItem&)>;
@@ -27,6 +26,7 @@ public:
     Size Measure(const Size& availableSize) override;
     void Arrange(const Rect& allottedRect) override;
     void Paint(PaintContext& context) override;
+    void Tick(float deltaTime) override;
 
     void OnMouseDown(const MouseEvent& event) override;
     void OnMouseMove(const MouseEvent& event) override;
@@ -34,89 +34,102 @@ public:
     void OnMouseWheel(const MouseEvent& event) override;
     void OnKeyDown(const KeyEvent& event) override;
 
-    // Content management
     void AddItem(const ContentItem& item);
     void RemoveItem(const std::string& id);
     void Clear();
-    
-    // Selection
+
     bool IsSelected(const std::string& id) const;
     const std::vector<std::string>& GetSelectedIds() const { return m_Model ? m_Model->selectedIds : m_EmptySelectedIds; }
     void ClearSelection() { if (m_Controller) m_Controller->ClearSelection(); }
-    
-    // View mode
-    ContentViewMode GetViewMode() const { return m_Model ? m_Model->viewMode : ContentViewMode::Grid; }
-    
-    // Model and Controller
-    void SetModel(std::shared_ptr<ContentBrowserModel> model) { 
-        m_Model = model;
-        if (m_Model) {
-            m_Model->onModelChanged = [this]() {
-                BuildRenderList();
-            };
-            BuildRenderList();
-        }
-    }
-    void SetController(std::shared_ptr<ContentBrowserController> controller) { m_Controller = controller; }
-    
 
-    
-    // Callbacks
+    ContentViewMode GetViewMode() const { return m_Model ? m_Model->viewMode : ContentViewMode::LargeIcons; }
+    void SetViewMode(ContentViewMode mode) { if (m_Controller) m_Controller->SetViewMode(mode); }
+
+    void SetModel(std::shared_ptr<ContentBrowserModel> model);
+    void SetController(std::shared_ptr<ContentBrowserController> controller) { m_Controller = controller; }
+
     void SetOnItemDoubleClicked(OnItemDoubleClicked callback) { m_OnItemDoubleClicked = callback; }
     void SetOnItemSelected(OnItemSelected callback) { m_OnItemSelected = callback; }
     void SetOnItemRightClicked(OnItemRightClicked callback) { m_OnItemRightClicked = callback; }
     void SetOnItemNeedsThumbnail(std::function<void(const std::string&)> callback) { m_OnItemNeedsThumbnail = callback; }
     void SetOnBackgroundRightClicked(std::function<void(const Point&)> callback) { m_OnBackgroundRightClicked = callback; }
+    void SetOnVisibleItemsChanged(std::function<void(const std::unordered_set<std::string>&)> callback) {
+        m_OnVisibleItemsChanged = callback;
+    }
 
-    // Styling
-    void SetGridItemSize(float size) { m_GridItemSize = size; }
     void SetListRowHeight(float height) { m_ListRowHeight = height; }
+
+    std::shared_ptr<ContentBrowserModel> GetModel() { return m_Model; }
+    std::shared_ptr<ContentBrowserController> GetController() { return m_Controller; }
 
 private:
     struct RenderItem {
         ContentItem item;
         Rect geometry;
+        Rect thumbGeometry;
+        int sourceIndex = -1;
+    };
+
+    struct GridMetrics {
+        float cellWidth = 100.0f;
+        float cellHeight = 120.0f;
+        float thumbSize = 88.0f;
+        float labelLineHeight = 14.0f;
+        float labelLines = 2.0f;
+        float hSpacing = 12.0f;
+        float vSpacing = 12.0f;
+        float padding =  16.0f;
     };
 
     void BuildRenderList();
     void CalculateGridLayout();
     void CalculateListLayout();
+    void CalculateDetailsLayout();
+    void CalculateTilesLayout();
+    void UpdateVisibleRange();
+    void RequestVisibleThumbnails();
+    GridMetrics GetGridMetrics() const;
+    ContentViewMode GetEffectiveViewMode() const;
     RenderItem* GetItemAtPosition(const Point& pos);
+
+    void PaintGridItem(PaintContext& context, const RenderItem& renderItem);
+    void PaintListItem(PaintContext& context, const RenderItem& renderItem);
+    void PaintAssetThumbnail(PaintContext& context, const Rect& thumbRect, const ContentItem& item, bool selected, bool hovered);
+    void PaintItemLabel(PaintContext& context, const Rect& cell, const std::string& name, float maxWidth);
 
     std::shared_ptr<ContentBrowserModel> m_Model;
     std::shared_ptr<ContentBrowserController> m_Controller;
     std::vector<std::string> m_EmptySelectedIds;
 
     std::vector<RenderItem> m_RenderList;
-    std::string m_LastSelectedId; // For shift-select
+    std::string m_LastSelectedId;
     std::string m_HoveredId;
-    
+
     Point m_SelectStart{0,0};
     Point m_SelectEnd{0,0};
     Point m_DragStart{0,0};
     Point m_MousePos{0,0};
+    Point m_LastClickPos{0,0};
+    double m_LastClickTime = 0.0;
     bool m_IsSelecting = false;
     bool m_IsDragging = false;
-    
+
     float m_ScrollOffset = 0.0f;
-    float m_GridItemSize = 96.0f;
-    float m_GridSpacing = 8.0f;
-    float m_ListRowHeight = 32.0f;
-    float m_ThumbnailSize = 64.0f;
+    float m_ListRowHeight = 28.0f;
+
+    int m_FirstVisibleIndex = 0;
+    int m_LastVisibleIndex = 0;
 
     OnItemDoubleClicked m_OnItemDoubleClicked;
     OnItemSelected m_OnItemSelected;
     OnItemRightClicked m_OnItemRightClicked;
     std::function<void(const std::string&)> m_OnItemNeedsThumbnail;
     std::function<void(const Point&)> m_OnBackgroundRightClicked;
+    std::function<void(const std::unordered_set<std::string>&)> m_OnVisibleItemsChanged;
 
     WidgetStyle m_Style;
-public:
-    std::shared_ptr<ContentBrowserModel> GetModel() { return m_Model; }
-    std::shared_ptr<ContentBrowserController> GetController() { return m_Controller; }
 };
 
-// Breadcrumb widget for navigation path
 class Breadcrumb : public Widget {
 public:
     Breadcrumb();
@@ -130,6 +143,7 @@ public:
     void OnMouseMove(const MouseEvent& event) override;
 
     void SetPath(const std::vector<std::string>& path);
+    const std::vector<std::string>& GetPath() const { return m_PathSegments; }
     void AddCrumb(const std::string& crumb);
     void Clear();
 
@@ -152,6 +166,27 @@ private:
     int m_HoveredCrumb = -1;
 
     OnCrumbClicked m_OnCrumbClicked;
+    std::vector<std::string> m_PathSegments;
 };
 
-} // namespace we::editor::contentbrowser::UI
+class ContentBrowserStatusBar : public Widget {
+public:
+    ContentBrowserStatusBar();
+
+    Size Measure(const Size& availableSize) override;
+    void Arrange(const Rect& allottedRect) override;
+    void Paint(PaintContext& context) override;
+
+    void SetSelectedCount(size_t count) { m_SelectedCount = count; }
+    void SetAssetCount(size_t count) { m_AssetCount = count; }
+    void SetFolderCount(size_t count) { m_FolderCount = count; }
+    void SetMemoryUsage(size_t bytes) { m_MemoryUsage = bytes; }
+
+private:
+    size_t m_SelectedCount = 0;
+    size_t m_AssetCount = 0;
+    size_t m_FolderCount = 0;
+    size_t m_MemoryUsage = 0;
+};
+
+} // namespace we::UI
