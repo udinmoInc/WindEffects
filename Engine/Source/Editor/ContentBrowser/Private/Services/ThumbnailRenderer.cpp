@@ -16,6 +16,7 @@
 #include <cmath>
 #include <filesystem>
 #include <fstream>
+#include <functional>
 #include <sstream>
 
 namespace we::editor::contentbrowser {
@@ -33,8 +34,10 @@ std::string ResolvePath(const std::string& path) {
 
 std::string ResolveFolderSvgPath() {
     const char* candidates[] = {
+        "Assets/Editor/Folder.svg",
+        "../Assets/Editor/Folder.svg",
+        "../../Assets/Editor/Folder.svg",
         "Assets/Icons/content-browser-folder.svg",
-        "Icons/content-browser-folder.svg",
         "../Assets/Icons/content-browser-folder.svg",
         "../../Assets/Icons/content-browser-folder.svg",
         "Engine/Content/Icons/content-browser-folder.svg",
@@ -44,6 +47,27 @@ std::string ResolveFolderSvgPath() {
         if (std::filesystem::exists(path)) return path;
     }
     return {};
+}
+
+std::string ResolveBlueprintSvgPath() {
+    const char* candidates[] = {
+        "Assets/Editor/Visual_Graph.svg",
+        "../Assets/Editor/Visual_Graph.svg",
+        "../../Assets/Editor/Visual_Graph.svg",
+    };
+    for (const char* path : candidates) {
+        if (std::filesystem::exists(path)) return path;
+    }
+    return {};
+}
+
+std::array<uint8_t, 3> LerpRgb(const std::array<uint8_t, 3>& a, const std::array<uint8_t, 3>& b, float t) {
+    t = std::clamp(t, 0.0f, 1.0f);
+    return {
+        static_cast<uint8_t>(a[0] + (b[0] - a[0]) * t),
+        static_cast<uint8_t>(a[1] + (b[1] - a[1]) * t),
+        static_cast<uint8_t>(a[2] + (b[2] - a[2]) * t),
+    };
 }
 
 uint32_t SnapFolderRasterHeight(uint32_t heightPx) {
@@ -64,6 +88,22 @@ std::array<uint8_t, 3> ThemeRgb(const we::UI::Color& color, float hoverBrightnes
         BrightenChannel(static_cast<uint8_t>(color.g * 255.0f), hoverBrightness),
         BrightenChannel(static_cast<uint8_t>(color.b * 255.0f), hoverBrightness),
     };
+}
+
+std::array<uint8_t, 3> SampleFolderThemeColor(float t, float hoverBrightness) {
+    const we::UI::Theme& theme = we::UI::Theme::Get();
+    const auto highlight = ThemeRgb(theme.ContentBrowserFolderHighlight, hoverBrightness);
+    const auto tab = ThemeRgb(theme.ContentBrowserFolderTab, hoverBrightness);
+    const auto body = ThemeRgb(theme.ContentBrowserFolderBody, hoverBrightness);
+    const auto shadow = ThemeRgb(theme.ContentBrowserFolderShadow, hoverBrightness);
+
+    if (t < 0.30f) {
+        return LerpRgb(highlight, tab, t / 0.30f);
+    }
+    if (t < 0.72f) {
+        return LerpRgb(tab, body, (t - 0.30f) / 0.42f);
+    }
+    return LerpRgb(body, shadow, (t - 0.72f) / 0.28f);
 }
 
 } // namespace
@@ -279,12 +319,11 @@ BitmapRGBA ThumbnailRenderer::RenderMeshPreview(const AssetRecord& asset, bool s
 }
 
 BitmapRGBA ThumbnailRenderer::RenderBlueprintPreview(const AssetRecord&) {
-    auto bmp = CreateEmpty(kThumbnailSize);
-    FillRect(bmp, 0, 0, static_cast<int>(kThumbnailSize), static_cast<int>(kThumbnailSize), 20, 48, 88, 255);
-    FillRect(bmp, 16, 24, 40, 24, 40, 100, 180, 255);
-    FillRect(bmp, 72, 48, 40, 24, 80, 160, 220, 255);
-    FillRect(bmp, 44, 72, 40, 24, 60, 120, 200, 255);
-    return bmp;
+    const BitmapRGBA icon = RenderContentBrowserBlueprint(kThumbnailSize, 0.0f);
+    if (icon.pixels.empty()) {
+        return RenderGenericIcon(AssetType::Blueprint);
+    }
+    return FitIntoCell(icon, kThumbnailSize, kThumbnailSize);
 }
 
 BitmapRGBA ThumbnailRenderer::RenderAudioWaveform(const AssetRecord&) {
@@ -490,7 +529,8 @@ BitmapRGBA ThumbnailRenderer::RenderContentBrowserFolderProcedural(uint32_t w, u
     return bmp;
 }
 
-BitmapRGBA ThumbnailRenderer::RasterizeFolderSvg(const std::string& resolved, uint32_t w, uint32_t h, float hoverBrightness) {
+BitmapRGBA ThumbnailRenderer::RasterizeMonochromeSvg(const std::string& resolved, uint32_t w, uint32_t h, float hoverBrightness,
+    const std::function<std::array<uint8_t, 3>(float verticalT)>& sampleColor) {
     NSVGimage* image = nsvgParseFromFile(resolved.c_str(), "px", 96.0f);
     if (!image) return {};
 
@@ -519,6 +559,14 @@ BitmapRGBA ThumbnailRenderer::RasterizeFolderSvg(const std::string& resolved, ui
     bmp.height = h;
     bmp.pixels.assign(static_cast<size_t>(w) * h * 4, 0);
 
+    std::vector<uint8_t> alphaMask(static_cast<size_t>(w) * h, 0);
+    uint32_t minOpaqueY = h;
+    uint32_t maxOpaqueY = 0;
+    bool hasOpaque = false;
+    bool useThemeTint = true;
+    uint32_t colorEnergy = 0;
+    uint32_t opaqueCount = 0;
+
     for (uint32_t y = 0; y < h; ++y) {
         for (uint32_t x = 0; x < w; ++x) {
             uint32_t sumR = 0, sumG = 0, sumB = 0, sumA = 0;
@@ -534,16 +582,135 @@ BitmapRGBA ThumbnailRenderer::RasterizeFolderSvg(const std::string& resolved, ui
                     sumA += a;
                 }
             }
-            const size_t dstIdx = (static_cast<size_t>(y) * w + x) * 4;
             if (sumA == 0) continue;
+
             const uint8_t outA = static_cast<uint8_t>(sumA / (kSSAA * kSSAA));
-            bmp.pixels[dstIdx]     = BrightenChannel(static_cast<uint8_t>(sumR / sumA), hoverBrightness);
-            bmp.pixels[dstIdx + 1] = BrightenChannel(static_cast<uint8_t>(sumG / sumA), hoverBrightness);
-            bmp.pixels[dstIdx + 2] = BrightenChannel(static_cast<uint8_t>(sumB / sumA), hoverBrightness);
-            bmp.pixels[dstIdx + 3] = outA;
+            const size_t idx = static_cast<size_t>(y) * w + x;
+            alphaMask[idx] = outA;
+            minOpaqueY = std::min(minOpaqueY, y);
+            maxOpaqueY = std::max(maxOpaqueY, y);
+            hasOpaque = true;
+
+            const uint8_t r = static_cast<uint8_t>(sumR / sumA);
+            const uint8_t g = static_cast<uint8_t>(sumG / sumA);
+            const uint8_t b = static_cast<uint8_t>(sumB / sumA);
+            colorEnergy += static_cast<uint32_t>(r) + g + b;
+            ++opaqueCount;
+            if (r > 48 || g > 48 || b > 48) {
+                useThemeTint = false;
+            }
         }
     }
 
+    if (!hasOpaque) return bmp;
+    if (opaqueCount > 0 && colorEnergy / opaqueCount > 90) {
+        useThemeTint = false;
+    }
+
+    const float opaqueSpan = std::max(1.0f, static_cast<float>(maxOpaqueY - minOpaqueY));
+
+    for (uint32_t y = 0; y < h; ++y) {
+        for (uint32_t x = 0; x < w; ++x) {
+            const size_t idx = static_cast<size_t>(y) * w + x;
+            const uint8_t outA = alphaMask[idx];
+            if (outA == 0) continue;
+
+            const size_t dstIdx = idx * 4;
+            bmp.pixels[dstIdx + 3] = outA;
+
+            if (useThemeTint) {
+                const float t = (static_cast<float>(y) - static_cast<float>(minOpaqueY)) / opaqueSpan;
+                const auto rgb = sampleColor(t);
+                bmp.pixels[dstIdx] = rgb[0];
+                bmp.pixels[dstIdx + 1] = rgb[1];
+                bmp.pixels[dstIdx + 2] = rgb[2];
+            } else {
+                uint32_t sumR = 0, sumG = 0, sumB = 0, sumA = 0;
+                for (int dy = 0; dy < kSSAA; ++dy) {
+                    for (int dx = 0; dx < kSSAA; ++dx) {
+                        const int sx = static_cast<int>(x) * kSSAA + dx;
+                        const int sy = static_cast<int>(y) * kSSAA + dy;
+                        const size_t srcIdx = (static_cast<size_t>(sy) * static_cast<size_t>(rasterW) + static_cast<size_t>(sx)) * 4;
+                        const uint8_t a = rasterData[srcIdx + 3];
+                        sumR += rasterData[srcIdx] * a;
+                        sumG += rasterData[srcIdx + 1] * a;
+                        sumB += rasterData[srcIdx + 2] * a;
+                        sumA += a;
+                    }
+                }
+                bmp.pixels[dstIdx]     = BrightenChannel(static_cast<uint8_t>(sumR / sumA), hoverBrightness);
+                bmp.pixels[dstIdx + 1] = BrightenChannel(static_cast<uint8_t>(sumG / sumA), hoverBrightness);
+                bmp.pixels[dstIdx + 2] = BrightenChannel(static_cast<uint8_t>(sumB / sumA), hoverBrightness);
+            }
+        }
+    }
+
+    return bmp;
+}
+
+BitmapRGBA ThumbnailRenderer::TrimTransparentPadding(const BitmapRGBA& src, uint32_t targetW, uint32_t targetH) {
+    if (src.width == 0 || src.height == 0 || src.pixels.empty()) return src;
+
+    uint32_t minX = src.width;
+    uint32_t minY = src.height;
+    uint32_t maxX = 0;
+    uint32_t maxY = 0;
+    bool hasOpaque = false;
+
+    for (uint32_t y = 0; y < src.height; ++y) {
+        for (uint32_t x = 0; x < src.width; ++x) {
+            const size_t idx = (static_cast<size_t>(y) * src.width + x) * 4 + 3;
+            if (src.pixels[idx] <= 8) continue;
+            hasOpaque = true;
+            minX = std::min(minX, x);
+            minY = std::min(minY, y);
+            maxX = std::max(maxX, x);
+            maxY = std::max(maxY, y);
+        }
+    }
+
+    if (!hasOpaque) return src;
+
+    const uint32_t pad = 1;
+    minX = minX > pad ? minX - pad : 0;
+    minY = minY > pad ? minY - pad : 0;
+    maxX = std::min(src.width - 1, maxX + pad);
+    maxY = std::min(src.height - 1, maxY + pad);
+
+    const uint32_t cropW = maxX - minX + 1;
+    const uint32_t cropH = maxY - minY + 1;
+
+    BitmapRGBA crop;
+    crop.width = cropW;
+    crop.height = cropH;
+    crop.pixels.resize(static_cast<size_t>(cropW) * cropH * 4);
+    for (uint32_t y = 0; y < cropH; ++y) {
+        for (uint32_t x = 0; x < cropW; ++x) {
+            const size_t srcIdx = (static_cast<size_t>(minY + y) * src.width + static_cast<size_t>(minX + x)) * 4;
+            const size_t dstIdx = (static_cast<size_t>(y) * cropW + x) * 4;
+            crop.pixels[dstIdx] = src.pixels[srcIdx];
+            crop.pixels[dstIdx + 1] = src.pixels[srcIdx + 1];
+            crop.pixels[dstIdx + 2] = src.pixels[srcIdx + 2];
+            crop.pixels[dstIdx + 3] = src.pixels[srcIdx + 3];
+        }
+    }
+
+    return FitIntoCell(crop, targetW, targetH);
+}
+
+BitmapRGBA ThumbnailRenderer::RenderContentBrowserBlueprintProcedural(uint32_t w, uint32_t h, float hoverBrightness) {
+    BitmapRGBA bmp;
+    bmp.width = w;
+    bmp.height = h;
+    bmp.pixels.assign(static_cast<size_t>(w) * h * 4, 0);
+
+    const we::UI::Theme& theme = we::UI::Theme::Get();
+    const auto tint = ThemeRgb(theme.IconMuted, hoverBrightness);
+    const float cx = static_cast<float>(w) * 0.5f;
+    const float cy = static_cast<float>(h) * 0.5f;
+    const float boxW = static_cast<float>(w) * 0.72f;
+    const float boxH = static_cast<float>(h) * 0.76f;
+    FillRoundedRect(bmp, cx - boxW * 0.5f, cy - boxH * 0.5f, boxW, boxH, 6.0f, tint[0], tint[1], tint[2], 255);
     return bmp;
 }
 
@@ -553,7 +720,8 @@ BitmapRGBA ThumbnailRenderer::RenderContentBrowserFolder(uint32_t heightPx, floa
 
     const std::string svgPath = ResolveFolderSvgPath();
     if (!svgPath.empty()) {
-        const BitmapRGBA svgBmp = RasterizeFolderSvg(ResolvePath(svgPath), w, h, hoverBrightness);
+        const BitmapRGBA svgBmp = RasterizeMonochromeSvg(ResolvePath(svgPath), w, h, hoverBrightness,
+            [&](float t) { return SampleFolderThemeColor(t, hoverBrightness); });
         if (!svgBmp.pixels.empty()) {
             return svgBmp;
         }
@@ -561,12 +729,37 @@ BitmapRGBA ThumbnailRenderer::RenderContentBrowserFolder(uint32_t heightPx, floa
     } else {
         static bool s_ReportedMissingSvg = false;
         if (!s_ReportedMissingSvg) {
-            HE_WARN("[ContentBrowser] Folder SVG not found (content-browser-folder.svg); using procedural artwork.");
+            HE_WARN("[ContentBrowser] Folder SVG not found (Assets/Editor/Folder.svg); using procedural artwork.");
             s_ReportedMissingSvg = true;
         }
     }
 
     return RenderContentBrowserFolderProcedural(w, h, hoverBrightness);
+}
+
+BitmapRGBA ThumbnailRenderer::RenderContentBrowserBlueprint(uint32_t heightPx, float hoverBrightness) {
+    const uint32_t h = std::max(16u, SnapFolderRasterHeight(heightPx));
+    const uint32_t w = std::max(16u, static_cast<uint32_t>(std::round(static_cast<float>(h) * kBlueprintAspectRatio)));
+
+    const std::string svgPath = ResolveBlueprintSvgPath();
+    if (!svgPath.empty()) {
+        const we::UI::Theme& theme = we::UI::Theme::Get();
+        const auto flatTint = ThemeRgb(theme.IconMuted, hoverBrightness);
+        const BitmapRGBA svgBmp = RasterizeMonochromeSvg(ResolvePath(svgPath), w, h, hoverBrightness,
+            [&](float) { return flatTint; });
+        if (!svgBmp.pixels.empty()) {
+            return TrimTransparentPadding(svgBmp, w, h);
+        }
+        HE_WARN("[ContentBrowser] Failed to rasterize blueprint SVG; using procedural artwork.");
+    } else {
+        static bool s_ReportedMissingSvg = false;
+        if (!s_ReportedMissingSvg) {
+            HE_WARN("[ContentBrowser] Blueprint SVG not found (Assets/Editor/Visual_Graph.svg); using procedural artwork.");
+            s_ReportedMissingSvg = true;
+        }
+    }
+
+    return RenderContentBrowserBlueprintProcedural(w, h, hoverBrightness);
 }
 
 } // namespace we::editor::contentbrowser

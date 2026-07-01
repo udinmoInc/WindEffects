@@ -3,6 +3,7 @@
 #include "Controllers/SearchController.hpp"
 #include "Services/ContentBrowserService.hpp"
 #include "Services/ContentBrowserFolderArt.hpp"
+#include "Services/ContentBrowserBlueprintArt.hpp"
 #include "Core/PaintContext.hpp"
 #include "Core/Theme.hpp"
 #include "Core/Icon.hpp"
@@ -17,6 +18,11 @@ using we::editor::contentbrowser::ContentBrowserService;
 using we::editor::contentbrowser::FilterController;
 using we::editor::contentbrowser::SearchController;
 using we::editor::contentbrowser::ContentBrowserFolderArt;
+using we::editor::contentbrowser::ContentBrowserBlueprintArt;
+
+bool IsBlueprintItem(const ContentItem& item) {
+    return item.type == "Blueprint";
+}
 }
 
 ContentBrowser::ContentBrowser()
@@ -204,7 +210,9 @@ void ContentBrowser::PaintAssetThumbnail(PaintContext& context, const Rect& thum
         return;
     }
 
-    if (item.iconTexture != VK_NULL_HANDLE) {
+    if (IsBlueprintItem(item)) {
+        ContentBrowserBlueprintArt::Get().PaintThumbnail(context, thumbRect, hovered);
+    } else if (item.iconTexture != VK_NULL_HANDLE) {
         context.DrawTexture(thumbRect, item.iconTexture);
     } else {
         const float iconSize = std::min(thumbRect.width, thumbRect.height) * 0.42f;
@@ -327,6 +335,8 @@ void ContentBrowser::PaintListItem(PaintContext& context, const RenderItem& rend
 
     if (item.isFolder) {
         ContentBrowserFolderArt::Get().PaintSmallIcon(context, iconRect, hovered);
+    } else if (IsBlueprintItem(item)) {
+        ContentBrowserBlueprintArt::Get().PaintSmallIcon(context, iconRect, hovered);
     } else if (item.iconTexture != VK_NULL_HANDLE) {
         context.DrawTexture(iconRect, item.iconTexture);
     } else {

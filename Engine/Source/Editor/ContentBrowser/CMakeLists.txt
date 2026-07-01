@@ -8,6 +8,7 @@ file(GLOB_RECURSE SOURCE_FILES CONFIGURE_DEPENDS
 
 list(APPEND SOURCE_FILES
     "${CMAKE_CURRENT_SOURCE_DIR}/Private/Services/ContentBrowserFolderArt.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/Private/Services/ContentBrowserBlueprintArt.cpp"
 )
 list(REMOVE_DUPLICATES SOURCE_FILES)
 

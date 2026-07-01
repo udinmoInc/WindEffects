@@ -1,7 +1,9 @@
 #pragma once
 
 #include "Registry/AssetTypes.hpp"
+#include <array>
 #include <cstdint>
+#include <functional>
 #include <string>
 #include <vector>
 
@@ -28,8 +30,10 @@ public:
     static BitmapRGBA RenderScenePreview(const AssetRecord& asset);
     static BitmapRGBA RenderGenericIcon(AssetType type);
     static BitmapRGBA RenderContentBrowserFolder(uint32_t heightPx, float hoverBrightness = 0.0f);
+    static BitmapRGBA RenderContentBrowserBlueprint(uint32_t heightPx, float hoverBrightness = 0.0f);
 
-    static constexpr float kFolderAspectRatio = 1.45f; // width / height (146 / 100 viewBox)
+    static constexpr float kFolderAspectRatio = 1.138f; // width / height (Assets/Editor/Folder.svg)
+    static constexpr float kBlueprintAspectRatio = 0.947f; // width / height (Assets/Editor/Visual_Graph.svg)
 
     static BitmapRGBA FitIntoCell(const BitmapRGBA& source, uint32_t cellW, uint32_t cellH);
 
@@ -46,7 +50,10 @@ private:
     static void Blit(const BitmapRGBA& src, BitmapRGBA& dst, int dstX, int dstY, int dstW, int dstH);
     static BitmapRGBA CreateEmpty(uint32_t size);
     static BitmapRGBA RenderContentBrowserFolderProcedural(uint32_t w, uint32_t h, float hoverBrightness);
-    static BitmapRGBA RasterizeFolderSvg(const std::string& resolved, uint32_t w, uint32_t h, float hoverBrightness);
+    static BitmapRGBA RenderContentBrowserBlueprintProcedural(uint32_t w, uint32_t h, float hoverBrightness);
+    static BitmapRGBA RasterizeMonochromeSvg(const std::string& resolved, uint32_t w, uint32_t h, float hoverBrightness,
+        const std::function<std::array<uint8_t, 3>(float verticalT)>& sampleColor);
+    static BitmapRGBA TrimTransparentPadding(const BitmapRGBA& src, uint32_t targetW, uint32_t targetH);
 };
 
 } // namespace we::editor::contentbrowser

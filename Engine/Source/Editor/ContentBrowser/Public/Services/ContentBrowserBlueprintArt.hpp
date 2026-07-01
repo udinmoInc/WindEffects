@@ -13,22 +13,22 @@ class PaintContext;
 
 namespace we::editor::contentbrowser {
 
-// Dedicated UE5-style filled folder artwork for Content Browser (not Lucide).
-class ContentBrowserFolderArt {
+// Dedicated blueprint artwork for Content Browser (Assets/Editor/Visual_Graph.svg).
+class ContentBrowserBlueprintArt {
 public:
-    static ContentBrowserFolderArt& Get();
+    static ContentBrowserBlueprintArt& Get();
 
     void Initialize(we::UI::IconRenderer* iconRenderer);
     void InvalidateCache();
 
-    static constexpr float kThumbnailWidthFill = 0.825f;
-    static constexpr float kThumbnailHeightFill = 0.725f;
-    static constexpr float kFolderAspectRatio = 1.138f; // Assets/Editor/Folder.svg viewBox
+    static constexpr float kThumbnailWidthFill = 0.84f;
+    static constexpr float kThumbnailHeightFill = 0.80f;
+    static constexpr float kBlueprintAspectRatio = 0.947f; // Assets/Editor/Visual_Graph.svg viewBox
 
     void PaintThumbnail(we::UI::PaintContext& context, const we::UI::Rect& thumbRect, bool hovered) const;
     void PaintSmallIcon(we::UI::PaintContext& context, const we::UI::Rect& iconRect, bool hovered) const;
 
-    static we::UI::Rect ComputeFolderRect(const we::UI::Rect& bounds,
+    static we::UI::Rect ComputeBlueprintRect(const we::UI::Rect& bounds,
         float widthFill = kThumbnailWidthFill, float heightFill = kThumbnailHeightFill);
 
 private:
