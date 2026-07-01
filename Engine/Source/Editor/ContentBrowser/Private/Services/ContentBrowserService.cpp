@@ -1,5 +1,6 @@
 #include "Services/ContentBrowserService.hpp"
 #include "Services/ContentBrowserFolderArt.hpp"
+#include "Services/ContentBrowserBlueprintArt.hpp"
 #include "Registry/AssetTypeResolver.hpp"
 #include "Core/IconManager.hpp"
 #include "Rendering/IconRenderer.hpp"
@@ -18,6 +19,7 @@ void ContentBrowserService::Initialize(we::UI::IconRenderer* iconRenderer, const
 
     m_IconRenderer = iconRenderer;
     ContentBrowserFolderArt::Get().Initialize(iconRenderer);
+    ContentBrowserBlueprintArt::Get().Initialize(iconRenderer);
     m_DiskCache.SetCacheDirectory(std::filesystem::path("Saved/Cache/Thumbnails"));
     m_ThumbnailManager.SetDiskCache(&m_DiskCache);
     m_ThumbnailManager.SetFolderPreviewGenerator(&m_FolderPreview);
@@ -35,6 +37,7 @@ void ContentBrowserService::Shutdown() {
     m_ThumbnailManager.InvalidateAll();
     m_FolderPreview.InvalidateAll();
     ContentBrowserFolderArt::Get().InvalidateCache();
+    ContentBrowserBlueprintArt::Get().InvalidateCache();
     m_Initialized = false;
 }
 

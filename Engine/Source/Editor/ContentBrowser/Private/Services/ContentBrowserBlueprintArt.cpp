@@ -1,4 +1,4 @@
-#include "Services/ContentBrowserFolderArt.hpp"
+#include "Services/ContentBrowserBlueprintArt.hpp"
 #include "Services/ThumbnailRenderer.hpp"
 #include "Core/DPIContext.hpp"
 #include "Core/PaintContext.hpp"
@@ -8,27 +8,27 @@
 
 namespace we::editor::contentbrowser {
 
-ContentBrowserFolderArt& ContentBrowserFolderArt::Get() {
-    static ContentBrowserFolderArt instance;
+ContentBrowserBlueprintArt& ContentBrowserBlueprintArt::Get() {
+    static ContentBrowserBlueprintArt instance;
     return instance;
 }
 
-void ContentBrowserFolderArt::Initialize(we::UI::IconRenderer* iconRenderer) {
+void ContentBrowserBlueprintArt::Initialize(we::UI::IconRenderer* iconRenderer) {
     m_Renderer = iconRenderer;
 }
 
-void ContentBrowserFolderArt::InvalidateCache() {
+void ContentBrowserBlueprintArt::InvalidateCache() {
     m_Cache.clear();
 }
 
-we::UI::Rect ContentBrowserFolderArt::ComputeFolderRect(const we::UI::Rect& bounds, float widthFill, float heightFill) {
+we::UI::Rect ContentBrowserBlueprintArt::ComputeBlueprintRect(const we::UI::Rect& bounds, float widthFill, float heightFill) {
     const float maxW = bounds.width * std::clamp(widthFill, 0.5f, 0.95f);
     const float maxH = bounds.height * std::clamp(heightFill, 0.5f, 0.95f);
     float width = maxW;
-    float height = width / kFolderAspectRatio;
+    float height = width / kBlueprintAspectRatio;
     if (height > maxH) {
         height = maxH;
-        width = height * kFolderAspectRatio;
+        width = height * kBlueprintAspectRatio;
     }
     return we::UI::Rect{
         bounds.x + (bounds.width - width) * 0.5f,
@@ -38,21 +38,21 @@ we::UI::Rect ContentBrowserFolderArt::ComputeFolderRect(const we::UI::Rect& boun
     };
 }
 
-VkDescriptorSet ContentBrowserFolderArt::GetTexture(uint32_t heightPx, bool hovered) const {
+VkDescriptorSet ContentBrowserBlueprintArt::GetTexture(uint32_t heightPx, bool hovered) const {
     if (!m_Renderer || heightPx == 0) return VK_NULL_HANDLE;
 
     const float dpi = std::max(1.0f, we::UI::DPIContext::GetScale());
     const uint32_t rasterHeight = std::max(16u, static_cast<uint32_t>(std::ceil(static_cast<float>(heightPx) * dpi)));
     const uint32_t rasterWidth = std::max(16u,
-        static_cast<uint32_t>(std::round(static_cast<float>(rasterHeight) * kFolderAspectRatio)));
+        static_cast<uint32_t>(std::round(static_cast<float>(rasterHeight) * kBlueprintAspectRatio)));
 
-    const std::string key = "cb_folder_v6_" + std::to_string(rasterWidth) + "x" + std::to_string(rasterHeight)
+    const std::string key = "cb_blueprint_v2_" + std::to_string(rasterWidth) + "x" + std::to_string(rasterHeight)
         + (hovered ? "_h" : "_n");
 
     auto it = m_Cache.find(key);
     if (it != m_Cache.end()) return it->second;
 
-    const BitmapRGBA bitmap = ThumbnailRenderer::RenderContentBrowserFolder(rasterHeight, hovered ? 1.0f : 0.0f);
+    const BitmapRGBA bitmap = ThumbnailRenderer::RenderContentBrowserBlueprint(rasterHeight, hovered ? 1.0f : 0.0f);
     if (bitmap.pixels.empty()) return VK_NULL_HANDLE;
 
     const VkDescriptorSet texture = m_Renderer->CreateTextureFromBitmap(bitmap.pixels, bitmap.width, bitmap.height);
@@ -62,21 +62,21 @@ VkDescriptorSet ContentBrowserFolderArt::GetTexture(uint32_t heightPx, bool hove
     return texture;
 }
 
-void ContentBrowserFolderArt::PaintThumbnail(we::UI::PaintContext& context, const we::UI::Rect& thumbRect, bool hovered) const {
-    const we::UI::Rect folderRect = ComputeFolderRect(thumbRect);
-    const uint32_t heightPx = static_cast<uint32_t>(std::ceil(folderRect.height));
+void ContentBrowserBlueprintArt::PaintThumbnail(we::UI::PaintContext& context, const we::UI::Rect& thumbRect, bool hovered) const {
+    const we::UI::Rect blueprintRect = ComputeBlueprintRect(thumbRect);
+    const uint32_t heightPx = static_cast<uint32_t>(std::ceil(blueprintRect.height));
     const VkDescriptorSet texture = GetTexture(heightPx, hovered);
     if (texture != VK_NULL_HANDLE) {
-        context.DrawTexture(folderRect, texture);
+        context.DrawTexture(blueprintRect, texture);
     }
 }
 
-void ContentBrowserFolderArt::PaintSmallIcon(we::UI::PaintContext& context, const we::UI::Rect& iconRect, bool hovered) const {
-    const we::UI::Rect folderRect = ComputeFolderRect(iconRect, 0.88f, 0.88f);
-    const uint32_t heightPx = static_cast<uint32_t>(std::ceil(folderRect.height));
+void ContentBrowserBlueprintArt::PaintSmallIcon(we::UI::PaintContext& context, const we::UI::Rect& iconRect, bool hovered) const {
+    const we::UI::Rect blueprintRect = ComputeBlueprintRect(iconRect, 0.88f, 0.88f);
+    const uint32_t heightPx = static_cast<uint32_t>(std::ceil(blueprintRect.height));
     const VkDescriptorSet texture = GetTexture(heightPx, hovered);
     if (texture != VK_NULL_HANDLE) {
-        context.DrawTexture(folderRect, texture);
+        context.DrawTexture(blueprintRect, texture);
     }
 }
 
