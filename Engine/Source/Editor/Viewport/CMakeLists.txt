@@ -6,6 +6,8 @@ set(SOURCE_FILES
     Private/ViewportModule.cpp
     Private/ViewportPanel.cpp
     Private/ViewportToolbarState.cpp
+    Private/ViewportNavigation.cpp
+    Private/ViewportNavigationPreferences.cpp
     Private/Widgets/ViewportOverlay.cpp
     Private/Widgets/ViewportSliderPopup.cpp
     Private/Widgets/ViewportWidget.cpp
@@ -26,6 +28,7 @@ target_link_libraries(${MODULE_NAME} PUBLIC
     WindEffects-Core
     WindEffects-Application
     WindEffects-ToolsPanel
+    WindEffects-PlaceActors
     WindEffects-Toolbar
     WindEffects-Engine
     WindEffects-Scene

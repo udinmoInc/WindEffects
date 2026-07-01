@@ -1,12 +1,10 @@
 #include "Widgets/StatusBar.hpp"
+#include "Widgets/CommandInput.hpp"
+#include "Widgets/ToolButton.hpp"
 #include "Core/PaintContext.hpp"
 #include "Core/Theme.hpp"
 #include "Core/Icon.hpp"
-#include "Widgets/Label.hpp"
-#include "Widgets/ToolButton.hpp"
 #include "Layout/Spacer.hpp"
-#include <iomanip>
-#include <sstream>
 
 namespace we::UI {
 
@@ -15,14 +13,28 @@ namespace {
     public:
         explicit FixedGap(float width) : m_Width(width) {}
         Size Measure(const Size& availableSize) override {
+            (void)availableSize;
             m_DesiredSize = Size{ m_Width, 1.0f };
             return m_DesiredSize;
         }
         void Arrange(const Rect& allottedRect) override { m_Geometry = allottedRect; }
-        void Paint(PaintContext& context) override {}
+        void Paint(PaintContext& context) override { (void)context; }
     private:
         float m_Width;
     };
+
+    std::shared_ptr<ToolButton> MakeFooterControl(
+        const char* iconName,
+        const std::string& label,
+        bool isDropdown,
+        const char* tooltip)
+    {
+        auto button = std::make_shared<ToolButton>(iconName, label, nullptr, tooltip);
+        button->SetButtonStyle(ToolButtonStyle::ToolbarInline);
+        button->SetIsDropdown(isDropdown);
+        button->SetVerticalAlignment(VerticalAlignment::Center);
+        return button;
+    }
 }
 
 StatusBar::StatusBar() {
@@ -32,46 +44,62 @@ StatusBar::StatusBar() {
 
 void StatusBar::Construct() {
     auto leftBox = std::make_shared<HorizontalBox>();
-    leftBox->SetSpacing(0.0f);
+    leftBox->SetSpacing(4.0f);
 
-    auto platformBtn = std::make_shared<ToolButton>(Icons::PackageName, "Platform", [](){}, "Platform");
-    auto settingsBtn = std::make_shared<ToolButton>(Icons::SettingsName, "Settings", [](){}, "Editor Settings");
-    platformBtn->SetButtonStyle(ToolButtonStyle::ToolbarInline);
-    settingsBtn->SetButtonStyle(ToolButtonStyle::ToolbarInline);
-    platformBtn->SetIsDropdown(true);
-    settingsBtn->SetIsDropdown(true);
-    m_PlatformBtn = platformBtn;
-    m_SettingsBtn = settingsBtn;
+    m_AssetsPanelButton = MakeFooterControl(Icons::FolderName, "Assets", false, "Content Browser");
+    m_DiagnosticsPanelButton = MakeFooterControl(Icons::WarningName, "Diagnostics", false, "Diagnostics Panel");
 
-    leftBox->AddChild(platformBtn);
-    leftBox->AddChild(std::make_shared<FixedGap>(8.0f));
-    leftBox->AddChild(settingsBtn);
+    m_AssetsPanelButton->SetOnClicked([this]() { SelectPanelTab(0, true); });
+    m_DiagnosticsPanelButton->SetOnClicked([this]() { SelectPanelTab(1, true); });
+
+    leftBox->AddChild(m_AssetsPanelButton);
+    leftBox->AddChild(m_DiagnosticsPanelButton);
     AddChild(leftBox);
+
+    AddChild(std::make_shared<FixedGap>(8.0f));
+
+    m_CommandInput = std::make_shared<CommandInput>();
+    m_CommandInput->SetVerticalAlignment(VerticalAlignment::Center);
+    m_CommandInput->SetPlaceholder("Enter command...");
+    AddChild(m_CommandInput);
 
     AddChild(std::make_shared<Spacer>());
 
     auto rightBox = std::make_shared<HorizontalBox>();
-    rightBox->SetSpacing(8.0f);
+    rightBox->SetSpacing(4.0f);
 
-    auto createStat = [](std::shared_ptr<Label>& labelOut, const std::string& initial) {
-        labelOut = std::make_shared<Label>(initial);
-        
-        TextStyle statStyle;
-        statStyle.size = Theme::Get().TextSizeProperty; // 12px
-        statStyle.color = Theme::Get().TextSecondary;   // Secondary gray
-        labelOut->SetStyle(statStyle);
-        
-        return labelOut;
-    };
+    m_OutputLogButton = MakeFooterControl(Icons::ConsoleName, "Output Log", false, "Open Output Log");
+    m_BuildMenuButton = MakeFooterControl(Icons::BuildName, "Development", true, "Build Configuration");
+    m_TraceButton = MakeFooterControl(Icons::ProfilerName, "Trace", false, "Open Trace Insights");
+    m_QualityMenuButton = MakeFooterControl(Icons::LitName, "High", true, "Rendering Quality");
 
-    rightBox->AddChild(createStat(m_FPSLabel, "FPS: 60"));
-    rightBox->AddChild(createStat(m_GPULabel, "GPU: RTX 4090"));
-    rightBox->AddChild(createStat(m_CPULabel, "CPU: 12ms"));
-    rightBox->AddChild(createStat(m_MemoryLabel, "Mem: 1.2 GB"));
-    rightBox->AddChild(createStat(m_PingLabel, "Ping: 24ms"));
-    rightBox->AddChild(createStat(m_CompileLabel, "Compile: OK"));
+    rightBox->AddChild(m_OutputLogButton);
+    rightBox->AddChild(m_BuildMenuButton);
+    rightBox->AddChild(std::make_shared<FixedGap>(6.0f));
+    rightBox->AddChild(m_TraceButton);
+    rightBox->AddChild(m_QualityMenuButton);
 
     AddChild(rightBox);
+
+    SelectPanelTab(0, false);
+}
+
+void StatusBar::SelectPanelTab(int index, bool notify) {
+    if (index < 0 || index > 1) {
+        return;
+    }
+
+    m_ActivePanelTab = index;
+    if (m_AssetsPanelButton) {
+        m_AssetsPanelButton->SetActive(index == 0);
+    }
+    if (m_DiagnosticsPanelButton) {
+        m_DiagnosticsPanelButton->SetActive(index == 1);
+    }
+
+    if (notify && m_OnFooterTabChanged) {
+        m_OnFooterTabChanged(index);
+    }
 }
 
 Size StatusBar::Measure(const Size& availableSize) {
@@ -81,46 +109,55 @@ Size StatusBar::Measure(const Size& availableSize) {
 }
 
 void StatusBar::Paint(PaintContext& context) {
-    // Draw background
-    context.DrawRect(m_Geometry, Theme::Get().WindowBackground); 
-    
-    // Draw subtle top border
-    Rect topBorder{ m_Geometry.x, m_Geometry.y, m_Geometry.width, 1.0f };
+    context.DrawRect(m_Geometry, Theme::Get().FooterBackground);
+
+    Rect topBorder{
+        m_Geometry.x,
+        m_Geometry.y,
+        m_Geometry.width,
+        1.0f
+    };
     context.DrawRect(topBorder, Theme::Get().BorderDefault);
-    
+
     HorizontalBox::Paint(context);
 }
 
-void StatusBar::SetFPS(float fps) {
-    if (m_FPSLabel) {
-        std::stringstream ss;
-        ss << std::fixed << std::setprecision(1) << "FPS: " << fps;
-        m_FPSLabel->SetText(ss.str());
+void StatusBar::SetActiveFooterTab(int index) {
+    SelectPanelTab(index, false);
+}
+
+void StatusBar::SetOnFooterTabChanged(std::function<void(int)> onChanged) {
+    m_OnFooterTabChanged = std::move(onChanged);
+}
+
+void StatusBar::SetOnCommandSubmitted(std::function<void(const std::string&)> onSubmitted) {
+    if (m_CommandInput) {
+        m_CommandInput->SetOnCommandSubmitted(std::move(onSubmitted));
     }
 }
 
-void StatusBar::SetGPU(const std::string& name) {
-    if (m_GPULabel) m_GPULabel->SetText("GPU: " + name);
-}
-
-void StatusBar::SetCPU(const std::string& cpu) {
-    if (m_CPULabel) m_CPULabel->SetText("CPU: " + cpu);
-}
-
-void StatusBar::SetMemory(float gb) {
-    if (m_MemoryLabel) {
-        std::stringstream ss;
-        ss << std::fixed << std::setprecision(2) << "Mem: " << gb << " GB";
-        m_MemoryLabel->SetText(ss.str());
+void StatusBar::SetOnOutputLogClicked(std::function<void()> onClicked) {
+    if (m_OutputLogButton) {
+        m_OutputLogButton->SetOnClicked(std::move(onClicked));
     }
 }
 
-void StatusBar::SetPing(int ms) {
-    if (m_PingLabel) m_PingLabel->SetText("Ping: " + std::to_string(ms) + "ms");
+void StatusBar::SetOnBuildMenuClicked(std::function<void()> onClicked) {
+    if (m_BuildMenuButton) {
+        m_BuildMenuButton->SetOnClicked(std::move(onClicked));
+    }
 }
 
-void StatusBar::SetCompileStatus(const std::string& status) {
-    if (m_CompileLabel) m_CompileLabel->SetText("Compile: " + status);
+void StatusBar::SetOnTraceClicked(std::function<void()> onClicked) {
+    if (m_TraceButton) {
+        m_TraceButton->SetOnClicked(std::move(onClicked));
+    }
 }
 
-} // namespace we::editor::mainframe::UI
+void StatusBar::SetOnQualityMenuClicked(std::function<void()> onClicked) {
+    if (m_QualityMenuButton) {
+        m_QualityMenuButton->SetOnClicked(std::move(onClicked));
+    }
+}
+
+} // namespace we::UI

@@ -32,6 +32,25 @@ cbuffer ObjectBuffer : register(b1, space0)
     int3     objectPadding;
 };
 
+cbuffer EnvironmentBuffer : register(b2, space0)
+{
+    float3 sunDirection;
+    float  sunIntensity;
+    float3 sunColor;
+    float  skyLightIntensity;
+    float3 skyAmbientColor;
+    float  fogDensity;
+    float3 fogColor;
+    float  fogHeightFalloff;
+    float3 atmosphereRayleigh;
+    float  enableVolumetricFog;
+    float3 aerialTint;
+    float  enableClouds;
+    int    sunCastShadows;
+    int    sunTemperature;
+    int2   envPadding;
+};
+
 VSOutput VSMain(VSInput input)
 {
     VSOutput o;
@@ -54,29 +73,35 @@ float4 PSMain(VSOutput input) : SV_Target
     }
 
     float3 normal = normalize(input.worldNormal);
-    float3 lightDir = normalize(float3(0.38, 0.92, 0.18));
+    float3 lightDir = normalize(sunDirection);
     float3 viewDir = normalize(cameraPos - input.worldPos);
 
-    // Dark editor ambience: hemi ambient + soft key + very low spec.
+    const float3 sunLinear = WE_sRGBToLinear(saturate(sunColor));
+    const float3 skyLinear = WE_sRGBToLinear(saturate(skyAmbientColor));
     const float upN = saturate(normal.y * 0.5 + 0.5);
-    const float3 hemiGround = float3(0.006, 0.006, 0.006);
-    const float3 hemiSky = float3(0.018, 0.018, 0.018);
-    const float3 ambient = lerp(hemiGround, hemiSky, upN);
+    const float3 ambient = lerp(skyLinear * 0.04, skyLinear * 0.12, upN) * skyLightIntensity;
 
     float diff = max(dot(normal, lightDir), 0.0);
-    float3 diffuse = diff * float3(0.11, 0.11, 0.11);
+    float3 diffuse = diff * sunLinear * (sunIntensity * 0.011);
 
     float3 reflectDir = reflect(-lightDir, normal);
-    float spec = pow(max(dot(viewDir, reflectDir), 0.0), 32.0);
-    float3 specular = 0.03 * spec * float3(1.0, 1.0, 1.0);
+    float spec = pow(max(dot(viewDir, reflectDir), 0.0), 48.0);
+    float3 specular = 0.04 * spec * sunLinear;
 
     float3 litLinear = albedo * (ambient + diffuse) + specular;
 
-    // Gentle aerial perspective to reveal depth without brightening the scene.
+    const float height = max(input.worldPos.y, 0.0);
+    const float fogAmount = enableVolumetricFog > 0.5
+        ? (1.0 - exp(-fogDensity * height * fogHeightFalloff))
+        : 0.0;
     const float distToCamera = length(cameraPos - input.worldPos);
-    const float haze = 1.0 - exp(-distToCamera * 0.0045);
-    const float3 hazeColor = float3(0.010, 0.010, 0.010);
-    litLinear = lerp(litLinear, hazeColor, saturate(haze * 0.45));
+    const float distFog = 1.0 - exp(-distToCamera * fogDensity * 0.35);
+    const float3 fogLinear = WE_sRGBToLinear(saturate(fogColor));
+    litLinear = lerp(litLinear, fogLinear, saturate(fogAmount * 0.65 + distFog * 0.35));
+
+    const float haze = 1.0 - exp(-distToCamera * 0.0035);
+    const float3 aerial = WE_sRGBToLinear(saturate(aerialTint)) * atmosphereRayleigh * 120.0;
+    litLinear = lerp(litLinear, aerial, saturate(haze * 0.55));
 
     const float3 mapped = WE_ApplyFilmicTonemap(litLinear, WE_ExposureFromEV100(1.85));
     return float4(WE_LinearToSRGB(mapped), color.a);

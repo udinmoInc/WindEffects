@@ -174,7 +174,6 @@ void DockContainer::Paint(PaintContext& context) {
         float titleY = m_HeaderRect.y + (m_HeaderHeight - fontSize) / 2.0f;
         float maxTextWidth = tabRect.width - (itemX - tabRect.x) - textCloseSpacing - closeBtnWidth - rightPadding;
         
-        // Prevent negative or zero widths that cause rendering artifacts
         if (maxTextWidth > 0.0f) {
             context.DrawText(title, Point{ itemX, titleY }, textColor, fontSize, false);
         }
@@ -189,9 +188,23 @@ void DockContainer::Paint(PaintContext& context) {
                 Color closeColor = tabInfo.isCloseHovered ? Theme::Get().TextPrimary : Theme::Get().TextSecondary;
                 context.DrawIcon(crossCp, Point{ closeX, closeY }, closeColor, iconSize);
             }
+        } else {
+            tabInfo.closeRect = {};
         }
         
         currentX += tabWidth;
+    }
+
+    if (!m_Tabs.empty()) {
+        constexpr float kOptionsWidth = 12.0f;
+        constexpr float kOptionsHeight = 14.0f;
+        float headerPad = 8.0f;
+        float optionsX = m_HeaderRect.x + m_HeaderRect.width - headerPad - kOptionsWidth;
+        float optionsY = m_HeaderRect.y + (m_HeaderHeight - kOptionsHeight) * 0.5f;
+        m_OptionsMenuRect = Rect{ optionsX, optionsY, kOptionsWidth, kOptionsHeight };
+
+        Color optionsColor = m_OptionsMenuHovered ? Theme::Get().TextPrimary : Theme::Get().TextSecondary;
+        IconPainter::DrawVerticalMoreMenu(context, m_OptionsMenuRect, optionsColor);
     }
     
     // Draw subtle shadow/border at bottom of entire header, except under the active tab
@@ -220,6 +233,13 @@ void DockContainer::Paint(PaintContext& context) {
 
 void DockContainer::OnMouseDown(const MouseEvent& event) {
     if (m_HeaderRect.Contains(event.position)) {
+        if (m_OptionsMenuRect.Contains(event.position)
+            && m_ActiveTabIndex >= 0
+            && m_ActiveTabIndex < (int)m_Tabs.size()) {
+            m_Tabs[m_ActiveTabIndex].panel->InvokeOptionsMenu();
+            return;
+        }
+
         for (int i = 0; i < (int)m_Tabs.size(); ++i) {
             auto& tabInfo = m_Tabs[i];
             if (tabInfo.tabRect.Contains(event.position)) {
@@ -255,6 +275,12 @@ void DockContainer::OnMouseMove(const MouseEvent& event) {
     bool anyHoverChanged = false;
     
     if (m_HeaderRect.Contains(event.position)) {
+        bool wasOptionsHovered = m_OptionsMenuHovered;
+        m_OptionsMenuHovered = m_OptionsMenuRect.Contains(event.position);
+        if (wasOptionsHovered != m_OptionsMenuHovered) {
+            anyHoverChanged = true;
+        }
+
         for (auto& tabInfo : m_Tabs) {
             bool wasHovered = tabInfo.isHovered;
             bool wasCloseHovered = tabInfo.isCloseHovered;
@@ -267,6 +293,10 @@ void DockContainer::OnMouseMove(const MouseEvent& event) {
             }
         }
     } else {
+        if (m_OptionsMenuHovered) {
+            m_OptionsMenuHovered = false;
+            anyHoverChanged = true;
+        }
         for (auto& tabInfo : m_Tabs) {
             if (tabInfo.isHovered || tabInfo.isCloseHovered) {
                 tabInfo.isHovered = false;
@@ -276,6 +306,7 @@ void DockContainer::OnMouseMove(const MouseEvent& event) {
         }
     }
     
+    (void)anyHoverChanged;
     if (m_ActiveTabIndex >= 0 && m_ActiveTabIndex < (int)m_Tabs.size()) {
         auto activePanel = m_Tabs[m_ActiveTabIndex].panel;
         if (auto toolbar = activePanel->GetToolbar()) {
@@ -327,6 +358,9 @@ void DockContainer::OnMouseWheel(const MouseEvent& event) {
 
 bool DockContainer::ShowsPointerCursor(const Point& position) const {
     if (m_HeaderRect.Contains(position)) {
+        if (m_OptionsMenuRect.Contains(position)) {
+            return true;
+        }
         for (const auto& tabInfo : m_Tabs) {
             if (tabInfo.tabRect.Contains(position)) {
                 return true;

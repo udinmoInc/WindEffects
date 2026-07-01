@@ -27,15 +27,11 @@ using we::UI::Size;
 using we::UI::Theme;
 
 namespace {
-constexpr float kMinExpandedWidth = 260.0f;
-constexpr float kMaxExpandedWidth = 300.0f;
-constexpr float kHeaderHeight = 28.0f;
 constexpr float kSearchHeight = 28.0f;
 constexpr float kIconSize = 24.0f;
 constexpr float kToolRowHeight = 30.0f;
 constexpr float kSectionHeaderHeight = 26.0f;
 constexpr float kPadding = 8.0f;
-constexpr float kResizeHandleWidth = 5.0f;
 constexpr float kContextMenuItemHeight = 24.0f;
 constexpr float kDragThreshold = 6.0f;
 
@@ -72,7 +68,6 @@ bool ShortcutMatches(const std::string& toolShortcut, const KeyEvent& event) {
 
 ToolsPanel::ToolsPanel() {
     m_State.Load();
-    m_AnimatedWidth = TargetWidth();
 
     m_SearchBox = std::make_shared<we::UI::SearchBox>();
     m_SearchBox->SetFillWidth(true);
@@ -91,9 +86,8 @@ void ToolsPanel::InitializeFromRegistry() {
     EditorModeController::Get().AddModeChangedListener([this](const std::string&) {
         OnModeChanged();
     });
-    m_AnimatedWidth = TargetWidth();
     RebuildLayout();
-    HE_INFO("[ToolsPanel] Mode-context drawer ready.");
+    HE_INFO("[ToolsPanel] Mode tools panel ready.");
 }
 
 void ToolsPanel::OnModeChanged() {
@@ -108,12 +102,6 @@ void ToolsPanel::OnModeChanged() {
 
 std::string ToolsPanel::GetActiveModeId() const {
     return EditorModeController::Get().GetActiveModeId();
-}
-
-float ToolsPanel::TargetWidth() const {
-    auto& mode = EditorModeController::Get();
-    if (!mode.IsDrawerVisible()) return 0.0f;
-    return mode.GetDrawerWidth();
 }
 
 void ToolsPanel::SaveState() const {
@@ -243,7 +231,7 @@ bool ToolsPanel::HandleShortcut(const KeyEvent& event) {
 }
 
 Size ToolsPanel::Measure(const Size& availableSize) {
-    m_DesiredSize = Size{ TargetWidth(), availableSize.height };
+    m_DesiredSize = availableSize;
     return m_DesiredSize;
 }
 
@@ -253,7 +241,7 @@ void ToolsPanel::Arrange(const Rect& allottedRect) {
 }
 
 void ToolsPanel::RebuildLayout() {
-    const float width = m_AnimatedWidth;
+    const float width = m_Geometry.width;
     if (width < 1.0f) {
         m_PanelRect = {};
         m_Sections.clear();
@@ -262,28 +250,26 @@ void ToolsPanel::RebuildLayout() {
     }
 
     m_PanelRect = Rect{ m_Geometry.x, m_Geometry.y, width, m_Geometry.height };
-    m_HeaderRect = Rect{ m_PanelRect.x, m_PanelRect.y, m_PanelRect.width, kHeaderHeight };
-    m_PinButtonRect = Rect{ m_HeaderRect.x + 6.0f, m_HeaderRect.y + 4.0f, 20.0f, 20.0f };
-    m_CloseButtonRect = Rect{ m_HeaderRect.x + m_HeaderRect.width - 26.0f, m_HeaderRect.y + 4.0f, 20.0f, 20.0f };
 
-    float y = m_HeaderRect.y + m_HeaderRect.height;
-    m_SearchRect = Rect{ m_PanelRect.x + kPadding, y + 4.0f, m_PanelRect.width - kPadding * 2.0f, kSearchHeight };
-    m_SearchBox->Measure(Size{ m_SearchRect.width, m_SearchRect.height });
-    m_SearchBox->Arrange(m_SearchRect);
-    y = m_SearchRect.y + m_SearchRect.height + 4.0f;
+    const EditorToolMode* activeMode = EditorToolsRegistry::Get().FindMode(GetActiveModeId());
+    const bool useCustomContent = activeMode && activeMode->customContent;
+
+    float y = m_PanelRect.y + kPadding;
+    if (!useCustomContent) {
+        m_SearchRect = Rect{ m_PanelRect.x + kPadding, y, m_PanelRect.width - kPadding * 2.0f, kSearchHeight };
+        m_SearchBox->Measure(Size{ m_SearchRect.width, m_SearchRect.height });
+        m_SearchBox->Arrange(m_SearchRect);
+        y = m_SearchRect.y + m_SearchRect.height + 4.0f;
+    } else {
+        m_SearchRect = {};
+        y = m_PanelRect.y;
+    }
 
     m_ContentRect = Rect{
         m_PanelRect.x,
         y,
         m_PanelRect.width,
         (std::max)(0.0f, m_PanelRect.y + m_PanelRect.height - y)
-    };
-
-    m_ResizeHandleRect = Rect{
-        m_PanelRect.x + m_PanelRect.width - kResizeHandleWidth,
-        m_PanelRect.y,
-        kResizeHandleWidth,
-        m_PanelRect.height
     };
 
     m_Sections.clear();
@@ -346,8 +332,8 @@ void ToolsPanel::RebuildLayout() {
         if (section.expanded) drawToolList(recentTools, contentY);
     }
 
-    const EditorToolMode* activeMode = EditorToolsRegistry::Get().FindMode(activeModeId);
-    if (activeMode && activeMode->customContent) {
+    const EditorToolMode* modeForContent = EditorToolsRegistry::Get().FindMode(activeModeId);
+    if (modeForContent && modeForContent->customContent) {
         RebuildModeContent();
         return;
     }
@@ -370,39 +356,13 @@ void ToolsPanel::RebuildLayout() {
 
 void ToolsPanel::Tick(float deltaTime) {
     we::UI::Animator::Tick(deltaTime);
-    m_AnimatedWidth = we::UI::Animator::Damp(m_AnimatedWidth, TargetWidth(), 18.0f, deltaTime);
-    if (std::abs(m_AnimatedWidth - TargetWidth()) > 0.5f) {
-        RebuildLayout();
-    }
 }
 
 void ToolsPanel::Paint(PaintContext& context) {
-    if (m_AnimatedWidth < 1.0f) return;
+    if (m_Geometry.width < 1.0f) return;
 
     const auto& theme = Theme::Get();
-    auto& modeController = EditorModeController::Get();
-
-    context.DrawShadow(m_PanelRect, Color{ 0.0f, 0.0f, 0.0f, 0.15f }, 6.0f, 12.0f);
     context.DrawRect(m_PanelRect, theme.PanelBackground);
-    context.DrawRect(Rect{ m_PanelRect.x + m_PanelRect.width - 1.0f, m_PanelRect.y, 1.0f, m_PanelRect.height }, theme.BorderDefault);
-
-    std::string headerTitle = "Tools";
-    if (const auto* mode = EditorToolsRegistry::Get().FindMode(GetActiveModeId())) {
-        headerTitle = mode->label;
-    }
-    context.DrawText(headerTitle, Point{ m_HeaderRect.x + 30.0f, m_HeaderRect.y + 7.0f }, theme.TextPrimary, 11.0f, true);
-
-    if (const auto* mode = EditorToolsRegistry::Get().FindMode(GetActiveModeId())) {
-        we::UI::IconPainter::DrawIcon(context, mode->iconName,
-            Rect{ m_HeaderRect.x + 6.0f, m_HeaderRect.y + 2.0f, 20.0f, 20.0f }, theme.TextSecondary);
-    }
-
-    Color pinColor = modeController.IsDrawerPinned() ? theme.SelectedAccent
-                     : (m_PinHovered ? theme.TextPrimary : theme.TextSecondary);
-    we::UI::IconPainter::DrawIcon(context, we::UI::Icons::LockName, m_PinButtonRect, pinColor);
-
-    Color closeColor = m_CloseHovered ? theme.TextPrimary : theme.TextSecondary;
-    we::UI::IconPainter::DrawIcon(context, we::UI::Icons::XName, m_CloseButtonRect, closeColor);
 
     {
         m_SearchBox->Paint(context);
@@ -450,10 +410,6 @@ void ToolsPanel::Paint(PaintContext& context) {
                 starColor);
         }
 
-        if (m_DraggingResize) {
-            context.DrawRect(m_ResizeHandleRect, theme.SelectedAccent);
-        }
-
         if (m_ModeContentWidget) {
             m_ModeContentWidget->Paint(context);
         }
@@ -474,8 +430,7 @@ void ToolsPanel::Paint(PaintContext& context) {
 }
 
 bool ToolsPanel::HitTest(const Point& position) const {
-    if (m_AnimatedWidth < 1.0f) return false;
-    return m_PanelRect.Contains(position);
+    return m_Geometry.Contains(position);
 }
 
 ToolsPanel::SectionHit* ToolsPanel::HitSectionHeader(const Point& p) {
@@ -507,29 +462,12 @@ void ToolsPanel::OnMouseDown(const MouseEvent& event) {
 
     if (!HitTest(event.position)) return;
 
-    auto& modeController = EditorModeController::Get();
-
     if (event.button == MouseButton::Right) {
         if (auto* toolHit = HitTool(event.position)) {
             ShowToolContextMenu(toolHit->tool, event.position);
             return;
         }
         CloseContextMenu();
-        return;
-    }
-
-    if (m_PinButtonRect.Contains(event.position)) {
-        modeController.SetDrawerPinned(!modeController.IsDrawerPinned());
-        return;
-    }
-    if (m_CloseButtonRect.Contains(event.position)) {
-        modeController.SetDrawerVisible(false);
-        return;
-    }
-    if (m_ResizeHandleRect.Contains(event.position)) {
-        m_DraggingResize = true;
-        m_ResizeStartX = event.position.x;
-        m_ResizeStartWidth = modeController.GetDrawerWidth();
         return;
     }
 
@@ -568,9 +506,6 @@ void ToolsPanel::OnMouseDown(const MouseEvent& event) {
 }
 
 void ToolsPanel::OnMouseMove(const MouseEvent& event) {
-    m_PinHovered = m_PinButtonRect.Contains(event.position);
-    m_CloseHovered = m_CloseButtonRect.Contains(event.position);
-
     for (auto& tool : m_ToolHits) {
         tool.hovered = tool.geometry.Contains(event.position);
     }
@@ -584,13 +519,6 @@ void ToolsPanel::OnMouseMove(const MouseEvent& event) {
             }
         }
         return;
-    }
-
-    if (m_DraggingResize) {
-        const float delta = event.position.x - m_ResizeStartX;
-        EditorModeController::Get().SetDrawerWidth(
-            std::clamp(m_ResizeStartWidth + delta, kMinExpandedWidth, kMaxExpandedWidth));
-        RebuildLayout();
     }
 
     if (m_PendingDragTool && !m_DragStarted) {
@@ -614,10 +542,6 @@ void ToolsPanel::OnMouseUp(const MouseEvent& event) {
     }
     m_PendingDragTool = nullptr;
     m_DragStarted = false;
-
-    if (m_DraggingResize) {
-        m_DraggingResize = false;
-    }
 
     if (m_ModeContentWidget) {
         m_ModeContentWidget->OnMouseUp(event);

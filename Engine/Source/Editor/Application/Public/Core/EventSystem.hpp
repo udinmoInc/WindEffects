@@ -28,6 +28,8 @@ struct MouseEvent {
     MouseButton button;
     float wheelDeltaX = 0.0f;
     float wheelDeltaY = 0.0f;
+    float deltaX = 0.0f;
+    float deltaY = 0.0f;
     bool altDown = false;
     bool shiftDown = false;
     bool ctrlDown = false;
@@ -61,6 +63,7 @@ public:
     std::shared_ptr<Widget> GetHoveredWidget() const { return m_HoveredWidget.lock(); }
 
     void SetFocusedWidget(const std::shared_ptr<Widget>& widget);
+    void SetSuppressSystemCursor(bool suppress) { m_SuppressSystemCursor = suppress; }
 
     // Hit-testing helper
     static std::shared_ptr<Widget> HitTest(const std::shared_ptr<Widget>& root, const Point& pos);
@@ -72,6 +75,7 @@ private:
     std::weak_ptr<Widget> m_FocusedWidget;
     std::weak_ptr<Widget> m_HoveredWidget;
     bool m_UsingPointerCursor = false;
+    bool m_SuppressSystemCursor = false;
 };
 
 } // namespace we::editor::application::UI

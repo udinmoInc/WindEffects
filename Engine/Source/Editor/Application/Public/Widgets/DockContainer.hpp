@@ -44,6 +44,8 @@ private:
     float m_HeaderHeight = 28.0f;
     Rect m_HeaderRect;
     Rect m_ContentRect;
+    Rect m_OptionsMenuRect;
+    bool m_OptionsMenuHovered = false;
 };
 
 } // namespace we::UI

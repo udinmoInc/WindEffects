@@ -1,4 +1,5 @@
 #include "Modules/ModuleManager.hpp"
+#include <filesystem>
 #include <iostream>
 
 #ifdef _WIN32
@@ -9,6 +10,10 @@
 #endif
 
 typedef IModuleInterface* (*InitializeModuleFunc)();
+
+bool IsRuntimeLinkedModule(const std::string& moduleName) {
+    return moduleName == "WindEffects-Application";
+}
 
 ModuleManager& ModuleManager::Get()
 {
@@ -32,32 +37,48 @@ IModuleInterface* ModuleManager::LoadModule(const std::string& ModuleName)
     std::string LibName;
     std::string ModName;
     std::string LoadedLibraryName;
+    void* Handle = nullptr;
 
 #ifdef _WIN32
     LibName = BaseName + ".dll";
     ModName = "Modules\\" + LibName;
-    void* Handle = LoadLibraryExA(ModName.c_str(), NULL, LOAD_WITH_ALTERED_SEARCH_PATH);
-    if (Handle) {
-        LoadedLibraryName = ModName;
-    } else {
+
+    wchar_t exePath[MAX_PATH]{};
+    if (GetModuleFileNameW(nullptr, exePath, MAX_PATH) != 0) {
+        const std::filesystem::path modulePath =
+            std::filesystem::path(exePath).parent_path() / "Modules" / LibName;
+        Handle = LoadLibraryExW(
+            modulePath.c_str(),
+            nullptr,
+            LOAD_WITH_ALTERED_SEARCH_PATH);
+        if (Handle) {
+            LoadedLibraryName = modulePath.string();
+        }
+    }
+
+    if (!Handle && IsRuntimeLinkedModule(ModuleName)) {
         Handle = LoadLibraryA(LibName.c_str());
-        if (Handle) LoadedLibraryName = LibName;
+        if (Handle) {
+            LoadedLibraryName = LibName;
+        }
     }
 #else
     LibName = "lib" + BaseName + ".so";
     ModName = "Modules/" + LibName;
-    void* Handle = dlopen(ModName.c_str(), RTLD_NOW);
+    Handle = dlopen(ModName.c_str(), RTLD_NOW);
     if (Handle) {
         LoadedLibraryName = ModName;
-    } else {
+    } else if (IsRuntimeLinkedModule(ModuleName)) {
         Handle = dlopen(LibName.c_str(), RTLD_NOW);
-        if (Handle) LoadedLibraryName = LibName;
+        if (Handle) {
+            LoadedLibraryName = LibName;
+        }
     }
 #endif
 
     if (!Handle)
     {
-        std::cerr << "Failed to load module: " << ModuleName << " (searched Modules/ and root)" << std::endl;
+        std::cerr << "Failed to load module: " << ModuleName << " from " << ModName << std::endl;
         return nullptr;
     }
 

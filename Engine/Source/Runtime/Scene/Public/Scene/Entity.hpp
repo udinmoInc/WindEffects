@@ -1,19 +1,35 @@
 #pragma once
 
 #include <string>
+#include <cstdint>
 #include <glm/glm.hpp>
 #include <volk.h>
 
 namespace we::runtime::scene {
 
 enum class EntityType {
+    EmptyActor,
+    Character,
+    Blueprint,
     Cube,
+    Sphere,
+    Cylinder,
     Plane,
     DirectionalLight,
-    CameraIcon
+    PointLight,
+    SpotLight,
+    SkyLight,
+    SkyAtmosphere,
+    HeightFog,
+    VolumetricClouds,
+    GroundPlane,
+    CameraIcon,
+    AudioSource,
+    Volume,
 };
 
 struct Entity {
+    std::uint64_t Id = 0;
     std::string Name;
     EntityType Type;
     glm::vec3 Position{ 0.0f };
@@ -21,6 +37,8 @@ struct Entity {
     glm::vec3 Scale{ 1.0f };
     glm::vec4 Color{ 1.0f };
     int Mode = 0; // 0 = Lit, 1 = Unlit, 2 = Wireframe
+    bool EditorOnly = false;
+    std::uint64_t ParentId = 0;
 
     // Vulkan resources (allocated when added to Scene)
     VkBuffer UniformBuffer = VK_NULL_HANDLE;

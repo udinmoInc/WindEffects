@@ -1,6 +1,12 @@
 set(PROGRAM_NAME WindEffectsEditor)
 
-file(GLOB_RECURSE SOURCE_FILES "*.cpp" "*.hpp" "*.rc")
+set(SOURCE_FILES
+    Main.cpp
+    Editor.cpp
+    Editor.hpp
+    ModuleBootstrap.cpp
+    Resource.rc
+)
 
 add_executable(${PROGRAM_NAME} ${SOURCE_FILES})
 
@@ -11,6 +17,7 @@ target_link_libraries(${PROGRAM_NAME} PRIVATE
     WindEffects-Engine
     WindEffects-Renderer
     WindEffects-Scene
+    WindEffects-World
     WindEffects-MainFrame
     WindEffects-Viewport
     WindEffects-Docking
@@ -21,23 +28,29 @@ target_link_libraries(${PROGRAM_NAME} PRIVATE
     WindEffects-Menus
     WindEffects-Details
     WindEffects-ToolsPanel
+    WindEffects-PlaceActors
+    WindEffects-Environment
     WindEffects-EditorGridRenderer
     SDL3::SDL3
     delayimp
 )
 
 # Delay load feature modules so they can be placed in Modules/ and loaded by ModuleManager
-set_property(TARGET ${PROGRAM_NAME} APPEND_STRING PROPERTY LINK_FLAGS 
-    " /DELAYLOAD:WindEffects-MainFrame.dll"
-    " /DELAYLOAD:WindEffects-Viewport.dll"
-    " /DELAYLOAD:WindEffects-Docking.dll"
-    " /DELAYLOAD:WindEffects-ContentBrowser.dll"
-    " /DELAYLOAD:WindEffects-WorldOutliner.dll"
-    " /DELAYLOAD:WindEffects-PropertyEditor.dll"
-    " /DELAYLOAD:WindEffects-Toolbar.dll"
-    " /DELAYLOAD:WindEffects-Menus.dll"
-    " /DELAYLOAD:WindEffects-Details.dll"
-    " /DELAYLOAD:WindEffects-ToolsPanel.dll"
+target_link_options(${PROGRAM_NAME} PRIVATE
+    "/DELAYLOAD:WindEffects-MainFrame.dll"
+    "/DELAYLOAD:WindEffects-Viewport.dll"
+    "/DELAYLOAD:WindEffects-Docking.dll"
+    "/DELAYLOAD:WindEffects-ContentBrowser.dll"
+    "/DELAYLOAD:WindEffects-WorldOutliner.dll"
+    "/DELAYLOAD:WindEffects-PropertyEditor.dll"
+    "/DELAYLOAD:WindEffects-Toolbar.dll"
+    "/DELAYLOAD:WindEffects-Menus.dll"
+    "/DELAYLOAD:WindEffects-Details.dll"
+    "/DELAYLOAD:WindEffects-ToolsPanel.dll"
+    "/DELAYLOAD:WindEffects-PlaceActors.dll"
+    "/DELAYLOAD:WindEffects-Environment.dll"
+    "/include:__pfnDliNotifyHook2"
+    "/include:__pfnDliFailureHook2"
 )
 
 target_include_directories(${PROGRAM_NAME} PRIVATE "${CMAKE_SOURCE_DIR}/Engine/Source")
@@ -55,7 +68,8 @@ add_custom_command(TARGET ${PROGRAM_NAME} POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E make_directory "$<TARGET_FILE_DIR:${PROGRAM_NAME}>/Assets/Fonts"
     COMMAND ${CMAKE_COMMAND} -E make_directory "$<TARGET_FILE_DIR:${PROGRAM_NAME}>/Assets/Icons"
     COMMAND ${CMAKE_COMMAND} -E make_directory "$<TARGET_FILE_DIR:${PROGRAM_NAME}>/Assets/Editor"
-    COMMAND ${CMAKE_COMMAND} -E make_directory "$<TARGET_FILE_DIR:${PROGRAM_NAME}>/Config/editor"
+    COMMAND ${CMAKE_COMMAND} -E make_directory "$<TARGET_FILE_DIR:${PROGRAM_NAME}>/Config/Editor"
+    COMMAND ${CMAKE_COMMAND} -E copy_directory "${CMAKE_SOURCE_DIR}/Engine/Config/Editor" "$<TARGET_FILE_DIR:${PROGRAM_NAME}>/Config/Editor"
     COMMAND ${CMAKE_COMMAND} -E make_directory "$<TARGET_FILE_DIR:${PROGRAM_NAME}>/Saved/logs"
     COMMAND ${CMAKE_COMMAND} -E make_directory "$<TARGET_FILE_DIR:${PROGRAM_NAME}>/Plugins"
     COMMAND ${CMAKE_COMMAND} -E make_directory "$<TARGET_FILE_DIR:${PROGRAM_NAME}>/Modules"
@@ -67,9 +81,7 @@ add_custom_command(TARGET ${PROGRAM_NAME} POST_BUILD
     COMMENT "Setting up clean runtime layout (Assets, Config, Saved, Plugins, Modules)"
 )
 
-# Linked feature-module DLLs must live next to the editor exe: Windows resolves
-# import-table dependencies before main(). Modules/ is an additional copy for
-# ModuleManager::LoadModule.
+# Feature modules live only in Modules/. Remove stale root copies from older builds.
 set(FEATURE_MODULES
     WindEffects-MainFrame
     WindEffects-Viewport
@@ -81,17 +93,60 @@ set(FEATURE_MODULES
     WindEffects-Menus
     WindEffects-Details
     WindEffects-ToolsPanel
+    WindEffects-PlaceActors
+    WindEffects-Environment
 )
 foreach(MOD IN LISTS FEATURE_MODULES)
     if(TARGET ${MOD})
+        add_dependencies(${PROGRAM_NAME} ${MOD})
+    endif()
+
+    add_custom_command(TARGET ${PROGRAM_NAME} POST_BUILD
+        COMMAND cmd /c "if exist \"$<TARGET_FILE_DIR:${PROGRAM_NAME}>\\${MOD}.dll\" del /f /q \"$<TARGET_FILE_DIR:${PROGRAM_NAME}>\\${MOD}.dll\""
+        COMMENT "Removing stale ${MOD}.dll from editor root"
+    )
+endforeach()
+
+# Runtime modules and third-party DLLs must live next to the editor executable.
+set(RUNTIME_DLL_TARGETS
+    WindEffects-Core
+    WindEffects-Application
+    WindEffects-Engine
+    WindEffects-Renderer
+    WindEffects-Scene
+    WindEffects-World
+    WindEffects-RHI
+)
+foreach(MOD IN LISTS RUNTIME_DLL_TARGETS)
+    if(TARGET ${MOD})
+        add_dependencies(${PROGRAM_NAME} ${MOD})
         add_custom_command(TARGET ${PROGRAM_NAME} POST_BUILD
             COMMAND ${CMAKE_COMMAND} -E copy_if_different
                 "$<TARGET_FILE:${MOD}>"
                 "$<TARGET_FILE_DIR:${PROGRAM_NAME}>"
-            COMMAND ${CMAKE_COMMAND} -E copy_if_different
-                "$<TARGET_FILE:${MOD}>"
-                "$<TARGET_FILE_DIR:${PROGRAM_NAME}>/Modules"
-            COMMENT "Deploying ${MOD} next to editor and under Modules/"
+            COMMENT "Deploying runtime module ${MOD} next to editor"
         )
     endif()
 endforeach()
+
+if(TARGET SDL3::SDL3)
+    add_custom_command(TARGET ${PROGRAM_NAME} POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "$<TARGET_FILE:SDL3::SDL3>"
+            "$<TARGET_FILE_DIR:${PROGRAM_NAME}>"
+        COMMENT "Deploying SDL3.dll next to editor"
+    )
+elseif(TARGET SDL3-shared)
+    add_custom_command(TARGET ${PROGRAM_NAME} POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "$<TARGET_FILE:SDL3-shared>"
+            "$<TARGET_FILE_DIR:${PROGRAM_NAME}>"
+        COMMENT "Deploying SDL3.dll next to editor"
+    )
+endif()
+
+# Stale artifact: EditorGridRenderer is linked statically now.
+add_custom_command(TARGET ${PROGRAM_NAME} POST_BUILD
+    COMMAND cmd /c "if exist \"$<TARGET_FILE_DIR:${PROGRAM_NAME}>\\Modules\\WindEffects-EditorGridRenderer.dll\" del /f /q \"$<TARGET_FILE_DIR:${PROGRAM_NAME}>\\Modules\\WindEffects-EditorGridRenderer.dll\""
+    COMMENT "Removing stale WindEffects-EditorGridRenderer.dll from Modules/"
+)

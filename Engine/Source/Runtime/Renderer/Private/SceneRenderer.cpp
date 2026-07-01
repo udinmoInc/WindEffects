@@ -73,7 +73,13 @@ SceneRenderer::SceneRenderer(const std::shared_ptr<VulkanContext>& context, VkRe
     objectBinding.descriptorCount = 1;
     objectBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
 
-    std::array<VkDescriptorSetLayoutBinding, 2> bindings = { cameraBinding, objectBinding };
+    VkDescriptorSetLayoutBinding environmentBinding{};
+    environmentBinding.binding = 2;
+    environmentBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    environmentBinding.descriptorCount = 1;
+    environmentBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+
+    std::array<VkDescriptorSetLayoutBinding, 3> bindings = { cameraBinding, objectBinding, environmentBinding };
     VkDescriptorSetLayoutCreateInfo layoutInfo{};
     layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
     layoutInfo.bindingCount = static_cast<uint32_t>(bindings.size());
@@ -82,6 +88,14 @@ SceneRenderer::SceneRenderer(const std::shared_ptr<VulkanContext>& context, VkRe
     if (vkCreateDescriptorSetLayout(m_Context->GetDevice(), &layoutInfo, nullptr, &m_ObjectDescLayout) != VK_SUCCESS) {
         throw std::runtime_error("Failed to create object descriptor set layout!");
     }
+
+    m_Context->CreateBuffer(
+        sizeof(SceneEnvironmentUniform),
+        VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+        m_EnvironmentBuffer,
+        m_EnvironmentBufferMemory
+    );
 
     // 3. Create Pipelines
     CreatePipelines(renderPass);
@@ -104,6 +118,8 @@ SceneRenderer::~SceneRenderer() {
     if (m_PipelineLayout != VK_NULL_HANDLE) vkDestroyPipelineLayout(device, m_PipelineLayout, nullptr);
     if (m_SkyBuffer != VK_NULL_HANDLE) vkDestroyBuffer(device, m_SkyBuffer, nullptr);
     if (m_SkyBufferMemory != VK_NULL_HANDLE) vkFreeMemory(device, m_SkyBufferMemory, nullptr);
+    if (m_EnvironmentBuffer != VK_NULL_HANDLE) vkDestroyBuffer(device, m_EnvironmentBuffer, nullptr);
+    if (m_EnvironmentBufferMemory != VK_NULL_HANDLE) vkFreeMemory(device, m_EnvironmentBufferMemory, nullptr);
     if (m_SkyDescLayout != VK_NULL_HANDLE) vkDestroyDescriptorSetLayout(device, m_SkyDescLayout, nullptr);
     if (m_ObjectDescLayout != VK_NULL_HANDLE) vkDestroyDescriptorSetLayout(device, m_ObjectDescLayout, nullptr);
 }
@@ -479,6 +495,8 @@ void SceneRenderer::UpdateEditorBackgroundBufferIfDirty() {
 }
 
 void SceneRenderer::DrawMesh(VkCommandBuffer cmd, const std::string& meshName, VkDescriptorSet descriptorSet, int mode) const {
+    RefreshEnvironmentDescriptorBindings();
+
     auto it = m_Meshes.find(meshName);
     if (it == m_Meshes.end()) {
         HE_WARN("Mesh " + meshName + " not found!");
@@ -514,7 +532,12 @@ void SceneRenderer::UpdateObjectDescriptorSet(VkDescriptorSet descriptorSet, VkB
     objectBufferInfo.offset = 0;
     objectBufferInfo.range = VK_WHOLE_SIZE;
 
-    std::array<VkWriteDescriptorSet, 2> descriptorWrites{};
+    VkDescriptorBufferInfo environmentBufferInfo{};
+    environmentBufferInfo.buffer = m_EnvironmentBuffer;
+    environmentBufferInfo.offset = 0;
+    environmentBufferInfo.range = sizeof(SceneEnvironmentUniform);
+
+    std::array<VkWriteDescriptorSet, 3> descriptorWrites{};
 
     descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
     descriptorWrites[0].dstSet = descriptorSet;
@@ -532,7 +555,32 @@ void SceneRenderer::UpdateObjectDescriptorSet(VkDescriptorSet descriptorSet, VkB
     descriptorWrites[1].descriptorCount = 1;
     descriptorWrites[1].pBufferInfo = &objectBufferInfo;
 
+    descriptorWrites[2].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    descriptorWrites[2].dstSet = descriptorSet;
+    descriptorWrites[2].dstBinding = 2;
+    descriptorWrites[2].dstArrayElement = 0;
+    descriptorWrites[2].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    descriptorWrites[2].descriptorCount = 1;
+    descriptorWrites[2].pBufferInfo = &environmentBufferInfo;
+
     vkUpdateDescriptorSets(m_Context->GetDevice(), static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
+}
+
+void SceneRenderer::SetSceneEnvironment(const SceneEnvironmentUniform& environment) {
+    m_SceneEnvironment = environment;
+    m_SceneEnvironmentDirty = true;
+}
+
+void SceneRenderer::RefreshEnvironmentDescriptorBindings() const {
+    if (!m_SceneEnvironmentDirty || m_EnvironmentBuffer == VK_NULL_HANDLE) {
+        return;
+    }
+
+    void* data = nullptr;
+    vkMapMemory(m_Context->GetDevice(), m_EnvironmentBufferMemory, 0, sizeof(SceneEnvironmentUniform), 0, &data);
+    std::memcpy(data, &m_SceneEnvironment, sizeof(SceneEnvironmentUniform));
+    vkUnmapMemory(m_Context->GetDevice(), m_EnvironmentBufferMemory);
+    m_SceneEnvironmentDirty = false;
 }
 
 } // namespace we::runtime::renderer

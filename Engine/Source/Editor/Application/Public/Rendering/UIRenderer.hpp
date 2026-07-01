@@ -35,6 +35,7 @@ public:
 
     // Get descriptor set for an external texture (like the viewport offscreen buffer)
     VkDescriptorSet RegisterTexture(VkImageView imageView, VkSampler sampler);
+    void UpdateTexture(VkDescriptorSet descriptorSet, VkImageView imageView, VkSampler sampler);
     void UnregisterTexture(VkDescriptorSet descSet);
 
     // Helpers

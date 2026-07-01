@@ -15,7 +15,7 @@ class SearchBox;
 
 namespace we::programs::editor {
 
-/// Narrow left tool drawer for the active editor mode (hidden until a mode needs it).
+/// Tool list content for the active editor mode. Header/close/tab chrome is owned by Panel.
 class ToolsPanel : public we::UI::Widget {
 public:
     ToolsPanel();
@@ -34,7 +34,6 @@ public:
     void OnMouseUp(const we::UI::MouseEvent& event) override;
     void OnKeyDown(const we::UI::KeyEvent& event) override;
 
-    float GetOccupiedWidth() const { return m_AnimatedWidth; }
     bool HitTest(const we::UI::Point& position) const;
 
 private:
@@ -66,7 +65,6 @@ private:
     void ShowToolContextMenu(const EditorToolAction* tool, const we::UI::Point& position);
     bool HandleShortcut(const we::UI::KeyEvent& event);
 
-    float TargetWidth() const;
     void SaveState() const;
     [[nodiscard]] std::string GetActiveModeId() const;
 
@@ -74,7 +72,6 @@ private:
     ToolHit* HitTool(const we::UI::Point& p);
 
     ToolsPanelState m_State;
-    float m_AnimatedWidth = 0.0f;
 
     std::string m_SearchText;
     std::shared_ptr<we::UI::SearchBox> m_SearchBox;
@@ -83,17 +80,11 @@ private:
     std::string m_ModeContentSearchText;
 
     we::UI::Rect m_PanelRect;
-    we::UI::Rect m_HeaderRect;
     we::UI::Rect m_SearchRect;
     we::UI::Rect m_ContentRect;
-    we::UI::Rect m_ResizeHandleRect;
 
     std::vector<SectionHit> m_Sections;
     std::vector<ToolHit> m_ToolHits;
-
-    bool m_DraggingResize = false;
-    float m_ResizeStartX = 0.0f;
-    float m_ResizeStartWidth = 0.0f;
 
     const EditorToolAction* m_PendingDragTool = nullptr;
     we::UI::Point m_DragStartPosition{};
@@ -103,11 +94,6 @@ private:
     we::UI::Rect m_ContextMenuRect;
     std::vector<ContextMenuItem> m_ContextMenuItems;
     int m_ContextMenuHovered = -1;
-
-    we::UI::Rect m_PinButtonRect;
-    we::UI::Rect m_CloseButtonRect;
-    bool m_PinHovered = false;
-    bool m_CloseHovered = false;
 };
 
 } // namespace we::programs::editor

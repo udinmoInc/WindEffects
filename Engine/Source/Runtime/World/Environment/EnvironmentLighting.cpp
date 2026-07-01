@@ -1,0 +1,85 @@
+#include "Environment/EnvironmentLighting.h"
+
+#include <algorithm>
+#include <cmath>
+
+namespace we::runtime::world::environment {
+
+namespace {
+
+float Clamp01(float value) {
+    return std::clamp(value, 0.0f, 1.0f);
+}
+
+} // namespace
+
+glm::vec3 TemperatureKelvinToRgb(int kelvin) {
+    const float temp = std::clamp(static_cast<float>(kelvin), 1000.0f, 40000.0f) / 100.0f;
+
+    float red = 0.0f;
+    if (temp <= 66.0f) {
+        red = 1.0f;
+    } else {
+        red = temp - 60.0f;
+        red = 329.698727446f * std::pow(red, -0.1332047592f);
+    }
+
+    float green = 0.0f;
+    if (temp <= 66.0f) {
+        green = temp;
+        green = 99.4708025861f * std::log(green) - 161.1195681661f;
+    } else {
+        green = temp - 60.0f;
+        green = 288.1221695283f * std::pow(green, -0.0755148492f);
+    }
+
+    float blue = 0.0f;
+    if (temp >= 66.0f) {
+        blue = 1.0f;
+    } else if (temp <= 19.0f) {
+        blue = 0.0f;
+    } else {
+        blue = temp - 10.0f;
+        blue = 138.5177312231f * std::log(blue) - 305.0447927307f;
+    }
+
+    return glm::vec3(Clamp01(red / 255.0f), Clamp01(green / 255.0f), Clamp01(blue / 255.0f));
+}
+
+glm::vec3 EulerDegreesToLightDirection(const glm::vec3& rotationDegrees) {
+    const float pitch = glm::radians(rotationDegrees.x);
+    const float yaw = glm::radians(rotationDegrees.y);
+
+    glm::vec3 direction;
+    direction.x = std::cos(pitch) * std::sin(yaw);
+    direction.y = -std::sin(pitch);
+    direction.z = std::cos(pitch) * std::cos(yaw);
+    return glm::normalize(direction);
+}
+
+we::runtime::renderer::SceneEnvironmentUniform BuildSceneEnvironmentUniform(
+    const EnvironmentDirectionalLight& sun,
+    const EnvironmentSkyLight& skyLight,
+    const EnvironmentSkyAtmosphere& atmosphere,
+    const EnvironmentHeightFog& fog,
+    const EnvironmentVolumetricClouds& clouds) {
+
+    we::runtime::renderer::SceneEnvironmentUniform uniform{};
+    uniform.sunDirection = sun.GetLightDirection();
+    uniform.sunIntensity = sun.Intensity;
+    uniform.sunColor = sun.GetColorFromTemperature();
+    uniform.skyLightIntensity = skyLight.Intensity;
+    uniform.skyAmbientColor = skyLight.GetAmbientColor();
+    uniform.fogDensity = fog.Density;
+    uniform.fogColor = fog.FogColor;
+    uniform.fogHeightFalloff = fog.HeightFalloff;
+    uniform.atmosphereRayleigh = atmosphere.GetRayleighColor();
+    uniform.enableVolumetricFog = (fog.VolumetricFog && fog.EntityId != 0) ? 1.0f : 0.0f;
+    uniform.aerialTint = glm::vec3(0.55f, 0.65f, 0.85f);
+    uniform.enableClouds = (clouds.Enabled && clouds.EntityId != 0) ? 1.0f : 0.0f;
+    uniform.sunCastShadows = sun.CastDynamicShadows ? 1 : 0;
+    uniform.sunTemperature = sun.TemperatureKelvin;
+    return uniform;
+}
+
+} // namespace we::runtime::world::environment

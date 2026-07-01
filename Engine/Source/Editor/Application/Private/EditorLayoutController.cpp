@@ -1,5 +1,7 @@
 #include "EditorLayoutController.hpp"
 #include "Layout/Splitter.hpp"
+#include "Widgets/DockContainer.hpp"
+#include "Core/Widget.hpp"
 #include "Core/Logger.hpp"
 
 namespace we::programs::editor {
@@ -11,6 +13,78 @@ EditorLayoutController& EditorLayoutController::Get() {
 
 void EditorLayoutController::SetContentBrowserSplitter(const std::shared_ptr<we::UI::Splitter>& splitter) {
     m_ContentBrowserSplitter = splitter;
+}
+
+void EditorLayoutController::SetToolsPanelSplitter(const std::shared_ptr<we::UI::Splitter>& splitter) {
+    m_ToolsPanelSplitter = splitter;
+}
+
+void EditorLayoutController::SetToolsPanelRoot(const std::shared_ptr<we::UI::Widget>& toolsPanelRoot) {
+    m_ToolsPanelRoot = toolsPanelRoot;
+}
+
+void EditorLayoutController::ApplyToolsPanelVisibility(bool visible) {
+    if (auto toolsRoot = m_ToolsPanelRoot.lock()) {
+        toolsRoot->SetVisible(visible);
+    }
+
+    auto splitter = m_ToolsPanelSplitter.lock();
+    if (!splitter) {
+        return;
+    }
+
+    if (visible) {
+        splitter->SetSplitRatio(m_SavedToolsPanelRatio);
+    } else {
+        m_SavedToolsPanelRatio = splitter->GetSplitRatio();
+    }
+}
+
+void EditorLayoutController::SetRightBottomDock(const std::shared_ptr<we::UI::DockContainer>& dock) {
+    m_RightBottomDock = dock;
+}
+
+void EditorLayoutController::FocusViewportNavigationPanel() {
+    auto dock = m_RightBottomDock.lock();
+    if (!dock) {
+        HE_ERROR("[EditorLayout] Right-bottom dock not registered.");
+        return;
+    }
+
+    dock->SetActiveTab(m_ViewportNavigationTabIndex);
+}
+
+void EditorLayoutController::SetBottomPanels(
+    const std::shared_ptr<we::UI::Widget>& contentBrowser,
+    const std::shared_ptr<we::UI::Widget>& debugPanel) {
+    m_ContentBrowserPanel = contentBrowser;
+    m_DebugPanel = debugPanel;
+}
+
+void EditorLayoutController::SetBottomPanelIndex(int index) {
+    if (index < 0 || index > 1 || index == m_BottomPanelIndex) {
+        return;
+    }
+
+    auto splitter = m_ContentBrowserSplitter.lock();
+    if (!splitter) {
+        HE_ERROR("[EditorLayout] Content browser splitter not registered.");
+        return;
+    }
+
+    std::shared_ptr<we::UI::Widget> panel = (index == 0)
+        ? m_ContentBrowserPanel.lock()
+        : m_DebugPanel.lock();
+    if (!panel) {
+        HE_ERROR("[EditorLayout] Bottom panel not registered.");
+        return;
+    }
+
+    m_BottomPanelIndex = index;
+    splitter->SetSecondChild(panel);
+    HE_INFO(index == 0
+        ? "[EditorLayout] Bottom panel switched to Assets."
+        : "[EditorLayout] Bottom panel switched to Diagnostics.");
 }
 
 void EditorLayoutController::ToggleContentBrowserExpanded() {

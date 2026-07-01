@@ -24,6 +24,9 @@ public:
     void CloseTopPopup();
     void CloseAllPopups();
 
+    bool HasOpenPopups() const { return !m_Popups.empty(); }
+    bool IsWidgetInPopup(const std::shared_ptr<Widget>& widget) const;
+
     // Overrides
     Size Measure(const Size& availableSize) override;
     void Arrange(const Rect& allottedRect) override;

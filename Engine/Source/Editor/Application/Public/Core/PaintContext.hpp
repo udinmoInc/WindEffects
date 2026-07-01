@@ -11,6 +11,7 @@ enum class DrawCommandType {
     Rect,
     Gradient,
     Shadow,
+    RoundedOutline,
     Text,
     Icon,
     Line,

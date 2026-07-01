@@ -7,6 +7,8 @@
 #if defined(_WIN32)
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
+#include "../Windows/Win32WindowIcon.hpp"
+#include "../Windows/resource.h"
 #endif
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nShowCmd) {
@@ -18,6 +20,9 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 
     we::runtime::core::Logger::Init();
 
+#if defined(_WIN32)
+    we::programs::windows::ConfigureSdlClassIcons(IDI_ICON1);
+#endif
     if (!SDL_Init(SDL_INIT_VIDEO)) {
         return -1;
     }
@@ -36,6 +41,9 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     SDL_SetWindowMinimumSize(window, 1200, 760);
 
     SDL_ShowWindow(window);
+#if defined(_WIN32)
+    we::programs::windows::ApplyEmbeddedWindowIcon(window, IDI_ICON1);
+#endif
 
     {
         we::programs::crashreporter::CrashReporterApp app(window);

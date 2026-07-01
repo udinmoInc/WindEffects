@@ -69,11 +69,14 @@ void PaintContext::DrawShadow(const Rect& rect, const Color& color, float radius
 }
 
 void PaintContext::DrawRoundedRectOutline(const Rect& rect, const Color& color, float thickness, float radius) {
-    // For now, simulate outline by drawing lines (could be improved with proper outline rendering)
-    DrawLine(Point{rect.x, rect.y}, Point{rect.x + rect.width, rect.y}, color, thickness);
-    DrawLine(Point{rect.x + rect.width, rect.y}, Point{rect.x + rect.width, rect.y + rect.height}, color, thickness);
-    DrawLine(Point{rect.x + rect.width, rect.y + rect.height}, Point{rect.x, rect.y + rect.height}, color, thickness);
-    DrawLine(Point{rect.x, rect.y + rect.height}, Point{rect.x, rect.y}, color, thickness);
+    DrawCommand cmd{};
+    cmd.type = DrawCommandType::RoundedOutline;
+    cmd.rect = rect;
+    cmd.color = color;
+    cmd.borderRadius = radius;
+    cmd.thickness = thickness;
+    cmd.clipRect = GetCurrentClipRect();
+    m_Commands.push_back(cmd);
 }
 
 void PaintContext::DrawText(const std::string& text, const Point& pos, const Color& color, float fontSize, bool bold, bool italic) {
