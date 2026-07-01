@@ -34,7 +34,6 @@ target_link_libraries(${MODULE_NAME} PUBLIC
     WindEffects-Scene
     WindEffects-Renderer 
     glm 
-    imgui 
     volk 
     SDL3::SDL3
 )

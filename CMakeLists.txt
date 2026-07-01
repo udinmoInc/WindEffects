@@ -9,6 +9,9 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 # Enable Folder organization in IDEs
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
+include("${CMAKE_CURRENT_SOURCE_DIR}/cmake/BuildLayout.cmake")
+we_assert_separate_binary_dir()
+
 # Configure strict output directories
 set(BASE_OUTPUT_DIR "${CMAKE_SOURCE_DIR}/Build/Win64")
 if(CMAKE_BUILD_TYPE)
@@ -21,14 +24,14 @@ endif()
 # We set the base path here.
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/Build/Win64")
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/Build/Win64")
-set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/Build/Win64")
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/Build/cmake/Intermediate")
 
 # Set MSVC multi-config outputs explicitly to avoid it appending 'Debug' to our path, we want it perfectly aligned or we let it do its thing.
 foreach(OUTPUTCONFIG ${CMAKE_CONFIGURATION_TYPES})
     string(TOUPPER ${OUTPUTCONFIG} OUTPUTCONFIG_UPPER)
     set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_${OUTPUTCONFIG_UPPER} "${CMAKE_SOURCE_DIR}/Build/Win64/${OUTPUTCONFIG}")
     set(CMAKE_LIBRARY_OUTPUT_DIRECTORY_${OUTPUTCONFIG_UPPER} "${CMAKE_SOURCE_DIR}/Build/Win64/${OUTPUTCONFIG}")
-    set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY_${OUTPUTCONFIG_UPPER} "${CMAKE_SOURCE_DIR}/Build/Win64/${OUTPUTCONFIG}/Intermediate")
+    set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY_${OUTPUTCONFIG_UPPER} "${CMAKE_SOURCE_DIR}/Build/cmake/Intermediate/${OUTPUTCONFIG}")
 endforeach()
 
 
@@ -95,38 +98,6 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(nlohmann_json)
 
-# 6. Dear ImGui (Docking Branch)
-message(STATUS "Fetching Dear ImGui (Docking Branch)...")
-FetchContent_Declare(
-    imgui
-    GIT_REPOSITORY https://github.com/ocornut/imgui.git
-    GIT_TAG docking
-    GIT_SHALLOW TRUE
-)
-FetchContent_GetProperties(imgui)
-if(NOT imgui_POPULATED)
-    FetchContent_Populate(imgui)
-endif()
-
-# Define ImGui Library Target
-set(IMGUI_SOURCES
-    ${imgui_SOURCE_DIR}/imgui.cpp
-    ${imgui_SOURCE_DIR}/imgui_draw.cpp
-    ${imgui_SOURCE_DIR}/imgui_tables.cpp
-    ${imgui_SOURCE_DIR}/imgui_widgets.cpp
-    ${imgui_SOURCE_DIR}/imgui_demo.cpp
-    ${imgui_SOURCE_DIR}/backends/imgui_impl_sdl3.cpp
-    ${imgui_SOURCE_DIR}/backends/imgui_impl_vulkan.cpp
-)
-
-add_library(imgui STATIC ${IMGUI_SOURCES})
-target_include_directories(imgui PUBLIC 
-    ${imgui_SOURCE_DIR}
-    ${imgui_SOURCE_DIR}/backends
-)
-target_link_libraries(imgui PUBLIC SDL3::Headers Vulkan::Headers volk)
-target_compile_definitions(imgui PUBLIC IMGUI_IMPL_VULKAN_NO_PROTOTYPES)
-
 # 7. stb (for stb_truetype.h)
 message(STATUS "Fetching stb...")
 FetchContent_Declare(
@@ -154,7 +125,7 @@ if(NOT nanosvg_POPULATED)
 endif()
 
 # Download Inter fonts
-set(FONT_DIR "${CMAKE_BINARY_DIR}/bin/Fonts")
+set(FONT_DIR "${WE_BUILD_STAGING_DIR}/bin/Fonts")
 set(FONT_REGULAR "${FONT_DIR}/Inter-Regular.ttf")
 set(FONT_BOLD "${FONT_DIR}/Inter-Bold.ttf")
 
@@ -176,8 +147,8 @@ if(NOT EXISTS "${FONT_BOLD}")
 endif()
 
 # Download Lucide Icons
-set(ICONS_DIR "${CMAKE_BINARY_DIR}/bin/Icons")
-set(LUCIDE_ZIP "${CMAKE_BINARY_DIR}/lucide.zip")
+set(ICONS_DIR "${WE_BUILD_STAGING_DIR}/bin/Icons")
+set(LUCIDE_ZIP "${WE_BUILD_STAGING_DIR}/lucide.zip")
 if(NOT EXISTS "${ICONS_DIR}")
     message(STATUS "Downloading Lucide Icons...")
     file(DOWNLOAD 

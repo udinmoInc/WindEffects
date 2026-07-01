@@ -85,6 +85,13 @@ add_custom_command(TARGET ${PROGRAM_NAME} POST_BUILD
     COMMENT "Setting up clean runtime layout (Assets, Config, Saved, Plugins, Modules)"
 )
 
+add_custom_command(TARGET ${PROGRAM_NAME} POST_BUILD
+    COMMAND ${CMAKE_COMMAND}
+        -DRUNTIME_DIR=$<TARGET_FILE_DIR:${PROGRAM_NAME}>
+        -P "${CMAKE_SOURCE_DIR}/cmake/CleanupRuntimeDir.cmake"
+    COMMENT "Removing CMake build artifacts from runtime output"
+)
+
 # Feature modules live only in Modules/. Remove stale root copies from older builds.
 set(FEATURE_MODULES
     WindEffects-MainFrame

@@ -22,7 +22,6 @@ target_link_libraries(${MODULE_NAME} PUBLIC
     WindEffects-ContentBrowser
     WindEffects-Menus
     glm 
-    imgui 
     volk 
     SDL3::SDL3
 )

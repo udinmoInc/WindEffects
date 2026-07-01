@@ -212,7 +212,7 @@ void Renderer::CreateRenderPasses() {
     }
 
     // -------------------------------------------------------------------------
-    // 2. Swapchain Render Pass (for ImGui)
+    // 2. Swapchain Render Pass (for ui)
     // -------------------------------------------------------------------------
     VkAttachmentDescription swapchainAttachment{};
     swapchainAttachment.format = VK_FORMAT_B8G8R8A8_UNORM; // Will update once swapchain format is selected

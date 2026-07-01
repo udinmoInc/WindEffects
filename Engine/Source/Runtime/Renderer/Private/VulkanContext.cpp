@@ -240,7 +240,7 @@ void VulkanContext::CreateCommandPool() {
 }
 
 void VulkanContext::CreateDescriptorPool() {
-    // Large descriptor pool to accommodate ImGui and engine bindings
+    // Large descriptor pool to accommodate UI and engine bindings
     std::vector<VkDescriptorPoolSize> poolSizes = {
         { VK_DESCRIPTOR_TYPE_SAMPLER, 100 },
         { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 100 },

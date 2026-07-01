@@ -19,7 +19,6 @@ target_include_directories(${MODULE_NAME} PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/P
 
 target_link_libraries(${MODULE_NAME} PUBLIC 
     glm 
-    imgui 
     volk 
     SDL3::SDL3
 )

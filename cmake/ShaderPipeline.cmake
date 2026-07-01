@@ -2,15 +2,15 @@
 # Future: add DXIL (D3D12) and SPIR-V -> MSL (Metal) targets from the same HLSL sources.
 
 set(WE_SHADER_ROOT "${CMAKE_SOURCE_DIR}/Engine/Shaders" CACHE PATH "Root directory for HLSL shader sources")
-set(WE_SHADER_OUTPUT_DIR "${CMAKE_BINARY_DIR}/Generated/Shaders" CACHE PATH "Compiled shader bytecode output directory")
+set(WE_SHADER_OUTPUT_DIR "${WE_BUILD_STAGING_DIR}/Generated/Shaders" CACHE PATH "Compiled shader bytecode output directory")
 set(WE_SHADER_MODEL "6_6" CACHE STRING "HLSL shader model minor version (6_6+)")
 
 file(MAKE_DIRECTORY "${WE_SHADER_OUTPUT_DIR}")
 
 # Windows SDK ships dxc without SPIR-V codegen — prefer DXC builds that support -spirv.
 function(we_dxc_supports_spirv DXC_PATH OUT_VAR)
-    set(_test_hlsl "${CMAKE_BINARY_DIR}/_we_dxc_spirv_test.hlsl")
-    set(_test_spv "${CMAKE_BINARY_DIR}/_we_dxc_spirv_test.spv")
+    set(_test_hlsl "${WE_BUILD_STAGING_DIR}/_we_dxc_spirv_test.hlsl")
+    set(_test_spv "${WE_BUILD_STAGING_DIR}/_we_dxc_spirv_test.spv")
     file(WRITE "${_test_hlsl}" "void VSMain() {}\n")
     execute_process(
         COMMAND "${DXC_PATH}" -spirv -T vs_6_0 -E VSMain -Fo "${_test_spv}" "${_test_hlsl}"
