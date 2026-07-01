@@ -100,10 +100,13 @@ public:
             Rect row{ m_Geometry.x + 2.0f, y, m_Geometry.width - 4.0f, 26.0f };
             if (row.Contains(event.position)) {
                 if (m_Items[i]->onClick) m_Items[i]->onClick();
-                if (OverlayManager::Get()) OverlayManager::Get()->CloseAllPopups();
-                return;
+                break;
             }
             y += 28.0f;
+        }
+
+        if (OverlayManager::Get()) {
+            OverlayManager::Get()->CloseAllPopups();
         }
     }
 
@@ -184,6 +187,8 @@ void EditorModeSelector::OnMouseMove(const MouseEvent& event) {
 
 void EditorModeSelector::OpenModeMenu() {
     if (!OverlayManager::Get()) return;
+
+    OverlayManager::Get()->CloseAllPopups();
 
     std::vector<std::shared_ptr<MenuItem>> items;
     const std::string& activeId = EditorModeController::Get().GetActiveModeId();

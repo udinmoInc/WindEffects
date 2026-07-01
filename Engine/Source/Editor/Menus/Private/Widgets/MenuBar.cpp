@@ -105,6 +105,10 @@ void MenuBar::OnMouseDown(const MouseEvent& event) {
 }
 
 void MenuBar::OnMouseMove(const MouseEvent& event) {
+    if (m_MenuOpen && OverlayManager::Get() && !OverlayManager::Get()->HasOpenPopups()) {
+        m_MenuOpen = false;
+    }
+
     MenuInfo* menu = GetMenuAtPosition(event.position);
 
     for (auto& m : m_VisibleMenus) m.hovered = false;

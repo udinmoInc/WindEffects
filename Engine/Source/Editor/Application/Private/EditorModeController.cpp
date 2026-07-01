@@ -1,6 +1,8 @@
 #include "EditorModeController.hpp"
+#include "EditorLayoutController.hpp"
 #include "EditorToolsRegistry.hpp"
 #include "Core/Logger.hpp"
+#include "Core/EditorConfigPaths.hpp"
 
 #include <filesystem>
 #include <fstream>
@@ -11,7 +13,7 @@ namespace we::programs::editor {
 namespace {
 
 std::filesystem::path GetStatePath() {
-    return std::filesystem::path("Saved") / "Config" / "editor_mode.ini";
+    return we::core::ResolveEditorConfigPath("editor_mode.ini");
 }
 
 } // namespace
@@ -64,6 +66,7 @@ void EditorModeController::SetActiveMode(const std::string& modeId) {
 void EditorModeController::SetDrawerVisible(bool visible) {
     if (m_DrawerVisible == visible) return;
     m_DrawerVisible = visible;
+    EditorLayoutController::Get().ApplyToolsPanelVisibility(visible);
     SaveState();
     NotifyModeChanged();
 }

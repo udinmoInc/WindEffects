@@ -44,6 +44,10 @@ public:
     // Header actions (icons on the right side of header)
     void AddHeaderAction(const std::string& iconName, std::function<void()> onClick);
 
+    void SetOptionsMenuHandler(std::function<void()> onClick) { m_OnOptionsMenu = std::move(onClick); }
+    void InvokeOptionsMenu() const;
+    bool HasOptionsMenuHandler() const { return static_cast<bool>(m_OnOptionsMenu); }
+
     // Styling
     void SetHeaderHeight(float height) { m_HeaderHeight = height; }
     void SetCollapsible(bool collapsible) { m_Collapsible = collapsible; }
@@ -64,10 +68,12 @@ private:
     std::shared_ptr<Widget> m_Content;
     std::shared_ptr<Widget> m_Toolbar;
     std::vector<HeaderAction> m_HeaderActions;
+    std::function<void()> m_OnOptionsMenu;
 
     bool m_Expanded = true;
     bool m_Collapsible = true;
     bool m_HeaderHovered = false;
+    bool m_OptionsMenuHovered = false;
 
     float m_HeaderHeight = 28.0f; // Thin header standard
     float m_ActionIconSize = 14.0f;
@@ -76,6 +82,7 @@ private:
     Rect m_HeaderRect;
     Rect m_ToolbarRect;
     Rect m_ContentRect;
+    Rect m_OptionsMenuRect;
 
     WidgetStyle m_Style;
     WidgetStyle m_HeaderStyle;

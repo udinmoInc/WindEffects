@@ -41,8 +41,13 @@ Size Splitter::Measure(const Size& availableSize) {
     float availH = availableSize.height;
 
     if (m_Orientation == Orientation::Horizontal) {
-        float w1 = (availW - m_BarThickness) * m_SplitRatio;
-        float w2 = (availW - m_BarThickness) * (1.0f - m_SplitRatio);
+        const float firstRatio = (m_FirstChild && m_FirstChild->IsVisible()) ? m_SplitRatio : 0.0f;
+        float w1 = (availW - m_BarThickness) * firstRatio;
+        float w2 = availW - m_BarThickness - w1;
+        if (w1 < 1.0f) {
+            w1 = 0.0f;
+            w2 = availW;
+        }
 
         if (m_FirstChild && m_FirstChild->IsVisible()) {
             m_FirstChild->Measure(Size{ w1, availH });
@@ -51,8 +56,13 @@ Size Splitter::Measure(const Size& availableSize) {
             m_SecondChild->Measure(Size{ w2, availH });
         }
     } else {
-        float h1 = (availH - m_BarThickness) * m_SplitRatio;
-        float h2 = (availH - m_BarThickness) * (1.0f - m_SplitRatio);
+        const float firstRatio = (m_FirstChild && m_FirstChild->IsVisible()) ? m_SplitRatio : 0.0f;
+        float h1 = (availH - m_BarThickness) * firstRatio;
+        float h2 = availH - m_BarThickness - h1;
+        if (h1 < 1.0f) {
+            h1 = 0.0f;
+            h2 = availH;
+        }
 
         if (m_FirstChild && m_FirstChild->IsVisible()) {
             m_FirstChild->Measure(Size{ availW, h1 });
@@ -72,26 +82,40 @@ void Splitter::Arrange(const Rect& allottedRect) {
     float availH = allottedRect.height;
 
     if (m_Orientation == Orientation::Horizontal) {
-        float w1 = (availW - m_BarThickness) * m_SplitRatio;
-        float w2 = (availW - m_BarThickness) * (1.0f - m_SplitRatio);
+        const float firstRatio = (m_FirstChild && m_FirstChild->IsVisible()) ? m_SplitRatio : 0.0f;
+        float w1 = (availW - m_BarThickness) * firstRatio;
+        float w2 = availW - m_BarThickness - w1;
         float barX = allottedRect.x + w1;
+        if (w1 < 1.0f) {
+            w1 = 0.0f;
+            w2 = availW;
+            barX = allottedRect.x;
+        }
 
         if (m_FirstChild && m_FirstChild->IsVisible()) {
             m_FirstChild->Arrange(Rect{ allottedRect.x, allottedRect.y, w1, availH });
         }
         if (m_SecondChild && m_SecondChild->IsVisible()) {
-            m_SecondChild->Arrange(Rect{ barX + m_BarThickness, allottedRect.y, w2, availH });
+            const float secondX = w1 > 0.0f ? barX + m_BarThickness : allottedRect.x;
+            m_SecondChild->Arrange(Rect{ secondX, allottedRect.y, w2, availH });
         }
     } else {
-        float h1 = (availH - m_BarThickness) * m_SplitRatio;
-        float h2 = (availH - m_BarThickness) * (1.0f - m_SplitRatio);
+        const float firstRatio = (m_FirstChild && m_FirstChild->IsVisible()) ? m_SplitRatio : 0.0f;
+        float h1 = (availH - m_BarThickness) * firstRatio;
+        float h2 = availH - m_BarThickness - h1;
         float barY = allottedRect.y + h1;
+        if (h1 < 1.0f) {
+            h1 = 0.0f;
+            h2 = availH;
+            barY = allottedRect.y;
+        }
 
         if (m_FirstChild && m_FirstChild->IsVisible()) {
             m_FirstChild->Arrange(Rect{ allottedRect.x, allottedRect.y, availW, h1 });
         }
         if (m_SecondChild && m_SecondChild->IsVisible()) {
-            m_SecondChild->Arrange(Rect{ allottedRect.x, barY + m_BarThickness, availW, h2 });
+            const float secondY = h1 > 0.0f ? barY + m_BarThickness : allottedRect.y;
+            m_SecondChild->Arrange(Rect{ allottedRect.x, secondY, availW, h2 });
         }
     }
 }
@@ -113,6 +137,10 @@ void Splitter::Paint(PaintContext& context) {
 
     if (m_FirstChild && m_FirstChild->IsVisible()) m_FirstChild->Paint(context);
     if (m_SecondChild && m_SecondChild->IsVisible()) m_SecondChild->Paint(context);
+
+    if (!m_FirstChild || !m_FirstChild->IsVisible()) {
+        return;
+    }
 
     // Draw Splitter Bar
     Rect barRect = GetSplitterBarRect();

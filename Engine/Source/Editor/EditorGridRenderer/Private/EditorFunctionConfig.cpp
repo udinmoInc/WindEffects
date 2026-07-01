@@ -1,5 +1,7 @@
 #include "EditorFunctionConfig.hpp"
 
+#include "Core/EditorConfigPaths.hpp"
+
 #include <algorithm>
 #include <cctype>
 #include <cmath>
@@ -111,7 +113,7 @@ EditorFunctionConfig& EditorFunctionConfig::Get() {
 }
 
 std::filesystem::path EditorFunctionConfig::GetConfigPath() const {
-    return std::filesystem::path("config") / "editor" / "function.ini";
+    return we::core::ResolveEditorConfigPath("function.ini");
 }
 
 std::unordered_map<std::string, std::string> EditorFunctionConfig::BuildDefaultEntries() const {

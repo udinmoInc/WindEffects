@@ -21,4 +21,6 @@ void AdjustViewportCameraSpeedFromWheel(float wheelDeltaY);
 
 void ShowViewportCameraSpeedPopup();
 
+void ApplyLoadedViewportNavigationSettings();
+
 } // namespace we::programs::editor

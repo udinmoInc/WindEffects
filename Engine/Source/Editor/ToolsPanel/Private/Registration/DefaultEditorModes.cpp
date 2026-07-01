@@ -41,16 +41,7 @@ REGISTER_EDITOR_TOOL(SelectEssentials, MoveTool,     "Move",     "move",   "W", 
 REGISTER_EDITOR_TOOL(SelectEssentials, RotateTool,   "Rotate",   "rotate", "E", [](){})
 REGISTER_EDITOR_TOOL(SelectEssentials, ScaleTool,    "Scale",    "scale",  "R", [](){})
 
-// ===== Actors mode =====
-REGISTER_EDITOR_TOOL_CATEGORY(Actors, ActorPlacement, "Placement", "plus", 10)
-REGISTER_EDITOR_TOOL_CATEGORY(Actors, ActorPrimitives, "Primitives", "cube", 20)
-REGISTER_EDITOR_TOOL(ActorPlacement, PlaceEmptyActor, "Empty Actor", "plus", "", [](){})
-REGISTER_EDITOR_TOOL(ActorPlacement, PlaceCharacter,  "Character",   "hierarchy", "", [](){})
-REGISTER_EDITOR_TOOL(ActorPlacement, PlaceBlueprint,  "Blueprint",   "code", "", [](){})
-REGISTER_EDITOR_TOOL(ActorPrimitives, PlaceCube,     "Cube",     "cube",   "", [](){})
-REGISTER_EDITOR_TOOL(ActorPrimitives, PlaceSphere,   "Sphere",   "sphere", "", [](){})
-REGISTER_EDITOR_TOOL(ActorPrimitives, PlacePlane,    "Plane",    "plane",  "", [](){})
-REGISTER_EDITOR_TOOL(ActorPrimitives, PlaceCylinder, "Cylinder", "cylinder", "", [](){})
+// ===== Actors mode catalog is registered by WindEffects-PlaceActors =====
 
 // ===== Landscape mode =====
 REGISTER_EDITOR_TOOL_CATEGORY(Landscape, LandscapeSculpt, "Sculpt", "grid", 10)

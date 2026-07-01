@@ -56,7 +56,17 @@ float4 PSMain(VSOutput input) : SV_Target
     float2 halfSize = float2(input.sdfRect.z * 0.5, input.sdfRect.w * 0.5);
     float radius = input.sdfParams.x;
     float dist = udRoundBox(input.worldPos - center, halfSize, radius);
-    float alpha = 1.0 - smoothstep(-1.0, 1.0, dist);
+
+    float alpha;
+    if (type > 1.5)
+    {
+        float thickness = max(input.sdfParams.z, 1.0);
+        alpha = 1.0 - smoothstep(0.0, 1.0, abs(dist) - thickness * 0.5);
+    }
+    else
+    {
+        alpha = 1.0 - smoothstep(-1.0, 1.0, dist);
+    }
 
     float4 outColor = input.color;
     outColor.a *= alpha;

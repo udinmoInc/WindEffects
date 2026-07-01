@@ -1,5 +1,6 @@
 #include "Scene/Scene.hpp"
 #include "Core/Logger.hpp"
+#include <glm/glm.hpp>
 #include <stdexcept>
 #include <iostream>
 #include <cmath>
@@ -11,6 +12,7 @@ namespace {
 const char* MeshNameForEntityType(EntityType type) {
     switch (type) {
     case EntityType::Plane: return "Plane";
+    case EntityType::GroundPlane: return "Plane";
     default: return "Cube";
     }
 }
@@ -28,39 +30,66 @@ Scene::~Scene() {
     DestroyEntity(0xFFFFFFFF); // Clean up all
 }
 
-void Scene::InitializeDefaultScene(VkBuffer cameraBuffer) {
-    // 1. Editor Cube
-    CreateEntity("Editor Cube", EntityType::Cube, cameraBuffer);
-    Entity& cube = m_Entities.back();
-    cube.Position = glm::vec3(0.0f, 0.5f, 0.0f); // Center on origin XZ, bottom face on Y=0
-    cube.Scale = glm::vec3(1.0f);
-    cube.Color = glm::vec4(0.8f, 0.3f, 0.3f, 1.0f); // Matte red cube
-    cube.Mode = 0; // Lit
-
-    // 2. Directional Light Icon
-    CreateEntity("Directional Light", EntityType::DirectionalLight, cameraBuffer);
-    Entity& light = m_Entities.back();
-    light.Position = glm::vec3(5.0f, 8.0f, -2.0f);
-    light.Scale = glm::vec3(0.4f);
-    light.Color = glm::vec4(0.95f, 0.95f, 0.6f, 1.0f); // Yellow light icon
-    light.Mode = 1; // Unlit
-
-    // 3. Camera Icon
-    CreateEntity("Main Camera Icon", EntityType::CameraIcon, cameraBuffer);
-    Entity& cam = m_Entities.back();
-    cam.Position = glm::vec3(0.0f, 6.0f, 12.0f);
-    cam.Scale = glm::vec3(0.4f);
-    cam.Color = glm::vec4(0.3f, 0.6f, 0.8f, 1.0f); // Cyan camera icon
-    cam.Mode = 1; // Unlit
+void Scene::SetCameraBuffer(VkBuffer cameraBuffer) {
+    m_CameraBuffer = cameraBuffer;
 }
 
-void Scene::CreateEntity(const std::string& name, EntityType type, VkBuffer cameraBuffer) {
+bool Scene::IsCameraBufferAssigned() const {
+    return m_CameraBuffer != VK_NULL_HANDLE;
+}
+
+void Scene::CreateEntity(const std::string& name, EntityType type) {
+    if (!IsCameraBufferAssigned()) {
+        throw std::runtime_error("Scene camera buffer is not assigned.");
+    }
+
     Entity entity{};
+    entity.Id = m_NextEntityId++;
     entity.Name = name;
     entity.Type = type;
     
     // Default mode is Lit (0)
     entity.Mode = 0;
+
+    switch (type) {
+    case EntityType::Cube:
+        entity.Color = glm::vec4(0.35f, 0.55f, 0.95f, 0.85f);
+        entity.Position = glm::vec3(0.0f, 0.5f, 0.0f);
+        break;
+    case EntityType::Sphere:
+        entity.Color = glm::vec4(0.45f, 0.75f, 0.55f, 0.85f);
+        entity.Position = glm::vec3(0.0f, 0.5f, 0.0f);
+        entity.Scale = glm::vec3(1.0f);
+        break;
+    case EntityType::Cylinder:
+        entity.Color = glm::vec4(0.85f, 0.55f, 0.35f, 0.85f);
+        entity.Position = glm::vec3(0.0f, 0.5f, 0.0f);
+        break;
+    case EntityType::Plane:
+        entity.Color = glm::vec4(0.5f, 0.5f, 0.5f, 1.0f);
+        entity.Scale = glm::vec3(4.0f, 1.0f, 4.0f);
+        break;
+    case EntityType::DirectionalLight:
+    case EntityType::PointLight:
+    case EntityType::SpotLight:
+    case EntityType::SkyLight:
+    case EntityType::SkyAtmosphere:
+    case EntityType::HeightFog:
+    case EntityType::VolumetricClouds:
+        entity.EditorOnly = true;
+        entity.Mode = 1;
+        break;
+    case EntityType::CameraIcon:
+    case EntityType::EmptyActor:
+    case EntityType::Character:
+    case EntityType::Blueprint:
+    case EntityType::AudioSource:
+    case EntityType::Volume:
+        entity.EditorOnly = true;
+        break;
+    default:
+        break;
+    }
 
     // Allocate Uniform Buffer for object matrices/properties
     VkDeviceSize bufferSize = sizeof(we::runtime::renderer::SceneObjectUniform);
@@ -87,10 +116,74 @@ void Scene::CreateEntity(const std::string& name, EntityType type, VkBuffer came
     }
 
     // Bind descriptor set to UBOs
-    m_Renderer->UpdateObjectDescriptorSet(entity.DescriptorSet, cameraBuffer, entity.UniformBuffer);
+    m_Renderer->UpdateObjectDescriptorSet(entity.DescriptorSet, m_CameraBuffer, entity.UniformBuffer);
 
     m_Entities.push_back(entity);
     HE_INFO("Created scene entity: " + name);
+}
+
+bool Scene::HasEntityOfType(EntityType type) const {
+    for (const Entity& entity : m_Entities) {
+        if (entity.Type == type) {
+            return true;
+        }
+    }
+    return false;
+}
+
+bool Scene::HasEntityNamed(const std::string& name) const {
+    for (const Entity& entity : m_Entities) {
+        if (entity.Name == name) {
+            return true;
+        }
+    }
+    return false;
+}
+
+int Scene::FindEntityIndexById(std::uint64_t id) const {
+    for (size_t i = 0; i < m_Entities.size(); ++i) {
+        if (m_Entities[i].Id == id) {
+            return static_cast<int>(i);
+        }
+    }
+    return -1;
+}
+
+int Scene::FindEntityIndexByName(const std::string& name) const {
+    for (size_t i = 0; i < m_Entities.size(); ++i) {
+        if (m_Entities[i].Name == name) {
+            return static_cast<int>(i);
+        }
+    }
+    return -1;
+}
+
+Entity* Scene::FindEntityById(std::uint64_t id) {
+    const int index = FindEntityIndexById(id);
+    return index >= 0 ? &m_Entities[static_cast<size_t>(index)] : nullptr;
+}
+
+const Entity* Scene::FindEntityById(std::uint64_t id) const {
+    const int index = FindEntityIndexById(id);
+    return index >= 0 ? &m_Entities[static_cast<size_t>(index)] : nullptr;
+}
+
+std::vector<int> Scene::FindChildIndices(std::uint64_t parentId) const {
+    std::vector<int> children;
+    for (size_t i = 0; i < m_Entities.size(); ++i) {
+        if (m_Entities[i].ParentId == parentId) {
+            children.push_back(static_cast<int>(i));
+        }
+    }
+    return children;
+}
+
+bool Scene::IsEmpty() const {
+    return m_Entities.empty();
+}
+
+void Scene::Clear() {
+    DestroyEntity(0xFFFFFFFF);
 }
 
 void Scene::DestroyEntity(size_t index) {
@@ -113,10 +206,17 @@ void Scene::DestroyEntity(size_t index) {
     if (index >= m_Entities.size()) return;
 
     Entity& entity = m_Entities[index];
+    const std::uint64_t destroyedId = entity.Id;
     if (entity.UniformBuffer != VK_NULL_HANDLE) vkDestroyBuffer(device, entity.UniformBuffer, nullptr);
     if (entity.UniformMemory != VK_NULL_HANDLE) vkFreeMemory(device, entity.UniformMemory, nullptr);
 
     m_Entities.erase(m_Entities.begin() + index);
+
+    for (auto& entity : m_Entities) {
+        if (entity.ParentId == destroyedId) {
+            entity.ParentId = 0;
+        }
+    }
 
     if (m_SelectedEntityIndex == static_cast<int>(index)) {
         m_SelectedEntityIndex = -1;
@@ -142,8 +242,11 @@ void Scene::Update() {
     }
 }
 
-void Scene::Draw(VkCommandBuffer cmd) const {
+void Scene::Draw(VkCommandBuffer cmd, DrawMode drawMode) const {
     for (const auto& entity : m_Entities) {
+        if (drawMode == DrawMode::Game && entity.EditorOnly) {
+            continue;
+        }
         m_Renderer->DrawMesh(cmd, MeshNameForEntityType(entity.Type), entity.DescriptorSet, entity.Mode);
     }
 }

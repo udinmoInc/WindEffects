@@ -2,12 +2,57 @@
 #include "Core/PaintContext.hpp"
 #include "Core/Theme.hpp"
 #include "Core/Icon.hpp"
+#include "Core/Animator.hpp"
 #include <algorithm>
 #include <cctype>
 
 namespace we::UI {
 namespace {
     constexpr int kMissingIconFallback = 0xE001;
+
+    float PressStrength(bool pressed, float pressAnim) {
+        return pressed ? 1.0f : pressAnim;
+    }
+
+    Color MakePressBackground(float strength) {
+        Color pressed = Theme::Get().PressedOverlay;
+        pressed.a *= strength;
+        return pressed;
+    }
+
+    void DrawInteractiveBackground(
+        PaintContext& context,
+        const Rect& rect,
+        float hoverAnim,
+        float pressStrength,
+        bool active,
+        float radius = 3.0f)
+    {
+        if (pressStrength > 0.01f) {
+            context.DrawRoundedRect(rect, MakePressBackground(pressStrength), radius);
+        } else if (hoverAnim > 0.01f) {
+            Color hoverBg = Color::Lerp(Color{0.0f, 0.0f, 0.0f, 0.0f}, Theme::Get().HoverButton, hoverAnim);
+            context.DrawRoundedRect(rect, hoverBg, radius);
+        } else if (active) {
+            context.DrawRoundedRect(rect, Theme::Get().SelectedBg, radius);
+        }
+    }
+
+    Color ResolveInteractiveIconColor(float hoverAnim, float pressStrength, bool active) {
+        Color iconColor = Theme::Get().TextSecondary;
+        if (hoverAnim > 0.01f || pressStrength > 0.01f || active) {
+            iconColor = Color::Lerp(iconColor, Theme::Get().TextPrimary, std::max({hoverAnim, pressStrength, active ? 1.0f : 0.0f}));
+        }
+        return iconColor;
+    }
+
+    Color ResolveInteractiveTextColor(float hoverAnim, float pressStrength, bool active) {
+        Color textColor = Theme::Get().TextPrimary;
+        if (hoverAnim > 0.01f || pressStrength > 0.01f || active) {
+            textColor = Color::Lerp(Theme::Get().TextSecondary, Color::White(), std::max({hoverAnim, pressStrength, active ? 1.0f : 0.0f}));
+        }
+        return textColor;
+    }
 
     float ApproxInlineTextWidth(const std::string& text, float textSize) {
         float width = 0.0f;
@@ -121,11 +166,11 @@ void ToolButton::Arrange(const Rect& allottedRect) {
 }
 
 void ToolButton::Paint(PaintContext& context) {
-    // Animate hover / press / active
-    const float animSpeed = 8.33f;
-    m_HoverAnim  += ((m_Hovered ? 1.0f : 0.0f) - m_HoverAnim)  * animSpeed * 0.016f;
-    m_PressAnim  += ((m_Pressed ? 1.0f : 0.0f) - m_PressAnim)  * animSpeed * 0.016f;
-    m_ActiveAnim += ((m_Active  ? 1.0f : 0.0f) - m_ActiveAnim) * animSpeed * 0.016f;
+    m_HoverAnim = Animator::Damp(m_HoverAnim, m_Hovered ? 1.0f : 0.0f, 15.0f);
+    m_PressAnim = Animator::Damp(m_PressAnim, m_Pressed ? 1.0f : 0.0f, 40.0f);
+    m_ActiveAnim = Animator::Damp(m_ActiveAnim, m_Active ? 1.0f : 0.0f, 15.0f);
+
+    const float pressStrength = PressStrength(m_Pressed, m_PressAnim);
 
     Rect renderRect = m_Geometry;
     float centerY   = renderRect.y + renderRect.height / 2.0f;
@@ -159,22 +204,10 @@ void ToolButton::Paint(PaintContext& context) {
 
     // ── Transport buttons (Play / Pause / Stop) ──────────────────────────────
     if (isTransport) {
-        // Hover / press: subtle rounded rect background
-        if (m_PressAnim > 0.01f) {
-            context.DrawRoundedRect(renderRect, Theme::Get().PressedOverlay, 3.0f);
-        } else if (m_HoverAnim > 0.01f) {
-            Color hbg = Color::Lerp(Color{0,0,0,0}, Theme::Get().HoverButton, m_HoverAnim);
-            context.DrawRoundedRect(renderRect, hbg, 3.0f);
-        } else if (m_Active) {
-            context.DrawRoundedRect(renderRect, Theme::Get().SelectedBg, 3.0f);
-        }
-        // 18px icon centered in the 24px hit area
+        DrawInteractiveBackground(context, renderRect, m_HoverAnim, pressStrength, m_Active, 3.0f);
+
         const float iconSize = 18.0f;
-        Color iconColor = Theme::Get().TextSecondary;
-        if (m_HoverAnim > 0.01f)
-            iconColor = Color::Lerp(iconColor, Theme::Get().TextPrimary, m_HoverAnim);
-        if (m_Active || m_PressAnim > 0.5f)
-            iconColor = Theme::Get().SelectedAccent; // amber when active
+        Color iconColor = ResolveInteractiveIconColor(m_HoverAnim, pressStrength, m_Active);
         float drawX = renderRect.x + (renderRect.width  - iconSize) / 2.0f;
         float drawY = renderRect.y + (renderRect.height - iconSize) / 2.0f;
         int cp = Icons::GetCodepoint(m_IconName);
@@ -184,14 +217,10 @@ void ToolButton::Paint(PaintContext& context) {
 
     // ── TitleBar tool buttons ────────────────────────────────────────────────
     if (m_ButtonStyle == ToolButtonStyle::TitleBarTool) {
-        if (m_HoverAnim > 0.01f) {
-            Color hbg = Color::Lerp(Color{0,0,0,0}, Theme::Get().HoverButton, m_HoverAnim);
-            context.DrawRoundedRect(renderRect, hbg, 3.0f);
-        }
+        DrawInteractiveBackground(context, renderRect, m_HoverAnim, pressStrength, m_Active, 3.0f);
+
         const float iconSize = 15.0f;
-        Color iconColor = Theme::Get().TextSecondary;
-        if (m_HoverAnim > 0.01f) iconColor = Color::Lerp(iconColor, Theme::Get().TextPrimary, m_HoverAnim);
-        if (m_Active || m_PressAnim > 0.01f) iconColor = Theme::Get().SelectedAccent;
+        Color iconColor = ResolveInteractiveIconColor(m_HoverAnim, pressStrength, m_Active);
         float drawX = renderRect.x + (renderRect.width  - iconSize) / 2.0f;
         float drawY = renderRect.y + (renderRect.height - iconSize) / 2.0f;
         int cp = Icons::GetCodepoint(m_IconName);
@@ -201,20 +230,14 @@ void ToolButton::Paint(PaintContext& context) {
 
     // ── Inline toolbar items (Platform / Settings) – transparent, hover only ─
     if (isInline) {
-        if (m_PressAnim > 0.01f) {
-            context.DrawRoundedRect(renderRect, Theme::Get().PressedOverlay, 3.0f);
-        } else if (m_HoverAnim > 0.01f) {
-            Color hbg = Color::Lerp(Color{0,0,0,0}, Theme::Get().HoverButton, m_HoverAnim);
-            context.DrawRoundedRect(renderRect, hbg, 3.0f);
-        }
+        DrawInteractiveBackground(context, renderRect, m_HoverAnim, pressStrength, m_Active, 3.0f);
 
         const float iconSize  = 16.0f;
         const float textSize  = 13.0f;
         const float iconGap   = 3.0f;
         const float padLeft   = 6.0f;
         const float padRight  = 4.0f;
-        Color textColor = Theme::Get().TextPrimary;
-        if (m_HoverAnim > 0.01f) textColor = Color::White();
+        Color textColor = ResolveInteractiveTextColor(m_HoverAnim, pressStrength, m_Active);
 
         float currentX = renderRect.x + padLeft;
         int cp = Icons::GetCodepoint(m_IconName);
@@ -244,18 +267,10 @@ void ToolButton::Paint(PaintContext& context) {
 
     // ── Toolbar icon-only buttons ────────────────────────────────────────────
     if (isToolbarIcon) {
-        if (m_PressAnim > 0.01f) {
-            context.DrawRoundedRect(renderRect, Theme::Get().PressedOverlay, 3.0f);
-        } else if (m_HoverAnim > 0.01f) {
-            Color hbg = Color::Lerp(Color{0,0,0,0}, Theme::Get().HoverButton, m_HoverAnim);
-            context.DrawRoundedRect(renderRect, hbg, 3.0f);
-        } else if (m_Active) {
-            context.DrawRoundedRect(renderRect, Theme::Get().SelectedBg, 3.0f);
-        }
+        DrawInteractiveBackground(context, renderRect, m_HoverAnim, pressStrength, m_Active, 3.0f);
+
         const float iconSize = 16.0f;
-        Color iconColor = Theme::Get().TextSecondary;
-        if (m_HoverAnim > 0.01f) iconColor = Color::Lerp(iconColor, Theme::Get().TextPrimary, m_HoverAnim);
-        if (m_Active || m_PressAnim > 0.01f) iconColor = Theme::Get().SelectedAccent;
+        Color iconColor = ResolveInteractiveIconColor(m_HoverAnim, pressStrength, m_Active);
         float drawX = renderRect.x + (renderRect.width - iconSize) / 2.0f;
         float drawY = renderRect.y + (renderRect.height - iconSize) / 2.0f;
         int cp = Icons::GetCodepoint(m_IconName);
@@ -268,12 +283,15 @@ void ToolButton::Paint(PaintContext& context) {
         const bool isDropdownControl = m_IsDropdown;
         Color bg{ 0.0f, 0.0f, 0.0f, 0.0f };
         bool drawBg = false;
-        if (m_PressAnim > 0.01f) {
-            bg = Theme::Get().PressedOverlay; drawBg = true;
+        if (pressStrength > 0.01f) {
+            bg = MakePressBackground(pressStrength);
+            drawBg = true;
         } else if (m_HoverAnim > 0.01f) {
-            bg = Color::Lerp(Color{0,0,0,0}, Theme::Get().HoverButton, m_HoverAnim); drawBg = true;
+            bg = Color::Lerp(Color{0.0f, 0.0f, 0.0f, 0.0f}, Theme::Get().HoverButton, m_HoverAnim);
+            drawBg = true;
         } else if (m_Active) {
-            bg = Theme::Get().SelectedBg; drawBg = true;
+            bg = Theme::Get().SelectedBg;
+            drawBg = true;
         } else if (isDropdownControl) {
             bg = Color{ 0.137f, 0.137f, 0.137f, 1.0f }; // #232323
             drawBg = true;
@@ -288,10 +306,7 @@ void ToolButton::Paint(PaintContext& context) {
             context.DrawRoundedRectOutline(renderRect, borderCol, 1.0f, 4.0f);
         }
 
-        // Icon color
-        Color iconColor = Theme::Get().TextSecondary;
-        if (m_HoverAnim > 0.01f) iconColor = Color::Lerp(iconColor, Theme::Get().TextPrimary, m_HoverAnim);
-        if (m_Active || m_PressAnim > 0.01f) iconColor = Theme::Get().SelectedAccent;
+        Color iconColor = ResolveInteractiveIconColor(m_HoverAnim, pressStrength, m_Active);
 
         const float iconSize = 16.0f;
         float currentX;
@@ -335,6 +350,7 @@ void ToolButton::Paint(PaintContext& context) {
 void ToolButton::OnMouseDown(const MouseEvent& event) {
     if (event.button == MouseButton::Left) {
         m_Pressed = true;
+        m_PressAnim = 1.0f;
     }
 }
 

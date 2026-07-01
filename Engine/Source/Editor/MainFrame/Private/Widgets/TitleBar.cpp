@@ -269,19 +269,14 @@ void TitleBar::Arrange(const Rect& allottedRect) {
 }
 
 void TitleBar::Paint(PaintContext& context) {
-    // Draw background
-    context.DrawRect(m_Geometry, Theme::Get().HeaderBackground, 10.0f);
-    
-    // Square off the bottom corners
-    Rect bottomHalf = { m_Geometry.x, m_Geometry.y + 10.0f, m_Geometry.width, m_Geometry.height - 10.0f };
-    context.DrawRect(bottomHalf, Theme::Get().HeaderBackground);
-    
-    // Draw bottom border
-    context.DrawLine(Point{m_Geometry.x, m_Geometry.y + m_Geometry.height - 1.0f}, 
-                     Point{m_Geometry.x + m_Geometry.width, m_Geometry.y + m_Geometry.height - 1.0f}, 
-                     Theme::Get().BorderSecondary, 1.0f);
-    
-    // Draw children
+    context.DrawRect(m_Geometry, Theme::Get().HeaderBackground);
+
+    context.DrawLine(
+        Point{ m_Geometry.x, m_Geometry.y + m_Geometry.height - 1.0f },
+        Point{ m_Geometry.x + m_Geometry.width, m_Geometry.y + m_Geometry.height - 1.0f },
+        Theme::Get().BorderSecondary,
+        1.0f);
+
     HorizontalBox::Paint(context);
 }
 

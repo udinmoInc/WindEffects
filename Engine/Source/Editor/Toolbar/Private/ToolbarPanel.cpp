@@ -32,11 +32,9 @@ std::shared_ptr<we::UI::Panel> CreateToolbarPanel() {
     // ── Right: platform | settings (inline, title bar hosts these in Editor.cpp) ─
     auto platformBtn = toolbar->AddTool(we::UI::Icons::PackageName, "Platform", []() {}, "Platform", false, we::UI::ToolbarAlignment::Right);
     platformBtn->SetButtonStyle(we::UI::ToolButtonStyle::ToolbarInline);
-    platformBtn->SetIsDropdown(true);
 
     auto settingsBtn = toolbar->AddTool(we::UI::Icons::SettingsName, "Settings", []() {}, "Editor Settings", false, we::UI::ToolbarAlignment::Right);
     settingsBtn->SetButtonStyle(we::UI::ToolButtonStyle::ToolbarInline);
-    settingsBtn->SetIsDropdown(true);
 
     panel->SetContent(toolbar);
 

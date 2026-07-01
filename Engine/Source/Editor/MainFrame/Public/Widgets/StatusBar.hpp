@@ -2,7 +2,6 @@
 
 #include "Layout/Box.hpp"
 #include <string>
-#include <vector>
 #include <functional>
 
 namespace we::UI {
@@ -11,33 +10,37 @@ namespace we::UI {
 class StatusBar : public HorizontalBox {
 public:
     StatusBar();
-    virtual ~StatusBar() = default;
+    ~StatusBar() override = default;
 
     void Construct() override;
     Size Measure(const Size& availableSize) override;
     void Paint(PaintContext& context) override;
 
-    // Quick access
-    void SetFPS(float fps);
-    void SetGPU(const std::string& name);
-    void SetCPU(const std::string& cpu);
-    void SetPing(int ms);
-    void SetMemory(float gb);
-    void SetCompileStatus(const std::string& status);
-
     void SetHeight(float height) { m_Height = height; }
+    void SetActiveFooterTab(int index);
+    void SetOnFooterTabChanged(std::function<void(int)> onChanged);
+    void SetOnCommandSubmitted(std::function<void(const std::string&)> onSubmitted);
+
+    void SetOnOutputLogClicked(std::function<void()> onClicked);
+    void SetOnBuildMenuClicked(std::function<void()> onClicked);
+    void SetOnTraceClicked(std::function<void()> onClicked);
+    void SetOnQualityMenuClicked(std::function<void()> onClicked);
 
 private:
-    float m_Height = 28.0f;
+    void SelectPanelTab(int index, bool notify);
 
-    std::shared_ptr<class ToolButton> m_PlatformBtn;
-    std::shared_ptr<class ToolButton> m_SettingsBtn;
-    std::shared_ptr<class Label> m_FPSLabel;
-    std::shared_ptr<class Label> m_GPULabel;
-    std::shared_ptr<class Label> m_CPULabel;
-    std::shared_ptr<class Label> m_MemoryLabel;
-    std::shared_ptr<class Label> m_PingLabel;
-    std::shared_ptr<class Label> m_CompileLabel;
+    float m_Height = 28.0f;
+    int m_ActivePanelTab = 0;
+
+    std::function<void(int)> m_OnFooterTabChanged;
+
+    std::shared_ptr<class ToolButton> m_AssetsPanelButton;
+    std::shared_ptr<class ToolButton> m_DiagnosticsPanelButton;
+    std::shared_ptr<class CommandInput> m_CommandInput;
+    std::shared_ptr<class ToolButton> m_OutputLogButton;
+    std::shared_ptr<class ToolButton> m_BuildMenuButton;
+    std::shared_ptr<class ToolButton> m_TraceButton;
+    std::shared_ptr<class ToolButton> m_QualityMenuButton;
 };
 
-} // namespace we::editor::mainframe::UI
+} // namespace we::UI

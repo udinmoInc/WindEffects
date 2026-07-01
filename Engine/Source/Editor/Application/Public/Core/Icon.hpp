@@ -54,6 +54,8 @@ public:
     
     // Draw an icon by codepoint at position
     static void DrawIcon(PaintContext& context, int codepoint, const Rect& bounds, const Color& color);
+
+    static void DrawVerticalMoreMenu(PaintContext& context, const Rect& bounds, const Color& color);
 };
 
 // Material Icons (Classic) Unicode codepoints

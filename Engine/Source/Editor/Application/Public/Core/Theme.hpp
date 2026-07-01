@@ -18,6 +18,7 @@ struct Theme {
     Color PanelBackground        = { 0.137f, 0.137f, 0.137f, 1.0f }; // #232323
     Color HeaderBackground       = { 0.125f, 0.125f, 0.125f, 1.0f }; // #202020
     Color ViewportBackground     = { 0.090f, 0.090f, 0.090f, 1.0f }; // #171717
+    Color FooterBackground       = { 0.137f, 0.137f, 0.137f, 1.0f }; // #232323
     Color MenuBarBackground      = { 0.125f, 0.125f, 0.125f, 1.0f }; // #202020
     Color TabBackground          = { 0.114f, 0.114f, 0.114f, 1.0f }; // #1D1D1D
     Color PopupBackground        = { 0.137f, 0.137f, 0.137f, 1.0f }; // #232323
@@ -61,7 +62,8 @@ struct Theme {
     // ------------------------------------------------------------------------
     float CornerRadiusSmall = 4.0f;
     float CornerRadiusMedium= 6.0f;
-    float CornerRadiusLarge = 6.0f; 
+    float CornerRadiusLarge = 6.0f;
+    float WindowCornerRadius = 10.0f;
     
     // Typography
     float TextSizeSection   = 15.0f; // Section titles

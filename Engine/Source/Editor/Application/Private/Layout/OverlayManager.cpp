@@ -56,6 +56,21 @@ void OverlayManager::CloseAllPopups() {
     m_Popups.clear();
 }
 
+bool OverlayManager::IsWidgetInPopup(const std::shared_ptr<Widget>& widget) const {
+    if (!widget) {
+        return false;
+    }
+
+    for (auto current = widget; current; current = current->GetParent()) {
+        for (const auto& popup : m_Popups) {
+            if (current == popup) {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
 Size OverlayManager::Measure(const Size& availableSize) {
     m_DesiredSize = availableSize;
     if (m_BaseWidget) {

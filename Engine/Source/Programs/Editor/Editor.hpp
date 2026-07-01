@@ -20,6 +20,8 @@
 #include "Rendering/UIRenderer.hpp"
 #include "Widgets/Panel.hpp"
 #include "Widgets/StatusBar.hpp"
+#include "Widgets/TitleBar.hpp"
+#include "EditorWindowHitTest.hpp"
 
 namespace we::programs::editor {
 class Editor {
@@ -36,6 +38,7 @@ public:
 private:
     void MainLoop();
     void Shutdown();
+    void CreateNewLevel();
 
     // Dynamically builds the UI from EditorRegistry
     void BuildDynamicEditorUI();
@@ -59,6 +62,8 @@ private:
     // Viewport widget (needs special handling for resize flush)
     std::shared_ptr<we::UI::Widget> m_ViewportWidget;
     std::shared_ptr<we::UI::StatusBar> m_StatusBar;
+    std::shared_ptr<we::UI::TitleBar> m_TitleBar;
+    we::editor::mainframe::EditorWindowHitTestData m_WindowHitTestData{};
 
     void EnsureVisibleSwapchain();
     void LogWidgetTreeLayout(const std::shared_ptr<UI::Widget>& widget, const std::string& name, int depth = 0);

@@ -9,6 +9,9 @@
 #if defined(_WIN32)
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
+#include "../Windows/Win32WindowIcon.hpp"
+#include "../Windows/Win32WindowChrome.hpp"
+#include "../Windows/resource.h"
 #endif
 
 namespace {
@@ -28,6 +31,21 @@ void SetWorkingDirectoryToExecutable() {
 #endif
 }
 
+void ConfigureModuleSearchPath() {
+#if defined(_WIN32)
+    wchar_t exePath[MAX_PATH]{};
+    if (GetModuleFileNameW(nullptr, exePath, MAX_PATH) == 0) {
+        return;
+    }
+
+    const std::filesystem::path modulesDir =
+        std::filesystem::path(exePath).parent_path() / "Modules";
+    if (!SetDllDirectoryW(modulesDir.c_str())) {
+        return;
+    }
+#endif
+}
+
 } // namespace
 
 int main(int argc, char* argv[]) {
@@ -37,6 +55,7 @@ int main(int argc, char* argv[]) {
     try {
         we::runtime::core::Logger::Init();
         SetWorkingDirectoryToExecutable();
+        ConfigureModuleSearchPath();
 
         std::cout << "WindEffects Engine Bootstrapping...\n";
         HE_INFO("[Startup] === WindEffects Editor bootstrap begin ===");
@@ -57,6 +76,8 @@ int main(int argc, char* argv[]) {
             "WindEffects-Toolbar",
             "WindEffects-Menus",
             "WindEffects-ToolsPanel",
+            "WindEffects-PlaceActors",
+            "WindEffects-Environment",
         };
         for (const char* mod : modules) {
             if (!ModuleManager.LoadModule(mod)) {
@@ -68,6 +89,9 @@ int main(int argc, char* argv[]) {
         
         std::cout << "Engine successfully initialized and modules loaded.\n";
 
+#if defined(_WIN32)
+        we::programs::windows::ConfigureSdlClassIcons(IDI_ICON1);
+#endif
         if (!SDL_Init(SDL_INIT_VIDEO)) {
             throw std::runtime_error("Failed to initialize SDL");
         }
@@ -89,6 +113,10 @@ int main(int argc, char* argv[]) {
 
         // Show the window BEFORE Vulkan/swapchain creation so surface extent is valid.
         SDL_ShowWindow(window);
+#if defined(_WIN32)
+        we::programs::windows::ConfigureBorderlessWindow(window);
+        we::programs::windows::ApplyEmbeddedWindowIcon(window, IDI_ICON1);
+#endif
         HE_INFO("[Startup] Window shown — swapchain will use visible pixel dimensions.");
 
         we::programs::editor::Editor editor(window);

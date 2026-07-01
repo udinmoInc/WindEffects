@@ -1,5 +1,6 @@
 #include "Core/EventSystem.hpp"
 #include "Core/Widget.hpp"
+#include "Layout/OverlayManager.hpp"
 #include <SDL3/SDL_mouse.h>
 
 namespace we::UI {
@@ -48,7 +49,7 @@ void EventSystem::ProcessMouseEvent(const MouseEvent& event) {
         m_HoveredWidget = hitWidget;
     }
 
-    if (event.type == MouseEventType::MouseMove) {
+    if (event.type == MouseEventType::MouseMove && !m_SuppressSystemCursor) {
         UpdateCursorForWidget(hitWidget, event.position);
     }
 
@@ -62,6 +63,12 @@ void EventSystem::ProcessMouseEvent(const MouseEvent& event) {
 
     if (targetWidget) {
         if (event.type == MouseEventType::MouseDown) {
+            if (auto* overlay = OverlayManager::Get()) {
+                if (overlay->HasOpenPopups() && !overlay->IsWidgetInPopup(hitWidget)) {
+                    overlay->CloseAllPopups();
+                }
+            }
+
             SetFocusedWidget(targetWidget);
             targetWidget->OnMouseDown(event);
         } else if (event.type == MouseEventType::MouseUp) {
@@ -73,6 +80,9 @@ void EventSystem::ProcessMouseEvent(const MouseEvent& event) {
         }
     } else {
         if (event.type == MouseEventType::MouseDown) {
+            if (auto* overlay = OverlayManager::Get()) {
+                overlay->CloseAllPopups();
+            }
             SetFocusedWidget(nullptr);
         }
     }

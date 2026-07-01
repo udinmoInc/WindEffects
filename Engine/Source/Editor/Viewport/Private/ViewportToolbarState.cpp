@@ -1,4 +1,6 @@
 #include "ViewportToolbarState.hpp"
+#include "ViewportNavigation.hpp"
+#include "ViewportNavigationSettings.hpp"
 #include "Widgets/ViewportSliderPopup.hpp"
 #include "EditorCamera.hpp"
 #include "Layout/OverlayManager.hpp"
@@ -32,9 +34,7 @@ float SnapCameraSpeed(float value) {
 
 void BindViewportCamera(const std::shared_ptr<we::runtime::engine::EditorCamera>& camera) {
     g_Camera = camera;
-    if (camera) {
-        camera->SetCameraSpeed(we::runtime::engine::EditorCamera::kDefaultCameraSpeed);
-    }
+    we::UI::ApplyViewportNavigationSettings(camera);
     UpdateViewportCameraSpeedIndicator();
 }
 
@@ -65,6 +65,9 @@ void StepViewportCameraSpeed(int direction) {
 
     const float step = direction > 0 ? 1.0f : -1.0f;
     camera->SetCameraSpeed(camera->GetCameraSpeed() + step);
+    auto& store = ViewportNavigationSettingsStore::Get();
+    store.GetMutableSettings().defaultCameraSpeed = camera->GetCameraSpeed();
+    store.Save();
     UpdateViewportCameraSpeedIndicator();
 }
 
@@ -94,11 +97,18 @@ void ShowViewportCameraSpeedPopup() {
         [](float value) {
             if (auto cam = g_Camera.lock()) {
                 cam->SetCameraSpeed(value);
+                auto& store = ViewportNavigationSettingsStore::Get();
+                store.GetMutableSettings().defaultCameraSpeed = value;
+                store.Save();
                 UpdateViewportCameraSpeedIndicator();
             }
         });
 
     ShowPopupBelowButton(popup, button);
+}
+
+void ApplyLoadedViewportNavigationSettings() {
+    we::UI::ApplyViewportNavigationSettings(g_Camera.lock());
 }
 
 } // namespace we::programs::editor

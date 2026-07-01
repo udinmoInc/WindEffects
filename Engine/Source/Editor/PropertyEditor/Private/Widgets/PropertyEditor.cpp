@@ -165,6 +165,12 @@ void PropertyEditor::OnMouseDown(const MouseEvent& event) {
         }
         
         // TODO: Handle property value editing
+        if (clickedProperty->type == PropertyType::Bool) {
+            const bool current = clickedProperty->value == "true" || clickedProperty->value == "1";
+            const std::string next = current ? "false" : "true";
+            SetPropertyValue(clickedProperty->name, next);
+            return;
+        }
     }
 }
 

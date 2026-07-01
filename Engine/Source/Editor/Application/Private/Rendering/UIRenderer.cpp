@@ -383,6 +383,28 @@ VkDescriptorSet UIRenderer::RegisterTexture(VkImageView imageView, VkSampler sam
     return descriptorSet;
 }
 
+void UIRenderer::UpdateTexture(VkDescriptorSet descriptorSet, VkImageView imageView, VkSampler sampler) {
+    if (descriptorSet == VK_NULL_HANDLE || !m_Context) {
+        return;
+    }
+
+    VkDescriptorImageInfo imageInfo{};
+    imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+    imageInfo.imageView = imageView;
+    imageInfo.sampler = sampler;
+
+    VkWriteDescriptorSet descriptorWrite{};
+    descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    descriptorWrite.dstSet = descriptorSet;
+    descriptorWrite.dstBinding = 0;
+    descriptorWrite.dstArrayElement = 0;
+    descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+    descriptorWrite.descriptorCount = 1;
+    descriptorWrite.pImageInfo = &imageInfo;
+
+    vkUpdateDescriptorSets(m_Context->GetDevice(), 1, &descriptorWrite, 0, nullptr);
+}
+
 void UIRenderer::UnregisterTexture(VkDescriptorSet descSet) {
     if (descSet != VK_NULL_HANDLE) {
         vkFreeDescriptorSets(m_Context->GetDevice(), m_Context->GetDescriptorPool(), 1, &descSet);
@@ -407,7 +429,7 @@ void UIRenderer::BuildGeometry(const std::vector<DrawCommand>& commands, uint32_
         uint32_t startIndex = static_cast<uint32_t>(m_Vertices.size());
         uint32_t cmdIndexCount = 0;
 
-        if (cmd.type == DrawCommandType::Rect || cmd.type == DrawCommandType::Texture || cmd.type == DrawCommandType::Gradient || cmd.type == DrawCommandType::Shadow) {
+        if (cmd.type == DrawCommandType::Rect || cmd.type == DrawCommandType::Texture || cmd.type == DrawCommandType::Gradient || cmd.type == DrawCommandType::Shadow || cmd.type == DrawCommandType::RoundedOutline) {
             float x = cmd.rect.x;
             float y = cmd.rect.y;
             float w = cmd.rect.width;
@@ -443,18 +465,25 @@ void UIRenderer::BuildGeometry(const std::vector<DrawCommand>& commands, uint32_
                     cmdIndexCount += 6;
                 }
             } else {
-                float type = ((cmd.type == DrawCommandType::Rect || cmd.type == DrawCommandType::Gradient) && cmd.borderRadius > 0.0f) ? 1.0f : 0.0f;
+                float type = 0.0f;
+                if (cmd.type == DrawCommandType::RoundedOutline) {
+                    type = 2.0f;
+                } else if ((cmd.type == DrawCommandType::Rect || cmd.type == DrawCommandType::Gradient) && cmd.borderRadius > 0.0f) {
+                    type = 1.0f;
+                }
+
+                const float outlineThickness = (cmd.type == DrawCommandType::RoundedOutline) ? cmd.thickness : 0.0f;
                 
                 Color colorTop = cmd.color;
                 Color colorBottom = (cmd.type == DrawCommandType::Gradient || cmd.type == DrawCommandType::Texture) ? cmd.colorBottom : cmd.color;
 
-                UIVertex v0{ {x,     y},     {0.0f, 0.0f}, {colorTop.r, colorTop.g, colorTop.b, colorTop.a},       {x, y, w, h}, {cmd.borderRadius, type, 0.0f, 0.0f} };
-                UIVertex v1{ {x + w, y},     {1.0f, 0.0f}, {colorTop.r, colorTop.g, colorTop.b, colorTop.a},       {x, y, w, h}, {cmd.borderRadius, type, 0.0f, 0.0f} };
-                UIVertex v2{ {x + w, y + h}, {1.0f, 1.0f}, {colorBottom.r, colorBottom.g, colorBottom.b, colorBottom.a}, {x, y, w, h}, {cmd.borderRadius, type, 0.0f, 0.0f} };
-                UIVertex v3{ {x,     y + h}, {0.0f, 1.0f}, {colorBottom.r, colorBottom.g, colorBottom.b, colorBottom.a}, {x, y, w, h}, {cmd.borderRadius, type, 0.0f, 0.0f} };
+                UIVertex v0{ {x,     y},     {0.0f, 0.0f}, {colorTop.r, colorTop.g, colorTop.b, colorTop.a},       {x, y, w, h}, {cmd.borderRadius, type, outlineThickness, 0.0f} };
+                UIVertex v1{ {x + w, y},     {1.0f, 0.0f}, {colorTop.r, colorTop.g, colorTop.b, colorTop.a},       {x, y, w, h}, {cmd.borderRadius, type, outlineThickness, 0.0f} };
+                UIVertex v2{ {x + w, y + h}, {1.0f, 1.0f}, {colorBottom.r, colorBottom.g, colorBottom.b, colorBottom.a}, {x, y, w, h}, {cmd.borderRadius, type, outlineThickness, 0.0f} };
+                UIVertex v3{ {x,     y + h}, {0.0f, 1.0f}, {colorBottom.r, colorBottom.g, colorBottom.b, colorBottom.a}, {x, y, w, h}, {cmd.borderRadius, type, outlineThickness, 0.0f} };
 
                 // If it's a flat rect or gradient, map to center of dummy texture
-                if (cmd.type == DrawCommandType::Rect || cmd.type == DrawCommandType::Gradient) {
+                if (cmd.type == DrawCommandType::Rect || cmd.type == DrawCommandType::Gradient || cmd.type == DrawCommandType::RoundedOutline) {
                     v0.uv[0] = 0.5f; v0.uv[1] = 0.5f;
                     v1.uv[0] = 0.5f; v1.uv[1] = 0.5f;
                     v2.uv[0] = 0.5f; v2.uv[1] = 0.5f;

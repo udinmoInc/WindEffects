@@ -236,6 +236,8 @@ set(FEATURE_MODULES
     WindEffects-Viewport
     WindEffects-WorldOutliner
     WindEffects-ToolsPanel
+    WindEffects-PlaceActors
+    WindEffects-Environment
 )
 
 foreach(MOD IN LISTS FEATURE_MODULES)

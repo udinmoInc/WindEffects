@@ -52,6 +52,24 @@ struct SceneObjectUniform {
     int padding[3];
 };
 
+struct SceneEnvironmentUniform {
+    glm::vec3 sunDirection{ 0.38f, 0.92f, 0.18f };
+    float sunIntensity = 10.0f;
+    glm::vec3 sunColor{ 1.0f, 0.96f, 0.86f };
+    float skyLightIntensity = 1.0f;
+    glm::vec3 skyAmbientColor{ 0.66f, 0.82f, 1.0f };
+    float fogDensity = 0.02f;
+    glm::vec3 fogColor{ 0.72f, 0.78f, 0.85f };
+    float fogHeightFalloff = 0.2f;
+    glm::vec3 atmosphereRayleigh{ 0.005802f, 0.013558f, 0.033100f };
+    float enableVolumetricFog = 1.0f;
+    glm::vec3 aerialTint{ 0.55f, 0.65f, 0.85f };
+    float enableClouds = 0.0f;
+    int sunCastShadows = 1;
+    int sunTemperature = 6500;
+    glm::ivec2 padding{};
+};
+
 class SceneRenderer {
 public:
     // Editor-only empty world backdrop (no scene lighting contribution).
@@ -83,10 +101,15 @@ public:
     
     void DrawMesh(VkCommandBuffer cmd, const std::string& meshName, VkDescriptorSet descriptorSet, int mode) const;
 
+    void SetSceneEnvironment(const SceneEnvironmentUniform& environment);
+    const SceneEnvironmentUniform& GetSceneEnvironment() const { return m_SceneEnvironment; }
+    VkBuffer GetEnvironmentBuffer() const { return m_EnvironmentBuffer; }
+
     VkDescriptorSetLayout GetObjectDescLayout() const { return m_ObjectDescLayout; }
 
     // Helpers to create descriptor sets for rendering
     void UpdateObjectDescriptorSet(VkDescriptorSet descriptorSet, VkBuffer cameraBuffer, VkBuffer objectBuffer) const;
+    void RefreshEnvironmentDescriptorBindings() const;
 
 private:
     void CreatePipelines(VkRenderPass renderPass);
@@ -116,6 +139,11 @@ private:
     EditorBackgroundSettings m_EditorBackgroundSettings{};
     bool m_EditorBackgroundDirty = true;
     bool m_EnableEditorBackground = false;
+
+    SceneEnvironmentUniform m_SceneEnvironment{};
+    mutable bool m_SceneEnvironmentDirty = true;
+    VkBuffer m_EnvironmentBuffer = VK_NULL_HANDLE;
+    VkDeviceMemory m_EnvironmentBufferMemory = VK_NULL_HANDLE;
 
     // Pipelines
     VkPipeline m_SkyboxPipeline = VK_NULL_HANDLE;

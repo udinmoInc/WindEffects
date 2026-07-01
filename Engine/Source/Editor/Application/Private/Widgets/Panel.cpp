@@ -79,7 +79,6 @@ void Panel::Arrange(const Rect& allottedRect) {
 }
 
 void Panel::Paint(PaintContext& context) {
-    // Colors
     Color panelBodyColor{0.145f, 0.145f, 0.145f, 1.0f}; // #252525
     Color headerBg = Theme::Get().HeaderBackground;
     Color tabBg = m_HeaderHovered ? Color{0.196f, 0.196f, 0.196f, 1.0f} : Color{0.173f, 0.173f, 0.173f, 1.0f};
@@ -87,106 +86,86 @@ void Panel::Paint(PaintContext& context) {
     Color textColor{0.878f, 0.878f, 0.878f, 1.0f};
     Color shadowColor{0.0f, 0.0f, 0.0f, 0.3f};
 
-    // Draw panel body background
     context.DrawRect(m_Geometry, panelBodyColor);
-    
-    // Draw header strip background
-    context.DrawRect(m_HeaderRect, headerBg);
-    
-    // Metrics for Tab
-    float fontSize = 13.0f;
-    float iconSize = 16.0f;
-    float tabPaddingH = 12.0f; // Tab internal padding
-    
-    float textWidth = context.GetTextWidth(m_Title, fontSize);
-    
-    // Add space for panel icon if exists
-    std::string panelIcon = DockTabIconRegistry::Get().GetIcon(m_Title);
-    float panelIconWidth = 0.0f;
-    if (!panelIcon.empty()) {
-        panelIconWidth = iconSize + 6.0f; // 16px icon + 6px spacing
-    }
-    
-    // Calculate Close Button width (only space reserved, drawn conditionally)
-    float closeBtnWidth = iconSize + 6.0f; // 16px + spacing
-    
-    // Calculate tab width (min 80, max 220)
-    float tabWidth = tabPaddingH + panelIconWidth + textWidth + closeBtnWidth + tabPaddingH;
-    tabWidth = std::clamp(tabWidth, 80.0f, 220.0f);
-    
-    // Tab begins flush with the panel border
-    Rect tabRect{ m_HeaderRect.x, m_HeaderRect.y, tabWidth, m_HeaderHeight };
-    
-    // Draw Tab background (rounded top)
-    context.DrawRoundedRect(tabRect, tabBg, 4.0f);
-    
-    // Flatten bottom corners
-    float flattenHeight = 4.0f;
-    context.DrawRect(Rect{tabRect.x, tabRect.y + tabRect.height - flattenHeight, tabRect.width, flattenHeight}, tabBg);
-    
-    // Draw 1px border around active tab
-    context.DrawRoundedRectOutline(tabRect, tabBorder, 1.0f, 4.0f);
-    
-    // Flatten bottom border
-    context.DrawRect(Rect{tabRect.x, tabRect.y + tabRect.height - flattenHeight, 1.0f, flattenHeight}, tabBorder);
-    context.DrawRect(Rect{tabRect.x + tabRect.width - 1.0f, tabRect.y + tabRect.height - flattenHeight, 1.0f, flattenHeight}, tabBorder);
-    
-    // Erase bottom border line across the tab to visually blend into the panel body
-    context.DrawRect(Rect{tabRect.x + 1.0f, tabRect.y + tabRect.height - 1.0f, tabRect.width - 2.0f, 1.0f}, tabBg);
-    
-    // Draw subtle 1px bottom shadow/border to separate it from content below, EXCEPT under the tab
-    context.DrawRect(Rect{m_HeaderRect.x, m_HeaderRect.y + m_HeaderRect.height - 1.0f, m_HeaderRect.width, 1.0f}, shadowColor);
-    context.DrawRect(Rect{tabRect.x, m_HeaderRect.y + m_HeaderRect.height - 1.0f, tabRect.width, 1.0f}, tabBg);
-    
-    // Draw panel icon and title
-    float currentX = tabRect.x + tabPaddingH;
-    if (!panelIcon.empty()) {
-        float pIconY = m_HeaderRect.y + (m_HeaderHeight - iconSize) / 2.0f;
-        Color pIconColor = Color{0.878f, 0.878f, 0.878f, 1.0f};
-        int codepoint = Icons::GetCodepoint(panelIcon);
-        if (codepoint != 0) {
-            context.DrawIcon(codepoint, Point{ currentX, pIconY }, pIconColor, iconSize);
+
+    if (m_HeaderHeight > 0.0f) {
+        context.DrawRect(m_HeaderRect, headerBg);
+
+        float fontSize = 13.0f;
+        float iconSize = 16.0f;
+        float tabPaddingH = 12.0f;
+
+        float textWidth = context.GetTextWidth(m_Title, fontSize);
+
+        std::string panelIcon = DockTabIconRegistry::Get().GetIcon(m_Title);
+        float panelIconWidth = 0.0f;
+        if (!panelIcon.empty()) {
+            panelIconWidth = iconSize + 6.0f;
         }
-        currentX += panelIconWidth;
-    }
-    
-    float titleY = m_HeaderRect.y + (m_HeaderHeight - fontSize) / 2.0f;
-    
-    // Truncate text if tab is too narrow
-    float maxTextWidth = tabRect.width - (currentX - tabRect.x) - closeBtnWidth - tabPaddingH;
-    if (textWidth > maxTextWidth && maxTextWidth > 10.0f) {
-        // Just draw what fits, clipping is ideally done by context, but for now just draw it
+
+        float closeBtnWidth = iconSize + 6.0f;
+        float tabWidth = tabPaddingH + panelIconWidth + textWidth + closeBtnWidth + tabPaddingH;
+        tabWidth = std::clamp(tabWidth, 80.0f, 220.0f);
+
+        Rect tabRect{ m_HeaderRect.x, m_HeaderRect.y, tabWidth, m_HeaderHeight };
+
+        context.DrawRoundedRect(tabRect, tabBg, 4.0f);
+
+        float flattenHeight = 4.0f;
+        context.DrawRect(Rect{tabRect.x, tabRect.y + tabRect.height - flattenHeight, tabRect.width, flattenHeight}, tabBg);
+        context.DrawRoundedRectOutline(tabRect, tabBorder, 1.0f, 4.0f);
+        context.DrawRect(Rect{tabRect.x, tabRect.y + tabRect.height - flattenHeight, 1.0f, flattenHeight}, tabBorder);
+        context.DrawRect(Rect{tabRect.x + tabRect.width - 1.0f, tabRect.y + tabRect.height - flattenHeight, 1.0f, flattenHeight}, tabBorder);
+        context.DrawRect(Rect{tabRect.x + 1.0f, tabRect.y + tabRect.height - 1.0f, tabRect.width - 2.0f, 1.0f}, tabBg);
+
+        context.DrawRect(Rect{m_HeaderRect.x, m_HeaderRect.y + m_HeaderRect.height - 1.0f, m_HeaderRect.width, 1.0f}, shadowColor);
+        context.DrawRect(Rect{tabRect.x, m_HeaderRect.y + m_HeaderRect.height - 1.0f, tabRect.width, 1.0f}, tabBg);
+
+        float currentX = tabRect.x + tabPaddingH;
+        if (!panelIcon.empty()) {
+            float pIconY = m_HeaderRect.y + (m_HeaderHeight - iconSize) / 2.0f;
+            Color pIconColor = Color{0.878f, 0.878f, 0.878f, 1.0f};
+            int codepoint = Icons::GetCodepoint(panelIcon);
+            if (codepoint != 0) {
+                context.DrawIcon(codepoint, Point{ currentX, pIconY }, pIconColor, iconSize);
+            }
+            currentX += panelIconWidth;
+        }
+
+        float titleY = m_HeaderRect.y + (m_HeaderHeight - fontSize) / 2.0f;
         context.DrawText(m_Title, Point{ currentX, titleY }, textColor, fontSize, false);
-    } else {
-        context.DrawText(m_Title, Point{ currentX, titleY }, textColor, fontSize, false);
-    }
-    
-    // Draw Header Actions (right-aligned in the dock header, NOT in the tab)
-    float actionX = m_HeaderRect.x + m_HeaderRect.width - iconSize;
-    for (auto& action : m_HeaderActions) {
-        if (action.iconName == Icons::XName) {
-            // Panel close action is placed inside the tab itself
-            float closeX = tabRect.x + tabRect.width - tabPaddingH - iconSize;
-            float closeY = m_HeaderRect.y + (m_HeaderHeight - iconSize) / 2.0f;
-            action.geometry = Rect{ closeX, closeY, iconSize, iconSize };
-            
-            if (m_HeaderHovered || true) {
-                // A real implementation would check mouse pos against closeX, closeY
+
+        float headerPad = 8.0f;
+        constexpr float kOptionsWidth = 12.0f;
+        constexpr float kOptionsHeight = 14.0f;
+        float optionsX = m_HeaderRect.x + m_HeaderRect.width - headerPad - kOptionsWidth;
+        float optionsY = m_HeaderRect.y + (m_HeaderHeight - kOptionsHeight) * 0.5f;
+        m_OptionsMenuRect = Rect{ optionsX, optionsY, kOptionsWidth, kOptionsHeight };
+
+        Color optionsColor = m_OptionsMenuHovered ? Theme::Get().TextPrimary : Theme::Get().TextSecondary;
+        IconPainter::DrawVerticalMoreMenu(context, m_OptionsMenuRect, optionsColor);
+
+        float actionX = optionsX - m_ActionSpacing - iconSize;
+        for (auto& action : m_HeaderActions) {
+            if (action.iconName == Icons::XName) {
+                float closeX = tabRect.x + tabRect.width - tabPaddingH - iconSize;
+                float closeY = m_HeaderRect.y + (m_HeaderHeight - iconSize) / 2.0f;
+                action.geometry = Rect{ closeX, closeY, iconSize, iconSize };
+
                 Color closeColor = Theme::Get().TextSecondary;
                 int crossCp = Icons::GetCodepoint(Icons::XName);
                 if (crossCp != 0) {
                     context.DrawIcon(crossCp, Point{ closeX, closeY }, closeColor, iconSize);
                 }
+                continue;
             }
-            continue; 
+
+            float actionY = m_HeaderRect.y + (m_HeaderHeight - iconSize) / 2.0f;
+            action.geometry = Rect{ actionX, actionY, iconSize, iconSize };
+            IconPainter::DrawIcon(context, action.iconName, action.geometry, textColor);
+            actionX -= (iconSize + m_ActionSpacing);
         }
-        
-        float actionY = m_HeaderRect.y + (m_HeaderHeight - iconSize) / 2.0f;
-        action.geometry = Rect{ actionX, actionY, iconSize, iconSize };
-        IconPainter::DrawIcon(context, action.iconName, action.geometry, textColor);
-        actionX -= (iconSize + m_ActionSpacing);
     }
-    
     // Draw toolbar
     if (m_Toolbar) {
         m_Toolbar->Paint(context);
@@ -208,7 +187,12 @@ void Panel::Paint(PaintContext& context) {
 }
 
 void Panel::OnMouseDown(const MouseEvent& event) {
-    if (m_HeaderRect.Contains(event.position)) {
+    if (m_HeaderHeight > 0.0f && m_HeaderRect.Contains(event.position)) {
+        if (m_OptionsMenuRect.Contains(event.position)) {
+            InvokeOptionsMenu();
+            return;
+        }
+
         HeaderAction* action = GetActionAtPosition(event.position);
         if (action && action->onClick) {
             action->onClick();
@@ -240,7 +224,13 @@ void Panel::OnMouseWheel(const MouseEvent& event) {
 }
 
 void Panel::OnMouseMove(const MouseEvent& event) {
-    m_HeaderHovered = m_HeaderRect.Contains(event.position);
+    if (m_HeaderHeight > 0.0f) {
+        m_HeaderHovered = m_HeaderRect.Contains(event.position);
+        m_OptionsMenuHovered = m_OptionsMenuRect.Contains(event.position);
+    } else {
+        m_HeaderHovered = false;
+        m_OptionsMenuHovered = false;
+    }
 
     if (m_Toolbar && m_ToolbarRect.Contains(event.position)) {
         m_Toolbar->OnMouseMove(event);
@@ -282,6 +272,12 @@ void Panel::AddHeaderAction(const std::string& iconName, std::function<void()> o
     action.onClick = onClick;
     m_HeaderActions.push_back(action);
     CalculateHeaderGeometries();
+}
+
+void Panel::InvokeOptionsMenu() const {
+    if (m_OnOptionsMenu) {
+        m_OnOptionsMenu();
+    }
 }
 
 void Panel::CalculateHeaderGeometries() {

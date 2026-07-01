@@ -1,5 +1,7 @@
 #include "ToolsPanelState.hpp"
 
+#include "Core/EditorConfigPaths.hpp"
+
 #include <filesystem>
 #include <fstream>
 
@@ -8,7 +10,7 @@ namespace we::programs::editor {
 namespace {
 
 std::filesystem::path GetStatePath() {
-    return std::filesystem::path("Saved") / "Config" / "tools_panel.ini";
+    return we::core::ResolveEditorConfigPath("tools_panel.ini");
 }
 
 } // namespace
