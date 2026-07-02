@@ -24,9 +24,22 @@ void Splitter::SetSplitRatio(float ratio) {
     m_SplitRatio = std::clamp(ratio, 0.05f, 0.95f);
 }
 
+void Splitter::SetFixedFirstWidth(float width) {
+    m_FixedFirstWidth = std::max(100.0f, width);
+}
+
+void Splitter::SetResizeMode(ResizeMode mode) {
+    m_ResizeMode = mode;
+}
+
 Rect Splitter::GetSplitterBarRect() const {
     if (m_Orientation == Orientation::Horizontal) {
-        float x = m_Geometry.x + (m_Geometry.width - m_BarThickness) * m_SplitRatio;
+        float x;
+        if (m_ResizeMode == ResizeMode::FixedFirst) {
+            x = m_Geometry.x + m_FixedFirstWidth;
+        } else {
+            x = m_Geometry.x + (m_Geometry.width - m_BarThickness) * m_SplitRatio;
+        }
         return Rect{ x, m_Geometry.y, m_BarThickness, m_Geometry.height };
     } else {
         float y = m_Geometry.y + (m_Geometry.height - m_BarThickness) * m_SplitRatio;
@@ -41,12 +54,22 @@ Size Splitter::Measure(const Size& availableSize) {
     float availH = availableSize.height;
 
     if (m_Orientation == Orientation::Horizontal) {
-        const float firstRatio = (m_FirstChild && m_FirstChild->IsVisible()) ? m_SplitRatio : 0.0f;
-        float w1 = (availW - m_BarThickness) * firstRatio;
-        float w2 = availW - m_BarThickness - w1;
-        if (w1 < 1.0f) {
-            w1 = 0.0f;
-            w2 = availW;
+        float w1, w2;
+        if (m_ResizeMode == ResizeMode::FixedFirst && (m_FirstChild && m_FirstChild->IsVisible())) {
+            w1 = m_FixedFirstWidth;
+            w2 = availW - m_BarThickness - w1;
+            if (w2 < 1.0f) {
+                w1 = availW - m_BarThickness;
+                w2 = 0.0f;
+            }
+        } else {
+            const float firstRatio = (m_FirstChild && m_FirstChild->IsVisible()) ? m_SplitRatio : 0.0f;
+            w1 = (availW - m_BarThickness) * firstRatio;
+            w2 = availW - m_BarThickness - w1;
+            if (w1 < 1.0f) {
+                w1 = 0.0f;
+                w2 = availW;
+            }
         }
 
         if (m_FirstChild && m_FirstChild->IsVisible()) {
@@ -82,14 +105,26 @@ void Splitter::Arrange(const Rect& allottedRect) {
     float availH = allottedRect.height;
 
     if (m_Orientation == Orientation::Horizontal) {
-        const float firstRatio = (m_FirstChild && m_FirstChild->IsVisible()) ? m_SplitRatio : 0.0f;
-        float w1 = (availW - m_BarThickness) * firstRatio;
-        float w2 = availW - m_BarThickness - w1;
-        float barX = allottedRect.x + w1;
-        if (w1 < 1.0f) {
-            w1 = 0.0f;
-            w2 = availW;
-            barX = allottedRect.x;
+        float w1, w2, barX;
+        if (m_ResizeMode == ResizeMode::FixedFirst && (m_FirstChild && m_FirstChild->IsVisible())) {
+            w1 = m_FixedFirstWidth;
+            w2 = availW - m_BarThickness - w1;
+            barX = allottedRect.x + w1;
+            if (w2 < 1.0f) {
+                w1 = availW - m_BarThickness;
+                w2 = 0.0f;
+                barX = allottedRect.x + w1;
+            }
+        } else {
+            const float firstRatio = (m_FirstChild && m_FirstChild->IsVisible()) ? m_SplitRatio : 0.0f;
+            w1 = (availW - m_BarThickness) * firstRatio;
+            w2 = availW - m_BarThickness - w1;
+            barX = allottedRect.x + w1;
+            if (w1 < 1.0f) {
+                w1 = 0.0f;
+                w2 = availW;
+                barX = allottedRect.x;
+            }
         }
 
         if (m_FirstChild && m_FirstChild->IsVisible()) {
@@ -178,8 +213,13 @@ void Splitter::OnMouseMove(const MouseEvent& event) {
 
     if (m_Dragging) {
         if (m_Orientation == Orientation::Horizontal) {
-            float relativeX = event.position.x - m_Geometry.x;
-            m_SplitRatio = std::clamp(relativeX / m_Geometry.width, 0.05f, 0.95f);
+            if (m_ResizeMode == ResizeMode::FixedFirst) {
+                float relativeX = event.position.x - m_Geometry.x;
+                m_FixedFirstWidth = std::clamp(relativeX, 100.0f, m_Geometry.width - 100.0f);
+            } else {
+                float relativeX = event.position.x - m_Geometry.x;
+                m_SplitRatio = std::clamp(relativeX / m_Geometry.width, 0.05f, 0.95f);
+            }
         } else {
             float relativeY = event.position.y - m_Geometry.y;
             m_SplitRatio = std::clamp(relativeY / m_Geometry.height, 0.05f, 0.95f);

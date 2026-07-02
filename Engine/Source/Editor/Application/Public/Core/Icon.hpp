@@ -70,6 +70,7 @@ namespace Icons {
     constexpr const char* ShaderName     = "code-2";
     constexpr const char* TextureName    = "image";
     constexpr const char* SaveName       = "save";
+    constexpr const char* SaveAllName    = "save-all";
     constexpr const char* OpenName       = "folder-open";
     constexpr const char* NewName        = "file-plus";
     constexpr const char* FolderName     = "folder";
@@ -102,6 +103,7 @@ namespace Icons {
     constexpr const char* RefreshName    = "refresh-cw";
     constexpr const char* StarName       = "star";
     constexpr const char* StarFilledName = "star";
+    constexpr const char* FilterName     = "filter";
     constexpr const char* PlusName       = "plus";
     constexpr const char* MinusName      = "minus";
     constexpr const char* XName          = "x";

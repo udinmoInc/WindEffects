@@ -1,6 +1,5 @@
-#include "Widgets/ExplorerPanelHeader.hpp"
+#include "Widgets/ExplorerToolbar.hpp"
 
-#include "Explorer/ExplorerPanelAssets.hpp"
 #include "Core/PaintContext.hpp"
 #include "Core/Theme.hpp"
 #include "Core/Icon.hpp"
@@ -13,6 +12,8 @@ namespace we::UI {
 namespace {
 constexpr float kPadLeft = 8.0f;
 constexpr float kPadRight = 8.0f;
+constexpr float kPadTop = 4.0f;
+constexpr float kPadBottom = 4.0f;
 constexpr float kButtonSize = 24.0f;
 constexpr float kIconSize = 14.0f;
 constexpr float kButtonGap = 2.0f;
@@ -22,15 +23,15 @@ constexpr float kSearchBoxMaxWidth = 280.0f;
 constexpr float kCornerRadius = 4.0f;
 } // namespace
 
-ExplorerPanelHeader::ExplorerPanelHeader() {
+ExplorerToolbar::ExplorerToolbar() {
 }
 
-Size ExplorerPanelHeader::Measure(const Size& availableSize) {
+Size ExplorerToolbar::Measure(const Size& availableSize) {
     m_DesiredSize = Size{ availableSize.width, kDefaultHeight };
     return m_DesiredSize;
 }
 
-void ExplorerPanelHeader::Arrange(const Rect& allottedRect) {
+void ExplorerToolbar::Arrange(const Rect& allottedRect) {
     m_Geometry = allottedRect;
 
     // Calculate search box width based on available space
@@ -62,7 +63,7 @@ void ExplorerPanelHeader::Arrange(const Rect& allottedRect) {
     m_FilterButtonGeometry = Rect{ x, filterY, kButtonSize, kButtonSize };
 }
 
-void ExplorerPanelHeader::Paint(PaintContext& context) {
+void ExplorerToolbar::Paint(PaintContext& context) {
     const auto& theme = Theme::Get();
 
     // Draw toolbar background
@@ -133,7 +134,7 @@ void ExplorerPanelHeader::Paint(PaintContext& context) {
                       m_HoveredButton == 2 || m_PressedButton == 2, theme);
 }
 
-void ExplorerPanelHeader::PaintToolbarButton(PaintContext& context, const Rect& geometry, 
+void ExplorerToolbar::PaintToolbarButton(PaintContext& context, const Rect& geometry, 
                                          const std::string& iconName, bool hovered, const Theme& theme) {
     if (hovered) {
         context.DrawRoundedRect(geometry, theme.HoverOverlay, kCornerRadius);
@@ -147,21 +148,21 @@ void ExplorerPanelHeader::PaintToolbarButton(PaintContext& context, const Rect& 
     IconPainter::DrawIcon(context, iconName, Rect{ iconX, iconY, iconSize, iconSize }, iconColor);
 }
 
-void ExplorerPanelHeader::Tick(float deltaTime) {
+void ExplorerToolbar::Tick(float deltaTime) {
     Widget::Tick(deltaTime);
     if (m_SearchFocused) {
         m_CursorBlink += deltaTime;
     }
 }
 
-int ExplorerPanelHeader::HitButtonIndex(const Point& position) const {
+int ExplorerToolbar::HitButtonIndex(const Point& position) const {
     if (m_FilterButtonGeometry.Contains(position)) return 0;
     if (m_NewFolderButtonGeometry.Contains(position)) return 1;
     if (m_RefreshButtonGeometry.Contains(position)) return 2;
     return -1;
 }
 
-void ExplorerPanelHeader::OnMouseDown(const MouseEvent& event) {
+void ExplorerToolbar::OnMouseDown(const MouseEvent& event) {
     if (event.button != MouseButton::Left) {
         return;
     }
@@ -207,16 +208,16 @@ void ExplorerPanelHeader::OnMouseDown(const MouseEvent& event) {
     }
 }
 
-void ExplorerPanelHeader::OnMouseMove(const MouseEvent& event) {
+void ExplorerToolbar::OnMouseMove(const MouseEvent& event) {
     m_HoveredButton = HitButtonIndex(event.position);
 }
 
-void ExplorerPanelHeader::OnMouseUp(const MouseEvent& event) {
+void ExplorerToolbar::OnMouseUp(const MouseEvent& event) {
     (void)event;
     m_PressedButton = -1;
 }
 
-void ExplorerPanelHeader::OnKeyDown(const KeyEvent& event) {
+void ExplorerToolbar::OnKeyDown(const KeyEvent& event) {
     if (!m_SearchFocused) {
         return;
     }
@@ -235,7 +236,7 @@ void ExplorerPanelHeader::OnKeyDown(const KeyEvent& event) {
     }
 }
 
-void ExplorerPanelHeader::OnTextInput(const std::string& text) {
+void ExplorerToolbar::OnTextInput(const std::string& text) {
     if (!m_SearchFocused) {
         return;
     }
@@ -251,11 +252,11 @@ void ExplorerPanelHeader::OnTextInput(const std::string& text) {
     }
 }
 
-bool ExplorerPanelHeader::ShowsPointerCursor(const Point& position) const {
+bool ExplorerToolbar::ShowsPointerCursor(const Point& position) const {
     return m_SearchBoxGeometry.Contains(position) || HitButtonIndex(position) >= 0;
 }
 
-void ExplorerPanelHeader::SetSearchQuery(const std::string& query) {
+void ExplorerToolbar::SetSearchQuery(const std::string& query) {
     m_SearchQuery = query;
     if (m_OnSearchChanged) {
         m_OnSearchChanged(m_SearchQuery);

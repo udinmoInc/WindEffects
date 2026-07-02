@@ -10,6 +10,17 @@ file(GLOB_RECURSE PUBLIC_HEADERS
     "Public/*.hpp"
 )
 
+# Explicitly add the new widget files
+list(APPEND SOURCE_FILES
+    "Private/Widgets/ExplorerToolbar.cpp"
+    "Private/Widgets/ExplorerFilterMenu.cpp"
+)
+
+list(APPEND PUBLIC_HEADERS
+    "Public/Widgets/ExplorerToolbar.hpp"
+    "Public/Widgets/ExplorerFilterMenu.hpp"
+)
+
 add_library(${MODULE_NAME} SHARED ${SOURCE_FILES} ${PUBLIC_HEADERS})
 set_target_properties(${MODULE_NAME} PROPERTIES WINDOWS_EXPORT_ALL_SYMBOLS ON)
 

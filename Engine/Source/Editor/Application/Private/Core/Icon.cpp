@@ -11,6 +11,12 @@ IconRegistry& IconRegistry::Get() {
 
 void IconRegistry::InitializeDefaultIcons() {
     // Lucide SVG icons are resolved at runtime from Assets/Icons/icons/.
+    
+    // Register custom editor icons
+    RegisterIcon("save-all", "Assets/Editor/Ic_SaveAll.svg");
+    RegisterIcon("search", "Assets/Editor/Ic_Search.svg");
+    RegisterIcon("settings", "Assets/Editor/Ic_Settings.svg");
+    RegisterIcon("save", "Assets/Editor/Ic_Save.svg");
 }
 
 void IconPainter::DrawIcon(PaintContext& context, const std::string& iconName,

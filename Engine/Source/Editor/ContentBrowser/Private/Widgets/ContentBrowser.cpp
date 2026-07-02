@@ -47,9 +47,9 @@ ContentViewMode ContentBrowser::GetEffectiveViewMode() const {
 
 ContentBrowser::GridMetrics ContentBrowser::GetGridMetrics() const {
     GridMetrics m;
-    m.padding = 12.0f;
-    m.hSpacing = 10.0f;
-    m.vSpacing = 10.0f;
+    m.padding = 8.0f;
+    m.hSpacing = 6.0f;
+    m.vSpacing = 6.0f;
     m.labelLineHeight = 13.0f;
     m.labelGap = 5.0f;
 
@@ -189,14 +189,8 @@ void ContentBrowser::PaintTileChrome(PaintContext& context, const Rect& cell, bo
     const auto& theme = Theme::Get();
     constexpr float radius = 4.0f;
 
-    if (selected) {
-        Color fill = theme.ContentBrowserSelectedFill;
-        fill.a = 0.35f;
-        context.DrawRoundedRect(cell, fill, radius);
-        Color accent = theme.SelectedAccent;
-        accent.a = 0.75f;
-        context.DrawRoundedRectOutline(cell, accent, 1.0f, radius);
-    } else if (hoverAlpha > 0.001f) {
+    // Removed selector box - only show hover effect
+    if (hoverAlpha > 0.001f) {
         Color hoverBg = theme.ContentBrowserHoverBg;
         hoverBg.a *= hoverAlpha * 0.65f;
         context.DrawRoundedRect(cell, hoverBg, radius);
@@ -311,14 +305,8 @@ void ContentBrowser::PaintGridItem(PaintContext& context, const RenderItem& rend
     const bool hovered = item.id == m_HoveredId;
     const float hoverAlpha = hovered ? m_ItemHoverAlpha : 0.0f;
 
-    constexpr float kThumbChromePad = 3.0f;
-    const Rect selectionRect{
-        renderItem.thumbGeometry.x - kThumbChromePad,
-        renderItem.thumbGeometry.y - kThumbChromePad,
-        renderItem.thumbGeometry.width + kThumbChromePad * 2.0f,
-        renderItem.thumbGeometry.height + kThumbChromePad * 2.0f
-    };
-    PaintTileChrome(context, selectionRect, selected, hoverAlpha);
+    // Use thumb geometry directly without padding to avoid empty space
+    PaintTileChrome(context, renderItem.thumbGeometry, selected, hoverAlpha);
     PaintAssetThumbnail(context, renderItem.thumbGeometry, item, selected, hovered);
 
     const int labelLines = GetEffectiveViewMode() == ContentViewMode::SmallIcons ? 1 : 2;
@@ -708,7 +696,7 @@ Breadcrumb::Breadcrumb() = default;
 
 Size Breadcrumb::Measure(const Size& availableSize) {
     CalculateLayout();
-    return Size{ availableSize.width, 24.0f };
+    return Size{ availableSize.width, 32.0f };
 }
 
 void Breadcrumb::Arrange(const Rect& allottedRect) {
@@ -721,22 +709,24 @@ void Breadcrumb::Paint(PaintContext& context) {
     context.DrawRect(m_Geometry, theme.ToolbarBackground);
     context.DrawRect(Rect{ m_Geometry.x, m_Geometry.y + m_Geometry.height - 1.0f, m_Geometry.width, 1.0f }, theme.Separator);
 
-    const float iconSize = 14.0f;
+    const float iconSize = 16.0f;
     const float iconY = m_Geometry.y + (m_Geometry.height - iconSize) * 0.5f;
     ContentBrowserFolderArt::Get().PaintSmallIcon(context,
-        we::UI::Rect{ m_Geometry.x + 8.0f, iconY, iconSize, iconSize }, false);
+        we::UI::Rect{ m_Geometry.x + 12.0f, iconY, iconSize, iconSize }, false);
 
-    float x = m_Geometry.x + 8.0f + iconSize + 8.0f;
+    float x = m_Geometry.x + 12.0f + iconSize + 8.0f;
     for (size_t i = 0; i < m_Crumbs.size(); ++i) {
         const auto& crumb = m_Crumbs[i];
-        if (crumb.hovered) context.DrawRoundedRect(crumb.geometry, Color{ 1.0f, 1.0f, 1.0f, 0.04f }, 3.0f);
-        const float textX = crumb.geometry.x + 6.0f;
-        const float textY = crumb.geometry.y + (crumb.geometry.height - 12.0f) * 0.5f;
+        if (crumb.hovered) {
+            context.DrawRoundedRect(crumb.geometry, Color{ 1.0f, 1.0f, 1.0f, 0.06f }, 4.0f);
+        }
+        const float textX = crumb.geometry.x + 8.0f;
+        const float textY = crumb.geometry.y + (crumb.geometry.height - 13.0f) * 0.5f;
         const Color textColor = static_cast<int>(i) == m_HoveredCrumb ? Theme::Get().SelectedAccent : Theme::Get().TextSecondary;
         context.DrawText(crumb.text, Point{ textX, textY }, textColor, 13.0f, false);
         if (i < m_Crumbs.size() - 1) {
-            const float sepX = crumb.geometry.x + crumb.geometry.width + 2.0f;
-            context.DrawText("/", Point{ sepX, textY }, Theme::Get().TextDisabled, 11.0f);
+            const float sepX = crumb.geometry.x + crumb.geometry.width + 4.0f;
+            context.DrawText("/", Point{ sepX, textY }, Theme::Get().TextDisabled, 12.0f);
         }
     }
 }
@@ -781,14 +771,14 @@ void Breadcrumb::Clear() {
 }
 
 void Breadcrumb::CalculateLayout() {
-    const float iconSize = 14.0f;
-    float x = m_Geometry.x + 8.0f + iconSize + 8.0f;
-    const float h = std::max(24.0f, m_Geometry.height);
+    const float iconSize = 16.0f;
+    float x = m_Geometry.x + 12.0f + iconSize + 8.0f;
+    const float h = std::max(32.0f, m_Geometry.height);
     for (auto& crumb : m_Crumbs) {
-        const float textWidth = crumb.text.length() * 12.0f * 0.58f;
-        const float width = std::max(24.0f, textWidth + 12.0f);
-        crumb.geometry = Rect{ x, m_Geometry.y + (h - 24.0f) * 0.5f, width, 24.0f };
-        x += width + 14.0f;
+        const float textWidth = crumb.text.length() * 13.0f * 0.58f;
+        const float width = std::max(32.0f, textWidth + 16.0f);
+        crumb.geometry = Rect{ x, m_Geometry.y + (h - 32.0f) * 0.5f, width, 32.0f };
+        x += width + 4.0f;
     }
 }
 
