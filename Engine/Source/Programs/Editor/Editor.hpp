@@ -39,6 +39,7 @@ private:
     void MainLoop();
     void Shutdown();
     void CreateNewLevel();
+    void MaybeShowFirstRunAgreement();
 
     // Dynamically builds the UI from EditorRegistry
     void BuildDynamicEditorUI();

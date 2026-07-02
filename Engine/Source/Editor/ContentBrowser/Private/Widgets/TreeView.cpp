@@ -25,13 +25,17 @@ bool IsBlueprintIconName(const std::string& iconName) {
     return iconName == "blueprint";
 }
 
+constexpr float kMinTreeZoom = 0.75f;
+constexpr float kMaxTreeZoom = 1.75f;
+constexpr float kTreeZoomStep = 0.1f;
+
 void PaintTreeNodeIcon(PaintContext& context, const TreeNode& node, const Rect& iconRect, bool hovered) {
     if (node.iconTexture != VK_NULL_HANDLE) {
         context.DrawTexture(iconRect, node.iconTexture);
         return;
     }
     if (IsFolderIconName(node.iconName)) {
-        ContentBrowserFolderArt::Get().PaintSmallIcon(context, iconRect, hovered);
+        ContentBrowserFolderArt::Get().PaintSmallIcon(context, iconRect, hovered, node.expanded);
         return;
     }
     if (IsBlueprintIconName(node.iconName)) {
@@ -172,7 +176,7 @@ void TreeView::Tick(float deltaTime) {
 
 void TreeView::Paint(PaintContext& context) {
     const auto& theme = Theme::Get();
-    const Color bg = m_ExplorerStyle ? Color{0.118f, 0.118f, 0.118f, 1.0f} : theme.ContentBrowserBackground;
+    const Color bg = m_ExplorerStyle ? theme.WorkspaceBackground : theme.ContentBrowserBackground;
     context.DrawRect(m_Geometry, bg);
 
     if (m_RenderList.empty()) {
@@ -193,11 +197,9 @@ void TreeView::Paint(PaintContext& context) {
         Color bgColor{0, 0, 0, 0};
         const bool selected = IsSelected(node->id);
         if (selected) {
-            bgColor = Color{0.22f, 0.22f, 0.22f, 1.0f};
+            bgColor = theme.SelectedBg;
         } else if (node->id == m_HoveredId) {
-            bgColor = Color{0.17f, 0.17f, 0.17f, 1.0f};
-        } else if (m_ExplorerStyle && item.flatIndex % 2 == 0) {
-            bgColor = Color{1.0f, 1.0f, 1.0f, 0.015f};
+            bgColor = theme.HoverOverlay;
         }
 
         if (bgColor.a > 0.001f) {
@@ -248,6 +250,7 @@ void TreeView::Paint(PaintContext& context) {
             context.DrawText(node->label, Point{ textX, textY }, textColor, m_Style.text.size);
         }
 
+        if (m_ShowRowControls) {
         const float eyeSize = 13.0f;
         const float eyeX = item.geometry.x + item.geometry.width - eyeSize - 8.0f;
         const float eyeY = item.geometry.y + (m_ItemHeight - eyeSize) * 0.5f;
@@ -261,6 +264,7 @@ void TreeView::Paint(PaintContext& context) {
         const Color lockColor = node->locked ? theme.Warning : theme.TextSecondary * 0.55f;
         const char* lockIcon = node->locked ? Icons::LockName : Icons::UnlockName;
         IconPainter::DrawIcon(context, lockIcon, Rect{ lockX, lockY, lockSize, lockSize }, lockColor);
+        }
     }
 }
 
@@ -372,6 +376,12 @@ void TreeView::OnMouseMove(const MouseEvent& event) {
 }
 
 void TreeView::OnMouseWheel(const MouseEvent& event) {
+    if (event.ctrlDown) {
+        SetZoomLevel(m_ZoomLevel + event.wheelDeltaY * kTreeZoomStep);
+        Arrange(m_Geometry);
+        return;
+    }
+
     const float scrollAmount = event.wheelDeltaY * m_ItemHeight * 0.75f;
     m_ScrollOffset -= scrollAmount;
 
@@ -379,6 +389,23 @@ void TreeView::OnMouseWheel(const MouseEvent& event) {
     m_ScrollOffset = std::max(0.0f, std::min(m_ScrollOffset, maxScroll));
 
     Arrange(m_Geometry);
+}
+
+void TreeView::SetItemHeight(float height) {
+    m_BaseItemHeight = std::max(12.0f, height);
+    m_ItemHeight = m_BaseItemHeight * m_ZoomLevel;
+}
+
+void TreeView::SetIndentWidth(float width) {
+    m_BaseIndentWidth = std::max(8.0f, width);
+    m_IndentWidth = m_BaseIndentWidth * m_ZoomLevel;
+}
+
+void TreeView::SetZoomLevel(float zoomLevel) {
+    m_ZoomLevel = std::clamp(zoomLevel, kMinTreeZoom, kMaxTreeZoom);
+    m_ItemHeight = m_BaseItemHeight * m_ZoomLevel;
+    m_IndentWidth = m_BaseIndentWidth * m_ZoomLevel;
+    m_Style.text.size = std::clamp(13.0f * m_ZoomLevel, 10.0f, 20.0f);
 }
 
 void TreeView::OnKeyDown(const KeyEvent& event) {

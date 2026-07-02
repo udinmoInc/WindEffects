@@ -154,31 +154,25 @@ std::shared_ptr<we::UI::Panel> CreateContentBrowserPanel() {
 
     auto folderTree = std::make_shared<we::UI::TreeView>();
     folderTree->SetExplorerStyle(true);
-    folderTree->SetItemHeight(22.0f);
+    folderTree->SetItemHeight(24.0f);
+    folderTree->SetIndentWidth(16.0f);
+    folderTree->SetShowRowControls(false);
 
     auto breadcrumb = std::make_shared<we::UI::Breadcrumb>();
     auto toolbarControls = we::UI::ContentBrowserToolbarControls::Create();
 
-    auto toolbarRow = std::make_shared<we::UI::HorizontalBox>();
-    toolbarRow->SetPadding(we::UI::Margin{ 0.0f, 0.0f, 0.0f, 0.0f });
-    toolbarRow->SetSpacing(0.0f);
-    toolbarRow->AddChild(breadcrumb);
-
-    auto toolbarColumn = std::make_shared<we::UI::VerticalBox>();
-    toolbarColumn->SetSpacing(0.0f);
-    toolbarColumn->AddChild(toolbarRow);
-    toolbarColumn->AddChild(toolbarControls);
-    panel->SetToolbar(toolbarColumn);
+    panel->SetToolbar(toolbarControls);
 
     auto contentBrowser = std::make_shared<we::UI::ContentBrowser>();
     auto statusBar = std::make_shared<we::UI::ContentBrowserStatusBar>();
 
     auto centerColumn = std::make_shared<we::UI::VerticalBox>();
     centerColumn->SetSpacing(0.0f);
+    centerColumn->AddChild(breadcrumb);
     centerColumn->AddChild(contentBrowser);
     centerColumn->AddChild(statusBar);
 
-    auto mainSplitter = std::make_shared<we::UI::Splitter>(we::UI::Orientation::Horizontal, 0.20f);
+    auto mainSplitter = std::make_shared<we::UI::Splitter>(we::UI::Orientation::Horizontal, 0.22f);
     mainSplitter->SetFirstChild(folderTree);
     mainSplitter->SetSecondChild(centerColumn);
     panel->SetContent(mainSplitter);
@@ -190,11 +184,6 @@ std::shared_ptr<we::UI::Panel> CreateContentBrowserPanel() {
     toolbarControls->GetSearchBox()->SetOnTextChanged([contentBrowser](const std::string& text) {
         ContentBrowserService::Get().GetSearchController().SetQuery(text);
         if (contentBrowser->GetModel()) contentBrowser->GetModel()->NotifyChanged();
-    });
-
-    toolbarControls->SetOnViewModeChanged([contentBrowser, toolbarControls](we::UI::ContentViewMode mode) {
-        contentBrowser->SetViewMode(mode);
-        toolbarControls->SetViewMode(mode);
     });
 
     toolbarControls->SetOnFilterClicked([contentBrowser]() {

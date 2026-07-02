@@ -26,16 +26,17 @@ public:
     static constexpr float kSmallIconWidthFill = 0.98f;
     static constexpr float kSmallIconHeightFill = 0.98f;
     static constexpr float kFolderAspectRatio = 1.138f; // Assets/Editor/Folder.svg (231 / 203)
+    static constexpr float kFolderOpenAspectRatio = 1.169f; // Assets/Editor/Folder_Open.svg (242 / 207)
 
     void PaintThumbnail(we::UI::PaintContext& context, const we::UI::Rect& thumbRect, bool hovered) const;
-    void PaintSmallIcon(we::UI::PaintContext& context, const we::UI::Rect& iconRect, bool hovered) const;
+    void PaintSmallIcon(we::UI::PaintContext& context, const we::UI::Rect& iconRect, bool hovered, bool opened = false) const;
 
     static we::UI::Rect ComputeFolderRect(const we::UI::Rect& bounds,
         float widthFill = kThumbnailWidthFill, float heightFill = kThumbnailHeightFill,
-        bool alignBottom = true);
+        bool alignBottom = true, float aspectRatio = kFolderAspectRatio);
 
 private:
-    VkDescriptorSet GetTexture(uint32_t heightPx, bool hovered) const;
+    VkDescriptorSet GetTexture(uint32_t widthPx, uint32_t heightPx, bool hovered, bool opened = false) const;
 
     we::UI::IconRenderer* m_Renderer = nullptr;
     mutable std::unordered_map<std::string, VkDescriptorSet> m_Cache;
