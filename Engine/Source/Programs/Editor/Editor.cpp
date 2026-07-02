@@ -1,4 +1,5 @@
 #include "Editor.hpp"
+#include "FirstRunAgreementPopup.hpp"
 #include "Core/Logger.hpp"
 #include "Runtime/Core/ModuleManager.hpp"
 #include "Runtime/Core/PluginManager.hpp"
@@ -152,6 +153,7 @@ Editor::Editor(SDL_Window* window) : m_Window(window) {
 
     EnsureVisibleSwapchain();
     LogWidgetTreeLayout(m_RootWidget, "OverlayManager");
+    MaybeShowFirstRunAgreement();
 
     HE_INFO("[Startup] Swapchain: " + std::to_string(m_Renderer->GetSwapchainWidth())
         + "x" + std::to_string(m_Renderer->GetSwapchainHeight()));
@@ -678,6 +680,61 @@ void Editor::CreateNewLevel() {
         we::runtime::world::environment::EnvironmentSystem::Get().EnsureDefaultEnvironment();
     }
     we::editor::environment::TickEditor();
+}
+
+void Editor::MaybeShowFirstRunAgreement() {
+    if (HasAcceptedFirstRunAgreement()) {
+        return;
+    }
+
+    auto overlay = std::dynamic_pointer_cast<OverlayManager>(m_RootWidget);
+    if (!overlay) {
+        HE_WARN("[Startup] First-run agreement skipped: OverlayManager unavailable.");
+        return;
+    }
+
+    const float viewportW = static_cast<float>(m_Renderer->GetSwapchainWidth());
+    const float viewportH = static_cast<float>(m_Renderer->GetSwapchainHeight());
+
+    auto* overlayMgr = OverlayManager::Get();
+    if (!overlayMgr) {
+        HE_WARN("[Startup] First-run agreement skipped: OverlayManager singleton unavailable.");
+        return;
+    }
+
+    auto showEulaPopup = [this, overlayMgr, viewportW, viewportH]() {
+        auto eulaPopup = std::make_shared<FirstRunAgreementPopup>(LoadFirstRunAgreementEulaContent());
+        eulaPopup->SetViewportSize(viewportW, viewportH);
+        eulaPopup->SetOnAccepted([this, overlayMgr, viewportW, viewportH]() {
+            overlayMgr->CloseAllPopups();
+
+            auto thirdPartyPopup = std::make_shared<FirstRunAgreementPopup>(
+                LoadFirstRunAgreementThirdPartyNoticesContent());
+            thirdPartyPopup->SetViewportSize(viewportW, viewportH);
+            thirdPartyPopup->SetOnAccepted([this, overlayMgr]() {
+                SetAcceptedFirstRunAgreement(true);
+                overlayMgr->CloseAllPopups();
+            });
+            thirdPartyPopup->SetOnDeclined([this, overlayMgr]() {
+                SetAcceptedFirstRunAgreement(false);
+                overlayMgr->CloseAllPopups();
+                m_Running = false;
+            });
+
+            overlayMgr->ShowPopup(thirdPartyPopup, Point{ 0.0f, 0.0f });
+        });
+        eulaPopup->SetOnDeclined([this, overlayMgr]() {
+            SetAcceptedFirstRunAgreement(false);
+            overlayMgr->CloseAllPopups();
+            m_Running = false;
+        });
+
+        overlayMgr->CloseAllPopups();
+        overlayMgr->ShowPopup(eulaPopup, Point{ 0.0f, 0.0f });
+        HE_INFO("[Startup] First-run agreement popup (EULA) displayed.");
+    };
+
+    showEulaPopup();
 }
 
 void Editor::MainLoop() {

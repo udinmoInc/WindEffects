@@ -11,15 +11,7 @@ namespace we::UI {
 
 class SearchBox;
 
-// Vertical divider between toolbar control groups.
-class ToolbarSeparator : public Widget {
-public:
-    Size Measure(const Size& availableSize) override;
-    void Arrange(const Rect& allottedRect) override;
-    void Paint(PaintContext& context) override;
-};
-
-// Square icon toggle for view modes (28–32 px).
+// Square icon toggle for view modes.
 class ToolbarIconToggle : public Widget {
 public:
     ToolbarIconToggle(const std::string& iconName, const char* tooltip = nullptr);
@@ -45,7 +37,7 @@ private:
     std::function<void()> m_OnClicked;
 };
 
-// Icon + label + optional chevron (Filter, Sort, Import).
+// Icon + label + optional chevron (Filter, Sort, Import, Create).
 class ToolbarLabeledButton : public Widget {
 public:
     enum class Variant { Standard, Primary };
@@ -75,11 +67,9 @@ private:
     std::function<void()> m_OnClicked;
 };
 
-// Second toolbar row: search, view modes, sort, filter, import, create.
+// Compact UE5-style toolbar: search and actions.
 class ContentBrowserToolbarControls : public Widget {
 public:
-    using ViewModeCallback = std::function<void(ContentViewMode)>;
-
     static std::shared_ptr<ContentBrowserToolbarControls> Create();
 
     Size Measure(const Size& availableSize) override;
@@ -91,8 +81,6 @@ public:
     void OnMouseMove(const MouseEvent& event) override;
 
     std::shared_ptr<SearchBox> GetSearchBox() const { return m_SearchBox; }
-    void SetViewMode(ContentViewMode mode);
-    void SetOnViewModeChanged(ViewModeCallback callback) { m_OnViewModeChanged = callback; }
 
     void SetOnFilterClicked(std::function<void()> callback);
     void SetOnSortClicked(std::function<void()> callback);
@@ -102,25 +90,13 @@ public:
 private:
     ContentBrowserToolbarControls() = default;
     void InitializeChildren();
-    void SyncViewToggles(ContentViewMode mode);
+    void ArrangeControlRow(const Rect& row, float contentLeft, float contentRight);
 
     std::shared_ptr<SearchBox> m_SearchBox;
-    std::shared_ptr<ToolbarIconToggle> m_ViewLarge;
-    std::shared_ptr<ToolbarIconToggle> m_ViewMedium;
-    std::shared_ptr<ToolbarIconToggle> m_ViewSmall;
-    std::shared_ptr<ToolbarIconToggle> m_ViewList;
-    std::shared_ptr<ToolbarIconToggle> m_ViewDetails;
     std::shared_ptr<ToolbarLabeledButton> m_SortBtn;
     std::shared_ptr<ToolbarLabeledButton> m_FilterBtn;
     std::shared_ptr<ToolbarLabeledButton> m_ImportBtn;
     std::shared_ptr<ToolbarLabeledButton> m_CreateBtn;
-    std::shared_ptr<ToolbarSeparator> m_Sep1;
-    std::shared_ptr<ToolbarSeparator> m_Sep2;
-    std::shared_ptr<ToolbarSeparator> m_Sep3;
-    std::shared_ptr<ToolbarSeparator> m_Sep4;
-    std::shared_ptr<ToolbarSeparator> m_Sep5;
-
-    ViewModeCallback m_OnViewModeChanged;
 };
 
 } // namespace we::UI

@@ -29,10 +29,12 @@ public:
     static BitmapRGBA RenderScriptIcon(const AssetRecord& asset);
     static BitmapRGBA RenderScenePreview(const AssetRecord& asset);
     static BitmapRGBA RenderGenericIcon(AssetType type);
-    static BitmapRGBA RenderContentBrowserFolder(uint32_t heightPx, float hoverBrightness = 0.0f);
+    static BitmapRGBA RenderContentBrowserFolder(uint32_t heightPx, float hoverBrightness = 0.0f, bool opened = false,
+        uint32_t widthPx = 0);
     static BitmapRGBA RenderContentBrowserBlueprint(uint32_t heightPx, float hoverBrightness = 0.0f);
 
     static constexpr float kFolderAspectRatio = 1.138f; // width / height (Assets/Editor/Folder.svg)
+    static constexpr float kFolderOpenAspectRatio = 1.169f; // width / height (Assets/Editor/Folder_Open.svg)
     static constexpr float kBlueprintAspectRatio = 0.947f; // width / height (Assets/Editor/Visual_Graph.svg)
 
     static BitmapRGBA FitIntoCell(const BitmapRGBA& source, uint32_t cellW, uint32_t cellH);

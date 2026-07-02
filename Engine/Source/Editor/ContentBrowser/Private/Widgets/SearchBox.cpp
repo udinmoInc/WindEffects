@@ -7,15 +7,10 @@
 namespace we::UI {
 
 namespace {
-constexpr float kSearchHeight = 35.0f;
-constexpr float kCornerRadius = 6.0f;
-constexpr float kPadH = 11.0f;
+constexpr float kSearchHeight = 29.0f;
+constexpr float kCornerRadius = 5.0f;
+constexpr float kPadH = 10.0f;
 constexpr float kFontSize = 13.0f;
-constexpr Color kSearchText{ 0.816f, 0.816f, 0.816f, 1.0f };       // #D0D0D0
-constexpr Color kSearchPlaceholder{ 0.502f, 0.502f, 0.502f, 1.0f }; // #808080
-constexpr Color kSearchBorder{ 0.22f, 0.22f, 0.24f, 1.0f };
-constexpr Color kSearchBorderFocus{ 0.35f, 0.37f, 0.40f, 1.0f };
-constexpr Color kSearchBackground{ 0.125f, 0.125f, 0.13f, 1.0f };
 } // namespace
 
 SearchBox::SearchBox()
@@ -37,36 +32,38 @@ void SearchBox::Arrange(const Rect& allottedRect) {
 }
 
 void SearchBox::Paint(PaintContext& context) {
-    context.DrawRoundedRect(m_Geometry, kSearchBackground, kCornerRadius);
+    const auto& theme = Theme::Get();
+    const Color bg = theme.ToolbarBackground;
+    context.DrawRoundedRect(m_Geometry, bg, kCornerRadius);
 
-    Color borderColor = kSearchBorder;
+    Color borderColor = theme.BorderDefault;
     if (IsFocused()) {
-        borderColor = kSearchBorderFocus;
+        borderColor = Color::Lerp(theme.BorderDefault, theme.SelectedAccent, 0.35f);
     }
     context.DrawRoundedRectOutline(m_Geometry, borderColor, 1.0f, kCornerRadius);
 
-    const float iconSize = 14.0f;
+    const float iconSize = 13.0f;
     const float iconX = m_Geometry.x + kPadH;
     const float iconY = m_Geometry.y + (m_Geometry.height - iconSize) * 0.5f;
-    IconPainter::DrawIcon(context, Icons::SearchName, Rect{ iconX, iconY, iconSize, iconSize }, kSearchPlaceholder);
+    IconPainter::DrawIcon(context, Icons::SearchName, Rect{ iconX, iconY, iconSize, iconSize }, theme.TextDisabled);
 
     Rect textRect = GetTextRect();
 
     if (m_Text.empty()) {
-        context.DrawText(m_Placeholder, Point{ textRect.x, textRect.y }, kSearchPlaceholder, kFontSize);
+        context.DrawText(m_Placeholder, Point{ textRect.x, textRect.y }, theme.SearchPlaceholder, kFontSize);
     } else {
-        context.DrawText(m_Text, Point{ textRect.x, textRect.y }, kSearchText, kFontSize, true);
+        context.DrawText(m_Text, Point{ textRect.x, textRect.y }, theme.TextPrimary, kFontSize, false);
 
         if (IsFocused() && m_ShowCaret) {
             const float caretX = textRect.x + context.GetTextWidth(m_Text.substr(0, m_CaretPosition), kFontSize);
-            Rect caretRect{ caretX, textRect.y, 1.5f, kFontSize };
-            context.DrawRect(caretRect, kSearchText);
+            Rect caretRect{ caretX, textRect.y, 1.0f, kFontSize };
+            context.DrawRect(caretRect, theme.TextPrimary);
         }
     }
 
     if (!m_Text.empty()) {
         Rect clearRect = GetClearButtonRect();
-        IconPainter::DrawIcon(context, Icons::XName, clearRect, Theme::Get().TextSecondary);
+        IconPainter::DrawIcon(context, Icons::XName, clearRect, theme.TextSecondary);
     }
 }
 
@@ -168,8 +165,8 @@ void SearchBox::UpdateCaretBlink(float deltaTime) {
 }
 
 Rect SearchBox::GetTextRect() const {
-    const float iconWidth = kPadH + 14.0f + 8.0f;
-    const float clearW = m_Text.empty() ? 0.0f : 28.0f;
+    const float iconWidth = kPadH + 13.0f + 7.0f;
+    const float clearW = m_Text.empty() ? 0.0f : 24.0f;
     const float rightPad = kPadH;
     return Rect{
         m_Geometry.x + iconWidth,
@@ -180,7 +177,7 @@ Rect SearchBox::GetTextRect() const {
 }
 
 Rect SearchBox::GetClearButtonRect() const {
-    const float clearSize = 16.0f;
+    const float clearSize = 14.0f;
     return Rect{
         m_Geometry.x + m_Geometry.width - clearSize - kPadH,
         m_Geometry.y + (m_Geometry.height - clearSize) * 0.5f,

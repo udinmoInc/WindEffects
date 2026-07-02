@@ -4,6 +4,8 @@ set(SOURCE_FILES
     Main.cpp
     Editor.cpp
     Editor.hpp
+    FirstRunAgreementPopup.cpp
+    FirstRunAgreementPopup.hpp
     ModuleBootstrap.cpp
     Resource.rc
 )

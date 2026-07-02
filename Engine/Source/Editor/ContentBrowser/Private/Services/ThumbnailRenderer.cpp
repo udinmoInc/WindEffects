@@ -50,6 +50,18 @@ std::string ResolveFolderSvgPath() {
     return {};
 }
 
+std::string ResolveFolderOpenSvgPath() {
+    const char* candidates[] = {
+        "Assets/Editor/Folder_Open.svg",
+        "../Assets/Editor/Folder_Open.svg",
+        "../../Assets/Editor/Folder_Open.svg",
+    };
+    for (const char* path : candidates) {
+        if (std::filesystem::exists(path)) return path;
+    }
+    return {};
+}
+
 std::string ResolveBlueprintSvgPath() {
     const char* candidates[] = {
         "Assets/Editor/Visual_Graph.svg",
@@ -72,6 +84,8 @@ std::array<uint8_t, 3> LerpRgb(const std::array<uint8_t, 3>& a, const std::array
 }
 
 uint32_t SnapFolderRasterHeight(uint32_t heightPx) {
+    // Keep small tree icons at their requested size so we don't downscale a 64px texture to ~15px.
+    if (heightPx <= 48u) return std::max(16u, heightPx);
     if (heightPx <= 72u) return 64u;
     if (heightPx <= 112u) return 96u;
     return 128u;
@@ -734,6 +748,27 @@ BitmapRGBA ThumbnailRenderer::TrimTransparentPadding(const BitmapRGBA& src, uint
         }
     }
 
+    if (cropW <= targetW && cropH <= targetH) {
+        BitmapRGBA result;
+        result.width = targetW;
+        result.height = targetH;
+        result.pixels.assign(static_cast<size_t>(targetW) * targetH * 4, 0);
+        const int offX = static_cast<int>((targetW - cropW) / 2);
+        const int offY = static_cast<int>((targetH - cropH) / 2);
+        for (uint32_t y = 0; y < cropH; ++y) {
+            for (uint32_t x = 0; x < cropW; ++x) {
+                const size_t srcIdx = (static_cast<size_t>(y) * cropW + x) * 4;
+                const size_t dstIdx = (static_cast<size_t>(offY + static_cast<int>(y)) * targetW
+                    + static_cast<size_t>(offX + static_cast<int>(x))) * 4;
+                result.pixels[dstIdx] = crop.pixels[srcIdx];
+                result.pixels[dstIdx + 1] = crop.pixels[srcIdx + 1];
+                result.pixels[dstIdx + 2] = crop.pixels[srcIdx + 2];
+                result.pixels[dstIdx + 3] = crop.pixels[srcIdx + 3];
+            }
+        }
+        return result;
+    }
+
     return FitIntoCell(crop, targetW, targetH);
 }
 
@@ -753,14 +788,18 @@ BitmapRGBA ThumbnailRenderer::RenderContentBrowserBlueprintProcedural(uint32_t w
     return bmp;
 }
 
-BitmapRGBA ThumbnailRenderer::RenderContentBrowserFolder(uint32_t heightPx, float hoverBrightness) {
+BitmapRGBA ThumbnailRenderer::RenderContentBrowserFolder(
+    uint32_t heightPx, float hoverBrightness, bool opened, uint32_t widthPx) {
     const uint32_t h = std::max(16u, SnapFolderRasterHeight(heightPx));
-    const uint32_t w = std::max(16u, static_cast<uint32_t>(std::round(static_cast<float>(h) * kFolderAspectRatio)));
+    const float aspectRatio = opened ? kFolderOpenAspectRatio : kFolderAspectRatio;
+    const uint32_t w = widthPx > 0
+        ? std::max(16u, widthPx)
+        : std::max(16u, static_cast<uint32_t>(std::round(static_cast<float>(h) * aspectRatio)));
 
     const we::UI::Theme& theme = we::UI::Theme::Get();
     const auto edge = ThemeRgb(theme.ContentBrowserFolderEdge, hoverBrightness);
 
-    const std::string svgPath = ResolveFolderSvgPath();
+    const std::string svgPath = opened ? ResolveFolderOpenSvgPath() : ResolveFolderSvgPath();
     if (!svgPath.empty()) {
         BitmapRGBA svgBmp = RasterizeMonochromeSvg(ResolvePath(svgPath), w, h, hoverBrightness,
             [&](float t) { return SampleFolderThemeColor(t, hoverBrightness); });
@@ -773,7 +812,8 @@ BitmapRGBA ThumbnailRenderer::RenderContentBrowserFolder(uint32_t heightPx, floa
     } else {
         static bool s_ReportedMissingSvg = false;
         if (!s_ReportedMissingSvg) {
-            HE_WARN("[ContentBrowser] Folder SVG not found (Assets/Editor/Folder.svg); using procedural artwork.");
+            HE_WARN("[ContentBrowser] %s folder SVG not found; using procedural artwork.",
+                opened ? "Open" : "Closed");
             s_ReportedMissingSvg = true;
         }
     }
