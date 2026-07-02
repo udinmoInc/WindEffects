@@ -113,6 +113,7 @@ int main(int argc, char* argv[]) {
 
         // Show the window BEFORE Vulkan/swapchain creation so surface extent is valid.
         SDL_ShowWindow(window);
+        SDL_MaximizeWindow(window);
 #if defined(_WIN32)
         we::programs::windows::ConfigureBorderlessWindow(window);
         we::programs::windows::ApplyEmbeddedWindowIcon(window, IDI_ICON1);

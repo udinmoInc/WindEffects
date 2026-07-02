@@ -2,31 +2,77 @@
 #include "CrashReporterUI.hpp"
 #include "Renderer/VulkanContext.hpp"
 #include "Renderer/Renderer.hpp"
+#include "Renderer/Shader/ShaderLibrary.hpp"
 #include "Rendering/UIRenderer.hpp"
 #include "Core/EventSystem.hpp"
 #include "Runtime/Core/AssetRegistry.hpp"
 #include "Core/Logger.hpp"
+#include <filesystem>
 
 namespace we::programs::crashreporter {
 
 CrashReporterApp::CrashReporterApp(SDL_Window* window) : m_Window(window) {
+    HE_INFO("[CrashReporterApp] Constructor started");
+    
+    HE_INFO("[CrashReporterApp] Creating VulkanContext");
     m_Context = std::make_shared<we::runtime::renderer::VulkanContext>(m_Window);
+    HE_INFO("[CrashReporterApp] VulkanContext created");
+    
+    HE_INFO("[CrashReporterApp] Initializing volk");
     volkInitialize();
     volkLoadInstance(m_Context->GetInstance());
     volkLoadDevice(m_Context->GetDevice());
+    HE_INFO("[CrashReporterApp] volk initialized");
 
+    HE_INFO("[CrashReporterApp] Creating Renderer");
     m_Renderer = std::make_shared<we::runtime::renderer::Renderer>(m_Context, m_Window);
+    HE_INFO("[CrashReporterApp] Renderer created");
 
+    HE_INFO("[CrashReporterApp] Initializing ShaderLibrary");
+    std::string shaderRoot = "Engine/Shaders";
+    std::string bytecodeRoot = "Assets/Shaders";
+    for (const char* candidate : {"Engine/Shaders", "../Engine/Shaders", "../../Engine/Shaders"})
+    {
+        if (std::filesystem::exists(candidate))
+        {
+            shaderRoot = candidate;
+            break;
+        }
+    }
+    for (const char* candidate : {"Assets/Shaders", "../Assets/Shaders"})
+    {
+        if (std::filesystem::exists(candidate))
+        {
+            bytecodeRoot = candidate;
+            break;
+        }
+    }
+    we::runtime::renderer::ShaderLibrary::Get().Initialize(shaderRoot, bytecodeRoot);
+    HE_INFO("[CrashReporterApp] ShaderLibrary initialized");
+
+    HE_INFO("[CrashReporterApp] Loading default editor assets");
     we::core::AssetRegistry::Get().LoadDefaultEditorAssets();
+    HE_INFO("[CrashReporterApp] Default editor assets loaded");
 
+    HE_INFO("[CrashReporterApp] Creating UIRenderer");
     m_UIRenderer = std::make_unique<we::UI::UIRenderer>();
+    HE_INFO("[CrashReporterApp] Initializing UIRenderer");
     m_UIRenderer->Init(m_Context, m_Renderer->GetSwapchainRenderPass());
+    HE_INFO("[CrashReporterApp] UIRenderer initialized");
+    
+    HE_INFO("[CrashReporterApp] Creating EventSystem");
     m_UIEventSystem = std::make_shared<we::UI::EventSystem>();
+    HE_INFO("[CrashReporterApp] EventSystem created");
 
+    HE_INFO("[CrashReporterApp] Creating CrashReporterUI");
     m_UI = std::make_shared<CrashReporterUI>();
+    HE_INFO("[CrashReporterApp] Constructing UI");
     m_UI->Construct();
+    HE_INFO("[CrashReporterApp] UI constructed");
 
+    HE_INFO("[CrashReporterApp] Setting root widget");
     m_UIEventSystem->SetRootWidget(m_UI);
+    HE_INFO("[CrashReporterApp] Constructor completed");
 }
 
 CrashReporterApp::~CrashReporterApp() {
@@ -34,7 +80,9 @@ CrashReporterApp::~CrashReporterApp() {
 }
 
 void CrashReporterApp::Run() {
+    HE_INFO("[CrashReporterApp] Run() called, starting MainLoop");
     MainLoop();
+    HE_INFO("[CrashReporterApp] MainLoop() returned");
 }
 
 void CrashReporterApp::MainLoop() {

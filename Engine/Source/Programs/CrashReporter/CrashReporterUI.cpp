@@ -24,6 +24,25 @@ CrashReporterUI::CrashReporterUI() {
 }
 
 void CrashReporterUI::LoadCrashData() {
+    HE_INFO("[CrashReporterUI] LoadCrashData started");
+    HE_INFO("[CrashReporterUI] Crash directory: " + m_CrashDir);
+    
+    // Check if crash directory exists
+    if (!std::filesystem::exists(m_CrashDir)) {
+        HE_WARN("[CrashReporterUI] Crash directory does not exist: " + m_CrashDir);
+        m_CrashData = nlohmann::json::object();
+        m_ExceptionData = nlohmann::json::object();
+        m_SystemData = nlohmann::json::object();
+        m_ModulesData = nlohmann::json::object();
+        m_MemoryData = nlohmann::json::object();
+        m_StackTrace = "No crash data available - Crash Reporter was opened manually.";
+        m_EngineLog = "";
+        HE_INFO("[CrashReporterUI] LoadCrashData completed (no crash data)");
+        return;
+    }
+
+    HE_INFO("[CrashReporterUI] Crash directory exists, reading files");
+
     auto read_file = [](const std::string& path) -> std::string {
         std::ifstream f(path);
         if (!f.is_open()) return "";
@@ -42,26 +61,54 @@ void CrashReporterUI::LoadCrashData() {
         }
     };
 
+    HE_INFO("[CrashReporterUI] Reading Crash.json");
     m_CrashData = read_json("Crash.json");
+    HE_INFO("[CrashReporterUI] Reading Exception.json");
     m_ExceptionData = read_json("Exception.json");
+    HE_INFO("[CrashReporterUI] Reading System.json");
     m_SystemData = read_json("System.json");
+    HE_INFO("[CrashReporterUI] Reading Modules.json");
     m_ModulesData = read_json("Modules.json");
+    HE_INFO("[CrashReporterUI] Reading Memory.json");
     m_MemoryData = read_json("Memory.json");
 
+    HE_INFO("[CrashReporterUI] Reading StackTrace.txt");
     m_StackTrace = read_file(m_CrashDir + "/StackTrace.txt");
+    HE_INFO("[CrashReporterUI] Reading Engine.log");
     m_EngineLog = read_file(m_CrashDir + "/Engine.log");
+    
+    HE_INFO("[CrashReporterUI] LoadCrashData completed");
 }
 
 void CrashReporterUI::Construct() {
-    ConfigManager::Get().Load();
-    LoadCrashData();
+    HE_INFO("[CrashReporterUI] Construct started");
+    
+    try {
+        HE_INFO("[CrashReporterUI] Loading ConfigManager");
+        ConfigManager::Get().Load();
+        HE_INFO("[CrashReporterUI] ConfigManager loaded");
+        
+        LoadCrashData();
+    } catch (const std::exception& e) {
+        HE_ERROR("[CrashReporterUI] Failed to load crash reporter config or data: " + std::string(e.what()));
+        // Set default values to prevent UI crash
+        m_CrashData = nlohmann::json::object();
+        m_ExceptionData = nlohmann::json::object();
+        m_SystemData = nlohmann::json::object();
+        m_ModulesData = nlohmann::json::object();
+        m_MemoryData = nlohmann::json::object();
+        m_StackTrace = "Error loading crash data: " + std::string(e.what());
+        m_EngineLog = "";
+    }
 
+    HE_INFO("[CrashReporterUI] Building UI layout");
     auto rootBox = std::make_shared<VerticalBox>();
     rootBox->SetPadding(Margin{16.0f, 16.0f, 16.0f, 16.0f});
     rootBox->SetSpacing(12.0f);
     
     const auto& cfg = ConfigManager::Get().GetConfig();
     std::string projName = m_CrashData.value("Project", "WindEffectsProject");
+    HE_INFO("[CrashReporterUI] Project name: " + projName);
 
     // 1. Header Label
     auto header = std::make_shared<Label>("An Unreal process has crashed: " + projName, Color{0.9f, 0.9f, 0.9f, 1.0f}, 18.0f);
