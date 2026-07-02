@@ -29,10 +29,12 @@ struct Theme {
     Color ContentBrowserSelectedFill = { 0.0f, 0.0f, 0.0f, 0.22f };      // subtle dark selection fill
 
     // Content Browser folder thumbnail (filled artwork — not Lucide)
-    Color ContentBrowserFolderBody      = { 0.718f, 0.624f, 0.451f, 1.0f }; // #B79F73
-    Color ContentBrowserFolderTab       = { 0.776f, 0.690f, 0.510f, 1.0f }; // #C6B082
-    Color ContentBrowserFolderShadow    = { 0.541f, 0.463f, 0.333f, 1.0f }; // #8A7655
-    Color ContentBrowserFolderHighlight = { 0.847f, 0.780f, 0.608f, 1.0f }; // #D8C79B
+    Color ContentBrowserFolderBody      = { 0.553f, 0.424f, 0.235f, 1.0f }; // darker body (~#8D6B3C)
+    Color ContentBrowserFolderTab       = { 0.702f, 0.541f, 0.298f, 1.0f }; // tab flap (~#B38A4C)
+    Color ContentBrowserFolderShadow    = { 0.431f, 0.329f, 0.180f, 1.0f }; // depth shadow (~#6E542E)
+    Color ContentBrowserFolderHighlight = { 0.788f, 0.647f, 0.380f, 1.0f }; // lighter flap top (~#C9A561)
+    Color ContentBrowserFolderPrimary   = { 0.627f, 0.482f, 0.267f, 1.0f }; // #A07B44
+    Color ContentBrowserFolderEdge      = { 0.361f, 0.275f, 0.157f, 1.0f }; // thin outline (~#5C4728)
     
     // Borders
     Color BorderDefault     = { 0.188f, 0.188f, 0.188f, 1.0f }; // #303030

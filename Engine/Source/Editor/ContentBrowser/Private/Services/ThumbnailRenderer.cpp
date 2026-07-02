@@ -18,6 +18,7 @@
 #include <fstream>
 #include <functional>
 #include <sstream>
+#include <vector>
 
 namespace we::editor::contentbrowser {
 
@@ -94,16 +95,53 @@ std::array<uint8_t, 3> SampleFolderThemeColor(float t, float hoverBrightness) {
     const we::UI::Theme& theme = we::UI::Theme::Get();
     const auto highlight = ThemeRgb(theme.ContentBrowserFolderHighlight, hoverBrightness);
     const auto tab = ThemeRgb(theme.ContentBrowserFolderTab, hoverBrightness);
+    const auto primary = ThemeRgb(theme.ContentBrowserFolderPrimary, hoverBrightness);
     const auto body = ThemeRgb(theme.ContentBrowserFolderBody, hoverBrightness);
     const auto shadow = ThemeRgb(theme.ContentBrowserFolderShadow, hoverBrightness);
 
-    if (t < 0.30f) {
-        return LerpRgb(highlight, tab, t / 0.30f);
+    if (t < 0.22f) {
+        return LerpRgb(highlight, tab, t / 0.22f);
     }
-    if (t < 0.72f) {
-        return LerpRgb(tab, body, (t - 0.30f) / 0.42f);
+    if (t < 0.58f) {
+        return LerpRgb(tab, primary, (t - 0.22f) / 0.36f);
     }
-    return LerpRgb(body, shadow, (t - 0.72f) / 0.28f);
+    return LerpRgb(body, shadow, (t - 0.58f) / 0.42f);
+}
+
+void ApplyFolderEdgeOutline(BitmapRGBA& bmp, const std::array<uint8_t, 3>& edgeRgb) {
+    if (bmp.width == 0 || bmp.height == 0 || bmp.pixels.empty()) return;
+
+    const uint32_t w = bmp.width;
+    const uint32_t h = bmp.height;
+    std::vector<uint8_t> alpha(static_cast<size_t>(w) * h, 0);
+    for (uint32_t y = 0; y < h; ++y) {
+        for (uint32_t x = 0; x < w; ++x) {
+            alpha[static_cast<size_t>(y) * w + x] = bmp.pixels[(static_cast<size_t>(y) * w + x) * 4 + 3];
+        }
+    }
+
+    auto isEdge = [&](uint32_t x, uint32_t y) {
+        if (alpha[static_cast<size_t>(y) * w + x] <= 8) return false;
+        constexpr int kDirs[4][2] = { {1, 0}, {-1, 0}, {0, 1}, {0, -1} };
+        for (const auto& dir : kDirs) {
+            const int nx = static_cast<int>(x) + dir[0];
+            const int ny = static_cast<int>(y) + dir[1];
+            if (nx < 0 || ny < 0 || nx >= static_cast<int>(w) || ny >= static_cast<int>(h)) return true;
+            if (alpha[static_cast<size_t>(ny) * w + static_cast<uint32_t>(nx)] <= 8) return true;
+        }
+        return false;
+    };
+
+    for (uint32_t y = 0; y < h; ++y) {
+        for (uint32_t x = 0; x < w; ++x) {
+            if (!isEdge(x, y)) continue;
+            const size_t idx = (static_cast<size_t>(y) * w + x) * 4;
+            const float blend = 0.72f;
+            bmp.pixels[idx]     = static_cast<uint8_t>(edgeRgb[0] * blend + bmp.pixels[idx] * (1.0f - blend));
+            bmp.pixels[idx + 1] = static_cast<uint8_t>(edgeRgb[1] * blend + bmp.pixels[idx + 1] * (1.0f - blend));
+            bmp.pixels[idx + 2] = static_cast<uint8_t>(edgeRgb[2] * blend + bmp.pixels[idx + 2] * (1.0f - blend));
+        }
+    }
 }
 
 } // namespace
@@ -486,12 +524,12 @@ BitmapRGBA ThumbnailRenderer::RenderContentBrowserFolderProcedural(uint32_t w, u
 
     const we::UI::Theme& theme = we::UI::Theme::Get();
     const auto shadow = ThemeRgb(theme.ContentBrowserFolderShadow, hoverBrightness);
+    const auto edge = ThemeRgb(theme.ContentBrowserFolderEdge, hoverBrightness);
     const auto tabTop = ThemeRgb(theme.ContentBrowserFolderHighlight, hoverBrightness);
     const auto tabBot = ThemeRgb(theme.ContentBrowserFolderTab, hoverBrightness);
     const auto bodyTop = ThemeRgb(theme.ContentBrowserFolderTab, hoverBrightness);
-    const auto bodyMid = ThemeRgb(theme.ContentBrowserFolderBody, hoverBrightness);
-    const auto bodyBot = ThemeRgb({ theme.ContentBrowserFolderBody.r * 0.92f,
-        theme.ContentBrowserFolderBody.g * 0.92f, theme.ContentBrowserFolderBody.b * 0.92f, 1.0f }, hoverBrightness);
+    const auto bodyMid = ThemeRgb(theme.ContentBrowserFolderPrimary, hoverBrightness);
+    const auto bodyBot = ThemeRgb(theme.ContentBrowserFolderBody, hoverBrightness);
     const auto highlight = ThemeRgb(theme.ContentBrowserFolderHighlight, hoverBrightness);
 
     constexpr float kRefW = 146.0f;
@@ -526,6 +564,7 @@ BitmapRGBA ThumbnailRenderer::RenderContentBrowserFolderProcedural(uint32_t w, u
     FillRoundedRect(bmp, X(50.0f), Y(28.5f), X(84.0f), Y(1.2f), S(0.6f),
         highlight[0], highlight[1], highlight[2], 102);
 
+    ApplyFolderEdgeOutline(bmp, edge);
     return bmp;
 }
 
@@ -718,11 +757,16 @@ BitmapRGBA ThumbnailRenderer::RenderContentBrowserFolder(uint32_t heightPx, floa
     const uint32_t h = std::max(16u, SnapFolderRasterHeight(heightPx));
     const uint32_t w = std::max(16u, static_cast<uint32_t>(std::round(static_cast<float>(h) * kFolderAspectRatio)));
 
+    const we::UI::Theme& theme = we::UI::Theme::Get();
+    const auto edge = ThemeRgb(theme.ContentBrowserFolderEdge, hoverBrightness);
+
     const std::string svgPath = ResolveFolderSvgPath();
     if (!svgPath.empty()) {
-        const BitmapRGBA svgBmp = RasterizeMonochromeSvg(ResolvePath(svgPath), w, h, hoverBrightness,
+        BitmapRGBA svgBmp = RasterizeMonochromeSvg(ResolvePath(svgPath), w, h, hoverBrightness,
             [&](float t) { return SampleFolderThemeColor(t, hoverBrightness); });
         if (!svgBmp.pixels.empty()) {
+            svgBmp = TrimTransparentPadding(svgBmp, w, h);
+            ApplyFolderEdgeOutline(svgBmp, edge);
             return svgBmp;
         }
         HE_WARN("[ContentBrowser] Failed to rasterize folder SVG; using procedural artwork.");

@@ -47,8 +47,8 @@ private:
     std::string m_Placeholder = "Search...";
     size_t m_CaretPosition = 0;
     
-    float m_Height = 30.0f; // 30px – matches toolbar controls for consistent height
-    float m_Width = 150.0f;
+    float m_Height = 35.0f;
+    float m_Width = 240.0f;
     bool m_FillWidth = false;
     float m_CaretBlinkTime = 0.0f;
     bool m_ShowCaret = true;
