@@ -23,6 +23,9 @@ public:
     // Close the most recent popup, or clear all
     void CloseTopPopup();
     void CloseAllPopups();
+    
+    // Execute pending callbacks after event processing
+    void ExecutePendingCallbacks();
 
     bool HasOpenPopups() const { return !m_Popups.empty(); }
     bool IsWidgetInPopup(const std::shared_ptr<Widget>& widget) const;

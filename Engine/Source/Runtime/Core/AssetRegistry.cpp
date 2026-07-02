@@ -85,39 +85,22 @@ bool AssetRegistry::LoadDefaultEditorAssets() {
     };
 
     const std::vector<std::pair<std::string, std::vector<std::string>>> shaders = {
-        {"Shader_UI_Vert", {
+        {"UI", {
             "Assets/Shaders/UI_VS.spv",
             "Shaders/UI_VS.spv",
             "../Assets/Shaders/UI_VS.spv"
         }},
-        {"Shader_UI_Frag", {
-            "Assets/Shaders/UI_PS.spv",
-            "Shaders/UI_PS.spv",
-            "../Assets/Shaders/UI_PS.spv"
-        }},
-        {"Shader_EditorBackground_Vert", {
+        {"EditorBackground", {
             "Assets/Shaders/EditorBackground_VS.spv",
             "Shaders/EditorBackground_VS.spv"
         }},
-        {"Shader_EditorBackground_Frag", {
-            "Assets/Shaders/EditorBackground_PS.spv",
-            "Shaders/EditorBackground_PS.spv"
-        }},
-        {"Shader_EditorGrid_Vert", {
+        {"EditorGrid", {
             "Assets/Shaders/EditorGrid_VS.spv",
             "Shaders/EditorGrid_VS.spv"
         }},
-        {"Shader_EditorGrid_Frag", {
-            "Assets/Shaders/EditorGrid_PS.spv",
-            "Shaders/EditorGrid_PS.spv"
-        }},
-        {"Shader_SceneObject_Vert", {
+        {"SceneObject", {
             "Assets/Shaders/SceneObject_VS.spv",
             "Shaders/SceneObject_VS.spv"
-        }},
-        {"Shader_SceneObject_Frag", {
-            "Assets/Shaders/SceneObject_PS.spv",
-            "Shaders/SceneObject_PS.spv"
         }},
     };
 
@@ -149,7 +132,7 @@ bool AssetRegistry::LoadDefaultEditorAssets() {
             RegisterShaderPath(name, result.resolvedPath);
             HE_INFO("[Assets]   Shader '" + name + "' -> " + result.resolvedPath);
         } else {
-            const bool required = (name == "Shader_UI_Vert" || name == "Shader_UI_Frag");
+            const bool required = (name == "UI");
             if (required) {
                 HE_ERROR("[Assets]   MISSING required shader '" + name + "'");
                 allRequiredFound = false;

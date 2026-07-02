@@ -219,6 +219,13 @@ void EditorFunctionConfig::WriteIniFile(const std::filesystem::path& path,
 void EditorFunctionConfig::MergeMissingKeys(const std::filesystem::path& path,
                                             const std::unordered_map<std::string, std::string>& defaults) {
     auto values = LoadIniFile(path);
+    
+    // Only write if file doesn't exist or is missing keys
+    if (values.empty()) {
+        WriteIniFile(path, defaults);
+        return;
+    }
+    
     bool changed = false;
     for (const auto& [key, value] : defaults) {
         if (!values.contains(key)) {
@@ -226,8 +233,8 @@ void EditorFunctionConfig::MergeMissingKeys(const std::filesystem::path& path,
             changed = true;
         }
     }
-    if (changed || values.empty()) {
-        WriteIniFile(path, values.empty() ? defaults : values);
+    if (changed) {
+        WriteIniFile(path, values);
     }
 }
 

@@ -307,6 +307,27 @@ long __stdcall Logger::EngineCrashHandler(struct _EXCEPTION_POINTERS* exceptionI
     std::error_code ec_copy;
     std::filesystem::copy_file("logs/WindEffects.log", crashDir + "/Engine.log", std::filesystem::copy_options::overwrite_existing, ec_copy);
 
+    // Check for crash loop - prevent launching crash reporter if too many recent crashes
+    static int crashCount = 0;
+    static auto lastCrashTime = std::chrono::steady_clock::now();
+    auto now = std::chrono::steady_clock::now();
+    auto timeSinceLastCrash = std::chrono::duration_cast<std::chrono::seconds>(now - lastCrashTime).count();
+    
+    // Reset counter if it's been more than 60 seconds since last crash
+    if (timeSinceLastCrash > 60) {
+        crashCount = 0;
+    }
+    
+    crashCount++;
+    lastCrashTime = now;
+    
+    // Don't launch crash reporter if we've crashed 3+ times in 60 seconds
+    if (crashCount >= 3) {
+        Logger::Log(Level::Error, "Crash loop detected - skipping crash reporter launch to prevent infinite loop");
+        Shutdown();
+        return EXCEPTION_EXECUTE_HANDLER;
+    }
+
     // Launch WeCrashReporter.exe
     STARTUPINFOA si{};
     si.cb = sizeof(si);

@@ -1,5 +1,6 @@
 #include "Layout/OverlayManager.hpp"
 #include "Core/PaintContext.hpp"
+#include "Core/Logger.hpp"
 
 namespace we::UI {
 
@@ -54,6 +55,27 @@ void OverlayManager::CloseAllPopups() {
         RemoveChild(popup);
     }
     m_Popups.clear();
+}
+
+void OverlayManager::ExecutePendingCallbacks() {
+    // Execute pending callbacks for all popups
+    // This is called after event processing to avoid use-after-free
+    try {
+        // Skip if no popups or during initialization
+        if (m_Popups.empty()) {
+            return;
+        }
+        
+        for (auto& popup : m_Popups) {
+            if (popup) {
+                popup->ExecutePendingCallback();
+            }
+        }
+    } catch (const std::exception& e) {
+        HE_ERROR("Error in OverlayManager::ExecutePendingCallbacks: " + std::string(e.what()));
+    } catch (...) {
+        HE_ERROR("Unknown error in OverlayManager::ExecutePendingCallbacks");
+    }
 }
 
 bool OverlayManager::IsWidgetInPopup(const std::shared_ptr<Widget>& widget) const {

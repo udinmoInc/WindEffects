@@ -49,6 +49,9 @@ public:
     virtual void OnFocus() { m_Focused = true; }
     virtual void OnBlur() { m_Focused = false; }
     
+    // Deferred callback execution (called after event processing to avoid use-after-free)
+    virtual void ExecutePendingCallback() {}
+    
     // State management
     virtual void SetActive(bool active) { m_IsActive = active; }
     virtual bool IsActive() const { return m_IsActive; }

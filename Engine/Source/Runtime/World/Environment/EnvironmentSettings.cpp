@@ -80,7 +80,7 @@ void EnvironmentSettingsLoader::SaveSettings(const EnvironmentSettings& settings
         std::string line;
         while (std::getline(input, line)) {
             const std::string trimmed = Trim(line);
-            if (trimmed.front() == '[' && trimmed.back() == ']') {
+            if (!trimmed.empty() && trimmed.front() == '[' && trimmed.back() == ']') {
                 currentSection = Trim(trimmed.substr(1, trimmed.size() - 2));
             }
             if (currentSection != kSectionName) {

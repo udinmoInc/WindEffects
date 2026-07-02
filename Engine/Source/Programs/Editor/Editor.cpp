@@ -125,34 +125,73 @@ Editor::Editor(SDL_Window* window) : m_Window(window) {
     }
 
     HE_INFO("[Startup] Stage 4/6: UIRenderer init...");
-    m_UIRenderer = std::make_unique<UI::UIRenderer>();
-    if (!m_UIRenderer->Init(m_Context, m_Renderer->GetSwapchainRenderPass())) {
-        throw std::runtime_error("Failed to initialize HouseUI Renderer!");
+    try {
+        m_UIRenderer = std::make_unique<UI::UIRenderer>();
+        if (!m_UIRenderer->Init(m_Context, m_Renderer->GetSwapchainRenderPass())) {
+            throw std::runtime_error("Failed to initialize HouseUI Renderer!");
+        }
+    } catch (const std::exception& e) {
+        HE_ERROR("[Startup] Failed to initialize UIRenderer: " + std::string(e.what()));
+        throw;
     }
-    InitializeContentBrowserService(m_UIRenderer->GetIconRenderer().get());
+    try {
+        InitializeContentBrowserService(m_UIRenderer->GetIconRenderer().get());
+    } catch (const std::exception& e) {
+        HE_ERROR("[Startup] Failed to initialize content browser service: " + std::string(e.what()));
+        throw;
+    }
     m_UIEventSystem = std::make_shared<UI::EventSystem>();
 
   HE_INFO("[Startup] Stage 5/6: Modules and plugins...");
-    we::core::ModuleManager::Get().StartupAllModules();
-    we::core::PluginManager::Get().ScanAndLoadPlugins("Plugins");
+    try {
+        we::core::ModuleManager::Get().StartupAllModules();
+    } catch (const std::exception& e) {
+        HE_ERROR("[Startup] Failed to startup modules: " + std::string(e.what()));
+        throw;
+    }
+    try {
+        we::core::PluginManager::Get().ScanAndLoadPlugins("Plugins");
+    } catch (const std::exception& e) {
+        HE_ERROR("[Startup] Failed to load plugins: " + std::string(e.what()));
+        throw;
+    }
 
     auto& panels = EditorRegistry::Get().GetPanels();
     HE_INFO("[Startup] EditorRegistry panels registered: " + std::to_string(panels.size()));
     for (const auto& [name, _] : panels) {
         HE_INFO("[Startup]   - Panel factory: " + name);
     }
-    ValidateEditorPanels(panels);
+    try {
+        ValidateEditorPanels(panels);
+    } catch (const std::exception& e) {
+        HE_ERROR("[Startup] Failed to validate editor panels: " + std::string(e.what()));
+        throw;
+    }
 
     auto& menus = EditorRegistry::Get().GetMenus();
     HE_INFO("[Startup] EditorRegistry menus registered: " + std::to_string(menus.size()));
 
     HE_INFO("[Startup] Stage 6/6: Widget tree and layout...");
-    BuildDynamicEditorUI();
+    try {
+        BuildDynamicEditorUI();
+    } catch (const std::exception& e) {
+        HE_ERROR("[Startup] Failed to build dynamic UI: " + std::string(e.what()));
+        throw;
+    }
 
-    m_UIEventSystem->SetRootWidget(m_RootWidget);
+    try {
+        m_UIEventSystem->SetRootWidget(m_RootWidget);
+    } catch (const std::exception& e) {
+        HE_ERROR("[Startup] Failed to set root widget: " + std::string(e.what()));
+        throw;
+    }
 
     EnsureVisibleSwapchain();
-    LogWidgetTreeLayout(m_RootWidget, "OverlayManager");
+    try {
+        LogWidgetTreeLayout(m_RootWidget, "OverlayManager");
+    } catch (const std::exception& e) {
+        HE_ERROR("[Startup] Failed to log widget tree: " + std::string(e.what()));
+    }
     MaybeShowFirstRunAgreement();
 
     HE_INFO("[Startup] Swapchain: " + std::to_string(m_Renderer->GetSwapchainWidth())
@@ -702,36 +741,42 @@ void Editor::MaybeShowFirstRunAgreement() {
         return;
     }
 
-    auto showEulaPopup = [this, overlayMgr, viewportW, viewportH]() {
-        auto eulaPopup = std::make_shared<FirstRunAgreementPopup>(LoadFirstRunAgreementEulaContent());
-        eulaPopup->SetViewportSize(viewportW, viewportH);
-        eulaPopup->SetOnAccepted([this, overlayMgr, viewportW, viewportH]() {
-            overlayMgr->CloseAllPopups();
-
-            auto thirdPartyPopup = std::make_shared<FirstRunAgreementPopup>(
-                LoadFirstRunAgreementThirdPartyNoticesContent());
-            thirdPartyPopup->SetViewportSize(viewportW, viewportH);
-            thirdPartyPopup->SetOnAccepted([this, overlayMgr]() {
-                SetAcceptedFirstRunAgreement(true);
+    auto showEulaPopup = [this, overlayMgr]() {
+        try {
+            auto eulaPopup = std::make_shared<FirstRunAgreementPopup>(LoadFirstRunAgreementEulaContent());
+            eulaPopup->SetOnAccepted([this, overlayMgr]() {
                 overlayMgr->CloseAllPopups();
+
+                auto thirdPartyPopup = std::make_shared<FirstRunAgreementPopup>(
+                    LoadFirstRunAgreementThirdPartyNoticesContent());
+                thirdPartyPopup->SetOnAccepted([this, overlayMgr]() {
+                    SetAcceptedFirstRunAgreement(true);
+                    overlayMgr->CloseAllPopups();
+                });
+                thirdPartyPopup->SetOnDeclined([this, overlayMgr]() {
+                    SetAcceptedFirstRunAgreement(false);
+                    overlayMgr->CloseAllPopups();
+                    m_Running = false;
+                });
+
+                overlayMgr->ShowPopup(thirdPartyPopup, Point{ 0.0f, 0.0f });
             });
-            thirdPartyPopup->SetOnDeclined([this, overlayMgr]() {
+            eulaPopup->SetOnDeclined([this, overlayMgr]() {
                 SetAcceptedFirstRunAgreement(false);
                 overlayMgr->CloseAllPopups();
                 m_Running = false;
             });
 
-            overlayMgr->ShowPopup(thirdPartyPopup, Point{ 0.0f, 0.0f });
-        });
-        eulaPopup->SetOnDeclined([this, overlayMgr]() {
-            SetAcceptedFirstRunAgreement(false);
             overlayMgr->CloseAllPopups();
-            m_Running = false;
-        });
-
-        overlayMgr->CloseAllPopups();
-        overlayMgr->ShowPopup(eulaPopup, Point{ 0.0f, 0.0f });
-        HE_INFO("[Startup] First-run agreement popup (EULA) displayed.");
+            overlayMgr->ShowPopup(eulaPopup, Point{ 0.0f, 0.0f });
+            HE_INFO("[Startup] First-run agreement popup (EULA) displayed.");
+        } catch (const std::exception& e) {
+            HE_ERROR("[Startup] Failed to show first-run agreement: " + std::string(e.what()));
+            SetAcceptedFirstRunAgreement(true); // Skip on error
+        } catch (...) {
+            HE_ERROR("[Startup] Unknown error showing first-run agreement");
+            SetAcceptedFirstRunAgreement(true); // Skip on error
+        }
     };
 
     showEulaPopup();
@@ -747,6 +792,10 @@ void Editor::MainLoop() {
         while (SDL_PollEvent(&event)) {
             if (event.type == SDL_EVENT_QUIT || (event.type == SDL_EVENT_WINDOW_CLOSE_REQUESTED && event.window.windowID == SDL_GetWindowID(m_Window))) {
                 m_Running = false;
+                // Execute pending callbacks before shutdown to prevent use-after-free
+                if (auto* overlayMgr = OverlayManager::Get()) {
+                    overlayMgr->ExecutePendingCallbacks();
+                }
             }
 
 #if defined(_WIN32)
@@ -805,6 +854,13 @@ void Editor::MainLoop() {
                 keyEvent.ctrlDown  = (mods & SDL_KMOD_CTRL) != 0;
 
                 m_UIEventSystem->ProcessKeyEvent(keyEvent);
+            }
+        }
+        
+        // Execute pending callbacks after event processing to avoid use-after-free
+        if (auto* overlayMgr = OverlayManager::Get()) {
+            if (overlayMgr->HasOpenPopups()) {
+                overlayMgr->ExecutePendingCallbacks();
             }
         }
 
@@ -878,6 +934,11 @@ void Editor::MainLoop() {
 }
 
 void Editor::Shutdown() {
+    // Clear any pending callbacks before shutdown to prevent use-after-free
+    if (auto* overlayMgr = OverlayManager::Get()) {
+        overlayMgr->CloseAllPopups();
+    }
+
     EditorLayoutPersistence::Get().Save();
 
     if (m_Window) {
