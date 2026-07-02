@@ -1,5 +1,6 @@
 #include "Widgets/ContentBrowserToolbar.hpp"
 #include "Widgets/SearchBox.hpp"
+#include "Widgets/ContentBrowser.hpp"
 #include "Core/PaintContext.hpp"
 #include "Core/Theme.hpp"
 #include "Core/Icon.hpp"
@@ -12,11 +13,11 @@ namespace {
 
 constexpr float kToolbarHeight = 40.0f;
 constexpr float kToolbarPadH = 12.0f;
-constexpr float kControlHeight = 28.0f;
-constexpr float kSearchHeight = 29.0f;
+constexpr float kControlHeight = 32.0f;
+constexpr float kSearchHeight = 32.0f;
 constexpr float kSearchWidth = 360.0f;
-constexpr float kIconToggleSize = 26.0f;
-constexpr float kGroupGap = 12.0f;
+constexpr float kIconToggleSize = 32.0f;
+constexpr float kGroupGap = 8.0f;
 
 constexpr Color kToolbarText{ 0.816f, 0.816f, 0.816f, 1.0f };
 
@@ -69,12 +70,12 @@ ToolbarIconToggle::ToolbarIconToggle(const std::string& iconName, const char*)
 
 Size ToolbarIconToggle::Measure(const Size& availableSize) {
     (void)availableSize;
-    m_DesiredSize = Size{ kIconToggleSize, kControlHeight };
+    m_DesiredSize = Size{ kControlHeight, kControlHeight };
     return m_DesiredSize;
 }
 
 void ToolbarIconToggle::Arrange(const Rect& allottedRect) {
-    m_Geometry = CenterRect(allottedRect, kIconToggleSize, kIconToggleSize);
+    m_Geometry = CenterRect(allottedRect, kControlHeight, kControlHeight);
 }
 
 void ToolbarIconToggle::Paint(PaintContext& context) {
@@ -179,28 +180,46 @@ void ToolbarLabeledButton::OnMouseUp(const MouseEvent& event) {
     }
 }
 
-std::shared_ptr<ContentBrowserToolbarControls> ContentBrowserToolbarControls::Create() {
-    auto toolbar = std::shared_ptr<ContentBrowserToolbarControls>(new ContentBrowserToolbarControls());
+std::shared_ptr<ContentBrowserToolbarControls> ContentBrowserToolbarControls::Create(ToolbarMode mode) {
+    auto toolbar = std::shared_ptr<ContentBrowserToolbarControls>(new ContentBrowserToolbarControls(mode));
     toolbar->InitializeChildren();
     return toolbar;
 }
 
+ContentBrowserToolbarControls::ContentBrowserToolbarControls(ToolbarMode mode)
+    : m_Mode(mode)
+{}
+
 void ContentBrowserToolbarControls::InitializeChildren() {
-    m_SearchBox = std::make_shared<SearchBox>();
-    m_SearchBox->SetPlaceholder("Search Assets...");
-    m_SearchBox->SetWidth(kSearchWidth);
+    if (m_Mode == ToolbarMode::Full) {
+        // Panel toolbar: breadcrumb, prev/next, create, import, sort, settings
+        m_Breadcrumb = std::make_shared<Breadcrumb>();
+        m_PreviousBtn = std::make_shared<ToolbarIconToggle>(Icons::ChevronLeftName, "Previous");
+        m_NextBtn = std::make_shared<ToolbarIconToggle>(Icons::ChevronRightName, "Next");
+        m_CreateBtn = std::make_shared<ToolbarLabeledButton>("Create", Icons::PlusName, false, ToolbarLabeledButton::Variant::Standard, 12.0f);
+        m_ImportBtn = std::make_shared<ToolbarLabeledButton>("Import", "import", false, ToolbarLabeledButton::Variant::Standard, 12.0f);
+        m_SortBtn = std::make_shared<ToolbarLabeledButton>("Sort", "arrow-up-down", true, ToolbarLabeledButton::Variant::Standard, 10.0f);
+        m_SettingsBtn = std::make_shared<ToolbarIconToggle>(Icons::SettingsName, "Settings");
 
-    m_SortBtn = std::make_shared<ToolbarLabeledButton>("Sort", "arrow-up-down", true, ToolbarLabeledButton::Variant::Standard, 10.0f);
-    m_FilterBtn = std::make_shared<ToolbarLabeledButton>("Filter", "filter", true, ToolbarLabeledButton::Variant::Standard, 10.0f);
-    m_ImportBtn = std::make_shared<ToolbarLabeledButton>("Import", "import", false, ToolbarLabeledButton::Variant::Standard, 12.0f);
-    m_CreateBtn = std::make_shared<ToolbarLabeledButton>("Create", Icons::PlusName, false, ToolbarLabeledButton::Variant::Primary, 12.0f);
+        AddChild(m_Breadcrumb);
+        AddChild(m_PreviousBtn);
+        AddChild(m_NextBtn);
+        AddChild(m_CreateBtn);
+        AddChild(m_ImportBtn);
+        AddChild(m_SortBtn);
+        AddChild(m_SettingsBtn);
+    } else {
+        // Asset pane toolbar: search, save all, filter icon
+        m_SearchBox = std::make_shared<SearchBox>();
+        m_SearchBox->SetPlaceholder("Search Assets...");
+        m_SearchBox->SetWidth(kSearchWidth);
 
-    AddChild(m_SearchBox);
-    const std::shared_ptr<Widget> toolbarChildren[] = {
-        m_SortBtn, m_FilterBtn, m_ImportBtn, m_CreateBtn
-    };
-    for (const auto& w : toolbarChildren) {
-        AddChild(w);
+        m_SaveBtn = std::make_shared<ToolbarLabeledButton>("Save All", Icons::SaveAllName, false, ToolbarLabeledButton::Variant::Standard, 12.0f);
+        m_FilterIconBtn = std::make_shared<ToolbarIconToggle>(Icons::FilterName, "Filter");
+
+        AddChild(m_SearchBox);
+        AddChild(m_SaveBtn);
+        AddChild(m_FilterIconBtn);
     }
 }
 
@@ -214,47 +233,91 @@ void ContentBrowserToolbarControls::ArrangeControlRow(const Rect& row, float con
     const float contentWidth = std::max(0.0f, contentRight - contentLeft);
     const Size measureSize{ contentWidth, kControlHeight };
 
-    const std::vector<std::shared_ptr<Widget>> actionButtons = {
-        m_SortBtn, m_FilterBtn, m_ImportBtn
-    };
+    if (m_Mode == ToolbarMode::Full) {
+        // Panel toolbar: breadcrumb, prev/next, create, import, sort, settings
+        const float breadcrumbWidth = std::min(300.0f, contentWidth * 0.4f);
+        m_Breadcrumb->Arrange(Rect{ contentLeft, row.y, breadcrumbWidth, row.height });
 
-    float searchWidth = std::min(kSearchWidth, std::max(320.0f, contentWidth * 0.32f));
+        const float rightAreaStart = contentLeft + breadcrumbWidth + 16.0f;
+        const float rightAreaWidth = contentRight - rightAreaStart;
 
-    float actionsWidth = 0.0f;
-    for (const auto& widget : actionButtons) {
-        actionsWidth += widget->Measure(measureSize).width;
+        const std::vector<std::shared_ptr<Widget>> navButtons = {
+            m_PreviousBtn, m_NextBtn
+        };
+        const std::vector<std::shared_ptr<Widget>> actionButtons = {
+            m_CreateBtn, m_ImportBtn, m_SortBtn
+        };
+
+        float navWidth = 0.0f;
+        for (const auto& widget : navButtons) {
+            navWidth += widget->Measure(measureSize).width + 4.0f;
+        }
+
+        float actionsWidth = 0.0f;
+        for (const auto& widget : actionButtons) {
+            actionsWidth += widget->Measure(measureSize).width + 4.0f;
+        }
+
+        const float settingsWidth = m_SettingsBtn->Measure(measureSize).width;
+        const float fixedWidth = navWidth + kGroupGap + actionsWidth + kGroupGap + settingsWidth;
+
+        float x = rightAreaStart;
+
+        for (const auto& widget : navButtons) {
+            const Size desired = widget->Measure(measureSize);
+            widget->Arrange(Rect{ x, centerY - desired.height * 0.5f, desired.width, desired.height });
+            x += desired.width + 4.0f;
+        }
+        x += kGroupGap;
+
+        for (const auto& widget : actionButtons) {
+            const Size desired = widget->Measure(measureSize);
+            widget->Arrange(Rect{ x, centerY - desired.height * 0.5f, desired.width, desired.height });
+            x += desired.width + 4.0f;
+        }
+
+        const Size settingsSize = m_SettingsBtn->Measure(measureSize);
+        m_SettingsBtn->Arrange(Rect{
+            contentRight - settingsSize.width,
+            centerY - settingsSize.height * 0.5f,
+            settingsSize.width,
+            settingsSize.height
+        });
+    } else {
+        // Asset pane toolbar: search, save all, filter icon
+        float searchWidth = std::min(kSearchWidth, std::max(240.0f, contentWidth * 0.5f));
+
+        const std::vector<std::shared_ptr<Widget>> actionButtons = {
+            m_SaveBtn, m_FilterIconBtn
+        };
+
+        float actionsWidth = 0.0f;
+        for (const auto& widget : actionButtons) {
+            actionsWidth += widget->Measure(measureSize).width + 4.0f;
+        }
+
+        const float fixedWidth = searchWidth + kGroupGap + actionsWidth;
+
+        if (fixedWidth > contentWidth) {
+            searchWidth = std::max(160.0f, contentWidth - (fixedWidth - searchWidth));
+        }
+
+        float x = contentLeft;
+
+        m_SearchBox->Arrange(Rect{
+            x,
+            centerY - kSearchHeight * 0.5f,
+            searchWidth,
+            kSearchHeight
+        });
+        x += searchWidth + kGroupGap;
+
+        for (const auto& widget : actionButtons) {
+            const Size desired = widget->Measure(measureSize);
+            widget->Arrange(Rect{ x, centerY - desired.height * 0.5f, desired.width, desired.height });
+            x += desired.width + 4.0f;
+        }
     }
-
-    const float createWidth = m_CreateBtn->Measure(measureSize).width;
-    const float fixedWidth = searchWidth + kGroupGap + actionsWidth + kGroupGap + createWidth;
-
-    if (fixedWidth > contentWidth) {
-        searchWidth = std::max(200.0f, contentWidth - (fixedWidth - searchWidth));
-    }
-
-    float x = contentLeft;
-
-    m_SearchBox->Arrange(Rect{
-        x,
-        centerY - kSearchHeight * 0.5f,
-        searchWidth,
-        kSearchHeight
-    });
-    x += searchWidth + kGroupGap;
-
-    for (const auto& widget : actionButtons) {
-        const Size desired = widget->Measure(measureSize);
-        widget->Arrange(Rect{ x, centerY - desired.height * 0.5f, desired.width, desired.height });
-        x += desired.width;
-    }
-
-    const Size createSize = m_CreateBtn->Measure(measureSize);
-    m_CreateBtn->Arrange(Rect{
-        contentRight - createSize.width,
-        centerY - createSize.height * 0.5f,
-        createSize.width,
-        createSize.height
-    });
 }
 
 void ContentBrowserToolbarControls::Arrange(const Rect& allottedRect) {
@@ -298,7 +361,12 @@ void ContentBrowserToolbarControls::OnMouseMove(const MouseEvent& event) {
 }
 
 void ContentBrowserToolbarControls::SetOnFilterClicked(std::function<void()> callback) {
-    m_FilterBtn->SetOnClicked(std::move(callback));
+    if (m_FilterBtn) {
+        m_FilterBtn->SetOnClicked(std::move(callback));
+    }
+    if (m_FilterIconBtn) {
+        m_FilterIconBtn->SetOnClicked(std::move(callback));
+    }
 }
 
 void ContentBrowserToolbarControls::SetOnSortClicked(std::function<void()> callback) {
@@ -311,6 +379,41 @@ void ContentBrowserToolbarControls::SetOnImportClicked(std::function<void()> cal
 
 void ContentBrowserToolbarControls::SetOnCreateClicked(std::function<void()> callback) {
     m_CreateBtn->SetOnClicked(std::move(callback));
+}
+
+void ContentBrowserToolbarControls::SetOnViewModeChanged(std::function<void(ContentViewMode)> callback) {
+    m_GridViewBtn->SetOnClicked([this, callback]() {
+        m_GridViewBtn->SetSelected(true);
+        m_ListViewBtn->SetSelected(false);
+        if (callback) callback(ContentViewMode::LargeIcons);
+    });
+    m_ListViewBtn->SetOnClicked([this, callback]() {
+        m_ListViewBtn->SetSelected(true);
+        m_GridViewBtn->SetSelected(false);
+        if (callback) callback(ContentViewMode::List);
+    });
+}
+
+void ContentBrowserToolbarControls::SetOnSettingsClicked(std::function<void()> callback) {
+    m_SettingsBtn->SetOnClicked(std::move(callback));
+}
+
+void ContentBrowserToolbarControls::SetOnSaveClicked(std::function<void()> callback) {
+    if (m_SaveBtn) {
+        m_SaveBtn->SetOnClicked(std::move(callback));
+    }
+}
+
+void ContentBrowserToolbarControls::SetOnPreviousClicked(std::function<void()> callback) {
+    if (m_PreviousBtn) {
+        m_PreviousBtn->SetOnClicked(std::move(callback));
+    }
+}
+
+void ContentBrowserToolbarControls::SetOnNextClicked(std::function<void()> callback) {
+    if (m_NextBtn) {
+        m_NextBtn->SetOnClicked(std::move(callback));
+    }
 }
 
 } // namespace we::UI

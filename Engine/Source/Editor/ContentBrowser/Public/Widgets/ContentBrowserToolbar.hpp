@@ -10,6 +10,7 @@
 namespace we::UI {
 
 class SearchBox;
+class Breadcrumb;
 
 // Square icon toggle for view modes.
 class ToolbarIconToggle : public Widget {
@@ -70,7 +71,12 @@ private:
 // Compact UE5-style toolbar: search and actions.
 class ContentBrowserToolbarControls : public Widget {
 public:
-    static std::shared_ptr<ContentBrowserToolbarControls> Create();
+    enum class ToolbarMode {
+        Full,           // Panel toolbar: breadcrumb, prev/next, create, import, sort, settings
+        AssetPane       // Asset pane toolbar: search, save all, filter icon
+    };
+
+    static std::shared_ptr<ContentBrowserToolbarControls> Create(ToolbarMode mode = ToolbarMode::Full);
 
     Size Measure(const Size& availableSize) override;
     void Arrange(const Rect& allottedRect) override;
@@ -81,22 +87,37 @@ public:
     void OnMouseMove(const MouseEvent& event) override;
 
     std::shared_ptr<SearchBox> GetSearchBox() const { return m_SearchBox; }
+    std::shared_ptr<Breadcrumb> GetBreadcrumb() const { return m_Breadcrumb; }
 
     void SetOnFilterClicked(std::function<void()> callback);
     void SetOnSortClicked(std::function<void()> callback);
     void SetOnImportClicked(std::function<void()> callback);
     void SetOnCreateClicked(std::function<void()> callback);
+    void SetOnSaveClicked(std::function<void()> callback);
+    void SetOnPreviousClicked(std::function<void()> callback);
+    void SetOnNextClicked(std::function<void()> callback);
+    void SetOnViewModeChanged(std::function<void(ContentViewMode)> callback);
+    void SetOnSettingsClicked(std::function<void()> callback);
 
 private:
-    ContentBrowserToolbarControls() = default;
+    ContentBrowserToolbarControls(ToolbarMode mode);
     void InitializeChildren();
     void ArrangeControlRow(const Rect& row, float contentLeft, float contentRight);
 
+    ToolbarMode m_Mode;
+    std::shared_ptr<Breadcrumb> m_Breadcrumb;
     std::shared_ptr<SearchBox> m_SearchBox;
+    std::shared_ptr<ToolbarIconToggle> m_GridViewBtn;
+    std::shared_ptr<ToolbarIconToggle> m_ListViewBtn;
+    std::shared_ptr<ToolbarIconToggle> m_SettingsBtn;
+    std::shared_ptr<ToolbarIconToggle> m_FilterIconBtn;
+    std::shared_ptr<ToolbarIconToggle> m_PreviousBtn;
+    std::shared_ptr<ToolbarIconToggle> m_NextBtn;
     std::shared_ptr<ToolbarLabeledButton> m_SortBtn;
     std::shared_ptr<ToolbarLabeledButton> m_FilterBtn;
     std::shared_ptr<ToolbarLabeledButton> m_ImportBtn;
     std::shared_ptr<ToolbarLabeledButton> m_CreateBtn;
+    std::shared_ptr<ToolbarLabeledButton> m_SaveBtn;
 };
 
 } // namespace we::UI

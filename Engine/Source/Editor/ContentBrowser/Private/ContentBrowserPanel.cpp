@@ -14,6 +14,7 @@
 #include "Services/ContentBrowserService.hpp"
 #include "Registry/ContentAssetRegistry.hpp"
 #include "Controllers/FilterController.hpp"
+#include "Models/ContentBrowserModel.hpp"
 #include <memory>
 #include <sstream>
 
@@ -25,6 +26,7 @@ using we::editor::contentbrowser::AssetRecord;
 using we::editor::contentbrowser::ContentAssetRegistry;
 using we::editor::contentbrowser::ContentBrowserService;
 using we::editor::contentbrowser::ContentFilter;
+using we::UI::ContentViewMode;
 
 std::shared_ptr<we::UI::TreeNode> MakeSection(const std::string& id, const std::string& label,
     const std::string& icon, bool expanded = false)
@@ -93,6 +95,12 @@ void NavigateToFolder(const std::string& virtualPath,
 {
     ContentBrowserService::Get().SetCurrentFolder(virtualPath);
     UpdateBreadcrumb(breadcrumb, virtualPath);
+    
+    // Clear selection when navigating to a new folder
+    if (browser) {
+        browser->ClearSelection();
+    }
+    
     if (statusBar && browser->GetModel()) {
         statusBar->SetAssetCount(browser->GetModel()->assetCount);
         statusBar->SetFolderCount(browser->GetModel()->folderCount);
@@ -152,55 +160,81 @@ std::shared_ptr<we::UI::Panel> CreateContentBrowserPanel() {
         }
     });
 
+    // Panel toolbar with breadcrumb and global actions
+    auto panelToolbar = we::UI::ContentBrowserToolbarControls::Create(we::UI::ContentBrowserToolbarControls::ToolbarMode::Full);
+    auto breadcrumb = panelToolbar->GetBreadcrumb();
+    panel->SetToolbar(panelToolbar);
+
+    // Left sidebar with fixed width (280px) for folder tree
     auto folderTree = std::make_shared<we::UI::TreeView>();
     folderTree->SetExplorerStyle(true);
-    folderTree->SetItemHeight(24.0f);
+    folderTree->SetItemHeight(26.0f);
     folderTree->SetIndentWidth(16.0f);
     folderTree->SetShowRowControls(false);
 
-    auto breadcrumb = std::make_shared<we::UI::Breadcrumb>();
-    auto toolbarControls = we::UI::ContentBrowserToolbarControls::Create();
-
-    panel->SetToolbar(toolbarControls);
-
+    // Right pane: asset browser with its own toolbar (AssetPane mode)
+    auto assetToolbar = we::UI::ContentBrowserToolbarControls::Create(we::UI::ContentBrowserToolbarControls::ToolbarMode::AssetPane);
     auto contentBrowser = std::make_shared<we::UI::ContentBrowser>();
     auto statusBar = std::make_shared<we::UI::ContentBrowserStatusBar>();
 
-    auto centerColumn = std::make_shared<we::UI::VerticalBox>();
-    centerColumn->SetSpacing(0.0f);
-    centerColumn->AddChild(breadcrumb);
-    centerColumn->AddChild(contentBrowser);
-    centerColumn->AddChild(statusBar);
+    // Build right pane: asset toolbar + content browser + status bar
+    auto rightPane = std::make_shared<we::UI::VerticalBox>();
+    rightPane->SetSpacing(0.0f);
+    rightPane->AddChild(assetToolbar);
+    rightPane->AddChild(contentBrowser);
+    rightPane->AddChild(statusBar);
 
-    auto mainSplitter = std::make_shared<we::UI::Splitter>(we::UI::Orientation::Horizontal, 0.22f);
-    mainSplitter->SetFirstChild(folderTree);
-    mainSplitter->SetSecondChild(centerColumn);
-    panel->SetContent(mainSplitter);
+    // Split content area into left (folder tree) and right (asset browser)
+    auto contentSplitter = std::make_shared<we::UI::Splitter>(we::UI::Orientation::Horizontal, 280.0f);
+    contentSplitter->SetFirstChild(folderTree);
+    contentSplitter->SetSecondChild(rightPane);
+    contentSplitter->SetResizeMode(we::UI::Splitter::ResizeMode::FixedFirst);
+    panel->SetContent(contentSplitter);
 
     RefreshFolderTree(folderTree);
     WireContentBrowser(contentBrowser, statusBar, breadcrumb);
     NavigateToFolder(ContentBrowserService::Get().GetCurrentFolder(), contentBrowser, breadcrumb, statusBar);
 
-    toolbarControls->GetSearchBox()->SetOnTextChanged([contentBrowser](const std::string& text) {
+    // Wire up asset toolbar (right pane) - search, save, filter
+    assetToolbar->GetSearchBox()->SetOnTextChanged([contentBrowser](const std::string& text) {
         ContentBrowserService::Get().GetSearchController().SetQuery(text);
         if (contentBrowser->GetModel()) contentBrowser->GetModel()->NotifyChanged();
     });
 
-    toolbarControls->SetOnFilterClicked([contentBrowser]() {
+    assetToolbar->SetOnSaveClicked([]() {
+        // Save all placeholder – layout hook for future save workflow.
+    });
+
+    assetToolbar->SetOnFilterClicked([contentBrowser]() {
         ContentBrowserService::Get().GetFilterController().ToggleFilter(ContentFilter::Textures);
         if (contentBrowser->GetModel()) contentBrowser->GetModel()->NotifyChanged();
     });
 
-    toolbarControls->SetOnSortClicked([]() {
-        // Sort menu placeholder – layout hook for future asset sorting.
+    // Wire up panel toolbar (top) - prev/next, create, import, sort, settings
+    panelToolbar->SetOnPreviousClicked([breadcrumb, contentBrowser, statusBar]() {
+        // Navigate to previous folder in history
+        // Placeholder for navigation history implementation
     });
 
-    toolbarControls->SetOnImportClicked([]() {
+    panelToolbar->SetOnNextClicked([breadcrumb, contentBrowser, statusBar]() {
+        // Navigate to next folder in history
+        // Placeholder for navigation history implementation
+    });
+
+    panelToolbar->SetOnCreateClicked([]() {
+        // Create asset menu placeholder – layout hook for future creation workflow.
+    });
+
+    panelToolbar->SetOnImportClicked([]() {
         // Import dialog placeholder – layout hook for future import workflow.
     });
 
-    toolbarControls->SetOnCreateClicked([]() {
-        // Create asset menu placeholder – layout hook for future creation workflow.
+    panelToolbar->SetOnSortClicked([]() {
+        // Sort menu placeholder – layout hook for future asset sorting.
+    });
+
+    panelToolbar->SetOnSettingsClicked([]() {
+        // Settings menu placeholder – layout hook for future settings workflow.
     });
 
     folderTree->SetOnSelectionChanged([contentBrowser, breadcrumb, statusBar](const std::vector<std::string>& ids) {

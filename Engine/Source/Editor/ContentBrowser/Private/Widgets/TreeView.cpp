@@ -247,7 +247,60 @@ void TreeView::Paint(PaintContext& context) {
                 context.DrawRect(Rect{ cursorX, textY, 1.0f, m_Style.text.size }, theme.TextPrimary);
             }
         } else {
-            context.DrawText(node->label, Point{ textX, textY }, textColor, m_Style.text.size);
+            // Draw text with search highlighting
+            if (!m_SearchQuery.empty()) {
+                const std::string& label = node->label;
+                const std::string& query = m_SearchQuery;
+                
+                // Find match positions
+                size_t matchStart = 0;
+                size_t matchEnd = 0;
+                bool foundMatch = false;
+                
+                // Simple case-insensitive search for highlighting
+                for (size_t i = 0; i <= label.size() - query.size() && !foundMatch; ++i) {
+                    bool matches = true;
+                    for (size_t j = 0; j < query.size(); ++j) {
+                        if (std::tolower(label[i + j]) != std::tolower(query[j])) {
+                            matches = false;
+                            break;
+                        }
+                    }
+                    if (matches) {
+                        matchStart = i;
+                        matchEnd = i + query.size();
+                        foundMatch = true;
+                    }
+                }
+                
+                if (foundMatch) {
+                    // Draw text before match
+                    const std::string beforeMatch = label.substr(0, matchStart);
+                    float currentX = textX;
+                    if (!beforeMatch.empty()) {
+                        context.DrawText(beforeMatch, Point{ currentX, textY }, textColor, m_Style.text.size);
+                        currentX += context.GetTextWidth(beforeMatch, m_Style.text.size);
+                    }
+                    
+                    // Draw highlighted match
+                    const std::string matchText = label.substr(matchStart, matchEnd - matchStart);
+                    const float matchWidth = context.GetTextWidth(matchText, m_Style.text.size);
+                    Rect highlightRect{ currentX, textY, matchWidth, m_Style.text.size };
+                    context.DrawRoundedRect(highlightRect, theme.SelectedAccent * 0.3f, 2.0f);
+                    context.DrawText(matchText, Point{ currentX, textY }, theme.SelectedAccent, m_Style.text.size);
+                    currentX += matchWidth;
+                    
+                    // Draw text after match
+                    const std::string afterMatch = label.substr(matchEnd);
+                    if (!afterMatch.empty()) {
+                        context.DrawText(afterMatch, Point{ currentX, textY }, textColor, m_Style.text.size);
+                    }
+                } else {
+                    context.DrawText(label, Point{ textX, textY }, textColor, m_Style.text.size);
+                }
+            } else {
+                context.DrawText(node->label, Point{ textX, textY }, textColor, m_Style.text.size);
+            }
         }
 
         if (m_ShowRowControls) {
@@ -487,21 +540,77 @@ std::string TreeView::GetSelectedId() const {
 void TreeView::BuildRenderList() {
     m_RenderList.clear();
 
-    std::function<void(const std::shared_ptr<TreeNode>&, int)> buildRecursive =
-        [&](const std::shared_ptr<TreeNode>& node, int depth) {
-            if (node->id != "root") {
-                m_RenderList.push_back({ node, depth, 0, Rect{} });
+    // Fuzzy match helper function
+    auto fuzzyMatch = [](const std::string& text, const std::string& pattern) -> bool {
+        if (pattern.empty()) return true;
+        
+        size_t textIdx = 0;
+        size_t patternIdx = 0;
+        
+        while (textIdx < text.size() && patternIdx < pattern.size()) {
+            if (std::tolower(text[textIdx]) == std::tolower(pattern[patternIdx])) {
+                patternIdx++;
             }
-            if (node->expanded) {
+            textIdx++;
+        }
+        
+        return patternIdx == pattern.size();
+    };
+
+    // Check if node matches filter options
+    auto matchesFilter = [this, fuzzyMatch](const std::shared_ptr<TreeNode>& node) -> bool {
+        // Search query filter
+        if (!m_SearchQuery.empty() && !fuzzyMatch(node->label, m_SearchQuery)) {
+            return false;
+        }
+        
+        // Hidden items filter
+        if (!m_FilterOptions.showHidden && !node->visible) {
+            return false;
+        }
+        
+        // Locked items filter
+        if (!m_FilterOptions.showLocked && node->locked) {
+            return false;
+        }
+        
+        // Empty folders filter
+        if (!m_FilterOptions.showEmptyFolders && node->children.empty() && node->iconName == Icons::FolderName) {
+            return false;
+        }
+        
+        return true;
+    };
+
+    std::function<void(const std::shared_ptr<TreeNode>&, int, bool)> buildRecursive =
+        [&](const std::shared_ptr<TreeNode>& node, int depth, bool parentMatches) {
+            if (node->id != "root") {
+                const bool nodeMatches = matchesFilter(node);
+                const bool shouldShow = nodeMatches || parentMatches;
+                
+                if (shouldShow) {
+                    m_RenderList.push_back({ node, depth, 0, Rect{} });
+                }
+                
+                // Always expand children if searching or if parent matches
+                if (nodeMatches || parentMatches || !m_SearchQuery.empty()) {
+                    for (const auto& child : node->children) {
+                        buildRecursive(child, depth + 1, shouldShow);
+                    }
+                } else if (node->expanded) {
+                    for (const auto& child : node->children) {
+                        buildRecursive(child, depth + 1, false);
+                    }
+                }
+            } else {
+                // Root node - process children
                 for (const auto& child : node->children) {
-                    buildRecursive(child, depth + 1);
+                    buildRecursive(child, 0, false);
                 }
             }
         };
 
-    for (const auto& child : m_Root->children) {
-        buildRecursive(child, 0);
-    }
+    buildRecursive(m_Root, 0, false);
 
     m_ContentHeight = static_cast<float>(m_RenderList.size()) * m_ItemHeight;
 }
@@ -666,6 +775,12 @@ bool TreeView::IsSelected(const std::string& id) const {
 
 int TreeView::GetVisibleRowCount() const {
     return static_cast<int>(std::ceil(m_Geometry.height / m_ItemHeight));
+}
+
+void TreeView::SetSearchQuery(const std::string& query) {
+    m_SearchQuery = query;
+    BuildRenderList();
+    Arrange(m_Geometry);
 }
 
 } // namespace we::UI

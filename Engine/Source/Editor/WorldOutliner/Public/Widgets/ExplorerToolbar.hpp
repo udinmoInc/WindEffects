@@ -8,28 +8,29 @@
 
 namespace we::UI {
 
-class ExplorerPanelHeader : public Widget {
+class ExplorerToolbar : public Widget {
 public:
     static constexpr float kDefaultHeight = 32.0f;
-    static constexpr float kLogoLogicalSize = 16.0f;
 
+    // Use TreeView's FilterOptions for consistency
     using FilterOptions = TreeView::FilterOptions;
 
-    ExplorerPanelHeader();
+    ExplorerToolbar();
 
     Size Measure(const Size& availableSize) override;
     void Arrange(const Rect& allottedRect) override;
     void Paint(PaintContext& context) override;
-    void Tick(float deltaTime) override;
 
     void OnMouseDown(const MouseEvent& event) override;
     void OnMouseMove(const MouseEvent& event) override;
     void OnMouseUp(const MouseEvent& event) override;
     void OnKeyDown(const KeyEvent& event) override;
     void OnTextInput(const std::string& text);
+    void Tick(float deltaTime) override;
     bool ShowsPointerCursor(const Point& position) const override;
 
     // Geometry getters for menu positioning
+    Rect GetGeometry() const { return m_Geometry; }
     Rect GetFilterButtonGeometry() const { return m_FilterButtonGeometry; }
 
     // Search functionality
@@ -47,9 +48,10 @@ public:
     void SetFilterOptions(const FilterOptions& options) { m_FilterOptions = options; }
 
 private:
-    struct HeaderButton {
+    struct ToolbarButton {
         std::string iconName;
         Rect geometry;
+        bool enabled = true;
     };
 
     void PaintToolbarButton(PaintContext& context, const Rect& geometry, 
