@@ -6,9 +6,23 @@
 
 namespace we::UI {
 
+namespace {
+constexpr float kSearchHeight = 35.0f;
+constexpr float kCornerRadius = 6.0f;
+constexpr float kPadH = 11.0f;
+constexpr float kFontSize = 13.0f;
+constexpr Color kSearchText{ 0.816f, 0.816f, 0.816f, 1.0f };       // #D0D0D0
+constexpr Color kSearchPlaceholder{ 0.502f, 0.502f, 0.502f, 1.0f }; // #808080
+constexpr Color kSearchBorder{ 0.22f, 0.22f, 0.24f, 1.0f };
+constexpr Color kSearchBorderFocus{ 0.35f, 0.37f, 0.40f, 1.0f };
+constexpr Color kSearchBackground{ 0.125f, 0.125f, 0.13f, 1.0f };
+} // namespace
+
 SearchBox::SearchBox()
     : m_Style(WidgetStyle::TextBox())
-{}
+{
+    m_Height = kSearchHeight;
+}
 
 Size SearchBox::Measure(const Size& availableSize) {
     float w = m_FillWidth ? availableSize.width : m_Width;
@@ -17,53 +31,39 @@ Size SearchBox::Measure(const Size& availableSize) {
 }
 
 void SearchBox::Arrange(const Rect& allottedRect) {
-    float h = std::min(m_Height, allottedRect.height);
-    float y = allottedRect.y + (allottedRect.height - h) * 0.5f;
+    const float h = std::min(m_Height, allottedRect.height);
+    const float y = allottedRect.y + (allottedRect.height - h) * 0.5f;
     m_Geometry = Rect{ allottedRect.x, y, allottedRect.width, h };
 }
 
 void SearchBox::Paint(PaintContext& context) {
-    // Draw background – slightly lighter than toolbar for definition
-    Color bgColor = Color{ 0.137f, 0.137f, 0.137f, 1.0f }; // #232323
+    context.DrawRoundedRect(m_Geometry, kSearchBackground, kCornerRadius);
 
-    const float cornerRadius = 4.0f; // 4px – matches button/dropdown radius
-    context.DrawRoundedRect(m_Geometry, bgColor, cornerRadius);
-
-    // Border: slightly brighter than toolbar to define the field
-    Color borderColor = Color{ 0.235f, 0.235f, 0.235f, 1.0f }; // #3C3C3C
+    Color borderColor = kSearchBorder;
     if (IsFocused()) {
-        borderColor = Color{ 0.431f, 0.455f, 0.490f, 1.0f }; // #6E747D focused
+        borderColor = kSearchBorderFocus;
     }
-    context.DrawRoundedRectOutline(m_Geometry, borderColor, 1.0f, cornerRadius);
+    context.DrawRoundedRectOutline(m_Geometry, borderColor, 1.0f, kCornerRadius);
 
-    // Search icon – 12px from left edge, vertically centered
-    float iconSize = 14.0f;
-    float iconX = m_Geometry.x + 12.0f;
-    float iconY = m_Geometry.y + (m_Geometry.height - iconSize) / 2.0f;
+    const float iconSize = 14.0f;
+    const float iconX = m_Geometry.x + kPadH;
+    const float iconY = m_Geometry.y + (m_Geometry.height - iconSize) * 0.5f;
+    IconPainter::DrawIcon(context, Icons::SearchName, Rect{ iconX, iconY, iconSize, iconSize }, kSearchPlaceholder);
 
-    Rect iconRect{ iconX, iconY, iconSize, iconSize };
-    IconPainter::DrawIcon(context, Icons::SearchName, iconRect, Color{0.478f, 0.478f, 0.478f, 1.0f});
-
-    // Draw text or placeholder
     Rect textRect = GetTextRect();
 
     if (m_Text.empty()) {
-        Color placeholderColor = Theme::Get().SearchPlaceholder;
-        context.DrawText(m_Placeholder, Point{ textRect.x, textRect.y }, placeholderColor, 12.0f);
+        context.DrawText(m_Placeholder, Point{ textRect.x, textRect.y }, kSearchPlaceholder, kFontSize);
     } else {
-        context.DrawText(m_Text, Point{ textRect.x, textRect.y }, Theme::Get().TextPrimary, 12.0f);
+        context.DrawText(m_Text, Point{ textRect.x, textRect.y }, kSearchText, kFontSize, true);
 
-        // Draw caret if focused
         if (IsFocused() && m_ShowCaret) {
-            float caretX = textRect.x + context.GetTextWidth(m_Text.substr(0, m_CaretPosition), 12.0f);
-            float caretY = textRect.y;
-            float caretHeight = 12.0f;
-            Rect caretRect{ caretX, caretY, 1.5f, caretHeight };
-            context.DrawRect(caretRect, Theme::Get().TextPrimary);
+            const float caretX = textRect.x + context.GetTextWidth(m_Text.substr(0, m_CaretPosition), kFontSize);
+            Rect caretRect{ caretX, textRect.y, 1.5f, kFontSize };
+            context.DrawRect(caretRect, kSearchText);
         }
     }
 
-    // Draw clear button if text exists
     if (!m_Text.empty()) {
         Rect clearRect = GetClearButtonRect();
         IconPainter::DrawIcon(context, Icons::XName, clearRect, Theme::Get().TextSecondary);
@@ -72,7 +72,6 @@ void SearchBox::Paint(PaintContext& context) {
 
 void SearchBox::OnMouseDown(const MouseEvent& event) {
     if (event.button == MouseButton::Left) {
-        // Check if clicked on clear button
         if (!m_Text.empty()) {
             Rect clearRect = GetClearButtonRect();
             if (event.position.x >= clearRect.x && event.position.x <= clearRect.x + clearRect.width &&
@@ -81,47 +80,42 @@ void SearchBox::OnMouseDown(const MouseEvent& event) {
                 return;
             }
         }
-        
-        // Set focus and move caret
+
         Rect textRect = GetTextRect();
         float clickX = event.position.x - textRect.x;
-        
-        // Find closest character position
+
         float minDist = FLT_MAX;
         size_t closestPos = 0;
-        
+
         for (size_t i = 0; i <= m_Text.length(); ++i) {
-            float charX = m_Style.text.size * 0.6f * i; // Approximate character width
+            float charX = kFontSize * 0.58f * static_cast<float>(i);
             float dist = std::abs(clickX - charX);
-            
+
             if (dist < minDist) {
                 minDist = dist;
                 closestPos = i;
             }
         }
-        
+
         m_CaretPosition = closestPos;
     }
 }
 
 void SearchBox::OnMouseMove(const MouseEvent& event) {
-    // Hover state handled by EventSystem
+    (void)event;
 }
 
 void SearchBox::OnKeyDown(const KeyEvent& event) {
     if (!IsFocused()) return;
-    
+
     if (event.type == KeyEventType::KeyDown) {
-        // Handle character input
         if (event.keycode >= 32 && event.keycode <= 126) {
             m_Text.insert(m_CaretPosition, 1, static_cast<char>(event.keycode));
             m_CaretPosition++;
             if (m_OnTextChanged) {
                 m_OnTextChanged(m_Text);
             }
-        }
-        // Handle backspace
-        else if (event.keycode == SDLK_BACKSPACE) {
+        } else if (event.keycode == SDLK_BACKSPACE) {
             if (m_CaretPosition > 0) {
                 m_Text.erase(m_CaretPosition - 1, 1);
                 m_CaretPosition--;
@@ -129,34 +123,24 @@ void SearchBox::OnKeyDown(const KeyEvent& event) {
                     m_OnTextChanged(m_Text);
                 }
             }
-        }
-        // Handle delete
-        else if (event.keycode == SDLK_DELETE) {
+        } else if (event.keycode == SDLK_DELETE) {
             if (m_CaretPosition < m_Text.length()) {
                 m_Text.erase(m_CaretPosition, 1);
                 if (m_OnTextChanged) {
                     m_OnTextChanged(m_Text);
                 }
             }
-        }
-        // Handle left arrow
-        else if (event.keycode == SDLK_LEFT) {
+        } else if (event.keycode == SDLK_LEFT) {
             if (m_CaretPosition > 0) {
                 m_CaretPosition--;
             }
-        }
-        // Handle right arrow
-        else if (event.keycode == SDLK_RIGHT) {
+        } else if (event.keycode == SDLK_RIGHT) {
             if (m_CaretPosition < m_Text.length()) {
                 m_CaretPosition++;
             }
-        }
-        // Handle home
-        else if (event.keycode == SDLK_HOME) {
+        } else if (event.keycode == SDLK_HOME) {
             m_CaretPosition = 0;
-        }
-        // Handle end
-        else if (event.keycode == SDLK_END) {
+        } else if (event.keycode == SDLK_END) {
             m_CaretPosition = m_Text.length();
         }
     }
@@ -184,24 +168,22 @@ void SearchBox::UpdateCaretBlink(float deltaTime) {
 }
 
 Rect SearchBox::GetTextRect() const {
-    const float iconSize   = 14.0f;
-    const float iconWidth  = 12.0f + iconSize + 8.0f;
-    const float clearW     = m_Text.empty() ? 0.0f : 28.0f;
-    const float rightPad   = 12.0f;
-    const float textH      = 12.0f;
+    const float iconWidth = kPadH + 14.0f + 8.0f;
+    const float clearW = m_Text.empty() ? 0.0f : 28.0f;
+    const float rightPad = kPadH;
     return Rect{
         m_Geometry.x + iconWidth,
-        m_Geometry.y + (m_Geometry.height - textH) / 2.0f,
+        m_Geometry.y + (m_Geometry.height - kFontSize) * 0.5f,
         std::max(0.0f, m_Geometry.width - iconWidth - clearW - rightPad),
-        textH
+        kFontSize
     };
 }
 
 Rect SearchBox::GetClearButtonRect() const {
-    float clearSize = 16.0f;
+    const float clearSize = 16.0f;
     return Rect{
-        m_Geometry.x + m_Geometry.width - clearSize - 12.0f,
-        m_Geometry.y + (m_Geometry.height - clearSize) / 2.0f,
+        m_Geometry.x + m_Geometry.width - clearSize - kPadH,
+        m_Geometry.y + (m_Geometry.height - clearSize) * 0.5f,
         clearSize,
         clearSize
     };
@@ -215,4 +197,4 @@ void SearchBox::SetText(const std::string& text) {
     }
 }
 
-} // namespace we::editor::contentbrowser::UI
+} // namespace we::UI

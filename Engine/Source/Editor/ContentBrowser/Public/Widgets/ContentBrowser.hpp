@@ -76,9 +76,10 @@ private:
         float thumbSize = 88.0f;
         float labelLineHeight = 14.0f;
         float labelLines = 2.0f;
-        float hSpacing = 12.0f;
-        float vSpacing = 12.0f;
-        float padding =  16.0f;
+        float labelGap = 6.0f;
+        float hSpacing = 8.0f;
+        float vSpacing = 8.0f;
+        float padding = 16.0f;
     };
 
     void BuildRenderList();

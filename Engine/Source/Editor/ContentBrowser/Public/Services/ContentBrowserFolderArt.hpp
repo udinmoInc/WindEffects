@@ -21,15 +21,18 @@ public:
     void Initialize(we::UI::IconRenderer* iconRenderer);
     void InvalidateCache();
 
-    static constexpr float kThumbnailWidthFill = 0.825f;
-    static constexpr float kThumbnailHeightFill = 0.725f;
-    static constexpr float kFolderAspectRatio = 1.138f; // Assets/Editor/Folder.svg viewBox
+    static constexpr float kThumbnailWidthFill = 0.90f;
+    static constexpr float kThumbnailHeightFill = 0.90f;
+    static constexpr float kSmallIconWidthFill = 0.98f;
+    static constexpr float kSmallIconHeightFill = 0.98f;
+    static constexpr float kFolderAspectRatio = 1.138f; // Assets/Editor/Folder.svg (231 / 203)
 
     void PaintThumbnail(we::UI::PaintContext& context, const we::UI::Rect& thumbRect, bool hovered) const;
     void PaintSmallIcon(we::UI::PaintContext& context, const we::UI::Rect& iconRect, bool hovered) const;
 
     static we::UI::Rect ComputeFolderRect(const we::UI::Rect& bounds,
-        float widthFill = kThumbnailWidthFill, float heightFill = kThumbnailHeightFill);
+        float widthFill = kThumbnailWidthFill, float heightFill = kThumbnailHeightFill,
+        bool alignBottom = true);
 
 private:
     VkDescriptorSet GetTexture(uint32_t heightPx, bool hovered) const;

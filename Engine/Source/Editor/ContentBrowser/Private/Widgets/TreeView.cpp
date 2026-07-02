@@ -1,9 +1,10 @@
 #include "Widgets/TreeView.hpp"
 #include "Layout/OverlayManager.hpp"
+#include "Services/ContentBrowserFolderArt.hpp"
+#include "Services/ContentBrowserBlueprintArt.hpp"
 #include "Core/PaintContext.hpp"
 #include "Core/Theme.hpp"
 #include "Core/Icon.hpp"
-#include "Core/IconManager.hpp"
 #include <algorithm>
 #include <cmath>
 #include <functional>
@@ -12,6 +13,35 @@
 namespace we::UI {
 
 namespace {
+
+using we::editor::contentbrowser::ContentBrowserBlueprintArt;
+using we::editor::contentbrowser::ContentBrowserFolderArt;
+
+bool IsFolderIconName(const std::string& iconName) {
+    return iconName == Icons::FolderName;
+}
+
+bool IsBlueprintIconName(const std::string& iconName) {
+    return iconName == "blueprint";
+}
+
+void PaintTreeNodeIcon(PaintContext& context, const TreeNode& node, const Rect& iconRect, bool hovered) {
+    if (node.iconTexture != VK_NULL_HANDLE) {
+        context.DrawTexture(iconRect, node.iconTexture);
+        return;
+    }
+    if (IsFolderIconName(node.iconName)) {
+        ContentBrowserFolderArt::Get().PaintSmallIcon(context, iconRect, hovered);
+        return;
+    }
+    if (IsBlueprintIconName(node.iconName)) {
+        ContentBrowserBlueprintArt::Get().PaintSmallIcon(context, iconRect, hovered);
+        return;
+    }
+    if (!node.iconName.empty()) {
+        IconPainter::DrawIcon(context, node.iconName, iconRect, Theme::Get().TextPrimary);
+    }
+}
 
 struct TreeMenuItem {
     std::string label;
@@ -190,21 +220,15 @@ void TreeView::Paint(PaintContext& context) {
             IconPainter::DrawIcon(context, chevronIcon, Rect{ chevronX, chevronY, chevronSize, chevronSize }, theme.TextSecondary);
         }
 
+        const float iconSize = 16.0f;
+        const float iconX = item.geometry.x + 18.0f;
         if (!node->iconName.empty() || node->iconTexture != VK_NULL_HANDLE) {
-            const float iconSize = 14.0f;
-            const float iconX = item.geometry.x + 18.0f;
             const float iconY = item.geometry.y + (m_ItemHeight - iconSize) * 0.5f;
             Rect iconRect{ iconX, iconY, iconSize, iconSize };
-            if (node->iconTexture != VK_NULL_HANDLE) {
-                context.DrawTexture(iconRect, node->iconTexture);
-            } else if (node->iconName == IconManager::FolderIcon) {
-                IconManager::Get().PaintFolderListIcon(context, iconRect, node->id == m_HoveredId);
-            } else {
-                IconPainter::DrawIcon(context, node->iconName, iconRect, theme.TextPrimary);
-            }
+            PaintTreeNodeIcon(context, *node, iconRect, node->id == m_HoveredId);
         }
 
-        const float textX = item.geometry.x + 38.0f;
+        const float textX = iconX + iconSize + 6.0f;
         const float textY = item.geometry.y + (m_ItemHeight - m_Style.text.size) * 0.5f;
         Color textColor = node->locked ? theme.TextSecondary * 0.6f : theme.TextPrimary;
         if (!node->visible) {

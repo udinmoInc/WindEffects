@@ -3,9 +3,9 @@
 #include "ContentBrowserApi.h"
 #include "Widgets/Panel.hpp"
 #include "Widgets/ContentBrowser.hpp"
+#include "Widgets/ContentBrowserToolbar.hpp"
 #include "Widgets/SearchBox.hpp"
 #include "Widgets/TreeView.hpp"
-#include "Widgets/Button.hpp"
 #include "Layout/Box.hpp"
 #include "Layout/Splitter.hpp"
 #include "Core/Icon.hpp"
@@ -157,41 +157,17 @@ std::shared_ptr<we::UI::Panel> CreateContentBrowserPanel() {
     folderTree->SetItemHeight(22.0f);
 
     auto breadcrumb = std::make_shared<we::UI::Breadcrumb>();
-    auto searchBox = std::make_shared<we::UI::SearchBox>();
-    searchBox->SetFillWidth(true);
-    searchBox->SetPlaceholder("Search current folder...");
-
-    auto viewLargeBtn = std::make_shared<we::UI::Button>("L");
-    auto viewMedBtn = std::make_shared<we::UI::Button>("M");
-    auto viewSmallBtn = std::make_shared<we::UI::Button>("S");
-    auto viewListBtn = std::make_shared<we::UI::Button>("List");
-    auto viewDetailsBtn = std::make_shared<we::UI::Button>("Details");
-    auto filterBtn = std::make_shared<we::UI::Button>("Filter");
-    auto importBtn = std::make_shared<we::UI::Button>("Import");
-    auto addBtn = std::make_shared<we::UI::Button>("+");
+    auto toolbarControls = we::UI::ContentBrowserToolbarControls::Create();
 
     auto toolbarRow = std::make_shared<we::UI::HorizontalBox>();
     toolbarRow->SetPadding(we::UI::Margin{ 0.0f, 0.0f, 0.0f, 0.0f });
     toolbarRow->SetSpacing(0.0f);
     toolbarRow->AddChild(breadcrumb);
 
-    auto toolbarRow2 = std::make_shared<we::UI::HorizontalBox>();
-    toolbarRow2->SetPadding(we::UI::Margin{ 8.0f, 6.0f, 8.0f, 6.0f });
-    toolbarRow2->SetSpacing(4.0f);
-    toolbarRow2->AddChild(searchBox);
-    toolbarRow2->AddChild(viewLargeBtn);
-    toolbarRow2->AddChild(viewMedBtn);
-    toolbarRow2->AddChild(viewSmallBtn);
-    toolbarRow2->AddChild(viewListBtn);
-    toolbarRow2->AddChild(viewDetailsBtn);
-    toolbarRow2->AddChild(filterBtn);
-    toolbarRow2->AddChild(importBtn);
-    toolbarRow2->AddChild(addBtn);
-
     auto toolbarColumn = std::make_shared<we::UI::VerticalBox>();
     toolbarColumn->SetSpacing(0.0f);
     toolbarColumn->AddChild(toolbarRow);
-    toolbarColumn->AddChild(toolbarRow2);
+    toolbarColumn->AddChild(toolbarControls);
     panel->SetToolbar(toolbarColumn);
 
     auto contentBrowser = std::make_shared<we::UI::ContentBrowser>();
@@ -211,19 +187,31 @@ std::shared_ptr<we::UI::Panel> CreateContentBrowserPanel() {
     WireContentBrowser(contentBrowser, statusBar, breadcrumb);
     NavigateToFolder(ContentBrowserService::Get().GetCurrentFolder(), contentBrowser, breadcrumb, statusBar);
 
-    searchBox->SetOnTextChanged([contentBrowser](const std::string& text) {
+    toolbarControls->GetSearchBox()->SetOnTextChanged([contentBrowser](const std::string& text) {
         ContentBrowserService::Get().GetSearchController().SetQuery(text);
         if (contentBrowser->GetModel()) contentBrowser->GetModel()->NotifyChanged();
     });
 
-    viewLargeBtn->SetOnClicked([contentBrowser]() { contentBrowser->SetViewMode(we::UI::ContentViewMode::LargeIcons); });
-    viewMedBtn->SetOnClicked([contentBrowser]() { contentBrowser->SetViewMode(we::UI::ContentViewMode::MediumIcons); });
-    viewSmallBtn->SetOnClicked([contentBrowser]() { contentBrowser->SetViewMode(we::UI::ContentViewMode::SmallIcons); });
-    viewListBtn->SetOnClicked([contentBrowser]() { contentBrowser->SetViewMode(we::UI::ContentViewMode::List); });
-    viewDetailsBtn->SetOnClicked([contentBrowser]() { contentBrowser->SetViewMode(we::UI::ContentViewMode::Details); });
-    filterBtn->SetOnClicked([contentBrowser]() {
+    toolbarControls->SetOnViewModeChanged([contentBrowser, toolbarControls](we::UI::ContentViewMode mode) {
+        contentBrowser->SetViewMode(mode);
+        toolbarControls->SetViewMode(mode);
+    });
+
+    toolbarControls->SetOnFilterClicked([contentBrowser]() {
         ContentBrowserService::Get().GetFilterController().ToggleFilter(ContentFilter::Textures);
         if (contentBrowser->GetModel()) contentBrowser->GetModel()->NotifyChanged();
+    });
+
+    toolbarControls->SetOnSortClicked([]() {
+        // Sort menu placeholder – layout hook for future asset sorting.
+    });
+
+    toolbarControls->SetOnImportClicked([]() {
+        // Import dialog placeholder – layout hook for future import workflow.
+    });
+
+    toolbarControls->SetOnCreateClicked([]() {
+        // Create asset menu placeholder – layout hook for future creation workflow.
     });
 
     folderTree->SetOnSelectionChanged([contentBrowser, breadcrumb, statusBar](const std::vector<std::string>& ids) {

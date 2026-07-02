@@ -47,35 +47,36 @@ ContentViewMode ContentBrowser::GetEffectiveViewMode() const {
 
 ContentBrowser::GridMetrics ContentBrowser::GetGridMetrics() const {
     GridMetrics m;
-    m.padding = 14.0f;
+    m.padding = 16.0f;
     m.hSpacing = 12.0f;
-    m.vSpacing = 12.0f;
+    m.vSpacing = 8.0f;
     m.labelLineHeight = 13.0f;
+    m.labelGap = 6.0f;
 
     switch (GetEffectiveViewMode()) {
         case ContentViewMode::LargeIcons:
-            m.cellWidth = 92.0f;
-            m.thumbSize = 64.0f;
+            m.thumbSize = 80.0f;
+            m.cellWidth = 86.0f;
             m.labelLines = 2.0f;
-            m.cellHeight = m.thumbSize + m.labelLineHeight * m.labelLines + 10.0f;
+            m.cellHeight = m.thumbSize + m.labelGap + m.labelLineHeight * m.labelLines + 2.0f;
             break;
         case ContentViewMode::MediumIcons:
-            m.cellWidth = 80.0f;
-            m.thumbSize = 52.0f;
+            m.thumbSize = 65.0f;
+            m.cellWidth = 72.0f;
             m.labelLines = 2.0f;
-            m.cellHeight = m.thumbSize + m.labelLineHeight * m.labelLines + 8.0f;
+            m.cellHeight = m.thumbSize + m.labelGap + m.labelLineHeight * m.labelLines + 2.0f;
             break;
         case ContentViewMode::SmallIcons:
-            m.cellWidth = 68.0f;
-            m.thumbSize = 44.0f;
+            m.thumbSize = 55.0f;
+            m.cellWidth = 62.0f;
             m.labelLines = 1.0f;
-            m.cellHeight = m.thumbSize + m.labelLineHeight + 8.0f;
+            m.cellHeight = m.thumbSize + m.labelGap + m.labelLineHeight + 2.0f;
             break;
         case ContentViewMode::Tiles:
-            m.cellWidth = 140.0f;
-            m.thumbSize = 88.0f;
+            m.thumbSize = 110.0f;
+            m.cellWidth = 118.0f;
             m.labelLines = 2.0f;
-            m.cellHeight = m.thumbSize + m.labelLineHeight * 2.0f + 24.0f;
+            m.cellHeight = m.thumbSize + m.labelGap + m.labelLineHeight * 2.0f + 18.0f;
             break;
         default:
             break;
@@ -284,12 +285,12 @@ std::vector<std::string> ContentBrowser::WrapLabelText(
 
 void ContentBrowser::PaintItemLabel(PaintContext& context, const Rect& cell, const std::string& name, float maxWidth, int maxLines) {
     const auto& theme = Theme::Get();
+    const GridMetrics metrics = GetGridMetrics();
     const float fontSize = theme.TextSizeSmall;
-    const float lineH = 13.0f;
+    const float lineH = metrics.labelLineHeight;
     const int lineCount = GetEffectiveViewMode() == ContentViewMode::SmallIcons ? 1 : maxLines;
 
-    const float labelBlockHeight = lineH * static_cast<float>(lineCount);
-    const float labelTop = cell.y + cell.height - labelBlockHeight - 2.0f;
+    const float labelTop = cell.y + metrics.thumbSize + metrics.labelGap;
 
     const auto lines = WrapLabelText(context, name, maxWidth, fontSize, lineCount);
     for (size_t i = 0; i < lines.size(); ++i) {
@@ -306,7 +307,15 @@ void ContentBrowser::PaintGridItem(PaintContext& context, const RenderItem& rend
     const bool hovered = item.id == m_HoveredId;
     const float hoverAlpha = hovered ? m_ItemHoverAlpha : 0.0f;
 
-    PaintTileChrome(context, renderItem.geometry, selected, hoverAlpha);
+    const GridMetrics metrics = GetGridMetrics();
+    const float selectionPad = (metrics.cellWidth - metrics.thumbSize) * 0.5f;
+    const Rect selectionRect{
+        renderItem.thumbGeometry.x - selectionPad,
+        renderItem.thumbGeometry.y - selectionPad,
+        renderItem.thumbGeometry.width + selectionPad * 2.0f,
+        renderItem.thumbGeometry.height + selectionPad * 2.0f
+    };
+    PaintTileChrome(context, selectionRect, selected, hoverAlpha);
     PaintAssetThumbnail(context, renderItem.thumbGeometry, item, selected, hovered);
 
     const int labelLines = GetEffectiveViewMode() == ContentViewMode::SmallIcons ? 1 : 2;
@@ -612,11 +621,9 @@ void ContentBrowser::CalculateGridLayout() {
 
         const float thumbSize = m.thumbSize;
         const float thumbX = cellX + (m.cellWidth - thumbSize) * 0.5f;
-        const float labelBlock = m.labelLineHeight * m.labelLines + 6.0f;
-        const float thumbY = cellY + 2.0f;
 
         m_RenderList[i].geometry = Rect{ cellX, cellY, m.cellWidth, m.cellHeight };
-        m_RenderList[i].thumbGeometry = Rect{ thumbX, thumbY, thumbSize, m.cellHeight - labelBlock - 2.0f };
+        m_RenderList[i].thumbGeometry = Rect{ thumbX, cellY, thumbSize, thumbSize };
     }
 }
 
@@ -633,14 +640,13 @@ void ContentBrowser::CalculateTilesLayout() {
         const float cellX = x + col * (m.cellWidth + m.hSpacing);
         const float cellY = y + row * (m.cellHeight + m.vSpacing);
         const float thumbSize = m.thumbSize;
-        const float labelBlock = m.labelLineHeight * 2.0f + 20.0f;
 
         m_RenderList[i].geometry = Rect{ cellX, cellY, m.cellWidth, m.cellHeight };
         m_RenderList[i].thumbGeometry = Rect{
             cellX + (m.cellWidth - thumbSize) * 0.5f,
-            cellY + 4.0f,
+            cellY,
             thumbSize,
-            m.cellHeight - labelBlock
+            thumbSize
         };
     }
 }
