@@ -98,9 +98,10 @@ WindEffects/
 │   │       ├── IgniteBT/         # Build tool implementation
 │   │       └── Scripts/          # Optional install helpers (install-we.*)
 │
-├── we                            # Cross-platform CLI entry (bash)
-├── we.bat                        # Windows CMD entry
-├── we.ps1                        # Windows PowerShell entry
+├── WindEffects.engine              # Workspace marker read by the we launcher
+├── we                            # Cross-platform CLI bootstrap (bash)
+├── we.bat                        # Windows CMD bootstrap
+├── we.ps1                        # Windows PowerShell bootstrap
 │   ├── ThirdParty/
 │   ├── Content/
 │   └── Config/
@@ -223,7 +224,7 @@ dotnet build Engine/Source/Programs/IgniteBT/IgniteBT.csproj -c Debug
 we build --config Debug
 ```
 
-Repository-root launchers (`we`, `we.bat`, `we.ps1`) contain no build logic — they only locate and invoke IgniteBT. All build logic lives in `Engine/Source/Programs/IgniteBT`.
+Repository-root launchers (`we`, `we.bat`, `we.ps1`) are permanent thin bootstrappers. They search upward for `WindEffects.engine`, load `Build/Manifest/bootstrap.manifest`, resolve the requested tool dynamically, and forward every argument unchanged. IgniteBT regenerates the bootstrap manifest on every execution. All commands and build logic live in IgniteBT.
 
 ### Directory layout
 

@@ -1,7 +1,5 @@
 using Serilog;
-using IgniteBT.SDK;
 using IgniteBT.Launcher;
-using IgniteBT.BuildSystem;
 
 namespace IgniteBT.Commands;
 
@@ -15,24 +13,35 @@ public static class DoctorCommand
 
         try
         {
-            var location = EngineInstallation.Resolve();
-            Log.Information("Project root: {ProjectRoot}", location.ProjectRoot);
-            Log.Information("Engine root: {EngineRoot}", location.EngineRoot);
+            var descriptor = BootstrapLauncher.ResolveDescriptor();
+            Log.Information("Engine root: {EngineRoot}", descriptor.EngineRoot);
+            Log.Information("Engine version: {Version}", descriptor.EngineVersion);
+            Log.Information("Programs root: {ProgramsRoot}", descriptor.ProgramsRoot);
+            Log.Information("Build root: {BuildRoot}", descriptor.BuildRoot);
+
+            BootstrapManifest.Refresh(descriptor);
+            if (BootstrapManifest.TryLoad(descriptor.BootstrapManifestPath, out var manifest))
+            {
+                Log.Information("Bootstrap manifest: {Path}", descriptor.BootstrapManifestPath);
+                Log.Information("Registered tools: {Count}", manifest.Tools.Count);
+                foreach (var tool in manifest.Tools.Values.OrderBy(static t => t.Name, StringComparer.OrdinalIgnoreCase))
+                {
+                    var target = BootstrapManifest.IsToolRunnable(tool)
+                        ? tool.ExecutablePath
+                        : tool.SourcePath;
+                    Log.Information("  - {Name} ({Kind}) -> {Target}", tool.Name, tool.Kind, target);
+                }
+            }
+            else
+            {
+                Log.Warning("Bootstrap manifest is missing or invalid");
+                issues++;
+            }
         }
         catch (Exception ex)
         {
             Log.Error("Engine location: FAILED ({Message})", ex.Message);
             issues++;
-        }
-
-        var igniteBt = TryResolveIgniteBt();
-        if (igniteBt == null)
-        {
-            Log.Warning("IgniteBT binary: not built (will fall back to `dotnet run`)");
-        }
-        else
-        {
-            Log.Information("IgniteBT binary: {Path}", igniteBt);
         }
 
         if (FindDotNetExecutable() == null)
@@ -45,8 +54,8 @@ public static class DoctorCommand
             Log.Information(".NET SDK: available");
         }
 
-        SDKManager.Instance.Initialize();
-        var sdks = await SDKManager.Instance.DetectAllAsync();
+        SDK.SDKManager.Instance.Initialize();
+        var sdks = await SDK.SDKManager.Instance.DetectAllAsync();
         Log.Information("SDKs detected: {Count}", sdks.Count);
 
         foreach (var sdk in sdks.Values.OrderBy(s => s.Name, StringComparer.OrdinalIgnoreCase))
@@ -70,20 +79,6 @@ public static class DoctorCommand
 
         Log.Warning("Doctor: found {Count} issue(s)", issues);
         return 1;
-    }
-
-    private static string? TryResolveIgniteBt()
-    {
-        try
-        {
-            var location = EngineInstallation.Resolve();
-            var executable = EngineInstallation.ResolveIgniteBtExecutable(location);
-            return string.IsNullOrWhiteSpace(executable) ? null : executable;
-        }
-        catch
-        {
-            return null;
-        }
     }
 
     private static string? FindDotNetExecutable()

@@ -9,8 +9,10 @@ class Program
 {
     static async Task<int> Main(string[] args)
     {
-        var projectRoot = BuildLayout.FindProjectRoot(Directory.GetCurrentDirectory()) ?? Directory.GetCurrentDirectory();
-        var logDirectory = Path.Combine(projectRoot, "Build", "Logs");
+        var descriptor = BootstrapLauncher.ResolveDescriptor();
+        BootstrapManifest.Refresh(descriptor);
+
+        var logDirectory = Path.Combine(descriptor.BuildRoot, "Logs");
         Directory.CreateDirectory(logDirectory);
 
         Log.Logger = new LoggerConfiguration()

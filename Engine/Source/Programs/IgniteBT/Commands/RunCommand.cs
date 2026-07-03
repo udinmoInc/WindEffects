@@ -20,7 +20,7 @@ public static class RunCommand
         {
             var location = EngineInstallation.Resolve();
             var buildConfig = ParseConfiguration(config);
-            var layout = new BuildLayout(location.ProjectRoot, GetCurrentPlatform(), buildConfig);
+            var layout = new BuildLayout(location.Descriptor.EngineRoot, GetCurrentPlatform(), buildConfig);
             var outputRoot = layout.PlatformOutputRoot;
 
             var executableName = target.ToLowerInvariant() switch
