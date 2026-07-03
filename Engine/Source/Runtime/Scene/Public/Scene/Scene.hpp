@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Scene/Export.hpp"
 #include "Entity.hpp"
 #if WE_HAS_VULKAN
 #include "Renderer/VulkanContext.hpp"
@@ -13,32 +14,32 @@ namespace we::runtime::scene {
 class Scene {
 public:
 #if WE_HAS_VULKAN
-    Scene(const std::shared_ptr<we::runtime::renderer::VulkanContext>& context, const std::shared_ptr<we::runtime::renderer::SceneRenderer>& renderer);
+    SCENE_API Scene(const std::shared_ptr<we::runtime::renderer::VulkanContext>& context, const std::shared_ptr<we::runtime::renderer::SceneRenderer>& renderer);
 #else
-    Scene();
+    SCENE_API Scene();
 #endif
-    ~Scene();
+    SCENE_API ~Scene();
 
     // Prevent copying
     Scene(const Scene&) = delete;
     Scene& operator=(const Scene&) = delete;
 
 #if WE_HAS_VULKAN
-    void SetCameraBuffer(VkBuffer cameraBuffer);
-    bool IsCameraBufferAssigned() const;
+    SCENE_API void SetCameraBuffer(VkBuffer cameraBuffer);
+    SCENE_API bool IsCameraBufferAssigned() const;
 #endif
 
-    void CreateEntity(const std::string& name, EntityType type);
-    bool HasEntityOfType(EntityType type) const;
-    bool HasEntityNamed(const std::string& name) const;
-    int FindEntityIndexById(std::uint64_t id) const;
-    int FindEntityIndexByName(const std::string& name) const;
-    Entity* FindEntityById(std::uint64_t id);
-    const Entity* FindEntityById(std::uint64_t id) const;
-    std::vector<int> FindChildIndices(std::uint64_t parentId) const;
-    bool IsEmpty() const;
-    void Clear();
-    void DestroyEntity(size_t index);
+    SCENE_API void CreateEntity(const std::string& name, EntityType type);
+    SCENE_API bool HasEntityOfType(EntityType type) const;
+    SCENE_API bool HasEntityNamed(const std::string& name) const;
+    SCENE_API int FindEntityIndexById(std::uint64_t id) const;
+    SCENE_API int FindEntityIndexByName(const std::string& name) const;
+    SCENE_API Entity* FindEntityById(std::uint64_t id);
+    SCENE_API const Entity* FindEntityById(std::uint64_t id) const;
+    SCENE_API std::vector<int> FindChildIndices(std::uint64_t parentId) const;
+    SCENE_API bool IsEmpty() const;
+    SCENE_API void Clear();
+    SCENE_API void DestroyEntity(size_t index);
 
     std::vector<Entity>& GetEntities() { return m_Entities; }
     const std::vector<Entity>& GetEntities() const { return m_Entities; }
@@ -46,14 +47,14 @@ public:
     int GetSelectedEntityIndex() const { return m_SelectedEntityIndex; }
     void SetSelectedEntityIndex(int index) { m_SelectedEntityIndex = index; }
 
-    void Update();
+    SCENE_API void Update();
 
 #if WE_HAS_VULKAN
     enum class DrawMode {
         Editor,
         Game
     };
-    void Draw(VkCommandBuffer cmd, DrawMode drawMode = DrawMode::Editor) const;
+    SCENE_API void Draw(VkCommandBuffer cmd, DrawMode drawMode = DrawMode::Editor) const;
 #endif
 
 private:
