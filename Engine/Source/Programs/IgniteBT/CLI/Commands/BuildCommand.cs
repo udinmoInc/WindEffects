@@ -446,6 +446,9 @@ public static class BuildCommand
         {
             ObjectFiles = objectFiles,
             OutputFile = linkOutputFile,
+            ImportLibrary = linkTargetType == LinkTargetType.SharedLibrary
+                ? outputLayout.GetImportLibraryPath(node.Module)
+                : null,
             TargetType = linkTargetType,
             Configuration = config,
             Platform = ParsePlatform(platform),
@@ -498,7 +501,12 @@ public static class BuildCommand
             {
                 var sdlLib = sdkInfo.LibraryPaths
                     .SelectMany(dir => Directory.Exists(dir) ? Directory.GetFiles(dir, "SDL3*.lib") : Array.Empty<string>())
-                    .FirstOrDefault(path => Path.GetFileName(path).StartsWith("SDL3", StringComparison.OrdinalIgnoreCase));
+                    .FirstOrDefault(path =>
+                    {
+                        var libFile = Path.GetFileName(path);
+                        return libFile.Equals("SDL3-static.lib", StringComparison.OrdinalIgnoreCase)
+                            || libFile.Equals("SDL3.lib", StringComparison.OrdinalIgnoreCase);
+                    });
 
                 if (sdlLib != null)
                 {

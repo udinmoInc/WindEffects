@@ -73,11 +73,12 @@ public class SDL3Provider : BaseSDKProvider
 
         var libDirs = new[]
         {
+            Path.Combine(path, "build-shared", "Release"),
+            Path.Combine(path, "build", "Release"),
             Path.Combine(path, "lib", "x64"),
             Path.Combine(path, "lib"),
             Path.Combine(path, "Lib", "x64"),
             Path.Combine(path, "Lib"),
-            Path.Combine(path, "build", "Release"),
             Path.Combine(path, "build")
         };
 
