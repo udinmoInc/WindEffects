@@ -1,12 +1,16 @@
 #pragma once
 
 #include "Entity.hpp"
+#if WE_HAS_VULKAN
 #include "Renderer/VulkanContext.hpp"
+#endif
 #include "Renderer/SceneRenderer.hpp"
 #include <vector>
 #include <memory>
 
 namespace we::runtime::scene {
+
+#if WE_HAS_VULKAN
 
 class Scene {
 public:
@@ -54,5 +58,7 @@ private:
     std::vector<Entity> m_Entities;
     int m_SelectedEntityIndex = -1;
 };
+
+#endif // WE_HAS_VULKAN
 
 } // namespace we::runtime::scene

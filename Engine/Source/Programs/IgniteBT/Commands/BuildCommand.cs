@@ -7,6 +7,9 @@ using IgniteBT.BuildCacheSystem;
 using IgniteBT.Scheduler;
 using IgniteBT.Linker;
 using IgniteBT.Toolchain;
+using IgniteBT.SDK;
+using IgniteBT.Dependencies;
+using IgniteBT.ThirdParty;
 using BuildTaskScheduler = IgniteBT.Scheduler.TaskScheduler;
 
 namespace IgniteBT.Commands;
@@ -45,12 +48,38 @@ public static class BuildCommand
             // Detect and setup toolchain once for all modules
             var detectedCompiler = ToolchainDetector.DetectCompiler();
             Log.Information("Detected compiler: {Type} v{Version} at {Path}", detectedCompiler.Type, detectedCompiler.Version, detectedCompiler.Path);
+
+            // Resolve all dependencies (SDKs, third-party libraries)
+            var dependencyResolver = new DependencyResolver();
+            var dependencyResult = await dependencyResolver.ResolveAsync();
+            
+            // Log dependency resolution results
+            foreach (var warning in dependencyResult.Warnings)
+            {
+                Log.Warning(warning);
+            }
+            
+            foreach (var error in dependencyResult.Errors)
+            {
+                Log.Error(error);
+            }
+            
+            if (!dependencyResult.Success)
+            {
+                Log.Error("Dependency resolution failed");
+                return 1;
+            }
+            
+            Log.Information("Resolved {SDKCount} SDKs and {LibCount} third-party libraries", 
+                dependencyResult.SDKs.Count, dependencyResult.ThirdPartyLibraries.Count);
+            Log.Information("Generated {FlagCount} feature flags", dependencyResult.FeatureFlags.Count);
             
             // Parse configuration
             var buildConfig = ParseConfiguration(config);
             
             // Discover modules
             var discovery = new ModuleDiscoverer(engineDir);
+            discovery.SetDependencyResult(dependencyResult);
             var modules = await discovery.DiscoverModulesAsync();
             
             if (modules.Count == 0)
@@ -92,7 +121,7 @@ public static class BuildCommand
                     Name = $"Build {node.Name}",
                     Dependencies = node.Dependencies.Select(d => d.Name).ToList(),
                     ModuleNode = node,
-                    Work = () => BuildModule(node, buildConfig, platform, engineDir, cache, depScanner, detectedCompiler, msvcEnvVars)
+                    Work = () => BuildModule(node, buildConfig, platform, engineDir, cache, depScanner, detectedCompiler, dependencyResult, graph)
                 };
                 
                 scheduler.AddTask(task);
@@ -127,7 +156,7 @@ public static class BuildCommand
     }
 
     private static async Task BuildModule(BuildNode node, BuildConfiguration config, string platform, 
-        string engineDir, BuildCache cache, DependencyScanner depScanner, DetectedCompiler detectedCompiler, Dictionary<string, string>? msvcEnvVars)
+        string engineDir, BuildCache cache, DependencyScanner depScanner, DetectedCompiler detectedCompiler, DependencyResolutionResult dependencyResult, DependencyGraph buildGraph)
     {
         Log.Information("Building module: {ModuleName}", node.Name);
         
@@ -166,10 +195,10 @@ public static class BuildCommand
             msvcCompiler.SetExecutablePath(detectedCompiler.Path);
         }
 
-        // Set the environment variables if available
-        if (msvcEnvVars != null && compiler is MSVCCompiler msvcCompilerWithEnv)
+        // Set the vcvarsall.bat path if available
+        if (!string.IsNullOrEmpty(detectedCompiler.VcVarsAllPath) && compiler is MSVCCompiler msvcCompilerWithVcVars)
         {
-            msvcCompilerWithEnv.SetEnvironmentVariables(msvcEnvVars);
+            msvcCompilerWithVcVars.SetVcVarsAllPath(detectedCompiler.VcVarsAllPath);
         }
 
         // Select linker based on detected toolchain
@@ -180,6 +209,37 @@ public static class BuildCommand
             CompilerType.Clang => new LLDLinker(),
             _ => new MSVCLinker()
         };
+
+        // Set linker executable path if available
+        if (linker is MSVCLinker msvcLinker && !string.IsNullOrEmpty(detectedCompiler.Path))
+        {
+            var linkPath = Path.Combine(Path.GetDirectoryName(detectedCompiler.Path)!, "link.exe");
+            Log.Debug("Attempting to set linker path: {LinkPath}", linkPath);
+            if (File.Exists(linkPath))
+            {
+                msvcLinker.SetExecutablePath(linkPath);
+                Log.Information("Set linker executable path: {LinkPath}", linkPath);
+            }
+            else
+            {
+                Log.Warning("link.exe not found at: {LinkPath}", linkPath);
+            }
+
+            // Pass vcvarsall.bat information to linker
+            if (!string.IsNullOrEmpty(detectedCompiler.VcVarsAllPath))
+            {
+                msvcLinker.SetVcVarsAllPath(detectedCompiler.VcVarsAllPath);
+                Log.Debug("Set linker vcvarsall.bat path: {VcVarsPath}", detectedCompiler.VcVarsAllPath);
+            }
+        }
+        
+        // Check linker availability
+        if (!linker.IsAvailable())
+        {
+            Log.Warning("Linker {LinkerName} is not available - skipping linking", linker.Name);
+            Log.Information("Module {ModuleName} build skipped (linker not available)", node.Name);
+            return;
+        }
         
         // Check compiler availability
         if (detectedCompiler.Type == CompilerType.None || !compiler.IsAvailable())
@@ -229,8 +289,8 @@ public static class BuildCommand
                     SourceFile = sourceFile,
                     OutputFile = objectFile,
                     Configuration = config,
-                    Platform = ParsePlatform(platform),
-                    Architecture = TargetArchitecture.x64,
+                    Platform = IgniteBT.Compiler.TargetPlatform.Windows,
+                    Architecture = IgniteBT.Compiler.TargetArchitecture.x64,
                     CppStandard = "C++20",
                     IncludeDirectories = new List<string>
                     {
@@ -240,6 +300,63 @@ public static class BuildCommand
                     GenerateDebugInfo = config == BuildConfiguration.Debug,
                     EnableOptimizations = config != BuildConfiguration.Debug
                 };
+
+                // Add SDK include paths
+                foreach (var (sdkName, sdkInfo) in dependencyResult.SDKs)
+                {
+                    foreach (var includePath in sdkInfo.IncludePaths)
+                    {
+                        if (!compileOptions.IncludeDirectories.Contains(includePath))
+                        {
+                            compileOptions.IncludeDirectories.Add(includePath);
+                        }
+                    }
+                }
+                
+                // Add third-party library include paths
+                foreach (var (libName, libInfo) in dependencyResult.ThirdPartyLibraries)
+                {
+                    foreach (var includePath in libInfo.IncludePaths)
+                    {
+                        if (!compileOptions.IncludeDirectories.Contains(includePath))
+                        {
+                            compileOptions.IncludeDirectories.Add(includePath);
+                        }
+                    }
+                }
+                
+                // Add module dependency public include paths
+                foreach (var depName in node.Module.PublicDependencies.Concat(node.Module.PrivateDependencies))
+                {
+                    var depModule = buildGraph.Nodes.FirstOrDefault(n => n.Name == depName);
+                    if (depModule != null)
+                    {
+                        var depPublicInclude = Path.Combine(engineDir, "Source", depModule.Module.ModuleDirectory, "Public");
+                        if (Directory.Exists(depPublicInclude) && !compileOptions.IncludeDirectories.Contains(depPublicInclude))
+                        {
+                            compileOptions.IncludeDirectories.Add(depPublicInclude);
+                        }
+                    }
+                }
+                
+                // Add feature flags as compiler definitions
+                foreach (var (flagName, flagValue) in dependencyResult.FeatureFlags)
+                {
+                    var definition = $"{flagName}={flagValue}";
+                    if (!compileOptions.Definitions.Contains(definition))
+                    {
+                        compileOptions.Definitions.Add(definition);
+                    }
+                }
+                
+                // Add module-specific definitions
+                foreach (var definition in node.Module.Definitions)
+                {
+                    if (!compileOptions.Definitions.Contains(definition))
+                    {
+                        compileOptions.Definitions.Add(definition);
+                    }
+                }
                 
                 var result = await compiler.CompileAsync(compileOptions);
                 
@@ -274,10 +391,27 @@ public static class BuildCommand
             TargetType = LinkTargetType.SharedLibrary,
             Configuration = config,
             Platform = ParsePlatform(platform),
-            Architecture = TargetArchitecture.x64,
+            Architecture = IgniteBT.Compiler.TargetArchitecture.x64,
             GenerateDebugInfo = config == BuildConfiguration.Debug,
-            WorkingDirectory = outputDir
+            WorkingDirectory = outputDir,
+            LibraryDirectories = new List<string>(),
+            Libraries = new List<string>()
         };
+        
+        // Add Windows SDK library paths from dependency resolution
+        if (dependencyResult.SDKs.TryGetValue("WindowsSDK", out var windowsSdkInfo))
+        {
+            foreach (var libPath in windowsSdkInfo.LibraryPaths)
+            {
+                linkOptions.LibraryDirectories.Add(libPath);
+                linkOptions.LibraryDirectories.Add(Path.Combine(libPath, "um"));
+                linkOptions.LibraryDirectories.Add(Path.Combine(libPath, "ucrt"));
+            }
+        }
+        
+        // Add dbghelp.lib for crash reporting
+        linkOptions.Libraries.Add("dbghelp.lib");
+        linkOptions.Libraries.Add("psapi.lib");
         
         var linkResult = await linker.LinkAsync(linkOptions);
         
@@ -307,14 +441,14 @@ public static class BuildCommand
         return sourceFiles;
     }
 
-    private static TargetPlatform ParsePlatform(string platform)
+    private static IgniteBT.Compiler.TargetPlatform ParsePlatform(string platform)
     {
         return platform.ToLowerInvariant() switch
         {
-            "windows" => TargetPlatform.Windows,
-            "linux" => TargetPlatform.Linux,
-            "mac" or "macos" => TargetPlatform.MacOS,
-            _ => TargetPlatform.Windows
+            "windows" => IgniteBT.Compiler.TargetPlatform.Windows,
+            "linux" => IgniteBT.Compiler.TargetPlatform.Linux,
+            "mac" or "macos" => IgniteBT.Compiler.TargetPlatform.MacOS,
+            _ => IgniteBT.Compiler.TargetPlatform.Windows
         };
     }
 

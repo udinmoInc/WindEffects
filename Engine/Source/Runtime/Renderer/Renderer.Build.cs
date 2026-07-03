@@ -14,6 +14,11 @@ public class Renderer : ModuleRules
         Dependencies.Add("RHI");
         Dependencies.Add("Engine");
 
+        // Add Vulkan SDK as optional dependency
+        OptionalSDK("Vulkan");
+        DefineIf(HasSDK("Vulkan"), "WE_HAS_VULKAN=1");
+        DefineIf(!HasSDK("Vulkan"), "WE_HAS_VULKAN=0");
+
         Definitions.Add("RENDERER_EXPORTS");
     }
 }

@@ -1,11 +1,15 @@
 #pragma once
 
+#if WE_HAS_VULKAN
 #include "Renderer/VulkanContext.hpp"
 #include "Renderer/Framebuffer.hpp"
 #include <volk.h>
+#endif
+#if WE_HAS_GLM
+#include <glm/glm.hpp>
+#endif
 #include <vector>
 #include <memory>
-#include <glm/glm.hpp>
 
 namespace we::runtime::renderer {
 

@@ -1,11 +1,15 @@
 #include "EditorCamera.hpp"
 
+#if WE_HAS_GLM
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/ext/matrix_clip_space.hpp>
+#endif
 #include <algorithm>
 #include <cmath>
 
 namespace we::runtime::engine {
+
+#if WE_HAS_GLM
 
 EditorCamera::EditorCamera() {
     Reset();
@@ -29,22 +33,33 @@ void EditorCamera::SetCameraSpeed(float speed) {
 void EditorCamera::Reset() {
     m_FlyMode = false;
     m_FreeLook = false;
-    m_TargetLookAt = glm::vec3(0.0f);
+    m_SavedOrbitPivot = glm::vec3(0.0f);
+    m_MoveSpeed = kDefaultCameraSpeed;
+    m_Sensitivity = 0.15f;
+    m_LerpSpeed = 12.0f;
+    m_Acceleration = 1.0f;
+    m_BoostMultiplier = 4.0f;
+    m_SlowMultiplier = 0.25f;
+    m_ScrollWheelSpeedMultiplier = 1.0f;
+    m_InvertX = false;
+    m_InvertY = false;
+    m_Position = glm::vec3(0.0f, 6.0f, 15.0f);
+    m_LookAt = glm::vec3(0.0f, 0.0f, 0.0f);
+    m_Pitch = -15.0f;
+    m_Yaw = -90.0f;
+    m_Distance = 15.0f;
+    m_TargetPosition = glm::vec3(0.0f, 6.0f, 15.0f);
+    m_TargetLookAt = glm::vec3(0.0f, 0.0f, 0.0f);
+    m_TargetPitch = -15.0f;
+    m_TargetYaw = -90.0f;
     m_TargetDistance = 15.0f;
-    m_TargetPitch = -20.0f;
-    m_TargetYaw = -135.0f;
-
-    m_LookAt = m_TargetLookAt;
-    m_Distance = m_TargetDistance;
-    m_Pitch = m_TargetPitch;
-    m_Yaw = m_TargetYaw;
-
-    UpdateOrbitPositionFromAngles();
-    m_Position = m_TargetPosition;
+    m_Fov = 45.0f;
+    m_AspectRatio = 1.777f;
+    m_Near = 0.1f;
+    m_Far = 100000.0f;
 }
 
 void EditorCamera::SetOrbitPivot(const glm::vec3& pivot) {
-    m_SavedOrbitPivot = pivot;
     m_TargetLookAt = pivot;
     if (!m_FlyMode && !m_FreeLook) {
         UpdateOrbitPositionFromAngles();
@@ -328,5 +343,137 @@ float EditorCamera::GetGridLodDistance() const {
     }
     return std::max(m_Distance, 0.5f);
 }
+
+#else // !WE_HAS_GLM
+
+// Stub implementations when GLM is not available
+EditorCamera::EditorCamera() {
+    // Initialize with default values
+    m_Position = glm::vec3{0.0f, 6.0f, 15.0f};
+    m_LookAt = glm::vec3{0.0f, 0.0f, 0.0f};
+    m_Pitch = -15.0f;
+    m_Yaw = -90.0f;
+    m_Distance = 15.0f;
+    m_Fov = 45.0f;
+    m_AspectRatio = 1.777f;
+    m_Near = 0.1f;
+    m_Far = 100000.0f;
+    m_MoveSpeed = kDefaultCameraSpeed;
+}
+
+void EditorCamera::SetNavigationSettings(const EditorCameraNavigationSettings& settings) {
+    (void)settings; // Suppress unused parameter warning
+}
+
+void EditorCamera::SetCameraSpeed(float speed) {
+    m_MoveSpeed = std::clamp(speed, kMinCameraSpeed, kMaxCameraSpeed);
+}
+
+void EditorCamera::Reset() {
+    // Stub
+}
+
+void EditorCamera::SetOrbitPivot(const glm::vec3& pivot) {
+    (void)pivot; // Suppress unused parameter warning
+}
+
+void EditorCamera::Focus(const glm::vec3& target) {
+    (void)target; // Suppress unused parameter warning
+}
+
+void EditorCamera::SetViewportSize(float width, float height) {
+    if (height > 0.0f) {
+        m_AspectRatio = width / height;
+    }
+}
+
+void EditorCamera::EnterFlyMode() {
+    m_FlyMode = true;
+}
+
+void EditorCamera::ExitFlyMode() {
+    m_FlyMode = false;
+}
+
+void EditorCamera::ResumeOrbitNavigation() {
+    // Stub
+}
+
+void EditorCamera::Update(float dt) {
+    (void)dt; // Suppress unused parameter warning
+}
+
+void EditorCamera::ProcessFlyLook(float dx, float dy) {
+    (void)dx; // Suppress unused parameter warning
+    (void)dy; // Suppress unused parameter warning
+}
+
+void EditorCamera::ProcessMouseOrbit(float dx, float dy) {
+    (void)dx; // Suppress unused parameter warning
+    (void)dy; // Suppress unused parameter warning
+}
+
+void EditorCamera::ProcessMousePan(float dx, float dy) {
+    (void)dx; // Suppress unused parameter warning
+    (void)dy; // Suppress unused parameter warning
+}
+
+void EditorCamera::ProcessMouseDolly(float delta) {
+    (void)delta; // Suppress unused parameter warning
+}
+
+void EditorCamera::ProcessMouseScroll(float yoffset) {
+    (void)yoffset; // Suppress unused parameter warning
+}
+
+void EditorCamera::ProcessFlyMovement(const bool* keys, float dt) {
+    (void)keys; // Suppress unused parameter warning
+    (void)dt; // Suppress unused parameter warning
+}
+
+void EditorCamera::AdjustFlySpeed(float wheelDeltaY) {
+    (void)wheelDeltaY; // Suppress unused parameter warning
+}
+
+glm::mat4 EditorCamera::GetViewMatrix() const {
+    glm::mat4 result{};
+    // Identity matrix stub
+    result.data[0] = 1.0f;
+    result.data[5] = 1.0f;
+    result.data[10] = 1.0f;
+    result.data[15] = 1.0f;
+    return result;
+}
+
+glm::mat4 EditorCamera::GetProjectionMatrix() const {
+    glm::mat4 result{};
+    // Identity matrix stub
+    result.data[0] = 1.0f;
+    result.data[5] = 1.0f;
+    result.data[10] = 1.0f;
+    result.data[15] = 1.0f;
+    return result;
+}
+
+glm::vec3 EditorCamera::GetForward() const {
+    glm::vec3 result{0.0f, 0.0f, -1.0f};
+    return result;
+}
+
+glm::vec3 EditorCamera::GetRight() const {
+    glm::vec3 result{1.0f, 0.0f, 0.0f};
+    return result;
+}
+
+glm::vec3 EditorCamera::GetUp() const {
+    glm::vec3 result{0.0f, 1.0f, 0.0f};
+    return result;
+}
+
+float EditorCamera::GetGridLodDistance() const {
+    return 10.0f;
+}
+
+#endif // WE_HAS_GLM
 
 } // namespace we::runtime::engine

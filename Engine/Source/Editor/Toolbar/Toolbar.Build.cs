@@ -11,6 +11,7 @@ public class Toolbar : ModuleRules
 
         Dependencies.Add("Core");
         Dependencies.Add("Menus");
+        Dependencies.Add("Application");
 
         Definitions.Add("TOOLBAR_EXPORTS");
     }

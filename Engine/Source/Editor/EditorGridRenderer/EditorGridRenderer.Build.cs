@@ -12,6 +12,7 @@ public class EditorGridRenderer : ModuleRules
         Dependencies.Add("Core");
         Dependencies.Add("RHI");
         Dependencies.Add("Renderer");
+        Dependencies.Add("Application");
 
         Definitions.Add("EDITORGRIDRENDERER_EXPORTS");
     }

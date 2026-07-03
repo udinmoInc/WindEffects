@@ -1,7 +1,20 @@
 #pragma once
 
+#if WE_HAS_GLM
 #include <glm/glm.hpp>
+#else
+// Fallback simple math types when GLM is not available
+struct glm_vec3 { float x, y, z; };
+struct glm_mat4 { float data[16]; };
+namespace glm {
+    using vec3 = glm_vec3;
+    using mat4 = glm_mat4;
+}
+#endif
+
+#if WE_HAS_SDL3
 #include <SDL3/SDL.h>
+#endif
 
 namespace we::runtime::engine {
 

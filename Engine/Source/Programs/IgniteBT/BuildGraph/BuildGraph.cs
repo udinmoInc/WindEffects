@@ -52,6 +52,11 @@ public class DependencyGraph
     private readonly Dictionary<string, BuildNode> _nodes = new();
 
     /// <summary>
+    /// Gets all nodes in the graph.
+    /// </summary>
+    public IReadOnlyCollection<BuildNode> Nodes => _nodes.Values.ToList().AsReadOnly();
+
+    /// <summary>
     /// Builds the dependency graph from discovered modules.
     /// </summary>
     public void BuildFromModules(List<DiscoveredModule> modules)

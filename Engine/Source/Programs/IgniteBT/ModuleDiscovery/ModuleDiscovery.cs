@@ -2,6 +2,7 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Serilog;
 using IgniteBT.BuildSystem;
+using IgniteBT.Dependencies;
 
 namespace IgniteBT.ModuleDiscovery;
 
@@ -12,10 +13,19 @@ public class ModuleDiscoverer
 {
     private readonly string _engineDirectory;
     private readonly List<DiscoveredModule> _modules = new();
+    private DependencyResolutionResult? _dependencyResult;
 
     public ModuleDiscoverer(string engineDirectory)
     {
         _engineDirectory = engineDirectory;
+    }
+
+    /// <summary>
+    /// Sets the dependency resolution result.
+    /// </summary>
+    public void SetDependencyResult(DependencyResolutionResult result)
+    {
+        _dependencyResult = result;
     }
 
     /// <summary>
@@ -99,8 +109,30 @@ public class ModuleDiscoverer
                 return;
             }
 
-            // Create module context
+            // Create module context with dependency information
             var context = new ModuleContext(_engineDirectory, "Release", "Windows", "x64");
+            
+            if (_dependencyResult != null)
+            {
+                // Set available SDKs
+                var availableSDKs = new Dictionary<string, bool>();
+                foreach (var (name, sdk) in _dependencyResult.SDKs)
+                {
+                    availableSDKs[name] = sdk.IsValid;
+                }
+                context.SetAvailableSDKs(availableSDKs);
+                
+                // Set available third-party libraries
+                var availableThirdParty = new Dictionary<string, bool>();
+                foreach (var (name, lib) in _dependencyResult.ThirdPartyLibraries)
+                {
+                    availableThirdParty[name] = lib.IsValid;
+                }
+                context.SetAvailableThirdParty(availableThirdParty);
+                
+                // Set feature flags
+                context.SetFeatureFlags(_dependencyResult.FeatureFlags);
+            }
             
             // Instantiate the module
             var moduleInstance = (ModuleRules?)Activator.CreateInstance(moduleType, context);
@@ -126,8 +158,35 @@ public class ModuleDiscoverer
                 PrivateDependencies = new List<string>(moduleInstance.PrivateDependencies),
                 PublicIncludePaths = new List<string>(moduleInstance.PublicIncludePaths),
                 PrivateIncludePaths = new List<string>(moduleInstance.PrivateIncludePaths),
-                SourceFiles = new List<string>(moduleInstance.SourceFiles)
+                SourceFiles = new List<string>(moduleInstance.SourceFiles),
+                RequiredSDKs = new List<string>(moduleInstance.RequiredSDKs),
+                OptionalSDKs = new List<string>(moduleInstance.OptionalSDKs),
+                RequiredThirdParty = new List<string>(moduleInstance.RequiredThirdParty),
+                OptionalThirdParty = new List<string>(moduleInstance.OptionalThirdParty),
+                IsDisabled = moduleInstance.IsDisabled,
+                Definitions = new List<string>(moduleInstance.Definitions)
             };
+
+            // Skip disabled modules
+            if (discoveredModule.IsDisabled)
+            {
+                Log.Information("Module {Name} is disabled, skipping", moduleName);
+                return;
+            }
+
+            // Check required SDKs
+            if (_dependencyResult != null)
+            {
+                foreach (var requiredSDK in discoveredModule.RequiredSDKs)
+                {
+                    if (!_dependencyResult.SDKs.TryGetValue(requiredSDK, out var sdk) || !sdk.IsValid)
+                    {
+                        Log.Error("Module {Name} requires SDK {SDK} which is not available", moduleName, requiredSDK);
+                        discoveredModule.IsDisabled = true;
+                        return;
+                    }
+                }
+            }
 
             _modules.Add(discoveredModule);
             Log.Information("Loaded module: {Name} with {DepCount} dependencies", moduleName, 
@@ -227,4 +286,34 @@ public class DiscoveredModule
     /// Source files.
     /// </summary>
     public List<string> SourceFiles { get; set; } = new();
+
+    /// <summary>
+    /// Required SDKs.
+    /// </summary>
+    public List<string> RequiredSDKs { get; set; } = new();
+
+    /// <summary>
+    /// Optional SDKs.
+    /// </summary>
+    public List<string> OptionalSDKs { get; set; } = new();
+
+    /// <summary>
+    /// Required third-party libraries.
+    /// </summary>
+    public List<string> RequiredThirdParty { get; set; } = new();
+
+    /// <summary>
+    /// Optional third-party libraries.
+    /// </summary>
+    public List<string> OptionalThirdParty { get; set; } = new();
+
+    /// <summary>
+    /// Whether this module is disabled.
+    /// </summary>
+    public bool IsDisabled { get; set; }
+
+    /// <summary>
+    /// Compiler definitions.
+    /// </summary>
+    public List<string> Definitions { get; set; } = new();
 }

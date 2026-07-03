@@ -14,6 +14,7 @@ public class Viewport : ModuleRules
         Dependencies.Add("Renderer");
         Dependencies.Add("Engine");
         Dependencies.Add("Scene");
+        Dependencies.Add("Application");
 
         Definitions.Add("VIEWPORT_EXPORTS");
     }

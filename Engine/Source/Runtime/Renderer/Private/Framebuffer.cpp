@@ -1,5 +1,8 @@
 #include "Renderer/Framebuffer.hpp"
 #include "Core/Logger.hpp"
+
+#if WE_HAS_VULKAN
+
 #include <stdexcept>
 #include <array>
 #include <iostream>
@@ -147,3 +150,5 @@ void Framebuffer::DestroyResources() {
 }
 
 } // namespace we::runtime::renderer
+
+#endif // WE_HAS_VULKAN

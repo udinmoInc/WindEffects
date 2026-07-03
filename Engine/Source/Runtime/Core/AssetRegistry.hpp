@@ -4,14 +4,24 @@
 #include <string_view>
 #include <unordered_map>
 #include <vector>
+
+#if WE_HAS_VULKAN
 #include <volk.h>
+#endif
 
 namespace we::core {
 
+#if WE_HAS_VULKAN
 struct AssetTexture {
     VkImageView view = VK_NULL_HANDLE;
     VkSampler sampler = VK_NULL_HANDLE;
 };
+#else
+struct AssetTexture {
+    void* view = nullptr;
+    void* sampler = nullptr;
+};
+#endif
 
 struct AssetLoadResult {
     std::string name;
@@ -23,7 +33,11 @@ class AssetRegistry {
 public:
     static AssetRegistry& Get();
 
+#if WE_HAS_VULKAN
     void RegisterTexture(std::string_view name, VkImageView view, VkSampler sampler);
+#else
+    void RegisterTexture(std::string_view name, void* view, void* sampler);
+#endif
     AssetTexture GetTexture(std::string_view name) const;
 
     void RegisterFontPath(std::string_view name, std::string_view resolvedPath);

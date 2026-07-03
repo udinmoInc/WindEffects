@@ -3,6 +3,7 @@
 
 namespace we::editor::mainframe {
 
+#if WE_HAS_SDL3
 SDL_HitTestResult SDLCALL EditorWindowHitTest(SDL_Window* window, const SDL_Point* area, void* userdata) {
     if (!window || !area) {
         return SDL_HITTEST_NORMAL;
@@ -36,5 +37,6 @@ SDL_HitTestResult SDLCALL EditorWindowHitTest(SDL_Window* window, const SDL_Poin
 
     return SDL_HITTEST_NORMAL;
 }
+#endif
 
 } // namespace we::editor::mainframe
