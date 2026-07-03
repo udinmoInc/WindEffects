@@ -112,7 +112,21 @@ WindEffects/
 ├── Output/
 │   └── Win64/
 │       ├── Debug/
-│       └── Release/
+│       ├── Development/
+│       └── Shipping/
+│           ├── WindeffectsEditor.exe
+│           ├── WECore.dll
+│           ├── WECoreUObject.dll
+│           ├── WEEngine.dll
+│           ├── Runtime/
+│           │   └── Renderer/
+│           │       └── WERenderer.dll
+│           ├── Editor/
+│           │   └── ContentBrowser/
+│           │       └── WEContentBrowser.dll
+│           ├── Config/
+│           ├── Content/
+│           └── Resources/
 │
 ├── Assets/
 ├── Scripts/
@@ -174,7 +188,7 @@ Build/IgniteBT/Debug/net8.0/IgniteBT.exe clean --config Debug
 | `Engine/Source/` | Human-authored source code only |
 | `Engine/ThirdParty/` | Third-party library sources (e.g. GLM) |
 | `Build/` | Intermediate artifacts: objects, PDBs, cache, logs |
-| `Output/Win64/Debug/` | Final binaries: `.dll`, `.exe`, import `.lib` |
+| `Output/Win64/Debug/` | Final binaries in a modular layout (bootstrap DLLs and entry EXEs at the configuration root) |
 
 ---
 

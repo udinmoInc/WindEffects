@@ -44,9 +44,6 @@ public sealed class BuildLayout
     public string GetModuleGeneratedDirectory(string moduleName) =>
         Path.Combine(GeneratedRoot, moduleName);
 
-    public string GetModuleOutputPath(string moduleName, string extension) =>
-        Path.Combine(PlatformOutputRoot, moduleName + extension);
-
     public string GetModuleProgramDatabasePath(string moduleName) =>
         Path.Combine(ProgramDatabaseRoot, moduleName + ".pdb");
 
@@ -129,7 +126,7 @@ public sealed class BuildLayout
     public static string GetConfigurationFolderName(BuildConfiguration configuration) =>
         configuration switch
         {
-            BuildConfiguration.Shipping => "Release",
+            BuildConfiguration.Shipping => "Shipping",
             BuildConfiguration.Development => "Development",
             BuildConfiguration.Profile => "Profile",
             _ => "Debug"
