@@ -3,8 +3,8 @@
 #include "Entity.hpp"
 #if WE_HAS_VULKAN
 #include "Renderer/VulkanContext.hpp"
-#endif
 #include "Renderer/SceneRenderer.hpp"
+#endif
 #include <vector>
 #include <memory>
 

@@ -8,6 +8,8 @@
 #include <glm/glm.hpp>
 #else
 // Fallback simple math types when GLM is not available
+#ifndef GLM_FALLBACK_TYPES_DEFINED
+#define GLM_FALLBACK_TYPES_DEFINED
 struct glm_vec3 { float x, y, z; };
 struct glm_vec4 { float x, y, z, w; };
 struct glm_mat4 { float data[16]; };
@@ -18,6 +20,7 @@ namespace glm {
     using mat4 = glm_mat4;
     using ivec2 = glm_ivec2;
 }
+#endif
 #endif
 #include <memory>
 #include <vector>

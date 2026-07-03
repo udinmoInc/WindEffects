@@ -6,6 +6,8 @@
 
 namespace we::runtime::renderer {
 
+#if WE_HAS_VULKAN
+
 ShaderBytecode ShaderCompiler::LoadSPIRVFromDisk(const std::string& filename) const
 {
     ShaderBytecode bytecode;
@@ -47,5 +49,7 @@ ShaderBytecode ShaderCompiler::CompileSPIRV(const ShaderCompileRequest& request)
     empty.debugName = request.sourcePath;
     return empty;
 }
+
+#endif // WE_HAS_VULKAN
 
 } // namespace we::runtime::renderer

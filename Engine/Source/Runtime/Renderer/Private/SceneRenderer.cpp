@@ -5,10 +5,14 @@
 #include <iostream>
 #include <stdexcept>
 #include <algorithm>
+#if WE_HAS_GLM
 #include <glm/geometric.hpp>
+#endif
 #include <cstring>
 
 namespace we::runtime::renderer {
+
+#if WE_HAS_VULKAN
 
 SceneRenderer::SceneRenderer(const std::shared_ptr<VulkanContext>& context, VkRenderPass renderPass, VkDescriptorSetLayout cameraDescLayout)
     : m_Context(context), m_CameraDescLayout(cameraDescLayout) {
@@ -582,5 +586,7 @@ void SceneRenderer::RefreshEnvironmentDescriptorBindings() const {
     vkUnmapMemory(m_Context->GetDevice(), m_EnvironmentBufferMemory);
     m_SceneEnvironmentDirty = false;
 }
+
+#endif // WE_HAS_VULKAN
 
 } // namespace we::runtime::renderer

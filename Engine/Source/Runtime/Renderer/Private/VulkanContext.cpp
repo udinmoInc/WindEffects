@@ -1,12 +1,16 @@
 #include "Renderer/VulkanContext.hpp"
 #include "Core/Logger.hpp"
+#if WE_HAS_VULKAN
 #include <SDL3/SDL_vulkan.h>
+#endif
 #include <iostream>
 #include <stdexcept>
 #include <set>
 #include <algorithm>
 
 namespace we::runtime::renderer {
+
+#if WE_HAS_VULKAN
 
 VulkanContext::VulkanContext(SDL_Window* window) {
     // 1. Initialize Volk
@@ -456,5 +460,7 @@ void VulkanContext::TransitionImageLayout(VkImage image, VkFormat format, VkImag
 
     EndSingleTimeCommands(commandBuffer);
 }
+
+#endif // WE_HAS_VULKAN
 
 } // namespace we::runtime::renderer
