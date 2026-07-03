@@ -206,7 +206,7 @@ Result<void> CleanCommand::Execute(const CommandContext& context) {
     if (cleanAll) {
         LOG_INFO("Cleaning entire build directory: " + buildDir.string(), "Clean");
         if (platform && platform->DirectoryExists(buildDir)) {
-            platform->DeleteDirectory(buildDir, true);
+            platform->EraseDirectory(buildDir, true);
         }
     } else if (!target.empty()) {
         LOG_INFO("Cleaning target: " + target, "Clean");
