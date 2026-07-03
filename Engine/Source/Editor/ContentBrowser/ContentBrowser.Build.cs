@@ -14,6 +14,10 @@ public class ContentBrowser : ModuleRules
         PublicDependencies.Add("Engine");
         PublicDependencies.Add("Application");
 
+        OptionalSDK("SDL3");
+        DefineIf(HasSDK("SDL3"), "WE_HAS_SDL3=1");
+        DefineIf(!HasSDK("SDL3"), "WE_HAS_SDL3=0");
+
         Definitions.Add("CONTENTBROWSER_EXPORTS");
     }
 }

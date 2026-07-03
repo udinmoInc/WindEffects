@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Core/Export.hpp"
 #include <string>
 #include <vector>
 #include <mutex>
@@ -24,14 +25,14 @@ public:
         std::string formattedText;
     };
 
-    static void Init();
-    static void Shutdown();
+    CORE_API static void Init();
+    CORE_API static void Shutdown();
 
-    static void Log(Level level, const std::string& message);
-    static void ReportError(const std::string& title, const std::string& description, bool fatal = false);
+    CORE_API static void Log(Level level, const std::string& message);
+    CORE_API static void ReportError(const std::string& title, const std::string& description, bool fatal = false);
 
     // Retrieve and clear new logs for Console panel
-    static std::vector<LogEntry> GetNewLogs();
+    CORE_API static std::vector<LogEntry> GetNewLogs();
 
 private:
     static std::string GetCurrentTimestamp();

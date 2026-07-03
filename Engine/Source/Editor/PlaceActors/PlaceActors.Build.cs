@@ -15,6 +15,10 @@ public class PlaceActors : ModuleRules
         PublicDependencies.Add("Scene");
         PublicDependencies.Add("Application");
 
+        OptionalSDK("SDL3");
+        DefineIf(HasSDK("SDL3"), "WE_HAS_SDL3=1");
+        DefineIf(!HasSDK("SDL3"), "WE_HAS_SDL3=0");
+
         Definitions.Add("PLACEACTORS_EXPORTS");
     }
 }
