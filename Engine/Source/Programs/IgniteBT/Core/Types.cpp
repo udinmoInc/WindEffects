@@ -1,5 +1,6 @@
 #include "Core/Types.hpp"
 #include <sstream>
+#include <iostream>
 
 namespace IgniteBT {
 

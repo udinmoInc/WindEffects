@@ -5,6 +5,16 @@
 #ifdef _WIN32
 #include <windows.h>
 #include <shlobj.h>
+// Undefine Windows macros that conflict with our method names
+#undef GetCurrentDirectory
+#undef SetCurrentDirectory
+#undef CreateDirectory
+#undef DeleteFile
+#undef RemoveDirectory
+#undef GetFileAttributes
+#undef FindFirstFile
+#undef FindNextFile
+#undef FindClose
 #endif
 
 namespace IgniteBT {
@@ -72,7 +82,7 @@ PlatformInfo WindowsPlatform::GetPlatformInfo() const {
     
     // Get OS version
     OSVERSIONINFOEXA osvi;
-    ZeroMemory(&osvi, sizeof(OSVERSIONINFOEXA));
+    ::ZeroMemory(&osvi, sizeof(OSVERSIONINFOEXA));
     osvi.dwOSVersionInfoSize = sizeof(OSVERSIONINFOEXA);
     
     // Note: GetVersionEx is deprecated but still works for basic version info
@@ -81,7 +91,7 @@ PlatformInfo WindowsPlatform::GetPlatformInfo() const {
     
     // Get architecture
     SYSTEM_INFO si;
-    GetNativeSystemInfo(&si);
+    ::GetNativeSystemInfo(&si);
     if (si.wProcessorArchitecture == PROCESSOR_ARCHITECTURE_AMD64) {
         info.architecture = Architecture::x64;
     } else if (si.wProcessorArchitecture == PROCESSOR_ARCHITECTURE_ARM64) {
@@ -93,13 +103,13 @@ PlatformInfo WindowsPlatform::GetPlatformInfo() const {
 
 Path WindowsPlatform::GetExecutablePath() const {
     char buffer[MAX_PATH];
-    GetModuleFileNameA(NULL, buffer, MAX_PATH);
+    ::GetModuleFileNameA(NULL, buffer, MAX_PATH);
     return Path(buffer).parent_path();
 }
 
 Path WindowsPlatform::GetHomeDirectory() const {
     char buffer[MAX_PATH];
-    if (SHGetFolderPathA(NULL, CSIDL_PROFILE, NULL, 0, buffer) == S_OK) {
+    if (::SHGetFolderPathA(NULL, CSIDL_PROFILE, NULL, 0, buffer) == S_OK) {
         return Path(buffer);
     }
     return Path();
@@ -107,47 +117,48 @@ Path WindowsPlatform::GetHomeDirectory() const {
 
 Path WindowsPlatform::GetTempDirectory() const {
     char buffer[MAX_PATH];
-    GetTempPathA(MAX_PATH, buffer);
+    ::GetTempPathA(MAX_PATH, buffer);
     return Path(buffer);
 }
 
 Path WindowsPlatform::GetCurrentDirectory() const {
     char buffer[MAX_PATH];
-    GetCurrentDirectoryA(MAX_PATH, buffer);
+    DWORD result = ::GetCurrentDirectoryA(MAX_PATH, buffer);
+    (void)result;
     return Path(buffer);
 }
 
 bool WindowsPlatform::SetCurrentDirectory(const Path& path) {
-    return SetCurrentDirectoryA(path.string().c_str()) != FALSE;
+    return ::SetCurrentDirectoryA(path.string().c_str()) != FALSE;
 }
 
 bool WindowsPlatform::FileExists(const Path& path) const {
-    DWORD attrs = GetFileAttributesA(path.string().c_str());
+    DWORD attrs = ::GetFileAttributesA(path.string().c_str());
     return attrs != INVALID_FILE_ATTRIBUTES && !(attrs & FILE_ATTRIBUTE_DIRECTORY);
 }
 
 bool WindowsPlatform::DirectoryExists(const Path& path) const {
-    DWORD attrs = GetFileAttributesA(path.string().c_str());
+    DWORD attrs = ::GetFileAttributesA(path.string().c_str());
     return attrs != INVALID_FILE_ATTRIBUTES && (attrs & FILE_ATTRIBUTE_DIRECTORY);
 }
 
-bool WindowsPlatform::CreateDirectory(const Path& path) const {
-    return CreateDirectoryA(path.string().c_str(), NULL) != FALSE;
+bool WindowsPlatform::CreateDirectory(const Path& path) {
+    return ::CreateDirectoryA(path.string().c_str(), NULL) != FALSE;
 }
 
-bool WindowsPlatform::CreateDirectories(const Path& path) const {
+bool WindowsPlatform::CreateDirectories(const Path& path) {
     return std::filesystem::create_directories(path);
 }
 
-bool WindowsPlatform::DeleteFile(const Path& path) const {
-    return DeleteFileA(path.string().c_str()) != FALSE;
+bool WindowsPlatform::DeleteFile(const Path& path) {
+    return ::DeleteFileA(path.string().c_str()) != FALSE;
 }
 
-bool WindowsPlatform::DeleteDirectory(const Path& path, bool recursive) const {
+bool WindowsPlatform::DeleteDirectory(const Path& path, bool recursive) {
     if (recursive) {
         return std::filesystem::remove_all(path) > 0;
     }
-    return RemoveDirectoryA(path.string().c_str()) != FALSE;
+    return ::RemoveDirectoryA(path.string().c_str()) != FALSE;
 }
 
 std::vector<Path> WindowsPlatform::ListFiles(const Path& directory, const std::string& pattern) const {
@@ -155,15 +166,15 @@ std::vector<Path> WindowsPlatform::ListFiles(const Path& directory, const std::s
     std::string searchPattern = (directory / pattern).string();
     
     WIN32_FIND_DATAA findData;
-    HANDLE hFind = FindFirstFileA(searchPattern.c_str(), &findData);
+    HANDLE hFind = ::FindFirstFileA(searchPattern.c_str(), &findData);
     
     if (hFind != INVALID_HANDLE_VALUE) {
         do {
             if (!(findData.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)) {
                 files.push_back(directory / findData.cFileName);
             }
-        } while (FindNextFileA(hFind, &findData));
-        FindClose(hFind);
+        } while (::FindNextFileA(hFind, &findData));
+        ::FindClose(hFind);
     }
     
     return files;
@@ -174,7 +185,7 @@ std::vector<Path> WindowsPlatform::ListDirectories(const Path& directory) const 
     std::string searchPattern = (directory / "*").string();
     
     WIN32_FIND_DATAA findData;
-    HANDLE hFind = FindFirstFileA(searchPattern.c_str(), &findData);
+    HANDLE hFind = ::FindFirstFileA(searchPattern.c_str(), &findData);
     
     if (hFind != INVALID_HANDLE_VALUE) {
         do {
@@ -183,8 +194,8 @@ std::vector<Path> WindowsPlatform::ListDirectories(const Path& directory) const 
                 strcmp(findData.cFileName, "..") != 0) {
                 dirs.push_back(directory / findData.cFileName);
             }
-        } while (FindNextFileA(hFind, &findData));
-        FindClose(hFind);
+        } while (::FindNextFileA(hFind, &findData));
+        ::FindClose(hFind);
     }
     
     return dirs;
@@ -192,22 +203,25 @@ std::vector<Path> WindowsPlatform::ListDirectories(const Path& directory) const 
 
 Timestamp WindowsPlatform::GetFileModificationTime(const Path& path) const {
     WIN32_FILE_ATTRIBUTE_DATA fileData;
-    if (GetFileAttributesExA(path.string().c_str(), GetFileExInfoStandard, &fileData)) {
+    if (::GetFileAttributesExA(path.string().c_str(), ::GetFileExInfoStandard, &fileData)) {
         ULARGE_INTEGER ull;
         ull.LowPart = fileData.ftLastWriteTime.dwLowDateTime;
         ull.HighPart = fileData.ftLastWriteTime.dwHighDateTime;
         
-        auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(
-            std::chrono::file_time(ull.QuadPart).time_since_epoch()
-        );
-        return Timestamp(std::chrono::duration_cast<Timestamp::duration>(duration));
+        // Convert FILETIME to milliseconds since epoch
+        uint64_t fileTime = ull.QuadPart;
+        uint64_t epoch = 116444736000000000ULL; // January 1, 1970 in FILETIME
+        uint64_t milliseconds = (fileTime - epoch) / 10000;
+        
+        auto duration = std::chrono::milliseconds(milliseconds);
+        return Timestamp(duration);
     }
     return Timestamp();
 }
 
 uint64_t WindowsPlatform::GetFileSize(const Path& path) const {
     WIN32_FILE_ATTRIBUTE_DATA fileData;
-    if (GetFileAttributesExA(path.string().c_str(), GetFileExInfoStandard, &fileData)) {
+    if (::GetFileAttributesExA(path.string().c_str(), ::GetFileExInfoStandard, &fileData)) {
         LARGE_INTEGER size;
         size.LowPart = fileData.nFileSizeLow;
         size.HighPart = fileData.nFileSizeHigh;
@@ -363,10 +377,8 @@ std::vector<Path> LinuxPlatform::ListDirectories(const Path& directory) const {
 Timestamp LinuxPlatform::GetFileModificationTime(const Path& path) const {
     struct stat buffer;
     if (stat(path.string().c_str(), &buffer) == 0) {
-        auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(
-            std::chrono::seconds(buffer.st_mtime)
-        );
-        return Timestamp(std::chrono::duration_cast<Timestamp::duration>(duration));
+        auto duration = std::chrono::milliseconds(buffer.st_mtime * 1000);
+        return Timestamp(duration);
     }
     return Timestamp();
 }
@@ -525,10 +537,8 @@ std::vector<Path> MacPlatform::ListDirectories(const Path& directory) const {
 Timestamp MacPlatform::GetFileModificationTime(const Path& path) const {
     struct stat buffer;
     if (stat(path.string().c_str(), &buffer) == 0) {
-        auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(
-            std::chrono::seconds(buffer.st_mtime)
-        );
-        return Timestamp(std::chrono::duration_cast<Timestamp::duration>(duration));
+        auto duration = std::chrono::milliseconds(buffer.st_mtime * 1000);
+        return Timestamp(duration);
     }
     return Timestamp();
 }

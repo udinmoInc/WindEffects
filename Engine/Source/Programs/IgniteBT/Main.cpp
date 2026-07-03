@@ -7,13 +7,13 @@
 
 namespace IgniteBT {
 
-class IgniteBT {
+class BuildTool {
 public:
-    IgniteBT() {
+    BuildTool() {
         Initialize();
     }
     
-    ~IgniteBT() {
+    ~BuildTool() {
         Shutdown();
     }
     
@@ -32,7 +32,8 @@ public:
         
         // Load default configuration if exists
         Path configFile = config.GetEngineRoot() / "IgniteBT.json";
-        if (PlatformManager::Get().FileExists(configFile)) {
+        auto* platform = PlatformManager::Get().GetPlatform();
+        if (platform && platform->FileExists(configFile)) {
             auto result = config.LoadConfiguration(configFile);
             if (result.IsFailure()) {
                 LOG_WARNING(result.GetError(), "Main");
@@ -55,8 +56,7 @@ public:
 private:
     void Initialize() {
         // Initialize logging
-        auto& logger = Logger::Get();
-        logger.SetLogLevel(LogLevel::Info);
+        Logger::Get().SetLogLevel(LogLevel::Info);
         
         // Register built-in commands
         RegisterCommands();
@@ -96,6 +96,6 @@ private:
 } // namespace IgniteBT
 
 int main(int argc, char* argv[]) {
-    IgniteBT::IgniteBT ignitebt;
-    return ignitebt.Run(argc, argv);
+    IgniteBT::BuildTool buildTool;
+    return buildTool.Run(argc, argv);
 }

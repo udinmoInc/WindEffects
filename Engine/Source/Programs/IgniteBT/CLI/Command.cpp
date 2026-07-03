@@ -183,11 +183,11 @@ Result<void> VersionCommand::Execute(const CommandContext& context) {
     std::cout << "IgniteBT Version: " << version.ToString() << std::endl;
     std::cout << "Build Configuration: " << ConfigurationManager::Get().GetBuildConfig().outputDirectory << std::endl;
     
-    auto& platform = PlatformManager::Get();
+    auto& platformManager = PlatformManager::Get();
     std::cout << "Platform: ";
-    if (platform.IsWindows()) std::cout << "Windows";
-    else if (platform.IsLinux()) std::cout << "Linux";
-    else if (platform.IsMac()) std::cout << "Mac";
+    if (platformManager.IsWindows()) std::cout << "Windows";
+    else if (platformManager.IsLinux()) std::cout << "Linux";
+    else if (platformManager.IsMac()) std::cout << "Mac";
     else std::cout << "Unknown";
     std::cout << std::endl;
     
@@ -199,14 +199,14 @@ Result<void> CleanCommand::Execute(const CommandContext& context) {
     std::string target = context.GetFlagValue("target");
     bool cleanAll = context.HasFlag("all");
     
-    auto& platform = PlatformManager::Get();
+    auto* platform = PlatformManager::Get().GetPlatform();
     auto& config = ConfigurationManager::Get();
     Path buildDir = config.GetEngineRoot() / config.GetBuildConfig().outputDirectory;
     
     if (cleanAll) {
         LOG_INFO("Cleaning entire build directory: " + buildDir.string(), "Clean");
-        if (platform.DirectoryExists(buildDir)) {
-            platform.DeleteDirectory(buildDir, true);
+        if (platform && platform->DirectoryExists(buildDir)) {
+            platform->DeleteDirectory(buildDir, true);
         }
     } else if (!target.empty()) {
         LOG_INFO("Cleaning target: " + target, "Clean");
@@ -257,20 +257,21 @@ Result<void> DoctorCommand::Execute(const CommandContext& context) {
     
     std::cout << "=== IgniteBT Environment Diagnostics ===" << std::endl;
     
-    auto& platform = PlatformManager::Get();
+    auto& platformManager = PlatformManager::Get();
+    auto* platform = platformManager.GetPlatform();
     auto& config = ConfigurationManager::Get();
     
     // Platform info
     std::cout << "Platform: ";
-    if (platform.IsWindows()) std::cout << "Windows";
-    else if (platform.IsLinux()) std::cout << "Linux";
-    else if (platform.IsMac()) std::cout << "Mac";
+    if (platformManager.IsWindows()) std::cout << "Windows";
+    else if (platformManager.IsLinux()) std::cout << "Linux";
+    else if (platformManager.IsMac()) std::cout << "Mac";
     else std::cout << "Unknown";
     std::cout << std::endl;
     
     // Architecture
     std::cout << "Architecture: ";
-    if (platform.Is64Bit()) std::cout << "64-bit";
+    if (platformManager.Is64Bit()) std::cout << "64-bit";
     else std::cout << "32-bit";
     std::cout << std::endl;
     
@@ -280,7 +281,7 @@ Result<void> DoctorCommand::Execute(const CommandContext& context) {
     // Build directory
     Path buildDir = config.GetEngineRoot() / config.GetBuildConfig().outputDirectory;
     std::cout << "Build Directory: " << buildDir.string() << std::endl;
-    std::cout << "Build Directory Exists: " << (platform.DirectoryExists(buildDir) ? "Yes" : "No") << std::endl;
+    std::cout << "Build Directory Exists: " << (platform && platform->DirectoryExists(buildDir) ? "Yes" : "No") << std::endl;
     
     // Configuration
     std::cout << "Build Configuration: ";

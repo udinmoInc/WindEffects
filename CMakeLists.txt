@@ -184,9 +184,6 @@ set(MODULE_SEARCH_PATHS
     "Engine/Plugins"
 )
 
-# Explicitly add IgniteBT build tool
-add_subdirectory("Engine/Source/Programs/IgniteBT")
-
 foreach(SEARCH_PATH IN LISTS MODULE_SEARCH_PATHS)
     if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/${SEARCH_PATH}")
         file(GLOB SUBDIRS LIST_DIRECTORIES true "${CMAKE_CURRENT_SOURCE_DIR}/${SEARCH_PATH}/*")
