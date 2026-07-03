@@ -302,12 +302,21 @@ public static class BuildCommand
                 };
 
                 // Add module's private include paths
+                Log.Debug("Module {Module} has {Count} private include paths", node.Name, node.Module.PrivateIncludePaths.Count);
                 foreach (var privateIncludePath in node.Module.PrivateIncludePaths)
                 {
+                    Log.Debug("Processing private include path: {Path}", privateIncludePath);
                     var fullPath = Path.Combine(moduleDir, privateIncludePath);
+                    Log.Debug("Full path: {FullPath}", fullPath);
+                    Log.Debug("Directory exists: {Exists}", Directory.Exists(fullPath));
                     if (Directory.Exists(fullPath) && !compileOptions.IncludeDirectories.Contains(fullPath))
                     {
                         compileOptions.IncludeDirectories.Add(fullPath);
+                        Log.Debug("Added private include path: {Path}", fullPath);
+                    }
+                    else
+                    {
+                        Log.Warning("Private include path does not exist or already added: {Path}", fullPath);
                     }
                 }
 
