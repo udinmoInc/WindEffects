@@ -16,8 +16,8 @@ Until those files are published, refer to dependency manifests in the build syst
 
 ## Fonts and icons
 
-- **Codicon** — see `Fonts/codicon.css` and the Codicon project license
-- **Inter** — see `inter_extract/LICENSE.txt` (SIL Open Font License 1.1)
+- **Codicon** — see `Engine/Content/Fonts/codicon.ttf` and the Codicon project license
+- **Inter** — see `Assets/Fonts/Inter-LICENSE.txt` (SIL Open Font License 1.1)
 
 ## Your responsibility
 

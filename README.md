@@ -95,18 +95,19 @@ WindEffects/
 │   │   ├── Runtime/
 │   │   ├── Editor/
 │   │   └── Programs/
-│   │       ├── IgniteBT/         # Build tool implementation
-│   │       └── Scripts/          # Optional install helpers (install-we.*)
-│
-├── WindEffects.engine              # Workspace marker read by the we launcher
-├── we                            # Cross-platform CLI bootstrap (bash)
-├── we.bat                        # Windows CMD bootstrap
-├── we.ps1                        # Windows PowerShell bootstrap
+│   │       └── IgniteBT/
 │   ├── ThirdParty/
 │   ├── Content/
-│   └── Config/
+│   ├── Config/
+│   ├── Shaders/
+│   └── Tools/
 │
-├── Build/                          # Disposable — recreated by IgniteBT, gitignored
+├── WindEffects.engine
+├── we
+├── we.bat
+├── we.ps1
+│
+├── Build/
 │   ├── Output/
 │   │   └── Win64/
 │   │       ├── Debug/
@@ -137,7 +138,7 @@ WindEffects/
 │   └── Temp/
 │
 ├── Assets/
-├── Scripts/
+├── Legal/
 └── IgniteBT.SDKs.json
 ```
 
