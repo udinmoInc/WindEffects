@@ -124,14 +124,17 @@ public class DependencyGraph
         }
 
         var buildOrder = new List<BuildNode>();
-        var orderIndex = 0;
 
-        // Perform DFS for topological sort
+        // Perform DFS for topological sort (Kahn's algorithm variant)
+        // We want dependencies first, then dependents
+        var tempVisited = new HashSet<BuildNode>();
+        var permanentVisited = new HashSet<BuildNode>();
+
         foreach (var node in _nodes.Values.OrderBy(n => n.Name))
         {
-            if (!node.Visited)
+            if (!permanentVisited.Contains(node))
             {
-                if (!VisitNode(node, ref orderIndex, buildOrder))
+                if (!VisitNodeTopological(node, tempVisited, permanentVisited, buildOrder))
                 {
                     // Circular dependency detected
                     Log.Error("Circular dependency detected in build graph");
@@ -140,39 +143,41 @@ public class DependencyGraph
             }
         }
 
-        // Reverse to get dependencies first
-        buildOrder.Reverse();
-
+        // buildOrder now has dependencies first (no need to reverse)
         Log.Information("Build order: {Order}", string.Join(" -> ", buildOrder.Select(n => n.Name)));
         return buildOrder;
     }
 
     /// <summary>
-    /// Visits a node during DFS traversal for topological sort.
+    /// Visits a node during DFS traversal for topological sort using temporary/permanent marking.
     /// </summary>
-    private bool VisitNode(BuildNode node, ref int orderIndex, List<BuildNode> buildOrder)
+    private bool VisitNodeTopological(BuildNode node, HashSet<BuildNode> tempVisited, 
+        HashSet<BuildNode> permanentVisited, List<BuildNode> buildOrder)
     {
-        node.Visited = true;
-        node.InRecursionStack = true;
+        if (permanentVisited.Contains(node))
+        {
+            return true; // Already processed
+        }
 
+        if (tempVisited.Contains(node))
+        {
+            Log.Error("Circular dependency detected: {Node}", node.Name);
+            return false; // Cycle detected
+        }
+
+        tempVisited.Add(node);
+
+        // Visit all dependencies first
         foreach (var dep in node.Dependencies)
         {
-            if (!dep.Visited)
+            if (!VisitNodeTopological(dep, tempVisited, permanentVisited, buildOrder))
             {
-                if (!VisitNode(dep, ref orderIndex, buildOrder))
-                {
-                    return false;
-                }
-            }
-            else if (dep.InRecursionStack)
-            {
-                Log.Error("Circular dependency detected: {Node} -> {Dep}", node.Name, dep.Name);
                 return false;
             }
         }
 
-        node.InRecursionStack = false;
-        node.BuildOrder = orderIndex++;
+        tempVisited.Remove(node);
+        permanentVisited.Add(node);
         buildOrder.Add(node);
 
         return true;
