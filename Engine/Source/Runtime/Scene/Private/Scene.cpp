@@ -30,9 +30,20 @@ Scene::Scene(const std::shared_ptr<we::runtime::renderer::VulkanContext>& contex
     volkLoadDevice(m_Context->GetDevice());
 }
 
-Scene::~Scene() {
-    DestroyEntity(0xFFFFFFFF); // Clean up all
+#else // !WE_HAS_VULKAN
+
+Scene::Scene() {
 }
+
+#endif // WE_HAS_VULKAN
+
+Scene::~Scene() {
+#if WE_HAS_VULKAN
+    DestroyEntity(0xFFFFFFFF); // Clean up all
+#endif
+}
+
+#if WE_HAS_VULKAN
 
 void Scene::SetCameraBuffer(VkBuffer cameraBuffer) {
     m_CameraBuffer = cameraBuffer;

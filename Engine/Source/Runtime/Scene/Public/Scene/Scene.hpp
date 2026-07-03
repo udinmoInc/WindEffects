@@ -10,19 +10,23 @@
 
 namespace we::runtime::scene {
 
-#if WE_HAS_VULKAN
-
 class Scene {
 public:
+#if WE_HAS_VULKAN
     Scene(const std::shared_ptr<we::runtime::renderer::VulkanContext>& context, const std::shared_ptr<we::runtime::renderer::SceneRenderer>& renderer);
+#else
+    Scene();
+#endif
     ~Scene();
 
     // Prevent copying
     Scene(const Scene&) = delete;
     Scene& operator=(const Scene&) = delete;
 
+#if WE_HAS_VULKAN
     void SetCameraBuffer(VkBuffer cameraBuffer);
     bool IsCameraBufferAssigned() const;
+#endif
 
     void CreateEntity(const std::string& name, EntityType type);
     bool HasEntityOfType(EntityType type) const;
@@ -44,21 +48,23 @@ public:
 
     void Update();
 
+#if WE_HAS_VULKAN
     enum class DrawMode {
         Editor,
         Game
     };
     void Draw(VkCommandBuffer cmd, DrawMode drawMode = DrawMode::Editor) const;
+#endif
 
 private:
+#if WE_HAS_VULKAN
     std::shared_ptr<we::runtime::renderer::VulkanContext> m_Context;
     std::shared_ptr<we::runtime::renderer::SceneRenderer> m_Renderer;
     VkBuffer m_CameraBuffer = VK_NULL_HANDLE;
+#endif
     std::uint64_t m_NextEntityId = 1;
     std::vector<Entity> m_Entities;
     int m_SelectedEntityIndex = -1;
 };
-
-#endif // WE_HAS_VULKAN
 
 } // namespace we::runtime::scene
