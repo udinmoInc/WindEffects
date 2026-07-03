@@ -1,6 +1,11 @@
 #pragma once
 
 #include "Core/Widget.hpp"
+#include "Core/Widgets/PrimaryToolbarButton.hpp"
+#include "Core/Widgets/SecondaryToolbarButton.hpp"
+#include "Core/Widgets/ToolbarIconButton.hpp"
+#include "Core/Widgets/ToolbarNavigationButton.hpp"
+#include "Core/ToolbarDesignTokens.hpp"
 #include "Models/ContentBrowserModel.hpp"
 #include <functional>
 #include <memory>
@@ -12,7 +17,7 @@ namespace we::UI {
 class SearchBox;
 class Breadcrumb;
 
-// Square icon toggle for view modes.
+// Square icon toggle for view modes (legacy, kept for compatibility).
 class ToolbarIconToggle : public Widget {
 public:
     ToolbarIconToggle(const std::string& iconName, const char* tooltip = nullptr);
@@ -38,7 +43,7 @@ private:
     std::function<void()> m_OnClicked;
 };
 
-// Icon + label + optional chevron (Filter, Sort, Import, Create).
+// Icon + label + optional chevron (Filter, Sort, Import, Create) - legacy.
 class ToolbarLabeledButton : public Widget {
 public:
     enum class Variant { Standard, Primary };
@@ -68,11 +73,11 @@ private:
     std::function<void()> m_OnClicked;
 };
 
-// Compact UE5-style toolbar: search and actions.
+// Premium AAA toolbar with reusable components.
 class ContentBrowserToolbarControls : public Widget {
 public:
     enum class ToolbarMode {
-        Full,           // Panel toolbar: breadcrumb, prev/next, create, import, sort, settings
+        Full,           // Panel toolbar: create, import, back, forward, folder
         AssetPane       // Asset pane toolbar: search, save all, filter icon
     };
 
@@ -96,6 +101,7 @@ public:
     void SetOnSaveClicked(std::function<void()> callback);
     void SetOnPreviousClicked(std::function<void()> callback);
     void SetOnNextClicked(std::function<void()> callback);
+    void SetOnFolderClicked(std::function<void()> callback);
     void SetOnViewModeChanged(std::function<void(ContentViewMode)> callback);
     void SetOnSettingsClicked(std::function<void()> callback);
 
@@ -107,16 +113,21 @@ private:
     ToolbarMode m_Mode;
     std::shared_ptr<Breadcrumb> m_Breadcrumb;
     std::shared_ptr<SearchBox> m_SearchBox;
+    
+    // New reusable components
+    std::shared_ptr<PrimaryToolbarButton> m_CreateBtn;
+    std::shared_ptr<SecondaryToolbarButton> m_ImportBtn;
+    std::shared_ptr<ToolbarNavigationButton> m_BackBtn;
+    std::shared_ptr<ToolbarNavigationButton> m_ForwardBtn;
+    std::shared_ptr<ToolbarNavigationButton> m_FolderBtn;
+    
+    // Legacy components (for AssetPane mode)
     std::shared_ptr<ToolbarIconToggle> m_GridViewBtn;
     std::shared_ptr<ToolbarIconToggle> m_ListViewBtn;
     std::shared_ptr<ToolbarIconToggle> m_SettingsBtn;
     std::shared_ptr<ToolbarIconToggle> m_FilterIconBtn;
-    std::shared_ptr<ToolbarIconToggle> m_PreviousBtn;
-    std::shared_ptr<ToolbarIconToggle> m_NextBtn;
     std::shared_ptr<ToolbarLabeledButton> m_SortBtn;
     std::shared_ptr<ToolbarLabeledButton> m_FilterBtn;
-    std::shared_ptr<ToolbarLabeledButton> m_ImportBtn;
-    std::shared_ptr<ToolbarLabeledButton> m_CreateBtn;
     std::shared_ptr<ToolbarLabeledButton> m_SaveBtn;
 };
 

@@ -90,6 +90,8 @@ namespace Icons {
     constexpr const char* ChevronRightName = "chevron-right";
     constexpr const char* ChevronDownName  = "chevron-down";
     constexpr const char* ChevronLeftName  = "chevron-left";
+    constexpr const char* ArrowLeftName    = "arrow-left";
+    constexpr const char* ArrowRightName   = "arrow-right";
     constexpr const char* EyeName        = "eye";
     constexpr const char* EyeOffName     = "eye-off";
     constexpr const char* LockName       = "lock";

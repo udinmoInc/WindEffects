@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Core/Widget.hpp"
-namespace we::UI { class MenuBar; }
+namespace we::UI { class MenuBar; class ToolButton; }
 #include "Layout/Box.hpp"
 #include <volk.h>
 #include <SDL3/SDL.h>
@@ -26,6 +26,7 @@ public:
     void OnMouseMove(const MouseEvent& event) override;
 
     SDL_HitTestResult HitTest(SDL_Point point);
+    void UpdateMaximizeIcon();
 
     SDL_Window* m_Window = nullptr;
     std::string m_Title;

@@ -193,6 +193,8 @@ void ToolButton::Paint(PaintContext& context) {
         if (m_ButtonStyle == ToolButtonStyle::WindowClose && m_HoverAnim > 0.5f)
             iconColor = Color{ 1.0f, 1.0f, 1.0f, 1.0f };
         float iconSize = 16.0f;
+        // Use smaller icon size for square/stop icon to match close button proportions
+        if (m_IconName == Icons::StopName) iconSize = 14.0f;
         float drawX = renderRect.x + (renderRect.width - iconSize) / 2.0f;
         IconPainter::DrawIcon(context, m_IconName, Rect{ drawX, centerY - iconSize / 2.0f, iconSize, iconSize }, iconColor);
         return;

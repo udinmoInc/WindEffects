@@ -163,6 +163,11 @@ if(NOT EXISTS "${ICONS_DIR}")
 endif()
 
 # -----------------------------------------------------------------------------
+# Build Optimizations
+# -----------------------------------------------------------------------------
+include(cmake/BuildOptimizations.cmake)
+
+# -----------------------------------------------------------------------------
 # HLSL-first shader pipeline (DXC -> SPIR-V; future Vulkan/Metal cross-compile)
 # -----------------------------------------------------------------------------
 include(cmake/ShaderPipeline.cmake)
@@ -178,6 +183,9 @@ set(MODULE_SEARCH_PATHS
     "Engine/Source/Programs"
     "Engine/Plugins"
 )
+
+# Explicitly add IgniteBT build tool
+add_subdirectory("Engine/Source/Programs/IgniteBT")
 
 foreach(SEARCH_PATH IN LISTS MODULE_SEARCH_PATHS)
     if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/${SEARCH_PATH}")

@@ -706,7 +706,7 @@ void Breadcrumb::Arrange(const Rect& allottedRect) {
 
 void Breadcrumb::Paint(PaintContext& context) {
     const auto& theme = Theme::Get();
-    context.DrawRect(m_Geometry, theme.ToolbarBackground);
+    context.DrawRect(m_Geometry, theme.PanelBackground);
     context.DrawRect(Rect{ m_Geometry.x, m_Geometry.y + m_Geometry.height - 1.0f, m_Geometry.width, 1.0f }, theme.Separator);
 
     const float iconSize = 16.0f;
