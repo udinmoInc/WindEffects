@@ -1,4 +1,4 @@
-#include "ModuleManager.hpp"
+#include "../ModuleManager.hpp"
 
 namespace we::core {
 
