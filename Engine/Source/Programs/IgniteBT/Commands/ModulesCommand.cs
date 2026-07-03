@@ -1,5 +1,6 @@
 using Serilog;
 using IgniteBT.ModuleDiscovery;
+using IgniteBT.BuildSystem;
 
 namespace IgniteBT.Commands;
 
@@ -13,7 +14,7 @@ public static class ModulesCommand
         {
             // Get engine directory - find the Engine root by looking for Source directory
             var currentDir = Directory.GetCurrentDirectory();
-            var engineDir = FindEngineRoot(currentDir);
+            var engineDir = BuildLayout.FindEngineRoot(currentDir);
             
             if (string.IsNullOrEmpty(engineDir) || !Directory.Exists(engineDir))
             {
@@ -46,35 +47,5 @@ public static class ModulesCommand
             Log.Error(ex, "Failed to discover modules");
             return 1;
         }
-    }
-
-    static string? FindEngineRoot(string startDir)
-    {
-        var dir = new DirectoryInfo(startDir);
-        
-        // Search up the directory tree for the Engine directory
-        while (dir != null)
-        {
-            // Check if this is the Engine directory (has Source subdirectory)
-            if (dir.Name.Equals("Engine", StringComparison.OrdinalIgnoreCase))
-            {
-                var sourceDir = Path.Combine(dir.FullName, "Source");
-                if (Directory.Exists(sourceDir))
-                {
-                    return dir.FullName;
-                }
-            }
-            
-            // Check if we're inside Engine directory
-            var engineParent = Path.Combine(dir.FullName, "Engine", "Source");
-            if (Directory.Exists(engineParent))
-            {
-                return Path.GetDirectoryName(engineParent);
-            }
-            
-            dir = dir.Parent;
-        }
-        
-        return null;
     }
 }

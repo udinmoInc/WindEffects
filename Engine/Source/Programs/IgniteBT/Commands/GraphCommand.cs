@@ -1,6 +1,7 @@
 using Serilog;
 using IgniteBT.ModuleDiscovery;
 using IgniteBT.BuildGraph;
+using IgniteBT.BuildSystem;
 
 namespace IgniteBT.Commands;
 
@@ -14,7 +15,7 @@ public static class GraphCommand
         {
             // Get engine directory
             var currentDir = Directory.GetCurrentDirectory();
-            var engineDir = FindEngineRoot(currentDir);
+            var engineDir = BuildLayout.FindEngineRoot(currentDir);
             
             if (string.IsNullOrEmpty(engineDir) || !Directory.Exists(engineDir))
             {
@@ -78,32 +79,5 @@ public static class GraphCommand
             Log.Error(ex, "Failed to display build graph");
             return 1;
         }
-    }
-
-    static string? FindEngineRoot(string startDir)
-    {
-        var dir = new DirectoryInfo(startDir);
-        
-        while (dir != null)
-        {
-            if (dir.Name.Equals("Engine", StringComparison.OrdinalIgnoreCase))
-            {
-                var sourceDir = Path.Combine(dir.FullName, "Source");
-                if (Directory.Exists(sourceDir))
-                {
-                    return dir.FullName;
-                }
-            }
-            
-            var engineParent = Path.Combine(dir.FullName, "Engine", "Source");
-            if (Directory.Exists(engineParent))
-            {
-                return Path.GetDirectoryName(engineParent);
-            }
-            
-            dir = dir.Parent;
-        }
-        
-        return null;
     }
 }

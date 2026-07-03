@@ -34,16 +34,17 @@ public static class BuildCommand
 
         try
         {
-            // Get engine directory
             var currentDir = Directory.GetCurrentDirectory();
-            var engineDir = FindEngineRoot(currentDir);
+            var projectRoot = BuildLayout.FindProjectRoot(currentDir);
+            var engineDir = BuildLayout.FindEngineRoot(currentDir);
             
-            if (string.IsNullOrEmpty(engineDir) || !Directory.Exists(engineDir))
+            if (string.IsNullOrEmpty(projectRoot) || string.IsNullOrEmpty(engineDir) || !Directory.Exists(engineDir))
             {
-                Log.Error("Could not find engine root directory from {CurrentDir}", currentDir);
+                Log.Error("Could not find project root directory from {CurrentDir}", currentDir);
                 return 1;
             }
             
+            Log.Information("Project root: {ProjectRoot}", projectRoot);
             Log.Information("Engine root: {EngineDir}", engineDir);
             
             // Detect and setup toolchain once for all modules
@@ -77,6 +78,8 @@ public static class BuildCommand
             
             // Parse configuration
             var buildConfig = ParseConfiguration(config);
+            var layout = BuildLayout.Resolve(currentDir, platform, buildConfig);
+            layout.EnsureDirectories();
             
             // Discover modules
             var discovery = new ModuleDiscoverer(engineDir);
@@ -104,8 +107,7 @@ public static class BuildCommand
             var buildOrder = graph.GetBuildOrder();
             
             // Initialize build cache
-            var cacheDir = Path.Combine(engineDir, "Intermediate", "IgniteBT", "Cache");
-            var cache = new BuildCache(cacheDir);
+            var cache = new BuildCache(layout.CacheDirectory);
             
             // Initialize dependency scanner
             var depScanner = new DependencyScanner();
@@ -122,7 +124,7 @@ public static class BuildCommand
                     Name = $"Build {node.Name}",
                     Dependencies = node.Dependencies.Select(d => d.Name).ToList(),
                     ModuleNode = node,
-                    Work = () => BuildModule(node, buildConfig, platform, engineDir, cache, depScanner, detectedCompiler, dependencyResult, graph)
+                    Work = () => BuildModule(node, buildConfig, platform, engineDir, layout, cache, depScanner, detectedCompiler, dependencyResult, graph)
                 };
                 
                 scheduler.AddTask(task);
@@ -157,7 +159,7 @@ public static class BuildCommand
     }
 
     private static async Task BuildModule(BuildNode node, BuildConfiguration config, string platform, 
-        string engineDir, BuildCache cache, DependencyScanner depScanner, DetectedCompiler detectedCompiler, DependencyResolutionResult dependencyResult, DependencyGraph buildGraph)
+        string engineDir, BuildLayout layout, BuildCache cache, DependencyScanner depScanner, DetectedCompiler detectedCompiler, DependencyResolutionResult dependencyResult, DependencyGraph buildGraph)
     {
         Log.Information("Building module: {ModuleName}", node.Name);
         
@@ -255,8 +257,10 @@ public static class BuildCommand
         Log.Information("Using compiler: {CompilerName} v{Version}", compiler.Name, compilerVersion);
         
         // Create output directory
-        var outputDir = Path.Combine(engineDir, "Intermediate", node.Name);
-        Directory.CreateDirectory(outputDir);
+        var objectDir = layout.GetModuleObjectsDirectory(node.Name);
+        var generatedDir = layout.GetModuleGeneratedDirectory(node.Name);
+        Directory.CreateDirectory(objectDir);
+        Directory.CreateDirectory(generatedDir);
         
         // Compile each source file
         var objectFiles = new List<string>();
@@ -265,7 +269,7 @@ public static class BuildCommand
         
         foreach (var sourceFile in sourceFiles)
         {
-            var objectFile = Path.Combine(outputDir, Path.GetFileNameWithoutExtension(sourceFile) + ".obj");
+            var objectFile = Path.Combine(objectDir, Path.GetFileNameWithoutExtension(sourceFile) + ".obj");
             
             // Scan dependencies
             var dependencies = await depScanner.ScanFileAsync(sourceFile, transitive: true);
@@ -399,10 +403,12 @@ public static class BuildCommand
             node.Name, compiledCount, cachedCount);
         
         // Link the module
-        var linkOutputDir = Path.Combine(engineDir, "Binaries", config.ToString());
+        var linkOutputDir = layout.PlatformOutputRoot;
         Directory.CreateDirectory(linkOutputDir);
+        Directory.CreateDirectory(layout.ProgramDatabaseRoot);
+        Directory.CreateDirectory(layout.IncrementalRoot);
         
-        var linkOutputFile = Path.Combine(linkOutputDir, node.Name + ".dll");
+        var linkOutputFile = layout.GetModuleOutputPath(node.Name, ".dll");
         
         var linkOptions = new LinkerOptions
         {
@@ -414,7 +420,13 @@ public static class BuildCommand
             Architecture = IgniteBT.Compiler.TargetArchitecture.x64,
             GenerateDebugInfo = config == BuildConfiguration.Debug,
             ExportAllSymbols = node.Module.Type == ModuleType.SharedLibrary,
-            WorkingDirectory = outputDir,
+            WorkingDirectory = generatedDir,
+            ProgramDatabaseFile = config == BuildConfiguration.Debug
+                ? layout.GetModuleProgramDatabasePath(node.Name)
+                : null,
+            IncrementalLinkDatabaseFile = config == BuildConfiguration.Debug
+                ? layout.GetModuleIncrementalLinkPath(node.Name)
+                : null,
             LibraryDirectories = new List<string>(),
             Libraries = new List<string>()
         };
@@ -524,32 +536,5 @@ public static class BuildCommand
         if (OperatingSystem.IsMacOS())
             return "Mac";
         return "Unknown";
-    }
-
-    static string? FindEngineRoot(string startDir)
-    {
-        var dir = new DirectoryInfo(startDir);
-        
-        while (dir != null)
-        {
-            if (dir.Name.Equals("Engine", StringComparison.OrdinalIgnoreCase))
-            {
-                var sourceDir = Path.Combine(dir.FullName, "Source");
-                if (Directory.Exists(sourceDir))
-                {
-                    return dir.FullName;
-                }
-            }
-            
-            var engineParent = Path.Combine(dir.FullName, "Engine", "Source");
-            if (Directory.Exists(engineParent))
-            {
-                return Path.GetDirectoryName(engineParent);
-            }
-            
-            dir = dir.Parent;
-        }
-        
-        return null;
     }
 }

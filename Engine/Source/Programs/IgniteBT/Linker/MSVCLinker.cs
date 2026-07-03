@@ -373,6 +373,16 @@ exit /b %ERRORLEVEL%
             args.Add($"/DEF:\"{options.DefinitionFile}\"");
         }
 
+        if (!string.IsNullOrEmpty(options.ProgramDatabaseFile))
+        {
+            args.Add($"/PDB:\"{options.ProgramDatabaseFile}\"");
+        }
+
+        if (!string.IsNullOrEmpty(options.IncrementalLinkDatabaseFile))
+        {
+            args.Add($"/ILK:\"{options.IncrementalLinkDatabaseFile}\"");
+        }
+
         // Configuration-specific flags
         args.AddRange(GetDefaultFlags(options.Configuration, options.TargetType));
 
