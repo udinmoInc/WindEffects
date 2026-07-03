@@ -301,6 +301,16 @@ public static class BuildCommand
                     EnableOptimizations = config != BuildConfiguration.Debug
                 };
 
+                // Add module's private include paths
+                foreach (var privateIncludePath in node.Module.PrivateIncludePaths)
+                {
+                    var fullPath = Path.Combine(moduleDir, privateIncludePath);
+                    if (Directory.Exists(fullPath) && !compileOptions.IncludeDirectories.Contains(fullPath))
+                    {
+                        compileOptions.IncludeDirectories.Add(fullPath);
+                    }
+                }
+
                 // Add SDK include paths
                 foreach (var (sdkName, sdkInfo) in dependencyResult.SDKs)
                 {
