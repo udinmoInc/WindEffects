@@ -1,6 +1,7 @@
 #include "Editor.hpp"
 #include "FirstRunAgreementPopup.hpp"
 #include "Core/Logger.hpp"
+#include "Core/IgniteBTInvoker.hpp"
 #include "Runtime/Core/ModuleManager.hpp"
 #include "Runtime/Core/PluginManager.hpp"
 #include "EditorRegistry.hpp"
@@ -272,9 +273,50 @@ void Editor::BuildDynamicEditorUI() {
 
     // Build menu
     std::vector<std::shared_ptr<MenuItem>> buildItems;
-    auto compileItem = std::make_shared<MenuItem>(); compileItem->label = "Compile";
-    auto cookItem = std::make_shared<MenuItem>(); cookItem->label = "Cook Content";
-    buildItems.push_back(compileItem); buildItems.push_back(cookItem);
+    auto compileItem = std::make_shared<MenuItem>();
+    compileItem->label = "Compile";
+    compileItem->onClick = []() {
+        const auto result = we::core::InvokeIgniteBT({ "build", "--config", "Debug" });
+        if (!result.launched) {
+            HE_ERROR("[Build] " + result.errorMessage);
+        } else if (result.exitCode != 0) {
+            HE_ERROR("[Build] Compile failed with exit code " + std::to_string(result.exitCode));
+        } else {
+            HE_INFO("[Build] Compile completed successfully.");
+        }
+    };
+
+    auto buildProjectItem = std::make_shared<MenuItem>();
+    buildProjectItem->label = "Build";
+    buildProjectItem->onClick = []() {
+        const auto result = we::core::InvokeIgniteBT({ "build", "--config", "Debug" });
+        if (!result.launched) {
+            HE_ERROR("[Build] " + result.errorMessage);
+        }
+    };
+
+    auto packageItem = std::make_shared<MenuItem>();
+    packageItem->label = "Package";
+    packageItem->onClick = []() {
+        const auto result = we::core::InvokeIgniteBT({ "package" });
+        if (!result.launched) {
+            HE_ERROR("[Build] " + result.errorMessage);
+        }
+    };
+
+    auto cookItem = std::make_shared<MenuItem>();
+    cookItem->label = "Cook Content";
+    cookItem->onClick = []() {
+        const auto result = we::core::InvokeIgniteBT({ "package", "--cook" });
+        if (!result.launched) {
+            HE_ERROR("[Build] " + result.errorMessage);
+        }
+    };
+
+    buildItems.push_back(compileItem);
+    buildItems.push_back(buildProjectItem);
+    buildItems.push_back(packageItem);
+    buildItems.push_back(cookItem);
     menuBar->AddMenu("Build", buildItems);
 
     // Select menu
@@ -550,7 +592,10 @@ void Editor::BuildDynamicEditorUI() {
         HE_INFO("[Footer] Output log clicked.");
     });
     m_StatusBar->SetOnBuildMenuClicked([]() {
-        HE_INFO("[Footer] Build menu clicked.");
+        const auto result = we::core::InvokeIgniteBT({ "build", "--config", "Debug" });
+        if (!result.launched) {
+            HE_ERROR("[Build] " + result.errorMessage);
+        }
     });
     m_StatusBar->SetOnTraceClicked([]() {
         HE_INFO("[Footer] Trace clicked.");

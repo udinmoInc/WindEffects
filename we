@@ -1,0 +1,32 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+LAUNCHER_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="${WE_PROJECT_ROOT:-${LAUNCHER_DIR}}"
+ENGINE_ROOT="${WE_ENGINE_ROOT:-${PROJECT_ROOT}/Engine}"
+IGNITEBT_CSPROJ="${ENGINE_ROOT}/Source/Programs/IgniteBT/IgniteBT.csproj"
+
+resolve_ignitebt() {
+  local config candidate
+  for config in Debug Release Development Shipping; do
+    candidate="${PROJECT_ROOT}/Build/Intermediate/IgniteBT/${config}/net8.0/IgniteBT"
+    if [[ -x "${candidate}" ]]; then
+      printf '%s\n' "${candidate}"
+      return 0
+    fi
+  done
+  return 1
+}
+
+if IGNITEBT_BIN="$(resolve_ignitebt)"; then
+  exec "${IGNITEBT_BIN}" "$@"
+fi
+
+if [[ ! -f "${IGNITEBT_CSPROJ}" ]]; then
+  echo "error: IgniteBT project not found at ${IGNITEBT_CSPROJ}" >&2
+  echo "error: run from the WindEffects repository root or set WE_PROJECT_ROOT." >&2
+  exit 1
+fi
+
+cd "${PROJECT_ROOT}"
+exec dotnet run --project "${IGNITEBT_CSPROJ}" -- "$@"

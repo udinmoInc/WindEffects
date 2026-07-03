@@ -1,7 +1,7 @@
 <Project>
   <PropertyGroup>
-    <BaseOutputPath>../../../../Build/IgniteBT/</BaseOutputPath>
-    <BaseIntermediateOutputPath>../../../../Build/IgniteBT/Intermediate/</BaseIntermediateOutputPath>
-    <MSBuildProjectExtensionsPath>../../../../Build/IgniteBT/Intermediate/</MSBuildProjectExtensionsPath>
+    <BaseOutputPath>../../../../Build/Intermediate/IgniteBT/</BaseOutputPath>
+    <BaseIntermediateOutputPath>../../../../Build/Intermediate/IgniteBT/obj/</BaseIntermediateOutputPath>
+    <MSBuildProjectExtensionsPath>../../../../Build/Intermediate/IgniteBT/obj/</MSBuildProjectExtensionsPath>
   </PropertyGroup>
 </Project>

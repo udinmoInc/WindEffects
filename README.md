@@ -95,38 +95,45 @@ WindEffects/
 │   │   ├── Runtime/
 │   │   ├── Editor/
 │   │   └── Programs/
-│   │       └── IgniteBT/
+│   │       ├── IgniteBT/         # Build tool implementation
+│   │       └── Scripts/          # Optional install helpers (install-we.*)
+│
+├── we                            # Cross-platform CLI entry (bash)
+├── we.bat                        # Windows CMD entry
+├── we.ps1                        # Windows PowerShell entry
 │   ├── ThirdParty/
 │   ├── Content/
 │   └── Config/
 │
-├── Build/
+├── Build/                          # Disposable — recreated by IgniteBT, gitignored
+│   ├── Output/
+│   │   └── Win64/
+│   │       ├── Debug/
+│   │       ├── Development/
+│   │       └── Shipping/
+│   │           ├── WindeffectsEditor.exe
+│   │           ├── WECore.dll
+│   │           ├── WECoreUObject.dll
+│   │           ├── WEEngine.dll
+│   │           ├── Runtime/
+│   │           │   └── Renderer/
+│   │           │       └── WERenderer.dll
+│   │           ├── Editor/
+│   │           │   └── ContentBrowser/
+│   │           │       └── WEContentBrowser.dll
+│   │           ├── Config/
+│   │           ├── Content/
+│   │           └── Resources/
+│   ├── Intermediate/
+│   │   ├── IgniteBT/
+│   │   └── Win64/Debug/            # Objects, PDB, incremental link data
+│   ├── Generated/
 │   ├── Cache/
 │   ├── Database/
-│   ├── IgniteBT/
 │   ├── Logs/
-│   └── Win64/
-│       ├── Debug/
-│       └── Release/
-│
-├── Output/
-│   └── Win64/
-│       ├── Debug/
-│       ├── Development/
-│       └── Shipping/
-│           ├── WindeffectsEditor.exe
-│           ├── WECore.dll
-│           ├── WECoreUObject.dll
-│           ├── WEEngine.dll
-│           ├── Runtime/
-│           │   └── Renderer/
-│           │       └── WERenderer.dll
-│           ├── Editor/
-│           │   └── ContentBrowser/
-│           │       └── WEContentBrowser.dll
-│           ├── Config/
-│           ├── Content/
-│           └── Resources/
+│   ├── Reports/
+│   ├── Manifest/
+│   └── Temp/
 │
 ├── Assets/
 ├── Scripts/
@@ -168,18 +175,55 @@ The goal is to provide a scalable engine and editor suitable for professional ga
 
 # 🔧 Building
 
-WindEffects is built exclusively with **IgniteBT**. All generated artifacts are written outside the source tree.
+WindEffects is built exclusively with **IgniteBT**, exposed through the cross-platform **`we`** command-line interface. All generated artifacts are written outside the source tree.
+
+## CLI setup
+
+From the repository root:
 
 ```powershell
-# Build IgniteBT (once, or after tool changes)
-dotnet build Engine/Source/Programs/IgniteBT/IgniteBT.csproj -c Debug
+# PowerShell (outside Cursor/VS Code): prefix with .\ until setup is run
+.\we clean
+.\we build --config Debug
 
-# Build the engine
-Build/IgniteBT/Debug/net8.0/IgniteBT.exe build --config Debug
-
-# Clean all build/output artifacts
-Build/IgniteBT/Debug/net8.0/IgniteBT.exe clean --config Debug
+# After one-time setup, `we` works from any directory:
+.\we setup
 ```
+
+In **Cursor / VS Code** integrated terminals, `we` works immediately (the workspace root is on PATH).
+
+```powershell
+we build --config Debug
+we doctor
+```
+
+Restart your terminal after `we setup` if using an external shell.
+
+## Common commands
+
+```powershell
+we build --config Debug
+we clean --config Debug
+we rebuild --config Debug
+we run --target Editor --config Debug
+we package
+we doctor
+we sdk detect
+we plugin list
+we project list
+we version
+```
+
+## Bootstrapping IgniteBT
+
+The root `we` launchers forward to IgniteBT. On first use they fall back to `dotnet run` if IgniteBT has not been built yet:
+
+```powershell
+dotnet build Engine/Source/Programs/IgniteBT/IgniteBT.csproj -c Debug
+we build --config Debug
+```
+
+Repository-root launchers (`we`, `we.bat`, `we.ps1`) contain no build logic — they only locate and invoke IgniteBT. All build logic lives in `Engine/Source/Programs/IgniteBT`.
 
 ### Directory layout
 
@@ -187,8 +231,10 @@ Build/IgniteBT/Debug/net8.0/IgniteBT.exe clean --config Debug
 |------|---------|
 | `Engine/Source/` | Human-authored source code only |
 | `Engine/ThirdParty/` | Third-party library sources (e.g. GLM) |
-| `Build/` | Intermediate artifacts: objects, PDBs, cache, logs |
-| `Output/Win64/Debug/` | Final binaries in a modular layout (bootstrap DLLs and entry EXEs at the configuration root) |
+| `Build/` | All generated data — disposable, gitignored, recreated by IgniteBT |
+| `Build/Intermediate/` | Object files, PDBs, incremental link data, IgniteBT tool output |
+| `Build/Generated/` | Build-time generated files (export `.def` files, etc.) |
+| `Build/Output/Win64/Debug/` | Final binaries in a modular layout (bootstrap EXEs/DLLs at the configuration root) |
 
 ---
 

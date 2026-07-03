@@ -3,8 +3,8 @@ using IgniteBT.Compiler;
 namespace IgniteBT.BuildSystem;
 
 /// <summary>
-/// Central build/output directory layout for IgniteBT.
-/// All generated artifacts live under Build/ and Output/ at the project root.
+/// Central build directory layout for IgniteBT.
+/// All generated artifacts live under a single disposable Build/ tree at the project root.
 /// </summary>
 public sealed class BuildLayout
 {
@@ -22,27 +22,34 @@ public sealed class BuildLayout
     }
 
     public string BuildRoot => Path.Combine(ProjectRoot, "Build");
-    public string OutputRoot => Path.Combine(ProjectRoot, "Output");
 
-    public string LogsDirectory => Path.Combine(BuildRoot, "Logs");
-    public string CacheDirectory => Path.Combine(BuildRoot, "Cache");
-    public string DatabaseDirectory => Path.Combine(BuildRoot, "Database");
-
-    public string PlatformBuildRoot => Path.Combine(BuildRoot, PlatformFolder, ConfigurationFolder);
+    public string OutputRoot => Path.Combine(BuildRoot, "Output");
     public string PlatformOutputRoot => Path.Combine(OutputRoot, PlatformFolder, ConfigurationFolder);
 
-    public string ObjectsRoot => Path.Combine(PlatformBuildRoot, "Objects");
-    public string GeneratedRoot => Path.Combine(PlatformBuildRoot, "Generated");
-    public string ModulesRoot => Path.Combine(PlatformBuildRoot, "Modules");
-    public string ProgramDatabaseRoot => Path.Combine(PlatformBuildRoot, "PDB");
-    public string IncrementalRoot => Path.Combine(PlatformBuildRoot, "Incremental");
-    public string TempRoot => Path.Combine(PlatformBuildRoot, "Temp");
+    public string IntermediateRoot => Path.Combine(BuildRoot, "Intermediate");
+    public string PlatformIntermediateRoot => Path.Combine(IntermediateRoot, PlatformFolder, ConfigurationFolder);
+    public string ObjectsRoot => Path.Combine(PlatformIntermediateRoot, "Objects");
+    public string ProgramDatabaseRoot => Path.Combine(PlatformIntermediateRoot, "PDB");
+    public string IncrementalRoot => Path.Combine(PlatformIntermediateRoot, "Incremental");
+    public string ModulesMetadataRoot => Path.Combine(PlatformIntermediateRoot, "Modules");
+
+    public string GeneratedRoot => Path.Combine(BuildRoot, "Generated");
+    public string PlatformGeneratedRoot => Path.Combine(GeneratedRoot, PlatformFolder, ConfigurationFolder);
+
+    public string CacheDirectory => Path.Combine(BuildRoot, "Cache");
+    public string DatabaseDirectory => Path.Combine(BuildRoot, "Database");
+    public string LogsDirectory => Path.Combine(BuildRoot, "Logs");
+    public string ReportsDirectory => Path.Combine(BuildRoot, "Reports");
+    public string ManifestDirectory => Path.Combine(BuildRoot, "Manifest");
+    public string TempRoot => Path.Combine(BuildRoot, "Temp");
+
+    public string IgniteBtOutputRoot => Path.Combine(IntermediateRoot, "IgniteBT");
 
     public string GetModuleObjectsDirectory(string moduleName) =>
         Path.Combine(ObjectsRoot, moduleName);
 
     public string GetModuleGeneratedDirectory(string moduleName) =>
-        Path.Combine(GeneratedRoot, moduleName);
+        Path.Combine(PlatformGeneratedRoot, moduleName);
 
     public string GetModuleProgramDatabasePath(string moduleName) =>
         Path.Combine(ProgramDatabaseRoot, moduleName + ".pdb");
@@ -55,15 +62,22 @@ public sealed class BuildLayout
 
     public void EnsureDirectories()
     {
-        Directory.CreateDirectory(LogsDirectory);
+        Directory.CreateDirectory(OutputRoot);
+        Directory.CreateDirectory(IntermediateRoot);
+        Directory.CreateDirectory(GeneratedRoot);
         Directory.CreateDirectory(CacheDirectory);
         Directory.CreateDirectory(DatabaseDirectory);
+        Directory.CreateDirectory(LogsDirectory);
+        Directory.CreateDirectory(ReportsDirectory);
+        Directory.CreateDirectory(ManifestDirectory);
+        Directory.CreateDirectory(TempRoot);
+        Directory.CreateDirectory(IgniteBtOutputRoot);
+
         Directory.CreateDirectory(ObjectsRoot);
-        Directory.CreateDirectory(GeneratedRoot);
-        Directory.CreateDirectory(ModulesRoot);
         Directory.CreateDirectory(ProgramDatabaseRoot);
         Directory.CreateDirectory(IncrementalRoot);
-        Directory.CreateDirectory(TempRoot);
+        Directory.CreateDirectory(ModulesMetadataRoot);
+        Directory.CreateDirectory(PlatformGeneratedRoot);
         Directory.CreateDirectory(PlatformOutputRoot);
     }
 
@@ -134,11 +148,21 @@ public sealed class BuildLayout
 
     public static IEnumerable<string> GetLegacyArtifactDirectories(string projectRoot, string engineRoot)
     {
+        yield return Path.Combine(projectRoot, "Output");
         yield return Path.Combine(engineRoot, "Binaries");
         yield return Path.Combine(engineRoot, "Intermediate");
         yield return Path.Combine(projectRoot, "Logs");
         yield return Path.Combine(engineRoot, "Source", "Programs", "IgniteBT", "bin");
         yield return Path.Combine(engineRoot, "Source", "Programs", "IgniteBT", "obj");
         yield return Path.Combine(projectRoot, "Build", "cmake");
+        yield return Path.Combine(projectRoot, "Build", "IgniteBT");
+        yield return Path.Combine(projectRoot, "Build", "Win64");
+        yield return Path.Combine(projectRoot, "Build", "Linux");
+        yield return Path.Combine(projectRoot, "Build", "Mac");
+        yield return Path.Combine(projectRoot, "Build", "CMakeFiles");
+        yield return Path.Combine(projectRoot, "Build", "_deps");
+        yield return Path.Combine(projectRoot, "Build", "bin");
+        yield return Path.Combine(projectRoot, "Build", "Engine");
+        yield return Path.Combine(projectRoot, "Build", "x64");
     }
 }
