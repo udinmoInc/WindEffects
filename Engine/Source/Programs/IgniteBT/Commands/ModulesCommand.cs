@@ -1,15 +1,80 @@
 using Serilog;
+using IgniteBT.ModuleDiscovery;
 
 namespace IgniteBT.Commands;
 
-public class ModulesCommand
+public static class ModulesCommand
 {
-    public async Task ExecuteAsync()
+    public static async Task<int> Execute(string[] args)
     {
         Log.Information("Modules Command - Listing all discovered modules");
         
-        // TODO: Implement actual module discovery logic
-        Log.Warning("Modules command not yet implemented - this is a placeholder");
-        await Task.CompletedTask;
+        try
+        {
+            // Get engine directory - find the Engine root by looking for Source directory
+            var currentDir = Directory.GetCurrentDirectory();
+            var engineDir = FindEngineRoot(currentDir);
+            
+            if (string.IsNullOrEmpty(engineDir) || !Directory.Exists(engineDir))
+            {
+                Log.Error("Could not find engine root directory from {CurrentDir}", currentDir);
+                return 1;
+            }
+            
+            Log.Information("Engine root: {EngineDir}", engineDir);
+            
+            var discovery = new ModuleDiscoverer(engineDir);
+            var modules = await discovery.DiscoverModulesAsync();
+            
+            Console.WriteLine();
+            Console.WriteLine($"Discovered {modules.Count} modules:");
+            Console.WriteLine();
+            
+            foreach (var module in modules)
+            {
+                Console.WriteLine($"  {module.Name}");
+                Console.WriteLine($"    Type: {module.Type}");
+                Console.WriteLine($"    Path: {module.ModuleDirectory}");
+                Console.WriteLine($"    Build.cs: {module.BuildCsPath}");
+                Console.WriteLine();
+            }
+            
+            return 0;
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, "Failed to discover modules");
+            return 1;
+        }
+    }
+
+    static string? FindEngineRoot(string startDir)
+    {
+        var dir = new DirectoryInfo(startDir);
+        
+        // Search up the directory tree for the Engine directory
+        while (dir != null)
+        {
+            // Check if this is the Engine directory (has Source subdirectory)
+            if (dir.Name.Equals("Engine", StringComparison.OrdinalIgnoreCase))
+            {
+                var sourceDir = Path.Combine(dir.FullName, "Source");
+                if (Directory.Exists(sourceDir))
+                {
+                    return dir.FullName;
+                }
+            }
+            
+            // Check if we're inside Engine directory
+            var engineParent = Path.Combine(dir.FullName, "Engine", "Source");
+            if (Directory.Exists(engineParent))
+            {
+                return Path.GetDirectoryName(engineParent);
+            }
+            
+            dir = dir.Parent;
+        }
+        
+        return null;
     }
 }

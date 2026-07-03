@@ -1,5 +1,6 @@
 using System.CommandLine;
 using Serilog;
+using IgniteBT.Commands;
 
 namespace IgniteBT;
 
@@ -19,92 +20,27 @@ class Program
 
         try
         {
-            // Create root command
-            var rootCommand = new RootCommand("IgniteBT - WindEffects Build Tool")
+            // Simple command parsing
+            if (args.Length == 0)
             {
-                new Command("build", "Build specified targets")
-                {
-                    new Argument<string>("target", "Target to build (e.g., Editor, Runtime, Launcher)")
-                    {
-                        Arity = ArgumentArity.ZeroOrOne
-                    },
-                    new Option<string>("--config", () => "Release", "Build configuration (Debug, Release)"),
-                    new Option<string>("--platform", () => GetCurrentPlatform(), "Target platform"),
-                    new Option<bool>("--clean", () => false, "Clean before building"),
-                    new Option<int>("--jobs", () => Environment.ProcessorCount, "Number of parallel jobs")
-                },
-                new Command("clean", "Clean build artifacts")
-                {
-                    new Argument<string>("target", "Target to clean")
-                    {
-                        Arity = ArgumentArity.ZeroOrOne
-                    }
-                },
-                new Command("rebuild", "Rebuild specified targets")
-                {
-                    new Argument<string>("target", "Target to rebuild")
-                    {
-                        Arity = ArgumentArity.ZeroOrOne
-                    }
-                },
-                new Command("graph", "Display build dependency graph"),
-                new Command("modules", "List all discovered modules"),
-                new Command("doctor", "Diagnose build system issues"),
-                new Command("version", "Display version information")
+                PrintUsage();
+                return 0;
+            }
+
+            var command = args[0].ToLower();
+            var remainingArgs = args.Skip(1).ToArray();
+
+            return command switch
+            {
+                "build" => await BuildCommand.Execute(remainingArgs),
+                "clean" => await CleanCommand.Execute(remainingArgs),
+                "rebuild" => await RebuildCommand.Execute(remainingArgs),
+                "graph" => await GraphCommand.Execute(remainingArgs),
+                "modules" => await ModulesCommand.Execute(remainingArgs),
+                "doctor" => await DoctorCommand.Execute(remainingArgs),
+                "version" => VersionCommand.Execute(),
+                _ => PrintUsage()
             };
-
-            // Set command handlers
-            rootCommand.Subcommands["build"].SetHandler(async (string? target, string config, string platform, bool clean, int jobs) =>
-            {
-                var buildCommand = new Commands.BuildCommand();
-                await buildCommand.ExecuteAsync(target, config, platform, clean, jobs);
-            },
-            rootCommand.Subcommands["build"].Arguments[0],
-            rootCommand.Subcommands["build"].Options[0],
-            rootCommand.Subcommands["build"].Options[1],
-            rootCommand.Subcommands["build"].Options[2],
-            rootCommand.Subcommands["build"].Options[3]);
-
-            rootCommand.Subcommands["clean"].SetHandler(async (string? target) =>
-            {
-                var cleanCommand = new Commands.CleanCommand();
-                await cleanCommand.ExecuteAsync(target);
-            },
-            rootCommand.Subcommands["clean"].Arguments[0]);
-
-            rootCommand.Subcommands["rebuild"].SetHandler(async (string? target) =>
-            {
-                var rebuildCommand = new Commands.RebuildCommand();
-                await rebuildCommand.ExecuteAsync(target);
-            },
-            rootCommand.Subcommands["rebuild"].Arguments[0]);
-
-            rootCommand.Subcommands["graph"].SetHandler(async () =>
-            {
-                var graphCommand = new Commands.GraphCommand();
-                await graphCommand.ExecuteAsync();
-            });
-
-            rootCommand.Subcommands["modules"].SetHandler(async () =>
-            {
-                var modulesCommand = new Commands.ModulesCommand();
-                await modulesCommand.ExecuteAsync();
-            });
-
-            rootCommand.Subcommands["doctor"].SetHandler(async () =>
-            {
-                var doctorCommand = new Commands.DoctorCommand();
-                await doctorCommand.ExecuteAsync();
-            });
-
-            rootCommand.Subcommands["version"].SetHandler(() =>
-            {
-                Console.WriteLine("IgniteBT v1.0.0");
-                Console.WriteLine("WindEffects Build Tool");
-                Console.WriteLine(".NET 8.0");
-            });
-
-            return await rootCommand.InvokeAsync(args);
         }
         catch (Exception ex)
         {
@@ -115,6 +51,21 @@ class Program
         {
             Log.CloseAndFlush();
         }
+    }
+
+    static int PrintUsage()
+    {
+        Console.WriteLine("IgniteBT - WindEffects Build Tool v1.0.0");
+        Console.WriteLine();
+        Console.WriteLine("Usage:");
+        Console.WriteLine("  ignitebt build [target] [--config Debug|Release] [--platform Windows|Linux|Mac] [--clean] [--jobs N]");
+        Console.WriteLine("  ignitebt clean [target]");
+        Console.WriteLine("  ignitebt rebuild [target]");
+        Console.WriteLine("  ignitebt graph");
+        Console.WriteLine("  ignitebt modules");
+        Console.WriteLine("  ignitebt doctor");
+        Console.WriteLine("  ignitebt version");
+        return 0;
     }
 
     static string GetCurrentPlatform()
