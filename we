@@ -6,11 +6,26 @@ PROJECT_ROOT="${WE_PROJECT_ROOT:-${LAUNCHER_DIR}}"
 ENGINE_ROOT="${WE_ENGINE_ROOT:-${PROJECT_ROOT}/Engine}"
 IGNITEBT_CSPROJ="${ENGINE_ROOT}/Source/Programs/IgniteBT/IgniteBT.csproj"
 
+is_ignitebt_usable() {
+  local executable="$1"
+  local output_dir binary_name
+  [[ -f "${executable}" ]] || return 1
+  output_dir="$(dirname "${executable}")"
+  binary_name="$(basename "${executable}")"
+  binary_name="${binary_name%.exe}"
+  [[ -f "${output_dir}/${binary_name}.runtimeconfig.json" ]] || return 1
+  [[ -f "${output_dir}/${binary_name}.deps.json" ]] || return 1
+  return 0
+}
+
 resolve_ignitebt() {
   local config candidate
   for config in Debug Release Development Shipping; do
     candidate="${PROJECT_ROOT}/Build/Intermediate/IgniteBT/${config}/net8.0/IgniteBT"
-    if [[ -x "${candidate}" ]]; then
+    if [[ -f "${candidate}.exe" ]]; then
+      candidate="${candidate}.exe"
+    fi
+    if is_ignitebt_usable "${candidate}"; then
       printf '%s\n' "${candidate}"
       return 0
     fi

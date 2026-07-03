@@ -11,7 +11,7 @@ public static class CleanCommand
     public static async Task<int> Execute(string[] args)
     {
         var target = args.Length > 0 ? args[0] : "All";
-        var config = GetArgValue(args, "--config", "Release");
+        var config = GetArgValue(args, "--config", "Debug");
         
         Log.Information("Clean Command");
         Log.Information("Target: {Target}", target);
@@ -35,7 +35,6 @@ public static class CleanCommand
             var buildConfig = ParseConfiguration(config);
             var layout = BuildLayout.Resolve(currentDir, GetCurrentPlatform(), buildConfig);
             
-            // Discover modules
             var discovery = new ModuleDiscoverer(engineDir);
             var modules = await discovery.DiscoverModulesAsync();
             
@@ -56,7 +55,7 @@ public static class CleanCommand
                 }
             }
 
-            CleanDirectory(layout.BuildRoot, "build directory");
+            CleanBuildTree(layout);
 
             foreach (var legacyDir in BuildLayout.GetLegacyArtifactDirectories(projectRoot, engineDir))
             {
@@ -73,6 +72,53 @@ public static class CleanCommand
         }
     }
 
+    private static void CleanBuildTree(BuildLayout layout)
+    {
+        if (!Directory.Exists(layout.BuildRoot))
+        {
+            return;
+        }
+
+        foreach (var entry in Directory.EnumerateFileSystemEntries(layout.BuildRoot))
+        {
+            var name = Path.GetFileName(entry);
+            if (string.Equals(name, "Intermediate", StringComparison.OrdinalIgnoreCase))
+            {
+                CleanIntermediateTree(entry, layout.IgniteBtOutputRoot);
+                continue;
+            }
+
+            CleanDirectory(entry, $"build/{name}");
+        }
+    }
+
+    private static void CleanIntermediateTree(string intermediateRoot, string igniteBtRoot)
+    {
+        if (!Directory.Exists(intermediateRoot))
+        {
+            return;
+        }
+
+        foreach (var entry in Directory.EnumerateFileSystemEntries(intermediateRoot))
+        {
+            if (IsSameOrChildPath(entry, igniteBtRoot))
+            {
+                Log.Information("Skipping IgniteBT tool output (in use by this session): {Dir}", entry);
+                continue;
+            }
+
+            CleanDirectory(entry, $"intermediate/{Path.GetFileName(entry)}");
+        }
+    }
+
+    private static bool IsSameOrChildPath(string path, string root)
+    {
+        var fullPath = Path.GetFullPath(path).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+        var fullRoot = Path.GetFullPath(root).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+        return fullPath.Equals(fullRoot, StringComparison.OrdinalIgnoreCase)
+            || fullPath.StartsWith(fullRoot + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase);
+    }
+
     private static void CleanModule(BuildNode node, BuildLayout layout)
     {
         Log.Information("Cleaning module: {ModuleName}", node.Name);
@@ -85,11 +131,66 @@ public static class CleanCommand
     {
         if (!Directory.Exists(path))
         {
+            if (File.Exists(path))
+            {
+                TryDeleteFile(path, description);
+            }
             return;
         }
 
-        Directory.Delete(path, true);
-        Log.Information("Deleted {Description}: {Dir}", description, path);
+        try
+        {
+            Directory.Delete(path, true);
+            Log.Information("Deleted {Description}: {Dir}", description, path);
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            Log.Warning(ex, "Could not fully delete {Description} (files may be in use): {Dir}", description, path);
+            TryDeleteDirectoryContents(path, description);
+        }
+        catch (IOException ex)
+        {
+            Log.Warning(ex, "Could not fully delete {Description}: {Dir}", description, path);
+            TryDeleteDirectoryContents(path, description);
+        }
+    }
+
+    private static void TryDeleteDirectoryContents(string directory, string description)
+    {
+        foreach (var file in Directory.EnumerateFiles(directory, "*", SearchOption.AllDirectories))
+        {
+            TryDeleteFile(file, description);
+        }
+
+        foreach (var dir in Directory.EnumerateDirectories(directory, "*", SearchOption.AllDirectories).OrderByDescending(d => d.Length))
+        {
+            try
+            {
+                if (Directory.EnumerateFileSystemEntries(dir).Any())
+                {
+                    continue;
+                }
+
+                Directory.Delete(dir, false);
+            }
+            catch (Exception ex)
+            {
+                Log.Debug(ex, "Skipped directory: {Dir}", dir);
+            }
+        }
+    }
+
+    private static void TryDeleteFile(string path, string description)
+    {
+        try
+        {
+            File.Delete(path);
+            Log.Debug("Deleted file from {Description}: {File}", description, path);
+        }
+        catch (Exception ex)
+        {
+            Log.Warning(ex, "Skipped locked file in {Description}: {File}", description, path);
+        }
     }
 
     private static BuildConfiguration ParseConfiguration(string config)
@@ -100,7 +201,7 @@ public static class CleanCommand
             "development" or "dev" => BuildConfiguration.Development,
             "profile" => BuildConfiguration.Profile,
             "shipping" or "release" => BuildConfiguration.Shipping,
-            _ => BuildConfiguration.Shipping
+            _ => BuildConfiguration.Debug
         };
     }
 

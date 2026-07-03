@@ -5,6 +5,20 @@ param(
 
 $ErrorActionPreference = "Stop"
 
+function Test-IgniteBtExecutable {
+    param([string]$ExecutablePath)
+
+    if (-not (Test-Path $ExecutablePath)) {
+        return $false
+    }
+
+    $outputDir = Split-Path -Parent $ExecutablePath
+    $binaryName = [System.IO.Path]::GetFileNameWithoutExtension($ExecutablePath)
+    $runtimeConfig = Join-Path $outputDir "$binaryName.runtimeconfig.json"
+    $depsJson = Join-Path $outputDir "$binaryName.deps.json"
+    return (Test-Path $runtimeConfig) -and (Test-Path $depsJson)
+}
+
 $LauncherDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $ProjectRoot = if ($env:WE_PROJECT_ROOT) { $env:WE_PROJECT_ROOT } else { $LauncherDir }
 $EngineRoot = if ($env:WE_ENGINE_ROOT) { $env:WE_ENGINE_ROOT } else { Join-Path $ProjectRoot "Engine" }
@@ -14,7 +28,7 @@ $Configurations = @("Debug", "Release", "Development", "Shipping")
 
 foreach ($config in $Configurations) {
     $candidate = Join-Path $ProjectRoot "Build\Intermediate\IgniteBT\$config\net8.0\IgniteBT.exe"
-    if (Test-Path $candidate) {
+    if (Test-IgniteBtExecutable $candidate) {
         & $candidate @Args
         exit $LASTEXITCODE
     }

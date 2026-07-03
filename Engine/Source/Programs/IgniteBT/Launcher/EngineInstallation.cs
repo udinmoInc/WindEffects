@@ -59,13 +59,32 @@ public static class EngineInstallation
 
         foreach (var candidate in candidates.Distinct(StringComparer.OrdinalIgnoreCase))
         {
-            if (File.Exists(candidate))
+            if (IsIgniteBtExecutableUsable(candidate))
             {
                 return candidate;
             }
         }
 
         return string.Empty;
+    }
+
+    public static bool IsIgniteBtExecutableUsable(string executablePath)
+    {
+        if (!File.Exists(executablePath))
+        {
+            return false;
+        }
+
+        var outputDirectory = Path.GetDirectoryName(executablePath);
+        if (string.IsNullOrEmpty(outputDirectory))
+        {
+            return false;
+        }
+
+        var binaryName = Path.GetFileNameWithoutExtension(executablePath);
+        var runtimeConfig = Path.Combine(outputDirectory, $"{binaryName}.runtimeconfig.json");
+        var depsJson = Path.Combine(outputDirectory, $"{binaryName}.deps.json");
+        return File.Exists(runtimeConfig) && File.Exists(depsJson);
     }
 
     public static string GetIgniteBtBinaryName() =>
