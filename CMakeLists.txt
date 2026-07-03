@@ -1,4 +1,5 @@
 cmake_minimum_required(VERSION 3.24)
+
 project(WindEffects LANGUAGES CXX C)
 
 # C++23 Standard Configuration

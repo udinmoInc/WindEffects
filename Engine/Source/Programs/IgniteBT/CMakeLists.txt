@@ -22,6 +22,14 @@ target_link_libraries(${PROGRAM_NAME} PRIVATE
 # Platform-specific linking
 if(WIN32)
     target_link_libraries(${PROGRAM_NAME} PRIVATE shell32)
+    # Try C++20 instead of C++23 to avoid Windows SDK compatibility issues
+    target_compile_features(${PROGRAM_NAME} PUBLIC cxx_std_20)
+    target_compile_options(${PROGRAM_NAME} PRIVATE
+        "/DNOMINMAX"
+        "/DWIN32_LEAN_AND_MEAN"
+        "/D_CRT_SECURE_NO_WARNINGS"
+        "/D_CRT_NONSTDC_NO_WARNINGS"
+    )
 endif()
 
 # Set output directory

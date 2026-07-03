@@ -5,16 +5,6 @@
 #ifdef _WIN32
 #include <windows.h>
 #include <shlobj.h>
-// Undefine Windows macros that conflict with our method names
-#undef GetCurrentDirectory
-#undef SetCurrentDirectory
-#undef CreateDirectory
-#undef DeleteFile
-#undef RemoveDirectory
-#undef GetFileAttributes
-#undef FindFirstFile
-#undef FindNextFile
-#undef FindClose
 #endif
 
 namespace IgniteBT {
@@ -121,14 +111,14 @@ Path WindowsPlatform::GetTempDirectory() const {
     return Path(buffer);
 }
 
-Path WindowsPlatform::GetCurrentDirectory() const {
+Path WindowsPlatform::GetWorkingDirectory() const {
     char buffer[MAX_PATH];
     DWORD result = ::GetCurrentDirectoryA(MAX_PATH, buffer);
     (void)result;
     return Path(buffer);
 }
 
-bool WindowsPlatform::SetCurrentDirectory(const Path& path) {
+bool WindowsPlatform::SetWorkingDirectory(const Path& path) {
     return ::SetCurrentDirectoryA(path.string().c_str()) != FALSE;
 }
 
@@ -142,23 +132,23 @@ bool WindowsPlatform::DirectoryExists(const Path& path) const {
     return attrs != INVALID_FILE_ATTRIBUTES && (attrs & FILE_ATTRIBUTE_DIRECTORY);
 }
 
-bool WindowsPlatform::CreateDirectory(const Path& path) {
+bool WindowsPlatform::MakeDirectory(const Path& path) {
     return ::CreateDirectoryA(path.string().c_str(), NULL) != FALSE;
 }
 
-bool WindowsPlatform::CreateDirectories(const Path& path) {
+bool WindowsPlatform::MakeDirectories(const Path& path) {
     return std::filesystem::create_directories(path);
 }
 
-bool WindowsPlatform::DeleteFile(const Path& path) {
+bool WindowsPlatform::EraseFile(const Path& path) {
     return ::DeleteFileA(path.string().c_str()) != FALSE;
 }
 
-bool WindowsPlatform::DeleteDirectory(const Path& path, bool recursive) {
+bool WindowsPlatform::EraseDirectory(const Path& path, bool recursive) {
     if (recursive) {
-        return std::filesystem::remove_all(path) > 0;
+        return std::filesystem::remove_all(path);
     }
-    return ::RemoveDirectoryA(path.string().c_str()) != FALSE;
+    return std::filesystem::remove(path);
 }
 
 std::vector<Path> WindowsPlatform::ListFiles(const Path& directory, const std::string& pattern) const {
