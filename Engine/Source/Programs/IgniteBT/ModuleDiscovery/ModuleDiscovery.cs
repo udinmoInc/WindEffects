@@ -58,18 +58,61 @@ public class ModuleDiscoverer
             var references = new[]
             {
                 MetadataReference.CreateFromFile(typeof(object).Assembly.Location),
-                MetadataReference.CreateFromFile(typeof(ModuleRules).Assembly.Location)
+                MetadataReference.CreateFromFile(typeof(ModuleRules).Assembly.Location),
+                MetadataReference.CreateFromFile(typeof(System.Linq.Enumerable).Assembly.Location),
+                MetadataReference.CreateFromFile(typeof(System.Collections.Generic.List<>).Assembly.Location),
+                MetadataReference.CreateFromFile(typeof(System.String).Assembly.Location),
+                MetadataReference.CreateFromFile(typeof(System.Int32).Assembly.Location)
             };
 
             var compilation = CSharpCompilation.Create(
-                assemblyName: Path.GetFileNameWithoutExtension(buildCsPath),
+                assemblyName: Path.GetFileNameWithoutExtension(buildCsPath) + "_compiled",
                 syntaxTrees: new[] { syntaxTree },
                 references: references,
-                options: new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary)
+                options: new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary).WithOptimizationLevel(OptimizationLevel.Release)
             );
 
-            // TODO: Actually compile and instantiate the module rules
-            // For now, just create a placeholder discovered module
+            using var ms = new System.IO.MemoryStream();
+            var emitResult = compilation.Emit(ms);
+
+            if (!emitResult.Success)
+            {
+                var errors = string.Join("\n", emitResult.Diagnostics.Where(d => d.Severity == Microsoft.CodeAnalysis.DiagnosticSeverity.Error));
+                Log.Warning("Failed to compile Build.cs file: {Errors}", errors);
+                
+                // Fall back to simple parsing
+                LoadModuleSimple(buildCsPath, buildCsContent);
+                return;
+            }
+
+            ms.Seek(0, System.IO.SeekOrigin.Begin);
+            var assembly = System.Runtime.Loader.AssemblyLoadContext.Default.LoadFromStream(ms);
+
+            // Find the module class (should inherit from ModuleRules)
+            var moduleType = assembly.GetTypes()
+                .FirstOrDefault(t => t.IsClass && !t.IsAbstract && typeof(ModuleRules).IsAssignableFrom(t));
+
+            if (moduleType == null)
+            {
+                Log.Warning("No class inheriting from ModuleRules found in {Path}", buildCsPath);
+                LoadModuleSimple(buildCsPath, buildCsContent);
+                return;
+            }
+
+            // Create module context
+            var context = new ModuleContext(_engineDirectory, "Release", "Windows", "x64");
+            
+            // Instantiate the module
+            var moduleInstance = (ModuleRules?)Activator.CreateInstance(moduleType, context);
+            
+            if (moduleInstance == null)
+            {
+                Log.Warning("Failed to instantiate module class from {Path}", buildCsPath);
+                LoadModuleSimple(buildCsPath, buildCsContent);
+                return;
+            }
+
+            // Extract module information
             var moduleName = ExtractModuleNameFromPath(buildCsPath);
             var moduleDirectory = Path.GetDirectoryName(buildCsPath) ?? string.Empty;
 
@@ -78,16 +121,50 @@ public class ModuleDiscoverer
                 Name = moduleName,
                 BuildCsPath = buildCsPath,
                 ModuleDirectory = moduleDirectory,
-                Type = ModuleType.SharedLibrary // Default
+                Type = moduleInstance.Type,
+                PublicDependencies = new List<string>(moduleInstance.PublicDependencies),
+                PrivateDependencies = new List<string>(moduleInstance.PrivateDependencies),
+                PublicIncludePaths = new List<string>(moduleInstance.PublicIncludePaths),
+                PrivateIncludePaths = new List<string>(moduleInstance.PrivateIncludePaths),
+                SourceFiles = new List<string>(moduleInstance.SourceFiles)
             };
 
             _modules.Add(discoveredModule);
-            Log.Information("Loaded module: {Name}", moduleName);
+            Log.Information("Loaded module: {Name} with {DepCount} dependencies", moduleName, 
+                discoveredModule.PublicDependencies.Count + discoveredModule.PrivateDependencies.Count);
         }
         catch (Exception ex)
         {
             Log.Error(ex, "Failed to load module from {Path}", buildCsPath);
         }
+    }
+
+    /// <summary>
+    /// Simple fallback loading that parses dependencies from the Build.cs file text.
+    /// </summary>
+    private void LoadModuleSimple(string buildCsPath, string buildCsContent)
+    {
+        var moduleName = ExtractModuleNameFromPath(buildCsPath);
+        var moduleDirectory = Path.GetDirectoryName(buildCsPath) ?? string.Empty;
+
+        var discoveredModule = new DiscoveredModule
+        {
+            Name = moduleName,
+            BuildCsPath = buildCsPath,
+            ModuleDirectory = moduleDirectory,
+            Type = ModuleType.SharedLibrary
+        };
+
+        // Simple regex-based parsing of Dependencies.Add() calls
+        var depMatches = System.Text.RegularExpressions.Regex.Matches(buildCsContent, @"Dependencies\.Add\(""([^""]+)""\)");
+        foreach (System.Text.RegularExpressions.Match match in depMatches)
+        {
+            discoveredModule.PublicDependencies.Add(match.Groups[1].Value);
+        }
+
+        _modules.Add(discoveredModule);
+        Log.Information("Loaded module (simple): {Name} with {DepCount} dependencies", moduleName, 
+            discoveredModule.PublicDependencies.Count);
     }
 
     /// <summary>
