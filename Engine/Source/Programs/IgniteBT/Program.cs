@@ -1,7 +1,7 @@
 using Serilog;
-using IgniteBT.Commands;
-using IgniteBT.BuildSystem;
-using IgniteBT.Launcher;
+using IgniteBT.CLI;
+using IgniteBT.Build.Layout;
+using IgniteBT.Core.Launcher;
 
 namespace IgniteBT;
 
