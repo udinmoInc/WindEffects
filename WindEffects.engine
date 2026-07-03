@@ -1,0 +1,11 @@
+# WindEffects engine installation descriptor.
+# Launchers read only this file and the bootstrap manifest it references.
+schema=1
+engine.version=0.1.0
+ProgramsRoot=Engine/Source/Programs
+BuildRoot=Build
+AssetsRoot=Assets
+ProjectsRoot=Projects
+bootstrap.manifest=Build/Manifest/bootstrap.manifest
+bootstrap.entry=IgniteBT
+bootstrap.entry.source=IgniteBT/IgniteBT.csproj

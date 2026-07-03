@@ -1,47 +1,150 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-LAUNCHER_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="${WE_PROJECT_ROOT:-${LAUNCHER_DIR}}"
-ENGINE_ROOT="${WE_ENGINE_ROOT:-${PROJECT_ROOT}/Engine}"
-IGNITEBT_CSPROJ="${ENGINE_ROOT}/Source/Programs/IgniteBT/IgniteBT.csproj"
+DESCRIPTOR_FILE="WindEffects.engine"
 
-is_ignitebt_usable() {
-  local executable="$1"
-  local output_dir binary_name
-  [[ -f "${executable}" ]] || return 1
-  output_dir="$(dirname "${executable}")"
-  binary_name="$(basename "${executable}")"
-  binary_name="${binary_name%.exe}"
-  [[ -f "${output_dir}/${binary_name}.runtimeconfig.json" ]] || return 1
-  [[ -f "${output_dir}/${binary_name}.deps.json" ]] || return 1
-  return 0
+read_ini_document() {
+  local file="$1"
+  unset "INI_GLOBAL_$(echo "$file" | tr -c 'A-Za-z0-9' '_')" 2>/dev/null || true
+  INI_CURRENT_SECTION=""
+  INI_CURRENT_FILE="$file"
+
+  while IFS= read -r line || [[ -n "$line" ]]; do
+    line="${line#"${line%%[![:space:]]*}"}"
+    [[ -z "$line" || "$line" == \#* ]] && continue
+    if [[ "$line" == \[*\] ]]; then
+      INI_CURRENT_SECTION="${line#[}"
+      INI_CURRENT_SECTION="${INI_CURRENT_SECTION%]}"
+      continue
+    fi
+    [[ "$line" != *"="* ]] && continue
+    local key="${line%%=*}"
+    local value="${line#*=}"
+    key="${key%"${key##*[![:space:]]}"}"
+    key="${key#"${key%%[![:space:]]*}"}"
+    value="${value#"${value%%[![:space:]]*}"}"
+    if [[ -z "$INI_CURRENT_SECTION" ]]; then
+      printf -v "INI_GLOBAL_${key//[^A-Za-z0-9]/_}" '%s' "$value"
+    else
+      local section_key="INI_SECTION_${INI_CURRENT_SECTION//[^A-Za-z0-9]/_}_${key//[^A-Za-z0-9]/_}"
+      printf -v "$section_key" '%s' "$value"
+    fi
+  done < "$file"
 }
 
-resolve_ignitebt() {
-  local config candidate
-  for config in Debug Release Development Shipping; do
-    candidate="${PROJECT_ROOT}/Build/Intermediate/IgniteBT/${config}/net8.0/IgniteBT"
-    if [[ -f "${candidate}.exe" ]]; then
-      candidate="${candidate}.exe"
-    fi
-    if is_ignitebt_usable "${candidate}"; then
-      printf '%s\n' "${candidate}"
+ini_global() {
+  local key="$1"
+  local var="INI_GLOBAL_${key//[^A-Za-z0-9]/_}"
+  printf '%s' "${!var-}"
+}
+
+ini_section_value() {
+  local section="$1"
+  local key="$2"
+  local var="INI_SECTION_${section//[^A-Za-z0-9]/_}_${key//[^A-Za-z0-9]/_}"
+  printf '%s' "${!var-}"
+}
+
+section_exists() {
+  local section="$1"
+  local var="INI_SECTION_${section//[^A-Za-z0-9]/_}_kind"
+  [[ -n "${!var-}" || -n "$(ini_section_value "$section" "source")" || -n "$(ini_section_value "$section" "executable")" ]]
+}
+
+find_engine_root() {
+  local start="$1"
+  local dir="$start"
+  while [[ -n "$dir" ]]; do
+    if [[ -f "$dir/$DESCRIPTOR_FILE" ]]; then
+      printf '%s' "$dir"
       return 0
     fi
+    local parent
+    parent="$(dirname "$dir")"
+    [[ "$parent" == "$dir" ]] && break
+    dir="$parent"
   done
   return 1
 }
 
-if IGNITEBT_BIN="$(resolve_ignitebt)"; then
-  exec "${IGNITEBT_BIN}" "$@"
-fi
+is_dotnet_executable_usable() {
+  local executable="$1"
+  [[ -f "$executable" ]] || return 1
+  local dir name
+  dir="$(dirname "$executable")"
+  name="$(basename "$executable")"
+  name="${name%.exe}"
+  [[ -f "$dir/${name}.runtimeconfig.json" && -f "$dir/${name}.deps.json" ]]
+}
 
-if [[ ! -f "${IGNITEBT_CSPROJ}" ]]; then
-  echo "error: IgniteBT project not found at ${IGNITEBT_CSPROJ}" >&2
-  echo "error: run from the WindEffects repository root or set WE_PROJECT_ROOT." >&2
+invoke_tool() {
+  local kind="$1"
+  local executable="$2"
+  local source="$3"
+  local engine_root="$4"
+  shift 4
+
+  if [[ "$kind" == "dotnet" ]]; then
+    if [[ -n "$executable" ]] && is_dotnet_executable_usable "$executable"; then
+      exec "$executable" "$@"
+    fi
+    [[ -f "$source" ]] || { echo "error: tool source project was not found: $source" >&2; exit 1; }
+    cd "$engine_root"
+    exec dotnet run --project "$source" -- "$@"
+  fi
+
+  [[ -f "$executable" ]] || { echo "error: tool executable was not found: $executable" >&2; exit 1; }
+  exec "$executable" "$@"
+}
+
+ENGINE_ROOT=""
+for start in "${WE_PROJECT_ROOT:-}" "${WE_ENGINE_ROOT:-}" "$PWD" "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"; do
+  [[ -z "$start" ]] && continue
+  if ENGINE_ROOT="$(find_engine_root "$start")"; then
+    break
+  fi
+done
+
+if [[ -z "$ENGINE_ROOT" ]]; then
+  echo "error: could not find ${DESCRIPTOR_FILE} by searching upward from the current directory." >&2
   exit 1
 fi
 
-cd "${PROJECT_ROOT}"
-exec dotnet run --project "${IGNITEBT_CSPROJ}" -- "$@"
+read_ini_document "${ENGINE_ROOT}/${DESCRIPTOR_FILE}"
+
+PROGRAMS_ROOT="${ENGINE_ROOT}/$(ini_global ProgramsRoot)"
+MANIFEST_REL="$(ini_global bootstrap.manifest)"
+BOOTSTRAP_ENTRY_SOURCE="$(ini_global bootstrap.entry.source)"
+
+if [[ -z "$MANIFEST_REL" ]]; then
+  echo "error: engine descriptor is missing bootstrap.manifest." >&2
+  exit 1
+fi
+
+MANIFEST_PATH="${ENGINE_ROOT}/${MANIFEST_REL}"
+REQUESTED_TOOL=""
+if [[ $# -gt 0 ]] && section_exists "$1"; then
+  REQUESTED_TOOL="$1"
+fi
+
+if [[ -f "$MANIFEST_PATH" ]]; then
+  read_ini_document "$MANIFEST_PATH"
+  DEFAULT_TOOL="$(ini_global default)"
+  TOOL_NAME="$DEFAULT_TOOL"
+  [[ -n "$REQUESTED_TOOL" ]] && TOOL_NAME="$REQUESTED_TOOL"
+
+  if section_exists "$TOOL_NAME"; then
+    invoke_tool \
+      "$(ini_section_value "$TOOL_NAME" kind)" \
+      "$(ini_section_value "$TOOL_NAME" executable)" \
+      "$(ini_section_value "$TOOL_NAME" source)" \
+      "$ENGINE_ROOT" \
+      "$@"
+  fi
+fi
+
+[[ -n "$BOOTSTRAP_ENTRY_SOURCE" ]] || { echo "error: bootstrap manifest unavailable and bootstrap.entry.source is missing." >&2; exit 1; }
+ENTRY_PROJECT="${PROGRAMS_ROOT}/${BOOTSTRAP_ENTRY_SOURCE}"
+[[ -f "$ENTRY_PROJECT" ]] || { echo "error: bootstrap entry project was not found: $ENTRY_PROJECT" >&2; exit 1; }
+cd "$ENGINE_ROOT"
+exec dotnet run --project "$ENTRY_PROJECT" -- "$@"
