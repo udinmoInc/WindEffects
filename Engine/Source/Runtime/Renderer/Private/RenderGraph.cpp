@@ -3,6 +3,8 @@
 
 namespace we::runtime::renderer {
 
+#if WE_HAS_VULKAN
+
 RenderGraph::RenderGraph(const std::shared_ptr<Renderer>& renderer)
     : m_Renderer(renderer) {}
 
@@ -84,5 +86,7 @@ void RenderGraph::BeginSwapchainPass(VkCommandBuffer cmd) const {
 void RenderGraph::EndSwapchainPass(VkCommandBuffer cmd) const {
     vkCmdEndRenderPass(cmd);
 }
+
+#endif // WE_HAS_VULKAN
 
 } // namespace we::runtime::renderer

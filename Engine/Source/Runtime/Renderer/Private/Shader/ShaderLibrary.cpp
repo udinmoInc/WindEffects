@@ -4,6 +4,8 @@
 
 namespace we::runtime::renderer {
 
+#if WE_HAS_VULKAN
+
 ShaderLibrary& ShaderLibrary::Get()
 {
     static ShaderLibrary instance;
@@ -149,5 +151,7 @@ void ShaderLibrary::ReloadIfSourcesChanged()
         }
     }
 }
+
+#endif // WE_HAS_VULKAN
 
 } // namespace we::runtime::renderer

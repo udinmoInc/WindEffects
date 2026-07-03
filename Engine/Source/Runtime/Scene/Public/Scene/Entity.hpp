@@ -6,6 +6,8 @@
 #include <glm/glm.hpp>
 #else
 // Fallback simple math types when GLM is not available
+#ifndef GLM_FALLBACK_TYPES_DEFINED
+#define GLM_FALLBACK_TYPES_DEFINED
 struct glm_vec3 { float x, y, z; };
 struct glm_vec4 { float x, y, z, w; };
 struct glm_mat4 { float data[16]; };
@@ -14,6 +16,7 @@ namespace glm {
     using vec4 = glm_vec4;
     using mat4 = glm_mat4;
 }
+#endif
 #endif
 #if WE_HAS_VULKAN
 #include <volk.h>
