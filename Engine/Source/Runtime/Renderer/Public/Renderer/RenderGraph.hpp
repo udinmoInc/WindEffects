@@ -1,10 +1,14 @@
 #pragma once
 
 #include "Renderer/Renderer.hpp"
+#if WE_HAS_VULKAN
 #include <volk.h>
+#endif
 #include <memory>
 
 namespace we::runtime::renderer {
+
+#if WE_HAS_VULKAN
 
 class RenderGraph {
 public:
@@ -24,5 +28,7 @@ public:
 private:
     std::shared_ptr<Renderer> m_Renderer;
 };
+
+#endif // WE_HAS_VULKAN
 
 } // namespace we::runtime::renderer

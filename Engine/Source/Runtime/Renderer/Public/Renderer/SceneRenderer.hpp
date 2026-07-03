@@ -1,14 +1,32 @@
 #pragma once
 
+#if WE_HAS_VULKAN
 #include "Renderer/VulkanContext.hpp"
 #include <volk.h>
+#endif
+#if WE_HAS_GLM
+#include <glm/glm.hpp>
+#else
+// Fallback simple math types when GLM is not available
+struct glm_vec3 { float x, y, z; };
+struct glm_vec4 { float x, y, z, w; };
+struct glm_mat4 { float data[16]; };
+struct glm_ivec2 { int x, y; };
+namespace glm {
+    using vec3 = glm_vec3;
+    using vec4 = glm_vec4;
+    using mat4 = glm_mat4;
+    using ivec2 = glm_ivec2;
+}
+#endif
 #include <memory>
 #include <vector>
 #include <array>
 #include <unordered_map>
-#include <glm/glm.hpp>
 
 namespace we::runtime::renderer {
+
+#if WE_HAS_VULKAN
 
 struct Vertex {
     glm::vec3 pos;
@@ -154,5 +172,7 @@ private:
     // Meshes
     std::unordered_map<std::string, MeshBuffer> m_Meshes;
 };
+
+#endif // WE_HAS_VULKAN
 
 } // namespace we::runtime::renderer
