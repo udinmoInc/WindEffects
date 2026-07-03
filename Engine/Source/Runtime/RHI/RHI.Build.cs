@@ -9,7 +9,7 @@ public class RHI : ModuleRules
         PublicIncludePaths.Add("Public");
         PrivateIncludePaths.Add("Private");
 
-        Dependencies.Add("Core");
+        PublicDependencies.Add("Core");
 
         Definitions.Add("RHI_EXPORTS");
     }

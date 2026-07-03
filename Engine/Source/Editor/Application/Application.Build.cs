@@ -9,12 +9,12 @@ public class Application : ModuleRules
         PublicIncludePaths.Add("Public");
         PrivateIncludePaths.Add("Private");
 
-        Dependencies.Add("Core");
-        Dependencies.Add("CoreUObject");
-        Dependencies.Add("Engine");
-        Dependencies.Add("Renderer");
-        Dependencies.Add("Scene");
-        Dependencies.Add("World");
+        PublicDependencies.Add("Core");
+        PublicDependencies.Add("CoreUObject");
+        PublicDependencies.Add("Engine");
+        PublicDependencies.Add("Renderer");
+        PublicDependencies.Add("Scene");
+        PublicDependencies.Add("World");
 
         Definitions.Add("APPLICATION_EXPORTS");
     }

@@ -1,16 +1,19 @@
 #pragma once
 
-#include "Environment/EnvironmentDirectionalLight.h"
-#include "Environment/EnvironmentHeightFog.h"
-#include "Environment/EnvironmentSettings.h"
-#include "Environment/EnvironmentSkyAtmosphere.h"
-#include "Environment/EnvironmentSkyLight.h"
-#include "Environment/EnvironmentTypes.h"
-#include "Environment/EnvironmentVolumetricClouds.h"
+#include "EnvironmentDirectionalLight.h"
+#include "EnvironmentHeightFog.h"
+#include "EnvironmentSettings.h"
+#include "EnvironmentSkyAtmosphere.h"
+#include "EnvironmentSkyLight.h"
+#include "EnvironmentTypes.h"
+#include "EnvironmentVolumetricClouds.h"
 #include "Scene/Scene.hpp"
-#include "Renderer/SceneRenderer.hpp"
 #include <functional>
 #include <memory>
+
+namespace we::runtime::renderer {
+class SceneRenderer;
+}
 
 namespace we::runtime::world::environment {
 
@@ -78,7 +81,9 @@ private:
     bool ActorExists(we::runtime::scene::EntityType type, const char* name) const;
 
     std::weak_ptr<we::runtime::scene::Scene> m_Scene;
+#if WE_HAS_VULKAN
     std::weak_ptr<we::runtime::renderer::SceneRenderer> m_Renderer;
+#endif
 
     std::uint64_t m_FolderEntityId = 0;
     EnvironmentDirectionalLight m_Sun{};

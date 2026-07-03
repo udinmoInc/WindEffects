@@ -1,12 +1,16 @@
 #include "DefaultSceneBuilder.h"
 
-#include "Environment/EnvironmentSystem.h"
+#include "EnvironmentSystem.h"
 #include "Core/Logger.hpp"
 
 namespace we::runtime::world {
 
 void DefaultSceneBuilder::CreateDefaultScene(World& world) {
+#if WE_HAS_VULKAN
     if (!world.IsCameraBufferAssigned() || !world.IsEmpty()) {
+#else
+    if (!world.IsEmpty()) {
+#endif
         return;
     }
 

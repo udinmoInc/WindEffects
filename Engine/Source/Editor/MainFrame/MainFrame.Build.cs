@@ -9,9 +9,9 @@ public class MainFrame : ModuleRules
         PublicIncludePaths.Add("Public");
         PrivateIncludePaths.Add("Private");
 
-        Dependencies.Add("Core");
-        Dependencies.Add("Docking");
-        Dependencies.Add("Application");
+        PublicDependencies.Add("Core");
+        PublicDependencies.Add("Docking");
+        PublicDependencies.Add("Application");
 
         // Add SDL3 as optional SDK
         OptionalSDK("SDL3");

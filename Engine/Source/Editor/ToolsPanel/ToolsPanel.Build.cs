@@ -9,9 +9,9 @@ public class ToolsPanel : ModuleRules
         PublicIncludePaths.Add("Public");
         PrivateIncludePaths.Add("Private");
 
-        Dependencies.Add("Core");
-        Dependencies.Add("Engine");
-        Dependencies.Add("Application");
+        PublicDependencies.Add("Core");
+        PublicDependencies.Add("Engine");
+        PublicDependencies.Add("Application");
 
         Definitions.Add("TOOLSPANEL_EXPORTS");
     }

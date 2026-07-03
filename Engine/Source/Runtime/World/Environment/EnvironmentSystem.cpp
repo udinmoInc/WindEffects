@@ -1,6 +1,7 @@
 #include "Environment/EnvironmentSystem.h"
 
 #include "Environment/EnvironmentLighting.h"
+#include "Renderer/SceneRenderer.hpp"
 #include "Core/Logger.hpp"
 
 #include <algorithm>
@@ -39,8 +40,12 @@ void EnvironmentSystem::BindScene(const std::shared_ptr<Scene>& scene) {
 }
 
 void EnvironmentSystem::BindRenderer(const std::shared_ptr<we::runtime::renderer::SceneRenderer>& renderer) {
+#if WE_HAS_VULKAN
     m_Renderer = renderer;
     UpdateRendering();
+#else
+    (void)renderer;
+#endif
 }
 
 Scene* EnvironmentSystem::GetScene() const {
@@ -151,7 +156,11 @@ std::uint64_t EnvironmentSystem::SpawnActor(
     const std::function<void(Entity&)>& configure) {
 
     Scene* scene = GetScene();
+#if WE_HAS_VULKAN
     if (!scene || !scene->IsCameraBufferAssigned()) {
+#else
+    if (!scene) {
+#endif
         return 0;
     }
 
@@ -303,7 +312,11 @@ bool EnvironmentSystem::EnsureDefaultEnvironment() {
 
 void EnvironmentSystem::CreateEnvironment() {
     Scene* scene = GetScene();
+#if WE_HAS_VULKAN
     if (!scene || !scene->IsCameraBufferAssigned()) {
+#else
+    if (!scene) {
+#endif
         return;
     }
 
@@ -513,10 +526,12 @@ void EnvironmentSystem::SyncToScene() {
 }
 
 void EnvironmentSystem::UpdateRendering() {
+#if WE_HAS_VULKAN
     if (auto renderer = m_Renderer.lock()) {
         renderer->SetSceneEnvironment(BuildSceneEnvironmentUniform(
             m_Sun, m_SkyLight, m_SkyAtmosphere, m_HeightFog, m_VolumetricClouds));
     }
+#endif
 }
 
 EnvironmentActorKind EnvironmentSystem::GetActorKind(std::uint64_t entityId) const {

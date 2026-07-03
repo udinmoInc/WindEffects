@@ -106,6 +106,15 @@ public class MSVCLinker : ILinker
 
         try
         {
+            if (options.ExportAllSymbols && options.TargetType == LinkTargetType.SharedLibrary)
+            {
+                var definitionFile = await GenerateExportDefinitionFileAsync(options);
+                if (!string.IsNullOrEmpty(definitionFile))
+                {
+                    options.DefinitionFile = definitionFile;
+                }
+            }
+
             var arguments = BuildLinkArguments(options);
 
             Log.Information("Linking {TargetType} to {OutputFile} with MSVC LINK", options.TargetType, options.OutputFile);
@@ -452,6 +461,131 @@ exit /b %ERRORLEVEL%
             if (File.Exists(libPath))
             {
                 return libPath;
+            }
+        }
+
+        return string.Empty;
+    }
+
+    private async Task<string?> GenerateExportDefinitionFileAsync(LinkerOptions options)
+    {
+        var dumpbinPath = FindDumpbinExecutable();
+        if (string.IsNullOrEmpty(dumpbinPath))
+        {
+            Log.Warning("dumpbin.exe not found; cannot export all symbols for {Output}", options.OutputFile);
+            return null;
+        }
+
+        var exports = new SortedSet<string>(StringComparer.Ordinal);
+        foreach (var objectFile in options.ObjectFiles)
+        {
+            if (!File.Exists(objectFile))
+            {
+                continue;
+            }
+
+            var startInfo = new ProcessStartInfo
+            {
+                FileName = dumpbinPath,
+                Arguments = $"/SYMBOLS \"{objectFile}\"",
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                UseShellExecute = false,
+                CreateNoWindow = true
+            };
+
+            using var process = Process.Start(startInfo);
+            if (process == null)
+            {
+                continue;
+            }
+
+            var output = await process.StandardOutput.ReadToEndAsync();
+            await process.WaitForExitAsync();
+
+            var normalizedOutput = System.Text.RegularExpressions.Regex.Replace(
+                output,
+                @"\r?\n(?=\?)",
+                string.Empty);
+
+            foreach (var line in normalizedOutput.Split('\n'))
+            {
+                if (!line.Contains("External", StringComparison.Ordinal) || line.Contains("UNDEF", StringComparison.Ordinal))
+                {
+                    continue;
+                }
+
+                var pipeIndex = line.LastIndexOf('|');
+                if (pipeIndex < 0)
+                {
+                    continue;
+                }
+
+                var symbolPart = line[(pipeIndex + 1)..].Trim();
+                var spaceIndex = symbolPart.IndexOf(' ');
+                var symbol = spaceIndex >= 0 ? symbolPart[..spaceIndex] : symbolPart;
+                if (string.IsNullOrWhiteSpace(symbol) || symbol.StartsWith("__imp_", StringComparison.Ordinal))
+                {
+                    continue;
+                }
+
+                if (ShouldExportSymbol(symbol))
+                {
+                    exports.Add(symbol);
+                }
+            }
+        }
+
+        if (exports.Count == 0)
+        {
+            return null;
+        }
+
+        var definitionFile = Path.Combine(
+            options.WorkingDirectory,
+            $"{Path.GetFileNameWithoutExtension(options.OutputFile)}_exports.def");
+
+        await using var writer = new StreamWriter(definitionFile);
+        await writer.WriteLineAsync("EXPORTS");
+        foreach (var export in exports)
+        {
+            await writer.WriteLineAsync(export);
+        }
+
+        Log.Debug("Generated export definition file with {Count} symbols: {Path}", exports.Count, definitionFile);
+        return definitionFile;
+    }
+
+    private static bool ShouldExportSymbol(string symbol)
+    {
+        if (symbol is "InitializeModule")
+        {
+            return true;
+        }
+
+        return symbol.Contains("@we@", StringComparison.Ordinal)
+            || symbol.Contains("@WE@", StringComparison.Ordinal);
+    }
+
+    private string FindDumpbinExecutable()
+    {
+        if (!string.IsNullOrEmpty(_executablePath))
+        {
+            var dumpbinPath = Path.Combine(Path.GetDirectoryName(_executablePath)!, "dumpbin.exe");
+            if (File.Exists(dumpbinPath))
+            {
+                return dumpbinPath;
+            }
+        }
+
+        var clCompiler = new MSVCCompiler();
+        var clPath = clCompiler.ExecutablePath;
+        if (!string.IsNullOrEmpty(clPath) && File.Exists(clPath))
+        {
+            var dumpbinPath = Path.Combine(Path.GetDirectoryName(clPath)!, "dumpbin.exe");
+            if (File.Exists(dumpbinPath))
+            {
+                return dumpbinPath;
             }
         }
 

@@ -9,10 +9,10 @@ public class Renderer : ModuleRules
         PublicIncludePaths.Add("Public");
         PrivateIncludePaths.Add("Private");
 
-        Dependencies.Add("Core");
-        Dependencies.Add("CoreUObject");
-        Dependencies.Add("RHI");
-        Dependencies.Add("Engine");
+        PublicDependencies.Add("Core");
+        PublicDependencies.Add("CoreUObject");
+        PublicDependencies.Add("RHI");
+        PublicDependencies.Add("Engine");
 
         // Add Vulkan SDK as optional dependency
         OptionalSDK("Vulkan");

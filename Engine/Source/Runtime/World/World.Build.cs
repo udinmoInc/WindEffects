@@ -7,14 +7,19 @@ public class World : ModuleRules
         Type = ModuleType.SharedLibrary;
 
         PublicIncludePaths.Add("Public");
-        PrivateIncludePaths.Add("Private");
+        PrivateIncludePaths.Add(".");
         PrivateIncludePaths.Add("DefaultScene");
         PrivateIncludePaths.Add("Environment");
 
-        Dependencies.Add("Core");
-        Dependencies.Add("CoreUObject");
-        Dependencies.Add("Engine");
-        Dependencies.Add("Scene");
+        PublicDependencies.Add("Core");
+        PublicDependencies.Add("CoreUObject");
+        PublicDependencies.Add("Engine");
+        PublicDependencies.Add("Scene");
+        PublicDependencies.Add("Renderer");
+
+        AddOptionalThirdParty("glm");
+        DefineIf(HasThirdParty("glm"), "WE_HAS_GLM=1");
+        DefineIf(!HasThirdParty("glm"), "WE_HAS_GLM=0");
 
         Definitions.Add("WORLD_EXPORTS");
     }

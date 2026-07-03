@@ -9,8 +9,8 @@ public class Engine : ModuleRules
         PublicIncludePaths.Add("Public");
         PrivateIncludePaths.Add("Private");
 
-        Dependencies.Add("Core");
-        Dependencies.Add("CoreUObject");
+        PublicDependencies.Add("Core");
+        PublicDependencies.Add("CoreUObject");
 
         // Add GLM as optional third-party dependency
         AddOptionalThirdParty("glm");
