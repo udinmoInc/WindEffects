@@ -91,6 +91,11 @@ public static class BuildCommand
                 Log.Warning("No modules found to build");
                 return 0;
             }
+
+            var outputLayout = new OutputLayout(layout, engineDir);
+            outputLayout.RegisterModules(modules);
+            outputLayout.PrepareModuleDirectories(modules);
+            outputLayout.StageEngineAssets();
             
             // Build dependency graph
             var graph = new DependencyGraph();
@@ -124,7 +129,7 @@ public static class BuildCommand
                     Name = $"Build {node.Name}",
                     Dependencies = node.Dependencies.Select(d => d.Name).ToList(),
                     ModuleNode = node,
-                    Work = () => BuildModule(node, buildConfig, platform, engineDir, layout, cache, depScanner, detectedCompiler, dependencyResult, graph)
+                    Work = () => BuildModule(node, buildConfig, platform, engineDir, layout, outputLayout, cache, depScanner, detectedCompiler, dependencyResult, graph)
                 };
                 
                 scheduler.AddTask(task);
@@ -159,7 +164,7 @@ public static class BuildCommand
     }
 
     private static async Task BuildModule(BuildNode node, BuildConfiguration config, string platform, 
-        string engineDir, BuildLayout layout, BuildCache cache, DependencyScanner depScanner, DetectedCompiler detectedCompiler, DependencyResolutionResult dependencyResult, DependencyGraph buildGraph)
+        string engineDir, BuildLayout layout, OutputLayout outputLayout, BuildCache cache, DependencyScanner depScanner, DetectedCompiler detectedCompiler, DependencyResolutionResult dependencyResult, DependencyGraph buildGraph)
     {
         Log.Information("Building module: {ModuleName}", node.Name);
         
@@ -403,18 +408,25 @@ public static class BuildCommand
             node.Name, compiledCount, cachedCount);
         
         // Link the module
-        var linkOutputDir = layout.PlatformOutputRoot;
+        outputLayout.EnsureModuleDirectories(node.Module);
+        var linkOutputFile = outputLayout.GetModuleBinaryPath(node.Module);
+        var linkOutputDir = Path.GetDirectoryName(linkOutputFile)!;
         Directory.CreateDirectory(linkOutputDir);
         Directory.CreateDirectory(layout.ProgramDatabaseRoot);
         Directory.CreateDirectory(layout.IncrementalRoot);
-        
-        var linkOutputFile = layout.GetModuleOutputPath(node.Name, ".dll");
+
+        var linkTargetType = node.Module.Type switch
+        {
+            ModuleType.Executable => LinkTargetType.Executable,
+            ModuleType.StaticLibrary => LinkTargetType.StaticLibrary,
+            _ => LinkTargetType.SharedLibrary
+        };
         
         var linkOptions = new LinkerOptions
         {
             ObjectFiles = objectFiles,
             OutputFile = linkOutputFile,
-            TargetType = LinkTargetType.SharedLibrary,
+            TargetType = linkTargetType,
             Configuration = config,
             Platform = ParsePlatform(platform),
             Architecture = IgniteBT.Compiler.TargetArchitecture.x64,
@@ -424,7 +436,7 @@ public static class BuildCommand
             ProgramDatabaseFile = config == BuildConfiguration.Debug
                 ? layout.GetModuleProgramDatabasePath(node.Name)
                 : null,
-            IncrementalLinkDatabaseFile = config == BuildConfiguration.Debug
+            IncrementalLinkDatabaseFile = config == BuildConfiguration.Debug && linkTargetType != LinkTargetType.StaticLibrary
                 ? layout.GetModuleIncrementalLinkPath(node.Name)
                 : null,
             LibraryDirectories = new List<string>(),
@@ -447,17 +459,35 @@ public static class BuildCommand
         linkOptions.Libraries.Add("psapi.lib");
 
         // Link against module dependency import libraries
-        linkOptions.LibraryDirectories.Add(linkOutputDir);
+        var seenLibDirectories = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         foreach (var depName in node.Module.PublicDependencies.Concat(node.Module.PrivateDependencies))
         {
-            var depLib = Path.Combine(linkOutputDir, depName + ".lib");
-            if (File.Exists(depLib))
+            var depNode = buildGraph.GetNode(depName);
+            if (depNode == null)
             {
-                linkOptions.Libraries.Add(depName + ".lib");
+                Log.Warning("Dependency module not found in graph for {Module}: {Dependency}", node.Name, depName);
+                continue;
+            }
+
+            var depLibPath = outputLayout.GetImportLibraryPath(depNode.Module);
+            var depLibDir = Path.GetDirectoryName(depLibPath)!;
+            var depLibFile = Path.GetFileName(depLibPath);
+
+            if (seenLibDirectories.Add(depLibDir))
+            {
+                linkOptions.LibraryDirectories.Add(depLibDir);
+            }
+
+            if (File.Exists(depLibPath))
+            {
+                if (!linkOptions.Libraries.Contains(depLibFile))
+                {
+                    linkOptions.Libraries.Add(depLibFile);
+                }
             }
             else
             {
-                Log.Warning("Dependency import library not found for module {Module}: {Lib}", node.Name, depLib);
+                Log.Warning("Dependency import library not found for module {Module}: {Lib}", node.Name, depLibPath);
             }
         }
         
@@ -469,7 +499,11 @@ public static class BuildCommand
             throw new InvalidOperationException($"Linking failed for module {node.Name}");
         }
         
-        Log.Information("Module {ModuleName} linked successfully in {Time}ms", node.Name, linkResult.LinkTimeMs);
+        Log.Information(
+            "Module {ModuleName} linked to {OutputPath} in {Time}ms",
+            node.Name,
+            linkOutputFile,
+            linkResult.LinkTimeMs);
         Log.Information("Module {ModuleName} built successfully", node.Name);
     }
 
