@@ -44,16 +44,16 @@ std::string JsonReadString(const std::string& json, const char* key) {
 
 std::filesystem::path GetInstallManifestPath() {
 #if defined(_WIN32)
-    if (auto localAppData = GetEnvironmentVariable("LOCALAPPDATA")) {
+    if (auto localAppData = GetEnvVar("LOCALAPPDATA")) {
         return std::filesystem::path(*localAppData) / "WindEffects" / "engine.json";
     }
     return {};
 #else
-    if (auto configHome = GetEnvironmentVariable("XDG_CONFIG_HOME")) {
+    if (auto configHome = GetEnvVar("XDG_CONFIG_HOME")) {
         return std::filesystem::path(*configHome) / "windeffects" / "engine.json";
     }
 
-    if (auto home = GetEnvironmentVariable("HOME")) {
+    if (auto home = GetEnvVar("HOME")) {
         return std::filesystem::path(*home) / ".config" / "windeffects" / "engine.json";
     }
 
@@ -84,7 +84,7 @@ bool TryReadInstallManifest(std::filesystem::path& outProjectRoot) {
 }
 
 bool TryResolveProjectRoot(std::filesystem::path& outProjectRoot) {
-    if (auto envRoot = GetEnvironmentVariable("WE_PROJECT_ROOT")) {
+    if (auto envRoot = GetEnvVar("WE_PROJECT_ROOT")) {
         outProjectRoot = *envRoot;
         if (std::filesystem::exists(outProjectRoot / "Engine" / "Source")) {
             return true;

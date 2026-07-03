@@ -9,7 +9,7 @@
 
 namespace we::core {
 
-std::optional<std::string> GetEnvironmentVariable(const char* name) {
+std::optional<std::string> GetEnvVar(const char* name) {
     if (name == nullptr || *name == '\0') {
         return std::nullopt;
     }

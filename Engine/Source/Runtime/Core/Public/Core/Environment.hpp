@@ -6,6 +6,6 @@
 namespace we::core {
 
 /// Reads an environment variable. Returns nullopt when the variable is unset.
-std::optional<std::string> GetEnvironmentVariable(const char* name);
+std::optional<std::string> GetEnvVar(const char* name);
 
 } // namespace we::core
