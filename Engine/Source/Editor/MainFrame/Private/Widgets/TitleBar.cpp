@@ -4,8 +4,8 @@
 #include "Core/Theme.hpp"
 #include "Core/Icon.hpp"
 #include "Widgets/Label.hpp"
-#include "Widgets/ToolButton.hpp"
 #include "Widgets/Panel.hpp"
+#include "Widgets/ToolButton.hpp"
 #include <SDL3/SDL.h>
 #include <algorithm>
 #include <cmath>
@@ -176,7 +176,7 @@ void TitleBar::Construct() {
     auto minimizeBtn = std::make_shared<ToolButton>(Icons::MinimizeName, "", [this]() {
         if (m_Window) SDL_MinimizeWindow(m_Window);
     });
-    auto maximizeBtn = std::make_shared<ToolButton>(Icons::MaximizeName, "", [this]() {
+    auto maximizeBtn = std::make_shared<ToolButton>(Icons::StopName, "", [this]() {
         if (m_Window) {
             auto flags = SDL_GetWindowFlags(m_Window);
             if (flags & SDL_WINDOW_MAXIMIZED) {
@@ -184,6 +184,7 @@ void TitleBar::Construct() {
             } else {
                 SDL_MaximizeWindow(m_Window);
             }
+            UpdateMaximizeIcon();
         }
     });
     auto closeBtn = std::make_shared<ToolButton>(Icons::XName, "", [this]() {
@@ -204,8 +205,13 @@ void TitleBar::Construct() {
     m_CloseWidget = closeBtn;
     
     m_RightContainer->AddChild(m_MinimizeWidget);
+    m_RightContainer->AddChild(std::make_shared<FixedGap>(1.0f));
     m_RightContainer->AddChild(m_MaximizeWidget);
+    m_RightContainer->AddChild(std::make_shared<FixedGap>(1.0f));
     m_RightContainer->AddChild(m_CloseWidget);
+
+    // Update maximize icon based on initial window state
+    UpdateMaximizeIcon();
 
     AddChild(m_LeftContainer);
     AddChild(m_CenterContainer);
@@ -276,6 +282,14 @@ void TitleBar::OnMouseDown(const MouseEvent& event) {
 
 void TitleBar::OnMouseMove(const MouseEvent& event) {
     HorizontalBox::OnMouseMove(event);
+}
+
+void TitleBar::UpdateMaximizeIcon() {
+    if (!m_Window || !m_MaximizeWidget) return;
+    
+    // Always use square icon for maximize button
+    auto toolBtn = std::static_pointer_cast<ToolButton>(m_MaximizeWidget);
+    toolBtn->SetIcon(Icons::StopName);
 }
 
 SDL_HitTestResult TitleBar::HitTest(SDL_Point point) {

@@ -5,6 +5,7 @@
 #include "Core/Theme.hpp"
 #include "Core/Icon.hpp"
 #include "Core/Animator.hpp"
+#include "Core/ToolbarDesignTokens.hpp"
 #include <algorithm>
 
 namespace we::UI {
@@ -139,6 +140,26 @@ void ToolbarLabeledButton::Paint(PaintContext& context) {
     m_PressAnim = Animator::Damp(m_PressAnim, m_Pressed ? 1.0f : 0.0f, 25.0f);
     PaintToolbarButtonChrome(context, m_Geometry, m_HoverAnim, m_PressAnim, false, m_Variant == Variant::Primary);
 
+    // Add 3D effect for Create button (UE5 style)
+    if (m_Label == "Create" && m_Variant == Variant::Standard) {
+        const auto& theme = Theme::Get();
+        const float radius = 4.0f;
+        
+        // Top highlight (3D bevel effect)
+        Color highlight = Color{ 1.0f, 1.0f, 1.0f, 0.08f };
+        context.DrawRoundedRectOutline(
+            Rect{ m_Geometry.x + 1.0f, m_Geometry.y + 1.0f, m_Geometry.width - 2.0f, m_Geometry.height - 2.0f },
+            highlight, 1.0f, radius
+        );
+        
+        // Bottom shadow (3D depth effect)
+        Color shadow = Color{ 0.0f, 0.0f, 0.0f, 0.15f };
+        context.DrawRoundedRectOutline(
+            Rect{ m_Geometry.x - 1.0f, m_Geometry.y - 1.0f, m_Geometry.width + 2.0f, m_Geometry.height + 2.0f },
+            shadow, 1.0f, radius
+        );
+    }
+
     const float hPad = m_HorizontalPadding;
     float x = m_Geometry.x + hPad;
     const float textSize = 13.0f;
@@ -192,22 +213,18 @@ ContentBrowserToolbarControls::ContentBrowserToolbarControls(ToolbarMode mode)
 
 void ContentBrowserToolbarControls::InitializeChildren() {
     if (m_Mode == ToolbarMode::Full) {
-        // Panel toolbar: breadcrumb, prev/next, create, import, sort, settings
-        m_Breadcrumb = std::make_shared<Breadcrumb>();
-        m_PreviousBtn = std::make_shared<ToolbarIconToggle>(Icons::ChevronLeftName, "Previous");
-        m_NextBtn = std::make_shared<ToolbarIconToggle>(Icons::ChevronRightName, "Next");
-        m_CreateBtn = std::make_shared<ToolbarLabeledButton>("Create", Icons::PlusName, false, ToolbarLabeledButton::Variant::Standard, 12.0f);
-        m_ImportBtn = std::make_shared<ToolbarLabeledButton>("Import", "import", false, ToolbarLabeledButton::Variant::Standard, 12.0f);
-        m_SortBtn = std::make_shared<ToolbarLabeledButton>("Sort", "arrow-up-down", true, ToolbarLabeledButton::Variant::Standard, 10.0f);
-        m_SettingsBtn = std::make_shared<ToolbarIconToggle>(Icons::SettingsName, "Settings");
+        // Panel toolbar: create, import, back, forward, folder
+        m_CreateBtn = std::make_shared<PrimaryToolbarButton>("Create", Icons::PlusName);
+        m_ImportBtn = std::make_shared<SecondaryToolbarButton>("Import", "import");
+        m_BackBtn = std::make_shared<ToolbarNavigationButton>(Icons::ArrowLeftName, "Back");
+        m_ForwardBtn = std::make_shared<ToolbarNavigationButton>(Icons::ArrowRightName, "Forward");
+        m_FolderBtn = std::make_shared<ToolbarNavigationButton>(Icons::FolderName, "Folder");
 
-        AddChild(m_Breadcrumb);
-        AddChild(m_PreviousBtn);
-        AddChild(m_NextBtn);
         AddChild(m_CreateBtn);
         AddChild(m_ImportBtn);
-        AddChild(m_SortBtn);
-        AddChild(m_SettingsBtn);
+        AddChild(m_BackBtn);
+        AddChild(m_ForwardBtn);
+        AddChild(m_FolderBtn);
     } else {
         // Asset pane toolbar: search, save all, filter icon
         m_SearchBox = std::make_shared<SearchBox>();
@@ -229,60 +246,48 @@ Size ContentBrowserToolbarControls::Measure(const Size& availableSize) {
 }
 
 void ContentBrowserToolbarControls::ArrangeControlRow(const Rect& row, float contentLeft, float contentRight) {
+    using namespace DesignTokens;
+    
     const float centerY = row.y + row.height * 0.5f;
     const float contentWidth = std::max(0.0f, contentRight - contentLeft);
-    const Size measureSize{ contentWidth, kControlHeight };
+    const Size measureSize{ contentWidth, kButtonHeight };
 
     if (m_Mode == ToolbarMode::Full) {
-        // Panel toolbar: breadcrumb, prev/next, create, import, sort, settings
-        const float breadcrumbWidth = std::min(300.0f, contentWidth * 0.4f);
-        m_Breadcrumb->Arrange(Rect{ contentLeft, row.y, breadcrumbWidth, row.height });
-
-        const float rightAreaStart = contentLeft + breadcrumbWidth + 16.0f;
-        const float rightAreaWidth = contentRight - rightAreaStart;
-
-        const std::vector<std::shared_ptr<Widget>> navButtons = {
-            m_PreviousBtn, m_NextBtn
-        };
-        const std::vector<std::shared_ptr<Widget>> actionButtons = {
-            m_CreateBtn, m_ImportBtn, m_SortBtn
-        };
-
-        float navWidth = 0.0f;
-        for (const auto& widget : navButtons) {
-            navWidth += widget->Measure(measureSize).width + 4.0f;
+        // Panel toolbar: create, import, back, forward, folder (left-aligned)
+        float x = contentLeft;
+        
+        // Action buttons group
+        if (m_CreateBtn) {
+            const Size desired = m_CreateBtn->Measure(measureSize);
+            m_CreateBtn->Arrange(Rect{ x, centerY - desired.height * 0.5f, desired.width, desired.height });
+            x += desired.width + kButtonSpacing;
         }
-
-        float actionsWidth = 0.0f;
-        for (const auto& widget : actionButtons) {
-            actionsWidth += widget->Measure(measureSize).width + 4.0f;
+        
+        if (m_ImportBtn) {
+            const Size desired = m_ImportBtn->Measure(measureSize);
+            m_ImportBtn->Arrange(Rect{ x, centerY - desired.height * 0.5f, desired.width, desired.height });
+            x += desired.width + kButtonGroupSpacing;
         }
-
-        const float settingsWidth = m_SettingsBtn->Measure(measureSize).width;
-        const float fixedWidth = navWidth + kGroupGap + actionsWidth + kGroupGap + settingsWidth;
-
-        float x = rightAreaStart;
-
-        for (const auto& widget : navButtons) {
-            const Size desired = widget->Measure(measureSize);
-            widget->Arrange(Rect{ x, centerY - desired.height * 0.5f, desired.width, desired.height });
-            x += desired.width + 4.0f;
+        
+        // Navigation buttons group (4px spacing)
+        const float navSpacing = 4.0f;
+        
+        if (m_BackBtn) {
+            const Size desired = m_BackBtn->Measure(measureSize);
+            m_BackBtn->Arrange(Rect{ x, centerY - desired.height * 0.5f, desired.width, desired.height });
+            x += desired.width + navSpacing;
         }
-        x += kGroupGap;
-
-        for (const auto& widget : actionButtons) {
-            const Size desired = widget->Measure(measureSize);
-            widget->Arrange(Rect{ x, centerY - desired.height * 0.5f, desired.width, desired.height });
-            x += desired.width + 4.0f;
+        
+        if (m_ForwardBtn) {
+            const Size desired = m_ForwardBtn->Measure(measureSize);
+            m_ForwardBtn->Arrange(Rect{ x, centerY - desired.height * 0.5f, desired.width, desired.height });
+            x += desired.width + navSpacing;
         }
-
-        const Size settingsSize = m_SettingsBtn->Measure(measureSize);
-        m_SettingsBtn->Arrange(Rect{
-            contentRight - settingsSize.width,
-            centerY - settingsSize.height * 0.5f,
-            settingsSize.width,
-            settingsSize.height
-        });
+        
+        if (m_FolderBtn) {
+            const Size desired = m_FolderBtn->Measure(measureSize);
+            m_FolderBtn->Arrange(Rect{ x, centerY - desired.height * 0.5f, desired.width, desired.height });
+        }
     } else {
         // Asset pane toolbar: search, save all, filter icon
         float searchWidth = std::min(kSearchWidth, std::max(240.0f, contentWidth * 0.5f));
@@ -328,10 +333,24 @@ void ContentBrowserToolbarControls::Arrange(const Rect& allottedRect) {
 }
 
 void ContentBrowserToolbarControls::Paint(PaintContext& context) {
+    using namespace DesignTokens;
+    
     const auto& theme = Theme::Get();
-    context.DrawRect(m_Geometry, theme.ToolbarBackground);
+    
+    // Draw toolbar background with depth
+    context.DrawRect(m_Geometry, theme.PanelBackground);
+    
+    // Top highlight (elevation effect)
+    context.DrawRect(Rect{ m_Geometry.x, m_Geometry.y, m_Geometry.width, 1.0f }, ToolbarTopHighlight());
+    
+    // Bottom separator with shadow
     context.DrawRect(Rect{ m_Geometry.x, m_Geometry.y + m_Geometry.height - 1.0f, m_Geometry.width, 1.0f },
-        theme.Separator);
+        ToolbarSeparator());
+    
+    // Soft shadow beneath toolbar
+    context.DrawRect(Rect{ m_Geometry.x, m_Geometry.y + m_Geometry.height, m_Geometry.width, 2.0f },
+        ToolbarBottomShadow());
+    
     for (const auto& child : m_Children) {
         if (child->IsVisible()) child->Paint(context);
     }
@@ -405,14 +424,20 @@ void ContentBrowserToolbarControls::SetOnSaveClicked(std::function<void()> callb
 }
 
 void ContentBrowserToolbarControls::SetOnPreviousClicked(std::function<void()> callback) {
-    if (m_PreviousBtn) {
-        m_PreviousBtn->SetOnClicked(std::move(callback));
+    if (m_BackBtn) {
+        m_BackBtn->SetOnClicked(std::move(callback));
     }
 }
 
 void ContentBrowserToolbarControls::SetOnNextClicked(std::function<void()> callback) {
-    if (m_NextBtn) {
-        m_NextBtn->SetOnClicked(std::move(callback));
+    if (m_ForwardBtn) {
+        m_ForwardBtn->SetOnClicked(std::move(callback));
+    }
+}
+
+void ContentBrowserToolbarControls::SetOnFolderClicked(std::function<void()> callback) {
+    if (m_FolderBtn) {
+        m_FolderBtn->SetOnClicked(std::move(callback));
     }
 }
 

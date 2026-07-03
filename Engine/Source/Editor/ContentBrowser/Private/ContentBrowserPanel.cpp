@@ -74,8 +74,8 @@ void RefreshFolderTree(const std::shared_ptr<we::UI::TreeView>& tree) {
 
 void UpdateBreadcrumb(const std::shared_ptr<we::UI::Breadcrumb>& breadcrumb, const std::string& virtualPath) {
     std::vector<std::string> crumbs;
-    crumbs.push_back("All");
     if (virtualPath.size() <= 6) {
+        crumbs.push_back("All");
         breadcrumb->SetPath(crumbs);
         return;
     }
@@ -85,6 +85,7 @@ void UpdateBreadcrumb(const std::shared_ptr<we::UI::Breadcrumb>& breadcrumb, con
     while (std::getline(ss, segment, '/')) {
         if (!segment.empty()) crumbs.push_back(segment);
     }
+    crumbs.push_back("All");
     breadcrumb->SetPath(crumbs);
 }
 
@@ -94,7 +95,9 @@ void NavigateToFolder(const std::string& virtualPath,
     const std::shared_ptr<we::UI::ContentBrowserStatusBar>& statusBar)
 {
     ContentBrowserService::Get().SetCurrentFolder(virtualPath);
-    UpdateBreadcrumb(breadcrumb, virtualPath);
+    if (breadcrumb) {
+        UpdateBreadcrumb(breadcrumb, virtualPath);
+    }
     
     // Clear selection when navigating to a new folder
     if (browser) {
@@ -160,9 +163,8 @@ std::shared_ptr<we::UI::Panel> CreateContentBrowserPanel() {
         }
     });
 
-    // Panel toolbar with breadcrumb and global actions
+    // Panel toolbar with global actions
     auto panelToolbar = we::UI::ContentBrowserToolbarControls::Create(we::UI::ContentBrowserToolbarControls::ToolbarMode::Full);
-    auto breadcrumb = panelToolbar->GetBreadcrumb();
     panel->SetToolbar(panelToolbar);
 
     // Left sidebar with fixed width (280px) for folder tree
@@ -192,8 +194,8 @@ std::shared_ptr<we::UI::Panel> CreateContentBrowserPanel() {
     panel->SetContent(contentSplitter);
 
     RefreshFolderTree(folderTree);
-    WireContentBrowser(contentBrowser, statusBar, breadcrumb);
-    NavigateToFolder(ContentBrowserService::Get().GetCurrentFolder(), contentBrowser, breadcrumb, statusBar);
+    WireContentBrowser(contentBrowser, statusBar, nullptr);
+    NavigateToFolder(ContentBrowserService::Get().GetCurrentFolder(), contentBrowser, nullptr, statusBar);
 
     // Wire up asset toolbar (right pane) - search, save, filter
     assetToolbar->GetSearchBox()->SetOnTextChanged([contentBrowser](const std::string& text) {
@@ -210,15 +212,20 @@ std::shared_ptr<we::UI::Panel> CreateContentBrowserPanel() {
         if (contentBrowser->GetModel()) contentBrowser->GetModel()->NotifyChanged();
     });
 
-    // Wire up panel toolbar (top) - prev/next, create, import, sort, settings
-    panelToolbar->SetOnPreviousClicked([breadcrumb, contentBrowser, statusBar]() {
+    // Wire up panel toolbar (top) - create, import, back, forward, folder
+    panelToolbar->SetOnPreviousClicked([contentBrowser, statusBar]() {
         // Navigate to previous folder in history
         // Placeholder for navigation history implementation
     });
 
-    panelToolbar->SetOnNextClicked([breadcrumb, contentBrowser, statusBar]() {
+    panelToolbar->SetOnNextClicked([contentBrowser, statusBar]() {
         // Navigate to next folder in history
         // Placeholder for navigation history implementation
+    });
+
+    panelToolbar->SetOnFolderClicked([contentBrowser, statusBar]() {
+        // Open folder picker or navigate to parent
+        // Placeholder for folder navigation
     });
 
     panelToolbar->SetOnCreateClicked([]() {
@@ -229,39 +236,22 @@ std::shared_ptr<we::UI::Panel> CreateContentBrowserPanel() {
         // Import dialog placeholder – layout hook for future import workflow.
     });
 
-    panelToolbar->SetOnSortClicked([]() {
-        // Sort menu placeholder – layout hook for future asset sorting.
-    });
-
-    panelToolbar->SetOnSettingsClicked([]() {
-        // Settings menu placeholder – layout hook for future settings workflow.
-    });
-
-    folderTree->SetOnSelectionChanged([contentBrowser, breadcrumb, statusBar](const std::vector<std::string>& ids) {
+    folderTree->SetOnSelectionChanged([contentBrowser, statusBar](const std::vector<std::string>& ids) {
         if (ids.empty()) return;
         const auto* asset = ContentAssetRegistry::Get().FindById(ids.front());
         if (!asset || !asset->isFolder || asset->id.rfind("__", 0) == 0) return;
-        NavigateToFolder(asset->virtualPath, contentBrowser, breadcrumb, statusBar);
+        NavigateToFolder(asset->virtualPath, contentBrowser, nullptr, statusBar);
     });
 
-    folderTree->SetOnItemDoubleClicked([contentBrowser, breadcrumb, statusBar](const std::string& id) {
+    folderTree->SetOnItemDoubleClicked([contentBrowser, statusBar](const std::string& id) {
         const auto* asset = ContentAssetRegistry::Get().FindById(id);
         if (!asset || !asset->isFolder || asset->id.rfind("__", 0) == 0) return;
-        NavigateToFolder(asset->virtualPath, contentBrowser, breadcrumb, statusBar);
+        NavigateToFolder(asset->virtualPath, contentBrowser, nullptr, statusBar);
     });
 
-    breadcrumb->SetOnCrumbClicked([contentBrowser, breadcrumb, statusBar](size_t index) {
-        std::string path = "/Game";
-        const auto& segments = breadcrumb->GetPath();
-        for (size_t i = 1; i <= index && i < segments.size(); ++i) {
-            path += "/" + segments[i];
-        }
-        NavigateToFolder(path, contentBrowser, breadcrumb, statusBar);
-    });
-
-    ContentAssetRegistry::Get().SetOnRegistryRefreshed([folderTree, breadcrumb, contentBrowser, statusBar]() {
+    ContentAssetRegistry::Get().SetOnRegistryRefreshed([folderTree, contentBrowser, statusBar]() {
         RefreshFolderTree(folderTree);
-        NavigateToFolder(ContentBrowserService::Get().GetCurrentFolder(), contentBrowser, breadcrumb, statusBar);
+        NavigateToFolder(ContentBrowserService::Get().GetCurrentFolder(), contentBrowser, nullptr, statusBar);
     });
 
     return panel;

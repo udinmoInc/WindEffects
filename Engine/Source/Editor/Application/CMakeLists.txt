@@ -14,20 +14,41 @@ file(GLOB_RECURSE PUBLIC_HEADERS CONFIGURE_DEPENDS
 list(APPEND SOURCE_FILES
     "${CMAKE_CURRENT_SOURCE_DIR}/Private/Core/IconManager.cpp"
 )
+
+# Add PCH
+list(APPEND SOURCE_FILES
+    "${CMAKE_CURRENT_SOURCE_DIR}/../EditorPCH.cpp"
+)
+
 list(REMOVE_DUPLICATES SOURCE_FILES)
 
 add_library(${MODULE_NAME} SHARED ${SOURCE_FILES} ${PUBLIC_HEADERS})
 set_target_properties(${MODULE_NAME} PROPERTIES WINDOWS_EXPORT_ALL_SYMBOLS ON)
 
-target_include_directories(${MODULE_NAME} PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/Public")
-target_include_directories(${MODULE_NAME} PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/Private")
-target_include_directories(${MODULE_NAME} PUBLIC ${stb_SOURCE_DIR} ${nanosvg_SOURCE_DIR}/src)
+# Use target-based APIs
+target_include_directories(${MODULE_NAME} PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/Public>
+    $<INSTALL_INTERFACE:include>
+)
+target_include_directories(${MODULE_NAME} PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/Private
+    ${CMAKE_CURRENT_SOURCE_DIR}/..
+    ${stb_SOURCE_DIR}
+    ${nanosvg_SOURCE_DIR}/src
+)
 
+target_compile_features(${MODULE_NAME} PUBLIC cxx_std_23)
 
-target_link_libraries(${MODULE_NAME} PUBLIC 
-    WindEffects-Core 
+# Setup PCH
+we_setup_pch(${MODULE_NAME} "EditorPCH.hpp" "${CMAKE_CURRENT_SOURCE_DIR}/../EditorPCH.cpp")
+
+target_link_libraries(${MODULE_NAME} PUBLIC
+    WindEffects-Core
     WindEffects-Renderer
-    glm 
-    volk 
+    glm
+    volk
     SDL3::SDL3
 )
+
+# Unity build
+we_setup_unity_build(${MODULE_NAME})
