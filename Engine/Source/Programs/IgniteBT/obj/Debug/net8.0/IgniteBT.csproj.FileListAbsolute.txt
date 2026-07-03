@@ -1,0 +1,6 @@
+f:\Coding\windeffects\Engine\Source\Programs\IgniteBT\obj\Debug\net8.0\IgniteBT.csproj.AssemblyReference.cache
+f:\Coding\windeffects\Engine\Source\Programs\IgniteBT\obj\Debug\net8.0\IgniteBT.GeneratedMSBuildEditorConfig.editorconfig
+f:\Coding\windeffects\Engine\Source\Programs\IgniteBT\obj\Debug\net8.0\IgniteBT.AssemblyInfoInputs.cache
+f:\Coding\windeffects\Engine\Source\Programs\IgniteBT\obj\Debug\net8.0\IgniteBT.AssemblyInfo.cs
+f:\Coding\windeffects\Engine\Source\Programs\IgniteBT\obj\Debug\net8.0\IgniteBT.csproj.CoreCompileInputs.cache
+f:\Coding\windeffects\Engine\Source\Programs\IgniteBT\obj\Debug\net8.0\IgniteBT.sourcelink.json
