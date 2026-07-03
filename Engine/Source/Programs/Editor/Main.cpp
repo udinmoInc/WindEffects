@@ -5,6 +5,7 @@
 #include <exception>
 #include <filesystem>
 #include "Core/Logger.hpp"
+#include "Core/BuildPaths.hpp"
 
 #if defined(_WIN32)
 #define WIN32_LEAN_AND_MEAN
@@ -32,18 +33,7 @@ void SetWorkingDirectoryToExecutable() {
 }
 
 void ConfigureModuleSearchPath() {
-#if defined(_WIN32)
-    wchar_t exePath[MAX_PATH]{};
-    if (GetModuleFileNameW(nullptr, exePath, MAX_PATH) == 0) {
-        return;
-    }
-
-    const std::filesystem::path modulesDir =
-        std::filesystem::path(exePath).parent_path() / "Modules";
-    if (!SetDllDirectoryW(modulesDir.c_str())) {
-        return;
-    }
-#endif
+    we::core::ConfigureModuleSearchPaths();
 }
 
 } // namespace

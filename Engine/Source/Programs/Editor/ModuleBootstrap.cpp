@@ -4,7 +4,7 @@
 #include <windows.h>
 #include <delayimp.h>
 
-#include <filesystem>
+#include "Core/BuildPaths.hpp"
 
 namespace {
 
@@ -23,39 +23,18 @@ constexpr const char* kFeatureModuleDlls[] = {
     "WindEffects-Environment.dll",
 };
 
-std::filesystem::path GetExecutableDirectory() {
-    wchar_t exePath[MAX_PATH]{};
-    if (GetModuleFileNameW(nullptr, exePath, MAX_PATH) == 0) {
-        return {};
-    }
-    return std::filesystem::path(exePath).parent_path();
-}
-
-std::filesystem::path GetModulesDirectory() {
-    const auto exeDir = GetExecutableDirectory();
-    if (exeDir.empty()) {
-        return {};
-    }
-    return exeDir / "Modules";
-}
-
 HMODULE LoadFeatureModuleDll(const char* dllName) {
     if (dllName == nullptr || dllName[0] == '\0') {
         return nullptr;
     }
 
-    const auto modulesDir = GetModulesDirectory();
-    if (modulesDir.empty()) {
-        return nullptr;
-    }
-
-    const std::filesystem::path modulePath = modulesDir / dllName;
-    if (!std::filesystem::exists(modulePath)) {
+    const auto modulePath = we::core::ResolveDelayLoadLibraryPath(dllName);
+    if (!modulePath.has_value()) {
         return nullptr;
     }
 
     return LoadLibraryExW(
-        modulePath.c_str(),
+        modulePath->c_str(),
         nullptr,
         LOAD_WITH_ALTERED_SEARCH_PATH);
 }

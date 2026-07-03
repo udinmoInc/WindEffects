@@ -463,11 +463,11 @@ Result<BuildResult> TargetManager::BuildCustomTarget(const TargetConfig& config)
 namespace TargetUtils {
 
 Path GetDefaultOutputDirectory(const TargetConfig& config) {
-    return Path("build") / BuildConfigToString(config.config);
+    return Path("Build") / "Output" / "Win64" / BuildConfigToString(config.config);
 }
 
 Path GetDefaultIntermediateDirectory(const TargetConfig& config) {
-    return Path("build") / "intermediate" / BuildConfigToString(config.config) / config.name;
+    return Path("Build") / "Intermediate" / "Win64" / BuildConfigToString(config.config) / config.name;
 }
 
 std::string GetOutputFilename(const TargetConfig& config) {

@@ -1,7 +1,7 @@
-using System.CommandLine;
 using Serilog;
 using IgniteBT.Commands;
 using IgniteBT.BuildSystem;
+using IgniteBT.Launcher;
 
 namespace IgniteBT;
 
@@ -13,7 +13,6 @@ class Program
         var logDirectory = Path.Combine(projectRoot, "Build", "Logs");
         Directory.CreateDirectory(logDirectory);
 
-        // Initialize logging
         Log.Logger = new LoggerConfiguration()
             .MinimumLevel.Information()
             .WriteTo.Console()
@@ -25,11 +24,9 @@ class Program
 
         try
         {
-            // Simple command parsing
             if (args.Length == 0)
             {
-                PrintUsage();
-                return 0;
+                return PrintUsage();
             }
 
             var command = args[0].ToLower();
@@ -40,6 +37,12 @@ class Program
                 "build" => await BuildCommand.Execute(remainingArgs),
                 "clean" => await CleanCommand.Execute(remainingArgs),
                 "rebuild" => await RebuildCommand.Execute(remainingArgs),
+                "package" => await PackageCommand.Execute(remainingArgs),
+                "run" => await RunCommand.Execute(remainingArgs),
+                "project" => await ProjectCommand.Execute(remainingArgs),
+                "plugin" => await PluginCommand.Execute(remainingArgs),
+                "sdk" => await SdkCommand.Execute(remainingArgs),
+                "setup" => await SetupCommand.Execute(remainingArgs),
                 "graph" => await GraphCommand.Execute(remainingArgs),
                 "modules" => await ModulesCommand.Execute(remainingArgs),
                 "doctor" => await DoctorCommand.Execute(remainingArgs),
@@ -60,27 +63,24 @@ class Program
 
     static int PrintUsage()
     {
-        Console.WriteLine("IgniteBT - WindEffects Build Tool v1.0.0");
+        Console.WriteLine("WindEffects CLI (we) / IgniteBT v1.0.0");
         Console.WriteLine();
         Console.WriteLine("Usage:");
-        Console.WriteLine("  ignitebt build [target] [--config Debug|Release] [--platform Windows|Linux|Mac] [--clean] [--jobs N]");
-        Console.WriteLine("  ignitebt clean [target]");
-        Console.WriteLine("  ignitebt rebuild [target]");
-        Console.WriteLine("  ignitebt graph");
-        Console.WriteLine("  ignitebt modules");
-        Console.WriteLine("  ignitebt doctor");
-        Console.WriteLine("  ignitebt version");
+        Console.WriteLine("  we build [target] [--config Debug|Development|Shipping] [--platform Windows|Linux|Mac] [--jobs N]");
+        Console.WriteLine("  we clean [target] [--config Debug|Development|Shipping]");
+        Console.WriteLine("  we rebuild [target] [--config Debug|Development|Shipping]");
+        Console.WriteLine("  we package [target]");
+        Console.WriteLine("  we run [--target Editor] [--config Debug]");
+        Console.WriteLine("  we project list|open|create");
+        Console.WriteLine("  we plugin list|build|enable|disable");
+        Console.WriteLine("  we sdk list|detect|validate");
+        Console.WriteLine("  we setup");
+        Console.WriteLine("  we doctor");
+        Console.WriteLine("  we graph");
+        Console.WriteLine("  we modules");
+        Console.WriteLine("  we version");
+        Console.WriteLine();
+        Console.WriteLine("Install the `we` command globally with: we setup");
         return 0;
-    }
-
-    static string GetCurrentPlatform()
-    {
-        if (OperatingSystem.IsWindows())
-            return "Windows";
-        if (OperatingSystem.IsLinux())
-            return "Linux";
-        if (OperatingSystem.IsMacOS())
-            return "Mac";
-        return "Unknown";
     }
 }

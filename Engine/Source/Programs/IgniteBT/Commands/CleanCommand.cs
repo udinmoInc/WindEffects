@@ -57,7 +57,6 @@ public static class CleanCommand
             }
 
             CleanDirectory(layout.BuildRoot, "build directory");
-            CleanDirectory(layout.OutputRoot, "output directory");
 
             foreach (var legacyDir in BuildLayout.GetLegacyArtifactDirectories(projectRoot, engineDir))
             {

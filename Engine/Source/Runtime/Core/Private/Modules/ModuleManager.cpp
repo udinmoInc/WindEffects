@@ -1,4 +1,5 @@
 #include "Modules/ModuleManager.hpp"
+#include "Core/BuildPaths.hpp"
 #include <filesystem>
 #include <iostream>
 
@@ -33,52 +34,47 @@ IModuleInterface* ModuleManager::LoadModule(const std::string& ModuleName)
         return LoadedModules[ModuleName].Interface;
     }
 
-    std::string BaseName = ModuleName;
-    std::string LibName;
-    std::string ModName;
     std::string LoadedLibraryName;
     void* Handle = nullptr;
 
 #ifdef _WIN32
-    LibName = BaseName + ".dll";
-    ModName = "Modules\\" + LibName;
-
-    wchar_t exePath[MAX_PATH]{};
-    if (GetModuleFileNameW(nullptr, exePath, MAX_PATH) != 0) {
-        const std::filesystem::path modulePath =
-            std::filesystem::path(exePath).parent_path() / "Modules" / LibName;
+    if (const auto modulePath = we::core::ResolveModuleLibraryPath(ModuleName)) {
         Handle = LoadLibraryExW(
-            modulePath.c_str(),
+            modulePath->wstring().c_str(),
             nullptr,
             LOAD_WITH_ALTERED_SEARCH_PATH);
         if (Handle) {
-            LoadedLibraryName = modulePath.string();
+            LoadedLibraryName = modulePath->string();
         }
     }
 
     if (!Handle && IsRuntimeLinkedModule(ModuleName)) {
-        Handle = LoadLibraryA(LibName.c_str());
+        const std::string libName = we::core::GetModuleBinaryFileName(
+            we::core::StripLegacyModulePrefix(ModuleName));
+        Handle = LoadLibraryA(libName.c_str());
         if (Handle) {
-            LoadedLibraryName = LibName;
+            LoadedLibraryName = libName;
         }
     }
 #else
-    LibName = "lib" + BaseName + ".so";
-    ModName = "Modules/" + LibName;
-    Handle = dlopen(ModName.c_str(), RTLD_NOW);
-    if (Handle) {
-        LoadedLibraryName = ModName;
-    } else if (IsRuntimeLinkedModule(ModuleName)) {
-        Handle = dlopen(LibName.c_str(), RTLD_NOW);
+    if (const auto modulePath = we::core::ResolveModuleLibraryPath(ModuleName)) {
+        Handle = dlopen(modulePath->c_str(), RTLD_NOW);
         if (Handle) {
-            LoadedLibraryName = LibName;
+            LoadedLibraryName = modulePath->string();
+        }
+    } else if (IsRuntimeLinkedModule(ModuleName)) {
+        const std::string libName = "lib" + we::core::GetModuleBinaryFileName(
+            we::core::StripLegacyModulePrefix(ModuleName));
+        Handle = dlopen(libName.c_str(), RTLD_NOW);
+        if (Handle) {
+            LoadedLibraryName = libName;
         }
     }
 #endif
 
     if (!Handle)
     {
-        std::cerr << "Failed to load module: " << ModuleName << " from " << ModName << std::endl;
+        std::cerr << "Failed to load module: " << ModuleName << std::endl;
         return nullptr;
     }
 

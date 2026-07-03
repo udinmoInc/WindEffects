@@ -2,8 +2,6 @@
 # IgniteBT Build Output
 # ==========================
 Build/
-Output/
-Binaries/
 
 # ==========================
 # Legacy / Generated Artifacts
@@ -55,9 +53,10 @@ logs/
 *.opendb
 
 # ==========================
-# VS Code
+# VS Code / Cursor
 # ==========================
-.vscode/
+.vscode/*
+!.vscode/settings.json
 
 # ==========================
 # JetBrains

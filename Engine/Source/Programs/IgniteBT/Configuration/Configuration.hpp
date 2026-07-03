@@ -23,7 +23,7 @@ struct BuildConfig {
     bool enablePCH = true;
     bool enableFastLink = true;
     
-    std::string outputDirectory = "Build";
+    std::string outputDirectory = "Build/Output";
     std::string intermediateDirectory = "Build/Intermediate";
     
     std::vector<std::string> defines;

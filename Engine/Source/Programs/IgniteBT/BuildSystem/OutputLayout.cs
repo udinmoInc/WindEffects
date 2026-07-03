@@ -4,7 +4,7 @@ using Serilog;
 namespace IgniteBT.BuildSystem;
 
 /// <summary>
-/// Modular binary output layout under Output/{Platform}/{Configuration}/.
+/// Modular binary output layout under Build/Output/{Platform}/{Configuration}/.
 /// Bootstrap DLLs and entry-point executables live at the configuration root;
 /// all other modules are placed under category/module subdirectories.
 /// </summary>
