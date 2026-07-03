@@ -70,6 +70,7 @@ public class SDKManager
             
             // Graphics SDKs
             new Providers.VulkanSDKProvider(),
+            new Providers.SDL3Provider(),
             new Providers.DirectXProvider(),
             new Providers.OpenXRProvider(),
             

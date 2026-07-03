@@ -478,6 +478,39 @@ public static class BuildCommand
         linkOptions.Libraries.Add("dbghelp.lib");
         linkOptions.Libraries.Add("psapi.lib");
 
+        // Link SDK libraries requested by this module
+        foreach (var sdkName in node.Module.RequiredSDKs.Concat(node.Module.OptionalSDKs))
+        {
+            if (!dependencyResult.SDKs.TryGetValue(sdkName, out var sdkInfo) || !sdkInfo.IsValid)
+            {
+                continue;
+            }
+
+            foreach (var libPath in sdkInfo.LibraryPaths)
+            {
+                if (!linkOptions.LibraryDirectories.Contains(libPath))
+                {
+                    linkOptions.LibraryDirectories.Add(libPath);
+                }
+            }
+
+            if (sdkName.Equals("SDL3", StringComparison.OrdinalIgnoreCase))
+            {
+                var sdlLib = sdkInfo.LibraryPaths
+                    .SelectMany(dir => Directory.Exists(dir) ? Directory.GetFiles(dir, "SDL3*.lib") : Array.Empty<string>())
+                    .FirstOrDefault(path => Path.GetFileName(path).StartsWith("SDL3", StringComparison.OrdinalIgnoreCase));
+
+                if (sdlLib != null)
+                {
+                    var libFile = Path.GetFileName(sdlLib);
+                    if (!linkOptions.Libraries.Contains(libFile))
+                    {
+                        linkOptions.Libraries.Add(libFile);
+                    }
+                }
+            }
+        }
+
         // Link against module dependency import libraries
         var seenLibDirectories = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         foreach (var depName in node.Module.PublicDependencies.Concat(node.Module.PrivateDependencies))

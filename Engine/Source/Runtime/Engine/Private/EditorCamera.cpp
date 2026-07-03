@@ -274,6 +274,7 @@ void EditorCamera::ProcessFlyMovement(const bool* keys, float dt) {
         return;
     }
 
+#if WE_HAS_SDL3
     float speed = m_MoveSpeed * m_Acceleration;
     if (keys[SDL_SCANCODE_LSHIFT] || keys[SDL_SCANCODE_RSHIFT]) {
         speed *= m_BoostMultiplier;
@@ -304,6 +305,9 @@ void EditorCamera::ProcessFlyMovement(const bool* keys, float dt) {
     if (keys[SDL_SCANCODE_Q]) {
         m_TargetPosition -= up * distance;
     }
+#else
+    (void)dt;
+#endif
 }
 
 void EditorCamera::AdjustFlySpeed(float wheelDeltaY) {
