@@ -65,15 +65,23 @@ public class ModuleDiscoverer
             // Compile the Build.cs file using Roslyn
             var syntaxTree = CSharpSyntaxTree.ParseText(buildCsContent);
             
-            var references = new[]
+            // Build reference list from TRUSTED_PLATFORM_ASSEMBLIES to include all .NET facade assemblies
+            var trustedAssemblies = AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES") as string;
+            var references = new List<MetadataReference>();
+            
+            if (!string.IsNullOrEmpty(trustedAssemblies))
             {
-                MetadataReference.CreateFromFile(typeof(object).Assembly.Location),
-                MetadataReference.CreateFromFile(typeof(ModuleRules).Assembly.Location),
-                MetadataReference.CreateFromFile(typeof(System.Linq.Enumerable).Assembly.Location),
-                MetadataReference.CreateFromFile(typeof(System.Collections.Generic.List<>).Assembly.Location),
-                MetadataReference.CreateFromFile(typeof(System.String).Assembly.Location),
-                MetadataReference.CreateFromFile(typeof(System.Int32).Assembly.Location)
-            };
+                foreach (var assemblyPath in trustedAssemblies.Split(Path.PathSeparator))
+                {
+                    if (!string.IsNullOrEmpty(assemblyPath) && File.Exists(assemblyPath))
+                    {
+                        references.Add(MetadataReference.CreateFromFile(assemblyPath));
+                    }
+                }
+            }
+            
+            // Also explicitly add the ModuleRules assembly
+            references.Add(MetadataReference.CreateFromFile(typeof(ModuleRules).Assembly.Location));
 
             var compilation = CSharpCompilation.Create(
                 assemblyName: Path.GetFileNameWithoutExtension(buildCsPath) + "_compiled",
