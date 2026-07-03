@@ -11,6 +11,7 @@ public class ToolsPanel : ModuleRules
 
         Dependencies.Add("Core");
         Dependencies.Add("Engine");
+        Dependencies.Add("Application");
 
         Definitions.Add("TOOLSPANEL_EXPORTS");
     }

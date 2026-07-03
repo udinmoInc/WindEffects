@@ -12,6 +12,11 @@ public class Engine : ModuleRules
         Dependencies.Add("Core");
         Dependencies.Add("CoreUObject");
 
+        // Add GLM as optional third-party dependency
+        AddOptionalThirdParty("glm");
+        DefineIf(HasThirdParty("glm"), "WE_HAS_GLM=1");
+        DefineIf(!HasThirdParty("glm"), "WE_HAS_GLM=0");
+
         Definitions.Add("ENGINE_EXPORTS");
     }
 }

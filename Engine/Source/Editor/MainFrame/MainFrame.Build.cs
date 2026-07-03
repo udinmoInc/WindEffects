@@ -11,6 +11,12 @@ public class MainFrame : ModuleRules
 
         Dependencies.Add("Core");
         Dependencies.Add("Docking");
+        Dependencies.Add("Application");
+
+        // Add SDL3 as optional SDK
+        OptionalSDK("SDL3");
+        DefineIf(HasSDK("SDL3"), "WE_HAS_SDL3=1");
+        DefineIf(!HasSDK("SDL3"), "WE_HAS_SDL3=0");
 
         Definitions.Add("MAINFRAME_EXPORTS");
     }

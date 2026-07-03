@@ -1,11 +1,15 @@
 #include "Scene/Scene.hpp"
 #include "Core/Logger.hpp"
+#if WE_HAS_GLM
 #include <glm/glm.hpp>
+#endif
 #include <stdexcept>
 #include <iostream>
 #include <cmath>
 
 namespace we::runtime::scene {
+
+#if WE_HAS_VULKAN
 
 namespace {
 
@@ -250,5 +254,7 @@ void Scene::Draw(VkCommandBuffer cmd, DrawMode drawMode) const {
         m_Renderer->DrawMesh(cmd, MeshNameForEntityType(entity.Type), entity.DescriptorSet, entity.Mode);
     }
 }
+
+#endif // WE_HAS_VULKAN
 
 } // namespace we::runtime::scene

@@ -12,6 +12,7 @@ public class PropertyEditor : ModuleRules
         Dependencies.Add("Core");
         Dependencies.Add("CoreUObject");
         Dependencies.Add("Engine");
+        Dependencies.Add("Application");
 
         Definitions.Add("PROPERTYEDITOR_EXPORTS");
     }

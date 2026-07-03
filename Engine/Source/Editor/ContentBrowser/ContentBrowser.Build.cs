@@ -12,6 +12,7 @@ public class ContentBrowser : ModuleRules
         Dependencies.Add("Core");
         Dependencies.Add("CoreUObject");
         Dependencies.Add("Engine");
+        Dependencies.Add("Application");
 
         Definitions.Add("CONTENTBROWSER_EXPORTS");
     }

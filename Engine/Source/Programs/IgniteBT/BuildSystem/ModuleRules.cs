@@ -86,11 +86,148 @@ public abstract class ModuleRules
     public PlatformSettings PlatformSettings { get; } = new();
 
     /// <summary>
+    /// Required SDKs for this module.
+    /// </summary>
+    public List<string> RequiredSDKs { get; } = new();
+
+    /// <summary>
+    /// Optional SDKs for this module.
+    /// </summary>
+    public List<string> OptionalSDKs { get; } = new();
+
+    /// <summary>
+    /// Required third-party libraries for this module.
+    /// </summary>
+    public List<string> RequiredThirdParty { get; } = new();
+
+    /// <summary>
+    /// Optional third-party libraries for this module.
+    /// </summary>
+    public List<string> OptionalThirdParty { get; } = new();
+
+    /// <summary>
+    /// Whether this module should be disabled.
+    /// </summary>
+    public bool IsDisabled { get; private set; }
+
+    /// <summary>
     /// Constructor called by the build system.
     /// </summary>
     protected ModuleRules(ModuleContext context)
     {
         Context = context;
+    }
+
+    /// <summary>
+    /// Requires an SDK to be available for this module to build.
+    /// </summary>
+    protected void RequireSDK(string sdkName)
+    {
+        if (!RequiredSDKs.Contains(sdkName))
+        {
+            RequiredSDKs.Add(sdkName);
+        }
+    }
+
+    /// <summary>
+    /// Optionally requires an SDK. The module can build without it, but features may be disabled.
+    /// </summary>
+    protected void OptionalSDK(string sdkName)
+    {
+        if (!OptionalSDKs.Contains(sdkName))
+        {
+            OptionalSDKs.Add(sdkName);
+        }
+    }
+
+    /// <summary>
+    /// Requires a module dependency.
+    /// </summary>
+    protected void RequireModule(string moduleName)
+    {
+        if (!PublicDependencies.Contains(moduleName))
+        {
+            PublicDependencies.Add(moduleName);
+        }
+    }
+
+    /// <summary>
+    /// Optionally requires a module dependency.
+    /// </summary>
+    protected void OptionalModule(string moduleName)
+    {
+        if (!PrivateDependencies.Contains(moduleName))
+        {
+            PrivateDependencies.Add(moduleName);
+        }
+    }
+
+    /// <summary>
+    /// Requires a third-party library.
+    /// </summary>
+    protected void RequireThirdParty(string libraryName)
+    {
+        if (!RequiredThirdParty.Contains(libraryName))
+        {
+            RequiredThirdParty.Add(libraryName);
+        }
+    }
+
+    /// <summary>
+    /// Optionally requires a third-party library.
+    /// </summary>
+    protected void AddOptionalThirdParty(string libraryName)
+    {
+        if (!OptionalThirdParty.Contains(libraryName))
+        {
+            OptionalThirdParty.Add(libraryName);
+        }
+    }
+
+    /// <summary>
+    /// Checks if an SDK is available.
+    /// </summary>
+    protected bool HasSDK(string sdkName)
+    {
+        return Context.HasSDK(sdkName);
+    }
+
+    /// <summary>
+    /// Checks if a third-party library is available.
+    /// </summary>
+    protected bool HasThirdParty(string libraryName)
+    {
+        return Context.HasThirdParty(libraryName);
+    }
+
+    /// <summary>
+    /// Enables this module only if the condition is true.
+    /// </summary>
+    protected void EnableIf(bool condition)
+    {
+        if (!condition)
+        {
+            IsDisabled = true;
+        }
+    }
+
+    /// <summary>
+    /// Disables this module.
+    /// </summary>
+    protected void DisableModule()
+    {
+        IsDisabled = true;
+    }
+
+    /// <summary>
+    /// Adds a compiler definition if a condition is met.
+    /// </summary>
+    protected void DefineIf(bool condition, string definition)
+    {
+        if (condition && !Definitions.Contains(definition))
+        {
+            Definitions.Add(definition);
+        }
     }
 }
 
@@ -150,12 +287,92 @@ public class ModuleContext
     /// </summary>
     public string Architecture { get; }
 
+    /// <summary>
+    /// Available SDKs.
+    /// </summary>
+    private Dictionary<string, bool> AvailableSDKs { get; } = new();
+
+    /// <summary>
+    /// Available third-party libraries.
+    /// </summary>
+    private Dictionary<string, bool> AvailableThirdParty { get; } = new();
+
+    /// <summary>
+    /// Feature flags.
+    /// </summary>
+    private Dictionary<string, string> FeatureFlags { get; } = new();
+
     public ModuleContext(string engineDirectory, string configuration, string platform, string architecture)
     {
         EngineDirectory = engineDirectory;
         Configuration = configuration;
         Platform = platform;
         Architecture = architecture;
+    }
+
+    /// <summary>
+    /// Sets the available SDKs.
+    /// </summary>
+    internal void SetAvailableSDKs(Dictionary<string, bool> sdks)
+    {
+        foreach (var (name, available) in sdks)
+        {
+            AvailableSDKs[name] = available;
+        }
+    }
+
+    /// <summary>
+    /// Sets the available third-party libraries.
+    /// </summary>
+    internal void SetAvailableThirdParty(Dictionary<string, bool> libraries)
+    {
+        foreach (var (name, available) in libraries)
+        {
+            AvailableThirdParty[name] = available;
+        }
+    }
+
+    /// <summary>
+    /// Sets the feature flags.
+    /// </summary>
+    internal void SetFeatureFlags(Dictionary<string, string> flags)
+    {
+        foreach (var (name, value) in flags)
+        {
+            FeatureFlags[name] = value;
+        }
+    }
+
+    /// <summary>
+    /// Checks if an SDK is available.
+    /// </summary>
+    public bool HasSDK(string sdkName)
+    {
+        return AvailableSDKs.TryGetValue(sdkName, out var available) && available;
+    }
+
+    /// <summary>
+    /// Checks if a third-party library is available.
+    /// </summary>
+    public bool HasThirdParty(string libraryName)
+    {
+        return AvailableThirdParty.TryGetValue(libraryName, out var available) && available;
+    }
+
+    /// <summary>
+    /// Gets a feature flag value.
+    /// </summary>
+    public string? GetFeatureFlag(string flagName)
+    {
+        return FeatureFlags.TryGetValue(flagName, out var value) ? value : null;
+    }
+
+    /// <summary>
+    /// Checks if a feature flag is set.
+    /// </summary>
+    public bool HasFeatureFlag(string flagName)
+    {
+        return FeatureFlags.ContainsKey(flagName);
     }
 }
 

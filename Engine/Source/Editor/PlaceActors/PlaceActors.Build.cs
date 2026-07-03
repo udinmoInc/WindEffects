@@ -13,6 +13,7 @@ public class PlaceActors : ModuleRules
         Dependencies.Add("CoreUObject");
         Dependencies.Add("Engine");
         Dependencies.Add("Scene");
+        Dependencies.Add("Application");
 
         Definitions.Add("PLACEACTORS_EXPORTS");
     }

@@ -1,12 +1,18 @@
 #pragma once
 
+#if WE_HAS_VULKAN
 #include <volk.h>
+#endif
+#if WE_HAS_SDL3
 #include <SDL3/SDL.h>
+#endif
 #include <string>
 #include <vector>
 #include <memory>
 
 namespace we::runtime::renderer {
+
+#if WE_HAS_VULKAN
 
 class VulkanContext {
 public:
@@ -65,5 +71,7 @@ private:
     std::string m_GPUName;
     std::string m_RendererName;
 };
+
+#endif // WE_HAS_VULKAN
 
 } // namespace we::runtime::renderer

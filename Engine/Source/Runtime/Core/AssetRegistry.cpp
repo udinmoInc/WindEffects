@@ -4,6 +4,10 @@
 #include <fstream>
 #include <filesystem>
 
+#if WE_HAS_VULKAN
+#include <volk.h>
+#endif
+
 namespace we::core {
 
 AssetRegistry& AssetRegistry::Get() {
@@ -11,9 +15,15 @@ AssetRegistry& AssetRegistry::Get() {
     return instance;
 }
 
+#if WE_HAS_VULKAN
 void AssetRegistry::RegisterTexture(std::string_view name, VkImageView view, VkSampler sampler) {
     m_Textures[std::string(name)] = {view, sampler};
 }
+#else
+void AssetRegistry::RegisterTexture(std::string_view name, void* view, void* sampler) {
+    m_Textures[std::string(name)] = {view, sampler};
+}
+#endif
 
 AssetTexture AssetRegistry::GetTexture(std::string_view name) const {
     auto it = m_Textures.find(std::string(name));

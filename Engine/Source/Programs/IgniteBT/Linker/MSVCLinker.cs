@@ -11,11 +11,37 @@ public class MSVCLinker : ILinker
 {
     private string? _version;
     private string? _executablePath;
+    private Dictionary<string, string>? _environmentVariables;
+    private string? _vcVarsAllPath;
 
     public string Name => "MSVC LINK";
     public string ExecutablePath => _executablePath ?? FindExecutable();
     public string Version => _version ?? string.Empty;
     public TargetPlatform Platform => TargetPlatform.Windows;
+
+    /// <summary>
+    /// Sets the executable path explicitly (e.g., from ToolchainDetector).
+    /// </summary>
+    public void SetExecutablePath(string path)
+    {
+        _executablePath = path;
+    }
+
+    /// <summary>
+    /// Sets the environment variables from vcvarsall.bat.
+    /// </summary>
+    public void SetEnvironmentVariables(Dictionary<string, string> envVars)
+    {
+        _environmentVariables = envVars;
+    }
+
+    /// <summary>
+    /// Sets the vcvarsall.bat path.
+    /// </summary>
+    public void SetVcVarsAllPath(string path)
+    {
+        _vcVarsAllPath = path;
+    }
 
     public bool IsAvailable()
     {
@@ -83,18 +109,60 @@ public class MSVCLinker : ILinker
             var arguments = BuildLinkArguments(options);
 
             Log.Information("Linking {TargetType} to {OutputFile} with MSVC LINK", options.TargetType, options.OutputFile);
+            Log.Debug("Linker executable: {ExePath}", ExecutablePath);
+            Log.Debug("Linker executable exists: {Exists}", File.Exists(ExecutablePath));
             Log.Debug("Arguments: {Arguments}", arguments);
+            Log.Debug("Working directory: {WorkingDir}", options.WorkingDirectory);
 
-            var startInfo = new ProcessStartInfo
+            ProcessStartInfo startInfo;
+            string? tempBatPath = null;
+
+            // If we have vcvarsall.bat, run through cmd.exe with it to set up the environment
+            if (!string.IsNullOrEmpty(_vcVarsAllPath))
             {
-                FileName = ExecutablePath,
-                Arguments = arguments,
-                RedirectStandardOutput = true,
-                RedirectStandardError = true,
-                UseShellExecute = false,
-                CreateNoWindow = true,
-                WorkingDirectory = options.WorkingDirectory
-            };
+                Log.Debug("vcvarsall.bat path: {VcVarsPath}", _vcVarsAllPath);
+                Log.Debug("vcvarsall.bat exists: {Exists}", File.Exists(_vcVarsAllPath));
+                
+                tempBatPath = Path.Combine(Path.GetTempPath(), $"ignitebt_link_{Guid.NewGuid()}.bat");
+                
+                var batchContent = $@"@echo off
+echo Running vcvarsall.bat...
+call ""{_vcVarsAllPath}"" x64
+echo Running linker...
+""{ExecutablePath}"" {arguments}
+echo Linker exit code: %ERRORLEVEL%
+exit /b %ERRORLEVEL%
+";
+                File.WriteAllText(tempBatPath, batchContent);
+                
+                Log.Debug("Batch file created at: {BatPath}", tempBatPath);
+                
+                startInfo = new ProcessStartInfo
+                {
+                    FileName = "cmd.exe",
+                    Arguments = $"/c \"{tempBatPath}\"",
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true,
+                    UseShellExecute = false,
+                    CreateNoWindow = true,
+                    WorkingDirectory = options.WorkingDirectory
+                };
+                
+                Log.Debug("Running linker through batch file");
+            }
+            else
+            {
+                startInfo = new ProcessStartInfo
+                {
+                    FileName = ExecutablePath,
+                    Arguments = arguments,
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true,
+                    UseShellExecute = false,
+                    CreateNoWindow = true,
+                    WorkingDirectory = options.WorkingDirectory
+                };
+            }
 
             using var process = Process.Start(startInfo);
             if (process == null)
@@ -102,6 +170,7 @@ public class MSVCLinker : ILinker
                 result.Success = false;
                 result.ExitCode = -1;
                 result.StandardError = "Failed to start linker process";
+                Log.Error("Failed to start linker process");
                 return result;
             }
 
@@ -111,6 +180,30 @@ public class MSVCLinker : ILinker
 
             result.ExitCode = process.ExitCode;
             result.Success = process.ExitCode == 0;
+
+            Log.Debug("Linker exit code: {ExitCode}", process.ExitCode);
+            if (!string.IsNullOrEmpty(result.StandardOutput))
+            {
+                Log.Information("Linker stdout:\n{Output}", result.StandardOutput);
+            }
+            if (!string.IsNullOrEmpty(result.StandardError))
+            {
+                Log.Error("Linker stderr:\n{Error}", result.StandardError);
+            }
+
+            // Clean up temp batch file if we used one
+            if (!string.IsNullOrEmpty(tempBatPath) && File.Exists(tempBatPath))
+            {
+                try
+                {
+                    File.Delete(tempBatPath);
+                    Log.Debug("Cleaned up temp batch file: {BatPath}", tempBatPath);
+                }
+                catch
+                {
+                    // Ignore cleanup errors
+                }
+            }
 
             stopwatch.Stop();
             result.LinkTimeMs = stopwatch.ElapsedMilliseconds;
@@ -278,10 +371,11 @@ public class MSVCLinker : ILinker
         if (options.GenerateDebugInfo)
         {
             args.Add("/DEBUG");
-            if (options.Configuration == BuildConfiguration.Debug)
-            {
-                args.Add("/PDBALTPATH:%_PDB%");
-            }
+            // Skip PDBALTPATH for now - it's causing linker errors
+            // if (options.Configuration == BuildConfiguration.Debug)
+            // {
+            //     args.Add("/PDBALTPATH:%_PDB%");
+            // }
         }
 
         // Library directories

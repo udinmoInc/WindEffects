@@ -1,9 +1,13 @@
 #pragma once
 
+#if WE_HAS_VULKAN
 #include "Renderer/VulkanContext.hpp"
 #include <volk.h>
+#endif
 
 namespace we::runtime::renderer {
+
+#if WE_HAS_VULKAN
 
 class Framebuffer {
 public:
@@ -43,5 +47,7 @@ private:
     VkSampler m_Sampler = VK_NULL_HANDLE;
     VkFramebuffer m_Framebuffer = VK_NULL_HANDLE;
 };
+
+#endif // WE_HAS_VULKAN
 
 } // namespace we::runtime::renderer

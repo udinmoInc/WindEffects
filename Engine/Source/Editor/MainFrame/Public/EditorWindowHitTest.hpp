@@ -1,6 +1,8 @@
 #pragma once
 
+#if WE_HAS_SDL3
 #include <SDL3/SDL.h>
+#endif
 #include <memory>
 
 namespace we::UI {
@@ -13,6 +15,8 @@ struct EditorWindowHitTestData {
     std::weak_ptr<we::UI::TitleBar> titleBar;
 };
 
+#if WE_HAS_SDL3
 SDL_HitTestResult SDLCALL EditorWindowHitTest(SDL_Window* window, const SDL_Point* area, void* userdata);
+#endif
 
 } // namespace we::editor::mainframe

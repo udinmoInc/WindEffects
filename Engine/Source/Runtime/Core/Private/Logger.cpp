@@ -1,5 +1,13 @@
 #include "Core/Logger.hpp"
+
+#if WE_HAS_SDL3
 #include <SDL3/SDL_messagebox.h>
+#endif
+
+#if WE_HAS_NLOHMANN_JSON
+#include <nlohmann/json.hpp>
+#endif
+
 #include <iostream>
 #include <iomanip>
 #include <chrono>
@@ -11,7 +19,6 @@
 #include <dbghelp.h>
 #include <psapi.h>
 #endif
-#include <nlohmann/json.hpp>
 
 
 namespace we::runtime::core {
@@ -91,12 +98,14 @@ void Logger::ReportError(const std::string& title, const std::string& descriptio
     Log(Level::Error, logMsg);
 
     // Show native OS dialog popup box
+#if WE_HAS_SDL3
     SDL_ShowSimpleMessageBox(
         SDL_MESSAGEBOX_ERROR,
         title.c_str(),
         description.c_str(),
         nullptr
     );
+#endif
 
     if (fatal) {
         Shutdown();
@@ -208,6 +217,7 @@ long __stdcall Logger::EngineCrashHandler(struct _EXCEPTION_POINTERS* exceptionI
     }
 
     // 2. Exception.json
+#if WE_HAS_NLOHMANN_JSON
     nlohmann::json exJson;
     exJson["ExceptionCode"] = code;
     exJson["ExceptionName"] = exceptionName;
@@ -215,8 +225,10 @@ long __stdcall Logger::EngineCrashHandler(struct _EXCEPTION_POINTERS* exceptionI
     std::ofstream exFile(crashDir + "/Exception.json");
     exFile << exJson.dump(4);
     exFile.close();
+#endif
 
     // 3. Crash.json
+#if WE_HAS_NLOHMANN_JSON
     nlohmann::json crashJson;
     crashJson["CrashTime"] = GetCurrentTimestamp();
     crashJson["CrashType"] = "Unhandled Exception";
@@ -226,15 +238,19 @@ long __stdcall Logger::EngineCrashHandler(struct _EXCEPTION_POINTERS* exceptionI
     std::ofstream cFile(crashDir + "/Crash.json");
     cFile << crashJson.dump(4);
     cFile.close();
+#endif
 
     // 4. System.json
+#if WE_HAS_NLOHMANN_JSON
     nlohmann::json sysJson;
     sysJson["WindowsVersion"] = "Windows";
     std::ofstream sysFile(crashDir + "/System.json");
     sysFile << sysJson.dump(4);
     sysFile.close();
+#endif
 
     // 5. Memory.json
+#if WE_HAS_NLOHMANN_JSON
     PROCESS_MEMORY_COUNTERS pmc;
     nlohmann::json memJson;
     if (GetProcessMemoryInfo(GetCurrentProcess(), &pmc, sizeof(pmc))) {
@@ -244,8 +260,10 @@ long __stdcall Logger::EngineCrashHandler(struct _EXCEPTION_POINTERS* exceptionI
     std::ofstream memFile(crashDir + "/Memory.json");
     memFile << memJson.dump(4);
     memFile.close();
+#endif
 
     // 6. Modules.json
+#if WE_HAS_NLOHMANN_JSON
     nlohmann::json modJson = nlohmann::json::array();
     HMODULE hMods[1024];
     DWORD cbNeeded;
@@ -263,6 +281,7 @@ long __stdcall Logger::EngineCrashHandler(struct _EXCEPTION_POINTERS* exceptionI
     std::ofstream modFile(crashDir + "/Modules.json");
     modFile << modJson.dump(4);
     modFile.close();
+#endif
 
     // 7. StackTrace.txt
     std::ofstream stackFile(crashDir + "/StackTrace.txt");
@@ -364,6 +383,7 @@ void Logger::SignalHandler(int signal) {
     }
     std::filesystem::create_directories(crashDir);
 
+#if WE_HAS_NLOHMANN_JSON
     nlohmann::json crashJson;
     crashJson["CrashTime"] = GetCurrentTimestamp();
     crashJson["CrashType"] = "Fatal Signal";
@@ -373,12 +393,15 @@ void Logger::SignalHandler(int signal) {
     std::ofstream cFile(crashDir + "/Crash.json");
     cFile << crashJson.dump(4);
     cFile.close();
+#endif
 
+#if WE_HAS_NLOHMANN_JSON
     nlohmann::json exJson;
     exJson["ExceptionName"] = sigName;
     std::ofstream exFile(crashDir + "/Exception.json");
     exFile << exJson.dump(4);
     exFile.close();
+#endif
 
     if (s_LogFile.is_open()) {
         s_LogFile.close();

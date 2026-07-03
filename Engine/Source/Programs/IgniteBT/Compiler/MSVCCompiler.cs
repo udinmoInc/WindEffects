@@ -109,25 +109,31 @@ public class MSVCCompiler : ICompiler
             var arguments = BuildCompileArguments(options);
 
             Log.Information("Compiling {SourceFile} with MSVC", options.SourceFile);
-            Log.Debug("Arguments: {Arguments}", arguments);
+            Log.Information("Full command: {Exe} {Args}", ExecutablePath, arguments);
             Log.Debug("Working Directory: {WorkingDir}", options.WorkingDirectory);
-            Log.Debug("Executable Path: {ExePath}", ExecutablePath);
             Log.Debug("Source file exists: {Exists}", File.Exists(options.SourceFile));
 
             ProcessStartInfo startInfo;
 
-            // If we have MSVC environment variables, run through cmd.exe with vcvarsall.bat
+            // If we have vcvarsall.bat, run through cmd.exe with it to set up the environment
             if (!string.IsNullOrEmpty(_vcVarsAllPath))
             {
-                // Create a temporary batch file that sets up the environment and runs the compiler
+                Log.Debug("vcvarsall.bat path: {VcVarsPath}", _vcVarsAllPath);
+                Log.Debug("vcvarsall.bat exists: {Exists}", File.Exists(_vcVarsAllPath));
+                
                 var tempBatPath = Path.Combine(Path.GetTempPath(), $"ignitebt_compile_{Guid.NewGuid()}.bat");
                 
                 var batchContent = $@"@echo off
-call ""{_vcVarsAllPath}"" x64 >nul 2>&1
+echo Running vcvarsall.bat...
+call ""{_vcVarsAllPath}"" x64
+echo Running compiler...
 ""{ExecutablePath}"" {arguments}
+echo Compiler exit code: %ERRORLEVEL%
 exit /b %ERRORLEVEL%
 ";
                 File.WriteAllText(tempBatPath, batchContent);
+                
+                Log.Debug("Batch file created at: {BatPath}", tempBatPath);
                 
                 startInfo = new ProcessStartInfo
                 {
@@ -140,7 +146,63 @@ exit /b %ERRORLEVEL%
                     WorkingDirectory = options.WorkingDirectory
                 };
                 
-                Log.Debug("Running compiler through batch file with vcvarsall.bat: {VcVarsPath}", _vcVarsAllPath);
+                Log.Debug("Running compiler through batch file");
+
+                using var batchProcess = Process.Start(startInfo);
+                if (batchProcess == null)
+                {
+                    result.Success = false;
+                    result.ExitCode = -1;
+                    result.StandardError = "Failed to start compiler process";
+                    Log.Error("Failed to start compiler process");
+                    return result;
+                }
+                
+                result.StandardOutput = await batchProcess.StandardOutput.ReadToEndAsync();
+                result.StandardError = await batchProcess.StandardError.ReadToEndAsync();
+                await batchProcess.WaitForExitAsync();
+                
+                result.ExitCode = batchProcess.ExitCode;
+                result.Success = batchProcess.ExitCode == 0;
+                
+                // Clean up temp file
+                try
+                {
+                    if (File.Exists(tempBatPath))
+                    {
+                        File.Delete(tempBatPath);
+                    }
+                }
+                catch
+                {
+                    // Ignore cleanup errors
+                }
+                
+                stopwatch.Stop();
+                result.CompilationTimeMs = stopwatch.ElapsedMilliseconds;
+                
+                Log.Information("Compiler process exited with code: {ExitCode}", batchProcess.ExitCode);
+                
+                if (!string.IsNullOrEmpty(result.StandardOutput))
+                {
+                    Log.Information("Compiler stdout:\n{Output}", result.StandardOutput);
+                }
+                if (!string.IsNullOrEmpty(result.StandardError))
+                {
+                    Log.Error("Compiler stderr:\n{Error}", result.StandardError);
+                }
+                
+                if (result.Success)
+                {
+                    Log.Information("Compiled {SourceFile} in {Time}ms", options.SourceFile, result.CompilationTimeMs);
+                }
+                else
+                {
+                    Log.Error("Compilation failed with exit code {ExitCode}", batchProcess.ExitCode);
+                }
+                
+                result.Diagnostics = ParseDiagnostics(result.StandardError, options.SourceFile);
+                return result;
             }
             else
             {
@@ -235,7 +297,8 @@ exit /b %ERRORLEVEL%
             "/EHsc",
             "/utf-8",
             "/Zc:__cplusplus",
-            "/Zc:preprocessor"
+            "/Zc:preprocessor",
+            "/FS"  // Force file system locking for PDB files (required for parallel compilation)
         };
 
         flags.AddRange(GetWarningFlags());
@@ -268,6 +331,9 @@ exit /b %ERRORLEVEL%
     private string BuildCompileArguments(CompilerOptions options)
     {
         var args = new List<string>();
+
+        // Compile only (no linking)
+        args.Add("/c");
 
         // Output
         args.Add($"/Fo\"{options.OutputFile}\"");
