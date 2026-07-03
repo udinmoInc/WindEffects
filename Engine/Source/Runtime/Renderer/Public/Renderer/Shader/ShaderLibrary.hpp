@@ -9,9 +9,13 @@
 #include <mutex>
 #include <string>
 #include <unordered_map>
+#if WE_HAS_VULKAN
 #include <volk.h>
+#endif
 
 namespace we::runtime::renderer {
+
+#if WE_HAS_VULKAN
 
 // Central shader library: bytecode loading, hot reload, permutations, PSO cache.
 class ShaderLibrary {
@@ -49,5 +53,7 @@ private:
     ShaderPipelineCache m_PipelineCache;
     std::unordered_map<std::string, ShaderBytecode> m_BytecodeCache;
 };
+
+#endif // WE_HAS_VULKAN
 
 } // namespace we::runtime::renderer

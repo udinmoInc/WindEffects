@@ -7,11 +7,23 @@
 #endif
 #if WE_HAS_GLM
 #include <glm/glm.hpp>
+#else
+// Fallback simple math types when GLM is not available
+struct glm_vec3 { float x, y, z; };
+struct glm_vec4 { float x, y, z, w; };
+struct glm_mat4 { float data[16]; };
+namespace glm {
+    using vec3 = glm_vec3;
+    using vec4 = glm_vec4;
+    using mat4 = glm_mat4;
+}
 #endif
 #include <vector>
 #include <memory>
 
 namespace we::runtime::renderer {
+
+#if WE_HAS_VULKAN
 
 class Renderer {
 public:
@@ -95,5 +107,7 @@ private:
     uint32_t m_CurrentImageIndex = 0;
     bool m_FramebufferResized = false;
 };
+
+#endif // WE_HAS_VULKAN
 
 } // namespace we::runtime::renderer

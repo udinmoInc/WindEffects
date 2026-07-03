@@ -2,7 +2,9 @@
 
 #include "Renderer/Shader/ShaderLibrary.hpp"
 #include "Renderer/Shader/ShaderTypes.hpp"
+#if WE_HAS_VULKAN
 #include <volk.h>
+#endif
 #include <vector>
 #include <string>
 #include <fstream>
@@ -10,6 +12,8 @@
 #include <iostream>
 
 namespace we::runtime::renderer {
+
+#if WE_HAS_VULKAN
 
 inline std::vector<char> LoadShaderBytecode(const std::string& shaderName, ShaderStage stage, uint32_t permutationFlags = 0)
 {
@@ -90,5 +94,7 @@ inline VkShaderModule CreateShaderModule(VkDevice device, const std::vector<char
 
     return shaderModule;
 }
+
+#endif // WE_HAS_VULKAN
 
 } // namespace we::runtime::renderer
