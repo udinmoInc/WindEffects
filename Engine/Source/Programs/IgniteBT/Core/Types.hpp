@@ -107,6 +107,26 @@ private:
     bool m_success;
 };
 
+// Specialization for void
+template<>
+class Result<void> {
+public:
+    static Result Success() { return Result(true); }
+    static Result Failure(std::string error) { return Result(std::move(error), false); }
+    
+    bool IsSuccess() const { return m_success; }
+    bool IsFailure() const { return !m_success; }
+    
+    const std::string& GetError() const { return m_error; }
+    
+private:
+    Result(bool success) : m_success(success) {}
+    Result(std::string error, bool success) : m_error(std::move(error)), m_success(success) {}
+    
+    std::string m_error;
+    bool m_success;
+};
+
 // Version structure
 struct Version {
     int major = 0;

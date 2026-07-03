@@ -139,7 +139,7 @@ public:
 class GenerateCommand : public ICommand {
 public:
     std::string GetName() const override { return "generate"; }
-    std::string GetDescription() const override { "Generate project files"; }
+    std::string GetDescription() const override { return "Generate project files"; }
     std::string GetUsage() const override { return "generate <format> [--output=<path>]"; }
     
     Result<void> Execute(const CommandContext& context) override;
@@ -149,7 +149,7 @@ public:
 class PackageCommand : public ICommand {
 public:
     std::string GetName() const override { return "package"; }
-    std::string GetDescription() const override { "Create distributable package"; }
+    std::string GetDescription() const override { return "Create distributable package"; }
     std::string GetUsage() const override { return "package <target> [--output=<path>]"; }
     
     Result<void> Execute(const CommandContext& context) override;
@@ -159,7 +159,7 @@ public:
 class TestCommand : public ICommand {
 public:
     std::string GetName() const override { return "test"; }
-    std::string GetDescription() const override { "Run tests"; }
+    std::string GetDescription() const override { return "Run tests"; }
     std::string GetUsage() const override { return "test [--filter=<pattern>]"; }
     
     Result<void> Execute(const CommandContext& context) override;
@@ -169,7 +169,7 @@ public:
 class GraphCommand : public ICommand {
 public:
     std::string GetName() const override { return "graph"; }
-    std::string GetDescription() const override { "Show dependency graph"; }
+    std::string GetDescription() const override { return "Show dependency graph"; }
     std::string GetUsage() const override { return "graph <target> [--output=<path>]"; }
     
     Result<void> Execute(const CommandContext& context) override;
