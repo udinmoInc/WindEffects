@@ -94,8 +94,22 @@ public class SDKResolver
             Log.Debug("SDK {SDKName} found in Engine/ThirdParty", provider.SDKName);
             return result;
         }
+
+        // 6. Check bundled Vulkan headers in Engine/ThirdParty
+        if (provider.SDKName.Equals("VulkanSDK", StringComparison.OrdinalIgnoreCase))
+        {
+            var bundledResult = await ScanBundledVulkanAsync();
+            result.SearchLocations.AddRange(bundledResult.SearchLocations);
+            if (bundledResult.Success)
+            {
+                result.Value = bundledResult.Value;
+                result.DiscoverySource = "Engine/ThirdParty (bundled)";
+                Log.Debug("SDK {SDKName} found via bundled ThirdParty headers", provider.SDKName);
+                return result;
+            }
+        }
         
-        // 6. SDK not found
+        // 7. SDK not found
         stopwatch.Stop();
         Log.Warning("SDK {SDKName} not found after checking {Count} locations", 
             provider.SDKName, result.SearchLocations.Count);
