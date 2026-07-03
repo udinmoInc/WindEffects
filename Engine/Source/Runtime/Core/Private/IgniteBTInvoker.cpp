@@ -1,5 +1,6 @@
 #include "Core/IgniteBTInvoker.hpp"
 #include "Core/BuildPaths.hpp"
+#include "Core/Environment.hpp"
 
 #include <filesystem>
 #include <fstream>
@@ -9,7 +10,6 @@
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 #else
-#include <cstdlib>
 #include <sys/wait.h>
 #include <unistd.h>
 #endif
@@ -44,17 +44,17 @@ std::string JsonReadString(const std::string& json, const char* key) {
 
 std::filesystem::path GetInstallManifestPath() {
 #if defined(_WIN32)
-    if (const char* localAppData = std::getenv("LOCALAPPDATA")) {
-        return std::filesystem::path(localAppData) / "WindEffects" / "engine.json";
+    if (auto localAppData = GetEnvironmentVariable("LOCALAPPDATA")) {
+        return std::filesystem::path(*localAppData) / "WindEffects" / "engine.json";
     }
     return {};
 #else
-    if (const char* configHome = std::getenv("XDG_CONFIG_HOME")) {
-        return std::filesystem::path(configHome) / "windeffects" / "engine.json";
+    if (auto configHome = GetEnvironmentVariable("XDG_CONFIG_HOME")) {
+        return std::filesystem::path(*configHome) / "windeffects" / "engine.json";
     }
 
-    if (const char* home = std::getenv("HOME")) {
-        return std::filesystem::path(home) / ".config" / "windeffects" / "engine.json";
+    if (auto home = GetEnvironmentVariable("HOME")) {
+        return std::filesystem::path(*home) / ".config" / "windeffects" / "engine.json";
     }
 
     return {};
@@ -84,8 +84,8 @@ bool TryReadInstallManifest(std::filesystem::path& outProjectRoot) {
 }
 
 bool TryResolveProjectRoot(std::filesystem::path& outProjectRoot) {
-    if (const char* envRoot = std::getenv("WE_PROJECT_ROOT")) {
-        outProjectRoot = envRoot;
+    if (auto envRoot = GetEnvironmentVariable("WE_PROJECT_ROOT")) {
+        outProjectRoot = *envRoot;
         if (std::filesystem::exists(outProjectRoot / "Engine" / "Source")) {
             return true;
         }

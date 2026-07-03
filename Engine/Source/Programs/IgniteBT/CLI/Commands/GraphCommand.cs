@@ -24,7 +24,10 @@ public static class GraphCommand
             }
             
             // Discover modules
-            var discovery = new ModuleDiscoverer(engineDir);
+            var discovery = new ModuleDiscoverer(
+                engineDir,
+                "Debug",
+                CommandLineHelpers.GetCurrentPlatform());
             var modules = await discovery.DiscoverModulesAsync();
             
             if (modules.Count == 0)
@@ -73,6 +76,11 @@ public static class GraphCommand
             }
             
             return 0;
+        }
+        catch (ModuleDiscoveryException ex)
+        {
+            Log.Error(ex, "Module discovery failed");
+            return 1;
         }
         catch (Exception ex)
         {

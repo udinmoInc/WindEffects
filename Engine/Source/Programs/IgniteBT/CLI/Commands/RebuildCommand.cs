@@ -6,13 +6,18 @@ public static class RebuildCommand
 {
     public static async Task<int> Execute(string[] args)
     {
-        var target = args.Length > 0 ? args[0] : "All";
+        var parsed = CommandSchemas.Rebuild.Parse(args);
+        if (!CommandLineHelpers.TryReportErrors(parsed))
+        {
+            return 1;
+        }
+
+        var target = parsed.ResolveTarget();
         
         Log.Information("Rebuild Command");
         Log.Information("Target: {Target}", target);
         Log.Information("Rebuild is equivalent to Clean followed by Build");
         
-        // First clean
         Log.Information("Step 1: Cleaning...");
         var cleanResult = await CleanCommand.Execute(args);
         
@@ -22,7 +27,6 @@ public static class RebuildCommand
             return cleanResult;
         }
         
-        // Then build
         Log.Information("Step 2: Building...");
         var buildResult = await BuildCommand.Execute(args);
         

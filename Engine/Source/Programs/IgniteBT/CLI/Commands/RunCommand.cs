@@ -9,8 +9,14 @@ public static class RunCommand
 {
     public static async Task<int> Execute(string[] args)
     {
-        var config = GetArgValue(args, "--config", "Debug");
-        var target = GetArgValue(args, "--target", "Editor");
+        var parsed = CommandSchemas.Run.Parse(args);
+        if (!CommandLineHelpers.TryReportErrors(parsed))
+        {
+            return 1;
+        }
+
+        var config = parsed.GetOption("config", "Debug");
+        var target = parsed.ResolveTarget("Editor");
 
         Log.Information("Run Command");
         Log.Information("Target: {Target}", target);
@@ -19,8 +25,8 @@ public static class RunCommand
         try
         {
             var location = EngineInstallation.Resolve();
-            var buildConfig = ParseConfiguration(config);
-            var layout = new BuildLayout(location.Descriptor.EngineRoot, GetCurrentPlatform(), buildConfig);
+            var buildConfig = CommandLineHelpers.ParseConfiguration(config);
+            var layout = new BuildLayout(location.Descriptor.EngineRoot, CommandLineHelpers.GetCurrentPlatform(), buildConfig);
             var outputRoot = layout.PlatformOutputRoot;
 
             var executableName = target.ToLowerInvariant() switch
@@ -35,7 +41,7 @@ public static class RunCommand
             if (!File.Exists(executablePath))
             {
                 Log.Warning("Executable not found at {Path}. Building first...", executablePath);
-                var buildArgs = new[] { target, "--config", config };
+                var buildArgs = BuildLaunchArgs(target, config);
                 var buildResult = await BuildCommand.Execute(buildArgs);
                 if (buildResult != 0)
                 {
@@ -67,34 +73,14 @@ public static class RunCommand
         }
     }
 
-    private static BuildConfiguration ParseConfiguration(string config) =>
-        config.ToLowerInvariant() switch
-        {
-            "debug" => BuildConfiguration.Debug,
-            "development" or "dev" => BuildConfiguration.Development,
-            "profile" => BuildConfiguration.Profile,
-            "shipping" or "release" => BuildConfiguration.Shipping,
-            _ => BuildConfiguration.Debug
-        };
-
-    private static string GetArgValue(string[] args, string name, string defaultValue)
+    private static string[] BuildLaunchArgs(string target, string config)
     {
-        for (var i = 0; i < args.Length; i++)
+        if (string.Equals(target, "Editor", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(target, "Application", StringComparison.OrdinalIgnoreCase))
         {
-            if (args[i] == name && i + 1 < args.Length)
-            {
-                return args[i + 1];
-            }
+            return new[] { "--target", target, "--config", config };
         }
 
-        return defaultValue;
-    }
-
-    private static string GetCurrentPlatform()
-    {
-        if (OperatingSystem.IsWindows()) return "Windows";
-        if (OperatingSystem.IsLinux()) return "Linux";
-        if (OperatingSystem.IsMacOS()) return "Mac";
-        return "Unknown";
+        return new[] { target, "--config", config };
     }
 }

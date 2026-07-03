@@ -18,11 +18,27 @@ public static class BuildCommand
 {
     public static async Task<int> Execute(string[] args)
     {
-        var target = args.Length > 0 ? args[0] : "All";
-        var config = GetArgValue(args, "--config", "Release");
-        var platform = GetArgValue(args, "--platform", GetCurrentPlatform());
-        var clean = HasArg(args, "--clean");
-        var jobs = int.Parse(GetArgValue(args, "--jobs", Environment.ProcessorCount.ToString()));
+        var parsed = CommandSchemas.Build.Parse(args);
+        if (!CommandLineHelpers.TryReportErrors(parsed))
+        {
+            return 1;
+        }
+
+        var target = parsed.ResolveTarget();
+        var config = parsed.GetOption("config", "Release");
+        var platform = CommandLineHelpers.NormalizePlatform(parsed.GetOption("platform", string.Empty));
+        var clean = parsed.HasFlag("clean");
+
+        int jobs;
+        try
+        {
+            jobs = CommandLineHelpers.ParseJobs(parsed.GetOption("jobs", string.Empty));
+        }
+        catch (ArgumentException ex)
+        {
+            Log.Error("{Message}", ex.Message);
+            return 1;
+        }
 
         Log.Information("Build Command");
         Log.Information("Target: {Target}", target);
@@ -76,12 +92,12 @@ public static class BuildCommand
             Log.Information("Generated {FlagCount} feature flags", dependencyResult.FeatureFlags.Count);
             
             // Parse configuration
-            var buildConfig = ParseConfiguration(config);
+            var buildConfig = CommandLineHelpers.ParseConfiguration(config);
             var layout = BuildLayout.Resolve(currentDir, platform, buildConfig);
             layout.EnsureDirectories();
             
             // Discover modules
-            var discovery = new ModuleDiscoverer(engineDir);
+            var discovery = new ModuleDiscoverer(engineDir, config, platform);
             discovery.SetDependencyResult(dependencyResult);
             var modules = await discovery.DiscoverModulesAsync();
             
@@ -154,6 +170,11 @@ public static class BuildCommand
             scheduler.Dispose();
             
             return success ? 0 : 1;
+        }
+        catch (ModuleDiscoveryException ex)
+        {
+            Log.Error(ex, "Module discovery failed");
+            return 1;
         }
         catch (Exception ex)
         {
@@ -526,48 +547,10 @@ public static class BuildCommand
     {
         return platform.ToLowerInvariant() switch
         {
-            "windows" => IgniteBT.Build.Compiler.TargetPlatform.Windows,
+            "windows" or "win64" or "win32" => IgniteBT.Build.Compiler.TargetPlatform.Windows,
             "linux" => IgniteBT.Build.Compiler.TargetPlatform.Linux,
             "mac" or "macos" => IgniteBT.Build.Compiler.TargetPlatform.MacOS,
             _ => IgniteBT.Build.Compiler.TargetPlatform.Windows
         };
-    }
-
-    private static BuildConfiguration ParseConfiguration(string config)
-    {
-        return config.ToLowerInvariant() switch
-        {
-            "debug" => BuildConfiguration.Debug,
-            "development" or "dev" => BuildConfiguration.Development,
-            "profile" => BuildConfiguration.Profile,
-            "shipping" or "release" => BuildConfiguration.Shipping,
-            _ => BuildConfiguration.Shipping
-        };
-    }
-
-    static string GetArgValue(string[] args, string name, string defaultValue)
-    {
-        for (int i = 0; i < args.Length; i++)
-        {
-            if (args[i] == name && i + 1 < args.Length)
-                return args[i + 1];
-        }
-        return defaultValue;
-    }
-
-    static bool HasArg(string[] args, string name)
-    {
-        return args.Contains(name);
-    }
-
-    static string GetCurrentPlatform()
-    {
-        if (OperatingSystem.IsWindows())
-            return "Windows";
-        if (OperatingSystem.IsLinux())
-            return "Linux";
-        if (OperatingSystem.IsMacOS())
-            return "Mac";
-        return "Unknown";
     }
 }

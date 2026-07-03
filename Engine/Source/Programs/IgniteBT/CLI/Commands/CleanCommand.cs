@@ -10,8 +10,15 @@ public static class CleanCommand
 {
     public static async Task<int> Execute(string[] args)
     {
-        var target = args.Length > 0 ? args[0] : "All";
-        var config = GetArgValue(args, "--config", "Debug");
+        var parsed = CommandSchemas.Clean.Parse(args);
+        if (!CommandLineHelpers.TryReportErrors(parsed))
+        {
+            return 1;
+        }
+
+        var target = parsed.ResolveTarget();
+        var config = parsed.GetOption("config", "Debug");
+        var platform = CommandLineHelpers.NormalizePlatform(parsed.GetOption("platform", string.Empty));
         
         Log.Information("Clean Command");
         Log.Information("Target: {Target}", target);
@@ -32,10 +39,10 @@ public static class CleanCommand
             Log.Information("Project root: {ProjectRoot}", projectRoot);
             Log.Information("Engine root: {EngineDir}", engineDir);
 
-            var buildConfig = ParseConfiguration(config);
-            var layout = BuildLayout.Resolve(currentDir, GetCurrentPlatform(), buildConfig);
+            var buildConfig = CommandLineHelpers.ParseConfiguration(config);
+            var layout = BuildLayout.Resolve(currentDir, platform, buildConfig);
             
-            var discovery = new ModuleDiscoverer(engineDir);
+            var discovery = new ModuleDiscoverer(engineDir, config, platform);
             var modules = await discovery.DiscoverModulesAsync();
             
             if (modules.Count == 0)
@@ -64,6 +71,11 @@ public static class CleanCommand
             
             Log.Information("Clean completed successfully");
             return 0;
+        }
+        catch (ModuleDiscoveryException ex)
+        {
+            Log.Error(ex, "Module discovery failed");
+            return 1;
         }
         catch (Exception ex)
         {
@@ -191,38 +203,5 @@ public static class CleanCommand
         {
             Log.Warning(ex, "Skipped locked file in {Description}: {File}", description, path);
         }
-    }
-
-    private static BuildConfiguration ParseConfiguration(string config)
-    {
-        return config.ToLowerInvariant() switch
-        {
-            "debug" => BuildConfiguration.Debug,
-            "development" or "dev" => BuildConfiguration.Development,
-            "profile" => BuildConfiguration.Profile,
-            "shipping" or "release" => BuildConfiguration.Shipping,
-            _ => BuildConfiguration.Debug
-        };
-    }
-
-    static string GetArgValue(string[] args, string name, string defaultValue)
-    {
-        for (int i = 0; i < args.Length; i++)
-        {
-            if (args[i] == name && i + 1 < args.Length)
-                return args[i + 1];
-        }
-        return defaultValue;
-    }
-
-    static string GetCurrentPlatform()
-    {
-        if (OperatingSystem.IsWindows())
-            return "Windows";
-        if (OperatingSystem.IsLinux())
-            return "Linux";
-        if (OperatingSystem.IsMacOS())
-            return "Mac";
-        return "Unknown";
     }
 }
