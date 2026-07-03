@@ -136,6 +136,16 @@ public class LinkerOptions
     /// Export all symbols from object files (Windows shared libraries).
     /// </summary>
     public bool ExportAllSymbols { get; set; }
+
+    /// <summary>
+    /// Program database output path (PDB on Windows).
+    /// </summary>
+    public string? ProgramDatabaseFile { get; set; }
+
+    /// <summary>
+    /// Incremental linker database output path (ILK on Windows).
+    /// </summary>
+    public string? IncrementalLinkDatabaseFile { get; set; }
 }
 
 /// <summary>

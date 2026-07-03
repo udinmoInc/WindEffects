@@ -1,6 +1,8 @@
 using Serilog;
 using IgniteBT.ModuleDiscovery;
 using IgniteBT.BuildGraph;
+using IgniteBT.BuildSystem;
+using IgniteBT.Compiler;
 
 namespace IgniteBT.Commands;
 
@@ -17,17 +19,21 @@ public static class CleanCommand
 
         try
         {
-            // Get engine directory
             var currentDir = Directory.GetCurrentDirectory();
-            var engineDir = FindEngineRoot(currentDir);
+            var projectRoot = BuildLayout.FindProjectRoot(currentDir);
+            var engineDir = BuildLayout.FindEngineRoot(currentDir);
             
-            if (string.IsNullOrEmpty(engineDir) || !Directory.Exists(engineDir))
+            if (string.IsNullOrEmpty(projectRoot) || string.IsNullOrEmpty(engineDir) || !Directory.Exists(engineDir))
             {
-                Log.Error("Could not find engine root directory from {CurrentDir}", currentDir);
+                Log.Error("Could not find project root directory from {CurrentDir}", currentDir);
                 return 1;
             }
             
+            Log.Information("Project root: {ProjectRoot}", projectRoot);
             Log.Information("Engine root: {EngineDir}", engineDir);
+
+            var buildConfig = ParseConfiguration(config);
+            var layout = BuildLayout.Resolve(currentDir, GetCurrentPlatform(), buildConfig);
             
             // Discover modules
             var discovery = new ModuleDiscoverer(engineDir);
@@ -36,25 +42,27 @@ public static class CleanCommand
             if (modules.Count == 0)
             {
                 Log.Warning("No modules found to clean");
-                return 0;
             }
-            
-            // Build dependency graph
-            var graph = new DependencyGraph();
-            graph.BuildFromModules(modules);
-            
-            // Get build order (reverse for cleaning)
-            var buildOrder = graph.GetBuildOrder();
-            buildOrder.Reverse();
-            
-            // Clean each module
-            foreach (var node in buildOrder)
+            else
             {
-                CleanModule(node, engineDir);
+                var graph = new DependencyGraph();
+                graph.BuildFromModules(modules);
+                var buildOrder = graph.GetBuildOrder();
+                buildOrder.Reverse();
+
+                foreach (var node in buildOrder)
+                {
+                    CleanModule(node, layout);
+                }
             }
-            
-            // Clean cache
-            CleanCache(engineDir);
+
+            CleanDirectory(layout.BuildRoot, "build directory");
+            CleanDirectory(layout.OutputRoot, "output directory");
+
+            foreach (var legacyDir in BuildLayout.GetLegacyArtifactDirectories(projectRoot, engineDir))
+            {
+                CleanDirectory(legacyDir, "legacy artifact directory");
+            }
             
             Log.Information("Clean completed successfully");
             return 0;
@@ -66,46 +74,35 @@ public static class CleanCommand
         }
     }
 
-    private static void CleanModule(BuildNode node, string engineDir)
+    private static void CleanModule(BuildNode node, BuildLayout layout)
     {
         Log.Information("Cleaning module: {ModuleName}", node.Name);
-        
-        // Clean intermediate directory for the module
-        var intermediateDir = Path.Combine(engineDir, "Intermediate", node.Name);
-        if (Directory.Exists(intermediateDir))
-        {
-            Directory.Delete(intermediateDir, true);
-            Log.Information("Deleted intermediate directory: {Dir}", intermediateDir);
-        }
-        
-        // Clean output directory for the module
-        var outputDir = Path.Combine(engineDir, "Binaries", node.Name);
-        if (Directory.Exists(outputDir))
-        {
-            Directory.Delete(outputDir, true);
-            Log.Information("Deleted output directory: {Dir}", outputDir);
-        }
-        
-        Log.Information("Module {ModuleName} cleaned successfully", node.Name);
+
+        CleanDirectory(layout.GetModuleObjectsDirectory(node.Name), $"objects for {node.Name}");
+        CleanDirectory(layout.GetModuleGeneratedDirectory(node.Name), $"generated files for {node.Name}");
     }
 
-    private static void CleanCache(string engineDir)
+    private static void CleanDirectory(string path, string description)
     {
-        Log.Information("Cleaning build cache");
-        
-        var cacheDir = Path.Combine(engineDir, "Intermediate", "IgniteBT", "Cache");
-        if (Directory.Exists(cacheDir))
+        if (!Directory.Exists(path))
         {
-            Directory.Delete(cacheDir, true);
-            Log.Information("Deleted cache directory: {Dir}", cacheDir);
+            return;
         }
-        
-        var databaseDir = Path.Combine(engineDir, "Intermediate", "IgniteBT", "Database");
-        if (Directory.Exists(databaseDir))
+
+        Directory.Delete(path, true);
+        Log.Information("Deleted {Description}: {Dir}", description, path);
+    }
+
+    private static BuildConfiguration ParseConfiguration(string config)
+    {
+        return config.ToLowerInvariant() switch
         {
-            Directory.Delete(databaseDir, true);
-            Log.Information("Deleted database directory: {Dir}", databaseDir);
-        }
+            "debug" => BuildConfiguration.Debug,
+            "development" or "dev" => BuildConfiguration.Development,
+            "profile" => BuildConfiguration.Profile,
+            "shipping" or "release" => BuildConfiguration.Shipping,
+            _ => BuildConfiguration.Shipping
+        };
     }
 
     static string GetArgValue(string[] args, string name, string defaultValue)
@@ -118,30 +115,14 @@ public static class CleanCommand
         return defaultValue;
     }
 
-    static string? FindEngineRoot(string startDir)
+    static string GetCurrentPlatform()
     {
-        var dir = new DirectoryInfo(startDir);
-        
-        while (dir != null)
-        {
-            if (dir.Name.Equals("Engine", StringComparison.OrdinalIgnoreCase))
-            {
-                var sourceDir = Path.Combine(dir.FullName, "Source");
-                if (Directory.Exists(sourceDir))
-                {
-                    return dir.FullName;
-                }
-            }
-            
-            var engineParent = Path.Combine(dir.FullName, "Engine", "Source");
-            if (Directory.Exists(engineParent))
-            {
-                return Path.GetDirectoryName(engineParent);
-            }
-            
-            dir = dir.Parent;
-        }
-        
-        return null;
+        if (OperatingSystem.IsWindows())
+            return "Windows";
+        if (OperatingSystem.IsLinux())
+            return "Linux";
+        if (OperatingSystem.IsMacOS())
+            return "Mac";
+        return "Unknown";
     }
 }

@@ -91,27 +91,32 @@ WindEffects Engine is a high-performance, modular game engine designed for creat
 WindEffects/
 
 ├── Engine/
-│   ├── Core/
-│   ├── Renderer/
-│   ├── RHI/
-│   ├── ECS/
-│   ├── Physics/
-│   ├── Animation/
-│   ├── Audio/
-│   ├── AI/
-│   ├── Network/
-│   ├── Asset/
-│   ├── UI/
-│   └── Editor/
+│   ├── Source/
+│   │   ├── Runtime/
+│   │   ├── Editor/
+│   │   └── Programs/
+│   │       └── IgniteBT/
+│   ├── ThirdParty/
+│   ├── Content/
+│   └── Config/
 │
-├── Runtime/
-├── Tools/
-├── Samples/
-├── Templates/
-├── ThirdParty/
-├── Documentation/
-├── Tests/
-└── CMakeLists.txt
+├── Build/
+│   ├── Cache/
+│   ├── Database/
+│   ├── IgniteBT/
+│   ├── Logs/
+│   └── Win64/
+│       ├── Debug/
+│       └── Release/
+│
+├── Output/
+│   └── Win64/
+│       ├── Debug/
+│       └── Release/
+│
+├── Assets/
+├── Scripts/
+└── IgniteBT.SDKs.json
 ```
 
 ---
@@ -122,7 +127,7 @@ WindEffects/
 | --------------- | ----------------------- |
 | Language        | C++23                   |
 | Graphics        | Vulkan                  |
-| Build           | CMake                   |
+| Build           | IgniteBT                |
 | Shader Language | HLSL / SPIR-V           |
 | UI Framework    | Custom Retained-Mode UI |
 | Asset Pipeline  | Custom                  |
@@ -147,7 +152,31 @@ The goal is to provide a scalable engine and editor suitable for professional ga
 
 ---
 
-# 🛣️ Roadmap
+# 🔧 Building
+
+WindEffects is built exclusively with **IgniteBT**. All generated artifacts are written outside the source tree.
+
+```powershell
+# Build IgniteBT (once, or after tool changes)
+dotnet build Engine/Source/Programs/IgniteBT/IgniteBT.csproj -c Debug
+
+# Build the engine
+Build/IgniteBT/Debug/net8.0/IgniteBT.exe build --config Debug
+
+# Clean all build/output artifacts
+Build/IgniteBT/Debug/net8.0/IgniteBT.exe clean --config Debug
+```
+
+### Directory layout
+
+| Path | Purpose |
+|------|---------|
+| `Engine/Source/` | Human-authored source code only |
+| `Engine/ThirdParty/` | Third-party library sources (e.g. GLM) |
+| `Build/` | Intermediate artifacts: objects, PDBs, cache, logs |
+| `Output/Win64/Debug/` | Final binaries: `.dll`, `.exe`, import `.lib` |
+
+---
 
 ## Phase 1
 

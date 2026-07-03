@@ -1,6 +1,7 @@
 using System.CommandLine;
 using Serilog;
 using IgniteBT.Commands;
+using IgniteBT.BuildSystem;
 
 namespace IgniteBT;
 
@@ -8,11 +9,15 @@ class Program
 {
     static async Task<int> Main(string[] args)
     {
+        var projectRoot = BuildLayout.FindProjectRoot(Directory.GetCurrentDirectory()) ?? Directory.GetCurrentDirectory();
+        var logDirectory = Path.Combine(projectRoot, "Build", "Logs");
+        Directory.CreateDirectory(logDirectory);
+
         // Initialize logging
         Log.Logger = new LoggerConfiguration()
             .MinimumLevel.Information()
             .WriteTo.Console()
-            .WriteTo.File("Logs/IgniteBT-.log", rollingInterval: RollingInterval.Day)
+            .WriteTo.File(Path.Combine(logDirectory, "IgniteBT-.log"), rollingInterval: RollingInterval.Day)
             .CreateLogger();
 
         Log.Information("IgniteBT - WindEffects Build Tool v1.0.0");
