@@ -1,6 +1,6 @@
 param(
     [Parameter(ValueFromRemainingArguments = $true)]
-    [string[]]$Args
+    [string[]]$CommandArgs
 )
 
 $ErrorActionPreference = "Stop"
@@ -88,7 +88,7 @@ function Invoke-Tool {
 
     if ($kind -eq "dotnet") {
         if (-not [string]::IsNullOrWhiteSpace($executable) -and (Test-DotNetExecutable $executable)) {
-            & $executable @ForwardArgs
+            & $executable @ForwardArgs | Out-Host
             return $LASTEXITCODE
         }
         if (-not (Test-Path -LiteralPath $source)) {
@@ -96,7 +96,7 @@ function Invoke-Tool {
         }
         Push-Location $WorkingDirectory
         try {
-            dotnet run --project $source -- @ForwardArgs
+            dotnet run --project $source -- @ForwardArgs | Out-Host
             return $LASTEXITCODE
         } finally {
             Pop-Location
@@ -107,7 +107,7 @@ function Invoke-Tool {
         throw "Tool executable was not found: $executable"
     }
 
-    & $executable @ForwardArgs
+    & $executable @ForwardArgs | Out-Host
     return $LASTEXITCODE
 }
 
@@ -136,21 +136,22 @@ if ([string]::IsNullOrWhiteSpace($manifestRel)) {
 
 $manifestPath = Join-Path $engineRoot $manifestRel
 $tool = $null
-$forwardArgs = $Args
+$forwardArgs = $CommandArgs
 
 if (Test-Path -LiteralPath $manifestPath) {
     $manifest = Read-IniDocument -Path $manifestPath
     $defaultTool = $manifest.Global["default"]
 
-    if ($Args.Length -gt 0 -and $manifest.Sections.ContainsKey($Args[0])) {
-        $tool = $manifest.Sections[$Args[0]]
+    if ($CommandArgs.Length -gt 0 -and $manifest.Sections.ContainsKey($CommandArgs[0])) {
+        $tool = $manifest.Sections[$CommandArgs[0]]
     } elseif (-not [string]::IsNullOrWhiteSpace($defaultTool) -and $manifest.Sections.ContainsKey($defaultTool)) {
         $tool = $manifest.Sections[$defaultTool]
     }
 }
 
 if ($null -ne $tool) {
-    exit (Invoke-Tool -Tool $tool -WorkingDirectory $engineRoot -ForwardArgs $forwardArgs)
+    $exitCode = Invoke-Tool -Tool $tool -WorkingDirectory $engineRoot -ForwardArgs $forwardArgs
+    exit $exitCode
 }
 
 if ([string]::IsNullOrWhiteSpace($bootstrapEntrySource)) {
@@ -164,7 +165,7 @@ if (-not (Test-Path -LiteralPath $entryProject)) {
 
 Push-Location $engineRoot
 try {
-    dotnet run --project $entryProject -- @forwardArgs
+    dotnet run --project $entryProject -- @forwardArgs | Out-Host
     exit $LASTEXITCODE
 }
 finally {

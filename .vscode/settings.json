@@ -1,11 +1,14 @@
 {
   "terminal.integrated.env.windows": {
-    "PATH": "${workspaceFolder};${env:PATH}"
+    "PATH": "${workspaceFolder};${env:PATH}",
+    "WE_PROJECT_ROOT": "${workspaceFolder}"
   },
   "terminal.integrated.env.linux": {
-    "PATH": "${workspaceFolder}:${env:PATH}"
+    "PATH": "${workspaceFolder}:${env:PATH}",
+    "WE_PROJECT_ROOT": "${workspaceFolder}"
   },
   "terminal.integrated.env.osx": {
-    "PATH": "${workspaceFolder}:${env:PATH}"
+    "PATH": "${workspaceFolder}:${env:PATH}",
+    "WE_PROJECT_ROOT": "${workspaceFolder}"
   }
 }

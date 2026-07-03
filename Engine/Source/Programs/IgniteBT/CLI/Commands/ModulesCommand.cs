@@ -24,7 +24,10 @@ public static class ModulesCommand
             
             Log.Information("Engine root: {EngineDir}", engineDir);
             
-            var discovery = new ModuleDiscoverer(engineDir);
+            var discovery = new ModuleDiscoverer(
+                engineDir,
+                "Debug",
+                CommandLineHelpers.GetCurrentPlatform());
             var modules = await discovery.DiscoverModulesAsync();
             
             Console.WriteLine();
@@ -41,6 +44,11 @@ public static class ModulesCommand
             }
             
             return 0;
+        }
+        catch (ModuleDiscoveryException ex)
+        {
+            Log.Error(ex, "Module discovery failed");
+            return 1;
         }
         catch (Exception ex)
         {
