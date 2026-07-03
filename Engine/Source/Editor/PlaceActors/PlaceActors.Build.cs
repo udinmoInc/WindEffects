@@ -9,11 +9,11 @@ public class PlaceActors : ModuleRules
         PublicIncludePaths.Add("Public");
         PrivateIncludePaths.Add("Private");
 
-        Dependencies.Add("Core");
-        Dependencies.Add("CoreUObject");
-        Dependencies.Add("Engine");
-        Dependencies.Add("Scene");
-        Dependencies.Add("Application");
+        PublicDependencies.Add("Core");
+        PublicDependencies.Add("CoreUObject");
+        PublicDependencies.Add("Engine");
+        PublicDependencies.Add("Scene");
+        PublicDependencies.Add("Application");
 
         Definitions.Add("PLACEACTORS_EXPORTS");
     }

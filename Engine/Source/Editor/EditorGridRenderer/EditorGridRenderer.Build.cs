@@ -9,10 +9,10 @@ public class EditorGridRenderer : ModuleRules
         PublicIncludePaths.Add("Public");
         PrivateIncludePaths.Add("Private");
 
-        Dependencies.Add("Core");
-        Dependencies.Add("RHI");
-        Dependencies.Add("Renderer");
-        Dependencies.Add("Application");
+        PublicDependencies.Add("Core");
+        PublicDependencies.Add("RHI");
+        PublicDependencies.Add("Renderer");
+        PublicDependencies.Add("Application");
 
         Definitions.Add("EDITORGRIDRENDERER_EXPORTS");
     }

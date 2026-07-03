@@ -9,10 +9,10 @@ public class Scene : ModuleRules
         PublicIncludePaths.Add("Public");
         PrivateIncludePaths.Add("Private");
 
-        Dependencies.Add("Core");
-        Dependencies.Add("CoreUObject");
-        Dependencies.Add("Engine");
-        Dependencies.Add("Renderer");
+        PublicDependencies.Add("Core");
+        PublicDependencies.Add("CoreUObject");
+        PublicDependencies.Add("Engine");
+        PublicDependencies.Add("Renderer");
 
         // Add GLM as optional third-party dependency
         AddOptionalThirdParty("glm");

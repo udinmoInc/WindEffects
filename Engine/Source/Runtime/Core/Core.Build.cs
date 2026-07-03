@@ -18,7 +18,7 @@ public class Core : ModuleRules
         OptionalSDK("SDL3");
         
         // nlohmann/json is optional for Core - only needed for crash reporting
-        OptionalThirdParty("nlohmann_json");
+        AddOptionalThirdParty("nlohmann_json");
         
         // Add feature flags for SDK availability
         DefineIf(HasSDK("Vulkan"), "WE_HAS_VULKAN=1");

@@ -1,5 +1,6 @@
 using Serilog;
 using IgniteBT.ModuleDiscovery;
+using IgniteBT.BuildSystem;
 using IgniteBT.BuildGraph;
 using IgniteBT.Compiler;
 using IgniteBT.Dependency;
@@ -412,6 +413,7 @@ public static class BuildCommand
             Platform = ParsePlatform(platform),
             Architecture = IgniteBT.Compiler.TargetArchitecture.x64,
             GenerateDebugInfo = config == BuildConfiguration.Debug,
+            ExportAllSymbols = node.Module.Type == ModuleType.SharedLibrary,
             WorkingDirectory = outputDir,
             LibraryDirectories = new List<string>(),
             Libraries = new List<string>()
@@ -431,6 +433,21 @@ public static class BuildCommand
         // Add dbghelp.lib for crash reporting
         linkOptions.Libraries.Add("dbghelp.lib");
         linkOptions.Libraries.Add("psapi.lib");
+
+        // Link against module dependency import libraries
+        linkOptions.LibraryDirectories.Add(linkOutputDir);
+        foreach (var depName in node.Module.PublicDependencies.Concat(node.Module.PrivateDependencies))
+        {
+            var depLib = Path.Combine(linkOutputDir, depName + ".lib");
+            if (File.Exists(depLib))
+            {
+                linkOptions.Libraries.Add(depName + ".lib");
+            }
+            else
+            {
+                Log.Warning("Dependency import library not found for module {Module}: {Lib}", node.Name, depLib);
+            }
+        }
         
         var linkResult = await linker.LinkAsync(linkOptions);
         

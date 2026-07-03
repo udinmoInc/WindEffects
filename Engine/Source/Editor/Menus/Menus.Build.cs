@@ -9,8 +9,8 @@ public class Menus : ModuleRules
         PublicIncludePaths.Add("Public");
         PrivateIncludePaths.Add("Private");
 
-        Dependencies.Add("Core");
-        Dependencies.Add("Application");
+        PublicDependencies.Add("Core");
+        PublicDependencies.Add("Application");
 
         Definitions.Add("MENUS_EXPORTS");
     }

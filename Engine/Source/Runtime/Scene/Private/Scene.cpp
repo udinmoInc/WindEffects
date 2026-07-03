@@ -9,61 +9,9 @@
 
 namespace we::runtime::scene {
 
-#if WE_HAS_VULKAN
-
 namespace {
 
-const char* MeshNameForEntityType(EntityType type) {
-    switch (type) {
-    case EntityType::Plane: return "Plane";
-    case EntityType::GroundPlane: return "Plane";
-    default: return "Cube";
-    }
-}
-
-} // namespace
-
-Scene::Scene(const std::shared_ptr<we::runtime::renderer::VulkanContext>& context, const std::shared_ptr<we::runtime::renderer::SceneRenderer>& renderer)
-    : m_Context(context), m_Renderer(renderer) {
-    volkInitialize();
-    volkLoadInstance(m_Context->GetInstance());
-    volkLoadDevice(m_Context->GetDevice());
-}
-
-#else // !WE_HAS_VULKAN
-
-Scene::Scene() {
-}
-
-#endif // WE_HAS_VULKAN
-
-Scene::~Scene() {
-#if WE_HAS_VULKAN
-    DestroyEntity(0xFFFFFFFF); // Clean up all
-#endif
-}
-
-#if WE_HAS_VULKAN
-
-void Scene::SetCameraBuffer(VkBuffer cameraBuffer) {
-    m_CameraBuffer = cameraBuffer;
-}
-
-bool Scene::IsCameraBufferAssigned() const {
-    return m_CameraBuffer != VK_NULL_HANDLE;
-}
-
-void Scene::CreateEntity(const std::string& name, EntityType type) {
-    if (!IsCameraBufferAssigned()) {
-        throw std::runtime_error("Scene camera buffer is not assigned.");
-    }
-
-    Entity entity{};
-    entity.Id = m_NextEntityId++;
-    entity.Name = name;
-    entity.Type = type;
-    
-    // Default mode is Lit (0)
+void ApplyDefaultEntityProperties(Entity& entity, EntityType type) {
     entity.Mode = 0;
 
     switch (type) {
@@ -105,8 +53,68 @@ void Scene::CreateEntity(const std::string& name, EntityType type) {
     default:
         break;
     }
+}
 
-    // Allocate Uniform Buffer for object matrices/properties
+#if WE_HAS_VULKAN
+
+const char* MeshNameForEntityType(EntityType type) {
+    switch (type) {
+    case EntityType::Plane: return "Plane";
+    case EntityType::GroundPlane: return "Plane";
+    default: return "Cube";
+    }
+}
+
+#endif // WE_HAS_VULKAN
+
+} // namespace
+
+#if WE_HAS_VULKAN
+
+Scene::Scene(const std::shared_ptr<we::runtime::renderer::VulkanContext>& context, const std::shared_ptr<we::runtime::renderer::SceneRenderer>& renderer)
+    : m_Context(context), m_Renderer(renderer) {
+    volkInitialize();
+    volkLoadInstance(m_Context->GetInstance());
+    volkLoadDevice(m_Context->GetDevice());
+}
+
+#else // !WE_HAS_VULKAN
+
+Scene::Scene() {
+}
+
+#endif // WE_HAS_VULKAN
+
+Scene::~Scene() {
+    DestroyEntity(0xFFFFFFFF);
+}
+
+#if WE_HAS_VULKAN
+
+void Scene::SetCameraBuffer(VkBuffer cameraBuffer) {
+    m_CameraBuffer = cameraBuffer;
+}
+
+bool Scene::IsCameraBufferAssigned() const {
+    return m_CameraBuffer != VK_NULL_HANDLE;
+}
+
+#endif // WE_HAS_VULKAN
+
+void Scene::CreateEntity(const std::string& name, EntityType type) {
+#if WE_HAS_VULKAN
+    if (!IsCameraBufferAssigned()) {
+        throw std::runtime_error("Scene camera buffer is not assigned.");
+    }
+#endif
+
+    Entity entity{};
+    entity.Id = m_NextEntityId++;
+    entity.Name = name;
+    entity.Type = type;
+    ApplyDefaultEntityProperties(entity, type);
+
+#if WE_HAS_VULKAN
     VkDeviceSize bufferSize = sizeof(we::runtime::renderer::SceneObjectUniform);
     m_Context->CreateBuffer(
         bufferSize,
@@ -116,7 +124,6 @@ void Scene::CreateEntity(const std::string& name, EntityType type) {
         entity.UniformMemory
     );
 
-    // Allocate Descriptor Set from global descriptor pool
     VkDescriptorSetLayout layout = m_Renderer->GetObjectDescLayout();
     VkDescriptorSetAllocateInfo allocInfo{};
     allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
@@ -130,8 +137,8 @@ void Scene::CreateEntity(const std::string& name, EntityType type) {
         throw std::runtime_error("Failed to allocate descriptor set for entity: " + name);
     }
 
-    // Bind descriptor set to UBOs
     m_Renderer->UpdateObjectDescriptorSet(entity.DescriptorSet, m_CameraBuffer, entity.UniformBuffer);
+#endif
 
     m_Entities.push_back(entity);
     HE_INFO("Created scene entity: " + name);
@@ -202,17 +209,18 @@ void Scene::Clear() {
 }
 
 void Scene::DestroyEntity(size_t index) {
+#if WE_HAS_VULKAN
     VkDevice device = m_Context->GetDevice();
-
-    // Wait for GPU to finish execution before destroying any entity resources
     vkDeviceWaitIdle(device);
+#endif
 
     if (index == 0xFFFFFFFF) {
-        // Destroy all
+#if WE_HAS_VULKAN
         for (auto& entity : m_Entities) {
             if (entity.UniformBuffer != VK_NULL_HANDLE) vkDestroyBuffer(device, entity.UniformBuffer, nullptr);
             if (entity.UniformMemory != VK_NULL_HANDLE) vkFreeMemory(device, entity.UniformMemory, nullptr);
         }
+#endif
         m_Entities.clear();
         m_SelectedEntityIndex = -1;
         return;
@@ -222,14 +230,16 @@ void Scene::DestroyEntity(size_t index) {
 
     Entity& entity = m_Entities[index];
     const std::uint64_t destroyedId = entity.Id;
+#if WE_HAS_VULKAN
     if (entity.UniformBuffer != VK_NULL_HANDLE) vkDestroyBuffer(device, entity.UniformBuffer, nullptr);
     if (entity.UniformMemory != VK_NULL_HANDLE) vkFreeMemory(device, entity.UniformMemory, nullptr);
+#endif
 
     m_Entities.erase(m_Entities.begin() + index);
 
-    for (auto& entity : m_Entities) {
-        if (entity.ParentId == destroyedId) {
-            entity.ParentId = 0;
+    for (auto& childEntity : m_Entities) {
+        if (childEntity.ParentId == destroyedId) {
+            childEntity.ParentId = 0;
         }
     }
 
@@ -241,9 +251,9 @@ void Scene::DestroyEntity(size_t index) {
 }
 
 void Scene::Update() {
+#if WE_HAS_VULKAN
     VkDevice device = m_Context->GetDevice();
 
-    // Map each entity's uniform buffer and update model matrix, color, and mode
     for (auto& entity : m_Entities) {
         we::runtime::renderer::SceneObjectUniform ubo{};
         ubo.model = entity.GetModelMatrix();
@@ -255,7 +265,10 @@ void Scene::Update() {
         memcpy(data, &ubo, sizeof(we::runtime::renderer::SceneObjectUniform));
         vkUnmapMemory(device, entity.UniformMemory);
     }
+#endif
 }
+
+#if WE_HAS_VULKAN
 
 void Scene::Draw(VkCommandBuffer cmd, DrawMode drawMode) const {
     for (const auto& entity : m_Entities) {

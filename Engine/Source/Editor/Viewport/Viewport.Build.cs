@@ -9,12 +9,12 @@ public class Viewport : ModuleRules
         PublicIncludePaths.Add("Public");
         PrivateIncludePaths.Add("Private");
 
-        Dependencies.Add("Core");
-        Dependencies.Add("RHI");
-        Dependencies.Add("Renderer");
-        Dependencies.Add("Engine");
-        Dependencies.Add("Scene");
-        Dependencies.Add("Application");
+        PublicDependencies.Add("Core");
+        PublicDependencies.Add("RHI");
+        PublicDependencies.Add("Renderer");
+        PublicDependencies.Add("Engine");
+        PublicDependencies.Add("Scene");
+        PublicDependencies.Add("Application");
 
         Definitions.Add("VIEWPORT_EXPORTS");
     }

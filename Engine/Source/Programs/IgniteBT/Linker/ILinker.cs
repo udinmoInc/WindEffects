@@ -131,6 +131,11 @@ public class LinkerOptions
     /// Export definition file (for DLLs on Windows).
     /// </summary>
     public string? DefinitionFile { get; set; }
+
+    /// <summary>
+    /// Export all symbols from object files (Windows shared libraries).
+    /// </summary>
+    public bool ExportAllSymbols { get; set; }
 }
 
 /// <summary>

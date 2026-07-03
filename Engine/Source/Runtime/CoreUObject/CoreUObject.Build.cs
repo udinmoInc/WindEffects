@@ -9,7 +9,7 @@ public class CoreUObject : ModuleRules
         PublicIncludePaths.Add("Public");
         PrivateIncludePaths.Add("Private");
 
-        Dependencies.Add("Core");
+        PublicDependencies.Add("Core");
 
         Definitions.Add("COREUOBJECT_EXPORTS");
     }

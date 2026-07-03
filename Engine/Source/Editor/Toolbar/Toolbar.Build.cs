@@ -9,9 +9,9 @@ public class Toolbar : ModuleRules
         PublicIncludePaths.Add("Public");
         PrivateIncludePaths.Add("Private");
 
-        Dependencies.Add("Core");
-        Dependencies.Add("Menus");
-        Dependencies.Add("Application");
+        PublicDependencies.Add("Core");
+        PublicDependencies.Add("Menus");
+        PublicDependencies.Add("Application");
 
         Definitions.Add("TOOLBAR_EXPORTS");
     }

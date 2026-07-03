@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("IgniteBT")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+e983f4f9170e9ef2236c442c033d810459b46713")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+f3c6de01ecdbc528440d1f1a29c415ad45850e1f")]
 [assembly: System.Reflection.AssemblyProductAttribute("IgniteBT")]
 [assembly: System.Reflection.AssemblyTitleAttribute("IgniteBT")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
