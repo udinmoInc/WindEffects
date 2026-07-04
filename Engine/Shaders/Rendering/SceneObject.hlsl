@@ -40,11 +40,19 @@ cbuffer EnvironmentBuffer : register(b2, space0)
     float  skyLightIntensity;
     float3 skyAmbientColor;
     float  fogDensity;
-    float3 fogColor;
+    float3 skyLightLowerColor;
     float  fogHeightFalloff;
+    float3 fogColor;
+    float  fogStartDistance;
     float3 atmosphereRayleigh;
-    float  enableVolumetricFog;
+    float  mieScattering;
     float3 aerialTint;
+    float  mieAnisotropy;
+    float3 worldOrigin;
+    float  exposureEV;
+    float  planetRadius;
+    float  atmosphereHeight;
+    float  enableVolumetricFog;
     float  enableClouds;
     int    sunCastShadows;
     int    sunTemperature;
@@ -77,20 +85,13 @@ float4 PSMain(VSOutput input) : SV_Target
     float3 viewDir = normalize(cameraPos - input.worldPos);
 
     const float3 sunLinear = WE_sRGBToLinear(saturate(sunColor));
-    const float3 skyLinear = WE_sRGBToLinear(saturate(skyAmbientColor));
+    const float3 skyUpper = WE_sRGBToLinear(saturate(skyAmbientColor));
+    const float3 skyLower = WE_sRGBToLinear(saturate(skyLightLowerColor));
     const float upN = saturate(normal.y * 0.5 + 0.5);
-    const float3 ambient = lerp(skyLinear * 0.04, skyLinear * 0.12, upN) * skyLightIntensity;
+    const float3 ambient = lerp(skyLower * 0.06, skyUpper * 0.14, upN) * skyLightIntensity;
 
-    float diff = max(dot(normal, lightDir), 0.0);
-    float3 diffuse = diff * sunLinear * (sunIntensity * 0.011);
-
-    float3 reflectDir = reflect(-lightDir, normal);
-    float spec = pow(max(dot(viewDir, reflectDir), 0.0), 48.0);
-    float3 specular = 0.04 * spec * sunLinear;
-
-    float3 litLinear = albedo * (ambient + diffuse) + specular;
-
-    const float height = max(input.worldPos.y, 0.0);
+    float3 lightDir = normalize(sunDirection);
+    float3 viewDir = normalize((cameraPos - worldOrigin) - (input.worldPos - worldOrigin));
     const float fogAmount = enableVolumetricFog > 0.5
         ? (1.0 - exp(-fogDensity * height * fogHeightFalloff))
         : 0.0;

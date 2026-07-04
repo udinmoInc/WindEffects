@@ -103,11 +103,9 @@ SceneRenderer::SceneRenderer(const std::shared_ptr<VulkanContext>& context, VkRe
 
     // 3. Create Pipelines
     CreatePipelines(renderPass);
-    HE_INFO("SceneRenderer: Pipelines created.");
 
     // 4. Create Ground Plane and Cube Meshes
     CreateMeshes();
-    HE_INFO("SceneRenderer: Meshes created.");
 }
 
 SceneRenderer::~SceneRenderer() {
@@ -255,7 +253,6 @@ void SceneRenderer::CreatePipelines(VkRenderPass renderPass) {
         HE_INFO("SceneRenderer: Creating SceneObject shader modules...");
         VkShaderModule vertModule = CreateShaderModule(device, vertCode);
         VkShaderModule fragModule = CreateShaderModule(device, fragCode);
-        HE_INFO("SceneRenderer: Creating lit mesh pipeline...");
 
         VkPipelineShaderStageCreateInfo vertStage{};
         vertStage.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
@@ -322,18 +319,16 @@ void SceneRenderer::CreatePipelines(VkRenderPass renderPass) {
             vkDestroyShaderModule(device, fragModule, nullptr);
             return;
         }
-        HE_INFO("SceneRenderer: Lit mesh pipeline created.");
 
-        // 2b. Unlit Pipeline (Same as Lit but we use it differently in code by setting mode uniform, though pipeline is identical)
+        // 2b. Unlit Pipeline
         if (vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &m_UnlitPipeline) != VK_SUCCESS) {
             HE_ERROR("Failed to create unlit mesh pipeline.");
             vkDestroyShaderModule(device, vertModule, nullptr);
             vkDestroyShaderModule(device, fragModule, nullptr);
             return;
         }
-        HE_INFO("SceneRenderer: Unlit mesh pipeline created.");
 
-        // 2c. Wireframe Pipeline (Non-solid, Cull None)
+        // 2c. Wireframe Pipeline
         rasterizer.polygonMode = VK_POLYGON_MODE_LINE;
         rasterizer.cullMode = VK_CULL_MODE_NONE;
         if (vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &m_WireframePipeline) != VK_SUCCESS) {
@@ -342,7 +337,6 @@ void SceneRenderer::CreatePipelines(VkRenderPass renderPass) {
             vkDestroyShaderModule(device, fragModule, nullptr);
             return;
         }
-        HE_INFO("SceneRenderer: Wireframe mesh pipeline created.");
 
         vkDestroyShaderModule(device, vertModule, nullptr);
         vkDestroyShaderModule(device, fragModule, nullptr);
