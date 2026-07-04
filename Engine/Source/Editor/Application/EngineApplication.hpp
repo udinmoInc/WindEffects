@@ -28,12 +28,12 @@ public:
     void Quit() { m_Running = false; }
 
 protected:
-    virtual void OnUpdate(float deltaTime) {}
+    virtual void OnUpdate(float /*deltaTime*/) {}
     virtual void OnRender() {}
 #if WE_HAS_SDL3
-    virtual void OnEvent(const SDL_Event& event) {}
+    virtual void OnEvent(const SDL_Event& /*event*/) {}
 #else
-    virtual void OnEvent(void* event) {}
+    virtual void OnEvent(void* /*event*/) {}
 #endif
 
 #if WE_HAS_SDL3

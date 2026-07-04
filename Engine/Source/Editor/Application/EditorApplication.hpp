@@ -1,8 +1,6 @@
 #pragma once
 
 #include "EngineApplication.hpp"
-#include <memory>
-#include "Editor.hpp" // For now, wrapping the existing Editor
 
 namespace we::editor::application {
 
@@ -18,10 +16,9 @@ public:
 protected:
     void OnUpdate(float deltaTime) override;
     void OnRender() override;
+#if WE_HAS_SDL3
     void OnEvent(const SDL_Event& event) override;
-
-private:
-    std::unique_ptr<Editor> m_LegacyEditor;
+#endif
 };
 
 } // namespace we::editor::application
