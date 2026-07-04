@@ -307,8 +307,8 @@ bool EnvironmentSystem::EnsureDefaultEnvironment() {
     if (HasEnvironmentActors()) {
         DiscoverExistingActors();
         EnsureFolder();
-        ApplyComponentsToActors();
         UpdateRendering();
+        ApplyComponentsToActors();
         NotifyChanged();
         return false;
     }
@@ -380,6 +380,7 @@ void EnvironmentSystem::CreateEnvironment() {
     }
 
     UpdateRendering();
+    ApplyComponentsToActors();
     NotifyChanged();
     HE_INFO("[Environment] Default environment created.");
 }
@@ -387,8 +388,8 @@ void EnvironmentSystem::CreateEnvironment() {
 void EnvironmentSystem::ResetEnvironment() {
     const EnvironmentSettings& settings = EnvironmentSettingsLoader::Get().GetSettings();
     ApplySettingsToComponents(settings);
-    ApplyComponentsToActors();
     UpdateRendering();
+    ApplyComponentsToActors();
     NotifyChanged();
     HE_INFO("[Environment] Environment reset to defaults.");
 }
@@ -510,8 +511,8 @@ void EnvironmentSystem::ApplyPreset(EnvironmentPreset preset) {
         break;
     }
 
-    ApplyComponentsToActors();
     UpdateRendering();
+    ApplyComponentsToActors();
     NotifyChanged();
 }
 
