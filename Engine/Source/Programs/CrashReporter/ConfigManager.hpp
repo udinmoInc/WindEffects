@@ -36,7 +36,7 @@ public:
         return instance;
     }
 
-    void Load(const std::string& configPath = "Config/CrashReporter/config.json") {
+    void Load(const std::string& configPath = "Engine/Config/CrashReporter/config.json") {
         if (std::filesystem::exists(configPath)) {
             try {
                 std::ifstream f(configPath);

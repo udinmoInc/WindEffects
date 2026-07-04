@@ -36,7 +36,12 @@ public static class RunCommand
             outputLayout.RegisterModules(modules);
 
             var normalizedTarget = NormalizeRunTarget(target);
-            var executablePath = OutputLayout.ResolveLaunchExecutable(outputRoot, normalizedTarget, outputLayout.Descriptors);
+            var manifestPath = layout.GetOutputLayoutManifestPath();
+            var executablePath = OutputLayout.ResolveLaunchExecutable(
+                outputRoot,
+                normalizedTarget,
+                outputLayout.Descriptors,
+                manifestPath);
 
             if (string.IsNullOrEmpty(executablePath) || !File.Exists(executablePath))
             {
@@ -51,7 +56,11 @@ public static class RunCommand
                 outputLayout.RegisterModules(
                     await new ModuleDiscoverer(location.EngineRoot, config, CommandLineHelpers.GetCurrentPlatform())
                         .DiscoverModulesAsync());
-                executablePath = OutputLayout.ResolveLaunchExecutable(outputRoot, normalizedTarget, outputLayout.Descriptors);
+                executablePath = OutputLayout.ResolveLaunchExecutable(
+                    outputRoot,
+                    normalizedTarget,
+                    outputLayout.Descriptors,
+                    layout.GetOutputLayoutManifestPath());
             }
 
             if (string.IsNullOrEmpty(executablePath) || !File.Exists(executablePath))
