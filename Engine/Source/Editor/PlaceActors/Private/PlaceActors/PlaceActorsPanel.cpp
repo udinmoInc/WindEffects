@@ -105,13 +105,6 @@ PlaceActorsPanel::~PlaceActorsPanel() {
     SaveCategoryState();
 }
 
-void PlaceActorsPanel::SetExternalSearchFilter(const std::string& filter) {
-    if (m_ExternalSearchFilter != filter) {
-        m_ExternalSearchFilter = filter;
-        m_NeedsLayout = true;
-    }
-}
-
 void PlaceActorsPanel::RebuildData() {
     auto& catalog = PlaceActorsCatalog::Get();
     if (!catalog.GetCategories().empty()) {
