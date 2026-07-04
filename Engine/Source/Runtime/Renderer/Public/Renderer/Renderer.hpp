@@ -1,6 +1,7 @@
 #pragma once
 
 #if WE_HAS_VULKAN
+#include "Renderer/Export.hpp"
 #include "Renderer/VulkanContext.hpp"
 #include "Renderer/Framebuffer.hpp"
 #include <volk.h>
@@ -29,17 +30,17 @@ class Renderer {
 public:
     static constexpr int MAX_FRAMES_IN_FLIGHT = 2;
 
-    Renderer(const std::shared_ptr<VulkanContext>& context, SDL_Window* window);
-    ~Renderer();
+    RENDERER_API Renderer(const std::shared_ptr<VulkanContext>& context, SDL_Window* window);
+    RENDERER_API ~Renderer();
 
     // Prevent copying
     Renderer(const Renderer&) = delete;
     Renderer& operator=(const Renderer&) = delete;
 
-    void RecreateSwapchain(uint32_t width, uint32_t height);
+    RENDERER_API void RecreateSwapchain(uint32_t width, uint32_t height);
 
-    bool BeginFrame();
-    void EndFrame();
+    RENDERER_API bool BeginFrame();
+    RENDERER_API void EndFrame();
 
     VkRenderPass GetOffscreenRenderPass() const { return m_OffscreenRenderPass; }
     VkRenderPass GetSwapchainRenderPass() const { return m_SwapchainRenderPass; }
@@ -57,7 +58,7 @@ public:
         float padding;
     };
 
-    void UpdateCameraBuffer(const CameraUniform& ubo);
+    RENDERER_API void UpdateCameraBuffer(const CameraUniform& ubo);
     
     uint32_t GetCurrentFrameIndex() const { return m_CurrentFrame; }
     uint32_t GetCurrentImageIndex() const { return m_CurrentImageIndex; }
