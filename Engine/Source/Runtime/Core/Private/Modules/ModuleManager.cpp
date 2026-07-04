@@ -1,7 +1,8 @@
 #include "Modules/ModuleManager.hpp"
 #include "Core/BuildPaths.hpp"
+#include "Core/DiagnosticMacros.hpp"
+#include "Core/LogCategory.hpp"
 #include <filesystem>
-#include <iostream>
 
 // Dynamic editor module loader (exported via CORE_API).
 
@@ -83,7 +84,7 @@ IModuleInterface* ModuleManager::LoadModule(const std::string& ModuleName)
 
     if (!Handle)
     {
-        std::cerr << "Failed to load module: " << ModuleName << std::endl;
+        WE_LOG_ERROR(we::LogCategory::Build.data(), "Failed to load module: " + ModuleName);
         return nullptr;
     }
 
@@ -95,7 +96,7 @@ IModuleInterface* ModuleManager::LoadModule(const std::string& ModuleName)
 
     if (!InitFunc)
     {
-        std::cerr << "Failed to find InitializeModule in: " << LoadedLibraryName << std::endl;
+        WE_LOG_ERROR(we::LogCategory::Build.data(), "Failed to find InitializeModule in: " + LoadedLibraryName);
 #ifdef _WIN32
         FreeLibrary((HMODULE)Handle);
 #else

@@ -135,35 +135,42 @@ std::string ContentAssetRegistry::MakeId(const std::string& virtualPath) const {
 }
 
 void ContentAssetRegistry::Refresh() {
-    m_Assets.clear();
-    m_IdIndex.clear();
-    m_PathIndex.clear();
-    m_FolderVersions.clear();
+    std::function<void()> refreshedCallback;
+    {
+        std::lock_guard<std::mutex> lock(m_Mutex);
+        m_Assets.clear();
+        m_IdIndex.clear();
+        m_PathIndex.clear();
+        m_FolderVersions.clear();
 
-    const fs::path gameRoot = fs::path(m_ContentRoot) / "Game";
-    if (!fs::exists(gameRoot)) {
-        NotifyRegistryRefreshed();
-        return;
-    }
+        const fs::path gameRoot = fs::path(m_ContentRoot) / "Game";
+        if (!fs::exists(gameRoot)) {
+            refreshedCallback = m_OnRegistryRefreshed;
+        } else {
+            ScanDirectory(gameRoot.string(), "/Game");
 
-    ScanDirectory(gameRoot.string(), "/Game");
-
-    for (auto& asset : m_Assets) {
-        if (asset.isFolder) {
-            uint32_t version = 0;
-            for (const auto& child : m_Assets) {
-                if (child.parentPath == asset.virtualPath) {
-                    version += child.contentVersion + 1;
+            for (auto& asset : m_Assets) {
+                if (asset.isFolder) {
+                    uint32_t version = 0;
+                    for (const auto& child : m_Assets) {
+                        if (child.parentPath == asset.virtualPath) {
+                            version += child.contentVersion + 1;
+                        }
+                    }
+                    m_FolderVersions[asset.virtualPath] = version;
+                    asset.contentVersion = version;
+                } else {
+                    asset.contentVersion = static_cast<uint32_t>(asset.modifiedTime & 0xFFFFFFFFu);
                 }
             }
-            m_FolderVersions[asset.virtualPath] = version;
-            asset.contentVersion = version;
-        } else {
-            asset.contentVersion = static_cast<uint32_t>(asset.modifiedTime & 0xFFFFFFFFu);
+
+            refreshedCallback = m_OnRegistryRefreshed;
         }
     }
 
-    NotifyRegistryRefreshed();
+    if (refreshedCallback) {
+        refreshedCallback();
+    }
 }
 
 void ContentAssetRegistry::ScanDirectory(const std::string& diskPath, const std::string& virtualPath) {
@@ -221,7 +228,12 @@ void ContentAssetRegistry::ScanDirectory(const std::string& diskPath, const std:
 }
 
 void ContentAssetRegistry::Tick(float deltaTime) {
-    if (!m_Initialized) return;
+    bool initialized = false;
+    {
+        std::lock_guard<std::mutex> lock(m_Mutex);
+        initialized = m_Initialized;
+    }
+    if (!initialized) return;
     m_WatchTimer += deltaTime;
     if (m_WatchTimer < m_WatchInterval) return;
     m_WatchTimer = 0.0f;
@@ -309,7 +321,14 @@ uint32_t ContentAssetRegistry::GetFolderContentVersion(const std::string& folder
 }
 
 void ContentAssetRegistry::NotifyRegistryRefreshed() {
-    if (m_OnRegistryRefreshed) m_OnRegistryRefreshed();
+    std::function<void()> refreshedCallback;
+    {
+        std::lock_guard<std::mutex> lock(m_Mutex);
+        refreshedCallback = m_OnRegistryRefreshed;
+    }
+    if (refreshedCallback) {
+        refreshedCallback();
+    }
 }
 
 } // namespace we::editor::contentbrowser

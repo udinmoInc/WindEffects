@@ -48,7 +48,7 @@ void EnvironmentSystem::BindScene(const std::shared_ptr<Scene>& scene) {
 void EnvironmentSystem::BindRenderer(const std::shared_ptr<we::runtime::renderer::SceneRenderer>& renderer) {
 #if WE_HAS_VULKAN
     m_Renderer = renderer;
-    UpdateRendering();
+    // Environment uniforms are pushed from SyncFromScene / CreateEnvironment once actors exist.
 #else
     (void)renderer;
 #endif
@@ -540,10 +540,13 @@ void EnvironmentSystem::ApplyPreset(EnvironmentPreset preset) {
 }
 
 void EnvironmentSystem::SyncFromScene(const glm::vec3& cameraPosition) {
-    DiscoverExistingActors();
     Scene* scene = GetScene();
     if (!scene) {
         return;
+    }
+
+    if (m_Sun.EntityId == 0 || scene->FindEntityById(m_Sun.EntityId) == nullptr) {
+        DiscoverExistingActors();
     }
 
     if (Entity* sun = scene->FindEntityById(m_Sun.EntityId)) {

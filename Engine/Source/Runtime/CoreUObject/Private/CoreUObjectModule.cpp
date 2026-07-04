@@ -1,18 +1,18 @@
 
 #include "Modules/IModuleInterface.hpp"
-#include <iostream>
+#include "Core/Logger.hpp"
 
 class CoreUObjectModule : public IModuleInterface
 {
 public:
     virtual void StartupModule() override
     {
-        std::cout << "CoreUObjectModule started\n";
+        WE_LOG_TRACE("Plugin", "CoreUObjectModule started");
     }
 
     virtual void ShutdownModule() override
     {
-        std::cout << "CoreUObjectModule shutdown\n";
+        WE_LOG_TRACE("Plugin", "CoreUObjectModule shutdown");
     }
 };
 

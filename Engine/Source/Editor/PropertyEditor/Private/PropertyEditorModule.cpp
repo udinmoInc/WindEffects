@@ -1,18 +1,18 @@
 
 #include "Modules/IModuleInterface.hpp"
-#include <iostream>
+#include "Core/Logger.hpp"
 
 class PropertyEditorModule : public IModuleInterface
 {
 public:
     virtual void StartupModule() override
     {
-        std::cout << "PropertyEditorModule started\n";
+        WE_LOG_TRACE("Plugin", "PropertyEditorModule started");
     }
 
     virtual void ShutdownModule() override
     {
-        std::cout << "PropertyEditorModule shutdown\n";
+        WE_LOG_TRACE("Plugin", "PropertyEditorModule shutdown");
     }
 };
 
