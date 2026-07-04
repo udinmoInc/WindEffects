@@ -465,15 +465,6 @@ void Editor::BuildDynamicEditorUI() {
     }
 
     if (m_UIRenderer && m_UIRenderer->GetIconRenderer()) {
-        float displayScale = 1.0f;
-        if (m_Window) {
-            int logicalW = 0;
-            int pixelW = 0;
-            SDL_GetWindowSize(m_Window, &logicalW, nullptr);
-            if (SDL_GetWindowSizeInPixels(m_Window, &pixelW, nullptr) && logicalW > 0) {
-                displayScale = static_cast<float>(pixelW) / static_cast<float>(logicalW);
-            }
-        }
         const float logoLogical = we::programs::editor::GetExplorerDockTabLogoSize();
         const int logoPx = static_cast<int>(std::round(logoLogical * displayScale));
         VkDescriptorSet explorerLogo = m_UIRenderer->GetIconRenderer()->GetIcon("Assets/Editor/windeffects.svg", logoPx);
