@@ -13,6 +13,7 @@ public class ContentBrowser : ModuleRules
         PublicDependencies.Add("CoreUObject");
         PublicDependencies.Add("Engine");
         PublicDependencies.Add("Application");
+        PublicDependencies.Add("Renderer");
 
         OptionalSDK("SDL3");
         DefineIf(HasSDK("SDL3"), "WE_HAS_SDL3=1");

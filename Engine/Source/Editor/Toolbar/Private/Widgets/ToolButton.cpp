@@ -300,7 +300,7 @@ void ToolButton::Paint(PaintContext& context) {
         Color iconColor = ResolveInteractiveIconColor(m_HoverAnim, pressStrength, m_Active);
 
         const float iconSize = 16.0f;
-        float currentX;
+        float currentX = renderRect.x + 12.0f;
 
         const bool hasIcon = !m_IconName.empty() && Icons::IsKnownIcon(m_IconName);
         if (hasIcon) {

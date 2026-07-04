@@ -13,6 +13,10 @@ public class Environment : ModuleRules
         PublicDependencies.Add("CoreUObject");
         PublicDependencies.Add("Engine");
         PublicDependencies.Add("Application");
+        PublicDependencies.Add("World");
+        PublicDependencies.Add("PropertyEditor");
+        PublicDependencies.Add("ContentBrowser");
+        PublicDependencies.Add("Menus");
 
         Definitions.Add("ENVIRONMENT_EXPORTS");
     }

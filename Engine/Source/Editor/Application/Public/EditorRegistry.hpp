@@ -10,7 +10,7 @@
 // Forward declarations for HouseUI elements
 namespace we::UI {
     class Panel;
-    class MenuItem;
+    struct MenuItem;
     class Toolbar;
 }
 

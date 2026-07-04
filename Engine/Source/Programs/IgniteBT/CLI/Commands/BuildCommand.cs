@@ -498,6 +498,14 @@ public static class BuildCommand
                 linkOptions.LibraryDirectories.Add(Path.Combine(libPath, "um"));
                 linkOptions.LibraryDirectories.Add(Path.Combine(libPath, "ucrt"));
             }
+
+            foreach (var winLib in new[] { "kernel32.lib", "user32.lib", "gdi32.lib", "ole32.lib", "shell32.lib" })
+            {
+                if (!linkOptions.Libraries.Contains(winLib))
+                {
+                    linkOptions.Libraries.Add(winLib);
+                }
+            }
         }
         
         // Add dbghelp.lib for crash reporting

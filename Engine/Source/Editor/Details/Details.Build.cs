@@ -13,6 +13,8 @@ public class Details : ModuleRules
         PublicDependencies.Add("CoreUObject");
         PublicDependencies.Add("Engine");
         PublicDependencies.Add("Application");
+        PublicDependencies.Add("PropertyEditor");
+        PublicDependencies.Add("ContentBrowser");
 
         Definitions.Add("DETAILS_EXPORTS");
     }
