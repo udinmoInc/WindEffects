@@ -250,8 +250,10 @@ void SceneRenderer::CreatePipelines(VkRenderPass renderPass) {
     {
         std::vector<char> vertCode = LoadShaderBytecode("SceneObject", ShaderStage::Vertex);
         std::vector<char> fragCode = LoadShaderBytecode("SceneObject", ShaderStage::Pixel);
+        HE_INFO("SceneRenderer: Creating SceneObject shader modules...");
         VkShaderModule vertModule = CreateShaderModule(device, vertCode);
         VkShaderModule fragModule = CreateShaderModule(device, fragCode);
+        HE_INFO("SceneRenderer: Creating lit mesh pipeline...");
 
         VkPipelineShaderStageCreateInfo vertStage{};
         vertStage.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
