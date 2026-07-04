@@ -258,17 +258,17 @@ void TreeView::Paint(PaintContext& context) {
                 bool foundMatch = false;
                 
                 // Simple case-insensitive search for highlighting
-                for (size_t i = 0; i <= label.size() - query.size() && !foundMatch; ++i) {
+                for (size_t searchIdx = 0; searchIdx <= label.size() - query.size() && !foundMatch; ++searchIdx) {
                     bool matches = true;
                     for (size_t j = 0; j < query.size(); ++j) {
-                        if (std::tolower(label[i + j]) != std::tolower(query[j])) {
+                        if (std::tolower(label[searchIdx + j]) != std::tolower(query[j])) {
                             matches = false;
                             break;
                         }
                     }
                     if (matches) {
-                        matchStart = i;
-                        matchEnd = i + query.size();
+                        matchStart = searchIdx;
+                        matchEnd = searchIdx + query.size();
                         foundMatch = true;
                     }
                 }

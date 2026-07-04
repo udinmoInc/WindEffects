@@ -12,6 +12,8 @@ public class Environment : ModuleRules
         PublicDependencies.Add("Core");
         PublicDependencies.Add("CoreUObject");
         PublicDependencies.Add("Engine");
+        PublicDependencies.Add("Scene");
+        PublicDependencies.Add("Renderer");
         PublicDependencies.Add("Application");
         PublicDependencies.Add("World");
         PublicDependencies.Add("PropertyEditor");
