@@ -1,6 +1,7 @@
 #include "Environment/EnvironmentSystem.h"
 
 #include "Environment/EnvironmentLighting.h"
+#include "Environment/EnvironmentManager.h"
 #include "Renderer/SceneRenderer.hpp"
 #include "Core/Logger.hpp"
 
@@ -219,6 +220,7 @@ void EnvironmentSystem::DiscoverExistingActors() {
     }
 
     m_FolderEntityId = 0;
+    m_EnvironmentManagerEntityId = 0;
     m_Sun.EntityId = 0;
     m_SkyLight.EntityId = 0;
     m_SkyAtmosphere.EntityId = 0;
@@ -228,6 +230,10 @@ void EnvironmentSystem::DiscoverExistingActors() {
     for (const Entity& entity : scene->GetEntities()) {
         if (entity.Name == kEnvironmentFolderName && entity.Type == EntityType::EmptyActor) {
             m_FolderEntityId = entity.Id;
+            continue;
+        }
+        if (entity.Name == kEnvironmentManagerActorName && entity.Type == EntityType::EmptyActor) {
+            m_EnvironmentManagerEntityId = entity.Id;
             continue;
         }
 
@@ -283,6 +289,7 @@ void EnvironmentSystem::ReparentEnvironmentActors() {
         }
     };
 
+    reparent(m_EnvironmentManagerEntityId);
     reparent(m_Sun.EntityId);
     reparent(m_SkyLight.EntityId);
     reparent(m_SkyAtmosphere.EntityId);
@@ -324,6 +331,13 @@ void EnvironmentSystem::CreateEnvironment() {
     ApplySettingsToComponents(settings);
 
     const std::uint64_t folderId = EnsureFolder();
+
+    if (m_EnvironmentManagerEntityId == 0) {
+        m_EnvironmentManagerEntityId = SpawnActor(kEnvironmentManagerActorName, EntityType::EmptyActor, folderId, [&](Entity& entity) {
+            entity.Position = glm::vec3(0.0f);
+            entity.Scale = glm::vec3(0.35f);
+        });
+    }
 
     if (settings.createDirectionalLight && m_Sun.EntityId == 0) {
         m_Sun.EntityId = SpawnActor(kSunActorName, EntityType::DirectionalLight, folderId, [&](Entity& entity) {
@@ -391,6 +405,7 @@ void EnvironmentSystem::RemoveEnvironment() {
     }
 
     m_FolderEntityId = 0;
+    m_EnvironmentManagerEntityId = 0;
     m_Sun.EntityId = 0;
     m_SkyLight.EntityId = 0;
     m_SkyAtmosphere.EntityId = 0;
@@ -500,7 +515,7 @@ void EnvironmentSystem::ApplyPreset(EnvironmentPreset preset) {
     NotifyChanged();
 }
 
-void EnvironmentSystem::SyncFromScene() {
+void EnvironmentSystem::SyncFromScene(const glm::vec3& cameraPosition) {
     DiscoverExistingActors();
     Scene* scene = GetScene();
     if (!scene) {
@@ -517,7 +532,8 @@ void EnvironmentSystem::SyncFromScene() {
         m_HeightFog.SyncFromEntity(fog->Color, fog->Scale);
     }
 
-    UpdateRendering();
+    UpdateRendering(cameraPosition);
+    ApplyComponentsToActors();
 }
 
 void EnvironmentSystem::SyncToScene() {
@@ -525,17 +541,21 @@ void EnvironmentSystem::SyncToScene() {
     NotifyChanged();
 }
 
-void EnvironmentSystem::UpdateRendering() {
+void EnvironmentSystem::UpdateRendering(const glm::vec3& cameraPosition) {
 #if WE_HAS_VULKAN
+    m_Manager.UpdateDerivedState(m_Sun, m_SkyLight, m_HeightFog, m_SkyAtmosphere, cameraPosition);
+
     if (auto renderer = m_Renderer.lock()) {
+        const glm::vec3 worldOrigin = m_Manager.GetWorldOrigin(cameraPosition);
         renderer->SetSceneEnvironment(BuildSceneEnvironmentUniform(
-            m_Sun, m_SkyLight, m_SkyAtmosphere, m_HeightFog, m_VolumetricClouds));
+            m_Sun, m_SkyLight, m_SkyAtmosphere, m_HeightFog, m_VolumetricClouds, worldOrigin));
     }
 #endif
 }
 
 EnvironmentActorKind EnvironmentSystem::GetActorKind(std::uint64_t entityId) const {
     if (entityId == m_FolderEntityId) return EnvironmentActorKind::Folder;
+    if (entityId == m_EnvironmentManagerEntityId) return EnvironmentActorKind::EnvironmentManager;
     if (entityId == m_Sun.EntityId) return EnvironmentActorKind::DirectionalLight;
     if (entityId == m_SkyLight.EntityId) return EnvironmentActorKind::SkyLight;
     if (entityId == m_SkyAtmosphere.EntityId) return EnvironmentActorKind::SkyAtmosphere;

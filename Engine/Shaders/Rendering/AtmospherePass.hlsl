@@ -38,9 +38,6 @@ cbuffer CameraBuffer : register(b0, space1)
     float    cameraPadding;
 };
 
-Texture2D    depthTexture : register(t0, space2);
-SamplerState depthSampler : register(s0, space2);
-
 struct VSOutput
 {
     float4 position : SV_Position;
@@ -61,12 +58,6 @@ VSOutput VSMain(uint vertexId : SV_VertexID)
 float4 PSMain(VSOutput input) : SV_Target
 {
     const float2 screenUV = input.uv;
-    const float depth = depthTexture.Sample(depthSampler, screenUV).r;
-
-    // Reverse-Z: cleared depth is 0.0 (far plane). Skip pixels covered by scene geometry.
-    if (depth > 1e-5)
-        discard;
-
     const float3 viewDir = WE_UnprojectDirection(screenUV, view, proj);
 
     const float3 sunLinear = WE_sRGBToLinear(saturate(sunColor));

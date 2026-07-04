@@ -101,6 +101,44 @@ SceneRenderer::SceneRenderer(const std::shared_ptr<VulkanContext>& context, VkRe
         m_EnvironmentBufferMemory
     );
 
+    // Atmosphere pass descriptor: environment UBO (shared buffer, separate layout for modular binding)
+    VkDescriptorSetLayoutBinding atmosphereEnvBinding{};
+    atmosphereEnvBinding.binding = 0;
+    atmosphereEnvBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    atmosphereEnvBinding.descriptorCount = 1;
+    atmosphereEnvBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+
+    VkDescriptorSetLayoutCreateInfo atmosphereEnvLayoutInfo{};
+    atmosphereEnvLayoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+    atmosphereEnvLayoutInfo.bindingCount = 1;
+    atmosphereEnvLayoutInfo.pBindings = &atmosphereEnvBinding;
+    if (vkCreateDescriptorSetLayout(m_Context->GetDevice(), &atmosphereEnvLayoutInfo, nullptr, &m_AtmosphereEnvDescLayout) != VK_SUCCESS) {
+        throw std::runtime_error("Failed to create atmosphere environment descriptor set layout!");
+    }
+
+    VkDescriptorSetAllocateInfo atmosphereAllocInfo{};
+    atmosphereAllocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+    atmosphereAllocInfo.descriptorPool = m_Context->GetDescriptorPool();
+    atmosphereAllocInfo.descriptorSetCount = 1;
+    atmosphereAllocInfo.pSetLayouts = &m_AtmosphereEnvDescLayout;
+    if (vkAllocateDescriptorSets(m_Context->GetDevice(), &atmosphereAllocInfo, &m_AtmosphereEnvDescSet) != VK_SUCCESS) {
+        throw std::runtime_error("Failed to allocate atmosphere environment descriptor set!");
+    }
+
+    VkDescriptorBufferInfo atmosphereEnvBufferInfo{};
+    atmosphereEnvBufferInfo.buffer = m_EnvironmentBuffer;
+    atmosphereEnvBufferInfo.offset = 0;
+    atmosphereEnvBufferInfo.range = sizeof(SceneEnvironmentUniform);
+
+    VkWriteDescriptorSet atmosphereEnvWrite{};
+    atmosphereEnvWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    atmosphereEnvWrite.dstSet = m_AtmosphereEnvDescSet;
+    atmosphereEnvWrite.dstBinding = 0;
+    atmosphereEnvWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    atmosphereEnvWrite.descriptorCount = 1;
+    atmosphereEnvWrite.pBufferInfo = &atmosphereEnvBufferInfo;
+    vkUpdateDescriptorSets(m_Context->GetDevice(), 1, &atmosphereEnvWrite, 0, nullptr);
+
     // 3. Create Pipelines
     CreatePipelines(renderPass);
 
@@ -112,6 +150,10 @@ SceneRenderer::~SceneRenderer() {
     VkDevice device = m_Context->GetDevice();
 
     DestroyMeshes();
+
+    if (m_AtmospherePipeline != VK_NULL_HANDLE) vkDestroyPipeline(device, m_AtmospherePipeline, nullptr);
+    if (m_AtmospherePipelineLayout != VK_NULL_HANDLE) vkDestroyPipelineLayout(device, m_AtmospherePipelineLayout, nullptr);
+    if (m_AtmosphereEnvDescLayout != VK_NULL_HANDLE) vkDestroyDescriptorSetLayout(device, m_AtmosphereEnvDescLayout, nullptr);
 
     if (m_SkyboxPipeline != VK_NULL_HANDLE) vkDestroyPipeline(device, m_SkyboxPipeline, nullptr);
     if (m_LitPipeline != VK_NULL_HANDLE) vkDestroyPipeline(device, m_LitPipeline, nullptr);
@@ -341,6 +383,85 @@ void SceneRenderer::CreatePipelines(VkRenderPass renderPass) {
         vkDestroyShaderModule(device, vertModule, nullptr);
         vkDestroyShaderModule(device, fragModule, nullptr);
     }
+
+    // -------------------------------------------------------------------------
+    // 3. Procedural Atmosphere Pass (fullscreen, depth-tested sky)
+    // -------------------------------------------------------------------------
+    {
+        std::array<VkDescriptorSetLayout, 2> atmosphereSetLayouts = { m_AtmosphereEnvDescLayout, m_CameraDescLayout };
+        VkPipelineLayoutCreateInfo atmosphereLayoutInfo{};
+        atmosphereLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+        atmosphereLayoutInfo.setLayoutCount = static_cast<uint32_t>(atmosphereSetLayouts.size());
+        atmosphereLayoutInfo.pSetLayouts = atmosphereSetLayouts.data();
+        if (vkCreatePipelineLayout(device, &atmosphereLayoutInfo, nullptr, &m_AtmospherePipelineLayout) != VK_SUCCESS) {
+            throw std::runtime_error("Failed to create atmosphere pipeline layout!");
+        }
+
+        std::vector<char> vertCode = LoadShaderBytecode("AtmospherePass", ShaderStage::Vertex);
+        std::vector<char> fragCode = LoadShaderBytecode("AtmospherePass", ShaderStage::Pixel);
+        if (vertCode.empty() || fragCode.empty()) {
+            HE_WARN("SceneRenderer: AtmospherePass shader bytecode missing — sky pass disabled.");
+        } else {
+            VkShaderModule vertModule = CreateShaderModule(device, vertCode);
+            VkShaderModule fragModule = CreateShaderModule(device, fragCode);
+
+            VkPipelineShaderStageCreateInfo vertStage{};
+            vertStage.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+            vertStage.stage = VK_SHADER_STAGE_VERTEX_BIT;
+            vertStage.module = vertModule;
+            vertStage.pName = ShaderStageEntryPoint(ShaderStage::Vertex);
+
+            VkPipelineShaderStageCreateInfo fragStage{};
+            fragStage.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+            fragStage.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
+            fragStage.module = fragModule;
+            fragStage.pName = ShaderStageEntryPoint(ShaderStage::Pixel);
+
+            std::array<VkPipelineShaderStageCreateInfo, 2> stages = { vertStage, fragStage };
+
+            VkPipelineVertexInputStateCreateInfo vertexInput{};
+            vertexInput.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
+
+            VkPipelineInputAssemblyStateCreateInfo inputAssembly{};
+            inputAssembly.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
+            inputAssembly.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+
+            VkPipelineRasterizationStateCreateInfo rasterizer{};
+            rasterizer.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
+            rasterizer.polygonMode = VK_POLYGON_MODE_FILL;
+            rasterizer.lineWidth = 1.0f;
+            rasterizer.cullMode = VK_CULL_MODE_NONE;
+
+            VkPipelineDepthStencilStateCreateInfo depthStencil{};
+            depthStencil.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
+            depthStencil.depthTestEnable = VK_TRUE;
+            depthStencil.depthWriteEnable = VK_FALSE;
+            depthStencil.depthCompareOp = VK_COMPARE_OP_EQUAL;
+
+            VkGraphicsPipelineCreateInfo pipelineInfo{};
+            pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
+            pipelineInfo.stageCount = 2;
+            pipelineInfo.pStages = stages.data();
+            pipelineInfo.pVertexInputState = &vertexInput;
+            pipelineInfo.pInputAssemblyState = &inputAssembly;
+            pipelineInfo.pViewportState = &viewportState;
+            pipelineInfo.pRasterizationState = &rasterizer;
+            pipelineInfo.pMultisampleState = &multisampling;
+            pipelineInfo.pDepthStencilState = &depthStencil;
+            pipelineInfo.pColorBlendState = &colorBlending;
+            pipelineInfo.pDynamicState = &dynamicState;
+            pipelineInfo.layout = m_AtmospherePipelineLayout;
+            pipelineInfo.renderPass = renderPass;
+            pipelineInfo.subpass = 0;
+
+            if (vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &m_AtmospherePipeline) != VK_SUCCESS) {
+                HE_WARN("SceneRenderer: Failed to create atmosphere pipeline.");
+            }
+
+            vkDestroyShaderModule(device, vertModule, nullptr);
+            vkDestroyShaderModule(device, fragModule, nullptr);
+        }
+    }
 }
 
 void SceneRenderer::CreateMeshes() {
@@ -472,6 +593,19 @@ void SceneRenderer::DrawEditorBackground(VkCommandBuffer cmd, VkDescriptorSet ca
     vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_SkyboxPipeline);
     VkDescriptorSet descriptorSets[] = { m_SkyDescSet, cameraDescSet };
     vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_SkyPipelineLayout, 0, 2, descriptorSets, 0, nullptr);
+    vkCmdDraw(cmd, 6, 1, 0, 0);
+}
+
+void SceneRenderer::DrawAtmospherePass(VkCommandBuffer cmd, VkDescriptorSet cameraDescSet) const {
+    if (!m_EnableAtmospherePass || m_AtmospherePipeline == VK_NULL_HANDLE) {
+        return;
+    }
+
+    RefreshEnvironmentDescriptorBindings();
+
+    vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_AtmospherePipeline);
+    VkDescriptorSet descriptorSets[] = { m_AtmosphereEnvDescSet, cameraDescSet };
+    vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_AtmospherePipelineLayout, 0, 2, descriptorSets, 0, nullptr);
     vkCmdDraw(cmd, 6, 1, 0, 0);
 }
 

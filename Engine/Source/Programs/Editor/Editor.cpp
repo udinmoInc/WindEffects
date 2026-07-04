@@ -99,7 +99,8 @@ Editor::Editor(SDL_Window* window) : m_Window(window) {
     m_Renderer = std::make_shared<Renderer>(m_Context, m_Window);
     m_RenderGraph = std::make_shared<RenderGraph>(m_Renderer);
     m_SceneRenderer = std::make_shared<SceneRenderer>(m_Context, m_Renderer->GetOffscreenRenderPass(), m_Renderer->GetCameraDescLayout());
-    m_SceneRenderer->SetEditorBackgroundEnabled(true);
+    m_SceneRenderer->SetEditorBackgroundEnabled(false);
+    m_SceneRenderer->SetAtmospherePassEnabled(true);
     EditorPreferences::Get().ApplyEditorViewportIfDirty(m_SceneRenderer);
 
     we::editor::grid::EditorGridRenderer::Get().Initialize(
@@ -905,7 +906,7 @@ void Editor::MainLoop() {
 
         m_Camera->Update(dt);
         m_Scene->Update();
-        we::runtime::world::environment::EnvironmentSystem::Get().SyncFromScene();
+        we::runtime::world::environment::EnvironmentSystem::Get().SyncFromScene(m_Camera->GetPosition());
         we::editor::environment::TickEditor();
 
         // Flush viewport resize before GPU work
@@ -937,10 +938,8 @@ void Editor::MainLoop() {
             }
 
             m_RenderGraph->BeginOffscreenPass(cmd);
-            m_SceneRenderer->SetEditorBackgroundEnabled(true);
-            EditorPreferences::Get().ApplyEditorViewportIfDirty(m_SceneRenderer);
-            m_SceneRenderer->DrawEditorBackground(cmd, m_Renderer->GetCameraDescSet());
             m_Scene->Draw(cmd);
+            m_SceneRenderer->DrawAtmospherePass(cmd, m_Renderer->GetCameraDescSet());
             we::editor::grid::EditorGridRenderer::Get().Render(cmd, m_Renderer->GetCameraDescSet(), *m_Camera);
             we::programs::editor::UpdateViewportCameraSpeedIndicator();
             m_RenderGraph->EndOffscreenPass(cmd);
