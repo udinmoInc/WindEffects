@@ -1,18 +1,18 @@
 
 #include "Modules/IModuleInterface.hpp"
-#include <iostream>
+#include "Core/Logger.hpp"
 
 class MenusModule : public IModuleInterface
 {
 public:
     virtual void StartupModule() override
     {
-        std::cout << "MenusModule started\n";
+        WE_LOG_TRACE("Plugin", "MenusModule started");
     }
 
     virtual void ShutdownModule() override
     {
-        std::cout << "MenusModule shutdown\n";
+        WE_LOG_TRACE("Plugin", "MenusModule shutdown");
     }
 };
 

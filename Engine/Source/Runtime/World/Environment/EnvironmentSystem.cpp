@@ -540,10 +540,13 @@ void EnvironmentSystem::ApplyPreset(EnvironmentPreset preset) {
 }
 
 void EnvironmentSystem::SyncFromScene(const glm::vec3& cameraPosition) {
-    DiscoverExistingActors();
     Scene* scene = GetScene();
     if (!scene) {
         return;
+    }
+
+    if (m_Sun.EntityId == 0 || scene->FindEntityById(m_Sun.EntityId) == nullptr) {
+        DiscoverExistingActors();
     }
 
     if (Entity* sun = scene->FindEntityById(m_Sun.EntityId)) {

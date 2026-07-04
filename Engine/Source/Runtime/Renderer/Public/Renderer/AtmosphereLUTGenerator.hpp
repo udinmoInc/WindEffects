@@ -2,13 +2,12 @@
 
 #if WE_HAS_VULKAN
 #include "Renderer/VulkanContext.hpp"
+#include "Renderer/SceneEnvironmentUniform.hpp"
 #include <volk.h>
 #include <memory>
 #include <vector>
 
 namespace we::runtime::renderer {
-
-struct SceneEnvironmentUniform;
 
 struct AtmosphereLUTImages {
     VkImage transmittance = VK_NULL_HANDLE;
@@ -61,6 +60,8 @@ private:
     VkDescriptorSet m_SampleDescSet = VK_NULL_HANDLE;
 
     bool m_Dirty = true;
+    SceneEnvironmentUniform m_LastGeneratedEnvironment{};
+    bool m_HasGenerated = false;
 };
 
 } // namespace we::runtime::renderer

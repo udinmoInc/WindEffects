@@ -1,17 +1,17 @@
 #include "Modules/IModuleInterface.hpp"
-#include <iostream>
+#include "Core/Logger.hpp"
 
 class PlaceActorsModule : public IModuleInterface
 {
 public:
     void StartupModule() override
     {
-        std::cout << "PlaceActorsModule started\n";
+        WE_LOG_TRACE("Plugin", "PlaceActorsModule started");
     }
 
     void ShutdownModule() override
     {
-        std::cout << "PlaceActorsModule shutdown\n";
+        WE_LOG_TRACE("Plugin", "PlaceActorsModule shutdown");
     }
 };
 

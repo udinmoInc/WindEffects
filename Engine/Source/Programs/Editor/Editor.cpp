@@ -118,6 +118,7 @@ Editor::Editor(SDL_Window* window) : m_Window(window) {
     we::runtime::world::environment::EnvironmentSystem::Get().BindRenderer(m_SceneRenderer);
     PlaceActorsPlacement::Get().BindScene(m_Scene, m_Camera);
     DefaultSceneBuilder::CreateDefaultScene(*m_Scene);
+    we::runtime::world::environment::EnvironmentSystem::Get().SyncFromScene(m_Camera->GetPosition());
 
     {
         auto& startup = we::runtime::core::StartupValidator::Get();
@@ -983,9 +984,14 @@ void Editor::MainLoop() {
             const auto passStart = std::chrono::steady_clock::now();
             m_RenderGraph->BeginOffscreenPass(cmd);
             const VkDescriptorSet cameraDescSet = m_Renderer->GetCameraDescSet();
+<<<<<<< HEAD
             m_SceneRenderer->DrawSkyAtmospherePass(cmd, cameraDescSet);
             m_SceneRenderer->DrawVolumetricCloudsPass(cmd, cameraDescSet);
             m_Scene->Draw(cmd);
+=======
+            m_SceneRenderer->PrepareAtmosphereLUTs(cmd);
+
+>>>>>>> de523ba (Refactor logging in application modules and enhance OutputLogWidget functionality)
             {
                 auto& offscreenFB = m_Renderer->GetOffscreenFramebuffer();
                 m_SceneRenderer->DrawFogCompositePass(

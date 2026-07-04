@@ -2,6 +2,7 @@
 #include "Renderer/RenderDiagnostics.hpp"
 #include "Renderer/FrameStats.hpp"
 #include "Renderer/RendererConfig.hpp"
+#include "Renderer/AtmosphereLUTInputs.hpp"
 #include "Core/DiagnosticMacros.hpp"
 #include "Core/LogCategory.hpp"
 #include "Renderer/ShaderHelper.hpp"
@@ -614,7 +615,7 @@ void SceneRenderer::DrawSkyAtmospherePass(VkCommandBuffer cmd, VkDescriptorSet c
         }
         return;
     }
-    const_cast<SceneRenderer*>(this)->PrepareAtmosphereLUTs(cmd);
+    const_cast<SceneRenderer*>(this)->RefreshEnvironmentDescriptorBindings();
     RenderDiagnostics::Get().ValidateDescriptorSet("SkyAtmosphere", 0, m_EnvironmentDescSet);
     RenderDiagnostics::Get().ValidateDescriptorSet("SkyAtmosphere", 1, cameraDescSet);
     RenderDiagnostics::Get().ValidateDescriptorSet("SkyAtmosphere", 2, m_LUTGenerator->GetSampleSet());
@@ -641,7 +642,6 @@ void SceneRenderer::DrawFogCompositePass(
     VkSampler sampler) const {
 
     if (m_FogCompositePipeline == VK_NULL_HANDLE || m_SceneEnvironment.enableVolumetricFog < 0.5f || !m_LUTGenerator) return;
-    const_cast<SceneRenderer*>(this)->PrepareAtmosphereLUTs(cmd);
     RefreshEnvironmentDescriptorBindings();
 
     if (depthImageView != m_BoundFogDepthView) {
@@ -787,12 +787,9 @@ void SceneRenderer::UpdateObjectDescriptorSet(VkDescriptorSet descriptorSet, VkB
 
 void SceneRenderer::SetSceneEnvironment(const SceneEnvironmentUniform& environment) {
     if (std::memcmp(&m_SceneEnvironment, &environment, sizeof(SceneEnvironmentUniform)) != 0) {
-        if (m_LUTGenerator) {
-            m_LUTGenerator->Invalidate();
-        }
+        m_SceneEnvironment = environment;
+        m_SceneEnvironmentDirty = true;
     }
-    m_SceneEnvironment = environment;
-    m_SceneEnvironmentDirty = true;
 }
 
 void SceneRenderer::RefreshEnvironmentDescriptorBindings() const {

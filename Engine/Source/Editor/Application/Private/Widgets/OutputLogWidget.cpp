@@ -1,6 +1,7 @@
 #include "Widgets/OutputLogWidget.hpp"
 #include "Core/PaintContext.hpp"
 #include "Core/Theme.hpp"
+#include <algorithm>
 
 namespace we::UI {
 
@@ -51,6 +52,16 @@ void OutputLogWidget::Clear() {
 void OutputLogWidget::SetSearchQuery(const std::string& query) {
     m_SearchQuery = query;
     RebuildVisibleLines();
+}
+
+void OutputLogWidget::OnMouseWheel(const MouseEvent& event) {
+    std::lock_guard<std::recursive_mutex> lock(m_Mutex);
+    constexpr float kLineHeight = 14.0f;
+    m_ScrollOffset -= event.wheelDeltaY * kLineHeight * 3.0f;
+    const float contentHeight = static_cast<float>(m_VisibleLines.size()) * kLineHeight;
+    const float maxScroll = std::max(0.0f, contentHeight - m_Geometry.height);
+    m_ScrollOffset = std::clamp(m_ScrollOffset, 0.0f, maxScroll);
+    m_AutoScroll = false;
 }
 
 Color OutputLogWidget::LevelColor(we::Logger::Level level) const {

@@ -1,5 +1,6 @@
 #include "EditorRegistry.hpp"
-#include <iostream>
+#include "Core/DiagnosticMacros.hpp"
+#include "Core/LogCategory.hpp"
 
 namespace we::programs::editor {
 
@@ -12,7 +13,7 @@ void EditorRegistry::RegisterPanel(std::string_view name, PanelFactoryFunc facto
     std::string strName{name};
     if (m_Panels.find(strName) == m_Panels.end()) {
         m_Panels.emplace(std::move(strName), std::move(factory));
-        std::cout << "[EditorRegistry] Registered Panel: " << name << std::endl;
+        WE_LOG_TRACE(we::LogCategory::Editor.data(), std::string("[EditorRegistry] Registered Panel: ") + std::string(name));
     }
 }
 
@@ -24,7 +25,7 @@ void EditorRegistry::RegisterMenu(std::string_view menuName, MenuFactoryFunc fac
     std::string strName{menuName};
     if (m_Menus.find(strName) == m_Menus.end()) {
         m_Menus.emplace(std::move(strName), std::move(factory));
-        std::cout << "[EditorRegistry] Registered Menu: " << menuName << std::endl;
+        WE_LOG_TRACE(we::LogCategory::Editor.data(), std::string("[EditorRegistry] Registered Menu: ") + std::string(menuName));
     }
 }
 
