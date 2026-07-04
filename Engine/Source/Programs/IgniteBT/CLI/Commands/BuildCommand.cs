@@ -1,6 +1,7 @@
 using Serilog;
 using IgniteBT.Workspace.Modules;
 using IgniteBT.Build.Layout;
+using IgniteBT.Build.Shaders;
 using IgniteBT.Build.Graph;
 using IgniteBT.Build.Compiler;
 using IgniteBT.Build.Dependencies;
@@ -111,6 +112,7 @@ public static class BuildCommand
             outputLayout.RegisterModules(modules);
             outputLayout.PrepareModuleDirectories(modules);
             outputLayout.StageEngineAssets(modules);
+            ShaderBytecodeCompiler.CompileAndStage(engineDir, outputLayout.ConfigurationRoot);
             
             // Build dependency graph
             var graph = new DependencyGraph();
