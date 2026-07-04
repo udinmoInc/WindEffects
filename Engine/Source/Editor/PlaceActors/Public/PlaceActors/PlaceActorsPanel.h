@@ -20,7 +20,12 @@ public:
     PlaceActorsPanel();
     ~PlaceActorsPanel() override;
 
-    void SetExternalSearchFilter(const std::string& filter);
+    void SetExternalSearchFilter(const std::string& filter) {
+        if (m_ExternalSearchFilter != filter) {
+            m_ExternalSearchFilter = filter;
+            m_NeedsLayout = true;
+        }
+    }
 
     we::UI::Size Measure(const we::UI::Size& availableSize) override;
     void Arrange(const we::UI::Rect& allottedRect) override;
