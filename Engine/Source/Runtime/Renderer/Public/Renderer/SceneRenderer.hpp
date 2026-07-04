@@ -3,6 +3,7 @@
 #if WE_HAS_VULKAN
 #include "Renderer/Export.hpp"
 #include "Renderer/VulkanContext.hpp"
+#include "Renderer/AtmosphereLUTGenerator.hpp"
 #include <volk.h>
 #endif
 #if WE_HAS_GLM
@@ -35,7 +36,7 @@ struct SceneEnvironmentUniform {
     float sunIntensity = 10.0f;
     glm::vec3 sunColor{ 1.0f, 0.96f, 0.86f };
     float skyLightIntensity = 1.0f;
-    glm::vec3 skyAmbientColor{ 0.66f, 0.82f, 1.0f };
+    glm::vec3 skyAmbientColor{ 0.05f, 0.08f, 0.12f };
     float fogDensity = 0.02f;
     glm::vec3 skyLightLowerColor{ 0.05f, 0.05f, 0.06f };
     float fogHeightFalloff = 0.2f;
@@ -58,8 +59,8 @@ struct SceneEnvironmentUniform {
     glm::vec3 cloudColor{ 0.95f, 0.96f, 0.98f };
     float enableVolumetricFog = 1.0f;
     float exposureCompensation = 0.0f;
-    float padding0 = 0.0f;
-    float padding1 = 0.0f;
+    float sunAngularRadius = 0.004675f;
+    float hdrSkyLuminance = 1.0f;
     int sunCastShadows = 1;
     int sunTemperature = 6500;
     glm::ivec2 envPadding{};
@@ -119,6 +120,15 @@ public:
 
     RENDERER_API void DrawSkyAtmospherePass(VkCommandBuffer cmd, VkDescriptorSet cameraDescSet) const;
     RENDERER_API void DrawVolumetricCloudsPass(VkCommandBuffer cmd, VkDescriptorSet cameraDescSet) const;
+    RENDERER_API void ApplyPostExposure(
+        VkCommandBuffer cmd,
+        VkImage colorImage,
+        VkImageView colorImageView,
+        uint32_t width,
+        uint32_t height) const;
+
+    RENDERER_API void PrepareAtmosphereLUTs(VkCommandBuffer cmd);
+
     RENDERER_API void DrawFogCompositePass(
         VkCommandBuffer cmd,
         VkDescriptorSet cameraDescSet,
@@ -170,9 +180,17 @@ private:
     VkDescriptorSet m_EnvironmentDescSet = VK_NULL_HANDLE;
 
     VkPipelineLayout m_FogPipelineLayout = VK_NULL_HANDLE;
-    VkDescriptorSetLayout m_FogDepthDescLayout = VK_NULL_HANDLE;
-    VkDescriptorSet m_FogDepthDescSet = VK_NULL_HANDLE;
+    VkDescriptorSetLayout m_FogLutDescLayout = VK_NULL_HANDLE;
+    VkDescriptorSet m_FogLutDescSet = VK_NULL_HANDLE;
     mutable VkImageView m_BoundFogDepthView = VK_NULL_HANDLE;
+
+    VkPipelineLayout m_PostPipelineLayout = VK_NULL_HANDLE;
+    VkDescriptorSetLayout m_PostStorageDescLayout = VK_NULL_HANDLE;
+    VkDescriptorSet m_PostStorageDescSet = VK_NULL_HANDLE;
+    mutable VkImageView m_BoundPostColorView = VK_NULL_HANDLE;
+    VkPipeline m_PostExposurePipeline = VK_NULL_HANDLE;
+
+    std::unique_ptr<AtmosphereLUTGenerator> m_LUTGenerator;
 
     SceneEnvironmentUniform m_SceneEnvironment{};
     mutable bool m_SceneEnvironmentDirty = true;

@@ -53,9 +53,7 @@ float4 PSMain(VSOutput input) : SV_Target
 
     if (mode == 1 || mode == 2)
     {
-        const float ev = WE_ComputeExposureEV(sunDirection, exposureEV, exposureCompensation);
-        const float3 mapped = WE_ApplyFilmicTonemap(albedo, WE_ExposureFromEV100(ev));
-        return float4(WE_LinearToSRGB(mapped), color.a);
+        return float4(albedo, color.a);
     }
 
     float3 normal = normalize(input.worldNormal);
@@ -92,7 +90,5 @@ float4 PSMain(VSOutput input) : SV_Target
         planetRadius, atmosphereHeight, multiScatterStrength, eyeAltitude);
     litLinear = lerp(litLinear, horizonInscatter, saturate(haze * 0.45));
 
-    const float ev = WE_ComputeExposureEV(sunDirection, exposureEV, exposureCompensation);
-    const float3 mapped = WE_ApplyFilmicTonemap(litLinear, WE_ExposureFromEV100(ev));
-    return float4(WE_LinearToSRGB(mapped), color.a);
+    return float4(litLinear, color.a);
 }

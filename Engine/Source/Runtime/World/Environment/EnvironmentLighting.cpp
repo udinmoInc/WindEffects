@@ -103,6 +103,8 @@ we::runtime::renderer::SceneEnvironmentUniform BuildSceneEnvironmentUniform(
     uniform.cloudColor = clouds.CloudColor;
     uniform.enableVolumetricFog = (fog.VolumetricFog && fog.EntityId != 0) ? 1.0f : 0.0f;
     uniform.exposureCompensation = exposure.ExposureCompensation;
+    uniform.sunAngularRadius = 0.004675f;
+    uniform.hdrSkyLuminance = manager.ComputeHdrSkyLuminance(sun, atmosphere);
     uniform.sunCastShadows = sun.CastDynamicShadows ? 1 : 0;
     uniform.sunTemperature = sun.TemperatureKelvin;
     return uniform;

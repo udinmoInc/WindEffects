@@ -950,6 +950,16 @@ void Editor::MainLoop() {
             we::programs::editor::UpdateViewportCameraSpeedIndicator();
             m_RenderGraph->EndOffscreenPass(cmd);
 
+            {
+                auto& offscreenFB = m_Renderer->GetOffscreenFramebuffer();
+                m_SceneRenderer->ApplyPostExposure(
+                    cmd,
+                    offscreenFB.GetColorImage(),
+                    offscreenFB.GetColorImageView(),
+                    offscreenFB.GetWidth(),
+                    offscreenFB.GetHeight());
+            }
+
             m_RenderGraph->BeginSwapchainPass(cmd);
             m_UIRenderer->Render(cmd, m_Renderer->GetSwapchainWidth(), m_Renderer->GetSwapchainHeight(), m_RootWidget);
             m_RenderGraph->EndSwapchainPass(cmd);

@@ -34,8 +34,8 @@ cbuffer EnvironmentBuffer : register(WE_ENVIRONMENT_BUFFER_REGISTER, space0)
     float3 cloudColor;
     float  enableVolumetricFog;
     float  exposureCompensation;
-    float  padding0;
-    float  padding1;
+    float  sunAngularRadius;
+    float  hdrSkyLuminance;
     int    sunCastShadows;
     int    sunTemperature;
     int2   envPadding;

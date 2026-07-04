@@ -98,9 +98,7 @@ void ViewportWidget::Paint(PaintContext& context) {
     if (m_ViewportTextureSet != VK_NULL_HANDLE) {
         context.DrawTexture(m_Geometry, m_ViewportTextureSet);
     } else {
-        Color gradTop{0.102f, 0.102f, 0.102f, 1.0f};
-        Color gradBottom{0.125f, 0.125f, 0.125f, 1.0f};
-        context.DrawGradient(m_Geometry, gradTop, gradBottom);
+        context.DrawRect(m_Geometry, Color{ 0.0f, 0.0f, 0.0f, 1.0f });
     }
 
     uint32_t triangleCount = 0;
