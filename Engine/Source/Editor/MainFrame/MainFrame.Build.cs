@@ -13,6 +13,7 @@ public class MainFrame : ModuleRules
         PublicDependencies.Add("Docking");
         PublicDependencies.Add("Application");
         PublicDependencies.Add("Toolbar");
+        PublicDependencies.Add("Menus");
 
         // Add SDL3 as optional SDK
         OptionalSDK("SDL3");
