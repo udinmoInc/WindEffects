@@ -461,6 +461,12 @@ void VulkanContext::TransitionImageLayout(VkImage image, VkFormat format, VkImag
     EndSingleTimeCommands(commandBuffer);
 }
 
+void VulkanContext::WaitUntilIdle() const {
+    if (m_Device != VK_NULL_HANDLE) {
+        vkDeviceWaitIdle(m_Device);
+    }
+}
+
 #endif // WE_HAS_VULKAN
 
 } // namespace we::runtime::renderer
