@@ -8,7 +8,9 @@ public class World : ModuleRules
 
         PublicIncludePaths.Add("Public");
         PublicIncludePaths.Add(".");
+        PrivateIncludePaths.Add(".");
         PrivateIncludePaths.Add("DefaultScene");
+        PrivateIncludePaths.Add("Environment");
 
         PublicDependencies.Add("Core");
         PublicDependencies.Add("CoreUObject");
