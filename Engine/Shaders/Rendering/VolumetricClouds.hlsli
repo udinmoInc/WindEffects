@@ -3,7 +3,6 @@
 
 #include "../Common/Noise.hlsli"
 #include "../Common/Color.hlsli"
-#include "SkyAtmosphere.hlsli"
 
 static const int WE_CLOUD_STEPS = 12;
 

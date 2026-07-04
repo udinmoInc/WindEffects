@@ -34,6 +34,10 @@ $shaders = @(
     @{ Name = "SceneObject"; Path = "Rendering/SceneObject.hlsl" }
 )
 
+$computeShaders = @(
+    @{ Name = "PostExposureCS"; Path = "Compute/PostExposureCS.hlsl" }
+)
+
 foreach ($shader in $shaders) {
     $source = Join-Path $includeRoot $shader.Path
     if (-not (Test-Path $source)) {
@@ -48,6 +52,19 @@ foreach ($shader in $shaders) {
 
     & $dxc -spirv -T ps_6_0 -E PSMain -I $includeRoot -Fo $psOut $source
     if ($LASTEXITCODE -ne 0) { throw "Failed to compile PS for $($shader.Name)" }
+
+    Write-Host "Compiled $($shader.Name)"
+}
+
+foreach ($shader in $computeShaders) {
+    $source = Join-Path $includeRoot $shader.Path
+    if (-not (Test-Path $source)) {
+        throw "Shader source missing: $source"
+    }
+
+    $csOut = Join-Path $OutputDir "$($shader.Name)_CS.spv"
+    & $dxc -spirv -T cs_6_0 -E CSMain -I $includeRoot -Fo $csOut $source
+    if ($LASTEXITCODE -ne 0) { throw "Failed to compile CS for $($shader.Name)" }
 
     Write-Host "Compiled $($shader.Name)"
 }

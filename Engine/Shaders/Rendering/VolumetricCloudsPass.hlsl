@@ -1,6 +1,7 @@
 #include "../Common/Math.hlsli"
 #include "../Common/Color.hlsli"
 #include "../Common/EnvironmentBuffer.hlsli"
+#include "AtmosphereLUT.hlsli"
 #include "VolumetricClouds.hlsli"
 
 cbuffer CameraBuffer : register(b0, space1)

@@ -288,7 +288,19 @@ bool AtmosphereLUTGenerator::UploadLUT(VkImage image, uint32_t width, uint32_t h
     return true;
 }
 
-bool AtmosphereLUTGenerator::ValidateLUTData(const char* lutName, const std::vector<float>& rgba) {
+bool AtmosphereLUTGenerator::ValidateLUTData(const char* lutName, const std::vector<float>& rgba, uint32_t width, uint32_t height) {
+    if (width == 0 || height == 0) {
+        m_LastError = std::string(lutName) + " LUT generation failed: invalid dimensions (" + std::to_string(width) + "x" + std::to_string(height) + ").";
+        return false;
+    }
+
+    const size_t expected = static_cast<size_t>(width) * height * 4;
+    if (rgba.size() != expected) {
+        m_LastError = std::string(lutName) + " LUT generation failed: expected " + std::to_string(expected)
+            + " floats for " + std::to_string(width) + "x" + std::to_string(height) + " but got " + std::to_string(rgba.size()) + ".";
+        return false;
+    }
+
     if (rgba.empty()) {
         m_LastError = std::string(lutName) + " LUT generation failed: produced zero texels.";
         return false;
@@ -486,7 +498,7 @@ bool AtmosphereLUTGenerator::GenerateCPU(const SceneEnvironmentUniform& environm
     };
 
     for (LUTUpload& upload : uploads) {
-        if (!ValidateLUTData(upload.name, upload.data)) {
+        if (!ValidateLUTData(upload.name, upload.data, upload.width, upload.height)) {
             RenderDiagnostics::Get().Emit(
                 DiagnosticSeverity::Error,
                 we::runtime::core::LogCategory::Environment.data(),
