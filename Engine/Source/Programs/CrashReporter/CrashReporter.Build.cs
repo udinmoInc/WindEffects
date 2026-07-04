@@ -1,20 +1,18 @@
 using IgniteBT.BuildSystem;
 
-public class Application : ModuleRules
+public class CrashReporter : ModuleRules
 {
-    public Application(ModuleContext context) : base(context)
+    public CrashReporter(ModuleContext context) : base(context)
     {
-        Type = ModuleType.SharedLibrary;
+        Type = ModuleType.Executable;
 
-        PublicIncludePaths.Add("Public");
-        PrivateIncludePaths.Add("Private");
+        SetBinaryName("WECrashReporter.exe");
+        PublishAtConfigurationRoot();
 
         PublicDependencies.Add("Core");
-        PublicDependencies.Add("CoreUObject");
         PublicDependencies.Add("Engine");
         PublicDependencies.Add("Renderer");
-        PublicDependencies.Add("Scene");
-        PublicDependencies.Add("World");
+        PublicDependencies.Add("Application");
 
         OptionalSDK("VulkanSDK");
         OptionalSDK("SDL3");
@@ -23,6 +21,7 @@ public class Application : ModuleRules
         DefineIf(HasSDK("SDL3"), "WE_HAS_SDL3=1");
         DefineIf(!HasSDK("SDL3"), "WE_HAS_SDL3=0");
 
-        Definitions.Add("APPLICATION_EXPORTS");
+        PlatformSettings.Windows ??= new WindowsSettings();
+        PlatformSettings.Windows.Subsystem = "Windows";
     }
 }

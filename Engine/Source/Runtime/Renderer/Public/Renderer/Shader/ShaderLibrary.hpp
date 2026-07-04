@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Renderer/Export.hpp"
 #include "Renderer/Shader/ShaderReflection.hpp"
 #include "Renderer/Shader/ShaderCompiler.hpp"
 #include "Renderer/Shader/ShaderDependencyGraph.hpp"
@@ -18,7 +19,7 @@ namespace we::runtime::renderer {
 #if WE_HAS_VULKAN
 
 // Central shader library: bytecode loading, hot reload, permutations, PSO cache.
-class ShaderLibrary {
+class RENDERER_API ShaderLibrary {
 public:
     static ShaderLibrary& Get();
 

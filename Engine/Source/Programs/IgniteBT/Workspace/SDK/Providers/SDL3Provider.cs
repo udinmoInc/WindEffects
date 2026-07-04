@@ -94,4 +94,44 @@ public class SDL3Provider : BaseSDKProvider
         result.Value = libraries;
         return await Task.FromResult(result);
     }
+
+    public override async Task<SDKResult<List<string>>> LocateBinariesAsync(string path)
+    {
+        var result = new SDKResult<List<string>>();
+        var binaries = new List<string>();
+
+        var runtimeDirs = new[]
+        {
+            Path.Combine(path, "build-shared", "Release"),
+            Path.Combine(path, "build-shared", "Debug"),
+            Path.Combine(path, "build", "Release"),
+            Path.Combine(path, "build", "Debug"),
+            Path.Combine(path, "bin"),
+            Path.Combine(path, "Bin")
+        };
+
+        foreach (var dir in runtimeDirs)
+        {
+            if (Directory.Exists(dir))
+            {
+                binaries.Add(dir);
+            }
+        }
+
+        var baseResult = await base.LocateBinariesAsync(path);
+        if (baseResult.Success && baseResult.Value != null)
+        {
+            foreach (var dir in baseResult.Value)
+            {
+                if (!binaries.Contains(dir))
+                {
+                    binaries.Add(dir);
+                }
+            }
+        }
+
+        result.Success = binaries.Count > 0;
+        result.Value = binaries;
+        return result;
+    }
 }
