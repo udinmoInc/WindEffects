@@ -2,6 +2,7 @@ using Serilog;
 using IgniteBT.Build.Layout;
 using IgniteBT.Build.Compiler;
 using IgniteBT.Core.Launcher;
+using IgniteBT.Workspace.Modules;
 
 namespace IgniteBT.CLI;
 
@@ -26,32 +27,36 @@ public static class RunCommand
         {
             var location = EngineInstallation.Resolve();
             var buildConfig = CommandLineHelpers.ParseConfiguration(config);
-            var layout = new BuildLayout(location.Descriptor.EngineRoot, CommandLineHelpers.GetCurrentPlatform(), buildConfig);
+            var layout = new BuildLayout(location.ProjectRoot, CommandLineHelpers.GetCurrentPlatform(), buildConfig);
             var outputRoot = layout.PlatformOutputRoot;
 
-            var executableName = target.ToLowerInvariant() switch
-            {
-                "editor" or "application" => "WindeffectsEditor.exe",
-                "crashreporter" => "WECrashReporter.exe",
-                "launcher" => "WELauncher.exe",
-                _ => target.EndsWith(".exe", StringComparison.OrdinalIgnoreCase) ? target : target + ".exe"
-            };
+            var discovery = new ModuleDiscoverer(location.EngineRoot, config, CommandLineHelpers.GetCurrentPlatform());
+            var modules = await discovery.DiscoverModulesAsync();
+            var outputLayout = new OutputLayout(layout, location.EngineRoot);
+            outputLayout.RegisterModules(modules);
 
-            var executablePath = Path.Combine(outputRoot, executableName);
-            if (!File.Exists(executablePath))
+            var normalizedTarget = NormalizeRunTarget(target);
+            var executablePath = OutputLayout.ResolveLaunchExecutable(outputRoot, normalizedTarget, outputLayout.Descriptors);
+
+            if (string.IsNullOrEmpty(executablePath) || !File.Exists(executablePath))
             {
-                Log.Warning("Executable not found at {Path}. Building first...", executablePath);
+                Log.Warning("Executable not found for target {Target}. Building first...", normalizedTarget);
                 var buildArgs = BuildLaunchArgs(target, config);
                 var buildResult = await BuildCommand.Execute(buildArgs);
                 if (buildResult != 0)
                 {
                     return buildResult;
                 }
+
+                outputLayout.RegisterModules(
+                    await new ModuleDiscoverer(location.EngineRoot, config, CommandLineHelpers.GetCurrentPlatform())
+                        .DiscoverModulesAsync());
+                executablePath = OutputLayout.ResolveLaunchExecutable(outputRoot, normalizedTarget, outputLayout.Descriptors);
             }
 
-            if (!File.Exists(executablePath))
+            if (string.IsNullOrEmpty(executablePath) || !File.Exists(executablePath))
             {
-                Log.Error("Executable not found after build: {Path}", executablePath);
+                Log.Error("Executable not found after build for target {Target}", normalizedTarget);
                 return 1;
             }
 
@@ -73,12 +78,19 @@ public static class RunCommand
         }
     }
 
+    private static string NormalizeRunTarget(string target) =>
+        target.ToLowerInvariant() switch
+        {
+            "editor" => "Application",
+            _ => target
+        };
+
     private static string[] BuildLaunchArgs(string target, string config)
     {
         if (string.Equals(target, "Editor", StringComparison.OrdinalIgnoreCase) ||
             string.Equals(target, "Application", StringComparison.OrdinalIgnoreCase))
         {
-            return new[] { "--target", target, "--config", config };
+            return new[] { "--target", "Application", "--config", config };
         }
 
         return new[] { target, "--config", config };

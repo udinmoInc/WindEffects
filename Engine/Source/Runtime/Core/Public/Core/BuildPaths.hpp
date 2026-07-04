@@ -1,11 +1,10 @@
 #pragma once
 
+#include <array>
 #include <filesystem>
 #include <optional>
 #include <string>
 #include <string_view>
-#include <unordered_map>
-#include <vector>
 
 #if defined(_WIN32)
 #define WIN32_LEAN_AND_MEAN
@@ -38,31 +37,6 @@ inline std::string StripLegacyModulePrefix(std::string_view logicalName) {
     return std::string(logicalName);
 }
 
-inline const std::unordered_map<std::string, const char*>& GetModuleCategoryMap() {
-    static const std::unordered_map<std::string, const char*> kCategories = {
-        {"Application", "Programs"},
-        {"CrashReporter", "Programs"},
-        {"Launcher", "Programs"},
-        {"MainFrame", "Editor"},
-        {"Docking", "Editor"},
-        {"Viewport", "Editor"},
-        {"ContentBrowser", "Editor"},
-        {"WorldOutliner", "Editor"},
-        {"PropertyEditor", "Editor"},
-        {"Details", "Editor"},
-        {"Toolbar", "Editor"},
-        {"Menus", "Editor"},
-        {"ToolsPanel", "Editor"},
-        {"PlaceActors", "Editor"},
-        {"Environment", "Editor"},
-        {"EditorGridRenderer", "Editor"},
-        {"Core", ""},
-        {"CoreUObject", ""},
-        {"Engine", ""},
-    };
-    return kCategories;
-}
-
 inline std::string GetModuleBinaryFileName(std::string_view moduleName) {
     return "WE" + std::string(moduleName) + ".dll";
 }
@@ -76,36 +50,32 @@ inline std::optional<std::filesystem::path> ResolveModuleLibraryPath(std::string
 
     const std::string binaryName = GetModuleBinaryFileName(moduleName);
 
-    const auto& categories = GetModuleCategoryMap();
-    if (const auto categoryIt = categories.find(moduleName); categoryIt != categories.end()) {
-        const char* category = categoryIt->second;
-        if (category == nullptr || category[0] == '\0') {
-            const auto bootstrapPath = root / binaryName;
-            return std::filesystem::exists(bootstrapPath) ? std::optional(bootstrapPath) : std::nullopt;
-        }
-
-        const auto modulePath = root / category / moduleName / binaryName;
-        return std::filesystem::exists(modulePath) ? std::optional(modulePath) : std::nullopt;
+    const auto runtimeBinaryPath = root / "Runtime" / "Binaries" / binaryName;
+    if (std::filesystem::exists(runtimeBinaryPath)) {
+        return runtimeBinaryPath;
     }
 
-    const char* searchCategories[] = {
-        "Runtime",
-        "Editor",
-        "Programs",
-        "Developer",
-        "Plugins",
-        "ThirdParty",
-    };
+    const auto pluginsRoot = root / "Plugins";
+    if (std::filesystem::exists(pluginsRoot)) {
+        for (const auto& entry : std::filesystem::directory_iterator(pluginsRoot)) {
+            if (!entry.is_directory()) {
+                continue;
+            }
 
-    for (const char* category : searchCategories) {
-        const auto modulePath = root / category / moduleName / binaryName;
-        if (std::filesystem::exists(modulePath)) {
-            return modulePath;
+            const auto pluginPath = entry.path() / binaryName;
+            if (std::filesystem::exists(pluginPath)) {
+                return pluginPath;
+            }
         }
     }
 
-    const auto bootstrapPath = root / binaryName;
-    return std::filesystem::exists(bootstrapPath) ? std::optional(bootstrapPath) : std::nullopt;
+    const auto dependenciesPath = root / "Dependencies" / binaryName;
+    if (std::filesystem::exists(dependenciesPath)) {
+        return dependenciesPath;
+    }
+
+    const auto legacyRootPath = root / binaryName;
+    return std::filesystem::exists(legacyRootPath) ? std::optional(legacyRootPath) : std::nullopt;
 }
 
 inline std::optional<std::filesystem::path> ResolveDelayLoadLibraryPath(std::string_view dllFileName) {
@@ -128,9 +98,22 @@ inline std::optional<std::filesystem::path> ResolveDelayLoadLibraryPath(std::str
         return std::nullopt;
     }
 
-    const auto directPath = root / dllFileName;
-    if (std::filesystem::exists(directPath)) {
-        return directPath;
+    const std::string dllName(dllFileName);
+    const std::array searchRoots = {
+        root / "Dependencies",
+        root / "Runtime" / "Binaries",
+        root
+    };
+
+    for (const auto& searchRoot : searchRoots) {
+        if (!std::filesystem::exists(searchRoot)) {
+            continue;
+        }
+
+        const auto directPath = searchRoot / dllName;
+        if (std::filesystem::exists(directPath)) {
+            return directPath;
+        }
     }
 
     return std::nullopt;
@@ -145,28 +128,27 @@ inline void ConfigureModuleSearchPaths() {
 
     SetDefaultDllDirectories(LOAD_LIBRARY_SEARCH_DEFAULT_DIRS | LOAD_LIBRARY_SEARCH_USER_DIRS);
 
-    const char* categories[] = {
-        "Runtime",
-        "Editor",
-        "Programs",
-        "Developer",
-        "Plugins",
-        "ThirdParty",
+    const std::array searchRoots = {
+        root / "Runtime" / "Binaries",
+        root / "Dependencies",
+        root / "Plugins"
     };
 
-    for (const char* category : categories) {
-        const auto categoryPath = root / category;
-        if (!std::filesystem::exists(categoryPath)) {
+    for (const auto& searchRoot : searchRoots) {
+        if (!std::filesystem::exists(searchRoot)) {
             continue;
         }
 
-        for (const auto& entry : std::filesystem::directory_iterator(categoryPath)) {
-            if (!entry.is_directory()) {
-                continue;
+        if (searchRoot.filename() == "Plugins") {
+            for (const auto& entry : std::filesystem::directory_iterator(searchRoot)) {
+                if (entry.is_directory()) {
+                    AddDllDirectory(entry.path().wstring().c_str());
+                }
             }
-
-            AddDllDirectory(entry.path().wstring().c_str());
+            continue;
         }
+
+        AddDllDirectory(searchRoot.wstring().c_str());
     }
 #endif
 }

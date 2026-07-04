@@ -174,7 +174,10 @@ public class ModuleDiscoverer
             RequiredThirdParty = new List<string>(moduleInstance.RequiredThirdParty),
             OptionalThirdParty = new List<string>(moduleInstance.OptionalThirdParty),
             IsDisabled = moduleInstance.IsDisabled,
-            Definitions = new List<string>(moduleInstance.Definitions)
+            Definitions = new List<string>(moduleInstance.Definitions),
+            IsPlugin = moduleInstance.IsPlugin,
+            BinaryName = moduleInstance.BinaryName,
+            OutputPlacement = moduleInstance.OutputPlacement
         };
 
         if (discoveredModule.IsDisabled)
@@ -232,4 +235,7 @@ public class DiscoveredModule
     public List<string> OptionalThirdParty { get; set; } = new();
     public bool IsDisabled { get; set; }
     public List<string> Definitions { get; set; } = new();
+    public bool IsPlugin { get; set; }
+    public string? BinaryName { get; set; }
+    public OutputPlacement OutputPlacement { get; set; } = OutputPlacement.Unspecified;
 }

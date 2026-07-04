@@ -110,7 +110,7 @@ public static class BuildCommand
             var outputLayout = new OutputLayout(layout, engineDir);
             outputLayout.RegisterModules(modules);
             outputLayout.PrepareModuleDirectories(modules);
-            outputLayout.StageEngineAssets();
+            outputLayout.StageEngineAssets(modules);
             
             // Build dependency graph
             var graph = new DependencyGraph();
@@ -168,6 +168,11 @@ public static class BuildCommand
             Log.Information("  Size: {Size:F2} MB", cacheStats.TotalSizeMB);
             
             scheduler.Dispose();
+
+            if (success)
+            {
+                outputLayout.StageRuntimeDependencies(dependencyResult, modules);
+            }
             
             return success ? 0 : 1;
         }
@@ -432,6 +437,7 @@ public static class BuildCommand
         var linkOutputFile = outputLayout.GetModuleBinaryPath(node.Module);
         var linkOutputDir = Path.GetDirectoryName(linkOutputFile)!;
         Directory.CreateDirectory(linkOutputDir);
+        Directory.CreateDirectory(layout.GetModuleImportLibraryDirectory(node.Name));
         Directory.CreateDirectory(layout.ProgramDatabaseRoot);
         Directory.CreateDirectory(layout.IncrementalRoot);
 
