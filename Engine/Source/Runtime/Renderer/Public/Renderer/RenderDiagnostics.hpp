@@ -61,8 +61,6 @@ private:
     std::vector<std::pair<std::string, double>> m_PassTimings;
 };
 
-#if WE_HAS_VULKAN
-
 class GpuDebugScope {
 public:
     RENDERER_API GpuDebugScope(VkCommandBuffer cmd, const char* label, float r = 0.2f, float g = 0.6f, float b = 1.0f);
@@ -78,6 +76,6 @@ private:
 
 RENDERER_API void InsertGpuDebugLabel(VkCommandBuffer cmd, const char* label, float r = 0.2f, float g = 0.6f, float b = 1.0f);
 
-#endif // WE_HAS_VULKAN
-
 } // namespace we::runtime::renderer
+
+#endif // WE_HAS_VULKAN

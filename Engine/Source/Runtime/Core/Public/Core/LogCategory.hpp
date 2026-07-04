@@ -27,3 +27,8 @@ namespace LogCategory {
 }
 
 } // namespace we::runtime::core
+
+// Re-export categories for unqualified lookup from we::runtime::* child namespaces.
+namespace we::runtime::LogCategory {
+    using namespace core::LogCategory;
+}

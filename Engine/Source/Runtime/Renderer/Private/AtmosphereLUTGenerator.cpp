@@ -375,7 +375,7 @@ void AtmosphereLUTGenerator::EnsureGenerated(const SceneEnvironmentUniform& envi
     }
     m_Dirty = false;
     GenerateCPU(environment);
-    WE_LOG_INFO(LogCategory::Environment.data(), "Regenerated procedural sky LUTs.");
+    WE_LOG_INFO(we::runtime::core::LogCategory::Environment.data(), "Regenerated procedural sky LUTs.");
 }
 
 #endif // WE_HAS_VULKAN
