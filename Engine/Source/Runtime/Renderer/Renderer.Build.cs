@@ -15,9 +15,14 @@ public class Renderer : ModuleRules
         PublicDependencies.Add("Engine");
 
         // Add Vulkan SDK as optional dependency
-        OptionalSDK("Vulkan");
-        DefineIf(HasSDK("Vulkan"), "WE_HAS_VULKAN=1");
-        DefineIf(!HasSDK("Vulkan"), "WE_HAS_VULKAN=0");
+        OptionalSDK("VulkanSDK");
+        DefineIf(HasSDK("VulkanSDK"), "WE_HAS_VULKAN=1");
+        DefineIf(!HasSDK("VulkanSDK"), "WE_HAS_VULKAN=0");
+
+        // SDL3 is used for Vulkan surface creation and window sizing
+        OptionalSDK("SDL3");
+        DefineIf(HasSDK("SDL3"), "WE_HAS_SDL3=1");
+        DefineIf(!HasSDK("SDL3"), "WE_HAS_SDL3=0");
 
         Definitions.Add("RENDERER_EXPORTS");
     }
