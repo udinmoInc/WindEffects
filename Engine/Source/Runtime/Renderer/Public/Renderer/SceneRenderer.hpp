@@ -1,6 +1,7 @@
 #pragma once
 
 #if WE_HAS_VULKAN
+#include "Renderer/Export.hpp"
 #include "Renderer/VulkanContext.hpp"
 #include <volk.h>
 #endif
@@ -107,30 +108,30 @@ public:
         float backgroundContrast = 1.0f;
     };
 
-    SceneRenderer(const std::shared_ptr<VulkanContext>& context, VkRenderPass renderPass, VkDescriptorSetLayout cameraDescLayout);
-    ~SceneRenderer();
+    RENDERER_API SceneRenderer(const std::shared_ptr<VulkanContext>& context, VkRenderPass renderPass, VkDescriptorSetLayout cameraDescLayout);
+    RENDERER_API ~SceneRenderer();
 
     // Prevent copying
     SceneRenderer(const SceneRenderer&) = delete;
     SceneRenderer& operator=(const SceneRenderer&) = delete;
 
-    void DrawEditorBackground(VkCommandBuffer cmd, VkDescriptorSet cameraDescSet) const;
-    void SetEditorBackgroundSettings(const EditorBackgroundSettings& settings);
+    RENDERER_API void DrawEditorBackground(VkCommandBuffer cmd, VkDescriptorSet cameraDescSet) const;
+    RENDERER_API void SetEditorBackgroundSettings(const EditorBackgroundSettings& settings);
     const EditorBackgroundSettings& GetEditorBackgroundSettings() const { return m_EditorBackgroundSettings; }
     void SetEditorBackgroundEnabled(bool enabled) { m_EnableEditorBackground = enabled; }
     bool IsEditorBackgroundEnabled() const { return m_EnableEditorBackground; }
     
-    void DrawMesh(VkCommandBuffer cmd, const std::string& meshName, VkDescriptorSet descriptorSet, int mode) const;
+    RENDERER_API void DrawMesh(VkCommandBuffer cmd, const std::string& meshName, VkDescriptorSet descriptorSet, int mode) const;
 
-    void SetSceneEnvironment(const SceneEnvironmentUniform& environment);
+    RENDERER_API void SetSceneEnvironment(const SceneEnvironmentUniform& environment);
     const SceneEnvironmentUniform& GetSceneEnvironment() const { return m_SceneEnvironment; }
     VkBuffer GetEnvironmentBuffer() const { return m_EnvironmentBuffer; }
 
     VkDescriptorSetLayout GetObjectDescLayout() const { return m_ObjectDescLayout; }
 
     // Helpers to create descriptor sets for rendering
-    void UpdateObjectDescriptorSet(VkDescriptorSet descriptorSet, VkBuffer cameraBuffer, VkBuffer objectBuffer) const;
-    void RefreshEnvironmentDescriptorBindings() const;
+    RENDERER_API void UpdateObjectDescriptorSet(VkDescriptorSet descriptorSet, VkBuffer cameraBuffer, VkBuffer objectBuffer) const;
+    RENDERER_API void RefreshEnvironmentDescriptorBindings() const;
 
 private:
     void CreatePipelines(VkRenderPass renderPass);

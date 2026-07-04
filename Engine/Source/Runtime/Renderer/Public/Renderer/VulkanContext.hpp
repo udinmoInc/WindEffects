@@ -1,6 +1,7 @@
 #pragma once
 
 #if WE_HAS_VULKAN
+#include "Renderer/Export.hpp"
 #include <volk.h>
 #endif
 #if WE_HAS_SDL3
@@ -16,8 +17,8 @@ namespace we::runtime::renderer {
 
 class VulkanContext {
 public:
-    VulkanContext(SDL_Window* window);
-    ~VulkanContext();
+    RENDERER_API VulkanContext(SDL_Window* window);
+    RENDERER_API ~VulkanContext();
 
     // Prevent copying/assignment
     VulkanContext(const VulkanContext&) = delete;
@@ -38,15 +39,15 @@ public:
     const std::string& GetRendererName() const { return m_RendererName; }
 
     // Memory and resource creation helpers
-    uint32_t FindMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties) const;
-    void CreateBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory) const;
-    void CreateImage(uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory) const;
-    VkImageView CreateImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags) const;
+    RENDERER_API uint32_t FindMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties) const;
+    RENDERER_API void CreateBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory) const;
+    RENDERER_API void CreateImage(uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory) const;
+    RENDERER_API VkImageView CreateImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags) const;
     
     // Command buffer recording helpers
-    VkCommandBuffer BeginSingleTimeCommands() const;
-    void EndSingleTimeCommands(VkCommandBuffer commandBuffer) const;
-    void TransitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout) const;
+    RENDERER_API VkCommandBuffer BeginSingleTimeCommands() const;
+    RENDERER_API void EndSingleTimeCommands(VkCommandBuffer commandBuffer) const;
+    RENDERER_API void TransitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout) const;
 
 private:
     void CreateInstance();
