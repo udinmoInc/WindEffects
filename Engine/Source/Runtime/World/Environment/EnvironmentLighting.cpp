@@ -81,6 +81,7 @@ we::runtime::renderer::SceneEnvironmentUniform BuildSceneEnvironmentUniform(
     uniform.sunColor = sun.GetColorFromTemperature();
     uniform.skyLightIntensity = skyLight.Intensity;
     uniform.skyAmbientColor = skyLight.GetAmbientColor();
+    uniform.skyLightLowerColor = skyLight.LowerHemisphereColor;
     uniform.fogDensity = fog.Density;
     uniform.fogColor = fog.FogColor;
     uniform.fogHeightFalloff = fog.HeightFalloff;
