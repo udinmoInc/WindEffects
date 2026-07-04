@@ -1,11 +1,13 @@
 #pragma once
 
+#include "Core/Export.hpp"
 #include "Modules/IModuleInterface.hpp"
 #include <string>
 #include <unordered_map>
 #include <memory>
+#include <vector>
 
-class ModuleManager
+class CORE_API ModuleManager
 {
 public:
     static ModuleManager& Get();
