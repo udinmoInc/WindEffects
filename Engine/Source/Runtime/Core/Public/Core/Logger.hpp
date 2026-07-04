@@ -53,6 +53,9 @@ public:
         int line = 0,
         const char* function = nullptr);
 
+    // Backward-compatible overload for legacy call sites.
+    CORE_API static void Log(Level level, const std::string& message);
+
     CORE_API static void ReportError(const std::string& title, const std::string& description, bool fatal = false);
 
     // UI / diagnostics
@@ -103,3 +106,5 @@ private:
 namespace we {
     using Logger = we::runtime::core::Logger;
 }
+
+#include "Core/DiagnosticMacros.hpp"

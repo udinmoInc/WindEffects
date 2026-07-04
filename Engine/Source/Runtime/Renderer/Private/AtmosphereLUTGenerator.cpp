@@ -1,6 +1,7 @@
 #include "Renderer/AtmosphereLUTGenerator.hpp"
 #include "Renderer/SceneRenderer.hpp"
-#include "Core/Logger.hpp"
+#include "Core/DiagnosticMacros.hpp"
+#include "Core/LogCategory.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -369,13 +370,12 @@ void AtmosphereLUTGenerator::GenerateCPU(const SceneEnvironmentUniform& environm
 }
 
 void AtmosphereLUTGenerator::EnsureGenerated(const SceneEnvironmentUniform& environment) {
-    if (!m_Dirty && std::memcmp(&environment, &m_LastEnvironment, sizeof(SceneEnvironmentUniform)) == 0) {
+    if (!m_Dirty) {
         return;
     }
-    m_LastEnvironment = environment;
     m_Dirty = false;
     GenerateCPU(environment);
-    HE_INFO("[Atmosphere] Regenerated procedural sky LUTs.");
+    WE_LOG_INFO(LogCategory::Environment.data(), "Regenerated procedural sky LUTs.");
 }
 
 #endif // WE_HAS_VULKAN

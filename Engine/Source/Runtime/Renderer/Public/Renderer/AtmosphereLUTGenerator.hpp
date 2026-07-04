@@ -61,7 +61,6 @@ private:
     VkDescriptorSet m_SampleDescSet = VK_NULL_HANDLE;
 
     bool m_Dirty = true;
-    SceneEnvironmentUniform m_LastEnvironment{};
 };
 
 } // namespace we::runtime::renderer

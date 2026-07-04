@@ -2,6 +2,8 @@
 
 #include "Renderer/Shader/ShaderLibrary.hpp"
 #include "Renderer/Shader/ShaderTypes.hpp"
+#include "Core/DiagnosticMacros.hpp"
+#include "Core/LogCategory.hpp"
 #if WE_HAS_VULKAN
 #include <volk.h>
 #endif
@@ -9,7 +11,6 @@
 #include <string>
 #include <fstream>
 #include <stdexcept>
-#include <iostream>
 
 namespace we::runtime::renderer {
 
@@ -24,9 +25,9 @@ inline std::vector<char> LoadShaderBytecode(const std::string& shaderName, Shade
         throw std::runtime_error("Failed to load shader bytecode: " + filename);
     }
 
-    std::cout << "[Shader] Loaded " << shaderName
-              << ShaderLibrary::Get().ResolveBytecodeFilename(shaderName, stage, permutationFlags).substr(shaderName.size())
-              << " (" << bytecode.data.size() << " bytes)\n";
+    WE_LOG_DEBUG(LogCategory::Shader.data(),
+        "Loaded " + shaderName + ShaderLibrary::Get().ResolveBytecodeFilename(shaderName, stage, permutationFlags).substr(shaderName.size())
+        + " (" + std::to_string(bytecode.data.size()) + " bytes)");
 
     return std::vector<char>(bytecode.data.begin(), bytecode.data.end());
 }
@@ -68,9 +69,9 @@ inline std::vector<char> ReadShaderFile(const std::string& filename) {
         throw std::runtime_error("Failed to open shader file: " + filename + " (searched Assets/Shaders/, Shaders/, and cwd)");
     }
 
-    std::cout << "[Shader] Loaded " << filename << " from " << resolvedPath << " (" << file.tellg() << " bytes)\n";
+    size_t fileSize = static_cast<size_t>(file.tellg());
+    WE_LOG_DEBUG(LogCategory::Shader.data(), "Loaded " + filename + " from " + resolvedPath + " (" + std::to_string(fileSize) + " bytes)");
 
-    size_t fileSize = (size_t)file.tellg();
     std::vector<char> buffer(fileSize);
 
     file.seekg(0);

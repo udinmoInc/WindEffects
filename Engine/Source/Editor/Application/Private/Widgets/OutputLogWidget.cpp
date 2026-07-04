@@ -4,6 +4,11 @@
 namespace we::UI {
 
 OutputLogWidget::OutputLogWidget() {
+    for (const auto& record : we::Logger::GetHistory()) {
+        m_Records.push_back(record);
+    }
+    RebuildVisibleLines();
+
     we::Logger::AddListener([this](const we::Logger::LogRecord& record) {
         if (m_Paused) return;
         std::lock_guard<std::mutex> lock(m_Mutex);

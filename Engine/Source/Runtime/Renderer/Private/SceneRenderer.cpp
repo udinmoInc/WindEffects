@@ -1,5 +1,9 @@
 #include "Renderer/SceneRenderer.hpp"
-#include "Core/Logger.hpp"
+#include "Renderer/RenderDiagnostics.hpp"
+#include "Renderer/FrameStats.hpp"
+#include "Renderer/RendererConfig.hpp"
+#include "Core/DiagnosticMacros.hpp"
+#include "Core/LogCategory.hpp"
 #include "Renderer/ShaderHelper.hpp"
 #include <array>
 #include <iostream>
@@ -138,6 +142,7 @@ SceneRenderer::SceneRenderer(const std::shared_ptr<VulkanContext>& context, VkRe
     }
 
     CreatePipelines(renderPass);
+    ValidateCreatedPipelines();
     CreateMeshes();
 }
 
@@ -345,6 +350,23 @@ void SceneRenderer::CreatePipelines(VkRenderPass renderPass) {
     vkDestroyShaderModule(device, fragModule, nullptr);
 }
 
+void SceneRenderer::ValidateCreatedPipelines() const {
+    auto& diag = RenderDiagnostics::Get();
+    diag.ValidatePipeline("SkyAtmosphere", m_SkyAtmospherePipeline);
+    diag.ValidatePipeline("VolumetricClouds", m_VolumetricCloudsPipeline);
+    diag.ValidatePipeline("FogComposite", m_FogCompositePipeline);
+    diag.ValidatePipeline("PostExposure", m_PostExposurePipeline);
+    diag.ValidatePipeline("SceneObjectLit", m_LitPipeline);
+}
+
+bool SceneRenderer::ValidateRenderFrame(VkFramebuffer framebuffer, uint32_t width, uint32_t height) const {
+    auto& diag = RenderDiagnostics::Get();
+    diag.ResetFrame();
+    diag.ValidateFramebuffer(framebuffer, width, height);
+    diag.ValidateEnvironmentUniform(m_SceneEnvironment);
+    return !diag.HasCritical();
+}
+
 VkPipeline SceneRenderer::CreateFullscreenPipeline(
     VkRenderPass renderPass,
     VkPipelineLayout layout,
@@ -358,7 +380,7 @@ VkPipeline SceneRenderer::CreateFullscreenPipeline(
     std::vector<char> vertCode = LoadShaderBytecode(shaderName, ShaderStage::Vertex);
     std::vector<char> fragCode = LoadShaderBytecode(shaderName, ShaderStage::Pixel);
     if (vertCode.empty() || fragCode.empty()) {
-        HE_WARN(std::string("SceneRenderer: missing shader bytecode for ") + shaderName);
+        RenderDiagnostics::Get().ValidateShaderBytecode(shaderName, !vertCode.empty(), !fragCode.empty());
         return VK_NULL_HANDLE;
     }
 
@@ -583,12 +605,24 @@ void SceneRenderer::PrepareAtmosphereLUTs(VkCommandBuffer /*cmd*/) {
 }
 
 void SceneRenderer::DrawSkyAtmospherePass(VkCommandBuffer cmd, VkDescriptorSet cameraDescSet) const {
-    if (m_SkyAtmospherePipeline == VK_NULL_HANDLE || !m_LUTGenerator) return;
+    GpuDebugScope debugScope(cmd, "SkyAtmosphere");
+    if (m_SkyAtmospherePipeline == VK_NULL_HANDLE || !m_LUTGenerator) {
+        static bool s_Reported = false;
+        if (!s_Reported) {
+            RenderDiagnostics::Get().ValidatePipeline("SkyAtmosphere", m_SkyAtmospherePipeline);
+            s_Reported = true;
+        }
+        return;
+    }
     const_cast<SceneRenderer*>(this)->PrepareAtmosphereLUTs(cmd);
+    RenderDiagnostics::Get().ValidateDescriptorSet("SkyAtmosphere", 0, m_EnvironmentDescSet);
+    RenderDiagnostics::Get().ValidateDescriptorSet("SkyAtmosphere", 1, cameraDescSet);
+    RenderDiagnostics::Get().ValidateDescriptorSet("SkyAtmosphere", 2, m_LUTGenerator->GetSampleSet());
     vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_SkyAtmospherePipeline);
     VkDescriptorSet sets[] = { m_EnvironmentDescSet, cameraDescSet, m_LUTGenerator->GetSampleSet() };
     vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_EnvironmentPipelineLayout, 0, 3, sets, 0, nullptr);
     vkCmdDraw(cmd, 6, 1, 0, 0);
+    FrameStatsCollector::Get().AddDrawCall(2);
 }
 
 void SceneRenderer::DrawVolumetricCloudsPass(VkCommandBuffer cmd, VkDescriptorSet cameraDescSet) const {
@@ -645,8 +679,11 @@ void SceneRenderer::ApplyPostExposure(
     uint32_t height) const {
 
     if (m_PostExposurePipeline == VK_NULL_HANDLE || colorImage == VK_NULL_HANDLE || colorImageView == VK_NULL_HANDLE || width == 0 || height == 0) {
+        RenderDiagnostics::Get().ValidatePipeline("PostExposure", m_PostExposurePipeline);
         return;
     }
+
+    GpuDebugScope debugScope(cmd, "PostExposure");
 
     RefreshEnvironmentDescriptorBindings();
 
@@ -666,14 +703,14 @@ void SceneRenderer::ApplyPostExposure(
         m_BoundPostColorView = colorImageView;
     }
 
-    m_Context->TransitionImageLayout(colorImage, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_GENERAL);
+    m_Context->TransitionImageLayout(colorImage, kOffscreenColorFormat, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_GENERAL);
 
     vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, m_PostExposurePipeline);
     VkDescriptorSet sets[] = { m_EnvironmentDescSet, m_PostStorageDescSet };
     vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, m_PostPipelineLayout, 0, 2, sets, 0, nullptr);
     vkCmdDispatch(cmd, (width + 7) / 8, (height + 7) / 8, 1);
 
-    m_Context->TransitionImageLayout(colorImage, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+    m_Context->TransitionImageLayout(colorImage, kOffscreenColorFormat, VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 }
 
 void SceneRenderer::DrawMesh(VkCommandBuffer cmd, const std::string& meshName, VkDescriptorSet descriptorSet, int mode) const {

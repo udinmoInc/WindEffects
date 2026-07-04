@@ -146,8 +146,12 @@ public:
     // Helpers to create descriptor sets for rendering
     RENDERER_API void UpdateObjectDescriptorSet(VkDescriptorSet descriptorSet, VkBuffer cameraBuffer, VkBuffer objectBuffer) const;
     RENDERER_API void RefreshEnvironmentDescriptorBindings() const;
+    RENDERER_API bool ValidateRenderFrame(VkFramebuffer framebuffer, uint32_t width, uint32_t height) const;
+    RENDERER_API bool IsSkyPassReady() const { return m_SkyAtmospherePipeline != VK_NULL_HANDLE && m_LUTGenerator != nullptr; }
+    RENDERER_API bool IsPostPassReady() const { return m_PostExposurePipeline != VK_NULL_HANDLE; }
 
 private:
+    void ValidateCreatedPipelines() const;
     void CreatePipelines(VkRenderPass renderPass);
     void CreateMeshes();
     VkPipeline CreateFullscreenPipeline(

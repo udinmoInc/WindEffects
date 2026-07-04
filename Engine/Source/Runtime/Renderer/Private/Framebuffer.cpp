@@ -1,4 +1,5 @@
 #include "Renderer/Framebuffer.hpp"
+#include "Renderer/RendererConfig.hpp"
 #include "Core/Logger.hpp"
 
 #if WE_HAS_VULKAN
@@ -64,8 +65,8 @@ void Framebuffer::Resize(uint32_t width, uint32_t height, VkRenderPass renderPas
 }
 
 void Framebuffer::CreateResources(VkRenderPass renderPass) {
-    VkFormat colorFormat = VK_FORMAT_R8G8B8A8_UNORM;
-    VkFormat depthFormat = VK_FORMAT_D32_SFLOAT;
+    VkFormat colorFormat = kOffscreenColorFormat;
+    VkFormat depthFormat = kOffscreenDepthFormat;
 
     HE_INFO("Framebuffer: Creating color image & view...");
     m_Context.CreateImage(

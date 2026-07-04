@@ -1,10 +1,9 @@
 #include "EditorRegistry.hpp"
 #include "Widgets/Panel.hpp"
 #include "Widgets/OutputLogWidget.hpp"
-#include "Widgets/SearchBox.hpp"
+#include "Widgets/TextBox.hpp"
 #include "Widgets/Button.hpp"
 #include "Layout/Box.hpp"
-#include "Core/Logger.hpp"
 
 namespace we::programs::editor {
 
@@ -17,21 +16,19 @@ std::shared_ptr<we::UI::Panel> CreateOutputLogPanel() {
 
     auto outputWidget = std::make_shared<we::UI::OutputLogWidget>();
 
-    auto searchBox = std::make_shared<we::UI::SearchBox>();
-    searchBox->SetPlaceholder("Search logs...");
-    searchBox->SetFillWidth(true);
-    searchBox->SetOnTextChanged([outputWidget](const std::string& text) {
+    auto searchBox = std::make_shared<we::UI::TextBox>("", [outputWidget](const std::string& text) {
         outputWidget->SetSearchQuery(text);
     });
 
-    auto clearButton = std::make_shared<we::UI::Button>("Clear");
-    clearButton->SetOnClick([outputWidget]() { outputWidget->Clear(); });
+    auto clearButton = std::make_shared<we::UI::Button>("Clear", [outputWidget]() {
+        outputWidget->Clear();
+    });
 
     auto pauseButton = std::make_shared<we::UI::Button>("Pause");
-    pauseButton->SetOnClick([outputWidget, pauseButton]() {
+    pauseButton->SetOnClicked([outputWidget, pauseButton]() {
         const bool paused = !outputWidget->IsPaused();
         outputWidget->SetPaused(paused);
-        pauseButton->SetLabel(paused ? "Resume" : "Pause");
+        pauseButton->SetText(paused ? "Resume" : "Pause");
     });
 
     toolbar->AddChild(searchBox);

@@ -1,5 +1,6 @@
 #include "Core/Logger.hpp"
 #include "Core/FrameCounter.hpp"
+#include "Core/LogCategory.hpp"
 
 #if WE_HAS_SDL3
 #include <SDL3/SDL_messagebox.h>
@@ -101,6 +102,10 @@ void Logger::Shutdown() {
         s_LogFile.close();
     }
     s_Initialized.store(false);
+}
+
+void Logger::Log(Level level, const std::string& message) {
+    Log(level, LogCategory::General, message);
 }
 
 void Logger::Log(Level level, std::string_view category, const std::string& message, const char* file, int line, const char* function) {

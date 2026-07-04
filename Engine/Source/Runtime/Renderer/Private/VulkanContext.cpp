@@ -1,8 +1,11 @@
 #include "Renderer/VulkanContext.hpp"
-#include "Core/Logger.hpp"
+#include "Core/DiagnosticMacros.hpp"
+#include "Core/LogCategory.hpp"
 #if WE_HAS_VULKAN
 #include <SDL3/SDL_vulkan.h>
 #endif
+#include <cstdlib>
+#include <cstring>
 #include <iostream>
 #include <stdexcept>
 #include <set>
@@ -11,6 +14,42 @@
 namespace we::runtime::renderer {
 
 #if WE_HAS_VULKAN
+
+namespace {
+
+VKAPI_ATTR VkBool32 VKAPI_CALL VulkanDebugCallback(
+    VkDebugUtilsMessageSeverityFlagBitsEXT severity,
+    VkDebugUtilsMessageTypeFlagsEXT /*types*/,
+    const VkDebugUtilsMessengerCallbackDataEXT* callbackData,
+    void* /*userData*/) {
+
+    if (!callbackData || !callbackData->pMessage) {
+        return VK_FALSE;
+    }
+
+    const std::string message = callbackData->pMessage;
+    if (severity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT) {
+        WE_LOG_ERROR(LogCategory::Vulkan.data(), message);
+    } else if (severity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT) {
+        WE_LOG_WARN(LogCategory::Vulkan.data(), message);
+    } else if (severity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT) {
+        WE_LOG_INFO(LogCategory::Vulkan.data(), message);
+    } else {
+        WE_LOG_DEBUG(LogCategory::Vulkan.data(), message);
+    }
+    return VK_FALSE;
+}
+
+bool ShouldEnableValidation() {
+#if defined(_DEBUG)
+    return true;
+#else
+    const char* env = std::getenv("WE_VALIDATION");
+    return env && std::strcmp(env, "1") == 0;
+#endif
+}
+
+} // namespace
 
 VulkanContext::VulkanContext(SDL_Window* window) {
     // 1. Initialize Volk
@@ -39,6 +78,10 @@ VulkanContext::VulkanContext(SDL_Window* window) {
 }
 
 VulkanContext::~VulkanContext() {
+    if (m_Device != VK_NULL_HANDLE) {
+        vkDeviceWaitIdle(m_Device);
+    }
+    DestroyDebugMessenger();
     if (m_DescriptorPool != VK_NULL_HANDLE) {
         vkDestroyDescriptorPool(m_Device, m_DescriptorPool, nullptr);
     }
@@ -64,17 +107,18 @@ void VulkanContext::CreateInstance() {
     vkEnumerateInstanceLayerProperties(&layerCount, availableLayers.data());
 
     std::vector<const char*> validationLayers = { "VK_LAYER_KHRONOS_validation" };
-    bool enableValidation = false;
-#ifdef _DEBUG
-    for (const char* layerName : validationLayers) {
-        for (const auto& layerProperties : availableLayers) {
-            if (strcmp(layerName, layerProperties.layerName) == 0) {
-                enableValidation = true;
-                break;
+    m_ValidationEnabled = false;
+    if (ShouldEnableValidation()) {
+        for (const char* layerName : validationLayers) {
+            for (const auto& layerProperties : availableLayers) {
+                if (strcmp(layerName, layerProperties.layerName) == 0) {
+                    m_ValidationEnabled = true;
+                    break;
+                }
             }
+            if (m_ValidationEnabled) break;
         }
     }
-#endif
 
     VkApplicationInfo appInfo{};
     appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
@@ -95,17 +139,34 @@ void VulkanContext::CreateInstance() {
         throw std::runtime_error("Failed to get Vulkan instance extensions from SDL3!");
     }
     std::vector<const char*> extensions(sdlExtensions, sdlExtensions + sdlExtensionCount);
+    if (m_ValidationEnabled) {
+        extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
+    }
+
+    VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo{};
+    if (m_ValidationEnabled) {
+        debugCreateInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
+        debugCreateInfo.messageSeverity =
+            VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT |
+            VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
+        debugCreateInfo.messageType =
+            VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT |
+            VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT |
+            VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
+        debugCreateInfo.pfnUserCallback = VulkanDebugCallback;
+        createInfo.pNext = &debugCreateInfo;
+    }
 
     createInfo.enabledExtensionCount = static_cast<uint32_t>(extensions.size());
     createInfo.ppEnabledExtensionNames = extensions.data();
 
-    if (enableValidation) {
+    if (m_ValidationEnabled) {
         createInfo.enabledLayerCount = static_cast<uint32_t>(validationLayers.size());
         createInfo.ppEnabledLayerNames = validationLayers.data();
-        HE_INFO("Vulkan Validation layers enabled.");
+        WE_LOG_INFO(LogCategory::Vulkan.data(), "Vulkan validation layers enabled.");
     } else {
         createInfo.enabledLayerCount = 0;
-        HE_INFO("Vulkan Validation layers disabled or not available.");
+        WE_LOG_INFO(LogCategory::Vulkan.data(), "Vulkan validation layers disabled. Set WE_VALIDATION=1 to enable.");
     }
 
     VkResult result = vkCreateInstance(&createInfo, nullptr, &m_Instance);
@@ -115,6 +176,37 @@ void VulkanContext::CreateInstance() {
 
     // Load instance-specific functions
     volkLoadInstance(m_Instance);
+    CreateDebugMessenger();
+}
+
+void VulkanContext::CreateDebugMessenger() {
+    if (!m_ValidationEnabled || vkCreateDebugUtilsMessengerEXT == nullptr) {
+        return;
+    }
+
+    VkDebugUtilsMessengerCreateInfoEXT createInfo{};
+    createInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
+    createInfo.messageSeverity =
+        VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT |
+        VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT |
+        VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
+    createInfo.messageType =
+        VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT |
+        VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT |
+        VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
+    createInfo.pfnUserCallback = VulkanDebugCallback;
+
+    if (vkCreateDebugUtilsMessengerEXT(m_Instance, &createInfo, nullptr, &m_DebugMessenger) != VK_SUCCESS) {
+        WE_LOG_WARN(LogCategory::Vulkan.data(), "Failed to create Vulkan debug messenger.");
+        m_DebugMessenger = VK_NULL_HANDLE;
+    }
+}
+
+void VulkanContext::DestroyDebugMessenger() {
+    if (m_Instance != VK_NULL_HANDLE && m_DebugMessenger != VK_NULL_HANDLE && vkDestroyDebugUtilsMessengerEXT != nullptr) {
+        vkDestroyDebugUtilsMessengerEXT(m_Instance, m_DebugMessenger, nullptr);
+        m_DebugMessenger = VK_NULL_HANDLE;
+    }
 }
 
 void VulkanContext::CreateSurface(SDL_Window* window) {

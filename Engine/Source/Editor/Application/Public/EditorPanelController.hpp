@@ -22,7 +22,8 @@ enum class EditorPanelId {
     Explorer,
     Details,
     ViewportNavigation,
-    Debug
+    Debug,
+    OutputLog
 };
 
 enum class EditorDockZone {
