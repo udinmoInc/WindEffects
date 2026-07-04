@@ -8,26 +8,6 @@
 
 namespace {
 
-constexpr const char* kFeatureModuleDlls[] = {
-    "WEApplication.dll",
-    "WEMainFrame.dll",
-    "WEViewport.dll",
-    "WEDocking.dll",
-    "WEContentBrowser.dll",
-    "WEWorldOutliner.dll",
-    "WEPropertyEditor.dll",
-    "WEToolbar.dll",
-    "WEMenus.dll",
-    "WEDetails.dll",
-    "WEToolsPanel.dll",
-    "WEPlaceActors.dll",
-    "WEEnvironment.dll",
-    "WEEditorGridRenderer.dll",
-    "WERenderer.dll",
-    "WEScene.dll",
-    "WEWorld.dll",
-};
-
 HMODULE LoadResolvedDelayLoadDll(const char* dllName) {
     if (dllName == nullptr || dllName[0] == '\0') {
         return nullptr;
@@ -44,28 +24,11 @@ HMODULE LoadResolvedDelayLoadDll(const char* dllName) {
         LOAD_WITH_ALTERED_SEARCH_PATH);
 }
 
-void PreloadFeatureModules() {
-    we::core::ConfigureModuleSearchPaths();
-
-    for (const char* dllName : kFeatureModuleDlls) {
-        LoadResolvedDelayLoadDll(dllName);
-    }
-}
-
-struct EditorModuleBootstrap {
-    EditorModuleBootstrap() {
-        PreloadFeatureModules();
-    }
-};
-
-#pragma init_seg(lib)
-EditorModuleBootstrap g_EditorModuleBootstrap;
-
 } // namespace
 
 extern "C" {
 
-FARPROC WINAPI DelayLoadNotify(unsigned reason, DelayLoadInfo* info) {
+FARPROC WINAPI CoreDelayLoadNotify(unsigned reason, DelayLoadInfo* info) {
     if (reason != dliNotePreLoadLibrary || info == nullptr || info->szDll == nullptr) {
         return 0;
     }
@@ -78,7 +41,7 @@ FARPROC WINAPI DelayLoadNotify(unsigned reason, DelayLoadInfo* info) {
     return 0;
 }
 
-FARPROC WINAPI DelayLoadFailureHook(unsigned reason, DelayLoadInfo* info) {
+FARPROC WINAPI CoreDelayLoadFailureHook(unsigned reason, DelayLoadInfo* info) {
     if (reason != dliFailLoadLib || info == nullptr || info->szDll == nullptr) {
         return 0;
     }
@@ -91,8 +54,8 @@ FARPROC WINAPI DelayLoadFailureHook(unsigned reason, DelayLoadInfo* info) {
     return 0;
 }
 
-const PfnDliHook __pfnDliNotifyHook2 = DelayLoadNotify;
-const PfnDliHook __pfnDliFailureHook2 = DelayLoadFailureHook;
+const PfnDliHook __pfnDliNotifyHook2 = CoreDelayLoadNotify;
+const PfnDliHook __pfnDliFailureHook2 = CoreDelayLoadFailureHook;
 
 } // extern "C"
 
