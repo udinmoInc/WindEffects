@@ -41,6 +41,7 @@ public static class CleanCommand
 
             var buildConfig = CommandLineHelpers.ParseConfiguration(config);
             var layout = BuildLayout.Resolve(currentDir, platform, buildConfig);
+            var outputLayout = new OutputLayout(layout, engineDir);
             
             var discovery = new ModuleDiscoverer(engineDir, config, platform);
             var modules = await discovery.DiscoverModulesAsync();
@@ -51,6 +52,7 @@ public static class CleanCommand
             }
             else
             {
+                outputLayout.RegisterModules(modules);
                 var graph = new DependencyGraph();
                 graph.BuildFromModules(modules);
                 var buildOrder = graph.GetBuildOrder();
@@ -58,7 +60,7 @@ public static class CleanCommand
 
                 foreach (var node in buildOrder)
                 {
-                    CleanModule(node, layout);
+                    CleanModule(node, layout, outputLayout);
                 }
             }
 
@@ -131,12 +133,15 @@ public static class CleanCommand
             || fullPath.StartsWith(fullRoot + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase);
     }
 
-    private static void CleanModule(BuildNode node, BuildLayout layout)
+    private static void CleanModule(BuildNode node, BuildLayout layout, OutputLayout outputLayout)
     {
         Log.Information("Cleaning module: {ModuleName}", node.Name);
 
         CleanDirectory(layout.GetModuleObjectsDirectory(node.Name), $"objects for {node.Name}");
         CleanDirectory(layout.GetModuleGeneratedDirectory(node.Name), $"generated files for {node.Name}");
+        CleanDirectory(layout.GetModuleImportLibraryDirectory(node.Name), $"import library for {node.Name}");
+
+        TryDeleteFile(outputLayout.GetModuleBinaryPath(node.Module), $"binary for {node.Name}");
     }
 
     private static void CleanDirectory(string path, string description)
