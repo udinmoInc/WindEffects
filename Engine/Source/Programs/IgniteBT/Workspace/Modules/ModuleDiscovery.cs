@@ -178,7 +178,8 @@ public class ModuleDiscoverer
             IsPlugin = moduleInstance.IsPlugin,
             IsBootstrapBinary = moduleInstance.IsBootstrapBinary,
             BinaryName = moduleInstance.BinaryName,
-            OutputPlacement = moduleInstance.OutputPlacement
+            OutputPlacement = moduleInstance.OutputPlacement,
+            PlatformSettings = moduleInstance.PlatformSettings
         };
 
         if (discoveredModule.IsDisabled)
@@ -240,4 +241,5 @@ public class DiscoveredModule
     public bool IsBootstrapBinary { get; set; }
     public string? BinaryName { get; set; }
     public OutputPlacement OutputPlacement { get; set; } = OutputPlacement.Unspecified;
+    public PlatformSettings PlatformSettings { get; set; } = new();
 }

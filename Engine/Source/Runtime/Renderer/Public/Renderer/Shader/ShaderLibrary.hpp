@@ -18,6 +18,11 @@ namespace we::runtime::renderer {
 
 #if WE_HAS_VULKAN
 
+#if defined(_MSC_VER)
+#pragma warning(push)
+#pragma warning(disable : 4251)
+#endif
+
 // Central shader library: bytecode loading, hot reload, permutations, PSO cache.
 class RENDERER_API ShaderLibrary {
 public:
@@ -54,6 +59,10 @@ private:
     ShaderPipelineCache m_PipelineCache;
     std::unordered_map<std::string, ShaderBytecode> m_BytecodeCache;
 };
+
+#if defined(_MSC_VER)
+#pragma warning(pop)
+#endif
 
 #endif // WE_HAS_VULKAN
 

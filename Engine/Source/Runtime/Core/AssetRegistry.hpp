@@ -30,6 +30,11 @@ struct AssetLoadResult {
     bool found = false;
 };
 
+#if defined(_MSC_VER)
+#pragma warning(push)
+#pragma warning(disable : 4251)
+#endif
+
 class CORE_API AssetRegistry {
 public:
     static AssetRegistry& Get();
@@ -70,5 +75,9 @@ private:
     std::unordered_map<std::string, std::string> m_IconPaths;
     std::vector<AssetLoadResult> m_LastLoadResults;
 };
+
+#if defined(_MSC_VER)
+#pragma warning(pop)
+#endif
 
 } // namespace we::core
