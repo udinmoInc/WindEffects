@@ -103,9 +103,11 @@ SceneRenderer::SceneRenderer(const std::shared_ptr<VulkanContext>& context, VkRe
 
     // 3. Create Pipelines
     CreatePipelines(renderPass);
+    HE_INFO("SceneRenderer: Pipelines created.");
 
     // 4. Create Ground Plane and Cube Meshes
     CreateMeshes();
+    HE_INFO("SceneRenderer: Meshes created.");
 }
 
 SceneRenderer::~SceneRenderer() {
@@ -329,6 +331,7 @@ void SceneRenderer::CreatePipelines(VkRenderPass renderPass) {
             vkDestroyShaderModule(device, fragModule, nullptr);
             return;
         }
+        HE_INFO("SceneRenderer: Unlit mesh pipeline created.");
 
         // 2c. Wireframe Pipeline (Non-solid, Cull None)
         rasterizer.polygonMode = VK_POLYGON_MODE_LINE;
@@ -339,6 +342,7 @@ void SceneRenderer::CreatePipelines(VkRenderPass renderPass) {
             vkDestroyShaderModule(device, fragModule, nullptr);
             return;
         }
+        HE_INFO("SceneRenderer: Wireframe mesh pipeline created.");
 
         vkDestroyShaderModule(device, vertModule, nullptr);
         vkDestroyShaderModule(device, fragModule, nullptr);
