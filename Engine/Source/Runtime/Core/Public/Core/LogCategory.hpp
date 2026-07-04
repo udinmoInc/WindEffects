@@ -32,3 +32,7 @@ namespace LogCategory {
 namespace we::runtime::LogCategory {
     using namespace core::LogCategory;
 }
+
+namespace we::LogCategory {
+    using namespace runtime::core::LogCategory;
+}

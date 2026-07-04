@@ -15,6 +15,8 @@ public:
     ~OutputLogWidget() override;
 
     void Tick(float deltaTime) override;
+    Size Measure(const Size& availableSize) override;
+    void Arrange(const Rect& allottedRect) override;
     void Paint(PaintContext& context) override;
 
     void SetPaused(bool paused) { m_Paused = paused; }

@@ -977,7 +977,7 @@ void Editor::MainLoop() {
             m_SceneRenderer->ValidateRenderFrame(offscreenFB.GetFramebuffer(), offscreenFB.GetWidth(), offscreenFB.GetHeight());
 
             if (firstFrame) {
-                WE_LOG_INFO(LogCategory::Renderer.data(), "First frame: offscreen 3D pass -> post exposure -> swapchain UI pass -> present");
+                WE_LOG_INFO(we::LogCategory::Renderer.data(), "First frame: offscreen 3D pass -> post exposure -> swapchain UI pass -> present");
             }
 
             const auto passStart = std::chrono::steady_clock::now();

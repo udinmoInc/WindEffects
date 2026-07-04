@@ -40,40 +40,42 @@ std::string Logger::s_LogFilePath;
 std::string Logger::s_SessionDirectory;
 
 void Logger::Init() {
-    std::lock_guard<std::mutex> lock(s_Mutex);
-    if (s_Initialized.load()) return;
+    LogRecord startup{};
+    {
+        std::lock_guard<std::mutex> lock(s_Mutex);
+        if (s_Initialized.load()) return;
 
-    const auto now = std::chrono::system_clock::now();
-    const auto epoch = std::chrono::duration_cast<std::chrono::seconds>(now.time_since_epoch()).count();
-    s_SessionDirectory = "Saved/Logs/Sessions/Session_" + std::to_string(epoch);
-    std::error_code ec;
-    std::filesystem::create_directories(s_SessionDirectory, ec);
-    std::filesystem::create_directories("Saved/Logs", ec);
-    std::filesystem::create_directories("Saved/Crashes", ec);
+        const auto now = std::chrono::system_clock::now();
+        const auto epoch = std::chrono::duration_cast<std::chrono::seconds>(now.time_since_epoch()).count();
+        s_SessionDirectory = "Saved/Logs/Sessions/Session_" + std::to_string(epoch);
+        std::error_code ec;
+        std::filesystem::create_directories(s_SessionDirectory, ec);
+        std::filesystem::create_directories("Saved/Logs", ec);
+        std::filesystem::create_directories("Saved/Crashes", ec);
 
-    s_LogFilePath = s_SessionDirectory + "/WindEffects.log";
-    s_LogFile.open(s_LogFilePath, std::ios::out | std::ios::trunc);
-    if (!s_LogFile.is_open()) {
-        s_LogFilePath = "Saved/Logs/WindEffects.log";
+        s_LogFilePath = s_SessionDirectory + "/WindEffects.log";
         s_LogFile.open(s_LogFilePath, std::ios::out | std::ios::trunc);
+        if (!s_LogFile.is_open()) {
+            s_LogFilePath = "Saved/Logs/WindEffects.log";
+            s_LogFile.open(s_LogFilePath, std::ios::out | std::ios::trunc);
+        }
+
+        s_Running.store(true);
+        s_WriterThread = std::thread(WriterThreadMain);
+        s_Initialized.store(true);
+
+        startup.level = Level::Info;
+        startup.category = "Startup";
+        startup.message = "WindEffects logger initialized. Session log: " + s_LogFilePath;
+        startup.timestamp = GetCurrentTimestamp();
+        startup.frameNumber = FrameCounter::GetFrameNumber();
+#if defined(_WIN32)
+        startup.threadId = static_cast<uint32_t>(GetCurrentThreadId());
+#endif
+        startup.formattedText = FormatRecord(startup);
     }
 
-    s_Running.store(true);
-    s_WriterThread = std::thread(WriterThreadMain);
-    s_Initialized.store(true);
-
-    LogRecord startup{};
-    startup.level = Level::Info;
-    startup.category = "Startup";
-    startup.message = "WindEffects logger initialized. Session log: " + s_LogFilePath;
-    startup.timestamp = GetCurrentTimestamp();
-    startup.frameNumber = FrameCounter::GetFrameNumber();
-#if defined(_WIN32)
-    startup.threadId = static_cast<uint32_t>(GetCurrentThreadId());
-#endif
-    startup.formattedText = FormatRecord(startup);
     EnqueueRecord(std::move(startup), true);
-
     SetupCrashHandler();
 }
 

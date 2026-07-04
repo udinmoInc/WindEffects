@@ -1,4 +1,5 @@
 #include "Widgets/OutputLogWidget.hpp"
+#include "Core/PaintContext.hpp"
 #include "Core/Theme.hpp"
 
 namespace we::UI {
@@ -8,18 +9,18 @@ OutputLogWidget::OutputLogWidget() {
         m_Records.push_back(record);
     }
     RebuildVisibleLines();
-
-    we::Logger::AddListener([this](const we::Logger::LogRecord& record) {
-        if (m_Paused) return;
-        std::lock_guard<std::mutex> lock(m_Mutex);
-        m_Records.push_back(record);
-        while (m_Records.size() > kMaxStoredRecords) {
-            m_Records.pop_front();
-        }
-    });
 }
 
 OutputLogWidget::~OutputLogWidget() = default;
+
+Size OutputLogWidget::Measure(const Size& availableSize) {
+    m_DesiredSize = availableSize;
+    return m_DesiredSize;
+}
+
+void OutputLogWidget::Arrange(const Rect& allottedRect) {
+    m_Geometry = allottedRect;
+}
 
 void OutputLogWidget::Tick(float /*deltaTime*/) {
     if (m_Paused) return;
@@ -89,23 +90,35 @@ void OutputLogWidget::RebuildVisibleLines() {
 void OutputLogWidget::Paint(PaintContext& context) {
     if (!m_Visible) return;
 
+    std::vector<std::string> visibleLines;
+    std::vector<we::Logger::Level> visibleLevels;
+    float scrollOffset = 0.0f;
+    Rect geometry;
+    {
+        std::lock_guard<std::mutex> lock(m_Mutex);
+        visibleLines = m_VisibleLines;
+        visibleLevels = m_VisibleLevels;
+        scrollOffset = m_ScrollOffset;
+        geometry = m_Geometry;
+    }
+
     const Theme& theme = Theme::Get();
-    context.DrawRect(m_Geometry, theme.PanelBackground);
+    context.DrawRect(geometry, theme.PanelBackground);
 
     const float lineHeight = 14.0f;
-    float y = m_Geometry.y + 4.0f - m_ScrollOffset;
-    const float maxY = m_Geometry.y + m_Geometry.height;
+    float y = geometry.y + 4.0f - scrollOffset;
+    const float maxY = geometry.y + geometry.height;
 
-    for (size_t i = 0; i < m_VisibleLines.size(); ++i) {
-        if (y + lineHeight < m_Geometry.y) {
+    for (size_t i = 0; i < visibleLines.size(); ++i) {
+        if (y + lineHeight < geometry.y) {
             y += lineHeight;
             continue;
         }
         if (y > maxY) break;
         context.DrawText(
-            m_VisibleLines[i],
-            Point{ m_Geometry.x + 6.0f, y },
-            LevelColor(m_VisibleLevels[i]),
+            visibleLines[i],
+            Point{ geometry.x + 6.0f, y },
+            LevelColor(visibleLevels[i]),
             12.0f);
         y += lineHeight;
     }
