@@ -113,6 +113,7 @@ public static class BuildCommand
             outputLayout.PrepareModuleDirectories(modules);
             outputLayout.StageEngineAssets(modules);
             ShaderBytecodeCompiler.CompileAndStage(engineDir, outputLayout.ConfigurationRoot);
+    SyncEngineShaderBytecodes(engineDir, outputLayout.ConfigurationRoot);
             
             // Build dependency graph
             var graph = new DependencyGraph();
@@ -734,5 +735,70 @@ public static class BuildCommand
             "mac" or "macos" => IgniteBT.Build.Compiler.TargetPlatform.MacOS,
             _ => IgniteBT.Build.Compiler.TargetPlatform.Windows
         };
+    }
+
+    private static void SyncEngineShaderBytecodes(string engineDir, string configurationRoot)
+    {
+        var compileScript = Path.Combine(engineDir, "Shaders", "CompileShaders.ps1");
+        var engineBytecodeDir = Path.Combine(engineDir, "Shaders", "Bytecodes");
+
+        if (File.Exists(compileScript))
+        {
+            Log.Information("Compiling engine shader bytecodes via {Script}", compileScript);
+            var psi = new System.Diagnostics.ProcessStartInfo
+            {
+                FileName = "powershell.exe",
+                Arguments = $"-NoProfile -ExecutionPolicy Bypass -File \"{compileScript}\" -EngineRoot \"{engineDir}\" -OutputDir \"{engineBytecodeDir}\"",
+                WorkingDirectory = engineDir,
+                UseShellExecute = false,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                CreateNoWindow = true
+            };
+
+            using var process = System.Diagnostics.Process.Start(psi);
+            if (process == null)
+            {
+                Log.Warning("Failed to start shader compile script.");
+                return;
+            }
+
+            var stdout = process.StandardOutput.ReadToEnd();
+            var stderr = process.StandardError.ReadToEnd();
+            process.WaitForExit();
+
+            if (!string.IsNullOrWhiteSpace(stdout))
+            {
+                Log.Information(stdout.TrimEnd());
+            }
+
+            if (process.ExitCode != 0)
+            {
+                Log.Error("Shader compile script failed with exit code {ExitCode}", process.ExitCode);
+                if (!string.IsNullOrWhiteSpace(stderr))
+                {
+                    Log.Error(stderr.TrimEnd());
+                }
+                throw new InvalidOperationException("Engine shader bytecode compilation failed.");
+            }
+
+            return;
+        }
+
+        var stagedBytecodeDir = Path.Combine(configurationRoot, "Engine", "Shaders", "Bytecodes");
+        if (!Directory.Exists(stagedBytecodeDir))
+        {
+            Log.Warning("No shader bytecodes found to sync (missing {Dir})", stagedBytecodeDir);
+            return;
+        }
+
+        Directory.CreateDirectory(engineBytecodeDir);
+        foreach (var file in Directory.GetFiles(stagedBytecodeDir, "*.spv"))
+        {
+            var destination = Path.Combine(engineBytecodeDir, Path.GetFileName(file));
+            File.Copy(file, destination, overwrite: true);
+        }
+
+        Log.Information("Synced shader bytecodes from {Source} to {Destination}", stagedBytecodeDir, engineBytecodeDir);
     }
 }

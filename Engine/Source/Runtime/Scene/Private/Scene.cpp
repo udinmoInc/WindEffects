@@ -275,6 +275,15 @@ void Scene::Draw(VkCommandBuffer cmd, DrawMode drawMode) const {
         if (drawMode == DrawMode::Game && entity.EditorOnly) {
             continue;
         }
+        switch (entity.Type) {
+        case EntityType::SkyLight:
+        case EntityType::SkyAtmosphere:
+        case EntityType::HeightFog:
+        case EntityType::VolumetricClouds:
+            continue;
+        default:
+            break;
+        }
         m_Renderer->DrawMesh(cmd, MeshNameForEntityType(entity.Type), entity.DescriptorSet, entity.Mode);
     }
 }

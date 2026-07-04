@@ -28,6 +28,11 @@ bool IsEnvironmentEntityType(EntityType type) {
     }
 }
 
+bool IsExposureControllerEntity(const Entity& entity) {
+    return entity.Name == kExposureControllerActorName
+        && entity.Type == EntityType::EmptyActor;
+}
+
 } // namespace
 
 EnvironmentSystem& EnvironmentSystem::Get() {
@@ -62,7 +67,8 @@ bool EnvironmentSystem::HasEnvironmentActors() const {
         || m_SkyLight.EntityId != 0
         || m_SkyAtmosphere.EntityId != 0
         || m_HeightFog.EntityId != 0
-        || m_VolumetricClouds.EntityId != 0;
+        || m_VolumetricClouds.EntityId != 0
+        || m_ExposureController.EntityId != 0;
 }
 
 bool EnvironmentSystem::ActorExists(EntityType type, const char* name) const {
@@ -99,6 +105,8 @@ void EnvironmentSystem::ApplySettingsToComponents(const EnvironmentSettings& set
     m_VolumetricClouds.Enabled = settings.createVolumetricClouds;
     m_VolumetricClouds.Coverage = settings.cloudCoverage;
     m_VolumetricClouds.Altitude = settings.cloudAltitude;
+
+    m_ExposureController.ApplyDefaults();
 }
 
 void EnvironmentSystem::ApplyComponentsToActors() {
@@ -226,6 +234,7 @@ void EnvironmentSystem::DiscoverExistingActors() {
     m_SkyAtmosphere.EntityId = 0;
     m_HeightFog.EntityId = 0;
     m_VolumetricClouds.EntityId = 0;
+    m_ExposureController.EntityId = 0;
 
     for (const Entity& entity : scene->GetEntities()) {
         if (entity.Name == kEnvironmentFolderName && entity.Type == EntityType::EmptyActor) {
@@ -264,6 +273,10 @@ void EnvironmentSystem::DiscoverExistingActors() {
             m_VolumetricClouds.Enabled = true;
             continue;
         }
+        if (IsExposureControllerEntity(entity)) {
+            m_ExposureController.EntityId = entity.Id;
+            continue;
+        }
     }
 
     ReparentEnvironmentActors();
@@ -295,6 +308,7 @@ void EnvironmentSystem::ReparentEnvironmentActors() {
     reparent(m_SkyAtmosphere.EntityId);
     reparent(m_HeightFog.EntityId);
     reparent(m_VolumetricClouds.EntityId);
+    reparent(m_ExposureController.EntityId);
 }
 
 bool EnvironmentSystem::EnsureDefaultEnvironment() {
@@ -379,6 +393,13 @@ void EnvironmentSystem::CreateEnvironment() {
         }
     }
 
+    if (m_ExposureController.EntityId == 0) {
+        m_ExposureController.EntityId = SpawnActor(kExposureControllerActorName, EntityType::EmptyActor, folderId, [&](Entity& entity) {
+            entity.Position = glm::vec3(0.0f);
+            entity.Scale = glm::vec3(0.3f);
+        });
+    }
+
     UpdateRendering();
     ApplyComponentsToActors();
     NotifyChanged();
@@ -403,6 +424,7 @@ void EnvironmentSystem::RemoveEnvironment() {
         DestroyActor(m_SkyAtmosphere.EntityId);
         DestroyActor(m_HeightFog.EntityId);
         DestroyActor(m_VolumetricClouds.EntityId);
+        DestroyActor(m_ExposureController.EntityId);
     }
 
     m_FolderEntityId = 0;
@@ -412,6 +434,7 @@ void EnvironmentSystem::RemoveEnvironment() {
     m_SkyAtmosphere.EntityId = 0;
     m_HeightFog.EntityId = 0;
     m_VolumetricClouds.EntityId = 0;
+    m_ExposureController.EntityId = 0;
 
     UpdateRendering();
     NotifyChanged();
@@ -549,7 +572,7 @@ void EnvironmentSystem::UpdateRendering(const glm::vec3& cameraPosition) {
     if (auto renderer = m_Renderer.lock()) {
         const glm::vec3 worldOrigin = m_Manager.GetWorldOrigin(cameraPosition);
         renderer->SetSceneEnvironment(BuildSceneEnvironmentUniform(
-            m_Sun, m_SkyLight, m_SkyAtmosphere, m_HeightFog, m_VolumetricClouds, worldOrigin));
+            m_Sun, m_SkyLight, m_SkyAtmosphere, m_HeightFog, m_VolumetricClouds, m_ExposureController, worldOrigin));
     }
 #endif
 }
@@ -562,6 +585,7 @@ EnvironmentActorKind EnvironmentSystem::GetActorKind(std::uint64_t entityId) con
     if (entityId == m_SkyAtmosphere.EntityId) return EnvironmentActorKind::SkyAtmosphere;
     if (entityId == m_HeightFog.EntityId) return EnvironmentActorKind::HeightFog;
     if (entityId == m_VolumetricClouds.EntityId) return EnvironmentActorKind::VolumetricClouds;
+    if (entityId == m_ExposureController.EntityId) return EnvironmentActorKind::ExposureController;
     return EnvironmentActorKind::Folder;
 }
 
