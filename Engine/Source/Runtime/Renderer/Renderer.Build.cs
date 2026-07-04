@@ -24,6 +24,10 @@ public class Renderer : ModuleRules
         DefineIf(HasSDK("SDL3"), "WE_HAS_SDL3=1");
         DefineIf(!HasSDK("SDL3"), "WE_HAS_SDL3=0");
 
+        AddOptionalThirdParty("glm");
+        DefineIf(HasThirdParty("glm"), "WE_HAS_GLM=1");
+        DefineIf(!HasThirdParty("glm"), "WE_HAS_GLM=0");
+
         Definitions.Add("RENDERER_EXPORTS");
     }
 }
