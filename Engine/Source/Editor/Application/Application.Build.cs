@@ -6,6 +6,9 @@ public class Application : ModuleRules
     {
         Type = ModuleType.Executable;
 
+        SetBinaryName("WindeffectsEditor.exe");
+        PublishAtConfigurationRoot();
+
         PublicIncludePaths.Add("Public");
         PrivateIncludePaths.Add("Private");
 
