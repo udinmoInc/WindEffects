@@ -142,6 +142,36 @@ public class SDKResolver
         
         return await Task.FromResult(result);
     }
+
+    /// <summary>
+    /// Detects bundled Vulkan headers and loader under Engine/ThirdParty.
+    /// </summary>
+    private async Task<SDKScanResult> ScanBundledVulkanAsync()
+    {
+        var result = new SDKScanResult();
+        var engineRoot = FindEngineRoot();
+        if (string.IsNullOrEmpty(engineRoot))
+        {
+            return result;
+        }
+
+        var thirdPartyRoot = Path.Combine(engineRoot, "ThirdParty");
+        var vulkanHeaders = Path.Combine(thirdPartyRoot, "Vulkan-Headers", "include", "vulkan", "vulkan.h");
+        var volkHeader = Path.Combine(thirdPartyRoot, "volk", "volk.h");
+        var loaderLib = Path.Combine(thirdPartyRoot, "Vulkan-Loader", "build", "loader", "Release", "vulkan-1.lib");
+
+        result.SearchLocations.Add(vulkanHeaders);
+        result.SearchLocations.Add(volkHeader);
+        result.SearchLocations.Add(loaderLib);
+
+        if (File.Exists(vulkanHeaders) && File.Exists(volkHeader))
+        {
+            result.Success = true;
+            result.Value = thirdPartyRoot;
+        }
+
+        return await Task.FromResult(result);
+    }
     
     /// <summary>
     /// Attempts to find the engine root directory.

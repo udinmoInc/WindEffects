@@ -517,6 +517,21 @@ public static class BuildCommand
                     }
                 }
             }
+            else if (sdkName.Equals("VulkanSDK", StringComparison.OrdinalIgnoreCase))
+            {
+                var vulkanLib = sdkInfo.LibraryPaths
+                    .SelectMany(dir => Directory.Exists(dir) ? Directory.GetFiles(dir, "vulkan-1.lib") : Array.Empty<string>())
+                    .FirstOrDefault();
+
+                if (vulkanLib != null)
+                {
+                    const string libFile = "vulkan-1.lib";
+                    if (!linkOptions.Libraries.Contains(libFile))
+                    {
+                        linkOptions.Libraries.Add(libFile);
+                    }
+                }
+            }
         }
 
         // Link against module dependency import libraries

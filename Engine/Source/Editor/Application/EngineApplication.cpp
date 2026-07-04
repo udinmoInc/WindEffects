@@ -18,6 +18,7 @@ void EngineApplication::Initialize() {
 }
 
 void EngineApplication::InitWindow() {
+#if WE_HAS_SDL3
     if (!SDL_Init(SDL_INIT_VIDEO)) {
         throw std::runtime_error("Failed to initialize SDL");
     }
@@ -43,14 +44,19 @@ void EngineApplication::InitWindow() {
     SDL_SetWindowHitTest(m_Window, HitTestCallback, this);
     SDL_SetWindowPosition(m_Window, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
     SDL_ShowWindow(m_Window);
+#else
+    throw std::runtime_error("SDL3 is required to run the editor.");
+#endif
 }
 
 void EngineApplication::Shutdown() {
+#if WE_HAS_SDL3
     if (m_Window) {
         SDL_DestroyWindow(m_Window);
         m_Window = nullptr;
     }
     SDL_Quit();
+#endif
 }
 
 void EngineApplication::Run() {
@@ -61,6 +67,7 @@ void EngineApplication::Run() {
         float deltaTime = std::chrono::duration<float>(currentTime - lastTime).count();
         lastTime = currentTime;
 
+#if WE_HAS_SDL3
         SDL_Event event;
         while (SDL_PollEvent(&event)) {
             if (event.type == SDL_EVENT_QUIT) {
@@ -71,14 +78,16 @@ void EngineApplication::Run() {
             }
             OnEvent(event);
         }
+#endif
 
         OnUpdate(deltaTime);
         OnRender();
     }
 }
 
+#if WE_HAS_SDL3
 SDL_HitTestResult SDLCALL EngineApplication::HitTestCallback(SDL_Window* win, const SDL_Point* area, void* data) {
-    // Basic hit test logic for borderless window resizing
+    (void)data;
     int w, h;
     SDL_GetWindowSize(win, &w, &h);
     const int resizeBorder = 8;
@@ -104,5 +113,6 @@ SDL_HitTestResult SDLCALL EngineApplication::HitTestCallback(SDL_Window* win, co
 
     return SDL_HITTEST_NORMAL;
 }
+#endif
 
 } // namespace we::editor::application
