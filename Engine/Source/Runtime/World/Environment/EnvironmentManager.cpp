@@ -79,6 +79,16 @@ float EnvironmentManager::ComputeExposureEV(const EnvironmentDirectionalLight& s
     return ev;
 }
 
+float EnvironmentManager::ComputeHdrSkyLuminance(
+    const EnvironmentDirectionalLight& sun,
+    const EnvironmentSkyAtmosphere& atmosphere) const {
+    const glm::vec3 sunDir = SunDirectionToSky(sun.GetLightDirection());
+    const float elevation = Clamp01(sunDir.y);
+    const glm::vec3 upper = ComputeSkyLightUpper(sun, atmosphere);
+    const float sunDisk = sun.Intensity * Clamp01(elevation * 3.0f + 0.05f);
+    return glm::dot(upper, glm::vec3(0.2126f, 0.7152f, 0.0722f)) + sunDisk * 0.15f;
+}
+
 void EnvironmentManager::UpdateDerivedState(
     EnvironmentDirectionalLight& sun,
     EnvironmentSkyLight& skyLight,

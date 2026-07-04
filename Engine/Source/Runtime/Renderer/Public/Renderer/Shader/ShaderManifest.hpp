@@ -9,6 +9,8 @@ inline constexpr const char* FogCompositePass = "FogCompositePass";
 inline constexpr const char* EditorGrid = "EditorGrid";
 inline constexpr const char* SceneObject = "SceneObject";
 inline constexpr const char* UI = "UI";
+inline constexpr const char* PostExposurePass = "PostExposurePass";
+inline constexpr const char* PostExposureCS = "PostExposureCS";
 
 // Planned rendering passes (sources under Engine/Shaders/).
 inline constexpr const char* DeferredGBuffer = "DeferredGBuffer";

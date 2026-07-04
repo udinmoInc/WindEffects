@@ -1,8 +1,8 @@
 #ifndef WE_SKY_ATMOSPHERE_HLSLI
 #define WE_SKY_ATMOSPHERE_HLSLI
 
-#include "../Common/Math.hlsli"
 #include "../Common/Color.hlsli"
+#include "AtmosphereLUT.hlsli"
 
 // Camera-centered procedural atmosphere — no textures, gradients, or hardcoded sky colors.
 // Rayleigh + Mie + ozone absorption + multi-scattering approximation + aerial perspective.
@@ -225,18 +225,20 @@ float3 WE_SampleSkyAtmosphere(
     float eyeAltitude)
 {
     const float3 sunDir = normalize(-lightTravelDir);
-
+    const float3 sunLinear = WE_sRGBToLinear(saturate(sunColor));
     WE_AtmosphereParams params = WE_BuildAtmosphereParams(
         rayleighCoeff, mieCoeff, ozoneCoeff, mieAnisotropy,
         planetRadius, atmosphereHeight, multiScatterStrength, eyeAltitude,
-        sunColor, sunIntensity);
+        sunLinear, sunIntensity, WE_SUN_ANGULAR_RADIUS);
 
-    float3 sky = WE_ComputeAtmosphereScattering(viewDir, sunDir, cameraPos, worldOrigin, params);
-    sky += WE_ComputeSunDisk(viewDir, sunDir, sunIntensity, sunColor);
+    const float3 planetCenter = WE_GetPlanetCenter(cameraPos, worldOrigin, params.planetRadius);
+    const float3 origin = (cameraPos - worldOrigin) - planetCenter;
+    float3 transmittance;
+    float3 sky = WE_IntegrateInscattering(viewDir, sunDir, origin, params, transmittance);
+    sky += WE_ComputeSunDisk(viewDir, sunDir, sunIntensity, sunLinear, params.sunAngularRadius);
     return max(sky, 0.0);
 }
 
-// Hemisphere skylight capture — integrates procedural sky at fixed directions (no hardcoded colors).
 float3 WE_SampleSkyLightHemisphere(
     float3 lightTravelDir,
     float3 cameraPos,
@@ -269,19 +271,6 @@ float3 WE_SampleSkyLightHemisphere(
             planetRadius, atmosphereHeight, multiScatterStrength, eyeAltitude);
     }
     return sum / float(samples);
-}
-
-float WE_ComputeExposureEV(float3 lightTravelDir, float baseEV, float compensation)
-{
-    const float sunElevation = normalize(-lightTravelDir).y;
-    const float dayFactor = saturate(sunElevation * 2.5 + 0.1);
-    const float twilightFactor = saturate(1.0 - abs(sunElevation) * 3.0);
-    const float nightEV = baseEV - 5.0;
-    const float dayEV = baseEV + 1.0;
-    const float twilightEV = baseEV - 1.5;
-    float ev = lerp(nightEV, dayEV, dayFactor);
-    ev = lerp(ev, twilightEV, twilightFactor * (1.0 - dayFactor));
-    return ev + compensation;
 }
 
 #endif // WE_SKY_ATMOSPHERE_HLSLI
