@@ -49,9 +49,12 @@ public:
     RENDERER_API void EndSingleTimeCommands(VkCommandBuffer commandBuffer) const;
     RENDERER_API void TransitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout) const;
     RENDERER_API void WaitUntilIdle() const;
+    RENDERER_API bool IsValidationEnabled() const { return m_ValidationEnabled; }
 
 private:
     void CreateInstance();
+    void CreateDebugMessenger();
+    void DestroyDebugMessenger();
     void CreateSurface(SDL_Window* window);
     void PickPhysicalDevice();
     void CreateLogicalDevice();
@@ -72,6 +75,8 @@ private:
 
     std::string m_GPUName;
     std::string m_RendererName;
+    bool m_ValidationEnabled = false;
+    VkDebugUtilsMessengerEXT m_DebugMessenger = VK_NULL_HANDLE;
 };
 
 #endif // WE_HAS_VULKAN

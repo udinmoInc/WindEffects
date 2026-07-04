@@ -1,7 +1,6 @@
-#include "../Common/Math.hlsli"
 #include "../Common/Color.hlsli"
 #include "../Common/EnvironmentBuffer.hlsli"
-#include "../Rendering/SkyAtmosphere.hlsli"
+#include "../Rendering/AtmosphereLUT.hlsli"
 
 cbuffer CameraBuffer : register(b0, space1)
 {
@@ -12,7 +11,9 @@ cbuffer CameraBuffer : register(b0, space1)
 };
 
 Texture2D    depthTexture : register(t0, space2);
-SamplerState depthSampler : register(s0, space2);
+Texture2D    aerialLUT    : register(t1, space2);
+Texture2D    skyViewLUT   : register(t2, space2);
+SamplerState lutSampler   : register(s0, space2);
 
 struct VSOutput
 {
@@ -45,7 +46,7 @@ float4 PSMain(VSOutput input) : SV_Target
     if (enableVolumetricFog < 0.5)
         discard;
 
-    const float depth = depthTexture.Sample(depthSampler, input.uv).r;
+    const float depth = depthTexture.Sample(lutSampler, input.uv).r;
     if (depth < 1e-5)
         discard;
 
@@ -60,22 +61,17 @@ float4 PSMain(VSOutput input) : SV_Target
     const float fogFactor = saturate(heightFog * 0.55 + distFog * 0.45);
 
     const float3 viewDir = normalize(relCam - relPos);
-    const float3 sunLinear = WE_sRGBToLinear(saturate(sunColor));
     const float3 rayleigh = max(atmosphereRayleigh, float3(1e-6, 1e-6, 1e-6));
     const float3 ozone = max(ozoneAbsorption, float3(0.0, 0.0, 0.0));
 
-    // Fog inscattering matches horizon sky color for seamless blending.
-    const float3 horizonSky = WE_SampleSkyAtmosphere(
-        normalize(lerp(viewDir, float3(0.0, 0.0, 1.0), 0.35)), sunDirection,
-        cameraPos, worldOrigin,
-        sunLinear, sunIntensity * 0.5,
+    const float3 aerial = WE_SampleAerialPerspective(
+        viewDir, sunDirection, cameraPos, worldOrigin, worldPos,
+        sunColor, sunIntensity,
         rayleigh, mieScattering, ozone, mieAnisotropy,
-        planetRadius, atmosphereHeight, multiScatterStrength, eyeAltitude);
+        planetRadius, atmosphereHeight, multiScatterStrength, eyeAltitude,
+        max(sunAngularRadius, WE_SUN_ANGULAR_RADIUS),
+        aerialLUT, skyViewLUT, lutSampler);
 
-    const float3 fogLinear = lerp(WE_sRGBToLinear(saturate(fogColor)), horizonSky, 0.65);
-    const float ev = WE_ComputeExposureEV(sunDirection, exposureEV, exposureCompensation);
-    float3 fogMapped = WE_ApplyFilmicTonemap(fogLinear, WE_ExposureFromEV100(ev));
-    fogMapped = WE_LinearToSRGB(fogMapped);
-
-    return float4(fogMapped, fogFactor);
+    const float3 fogLinear = lerp(aerial * 0.35, aerial, 0.85);
+    return float4(fogLinear, fogFactor);
 }

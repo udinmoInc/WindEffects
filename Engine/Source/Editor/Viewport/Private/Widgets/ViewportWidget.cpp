@@ -1,4 +1,6 @@
 #include "Widgets/ViewportWidget.hpp"
+#include "Renderer/FrameStats.hpp"
+#include "Renderer/RenderDiagnostics.hpp"
 #include "PlaceActors/PlaceActorsPlacement.h"
 #include "Renderer/Renderer.hpp"
 #include "EditorCamera.hpp"
@@ -98,9 +100,7 @@ void ViewportWidget::Paint(PaintContext& context) {
     if (m_ViewportTextureSet != VK_NULL_HANDLE) {
         context.DrawTexture(m_Geometry, m_ViewportTextureSet);
     } else {
-        Color gradTop{0.102f, 0.102f, 0.102f, 1.0f};
-        Color gradBottom{0.125f, 0.125f, 0.125f, 1.0f};
-        context.DrawGradient(m_Geometry, gradTop, gradBottom);
+        context.DrawRect(m_Geometry, Color{ 0.0f, 0.0f, 0.0f, 1.0f });
     }
 
     uint32_t triangleCount = 0;
@@ -132,6 +132,11 @@ void ViewportWidget::Paint(PaintContext& context) {
 
     const int cameraSpeed = static_cast<int>(std::lround(m_Camera->GetCameraSpeed()));
     context.DrawText("Camera Speed: " + std::to_string(cameraSpeed), Point{ overlayX, overlayY + 80.0f }, overlayColor, 12.0f);
+
+    const std::string renderStats = we::runtime::renderer::FrameStatsCollector::Get().GetOverlayText();
+    context.DrawText(renderStats, Point{ overlayX, overlayY + 96.0f }, Color{ 0.65f, 0.82f, 0.95f, 1.0f }, 11.0f);
+    const std::string diagSummary = we::runtime::renderer::RenderDiagnostics::Get().GetSummary();
+    context.DrawText(diagSummary, Point{ overlayX, overlayY + 112.0f }, Color{ 0.75f, 0.75f, 0.75f, 1.0f }, 11.0f);
 
     Point gizmoCenter = Point{ m_Geometry.x + m_Geometry.width - 55.0f, m_Geometry.y + 55.0f };
     context.DrawRect(Rect{ gizmoCenter.x - 30.0f, gizmoCenter.y - 30.0f, 60.0f, 60.0f }, Color{ 0.12f, 0.12f, 0.12f, 0.6f }, 30.0f);

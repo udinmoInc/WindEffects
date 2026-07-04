@@ -14,11 +14,19 @@ ContentAssetRegistry& ContentAssetRegistry::Get() {
 }
 
 void ContentAssetRegistry::Initialize(const std::string& contentRoot) {
-    std::lock_guard<std::mutex> lock(m_Mutex);
-    m_ContentRoot = contentRoot;
+    {
+        std::lock_guard<std::mutex> lock(m_Mutex);
+        m_ContentRoot = contentRoot;
+    }
+
     EnsureDemoContent();
-    Refresh();
-    m_Initialized = true;
+
+    {
+        std::lock_guard<std::mutex> lock(m_Mutex);
+        Refresh();
+        m_Initialized = true;
+    }
+
     HE_INFO("[ContentAssetRegistry] Initialized at: " + m_ContentRoot);
 }
 

@@ -1,17 +1,9 @@
 #include "../Common/Color.hlsli"
 #include "../Common/EnvironmentBuffer.hlsli"
-#include "../Rendering/SkyAtmosphere.hlsli"
+#include "../Rendering/AtmosphereLUT.hlsli"
 
-cbuffer CameraBuffer : register(b0, space1)
-{
-    float4x4 view;
-    float4x4 proj;
-    float3   cameraPos;
-    float    cameraPadding;
-};
-
-Texture2D    sceneColorTexture : register(t0, space2);
-SamplerState sceneSampler : register(s0, space2);
+Texture2D    sceneColorTexture : register(t0, space1);
+SamplerState sceneSampler      : register(s0, space1);
 
 struct VSOutput
 {
@@ -32,13 +24,8 @@ VSOutput VSMain(uint vertexId : SV_VertexID)
 float4 PSMain(VSOutput input) : SV_Target
 {
     float3 color = sceneColorTexture.Sample(sceneSampler, input.uv).rgb;
-    color = WE_sRGBToLinear(color);
-
     const float ev = WE_ComputeExposureEV(sunDirection, exposureEV, exposureCompensation);
-    const float targetExposure = WE_ExposureFromEV100(ev);
-    const float currentExposure = WE_ExposureFromEV100(exposureEV);
-    const float exposureScale = targetExposure / max(currentExposure, 1e-5);
-
+    const float exposureScale = WE_ExposureFromEV100(ev);
     color = WE_ApplyFilmicTonemap(color, exposureScale);
     color = WE_LinearToSRGB(color);
     return float4(color, 1.0);

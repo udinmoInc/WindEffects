@@ -1,4 +1,6 @@
 #include "Core/Logger.hpp"
+#include "Core/FrameCounter.hpp"
+#include "Core/LogCategory.hpp"
 
 #if WE_HAS_SDL3
 #include <SDL3/SDL_messagebox.h>
@@ -8,11 +10,12 @@
 #include <nlohmann/json.hpp>
 #endif
 
-#include <iostream>
-#include <iomanip>
 #include <chrono>
 #include <csignal>
 #include <filesystem>
+#include <iomanip>
+#include <iostream>
+#include <sstream>
 
 #if defined(_WIN32)
 #include <windows.h>
@@ -20,140 +23,307 @@
 #include <psapi.h>
 #endif
 
-
 namespace we::runtime::core {
 
-std::mutex Logger::s_Mutex;
+std::recursive_mutex Logger::s_Mutex;
+std::condition_variable_any Logger::s_Cv;
+std::deque<Logger::LogRecord> Logger::s_PendingRecords;
+std::vector<Logger::LogRecord> Logger::s_History;
+std::vector<Logger::LogRecord> Logger::s_NewLogs;
+std::vector<Logger::LogListener> Logger::s_Listeners;
+std::thread Logger::s_WriterThread;
+std::atomic<bool> Logger::s_Running{ false };
+std::atomic<bool> Logger::s_Initialized{ false };
+std::atomic<Logger::Level> Logger::s_MinimumLevel{ Logger::Level::Trace };
 std::ofstream Logger::s_LogFile;
-std::vector<Logger::LogEntry> Logger::s_LogBuffer;
-bool Logger::s_Initialized = false;
+std::string Logger::s_LogFilePath;
+std::string Logger::s_SessionDirectory;
 
 void Logger::Init() {
-    std::lock_guard<std::mutex> lock(s_Mutex);
-    if (s_Initialized) return;
+    LogRecord startup{};
+    {
+        std::lock_guard<std::recursive_mutex> lock(s_Mutex);
+        if (s_Initialized.load()) return;
 
-    std::error_code ec;
-    std::filesystem::create_directories("logs", ec);
-    s_LogFile.open("logs/WindEffects.log", std::ios::out | std::ios::trunc);
+        const auto now = std::chrono::system_clock::now();
+        const auto epoch = std::chrono::duration_cast<std::chrono::seconds>(now.time_since_epoch()).count();
+        s_SessionDirectory = "Saved/Logs/Sessions/Session_" + std::to_string(epoch);
+        std::error_code ec;
+        std::filesystem::create_directories(s_SessionDirectory, ec);
+        std::filesystem::create_directories("Saved/Logs", ec);
+        std::filesystem::create_directories("Saved/Crashes", ec);
 
-    if (!s_LogFile.is_open()) {
-        s_LogFile.open("WindEffects.log", std::ios::out | std::ios::trunc);
+        s_LogFilePath = s_SessionDirectory + "/WindEffects.log";
+        s_LogFile.open(s_LogFilePath, std::ios::out | std::ios::trunc);
+        if (!s_LogFile.is_open()) {
+            s_LogFilePath = "Saved/Logs/WindEffects.log";
+            s_LogFile.open(s_LogFilePath, std::ios::out | std::ios::trunc);
+        }
+
+        s_Running.store(true);
+        s_WriterThread = std::thread(WriterThreadMain);
+        s_Initialized.store(true);
+
+        startup.level = Level::Info;
+        startup.category = "Startup";
+        startup.message = "WindEffects logger initialized. Session log: " + s_LogFilePath;
+        startup.timestamp = GetCurrentTimestamp();
+        startup.frameNumber = FrameCounter::GetFrameNumber();
+#if defined(_WIN32)
+        startup.threadId = static_cast<uint32_t>(GetCurrentThreadId());
+#endif
+        startup.formattedText = FormatRecord(startup);
     }
-    s_Initialized = true;
 
-    // Log startup
-    LogEntry entry{};
-    entry.level = Level::Info;
-    entry.timestamp = GetCurrentTimestamp();
-    entry.message = "System Logger initialized. Writing to WindEffects.log.";
-    entry.formattedText = "[" + entry.timestamp + "] [INFO] " + entry.message;
-    s_LogBuffer.push_back(entry);
-
-    std::cout << entry.formattedText << std::endl;
-    if (s_LogFile.is_open()) {
-        s_LogFile << entry.formattedText << std::endl;
-    }
-
-    // Set up crash filters
+    EnqueueRecord(std::move(startup), true);
     SetupCrashHandler();
 }
 
 void Logger::Shutdown() {
-    std::lock_guard<std::mutex> lock(s_Mutex);
-    if (!s_Initialized) return;
+    if (!s_Initialized.load()) return;
 
-    std::string fmtText = "[" + GetCurrentTimestamp() + "] [INFO] System Logger shutting down.";
-    std::cout << fmtText << std::endl;
+    {
+        LogRecord shutdownRecord{};
+        shutdownRecord.level = Level::Info;
+        shutdownRecord.category = "Startup";
+        shutdownRecord.message = "WindEffects logger shutting down.";
+        shutdownRecord.timestamp = GetCurrentTimestamp();
+        shutdownRecord.frameNumber = FrameCounter::GetFrameNumber();
+        shutdownRecord.formattedText = FormatRecord(shutdownRecord);
+        EnqueueRecord(std::move(shutdownRecord), true);
+    }
+
+    s_Running.store(false);
+    s_Cv.notify_all();
+    if (s_WriterThread.joinable()) {
+        s_WriterThread.join();
+    }
+
+    std::lock_guard<std::recursive_mutex> lock(s_Mutex);
     if (s_LogFile.is_open()) {
-        s_LogFile << fmtText << std::endl;
         s_LogFile.close();
     }
-    s_Initialized = false;
+    s_Initialized.store(false);
 }
 
 void Logger::Log(Level level, const std::string& message) {
-    std::lock_guard<std::mutex> lock(s_Mutex);
-    
-    std::string timestamp = GetCurrentTimestamp();
-    std::string lvlStr = LevelToString(level);
-    std::string formatted = "[" + timestamp + "] [" + lvlStr + "] " + message;
+    Log(level, LogCategory::General, message);
+}
 
-    LogEntry entry{ level, timestamp, message, formatted };
-    s_LogBuffer.push_back(entry);
-
-    if (level == Level::Error) {
-        std::cerr << formatted << std::endl;
-    } else {
-        std::cout << formatted << std::endl;
+void Logger::Log(Level level, std::string_view category, const std::string& message, const char* file, int line, const char* function) {
+    if (static_cast<int>(level) < static_cast<int>(s_MinimumLevel.load())) {
+        return;
     }
 
-    if (s_Initialized && s_LogFile.is_open()) {
-        s_LogFile << formatted << std::endl;
-        s_LogFile.flush();
+    LogRecord record{};
+    record.level = level;
+    record.category = std::string(category);
+    record.message = message;
+    record.timestamp = GetCurrentTimestamp();
+    record.frameNumber = FrameCounter::GetFrameNumber();
+#if defined(_WIN32)
+    record.threadId = static_cast<uint32_t>(GetCurrentThreadId());
+#endif
+    if (file) record.file = file;
+    record.line = line;
+    if (function) record.function = function;
+    record.formattedText = FormatRecord(record);
+
+    const bool flushImmediately = (level >= Level::Error);
+    EnqueueRecord(std::move(record), flushImmediately);
+}
+
+void Logger::EnqueueRecord(LogRecord record, bool flushImmediately) {
+    {
+        std::lock_guard<std::recursive_mutex> lock(s_Mutex);
+        s_PendingRecords.push_back(std::move(record));
+    }
+    s_Cv.notify_one();
+
+    if (flushImmediately) {
+        Flush();
     }
 }
 
-void Logger::ReportError(const std::string& title, const std::string& description, bool fatal) {
-    std::string logMsg = "Error Reported: " + title + " - " + description + (fatal ? " [FATAL]" : "");
-    Log(Level::Error, logMsg);
+void Logger::WriterThreadMain() {
+    while (s_Running.load() || !s_PendingRecords.empty()) {
+        std::deque<LogRecord> batch;
+        {
+            std::unique_lock<std::recursive_mutex> lock(s_Mutex);
+            s_Cv.wait_for(lock, std::chrono::milliseconds(50), [] {
+                return !s_PendingRecords.empty() || !s_Running.load();
+            });
+            batch.swap(s_PendingRecords);
+        }
 
-    // Show native OS dialog popup box
+        for (const LogRecord& record : batch) {
+            WriteRecordToOutputs(record);
+        }
+    }
+}
+
+void Logger::WriteRecordToOutputs(const LogRecord& record) {
+    std::vector<LogListener> listenersCopy;
+    {
+        std::lock_guard<std::recursive_mutex> lock(s_Mutex);
+        if (s_History.size() >= kMaxHistoryEntries) {
+            s_History.erase(s_History.begin(), s_History.begin() + (kMaxHistoryEntries / 4));
+        }
+        s_History.push_back(record);
+        s_NewLogs.push_back(record);
+        listenersCopy = s_Listeners;
+
+        RotateLogFilesIfNeeded();
+        if (s_LogFile.is_open()) {
+            s_LogFile << record.formattedText << std::endl;
+        }
+    }
+
+    if (record.level >= Level::Error) {
+        std::cerr << record.formattedText << std::endl;
+    } else if (record.level >= Level::Warning) {
+        std::cout << record.formattedText << std::endl;
+    } else {
+        std::cout << record.formattedText << std::endl;
+    }
+
+    for (const auto& listener : listenersCopy) {
+        if (listener) listener(record);
+    }
+}
+
+void Logger::RotateLogFilesIfNeeded() {
+    if (!s_LogFile.is_open()) return;
+    s_LogFile.flush();
+    std::error_code ec;
+    const auto size = std::filesystem::file_size(s_LogFilePath, ec);
+    if (ec || size < kMaxLogFileBytes) return;
+
+    s_LogFile.close();
+    const std::string rotated = s_SessionDirectory + "/WindEffects_" + std::to_string(size) + ".log";
+    std::filesystem::rename(s_LogFilePath, rotated, ec);
+    s_LogFile.open(s_LogFilePath, std::ios::out | std::ios::app);
+}
+
+void Logger::ReportError(const std::string& title, const std::string& description, bool fatal) {
+    Log(Level::Critical, "General", "Error Reported: " + title + " - " + description + (fatal ? " [FATAL]" : ""));
+
 #if WE_HAS_SDL3
-    SDL_ShowSimpleMessageBox(
-        SDL_MESSAGEBOX_ERROR,
-        title.c_str(),
-        description.c_str(),
-        nullptr
-    );
+    SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, title.c_str(), description.c_str(), nullptr);
 #endif
 
     if (fatal) {
         Shutdown();
-        exit(1);
+        std::exit(1);
     }
 }
 
-std::vector<Logger::LogEntry> Logger::GetNewLogs() {
-    std::lock_guard<std::mutex> lock(s_Mutex);
-    std::vector<LogEntry> logs = std::move(s_LogBuffer);
-    s_LogBuffer.clear();
+std::vector<Logger::LogRecord> Logger::GetNewLogs() {
+    std::lock_guard<std::recursive_mutex> lock(s_Mutex);
+    std::vector<LogRecord> logs = std::move(s_NewLogs);
+    s_NewLogs.clear();
     return logs;
 }
 
+std::vector<Logger::LogRecord> Logger::GetHistory() {
+    std::lock_guard<std::recursive_mutex> lock(s_Mutex);
+    return s_History;
+}
+
+void Logger::AddListener(LogListener listener) {
+    std::lock_guard<std::recursive_mutex> lock(s_Mutex);
+    s_Listeners.push_back(std::move(listener));
+}
+
+void Logger::ClearHistory() {
+    std::lock_guard<std::recursive_mutex> lock(s_Mutex);
+    s_History.clear();
+    s_NewLogs.clear();
+}
+
+void Logger::SetMinimumLevel(Level level) {
+    s_MinimumLevel.store(level);
+}
+
+Logger::Level Logger::GetMinimumLevel() {
+    return s_MinimumLevel.load();
+}
+
+const std::string& Logger::GetActiveLogFilePath() {
+    return s_LogFilePath;
+}
+
+void Logger::Flush() {
+    const auto deadline = std::chrono::steady_clock::now() + std::chrono::milliseconds(500);
+    while (std::chrono::steady_clock::now() < deadline) {
+        {
+            std::lock_guard<std::recursive_mutex> lock(s_Mutex);
+            if (s_PendingRecords.empty()) {
+                if (s_LogFile.is_open()) {
+                    s_LogFile.flush();
+                }
+                return;
+            }
+        }
+        s_Cv.notify_all();
+        std::this_thread::sleep_for(std::chrono::milliseconds(2));
+    }
+
+    std::lock_guard<std::recursive_mutex> lock(s_Mutex);
+    if (s_LogFile.is_open()) {
+        s_LogFile.flush();
+    }
+}
+
 std::string Logger::GetCurrentTimestamp() {
-    auto now = std::chrono::system_clock::now();
-    auto in_time_t = std::chrono::system_clock::to_time_t(now);
-    
-    struct tm buf;
+    const auto now = std::chrono::system_clock::now();
+    const auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()) % 1000;
+    const auto in_time_t = std::chrono::system_clock::to_time_t(now);
+
+    struct tm buf{};
 #if defined(_WIN32)
     localtime_s(&buf, &in_time_t);
 #else
-    localtime_r(&buf, &in_time_t);
+    localtime_r(&in_time_t, &buf);
 #endif
 
-    std::stringstream ss;
-    ss << std::put_time(&buf, "%H:%M:%S");
+    std::ostringstream ss;
+    ss << std::put_time(&buf, "%Y-%m-%d %H:%M:%S") << '.' << std::setfill('0') << std::setw(3) << ms.count();
     return ss.str();
 }
 
 std::string Logger::LevelToString(Level level) {
     switch (level) {
-        case Level::Info:    return "INFO";
+        case Level::Trace: return "TRACE";
+        case Level::Debug: return "DEBUG";
+        case Level::Info: return "INFO";
         case Level::Warning: return "WARNING";
-        case Level::Error:   return "ERROR";
-        case Level::Debug:   return "DEBUG";
+        case Level::Error: return "ERROR";
+        case Level::Critical: return "CRITICAL";
     }
     return "UNKNOWN";
 }
 
+std::string Logger::FormatRecord(const LogRecord& record) {
+    std::ostringstream ss;
+    ss << '[' << record.timestamp << ']'
+       << " [Frame:" << record.frameNumber << ']'
+       << " [T:" << record.threadId << ']'
+       << " [" << LevelToString(record.level) << ']'
+       << " [" << record.category << ']';
+    if (!record.file.empty()) {
+        ss << " (" << record.file << ':' << record.line;
+        if (!record.function.empty()) ss << " " << record.function;
+        ss << ')';
+    }
+    ss << ' ' << record.message;
+    return ss.str();
+}
+
 void Logger::SetupCrashHandler() {
-    // 1. Register standard POSIX signals
-    // std::signal(SIGSEGV, SignalHandler);
     std::signal(SIGFPE, SignalHandler);
     std::signal(SIGILL, SignalHandler);
     std::signal(SIGABRT, SignalHandler);
-
-    // 2. Register Windows SEH filter
 #if defined(_WIN32)
     SetUnhandledExceptionFilter(EngineCrashHandler);
 #endif
@@ -162,51 +332,28 @@ void Logger::SetupCrashHandler() {
 #if defined(_WIN32)
 long __stdcall Logger::EngineCrashHandler(struct _EXCEPTION_POINTERS* exceptionInfo) {
     std::string exceptionName = "UNKNOWN EXCEPTION";
-    DWORD code = exceptionInfo->ExceptionRecord->ExceptionCode;
-
+    const DWORD code = exceptionInfo->ExceptionRecord->ExceptionCode;
     switch (code) {
-        case EXCEPTION_ACCESS_VIOLATION:          exceptionName = "ACCESS VIOLATION (Null pointer dereference or invalid memory read/write)"; break;
-        case EXCEPTION_INT_DIVIDE_BY_ZERO:        exceptionName = "INTEGER DIVIDE BY ZERO"; break;
-        case EXCEPTION_STACK_OVERFLOW:            exceptionName = "STACK OVERFLOW"; break;
-        case EXCEPTION_ILLEGAL_INSTRUCTION:       exceptionName = "ILLEGAL INSTRUCTION"; break;
-        case EXCEPTION_ARRAY_BOUNDS_EXCEEDED:     exceptionName = "ARRAY BOUNDS EXCEEDED"; break;
-        case EXCEPTION_FLT_DIVIDE_BY_ZERO:        exceptionName = "FLOATING POINT DIVIDE BY ZERO"; break;
-        case EXCEPTION_PRIV_INSTRUCTION:          exceptionName = "PRIVILEGED INSTRUCTION VIOLATION"; break;
+        case EXCEPTION_ACCESS_VIOLATION: exceptionName = "ACCESS VIOLATION"; break;
+        case EXCEPTION_INT_DIVIDE_BY_ZERO: exceptionName = "INTEGER DIVIDE BY ZERO"; break;
+        case EXCEPTION_STACK_OVERFLOW: exceptionName = "STACK OVERFLOW"; break;
+        case EXCEPTION_ILLEGAL_INSTRUCTION: exceptionName = "ILLEGAL INSTRUCTION"; break;
+        default: break;
     }
 
-    void* exceptionAddress = exceptionInfo->ExceptionRecord->ExceptionAddress;
-    std::stringstream ss;
-    ss << "0x" << std::hex << std::uppercase << code;
-    const std::string codeStr = ss.str();
-    ss.str({});
-    ss.clear();
-    ss << "0x" << exceptionAddress;
-    const std::string addressStr = ss.str();
+    std::ostringstream addressStream;
+    addressStream << "0x" << std::hex << exceptionInfo->ExceptionRecord->ExceptionAddress;
+    Log(Level::Critical, "Crash", "Fatal exception: " + exceptionName + " at " + addressStream.str());
 
-    std::string crashDetails = "Fatal Exception Intercepted:\n"
-                               "Code: " + codeStr + " (" + exceptionName + ")\n"
-                               "Address: " + addressStr;
-
-    Logger::Log(Level::Error, crashDetails);
-
-    // Ensure Crash directories exist
-    std::string crashDir = "Saved/Logs/Crashes/Latest";
+    const std::string crashDir = "Saved/Crashes/Latest";
+    std::error_code ec;
     if (std::filesystem::exists(crashDir)) {
-        std::string backupDir = "Saved/Logs/Crashes/Crash_" + std::to_string(std::chrono::system_clock::now().time_since_epoch().count());
-        std::error_code ec;
+        const std::string backupDir = "Saved/Crashes/Crash_" + std::to_string(std::chrono::system_clock::now().time_since_epoch().count());
         std::filesystem::rename(crashDir, backupDir, ec);
     }
-    std::filesystem::create_directories(crashDir);
+    std::filesystem::create_directories(crashDir, ec);
 
-    // 1. Minidump
-    HANDLE hFile = CreateFileA(
-        (crashDir + "/WindEffects.dmp").c_str(),
-        GENERIC_READ | GENERIC_WRITE,
-        0, nullptr,
-        CREATE_ALWAYS,
-        FILE_ATTRIBUTE_NORMAL,
-        nullptr
-    );
+    HANDLE hFile = CreateFileA((crashDir + "/WindEffects.dmp").c_str(), GENERIC_READ | GENERIC_WRITE, 0, nullptr, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr);
     if (hFile != INVALID_HANDLE_VALUE) {
         MINIDUMP_EXCEPTION_INFORMATION mdei{};
         mdei.ThreadId = GetCurrentThreadId();
@@ -216,79 +363,22 @@ long __stdcall Logger::EngineCrashHandler(struct _EXCEPTION_POINTERS* exceptionI
         CloseHandle(hFile);
     }
 
-    // 2. Exception.json
-#if WE_HAS_NLOHMANN_JSON
-    nlohmann::json exJson;
-    exJson["ExceptionCode"] = code;
-    exJson["ExceptionName"] = exceptionName;
-    exJson["Address"] = addressStr;
-    std::ofstream exFile(crashDir + "/Exception.json");
-    exFile << exJson.dump(4);
-    exFile.close();
-#endif
-
-    // 3. Crash.json
 #if WE_HAS_NLOHMANN_JSON
     nlohmann::json crashJson;
     crashJson["CrashTime"] = GetCurrentTimestamp();
     crashJson["CrashType"] = "Unhandled Exception";
     crashJson["Project"] = "WindEffects";
     crashJson["EngineVersion"] = "1.0.0";
-    crashJson["Thread"] = std::to_string(GetCurrentThreadId());
-    std::ofstream cFile(crashDir + "/Crash.json");
-    cFile << crashJson.dump(4);
-    cFile.close();
+    crashJson["ExceptionName"] = exceptionName;
+    crashJson["LogFile"] = s_LogFilePath;
+    std::ofstream(crashDir + "/Crash.json") << crashJson.dump(4);
 #endif
 
-    // 4. System.json
-#if WE_HAS_NLOHMANN_JSON
-    nlohmann::json sysJson;
-    sysJson["WindowsVersion"] = "Windows";
-    std::ofstream sysFile(crashDir + "/System.json");
-    sysFile << sysJson.dump(4);
-    sysFile.close();
-#endif
-
-    // 5. Memory.json
-#if WE_HAS_NLOHMANN_JSON
-    PROCESS_MEMORY_COUNTERS pmc;
-    nlohmann::json memJson;
-    if (GetProcessMemoryInfo(GetCurrentProcess(), &pmc, sizeof(pmc))) {
-        memJson["WorkingSetSize"] = pmc.WorkingSetSize;
-        memJson["PagefileUsage"] = pmc.PagefileUsage;
-    }
-    std::ofstream memFile(crashDir + "/Memory.json");
-    memFile << memJson.dump(4);
-    memFile.close();
-#endif
-
-    // 6. Modules.json
-#if WE_HAS_NLOHMANN_JSON
-    nlohmann::json modJson = nlohmann::json::array();
-    HMODULE hMods[1024];
-    DWORD cbNeeded;
-    if (EnumProcessModules(GetCurrentProcess(), hMods, sizeof(hMods), &cbNeeded)) {
-        for (unsigned int i = 0; i < (cbNeeded / sizeof(HMODULE)); i++) {
-            char szModName[MAX_PATH];
-            if (GetModuleFileNameExA(GetCurrentProcess(), hMods[i], szModName, sizeof(szModName) / sizeof(char))) {
-                nlohmann::json mod;
-                mod["Path"] = szModName;
-                mod["BaseAddress"] = (uint64_t)hMods[i];
-                modJson.push_back(mod);
-            }
-        }
-    }
-    std::ofstream modFile(crashDir + "/Modules.json");
-    modFile << modJson.dump(4);
-    modFile.close();
-#endif
-
-    // 7. StackTrace.txt
     std::ofstream stackFile(crashDir + "/StackTrace.txt");
     HANDLE process = GetCurrentProcess();
     HANDLE thread = GetCurrentThread();
     SymInitialize(process, NULL, TRUE);
-    
+
     STACKFRAME64 stackFrame{};
     stackFrame.AddrPC.Mode = AddrModeFlat;
     stackFrame.AddrFrame.Mode = AddrModeFlat;
@@ -303,12 +393,8 @@ long __stdcall Logger::EngineCrashHandler(struct _EXCEPTION_POINTERS* exceptionI
     pSymbol->MaxNameLen = MAX_SYM_NAME;
 
     for (int frameNum = 0; frameNum < 64; ++frameNum) {
-        if (!StackWalk64(IMAGE_FILE_MACHINE_AMD64, process, thread, &stackFrame, exceptionInfo->ContextRecord, NULL, SymFunctionTableAccess64, SymGetModuleBase64, NULL)) {
-            break;
-        }
-        if (stackFrame.AddrPC.Offset == 0) {
-            break;
-        }
+        if (!StackWalk64(IMAGE_FILE_MACHINE_AMD64, process, thread, &stackFrame, exceptionInfo->ContextRecord, NULL, SymFunctionTableAccess64, SymGetModuleBase64, NULL)) break;
+        if (stackFrame.AddrPC.Offset == 0) break;
         DWORD64 displacement = 0;
         if (SymFromAddr(process, stackFrame.AddrPC.Offset, &displacement, pSymbol)) {
             stackFile << pSymbol->Name << " - 0x" << std::hex << stackFrame.AddrPC.Offset << std::endl;
@@ -319,40 +405,16 @@ long __stdcall Logger::EngineCrashHandler(struct _EXCEPTION_POINTERS* exceptionI
     SymCleanup(process);
     stackFile.close();
 
-    // Copy Engine.log
-    if (s_LogFile.is_open()) {
-        s_LogFile.close();
-    }
-    std::error_code ec_copy;
-    std::filesystem::copy_file("logs/WindEffects.log", crashDir + "/Engine.log", std::filesystem::copy_options::overwrite_existing, ec_copy);
-
-    // Check for crash loop - prevent launching crash reporter if too many recent crashes
-    static int crashCount = 0;
-    static auto lastCrashTime = std::chrono::steady_clock::now();
-    auto now = std::chrono::steady_clock::now();
-    auto timeSinceLastCrash = std::chrono::duration_cast<std::chrono::seconds>(now - lastCrashTime).count();
-    
-    // Reset counter if it's been more than 60 seconds since last crash
-    if (timeSinceLastCrash > 60) {
-        crashCount = 0;
-    }
-    
-    crashCount++;
-    lastCrashTime = now;
-    
-    // Don't launch crash reporter if we've crashed 3+ times in 60 seconds
-    if (crashCount >= 3) {
-        Logger::Log(Level::Error, "Crash loop detected - skipping crash reporter launch to prevent infinite loop");
-        Shutdown();
-        return EXCEPTION_EXECUTE_HANDLER;
+    Flush();
+    if (!s_LogFilePath.empty()) {
+        std::filesystem::copy_file(s_LogFilePath, crashDir + "/Engine.log", std::filesystem::copy_options::overwrite_existing, ec);
     }
 
-    // Launch WeCrashReporter.exe
     STARTUPINFOA si{};
     si.cb = sizeof(si);
     PROCESS_INFORMATION pi{};
     std::string reporterPath = "WECrashReporter.exe";
-    CreateProcessA(nullptr, (LPSTR)reporterPath.c_str(), nullptr, nullptr, FALSE, DETACHED_PROCESS, nullptr, nullptr, &si, &pi);
+    CreateProcessA(nullptr, reporterPath.data(), nullptr, nullptr, FALSE, DETACHED_PROCESS, nullptr, nullptr, &si, &pi);
     if (pi.hProcess) {
         CloseHandle(pi.hProcess);
         CloseHandle(pi.hThread);
@@ -366,62 +428,15 @@ long __stdcall Logger::EngineCrashHandler(struct _EXCEPTION_POINTERS* exceptionI
 void Logger::SignalHandler(int signal) {
     std::string sigName = "UNKNOWN SIGNAL";
     switch (signal) {
-        case SIGSEGV: sigName = "SIGSEGV (Segmentation Fault / Access Violation)"; break;
-        case SIGFPE:  sigName = "SIGFPE (Floating Point / Arithmetic Exception)"; break;
-        case SIGILL:  sigName = "SIGILL (Illegal Instruction)"; break;
-        case SIGABRT: sigName = "SIGABRT (Abort / Assertion Failure)"; break;
+        case SIGSEGV: sigName = "SIGSEGV"; break;
+        case SIGFPE: sigName = "SIGFPE"; break;
+        case SIGILL: sigName = "SIGILL"; break;
+        case SIGABRT: sigName = "SIGABRT"; break;
+        default: break;
     }
-
-    Logger::Log(Level::Error, "Fatal Signal Intercepted: " + sigName);
-
-    // Ensure Crash directories exist
-    std::string crashDir = "Saved/Logs/Crashes/Latest";
-    if (std::filesystem::exists(crashDir)) {
-        std::string backupDir = "Saved/Logs/Crashes/Crash_" + std::to_string(std::chrono::system_clock::now().time_since_epoch().count());
-        std::error_code ec;
-        std::filesystem::rename(crashDir, backupDir, ec);
-    }
-    std::filesystem::create_directories(crashDir);
-
-#if WE_HAS_NLOHMANN_JSON
-    nlohmann::json crashJson;
-    crashJson["CrashTime"] = GetCurrentTimestamp();
-    crashJson["CrashType"] = "Fatal Signal";
-    crashJson["Project"] = "WindEffects";
-    crashJson["EngineVersion"] = "1.0.0";
-    
-    std::ofstream cFile(crashDir + "/Crash.json");
-    cFile << crashJson.dump(4);
-    cFile.close();
-#endif
-
-#if WE_HAS_NLOHMANN_JSON
-    nlohmann::json exJson;
-    exJson["ExceptionName"] = sigName;
-    std::ofstream exFile(crashDir + "/Exception.json");
-    exFile << exJson.dump(4);
-    exFile.close();
-#endif
-
-    if (s_LogFile.is_open()) {
-        s_LogFile.close();
-    }
-    std::error_code ec_copy;
-    std::filesystem::copy_file("logs/WindEffects.log", crashDir + "/Engine.log", std::filesystem::copy_options::overwrite_existing, ec_copy);
-
-#if defined(_WIN32)
-    STARTUPINFOA si{};
-    si.cb = sizeof(si);
-    PROCESS_INFORMATION pi{};
-    std::string reporterPath = "WECrashReporter.exe";
-    CreateProcessA(nullptr, (LPSTR)reporterPath.c_str(), nullptr, nullptr, FALSE, DETACHED_PROCESS, nullptr, nullptr, &si, &pi);
-    if (pi.hProcess) {
-        CloseHandle(pi.hProcess);
-        CloseHandle(pi.hThread);
-    }
-#endif
-
+    Log(Level::Critical, "Crash", "Fatal signal intercepted: " + sigName);
     Shutdown();
-    exit(1);
+    std::exit(1);
 }
+
 } // namespace we::runtime::core

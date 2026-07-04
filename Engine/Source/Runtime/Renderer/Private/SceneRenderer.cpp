@@ -1,5 +1,9 @@
 #include "Renderer/SceneRenderer.hpp"
-#include "Core/Logger.hpp"
+#include "Renderer/RenderDiagnostics.hpp"
+#include "Renderer/FrameStats.hpp"
+#include "Renderer/RendererConfig.hpp"
+#include "Core/DiagnosticMacros.hpp"
+#include "Core/LogCategory.hpp"
 #include "Renderer/ShaderHelper.hpp"
 #include <array>
 #include <iostream>
@@ -87,30 +91,58 @@ SceneRenderer::SceneRenderer(const std::shared_ptr<VulkanContext>& context, VkRe
     envWrite.pBufferInfo = &envBufferInfo;
     vkUpdateDescriptorSets(m_Context->GetDevice(), 1, &envWrite, 0, nullptr);
 
-    VkDescriptorSetLayoutBinding depthBinding{};
-    depthBinding.binding = 0;
-    depthBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-    depthBinding.descriptorCount = 1;
-    depthBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+    m_LUTGenerator = std::make_unique<AtmosphereLUTGenerator>(m_Context);
 
-    VkDescriptorSetLayoutCreateInfo depthLayoutInfo{};
-    depthLayoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-    depthLayoutInfo.bindingCount = 1;
-    depthLayoutInfo.pBindings = &depthBinding;
-    if (vkCreateDescriptorSetLayout(m_Context->GetDevice(), &depthLayoutInfo, nullptr, &m_FogDepthDescLayout) != VK_SUCCESS) {
-        throw std::runtime_error("Failed to create fog depth descriptor set layout!");
+    std::array<VkDescriptorSetLayoutBinding, 3> fogLutBindings{};
+    for (uint32_t i = 0; i < fogLutBindings.size(); ++i) {
+        fogLutBindings[i].binding = i;
+        fogLutBindings[i].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        fogLutBindings[i].descriptorCount = 1;
+        fogLutBindings[i].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
     }
 
-    VkDescriptorSetAllocateInfo depthAllocInfo{};
-    depthAllocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-    depthAllocInfo.descriptorPool = m_Context->GetDescriptorPool();
-    depthAllocInfo.descriptorSetCount = 1;
-    depthAllocInfo.pSetLayouts = &m_FogDepthDescLayout;
-    if (vkAllocateDescriptorSets(m_Context->GetDevice(), &depthAllocInfo, &m_FogDepthDescSet) != VK_SUCCESS) {
-        throw std::runtime_error("Failed to allocate fog depth descriptor set!");
+    VkDescriptorSetLayoutCreateInfo fogLutLayoutInfo{};
+    fogLutLayoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+    fogLutLayoutInfo.bindingCount = static_cast<uint32_t>(fogLutBindings.size());
+    fogLutLayoutInfo.pBindings = fogLutBindings.data();
+    if (vkCreateDescriptorSetLayout(m_Context->GetDevice(), &fogLutLayoutInfo, nullptr, &m_FogLutDescLayout) != VK_SUCCESS) {
+        throw std::runtime_error("Failed to create fog LUT descriptor set layout!");
+    }
+
+    VkDescriptorSetAllocateInfo fogLutAllocInfo{};
+    fogLutAllocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+    fogLutAllocInfo.descriptorPool = m_Context->GetDescriptorPool();
+    fogLutAllocInfo.descriptorSetCount = 1;
+    fogLutAllocInfo.pSetLayouts = &m_FogLutDescLayout;
+    if (vkAllocateDescriptorSets(m_Context->GetDevice(), &fogLutAllocInfo, &m_FogLutDescSet) != VK_SUCCESS) {
+        throw std::runtime_error("Failed to allocate fog LUT descriptor set!");
+    }
+
+    VkDescriptorSetLayoutBinding postStorageBinding{};
+    postStorageBinding.binding = 0;
+    postStorageBinding.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
+    postStorageBinding.descriptorCount = 1;
+    postStorageBinding.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
+
+    VkDescriptorSetLayoutCreateInfo postLayoutInfo{};
+    postLayoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+    postLayoutInfo.bindingCount = 1;
+    postLayoutInfo.pBindings = &postStorageBinding;
+    if (vkCreateDescriptorSetLayout(m_Context->GetDevice(), &postLayoutInfo, nullptr, &m_PostStorageDescLayout) != VK_SUCCESS) {
+        throw std::runtime_error("Failed to create post storage descriptor set layout!");
+    }
+
+    VkDescriptorSetAllocateInfo postAllocInfo{};
+    postAllocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+    postAllocInfo.descriptorPool = m_Context->GetDescriptorPool();
+    postAllocInfo.descriptorSetCount = 1;
+    postAllocInfo.pSetLayouts = &m_PostStorageDescLayout;
+    if (vkAllocateDescriptorSets(m_Context->GetDevice(), &postAllocInfo, &m_PostStorageDescSet) != VK_SUCCESS) {
+        throw std::runtime_error("Failed to allocate post storage descriptor set!");
     }
 
     CreatePipelines(renderPass);
+    ValidateCreatedPipelines();
     CreateMeshes();
 }
 
@@ -118,6 +150,7 @@ SceneRenderer::~SceneRenderer() {
     VkDevice device = m_Context->GetDevice();
     DestroyMeshes();
 
+    if (m_PostExposurePipeline != VK_NULL_HANDLE) vkDestroyPipeline(device, m_PostExposurePipeline, nullptr);
     if (m_SkyAtmospherePipeline != VK_NULL_HANDLE) vkDestroyPipeline(device, m_SkyAtmospherePipeline, nullptr);
     if (m_VolumetricCloudsPipeline != VK_NULL_HANDLE) vkDestroyPipeline(device, m_VolumetricCloudsPipeline, nullptr);
     if (m_FogCompositePipeline != VK_NULL_HANDLE) vkDestroyPipeline(device, m_FogCompositePipeline, nullptr);
@@ -125,13 +158,17 @@ SceneRenderer::~SceneRenderer() {
     if (m_UnlitPipeline != VK_NULL_HANDLE) vkDestroyPipeline(device, m_UnlitPipeline, nullptr);
     if (m_WireframePipeline != VK_NULL_HANDLE) vkDestroyPipeline(device, m_WireframePipeline, nullptr);
 
+    if (m_PostPipelineLayout != VK_NULL_HANDLE) vkDestroyPipelineLayout(device, m_PostPipelineLayout, nullptr);
     if (m_FogPipelineLayout != VK_NULL_HANDLE) vkDestroyPipelineLayout(device, m_FogPipelineLayout, nullptr);
     if (m_EnvironmentPipelineLayout != VK_NULL_HANDLE) vkDestroyPipelineLayout(device, m_EnvironmentPipelineLayout, nullptr);
     if (m_PipelineLayout != VK_NULL_HANDLE) vkDestroyPipelineLayout(device, m_PipelineLayout, nullptr);
 
+    m_LUTGenerator.reset();
+
     if (m_EnvironmentBuffer != VK_NULL_HANDLE) vkDestroyBuffer(device, m_EnvironmentBuffer, nullptr);
     if (m_EnvironmentBufferMemory != VK_NULL_HANDLE) vkFreeMemory(device, m_EnvironmentBufferMemory, nullptr);
-    if (m_FogDepthDescLayout != VK_NULL_HANDLE) vkDestroyDescriptorSetLayout(device, m_FogDepthDescLayout, nullptr);
+    if (m_PostStorageDescLayout != VK_NULL_HANDLE) vkDestroyDescriptorSetLayout(device, m_PostStorageDescLayout, nullptr);
+    if (m_FogLutDescLayout != VK_NULL_HANDLE) vkDestroyDescriptorSetLayout(device, m_FogLutDescLayout, nullptr);
     if (m_EnvironmentDescLayout != VK_NULL_HANDLE) vkDestroyDescriptorSetLayout(device, m_EnvironmentDescLayout, nullptr);
     if (m_ObjectDescLayout != VK_NULL_HANDLE) vkDestroyDescriptorSetLayout(device, m_ObjectDescLayout, nullptr);
 }
@@ -147,7 +184,11 @@ void SceneRenderer::CreatePipelines(VkRenderPass renderPass) {
         throw std::runtime_error("Failed to create scene object pipeline layout!");
     }
 
-    std::array<VkDescriptorSetLayout, 2> envSetLayouts = { m_EnvironmentDescLayout, m_CameraDescLayout };
+    std::array<VkDescriptorSetLayout, 3> envSetLayouts = {
+        m_EnvironmentDescLayout,
+        m_CameraDescLayout,
+        m_LUTGenerator->GetSampleLayout()
+    };
     VkPipelineLayoutCreateInfo envLayoutInfo{};
     envLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
     envLayoutInfo.setLayoutCount = static_cast<uint32_t>(envSetLayouts.size());
@@ -156,7 +197,11 @@ void SceneRenderer::CreatePipelines(VkRenderPass renderPass) {
         throw std::runtime_error("Failed to create environment pipeline layout!");
     }
 
-    std::array<VkDescriptorSetLayout, 3> fogSetLayouts = { m_EnvironmentDescLayout, m_CameraDescLayout, m_FogDepthDescLayout };
+    std::array<VkDescriptorSetLayout, 3> fogSetLayouts = {
+        m_EnvironmentDescLayout,
+        m_CameraDescLayout,
+        m_FogLutDescLayout
+    };
     VkPipelineLayoutCreateInfo fogLayoutInfo{};
     fogLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
     fogLayoutInfo.setLayoutCount = static_cast<uint32_t>(fogSetLayouts.size());
@@ -165,9 +210,43 @@ void SceneRenderer::CreatePipelines(VkRenderPass renderPass) {
         throw std::runtime_error("Failed to create fog pipeline layout!");
     }
 
+    std::array<VkDescriptorSetLayout, 2> postSetLayouts = { m_EnvironmentDescLayout, m_PostStorageDescLayout };
+    VkPipelineLayoutCreateInfo postLayoutInfo{};
+    postLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+    postLayoutInfo.setLayoutCount = static_cast<uint32_t>(postSetLayouts.size());
+    postLayoutInfo.pSetLayouts = postSetLayouts.data();
+    if (vkCreatePipelineLayout(device, &postLayoutInfo, nullptr, &m_PostPipelineLayout) != VK_SUCCESS) {
+        throw std::runtime_error("Failed to create post pipeline layout!");
+    }
+
     m_SkyAtmospherePipeline = CreateFullscreenPipeline(renderPass, m_EnvironmentPipelineLayout, "AtmospherePass", false, VK_COMPARE_OP_ALWAYS, false, false);
     m_VolumetricCloudsPipeline = CreateFullscreenPipeline(renderPass, m_EnvironmentPipelineLayout, "VolumetricCloudsPass", false, VK_COMPARE_OP_ALWAYS, false, true);
     m_FogCompositePipeline = CreateFullscreenPipeline(renderPass, m_FogPipelineLayout, "FogCompositePass", true, VK_COMPARE_OP_GREATER, false, true);
+
+    {
+        try {
+            std::vector<char> computeCode = LoadShaderBytecode("PostExposureCS", ShaderStage::Compute);
+            if (!computeCode.empty()) {
+            VkShaderModule computeModule = CreateShaderModule(device, computeCode);
+            VkPipelineShaderStageCreateInfo computeStage{};
+            computeStage.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+            computeStage.stage = VK_SHADER_STAGE_COMPUTE_BIT;
+            computeStage.module = computeModule;
+            computeStage.pName = "CSMain";
+
+            VkComputePipelineCreateInfo computeInfo{};
+            computeInfo.sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
+            computeInfo.stage = computeStage;
+            computeInfo.layout = m_PostPipelineLayout;
+            if (vkCreateComputePipelines(device, VK_NULL_HANDLE, 1, &computeInfo, nullptr, &m_PostExposurePipeline) != VK_SUCCESS) {
+                HE_WARN("SceneRenderer: failed to create post exposure compute pipeline.");
+            }
+            vkDestroyShaderModule(device, computeModule, nullptr);
+            }
+        } catch (const std::exception& ex) {
+            HE_WARN(std::string("SceneRenderer: PostExposureCS unavailable: ") + ex.what());
+        }
+    }
 
     // Scene object pipelines
     std::vector<char> vertCode = LoadShaderBytecode("SceneObject", ShaderStage::Vertex);
@@ -271,6 +350,23 @@ void SceneRenderer::CreatePipelines(VkRenderPass renderPass) {
     vkDestroyShaderModule(device, fragModule, nullptr);
 }
 
+void SceneRenderer::ValidateCreatedPipelines() const {
+    auto& diag = RenderDiagnostics::Get();
+    diag.ValidatePipeline("SkyAtmosphere", m_SkyAtmospherePipeline);
+    diag.ValidatePipeline("VolumetricClouds", m_VolumetricCloudsPipeline);
+    diag.ValidatePipeline("FogComposite", m_FogCompositePipeline);
+    diag.ValidatePipeline("PostExposure", m_PostExposurePipeline);
+    diag.ValidatePipeline("SceneObjectLit", m_LitPipeline);
+}
+
+bool SceneRenderer::ValidateRenderFrame(VkFramebuffer framebuffer, uint32_t width, uint32_t height) const {
+    auto& diag = RenderDiagnostics::Get();
+    diag.ResetFrame();
+    diag.ValidateFramebuffer(framebuffer, width, height);
+    diag.ValidateEnvironmentUniform(m_SceneEnvironment);
+    return !diag.HasCritical();
+}
+
 VkPipeline SceneRenderer::CreateFullscreenPipeline(
     VkRenderPass renderPass,
     VkPipelineLayout layout,
@@ -284,7 +380,7 @@ VkPipeline SceneRenderer::CreateFullscreenPipeline(
     std::vector<char> vertCode = LoadShaderBytecode(shaderName, ShaderStage::Vertex);
     std::vector<char> fragCode = LoadShaderBytecode(shaderName, ShaderStage::Pixel);
     if (vertCode.empty() || fragCode.empty()) {
-        HE_WARN(std::string("SceneRenderer: missing shader bytecode for ") + shaderName);
+        RenderDiagnostics::Get().ValidateShaderBytecode(shaderName, !vertCode.empty(), !fragCode.empty());
         return VK_NULL_HANDLE;
     }
 
@@ -501,21 +597,40 @@ void SceneRenderer::DestroyMeshes() {
     m_Meshes.clear();
 }
 
-void SceneRenderer::DrawSkyAtmospherePass(VkCommandBuffer cmd, VkDescriptorSet cameraDescSet) const {
-    if (m_SkyAtmospherePipeline == VK_NULL_HANDLE) return;
+void SceneRenderer::PrepareAtmosphereLUTs(VkCommandBuffer /*cmd*/) {
     RefreshEnvironmentDescriptorBindings();
+    if (m_LUTGenerator) {
+        m_LUTGenerator->EnsureGenerated(m_SceneEnvironment);
+    }
+}
+
+void SceneRenderer::DrawSkyAtmospherePass(VkCommandBuffer cmd, VkDescriptorSet cameraDescSet) const {
+    GpuDebugScope debugScope(cmd, "SkyAtmosphere");
+    if (m_SkyAtmospherePipeline == VK_NULL_HANDLE || !m_LUTGenerator) {
+        static bool s_Reported = false;
+        if (!s_Reported) {
+            RenderDiagnostics::Get().ValidatePipeline("SkyAtmosphere", m_SkyAtmospherePipeline);
+            s_Reported = true;
+        }
+        return;
+    }
+    const_cast<SceneRenderer*>(this)->PrepareAtmosphereLUTs(cmd);
+    RenderDiagnostics::Get().ValidateDescriptorSet("SkyAtmosphere", 0, m_EnvironmentDescSet);
+    RenderDiagnostics::Get().ValidateDescriptorSet("SkyAtmosphere", 1, cameraDescSet);
+    RenderDiagnostics::Get().ValidateDescriptorSet("SkyAtmosphere", 2, m_LUTGenerator->GetSampleSet());
     vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_SkyAtmospherePipeline);
-    VkDescriptorSet sets[] = { m_EnvironmentDescSet, cameraDescSet };
-    vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_EnvironmentPipelineLayout, 0, 2, sets, 0, nullptr);
+    VkDescriptorSet sets[] = { m_EnvironmentDescSet, cameraDescSet, m_LUTGenerator->GetSampleSet() };
+    vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_EnvironmentPipelineLayout, 0, 3, sets, 0, nullptr);
     vkCmdDraw(cmd, 6, 1, 0, 0);
+    FrameStatsCollector::Get().AddDrawCall(2);
 }
 
 void SceneRenderer::DrawVolumetricCloudsPass(VkCommandBuffer cmd, VkDescriptorSet cameraDescSet) const {
     if (m_VolumetricCloudsPipeline == VK_NULL_HANDLE || m_SceneEnvironment.enableClouds < 0.5f) return;
     RefreshEnvironmentDescriptorBindings();
     vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_VolumetricCloudsPipeline);
-    VkDescriptorSet sets[] = { m_EnvironmentDescSet, cameraDescSet };
-    vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_EnvironmentPipelineLayout, 0, 2, sets, 0, nullptr);
+    VkDescriptorSet sets[] = { m_EnvironmentDescSet, cameraDescSet, m_LUTGenerator->GetSampleSet() };
+    vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_EnvironmentPipelineLayout, 0, 3, sets, 0, nullptr);
     vkCmdDraw(cmd, 6, 1, 0, 0);
 }
 
@@ -525,30 +640,77 @@ void SceneRenderer::DrawFogCompositePass(
     VkImageView depthImageView,
     VkSampler sampler) const {
 
-    if (m_FogCompositePipeline == VK_NULL_HANDLE || m_SceneEnvironment.enableVolumetricFog < 0.5f) return;
+    if (m_FogCompositePipeline == VK_NULL_HANDLE || m_SceneEnvironment.enableVolumetricFog < 0.5f || !m_LUTGenerator) return;
+    const_cast<SceneRenderer*>(this)->PrepareAtmosphereLUTs(cmd);
     RefreshEnvironmentDescriptorBindings();
 
     if (depthImageView != m_BoundFogDepthView) {
-        VkDescriptorImageInfo depthImageInfo{};
-        depthImageInfo.imageLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL;
-        depthImageInfo.imageView = depthImageView;
-        depthImageInfo.sampler = sampler;
+        const auto& lutImages = m_LUTGenerator->GetImages();
+        VkDescriptorImageInfo imageInfos[3] = {
+            { sampler, depthImageView, VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL },
+            { lutImages.sampler, lutImages.aerialView, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL },
+            { lutImages.sampler, lutImages.skyViewView, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL },
+        };
 
-        VkWriteDescriptorSet depthWrite{};
-        depthWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        depthWrite.dstSet = m_FogDepthDescSet;
-        depthWrite.dstBinding = 0;
-        depthWrite.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-        depthWrite.descriptorCount = 1;
-        depthWrite.pImageInfo = &depthImageInfo;
-        vkUpdateDescriptorSets(m_Context->GetDevice(), 1, &depthWrite, 0, nullptr);
+        VkWriteDescriptorSet writes[3]{};
+        for (uint32_t i = 0; i < 3; ++i) {
+            writes[i].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+            writes[i].dstSet = m_FogLutDescSet;
+            writes[i].dstBinding = i;
+            writes[i].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+            writes[i].descriptorCount = 1;
+            writes[i].pImageInfo = &imageInfos[i];
+        }
+        vkUpdateDescriptorSets(m_Context->GetDevice(), 3, writes, 0, nullptr);
         m_BoundFogDepthView = depthImageView;
     }
 
     vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_FogCompositePipeline);
-    VkDescriptorSet sets[] = { m_EnvironmentDescSet, cameraDescSet, m_FogDepthDescSet };
+    VkDescriptorSet sets[] = { m_EnvironmentDescSet, cameraDescSet, m_FogLutDescSet };
     vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_FogPipelineLayout, 0, 3, sets, 0, nullptr);
     vkCmdDraw(cmd, 6, 1, 0, 0);
+}
+
+void SceneRenderer::ApplyPostExposure(
+    VkCommandBuffer cmd,
+    VkImage colorImage,
+    VkImageView colorImageView,
+    uint32_t width,
+    uint32_t height) const {
+
+    if (m_PostExposurePipeline == VK_NULL_HANDLE || colorImage == VK_NULL_HANDLE || colorImageView == VK_NULL_HANDLE || width == 0 || height == 0) {
+        RenderDiagnostics::Get().ValidatePipeline("PostExposure", m_PostExposurePipeline);
+        return;
+    }
+
+    GpuDebugScope debugScope(cmd, "PostExposure");
+
+    RefreshEnvironmentDescriptorBindings();
+
+    if (colorImageView != m_BoundPostColorView) {
+        VkDescriptorImageInfo storageInfo{};
+        storageInfo.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
+        storageInfo.imageView = colorImageView;
+
+        VkWriteDescriptorSet storageWrite{};
+        storageWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        storageWrite.dstSet = m_PostStorageDescSet;
+        storageWrite.dstBinding = 0;
+        storageWrite.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
+        storageWrite.descriptorCount = 1;
+        storageWrite.pImageInfo = &storageInfo;
+        vkUpdateDescriptorSets(m_Context->GetDevice(), 1, &storageWrite, 0, nullptr);
+        m_BoundPostColorView = colorImageView;
+    }
+
+    m_Context->TransitionImageLayout(colorImage, kOffscreenColorFormat, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_GENERAL);
+
+    vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, m_PostExposurePipeline);
+    VkDescriptorSet sets[] = { m_EnvironmentDescSet, m_PostStorageDescSet };
+    vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, m_PostPipelineLayout, 0, 2, sets, 0, nullptr);
+    vkCmdDispatch(cmd, (width + 7) / 8, (height + 7) / 8, 1);
+
+    m_Context->TransitionImageLayout(colorImage, kOffscreenColorFormat, VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 }
 
 void SceneRenderer::DrawMesh(VkCommandBuffer cmd, const std::string& meshName, VkDescriptorSet descriptorSet, int mode) const {
@@ -624,6 +786,11 @@ void SceneRenderer::UpdateObjectDescriptorSet(VkDescriptorSet descriptorSet, VkB
 }
 
 void SceneRenderer::SetSceneEnvironment(const SceneEnvironmentUniform& environment) {
+    if (std::memcmp(&m_SceneEnvironment, &environment, sizeof(SceneEnvironmentUniform)) != 0) {
+        if (m_LUTGenerator) {
+            m_LUTGenerator->Invalidate();
+        }
+    }
     m_SceneEnvironment = environment;
     m_SceneEnvironmentDirty = true;
 }

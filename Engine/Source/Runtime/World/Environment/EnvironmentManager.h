@@ -20,6 +20,7 @@ public:
 
     glm::vec3 GetWorldOrigin(const glm::vec3& cameraPosition) const;
     float ComputeExposureEV(const EnvironmentDirectionalLight& sun) const;
+    float ComputeHdrSkyLuminance(const EnvironmentDirectionalLight& sun, const EnvironmentSkyAtmosphere& atmosphere) const;
 
 private:
     glm::vec3 ComputeSkyLightUpper(const EnvironmentDirectionalLight& sun, const EnvironmentSkyAtmosphere& atmosphere) const;
