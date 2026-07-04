@@ -351,7 +351,7 @@ long __stdcall Logger::EngineCrashHandler(struct _EXCEPTION_POINTERS* exceptionI
     STARTUPINFOA si{};
     si.cb = sizeof(si);
     PROCESS_INFORMATION pi{};
-    std::string reporterPath = "WeCrashReporter.exe";
+    std::string reporterPath = "WECrashReporter.exe";
     CreateProcessA(nullptr, (LPSTR)reporterPath.c_str(), nullptr, nullptr, FALSE, DETACHED_PROCESS, nullptr, nullptr, &si, &pi);
     if (pi.hProcess) {
         CloseHandle(pi.hProcess);
@@ -413,7 +413,7 @@ void Logger::SignalHandler(int signal) {
     STARTUPINFOA si{};
     si.cb = sizeof(si);
     PROCESS_INFORMATION pi{};
-    std::string reporterPath = "WeCrashReporter.exe";
+    std::string reporterPath = "WECrashReporter.exe";
     CreateProcessA(nullptr, (LPSTR)reporterPath.c_str(), nullptr, nullptr, FALSE, DETACHED_PROCESS, nullptr, nullptr, &si, &pi);
     if (pi.hProcess) {
         CloseHandle(pi.hProcess);

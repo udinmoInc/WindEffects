@@ -175,6 +175,45 @@ public class VulkanSDKProvider : BaseSDKProvider
         result.Value = libraries;
         return await Task.FromResult(result);
     }
+
+    public override async Task<SDKResult<List<string>>> LocateBinariesAsync(string path)
+    {
+        var result = new SDKResult<List<string>>();
+        var binaries = new List<string>();
+
+        var runtimeDirs = new[]
+        {
+            Path.Combine(path, "Vulkan-Loader", "build", "loader", "Release"),
+            Path.Combine(path, "Vulkan-Loader", "build", "loader", "Debug"),
+            Path.Combine(path, "Vulkan-Loader", "build", "loader"),
+            Path.Combine(path, "Bin"),
+            Path.Combine(path, "bin")
+        };
+
+        foreach (var dir in runtimeDirs)
+        {
+            if (Directory.Exists(dir))
+            {
+                binaries.Add(dir);
+            }
+        }
+
+        var baseResult = await base.LocateBinariesAsync(path);
+        if (baseResult.Success && baseResult.Value != null)
+        {
+            foreach (var dir in baseResult.Value)
+            {
+                if (!binaries.Contains(dir))
+                {
+                    binaries.Add(dir);
+                }
+            }
+        }
+
+        result.Success = binaries.Count > 0;
+        result.Value = binaries;
+        return result;
+    }
     
     public override async Task<SDKResult<string>> GetVersionAsync(string path)
     {

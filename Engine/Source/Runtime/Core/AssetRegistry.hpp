@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Core/Export.hpp"
 #include <string>
 #include <string_view>
 #include <unordered_map>
@@ -29,7 +30,7 @@ struct AssetLoadResult {
     bool found = false;
 };
 
-class AssetRegistry {
+class CORE_API AssetRegistry {
 public:
     static AssetRegistry& Get();
 

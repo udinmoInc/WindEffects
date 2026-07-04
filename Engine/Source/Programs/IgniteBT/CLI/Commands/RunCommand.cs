@@ -90,16 +90,15 @@ public static class RunCommand
     private static string NormalizeRunTarget(string target) =>
         target.ToLowerInvariant() switch
         {
-            "editor" => "Application",
+            "editor" => "Editor",
             _ => target
         };
 
     private static string[] BuildLaunchArgs(string target, string config)
     {
-        if (string.Equals(target, "Editor", StringComparison.OrdinalIgnoreCase) ||
-            string.Equals(target, "Application", StringComparison.OrdinalIgnoreCase))
+        if (string.Equals(target, "Editor", StringComparison.OrdinalIgnoreCase))
         {
-            return new[] { "--target", "Application", "--config", config };
+            return new[] { "--target", "Editor", "--config", config };
         }
 
         return new[] { target, "--config", config };

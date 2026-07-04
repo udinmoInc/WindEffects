@@ -171,11 +171,7 @@ public static class BuildCommand
 
             outputLayout.PruneConfigurationRoot(modules);
             outputLayout.RefreshLayoutManifest(modules);
-
-            if (success)
-            {
-                outputLayout.StageRuntimeDependencies(dependencyResult, modules);
-            }
+            outputLayout.StageRuntimeDependencies(dependencyResult, modules);
             
             return success ? 0 : 1;
         }
@@ -385,15 +381,33 @@ public static class BuildCommand
                 // Add module dependency public include paths
                 foreach (var depName in node.Module.PublicDependencies.Concat(node.Module.PrivateDependencies))
                 {
-                    var depModule = buildGraph.Nodes.FirstOrDefault(n => n.Name == depName);
-                    if (depModule != null)
+                    var depNode = buildGraph.GetNode(depName);
+                    if (depNode == null)
                     {
-                        var depPublicInclude = Path.Combine(engineDir, "Source", depModule.Module.ModuleDirectory, "Public");
-                        if (Directory.Exists(depPublicInclude) && !compileOptions.IncludeDirectories.Contains(depPublicInclude))
+                        continue;
+                    }
+
+                    var depModuleDir = depNode.Module.ModuleDirectory;
+                    foreach (var publicIncludePath in depNode.Module.PublicIncludePaths)
+                    {
+                        var fullPath = Path.Combine(depModuleDir, publicIncludePath);
+                        if (Directory.Exists(fullPath) && !compileOptions.IncludeDirectories.Contains(fullPath))
                         {
-                            compileOptions.IncludeDirectories.Add(depPublicInclude);
+                            compileOptions.IncludeDirectories.Add(fullPath);
                         }
                     }
+
+                    var defaultPublicInclude = Path.Combine(depModuleDir, "Public");
+                    if (Directory.Exists(defaultPublicInclude)
+                        && !compileOptions.IncludeDirectories.Contains(defaultPublicInclude))
+                    {
+                        compileOptions.IncludeDirectories.Add(defaultPublicInclude);
+                    }
+                }
+
+                if (node.Module.PlatformSettings.Windows is { } windowsCompileSettings)
+                {
+                    compileOptions.AdditionalFlags.AddRange(windowsCompileSettings.CompilerFlags);
                 }
                 
                 // Add feature flags as compiler definitions
@@ -489,6 +503,12 @@ public static class BuildCommand
         // Add dbghelp.lib for crash reporting
         linkOptions.Libraries.Add("dbghelp.lib");
         linkOptions.Libraries.Add("psapi.lib");
+
+        if (node.Module.PlatformSettings.Windows is { } windowsLinkSettings)
+        {
+            linkOptions.Subsystem = windowsLinkSettings.Subsystem;
+            linkOptions.AdditionalFlags.AddRange(windowsLinkSettings.LinkerFlags);
+        }
 
         // Link SDK libraries requested by this module
         foreach (var sdkName in node.Module.RequiredSDKs.Concat(node.Module.OptionalSDKs))
