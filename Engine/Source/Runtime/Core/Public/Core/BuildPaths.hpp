@@ -5,6 +5,7 @@
 #include <optional>
 #include <string>
 #include <string_view>
+#include <vector>
 
 #if defined(_WIN32)
 #define WIN32_LEAN_AND_MEAN
@@ -37,22 +38,45 @@ inline std::string StripLegacyModulePrefix(std::string_view logicalName) {
     return std::string(logicalName);
 }
 
-inline std::string GetModuleBinaryFileName(std::string_view moduleName) {
-    return "WE" + std::string(moduleName) + ".dll";
+inline std::vector<std::string> BuildModuleBinaryCandidates(std::string_view moduleName) {
+    const std::string name(StripLegacyModulePrefix(moduleName));
+    return {
+        "Windeffects" + name + ".dll",
+        "WE" + name + ".dll",
+    };
+}
+
+inline std::optional<std::filesystem::path> FindExistingBinary(
+    const std::filesystem::path& directory,
+    const std::vector<std::string>& candidates) {
+    if (directory.empty() || !std::filesystem::exists(directory)) {
+        return std::nullopt;
+    }
+
+    for (const auto& candidate : candidates) {
+        const auto path = directory / candidate;
+        if (std::filesystem::exists(path)) {
+            return path;
+        }
+    }
+
+    return std::nullopt;
 }
 
 inline std::optional<std::filesystem::path> ResolveModuleLibraryPath(std::string_view logicalName) {
-    const std::string moduleName = StripLegacyModulePrefix(logicalName);
     const auto root = GetConfigurationRoot();
     if (root.empty()) {
         return std::nullopt;
     }
 
-    const std::string binaryName = GetModuleBinaryFileName(moduleName);
+    const auto candidates = BuildModuleBinaryCandidates(logicalName);
 
-    const auto runtimeBinaryPath = root / "Runtime" / "Binaries" / binaryName;
-    if (std::filesystem::exists(runtimeBinaryPath)) {
-        return runtimeBinaryPath;
+    if (const auto bootstrapPath = FindExistingBinary(root, candidates)) {
+        return bootstrapPath;
+    }
+
+    if (const auto enginePath = FindExistingBinary(root / "Engine" / "Binaries", candidates)) {
+        return enginePath;
     }
 
     const auto pluginsRoot = root / "Plugins";
@@ -62,26 +86,28 @@ inline std::optional<std::filesystem::path> ResolveModuleLibraryPath(std::string
                 continue;
             }
 
-            const auto pluginPath = entry.path() / binaryName;
-            if (std::filesystem::exists(pluginPath)) {
+            if (const auto pluginPath = FindExistingBinary(entry.path(), candidates)) {
                 return pluginPath;
             }
         }
     }
 
-    const auto dependenciesPath = root / "Dependencies" / binaryName;
-    if (std::filesystem::exists(dependenciesPath)) {
-        return dependenciesPath;
+    if (const auto thirdPartyPath = FindExistingBinary(root / "ThirdParty", candidates)) {
+        return thirdPartyPath;
     }
 
-    const auto legacyRootPath = root / binaryName;
-    return std::filesystem::exists(legacyRootPath) ? std::optional(legacyRootPath) : std::nullopt;
+    return std::nullopt;
 }
 
 inline std::optional<std::filesystem::path> ResolveDelayLoadLibraryPath(std::string_view dllFileName) {
     std::string_view fileName = dllFileName;
     if (fileName.ends_with(".dll")) {
         fileName.remove_suffix(4);
+    }
+
+    if (fileName.starts_with("Windeffects")) {
+        fileName.remove_prefix(std::string_view("Windeffects").size());
+        return ResolveModuleLibraryPath(fileName);
     }
 
     if (fileName.starts_with("WE")) {
@@ -100,8 +126,8 @@ inline std::optional<std::filesystem::path> ResolveDelayLoadLibraryPath(std::str
 
     const std::string dllName(dllFileName);
     const std::array searchRoots = {
-        root / "Dependencies",
-        root / "Runtime" / "Binaries",
+        root / "ThirdParty",
+        root / "Engine" / "Binaries",
         root
     };
 
@@ -128,9 +154,11 @@ inline void ConfigureModuleSearchPaths() {
 
     SetDefaultDllDirectories(LOAD_LIBRARY_SEARCH_DEFAULT_DIRS | LOAD_LIBRARY_SEARCH_USER_DIRS);
 
+    AddDllDirectory(root.wstring().c_str());
+
     const std::array searchRoots = {
-        root / "Runtime" / "Binaries",
-        root / "Dependencies",
+        root / "Engine" / "Binaries",
+        root / "ThirdParty",
         root / "Plugins"
     };
 

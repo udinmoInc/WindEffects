@@ -5,7 +5,7 @@
 namespace we::core {
 
 inline std::filesystem::path GetEditorConfigDirectory() {
-    return std::filesystem::path("Settings") / "Editor";
+    return std::filesystem::path("Config") / "Editor";
 }
 
 inline std::filesystem::path GetEditorConfigPath(const char* fileName) {
@@ -14,7 +14,7 @@ inline std::filesystem::path GetEditorConfigPath(const char* fileName) {
 
 inline void MigrateLegacyEditorConfigFile(const std::filesystem::path& configPath) {
     const auto fileName = configPath.filename();
-    const std::filesystem::path legacyConfigPath = std::filesystem::path("Config") / "Editor" / fileName;
+    const std::filesystem::path legacySettingsPath = std::filesystem::path("Settings") / "Editor" / fileName;
     const std::filesystem::path legacySavedPath = std::filesystem::path("Saved") / "Config" / fileName;
     const std::filesystem::path legacyLowerPath = std::filesystem::path("config") / "editor" / fileName;
 
@@ -46,13 +46,13 @@ inline void MigrateLegacyEditorConfigFile(const std::filesystem::path& configPat
         }
     };
 
-    migrateFrom(legacyConfigPath);
+    migrateFrom(legacySettingsPath);
     migrateFrom(legacySavedPath);
     migrateFrom(legacyLowerPath);
 
     if (std::filesystem::exists(configPath, ec)) {
-        if (std::filesystem::exists(legacyConfigPath, ec)) {
-            std::filesystem::remove(legacyConfigPath, ec);
+        if (std::filesystem::exists(legacySettingsPath, ec)) {
+            std::filesystem::remove(legacySettingsPath, ec);
         }
         if (std::filesystem::exists(legacySavedPath, ec)) {
             std::filesystem::remove(legacySavedPath, ec);

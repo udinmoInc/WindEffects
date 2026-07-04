@@ -49,11 +49,14 @@ IModuleInterface* ModuleManager::LoadModule(const std::string& ModuleName)
     }
 
     if (!Handle && IsRuntimeLinkedModule(ModuleName)) {
-        const std::string libName = we::core::GetModuleBinaryFileName(
+        const auto candidates = we::core::BuildModuleBinaryCandidates(
             we::core::StripLegacyModulePrefix(ModuleName));
-        Handle = LoadLibraryA(libName.c_str());
-        if (Handle) {
-            LoadedLibraryName = libName;
+        for (const auto& libName : candidates) {
+            Handle = LoadLibraryA(libName.c_str());
+            if (Handle) {
+                LoadedLibraryName = libName;
+                break;
+            }
         }
     }
 #else
@@ -63,11 +66,15 @@ IModuleInterface* ModuleManager::LoadModule(const std::string& ModuleName)
             LoadedLibraryName = modulePath->string();
         }
     } else if (IsRuntimeLinkedModule(ModuleName)) {
-        const std::string libName = "lib" + we::core::GetModuleBinaryFileName(
+        const auto candidates = we::core::BuildModuleBinaryCandidates(
             we::core::StripLegacyModulePrefix(ModuleName));
-        Handle = dlopen(libName.c_str(), RTLD_NOW);
-        if (Handle) {
-            LoadedLibraryName = libName;
+        for (const auto& libName : candidates) {
+            const std::string prefixed = "lib" + libName;
+            Handle = dlopen(prefixed.c_str(), RTLD_NOW);
+            if (Handle) {
+                LoadedLibraryName = prefixed;
+                break;
+            }
         }
     }
 #endif

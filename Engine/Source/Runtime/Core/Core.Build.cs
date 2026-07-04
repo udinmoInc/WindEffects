@@ -6,6 +6,9 @@ public class Core : ModuleRules
     {
         Type = ModuleType.SharedLibrary;
 
+        BootstrapBinary();
+        SetBinaryName("WindeffectsCore.dll");
+
         PublicIncludePaths.Add("Public");
         PrivateIncludePaths.Add("Private");
 
