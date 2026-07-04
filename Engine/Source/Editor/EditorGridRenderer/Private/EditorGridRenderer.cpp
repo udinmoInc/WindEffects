@@ -4,6 +4,7 @@
 #include "Renderer/VulkanContext.hpp"
 #include "Renderer/ShaderHelper.hpp"
 #include "Renderer/Shader/ShaderManifest.hpp"
+#include "Core/Logger.hpp"
 
 #include <algorithm>
 #include <array>
@@ -89,6 +90,9 @@ void EditorGridRenderer::Initialize(const std::shared_ptr<we::runtime::renderer:
     EditorFunctionConfig::Get().EnsureLoaded();
 
     m_Context = context;
+    volkInitialize();
+    volkLoadInstance(m_Context->GetInstance());
+    volkLoadDevice(m_Context->GetDevice());
     CreateResources(renderPass, cameraDescLayout);
     m_Initialized = true;
 }
@@ -116,7 +120,8 @@ void EditorGridRenderer::CreateResources(VkRenderPass renderPass, VkDescriptorSe
     gridLayoutInfo.bindingCount = 1;
     gridLayoutInfo.pBindings = &gridBinding;
     if (vkCreateDescriptorSetLayout(device, &gridLayoutInfo, nullptr, &m_GridDescLayout) != VK_SUCCESS) {
-        throw std::runtime_error("EditorGridRenderer: failed to create descriptor set layout.");
+        HE_ERROR("EditorGridRenderer: failed to create descriptor set layout.");
+        return;
     }
 
     m_Context->CreateBuffer(
@@ -133,7 +138,8 @@ void EditorGridRenderer::CreateResources(VkRenderPass renderPass, VkDescriptorSe
     allocInfo.descriptorSetCount = 1;
     allocInfo.pSetLayouts = &m_GridDescLayout;
     if (vkAllocateDescriptorSets(device, &allocInfo, &m_GridDescSet) != VK_SUCCESS) {
-        throw std::runtime_error("EditorGridRenderer: failed to allocate descriptor set.");
+        HE_ERROR("EditorGridRenderer: failed to allocate descriptor set.");
+        return;
     }
 
     VkDescriptorBufferInfo bufferInfo{};
@@ -182,7 +188,8 @@ void EditorGridRenderer::CreatePipeline(VkRenderPass renderPass, VkDescriptorSet
     layoutInfo.setLayoutCount = static_cast<uint32_t>(setLayouts.size());
     layoutInfo.pSetLayouts = setLayouts.data();
     if (vkCreatePipelineLayout(device, &layoutInfo, nullptr, &m_PipelineLayout) != VK_SUCCESS) {
-        throw std::runtime_error("EditorGridRenderer: failed to create pipeline layout.");
+        HE_ERROR("EditorGridRenderer: failed to create pipeline layout.");
+        return;
     }
 
     std::vector<char> vertCode = we::runtime::renderer::LoadShaderBytecode(
@@ -281,7 +288,8 @@ void EditorGridRenderer::CreatePipeline(VkRenderPass renderPass, VkDescriptorSet
     if (vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &m_Pipeline) != VK_SUCCESS) {
         vkDestroyShaderModule(device, vertModule, nullptr);
         vkDestroyShaderModule(device, fragModule, nullptr);
-        throw std::runtime_error("EditorGridRenderer: failed to create graphics pipeline.");
+        HE_ERROR("EditorGridRenderer: failed to create graphics pipeline.");
+        return;
     }
 
     vkDestroyShaderModule(device, vertModule, nullptr);

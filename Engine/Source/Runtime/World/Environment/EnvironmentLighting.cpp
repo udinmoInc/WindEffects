@@ -1,5 +1,7 @@
 #include "Environment/EnvironmentLighting.h"
 
+#include "Environment/EnvironmentManager.h"
+
 #include <algorithm>
 #include <cmath>
 
@@ -57,12 +59,17 @@ glm::vec3 EulerDegreesToLightDirection(const glm::vec3& rotationDegrees) {
     return glm::normalize(direction);
 }
 
+glm::vec3 SunDirectionToSky(const glm::vec3& lightTravelDirection) {
+    return glm::normalize(-lightTravelDirection);
+}
+
 we::runtime::renderer::SceneEnvironmentUniform BuildSceneEnvironmentUniform(
     const EnvironmentDirectionalLight& sun,
     const EnvironmentSkyLight& skyLight,
     const EnvironmentSkyAtmosphere& atmosphere,
     const EnvironmentHeightFog& fog,
-    const EnvironmentVolumetricClouds& clouds) {
+    const EnvironmentVolumetricClouds& clouds,
+    const glm::vec3& worldOrigin) {
 
     we::runtime::renderer::SceneEnvironmentUniform uniform{};
     uniform.sunDirection = sun.GetLightDirection();
@@ -73,9 +80,17 @@ we::runtime::renderer::SceneEnvironmentUniform BuildSceneEnvironmentUniform(
     uniform.fogDensity = fog.Density;
     uniform.fogColor = fog.FogColor;
     uniform.fogHeightFalloff = fog.HeightFalloff;
+    uniform.fogStartDistance = fog.StartDistance;
     uniform.atmosphereRayleigh = atmosphere.GetRayleighColor();
+    uniform.mieScattering = atmosphere.MieScattering;
+    uniform.mieAnisotropy = atmosphere.MieAnisotropy;
+    uniform.skyLightLowerColor = skyLight.LowerHemisphereColor;
+    uniform.worldOrigin = worldOrigin;
+    uniform.exposureEV = EnvironmentManager().ComputeExposureEV(sun);
+    uniform.planetRadius = 6360.0f;
+    uniform.atmosphereHeight = 60.0f;
     uniform.enableVolumetricFog = (fog.VolumetricFog && fog.EntityId != 0) ? 1.0f : 0.0f;
-    uniform.aerialTint = glm::vec3(0.55f, 0.65f, 0.85f);
+    uniform.aerialTint = glm::mix(glm::vec3(0.55f, 0.65f, 0.85f), fog.FogColor, 0.35f);
     uniform.enableClouds = (clouds.Enabled && clouds.EntityId != 0) ? 1.0f : 0.0f;
     uniform.sunCastShadows = sun.CastDynamicShadows ? 1 : 0;
     uniform.sunTemperature = sun.TemperatureKelvin;

@@ -5,6 +5,7 @@
 namespace we::runtime::world::environment {
 
 constexpr const char* kEnvironmentFolderName = "Environment";
+constexpr const char* kEnvironmentManagerActorName = "Environment Manager";
 constexpr const char* kSunActorName = "Sun";
 constexpr const char* kSkyLightActorName = "SkyLight";
 constexpr const char* kSkyAtmosphereActorName = "SkyAtmosphere";
@@ -22,6 +23,7 @@ enum class EnvironmentPreset {
 
 enum class EnvironmentActorKind {
     Folder,
+    EnvironmentManager,
     DirectionalLight,
     SkyLight,
     SkyAtmosphere,
