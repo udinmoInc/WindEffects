@@ -7,9 +7,8 @@ public class World : ModuleRules
         Type = ModuleType.SharedLibrary;
 
         PublicIncludePaths.Add("Public");
-        PrivateIncludePaths.Add(".");
+        PublicIncludePaths.Add(".");
         PrivateIncludePaths.Add("DefaultScene");
-        PublicIncludePaths.Add("Environment");
 
         PublicDependencies.Add("Core");
         PublicDependencies.Add("CoreUObject");
