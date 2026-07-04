@@ -29,7 +29,7 @@ void OutputLogWidget::Tick(float /*deltaTime*/) {
     if (newLogs.empty()) return;
 
     {
-        std::lock_guard<std::mutex> lock(m_Mutex);
+        std::lock_guard<std::recursive_mutex> lock(m_Mutex);
         for (const auto& record : newLogs) {
             m_Records.push_back(record);
         }
@@ -41,7 +41,7 @@ void OutputLogWidget::Tick(float /*deltaTime*/) {
 }
 
 void OutputLogWidget::Clear() {
-    std::lock_guard<std::mutex> lock(m_Mutex);
+    std::lock_guard<std::recursive_mutex> lock(m_Mutex);
     m_Records.clear();
     m_VisibleLines.clear();
     m_VisibleLevels.clear();
@@ -73,7 +73,11 @@ bool OutputLogWidget::PassesFilter(const we::Logger::LogRecord& record) const {
 }
 
 void OutputLogWidget::RebuildVisibleLines() {
-    std::lock_guard<std::mutex> lock(m_Mutex);
+    std::lock_guard<std::recursive_mutex> lock(m_Mutex);
+    RebuildVisibleLinesUnlocked();
+}
+
+void OutputLogWidget::RebuildVisibleLinesUnlocked() {
     m_VisibleLines.clear();
     m_VisibleLevels.clear();
     for (const auto& record : m_Records) {
@@ -95,7 +99,7 @@ void OutputLogWidget::Paint(PaintContext& context) {
     float scrollOffset = 0.0f;
     Rect geometry;
     {
-        std::lock_guard<std::mutex> lock(m_Mutex);
+        std::lock_guard<std::recursive_mutex> lock(m_Mutex);
         visibleLines = m_VisibleLines;
         visibleLevels = m_VisibleLevels;
         scrollOffset = m_ScrollOffset;

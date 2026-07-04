@@ -25,8 +25,8 @@
 
 namespace we::runtime::core {
 
-std::mutex Logger::s_Mutex;
-std::condition_variable Logger::s_Cv;
+std::recursive_mutex Logger::s_Mutex;
+std::condition_variable_any Logger::s_Cv;
 std::deque<Logger::LogRecord> Logger::s_PendingRecords;
 std::vector<Logger::LogRecord> Logger::s_History;
 std::vector<Logger::LogRecord> Logger::s_NewLogs;
@@ -42,7 +42,7 @@ std::string Logger::s_SessionDirectory;
 void Logger::Init() {
     LogRecord startup{};
     {
-        std::lock_guard<std::mutex> lock(s_Mutex);
+        std::lock_guard<std::recursive_mutex> lock(s_Mutex);
         if (s_Initialized.load()) return;
 
         const auto now = std::chrono::system_clock::now();
@@ -99,7 +99,7 @@ void Logger::Shutdown() {
         s_WriterThread.join();
     }
 
-    std::lock_guard<std::mutex> lock(s_Mutex);
+    std::lock_guard<std::recursive_mutex> lock(s_Mutex);
     if (s_LogFile.is_open()) {
         s_LogFile.close();
     }
@@ -135,7 +135,7 @@ void Logger::Log(Level level, std::string_view category, const std::string& mess
 
 void Logger::EnqueueRecord(LogRecord record, bool flushImmediately) {
     {
-        std::lock_guard<std::mutex> lock(s_Mutex);
+        std::lock_guard<std::recursive_mutex> lock(s_Mutex);
         s_PendingRecords.push_back(std::move(record));
     }
     s_Cv.notify_one();
@@ -149,7 +149,7 @@ void Logger::WriterThreadMain() {
     while (s_Running.load() || !s_PendingRecords.empty()) {
         std::deque<LogRecord> batch;
         {
-            std::unique_lock<std::mutex> lock(s_Mutex);
+            std::unique_lock<std::recursive_mutex> lock(s_Mutex);
             s_Cv.wait_for(lock, std::chrono::milliseconds(50), [] {
                 return !s_PendingRecords.empty() || !s_Running.load();
             });
@@ -165,7 +165,7 @@ void Logger::WriterThreadMain() {
 void Logger::WriteRecordToOutputs(const LogRecord& record) {
     std::vector<LogListener> listenersCopy;
     {
-        std::lock_guard<std::mutex> lock(s_Mutex);
+        std::lock_guard<std::recursive_mutex> lock(s_Mutex);
         if (s_History.size() >= kMaxHistoryEntries) {
             s_History.erase(s_History.begin(), s_History.begin() + (kMaxHistoryEntries / 4));
         }
@@ -219,24 +219,24 @@ void Logger::ReportError(const std::string& title, const std::string& descriptio
 }
 
 std::vector<Logger::LogRecord> Logger::GetNewLogs() {
-    std::lock_guard<std::mutex> lock(s_Mutex);
+    std::lock_guard<std::recursive_mutex> lock(s_Mutex);
     std::vector<LogRecord> logs = std::move(s_NewLogs);
     s_NewLogs.clear();
     return logs;
 }
 
 std::vector<Logger::LogRecord> Logger::GetHistory() {
-    std::lock_guard<std::mutex> lock(s_Mutex);
+    std::lock_guard<std::recursive_mutex> lock(s_Mutex);
     return s_History;
 }
 
 void Logger::AddListener(LogListener listener) {
-    std::lock_guard<std::mutex> lock(s_Mutex);
+    std::lock_guard<std::recursive_mutex> lock(s_Mutex);
     s_Listeners.push_back(std::move(listener));
 }
 
 void Logger::ClearHistory() {
-    std::lock_guard<std::mutex> lock(s_Mutex);
+    std::lock_guard<std::recursive_mutex> lock(s_Mutex);
     s_History.clear();
     s_NewLogs.clear();
 }
@@ -254,8 +254,22 @@ const std::string& Logger::GetActiveLogFilePath() {
 }
 
 void Logger::Flush() {
-    std::unique_lock<std::mutex> lock(s_Mutex);
-    s_Cv.wait_for(lock, std::chrono::milliseconds(250), [] { return s_PendingRecords.empty(); });
+    const auto deadline = std::chrono::steady_clock::now() + std::chrono::milliseconds(500);
+    while (std::chrono::steady_clock::now() < deadline) {
+        {
+            std::lock_guard<std::recursive_mutex> lock(s_Mutex);
+            if (s_PendingRecords.empty()) {
+                if (s_LogFile.is_open()) {
+                    s_LogFile.flush();
+                }
+                return;
+            }
+        }
+        s_Cv.notify_all();
+        std::this_thread::sleep_for(std::chrono::milliseconds(2));
+    }
+
+    std::lock_guard<std::recursive_mutex> lock(s_Mutex);
     if (s_LogFile.is_open()) {
         s_LogFile.flush();
     }

@@ -84,8 +84,8 @@ private:
 #endif
     static void SignalHandler(int signal);
 
-    static std::mutex s_Mutex;
-    static std::condition_variable s_Cv;
+    static std::recursive_mutex s_Mutex;
+    static std::condition_variable_any s_Cv;
     static std::deque<LogRecord> s_PendingRecords;
     static std::vector<LogRecord> s_History;
     static std::vector<LogRecord> s_NewLogs;

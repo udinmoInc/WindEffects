@@ -31,11 +31,12 @@ private:
     we::UI::Color LevelColor(we::Logger::Level level) const;
     bool PassesFilter(const we::Logger::LogRecord& record) const;
     void RebuildVisibleLines();
+    void RebuildVisibleLinesUnlocked();
 
     std::deque<we::Logger::LogRecord> m_Records;
     std::vector<std::string> m_VisibleLines;
     std::vector<we::Logger::Level> m_VisibleLevels;
-    std::mutex m_Mutex;
+    std::recursive_mutex m_Mutex;
     std::string m_SearchQuery;
     std::string m_CategoryFilter;
     we::Logger::Level m_MinLevel = we::Logger::Level::Trace;
