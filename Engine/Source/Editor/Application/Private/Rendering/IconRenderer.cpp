@@ -11,9 +11,12 @@
 #include <unordered_set>
 
 #define NANOSVG_IMPLEMENTATION
+#pragma warning(push)
+#pragma warning(disable : 4456 4244)
 #include <nanosvg.h>
 #define NANOSVGRAST_IMPLEMENTATION
 #include <nanosvgrast.h>
+#pragma warning(pop)
 
 namespace we::UI {
 

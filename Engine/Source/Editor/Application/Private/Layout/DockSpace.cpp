@@ -199,7 +199,7 @@ void DockSpace::PaintNode(std::shared_ptr<DockNode> node, PaintContext& context,
     }
 }
 
-void DockSpace::DockWidget(std::shared_ptr<Widget> widget, DockDirection direction, const std::string& targetNodeId) {
+void DockSpace::DockWidget(std::shared_ptr<Widget> widget, DockDirection direction, const std::string& /*targetNodeId*/) {
     if (!widget) return;
     
     // Simplistic docking to root for now
@@ -225,17 +225,17 @@ void DockSpace::DockWidget(std::shared_ptr<Widget> widget, DockDirection directi
     AddChild(widget); // Register in widget tree
 }
 
-void DockSpace::OnMouseDown(const MouseEvent& event) {
+void DockSpace::OnMouseDown(const MouseEvent& /*event*/) {
     // Implement tab dragging / splitter dragging
 }
 
-void DockSpace::OnMouseMove(const MouseEvent& event) {
+void DockSpace::OnMouseMove(const MouseEvent& /*event*/) {
     if (m_IsDragging) {
         // Calculate docking preview bounds
     }
 }
 
-void DockSpace::OnMouseUp(const MouseEvent& event) {
+void DockSpace::OnMouseUp(const MouseEvent& /*event*/) {
     if (m_IsDragging) {
         m_IsDragging = false;
         // Perform dock
