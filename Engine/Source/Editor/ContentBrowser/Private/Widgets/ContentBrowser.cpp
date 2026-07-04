@@ -593,7 +593,8 @@ void ContentBrowser::BuildRenderList() {
             if (!filters.Matches(*asset)) continue;
         } else if (!m_Model->filterText.empty()) {
             std::string lowerName = item.name;
-            std::transform(lowerName.begin(), lowerName.end(), lowerName.begin(), ::tolower);
+            std::transform(lowerName.begin(), lowerName.end(), lowerName.begin(),
+                [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
             if (lowerName.find(m_Model->filterText) == std::string::npos) continue;
         }
 
