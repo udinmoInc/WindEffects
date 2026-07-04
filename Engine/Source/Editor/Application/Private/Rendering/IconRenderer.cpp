@@ -12,10 +12,11 @@
 
 #define NANOSVG_IMPLEMENTATION
 #pragma warning(push)
-#pragma warning(disable : 4456 4244)
+#pragma warning(disable : 4456 4244 4702)
 #include <nanosvg.h>
 #define NANOSVGRAST_IMPLEMENTATION
 #include <nanosvgrast.h>
+#pragma warning(pop)
 #pragma warning(pop)
 
 namespace we::UI {
