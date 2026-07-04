@@ -69,7 +69,11 @@ we::runtime::renderer::SceneEnvironmentUniform BuildSceneEnvironmentUniform(
     const EnvironmentSkyAtmosphere& atmosphere,
     const EnvironmentHeightFog& fog,
     const EnvironmentVolumetricClouds& clouds,
+    const EnvironmentExposureController& exposure,
     const glm::vec3& worldOrigin) {
+
+    EnvironmentManager manager;
+    const float sunDerivedEV = manager.ComputeExposureEV(sun);
 
     we::runtime::renderer::SceneEnvironmentUniform uniform{};
     uniform.sunDirection = sun.GetLightDirection();
@@ -83,15 +87,21 @@ we::runtime::renderer::SceneEnvironmentUniform BuildSceneEnvironmentUniform(
     uniform.fogStartDistance = fog.StartDistance;
     uniform.atmosphereRayleigh = atmosphere.GetRayleighColor();
     uniform.mieScattering = atmosphere.MieScattering;
+    uniform.ozoneAbsorption = atmosphere.GetOzoneAbsorption();
     uniform.mieAnisotropy = atmosphere.MieAnisotropy;
-    uniform.skyLightLowerColor = skyLight.LowerHemisphereColor;
     uniform.worldOrigin = worldOrigin;
-    uniform.exposureEV = EnvironmentManager().ComputeExposureEV(sun);
+    uniform.exposureEV = exposure.GetEffectiveExposureEV(sunDerivedEV);
     uniform.planetRadius = 6360.0f;
     uniform.atmosphereHeight = 60.0f;
-    uniform.enableVolumetricFog = (fog.VolumetricFog && fog.EntityId != 0) ? 1.0f : 0.0f;
-    uniform.aerialTint = glm::mix(glm::vec3(0.55f, 0.65f, 0.85f), fog.FogColor, 0.35f);
+    uniform.multiScatterStrength = atmosphere.MultiScatterStrength;
+    uniform.eyeAltitude = atmosphere.EyeAltitude;
+    uniform.cloudCoverage = clouds.Coverage;
+    uniform.cloudAltitude = clouds.Altitude;
+    uniform.cloudExtinction = clouds.Extinction;
     uniform.enableClouds = (clouds.Enabled && clouds.EntityId != 0) ? 1.0f : 0.0f;
+    uniform.cloudColor = clouds.CloudColor;
+    uniform.enableVolumetricFog = (fog.VolumetricFog && fog.EntityId != 0) ? 1.0f : 0.0f;
+    uniform.exposureCompensation = exposure.ExposureCompensation;
     uniform.sunCastShadows = sun.CastDynamicShadows ? 1 : 0;
     uniform.sunTemperature = sun.TemperatureKelvin;
     return uniform;

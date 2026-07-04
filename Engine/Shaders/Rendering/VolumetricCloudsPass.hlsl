@@ -1,8 +1,7 @@
 #include "../Common/Math.hlsli"
 #include "../Common/Color.hlsli"
-#include "../Common/Noise.hlsli"
 #include "../Common/EnvironmentBuffer.hlsli"
-#include "../Rendering/SkyAtmosphere.hlsli"
+#include "VolumetricClouds.hlsli"
 
 cbuffer CameraBuffer : register(b0, space1)
 {
@@ -30,22 +29,23 @@ VSOutput VSMain(uint vertexId : SV_VertexID)
 
 float4 PSMain(VSOutput input) : SV_Target
 {
-    const float3 viewDir = WE_UnprojectDirection(input.uv, view, proj);
-    const float3 sunLinear = WE_sRGBToLinear(saturate(sunColor));
-    const float3 rayleigh = max(atmosphereRayleigh, float3(1e-6, 1e-6, 1e-6));
-    const float3 ozone = max(ozoneAbsorption, float3(0.0, 0.0, 0.0));
+    if (enableClouds < 0.5)
+        discard;
 
-    float3 skyLinear = WE_SampleSkyAtmosphere(
-        viewDir, sunDirection, cameraPos, worldOrigin,
-        sunLinear, sunIntensity,
-        rayleigh, mieScattering, ozone, mieAnisotropy,
-        planetRadius, atmosphereHeight, multiScatterStrength, eyeAltitude);
+    const float3 viewDir = WE_UnprojectDirection(input.uv, view, proj);
+    const float3 sunDir = normalize(-sunDirection);
+    const float3 sunLinear = WE_sRGBToLinear(saturate(sunColor));
+    const float3 cloudAlbedo = WE_sRGBToLinear(saturate(cloudColor));
+
+    const float3 clouds = WE_RaymarchClouds(
+        cameraPos, viewDir, worldOrigin,
+        sunDir, sunLinear, sunIntensity,
+        cloudAltitude, cloudCoverage, cloudExtinction, cloudAlbedo);
 
     const float ev = WE_ComputeExposureEV(sunDirection, exposureEV, exposureCompensation);
-    float3 color = WE_ApplyFilmicTonemap(skyLinear, WE_ExposureFromEV100(ev));
+    float3 color = WE_ApplyFilmicTonemap(clouds, WE_ExposureFromEV100(ev));
     color = WE_LinearToSRGB(color);
 
-    float2 pixel = input.position.xy;
-    color += (WE_BlueNoise(pixel) - 0.5) / 255.0;
-    return float4(color, 1.0);
+    const float alpha = saturate(length(clouds) * 2.5);
+    return float4(color, alpha);
 }

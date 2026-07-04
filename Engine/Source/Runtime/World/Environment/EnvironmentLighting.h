@@ -1,6 +1,7 @@
 #pragma once
 
 #include "EnvironmentDirectionalLight.h"
+#include "EnvironmentExposureController.h"
 #include "EnvironmentHeightFog.h"
 #include "EnvironmentSkyAtmosphere.h"
 #include "EnvironmentSkyLight.h"
@@ -20,6 +21,7 @@ we::runtime::renderer::SceneEnvironmentUniform BuildSceneEnvironmentUniform(
     const EnvironmentSkyAtmosphere& atmosphere,
     const EnvironmentHeightFog& fog,
     const EnvironmentVolumetricClouds& clouds,
+    const EnvironmentExposureController& exposure,
     const glm::vec3& worldOrigin);
 
 } // namespace we::runtime::world::environment

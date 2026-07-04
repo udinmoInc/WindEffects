@@ -43,17 +43,26 @@ struct SceneEnvironmentUniform {
     float fogStartDistance = 0.0f;
     glm::vec3 atmosphereRayleigh{ 0.005802f, 0.013558f, 0.033100f };
     float mieScattering = 0.003996f;
-    glm::vec3 aerialTint{ 0.55f, 0.65f, 0.85f };
+    glm::vec3 ozoneAbsorption{ 0.00065f, 0.0018f, 0.00008f };
     float mieAnisotropy = 0.76f;
     glm::vec3 worldOrigin{ 0.0f, 0.0f, 0.0f };
-    float exposureEV = 1.85f;
+    float exposureEV = 2.35f;
     float planetRadius = 6360.0f;
     float atmosphereHeight = 60.0f;
+    float multiScatterStrength = 1.0f;
+    float eyeAltitude = 0.001f;
+    float cloudCoverage = 0.45f;
+    float cloudAltitude = 5000.0f;
+    float cloudExtinction = 0.35f;
+    float enableClouds = 1.0f;
+    glm::vec3 cloudColor{ 0.95f, 0.96f, 0.98f };
     float enableVolumetricFog = 1.0f;
-    float enableClouds = 0.0f;
+    float exposureCompensation = 0.0f;
+    float padding0 = 0.0f;
+    float padding1 = 0.0f;
     int sunCastShadows = 1;
     int sunTemperature = 6500;
-    glm::ivec2 padding{};
+    glm::ivec2 envPadding{};
 };
 
 #if WE_HAS_VULKAN
@@ -102,38 +111,20 @@ struct SceneObjectUniform {
 
 class SceneRenderer {
 public:
-    // Editor-only empty world backdrop (no scene lighting contribution).
-    struct EditorBackgroundSettings {
-        glm::vec3 zenithColor{ 9.0f / 255.0f, 9.0f / 255.0f, 9.0f / 255.0f };
-        float backgroundBrightness = 1.0f;
-        glm::vec3 upperSkyColor{ 10.0f / 255.0f, 10.0f / 255.0f, 10.0f / 255.0f };
-        float gradientStrength = 0.55f;
-        glm::vec3 midSkyColor{ 11.0f / 255.0f, 11.0f / 255.0f, 11.0f / 255.0f };
-        float horizonFade = 0.0f;
-        glm::vec3 horizonColor{ 12.0f / 255.0f, 12.0f / 255.0f, 12.0f / 255.0f };
-        float padding0 = 0.0f;
-        glm::vec3 bottomColor{ 14.0f / 255.0f, 14.0f / 255.0f, 14.0f / 255.0f };
-        float backgroundContrast = 1.0f;
-    };
-
     RENDERER_API SceneRenderer(const std::shared_ptr<VulkanContext>& context, VkRenderPass renderPass, VkDescriptorSetLayout cameraDescLayout);
     RENDERER_API ~SceneRenderer();
 
-    // Prevent copying
     SceneRenderer(const SceneRenderer&) = delete;
     SceneRenderer& operator=(const SceneRenderer&) = delete;
 
-    RENDERER_API void DrawEditorBackground(VkCommandBuffer cmd, VkDescriptorSet cameraDescSet) const;
-    RENDERER_API void DrawAtmospherePass(
+    RENDERER_API void DrawSkyAtmospherePass(VkCommandBuffer cmd, VkDescriptorSet cameraDescSet) const;
+    RENDERER_API void DrawVolumetricCloudsPass(VkCommandBuffer cmd, VkDescriptorSet cameraDescSet) const;
+    RENDERER_API void DrawFogCompositePass(
         VkCommandBuffer cmd,
-        VkDescriptorSet cameraDescSet) const;
-    RENDERER_API void SetEditorBackgroundSettings(const EditorBackgroundSettings& settings);
-    const EditorBackgroundSettings& GetEditorBackgroundSettings() const { return m_EditorBackgroundSettings; }
-    void SetEditorBackgroundEnabled(bool enabled) { m_EnableEditorBackground = enabled; }
-    bool IsEditorBackgroundEnabled() const { return m_EnableEditorBackground; }
-    void SetAtmospherePassEnabled(bool enabled) { m_EnableAtmospherePass = enabled; }
-    bool IsAtmospherePassEnabled() const { return m_EnableAtmospherePass; }
-    
+        VkDescriptorSet cameraDescSet,
+        VkImageView depthImageView,
+        VkSampler sampler) const;
+
     RENDERER_API void DrawMesh(VkCommandBuffer cmd, const std::string& meshName, VkDescriptorSet descriptorSet, int mode) const;
 
     RENDERER_API void SetSceneEnvironment(const SceneEnvironmentUniform& environment);
@@ -149,7 +140,14 @@ public:
 private:
     void CreatePipelines(VkRenderPass renderPass);
     void CreateMeshes();
-    void UpdateEditorBackgroundBufferIfDirty();
+    VkPipeline CreateFullscreenPipeline(
+        VkRenderPass renderPass,
+        VkPipelineLayout layout,
+        const char* shaderName,
+        bool depthTest,
+        VkCompareOp depthCompare,
+        bool depthWrite,
+        bool alphaBlend) const;
     
     void CreateMeshBuffers(const std::string& name, const std::vector<Vertex>& vertices, const std::vector<uint32_t>& indices);
     void DestroyMeshes();
@@ -166,28 +164,24 @@ private:
     VkDescriptorSetLayout m_CameraDescLayout = VK_NULL_HANDLE;
     VkDescriptorSetLayout m_ObjectDescLayout = VK_NULL_HANDLE;
     VkPipelineLayout m_PipelineLayout = VK_NULL_HANDLE;
-    VkPipelineLayout m_SkyPipelineLayout = VK_NULL_HANDLE;
-    VkDescriptorSetLayout m_SkyDescLayout = VK_NULL_HANDLE;
-    VkDescriptorSet m_SkyDescSet = VK_NULL_HANDLE;
-    VkBuffer m_SkyBuffer = VK_NULL_HANDLE;
-    VkDeviceMemory m_SkyBufferMemory = VK_NULL_HANDLE;
-    EditorBackgroundSettings m_EditorBackgroundSettings{};
-    bool m_EditorBackgroundDirty = true;
-    bool m_EnableEditorBackground = false;
-    bool m_EnableAtmospherePass = true;
 
-    VkPipeline m_AtmospherePipeline = VK_NULL_HANDLE;
-    VkPipelineLayout m_AtmospherePipelineLayout = VK_NULL_HANDLE;
-    VkDescriptorSetLayout m_AtmosphereEnvDescLayout = VK_NULL_HANDLE;
-    VkDescriptorSet m_AtmosphereEnvDescSet = VK_NULL_HANDLE;
+    VkPipelineLayout m_EnvironmentPipelineLayout = VK_NULL_HANDLE;
+    VkDescriptorSetLayout m_EnvironmentDescLayout = VK_NULL_HANDLE;
+    VkDescriptorSet m_EnvironmentDescSet = VK_NULL_HANDLE;
+
+    VkPipelineLayout m_FogPipelineLayout = VK_NULL_HANDLE;
+    VkDescriptorSetLayout m_FogDepthDescLayout = VK_NULL_HANDLE;
+    VkDescriptorSet m_FogDepthDescSet = VK_NULL_HANDLE;
+    mutable VkImageView m_BoundFogDepthView = VK_NULL_HANDLE;
 
     SceneEnvironmentUniform m_SceneEnvironment{};
     mutable bool m_SceneEnvironmentDirty = true;
     VkBuffer m_EnvironmentBuffer = VK_NULL_HANDLE;
     VkDeviceMemory m_EnvironmentBufferMemory = VK_NULL_HANDLE;
 
-    // Pipelines
-    VkPipeline m_SkyboxPipeline = VK_NULL_HANDLE;
+    VkPipeline m_SkyAtmospherePipeline = VK_NULL_HANDLE;
+    VkPipeline m_VolumetricCloudsPipeline = VK_NULL_HANDLE;
+    VkPipeline m_FogCompositePipeline = VK_NULL_HANDLE;
     VkPipeline m_LitPipeline = VK_NULL_HANDLE;
     VkPipeline m_UnlitPipeline = VK_NULL_HANDLE;
     VkPipeline m_WireframePipeline = VK_NULL_HANDLE;
