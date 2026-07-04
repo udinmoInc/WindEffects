@@ -55,8 +55,6 @@ float WE_OzoneDensity(float heightKm)
 
 bool WE_IntersectSphere(float3 origin, float3 dir, float radius, out float t0, out float t1)
 {
-    t0 = 0.0;
-    t1 = 0.0;
     const float b = dot(origin, dir);
     const float c = dot(origin, origin) - radius * radius;
     const float discriminant = b * b - c;

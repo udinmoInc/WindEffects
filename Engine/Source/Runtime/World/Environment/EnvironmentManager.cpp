@@ -13,6 +13,10 @@ float Clamp01(float value) {
     return std::clamp(value, 0.0f, 1.0f);
 }
 
+glm::vec3 SunDirectionToSky(const glm::vec3& lightTravelDirection) {
+    return glm::normalize(-lightTravelDirection);
+}
+
 } // namespace
 
 glm::vec3 EnvironmentManager::GetWorldOrigin(const glm::vec3& cameraPosition) const {

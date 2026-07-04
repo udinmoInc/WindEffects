@@ -516,10 +516,6 @@ void EnvironmentSystem::ApplyPreset(EnvironmentPreset preset) {
     NotifyChanged();
 }
 
-void EnvironmentSystem::SyncFromScene() {
-    SyncFromScene(glm::vec3(0.0f));
-}
-
 void EnvironmentSystem::SyncFromScene(const glm::vec3& cameraPosition) {
     DiscoverExistingActors();
     Scene* scene = GetScene();
@@ -544,10 +540,6 @@ void EnvironmentSystem::SyncFromScene(const glm::vec3& cameraPosition) {
 void EnvironmentSystem::SyncToScene() {
     ApplyComponentsToActors();
     NotifyChanged();
-}
-
-void EnvironmentSystem::UpdateRendering() {
-    UpdateRendering(glm::vec3(0.0f));
 }
 
 void EnvironmentSystem::UpdateRendering(const glm::vec3& cameraPosition) {

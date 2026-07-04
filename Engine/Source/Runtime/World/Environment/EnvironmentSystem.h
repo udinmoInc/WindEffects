@@ -42,11 +42,9 @@ public:
 
     void ApplyPreset(EnvironmentPreset preset);
 
-    void SyncFromScene();
-    void SyncFromScene(const glm::vec3& cameraPosition);
+    void SyncFromScene(const glm::vec3& cameraPosition = glm::vec3(0.0f));
     void SyncToScene();
-    void UpdateRendering();
-    void UpdateRendering(const glm::vec3& cameraPosition);
+    void UpdateRendering(const glm::vec3& cameraPosition = glm::vec3(0.0f));
 
     EnvironmentDirectionalLight& GetSun() { return m_Sun; }
     EnvironmentSkyLight& GetSkyLight() { return m_SkyLight; }
