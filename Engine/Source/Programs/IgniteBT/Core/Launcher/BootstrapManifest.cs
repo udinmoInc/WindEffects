@@ -147,13 +147,13 @@ public static class BootstrapManifest
 
     private static void RegisterBuiltPrograms(IniDocument document, EngineDescriptorData descriptor)
     {
-        var outputRoot = Path.Combine(descriptor.BuildRoot, "Output");
-        if (!Directory.Exists(outputRoot))
+        var manifestRoot = Path.Combine(descriptor.BuildRoot, "Manifest");
+        if (!Directory.Exists(manifestRoot))
         {
             return;
         }
 
-        foreach (var platformDir in Directory.EnumerateDirectories(outputRoot))
+        foreach (var platformDir in Directory.EnumerateDirectories(manifestRoot))
         {
             foreach (var configurationDir in Directory.EnumerateDirectories(platformDir))
             {
@@ -162,9 +162,9 @@ public static class BootstrapManifest
         }
     }
 
-    private static void RegisterBuiltProgramsFromLayoutManifest(IniDocument document, string configurationRoot)
+    private static void RegisterBuiltProgramsFromLayoutManifest(IniDocument document, string manifestConfigurationRoot)
     {
-        var manifestPath = Path.Combine(configurationRoot, OutputDirectories.ConfigBuild, "output-layout.json");
+        var manifestPath = Path.Combine(manifestConfigurationRoot, BuildManifestFiles.OutputLayout);
         if (!File.Exists(manifestPath))
         {
             return;
@@ -180,10 +180,12 @@ public static class BootstrapManifest
             return;
         }
 
-        if (manifest?.Modules == null)
+        if (manifest?.Modules == null || string.IsNullOrWhiteSpace(manifest.ConfigurationRoot))
         {
             return;
         }
+
+        var configurationRoot = manifest.ConfigurationRoot;
 
         foreach (var module in manifest.Modules)
         {

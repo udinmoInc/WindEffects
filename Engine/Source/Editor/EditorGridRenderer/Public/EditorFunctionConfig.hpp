@@ -9,7 +9,7 @@
 
 namespace we::editor::grid {
 
-// Persistent editor grid settings loaded from Config/Editor/function.ini.
+// Persistent editor grid settings loaded from Engine/Config/Editor/function.ini.
 struct EditorGridConfig {
     bool enabled = true;
     bool snapOriginToCamera = true;
