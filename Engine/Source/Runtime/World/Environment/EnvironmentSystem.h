@@ -10,6 +10,7 @@
 #include "Scene/Scene.hpp"
 #include <functional>
 #include <memory>
+#include <glm/glm.hpp>
 
 namespace we::runtime::renderer {
 class SceneRenderer;
@@ -39,9 +40,9 @@ public:
 
     void ApplyPreset(EnvironmentPreset preset);
 
-    void SyncFromScene();
+    void SyncFromScene(const glm::vec3& cameraPosition = glm::vec3(0.0f));
     void SyncToScene();
-    void UpdateRendering();
+    void UpdateRendering(const glm::vec3& cameraPosition = glm::vec3(0.0f));
 
     EnvironmentDirectionalLight& GetSun() { return m_Sun; }
     EnvironmentSkyLight& GetSkyLight() { return m_SkyLight; }
@@ -86,6 +87,8 @@ private:
 #endif
 
     std::uint64_t m_FolderEntityId = 0;
+    std::uint64_t m_EnvironmentManagerEntityId = 0;
+    EnvironmentManager m_Manager{};
     EnvironmentDirectionalLight m_Sun{};
     EnvironmentSkyLight m_SkyLight{};
     EnvironmentSkyAtmosphere m_SkyAtmosphere{};

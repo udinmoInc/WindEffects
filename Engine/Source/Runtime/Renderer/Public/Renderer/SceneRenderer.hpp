@@ -37,11 +37,19 @@ struct SceneEnvironmentUniform {
     float skyLightIntensity = 1.0f;
     glm::vec3 skyAmbientColor{ 0.66f, 0.82f, 1.0f };
     float fogDensity = 0.02f;
-    glm::vec3 fogColor{ 0.72f, 0.78f, 0.85f };
+    glm::vec3 skyLightLowerColor{ 0.05f, 0.05f, 0.06f };
     float fogHeightFalloff = 0.2f;
+    glm::vec3 fogColor{ 0.72f, 0.78f, 0.85f };
+    float fogStartDistance = 0.0f;
     glm::vec3 atmosphereRayleigh{ 0.005802f, 0.013558f, 0.033100f };
-    float enableVolumetricFog = 1.0f;
+    float mieScattering = 0.003996f;
     glm::vec3 aerialTint{ 0.55f, 0.65f, 0.85f };
+    float mieAnisotropy = 0.76f;
+    glm::vec3 worldOrigin{ 0.0f, 0.0f, 0.0f };
+    float exposureEV = 1.85f;
+    float planetRadius = 6360.0f;
+    float atmosphereHeight = 60.0f;
+    float enableVolumetricFog = 1.0f;
     float enableClouds = 0.0f;
     int sunCastShadows = 1;
     int sunTemperature = 6500;
@@ -116,10 +124,15 @@ public:
     SceneRenderer& operator=(const SceneRenderer&) = delete;
 
     RENDERER_API void DrawEditorBackground(VkCommandBuffer cmd, VkDescriptorSet cameraDescSet) const;
+    RENDERER_API void DrawAtmospherePass(
+        VkCommandBuffer cmd,
+        VkDescriptorSet cameraDescSet) const;
     RENDERER_API void SetEditorBackgroundSettings(const EditorBackgroundSettings& settings);
     const EditorBackgroundSettings& GetEditorBackgroundSettings() const { return m_EditorBackgroundSettings; }
     void SetEditorBackgroundEnabled(bool enabled) { m_EnableEditorBackground = enabled; }
     bool IsEditorBackgroundEnabled() const { return m_EnableEditorBackground; }
+    void SetAtmospherePassEnabled(bool enabled) { m_EnableAtmospherePass = enabled; }
+    bool IsAtmospherePassEnabled() const { return m_EnableAtmospherePass; }
     
     RENDERER_API void DrawMesh(VkCommandBuffer cmd, const std::string& meshName, VkDescriptorSet descriptorSet, int mode) const;
 
@@ -161,6 +174,12 @@ private:
     EditorBackgroundSettings m_EditorBackgroundSettings{};
     bool m_EditorBackgroundDirty = true;
     bool m_EnableEditorBackground = false;
+    bool m_EnableAtmospherePass = true;
+
+    VkPipeline m_AtmospherePipeline = VK_NULL_HANDLE;
+    VkPipelineLayout m_AtmospherePipelineLayout = VK_NULL_HANDLE;
+    VkDescriptorSetLayout m_AtmosphereEnvDescLayout = VK_NULL_HANDLE;
+    VkDescriptorSet m_AtmosphereEnvDescSet = VK_NULL_HANDLE;
 
     SceneEnvironmentUniform m_SceneEnvironment{};
     mutable bool m_SceneEnvironmentDirty = true;

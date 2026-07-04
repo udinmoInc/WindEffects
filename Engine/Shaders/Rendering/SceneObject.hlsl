@@ -40,11 +40,19 @@ cbuffer EnvironmentBuffer : register(b2, space0)
     float  skyLightIntensity;
     float3 skyAmbientColor;
     float  fogDensity;
-    float3 fogColor;
+    float3 skyLightLowerColor;
     float  fogHeightFalloff;
+    float3 fogColor;
+    float  fogStartDistance;
     float3 atmosphereRayleigh;
-    float  enableVolumetricFog;
+    float  mieScattering;
     float3 aerialTint;
+    float  mieAnisotropy;
+    float3 worldOrigin;
+    float  exposureEV;
+    float  planetRadius;
+    float  atmosphereHeight;
+    float  enableVolumetricFog;
     float  enableClouds;
     int    sunCastShadows;
     int    sunTemperature;
@@ -68,18 +76,21 @@ float4 PSMain(VSOutput input) : SV_Target
 
     if (mode == 1 || mode == 2)
     {
-        const float3 mapped = WE_ApplyFilmicTonemap(albedo, WE_ExposureFromEV100(1.85));
+        const float3 mapped = WE_ApplyFilmicTonemap(albedo, WE_ExposureFromEV100(exposureEV));
         return float4(WE_LinearToSRGB(mapped), color.a);
     }
 
     float3 normal = normalize(input.worldNormal);
     float3 lightDir = normalize(sunDirection);
-    float3 viewDir = normalize(cameraPos - input.worldPos);
+    const float3 relPos = input.worldPos - worldOrigin;
+    const float3 relCam = cameraPos - worldOrigin;
+    float3 viewDir = normalize(relCam - relPos);
 
     const float3 sunLinear = WE_sRGBToLinear(saturate(sunColor));
-    const float3 skyLinear = WE_sRGBToLinear(saturate(skyAmbientColor));
+    const float3 skyUpper = WE_sRGBToLinear(saturate(skyAmbientColor));
+    const float3 skyLower = WE_sRGBToLinear(saturate(skyLightLowerColor));
     const float upN = saturate(normal.y * 0.5 + 0.5);
-    const float3 ambient = lerp(skyLinear * 0.04, skyLinear * 0.12, upN) * skyLightIntensity;
+    const float3 ambient = lerp(skyLower * 0.06, skyUpper * 0.14, upN) * skyLightIntensity;
 
     float diff = max(dot(normal, lightDir), 0.0);
     float3 diffuse = diff * sunLinear * (sunIntensity * 0.011);
@@ -90,12 +101,12 @@ float4 PSMain(VSOutput input) : SV_Target
 
     float3 litLinear = albedo * (ambient + diffuse) + specular;
 
-    const float height = max(input.worldPos.y, 0.0);
+    const float height = max(relPos.y, 0.0);
     const float fogAmount = enableVolumetricFog > 0.5
         ? (1.0 - exp(-fogDensity * height * fogHeightFalloff))
         : 0.0;
-    const float distToCamera = length(cameraPos - input.worldPos);
-    const float distFog = 1.0 - exp(-distToCamera * fogDensity * 0.35);
+    const float distToCamera = length(relCam - relPos);
+    const float distFog = 1.0 - exp(-max(distToCamera - fogStartDistance, 0.0) * fogDensity * 0.35);
     const float3 fogLinear = WE_sRGBToLinear(saturate(fogColor));
     litLinear = lerp(litLinear, fogLinear, saturate(fogAmount * 0.65 + distFog * 0.35));
 
@@ -103,6 +114,6 @@ float4 PSMain(VSOutput input) : SV_Target
     const float3 aerial = WE_sRGBToLinear(saturate(aerialTint)) * atmosphereRayleigh * 120.0;
     litLinear = lerp(litLinear, aerial, saturate(haze * 0.55));
 
-    const float3 mapped = WE_ApplyFilmicTonemap(litLinear, WE_ExposureFromEV100(1.85));
+    const float3 mapped = WE_ApplyFilmicTonemap(litLinear, WE_ExposureFromEV100(exposureEV));
     return float4(WE_LinearToSRGB(mapped), color.a);
 }
