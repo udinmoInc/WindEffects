@@ -234,7 +234,8 @@ BitmapRGBA ThumbnailRenderer::LoadImageFile(const std::string& path, uint32_t ta
     const std::string resolved = ResolvePath(path);
     const auto ext = std::filesystem::path(resolved).extension().string();
     std::string lower = ext;
-    std::transform(lower.begin(), lower.end(), lower.begin(), ::tolower);
+    std::transform(lower.begin(), lower.end(), lower.begin(),
+        [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
 
     if (lower == ".svg") {
         NSVGimage* image = nsvgParseFromFile(resolved.c_str(), "px", 96.0f);
@@ -819,8 +820,9 @@ BitmapRGBA ThumbnailRenderer::RenderContentBrowserFolder(
     } else {
         static bool s_ReportedMissingSvg = false;
         if (!s_ReportedMissingSvg) {
-            HE_WARN("[ContentBrowser] %s folder SVG not found; using procedural artwork.",
-                opened ? "Open" : "Closed");
+            HE_WARN(opened
+                ? "[ContentBrowser] Open folder SVG not found; using procedural artwork."
+                : "[ContentBrowser] Closed folder SVG not found; using procedural artwork.");
             s_ReportedMissingSvg = true;
         }
     }
