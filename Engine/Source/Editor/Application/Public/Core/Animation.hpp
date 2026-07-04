@@ -149,7 +149,7 @@ private:
 // Convenience functions for common animations
 inline void AnimateFloat(float* value, float to, float duration = 0.15f) {
     auto anim = std::make_shared<FloatAnimation>(*value, to, duration);
-    anim->SetOnUpdate([value](float t) {
+    anim->SetOnUpdate([value](float /*t*/) {
         // Will be handled by GetValue in a more complete implementation
     });
     AnimationManager::Get().AddAnimation(anim);

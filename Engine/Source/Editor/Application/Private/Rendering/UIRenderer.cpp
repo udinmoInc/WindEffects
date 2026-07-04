@@ -3,7 +3,7 @@
 #include "Renderer/ShaderHelper.hpp"
 #include "Core/Logger.hpp"
 #include "Core/Widget.hpp"
-#include "AssetRegistry.hpp"
+#include "Runtime/Core/AssetRegistry.hpp"
 #include <array>
 #include <cmath>
 

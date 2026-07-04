@@ -129,7 +129,7 @@ void OverlayManager::Paint(PaintContext& context) {
     }
 }
 
-void OverlayManager::OnMouseDown(const MouseEvent& event) {
+void OverlayManager::OnMouseDown(const MouseEvent& /*event*/) {
     // If a click happens and it doesn't hit a popup, close all popups.
     // EventSystem route mouse events by hitting the root.
     // If it hit the background of OverlayManager (meaning no popup hit and maybe no base hit),

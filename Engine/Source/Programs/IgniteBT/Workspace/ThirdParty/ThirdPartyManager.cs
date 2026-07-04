@@ -89,6 +89,7 @@ public class ThirdPartyManager
             Path.Combine(path, "Include"),
             Path.Combine(path, "inc"),
             Path.Combine(path, "headers"),
+            Path.Combine(path, "src"),
             path
         };
         
