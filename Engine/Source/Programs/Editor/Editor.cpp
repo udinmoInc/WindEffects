@@ -983,34 +983,16 @@ void Editor::MainLoop() {
             const auto passStart = std::chrono::steady_clock::now();
             m_RenderGraph->BeginOffscreenPass(cmd);
             const VkDescriptorSet cameraDescSet = m_Renderer->GetCameraDescSet();
-
+            m_SceneRenderer->DrawSkyAtmospherePass(cmd, cameraDescSet);
+            m_SceneRenderer->DrawVolumetricCloudsPass(cmd, cameraDescSet);
+            m_Scene->Draw(cmd);
             {
-                const auto skyStart = std::chrono::steady_clock::now();
-                m_SceneRenderer->DrawSkyAtmospherePass(cmd, cameraDescSet);
-                FrameStatsCollector::Get().RecordPassMs("SkyAtmosphere",
-                    std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - skyStart).count());
-            }
-            {
-                const auto cloudStart = std::chrono::steady_clock::now();
-                m_SceneRenderer->DrawVolumetricCloudsPass(cmd, cameraDescSet);
-                FrameStatsCollector::Get().RecordPassMs("VolumetricClouds",
-                    std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - cloudStart).count());
-            }
-            {
-                const auto sceneStart = std::chrono::steady_clock::now();
-                m_Scene->Draw(cmd);
-                FrameStatsCollector::Get().RecordPassMs("Scene",
-                    std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - sceneStart).count());
-            }
-            {
-                const auto fogStart = std::chrono::steady_clock::now();
+                auto& offscreenFB = m_Renderer->GetOffscreenFramebuffer();
                 m_SceneRenderer->DrawFogCompositePass(
                     cmd,
                     cameraDescSet,
                     offscreenFB.GetDepthImageView(),
                     offscreenFB.GetSampler());
-                FrameStatsCollector::Get().RecordPassMs("FogComposite",
-                    std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - fogStart).count());
             }
             we::editor::grid::EditorGridRenderer::Get().Render(cmd, cameraDescSet, *m_Camera);
             we::programs::editor::UpdateViewportCameraSpeedIndicator();
