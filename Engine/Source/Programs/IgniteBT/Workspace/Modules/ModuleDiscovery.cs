@@ -176,6 +176,7 @@ public class ModuleDiscoverer
             IsDisabled = moduleInstance.IsDisabled,
             Definitions = new List<string>(moduleInstance.Definitions),
             IsPlugin = moduleInstance.IsPlugin,
+            IsBootstrapBinary = moduleInstance.IsBootstrapBinary,
             BinaryName = moduleInstance.BinaryName,
             OutputPlacement = moduleInstance.OutputPlacement
         };
@@ -236,6 +237,7 @@ public class DiscoveredModule
     public bool IsDisabled { get; set; }
     public List<string> Definitions { get; set; } = new();
     public bool IsPlugin { get; set; }
+    public bool IsBootstrapBinary { get; set; }
     public string? BinaryName { get; set; }
     public OutputPlacement OutputPlacement { get; set; } = OutputPlacement.Unspecified;
 }

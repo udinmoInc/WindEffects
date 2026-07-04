@@ -6,6 +6,9 @@ public class Engine : ModuleRules
     {
         Type = ModuleType.SharedLibrary;
 
+        BootstrapBinary();
+        SetBinaryName("WindeffectsEngine.dll");
+
         PublicIncludePaths.Add("Public");
         PrivateIncludePaths.Add("Private");
 

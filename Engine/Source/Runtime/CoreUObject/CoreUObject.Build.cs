@@ -6,6 +6,9 @@ public class CoreUObject : ModuleRules
     {
         Type = ModuleType.SharedLibrary;
 
+        BootstrapBinary();
+        SetBinaryName("WindeffectsCoreUObject.dll");
+
         PublicIncludePaths.Add("Public");
         PrivateIncludePaths.Add("Private");
 
