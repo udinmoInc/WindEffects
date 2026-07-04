@@ -5,6 +5,7 @@
 #include "Renderer/SceneRenderer.hpp"
 #include <string>
 #include <vector>
+#include <unordered_map>
 #include <volk.h>
 
 namespace we::runtime::renderer {
@@ -23,6 +24,13 @@ struct DiagnosticMessage {
     std::string remediation;
 };
 
+enum class PassExecutionStatus {
+    Pending,
+    Executed,
+    Skipped,
+    Failed
+};
+
 class RenderDiagnostics {
 public:
     RENDERER_API static RenderDiagnostics& Get();
@@ -38,12 +46,22 @@ public:
     RENDERER_API void ValidateDescriptorSet(const char* passName, uint32_t setIndex, VkDescriptorSet set);
     RENDERER_API void ValidateShaderBytecode(const char* shaderName, bool vertexLoaded, bool pixelLoaded);
     RENDERER_API void ValidateAtmosphereLUTs(bool generated, uint32_t transmittanceW, uint32_t skyViewW);
+    RENDERER_API void ValidateAtmosphereLUTResource(
+        const char* lutName,
+        VkImage image,
+        VkImageView view,
+        VkSampler sampler,
+        uint32_t width,
+        uint32_t height,
+        VkFormat format);
     RENDERER_API void ValidateFramebuffer(VkFramebuffer fb, uint32_t width, uint32_t height);
     RENDERER_API void RecordPassExecuted(const char* passName, double cpuMs);
+    RENDERER_API void RecordPassStatus(const char* passName, PassExecutionStatus status, const char* detail = nullptr);
 
     RENDERER_API bool HasErrors() const { return m_HasErrors; }
     RENDERER_API bool HasCritical() const { return m_HasCritical; }
     RENDERER_API const std::vector<DiagnosticMessage>& GetMessages() const { return m_Messages; }
+    RENDERER_API PassExecutionStatus GetPassStatus(const char* passName) const;
     RENDERER_API std::string GetSummary() const;
 
     RENDERER_API void Emit(
@@ -59,6 +77,8 @@ private:
     bool m_HasErrors = false;
     bool m_HasCritical = false;
     std::vector<std::pair<std::string, double>> m_PassTimings;
+    std::unordered_map<std::string, PassExecutionStatus> m_PassStatuses;
+    std::unordered_map<std::string, std::string> m_PassStatusDetails;
 };
 
 class GpuDebugScope {

@@ -15,6 +15,8 @@ RenderDiagnostics& RenderDiagnostics::Get() {
 
 void RenderDiagnostics::ResetFrame() {
     m_PassTimings.clear();
+    m_PassStatuses.clear();
+    m_PassStatusDetails.clear();
 }
 
 void RenderDiagnostics::Emit(DiagnosticSeverity severity, const std::string& subsystem, const std::string& message, const std::string& remediation) {
@@ -136,6 +138,91 @@ void RenderDiagnostics::ValidateAtmosphereLUTs(bool generated, uint32_t transmit
     }
 }
 
+void RenderDiagnostics::ValidateAtmosphereLUTResource(
+    const char* lutName,
+    VkImage image,
+    VkImageView view,
+    VkSampler sampler,
+    uint32_t width,
+    uint32_t height,
+    VkFormat format) {
+
+    if (image == VK_NULL_HANDLE) {
+        Emit(
+            DiagnosticSeverity::Error,
+            LogCategory::Environment.data(),
+            std::string(lutName) + " LUT image handle is null.",
+            "Recreate AtmosphereLUTGenerator GPU images.");
+        return;
+    }
+    if (view == VK_NULL_HANDLE) {
+        Emit(
+            DiagnosticSeverity::Error,
+            LogCategory::Resource.data(),
+            std::string(lutName) + " LUT image view is null.",
+            "Verify CreateImageView succeeded for atmosphere LUT textures.");
+        return;
+    }
+    if (sampler == VK_NULL_HANDLE) {
+        Emit(
+            DiagnosticSeverity::Error,
+            LogCategory::Resource.data(),
+            std::string(lutName) + " LUT sampler is null.",
+            "Verify atmosphere LUT sampler creation.");
+        return;
+    }
+    if (width == 0 || height == 0) {
+        Emit(
+            DiagnosticSeverity::Error,
+            LogCategory::Environment.data(),
+            std::string(lutName) + " LUT has zero dimensions.",
+            "Use non-zero LUT dimensions in AtmosphereLUTGenerator.");
+        return;
+    }
+    if (format != VK_FORMAT_R32G32B32A32_SFLOAT) {
+        Emit(
+            DiagnosticSeverity::Warning,
+            LogCategory::Environment.data(),
+            std::string(lutName) + " LUT format is unexpected.",
+            "Atmosphere LUTs should use VK_FORMAT_R32G32B32A32_SFLOAT.");
+    }
+}
+
+void RenderDiagnostics::RecordPassStatus(const char* passName, PassExecutionStatus status, const char* detail) {
+    if (!passName) return;
+    m_PassStatuses[passName] = status;
+    if (detail && detail[0] != '\0') {
+        m_PassStatusDetails[passName] = detail;
+    } else {
+        m_PassStatusDetails.erase(passName);
+    }
+
+    if (status == PassExecutionStatus::Failed) {
+        const std::string message = std::string("Render pass '") + passName + "' failed"
+            + (detail ? std::string(": ") + detail : std::string("."));
+        Emit(DiagnosticSeverity::Error, LogCategory::Renderer.data(), message);
+    } else if (status == PassExecutionStatus::Skipped && detail) {
+        WE_LOG_WARN(LogCategory::Renderer.data(), std::string("Render pass '") + passName + "' skipped: " + detail);
+    }
+}
+
+PassExecutionStatus RenderDiagnostics::GetPassStatus(const char* passName) const {
+    if (!passName) return PassExecutionStatus::Pending;
+    const auto it = m_PassStatuses.find(passName);
+    return it != m_PassStatuses.end() ? it->second : PassExecutionStatus::Pending;
+}
+
+namespace {
+const char* PassStatusLabel(PassExecutionStatus status) {
+    switch (status) {
+        case PassExecutionStatus::Executed: return "executed";
+        case PassExecutionStatus::Skipped: return "skipped";
+        case PassExecutionStatus::Failed: return "failed";
+        default: return "pending";
+    }
+}
+} // namespace
+
 void RenderDiagnostics::ValidateFramebuffer(VkFramebuffer fb, uint32_t width, uint32_t height) {
     if (fb == VK_NULL_HANDLE) {
         Emit(DiagnosticSeverity::Critical, LogCategory::Resource.data(), "Framebuffer handle is null.", "Recreate offscreen framebuffer after resize.");
@@ -156,6 +243,19 @@ std::string RenderDiagnostics::GetSummary() const {
     else if (m_HasErrors) ss << " [ERRORS]";
     for (const auto& [pass, ms] : m_PassTimings) {
         ss << " | " << pass << '=' << ms << "ms";
+    }
+    static const char* kTrackedPasses[] = {
+        "AtmosphereLUT", "SkyAtmosphere", "VolumetricClouds", "FogComposite", "PostExposure", "ToneMapping"
+    };
+    for (const char* pass : kTrackedPasses) {
+        const auto it = m_PassStatuses.find(pass);
+        if (it != m_PassStatuses.end()) {
+            ss << " | " << pass << ':' << PassStatusLabel(it->second);
+            const auto detailIt = m_PassStatusDetails.find(pass);
+            if (detailIt != m_PassStatusDetails.end() && !detailIt->second.empty()) {
+                ss << '(' << detailIt->second << ')';
+            }
+        }
     }
     return ss.str();
 }

@@ -23,6 +23,7 @@ public:
     void SetPaused(bool paused) { m_Paused = paused; }
     bool IsPaused() const { return m_Paused; }
     void SetAutoScroll(bool enabled) { m_AutoScroll = enabled; }
+    bool IsAutoScroll() const { return m_AutoScroll; }
     void Clear();
     void SetSearchQuery(const std::string& query);
     void SetMinimumLevel(we::Logger::Level level) { m_MinLevel = level; }

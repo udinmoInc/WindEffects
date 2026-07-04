@@ -48,5 +48,6 @@ float4 PSMain(VSOutput input) : SV_Target
         max(sunAngularRadius, WE_SUN_ANGULAR_RADIUS),
         transmittanceLUT, multiScatterLUT, skyViewLUT, aerialLUT, lutSampler);
 
+    skyLinear = WE_SanitizeHdrColor(skyLinear);
     return float4(skyLinear, 1.0);
 }

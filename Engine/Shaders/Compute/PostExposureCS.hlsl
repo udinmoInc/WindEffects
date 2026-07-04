@@ -14,6 +14,7 @@ void CSMain(uint3 dtid : SV_DispatchThreadID)
         return;
 
     float3 color = sceneColor[dtid.xy].rgb;
+    color = WE_SanitizeHdrColor(color);
     const float ev = WE_ComputeExposureEV(sunDirection, exposureEV, exposureCompensation);
     const float exposureScale = WE_ExposureFromEV100(ev);
     color = WE_ApplyFilmicTonemap(color, exposureScale);

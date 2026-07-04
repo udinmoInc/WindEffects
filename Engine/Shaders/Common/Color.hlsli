@@ -56,6 +56,13 @@ float3 WE_ApplyFilmicTonemap(float3 linearColor, float exposureScale)
     return WE_ACESFilm(exposed);
 }
 
+float3 WE_SanitizeHdrColor(float3 color)
+{
+    if (any(isnan(color)) || any(isinf(color)))
+        return float3(0.0, 0.0, 0.0);
+    return clamp(color, float3(0.0, 0.0, 0.0), float3(65504.0, 65504.0, 65504.0));
+}
+
 // Display-space clamp helper for ultra-dark backgrounds.
 float3 WE_ClampCharcoalExposure(float3 color, float ceiling, float floorValue)
 {

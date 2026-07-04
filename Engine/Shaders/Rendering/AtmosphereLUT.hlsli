@@ -2,6 +2,7 @@
 #define WE_ATMOSPHERE_LUT_HLSLI
 
 #include "AtmosphereIntegrator.hlsli"
+#include "../Common/Color.hlsli"
 
 // Transmittance LUT: X = height (0..atmosphere top), Y = cos(view zenith)
 float2 WE_TransmittanceLUTCoord(float heightKm, float cosZenith, WE_AtmosphereParams params)
@@ -48,7 +49,9 @@ float3 WE_SampleSkyViewLUT(
     const float3 up = cross(sd, right);
     const float azimuth = atan2(dot(vd, right), dot(vd, up)) / (2.0 * WE_PI) + 0.5;
     const float2 uv = float2(azimuth, lerp(viewZenith, sunZenith, 0.15));
-    return max(lut.SampleLevel(samp, uv, 0.0).rgb, 0.0);
+    float3 sample = lut.SampleLevel(samp, uv, 0.0).rgb;
+    sample = WE_SanitizeHdrColor(sample);
+    return max(sample, 0.0);
 }
 
 float3 WE_SampleAerialPerspectiveLUT(
@@ -106,6 +109,7 @@ float3 WE_SampleSkyAtmosphereLUT(
     sky *= lerp(0.35, 1.0, transmittance);
 
     sky += WE_ComputeSunDisk(viewDir, sunDir, sunIntensity, sunLinear, params.sunAngularRadius);
+    sky = WE_SanitizeHdrColor(sky);
     return max(sky, 0.0);
 }
 

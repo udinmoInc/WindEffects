@@ -22,6 +22,11 @@ struct FrameStats {
     bool skyPipelineValid = false;
     bool postPipelineValid = false;
     std::string lastDiagnosticSummary;
+    std::string atmosphereLutStatus = "pending";
+    std::string skyPassStatus = "pending";
+    std::string cloudsPassStatus = "pending";
+    std::string fogPassStatus = "pending";
+    std::string postPassStatus = "pending";
 };
 
 class FrameStatsCollector {
@@ -33,6 +38,10 @@ public:
     RENDERER_API void AddDrawCall(uint32_t triangles = 0);
     RENDERER_API void AddDescriptorUpdate(uint32_t count = 1);
     RENDERER_API void RecordPassMs(const char* passName, double ms);
+    RENDERER_API void SetAtmosphereLutReady(bool ready);
+    RENDERER_API void SetSkyPipelineValid(bool valid);
+    RENDERER_API void SetPostPipelineValid(bool valid);
+    RENDERER_API void SetPassStatus(const char* passName, const char* status);
 
     RENDERER_API const FrameStats& GetStats() const { return m_Stats; }
     RENDERER_API std::string GetOverlayText() const;

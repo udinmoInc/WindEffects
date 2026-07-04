@@ -22,6 +22,14 @@ void FrameStatsCollector::BeginFrame() {
     m_Stats.drawCalls = 0;
     m_Stats.triangles = 0;
     m_Stats.descriptorUpdates = 0;
+    m_Stats.atmosphereLutReady = false;
+    m_Stats.skyPipelineValid = false;
+    m_Stats.postPipelineValid = false;
+    m_Stats.atmosphereLutStatus = "pending";
+    m_Stats.skyPassStatus = "pending";
+    m_Stats.cloudsPassStatus = "pending";
+    m_Stats.fogPassStatus = "pending";
+    m_Stats.postPassStatus = "pending";
 }
 
 void FrameStatsCollector::EndFrame() {
@@ -48,15 +56,39 @@ void FrameStatsCollector::RecordPassMs(const char* passName, double ms) {
     else if (name == "AtmosphereLUT") m_Stats.lutGenerationMs = ms;
 }
 
+void FrameStatsCollector::SetAtmosphereLutReady(bool ready) {
+    m_Stats.atmosphereLutReady = ready;
+    m_Stats.atmosphereLutStatus = ready ? "ok" : "missing";
+}
+
+void FrameStatsCollector::SetSkyPipelineValid(bool valid) {
+    m_Stats.skyPipelineValid = valid;
+}
+
+void FrameStatsCollector::SetPostPipelineValid(bool valid) {
+    m_Stats.postPipelineValid = valid;
+}
+
+void FrameStatsCollector::SetPassStatus(const char* passName, const char* status) {
+    if (!passName || !status) return;
+    const std::string name(passName);
+    const std::string value(status);
+    if (name == "AtmosphereLUT") m_Stats.atmosphereLutStatus = value;
+    else if (name == "SkyAtmosphere") m_Stats.skyPassStatus = value;
+    else if (name == "VolumetricClouds") m_Stats.cloudsPassStatus = value;
+    else if (name == "FogComposite") m_Stats.fogPassStatus = value;
+    else if (name == "PostExposure" || name == "ToneMapping") m_Stats.postPassStatus = value;
+}
+
 std::string FrameStatsCollector::GetOverlayText() const {
     std::ostringstream ss;
     ss << "CPU " << m_Stats.cpuFrameMs << " ms"
        << " | Draws " << m_Stats.drawCalls
        << " | Tris " << m_Stats.triangles
-       << " | Sky " << m_Stats.skyPassMs << " ms"
-       << " | Fog " << m_Stats.fogPassMs << " ms"
-       << " | Post " << m_Stats.postPassMs << " ms"
-       << " | LUT " << (m_Stats.atmosphereLutReady ? "OK" : "MISSING");
+       << " | Sky " << m_Stats.skyPassMs << " ms (" << m_Stats.skyPassStatus << ")"
+       << " | Fog " << m_Stats.fogPassMs << " ms (" << m_Stats.fogPassStatus << ")"
+       << " | Post " << m_Stats.postPassMs << " ms (" << m_Stats.postPassStatus << ")"
+       << " | LUT " << (m_Stats.atmosphereLutReady ? "OK" : "MISSING") << " (" << m_Stats.atmosphereLutStatus << ")";
     return ss.str();
 }
 
