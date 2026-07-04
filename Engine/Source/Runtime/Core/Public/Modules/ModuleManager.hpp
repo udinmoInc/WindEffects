@@ -7,6 +7,11 @@
 #include <memory>
 #include <vector>
 
+#if defined(_MSC_VER)
+#pragma warning(push)
+#pragma warning(disable : 4251)
+#endif
+
 class CORE_API ModuleManager
 {
 public:
@@ -37,3 +42,7 @@ private:
     std::unordered_map<std::string, ModuleData> LoadedModules;
     std::vector<std::string> LoadOrder;
 };
+
+#if defined(_MSC_VER)
+#pragma warning(pop)
+#endif
