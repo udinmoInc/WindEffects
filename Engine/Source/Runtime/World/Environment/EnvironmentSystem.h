@@ -2,6 +2,7 @@
 
 #include "EnvironmentDirectionalLight.h"
 #include "EnvironmentHeightFog.h"
+#include "EnvironmentManager.h"
 #include "EnvironmentSettings.h"
 #include "EnvironmentSkyAtmosphere.h"
 #include "EnvironmentSkyLight.h"
