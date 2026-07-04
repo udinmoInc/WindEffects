@@ -96,19 +96,23 @@ bool AssetRegistry::LoadDefaultEditorAssets() {
 
     const std::vector<std::pair<std::string, std::vector<std::string>>> shaders = {
         {"UI", {
+            "Engine/Shaders/Bytecodes/UI_VS.spv",
             "Assets/Shaders/UI_VS.spv",
             "Shaders/UI_VS.spv",
             "../Assets/Shaders/UI_VS.spv"
         }},
         {"EditorBackground", {
+            "Engine/Shaders/Bytecodes/EditorBackground_VS.spv",
             "Assets/Shaders/EditorBackground_VS.spv",
             "Shaders/EditorBackground_VS.spv"
         }},
         {"EditorGrid", {
+            "Engine/Shaders/Bytecodes/EditorGrid_VS.spv",
             "Assets/Shaders/EditorGrid_VS.spv",
             "Shaders/EditorGrid_VS.spv"
         }},
         {"SceneObject", {
+            "Engine/Shaders/Bytecodes/SceneObject_VS.spv",
             "Assets/Shaders/SceneObject_VS.spv",
             "Shaders/SceneObject_VS.spv"
         }},

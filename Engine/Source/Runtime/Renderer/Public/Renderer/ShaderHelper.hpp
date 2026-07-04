@@ -20,9 +20,8 @@ inline std::vector<char> LoadShaderBytecode(const std::string& shaderName, Shade
     const ShaderBytecode bytecode = ShaderLibrary::Get().GetBytecode(shaderName, stage, permutationFlags);
     if (bytecode.data.empty())
     {
-        throw std::runtime_error(
-            "Failed to load shader bytecode: " + shaderName
-            + ShaderLibrary::Get().ResolveBytecodeFilename(shaderName, stage, permutationFlags));
+        const std::string filename = ShaderLibrary::Get().ResolveBytecodeFilename(shaderName, stage, permutationFlags);
+        throw std::runtime_error("Failed to load shader bytecode: " + filename);
     }
 
     std::cout << "[Shader] Loaded " << shaderName
