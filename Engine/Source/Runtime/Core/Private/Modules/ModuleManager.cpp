@@ -3,6 +3,8 @@
 #include <filesystem>
 #include <iostream>
 
+// Dynamic editor module loader (exported via CORE_API).
+
 #ifdef _WIN32
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
