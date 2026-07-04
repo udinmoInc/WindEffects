@@ -37,10 +37,49 @@ public:
     }
 
     void Load(const std::string& configPath = "Engine/Config/CrashReporter/config.json") {
-        if (std::filesystem::exists(configPath)) {
-            try {
-                std::ifstream f(configPath);
-                nlohmann::json j = nlohmann::json::parse(f);
+        if (!std::filesystem::exists(configPath)) {
+            HE_WARN("CrashReporter config not found at " + configPath);
+            return;
+        }
+
+        try {
+            std::ifstream f(configPath, std::ios::binary);
+            std::string content((std::istreambuf_iterator<char>(f)), std::istreambuf_iterator<char>());
+
+            auto decodeUtf16Le = [](const std::string& raw, size_t startOffset) {
+                std::string utf8;
+                utf8.reserve((raw.size() - startOffset) / 2);
+                for (size_t i = startOffset; i + 1 < raw.size(); i += 2) {
+                    const wchar_t ch = static_cast<wchar_t>(
+                        static_cast<unsigned char>(raw[i])
+                        | (static_cast<unsigned char>(raw[i + 1]) << 8));
+                    if (ch <= 0x7F) {
+                        utf8.push_back(static_cast<char>(ch));
+                    } else if (ch <= 0x7FF) {
+                        utf8.push_back(static_cast<char>(0xC0 | ((ch >> 6) & 0x1F)));
+                        utf8.push_back(static_cast<char>(0x80 | (ch & 0x3F)));
+                    } else {
+                        utf8.push_back(static_cast<char>(0xE0 | ((ch >> 12) & 0x0F)));
+                        utf8.push_back(static_cast<char>(0x80 | ((ch >> 6) & 0x3F)));
+                        utf8.push_back(static_cast<char>(0x80 | (ch & 0x3F)));
+                    }
+                }
+                return utf8;
+            };
+
+            if (content.size() >= 2
+                && static_cast<unsigned char>(content[0]) == 0xFF
+                && static_cast<unsigned char>(content[1]) == 0xFE) {
+                content = decodeUtf16Le(content, 2);
+            } else if (content.size() >= 4
+                && content[0] == '{'
+                && content[1] == '\0'
+                && content[2] == '\n'
+                && content[3] == '\0') {
+                content = decodeUtf16Le(content, 0);
+            }
+
+            nlohmann::json j = nlohmann::json::parse(content);
 
                 auto assign_str = [&](const std::string& key, std::string& out) {
                     if (j.contains(key) && j[key].is_string()) {
@@ -84,9 +123,6 @@ public:
             } catch (const std::exception& e) {
                 HE_ERROR("Failed to parse CrashReporter config: " + std::string(e.what()));
             }
-        } else {
-            HE_WARN("CrashReporter config not found at " + configPath);
-        }
     }
 
     const CrashReporterConfig& GetConfig() const {

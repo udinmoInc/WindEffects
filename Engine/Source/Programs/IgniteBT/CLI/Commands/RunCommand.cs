@@ -70,12 +70,18 @@ public static class RunCommand
             }
 
             Log.Information("Launching {Executable}", executablePath);
+            var thirdPartyPath = Path.Combine(outputRoot, "ThirdParty");
+            var pathPrefix = Directory.Exists(thirdPartyPath)
+                ? thirdPartyPath + Path.PathSeparator
+                : string.Empty;
+
             var startInfo = new System.Diagnostics.ProcessStartInfo
             {
                 FileName = executablePath,
                 WorkingDirectory = outputRoot,
-                UseShellExecute = true,
+                UseShellExecute = false,
             };
+            startInfo.Environment["PATH"] = pathPrefix + (Environment.GetEnvironmentVariable("PATH") ?? string.Empty);
 
             System.Diagnostics.Process.Start(startInfo);
             return 0;

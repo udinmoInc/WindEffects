@@ -120,10 +120,11 @@ bool AssetRegistry::LoadDefaultEditorAssets() {
 
     const std::vector<std::pair<std::string, std::vector<std::string>>> icons = {
         {"Icon_Lucide", {
+            "Engine/Content/Icons/icons",
             "Assets/Icons/icons",
             "Icons/icons",
             "../Assets/Icons/icons",
-            "Engine/Content/Icons/icons"
+            "../Engine/Content/Icons/icons"
         }},
     };
 
