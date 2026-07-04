@@ -1,4 +1,4 @@
-#include "Public/Modules/IModuleInterface.hpp"
+#include "Modules/IModuleInterface.hpp"
 #include "Core/Logger.hpp"
 
 class ToolsPanelModule : public IModuleInterface {

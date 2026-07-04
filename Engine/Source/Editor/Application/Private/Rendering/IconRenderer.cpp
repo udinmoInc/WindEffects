@@ -17,7 +17,6 @@
 #define NANOSVGRAST_IMPLEMENTATION
 #include <nanosvgrast.h>
 #pragma warning(pop)
-#pragma warning(pop)
 
 namespace we::UI {
 

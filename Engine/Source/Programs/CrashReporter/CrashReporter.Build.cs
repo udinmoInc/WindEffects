@@ -14,6 +14,8 @@ public class CrashReporter : ModuleRules
         PublicDependencies.Add("Renderer");
         PublicDependencies.Add("Application");
 
+        AddOptionalThirdParty("nlohmann_json");
+
         OptionalSDK("VulkanSDK");
         OptionalSDK("SDL3");
         DefineIf(HasSDK("VulkanSDK"), "WE_HAS_VULKAN=1");
