@@ -36,7 +36,6 @@
 #include "EditorLayoutPersistence.hpp"
 #include "Core/DockTabBrandRegistry.hpp"
 #include "Runtime/Core/AssetRegistry.hpp"
-#include "EditorPreferences.hpp"
 #include "EditorGridRenderer.hpp"
 #include "Core/Theme.hpp"
 #include "Renderer/Shader/ShaderLibrary.hpp"
@@ -99,9 +98,6 @@ Editor::Editor(SDL_Window* window) : m_Window(window) {
     m_Renderer = std::make_shared<Renderer>(m_Context, m_Window);
     m_RenderGraph = std::make_shared<RenderGraph>(m_Renderer);
     m_SceneRenderer = std::make_shared<SceneRenderer>(m_Context, m_Renderer->GetOffscreenRenderPass(), m_Renderer->GetCameraDescLayout());
-    m_SceneRenderer->SetEditorBackgroundEnabled(false);
-    m_SceneRenderer->SetAtmospherePassEnabled(true);
-    EditorPreferences::Get().ApplyEditorViewportIfDirty(m_SceneRenderer);
 
     we::editor::grid::EditorGridRenderer::Get().Initialize(
         m_Context,
@@ -938,9 +934,19 @@ void Editor::MainLoop() {
             }
 
             m_RenderGraph->BeginOffscreenPass(cmd);
+            const VkDescriptorSet cameraDescSet = m_Renderer->GetCameraDescSet();
+            m_SceneRenderer->DrawSkyAtmospherePass(cmd, cameraDescSet);
+            m_SceneRenderer->DrawVolumetricCloudsPass(cmd, cameraDescSet);
             m_Scene->Draw(cmd);
-            m_SceneRenderer->DrawAtmospherePass(cmd, m_Renderer->GetCameraDescSet());
-            we::editor::grid::EditorGridRenderer::Get().Render(cmd, m_Renderer->GetCameraDescSet(), *m_Camera);
+            {
+                auto& offscreenFB = m_Renderer->GetOffscreenFramebuffer();
+                m_SceneRenderer->DrawFogCompositePass(
+                    cmd,
+                    cameraDescSet,
+                    offscreenFB.GetDepthImageView(),
+                    offscreenFB.GetSampler());
+            }
+            we::editor::grid::EditorGridRenderer::Get().Render(cmd, cameraDescSet, *m_Camera);
             we::programs::editor::UpdateViewportCameraSpeedIndicator();
             m_RenderGraph->EndOffscreenPass(cmd);
 

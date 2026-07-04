@@ -78,6 +78,7 @@ int EnvironmentActorSortKey(const Entity& entity) {
     using we::runtime::world::environment::kSkyLightActorName;
     using we::runtime::world::environment::kSunActorName;
     using we::runtime::world::environment::kVolumetricCloudsActorName;
+    using we::runtime::world::environment::kExposureControllerActorName;
 
     if (entity.Name == kSunActorName || entity.Name == "Sun Light" || entity.Type == EntityType::DirectionalLight) {
         return 0;
@@ -93,6 +94,9 @@ int EnvironmentActorSortKey(const Entity& entity) {
     }
     if (entity.Name == kVolumetricCloudsActorName || entity.Type == EntityType::VolumetricClouds) {
         return 4;
+    }
+    if (entity.Name == kExposureControllerActorName) {
+        return 5;
     }
     return 100;
 }
@@ -330,6 +334,30 @@ void BindCloudProperties(we::UI::PropertyEditor& editor, EnvironmentSystem& syst
     });
 }
 
+void BindExposureProperties(we::UI::PropertyEditor& editor, EnvironmentSystem& system) {
+    auto& exposure = system.GetExposureController();
+    AddBoolProperty(editor, "Auto Exposure", "Exposure", exposure.AutoExposure, [&system](bool value) {
+        system.GetExposureController().AutoExposure = value;
+        system.UpdateRendering();
+    });
+    AddFloatProperty(editor, "Exposure EV", "Exposure", exposure.ExposureEV, [&system](float value) {
+        system.GetExposureController().ExposureEV = value;
+        system.UpdateRendering();
+    });
+    AddFloatProperty(editor, "Exposure Compensation", "Exposure", exposure.ExposureCompensation, [&system](float value) {
+        system.GetExposureController().ExposureCompensation = value;
+        system.UpdateRendering();
+    });
+    AddFloatProperty(editor, "Min EV", "Exposure", exposure.MinEV, [&system](float value) {
+        system.GetExposureController().MinEV = value;
+        system.UpdateRendering();
+    });
+    AddFloatProperty(editor, "Max EV", "Exposure", exposure.MaxEV, [&system](float value) {
+        system.GetExposureController().MaxEV = value;
+        system.UpdateRendering();
+    });
+}
+
 void RefreshDetailsPanel() {
     auto scene = g_Scene.lock();
     auto details = g_Details.lock();
@@ -405,6 +433,9 @@ void RefreshDetailsPanel() {
         break;
     case EnvironmentActorKind::VolumetricClouds:
         BindCloudProperties(*details, system);
+        break;
+    case EnvironmentActorKind::ExposureController:
+        BindExposureProperties(*details, system);
         break;
     default:
         break;
