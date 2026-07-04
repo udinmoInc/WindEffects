@@ -20,10 +20,10 @@ void ContentAssetRegistry::Initialize(const std::string& contentRoot) {
     }
 
     EnsureDemoContent();
-    Refresh();
 
     {
         std::lock_guard<std::mutex> lock(m_Mutex);
+        Refresh();
         m_Initialized = true;
     }
 
