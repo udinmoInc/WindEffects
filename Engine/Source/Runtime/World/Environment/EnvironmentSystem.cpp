@@ -48,7 +48,7 @@ void EnvironmentSystem::BindScene(const std::shared_ptr<Scene>& scene) {
 void EnvironmentSystem::BindRenderer(const std::shared_ptr<we::runtime::renderer::SceneRenderer>& renderer) {
 #if WE_HAS_VULKAN
     m_Renderer = renderer;
-    UpdateRendering();
+    // Environment uniforms are pushed from SyncFromScene / CreateEnvironment once actors exist.
 #else
     (void)renderer;
 #endif
