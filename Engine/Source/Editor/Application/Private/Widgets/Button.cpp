@@ -33,8 +33,6 @@ void Button::Arrange(const Rect& allottedRect) {
 void Button::Paint(PaintContext& context) {
     if (!m_Visible) return;
 
-    auto& theme = Theme::Get();
-
     // 1. Tick Animations
     m_HoverAnim = Animator::Damp(m_HoverAnim, m_Hovered ? 1.0f : 0.0f, 15.0f);
     m_PressAnim = Animator::Damp(m_PressAnim, m_Pressed ? 1.0f : 0.0f, 25.0f);
