@@ -13,6 +13,7 @@ public class ToolsPanel : ModuleRules
         PublicDependencies.Add("Engine");
         PublicDependencies.Add("Application");
         PublicDependencies.Add("Menus");
+        PublicDependencies.Add("ContentBrowser");
 
         OptionalSDK("SDL3");
         DefineIf(HasSDK("SDL3"), "WE_HAS_SDL3=1");
