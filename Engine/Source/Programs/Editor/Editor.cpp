@@ -70,14 +70,10 @@ using namespace we::runtime::world;
 Editor::Editor(SDL_Window* window) : m_Window(window) {
     HE_INFO("[Startup] === Editor construction begin ===");
 
-    HE_INFO("[Startup] Stage 1/6: Vulkan context...");
-    m_Context = std::make_shared<VulkanContext>(m_Window);
+        HE_INFO("[Startup] Stage 1/6: Vulkan context...");
+        m_Context = std::make_shared<VulkanContext>(m_Window);
 
-    volkInitialize();
-    volkLoadInstance(m_Context->GetInstance());
-    volkLoadDevice(m_Context->GetDevice());
-
-    {
+        {
         std::string shaderRoot = "Engine/Shaders";
         std::string bytecodeRoot = "Assets/Shaders";
         for (const char* candidate : {"Engine/Shaders", "../Engine/Shaders", "../../Engine/Shaders"})
@@ -88,7 +84,7 @@ Editor::Editor(SDL_Window* window) : m_Window(window) {
                 break;
             }
         }
-        for (const char* candidate : {"Assets/Shaders", "../Assets/Shaders"})
+        for (const char* candidate : {"Engine/Shaders/Bytecodes", "Assets/Shaders", "../Assets/Shaders", "Shaders"})
         {
             if (std::filesystem::exists(candidate))
             {
@@ -980,7 +976,7 @@ void Editor::Shutdown() {
     if (m_Window) {
         SDL_SetWindowRelativeMouseMode(m_Window, false);
     }
-    vkDeviceWaitIdle(m_Context->GetDevice());
+        m_Context->WaitUntilIdle();
 
     we::core::PluginManager::Get().UnloadAllPlugins();
     we::core::ModuleManager::Get().ShutdownAllModules();

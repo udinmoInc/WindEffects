@@ -71,6 +71,7 @@ ShaderBytecode ShaderLibrary::GetBytecode(const std::string& shaderName, ShaderS
     std::vector<std::string> searchRoots = { m_BytecodeRoot };
     if (!m_BytecodeRoot.empty())
     {
+        searchRoots.emplace_back("Engine/Shaders/Bytecodes");
         searchRoots.emplace_back("Assets/Shaders");
         searchRoots.emplace_back("Shaders");
         searchRoots.emplace_back("../Assets/Shaders");

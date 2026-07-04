@@ -250,8 +250,10 @@ void SceneRenderer::CreatePipelines(VkRenderPass renderPass) {
     {
         std::vector<char> vertCode = LoadShaderBytecode("SceneObject", ShaderStage::Vertex);
         std::vector<char> fragCode = LoadShaderBytecode("SceneObject", ShaderStage::Pixel);
+        HE_INFO("SceneRenderer: Creating SceneObject shader modules...");
         VkShaderModule vertModule = CreateShaderModule(device, vertCode);
         VkShaderModule fragModule = CreateShaderModule(device, fragCode);
+        HE_INFO("SceneRenderer: Creating lit mesh pipeline...");
 
         VkPipelineShaderStageCreateInfo vertStage{};
         vertStage.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
@@ -267,16 +269,15 @@ void SceneRenderer::CreatePipelines(VkRenderPass renderPass) {
 
         std::array<VkPipelineShaderStageCreateInfo, 2> stages = { vertStage, fragStage };
 
-        // Vertex description
-        auto bindingDesc = Vertex::GetBindingDescription();
-        auto attribDescs = Vertex::GetAttributeDescriptions();
+        VkVertexInputBindingDescription bindingDesc = Vertex::GetBindingDescription();
+        std::array<VkVertexInputAttributeDescription, 3> attributeDescriptions = Vertex::GetAttributeDescriptions();
 
         VkPipelineVertexInputStateCreateInfo vertexInput{};
         vertexInput.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
         vertexInput.vertexBindingDescriptionCount = 1;
         vertexInput.pVertexBindingDescriptions = &bindingDesc;
-        vertexInput.vertexAttributeDescriptionCount = static_cast<uint32_t>(attribDescs.size());
-        vertexInput.pVertexAttributeDescriptions = attribDescs.data();
+        vertexInput.vertexAttributeDescriptionCount = static_cast<uint32_t>(attributeDescriptions.size());
+        vertexInput.pVertexAttributeDescriptions = attributeDescriptions.data();
 
         VkPipelineInputAssemblyStateCreateInfo inputAssembly{};
         inputAssembly.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
@@ -312,20 +313,31 @@ void SceneRenderer::CreatePipelines(VkRenderPass renderPass) {
         pipelineInfo.renderPass = renderPass;
         pipelineInfo.subpass = 0;
 
-        if (vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &m_LitPipeline) != VK_SUCCESS) {
-            throw std::runtime_error("Failed to create lit mesh pipeline!");
+        VkResult litPipelineResult = vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &m_LitPipeline);
+        if (litPipelineResult != VK_SUCCESS) {
+            HE_ERROR("Failed to create lit mesh pipeline (VkResult=" + std::to_string(static_cast<int>(litPipelineResult)) + ")");
+            vkDestroyShaderModule(device, vertModule, nullptr);
+            vkDestroyShaderModule(device, fragModule, nullptr);
+            return;
         }
+        HE_INFO("SceneRenderer: Lit mesh pipeline created.");
 
         // 2b. Unlit Pipeline (Same as Lit but we use it differently in code by setting mode uniform, though pipeline is identical)
         if (vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &m_UnlitPipeline) != VK_SUCCESS) {
-            throw std::runtime_error("Failed to create unlit mesh pipeline!");
+            HE_ERROR("Failed to create unlit mesh pipeline.");
+            vkDestroyShaderModule(device, vertModule, nullptr);
+            vkDestroyShaderModule(device, fragModule, nullptr);
+            return;
         }
 
         // 2c. Wireframe Pipeline (Non-solid, Cull None)
         rasterizer.polygonMode = VK_POLYGON_MODE_LINE;
         rasterizer.cullMode = VK_CULL_MODE_NONE;
         if (vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &m_WireframePipeline) != VK_SUCCESS) {
-            throw std::runtime_error("Failed to create wireframe mesh pipeline!");
+            HE_ERROR("Failed to create wireframe mesh pipeline.");
+            vkDestroyShaderModule(device, vertModule, nullptr);
+            vkDestroyShaderModule(device, fragModule, nullptr);
+            return;
         }
 
         vkDestroyShaderModule(device, vertModule, nullptr);
