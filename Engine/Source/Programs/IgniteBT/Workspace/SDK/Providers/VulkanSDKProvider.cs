@@ -73,6 +73,20 @@ public class VulkanSDKProvider : BaseSDKProvider
     {
         var result = new SDKResult<List<string>>();
         var headers = new List<string>();
+
+        // Bundled ThirdParty layout (Engine/ThirdParty)
+        var bundledInclude = Path.Combine(path, "Vulkan-Headers", "include");
+        var bundledVolk = Path.Combine(path, "volk");
+        if (Directory.Exists(bundledInclude))
+        {
+            headers.Add(bundledInclude);
+            Log.Debug("Found bundled Vulkan include path: {Path}", bundledInclude);
+        }
+        if (Directory.Exists(bundledVolk))
+        {
+            headers.Add(bundledVolk);
+            Log.Debug("Found bundled volk include path: {Path}", bundledVolk);
+        }
         
         // Vulkan SDK has specific include structure
         var includePaths = new[]
@@ -111,6 +125,21 @@ public class VulkanSDKProvider : BaseSDKProvider
     {
         var result = new SDKResult<List<string>>();
         var libraries = new List<string>();
+
+        // Bundled loader import library
+        var bundledLoaderDirs = new[]
+        {
+            Path.Combine(path, "Vulkan-Loader", "build", "loader", "Release"),
+            Path.Combine(path, "Vulkan-Loader", "build", "loader", "Debug"),
+            Path.Combine(path, "Vulkan-Loader", "build", "loader")
+        };
+        foreach (var libPath in bundledLoaderDirs)
+        {
+            if (Directory.Exists(libPath))
+            {
+                libraries.Add(libPath);
+            }
+        }
         
         // Vulkan SDK library structure
         var libPaths = new[]
