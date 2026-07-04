@@ -169,6 +169,9 @@ public static class BuildCommand
             
             scheduler.Dispose();
 
+            outputLayout.PruneConfigurationRoot(modules);
+            outputLayout.RefreshLayoutManifest(modules);
+
             if (success)
             {
                 outputLayout.StageRuntimeDependencies(dependencyResult, modules);
@@ -452,7 +455,7 @@ public static class BuildCommand
         {
             ObjectFiles = objectFiles,
             OutputFile = linkOutputFile,
-            ImportLibrary = linkTargetType == LinkTargetType.SharedLibrary
+            ImportLibrary = linkTargetType != LinkTargetType.StaticLibrary
                 ? outputLayout.GetImportLibraryPath(node.Module)
                 : null,
             TargetType = linkTargetType,
@@ -580,6 +583,8 @@ public static class BuildCommand
             Log.Error("Failed to link module {ModuleName}: {Error}", node.Name, linkResult.StandardError);
             throw new InvalidOperationException($"Linking failed for module {node.Name}");
         }
+
+        outputLayout.PruneConfigurationRoot(buildGraph.Nodes.Select(n => n.Module));
         
         Log.Information(
             "Module {ModuleName} linked to {OutputPath} in {Time}ms",
