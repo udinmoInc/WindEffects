@@ -1,8 +1,11 @@
 #ifndef WE_ENVIRONMENT_BUFFER_HLSLI
 #define WE_ENVIRONMENT_BUFFER_HLSLI
 
-// Shared std140 environment uniform for all atmosphere / cloud / fog / lighting passes.
-cbuffer EnvironmentBuffer : register(b0, space0)
+#ifndef WE_ENVIRONMENT_BUFFER_REGISTER
+#define WE_ENVIRONMENT_BUFFER_REGISTER b0
+#endif
+
+cbuffer EnvironmentBuffer : register(WE_ENVIRONMENT_BUFFER_REGISTER, space0)
 {
     float3 sunDirection;
     float  sunIntensity;

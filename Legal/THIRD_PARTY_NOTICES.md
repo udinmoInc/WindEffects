@@ -1,26 +1,37 @@
-﻿# Third-Party Notices
+# Third-Party Notices
 
-**Last Updated:** July 1, 2026
+WindEffects Engine incorporates third-party software and assets. Each component is subject to its respective license terms.
 
-WindEffects Engine incorporates third-party libraries and assets. Each component is subject to its own license terms.
+## Acknowledgments
 
-## Open-source components
+### Fonts
 
-A machine-readable list of bundled open-source components and their licenses will be maintained in:
+- **Inter Font** - Licensed under SIL Open Font License 1.1
+  - License file: `Assets/Fonts/Inter-LICENSE.txt`
+  - Source: https://rsms.me/inter/
 
-- `Engine/ThirdParty/NOTICES` (planned)
-- In-product **About / Legal** notices in the editor (planned)
-- Release packages under `ThirdParty/` or `NOTICES.txt` (planned)
+### Icons
 
-Until those files are published, refer to dependency manifests in the build system and individual package licenses in `ThirdParty/` and fetched dependencies.
+- **Codicon** - VS Code icon set
+  - Location: `Engine/Content/Fonts/codicon.ttf`
+  - Licensed under MIT License
 
-## Fonts and icons
+## Open Source Components
 
-- **Codicon** — see `Engine/Content/Fonts/codicon.ttf` and the Codicon project license
-- **Inter** — see `Assets/Fonts/Inter-LICENSE.txt` (SIL Open Font License 1.1)
+A complete list of open-source dependencies and their licenses will be provided in:
 
-## Your responsibility
+- `Engine/ThirdParty/NOTICES` (forthcoming)
+- Editor About/Legal dialog (forthcoming)
+- Release documentation (forthcoming)
 
-When you distribute End Products, you are responsible for complying with attribution and notice requirements of any third-party components you include.
+## Distribution Requirements
 
-For licensing questions: legal@udinmo.com
+Distributors of WindEffects Engine or derivative products are responsible for:
+
+1. Complying with all applicable license terms of third-party components
+2. Providing required attributions and notices
+3. Including license documentation with distributed products
+
+## Legal Contact
+
+For licensing inquiries: legal@udinmo.com

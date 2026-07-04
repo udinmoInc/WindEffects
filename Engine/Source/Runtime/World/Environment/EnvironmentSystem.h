@@ -1,5 +1,6 @@
 #pragma once
 
+#include "EnvironmentExposureController.h"
 #include "EnvironmentDirectionalLight.h"
 #include "EnvironmentHeightFog.h"
 #include "EnvironmentManager.h"
@@ -52,12 +53,14 @@ public:
     EnvironmentSkyAtmosphere& GetSkyAtmosphere() { return m_SkyAtmosphere; }
     EnvironmentHeightFog& GetHeightFog() { return m_HeightFog; }
     EnvironmentVolumetricClouds& GetVolumetricClouds() { return m_VolumetricClouds; }
+    EnvironmentExposureController& GetExposureController() { return m_ExposureController; }
 
     const EnvironmentDirectionalLight& GetSun() const { return m_Sun; }
     const EnvironmentSkyLight& GetSkyLight() const { return m_SkyLight; }
     const EnvironmentSkyAtmosphere& GetSkyAtmosphere() const { return m_SkyAtmosphere; }
     const EnvironmentHeightFog& GetHeightFog() const { return m_HeightFog; }
     const EnvironmentVolumetricClouds& GetVolumetricClouds() const { return m_VolumetricClouds; }
+    const EnvironmentExposureController& GetExposureController() const { return m_ExposureController; }
 
     std::uint64_t GetFolderEntityId() const { return m_FolderEntityId; }
     EnvironmentActorKind GetActorKind(std::uint64_t entityId) const;
@@ -97,6 +100,7 @@ private:
     EnvironmentSkyAtmosphere m_SkyAtmosphere{};
     EnvironmentHeightFog m_HeightFog{};
     EnvironmentVolumetricClouds m_VolumetricClouds{};
+    EnvironmentExposureController m_ExposureController{};
 
     std::vector<ChangeListener> m_ChangeListeners;
 };

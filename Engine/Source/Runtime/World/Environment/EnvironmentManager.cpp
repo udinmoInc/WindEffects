@@ -16,7 +16,6 @@ float Clamp01(float value) {
 } // namespace
 
 glm::vec3 EnvironmentManager::GetWorldOrigin(const glm::vec3& cameraPosition) const {
-    // Large-world rebasing: snap origin to 1 km grid so fog/aerial math stays stable.
     constexpr float kRebaseGrid = 1000.0f;
     return glm::vec3(
         std::floor(cameraPosition.x / kRebaseGrid) * kRebaseGrid,
@@ -29,27 +28,25 @@ glm::vec3 EnvironmentManager::ComputeSkyLightUpper(
     const EnvironmentSkyAtmosphere& atmosphere) const {
     const glm::vec3 sunDir = SunDirectionToSky(sun.GetLightDirection());
     const float elevation = Clamp01(sunDir.y);
-
     const glm::vec3 rayleigh = atmosphere.GetRayleighColor();
-    const glm::vec3 zenith = glm::vec3(0.18f, 0.38f, 0.95f) * rayleigh * 18.0f;
-    const glm::vec3 dayZenith = zenith * glm::mix(0.12f, 1.0f, elevation);
-
     const glm::vec3 sunColor = sun.GetColorFromTemperature();
-    const glm::vec3 sunsetWarm = sunColor * sun.Intensity * 0.035f * (1.0f - elevation);
 
-    const float nightFactor = Clamp01(0.35f - elevation);
-    const glm::vec3 nightTint = glm::vec3(0.02f, 0.03f, 0.06f) * nightFactor;
-
-    return dayZenith + sunsetWarm + nightTint;
+    // Procedural capture: scattered skylight grows with sun elevation and Rayleigh coefficients.
+    const glm::vec3 scattered = rayleigh * (8.0f + elevation * 40.0f);
+    const glm::vec3 sunBounce = sunColor * sun.Intensity * 0.02f * (1.0f - elevation);
+    const float night = Clamp01(0.2f - elevation);
+    return scattered + sunBounce + rayleigh * night * 0.5f;
 }
 
 glm::vec3 EnvironmentManager::ComputeSkyLightLower(
     const EnvironmentDirectionalLight& sun,
-    const EnvironmentHeightFog& fog) const {
+    const EnvironmentHeightFog& fog,
+    const EnvironmentSkyAtmosphere& atmosphere) const {
     const glm::vec3 sunDir = SunDirectionToSky(sun.GetLightDirection());
     const float elevation = Clamp01(sunDir.y);
-    const float nightFactor = Clamp01(1.0f - elevation * 2.0f);
-    return glm::mix(fog.FogColor * 0.35f, glm::vec3(0.02f, 0.025f, 0.04f), nightFactor) * (0.5f + fog.Density);
+    const float night = Clamp01(1.0f - elevation * 2.5f);
+    const glm::vec3 groundScatter = atmosphere.GetRayleighColor() * 0.8f;
+    return glm::mix(fog.FogColor * 0.4f + groundScatter, groundScatter * 0.15f, night);
 }
 
 glm::vec3 EnvironmentManager::ComputeFogColor(
@@ -58,22 +55,28 @@ glm::vec3 EnvironmentManager::ComputeFogColor(
     const glm::vec3 sunDir = SunDirectionToSky(sun.GetLightDirection());
     const float elevation = Clamp01(sunDir.y);
     const glm::vec3 sunColor = sun.GetColorFromTemperature();
+    const glm::vec3 rayleigh = atmosphere.GetRayleighColor();
 
-    const glm::vec3 horizonBase = glm::vec3(0.72f, 0.78f, 0.85f) + atmosphere.GetRayleighColor() * 4.0f;
-    const glm::vec3 sunsetFog = sunColor * glm::mix(0.55f, 0.15f, elevation);
-    const glm::vec3 nightFog = glm::vec3(0.04f, 0.05f, 0.08f);
+    const glm::vec3 dayFog = rayleigh * 6.0f + sunColor * 0.08f;
+    const glm::vec3 sunsetFog = sunColor * 0.35f + rayleigh * 3.0f;
+    const glm::vec3 nightFog = rayleigh * 0.4f;
 
-    glm::vec3 fogColor = glm::mix(horizonBase, sunsetFog, glm::pow(1.0f - elevation, 2.0f));
-    fogColor = glm::mix(fogColor, nightFog, Clamp01(0.25f - elevation));
+    glm::vec3 fogColor = glm::mix(sunsetFog, dayFog, elevation);
+    fogColor = glm::mix(nightFog, fogColor, Clamp01(elevation * 2.0f + 0.1f));
     return fogColor;
 }
 
 float EnvironmentManager::ComputeExposureEV(const EnvironmentDirectionalLight& sun) const {
     const glm::vec3 sunDir = SunDirectionToSky(sun.GetLightDirection());
-    const float elevation = Clamp01(sunDir.y * 2.5f + 0.15f);
+    const float elevation = sunDir.y;
+    const float dayFactor = Clamp01(elevation * 2.5f + 0.1f);
+    const float twilightFactor = Clamp01(1.0f - abs(elevation) * 3.5f);
     constexpr float kDayEV = 2.35f;
-    constexpr float kNightEV = -2.15f;
-    return glm::mix(kNightEV, kDayEV + 1.2f, elevation);
+    constexpr float kNightEV = -2.5f;
+    constexpr float kTwilightEV = -0.5f;
+    float ev = glm::mix(kNightEV, kDayEV, dayFactor);
+    ev = glm::mix(ev, kTwilightEV, twilightFactor * (1.0f - dayFactor));
+    return ev;
 }
 
 void EnvironmentManager::UpdateDerivedState(
@@ -88,7 +91,7 @@ void EnvironmentManager::UpdateDerivedState(
 
     if (skyLight.RealTimeCapture) {
         skyLight.UpperHemisphereColor = ComputeSkyLightUpper(sun, atmosphere);
-        skyLight.LowerHemisphereColor = ComputeSkyLightLower(sun, fog);
+        skyLight.LowerHemisphereColor = ComputeSkyLightLower(sun, fog, atmosphere);
     }
 
     fog.FogColor = ComputeFogColor(sun, atmosphere);
