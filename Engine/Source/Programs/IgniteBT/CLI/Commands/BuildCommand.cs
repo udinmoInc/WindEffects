@@ -609,6 +609,11 @@ public static class BuildCommand
         {
             AddDelayLoadLibraries(linkOptions, node, buildGraph, outputLayout);
         }
+
+        if (ParsePlatform(platform) == IgniteBT.Build.Compiler.TargetPlatform.Windows)
+        {
+            AddThirdPartyDelayLoadLibraries(linkOptions);
+        }
         
         var linkResult = await linker.LinkAsync(linkOptions);
         
@@ -670,6 +675,30 @@ public static class BuildCommand
 
             var binaryName = Path.GetFileName(outputLayout.GetModuleBinaryPath(depNode.Module));
             AddDelayLoadFlag(linkOptions, binaryName);
+        }
+
+        if (linkOptions.Libraries.Any(lib =>
+                lib.StartsWith("SDL3", StringComparison.OrdinalIgnoreCase)
+                && lib.EndsWith(".lib", StringComparison.OrdinalIgnoreCase)))
+        {
+            AddDelayLoadFlag(linkOptions, "SDL3.dll");
+        }
+
+        if (linkOptions.Libraries.Contains("vulkan-1.lib", StringComparer.OrdinalIgnoreCase))
+        {
+            AddDelayLoadFlag(linkOptions, "vulkan-1.dll");
+        }
+    }
+
+    private static void AddThirdPartyDelayLoadLibraries(LinkerOptions linkOptions)
+    {
+        if (!linkOptions.Libraries.Contains("delayimp.lib", StringComparer.OrdinalIgnoreCase)
+            && linkOptions.Libraries.Any(lib =>
+                (lib.StartsWith("SDL3", StringComparison.OrdinalIgnoreCase)
+                 || lib.Equals("vulkan-1.lib", StringComparison.OrdinalIgnoreCase))
+                && lib.EndsWith(".lib", StringComparison.OrdinalIgnoreCase)))
+        {
+            linkOptions.Libraries.Add("delayimp.lib");
         }
 
         if (linkOptions.Libraries.Any(lib =>
