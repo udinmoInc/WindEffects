@@ -9,21 +9,26 @@
 namespace {
 
 constexpr const char* kFeatureModuleDlls[] = {
-    "WindEffects-MainFrame.dll",
-    "WindEffects-Viewport.dll",
-    "WindEffects-Docking.dll",
-    "WindEffects-ContentBrowser.dll",
-    "WindEffects-WorldOutliner.dll",
-    "WindEffects-PropertyEditor.dll",
-    "WindEffects-Toolbar.dll",
-    "WindEffects-Menus.dll",
-    "WindEffects-Details.dll",
-    "WindEffects-ToolsPanel.dll",
-    "WindEffects-PlaceActors.dll",
-    "WindEffects-Environment.dll",
+    "WEApplication.dll",
+    "WEMainFrame.dll",
+    "WEViewport.dll",
+    "WEDocking.dll",
+    "WEContentBrowser.dll",
+    "WEWorldOutliner.dll",
+    "WEPropertyEditor.dll",
+    "WEToolbar.dll",
+    "WEMenus.dll",
+    "WEDetails.dll",
+    "WEToolsPanel.dll",
+    "WEPlaceActors.dll",
+    "WEEnvironment.dll",
+    "WEEditorGridRenderer.dll",
+    "WERenderer.dll",
+    "WEScene.dll",
+    "WEWorld.dll",
 };
 
-HMODULE LoadFeatureModuleDll(const char* dllName) {
+HMODULE LoadResolvedDelayLoadDll(const char* dllName) {
     if (dllName == nullptr || dllName[0] == '\0') {
         return nullptr;
     }
@@ -34,14 +39,16 @@ HMODULE LoadFeatureModuleDll(const char* dllName) {
     }
 
     return LoadLibraryExW(
-        modulePath->c_str(),
+        modulePath->wstring().c_str(),
         nullptr,
         LOAD_WITH_ALTERED_SEARCH_PATH);
 }
 
 void PreloadFeatureModules() {
+    we::core::ConfigureModuleSearchPaths();
+
     for (const char* dllName : kFeatureModuleDlls) {
-        LoadFeatureModuleDll(dllName);
+        LoadResolvedDelayLoadDll(dllName);
     }
 }
 
@@ -63,7 +70,7 @@ FARPROC WINAPI DelayLoadNotify(unsigned reason, DelayLoadInfo* info) {
         return 0;
     }
 
-    HMODULE module = LoadFeatureModuleDll(info->szDll);
+    HMODULE module = LoadResolvedDelayLoadDll(info->szDll);
     if (module != nullptr) {
         return reinterpret_cast<FARPROC>(module);
     }
@@ -76,7 +83,7 @@ FARPROC WINAPI DelayLoadFailureHook(unsigned reason, DelayLoadInfo* info) {
         return 0;
     }
 
-    HMODULE module = LoadFeatureModuleDll(info->szDll);
+    HMODULE module = LoadResolvedDelayLoadDll(info->szDll);
     if (module != nullptr) {
         return reinterpret_cast<FARPROC>(module);
     }
