@@ -88,7 +88,7 @@ Editor::Editor(SDL_Window* window) : m_Window(window) {
                 break;
             }
         }
-        for (const char* candidate : {"Assets/Shaders", "../Assets/Shaders"})
+        for (const char* candidate : {"Engine/Shaders/Bytecodes", "Assets/Shaders", "../Assets/Shaders", "Shaders"})
         {
             if (std::filesystem::exists(candidate))
             {
