@@ -1,5 +1,6 @@
 using IgniteBT.Build.Layout;
 using IgniteBT.Build.Compiler;
+using System.Text.Json;
 
 namespace IgniteBT.Core.Launcher;
 
@@ -152,40 +153,62 @@ public static class BootstrapManifest
             return;
         }
 
-        foreach (var executablePath in Directory.EnumerateFiles(outputRoot, "*.exe", SearchOption.AllDirectories))
+        foreach (var platformDir in Directory.EnumerateDirectories(outputRoot))
         {
-            var toolName = MapExecutableToToolName(Path.GetFileName(executablePath));
-            if (string.IsNullOrWhiteSpace(toolName) || document.Sections.ContainsKey(toolName))
+            foreach (var configurationDir in Directory.EnumerateDirectories(platformDir))
+            {
+                RegisterBuiltProgramsFromLayoutManifest(document, configurationDir);
+            }
+        }
+    }
+
+    private static void RegisterBuiltProgramsFromLayoutManifest(IniDocument document, string configurationRoot)
+    {
+        var manifestPath = Path.Combine(configurationRoot, OutputDirectories.ConfigBuild, "output-layout.json");
+        if (!File.Exists(manifestPath))
+        {
+            return;
+        }
+
+        OutputLayoutManifest? manifest;
+        try
+        {
+            manifest = JsonSerializer.Deserialize<OutputLayoutManifest>(File.ReadAllText(manifestPath));
+        }
+        catch
+        {
+            return;
+        }
+
+        if (manifest?.Modules == null)
+        {
+            return;
+        }
+
+        foreach (var module in manifest.Modules)
+        {
+            if (!string.Equals(module.ModuleType, nameof(ModuleType.Executable), StringComparison.OrdinalIgnoreCase))
             {
                 continue;
             }
 
-            document.Sections[toolName] = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+            if (document.Sections.ContainsKey(module.ModuleName))
+            {
+                continue;
+            }
+
+            var executablePath = Path.Combine(configurationRoot, module.RelativePath);
+            if (!File.Exists(executablePath))
+            {
+                continue;
+            }
+
+            document.Sections[module.ModuleName] = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
             {
                 [KindKey] = "native",
                 [ExecutableKey] = Path.GetFullPath(executablePath)
             };
         }
-    }
-
-    private static string MapExecutableToToolName(string fileName)
-    {
-        var name = Path.GetFileNameWithoutExtension(fileName);
-        if (string.IsNullOrWhiteSpace(name))
-        {
-            return string.Empty;
-        }
-
-        if (name.StartsWith("WE", StringComparison.OrdinalIgnoreCase))
-        {
-            name = name[2..];
-        }
-
-        return name switch
-        {
-            "WindeffectsEditor" => "Editor",
-            _ => name
-        };
     }
 
     public static BootstrapToolEntry? ResolveTool(BootstrapManifestData manifest, string? requestedTool)
