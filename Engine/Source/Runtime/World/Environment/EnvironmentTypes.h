@@ -11,6 +11,7 @@ constexpr const char* kSkyLightActorName = "SkyLight";
 constexpr const char* kSkyAtmosphereActorName = "SkyAtmosphere";
 constexpr const char* kHeightFogActorName = "ExponentialHeightFog";
 constexpr const char* kVolumetricCloudsActorName = "VolumetricClouds";
+constexpr const char* kExposureControllerActorName = "Exposure Controller";
 
 enum class EnvironmentPreset {
     Sunny,
@@ -28,7 +29,8 @@ enum class EnvironmentActorKind {
     SkyLight,
     SkyAtmosphere,
     HeightFog,
-    VolumetricClouds
+    VolumetricClouds,
+    ExposureController
 };
 
 } // namespace we::runtime::world::environment

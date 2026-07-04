@@ -11,7 +11,7 @@ struct EnvironmentSettings {
     bool createSkyLight = true;
     bool createSkyAtmosphere = true;
     bool createHeightFog = true;
-    bool createVolumetricClouds = false;
+    bool createVolumetricClouds = true;
     bool enableVolumetricFog = true;
 
     float sunIntensity = 10.0f;

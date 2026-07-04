@@ -23,7 +23,7 @@ public:
 
 private:
     glm::vec3 ComputeSkyLightUpper(const EnvironmentDirectionalLight& sun, const EnvironmentSkyAtmosphere& atmosphere) const;
-    glm::vec3 ComputeSkyLightLower(const EnvironmentDirectionalLight& sun, const EnvironmentHeightFog& fog) const;
+    glm::vec3 ComputeSkyLightLower(const EnvironmentDirectionalLight& sun, const EnvironmentHeightFog& fog, const EnvironmentSkyAtmosphere& atmosphere) const;
     glm::vec3 ComputeFogColor(const EnvironmentDirectionalLight& sun, const EnvironmentSkyAtmosphere& atmosphere) const;
 };
 
