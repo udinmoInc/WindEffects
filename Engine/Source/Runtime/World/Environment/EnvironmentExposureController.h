@@ -9,11 +9,11 @@ class EnvironmentExposureController {
 public:
     std::uint64_t EntityId = 0;
 
-    float ExposureEV = 2.35f;
+    float ExposureEV = 8.0f;
     float ExposureCompensation = 0.0f;
-    float MinEV = -4.0f;
-    float MaxEV = 8.0f;
-    bool AutoExposure = true;
+    float MinEV = -2.0f;
+    float MaxEV = 14.0f;
+    bool AutoExposure = false;
 
     void ApplyDefaults();
     float GetEffectiveExposureEV(float sunDerivedEV) const;

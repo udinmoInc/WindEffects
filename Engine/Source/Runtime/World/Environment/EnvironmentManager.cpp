@@ -99,7 +99,8 @@ void EnvironmentManager::UpdateDerivedState(
 
     const glm::vec3 worldOrigin = GetWorldOrigin(cameraPosition);
     const float altitudeMeters = std::max(cameraPosition.y - worldOrigin.y, 0.0f);
-    atmosphere.EyeAltitude = std::max(altitudeMeters * 0.001f, 0.001f);
+    // Quantize to 10 m buckets so minor vertical jitter does not churn GPU uniforms.
+    atmosphere.EyeAltitude = std::max(std::round(altitudeMeters * 0.1f) * 0.01f, 0.001f);
 
     if (skyLight.RealTimeCapture) {
         skyLight.UpperHemisphereColor = ComputeSkyLightUpper(sun, atmosphere);

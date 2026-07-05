@@ -37,13 +37,14 @@ float4 PSMain(VSOutput input) : SV_Target
     const float3 sunLinear = max(sunColor, float3(0.0, 0.0, 0.0));
     const float3 cloudAlbedo = WE_sRGBToLinear(saturate(cloudColor));
 
+    float opacity = 0.0;
     const float3 clouds = WE_RaymarchClouds(
         cameraPos, viewDir, worldOrigin,
         sunDir, sunLinear, sunIntensity,
-        cloudAltitude, cloudCoverage, cloudExtinction, cloudAlbedo);
+        cloudAltitude, cloudCoverage, cloudExtinction, cloudAlbedo,
+        opacity);
 
     // Keep linear HDR — PostExposure applies exposure, tonemap, and sRGB conversion once.
     const float3 color = WE_SanitizeHdrColor(clouds);
-    const float alpha = saturate(length(clouds) * 1.8);
-    return float4(color, alpha);
+    return float4(color, opacity);
 }

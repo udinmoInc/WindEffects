@@ -27,6 +27,11 @@ bool NearlyEqual(const glm::vec3& a, const glm::vec3& b) {
     return DirectionsNearlyEqual(a, b);
 }
 
+bool AltitudesNeedLUTRegen(float previousKm, float nextKm) {
+    constexpr float kBucketKm = 0.05f; // 50 m buckets
+    return std::floor(previousKm / kBucketKm) != std::floor(nextKm / kBucketKm);
+}
+
 } // namespace
 
 bool AtmosphereLUTInputsChanged(
@@ -44,7 +49,7 @@ bool AtmosphereLUTInputsChanged(
         || !NearlyEqual(previous.planetRadius, next.planetRadius)
         || !NearlyEqual(previous.atmosphereHeight, next.atmosphereHeight)
         || !NearlyEqual(previous.multiScatterStrength, next.multiScatterStrength)
-        || !NearlyEqual(previous.eyeAltitude, next.eyeAltitude)
+        || AltitudesNeedLUTRegen(previous.eyeAltitude, next.eyeAltitude)
         || !NearlyEqual(previous.worldOrigin, next.worldOrigin);
 }
 

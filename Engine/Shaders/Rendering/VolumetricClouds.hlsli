@@ -4,7 +4,7 @@
 #include "../Common/Noise.hlsli"
 #include "../Common/Color.hlsli"
 
-static const int WE_CLOUD_STEPS = 24;
+static const int WE_CLOUD_STEPS = 32;
 
 float WE_CloudDensityAt(float3 worldPos, float3 worldOrigin, float cloudAltitude, float coverage)
 {
@@ -34,8 +34,10 @@ float3 WE_RaymarchClouds(
     float cloudAltitude,
     float coverage,
     float extinction,
-    float3 cloudAlbedo)
+    float3 cloudAlbedo,
+    out float opacity)
 {
+    opacity = 0.0;
     rayDir = normalize(rayDir);
     sunDir = normalize(sunDir);
 
@@ -44,17 +46,24 @@ float3 WE_RaymarchClouds(
     if (tHit < 0.0)
         return float3(0.0, 0.0, 0.0);
 
-    const float stepSize = 120.0;
+    // Fade out near horizon to avoid grazing-angle banding while the camera moves.
+    const float horizonFade = smoothstep(0.02, 0.12, rayDir.y);
+    if (horizonFade <= 1e-4)
+        return float3(0.0, 0.0, 0.0);
+
+    const float stepSize = 80.0;
+    // World-space jitter (not screen-space) so clouds do not swim when the camera translates.
+    const float jitter = WE_BlueNoise(rayOrigin.xz * 0.02 + rayDir.xz * 13.7) * stepSize;
     float3 accum = float3(0.0, 0.0, 0.0);
     float transmittance = 1.0;
     const float3 sunLight = sunColor * sunIntensity;
-    // Hemisphere skylight fill so cloud undersides stay visible after tonemap.
-    const float3 ambient = sunLight * 0.18 + float3(0.015, 0.02, 0.035);
+    // Skylight fill keeps cloud albedo above the background so alpha blend never darkens the sky.
+    const float3 ambient = sunLight * 0.42 + float3(0.06, 0.10, 0.18);
 
     [loop]
     for (int i = 0; i < WE_CLOUD_STEPS; ++i)
     {
-        const float t = tHit + float(i) * stepSize;
+        const float t = tHit + jitter + float(i) * stepSize;
         const float3 pos = rayOrigin + rayDir * t;
         const float density = WE_CloudDensityAt(pos, worldOrigin, cloudAltitude, coverage);
         if (density <= 0.001)
@@ -70,7 +79,13 @@ float3 WE_RaymarchClouds(
             break;
     }
 
-    return accum * 1.6;
+    const float rawOpacity = saturate(1.0 - transmittance);
+    opacity = rawOpacity * horizonFade;
+    if (rawOpacity <= 1e-4)
+        return float3(0.0, 0.0, 0.0);
+
+    // Return mean in-cloud radiance so src-alpha blending composites extinction correctly.
+    return (accum / rawOpacity) * 1.15;
 }
 
 #endif // WE_VOLUMETRIC_CLOUDS_HLSLI

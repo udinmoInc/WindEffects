@@ -49,7 +49,10 @@ float4 PSMain(VSOutput input) : SV_Target
     if (enableVolumetricFog < 0.5)
         discard;
 
-    const float depth = depthTexture.Sample(lutSampler, input.uv).r;
+    // Nearest-texel fetch — linear depth filtering smears geometry edges into the sky
+    // and produces large dark fog halos (reverse-Z makes this especially visible).
+    const uint2 pix = uint2(input.position.xy);
+    const float depth = depthTexture.Load(int3(pix, 0)).r;
     // Reverse-Z: cleared depth is 0 (far); skip sky pixels with no geometry.
     if (depth < 1e-4)
         discard;
@@ -77,6 +80,7 @@ float4 PSMain(VSOutput input) : SV_Target
         aerialLUT, skyViewLUT, lutSampler);
 
     const float3 fogTint = WE_sRGBToLinear(saturate(fogColor));
-    const float3 fogLinear = lerp(fogTint * sunIntensity * 0.04, aerial, 0.82);
-    return float4(fogLinear, fogFactor * 0.55);
+    const float3 fogFloor = fogTint * sunIntensity * 0.06 + float3(0.02, 0.04, 0.07);
+    const float3 fogLinear = max(lerp(fogFloor, aerial, 0.82), fogFloor);
+    return float4(fogLinear, fogFactor * 0.45);
 }
