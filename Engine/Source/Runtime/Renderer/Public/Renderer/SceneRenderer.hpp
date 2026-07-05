@@ -3,6 +3,8 @@
 #if WE_HAS_VULKAN
 #include "Renderer/Export.hpp"
 #include "Renderer/VulkanContext.hpp"
+#include "Renderer/SceneEnvironmentUniform.hpp"
+#include "Renderer/AtmosphereLUTGenerator.hpp"
 #include <volk.h>
 #endif
 #if WE_HAS_GLM
@@ -29,24 +31,6 @@ namespace glm {
 #include <unordered_map>
 
 namespace we::runtime::renderer {
-
-struct SceneEnvironmentUniform {
-    glm::vec3 sunDirection{ 0.38f, 0.92f, 0.18f };
-    float sunIntensity = 10.0f;
-    glm::vec3 sunColor{ 1.0f, 0.96f, 0.86f };
-    float skyLightIntensity = 1.0f;
-    glm::vec3 skyAmbientColor{ 0.66f, 0.82f, 1.0f };
-    float fogDensity = 0.02f;
-    glm::vec3 fogColor{ 0.72f, 0.78f, 0.85f };
-    float fogHeightFalloff = 0.2f;
-    glm::vec3 atmosphereRayleigh{ 0.005802f, 0.013558f, 0.033100f };
-    float enableVolumetricFog = 1.0f;
-    glm::vec3 aerialTint{ 0.55f, 0.65f, 0.85f };
-    float enableClouds = 0.0f;
-    int sunCastShadows = 1;
-    int sunTemperature = 6500;
-    glm::ivec2 padding{};
-};
 
 #if WE_HAS_VULKAN
 
@@ -94,33 +78,32 @@ struct SceneObjectUniform {
 
 class SceneRenderer {
 public:
-    // Editor-only empty world backdrop (no scene lighting contribution).
-    struct EditorBackgroundSettings {
-        glm::vec3 zenithColor{ 9.0f / 255.0f, 9.0f / 255.0f, 9.0f / 255.0f };
-        float backgroundBrightness = 1.0f;
-        glm::vec3 upperSkyColor{ 10.0f / 255.0f, 10.0f / 255.0f, 10.0f / 255.0f };
-        float gradientStrength = 0.55f;
-        glm::vec3 midSkyColor{ 11.0f / 255.0f, 11.0f / 255.0f, 11.0f / 255.0f };
-        float horizonFade = 0.0f;
-        glm::vec3 horizonColor{ 12.0f / 255.0f, 12.0f / 255.0f, 12.0f / 255.0f };
-        float padding0 = 0.0f;
-        glm::vec3 bottomColor{ 14.0f / 255.0f, 14.0f / 255.0f, 14.0f / 255.0f };
-        float backgroundContrast = 1.0f;
-    };
-
     RENDERER_API SceneRenderer(const std::shared_ptr<VulkanContext>& context, VkRenderPass renderPass, VkDescriptorSetLayout cameraDescLayout);
     RENDERER_API ~SceneRenderer();
 
-    // Prevent copying
     SceneRenderer(const SceneRenderer&) = delete;
     SceneRenderer& operator=(const SceneRenderer&) = delete;
 
-    RENDERER_API void DrawEditorBackground(VkCommandBuffer cmd, VkDescriptorSet cameraDescSet) const;
-    RENDERER_API void SetEditorBackgroundSettings(const EditorBackgroundSettings& settings);
-    const EditorBackgroundSettings& GetEditorBackgroundSettings() const { return m_EditorBackgroundSettings; }
-    void SetEditorBackgroundEnabled(bool enabled) { m_EnableEditorBackground = enabled; }
-    bool IsEditorBackgroundEnabled() const { return m_EnableEditorBackground; }
-    
+    RENDERER_API void DrawSkyAtmospherePass(VkCommandBuffer cmd, VkDescriptorSet cameraDescSet) const;
+    RENDERER_API void DrawVolumetricCloudsPass(VkCommandBuffer cmd, VkDescriptorSet cameraDescSet) const;
+    RENDERER_API void ApplyPostExposure(
+        VkCommandBuffer cmd,
+        VkImage colorImage,
+        VkImageView colorImageView,
+        uint32_t width,
+        uint32_t height) const;
+
+    RENDERER_API void PrepareAtmosphereLUTs(VkCommandBuffer cmd);
+    RENDERER_API bool AreAtmosphereLUTsReady() const;
+    RENDERER_API bool IsSkyPipelineCreated() const { return m_SkyAtmospherePipeline != VK_NULL_HANDLE; }
+    RENDERER_API void LogAtmospherePipelineDiagnostics() const;
+
+    RENDERER_API void DrawFogCompositePass(
+        VkCommandBuffer cmd,
+        VkDescriptorSet cameraDescSet,
+        VkImageView depthImageView,
+        VkSampler sampler) const;
+
     RENDERER_API void DrawMesh(VkCommandBuffer cmd, const std::string& meshName, VkDescriptorSet descriptorSet, int mode) const;
 
     RENDERER_API void SetSceneEnvironment(const SceneEnvironmentUniform& environment);
@@ -132,11 +115,26 @@ public:
     // Helpers to create descriptor sets for rendering
     RENDERER_API void UpdateObjectDescriptorSet(VkDescriptorSet descriptorSet, VkBuffer cameraBuffer, VkBuffer objectBuffer) const;
     RENDERER_API void RefreshEnvironmentDescriptorBindings() const;
+    RENDERER_API bool ValidateRenderFrame(VkFramebuffer framebuffer, uint32_t width, uint32_t height) const;
+    RENDERER_API bool IsSkyPassReady() const {
+        return IsSkyPipelineCreated()
+            && m_LUTGenerator != nullptr
+            && m_LUTGenerator->IsReady();
+    }
+    RENDERER_API bool IsPostPassReady() const { return m_PostExposurePipeline != VK_NULL_HANDLE; }
 
 private:
+    void ValidateCreatedPipelines() const;
     void CreatePipelines(VkRenderPass renderPass);
     void CreateMeshes();
-    void UpdateEditorBackgroundBufferIfDirty();
+    VkPipeline CreateFullscreenPipeline(
+        VkRenderPass renderPass,
+        VkPipelineLayout layout,
+        const char* shaderName,
+        bool depthTest,
+        VkCompareOp depthCompare,
+        bool depthWrite,
+        bool alphaBlend) const;
     
     void CreateMeshBuffers(const std::string& name, const std::vector<Vertex>& vertices, const std::vector<uint32_t>& indices);
     void DestroyMeshes();
@@ -153,22 +151,32 @@ private:
     VkDescriptorSetLayout m_CameraDescLayout = VK_NULL_HANDLE;
     VkDescriptorSetLayout m_ObjectDescLayout = VK_NULL_HANDLE;
     VkPipelineLayout m_PipelineLayout = VK_NULL_HANDLE;
-    VkPipelineLayout m_SkyPipelineLayout = VK_NULL_HANDLE;
-    VkDescriptorSetLayout m_SkyDescLayout = VK_NULL_HANDLE;
-    VkDescriptorSet m_SkyDescSet = VK_NULL_HANDLE;
-    VkBuffer m_SkyBuffer = VK_NULL_HANDLE;
-    VkDeviceMemory m_SkyBufferMemory = VK_NULL_HANDLE;
-    EditorBackgroundSettings m_EditorBackgroundSettings{};
-    bool m_EditorBackgroundDirty = true;
-    bool m_EnableEditorBackground = false;
+
+    VkPipelineLayout m_EnvironmentPipelineLayout = VK_NULL_HANDLE;
+    VkDescriptorSetLayout m_EnvironmentDescLayout = VK_NULL_HANDLE;
+    VkDescriptorSet m_EnvironmentDescSet = VK_NULL_HANDLE;
+
+    VkPipelineLayout m_FogPipelineLayout = VK_NULL_HANDLE;
+    VkDescriptorSetLayout m_FogLutDescLayout = VK_NULL_HANDLE;
+    VkDescriptorSet m_FogLutDescSet = VK_NULL_HANDLE;
+    mutable VkImageView m_BoundFogDepthView = VK_NULL_HANDLE;
+
+    VkPipelineLayout m_PostPipelineLayout = VK_NULL_HANDLE;
+    VkDescriptorSetLayout m_PostStorageDescLayout = VK_NULL_HANDLE;
+    VkDescriptorSet m_PostStorageDescSet = VK_NULL_HANDLE;
+    mutable VkImageView m_BoundPostColorView = VK_NULL_HANDLE;
+    VkPipeline m_PostExposurePipeline = VK_NULL_HANDLE;
+
+    std::unique_ptr<AtmosphereLUTGenerator> m_LUTGenerator;
 
     SceneEnvironmentUniform m_SceneEnvironment{};
     mutable bool m_SceneEnvironmentDirty = true;
     VkBuffer m_EnvironmentBuffer = VK_NULL_HANDLE;
     VkDeviceMemory m_EnvironmentBufferMemory = VK_NULL_HANDLE;
 
-    // Pipelines
-    VkPipeline m_SkyboxPipeline = VK_NULL_HANDLE;
+    VkPipeline m_SkyAtmospherePipeline = VK_NULL_HANDLE;
+    VkPipeline m_VolumetricCloudsPipeline = VK_NULL_HANDLE;
+    VkPipeline m_FogCompositePipeline = VK_NULL_HANDLE;
     VkPipeline m_LitPipeline = VK_NULL_HANDLE;
     VkPipeline m_UnlitPipeline = VK_NULL_HANDLE;
     VkPipeline m_WireframePipeline = VK_NULL_HANDLE;

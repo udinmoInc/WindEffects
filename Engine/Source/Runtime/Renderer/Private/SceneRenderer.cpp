@@ -1,7 +1,13 @@
 #include "Renderer/SceneRenderer.hpp"
-#include "Core/Logger.hpp"
+#include "Renderer/RenderDiagnostics.hpp"
+#include "Renderer/FrameStats.hpp"
+#include "Renderer/RendererConfig.hpp"
+#include "Renderer/AtmosphereLUTInputs.hpp"
+#include "Core/DiagnosticMacros.hpp"
+#include "Core/LogCategory.hpp"
 #include "Renderer/ShaderHelper.hpp"
 #include <array>
+#include <chrono>
 #include <iostream>
 #include <stdexcept>
 #include <algorithm>
@@ -16,55 +22,6 @@ namespace we::runtime::renderer {
 
 SceneRenderer::SceneRenderer(const std::shared_ptr<VulkanContext>& context, VkRenderPass renderPass, VkDescriptorSetLayout cameraDescLayout)
     : m_Context(context), m_CameraDescLayout(cameraDescLayout) {
-    // 1. Create descriptor set layout for procedural editor sky UBO + camera
-    VkDescriptorSetLayoutBinding skyBinding{};
-    skyBinding.binding = 0;
-    skyBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    skyBinding.descriptorCount = 1;
-    skyBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-
-    VkDescriptorSetLayoutCreateInfo skyLayoutInfo{};
-    skyLayoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-    skyLayoutInfo.bindingCount = 1;
-    skyLayoutInfo.pBindings = &skyBinding;
-    if (vkCreateDescriptorSetLayout(m_Context->GetDevice(), &skyLayoutInfo, nullptr, &m_SkyDescLayout) != VK_SUCCESS) {
-        throw std::runtime_error("Failed to create procedural sky descriptor set layout!");
-    }
-
-    m_Context->CreateBuffer(
-        sizeof(EditorBackgroundSettings),
-        VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-        m_SkyBuffer,
-        m_SkyBufferMemory
-    );
-
-    VkDescriptorSetAllocateInfo skyAllocInfo{};
-    skyAllocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-    skyAllocInfo.descriptorPool = m_Context->GetDescriptorPool();
-    skyAllocInfo.descriptorSetCount = 1;
-    skyAllocInfo.pSetLayouts = &m_SkyDescLayout;
-    if (vkAllocateDescriptorSets(m_Context->GetDevice(), &skyAllocInfo, &m_SkyDescSet) != VK_SUCCESS) {
-        throw std::runtime_error("Failed to allocate procedural sky descriptor set!");
-    }
-
-    VkDescriptorBufferInfo skyBufferInfo{};
-    skyBufferInfo.buffer = m_SkyBuffer;
-    skyBufferInfo.offset = 0;
-    skyBufferInfo.range = sizeof(EditorBackgroundSettings);
-
-    VkWriteDescriptorSet skyWrite{};
-    skyWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-    skyWrite.dstSet = m_SkyDescSet;
-    skyWrite.dstBinding = 0;
-    skyWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    skyWrite.descriptorCount = 1;
-    skyWrite.pBufferInfo = &skyBufferInfo;
-    vkUpdateDescriptorSets(m_Context->GetDevice(), 1, &skyWrite, 0, nullptr);
-
-    UpdateEditorBackgroundBufferIfDirty();
-
-    // 2. Create Descriptor Set Layout for objects (includes both camera and object UBOs)
     VkDescriptorSetLayoutBinding cameraBinding{};
     cameraBinding.binding = 0;
     cameraBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
@@ -88,7 +45,6 @@ SceneRenderer::SceneRenderer(const std::shared_ptr<VulkanContext>& context, VkRe
     layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
     layoutInfo.bindingCount = static_cast<uint32_t>(bindings.size());
     layoutInfo.pBindings = bindings.data();
-
     if (vkCreateDescriptorSetLayout(m_Context->GetDevice(), &layoutInfo, nullptr, &m_ObjectDescLayout) != VK_SUCCESS) {
         throw std::runtime_error("Failed to create object descriptor set layout!");
     }
@@ -98,78 +54,263 @@ SceneRenderer::SceneRenderer(const std::shared_ptr<VulkanContext>& context, VkRe
         VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
         VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
         m_EnvironmentBuffer,
-        m_EnvironmentBufferMemory
-    );
+        m_EnvironmentBufferMemory);
 
-    // 3. Create Pipelines
+    VkDescriptorSetLayoutBinding envBinding{};
+    envBinding.binding = 0;
+    envBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    envBinding.descriptorCount = 1;
+    envBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+
+    VkDescriptorSetLayoutCreateInfo envLayoutInfo{};
+    envLayoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+    envLayoutInfo.bindingCount = 1;
+    envLayoutInfo.pBindings = &envBinding;
+    if (vkCreateDescriptorSetLayout(m_Context->GetDevice(), &envLayoutInfo, nullptr, &m_EnvironmentDescLayout) != VK_SUCCESS) {
+        throw std::runtime_error("Failed to create environment descriptor set layout!");
+    }
+
+    VkDescriptorSetAllocateInfo envAllocInfo{};
+    envAllocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+    envAllocInfo.descriptorPool = m_Context->GetDescriptorPool();
+    envAllocInfo.descriptorSetCount = 1;
+    envAllocInfo.pSetLayouts = &m_EnvironmentDescLayout;
+    if (vkAllocateDescriptorSets(m_Context->GetDevice(), &envAllocInfo, &m_EnvironmentDescSet) != VK_SUCCESS) {
+        throw std::runtime_error("Failed to allocate environment descriptor set!");
+    }
+
+    VkDescriptorBufferInfo envBufferInfo{};
+    envBufferInfo.buffer = m_EnvironmentBuffer;
+    envBufferInfo.offset = 0;
+    envBufferInfo.range = sizeof(SceneEnvironmentUniform);
+
+    VkWriteDescriptorSet envWrite{};
+    envWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    envWrite.dstSet = m_EnvironmentDescSet;
+    envWrite.dstBinding = 0;
+    envWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    envWrite.descriptorCount = 1;
+    envWrite.pBufferInfo = &envBufferInfo;
+    vkUpdateDescriptorSets(m_Context->GetDevice(), 1, &envWrite, 0, nullptr);
+
+    m_LUTGenerator = std::make_unique<AtmosphereLUTGenerator>(m_Context);
+
+    std::array<VkDescriptorSetLayoutBinding, 3> fogLutBindings{};
+    for (uint32_t i = 0; i < fogLutBindings.size(); ++i) {
+        fogLutBindings[i].binding = i;
+        fogLutBindings[i].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        fogLutBindings[i].descriptorCount = 1;
+        fogLutBindings[i].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+    }
+
+    VkDescriptorSetLayoutCreateInfo fogLutLayoutInfo{};
+    fogLutLayoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+    fogLutLayoutInfo.bindingCount = static_cast<uint32_t>(fogLutBindings.size());
+    fogLutLayoutInfo.pBindings = fogLutBindings.data();
+    if (vkCreateDescriptorSetLayout(m_Context->GetDevice(), &fogLutLayoutInfo, nullptr, &m_FogLutDescLayout) != VK_SUCCESS) {
+        throw std::runtime_error("Failed to create fog LUT descriptor set layout!");
+    }
+
+    VkDescriptorSetAllocateInfo fogLutAllocInfo{};
+    fogLutAllocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+    fogLutAllocInfo.descriptorPool = m_Context->GetDescriptorPool();
+    fogLutAllocInfo.descriptorSetCount = 1;
+    fogLutAllocInfo.pSetLayouts = &m_FogLutDescLayout;
+    if (vkAllocateDescriptorSets(m_Context->GetDevice(), &fogLutAllocInfo, &m_FogLutDescSet) != VK_SUCCESS) {
+        throw std::runtime_error("Failed to allocate fog LUT descriptor set!");
+    }
+
+    VkDescriptorSetLayoutBinding postStorageBinding{};
+    postStorageBinding.binding = 0;
+    postStorageBinding.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
+    postStorageBinding.descriptorCount = 1;
+    postStorageBinding.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
+
+    VkDescriptorSetLayoutCreateInfo postLayoutInfo{};
+    postLayoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+    postLayoutInfo.bindingCount = 1;
+    postLayoutInfo.pBindings = &postStorageBinding;
+    if (vkCreateDescriptorSetLayout(m_Context->GetDevice(), &postLayoutInfo, nullptr, &m_PostStorageDescLayout) != VK_SUCCESS) {
+        throw std::runtime_error("Failed to create post storage descriptor set layout!");
+    }
+
+    VkDescriptorSetAllocateInfo postAllocInfo{};
+    postAllocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+    postAllocInfo.descriptorPool = m_Context->GetDescriptorPool();
+    postAllocInfo.descriptorSetCount = 1;
+    postAllocInfo.pSetLayouts = &m_PostStorageDescLayout;
+    if (vkAllocateDescriptorSets(m_Context->GetDevice(), &postAllocInfo, &m_PostStorageDescSet) != VK_SUCCESS) {
+        throw std::runtime_error("Failed to allocate post storage descriptor set!");
+    }
+
     CreatePipelines(renderPass);
-
-    // 4. Create Ground Plane and Cube Meshes
+    ValidateCreatedPipelines();
     CreateMeshes();
 }
 
 SceneRenderer::~SceneRenderer() {
     VkDevice device = m_Context->GetDevice();
-
     DestroyMeshes();
 
-    if (m_SkyboxPipeline != VK_NULL_HANDLE) vkDestroyPipeline(device, m_SkyboxPipeline, nullptr);
+    if (m_PostExposurePipeline != VK_NULL_HANDLE) vkDestroyPipeline(device, m_PostExposurePipeline, nullptr);
+    if (m_SkyAtmospherePipeline != VK_NULL_HANDLE) vkDestroyPipeline(device, m_SkyAtmospherePipeline, nullptr);
+    if (m_VolumetricCloudsPipeline != VK_NULL_HANDLE) vkDestroyPipeline(device, m_VolumetricCloudsPipeline, nullptr);
+    if (m_FogCompositePipeline != VK_NULL_HANDLE) vkDestroyPipeline(device, m_FogCompositePipeline, nullptr);
     if (m_LitPipeline != VK_NULL_HANDLE) vkDestroyPipeline(device, m_LitPipeline, nullptr);
     if (m_UnlitPipeline != VK_NULL_HANDLE) vkDestroyPipeline(device, m_UnlitPipeline, nullptr);
     if (m_WireframePipeline != VK_NULL_HANDLE) vkDestroyPipeline(device, m_WireframePipeline, nullptr);
 
-    if (m_SkyPipelineLayout != VK_NULL_HANDLE) vkDestroyPipelineLayout(device, m_SkyPipelineLayout, nullptr);
+    if (m_PostPipelineLayout != VK_NULL_HANDLE) vkDestroyPipelineLayout(device, m_PostPipelineLayout, nullptr);
+    if (m_FogPipelineLayout != VK_NULL_HANDLE) vkDestroyPipelineLayout(device, m_FogPipelineLayout, nullptr);
+    if (m_EnvironmentPipelineLayout != VK_NULL_HANDLE) vkDestroyPipelineLayout(device, m_EnvironmentPipelineLayout, nullptr);
     if (m_PipelineLayout != VK_NULL_HANDLE) vkDestroyPipelineLayout(device, m_PipelineLayout, nullptr);
-    if (m_SkyBuffer != VK_NULL_HANDLE) vkDestroyBuffer(device, m_SkyBuffer, nullptr);
-    if (m_SkyBufferMemory != VK_NULL_HANDLE) vkFreeMemory(device, m_SkyBufferMemory, nullptr);
+
+    m_LUTGenerator.reset();
+
     if (m_EnvironmentBuffer != VK_NULL_HANDLE) vkDestroyBuffer(device, m_EnvironmentBuffer, nullptr);
     if (m_EnvironmentBufferMemory != VK_NULL_HANDLE) vkFreeMemory(device, m_EnvironmentBufferMemory, nullptr);
-    if (m_SkyDescLayout != VK_NULL_HANDLE) vkDestroyDescriptorSetLayout(device, m_SkyDescLayout, nullptr);
+    if (m_PostStorageDescLayout != VK_NULL_HANDLE) vkDestroyDescriptorSetLayout(device, m_PostStorageDescLayout, nullptr);
+    if (m_FogLutDescLayout != VK_NULL_HANDLE) vkDestroyDescriptorSetLayout(device, m_FogLutDescLayout, nullptr);
+    if (m_EnvironmentDescLayout != VK_NULL_HANDLE) vkDestroyDescriptorSetLayout(device, m_EnvironmentDescLayout, nullptr);
     if (m_ObjectDescLayout != VK_NULL_HANDLE) vkDestroyDescriptorSetLayout(device, m_ObjectDescLayout, nullptr);
 }
 
 void SceneRenderer::CreatePipelines(VkRenderPass renderPass) {
     VkDevice device = m_Context->GetDevice();
 
-    // Mesh pipeline layout (takes the object descriptor layout)
-    VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
-    pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-    pipelineLayoutInfo.setLayoutCount = 1;
-    pipelineLayoutInfo.pSetLayouts = &m_ObjectDescLayout;
-    pipelineLayoutInfo.pushConstantRangeCount = 0;
-
-    if (vkCreatePipelineLayout(device, &pipelineLayoutInfo, nullptr, &m_PipelineLayout) != VK_SUCCESS) {
+    VkPipelineLayoutCreateInfo meshLayoutInfo{};
+    meshLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+    meshLayoutInfo.setLayoutCount = 1;
+    meshLayoutInfo.pSetLayouts = &m_ObjectDescLayout;
+    if (vkCreatePipelineLayout(device, &meshLayoutInfo, nullptr, &m_PipelineLayout) != VK_SUCCESS) {
         throw std::runtime_error("Failed to create scene object pipeline layout!");
     }
 
-    // Sky pipeline layout: sky settings + shared camera UBO
-    std::array<VkDescriptorSetLayout, 2> skySetLayouts = { m_SkyDescLayout, m_CameraDescLayout };
-    VkPipelineLayoutCreateInfo skyPipelineLayoutInfo{};
-    skyPipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-    skyPipelineLayoutInfo.setLayoutCount = static_cast<uint32_t>(skySetLayouts.size());
-    skyPipelineLayoutInfo.pSetLayouts = skySetLayouts.data();
-    if (vkCreatePipelineLayout(device, &skyPipelineLayoutInfo, nullptr, &m_SkyPipelineLayout) != VK_SUCCESS) {
-        throw std::runtime_error("Failed to create procedural sky pipeline layout!");
+    std::array<VkDescriptorSetLayout, 3> envSetLayouts = {
+        m_EnvironmentDescLayout,
+        m_CameraDescLayout,
+        m_LUTGenerator->GetSampleLayout()
+    };
+    VkPipelineLayoutCreateInfo envLayoutInfo{};
+    envLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+    envLayoutInfo.setLayoutCount = static_cast<uint32_t>(envSetLayouts.size());
+    envLayoutInfo.pSetLayouts = envSetLayouts.data();
+    if (vkCreatePipelineLayout(device, &envLayoutInfo, nullptr, &m_EnvironmentPipelineLayout) != VK_SUCCESS) {
+        throw std::runtime_error("Failed to create environment pipeline layout!");
     }
 
-    // Common configurations
+    std::array<VkDescriptorSetLayout, 3> fogSetLayouts = {
+        m_EnvironmentDescLayout,
+        m_CameraDescLayout,
+        m_FogLutDescLayout
+    };
+    VkPipelineLayoutCreateInfo fogLayoutInfo{};
+    fogLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+    fogLayoutInfo.setLayoutCount = static_cast<uint32_t>(fogSetLayouts.size());
+    fogLayoutInfo.pSetLayouts = fogSetLayouts.data();
+    if (vkCreatePipelineLayout(device, &fogLayoutInfo, nullptr, &m_FogPipelineLayout) != VK_SUCCESS) {
+        throw std::runtime_error("Failed to create fog pipeline layout!");
+    }
+
+    std::array<VkDescriptorSetLayout, 2> postSetLayouts = { m_EnvironmentDescLayout, m_PostStorageDescLayout };
+    VkPipelineLayoutCreateInfo postLayoutInfo{};
+    postLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+    postLayoutInfo.setLayoutCount = static_cast<uint32_t>(postSetLayouts.size());
+    postLayoutInfo.pSetLayouts = postSetLayouts.data();
+    if (vkCreatePipelineLayout(device, &postLayoutInfo, nullptr, &m_PostPipelineLayout) != VK_SUCCESS) {
+        throw std::runtime_error("Failed to create post pipeline layout!");
+    }
+
+    m_SkyAtmospherePipeline = CreateFullscreenPipeline(renderPass, m_EnvironmentPipelineLayout, "AtmospherePass", false, VK_COMPARE_OP_ALWAYS, false, false);
+    m_VolumetricCloudsPipeline = CreateFullscreenPipeline(renderPass, m_EnvironmentPipelineLayout, "VolumetricCloudsPass", false, VK_COMPARE_OP_ALWAYS, false, true);
+    m_FogCompositePipeline = CreateFullscreenPipeline(renderPass, m_FogPipelineLayout, "FogCompositePass", true, VK_COMPARE_OP_GREATER, false, true);
+
+    {
+        try {
+            std::vector<char> computeCode = LoadShaderBytecode("PostExposureCS", ShaderStage::Compute);
+            if (!computeCode.empty()) {
+            VkShaderModule computeModule = CreateShaderModule(device, computeCode);
+            VkPipelineShaderStageCreateInfo computeStage{};
+            computeStage.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+            computeStage.stage = VK_SHADER_STAGE_COMPUTE_BIT;
+            computeStage.module = computeModule;
+            computeStage.pName = "CSMain";
+
+            VkComputePipelineCreateInfo computeInfo{};
+            computeInfo.sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
+            computeInfo.stage = computeStage;
+            computeInfo.layout = m_PostPipelineLayout;
+            if (vkCreateComputePipelines(device, VK_NULL_HANDLE, 1, &computeInfo, nullptr, &m_PostExposurePipeline) != VK_SUCCESS) {
+                HE_WARN("SceneRenderer: failed to create post exposure compute pipeline.");
+            }
+            vkDestroyShaderModule(device, computeModule, nullptr);
+            }
+        } catch (const std::exception& ex) {
+            HE_WARN(std::string("SceneRenderer: PostExposureCS unavailable: ") + ex.what());
+        }
+    }
+
+    // Scene object pipelines
+    std::vector<char> vertCode = LoadShaderBytecode("SceneObject", ShaderStage::Vertex);
+    std::vector<char> fragCode = LoadShaderBytecode("SceneObject", ShaderStage::Pixel);
+    VkShaderModule vertModule = CreateShaderModule(device, vertCode);
+    VkShaderModule fragModule = CreateShaderModule(device, fragCode);
+
+    VkPipelineShaderStageCreateInfo vertStage{};
+    vertStage.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+    vertStage.stage = VK_SHADER_STAGE_VERTEX_BIT;
+    vertStage.module = vertModule;
+    vertStage.pName = ShaderStageEntryPoint(ShaderStage::Vertex);
+
+    VkPipelineShaderStageCreateInfo fragStage{};
+    fragStage.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+    fragStage.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
+    fragStage.module = fragModule;
+    fragStage.pName = ShaderStageEntryPoint(ShaderStage::Pixel);
+
+    std::array<VkPipelineShaderStageCreateInfo, 2> stages = { vertStage, fragStage };
+
+    VkVertexInputBindingDescription bindingDesc = Vertex::GetBindingDescription();
+    std::array<VkVertexInputAttributeDescription, 3> attributeDescriptions = Vertex::GetAttributeDescriptions();
+
+    VkPipelineVertexInputStateCreateInfo vertexInput{};
+    vertexInput.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
+    vertexInput.vertexBindingDescriptionCount = 1;
+    vertexInput.pVertexBindingDescriptions = &bindingDesc;
+    vertexInput.vertexAttributeDescriptionCount = static_cast<uint32_t>(attributeDescriptions.size());
+    vertexInput.pVertexAttributeDescriptions = attributeDescriptions.data();
+
+    VkPipelineInputAssemblyStateCreateInfo inputAssembly{};
+    inputAssembly.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
+    inputAssembly.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+
     VkPipelineViewportStateCreateInfo viewportState{};
     viewportState.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
     viewportState.viewportCount = 1;
     viewportState.scissorCount = 1;
 
+    VkPipelineRasterizationStateCreateInfo rasterizer{};
+    rasterizer.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
+    rasterizer.polygonMode = VK_POLYGON_MODE_FILL;
+    rasterizer.lineWidth = 1.0f;
+    rasterizer.cullMode = VK_CULL_MODE_BACK_BIT;
+    rasterizer.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
+
     VkPipelineMultisampleStateCreateInfo multisampling{};
     multisampling.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
-    multisampling.sampleShadingEnable = VK_FALSE;
     multisampling.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
+
+    VkPipelineDepthStencilStateCreateInfo depthStencil{};
+    depthStencil.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
+    depthStencil.depthTestEnable = VK_TRUE;
+    depthStencil.depthWriteEnable = VK_TRUE;
+    depthStencil.depthCompareOp = VK_COMPARE_OP_GREATER_OR_EQUAL;
 
     VkPipelineColorBlendAttachmentState colorBlendAttachment{};
     colorBlendAttachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
-    colorBlendAttachment.blendEnable = VK_FALSE;
 
     VkPipelineColorBlendStateCreateInfo colorBlending{};
     colorBlending.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
-    colorBlending.logicOpEnable = VK_FALSE;
     colorBlending.attachmentCount = 1;
     colorBlending.pAttachments = &colorBlendAttachment;
 
@@ -179,158 +320,164 @@ void SceneRenderer::CreatePipelines(VkRenderPass renderPass) {
     dynamicState.dynamicStateCount = static_cast<uint32_t>(dynamicStates.size());
     dynamicState.pDynamicStates = dynamicStates.data();
 
-    // -------------------------------------------------------------------------
-    // 1. Skybox / Background Gradient Pipeline
-    // -------------------------------------------------------------------------
-    {
-        std::vector<char> vertCode = LoadShaderBytecode("EditorBackground", ShaderStage::Vertex);
-        std::vector<char> fragCode = LoadShaderBytecode("EditorBackground", ShaderStage::Pixel);
-        VkShaderModule vertModule = CreateShaderModule(device, vertCode);
-        VkShaderModule fragModule = CreateShaderModule(device, fragCode);
+    VkGraphicsPipelineCreateInfo pipelineInfo{};
+    pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
+    pipelineInfo.stageCount = 2;
+    pipelineInfo.pStages = stages.data();
+    pipelineInfo.pVertexInputState = &vertexInput;
+    pipelineInfo.pInputAssemblyState = &inputAssembly;
+    pipelineInfo.pViewportState = &viewportState;
+    pipelineInfo.pRasterizationState = &rasterizer;
+    pipelineInfo.pMultisampleState = &multisampling;
+    pipelineInfo.pDepthStencilState = &depthStencil;
+    pipelineInfo.pColorBlendState = &colorBlending;
+    pipelineInfo.pDynamicState = &dynamicState;
+    pipelineInfo.layout = m_PipelineLayout;
+    pipelineInfo.renderPass = renderPass;
+    pipelineInfo.subpass = 0;
 
-        VkPipelineShaderStageCreateInfo vertStage{};
-        vertStage.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-        vertStage.stage = VK_SHADER_STAGE_VERTEX_BIT;
-        vertStage.module = vertModule;
-        vertStage.pName = ShaderStageEntryPoint(ShaderStage::Vertex);
-
-        VkPipelineShaderStageCreateInfo fragStage{};
-        fragStage.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-        fragStage.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
-        fragStage.module = fragModule;
-        fragStage.pName = ShaderStageEntryPoint(ShaderStage::Pixel);
-
-        std::array<VkPipelineShaderStageCreateInfo, 2> stages = { vertStage, fragStage };
-
-        VkPipelineVertexInputStateCreateInfo vertexInput{};
-        vertexInput.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-
-        VkPipelineInputAssemblyStateCreateInfo inputAssembly{};
-        inputAssembly.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
-        inputAssembly.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
-
-        VkPipelineRasterizationStateCreateInfo rasterizer{};
-        rasterizer.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
-        rasterizer.polygonMode = VK_POLYGON_MODE_FILL;
-        rasterizer.lineWidth = 1.0f;
-        rasterizer.cullMode = VK_CULL_MODE_NONE;
-
-        VkPipelineDepthStencilStateCreateInfo depthStencil{};
-        depthStencil.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
-        depthStencil.depthTestEnable = VK_FALSE; // Background doesn't test depth
-        depthStencil.depthWriteEnable = VK_FALSE;
-
-        VkGraphicsPipelineCreateInfo pipelineInfo{};
-        pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
-        pipelineInfo.stageCount = 2;
-        pipelineInfo.pStages = stages.data();
-        pipelineInfo.pVertexInputState = &vertexInput;
-        pipelineInfo.pInputAssemblyState = &inputAssembly;
-        pipelineInfo.pViewportState = &viewportState;
-        pipelineInfo.pRasterizationState = &rasterizer;
-        pipelineInfo.pMultisampleState = &multisampling;
-        pipelineInfo.pDepthStencilState = &depthStencil;
-        pipelineInfo.pColorBlendState = &colorBlending;
-        pipelineInfo.pDynamicState = &dynamicState;
-        pipelineInfo.layout = m_SkyPipelineLayout;
-        pipelineInfo.renderPass = renderPass;
-        pipelineInfo.subpass = 0;
-
-        if (vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &m_SkyboxPipeline) != VK_SUCCESS) {
-            throw std::runtime_error("Failed to create skybox pipeline!");
-        }
-
-        vkDestroyShaderModule(device, vertModule, nullptr);
-        vkDestroyShaderModule(device, fragModule, nullptr);
+    if (vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &m_LitPipeline) != VK_SUCCESS) {
+        HE_ERROR("Failed to create lit mesh pipeline.");
+    }
+    if (vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &m_UnlitPipeline) != VK_SUCCESS) {
+        HE_ERROR("Failed to create unlit mesh pipeline.");
+    }
+    rasterizer.polygonMode = VK_POLYGON_MODE_LINE;
+    rasterizer.cullMode = VK_CULL_MODE_NONE;
+    if (vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &m_WireframePipeline) != VK_SUCCESS) {
+        HE_ERROR("Failed to create wireframe mesh pipeline.");
     }
 
-    // -------------------------------------------------------------------------
-    // 2. Lit / Unlit / Wireframe Pipelines (Mesh rendering)
-    // -------------------------------------------------------------------------
-    {
-        std::vector<char> vertCode = LoadShaderBytecode("SceneObject", ShaderStage::Vertex);
-        std::vector<char> fragCode = LoadShaderBytecode("SceneObject", ShaderStage::Pixel);
-        VkShaderModule vertModule = CreateShaderModule(device, vertCode);
-        VkShaderModule fragModule = CreateShaderModule(device, fragCode);
+    vkDestroyShaderModule(device, vertModule, nullptr);
+    vkDestroyShaderModule(device, fragModule, nullptr);
+}
 
-        VkPipelineShaderStageCreateInfo vertStage{};
-        vertStage.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-        vertStage.stage = VK_SHADER_STAGE_VERTEX_BIT;
-        vertStage.module = vertModule;
-        vertStage.pName = ShaderStageEntryPoint(ShaderStage::Vertex);
+void SceneRenderer::ValidateCreatedPipelines() const {
+    auto& diag = RenderDiagnostics::Get();
+    diag.ValidatePipeline("SkyAtmosphere", m_SkyAtmospherePipeline);
+    diag.ValidatePipeline("VolumetricClouds", m_VolumetricCloudsPipeline);
+    diag.ValidatePipeline("FogComposite", m_FogCompositePipeline);
+    diag.ValidatePipeline("PostExposure", m_PostExposurePipeline);
+    diag.ValidatePipeline("SceneObjectLit", m_LitPipeline);
+}
 
-        VkPipelineShaderStageCreateInfo fragStage{};
-        fragStage.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-        fragStage.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
-        fragStage.module = fragModule;
-        fragStage.pName = ShaderStageEntryPoint(ShaderStage::Pixel);
+bool SceneRenderer::ValidateRenderFrame(VkFramebuffer framebuffer, uint32_t width, uint32_t height) const {
+    auto& diag = RenderDiagnostics::Get();
+    diag.ResetFrame();
+    diag.ValidateFramebuffer(framebuffer, width, height);
+    diag.ValidateEnvironmentUniform(m_SceneEnvironment);
+    return !diag.HasCritical();
+}
 
-        std::array<VkPipelineShaderStageCreateInfo, 2> stages = { vertStage, fragStage };
+VkPipeline SceneRenderer::CreateFullscreenPipeline(
+    VkRenderPass renderPass,
+    VkPipelineLayout layout,
+    const char* shaderName,
+    bool depthTest,
+    VkCompareOp depthCompare,
+    bool depthWrite,
+    bool alphaBlend) const {
 
-        // Vertex description
-        auto bindingDesc = Vertex::GetBindingDescription();
-        auto attribDescs = Vertex::GetAttributeDescriptions();
-
-        VkPipelineVertexInputStateCreateInfo vertexInput{};
-        vertexInput.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-        vertexInput.vertexBindingDescriptionCount = 1;
-        vertexInput.pVertexBindingDescriptions = &bindingDesc;
-        vertexInput.vertexAttributeDescriptionCount = static_cast<uint32_t>(attribDescs.size());
-        vertexInput.pVertexAttributeDescriptions = attribDescs.data();
-
-        VkPipelineInputAssemblyStateCreateInfo inputAssembly{};
-        inputAssembly.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
-        inputAssembly.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
-
-        VkPipelineDepthStencilStateCreateInfo depthStencil{};
-        depthStencil.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
-        depthStencil.depthTestEnable = VK_TRUE;
-        depthStencil.depthWriteEnable = VK_TRUE;
-        depthStencil.depthCompareOp = VK_COMPARE_OP_GREATER_OR_EQUAL;
-
-        // 2a. Lit Pipeline (Solid, Cull Back)
-        VkPipelineRasterizationStateCreateInfo rasterizer{};
-        rasterizer.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
-        rasterizer.polygonMode = VK_POLYGON_MODE_FILL;
-        rasterizer.lineWidth = 1.0f;
-        rasterizer.cullMode = VK_CULL_MODE_BACK_BIT;
-        rasterizer.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE; // Standard for counter-clockwise triangles
-
-        VkGraphicsPipelineCreateInfo pipelineInfo{};
-        pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
-        pipelineInfo.stageCount = 2;
-        pipelineInfo.pStages = stages.data();
-        pipelineInfo.pVertexInputState = &vertexInput;
-        pipelineInfo.pInputAssemblyState = &inputAssembly;
-        pipelineInfo.pViewportState = &viewportState;
-        pipelineInfo.pRasterizationState = &rasterizer;
-        pipelineInfo.pMultisampleState = &multisampling;
-        pipelineInfo.pDepthStencilState = &depthStencil;
-        pipelineInfo.pColorBlendState = &colorBlending;
-        pipelineInfo.pDynamicState = &dynamicState;
-        pipelineInfo.layout = m_PipelineLayout;
-        pipelineInfo.renderPass = renderPass;
-        pipelineInfo.subpass = 0;
-
-        if (vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &m_LitPipeline) != VK_SUCCESS) {
-            throw std::runtime_error("Failed to create lit mesh pipeline!");
-        }
-
-        // 2b. Unlit Pipeline (Same as Lit but we use it differently in code by setting mode uniform, though pipeline is identical)
-        if (vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &m_UnlitPipeline) != VK_SUCCESS) {
-            throw std::runtime_error("Failed to create unlit mesh pipeline!");
-        }
-
-        // 2c. Wireframe Pipeline (Non-solid, Cull None)
-        rasterizer.polygonMode = VK_POLYGON_MODE_LINE;
-        rasterizer.cullMode = VK_CULL_MODE_NONE;
-        if (vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &m_WireframePipeline) != VK_SUCCESS) {
-            throw std::runtime_error("Failed to create wireframe mesh pipeline!");
-        }
-
-        vkDestroyShaderModule(device, vertModule, nullptr);
-        vkDestroyShaderModule(device, fragModule, nullptr);
+    VkDevice device = m_Context->GetDevice();
+    std::vector<char> vertCode = LoadShaderBytecode(shaderName, ShaderStage::Vertex);
+    std::vector<char> fragCode = LoadShaderBytecode(shaderName, ShaderStage::Pixel);
+    if (vertCode.empty() || fragCode.empty()) {
+        RenderDiagnostics::Get().ValidateShaderBytecode(shaderName, !vertCode.empty(), !fragCode.empty());
+        return VK_NULL_HANDLE;
     }
+
+    VkShaderModule vertModule = CreateShaderModule(device, vertCode);
+    VkShaderModule fragModule = CreateShaderModule(device, fragCode);
+
+    VkPipelineShaderStageCreateInfo vertStage{};
+    vertStage.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+    vertStage.stage = VK_SHADER_STAGE_VERTEX_BIT;
+    vertStage.module = vertModule;
+    vertStage.pName = ShaderStageEntryPoint(ShaderStage::Vertex);
+
+    VkPipelineShaderStageCreateInfo fragStage{};
+    fragStage.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+    fragStage.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
+    fragStage.module = fragModule;
+    fragStage.pName = ShaderStageEntryPoint(ShaderStage::Pixel);
+
+    std::array<VkPipelineShaderStageCreateInfo, 2> stages = { vertStage, fragStage };
+
+    VkPipelineVertexInputStateCreateInfo vertexInput{};
+    vertexInput.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
+
+    VkPipelineInputAssemblyStateCreateInfo inputAssembly{};
+    inputAssembly.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
+    inputAssembly.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+
+    VkPipelineViewportStateCreateInfo viewportState{};
+    viewportState.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
+    viewportState.viewportCount = 1;
+    viewportState.scissorCount = 1;
+
+    VkPipelineRasterizationStateCreateInfo rasterizer{};
+    rasterizer.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
+    rasterizer.polygonMode = VK_POLYGON_MODE_FILL;
+    rasterizer.lineWidth = 1.0f;
+    rasterizer.cullMode = VK_CULL_MODE_NONE;
+
+    VkPipelineMultisampleStateCreateInfo multisampling{};
+    multisampling.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
+    multisampling.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
+
+    VkPipelineDepthStencilStateCreateInfo depthStencil{};
+    depthStencil.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
+    depthStencil.depthTestEnable = depthTest ? VK_TRUE : VK_FALSE;
+    depthStencil.depthWriteEnable = depthWrite ? VK_TRUE : VK_FALSE;
+    depthStencil.depthCompareOp = depthCompare;
+
+    VkPipelineColorBlendAttachmentState blendAttachment{};
+    blendAttachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
+    if (alphaBlend) {
+        blendAttachment.blendEnable = VK_TRUE;
+        blendAttachment.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
+        blendAttachment.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+        blendAttachment.colorBlendOp = VK_BLEND_OP_ADD;
+        blendAttachment.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
+        blendAttachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+        blendAttachment.alphaBlendOp = VK_BLEND_OP_ADD;
+    }
+
+    VkPipelineColorBlendStateCreateInfo colorBlending{};
+    colorBlending.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
+    colorBlending.attachmentCount = 1;
+    colorBlending.pAttachments = &blendAttachment;
+
+    std::array<VkDynamicState, 2> dynamicStates = { VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR };
+    VkPipelineDynamicStateCreateInfo dynamicState{};
+    dynamicState.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
+    dynamicState.dynamicStateCount = static_cast<uint32_t>(dynamicStates.size());
+    dynamicState.pDynamicStates = dynamicStates.data();
+
+    VkGraphicsPipelineCreateInfo pipelineInfo{};
+    pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
+    pipelineInfo.stageCount = 2;
+    pipelineInfo.pStages = stages.data();
+    pipelineInfo.pVertexInputState = &vertexInput;
+    pipelineInfo.pInputAssemblyState = &inputAssembly;
+    pipelineInfo.pViewportState = &viewportState;
+    pipelineInfo.pRasterizationState = &rasterizer;
+    pipelineInfo.pMultisampleState = &multisampling;
+    pipelineInfo.pDepthStencilState = &depthStencil;
+    pipelineInfo.pColorBlendState = &colorBlending;
+    pipelineInfo.pDynamicState = &dynamicState;
+    pipelineInfo.layout = layout;
+    pipelineInfo.renderPass = renderPass;
+    pipelineInfo.subpass = 0;
+
+    VkPipeline pipeline = VK_NULL_HANDLE;
+    if (vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &pipeline) != VK_SUCCESS) {
+        HE_WARN(std::string("SceneRenderer: failed to create pipeline for ") + shaderName);
+    }
+
+    vkDestroyShaderModule(device, vertModule, nullptr);
+    vkDestroyShaderModule(device, fragModule, nullptr);
+    return pipeline;
 }
 
 void SceneRenderer::CreateMeshes() {
@@ -452,50 +599,332 @@ void SceneRenderer::DestroyMeshes() {
     m_Meshes.clear();
 }
 
-void SceneRenderer::DrawEditorBackground(VkCommandBuffer cmd, VkDescriptorSet cameraDescSet) const {
-    if (!m_EnableEditorBackground) {
+void SceneRenderer::PrepareAtmosphereLUTs(VkCommandBuffer /*cmd*/) {
+    auto& diag = RenderDiagnostics::Get();
+    auto& stats = FrameStatsCollector::Get();
+
+    RefreshEnvironmentDescriptorBindings();
+    if (!m_LUTGenerator) {
+        stats.SetAtmosphereLutReady(false);
+        stats.SetPassStatus("AtmosphereLUT", "failed");
+        diag.RecordPassStatus("AtmosphereLUT", PassExecutionStatus::Failed, "LUT generator is null");
+        diag.Emit(
+            DiagnosticSeverity::Error,
+            LogCategory::Environment.data(),
+            "Atmosphere LUT generator was not created.",
+            "Verify SceneRenderer constructed AtmosphereLUTGenerator successfully.");
         return;
     }
 
-    const_cast<SceneRenderer*>(this)->UpdateEditorBackgroundBufferIfDirty();
+    const auto lutStart = std::chrono::steady_clock::now();
+    const bool generated = m_LUTGenerator->EnsureGenerated(m_SceneEnvironment);
+    stats.RecordPassMs("AtmosphereLUT",
+        std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - lutStart).count());
 
-    vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_SkyboxPipeline);
-    VkDescriptorSet descriptorSets[] = { m_SkyDescSet, cameraDescSet };
-    vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_SkyPipelineLayout, 0, 2, descriptorSets, 0, nullptr);
-    vkCmdDraw(cmd, 6, 1, 0, 0);
+    if (!generated) {
+        stats.SetAtmosphereLutReady(false);
+        stats.SetPassStatus("AtmosphereLUT", "failed");
+        diag.RecordPassStatus("AtmosphereLUT", PassExecutionStatus::Failed, m_LUTGenerator->GetLastError().c_str());
+        diag.ValidateAtmosphereLUTs(false, 0, 0);
+        return;
+    }
+
+    const auto& dims = m_LUTGenerator->GetDimensions();
+    const auto& images = m_LUTGenerator->GetImages();
+    constexpr VkFormat kLUTFormat = VK_FORMAT_R32G32B32A32_SFLOAT;
+
+    diag.ValidateAtmosphereLUTs(true, dims.transmittanceW, dims.skyViewW);
+    diag.ValidateAtmosphereLUTResource("Transmittance", images.transmittance, images.transmittanceView, images.sampler, dims.transmittanceW, dims.transmittanceH, kLUTFormat);
+    diag.ValidateAtmosphereLUTResource("MultiScattering", images.multiScatter, images.multiScatterView, images.sampler, dims.multiScatterSize, dims.multiScatterSize, kLUTFormat);
+    diag.ValidateAtmosphereLUTResource("SkyView", images.skyView, images.skyViewView, images.sampler, dims.skyViewW, dims.skyViewH, kLUTFormat);
+    diag.ValidateAtmosphereLUTResource("AerialPerspective", images.aerial, images.aerialView, images.sampler, dims.aerialSize, dims.aerialSize, kLUTFormat);
+    diag.ValidateDescriptorSet("SkyAtmosphere", 2, m_LUTGenerator->GetSampleSet());
+
+    std::string validationError;
+    const bool resourcesValid = m_LUTGenerator->ValidateResources(&validationError);
+    stats.SetAtmosphereLutReady(resourcesValid);
+    stats.SetSkyPipelineValid(m_SkyAtmospherePipeline != VK_NULL_HANDLE);
+    stats.SetPostPipelineValid(m_PostExposurePipeline != VK_NULL_HANDLE);
+
+    if (!resourcesValid) {
+        stats.SetPassStatus("AtmosphereLUT", "failed");
+        diag.RecordPassStatus("AtmosphereLUT", PassExecutionStatus::Failed, validationError.c_str());
+        diag.Emit(
+            DiagnosticSeverity::Error,
+            LogCategory::Environment.data(),
+            validationError,
+            "Sky Atmosphere pass will be skipped until all LUT resources are valid.");
+        return;
+    }
+
+    stats.SetPassStatus("AtmosphereLUT", "executed");
+    diag.RecordPassStatus("AtmosphereLUT", PassExecutionStatus::Executed);
 }
 
-void SceneRenderer::SetEditorBackgroundSettings(const EditorBackgroundSettings& settings) {
-    auto neutralize = [](const glm::vec3& c) {
-        const float g = (c.r + c.g + c.b) / 3.0f;
-        return glm::vec3(g);
+bool SceneRenderer::AreAtmosphereLUTsReady() const {
+    return m_LUTGenerator && m_LUTGenerator->IsReady();
+}
+
+void SceneRenderer::LogAtmospherePipelineDiagnostics() const {
+    auto logStage = [](const char* name, bool pass, const char* failReason, const char* file, int line) {
+        if (pass) {
+            WE_LOG_INFO(LogCategory::Environment.data(), std::string("PASS - ") + name);
+        } else {
+            WE_LOG_ERROR(
+                LogCategory::Environment.data(),
+                std::string("FAIL - ") + name + ": " + failReason + " (" + file + ":" + std::to_string(line) + ")");
+        }
     };
 
-    EditorBackgroundSettings sanitized = settings;
-    sanitized.zenithColor = neutralize(sanitized.zenithColor);
-    sanitized.upperSkyColor = neutralize(sanitized.upperSkyColor);
-    sanitized.midSkyColor = neutralize(sanitized.midSkyColor);
-    sanitized.horizonColor = neutralize(sanitized.horizonColor);
-    sanitized.bottomColor = neutralize(sanitized.bottomColor);
-    sanitized.backgroundBrightness = std::clamp(sanitized.backgroundBrightness, 0.85f, 1.0f);
-    sanitized.gradientStrength = std::clamp(sanitized.gradientStrength, 0.0f, 1.0f);
-    sanitized.horizonFade = 0.0f;
-    sanitized.backgroundContrast = 1.0f;
+    const bool generatorCreated = m_LUTGenerator != nullptr;
+    logStage("Atmosphere initialized", generatorCreated, "AtmosphereLUTGenerator was not created", __FILE__, __LINE__);
 
-    m_EditorBackgroundSettings = sanitized;
-    m_EditorBackgroundDirty = true;
+    bool lutGenerationExecuted = false;
+    bool transmittanceReady = false;
+    bool skyViewReady = false;
+    bool multiScatterReady = false;
+    bool aerialReady = false;
+    bool gpuImagesCreated = false;
+    bool imageViewsCreated = false;
+    bool samplersCreated = false;
+    bool descriptorUpdated = false;
+
+    if (m_LUTGenerator) {
+        lutGenerationExecuted = m_LUTGenerator->IsReady();
+        const auto& images = m_LUTGenerator->GetImages();
+        transmittanceReady = images.transmittanceView != VK_NULL_HANDLE;
+        multiScatterReady = images.multiScatterView != VK_NULL_HANDLE;
+        skyViewReady = images.skyViewView != VK_NULL_HANDLE;
+        aerialReady = images.aerialView != VK_NULL_HANDLE;
+        gpuImagesCreated = images.transmittance != VK_NULL_HANDLE
+            && images.multiScatter != VK_NULL_HANDLE
+            && images.skyView != VK_NULL_HANDLE
+            && images.aerial != VK_NULL_HANDLE;
+        imageViewsCreated = transmittanceReady && multiScatterReady && skyViewReady && aerialReady;
+        samplersCreated = images.sampler != VK_NULL_HANDLE;
+        descriptorUpdated = m_LUTGenerator->GetSampleSet() != VK_NULL_HANDLE && lutGenerationExecuted;
+    }
+
+    logStage("LUT generation executed", lutGenerationExecuted, m_LUTGenerator ? m_LUTGenerator->GetLastError().c_str() : "generator null", __FILE__, __LINE__);
+    logStage("Transmittance ready", transmittanceReady, "transmittance image view is null", "AtmosphereLUTGenerator.cpp", 162);
+    logStage("SkyView ready", skyViewReady, "sky-view image view is null", "AtmosphereLUTGenerator.cpp", 164);
+    logStage("MultiScatter ready", multiScatterReady, "multi-scatter image view is null", "AtmosphereLUTGenerator.cpp", 163);
+    logStage("AerialPerspective ready", aerialReady, "aerial-perspective image view is null", "AtmosphereLUTGenerator.cpp", 165);
+    logStage("GPU images created", gpuImagesCreated, "one or more LUT VkImage handles are null", "AtmosphereLUTGenerator.cpp", 161);
+    logStage("Image views created", imageViewsCreated, "one or more LUT VkImageView handles are null", "AtmosphereLUTGenerator.cpp", 158);
+    logStage("Samplers created", samplersCreated, "LUT sampler is null", "AtmosphereLUTGenerator.cpp", 174);
+    logStage("Descriptor sets updated", descriptorUpdated, "LUT sample descriptor set is null or LUTs not ready", "AtmosphereLUTGenerator.cpp", 315);
+
+    const bool pipelineCreated = m_SkyAtmospherePipeline != VK_NULL_HANDLE;
+    logStage("Pipeline created", pipelineCreated, "SkyAtmosphere pipeline handle is null", "SceneRenderer.cpp", 224);
+
+    const bool skyExecuted = RenderDiagnostics::Get().GetPassStatus("SkyAtmosphere") == PassExecutionStatus::Executed;
+    const bool cloudsExecuted = RenderDiagnostics::Get().GetPassStatus("VolumetricClouds") == PassExecutionStatus::Executed;
+    const bool fogExecuted = RenderDiagnostics::Get().GetPassStatus("FogComposite") == PassExecutionStatus::Executed;
+    const auto& stats = FrameStatsCollector::Get().GetStats();
+
+    logStage("Descriptor sets bound", skyExecuted, stats.skyPassStatus.c_str(), "SceneRenderer.cpp", 712);
+    logStage("SkyAtmosphere pass executed", skyExecuted, stats.skyPassStatus.c_str(), "SceneRenderer.cpp", 712);
+    logStage("Clouds executed", cloudsExecuted, stats.cloudsPassStatus.c_str(), "SceneRenderer.cpp", 748);
+    logStage("Fog executed", fogExecuted, stats.fogPassStatus.c_str(), "SceneRenderer.cpp", 820);
+    logStage("Tonemap executed", stats.postPassStatus == "executed", stats.postPassStatus.c_str(), "SceneRenderer.cpp", 870);
 }
 
-void SceneRenderer::UpdateEditorBackgroundBufferIfDirty() {
-    if (!m_EditorBackgroundDirty || m_SkyBufferMemory == VK_NULL_HANDLE) {
+void SceneRenderer::DrawSkyAtmospherePass(VkCommandBuffer cmd, VkDescriptorSet cameraDescSet) const {
+    auto& diag = RenderDiagnostics::Get();
+    auto& stats = FrameStatsCollector::Get();
+    GpuDebugScope debugScope(cmd, "SkyAtmosphere");
+
+    if (m_SkyAtmospherePipeline == VK_NULL_HANDLE) {
+        stats.SetPassStatus("SkyAtmosphere", "failed");
+        diag.RecordPassStatus("SkyAtmosphere", PassExecutionStatus::Failed, "pipeline is null");
+        diag.ValidatePipeline("SkyAtmosphere", m_SkyAtmospherePipeline);
         return;
     }
 
-    void* data = nullptr;
-    vkMapMemory(m_Context->GetDevice(), m_SkyBufferMemory, 0, sizeof(EditorBackgroundSettings), 0, &data);
-    std::memcpy(data, &m_EditorBackgroundSettings, sizeof(EditorBackgroundSettings));
-    vkUnmapMemory(m_Context->GetDevice(), m_SkyBufferMemory);
-    m_EditorBackgroundDirty = false;
+    if (!m_LUTGenerator || !m_LUTGenerator->IsReady()) {
+        const_cast<SceneRenderer*>(this)->PrepareAtmosphereLUTs(cmd);
+    }
+
+    if (!m_LUTGenerator || !m_LUTGenerator->IsReady()) {
+        stats.SetPassStatus("SkyAtmosphere", "skipped");
+        const char* reason = m_LUTGenerator ? m_LUTGenerator->GetLastError().c_str() : "LUT generator is null";
+        if (reason == nullptr || reason[0] == '\0') {
+            reason = "required atmosphere LUTs are missing";
+        }
+        diag.RecordPassStatus("SkyAtmosphere", PassExecutionStatus::Skipped, reason);
+        diag.Emit(
+            DiagnosticSeverity::Error,
+            LogCategory::Environment.data(),
+            std::string("Sky Atmosphere pass aborted: ") + reason,
+            "Fix atmosphere LUT generation before rendering the sky.");
+        return;
+    }
+
+    const_cast<SceneRenderer*>(this)->RefreshEnvironmentDescriptorBindings();
+    RenderDiagnostics::Get().ValidateDescriptorSet("SkyAtmosphere", 0, m_EnvironmentDescSet);
+    RenderDiagnostics::Get().ValidateDescriptorSet("SkyAtmosphere", 1, cameraDescSet);
+    RenderDiagnostics::Get().ValidateDescriptorSet("SkyAtmosphere", 2, m_LUTGenerator->GetSampleSet());
+
+    if (m_EnvironmentDescSet == VK_NULL_HANDLE || cameraDescSet == VK_NULL_HANDLE || m_LUTGenerator->GetSampleSet() == VK_NULL_HANDLE) {
+        stats.SetPassStatus("SkyAtmosphere", "failed");
+        diag.RecordPassStatus("SkyAtmosphere", PassExecutionStatus::Failed, "descriptor set binding is null");
+        return;
+    }
+
+    vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_SkyAtmospherePipeline);
+    VkDescriptorSet sets[] = { m_EnvironmentDescSet, cameraDescSet, m_LUTGenerator->GetSampleSet() };
+    vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_EnvironmentPipelineLayout, 0, 3, sets, 0, nullptr);
+    vkCmdDraw(cmd, 6, 1, 0, 0);
+    FrameStatsCollector::Get().AddDrawCall(2);
+    stats.SetPassStatus("SkyAtmosphere", "executed");
+    diag.RecordPassStatus("SkyAtmosphere", PassExecutionStatus::Executed);
+}
+
+void SceneRenderer::DrawVolumetricCloudsPass(VkCommandBuffer cmd, VkDescriptorSet cameraDescSet) const {
+    auto& diag = RenderDiagnostics::Get();
+    auto& stats = FrameStatsCollector::Get();
+
+    if (m_VolumetricCloudsPipeline == VK_NULL_HANDLE) {
+        stats.SetPassStatus("VolumetricClouds", "failed");
+        diag.RecordPassStatus("VolumetricClouds", PassExecutionStatus::Failed, "pipeline is null");
+        return;
+    }
+    if (m_SceneEnvironment.enableClouds < 0.5f) {
+        stats.SetPassStatus("VolumetricClouds", "skipped");
+        diag.RecordPassStatus("VolumetricClouds", PassExecutionStatus::Skipped, "clouds disabled");
+        return;
+    }
+    if (!AreAtmosphereLUTsReady()) {
+        stats.SetPassStatus("VolumetricClouds", "skipped");
+        diag.RecordPassStatus("VolumetricClouds", PassExecutionStatus::Skipped, "atmosphere LUTs not ready");
+        return;
+    }
+
+    RefreshEnvironmentDescriptorBindings();
+    vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_VolumetricCloudsPipeline);
+    VkDescriptorSet sets[] = { m_EnvironmentDescSet, cameraDescSet, m_LUTGenerator->GetSampleSet() };
+    vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_EnvironmentPipelineLayout, 0, 3, sets, 0, nullptr);
+    vkCmdDraw(cmd, 6, 1, 0, 0);
+    stats.SetPassStatus("VolumetricClouds", "executed");
+    diag.RecordPassStatus("VolumetricClouds", PassExecutionStatus::Executed);
+}
+
+void SceneRenderer::DrawFogCompositePass(
+    VkCommandBuffer cmd,
+    VkDescriptorSet cameraDescSet,
+    VkImageView depthImageView,
+    VkSampler sampler) const {
+
+    auto& diag = RenderDiagnostics::Get();
+    auto& stats = FrameStatsCollector::Get();
+
+    if (m_FogCompositePipeline == VK_NULL_HANDLE) {
+        stats.SetPassStatus("FogComposite", "failed");
+        diag.RecordPassStatus("FogComposite", PassExecutionStatus::Failed, "pipeline is null");
+        return;
+    }
+    if (m_SceneEnvironment.enableVolumetricFog < 0.5f) {
+        stats.SetPassStatus("FogComposite", "skipped");
+        diag.RecordPassStatus("FogComposite", PassExecutionStatus::Skipped, "volumetric fog disabled");
+        return;
+    }
+    if (!m_LUTGenerator || !m_LUTGenerator->IsReady()) {
+        stats.SetPassStatus("FogComposite", "skipped");
+        diag.RecordPassStatus("FogComposite", PassExecutionStatus::Skipped, "atmosphere LUTs not ready");
+        return;
+    }
+
+    RefreshEnvironmentDescriptorBindings();
+
+    if (depthImageView != m_BoundFogDepthView) {
+        const auto& lutImages = m_LUTGenerator->GetImages();
+        VkDescriptorImageInfo imageInfos[3] = {
+            { sampler, depthImageView, VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL },
+            { lutImages.sampler, lutImages.aerialView, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL },
+            { lutImages.sampler, lutImages.skyViewView, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL },
+        };
+
+        VkWriteDescriptorSet writes[3]{};
+        for (uint32_t i = 0; i < 3; ++i) {
+            writes[i].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+            writes[i].dstSet = m_FogLutDescSet;
+            writes[i].dstBinding = i;
+            writes[i].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+            writes[i].descriptorCount = 1;
+            writes[i].pImageInfo = &imageInfos[i];
+        }
+        vkUpdateDescriptorSets(m_Context->GetDevice(), 3, writes, 0, nullptr);
+        m_BoundFogDepthView = depthImageView;
+    }
+
+    vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_FogCompositePipeline);
+    VkDescriptorSet sets[] = { m_EnvironmentDescSet, cameraDescSet, m_FogLutDescSet };
+    vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_FogPipelineLayout, 0, 3, sets, 0, nullptr);
+    vkCmdDraw(cmd, 6, 1, 0, 0);
+    stats.SetPassStatus("FogComposite", "executed");
+    diag.RecordPassStatus("FogComposite", PassExecutionStatus::Executed);
+}
+
+void SceneRenderer::ApplyPostExposure(
+    VkCommandBuffer cmd,
+    VkImage colorImage,
+    VkImageView colorImageView,
+    uint32_t width,
+    uint32_t height) const {
+
+    auto& diag = RenderDiagnostics::Get();
+    auto& stats = FrameStatsCollector::Get();
+
+    if (m_PostExposurePipeline == VK_NULL_HANDLE) {
+        stats.SetPassStatus("PostExposure", "failed");
+        stats.SetPassStatus("ToneMapping", "failed");
+        diag.RecordPassStatus("PostExposure", PassExecutionStatus::Failed, "pipeline is null");
+        diag.RecordPassStatus("ToneMapping", PassExecutionStatus::Failed, "pipeline is null");
+        diag.ValidatePipeline("PostExposure", m_PostExposurePipeline);
+        return;
+    }
+    if (colorImage == VK_NULL_HANDLE || colorImageView == VK_NULL_HANDLE || width == 0 || height == 0) {
+        stats.SetPassStatus("PostExposure", "failed");
+        stats.SetPassStatus("ToneMapping", "failed");
+        diag.RecordPassStatus("PostExposure", PassExecutionStatus::Failed, "invalid color target");
+        diag.RecordPassStatus("ToneMapping", PassExecutionStatus::Failed, "invalid color target");
+        return;
+    }
+
+    GpuDebugScope debugScope(cmd, "PostExposure");
+
+    RefreshEnvironmentDescriptorBindings();
+
+    if (colorImageView != m_BoundPostColorView) {
+        VkDescriptorImageInfo storageInfo{};
+        storageInfo.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
+        storageInfo.imageView = colorImageView;
+
+        VkWriteDescriptorSet storageWrite{};
+        storageWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        storageWrite.dstSet = m_PostStorageDescSet;
+        storageWrite.dstBinding = 0;
+        storageWrite.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
+        storageWrite.descriptorCount = 1;
+        storageWrite.pImageInfo = &storageInfo;
+        vkUpdateDescriptorSets(m_Context->GetDevice(), 1, &storageWrite, 0, nullptr);
+        m_BoundPostColorView = colorImageView;
+    }
+
+    m_Context->TransitionImageLayout(colorImage, kOffscreenColorFormat, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_GENERAL);
+
+    vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, m_PostExposurePipeline);
+    VkDescriptorSet sets[] = { m_EnvironmentDescSet, m_PostStorageDescSet };
+    vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, m_PostPipelineLayout, 0, 2, sets, 0, nullptr);
+    vkCmdDispatch(cmd, (width + 7) / 8, (height + 7) / 8, 1);
+
+    m_Context->TransitionImageLayout(colorImage, kOffscreenColorFormat, VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+
+    stats.SetPassStatus("PostExposure", "executed");
+    stats.SetPassStatus("ToneMapping", "executed");
+    diag.RecordPassStatus("PostExposure", PassExecutionStatus::Executed);
+    diag.RecordPassStatus("ToneMapping", PassExecutionStatus::Executed);
 }
 
 void SceneRenderer::DrawMesh(VkCommandBuffer cmd, const std::string& meshName, VkDescriptorSet descriptorSet, int mode) const {
@@ -571,8 +1000,13 @@ void SceneRenderer::UpdateObjectDescriptorSet(VkDescriptorSet descriptorSet, VkB
 }
 
 void SceneRenderer::SetSceneEnvironment(const SceneEnvironmentUniform& environment) {
-    m_SceneEnvironment = environment;
-    m_SceneEnvironmentDirty = true;
+    if (std::memcmp(&m_SceneEnvironment, &environment, sizeof(SceneEnvironmentUniform)) != 0) {
+        if (m_LUTGenerator && AtmosphereLUTInputsChanged(m_SceneEnvironment, environment)) {
+            m_LUTGenerator->Invalidate();
+        }
+        m_SceneEnvironment = environment;
+        m_SceneEnvironmentDirty = true;
+    }
 }
 
 void SceneRenderer::RefreshEnvironmentDescriptorBindings() const {

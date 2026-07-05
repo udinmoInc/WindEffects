@@ -1,7 +1,9 @@
 #pragma once
 
+#include "EnvironmentExposureController.h"
 #include "EnvironmentDirectionalLight.h"
 #include "EnvironmentHeightFog.h"
+#include "EnvironmentManager.h"
 #include "EnvironmentSettings.h"
 #include "EnvironmentSkyAtmosphere.h"
 #include "EnvironmentSkyLight.h"
@@ -10,6 +12,7 @@
 #include "Scene/Scene.hpp"
 #include <functional>
 #include <memory>
+#include <glm/glm.hpp>
 
 namespace we::runtime::renderer {
 class SceneRenderer;
@@ -39,21 +42,23 @@ public:
 
     void ApplyPreset(EnvironmentPreset preset);
 
-    void SyncFromScene();
+    void SyncFromScene(const glm::vec3& cameraPosition = glm::vec3(0.0f));
     void SyncToScene();
-    void UpdateRendering();
+    void UpdateRendering(const glm::vec3& cameraPosition = glm::vec3(0.0f));
 
     EnvironmentDirectionalLight& GetSun() { return m_Sun; }
     EnvironmentSkyLight& GetSkyLight() { return m_SkyLight; }
     EnvironmentSkyAtmosphere& GetSkyAtmosphere() { return m_SkyAtmosphere; }
     EnvironmentHeightFog& GetHeightFog() { return m_HeightFog; }
     EnvironmentVolumetricClouds& GetVolumetricClouds() { return m_VolumetricClouds; }
+    EnvironmentExposureController& GetExposureController() { return m_ExposureController; }
 
     const EnvironmentDirectionalLight& GetSun() const { return m_Sun; }
     const EnvironmentSkyLight& GetSkyLight() const { return m_SkyLight; }
     const EnvironmentSkyAtmosphere& GetSkyAtmosphere() const { return m_SkyAtmosphere; }
     const EnvironmentHeightFog& GetHeightFog() const { return m_HeightFog; }
     const EnvironmentVolumetricClouds& GetVolumetricClouds() const { return m_VolumetricClouds; }
+    const EnvironmentExposureController& GetExposureController() const { return m_ExposureController; }
 
     std::uint64_t GetFolderEntityId() const { return m_FolderEntityId; }
     EnvironmentActorKind GetActorKind(std::uint64_t entityId) const;
@@ -86,11 +91,14 @@ private:
 #endif
 
     std::uint64_t m_FolderEntityId = 0;
+    std::uint64_t m_EnvironmentManagerEntityId = 0;
+    EnvironmentManager m_Manager{};
     EnvironmentDirectionalLight m_Sun{};
     EnvironmentSkyLight m_SkyLight{};
     EnvironmentSkyAtmosphere m_SkyAtmosphere{};
     EnvironmentHeightFog m_HeightFog{};
     EnvironmentVolumetricClouds m_VolumetricClouds{};
+    EnvironmentExposureController m_ExposureController{};
 
     std::vector<ChangeListener> m_ChangeListeners;
 };

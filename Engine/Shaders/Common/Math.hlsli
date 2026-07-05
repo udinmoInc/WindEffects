@@ -3,6 +3,8 @@
 
 #include "Platform.hlsli"
 
+static const float WE_PI = 3.14159265359;
+
 float WE_Saturate(float v) { return saturate(v); }
 
 float WE_Determinant4x4(float4x4 m)

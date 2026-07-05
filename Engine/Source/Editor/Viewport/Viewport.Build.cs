@@ -16,6 +16,7 @@ public class Viewport : ModuleRules
         PublicDependencies.Add("Scene");
         PublicDependencies.Add("Application");
         PublicDependencies.Add("Toolbar");
+        PublicDependencies.Add("PlaceActors");
 
         OptionalSDK("SDL3");
         DefineIf(HasSDK("SDL3"), "WE_HAS_SDL3=1");

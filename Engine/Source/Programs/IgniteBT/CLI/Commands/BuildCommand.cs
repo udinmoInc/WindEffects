@@ -8,6 +8,7 @@ using IgniteBT.Core.Cache;
 using IgniteBT.Build.Scheduler;
 using IgniteBT.Build.Linker;
 using IgniteBT.Build.Toolchain;
+using IgniteBT.Build.Shaders;
 using IgniteBT.Workspace.SDK;
 using IgniteBT.Workspace.ThirdParty;
 using BuildTaskScheduler = IgniteBT.Build.Scheduler.TaskScheduler;
@@ -111,6 +112,7 @@ public static class BuildCommand
             outputLayout.RegisterModules(modules);
             outputLayout.PrepareModuleDirectories(modules);
             outputLayout.StageEngineAssets(modules);
+            ShaderBytecodeCompiler.CompileAndStage(engineDir, outputLayout.ConfigurationRoot);
             
             // Build dependency graph
             var graph = new DependencyGraph();

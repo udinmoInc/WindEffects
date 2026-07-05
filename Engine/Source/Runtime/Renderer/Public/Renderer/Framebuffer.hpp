@@ -21,6 +21,7 @@ public:
     void Resize(uint32_t width, uint32_t height, VkRenderPass renderPass);
 
     VkFramebuffer GetFramebuffer() const { return m_Framebuffer; }
+    VkImage GetColorImage() const { return m_ColorImage; }
     VkImageView GetColorImageView() const { return m_ColorImageView; }
     VkImageView GetDepthImageView() const { return m_DepthImageView; }
     VkSampler GetSampler() const { return m_Sampler; }

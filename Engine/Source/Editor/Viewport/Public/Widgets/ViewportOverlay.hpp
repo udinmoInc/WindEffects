@@ -17,6 +17,7 @@ struct ViewportStats {
     uint32_t drawCalls = 0;
     uint32_t objects = 0;
     std::string renderer;
+    std::string atmosphereStatus;
     uint32_t resolutionX = 0;
     uint32_t resolutionY = 0;
     float cameraSpeed = 0.0f;

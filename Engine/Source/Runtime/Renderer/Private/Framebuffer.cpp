@@ -1,4 +1,5 @@
 #include "Renderer/Framebuffer.hpp"
+#include "Renderer/RendererConfig.hpp"
 #include "Core/Logger.hpp"
 
 #if WE_HAS_VULKAN
@@ -64,15 +65,15 @@ void Framebuffer::Resize(uint32_t width, uint32_t height, VkRenderPass renderPas
 }
 
 void Framebuffer::CreateResources(VkRenderPass renderPass) {
-    VkFormat colorFormat = VK_FORMAT_R8G8B8A8_UNORM;
-    VkFormat depthFormat = VK_FORMAT_D32_SFLOAT;
+    VkFormat colorFormat = kOffscreenColorFormat;
+    VkFormat depthFormat = kOffscreenDepthFormat;
 
     HE_INFO("Framebuffer: Creating color image & view...");
     m_Context.CreateImage(
         m_Width, m_Height,
         colorFormat,
         VK_IMAGE_TILING_OPTIMAL,
-        VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+        VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT,
         VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
         m_ColorImage, m_ColorImageMemory
     );
@@ -84,15 +85,12 @@ void Framebuffer::CreateResources(VkRenderPass renderPass) {
         m_Width, m_Height,
         depthFormat,
         VK_IMAGE_TILING_OPTIMAL,
-        VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
+        VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
         VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
         m_DepthImage, m_DepthImageMemory
     );
 
     m_DepthImageView = m_Context.CreateImageView(m_DepthImage, depthFormat, VK_IMAGE_ASPECT_DEPTH_BIT);
-
-    HE_INFO("Framebuffer: Transitioning color image layout...");
-    m_Context.TransitionImageLayout(m_ColorImage, colorFormat, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
     // 3. Create Framebuffer
     std::array<VkImageView, 2> attachments = {

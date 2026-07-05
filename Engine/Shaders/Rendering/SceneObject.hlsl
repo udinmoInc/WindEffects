@@ -1,6 +1,10 @@
 #include "../Common/Camera.hlsli"
 #include "../Common/Color.hlsli"
 
+#define WE_ENVIRONMENT_BUFFER_REGISTER b2
+#include "../Common/EnvironmentBuffer.hlsli"
+#include "../Rendering/SkyAtmosphere.hlsli"
+
 struct VSInput
 {
     float3 position : POSITION0;
@@ -32,25 +36,6 @@ cbuffer ObjectBuffer : register(b1, space0)
     int3     objectPadding;
 };
 
-cbuffer EnvironmentBuffer : register(b2, space0)
-{
-    float3 sunDirection;
-    float  sunIntensity;
-    float3 sunColor;
-    float  skyLightIntensity;
-    float3 skyAmbientColor;
-    float  fogDensity;
-    float3 fogColor;
-    float  fogHeightFalloff;
-    float3 atmosphereRayleigh;
-    float  enableVolumetricFog;
-    float3 aerialTint;
-    float  enableClouds;
-    int    sunCastShadows;
-    int    sunTemperature;
-    int2   envPadding;
-};
-
 VSOutput VSMain(VSInput input)
 {
     VSOutput o;
@@ -68,41 +53,42 @@ float4 PSMain(VSOutput input) : SV_Target
 
     if (mode == 1 || mode == 2)
     {
-        const float3 mapped = WE_ApplyFilmicTonemap(albedo, WE_ExposureFromEV100(1.85));
-        return float4(WE_LinearToSRGB(mapped), color.a);
+        return float4(albedo, color.a);
     }
 
     float3 normal = normalize(input.worldNormal);
     float3 lightDir = normalize(sunDirection);
-    float3 viewDir = normalize(cameraPos - input.worldPos);
+    const float3 relPos = input.worldPos - worldOrigin;
+    const float3 relCam = cameraPos - worldOrigin;
+    float3 viewDir = normalize(relCam - relPos);
 
     const float3 sunLinear = WE_sRGBToLinear(saturate(sunColor));
-    const float3 skyLinear = WE_sRGBToLinear(saturate(skyAmbientColor));
+    const float3 skyUpper = WE_sRGBToLinear(saturate(skyAmbientColor));
+    const float3 skyLower = WE_sRGBToLinear(saturate(skyLightLowerColor));
     const float upN = saturate(normal.y * 0.5 + 0.5);
-    const float3 ambient = lerp(skyLinear * 0.04, skyLinear * 0.12, upN) * skyLightIntensity;
+    const float3 ambient = lerp(skyLower * 0.05, skyUpper * 0.15, upN) * skyLightIntensity;
 
     float diff = max(dot(normal, lightDir), 0.0);
     float3 diffuse = diff * sunLinear * (sunIntensity * 0.011);
 
     float3 reflectDir = reflect(-lightDir, normal);
-    float spec = pow(max(dot(viewDir, reflectDir), 0.0), 48.0);
-    float3 specular = 0.04 * spec * sunLinear;
+    float spec = pow(max(dot(viewDir, reflectDir), 0.0), 64.0);
+    float3 specular = 0.045 * spec * sunLinear * skyLightIntensity;
 
     float3 litLinear = albedo * (ambient + diffuse) + specular;
 
-    const float height = max(input.worldPos.y, 0.0);
-    const float fogAmount = enableVolumetricFog > 0.5
-        ? (1.0 - exp(-fogDensity * height * fogHeightFalloff))
-        : 0.0;
-    const float distToCamera = length(cameraPos - input.worldPos);
-    const float distFog = 1.0 - exp(-distToCamera * fogDensity * 0.35);
-    const float3 fogLinear = WE_sRGBToLinear(saturate(fogColor));
-    litLinear = lerp(litLinear, fogLinear, saturate(fogAmount * 0.65 + distFog * 0.35));
+    // Aerial perspective toward procedurally matched horizon inscattering.
+    const float dist = length(relCam - relPos);
+    const float haze = 1.0 - exp(-dist * 0.0025);
+    const float3 rayleigh = max(atmosphereRayleigh, float3(1e-6, 1e-6, 1e-6));
+    const float3 ozone = max(ozoneAbsorption, float3(0.0, 0.0, 0.0));
+    const float3 horizonInscatter = WE_SampleSkyAtmosphere(
+        normalize(lerp(viewDir, float3(viewDir.x, 0.15, viewDir.z), 0.5)),
+        sunDirection, cameraPos, worldOrigin,
+        sunLinear, sunIntensity * 0.35,
+        rayleigh, mieScattering, ozone, mieAnisotropy,
+        planetRadius, atmosphereHeight, multiScatterStrength, eyeAltitude);
+    litLinear = lerp(litLinear, horizonInscatter, saturate(haze * 0.45));
 
-    const float haze = 1.0 - exp(-distToCamera * 0.0035);
-    const float3 aerial = WE_sRGBToLinear(saturate(aerialTint)) * atmosphereRayleigh * 120.0;
-    litLinear = lerp(litLinear, aerial, saturate(haze * 0.55));
-
-    const float3 mapped = WE_ApplyFilmicTonemap(litLinear, WE_ExposureFromEV100(1.85));
-    return float4(WE_LinearToSRGB(mapped), color.a);
+    return float4(litLinear, color.a);
 }
