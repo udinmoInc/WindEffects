@@ -131,6 +131,7 @@ venv/
 conanbuild/
 conaninfo.txt
 vcpkg_installed/
+.nuget/
 
 # ==========================
 # Operating System
