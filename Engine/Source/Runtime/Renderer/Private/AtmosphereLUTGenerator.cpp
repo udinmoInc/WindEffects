@@ -514,8 +514,11 @@ bool AtmosphereLUTGenerator::GenerateCPU(const SceneEnvironmentUniform& environm
         return false;
     }
 
+    m_HasGenerated = true;
+
     std::string validationError;
     if (!ValidateResources(&validationError)) {
+        m_HasGenerated = false;
         m_LastError = validationError;
         RenderDiagnostics::Get().Emit(
             DiagnosticSeverity::Error,
@@ -525,7 +528,6 @@ bool AtmosphereLUTGenerator::GenerateCPU(const SceneEnvironmentUniform& environm
         return false;
     }
 
-    m_HasGenerated = true;
     m_Ready = true;
     return true;
 }
