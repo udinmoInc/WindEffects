@@ -48,7 +48,7 @@ void CSMain(uint3 dtid : SV_DispatchThreadID)
         const float3 viewDir = float3(0.0, cosZenith, sqrt(max(1.0 - cosZenith * cosZenith, 0.0)));
 
         float3 rd, md, od;
-        const float dist = params.atmosphereRadius - length(origin);
+        const float dist = WE_AtmosphereShellExitDistance(origin, viewDir, params.atmosphereRadius);
         const float3 trans = WE_IntegrateOpticalDepth(origin, viewDir, max(dist, 0.001), params, rd, md, od);
         TransmittanceLUT[dtid.xy] = float4(trans, 1.0);
         return;
@@ -65,8 +65,9 @@ void CSMain(uint3 dtid : SV_DispatchThreadID)
         const float3 origin = float3(0.0, params.planetRadius + heightKm, 0.0);
 
         float3 rd, md, od;
-        const float dist = params.atmosphereRadius - length(origin);
-        WE_IntegrateOpticalDepth(origin, float3(0.0, 1.0, 0.0), max(dist, 0.001f), params, rd, md, od);
+        const float3 zenith = float3(0.0, 1.0, 0.0);
+        const float dist = WE_AtmosphereShellExitDistance(origin, zenith, params.atmosphereRadius);
+        WE_IntegrateOpticalDepth(origin, zenith, max(dist, 0.001f), params, rd, md, od);
         const float3 multi = (1.0 - exp(-(rd + md) * 0.15)) * params.rayleighCoeff * (0.5 + cosSun * 0.5);
         MultiScatteringLUT[dtid.xy] = float4(multi, 1.0);
         return;
@@ -103,7 +104,7 @@ void CSMain(uint3 dtid : SV_DispatchThreadID)
         const float3 surfacePos = float3(0.0, heightKm * 1000.0, distKm * 1000.0);
         const float3 camPos = float3(0.0, params.eyeAltitude * 1000.0, 0.0);
         const float3 marchDir = normalize(surfacePos - camPos);
-        const float3 origin = WE_GetAtmosphereOrigin(camPos, worldOrigin, params.planetRadius);
+        const float3 origin = WE_GetAtmosphereOrigin(camPos, worldOrigin, params.planetRadius, params.eyeAltitude);
         float3 transmittance;
         float3 inscatter = WE_IntegrateInscattering(marchDir, sunDir, origin, params, transmittance);
         const float fade = 1.0 - exp(-distKm * 0.06);

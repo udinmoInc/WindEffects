@@ -17,6 +17,7 @@ public:
     glm::vec3 OzoneAbsorption{ 0.00065f, 0.0018f, 0.00008f };
     float AerialPerspectiveStartDepth = 0.1f;
     glm::vec3 GroundAlbedo{ 0.4f, 0.4f, 0.4f };
+    int AtmosphereDebugMode = 0;
 
     void ApplyDefaults();
     glm::vec3 GetRayleighColor() const;

@@ -32,7 +32,7 @@ float4 PSMain(VSOutput input) : SV_Target
     if (enableClouds < 0.5)
         discard;
 
-    const float3 viewDir = WE_UnprojectDirection(input.uv, view, proj);
+    const float3 viewDir = WE_UnprojectDirection(input.uv, view, proj, cameraPos);
     const float3 sunDir = normalize(-sunDirection);
     const float3 sunLinear = max(sunColor, float3(0.0, 0.0, 0.0));
     const float3 cloudAlbedo = WE_sRGBToLinear(saturate(cloudColor));

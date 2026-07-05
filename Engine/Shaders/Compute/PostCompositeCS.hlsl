@@ -37,7 +37,8 @@ void CSMain(uint3 dtid : SV_DispatchThreadID)
         -2.0, 14.0);
     const float ev = lerp(exposureEV, autoEV, saturate(enableAutoExposure));
 
-    const float exposureScale = clamp(WE_ExposureFromEV100(ev), 1.0 / 512.0, 1.0);
+    // EV100 exposure multiplier — do not clamp to 1.0; bright HDR skies need values well below 1.
+    const float exposureScale = max(WE_ExposureFromEV100(ev), 1.0 / 4096.0);
     color = WE_ApplyFilmicTonemap(color, exposureScale);
     color = WE_LinearToSRGB(color);
     sceneOutput[dtid.xy] = float4(color, 1.0);

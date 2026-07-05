@@ -115,8 +115,13 @@ glm::vec3 IntegrateOpticalDepth(
 
 glm::vec3 IntegrateSunTransmittance(const glm::vec3& samplePosRel, const glm::vec3& sunDir, const AtmosParams& p) {
     glm::vec3 rd, md, od;
-    const float dist = p.atmoR - glm::length(samplePosRel);
-    return IntegrateOpticalDepth(samplePosRel, sunDir, std::max(dist, 0.001f), p, rd, md, od);
+    float t0 = 0.0f;
+    float t1 = 0.0f;
+    if (!IntersectSphere(samplePosRel, sunDir, p.atmoR, t0, t1)) {
+        return glm::vec3(1.0f);
+    }
+    const float dist = (t0 > 0.0f) ? t0 : std::max(t1, 0.001f);
+    return IntegrateOpticalDepth(samplePosRel, sunDir, dist, p, rd, md, od);
 }
 
 glm::vec3 IntegrateInscattering(
@@ -192,17 +197,18 @@ glm::vec3 ComputeSunDisk(const glm::vec3& viewDir, const glm::vec3& sunDir, cons
     const float cosAngle = glm::dot(glm::normalize(viewDir), glm::normalize(sunDir));
     const float cosRadius = std::cos(p.sunAngularRadius);
     const float disk = Smoothstep(cosRadius, cosRadius + 0.00035f, cosAngle);
-    const float glow = std::pow(glm::clamp(glm::dot(viewDir, sunDir), 0.0f, 1.0f), 256.0f) * p.sunIntensity * 0.15f;
-    return p.sunColor * p.sunIntensity * (disk * 28.0f + glow);
+    const float glow = std::pow(glm::clamp(glm::dot(viewDir, sunDir), 0.0f, 1.0f), 512.0f) * p.sunIntensity * 0.06f;
+    return p.sunColor * p.sunIntensity * kSkyRadianceScale * (disk * 12.0f + glow);
 }
 
 glm::vec3 WorldToAtmosphereKm(const glm::vec3& worldPos, const glm::vec3& worldOrigin) {
     return (worldPos - worldOrigin) * 0.001f;
 }
 
-glm::vec3 GetAtmosphereOrigin(const glm::vec3& cameraPos, const glm::vec3& worldOrigin, float planetRadiusKm) {
+glm::vec3 GetAtmosphereOrigin(const glm::vec3& cameraPos, const glm::vec3& worldOrigin, float planetRadiusKm, float eyeAltitudeKm) {
     const glm::vec3 relKm = WorldToAtmosphereKm(cameraPos, worldOrigin);
-    return glm::vec3(0.0f, planetRadiusKm + std::max(relKm.y, 0.0f), 0.0f);
+    const float altitudeKm = std::max(std::max(relKm.y, 0.0f), std::max(eyeAltitudeKm, 0.0f));
+    return glm::vec3(0.0f, planetRadiusKm + altitudeKm, 0.0f);
 }
 
 AtmosParams BuildParams(const SceneEnvironmentUniform& env) {
@@ -660,7 +666,7 @@ bool AtmosphereLUTGenerator::GenerateCPU(const SceneEnvironmentUniform& environm
             const glm::vec3 relCamKm = WorldToAtmosphereKm(camPos, params.worldOrigin);
             const glm::vec3 relSurfKm = WorldToAtmosphereKm(surfacePos, params.worldOrigin);
             const glm::vec3 marchDir = glm::normalize(relSurfKm - relCamKm);
-            const glm::vec3 origin = GetAtmosphereOrigin(camPos, params.worldOrigin, params.planetR);
+            const glm::vec3 origin = GetAtmosphereOrigin(camPos, params.worldOrigin, params.planetR, params.eyeAltitude);
 
             glm::vec3 transmittanceToCamera;
             glm::vec3 inscatter = IntegrateInscattering(marchDir, params.sunDir, origin, params, transmittanceToCamera);
