@@ -1,12 +1,12 @@
 # 🚀 Getting Started with IgniteBT
 
-> This guide walks you through setting up IgniteBT and performing your first build, providing a comprehensive introduction to the build system for WindEffects Engine. IgniteBT is the build system for WindEffects Engine and is automatically included with the engine, requiring no separate installation or download. The guide covers everything from initial environment setup to performing your first build and troubleshooting common issues. By following this guide, you will have a fully configured development environment and a working build of the engine, ready for development work.
+> This guide walks you through setting up the WindEffects Engine build environment using IgniteBT, the build system component of WindEffects Engine. IgniteBT is integrated into WindEffects Engine and requires no separate installation. The guide covers environment setup, SDK configuration, and performing your first build of WindEffects Engine. By following this guide, you will have a fully configured development environment and a working build of WindEffects Engine, ready for development work.
 
 ---
 
 ## 📋 Prerequisites
 
-Before using IgniteBT, ensure your development environment meets these requirements. Having the correct tools and SDKs installed is essential for a smooth build process and to avoid common issues that can arise from missing or misconfigured dependencies.
+Before building WindEffects Engine with IgniteBT, ensure your development environment meets these requirements. Having the correct tools installed is essential for a smooth build process.
 
 ### ✅ Required Software
 
@@ -28,20 +28,20 @@ Before using IgniteBT, ensure your development environment meets these requireme
 
 ### 1️⃣ Clone the Repository
 
-The first step in setting up your development environment is to clone the WindEffects Engine repository to your local machine. This will give you access to all the source code, build configuration, and other files needed to build the engine.
+The first step in setting up your development environment is to clone the WindEffects Engine repository to your local machine. This will give you access to all the source code, build configuration, and the IgniteBT build system.
 
 ```powershell
 git clone https://github.com/udinmoInc/windeffects.git
 cd windeffects
 ```
 
-> **📁 Repository Contents:** The repository contains the entire engine source code along with the IgniteBT build system, so cloning it gives you everything you need in one operation.
+> **📁 Repository Contents:** The repository contains the WindEffects Engine source code and the integrated IgniteBT build system.
 
 ---
 
 ### 2️⃣ Verify Environment
 
-After cloning the repository, you should verify that your development environment is correctly configured by running the diagnostic command. The doctor command performs a comprehensive check of your environment.
+After cloning the repository, verify that your development environment is correctly configured for building WindEffects Engine by running the diagnostic command.
 
 ```powershell
 we doctor
@@ -58,7 +58,7 @@ The doctor command checks:
 
 ### 3️⃣ Configure SDK Paths
 
-If the doctor command reports missing SDKs or if you have SDKs installed in non-standard locations, you will need to configure the SDK paths in the `IgniteBT.SDKs.json` file.
+If the doctor command reports missing SDKs or if you have SDKs installed in non-standard locations, configure the SDK paths in the `IgniteBT.SDKs.json` file for WindEffects Engine.
 
 ```json
 {
@@ -79,7 +79,7 @@ we sdk validate
 
 ### 4️⃣ Install the `we` Command Globally (Optional)
 
-For convenient access from any directory, you can install the `we` command globally on your system.
+For convenient access from any directory when working with WindEffects Engine, you can install the `we` command globally on your system.
 
 ```powershell
 we setup --global
@@ -91,9 +91,9 @@ we setup --global
 
 ## 🔨 Your First Build
 
-### Building in Development Configuration
+### Building WindEffects Engine in Development Configuration
 
-The Development configuration provides optimized builds with debugging symbols, making it ideal for active development work. This configuration strikes a balance between performance and debuggability.
+The Development configuration provides optimized builds with debugging symbols, ideal for active WindEffects Engine development work.
 
 ```powershell
 we build --config Development

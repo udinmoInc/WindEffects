@@ -1,12 +1,12 @@
 # 💻 IgniteBT Command Reference
 
-> IgniteBT provides a comprehensive command-line interface accessed through the `we` launcher, offering a complete set of tools for building, managing, and diagnosing projects. This document describes all available commands, their parameters, and usage examples in detail. The command-line interface is designed to be intuitive for both new users and experienced developers, providing sensible defaults while allowing fine-grained control when needed. Commands are organized by functionality to make them easy to discover and understand, and each command includes comprehensive help documentation accessible through the `--help` flag.
+> IgniteBT provides a comprehensive command-line interface accessed through the `we` launcher for WindEffects Engine development. This document describes all available commands, their parameters, and usage examples in detail. The command-line interface is designed to be intuitive for WindEffects Engine developers, providing sensible defaults while allowing fine-grained control when needed. Commands are organized by functionality to make them easy to discover and understand, and each command includes comprehensive help documentation accessible through the `--help` flag.
 
 ---
 
 ## 📋 Command Overview
 
-Commands are organized by functionality to provide a logical structure that reflects the different aspects of the build system:
+Commands are organized by functionality to provide a logical structure that reflects the different aspects of the WindEffects Engine build system:
 
 | Category | Commands | Purpose |
 |----------|----------|---------|

@@ -1,12 +1,12 @@
 # ⚙️ IgniteBT Configuration Guide
 
-> This guide covers configuring IgniteBT for your development environment, including SDK setup, project configuration, and build system customization. Proper configuration is essential for ensuring that the build system operates correctly and efficiently in your specific development environment. Configuration involves setting up SDKs, defining project structure, specifying build parameters, and tuning performance settings to match your hardware and workflow requirements. This guide provides comprehensive information about all aspects of IgniteBT configuration, from basic setup to advanced customization options.
+> This guide covers configuring IgniteBT for WindEffects Engine development, including SDK setup, project configuration, and build system customization. Proper configuration is essential for ensuring that the WindEffects Engine build system operates correctly and efficiently in your specific development environment. Configuration involves setting up SDKs, defining project structure, specifying build parameters, and tuning performance settings to match your hardware and workflow requirements. This guide provides comprehensive information about all aspects of IgniteBT configuration for WindEffects Engine, from basic setup to advanced customization options.
 
 ---
 
 ## 📄 Configuration Files
 
-IgniteBT uses several configuration files to manage the build environment, each serving a specific purpose in the overall configuration system.
+IgniteBT uses several configuration files to manage the WindEffects Engine build environment, each serving a specific purpose in the overall configuration system.
 
 | File | Purpose | Location | Version Control |
 |------|---------|----------|----------------|
@@ -22,7 +22,7 @@ IgniteBT uses several configuration files to manage the build environment, each 
 
 ### .engine File
 
-The `.engine` file is the primary project descriptor located in the repository root, defining the project structure and build system settings.
+The `.engine` file is the primary project descriptor for WindEffects Engine, located in the repository root, defining the project structure and build system settings.
 
 **Example:**
 
