@@ -9,7 +9,14 @@
     <RootNamespace>IgniteBT</RootNamespace>
     <AssemblyName>IgniteBT</AssemblyName>
     <Version>1.0.0</Version>
+    <ServerGarbageCollection>false</ServerGarbageCollection>
+    <TieredCompilationQuickJit>true</TieredCompilationQuickJit>
+    <ConcurrentGarbageCollection>false</ConcurrentGarbageCollection>
   </PropertyGroup>
+
+  <ItemGroup>
+    <RuntimeHostConfigurationOption Include="System.GC.Concurrent" Value="false" />
+  </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.11.0" />

@@ -52,7 +52,17 @@ public static class BuildCommand
 
         if (!probe.IsNoOp) return null;
 
-        Console.WriteLine($"No-op build - nothing changed ({probe.ElapsedMs}ms)");
+        var profile = Environment.GetEnvironmentVariable("IGNITEBT_PROFILE_NOOP");
+        if (!string.IsNullOrEmpty(profile))
+        {
+            Console.WriteLine(
+                $"No-op build - nothing changed ({probe.ElapsedMs}ms: manifest={probe.ManifestLoadMs}ms snapshot={probe.SnapshotLoadMs}ms validate={probe.ValidateMs}ms)");
+        }
+        else
+        {
+            Console.WriteLine($"No-op build - nothing changed ({probe.ElapsedMs}ms)");
+        }
+
         return 0;
     }
 

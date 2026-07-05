@@ -163,13 +163,7 @@ The module system discovers and configures build modules through automatic modul
 
 ### 🛠️ SDK Detection
 
-The SDK management system detects installed development SDKs such as Vulkan, SDL3, and other required libraries, validates SDK versions against requirements, manages SDK path configuration, and provides SDK availability diagnostics.
-
-| SDK | Detection Method |
-|-----|------------------|
-| 🔺 **Vulkan** | Standard installation paths + VULKAN_SDK env var |
-| 🎮 **SDL3** | Package managers + custom path configuration |
-| ➕ **Custom SDKs** | Extensible provider interface |
+The SDK management system detects installed development SDKs, validates SDK versions against requirements, manages SDK path configuration, and provides SDK availability diagnostics.
 
 > **💡 Tip:** SDK detection is platform-aware, looking in appropriate locations for each operating system and handling platform-specific differences in SDK installation.
 

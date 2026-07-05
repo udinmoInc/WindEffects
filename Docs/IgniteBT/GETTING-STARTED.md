@@ -6,7 +6,7 @@
 
 ## 📋 Prerequisites
 
-Before using IgniteBT, ensure your development environment meets these requirements. Having the correct tools and SDKs installed is essential for a smooth build process and to avoid common issues that can arise from missing or misconfigured dependencies. The prerequisites are divided into required software that must be installed for the build system to function and optional software that may be needed depending on the specific project configuration or third-party dependencies.
+Before using IgniteBT, ensure your development environment meets these requirements. Having the correct tools and SDKs installed is essential for a smooth build process and to avoid common issues that can arise from missing or misconfigured dependencies.
 
 ### ✅ Required Software
 
@@ -14,22 +14,13 @@ Before using IgniteBT, ensure your development environment meets these requireme
 |----------|---------|---------|----------|
 | 🟦 **.NET SDK** | 8.0 | Build system runtime | [dotnet.microsoft.com](https://dotnet.microsoft.com) |
 | 🎨 **Visual Studio** | 2022 | C++ compiler and toolchain | [visualstudio.microsoft.com](https://visualstudio.microsoft.com) |
-| 🔺 **Vulkan SDK** | Latest | Graphics development dependencies | [vulkan.lunarg.com](https://vulkan.lunarg.com) |
-| 📦 **Git** | Latest | Version control | [git-scm.com](https://git-scm.com) |
+|  **Git** | Latest | Version control | [git-scm.com](https://git-scm.com) |
 
 > **💡 Installation Tips:**
 > - Install Visual Studio 2022 with the "Desktop development with C++" workload
 > - Ensure the latest updates are installed for Visual Studio
 > - Add all tools to your system PATH during installation
 > - Verify installations with `dotnet --version`, `git --version`, etc.
-
-### 🔧 Optional Software
-
-| Software | Purpose | When Needed |
-|----------|---------|-------------|
-| 🛠️ **CMake** | Build third-party dependencies | Projects with CMake-based dependencies |
-| 🐍 **Python 3** | Build scripts and tools | Projects using Python build scripts |
-| 🐫 **Perl** | Third-party library builds | Specific libraries requiring Perl |
 
 ---
 
@@ -40,7 +31,7 @@ Before using IgniteBT, ensure your development environment meets these requireme
 The first step in setting up your development environment is to clone the WindEffects Engine repository to your local machine. This will give you access to all the source code, build configuration, and other files needed to build the engine.
 
 ```powershell
-git clone https://github.com/your-org/windeffects.git
+git clone https://github.com/udinmoInc/windeffects.git
 cd windeffects
 ```
 
@@ -59,7 +50,6 @@ we doctor
 The doctor command checks:
 - ✅ .NET SDK installation and version
 - ✅ Visual Studio installation and C++ toolchain
-- ✅ Vulkan SDK availability and configuration
 - ✅ Other required tools and dependencies
 
 > **⚠️ If Issues Are Detected:** The doctor command will provide clear guidance on resolving them, including information about missing tools, version incompatibilities, or configuration problems.
@@ -72,10 +62,7 @@ If the doctor command reports missing SDKs or if you have SDKs installed in non-
 
 ```json
 {
-  "SDKPaths": {
-    "VulkanSDK": "C:\\VulkanSDK\\1.3.290.0",
-    "SDL3": "C:\\SDL3"
-  },
+  "SDKPaths": {},
   "AdditionalIncludePaths": {},
   "AdditionalLibraryPaths": {}
 }
@@ -342,9 +329,8 @@ Missing dependencies can occur when third-party libraries fail to build or requi
 | Step | Action | Purpose |
 |------|--------|---------|
 | 1️⃣ | Check internet connectivity | Some dependencies are downloaded remotely |
-| 2️⃣ | Verify CMake, Perl, Python | Required for third-party builds |
-| 3️⃣ | Check `Build/Logs` | Review detailed error messages |
-| 4️⃣ | Clean `Build/Intermediate/ThirdParty` | Force rebuild of dependencies |
+| 2️⃣ | Check `Build/Logs` | Review detailed error messages |
+| 3️⃣ | Clean `Build/Intermediate/ThirdParty` | Force rebuild of dependencies |
 
 ---
 

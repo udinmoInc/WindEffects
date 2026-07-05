@@ -446,3 +446,4 @@ void Logger::SignalHandler(int signal) {
 }
 
 } // namespace we::runtime::core
+
