@@ -4,7 +4,6 @@
 
 ![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)
 ![.NET](https://img.shields.io/badge/.NET-8.0-purple.svg)
-![License](https://img.shields.io/badge/license-MIT-green.svg)
 ![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20Linux%20%7C%20macOS-lightgrey.svg)
 
 ---
@@ -134,7 +133,7 @@ Users experiencing issues with the build system should first consult the documen
 
 ## 📄 License
 
-IgniteBT is part of the WindEffects Engine project and is subject to the same license terms and conditions. The build system is developed and maintained as part of the engine project and shares the engine's licensing model. Users should refer to the main project license for detailed information about terms and conditions, usage rights, and any restrictions that may apply. The license information is typically found in the LICENSE file in the root of the repository or in the main project documentation. Organizations or individuals considering using IgniteBT or WindEffects Engine in commercial projects should review the license terms carefully and, if necessary, contact the development team for clarification or to discuss licensing arrangements.
+IgniteBT is part of the WindEffects Engine project and is subject to the WindEffects Engine End User License Agreement (EULA). Use of IgniteBT is governed by the same terms and conditions as the WindEffects Engine. For detailed information about terms and conditions, usage rights, and any restrictions that may apply, refer to the LICENSE file in the root of the repository or Legal/EULA.md. Organizations or individuals considering using IgniteBT or WindEffects Engine should review the license terms carefully and, if necessary, contact the development team for clarification or to discuss licensing arrangements.
 
 ---
 
