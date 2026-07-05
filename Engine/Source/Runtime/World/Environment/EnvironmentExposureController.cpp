@@ -5,11 +5,11 @@
 namespace we::runtime::world::environment {
 
 void EnvironmentExposureController::ApplyDefaults() {
-    ExposureEV = 2.35f;
+    ExposureEV = 8.0f;
     ExposureCompensation = 0.0f;
-    MinEV = -4.0f;
-    MaxEV = 8.0f;
-    AutoExposure = true;
+    MinEV = -2.0f;
+    MaxEV = 14.0f;
+    AutoExposure = false;
 }
 
 float EnvironmentExposureController::GetEffectiveExposureEV(float sunDerivedEV) const {

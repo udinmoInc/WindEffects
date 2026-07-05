@@ -34,7 +34,7 @@ struct SceneEnvironmentUniform {
     glm::vec3 ozoneAbsorption{ 0.00065f, 0.0018f, 0.00008f };
     float mieAnisotropy = 0.76f;
     glm::vec3 worldOrigin{ 0.0f, 0.0f, 0.0f };
-    float exposureEV = 2.35f;
+    float exposureEV = 8.0f;
     float planetRadius = 6360.0f;
     float atmosphereHeight = 60.0f;
     float multiScatterStrength = 1.0f;
@@ -52,7 +52,7 @@ struct SceneEnvironmentUniform {
     int sunTemperature = 6500;
     float bloomIntensity = 0.65f;
     float bloomThreshold = 0.85f;
-    float enableAutoExposure = 1.0f;
+    float enableAutoExposure = 0.0f;
     float postPadding = 0.0f;
 };
 

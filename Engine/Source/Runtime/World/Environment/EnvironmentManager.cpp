@@ -68,9 +68,9 @@ float EnvironmentManager::ComputeExposureEV(const EnvironmentDirectionalLight& s
     const float elevation = sunDir.y;
     const float dayFactor = Clamp01(elevation * 2.5f + 0.1f);
     const float twilightFactor = Clamp01(1.0f - abs(elevation) * 3.5f);
-    constexpr float kDayEV = 2.35f;
-    constexpr float kNightEV = -2.5f;
-    constexpr float kTwilightEV = -0.5f;
+    constexpr float kDayEV = 8.0f;
+    constexpr float kNightEV = 1.0f;
+    constexpr float kTwilightEV = 4.0f;
     float ev = glm::mix(kNightEV, kDayEV, dayFactor);
     ev = glm::mix(ev, kTwilightEV, twilightFactor * (1.0f - dayFactor));
     return ev;
@@ -83,7 +83,10 @@ float EnvironmentManager::ComputeHdrSkyLuminance(
     const float elevation = Clamp01(sunDir.y);
     const glm::vec3 upper = ComputeSkyLightUpper(sun, atmosphere);
     const float sunDisk = sun.Intensity * Clamp01(elevation * 3.0f + 0.05f);
-    return glm::dot(upper, glm::vec3(0.2126f, 0.7152f, 0.0722f)) + sunDisk * 0.15f;
+    // Match order-of-magnitude of analytic sky HDR (WE_SKY_RADIANCE_SCALE in shaders).
+    constexpr float kShaderRadianceScale = 6.0f;
+    const float cpuKey = glm::dot(upper, glm::vec3(0.2126f, 0.7152f, 0.0722f)) + sunDisk * 0.15f;
+    return std::max(cpuKey * kShaderRadianceScale * 1.35f, 0.5f);
 }
 
 void EnvironmentManager::UpdateDerivedState(

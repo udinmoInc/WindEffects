@@ -4,6 +4,7 @@
 #include "Environment/EnvironmentManager.h"
 #include "Renderer/SceneRenderer.hpp"
 #include "Core/Logger.hpp"
+#include "Core/LogCategory.hpp"
 
 #include <algorithm>
 
@@ -590,8 +591,21 @@ void EnvironmentSystem::UpdateRendering(const glm::vec3& cameraPosition) {
 
     if (auto renderer = m_Renderer.lock()) {
         const glm::vec3 worldOrigin = m_Manager.GetWorldOrigin(cameraPosition);
-        renderer->SetSceneEnvironment(BuildSceneEnvironmentUniform(
-            m_Sun, m_SkyLight, m_SkyAtmosphere, m_HeightFog, m_VolumetricClouds, m_ExposureController, worldOrigin));
+        const auto uniform = BuildSceneEnvironmentUniform(
+            m_Sun, m_SkyLight, m_SkyAtmosphere, m_HeightFog, m_VolumetricClouds, m_ExposureController, worldOrigin);
+        renderer->SetSceneEnvironment(uniform);
+
+        static bool loggedExposure = false;
+        if (!loggedExposure) {
+            loggedExposure = true;
+            WE_LOG_INFO(
+                we::runtime::core::LogCategory::Environment.data(),
+                "Environment exposure: EV=" + std::to_string(uniform.exposureEV)
+                    + " auto=" + std::to_string(uniform.enableAutoExposure)
+                    + " hdrSkyLum=" + std::to_string(uniform.hdrSkyLuminance)
+                    + " sunIntensity=" + std::to_string(uniform.sunIntensity)
+                    + " bloom=" + std::to_string(uniform.bloomIntensity));
+        }
     }
 #endif
 }

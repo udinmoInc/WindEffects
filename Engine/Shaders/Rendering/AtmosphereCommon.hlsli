@@ -10,7 +10,7 @@ static const float WE_OZONE_WIDTH_KM         = 8.0;
 static const float WE_SUN_ANGULAR_RADIUS     = 0.004675;
 static const int   WE_ATMOSPHERE_STEPS       = 32;
 static const int   WE_SUN_TRANSMITTANCE_STEPS = 16;
-static const float WE_SKY_RADIANCE_SCALE     = 22.0;
+static const float WE_SKY_RADIANCE_SCALE     = 6.0;
 
 static const int WE_TRANSMITTANCE_LUT_WIDTH  = 256;
 static const int WE_TRANSMITTANCE_LUT_HEIGHT = 64;

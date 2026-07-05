@@ -123,8 +123,8 @@ we::runtime::renderer::SceneEnvironmentUniform BuildSceneEnvironmentUniform(
     uniform.hdrSkyLuminance = manager.ComputeHdrSkyLuminance(sun, atmosphere);
     uniform.sunCastShadows = sun.CastDynamicShadows ? 1 : 0;
     uniform.sunTemperature = sun.TemperatureKelvin;
-    uniform.bloomIntensity = 0.65f;
-    uniform.bloomThreshold = 0.85f;
+    uniform.bloomIntensity = 0.15f;
+    uniform.bloomThreshold = 4.0f;
     uniform.enableAutoExposure = exposure.AutoExposure ? 1.0f : 0.0f;
     return uniform;
 }
