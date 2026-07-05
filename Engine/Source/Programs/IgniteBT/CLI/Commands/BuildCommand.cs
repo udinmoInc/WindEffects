@@ -62,6 +62,11 @@ public static class BuildCommand
             
             Log.Information("Project root: {ProjectRoot}", projectRoot);
             Log.Information("Engine root: {EngineDir}", engineDir);
+
+            if (!await ThirdPartyBootstrapper.EnsureRequiredAsync(engineDir, jobs))
+            {
+                return 1;
+            }
             
             // Detect and setup toolchain once for all modules
             var detectedCompiler = ToolchainDetector.DetectCompiler();
