@@ -70,7 +70,7 @@ float3 WE_RaymarchClouds(
             break;
     }
 
-    return accum * 3.5;
+    return accum * 1.6;
 }
 
 #endif // WE_VOLUMETRIC_CLOUDS_HLSLI

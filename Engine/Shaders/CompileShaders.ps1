@@ -66,4 +66,23 @@ foreach ($shader in $shaders) {
     Write-Host "Compiled $($shader.Name)"
 }
 
+$copyTargets = @(
+    (Join-Path $EngineRoot "..\Build\Output\Win64\Development\Engine\Shaders\Bytecodes"),
+    (Join-Path $EngineRoot "..\Build\Output\Win64\Shipping\Engine\Shaders\Bytecodes"),
+    (Join-Path $EngineRoot "..\Assets\Shaders")
+)
+
+foreach ($target in $copyTargets) {
+    if (-not (Test-Path (Split-Path $target -Parent))) { continue }
+    New-Item -ItemType Directory -Force -Path $target | Out-Null
+    Get-ChildItem -Path (Join-Path $OutputDir "*.spv") | ForEach-Object {
+        try {
+            Copy-Item -Path $_.FullName -Destination $target -Force -ErrorAction Stop
+        } catch {
+            Write-Warning "Could not copy $($_.Name) to $target (file may be in use - restart the editor and re-run CompileShaders.ps1)."
+        }
+    }
+    Write-Host "Synced bytecodes to $target"
+}
+
 Write-Host "Shader bytecodes written to $OutputDir"

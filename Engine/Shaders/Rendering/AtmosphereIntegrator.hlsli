@@ -119,7 +119,7 @@ float3 WE_ComputeSunDisk(float3 viewDir, float3 sunDir, float intensity, float3 
     const float cosRadius = cos(angularRadius);
     const float disk = smoothstep(cosRadius, cosRadius + 0.00035, cosAngle);
     const float glow = pow(saturate(dot(viewDir, sunDir)), 256.0) * intensity * 0.15;
-    return sunColor * intensity * WE_SKY_RADIANCE_SCALE * (disk * 28.0 + glow);
+    return sunColor * intensity * WE_SKY_RADIANCE_SCALE * (disk * 12.0 + glow);
 }
 
 #endif // WE_ATMOSPHERE_INTEGRATOR_HLSLI
