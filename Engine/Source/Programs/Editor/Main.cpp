@@ -7,6 +7,7 @@
 #include "Core/Logger.hpp"
 #include "Core/LogCategory.hpp"
 #include "Core/BuildPaths.hpp"
+#include "Renderer/AtmosphereValidation.hpp"
 
 #if defined(_WIN32)
 #define WIN32_LEAN_AND_MEAN
@@ -40,13 +41,17 @@ void ConfigureModuleSearchPath() {
 } // namespace
 
 int main(int argc, char* argv[]) {
-    (void)argc;
-    (void)argv;
-    
     try {
         we::runtime::core::Logger::Init();
         SetWorkingDirectoryToExecutable();
         ConfigureModuleSearchPath();
+
+        const auto validationSettings =
+            we::runtime::renderer::AtmosphereValidation::ParseCommandLine(argc, argv);
+        we::runtime::renderer::AtmosphereValidation::Get().Configure(validationSettings);
+        if (validationSettings.enabled) {
+            HE_INFO("[Startup] Atmosphere validation mode enabled from command line.");
+        }
 
         HE_INFO("[Startup] === WindEffects Editor bootstrap begin ===");
         

@@ -684,23 +684,29 @@ void SceneRenderer::DrawSkyAtmospherePass(VkCommandBuffer cmd, VkDescriptorSet c
         return;
     }
 
-    if (!m_LUTGenerator || !m_LUTGenerator->IsReady()) {
-        const_cast<SceneRenderer*>(this)->PrepareAtmosphereLUTs(cmd);
-    }
+    const bool validationActive = m_SceneEnvironment.atmosphereDebugMode != 0;
 
-    if (!m_LUTGenerator || !m_LUTGenerator->IsReady()) {
-        stats.SetPassStatus("SkyAtmosphere", "skipped");
-        const char* reason = m_LUTGenerator ? m_LUTGenerator->GetLastError().c_str() : "LUT generator is null";
-        if (reason == nullptr || reason[0] == '\0') {
-            reason = "required atmosphere LUTs are missing";
+    if (!validationActive) {
+        if (!m_LUTGenerator || !m_LUTGenerator->IsReady()) {
+            const_cast<SceneRenderer*>(this)->PrepareAtmosphereLUTs(cmd);
         }
-        diag.RecordPassStatus("SkyAtmosphere", PassExecutionStatus::Skipped, reason);
-        diag.Emit(
-            DiagnosticSeverity::Error,
-            LogCategory::Environment.data(),
-            std::string("Sky Atmosphere pass aborted: ") + reason,
-            "Fix atmosphere LUT generation before rendering the sky.");
-        return;
+
+        if (!m_LUTGenerator || !m_LUTGenerator->IsReady()) {
+            stats.SetPassStatus("SkyAtmosphere", "skipped");
+            const char* reason = m_LUTGenerator ? m_LUTGenerator->GetLastError().c_str() : "LUT generator is null";
+            if (reason == nullptr || reason[0] == '\0') {
+                reason = "required atmosphere LUTs are missing";
+            }
+            diag.RecordPassStatus("SkyAtmosphere", PassExecutionStatus::Skipped, reason);
+            diag.Emit(
+                DiagnosticSeverity::Error,
+                LogCategory::Environment.data(),
+                std::string("Sky Atmosphere pass aborted: ") + reason,
+                "Fix atmosphere LUT generation before rendering the sky.");
+            return;
+        }
+    } else if (!m_LUTGenerator || !m_LUTGenerator->IsReady()) {
+        const_cast<SceneRenderer*>(this)->PrepareAtmosphereLUTs(cmd);
     }
 
     const_cast<SceneRenderer*>(this)->RefreshEnvironmentDescriptorBindings();

@@ -295,9 +295,12 @@ public static class CommandSchemas
         .WithPositional("target")
         .WithOption("config", 'c', defaultValue: "Release", description: "Build configuration")
         .WithOption("platform", 'p', description: "Target platform")
-        .WithOption("target", 't', description: "Module or target to build")
+        .WithOption("target", 't', description: "Module or target to build (Editor, Engine, Renderer)")
         .WithOption("jobs", 'j', description: "Parallel compile jobs")
-        .WithFlag("clean", 'C', description: "Clean before building");
+        .WithOption("unity-size", description: "Max files per unity blob")
+        .WithOption("unity-disable", description: "Comma-separated modules to exclude from unity builds")
+        .WithFlag("clean", 'C', description: "Clean before building")
+        .WithFlag("unity", description: "Enable unity builds");
 
     public static readonly CommandSchema Clean = new CommandSchema("clean")
         .WithPositional("target")
@@ -311,7 +314,9 @@ public static class CommandSchemas
         .WithOption("platform", 'p', description: "Target platform")
         .WithOption("target", 't', description: "Module or target to rebuild")
         .WithOption("jobs", 'j', description: "Parallel compile jobs")
-        .WithFlag("clean", 'C', description: "Ignored for rebuild; clean always runs first");
+        .WithFlag("clean", 'C', description: "Ignored for rebuild; clean always runs first")
+        .WithOption("unity-size", description: "Max files per unity blob")
+        .WithFlag("unity", description: "Enable unity builds");
 
     public static readonly CommandSchema Run = new CommandSchema("run")
         .WithPositional("target")

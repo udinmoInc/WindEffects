@@ -1,6 +1,7 @@
 #include "Environment/EnvironmentLighting.h"
 
 #include "Environment/EnvironmentManager.h"
+#include "Renderer/AtmosphereValidation.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -127,6 +128,9 @@ we::runtime::renderer::SceneEnvironmentUniform BuildSceneEnvironmentUniform(
     uniform.bloomThreshold = 4.0f;
     uniform.enableAutoExposure = exposure.AutoExposure ? 1.0f : 0.0f;
     uniform.atmosphereDebugMode = atmosphere.AtmosphereDebugMode;
+#if WE_HAS_VULKAN
+    we::runtime::renderer::AtmosphereValidation::Get().ApplyEnvironmentOverrides(uniform);
+#endif
     return uniform;
 }
 
