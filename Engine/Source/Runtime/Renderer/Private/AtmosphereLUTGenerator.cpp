@@ -496,7 +496,7 @@ bool AtmosphereLUTGenerator::GenerateCPU(const SceneEnvironmentUniform& environm
 
     const AtmosParams params = BuildParams(environment);
     const glm::vec3 planetCenter(0.0f, -params.planetR, 0.0f);
-    const glm::vec3 skyOrigin(0.0f, params.eyeAltitude, 0.0f) - planetCenter;
+    const glm::vec3 skyOrigin = glm::vec3(0.0f, params.eyeAltitude, 0.0f) - planetCenter;
 
     std::vector<float> transmittance(m_Dimensions.transmittanceW * m_Dimensions.transmittanceH * 4, 0.0f);
     for (uint32_t y = 0; y < m_Dimensions.transmittanceH; ++y) {

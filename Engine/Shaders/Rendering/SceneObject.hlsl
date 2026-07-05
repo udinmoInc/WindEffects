@@ -87,7 +87,8 @@ float4 PSMain(VSOutput input) : SV_Target
         sunDirection, cameraPos, worldOrigin,
         sunLinear, sunIntensity * 0.35,
         rayleigh, mieScattering, ozone, mieAnisotropy,
-        planetRadius, atmosphereHeight, multiScatterStrength, eyeAltitude);
+        planetRadius, atmosphereHeight, multiScatterStrength, eyeAltitude,
+        max(sunAngularRadius, WE_SUN_ANGULAR_RADIUS));
     litLinear = lerp(litLinear, horizonInscatter, saturate(haze * 0.45));
 
     return float4(litLinear, color.a);
