@@ -1,5 +1,7 @@
 #include "Environment/EnvironmentLighting.h"
 
+#include "Environment/EnvironmentManager.h"
+
 #include <algorithm>
 #include <cmath>
 
@@ -57,12 +59,21 @@ glm::vec3 EulerDegreesToLightDirection(const glm::vec3& rotationDegrees) {
     return glm::normalize(direction);
 }
 
+glm::vec3 SunDirectionToSky(const glm::vec3& lightTravelDirection) {
+    return glm::normalize(-lightTravelDirection);
+}
+
 we::runtime::renderer::SceneEnvironmentUniform BuildSceneEnvironmentUniform(
     const EnvironmentDirectionalLight& sun,
     const EnvironmentSkyLight& skyLight,
     const EnvironmentSkyAtmosphere& atmosphere,
     const EnvironmentHeightFog& fog,
-    const EnvironmentVolumetricClouds& clouds) {
+    const EnvironmentVolumetricClouds& clouds,
+    const EnvironmentExposureController& exposure,
+    const glm::vec3& worldOrigin) {
+
+    EnvironmentManager manager;
+    const float sunDerivedEV = manager.ComputeExposureEV(sun);
 
     we::runtime::renderer::SceneEnvironmentUniform uniform{};
     uniform.sunDirection = sun.GetLightDirection();
@@ -70,13 +81,30 @@ we::runtime::renderer::SceneEnvironmentUniform BuildSceneEnvironmentUniform(
     uniform.sunColor = sun.GetColorFromTemperature();
     uniform.skyLightIntensity = skyLight.Intensity;
     uniform.skyAmbientColor = skyLight.GetAmbientColor();
+    uniform.skyLightLowerColor = skyLight.LowerHemisphereColor;
     uniform.fogDensity = fog.Density;
     uniform.fogColor = fog.FogColor;
     uniform.fogHeightFalloff = fog.HeightFalloff;
+    uniform.fogStartDistance = fog.StartDistance;
     uniform.atmosphereRayleigh = atmosphere.GetRayleighColor();
-    uniform.enableVolumetricFog = (fog.VolumetricFog && fog.EntityId != 0) ? 1.0f : 0.0f;
-    uniform.aerialTint = glm::vec3(0.55f, 0.65f, 0.85f);
+    uniform.mieScattering = atmosphere.MieScattering;
+    uniform.ozoneAbsorption = atmosphere.GetOzoneAbsorption();
+    uniform.mieAnisotropy = atmosphere.MieAnisotropy;
+    uniform.worldOrigin = worldOrigin;
+    uniform.exposureEV = exposure.GetEffectiveExposureEV(sunDerivedEV);
+    uniform.planetRadius = 6360.0f;
+    uniform.atmosphereHeight = 60.0f;
+    uniform.multiScatterStrength = atmosphere.MultiScatterStrength;
+    uniform.eyeAltitude = atmosphere.EyeAltitude;
+    uniform.cloudCoverage = clouds.Coverage;
+    uniform.cloudAltitude = clouds.Altitude;
+    uniform.cloudExtinction = clouds.Extinction;
     uniform.enableClouds = (clouds.Enabled && clouds.EntityId != 0) ? 1.0f : 0.0f;
+    uniform.cloudColor = clouds.CloudColor;
+    uniform.enableVolumetricFog = (fog.VolumetricFog && fog.EntityId != 0) ? 1.0f : 0.0f;
+    uniform.exposureCompensation = exposure.ExposureCompensation;
+    uniform.sunAngularRadius = 0.004675f;
+    uniform.hdrSkyLuminance = manager.ComputeHdrSkyLuminance(sun, atmosphere);
     uniform.sunCastShadows = sun.CastDynamicShadows ? 1 : 0;
     uniform.sunTemperature = sun.TemperatureKelvin;
     return uniform;

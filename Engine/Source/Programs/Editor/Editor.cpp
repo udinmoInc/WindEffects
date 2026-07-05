@@ -1,12 +1,19 @@
 #include "Editor.hpp"
 #include "FirstRunAgreementPopup.hpp"
 #include "Core/Logger.hpp"
+#include "Core/DiagnosticMacros.hpp"
+#include "Core/FrameCounter.hpp"
+#include "Core/StartupValidator.hpp"
+#include "Core/LogCategory.hpp"
+#include "Renderer/RenderDiagnostics.hpp"
+#include "Renderer/FrameStats.hpp"
+#include "Renderer/Shader/ShaderLibrary.hpp"
+#include "Renderer/Shader/ShaderTypes.hpp"
 #include "Core/IgniteBTInvoker.hpp"
 #include "Runtime/Core/ModuleManager.hpp"
 #include "Runtime/Core/PluginManager.hpp"
 #include "EditorRegistry.hpp"
-
-// HouseUI Layout & Widgets
+#include "Environment/EnvironmentEditorApi.h"
 #include "Widgets/Panel.hpp"
 #include "Layout/Box.hpp"
 #include "Layout/Splitter.hpp"
@@ -36,11 +43,8 @@
 #include "EditorLayoutPersistence.hpp"
 #include "Core/DockTabBrandRegistry.hpp"
 #include "Runtime/Core/AssetRegistry.hpp"
-#include "EditorPreferences.hpp"
 #include "EditorGridRenderer.hpp"
 #include "Core/Theme.hpp"
-#include "Renderer/Shader/ShaderLibrary.hpp"
-#include "Environment/EnvironmentEditorApi.h"
 #include "Explorer/WorldOutlinerApi.h"
 #include "Runtime/World/DefaultScene/DefaultSceneBuilder.h"
 #include "Runtime/World/Environment/EnvironmentSystem.h"
@@ -49,6 +53,7 @@
 
 #include <SDL3/SDL.h>
 #include <algorithm>
+#include <chrono>
 #include <cmath>
 #include <iostream>
 #include <unordered_map>
@@ -70,14 +75,10 @@ using namespace we::runtime::world;
 Editor::Editor(SDL_Window* window) : m_Window(window) {
     HE_INFO("[Startup] === Editor construction begin ===");
 
-    HE_INFO("[Startup] Stage 1/6: Vulkan context...");
-    m_Context = std::make_shared<VulkanContext>(m_Window);
+        HE_INFO("[Startup] Stage 1/6: Vulkan context...");
+        m_Context = std::make_shared<VulkanContext>(m_Window);
 
-    volkInitialize();
-    volkLoadInstance(m_Context->GetInstance());
-    volkLoadDevice(m_Context->GetDevice());
-
-    {
+        {
         std::string shaderRoot = "Engine/Shaders";
         std::string bytecodeRoot = "Assets/Shaders";
         for (const char* candidate : {"Engine/Shaders", "../Engine/Shaders", "../../Engine/Shaders"})
@@ -88,7 +89,7 @@ Editor::Editor(SDL_Window* window) : m_Window(window) {
                 break;
             }
         }
-        for (const char* candidate : {"Assets/Shaders", "../Assets/Shaders"})
+        for (const char* candidate : {"Engine/Shaders/Bytecodes", "Assets/Shaders", "../Assets/Shaders", "Shaders"})
         {
             if (std::filesystem::exists(candidate))
             {
@@ -103,8 +104,6 @@ Editor::Editor(SDL_Window* window) : m_Window(window) {
     m_Renderer = std::make_shared<Renderer>(m_Context, m_Window);
     m_RenderGraph = std::make_shared<RenderGraph>(m_Renderer);
     m_SceneRenderer = std::make_shared<SceneRenderer>(m_Context, m_Renderer->GetOffscreenRenderPass(), m_Renderer->GetCameraDescLayout());
-    m_SceneRenderer->SetEditorBackgroundEnabled(true);
-    EditorPreferences::Get().ApplyEditorViewportIfDirty(m_SceneRenderer);
 
     we::editor::grid::EditorGridRenderer::Get().Initialize(
         m_Context,
@@ -119,6 +118,41 @@ Editor::Editor(SDL_Window* window) : m_Window(window) {
     we::runtime::world::environment::EnvironmentSystem::Get().BindRenderer(m_SceneRenderer);
     PlaceActorsPlacement::Get().BindScene(m_Scene, m_Camera);
     DefaultSceneBuilder::CreateDefaultScene(*m_Scene);
+    we::runtime::world::environment::EnvironmentSystem::Get().UpdateRendering(m_Camera->GetPosition());
+
+    m_SceneRenderer->PrepareAtmosphereLUTs(VK_NULL_HANDLE);
+    if (!m_SceneRenderer->AreAtmosphereLUTsReady()) {
+        HE_ERROR("[Startup] Atmosphere LUTs not ready after initialization.");
+        m_SceneRenderer->LogAtmospherePipelineDiagnostics();
+    } else {
+        HE_INFO("[Startup] Atmosphere LUTs initialized successfully.");
+    }
+
+    {
+        auto& startup = we::runtime::core::StartupValidator::Get();
+        startup.RegisterCheck("VulkanContext", [this](std::string& detail) {
+            detail = m_Context->GetGPUName();
+            return m_Context->GetDevice() != VK_NULL_HANDLE;
+        });
+        startup.RegisterCheck("SceneRendererPipelines", [this](std::string& detail) {
+            const bool pipeline = m_SceneRenderer->IsSkyPipelineCreated();
+            const bool luts = m_SceneRenderer->AreAtmosphereLUTsReady();
+            detail = pipeline
+                ? (luts ? "Sky pipeline and LUTs ready" : "Sky pipeline created, LUTs not ready")
+                : "Sky pipeline missing";
+            return pipeline && luts;
+        });
+        startup.RegisterCheck("ShaderBytecodes", [](std::string& detail) {
+            const auto atmosphere = ShaderLibrary::Get().GetBytecode("AtmospherePass", ShaderStage::Pixel);
+            detail = atmosphere.data.empty() ? "AtmospherePass bytecode missing" : "AtmospherePass loaded";
+            return !atmosphere.data.empty();
+        });
+        startup.RunAll();
+        RenderDiagnostics::Get().ValidateStartup(
+            m_SceneRenderer.get(),
+            m_Renderer->GetOffscreenRenderPass(),
+            m_Renderer->GetSwapchainRenderPass());
+    }
 
     HE_INFO("[Startup] Stage 3/6: Default assets (fonts, shaders, icons, theme)...");
     if (!we::core::AssetRegistry::Get().LoadDefaultEditorAssets()) {
@@ -465,15 +499,6 @@ void Editor::BuildDynamicEditorUI() {
     }
 
     if (m_UIRenderer && m_UIRenderer->GetIconRenderer()) {
-        float displayScale = 1.0f;
-        if (m_Window) {
-            int logicalW = 0;
-            int pixelW = 0;
-            SDL_GetWindowSize(m_Window, &logicalW, nullptr);
-            if (SDL_GetWindowSizeInPixels(m_Window, &pixelW, nullptr) && logicalW > 0) {
-                displayScale = static_cast<float>(pixelW) / static_cast<float>(logicalW);
-            }
-        }
         const float logoLogical = we::programs::editor::GetExplorerDockTabLogoSize();
         const int logoPx = static_cast<int>(std::round(logoLogical * displayScale));
         VkDescriptorSet explorerLogo = m_UIRenderer->GetIconRenderer()->GetIcon("Assets/Editor/windeffects.svg", logoPx);
@@ -550,16 +575,28 @@ void Editor::BuildDynamicEditorUI() {
         HE_INFO("[UI] ContentBrowser panel created (fallback).");
     }
 
-    // ===== 7b. Create Debug Panel =====
-    auto debugPanel = std::make_shared<Panel>("Debug");
+    // ===== 7b. Create Output Log Panel =====
+    std::shared_ptr<Panel> outputLogPanel;
+    if (panelFactories.count("OutputLog")) {
+        outputLogPanel = panelFactories.at("OutputLog")();
+        HE_INFO("[UI] Output Log panel created from registry.");
+    } else {
+        outputLogPanel = std::make_shared<Panel>("Output Log");
+        outputLogPanel->SetHeaderHeight(30.0f);
+        outputLogPanel->SetContent(std::make_shared<Label>("Output log unavailable."));
+        HE_WARN("[UI] OutputLog panel factory missing.");
+    }
+
+    // ===== 7c. Create Debug Panel =====
+    auto debugPanel = std::make_shared<Panel>("Diagnostics");
     debugPanel->SetHeaderHeight(30.0f);
-    auto debugContent = std::make_shared<Label>("Debug output will appear here.");
+    auto debugContent = std::make_shared<Label>("Renderer diagnostics overlay is shown in the viewport.");
     TextStyle debugStyle;
     debugStyle.size = Theme::Get().TextSizeProperty;
     debugStyle.color = Theme::Get().TextSecondary;
     debugContent->SetStyle(debugStyle);
     debugPanel->SetContent(debugContent);
-    HE_INFO("[UI] Debug panel created.");
+    HE_INFO("[UI] Diagnostics panel created.");
 
     EditorPanelController::Get().RegisterDockZone(EditorDockZone::Left, toolsDock);
     EditorPanelController::Get().RegisterDockZone(EditorDockZone::Center, centralDock);
@@ -572,7 +609,8 @@ void Editor::BuildDynamicEditorUI() {
     EditorPanelController::Get().RegisterPanel(EditorPanelId::Details, "Details", detailsPanel, EditorDockZone::Right);
     EditorPanelController::Get().RegisterPanel(EditorPanelId::ViewportNavigation, "Viewport Navigation", viewportNavigationPanel, EditorDockZone::RightInspector);
     EditorPanelController::Get().RegisterPanel(EditorPanelId::ContentBrowser, "Content Browser", contentBrowserPanel, EditorDockZone::Bottom);
-    EditorPanelController::Get().RegisterPanel(EditorPanelId::Debug, "Debug", debugPanel, EditorDockZone::Bottom);
+    EditorPanelController::Get().RegisterPanel(EditorPanelId::OutputLog, "Output Log", outputLogPanel, EditorDockZone::Bottom);
+    EditorPanelController::Get().RegisterPanel(EditorPanelId::Debug, "Diagnostics", debugPanel, EditorDockZone::Bottom);
 
     vpItem->checked = EditorPanelController::Get().IsPanelVisible(EditorPanelId::Viewport);
     cbItem->checked = EditorPanelController::Get().IsPanelVisible(EditorPanelId::ContentBrowser);
@@ -589,7 +627,8 @@ void Editor::BuildDynamicEditorUI() {
         HE_INFO("[Command] " + command);
     });
     m_StatusBar->SetOnOutputLogClicked([]() {
-        HE_INFO("[Footer] Output log clicked.");
+        EditorPanelController::Get().SetPanelVisible(EditorPanelId::OutputLog, true);
+        EditorPanelController::Get().FocusPanel(EditorPanelId::OutputLog);
     });
     m_StatusBar->SetOnBuildMenuClicked([]() {
         const auto result = we::core::InvokeIgniteBT({ "build", "--config", "Debug" });
@@ -918,7 +957,7 @@ void Editor::MainLoop() {
 
         m_Camera->Update(dt);
         m_Scene->Update();
-        we::runtime::world::environment::EnvironmentSystem::Get().SyncFromScene();
+        we::runtime::world::environment::EnvironmentSystem::Get().SyncFromScene(m_Camera->GetPosition());
         we::editor::environment::TickEditor();
 
         // Flush viewport resize before GPU work
@@ -928,6 +967,9 @@ void Editor::MainLoop() {
         }
 
         m_RootWidget->Tick(dt);
+
+        we::runtime::core::FrameCounter::Advance();
+        FrameStatsCollector::Get().BeginFrame();
 
         if (m_UIEventSystem && m_ViewportWidget) {
             if (auto vp = std::dynamic_pointer_cast<ViewportWidget>(m_ViewportWidget)) {
@@ -944,25 +986,73 @@ void Editor::MainLoop() {
 
         if (m_Renderer->BeginFrame()) {
             VkCommandBuffer cmd = m_Renderer->GetCommandBuffer();
+            auto& offscreenFB = m_Renderer->GetOffscreenFramebuffer();
+            m_SceneRenderer->ValidateRenderFrame(offscreenFB.GetFramebuffer(), offscreenFB.GetWidth(), offscreenFB.GetHeight());
 
             if (firstFrame) {
-                HE_INFO("[Render] First frame: offscreen 3D pass -> swapchain UI pass -> present");
+                WE_LOG_INFO(we::LogCategory::Renderer.data(), "First frame: offscreen 3D pass -> post exposure -> swapchain UI pass -> present");
             }
 
+            const auto passStart = std::chrono::steady_clock::now();
             m_RenderGraph->BeginOffscreenPass(cmd);
-            m_SceneRenderer->SetEditorBackgroundEnabled(true);
-            EditorPreferences::Get().ApplyEditorViewportIfDirty(m_SceneRenderer);
-            m_SceneRenderer->DrawEditorBackground(cmd, m_Renderer->GetCameraDescSet());
-            m_Scene->Draw(cmd);
-            we::editor::grid::EditorGridRenderer::Get().Render(cmd, m_Renderer->GetCameraDescSet(), *m_Camera);
+            const VkDescriptorSet cameraDescSet = m_Renderer->GetCameraDescSet();
+            m_SceneRenderer->PrepareAtmosphereLUTs(cmd);
+
+            {
+                const auto skyStart = std::chrono::steady_clock::now();
+                m_SceneRenderer->DrawSkyAtmospherePass(cmd, cameraDescSet);
+                FrameStatsCollector::Get().RecordPassMs("SkyAtmosphere",
+                    std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - skyStart).count());
+            }
+            {
+                const auto cloudStart = std::chrono::steady_clock::now();
+                m_SceneRenderer->DrawVolumetricCloudsPass(cmd, cameraDescSet);
+                FrameStatsCollector::Get().RecordPassMs("VolumetricClouds",
+                    std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - cloudStart).count());
+            }
+            {
+                const auto sceneStart = std::chrono::steady_clock::now();
+                m_Scene->Draw(cmd);
+                FrameStatsCollector::Get().RecordPassMs("Scene",
+                    std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - sceneStart).count());
+            }
+            {
+                const auto fogStart = std::chrono::steady_clock::now();
+                m_SceneRenderer->DrawFogCompositePass(
+                    cmd,
+                    cameraDescSet,
+                    offscreenFB.GetDepthImageView(),
+                    offscreenFB.GetSampler());
+                FrameStatsCollector::Get().RecordPassMs("FogComposite",
+                    std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - fogStart).count());
+            }
+            we::editor::grid::EditorGridRenderer::Get().Render(cmd, cameraDescSet, *m_Camera);
             we::programs::editor::UpdateViewportCameraSpeedIndicator();
             m_RenderGraph->EndOffscreenPass(cmd);
+
+            {
+                const auto postStart = std::chrono::steady_clock::now();
+                m_SceneRenderer->ApplyPostExposure(
+                    cmd,
+                    offscreenFB.GetColorImage(),
+                    offscreenFB.GetColorImageView(),
+                    offscreenFB.GetWidth(),
+                    offscreenFB.GetHeight());
+                FrameStatsCollector::Get().RecordPassMs("PostExposure",
+                    std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - postStart).count());
+            }
+
+            FrameStatsCollector::Get().RecordPassMs("Offscreen",
+                std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - passStart).count());
+
+            m_SceneRenderer->LogAtmospherePipelineDiagnostics();
 
             m_RenderGraph->BeginSwapchainPass(cmd);
             m_UIRenderer->Render(cmd, m_Renderer->GetSwapchainWidth(), m_Renderer->GetSwapchainHeight(), m_RootWidget);
             m_RenderGraph->EndSwapchainPass(cmd);
 
             m_Renderer->EndFrame();
+            FrameStatsCollector::Get().EndFrame();
 
             if (firstFrame) {
                 const auto& stats = m_UIRenderer->GetLastFrameStats();
@@ -989,7 +1079,7 @@ void Editor::Shutdown() {
     if (m_Window) {
         SDL_SetWindowRelativeMouseMode(m_Window, false);
     }
-    vkDeviceWaitIdle(m_Context->GetDevice());
+        m_Context->WaitUntilIdle();
 
     we::core::PluginManager::Get().UnloadAllPlugins();
     we::core::ModuleManager::Get().ShutdownAllModules();

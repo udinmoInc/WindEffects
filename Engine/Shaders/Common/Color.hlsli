@@ -56,6 +56,26 @@ float3 WE_ApplyFilmicTonemap(float3 linearColor, float exposureScale)
     return WE_ACESFilm(exposed);
 }
 
+float3 WE_SanitizeHdrColor(float3 color)
+{
+    if (any(isnan(color)) || any(isinf(color)))
+        return float3(0.0, 0.0, 0.0);
+    return clamp(color, float3(0.0, 0.0, 0.0), float3(65504.0, 65504.0, 65504.0));
+}
+
+float WE_ComputeExposureEV(float3 lightTravelDir, float baseEV, float compensation)
+{
+    const float sunElevation = normalize(-lightTravelDir).y;
+    const float dayFactor = saturate(sunElevation * 2.5 + 0.1);
+    const float twilightFactor = saturate(1.0 - abs(sunElevation) * 3.0);
+    const float nightEV = baseEV - 5.0;
+    const float dayEV = baseEV + 1.0;
+    const float twilightEV = baseEV - 1.5;
+    float ev = lerp(nightEV, dayEV, dayFactor);
+    ev = lerp(ev, twilightEV, twilightFactor * (1.0 - dayFactor));
+    return ev + compensation;
+}
+
 // Display-space clamp helper for ultra-dark backgrounds.
 float3 WE_ClampCharcoalExposure(float3 color, float ceiling, float floorValue)
 {
