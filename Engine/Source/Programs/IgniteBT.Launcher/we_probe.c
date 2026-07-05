@@ -25,8 +25,8 @@
 #define EXIT_ERROR 1
 #define EXIT_BUILD 2
 #define MAX_PATH_LEN 4096
-#define MAX_FILES 4096
-#define MAX_BUILDCS 256
+#define MAX_FILES 512
+#define MAX_BUILDCS 64
 
 typedef struct {
     char config[64];
@@ -43,11 +43,11 @@ typedef struct {
     int unity_size;
     char unity_disabled[512];
     int build_cs_count;
-    char build_cs_paths[MAX_BUILDCS][MAX_PATH_LEN];
+    char (*build_cs_paths)[MAX_PATH_LEN];
     int file_count;
-    char file_paths[MAX_FILES][MAX_PATH_LEN];
-    int64_t file_sizes[MAX_FILES];
-    int64_t file_mtimes[MAX_FILES];
+    char (*file_paths)[MAX_PATH_LEN];
+    int64_t* file_sizes;
+    int64_t* file_mtimes;
 } snapshot_t;
 
 typedef struct {
@@ -194,15 +194,27 @@ static int parse_build_args(int argc, char** argv, build_args_t* args) {
     return 0;
 }
 
-static int load_snapshot(const char* path, snapshot_t* snap) {
+static void free_snapshot(snapshot_t* snap) {
+    if (!snap) return;
+    free(snap->build_cs_paths);
+    free(snap->file_paths);
+    free(snap->file_sizes);
+    free(snap->file_mtimes);
+    free(snap);
+}
+
+static int load_snapshot(const char* path, snapshot_t** out_snap) {
     FILE* f = fopen(path, "rb");
     uint32_t magic;
     uint8_t version;
+    snapshot_t* snap;
+    *out_snap = NULL;
     if (!f) return -1;
-    memset(snap, 0, sizeof(*snap));
-    if (read_u32(f, &magic) != 0 || magic != SNAPSHOT_MAGIC) { fclose(f); return -1; }
-    if (fread(&version, 1, 1, f) != 1) { fclose(f); return -1; }
-    if (version != SNAPSHOT_V1 && version != SNAPSHOT_V2) { fclose(f); return -1; }
+    snap = (snapshot_t*)calloc(1, sizeof(snapshot_t));
+    if (!snap) { fclose(f); return -1; }
+    if (read_u32(f, &magic) != 0 || magic != SNAPSHOT_MAGIC) { free_snapshot(snap); fclose(f); return -1; }
+    if (fread(&version, 1, 1, f) != 1) { free_snapshot(snap); fclose(f); return -1; }
+    if (version != SNAPSHOT_V1 && version != SNAPSHOT_V2) { free_snapshot(snap); fclose(f); return -1; }
 
     if (read_string(f, snap->config, sizeof(snap->config)) != 0) goto fail;
     if (read_string(f, snap->platform, sizeof(snap->platform)) != 0) goto fail;
@@ -226,17 +238,25 @@ static int load_snapshot(const char* path, snapshot_t* snap) {
         if (read_string(f, snap->unity_disabled, sizeof(snap->unity_disabled)) != 0) goto fail;
     }
     if (read_i32(f, &snap->build_cs_count) != 0 || snap->build_cs_count < 0 || snap->build_cs_count > MAX_BUILDCS) goto fail;
+    snap->build_cs_paths = (char (*)[MAX_PATH_LEN])calloc((size_t)snap->build_cs_count, MAX_PATH_LEN);
+    if (!snap->build_cs_paths) goto fail;
     for (int i = 0; i < snap->build_cs_count; i++)
         if (read_string(f, snap->build_cs_paths[i], MAX_PATH_LEN) != 0) goto fail;
     if (read_i32(f, &snap->file_count) != 0 || snap->file_count < 0 || snap->file_count > MAX_FILES) goto fail;
+    snap->file_paths = (char (*)[MAX_PATH_LEN])calloc((size_t)snap->file_count, MAX_PATH_LEN);
+    snap->file_sizes = (int64_t*)calloc((size_t)snap->file_count, sizeof(int64_t));
+    snap->file_mtimes = (int64_t*)calloc((size_t)snap->file_count, sizeof(int64_t));
+    if (!snap->file_paths || !snap->file_sizes || !snap->file_mtimes) goto fail;
     for (int i = 0; i < snap->file_count; i++) {
         if (read_string(f, snap->file_paths[i], MAX_PATH_LEN) != 0) goto fail;
         if (read_i64(f, &snap->file_sizes[i]) != 0) goto fail;
         if (read_i64(f, &snap->file_mtimes[i]) != 0) goto fail;
     }
     fclose(f);
+    *out_snap = snap;
     return 0;
 fail:
+    free_snapshot(snap);
     fclose(f);
     return -1;
 }
@@ -251,31 +271,6 @@ static int file_metadata(const char* path, int64_t* size, int64_t* mtime) {
     return 0;
 }
 
-static int count_build_cs(const char* source_root, int expected) {
-    char pattern[MAX_PATH_LEN];
-    int count = 0;
-    snprintf(pattern, sizeof(pattern), "%s\\*", source_root);
-    WIN32_FIND_DATAA fd;
-    HANDLE h = FindFirstFileA(pattern, &fd);
-    if (h == INVALID_HANDLE_VALUE) return -1;
-    do {
-        if (strcmp(fd.cFileName, ".") == 0 || strcmp(fd.cFileName, "..") == 0) continue;
-        char child[MAX_PATH_LEN];
-        snprintf(child, sizeof(child), "%s\\%s", source_root, fd.cFileName);
-        if (fd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) {
-            count += count_build_cs(child, expected);
-            if (count > expected) break;
-        } else {
-            size_t len = strlen(fd.cFileName);
-            if (len > 9 && _stricmp(fd.cFileName + len - 9, ".Build.cs") == 0) {
-                count++;
-                if (count > expected) break;
-            }
-        }
-    } while (FindNextFileA(h, &fd));
-    FindClose(h);
-    return count;
-}
 #else
 static int file_metadata(const char* path, int64_t* size, int64_t* mtime) {
     struct stat st;
@@ -288,21 +283,18 @@ static int file_metadata(const char* path, int64_t* size, int64_t* mtime) {
 
 static int validate_snapshot(const snapshot_t* snap, const char* engine_root) {
     int64_t size, mtime;
+    (void)engine_root;
     if (snap->compiler_path[0]) {
         if (file_metadata(snap->compiler_path, &size, &mtime) != 0) return -1;
         if (size != snap->compiler_size || mtime != snap->compiler_mtime) return -1;
     }
-    char source_root[MAX_PATH_LEN];
-    snprintf(source_root, sizeof(source_root), "%s/Source", engine_root);
-#ifdef _WIN32
     for (int i = 0; i < snap->build_cs_count; i++) {
+#ifdef _WIN32
         if (GetFileAttributesA(snap->build_cs_paths[i]) == INVALID_FILE_ATTRIBUTES) return -1;
-    }
-    int found = count_build_cs(source_root, snap->build_cs_count);
-    if (found != snap->build_cs_count) return -1;
 #else
-    (void)source_root;
+        if (access(snap->build_cs_paths[i], 0) != 0) return -1;
 #endif
+    }
     for (int i = 0; i < snap->file_count; i++) {
         if (file_metadata(snap->file_paths[i], &size, &mtime) != 0) return -1;
         if (size != snap->file_sizes[i] || mtime != snap->file_mtimes[i]) return -1;
@@ -333,7 +325,7 @@ int main(int argc, char** argv) {
     (void)freq;
 #endif
     build_args_t args;
-    snapshot_t snap;
+    snapshot_t* snap = NULL;
     char snapshot_path[MAX_PATH_LEN];
     char manifest_path[MAX_PATH_LEN];
 
@@ -350,8 +342,9 @@ int main(int argc, char** argv) {
 
     if (access(manifest_path, 0) != 0) return EXIT_BUILD;
     if (load_snapshot(snapshot_path, &snap) != 0) return EXIT_BUILD;
-    if (!matches_request(&snap, &args)) return EXIT_BUILD;
-    if (validate_snapshot(&snap, args.engine_root) != 0) return EXIT_BUILD;
+    if (!matches_request(snap, &args)) { free_snapshot(snap); return EXIT_BUILD; }
+    if (validate_snapshot(snap, args.engine_root) != 0) { free_snapshot(snap); return EXIT_BUILD; }
+    free_snapshot(snap);
 
 #ifdef _WIN32
     QueryPerformanceCounter(&t1);

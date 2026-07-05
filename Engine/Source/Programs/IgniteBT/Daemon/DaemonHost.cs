@@ -9,6 +9,9 @@ public static class DaemonHost
 {
     public static int? TryForwardBuild(string[] args)
     {
+        if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("IGNITEBT_SKIP_DAEMON")))
+            return null;
+
         var cwd = Directory.GetCurrentDirectory();
         var projectRoot = IgniteBT.Build.Layout.BuildLayout.FindProjectRoot(cwd);
         if (string.IsNullOrEmpty(projectRoot)) return null;
