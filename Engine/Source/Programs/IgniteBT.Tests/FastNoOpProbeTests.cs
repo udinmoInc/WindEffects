@@ -47,6 +47,10 @@ public class FastNoOpProbeTests : IDisposable
             manifest.ToolchainHash,
             "14.0",
             "",
+            Environment.ProcessorCount,
+            false,
+            0,
+            "",
             [buildCs],
             [buildCs, cpp])
             .Save(layout.DatabaseDirectory);
@@ -57,7 +61,8 @@ public class FastNoOpProbeTests : IDisposable
     {
         var layout = IgniteBT.Build.Layout.BuildLayout.Resolve(_projectRoot, "Win64", IgniteBT.Build.Compiler.BuildConfiguration.Development);
         var flags = BuildFlagsHasher.Compute(null, false, 0, [], Environment.ProcessorCount);
-        var result = FastNoOpProbe.TryProbe(_engineRoot, layout, "Development", "Win64", null, flags);
+        var result = FastNoOpProbe.TryProbe(_engineRoot, layout, "Development", "Win64", null, flags,
+            Environment.ProcessorCount, false, 0, "");
         Assert.True(result.IsNoOp);
         Assert.True(result.ElapsedMs < 200);
     }
@@ -70,7 +75,8 @@ public class FastNoOpProbeTests : IDisposable
 
         var layout = IgniteBT.Build.Layout.BuildLayout.Resolve(_projectRoot, "Win64", IgniteBT.Build.Compiler.BuildConfiguration.Development);
         var flags = BuildFlagsHasher.Compute(null, false, 0, [], Environment.ProcessorCount);
-        var result = FastNoOpProbe.TryProbe(_engineRoot, layout, "Development", "Win64", null, flags);
+        var result = FastNoOpProbe.TryProbe(_engineRoot, layout, "Development", "Win64", null, flags,
+            Environment.ProcessorCount, false, 0, "");
         Assert.False(result.IsNoOp);
     }
 

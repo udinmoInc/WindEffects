@@ -135,8 +135,22 @@ if ([string]::IsNullOrWhiteSpace($manifestRel)) {
 }
 
 $manifestPath = Join-Path $engineRoot $manifestRel
-$tool = $null
 $forwardArgs = $CommandArgs
+
+if ($forwardArgs.Length -gt 0 -and $forwardArgs[0] -eq "build") {
+    $probe = Join-Path $engineRoot "Build\Intermediate\IgniteBT\Launcher\we_probe.exe"
+    if (Test-Path -LiteralPath $probe) {
+        $buildArgs = @()
+        if ($forwardArgs.Length -gt 1) {
+            $buildArgs = $forwardArgs[1..($forwardArgs.Length - 1)]
+        }
+        & $probe @buildArgs
+        if ($LASTEXITCODE -eq 0) { exit 0 }
+        if ($LASTEXITCODE -ne 2) { exit $LASTEXITCODE }
+    }
+}
+
+$tool = $null
 
 if (Test-Path -LiteralPath $manifestPath) {
     $manifest = Read-IniDocument -Path $manifestPath

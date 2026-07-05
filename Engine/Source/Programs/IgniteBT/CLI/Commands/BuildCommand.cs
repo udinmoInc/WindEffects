@@ -32,6 +32,8 @@ public static class BuildCommand
         if (int.TryParse(parsed.GetOption("unity-size", ""), out var us)) unitySize = us;
         var unityDisabled = parsed.GetOption("unity-disable", "")
             .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        var unityDisabledStr = string.Join(",",
+            unityDisabled.OrderBy(s => s, StringComparer.OrdinalIgnoreCase));
 
         int jobs;
         try { jobs = CommandLineHelpers.ParseJobs(parsed.GetOption("jobs", string.Empty)); }
@@ -48,7 +50,8 @@ public static class BuildCommand
         var buildFlagsHash = BuildFlagsHasher.Compute(buildTarget, unityBuild, unitySize, unityDisabled, jobs);
 
         var probe = FastNoOpProbe.TryProbe(
-            engineDir, layout, buildConfig.ToString(), platform, buildTarget, buildFlagsHash);
+            engineDir, layout, buildConfig.ToString(), platform, buildTarget, buildFlagsHash,
+            jobs, unityBuild, unitySize, unityDisabledStr);
 
         if (!probe.IsNoOp) return null;
 
