@@ -27,6 +27,14 @@ void CSMain(uint3 dtid : SV_DispatchThreadID)
 
     float3 color = WE_SanitizeHdrColor(sceneColor[dtid.xy].rgb);
 
+    // Atmosphere validation: passthrough linear color with sRGB encoding only.
+    if (atmosphereDebugMode != 0)
+    {
+        color = WE_LinearToSRGB(color);
+        sceneOutput[dtid.xy] = float4(color, 1.0);
+        return;
+    }
+
     const float2 bloomUv = (float2(dtid.xy) + 0.5) / float2(width, height);
     const float3 bloom = bloomTexture.SampleLevel(linearSampler, bloomUv, 0.0).rgb;
     color += bloom * bloomIntensity;

@@ -49,6 +49,8 @@ class Program
                 "modules" => await ModulesCommand.Execute(remainingArgs),
                 "doctor" => await DoctorCommand.Execute(remainingArgs),
                 "version" => VersionCommand.Execute(),
+                "daemon" => DaemonCommand.Execute(remainingArgs),
+                "benchmark" => await BenchmarkCommand.Execute(remainingArgs),
                 _ => PrintUsage()
             };
         }
@@ -71,13 +73,12 @@ class Program
         Console.WriteLine("  we build [target] [--target NAME] [--config Debug|Development|Shipping] [--platform Win64|Windows|Linux|Mac] [--jobs N] [--clean]");
         Console.WriteLine("  we clean [target] [--target NAME] [--config Debug|Development|Shipping] [--platform Win64|Windows|Linux|Mac]");
         Console.WriteLine("  we rebuild [target] [--target NAME] [--config Debug|Development|Shipping] [--platform Win64|Windows|Linux|Mac] [--jobs N]");
-        Console.WriteLine("  we package [target]");
         Console.WriteLine("  we run [--target Editor] [--config Debug]");
-        Console.WriteLine("  we project list|open|create");
-        Console.WriteLine("  we plugin list|build|enable|disable");
         Console.WriteLine("  we sdk list|detect|validate");
         Console.WriteLine("  we setup");
         Console.WriteLine("  we doctor");
+        Console.WriteLine("  we daemon");
+        Console.WriteLine("  we benchmark [--jobs 8,16,32]");
         Console.WriteLine("  we graph");
         Console.WriteLine("  we modules");
         Console.WriteLine("  we version");

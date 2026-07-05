@@ -9,7 +9,7 @@ public static class PluginCommand
         if (args.Length == 0)
         {
             PrintUsage();
-            return 0;
+            return 1;
         }
 
         var subcommand = args[0].ToLowerInvariant();
@@ -27,8 +27,8 @@ public static class PluginCommand
 
     private static Task<int> ListPlugins()
     {
-        Log.Information("Plugin list is not yet implemented.");
-        return Task.FromResult(0);
+        Log.Error("Plugin list is not implemented.");
+        return Task.FromResult(1);
     }
 
     private static Task<int> BuildPlugin(string[] args)
@@ -39,9 +39,8 @@ public static class PluginCommand
             return Task.FromResult(1);
         }
 
-        Log.Information("Building plugin: {Name}", args[0]);
-        Log.Warning("Plugin build is not yet implemented.");
-        return Task.FromResult(0);
+        Log.Error("Plugin build is not implemented.");
+        return Task.FromResult(1);
     }
 
     private static Task<int> SetPluginState(string[] args, bool enabled)
@@ -52,9 +51,8 @@ public static class PluginCommand
             return Task.FromResult(1);
         }
 
-        Log.Information("{Action} plugin: {Name}", enabled ? "Enabling" : "Disabling", args[0]);
-        Log.Warning("Plugin management is not yet implemented.");
-        return Task.FromResult(0);
+        Log.Error("Plugin management is not implemented.");
+        return Task.FromResult(1);
     }
 
     private static int PrintUsage()
@@ -64,6 +62,6 @@ public static class PluginCommand
         Console.WriteLine("  we plugin build <name>");
         Console.WriteLine("  we plugin enable <name>");
         Console.WriteLine("  we plugin disable <name>");
-        return 0;
+        return 1;
     }
 }

@@ -27,21 +27,24 @@ VSOutput VSMain(uint vertexId : SV_VertexID)
     return o;
 }
 
-float3 WE_VisualizeScalar(float value, float scale)
-{
-    const float v = saturate(value / max(scale, 1e-5));
-    return float3(v, v * v, 1.0 - v);
-}
-
-float3 WE_VisualizeVector(float3 value, float scale)
-{
-    return saturate(value / max(scale, 1e-5) * 0.5 + 0.5);
-}
-
 float4 PSMain(VSOutput input) : SV_Target
 {
+    // Validation stages — no atmosphere math.
+    if (atmosphereDebugMode == 101)
+        return float4(1.0, 0.0, 0.0, 1.0);
+    if (atmosphereDebugMode == 102)
+        return float4(0.0, 1.0, 0.0, 1.0);
+    if (atmosphereDebugMode == 103)
+        return float4(0.0, 0.0, 1.0, 1.0);
+
     const float3 viewDir = normalize(WE_UnprojectDirection(input.uv, view, proj, cameraPos));
     const float3 sunDir = normalize(-sunDirection);
+
+    if (atmosphereDebugMode == 1)
+        return float4(saturate(viewDir * 0.5 + 0.5), 1.0);
+    if (atmosphereDebugMode == 2)
+        return float4(saturate(sunDir * 0.5 + 0.5), 1.0);
+
     const float3 rayleigh = max(atmosphereRayleigh, float3(1e-6, 1e-6, 1e-6));
     const float3 ozone = max(ozoneAbsorption, float3(0.0, 0.0, 0.0));
 
@@ -54,25 +57,23 @@ float4 PSMain(VSOutput input) : SV_Target
     const float3 origin = WE_GetAtmosphereOrigin(cameraPos, worldOrigin, params.planetRadius, params.eyeAltitude);
     WE_InscatteringResult inscatter = WE_IntegrateInscatteringDetailed(viewDir, sunDir, origin, params);
 
-    float3 skyLinear = inscatter.skyRadiance;
-    skyLinear += WE_ComputeSunDisk(viewDir, sunDir, sunIntensity, max(sunColor, float3(0.0, 0.0, 0.0)), params.sunAngularRadius);
+    float3 skyLinear = float3(0.0, 0.0, 0.0);
 
-    if (atmosphereDebugMode == 1)
-        skyLinear = WE_VisualizeVector(viewDir, 1.0);
-    else if (atmosphereDebugMode == 2)
-        skyLinear = WE_VisualizeVector(sunDir, 1.0);
-    else if (atmosphereDebugMode == 3)
-        skyLinear = WE_VisualizeScalar(inscatter.rayDistanceKm, params.atmosphereRadius - params.planetRadius);
-    else if (atmosphereDebugMode == 4)
-        skyLinear = WE_VisualizeScalar(dot(inscatter.opticalDepth, float3(0.2126, 0.7152, 0.0722)), 4.0);
+    if (atmosphereDebugMode == 4)
+        skyLinear = inscatter.opticalDepth;
     else if (atmosphereDebugMode == 5)
-        skyLinear = WE_VisualizeVector(inscatter.transmittanceToCamera, 1.0);
+        skyLinear = inscatter.transmittanceToCamera;
     else if (atmosphereDebugMode == 6)
-        skyLinear = WE_VisualizeVector(inscatter.rayleighContribution, 2.0);
+        skyLinear = inscatter.rayleighContribution;
     else if (atmosphereDebugMode == 7)
-        skyLinear = WE_VisualizeVector(inscatter.mieContribution, 2.0);
-    else if (atmosphereDebugMode == 8)
+        skyLinear = inscatter.mieContribution;
+    else if (atmosphereDebugMode == 9)
+        skyLinear = WE_ComputeSunDisk(viewDir, sunDir, sunIntensity, max(sunColor, float3(0.0, 0.0, 0.0)), params.sunAngularRadius);
+    else
+    {
         skyLinear = inscatter.skyRadiance;
+        skyLinear += WE_ComputeSunDisk(viewDir, sunDir, sunIntensity, max(sunColor, float3(0.0, 0.0, 0.0)), params.sunAngularRadius);
+    }
 
     skyLinear = WE_SanitizeHdrColor(skyLinear);
     return float4(skyLinear, 1.0);

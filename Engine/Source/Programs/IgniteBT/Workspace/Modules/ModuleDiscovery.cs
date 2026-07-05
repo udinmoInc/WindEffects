@@ -52,11 +52,18 @@ public class ModuleDiscoverer
     /// Discovers all modules in the engine directory.
     /// </summary>
     public async Task<List<DiscoveredModule>> DiscoverModulesAsync()
+        => await DiscoverModulesAsync(null);
+
+    /// <summary>
+    /// Discovers modules, optionally restricted to specific Build.cs paths (for incremental cache refresh).
+    /// </summary>
+    public async Task<List<DiscoveredModule>> DiscoverModulesAsync(IReadOnlyList<string>? buildCsFilesOnly)
     {
         Log.Information("Discovering modules in {EngineDirectory}", _engineDirectory);
         _modules.Clear();
 
-        var buildCsFiles = Directory.GetFiles(_engineDirectory, "*.Build.cs", SearchOption.AllDirectories);
+        var buildCsFiles = buildCsFilesOnly?.ToArray()
+            ?? Directory.GetFiles(_engineDirectory, "*.Build.cs", SearchOption.AllDirectories);
         Log.Information("Found {Count} Build.cs files", buildCsFiles.Length);
 
         foreach (var buildCsFile in buildCsFiles)
@@ -65,7 +72,7 @@ public class ModuleDiscoverer
         }
 
         Log.Information("Successfully discovered {Count} modules", _modules.Count);
-        return _modules;
+        return _modules.ToList();
     }
 
     private async Task LoadModuleAsync(string buildCsPath)
@@ -169,6 +176,8 @@ public class ModuleDiscoverer
             PublicIncludePaths = new List<string>(moduleInstance.PublicIncludePaths),
             PrivateIncludePaths = new List<string>(moduleInstance.PrivateIncludePaths),
             SourceFiles = new List<string>(moduleInstance.SourceFiles),
+            PrecompiledHeader = moduleInstance.PrecompiledHeader,
+            PrecompiledHeaderSource = moduleInstance.PrecompiledHeaderSource,
             RequiredSDKs = new List<string>(moduleInstance.RequiredSDKs),
             OptionalSDKs = new List<string>(moduleInstance.OptionalSDKs),
             RequiredThirdParty = new List<string>(moduleInstance.RequiredThirdParty),
@@ -231,6 +240,8 @@ public class DiscoveredModule
     public List<string> PublicIncludePaths { get; set; } = new();
     public List<string> PrivateIncludePaths { get; set; } = new();
     public List<string> SourceFiles { get; set; } = new();
+    public string? PrecompiledHeader { get; set; }
+    public string? PrecompiledHeaderSource { get; set; }
     public List<string> RequiredSDKs { get; set; } = new();
     public List<string> OptionalSDKs { get; set; } = new();
     public List<string> RequiredThirdParty { get; set; } = new();

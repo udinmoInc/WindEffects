@@ -7,8 +7,8 @@ public static class PackageCommand
     public static async Task<int> Execute(string[] args)
     {
         Log.Information("Package Command");
-        Log.Warning("Packaging is not yet implemented. This command will produce distributable editor/runtime packages.");
+        Log.Error("Packaging is not implemented.");
         await Task.CompletedTask;
-        return 0;
+        return 1;
     }
 }

@@ -91,10 +91,12 @@ public class WorkerThread
     private readonly Thread _thread;
     private readonly CancellationTokenSource _cts;
     private volatile bool _isRunning;
+    private volatile bool _isBusy;
 
     public int Id { get; }
     public WorkStealingQueue LocalQueue => _localQueue;
     public bool IsRunning => _isRunning;
+    public bool IsBusy => _isBusy;
 
     public WorkerThread(WorkStealingThreadPool pool, int id)
     {
@@ -102,7 +104,7 @@ public class WorkerThread
         Id = id;
         _localQueue = new WorkStealingQueue();
         _cts = new CancellationTokenSource();
-        _thread = new Thread(Run) { Name = $"Worker-{id}", IsBackground = true };
+        _thread = new Thread(Run) { Name = $"IgniteBT-Worker-{id}", IsBackground = true };
     }
 
     /// <summary>
@@ -129,40 +131,33 @@ public class WorkerThread
     /// </summary>
     private async void Run()
     {
-        Log.Information("Worker thread {WorkerId} started", Id);
+        CpuAffinity.TryPinThreadToCore(Id);
 
         try
         {
             while (_isRunning && !_cts.Token.IsCancellationRequested)
             {
-                // Try to get work from local queue first
                 if (_localQueue.TryPop(out var item) && item != null)
                 {
                     await ExecuteWorkItem(item);
                     continue;
                 }
 
-                // Try to steal work from other workers
                 if (_pool.TryStealWork(this, out item) && item != null)
                 {
                     await ExecuteWorkItem(item);
                     continue;
                 }
 
-                // No work available, wait a bit
-                await Task.Delay(10, _cts.Token);
+                _pool.SignalWorkerIdle();
+                await Task.Delay(1, _cts.Token);
             }
         }
-        catch (OperationCanceledException)
-        {
-            // Expected during shutdown
-        }
+        catch (OperationCanceledException) { }
         catch (Exception ex)
         {
             Log.Error(ex, "Worker thread {WorkerId} crashed", Id);
         }
-
-        Log.Information("Worker thread {WorkerId} stopped", Id);
     }
 
     /// <summary>
@@ -170,27 +165,25 @@ public class WorkerThread
     /// </summary>
     private async Task ExecuteWorkItem(WorkItem item)
     {
+        _isBusy = true;
         try
         {
-            Log.Debug("Worker {WorkerId} executing: {WorkItem}", Id, item.Name);
-
             if (item.AsyncWork != null)
-            {
                 await item.AsyncWork();
-            }
             else if (item.SyncWork != null)
-            {
                 item.SyncWork();
-            }
 
             item.IsCompleted = true;
-            Log.Debug("Worker {WorkerId} completed: {WorkItem}", Id, item.Name);
         }
         catch (Exception ex)
         {
             item.Exception = ex;
             item.IsCompleted = true;
-            Log.Error(ex, "Worker {WorkerId} failed to execute {WorkItem}", Id, item.Name);
+            Log.Error(ex, "Worker {WorkerId} failed: {WorkItem}", Id, item.Name);
+        }
+        finally
+        {
+            _isBusy = false;
         }
     }
 }
@@ -203,6 +196,8 @@ public class WorkStealingThreadPool : IDisposable
     private readonly List<WorkerThread> _workers;
     private readonly ConcurrentQueue<WorkItem> _globalQueue;
     private readonly Random _random;
+    private int _nextWorkerIndex;
+    private long _idleSignals;
     private volatile bool _isDisposed;
 
     /// <summary>
@@ -262,16 +257,26 @@ public class WorkStealingThreadPool : IDisposable
     }
 
     /// <summary>
+    /// Queues work to a worker local queue (round-robin) for better cache locality.
+    /// </summary>
+    public void QueueWorkToLocal(Func<Task> work, string name = "Unnamed")
+    {
+        if (_isDisposed) throw new ObjectDisposedException(nameof(WorkStealingThreadPool));
+        var item = new WorkItem { AsyncWork = work, Name = name };
+        var index = Interlocked.Increment(ref _nextWorkerIndex) % _workers.Count;
+        _workers[index].LocalQueue.Push(item);
+    }
+
+    internal void SignalWorkerIdle() => Interlocked.Increment(ref _idleSignals);
+
+    public long IdleSignals => Interlocked.Read(ref _idleSignals);
+
+    /// <summary>
     /// Queues work to be executed.
     /// </summary>
     public void QueueWork(WorkItem item)
     {
-        if (_isDisposed)
-        {
-            throw new ObjectDisposedException(nameof(WorkStealingThreadPool));
-        }
-
-        // Add to global queue
+        if (_isDisposed) throw new ObjectDisposedException(nameof(WorkStealingThreadPool));
         _globalQueue.Enqueue(item);
     }
 

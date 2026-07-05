@@ -1,6 +1,12 @@
-using Serilog;
-using IgniteBT.Core.Launcher;
+﻿using Serilog;
+using IgniteBT.Build.Compiler;
 using IgniteBT.Build.Layout;
+using IgniteBT.Build.Toolchain;
+using IgniteBT.Core.Cache;
+using IgniteBT.Core.Database;
+using IgniteBT.Core.Launcher;
+using IgniteBT.Core.Threading;
+using IgniteBT.Daemon;
 using IgniteBT.Workspace.SDK;
 using IgniteBT.Workspace.ThirdParty;
 
@@ -10,36 +16,15 @@ public static class DoctorCommand
 {
     public static async Task<int> Execute(string[] args)
     {
-        Log.Information("Doctor Command - Diagnosing WindEffects toolchain");
-
+        Log.Information("=== IgniteBT Doctor ===");
         var issues = 0;
 
         try
         {
             var descriptor = BootstrapLauncher.ResolveDescriptor();
             Log.Information("Engine root: {EngineRoot}", descriptor.EngineRoot);
-            Log.Information("Engine version: {Version}", descriptor.EngineVersion);
-            Log.Information("Programs root: {ProgramsRoot}", descriptor.ProgramsRoot);
             Log.Information("Build root: {BuildRoot}", descriptor.BuildRoot);
-
             BootstrapManifest.Refresh(descriptor);
-            if (BootstrapManifest.TryLoad(descriptor.BootstrapManifestPath, out var manifest))
-            {
-                Log.Information("Bootstrap manifest: {Path}", descriptor.BootstrapManifestPath);
-                Log.Information("Registered tools: {Count}", manifest.Tools.Count);
-                foreach (var tool in manifest.Tools.Values.OrderBy(static t => t.Name, StringComparer.OrdinalIgnoreCase))
-                {
-                    var target = BootstrapManifest.IsToolRunnable(tool)
-                        ? tool.ExecutablePath
-                        : tool.SourcePath;
-                    Log.Information("  - {Name} ({Kind}) -> {Target}", tool.Name, tool.Kind, target);
-                }
-            }
-            else
-            {
-                Log.Warning("Bootstrap manifest is missing or invalid");
-                issues++;
-            }
         }
         catch (Exception ex)
         {
@@ -47,68 +32,90 @@ public static class DoctorCommand
             issues++;
         }
 
-        if (FindDotNetExecutable() == null)
+        var layout = BuildLayout.Resolve(Directory.GetCurrentDirectory(), "Win64", BuildConfiguration.Development);
+
+        Log.Information("--- Cache Health ---");
+        var cache = new BuildCache(layout.CacheDirectory);
+        var cacheStats = cache.GetStats();
+        Log.Information("Object cache: {Count} entries, {Size:F1} MB", cacheStats.EntryCount, cacheStats.TotalSizeMB);
+
+        var cacheReg = new PersistentCacheRegistry(layout.CacheDirectory);
+        var cacheHealth = cacheReg.GetHealth();
+        Log.Information("Cache registry: {Valid}/{Total} valid ({Pct:P1})",
+            cacheHealth.ValidEntries, cacheHealth.TotalEntries, cacheHealth.HealthPercent);
+        if (cacheHealth.MissingEntries > 0)
         {
-            Log.Error(".NET SDK: not found on PATH");
+            Log.Warning("Cache registry: {Missing} missing entries", cacheHealth.MissingEntries);
             issues++;
+        }
+
+        var cas = new ObjectCasStore(layout.CacheDirectory);
+        var casStats = cas.GetStats();
+        Log.Information("Object CAS: {Count} entries, {Size:F1} MB", casStats.EntryCount, casStats.TotalSizeBytes / (1024.0 * 1024.0));
+
+        Log.Information("--- Database Health ---");
+        using (var db = new BuildDb(layout.DatabaseDirectory))
+        {
+            var health = db.GetHealth();
+            Log.Information("SQLite Build.db: {Size:F2} MB | Modules: {Modules} | Objects: {Objects} | Include edges: {Deps} | History: {History}",
+                health.DatabaseSizeBytes / (1024.0 * 1024.0), health.ModuleCount, health.ObjectCount, health.HeaderDepCount, health.CompileHistoryCount);
+        }
+
+        Log.Information("--- Compiler Workers ---");
+        var compiler = ToolchainDetector.DetectCompiler();
+        if (compiler.Type != CompilerType.None)
+        {
+            using var pool = new CompilerWorkerPool(compiler.Path, 2, compiler.VcVarsAllPath, compiler.Type);
+            var poolHealth = pool.GetHealth();
+            Log.Information("Pool: {Alive}/{Max} alive, env cached: {Env}", poolHealth.AliveWorkers, poolHealth.MaxWorkers, poolHealth.EnvironmentCached);
         }
         else
         {
-            Log.Information(".NET SDK: available");
+            Log.Warning("No compiler detected");
+            issues++;
         }
+
+        Log.Information("--- Thread Pool ---");
+        using (var pool = new WorkStealingThreadPool(4))
+        {
+            pool.Start();
+            var stats = pool.GetStats();
+            Log.Information("Workers: {Count}, global queue: {Q}", stats.WorkerCount, stats.GlobalQueueSize);
+        }
+
+        Log.Information("--- System ---");
+        Log.Information("CPU cores: {Cores}, memory: {Mem:F1} GB",
+            Environment.ProcessorCount, GC.GetGCMemoryInfo().TotalAvailableMemoryBytes / (1024.0 * 1024.0 * 1024));
 
         SDKManager.Instance.Initialize();
         ThirdPartyManager.Instance.Initialize();
-
         var engineRoot = BuildLayout.FindEngineRoot(Directory.GetCurrentDirectory());
-        if (!string.IsNullOrEmpty(engineRoot))
-        {
-            if (!await ThirdPartyBootstrapper.EnsureRequiredAsync(engineRoot))
-            {
-                issues++;
-            }
-        }
+        if (!string.IsNullOrEmpty(engineRoot) && !await ThirdPartyBootstrapper.EnsureRequiredAsync(engineRoot))
+            issues++;
 
         var sdks = await SDKManager.Instance.DetectAllAsync();
-        Log.Information("SDKs detected: {Count}", sdks.Count);
-
-        foreach (var sdk in sdks.Values.OrderBy(s => s.Name, StringComparer.OrdinalIgnoreCase))
+        Log.Information("--- SDK Cache ({Count}) ---", sdks.Count);
+        foreach (var sdk in sdks.Values.OrderBy(s => s.Name))
         {
-            if (sdk.IsValid)
-            {
-                Log.Information("  [OK] {Name} {Version} -> {Path}", sdk.Name, sdk.Version, sdk.RootPath);
-            }
-            else
-            {
-                Log.Warning("  [INVALID] {Name} -> {Path}", sdk.Name, sdk.RootPath);
-                issues++;
-            }
+            if (!sdk.IsValid) issues++;
+            Log.Information("  [{Status}] {Name} {Version}", sdk.IsValid ? "OK" : "INVALID", sdk.Name, sdk.Version);
+        }
+
+        Log.Information("--- Daemon Status ---");
+        using (var daemon = new IgniteBTDaemon(Directory.GetCurrentDirectory()))
+        {
+            daemon.Start();
+            Log.Information("Daemon: running, compiler pool warm: {Warm}", daemon.IsCompilerPoolWarm);
+            daemon.Stop();
         }
 
         if (issues == 0)
         {
-            Log.Information("Doctor: no issues found");
+            Log.Information("Doctor: all systems healthy");
             return 0;
         }
 
-        Log.Warning("Doctor: found {Count} issue(s)", issues);
+        Log.Warning("Doctor: {Count} issue(s) found", issues);
         return 1;
-    }
-
-    private static string? FindDotNetExecutable()
-    {
-        var pathEntries = (Environment.GetEnvironmentVariable("PATH") ?? string.Empty)
-            .Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries);
-
-        foreach (var entry in pathEntries)
-        {
-            var candidate = Path.Combine(entry.Trim(), OperatingSystem.IsWindows() ? "dotnet.exe" : "dotnet");
-            if (File.Exists(candidate))
-            {
-                return candidate;
-            }
-        }
-
-        return null;
     }
 }

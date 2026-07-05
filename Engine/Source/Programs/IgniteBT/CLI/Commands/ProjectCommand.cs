@@ -26,8 +26,8 @@ public static class ProjectCommand
 
     private static Task<int> ListProjects()
     {
-        Log.Information("Project list is not yet implemented.");
-        return Task.FromResult(0);
+        Log.Error("Project list is not implemented.");
+        return Task.FromResult(1);
     }
 
     private static Task<int> OpenProject(string[] args)
@@ -39,8 +39,8 @@ public static class ProjectCommand
         }
 
         Log.Information("Opening project: {Path}", args[0]);
-        Log.Warning("Project open is not yet implemented.");
-        return Task.FromResult(0);
+        Log.Warning("Project open is not implemented.");
+        return Task.FromResult(1);
     }
 
     private static Task<int> CreateProject(string[] args)
@@ -52,8 +52,8 @@ public static class ProjectCommand
         }
 
         Log.Information("Creating project: {Name}", args[0]);
-        Log.Warning("Project creation is not yet implemented.");
-        return Task.FromResult(0);
+        Log.Warning("Project creation is not implemented.");
+        return Task.FromResult(1);
     }
 
     private static int PrintUsage()

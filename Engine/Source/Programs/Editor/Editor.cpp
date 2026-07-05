@@ -7,6 +7,7 @@
 #include "Core/LogCategory.hpp"
 #include "Renderer/RenderDiagnostics.hpp"
 #include "Renderer/FrameStats.hpp"
+#include "Renderer/AtmosphereValidation.hpp"
 #include "Renderer/Shader/ShaderLibrary.hpp"
 #include "Renderer/Shader/ShaderTypes.hpp"
 #include "Core/IgniteBTInvoker.hpp"
@@ -992,25 +993,27 @@ void Editor::MainLoop() {
             const VkDescriptorSet cameraDescSet = m_Renderer->GetCameraDescSet();
             m_SceneRenderer->PrepareAtmosphereLUTs(cmd);
 
+            const bool atmosphereValidation = we::runtime::renderer::AtmosphereValidation::Get().IsActive();
+
             {
                 const auto skyStart = std::chrono::steady_clock::now();
                 m_SceneRenderer->DrawSkyAtmospherePass(cmd, cameraDescSet);
                 FrameStatsCollector::Get().RecordPassMs("SkyAtmosphere",
                     std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - skyStart).count());
             }
-            {
+            if (!atmosphereValidation) {
                 const auto sceneStart = std::chrono::steady_clock::now();
                 m_Scene->Draw(cmd);
                 FrameStatsCollector::Get().RecordPassMs("Scene",
                     std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - sceneStart).count());
             }
-            {
+            if (!atmosphereValidation) {
                 const auto cloudStart = std::chrono::steady_clock::now();
                 m_SceneRenderer->DrawVolumetricCloudsPass(cmd, cameraDescSet);
                 FrameStatsCollector::Get().RecordPassMs("VolumetricClouds",
                     std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - cloudStart).count());
             }
-            {
+            if (!atmosphereValidation) {
                 const auto fogStart = std::chrono::steady_clock::now();
                 m_SceneRenderer->DrawFogCompositePass(
                     cmd,
@@ -1020,7 +1023,9 @@ void Editor::MainLoop() {
                 FrameStatsCollector::Get().RecordPassMs("FogComposite",
                     std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - fogStart).count());
             }
-            we::editor::grid::EditorGridRenderer::Get().Render(cmd, cameraDescSet, *m_Camera);
+            if (!atmosphereValidation) {
+                we::editor::grid::EditorGridRenderer::Get().Render(cmd, cameraDescSet, *m_Camera);
+            }
             we::programs::editor::UpdateViewportCameraSpeedIndicator();
             m_RenderGraph->EndOffscreenPass(cmd);
 
@@ -1047,6 +1052,17 @@ void Editor::MainLoop() {
 
             m_Renderer->EndFrame();
             FrameStatsCollector::Get().EndFrame();
+
+            if (we::runtime::renderer::AtmosphereValidation::Get().IsActive()) {
+                we::runtime::renderer::AtmosphereValidation::Get().OnFrameComplete(
+                    *m_Context,
+                    offscreenFB.GetColorImage(),
+                    offscreenFB.GetWidth(),
+                    offscreenFB.GetHeight());
+                if (we::runtime::renderer::AtmosphereValidation::Get().ShouldExit()) {
+                    m_Running = false;
+                }
+            }
 
             if (firstFrame) {
                 const auto& stats = m_UIRenderer->GetLastFrameStats();
