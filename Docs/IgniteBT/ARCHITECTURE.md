@@ -430,7 +430,7 @@ Planned architectural improvements include enhanced distributed build coordinati
 
 ## 🔗 Related Documentation
 
-- 📖 [Getting Started Guide](./GETTING-STARTED.MD)
-- 💻 [Command Reference](./COMMANDS.MD)
-- ⚙️ [Configuration Guide](./CONFIGURATION.MD)
-- 📋 [Changelog](../../CHANGELOG.MD)
+- 📖 [Getting Started Guide](./GETTING-STARTED.md)
+- 💻 [Command Reference](./COMMANDS.md)
+- ⚙️ [Configuration Guide](./CONFIGURATION.md)
+- 📋 [Changelog](../../CHANGELOG.md)
