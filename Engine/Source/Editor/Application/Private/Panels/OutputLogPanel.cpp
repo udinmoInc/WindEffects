@@ -31,17 +31,9 @@ std::shared_ptr<we::UI::Panel> CreateOutputLogPanel() {
         pauseButton->SetText(paused ? "Resume" : "Pause");
     });
 
-    auto autoScrollButton = std::make_shared<we::UI::Button>("Auto-scroll");
-    autoScrollButton->SetOnClicked([outputWidget, autoScrollButton]() {
-        const bool enabled = !outputWidget->IsAutoScroll();
-        outputWidget->SetAutoScroll(enabled);
-        autoScrollButton->SetText(enabled ? "Auto-scroll" : "Scroll lock");
-    });
-
     toolbar->AddChild(searchBox);
     toolbar->AddChild(clearButton);
     toolbar->AddChild(pauseButton);
-    toolbar->AddChild(autoScrollButton);
     panel->SetToolbar(toolbar);
     panel->SetContent(outputWidget);
     return panel;

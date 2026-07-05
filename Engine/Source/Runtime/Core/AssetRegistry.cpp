@@ -116,6 +116,10 @@ bool AssetRegistry::LoadDefaultEditorAssets() {
             "Assets/Shaders/FogCompositePass_VS.spv",
             "Shaders/FogCompositePass_VS.spv"
         }},
+        {"AtmospherePass", {
+            "Assets/Shaders/AtmospherePass_VS.spv",
+            "Shaders/AtmospherePass_VS.spv"
+        }},
         {"EditorGrid", {
             "Engine/Shaders/Bytecodes/EditorGrid_VS.spv",
             "Assets/Shaders/EditorGrid_VS.spv",

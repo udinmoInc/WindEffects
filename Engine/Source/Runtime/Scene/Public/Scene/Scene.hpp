@@ -26,6 +26,7 @@ public:
 
 #if WE_HAS_VULKAN
     SCENE_API void SetCameraBuffer(VkBuffer cameraBuffer);
+    SCENE_API void RefreshCameraDescriptorBindings(VkBuffer cameraBuffer);
     SCENE_API bool IsCameraBufferAssigned() const;
 #endif
 

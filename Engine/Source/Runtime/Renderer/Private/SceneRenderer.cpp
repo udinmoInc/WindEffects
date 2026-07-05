@@ -665,6 +665,71 @@ bool SceneRenderer::AreAtmosphereLUTsReady() const {
     return m_LUTGenerator && m_LUTGenerator->IsReady();
 }
 
+void SceneRenderer::LogAtmospherePipelineDiagnostics() const {
+    auto logStage = [](const char* name, bool pass, const char* failReason, const char* file, int line) {
+        if (pass) {
+            WE_LOG_INFO(LogCategory::Environment.data(), std::string("PASS - ") + name);
+        } else {
+            WE_LOG_ERROR(
+                LogCategory::Environment.data(),
+                std::string("FAIL - ") + name + ": " + failReason + " (" + file + ":" + std::to_string(line) + ")");
+        }
+    };
+
+    const bool generatorCreated = m_LUTGenerator != nullptr;
+    logStage("Atmosphere initialized", generatorCreated, "AtmosphereLUTGenerator was not created", __FILE__, __LINE__);
+
+    bool lutGenerationExecuted = false;
+    bool transmittanceReady = false;
+    bool skyViewReady = false;
+    bool multiScatterReady = false;
+    bool aerialReady = false;
+    bool gpuImagesCreated = false;
+    bool imageViewsCreated = false;
+    bool samplersCreated = false;
+    bool descriptorUpdated = false;
+
+    if (m_LUTGenerator) {
+        lutGenerationExecuted = m_LUTGenerator->IsReady();
+        const auto& images = m_LUTGenerator->GetImages();
+        transmittanceReady = images.transmittanceView != VK_NULL_HANDLE;
+        multiScatterReady = images.multiScatterView != VK_NULL_HANDLE;
+        skyViewReady = images.skyViewView != VK_NULL_HANDLE;
+        aerialReady = images.aerialView != VK_NULL_HANDLE;
+        gpuImagesCreated = images.transmittance != VK_NULL_HANDLE
+            && images.multiScatter != VK_NULL_HANDLE
+            && images.skyView != VK_NULL_HANDLE
+            && images.aerial != VK_NULL_HANDLE;
+        imageViewsCreated = transmittanceReady && multiScatterReady && skyViewReady && aerialReady;
+        samplersCreated = images.sampler != VK_NULL_HANDLE;
+        descriptorUpdated = m_LUTGenerator->GetSampleSet() != VK_NULL_HANDLE && lutGenerationExecuted;
+    }
+
+    logStage("LUT generation executed", lutGenerationExecuted, m_LUTGenerator ? m_LUTGenerator->GetLastError().c_str() : "generator null", __FILE__, __LINE__);
+    logStage("Transmittance ready", transmittanceReady, "transmittance image view is null", "AtmosphereLUTGenerator.cpp", 162);
+    logStage("SkyView ready", skyViewReady, "sky-view image view is null", "AtmosphereLUTGenerator.cpp", 164);
+    logStage("MultiScatter ready", multiScatterReady, "multi-scatter image view is null", "AtmosphereLUTGenerator.cpp", 163);
+    logStage("AerialPerspective ready", aerialReady, "aerial-perspective image view is null", "AtmosphereLUTGenerator.cpp", 165);
+    logStage("GPU images created", gpuImagesCreated, "one or more LUT VkImage handles are null", "AtmosphereLUTGenerator.cpp", 161);
+    logStage("Image views created", imageViewsCreated, "one or more LUT VkImageView handles are null", "AtmosphereLUTGenerator.cpp", 158);
+    logStage("Samplers created", samplersCreated, "LUT sampler is null", "AtmosphereLUTGenerator.cpp", 174);
+    logStage("Descriptor sets updated", descriptorUpdated, "LUT sample descriptor set is null or LUTs not ready", "AtmosphereLUTGenerator.cpp", 315);
+
+    const bool pipelineCreated = m_SkyAtmospherePipeline != VK_NULL_HANDLE;
+    logStage("Pipeline created", pipelineCreated, "SkyAtmosphere pipeline handle is null", "SceneRenderer.cpp", 224);
+
+    const bool skyExecuted = RenderDiagnostics::Get().GetPassStatus("SkyAtmosphere") == PassExecutionStatus::Executed;
+    const bool cloudsExecuted = RenderDiagnostics::Get().GetPassStatus("VolumetricClouds") == PassExecutionStatus::Executed;
+    const bool fogExecuted = RenderDiagnostics::Get().GetPassStatus("FogComposite") == PassExecutionStatus::Executed;
+    const auto& stats = FrameStatsCollector::Get().GetStats();
+
+    logStage("Descriptor sets bound", skyExecuted, stats.skyPassStatus.c_str(), "SceneRenderer.cpp", 706);
+    logStage("SkyAtmosphere pass executed", skyExecuted, stats.skyPassStatus.c_str(), "SceneRenderer.cpp", 706);
+    logStage("Clouds executed", cloudsExecuted, stats.cloudsPassStatus.c_str(), "SceneRenderer.cpp", 736);
+    logStage("Fog executed", fogExecuted, stats.fogPassStatus.c_str(), "SceneRenderer.cpp", 770);
+    logStage("Tonemap executed", stats.postPassStatus == "executed", stats.postPassStatus.c_str(), "SceneRenderer.cpp", 870);
+}
+
 void SceneRenderer::DrawSkyAtmospherePass(VkCommandBuffer cmd, VkDescriptorSet cameraDescSet) const {
     auto& diag = RenderDiagnostics::Get();
     auto& stats = FrameStatsCollector::Get();
@@ -675,6 +740,10 @@ void SceneRenderer::DrawSkyAtmospherePass(VkCommandBuffer cmd, VkDescriptorSet c
         diag.RecordPassStatus("SkyAtmosphere", PassExecutionStatus::Failed, "pipeline is null");
         diag.ValidatePipeline("SkyAtmosphere", m_SkyAtmospherePipeline);
         return;
+    }
+
+    if (!m_LUTGenerator || !m_LUTGenerator->IsReady()) {
+        const_cast<SceneRenderer*>(this)->PrepareAtmosphereLUTs(cmd);
     }
 
     if (!m_LUTGenerator || !m_LUTGenerator->IsReady()) {
@@ -723,7 +792,12 @@ void SceneRenderer::DrawVolumetricCloudsPass(VkCommandBuffer cmd, VkDescriptorSe
     }
     if (m_SceneEnvironment.enableClouds < 0.5f) {
         stats.SetPassStatus("VolumetricClouds", "skipped");
-        diag.RecordPassStatus("VolumetricClouds", PassExecutionStatus::Skipped, "clouds disabled");
+        diag.RecordPassStatus("VolumetricClouds", PassExecutionStatus::Skipped, "clouds disabled in environment settings");
+        diag.Emit(
+            DiagnosticSeverity::Warning,
+            LogCategory::Environment.data(),
+            "Volumetric Clouds pass skipped: clouds disabled in environment settings.",
+            "Enable volumetric clouds in Environment settings or set CreateVolumetricClouds=true in function.ini.");
         return;
     }
     if (!AreAtmosphereLUTsReady()) {
@@ -757,7 +831,12 @@ void SceneRenderer::DrawFogCompositePass(
     }
     if (m_SceneEnvironment.enableVolumetricFog < 0.5f) {
         stats.SetPassStatus("FogComposite", "skipped");
-        diag.RecordPassStatus("FogComposite", PassExecutionStatus::Skipped, "volumetric fog disabled");
+        diag.RecordPassStatus("FogComposite", PassExecutionStatus::Skipped, "volumetric fog disabled in environment settings");
+        diag.Emit(
+            DiagnosticSeverity::Warning,
+            LogCategory::Environment.data(),
+            "Fog Composite pass skipped: volumetric fog disabled in environment settings.",
+            "Enable volumetric fog on ExponentialHeightFog or set EnableVolumetricFog=true in function.ini.");
         return;
     }
     if (!m_LUTGenerator || !m_LUTGenerator->IsReady()) {
@@ -932,6 +1011,9 @@ void SceneRenderer::UpdateObjectDescriptorSet(VkDescriptorSet descriptorSet, VkB
 
 void SceneRenderer::SetSceneEnvironment(const SceneEnvironmentUniform& environment) {
     if (std::memcmp(&m_SceneEnvironment, &environment, sizeof(SceneEnvironmentUniform)) != 0) {
+        if (m_LUTGenerator && AtmosphereLUTInputsChanged(m_SceneEnvironment, environment)) {
+            m_LUTGenerator->Invalidate();
+        }
         m_SceneEnvironment = environment;
         m_SceneEnvironmentDirty = true;
     }

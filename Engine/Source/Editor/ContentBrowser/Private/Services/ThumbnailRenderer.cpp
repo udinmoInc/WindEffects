@@ -820,9 +820,8 @@ BitmapRGBA ThumbnailRenderer::RenderContentBrowserFolder(
     } else {
         static bool s_ReportedMissingSvg = false;
         if (!s_ReportedMissingSvg) {
-            HE_WARN(opened
-                ? "[ContentBrowser] Open folder SVG not found; using procedural artwork."
-                : "[ContentBrowser] Closed folder SVG not found; using procedural artwork.");
+            HE_WARN(std::string("[ContentBrowser] ") + (opened ? "Open" : "Closed")
+                + " folder SVG not found; using procedural artwork.");
             s_ReportedMissingSvg = true;
         }
     }

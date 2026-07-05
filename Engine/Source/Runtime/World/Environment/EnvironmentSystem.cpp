@@ -71,12 +71,14 @@ bool EnvironmentSystem::HasEnvironmentActors() const {
         || m_ExposureController.EntityId != 0;
 }
 
-bool EnvironmentSystem::ActorExists(EntityType type, const char* name) const {
+bool EnvironmentSystem::ActorExists(EntityType /*type*/, const char* name) const {
     const Scene* scene = GetScene();
     if (!scene) {
         return false;
     }
-    return scene->HasEntityOfType(type) || scene->HasEntityNamed(name);
+    // Match by actor name only. Type-only checks falsely match unrelated actors (e.g. the
+    // "Environment" folder EmptyActor blocking "Environment Manager" spawns).
+    return scene->HasEntityNamed(name);
 }
 
 void EnvironmentSystem::ApplySettingsToComponents(const EnvironmentSettings& settings) {
@@ -318,16 +320,24 @@ bool EnvironmentSystem::EnsureDefaultEnvironment() {
         return false;
     }
 
-    if (HasEnvironmentActors()) {
-        DiscoverExistingActors();
+    ApplySettingsToComponents(settings);
+
+    DiscoverExistingActors();
+    if (!HasEnvironmentActors()) {
+        CreateEnvironment();
+    } else {
         EnsureFolder();
+        ReparentEnvironmentActors();
         UpdateRendering();
         ApplyComponentsToActors();
         NotifyChanged();
-        return false;
     }
 
-    CreateEnvironment();
+    DiscoverExistingActors();
+    if (!HasEnvironmentActors()) {
+        HE_ERROR("[Environment] Default environment is incomplete after initialization (EnvironmentSystem.cpp:EnsureDefaultEnvironment).");
+        return false;
+    }
     return true;
 }
 
@@ -403,7 +413,13 @@ void EnvironmentSystem::CreateEnvironment() {
     UpdateRendering();
     ApplyComponentsToActors();
     NotifyChanged();
-    HE_INFO("[Environment] Default environment created.");
+
+    DiscoverExistingActors();
+    if (!HasEnvironmentActors()) {
+        HE_ERROR("[Environment] CreateEnvironment did not spawn required actors (EnvironmentSystem.cpp:CreateEnvironment).");
+    } else {
+        HE_INFO("[Environment] Default environment created.");
+    }
 }
 
 void EnvironmentSystem::ResetEnvironment() {

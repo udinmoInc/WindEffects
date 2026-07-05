@@ -118,6 +118,41 @@ Editor::Editor(SDL_Window* window) : m_Window(window) {
     we::runtime::world::environment::EnvironmentSystem::Get().BindRenderer(m_SceneRenderer);
     PlaceActorsPlacement::Get().BindScene(m_Scene, m_Camera);
     DefaultSceneBuilder::CreateDefaultScene(*m_Scene);
+    we::runtime::world::environment::EnvironmentSystem::Get().UpdateRendering(m_Camera->GetPosition());
+
+    m_SceneRenderer->PrepareAtmosphereLUTs(VK_NULL_HANDLE);
+    if (!m_SceneRenderer->AreAtmosphereLUTsReady()) {
+        HE_ERROR("[Startup] Atmosphere LUTs not ready after initialization.");
+        m_SceneRenderer->LogAtmospherePipelineDiagnostics();
+    } else {
+        HE_INFO("[Startup] Atmosphere LUTs initialized successfully.");
+    }
+
+    {
+        auto& startup = we::runtime::core::StartupValidator::Get();
+        startup.RegisterCheck("VulkanContext", [this](std::string& detail) {
+            detail = m_Context->GetGPUName();
+            return m_Context->GetDevice() != VK_NULL_HANDLE;
+        });
+        startup.RegisterCheck("SceneRendererPipelines", [this](std::string& detail) {
+            const bool pipeline = m_SceneRenderer->IsSkyPipelineCreated();
+            const bool luts = m_SceneRenderer->AreAtmosphereLUTsReady();
+            detail = pipeline
+                ? (luts ? "Sky pipeline and LUTs ready" : "Sky pipeline created, LUTs not ready")
+                : "Sky pipeline missing";
+            return pipeline && luts;
+        });
+        startup.RegisterCheck("ShaderBytecodes", [](std::string& detail) {
+            const auto atmosphere = ShaderLibrary::Get().GetBytecode("AtmospherePass", ShaderStage::Pixel);
+            detail = atmosphere.data.empty() ? "AtmospherePass bytecode missing" : "AtmospherePass loaded";
+            return !atmosphere.data.empty();
+        });
+        startup.RunAll();
+        RenderDiagnostics::Get().ValidateStartup(
+            m_SceneRenderer.get(),
+            m_Renderer->GetOffscreenRenderPass(),
+            m_Renderer->GetSwapchainRenderPass());
+    }
 
     {
         auto& startup = we::runtime::core::StartupValidator::Get();
@@ -942,6 +977,9 @@ void Editor::MainLoop() {
         lastTime = now;
         if (dt > 0.1f) dt = 0.1f;
 
+        // Input and fly movement update camera targets first; smoothing runs after.
+        m_RootWidget->Tick(dt);
+
         m_Camera->Update(dt);
         m_Scene->Update();
         we::runtime::world::environment::EnvironmentSystem::Get().SyncFromScene(m_Camera->GetPosition());
@@ -953,7 +991,8 @@ void Editor::MainLoop() {
             if (vp) vp->FlushPendingResize();
         }
 
-        m_RootWidget->Tick(dt);
+        we::runtime::core::FrameCounter::Advance();
+        FrameStatsCollector::Get().BeginFrame();
 
         we::runtime::core::FrameCounter::Advance();
         FrameStatsCollector::Get().BeginFrame();
@@ -969,9 +1008,11 @@ void Editor::MainLoop() {
         cameraUBO.proj = m_Camera->GetProjectionMatrix();
         cameraUBO.pos = m_Camera->GetPosition();
         cameraUBO.padding = 0.0f;
-        m_Renderer->UpdateCameraBuffer(cameraUBO);
 
         if (m_Renderer->BeginFrame()) {
+            m_Renderer->UploadCameraUniform(cameraUBO);
+            m_Scene->RefreshCameraDescriptorBindings(m_Renderer->GetCameraBuffer());
+
             VkCommandBuffer cmd = m_Renderer->GetCommandBuffer();
             auto& offscreenFB = m_Renderer->GetOffscreenFramebuffer();
             m_SceneRenderer->ValidateRenderFrame(offscreenFB.GetFramebuffer(), offscreenFB.GetWidth(), offscreenFB.GetHeight());
@@ -1031,6 +1072,8 @@ void Editor::MainLoop() {
 
             FrameStatsCollector::Get().RecordPassMs("Offscreen",
                 std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - passStart).count());
+
+            m_SceneRenderer->LogAtmospherePipelineDiagnostics();
 
             m_RenderGraph->BeginSwapchainPass(cmd);
             m_UIRenderer->Render(cmd, m_Renderer->GetSwapchainWidth(), m_Renderer->GetSwapchainHeight(), m_RootWidget);

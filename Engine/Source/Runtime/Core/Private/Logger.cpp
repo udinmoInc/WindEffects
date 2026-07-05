@@ -2,8 +2,14 @@
 #include "Core/FrameCounter.hpp"
 #include "Core/LogCategory.hpp"
 
-#if WE_HAS_SDL3
-#include <SDL3/SDL_messagebox.h>
+#if defined(__has_include)
+#  if __has_include(<SDL3/SDL_messagebox.h>)
+#    include <SDL3/SDL_messagebox.h>
+#    define WE_LOGGER_HAS_SDL_MESSAGEBOX 1
+#  endif
+#endif
+#ifndef WE_LOGGER_HAS_SDL_MESSAGEBOX
+#  define WE_LOGGER_HAS_SDL_MESSAGEBOX 0
 #endif
 
 #if WE_HAS_NLOHMANN_JSON
@@ -208,7 +214,7 @@ void Logger::RotateLogFilesIfNeeded() {
 void Logger::ReportError(const std::string& title, const std::string& description, bool fatal) {
     Log(Level::Critical, "General", "Error Reported: " + title + " - " + description + (fatal ? " [FATAL]" : ""));
 
-#if WE_HAS_SDL3
+#if WE_LOGGER_HAS_SDL_MESSAGEBOX
     SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, title.c_str(), description.c_str(), nullptr);
 #endif
 

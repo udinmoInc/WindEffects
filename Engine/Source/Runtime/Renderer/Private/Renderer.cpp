@@ -8,6 +8,7 @@
 #include <array>
 #include <algorithm>
 #include <iostream>
+#include <cstring>
 
 namespace we::runtime::renderer {
 
@@ -30,15 +31,16 @@ Renderer::Renderer(const std::shared_ptr<VulkanContext>& context, SDL_Window* wi
     HE_INFO("Renderer: Creating Render Passes...");
     CreateRenderPasses();
 
-    HE_INFO("Renderer: Creating Camera Uniform Buffer...");
+    HE_INFO("Renderer: Creating Camera Uniform Buffers...");
     VkDeviceSize cameraBufferSize = sizeof(CameraUniform);
-    m_Context->CreateBuffer(
-        cameraBufferSize,
-        VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-        m_CameraBuffer,
-        m_CameraBufferMemory
-    );
+    for (int frame = 0; frame < MAX_FRAMES_IN_FLIGHT; ++frame) {
+        m_Context->CreateBuffer(
+            cameraBufferSize,
+            VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+            VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+            m_CameraBuffers[frame],
+            m_CameraBufferMemories[frame]);
+    }
 
     // Create Camera Descriptor Layout
     VkDescriptorSetLayoutBinding cameraLayoutBinding{};
@@ -56,33 +58,34 @@ Renderer::Renderer(const std::shared_ptr<VulkanContext>& context, SDL_Window* wi
         throw std::runtime_error("Failed to create camera descriptor set layout!");
     }
 
-    // Allocate Camera Descriptor Set
-    VkDescriptorSetAllocateInfo cameraAllocInfo{};
-    cameraAllocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-    cameraAllocInfo.descriptorPool = m_Context->GetDescriptorPool();
-    cameraAllocInfo.descriptorSetCount = 1;
-    cameraAllocInfo.pSetLayouts = &m_CameraDescLayout;
+    // Allocate one camera descriptor set per frame-in-flight.
+    for (int frame = 0; frame < MAX_FRAMES_IN_FLIGHT; ++frame) {
+        VkDescriptorSetAllocateInfo cameraAllocInfo{};
+        cameraAllocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+        cameraAllocInfo.descriptorPool = m_Context->GetDescriptorPool();
+        cameraAllocInfo.descriptorSetCount = 1;
+        cameraAllocInfo.pSetLayouts = &m_CameraDescLayout;
 
-    if (vkAllocateDescriptorSets(m_Context->GetDevice(), &cameraAllocInfo, &m_CameraDescSet) != VK_SUCCESS) {
-        throw std::runtime_error("Failed to allocate camera descriptor set!");
+        if (vkAllocateDescriptorSets(m_Context->GetDevice(), &cameraAllocInfo, &m_CameraDescSets[frame]) != VK_SUCCESS) {
+            throw std::runtime_error("Failed to allocate camera descriptor set!");
+        }
+
+        VkDescriptorBufferInfo cameraBufferInfo{};
+        cameraBufferInfo.buffer = m_CameraBuffers[frame];
+        cameraBufferInfo.offset = 0;
+        cameraBufferInfo.range = sizeof(CameraUniform);
+
+        VkWriteDescriptorSet cameraWrite{};
+        cameraWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        cameraWrite.dstSet = m_CameraDescSets[frame];
+        cameraWrite.dstBinding = 0;
+        cameraWrite.dstArrayElement = 0;
+        cameraWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        cameraWrite.descriptorCount = 1;
+        cameraWrite.pBufferInfo = &cameraBufferInfo;
+
+        vkUpdateDescriptorSets(m_Context->GetDevice(), 1, &cameraWrite, 0, nullptr);
     }
-
-    // Update Camera Descriptor Set
-    VkDescriptorBufferInfo cameraBufferInfo{};
-    cameraBufferInfo.buffer = m_CameraBuffer;
-    cameraBufferInfo.offset = 0;
-    cameraBufferInfo.range = sizeof(CameraUniform);
-
-    VkWriteDescriptorSet cameraWrite{};
-    cameraWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-    cameraWrite.dstSet = m_CameraDescSet;
-    cameraWrite.dstBinding = 0;
-    cameraWrite.dstArrayElement = 0;
-    cameraWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    cameraWrite.descriptorCount = 1;
-    cameraWrite.pBufferInfo = &cameraBufferInfo;
-
-    vkUpdateDescriptorSets(m_Context->GetDevice(), 1, &cameraWrite, 0, nullptr);
 
     HE_INFO("Renderer: Creating swapchain...");
     CreateSwapchain(static_cast<uint32_t>(width), static_cast<uint32_t>(height));
@@ -118,11 +121,13 @@ Renderer::~Renderer() {
 
     VkDevice device = m_Context->GetDevice();
 
-    if (m_CameraBuffer != VK_NULL_HANDLE) {
-        vkDestroyBuffer(device, m_CameraBuffer, nullptr);
-    }
-    if (m_CameraBufferMemory != VK_NULL_HANDLE) {
-        vkFreeMemory(device, m_CameraBufferMemory, nullptr);
+    for (int frame = 0; frame < MAX_FRAMES_IN_FLIGHT; ++frame) {
+        if (m_CameraBuffers[frame] != VK_NULL_HANDLE) {
+            vkDestroyBuffer(device, m_CameraBuffers[frame], nullptr);
+        }
+        if (m_CameraBufferMemories[frame] != VK_NULL_HANDLE) {
+            vkFreeMemory(device, m_CameraBufferMemories[frame], nullptr);
+        }
     }
     if (m_CameraDescLayout != VK_NULL_HANDLE) {
         vkDestroyDescriptorSetLayout(device, m_CameraDescLayout, nullptr);
@@ -343,13 +348,14 @@ void Renderer::CreateSwapchain(uint32_t width, uint32_t height) {
         throw std::runtime_error("Failed to create Vulkan swapchain!");
     }
 
-    // Retrieve images
-    vkGetSwapchainImagesKHR(device, m_Swapchain, &imageCount, nullptr);
-    m_SwapchainImages.resize(imageCount);
-    vkGetSwapchainImagesKHR(device, m_Swapchain, &imageCount, m_SwapchainImages.data());
+    // Retrieve images (query count first — do not reuse createInfo minImageCount here).
+    uint32_t swapchainImageCount = 0;
+    vkGetSwapchainImagesKHR(device, m_Swapchain, &swapchainImageCount, nullptr);
+    m_SwapchainImages.resize(swapchainImageCount);
+    vkGetSwapchainImagesKHR(device, m_Swapchain, &swapchainImageCount, m_SwapchainImages.data());
 
     // Create Image Views
-    m_SwapchainImageViews.resize(imageCount);
+    m_SwapchainImageViews.resize(m_SwapchainImages.size());
     for (size_t i = 0; i < m_SwapchainImages.size(); i++) {
         m_SwapchainImageViews[i] = m_Context->CreateImageView(
             m_SwapchainImages[i],
@@ -479,6 +485,19 @@ bool Renderer::BeginFrame() {
         throw std::runtime_error("Failed to acquire swapchain image!");
     }
 
+    if (m_SwapchainFramebuffers.empty() || m_CurrentImageIndex >= m_SwapchainFramebuffers.size()) {
+        HE_ERROR("Renderer: swapchain framebuffer/image index mismatch (index="
+            + std::to_string(m_CurrentImageIndex) + ", framebuffers="
+            + std::to_string(m_SwapchainFramebuffers.size()) + "). Recreating swapchain.");
+        int w = 0;
+        int h = 0;
+        if (!SDL_GetWindowSizeInPixels(m_Window, &w, &h) || w <= 0 || h <= 0) {
+            SDL_GetWindowSize(m_Window, &w, &h);
+        }
+        RecreateSwapchain(static_cast<uint32_t>(w), static_cast<uint32_t>(h));
+        return false;
+    }
+
     // Reset fence only if we are submitting work
     vkResetFences(device, 1, &m_InFlightFences[m_CurrentFrame]);
 
@@ -549,11 +568,44 @@ void Renderer::EndFrame() {
     m_CurrentFrame = (m_CurrentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
 }
 
-void Renderer::UpdateCameraBuffer(const CameraUniform& ubo) {
-    void* data;
-    vkMapMemory(m_Context->GetDevice(), m_CameraBufferMemory, 0, sizeof(CameraUniform), 0, &data);
-    memcpy(data, &ubo, sizeof(CameraUniform));
-    vkUnmapMemory(m_Context->GetDevice(), m_CameraBufferMemory);
+void Renderer::UploadCameraUniform(const CameraUniform& ubo) {
+    m_LastUploadedCameraUniform = ubo;
+    void* data = nullptr;
+    vkMapMemory(
+        m_Context->GetDevice(),
+        m_CameraBufferMemories[m_CurrentFrame],
+        0,
+        sizeof(CameraUniform),
+        0,
+        &data);
+    std::memcpy(data, &ubo, sizeof(CameraUniform));
+    vkUnmapMemory(m_Context->GetDevice(), m_CameraBufferMemories[m_CurrentFrame]);
+}
+
+VkCommandBuffer Renderer::GetCommandBuffer() const {
+    if (m_CurrentFrame >= m_CommandBuffers.size()) {
+        throw std::runtime_error("Renderer command buffer index out of range.");
+    }
+    return m_CommandBuffers[m_CurrentFrame];
+}
+
+VkFramebuffer Renderer::GetSwapchainFramebuffer(uint32_t index) const {
+    if (index >= m_SwapchainFramebuffers.size()) {
+        throw std::runtime_error("Swapchain framebuffer index out of range.");
+    }
+    return m_SwapchainFramebuffers[index];
+}
+
+VkBuffer Renderer::GetCameraBuffer() const {
+    return m_CameraBuffers[m_CurrentFrame];
+}
+
+VkDescriptorSet Renderer::GetCameraDescSet() const {
+    return m_CameraDescSets[m_CurrentFrame];
+}
+
+const Renderer::CameraUniform& Renderer::GetLastUploadedCameraUniform() const {
+    return m_LastUploadedCameraUniform;
 }
 
 } // namespace we::runtime::renderer

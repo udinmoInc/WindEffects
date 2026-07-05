@@ -69,6 +69,18 @@ void ViewportOverlay::Paint(PaintContext& context) {
         char resText[32];
         snprintf(resText, sizeof(resText), "%ux%u", m_Stats.resolutionX, m_Stats.resolutionY);
         context.DrawText(resText, Point{ m_StatsRect.x + m_StatsPadding, y }, Theme::Get().TextSecondary, 12.0f);
+        y += lineHeight;
+
+        if (!m_Stats.atmosphereStatus.empty()) {
+            context.DrawText(
+                m_Stats.atmosphereStatus.c_str(),
+                Point{ m_StatsRect.x + m_StatsPadding, y },
+                m_Stats.atmosphereStatus.find("MISSING") != std::string::npos
+                    ? Color{ 1.0f, 0.35f, 0.35f, 1.0f }
+                    : Theme::Get().TextSecondary,
+                12.0f);
+            y += lineHeight;
+        }
     }
     
     // Draw axis gizmo (top-right)
@@ -121,8 +133,8 @@ void ViewportOverlay::OnMouseMove(const MouseEvent& event) {
 void ViewportOverlay::CalculateLayout() {
     // Stats panel (top-left)
     if (m_StatsVisible) {
-        float statsWidth = 120.0f;
-        float statsHeight = 100.0f;
+        float statsWidth = 160.0f;
+        float statsHeight = 120.0f;
         m_StatsRect = Rect{
             m_Geometry.x + 8.0f,
             m_Geometry.y + 8.0f,

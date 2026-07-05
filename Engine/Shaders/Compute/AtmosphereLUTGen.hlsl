@@ -14,7 +14,7 @@ RWTexture2D<float4> AerialPerspectiveLUT : register(u3);
 
 WE_AtmosphereParams WE_ParamsFromEnvironment()
 {
-    const float3 sunLinear = WE_sRGBToLinear(saturate(sunColor));
+    const float3 sunLinear = max(sunColor, float3(0.0, 0.0, 0.0));
     return WE_BuildAtmosphereParams(
         max(atmosphereRayleigh, float3(1e-6, 1e-6, 1e-6)),
         max(mieScattering, 1e-6),
@@ -86,7 +86,6 @@ void CSMain(uint3 dtid : SV_DispatchThreadID)
         const float3 origin = float3(0.0, params.eyeAltitude, 0.0) - planetCenter;
         float3 transmittance;
         float3 sky = WE_IntegrateInscattering(viewDir, sunDir, origin, params, transmittance);
-        sky += WE_ComputeSunDisk(viewDir, sunDir, params.sunIntensity, params.sunColor, params.sunAngularRadius);
         SkyViewLUT[dtid.xy] = float4(max(sky, 0.0), 1.0);
         return;
     }
@@ -102,12 +101,8 @@ void CSMain(uint3 dtid : SV_DispatchThreadID)
         const float3 viewDir = normalize(float3(0.3, 0.15, 1.0));
         const float3 surfacePos = float3(0.0, heightKm * 1000.0, distKm * 1000.0);
         const float3 camPos = float3(0.0, params.eyeAltitude * 1000.0, 0.0);
-        const float3 relCam = camPos - worldOrigin;
-        const float3 relSurf = surfacePos - worldOrigin;
-        const float3 marchDir = normalize(relSurf - relCam);
-
-        const float3 planetCenter = WE_GetPlanetCenter(camPos, worldOrigin, params.planetRadius);
-        const float3 origin = relCam - planetCenter;
+        const float3 marchDir = normalize(surfacePos - camPos);
+        const float3 origin = WE_GetAtmosphereOrigin(camPos, worldOrigin, params.planetRadius);
         float3 transmittance;
         float3 inscatter = WE_IntegrateInscattering(marchDir, sunDir, origin, params, transmittance);
         const float fade = 1.0 - exp(-distKm * 0.06);

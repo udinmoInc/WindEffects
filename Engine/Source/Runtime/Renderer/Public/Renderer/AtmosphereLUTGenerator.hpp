@@ -70,7 +70,7 @@ private:
     bool GenerateCPU(const SceneEnvironmentUniform& environment);
     void TransitionLUTForUpload(VkImage image);
     bool UpdateSampleDescriptors();
-    bool ValidateLUTData(const char* lutName, const std::vector<float>& rgba, uint32_t width, uint32_t height);
+    bool ValidateLUTData(const char* lutName, const std::vector<float>& rgba);
 
     std::shared_ptr<VulkanContext> m_Context;
     AtmosphereLUTImages m_Images{};

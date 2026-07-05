@@ -73,10 +73,24 @@ bool WE_IntersectSphere(float3 origin, float3 dir, float radius, out float t0, o
     return t1 > 0.0;
 }
 
-float3 WE_GetPlanetCenter(float3 cameraPos, float3 worldOrigin, float planetRadius)
+static const float WE_METERS_PER_KM = 1000.0;
+
+float3 WE_WorldToAtmosphereKm(float3 worldPos, float3 worldOrigin)
 {
-    const float3 relCam = cameraPos - worldOrigin;
-    return float3(relCam.x, relCam.y - planetRadius, relCam.z);
+    return (worldPos - worldOrigin) / WE_METERS_PER_KM;
+}
+
+// Planet center is planetRadius below local ground (y=0). Returns camera position in atmosphere km space.
+float3 WE_GetAtmosphereOrigin(float3 cameraPos, float3 worldOrigin, float planetRadiusKm)
+{
+    const float3 relKm = WE_WorldToAtmosphereKm(cameraPos, worldOrigin);
+    return float3(relKm.x, planetRadiusKm + max(relKm.y, 0.0), relKm.z);
+}
+
+float3 WE_GetPlanetCenter(float3 cameraPos, float3 worldOrigin, float planetRadiusKm)
+{
+    const float3 relKm = WE_WorldToAtmosphereKm(cameraPos, worldOrigin);
+    return float3(relKm.x, relKm.y - planetRadiusKm, relKm.z);
 }
 
 WE_AtmosphereParams WE_BuildAtmosphereParams(

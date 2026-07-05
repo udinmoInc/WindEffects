@@ -62,9 +62,9 @@ float4 PSMain(VSOutput input) : SV_Target
     const float3 relCam = cameraPos - worldOrigin;
     float3 viewDir = normalize(relCam - relPos);
 
-    const float3 sunLinear = WE_sRGBToLinear(saturate(sunColor));
-    const float3 skyUpper = WE_sRGBToLinear(saturate(skyAmbientColor));
-    const float3 skyLower = WE_sRGBToLinear(saturate(skyLightLowerColor));
+    const float3 sunLinear = max(sunColor, float3(0.0, 0.0, 0.0));
+    const float3 skyUpper = max(skyAmbientColor, float3(0.0, 0.0, 0.0));
+    const float3 skyLower = max(skyLightLowerColor, float3(0.0, 0.0, 0.0));
     const float upN = saturate(normal.y * 0.5 + 0.5);
     const float3 ambient = lerp(skyLower * 0.05, skyUpper * 0.15, upN) * skyLightIntensity;
 
@@ -87,7 +87,8 @@ float4 PSMain(VSOutput input) : SV_Target
         sunDirection, cameraPos, worldOrigin,
         sunLinear, sunIntensity * 0.35,
         rayleigh, mieScattering, ozone, mieAnisotropy,
-        planetRadius, atmosphereHeight, multiScatterStrength, eyeAltitude);
+        planetRadius, atmosphereHeight, multiScatterStrength, eyeAltitude,
+        max(sunAngularRadius, WE_SUN_ANGULAR_RADIUS));
     litLinear = lerp(litLinear, horizonInscatter, saturate(haze * 0.45));
 
     return float4(litLinear, color.a);

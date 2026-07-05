@@ -35,7 +35,7 @@ float4 PSMain(VSOutput input) : SV_Target
 
     const float3 viewDir = WE_UnprojectDirection(input.uv, view, proj);
     const float3 sunDir = normalize(-sunDirection);
-    const float3 sunLinear = WE_sRGBToLinear(saturate(sunColor));
+    const float3 sunLinear = max(sunColor, float3(0.0, 0.0, 0.0));
     const float3 cloudAlbedo = WE_sRGBToLinear(saturate(cloudColor));
 
     const float3 clouds = WE_RaymarchClouds(
@@ -43,10 +43,8 @@ float4 PSMain(VSOutput input) : SV_Target
         sunDir, sunLinear, sunIntensity,
         cloudAltitude, cloudCoverage, cloudExtinction, cloudAlbedo);
 
-    const float ev = WE_ComputeExposureEV(sunDirection, exposureEV, exposureCompensation);
-    float3 color = WE_ApplyFilmicTonemap(clouds, WE_ExposureFromEV100(ev));
-    color = WE_LinearToSRGB(color);
-
+    // Keep linear HDR — PostExposure applies exposure, tonemap, and sRGB conversion once.
+    const float3 color = WE_SanitizeHdrColor(clouds);
     const float alpha = saturate(length(clouds) * 2.5);
     return float4(color, alpha);
 }
