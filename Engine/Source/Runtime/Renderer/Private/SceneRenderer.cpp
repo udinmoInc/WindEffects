@@ -792,7 +792,12 @@ void SceneRenderer::DrawVolumetricCloudsPass(VkCommandBuffer cmd, VkDescriptorSe
     }
     if (m_SceneEnvironment.enableClouds < 0.5f) {
         stats.SetPassStatus("VolumetricClouds", "skipped");
-        diag.RecordPassStatus("VolumetricClouds", PassExecutionStatus::Skipped, "clouds disabled");
+        diag.RecordPassStatus("VolumetricClouds", PassExecutionStatus::Skipped, "clouds disabled in environment settings");
+        diag.Emit(
+            DiagnosticSeverity::Warning,
+            LogCategory::Environment.data(),
+            "Volumetric Clouds pass skipped: clouds disabled in environment settings.",
+            "Enable volumetric clouds in Environment settings or set CreateVolumetricClouds=true in function.ini.");
         return;
     }
     if (!AreAtmosphereLUTsReady()) {
@@ -826,7 +831,12 @@ void SceneRenderer::DrawFogCompositePass(
     }
     if (m_SceneEnvironment.enableVolumetricFog < 0.5f) {
         stats.SetPassStatus("FogComposite", "skipped");
-        diag.RecordPassStatus("FogComposite", PassExecutionStatus::Skipped, "volumetric fog disabled");
+        diag.RecordPassStatus("FogComposite", PassExecutionStatus::Skipped, "volumetric fog disabled in environment settings");
+        diag.Emit(
+            DiagnosticSeverity::Warning,
+            LogCategory::Environment.data(),
+            "Fog Composite pass skipped: volumetric fog disabled in environment settings.",
+            "Enable volumetric fog on ExponentialHeightFog or set EnableVolumetricFog=true in function.ini.");
         return;
     }
     if (!m_LUTGenerator || !m_LUTGenerator->IsReady()) {
