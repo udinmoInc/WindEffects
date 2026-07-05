@@ -320,6 +320,8 @@ bool EnvironmentSystem::EnsureDefaultEnvironment() {
         return false;
     }
 
+    ApplySettingsToComponents(settings);
+
     DiscoverExistingActors();
     if (!HasEnvironmentActors()) {
         CreateEnvironment();
