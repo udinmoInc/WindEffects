@@ -223,6 +223,54 @@ AtmosParams BuildParams(const SceneEnvironmentUniform& env) {
     return p;
 }
 
+void LogAtmosphereInputs(const SceneEnvironmentUniform& env, const AtmosParams& params) {
+    const double rayleighGR = static_cast<double>(params.rayleigh.y) / std::max(params.rayleigh.x, 1e-6f);
+    const double rayleighBR = static_cast<double>(params.rayleigh.z) / std::max(params.rayleigh.x, 1e-6f);
+    const double sunGR = static_cast<double>(params.sunColor.y) / std::max(params.sunColor.x, 1e-6f);
+    const double sunBR = static_cast<double>(params.sunColor.z) / std::max(params.sunColor.x, 1e-6f);
+
+    WE_LOG_INFO(
+        we::runtime::core::LogCategory::Environment.data(),
+        "Atmosphere inputs: sunColor linear=("
+            + std::to_string(params.sunColor.x) + ", " + std::to_string(params.sunColor.y) + ", "
+            + std::to_string(params.sunColor.z) + ") sunIntensity=" + std::to_string(params.sunIntensity)
+            + " rayleigh=(" + std::to_string(params.rayleigh.x) + ", " + std::to_string(params.rayleigh.y) + ", "
+            + std::to_string(params.rayleigh.z) + ") G/R=" + std::to_string(rayleighGR)
+            + " B/R=" + std::to_string(rayleighBR) + " sun G/R=" + std::to_string(sunGR)
+            + " sun B/R=" + std::to_string(sunBR));
+
+    if (params.sunColor.x < 0.05f) {
+        WE_LOG_ERROR(
+            we::runtime::core::LogCategory::Environment.data(),
+            "Atmosphere validation failed: sunColor.r is near zero ("
+                + std::to_string(params.sunColor.x)
+                + "). Check TemperatureKelvinToRgb — red channel must be 255 below 6600 K, not 1.");
+    }
+    if (rayleighGR > 20.0 || sunGR > 20.0) {
+        WE_LOG_ERROR(
+            we::runtime::core::LogCategory::Environment.data(),
+            "Atmosphere validation failed: extreme green/red ratio (rayleigh G/R="
+                + std::to_string(rayleighGR) + ", sun G/R=" + std::to_string(sunGR) + ").");
+    }
+    (void)env;
+}
+
+void LogIntegrationProbe(const AtmosParams& params) {
+    const glm::vec3 planetCenter(0.0f, -params.planetR, 0.0f);
+    const glm::vec3 origin = glm::vec3(0.0f, params.eyeAltitude, 0.0f) - planetCenter;
+    const glm::vec3 viewDir(0.0f, 1.0f, 0.0f);
+
+    glm::vec3 transmittanceToCamera;
+    const glm::vec3 sky = IntegrateInscattering(viewDir, params.sunDir, origin, params, transmittanceToCamera);
+
+    WE_LOG_INFO(
+        we::runtime::core::LogCategory::Environment.data(),
+        "Atmosphere probe zenith: transmittance=(" + std::to_string(transmittanceToCamera.x) + ", "
+            + std::to_string(transmittanceToCamera.y) + ", " + std::to_string(transmittanceToCamera.z)
+            + ") sky=(" + std::to_string(sky.x) + ", " + std::to_string(sky.y) + ", " + std::to_string(sky.z)
+            + ") sky B/R=" + std::to_string(static_cast<double>(sky.z) / std::max(sky.x, 1e-6f)));
+}
+
 void LogLUTAverageRGB(const char* lutName, const std::vector<float>& rgba) {
     if (rgba.size() < 4) {
         return;
@@ -527,6 +575,8 @@ bool AtmosphereLUTGenerator::GenerateCPU(const SceneEnvironmentUniform& environm
     m_Ready = false;
 
     const AtmosParams params = BuildParams(environment);
+    LogAtmosphereInputs(environment, params);
+    LogIntegrationProbe(params);
     const glm::vec3 planetCenter(0.0f, -params.planetR, 0.0f);
     const glm::vec3 skyOrigin = glm::vec3(0.0f, params.eyeAltitude, 0.0f) - planetCenter;
 

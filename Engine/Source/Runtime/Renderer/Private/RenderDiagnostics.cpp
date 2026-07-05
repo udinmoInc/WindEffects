@@ -81,6 +81,21 @@ void RenderDiagnostics::ValidateEnvironmentUniform(const SceneEnvironmentUniform
     if (env.sunIntensity < 0.0f || !std::isfinite(env.sunIntensity)) {
         Emit(DiagnosticSeverity::Error, LogCategory::Environment.data(), "Invalid sun intensity.", "Set Directional Sun intensity >= 0.");
     }
+    if (env.sunColor.x < 0.05f) {
+        Emit(
+            DiagnosticSeverity::Error,
+            LogCategory::Environment.data(),
+            "Sun color red channel is near zero in the environment uniform.",
+            "Verify TemperatureKelvinToRgb uses 255 (not 1) for the red/blue plateaus in EnvironmentLighting.cpp.");
+    }
+    const float rayleighGR = env.atmosphereRayleigh.y / std::max(env.atmosphereRayleigh.x, 1e-6f);
+    if (rayleighGR > 20.0f || rayleighGR < 1.5f) {
+        Emit(
+            DiagnosticSeverity::Warning,
+            LogCategory::Environment.data(),
+            "Rayleigh scattering G/R ratio looks unusual: " + std::to_string(rayleighGR) + ".",
+            "Expected ~2.3 for Earth-like coefficients from GetRayleighColor().");
+    }
     if (env.atmosphereHeight <= 0.0f || env.planetRadius <= 0.0f) {
         Emit(DiagnosticSeverity::Error, LogCategory::Environment.data(), "Invalid atmosphere/planet radii.", "Use positive atmosphere height and planet radius.");
     }
