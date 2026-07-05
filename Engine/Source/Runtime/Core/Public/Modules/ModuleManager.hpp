@@ -1,11 +1,18 @@
 #pragma once
 
+#include "Core/Export.hpp"
 #include "Modules/IModuleInterface.hpp"
 #include <string>
 #include <unordered_map>
 #include <memory>
+#include <vector>
 
-class ModuleManager
+#if defined(_MSC_VER)
+#pragma warning(push)
+#pragma warning(disable : 4251)
+#endif
+
+class CORE_API ModuleManager
 {
 public:
     static ModuleManager& Get();
@@ -35,3 +42,7 @@ private:
     std::unordered_map<std::string, ModuleData> LoadedModules;
     std::vector<std::string> LoadOrder;
 };
+
+#if defined(_MSC_VER)
+#pragma warning(pop)
+#endif

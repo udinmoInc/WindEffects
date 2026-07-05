@@ -1,18 +1,18 @@
 
 #include "Modules/IModuleInterface.hpp"
-#include <iostream>
+#include "Core/Logger.hpp"
 
 class ContentBrowserModule : public IModuleInterface
 {
 public:
     virtual void StartupModule() override
     {
-        std::cout << "ContentBrowserModule started\n";
+        WE_LOG_TRACE("Plugin", "ContentBrowserModule started");
     }
 
     virtual void ShutdownModule() override
     {
-        std::cout << "ContentBrowserModule shutdown\n";
+        WE_LOG_TRACE("Plugin", "ContentBrowserModule shutdown");
     }
 };
 

@@ -723,10 +723,10 @@ void SceneRenderer::LogAtmospherePipelineDiagnostics() const {
     const bool fogExecuted = RenderDiagnostics::Get().GetPassStatus("FogComposite") == PassExecutionStatus::Executed;
     const auto& stats = FrameStatsCollector::Get().GetStats();
 
-    logStage("Descriptor sets bound", skyExecuted, stats.skyPassStatus.c_str(), "SceneRenderer.cpp", 712);
-    logStage("SkyAtmosphere pass executed", skyExecuted, stats.skyPassStatus.c_str(), "SceneRenderer.cpp", 712);
-    logStage("Clouds executed", cloudsExecuted, stats.cloudsPassStatus.c_str(), "SceneRenderer.cpp", 748);
-    logStage("Fog executed", fogExecuted, stats.fogPassStatus.c_str(), "SceneRenderer.cpp", 820);
+    logStage("Descriptor sets bound", skyExecuted, stats.skyPassStatus.c_str(), "SceneRenderer.cpp", 706);
+    logStage("SkyAtmosphere pass executed", skyExecuted, stats.skyPassStatus.c_str(), "SceneRenderer.cpp", 706);
+    logStage("Clouds executed", cloudsExecuted, stats.cloudsPassStatus.c_str(), "SceneRenderer.cpp", 736);
+    logStage("Fog executed", fogExecuted, stats.fogPassStatus.c_str(), "SceneRenderer.cpp", 770);
     logStage("Tonemap executed", stats.postPassStatus == "executed", stats.postPassStatus.c_str(), "SceneRenderer.cpp", 870);
 }
 

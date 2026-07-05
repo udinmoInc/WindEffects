@@ -1,6 +1,7 @@
 #include <SDL3/SDL.h>
 #include <iostream>
 #include "Core/Logger.hpp"
+#include "Core/BuildPaths.hpp"
 #include "CrashReporterApp.hpp"
 #include <filesystem>
 
@@ -26,6 +27,9 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     HE_INFO("[CrashReporter] Step 2: Initializing Logger");
     we::runtime::core::Logger::Init();
     HE_INFO("[CrashReporter] Logger initialized successfully");
+
+    we::core::ConfigureModuleSearchPaths();
+    HE_INFO("[CrashReporter] Module search paths configured");
 
 #if defined(_WIN32)
     HE_INFO("[CrashReporter] Step 3: Configuring SDL class icons");

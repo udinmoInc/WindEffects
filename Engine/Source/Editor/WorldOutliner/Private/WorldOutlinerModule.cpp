@@ -1,18 +1,18 @@
 
 #include "Modules/IModuleInterface.hpp"
-#include <iostream>
+#include "Core/Logger.hpp"
 
 class WorldOutlinerModule : public IModuleInterface
 {
 public:
     virtual void StartupModule() override
     {
-        std::cout << "WorldOutlinerModule started\n";
+        WE_LOG_TRACE("Plugin", "WorldOutlinerModule started");
     }
 
     virtual void ShutdownModule() override
     {
-        std::cout << "WorldOutlinerModule shutdown\n";
+        WE_LOG_TRACE("Plugin", "WorldOutlinerModule shutdown");
     }
 };
 

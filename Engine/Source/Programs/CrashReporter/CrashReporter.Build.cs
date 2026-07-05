@@ -25,5 +25,6 @@ public class CrashReporter : ModuleRules
 
         PlatformSettings.Windows ??= new WindowsSettings();
         PlatformSettings.Windows.Subsystem = "Windows";
+        PlatformSettings.Windows.LinkerFlags.Add("delayimp.lib");
     }
 }
