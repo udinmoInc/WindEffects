@@ -134,10 +134,69 @@ if ([string]::IsNullOrWhiteSpace($manifestRel)) {
     Write-Error "Engine descriptor is missing bootstrap.manifest."
 }
 
+function Invoke-DaemonBuild {
+    param(
+        [string]$ProjectRoot,
+        [string[]]$BuildArgs
+    )
+
+    $endpointFile = Join-Path $ProjectRoot "Build\Temp\ignitebt-daemon.endpoint"
+    if (-not (Test-Path -LiteralPath $endpointFile)) { return $null }
+
+    $pipeName = (Get-Content -LiteralPath $endpointFile -Raw).Trim()
+    if ([string]::IsNullOrWhiteSpace($pipeName)) { return $null }
+
+    try {
+        $client = New-Object System.IO.Pipes.NamedPipeClientStream ".", $pipeName, [System.IO.Pipes.PipeDirection]::InOut
+        $client.Connect(150)
+
+        $request = @{
+            command = "build"
+            args = @($BuildArgs)
+            workingDirectory = (Get-Location).Path
+        } | ConvertTo-Json -Compress
+
+        $requestBytes = [System.Text.Encoding]::UTF8.GetBytes($request)
+        $lengthBytes = [BitConverter]::GetBytes([int32]$requestBytes.Length)
+        $client.Write($lengthBytes, 0, 4)
+        $client.Write($requestBytes, 0, $requestBytes.Length)
+        $client.Flush()
+
+        $lenBuf = New-Object byte[] 4
+        $read = $client.Read($lenBuf, 0, 4)
+        if ($read -ne 4) { $client.Dispose(); return $null }
+        $responseLen = [BitConverter]::ToInt32($lenBuf, 0)
+        if ($responseLen -le 0 -or $responseLen -gt 16777216) { $client.Dispose(); return $null }
+
+        $responseBytes = New-Object byte[] $responseLen
+        $offset = 0
+        while ($offset -lt $responseLen) {
+            $offset += $client.Read($responseBytes, $offset, $responseLen - $offset)
+        }
+        $client.Dispose()
+
+        $response = [System.Text.Encoding]::UTF8.GetString($responseBytes) | ConvertFrom-Json
+        if ($response.output) { Write-Output $response.output }
+        if ($response.error) { Write-Error $response.error }
+        return [int]$response.exitCode
+    }
+    catch {
+        return $null
+    }
+}
+
 $manifestPath = Join-Path $engineRoot $manifestRel
 $forwardArgs = $CommandArgs
 
 if ($forwardArgs.Length -gt 0 -and $forwardArgs[0] -eq "build") {
+    $buildArgs = @()
+    if ($forwardArgs.Length -gt 1) {
+        $buildArgs = $forwardArgs[1..($forwardArgs.Length - 1)]
+    }
+
+    $daemonExit = Invoke-DaemonBuild -ProjectRoot $engineRoot -BuildArgs $buildArgs
+    if ($null -ne $daemonExit) { exit $daemonExit }
+
     $probe = Join-Path $engineRoot "Build\Intermediate\IgniteBT\Launcher\we_probe.exe"
     if (Test-Path -LiteralPath $probe) {
         $buildArgs = @()

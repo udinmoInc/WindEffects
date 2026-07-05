@@ -30,6 +30,7 @@ public sealed class DaemonServer : IDisposable
     {
         Directory.CreateDirectory(Path.Combine(_projectRoot, "Build", "Temp"));
         File.WriteAllText(DaemonPaths.GetPidFilePath(_projectRoot), Environment.ProcessId.ToString());
+        File.WriteAllText(DaemonPaths.GetEndpointFilePath(_projectRoot), DaemonPaths.GetPipeName(_projectRoot));
         _daemon.Start();
 
         if (OperatingSystem.IsWindows())
@@ -208,6 +209,7 @@ public sealed class DaemonServer : IDisposable
         _unixSocket?.Dispose();
         _daemon.Dispose();
         try { File.Delete(DaemonPaths.GetPidFilePath(_projectRoot)); } catch { /* best effort */ }
+        try { File.Delete(DaemonPaths.GetEndpointFilePath(_projectRoot)); } catch { /* best effort */ }
         _cts.Dispose();
     }
 }

@@ -51,4 +51,7 @@ public static class DaemonPaths
 
     public static string GetPidFilePath(string projectRoot) =>
         Path.Combine(projectRoot, "Build", "Temp", "ignitebt-daemon.pid");
+
+    public static string GetEndpointFilePath(string projectRoot) =>
+        Path.Combine(projectRoot, "Build", "Temp", "ignitebt-daemon.endpoint");
 }
