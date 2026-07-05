@@ -67,10 +67,7 @@ The SDK configuration file defines paths to required development SDKs, allowing 
 
 ```json
 {
-  "SDKPaths": {
-    "VulkanSDK": "F:\\Coding\\windeffects\\Engine\\ThirdParty",
-    "SDL3": "F:\\Coding\\windeffects\\Engine\\ThirdParty\\SDL3"
-  },
+  "SDKPaths": {},
   "AdditionalIncludePaths": {
     "MyCustomLibrary": "C:\\Libraries\\MyCustomLibrary\\include"
   },
@@ -82,39 +79,7 @@ The SDK configuration file defines paths to required development SDKs, allowing 
 
 ### Supported SDKs
 
-IgniteBT supports detection and configuration of the following SDKs.
-
-#### 🔺 Vulkan SDK
-
-Required for graphics development. WindEffects Engine uses Vulkan for graphics rendering.
-
-| Platform | Default Paths | Environment Variable |
-|----------|--------------|---------------------|
-| 🪟 Windows | `C:\VulkanSDK\[version]` | `VULKAN_SDK` |
-
-**Configuration Example:**
-
-```json
-{
-  "SDKPaths": {
-    "VulkanSDK": "C:\\VulkanSDK\\1.3.290.0"
-  }
-}
-```
-
-#### 🎮 SDL3
-
-Used for platform abstraction and input handling, providing cross-platform access to windowing and input devices.
-
-**Configuration Example:**
-
-```json
-{
-  "SDKPaths": {
-    "SDL3": "C:\\SDL3"
-  }
-}
-```
+IgniteBT supports detection and configuration of SDKs through the SDK configuration file. The system automatically detects installed SDKs from standard installation locations and validates their versions against project requirements.
 
 ### Additional Include and Library Paths
 
@@ -277,7 +242,7 @@ Modules declare dependencies on other modules to specify relationships between c
 
 ```csharp
 PublicDependencies = new[] { "WECore", "WERenderer" };
-PrivateDependencies = new[] { "ThirdParty/SDL3" };
+PrivateDependencies = new[] { "ThirdParty/SomeLibrary" };
 ```
 
 ### Module Output Configuration
@@ -334,14 +299,7 @@ set IGNITEBT_VERBOSE=1
 
 #### SDK Configuration Variables
 
-| Variable | Purpose | Example |
-|----------|---------|---------|
-| `VULKAN_SDK` | Override Vulkan SDK path | `C:\VulkanSDK\1.3.290.0` |
-
-```powershell
-# Override Vulkan SDK path
-set VULKAN_SDK=C:\VulkanSDK\1.3.290.0
-```
+SDK paths can be configured through environment variables to override automatic detection.
 
 ### Persistent Configuration
 

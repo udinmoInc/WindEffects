@@ -25,8 +25,7 @@ IgniteBT provides a comprehensive set of capabilities designed to address the fu
 | ⚡ **Parallel Compilation** | Sophisticated multi-threaded build execution with dependency-aware scheduling that scales to utilize all available CPU cores |
 | 💾 **Intelligent Caching** | Multi-level caching system including object files, precompiled headers, and dependency graphs with content-addressable storage |
 | 🌐 **Distributed Compilation** | Optional master-worker architecture for distributing build work across multiple machines with fault tolerance and automatic retry |
-| 🎨 **Shader Pipeline Integration** | Automated shader compilation from HLSL to SPIR-V with permutation generation and dependency tracking |
-| 🛠️ **SDK Management** | Unified SDK detection and validation for Vulkan, SDL3, and other required libraries with diagnostic capabilities |
+| 🛠️ **SDK Management** | Unified SDK detection and validation for required libraries with diagnostic capabilities |
 | 🖥️ **Cross-Platform Support** | Configurable build targets for Windows, Linux, and macOS with platform abstraction layer |
 | 🔍 **Real-Time Diagnostics** | Structured logging at multiple levels with comprehensive environment validation and dependency verification |
 
@@ -36,9 +35,7 @@ Intelligent caching is implemented throughout the system to minimize redundant c
 
 For organizations with multiple build machines, IgniteBT offers optional distributed compilation support that can distribute build work across multiple machines. This capability is particularly valuable for very large projects where even parallel compilation on a single machine may not provide sufficient throughput. The distributed build system implements a master-worker architecture where a master node coordinates the distribution of build tasks to worker nodes, aggregates results, and manages the overall build process. The system handles network-transparent file access, fault tolerance, and automatic retry of failed tasks, ensuring that distributed builds are as reliable as local builds. Distributed builds can significantly reduce build times for large teams by leveraging the combined computational power of multiple machines.
 
-Shader pipeline integration is a critical feature for game engine development, as shaders are an essential part of modern graphics pipelines. IgniteBT includes automated shader compilation and dependency tracking that integrates seamlessly with the C++ build process. The system can compile shaders written in HLSL to SPIR-V for Vulkan consumption, automatically generate shader permutations for different quality settings and feature combinations, and track shader dependencies to ensure that shader changes trigger appropriate rebuilds. This integration eliminates the need for separate shader build systems and ensures that shader compilation is consistent with the overall build process.
-
-SDK management is unified within IgniteBT, providing detection and validation of development SDKs such as Vulkan, SDL3, and other required libraries. The system automatically detects installed SDKs from standard installation locations, validates SDK versions against project requirements, and manages SDK path configuration. This unified approach simplifies the setup process for new developers and reduces configuration errors that can lead to build failures. The SDK management system also provides diagnostic capabilities that help identify missing or misconfigured SDKs, making it easier to troubleshoot environment setup issues.
+SDK management is unified within IgniteBT, providing detection and validation of development SDKs and required libraries. The system automatically detects installed SDKs from standard installation locations, validates SDK versions against project requirements, and manages SDK path configuration. This unified approach simplifies the setup process for new developers and reduces configuration errors that can lead to build failures. The SDK management system also provides diagnostic capabilities that help identify missing or misconfigured SDKs, making it easier to troubleshoot environment setup issues.
 
 Cross-platform support is built into IgniteBT from the ground up, with configurable build targets for Windows, Linux, and macOS. The system abstracts platform-specific differences such as compiler selection, library naming conventions, and file system paths, allowing developers to use a consistent set of commands across all supported platforms. This cross-platform capability is essential for projects that need to target multiple operating systems or that have team members working on different platforms. The platform abstraction layer handles the complexity of platform-specific build requirements while maintaining a unified build system interface.
 
@@ -116,10 +113,8 @@ The Getting Started Guide is designed for new users who need to get up and runni
 | 🖥️ **Operating System** | Windows 10/11 (Primary), Linux, macOS | Platform support |
 | 🟦 **.NET SDK** | 8.0 | Build system execution |
 | 🎨 **Visual Studio** | 2022 with C++ workload | MSVC compiler and toolchain |
-| 🔺 **Vulkan SDK** | Latest from LunarG | Graphics development dependencies |
-| 🐍 **Additional Tools** | CMake, Python, Perl (as needed) | Third-party dependencies |
 
-> **⚠️ Important:** The .NET SDK should be downloaded from the official Microsoft website and added to the system PATH to ensure it can be invoked from any directory. Visual Studio 2022 installation should include the latest updates to ensure compatibility with the latest compiler features and fixes. The Vulkan SDK should be installed from the LunarG website and the VULKAN_SDK environment variable should be configured to point to the installation directory.
+> **⚠️ Important:** The .NET SDK should be downloaded from the official Microsoft website and added to the system PATH to ensure it can be invoked from any directory. Visual Studio 2022 installation should include the latest updates to ensure compatibility with the latest compiler features and fixes.
 
 ---
 

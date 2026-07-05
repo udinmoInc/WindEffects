@@ -6,22 +6,24 @@ namespace IgniteBT.Tests;
 public class FastNoOpProbeTests : IDisposable
 {
     private readonly string _dir;
-    private readonly string _engineDir;
+    private readonly string _projectRoot;
+    private readonly string _engineRoot;
 
     public FastNoOpProbeTests()
     {
         _dir = Path.Combine(Path.GetTempPath(), "ignitebt_fastnoop", Guid.NewGuid().ToString("N"));
-        _engineDir = Path.Combine(_dir, "repo");
-        var engineSource = Path.Combine(_engineDir, "Engine", "Source", "Test");
+        _projectRoot = Path.Combine(_dir, "repo");
+        _engineRoot = Path.Combine(_projectRoot, "Engine");
+        var engineSource = Path.Combine(_engineRoot, "Source", "Test");
         Directory.CreateDirectory(engineSource);
-        File.WriteAllText(Path.Combine(_engineDir, "WindEffects.engine"), "schema=1");
+        File.WriteAllText(Path.Combine(_projectRoot, "WindEffects.engine"), "schema=1");
 
         var buildCs = Path.Combine(engineSource, "Test.Build.cs");
         var cpp = Path.Combine(engineSource, "Test.cpp");
         File.WriteAllText(buildCs, "// build");
         File.WriteAllText(cpp, "int main(){}");
 
-        var layout = IgniteBT.Build.Layout.BuildLayout.Resolve(_engineDir, "Win64", IgniteBT.Build.Compiler.BuildConfiguration.Development);
+        var layout = IgniteBT.Build.Layout.BuildLayout.Resolve(_projectRoot, "Win64", IgniteBT.Build.Compiler.BuildConfiguration.Development);
         Directory.CreateDirectory(layout.ManifestDirectory);
         Directory.CreateDirectory(layout.DatabaseDirectory);
 
@@ -41,6 +43,8 @@ public class FastNoOpProbeTests : IDisposable
             null,
             BuildFlagsHasher.Compute(null, false, 0, [], Environment.ProcessorCount),
             "flags",
+            manifest.ConfigHash,
+            manifest.ToolchainHash,
             "14.0",
             "",
             [buildCs],
@@ -51,22 +55,22 @@ public class FastNoOpProbeTests : IDisposable
     [Fact]
     public void FastProbe_ReturnsNoOp_WhenSnapshotMatches()
     {
-        var layout = IgniteBT.Build.Layout.BuildLayout.Resolve(_engineDir, "Win64", IgniteBT.Build.Compiler.BuildConfiguration.Development);
+        var layout = IgniteBT.Build.Layout.BuildLayout.Resolve(_projectRoot, "Win64", IgniteBT.Build.Compiler.BuildConfiguration.Development);
         var flags = BuildFlagsHasher.Compute(null, false, 0, [], Environment.ProcessorCount);
-        var result = FastNoOpProbe.TryProbe(_engineDir, layout, "Development", "Win64", null, flags);
+        var result = FastNoOpProbe.TryProbe(_engineRoot, layout, "Development", "Win64", null, flags);
         Assert.True(result.IsNoOp);
-        Assert.True(result.ElapsedMs < 500);
+        Assert.True(result.ElapsedMs < 200);
     }
 
     [Fact]
     public void FastProbe_ReturnsFalse_WhenSourceChanged()
     {
-        var cpp = Path.Combine(_engineDir, "Engine", "Source", "Test", "Test.cpp");
+        var cpp = Path.Combine(_engineRoot, "Source", "Test", "Test.cpp");
         File.AppendAllText(cpp, "\n// change");
 
-        var layout = IgniteBT.Build.Layout.BuildLayout.Resolve(_engineDir, "Win64", IgniteBT.Build.Compiler.BuildConfiguration.Development);
+        var layout = IgniteBT.Build.Layout.BuildLayout.Resolve(_projectRoot, "Win64", IgniteBT.Build.Compiler.BuildConfiguration.Development);
         var flags = BuildFlagsHasher.Compute(null, false, 0, [], Environment.ProcessorCount);
-        var result = FastNoOpProbe.TryProbe(_engineDir, layout, "Development", "Win64", null, flags);
+        var result = FastNoOpProbe.TryProbe(_engineRoot, layout, "Development", "Win64", null, flags);
         Assert.False(result.IsNoOp);
     }
 
