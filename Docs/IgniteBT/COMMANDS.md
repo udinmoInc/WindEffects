@@ -618,7 +618,7 @@ This displays detailed usage information for the specified command, including al
 
 ## 🔗 Related Documentation
 
-- 📖 [Getting Started Guide](./GETTING-STARTED.MD)
-- 🏗️ [Architecture Documentation](./ARCHITECTURE.MD)
-- ⚙️ [Configuration Guide](./CONFIGURATION.MD)
-- 📋 [Changelog](../../CHANGELOG.MD)
+- 📖 [Getting Started Guide](./GETTING-STARTED.md)
+- 🏗️ [Architecture Documentation](./ARCHITECTURE.md)
+- ⚙️ [Configuration Guide](./CONFIGURATION.md)
+- 📋 [Changelog](../../CHANGELOG.md)

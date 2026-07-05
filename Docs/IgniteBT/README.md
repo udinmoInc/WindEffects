@@ -96,10 +96,10 @@ The IgniteBT documentation is organized into several comprehensive guides that c
 
 | Document | Description | Link |
 |----------|-------------|------|
-| 📖 **Getting Started Guide** | Detailed instructions for initial setup, environment configuration, and performing your first build | [GETTING-STARTED.MD](./GETTING-STARTED.MD) |
-| 🏗️ **Architecture Documentation** | In-depth look at system design, component organization, and subsystem interactions | [ARCHITECTURE.MD](./ARCHITECTURE.MD) |
-| 💻 **Command Reference** | Complete documentation for all CLI commands including parameters, options, and usage examples | [COMMANDS.MD](./COMMANDS.MD) |
-| ⚙️ **Configuration Guide** | SDK configuration, project setup, environment variables, and advanced tuning options | [CONFIGURATION.MD](./CONFIGURATION.MD) |
+| 📖 **Getting Started Guide** | Detailed instructions for initial setup, environment configuration, and performing your first build | [GETTING-STARTED.md](./GETTING-STARTED.md) |
+| 🏗️ **Architecture Documentation** | In-depth look at system design, component organization, and subsystem interactions | [ARCHITECTURE.md](./ARCHITECTURE.md) |
+| 💻 **Command Reference** | Complete documentation for all CLI commands including parameters, options, and usage examples | [COMMANDS.md](./COMMANDS.md) |
+| ⚙️ **Configuration Guide** | SDK configuration, project setup, environment variables, and advanced tuning options | [CONFIGURATION.md](./CONFIGURATION.md) |
 
 The Getting Started Guide is designed for new users who need to get up and running quickly with the build system. The Architecture Documentation is particularly valuable for developers who need to understand how the build system works internally or who are planning to extend or modify its functionality. The Command Reference serves as a comprehensive guide for all available commands and is useful for both new users learning the system and experienced users looking up specific command details. The Configuration Guide is essential for setting up the development environment correctly and for customizing the build system behavior to match specific project requirements.
 
