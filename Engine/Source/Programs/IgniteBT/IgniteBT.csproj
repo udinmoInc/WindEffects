@@ -18,6 +18,11 @@
     <RuntimeHostConfigurationOption Include="System.GC.Concurrent" Value="false" />
   </ItemGroup>
 
+  <PropertyGroup Condition="'$(PublishAot)'=='true'">
+    <InvariantGlobalization>true</InvariantGlobalization>
+    <IlcOptimizationPreference>Speed</IlcOptimizationPreference>
+  </PropertyGroup>
+
   <ItemGroup>
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.11.0" />
     <PackageReference Include="Microsoft.Data.Sqlite" Version="8.0.11" />
