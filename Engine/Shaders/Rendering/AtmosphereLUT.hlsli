@@ -95,7 +95,7 @@ float3 WE_SampleSkyAtmosphereLUT(
         planetRadius, atmosphereHeight, multiScatterStrength, eyeAltitude,
         sunLinear, sunIntensity, sunAngularRadius);
 
-    const float3 origin = WE_GetAtmosphereOrigin(cameraPos, worldOrigin, params.planetRadius);
+    const float3 origin = WE_GetAtmosphereOrigin(cameraPos, worldOrigin, params.planetRadius, params.eyeAltitude);
     const float heightKm = max(length(origin) - params.planetRadius, 0.0);
 
     // Primary sky radiance from baked SkyView LUT (world-spherical UV, includes inscattering).

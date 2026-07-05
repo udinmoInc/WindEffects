@@ -79,13 +79,13 @@ float3 WE_UnprojectPoint(float x, float y, float z, float4x4 view, float4x4 proj
 
 // Column-vector conventions to match GLM / SPIR-V layouts used by the engine.
 // uv must be in [0, 1] (normalize fullscreen-triangle UV by 0.5 when needed).
-float3 WE_UnprojectDirection(float2 uv, float4x4 view, float4x4 proj)
+// cameraWorldPos must match the position used to build the view matrix.
+float3 WE_UnprojectDirection(float2 uv, float4x4 view, float4x4 proj, float3 cameraWorldPos)
 {
     const float2 ndc = uv * 2.0 - 1.0;
-    // Reverse-Z (perspectiveRH_ZO with far/near swapped): near = 1, far = 0.
-    const float3 nearPoint = WE_UnprojectPoint(ndc.x, ndc.y, 1.0, view, proj);
-    const float3 farPoint  = WE_UnprojectPoint(ndc.x, ndc.y, 0.0, view, proj);
-    return normalize(farPoint - nearPoint);
+    // Reverse-Z (perspectiveRH_ZO with far/near swapped): far plane at depth 0.
+    const float3 farPoint = WE_UnprojectPoint(ndc.x, ndc.y, 0.0, view, proj);
+    return normalize(farPoint - cameraWorldPos);
 }
 
 #endif // WE_MATH_HLSLI

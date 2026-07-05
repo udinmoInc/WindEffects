@@ -63,6 +63,7 @@ bool WE_IntersectSphere(float3 origin, float3 dir, float radius, out float t0, o
 {
     t0 = 0.0;
     t1 = 0.0;
+    dir = normalize(dir);
     const float b = dot(origin, dir);
     const float c = dot(origin, origin) - radius * radius;
     const float discriminant = b * b - c;
@@ -74,6 +75,20 @@ bool WE_IntersectSphere(float3 origin, float3 dir, float radius, out float t0, o
     return t1 > 0.0;
 }
 
+// Forward distance along dir from origin to the atmosphere shell exit.
+float WE_AtmosphereShellExitDistance(float3 origin, float3 dir, float radius)
+{
+    float t0 = 0.0;
+    float t1 = 0.0;
+    if (!WE_IntersectSphere(origin, dir, radius, t0, t1))
+        return 0.0;
+    if (t0 > 0.0)
+        return t0;
+    if (t1 > 0.0)
+        return t1;
+    return 0.0;
+}
+
 static const float WE_METERS_PER_KM = 1000.0;
 
 float3 WE_WorldToAtmosphereKm(float3 worldPos, float3 worldOrigin)
@@ -81,12 +96,13 @@ float3 WE_WorldToAtmosphereKm(float3 worldPos, float3 worldOrigin)
     return (worldPos - worldOrigin) / WE_METERS_PER_KM;
 }
 
-// Planet center is planetRadius below local ground (y=0). Returns camera position in atmosphere km space.
+// Planet center is at world origin. Returns observer position in atmosphere km space (planet-centered).
 // Horizontal position is ignored so sky/fog stay world-stable while the editor camera moves in XZ.
-float3 WE_GetAtmosphereOrigin(float3 cameraPos, float3 worldOrigin, float planetRadiusKm)
+float3 WE_GetAtmosphereOrigin(float3 cameraPos, float3 worldOrigin, float planetRadiusKm, float eyeAltitudeKm)
 {
     const float3 relKm = WE_WorldToAtmosphereKm(cameraPos, worldOrigin);
-    return float3(0.0, planetRadiusKm + max(relKm.y, 0.0), 0.0);
+    const float altitudeKm = max(max(relKm.y, 0.0), max(eyeAltitudeKm, 0.0));
+    return float3(0.0, planetRadiusKm + altitudeKm, 0.0);
 }
 
 float3 WE_GetPlanetCenter(float3 cameraPos, float3 worldOrigin, float planetRadiusKm)

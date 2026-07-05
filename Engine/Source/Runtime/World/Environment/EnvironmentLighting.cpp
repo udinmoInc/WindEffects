@@ -126,6 +126,7 @@ we::runtime::renderer::SceneEnvironmentUniform BuildSceneEnvironmentUniform(
     uniform.bloomIntensity = 0.15f;
     uniform.bloomThreshold = 4.0f;
     uniform.enableAutoExposure = exposure.AutoExposure ? 1.0f : 0.0f;
+    uniform.atmosphereDebugMode = atmosphere.AtmosphereDebugMode;
     return uniform;
 }
 
