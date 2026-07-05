@@ -348,13 +348,14 @@ void Renderer::CreateSwapchain(uint32_t width, uint32_t height) {
         throw std::runtime_error("Failed to create Vulkan swapchain!");
     }
 
-    // Retrieve images
-    vkGetSwapchainImagesKHR(device, m_Swapchain, &imageCount, nullptr);
-    m_SwapchainImages.resize(imageCount);
-    vkGetSwapchainImagesKHR(device, m_Swapchain, &imageCount, m_SwapchainImages.data());
+    // Retrieve images (query count first — do not reuse createInfo minImageCount here).
+    uint32_t swapchainImageCount = 0;
+    vkGetSwapchainImagesKHR(device, m_Swapchain, &swapchainImageCount, nullptr);
+    m_SwapchainImages.resize(swapchainImageCount);
+    vkGetSwapchainImagesKHR(device, m_Swapchain, &swapchainImageCount, m_SwapchainImages.data());
 
     // Create Image Views
-    m_SwapchainImageViews.resize(imageCount);
+    m_SwapchainImageViews.resize(m_SwapchainImages.size());
     for (size_t i = 0; i < m_SwapchainImages.size(); i++) {
         m_SwapchainImageViews[i] = m_Context->CreateImageView(
             m_SwapchainImages[i],
@@ -484,6 +485,19 @@ bool Renderer::BeginFrame() {
         throw std::runtime_error("Failed to acquire swapchain image!");
     }
 
+    if (m_SwapchainFramebuffers.empty() || m_CurrentImageIndex >= m_SwapchainFramebuffers.size()) {
+        HE_ERROR("Renderer: swapchain framebuffer/image index mismatch (index="
+            + std::to_string(m_CurrentImageIndex) + ", framebuffers="
+            + std::to_string(m_SwapchainFramebuffers.size()) + "). Recreating swapchain.");
+        int w = 0;
+        int h = 0;
+        if (!SDL_GetWindowSizeInPixels(m_Window, &w, &h) || w <= 0 || h <= 0) {
+            SDL_GetWindowSize(m_Window, &w, &h);
+        }
+        RecreateSwapchain(static_cast<uint32_t>(w), static_cast<uint32_t>(h));
+        return false;
+    }
+
     // Reset fence only if we are submitting work
     vkResetFences(device, 1, &m_InFlightFences[m_CurrentFrame]);
 
@@ -566,6 +580,32 @@ void Renderer::UploadCameraUniform(const CameraUniform& ubo) {
         &data);
     std::memcpy(data, &ubo, sizeof(CameraUniform));
     vkUnmapMemory(m_Context->GetDevice(), m_CameraBufferMemories[m_CurrentFrame]);
+}
+
+VkCommandBuffer Renderer::GetCommandBuffer() const {
+    if (m_CurrentFrame >= m_CommandBuffers.size()) {
+        throw std::runtime_error("Renderer command buffer index out of range.");
+    }
+    return m_CommandBuffers[m_CurrentFrame];
+}
+
+VkFramebuffer Renderer::GetSwapchainFramebuffer(uint32_t index) const {
+    if (index >= m_SwapchainFramebuffers.size()) {
+        throw std::runtime_error("Swapchain framebuffer index out of range.");
+    }
+    return m_SwapchainFramebuffers[index];
+}
+
+VkBuffer Renderer::GetCameraBuffer() const {
+    return m_CameraBuffers[m_CurrentFrame];
+}
+
+VkDescriptorSet Renderer::GetCameraDescSet() const {
+    return m_CameraDescSets[m_CurrentFrame];
+}
+
+const Renderer::CameraUniform& Renderer::GetLastUploadedCameraUniform() const {
+    return m_LastUploadedCameraUniform;
 }
 
 } // namespace we::runtime::renderer
