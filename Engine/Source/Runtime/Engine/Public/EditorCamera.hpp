@@ -70,6 +70,11 @@ public:
     float GetPitch() const { return m_Pitch; }
     float GetYaw() const { return m_Yaw; }
 
+    glm::vec3 GetPreviousPosition() const { return m_PrevPosition; }
+    float GetPreviousPitch() const { return m_PrevPitch; }
+    float GetPreviousYaw() const { return m_PrevYaw; }
+    float GetLastDeltaTime() const { return m_LastDeltaTime; }
+
     static constexpr float kMinCameraSpeed = 1.0f;
     static constexpr float kMaxCameraSpeed = 50.0f;
     static constexpr float kDefaultCameraSpeed = 4.0f;
@@ -121,6 +126,11 @@ private:
     float m_ScrollWheelSpeedMultiplier = 1.0f;
     bool m_InvertX = false;
     bool m_InvertY = false;
+
+    glm::vec3 m_PrevPosition{ 0.0f, 6.0f, 15.0f };
+    float m_PrevPitch = -15.0f;
+    float m_PrevYaw = -90.0f;
+    float m_LastDeltaTime = 0.0f;
 };
 
 } // namespace we::runtime::engine

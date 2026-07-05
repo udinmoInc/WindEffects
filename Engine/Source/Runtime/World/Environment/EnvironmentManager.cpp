@@ -15,12 +15,9 @@ float Clamp01(float value) {
 
 } // namespace
 
-glm::vec3 EnvironmentManager::GetWorldOrigin(const glm::vec3& cameraPosition) const {
-    constexpr float kRebaseGrid = 1000.0f;
-    return glm::vec3(
-        std::floor(cameraPosition.x / kRebaseGrid) * kRebaseGrid,
-        std::floor(cameraPosition.y / kRebaseGrid) * kRebaseGrid,
-        std::floor(cameraPosition.z / kRebaseGrid) * kRebaseGrid);
+glm::vec3 EnvironmentManager::GetWorldOrigin(const glm::vec3& /*cameraPosition*/) const {
+    // Fixed world origin keeps sky/fog/cloud math stable while the editor camera moves.
+    return glm::vec3(0.0f);
 }
 
 glm::vec3 EnvironmentManager::ComputeSkyLightUpper(
