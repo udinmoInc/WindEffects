@@ -66,7 +66,7 @@ void CSMain(uint3 dtid : SV_DispatchThreadID)
 
         float3 rd, md, od;
         const float dist = params.atmosphereRadius - length(origin);
-        WE_IntegrateOpticalDepth(origin, float3(0.0, 1.0, 0.0), max(dist, 0.001), params, rd, md, od);
+        WE_IntegrateOpticalDepth(origin, float3(0.0, 1.0, 0.0), max(dist, 0.001f), params, rd, md, od);
         const float3 multi = (1.0 - exp(-(rd + md) * 0.15)) * params.rayleighCoeff * (0.5 + cosSun * 0.5);
         MultiScatteringLUT[dtid.xy] = float4(multi, 1.0);
         return;

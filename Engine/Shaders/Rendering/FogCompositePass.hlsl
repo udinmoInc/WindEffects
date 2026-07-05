@@ -28,7 +28,7 @@ VSOutput VSMain(uint vertexId : SV_VertexID)
     float2 pos = uv * float2(2.0, -2.0) + float2(-1.0, 1.0);
     VSOutput o;
     o.position = float4(pos, 0.999, 1.0);
-    o.uv = uv;
+    o.uv = uv * 0.5;
     return o;
 }
 

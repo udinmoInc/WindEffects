@@ -31,7 +31,7 @@ glm::vec3 TemperatureKelvinToRgb(int kelvin) {
 
     float red = 0.0f;
     if (temp <= 66.0f) {
-        red = 1.0f;
+        red = 255.0f;
     } else {
         red = temp - 60.0f;
         red = 329.698727446f * std::pow(red, -0.1332047592f);
@@ -48,7 +48,7 @@ glm::vec3 TemperatureKelvinToRgb(int kelvin) {
 
     float blue = 0.0f;
     if (temp >= 66.0f) {
-        blue = 1.0f;
+        blue = 255.0f;
     } else if (temp <= 19.0f) {
         blue = 0.0f;
     } else {

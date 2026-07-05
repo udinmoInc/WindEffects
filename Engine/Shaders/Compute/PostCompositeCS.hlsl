@@ -11,7 +11,8 @@ float WE_ComputeAutoExposureEV(float avgLuminance)
 {
     const float middleGray = 0.18;
     const float clamped = max(avgLuminance, 1e-5);
-    return log2(middleGray / clamped);
+    // EV so that 1/2^EV = middleGray/avgLuminance (normalize scene average to key).
+    return log2(clamped / middleGray);
 }
 
 [numthreads(8, 8, 1)]
