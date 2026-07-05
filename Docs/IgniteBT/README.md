@@ -1,8 +1,7 @@
 # 🚀 IgniteBT Build System
 
-> IgniteBT is a high-performance build orchestration platform designed for large-scale C++ projects. Built on .NET 8.0, IgniteBT provides enterprise-grade build automation with advanced dependency management, distributed compilation, and intelligent caching. The system represents a significant advancement in build tool technology, addressing the complex needs of modern game engine development where projects often encompass thousands of source files, hundreds of dependencies, and multiple target platforms. IgniteBT has been architected from the ground up to handle these challenges while maintaining the speed and reliability required for professional development workflows.
+> IgniteBT is the build system component of WindEffects Engine, designed for large-scale C++ projects. Built on .NET 8.0, IgniteBT provides build automation with advanced dependency management, distributed compilation, and intelligent caching for the WindEffects Engine. The system addresses the complex needs of game engine development where projects encompass thousands of source files, hundreds of dependencies, and multiple target platforms. IgniteBT is architected as an integral part of WindEffects Engine to handle these challenges while maintaining the speed and reliability required for professional development workflows.
 
-![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)
 ![.NET](https://img.shields.io/badge/.NET-8.0-purple.svg)
 ![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20Linux%20%7C%20macOS-lightgrey.svg)
 
@@ -10,9 +9,9 @@
 
 ## 📖 Overview
 
-IgniteBT serves as the primary build system for WindEffects Engine, handling complex compilation workflows across multiple configurations and platforms. The system is architected for scalability, supporting projects with thousands of source files and hundreds of dependencies while maintaining fast incremental build times. At its core, IgniteBT is designed to solve the fundamental challenges of large-scale C++ development: managing complex dependency graphs, optimizing compilation throughput, and providing developers with immediate feedback on their changes. The system achieves these goals through a combination of sophisticated dependency analysis, parallel execution strategies, and intelligent caching mechanisms that minimize redundant work.
+IgniteBT is the build system component of WindEffects Engine, handling compilation workflows across multiple configurations and platforms. The system is architected for scalability, supporting projects with thousands of source files and hundreds of dependencies while maintaining fast incremental build times. IgniteBT solves the fundamental challenges of large-scale C++ development within WindEffects Engine: managing complex dependency graphs, optimizing compilation throughput, and providing developers with immediate feedback on their changes. The system achieves these goals through dependency analysis, parallel execution strategies, and intelligent caching mechanisms that minimize redundant work.
 
-The build system is particularly well-suited for game engine development where iteration speed is critical. Game engines typically require frequent rebuilds as developers modify core systems, add new features, or fix bugs. Traditional build systems often struggle with the scale and complexity of such projects, leading to long build times that disrupt development flow. IgniteBT addresses this by implementing advanced incremental build techniques that only recompile what has actually changed, even when modifications occur in header files that affect many translation units. This approach, combined with parallel compilation across multiple CPU cores and distributed build capabilities, ensures that developers can maintain their productivity even as the project grows in size and complexity.
+The build system is designed for WindEffects Engine development where iteration speed is critical. The engine requires frequent rebuilds as developers modify core systems, add new features, or fix bugs. IgniteBT addresses this by implementing incremental build techniques that only recompile what has actually changed, even when modifications occur in header files that affect many translation units. This approach, combined with parallel compilation across multiple CPU cores and distributed build capabilities, ensures that developers can maintain their productivity as the WindEffects Engine project grows in size and complexity.
 
 ### ✨ Key Capabilities
 
@@ -92,16 +91,16 @@ we run --target Editor --config Development
 
 ## 📚 Documentation Structure
 
-The IgniteBT documentation is organized into several comprehensive guides that cover different aspects of the system:
+The IgniteBT documentation is part of the WindEffects Engine documentation and covers the build system component:
 
 | Document | Description | Link |
 |----------|-------------|------|
-| 📖 **Getting Started Guide** | Detailed instructions for initial setup, environment configuration, and performing your first build | [GETTING-STARTED.md](./GETTING-STARTED.md) |
-| 🏗️ **Architecture Documentation** | In-depth look at system design, component organization, and subsystem interactions | [ARCHITECTURE.md](./ARCHITECTURE.md) |
-| 💻 **Command Reference** | Complete documentation for all CLI commands including parameters, options, and usage examples | [COMMANDS.md](./COMMANDS.md) |
-| ⚙️ **Configuration Guide** | SDK configuration, project setup, environment variables, and advanced tuning options | [CONFIGURATION.md](./CONFIGURATION.md) |
+| 📖 **Getting Started Guide** | Instructions for setting up the WindEffects Engine build environment and performing your first build | [GETTING-STARTED.md](./GETTING-STARTED.md) |
+| 🏗️ **Architecture Documentation** | Design of the IgniteBT build system component within WindEffects Engine | [ARCHITECTURE.md](./ARCHITECTURE.md) |
+| 💻 **Command Reference** | Documentation for the `we` CLI commands used in WindEffects Engine development | [COMMANDS.md](./COMMANDS.md) |
+| ⚙️ **Configuration Guide** | SDK configuration and build settings for WindEffects Engine | [CONFIGURATION.md](./CONFIGURATION.md) |
 
-The Getting Started Guide is designed for new users who need to get up and running quickly with the build system. The Architecture Documentation is particularly valuable for developers who need to understand how the build system works internally or who are planning to extend or modify its functionality. The Command Reference serves as a comprehensive guide for all available commands and is useful for both new users learning the system and experienced users looking up specific command details. The Configuration Guide is essential for setting up the development environment correctly and for customizing the build system behavior to match specific project requirements.
+These guides are designed for WindEffects Engine developers working with the build system. The Getting Started Guide helps new developers set up their environment. The Architecture Documentation explains how the build system works within the engine. The Command Reference documents the `we` commands used in daily development. The Configuration Guide covers SDK setup and build configuration for WindEffects Engine.
 
 ---
 
@@ -119,15 +118,15 @@ The Getting Started Guide is designed for new users who need to get up and runni
 
 ## 🆘 Support
 
-For technical documentation, issue reporting, or contribution guidelines, users should refer to the main WindEffects Engine documentation. The IgniteBT build system is an integral component of the WindEffects Engine, and support is provided through the same channels as the main engine.
+For technical documentation, issue reporting, or support, refer to the main WindEffects Engine documentation. IgniteBT is a component of the WindEffects Engine, and support is provided through the same channels as the main engine.
 
 **Troubleshooting Steps:**
 
-1. 📖 Consult the documentation to ensure configuration is correct
+1. 📖 Consult the WindEffects Engine documentation to ensure configuration is correct
 2. 🔍 Run `we doctor` for comprehensive environment diagnostics
-3. 🐛 Report issues through the official issue tracking system with detailed information
+3. 🐛 Report issues through the official WindEffects Engine support channels with detailed information
 
-Users experiencing issues with the build system should first consult the documentation to ensure that their configuration is correct and that they are using the system as intended. If issues persist, the doctor command can be used to perform comprehensive diagnostics of the build environment, which may help identify configuration problems or missing dependencies. For issues that cannot be resolved through documentation or diagnostics, users should report the problem through the official issue tracking system, providing detailed information about the issue, steps to reproduce, and the environment configuration.
+Users experiencing issues with the build system should first consult the WindEffects Engine documentation to ensure that their configuration is correct and that they are using the system as intended. If issues persist, the doctor command can be used to perform comprehensive diagnostics of the build environment. For issues that cannot be resolved through documentation or diagnostics, users should report the problem through the official WindEffects Engine support channels.
 
 ---
 

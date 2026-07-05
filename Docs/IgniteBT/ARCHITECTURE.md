@@ -1,16 +1,16 @@
 # 🏗️ IgniteBT Architecture
 
-> IgniteBT is designed with a layered architecture that separates concerns across infrastructure, build orchestration, workspace management, and user interface layers. This document describes the system architecture, component interactions, and design principles in detail. The architecture has been carefully designed to support the complex requirements of large-scale C++ projects while maintaining performance, reliability, and maintainability. Each layer has a specific responsibility and communicates with other layers through well-defined interfaces, promoting modularity and making the system easier to understand, test, and extend.
+> IgniteBT is the build system component of WindEffects Engine, designed with a layered architecture that separates concerns across infrastructure, build orchestration, workspace management, and user interface layers. This document describes the system architecture, component interactions, and design principles in detail. The architecture has been carefully designed to support the complex requirements of WindEffects Engine while maintaining performance, reliability, and maintainability. Each layer has a specific responsibility and communicates with other layers through well-defined interfaces, promoting modularity and making the system easier to understand, test, and extend.
 
 ---
 
 ## 🌐 System Overview
 
-IgniteBT follows a modular architecture where each subsystem operates independently through well-defined interfaces. The system is built on .NET 8.0 and leverages modern C# features including pattern matching, nullable reference types, and asynchronous programming patterns. This choice of technology provides a robust foundation for the build system, allowing developers to write clean, maintainable code while taking advantage of the latest language features for improved productivity and code safety. The modular architecture means that different components can be developed, tested, and maintained independently, reducing the risk of changes in one area inadvertently affecting other areas of the system.
+IgniteBT follows a modular architecture where each subsystem operates independently through well-defined interfaces. The system is built on .NET 8.0 and leverages modern C# features including pattern matching, nullable reference types, and asynchronous programming patterns. This choice of technology provides a robust foundation for the WindEffects Engine build system, allowing developers to write clean, maintainable code while taking advantage of the latest language features for improved productivity and code safety. The modular architecture means that different components can be developed, tested, and maintained independently, reducing the risk of changes in one area inadvertently affecting other areas of the system.
 
 ### 📐 Architectural Layers
 
-The IgniteBT architecture is organized into four distinct layers, each building upon the layer below it:
+The IgniteBT architecture for WindEffects Engine is organized into four distinct layers, each building upon the layer below it:
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
