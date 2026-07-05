@@ -1,3 +1,5 @@
+using Serilog;
+using Serilog.Sinks.File;
 using IgniteBT.CLI;
 using IgniteBT.Daemon;
 

@@ -1,6 +1,7 @@
 using System.IO.Pipes;
 using System.Net.Sockets;
 using System.Text;
+using System.Text.Json;
 
 namespace IgniteBT.Daemon;
 
