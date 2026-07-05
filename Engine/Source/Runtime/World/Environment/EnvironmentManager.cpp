@@ -95,9 +95,11 @@ void EnvironmentManager::UpdateDerivedState(
     EnvironmentHeightFog& fog,
     EnvironmentSkyAtmosphere& atmosphere,
     const glm::vec3& cameraPosition) {
-    (void)cameraPosition;
-
     sun.Color = sun.GetColorFromTemperature();
+
+    const glm::vec3 worldOrigin = GetWorldOrigin(cameraPosition);
+    const float altitudeMeters = std::max(cameraPosition.y - worldOrigin.y, 0.0f);
+    atmosphere.EyeAltitude = std::max(altitudeMeters * 0.001f, 0.001f);
 
     if (skyLight.RealTimeCapture) {
         skyLight.UpperHemisphereColor = ComputeSkyLightUpper(sun, atmosphere);

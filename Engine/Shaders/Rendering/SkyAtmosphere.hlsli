@@ -4,6 +4,7 @@
 #include "../Common/Color.hlsli"
 #include "AtmosphereIntegrator.hlsli"
 
+// sunColor in EnvironmentBuffer is already linear (from blackbody temperature).
 float3 WE_SampleSkyAtmosphere(
     float3 viewDir,
     float3 lightTravelDir,
@@ -18,17 +19,17 @@ float3 WE_SampleSkyAtmosphere(
     float planetRadius,
     float atmosphereHeight,
     float multiScatterStrength,
-    float eyeAltitude)
+    float eyeAltitude,
+    float sunAngularRadius)
 {
     const float3 sunDir = normalize(-lightTravelDir);
-    const float3 sunLinear = WE_sRGBToLinear(saturate(sunColor));
+    const float3 sunLinear = max(sunColor, float3(0.0, 0.0, 0.0));
     WE_AtmosphereParams params = WE_BuildAtmosphereParams(
         rayleighCoeff, mieCoeff, ozoneCoeff, mieAnisotropy,
         planetRadius, atmosphereHeight, multiScatterStrength, eyeAltitude,
-        sunLinear, sunIntensity, WE_SUN_ANGULAR_RADIUS);
+        sunLinear, sunIntensity, max(sunAngularRadius, WE_SUN_ANGULAR_RADIUS));
 
-    const float3 planetCenter = WE_GetPlanetCenter(cameraPos, worldOrigin, params.planetRadius);
-    const float3 origin = (cameraPos - worldOrigin) - planetCenter;
+    const float3 origin = WE_GetAtmosphereOrigin(cameraPos, worldOrigin, params.planetRadius);
     float3 transmittance;
     float3 sky = WE_IntegrateInscattering(viewDir, sunDir, origin, params, transmittance);
     sky += WE_ComputeSunDisk(viewDir, sunDir, sunIntensity, sunLinear, params.sunAngularRadius);
@@ -49,6 +50,7 @@ float3 WE_SampleSkyLightHemisphere(
     float atmosphereHeight,
     float multiScatterStrength,
     float eyeAltitude,
+    float sunAngularRadius,
     bool upperHemisphere)
 {
     const float3 basis = upperHemisphere ? float3(0.0, 1.0, 0.0) : float3(0.0, -1.0, 0.0);
@@ -64,7 +66,8 @@ float3 WE_SampleSkyLightHemisphere(
             dir, lightTravelDir, cameraPos, worldOrigin,
             sunColor, sunIntensity * 0.25,
             rayleighCoeff, mieCoeff, ozoneCoeff, mieAnisotropy,
-            planetRadius, atmosphereHeight, multiScatterStrength, eyeAltitude);
+            planetRadius, atmosphereHeight, multiScatterStrength, eyeAltitude,
+            sunAngularRadius);
     }
     return sum / float(samples);
 }

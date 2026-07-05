@@ -14,7 +14,7 @@ RWTexture2D<float4> AerialPerspectiveLUT : register(u3);
 
 WE_AtmosphereParams WE_ParamsFromEnvironment()
 {
-    const float3 sunLinear = WE_sRGBToLinear(saturate(sunColor));
+    const float3 sunLinear = max(sunColor, float3(0.0, 0.0, 0.0));
     return WE_BuildAtmosphereParams(
         max(atmosphereRayleigh, float3(1e-6, 1e-6, 1e-6)),
         max(mieScattering, 1e-6),
@@ -86,7 +86,6 @@ void CSMain(uint3 dtid : SV_DispatchThreadID)
         const float3 origin = float3(0.0, params.eyeAltitude, 0.0) - planetCenter;
         float3 transmittance;
         float3 sky = WE_IntegrateInscattering(viewDir, sunDir, origin, params, transmittance);
-        sky += WE_ComputeSunDisk(viewDir, sunDir, params.sunIntensity, params.sunColor, params.sunAngularRadius);
         SkyViewLUT[dtid.xy] = float4(max(sky, 0.0), 1.0);
         return;
     }
