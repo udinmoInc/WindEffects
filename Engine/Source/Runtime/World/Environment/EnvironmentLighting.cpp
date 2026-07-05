@@ -99,9 +99,9 @@ we::runtime::renderer::SceneEnvironmentUniform BuildSceneEnvironmentUniform(
     uniform.cloudCoverage = clouds.Coverage;
     uniform.cloudAltitude = clouds.Altitude;
     uniform.cloudExtinction = clouds.Extinction;
-    uniform.enableClouds = (clouds.Enabled && clouds.EntityId != 0) ? 1.0f : 0.0f;
+    uniform.enableClouds = clouds.Enabled ? 1.0f : 0.0f;
     uniform.cloudColor = clouds.CloudColor;
-    uniform.enableVolumetricFog = (fog.VolumetricFog && fog.EntityId != 0) ? 1.0f : 0.0f;
+    uniform.enableVolumetricFog = fog.VolumetricFog ? 1.0f : 0.0f;
     uniform.exposureCompensation = exposure.ExposureCompensation;
     uniform.sunAngularRadius = 0.004675f;
     uniform.hdrSkyLuminance = manager.ComputeHdrSkyLuminance(sun, atmosphere);
