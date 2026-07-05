@@ -1,5 +1,7 @@
 #pragma once
 
+#include "EditorGridRenderer/Export.hpp"
+
 #include <memory>
 #include <volk.h>
 
@@ -14,7 +16,7 @@ class VulkanContext;
 namespace we::editor::grid {
 
 // Editor-only infinite ground grid renderer. All grid logic lives here; callers invoke Render() only.
-class EditorGridRenderer {
+class EDITORGRIDRENDERER_API EditorGridRenderer {
 public:
     static EditorGridRenderer& Get();
 

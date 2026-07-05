@@ -53,7 +53,9 @@ float WE_ExposureFromEV100(float ev100)
 float3 WE_ApplyFilmicTonemap(float3 linearColor, float exposureScale)
 {
     const float3 exposed = max(linearColor * max(exposureScale, 1e-4), 0.0);
-    return WE_ACESFilm(exposed);
+    // Slight shoulder before ACES keeps sky gradients and bright clouds from clipping to flat cyan.
+    const float3 compressed = exposed / (1.0 + exposed * 0.18);
+    return WE_ACESFilm(compressed);
 }
 
 float3 WE_SanitizeHdrColor(float3 color)

@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Application/Export.hpp"
+
 #include "Core/Widget.hpp"
 #include "Core/ToolbarDesignTokens.hpp"
 #include <functional>
@@ -10,7 +12,7 @@ namespace we::UI {
 
 // Minimal navigation button for toolbar (28x28)
 // Used for Previous, Next, Folder - integrated into toolbar surface
-class ToolbarNavigationButton : public Widget {
+class APPLICATION_API ToolbarNavigationButton : public Widget {
 public:
     ToolbarNavigationButton(const std::string& iconName, const char* tooltip = nullptr);
 

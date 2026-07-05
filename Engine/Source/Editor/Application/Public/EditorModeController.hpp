@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Application/Export.hpp"
+
 #include <functional>
 #include <string>
 #include <vector>
@@ -7,7 +9,7 @@
 namespace we::programs::editor {
 
 /// Central editor mode workflow: active mode, tool-drawer visibility, and persisted layout.
-class EditorModeController {
+class APPLICATION_API EditorModeController {
 public:
     static EditorModeController& Get();
 

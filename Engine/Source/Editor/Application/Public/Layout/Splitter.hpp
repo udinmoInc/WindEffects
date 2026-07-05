@@ -1,11 +1,13 @@
 #pragma once
 
+#include "Application/Export.hpp"
+
 #include "Core/Widget.hpp"
 #include "Layout/Box.hpp"
 
 namespace we::UI {
 
-class Splitter : public Widget {
+class APPLICATION_API Splitter : public Widget {
 public:
     enum class ResizeMode { Ratio, FixedFirst };
 

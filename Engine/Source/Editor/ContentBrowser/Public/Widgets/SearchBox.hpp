@@ -1,5 +1,7 @@
 #pragma once
 
+#include "ContentBrowser/Export.hpp"
+
 #include "Core/Widget.hpp"
 #include "Core/Style.hpp"
 #include "Core/Icon.hpp"
@@ -9,7 +11,7 @@
 namespace we::UI {
 
 // Search box widget with icon and clear button
-class SearchBox : public Widget {
+class CONTENTBROWSER_API SearchBox : public Widget {
 public:
     using OnTextChanged = std::function<void(const std::string&)>;
 

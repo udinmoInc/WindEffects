@@ -1,12 +1,14 @@
 #pragma once
 
+#include "MainFrame/Export.hpp"
+
 #include "Core/Widget.hpp"
 #include <memory>
 
 namespace we::UI {
 
 // Draws a square border around the full application client area.
-class WindowShell : public Widget {
+class MAINFRAME_API WindowShell : public Widget {
 public:
     WindowShell();
     ~WindowShell() override = default;

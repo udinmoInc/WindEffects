@@ -1,11 +1,13 @@
 #pragma once
 
+#include "Application/Export.hpp"
+
 #include <cmath>
 #include <algorithm>
 
 namespace we::UI {
 
-class Animator {
+class APPLICATION_API Animator {
 public:
     static void Tick(float deltaTime) {
         s_DeltaTime = deltaTime;

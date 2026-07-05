@@ -92,4 +92,8 @@ std::string FrameStatsCollector::GetOverlayText() const {
     return ss.str();
 }
 
+const FrameStats& FrameStatsCollector::GetStats() const {
+    return m_Stats;
+}
+
 } // namespace we::runtime::renderer

@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Application/Export.hpp"
+
 #include "Core/Widget.hpp"
 #include <memory>
 #include <vector>
@@ -28,7 +30,7 @@ struct DockNode {
     int ActiveTab = 0;
 };
 
-class DockSpace : public Widget {
+class APPLICATION_API DockSpace : public Widget {
 public:
     DockSpace();
     virtual ~DockSpace() = default;

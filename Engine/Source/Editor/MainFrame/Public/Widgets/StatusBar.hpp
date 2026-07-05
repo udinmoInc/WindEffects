@@ -1,5 +1,7 @@
 #pragma once
 
+#include "MainFrame/Export.hpp"
+
 #include "Layout/Box.hpp"
 #include <string>
 #include <functional>
@@ -7,7 +9,7 @@
 namespace we::UI {
 
 // Status bar widget for application status information
-class StatusBar : public HorizontalBox {
+class MAINFRAME_API StatusBar : public HorizontalBox {
 public:
     StatusBar();
     ~StatusBar() override = default;

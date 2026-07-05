@@ -260,6 +260,18 @@ std::string RenderDiagnostics::GetSummary() const {
     return ss.str();
 }
 
+bool RenderDiagnostics::HasErrors() const {
+    return m_HasErrors;
+}
+
+bool RenderDiagnostics::HasCritical() const {
+    return m_HasCritical;
+}
+
+const std::vector<DiagnosticMessage>& RenderDiagnostics::GetMessages() const {
+    return m_Messages;
+}
+
 #if WE_HAS_VULKAN
 
 void InsertGpuDebugLabel(VkCommandBuffer cmd, const char* label, float r, float g, float b) {

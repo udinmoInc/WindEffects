@@ -1,5 +1,7 @@
 #pragma once
 
+#include "MainFrame/Export.hpp"
+
 #include "Core/Widget.hpp"
 namespace we::UI { class MenuBar; class ToolButton; }
 #include "Layout/Box.hpp"
@@ -9,10 +11,10 @@ namespace we::UI { class MenuBar; class ToolButton; }
 
 namespace we::UI {
 
-class TitleBar : public HorizontalBox {
-public:
-    static constexpr float LogoDisplaySize = 22.0f;
+inline constexpr float kTitleBarLogoDisplaySize = 22.0f;
 
+class MAINFRAME_API TitleBar : public HorizontalBox {
+public:
     TitleBar(SDL_Window* window, const std::string& title, VkDescriptorSet logoSet = VK_NULL_HANDLE, std::shared_ptr<MenuBar> menuBar = nullptr);
     virtual ~TitleBar() = default;
 

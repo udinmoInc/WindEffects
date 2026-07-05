@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Application/Export.hpp"
+
 #include "Core/Widget.hpp"
 #include "Core/ToolbarDesignTokens.hpp"
 #include <functional>
@@ -10,7 +12,7 @@ namespace we::UI {
 
 // Circular icon button for toolbar navigation
 // Used for Back, Forward, Folder, Refresh, etc.
-class ToolbarIconButton : public Widget {
+class APPLICATION_API ToolbarIconButton : public Widget {
 public:
     ToolbarIconButton(const std::string& iconName, const char* tooltip = nullptr);
 

@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Application/Export.hpp"
+
 #include "Core/Widget.hpp"
 #include "Core/Style.hpp"
 #include <string>
@@ -9,7 +11,7 @@
 namespace we::UI {
 
 // Tab widget with tabbed interface
-class TabWidget : public Widget {
+class APPLICATION_API TabWidget : public Widget {
 public:
     using OnTabChanged = std::function<void(int index)>;
 

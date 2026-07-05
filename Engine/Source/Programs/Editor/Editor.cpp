@@ -375,7 +375,7 @@ void Editor::BuildDynamicEditorUI() {
         }
     }
     
-    int finalPxSize = static_cast<int>(std::round(we::UI::TitleBar::LogoDisplaySize * displayScale));
+    int finalPxSize = static_cast<int>(std::round(we::UI::kTitleBarLogoDisplaySize * displayScale));
 
     VkDescriptorSet logoSet = VK_NULL_HANDLE;
     if (m_UIRenderer && m_UIRenderer->GetIconRenderer()) {
@@ -540,23 +540,6 @@ void Editor::BuildDynamicEditorUI() {
         }
     });
 
-    auto inspectorDock = std::make_shared<DockContainer>();
-    inspectorDock->AddPanel(viewportNavigationPanel);
-    inspectorDock->SetVisible(false);
-    inspectorDock->SetOnTabClosed([](const std::shared_ptr<Panel>& panel) {
-        if (panel && panel->GetTitle() == "Viewport Navigation") {
-            EditorPanelController::Get().SetPanelVisible(EditorPanelId::ViewportNavigation, false);
-        }
-    });
-    inspectorDock->SetOnTabDragStarted([](const std::shared_ptr<Panel>& panel, const Point&) {
-        if (panel && panel->GetTitle() == "Viewport Navigation") {
-            EditorPanelController::Get().FloatPanel(EditorPanelId::ViewportNavigation);
-        }
-    });
-
-    EditorLayoutController::Get().SetRightBottomDock(inspectorDock);
-    EditorLayoutController::Get().SetViewportNavigationTabIndex(0);
-
     std::shared_ptr<TreeView> worldOutlinerTree = we::programs::editor::GetExplorerTreeView();
     std::shared_ptr<PropertyEditor> detailsEditor;
     if (detailsPanel) {
@@ -601,16 +584,15 @@ void Editor::BuildDynamicEditorUI() {
     EditorPanelController::Get().RegisterDockZone(EditorDockZone::Left, toolsDock);
     EditorPanelController::Get().RegisterDockZone(EditorDockZone::Center, centralDock);
     EditorPanelController::Get().RegisterDockZone(EditorDockZone::Right, explorerDock);
-    EditorPanelController::Get().RegisterDockZone(EditorDockZone::RightInspector, inspectorDock);
     EditorPanelController::Get().RegisterPanel(EditorPanelId::Tools, "Tools", toolsPanel, EditorDockZone::Left);
     EditorPanelController::Get().RegisterPanel(EditorPanelId::Viewport, "Viewport", viewportPanel, EditorDockZone::Center);
     EditorPanelController::Get().RegisterPanel(EditorPanelId::Game, "Game", gamePanel, EditorDockZone::Center);
     EditorPanelController::Get().RegisterPanel(EditorPanelId::Explorer, "Explorer", worldOutlinerPanel, EditorDockZone::Right);
     EditorPanelController::Get().RegisterPanel(EditorPanelId::Details, "Details", detailsPanel, EditorDockZone::Right);
-    EditorPanelController::Get().RegisterPanel(EditorPanelId::ViewportNavigation, "Viewport Navigation", viewportNavigationPanel, EditorDockZone::RightInspector);
-    EditorPanelController::Get().RegisterPanel(EditorPanelId::ContentBrowser, "Content Browser", contentBrowserPanel, EditorDockZone::Bottom);
-    EditorPanelController::Get().RegisterPanel(EditorPanelId::OutputLog, "Output Log", outputLogPanel, EditorDockZone::Bottom);
-    EditorPanelController::Get().RegisterPanel(EditorPanelId::Debug, "Diagnostics", debugPanel, EditorDockZone::Bottom);
+    EditorPanelController::Get().RegisterPanel(EditorPanelId::ViewportNavigation, "Viewport Navigation", viewportNavigationPanel, EditorDockZone::Floating);
+    EditorPanelController::Get().RegisterPanel(EditorPanelId::ContentBrowser, "Content Browser", contentBrowserPanel, EditorDockZone::Floating);
+    EditorPanelController::Get().RegisterPanel(EditorPanelId::OutputLog, "Output Log", outputLogPanel, EditorDockZone::Floating);
+    EditorPanelController::Get().RegisterPanel(EditorPanelId::Debug, "Diagnostics", debugPanel, EditorDockZone::Floating);
 
     vpItem->checked = EditorPanelController::Get().IsPanelVisible(EditorPanelId::Viewport);
     cbItem->checked = EditorPanelController::Get().IsPanelVisible(EditorPanelId::ContentBrowser);
@@ -969,6 +951,11 @@ void Editor::MainLoop() {
             if (vp) vp->FlushPendingResize();
         }
 
+        if (m_SceneRenderer) {
+            auto& offscreenFB = m_Renderer->GetOffscreenFramebuffer();
+            m_SceneRenderer->ResizePostProcess(offscreenFB.GetWidth(), offscreenFB.GetHeight());
+        }
+
         we::runtime::core::FrameCounter::Advance();
         FrameStatsCollector::Get().BeginFrame();
 
@@ -1008,16 +995,16 @@ void Editor::MainLoop() {
                     std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - skyStart).count());
             }
             {
-                const auto cloudStart = std::chrono::steady_clock::now();
-                m_SceneRenderer->DrawVolumetricCloudsPass(cmd, cameraDescSet);
-                FrameStatsCollector::Get().RecordPassMs("VolumetricClouds",
-                    std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - cloudStart).count());
-            }
-            {
                 const auto sceneStart = std::chrono::steady_clock::now();
                 m_Scene->Draw(cmd);
                 FrameStatsCollector::Get().RecordPassMs("Scene",
                     std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - sceneStart).count());
+            }
+            {
+                const auto cloudStart = std::chrono::steady_clock::now();
+                m_SceneRenderer->DrawVolumetricCloudsPass(cmd, cameraDescSet);
+                FrameStatsCollector::Get().RecordPassMs("VolumetricClouds",
+                    std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - cloudStart).count());
             }
             {
                 const auto fogStart = std::chrono::steady_clock::now();

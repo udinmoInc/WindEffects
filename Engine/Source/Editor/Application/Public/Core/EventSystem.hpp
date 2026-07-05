@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Application/Export.hpp"
+
 #include "Core/Geometry.hpp"
 #include <memory>
 #include <SDL3/SDL_keycode.h>
@@ -48,7 +50,7 @@ struct KeyEvent {
     bool ctrlDown = false;
 };
 
-class EventSystem {
+class APPLICATION_API EventSystem {
 public:
     EventSystem() = default;
     ~EventSystem() = default;

@@ -23,7 +23,7 @@ VSOutput VSMain(uint vertexId : SV_VertexID)
     float2 pos = uv * float2(2.0, -2.0) + float2(-1.0, 1.0);
     VSOutput o;
     o.position = float4(pos, 1.0, 1.0);
-    o.uv = uv;
+    o.uv = uv * 0.5;
     return o;
 }
 
@@ -44,6 +44,6 @@ float4 PSMain(VSOutput input) : SV_Target
 
     // Keep linear HDR — PostExposure applies exposure, tonemap, and sRGB conversion once.
     const float3 color = WE_SanitizeHdrColor(clouds);
-    const float alpha = saturate(length(clouds) * 2.5);
+    const float alpha = saturate(length(clouds) * 1.8);
     return float4(color, alpha);
 }

@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Application/Export.hpp"
+
 #include <functional>
 #include <memory>
 #include <string>
@@ -36,7 +38,7 @@ enum class EditorDockZone {
 };
 
 /// Central registry for editor panel visibility, focus, and dock zone placement.
-class EditorPanelController {
+class APPLICATION_API EditorPanelController {
 public:
     static EditorPanelController& Get();
 

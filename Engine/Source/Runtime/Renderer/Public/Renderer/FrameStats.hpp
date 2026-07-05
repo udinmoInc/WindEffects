@@ -43,7 +43,7 @@ public:
     RENDERER_API void SetPostPipelineValid(bool valid);
     RENDERER_API void SetPassStatus(const char* passName, const char* status);
 
-    RENDERER_API const FrameStats& GetStats() const { return m_Stats; }
+    RENDERER_API const FrameStats& GetStats() const;
     RENDERER_API std::string GetOverlayText() const;
 
 private:

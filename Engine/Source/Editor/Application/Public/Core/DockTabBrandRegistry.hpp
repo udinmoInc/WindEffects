@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Application/Export.hpp"
+
 #include <string>
 #include <unordered_map>
 #include <volk.h>
@@ -12,7 +14,7 @@ struct DockTabBrand {
 };
 
 /// Maps panel titles to high-DPI rasterized SVG brand marks for dock tab chrome.
-class DockTabBrandRegistry {
+class APPLICATION_API DockTabBrandRegistry {
 public:
     static DockTabBrandRegistry& Get();
 

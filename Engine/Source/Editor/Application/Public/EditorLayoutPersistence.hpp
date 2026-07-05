@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Application/Export.hpp"
+
 #include <memory>
 
 namespace we::UI {
@@ -10,7 +12,7 @@ class DockContainer;
 namespace we::programs::editor {
 
 /// Persists editor shell layout between sessions (split ratios, active tabs, panel visibility).
-class EditorLayoutPersistence {
+class APPLICATION_API EditorLayoutPersistence {
 public:
     static EditorLayoutPersistence& Get();
 

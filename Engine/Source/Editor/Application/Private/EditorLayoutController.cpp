@@ -47,7 +47,6 @@ void EditorLayoutController::SetRightBottomDock(const std::shared_ptr<we::UI::Do
 
 void EditorLayoutController::FocusViewportNavigationPanel() {
     EditorPanelController::Get().SetPanelVisible(EditorPanelId::ViewportNavigation, true);
-    EditorPanelController::Get().FloatPanel(EditorPanelId::ViewportNavigation);
 }
 
 void EditorLayoutController::SetBottomPanels(

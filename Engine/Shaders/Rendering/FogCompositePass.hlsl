@@ -1,3 +1,4 @@
+#include "../Common/Math.hlsli"
 #include "../Common/Color.hlsli"
 #include "../Common/EnvironmentBuffer.hlsli"
 #include "../Rendering/AtmosphereLUT.hlsli"
@@ -37,8 +38,10 @@ float3 WE_ReconstructWorldPos(float2 uv, float depth, float4x4 viewMat, float4x4
     float4 clip = float4(ndc, depth, 1.0);
     float4x4 invView = WE_Inverse4x4(viewMat);
     float4x4 invProj = WE_Inverse4x4(projMat);
-    float4 world = mul(invView, mul(invProj, clip));
-    return world.xyz / world.w;
+    float4 viewPos = mul(invProj, clip);
+    viewPos /= max(viewPos.w, 1e-6);
+    float4 world = mul(invView, viewPos);
+    return world.xyz / max(world.w, 1e-6);
 }
 
 float4 PSMain(VSOutput input) : SV_Target
@@ -47,7 +50,8 @@ float4 PSMain(VSOutput input) : SV_Target
         discard;
 
     const float depth = depthTexture.Sample(lutSampler, input.uv).r;
-    if (depth < 1e-5)
+    // Reverse-Z: cleared depth is 0 (far); skip sky pixels with no geometry.
+    if (depth < 1e-4)
         discard;
 
     const float3 worldPos = WE_ReconstructWorldPos(input.uv, depth, view, proj, cameraPos);
@@ -55,10 +59,10 @@ float4 PSMain(VSOutput input) : SV_Target
     const float3 relCam = cameraPos - worldOrigin;
 
     const float height = max(relPos.y, 0.0);
-    const float heightFog = 1.0 - exp(-fogDensity * height * fogHeightFalloff);
+    const float heightFog = 1.0 - exp(-fogDensity * height * max(fogHeightFalloff, 0.01));
     const float dist = length(relCam - relPos);
-    const float distFog = 1.0 - exp(-max(dist - fogStartDistance, 0.0) * fogDensity * 0.4);
-    const float fogFactor = saturate(heightFog * 0.55 + distFog * 0.45);
+    const float distFog = 1.0 - exp(-max(dist - fogStartDistance, 0.0) * fogDensity * 0.15);
+    const float fogFactor = saturate(heightFog * 0.35 + distFog * 0.65);
 
     const float3 viewDir = normalize(relCam - relPos);
     const float3 rayleigh = max(atmosphereRayleigh, float3(1e-6, 1e-6, 1e-6));
@@ -72,6 +76,7 @@ float4 PSMain(VSOutput input) : SV_Target
         max(sunAngularRadius, WE_SUN_ANGULAR_RADIUS),
         aerialLUT, skyViewLUT, lutSampler);
 
-    const float3 fogLinear = lerp(aerial * 0.35, aerial, 0.85);
-    return float4(fogLinear, fogFactor);
+    const float3 fogTint = WE_sRGBToLinear(saturate(fogColor));
+    const float3 fogLinear = lerp(fogTint * sunIntensity * 0.04, aerial, 0.82);
+    return float4(fogLinear, fogFactor * 0.55);
 }

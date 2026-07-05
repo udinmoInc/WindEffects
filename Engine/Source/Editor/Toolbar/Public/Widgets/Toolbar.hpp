@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Toolbar/Export.hpp"
+
 #include "Core/Widget.hpp"
 #include "Layout/Box.hpp"
 #include "Layout/Spacer.hpp"
@@ -20,7 +22,7 @@ enum class ToolbarAlignment {
 };
 
 // Toolbar widget with icon buttons and grouping
-class Toolbar : public Widget {
+class TOOLBAR_API Toolbar : public Widget {
 public:
     Toolbar();
     virtual ~Toolbar() = default;

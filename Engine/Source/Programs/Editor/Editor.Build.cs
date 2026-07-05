@@ -39,6 +39,5 @@ public class Editor : ModuleRules
 
         PlatformSettings.Windows ??= new WindowsSettings();
         PlatformSettings.Windows.Subsystem = "Console";
-        PlatformSettings.Windows.LinkerFlags.Add("delayimp.lib");
     }
 }

@@ -27,8 +27,8 @@ void ShowPopupBelowButton(const std::shared_ptr<we::UI::Widget>& popup,
 
 float SnapCameraSpeed(float value) {
     return static_cast<float>(std::clamp(static_cast<int>(std::lround(value)),
-        static_cast<int>(we::runtime::engine::EditorCamera::kMinCameraSpeed),
-        static_cast<int>(we::runtime::engine::EditorCamera::kMaxCameraSpeed)));
+        static_cast<int>(we::runtime::engine::kEditorCameraMinSpeed),
+        static_cast<int>(we::runtime::engine::kEditorCameraMaxSpeed)));
 }
 } // namespace
 
@@ -89,8 +89,8 @@ void ShowViewportCameraSpeedPopup() {
     auto popup = std::make_shared<ViewportSliderPopup>(
         "Camera Speed",
         currentSpeed,
-        we::runtime::engine::EditorCamera::kMinCameraSpeed,
-        we::runtime::engine::EditorCamera::kMaxCameraSpeed,
+        we::runtime::engine::kEditorCameraMinSpeed,
+        we::runtime::engine::kEditorCameraMaxSpeed,
         false,
         [](float value) { return std::to_string(static_cast<int>(std::lround(value))); },
         SnapCameraSpeed,

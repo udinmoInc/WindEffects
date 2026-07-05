@@ -1,12 +1,14 @@
 #pragma once
 
+#include "Application/Export.hpp"
+
 #include <string>
 #include <unordered_map>
 
 namespace we::UI {
 
 // Centralized registry for dock tab icons
-class DockTabIconRegistry {
+class APPLICATION_API DockTabIconRegistry {
 public:
     static DockTabIconRegistry& Get();
 

@@ -12,18 +12,18 @@ namespace we::runtime::renderer {
 
 class RenderGraph {
 public:
-    RenderGraph(const std::shared_ptr<Renderer>& renderer);
-    ~RenderGraph() = default;
+    RENDERER_API RenderGraph(const std::shared_ptr<Renderer>& renderer);
+    RENDERER_API ~RenderGraph() = default;
 
     // Prevent copying
     RenderGraph(const RenderGraph&) = delete;
     RenderGraph& operator=(const RenderGraph&) = delete;
 
-    void BeginOffscreenPass(VkCommandBuffer cmd) const;
-    void EndOffscreenPass(VkCommandBuffer cmd) const;
+    RENDERER_API void BeginOffscreenPass(VkCommandBuffer cmd) const;
+    RENDERER_API void EndOffscreenPass(VkCommandBuffer cmd) const;
 
-    void BeginSwapchainPass(VkCommandBuffer cmd) const;
-    void EndSwapchainPass(VkCommandBuffer cmd) const;
+    RENDERER_API void BeginSwapchainPass(VkCommandBuffer cmd) const;
+    RENDERER_API void EndSwapchainPass(VkCommandBuffer cmd) const;
 
 private:
     std::shared_ptr<Renderer> m_Renderer;

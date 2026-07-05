@@ -1,5 +1,7 @@
 #pragma once
 
+#include "PropertyEditor/Export.hpp"
+
 #include "Core/Widget.hpp"
 #include "Core/Style.hpp"
 #include <string>
@@ -44,7 +46,7 @@ struct Property {
 };
 
 // Property editor widget for inspector panels
-class PropertyEditor : public Widget {
+class PROPERTYEDITOR_API PropertyEditor : public Widget {
 public:
     PropertyEditor();
     virtual ~PropertyEditor() = default;

@@ -1,5 +1,7 @@
 #pragma once
 
+#include "PlaceActors/Export.hpp"
+
 #include <glm/glm.hpp>
 #include <memory>
 #include <string>
@@ -9,7 +11,7 @@ namespace we::runtime::scene { class Scene; }
 
 namespace we::programs::editor {
 
-class PlaceActorsPlacement {
+class PLACEACTORS_API PlaceActorsPlacement {
 public:
     static PlaceActorsPlacement& Get();
 

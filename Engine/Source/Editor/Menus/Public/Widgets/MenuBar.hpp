@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Menus/Export.hpp"
+
 #include "Core/Widget.hpp"
 #include "Core/Style.hpp"
 #include <string>
@@ -20,7 +22,7 @@ struct MenuItem {
 };
 
 // Menu bar widget for top-level application menus
-class MenuBar : public Widget {
+class MENUS_API MenuBar : public Widget {
 public:
     MenuBar();
     virtual ~MenuBar() = default;

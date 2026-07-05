@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Application/Export.hpp"
+
 #include "Core/Widget.hpp"
 
 namespace we::UI {
@@ -9,7 +11,7 @@ enum class Orientation {
     Vertical
 };
 
-class Box : public Widget {
+class APPLICATION_API Box : public Widget {
 public:
     Box(Orientation orientation) : m_Orientation(orientation) {}
     virtual ~Box() = default;
@@ -27,12 +29,12 @@ private:
     Margin m_Padding = { 0.0f, 0.0f, 0.0f, 0.0f };
 };
 
-class HorizontalBox : public Box {
+class APPLICATION_API HorizontalBox : public Box {
 public:
     HorizontalBox() : Box(Orientation::Horizontal) {}
 };
 
-class VerticalBox : public Box {
+class APPLICATION_API VerticalBox : public Box {
 public:
     VerticalBox() : Box(Orientation::Vertical) {}
 };

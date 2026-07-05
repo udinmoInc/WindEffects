@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Application/Export.hpp"
+
 #include <functional>
 #include <memory>
 #include <string>
@@ -48,7 +50,7 @@ struct EditorToolMode {
     ContentFactory customContent;
 };
 
-class EditorToolsRegistry {
+class APPLICATION_API EditorToolsRegistry {
 public:
     static EditorToolsRegistry& Get();
 

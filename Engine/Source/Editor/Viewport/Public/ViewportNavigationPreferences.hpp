@@ -1,9 +1,11 @@
 #pragma once
 
+#include "Viewport/Export.hpp"
+
 #include <functional>
 
 namespace we::programs::editor {
 
-void ShowViewportNavigationPreferences();
+VIEWPORT_API void ShowViewportNavigationPreferences();
 
 } // namespace we::programs::editor

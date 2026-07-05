@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Application/Export.hpp"
+
 #include <string>
 
 namespace we::programs::editor {
@@ -31,7 +33,7 @@ struct ViewportNavigationSettings {
     float scrollWheelSpeedMultiplier = 1.0f;
 };
 
-class ViewportNavigationSettingsStore {
+class APPLICATION_API ViewportNavigationSettingsStore {
 public:
     static ViewportNavigationSettingsStore& Get();
 

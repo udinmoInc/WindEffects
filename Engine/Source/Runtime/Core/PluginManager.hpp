@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Core/Export.hpp"
+
 #include <string>
 #include <vector>
 #include <memory>
@@ -10,7 +12,12 @@
 
 namespace we::core {
 
-class PluginManager {
+#if defined(_MSC_VER)
+#pragma warning(push)
+#pragma warning(disable : 4251)
+#endif
+
+class CORE_API PluginManager {
 public:
     static PluginManager& Get();
 
@@ -32,5 +39,9 @@ private:
 
     std::vector<PluginHandle> m_LoadedPlugins;
 };
+
+#if defined(_MSC_VER)
+#pragma warning(pop)
+#endif
 
 } // namespace we::core

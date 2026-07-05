@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Application/Export.hpp"
+
 #include <volk.h>
 #include <memory>
 #include <string>
@@ -16,7 +18,7 @@ struct GlyphInfo {
     float xadvance;
 };
 
-class FontAtlas {
+class APPLICATION_API FontAtlas {
 public:
     FontAtlas() = default;
     ~FontAtlas();

@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Viewport/Export.hpp"
+
 #include <volk.h>
 #include "Core/Widget.hpp"
 #include "ViewportNavigation.hpp"
@@ -15,7 +17,7 @@ namespace we::UI {
 
 class UIRenderer;
 
-class ViewportWidget : public Widget {
+class VIEWPORT_API ViewportWidget : public Widget {
 public:
     ViewportWidget(const std::shared_ptr<we::runtime::renderer::Renderer>& renderer,
                    const std::shared_ptr<we::runtime::engine::EditorCamera>& camera,

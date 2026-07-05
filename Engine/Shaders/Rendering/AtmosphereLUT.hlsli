@@ -2,6 +2,7 @@
 #define WE_ATMOSPHERE_LUT_HLSLI
 
 #include "AtmosphereIntegrator.hlsli"
+#include "SkyAtmosphere.hlsli"
 #include "../Common/Color.hlsli"
 
 // Transmittance LUT: X = height (0..atmosphere top), Y = cos(view zenith)
@@ -97,12 +98,8 @@ float3 WE_SampleSkyAtmosphereLUT(
     const float3 origin = WE_GetAtmosphereOrigin(cameraPos, worldOrigin, params.planetRadius);
     const float heightKm = max(length(origin) - params.planetRadius, 0.0);
 
-    // Primary sky radiance from baked SkyView LUT (world-spherical UV).
+    // Primary sky radiance from baked SkyView LUT (world-spherical UV, includes inscattering).
     float3 sky = WE_SampleSkyViewLUT(skyViewLUT, lutSampler, viewDir);
-
-    // Additive multi-scattering term from LUT.
-    const float cosSunZenith = dot(sunDir, float3(0.0, 1.0, 0.0));
-    sky += WE_SampleMultiScatteringLUT(multiScatterLUT, lutSampler, cosSunZenith, heightKm, params);
 
     // Sun disk is rendered at runtime (not baked into SkyView LUT).
     sky += WE_ComputeSunDisk(viewDir, sunDir, sunIntensity, sunLinear, params.sunAngularRadius);
@@ -131,20 +128,25 @@ float3 WE_SampleAerialPerspective(
     Texture2D skyViewLUT,
     SamplerState lutSampler)
 {
+    (void)aerialLUT;
+    (void)skyViewLUT;
+    (void)lutSampler;
+
     const float3 relCam = cameraPos - worldOrigin;
     const float3 relSurf = surfacePos - worldOrigin;
-    const float distKm = length(relCam - relSurf) * 0.001;
-    const float heightKm = max(relSurf.y * 0.001, 0.0);
+    const float dist = length(relCam - relSurf);
+    const float3 marchDir = normalize(relSurf - relCam);
 
-    WE_AtmosphereParams params = WE_BuildAtmosphereParams(
+    // Analytic inscattering along camera-to-surface segment (view- and sun-dependent).
+    const float3 inscatter = WE_SampleSkyAtmosphere(
+        marchDir, lightTravelDir, cameraPos, worldOrigin,
+        sunColor, sunIntensity * 0.65,
         rayleighCoeff, mieCoeff, ozoneCoeff, mieAnisotropy,
         planetRadius, atmosphereHeight, multiScatterStrength, eyeAltitude,
-        max(sunColor, float3(0.0, 0.0, 0.0)), sunIntensity, sunAngularRadius);
+        sunAngularRadius);
 
-    const float3 sunDir = normalize(-lightTravelDir);
-    const float3 horizonSky = WE_SampleSkyViewLUT(skyViewLUT, lutSampler, normalize(viewDir));
-    const float3 aerial = WE_SampleAerialPerspectiveLUT(aerialLUT, lutSampler, distKm, heightKm, params);
-    return lerp(horizonSky, aerial, saturate(distKm * 0.08));
+    const float distFactor = 1.0 - exp(-dist * 0.0015);
+    return inscatter * saturate(distFactor);
 }
 
 #endif // WE_ATMOSPHERE_LUT_HLSLI

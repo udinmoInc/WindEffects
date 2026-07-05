@@ -1,16 +1,15 @@
 #pragma once
 
+#include "Application/Export.hpp"
+
 namespace we::UI {
 
 class DPIContext {
 public:
-    static float GetScale() { return s_Scale; }
-    static void SetScale(float scale) { s_Scale = scale; }
+    APPLICATION_API static float GetScale();
+    APPLICATION_API static void SetScale(float scale);
 
-    static float Scale(float value) { return value * s_Scale; }
-
-private:
-    static inline float s_Scale = 1.0f; // Default 100%
+    static float Scale(float value) { return value * GetScale(); }
 };
 
-} // namespace we::editor::application::UI
+} // namespace we::UI

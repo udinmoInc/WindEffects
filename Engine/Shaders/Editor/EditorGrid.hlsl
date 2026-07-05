@@ -200,13 +200,12 @@ PSOutput PSMain(VSOutput input)
     const float distanceFade = exp(-distToCamera * 0.0032);
     alpha = saturate(alpha * renderParams1.x * edgeFade * distanceFade);
 
-    // Treat configured colors as display-space values and map through a linear/filmic path.
+    // Output linear HDR — global PostExposure pass applies exposure, tonemap, and sRGB once.
     float3 linearColor = WE_sRGBToLinear(saturate(color));
     const float haze = 1.0 - exp(-distToCamera * 0.0055);
-    const float3 hazeColor = float3(0.009, 0.009, 0.009);
-    linearColor = lerp(linearColor, hazeColor, saturate(haze * 0.55));
-    color = WE_LinearToSRGB(WE_ApplyFilmicTonemap(linearColor, WE_ExposureFromEV100(2.0)));
-    color = min(color, float3(0.9, 0.9, 0.9));
+    const float3 hazeColor = float3(0.02, 0.02, 0.022);
+    linearColor = lerp(linearColor, hazeColor, saturate(haze * 0.35));
+    color = min(linearColor, float3(4.0, 4.0, 4.0));
 
     if (lineMask <= 1e-5 && alpha <= 1e-5)
         discard;

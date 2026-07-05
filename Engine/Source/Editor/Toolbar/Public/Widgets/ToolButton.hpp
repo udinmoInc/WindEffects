@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Toolbar/Export.hpp"
+
 #include "Core/Widget.hpp"
 #include "Core/Style.hpp"
 #include "Core/Icon.hpp"
@@ -20,7 +22,7 @@ enum class ToolButtonStyle {
 };
 
 // Icon and text button for toolbar use
-class ToolButton : public Widget {
+class TOOLBAR_API ToolButton : public Widget {
 public:
     ToolButton(const std::string& iconName, const std::string& label = "", std::function<void()> onClicked = nullptr, const std::string& tooltip = "");
     virtual ~ToolButton() = default;

@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Application/Export.hpp"
+
 #include <memory>
 
 namespace we::runtime::renderer {
@@ -9,7 +11,7 @@ class SceneRenderer;
 namespace we::programs::editor {
 
 // Editor-only viewport rendering preferences.
-class EditorPreferences {
+class APPLICATION_API EditorPreferences {
 public:
     static EditorPreferences& Get();
 

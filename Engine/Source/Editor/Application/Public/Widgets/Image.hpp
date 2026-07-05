@@ -1,11 +1,13 @@
 #pragma once
 
+#include "Application/Export.hpp"
+
 #include <volk.h>
 #include "Core/Widget.hpp"
 
 namespace we::UI {
 
-class Image : public Widget {
+class APPLICATION_API Image : public Widget {
 public:
     Image(VkDescriptorSet textureId = VK_NULL_HANDLE);
     virtual ~Image() = default;

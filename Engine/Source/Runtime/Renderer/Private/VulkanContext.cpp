@@ -542,6 +542,11 @@ void VulkanContext::TransitionImageLayout(VkImage image, VkFormat format, VkImag
         barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
         sourceStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
         destinationStage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+    } else if (oldLayout == VK_IMAGE_LAYOUT_UNDEFINED && newLayout == VK_IMAGE_LAYOUT_GENERAL) {
+        barrier.srcAccessMask = 0;
+        barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT;
+        sourceStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+        destinationStage = VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
     } else if (oldLayout == VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL && newLayout == VK_IMAGE_LAYOUT_GENERAL) {
         barrier.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
         barrier.dstAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
@@ -563,7 +568,9 @@ void VulkanContext::TransitionImageLayout(VkImage image, VkFormat format, VkImag
         sourceStage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
         destinationStage = VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
     } else {
-        throw std::invalid_argument("Unsupported layout transition!");
+        throw std::invalid_argument(
+            "Unsupported layout transition! old=" + std::to_string(static_cast<int>(oldLayout)) +
+            " new=" + std::to_string(static_cast<int>(newLayout)));
     }
 
     vkCmdPipelineBarrier(
@@ -582,6 +589,10 @@ void VulkanContext::WaitUntilIdle() const {
     if (m_Device != VK_NULL_HANDLE) {
         vkDeviceWaitIdle(m_Device);
     }
+}
+
+bool VulkanContext::IsValidationEnabled() const {
+    return m_ValidationEnabled;
 }
 
 #endif // WE_HAS_VULKAN

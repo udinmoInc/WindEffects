@@ -27,14 +27,14 @@ void EditorCamera::SetNavigationSettings(const EditorCameraNavigationSettings& s
 }
 
 void EditorCamera::SetCameraSpeed(float speed) {
-    m_MoveSpeed = std::clamp(speed, kMinCameraSpeed, kMaxCameraSpeed);
+    m_MoveSpeed = std::clamp(speed, kEditorCameraMinSpeed, kEditorCameraMaxSpeed);
 }
 
 void EditorCamera::Reset() {
     m_FlyMode = false;
     m_FreeLook = false;
     m_SavedOrbitPivot = glm::vec3(0.0f);
-    m_MoveSpeed = kDefaultCameraSpeed;
+    m_MoveSpeed = kEditorCameraDefaultSpeed;
     m_Sensitivity = 0.15f;
     m_LerpSpeed = 12.0f;
     m_Acceleration = 1.0f;
@@ -248,7 +248,7 @@ void EditorCamera::ProcessMousePan(float dx, float dy) {
 
     ResumeOrbitNavigation();
 
-    const float speedScale = m_MoveSpeed / kDefaultCameraSpeed;
+    const float speedScale = m_MoveSpeed / kEditorCameraDefaultSpeed;
     const float panSpeed = std::max(0.01f, m_TargetDistance * 0.0015f) * speedScale;
 
     const glm::vec3 forward = ComputeForwardFromAngles();
@@ -266,7 +266,7 @@ void EditorCamera::ProcessMouseDolly(float delta) {
 
     ResumeOrbitNavigation();
 
-    const float speedScale = m_MoveSpeed / kDefaultCameraSpeed;
+    const float speedScale = m_MoveSpeed / kEditorCameraDefaultSpeed;
     const float zoomStep = std::max(0.5f, m_TargetDistance * 0.1f) * speedScale;
     m_TargetDistance -= delta * zoomStep;
     m_TargetDistance = std::max(0.5f, m_TargetDistance);
@@ -371,7 +371,7 @@ EditorCamera::EditorCamera() {
     m_AspectRatio = 1.777f;
     m_Near = 0.1f;
     m_Far = 100000.0f;
-    m_MoveSpeed = kDefaultCameraSpeed;
+    m_MoveSpeed = kEditorCameraDefaultSpeed;
 }
 
 void EditorCamera::SetNavigationSettings(const EditorCameraNavigationSettings& settings) {
@@ -379,7 +379,7 @@ void EditorCamera::SetNavigationSettings(const EditorCameraNavigationSettings& s
 }
 
 void EditorCamera::SetCameraSpeed(float speed) {
-    m_MoveSpeed = std::clamp(speed, kMinCameraSpeed, kMaxCameraSpeed);
+    m_MoveSpeed = std::clamp(speed, kEditorCameraMinSpeed, kEditorCameraMaxSpeed);
 }
 
 void EditorCamera::Reset() {

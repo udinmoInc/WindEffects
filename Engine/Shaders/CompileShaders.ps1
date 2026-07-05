@@ -31,13 +31,27 @@ $shaders = @(
     @{ Name = "AtmospherePass"; Path = "Rendering/AtmospherePass.hlsl" },
     @{ Name = "VolumetricCloudsPass"; Path = "Rendering/VolumetricCloudsPass.hlsl" },
     @{ Name = "FogCompositePass"; Path = "Rendering/FogCompositePass.hlsl" },
-    @{ Name = "SceneObject"; Path = "Rendering/SceneObject.hlsl" }
+    @{ Name = "SceneObject"; Path = "Rendering/SceneObject.hlsl" },
+    @{ Name = "PostExposureCS"; Path = "Compute/PostExposureCS.hlsl"; Compute = $true },
+    @{ Name = "PostCompositeCS"; Path = "Compute/PostCompositeCS.hlsl"; Compute = $true },
+    @{ Name = "LuminanceReduceCS"; Path = "Compute/LuminanceReduceCS.hlsl"; Compute = $true },
+    @{ Name = "LuminanceAvgCS"; Path = "Compute/LuminanceAvgCS.hlsl"; Compute = $true },
+    @{ Name = "BloomPrefilterCS"; Path = "Compute/BloomPrefilterCS.hlsl"; Compute = $true },
+    @{ Name = "BloomBlurCS"; Path = "Compute/BloomBlurCS.hlsl"; Compute = $true }
 )
 
 foreach ($shader in $shaders) {
     $source = Join-Path $includeRoot $shader.Path
     if (-not (Test-Path $source)) {
         throw "Shader source missing: $source"
+    }
+
+    if ($shader.Compute) {
+        $csOut = Join-Path $OutputDir "$($shader.Name)_CS.spv"
+        & $dxc -spirv -T cs_6_0 -E CSMain -I $includeRoot -Fo $csOut $source
+        if ($LASTEXITCODE -ne 0) { throw "Failed to compile CS for $($shader.Name)" }
+        Write-Host "Compiled $($shader.Name) (compute)"
+        continue
     }
 
     $vsOut = Join-Path $OutputDir "$($shader.Name)_VS.spv"

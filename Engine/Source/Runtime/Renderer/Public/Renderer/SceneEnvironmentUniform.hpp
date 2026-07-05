@@ -50,7 +50,10 @@ struct SceneEnvironmentUniform {
     float hdrSkyLuminance = 1.0f;
     int sunCastShadows = 1;
     int sunTemperature = 6500;
-    glm::ivec2 envPadding{};
+    float bloomIntensity = 0.65f;
+    float bloomThreshold = 0.85f;
+    float enableAutoExposure = 1.0f;
+    float postPadding = 0.0f;
 };
 
 } // namespace we::runtime::renderer

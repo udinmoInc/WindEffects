@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Application/Export.hpp"
+
 #include "Core/Widget.hpp"
 #include "Core/ToolbarDesignTokens.hpp"
 #include <functional>
@@ -10,7 +12,7 @@ namespace we::UI {
 
 // Premium primary toolbar button with subtle 3D depth
 // Used for primary actions like "Create"
-class PrimaryToolbarButton : public Widget {
+class APPLICATION_API PrimaryToolbarButton : public Widget {
 public:
     PrimaryToolbarButton(const std::string& label, const std::string& iconName = {});
 

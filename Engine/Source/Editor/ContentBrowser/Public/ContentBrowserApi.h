@@ -1,12 +1,14 @@
 #pragma once
 
+#include "ContentBrowser/Export.hpp"
+
 namespace we::UI {
 class IconRenderer;
 }
 
 namespace we::programs::editor {
 
-void InitializeContentBrowserService(we::UI::IconRenderer* iconRenderer);
-void ShutdownContentBrowserService();
+CONTENTBROWSER_API void InitializeContentBrowserService(we::UI::IconRenderer* iconRenderer);
+CONTENTBROWSER_API void ShutdownContentBrowserService();
 
 }

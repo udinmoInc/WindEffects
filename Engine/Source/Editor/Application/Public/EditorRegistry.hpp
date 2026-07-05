@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Application/Export.hpp"
+
 #include <string>
 #include <string_view>
 #include <vector>
@@ -20,7 +22,7 @@ namespace we::programs::editor {
 using PanelFactoryFunc = std::function<std::shared_ptr<we::UI::Panel>()>;
 using MenuFactoryFunc = std::function<std::vector<std::shared_ptr<we::UI::MenuItem>>()>;
 
-class EditorRegistry {
+class APPLICATION_API EditorRegistry {
 public:
     static EditorRegistry& Get();
 

@@ -13,6 +13,17 @@ float Clamp01(float value) {
     return std::clamp(value, 0.0f, 1.0f);
 }
 
+float SrgbChannelToLinear(float channel) {
+    return channel <= 0.04045f ? channel / 12.92f : std::pow((channel + 0.055f) / 1.055f, 2.4f);
+}
+
+glm::vec3 SrgbToLinear(const glm::vec3& srgb) {
+    return glm::vec3(
+        SrgbChannelToLinear(srgb.x),
+        SrgbChannelToLinear(srgb.y),
+        SrgbChannelToLinear(srgb.z));
+}
+
 } // namespace
 
 glm::vec3 TemperatureKelvinToRgb(int kelvin) {
@@ -45,7 +56,8 @@ glm::vec3 TemperatureKelvinToRgb(int kelvin) {
         blue = 138.5177312231f * std::log(blue) - 305.0447927307f;
     }
 
-    return glm::vec3(Clamp01(red / 255.0f), Clamp01(green / 255.0f), Clamp01(blue / 255.0f));
+    const glm::vec3 srgb(Clamp01(red / 255.0f), Clamp01(green / 255.0f), Clamp01(blue / 255.0f));
+    return SrgbToLinear(srgb);
 }
 
 glm::vec3 EulerDegreesToLightDirection(const glm::vec3& rotationDegrees) {
@@ -79,7 +91,9 @@ we::runtime::renderer::SceneEnvironmentUniform BuildSceneEnvironmentUniform(
 
     we::runtime::renderer::SceneEnvironmentUniform uniform{};
     uniform.sunDirection = sun.GetLightDirection();
-    uniform.sunIntensity = sun.Intensity;
+    // Artist-facing intensity scaled to approximate outdoor solar illuminance response.
+    constexpr float kSunIrradianceScale = 1.35f;
+    uniform.sunIntensity = sun.Intensity * kSunIrradianceScale;
     uniform.sunColor = sun.GetColorFromTemperature();
     uniform.skyLightIntensity = skyLight.Intensity;
     uniform.skyAmbientColor = skyLight.GetAmbientColor();
@@ -109,6 +123,9 @@ we::runtime::renderer::SceneEnvironmentUniform BuildSceneEnvironmentUniform(
     uniform.hdrSkyLuminance = manager.ComputeHdrSkyLuminance(sun, atmosphere);
     uniform.sunCastShadows = sun.CastDynamicShadows ? 1 : 0;
     uniform.sunTemperature = sun.TemperatureKelvin;
+    uniform.bloomIntensity = 0.65f;
+    uniform.bloomThreshold = 0.85f;
+    uniform.enableAutoExposure = exposure.AutoExposure ? 1.0f : 0.0f;
     return uniform;
 }
 

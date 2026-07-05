@@ -1,12 +1,14 @@
 #pragma once
 
+#include "Application/Export.hpp"
+
 #include "Core/Widget.hpp"
 #include "Core/Style.hpp"
 #include <functional>
 
 namespace we::UI {
 
-class Button : public Widget {
+class APPLICATION_API Button : public Widget {
 public:
     Button(const std::string& labelText, std::function<void()> onClicked = nullptr);
     virtual ~Button() = default;

@@ -1,5 +1,7 @@
 #pragma once
 
+#include "MainFrame/Export.hpp"
+
 #if WE_HAS_SDL3
 #include <SDL3/SDL.h>
 #endif
@@ -16,7 +18,7 @@ struct EditorWindowHitTestData {
 };
 
 #if WE_HAS_SDL3
-SDL_HitTestResult SDLCALL EditorWindowHitTest(SDL_Window* window, const SDL_Point* area, void* userdata);
+MAINFRAME_API SDL_HitTestResult SDLCALL EditorWindowHitTest(SDL_Window* window, const SDL_Point* area, void* userdata);
 #endif
 
 } // namespace we::editor::mainframe

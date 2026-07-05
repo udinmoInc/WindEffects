@@ -49,7 +49,7 @@ public:
     RENDERER_API void EndSingleTimeCommands(VkCommandBuffer commandBuffer) const;
     RENDERER_API void TransitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout) const;
     RENDERER_API void WaitUntilIdle() const;
-    RENDERER_API bool IsValidationEnabled() const { return m_ValidationEnabled; }
+    RENDERER_API bool IsValidationEnabled() const;
 
 private:
     void CreateInstance();

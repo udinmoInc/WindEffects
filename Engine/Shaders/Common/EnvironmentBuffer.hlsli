@@ -38,7 +38,10 @@ cbuffer EnvironmentBuffer : register(WE_ENVIRONMENT_BUFFER_REGISTER, space0)
     float  hdrSkyLuminance;
     int    sunCastShadows;
     int    sunTemperature;
-    int2   envPadding;
+    float  bloomIntensity;
+    float  bloomThreshold;
+    float  enableAutoExposure;
+    float  postPadding;
 };
 
 #endif // WE_ENVIRONMENT_BUFFER_HLSLI
