@@ -202,7 +202,7 @@ glm::vec3 WorldToAtmosphereKm(const glm::vec3& worldPos, const glm::vec3& worldO
 
 glm::vec3 GetAtmosphereOrigin(const glm::vec3& cameraPos, const glm::vec3& worldOrigin, float planetRadiusKm) {
     const glm::vec3 relKm = WorldToAtmosphereKm(cameraPos, worldOrigin);
-    return glm::vec3(relKm.x, planetRadiusKm + std::max(relKm.y, 0.0f), relKm.z);
+    return glm::vec3(0.0f, planetRadiusKm + std::max(relKm.y, 0.0f), 0.0f);
 }
 
 AtmosParams BuildParams(const SceneEnvironmentUniform& env) {

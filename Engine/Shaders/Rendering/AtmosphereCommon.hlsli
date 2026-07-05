@@ -82,10 +82,11 @@ float3 WE_WorldToAtmosphereKm(float3 worldPos, float3 worldOrigin)
 }
 
 // Planet center is planetRadius below local ground (y=0). Returns camera position in atmosphere km space.
+// Horizontal position is ignored so sky/fog stay world-stable while the editor camera moves in XZ.
 float3 WE_GetAtmosphereOrigin(float3 cameraPos, float3 worldOrigin, float planetRadiusKm)
 {
     const float3 relKm = WE_WorldToAtmosphereKm(cameraPos, worldOrigin);
-    return float3(relKm.x, planetRadiusKm + max(relKm.y, 0.0), relKm.z);
+    return float3(0.0, planetRadiusKm + max(relKm.y, 0.0), 0.0);
 }
 
 float3 WE_GetPlanetCenter(float3 cameraPos, float3 worldOrigin, float planetRadiusKm)

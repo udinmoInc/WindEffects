@@ -1,7 +1,7 @@
 #include "../Common/Math.hlsli"
 #include "../Common/Color.hlsli"
 #include "../Common/EnvironmentBuffer.hlsli"
-#include "SkyAtmosphere.hlsli"
+#include "AtmosphereLUT.hlsli"
 
 cbuffer CameraBuffer : register(b0, space1)
 {
@@ -10,6 +10,12 @@ cbuffer CameraBuffer : register(b0, space1)
     float3   cameraPos;
     float    cameraPadding;
 };
+
+Texture2D transmittanceLUT : register(t0, space2);
+Texture2D multiScatterLUT  : register(t1, space2);
+Texture2D skyViewLUT       : register(t2, space2);
+Texture2D aerialLUT        : register(t3, space2);
+SamplerState lutSampler    : register(s0, space2);
 
 struct VSOutput
 {
@@ -33,12 +39,14 @@ float4 PSMain(VSOutput input) : SV_Target
     const float3 rayleigh = max(atmosphereRayleigh, float3(1e-6, 1e-6, 1e-6));
     const float3 ozone = max(ozoneAbsorption, float3(0.0, 0.0, 0.0));
 
-    float3 skyLinear = WE_SampleSkyAtmosphere(
+    // SkyView LUT is baked in world-spherical coordinates — stable while the camera translates.
+    float3 skyLinear = WE_SampleSkyAtmosphereLUT(
         viewDir, sunDirection, cameraPos, worldOrigin,
         sunColor, sunIntensity,
         rayleigh, mieScattering, ozone, mieAnisotropy,
         planetRadius, atmosphereHeight, multiScatterStrength, eyeAltitude,
-        max(sunAngularRadius, WE_SUN_ANGULAR_RADIUS));
+        max(sunAngularRadius, WE_SUN_ANGULAR_RADIUS),
+        transmittanceLUT, multiScatterLUT, skyViewLUT, aerialLUT, lutSampler);
 
     skyLinear = WE_SanitizeHdrColor(skyLinear);
     return float4(skyLinear, 1.0);
