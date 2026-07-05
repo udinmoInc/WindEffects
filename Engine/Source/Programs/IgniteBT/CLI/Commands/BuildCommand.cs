@@ -14,8 +14,53 @@ namespace IgniteBT.CLI;
 
 public static class BuildCommand
 {
+    /// <summary>
+    /// Ultra-fast no-op probe — no SDK, compiler, shaders, SQLite, or orchestrator.
+    /// Returns exit code when no-op, null when a full build is required.
+    /// </summary>
+    public static int? TryFastNoOp(string[] args)
+    {
+        var parsed = CommandSchemas.Build.Parse(args);
+        if (!parsed.IsValid) return null;
+        if (parsed.HasFlag("clean")) return null;
+
+        var buildTarget = parsed.GetOption("target", parsed.ResolveTarget());
+        var config = parsed.GetOption("config", "Release");
+        var platform = CommandLineHelpers.NormalizePlatform(parsed.GetOption("platform", string.Empty));
+        var unityBuild = parsed.HasFlag("unity");
+        int unitySize = 0;
+        if (int.TryParse(parsed.GetOption("unity-size", ""), out var us)) unitySize = us;
+        var unityDisabled = parsed.GetOption("unity-disable", "")
+            .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
+        int jobs;
+        try { jobs = CommandLineHelpers.ParseJobs(parsed.GetOption("jobs", string.Empty)); }
+        catch (ArgumentException) { return null; }
+
+        var currentDir = Directory.GetCurrentDirectory();
+        var projectRoot = BuildLayout.FindProjectRoot(currentDir);
+        var engineDir = BuildLayout.FindEngineRoot(currentDir);
+        if (string.IsNullOrEmpty(projectRoot) || string.IsNullOrEmpty(engineDir) || !Directory.Exists(engineDir))
+            return null;
+
+        var buildConfig = CommandLineHelpers.ParseConfiguration(config);
+        var layout = BuildLayout.Resolve(currentDir, platform, buildConfig);
+        var buildFlagsHash = BuildFlagsHasher.Compute(buildTarget, unityBuild, unitySize, unityDisabled, jobs);
+
+        var probe = FastNoOpProbe.TryProbe(
+            engineDir, layout, buildConfig.ToString(), platform, buildTarget, buildFlagsHash);
+
+        if (!probe.IsNoOp) return null;
+
+        Console.WriteLine($"No-op build - nothing changed ({probe.ElapsedMs}ms)");
+        return 0;
+    }
+
     public static async Task<int> Execute(string[] args)
     {
+        var fast = TryFastNoOp(args);
+        if (fast.HasValue) return fast.Value;
+
         var parsed = CommandSchemas.Build.Parse(args);
         if (!CommandLineHelpers.TryReportErrors(parsed)) return 1;
 
@@ -102,6 +147,12 @@ public static class BuildCommand
             var profile = result.Profile ?? orchestrator.Profiler.GetReport();
             var stats = result.Statistics ?? orchestrator.Statistics;
             var cacheStats = cache.GetStats();
+
+            if (result.WasNoOp)
+            {
+                Log.Information("No-op build - nothing changed ({Ms}ms)", profile.TotalBuildMs);
+                return 0;
+            }
 
             Log.Information("=== Build Profile ===");
             Log.Information("Total: {Ms}ms | Critical path: {CpName} ({CpMs}ms) | Cache hit: {CacheHit:F1}%",

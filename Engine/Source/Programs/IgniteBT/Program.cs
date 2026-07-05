@@ -9,6 +9,13 @@ class Program
 {
     static async Task<int> Main(string[] args)
     {
+        if (args.Length > 0 && args[0].Equals("build", StringComparison.OrdinalIgnoreCase))
+        {
+            var fastNoOp = BuildCommand.TryFastNoOp(args.Skip(1).ToArray());
+            if (fastNoOp.HasValue)
+                return fastNoOp.Value;
+        }
+
         var descriptor = BootstrapLauncher.ResolveDescriptor();
         BootstrapManifest.Refresh(descriptor);
 
