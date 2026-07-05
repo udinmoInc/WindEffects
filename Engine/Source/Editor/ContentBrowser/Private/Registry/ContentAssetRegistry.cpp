@@ -21,13 +21,15 @@ void ContentAssetRegistry::Initialize(const std::string& contentRoot) {
 
     EnsureDemoContent();
 
+    // Refresh acquires m_Mutex internally; do not hold the lock here (std::mutex is not recursive).
+    Refresh();
+
     {
         std::lock_guard<std::mutex> lock(m_Mutex);
-        Refresh();
         m_Initialized = true;
     }
 
-    HE_INFO("[ContentAssetRegistry] Initialized at: " + m_ContentRoot);
+    HE_INFO("[ContentAssetRegistry] Initialized at: " + contentRoot);
 }
 
 void ContentAssetRegistry::Shutdown() {
