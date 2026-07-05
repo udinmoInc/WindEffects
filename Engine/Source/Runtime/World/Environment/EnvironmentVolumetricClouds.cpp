@@ -3,7 +3,7 @@
 namespace we::runtime::world::environment {
 
 void EnvironmentVolumetricClouds::ApplyDefaults() {
-    Enabled = false;
+    Enabled = true;
     Coverage = 0.45f;
     Altitude = 5000.0f;
     Extinction = 0.35f;

@@ -9,7 +9,7 @@ class EnvironmentVolumetricClouds {
 public:
     std::uint64_t EntityId = 0;
 
-    bool Enabled = false;
+    bool Enabled = true;
     float Coverage = 0.45f;
     float Altitude = 5000.0f;
     float Extinction = 0.35f;
