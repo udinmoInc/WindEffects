@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Application/Export.hpp"
+
 #include "Core/Geometry.hpp"
 #include <functional>
 #include <memory>
@@ -24,7 +26,7 @@ namespace Easing {
 }
 
 // Animation base class
-class Animation {
+class APPLICATION_API Animation {
 public:
     using OnUpdateCallback = std::function<void(float)>;
     using OnCompleteCallback = std::function<void()>;
@@ -82,7 +84,7 @@ protected:
 };
 
 // Float animation (for colors, opacity, etc.)
-class FloatAnimation : public Animation {
+class APPLICATION_API FloatAnimation : public Animation {
 public:
     FloatAnimation(float from, float to, float duration, bool loop = false)
         : Animation(duration, loop)
@@ -103,7 +105,7 @@ protected:
 
 // Color animation
 struct Color;
-class ColorAnimation : public Animation {
+class APPLICATION_API ColorAnimation : public Animation {
 public:
     ColorAnimation(Color from, Color to, float duration, bool loop = false);
     
@@ -115,7 +117,7 @@ protected:
 };
 
 // Animation manager
-class AnimationManager {
+class APPLICATION_API AnimationManager {
 public:
     static AnimationManager& Get();
     

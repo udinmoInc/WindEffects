@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Application/Export.hpp"
+
 #include "Core/Widget.hpp"
 #include "Widgets/Panel.hpp"
 #include <functional>
@@ -9,7 +11,7 @@
 namespace we::UI {
 
 // A container that manages multiple Panel widgets as tabs
-class DockContainer : public Widget {
+class APPLICATION_API DockContainer : public Widget {
 public:
     using OnTabClosed = std::function<void(const std::shared_ptr<Panel>& panel)>;
     using OnTabDragStarted = std::function<void(const std::shared_ptr<Panel>& panel, const Point& position)>;

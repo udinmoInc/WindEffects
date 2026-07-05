@@ -1,12 +1,14 @@
 #pragma once
 
+#include "Application/Export.hpp"
+
 #include "Core/Geometry.hpp"
 #include <string>
 #include <memory>
 
 namespace we::UI {
 
-struct Theme {
+struct APPLICATION_API Theme {
     // ------------------------------------------------------------------------
     // Colors (AAA Neutral Dark Theme - Layered 2026 Style)
     // ------------------------------------------------------------------------
@@ -28,7 +30,7 @@ struct Theme {
     Color ContentBrowserHoverBg      = { 0.157f, 0.157f, 0.161f, 1.0f }; // subtle lift on hover
     Color ContentBrowserSelectedFill = { 0.0f, 0.0f, 0.0f, 0.22f };      // subtle dark selection fill
 
-    // Content Browser folder thumbnail (filled artwork — not Lucide)
+    // Content Browser folder thumbnail (filled artwork â€” not Lucide)
     Color ContentBrowserFolderBody      = { 0.553f, 0.424f, 0.235f, 1.0f }; // darker body (~#8D6B3C)
     Color ContentBrowserFolderTab       = { 0.702f, 0.541f, 0.298f, 1.0f }; // tab flap (~#B38A4C)
     Color ContentBrowserFolderShadow    = { 0.431f, 0.329f, 0.180f, 1.0f }; // depth shadow (~#6E542E)

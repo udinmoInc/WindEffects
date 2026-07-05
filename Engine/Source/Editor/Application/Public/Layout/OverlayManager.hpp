@@ -1,12 +1,14 @@
 #pragma once
 
+#include "Application/Export.hpp"
+
 #include "Core/Widget.hpp"
 #include <memory>
 #include <vector>
 
 namespace we::UI {
 
-class OverlayManager : public Widget {
+class APPLICATION_API OverlayManager : public Widget {
 public:
     OverlayManager();
     virtual ~OverlayManager();

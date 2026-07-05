@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Application/Export.hpp"
+
 #include "Core/Widget.hpp"
 #include "Core/Style.hpp"
 #include "Core/Icon.hpp"
@@ -10,7 +12,7 @@
 namespace we::UI {
 
 // Panel widget with collapsible header and content area
-class Panel : public Widget {
+class APPLICATION_API Panel : public Widget {
 public:
     Panel(const std::string& title = "");
     virtual ~Panel() = default;

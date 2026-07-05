@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Core/Export.hpp"
+
 #include <string>
 #include <string_view>
 #include <vector>
@@ -23,7 +25,12 @@ struct ModuleInfo {
     bool bIsInitialized = false;
 };
 
-class ModuleManager {
+#if defined(_MSC_VER)
+#pragma warning(push)
+#pragma warning(disable : 4251)
+#endif
+
+class CORE_API ModuleManager {
 public:
     static ModuleManager& Get();
 
@@ -40,6 +47,10 @@ private:
     std::unordered_map<std::string, ModuleInfo> m_Modules;
     std::vector<std::string> m_LoadOrder; // To track startup order
 };
+
+#if defined(_MSC_VER)
+#pragma warning(pop)
+#endif
 
 // Macro to easily register modules via static initialization
 #define REGISTER_MODULE(ModuleClass, ModuleName) \

@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Core/Export.hpp"
+
 #include <string>
 #include <vector>
 
@@ -11,7 +13,7 @@ struct IgniteBTInvokeResult {
     std::string errorMessage;
 };
 
-IgniteBTInvokeResult InvokeIgniteBT(const std::vector<std::string>& args);
-bool TryResolveIgniteBTExecutable(std::string& outExecutablePath, std::string& outWorkingDirectory);
+IgniteBTInvokeResult CORE_API InvokeIgniteBT(const std::vector<std::string>& args);
+bool CORE_API TryResolveIgniteBTExecutable(std::string& outExecutablePath, std::string& outWorkingDirectory);
 
 } // namespace we::core

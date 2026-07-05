@@ -1,5 +1,6 @@
 #include "EditorPanelController.hpp"
 
+#include "EditorLayoutController.hpp"
 #include "Widgets/DockContainer.hpp"
 #include "Widgets/Panel.hpp"
 #include "Layout/OverlayManager.hpp"
@@ -142,6 +143,23 @@ private:
     bool m_CloseHovered = false;
 };
 
+bool UsesBottomSplitter(EditorPanelId id) {
+    return id == EditorPanelId::ContentBrowser || id == EditorPanelId::Debug;
+}
+
+bool UsesFloatingPresentation(EditorPanelId id) {
+    return id == EditorPanelId::ViewportNavigation || id == EditorPanelId::OutputLog;
+}
+
+void HideFloatingPanel(const std::shared_ptr<we::UI::Panel>& panel) {
+    if (auto* overlay = we::UI::OverlayManager::Get()) {
+        overlay->CloseAllPopups();
+    }
+    if (panel) {
+        panel->SetVisible(false);
+    }
+}
+
 } // namespace
 
 EditorPanelController& EditorPanelController::Get() {
@@ -171,10 +189,36 @@ void EditorPanelController::SetPanelVisible(EditorPanelId id, bool visible) {
         return;
     }
 
-    it->second.visible = visible;
+    auto& entry = it->second;
+    entry.visible = visible;
 
-    if (id == EditorPanelId::ContentBrowser || id == EditorPanelId::Debug || id == EditorPanelId::Details) {
-        it->second.panel->SetVisible(visible);
+    if (id == EditorPanelId::Details) {
+        entry.panel->SetVisible(visible);
+        if (m_OnVisibilityChanged) {
+            m_OnVisibilityChanged();
+        }
+        return;
+    }
+
+    if (UsesBottomSplitter(id)) {
+        entry.panel->SetVisible(visible);
+        if (visible) {
+            EditorLayoutController::Get().SetBottomPanelIndex(
+                id == EditorPanelId::ContentBrowser ? 0 : 1);
+        }
+        if (m_OnVisibilityChanged) {
+            m_OnVisibilityChanged();
+        }
+        return;
+    }
+
+    if (UsesFloatingPresentation(id)) {
+        if (visible) {
+            FloatPanel(id);
+        } else {
+            entry.floating = false;
+            HideFloatingPanel(entry.panel);
+        }
         if (m_OnVisibilityChanged) {
             m_OnVisibilityChanged();
         }
@@ -182,14 +226,14 @@ void EditorPanelController::SetPanelVisible(EditorPanelId id, bool visible) {
     }
 
     if (visible) {
-        it->second.floating = false;
-        EnsurePanelInDock(it->second);
+        entry.floating = false;
+        EnsurePanelInDock(entry);
         FocusPanel(id);
     } else {
-        if (auto dock = GetDock(it->second.zone)) {
-            dock->RemovePanel(it->second.panel);
+        if (auto dock = GetDock(entry.zone)) {
+            dock->RemovePanel(entry.panel);
         }
-        it->second.panel->SetVisible(false);
+        entry.panel->SetVisible(false);
     }
 
     if (m_OnVisibilityChanged) {
@@ -234,6 +278,8 @@ void EditorPanelController::FloatPanel(EditorPanelId id) {
     auto& entry = it->second;
     if (auto dock = GetDock(entry.zone)) {
         dock->RemovePanel(entry.panel);
+    } else if (auto parent = entry.panel->GetParent()) {
+        parent->RemoveChild(entry.panel);
     }
 
     entry.floating = true;
@@ -245,6 +291,8 @@ void EditorPanelController::FloatPanel(EditorPanelId id) {
         HE_ERROR("[EditorPanel] OverlayManager unavailable for floating panel.");
         return;
     }
+
+    overlay->CloseAllPopups();
 
     const EditorPanelId panelId = id;
     auto host = std::make_shared<FloatingPanelHost>(entry.panel, [this, panelId]() {
@@ -303,13 +351,13 @@ void EditorPanelController::SetOnPanelVisibilityChanged(std::function<void()> ca
 }
 
 void EditorPanelController::EnsurePanelInDock(const PanelEntry& entry) {
-    if (!entry.panel || entry.floating) {
+    if (!entry.panel || entry.floating || entry.zone == EditorDockZone::Floating) {
         return;
     }
 
     auto dock = GetDock(entry.zone);
     if (!dock) {
-        HE_ERROR("[EditorPanel] Dock zone not registered.");
+        HE_ERROR(std::string("[EditorPanel] Dock zone not registered for panel '") + entry.menuLabel + "'.");
         return;
     }
 

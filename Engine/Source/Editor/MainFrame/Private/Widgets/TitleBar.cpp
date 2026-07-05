@@ -31,7 +31,7 @@ namespace {
     class LogoSlotWidget : public Widget {
     public:
         static constexpr float kSlotSize  = 32.0f;
-        static constexpr float kIconSize  = TitleBar::LogoDisplaySize;
+        static constexpr float kIconSize  = kTitleBarLogoDisplaySize;
 
         explicit LogoSlotWidget(VkDescriptorSet logoSet) : m_LogoSet(logoSet) {}
 

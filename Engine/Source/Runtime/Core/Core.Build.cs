@@ -14,7 +14,6 @@ public class Core : ModuleRules
         PrivateIncludePaths.Add("Private");
 
         Definitions.Add("CORE_EXPORTS");
-        
         PlatformSettings.Windows ??= new WindowsSettings();
         PlatformSettings.Windows.LinkerFlags.Add("delayimp.lib");
         // Vulkan is optional for Core - only needed for rendering features

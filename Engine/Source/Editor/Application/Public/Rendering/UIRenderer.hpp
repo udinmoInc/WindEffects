@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Application/Export.hpp"
+
 #include <volk.h>
 #include <memory>
 #include <vector>
@@ -14,7 +16,7 @@ namespace we::UI {
 
 class Widget;
 
-struct UIVertex {
+struct APPLICATION_API UIVertex {
     float pos[2];
     float uv[2];
     float color[4];
@@ -22,7 +24,7 @@ struct UIVertex {
     float sdfParams[4]; // x=cornerRadius, y=type (0=texture, 1=sdf-rect)
 };
 
-class UIRenderer {
+class APPLICATION_API UIRenderer {
 public:
     UIRenderer() = default;
     ~UIRenderer();

@@ -5,6 +5,7 @@
 #include "Renderer/VulkanContext.hpp"
 #include "Renderer/SceneEnvironmentUniform.hpp"
 #include "Renderer/AtmosphereLUTGenerator.hpp"
+#include "Renderer/PostProcessStack.hpp"
 #include <volk.h>
 #endif
 #if WE_HAS_GLM
@@ -93,9 +94,11 @@ public:
         uint32_t width,
         uint32_t height) const;
 
+    RENDERER_API void ResizePostProcess(uint32_t width, uint32_t height);
+
     RENDERER_API void PrepareAtmosphereLUTs(VkCommandBuffer cmd);
     RENDERER_API bool AreAtmosphereLUTsReady() const;
-    RENDERER_API bool IsSkyPipelineCreated() const { return m_SkyAtmospherePipeline != VK_NULL_HANDLE; }
+    RENDERER_API bool IsSkyPipelineCreated() const;
     RENDERER_API void LogAtmospherePipelineDiagnostics() const;
 
     RENDERER_API void DrawFogCompositePass(
@@ -116,10 +119,8 @@ public:
     RENDERER_API void UpdateObjectDescriptorSet(VkDescriptorSet descriptorSet, VkBuffer cameraBuffer, VkBuffer objectBuffer) const;
     RENDERER_API void RefreshEnvironmentDescriptorBindings() const;
     RENDERER_API bool ValidateRenderFrame(VkFramebuffer framebuffer, uint32_t width, uint32_t height) const;
-    RENDERER_API bool IsSkyPassReady() const {
-        return IsSkyPipelineCreated() && AreAtmosphereLUTsReady();
-    }
-    RENDERER_API bool IsPostPassReady() const { return m_PostExposurePipeline != VK_NULL_HANDLE; }
+    RENDERER_API bool IsSkyPassReady() const;
+    RENDERER_API bool IsPostPassReady() const;
 
 private:
     void ValidateCreatedPipelines() const;
@@ -159,11 +160,7 @@ private:
     VkDescriptorSet m_FogLutDescSet = VK_NULL_HANDLE;
     mutable VkImageView m_BoundFogDepthView = VK_NULL_HANDLE;
 
-    VkPipelineLayout m_PostPipelineLayout = VK_NULL_HANDLE;
-    VkDescriptorSetLayout m_PostStorageDescLayout = VK_NULL_HANDLE;
-    VkDescriptorSet m_PostStorageDescSet = VK_NULL_HANDLE;
-    mutable VkImageView m_BoundPostColorView = VK_NULL_HANDLE;
-    VkPipeline m_PostExposurePipeline = VK_NULL_HANDLE;
+    std::unique_ptr<PostProcessStack> m_PostProcess;
 
     std::unique_ptr<AtmosphereLUTGenerator> m_LUTGenerator;
 

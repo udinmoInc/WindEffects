@@ -4,7 +4,7 @@
 #include "../Common/Noise.hlsli"
 #include "../Common/Color.hlsli"
 
-static const int WE_CLOUD_STEPS = 12;
+static const int WE_CLOUD_STEPS = 24;
 
 float WE_CloudDensityAt(float3 worldPos, float3 worldOrigin, float cloudAltitude, float coverage)
 {
@@ -39,14 +39,17 @@ float3 WE_RaymarchClouds(
     rayDir = normalize(rayDir);
     sunDir = normalize(sunDir);
 
-    const float layerY = worldOrigin.y + cloudAltitude * 0.001 * 1000.0;
+    const float layerY = worldOrigin.y + cloudAltitude;
     const float tHit = (layerY - rayOrigin.y) / max(rayDir.y, 1e-4);
     if (tHit < 0.0)
         return float3(0.0, 0.0, 0.0);
 
-    const float stepSize = 180.0;
+    const float stepSize = 120.0;
     float3 accum = float3(0.0, 0.0, 0.0);
     float transmittance = 1.0;
+    const float3 sunLight = sunColor * sunIntensity;
+    // Hemisphere skylight fill so cloud undersides stay visible after tonemap.
+    const float3 ambient = sunLight * 0.18 + float3(0.015, 0.02, 0.035);
 
     [loop]
     for (int i = 0; i < WE_CLOUD_STEPS; ++i)
@@ -57,18 +60,17 @@ float3 WE_RaymarchClouds(
         if (density <= 0.001)
             continue;
 
-        const float3 sunLight = sunColor * sunIntensity;
-        const float forward = pow(saturate(dot(-rayDir, sunDir)), 6.0);
-        const float lightFactor = 0.2 + 0.8 * forward;
-        const float3 scatter = cloudAlbedo * sunLight * lightFactor * density;
-        const float absorb = exp(-density * extinction * stepSize * 0.01);
+        const float cosTheta = saturate(dot(-rayDir, sunDir));
+        const float phase = 0.2 + 0.8 * pow(cosTheta, 6.0);
+        const float3 scatter = cloudAlbedo * (ambient + sunLight * phase * 0.85) * density;
+        const float absorb = exp(-density * extinction * stepSize * 0.008);
         accum += transmittance * scatter * (1.0 - absorb);
         transmittance *= absorb;
         if (transmittance < 0.02)
             break;
     }
 
-    return accum;
+    return accum * 3.5;
 }
 
 #endif // WE_VOLUMETRIC_CLOUDS_HLSLI

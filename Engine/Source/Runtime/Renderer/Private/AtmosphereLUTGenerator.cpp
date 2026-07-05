@@ -28,8 +28,9 @@ constexpr float kMieScaleKm = 1.2f;
 constexpr float kOzonePeakAltKm = 25.0f;
 constexpr float kOzoneWidthKm = 8.0f;
 constexpr float kSunAngularRadius = 0.004675f;
-constexpr int kAtmosphereSteps = 16;
-constexpr int kSunTransmittanceSteps = 8;
+constexpr int kAtmosphereSteps = 32;
+constexpr int kSunTransmittanceSteps = 16;
+constexpr float kSkyRadianceScale = 22.0f;
 
 struct AtmosParams {
     glm::vec3 rayleigh;
@@ -171,11 +172,12 @@ glm::vec3 IntegrateInscattering(
 
     transmittanceToCamera = glm::exp(-(opticalRayleigh + opticalMie + opticalOzone));
 
-    const glm::vec3 multiScatter = (glm::vec3(1.0f) - glm::exp(-(opticalRayleigh + opticalMie) * 0.12f))
+    const glm::vec3 tauView = opticalRayleigh + opticalMie;
+    const glm::vec3 multiScatter = (glm::vec3(1.0f) - glm::exp(-tauView * 0.08f))
         * p.rayleigh * p.multiScatter;
 
     const glm::vec3 sunRadiance = p.sunColor * p.sunIntensity;
-    return sunRadiance * (
+    return kSkyRadianceScale * sunRadiance * (
         sumRayleigh * phaseR * p.rayleigh
         + sumMie * phaseM * p.mie
         + multiScatter);
@@ -559,7 +561,8 @@ bool AtmosphereLUTGenerator::GenerateCPU(const SceneEnvironmentUniform& environm
             const glm::vec3 origin(0.0f, params.planetR + heightKm, 0.0f);
 
             glm::vec3 rd, md, od;
-            IntegrateOpticalDepth(origin, glm::vec3(0.0f, 1.0f, 0.0f), params.atmoR, params, rd, md, od);
+            const float dist = params.atmoR - glm::length(origin);
+            IntegrateOpticalDepth(origin, glm::vec3(0.0f, 1.0f, 0.0f), std::max(dist, 0.001f), params, rd, md, od);
             const glm::vec3 multi = (glm::vec3(1.0f) - glm::exp(-(rd + md) * 0.15f))
                 * params.rayleigh * (0.5f + cosSun * 0.5f);
 

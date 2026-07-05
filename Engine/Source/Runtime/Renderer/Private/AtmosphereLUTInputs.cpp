@@ -43,7 +43,9 @@ bool AtmosphereLUTInputsChanged(
         || !NearlyEqual(previous.mieAnisotropy, next.mieAnisotropy)
         || !NearlyEqual(previous.planetRadius, next.planetRadius)
         || !NearlyEqual(previous.atmosphereHeight, next.atmosphereHeight)
-        || !NearlyEqual(previous.multiScatterStrength, next.multiScatterStrength);
+        || !NearlyEqual(previous.multiScatterStrength, next.multiScatterStrength)
+        || !NearlyEqual(previous.eyeAltitude, next.eyeAltitude)
+        || !NearlyEqual(previous.worldOrigin, next.worldOrigin);
 }
 
 } // namespace we::runtime::renderer

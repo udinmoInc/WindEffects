@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Application/Export.hpp"
+
 #include <memory>
 
 namespace we::UI {
@@ -11,7 +13,7 @@ class DockContainer;
 namespace we::programs::editor {
 
 /// Manages editor-wide layout state (e.g. content browser maximize).
-class EditorLayoutController {
+class APPLICATION_API EditorLayoutController {
 public:
     static EditorLayoutController& Get();
 

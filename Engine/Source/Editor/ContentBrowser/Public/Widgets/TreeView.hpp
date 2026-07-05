@@ -1,5 +1,7 @@
 #pragma once
 
+#include "ContentBrowser/Export.hpp"
+
 #include "Core/Widget.hpp"
 #include "Core/Style.hpp"
 #include "Core/Icon.hpp"
@@ -24,7 +26,7 @@ struct TreeNode {
 };
 
 // Tree view widget for hierarchical data
-class TreeView : public Widget {
+class CONTENTBROWSER_API TreeView : public Widget {
 public:
     using OnSelectionChanged = std::function<void(const std::vector<std::string>& ids)>;
     using OnItemDoubleClicked = std::function<void(const std::string& id)>;

@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Application/Export.hpp"
+
 #include "Core/Geometry.hpp"
 #include <string>
 #include <unordered_map>
@@ -8,7 +10,7 @@ namespace we::UI {
 
 class PaintContext;
 
-class IconRegistry {
+class APPLICATION_API IconRegistry {
 public:
     static IconRegistry& Get();
 
@@ -32,7 +34,7 @@ private:
     std::unordered_map<std::string, std::string> m_Icons;
 };
 
-class IconPainter {
+class APPLICATION_API IconPainter {
 public:
     static void DrawIcon(PaintContext& context, const std::string& iconName,
         const Point& position, float size, const Color& color);

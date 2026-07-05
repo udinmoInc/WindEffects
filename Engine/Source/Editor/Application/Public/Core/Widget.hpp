@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Application/Export.hpp"
+
 #include "Core/Geometry.hpp"
 #include "Core/EventSystem.hpp"
 #include <memory>
@@ -24,7 +26,7 @@ enum class VerticalAlignment {
     Fill
 };
 
-class Widget : public std::enable_shared_from_this<Widget> {
+class APPLICATION_API Widget : public std::enable_shared_from_this<Widget> {
 public:
     Widget() = default;
     virtual ~Widget() = default;

@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Viewport/Export.hpp"
+
 #include <memory>
 
 namespace we::UI {
@@ -12,15 +14,15 @@ class EditorCamera;
 
 namespace we::programs::editor {
 
-void BindViewportCamera(const std::shared_ptr<we::runtime::engine::EditorCamera>& camera);
+VIEWPORT_API void BindViewportCamera(const std::shared_ptr<we::runtime::engine::EditorCamera>& camera);
 
-void SetViewportCameraSpeedIndicator(const std::shared_ptr<we::UI::ToolButton>& indicator);
-void UpdateViewportCameraSpeedIndicator();
-void StepViewportCameraSpeed(int direction);
-void AdjustViewportCameraSpeedFromWheel(float wheelDeltaY);
+VIEWPORT_API void SetViewportCameraSpeedIndicator(const std::shared_ptr<we::UI::ToolButton>& indicator);
+VIEWPORT_API void UpdateViewportCameraSpeedIndicator();
+VIEWPORT_API void StepViewportCameraSpeed(int direction);
+VIEWPORT_API void AdjustViewportCameraSpeedFromWheel(float wheelDeltaY);
 
-void ShowViewportCameraSpeedPopup();
+VIEWPORT_API void ShowViewportCameraSpeedPopup();
 
-void ApplyLoadedViewportNavigationSettings();
+VIEWPORT_API void ApplyLoadedViewportNavigationSettings();
 
 } // namespace we::programs::editor

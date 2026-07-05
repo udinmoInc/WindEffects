@@ -1,5 +1,7 @@
 #pragma once
 
+#include "World/Export.hpp"
+
 #include "EnvironmentExposureController.h"
 #include "EnvironmentDirectionalLight.h"
 #include "EnvironmentHeightFog.h"
@@ -20,7 +22,7 @@ class SceneRenderer;
 
 namespace we::runtime::world::environment {
 
-class EnvironmentSystem {
+class WORLD_API EnvironmentSystem {
 public:
     static EnvironmentSystem& Get();
 

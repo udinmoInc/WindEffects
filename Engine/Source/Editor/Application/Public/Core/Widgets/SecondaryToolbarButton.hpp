@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Application/Export.hpp"
+
 #include "Core/Widget.hpp"
 #include "Core/ToolbarDesignTokens.hpp"
 #include <functional>
@@ -10,7 +12,7 @@ namespace we::UI {
 
 // Premium secondary toolbar button with flat appearance
 // Used for secondary actions like "Import"
-class SecondaryToolbarButton : public Widget {
+class APPLICATION_API SecondaryToolbarButton : public Widget {
 public:
     SecondaryToolbarButton(const std::string& label, const std::string& iconName = {});
 

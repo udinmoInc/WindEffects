@@ -1,11 +1,13 @@
 #pragma once
 
+#include "Application/Export.hpp"
+
 #include "Core/Widget.hpp"
 #include "Core/Style.hpp"
 
 namespace we::UI {
 
-class Label : public Widget {
+class APPLICATION_API Label : public Widget {
 public:
     Label(const std::string& text, const Color& color = Color::White(), float fontSize = 14.0f);
     virtual ~Label() = default;

@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Engine/Export.hpp"
+
 #if WE_HAS_GLM
 #include <glm/glm.hpp>
 #else
@@ -18,6 +20,10 @@ namespace glm {
 
 namespace we::runtime::engine {
 
+inline constexpr float kEditorCameraMinSpeed = 1.0f;
+inline constexpr float kEditorCameraMaxSpeed = 50.0f;
+inline constexpr float kEditorCameraDefaultSpeed = 4.0f;
+
 struct EditorCameraNavigationSettings {
     float mouseSensitivity = 0.15f;
     float cameraAcceleration = 1.0f;
@@ -29,7 +35,7 @@ struct EditorCameraNavigationSettings {
     float scrollWheelSpeedMultiplier = 1.0f;
 };
 
-class EditorCamera {
+class ENGINE_API EditorCamera {
 public:
     EditorCamera();
     ~EditorCamera() = default;
@@ -75,10 +81,6 @@ public:
     float GetPreviousYaw() const { return m_PrevYaw; }
     float GetLastDeltaTime() const { return m_LastDeltaTime; }
 
-    static constexpr float kMinCameraSpeed = 1.0f;
-    static constexpr float kMaxCameraSpeed = 50.0f;
-    static constexpr float kDefaultCameraSpeed = 4.0f;
-
     float GetCameraSpeed() const { return m_MoveSpeed; }
     void SetCameraSpeed(float speed);
 
@@ -117,7 +119,7 @@ private:
     bool m_FreeLook = false;
     glm::vec3 m_SavedOrbitPivot{ 0.0f };
 
-    float m_MoveSpeed = kDefaultCameraSpeed;
+    float m_MoveSpeed = kEditorCameraDefaultSpeed;
     float m_Sensitivity = 0.15f;
     float m_LerpSpeed = 12.0f;
     float m_Acceleration = 1.0f;

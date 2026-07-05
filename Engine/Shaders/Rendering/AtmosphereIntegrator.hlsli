@@ -101,11 +101,13 @@ float3 WE_IntegrateInscattering(
 
     transmittanceToCamera = exp(-(opticalRayleigh + opticalMie + opticalOzone));
 
-    const float3 multiScatter = (1.0 - exp(-(opticalRayleigh + opticalMie) * 0.12))
+    // Approximate multi-scattering from accumulated optical depth along the view ray.
+    const float3 tauView = opticalRayleigh + opticalMie;
+    const float3 multiScatter = (1.0 - exp(-tauView * 0.08))
         * params.rayleighCoeff * params.multiScatterStrength;
 
     const float3 sunRadiance = params.sunColor * params.sunIntensity;
-    return sunRadiance * (
+    return WE_SKY_RADIANCE_SCALE * sunRadiance * (
         sumRayleigh * phaseR * params.rayleighCoeff
         + sumMie * phaseM * params.mieCoeff
         + multiScatter);
@@ -117,7 +119,7 @@ float3 WE_ComputeSunDisk(float3 viewDir, float3 sunDir, float intensity, float3 
     const float cosRadius = cos(angularRadius);
     const float disk = smoothstep(cosRadius, cosRadius + 0.00035, cosAngle);
     const float glow = pow(saturate(dot(viewDir, sunDir)), 256.0) * intensity * 0.15;
-    return sunColor * intensity * (disk * 28.0 + glow);
+    return sunColor * intensity * WE_SKY_RADIANCE_SCALE * (disk * 28.0 + glow);
 }
 
 #endif // WE_ATMOSPHERE_INTEGRATOR_HLSLI

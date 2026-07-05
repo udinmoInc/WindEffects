@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Application/Export.hpp"
+
 #include <volk.h>
 #include <memory>
 #include <unordered_map>
@@ -24,7 +26,7 @@ struct IconTexture {
 };
 
 // Icon renderer with caching support
-class IconRenderer {
+class APPLICATION_API IconRenderer {
 public:
     IconRenderer();
     ~IconRenderer();

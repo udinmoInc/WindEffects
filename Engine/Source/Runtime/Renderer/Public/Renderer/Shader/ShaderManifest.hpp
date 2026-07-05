@@ -11,6 +11,11 @@ inline constexpr const char* SceneObject = "SceneObject";
 inline constexpr const char* UI = "UI";
 inline constexpr const char* PostExposurePass = "PostExposurePass";
 inline constexpr const char* PostExposureCS = "PostExposureCS";
+inline constexpr const char* PostCompositeCS = "PostCompositeCS";
+inline constexpr const char* LuminanceReduceCS = "LuminanceReduceCS";
+inline constexpr const char* LuminanceAvgCS = "LuminanceAvgCS";
+inline constexpr const char* BloomPrefilterCS = "BloomPrefilterCS";
+inline constexpr const char* BloomBlurCS = "BloomBlurCS";
 
 // Planned rendering passes (sources under Engine/Shaders/).
 inline constexpr const char* DeferredGBuffer = "DeferredGBuffer";

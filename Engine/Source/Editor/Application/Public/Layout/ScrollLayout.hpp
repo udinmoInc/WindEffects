@@ -1,10 +1,12 @@
 #pragma once
 
+#include "Application/Export.hpp"
+
 #include "Core/Widget.hpp"
 
 namespace we::UI {
 
-class ScrollLayout : public Widget {
+class APPLICATION_API ScrollLayout : public Widget {
 public:
     ScrollLayout();
     virtual ~ScrollLayout() = default;

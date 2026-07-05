@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Application/Export.hpp"
+
 #include <vector>
 #include <string>
 #include "Core/Geometry.hpp"
@@ -34,7 +36,7 @@ struct DrawCommand {
     Point lineEnd;
 };
 
-class PaintContext {
+class APPLICATION_API PaintContext {
 public:
     void PushClipRect(const Rect& clip);
     void PopClipRect();

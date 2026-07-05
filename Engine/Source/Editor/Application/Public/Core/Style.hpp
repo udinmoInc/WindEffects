@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Application/Export.hpp"
+
 #include "Core/Geometry.hpp"
 #include "Core/Theme.hpp"
 #include <string>
@@ -185,7 +187,7 @@ struct WidgetStyle {
 };
 
 // Style manager for runtime theming
-class StyleManager {
+class APPLICATION_API StyleManager {
 public:
     static StyleManager& Get();
     

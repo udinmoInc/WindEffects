@@ -1,12 +1,14 @@
 #pragma once
 
+#include "World/Export.hpp"
+
 #include "Scene/Scene.hpp"
 
 namespace we::runtime::world {
 
 using World = we::runtime::scene::Scene;
 
-class DefaultSceneBuilder {
+class WORLD_API DefaultSceneBuilder {
 public:
     static void CreateDefaultScene(World& world);
 };

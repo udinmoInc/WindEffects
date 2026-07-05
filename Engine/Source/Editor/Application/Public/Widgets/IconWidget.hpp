@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Application/Export.hpp"
+
 #include "Core/Widget.hpp"
 #include "Core/Icon.hpp"
 #include "Core/Theme.hpp"
@@ -7,7 +9,7 @@
 
 namespace we::UI {
 
-class IconWidget : public Widget {
+class APPLICATION_API IconWidget : public Widget {
 public:
     IconWidget(const std::string& iconName, float size = 20.0f) : m_IconName(iconName), m_Size(size) {}
     virtual ~IconWidget() = default;

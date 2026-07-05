@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Application/Export.hpp"
+
 namespace we::UI {
 
 struct Point {

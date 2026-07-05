@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Application/Export.hpp"
+
 #include "Core/Geometry.hpp"
 #include "Core/Icon.hpp"
 #include <cstdint>
@@ -10,8 +12,8 @@ namespace we::UI {
 class PaintContext;
 class IconRenderer;
 
-// Shared semantic icon access — toolbar/tree vs content-browser thumbnail variants.
-class IconManager {
+// Shared semantic icon access â€” toolbar/tree vs content-browser thumbnail variants.
+class APPLICATION_API IconManager {
 public:
     static IconManager& Get();
 

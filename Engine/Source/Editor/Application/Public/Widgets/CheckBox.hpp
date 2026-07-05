@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Application/Export.hpp"
+
 #include "Core/Widget.hpp"
 #include "Core/Style.hpp"
 #include <string>
@@ -7,7 +9,7 @@
 
 namespace we::UI {
 
-class CheckBox : public Widget {
+class APPLICATION_API CheckBox : public Widget {
 public:
     CheckBox(const std::string& label, bool initialState = false);
     virtual ~CheckBox() = default;

@@ -58,9 +58,9 @@ public:
     RENDERER_API void RecordPassExecuted(const char* passName, double cpuMs);
     RENDERER_API void RecordPassStatus(const char* passName, PassExecutionStatus status, const char* detail = nullptr);
 
-    RENDERER_API bool HasErrors() const { return m_HasErrors; }
-    RENDERER_API bool HasCritical() const { return m_HasCritical; }
-    RENDERER_API const std::vector<DiagnosticMessage>& GetMessages() const { return m_Messages; }
+    RENDERER_API bool HasErrors() const;
+    RENDERER_API bool HasCritical() const;
+    RENDERER_API const std::vector<DiagnosticMessage>& GetMessages() const;
     RENDERER_API PassExecutionStatus GetPassStatus(const char* passName) const;
     RENDERER_API std::string GetSummary() const;
 

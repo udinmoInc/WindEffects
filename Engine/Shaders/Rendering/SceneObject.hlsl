@@ -69,7 +69,7 @@ float4 PSMain(VSOutput input) : SV_Target
     const float3 ambient = lerp(skyLower * 0.05, skyUpper * 0.15, upN) * skyLightIntensity;
 
     float diff = max(dot(normal, lightDir), 0.0);
-    float3 diffuse = diff * sunLinear * (sunIntensity * 0.011);
+    float3 diffuse = diff * sunLinear * sunIntensity * 0.85;
 
     float3 reflectDir = reflect(-lightDir, normal);
     float spec = pow(max(dot(viewDir, reflectDir), 0.0), 64.0);

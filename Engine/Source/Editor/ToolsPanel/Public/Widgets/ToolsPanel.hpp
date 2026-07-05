@@ -1,5 +1,7 @@
 #pragma once
 
+#include "ToolsPanel/Export.hpp"
+
 #include "Core/Widget.hpp"
 #include "Core/PaintContext.hpp"
 #include "EditorToolsRegistry.hpp"
@@ -16,7 +18,7 @@ class SearchBox;
 namespace we::programs::editor {
 
 /// Tool list content for the active editor mode. Header/close/tab chrome is owned by Panel.
-class ToolsPanel : public we::UI::Widget {
+class TOOLSPANEL_API ToolsPanel : public we::UI::Widget {
 public:
     ToolsPanel();
     ~ToolsPanel() override;

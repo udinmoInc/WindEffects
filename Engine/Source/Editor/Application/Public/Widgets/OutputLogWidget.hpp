@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Application/Export.hpp"
+
 #include "Core/Widget.hpp"
 #include "Core/Logger.hpp"
 #include <deque>
@@ -9,7 +11,7 @@
 
 namespace we::UI {
 
-class OutputLogWidget : public Widget {
+class APPLICATION_API OutputLogWidget : public Widget {
 public:
     OutputLogWidget();
     ~OutputLogWidget() override;

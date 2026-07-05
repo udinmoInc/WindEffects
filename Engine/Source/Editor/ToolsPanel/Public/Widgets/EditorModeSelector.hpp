@@ -1,12 +1,14 @@
 #pragma once
 
+#include "ToolsPanel/Export.hpp"
+
 #include "Core/Widget.hpp"
 #include <string>
 
 namespace we::programs::editor {
 
 /// Compact toolbar control: shows active editor mode and opens a registry-driven mode menu.
-class EditorModeSelector : public we::UI::Widget {
+class TOOLSPANEL_API EditorModeSelector : public we::UI::Widget {
 public:
     EditorModeSelector();
 

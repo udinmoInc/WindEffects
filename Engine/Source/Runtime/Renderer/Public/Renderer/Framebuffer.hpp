@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Renderer/Export.hpp"
+
 #if WE_HAS_VULKAN
 #include "Renderer/VulkanContext.hpp"
 #include <volk.h>
@@ -11,14 +13,14 @@ namespace we::runtime::renderer {
 
 class Framebuffer {
 public:
-    Framebuffer(const VulkanContext& context, uint32_t width, uint32_t height, VkRenderPass renderPass);
-    ~Framebuffer();
+    RENDERER_API Framebuffer(const VulkanContext& context, uint32_t width, uint32_t height, VkRenderPass renderPass);
+    RENDERER_API ~Framebuffer();
 
     // Prevent copying
     Framebuffer(const Framebuffer&) = delete;
     Framebuffer& operator=(const Framebuffer&) = delete;
 
-    void Resize(uint32_t width, uint32_t height, VkRenderPass renderPass);
+    RENDERER_API void Resize(uint32_t width, uint32_t height, VkRenderPass renderPass);
 
     VkFramebuffer GetFramebuffer() const { return m_Framebuffer; }
     VkImage GetColorImage() const { return m_ColorImage; }

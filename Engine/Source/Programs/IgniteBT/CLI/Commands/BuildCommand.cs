@@ -1,4 +1,4 @@
-using Serilog;
+﻿using Serilog;
 using IgniteBT.Workspace.Modules;
 using IgniteBT.Build.Layout;
 using IgniteBT.Build.Graph;
@@ -136,9 +136,6 @@ public static class BuildCommand
             // Initialize build cache
             var cache = new BuildCache(layout.CacheDirectory);
             
-            // Initialize dependency scanner
-            var depScanner = new DependencyScanner();
-            
             // Initialize task scheduler
             var scheduler = new BuildTaskScheduler(jobs);
             
@@ -151,7 +148,7 @@ public static class BuildCommand
                     Name = $"Build {node.Name}",
                     Dependencies = node.Dependencies.Select(d => d.Name).ToList(),
                     ModuleNode = node,
-                    Work = () => BuildModule(node, buildConfig, platform, engineDir, layout, outputLayout, cache, depScanner, detectedCompiler, dependencyResult, graph)
+                    Work = () => BuildModule(node, buildConfig, platform, engineDir, layout, outputLayout, cache, detectedCompiler, dependencyResult, graph)
                 };
                 
                 scheduler.AddTask(task);
@@ -195,7 +192,7 @@ public static class BuildCommand
     }
 
     private static async Task BuildModule(BuildNode node, BuildConfiguration config, string platform, 
-        string engineDir, BuildLayout layout, OutputLayout outputLayout, BuildCache cache, DependencyScanner depScanner, DetectedCompiler detectedCompiler, DependencyResolutionResult dependencyResult, DependencyGraph buildGraph)
+        string engineDir, BuildLayout layout, OutputLayout outputLayout, BuildCache cache, DetectedCompiler detectedCompiler, DependencyResolutionResult dependencyResult, DependencyGraph buildGraph)
     {
         Log.Information("Building module: {ModuleName}", node.Name);
         
@@ -297,6 +294,10 @@ public static class BuildCommand
         var generatedDir = layout.GetModuleGeneratedDirectory(node.Name);
         Directory.CreateDirectory(objectDir);
         Directory.CreateDirectory(generatedDir);
+
+        var includeDirectories = ModuleCompileEnvironment.CollectIncludeDirectories(
+            node, engineDir, moduleDir, dependencyResult, buildGraph);
+        var depScanner = ModuleCompileEnvironment.CreateConfiguredScanner(includeDirectories);
         
         // Compile each source file
         var objectFiles = new List<string>();
@@ -307,12 +308,21 @@ public static class BuildCommand
         {
             var objectFile = Path.Combine(objectDir, Path.GetFileNameWithoutExtension(sourceFile) + ".obj");
             
-            // Scan dependencies
+            var compileOptions = ModuleCompileEnvironment.CreateCompileOptions(
+                node,
+                config,
+                sourceFile,
+                objectFile,
+                includeDirectories,
+                dependencyResult,
+                node.Module.Definitions);
+
             var dependencies = await depScanner.ScanFileAsync(sourceFile, transitive: true);
-            
-            // Compute cache key
-            var cacheKey = cache.ComputeCacheKey(sourceFile, dependencies.IncludedHeaders, 
-                new CompilerOptions { Configuration = config }, compilerVersion);
+            var cacheKey = cache.ComputeCacheKey(
+                sourceFile,
+                dependencies.IncludedHeaders,
+                compileOptions,
+                compilerVersion);
             
             // Check cache
             if (cache.TryGetCachedObject(cacheKey, out var cachedObjectFile) && !string.IsNullOrEmpty(cachedObjectFile))
@@ -324,118 +334,6 @@ public static class BuildCommand
             }
             else
             {
-                // Compile
-                var compileOptions = new CompilerOptions
-                {
-                    SourceFile = sourceFile,
-                    OutputFile = objectFile,
-                    Configuration = config,
-                    Platform = IgniteBT.Build.Compiler.TargetPlatform.Windows,
-                    Architecture = IgniteBT.Build.Compiler.TargetArchitecture.x64,
-                    CppStandard = "C++20",
-                    IncludeDirectories = new List<string>
-                    {
-                        Path.Combine(engineDir, "Source"),
-                        Path.Combine(moduleDir, "Public")
-                    },
-                    GenerateDebugInfo = config == BuildConfiguration.Debug,
-                    EnableOptimizations = config != BuildConfiguration.Debug
-                };
-
-                // Add module's private include paths
-                Log.Debug("Module {Module} has {Count} private include paths", node.Name, node.Module.PrivateIncludePaths.Count);
-                foreach (var privateIncludePath in node.Module.PrivateIncludePaths)
-                {
-                    Log.Debug("Processing private include path: {Path}", privateIncludePath);
-                    var fullPath = Path.Combine(moduleDir, privateIncludePath);
-                    Log.Debug("Full path: {FullPath}", fullPath);
-                    Log.Debug("Directory exists: {Exists}", Directory.Exists(fullPath));
-                    if (Directory.Exists(fullPath) && !compileOptions.IncludeDirectories.Contains(fullPath))
-                    {
-                        compileOptions.IncludeDirectories.Add(fullPath);
-                        Log.Debug("Added private include path: {Path}", fullPath);
-                    }
-                    else
-                    {
-                        Log.Warning("Private include path does not exist or already added: {Path}", fullPath);
-                    }
-                }
-
-                // Add SDK include paths
-                foreach (var (sdkName, sdkInfo) in dependencyResult.SDKs)
-                {
-                    foreach (var includePath in sdkInfo.IncludePaths)
-                    {
-                        if (!compileOptions.IncludeDirectories.Contains(includePath))
-                        {
-                            compileOptions.IncludeDirectories.Add(includePath);
-                        }
-                    }
-                }
-                
-                // Add third-party library include paths
-                foreach (var (libName, libInfo) in dependencyResult.ThirdPartyLibraries)
-                {
-                    foreach (var includePath in libInfo.IncludePaths)
-                    {
-                        if (!compileOptions.IncludeDirectories.Contains(includePath))
-                        {
-                            compileOptions.IncludeDirectories.Add(includePath);
-                        }
-                    }
-                }
-                
-                // Add module dependency public include paths
-                foreach (var depName in node.Module.PublicDependencies.Concat(node.Module.PrivateDependencies))
-                {
-                    var depNode = buildGraph.GetNode(depName);
-                    if (depNode == null)
-                    {
-                        continue;
-                    }
-
-                    var depModuleDir = depNode.Module.ModuleDirectory;
-                    foreach (var publicIncludePath in depNode.Module.PublicIncludePaths)
-                    {
-                        var fullPath = Path.Combine(depModuleDir, publicIncludePath);
-                        if (Directory.Exists(fullPath) && !compileOptions.IncludeDirectories.Contains(fullPath))
-                        {
-                            compileOptions.IncludeDirectories.Add(fullPath);
-                        }
-                    }
-
-                    var defaultPublicInclude = Path.Combine(depModuleDir, "Public");
-                    if (Directory.Exists(defaultPublicInclude)
-                        && !compileOptions.IncludeDirectories.Contains(defaultPublicInclude))
-                    {
-                        compileOptions.IncludeDirectories.Add(defaultPublicInclude);
-                    }
-                }
-
-                if (node.Module.PlatformSettings.Windows is { } windowsCompileSettings)
-                {
-                    compileOptions.AdditionalFlags.AddRange(windowsCompileSettings.CompilerFlags);
-                }
-                
-                // Add feature flags as compiler definitions
-                foreach (var (flagName, flagValue) in dependencyResult.FeatureFlags)
-                {
-                    var definition = $"{flagName}={flagValue}";
-                    if (!compileOptions.Definitions.Contains(definition))
-                    {
-                        compileOptions.Definitions.Add(definition);
-                    }
-                }
-                
-                // Add module-specific definitions
-                foreach (var definition in node.Module.Definitions)
-                {
-                    if (!compileOptions.Definitions.Contains(definition))
-                    {
-                        compileOptions.Definitions.Add(definition);
-                    }
-                }
-                
                 var result = await compiler.CompileAsync(compileOptions);
                 
                 if (!result.Success)
@@ -444,8 +342,14 @@ public static class BuildCommand
                     throw new InvalidOperationException($"Compilation failed for {sourceFile}");
                 }
                 
-                // Cache the object file
-                cache.CacheObject(cacheKey, objectFile, result.CompilationTimeMs);
+                cache.CacheObject(
+                    cacheKey,
+                    sourceFile,
+                    dependencies.IncludedHeaders,
+                    compileOptions,
+                    compilerVersion,
+                    objectFile,
+                    result.CompilationTimeMs);
                 compiledCount++;
                 Log.Debug("Compiled {SourceFile} in {Time}ms", Path.GetFileName(sourceFile), result.CompilationTimeMs);
             }
@@ -545,11 +449,16 @@ public static class BuildCommand
             {
                 var sdlLib = sdkInfo.LibraryPaths
                     .SelectMany(dir => Directory.Exists(dir) ? Directory.GetFiles(dir, "SDL3*.lib") : Array.Empty<string>())
+                    .OrderBy(path =>
+                    {
+                        var libFile = Path.GetFileName(path);
+                        return libFile.Equals("SDL3.lib", StringComparison.OrdinalIgnoreCase) ? 0 : 1;
+                    })
                     .FirstOrDefault(path =>
                     {
                         var libFile = Path.GetFileName(path);
-                        return libFile.Equals("SDL3-static.lib", StringComparison.OrdinalIgnoreCase)
-                            || libFile.Equals("SDL3.lib", StringComparison.OrdinalIgnoreCase);
+                        return libFile.Equals("SDL3.lib", StringComparison.OrdinalIgnoreCase)
+                            || libFile.Equals("SDL3-static.lib", StringComparison.OrdinalIgnoreCase);
                     });
 
                 if (sdlLib != null)
@@ -559,6 +468,8 @@ public static class BuildCommand
                     {
                         linkOptions.Libraries.Add(libFile);
                     }
+
+                    ApplyRuntimeDelayLoad(linkOptions, "SDL3.dll");
                 }
             }
             else if (sdkName.Equals("VulkanSDK", StringComparison.OrdinalIgnoreCase))
@@ -574,6 +485,8 @@ public static class BuildCommand
                     {
                         linkOptions.Libraries.Add(libFile);
                     }
+
+                    ApplyRuntimeDelayLoad(linkOptions, "vulkan-1.dll");
                 }
             }
         }
@@ -604,6 +517,13 @@ public static class BuildCommand
                 {
                     linkOptions.Libraries.Add(depLibFile);
                 }
+
+                ApplyModuleDependencyDelayLoad(
+                    linkOptions,
+                    node.Module,
+                    depNode.Module,
+                    engineDir,
+                    outputLayout);
             }
             else
             {
@@ -627,6 +547,59 @@ public static class BuildCommand
             linkOutputFile,
             linkResult.LinkTimeMs);
         Log.Information("Module {ModuleName} built successfully", node.Name);
+    }
+
+    /// <summary>
+    /// Delay-load third-party runtime DLLs so they resolve from ThirdParty/ via search-path hooks,
+    /// not from the configuration root (folderized layout).
+    /// </summary>
+    private static void ApplyRuntimeDelayLoad(LinkerOptions linkOptions, string dllFileName)
+    {
+        var delayFlag = $"/DELAYLOAD:{dllFileName}";
+        if (!linkOptions.AdditionalFlags.Any(flag =>
+                flag.Equals(delayFlag, StringComparison.OrdinalIgnoreCase)))
+        {
+            linkOptions.AdditionalFlags.Add(delayFlag);
+        }
+
+        if (!linkOptions.Libraries.Contains("delayimp.lib"))
+        {
+            linkOptions.Libraries.Add("delayimp.lib");
+        }
+    }
+
+    /// <summary>
+    /// Delay-load engine/plugin module DLLs that live outside the linking module's output folder
+    /// (e.g. Engine/Binaries/) so the loader does not require them next to the executable.
+    /// </summary>
+    private static void ApplyModuleDependencyDelayLoad(
+        LinkerOptions linkOptions,
+        DiscoveredModule linkingModule,
+        DiscoveredModule dependencyModule,
+        string engineRoot,
+        OutputLayout outputLayout)
+    {
+        if (dependencyModule.Type != ModuleType.SharedLibrary)
+        {
+            return;
+        }
+
+        var linkerDescriptor = ModuleOutputResolver.Describe(linkingModule, engineRoot);
+        var dependencyDescriptor = ModuleOutputResolver.Describe(dependencyModule, engineRoot);
+
+        var linkerOutputDir = ModuleOutputResolver.GetOutputDirectory(
+            outputLayout.ConfigurationRoot,
+            linkerDescriptor);
+        var dependencyOutputDir = ModuleOutputResolver.GetOutputDirectory(
+            outputLayout.ConfigurationRoot,
+            dependencyDescriptor);
+
+        if (linkerOutputDir.Equals(dependencyOutputDir, StringComparison.OrdinalIgnoreCase))
+        {
+            return;
+        }
+
+        ApplyRuntimeDelayLoad(linkOptions, dependencyDescriptor.BinaryFileName);
     }
 
     private static List<string> DiscoverSourceFiles(string moduleDir)

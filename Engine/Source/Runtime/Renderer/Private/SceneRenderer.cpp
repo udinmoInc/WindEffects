@@ -1,4 +1,5 @@
 #include "Renderer/SceneRenderer.hpp"
+#include "Renderer/PostProcessStack.hpp"
 #include "Renderer/RenderDiagnostics.hpp"
 #include "Renderer/FrameStats.hpp"
 #include "Renderer/RendererConfig.hpp"
@@ -94,6 +95,7 @@ SceneRenderer::SceneRenderer(const std::shared_ptr<VulkanContext>& context, VkRe
     vkUpdateDescriptorSets(m_Context->GetDevice(), 1, &envWrite, 0, nullptr);
 
     m_LUTGenerator = std::make_unique<AtmosphereLUTGenerator>(m_Context);
+    m_PostProcess = std::make_unique<PostProcessStack>(m_Context);
 
     std::array<VkDescriptorSetLayoutBinding, 3> fogLutBindings{};
     for (uint32_t i = 0; i < fogLutBindings.size(); ++i) {
@@ -120,29 +122,6 @@ SceneRenderer::SceneRenderer(const std::shared_ptr<VulkanContext>& context, VkRe
         throw std::runtime_error("Failed to allocate fog LUT descriptor set!");
     }
 
-    VkDescriptorSetLayoutBinding postStorageBinding{};
-    postStorageBinding.binding = 0;
-    postStorageBinding.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
-    postStorageBinding.descriptorCount = 1;
-    postStorageBinding.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
-
-    VkDescriptorSetLayoutCreateInfo postLayoutInfo{};
-    postLayoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-    postLayoutInfo.bindingCount = 1;
-    postLayoutInfo.pBindings = &postStorageBinding;
-    if (vkCreateDescriptorSetLayout(m_Context->GetDevice(), &postLayoutInfo, nullptr, &m_PostStorageDescLayout) != VK_SUCCESS) {
-        throw std::runtime_error("Failed to create post storage descriptor set layout!");
-    }
-
-    VkDescriptorSetAllocateInfo postAllocInfo{};
-    postAllocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-    postAllocInfo.descriptorPool = m_Context->GetDescriptorPool();
-    postAllocInfo.descriptorSetCount = 1;
-    postAllocInfo.pSetLayouts = &m_PostStorageDescLayout;
-    if (vkAllocateDescriptorSets(m_Context->GetDevice(), &postAllocInfo, &m_PostStorageDescSet) != VK_SUCCESS) {
-        throw std::runtime_error("Failed to allocate post storage descriptor set!");
-    }
-
     CreatePipelines(renderPass);
     ValidateCreatedPipelines();
     CreateMeshes();
@@ -152,7 +131,7 @@ SceneRenderer::~SceneRenderer() {
     VkDevice device = m_Context->GetDevice();
     DestroyMeshes();
 
-    if (m_PostExposurePipeline != VK_NULL_HANDLE) vkDestroyPipeline(device, m_PostExposurePipeline, nullptr);
+    m_PostProcess.reset();
     if (m_SkyAtmospherePipeline != VK_NULL_HANDLE) vkDestroyPipeline(device, m_SkyAtmospherePipeline, nullptr);
     if (m_VolumetricCloudsPipeline != VK_NULL_HANDLE) vkDestroyPipeline(device, m_VolumetricCloudsPipeline, nullptr);
     if (m_FogCompositePipeline != VK_NULL_HANDLE) vkDestroyPipeline(device, m_FogCompositePipeline, nullptr);
@@ -160,7 +139,6 @@ SceneRenderer::~SceneRenderer() {
     if (m_UnlitPipeline != VK_NULL_HANDLE) vkDestroyPipeline(device, m_UnlitPipeline, nullptr);
     if (m_WireframePipeline != VK_NULL_HANDLE) vkDestroyPipeline(device, m_WireframePipeline, nullptr);
 
-    if (m_PostPipelineLayout != VK_NULL_HANDLE) vkDestroyPipelineLayout(device, m_PostPipelineLayout, nullptr);
     if (m_FogPipelineLayout != VK_NULL_HANDLE) vkDestroyPipelineLayout(device, m_FogPipelineLayout, nullptr);
     if (m_EnvironmentPipelineLayout != VK_NULL_HANDLE) vkDestroyPipelineLayout(device, m_EnvironmentPipelineLayout, nullptr);
     if (m_PipelineLayout != VK_NULL_HANDLE) vkDestroyPipelineLayout(device, m_PipelineLayout, nullptr);
@@ -169,7 +147,6 @@ SceneRenderer::~SceneRenderer() {
 
     if (m_EnvironmentBuffer != VK_NULL_HANDLE) vkDestroyBuffer(device, m_EnvironmentBuffer, nullptr);
     if (m_EnvironmentBufferMemory != VK_NULL_HANDLE) vkFreeMemory(device, m_EnvironmentBufferMemory, nullptr);
-    if (m_PostStorageDescLayout != VK_NULL_HANDLE) vkDestroyDescriptorSetLayout(device, m_PostStorageDescLayout, nullptr);
     if (m_FogLutDescLayout != VK_NULL_HANDLE) vkDestroyDescriptorSetLayout(device, m_FogLutDescLayout, nullptr);
     if (m_EnvironmentDescLayout != VK_NULL_HANDLE) vkDestroyDescriptorSetLayout(device, m_EnvironmentDescLayout, nullptr);
     if (m_ObjectDescLayout != VK_NULL_HANDLE) vkDestroyDescriptorSetLayout(device, m_ObjectDescLayout, nullptr);
@@ -212,43 +189,9 @@ void SceneRenderer::CreatePipelines(VkRenderPass renderPass) {
         throw std::runtime_error("Failed to create fog pipeline layout!");
     }
 
-    std::array<VkDescriptorSetLayout, 2> postSetLayouts = { m_EnvironmentDescLayout, m_PostStorageDescLayout };
-    VkPipelineLayoutCreateInfo postLayoutInfo{};
-    postLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-    postLayoutInfo.setLayoutCount = static_cast<uint32_t>(postSetLayouts.size());
-    postLayoutInfo.pSetLayouts = postSetLayouts.data();
-    if (vkCreatePipelineLayout(device, &postLayoutInfo, nullptr, &m_PostPipelineLayout) != VK_SUCCESS) {
-        throw std::runtime_error("Failed to create post pipeline layout!");
-    }
-
     m_SkyAtmospherePipeline = CreateFullscreenPipeline(renderPass, m_EnvironmentPipelineLayout, "AtmospherePass", false, VK_COMPARE_OP_ALWAYS, false, false);
     m_VolumetricCloudsPipeline = CreateFullscreenPipeline(renderPass, m_EnvironmentPipelineLayout, "VolumetricCloudsPass", false, VK_COMPARE_OP_ALWAYS, false, true);
     m_FogCompositePipeline = CreateFullscreenPipeline(renderPass, m_FogPipelineLayout, "FogCompositePass", true, VK_COMPARE_OP_GREATER, false, true);
-
-    {
-        try {
-            std::vector<char> computeCode = LoadShaderBytecode("PostExposureCS", ShaderStage::Compute);
-            if (!computeCode.empty()) {
-            VkShaderModule computeModule = CreateShaderModule(device, computeCode);
-            VkPipelineShaderStageCreateInfo computeStage{};
-            computeStage.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-            computeStage.stage = VK_SHADER_STAGE_COMPUTE_BIT;
-            computeStage.module = computeModule;
-            computeStage.pName = "CSMain";
-
-            VkComputePipelineCreateInfo computeInfo{};
-            computeInfo.sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
-            computeInfo.stage = computeStage;
-            computeInfo.layout = m_PostPipelineLayout;
-            if (vkCreateComputePipelines(device, VK_NULL_HANDLE, 1, &computeInfo, nullptr, &m_PostExposurePipeline) != VK_SUCCESS) {
-                HE_WARN("SceneRenderer: failed to create post exposure compute pipeline.");
-            }
-            vkDestroyShaderModule(device, computeModule, nullptr);
-            }
-        } catch (const std::exception& ex) {
-            HE_WARN(std::string("SceneRenderer: PostExposureCS unavailable: ") + ex.what());
-        }
-    }
 
     // Scene object pipelines
     std::vector<char> vertCode = LoadShaderBytecode("SceneObject", ShaderStage::Vertex);
@@ -357,7 +300,6 @@ void SceneRenderer::ValidateCreatedPipelines() const {
     diag.ValidatePipeline("SkyAtmosphere", m_SkyAtmospherePipeline);
     diag.ValidatePipeline("VolumetricClouds", m_VolumetricCloudsPipeline);
     diag.ValidatePipeline("FogComposite", m_FogCompositePipeline);
-    diag.ValidatePipeline("PostExposure", m_PostExposurePipeline);
     diag.ValidatePipeline("SceneObjectLit", m_LitPipeline);
 }
 
@@ -644,7 +586,7 @@ void SceneRenderer::PrepareAtmosphereLUTs(VkCommandBuffer /*cmd*/) {
     const bool resourcesValid = m_LUTGenerator->ValidateResources(&validationError);
     stats.SetAtmosphereLutReady(resourcesValid);
     stats.SetSkyPipelineValid(m_SkyAtmospherePipeline != VK_NULL_HANDLE);
-    stats.SetPostPipelineValid(m_PostExposurePipeline != VK_NULL_HANDLE);
+    stats.SetPostPipelineValid(m_PostProcess && m_PostProcess->IsReady());
 
     if (!resourcesValid) {
         stats.SetPassStatus("AtmosphereLUT", "failed");
@@ -876,6 +818,12 @@ void SceneRenderer::DrawFogCompositePass(
     diag.RecordPassStatus("FogComposite", PassExecutionStatus::Executed);
 }
 
+void SceneRenderer::ResizePostProcess(uint32_t width, uint32_t height) {
+    if (m_PostProcess) {
+        m_PostProcess->Resize(width, height);
+    }
+}
+
 void SceneRenderer::ApplyPostExposure(
     VkCommandBuffer cmd,
     VkImage colorImage,
@@ -883,58 +831,13 @@ void SceneRenderer::ApplyPostExposure(
     uint32_t width,
     uint32_t height) const {
 
-    auto& diag = RenderDiagnostics::Get();
-    auto& stats = FrameStatsCollector::Get();
-
-    if (m_PostExposurePipeline == VK_NULL_HANDLE) {
-        stats.SetPassStatus("PostExposure", "failed");
-        stats.SetPassStatus("ToneMapping", "failed");
-        diag.RecordPassStatus("PostExposure", PassExecutionStatus::Failed, "pipeline is null");
-        diag.RecordPassStatus("ToneMapping", PassExecutionStatus::Failed, "pipeline is null");
-        diag.ValidatePipeline("PostExposure", m_PostExposurePipeline);
-        return;
-    }
-    if (colorImage == VK_NULL_HANDLE || colorImageView == VK_NULL_HANDLE || width == 0 || height == 0) {
-        stats.SetPassStatus("PostExposure", "failed");
-        stats.SetPassStatus("ToneMapping", "failed");
-        diag.RecordPassStatus("PostExposure", PassExecutionStatus::Failed, "invalid color target");
-        diag.RecordPassStatus("ToneMapping", PassExecutionStatus::Failed, "invalid color target");
+    if (!m_PostProcess) {
         return;
     }
 
-    GpuDebugScope debugScope(cmd, "PostExposure");
-
+    GpuDebugScope debugScope(cmd, "PostProcess");
     RefreshEnvironmentDescriptorBindings();
-
-    if (colorImageView != m_BoundPostColorView) {
-        VkDescriptorImageInfo storageInfo{};
-        storageInfo.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
-        storageInfo.imageView = colorImageView;
-
-        VkWriteDescriptorSet storageWrite{};
-        storageWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        storageWrite.dstSet = m_PostStorageDescSet;
-        storageWrite.dstBinding = 0;
-        storageWrite.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
-        storageWrite.descriptorCount = 1;
-        storageWrite.pImageInfo = &storageInfo;
-        vkUpdateDescriptorSets(m_Context->GetDevice(), 1, &storageWrite, 0, nullptr);
-        m_BoundPostColorView = colorImageView;
-    }
-
-    m_Context->TransitionImageLayout(colorImage, kOffscreenColorFormat, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_GENERAL);
-
-    vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, m_PostExposurePipeline);
-    VkDescriptorSet sets[] = { m_EnvironmentDescSet, m_PostStorageDescSet };
-    vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, m_PostPipelineLayout, 0, 2, sets, 0, nullptr);
-    vkCmdDispatch(cmd, (width + 7) / 8, (height + 7) / 8, 1);
-
-    m_Context->TransitionImageLayout(colorImage, kOffscreenColorFormat, VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
-
-    stats.SetPassStatus("PostExposure", "executed");
-    stats.SetPassStatus("ToneMapping", "executed");
-    diag.RecordPassStatus("PostExposure", PassExecutionStatus::Executed);
-    diag.RecordPassStatus("ToneMapping", PassExecutionStatus::Executed);
+    m_PostProcess->Apply(cmd, m_EnvironmentDescSet, colorImage, colorImageView, width, height);
 }
 
 void SceneRenderer::DrawMesh(VkCommandBuffer cmd, const std::string& meshName, VkDescriptorSet descriptorSet, int mode) const {
@@ -1029,6 +932,18 @@ void SceneRenderer::RefreshEnvironmentDescriptorBindings() const {
     std::memcpy(data, &m_SceneEnvironment, sizeof(SceneEnvironmentUniform));
     vkUnmapMemory(m_Context->GetDevice(), m_EnvironmentBufferMemory);
     m_SceneEnvironmentDirty = false;
+}
+
+bool SceneRenderer::IsSkyPipelineCreated() const {
+    return m_SkyAtmospherePipeline != VK_NULL_HANDLE;
+}
+
+bool SceneRenderer::IsSkyPassReady() const {
+    return IsSkyPipelineCreated() && AreAtmosphereLUTsReady();
+}
+
+bool SceneRenderer::IsPostPassReady() const {
+    return m_PostProcess && m_PostProcess->IsReady();
 }
 
 #endif // WE_HAS_VULKAN

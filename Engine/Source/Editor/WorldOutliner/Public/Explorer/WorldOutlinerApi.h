@@ -1,5 +1,7 @@
 #pragma once
 
+#include "WorldOutliner/Export.hpp"
+
 #include <volk.h>
 #include <memory>
 
@@ -9,8 +11,8 @@ class TreeView;
 
 namespace we::programs::editor {
 
-void BindExplorerBrandLogo(VkDescriptorSet logoSet, float logicalSize = 16.0f);
-float GetExplorerDockTabLogoSize();
-std::shared_ptr<we::UI::TreeView> GetExplorerTreeView();
+WORLDOUTLINER_API void BindExplorerBrandLogo(VkDescriptorSet logoSet, float logicalSize = 16.0f);
+WORLDOUTLINER_API float GetExplorerDockTabLogoSize();
+WORLDOUTLINER_API std::shared_ptr<we::UI::TreeView> GetExplorerTreeView();
 
 } // namespace we::programs::editor

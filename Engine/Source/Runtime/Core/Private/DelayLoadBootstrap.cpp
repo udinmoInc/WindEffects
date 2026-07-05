@@ -13,6 +13,8 @@ HMODULE LoadResolvedDelayLoadDll(const char* dllName) {
         return nullptr;
     }
 
+    we::core::ConfigureModuleSearchPaths();
+
     const auto modulePath = we::core::ResolveDelayLoadLibraryPath(dllName);
     if (!modulePath.has_value()) {
         return nullptr;

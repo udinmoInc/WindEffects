@@ -1,12 +1,14 @@
 #pragma once
 
+#include "Application/Export.hpp"
+
 #include "Core/Widget.hpp"
 #include "Core/Style.hpp"
 #include <functional>
 
 namespace we::UI {
 
-class TextBox : public Widget {
+class APPLICATION_API TextBox : public Widget {
 public:
     TextBox(const std::string& initialText = "", std::function<void(const std::string&)> onTextChanged = nullptr);
     virtual ~TextBox() = default;
