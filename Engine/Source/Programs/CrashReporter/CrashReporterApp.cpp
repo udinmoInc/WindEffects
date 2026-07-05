@@ -3,6 +3,7 @@
 #include "Renderer/VulkanContext.hpp"
 #include "Renderer/Renderer.hpp"
 #include "Renderer/Shader/ShaderLibrary.hpp"
+#include "Renderer/RenderGraph.hpp"
 #include "Rendering/UIRenderer.hpp"
 #include "Core/EventSystem.hpp"
 #include "Runtime/Core/AssetRegistry.hpp"
@@ -17,15 +18,10 @@ CrashReporterApp::CrashReporterApp(SDL_Window* window) : m_Window(window) {
     HE_INFO("[CrashReporterApp] Creating VulkanContext");
     m_Context = std::make_shared<we::runtime::renderer::VulkanContext>(m_Window);
     HE_INFO("[CrashReporterApp] VulkanContext created");
-    
-    HE_INFO("[CrashReporterApp] Initializing volk");
-    volkInitialize();
-    volkLoadInstance(m_Context->GetInstance());
-    volkLoadDevice(m_Context->GetDevice());
-    HE_INFO("[CrashReporterApp] volk initialized");
 
     HE_INFO("[CrashReporterApp] Creating Renderer");
     m_Renderer = std::make_shared<we::runtime::renderer::Renderer>(m_Context, m_Window);
+    m_RenderGraph = std::make_shared<we::runtime::renderer::RenderGraph>(m_Renderer);
     HE_INFO("[CrashReporterApp] Renderer created");
 
     HE_INFO("[CrashReporterApp] Initializing ShaderLibrary");
@@ -39,7 +35,11 @@ CrashReporterApp::CrashReporterApp(SDL_Window* window) : m_Window(window) {
             break;
         }
     }
-    for (const char* candidate : {"Assets/Shaders", "../Assets/Shaders"})
+    for (const char* candidate : {
+             "Engine/Shaders/Bytecodes",
+             "Assets/Shaders",
+             "../Assets/Shaders",
+             "Shaders"})
     {
         if (std::filesystem::exists(candidate))
         {
@@ -155,24 +155,10 @@ void CrashReporterApp::MainLoop() {
 
         if (m_Renderer->BeginFrame()) {
             VkCommandBuffer cmd = m_Renderer->GetCommandBuffer();
-            
-            int w, h;
-            SDL_GetWindowSizeInPixels(m_Window, &w, &h);
-            
-            VkRenderPassBeginInfo renderPassInfo{};
-            renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-            renderPassInfo.renderPass = m_Renderer->GetSwapchainRenderPass();
-            renderPassInfo.framebuffer = m_Renderer->GetSwapchainFramebuffer(m_Renderer->GetCurrentImageIndex());
-            renderPassInfo.renderArea.offset = {0, 0};
-            renderPassInfo.renderArea.extent = { static_cast<uint32_t>(w), static_cast<uint32_t>(h) };
 
-            VkClearValue clearColor = {{{0.015f, 0.015f, 0.015f, 1.0f}}};
-            renderPassInfo.clearValueCount = 1;
-            renderPassInfo.pClearValues = &clearColor;
-
-            vkCmdBeginRenderPass(cmd, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
-            m_UIRenderer->Render(cmd, static_cast<uint32_t>(w), static_cast<uint32_t>(h), m_UI);
-            vkCmdEndRenderPass(cmd);
+            m_RenderGraph->BeginSwapchainPass(cmd);
+            m_UIRenderer->Render(cmd, m_Renderer->GetSwapchainWidth(), m_Renderer->GetSwapchainHeight(), m_UI);
+            m_RenderGraph->EndSwapchainPass(cmd);
 
             m_Renderer->EndFrame();
         }
@@ -181,15 +167,17 @@ void CrashReporterApp::MainLoop() {
 
 void CrashReporterApp::Shutdown() {
     if (m_Context) {
-        vkDeviceWaitIdle(m_Context->GetDevice());
+        m_Context->WaitUntilIdle();
     }
     m_UIEventSystem.reset();
     m_UI.reset();
     if (m_UIRenderer) {
         m_UIRenderer->Shutdown();
+        m_RenderGraph.reset();
         m_UIRenderer.reset();
     }
     m_Renderer.reset();
+    m_Context.reset();
 }
 
 }

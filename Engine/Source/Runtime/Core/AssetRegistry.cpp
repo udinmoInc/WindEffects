@@ -96,23 +96,37 @@ bool AssetRegistry::LoadDefaultEditorAssets() {
 
     const std::vector<std::pair<std::string, std::vector<std::string>>> shaders = {
         {"UI", {
+            "Engine/Shaders/Bytecodes/UI_VS.spv",
             "Assets/Shaders/UI_VS.spv",
             "Shaders/UI_VS.spv",
             "../Assets/Shaders/UI_VS.spv"
         }},
-        {"EditorBackground", {
-            "Assets/Shaders/EditorBackground_VS.spv",
-            "Shaders/EditorBackground_VS.spv"
+        {"AtmospherePass", {
+            "Engine/Shaders/Bytecodes/AtmospherePass_VS.spv",
+            "Assets/Shaders/AtmospherePass_VS.spv",
+            "Shaders/AtmospherePass_VS.spv"
+        }},
+        {"VolumetricCloudsPass", {
+            "Engine/Shaders/Bytecodes/VolumetricCloudsPass_VS.spv",
+            "Assets/Shaders/VolumetricCloudsPass_VS.spv",
+            "Shaders/VolumetricCloudsPass_VS.spv"
+        }},
+        {"FogCompositePass", {
+            "Engine/Shaders/Bytecodes/FogCompositePass_VS.spv",
+            "Assets/Shaders/FogCompositePass_VS.spv",
+            "Shaders/FogCompositePass_VS.spv"
         }},
         {"AtmospherePass", {
             "Assets/Shaders/AtmospherePass_VS.spv",
             "Shaders/AtmospherePass_VS.spv"
         }},
         {"EditorGrid", {
+            "Engine/Shaders/Bytecodes/EditorGrid_VS.spv",
             "Assets/Shaders/EditorGrid_VS.spv",
             "Shaders/EditorGrid_VS.spv"
         }},
         {"SceneObject", {
+            "Engine/Shaders/Bytecodes/SceneObject_VS.spv",
             "Assets/Shaders/SceneObject_VS.spv",
             "Shaders/SceneObject_VS.spv"
         }},
@@ -120,10 +134,11 @@ bool AssetRegistry::LoadDefaultEditorAssets() {
 
     const std::vector<std::pair<std::string, std::vector<std::string>>> icons = {
         {"Icon_Lucide", {
+            "Engine/Content/Icons/icons",
             "Assets/Icons/icons",
             "Icons/icons",
             "../Assets/Icons/icons",
-            "Engine/Content/Icons/icons"
+            "../Engine/Content/Icons/icons"
         }},
     };
 

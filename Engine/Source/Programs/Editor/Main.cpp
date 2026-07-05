@@ -5,6 +5,7 @@
 #include <exception>
 #include <filesystem>
 #include "Core/Logger.hpp"
+#include "Core/LogCategory.hpp"
 #include "Core/BuildPaths.hpp"
 
 #if defined(_WIN32)
@@ -47,7 +48,6 @@ int main(int argc, char* argv[]) {
         SetWorkingDirectoryToExecutable();
         ConfigureModuleSearchPath();
 
-        std::cout << "WindEffects Engine Bootstrapping...\n";
         HE_INFO("[Startup] === WindEffects Editor bootstrap begin ===");
         
         ModuleManager& ModuleManager = ModuleManager::Get();
@@ -77,7 +77,7 @@ int main(int argc, char* argv[]) {
             }
         }
         
-        std::cout << "Engine successfully initialized and modules loaded.\n";
+        HE_INFO("[Startup] Engine successfully initialized and modules loaded.");
 
 #if defined(_WIN32)
         we::programs::windows::ConfigureSdlClassIcons(IDI_ICON1);
@@ -118,8 +118,8 @@ int main(int argc, char* argv[]) {
         HE_INFO("[Startup] === WindEffects Editor shutdown complete ===");
         
     } catch (const std::exception& e) {
-        std::cerr << "Fatal Exception: " << e.what() << "\n";
-        HE_ERROR(std::string("Fatal Exception: ") + e.what());
+        WE_LOG_CRITICAL(we::LogCategory::Crash.data(), std::string("Fatal exception: ") + e.what());
+        we::runtime::core::Logger::ReportError("Fatal Exception", e.what(), true);
         return -1;
     }
     

@@ -117,9 +117,7 @@ public:
     RENDERER_API void RefreshEnvironmentDescriptorBindings() const;
     RENDERER_API bool ValidateRenderFrame(VkFramebuffer framebuffer, uint32_t width, uint32_t height) const;
     RENDERER_API bool IsSkyPassReady() const {
-        return IsSkyPipelineCreated()
-            && m_LUTGenerator != nullptr
-            && m_LUTGenerator->IsReady();
+        return IsSkyPipelineCreated() && AreAtmosphereLUTsReady();
     }
     RENDERER_API bool IsPostPassReady() const { return m_PostExposurePipeline != VK_NULL_HANDLE; }
 

@@ -1,60 +1,15 @@
-WindEffects Engine — Software License Notice
-================================================
+WindEffects Engine License Notice
 
 Copyright (c) 2026 WindEffects. All rights reserved.
 
-WindEffects Engine (the "Software") is proprietary software owned by WindEffects.
-Use of the Software is governed by the WindEffects Engine End User License
-Agreement and Software License Agreement ("EULA").
+Use of WindEffects Engine is governed by the WindEffects Engine End User License Agreement (the "EULA"). The complete terms and conditions are set forth in Legal/EULA.md.
 
-FULL AGREEMENT
---------------
-The complete, binding license terms are in:
+You may use WindEffects Engine to develop and distribute interactive applications, games, simulations, and related products pursuant to the EULA. All rights in WindEffects Engine, including the editor, tools, source code, binaries, documentation, branding, and associated intellectual property, remain the exclusive property of WindEffects.
 
-  Legal/EULA.md
+This distribution may include third-party components subject to separate license terms. Refer to Legal/THIRD_PARTY_NOTICES.md for applicable third-party attributions and license information.
 
-By downloading, installing, accessing, or using the Software, you agree to the EULA.
+WindEffects Engine is provided without warranty. The EULA contains the complete disclaimer of warranties and limitations of liability.
 
-SUMMARY (NON-BINDING)
----------------------
-Permitted:
-  - Free download and use
-  - Commercial and non-commercial development
-  - Create, publish, distribute, and sell games, simulations, films,
-    visualizations, plugins, and applications built with the Software
-  - Use by individuals, students, indies, studios, enterprises, and
-    educational institutions
-  - Cloud builds, CI/CD, and AI-assisted development (subject to the EULA)
+For assistance, contact support@udinmo.com. For legal inquiries, contact legal@udinmo.com.
 
-Not permitted without separate written agreement:
-  - Redistributing, selling, sublicensing, or repackaging the engine
-  - Creating or distributing a competing game engine based on the Software
-  - Removing copyright or trademark notices
-  - Impersonating WindEffects or claiming ownership of the engine
-
-Your projects and content remain yours. The engine, editor, tools, source code,
-binaries, branding, trademarks, and documentation remain the property of
-WindEffects.
-
-Future optional commercial programs (subscriptions, enterprise licenses,
-royalty programs, or other terms) may be offered separately. They apply only
-if explicitly announced and accepted. No fees or royalties apply under the
-current EULA version unless you enter a separate agreement.
-
-THIRD-PARTY SOFTWARE
---------------------
-The Software may include open-source and third-party components subject to
-their own licenses. See Legal/THIRD_PARTY_NOTICES.md and in-product notices.
-
-NO WARRANTY
------------
-THE SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND. SEE THE EULA
-FOR FULL WARRANTY DISCLAIMERS AND LIMITATION OF LIABILITY.
-
-CONTACT
--------
-  Help:   support@udinmo.com
-  Legal:  legal@udinmo.com
-
-This summary does not replace or modify the EULA. In case of conflict, the
-EULA controls.
+In the event of any inconsistency between this notice and the EULA, the EULA shall control.

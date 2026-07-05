@@ -1,5 +1,6 @@
 #include "PluginManager.hpp"
-#include <iostream>
+#include "Core/DiagnosticMacros.hpp"
+#include "Core/LogCategory.hpp"
 #include <filesystem>
 
 namespace we::core {
@@ -11,7 +12,7 @@ PluginManager& PluginManager::Get() {
 
 void PluginManager::ScanAndLoadPlugins(const std::string& pluginDirectory) {
     if (!std::filesystem::exists(pluginDirectory)) {
-        std::cout << "[PluginManager] Plugin directory does not exist: " << pluginDirectory << "\n";
+        WE_LOG_DEBUG(we::LogCategory::Plugin.data(), "Plugin directory does not exist: " + pluginDirectory);
         return;
     }
 
@@ -22,7 +23,7 @@ void PluginManager::ScanAndLoadPlugins(const std::string& pluginDirectory) {
                 std::string pathStr = entry.path().string();
                 HMODULE handle = LoadLibraryA(pathStr.c_str());
                 if (handle) {
-                    std::cout << "[PluginManager] Loaded Plugin: " << entry.path().filename().string() << "\n";
+                    WE_LOG_INFO(we::LogCategory::Plugin.data(), "Loaded plugin: " + entry.path().filename().string());
                     m_LoadedPlugins.push_back({ entry.path().filename().string(), handle });
 
                     // Look for InitializePlugin function
@@ -31,10 +32,10 @@ void PluginManager::ScanAndLoadPlugins(const std::string& pluginDirectory) {
                     if (init) {
                         init();
                     } else {
-                        std::cout << "[PluginManager] Warning: InitializePlugin not found in " << entry.path().filename().string() << "\n";
+                        WE_LOG_WARN(we::LogCategory::Plugin.data(), "InitializePlugin not found in " + entry.path().filename().string());
                     }
                 } else {
-                    std::cout << "[PluginManager] Failed to load plugin: " << pathStr << "\n";
+                    WE_LOG_ERROR(we::LogCategory::Plugin.data(), "Failed to load plugin: " + pathStr);
                 }
             }
 #endif
