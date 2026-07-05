@@ -1,6 +1,8 @@
 using Serilog;
 using IgniteBT.Core.Launcher;
+using IgniteBT.Build.Layout;
 using IgniteBT.Workspace.SDK;
+using IgniteBT.Workspace.ThirdParty;
 
 namespace IgniteBT.CLI;
 
@@ -56,6 +58,17 @@ public static class DoctorCommand
         }
 
         SDKManager.Instance.Initialize();
+        ThirdPartyManager.Instance.Initialize();
+
+        var engineRoot = BuildLayout.FindEngineRoot(Directory.GetCurrentDirectory());
+        if (!string.IsNullOrEmpty(engineRoot))
+        {
+            if (!await ThirdPartyBootstrapper.EnsureRequiredAsync(engineRoot))
+            {
+                issues++;
+            }
+        }
+
         var sdks = await SDKManager.Instance.DetectAllAsync();
         Log.Information("SDKs detected: {Count}", sdks.Count);
 

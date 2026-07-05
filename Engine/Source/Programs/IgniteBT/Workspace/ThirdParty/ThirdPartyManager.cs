@@ -1,5 +1,6 @@
 using Serilog;
 using System.Collections.Concurrent;
+using System.Linq;
 
 namespace IgniteBT.Workspace.ThirdParty;
 
@@ -274,17 +275,41 @@ public class ThirdPartyManager
     private void ValidateLibrary(ThirdPartyLibrary library)
     {
         library.IsValid = true;
-        
+
         if (library.IncludePaths.Count == 0)
         {
             library.Warnings.Add("No include paths found");
+            library.IsValid = false;
         }
-        
+
+        // Header-only libraries must expose their primary include.
+        if (string.Equals(library.Name, "glm", StringComparison.OrdinalIgnoreCase))
+        {
+            var hasPrimaryHeader = library.IncludePaths.Any(includePath =>
+                File.Exists(Path.Combine(includePath, "glm", "glm.hpp")));
+            if (!hasPrimaryHeader)
+            {
+                library.Warnings.Add("Missing primary header glm/glm.hpp");
+                library.IsValid = false;
+            }
+        }
+
+        if (string.Equals(library.Name, "SDL3", StringComparison.OrdinalIgnoreCase))
+        {
+            var hasPrimaryHeader = library.IncludePaths.Any(includePath =>
+                File.Exists(Path.Combine(includePath, "SDL3", "SDL.h")));
+            if (!hasPrimaryHeader)
+            {
+                library.Warnings.Add("Missing primary header SDL3/SDL.h");
+                library.IsValid = false;
+            }
+        }
+
         if (library.LibraryPaths.Count == 0)
         {
             library.Warnings.Add("No library paths found");
         }
-        
+
         if (library.LibraryNames.Count == 0)
         {
             library.Warnings.Add("No library files found");

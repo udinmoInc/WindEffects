@@ -1,0 +1,9 @@
+[submodule "Engine/ThirdParty/SDL3"]
+	path = Engine/ThirdParty/SDL3
+	url = https://github.com/libsdl-org/SDL.git
+	branch = release-3.2.8
+
+[submodule "Engine/ThirdParty/glm"]
+	path = Engine/ThirdParty/glm
+	url = https://github.com/g-truc/glm.git
+	branch = 1.0.1
