@@ -221,6 +221,36 @@ AtmosParams BuildParams(const SceneEnvironmentUniform& env) {
     return p;
 }
 
+void LogLUTAverageRGB(const char* lutName, const std::vector<float>& rgba) {
+    if (rgba.size() < 4) {
+        return;
+    }
+
+    double sumR = 0.0;
+    double sumG = 0.0;
+    double sumB = 0.0;
+    const size_t texelCount = rgba.size() / 4;
+    for (size_t texel = 0; texel < texelCount; ++texel) {
+        const size_t idx = texel * 4;
+        sumR += rgba[idx + 0];
+        sumG += rgba[idx + 1];
+        sumB += rgba[idx + 2];
+    }
+
+    const double invCount = 1.0 / static_cast<double>(texelCount);
+    const double avgR = sumR * invCount;
+    const double avgG = sumG * invCount;
+    const double avgB = sumB * invCount;
+
+    WE_LOG_INFO(
+        we::runtime::core::LogCategory::Environment.data(),
+        std::string(lutName) + " LUT avg RGB=("
+            + std::to_string(avgR) + ", " + std::to_string(avgG) + ", " + std::to_string(avgB)
+            + ") G/R=" + std::to_string(avgG / std::max(avgR, 1e-6))
+            + " B/G=" + std::to_string(avgB / std::max(avgG, 1e-6))
+            + " B/R=" + std::to_string(avgB / std::max(avgR, 1e-6)));
+}
+
 } // namespace
 
 AtmosphereLUTGenerator::AtmosphereLUTGenerator(const std::shared_ptr<VulkanContext>& context)
@@ -615,6 +645,7 @@ bool AtmosphereLUTGenerator::GenerateCPU(const SceneEnvironmentUniform& environm
                 "Check atmosphere environment parameters (sun intensity, scattering coefficients, planet radius).");
             return false;
         }
+        LogLUTAverageRGB(upload.name, upload.data);
         TransitionLUTForUpload(upload.image);
         if (!UploadLUT(upload.image, upload.width, upload.height, upload.data, upload.name)) {
             RenderDiagnostics::Get().Emit(

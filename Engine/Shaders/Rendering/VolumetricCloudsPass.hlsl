@@ -42,10 +42,8 @@ float4 PSMain(VSOutput input) : SV_Target
         sunDir, sunLinear, sunIntensity,
         cloudAltitude, cloudCoverage, cloudExtinction, cloudAlbedo);
 
-    const float ev = WE_ComputeExposureEV(sunDirection, exposureEV, exposureCompensation);
-    float3 color = WE_ApplyFilmicTonemap(clouds, WE_ExposureFromEV100(ev));
-    color = WE_LinearToSRGB(color);
-
+    // Keep linear HDR — PostExposure applies exposure, tonemap, and sRGB conversion once.
+    const float3 color = WE_SanitizeHdrColor(clouds);
     const float alpha = saturate(length(clouds) * 2.5);
     return float4(color, alpha);
 }

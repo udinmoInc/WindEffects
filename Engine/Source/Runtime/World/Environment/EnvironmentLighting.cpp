@@ -53,8 +53,10 @@ glm::vec3 EulerDegreesToLightDirection(const glm::vec3& rotationDegrees) {
     const float yaw = glm::radians(rotationDegrees.y);
 
     glm::vec3 direction;
+    // Rotation pitch follows editor convention: negative pitch = sun above horizon,
+    // light travels toward the scene (downward in world +Y-up space).
     direction.x = std::cos(pitch) * std::sin(yaw);
-    direction.y = -std::sin(pitch);
+    direction.y = std::sin(pitch);
     direction.z = std::cos(pitch) * std::cos(yaw);
     return glm::normalize(direction);
 }
