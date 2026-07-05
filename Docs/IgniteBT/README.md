@@ -142,4 +142,4 @@ IgniteBT is part of the WindEffects Engine project and is subject to the WindEff
 - 🏗️ [Architecture Documentation](./ARCHITECTURE.md)
 - 💻 [Command Reference](./COMMANDS.md)
 - ⚙️ [Configuration Guide](./CONFIGURATION.md)
-- 📋 [Changelog](../../CHANGELOG.md)
+- 📋 [Changelog](../../CHANGELOG.MD)
