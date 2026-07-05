@@ -21,6 +21,7 @@ namespace glm {
 #endif
 #include <vector>
 #include <memory>
+#include <array>
 
 namespace we::runtime::renderer {
 
@@ -47,9 +48,9 @@ public:
     VkCommandBuffer GetCommandBuffer() const { return m_CommandBuffers[m_CurrentFrame]; }
     Framebuffer& GetOffscreenFramebuffer() const { return *m_OffscreenFramebuffer; }
     VkFramebuffer GetSwapchainFramebuffer(uint32_t index) const { return m_SwapchainFramebuffers[index]; }
-    VkBuffer GetCameraBuffer() const { return m_CameraBuffer; }
+    VkBuffer GetCameraBuffer() const { return m_CameraBuffers[m_CurrentFrame]; }
     VkDescriptorSetLayout GetCameraDescLayout() const { return m_CameraDescLayout; }
-    VkDescriptorSet GetCameraDescSet() const { return m_CameraDescSet; }
+    VkDescriptorSet GetCameraDescSet() const { return m_CameraDescSets[m_CurrentFrame]; }
 
     struct CameraUniform {
         glm::mat4 view;
@@ -58,7 +59,9 @@ public:
         float padding;
     };
 
-    RENDERER_API void UpdateCameraBuffer(const CameraUniform& ubo);
+    // Upload after BeginFrame() returns true (GPU fence for this frame slot has been waited on).
+    RENDERER_API void UploadCameraUniform(const CameraUniform& ubo);
+    const CameraUniform& GetLastUploadedCameraUniform() const { return m_LastUploadedCameraUniform; }
     
     uint32_t GetCurrentFrameIndex() const { return m_CurrentFrame; }
     uint32_t GetCurrentImageIndex() const { return m_CurrentImageIndex; }
@@ -92,11 +95,12 @@ private:
     // Offscreen viewport framebuffer
     std::unique_ptr<Framebuffer> m_OffscreenFramebuffer;
 
-    // Camera UBO
-    VkBuffer m_CameraBuffer = VK_NULL_HANDLE;
-    VkDeviceMemory m_CameraBufferMemory = VK_NULL_HANDLE;
+    // Per-frame camera UBOs (one buffer per frame-in-flight to avoid GPU/CPU races).
+    std::array<VkBuffer, MAX_FRAMES_IN_FLIGHT> m_CameraBuffers{};
+    std::array<VkDeviceMemory, MAX_FRAMES_IN_FLIGHT> m_CameraBufferMemories{};
+    std::array<VkDescriptorSet, MAX_FRAMES_IN_FLIGHT> m_CameraDescSets{};
     VkDescriptorSetLayout m_CameraDescLayout = VK_NULL_HANDLE;
-    VkDescriptorSet m_CameraDescSet = VK_NULL_HANDLE;
+    CameraUniform m_LastUploadedCameraUniform{};
 
     // Frame synchronization
     std::vector<VkCommandBuffer> m_CommandBuffers;

@@ -57,6 +57,10 @@ void EditorCamera::Reset() {
     m_AspectRatio = 1.777f;
     m_Near = 0.1f;
     m_Far = 100000.0f;
+    m_PrevPosition = m_Position;
+    m_PrevPitch = m_Pitch;
+    m_PrevYaw = m_Yaw;
+    m_LastDeltaTime = 0.0f;
 }
 
 void EditorCamera::SetOrbitPivot(const glm::vec3& pivot) {
@@ -177,6 +181,11 @@ void EditorCamera::ResumeOrbitNavigation() {
 }
 
 void EditorCamera::Update(float dt) {
+    m_LastDeltaTime = dt;
+    m_PrevPosition = m_Position;
+    m_PrevPitch = m_Pitch;
+    m_PrevYaw = m_Yaw;
+
     m_TargetPitch = std::clamp(m_TargetPitch, -89.0f, 89.0f);
 
     if (m_FlyMode) {
@@ -198,7 +207,7 @@ void EditorCamera::Update(float dt) {
 
     UpdateOrbitPositionFromAngles();
 
-    const float t = std::clamp(m_LerpSpeed * dt, 0.0f, 1.0f);
+    const float t = 1.0f - std::exp(-m_LerpSpeed * dt);
     m_Pitch = glm::mix(m_Pitch, m_TargetPitch, t);
     m_Yaw = glm::mix(m_Yaw, m_TargetYaw, t);
     m_Distance = glm::mix(m_Distance, m_TargetDistance, t);
@@ -242,8 +251,9 @@ void EditorCamera::ProcessMousePan(float dx, float dy) {
     const float speedScale = m_MoveSpeed / kDefaultCameraSpeed;
     const float panSpeed = std::max(0.01f, m_TargetDistance * 0.0015f) * speedScale;
 
-    const glm::vec3 right = GetRight();
-    const glm::vec3 up = GetUp();
+    const glm::vec3 forward = ComputeForwardFromAngles();
+    const glm::vec3 right = glm::normalize(glm::cross(forward, glm::vec3(0.0f, 1.0f, 0.0f)));
+    const glm::vec3 up = glm::normalize(glm::cross(right, forward));
 
     m_TargetLookAt -= right * dx * panSpeed;
     m_TargetLookAt += up * dy * panSpeed;
@@ -323,8 +333,7 @@ glm::mat4 EditorCamera::GetViewMatrix() const {
 }
 
 glm::mat4 EditorCamera::GetProjectionMatrix() const {
-    const float farPlane = std::max(m_Far, m_TargetDistance * 120.0f);
-    glm::mat4 proj = glm::perspectiveRH_ZO(glm::radians(m_Fov), m_AspectRatio, farPlane, m_Near);
+    glm::mat4 proj = glm::perspectiveRH_ZO(glm::radians(m_Fov), m_AspectRatio, m_Far, m_Near);
     proj[1][1] *= -1.0f;
     return proj;
 }

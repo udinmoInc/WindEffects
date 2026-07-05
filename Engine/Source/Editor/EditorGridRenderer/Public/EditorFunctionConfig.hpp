@@ -12,7 +12,7 @@ namespace we::editor::grid {
 // Persistent editor grid settings loaded from Engine/Config/Editor/function.ini.
 struct EditorGridConfig {
     bool enabled = true;
-    bool snapOriginToCamera = true;
+    bool snapOriginToCamera = false;
     bool enableFrustumCulling = true;
     bool enableDistanceCulling = true;
     bool antiAliasingEnabled = true;

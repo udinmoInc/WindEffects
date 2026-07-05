@@ -95,6 +95,17 @@ void Scene::SetCameraBuffer(VkBuffer cameraBuffer) {
     m_CameraBuffer = cameraBuffer;
 }
 
+void Scene::RefreshCameraDescriptorBindings(VkBuffer cameraBuffer) {
+    if (cameraBuffer == VK_NULL_HANDLE) {
+        return;
+    }
+
+    m_CameraBuffer = cameraBuffer;
+    for (auto& entity : m_Entities) {
+        m_Renderer->UpdateObjectDescriptorSet(entity.DescriptorSet, m_CameraBuffer, entity.UniformBuffer);
+    }
+}
+
 bool Scene::IsCameraBufferAssigned() const {
     return m_CameraBuffer != VK_NULL_HANDLE;
 }

@@ -955,6 +955,9 @@ void Editor::MainLoop() {
         lastTime = now;
         if (dt > 0.1f) dt = 0.1f;
 
+        // Input and fly movement update camera targets first; smoothing runs after.
+        m_RootWidget->Tick(dt);
+
         m_Camera->Update(dt);
         m_Scene->Update();
         we::runtime::world::environment::EnvironmentSystem::Get().SyncFromScene(m_Camera->GetPosition());
@@ -965,8 +968,6 @@ void Editor::MainLoop() {
             auto vp = std::dynamic_pointer_cast<ViewportWidget>(m_ViewportWidget);
             if (vp) vp->FlushPendingResize();
         }
-
-        m_RootWidget->Tick(dt);
 
         we::runtime::core::FrameCounter::Advance();
         FrameStatsCollector::Get().BeginFrame();
@@ -982,9 +983,11 @@ void Editor::MainLoop() {
         cameraUBO.proj = m_Camera->GetProjectionMatrix();
         cameraUBO.pos = m_Camera->GetPosition();
         cameraUBO.padding = 0.0f;
-        m_Renderer->UpdateCameraBuffer(cameraUBO);
 
         if (m_Renderer->BeginFrame()) {
+            m_Renderer->UploadCameraUniform(cameraUBO);
+            m_Scene->RefreshCameraDescriptorBindings(m_Renderer->GetCameraBuffer());
+
             VkCommandBuffer cmd = m_Renderer->GetCommandBuffer();
             auto& offscreenFB = m_Renderer->GetOffscreenFramebuffer();
             m_SceneRenderer->ValidateRenderFrame(offscreenFB.GetFramebuffer(), offscreenFB.GetWidth(), offscreenFB.GetHeight());
