@@ -14,10 +14,12 @@ void EnvironmentSkyAtmosphere::ApplyDefaults() {
 }
 
 glm::vec3 EnvironmentSkyAtmosphere::GetRayleighColor() const {
-    return glm::vec3(
-        RayleighScattering * 5.6f,
-        RayleighScattering * 13.2f,
-        RayleighScattering * 32.0f);
+    // Sea-level Rayleigh scattering coefficients (1/km), matching UE5 reference values.
+    constexpr float kRed = 0.005802f;
+    constexpr float kGreen = 0.013558f;
+    constexpr float kBlue = 0.033100f;
+    const float scale = RayleighScattering / kRed;
+    return glm::vec3(kRed * scale, kGreen * scale, kBlue * scale);
 }
 
 glm::vec3 EnvironmentSkyAtmosphere::GetOzoneAbsorption() const {

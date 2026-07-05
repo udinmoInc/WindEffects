@@ -58,7 +58,8 @@ float3 WE_RaymarchClouds(
             continue;
 
         const float3 sunLight = sunColor * sunIntensity;
-        const float lightFactor = 0.3 + 0.7 * saturate(dot(rayDir, sunDir) * 0.5 + 0.5);
+        const float forward = pow(saturate(dot(-rayDir, sunDir)), 6.0);
+        const float lightFactor = 0.2 + 0.8 * forward;
         const float3 scatter = cloudAlbedo * sunLight * lightFactor * density;
         const float absorb = exp(-density * extinction * stepSize * 0.01);
         accum += transmittance * scatter * (1.0 - absorb);

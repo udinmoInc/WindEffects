@@ -34,7 +34,7 @@ float4 PSMain(VSOutput input) : SV_Target
 
     const float3 viewDir = WE_UnprojectDirection(input.uv, view, proj);
     const float3 sunDir = normalize(-sunDirection);
-    const float3 sunLinear = WE_sRGBToLinear(saturate(sunColor));
+    const float3 sunLinear = max(sunColor, float3(0.0, 0.0, 0.0));
     const float3 cloudAlbedo = WE_sRGBToLinear(saturate(cloudColor));
 
     const float3 clouds = WE_RaymarchClouds(
