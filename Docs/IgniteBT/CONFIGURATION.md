@@ -791,14 +791,14 @@ For configuration issues not covered in this guide:
 |----------|------------|
 | 🔍 `we doctor --verbose` | Detailed diagnostics of build environment |
 | 📋 Build logs in `Build/Logs/` | Detailed information about build operations |
-| 📖 [Command Reference](./COMMANDS.MD) | Detailed command documentation |
+| 📖 [Command Reference](./COMMANDS.md) | Detailed command documentation |
 | 📚 Main Engine Documentation | Additional context and guidance |
 
 ---
 
 ## 🔗 Related Documentation
 
-- 📖 [Getting Started Guide](./GETTING-STARTED.MD)
-- 💻 [Command Reference](./COMMANDS.MD)
-- 🏗️ [Architecture Documentation](./ARCHITECTURE.MD)
-- 📋 [Changelog](../../CHANGELOG.MD)
+- 📖 [Getting Started Guide](./GETTING-STARTED.md)
+- 💻 [Command Reference](./COMMANDS.md)
+- 🏗️ [Architecture Documentation](./ARCHITECTURE.md)
+- 📋 [Changelog](../../CHANGELOG.md)

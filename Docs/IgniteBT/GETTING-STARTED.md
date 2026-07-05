@@ -380,9 +380,9 @@ After completing your first build and verifying that everything works correctly,
 
 | Resource | Description | Link |
 |----------|-------------|------|
-| 📖 **Command Reference** | Detailed information about all commands | [COMMANDS.MD](./COMMANDS.MD) |
-| 🏗️ **Architecture Documentation** | System design and component organization | [ARCHITECTURE.MD](./ARCHITECTURE.MD) |
-| ⚙️ **Configuration Guide** | SDK configuration and advanced tuning | [CONFIGURATION.MD](./CONFIGURATION.MD) |
+| 📖 **Command Reference** | Detailed information about all commands | [COMMANDS.md](./COMMANDS.md) |
+| 🏗️ **Architecture Documentation** | System design and component organization | [ARCHITECTURE.md](./ARCHITECTURE.md) |
+| ⚙️ **Configuration Guide** | SDK configuration and advanced tuning | [CONFIGURATION.md](./CONFIGURATION.md) |
 
 ---
 
@@ -448,7 +448,7 @@ If you encounter issues not covered in this guide, use these resources.
 |----------|------------|
 | 📋 **Build Logs** | Check `Build/Logs/` for detailed error messages |
 | 🔍 **Diagnostics** | Run `we doctor --verbose` for comprehensive checks |
-| 📖 **Command Reference** | Review [COMMANDS.MD](./COMMANDS.MD) for detailed command info |
+| 📖 **Command Reference** | Review [COMMANDS.md](./COMMANDS.md) for detailed command info |
 | 📚 **Engine Documentation** | Consult main WindEffects Engine documentation |
 
 ---
@@ -514,7 +514,7 @@ we doctor
 
 ## 🔗 Related Documentation
 
-- 📖 [Command Reference](./COMMANDS.MD)
-- 🏗️ [Architecture Documentation](./ARCHITECTURE.MD)
-- ⚙️ [Configuration Guide](./CONFIGURATION.MD)
-- 📋 [Changelog](../../CHANGELOG.MD)
+- 📖 [Command Reference](./COMMANDS.md)
+- 🏗️ [Architecture Documentation](./ARCHITECTURE.md)
+- ⚙️ [Configuration Guide](./CONFIGURATION.md)
+- 📋 [Changelog](../../CHANGELOG.md)
