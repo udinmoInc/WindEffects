@@ -6,26 +6,27 @@ namespace IgniteBT.Workspace.SDK;
 
 /// <summary>
 /// Manages persistent storage of SDK detection results.
+/// Prefers project-local Build/Database on the repo drive over %LocalAppData% on C:.
 /// </summary>
 public class SDKDatabase
 {
     private const string CacheFileName = "IgniteBT.SDKCache.json";
     private readonly string[] _searchPaths;
-    
+    private readonly string _writePath;
+
     public SDKDatabase()
     {
-        _searchPaths = new[]
-        {
-            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-            Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+        var projectDatabase = FindProjectDatabaseDirectory();
+        _writePath = Path.Combine(projectDatabase, CacheFileName);
+        _searchPaths =
+        [
+            projectDatabase,
             ".",
-            ".."
-        };
+            "..",
+            "../.."
+        ];
     }
-    
-    /// <summary>
-    /// Loads cached SDK information from disk.
-    /// </summary>
+
     public void LoadCache(ConcurrentDictionary<string, SDKInfo> cache)
     {
         var cachePath = FindCachePath();
@@ -34,21 +35,19 @@ public class SDKDatabase
             Log.Debug("No SDK cache file found");
             return;
         }
-        
+
         try
         {
             var jsonContent = File.ReadAllText(cachePath);
             var cachedData = JsonSerializer.Deserialize<Dictionary<string, SDKInfo>>(jsonContent,
                 new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-            
+
             if (cachedData != null)
             {
                 foreach (var (name, info) in cachedData)
-                {
                     cache[name] = info;
-                }
-                
-                Log.Information("Loaded {Count} SDKs from cache", cachedData.Count);
+
+                Log.Information("Loaded {Count} SDKs from cache ({Path})", cachedData.Count, cachePath);
             }
         }
         catch (Exception ex)
@@ -56,84 +55,69 @@ public class SDKDatabase
             Log.Warning(ex, "Failed to load SDK cache from: {Path}", cachePath);
         }
     }
-    
-    /// <summary>
-    /// Saves SDK information to disk cache.
-    /// </summary>
+
     public void SaveCache(ConcurrentDictionary<string, SDKInfo> cache)
     {
-        var cachePath = GetCacheWritePath();
-        if (cachePath == null) return;
-        
         try
         {
-            var directory = Path.GetDirectoryName(cachePath);
-            if (!string.IsNullOrEmpty(directory) && !Directory.Exists(directory))
+            Directory.CreateDirectory(Path.GetDirectoryName(_writePath)!);
+            var jsonContent = JsonSerializer.Serialize(cache, new JsonSerializerOptions
             {
-                Directory.CreateDirectory(directory);
-            }
-            
-            var jsonContent = JsonSerializer.Serialize(cache, new JsonSerializerOptions 
-            { 
                 WriteIndented = true,
                 PropertyNamingPolicy = JsonNamingPolicy.CamelCase
             });
-            
-            File.WriteAllText(cachePath, jsonContent);
-            Log.Information("Saved {Count} SDKs to cache", cache.Count);
+
+            File.WriteAllText(_writePath, jsonContent);
+            Log.Information("Saved {Count} SDKs to cache ({Path})", cache.Count, _writePath);
         }
         catch (Exception ex)
         {
-            Log.Warning(ex, "Failed to save SDK cache to: {Path}", cachePath);
+            Log.Warning(ex, "Failed to save SDK cache to: {Path}", _writePath);
         }
     }
-    
-    /// <summary>
-    /// Clears the SDK cache.
-    /// </summary>
+
     public void ClearCache()
     {
-        var cachePath = FindCachePath();
-        if (cachePath != null && File.Exists(cachePath))
+        foreach (var path in _searchPaths.Select(p => Path.Combine(p, CacheFileName)).Distinct(StringComparer.OrdinalIgnoreCase))
         {
+            if (!File.Exists(path)) continue;
             try
             {
-                File.Delete(cachePath);
-                Log.Information("Cleared SDK cache at: {Path}", cachePath);
+                File.Delete(path);
+                Log.Information("Cleared SDK cache at: {Path}", path);
             }
             catch (Exception ex)
             {
-                Log.Warning(ex, "Failed to clear SDK cache at: {Path}", cachePath);
+                Log.Warning(ex, "Failed to clear SDK cache at: {Path}", path);
             }
         }
     }
-    
-    /// <summary>
-    /// Finds the cache file path for reading.
-    /// </summary>
+
     private string? FindCachePath()
     {
         foreach (var searchPath in _searchPaths)
         {
             var cachePath = Path.Combine(searchPath, CacheFileName);
             if (File.Exists(cachePath))
-            {
                 return cachePath;
-            }
         }
         return null;
     }
-    
-    /// <summary>
-    /// Gets the cache file path for writing.
-    /// </summary>
-    private string? GetCacheWritePath()
+
+    private static string FindProjectDatabaseDirectory()
     {
-        var localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
-        if (!string.IsNullOrEmpty(localAppData))
+        var dir = Directory.GetCurrentDirectory();
+        for (var i = 0; i < 8; i++)
         {
-            return Path.Combine(localAppData, CacheFileName);
+            var candidate = Path.Combine(dir, "Build", "Database");
+            if (Directory.Exists(candidate) || File.Exists(Path.Combine(dir, "WindEffects.engine")))
+                return candidate;
+
+            var parent = Directory.GetParent(dir)?.FullName;
+            if (string.IsNullOrEmpty(parent) || parent == dir) break;
+            dir = parent;
         }
-        return Path.Combine(".", CacheFileName);
+
+        return Path.Combine(Directory.GetCurrentDirectory(), "Build", "Database");
     }
 }

@@ -33,7 +33,7 @@ public static class SDKCacheFingerprint
         return FastHash.HashString(sb.ToString());
     }
 
-    public static bool IsCacheValid(string fingerprint, string? compilerPath = null)
+    public static bool IsCacheValid(string? compilerPath = null)
     {
         var stored = LoadStoredFingerprint();
         if (string.IsNullOrEmpty(stored)) return false;
@@ -62,8 +62,26 @@ public static class SDKCacheFingerprint
 
     private static string GetFingerprintPath()
     {
-        var localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
-        return Path.Combine(localAppData, FingerprintFileName);
+        var databaseDir = FindProjectDatabaseDirectory();
+        Directory.CreateDirectory(databaseDir);
+        return Path.Combine(databaseDir, FingerprintFileName);
+    }
+
+    private static string FindProjectDatabaseDirectory()
+    {
+        var dir = Directory.GetCurrentDirectory();
+        for (var i = 0; i < 8; i++)
+        {
+            var candidate = Path.Combine(dir, "Build", "Database");
+            if (Directory.Exists(candidate) || File.Exists(Path.Combine(dir, "WindEffects.engine")))
+                return candidate;
+
+            var parent = Directory.GetParent(dir)?.FullName;
+            if (string.IsNullOrEmpty(parent) || parent == dir) break;
+            dir = parent;
+        }
+
+        return Path.Combine(Directory.GetCurrentDirectory(), "Build", "Database");
     }
 
     private static IEnumerable<string> FindConfigPaths()
