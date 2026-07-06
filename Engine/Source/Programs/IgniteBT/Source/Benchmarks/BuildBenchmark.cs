@@ -242,7 +242,7 @@ public static class BuildBenchmark
         if (exe.Equals("dotnet", StringComparison.OrdinalIgnoreCase))
         {
             startInfo.FileName = "dotnet";
-            startInfo.Arguments = "run --project Engine/Source/Programs/IgniteBT -- " + string.Join(' ', args);
+            startInfo.Arguments = "run --project Engine/Source/Programs/IgniteBT/Source -- " + string.Join(' ', args);
         }
         else
         {

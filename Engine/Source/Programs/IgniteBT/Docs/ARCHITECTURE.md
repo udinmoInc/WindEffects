@@ -427,4 +427,4 @@ Planned architectural improvements include enhanced distributed build coordinati
 - 📖 [Getting Started Guide](./GETTING-STARTED.md)
 - 💻 [Command Reference](./COMMANDS.md)
 - ⚙️ [Configuration Guide](./CONFIGURATION.md)
-- 📋 [Changelog](../../CHANGELOG.md)
+- 📋 [Changelog](../../../../../CHANGELOG.md)

@@ -8,4 +8,4 @@ AssetsRoot=Assets
 ProjectsRoot=Projects
 bootstrap.manifest=Build/Manifest/bootstrap.manifest
 bootstrap.entry=IgniteBT
-bootstrap.entry.source=IgniteBT/IgniteBT.csproj
+bootstrap.entry.source=IgniteBT/Source/IgniteBT.csproj

@@ -36,7 +36,7 @@ AssetsRoot=Assets
 ProjectsRoot=Projects
 bootstrap.manifest=Build/Manifest/bootstrap.manifest
 bootstrap.entry=IgniteBT
-bootstrap.entry.source=IgniteBT/IgniteBT.csproj
+bootstrap.entry.source=IgniteBT/Source/IgniteBT.csproj
 ```
 
 #### Configuration Parameters
@@ -51,7 +51,7 @@ bootstrap.entry.source=IgniteBT/IgniteBT.csproj
 | `ProjectsRoot` | Project files directory | `Projects` |
 | `bootstrap.manifest` | Bootstrap manifest file path | `Build/Manifest/bootstrap.manifest` |
 | `bootstrap.entry` | Bootstrap entry point | `IgniteBT` |
-| `bootstrap.entry.source` | Bootstrap source project | `IgniteBT/IgniteBT.csproj` |
+| `bootstrap.entry.source` | Bootstrap source project | `IgniteBT/Source/IgniteBT.csproj` |
 
 > **⚠️ Important:** The `.engine` file is typically committed to version control as it contains essential project-wide configuration. However, certain values may need to be adjusted for local development requirements.
 
@@ -759,4 +759,4 @@ For configuration issues not covered in this guide:
 - 📖 [Getting Started Guide](./GETTING-STARTED.md)
 - 💻 [Command Reference](./COMMANDS.md)
 - 🏗️ [Architecture Documentation](./ARCHITECTURE.md)
-- 📋 [Changelog](../../CHANGELOG.md)
+- 📋 [Changelog](../../../../../CHANGELOG.md)

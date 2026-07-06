@@ -15,7 +15,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\IgniteBT\IgniteBT.csproj" />
+    <ProjectReference Include="..\Source\IgniteBT.csproj" />
   </ItemGroup>
 
 </Project>

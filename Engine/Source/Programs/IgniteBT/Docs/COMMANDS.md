@@ -621,4 +621,4 @@ This displays detailed usage information for the specified command, including al
 - 📖 [Getting Started Guide](./GETTING-STARTED.md)
 - 🏗️ [Architecture Documentation](./ARCHITECTURE.md)
 - ⚙️ [Configuration Guide](./CONFIGURATION.md)
-- 📋 [Changelog](../../CHANGELOG.md)
+- 📋 [Changelog](../../../../../CHANGELOG.md)
