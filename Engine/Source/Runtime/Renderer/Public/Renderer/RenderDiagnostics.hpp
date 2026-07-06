@@ -3,9 +3,9 @@
 #if WE_HAS_VULKAN
 #include "Renderer/Export.hpp"
 #include "Renderer/SceneRenderer.hpp"
+#include <memory>
 #include <string>
 #include <vector>
-#include <unordered_map>
 #include <volk.h>
 
 namespace we::runtime::renderer {
@@ -71,14 +71,11 @@ public:
         const std::string& remediation = {});
 
 private:
-    RenderDiagnostics() = default;
+    RENDERER_API RenderDiagnostics();
+    RENDERER_API ~RenderDiagnostics();
 
-    std::vector<DiagnosticMessage> m_Messages;
-    bool m_HasErrors = false;
-    bool m_HasCritical = false;
-    std::vector<std::pair<std::string, double>> m_PassTimings;
-    std::unordered_map<std::string, PassExecutionStatus> m_PassStatuses;
-    std::unordered_map<std::string, std::string> m_PassStatusDetails;
+    struct Impl;
+    std::unique_ptr<Impl> m_Impl;
 };
 
 class GpuDebugScope {

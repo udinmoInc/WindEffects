@@ -113,6 +113,13 @@ void Framebuffer::CreateResources(VkRenderPass renderPass) {
     }
 
     HE_INFO("Framebuffer: Resources successfully created.");
+
+    // Match offscreen render pass initialLayout (SHADER_READ_ONLY_OPTIMAL).
+    m_Context.TransitionImageLayout(
+        m_ColorImage,
+        colorFormat,
+        VK_IMAGE_LAYOUT_UNDEFINED,
+        VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 }
 
 void Framebuffer::DestroyResources() {

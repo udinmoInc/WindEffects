@@ -12,6 +12,8 @@
     <ServerGarbageCollection>false</ServerGarbageCollection>
     <TieredCompilationQuickJit>true</TieredCompilationQuickJit>
     <ConcurrentGarbageCollection>false</ConcurrentGarbageCollection>
+    <!-- Avoid apphost copy failures when IgniteBT.exe is locked or blocked by policy. -->
+    <UseAppHost>false</UseAppHost>
   </PropertyGroup>
 
   <ItemGroup>
@@ -28,6 +30,10 @@
     <InvariantGlobalization>true</InvariantGlobalization>
     <IlcOptimizationPreference>Speed</IlcOptimizationPreference>
   </PropertyGroup>
+
+  <Target Name="StopRunningIgniteBT" BeforeTargets="CoreCompile" Condition="'$(OS)' == 'Windows_NT'">
+    <Exec Command="taskkill /F /IM IgniteBT.exe /T 2&gt;nul" IgnoreExitCode="true" />
+  </Target>
 
   <ItemGroup>
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.11.0" />
