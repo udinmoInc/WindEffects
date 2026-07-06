@@ -7,11 +7,11 @@ using Serilog;
 namespace IgniteBT.Benchmarks;
 
 /// <summary>
-/// Automated build benchmark suite with multi-format reporting.
+/// Automated build benchmark suite with multi-format reporting and flame graph export.
 /// </summary>
 public static class BuildBenchmark
 {
-    public const string Version = "1.0.0";
+    public const string Version = "2.0.0";
 
     public sealed class BenchmarkResult
     {
@@ -22,6 +22,7 @@ public static class BuildBenchmark
         public int Jobs { get; set; }
         public bool Unity { get; set; }
         public string Config { get; set; } = "Development";
+        public string? Target { get; set; }
         public DateTimeOffset Timestamp { get; set; } = DateTimeOffset.UtcNow;
     }
 
@@ -34,6 +35,7 @@ public static class BuildBenchmark
         public DateTimeOffset StartedAt { get; set; }
         public DateTimeOffset CompletedAt { get; set; }
         public List<BenchmarkResult> Results { get; set; } = new();
+        public Dictionary<string, long> BaselineComparison { get; set; } = new();
     }
 
     public static async Task<BenchmarkReport> RunAllAsync(string weExecutable, string projectRoot, int[]? jobCounts = null)
@@ -49,18 +51,23 @@ public static class BuildBenchmark
 
         var scenarios = new List<(string Category, string Name, string[] Args)>
         {
-            ("lifecycle", "cold", ["rebuild", "--config", "Development"]),
-            ("lifecycle", "warm", ["build", "--config", "Development"]),
+            ("lifecycle", "cold_rebuild", ["rebuild", "--config", "Development"]),
+            ("lifecycle", "warm_build", ["build", "--config", "Development"]),
             ("lifecycle", "noop", ["build", "--config", "Development"]),
             ("lifecycle", "noop_repeat", ["build", "--config", "Development"]),
+            ("config", "development", ["build", "--config", "Development"]),
+            ("config", "shipping", ["build", "--config", "Shipping"]),
+            ("config", "debug", ["build", "--config", "Debug"]),
             ("target", "editor", ["build", "--config", "Development", "--target", "Editor"]),
+            ("target", "renderer", ["build", "--config", "Development", "--target", "Renderer"]),
             ("unity", "unity_on", ["build", "--config", "Development", "--unity"]),
             ("unity", "unity_off", ["build", "--config", "Development"]),
         };
 
         foreach (var jobs in jobCounts.Distinct().OrderBy(j => j))
         {
-            scenarios.Add(("parallelism", $"jobs_{jobs}", ["build", "--config", "Development", "--jobs", jobs.ToString(CultureInfo.InvariantCulture)]));
+            scenarios.Add(("parallelism", $"jobs_{jobs}",
+                ["build", "--config", "Development", "--jobs", jobs.ToString(CultureInfo.InvariantCulture)]));
         }
 
         foreach (var (category, name, args) in scenarios)
@@ -69,6 +76,7 @@ public static class BuildBenchmark
             var exit = await RunProcessAsync(weExecutable, args, projectRoot);
             sw.Stop();
 
+            var config = ParseConfigArg(args);
             var result = new BenchmarkResult
             {
                 Category = category,
@@ -77,7 +85,8 @@ public static class BuildBenchmark
                 ExitCode = exit,
                 Jobs = ParseJobsArg(args),
                 Unity = args.Contains("--unity"),
-                Config = "Development",
+                Config = config,
+                Target = ParseTargetArg(args),
                 Timestamp = DateTimeOffset.UtcNow
             };
             report.Results.Add(result);
@@ -85,6 +94,12 @@ public static class BuildBenchmark
         }
 
         report.CompletedAt = DateTimeOffset.UtcNow;
+
+        var warm = report.Results.FirstOrDefault(r => r.Scenario == "warm_build" && r.ExitCode == 0);
+        var cold = report.Results.FirstOrDefault(r => r.Scenario == "cold_rebuild" && r.ExitCode == 0);
+        if (warm != null && cold != null && cold.ElapsedMs > 0)
+            report.BaselineComparison["warm_vs_cold_speedup"] = (long)((double)cold.ElapsedMs / warm.ElapsedMs * 100);
+
         return report;
     }
 
@@ -99,7 +114,7 @@ public static class BuildBenchmark
 
         var csvPath = Path.Combine(outputDirectory, $"{baseName}.csv");
         var csv = new StringBuilder();
-        csv.AppendLine("timestamp,category,scenario,elapsed_ms,exit_code,jobs,unity,config");
+        csv.AppendLine("timestamp,category,scenario,elapsed_ms,exit_code,jobs,unity,config,target");
         foreach (var r in report.Results)
         {
             csv.AppendLine(string.Join(',',
@@ -110,7 +125,8 @@ public static class BuildBenchmark
                 r.ExitCode.ToString(CultureInfo.InvariantCulture),
                 r.Jobs.ToString(CultureInfo.InvariantCulture),
                 r.Unity ? "1" : "0",
-                r.Config));
+                r.Config,
+                r.Target ?? ""));
         }
         File.WriteAllText(csvPath, csv.ToString());
 
@@ -123,11 +139,45 @@ public static class BuildBenchmark
         var latestMd = Path.Combine(outputDirectory, "latest.md");
         File.WriteAllText(latestMd, BuildMarkdownReport(report));
 
+        CopyFlameGraphIfPresent(report.ProjectRoot, outputDirectory, baseName);
+
         Log.Information("Benchmark reports written to {Dir}", outputDirectory);
         Log.Information("  JSON: {Json}", jsonPath);
         Log.Information("  CSV:  {Csv}", csvPath);
         Log.Information("  MD:   {Md}", mdPath);
         Log.Information("  HTML: {Html}", htmlPath);
+    }
+
+    private static void CopyFlameGraphIfPresent(string projectRoot, string outputDirectory, string baseName)
+    {
+        var candidates = new[]
+        {
+            Path.Combine(projectRoot, "Build", "Cache", "flamegraph.json"),
+            Path.Combine(projectRoot, "Build", "Win64", "Development", "Cache", "flamegraph.json"),
+        };
+
+        foreach (var src in candidates)
+        {
+            if (!File.Exists(src)) continue;
+            var dest = Path.Combine(outputDirectory, $"{baseName}_flamegraph.json");
+            File.Copy(src, dest, overwrite: true);
+            Log.Information("  Flame graph: {Path}", dest);
+            break;
+        }
+    }
+
+    private static string ParseConfigArg(string[] args)
+    {
+        for (var i = 0; i < args.Length - 1; i++)
+            if (args[i] == "--config") return args[i + 1];
+        return "Development";
+    }
+
+    private static string? ParseTargetArg(string[] args)
+    {
+        for (var i = 0; i < args.Length - 1; i++)
+            if (args[i] == "--target") return args[i + 1];
+        return null;
     }
 
     private static int ParseJobsArg(string[] args)
@@ -156,10 +206,10 @@ public static class BuildBenchmark
         sb.AppendLine();
         sb.AppendLine("## Results");
         sb.AppendLine();
-        sb.AppendLine("| Category | Scenario | Time (ms) | Exit | Jobs | Unity |");
-        sb.AppendLine("|----------|----------|-----------|------|------|-------|");
+        sb.AppendLine("| Category | Scenario | Time (ms) | Exit | Jobs | Unity | Config |");
+        sb.AppendLine("|----------|----------|-----------|------|------|-------|--------|");
         foreach (var r in report.Results)
-            sb.AppendLine($"| {r.Category} | {r.Scenario} | {r.ElapsedMs} | {r.ExitCode} | {r.Jobs} | {(r.Unity ? "yes" : "no")} |");
+            sb.AppendLine($"| {r.Category} | {r.Scenario} | {r.ElapsedMs} | {r.ExitCode} | {r.Jobs} | {(r.Unity ? "yes" : "no")} | {r.Config} |");
         sb.AppendLine();
 
         var lifecycle = report.Results.Where(r => r.Category == "lifecycle" && r.ExitCode == 0).ToList();
@@ -169,6 +219,24 @@ public static class BuildBenchmark
             sb.AppendLine();
             foreach (var r in lifecycle.OrderBy(r => r.ElapsedMs))
                 sb.AppendLine($"- **{r.Scenario}**: {r.ElapsedMs} ms");
+            sb.AppendLine();
+        }
+
+        var configs = report.Results.Where(r => r.Category == "config" && r.ExitCode == 0).ToList();
+        if (configs.Count > 0)
+        {
+            sb.AppendLine("## Configuration Comparison");
+            sb.AppendLine();
+            foreach (var r in configs.OrderBy(r => r.ElapsedMs))
+                sb.AppendLine($"- **{r.Config}**: {r.ElapsedMs} ms");
+            sb.AppendLine();
+        }
+
+        if (report.BaselineComparison.TryGetValue("warm_vs_cold_speedup", out var speedup))
+        {
+            sb.AppendLine("## Speedup");
+            sb.AppendLine();
+            sb.AppendLine($"- Warm vs cold cache benefit index: {speedup}%");
             sb.AppendLine();
         }
 
@@ -187,13 +255,19 @@ public static class BuildBenchmark
             sb.AppendLine("```");
         }
 
+        sb.AppendLine("## Success Targets");
+        sb.AppendLine();
+        var noop = report.Results.FirstOrDefault(r => r.Scenario == "noop" && r.ExitCode == 0);
+        sb.AppendLine($"- No-op build: {(noop != null ? $"{noop.ElapsedMs}ms (target <100ms)" : "not measured")}");
+        sb.AppendLine();
+
         return sb.ToString();
     }
 
     private static string BuildHtmlReport(BenchmarkReport report)
     {
         var rows = string.Join('\n', report.Results.Select(r =>
-            $"<tr><td>{r.Category}</td><td>{r.Scenario}</td><td>{r.ElapsedMs}</td><td>{r.ExitCode}</td><td>{r.Jobs}</td><td>{(r.Unity ? "yes" : "no")}</td></tr>"));
+            $"<tr><td>{r.Category}</td><td>{r.Scenario}</td><td>{r.ElapsedMs}</td><td>{r.ExitCode}</td><td>{r.Jobs}</td><td>{(r.Unity ? "yes" : "no")}</td><td>{r.Config}</td></tr>"));
 
         var sb = new StringBuilder();
         sb.AppendLine("<!DOCTYPE html>");
@@ -219,7 +293,7 @@ public static class BuildBenchmark
         sb.AppendLine($"    <div>Project: <code>{EscapeHtml(report.ProjectRoot)}</code></div>");
         sb.AppendLine("  </div>");
         sb.AppendLine("  <table>");
-        sb.AppendLine("    <thead><tr><th>Category</th><th>Scenario</th><th>Time (ms)</th><th>Exit</th><th>Jobs</th><th>Unity</th></tr></thead>");
+        sb.AppendLine("    <thead><tr><th>Category</th><th>Scenario</th><th>Time (ms)</th><th>Exit</th><th>Jobs</th><th>Unity</th><th>Config</th></tr></thead>");
         sb.AppendLine("    <tbody>");
         sb.AppendLine(rows);
         sb.AppendLine("    </tbody>");
