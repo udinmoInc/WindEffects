@@ -96,6 +96,7 @@ public class SDKManager
 
         if (!forceRescan && _cache.Count > 0)
         {
+            var fingerprint = SDKCacheFingerprint.Compute(compilerPath);
             if (SDKCacheFingerprint.IsCacheValid(compilerPath) && ValidateCachedPaths())
             {
                 Log.Information("SDK cache hit — using {Count} cached SDKs (fingerprint valid)", _cache.Count);
