@@ -157,6 +157,24 @@ void ViewportWidget::Paint(PaintContext& context) {
         context.DrawText(axis.label, Point{ endPoint.x + 4.0f, endPoint.y - 6.0f }, Color::White(), 10.0f);
     }
 
+    if (m_Navigation.IsFlyLookActive()) {
+        const float centerX = m_Geometry.x + m_Geometry.width * 0.5f;
+        const float centerY = m_Geometry.y + m_Geometry.height * 0.5f;
+        const Color crosshairColor{ 1.0f, 1.0f, 1.0f, 0.9f };
+        constexpr float kArm = 8.0f;
+        constexpr float kThickness = 1.5f;
+        context.DrawLine(
+            Point{ centerX - kArm, centerY },
+            Point{ centerX + kArm, centerY },
+            crosshairColor,
+            kThickness);
+        context.DrawLine(
+            Point{ centerX, centerY - kArm },
+            Point{ centerX, centerY + kArm },
+            crosshairColor,
+            kThickness);
+    }
+
     for (auto& child : m_Children) {
         child->Paint(context);
     }

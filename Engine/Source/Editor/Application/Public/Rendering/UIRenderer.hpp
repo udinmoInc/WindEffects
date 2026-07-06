@@ -3,6 +3,7 @@
 #include "Application/Export.hpp"
 
 #include <volk.h>
+#include <array>
 #include <memory>
 #include <vector>
 #include "Core/Geometry.hpp"
@@ -32,8 +33,9 @@ public:
     bool Init(const std::shared_ptr<we::runtime::renderer::VulkanContext>& context, VkRenderPass renderPass);
     void Shutdown();
 
-    // Render the UI widget tree
-    void Render(VkCommandBuffer cmd, uint32_t width, uint32_t height, const std::shared_ptr<Widget>& root);
+    // Render the UI widget tree. frameIndex must match Renderer::GetCurrentFrameIndex().
+    void Render(VkCommandBuffer cmd, uint32_t width, uint32_t height, uint32_t frameIndex,
+                const std::shared_ptr<Widget>& root);
 
     // Get descriptor set for an external texture (like the viewport offscreen buffer)
     VkDescriptorSet RegisterTexture(VkImageView imageView, VkSampler sampler);
@@ -59,7 +61,18 @@ private:
     void CreatePipeline(VkRenderPass renderPass);
     void CreateDummyTexture();
     void BuildGeometry(const std::vector<DrawCommand>& commands, uint32_t width, uint32_t height);
-    void UpdateBuffers();
+    void UpdateBuffers(uint32_t frameIndex);
+
+    static constexpr uint32_t kFramesInFlight = 2;
+
+    struct FrameGeometryBuffers {
+        VkBuffer vertexBuffer = VK_NULL_HANDLE;
+        VkDeviceMemory vertexMemory = VK_NULL_HANDLE;
+        VkDeviceSize vertexBufferSize = 0;
+        VkBuffer indexBuffer = VK_NULL_HANDLE;
+        VkDeviceMemory indexMemory = VK_NULL_HANDLE;
+        VkDeviceSize indexBufferSize = 0;
+    };
 
     std::shared_ptr<we::runtime::renderer::VulkanContext> m_Context;
     std::shared_ptr<FontAtlas> m_FontAtlas;
@@ -80,13 +93,7 @@ private:
     std::vector<UIVertex> m_Vertices;
     std::vector<uint32_t> m_Indices;
 
-    VkBuffer m_VertexBuffer = VK_NULL_HANDLE;
-    VkDeviceMemory m_VertexMemory = VK_NULL_HANDLE;
-    VkDeviceSize m_VertexBufferSize = 0;
-
-    VkBuffer m_IndexBuffer = VK_NULL_HANDLE;
-    VkDeviceMemory m_IndexMemory = VK_NULL_HANDLE;
-    VkDeviceSize m_IndexBufferSize = 0;
+    std::array<FrameGeometryBuffers, kFramesInFlight> m_FrameBuffers{};
 
     // Drawing batches
     struct DrawBatch {

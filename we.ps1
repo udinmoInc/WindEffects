@@ -7,16 +7,19 @@ $ErrorActionPreference = "Stop"
 
 # Keep NuGet / .NET / MSVC temp on the repo drive (F:) — avoid C: AppData when space is tight.
 $WeRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
+$env:WE_PROJECT_ROOT = $WeRoot
 $ToolchainDir = Join-Path $WeRoot ".toolchain"
+$LocalAppDataDir = Join-Path $ToolchainDir "localappdata"
 $BuildTempDir = Join-Path $WeRoot "Build\Temp"
 $env:NUGET_PACKAGES = Join-Path $WeRoot ".nuget\packages"
 $env:NUGET_HTTP_CACHE_PATH = Join-Path $ToolchainDir "nuget-http-cache"
 $env:DOTNET_CLI_HOME = Join-Path $ToolchainDir "dotnet-cli"
+$env:LOCALAPPDATA = $LocalAppDataDir
 $env:TEMP = $BuildTempDir
 $env:TMP = $BuildTempDir
 $env:DOTNET_SKIP_FIRST_TIME_EXPERIENCE = "1"
 $env:DOTNET_NOLOGO = "1"
-foreach ($dir in @($env:NUGET_PACKAGES, $env:NUGET_HTTP_CACHE_PATH, $env:DOTNET_CLI_HOME, $BuildTempDir)) {
+foreach ($dir in @($env:NUGET_PACKAGES, $env:NUGET_HTTP_CACHE_PATH, $env:DOTNET_CLI_HOME, $BuildTempDir, $LocalAppDataDir)) {
     if (-not (Test-Path -LiteralPath $dir)) {
         New-Item -ItemType Directory -Path $dir -Force | Out-Null
     }

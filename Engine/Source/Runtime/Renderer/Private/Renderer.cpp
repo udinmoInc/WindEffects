@@ -9,8 +9,26 @@
 #include <algorithm>
 #include <iostream>
 #include <cstring>
+#include <string>
 
 namespace we::runtime::renderer {
+
+namespace {
+
+const char* VkResultName(VkResult result) {
+    switch (result) {
+        case VK_SUCCESS: return "VK_SUCCESS";
+        case VK_NOT_READY: return "VK_NOT_READY";
+        case VK_TIMEOUT: return "VK_TIMEOUT";
+        case VK_ERROR_OUT_OF_HOST_MEMORY: return "VK_ERROR_OUT_OF_HOST_MEMORY";
+        case VK_ERROR_OUT_OF_DEVICE_MEMORY: return "VK_ERROR_OUT_OF_DEVICE_MEMORY";
+        case VK_ERROR_DEVICE_LOST: return "VK_ERROR_DEVICE_LOST";
+        case VK_ERROR_OUT_OF_DATE_KHR: return "VK_ERROR_OUT_OF_DATE_KHR";
+        default: return "VK_UNKNOWN";
+    }
+}
+
+} // namespace
 
 Renderer::Renderer(const std::shared_ptr<VulkanContext>& context, SDL_Window* window)
     : m_Context(context), m_Window(window) {
@@ -546,8 +564,13 @@ void Renderer::EndFrame() {
     submitInfo.signalSemaphoreCount = 1;
     submitInfo.pSignalSemaphores = signalSemaphores;
 
-    if (vkQueueSubmit(m_Context->GetGraphicsQueue(), 1, &submitInfo, m_InFlightFences[m_CurrentFrame]) != VK_SUCCESS) {
-        throw std::runtime_error("Failed to submit Vulkan draw command buffer!");
+    const VkResult submitResult = vkQueueSubmit(m_Context->GetGraphicsQueue(), 1, &submitInfo, m_InFlightFences[m_CurrentFrame]);
+    if (submitResult != VK_SUCCESS) {
+        throw std::runtime_error(
+            std::string("Failed to submit Vulkan draw command buffer (")
+                + VkResultName(submitResult) + ", frame="
+                + std::to_string(m_CurrentFrame) + ", image="
+                + std::to_string(m_CurrentImageIndex) + ")!");
     }
 
     VkPresentInfoKHR presentInfo{};

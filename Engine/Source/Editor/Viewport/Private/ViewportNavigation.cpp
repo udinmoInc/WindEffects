@@ -112,7 +112,7 @@ void ViewportNavigationController::ApplySystemCursor(ViewportCursorMode mode) {
     SDL_Cursor* cursor = defaultCursor;
     switch (mode) {
     case ViewportCursorMode::FlyLook:
-        cursor = crosshairCursor;
+        cursor = defaultCursor;
         break;
     case ViewportCursorMode::Orbit:
         cursor = crosshairCursor;
@@ -164,9 +164,8 @@ void ViewportNavigationController::BeginFlyLook(const Point& cursorPosition) {
     m_FlyLookActive = true;
     m_IgnoreNextFlyDelta = true;
     m_OrbitDragMode = OrbitDragMode::None;
-    ApplySystemCursor(ViewportCursorMode::FlyLook);
-    SetRelativeCursorVisible(true);
-    SDL_ShowCursor();
+    SetRelativeCursorVisible(false);
+    SDL_HideCursor();
     CenterFlyCursor();
     SDL_SetWindowRelativeMouseMode(m_Window, true);
     m_CursorMode = ViewportCursorMode::FlyLook;
@@ -185,6 +184,7 @@ void ViewportNavigationController::EndFlyLook() {
     m_IgnoreNextFlyDelta = true;
     m_LastMousePos = m_SavedCursorPos;
     m_CursorMode = ViewportCursorMode::Default;
+    SDL_ShowCursor();
     ApplySystemCursor(ViewportCursorMode::Default);
 }
 
