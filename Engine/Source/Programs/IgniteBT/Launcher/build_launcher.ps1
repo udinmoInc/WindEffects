@@ -1,6 +1,6 @@
 $ErrorActionPreference = "Stop"
 $src = Join-Path $PSScriptRoot "we_probe.c"
-$outDir = Join-Path $PSScriptRoot "..\..\..\..\Build\Intermediate\IgniteBT\Launcher"
+$outDir = Join-Path $PSScriptRoot "..\..\..\..\..\Build\Intermediate\IgniteBT\Launcher"
 New-Item -ItemType Directory -Force -Path $outDir | Out-Null
 $out = Join-Path $outDir "we_probe.exe"
 

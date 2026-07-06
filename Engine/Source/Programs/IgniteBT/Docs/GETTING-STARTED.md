@@ -503,4 +503,4 @@ we doctor
 - 📖 [Command Reference](./COMMANDS.md)
 - 🏗️ [Architecture Documentation](./ARCHITECTURE.md)
 - ⚙️ [Configuration Guide](./CONFIGURATION.md)
-- 📋 [Changelog](../../CHANGELOG.md)
+- 📋 [Changelog](../../../../../CHANGELOG.md)

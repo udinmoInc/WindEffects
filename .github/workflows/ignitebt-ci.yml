@@ -4,12 +4,10 @@ on:
   push:
     paths:
       - 'Engine/Source/Programs/IgniteBT/**'
-      - 'Engine/Source/Programs/IgniteBT.Tests/**'
       - '.github/workflows/ignitebt-ci.yml'
   pull_request:
     paths:
       - 'Engine/Source/Programs/IgniteBT/**'
-      - 'Engine/Source/Programs/IgniteBT.Tests/**'
       - '.github/workflows/ignitebt-ci.yml'
 
 jobs:
@@ -28,28 +26,28 @@ jobs:
           dotnet-version: '8.0.x'
 
       - name: Restore
-        run: dotnet restore Engine/Source/Programs/IgniteBT/IgniteBT.csproj
+        run: dotnet restore Engine/Source/Programs/IgniteBT/Source/IgniteBT.csproj
 
       - name: Build IgniteBT
-        run: dotnet build Engine/Source/Programs/IgniteBT/IgniteBT.csproj -c Development --no-restore
+        run: dotnet build Engine/Source/Programs/IgniteBT/Source/IgniteBT.csproj -c Development --no-restore
 
       - name: Run unit tests
-        run: dotnet test Engine/Source/Programs/IgniteBT.Tests/IgniteBT.Tests.csproj -c Development --verbosity normal
+        run: dotnet test Engine/Source/Programs/IgniteBT/Tests/IgniteBT.Tests.csproj -c Development --verbosity normal
 
       - name: Build IgniteBT binary
-        run: dotnet build Engine/Source/Programs/IgniteBT/IgniteBT.csproj -c Development
+        run: dotnet build Engine/Source/Programs/IgniteBT/Source/IgniteBT.csproj -c Development
 
       - name: Doctor
-        run: dotnet run --project Engine/Source/Programs/IgniteBT -- doctor
+        run: dotnet run --project Engine/Source/Programs/IgniteBT/Source -- doctor
         continue-on-error: true
 
       - name: First build
-        run: dotnet run --project Engine/Source/Programs/IgniteBT -- build --config Development --jobs 4
+        run: dotnet run --project Engine/Source/Programs/IgniteBT/Source -- build --config Development --jobs 4
         continue-on-error: true
 
       - name: Second build (no-op)
         run: |
-          dotnet run --project Engine/Source/Programs/IgniteBT -- build --config Development --jobs 4
+          dotnet run --project Engine/Source/Programs/IgniteBT/Source -- build --config Development --jobs 4
           if (-not (Test-Path Build/Manifest/build.manifest.bin)) {
             Write-Error "build.manifest.bin missing after successful build"
             exit 1
