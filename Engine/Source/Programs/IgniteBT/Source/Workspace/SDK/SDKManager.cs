@@ -88,9 +88,74 @@ public class SDKManager
     }
     
     /// <summary>
-    /// Detects all available SDKs.
+    /// Detects all available SDKs. Uses persistent cache when fingerprint is unchanged.
     /// </summary>
-    public async Task<Dictionary<string, SDKInfo>> DetectAllAsync()
+    public async Task<Dictionary<string, SDKInfo>> DetectAllAsync(string? compilerPath = null, bool forceRescan = false)
+    {
+        Initialize();
+
+        if (!forceRescan && _cache.Count > 0)
+        {
+            var fingerprint = SDKCacheFingerprint.Compute(compilerPath);
+            if (SDKCacheFingerprint.IsCacheValid(compilerPath) && ValidateCachedPaths())
+            {
+                Log.Information("SDK cache hit — using {Count} cached SDKs (fingerprint valid)", _cache.Count);
+                return new Dictionary<string, SDKInfo>(_cache);
+            }
+        }
+
+        Log.Information("Detecting all SDKs...");
+        var results = new Dictionary<string, SDKInfo>();
+        var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+
+        var detectTasks = _providers.Select(async provider =>
+        {
+            try
+            {
+                var result = await DetectSDKAsync(provider);
+                return (provider.SDKName, result);
+            }
+            catch (Exception ex)
+            {
+                Log.Warning(ex, "Failed to detect SDK: {SDKName}", provider.SDKName);
+                return (provider.SDKName, SDKResult<SDKInfo>.Fail(ex.Message));
+            }
+        });
+
+        foreach (var task in detectTasks)
+        {
+            var (name, result) = await task;
+            if (result.Success && result.Value != null)
+            {
+                results[name] = result.Value;
+                _cache[name] = result.Value;
+            }
+        }
+
+        _database.SaveCache(_cache);
+        SDKCacheFingerprint.SaveFingerprint(SDKCacheFingerprint.Compute(compilerPath));
+
+        stopwatch.Stop();
+        Log.Information("Detected {Count} SDKs in {Duration}ms", results.Count, stopwatch.ElapsedMilliseconds);
+
+        return results;
+    }
+
+    private bool ValidateCachedPaths()
+    {
+        foreach (var (_, info) in _cache)
+        {
+            if (!info.IsValid) return false;
+            if (string.IsNullOrEmpty(info.RootPath) || !Directory.Exists(info.RootPath))
+                return false;
+        }
+        return true;
+    }
+
+    /// <summary>
+    /// Detects all available SDKs (legacy sequential path for forced rescan).
+    /// </summary>
+    public async Task<Dictionary<string, SDKInfo>> DetectAllSequentialAsync()
     {
         Initialize();
         
