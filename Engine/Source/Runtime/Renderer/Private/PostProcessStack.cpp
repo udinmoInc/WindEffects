@@ -489,20 +489,6 @@ void PostProcessStack::Apply(
         VK_IMAGE_LAYOUT_GENERAL,
         VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
-    if (forensicActive) {
-        if (lumExec >= 0) forensics.EndPassExecution(lumExec, 0.0);
-        if (bloomExec >= 0) forensics.EndPassExecution(bloomExec, 0.0);
-        if (exposureExec >= 0) forensics.EndPassExecution(exposureExec, 0.0);
-        if (toneMapExec >= 0) {
-            forensics.EndPassExecution(toneMapExec, 0.0);
-            if (forensics.IsReadbackEnabled()) {
-                forensics.EnqueueReadback(
-                    cmd, *m_Context, sceneImage, width, height,
-                    ForensicPassId::ToneMapping, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, toneMapExec);
-            }
-        }
-    }
-
     stats.SetPassStatus("PostExposure", "executed");
     stats.SetPassStatus("ToneMapping", "executed");
     stats.SetPassStatus("Bloom", "executed");
