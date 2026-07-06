@@ -2,6 +2,7 @@
 
 #if WE_HAS_VULKAN
 #include "Renderer/Export.hpp"
+#include "Renderer/RendererConfig.hpp"
 #include "Renderer/VulkanContext.hpp"
 #include "Renderer/Framebuffer.hpp"
 #include <volk.h>
@@ -29,7 +30,7 @@ namespace we::runtime::renderer {
 
 class Renderer {
 public:
-    static constexpr int MAX_FRAMES_IN_FLIGHT = 2;
+    static constexpr int MAX_FRAMES_IN_FLIGHT = kMaxFramesInFlight;
 
     RENDERER_API Renderer(const std::shared_ptr<VulkanContext>& context, SDL_Window* window);
     RENDERER_API ~Renderer();

@@ -156,8 +156,17 @@ void CrashReporterApp::MainLoop() {
         if (m_Renderer->BeginFrame()) {
             VkCommandBuffer cmd = m_Renderer->GetCommandBuffer();
 
+            m_UIRenderer->PrepareFrame(
+                m_Renderer->GetSwapchainWidth(),
+                m_Renderer->GetSwapchainHeight(),
+                m_Renderer->GetCurrentFrameIndex(),
+                m_UI);
             m_RenderGraph->BeginSwapchainPass(cmd);
-            m_UIRenderer->Render(cmd, m_Renderer->GetSwapchainWidth(), m_Renderer->GetSwapchainHeight(), m_UI);
+            m_UIRenderer->RecordDrawCommands(
+                cmd,
+                m_Renderer->GetSwapchainWidth(),
+                m_Renderer->GetSwapchainHeight(),
+                m_Renderer->GetCurrentFrameIndex());
             m_RenderGraph->EndSwapchainPass(cmd);
 
             m_Renderer->EndFrame();

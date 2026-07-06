@@ -1,4 +1,5 @@
 #include "Renderer/RenderForensics.hpp"
+#include "Renderer/FrameStats.hpp"
 #include "Core/LogCategory.hpp"
 #include "Core/DiagnosticMacros.hpp"
 
@@ -117,8 +118,8 @@ RenderForensics& RenderForensics::Get() {
 
 RenderForensicsSettings RenderForensics::DefaultEditorSettings() {
     RenderForensicsSettings settings{};
-    // Opt-in only: per-pass GPU readback stalls the editor and can fatal-exit on layout mismatches.
-    settings.enabled = false;
+    // Lightweight pass tracking is on by default; GPU readback stays opt-in (stalls the editor).
+    settings.enabled = true;
     settings.enableGpuReadback = false;
     settings.logEveryFrame = false;
     settings.writeReportFile = true;
@@ -279,10 +280,33 @@ void RenderForensics::RecordCameraAndEnvironment(
     m_CameraLog.sunColorG = env.sunColor.y;
     m_CameraLog.sunColorB = env.sunColor.z;
     m_CameraLog.sunIntensity = env.sunIntensity;
+    m_CameraLog.autoExposureEnabled = env.enableAutoExposure > 0.5f;
+    m_CameraLog.manualExposureEV = env.exposureEV;
+    m_CameraLog.hdrSkyLuminance = env.hdrSkyLuminance;
+    m_CameraLog.bloomIntensity = env.bloomIntensity;
+    m_CameraLog.exposureCompensation = env.exposureCompensation;
     m_CameraLog.exposureEV = env.exposureEV;
     m_CameraLog.ev100 = env.exposureEV;
     m_CameraLog.exposureMultiplier = std::pow(2.0f, -env.exposureEV);
     m_CameraLog.avgSceneLuminance = gpuAvgLuminance;
+    m_CameraLog.sunDerivedExposureEV = FrameStatsCollector::Get().GetStats().sunDerivedExposureEV;
+}
+
+void RenderForensics::RefreshCameraGpuLuminance(float gpuAvgLuminance) {
+    m_CameraLog.avgSceneLuminance = gpuAvgLuminance;
+    if (!m_CameraLog.autoExposureEnabled) {
+        return;
+    }
+
+    const float effectiveAvg = std::max(
+        std::max(gpuAvgLuminance, m_CameraLog.hdrSkyLuminance * 0.35f),
+        1e-5f);
+    const float bloomHeadroom = 1.0f + m_CameraLog.bloomIntensity * 0.85f;
+    const float autoEV = std::log2(effectiveAvg * bloomHeadroom / 0.18f) + m_CameraLog.exposureCompensation;
+    const float clamped = std::clamp(autoEV, -2.0f, 14.0f);
+    m_CameraLog.exposureEV = clamped;
+    m_CameraLog.ev100 = clamped;
+    m_CameraLog.exposureMultiplier = std::pow(2.0f, -clamped);
 }
 
 int RenderForensics::BeginPassExecution(
@@ -318,7 +342,9 @@ int RenderForensics::BeginPassExecution(
     }
 
     const int executionIndex = static_cast<int>(m_Executions.size());
+    const std::string passName = exec.passName;
     m_Executions.push_back(std::move(exec));
+    FrameStatsCollector::Get().RecordPassExecution(passName.c_str(), "executed", 0.0);
     return executionIndex;
 }
 
@@ -329,6 +355,10 @@ void RenderForensics::EndPassExecution(int executionIndex, double cpuMs, bool su
     exec.gpuMs = cpuMs;
     exec.succeeded = succeeded;
     exec.executed = true;
+    FrameStatsCollector::Get().RecordPassExecution(
+        exec.passName.c_str(),
+        succeeded ? "executed" : "failed",
+        cpuMs);
 }
 
 void RenderForensics::RecordExposureDetails(
@@ -929,6 +959,8 @@ ForensicFrameReport RenderForensics::FinalizeFrame(const VulkanContext& context,
     if (!m_Settings.enabled || m_WarmupRemaining > 0) {
         DestroyPending(context);
         m_Pending.clear();
+        report.passes = m_Executions;
+        SyncPassesFromFrameStats(report);
         m_LastReport = report;
         return report;
     }
@@ -986,6 +1018,7 @@ ForensicFrameReport RenderForensics::FinalizeFrame(const VulkanContext& context,
     }
 
     report.passes = m_Executions;
+    SyncPassesFromFrameStats(report);
     DetectAnomalies(report);
     BuildInvestigationConclusion(report);
 
@@ -1021,6 +1054,25 @@ ForensicFrameReport RenderForensics::FinalizeFrame(const VulkanContext& context,
     DestroyPending(context);
     m_Pending.clear();
     return report;
+}
+
+void RenderForensics::SyncPassesFromFrameStats(ForensicFrameReport& report) const {
+    if (!report.passes.empty()) {
+        return;
+    }
+
+    const auto& stats = FrameStatsCollector::Get().GetStats();
+    int order = 0;
+    for (const auto& pass : stats.passExecutions) {
+        ForensicPassExecution exec{};
+        exec.globalOrder = ++order;
+        exec.passName = pass.name;
+        exec.executed = pass.status == "executed";
+        exec.succeeded = pass.status != "failed";
+        exec.cpuMs = pass.cpuMs;
+        exec.health = exec.succeeded ? ForensicHealth::Pass : ForensicHealth::Error;
+        report.passes.push_back(std::move(exec));
+    }
 }
 
 void RenderForensics::LogFrameReport(const ForensicFrameReport& report) const {

@@ -44,18 +44,26 @@ struct RenderPipelineInvestigatorSettings {
     int warmupFrames = 2;
     int sampleStride = 8;
     int onlyPass = -1;
+    /// -1 = use individual disable flags; 0..7 = cumulative sky isolation steps (see SkyIsolationStepName).
+    int skyIsolationStep = -1;
+    /// True when -PipelineSkyIsolationStep= was present on the command line (even if value is -1).
+    bool skyIsolationStepFromCommandLine = false;
     /// -1 = use individual disable flags; 0..5 = cumulative effect steps (see ParseCommandLine).
     int effectStep = -1;
     bool forceConstantBlueSky = false;
     bool forceExposureOne = false;
+    float fixedExposureEV = 0.0f;
+    float fixedExposureMultiplier = 1.0f;
     bool disableAutoExposure = false;
     bool bypassToneMapping = false;
+    bool disableToneMapping = false;
     bool disableSky = false;
     bool disableFog = false;
     bool disableClouds = false;
     bool disableAerialPerspective = false;
     bool disableGeometry = false;
     bool disableBloom = false;
+    bool disableSunDisk = false;
     bool disablePostProcessing = false;
     bool disableGrid = false;
 };
@@ -109,10 +117,19 @@ public:
     RENDERER_API bool ShouldRenderGrid() const;
     RENDERER_API const RenderPipelineInvestigatorSettings& GetSettings() const { return m_Settings; }
     RENDERER_API static RenderPipelineInvestigatorSettings ParseCommandLine(int argc, char* argv[]);
+    RENDERER_API static void ApplyConfigOverrides(RenderPipelineInvestigatorSettings& settings);
+    /// Restores the last active sky isolation step from Saved/Config/pipeline_sky_isolation.ini.
+    RENDERER_API static void ApplyPersistedOverrides(RenderPipelineInvestigatorSettings& settings);
     RENDERER_API static const char* PassName(RenderPassId pass);
+    RENDERER_API static const char* SkyIsolationStepName(int step);
     RENDERER_API void BeginFrame(uint64_t frameIndex);
     RENDERER_API void ApplyEnvironmentOverrides(SceneEnvironmentUniform& uniform) const;
     RENDERER_API bool ShouldRunPass(RenderPassId pass) const;
+    RENDERER_API bool ShouldRunPostProcess() const;
+    RENDERER_API bool ShouldApplyBloom() const;
+    RENDERER_API bool ShouldApplyTonemapping() const;
+    RENDERER_API bool ShouldApplyAutoExposure() const;
+    RENDERER_API bool ShouldRenderSunDisk() const;
     RENDERER_API void RecordCameraAndEnvironment(const glm::vec3& cameraPos, const SceneEnvironmentUniform& env, float gpuAvgLuminance);
     RENDERER_API void AuditPassBegin(RenderPassId pass);
     RENDERER_API void AuditPassEnd(RenderPassId pass);
@@ -131,12 +148,15 @@ private:
     };
 
     RenderPipelineInvestigator() = default;
+    struct ResolvedStageGates;
+    ResolvedStageGates ResolveStageGates() const;
     HdrBufferStats AnalyzePixels(const std::vector<float>& rgba, float maxComponent) const;
     bool ValidateStats(const HdrBufferStats& stats, bool isLdr, std::string& outReason) const;
     void WriteReportFile(const PipelineInvestigationReport& report) const;
     void LogFrameReport(const PipelineInvestigationReport& report) const;
     HdrBufferStats ReadbackStaging(const VulkanContext& context, const PendingCheckpoint& cp) const;
     void DestroyPending(const VulkanContext& context);
+    void PersistSettings(const RenderPipelineInvestigatorSettings& settings) const;
 
     RenderPipelineInvestigatorSettings m_Settings{};
     PipelineInvestigationReport m_LastReport{};

@@ -75,12 +75,22 @@ public static class RunCommand
                 ? thirdPartyPath + Path.PathSeparator
                 : string.Empty;
 
+            var passthroughArgs = GetPassthroughArgs(parsed, normalizedTarget);
+            if (passthroughArgs.Length > 0)
+            {
+                Log.Information("Forwarding {Count} argument(s) to executable", passthroughArgs.Length);
+            }
+
             var startInfo = new System.Diagnostics.ProcessStartInfo
             {
                 FileName = executablePath,
                 WorkingDirectory = outputRoot,
                 UseShellExecute = false,
             };
+            foreach (var arg in passthroughArgs)
+            {
+                startInfo.ArgumentList.Add(arg);
+            }
             startInfo.Environment["PATH"] = pathPrefix + (Environment.GetEnvironmentVariable("PATH") ?? string.Empty);
 
             System.Diagnostics.Process.Start(startInfo);
@@ -108,5 +118,29 @@ public static class RunCommand
         }
 
         return new[] { target, "--config", config };
+    }
+
+    private static string[] GetPassthroughArgs(ParsedCommand parsed, string target)
+    {
+        if (parsed.Positionals.Count == 0)
+        {
+            return Array.Empty<string>();
+        }
+
+        var passthrough = new List<string>();
+        var skippedTarget = false;
+        foreach (var positional in parsed.Positionals)
+        {
+            if (!skippedTarget &&
+                string.Equals(positional, target, StringComparison.OrdinalIgnoreCase))
+            {
+                skippedTarget = true;
+                continue;
+            }
+
+            passthrough.Add(positional);
+        }
+
+        return passthrough.ToArray();
     }
 }

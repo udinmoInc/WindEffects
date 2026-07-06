@@ -45,6 +45,8 @@ cbuffer EnvironmentBuffer : register(WE_ENVIRONMENT_BUFFER_REGISTER, space0)
     int    pipelineBypassToneMapping;
     float  cloudTemporalBlend;
     int    cloudHistoryValid;
+    float  enableSunDisk;
+    float  pipelineFixedExposureMultiplier;
 };
 
 #endif // WE_ENVIRONMENT_BUFFER_HLSLI

@@ -1219,8 +1219,7 @@ void Editor::MainLoop() {
                     we::runtime::renderer::RenderPassId::PostProcessing);
             }
 
-            if (pipelineInv.ShouldRunPass(we::runtime::renderer::RenderPassId::Exposure)
-                || pipelineInv.ShouldRunPass(we::runtime::renderer::RenderPassId::ToneMapping)) {
+            if (pipelineInv.ShouldRunPostProcess()) {
                 const auto postStart = std::chrono::steady_clock::now();
                 m_SceneRenderer->ApplyPostExposure(
                     cmd,
@@ -1232,6 +1231,11 @@ void Editor::MainLoop() {
                 FrameStatsCollector::Get().RecordPassMs("PostExposure", postMs);
                 pipelineInv.AuditPassBegin(we::runtime::renderer::RenderPassId::Exposure);
                 pipelineInv.AuditPassBegin(we::runtime::renderer::RenderPassId::ToneMapping);
+            } else if (pipelineInv.IsActive()) {
+                auto& stats = FrameStatsCollector::Get();
+                stats.SetPassStatus("PostExposure", "skipped");
+                stats.SetPassStatus("ToneMapping", "skipped");
+                stats.SetPassStatus("Bloom", "skipped");
             }
 
             FrameStatsCollector::Get().RecordPassMs("Offscreen",
@@ -1243,9 +1247,17 @@ void Editor::MainLoop() {
             uiMeta.outputTarget = "Swapchain";
             const int uiExec = WE_FORENSIC_PASS_BEGIN(forensics, we::runtime::renderer::ForensicPassId::UI, uiMeta);
             const auto uiStart = std::chrono::steady_clock::now();
+            m_UIRenderer->PrepareFrame(
+                m_Renderer->GetSwapchainWidth(),
+                m_Renderer->GetSwapchainHeight(),
+                m_Renderer->GetCurrentFrameIndex(),
+                m_RootWidget);
             m_RenderGraph->BeginSwapchainPass(cmd);
-            m_UIRenderer->Render(cmd, m_Renderer->GetSwapchainWidth(), m_Renderer->GetSwapchainHeight(),
-                m_Renderer->GetCurrentFrameIndex(), m_RootWidget);
+            m_UIRenderer->RecordDrawCommands(
+                cmd,
+                m_Renderer->GetSwapchainWidth(),
+                m_Renderer->GetSwapchainHeight(),
+                m_Renderer->GetCurrentFrameIndex());
             m_RenderGraph->EndSwapchainPass(cmd);
             forensics.EndPassExecution(uiExec,
                 std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - uiStart).count());
@@ -1256,6 +1268,13 @@ void Editor::MainLoop() {
 
             const VkFence frameFence = m_Renderer->GetCurrentInFlightFence();
             m_Renderer->EndFrame();
+            if (frameFence != VK_NULL_HANDLE) {
+                m_Context->WaitForFence(frameFence, 100'000'000);
+            }
+            m_SceneRenderer->FlushPostProcessReadbacks();
+            const float gpuAvgLuminance = we::runtime::renderer::FrameStatsCollector::Get().GetStats().gpuAverageLuminance;
+            forensics.RefreshCameraGpuLuminance(gpuAvgLuminance);
+            pipelineInv.RecordCameraAndEnvironment(cameraUBO.pos, sceneEnv, gpuAvgLuminance);
             FrameStatsCollector::Get().EndFrame();
 
             const auto forensicReport = forensics.FinalizeFrame(*m_Context, frameFence);

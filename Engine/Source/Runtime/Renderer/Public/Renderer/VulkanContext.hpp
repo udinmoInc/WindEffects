@@ -57,6 +57,7 @@ public:
     // Ensures compute writes to an image are visible to subsequent compute/fragment reads.
     RENDERER_API void CmdComputeImageBarrier(VkCommandBuffer cmd, VkImage image) const;
     RENDERER_API void WaitUntilIdle() const;
+    RENDERER_API void WaitForFence(VkFence fence, uint64_t timeoutNs = UINT64_MAX) const;
     RENDERER_API bool IsValidationEnabled() const;
 
 private:

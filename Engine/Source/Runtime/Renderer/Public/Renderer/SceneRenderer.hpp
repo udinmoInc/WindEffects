@@ -97,6 +97,7 @@ public:
         VkImageView colorImageView,
         uint32_t width,
         uint32_t height) const;
+    RENDERER_API void FlushPostProcessReadbacks() const;
 
     RENDERER_API void ResizePostProcess(uint32_t width, uint32_t height);
 

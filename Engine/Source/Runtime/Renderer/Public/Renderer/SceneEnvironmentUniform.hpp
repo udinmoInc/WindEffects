@@ -57,6 +57,9 @@ struct SceneEnvironmentUniform {
     int pipelineBypassToneMapping = 0;
     float cloudTemporalBlend = 0.88f;
     int cloudHistoryValid = 0;
+    float enableSunDisk = 1.0f;
+    /// When > 0 and auto exposure is off, use this scale directly instead of exposureEV.
+    float pipelineFixedExposureMultiplier = 0.0f;
 };
 
 } // namespace we::runtime::renderer

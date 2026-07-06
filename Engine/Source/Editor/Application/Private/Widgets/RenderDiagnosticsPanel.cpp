@@ -75,6 +75,9 @@ void RenderDiagnosticsPanel::RebuildText(const we::runtime::renderer::ForensicFr
        << "  Multiplier: " << F3(report.cameraLog.exposureMultiplier)
        << "  EV100: " << F3(report.cameraLog.ev100)
        << "  AvgLum: " << F3(report.cameraLog.avgSceneLuminance) << "\n";
+    ss << "Auto Exposure: " << (report.cameraLog.autoExposureEnabled ? "on" : "off")
+       << "  Manual EV: " << F3(report.cameraLog.manualExposureEV)
+       << "  Sun-derived EV: " << F3(report.cameraLog.sunDerivedExposureEV) << "\n";
     ss << "Sun: (" << F3(report.cameraLog.sunDirX) << ","
        << F3(report.cameraLog.sunDirY) << "," << F3(report.cameraLog.sunDirZ) << ")  I="
        << F3(report.cameraLog.sunIntensity) << "\n\n";

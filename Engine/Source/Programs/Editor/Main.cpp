@@ -54,7 +54,23 @@ int main(int argc, char* argv[]) {
         we::runtime::renderer::AtmosphereValidation::Get().Configure(validationSettings);
         const auto pipelineInvestigationSettings =
             we::runtime::renderer::RenderPipelineInvestigator::ParseCommandLine(argc, argv);
-        we::runtime::renderer::RenderPipelineInvestigator::Get().Configure(pipelineInvestigationSettings);
+        auto pipelineSettings = pipelineInvestigationSettings;
+        we::runtime::renderer::RenderPipelineInvestigator::ApplyConfigOverrides(pipelineSettings);
+        if (!pipelineInvestigationSettings.skyIsolationStepFromCommandLine) {
+            we::runtime::renderer::RenderPipelineInvestigator::ApplyPersistedOverrides(pipelineSettings);
+        }
+        // Command-line isolation/effect steps take precedence over function.ini and saved state.
+        if (pipelineInvestigationSettings.skyIsolationStepFromCommandLine) {
+            pipelineSettings.skyIsolationStep = pipelineInvestigationSettings.skyIsolationStep;
+            pipelineSettings.enabled = pipelineInvestigationSettings.skyIsolationStep >= 0;
+            pipelineSettings.logEveryFrame = pipelineInvestigationSettings.logEveryFrame;
+            pipelineSettings.haltOnInvalid = pipelineInvestigationSettings.haltOnInvalid;
+        }
+        if (pipelineInvestigationSettings.effectStep >= 0) {
+            pipelineSettings.effectStep = pipelineInvestigationSettings.effectStep;
+            pipelineSettings.enabled = true;
+        }
+        we::runtime::renderer::RenderPipelineInvestigator::Get().Configure(pipelineSettings);
         auto forensicSettings = we::runtime::renderer::RenderForensics::DefaultEditorSettings();
         if (const char* forensicEnv = std::getenv("WE_RENDER_FORENSICS")) {
             if (forensicEnv[0] == '1' || std::strcmp(forensicEnv, "true") == 0) {
@@ -68,15 +84,15 @@ int main(int argc, char* argv[]) {
                 forensicSettings.enableGpuReadback = false;
             }
         }
-        if (pipelineInvestigationSettings.enabled) {
-            forensicSettings.logEveryFrame = pipelineInvestigationSettings.logEveryFrame;
-            forensicSettings.haltOnInvalid = pipelineInvestigationSettings.haltOnInvalid;
+        if (pipelineSettings.enabled) {
+            forensicSettings.logEveryFrame = pipelineSettings.logEveryFrame;
+            forensicSettings.haltOnInvalid = pipelineSettings.haltOnInvalid;
         }
         we::runtime::renderer::RenderForensics::Get().Configure(forensicSettings);
         if (validationSettings.enabled) {
             HE_INFO("[Startup] Atmosphere validation mode enabled from command line.");
         }
-        if (pipelineInvestigationSettings.enabled) {
+        if (pipelineSettings.enabled) {
             HE_INFO("[Startup] Render pipeline debug mode enabled from command line.");
         }
         if (forensicSettings.enabled) {

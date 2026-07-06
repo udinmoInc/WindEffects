@@ -1,5 +1,6 @@
 #include "Renderer/PostProcessStack.hpp"
 #include "Renderer/RenderDiagnostics.hpp"
+#include "Renderer/RenderPipelineInvestigator.hpp"
 #include "Renderer/FrameStats.hpp"
 #include "Renderer/ShaderHelper.hpp"
 #include "Renderer/RenderForensics.hpp"
@@ -150,6 +151,13 @@ PostProcessStack::PostProcessStack(const std::shared_ptr<VulkanContext>& context
     }
 
     CreatePipelines();
+
+    m_Context->CreateBuffer(
+        sizeof(float),
+        VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+        m_LuminanceReadbackBuffer,
+        m_LuminanceReadbackMemory);
 }
 
 PostProcessStack::~PostProcessStack() {
@@ -171,6 +179,14 @@ PostProcessStack::~PostProcessStack() {
     }
     if (m_EnvDescLayout != VK_NULL_HANDLE) {
         vkDestroyDescriptorSetLayout(device, m_EnvDescLayout, nullptr);
+    }
+    if (m_LuminanceReadbackBuffer != VK_NULL_HANDLE) {
+        vkDestroyBuffer(device, m_LuminanceReadbackBuffer, nullptr);
+        m_LuminanceReadbackBuffer = VK_NULL_HANDLE;
+    }
+    if (m_LuminanceReadbackMemory != VK_NULL_HANDLE) {
+        vkFreeMemory(device, m_LuminanceReadbackMemory, nullptr);
+        m_LuminanceReadbackMemory = VK_NULL_HANDLE;
     }
 }
 
@@ -366,6 +382,10 @@ void PostProcessStack::Apply(
     writeImage(m_SceneSampleSet, 0, sceneImageView, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_IMAGE_LAYOUT_GENERAL);
     writeImage(m_StorageSetA, 0, m_LuminanceTiles.view, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, VK_IMAGE_LAYOUT_GENERAL);
 
+    auto& pipelineInv = RenderPipelineInvestigator::Get();
+    const bool applyBloom = pipelineInv.ShouldApplyBloom();
+    const bool applyAutoExposure = pipelineInv.ShouldApplyAutoExposure();
+
     auto& forensics = RenderForensics::Get();
     const bool forensicActive = forensics.IsActive();
     int lumExec = -1;
@@ -373,74 +393,96 @@ void PostProcessStack::Apply(
     int exposureExec = -1;
     int toneMapExec = -1;
 
-    if (forensicActive) {
-        ForensicPassMetadata lumMeta{};
-        lumMeta.inputTarget = "OffscreenColor";
-        lumMeta.outputTarget = "LuminanceTiles";
-        lumMeta.width = width;
-        lumMeta.height = height;
-        lumMeta.format = "R16G16B16A16_SFLOAT";
-        lumMeta.inputLayout = "GENERAL";
-        lumMeta.outputLayout = "GENERAL";
-        lumMeta.loadOp = "LOAD";
-        lumMeta.storeOp = "STORE";
-        lumMeta.pipelineName = "LuminanceReduce";
-        lumMeta.computeShader = "LuminanceReduceCS";
-        lumMeta.descriptorSets = "sceneSample(0),luminanceTiles(1)";
-        lumExec = WE_FORENSIC_PASS_BEGIN(forensics, ForensicPassId::LuminanceReduce, lumMeta);
+    if (applyAutoExposure) {
+        if (forensicActive) {
+            ForensicPassMetadata lumMeta{};
+            lumMeta.inputTarget = "OffscreenColor";
+            lumMeta.outputTarget = "LuminanceTiles";
+            lumMeta.width = width;
+            lumMeta.height = height;
+            lumMeta.format = "R16G16B16A16_SFLOAT";
+            lumMeta.inputLayout = "GENERAL";
+            lumMeta.outputLayout = "GENERAL";
+            lumMeta.loadOp = "LOAD";
+            lumMeta.storeOp = "STORE";
+            lumMeta.pipelineName = "LuminanceReduce";
+            lumMeta.computeShader = "LuminanceReduceCS";
+            lumMeta.descriptorSets = "sceneSample(0),luminanceTiles(1)";
+            lumExec = WE_FORENSIC_PASS_BEGIN(forensics, ForensicPassId::LuminanceReduce, lumMeta);
+        }
+
+        vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, m_LuminanceReducePipeline);
+        VkDescriptorSet reduceSets[] = { m_SceneSampleSet, m_StorageSetA };
+        vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, m_LuminanceReduceLayout, 0, 2, reduceSets, 0, nullptr);
+        vkCmdDispatch(cmd, (m_TileWidth + 7) / 8, (m_TileHeight + 7) / 8, 1);
+        m_Context->CmdComputeImageBarrier(cmd, m_LuminanceTiles.image);
+
+        writeImage(m_StorageSampleSet, 0, m_LuminanceTiles.view, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_IMAGE_LAYOUT_GENERAL);
+        writeImage(m_StorageSetB, 0, m_LuminanceAvg.view, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, VK_IMAGE_LAYOUT_GENERAL);
+
+        vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, m_LuminanceAvgPipeline);
+        VkDescriptorSet avgSets[] = { m_StorageSampleSet, m_StorageSetB };
+        vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, m_LuminanceAvgLayout, 0, 2, avgSets, 0, nullptr);
+        vkCmdDispatch(cmd, 1, 1, 1);
+        m_Context->CmdComputeImageBarrier(cmd, m_LuminanceAvg.image);
+
+        if (m_LuminanceReadbackBuffer != VK_NULL_HANDLE) {
+            VkBufferImageCopy region{};
+            region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+            region.imageSubresource.layerCount = 1;
+            region.imageExtent = { 1, 1, 1 };
+            vkCmdCopyImageToBuffer(
+                cmd,
+                m_LuminanceAvg.image,
+                VK_IMAGE_LAYOUT_GENERAL,
+                m_LuminanceReadbackBuffer,
+                1,
+                &region);
+            m_LuminanceReadbackPending = true;
+        }
     }
-
-    vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, m_LuminanceReducePipeline);
-    VkDescriptorSet reduceSets[] = { m_SceneSampleSet, m_StorageSetA };
-    vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, m_LuminanceReduceLayout, 0, 2, reduceSets, 0, nullptr);
-    vkCmdDispatch(cmd, (m_TileWidth + 7) / 8, (m_TileHeight + 7) / 8, 1);
-    m_Context->CmdComputeImageBarrier(cmd, m_LuminanceTiles.image);
-
-    writeImage(m_StorageSampleSet, 0, m_LuminanceTiles.view, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_IMAGE_LAYOUT_GENERAL);
-    writeImage(m_StorageSetB, 0, m_LuminanceAvg.view, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, VK_IMAGE_LAYOUT_GENERAL);
-
-    vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, m_LuminanceAvgPipeline);
-    VkDescriptorSet avgSets[] = { m_StorageSampleSet, m_StorageSetB };
-    vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, m_LuminanceAvgLayout, 0, 2, avgSets, 0, nullptr);
-    vkCmdDispatch(cmd, 1, 1, 1);
-    m_Context->CmdComputeImageBarrier(cmd, m_LuminanceAvg.image);
 
     writeImage(m_StorageSetA, 0, m_BloomA.view, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, VK_IMAGE_LAYOUT_GENERAL);
 
-    if (forensicActive) {
-        ForensicPassMetadata bloomMeta{};
-        bloomMeta.inputTarget = "OffscreenColor";
-        bloomMeta.outputTarget = "BloomA";
-        bloomMeta.width = m_BloomWidth;
-        bloomMeta.height = m_BloomHeight;
-        bloomMeta.format = "R16G16B16A16_SFLOAT";
-        bloomMeta.inputLayout = "GENERAL";
-        bloomMeta.outputLayout = "GENERAL";
-        bloomMeta.pipelineName = "BloomPrefilter+Blur";
-        bloomMeta.computeShader = "BloomPrefilterCS,BloomBlurCS";
-        bloomMeta.descriptorSets = "sceneSample(0),bloomStorage(1)";
-        bloomExec = WE_FORENSIC_PASS_BEGIN(forensics, ForensicPassId::Bloom, bloomMeta);
-    }
+    if (applyBloom) {
+        if (forensicActive) {
+            ForensicPassMetadata bloomMeta{};
+            bloomMeta.inputTarget = "OffscreenColor";
+            bloomMeta.outputTarget = "BloomA";
+            bloomMeta.width = m_BloomWidth;
+            bloomMeta.height = m_BloomHeight;
+            bloomMeta.format = "R16G16B16A16_SFLOAT";
+            bloomMeta.inputLayout = "GENERAL";
+            bloomMeta.outputLayout = "GENERAL";
+            bloomMeta.pipelineName = "BloomPrefilter+Blur";
+            bloomMeta.computeShader = "BloomPrefilterCS,BloomBlurCS";
+            bloomMeta.descriptorSets = "sceneSample(0),bloomStorage(1)";
+            bloomExec = WE_FORENSIC_PASS_BEGIN(forensics, ForensicPassId::Bloom, bloomMeta);
+        }
 
-    vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, m_BloomPrefilterPipeline);
-    VkDescriptorSet prefilterSets[] = { m_SceneSampleSet, m_StorageSetA };
-    vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, m_BloomPrefilterLayout, 0, 2, prefilterSets, 0, nullptr);
-    vkCmdDispatch(cmd, (m_BloomWidth + 7) / 8, (m_BloomHeight + 7) / 8, 1);
-    m_Context->CmdComputeImageBarrier(cmd, m_BloomA.image);
-
-    auto runBlur = [&](VkImageView source, VkDescriptorSet targetSet, float dirX, float dirY, VkImage targetImage) {
-        writeImage(m_StorageSampleSet, 0, source, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_IMAGE_LAYOUT_GENERAL);
-        const float pushData[4] = { dirX, dirY, 0.0f, 0.0f };
-        vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, m_BloomBlurPipeline);
-        vkCmdPushConstants(cmd, m_BloomBlurLayout, VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(pushData), pushData);
-        VkDescriptorSet blurSets[] = { m_StorageSampleSet, targetSet };
-        vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, m_BloomBlurLayout, 0, 2, blurSets, 0, nullptr);
+        vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, m_BloomPrefilterPipeline);
+        VkDescriptorSet prefilterSets[] = { m_SceneSampleSet, m_StorageSetA };
+        vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, m_BloomPrefilterLayout, 0, 2, prefilterSets, 0, nullptr);
         vkCmdDispatch(cmd, (m_BloomWidth + 7) / 8, (m_BloomHeight + 7) / 8, 1);
-        m_Context->CmdComputeImageBarrier(cmd, targetImage);
-    };
+        m_Context->CmdComputeImageBarrier(cmd, m_BloomA.image);
 
-    runBlur(m_BloomA.view, m_StorageSetB, 1.0f, 0.0f, m_BloomB.image);
-    runBlur(m_BloomB.view, m_StorageSetA, 0.0f, 1.0f, m_BloomA.image);
+        auto runBlur = [&](VkImageView source, VkDescriptorSet targetSet, float dirX, float dirY, VkImage targetImage) {
+            writeImage(m_StorageSampleSet, 0, source, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_IMAGE_LAYOUT_GENERAL);
+            const float pushData[4] = { dirX, dirY, 0.0f, 0.0f };
+            vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, m_BloomBlurPipeline);
+            vkCmdPushConstants(cmd, m_BloomBlurLayout, VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(pushData), pushData);
+            VkDescriptorSet blurSets[] = { m_StorageSampleSet, targetSet };
+            vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, m_BloomBlurLayout, 0, 2, blurSets, 0, nullptr);
+            vkCmdDispatch(cmd, (m_BloomWidth + 7) / 8, (m_BloomHeight + 7) / 8, 1);
+            m_Context->CmdComputeImageBarrier(cmd, targetImage);
+        };
+
+        runBlur(m_BloomA.view, m_StorageSetB, 1.0f, 0.0f, m_BloomB.image);
+        runBlur(m_BloomB.view, m_StorageSetA, 0.0f, 1.0f, m_BloomA.image);
+    } else {
+        stats.SetPassStatus("Bloom", "skipped");
+        diag.RecordPassStatus("Bloom", PassExecutionStatus::Skipped, "pipeline isolation gate");
+    }
     m_Context->CmdComputeImageBarrier(cmd, sceneImage);
 
     writeImage(m_PostDescSet, 0, sceneImageView, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_IMAGE_LAYOUT_GENERAL);
@@ -491,10 +533,29 @@ void PostProcessStack::Apply(
 
     stats.SetPassStatus("PostExposure", "executed");
     stats.SetPassStatus("ToneMapping", "executed");
-    stats.SetPassStatus("Bloom", "executed");
+    if (applyBloom) {
+        stats.SetPassStatus("Bloom", "executed");
+        diag.RecordPassStatus("Bloom", PassExecutionStatus::Executed);
+    }
     diag.RecordPassStatus("PostExposure", PassExecutionStatus::Executed);
     diag.RecordPassStatus("ToneMapping", PassExecutionStatus::Executed);
-    diag.RecordPassStatus("Bloom", PassExecutionStatus::Executed);
+}
+
+void PostProcessStack::FlushGpuAverageLuminance() const {
+    if (!m_LuminanceReadbackPending || m_LuminanceReadbackBuffer == VK_NULL_HANDLE) {
+        return;
+    }
+
+    const VkDevice device = m_Context->GetDevice();
+    void* mapped = nullptr;
+    if (vkMapMemory(device, m_LuminanceReadbackMemory, 0, sizeof(float), 0, &mapped) != VK_SUCCESS || mapped == nullptr) {
+        return;
+    }
+
+    const float avg = *static_cast<const float*>(mapped);
+    vkUnmapMemory(device, m_LuminanceReadbackMemory);
+    m_LuminanceReadbackPending = false;
+    FrameStatsCollector::Get().SetGpuAverageLuminance(avg);
 }
 
 #endif // WE_HAS_VULKAN

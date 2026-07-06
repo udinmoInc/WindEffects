@@ -11,6 +11,7 @@
 #include "Rendering/FontAtlas.hpp"
 #include "Rendering/IconRenderer.hpp"
 
+#include "Renderer/RendererConfig.hpp"
 #include "Renderer/VulkanContext.hpp"
 
 namespace we::UI {
@@ -33,7 +34,15 @@ public:
     bool Init(const std::shared_ptr<we::runtime::renderer::VulkanContext>& context, VkRenderPass renderPass);
     void Shutdown();
 
-    // Render the UI widget tree. frameIndex must match Renderer::GetCurrentFrameIndex().
+    // Layout, paint, and upload UI geometry. Call before BeginSwapchainPass so icon
+    // texture uploads do not run while a render pass is being recorded.
+    void PrepareFrame(uint32_t width, uint32_t height, uint32_t frameIndex,
+                      const std::shared_ptr<Widget>& root);
+
+    // Record UI draw commands. Requires an active swapchain render pass on cmd.
+    void RecordDrawCommands(VkCommandBuffer cmd, uint32_t width, uint32_t height, uint32_t frameIndex);
+
+    // Convenience: PrepareFrame + RecordDrawCommands.
     void Render(VkCommandBuffer cmd, uint32_t width, uint32_t height, uint32_t frameIndex,
                 const std::shared_ptr<Widget>& root);
 
@@ -63,8 +72,6 @@ private:
     void BuildGeometry(const std::vector<DrawCommand>& commands, uint32_t width, uint32_t height);
     void UpdateBuffers(uint32_t frameIndex);
 
-    static constexpr uint32_t kFramesInFlight = 2;
-
     struct FrameGeometryBuffers {
         VkBuffer vertexBuffer = VK_NULL_HANDLE;
         VkDeviceMemory vertexMemory = VK_NULL_HANDLE;
@@ -93,7 +100,7 @@ private:
     std::vector<UIVertex> m_Vertices;
     std::vector<uint32_t> m_Indices;
 
-    std::array<FrameGeometryBuffers, kFramesInFlight> m_FrameBuffers{};
+    std::array<FrameGeometryBuffers, we::runtime::renderer::kMaxFramesInFlight> m_FrameBuffers{};
 
     // Drawing batches
     struct DrawBatch {

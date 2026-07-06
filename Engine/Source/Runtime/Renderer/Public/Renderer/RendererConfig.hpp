@@ -6,6 +6,8 @@
 
 namespace we::runtime::renderer {
 
+inline constexpr int kMaxFramesInFlight = 2;
+
 #if WE_HAS_VULKAN
 
 // Offscreen viewport color target: HDR linear during scene rendering, tonemapped before UI sampling.
