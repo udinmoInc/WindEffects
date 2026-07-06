@@ -16,15 +16,24 @@ public class SDKConfiguration
     
     public SDKConfiguration()
     {
-        _searchPaths = new[]
+        var projectPaths = new List<string> { ".", "..", "../.." };
+        var projectRoot = IgniteBT.Core.Launcher.BuildEnvironment.ProjectRoot
+            ?? IgniteBT.Build.Layout.BuildLayout.FindProjectRoot(Directory.GetCurrentDirectory());
+        if (!string.IsNullOrWhiteSpace(projectRoot))
         {
-            ".", // Current directory
-            "..", // Parent directory
-            "../..", // Grandparent directory
-            Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
-            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-            Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData)
-        };
+            projectPaths.Add(projectRoot);
+            projectPaths.Add(Path.Combine(projectRoot, "Build", "Database"));
+        }
+
+        _searchPaths = projectPaths
+            .Concat(new[]
+            {
+                Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
+                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData)
+            })
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToArray();
     }
     
     /// <summary>

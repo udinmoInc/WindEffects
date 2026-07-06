@@ -609,57 +609,63 @@ void UIRenderer::BuildGeometry(const std::vector<DrawCommand>& commands, uint32_
     }
 }
 
-void UIRenderer::UpdateBuffers() {
+void UIRenderer::UpdateBuffers(uint32_t frameIndex) {
+    if (frameIndex >= kFramesInFlight) {
+        return;
+    }
+
     VkDevice device = m_Context->GetDevice();
+    FrameGeometryBuffers& buffers = m_FrameBuffers[frameIndex];
 
     if (m_Vertices.empty()) return;
 
     // 1. Vertex Buffer
     VkDeviceSize vertexSize = sizeof(UIVertex) * m_Vertices.size();
-    if (vertexSize > m_VertexBufferSize) {
-        if (m_VertexBuffer != VK_NULL_HANDLE) {
-            vkDestroyBuffer(device, m_VertexBuffer, nullptr);
-            vkFreeMemory(device, m_VertexMemory, nullptr);
+    if (vertexSize > buffers.vertexBufferSize) {
+        if (buffers.vertexBuffer != VK_NULL_HANDLE) {
+            vkDestroyBuffer(device, buffers.vertexBuffer, nullptr);
+            vkFreeMemory(device, buffers.vertexMemory, nullptr);
         }
-        m_VertexBufferSize = vertexSize * 2; // Allocate double for padding
+        buffers.vertexBufferSize = vertexSize * 2; // Allocate double for padding
         m_Context->CreateBuffer(
-            m_VertexBufferSize,
+            buffers.vertexBufferSize,
             VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
             VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-            m_VertexBuffer,
-            m_VertexMemory
+            buffers.vertexBuffer,
+            buffers.vertexMemory
         );
     }
 
     void* vData;
-    vkMapMemory(device, m_VertexMemory, 0, vertexSize, 0, &vData);
+    vkMapMemory(device, buffers.vertexMemory, 0, vertexSize, 0, &vData);
     memcpy(vData, m_Vertices.data(), vertexSize);
-    vkUnmapMemory(device, m_VertexMemory);
+    vkUnmapMemory(device, buffers.vertexMemory);
 
     // 2. Index Buffer
     VkDeviceSize indexSize = sizeof(uint32_t) * m_Indices.size();
-    if (indexSize > m_IndexBufferSize) {
-        if (m_IndexBuffer != VK_NULL_HANDLE) {
-            vkDestroyBuffer(device, m_IndexBuffer, nullptr);
-            vkFreeMemory(device, m_IndexMemory, nullptr);
+    if (indexSize > buffers.indexBufferSize) {
+        if (buffers.indexBuffer != VK_NULL_HANDLE) {
+            vkDestroyBuffer(device, buffers.indexBuffer, nullptr);
+            vkFreeMemory(device, buffers.indexMemory, nullptr);
         }
-        m_IndexBufferSize = indexSize * 2;
+        buffers.indexBufferSize = indexSize * 2;
         m_Context->CreateBuffer(
-            m_IndexBufferSize,
+            buffers.indexBufferSize,
             VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
             VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-            m_IndexBuffer,
-            m_IndexMemory
+            buffers.indexBuffer,
+            buffers.indexMemory
         );
     }
 
     void* iData;
-    vkMapMemory(device, m_IndexMemory, 0, indexSize, 0, &iData);
+    vkMapMemory(device, buffers.indexMemory, 0, indexSize, 0, &iData);
     memcpy(iData, m_Indices.data(), indexSize);
-    vkUnmapMemory(device, m_IndexMemory);
+    vkUnmapMemory(device, buffers.indexMemory);
 }
 
-void UIRenderer::Render(VkCommandBuffer cmd, uint32_t width, uint32_t height, const std::shared_ptr<Widget>& root) {
+void UIRenderer::Render(VkCommandBuffer cmd, uint32_t width, uint32_t height, uint32_t frameIndex,
+                        const std::shared_ptr<Widget>& root) {
     if (!root) {
         HE_ERROR("UIRenderer::Render called with null root widget.");
         return;
@@ -676,7 +682,7 @@ void UIRenderer::Render(VkCommandBuffer cmd, uint32_t width, uint32_t height, co
 
     // 2. Generate and update GPU buffers
     BuildGeometry(commands, width, height);
-    UpdateBuffers();
+    UpdateBuffers(frameIndex);
 
     m_LastFrameStats = {};
     m_LastFrameStats.drawCommands = static_cast<uint32_t>(commands.size());
@@ -731,11 +737,16 @@ void UIRenderer::Render(VkCommandBuffer cmd, uint32_t width, uint32_t height, co
 
     if (m_Vertices.empty() || m_Batches.empty()) return;
 
+    const FrameGeometryBuffers& buffers = m_FrameBuffers[frameIndex];
+    if (buffers.vertexBuffer == VK_NULL_HANDLE || buffers.indexBuffer == VK_NULL_HANDLE) {
+        return;
+    }
+
     // Bind Vertex & Index buffers
-    VkBuffer vertexBuffers[] = { m_VertexBuffer };
+    VkBuffer vertexBuffers[] = { buffers.vertexBuffer };
     VkDeviceSize offsets[] = { 0 };
     vkCmdBindVertexBuffers(cmd, 0, 1, vertexBuffers, offsets);
-    vkCmdBindIndexBuffer(cmd, m_IndexBuffer, 0, VK_INDEX_TYPE_UINT32);
+    vkCmdBindIndexBuffer(cmd, buffers.indexBuffer, 0, VK_INDEX_TYPE_UINT32);
 
     // 4. Draw Batches
     for (const auto& batch : m_Batches) {
@@ -780,21 +791,25 @@ void UIRenderer::Shutdown() {
     if (!m_Context) return;
     VkDevice device = m_Context->GetDevice();
 
-    if (m_VertexBuffer != VK_NULL_HANDLE) {
-        vkDestroyBuffer(device, m_VertexBuffer, nullptr);
-        m_VertexBuffer = VK_NULL_HANDLE;
-    }
-    if (m_VertexMemory != VK_NULL_HANDLE) {
-        vkFreeMemory(device, m_VertexMemory, nullptr);
-        m_VertexMemory = VK_NULL_HANDLE;
-    }
-    if (m_IndexBuffer != VK_NULL_HANDLE) {
-        vkDestroyBuffer(device, m_IndexBuffer, nullptr);
-        m_IndexBuffer = VK_NULL_HANDLE;
-    }
-    if (m_IndexMemory != VK_NULL_HANDLE) {
-        vkFreeMemory(device, m_IndexMemory, nullptr);
-        m_IndexMemory = VK_NULL_HANDLE;
+    for (auto& buffers : m_FrameBuffers) {
+        if (buffers.vertexBuffer != VK_NULL_HANDLE) {
+            vkDestroyBuffer(device, buffers.vertexBuffer, nullptr);
+            buffers.vertexBuffer = VK_NULL_HANDLE;
+        }
+        if (buffers.vertexMemory != VK_NULL_HANDLE) {
+            vkFreeMemory(device, buffers.vertexMemory, nullptr);
+            buffers.vertexMemory = VK_NULL_HANDLE;
+        }
+        if (buffers.indexBuffer != VK_NULL_HANDLE) {
+            vkDestroyBuffer(device, buffers.indexBuffer, nullptr);
+            buffers.indexBuffer = VK_NULL_HANDLE;
+        }
+        if (buffers.indexMemory != VK_NULL_HANDLE) {
+            vkFreeMemory(device, buffers.indexMemory, nullptr);
+            buffers.indexMemory = VK_NULL_HANDLE;
+        }
+        buffers.vertexBufferSize = 0;
+        buffers.indexBufferSize = 0;
     }
 
     if (m_DummySampler != VK_NULL_HANDLE) {

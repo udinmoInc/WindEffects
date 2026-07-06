@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using IgniteBT.Core.Launcher;
 
 namespace IgniteBT.Daemon;
 
@@ -54,6 +55,8 @@ public static class DaemonHost
         var exe = ResolveIgniteBtExecutable();
         if (string.IsNullOrEmpty(exe)) return false;
 
+        BuildEnvironment.Configure(projectRoot);
+
         var startInfo = new ProcessStartInfo
         {
             FileName = exe,
@@ -62,6 +65,7 @@ public static class DaemonHost
             UseShellExecute = false,
             CreateNoWindow = true,
         };
+        BuildEnvironment.ApplyToProcessEnvironment(startInfo, projectRoot);
 
         try
         {

@@ -1244,7 +1244,8 @@ void Editor::MainLoop() {
             const int uiExec = WE_FORENSIC_PASS_BEGIN(forensics, we::runtime::renderer::ForensicPassId::UI, uiMeta);
             const auto uiStart = std::chrono::steady_clock::now();
             m_RenderGraph->BeginSwapchainPass(cmd);
-            m_UIRenderer->Render(cmd, m_Renderer->GetSwapchainWidth(), m_Renderer->GetSwapchainHeight(), m_RootWidget);
+            m_UIRenderer->Render(cmd, m_Renderer->GetSwapchainWidth(), m_Renderer->GetSwapchainHeight(),
+                m_Renderer->GetCurrentFrameIndex(), m_RootWidget);
             m_RenderGraph->EndSwapchainPass(cmd);
             forensics.EndPassExecution(uiExec,
                 std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - uiStart).count());
@@ -1257,19 +1258,17 @@ void Editor::MainLoop() {
             m_Renderer->EndFrame();
             FrameStatsCollector::Get().EndFrame();
 
-            if (forensics.IsActive()) {
-                const auto forensicReport = forensics.FinalizeFrame(*m_Context, frameFence);
-                if (m_RenderDiagnosticsPanel) {
-                    m_RenderDiagnosticsPanel->UpdateFromReport(forensicReport);
-                }
-                if (forensics.ShouldHalt()) {
+            const auto forensicReport = forensics.FinalizeFrame(*m_Context, frameFence);
+            if (m_RenderDiagnosticsPanel) {
+                m_RenderDiagnosticsPanel->UpdateFromReport(forensicReport);
+            }
+            if (forensics.IsActive() && forensics.ShouldHalt()) {
                     WE_LOG_CRITICAL(we::LogCategory::Renderer.data(),
                         std::string("Render forensic diagnostics halted at pass ")
                             + we::runtime::renderer::RenderForensics::PassName(forensicReport.firstAnomalyPass)
                             + ": " + forensicReport.firstAnomalyReason
                             + " | Report: Saved/RenderForensics/FINAL_DIAGNOSTIC_REPORT.txt");
                     m_Running = false;
-                }
             }
 
             if (pipelineInv.IsActive()) {

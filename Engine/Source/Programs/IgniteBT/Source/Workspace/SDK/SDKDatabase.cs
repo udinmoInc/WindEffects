@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using System.Text.Json;
+using IgniteBT.Core.Launcher;
 using Serilog;
 
 namespace IgniteBT.Workspace.SDK;
@@ -16,7 +17,7 @@ public class SDKDatabase
 
     public SDKDatabase()
     {
-        var projectDatabase = FindProjectDatabaseDirectory();
+        var projectDatabase = BuildEnvironment.ResolveProjectDatabaseDirectory();
         _writePath = Path.Combine(projectDatabase, CacheFileName);
         _searchPaths =
         [
@@ -78,7 +79,17 @@ public class SDKDatabase
 
     public void ClearCache()
     {
-        foreach (var path in _searchPaths.Select(p => Path.Combine(p, CacheFileName)).Distinct(StringComparer.OrdinalIgnoreCase))
+        var paths = _searchPaths
+            .Select(p => Path.Combine(p, CacheFileName))
+            .ToList();
+
+        // Remove legacy cache on C: from older IgniteBT builds.
+        var legacyProfileAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+        var legacy = Path.Combine(legacyProfileAppData, CacheFileName);
+        if (!paths.Contains(legacy, StringComparer.OrdinalIgnoreCase))
+            paths.Add(legacy);
+
+        foreach (var path in paths.Distinct(StringComparer.OrdinalIgnoreCase))
         {
             if (!File.Exists(path)) continue;
             try
@@ -104,20 +115,4 @@ public class SDKDatabase
         return null;
     }
 
-    private static string FindProjectDatabaseDirectory()
-    {
-        var dir = Directory.GetCurrentDirectory();
-        for (var i = 0; i < 8; i++)
-        {
-            var candidate = Path.Combine(dir, "Build", "Database");
-            if (Directory.Exists(candidate) || File.Exists(Path.Combine(dir, "WindEffects.engine")))
-                return candidate;
-
-            var parent = Directory.GetParent(dir)?.FullName;
-            if (string.IsNullOrEmpty(parent) || parent == dir) break;
-            dir = parent;
-        }
-
-        return Path.Combine(Directory.GetCurrentDirectory(), "Build", "Database");
-    }
 }

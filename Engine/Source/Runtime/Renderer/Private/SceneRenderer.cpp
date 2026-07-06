@@ -1013,6 +1013,9 @@ void SceneRenderer::EnsureCloudTemporalResources(uint32_t width, uint32_t height
         return;
     }
 
+    if (m_CloudScratchImage != VK_NULL_HANDLE) {
+        vkDeviceWaitIdle(m_Context->GetDevice());
+    }
     DestroyCloudTemporalResources();
     m_CloudTemporalWidth = width;
     m_CloudTemporalHeight = height;
@@ -1368,10 +1371,17 @@ void SceneRenderer::DrawFogCompositePass(
 }
 
 void SceneRenderer::ResizePostProcess(uint32_t width, uint32_t height) {
+    width = std::max(1u, width);
+    height = std::max(1u, height);
     if (m_PostProcess) {
         m_PostProcess->Resize(width, height);
     }
-    DestroyCloudTemporalResources();
+    // Cloud images are shared across in-flight frames. Tearing them down every frame
+    // (even when the viewport size is unchanged) races the GPU and causes DEVICE_LOST.
+    if ((width != m_CloudTemporalWidth || height != m_CloudTemporalHeight) && m_CloudScratchImage != VK_NULL_HANDLE) {
+        vkDeviceWaitIdle(m_Context->GetDevice());
+        DestroyCloudTemporalResources();
+    }
 }
 
 void SceneRenderer::ApplyPostExposure(

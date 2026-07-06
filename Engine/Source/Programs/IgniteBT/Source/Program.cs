@@ -9,6 +9,8 @@ class Program
 {
     static async Task<int> Main(string[] args)
     {
+        IgniteBT.Core.Launcher.BuildEnvironment.Configure();
+
         if (args.Length > 0 && args[0].Equals("daemon", StringComparison.OrdinalIgnoreCase)
             && args.Length > 1 && args[1].Equals("serve", StringComparison.OrdinalIgnoreCase))
         {
