@@ -111,6 +111,58 @@ float3 WE_GetPlanetCenter(float3 cameraPos, float3 worldOrigin, float planetRadi
     return float3(relKm.x, relKm.y - planetRadiusKm, relKm.z);
 }
 
+// UE5-style transmittance LUT mapping (distance along view ray vs shell height).
+float2 WE_LutTransmittanceParamsToUv(float viewHeightKm, float viewZenithCosAngle, WE_AtmosphereParams params)
+{
+    const float bottomR = params.planetRadius;
+    const float topR = params.atmosphereRadius;
+    const float H = sqrt(max(topR * topR - bottomR * bottomR, 0.0));
+    const float rho = sqrt(max(viewHeightKm * viewHeightKm - bottomR * bottomR, 0.0));
+
+    const float discriminant = viewHeightKm * viewHeightKm * (viewZenithCosAngle * viewZenithCosAngle - 1.0)
+        + topR * topR;
+    const float d = max(0.0, (-viewHeightKm * viewZenithCosAngle + sqrt(max(discriminant, 0.0))));
+
+    const float dMin = topR - viewHeightKm;
+    const float dMax = rho + H;
+    const float xMu = (d - dMin) / max(dMax - dMin, 1e-4);
+    const float xR = rho / max(H, 1e-4);
+    return float2(saturate(xMu), saturate(xR));
+}
+
+// Sun-relative azimuth (U) and normalized zenith angle (V) for SkyView LUT.
+float2 WE_SkyViewLUTCoord(float3 viewDir, float3 sunDir, out float viewZenithAngle)
+{
+    const float3 vd = normalize(viewDir);
+    const float3 sd = normalize(sunDir);
+    viewZenithAngle = acos(saturate(vd.y)) / WE_PI;
+
+    const float sunAzimuth = atan2(sd.z, sd.x);
+    const float viewAzimuth = atan2(vd.z, vd.x);
+    float azimuthOffset = (viewAzimuth - sunAzimuth) / (2.0 * WE_PI);
+    azimuthOffset = azimuthOffset - floor(azimuthOffset);
+    return float2(azimuthOffset, viewZenithAngle);
+}
+
+float3 WE_ViewDirFromSkyViewUV(float2 uv, float3 sunDir)
+{
+    const float viewZenith = uv.y * WE_PI;
+    const float azimuthOffset = uv.x * 2.0 * WE_PI;
+    const float sunAzimuth = atan2(sunDir.z, sunDir.x);
+    const float azimuth = sunAzimuth + azimuthOffset;
+    const float sinTheta = sin(viewZenith);
+    return float3(sinTheta * cos(azimuth), cos(viewZenith), sinTheta * sin(azimuth));
+}
+
+float WE_ComputeSunDiskMask(float3 viewDir, float3 sunDir, float angularRadius)
+{
+    const float cosAngle = dot(normalize(viewDir), normalize(sunDir));
+    const float cosRadius = cos(max(angularRadius, WE_SUN_ANGULAR_RADIUS));
+    // edge0 < edge1 required; cosAngle rises toward 1 at the sun center.
+    const float feather = 0.00015;
+    return smoothstep(cosRadius - feather, cosRadius, cosAngle);
+}
+
 WE_AtmosphereParams WE_BuildAtmosphereParams(
     float3 rayleighCoeff,
     float mieCoeff,

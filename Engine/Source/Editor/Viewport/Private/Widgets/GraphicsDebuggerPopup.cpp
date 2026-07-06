@@ -105,6 +105,21 @@ void GraphicsDebuggerPopup::BuildLines(std::vector<std::string>& outLines) const
 
     outLines.push_back("Camera Speed: " + std::to_string(static_cast<int>(std::lround(m_Camera->GetCameraSpeed()))));
     outLines.push_back(we::runtime::renderer::FrameStatsCollector::Get().GetOverlayText());
+
+    const auto& probe = we::runtime::renderer::FrameStatsCollector::Get().GetStats().atmosphereProbe;
+    if (probe.valid) {
+        outLines.push_back("--- Atmosphere Probe (center pixel) ---");
+        outLines.push_back("Cam Fwd: " + formatVec3(probe.cameraForward));
+        outLines.push_back("ViewDir: " + formatVec3(probe.viewDirection) + " len=" + std::to_string(probe.viewDirectionLength).substr(0, 6));
+        outLines.push_back("SunDir: " + formatVec3(probe.sunDirection) + " len=" + std::to_string(probe.sunDirectionLength).substr(0, 6));
+        outLines.push_back("dot(View,Sun): " + std::to_string(probe.viewSunDot).substr(0, 6));
+        outLines.push_back("Zenith: " + std::to_string(probe.viewZenithAngle).substr(0, 6)
+            + " | SkyUV: " + std::to_string(probe.skyViewUV.x).substr(0, 5) + "," + std::to_string(probe.skyViewUV.y).substr(0, 5)
+            + " | TUV: " + std::to_string(probe.transmittanceUV.x).substr(0, 5) + "," + std::to_string(probe.transmittanceUV.y).substr(0, 5));
+        outLines.push_back("SunR: " + std::to_string(probe.sunAngularRadius).substr(0, 7)
+            + " | SunDiskMask: " + std::to_string(probe.sunDiskMask).substr(0, 6));
+    }
+
     outLines.push_back(we::runtime::renderer::RenderDiagnostics::Get().GetSummary());
 }
 

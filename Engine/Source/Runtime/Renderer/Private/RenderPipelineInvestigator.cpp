@@ -1,10 +1,12 @@
 #include "Renderer/RenderPipelineInvestigator.hpp"
+#include "Renderer/RendererDebug.hpp"
 #include "Renderer/RendererConfig.hpp"
 #include "Core/LogCategory.hpp"
 #include "Core/DiagnosticMacros.hpp"
 #include "Core/EditorConfigPaths.hpp"
 
 #include <algorithm>
+#include <array>
 #include <cctype>
 #include <cmath>
 #include <cstdlib>
@@ -12,6 +14,10 @@
 #include <filesystem>
 #include <fstream>
 #include <sstream>
+
+#if WE_HAS_GLM
+#include <glm/gtc/matrix_transform.hpp>
+#endif
 
 namespace we::runtime::renderer {
 
@@ -104,6 +110,74 @@ float ParseConfigFloat(const std::string& value, float fallback) {
         return fallback;
     }
 }
+
+#if WE_HAS_GLM
+glm::vec3 HorizontalForwardFromCamera(const glm::mat4& view) {
+    const glm::vec3 forward = -glm::vec3(view[0][2], view[1][2], view[2][2]);
+    glm::vec3 horizontal(forward.x, 0.0f, forward.z);
+    const float len = glm::length(horizontal);
+    if (len < 1e-4f) {
+        horizontal = glm::vec3(0.0f, 0.0f, 1.0f);
+    } else {
+        horizontal /= len;
+    }
+    return horizontal;
+}
+
+glm::vec3 WorldDirectionAtElevation(const glm::vec3& horizontalForward, float elevationDeg) {
+    const float elevation = glm::radians(elevationDeg);
+    const float cosEl = std::cos(elevation);
+    const float sinEl = std::sin(elevation);
+    return glm::normalize(horizontalForward * cosEl + glm::vec3(0.0f, 1.0f, 0.0f) * sinEl);
+}
+
+bool ProjectWorldDirectionToPixel(
+    const glm::vec3& worldDir,
+    const glm::mat4& view,
+    const glm::mat4& proj,
+    const glm::vec3& cameraPos,
+    uint32_t width,
+    uint32_t height,
+    int& outX,
+    int& outY) {
+
+    const glm::vec4 clip = proj * view * glm::vec4(cameraPos + worldDir * 100000.0f, 1.0f);
+    if (clip.w <= 0.0f) {
+        return false;
+    }
+    const glm::vec3 ndc = glm::vec3(clip) / clip.w;
+    if (ndc.x < -1.0f || ndc.x > 1.0f || ndc.y < -1.0f || ndc.y > 1.0f) {
+        return false;
+    }
+    const float u = ndc.x * 0.5f + 0.5f;
+    const float v = ndc.y * 0.5f + 0.5f;
+    outX = static_cast<int>(std::lround(u * static_cast<float>(width - 1)));
+    outY = static_cast<int>(std::lround(v * static_cast<float>(height - 1)));
+    outX = std::clamp(outX, 0, static_cast<int>(width > 0 ? width - 1 : 0));
+    outY = std::clamp(outY, 0, static_cast<int>(height > 0 ? height - 1 : 0));
+    return true;
+}
+
+void SampleRgbAt(
+    const std::vector<float>& rgba,
+    uint32_t width,
+    uint32_t height,
+    int x,
+    int y,
+    float& outR,
+    float& outG,
+    float& outB) {
+
+    const size_t idx = (static_cast<size_t>(y) * width + static_cast<size_t>(x)) * 4;
+    if (idx + 2 >= rgba.size()) {
+        outR = outG = outB = 0.0f;
+        return;
+    }
+    outR = rgba[idx];
+    outG = rgba[idx + 1];
+    outB = rgba[idx + 2];
+}
+#endif
 
 } // namespace
 
@@ -204,6 +278,7 @@ RenderPipelineInvestigatorSettings RenderPipelineInvestigator::ParseCommandLine(
         settings.skyIsolationStep = std::atoi(envStep);
         settings.haltOnInvalid = false;
         settings.logEveryFrame = true;
+        settings.enableGpuReadback = true;
     }
     if (const char* envStep = std::getenv("WE_PIPELINE_EFFECT_STEP")) {
         settings.enabled = true;
@@ -232,6 +307,7 @@ RenderPipelineInvestigatorSettings RenderPipelineInvestigator::ParseCommandLine(
             if (step >= 0) {
                 settings.haltOnInvalid = false;
                 settings.logEveryFrame = true;
+                settings.enableGpuReadback = true;
             }
             continue;
         }
@@ -432,7 +508,13 @@ void RenderPipelineInvestigator::PersistSettings(const RenderPipelineInvestigato
 
 void RenderPipelineInvestigator::Configure(const RenderPipelineInvestigatorSettings& settings) {
     m_Settings = settings;
-    m_WarmupRemaining = settings.warmupFrames;
+    if (m_Settings.skyIsolationStep >= 0) {
+        m_Settings.enableGpuReadback = true;
+        m_Settings.haltOnInvalid = false;
+        m_Settings.maxHdrComponent = 1.0e12f;
+        m_Settings.writeReportFile = true;
+    }
+    m_WarmupRemaining = m_Settings.warmupFrames;
     m_ShouldHalt = false;
     PersistSettings(settings);
     if (!settings.enabled) return;
@@ -504,6 +586,9 @@ void RenderPipelineInvestigator::ApplyEnvironmentOverrides(SceneEnvironmentUnifo
 }
 
 bool RenderPipelineInvestigator::ShouldRunPostProcess() const {
+    if (RendererDebug::Get().IsMinimalRendererActive()) {
+        return RendererDebug::Get().ShouldRunPostProcess();
+    }
     if (!m_Settings.enabled) return true;
     if (m_Settings.onlyPass >= 0) {
         const auto pass = static_cast<RenderPassId>(m_Settings.onlyPass);
@@ -518,16 +603,25 @@ bool RenderPipelineInvestigator::ShouldRunPostProcess() const {
 }
 
 bool RenderPipelineInvestigator::ShouldApplyBloom() const {
+    if (RendererDebug::Get().IsMinimalRendererActive()) {
+        return RendererDebug::Get().ShouldApplyBloom();
+    }
     if (!m_Settings.enabled) return true;
     return ResolveStageGates().bloom;
 }
 
 bool RenderPipelineInvestigator::ShouldApplyTonemapping() const {
+    if (RendererDebug::Get().IsMinimalRendererActive()) {
+        return RendererDebug::Get().ShouldApplyTonemapping();
+    }
     if (!m_Settings.enabled) return true;
     return ResolveStageGates().tonemapping && !m_Settings.bypassToneMapping && !m_Settings.disableToneMapping;
 }
 
 bool RenderPipelineInvestigator::ShouldApplyAutoExposure() const {
+    if (RendererDebug::Get().IsMinimalRendererActive()) {
+        return RendererDebug::Get().ShouldApplyAutoExposure();
+    }
     if (!m_Settings.enabled) return true;
     return ResolveStageGates().autoExposure && !m_Settings.disableAutoExposure && !m_Settings.forceExposureOne;
 }
@@ -538,6 +632,9 @@ bool RenderPipelineInvestigator::ShouldRenderSunDisk() const {
 }
 
 bool RenderPipelineInvestigator::ShouldRunPass(RenderPassId pass) const {
+    if (RendererDebug::Get().IsMinimalRendererActive()) {
+        return RendererDebug::Get().ShouldRunPass(pass);
+    }
     if (!m_Settings.enabled) return true;
     if (m_Settings.onlyPass >= 0) {
         const int only = m_Settings.onlyPass;
@@ -570,6 +667,9 @@ bool RenderPipelineInvestigator::ShouldRunPass(RenderPassId pass) const {
 }
 
 bool RenderPipelineInvestigator::ShouldRenderGrid() const {
+    if (RendererDebug::Get().IsMinimalRendererActive()) {
+        return RendererDebug::Get().ShouldRenderGrid();
+    }
     if (!m_Settings.enabled) return true;
     if (m_Settings.effectStep >= 0 || m_Settings.skyIsolationStep >= 0) return false;
     return !m_Settings.disableGrid;
@@ -589,6 +689,12 @@ void RenderPipelineInvestigator::RecordCameraAndEnvironment(const glm::vec3& cam
     m_CameraLog.exposureEV = env.exposureEV;
     m_CameraLog.hdrSkyLuminance = env.hdrSkyLuminance;
     m_CameraLog.avgLuminanceGpu = gpuAvgLuminance;
+}
+
+void RenderPipelineInvestigator::RecordCameraMatrices(const glm::mat4& view, const glm::mat4& proj) {
+    m_CameraView = view;
+    m_CameraProj = proj;
+    m_HasCameraMatrices = true;
 }
 
 void RenderPipelineInvestigator::AuditPassBegin(RenderPassId pass) {
@@ -689,14 +795,33 @@ bool RenderPipelineInvestigator::ValidateStats(const HdrBufferStats& stats, bool
 }
 
 HdrBufferStats RenderPipelineInvestigator::ReadbackStaging(const VulkanContext& context, const PendingCheckpoint& cp) const {
-    HdrBufferStats stats{};
-    if (cp.stagingBuffer == VK_NULL_HANDLE) return stats;
+    uint32_t width = 0;
+    uint32_t height = 0;
+    const std::vector<float> rgba = ReadbackStagingPixels(context, cp, width, height);
+    const bool isLdr = (cp.pass == RenderPassId::ToneMapping || cp.pass == RenderPassId::Present);
+    return AnalyzePixels(rgba, isLdr ? 1.05f : m_Settings.maxHdrComponent);
+}
+
+std::vector<float> RenderPipelineInvestigator::ReadbackStagingPixels(
+    const VulkanContext& context,
+    const PendingCheckpoint& cp,
+    uint32_t& outWidth,
+    uint32_t& outHeight) const {
+
+    outWidth = cp.width;
+    outHeight = cp.height;
+    std::vector<float> rgba;
+    if (cp.stagingBuffer == VK_NULL_HANDLE || cp.width == 0 || cp.height == 0) {
+        return rgba;
+    }
+
     const VkDeviceSize bytesPerPixel = 8;
     const VkDeviceSize rowPitch = ((cp.width * bytesPerPixel + 255) / 256) * 256;
     const VkDeviceSize bufferSize = rowPitch * cp.height;
     void* mapped = nullptr;
     vkMapMemory(context.GetDevice(), cp.stagingMemory, 0, bufferSize, 0, &mapped);
-    std::vector<float> rgba(cp.width * cp.height * 4);
+
+    rgba.resize(static_cast<size_t>(cp.width) * cp.height * 4);
     for (uint32_t y = 0; y < cp.height; ++y) {
         const auto* row = reinterpret_cast<const std::uint8_t*>(mapped) + y * rowPitch;
         for (uint32_t x = 0; x < cp.width; ++x) {
@@ -712,8 +837,161 @@ HdrBufferStats RenderPipelineInvestigator::ReadbackStaging(const VulkanContext& 
         }
     }
     vkUnmapMemory(context.GetDevice(), cp.stagingMemory);
-    const bool isLdr = (cp.pass == RenderPassId::ToneMapping || cp.pass == RenderPassId::Present);
-    return AnalyzePixels(rgba, isLdr ? 1.05f : m_Settings.maxHdrComponent);
+    return rgba;
+}
+
+std::array<SkyElevationProbe, 3> RenderPipelineInvestigator::SampleSkyElevationProbes(
+    const std::vector<float>& rgba,
+    uint32_t width,
+    uint32_t height,
+    bool isLdr) const {
+
+    std::array<SkyElevationProbe, 3> probes{};
+    static constexpr std::array<const char*, 3> kLabels = { "zenith", "mid", "horizon" };
+    static constexpr std::array<float, 3> kElevations = { 85.0f, 45.0f, 3.0f };
+
+#if WE_HAS_GLM
+    if (!m_HasCameraMatrices || rgba.empty() || width == 0 || height == 0) {
+        return probes;
+    }
+
+    const glm::vec3 cameraPos(m_CameraLog.cameraX, m_CameraLog.cameraY, m_CameraLog.cameraZ);
+    const glm::vec3 horizontalForward = HorizontalForwardFromCamera(m_CameraView);
+
+    for (size_t i = 0; i < probes.size(); ++i) {
+        probes[i].label = kLabels[i];
+        probes[i].elevationDeg = kElevations[i];
+        const glm::vec3 worldDir = WorldDirectionAtElevation(horizontalForward, kElevations[i]);
+        probes[i].onScreen = ProjectWorldDirectionToPixel(
+            worldDir,
+            m_CameraView,
+            m_CameraProj,
+            cameraPos,
+            width,
+            height,
+            probes[i].pixelX,
+            probes[i].pixelY);
+        if (!probes[i].onScreen) {
+            continue;
+        }
+        SampleRgbAt(rgba, width, height, probes[i].pixelX, probes[i].pixelY, probes[i].r, probes[i].g, probes[i].b);
+        probes[i].valid = true;
+        if (isLdr) {
+            probes[i].r = std::clamp(probes[i].r, 0.0f, 1.0f);
+            probes[i].g = std::clamp(probes[i].g, 0.0f, 1.0f);
+            probes[i].b = std::clamp(probes[i].b, 0.0f, 1.0f);
+        }
+    }
+#else
+    (void)rgba;
+    (void)width;
+    (void)height;
+    (void)isLdr;
+    for (size_t i = 0; i < probes.size(); ++i) {
+        probes[i].label = kLabels[i];
+        probes[i].elevationDeg = kElevations[i];
+    }
+#endif
+    return probes;
+}
+
+void RenderPipelineInvestigator::LogSkyProbes(const SkyProbeFrameReport& probes) const {
+    auto logProbe = [](const char* stage, const SkyElevationProbe& probe) {
+        if (!probe.valid) {
+            WE_LOG_INFO(LogCategory::Renderer.data(),
+                std::string("SKY_PROBE_") + stage + " " + probe.label + "(" + std::to_string(probe.elevationDeg)
+                    + "deg) OFF_SCREEN — elevation not visible in current view frustum.");
+            return;
+        }
+        std::ostringstream ss;
+        ss << "SKY_PROBE_" << stage << " " << probe.label << "(" << probe.elevationDeg << "deg)"
+           << " @(" << probe.pixelX << "," << probe.pixelY << ")"
+           << " linear_RGB=(" << probe.r << "," << probe.g << "," << probe.b << ")"
+           << " lum=" << (0.2126f * probe.r + 0.7152f * probe.g + 0.0722f * probe.b);
+        WE_LOG_INFO(LogCategory::Renderer.data(), ss.str());
+    };
+
+    if (probes.hasHdrProbes) {
+        for (const auto& probe : probes.hdrProbes) {
+            logProbe("HDR", probe);
+        }
+    }
+    if (probes.hasLdrProbes) {
+        for (const auto& probe : probes.ldrProbes) {
+            logProbe("LDR", probe);
+        }
+    }
+}
+
+void RenderPipelineInvestigator::WriteSkyProbeReport(const PipelineInvestigationReport& report) const {
+    if (m_Settings.skyIsolationStep < 0) {
+        return;
+    }
+    if (!report.skyProbes.hasHdrProbes && !report.skyProbes.hasLdrProbes) {
+        return;
+    }
+
+    std::error_code ec;
+    const std::filesystem::path dir = std::filesystem::path("Saved") / "SkyIsolation";
+    std::filesystem::create_directories(dir, ec);
+    const std::filesystem::path path = dir / "probe_latest.txt";
+    std::ofstream file(path);
+    if (!file) {
+        return;
+    }
+
+    file << "frame=" << report.frameIndex << "\n";
+    file << "sky_isolation_step=" << m_Settings.skyIsolationStep << " ("
+         << SkyIsolationStepName(m_Settings.skyIsolationStep) << ")\n";
+    file << "camera=(" << report.cameraLog.cameraX << "," << report.cameraLog.cameraY << ","
+         << report.cameraLog.cameraZ << ")\n";
+
+    auto writeProbe = [&](const char* stage, const SkyElevationProbe& probe) {
+        file << stage << "_" << probe.label << "_elevation_deg=" << probe.elevationDeg << "\n";
+        if (!probe.valid) {
+            file << stage << "_" << probe.label << "_status=OFF_SCREEN\n";
+            return;
+        }
+        file << stage << "_" << probe.label << "_pixel=(" << probe.pixelX << "," << probe.pixelY << ")\n";
+        file << stage << "_" << probe.label << "_linear_rgb=(" << probe.r << "," << probe.g << "," << probe.b << ")\n";
+    };
+
+    if (report.skyProbes.hasHdrProbes) {
+        for (const auto& probe : report.skyProbes.hdrProbes) {
+            writeProbe("hdr", probe);
+        }
+    }
+    if (report.skyProbes.hasLdrProbes) {
+        for (const auto& probe : report.skyProbes.ldrProbes) {
+            writeProbe("ldr", probe);
+        }
+    }
+
+    if (report.skyProbes.hasHdrProbes) {
+        const auto& z = report.skyProbes.hdrProbes[0];
+        const auto& m = report.skyProbes.hdrProbes[1];
+        const auto& h = report.skyProbes.hdrProbes[2];
+        if (z.valid && m.valid && h.valid) {
+            const float zLum = 0.2126f * z.r + 0.7152f * z.g + 0.0722f * z.b;
+            const float mLum = 0.2126f * m.r + 0.7152f * m.g + 0.0722f * m.b;
+            const float hLum = 0.2126f * h.r + 0.7152f * h.g + 0.0722f * h.b;
+            const float maxDelta = std::max({ std::fabs(zLum - mLum), std::fabs(mLum - hLum), std::fabs(z.r - m.r), std::fabs(m.r - h.r) });
+            file << "hdr_variation_lum_delta=" << maxDelta << "\n";
+            file << "hdr_flat_suspect=" << (maxDelta < 0.01f ? "yes" : "no") << "\n";
+        }
+    }
+    if (report.skyProbes.hasLdrProbes) {
+        const auto& z = report.skyProbes.ldrProbes[0];
+        const auto& m = report.skyProbes.ldrProbes[1];
+        const auto& h = report.skyProbes.ldrProbes[2];
+        if (z.valid && m.valid && h.valid) {
+            const float bZenith = z.b / std::max(z.r, 1e-4f);
+            const float bHorizon = h.b / std::max(h.r, 1e-4f);
+            file << "ldr_zenith_b_over_r=" << bZenith << "\n";
+            file << "ldr_horizon_b_over_r=" << bHorizon << "\n";
+            file << "ldr_gradient_visible=" << (bZenith > bHorizon + 0.05f ? "yes" : "no") << "\n";
+        }
+    }
 }
 
 void RenderPipelineInvestigator::StoreIntermediateStats(RenderPassId pass, const HdrBufferStats& stats) {

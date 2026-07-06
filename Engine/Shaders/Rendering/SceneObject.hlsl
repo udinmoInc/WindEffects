@@ -53,7 +53,7 @@ float4 PSMain(VSOutput input) : SV_Target
 
     if (mode == 1 || mode == 2)
     {
-        return float4(albedo, color.a);
+        return float4(saturate(color.rgb), color.a);
     }
 
     float3 normal = normalize(input.worldNormal);

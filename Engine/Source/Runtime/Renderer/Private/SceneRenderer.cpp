@@ -3,6 +3,8 @@
 #include "Renderer/RenderDiagnostics.hpp"
 #include "Renderer/FrameStats.hpp"
 #include "Renderer/RendererConfig.hpp"
+#include "Renderer/RendererDebug.hpp"
+#include "Renderer/RenderPipelineInvestigator.hpp"
 #include "Renderer/AtmosphereLUTInputs.hpp"
 #include "Renderer/RenderForensics.hpp"
 #include "Core/DiagnosticMacros.hpp"
@@ -215,8 +217,14 @@ SceneRenderer::SceneRenderer(
     envWrite.pBufferInfo = &envBufferInfo;
     vkUpdateDescriptorSets(m_Context->GetDevice(), 1, &envWrite, 0, nullptr);
 
-    m_LUTGenerator = std::make_unique<AtmosphereLUTGenerator>(m_Context);
-    m_PostProcess = std::make_unique<PostProcessStack>(m_Context);
+    m_LUTGenerator = nullptr;
+    m_PostProcess = nullptr;
+    if (RendererDebug::Get().ShouldCreateAtmosphereResources()) {
+        m_LUTGenerator = std::make_unique<AtmosphereLUTGenerator>(m_Context);
+    }
+    if (RendererDebug::Get().ShouldCreatePostProcessResources()) {
+        m_PostProcess = std::make_unique<PostProcessStack>(m_Context);
+    }
 
     std::array<VkDescriptorSetLayoutBinding, 3> fogLutBindings{};
     for (uint32_t i = 0; i < fogLutBindings.size(); ++i) {
@@ -523,7 +531,9 @@ bool SceneRenderer::ValidateRenderFrame(VkFramebuffer framebuffer, uint32_t widt
     auto& diag = RenderDiagnostics::Get();
     diag.ResetFrame();
     diag.ValidateFramebuffer(framebuffer, width, height);
-    diag.ValidateEnvironmentUniform(m_SceneEnvironment);
+    if (RendererDebug::Get().ShouldUploadEnvironmentUniform()) {
+        diag.ValidateEnvironmentUniform(m_SceneEnvironment);
+    }
     return !diag.HasCritical();
 }
 
@@ -758,6 +768,10 @@ void SceneRenderer::DestroyMeshes() {
 }
 
 void SceneRenderer::PrepareAtmosphereLUTs(VkCommandBuffer /*cmd*/) {
+    if (!RendererDebug::Get().IsFeatureEnabled(MinimalRendererStage::SkyAtmosphere)) {
+        return;
+    }
+
     auto& diag = RenderDiagnostics::Get();
     auto& stats = FrameStatsCollector::Get();
 
@@ -820,6 +834,9 @@ void SceneRenderer::PrepareAtmosphereLUTs(VkCommandBuffer /*cmd*/) {
 }
 
 bool SceneRenderer::AreAtmosphereLUTsReady() const {
+    if (!RendererDebug::Get().IsFeatureEnabled(MinimalRendererStage::SkyAtmosphere)) {
+        return true;
+    }
     return m_LUTGenerator && m_LUTGenerator->IsReady();
 }
 
@@ -1105,6 +1122,10 @@ void SceneRenderer::UpdateCloudTemporalState(
 }
 
 void SceneRenderer::DrawSkyAtmospherePass(VkCommandBuffer cmd, VkDescriptorSet cameraDescSet) const {
+    if (!RendererDebug::Get().IsFeatureEnabled(MinimalRendererStage::SkyAtmosphere)) {
+        return;
+    }
+
     auto& diag = RenderDiagnostics::Get();
     auto& stats = FrameStatsCollector::Get();
     GpuDebugScope debugScope(cmd, "SkyAtmosphere");
@@ -1177,6 +1198,10 @@ void SceneRenderer::DrawSkyAtmospherePass(VkCommandBuffer cmd, VkDescriptorSet c
 }
 
 void SceneRenderer::DrawVolumetricCloudsPass(VkCommandBuffer cmd, VkDescriptorSet cameraDescSet) const {
+    if (!RendererDebug::Get().IsFeatureEnabled(MinimalRendererStage::VolumetricClouds)) {
+        return;
+    }
+
     auto& diag = RenderDiagnostics::Get();
     auto& stats = FrameStatsCollector::Get();
     GpuDebugScope debugScope(cmd, "VolumetricClouds");
@@ -1300,6 +1325,10 @@ void SceneRenderer::DrawFogCompositePass(
     VkImageView depthImageView,
     VkSampler sampler) const {
 
+    if (!RendererDebug::Get().IsFeatureEnabled(MinimalRendererStage::Fog)) {
+        return;
+    }
+
     auto& diag = RenderDiagnostics::Get();
     auto& stats = FrameStatsCollector::Get();
 
@@ -1391,6 +1420,10 @@ void SceneRenderer::ApplyPostExposure(
     uint32_t width,
     uint32_t height) const {
 
+    if (!RenderPipelineInvestigator::Get().ShouldRunPostProcess()) {
+        return;
+    }
+
     if (!m_PostProcess) {
         return;
     }
@@ -1407,7 +1440,13 @@ void SceneRenderer::FlushPostProcessReadbacks() const {
 }
 
 void SceneRenderer::DrawMesh(VkCommandBuffer cmd, const std::string& meshName, VkDescriptorSet descriptorSet, int mode) const {
-    RefreshEnvironmentDescriptorBindings();
+    if (!RendererDebug::Get().ShouldUseDirectionalLighting()) {
+        mode = 1;
+    }
+
+    if (RendererDebug::Get().ShouldUploadEnvironmentUniform()) {
+        RefreshEnvironmentDescriptorBindings();
+    }
 
     auto it = m_Meshes.find(meshName);
     if (it == m_Meshes.end()) {
@@ -1479,6 +1518,10 @@ void SceneRenderer::UpdateObjectDescriptorSet(VkDescriptorSet descriptorSet, VkB
 }
 
 void SceneRenderer::SetSceneEnvironment(const SceneEnvironmentUniform& environment) {
+    if (!RendererDebug::Get().ShouldUploadEnvironmentUniform()) {
+        return;
+    }
+
     if (std::memcmp(&m_SceneEnvironment, &environment, sizeof(SceneEnvironmentUniform)) != 0) {
         if (m_LUTGenerator && AtmosphereLUTInputsChanged(m_SceneEnvironment, environment)) {
             m_LUTGenerator->Invalidate();
@@ -1489,6 +1532,10 @@ void SceneRenderer::SetSceneEnvironment(const SceneEnvironmentUniform& environme
 }
 
 void SceneRenderer::RefreshEnvironmentDescriptorBindings() const {
+    if (!RendererDebug::Get().ShouldUploadEnvironmentUniform()) {
+        return;
+    }
+
     if (!m_SceneEnvironmentDirty || m_EnvironmentBuffer == VK_NULL_HANDLE) {
         return;
     }

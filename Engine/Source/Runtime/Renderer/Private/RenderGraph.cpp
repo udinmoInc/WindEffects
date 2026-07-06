@@ -1,4 +1,5 @@
 #include "Renderer/RenderGraph.hpp"
+#include "Renderer/RendererDebug.hpp"
 #include "Core/Logger.hpp"
 #include <array>
 
@@ -20,7 +21,13 @@ void RenderGraph::BeginOffscreenPass(VkCommandBuffer cmd, bool clearColor) const
     renderPassInfo.renderArea.extent = { offscreenFB.GetWidth(), offscreenFB.GetHeight() };
 
     std::array<VkClearValue, 2> clearValues{};
-    clearValues[0].color = { { 0.0f, 0.0f, 0.0f, 1.0f } };
+    const auto& debug = RendererDebug::Get();
+    if (debug.IsMinimalRendererActive()) {
+        const auto& s = debug.GetSettings();
+        clearValues[0].color = { { s.clearColorR, s.clearColorG, s.clearColorB, s.clearColorA } };
+    } else {
+        clearValues[0].color = { { 0.0f, 0.0f, 0.0f, 1.0f } };
+    }
     // Reverse-Z: clear to far depth (0.0), geometry writes toward 1.0 near camera.
     clearValues[1].depthStencil = { 0.0f, 0 };
 

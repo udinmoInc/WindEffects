@@ -30,7 +30,16 @@ constexpr float kOzoneWidthKm = 8.0f;
 constexpr float kSunAngularRadius = 0.004675f;
 constexpr int kAtmosphereSteps = 32;
 constexpr int kSunTransmittanceSteps = 16;
-constexpr float kSkyRadianceScale = 22.0f;
+constexpr float kSkyRadianceScale = 6.0f;
+
+glm::vec3 ViewDirFromSkyViewUV(const glm::vec2& uv, const glm::vec3& sunDir) {
+    const float viewZenith = uv.y * kPi;
+    const float azimuthOffset = uv.x * 2.0f * kPi;
+    const float sunAzimuth = std::atan2(sunDir.z, sunDir.x);
+    const float azimuth = sunAzimuth + azimuthOffset;
+    const float sinTheta = std::sin(viewZenith);
+    return glm::vec3(sinTheta * std::cos(azimuth), std::cos(viewZenith), sinTheta * std::sin(azimuth));
+}
 
 struct AtmosParams {
     glm::vec3 rayleigh;
@@ -195,10 +204,9 @@ float Smoothstep(float edge0, float edge1, float x) {
 
 glm::vec3 ComputeSunDisk(const glm::vec3& viewDir, const glm::vec3& sunDir, const AtmosParams& p) {
     const float cosAngle = glm::dot(glm::normalize(viewDir), glm::normalize(sunDir));
-    const float cosRadius = std::cos(p.sunAngularRadius);
-    const float disk = Smoothstep(cosRadius, cosRadius + 0.00035f, cosAngle);
-    const float glow = std::pow(glm::clamp(glm::dot(viewDir, sunDir), 0.0f, 1.0f), 512.0f) * p.sunIntensity * 0.06f;
-    return p.sunColor * p.sunIntensity * kSkyRadianceScale * (disk * 12.0f + glow);
+    const float cosRadius = std::cos(std::max(p.sunAngularRadius, kSunAngularRadius));
+    const float disk = Smoothstep(cosRadius - 0.00015f, cosRadius, cosAngle);
+    return p.sunColor * p.sunIntensity * kSkyRadianceScale * disk;
 }
 
 glm::vec3 WorldToAtmosphereKm(const glm::vec3& worldPos, const glm::vec3& worldOrigin) {
@@ -589,16 +597,30 @@ bool AtmosphereLUTGenerator::GenerateCPU(const SceneEnvironmentUniform& environm
     std::vector<float> transmittance(m_Dimensions.transmittanceW * m_Dimensions.transmittanceH * 4, 0.0f);
     for (uint32_t y = 0; y < m_Dimensions.transmittanceH; ++y) {
         for (uint32_t x = 0; x < m_Dimensions.transmittanceW; ++x) {
-            const float hNorm = (static_cast<float>(x) + 0.5f) / static_cast<float>(m_Dimensions.transmittanceW);
-            const float muNorm = (static_cast<float>(y) + 0.5f) / static_cast<float>(m_Dimensions.transmittanceH);
-            const float heightKm = hNorm * (params.atmoR - params.planetR);
-            const float cosZenith = muNorm * 2.0f - 1.0f;
-            const glm::vec3 origin(0.0f, params.planetR + heightKm, 0.0f);
-            const glm::vec3 viewDir(0.0f, cosZenith, std::sqrt(std::max(1.0f - cosZenith * cosZenith, 0.0f)));
+            const float bottomR = params.planetR;
+            const float topR = params.atmoR;
+            const float H = std::sqrt(std::max(topR * topR - bottomR * bottomR, 0.0f));
+
+            const float xMu = (static_cast<float>(x) + 0.5f) / static_cast<float>(m_Dimensions.transmittanceW);
+            const float xR = (static_cast<float>(y) + 0.5f) / static_cast<float>(m_Dimensions.transmittanceH);
+            const float rho = xR * H;
+            const float viewHeightKm = std::sqrt(rho * rho + bottomR * bottomR);
+            const float dMin = topR - viewHeightKm;
+            const float dMax = rho + H;
+            const float d = xMu * (dMax - dMin) + dMin;
+            const float cosZenith = (topR * topR - viewHeightKm * viewHeightKm - d * d)
+                / std::max(2.0f * d * viewHeightKm, 1e-4f);
+
+            const glm::vec3 origin(0.0f, viewHeightKm, 0.0f);
+            const float sinZenith = std::sqrt(std::max(1.0f - cosZenith * cosZenith, 0.0f));
+            const glm::vec3 viewDir(0.0f, cosZenith, sinZenith);
 
             glm::vec3 rd, md, od;
-            const float dist = params.atmoR - glm::length(origin);
-            const glm::vec3 trans = IntegrateOpticalDepth(origin, viewDir, std::max(dist, 0.001f), params, rd, md, od);
+            float t0 = 0.0f;
+            float t1 = 0.0f;
+            IntersectSphere(origin, viewDir, params.atmoR, t0, t1);
+            const float dist = (t0 > 0.0f) ? t0 : std::max(t1, 0.001f);
+            const glm::vec3 trans = IntegrateOpticalDepth(origin, viewDir, dist, params, rd, md, od);
 
             const size_t idx = (y * m_Dimensions.transmittanceW + x) * 4;
             transmittance[idx + 0] = trans.x;
@@ -633,14 +655,9 @@ bool AtmosphereLUTGenerator::GenerateCPU(const SceneEnvironmentUniform& environm
     std::vector<float> skyView(m_Dimensions.skyViewW * m_Dimensions.skyViewH * 4, 0.0f);
     for (uint32_t y = 0; y < m_Dimensions.skyViewH; ++y) {
         for (uint32_t x = 0; x < m_Dimensions.skyViewW; ++x) {
-            const float azimuth = (static_cast<float>(x) + 0.5f) / static_cast<float>(m_Dimensions.skyViewW);
+            const float azimuthOffset = (static_cast<float>(x) + 0.5f) / static_cast<float>(m_Dimensions.skyViewW);
             const float viewZenith = (static_cast<float>(y) + 0.5f) / static_cast<float>(m_Dimensions.skyViewH);
-            const float theta = viewZenith * kPi;
-            const float phi = azimuth * 2.0f * kPi;
-            const glm::vec3 viewDir(
-                std::sin(theta) * std::cos(phi),
-                std::cos(theta),
-                std::sin(theta) * std::sin(phi));
+            const glm::vec3 viewDir = ViewDirFromSkyViewUV(glm::vec2(azimuthOffset, viewZenith), params.sunDir);
 
             glm::vec3 transmittanceToCamera;
             glm::vec3 sky = IntegrateInscattering(viewDir, params.sunDir, skyOrigin, params, transmittanceToCamera);

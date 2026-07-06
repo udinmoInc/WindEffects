@@ -12,6 +12,7 @@
 #endif
 
 #include <cstdint>
+#include <array>
 #include <string>
 #include <vector>
 
@@ -77,6 +78,26 @@ struct HdrBufferStats {
     bool valid = false;
 };
 
+/// Linear HDR/LDR sample at a fixed world-elevation probe (zenith / mid / horizon).
+struct SkyElevationProbe {
+    const char* label = "";
+    float elevationDeg = 0.0f;
+    int pixelX = -1;
+    int pixelY = -1;
+    float r = 0.0f;
+    float g = 0.0f;
+    float b = 0.0f;
+    bool onScreen = false;
+    bool valid = false;
+};
+
+struct SkyProbeFrameReport {
+    SkyElevationProbe hdrProbes[3]{};
+    SkyElevationProbe ldrProbes[3]{};
+    bool hasHdrProbes = false;
+    bool hasLdrProbes = false;
+};
+
 struct PassCheckpointResult {
     RenderPassId pass = RenderPassId::Clear;
     HdrBufferStats stats{};
@@ -105,6 +126,7 @@ struct PipelineInvestigationReport {
     std::string firstFailureReason, minimalFixHint;
     FrameCameraLog cameraLog{};
     FrameExecutionAudit audit{};
+    SkyProbeFrameReport skyProbes{};
     std::vector<PassCheckpointResult> checkpoints;
 };
 
@@ -131,6 +153,7 @@ public:
     RENDERER_API bool ShouldApplyAutoExposure() const;
     RENDERER_API bool ShouldRenderSunDisk() const;
     RENDERER_API void RecordCameraAndEnvironment(const glm::vec3& cameraPos, const SceneEnvironmentUniform& env, float gpuAvgLuminance);
+    RENDERER_API void RecordCameraMatrices(const glm::mat4& view, const glm::mat4& proj);
     RENDERER_API void AuditPassBegin(RenderPassId pass);
     RENDERER_API void AuditPassEnd(RenderPassId pass);
     RENDERER_API void EnqueueCheckpoint(VkCommandBuffer cmd, const VulkanContext& context, VkImage colorImage, uint32_t width, uint32_t height, RenderPassId pass);
@@ -153,8 +176,16 @@ private:
     HdrBufferStats AnalyzePixels(const std::vector<float>& rgba, float maxComponent) const;
     bool ValidateStats(const HdrBufferStats& stats, bool isLdr, std::string& outReason) const;
     void WriteReportFile(const PipelineInvestigationReport& report) const;
+    void WriteSkyProbeReport(const PipelineInvestigationReport& report) const;
+    void LogSkyProbes(const SkyProbeFrameReport& probes) const;
     void LogFrameReport(const PipelineInvestigationReport& report) const;
     HdrBufferStats ReadbackStaging(const VulkanContext& context, const PendingCheckpoint& cp) const;
+    std::vector<float> ReadbackStagingPixels(const VulkanContext& context, const PendingCheckpoint& cp, uint32_t& outWidth, uint32_t& outHeight) const;
+    std::array<SkyElevationProbe, 3> SampleSkyElevationProbes(
+        const std::vector<float>& rgba,
+        uint32_t width,
+        uint32_t height,
+        bool isLdr) const;
     void DestroyPending(const VulkanContext& context);
     void PersistSettings(const RenderPipelineInvestigatorSettings& settings) const;
 
@@ -162,6 +193,9 @@ private:
     PipelineInvestigationReport m_LastReport{};
     FrameCameraLog m_CameraLog{};
     FrameExecutionAudit m_Audit{};
+    glm::mat4 m_CameraView{1.0f};
+    glm::mat4 m_CameraProj{1.0f};
+    bool m_HasCameraMatrices = false;
     std::vector<PendingCheckpoint> m_Pending{};
     int m_WarmupRemaining = 0;
     bool m_ShouldHalt = false;

@@ -5,12 +5,11 @@
 #include "SkyAtmosphere.hlsli"
 #include "../Common/Color.hlsli"
 
-// Transmittance LUT: X = height (0..atmosphere top), Y = cos(view zenith)
+// Transmittance LUT: UE5 distance/height parameterization.
 float2 WE_TransmittanceLUTCoord(float heightKm, float cosZenith, WE_AtmosphereParams params)
 {
-    const float hNorm = saturate(heightKm / max(params.atmosphereRadius - params.planetRadius, 1.0));
-    const float muNorm = cosZenith * 0.5 + 0.5;
-    return float2(hNorm, muNorm);
+    const float viewHeightKm = params.planetRadius + max(heightKm, 0.0);
+    return WE_LutTransmittanceParamsToUv(viewHeightKm, cosZenith, params);
 }
 
 float3 WE_SampleTransmittanceLUT(
@@ -36,17 +35,15 @@ float3 WE_SampleMultiScatteringLUT(
     return lut.SampleLevel(samp, uv, 0.0).rgb;
 }
 
-// SkyView LUT is baked in world-spherical coordinates (matches AtmosphereLUTGen pass 2).
+// SkyView LUT: sun-relative azimuth (U) and normalized zenith angle (V).
 float3 WE_SampleSkyViewLUT(
     Texture2D lut,
     SamplerState samp,
-    float3 viewDir)
+    float3 viewDir,
+    float3 sunDir)
 {
-    const float3 vd = normalize(viewDir);
-    const float viewZenith = acos(saturate(vd.y)) / WE_PI;
-    const float azimuth = atan2(vd.z, vd.x) / (2.0 * WE_PI);
-    const float azimuthWrapped = azimuth < 0.0 ? azimuth + 1.0 : azimuth;
-    const float2 uv = float2(azimuthWrapped, viewZenith);
+    float viewZenithAngle = 0.0;
+    const float2 uv = WE_SkyViewLUTCoord(viewDir, sunDir, viewZenithAngle);
     float3 sample = lut.SampleLevel(samp, uv, 0.0).rgb;
     sample = WE_SanitizeHdrColor(sample);
     return max(sample, 0.0);
@@ -96,10 +93,9 @@ float3 WE_SampleSkyAtmosphereLUT(
         sunLinear, sunIntensity, sunAngularRadius);
 
     const float3 origin = WE_GetAtmosphereOrigin(cameraPos, worldOrigin, params.planetRadius, params.eyeAltitude);
-    const float heightKm = max(length(origin) - params.planetRadius, 0.0);
 
-    // Primary sky radiance from baked SkyView LUT (world-spherical UV, includes inscattering).
-    float3 sky = WE_SampleSkyViewLUT(skyViewLUT, lutSampler, viewDir);
+    // Primary sky radiance from baked SkyView LUT (sun-relative UV, includes inscattering).
+    float3 sky = WE_SampleSkyViewLUT(skyViewLUT, lutSampler, viewDir, sunDir);
 
     // Sun disk is rendered at runtime (not baked into SkyView LUT).
     if (enableSunDisk >= 0.5)
