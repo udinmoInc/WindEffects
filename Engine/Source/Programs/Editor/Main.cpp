@@ -10,6 +10,7 @@
 #include "Core/BuildPaths.hpp"
 #include "Renderer/AtmosphereValidation.hpp"
 #include "Renderer/RenderPipelineInvestigator.hpp"
+#include "Renderer/RendererDebug.hpp"
 #include "Renderer/RenderForensics.hpp"
 
 #if defined(_WIN32)
@@ -48,6 +49,12 @@ int main(int argc, char* argv[]) {
         we::runtime::core::Logger::Init();
         SetWorkingDirectoryToExecutable();
         ConfigureModuleSearchPath();
+
+        we::runtime::renderer::RendererDebug::Get().InitializeFromEnvironment(argc, argv);
+        if (we::runtime::renderer::RendererDebug::Get().IsMinimalRendererActive()) {
+            HE_INFO("[Startup] Minimal renderer active (environment/lighting/post disabled). "
+                    "Set WE_MINIMAL_RENDERER_STAGE=0..9 to re-enable features cumulatively.");
+        }
 
         const auto validationSettings =
             we::runtime::renderer::AtmosphereValidation::ParseCommandLine(argc, argv);

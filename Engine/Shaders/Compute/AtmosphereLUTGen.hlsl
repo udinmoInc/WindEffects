@@ -40,12 +40,23 @@ void CSMain(uint3 dtid : SV_DispatchThreadID)
         if (dtid.x >= WE_TRANSMITTANCE_LUT_WIDTH || dtid.y >= WE_TRANSMITTANCE_LUT_HEIGHT)
             return;
 
-        const float hNorm = (float(dtid.x) + 0.5) / float(WE_TRANSMITTANCE_LUT_WIDTH);
-        const float muNorm = (float(dtid.y) + 0.5) / float(WE_TRANSMITTANCE_LUT_HEIGHT);
-        const float heightKm = hNorm * (params.atmosphereRadius - params.planetRadius);
-        const float cosZenith = muNorm * 2.0 - 1.0;
-        const float3 origin = float3(0.0, params.planetRadius + heightKm, 0.0);
-        const float3 viewDir = float3(0.0, cosZenith, sqrt(max(1.0 - cosZenith * cosZenith, 0.0)));
+        const float bottomR = params.planetRadius;
+        const float topR = params.atmosphereRadius;
+        const float H = sqrt(max(topR * topR - bottomR * bottomR, 0.0));
+
+        const float xMu = (float(dtid.x) + 0.5) / float(WE_TRANSMITTANCE_LUT_WIDTH);
+        const float xR = (float(dtid.y) + 0.5) / float(WE_TRANSMITTANCE_LUT_HEIGHT);
+        const float rho = xR * H;
+        const float viewHeightKm = sqrt(rho * rho + bottomR * bottomR);
+        const float dMin = topR - viewHeightKm;
+        const float dMax = rho + H;
+        const float d = xMu * (dMax - dMin) + dMin;
+        const float cosZenith = (topR * topR - viewHeightKm * viewHeightKm - d * d) / max(2.0 * d * viewHeightKm, 1e-4);
+
+        const float heightKm = max(viewHeightKm - bottomR, 0.0);
+        const float3 origin = float3(0.0, viewHeightKm, 0.0);
+        const float sinZenith = sqrt(max(1.0 - cosZenith * cosZenith, 0.0));
+        const float3 viewDir = float3(0.0, cosZenith, sinZenith);
 
         float3 rd, md, od;
         const float dist = WE_AtmosphereShellExitDistance(origin, viewDir, params.atmosphereRadius);
@@ -78,11 +89,9 @@ void CSMain(uint3 dtid : SV_DispatchThreadID)
         if (dtid.x >= WE_SKYVIEW_LUT_WIDTH || dtid.y >= WE_SKYVIEW_LUT_HEIGHT)
             return;
 
-        const float azimuth = (float(dtid.x) + 0.5) / float(WE_SKYVIEW_LUT_WIDTH);
+        const float azimuthOffset = (float(dtid.x) + 0.5) / float(WE_SKYVIEW_LUT_WIDTH);
         const float viewZenith = (float(dtid.y) + 0.5) / float(WE_SKYVIEW_LUT_HEIGHT);
-        const float theta = viewZenith * WE_PI;
-        const float phi = azimuth * 2.0 * WE_PI;
-        const float3 viewDir = float3(sin(theta) * cos(phi), cos(theta), sin(theta) * sin(phi));
+        const float3 viewDir = WE_ViewDirFromSkyViewUV(float2(azimuthOffset, viewZenith), sunDir);
 
         const float3 planetCenter = float3(0.0, -params.planetRadius, 0.0);
         const float3 origin = float3(0.0, params.eyeAltitude, 0.0) - planetCenter;

@@ -3,6 +3,7 @@
 #include "Environment/EnvironmentLighting.h"
 #include "Environment/EnvironmentManager.h"
 #include "Renderer/SceneRenderer.hpp"
+#include "Renderer/RendererDebug.hpp"
 #include "Renderer/FrameStats.hpp"
 #include "Core/Logger.hpp"
 #include "Core/LogCategory.hpp"
@@ -591,6 +592,10 @@ void EnvironmentSystem::SyncToScene() {
 
 void EnvironmentSystem::UpdateRendering(const glm::vec3& cameraPosition) {
 #if WE_HAS_VULKAN
+    if (!we::runtime::renderer::RendererDebug::Get().ShouldUploadEnvironmentUniform()) {
+        return;
+    }
+
     m_Manager.UpdateDerivedState(m_Sun, m_SkyLight, m_HeightFog, m_SkyAtmosphere, cameraPosition);
 
     if (auto renderer = m_Renderer.lock()) {

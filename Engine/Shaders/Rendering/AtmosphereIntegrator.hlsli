@@ -44,12 +44,28 @@ float3 WE_IntegrateSunTransmittance(float3 samplePosRel, float3 sunDir, WE_Atmos
     return WE_IntegrateOpticalDepth(samplePosRel, sunDir, max(dist, 0.001), params, rd, md, od);
 }
 
+float3 WE_IntegrateSunTransmittanceLUT(
+    float3 samplePosRel,
+    float3 sunDir,
+    WE_AtmosphereParams params,
+    Texture2D transmittanceLUT,
+    SamplerState lutSampler)
+{
+    const float viewHeightKm = max(length(samplePosRel), params.planetRadius);
+    const float3 upVector = samplePosRel / max(length(samplePosRel), 1e-4);
+    const float viewZenithCosAngle = dot(normalize(sunDir), upVector);
+    const float2 uv = WE_LutTransmittanceParamsToUv(viewHeightKm, viewZenithCosAngle, params);
+    return transmittanceLUT.SampleLevel(lutSampler, uv, 0.0).rgb;
+}
+
 struct WE_InscatteringResult
 {
     float3 skyRadiance;
     float3 transmittanceToCamera;
     float3 rayleighContribution;
     float3 mieContribution;
+    float3 multiScatterContribution;
+    float3 sunDiskContribution;
     float3 opticalDepth;
     float  rayDistanceKm;
 };
@@ -65,6 +81,8 @@ WE_InscatteringResult WE_IntegrateInscatteringDetailed(
     result.transmittanceToCamera = float3(1.0, 1.0, 1.0);
     result.rayleighContribution = float3(0.0, 0.0, 0.0);
     result.mieContribution = float3(0.0, 0.0, 0.0);
+    result.multiScatterContribution = float3(0.0, 0.0, 0.0);
+    result.sunDiskContribution = float3(0.0, 0.0, 0.0);
     result.opticalDepth = float3(0.0, 0.0, 0.0);
     result.rayDistanceKm = 0.0;
 
@@ -124,8 +142,8 @@ WE_InscatteringResult WE_IntegrateInscatteringDetailed(
     const float3 sunRadiance = params.sunColor * params.sunIntensity;
     result.rayleighContribution = WE_SKY_RADIANCE_SCALE * sunRadiance * sumRayleigh * phaseR * params.rayleighCoeff;
     result.mieContribution = WE_SKY_RADIANCE_SCALE * sunRadiance * sumMie * phaseM * params.mieCoeff;
-    result.skyRadiance = result.rayleighContribution + result.mieContribution
-        + WE_SKY_RADIANCE_SCALE * sunRadiance * multiScatter;
+    result.multiScatterContribution = WE_SKY_RADIANCE_SCALE * sunRadiance * multiScatter;
+    result.skyRadiance = result.rayleighContribution + result.mieContribution + result.multiScatterContribution;
     return result;
 }
 
@@ -143,11 +161,10 @@ float3 WE_IntegrateInscattering(
 
 float3 WE_ComputeSunDisk(float3 viewDir, float3 sunDir, float intensity, float3 sunColor, float angularRadius)
 {
-    const float cosAngle = dot(normalize(viewDir), normalize(sunDir));
-    const float cosRadius = cos(angularRadius);
-    const float disk = smoothstep(cosRadius, cosRadius + 0.00035, cosAngle);
-    const float glow = pow(saturate(dot(viewDir, sunDir)), 512.0) * intensity * 0.06;
-    return sunColor * intensity * WE_SKY_RADIANCE_SCALE * (disk * 12.0 + glow);
+    const float disk = WE_ComputeSunDiskMask(viewDir, sunDir, max(angularRadius, WE_SUN_ANGULAR_RADIUS));
+    const float3 sunLinear = max(sunColor, float3(0.0, 0.0, 0.0));
+    // Match inscattering radiance scale; mask confines this to ~0.53 degrees.
+    return sunLinear * max(intensity, 0.0) * WE_SKY_RADIANCE_SCALE * disk;
 }
 
 #endif // WE_ATMOSPHERE_INTEGRATOR_HLSLI

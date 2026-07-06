@@ -1,4 +1,5 @@
 #include "Scene/Scene.hpp"
+#include "Renderer/RendererDebug.hpp"
 #include "Core/Logger.hpp"
 #if WE_HAS_GLM
 #include <glm/glm.hpp>
@@ -295,7 +296,11 @@ void Scene::Draw(VkCommandBuffer cmd, DrawMode drawMode) const {
         default:
             break;
         }
-        m_Renderer->DrawMesh(cmd, MeshNameForEntityType(entity.Type), entity.DescriptorSet, entity.Mode);
+        int drawMode = entity.Mode;
+        if (!we::runtime::renderer::RendererDebug::Get().ShouldUseDirectionalLighting()) {
+            drawMode = 1;
+        }
+        m_Renderer->DrawMesh(cmd, MeshNameForEntityType(entity.Type), entity.DescriptorSet, drawMode);
     }
 }
 

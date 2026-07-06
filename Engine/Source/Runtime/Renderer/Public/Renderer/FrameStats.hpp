@@ -4,6 +4,10 @@
 #include <cstdint>
 #include <string>
 #include <vector>
+#if WE_HAS_GLM
+#include <glm/glm.hpp>
+#include "Renderer/SceneEnvironmentUniform.hpp"
+#endif
 
 namespace we::runtime::renderer {
 
@@ -12,6 +16,28 @@ struct FramePassRecord {
     std::string status = "pending";
     double cpuMs = 0.0;
 };
+
+#if WE_HAS_GLM
+struct AtmosphereFrameProbe {
+    glm::vec3 cameraForward{ 0.0f };
+    glm::vec3 viewDirection{ 0.0f, 1.0f, 0.0f };
+    float viewDirectionLength = 1.0f;
+    glm::vec3 sunDirection{ 0.0f, 1.0f, 0.0f };
+    float sunDirectionLength = 1.0f;
+    float viewSunDot = 0.0f;
+    float viewZenithAngle = 0.0f;
+    glm::vec2 skyViewUV{ 0.0f };
+    glm::vec2 transmittanceUV{ 0.0f };
+    float sunAngularRadius = 0.004675f;
+    float sunDiskMask = 0.0f;
+    glm::vec3 rayleighRGB{ 0.0f };
+    glm::vec3 mieRGB{ 0.0f };
+    glm::vec3 multiScatterRGB{ 0.0f };
+    glm::vec3 sunRGB{ 0.0f };
+    glm::vec3 finalHdrRGB{ 0.0f };
+    bool valid = false;
+};
+#endif
 
 struct FrameStats {
     double cpuFrameMs = 0.0;
@@ -40,6 +66,9 @@ struct FrameStats {
     float manualExposureEV = 0.0f;
     float sunDerivedExposureEV = 0.0f;
     float effectiveExposureEV = 0.0f;
+#if WE_HAS_GLM
+    AtmosphereFrameProbe atmosphereProbe{};
+#endif
 };
 
 class FrameStatsCollector {
@@ -62,6 +91,16 @@ public:
         float manualExposureEV,
         float sunDerivedExposureEV,
         float effectiveExposureEV);
+
+#if WE_HAS_GLM
+    RENDERER_API void SetAtmosphereProbe(const AtmosphereFrameProbe& probe);
+    RENDERER_API AtmosphereFrameProbe ComputeAtmosphereProbe(
+        const glm::mat4& view,
+        const glm::mat4& proj,
+        const glm::vec3& cameraPos,
+        const glm::vec3& cameraForward,
+        const SceneEnvironmentUniform& env);
+#endif
 
     RENDERER_API const FrameStats& GetStats() const;
     RENDERER_API std::string GetOverlayText() const;

@@ -69,6 +69,7 @@ foreach ($shader in $shaders) {
 }
 
 $copyTargets = @(
+    (Join-Path $EngineRoot "..\Build\Output\Win64\Debug\Engine\Shaders\Bytecodes"),
     (Join-Path $EngineRoot "..\Build\Output\Win64\Development\Engine\Shaders\Bytecodes"),
     (Join-Path $EngineRoot "..\Build\Output\Win64\Shipping\Engine\Shaders\Bytecodes"),
     (Join-Path $EngineRoot "..\Assets\Shaders")

@@ -7,8 +7,10 @@
 #include "Core/LogCategory.hpp"
 #include "Renderer/RenderDiagnostics.hpp"
 #include "Renderer/FrameStats.hpp"
+#include "Renderer/AtmosphereRadianceTracer.hpp"
 #include "Renderer/AtmosphereValidation.hpp"
 #include "Renderer/RenderPipelineInvestigator.hpp"
+#include "Renderer/RendererDebug.hpp"
 #include "Renderer/RenderForensics.hpp"
 #include "Renderer/Shader/ShaderLibrary.hpp"
 #include "Renderer/Shader/ShaderTypes.hpp"
@@ -22,6 +24,9 @@
 #include "Layout/Splitter.hpp"
 #include "Layout/OverlayManager.hpp"
 #include "Core/Icon.hpp"
+
+#include <cstring>
+#include <cstdlib>
 
 // Feature-module widgets (linked via delay-load)
 #include "Widgets/TitleBar.hpp"
@@ -133,12 +138,16 @@ Editor::Editor(SDL_Window* window) : m_Window(window) {
     m_SceneRenderer->InvalidateCloudTemporalHistory();
     we::runtime::world::environment::EnvironmentSystem::Get().UpdateRendering(m_Camera->GetPosition());
 
-    m_SceneRenderer->PrepareAtmosphereLUTs(VK_NULL_HANDLE);
-    if (!m_SceneRenderer->AreAtmosphereLUTsReady()) {
-        HE_ERROR("[Startup] Atmosphere LUTs not ready after initialization.");
-        m_SceneRenderer->LogAtmospherePipelineDiagnostics();
+    if (!we::runtime::renderer::RendererDebug::Get().IsMinimalRendererActive()) {
+        m_SceneRenderer->PrepareAtmosphereLUTs(VK_NULL_HANDLE);
+        if (!m_SceneRenderer->AreAtmosphereLUTsReady()) {
+            HE_ERROR("[Startup] Atmosphere LUTs not ready after initialization.");
+            m_SceneRenderer->LogAtmospherePipelineDiagnostics();
+        } else {
+            HE_INFO("[Startup] Atmosphere LUTs initialized successfully.");
+        }
     } else {
-        HE_INFO("[Startup] Atmosphere LUTs initialized successfully.");
+        HE_INFO("[Startup] Minimal renderer: skipped atmosphere LUT initialization.");
     }
 
     {
@@ -150,10 +159,13 @@ Editor::Editor(SDL_Window* window) : m_Window(window) {
         startup.RegisterCheck("SceneRendererPipelines", [this](std::string& detail) {
             const bool pipeline = m_SceneRenderer->IsSkyPipelineCreated();
             const bool luts = m_SceneRenderer->AreAtmosphereLUTsReady();
-            detail = pipeline
-                ? (luts ? "Sky pipeline and LUTs ready" : "Sky pipeline created, LUTs not ready")
-                : "Sky pipeline missing";
-            return pipeline && luts;
+            const bool minimal = we::runtime::renderer::RendererDebug::Get().IsMinimalRendererActive();
+            detail = minimal
+                ? "Minimal renderer (clear + unlit geometry)"
+                : (pipeline
+                    ? (luts ? "Sky pipeline and LUTs ready" : "Sky pipeline created, LUTs not ready")
+                    : "Sky pipeline missing");
+            return minimal || (pipeline && luts);
         });
         startup.RegisterCheck("ShaderBytecodes", [](std::string& detail) {
             const auto atmosphere = ShaderLibrary::Get().GetBytecode("AtmospherePass", ShaderStage::Pixel);
@@ -1027,6 +1039,31 @@ void Editor::MainLoop() {
             const auto& sceneEnv = m_SceneRenderer->GetSceneEnvironment();
             forensics.RecordCameraAndEnvironment(cameraUBO.pos, m_Camera->GetForward(), sceneEnv, 0.0f);
             pipelineInv.RecordCameraAndEnvironment(cameraUBO.pos, sceneEnv, 0.0f);
+            pipelineInv.RecordCameraMatrices(cameraUBO.view, cameraUBO.proj);
+            if (!we::runtime::renderer::RendererDebug::Get().IsMinimalRendererActive()) {
+                const auto probe = we::runtime::renderer::FrameStatsCollector::Get().ComputeAtmosphereProbe(
+                    cameraUBO.view, cameraUBO.proj, cameraUBO.pos, m_Camera->GetForward(), sceneEnv);
+                we::runtime::renderer::FrameStatsCollector::Get().SetAtmosphereProbe(probe);
+            }
+
+            if (!we::runtime::renderer::RendererDebug::Get().IsMinimalRendererActive()) {
+                static bool radianceTraceEnabled = []() {
+                    if (const char* env = std::getenv("WE_ATMOSPHERE_RADIANCE_TRACE")) {
+                        return env[0] == '1' || std::strcmp(env, "true") == 0;
+                    }
+                    return false;
+                }();
+                if (radianceTraceEnabled || frameNumber == 1 || frameNumber % 300 == 0) {
+                    we::runtime::renderer::AtmosphereRadianceTracer::Get().LogStandardTrace(
+                        cameraUBO.view,
+                        cameraUBO.proj,
+                        cameraUBO.pos,
+                        m_Camera->GetForward(),
+                        m_Camera->GetRight(),
+                        m_Camera->GetUp(),
+                        sceneEnv);
+                }
+            }
 
             const bool atmosphereValidation = we::runtime::renderer::AtmosphereValidation::Get().IsActive();
             const bool forensicReadback = forensics.IsReadbackEnabled();
@@ -1050,7 +1087,9 @@ void Editor::MainLoop() {
                 clearMeta.outputTarget = "OffscreenColor";
                 clearMeta.width = vpW;
                 clearMeta.height = vpH;
-                clearMeta.clearColor = "0,0,0,1";
+                clearMeta.clearColor = we::runtime::renderer::RendererDebug::Get().IsMinimalRendererActive()
+                    ? "0.12,0.12,0.12,1"
+                    : "0,0,0,1";
                 clearMeta.loadOp = "CLEAR";
                 clearMeta.storeOp = "STORE";
                 clearMeta.depthState = "CLEAR 0.0 reverse-Z";
