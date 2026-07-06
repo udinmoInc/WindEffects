@@ -5,6 +5,20 @@ param(
 
 $ErrorActionPreference = "Stop"
 
+# Keep NuGet / .NET tooling on the repo drive (F:) — avoid C: AppData when space is tight.
+$WeRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
+$ToolchainDir = Join-Path $WeRoot ".toolchain"
+$env:NUGET_PACKAGES = Join-Path $WeRoot ".nuget\packages"
+$env:NUGET_HTTP_CACHE_PATH = Join-Path $ToolchainDir "nuget-http-cache"
+$env:DOTNET_CLI_HOME = Join-Path $ToolchainDir "dotnet-cli"
+$env:DOTNET_SKIP_FIRST_TIME_EXPERIENCE = "1"
+$env:DOTNET_NOLOGO = "1"
+foreach ($dir in @($env:NUGET_PACKAGES, $env:NUGET_HTTP_CACHE_PATH, $env:DOTNET_CLI_HOME)) {
+    if (-not (Test-Path -LiteralPath $dir)) {
+        New-Item -ItemType Directory -Path $dir -Force | Out-Null
+    }
+}
+
 $DescriptorFileName = "WindEffects.engine"
 
 function Read-IniDocument {
