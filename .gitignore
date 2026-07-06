@@ -132,6 +132,7 @@ conanbuild/
 conaninfo.txt
 vcpkg_installed/
 .nuget/
+.toolchain/
 
 # ==========================
 # Operating System
