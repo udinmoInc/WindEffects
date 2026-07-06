@@ -19,7 +19,7 @@ public:
     RenderGraph(const RenderGraph&) = delete;
     RenderGraph& operator=(const RenderGraph&) = delete;
 
-    RENDERER_API void BeginOffscreenPass(VkCommandBuffer cmd) const;
+    RENDERER_API void BeginOffscreenPass(VkCommandBuffer cmd, bool clearColor = true) const;
     RENDERER_API void EndOffscreenPass(VkCommandBuffer cmd) const;
 
     RENDERER_API void BeginSwapchainPass(VkCommandBuffer cmd) const;

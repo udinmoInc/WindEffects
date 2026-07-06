@@ -42,6 +42,7 @@ cbuffer EnvironmentBuffer : register(WE_ENVIRONMENT_BUFFER_REGISTER, space0)
     float  bloomThreshold;
     float  enableAutoExposure;
     int    atmosphereDebugMode;
+    int    pipelineBypassToneMapping;
 };
 
 #endif // WE_ENVIRONMENT_BUFFER_HLSLI

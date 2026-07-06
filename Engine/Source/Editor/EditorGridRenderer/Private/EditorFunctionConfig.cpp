@@ -161,6 +161,9 @@ std::unordered_map<std::string, std::string> EditorFunctionConfig::BuildDefaultE
     entries.emplace("EditorGrid.DepthOffset", FloatToString(defaults.depthOffset));
     entries.emplace("EditorGrid.RadiusFadeStart", FloatToString(defaults.radiusFadeStart));
     entries.emplace("EditorGrid.RadiusFadeEnd", FloatToString(defaults.radiusFadeEnd));
+    entries.emplace("EditorGrid.DistanceFadeStart", FloatToString(defaults.distanceFadeStart));
+    entries.emplace("EditorGrid.DistanceFadeEnd", FloatToString(defaults.distanceFadeEnd));
+    entries.emplace("EditorGrid.HorizonGuardNdcMargin", FloatToString(defaults.horizonGuardNdcMargin));
     return entries;
 }
 
@@ -326,6 +329,11 @@ void EditorFunctionConfig::ApplyValues(const std::unordered_map<std::string, std
     config.depthOffset = ParseFloat(get("EditorGrid.DepthOffset"), config.depthOffset);
     config.radiusFadeStart = std::clamp(ParseFloat(get("EditorGrid.RadiusFadeStart"), config.radiusFadeStart), 0.0f, 1.0f);
     config.radiusFadeEnd = std::clamp(ParseFloat(get("EditorGrid.RadiusFadeEnd"), config.radiusFadeEnd), config.radiusFadeStart, 1.0f);
+    config.distanceFadeStart = std::max(0.0f, ParseFloat(get("EditorGrid.DistanceFadeStart"), config.distanceFadeStart));
+    config.distanceFadeEnd = std::max(config.distanceFadeStart + 1.0f,
+        ParseFloat(get("EditorGrid.DistanceFadeEnd"), config.distanceFadeEnd));
+    config.horizonGuardNdcMargin = std::max(0.0f,
+        ParseFloat(get("EditorGrid.HorizonGuardNdcMargin"), config.horizonGuardNdcMargin));
 
     m_GridConfig = config;
 }

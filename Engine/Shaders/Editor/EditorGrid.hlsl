@@ -18,12 +18,12 @@ cbuffer GridSettings : register(b0, space0)
     float4 axisZColor;      // rgba
 
     float4 renderParams0;   // x=renderRadius, y=planeHeight, z=lineThicknessMinor, w=lineThicknessMajor
-    float4 renderParams1;   // x=baseOpacity, y=lineThicknessAxis, w=antiAliasScale
+    float4 renderParams1;   // x=baseOpacity, y=lineThicknessAxis, z=horizonGuardNdcMargin, w=antiAliasScale
     float4 renderParams2;   // x=depthBiasConstant, y=depthBiasSlope, z=cameraDistance, w=radiusFadeStart
     float4 snappedOrigin;   // xyz = snapped center, w = cull radius
 
     int4   gridFlags;       // x=enableGrid, y=enableAxis, z=antiAliasingEnabled
-    float4 depthParams;     // x=depthOffset, y=radiusFadeEnd
+    float4 depthParams;     // x=depthOffset, y=radiusFadeEnd, z=distanceFadeStart, w=distanceFadeEnd
 };
 
 cbuffer CameraBuffer : register(b0, space1)
@@ -111,14 +111,21 @@ PSOutput PSMain(VSOutput input)
     const float groundY      = planeHeight + depthOffset;
     const float renderRadius = renderParams0.x;
 
-    if (abs(input.farPoint.y - input.nearPoint.y) < 1e-6)
+    float3 viewRay = input.farPoint - input.nearPoint;
+    const float viewRayLen = length(viewRay);
+    if (viewRayLen < 1e-6)
+        discard;
+    const float3 viewRayDir = viewRay / viewRayLen;
+
+    // Sky / above-horizon rays never hit the ground in front of the camera.
+    if (viewRayDir.y >= -1e-5)
         discard;
 
-    const float t = (groundY - input.nearPoint.y) / (input.farPoint.y - input.nearPoint.y);
+    const float t = (groundY - input.nearPoint.y) / viewRay.y;
     if (t < 0.0)
         discard;
 
-    const float3 fragPos = input.nearPoint + t * (input.farPoint - input.nearPoint);
+    const float3 fragPos = input.nearPoint + t * viewRay;
     const float2 worldXZ = fragPos.xz;
     const float2 localXZ = worldXZ - float2(snappedOrigin.x, snappedOrigin.z);
     const float radialDist = length(localXZ);
@@ -126,6 +133,24 @@ PSOutput PSMain(VSOutput input)
 
     if (radialDist > snappedOrigin.w)
         discard;
+
+    // Screen-space horizon guard: never draw where the ground plane projects above the eye-level horizon.
+    const float heightAboveGround = cameraPos.y - groundY;
+    if (heightAboveGround > 1e-3)
+    {
+        const float tHorizon = heightAboveGround / max(-viewRayDir.y, 1e-5);
+        const float3 horizonPos = cameraPos + viewRayDir * tHorizon;
+        const float4 horizonClip = mul(proj, mul(view, float4(horizonPos, 1.0)));
+        const float4 fragClip = mul(proj, mul(view, float4(fragPos, 1.0)));
+        if (horizonClip.w > 1e-4 && fragClip.w > 1e-4)
+        {
+            const float horizonNdcY = horizonClip.y / horizonClip.w;
+            const float fragNdcY = fragClip.y / fragClip.w;
+            const float horizonMargin = max(renderParams1.z, 0.0);
+            if (fragNdcY <= horizonNdcY + horizonMargin)
+                discard;
+        }
+    }
 
     const bool useAA = (gridFlags.z != 0);
     const float camDist = renderParams2.z;
@@ -196,8 +221,10 @@ PSOutput PSMain(VSOutput input)
         }
     }
 
-    // Fade grid opacity with physical distance (no hard clipping / no shimmery cutoff).
-    const float distanceFade = exp(-distToCamera * 0.0032);
+    // World-space distance fade — fully transparent beyond the configured end radius.
+    const float distFadeStart = max(depthParams.z, 0.0);
+    const float distFadeEnd = max(depthParams.w, distFadeStart + 1.0);
+    const float distanceFade = 1.0 - smoothstep(distFadeStart, distFadeEnd, distToCamera);
     alpha = saturate(alpha * renderParams1.x * edgeFade * distanceFade);
 
     // Output linear HDR — global PostExposure pass applies exposure, tonemap, and sRGB once.

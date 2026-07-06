@@ -2,6 +2,7 @@
 
 #include "Environment/EnvironmentManager.h"
 #include "Renderer/AtmosphereValidation.hpp"
+#include "Renderer/RenderPipelineInvestigator.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -130,6 +131,7 @@ we::runtime::renderer::SceneEnvironmentUniform BuildSceneEnvironmentUniform(
     uniform.atmosphereDebugMode = atmosphere.AtmosphereDebugMode;
 #if WE_HAS_VULKAN
     we::runtime::renderer::AtmosphereValidation::Get().ApplyEnvironmentOverrides(uniform);
+    we::runtime::renderer::RenderPipelineInvestigator::Get().ApplyEnvironmentOverrides(uniform);
 #endif
     return uniform;
 }

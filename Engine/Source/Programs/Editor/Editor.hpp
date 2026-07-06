@@ -23,6 +23,10 @@
 #include "Widgets/TitleBar.hpp"
 #include "EditorWindowHitTest.hpp"
 
+namespace we::UI {
+class RenderDiagnosticsPanel;
+}
+
 namespace we::programs::editor {
 class Editor {
 public:
@@ -64,6 +68,7 @@ private:
     std::shared_ptr<we::UI::Widget> m_ViewportWidget;
     std::shared_ptr<we::UI::StatusBar> m_StatusBar;
     std::shared_ptr<we::UI::TitleBar> m_TitleBar;
+    std::shared_ptr<we::UI::RenderDiagnosticsPanel> m_RenderDiagnosticsPanel;
     we::editor::mainframe::EditorWindowHitTestData m_WindowHitTestData{};
 
     void EnsureVisibleSwapchain();

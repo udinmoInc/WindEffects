@@ -54,6 +54,7 @@ struct SceneEnvironmentUniform {
     float bloomThreshold = 0.85f;
     float enableAutoExposure = 0.0f;
     int atmosphereDebugMode = 0;
+    int pipelineBypassToneMapping = 0;
 };
 
 } // namespace we::runtime::renderer

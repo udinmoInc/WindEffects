@@ -2,6 +2,7 @@
 #include "Renderer/RenderDiagnostics.hpp"
 #include "Renderer/FrameStats.hpp"
 #include "Renderer/ShaderHelper.hpp"
+#include "Renderer/RenderForensics.hpp"
 #include "Core/DiagnosticMacros.hpp"
 #include "Core/LogCategory.hpp"
 
@@ -365,6 +366,30 @@ void PostProcessStack::Apply(
     writeImage(m_SceneSampleSet, 0, sceneImageView, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_IMAGE_LAYOUT_GENERAL);
     writeImage(m_StorageSetA, 0, m_LuminanceTiles.view, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, VK_IMAGE_LAYOUT_GENERAL);
 
+    auto& forensics = RenderForensics::Get();
+    const bool forensicActive = forensics.IsActive();
+    int lumExec = -1;
+    int bloomExec = -1;
+    int exposureExec = -1;
+    int toneMapExec = -1;
+
+    if (forensicActive) {
+        ForensicPassMetadata lumMeta{};
+        lumMeta.inputTarget = "OffscreenColor";
+        lumMeta.outputTarget = "LuminanceTiles";
+        lumMeta.width = width;
+        lumMeta.height = height;
+        lumMeta.format = "R16G16B16A16_SFLOAT";
+        lumMeta.inputLayout = "GENERAL";
+        lumMeta.outputLayout = "GENERAL";
+        lumMeta.loadOp = "LOAD";
+        lumMeta.storeOp = "STORE";
+        lumMeta.pipelineName = "LuminanceReduce";
+        lumMeta.computeShader = "LuminanceReduceCS";
+        lumMeta.descriptorSets = "sceneSample(0),luminanceTiles(1)";
+        lumExec = WE_FORENSIC_PASS_BEGIN(forensics, ForensicPassId::LuminanceReduce, lumMeta);
+    }
+
     vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, m_LuminanceReducePipeline);
     VkDescriptorSet reduceSets[] = { m_SceneSampleSet, m_StorageSetA };
     vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, m_LuminanceReduceLayout, 0, 2, reduceSets, 0, nullptr);
@@ -381,6 +406,21 @@ void PostProcessStack::Apply(
     m_Context->CmdComputeImageBarrier(cmd, m_LuminanceAvg.image);
 
     writeImage(m_StorageSetA, 0, m_BloomA.view, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, VK_IMAGE_LAYOUT_GENERAL);
+
+    if (forensicActive) {
+        ForensicPassMetadata bloomMeta{};
+        bloomMeta.inputTarget = "OffscreenColor";
+        bloomMeta.outputTarget = "BloomA";
+        bloomMeta.width = m_BloomWidth;
+        bloomMeta.height = m_BloomHeight;
+        bloomMeta.format = "R16G16B16A16_SFLOAT";
+        bloomMeta.inputLayout = "GENERAL";
+        bloomMeta.outputLayout = "GENERAL";
+        bloomMeta.pipelineName = "BloomPrefilter+Blur";
+        bloomMeta.computeShader = "BloomPrefilterCS,BloomBlurCS";
+        bloomMeta.descriptorSets = "sceneSample(0),bloomStorage(1)";
+        bloomExec = WE_FORENSIC_PASS_BEGIN(forensics, ForensicPassId::Bloom, bloomMeta);
+    }
 
     vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, m_BloomPrefilterPipeline);
     VkDescriptorSet prefilterSets[] = { m_SceneSampleSet, m_StorageSetA };
@@ -408,6 +448,36 @@ void PostProcessStack::Apply(
     writeImage(m_PostDescSet, 2, m_LuminanceAvg.view, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_IMAGE_LAYOUT_GENERAL);
     writeImage(m_PostDescSet, 3, sceneImageView, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, VK_IMAGE_LAYOUT_GENERAL);
 
+    if (forensicActive) {
+        const auto& cam = forensics.GetCurrentCameraLog();
+        ForensicPassMetadata exposureMeta{};
+        exposureMeta.inputTarget = "OffscreenColor";
+        exposureMeta.outputTarget = "OffscreenColor";
+        exposureMeta.width = width;
+        exposureMeta.height = height;
+        exposureMeta.format = "R16G16B16A16_SFLOAT";
+        exposureMeta.inputLayout = "GENERAL";
+        exposureMeta.outputLayout = "GENERAL";
+        exposureMeta.loadOp = "LOAD";
+        exposureMeta.storeOp = "STORE";
+        exposureMeta.pipelineName = "PostComposite";
+        exposureMeta.computeShader = "PostCompositeCS (exposure stage)";
+        exposureMeta.descriptorSets = "environment(0),scene+bloom+luminanceAvg+sceneOut(1)";
+        exposureMeta.boundTextures = "sceneColor,bloom,luminanceAvg";
+        exposureExec = WE_FORENSIC_PASS_BEGIN(forensics, ForensicPassId::Exposure, exposureMeta);
+        forensics.RecordExposureDetails(exposureExec, cam.ev100, cam.exposureMultiplier, cam.avgSceneLuminance);
+        if (forensics.IsReadbackEnabled()) {
+            forensics.EnqueueReadback(
+                cmd, *m_Context, sceneImage, width, height,
+                ForensicPassId::Exposure, VK_IMAGE_LAYOUT_GENERAL, exposureExec);
+        }
+
+        ForensicPassMetadata toneMeta = exposureMeta;
+        toneMeta.computeShader = "PostCompositeCS (tone-map stage)";
+        toneMeta.outputLayout = "SHADER_READ_ONLY_OPTIMAL";
+        toneMapExec = WE_FORENSIC_PASS_BEGIN(forensics, ForensicPassId::ToneMapping, toneMeta);
+    }
+
     vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, m_CompositePipeline);
     VkDescriptorSet compositeSets[] = { environmentDescSet, m_PostDescSet };
     vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, m_CompositeLayout, 0, 2, compositeSets, 0, nullptr);
@@ -418,6 +488,20 @@ void PostProcessStack::Apply(
         sceneImage,
         VK_IMAGE_LAYOUT_GENERAL,
         VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+
+    if (forensicActive) {
+        if (lumExec >= 0) forensics.EndPassExecution(lumExec, 0.0);
+        if (bloomExec >= 0) forensics.EndPassExecution(bloomExec, 0.0);
+        if (exposureExec >= 0) forensics.EndPassExecution(exposureExec, 0.0);
+        if (toneMapExec >= 0) {
+            forensics.EndPassExecution(toneMapExec, 0.0);
+            if (forensics.IsReadbackEnabled()) {
+                forensics.EnqueueReadback(
+                    cmd, *m_Context, sceneImage, width, height,
+                    ForensicPassId::ToneMapping, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, toneMapExec);
+            }
+        }
+    }
 
     stats.SetPassStatus("PostExposure", "executed");
     stats.SetPassStatus("ToneMapping", "executed");

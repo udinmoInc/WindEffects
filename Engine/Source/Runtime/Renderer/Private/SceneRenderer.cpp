@@ -4,6 +4,7 @@
 #include "Renderer/FrameStats.hpp"
 #include "Renderer/RendererConfig.hpp"
 #include "Renderer/AtmosphereLUTInputs.hpp"
+#include "Renderer/RenderForensics.hpp"
 #include "Core/DiagnosticMacros.hpp"
 #include "Core/LogCategory.hpp"
 #include "Renderer/ShaderHelper.hpp"
@@ -714,6 +715,21 @@ void SceneRenderer::DrawSkyAtmospherePass(VkCommandBuffer cmd, VkDescriptorSet c
     RenderDiagnostics::Get().ValidateDescriptorSet("SkyAtmosphere", 1, cameraDescSet);
     RenderDiagnostics::Get().ValidateDescriptorSet("SkyAtmosphere", 2, m_LUTGenerator->GetSampleSet());
 
+    if (RenderForensics::Get().IsActive()) {
+        ForensicPassMetadata meta{};
+        meta.outputTarget = "OffscreenColor";
+        meta.pipelineName = "SkyAtmosphere";
+        meta.vertexShader = "AtmospherePass_VS";
+        meta.pixelShader = "AtmospherePass_PS";
+        meta.descriptorSets = "environment(0),camera(1),atmosphereLUTs(2)";
+        meta.depthState = "ALWAYS";
+        meta.blendState = "REPLACE";
+        meta.boundTextures = "transmittance,multiScatter,skyView,aerialPerspective LUTs";
+        meta.sourceFile = __FILE__;
+        meta.sourceLine = __LINE__;
+        RenderForensics::Get().RecordPassMetadata(ForensicPassId::SkyAtmosphere, meta);
+    }
+
     if (m_EnvironmentDescSet == VK_NULL_HANDLE || cameraDescSet == VK_NULL_HANDLE || m_LUTGenerator->GetSampleSet() == VK_NULL_HANDLE) {
         stats.SetPassStatus("SkyAtmosphere", "failed");
         diag.RecordPassStatus("SkyAtmosphere", PassExecutionStatus::Failed, "descriptor set binding is null");
@@ -755,6 +771,18 @@ void SceneRenderer::DrawVolumetricCloudsPass(VkCommandBuffer cmd, VkDescriptorSe
     }
 
     RefreshEnvironmentDescriptorBindings();
+    if (RenderForensics::Get().IsActive()) {
+        ForensicPassMetadata meta{};
+        meta.outputTarget = "OffscreenColor";
+        meta.pipelineName = "VolumetricClouds";
+        meta.vertexShader = "VolumetricCloudsPass_VS";
+        meta.pixelShader = "VolumetricCloudsPass_PS";
+        meta.descriptorSets = "environment(0),camera(1),atmosphereLUTs(2)";
+        meta.blendState = "ALPHA_BLEND";
+        meta.sourceFile = __FILE__;
+        meta.sourceLine = __LINE__;
+        RenderForensics::Get().RecordPassMetadata(ForensicPassId::VolumetricClouds, meta);
+    }
     vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_VolumetricCloudsPipeline);
     VkDescriptorSet sets[] = { m_EnvironmentDescSet, cameraDescSet, m_LUTGenerator->GetSampleSet() };
     vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_EnvironmentPipelineLayout, 0, 3, sets, 0, nullptr);
@@ -817,6 +845,21 @@ void SceneRenderer::DrawFogCompositePass(
     }
 
     vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_FogCompositePipeline);
+    if (RenderForensics::Get().IsActive()) {
+        ForensicPassMetadata meta{};
+        meta.inputTarget = "OffscreenColor+Depth";
+        meta.outputTarget = "OffscreenColor";
+        meta.pipelineName = "FogComposite";
+        meta.vertexShader = "FogCompositePass_VS";
+        meta.pixelShader = "FogCompositePass_PS";
+        meta.descriptorSets = "environment(0),camera(1),depth+aerial+skyLUT(2)";
+        meta.depthState = "GREATER reverse-Z";
+        meta.blendState = "ALPHA_BLEND";
+        meta.boundTextures = "depth,aerialPerspectiveLUT,skyViewLUT";
+        meta.sourceFile = __FILE__;
+        meta.sourceLine = __LINE__;
+        RenderForensics::Get().RecordPassMetadata(ForensicPassId::Fog, meta);
+    }
     VkDescriptorSet sets[] = { m_EnvironmentDescSet, cameraDescSet, m_FogLutDescSet };
     vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_FogPipelineLayout, 0, 3, sets, 0, nullptr);
     vkCmdDraw(cmd, 6, 1, 0, 0);

@@ -322,13 +322,13 @@ void EditorGridRenderer::UploadUniforms(const we::runtime::engine::EditorCamera&
 
     uniforms.renderParams0 = glm::vec4(
         config.renderRadius,
-        kGridWorldPlaneY,
+        config.planeHeight,
         config.lineThicknessMinor,
         config.lineThicknessMajor);
     uniforms.renderParams1 = glm::vec4(
         config.baseOpacity,
         std::min(config.lineThicknessAxis, config.lineThicknessMajor * 1.1f),
-        0.0f,
+        config.horizonGuardNdcMargin,
         config.antiAliasingEnabled ? config.antiAliasScale : 1.0f);
   uniforms.renderParams2 = glm::vec4(
         config.depthBiasConstant,
@@ -341,7 +341,7 @@ void EditorGridRenderer::UploadUniforms(const we::runtime::engine::EditorCamera&
         : config.renderRadius * 1.42f + 2.0f;
     uniforms.snappedOrigin = glm::vec4(
         static_cast<float>(snappedX),
-        kGridWorldPlaneY,
+        config.planeHeight,
         static_cast<float>(snappedZ),
         cullRadius);
     uniforms.gridFlags = glm::ivec4(
@@ -350,10 +350,10 @@ void EditorGridRenderer::UploadUniforms(const we::runtime::engine::EditorCamera&
         config.antiAliasingEnabled ? 1 : 0,
         0);
     uniforms.depthParams = glm::vec4(
-        0.0f,
+        config.depthOffset,
         config.radiusFadeEnd,
-        0.0f,
-        0.0f);
+        config.distanceFadeStart,
+        config.distanceFadeEnd);
 
     void* data = nullptr;
     vkMapMemory(m_Context->GetDevice(), m_UniformMemory, 0, sizeof(GridUniforms), 0, &data);
@@ -382,13 +382,13 @@ void EditorGridRenderer::Render(VkCommandBuffer commandBuffer,
         ? SnapToSpacing(static_cast<double>(cameraPos.z), finestSpacing) : 0.0;
     const glm::vec3 gridCenter(
         static_cast<float>(snappedX),
-        kGridWorldPlaneY,
+        config.planeHeight,
         static_cast<float>(snappedZ)
     );
 
     if (config.enableFrustumCulling) {
         const glm::mat4 viewProj = camera.GetProjectionMatrix() * camera.GetViewMatrix();
-        if (IsQuadOutsideFrustum(viewProj, gridCenter, config.renderRadius, kGridWorldPlaneY)) {
+        if (IsQuadOutsideFrustum(viewProj, gridCenter, config.renderRadius, config.planeHeight)) {
             // Never skip when the camera is inside the ground patch.
             const glm::vec2 cameraXZ(cameraPos.x, cameraPos.z);
             const glm::vec2 centerXZ(gridCenter.x, gridCenter.z);
