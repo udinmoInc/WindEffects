@@ -5,8 +5,22 @@
 #include <algorithm>
 #include <cmath>
 #include <sstream>
+#include <unordered_map>
 
 namespace we::runtime::renderer {
+
+struct RenderDiagnostics::Impl {
+    std::vector<DiagnosticMessage> messages;
+    bool hasErrors = false;
+    bool hasCritical = false;
+    std::vector<std::pair<std::string, double>> passTimings;
+    std::unordered_map<std::string, PassExecutionStatus> passStatuses;
+    std::unordered_map<std::string, std::string> passStatusDetails;
+};
+
+RenderDiagnostics::RenderDiagnostics() : m_Impl(std::make_unique<Impl>()) {}
+
+RenderDiagnostics::~RenderDiagnostics() = default;
 
 RenderDiagnostics& RenderDiagnostics::Get() {
     static RenderDiagnostics instance;
@@ -14,18 +28,18 @@ RenderDiagnostics& RenderDiagnostics::Get() {
 }
 
 void RenderDiagnostics::ResetFrame() {
-    m_PassTimings.clear();
-    m_PassStatuses.clear();
-    m_PassStatusDetails.clear();
+    m_Impl->passTimings.clear();
+    m_Impl->passStatuses.clear();
+    m_Impl->passStatusDetails.clear();
 }
 
 void RenderDiagnostics::Emit(DiagnosticSeverity severity, const std::string& subsystem, const std::string& message, const std::string& remediation) {
-    m_Messages.push_back({ severity, subsystem, message, remediation });
+    m_Impl->messages.push_back({ severity, subsystem, message, remediation });
     if (severity == DiagnosticSeverity::Error || severity == DiagnosticSeverity::Critical) {
-        m_HasErrors = true;
+        m_Impl->hasErrors = true;
     }
     if (severity == DiagnosticSeverity::Critical) {
-        m_HasCritical = true;
+        m_Impl->hasCritical = true;
     }
 
     std::string fullMessage = message;
@@ -54,9 +68,9 @@ void RenderDiagnostics::ValidateStartup(
     VkRenderPass offscreenRenderPass,
     VkRenderPass swapchainRenderPass) {
 
-    m_Messages.clear();
-    m_HasErrors = false;
-    m_HasCritical = false;
+    m_Impl->messages.clear();
+    m_Impl->hasErrors = false;
+    m_Impl->hasCritical = false;
 
     if (!sceneRenderer) {
         Emit(DiagnosticSeverity::Critical, LogCategory::Renderer.data(), "SceneRenderer is null at startup.", "Ensure SceneRenderer is constructed before environment binding.");
@@ -98,6 +112,21 @@ void RenderDiagnostics::ValidateEnvironmentUniform(const SceneEnvironmentUniform
     }
     if (env.atmosphereHeight <= 0.0f || env.planetRadius <= 0.0f) {
         Emit(DiagnosticSeverity::Error, LogCategory::Environment.data(), "Invalid atmosphere/planet radii.", "Use positive atmosphere height and planet radius.");
+    }
+    if (!std::isfinite(env.exposureEV) || env.exposureEV < -2.0f || env.exposureEV > 14.0f) {
+        Emit(DiagnosticSeverity::Error, LogCategory::Environment.data(),
+            "exposureEV out of expected range: " + std::to_string(env.exposureEV),
+            "Clamp exposure in EnvironmentExposureController.");
+    }
+    if (!std::isfinite(env.hdrSkyLuminance) || env.hdrSkyLuminance < 0.0f || env.hdrSkyLuminance > 1000.0f) {
+        Emit(DiagnosticSeverity::Error, LogCategory::Environment.data(),
+            "hdrSkyLuminance out of expected range: " + std::to_string(env.hdrSkyLuminance),
+            "Verify EnvironmentManager::ComputeHdrSkyLuminance.");
+    }
+    if (env.enableAutoExposure > 0.5f && env.hdrSkyLuminance < 1e-4f) {
+        Emit(DiagnosticSeverity::Warning, LogCategory::Environment.data(),
+            "Auto exposure enabled with hdrSkyLuminance near zero.",
+            "Disable auto exposure or set a positive hdrSkyLuminance floor.");
     }
     const float sunDirLen = std::sqrt(env.sunDirection.x * env.sunDirection.x + env.sunDirection.y * env.sunDirection.y + env.sunDirection.z * env.sunDirection.z);
     if (sunDirLen < 0.001f) {
@@ -205,11 +234,11 @@ void RenderDiagnostics::ValidateAtmosphereLUTResource(
 
 void RenderDiagnostics::RecordPassStatus(const char* passName, PassExecutionStatus status, const char* detail) {
     if (!passName) return;
-    m_PassStatuses[passName] = status;
+    m_Impl->passStatuses[passName] = status;
     if (detail && detail[0] != '\0') {
-        m_PassStatusDetails[passName] = detail;
+        m_Impl->passStatusDetails[passName] = detail;
     } else {
-        m_PassStatusDetails.erase(passName);
+        m_Impl->passStatusDetails.erase(passName);
     }
 
     if (status == PassExecutionStatus::Failed) {
@@ -223,8 +252,8 @@ void RenderDiagnostics::RecordPassStatus(const char* passName, PassExecutionStat
 
 PassExecutionStatus RenderDiagnostics::GetPassStatus(const char* passName) const {
     if (!passName) return PassExecutionStatus::Pending;
-    const auto it = m_PassStatuses.find(passName);
-    return it != m_PassStatuses.end() ? it->second : PassExecutionStatus::Pending;
+    const auto it = m_Impl->passStatuses.find(passName);
+    return it != m_Impl->passStatuses.end() ? it->second : PassExecutionStatus::Pending;
 }
 
 namespace {
@@ -248,26 +277,26 @@ void RenderDiagnostics::ValidateFramebuffer(VkFramebuffer fb, uint32_t width, ui
 }
 
 void RenderDiagnostics::RecordPassExecuted(const char* passName, double cpuMs) {
-    m_PassTimings.emplace_back(passName, cpuMs);
+    m_Impl->passTimings.emplace_back(passName, cpuMs);
 }
 
 std::string RenderDiagnostics::GetSummary() const {
     std::ostringstream ss;
-    ss << "Diagnostics: " << m_Messages.size() << " messages";
-    if (m_HasCritical) ss << " [CRITICAL]";
-    else if (m_HasErrors) ss << " [ERRORS]";
-    for (const auto& [pass, ms] : m_PassTimings) {
+    ss << "Diagnostics: " << m_Impl->messages.size() << " messages";
+    if (m_Impl->hasCritical) ss << " [CRITICAL]";
+    else if (m_Impl->hasErrors) ss << " [ERRORS]";
+    for (const auto& [pass, ms] : m_Impl->passTimings) {
         ss << " | " << pass << '=' << ms << "ms";
     }
     static const char* kTrackedPasses[] = {
         "AtmosphereLUT", "SkyAtmosphere", "VolumetricClouds", "FogComposite", "PostExposure", "ToneMapping"
     };
     for (const char* pass : kTrackedPasses) {
-        const auto it = m_PassStatuses.find(pass);
-        if (it != m_PassStatuses.end()) {
+        const auto it = m_Impl->passStatuses.find(pass);
+        if (it != m_Impl->passStatuses.end()) {
             ss << " | " << pass << ':' << PassStatusLabel(it->second);
-            const auto detailIt = m_PassStatusDetails.find(pass);
-            if (detailIt != m_PassStatusDetails.end() && !detailIt->second.empty()) {
+            const auto detailIt = m_Impl->passStatusDetails.find(pass);
+            if (detailIt != m_Impl->passStatusDetails.end() && !detailIt->second.empty()) {
                 ss << '(' << detailIt->second << ')';
             }
         }
@@ -276,15 +305,15 @@ std::string RenderDiagnostics::GetSummary() const {
 }
 
 bool RenderDiagnostics::HasErrors() const {
-    return m_HasErrors;
+    return m_Impl->hasErrors;
 }
 
 bool RenderDiagnostics::HasCritical() const {
-    return m_HasCritical;
+    return m_Impl->hasCritical;
 }
 
 const std::vector<DiagnosticMessage>& RenderDiagnostics::GetMessages() const {
-    return m_Messages;
+    return m_Impl->messages;
 }
 
 #if WE_HAS_VULKAN
