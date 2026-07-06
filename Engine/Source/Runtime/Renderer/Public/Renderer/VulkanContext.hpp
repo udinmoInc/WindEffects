@@ -48,6 +48,14 @@ public:
     RENDERER_API VkCommandBuffer BeginSingleTimeCommands() const;
     RENDERER_API void EndSingleTimeCommands(VkCommandBuffer commandBuffer) const;
     RENDERER_API void TransitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout) const;
+    // Records an image layout transition into an active command buffer (correct path for frame rendering).
+    RENDERER_API void CmdTransitionImageLayout(
+        VkCommandBuffer cmd,
+        VkImage image,
+        VkImageLayout oldLayout,
+        VkImageLayout newLayout) const;
+    // Ensures compute writes to an image are visible to subsequent compute/fragment reads.
+    RENDERER_API void CmdComputeImageBarrier(VkCommandBuffer cmd, VkImage image) const;
     RENDERER_API void WaitUntilIdle() const;
     RENDERER_API bool IsValidationEnabled() const;
 

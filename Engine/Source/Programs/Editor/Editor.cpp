@@ -227,6 +227,7 @@ Editor::Editor(SDL_Window* window) : m_Window(window) {
     }
 
     EnsureVisibleSwapchain();
+    SyncViewportFramebufferFromLayout();
     try {
         LogWidgetTreeLayout(m_RootWidget, "OverlayManager");
     } catch (const std::exception& e) {
@@ -738,13 +739,35 @@ void Editor::EnsureVisibleSwapchain() {
             m_Renderer->RecreateSwapchain(static_cast<uint32_t>(width), static_cast<uint32_t>(height));
             HE_INFO("[Render] Swapchain recreated for visible window.");
         }
-        m_Renderer->GetOffscreenFramebuffer().Resize(
-            static_cast<uint32_t>(width),
-            static_cast<uint32_t>(height),
-            m_Renderer->GetOffscreenRenderPass()
-        );
     } else {
         HE_ERROR("[Render] Window still reports zero size — UI layout will be empty until resized.");
+    }
+}
+
+void Editor::SyncViewportFramebufferFromLayout() {
+    if (!m_RootWidget || !m_Renderer) {
+        return;
+    }
+
+    const uint32_t w = m_Renderer->GetSwapchainWidth();
+    const uint32_t h = m_Renderer->GetSwapchainHeight();
+    if (w == 0 || h == 0) {
+        return;
+    }
+
+    // Layout the full editor chrome, then let the viewport panel own offscreen size.
+    // Do not resize the offscreen framebuffer to the full window — that breaks aspect
+    // ratio and can clip the 3D view inside the docked viewport widget.
+    m_RootWidget->Measure(UI::Size{ static_cast<float>(w), static_cast<float>(h) });
+    m_RootWidget->Arrange(UI::Rect{ 0.0f, 0.0f, static_cast<float>(w), static_cast<float>(h) });
+
+    if (m_ViewportWidget) {
+        if (auto vp = std::dynamic_pointer_cast<ViewportWidget>(m_ViewportWidget)) {
+            vp->FlushPendingResize();
+            const auto& fb = m_Renderer->GetOffscreenFramebuffer();
+            HE_INFO("[Render] Viewport offscreen framebuffer: "
+                + std::to_string(fb.GetWidth()) + "x" + std::to_string(fb.GetHeight()));
+        }
     }
 }
 

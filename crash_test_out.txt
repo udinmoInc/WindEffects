@@ -1,0 +1,92 @@
+[2026-07-06 09:11:24.971] [Frame:0] [T:24860] [INFO] [General] (Main.cpp:16 WinMain) [CrashReporter] === Starting WeCrashReporter.exe ===
+[2026-07-06 09:11:24.972] [Frame:0] [T:24860] [INFO] [General] (Main.cpp:17 WinMain) [CrashReporter] Step 1: Setting working directory
+[2026-07-06 09:11:24.972] [Frame:0] [T:24860] [INFO] [General] (Main.cpp:24 WinMain) [CrashReporter] Working directory set to: F:\Coding\windeffects\Build\Output\Win64\Debug
+[2026-07-06 09:11:24.972] [Frame:0] [T:24860] [INFO] [General] (Main.cpp:27 WinMain) [CrashReporter] Step 2: Initializing Logger
+[2026-07-06 09:11:24.975] [Frame:0] [T:24860] [INFO] [Startup] WindEffects logger initialized. Session log: Saved/Logs/Sessions/Session_1783309284/WindEffects.log
+[2026-07-06 09:11:24.981] [Frame:0] [T:24860] [INFO] [General] (Main.cpp:29 WinMain) [CrashReporter] Logger initialized successfully
+[2026-07-06 09:11:24.982] [Frame:0] [T:24860] [INFO] [General] (Main.cpp:32 WinMain) [CrashReporter] Module search paths configured
+[2026-07-06 09:11:24.982] [Frame:0] [T:24860] [INFO] [General] (Main.cpp:35 WinMain) [CrashReporter] Step 3: Configuring SDL class icons
+[2026-07-06 09:11:24.993] [Frame:0] [T:24860] [INFO] [General] (Main.cpp:37 WinMain) [CrashReporter] SDL class icons configured
+[2026-07-06 09:11:24.993] [Frame:0] [T:24860] [INFO] [General] (Main.cpp:40 WinMain) [CrashReporter] Step 4: Initializing SDL
+[2026-07-06 09:11:25.097] [Frame:0] [T:24860] [INFO] [General] (Main.cpp:45 WinMain) [CrashReporter] SDL initialized successfully
+[2026-07-06 09:11:25.097] [Frame:0] [T:24860] [INFO] [General] (Main.cpp:47 WinMain) [CrashReporter] Step 5: Creating SDL window
+[2026-07-06 09:11:25.259] [Frame:0] [T:24860] [INFO] [General] (Main.cpp:61 WinMain) [CrashReporter] SDL window created successfully
+[2026-07-06 09:11:25.259] [Frame:0] [T:24860] [INFO] [General] (Main.cpp:63 WinMain) [CrashReporter] Step 6: Setting window minimum size
+[2026-07-06 09:11:25.260] [Frame:0] [T:24860] [INFO] [General] (Main.cpp:65 WinMain) [CrashReporter] Window minimum size set
+[2026-07-06 09:11:25.260] [Frame:0] [T:24860] [INFO] [General] (Main.cpp:67 WinMain) [CrashReporter] Step 7: Showing window
+[2026-07-06 09:11:25.271] [Frame:0] [T:24860] [INFO] [General] (Main.cpp:69 WinMain) [CrashReporter] Window shown
+[2026-07-06 09:11:25.271] [Frame:0] [T:24860] [INFO] [General] (Main.cpp:72 WinMain) [CrashReporter] Step 8: Applying embedded window icon
+[2026-07-06 09:11:25.271] [Frame:0] [T:24860] [INFO] [General] (Main.cpp:74 WinMain) [CrashReporter] Window icon applied
+[2026-07-06 09:11:25.272] [Frame:0] [T:24860] [INFO] [General] (Main.cpp:77 WinMain) [CrashReporter] Step 9: Creating CrashReporterApp
+[2026-07-06 09:11:25.272] [Frame:0] [T:24860] [INFO] [General] (CrashReporterApp.cpp:16 we::programs::crashreporter::CrashReporterApp::CrashReporterApp) [CrashReporterApp] Constructor started
+[2026-07-06 09:11:25.272] [Frame:0] [T:24860] [INFO] [General] (CrashReporterApp.cpp:18 we::programs::crashreporter::CrashReporterApp::CrashReporterApp) [CrashReporterApp] Creating VulkanContext
+[2026-07-06 09:11:25.285] [Frame:0] [T:24860] [INFO] [Vulkan] (VulkanContext.cpp:169 we::runtime::renderer::VulkanContext::CreateInstance) Vulkan validation layers disabled. Set WE_VALIDATION=1 to enable.
+[2026-07-06 09:11:25.414] [Frame:0] [T:24860] [INFO] [General] (VulkanContext.cpp:267 we::runtime::renderer::VulkanContext::PickPhysicalDevice) Selected Discrete GPU: NVIDIA GeForce RTX 3050
+[2026-07-06 09:11:25.493] [Frame:0] [T:24860] [INFO] [General] (CrashReporterApp.cpp:20 we::programs::crashreporter::CrashReporterApp::CrashReporterApp) [CrashReporterApp] VulkanContext created
+[2026-07-06 09:11:25.493] [Frame:0] [T:24860] [INFO] [General] (CrashReporterApp.cpp:22 we::programs::crashreporter::CrashReporterApp::CrashReporterApp) [CrashReporterApp] Creating Renderer
+[2026-07-06 09:11:25.493] [Frame:0] [T:24860] [INFO] [General] (Renderer.cpp:18 we::runtime::renderer::Renderer::Renderer) Renderer: Querying window size...
+[2026-07-06 09:11:25.493] [Frame:0] [T:24860] [INFO] [General] (Renderer.cpp:29 we::runtime::renderer::Renderer::Renderer) Renderer: Window pixel size: 1200x760
+[2026-07-06 09:11:25.493] [Frame:0] [T:24860] [INFO] [General] (Renderer.cpp:31 we::runtime::renderer::Renderer::Renderer) Renderer: Creating Render Passes...
+[2026-07-06 09:11:25.494] [Frame:0] [T:24860] [INFO] [General] (Renderer.cpp:34 we::runtime::renderer::Renderer::Renderer) Renderer: Creating Camera Uniform Buffers...
+[2026-07-06 09:11:25.495] [Frame:0] [T:24860] [INFO] [General] (Renderer.cpp:90 we::runtime::renderer::Renderer::Renderer) Renderer: Creating swapchain...
+[2026-07-06 09:11:25.506] [Frame:0] [T:24860] [INFO] [General] (Renderer.cpp:347 we::runtime::renderer::Renderer::CreateSwapchain) Renderer: Creating Vulkan swapchain (size: 1200x760)...
+[2026-07-06 09:11:25.525] [Frame:0] [T:24860] [INFO] [General] (Renderer.cpp:93 we::runtime::renderer::Renderer::Renderer) Renderer: Creating swapchain framebuffers...
+[2026-07-06 09:11:25.525] [Frame:0] [T:24860] [INFO] [General] (Renderer.cpp:98 we::runtime::renderer::Renderer::Renderer) Renderer: Creating offscreen viewport framebuffer...
+[2026-07-06 09:11:25.526] [Frame:0] [T:24860] [INFO] [General] (Framebuffer.cpp:71 we::runtime::renderer::Framebuffer::CreateResources) Framebuffer: Creating color image & view...
+[2026-07-06 09:11:25.527] [Frame:0] [T:24860] [INFO] [General] (Framebuffer.cpp:83 we::runtime::renderer::Framebuffer::CreateResources) Framebuffer: Creating depth image & view...
+[2026-07-06 09:11:25.528] [Frame:0] [T:24860] [INFO] [General] (Framebuffer.cpp:110 we::runtime::renderer::Framebuffer::CreateResources) Framebuffer: Creating Vulkan framebuffer...
+[2026-07-06 09:11:25.528] [Frame:0] [T:24860] [INFO] [General] (Framebuffer.cpp:115 we::runtime::renderer::Framebuffer::CreateResources) Framebuffer: Resources successfully created.
+[2026-07-06 09:11:25.529] [Frame:0] [T:24860] [INFO] [General] (Renderer.cpp:106 we::runtime::renderer::Renderer::Renderer) Renderer: Allocating command buffers...
+[2026-07-06 09:11:25.530] [Frame:0] [T:24860] [INFO] [General] (Renderer.cpp:109 we::runtime::renderer::Renderer::Renderer) Renderer: Creating sync objects...
+[2026-07-06 09:11:25.530] [Frame:0] [T:24860] [INFO] [General] (CrashReporterApp.cpp:25 we::programs::crashreporter::CrashReporterApp::CrashReporterApp) [CrashReporterApp] Renderer created
+[2026-07-06 09:11:25.530] [Frame:0] [T:24860] [INFO] [General] (CrashReporterApp.cpp:27 we::programs::crashreporter::CrashReporterApp::CrashReporterApp) [CrashReporterApp] Initializing ShaderLibrary
+[2026-07-06 09:11:25.531] [Frame:0] [T:24860] [INFO] [General] (CrashReporterApp.cpp:51 we::programs::crashreporter::CrashReporterApp::CrashReporterApp) [CrashReporterApp] ShaderLibrary initialized
+[2026-07-06 09:11:25.531] [Frame:0] [T:24860] [INFO] [General] (CrashReporterApp.cpp:53 we::programs::crashreporter::CrashReporterApp::CrashReporterApp) [CrashReporterApp] Loading default editor assets
+[2026-07-06 09:11:25.531] [Frame:0] [T:24860] [INFO] [General] (AssetRegistry.cpp:85 we::core::AssetRegistry::LoadDefaultEditorAssets) [Assets] Loading default editor assets...
+[2026-07-06 09:11:25.532] [Frame:0] [T:24860] [INFO] [General] (AssetRegistry.cpp:151 we::core::AssetRegistry::LoadDefaultEditorAssets) [Assets]   Font 'Font_UI' -> Assets/Fonts/Inter-Regular.ttf
+[2026-07-06 09:11:25.532] [Frame:0] [T:24860] [INFO] [General] (AssetRegistry.cpp:162 we::core::AssetRegistry::LoadDefaultEditorAssets) [Assets]   Shader 'UI' -> Engine/Shaders/Bytecodes/UI_VS.spv
+[2026-07-06 09:11:25.532] [Frame:0] [T:24860] [INFO] [General] (AssetRegistry.cpp:162 we::core::AssetRegistry::LoadDefaultEditorAssets) [Assets]   Shader 'AtmospherePass' -> Engine/Shaders/Bytecodes/AtmospherePass_VS.spv
+[2026-07-06 09:11:25.533] [Frame:0] [T:24860] [INFO] [General] (AssetRegistry.cpp:162 we::core::AssetRegistry::LoadDefaultEditorAssets) [Assets]   Shader 'VolumetricCloudsPass' -> Assets/Shaders/VolumetricCloudsPass_VS.spv
+[2026-07-06 09:11:25.533] [Frame:0] [T:24860] [INFO] [General] (AssetRegistry.cpp:162 we::core::AssetRegistry::LoadDefaultEditorAssets) [Assets]   Shader 'FogCompositePass' -> Assets/Shaders/FogCompositePass_VS.spv
+[2026-07-06 09:11:25.534] [Frame:0] [T:24860] [INFO] [General] (AssetRegistry.cpp:162 we::core::AssetRegistry::LoadDefaultEditorAssets) [Assets]   Shader 'AtmospherePass' -> Assets/Shaders/AtmospherePass_VS.spv
+[2026-07-06 09:11:25.534] [Frame:0] [T:24860] [INFO] [General] (AssetRegistry.cpp:162 we::core::AssetRegistry::LoadDefaultEditorAssets) [Assets]   Shader 'EditorGrid' -> Engine/Shaders/Bytecodes/EditorGrid_VS.spv
+[2026-07-06 09:11:25.534] [Frame:0] [T:24860] [INFO] [General] (AssetRegistry.cpp:162 we::core::AssetRegistry::LoadDefaultEditorAssets) [Assets]   Shader 'SceneObject' -> Engine/Shaders/Bytecodes/SceneObject_VS.spv
+[2026-07-06 09:11:25.534] [Frame:0] [T:24860] [INFO] [General] (AssetRegistry.cpp:178 we::core::AssetRegistry::LoadDefaultEditorAssets) [Assets]   Icon source 'Icon_Lucide' -> Engine/Content/Icons/icons
+[2026-07-06 09:11:25.534] [Frame:0] [T:24860] [INFO] [General] (AssetRegistry.cpp:185 we::core::AssetRegistry::LoadDefaultEditorAssets) [Assets] Theme loaded (in-memory defaults via Theme::Get())
+[2026-07-06 09:11:25.535] [Frame:0] [T:24860] [INFO] [General] (AssetRegistry.cpp:186 we::core::AssetRegistry::LoadDefaultEditorAssets) [Assets] Default asset load succeeded
+[2026-07-06 09:11:25.535] [Frame:0] [T:24860] [INFO] [General] (CrashReporterApp.cpp:55 we::programs::crashreporter::CrashReporterApp::CrashReporterApp) [CrashReporterApp] Default editor assets loaded
+[2026-07-06 09:11:25.535] [Frame:0] [T:24860] [INFO] [General] (CrashReporterApp.cpp:57 we::programs::crashreporter::CrashReporterApp::CrashReporterApp) [CrashReporterApp] Creating UIRenderer
+[2026-07-06 09:11:25.538] [Frame:0] [T:24860] [TRACE] [Editor] (EditorRegistry.cpp:16 we::programs::editor::EditorRegistry::RegisterPanel) [EditorRegistry] Registered Panel: OutputLog
+[2026-07-06 09:11:25.539] [Frame:0] [T:24860] [INFO] [General] (CrashReporterApp.cpp:59 we::programs::crashreporter::CrashReporterApp::CrashReporterApp) [CrashReporterApp] Initializing UIRenderer
+[2026-07-06 09:11:25.543] [Frame:0] [T:24860] [INFO] [General] (UIRenderer.cpp:26 we::UI::UIRenderer::Init) UIRenderer: Initializing UI descriptor layouts...
+[2026-07-06 09:11:25.546] [Frame:0] [T:24860] [INFO] [General] (FontAtlas.cpp:66 we::UI::FontAtlas::Init) FontAtlas: Successfully loaded font from Assets/Fonts/Inter-Regular.ttf (680240 bytes)
+[2026-07-06 09:11:25.570] [Frame:0] [T:24860] [INFO] [General] (FontAtlas.cpp:189 we::UI::FontAtlas::Init) FontAtlas: Vulkan font atlas texture initialized successfully.
+[2026-07-06 09:11:25.574] [Frame:0] [T:24860] [DEBUG] [Shader] (ShaderHelper.hpp:30 we::runtime::renderer::LoadShaderBytecode) Loaded UI_VS.spv (1548 bytes)
+[2026-07-06 09:11:25.574] [Frame:0] [T:24860] [DEBUG] [Shader] (ShaderHelper.hpp:30 we::runtime::renderer::LoadShaderBytecode) Loaded UI_PS.spv (2236 bytes)
+[2026-07-06 09:11:25.576] [Frame:0] [T:24860] [INFO] [General] (UIRenderer.cpp:99 we::UI::UIRenderer::Init) UIRenderer: Custom Slate-like UI renderer initialized successfully.
+[2026-07-06 09:11:25.576] [Frame:0] [T:24860] [INFO] [General] (CrashReporterApp.cpp:61 we::programs::crashreporter::CrashReporterApp::CrashReporterApp) [CrashReporterApp] UIRenderer initialized
+[2026-07-06 09:11:25.576] [Frame:0] [T:24860] [INFO] [General] (CrashReporterApp.cpp:63 we::programs::crashreporter::CrashReporterApp::CrashReporterApp) [CrashReporterApp] Creating EventSystem
+[2026-07-06 09:11:25.576] [Frame:0] [T:24860] [INFO] [General] (CrashReporterApp.cpp:65 we::programs::crashreporter::CrashReporterApp::CrashReporterApp) [CrashReporterApp] EventSystem created
+[2026-07-06 09:11:25.576] [Frame:0] [T:24860] [INFO] [General] (CrashReporterApp.cpp:67 we::programs::crashreporter::CrashReporterApp::CrashReporterApp) [CrashReporterApp] Creating CrashReporterUI
+[2026-07-06 09:11:25.576] [Frame:0] [T:24860] [INFO] [General] (CrashReporterApp.cpp:69 we::programs::crashreporter::CrashReporterApp::CrashReporterApp) [CrashReporterApp] Constructing UI
+[2026-07-06 09:11:25.577] [Frame:0] [T:24860] [INFO] [General] (CrashReporterUI.cpp:84 we::programs::crashreporter::CrashReporterUI::Construct) [CrashReporterUI] Construct started
+[2026-07-06 09:11:25.577] [Frame:0] [T:24860] [INFO] [General] (CrashReporterUI.cpp:87 we::programs::crashreporter::CrashReporterUI::Construct) [CrashReporterUI] Loading ConfigManager
+[2026-07-06 09:11:25.579] [Frame:0] [T:24860] [INFO] [General] (ConfigManager.hpp:122 we::programs::crashreporter::ConfigManager::Load) Loaded CrashReporter config from Engine/Config/CrashReporter/config.json
+[2026-07-06 09:11:25.580] [Frame:0] [T:24860] [INFO] [General] (CrashReporterUI.cpp:89 we::programs::crashreporter::CrashReporterUI::Construct) [CrashReporterUI] ConfigManager loaded
+[2026-07-06 09:11:25.580] [Frame:0] [T:24860] [INFO] [General] (CrashReporterUI.cpp:27 we::programs::crashreporter::CrashReporterUI::LoadCrashData) [CrashReporterUI] LoadCrashData started
+[2026-07-06 09:11:25.580] [Frame:0] [T:24860] [INFO] [General] (CrashReporterUI.cpp:28 we::programs::crashreporter::CrashReporterUI::LoadCrashData) [CrashReporterUI] Crash directory: Saved/Logs/Crashes/Latest
+[2026-07-06 09:11:25.580] [Frame:0] [T:24860] [WARNING] [General] (CrashReporterUI.cpp:32 we::programs::crashreporter::CrashReporterUI::LoadCrashData) [CrashReporterUI] Crash directory does not exist: Saved/Logs/Crashes/Latest
+[2026-07-06 09:11:25.581] [Frame:0] [T:24860] [INFO] [General] (CrashReporterUI.cpp:40 we::programs::crashreporter::CrashReporterUI::LoadCrashData) [CrashReporterUI] LoadCrashData completed (no crash data)
+[2026-07-06 09:11:25.581] [Frame:0] [T:24860] [INFO] [General] (CrashReporterUI.cpp:104 we::programs::crashreporter::CrashReporterUI::Construct) [CrashReporterUI] Building UI layout
+[2026-07-06 09:11:25.581] [Frame:0] [T:24860] [INFO] [General] (CrashReporterUI.cpp:111 we::programs::crashreporter::CrashReporterUI::Construct) [CrashReporterUI] Project name: WindEffectsProject
+[2026-07-06 09:11:25.581] [Frame:0] [T:24860] [INFO] [General] (CrashReporterApp.cpp:71 we::programs::crashreporter::CrashReporterApp::CrashReporterApp) [CrashReporterApp] UI constructed
+[2026-07-06 09:11:25.582] [Frame:0] [T:24860] [INFO] [General] (CrashReporterApp.cpp:73 we::programs::crashreporter::CrashReporterApp::CrashReporterApp) [CrashReporterApp] Setting root widget
+[2026-07-06 09:11:25.582] [Frame:0] [T:24860] [INFO] [General] (CrashReporterApp.cpp:75 we::programs::crashreporter::CrashReporterApp::CrashReporterApp) [CrashReporterApp] Constructor completed
+[2026-07-06 09:11:25.582] [Frame:0] [T:24860] [INFO] [General] (Main.cpp:80 WinMain) [CrashReporter] CrashReporterApp created successfully
+[2026-07-06 09:11:25.582] [Frame:0] [T:24860] [INFO] [General] (Main.cpp:82 WinMain) [CrashReporter] Step 10: Running main loop
+[2026-07-06 09:11:25.582] [Frame:0] [T:24860] [INFO] [General] (CrashReporterApp.cpp:83 we::programs::crashreporter::CrashReporterApp::Run) [CrashReporterApp] Run() called, starting MainLoop
+[2026-07-06 09:11:25.588] [Frame:0] [T:24860] [INFO] [General] (UIRenderer.cpp:696 we::UI::UIRenderer::Render) [UIRenderer] Frame 0: layout=1200x760, commands=43, vertices=4484, indices=6726, batches=16
+[2026-07-06 09:11:25.592] [Frame:0] [T:24860] [INFO] [General] (UIRenderer.cpp:696 we::UI::UIRenderer::Render) [UIRenderer] Frame 1: layout=1200x760, commands=43, vertices=4484, indices=6726, batches=16
+[2026-07-06 09:11:25.598] [Frame:0] [T:24860] [INFO] [General] (UIRenderer.cpp:696 we::UI::UIRenderer::Render) [UIRenderer] Frame 2: layout=1200x760, commands=43, vertices=4484, indices=6726, batches=16
+[2026-07-06 09:11:25.602] [Frame:0] [T:24860] [INFO] [General] (UIRenderer.cpp:696 we::UI::UIRenderer::Render) [UIRenderer] Frame 3: layout=1200x760, commands=43, vertices=4484, indices=6726, batches=16
+[2026-07-06 09:11:25.607] [Frame:0] [T:24860] [INFO] [General] (UIRenderer.cpp:696 we::UI::UIRenderer::Render) [UIRenderer] Frame 4: layout=1200x760, commands=43, vertices=4484, indices=6726, batches=16
