@@ -1,14 +1,17 @@
 name: IgniteBT CI
 
+# Push-only: avoids duplicate runs when a branch has both a direct push and an open PR.
 on:
   push:
     paths:
       - 'Engine/Source/Programs/IgniteBT/**'
       - '.github/workflows/ignitebt-ci.yml'
-  pull_request:
-    paths:
-      - 'Engine/Source/Programs/IgniteBT/**'
-      - '.github/workflows/ignitebt-ci.yml'
+      - '!Engine/Source/Programs/IgniteBT/Docs/**'
+      - '!Engine/Source/Programs/IgniteBT/**/*.md'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   validate:
