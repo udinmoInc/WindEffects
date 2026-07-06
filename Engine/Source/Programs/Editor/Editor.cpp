@@ -111,7 +111,11 @@ Editor::Editor(SDL_Window* window) : m_Window(window) {
     HE_INFO("[Startup] Stage 2/6: Renderer, scene, and camera...");
     m_Renderer = std::make_shared<Renderer>(m_Context, m_Window);
     m_RenderGraph = std::make_shared<RenderGraph>(m_Renderer);
-    m_SceneRenderer = std::make_shared<SceneRenderer>(m_Context, m_Renderer->GetOffscreenRenderPass(), m_Renderer->GetCameraDescLayout());
+    m_SceneRenderer = std::make_shared<SceneRenderer>(
+        m_Context,
+        m_Renderer->GetOffscreenRenderPass(),
+        m_Renderer->GetOffscreenRenderPassLoad(),
+        m_Renderer->GetCameraDescLayout());
 
     we::editor::grid::EditorGridRenderer::Get().Initialize(
         m_Context,
@@ -126,6 +130,7 @@ Editor::Editor(SDL_Window* window) : m_Window(window) {
     we::runtime::world::environment::EnvironmentSystem::Get().BindRenderer(m_SceneRenderer);
     PlaceActorsPlacement::Get().BindScene(m_Scene, m_Camera);
     DefaultSceneBuilder::CreateDefaultScene(*m_Scene);
+    m_SceneRenderer->InvalidateCloudTemporalHistory();
     we::runtime::world::environment::EnvironmentSystem::Get().UpdateRendering(m_Camera->GetPosition());
 
     m_SceneRenderer->PrepareAtmosphereLUTs(VK_NULL_HANDLE);
@@ -1118,6 +1123,11 @@ void Editor::MainLoop() {
             }
 
             if (!atmosphereValidation && pipelineInv.ShouldRunPass(we::runtime::renderer::RenderPassId::VolumetricClouds)) {
+                m_SceneRenderer->UpdateCloudTemporalState(
+                    cameraUBO.pos,
+                    m_Camera->GetForward(),
+                    cameraUBO.view,
+                    cameraUBO.proj);
                 we::runtime::renderer::ForensicPassMetadata cloudMeta{};
                 cloudMeta.outputTarget = "OffscreenColor";
                 cloudMeta.width = vpW;
@@ -1227,7 +1237,7 @@ void Editor::MainLoop() {
             FrameStatsCollector::Get().RecordPassMs("Offscreen",
                 std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - passStart).count());
 
-            m_SceneRenderer->LogAtmospherePipelineDiagnostics();
+            m_SceneRenderer->LogAtmospherePipelineDiagnosticsOnChange();
 
             we::runtime::renderer::ForensicPassMetadata uiMeta{};
             uiMeta.outputTarget = "Swapchain";

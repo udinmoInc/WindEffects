@@ -52,8 +52,8 @@ float3 WE_RaymarchClouds(
         return float3(0.0, 0.0, 0.0);
 
     const float stepSize = 80.0;
-    // World-space jitter (not screen-space) so clouds do not swim when the camera translates.
-    const float jitter = WE_BlueNoise(rayOrigin.xz * 0.02 + rayDir.xz * 13.7) * stepSize;
+    // Screen-stable jitter breaks up banding without world-space trails when the camera moves.
+    const float jitter = WE_BlueNoise(rayDir.xz * 37.0 + float2(0.17, 0.61)) * stepSize;
     float3 accum = float3(0.0, 0.0, 0.0);
     float transmittance = 1.0;
     const float3 sunLight = sunColor * sunIntensity;

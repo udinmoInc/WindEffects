@@ -30,6 +30,8 @@ $shaders = @(
     @{ Name = "EditorGrid"; Path = "Editor/EditorGrid.hlsl" },
     @{ Name = "AtmospherePass"; Path = "Rendering/AtmospherePass.hlsl" },
     @{ Name = "VolumetricCloudsPass"; Path = "Rendering/VolumetricCloudsPass.hlsl" },
+    @{ Name = "CloudTemporalResolve"; Path = "Rendering/CloudTemporalResolve.hlsl" },
+    @{ Name = "CloudCompositePass"; Path = "Rendering/CloudCompositePass.hlsl" },
     @{ Name = "FogCompositePass"; Path = "Rendering/FogCompositePass.hlsl" },
     @{ Name = "SceneObject"; Path = "Rendering/SceneObject.hlsl" },
     @{ Name = "PostExposureCS"; Path = "Compute/PostExposureCS.hlsl"; Compute = $true },

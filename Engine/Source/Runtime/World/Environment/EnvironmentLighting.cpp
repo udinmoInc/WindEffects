@@ -129,6 +129,8 @@ we::runtime::renderer::SceneEnvironmentUniform BuildSceneEnvironmentUniform(
     uniform.bloomThreshold = 4.0f;
     uniform.enableAutoExposure = exposure.AutoExposure ? 1.0f : 0.0f;
     uniform.atmosphereDebugMode = atmosphere.AtmosphereDebugMode;
+    uniform.cloudTemporalBlend = 0.88f;
+    uniform.cloudHistoryValid = 0;
 #if WE_HAS_VULKAN
     we::runtime::renderer::AtmosphereValidation::Get().ApplyEnvironmentOverrides(uniform);
     we::runtime::renderer::RenderPipelineInvestigator::Get().ApplyEnvironmentOverrides(uniform);
