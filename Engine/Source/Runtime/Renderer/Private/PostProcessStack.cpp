@@ -339,7 +339,12 @@ void PostProcessStack::Apply(
         const_cast<PostProcessStack*>(this)->Resize(width, height);
     }
 
-    m_Context->TransitionImageLayout(sceneImage, kOffscreenColorFormat, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_LAYOUT_GENERAL);
+    // Render pass leaves the scene target in SHADER_READ_ONLY; post compute needs GENERAL storage.
+    m_Context->CmdTransitionImageLayout(
+        cmd,
+        sceneImage,
+        VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+        VK_IMAGE_LAYOUT_GENERAL);
 
     auto writeImage = [&](VkDescriptorSet dstSet, uint32_t binding, VkImageView view, VkDescriptorType type, VkImageLayout layout) {
         VkDescriptorImageInfo info{};
@@ -364,6 +369,7 @@ void PostProcessStack::Apply(
     VkDescriptorSet reduceSets[] = { m_SceneSampleSet, m_StorageSetA };
     vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, m_LuminanceReduceLayout, 0, 2, reduceSets, 0, nullptr);
     vkCmdDispatch(cmd, (m_TileWidth + 7) / 8, (m_TileHeight + 7) / 8, 1);
+    m_Context->CmdComputeImageBarrier(cmd, m_LuminanceTiles.image);
 
     writeImage(m_StorageSampleSet, 0, m_LuminanceTiles.view, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_IMAGE_LAYOUT_GENERAL);
     writeImage(m_StorageSetB, 0, m_LuminanceAvg.view, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, VK_IMAGE_LAYOUT_GENERAL);
@@ -372,6 +378,7 @@ void PostProcessStack::Apply(
     VkDescriptorSet avgSets[] = { m_StorageSampleSet, m_StorageSetB };
     vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, m_LuminanceAvgLayout, 0, 2, avgSets, 0, nullptr);
     vkCmdDispatch(cmd, 1, 1, 1);
+    m_Context->CmdComputeImageBarrier(cmd, m_LuminanceAvg.image);
 
     writeImage(m_StorageSetA, 0, m_BloomA.view, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, VK_IMAGE_LAYOUT_GENERAL);
 
@@ -379,8 +386,9 @@ void PostProcessStack::Apply(
     VkDescriptorSet prefilterSets[] = { m_SceneSampleSet, m_StorageSetA };
     vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, m_BloomPrefilterLayout, 0, 2, prefilterSets, 0, nullptr);
     vkCmdDispatch(cmd, (m_BloomWidth + 7) / 8, (m_BloomHeight + 7) / 8, 1);
+    m_Context->CmdComputeImageBarrier(cmd, m_BloomA.image);
 
-    auto runBlur = [&](VkImageView source, VkDescriptorSet targetSet, float dirX, float dirY) {
+    auto runBlur = [&](VkImageView source, VkDescriptorSet targetSet, float dirX, float dirY, VkImage targetImage) {
         writeImage(m_StorageSampleSet, 0, source, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_IMAGE_LAYOUT_GENERAL);
         const float pushData[4] = { dirX, dirY, 0.0f, 0.0f };
         vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, m_BloomBlurPipeline);
@@ -388,10 +396,12 @@ void PostProcessStack::Apply(
         VkDescriptorSet blurSets[] = { m_StorageSampleSet, targetSet };
         vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, m_BloomBlurLayout, 0, 2, blurSets, 0, nullptr);
         vkCmdDispatch(cmd, (m_BloomWidth + 7) / 8, (m_BloomHeight + 7) / 8, 1);
+        m_Context->CmdComputeImageBarrier(cmd, targetImage);
     };
 
-    runBlur(m_BloomA.view, m_StorageSetB, 1.0f, 0.0f);
-    runBlur(m_BloomB.view, m_StorageSetA, 0.0f, 1.0f);
+    runBlur(m_BloomA.view, m_StorageSetB, 1.0f, 0.0f, m_BloomB.image);
+    runBlur(m_BloomB.view, m_StorageSetA, 0.0f, 1.0f, m_BloomA.image);
+    m_Context->CmdComputeImageBarrier(cmd, sceneImage);
 
     writeImage(m_PostDescSet, 0, sceneImageView, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_IMAGE_LAYOUT_GENERAL);
     writeImage(m_PostDescSet, 1, m_BloomA.view, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_IMAGE_LAYOUT_GENERAL);
@@ -403,7 +413,11 @@ void PostProcessStack::Apply(
     vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, m_CompositeLayout, 0, 2, compositeSets, 0, nullptr);
     vkCmdDispatch(cmd, (width + 7) / 8, (height + 7) / 8, 1);
 
-    m_Context->TransitionImageLayout(sceneImage, kOffscreenColorFormat, VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+    m_Context->CmdTransitionImageLayout(
+        cmd,
+        sceneImage,
+        VK_IMAGE_LAYOUT_GENERAL,
+        VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
     stats.SetPassStatus("PostExposure", "executed");
     stats.SetPassStatus("ToneMapping", "executed");
