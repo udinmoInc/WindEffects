@@ -111,6 +111,16 @@ bool AssetRegistry::LoadDefaultEditorAssets() {
             "Assets/Shaders/VolumetricCloudsPass_VS.spv",
             "Shaders/VolumetricCloudsPass_VS.spv"
         }},
+        {"CloudTemporalResolve", {
+            "Engine/Shaders/Bytecodes/CloudTemporalResolve_VS.spv",
+            "Assets/Shaders/CloudTemporalResolve_VS.spv",
+            "Shaders/CloudTemporalResolve_VS.spv"
+        }},
+        {"CloudCompositePass", {
+            "Engine/Shaders/Bytecodes/CloudCompositePass_VS.spv",
+            "Assets/Shaders/CloudCompositePass_VS.spv",
+            "Shaders/CloudCompositePass_VS.spv"
+        }},
         {"FogCompositePass", {
             "Engine/Shaders/Bytecodes/FogCompositePass_VS.spv",
             "Assets/Shaders/FogCompositePass_VS.spv",

@@ -79,7 +79,11 @@ struct SceneObjectUniform {
 
 class SceneRenderer {
 public:
-    RENDERER_API SceneRenderer(const std::shared_ptr<VulkanContext>& context, VkRenderPass renderPass, VkDescriptorSetLayout cameraDescLayout);
+    RENDERER_API SceneRenderer(
+        const std::shared_ptr<VulkanContext>& context,
+        VkRenderPass renderPass,
+        VkRenderPass renderPassLoad,
+        VkDescriptorSetLayout cameraDescLayout);
     RENDERER_API ~SceneRenderer();
 
     SceneRenderer(const SceneRenderer&) = delete;
@@ -100,6 +104,13 @@ public:
     RENDERER_API bool AreAtmosphereLUTsReady() const;
     RENDERER_API bool IsSkyPipelineCreated() const;
     RENDERER_API void LogAtmospherePipelineDiagnostics() const;
+    RENDERER_API void LogAtmospherePipelineDiagnosticsOnChange() const;
+    RENDERER_API void InvalidateCloudTemporalHistory();
+    RENDERER_API void UpdateCloudTemporalState(
+        const glm::vec3& cameraPos,
+        const glm::vec3& cameraForward,
+        const glm::mat4& view,
+        const glm::mat4& proj);
 
     RENDERER_API void DrawFogCompositePass(
         VkCommandBuffer cmd,
@@ -152,6 +163,8 @@ private:
     VkPipelineLayout m_PipelineLayout = VK_NULL_HANDLE;
 
     VkPipelineLayout m_EnvironmentPipelineLayout = VK_NULL_HANDLE;
+    VkPipelineLayout m_CloudPipelineLayout = VK_NULL_HANDLE;
+    VkPipelineLayout m_CloudCompositePipelineLayout = VK_NULL_HANDLE;
     VkDescriptorSetLayout m_EnvironmentDescLayout = VK_NULL_HANDLE;
     VkDescriptorSet m_EnvironmentDescSet = VK_NULL_HANDLE;
 
@@ -171,10 +184,46 @@ private:
 
     VkPipeline m_SkyAtmospherePipeline = VK_NULL_HANDLE;
     VkPipeline m_VolumetricCloudsPipeline = VK_NULL_HANDLE;
+    VkPipeline m_CloudTemporalPipeline = VK_NULL_HANDLE;
+    VkPipeline m_CloudCompositePipeline = VK_NULL_HANDLE;
     VkPipeline m_FogCompositePipeline = VK_NULL_HANDLE;
     VkPipeline m_LitPipeline = VK_NULL_HANDLE;
     VkPipeline m_UnlitPipeline = VK_NULL_HANDLE;
     VkPipeline m_WireframePipeline = VK_NULL_HANDLE;
+
+    VkDescriptorSetLayout m_CloudHistoryDescLayout = VK_NULL_HANDLE;
+    VkDescriptorSet m_CloudHistoryDescSet = VK_NULL_HANDLE;
+    VkDescriptorSetLayout m_CloudCompositeDescLayout = VK_NULL_HANDLE;
+    VkDescriptorSet m_CloudCompositeDescSet = VK_NULL_HANDLE;
+    VkSampler m_CloudSampler = VK_NULL_HANDLE;
+    VkImage m_CloudScratchImage = VK_NULL_HANDLE;
+    VkDeviceMemory m_CloudScratchMemory = VK_NULL_HANDLE;
+    VkImageView m_CloudScratchView = VK_NULL_HANDLE;
+    std::array<VkImage, 2> m_CloudHistoryImages{};
+    std::array<VkDeviceMemory, 2> m_CloudHistoryMemories{};
+    std::array<VkImageView, 2> m_CloudHistoryViews{};
+    std::array<VkFramebuffer, 2> m_CloudHistoryFramebuffers{};
+    VkFramebuffer m_CloudScratchFramebuffer = VK_NULL_HANDLE;
+    VkRenderPass m_CloudScratchRenderPass = VK_NULL_HANDLE;
+    VkRenderPass m_CloudHistoryRenderPass = VK_NULL_HANDLE;
+    VkRenderPass m_OffscreenRenderPass = VK_NULL_HANDLE;
+    VkRenderPass m_OffscreenRenderPassLoad = VK_NULL_HANDLE;
+    mutable VkFramebuffer m_LastOffscreenFramebuffer = VK_NULL_HANDLE;
+    uint32_t m_CloudTemporalWidth = 0;
+    uint32_t m_CloudTemporalHeight = 0;
+    mutable uint32_t m_LastOffscreenWidth = 0;
+    mutable uint32_t m_LastOffscreenHeight = 0;
+    uint32_t m_CloudHistoryWriteIndex = 0;
+    bool m_CloudHistoryGpuValid = false;
+    glm::vec3 m_PrevCloudCameraPos{ 0.0f };
+    glm::vec3 m_PrevCloudCameraForward{ 0.0f, 0.0f, -1.0f };
+    bool m_CloudTemporalInitialized = false;
+
+    void EnsureCloudTemporalResources(uint32_t width, uint32_t height);
+    void DestroyCloudTemporalResources();
+    void UploadCloudTemporalEnvironmentFlags() const;
+    mutable uint64_t m_LastAtmosphereDiagFingerprint = 0;
+    mutable bool m_AtmosphereDiagInitialized = false;
 
     // Meshes
     std::unordered_map<std::string, MeshBuffer> m_Meshes;

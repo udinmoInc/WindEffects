@@ -36,24 +36,17 @@ cbuffer CameraBuffer : register(b0, space1)
 
 struct VSOutput
 {
-    float4 position  : SV_Position;
-    float3 nearPoint : TEXCOORD0;
-    float3 farPoint  : TEXCOORD1;
-};
-
-static const float3 kFullscreenPositions[6] = {
-    float3(-1, -1, 0), float3(1, -1, 0), float3(1, 1, 0),
-    float3(-1, -1, 0), float3(1,  1, 0), float3(-1, 1, 0)
+    float4 position : SV_Position;
+    float2 uv       : TEXCOORD0;
 };
 
 VSOutput VSMain(uint vertexId : SV_VertexID)
 {
     VSOutput o;
-    const float3 p = kFullscreenPositions[vertexId];
-    // Reverse-Z projection maps near -> 1 and far -> 0.
-    o.nearPoint = WE_UnprojectPoint(p.x, p.y, 1.0, view, proj);
-    o.farPoint  = WE_UnprojectPoint(p.x, p.y, 0.0, view, proj);
-    o.position  = float4(p, 1.0);
+    const float2 uv = float2((vertexId << 1) & 2, vertexId & 2);
+    const float2 pos = uv * float2(2.0, -2.0) + float2(-1.0, 1.0);
+    o.position = float4(pos, 0.0, 1.0);
+    o.uv = uv * 0.5;
     return o;
 }
 
@@ -111,21 +104,19 @@ PSOutput PSMain(VSOutput input)
     const float groundY      = planeHeight + depthOffset;
     const float renderRadius = renderParams0.x;
 
-    float3 viewRay = input.farPoint - input.nearPoint;
-    const float viewRayLen = length(viewRay);
-    if (viewRayLen < 1e-6)
-        discard;
-    const float3 viewRayDir = viewRay / viewRayLen;
+    // Per-pixel unprojection — interpolating world-space ray endpoints across the
+    // fullscreen triangle bends rays with camera pitch and paints the grid on the sky.
+    const float3 viewRayDir = WE_UnprojectDirection(input.uv, view, proj, cameraPos);
 
     // Sky / above-horizon rays never hit the ground in front of the camera.
     if (viewRayDir.y >= -1e-5)
         discard;
 
-    const float t = (groundY - input.nearPoint.y) / viewRay.y;
+    const float t = (groundY - cameraPos.y) / viewRayDir.y;
     if (t < 0.0)
         discard;
 
-    const float3 fragPos = input.nearPoint + t * viewRay;
+    const float3 fragPos = cameraPos + viewRayDir * t;
     const float2 worldXZ = fragPos.xz;
     const float2 localXZ = worldXZ - float2(snappedOrigin.x, snappedOrigin.z);
     const float radialDist = length(localXZ);

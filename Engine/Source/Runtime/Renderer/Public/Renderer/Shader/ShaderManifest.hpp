@@ -5,6 +5,8 @@ namespace we::runtime::renderer::shaders {
 
 inline constexpr const char* AtmospherePass = "AtmospherePass";
 inline constexpr const char* VolumetricCloudsPass = "VolumetricCloudsPass";
+inline constexpr const char* CloudTemporalResolve = "CloudTemporalResolve";
+inline constexpr const char* CloudCompositePass = "CloudCompositePass";
 inline constexpr const char* FogCompositePass = "FogCompositePass";
 inline constexpr const char* EditorGrid = "EditorGrid";
 inline constexpr const char* SceneObject = "SceneObject";
