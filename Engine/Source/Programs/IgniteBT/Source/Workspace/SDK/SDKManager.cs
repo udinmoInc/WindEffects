@@ -342,10 +342,10 @@ public class SDKManager
     /// <summary>
     /// Forces a re-scan of all SDKs.
     /// </summary>
-    public async Task<Dictionary<string, SDKInfo>> RescanAsync()
+    public async Task<Dictionary<string, SDKInfo>> RescanAsync(string? compilerPath = null)
     {
         ClearCache();
-        return await DetectAllAsync();
+        return await DetectAllAsync(compilerPath, forceRescan: true);
     }
     
     /// <summary>

@@ -9,6 +9,7 @@ using IgniteBT.Workspace.ThirdParty;
 using IgniteBT.Build.Orchestration;
 using IgniteBT.Build.Compiler;
 using IgniteBT.Core.Hashing;
+using IgniteBT.Core.Profiling;
 
 namespace IgniteBT.CLI;
 
@@ -97,6 +98,7 @@ public static class BuildCommand
 
         try
         {
+            var profiler = new BuildProfiler();
             var currentDir = Directory.GetCurrentDirectory();
             var projectRoot = BuildLayout.FindProjectRoot(currentDir);
             var engineDir = BuildLayout.FindEngineRoot(currentDir);
@@ -107,13 +109,22 @@ public static class BuildCommand
                 return 1;
             }
 
-            if (!await ThirdPartyBootstrapper.EnsureRequiredAsync(engineDir, jobs)) return 1;
+            bool thirdPartyOk;
+            using (profiler.Scope(BuildStages.ThirdPartyDiscovery))
+                thirdPartyOk = await ThirdPartyBootstrapper.EnsureRequiredAsync(engineDir, jobs);
+            if (!thirdPartyOk) return 1;
 
-            var detectedCompiler = ToolchainDetector.DetectCompiler();
+            DetectedCompiler detectedCompiler;
+            using (profiler.Scope(BuildStages.ToolchainDetection))
+                detectedCompiler = ToolchainDetector.DetectCompiler();
             Log.Information("Compiler: {Type} v{Version}", detectedCompiler.Type, detectedCompiler.Version);
 
-            var dependencyResolver = new DependencyResolver();
-            var dependencyResult = await dependencyResolver.ResolveAsync();
+            DependencyResolutionResult dependencyResult;
+            using (profiler.Scope(BuildStages.SdkDetection))
+            {
+                var dependencyResolver = new DependencyResolver();
+                dependencyResult = await dependencyResolver.ResolveAsync(detectedCompiler.Path);
+            }
             foreach (var w in dependencyResult.Warnings) Log.Warning(w);
             foreach (var e in dependencyResult.Errors) Log.Error(e);
             if (!dependencyResult.Success) return 1;
@@ -123,7 +134,12 @@ public static class BuildCommand
             layout.EnsureDirectories();
 
             var outputLayout = new OutputLayout(layout, engineDir);
-            ShaderBytecodeCompiler.CompileAndStage(engineDir, outputLayout.ConfigurationRoot);
+            using (profiler.Scope(BuildStages.ShaderCompilation))
+            {
+                var shaderStats = ShaderBytecodeCompiler.CompileAndStage(engineDir, outputLayout.ConfigurationRoot, layout.CacheDirectory);
+                if (shaderStats.Skipped > 0)
+                    profiler.RecordShaderCacheHit(shaderStats.Skipped);
+            }
 
             ICompiler probeCompiler = detectedCompiler.Type switch
             {
@@ -152,7 +168,8 @@ public static class BuildCommand
                 EnableUnityBuild = unityBuild,
                 UnitySize = unitySize,
                 UnityDisabledModules = unityDisabled,
-                TargetName = buildTarget
+                TargetName = buildTarget,
+                Profiler = profiler
             });
 
             var result = await orchestrator.ExecuteAsync();
@@ -168,10 +185,14 @@ public static class BuildCommand
             }
 
             Log.Information("=== Build Profile ===");
-            Log.Information("Total: {Ms}ms | Critical path: {CpName} ({CpMs}ms) | Cache hit: {CacheHit:F1}%",
-                profile.TotalBuildMs, profile.CriticalPathName, profile.CriticalPathMs, profile.CacheHitPercent);
-            Log.Information("Hash: {Hash}ms | Scan: {Scan}ms | Compiler wait: {Cw}ms | Link wait: {Lw}ms | Scheduler idle: {Idle}ms",
-                profile.HashTimeMs, profile.ScanTimeMs, profile.CompilerWaitMs, profile.LinkWaitMs, stats.SchedulerIdleMs);
+            Log.Information("Total: {Ms}ms | Critical path: {CpName} ({CpMs}ms) | Cache hit: {CacheHit:F1}% | CPU util: {Cpu:F1}%",
+                profile.TotalBuildMs, profile.CriticalPathName, profile.CriticalPathMs, profile.CacheHitPercent, profile.CpuUtilizationPercent);
+            Log.Information("Hash: {Hash}ms | Scan: {Scan}ms | Compiler wait: {Cw}ms | Link wait: {Lw}ms | Link cache: {LinkCache:F1}% | Scheduler idle: {Idle}ms",
+                profile.HashTimeMs, profile.ScanTimeMs, profile.CompilerWaitMs, profile.LinkWaitMs, profile.LinkCacheHitPercent, stats.SchedulerIdleMs);
+            if (profile.ShaderCacheHits > 0)
+                Log.Information("Shader cache hits: {Count}", profile.ShaderCacheHits);
+            if (stats.ModulesLinkSkipped > 0)
+                Log.Information("Links skipped (cache): {Count}", stats.ModulesLinkSkipped);
             foreach (var scope in profile.Scopes.Take(10))
                 Log.Information("  {Name}: {Total}ms ({Count}x, avg {Avg:F1}ms)", scope.Name, scope.TotalMs, scope.Count, scope.AverageMs);
 
@@ -184,9 +205,16 @@ public static class BuildCommand
 
             if (result.Success)
             {
-                outputLayout.PruneConfigurationRoot(result.Modules);
-                outputLayout.RefreshLayoutManifest(result.Modules);
-                outputLayout.StageRuntimeDependencies(dependencyResult, result.Modules);
+                using (profiler.Scope(BuildStages.RuntimeDependencyStaging))
+                {
+                    outputLayout.PruneConfigurationRoot(result.Modules);
+                    outputLayout.RefreshLayoutManifest(result.Modules);
+                    outputLayout.StageRuntimeDependencies(dependencyResult, result.Modules);
+                }
+
+                var flamePath = Path.Combine(layout.CacheDirectory, "flamegraph.json");
+                File.WriteAllText(flamePath, result.FlameGraphJson ?? profiler.ExportFlameGraphJson());
+                Log.Information("Flame graph: {Path}", flamePath);
             }
 
             return result.Success ? 0 : 1;
