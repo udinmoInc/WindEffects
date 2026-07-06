@@ -1,6 +1,5 @@
 #include "Widgets/ViewportWidget.hpp"
-#include "Renderer/FrameStats.hpp"
-#include "Renderer/RenderDiagnostics.hpp"
+#include "Widgets/GraphicsDebuggerPopup.hpp"
 #include "PlaceActors/PlaceActorsPlacement.h"
 #include "Renderer/Renderer.hpp"
 #include "EditorCamera.hpp"
@@ -10,9 +9,7 @@
 #include "Core/Theme.hpp"
 #include <SDL3/SDL_keyboard.h>
 #include <algorithm>
-#include <glm/gtc/type_ptr.hpp>
-#include <iomanip>
-#include <sstream>
+#include <glm/glm.hpp>
 
 namespace we::UI {
 
@@ -24,6 +21,12 @@ ViewportWidget::ViewportWidget(const std::shared_ptr<we::runtime::renderer::Rend
     m_Navigation.SetCamera(camera);
     m_Navigation.SetScene(scene);
     m_Navigation.ApplySettingsFromStore();
+
+    m_GraphicsDebugger = std::make_shared<GraphicsDebuggerPopup>(renderer, camera, scene);
+}
+
+void ViewportWidget::Construct() {
+    AddChild(m_GraphicsDebugger);
 }
 
 ViewportWidget::~ViewportWidget() {
@@ -53,11 +56,17 @@ void ViewportWidget::Arrange(const Rect& allottedRect) {
         m_ResizePending = true;
     }
 
-    if (!m_Children.empty()) {
-        auto toolbar = m_Children[0];
+    for (auto& child : m_Children) {
+        if (child == m_GraphicsDebugger) {
+            continue;
+        }
         float compactHeight = 34.0f;
-        toolbar->Measure(Size{ allottedRect.width, compactHeight });
-        toolbar->Arrange(Rect{ allottedRect.x, allottedRect.y, allottedRect.width, compactHeight });
+        child->Measure(Size{ allottedRect.width, compactHeight });
+        child->Arrange(Rect{ allottedRect.x, allottedRect.y, allottedRect.width, compactHeight });
+    }
+
+    if (m_GraphicsDebugger) {
+        m_GraphicsDebugger->ArrangeInViewport(allottedRect);
     }
 }
 
@@ -104,82 +113,6 @@ void ViewportWidget::Paint(PaintContext& context) {
     } else {
         context.DrawRect(m_Geometry, Color{ 0.0f, 0.0f, 0.0f, 1.0f });
     }
-
-    uint32_t triangleCount = 0;
-    uint32_t drawCallCount = 0;
-    for (const auto& entity : m_Scene->GetEntities()) {
-        drawCallCount++;
-        if (entity.Type == we::runtime::scene::EntityType::Plane
-            || entity.Type == we::runtime::scene::EntityType::GroundPlane) {
-            triangleCount += 2;
-        } else {
-            triangleCount += 12;
-        }
-    }
-
-    Color overlayColor = Color{ 0.85f, 0.85f, 0.85f, 1.0f };
-    float overlayX = m_Geometry.x + 15.0f;
-    float overlayY = m_Geometry.y + 15.0f;
-
-    context.DrawText("FPS: " + std::to_string(static_cast<int>(m_FPS)) + " (" + std::to_string(m_FrameTime).substr(0, 4) + " ms)",
-        Point{ overlayX, overlayY }, overlayColor, 12.0f);
-    context.DrawText("Triangles: " + std::to_string(triangleCount), Point{ overlayX, overlayY + 16.0f }, overlayColor, 12.0f);
-    context.DrawText("Draw Calls: " + std::to_string(drawCallCount), Point{ overlayX, overlayY + 32.0f }, overlayColor, 12.0f);
-    context.DrawText("Entities: " + std::to_string(m_Scene->GetEntities().size()), Point{ overlayX, overlayY + 48.0f }, overlayColor, 12.0f);
-
-    glm::vec3 camPos = m_Camera->GetPosition();
-    const glm::vec3 prevPos = m_Camera->GetPreviousPosition();
-    const float pitch = m_Camera->GetPitch();
-    const float yaw = m_Camera->GetYaw();
-    const float prevPitch = m_Camera->GetPreviousPitch();
-    const float prevYaw = m_Camera->GetPreviousYaw();
-    const float frameDt = m_Camera->GetLastDeltaTime();
-
-    auto formatVec3 = [](const glm::vec3& v) {
-        std::ostringstream ss;
-        ss << std::fixed << std::setprecision(3) << v.x << ", " << v.y << ", " << v.z;
-        return ss.str();
-    };
-    auto formatMat4Row = [](const glm::mat4& m, int row) {
-        std::ostringstream ss;
-        ss << std::fixed << std::setprecision(3)
-           << m[row][0] << ", " << m[row][1] << ", " << m[row][2] << ", " << m[row][3];
-        return ss.str();
-    };
-
-    float lineY = overlayY + 64.0f;
-    const float lineStep = 14.0f;
-    const Color debugColor = Color{ 0.78f, 0.92f, 0.78f, 1.0f };
-
-    context.DrawText("Cam Pos: " + formatVec3(camPos), Point{ overlayX, lineY }, overlayColor, 12.0f);
-    lineY += lineStep;
-    context.DrawText("Cam Rot: pitch " + std::to_string(pitch).substr(0, 6)
-        + " yaw " + std::to_string(yaw).substr(0, 6), Point{ overlayX, lineY }, overlayColor, 12.0f);
-    lineY += lineStep;
-    context.DrawText("Prev Pos: " + formatVec3(prevPos), Point{ overlayX, lineY }, debugColor, 12.0f);
-    lineY += lineStep;
-    context.DrawText("Prev Rot: pitch " + std::to_string(prevPitch).substr(0, 6)
-        + " yaw " + std::to_string(prevYaw).substr(0, 6), Point{ overlayX, lineY }, debugColor, 12.0f);
-    lineY += lineStep;
-    context.DrawText("Frame dt: " + std::to_string(frameDt * 1000.0f).substr(0, 6) + " ms",
-        Point{ overlayX, lineY }, debugColor, 12.0f);
-    lineY += lineStep;
-
-    const auto& gpuCam = m_Renderer->GetLastUploadedCameraUniform();
-    context.DrawText("GPU View[0]: " + formatMat4Row(gpuCam.view, 0), Point{ overlayX, lineY }, debugColor, 11.0f);
-    lineY += lineStep;
-    context.DrawText("GPU Proj[0]: " + formatMat4Row(gpuCam.proj, 0), Point{ overlayX, lineY }, debugColor, 11.0f);
-    lineY += lineStep;
-
-    const int cameraSpeed = static_cast<int>(std::lround(m_Camera->GetCameraSpeed()));
-    context.DrawText("Camera Speed: " + std::to_string(cameraSpeed), Point{ overlayX, lineY }, overlayColor, 12.0f);
-    lineY += lineStep;
-
-    const std::string renderStats = we::runtime::renderer::FrameStatsCollector::Get().GetOverlayText();
-    context.DrawText(renderStats, Point{ overlayX, lineY }, Color{ 0.65f, 0.82f, 0.95f, 1.0f }, 11.0f);
-    lineY += lineStep;
-    const std::string diagSummary = we::runtime::renderer::RenderDiagnostics::Get().GetSummary();
-    context.DrawText(diagSummary, Point{ overlayX, lineY }, Color{ 0.75f, 0.75f, 0.75f, 1.0f }, 11.0f);
 
     Point gizmoCenter = Point{ m_Geometry.x + m_Geometry.width - 55.0f, m_Geometry.y + 55.0f };
     context.DrawRect(Rect{ gizmoCenter.x - 30.0f, gizmoCenter.y - 30.0f, 60.0f, 60.0f }, Color{ 0.12f, 0.12f, 0.12f, 0.6f }, 30.0f);
@@ -235,21 +168,22 @@ void ViewportWidget::OnMouseDown(const MouseEvent& event) {
         return;
     }
 
+    for (auto it = m_Children.rbegin(); it != m_Children.rend(); ++it) {
+        auto& child = *it;
+        const Rect geom = child->GetGeometry();
+        if (geom.width > 0.0f && geom.height > 0.0f
+            && event.position.x >= geom.x && event.position.x <= geom.x + geom.width
+            && event.position.y >= geom.y && event.position.y <= geom.y + geom.height) {
+            child->OnMouseDown(event);
+            return;
+        }
+    }
+
     if (m_Geometry.Contains(event.position)
         && we::programs::editor::PlaceActorsPlacement::Get().HasActivePlacement()) {
         const float localX = event.position.x - m_Geometry.x;
         const float localY = event.position.y - m_Geometry.y;
         if (we::programs::editor::PlaceActorsPlacement::Get().TryPlaceAtViewportPoint(localX, localY)) {
-            return;
-        }
-    }
-
-    for (auto it = m_Children.rbegin(); it != m_Children.rend(); ++it) {
-        auto& child = *it;
-        const Rect geom = child->GetGeometry();
-        if (event.position.x >= geom.x && event.position.x <= geom.x + geom.width &&
-            event.position.y >= geom.y && event.position.y <= geom.y + geom.height) {
-            child->OnMouseDown(event);
             return;
         }
     }
@@ -284,6 +218,9 @@ void ViewportWidget::OnKeyDown(const KeyEvent& event) {
 void ViewportWidget::Tick(float deltaTime) {
     m_FPS = 1.0f / (deltaTime > 0.0f ? deltaTime : 0.016f);
     m_FrameTime = deltaTime * 1000.0f;
+    if (m_GraphicsDebugger) {
+        m_GraphicsDebugger->SetFrameStats(m_FPS, m_FrameTime);
+    }
     m_Navigation.Tick(deltaTime);
 }
 

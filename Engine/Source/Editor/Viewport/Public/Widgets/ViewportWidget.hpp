@@ -16,6 +16,7 @@ namespace we::runtime::scene { class Scene; }
 namespace we::UI {
 
 class UIRenderer;
+class GraphicsDebuggerPopup;
 
 class VIEWPORT_API ViewportWidget : public Widget {
 public:
@@ -24,6 +25,9 @@ public:
                    const std::shared_ptr<we::runtime::scene::Scene>& scene,
                    UIRenderer* uiRenderer = nullptr);
     virtual ~ViewportWidget();
+
+    // Must be called after the widget is owned by std::shared_ptr (AddChild uses shared_from_this).
+    void Construct();
 
     void SetWindow(SDL_Window* window);
 
@@ -60,6 +64,8 @@ private:
     uint32_t m_PendingWidth  = 0;
     uint32_t m_PendingHeight = 0;
     bool     m_ResizePending = false;
+
+    std::shared_ptr<GraphicsDebuggerPopup> m_GraphicsDebugger;
 };
 
 } // namespace we::UI

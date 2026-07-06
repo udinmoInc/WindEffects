@@ -36,6 +36,8 @@ float4 PSMain(VSOutput input) : SV_Target
         return float4(0.0, 1.0, 0.0, 1.0);
     if (atmosphereDebugMode == 103)
         return float4(0.0, 0.0, 1.0, 1.0);
+    if (atmosphereDebugMode == 104)
+        return float4(0.2, 0.4, 1.0, 1.0);
 
     const float3 viewDir = normalize(WE_UnprojectDirection(input.uv, view, proj, cameraPos));
     const float3 sunDir = normalize(-sunDirection);

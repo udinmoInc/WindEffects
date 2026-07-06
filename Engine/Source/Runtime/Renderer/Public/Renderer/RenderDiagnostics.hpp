@@ -93,6 +93,9 @@ private:
 
 RENDERER_API void InsertGpuDebugLabel(VkCommandBuffer cmd, const char* label, float r = 0.2f, float g = 0.6f, float b = 1.0f);
 
+// Forward declaration — full API in RenderPipelineInvestigator.hpp
+class RenderPipelineInvestigator;
+
 } // namespace we::runtime::renderer
 
 #endif // WE_HAS_VULKAN

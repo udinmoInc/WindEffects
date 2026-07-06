@@ -5,15 +5,18 @@ param(
 
 $ErrorActionPreference = "Stop"
 
-# Keep NuGet / .NET tooling on the repo drive (F:) — avoid C: AppData when space is tight.
+# Keep NuGet / .NET / MSVC temp on the repo drive (F:) — avoid C: AppData when space is tight.
 $WeRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
 $ToolchainDir = Join-Path $WeRoot ".toolchain"
+$BuildTempDir = Join-Path $WeRoot "Build\Temp"
 $env:NUGET_PACKAGES = Join-Path $WeRoot ".nuget\packages"
 $env:NUGET_HTTP_CACHE_PATH = Join-Path $ToolchainDir "nuget-http-cache"
 $env:DOTNET_CLI_HOME = Join-Path $ToolchainDir "dotnet-cli"
+$env:TEMP = $BuildTempDir
+$env:TMP = $BuildTempDir
 $env:DOTNET_SKIP_FIRST_TIME_EXPERIENCE = "1"
 $env:DOTNET_NOLOGO = "1"
-foreach ($dir in @($env:NUGET_PACKAGES, $env:NUGET_HTTP_CACHE_PATH, $env:DOTNET_CLI_HOME)) {
+foreach ($dir in @($env:NUGET_PACKAGES, $env:NUGET_HTTP_CACHE_PATH, $env:DOTNET_CLI_HOME, $BuildTempDir)) {
     if (-not (Test-Path -LiteralPath $dir)) {
         New-Item -ItemType Directory -Path $dir -Force | Out-Null
     }
@@ -104,9 +107,7 @@ function Resolve-IgniteBtAssembly {
 
     $config = if ($env:IGNITEBT_CONFIG) { $env:IGNITEBT_CONFIG } else { "Debug" }
     foreach ($candidate in @(
-            (Join-Path $EngineRoot "Build\Intermediate\IgniteBT\$config\net8.0\IgniteBT.dll"),
-            (Join-Path $EngineRoot "Build\Intermediate\IgniteBT\Debug\net8.0\IgniteBT.dll"),
-            (Join-Path $EngineRoot "Build\Intermediate\IgniteBT\Development\net8.0\IgniteBT.dll")
+            (Join-Path $EngineRoot "Build\Intermediate\IgniteBT\$config\net8.0\IgniteBT.dll")
         )) {
         if (Test-DotNetAssembly $candidate) {
             return $candidate
@@ -120,14 +121,9 @@ function Resolve-IgniteBtExecutable {
     param([string]$EngineRoot)
 
     $config = if ($env:IGNITEBT_CONFIG) { $env:IGNITEBT_CONFIG } else { "Debug" }
-    foreach ($candidate in @(
-            (Join-Path $EngineRoot "Build\Intermediate\IgniteBT\$config\net8.0\IgniteBT.exe"),
-            (Join-Path $EngineRoot "Build\Intermediate\IgniteBT\Debug\net8.0\IgniteBT.exe"),
-            (Join-Path $EngineRoot "Build\Intermediate\IgniteBT\Development\net8.0\IgniteBT.exe")
-        )) {
-        if (Test-DotNetExecutable $candidate) {
-            return $candidate
-        }
+    $candidate = Join-Path $EngineRoot "Build\Intermediate\IgniteBT\$config\net8.0\IgniteBT.exe"
+    if (Test-DotNetExecutable $candidate) {
+        return $candidate
     }
 
     return $null
@@ -136,13 +132,13 @@ function Resolve-IgniteBtExecutable {
 function Invoke-DotNetAssembly {
     param(
         [string]$AssemblyPath,
+        [string]$WorkingDirectory,
         [string[]]$ForwardArgs
     )
 
-    $dir = Split-Path -Parent $AssemblyPath
-    Push-Location $dir
+    Push-Location $WorkingDirectory
     try {
-        dotnet exec $AssemblyPath -- @ForwardArgs | Out-Host
+        dotnet exec $AssemblyPath @ForwardArgs | Out-Host
         return $LASTEXITCODE
     } finally {
         Pop-Location
@@ -193,17 +189,22 @@ function Invoke-Tool {
     $source = $Tool["source"]
 
     if ($kind -eq "dotnet") {
+        $assembly = Resolve-IgniteBtAssembly -EngineRoot $WorkingDirectory
+        if ($null -ne $assembly) {
+            return Invoke-DotNetAssembly -AssemblyPath $assembly -WorkingDirectory $WorkingDirectory -ForwardArgs $ForwardArgs
+        }
+
         if ([string]::IsNullOrWhiteSpace($executable)) {
             $executable = Resolve-IgniteBtExecutable -EngineRoot $WorkingDirectory
         }
         if (-not [string]::IsNullOrWhiteSpace($executable) -and (Test-DotNetExecutable $executable)) {
-            & $executable @ForwardArgs | Out-Host
-            return $LASTEXITCODE
-        }
-
-        $assembly = Resolve-IgniteBtAssembly -EngineRoot $WorkingDirectory
-        if ($null -ne $assembly) {
-            return Invoke-DotNetAssembly -AssemblyPath $assembly -ForwardArgs $ForwardArgs
+            Push-Location $WorkingDirectory
+            try {
+                & $executable @ForwardArgs | Out-Host
+                return $LASTEXITCODE
+            } finally {
+                Pop-Location
+            }
         }
 
         if (-not (Test-Path -LiteralPath $source)) {
@@ -364,7 +365,7 @@ try {
 
     $igniteBtAssembly = Resolve-IgniteBtAssembly -EngineRoot $engineRoot
     if ($null -ne $igniteBtAssembly) {
-        $exitCode = Invoke-DotNetAssembly -AssemblyPath $igniteBtAssembly -ForwardArgs $forwardArgs
+        $exitCode = Invoke-DotNetAssembly -AssemblyPath $igniteBtAssembly -WorkingDirectory $engineRoot -ForwardArgs $forwardArgs
         exit $exitCode
     }
 

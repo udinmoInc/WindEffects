@@ -35,6 +35,13 @@ void CSMain(uint3 dtid : SV_DispatchThreadID)
         return;
     }
 
+    if (pipelineBypassToneMapping != 0)
+    {
+        color = max(color * max(WE_ExposureFromEV100(exposureEV), 1.0 / 4096.0), 0.0);
+        sceneOutput[dtid.xy] = float4(color, 1.0);
+        return;
+    }
+
     const float2 bloomUv = (float2(dtid.xy) + 0.5) / float2(width, height);
     const float3 bloom = bloomTexture.SampleLevel(linearSampler, bloomUv, 0.0).rgb;
     color += bloom * bloomIntensity;

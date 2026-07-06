@@ -58,6 +58,9 @@ struct EditorGridConfig {
     float depthOffset = 0.002f;
     float radiusFadeStart = 0.82f;
     float radiusFadeEnd = 1.0f;
+    float distanceFadeStart = 50.0f;
+    float distanceFadeEnd = 500.0f;
+    float horizonGuardNdcMargin = 0.002f;
 };
 
 class EditorFunctionConfig {

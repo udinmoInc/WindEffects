@@ -44,6 +44,8 @@ public:
     RENDERER_API void EndFrame();
 
     VkRenderPass GetOffscreenRenderPass() const { return m_OffscreenRenderPass; }
+    VkRenderPass GetOffscreenRenderPassLoad() const { return m_OffscreenRenderPassLoad; }
+    VkFence GetCurrentInFlightFence() const { return m_InFlightFences[m_CurrentFrame]; }
     VkRenderPass GetSwapchainRenderPass() const { return m_SwapchainRenderPass; }
     RENDERER_API VkCommandBuffer GetCommandBuffer() const;
     Framebuffer& GetOffscreenFramebuffer() const { return *m_OffscreenFramebuffer; }
@@ -90,6 +92,7 @@ private:
 
     // Render passes
     VkRenderPass m_OffscreenRenderPass = VK_NULL_HANDLE;
+    VkRenderPass m_OffscreenRenderPassLoad = VK_NULL_HANDLE;
     VkRenderPass m_SwapchainRenderPass = VK_NULL_HANDLE;
 
     // Offscreen viewport framebuffer

@@ -142,6 +142,9 @@ Renderer::~Renderer() {
     if (m_OffscreenRenderPass != VK_NULL_HANDLE) {
         vkDestroyRenderPass(device, m_OffscreenRenderPass, nullptr);
     }
+    if (m_OffscreenRenderPassLoad != VK_NULL_HANDLE) {
+        vkDestroyRenderPass(device, m_OffscreenRenderPassLoad, nullptr);
+    }
     if (m_SwapchainRenderPass != VK_NULL_HANDLE) {
         vkDestroyRenderPass(device, m_SwapchainRenderPass, nullptr);
     }
@@ -219,6 +222,12 @@ void Renderer::CreateRenderPasses() {
     if (vkCreateRenderPass(device, &renderPassInfo, nullptr, &m_OffscreenRenderPass) != VK_SUCCESS) {
         throw std::runtime_error("Failed to create offscreen render pass!");
     }
+
+    attachments[0].loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
+    if (vkCreateRenderPass(device, &renderPassInfo, nullptr, &m_OffscreenRenderPassLoad) != VK_SUCCESS) {
+        throw std::runtime_error("Failed to create offscreen render pass load variant!");
+    }
+    attachments[0].loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
 
     // -------------------------------------------------------------------------
     // 2. Swapchain Render Pass (for ui)

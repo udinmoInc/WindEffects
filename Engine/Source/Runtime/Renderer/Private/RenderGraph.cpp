@@ -8,12 +8,12 @@ namespace we::runtime::renderer {
 RenderGraph::RenderGraph(const std::shared_ptr<Renderer>& renderer)
     : m_Renderer(renderer) {}
 
-void RenderGraph::BeginOffscreenPass(VkCommandBuffer cmd) const {
+void RenderGraph::BeginOffscreenPass(VkCommandBuffer cmd, bool clearColor) const {
     Framebuffer& offscreenFB = m_Renderer->GetOffscreenFramebuffer();
 
     VkRenderPassBeginInfo renderPassInfo{};
     renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-    renderPassInfo.renderPass = m_Renderer->GetOffscreenRenderPass();
+    renderPassInfo.renderPass = clearColor ? m_Renderer->GetOffscreenRenderPass() : m_Renderer->GetOffscreenRenderPassLoad();
     renderPassInfo.framebuffer = offscreenFB.GetFramebuffer();
     renderPassInfo.renderArea.offset = { 0, 0 };
     renderPassInfo.renderArea.extent = { offscreenFB.GetWidth(), offscreenFB.GetHeight() };

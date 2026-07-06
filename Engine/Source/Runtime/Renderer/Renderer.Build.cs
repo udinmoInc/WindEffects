@@ -29,5 +29,8 @@ public class Renderer : ModuleRules
         DefineIf(!HasThirdParty("glm"), "WE_HAS_GLM=0");
 
         Definitions.Add("RENDERER_EXPORTS");
+
+        PlatformSettings.Windows ??= new WindowsSettings();
+        PlatformSettings.Windows.LinkerFlags.Add("dbghelp.lib");
     }
 }

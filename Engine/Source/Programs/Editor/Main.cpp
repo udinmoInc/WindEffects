@@ -2,12 +2,15 @@
 #include "Editor.hpp"
 #include <SDL3/SDL.h>
 #include <iostream>
+#include <cstring>
 #include <exception>
 #include <filesystem>
 #include "Core/Logger.hpp"
 #include "Core/LogCategory.hpp"
 #include "Core/BuildPaths.hpp"
 #include "Renderer/AtmosphereValidation.hpp"
+#include "Renderer/RenderPipelineInvestigator.hpp"
+#include "Renderer/RenderForensics.hpp"
 
 #if defined(_WIN32)
 #define WIN32_LEAN_AND_MEAN
@@ -49,8 +52,35 @@ int main(int argc, char* argv[]) {
         const auto validationSettings =
             we::runtime::renderer::AtmosphereValidation::ParseCommandLine(argc, argv);
         we::runtime::renderer::AtmosphereValidation::Get().Configure(validationSettings);
+        const auto pipelineInvestigationSettings =
+            we::runtime::renderer::RenderPipelineInvestigator::ParseCommandLine(argc, argv);
+        we::runtime::renderer::RenderPipelineInvestigator::Get().Configure(pipelineInvestigationSettings);
+        auto forensicSettings = we::runtime::renderer::RenderForensics::DefaultEditorSettings();
+        if (const char* forensicEnv = std::getenv("WE_RENDER_FORENSICS")) {
+            if (forensicEnv[0] == '1' || std::strcmp(forensicEnv, "true") == 0) {
+                forensicSettings.enabled = true;
+                forensicSettings.enableGpuReadback = true;
+                forensicSettings.logEveryFrame = true;
+                forensicSettings.haltOnInvalid = true;
+                forensicSettings.haltOnWhiteScreen = true;
+            } else if (forensicEnv[0] == '0' || std::strcmp(forensicEnv, "false") == 0) {
+                forensicSettings.enabled = false;
+                forensicSettings.enableGpuReadback = false;
+            }
+        }
+        if (pipelineInvestigationSettings.enabled) {
+            forensicSettings.logEveryFrame = pipelineInvestigationSettings.logEveryFrame;
+            forensicSettings.haltOnInvalid = pipelineInvestigationSettings.haltOnInvalid;
+        }
+        we::runtime::renderer::RenderForensics::Get().Configure(forensicSettings);
         if (validationSettings.enabled) {
             HE_INFO("[Startup] Atmosphere validation mode enabled from command line.");
+        }
+        if (pipelineInvestigationSettings.enabled) {
+            HE_INFO("[Startup] Render pipeline debug mode enabled from command line.");
+        }
+        if (forensicSettings.enabled) {
+            HE_INFO("[Startup] Render forensic diagnostics enabled (GPU readback every frame).");
         }
 
         HE_INFO("[Startup] === WindEffects Editor bootstrap begin ===");
