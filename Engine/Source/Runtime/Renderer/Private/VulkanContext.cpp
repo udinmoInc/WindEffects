@@ -338,17 +338,17 @@ void VulkanContext::CreateCommandPool() {
 void VulkanContext::CreateDescriptorPool() {
     // Large descriptor pool to accommodate UI and engine bindings
     std::vector<VkDescriptorPoolSize> poolSizes = {
-        { VK_DESCRIPTOR_TYPE_SAMPLER, 100 },
-        { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 100 },
-        { VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 100 },
-        { VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 100 },
-        { VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER, 100 },
-        { VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER, 100 },
-        { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 100 },
-        { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 100 },
-        { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 100 },
-        { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC, 100 },
-        { VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, 100 }
+        { VK_DESCRIPTOR_TYPE_SAMPLER, 512 },
+        { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 512 },
+        { VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 256 },
+        { VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 128 },
+        { VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER, 128 },
+        { VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER, 128 },
+        { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 256 },
+        { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 128 },
+        { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 64 },
+        { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC, 64 },
+        { VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, 64 }
     };
 
     VkDescriptorPoolCreateInfo poolInfo{};
@@ -657,6 +657,13 @@ void VulkanContext::WaitUntilIdle() const {
     if (m_Device != VK_NULL_HANDLE) {
         vkDeviceWaitIdle(m_Device);
     }
+}
+
+void VulkanContext::WaitForFence(VkFence fence, uint64_t timeoutNs) const {
+    if (m_Device == VK_NULL_HANDLE || fence == VK_NULL_HANDLE) {
+        return;
+    }
+    vkWaitForFences(m_Device, 1, &fence, VK_TRUE, timeoutNs);
 }
 
 bool VulkanContext::IsValidationEnabled() const {

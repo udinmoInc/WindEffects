@@ -74,7 +74,8 @@ float4 PSMain(VSOutput input) : SV_Target
     else
     {
         skyLinear = inscatter.skyRadiance;
-        skyLinear += WE_ComputeSunDisk(viewDir, sunDir, sunIntensity, max(sunColor, float3(0.0, 0.0, 0.0)), params.sunAngularRadius);
+        if (enableSunDisk >= 0.5)
+            skyLinear += WE_ComputeSunDisk(viewDir, sunDir, sunIntensity, max(sunColor, float3(0.0, 0.0, 0.0)), params.sunAngularRadius);
     }
 
     skyLinear = WE_SanitizeHdrColor(skyLinear);

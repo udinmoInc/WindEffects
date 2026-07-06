@@ -102,7 +102,8 @@ float3 WE_SampleSkyAtmosphereLUT(
     float3 sky = WE_SampleSkyViewLUT(skyViewLUT, lutSampler, viewDir);
 
     // Sun disk is rendered at runtime (not baked into SkyView LUT).
-    sky += WE_ComputeSunDisk(viewDir, sunDir, sunIntensity, sunLinear, params.sunAngularRadius);
+    if (enableSunDisk >= 0.5)
+        sky += WE_ComputeSunDisk(viewDir, sunDir, sunIntensity, sunLinear, params.sunAngularRadius);
     sky = WE_SanitizeHdrColor(sky);
     return max(sky, 0.0);
 }

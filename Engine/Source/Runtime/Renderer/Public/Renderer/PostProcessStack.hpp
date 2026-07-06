@@ -29,6 +29,7 @@ public:
         uint32_t width,
         uint32_t height) const;
 
+    RENDERER_API void FlushGpuAverageLuminance() const;
     RENDERER_API bool IsReady() const;
 
 private:
@@ -79,6 +80,10 @@ private:
     VkPipeline m_BloomPrefilterPipeline = VK_NULL_HANDLE;
     VkPipeline m_BloomBlurPipeline = VK_NULL_HANDLE;
     VkPipeline m_CompositePipeline = VK_NULL_HANDLE;
+
+    mutable VkBuffer m_LuminanceReadbackBuffer = VK_NULL_HANDLE;
+    mutable VkDeviceMemory m_LuminanceReadbackMemory = VK_NULL_HANDLE;
+    mutable bool m_LuminanceReadbackPending = false;
 };
 
 #endif // WE_HAS_VULKAN

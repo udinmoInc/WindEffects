@@ -1400,6 +1400,12 @@ void SceneRenderer::ApplyPostExposure(
     m_PostProcess->Apply(cmd, m_EnvironmentDescSet, colorImage, colorImageView, width, height);
 }
 
+void SceneRenderer::FlushPostProcessReadbacks() const {
+    if (m_PostProcess) {
+        m_PostProcess->FlushGpuAverageLuminance();
+    }
+}
+
 void SceneRenderer::DrawMesh(VkCommandBuffer cmd, const std::string& meshName, VkDescriptorSet descriptorSet, int mode) const {
     RefreshEnvironmentDescriptorBindings();
 

@@ -32,7 +32,8 @@ float3 WE_SampleSkyAtmosphere(
     const float3 origin = WE_GetAtmosphereOrigin(cameraPos, worldOrigin, params.planetRadius, params.eyeAltitude);
     float3 transmittance;
     float3 sky = WE_IntegrateInscattering(viewDir, sunDir, origin, params, transmittance);
-    sky += WE_ComputeSunDisk(viewDir, sunDir, sunIntensity, sunLinear, params.sunAngularRadius);
+    if (enableSunDisk >= 0.5)
+        sky += WE_ComputeSunDisk(viewDir, sunDir, sunIntensity, sunLinear, params.sunAngularRadius);
     return max(sky, 0.0);
 }
 

@@ -1,4 +1,5 @@
 #include "Renderer/RenderGraph.hpp"
+#include "Core/Logger.hpp"
 #include <array>
 
 namespace we::runtime::renderer {
@@ -50,6 +51,15 @@ void RenderGraph::EndOffscreenPass(VkCommandBuffer cmd) const {
 }
 
 void RenderGraph::BeginSwapchainPass(VkCommandBuffer cmd) const {
+    if (!m_Renderer) {
+        HE_ERROR("RenderGraph::BeginSwapchainPass: renderer is null.");
+        return;
+    }
+    if (cmd == VK_NULL_HANDLE) {
+        HE_ERROR("RenderGraph::BeginSwapchainPass: command buffer is null.");
+        return;
+    }
+
     VkRenderPassBeginInfo renderPassInfo{};
     renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
     renderPassInfo.renderPass = m_Renderer->GetSwapchainRenderPass();

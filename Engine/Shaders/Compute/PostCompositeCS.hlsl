@@ -37,7 +37,11 @@ void CSMain(uint3 dtid : SV_DispatchThreadID)
 
     if (pipelineBypassToneMapping != 0)
     {
-        color = max(color * max(WE_ExposureFromEV100(exposureEV), 1.0 / 4096.0), 0.0);
+        const float evScale = max(WE_ExposureFromEV100(exposureEV), 1.0 / 4096.0);
+        const float exposureScale = pipelineFixedExposureMultiplier > 0.0
+            ? pipelineFixedExposureMultiplier
+            : evScale;
+        color = max(color * exposureScale, 0.0);
         sceneOutput[dtid.xy] = float4(color, 1.0);
         return;
     }
@@ -52,8 +56,10 @@ void CSMain(uint3 dtid : SV_DispatchThreadID)
         -2.0, 14.0);
     const float ev = lerp(exposureEV, autoEV, saturate(enableAutoExposure));
 
-    // EV100 exposure multiplier — do not clamp to 1.0; bright HDR skies need values well below 1.
-    const float exposureScale = max(WE_ExposureFromEV100(ev), 1.0 / 4096.0);
+    const float evScale = max(WE_ExposureFromEV100(ev), 1.0 / 4096.0);
+    const float exposureScale = (enableAutoExposure < 0.5 && pipelineFixedExposureMultiplier > 0.0)
+        ? pipelineFixedExposureMultiplier
+        : evScale;
     color = WE_ApplyFilmicTonemap(color, exposureScale);
     color = WE_LinearToSRGB(color);
     sceneOutput[dtid.xy] = float4(color, 1.0);

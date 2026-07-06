@@ -109,7 +109,11 @@ we::runtime::renderer::SceneEnvironmentUniform BuildSceneEnvironmentUniform(
     uniform.ozoneAbsorption = atmosphere.GetOzoneAbsorption();
     uniform.mieAnisotropy = atmosphere.MieAnisotropy;
     uniform.worldOrigin = worldOrigin;
-    uniform.exposureEV = exposure.GetEffectiveExposureEV(sunDerivedEV);
+    // GPU auto-exposure lerps manual exposureEV against the luminance-derived EV in PostCompositeCS.
+    // Keep the manual/fallback EV on the CPU uniform; do not pre-bake sun-derived EV here.
+    uniform.exposureEV = exposure.AutoExposure
+        ? std::clamp(exposure.ExposureEV, exposure.MinEV, exposure.MaxEV)
+        : exposure.GetEffectiveExposureEV(sunDerivedEV);
     uniform.planetRadius = 6360.0f;
     uniform.atmosphereHeight = 60.0f;
     uniform.multiScatterStrength = atmosphere.MultiScatterStrength;
@@ -131,6 +135,8 @@ we::runtime::renderer::SceneEnvironmentUniform BuildSceneEnvironmentUniform(
     uniform.atmosphereDebugMode = atmosphere.AtmosphereDebugMode;
     uniform.cloudTemporalBlend = 0.88f;
     uniform.cloudHistoryValid = 0;
+    uniform.enableSunDisk = 1.0f;
+    uniform.pipelineFixedExposureMultiplier = 0.0f;
 #if WE_HAS_VULKAN
     we::runtime::renderer::AtmosphereValidation::Get().ApplyEnvironmentOverrides(uniform);
     we::runtime::renderer::RenderPipelineInvestigator::Get().ApplyEnvironmentOverrides(uniform);

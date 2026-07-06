@@ -164,6 +164,12 @@ struct ForensicCameraLog {
     float exposureMultiplier = 0.0f;
     float ev100 = 0.0f;
     float avgSceneLuminance = 0.0f;
+    bool autoExposureEnabled = true;
+    float manualExposureEV = 0.0f;
+    float sunDerivedExposureEV = 0.0f;
+    float hdrSkyLuminance = 0.0f;
+    float bloomIntensity = 0.0f;
+    float exposureCompensation = 0.0f;
     ForensicTargetStats hdrBeforeExposure{};
     ForensicTargetStats hdrAfterExposure{};
     ForensicTargetStats hdrBeforeToneMap{};
@@ -243,6 +249,7 @@ public:
         const glm::vec3& cameraForward,
         const SceneEnvironmentUniform& env,
         float gpuAvgLuminance);
+    RENDERER_API void RefreshCameraGpuLuminance(float gpuAvgLuminance);
 
     /// Returns execution index for correlating timing, readback, and exposure details.
     RENDERER_API int BeginPassExecution(
@@ -307,6 +314,7 @@ private:
     void WriteWhiteScreenReport(const ForensicFrameReport& report) const;
     void DestroyPending(const VulkanContext& context);
     std::vector<std::string> CaptureCallStack(int maxFrames) const;
+    void SyncPassesFromFrameStats(ForensicFrameReport& report) const;
 
     RenderForensicsSettings m_Settings{};
     ForensicFrameReport m_LastReport{};

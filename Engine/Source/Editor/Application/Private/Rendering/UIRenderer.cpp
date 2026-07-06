@@ -17,10 +17,17 @@ bool UIRenderer::Init(const std::shared_ptr<we::runtime::renderer::VulkanContext
     m_Context = context;
     VkDevice device = m_Context->GetDevice();
 
-    // Initialize volk for this DLL's context
-    volkInitialize();
+    // Initialize volk for this DLL's context (each module has its own function pointers).
+    if (volkInitialize() != VK_SUCCESS) {
+        HE_ERROR("UIRenderer: volkInitialize failed.");
+        return false;
+    }
     volkLoadInstance(m_Context->GetInstance());
     volkLoadDevice(device);
+    if (!vkCmdBindPipeline) {
+        HE_ERROR("UIRenderer: Vulkan command function pointers were not loaded.");
+        return false;
+    }
 
 
     HE_INFO("UIRenderer: Initializing UI descriptor layouts...");
@@ -62,6 +69,10 @@ bool UIRenderer::Init(const std::shared_ptr<we::runtime::renderer::VulkanContext
     
     // Register textures for Font and Dummy
     m_DummyDescriptorSet = RegisterTexture(m_DummyImageView, m_DummySampler);
+    if (m_DummyDescriptorSet == VK_NULL_HANDLE) {
+        HE_ERROR("UIRenderer: Failed to allocate dummy texture descriptor set!");
+        return false;
+    }
     // Allocate Font descriptor set
     VkDescriptorSetAllocateInfo fontAllocInfo{};
     fontAllocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
@@ -402,6 +413,9 @@ void UIRenderer::BuildGeometry(const std::vector<DrawCommand>& commands, uint32_
     for (const auto& cmd : commands) {
         VkDescriptorSet texSet = m_DummyDescriptorSet;
         if (cmd.type == DrawCommandType::Text) {
+            if (!m_FontAtlas) {
+                continue;
+            }
             texSet = m_FontAtlas->GetDescriptorSet();
         } else if (cmd.type == DrawCommandType::Icon && m_IconRenderer) {
             const uint32_t iconSize = static_cast<uint32_t>(std::max(8.0f, cmd.fontSize));
@@ -410,8 +424,15 @@ void UIRenderer::BuildGeometry(const std::vector<DrawCommand>& commands, uint32_
             texSet = cmd.textureId;
         }
 
-        if (cmd.type == DrawCommandType::Icon && texSet == VK_NULL_HANDLE) {
-            continue;
+        if (texSet == VK_NULL_HANDLE) {
+            if (cmd.type == DrawCommandType::Icon) {
+                continue;
+            }
+            if (m_DummyDescriptorSet != VK_NULL_HANDLE) {
+                texSet = m_DummyDescriptorSet;
+            } else {
+                continue;
+            }
         }
 
         uint32_t startIndex = static_cast<uint32_t>(m_Vertices.size());
@@ -610,7 +631,7 @@ void UIRenderer::BuildGeometry(const std::vector<DrawCommand>& commands, uint32_
 }
 
 void UIRenderer::UpdateBuffers(uint32_t frameIndex) {
-    if (frameIndex >= kFramesInFlight) {
+    if (frameIndex >= static_cast<uint32_t>(we::runtime::renderer::kMaxFramesInFlight)) {
         return;
     }
 
@@ -664,14 +685,14 @@ void UIRenderer::UpdateBuffers(uint32_t frameIndex) {
     vkUnmapMemory(device, buffers.indexMemory);
 }
 
-void UIRenderer::Render(VkCommandBuffer cmd, uint32_t width, uint32_t height, uint32_t frameIndex,
-                        const std::shared_ptr<Widget>& root) {
+void UIRenderer::PrepareFrame(uint32_t width, uint32_t height, uint32_t frameIndex,
+                              const std::shared_ptr<Widget>& root) {
     if (!root) {
-        HE_ERROR("UIRenderer::Render called with null root widget.");
+        HE_ERROR("UIRenderer::PrepareFrame called with null root widget.");
         return;
     }
 
-    // 1. Layout then paint (update/Tick is handled by the editor main loop before this call)
+    // Layout then paint (update/Tick is handled by the editor main loop before this call)
     root->Measure(Size{ static_cast<float>(width), static_cast<float>(height) });
     root->Arrange(Rect{ 0.0f, 0.0f, static_cast<float>(width), static_cast<float>(height) });
 
@@ -680,7 +701,7 @@ void UIRenderer::Render(VkCommandBuffer cmd, uint32_t width, uint32_t height, ui
 
     const auto& commands = paintCtx.GetCommands();
 
-    // 2. Generate and update GPU buffers
+    // Generate and update GPU buffers outside any active render pass.
     BuildGeometry(commands, width, height);
     UpdateBuffers(frameIndex);
 
@@ -705,8 +726,34 @@ void UIRenderer::Render(VkCommandBuffer cmd, uint32_t width, uint32_t height, ui
         }
         ++s_LoggedFrames;
     }
+}
 
-    // 3. Always bind pipeline and set dynamic state even if no geometry.
+void UIRenderer::RecordDrawCommands(VkCommandBuffer cmd, uint32_t width, uint32_t height, uint32_t frameIndex) {
+    if (cmd == VK_NULL_HANDLE) {
+        HE_ERROR("UIRenderer::RecordDrawCommands: command buffer is null.");
+        return;
+    }
+    if (!m_Context) {
+        HE_ERROR("UIRenderer::RecordDrawCommands: Vulkan context is null.");
+        return;
+    }
+    if (!vkCmdBindPipeline) {
+        volkLoadDevice(m_Context->GetDevice());
+    }
+    if (!vkCmdBindPipeline) {
+        HE_ERROR("UIRenderer::RecordDrawCommands: Vulkan command function pointers are not loaded.");
+        return;
+    }
+    if (m_Pipeline == VK_NULL_HANDLE || m_PipelineLayout == VK_NULL_HANDLE) {
+        HE_ERROR("UIRenderer::RecordDrawCommands called before pipeline initialization.");
+        return;
+    }
+    if (frameIndex >= static_cast<uint32_t>(we::runtime::renderer::kMaxFramesInFlight)) {
+        HE_ERROR("UIRenderer::RecordDrawCommands: frame index out of range.");
+        return;
+    }
+
+    // Always bind pipeline and set dynamic state even if no geometry.
     //    An early return here would leave the active render pass open,
     //    causing vkQueueSubmit to fail with VK_ERROR_DEVICE_LOST.
     vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_Pipeline);
@@ -774,12 +821,26 @@ void UIRenderer::Render(VkCommandBuffer cmd, uint32_t width, uint32_t height, ui
 
         vkCmdSetScissor(cmd, 0, 1, &scissor);
 
+        VkDescriptorSet textureSet = batch.textureSet;
+        if (textureSet == VK_NULL_HANDLE) {
+            textureSet = m_DummyDescriptorSet;
+        }
+        if (textureSet == VK_NULL_HANDLE) {
+            continue;
+        }
+
         // Bind Texture descriptor set
-        vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_PipelineLayout, 0, 1, &batch.textureSet, 0, nullptr);
+        vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_PipelineLayout, 0, 1, &textureSet, 0, nullptr);
 
         // Render Indexed Triangles
         vkCmdDrawIndexed(cmd, batch.indexCount, 1, batch.firstIndex, batch.vertexOffset, 0);
     }
+}
+
+void UIRenderer::Render(VkCommandBuffer cmd, uint32_t width, uint32_t height, uint32_t frameIndex,
+                        const std::shared_ptr<Widget>& root) {
+    PrepareFrame(width, height, frameIndex, root);
+    RecordDrawCommands(cmd, width, height, frameIndex);
 }
 
 void UIRenderer::Shutdown() {

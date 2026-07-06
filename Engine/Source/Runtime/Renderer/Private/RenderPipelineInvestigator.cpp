@@ -2,8 +2,10 @@
 #include "Renderer/RendererConfig.hpp"
 #include "Core/LogCategory.hpp"
 #include "Core/DiagnosticMacros.hpp"
+#include "Core/EditorConfigPaths.hpp"
 
 #include <algorithm>
+#include <cctype>
 #include <cmath>
 #include <cstdlib>
 #include <cstring>
@@ -73,7 +75,98 @@ bool EffectStepAllowsPass(int step, RenderPassId pass) {
     }
 }
 
+std::string TrimConfigValue(std::string value) {
+    auto notSpace = [](unsigned char ch) { return !std::isspace(ch); };
+    value.erase(value.begin(), std::find_if(value.begin(), value.end(), notSpace));
+    value.erase(std::find_if(value.rbegin(), value.rend(), notSpace).base(), value.end());
+    return value;
+}
+
+bool ParseConfigBool(const std::string& value, bool fallback) {
+    const std::string lower = TrimConfigValue(value);
+    if (lower == "1" || lower == "true" || lower == "yes" || lower == "on") return true;
+    if (lower == "0" || lower == "false" || lower == "no" || lower == "off") return false;
+    return fallback;
+}
+
+int ParseConfigInt(const std::string& value, int fallback) {
+    try {
+        return std::stoi(TrimConfigValue(value));
+    } catch (...) {
+        return fallback;
+    }
+}
+
+float ParseConfigFloat(const std::string& value, float fallback) {
+    try {
+        return std::stof(TrimConfigValue(value));
+    } catch (...) {
+        return fallback;
+    }
+}
+
 } // namespace
+
+struct RenderPipelineInvestigator::ResolvedStageGates {
+    bool skyAtmosphere = true;
+    bool tonemapping = true;
+    bool autoExposure = true;
+    bool fog = true;
+    bool clouds = true;
+    bool bloom = true;
+    bool sunDisk = true;
+    bool postProcess = true;
+    bool geometry = true;
+    bool grid = true;
+};
+
+const char* RenderPipelineInvestigator::SkyIsolationStepName(int step) {
+    switch (step) {
+        case 0: return "Baseline (clear only)";
+        case 1: return "SkyAtmosphere only";
+        case 2: return "SkyAtmosphere + Tonemapping";
+        case 3: return "SkyAtmosphere + Tonemapping + AutoExposure";
+        case 4: return "+ Fog composite";
+        case 5: return "+ VolumetricClouds";
+        case 6: return "+ Bloom";
+        case 7: return "+ Sun disk";
+        default: return "Custom";
+    }
+}
+
+RenderPipelineInvestigator::ResolvedStageGates RenderPipelineInvestigator::ResolveStageGates() const {
+    ResolvedStageGates gates{};
+    if (!m_Settings.enabled) {
+        return gates;
+    }
+
+    if (m_Settings.skyIsolationStep >= 0) {
+        const int step = m_Settings.skyIsolationStep;
+        gates.skyAtmosphere = step >= 1;
+        gates.postProcess = step >= 2;
+        gates.tonemapping = step >= 2;
+        gates.autoExposure = step >= 3;
+        gates.fog = step >= 4;
+        gates.clouds = step >= 5;
+        gates.bloom = step >= 6;
+        gates.sunDisk = step >= 7;
+        gates.geometry = false;
+        gates.grid = false;
+        return gates;
+    }
+
+    gates.skyAtmosphere = !m_Settings.disableSky;
+    gates.tonemapping = !m_Settings.disableToneMapping && !m_Settings.bypassToneMapping;
+    gates.autoExposure = !m_Settings.disableAutoExposure;
+    gates.fog = !m_Settings.disableFog && !m_Settings.disableAerialPerspective;
+    gates.clouds = !m_Settings.disableClouds;
+    gates.bloom = !m_Settings.disableBloom;
+    gates.sunDisk = !m_Settings.disableSunDisk;
+    gates.geometry = !m_Settings.disableGeometry;
+    gates.grid = !m_Settings.disableGrid;
+    gates.postProcess = !m_Settings.disablePostProcessing;
+    return gates;
+}
 
 RenderPipelineInvestigator& RenderPipelineInvestigator::Get() {
     static RenderPipelineInvestigator instance;
@@ -105,6 +198,13 @@ RenderPipelineInvestigatorSettings RenderPipelineInvestigator::ParseCommandLine(
             settings.enableGpuReadback = true;
         }
     }
+    if (const char* envStep = std::getenv("WE_PIPELINE_SKY_ISOLATION_STEP")) {
+        settings.skyIsolationStepFromCommandLine = true;
+        settings.enabled = true;
+        settings.skyIsolationStep = std::atoi(envStep);
+        settings.haltOnInvalid = false;
+        settings.logEveryFrame = true;
+    }
     if (const char* envStep = std::getenv("WE_PIPELINE_EFFECT_STEP")) {
         settings.enabled = true;
         settings.effectStep = std::atoi(envStep);
@@ -122,6 +222,17 @@ RenderPipelineInvestigatorSettings RenderPipelineInvestigator::ParseCommandLine(
             settings.haltOnInvalid = false;
             settings.logEveryFrame = false;
             settings.writeReportFile = false;
+            continue;
+        }
+        if (StartsWith(argv[i], "-PipelineSkyIsolationStep=")) {
+            settings.skyIsolationStepFromCommandLine = true;
+            const int step = std::atoi(argv[i] + std::strlen("-PipelineSkyIsolationStep="));
+            settings.skyIsolationStep = step;
+            settings.enabled = step >= 0;
+            if (step >= 0) {
+                settings.haltOnInvalid = false;
+                settings.logEveryFrame = true;
+            }
             continue;
         }
         if (StartsWith(argv[i], "-PipelineEffectStep=")) {
@@ -166,6 +277,17 @@ RenderPipelineInvestigatorSettings RenderPipelineInvestigator::ParseCommandLine(
             settings.disableGeometry = true;
             continue;
         }
+        if (std::strcmp(argv[i], "-PipelineNoSunDisk") == 0) {
+            settings.enabled = true;
+            settings.disableSunDisk = true;
+            continue;
+        }
+        if (std::strcmp(argv[i], "-PipelineNoToneMap") == 0) {
+            settings.enabled = true;
+            settings.disableToneMapping = true;
+            settings.bypassToneMapping = true;
+            continue;
+        }
         if (StartsWith(argv[i], "-PipelineOnlyPass=")) {
             settings.enabled = true;
             settings.enableGpuReadback = true;
@@ -197,12 +319,129 @@ RenderPipelineInvestigatorSettings RenderPipelineInvestigator::ParseCommandLine(
     return settings;
 }
 
+namespace {
+
+std::filesystem::path PipelineSkyIsolationPersistPath() {
+    return std::filesystem::path("Saved") / "Config" / "pipeline_sky_isolation.ini";
+}
+
+void ApplyPipelineSkyIsolationSection(
+    const std::string& key,
+    const std::string& value,
+    RenderPipelineInvestigatorSettings& settings) {
+
+    if (key == "Enabled") {
+        if (ParseConfigBool(value, false)) settings.enabled = true;
+    } else if (key == "SkyIsolationStep") {
+        const int step = ParseConfigInt(value, -1);
+        if (step >= 0) {
+            settings.enabled = true;
+            settings.skyIsolationStep = step;
+        }
+    } else if (key == "DisableSky") settings.disableSky = ParseConfigBool(value, settings.disableSky);
+    else if (key == "DisableToneMapping") {
+        settings.disableToneMapping = ParseConfigBool(value, settings.disableToneMapping);
+        if (settings.disableToneMapping) settings.bypassToneMapping = true;
+    } else if (key == "DisableAutoExposure") settings.disableAutoExposure = ParseConfigBool(value, settings.disableAutoExposure);
+    else if (key == "DisableFog") settings.disableFog = ParseConfigBool(value, settings.disableFog);
+    else if (key == "DisableClouds") settings.disableClouds = ParseConfigBool(value, settings.disableClouds);
+    else if (key == "DisableBloom") settings.disableBloom = ParseConfigBool(value, settings.disableBloom);
+    else if (key == "DisableSunDisk") settings.disableSunDisk = ParseConfigBool(value, settings.disableSunDisk);
+    else if (key == "DisableGrid") settings.disableGrid = ParseConfigBool(value, settings.disableGrid);
+    else if (key == "DisableGeometry") settings.disableGeometry = ParseConfigBool(value, settings.disableGeometry);
+    else if (key == "DisablePostProcessing") settings.disablePostProcessing = ParseConfigBool(value, settings.disablePostProcessing);
+    else if (key == "FixedExposureEV") settings.fixedExposureEV = ParseConfigFloat(value, settings.fixedExposureEV);
+    else if (key == "FixedExposureMultiplier") settings.fixedExposureMultiplier = ParseConfigFloat(value, settings.fixedExposureMultiplier);
+    else if (key == "BypassToneMapping") settings.bypassToneMapping = ParseConfigBool(value, settings.bypassToneMapping);
+    else if (key == "ForceExposureOne") {
+        settings.forceExposureOne = ParseConfigBool(value, settings.forceExposureOne);
+        if (settings.forceExposureOne) settings.disableAutoExposure = true;
+    }
+}
+
+} // namespace
+
+void RenderPipelineInvestigator::ApplyPersistedOverrides(RenderPipelineInvestigatorSettings& settings) {
+    const std::filesystem::path configPath = PipelineSkyIsolationPersistPath();
+    std::ifstream file(configPath);
+    if (!file) return;
+
+    bool inSection = false;
+    std::string line;
+    while (std::getline(file, line)) {
+        line = TrimConfigValue(line);
+        if (line.empty() || line[0] == '#' || line[0] == ';') continue;
+        if (line.front() == '[' && line.back() == ']') {
+            const std::string section = line.substr(1, line.size() - 2);
+            inSection = section == "PipelineSkyIsolation";
+            continue;
+        }
+        if (!inSection) continue;
+
+        const auto eq = line.find('=');
+        if (eq == std::string::npos) continue;
+        const std::string key = TrimConfigValue(line.substr(0, eq));
+        const std::string value = line.substr(eq + 1);
+        ApplyPipelineSkyIsolationSection(key, value, settings);
+    }
+}
+
+void RenderPipelineInvestigator::ApplyConfigOverrides(RenderPipelineInvestigatorSettings& settings) {
+    const std::filesystem::path configPath = we::core::ResolveEditorConfigPath("function.ini");
+    std::ifstream file(configPath);
+    if (!file) return;
+
+    bool inSection = false;
+    std::string line;
+    while (std::getline(file, line)) {
+        line = TrimConfigValue(line);
+        if (line.empty() || line[0] == '#' || line[0] == ';') continue;
+        if (line.front() == '[' && line.back() == ']') {
+            const std::string section = line.substr(1, line.size() - 2);
+            inSection = section == "PipelineSkyIsolation";
+            continue;
+        }
+        if (!inSection) continue;
+
+        const auto eq = line.find('=');
+        if (eq == std::string::npos) continue;
+        const std::string key = TrimConfigValue(line.substr(0, eq));
+        const std::string value = line.substr(eq + 1);
+
+        ApplyPipelineSkyIsolationSection(key, value, settings);
+    }
+}
+
+void RenderPipelineInvestigator::PersistSettings(const RenderPipelineInvestigatorSettings& settings) const {
+    const std::filesystem::path configPath = PipelineSkyIsolationPersistPath();
+    std::error_code ec;
+
+    if (!settings.enabled || settings.skyIsolationStep < 0) {
+        std::filesystem::remove(configPath, ec);
+        return;
+    }
+
+    std::filesystem::create_directories(configPath.parent_path(), ec);
+    std::ofstream file(configPath);
+    if (!file) return;
+
+    file << "[PipelineSkyIsolation]\n";
+    file << "Enabled=1\n";
+    file << "SkyIsolationStep=" << settings.skyIsolationStep << "\n";
+}
+
 void RenderPipelineInvestigator::Configure(const RenderPipelineInvestigatorSettings& settings) {
     m_Settings = settings;
     m_WarmupRemaining = settings.warmupFrames;
     m_ShouldHalt = false;
+    PersistSettings(settings);
     if (!settings.enabled) return;
-    if (settings.effectStep >= 0) {
+    if (settings.skyIsolationStep >= 0) {
+        WE_LOG_INFO(LogCategory::Renderer.data(),
+            std::string("Sky isolation step ") + std::to_string(settings.skyIsolationStep)
+                + " (" + SkyIsolationStepName(settings.skyIsolationStep)
+                + "). Advance with -PipelineSkyIsolationStep=N or function.ini [PipelineSkyIsolation].");
+    } else if (settings.effectStep >= 0) {
         WE_LOG_INFO(LogCategory::Renderer.data(),
             std::string("Render pipeline effect step ") + std::to_string(settings.effectStep)
                 + " (" + EffectStepName(settings.effectStep) + "). Add effects one at a time with -PipelineEffectStep=N.");
@@ -241,17 +480,61 @@ void RenderPipelineInvestigator::DestroyPending(const VulkanContext& context) {
 
 void RenderPipelineInvestigator::ApplyEnvironmentOverrides(SceneEnvironmentUniform& uniform) const {
     if (!m_Settings.enabled) return;
+
+    const ResolvedStageGates gates = ResolveStageGates();
+
     if (m_Settings.forceConstantBlueSky) uniform.atmosphereDebugMode = 104;
-    if (m_Settings.disableClouds) uniform.enableClouds = 0.0f;
-    if (m_Settings.disableFog) uniform.enableVolumetricFog = 0.0f;
-    if (m_Settings.disableBloom) uniform.bloomIntensity = 0.0f;
-    if (m_Settings.disableAutoExposure || m_Settings.forceExposureOne) uniform.enableAutoExposure = 0.0f;
-    if (m_Settings.forceExposureOne) {
-        uniform.exposureEV = 0.0f;
+    if (!gates.clouds) uniform.enableClouds = 0.0f;
+    if (!gates.fog) uniform.enableVolumetricFog = 0.0f;
+    if (!gates.bloom) uniform.bloomIntensity = 0.0f;
+    if (!gates.sunDisk) uniform.enableSunDisk = 0.0f;
+
+    const bool useFixedExposure = !gates.autoExposure || m_Settings.forceExposureOne || m_Settings.disableAutoExposure;
+    if (useFixedExposure) {
+        uniform.enableAutoExposure = 0.0f;
+        uniform.exposureEV = m_Settings.forceExposureOne ? 0.0f : m_Settings.fixedExposureEV;
         uniform.exposureCompensation = 0.0f;
+        uniform.pipelineFixedExposureMultiplier = m_Settings.fixedExposureMultiplier;
+    } else {
+        uniform.pipelineFixedExposureMultiplier = 0.0f;
     }
-    if (m_Settings.bypassToneMapping) uniform.pipelineBypassToneMapping = 1;
-    else uniform.pipelineBypassToneMapping = 0;
+
+    const bool bypassToneMap = !gates.tonemapping || m_Settings.bypassToneMapping || m_Settings.disableToneMapping;
+    uniform.pipelineBypassToneMapping = bypassToneMap ? 1 : 0;
+}
+
+bool RenderPipelineInvestigator::ShouldRunPostProcess() const {
+    if (!m_Settings.enabled) return true;
+    if (m_Settings.onlyPass >= 0) {
+        const auto pass = static_cast<RenderPassId>(m_Settings.onlyPass);
+        return pass == RenderPassId::PostProcessing
+            || pass == RenderPassId::Exposure
+            || pass == RenderPassId::ToneMapping;
+    }
+    if (m_Settings.effectStep >= 0) {
+        return EffectStepAllowsPass(m_Settings.effectStep, RenderPassId::PostProcessing);
+    }
+    return ResolveStageGates().postProcess;
+}
+
+bool RenderPipelineInvestigator::ShouldApplyBloom() const {
+    if (!m_Settings.enabled) return true;
+    return ResolveStageGates().bloom;
+}
+
+bool RenderPipelineInvestigator::ShouldApplyTonemapping() const {
+    if (!m_Settings.enabled) return true;
+    return ResolveStageGates().tonemapping && !m_Settings.bypassToneMapping && !m_Settings.disableToneMapping;
+}
+
+bool RenderPipelineInvestigator::ShouldApplyAutoExposure() const {
+    if (!m_Settings.enabled) return true;
+    return ResolveStageGates().autoExposure && !m_Settings.disableAutoExposure && !m_Settings.forceExposureOne;
+}
+
+bool RenderPipelineInvestigator::ShouldRenderSunDisk() const {
+    if (!m_Settings.enabled) return true;
+    return ResolveStageGates().sunDisk;
 }
 
 bool RenderPipelineInvestigator::ShouldRunPass(RenderPassId pass) const {
@@ -264,21 +547,23 @@ bool RenderPipelineInvestigator::ShouldRunPass(RenderPassId pass) const {
     if (m_Settings.effectStep >= 0) {
         return EffectStepAllowsPass(m_Settings.effectStep, pass);
     }
+
+    const ResolvedStageGates gates = ResolveStageGates();
     switch (pass) {
         case RenderPassId::SkyAtmosphere:
-            return !m_Settings.disableSky;
+            return gates.skyAtmosphere;
         case RenderPassId::Geometry:
         case RenderPassId::Lighting:
-            return !m_Settings.disableGeometry;
+            return gates.geometry;
         case RenderPassId::VolumetricClouds:
-            return !m_Settings.disableClouds;
+            return gates.clouds;
         case RenderPassId::Fog:
         case RenderPassId::AerialPerspective:
-            return !m_Settings.disableFog && !m_Settings.disableAerialPerspective;
+            return gates.fog;
         case RenderPassId::PostProcessing:
         case RenderPassId::Exposure:
         case RenderPassId::ToneMapping:
-            return !m_Settings.disablePostProcessing;
+            return gates.postProcess;
         default:
             return true;
     }
@@ -286,7 +571,7 @@ bool RenderPipelineInvestigator::ShouldRunPass(RenderPassId pass) const {
 
 bool RenderPipelineInvestigator::ShouldRenderGrid() const {
     if (!m_Settings.enabled) return true;
-    if (m_Settings.effectStep >= 0) return false;
+    if (m_Settings.effectStep >= 0 || m_Settings.skyIsolationStep >= 0) return false;
     return !m_Settings.disableGrid;
 }
 

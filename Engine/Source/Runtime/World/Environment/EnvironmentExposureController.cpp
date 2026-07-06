@@ -10,6 +10,7 @@ void EnvironmentExposureController::ApplyDefaults() {
     MinEV = -2.0f;
     MaxEV = 14.0f;
     AutoExposure = true;
+    AppliedDefaultsVersion = kDefaultsVersion;
 }
 
 float EnvironmentExposureController::GetEffectiveExposureEV(float sunDerivedEV) const {

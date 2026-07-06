@@ -7,6 +7,8 @@ namespace we::runtime::world::environment {
 
 class EnvironmentExposureController {
 public:
+    static constexpr int kDefaultsVersion = 1;
+
     std::uint64_t EntityId = 0;
 
     float ExposureEV = 0.0f;
@@ -14,8 +16,10 @@ public:
     float MinEV = -2.0f;
     float MaxEV = 14.0f;
     bool AutoExposure = true;
+    int AppliedDefaultsVersion = 0;
 
     void ApplyDefaults();
+    bool NeedsDefaultMigration() const { return AppliedDefaultsVersion < kDefaultsVersion; }
     float GetEffectiveExposureEV(float sunDerivedEV) const;
 };
 

@@ -3,6 +3,7 @@
 #include "Environment/EnvironmentLighting.h"
 #include "Environment/EnvironmentManager.h"
 #include "Renderer/SceneRenderer.hpp"
+#include "Renderer/FrameStats.hpp"
 #include "Core/Logger.hpp"
 #include "Core/LogCategory.hpp"
 
@@ -43,6 +44,9 @@ EnvironmentSystem& EnvironmentSystem::Get() {
 
 void EnvironmentSystem::BindScene(const std::shared_ptr<Scene>& scene) {
     m_Scene = scene;
+    if (m_ExposureController.NeedsDefaultMigration()) {
+        m_ExposureController.ApplyDefaults();
+    }
     DiscoverExistingActors();
 }
 
@@ -591,9 +595,15 @@ void EnvironmentSystem::UpdateRendering(const glm::vec3& cameraPosition) {
 
     if (auto renderer = m_Renderer.lock()) {
         const glm::vec3 worldOrigin = m_Manager.GetWorldOrigin(cameraPosition);
+        const float sunDerivedEV = m_Manager.ComputeExposureEV(m_Sun);
         const auto uniform = BuildSceneEnvironmentUniform(
             m_Sun, m_SkyLight, m_SkyAtmosphere, m_HeightFog, m_VolumetricClouds, m_ExposureController, worldOrigin);
         renderer->SetSceneEnvironment(uniform);
+        we::runtime::renderer::FrameStatsCollector::Get().SetExposureDiagnostics(
+            uniform.enableAutoExposure > 0.5f,
+            m_ExposureController.ExposureEV,
+            sunDerivedEV,
+            uniform.exposureEV);
 
         static bool loggedExposure = false;
         if (!loggedExposure) {

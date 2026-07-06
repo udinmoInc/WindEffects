@@ -10,6 +10,15 @@ double NowMs() {
     return std::chrono::duration<double, std::milli>(
         std::chrono::steady_clock::now().time_since_epoch()).count();
 }
+
+FramePassRecord* FindPassRecord(std::vector<FramePassRecord>& passes, const std::string& name) {
+    for (auto& pass : passes) {
+        if (pass.name == name) {
+            return &pass;
+        }
+    }
+    return nullptr;
+}
 }
 
 FrameStatsCollector& FrameStatsCollector::Get() {
@@ -30,6 +39,8 @@ void FrameStatsCollector::BeginFrame() {
     m_Stats.cloudsPassStatus = "pending";
     m_Stats.fogPassStatus = "pending";
     m_Stats.postPassStatus = "pending";
+    m_Stats.passExecutions.clear();
+    m_Stats.gpuAverageLuminance = 0.0f;
 }
 
 void FrameStatsCollector::EndFrame() {
@@ -54,6 +65,24 @@ void FrameStatsCollector::RecordPassMs(const char* passName, double ms) {
     else if (name == "FogComposite") m_Stats.fogPassMs = ms;
     else if (name == "PostExposure") m_Stats.postPassMs = ms;
     else if (name == "AtmosphereLUT") m_Stats.lutGenerationMs = ms;
+
+    if (FramePassRecord* pass = FindPassRecord(m_Stats.passExecutions, name)) {
+        pass->cpuMs = ms;
+    }
+}
+
+void FrameStatsCollector::RecordPassExecution(const char* passName, const char* status, double cpuMs) {
+    if (!passName || !status) return;
+    const std::string name(passName);
+    const std::string value(status);
+    if (FramePassRecord* pass = FindPassRecord(m_Stats.passExecutions, name)) {
+        pass->status = value;
+        if (cpuMs > 0.0) {
+            pass->cpuMs = cpuMs;
+        }
+        return;
+    }
+    m_Stats.passExecutions.push_back(FramePassRecord{ name, value, cpuMs });
 }
 
 void FrameStatsCollector::SetAtmosphereLutReady(bool ready) {
@@ -78,6 +107,23 @@ void FrameStatsCollector::SetPassStatus(const char* passName, const char* status
     else if (name == "VolumetricClouds") m_Stats.cloudsPassStatus = value;
     else if (name == "FogComposite") m_Stats.fogPassStatus = value;
     else if (name == "PostExposure" || name == "ToneMapping") m_Stats.postPassStatus = value;
+
+    RecordPassExecution(passName, status);
+}
+
+void FrameStatsCollector::SetGpuAverageLuminance(float luminance) {
+    m_Stats.gpuAverageLuminance = luminance;
+}
+
+void FrameStatsCollector::SetExposureDiagnostics(
+    bool autoExposureEnabled,
+    float manualExposureEV,
+    float sunDerivedExposureEV,
+    float effectiveExposureEV) {
+    m_Stats.autoExposureEnabled = autoExposureEnabled;
+    m_Stats.manualExposureEV = manualExposureEV;
+    m_Stats.sunDerivedExposureEV = sunDerivedExposureEV;
+    m_Stats.effectiveExposureEV = effectiveExposureEV;
 }
 
 std::string FrameStatsCollector::GetOverlayText() const {
@@ -85,6 +131,7 @@ std::string FrameStatsCollector::GetOverlayText() const {
     ss << "CPU " << m_Stats.cpuFrameMs << " ms"
        << " | Draws " << m_Stats.drawCalls
        << " | Tris " << m_Stats.triangles
+       << " | Passes " << m_Stats.passExecutions.size()
        << " | Sky " << m_Stats.skyPassMs << " ms (" << m_Stats.skyPassStatus << ")"
        << " | Fog " << m_Stats.fogPassMs << " ms (" << m_Stats.fogPassStatus << ")"
        << " | Post " << m_Stats.postPassMs << " ms (" << m_Stats.postPassStatus << ")"
