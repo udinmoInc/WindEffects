@@ -6,7 +6,7 @@
 #include "Layout/ScrollLayout.hpp"
 #include "Widgets/CheckBox.hpp"
 #include "Widgets/Label.hpp"
-#include "Renderer/RenderDebugger.hpp"
+#include "Renderer/EditorRenderDebugStub.h"
 
 namespace we::UI {
 

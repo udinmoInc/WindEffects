@@ -5,7 +5,6 @@
 #include <volk.h>
 #include "Core/Widget.hpp"
 #include "ViewportNavigation.hpp"
-#include "Renderer/RenderGpuInvestigator.hpp"
 #include <memory>
 
 struct SDL_Window;
@@ -21,7 +20,7 @@ class GraphicsDebuggerPopup;
 
 class VIEWPORT_API ViewportWidget : public Widget {
 public:
-    ViewportWidget(const std::shared_ptr<we::runtime::renderer::Renderer>& renderer,
+    ViewportWidget(we::runtime::renderer::Renderer* renderer,
                    const std::shared_ptr<we::runtime::engine::EditorCamera>& camera,
                    const std::shared_ptr<we::runtime::scene::Scene>& scene,
                    UIRenderer* uiRenderer = nullptr);
@@ -51,7 +50,7 @@ public:
 private:
     bool HitTestGizmoReset(const Point& position) const;
 
-    std::shared_ptr<we::runtime::renderer::Renderer> m_Renderer;
+    we::runtime::renderer::Renderer* m_Renderer = nullptr;
     std::shared_ptr<we::runtime::engine::EditorCamera> m_Camera;
     std::shared_ptr<we::runtime::scene::Scene> m_Scene;
     UIRenderer* m_uiRenderer = nullptr;

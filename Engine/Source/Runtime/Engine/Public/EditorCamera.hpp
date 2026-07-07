@@ -2,17 +2,7 @@
 
 #include "Engine/Export.hpp"
 
-#if WE_HAS_GLM
 #include <glm/glm.hpp>
-#else
-// Fallback simple math types when GLM is not available
-struct glm_vec3 { float x, y, z; };
-struct glm_mat4 { float data[16]; };
-namespace glm {
-    using vec3 = glm_vec3;
-    using mat4 = glm_mat4;
-}
-#endif
 
 #if WE_HAS_SDL3
 #include <SDL3/SDL.h>
@@ -47,7 +37,7 @@ public:
     // Fly mode (RMB held)
     void EnterFlyMode();
     void ExitFlyMode();
-    bool IsFlyMode() const { return m_FlyMode; }
+    bool IsFlyMode() const;
 
     void ProcessFlyLook(float dx, float dy);
 
@@ -64,27 +54,27 @@ public:
 
     glm::mat4 GetViewMatrix() const;
     glm::mat4 GetProjectionMatrix() const;
-    glm::vec3 GetPosition() const { return m_Position; }
-    glm::vec3 GetLookAt() const { return m_LookAt; }
+    glm::vec3 GetPosition() const;
+    glm::vec3 GetLookAt() const;
     glm::vec3 GetForward() const;
     glm::vec3 GetRight() const;
     glm::vec3 GetUp() const;
 
-    float GetDistance() const { return m_Distance; }
+    float GetDistance() const;
     float GetGridLodDistance() const;
-    float GetFov() const { return m_Fov; }
-    float GetPitch() const { return m_Pitch; }
-    float GetYaw() const { return m_Yaw; }
+    float GetFov() const;
+    float GetPitch() const;
+    float GetYaw() const;
 
-    glm::vec3 GetPreviousPosition() const { return m_PrevPosition; }
-    float GetPreviousPitch() const { return m_PrevPitch; }
-    float GetPreviousYaw() const { return m_PrevYaw; }
-    float GetLastDeltaTime() const { return m_LastDeltaTime; }
+    glm::vec3 GetPreviousPosition() const;
+    float GetPreviousPitch() const;
+    float GetPreviousYaw() const;
+    float GetLastDeltaTime() const;
 
-    float GetCameraSpeed() const { return m_MoveSpeed; }
+    float GetCameraSpeed() const;
     void SetCameraSpeed(float speed);
 
-    glm::vec3 GetOrbitPivot() const { return m_TargetLookAt; }
+    glm::vec3 GetOrbitPivot() const;
     void SetOrbitPivot(const glm::vec3& pivot);
 
     void Focus(const glm::vec3& target);

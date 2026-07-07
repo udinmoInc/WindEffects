@@ -1,5 +1,7 @@
 #include "EditorCamera.hpp"
 
+// EditorCamera methods must use real glm types (see EditorCamera.hpp) so DLL exports match editor modules.
+
 #if WE_HAS_GLM
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/ext/matrix_clip_space.hpp>
@@ -357,6 +359,58 @@ float EditorCamera::GetGridLodDistance() const {
     return std::max(m_Distance, 0.5f);
 }
 
+bool EditorCamera::IsFlyMode() const {
+    return m_FlyMode;
+}
+
+glm::vec3 EditorCamera::GetPosition() const {
+    return m_Position;
+}
+
+glm::vec3 EditorCamera::GetLookAt() const {
+    return m_LookAt;
+}
+
+float EditorCamera::GetDistance() const {
+    return m_Distance;
+}
+
+float EditorCamera::GetFov() const {
+    return m_Fov;
+}
+
+float EditorCamera::GetPitch() const {
+    return m_Pitch;
+}
+
+float EditorCamera::GetYaw() const {
+    return m_Yaw;
+}
+
+glm::vec3 EditorCamera::GetPreviousPosition() const {
+    return m_PrevPosition;
+}
+
+float EditorCamera::GetPreviousPitch() const {
+    return m_PrevPitch;
+}
+
+float EditorCamera::GetPreviousYaw() const {
+    return m_PrevYaw;
+}
+
+float EditorCamera::GetLastDeltaTime() const {
+    return m_LastDeltaTime;
+}
+
+float EditorCamera::GetCameraSpeed() const {
+    return m_MoveSpeed;
+}
+
+glm::vec3 EditorCamera::GetOrbitPivot() const {
+    return m_TargetLookAt;
+}
+
 #else // !WE_HAS_GLM
 
 // Stub implementations when GLM is not available
@@ -485,6 +539,58 @@ glm::vec3 EditorCamera::GetUp() const {
 
 float EditorCamera::GetGridLodDistance() const {
     return 10.0f;
+}
+
+bool EditorCamera::IsFlyMode() const {
+    return m_FlyMode;
+}
+
+glm::vec3 EditorCamera::GetPosition() const {
+    return m_Position;
+}
+
+glm::vec3 EditorCamera::GetLookAt() const {
+    return m_LookAt;
+}
+
+float EditorCamera::GetDistance() const {
+    return m_Distance;
+}
+
+float EditorCamera::GetFov() const {
+    return m_Fov;
+}
+
+float EditorCamera::GetPitch() const {
+    return m_Pitch;
+}
+
+float EditorCamera::GetYaw() const {
+    return m_Yaw;
+}
+
+glm::vec3 EditorCamera::GetPreviousPosition() const {
+    return m_PrevPosition;
+}
+
+float EditorCamera::GetPreviousPitch() const {
+    return m_PrevPitch;
+}
+
+float EditorCamera::GetPreviousYaw() const {
+    return m_PrevYaw;
+}
+
+float EditorCamera::GetLastDeltaTime() const {
+    return m_LastDeltaTime;
+}
+
+float EditorCamera::GetCameraSpeed() const {
+    return m_MoveSpeed;
+}
+
+glm::vec3 EditorCamera::GetOrbitPivot() const {
+    return m_TargetLookAt;
 }
 
 #endif // WE_HAS_GLM

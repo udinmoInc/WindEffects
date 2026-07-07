@@ -2,9 +2,9 @@
 
 #include "Environment/EnvironmentLighting.h"
 #include "Environment/EnvironmentManager.h"
-#include "Renderer/SceneRenderer.hpp"
-#include "Renderer/RendererDebug.hpp"
-#include "Renderer/FrameStats.hpp"
+// #include "Renderer/SceneRenderer.hpp"
+// #include "Renderer/RendererDebug.hpp"
+// #include "Renderer/FrameStats.hpp"
 #include "Core/Logger.hpp"
 #include "Core/LogCategory.hpp"
 
@@ -591,38 +591,6 @@ void EnvironmentSystem::SyncToScene() {
 }
 
 void EnvironmentSystem::UpdateRendering(const glm::vec3& cameraPosition) {
-#if WE_HAS_VULKAN
-    if (!we::runtime::renderer::RendererDebug::Get().ShouldUploadEnvironmentUniform()) {
-        return;
-    }
-
-    m_Manager.UpdateDerivedState(m_Sun, m_SkyLight, m_HeightFog, m_SkyAtmosphere, cameraPosition);
-
-    if (auto renderer = m_Renderer.lock()) {
-        const glm::vec3 worldOrigin = m_Manager.GetWorldOrigin(cameraPosition);
-        const float sunDerivedEV = m_Manager.ComputeExposureEV(m_Sun);
-        const auto uniform = BuildSceneEnvironmentUniform(
-            m_Sun, m_SkyLight, m_SkyAtmosphere, m_HeightFog, m_VolumetricClouds, m_ExposureController, worldOrigin);
-        renderer->SetSceneEnvironment(uniform);
-        we::runtime::renderer::FrameStatsCollector::Get().SetExposureDiagnostics(
-            uniform.enableAutoExposure > 0.5f,
-            m_ExposureController.ExposureEV,
-            sunDerivedEV,
-            uniform.exposureEV);
-
-        static bool loggedExposure = false;
-        if (!loggedExposure) {
-            loggedExposure = true;
-            WE_LOG_INFO(
-                we::runtime::core::LogCategory::Environment.data(),
-                "Environment exposure: EV=" + std::to_string(uniform.exposureEV)
-                    + " auto=" + std::to_string(uniform.enableAutoExposure)
-                    + " hdrSkyLum=" + std::to_string(uniform.hdrSkyLuminance)
-                    + " sunIntensity=" + std::to_string(uniform.sunIntensity)
-                    + " bloom=" + std::to_string(uniform.bloomIntensity));
-        }
-    }
-#endif
 }
 
 EnvironmentActorKind EnvironmentSystem::GetActorKind(std::uint64_t entityId) const {

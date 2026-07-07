@@ -1,4 +1,4 @@
-#include "Renderer/Shader/ShaderDependencyGraph.hpp"
+#include "Shader/ShaderDependencyGraph.h"
 #include <algorithm>
 #include <chrono>
 #include <fstream>

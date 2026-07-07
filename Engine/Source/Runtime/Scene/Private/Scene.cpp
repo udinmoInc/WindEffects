@@ -1,12 +1,8 @@
 #include "Scene/Scene.hpp"
-#include "Renderer/RendererDebug.hpp"
 #include "Core/Logger.hpp"
 #if WE_HAS_GLM
 #include <glm/glm.hpp>
 #endif
-#include <stdexcept>
-#include <iostream>
-#include <cmath>
 
 namespace we::runtime::scene {
 
@@ -56,102 +52,20 @@ void ApplyDefaultEntityProperties(Entity& entity, EntityType type) {
     }
 }
 
-#if WE_HAS_VULKAN
-
-const char* MeshNameForEntityType(EntityType type) {
-    switch (type) {
-    case EntityType::Plane: return "Plane";
-    case EntityType::GroundPlane: return "Plane";
-    default: return "Cube";
-    }
-}
-
-#endif // WE_HAS_VULKAN
-
 } // namespace
 
-#if WE_HAS_VULKAN
-
-Scene::Scene(const std::shared_ptr<we::runtime::renderer::VulkanContext>& context, const std::shared_ptr<we::runtime::renderer::SceneRenderer>& renderer)
-    : m_Context(context), m_Renderer(renderer) {
-    volkInitialize();
-    volkLoadInstance(m_Context->GetInstance());
-    volkLoadDevice(m_Context->GetDevice());
-}
-
-#else // !WE_HAS_VULKAN
-
-Scene::Scene() {
-}
-
-#endif // WE_HAS_VULKAN
+Scene::Scene() = default;
 
 Scene::~Scene() {
     DestroyEntity(0xFFFFFFFF);
 }
 
-#if WE_HAS_VULKAN
-
-void Scene::SetCameraBuffer(VkBuffer cameraBuffer) {
-    m_CameraBuffer = cameraBuffer;
-}
-
-void Scene::RefreshCameraDescriptorBindings(VkBuffer cameraBuffer) {
-    if (cameraBuffer == VK_NULL_HANDLE) {
-        return;
-    }
-
-    m_CameraBuffer = cameraBuffer;
-    for (auto& entity : m_Entities) {
-        m_Renderer->UpdateObjectDescriptorSet(entity.DescriptorSet, m_CameraBuffer, entity.UniformBuffer);
-    }
-}
-
-bool Scene::IsCameraBufferAssigned() const {
-    return m_CameraBuffer != VK_NULL_HANDLE;
-}
-
-#endif // WE_HAS_VULKAN
-
 void Scene::CreateEntity(const std::string& name, EntityType type) {
-#if WE_HAS_VULKAN
-    if (!IsCameraBufferAssigned()) {
-        throw std::runtime_error("Scene camera buffer is not assigned.");
-    }
-#endif
-
     Entity entity{};
     entity.Id = m_NextEntityId++;
     entity.Name = name;
     entity.Type = type;
     ApplyDefaultEntityProperties(entity, type);
-
-#if WE_HAS_VULKAN
-    VkDeviceSize bufferSize = sizeof(we::runtime::renderer::SceneObjectUniform);
-    m_Context->CreateBuffer(
-        bufferSize,
-        VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-        entity.UniformBuffer,
-        entity.UniformMemory
-    );
-
-    VkDescriptorSetLayout layout = m_Renderer->GetObjectDescLayout();
-    VkDescriptorSetAllocateInfo allocInfo{};
-    allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-    allocInfo.descriptorPool = m_Context->GetDescriptorPool();
-    allocInfo.descriptorSetCount = 1;
-    allocInfo.pSetLayouts = &layout;
-
-    if (vkAllocateDescriptorSets(m_Context->GetDevice(), &allocInfo, &entity.DescriptorSet) != VK_SUCCESS) {
-        vkDestroyBuffer(m_Context->GetDevice(), entity.UniformBuffer, nullptr);
-        vkFreeMemory(m_Context->GetDevice(), entity.UniformMemory, nullptr);
-        throw std::runtime_error("Failed to allocate descriptor set for entity: " + name);
-    }
-
-    m_Renderer->UpdateObjectDescriptorSet(entity.DescriptorSet, m_CameraBuffer, entity.UniformBuffer);
-#endif
-
     m_Entities.push_back(entity);
     HE_INFO("Created scene entity: " + name);
 }
@@ -221,18 +135,7 @@ void Scene::Clear() {
 }
 
 void Scene::DestroyEntity(size_t index) {
-#if WE_HAS_VULKAN
-    VkDevice device = m_Context->GetDevice();
-    vkDeviceWaitIdle(device);
-#endif
-
     if (index == 0xFFFFFFFF) {
-#if WE_HAS_VULKAN
-        for (auto& entity : m_Entities) {
-            if (entity.UniformBuffer != VK_NULL_HANDLE) vkDestroyBuffer(device, entity.UniformBuffer, nullptr);
-            if (entity.UniformMemory != VK_NULL_HANDLE) vkFreeMemory(device, entity.UniformMemory, nullptr);
-        }
-#endif
         m_Entities.clear();
         m_SelectedEntityIndex = -1;
         return;
@@ -240,13 +143,7 @@ void Scene::DestroyEntity(size_t index) {
 
     if (index >= m_Entities.size()) return;
 
-    Entity& entity = m_Entities[index];
-    const std::uint64_t destroyedId = entity.Id;
-#if WE_HAS_VULKAN
-    if (entity.UniformBuffer != VK_NULL_HANDLE) vkDestroyBuffer(device, entity.UniformBuffer, nullptr);
-    if (entity.UniformMemory != VK_NULL_HANDLE) vkFreeMemory(device, entity.UniformMemory, nullptr);
-#endif
-
+    const std::uint64_t destroyedId = m_Entities[index].Id;
     m_Entities.erase(m_Entities.begin() + index);
 
     for (auto& childEntity : m_Entities) {
@@ -263,47 +160,13 @@ void Scene::DestroyEntity(size_t index) {
 }
 
 void Scene::Update() {
+}
+
 #if WE_HAS_VULKAN
-    VkDevice device = m_Context->GetDevice();
 
-    for (auto& entity : m_Entities) {
-        we::runtime::renderer::SceneObjectUniform ubo{};
-        ubo.model = entity.GetModelMatrix();
-        ubo.color = entity.Color;
-        ubo.mode = entity.Mode;
+void Scene::Draw(VkCommandBuffer /*cmd*/, DrawMode /*drawMode*/) const {
+}
 
-        void* data;
-        vkMapMemory(device, entity.UniformMemory, 0, sizeof(we::runtime::renderer::SceneObjectUniform), 0, &data);
-        memcpy(data, &ubo, sizeof(we::runtime::renderer::SceneObjectUniform));
-        vkUnmapMemory(device, entity.UniformMemory);
-    }
 #endif
-}
-
-#if WE_HAS_VULKAN
-
-void Scene::Draw(VkCommandBuffer cmd, DrawMode drawMode) const {
-    for (const auto& entity : m_Entities) {
-        if (drawMode == DrawMode::Game && entity.EditorOnly) {
-            continue;
-        }
-        switch (entity.Type) {
-        case EntityType::SkyLight:
-        case EntityType::SkyAtmosphere:
-        case EntityType::HeightFog:
-        case EntityType::VolumetricClouds:
-            continue;
-        default:
-            break;
-        }
-        int meshMode = entity.Mode;
-        if (!we::runtime::renderer::RendererDebug::Get().ShouldUseDirectionalLighting()) {
-            meshMode = 1;
-        }
-        m_Renderer->DrawMesh(cmd, MeshNameForEntityType(entity.Type), entity.DescriptorSet, meshMode);
-    }
-}
-
-#endif // WE_HAS_VULKAN
 
 } // namespace we::runtime::scene

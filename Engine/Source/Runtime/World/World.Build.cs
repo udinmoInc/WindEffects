@@ -19,8 +19,6 @@ public class World : ModuleRules
         PublicDependencies.Add("Renderer");
 
         AddOptionalThirdParty("glm");
-        DefineIf(HasThirdParty("glm"), "WE_HAS_GLM=1");
-        DefineIf(!HasThirdParty("glm"), "WE_HAS_GLM=0");
 
         Definitions.Add("WORLD_EXPORTS");
     }

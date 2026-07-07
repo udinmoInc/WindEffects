@@ -5,9 +5,7 @@
 #include "Layout/ScrollLayout.hpp"
 #include "Widgets/Label.hpp"
 
-namespace we::runtime::renderer {
-struct ForensicFrameReport;
-}
+#include "Renderer/EditorRenderDebugStub.h"
 
 namespace we::UI {
 

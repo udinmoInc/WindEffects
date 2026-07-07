@@ -1,8 +1,0 @@
-{
-  "SDKPaths": {
-    "VulkanSDK": "F:\\Coding\\windeffects\\Engine\\ThirdParty",
-    "SDL3": "F:\\Coding\\windeffects\\Engine\\ThirdParty\\SDL3"
-  },
-  "AdditionalIncludePaths": {},
-  "AdditionalLibraryPaths": {}
-}

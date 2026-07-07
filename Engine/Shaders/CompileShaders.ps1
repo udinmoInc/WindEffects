@@ -34,6 +34,8 @@ $shaders = @(
     @{ Name = "CloudCompositePass"; Path = "Rendering/CloudCompositePass.hlsl" },
     @{ Name = "FogCompositePass"; Path = "Rendering/FogCompositePass.hlsl" },
     @{ Name = "SceneObject"; Path = "Rendering/SceneObject.hlsl" },
+    @{ Name = "ProceduralSky"; Path = "Foundation/ProceduralSky.hlsl" },
+    @{ Name = "BasicMesh"; Path = "Foundation/BasicMesh.hlsl" },
     @{ Name = "PostExposureCS"; Path = "Compute/PostExposureCS.hlsl"; Compute = $true },
     @{ Name = "PostCompositeCS"; Path = "Compute/PostCompositeCS.hlsl"; Compute = $true },
     @{ Name = "LuminanceReduceCS"; Path = "Compute/LuminanceReduceCS.hlsl"; Compute = $true },

@@ -1,4 +1,4 @@
-#include "Renderer/Shader/ShaderPermutationManager.hpp"
+#include "Shader/ShaderPermutationManager.h"
 #include <sstream>
 
 namespace we::runtime::renderer {

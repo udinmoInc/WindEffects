@@ -14,7 +14,7 @@ namespace we::UI {
 class GraphicsDebuggerPopup : public Widget {
 public:
     GraphicsDebuggerPopup(
-        const std::shared_ptr<we::runtime::renderer::Renderer>& renderer,
+        we::runtime::renderer::Renderer* renderer,
         const std::shared_ptr<we::runtime::engine::EditorCamera>& camera,
         const std::shared_ptr<we::runtime::scene::Scene>& scene);
 
@@ -34,7 +34,7 @@ private:
     void BuildLines(std::vector<std::string>& outLines) const;
     void LogMoveIfChanged();
 
-    std::shared_ptr<we::runtime::renderer::Renderer> m_Renderer;
+    we::runtime::renderer::Renderer* m_Renderer = nullptr;
     std::shared_ptr<we::runtime::engine::EditorCamera> m_Camera;
     std::shared_ptr<we::runtime::scene::Scene> m_Scene;
 

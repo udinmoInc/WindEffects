@@ -1,4 +1,4 @@
-#include "Renderer/Shader/ShaderTypes.hpp"
+#include "Shader/ShaderTypes.h"
 
 namespace we::runtime::renderer {
 
