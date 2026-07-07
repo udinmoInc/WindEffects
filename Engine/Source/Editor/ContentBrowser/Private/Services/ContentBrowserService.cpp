@@ -1,10 +1,10 @@
-#include "Services/ContentBrowserService.hpp"
-#include "Services/ContentBrowserFolderArt.hpp"
-#include "Services/ContentBrowserBlueprintArt.hpp"
-#include "Registry/AssetTypeResolver.hpp"
-#include "Core/IconManager.hpp"
-#include "Rendering/IconRenderer.hpp"
-#include "Core/Logger.hpp"
+#include "Services/ContentBrowserService.h"
+#include "Services/ContentBrowserFolderArt.h"
+#include "Services/ContentBrowserBlueprintArt.h"
+#include "Registry/AssetTypeResolver.h"
+#include "Core/IconManager.h"
+#include "Rendering/IconRenderer.h"
+#include "Core/Logger.h"
 #include <filesystem>
 
 namespace we::editor::contentbrowser {

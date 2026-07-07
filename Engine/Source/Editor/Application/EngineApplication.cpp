@@ -1,5 +1,5 @@
-#include "EngineApplication.hpp"
-#include "Core/Logger.hpp"
+#include "EngineApplication.h"
+#include "Core/Logger.h"
 #include <stdexcept>
 #include <chrono>
 

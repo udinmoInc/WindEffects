@@ -1,6 +1,6 @@
-#include "Widgets/RenderTargetPreviewWidget.hpp"
-#include "Core/Theme.hpp"
-#include "Core/PaintContext.hpp"
+#include "Widgets/RenderTargetPreviewWidget.h"
+#include "Core/Theme.h"
+#include "Core/PaintContext.h"
 
 #include <algorithm>
 

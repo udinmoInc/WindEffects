@@ -1,6 +1,6 @@
-#include "Widgets/ViewportSliderPopup.hpp"
-#include "Core/PaintContext.hpp"
-#include "Core/Theme.hpp"
+#include "Widgets/ViewportSliderPopup.h"
+#include "Core/PaintContext.h"
+#include "Core/Theme.h"
 #include <algorithm>
 #include <cmath>
 

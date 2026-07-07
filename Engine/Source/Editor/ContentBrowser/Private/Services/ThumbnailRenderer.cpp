@@ -1,7 +1,7 @@
-#include "Services/ThumbnailRenderer.hpp"
-#include "Registry/AssetTypeResolver.hpp"
-#include "Core/Theme.hpp"
-#include "Core/Logger.hpp"
+#include "Services/ThumbnailRenderer.h"
+#include "Registry/AssetTypeResolver.h"
+#include "Core/Theme.h"
+#include "Core/Logger.h"
 
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>

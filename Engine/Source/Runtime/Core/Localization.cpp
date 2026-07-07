@@ -1,4 +1,4 @@
-#include "Localization.hpp"
+#include "Localization.h"
 
 namespace we::core {
 

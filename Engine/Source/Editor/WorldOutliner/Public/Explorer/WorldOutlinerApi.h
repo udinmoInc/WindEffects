@@ -1,6 +1,6 @@
 #pragma once
 
-#include "WorldOutliner/Export.hpp"
+#include "WorldOutliner/Export.h"
 
 #include <volk.h>
 #include <memory>

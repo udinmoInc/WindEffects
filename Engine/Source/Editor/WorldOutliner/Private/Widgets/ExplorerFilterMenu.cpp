@@ -1,10 +1,10 @@
-#include "Widgets/ExplorerFilterMenu.hpp"
-#include "Widgets/ExplorerToolbar.hpp"
+#include "Widgets/ExplorerFilterMenu.h"
+#include "Widgets/ExplorerToolbar.h"
 
-#include "Core/PaintContext.hpp"
-#include "Core/Theme.hpp"
-#include "Core/Icon.hpp"
-#include "Layout/OverlayManager.hpp"
+#include "Core/PaintContext.h"
+#include "Core/Theme.h"
+#include "Core/Icon.h"
+#include "Layout/OverlayManager.h"
 
 #include <algorithm>
 

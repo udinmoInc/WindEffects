@@ -1,6 +1,6 @@
 #pragma once
 
-#include "PlaceActors/Export.hpp"
+#include "PlaceActors/Export.h"
 
 #include <glm/glm.hpp>
 #include <memory>

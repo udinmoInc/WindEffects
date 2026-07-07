@@ -1,6 +1,6 @@
-#include "EditorCamera.hpp"
+#include "EditorCamera.h"
 
-// EditorCamera methods must use real glm types (see EditorCamera.hpp) so DLL exports match editor modules.
+// EditorCamera methods must use real glm types (see EditorCamera.h) so DLL exports match editor modules.
 
 #if WE_HAS_GLM
 #include <glm/gtc/matrix_transform.hpp>

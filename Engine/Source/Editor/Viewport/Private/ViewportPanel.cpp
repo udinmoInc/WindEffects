@@ -1,11 +1,11 @@
-#include "EditorRegistry.hpp"
-#include "ViewportToolbarState.hpp"
-#include "Widgets/Panel.hpp"
-#include "Core/Icon.hpp"
-#include "Widgets/Label.hpp"
+#include "EditorRegistry.h"
+#include "ViewportToolbarState.h"
+#include "Widgets/Panel.h"
+#include "Core/Icon.h"
+#include "Widgets/Label.h"
 
-#include "Widgets/Toolbar.hpp"
-#include "Widgets/ToolButton.hpp"
+#include "Widgets/Toolbar.h"
+#include "Widgets/ToolButton.h"
 
 namespace we::programs::editor {
 

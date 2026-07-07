@@ -1,7 +1,7 @@
-#include "EditorRegistry.hpp"
-#include "Widgets/Panel.hpp"
-#include "Widgets/Toolbar.hpp"
-#include "Core/Icon.hpp"
+#include "EditorRegistry.h"
+#include "Widgets/Panel.h"
+#include "Widgets/Toolbar.h"
+#include "Core/Icon.h"
 
 namespace we::programs::editor {
 

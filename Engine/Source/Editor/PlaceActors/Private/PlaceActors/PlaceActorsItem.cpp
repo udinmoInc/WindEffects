@@ -1,8 +1,8 @@
 #include "PlaceActors/PlaceActorsItem.h"
 
-#include "Core/Theme.hpp"
-#include "Core/Icon.hpp"
-#include "EditorToolsRegistry.hpp"
+#include "Core/Theme.h"
+#include "Core/Icon.h"
+#include "EditorToolsRegistry.h"
 
 namespace we::programs::editor {
 

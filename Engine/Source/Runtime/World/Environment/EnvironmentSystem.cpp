@@ -2,11 +2,11 @@
 
 #include "Environment/EnvironmentLighting.h"
 #include "Environment/EnvironmentManager.h"
-// #include "Renderer/SceneRenderer.hpp"
-// #include "Renderer/RendererDebug.hpp"
-// #include "Renderer/FrameStats.hpp"
-#include "Core/Logger.hpp"
-#include "Core/LogCategory.hpp"
+// #include "Renderer/SceneRenderer.h"
+// #include "Renderer/RendererDebug.h"
+// #include "Renderer/FrameStats.h"
+#include "Core/Logger.h"
+#include "Core/LogCategory.h"
 
 #include <algorithm>
 

@@ -1,13 +1,13 @@
-#include "EditorPanelController.hpp"
+#include "EditorPanelController.h"
 
-#include "EditorLayoutController.hpp"
-#include "Widgets/DockContainer.hpp"
-#include "Widgets/Panel.hpp"
-#include "Layout/OverlayManager.hpp"
-#include "Core/Theme.hpp"
-#include "Core/PaintContext.hpp"
-#include "Core/Icon.hpp"
-#include "Core/Logger.hpp"
+#include "EditorLayoutController.h"
+#include "Widgets/DockContainer.h"
+#include "Widgets/Panel.h"
+#include "Layout/OverlayManager.h"
+#include "Core/Theme.h"
+#include "Core/PaintContext.h"
+#include "Core/Icon.h"
+#include "Core/Logger.h"
 
 namespace we::programs::editor {
 

@@ -1,5 +1,5 @@
-#include "Rendering/UIGeometryCache.hpp"
-#include "Core/Logger.hpp"
+#include "Rendering/UIGeometryCache.h"
+#include "Core/Logger.h"
 #include <algorithm>
 #include <cstring>
 

@@ -1,4 +1,4 @@
-#include "EditorToolsRegistry.hpp"
+#include "EditorToolsRegistry.h"
 
 #include <algorithm>
 #include <cctype>

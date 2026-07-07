@@ -1,5 +1,5 @@
-#include "Services/FolderPreviewGenerator.hpp"
-#include "Services/ThumbnailRenderer.hpp"
+#include "Services/FolderPreviewGenerator.h"
+#include "Services/ThumbnailRenderer.h"
 
 namespace we::editor::contentbrowser {
 

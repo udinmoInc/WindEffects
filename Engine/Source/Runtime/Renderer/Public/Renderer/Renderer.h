@@ -1,5 +1,6 @@
-#pragma warning(disable: 4251)
 #pragma once
+
+#pragma warning(disable: 4251)
 
 #include "Renderer/Export.h"
 #include "Camera/CameraSystem.h"

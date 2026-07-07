@@ -1,9 +1,9 @@
-#include "EditorLayoutController.hpp"
-#include "EditorPanelController.hpp"
-#include "Layout/Splitter.hpp"
-#include "Widgets/DockContainer.hpp"
-#include "Core/Widget.hpp"
-#include "Core/Logger.hpp"
+#include "EditorLayoutController.h"
+#include "EditorPanelController.h"
+#include "Layout/Splitter.h"
+#include "Widgets/DockContainer.h"
+#include "Core/Widget.h"
+#include "Core/Logger.h"
 
 namespace we::programs::editor {
 

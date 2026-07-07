@@ -1,8 +1,8 @@
-#include "Services/ThumbnailManager.hpp"
-#include "Services/DiskThumbnailCache.hpp"
-#include "Services/FolderPreviewGenerator.hpp"
-#include "Services/ThumbnailRenderer.hpp"
-#include "Registry/ContentAssetRegistry.hpp"
+#include "Services/ThumbnailManager.h"
+#include "Services/DiskThumbnailCache.h"
+#include "Services/FolderPreviewGenerator.h"
+#include "Services/ThumbnailRenderer.h"
+#include "Registry/ContentAssetRegistry.h"
 
 namespace we::editor::contentbrowser {
 

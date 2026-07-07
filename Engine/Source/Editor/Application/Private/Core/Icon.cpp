@@ -1,5 +1,5 @@
-#include "Core/Icon.hpp"
-#include "Core/PaintContext.hpp"
+#include "Core/Icon.h"
+#include "Core/PaintContext.h"
 #include <algorithm>
 
 namespace we::UI {

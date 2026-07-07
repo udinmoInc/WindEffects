@@ -1,7 +1,7 @@
 #pragma once
 
-#include "Core/Logger.hpp"
-#include "Core/DiagnosticMacros.hpp"
+#include "Core/Logger.h"
+#include "Core/DiagnosticMacros.h"
 #include <string>
 #include <cstdlib>
 

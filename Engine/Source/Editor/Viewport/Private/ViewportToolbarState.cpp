@@ -1,10 +1,10 @@
-#include "ViewportToolbarState.hpp"
-#include "ViewportNavigation.hpp"
-#include "ViewportNavigationSettings.hpp"
-#include "Widgets/ViewportSliderPopup.hpp"
-#include "EditorCamera.hpp"
-#include "Layout/OverlayManager.hpp"
-#include "Widgets/ToolButton.hpp"
+#include "ViewportToolbarState.h"
+#include "ViewportNavigation.h"
+#include "ViewportNavigationSettings.h"
+#include "Widgets/ViewportSliderPopup.h"
+#include "EditorCamera.h"
+#include "Layout/OverlayManager.h"
+#include "Widgets/ToolButton.h"
 #include <cmath>
 #include <algorithm>
 

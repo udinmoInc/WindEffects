@@ -1,6 +1,6 @@
-#include "Core/Logger.hpp"
-#include "Core/FrameCounter.hpp"
-#include "Core/LogCategory.hpp"
+#include "Core/Logger.h"
+#include "Core/FrameCounter.h"
+#include "Core/LogCategory.h"
 
 #if defined(__has_include)
 #  if __has_include(<SDL3/SDL_messagebox.h>)
@@ -13,7 +13,7 @@
 #endif
 
 #if WE_HAS_NLOHMANN_JSON
-#include <nlohmann/json.hpp>
+#include <nlohmann/json.h>
 #endif
 
 #include <chrono>

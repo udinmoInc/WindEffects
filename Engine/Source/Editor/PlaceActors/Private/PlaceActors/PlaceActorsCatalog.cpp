@@ -1,6 +1,6 @@
 #include "PlaceActors/PlaceActorsCatalog.h"
 
-#include "EditorToolsRegistry.hpp"
+#include "EditorToolsRegistry.h"
 
 #include <algorithm>
 #include <unordered_map>

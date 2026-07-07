@@ -1,6 +1,6 @@
-#include "Widgets/SearchBox.hpp"
-#include "Core/PaintContext.hpp"
-#include "Core/Theme.hpp"
+#include "Widgets/SearchBox.h"
+#include "Core/PaintContext.h"
+#include "Core/Theme.h"
 #include <SDL3/SDL.h>
 #include <algorithm>
 

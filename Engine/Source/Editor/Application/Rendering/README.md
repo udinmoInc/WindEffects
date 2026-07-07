@@ -30,7 +30,7 @@ Present
 
 ### 1. UIRenderer2 (Main Renderer)
 
-**File:** `UIRenderer2.hpp/cpp`
+**File:** `UIRenderer2.h/cpp`
 
 The main renderer class that orchestrates all UI rendering. It owns all Vulkan resources and is completely independent from the scene renderer.
 
@@ -62,7 +62,7 @@ renderer.EndFrame(cmd, swapchainImageView);
 
 ### 2. UIGeometryCache (Retained-Mode Caching)
 
-**File:** `UIGeometryCache.hpp/cpp`
+**File:** `UIGeometryCache.h/cpp`
 
 Implements retained-mode rendering with geometry caching to reduce CPU usage.
 
@@ -85,7 +85,7 @@ if (cache.GetGeometry(key, vertices, indices)) {
 
 ### 3. UIBatchGenerator (Draw Call Optimization)
 
-**File:** `UIBatchGenerator.hpp/cpp`
+**File:** `UIBatchGenerator.h/cpp`
 
 Groups draw commands into efficient batches to minimize state changes.
 
@@ -101,7 +101,7 @@ Groups draw commands into efficient batches to minimize state changes.
 
 ### 4. UITextureAtlasManager (Texture Packing)
 
-**File:** `UITextureAtlasManager.hpp/cpp`
+**File:** `UITextureAtlasManager.h/cpp`
 
 Manages a texture atlas for efficient texture sampling.
 
@@ -120,7 +120,7 @@ atlasManager.GetTextureUV(textureId, u0, v0, u1, v1);
 
 ### 5. UICommandBuffer (Command Recording)
 
-**File:** `UICommandBuffer.hpp/cpp`
+**File:** `UICommandBuffer.h/cpp`
 
 Manages command buffer recording and geometry buffer updates.
 
@@ -132,7 +132,7 @@ Manages command buffer recording and geometry buffer updates.
 
 ### 6. UICompositor (Final Overlay)
 
-**File:** `UICompositor.hpp/cpp`
+**File:** `UICompositor.h/cpp`
 
 Performs the final UI overlay as the last graphics pass before present.
 
@@ -144,7 +144,7 @@ Performs the final UI overlay as the last graphics pass before present.
 
 ### 7. UIStateManager (Vulkan State Isolation)
 
-**File:** `UIStateManager.hpp/cpp`
+**File:** `UIStateManager.h/cpp`
 
 Saves and restores Vulkan state to ensure the UI renderer leaves no state behind.
 
@@ -163,7 +163,7 @@ stateManager.RestoreState(cmd, state);
 
 ### 8. UIWidgetAdapter (Widget System Integration)
 
-**File:** `UIWidgetAdapter.hpp/cpp`
+**File:** `UIWidgetAdapter.h/cpp`
 
 Bridges the existing widget system with the new renderer.
 
@@ -325,14 +325,14 @@ To migrate from the old UIRenderer to UIRenderer2:
 ## Files Created
 
 **Headers:**
-- `UIRenderer2.hpp` - Main renderer
-- `UIGeometryCache.hpp` - Geometry caching
-- `UIBatchGenerator.hpp` - Batch generation
-- `UITextureAtlasManager.hpp` - Texture atlas
-- `UICommandBuffer.hpp` - Command buffer
-- `UICompositor.hpp` - Final compositing
-- `UIStateManager.hpp` - State management
-- `UIWidgetAdapter.hpp` - Widget integration
+- `UIRenderer2.h` - Main renderer
+- `UIGeometryCache.h` - Geometry caching
+- `UIBatchGenerator.h` - Batch generation
+- `UITextureAtlasManager.h` - Texture atlas
+- `UICommandBuffer.h` - Command buffer
+- `UICompositor.h` - Final compositing
+- `UIStateManager.h` - State management
+- `UIWidgetAdapter.h` - Widget integration
 
 **Implementation:**
 - `UIRenderer2.cpp`

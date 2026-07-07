@@ -1,4 +1,4 @@
-#include "Scene/Entity.hpp"
+#include "Scene/Entity.h"
 
 #if WE_HAS_GLM
 #include <glm/gtc/matrix_transform.hpp>

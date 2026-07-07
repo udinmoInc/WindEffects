@@ -1,5 +1,5 @@
-#include "Controllers/SearchController.hpp"
-#include "Registry/AssetTypeResolver.hpp"
+#include "Controllers/SearchController.h"
+#include "Registry/AssetTypeResolver.h"
 #include <algorithm>
 #include <cctype>
 

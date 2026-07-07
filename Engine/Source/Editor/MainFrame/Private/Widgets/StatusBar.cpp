@@ -1,10 +1,10 @@
-#include "Widgets/StatusBar.hpp"
-#include "Widgets/CommandInput.hpp"
-#include "Widgets/ToolButton.hpp"
-#include "Core/PaintContext.hpp"
-#include "Core/Theme.hpp"
-#include "Core/Icon.hpp"
-#include "Layout/Spacer.hpp"
+#include "Widgets/StatusBar.h"
+#include "Widgets/CommandInput.h"
+#include "Widgets/ToolButton.h"
+#include "Core/PaintContext.h"
+#include "Core/Theme.h"
+#include "Core/Icon.h"
+#include "Layout/Spacer.h"
 
 namespace we::UI {
 

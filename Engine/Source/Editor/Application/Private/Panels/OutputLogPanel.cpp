@@ -1,9 +1,9 @@
-#include "EditorRegistry.hpp"
-#include "Widgets/Panel.hpp"
-#include "Widgets/OutputLogWidget.hpp"
-#include "Widgets/TextBox.hpp"
-#include "Widgets/Button.hpp"
-#include "Layout/Box.hpp"
+#include "EditorRegistry.h"
+#include "Widgets/Panel.h"
+#include "Widgets/OutputLogWidget.h"
+#include "Widgets/TextBox.h"
+#include "Widgets/Button.h"
+#include "Layout/Box.h"
 
 namespace we::programs::editor {
 

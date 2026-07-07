@@ -1,5 +1,5 @@
-#include "../ModuleManager.hpp"
-#include "Core/DiagnosticMacros.hpp"
+#include "../ModuleManager.h"
+#include "Core/DiagnosticMacros.h"
 
 namespace we::core {
 

@@ -7,14 +7,14 @@
 #include "PlaceActors/PlaceActorsItem.h"
 #include "PlaceActors/PlaceActorsCategory.h"
 
-#include "EditorToolsRegistry.hpp"
-#include "Widgets/SearchBox.hpp"
-#include "Widgets/ToolButton.hpp"
-#include "Core/PaintContext.hpp"
-#include "Core/Theme.hpp"
-#include "Core/Icon.hpp"
-#include "Core/Animator.hpp"
-#include "Core/EditorConfigPaths.hpp"
+#include "EditorToolsRegistry.h"
+#include "Widgets/SearchBox.h"
+#include "Widgets/ToolButton.h"
+#include "Core/PaintContext.h"
+#include "Core/Theme.h"
+#include "Core/Icon.h"
+#include "Core/Animator.h"
+#include "Core/EditorConfigPaths.h"
 
 #include <algorithm>
 #include <cmath>

@@ -1,14 +1,14 @@
 #include <SDL3/SDL.h>
 #include <iostream>
-#include "Core/Logger.hpp"
-#include "Core/BuildPaths.hpp"
-#include "CrashReporterApp.hpp"
+#include "Core/Logger.h"
+#include "Core/BuildPaths.h"
+#include "CrashReporterApp.h"
 #include <filesystem>
 
 #if defined(_WIN32)
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
-#include "../Windows/Win32WindowIcon.hpp"
+#include "../Windows/Win32WindowIcon.h"
 #include "../Windows/resource.h"
 #endif
 

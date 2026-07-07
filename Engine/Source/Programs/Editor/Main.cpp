@@ -1,19 +1,19 @@
-#include "Modules/ModuleManager.hpp"
-#include "Editor.hpp"
+#include "Modules/ModuleManager.h"
+#include "Editor.h"
 #include <SDL3/SDL.h>
 #include <iostream>
 #include <cstring>
 #include <exception>
 #include <filesystem>
-#include "Core/Logger.hpp"
-#include "Core/LogCategory.hpp"
-#include "Core/BuildPaths.hpp"
+#include "Core/Logger.h"
+#include "Core/LogCategory.h"
+#include "Core/BuildPaths.h"
 
 #if defined(_WIN32)
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
-#include "../Windows/Win32WindowIcon.hpp"
-#include "../Windows/Win32WindowChrome.hpp"
+#include "../Windows/Win32WindowIcon.h"
+#include "../Windows/Win32WindowChrome.h"
 #include "../Windows/resource.h"
 #endif
 

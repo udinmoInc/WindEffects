@@ -1,9 +1,9 @@
-#include "Widgets/ExplorerPanelHeader.hpp"
+#include "Widgets/ExplorerPanelHeader.h"
 
-#include "Explorer/ExplorerPanelAssets.hpp"
-#include "Core/PaintContext.hpp"
-#include "Core/Theme.hpp"
-#include "Core/Icon.hpp"
+#include "Explorer/ExplorerPanelAssets.h"
+#include "Core/PaintContext.h"
+#include "Core/Theme.h"
+#include "Core/Icon.h"
 
 #include <algorithm>
 #include <cmath>

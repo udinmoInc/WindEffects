@@ -1,7 +1,7 @@
-#include "Widgets/ViewportOverlay.hpp"
-#include "Core/PaintContext.hpp"
-#include "Core/Theme.hpp"
-#include "Core/Icon.hpp"
+#include "Widgets/ViewportOverlay.h"
+#include "Core/PaintContext.h"
+#include "Core/Theme.h"
+#include "Core/Icon.h"
 #include <algorithm>
 
 namespace we::UI {

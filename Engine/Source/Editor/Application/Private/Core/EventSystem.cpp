@@ -1,6 +1,6 @@
-#include "Core/EventSystem.hpp"
-#include "Core/Widget.hpp"
-#include "Layout/OverlayManager.hpp"
+#include "Core/EventSystem.h"
+#include "Core/Widget.h"
+#include "Layout/OverlayManager.h"
 #include <SDL3/SDL_mouse.h>
 
 namespace we::UI {

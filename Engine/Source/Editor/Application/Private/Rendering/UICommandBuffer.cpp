@@ -1,6 +1,6 @@
-#include "Rendering/UICommandBuffer.hpp"
-#include "Rendering/UIRenderer2.hpp"
-#include "Core/Logger.hpp"
+#include "Rendering/UICommandBuffer.h"
+#include "Rendering/UIRenderer2.h"
+#include "Core/Logger.h"
 #include <cstring>
 
 namespace we::UI {

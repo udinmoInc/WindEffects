@@ -1,4 +1,4 @@
-#include "Core/DPIContext.hpp"
+#include "Core/DPIContext.h"
 
 namespace we::UI {
 

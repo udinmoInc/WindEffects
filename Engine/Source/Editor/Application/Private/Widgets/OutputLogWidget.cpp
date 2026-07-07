@@ -1,6 +1,6 @@
-#include "Widgets/OutputLogWidget.hpp"
-#include "Core/PaintContext.hpp"
-#include "Core/Theme.hpp"
+#include "Widgets/OutputLogWidget.h"
+#include "Core/PaintContext.h"
+#include "Core/Theme.h"
 
 namespace we::UI {
 

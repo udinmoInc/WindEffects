@@ -1,5 +1,5 @@
-#include "Widgets/CheckBox.hpp"
-#include "Core/PaintContext.hpp"
+#include "Widgets/CheckBox.h"
+#include "Core/PaintContext.h"
 
 namespace we::UI {
 

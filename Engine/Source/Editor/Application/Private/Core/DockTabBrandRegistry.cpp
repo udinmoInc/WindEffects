@@ -1,4 +1,4 @@
-#include "Core/DockTabBrandRegistry.hpp"
+#include "Core/DockTabBrandRegistry.h"
 
 namespace we::UI {
 

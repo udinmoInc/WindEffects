@@ -1,4 +1,4 @@
-#include "Core/PaintContext.hpp"
+#include "Core/PaintContext.h"
 
 namespace we::UI {
 

@@ -1,8 +1,8 @@
-#include "Core/IconManager.hpp"
-#include "Core/DPIContext.hpp"
-#include "Core/PaintContext.hpp"
-#include "Core/Theme.hpp"
-#include "Rendering/IconRenderer.hpp"
+#include "Core/IconManager.h"
+#include "Core/DPIContext.h"
+#include "Core/PaintContext.h"
+#include "Core/Theme.h"
+#include "Rendering/IconRenderer.h"
 #include <algorithm>
 #include <cmath>
 

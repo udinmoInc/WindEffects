@@ -1,7 +1,7 @@
 #include "PlaceActors/PlaceActorsCategory.h"
 
-#include "Core/Theme.hpp"
-#include "Core/Icon.hpp"
+#include "Core/Theme.h"
+#include "Core/Icon.h"
 
 namespace we::programs::editor {
 

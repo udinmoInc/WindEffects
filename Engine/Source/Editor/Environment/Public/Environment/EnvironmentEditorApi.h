@@ -1,8 +1,8 @@
 #pragma once
 
-#include "Environment/Export.hpp"
+#include "Environment/Export.h"
 
-#include "Core/Widget.hpp"
+#include "Core/Widget.h"
 #include <memory>
 
 namespace we::runtime::renderer {

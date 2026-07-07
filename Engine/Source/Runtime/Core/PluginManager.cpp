@@ -1,6 +1,6 @@
-#include "PluginManager.hpp"
-#include "Core/DiagnosticMacros.hpp"
-#include "Core/LogCategory.hpp"
+#include "PluginManager.h"
+#include "Core/DiagnosticMacros.h"
+#include "Core/LogCategory.h"
 #include <filesystem>
 
 namespace we::core {

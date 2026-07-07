@@ -1,10 +1,10 @@
-#include "FirstRunAgreementPopup.hpp"
-#include "Core/EditorConfigPaths.hpp"
-#include "Core/Icon.hpp"
-#include "Core/PaintContext.hpp"
-#include "Core/Theme.hpp"
-#include "Core/DPIContext.hpp"
-#include "Core/Logger.hpp"
+#include "FirstRunAgreementPopup.h"
+#include "Core/EditorConfigPaths.h"
+#include "Core/Icon.h"
+#include "Core/PaintContext.h"
+#include "Core/Theme.h"
+#include "Core/DPIContext.h"
+#include "Core/Logger.h"
 
 #include <SDL3/SDL_clipboard.h>
 #include <SDL3/SDL_keycode.h>

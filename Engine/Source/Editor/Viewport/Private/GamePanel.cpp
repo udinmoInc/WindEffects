@@ -1,9 +1,9 @@
-#include "EditorRegistry.hpp"
-#include "Widgets/Panel.hpp"
-#include "Core/Icon.hpp"
-#include "Widgets/Label.hpp"
-#include "Widgets/Toolbar.hpp"
-#include "Widgets/ToolButton.hpp"
+#include "EditorRegistry.h"
+#include "Widgets/Panel.h"
+#include "Core/Icon.h"
+#include "Widgets/Label.h"
+#include "Widgets/Toolbar.h"
+#include "Widgets/ToolButton.h"
 
 namespace we::programs::editor {
 

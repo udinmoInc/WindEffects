@@ -1,4 +1,4 @@
-#include "Core/FrameCounter.hpp"
+#include "Core/FrameCounter.h"
 
 namespace we::runtime::core {
 

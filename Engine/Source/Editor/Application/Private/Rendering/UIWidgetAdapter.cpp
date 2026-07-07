@@ -1,7 +1,7 @@
-#include "Rendering/UIWidgetAdapter.hpp"
-#include "Rendering/FontAtlas.hpp"
-#include "Rendering/IconRenderer.hpp"
-#include "Core/Logger.hpp"
+#include "Rendering/UIWidgetAdapter.h"
+#include "Rendering/FontAtlas.h"
+#include "Rendering/IconRenderer.h"
+#include "Core/Logger.h"
 #include <cmath>
 #include <cstring>
 

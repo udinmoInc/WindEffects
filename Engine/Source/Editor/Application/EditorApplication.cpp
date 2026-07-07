@@ -1,5 +1,5 @@
-#include "EditorApplication.hpp"
-#include "Core/Logger.hpp"
+#include "EditorApplication.h"
+#include "Core/Logger.h"
 
 namespace we::editor::application {
 

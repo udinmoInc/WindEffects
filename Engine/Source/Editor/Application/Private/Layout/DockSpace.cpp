@@ -1,6 +1,6 @@
-#include "Layout/DockSpace.hpp"
-#include "Core/PaintContext.hpp"
-#include "Core/Theme.hpp"
+#include "Layout/DockSpace.h"
+#include "Core/PaintContext.h"
+#include "Core/Theme.h"
 #include <algorithm>
 #include <iostream>
 
