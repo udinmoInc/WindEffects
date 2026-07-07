@@ -1,7 +1,7 @@
 #pragma once
 
-#include "Core/PaintContext.hpp"
-#include "Core/Geometry.hpp"
+#include "Core/PaintContext.h"
+#include "Core/Geometry.h"
 #include <string>
 
 namespace we::programs::editor {

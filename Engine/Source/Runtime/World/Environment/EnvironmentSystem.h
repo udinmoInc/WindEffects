@@ -1,6 +1,6 @@
 #pragma once
 
-#include "World/Export.hpp"
+#include "World/Export.h"
 
 #include "EnvironmentExposureController.h"
 #include "EnvironmentDirectionalLight.h"
@@ -11,7 +11,7 @@
 #include "EnvironmentSkyLight.h"
 #include "EnvironmentTypes.h"
 #include "EnvironmentVolumetricClouds.h"
-#include "Scene/Scene.hpp"
+#include "Scene/Scene.h"
 #include <functional>
 #include <memory>
 #include <glm/glm.hpp>

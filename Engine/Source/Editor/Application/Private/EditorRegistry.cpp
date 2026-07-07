@@ -1,6 +1,6 @@
-#include "EditorRegistry.hpp"
-#include "Core/DiagnosticMacros.hpp"
-#include "Core/LogCategory.hpp"
+#include "EditorRegistry.h"
+#include "Core/DiagnosticMacros.h"
+#include "Core/LogCategory.h"
 
 namespace we::programs::editor {
 

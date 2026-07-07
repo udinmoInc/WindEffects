@@ -1,9 +1,9 @@
-#include "Widgets/DockContainer.hpp"
-#include "Core/PaintContext.hpp"
-#include "Core/Theme.hpp"
-#include "Core/Icon.hpp"
-#include "Core/DockTabIconRegistry.hpp"
-#include "Core/DockTabBrandRegistry.hpp"
+#include "Widgets/DockContainer.h"
+#include "Core/PaintContext.h"
+#include "Core/Theme.h"
+#include "Core/Icon.h"
+#include "Core/DockTabIconRegistry.h"
+#include "Core/DockTabBrandRegistry.h"
 #include <algorithm>
 #include <cmath>
 

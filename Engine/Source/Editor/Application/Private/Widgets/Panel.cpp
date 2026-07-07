@@ -1,8 +1,8 @@
-#include "Widgets/Panel.hpp"
-#include "Core/PaintContext.hpp"
-#include "Core/Theme.hpp"
-#include "Core/Icon.hpp"
-#include "Core/DockTabIconRegistry.hpp"
+#include "Widgets/Panel.h"
+#include "Core/PaintContext.h"
+#include "Core/Theme.h"
+#include "Core/Icon.h"
+#include "Core/DockTabIconRegistry.h"
 #include <functional>
 #include <algorithm>
 

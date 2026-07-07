@@ -1,10 +1,10 @@
-#include "EditorLayoutPersistence.hpp"
+#include "EditorLayoutPersistence.h"
 
-#include "EditorPanelController.hpp"
-#include "Layout/Splitter.hpp"
-#include "Widgets/DockContainer.hpp"
-#include "Core/EditorConfigPaths.hpp"
-#include "Core/Logger.hpp"
+#include "EditorPanelController.h"
+#include "Layout/Splitter.h"
+#include "Widgets/DockContainer.h"
+#include "Core/EditorConfigPaths.h"
+#include "Core/Logger.h"
 
 #include <filesystem>
 #include <fstream>

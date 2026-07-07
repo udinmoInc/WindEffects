@@ -1,9 +1,9 @@
-#include "Rendering/FontAtlas.hpp"
+#include "Rendering/FontAtlas.h"
 #include "Rendering/UiGpuUpload.h"
 #include "Core/DeviceContext.h"
 #include "Resource/ResourceManager.h"
 #include "Core/ImageBarriers.h"
-#include "Core/Logger.hpp"
+#include "Core/Logger.h"
 
 #include <fstream>
 #include <vector>

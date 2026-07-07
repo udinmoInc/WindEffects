@@ -1,5 +1,5 @@
-#include "Rendering/UIStateManager.hpp"
-#include "Core/Logger.hpp"
+#include "Rendering/UIStateManager.h"
+#include "Core/Logger.h"
 
 namespace we::UI {
 

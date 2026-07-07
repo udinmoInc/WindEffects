@@ -1,5 +1,5 @@
-#include "EditorGridRenderer.hpp"
-#include "EditorCamera.hpp"
+#include "EditorGridRenderer.h"
+#include "EditorCamera.h"
 #include "Core/DeviceContext.h"
 
 namespace we::editor::grid {

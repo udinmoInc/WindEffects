@@ -1,5 +1,5 @@
-#include "Core/Theme.hpp"
-#include "Core/Style.hpp"
+#include "Core/Theme.h"
+#include "Core/Style.h"
 namespace we::UI {
 
 Theme& Theme::Get() {

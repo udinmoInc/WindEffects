@@ -1,4 +1,4 @@
-#include "Services/DiskThumbnailCache.hpp"
+#include "Services/DiskThumbnailCache.h"
 #include <fstream>
 
 #include <stb_image.h>

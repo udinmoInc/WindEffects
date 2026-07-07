@@ -4,7 +4,7 @@
 #include <windows.h>
 #include <delayimp.h>
 
-#include "Core/BuildPaths.hpp"
+#include "Core/BuildPaths.h"
 
 namespace {
 

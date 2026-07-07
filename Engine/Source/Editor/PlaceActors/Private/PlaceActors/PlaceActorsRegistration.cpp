@@ -1,6 +1,6 @@
 #include "PlaceActors/PlaceActorsPanel.h"
 #include "PlaceActors/PlaceActorsPlacement.h"
-#include "EditorToolsRegistry.hpp"
+#include "EditorToolsRegistry.h"
 
 #include <memory>
 #include <string>

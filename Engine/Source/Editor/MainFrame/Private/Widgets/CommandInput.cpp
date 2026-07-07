@@ -1,7 +1,7 @@
-#include "Widgets/CommandInput.hpp"
-#include "Core/PaintContext.hpp"
-#include "Core/Theme.hpp"
-#include "Core/Icon.hpp"
+#include "Widgets/CommandInput.h"
+#include "Core/PaintContext.h"
+#include "Core/Theme.h"
+#include "Core/Icon.h"
 #include <SDL3/SDL.h>
 #include <algorithm>
 

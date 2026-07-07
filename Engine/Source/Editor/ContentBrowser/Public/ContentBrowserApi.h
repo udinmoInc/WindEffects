@@ -1,6 +1,6 @@
 #pragma once
 
-#include "ContentBrowser/Export.hpp"
+#include "ContentBrowser/Export.h"
 
 namespace we::UI {
 class IconRenderer;

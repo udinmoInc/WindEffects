@@ -1,5 +1,5 @@
-#include "Widgets/RenderInvestigationModal.hpp"
-#include "Layout/OverlayManager.hpp"
+#include "Widgets/RenderInvestigationModal.h"
+#include "Layout/OverlayManager.h"
 
 namespace we::UI {
 

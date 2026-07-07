@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Core/Widget.hpp"
+#include "Core/Widget.h"
 #include "PlaceActors/PlaceActorsTypes.h"
 #include <functional>
 #include <memory>

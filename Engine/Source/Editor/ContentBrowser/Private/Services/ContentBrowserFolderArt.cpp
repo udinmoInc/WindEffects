@@ -1,8 +1,8 @@
-#include "Services/ContentBrowserFolderArt.hpp"
-#include "Services/ThumbnailRenderer.hpp"
-#include "Core/DPIContext.hpp"
-#include "Core/PaintContext.hpp"
-#include "Rendering/IconRenderer.hpp"
+#include "Services/ContentBrowserFolderArt.h"
+#include "Services/ThumbnailRenderer.h"
+#include "Core/DPIContext.h"
+#include "Core/PaintContext.h"
+#include "Rendering/IconRenderer.h"
 #include <algorithm>
 #include <cmath>
 

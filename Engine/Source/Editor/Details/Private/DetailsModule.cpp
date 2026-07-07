@@ -1,6 +1,6 @@
 
-#include "Modules/IModuleInterface.hpp"
-#include "Core/Logger.hpp"
+#include "Modules/IModuleInterface.h"
+#include "Core/Logger.h"
 
 class DetailsModule : public IModuleInterface
 {

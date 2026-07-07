@@ -1,6 +1,6 @@
-#include "Registry/ContentAssetRegistry.hpp"
-#include "Registry/AssetTypeResolver.hpp"
-#include "Core/Logger.hpp"
+#include "Registry/ContentAssetRegistry.h"
+#include "Registry/AssetTypeResolver.h"
+#include "Core/Logger.h"
 #include <filesystem>
 #include <fstream>
 

@@ -1,6 +1,6 @@
 #include "Environment/EnvironmentSettings.h"
 
-#include "Core/EditorConfigPaths.hpp"
+#include "Core/EditorConfigPaths.h"
 
 #include <algorithm>
 #include <cctype>

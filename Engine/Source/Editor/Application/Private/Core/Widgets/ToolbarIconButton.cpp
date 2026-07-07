@@ -1,8 +1,8 @@
-#include "Core/Widgets/ToolbarIconButton.hpp"
-#include "Core/PaintContext.hpp"
-#include "Core/Theme.hpp"
-#include "Core/Icon.hpp"
-#include "Core/Animator.hpp"
+#include "Core/Widgets/ToolbarIconButton.h"
+#include "Core/PaintContext.h"
+#include "Core/Theme.h"
+#include "Core/Icon.h"
+#include "Core/Animator.h"
 #include <algorithm>
 
 namespace we::UI {

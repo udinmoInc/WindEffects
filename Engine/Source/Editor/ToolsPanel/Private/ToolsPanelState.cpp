@@ -1,6 +1,6 @@
-#include "ToolsPanelState.hpp"
+#include "ToolsPanelState.h"
 
-#include "Core/EditorConfigPaths.hpp"
+#include "Core/EditorConfigPaths.h"
 
 #include <filesystem>
 #include <fstream>

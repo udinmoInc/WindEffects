@@ -1,8 +1,8 @@
-#include "EditorModeController.hpp"
-#include "EditorLayoutController.hpp"
-#include "EditorToolsRegistry.hpp"
-#include "Core/Logger.hpp"
-#include "Core/EditorConfigPaths.hpp"
+#include "EditorModeController.h"
+#include "EditorLayoutController.h"
+#include "EditorToolsRegistry.h"
+#include "Core/Logger.h"
+#include "Core/EditorConfigPaths.h"
 
 #include <filesystem>
 #include <fstream>

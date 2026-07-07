@@ -1,13 +1,13 @@
-#include "EditorRegistry.hpp"
+#include "EditorRegistry.h"
 #include "Explorer/WorldOutlinerApi.h"
-#include "Explorer/ExplorerPanelAssets.hpp"
-#include "Core/DockTabIconRegistry.hpp"
-#include "Widgets/Panel.hpp"
-#include "Widgets/TreeView.hpp"
-#include "Widgets/ExplorerPanelHeader.hpp"
-#include "Widgets/ExplorerFilterMenu.hpp"
-#include "Core/Theme.hpp"
-#include "Layout/OverlayManager.hpp"
+#include "Explorer/ExplorerPanelAssets.h"
+#include "Core/DockTabIconRegistry.h"
+#include "Widgets/Panel.h"
+#include "Widgets/TreeView.h"
+#include "Widgets/ExplorerPanelHeader.h"
+#include "Widgets/ExplorerFilterMenu.h"
+#include "Core/Theme.h"
+#include "Layout/OverlayManager.h"
 
 namespace we::programs::editor {
 using namespace we::UI;

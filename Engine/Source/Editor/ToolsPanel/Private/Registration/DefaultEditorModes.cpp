@@ -1,4 +1,4 @@
-#include "EditorToolsRegistry.hpp"
+#include "EditorToolsRegistry.h"
 
 namespace we::programs::editor {
 

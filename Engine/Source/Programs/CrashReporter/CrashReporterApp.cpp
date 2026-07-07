@@ -1,13 +1,13 @@
-#include "CrashReporterApp.hpp"
-#include "CrashReporterUI.hpp"
-#include "Renderer/VulkanContext.hpp"
-#include "Renderer/Renderer.hpp"
-#include "Renderer/Shader/ShaderLibrary.hpp"
-#include "Renderer/RenderGraph.hpp"
-#include "Rendering/UIRenderer2.hpp"
-#include "Core/EventSystem.hpp"
-#include "Runtime/Core/AssetRegistry.hpp"
-#include "Core/Logger.hpp"
+#include "CrashReporterApp.h"
+#include "CrashReporterUI.h"
+#include "Renderer/VulkanContext.h"
+#include "Renderer/Renderer.h"
+#include "Renderer/Shader/ShaderLibrary.h"
+#include "Renderer/RenderGraph.h"
+#include "Rendering/UIRenderer2.h"
+#include "Core/EventSystem.h"
+#include "Runtime/Core/AssetRegistry.h"
+#include "Core/Logger.h"
 #include <filesystem>
 
 namespace we::programs::crashreporter {

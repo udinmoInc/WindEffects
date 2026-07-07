@@ -1,10 +1,10 @@
-#include "EditorRegistry.hpp"
-#include "EditorModeController.hpp"
-#include "EditorToolsRegistry.hpp"
-#include "Widgets/Panel.hpp"
-#include "Widgets/ToolsPanel.hpp"
-#include "Core/DockTabIconRegistry.hpp"
-#include "Core/Icon.hpp"
+#include "EditorRegistry.h"
+#include "EditorModeController.h"
+#include "EditorToolsRegistry.h"
+#include "Widgets/Panel.h"
+#include "Widgets/ToolsPanel.h"
+#include "Core/DockTabIconRegistry.h"
+#include "Core/Icon.h"
 
 namespace we::programs::editor {
 

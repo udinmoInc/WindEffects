@@ -1,4 +1,4 @@
-#include "EditorPreferences.hpp"
+#include "EditorPreferences.h"
 #include "Scene/SceneRenderer.h"
 
 namespace we::programs::editor {

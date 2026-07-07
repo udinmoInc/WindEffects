@@ -1,8 +1,8 @@
 #pragma once
 
 #include "PlaceActors/PlaceActorsTypes.h"
-#include "Core/PaintContext.hpp"
-#include "Core/Geometry.hpp"
+#include "Core/PaintContext.h"
+#include "Core/Geometry.h"
 
 namespace we::programs::editor {
 

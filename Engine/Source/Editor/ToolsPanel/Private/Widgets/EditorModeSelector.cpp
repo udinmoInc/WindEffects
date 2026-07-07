@@ -1,11 +1,11 @@
-#include "Widgets/EditorModeSelector.hpp"
-#include "EditorModeController.hpp"
-#include "EditorToolsRegistry.hpp"
-#include "Core/PaintContext.hpp"
-#include "Core/Theme.hpp"
-#include "Core/Icon.hpp"
-#include "Layout/OverlayManager.hpp"
-#include "Widgets/MenuBar.hpp"
+#include "Widgets/EditorModeSelector.h"
+#include "EditorModeController.h"
+#include "EditorToolsRegistry.h"
+#include "Core/PaintContext.h"
+#include "Core/Theme.h"
+#include "Core/Icon.h"
+#include "Layout/OverlayManager.h"
+#include "Widgets/MenuBar.h"
 
 #include <memory>
 #include <vector>

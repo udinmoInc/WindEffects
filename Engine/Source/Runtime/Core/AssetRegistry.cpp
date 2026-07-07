@@ -1,5 +1,5 @@
-#include "AssetRegistry.hpp"
-#include "Core/Logger.hpp"
+#include "AssetRegistry.h"
+#include "Core/Logger.h"
 
 #include <fstream>
 #include <filesystem>

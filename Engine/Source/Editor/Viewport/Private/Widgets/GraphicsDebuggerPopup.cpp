@@ -1,9 +1,9 @@
-#include "Widgets/GraphicsDebuggerPopup.hpp"
-#include "EditorCamera.hpp"
-#include "Scene/Scene.hpp"
-#include "Core/PaintContext.hpp"
-#include "Core/Theme.hpp"
-#include "Core/Logger.hpp"
+#include "Widgets/GraphicsDebuggerPopup.h"
+#include "EditorCamera.h"
+#include "Scene/Scene.h"
+#include "Core/PaintContext.h"
+#include "Core/Theme.h"
+#include "Core/Logger.h"
 #include <glm/gtc/type_ptr.hpp>
 #include <iomanip>
 #include <sstream>

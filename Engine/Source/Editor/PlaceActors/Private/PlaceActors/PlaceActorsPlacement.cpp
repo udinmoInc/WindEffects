@@ -1,10 +1,10 @@
 #include "PlaceActors/PlaceActorsPlacement.h"
 
-#include "EditorToolsRegistry.hpp"
-#include "EditorCamera.hpp"
-#include "Scene/Scene.hpp"
-#include "Scene/Entity.hpp"
-#include "Core/Logger.hpp"
+#include "EditorToolsRegistry.h"
+#include "EditorCamera.h"
+#include "Scene/Scene.h"
+#include "Scene/Entity.h"
+#include "Core/Logger.h"
 
 #include <glm/gtc/constants.hpp>
 #include <unordered_map>

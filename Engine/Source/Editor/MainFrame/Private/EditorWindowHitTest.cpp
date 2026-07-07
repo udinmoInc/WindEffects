@@ -1,5 +1,5 @@
-#include "EditorWindowHitTest.hpp"
-#include "Widgets/TitleBar.hpp"
+#include "EditorWindowHitTest.h"
+#include "Widgets/TitleBar.h"
 
 namespace we::editor::mainframe {
 

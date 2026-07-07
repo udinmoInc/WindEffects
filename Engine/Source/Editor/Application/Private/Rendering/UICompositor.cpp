@@ -1,5 +1,5 @@
-#include "Rendering/UICompositor.hpp"
-#include "Core/Logger.hpp"
+#include "Rendering/UICompositor.h"
+#include "Core/Logger.h"
 
 namespace we::UI {
 

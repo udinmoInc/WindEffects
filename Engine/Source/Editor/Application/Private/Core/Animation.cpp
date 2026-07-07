@@ -1,5 +1,5 @@
-#include "Core/Animation.hpp"
-#include "Core/Geometry.hpp"
+#include "Core/Animation.h"
+#include "Core/Geometry.h"
 
 namespace we::UI {
 

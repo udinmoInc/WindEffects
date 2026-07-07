@@ -1,8 +1,8 @@
 #pragma once
 
-#include "World/Export.hpp"
+#include "World/Export.h"
 
-#include "Scene/Scene.hpp"
+#include "Scene/Scene.h"
 
 namespace we::runtime::world {
 

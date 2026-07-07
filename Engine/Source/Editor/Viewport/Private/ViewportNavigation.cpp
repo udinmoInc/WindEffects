@@ -1,6 +1,6 @@
-#include "ViewportNavigation.hpp"
-#include "ViewportNavigationSettings.hpp"
-#include "ViewportToolbarState.hpp"
+#include "ViewportNavigation.h"
+#include "ViewportNavigationSettings.h"
+#include "ViewportToolbarState.h"
 
 #include <SDL3/SDL_mouse.h>
 #include <SDL3/SDL_hints.h>

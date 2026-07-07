@@ -1,10 +1,10 @@
-#include "EditorRegistry.hpp"
-#include "Widgets/Panel.hpp"
-#include "Widgets/PropertyEditor.hpp"
-#include "Widgets/SearchBox.hpp"
-#include "Layout/Box.hpp"
-#include "Core/Icon.hpp"
-#include "Localization.hpp"
+#include "EditorRegistry.h"
+#include "Widgets/Panel.h"
+#include "Widgets/PropertyEditor.h"
+#include "Widgets/SearchBox.h"
+#include "Layout/Box.h"
+#include "Core/Icon.h"
+#include "Localization.h"
 
 namespace we::programs::editor {
 

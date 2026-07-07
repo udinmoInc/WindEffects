@@ -1,11 +1,11 @@
-#include "Widgets/ContentBrowserToolbar.hpp"
-#include "Widgets/SearchBox.hpp"
-#include "Widgets/ContentBrowser.hpp"
-#include "Core/PaintContext.hpp"
-#include "Core/Theme.hpp"
-#include "Core/Icon.hpp"
-#include "Core/Animator.hpp"
-#include "Core/ToolbarDesignTokens.hpp"
+#include "Widgets/ContentBrowserToolbar.h"
+#include "Widgets/SearchBox.h"
+#include "Widgets/ContentBrowser.h"
+#include "Core/PaintContext.h"
+#include "Core/Theme.h"
+#include "Core/Icon.h"
+#include "Core/Animator.h"
+#include "Core/ToolbarDesignTokens.h"
 #include <algorithm>
 
 namespace we::UI {

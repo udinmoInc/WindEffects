@@ -1,5 +1,5 @@
-#include "Widgets/RenderDiagnosticsPanel.hpp"
-#include "Core/Theme.hpp"
+#include "Widgets/RenderDiagnosticsPanel.h"
+#include "Core/Theme.h"
 
 namespace we::UI {
 

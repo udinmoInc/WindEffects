@@ -1,6 +1,6 @@
-#include "Layout/OverlayManager.hpp"
-#include "Core/PaintContext.hpp"
-#include "Core/Logger.hpp"
+#include "Layout/OverlayManager.h"
+#include "Core/PaintContext.h"
+#include "Core/Logger.h"
 
 namespace we::UI {
 

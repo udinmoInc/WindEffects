@@ -1,7 +1,7 @@
-#include "Modules/ModuleManager.hpp"
-#include "Core/BuildPaths.hpp"
-#include "Core/DiagnosticMacros.hpp"
-#include "Core/LogCategory.hpp"
+#include "Modules/ModuleManager.h"
+#include "Core/BuildPaths.h"
+#include "Core/DiagnosticMacros.h"
+#include "Core/LogCategory.h"
 #include <filesystem>
 
 // Dynamic editor module loader (exported via CORE_API).

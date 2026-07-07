@@ -1,7 +1,7 @@
 #include "DefaultSceneBuilder.h"
 
 #include "EnvironmentSystem.h"
-#include "Core/Logger.hpp"
+#include "Core/Logger.h"
 
 namespace we::runtime::world {
 

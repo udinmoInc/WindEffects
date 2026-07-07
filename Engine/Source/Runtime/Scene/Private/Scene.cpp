@@ -1,5 +1,5 @@
-#include "Scene/Scene.hpp"
-#include "Core/Logger.hpp"
+#include "Scene/Scene.h"
+#include "Core/Logger.h"
 #if WE_HAS_GLM
 #include <glm/glm.hpp>
 #endif

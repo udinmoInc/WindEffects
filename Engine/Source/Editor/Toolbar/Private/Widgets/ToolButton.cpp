@@ -1,8 +1,8 @@
-#include "Widgets/ToolButton.hpp"
-#include "Core/PaintContext.hpp"
-#include "Core/Theme.hpp"
-#include "Core/Icon.hpp"
-#include "Core/Animator.hpp"
+#include "Widgets/ToolButton.h"
+#include "Core/PaintContext.h"
+#include "Core/Theme.h"
+#include "Core/Icon.h"
+#include "Core/Animator.h"
 #include <algorithm>
 #include <cctype>
 

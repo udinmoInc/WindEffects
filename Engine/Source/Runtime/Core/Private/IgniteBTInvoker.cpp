@@ -1,6 +1,6 @@
-#include "Core/IgniteBTInvoker.hpp"
-#include "Core/BuildPaths.hpp"
-#include "Core/Environment.hpp"
+#include "Core/IgniteBTInvoker.h"
+#include "Core/BuildPaths.h"
+#include "Core/Environment.h"
 
 #include <filesystem>
 #include <fstream>

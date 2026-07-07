@@ -1,5 +1,5 @@
-#include "Controllers/FilterController.hpp"
-#include "Registry/ContentAssetRegistry.hpp"
+#include "Controllers/FilterController.h"
+#include "Registry/ContentAssetRegistry.h"
 #include <chrono>
 
 namespace we::editor::contentbrowser {

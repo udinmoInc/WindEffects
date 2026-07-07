@@ -1,5 +1,5 @@
-#include "Rendering/UITextureAtlasManager.hpp"
-#include "Core/Logger.hpp"
+#include "Rendering/UITextureAtlasManager.h"
+#include "Core/Logger.h"
 #include <algorithm>
 
 namespace we::UI {

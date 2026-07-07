@@ -1,6 +1,6 @@
-#include "Core/StartupValidator.hpp"
-#include "Core/DiagnosticMacros.hpp"
-#include "Core/LogCategory.hpp"
+#include "Core/StartupValidator.h"
+#include "Core/DiagnosticMacros.h"
+#include "Core/LogCategory.h"
 
 namespace we::runtime::core {
 

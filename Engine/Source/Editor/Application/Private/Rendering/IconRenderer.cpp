@@ -1,8 +1,8 @@
-#include "Rendering/IconRenderer.hpp"
+#include "Rendering/IconRenderer.h"
 #include "Core/ImageBarriers.h"
 #include "Resource/ResourceManager.h"
-#include "Core/Theme.hpp"
-#include "Core/Logger.hpp"
+#include "Core/Theme.h"
+#include "Core/Logger.h"
 #include <volk.h>
 #include <stdexcept>
 #include <filesystem>
