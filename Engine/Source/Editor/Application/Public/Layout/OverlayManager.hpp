@@ -21,6 +21,9 @@ public:
 
     // Show a floating popup at the specified position
     void ShowPopup(const std::shared_ptr<Widget>& popup, const Point& position);
+
+    // Show a popup that fills the entire overlay (e.g. investigation modal)
+    void ShowFullscreenPopup(const std::shared_ptr<Widget>& popup);
     
     // Close the most recent popup, or clear all
     void CloseTopPopup();
@@ -41,6 +44,7 @@ public:
 private:
     std::shared_ptr<Widget> m_BaseWidget;
     std::vector<std::shared_ptr<Widget>> m_Popups;
+    std::vector<bool> m_FullscreenPopups;
     
     static OverlayManager* s_Instance;
 };

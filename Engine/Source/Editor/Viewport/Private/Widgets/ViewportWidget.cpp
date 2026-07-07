@@ -186,6 +186,21 @@ void ViewportWidget::OnMouseDown(const MouseEvent& event) {
         return;
     }
 
+    if (event.type == MouseEventType::MouseDown
+        && event.button == MouseButton::Left
+        && event.ctrlDown
+        && m_Geometry.Contains(event.position)
+        && m_Renderer) {
+        const float localX = event.position.x - m_Geometry.x;
+        const float localY = event.position.y - m_Geometry.y;
+        const float u = localX / (std::max)(m_Geometry.width, 1.0f);
+        const float v = localY / (std::max)(m_Geometry.height, 1.0f);
+        const auto& fb = m_Renderer->GetOffscreenFramebuffer();
+        we::runtime::renderer::RenderGpuInvestigator::Get().SetProbeFromViewportUV(
+            u, v, fb.GetWidth(), fb.GetHeight());
+        return;
+    }
+
     for (auto it = m_Children.rbegin(); it != m_Children.rend(); ++it) {
         auto& child = *it;
         const Rect geom = child->GetGeometry();

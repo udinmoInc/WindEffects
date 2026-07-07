@@ -558,6 +558,19 @@ void PostProcessStack::FlushGpuAverageLuminance() const {
     FrameStatsCollector::Get().SetGpuAverageLuminance(avg);
 }
 
+std::vector<PostProcessStack::PostProcessResourceDescriptor> PostProcessStack::GetResourceDescriptors() const {
+    std::vector<PostProcessResourceDescriptor> out;
+    if (m_Width == 0 || m_Height == 0) return out;
+    auto push = [&](const char* name, uint32_t w, uint32_t h, const char* fmt) {
+        out.push_back({name, w, h, fmt});
+    };
+    push("BloomA", m_BloomWidth, m_BloomHeight, "R16G16B16A16_SFLOAT");
+    push("BloomB", m_BloomWidth, m_BloomHeight, "R16G16B16A16_SFLOAT");
+    push("LuminanceTiles", m_TileWidth, m_TileHeight, "R32_SFLOAT");
+    push("LuminanceAvg", 1, 1, "R32_SFLOAT");
+    return out;
+}
+
 #endif // WE_HAS_VULKAN
 
 } // namespace we::runtime::renderer

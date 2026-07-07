@@ -3,6 +3,7 @@
 #if WE_HAS_VULKAN
 #include "Renderer/VulkanContext.hpp"
 #include "Renderer/SceneEnvironmentUniform.hpp"
+#include "Renderer/RenderDebugTypes.hpp"
 #include <volk.h>
 #include <memory>
 #include <string>
@@ -59,6 +60,8 @@ public:
     const AtmosphereLUTImages& GetImages() const { return m_Images; }
 
     bool ValidateResources(std::string* failureReason = nullptr) const;
+    const std::vector<RenderDebuggerLUTStats>& GetLUTDebugStats() const { return m_LUTDebugStats; }
+    const std::vector<GpuCachedLUTData>& GetCachedLUTData() const { return m_CachedLUTs; }
 
 private:
     void CreateResources();
@@ -83,6 +86,8 @@ private:
     bool m_Ready = false;
     bool m_HasGenerated = false;
     SceneEnvironmentUniform m_LastGeneratedEnvironment{};
+    std::vector<RenderDebuggerLUTStats> m_LUTDebugStats{};
+    std::vector<GpuCachedLUTData> m_CachedLUTs{};
     std::string m_LastError;
 };
 

@@ -5,6 +5,7 @@
 #include <volk.h>
 #include "Core/Widget.hpp"
 #include "ViewportNavigation.hpp"
+#include "Renderer/RenderGpuInvestigator.hpp"
 #include <memory>
 
 struct SDL_Window;

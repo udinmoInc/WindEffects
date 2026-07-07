@@ -1,4 +1,5 @@
 #include "Renderer/RenderPipelineInvestigator.hpp"
+#include "Renderer/RenderDebugger.hpp"
 #include "Renderer/RendererDebug.hpp"
 #include "Renderer/RendererConfig.hpp"
 #include "Core/LogCategory.hpp"
@@ -634,6 +635,9 @@ bool RenderPipelineInvestigator::ShouldRenderSunDisk() const {
 bool RenderPipelineInvestigator::ShouldRunPass(RenderPassId pass) const {
     if (RendererDebug::Get().IsMinimalRendererActive()) {
         return RendererDebug::Get().ShouldRunPass(pass);
+    }
+    if (RenderDebugger::Get().IsBinaryIsolationActive()) {
+        return RenderDebugger::Get().ShouldRunRenderPass(pass);
     }
     if (!m_Settings.enabled) return true;
     if (m_Settings.onlyPass >= 0) {

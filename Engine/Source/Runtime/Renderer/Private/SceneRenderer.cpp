@@ -1,4 +1,5 @@
 #include "Renderer/SceneRenderer.hpp"
+#include "Renderer/RenderGpuInvestigator.hpp"
 #include "Renderer/PostProcessStack.hpp"
 #include "Renderer/RenderDiagnostics.hpp"
 #include "Renderer/FrameStats.hpp"
@@ -1529,6 +1530,81 @@ void SceneRenderer::SetSceneEnvironment(const SceneEnvironmentUniform& environme
         m_SceneEnvironment = environment;
         m_SceneEnvironmentDirty = true;
     }
+}
+
+const std::vector<RenderDebuggerLUTStats>& SceneRenderer::GetLUTDebugStats() const {
+    static const std::vector<RenderDebuggerLUTStats> kEmpty{};
+    if (!m_LUTGenerator) return kEmpty;
+    return m_LUTGenerator->GetLUTDebugStats();
+}
+
+const std::vector<GpuCachedLUTData>& SceneRenderer::GetCachedLUTData() const {
+    static const std::vector<GpuCachedLUTData> kEmpty{};
+    if (!m_LUTGenerator) return kEmpty;
+    return m_LUTGenerator->GetCachedLUTData();
+}
+
+std::vector<GpuResourceCatalogEntry> SceneRenderer::BuildGpuResourceCatalog(
+    uint32_t offscreenWidth,
+    uint32_t offscreenHeight) const {
+
+    std::vector<GpuResourceCatalogEntry> catalog;
+
+    auto add = [&](const char* id, const char* name, uint32_t w, uint32_t h,
+                   const char* format, const char* producer,
+                   std::initializer_list<const char*> consumers, bool exists) {
+        GpuResourceCatalogEntry e{};
+        e.id = id;
+        e.displayName = name;
+        e.width = w;
+        e.height = h;
+        e.format = format;
+        e.memoryBytes = static_cast<uint64_t>(w) * h * 8;
+        e.producerPass = producer;
+        for (const char* c : consumers) e.consumerPasses.push_back(c);
+        e.exists = exists;
+        catalog.push_back(std::move(e));
+    };
+
+    const char* hdrFmt = "R16G16B16A16_SFLOAT";
+    const char* depthFmt = "D32_SFLOAT";
+    const char* lutFmt = "R32G32B32A32_SFLOAT";
+
+    add("SceneHDR", "Scene HDR", offscreenWidth, offscreenHeight, hdrFmt, "Clear",
+        {"SkyAtmosphere", "Geometry", "PostExposure"}, true);
+    add("SceneLDR", "Scene LDR", offscreenWidth, offscreenHeight, hdrFmt, "ToneMapping",
+        {"UI"}, true);
+    add("SceneDepth", "Scene Depth", offscreenWidth, offscreenHeight, depthFmt, "Clear",
+        {"Geometry", "Fog", "Clouds"}, true);
+    add("Normal", "Normal", 0, 0, "n/a", "n/a", {}, false);
+    add("Velocity", "Velocity", 0, 0, "n/a", "n/a", {}, false);
+
+    if (m_LUTGenerator) {
+        const auto& dims = m_LUTGenerator->GetDimensions();
+        add("TransmittanceLUT", "Transmittance LUT", dims.transmittanceW, dims.transmittanceH, lutFmt,
+            "AtmosphereLUT", {"SkyAtmosphere", "Fog"}, m_LUTGenerator->IsReady());
+        add("SkyViewLUT", "SkyView LUT", dims.skyViewW, dims.skyViewH, lutFmt,
+            "AtmosphereLUT", {"SkyAtmosphere"}, m_LUTGenerator->IsReady());
+        add("MultiScatterLUT", "Multiple Scattering LUT", dims.multiScatterSize, dims.multiScatterSize, lutFmt,
+            "AtmosphereLUT", {"SkyAtmosphere"}, m_LUTGenerator->IsReady());
+        add("AerialLUT", "Aerial Perspective LUT", dims.aerialSize, dims.aerialSize, lutFmt,
+            "AtmosphereLUT", {"Fog"}, m_LUTGenerator->IsReady());
+    }
+
+    if (m_PostProcess) {
+        for (const auto& pp : m_PostProcess->GetResourceDescriptors()) {
+            add(pp.name.c_str(), pp.name.c_str(), pp.width, pp.height, pp.format.c_str(),
+                "PostExposure", {"PostExposure"}, true);
+        }
+    }
+
+    add("CloudScratch", "Volumetric Cloud Scratch", offscreenWidth, offscreenHeight, hdrFmt,
+        "VolumetricClouds", {"VolumetricClouds"}, m_CloudScratchFramebuffer != VK_NULL_HANDLE);
+    add("ShadowMaps", "Shadow Maps", 0, 0, "n/a", "n/a", {}, false);
+    add("Backbuffer", "Final Backbuffer", offscreenWidth, offscreenHeight, "B8G8R8A8_UNORM",
+        "Present", {}, true);
+
+    return catalog;
 }
 
 void SceneRenderer::RefreshEnvironmentDescriptorBindings() const {

@@ -23,6 +23,8 @@ public:
 private:
     std::vector<std::shared_ptr<MenuItem>> m_Items;
     int m_HoveredItem = -1;
+
+    int HitItemAt(const Point& pos) const;
     
     float m_ItemHeight = 24.0f;
     float m_PaddingY = 4.0f;

@@ -70,6 +70,7 @@ struct ForensicTargetStats {
     float avgLuminance = 0.0f;
     uint32_t nanCount = 0;
     uint32_t infCount = 0;
+    uint32_t negativeCount = 0;
     uint32_t over10Count = 0;
     uint32_t over100Count = 0;
     float whitePixelPercent = 0.0f;
@@ -78,6 +79,7 @@ struct ForensicTargetStats {
     uint32_t samples = 0;
     bool valid = false;
     ForensicCornerSamples corners{};
+    ForensicPixelRGBA probePixel{};
 };
 
 struct ForensicPassMetadata {
@@ -228,6 +230,8 @@ struct RenderForensicsSettings {
     int warmupFrames = 1;
     int sampleStride = 4;
     int maxCallStackFrames = 24;
+    uint32_t probePixelX = UINT32_MAX;
+    uint32_t probePixelY = UINT32_MAX;
 };
 
 class RenderForensics {
@@ -235,6 +239,10 @@ public:
     RENDERER_API static RenderForensics& Get();
 
     RENDERER_API void Configure(const RenderForensicsSettings& settings);
+    /// Enables GPU readback for the in-editor investigation UI without resetting warmup or halting the app.
+    RENDERER_API void EnableEditorInvestigationReadback();
+    RENDERER_API void DisableEditorInvestigationReadback();
+    RENDERER_API bool IsInvestigationUiActive() const { return m_InvestigationUiActive; }
     RENDERER_API bool IsActive() const { return m_Settings.enabled; }
     RENDERER_API bool IsReadbackEnabled() const { return m_Settings.enabled && m_Settings.enableGpuReadback; }
     RENDERER_API const RenderForensicsSettings& GetSettings() const { return m_Settings; }
@@ -244,6 +252,9 @@ public:
     RENDERER_API static RenderForensicsSettings DefaultEditorSettings();
 
     RENDERER_API void BeginFrame(uint64_t frameIndex);
+    RENDERER_API void SetProbePixel(uint32_t x, uint32_t y);
+    RENDERER_API uint32_t GetProbePixelX() const { return m_Settings.probePixelX; }
+    RENDERER_API uint32_t GetProbePixelY() const { return m_Settings.probePixelY; }
     RENDERER_API void RecordCameraAndEnvironment(
         const glm::vec3& cameraPos,
         const glm::vec3& cameraForward,
@@ -325,6 +336,7 @@ private:
     int m_NextGlobalOrder = 0;
     int m_WarmupRemaining = 0;
     bool m_ShouldHalt = false;
+    bool m_InvestigationUiActive = false;
 };
 
 #define WE_FORENSIC_PASS_BEGIN(forensics, passId, meta) \

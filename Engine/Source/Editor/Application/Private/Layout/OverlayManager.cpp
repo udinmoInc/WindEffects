@@ -31,14 +31,26 @@ void OverlayManager::SetBaseWidget(const std::shared_ptr<Widget>& baseWidget) {
 }
 
 void OverlayManager::ShowPopup(const std::shared_ptr<Widget>& popup, const Point& position) {
-    // Determine required size
-    Size size = popup->Measure(Size{ 10000.0f, 10000.0f }); // Arbitrary large size
-    
-    // Position it
+    const float width = (std::max)(m_Geometry.width, 1.0f);
+    const float height = (std::max)(m_Geometry.height, 1.0f);
+    Size size = popup->Measure(Size{ width, height });
     Rect geom{ position.x, position.y, size.width, size.height };
     popup->Arrange(geom);
-    
+
     m_Popups.push_back(popup);
+    m_FullscreenPopups.push_back(false);
+    AddChild(popup);
+}
+
+void OverlayManager::ShowFullscreenPopup(const std::shared_ptr<Widget>& popup) {
+    const float width = (std::max)(m_Geometry.width, 1.0f);
+    const float height = (std::max)(m_Geometry.height, 1.0f);
+    const Rect geom{ 0.0f, 0.0f, width, height };
+    popup->Measure(Size{ width, height });
+    popup->Arrange(geom);
+
+    m_Popups.push_back(popup);
+    m_FullscreenPopups.push_back(true);
     AddChild(popup);
 }
 
@@ -47,6 +59,7 @@ void OverlayManager::CloseTopPopup() {
         auto popup = m_Popups.back();
         RemoveChild(popup);
         m_Popups.pop_back();
+        m_FullscreenPopups.pop_back();
     }
 }
 
@@ -55,6 +68,7 @@ void OverlayManager::CloseAllPopups() {
         RemoveChild(popup);
     }
     m_Popups.clear();
+    m_FullscreenPopups.clear();
 }
 
 void OverlayManager::ExecutePendingCallbacks() {
@@ -107,8 +121,15 @@ void OverlayManager::Arrange(const Rect& allottedRect) {
         m_BaseWidget->Arrange(allottedRect);
     }
     
-    // Re-arrange popups if necessary to keep them on screen
-    for (auto& popup : m_Popups) {
+    // Re-arrange popups — fullscreen popups always cover the overlay
+    for (size_t i = 0; i < m_Popups.size(); ++i) {
+        auto& popup = m_Popups[i];
+        if (i < m_FullscreenPopups.size() && m_FullscreenPopups[i]) {
+            popup->Measure(Size{ allottedRect.width, allottedRect.height });
+            popup->Arrange(allottedRect);
+            continue;
+        }
+
         Rect geom = popup->GetGeometry();
         if (geom.x + geom.width > allottedRect.width) {
             geom.x = allottedRect.width - geom.width;

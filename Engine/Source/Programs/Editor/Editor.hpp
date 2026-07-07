@@ -24,7 +24,7 @@
 #include "EditorWindowHitTest.hpp"
 
 namespace we::UI {
-class RenderDiagnosticsPanel;
+class RenderDebuggerPanel;
 }
 
 namespace we::programs::editor {
@@ -68,7 +68,7 @@ private:
     std::shared_ptr<we::UI::Widget> m_ViewportWidget;
     std::shared_ptr<we::UI::StatusBar> m_StatusBar;
     std::shared_ptr<we::UI::TitleBar> m_TitleBar;
-    std::shared_ptr<we::UI::RenderDiagnosticsPanel> m_RenderDiagnosticsPanel;
+    std::shared_ptr<we::UI::RenderDebuggerPanel> m_RenderDebuggerPanel;
     we::editor::mainframe::EditorWindowHitTestData m_WindowHitTestData{};
 
     void EnsureVisibleSwapchain();

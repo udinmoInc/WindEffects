@@ -296,11 +296,11 @@ void Scene::Draw(VkCommandBuffer cmd, DrawMode drawMode) const {
         default:
             break;
         }
-        int drawMode = entity.Mode;
+        int meshMode = entity.Mode;
         if (!we::runtime::renderer::RendererDebug::Get().ShouldUseDirectionalLighting()) {
-            drawMode = 1;
+            meshMode = 1;
         }
-        m_Renderer->DrawMesh(cmd, MeshNameForEntityType(entity.Type), entity.DescriptorSet, drawMode);
+        m_Renderer->DrawMesh(cmd, MeshNameForEntityType(entity.Type), entity.DescriptorSet, meshMode);
     }
 }
 

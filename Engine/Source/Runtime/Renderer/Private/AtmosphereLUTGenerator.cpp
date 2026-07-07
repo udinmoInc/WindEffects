@@ -1,5 +1,6 @@
 #include "Renderer/AtmosphereLUTGenerator.hpp"
 #include "Renderer/RenderDiagnostics.hpp"
+#include "Renderer/RenderDebugger.hpp"
 #include "Renderer/AtmosphereLUTInputs.hpp"
 #include "Core/DiagnosticMacros.hpp"
 #include "Core/LogCategory.hpp"
@@ -712,7 +713,17 @@ bool AtmosphereLUTGenerator::GenerateCPU(const SceneEnvironmentUniform& environm
         { "AerialPerspective", m_Images.aerial, m_Dimensions.aerialSize, m_Dimensions.aerialSize, aerial },
     };
 
+    m_LUTDebugStats.clear();
+    m_CachedLUTs.clear();
     for (LUTUpload& upload : uploads) {
+        GpuCachedLUTData cached{};
+        cached.name = upload.name;
+        cached.rgba = upload.data;
+        cached.width = upload.width;
+        cached.height = upload.height;
+        m_CachedLUTs.push_back(std::move(cached));
+        m_LUTDebugStats.push_back(RenderDebugger::AnalyzeLUTRGBA(
+            upload.name, upload.data, upload.width, upload.height));
         if (!ValidateLUTData(upload.name, upload.data)) {
             RenderDiagnostics::Get().Emit(
                 DiagnosticSeverity::Error,
