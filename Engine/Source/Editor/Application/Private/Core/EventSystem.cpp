@@ -57,7 +57,12 @@ void EventSystem::ProcessMouseEvent(const MouseEvent& event) {
     std::shared_ptr<Widget> targetWidget = hitWidget;
     if (event.type == MouseEventType::MouseMove || event.type == MouseEventType::MouseUp) {
         if (auto focused = m_FocusedWidget.lock()) {
-            targetWidget = focused;
+            if (auto* overlay = OverlayManager::Get();
+                overlay && hitWidget && overlay->IsWidgetInPopup(hitWidget)) {
+                targetWidget = hitWidget;
+            } else {
+                targetWidget = focused;
+            }
         }
     }
 

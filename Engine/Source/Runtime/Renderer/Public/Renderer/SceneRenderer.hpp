@@ -5,6 +5,7 @@
 #include "Renderer/VulkanContext.hpp"
 #include "Renderer/SceneEnvironmentUniform.hpp"
 #include "Renderer/AtmosphereLUTGenerator.hpp"
+#include "Renderer/RenderGpuInvestigator.hpp"
 #include "Renderer/PostProcessStack.hpp"
 #include <volk.h>
 #endif
@@ -123,6 +124,9 @@ public:
 
     RENDERER_API void SetSceneEnvironment(const SceneEnvironmentUniform& environment);
     const SceneEnvironmentUniform& GetSceneEnvironment() const { return m_SceneEnvironment; }
+    const std::vector<RenderDebuggerLUTStats>& GetLUTDebugStats() const;
+    const std::vector<GpuCachedLUTData>& GetCachedLUTData() const;
+    RENDERER_API std::vector<GpuResourceCatalogEntry> BuildGpuResourceCatalog(uint32_t offscreenWidth, uint32_t offscreenHeight) const;
     VkBuffer GetEnvironmentBuffer() const { return m_EnvironmentBuffer; }
 
     VkDescriptorSetLayout GetObjectDescLayout() const { return m_ObjectDescLayout; }

@@ -32,6 +32,14 @@ public:
     RENDERER_API void FlushGpuAverageLuminance() const;
     RENDERER_API bool IsReady() const;
 
+    struct PostProcessResourceDescriptor {
+        std::string name;
+        uint32_t width = 0;
+        uint32_t height = 0;
+        std::string format;
+    };
+    RENDERER_API std::vector<PostProcessResourceDescriptor> GetResourceDescriptors() const;
+
 private:
     struct BloomImage {
         VkImage image = VK_NULL_HANDLE;

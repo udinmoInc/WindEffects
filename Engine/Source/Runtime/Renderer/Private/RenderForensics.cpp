@@ -175,6 +175,22 @@ void RenderForensics::Configure(const RenderForensicsSettings& settings) {
             + ", haltOnInvalid=" + (settings.haltOnInvalid ? "on" : "off") + ").");
 }
 
+void RenderForensics::EnableEditorInvestigationReadback() {
+    m_Settings.enableGpuReadback = true;
+    m_Settings.haltOnInvalid = false;
+    m_Settings.haltOnWhiteScreen = false;
+    m_Settings.sampleStride = 16;
+    m_ShouldHalt = false;
+    m_InvestigationUiActive = true;
+}
+
+void RenderForensics::DisableEditorInvestigationReadback() {
+    m_Settings.enableGpuReadback = false;
+    m_Settings.sampleStride = DefaultEditorSettings().sampleStride;
+    m_InvestigationUiActive = false;
+    m_ShouldHalt = false;
+}
+
 void RenderForensics::BeginFrame(uint64_t frameIndex) {
     for (auto& pending : m_Pending) {
         if (s_CachedDevice != VK_NULL_HANDLE) {
@@ -188,7 +204,13 @@ void RenderForensics::BeginFrame(uint64_t frameIndex) {
     m_Audit = {};
     m_LastReport = {};
     m_LastReport.frameIndex = frameIndex;
+    m_ShouldHalt = false;
     if (m_WarmupRemaining > 0) --m_WarmupRemaining;
+}
+
+void RenderForensics::SetProbePixel(uint32_t x, uint32_t y) {
+    m_Settings.probePixelX = x;
+    m_Settings.probePixelY = y;
 }
 
 void RenderForensics::DestroyPending(const VulkanContext& context) {
@@ -501,6 +523,7 @@ ForensicTargetStats RenderForensics::AnalyzePixels(
 
             if (std::isnan(r) || std::isnan(g) || std::isnan(b)) ++stats.nanCount;
             if (std::isinf(r) || std::isinf(g) || std::isinf(b)) ++stats.infCount;
+            if (r < 0.0f || g < 0.0f || b < 0.0f) ++stats.negativeCount;
             if (r > 10.0f || g > 10.0f || b > 10.0f) ++stats.over10Count;
             if (r > 100.0f || g > 100.0f || b > 100.0f) ++stats.over100Count;
 
@@ -540,9 +563,10 @@ ForensicTargetStats RenderForensics::AnalyzePixels(
         stats.valid = true;
     }
 
-    const uint32_t cx = width / 2;
-    const uint32_t cy = height / 2;
+    const uint32_t cx = (m_Settings.probePixelX != UINT32_MAX) ? m_Settings.probePixelX : (width / 2);
+    const uint32_t cy = (m_Settings.probePixelY != UINT32_MAX) ? m_Settings.probePixelY : (height / 2);
     stats.corners.center = SampleAt(rgba, width, height, cx, cy);
+    stats.probePixel = stats.corners.center;
     stats.corners.topLeft = SampleAt(rgba, width, height, 0, 0);
     stats.corners.topRight = SampleAt(rgba, width, height, width - 1, 0);
     stats.corners.bottomLeft = SampleAt(rgba, width, height, 0, height - 1);
@@ -642,6 +666,9 @@ void RenderForensics::ValidatePassExecution(ForensicPassExecution& record, bool 
     }
     if (s.infCount > 0) {
         record.validationErrors.push_back("Shader output contains Inf (" + std::to_string(s.infCount) + " sampled pixels)");
+    }
+    if (s.negativeCount > 0) {
+        record.validationErrors.push_back("Shader output contains negative RGB (" + std::to_string(s.negativeCount) + " sampled pixels)");
     }
 
     if (!isLdr) {

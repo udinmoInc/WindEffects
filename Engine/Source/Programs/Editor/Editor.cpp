@@ -44,7 +44,10 @@
 #include "Widgets/DockContainer.hpp"
 #include "Widgets/EditorModeSelector.hpp"
 #include "Widgets/Label.hpp"
-#include "Widgets/RenderDiagnosticsPanel.hpp"
+#include "Widgets/RenderDebuggerPanel.hpp"
+#include "Widgets/RenderInvestigationModal.hpp"
+#include "Renderer/RenderDebugger.hpp"
+#include "Renderer/RenderGpuInvestigator.hpp"
 #include "EditorModeController.hpp"
 #include "EditorLayoutController.hpp"
 #include "EditorPanelController.hpp"
@@ -316,6 +319,10 @@ void Editor::BuildDynamicEditorUI() {
     windowItems.push_back(cbItem);
     windowItems.push_back(woItem);
     windowItems.push_back(dtItem);
+    auto renderInvItem = std::make_shared<MenuItem>();
+    renderInvItem->label = "Render Investigation";
+    renderInvItem->onClick = []() { we::UI::RenderInvestigationModalHost::Toggle(); };
+    windowItems.push_back(renderInvItem);
     menuBar->AddMenu("Window", windowItems);
 
     EditorPanelController::Get().SetOnPanelVisibilityChanged([vpItem, cbItem, woItem, dtItem]() {
@@ -329,6 +336,10 @@ void Editor::BuildDynamicEditorUI() {
     std::vector<std::shared_ptr<MenuItem>> toolsItems;
     auto placeActorsItem = std::make_shared<MenuItem>(); placeActorsItem->label = "Place Actors";
     toolsItems.push_back(placeActorsItem);
+    auto gpuInvItem = std::make_shared<MenuItem>();
+    gpuInvItem->label = "GPU Investigation";
+    gpuInvItem->onClick = []() { we::UI::RenderInvestigationModalHost::Toggle(); };
+    toolsItems.push_back(gpuInvItem);
     menuBar->AddMenu("Tools", toolsItems);
 
     // Build menu
@@ -597,13 +608,13 @@ void Editor::BuildDynamicEditorUI() {
         HE_WARN("[UI] OutputLog panel factory missing.");
     }
 
-    // ===== 7c. Create Debug Panel =====
-    auto debugPanel = std::make_shared<Panel>("Diagnostics");
+    // ===== 7c. Create Render Debugger Panel =====
+    auto debugPanel = std::make_shared<Panel>("Render Debugger");
     debugPanel->SetHeaderHeight(30.0f);
-    m_RenderDiagnosticsPanel = std::make_shared<RenderDiagnosticsPanel>();
-    m_RenderDiagnosticsPanel->Construct();
-    debugPanel->SetContent(m_RenderDiagnosticsPanel);
-    HE_INFO("[UI] Render forensic diagnostics panel created.");
+    m_RenderDebuggerPanel = std::make_shared<RenderDebuggerPanel>();
+    m_RenderDebuggerPanel->Construct();
+    debugPanel->SetContent(m_RenderDebuggerPanel);
+    HE_INFO("[UI] Render Debugger panel created.");
 
     EditorPanelController::Get().RegisterDockZone(EditorDockZone::Left, toolsDock);
     EditorPanelController::Get().RegisterDockZone(EditorDockZone::Center, centralDock);
@@ -616,7 +627,7 @@ void Editor::BuildDynamicEditorUI() {
     EditorPanelController::Get().RegisterPanel(EditorPanelId::ViewportNavigation, "Viewport Navigation", viewportNavigationPanel, EditorDockZone::Floating);
     EditorPanelController::Get().RegisterPanel(EditorPanelId::ContentBrowser, "Content Browser", contentBrowserPanel, EditorDockZone::Floating);
     EditorPanelController::Get().RegisterPanel(EditorPanelId::OutputLog, "Output Log", outputLogPanel, EditorDockZone::Floating);
-    EditorPanelController::Get().RegisterPanel(EditorPanelId::Debug, "Diagnostics", debugPanel, EditorDockZone::Floating);
+    EditorPanelController::Get().RegisterPanel(EditorPanelId::Debug, "Render Debugger", debugPanel, EditorDockZone::Floating);
 
     vpItem->checked = EditorPanelController::Get().IsPanelVisible(EditorPanelId::Viewport);
     cbItem->checked = EditorPanelController::Get().IsPanelVisible(EditorPanelId::ContentBrowser);
@@ -954,6 +965,15 @@ void Editor::MainLoop() {
 
                 m_UIEventSystem->ProcessMouseEvent(mouseEvent);
             } else if (event.type == SDL_EVENT_KEY_DOWN || event.type == SDL_EVENT_KEY_UP) {
+                if (event.type == SDL_EVENT_KEY_DOWN && event.key.key == SDLK_F9) {
+                    auto& gpuInv = we::runtime::renderer::RenderGpuInvestigator::Get();
+                    if (event.key.mod & SDL_KMOD_SHIFT) {
+                        gpuInv.RequestComparisonCapture();
+                    } else {
+                        gpuInv.RequestBaselineCapture();
+                    }
+                    we::runtime::renderer::RenderDebugger::Get().RequestCapture();
+                }
                 UI::KeyEvent keyEvent{};
                 keyEvent.type = (event.type == SDL_EVENT_KEY_DOWN)
                     ? UI::KeyEventType::KeyDown
@@ -1033,6 +1053,16 @@ void Editor::MainLoop() {
             const VkDescriptorSet cameraDescSet = m_Renderer->GetCameraDescSet();
             auto& forensics = we::runtime::renderer::RenderForensics::Get();
             auto& pipelineInv = we::runtime::renderer::RenderPipelineInvestigator::Get();
+            auto& renderDebugger = we::runtime::renderer::RenderDebugger::Get();
+            static bool s_LastReadback = false;
+            if (renderDebugger.WantsGpuReadback() != s_LastReadback) {
+                if (renderDebugger.WantsGpuReadback()) {
+                    forensics.EnableEditorInvestigationReadback();
+                } else {
+                    forensics.DisableEditorInvestigationReadback();
+                }
+                s_LastReadback = renderDebugger.WantsGpuReadback();
+            }
             const uint64_t frameNumber = we::runtime::core::FrameCounter::GetFrameNumber();
             forensics.BeginFrame(frameNumber);
             pipelineInv.BeginFrame(frameNumber);
@@ -1067,13 +1097,24 @@ void Editor::MainLoop() {
 
             const bool atmosphereValidation = we::runtime::renderer::AtmosphereValidation::Get().IsActive();
             const bool forensicReadback = forensics.IsReadbackEnabled();
+            const bool investigationUiReadback = forensics.IsInvestigationUiActive();
             const bool investigatorReadback = pipelineInv.IsReadbackEnabled();
             const uint32_t vpW = offscreenFB.GetWidth();
             const uint32_t vpH = offscreenFB.GetHeight();
 
+            {
+                auto& gpuInvestigator = we::runtime::renderer::RenderGpuInvestigator::Get();
+                const glm::vec2 probeUV = gpuInvestigator.GetProbeUV();
+                forensics.SetProbePixel(
+                    static_cast<uint32_t>(probeUV.x * static_cast<float>((std::max)(1u, vpW) - 1)),
+                    static_cast<uint32_t>(probeUV.y * static_cast<float>((std::max)(1u, vpH) - 1)));
+            }
+
             auto checkpointColor = [&](we::runtime::renderer::ForensicPassId passId,
                                        int executionIndex) {
                 if (!forensicReadback) return;
+                // Investigation modal only needs composite + post readbacks, not per-pass stalls.
+                if (investigationUiReadback) return;
                 m_RenderGraph->EndOffscreenPass(cmd);
                 // Offscreen render pass finalLayout is SHADER_READ_ONLY_OPTIMAL.
                 forensics.EnqueueReadback(cmd, *m_Context, offscreenFB.GetColorImage(), vpW, vpH, passId,
@@ -1220,7 +1261,8 @@ void Editor::MainLoop() {
                 pipelineInv.AuditPassBegin(we::runtime::renderer::RenderPassId::AerialPerspective);
             }
 
-            if (!atmosphereValidation && pipelineInv.ShouldRenderGrid()) {
+            if (!atmosphereValidation && pipelineInv.ShouldRenderGrid()
+                && renderDebugger.ShouldRunForensicPass(we::runtime::renderer::ForensicPassId::Grid)) {
                 we::runtime::renderer::ForensicPassMetadata gridMeta{};
                 gridMeta.outputTarget = "OffscreenColor";
                 gridMeta.width = vpW;
@@ -1317,16 +1359,42 @@ void Editor::MainLoop() {
             FrameStatsCollector::Get().EndFrame();
 
             const auto forensicReport = forensics.FinalizeFrame(*m_Context, frameFence);
-            if (m_RenderDiagnosticsPanel) {
-                m_RenderDiagnosticsPanel->UpdateFromReport(forensicReport);
+
+            const auto& frameStats = FrameStatsCollector::Get().GetStats();
+            const float fps = frameStats.cpuFrameMs > 0.0 ? static_cast<float>(1000.0 / frameStats.cpuFrameMs) : 0.0f;
+            const auto debuggerSnapshot = renderDebugger.BuildSnapshot(
+                forensicReport,
+                frameStats,
+                cameraUBO,
+                m_Camera->GetForward(),
+                m_Camera->GetRight(),
+                m_Camera->GetUp(),
+                0.1f,
+                100000.0f,
+                m_Camera->GetFov(),
+                sceneEnv,
+                m_SceneRenderer->GetLUTDebugStats(),
+                m_SceneRenderer->GetCachedLUTData(),
+                m_SceneRenderer->BuildGpuResourceCatalog(vpW, vpH),
+                fps,
+                vpW,
+                vpH,
+                0.0f,
+                forensics.GetSettings().maxHdrComponent);
+            if (m_RenderDebuggerPanel) {
+                m_RenderDebuggerPanel->UpdateFromSnapshot(debuggerSnapshot);
             }
+            we::UI::RenderInvestigationModalHost::UpdateFromSnapshot(debuggerSnapshot);
             if (forensics.IsActive() && forensics.ShouldHalt()) {
-                    WE_LOG_CRITICAL(we::LogCategory::Renderer.data(),
-                        std::string("Render forensic diagnostics halted at pass ")
-                            + we::runtime::renderer::RenderForensics::PassName(forensicReport.firstAnomalyPass)
-                            + ": " + forensicReport.firstAnomalyReason
-                            + " | Report: Saved/RenderForensics/FINAL_DIAGNOSTIC_REPORT.txt");
+                const auto& forensicSettings = forensics.GetSettings();
+                WE_LOG_CRITICAL(we::LogCategory::Renderer.data(),
+                    std::string("Render forensic diagnostics halted at pass ")
+                        + we::runtime::renderer::RenderForensics::PassName(forensicReport.firstAnomalyPass)
+                        + ": " + forensicReport.firstAnomalyReason
+                        + " | Report: Saved/RenderForensics/FINAL_DIAGNOSTIC_REPORT.txt");
+                if (forensicSettings.haltOnInvalid || forensicSettings.haltOnWhiteScreen) {
                     m_Running = false;
+                }
             }
 
             if (pipelineInv.IsActive()) {

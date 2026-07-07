@@ -29,6 +29,21 @@ void DropdownMenu::Arrange(const Rect& allottedRect) {
     m_Geometry = allottedRect;
 }
 
+int DropdownMenu::HitItemAt(const Point& pos) const {
+    if (!m_Geometry.Contains(pos)) {
+        return -1;
+    }
+    float y = m_Geometry.y + m_PaddingY;
+    for (size_t i = 0; i < m_Items.size(); ++i) {
+        const Rect itemRect{ m_Geometry.x + 2.0f, y, m_Geometry.width - 4.0f, m_ItemHeight };
+        if (itemRect.Contains(pos)) {
+            return static_cast<int>(i);
+        }
+        y += m_ItemHeight;
+    }
+    return -1;
+}
+
 void DropdownMenu::Paint(PaintContext& context) {
     // Background and border
     context.DrawRoundedRect(m_Geometry, Theme::Get().PanelBackground, 4.0f);
@@ -60,30 +75,20 @@ void DropdownMenu::Paint(PaintContext& context) {
 }
 
 void DropdownMenu::OnMouseMove(const MouseEvent& event) {
-    m_HoveredItem = -1;
-    float y = m_Geometry.y + m_PaddingY;
-    for (size_t i = 0; i < m_Items.size(); ++i) {
-        Rect itemRect{ m_Geometry.x + 2.0f, y, m_Geometry.width - 4.0f, m_ItemHeight };
-        if (itemRect.Contains(event.position)) {
-            m_HoveredItem = (int)i;
-            break;
-        }
-        y += m_ItemHeight;
-    }
+    m_HoveredItem = HitItemAt(event.position);
 }
 
 void DropdownMenu::OnMouseDown(const MouseEvent& event) {
     if (event.button == MouseButton::Left) {
-        if (m_HoveredItem >= 0 && m_HoveredItem < (int)m_Items.size()) {
-            const auto& item = m_Items[m_HoveredItem];
-            if (item->onClick) {
+        const int clickedItem = HitItemAt(event.position);
+        if (OverlayManager::Get()) {
+            OverlayManager::Get()->CloseTopPopup();
+        }
+        if (clickedItem >= 0 && clickedItem < static_cast<int>(m_Items.size())) {
+            const auto& item = m_Items[static_cast<size_t>(clickedItem)];
+            if (item->enabled && item->onClick) {
                 item->onClick();
             }
-        }
-        
-        // Close menu after click
-        if (OverlayManager::Get()) {
-            OverlayManager::Get()->CloseAllPopups();
         }
     }
 }
