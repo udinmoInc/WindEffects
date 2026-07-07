@@ -540,11 +540,14 @@ BitmapRGBA ThumbnailRenderer::RenderContentBrowserFolderProcedural(uint32_t w, u
     bmp.pixels.assign(static_cast<size_t>(w) * h * 4, 0);
 
     const we::UI::Theme& theme = we::UI::Theme::Get();
-    const auto baseColor = ThemeRgb(theme.ContentBrowserFolderPrimary, hoverBrightness);
-    const auto edge = ThemeRgb(theme.ContentBrowserFolderEdge, hoverBrightness);
-
-    // Subtle shadow for depth (very light, offset)
     const auto shadow = ThemeRgb(theme.ContentBrowserFolderShadow, hoverBrightness);
+    const auto edge = ThemeRgb(theme.ContentBrowserFolderEdge, hoverBrightness);
+    const auto tabTop = ThemeRgb(theme.ContentBrowserFolderHighlight, hoverBrightness);
+    const auto tabBot = ThemeRgb(theme.ContentBrowserFolderTab, hoverBrightness);
+    const auto bodyTop = ThemeRgb(theme.ContentBrowserFolderTab, hoverBrightness);
+    const auto bodyMid = ThemeRgb(theme.ContentBrowserFolderPrimary, hoverBrightness);
+    const auto bodyBot = ThemeRgb(theme.ContentBrowserFolderBody, hoverBrightness);
+    const auto highlight = ThemeRgb(theme.ContentBrowserFolderHighlight, hoverBrightness);
 
     constexpr float kRefW = 146.0f;
     constexpr float kRefH = 100.0f;
@@ -563,27 +566,17 @@ BitmapRGBA ThumbnailRenderer::RenderContentBrowserFolderProcedural(uint32_t w, u
     FillRoundedRect(bmp, X(9.0f) + castX, Y(10.0f) + castY, X(35.0f), Y(18.0f), S(4.0f),
         shadow[0], shadow[1], shadow[2], 35);
 
-    // Subtle top-to-bottom gradient (5-10% difference) for body
-    const uint8_t bodyTopR = static_cast<uint8_t>(baseColor[0] * 1.05f);
-    const uint8_t bodyTopG = static_cast<uint8_t>(baseColor[1] * 1.05f);
-    const uint8_t bodyTopB = static_cast<uint8_t>(baseColor[2] * 1.05f);
-    const uint8_t bodyBotR = static_cast<uint8_t>(baseColor[0] * 0.95f);
-    const uint8_t bodyBotG = static_cast<uint8_t>(baseColor[1] * 0.95f);
-    const uint8_t bodyBotB = static_cast<uint8_t>(baseColor[2] * 0.95f);
-
+    // Gradient for body
     FillRoundedRectVerticalGradient(bmp, X(9.0f), Y(27.0f), X(132.0f), Y(67.0f), S(4.0f),
-        bodyTopR, bodyTopG, bodyTopB, bodyBotR, bodyBotG, bodyBotB, 255);
+        bodyTop[0], bodyTop[1], bodyTop[2], bodyBot[0], bodyBot[1], bodyBot[2], 255);
 
-    // Tab with same color as body, minimal variation
+    // Gradient for tab (distinct from body)
     FillRoundedRectVerticalGradient(bmp, X(9.0f), Y(10.0f), X(35.0f), Y(18.0f), S(4.0f),
-        bodyTopR, bodyTopG, bodyTopB, bodyBotR, bodyBotG, bodyBotB, 255);
+        tabTop[0], tabTop[1], tabTop[2], tabBot[0], tabBot[1], tabBot[2], 255);
 
     // Very subtle highlight on tab edge only
-    const uint8_t highlightR = static_cast<uint8_t>(std::min(255, static_cast<int>(baseColor[0] * 1.08f)));
-    const uint8_t highlightG = static_cast<uint8_t>(std::min(255, static_cast<int>(baseColor[1] * 1.08f)));
-    const uint8_t highlightB = static_cast<uint8_t>(std::min(255, static_cast<int>(baseColor[2] * 1.08f)));
     FillRoundedRect(bmp, X(12.0f), Y(13.0f), X(28.0f), Y(1.2f), S(0.6f),
-        highlightR, highlightG, highlightB, 80);
+        highlight[0], highlight[1], highlight[2], 80);
 
     // Thin outline for separation from background
     ApplyFolderEdgeOutline(bmp, edge);

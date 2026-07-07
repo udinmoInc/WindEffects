@@ -43,7 +43,7 @@ void PaintTreeNodeIcon(PaintContext& context, const TreeNode& node, const Rect& 
         return;
     }
     if (!node.iconName.empty()) {
-        IconPainter::DrawIcon(context, node.iconName, iconRect, Theme::Get().TextPrimary);
+        IconPainter::DrawIcon(context, node.iconName, iconRect, Theme::Get().SidebarIconDefault);
     }
 }
 
@@ -197,7 +197,7 @@ void TreeView::Paint(PaintContext& context) {
         Color bgColor{0, 0, 0, 0};
         const bool selected = IsSelected(node->id);
         if (selected) {
-            bgColor = theme.SelectedBg;
+            bgColor = theme.SelectionHighlight;
         } else if (node->id == m_HoveredId) {
             bgColor = theme.HoverOverlay;
         }
@@ -219,7 +219,7 @@ void TreeView::Paint(PaintContext& context) {
             const float chevronX = item.geometry.x + 4.0f;
             const float chevronY = item.geometry.y + (m_ItemHeight - chevronSize) * 0.5f;
             const char* chevronIcon = node->expanded ? Icons::ChevronDownName : Icons::ChevronRightName;
-            IconPainter::DrawIcon(context, chevronIcon, Rect{ chevronX, chevronY, chevronSize, chevronSize }, theme.TextSecondary);
+            IconPainter::DrawIcon(context, chevronIcon, Rect{ chevronX, chevronY, chevronSize, chevronSize }, theme.TreeArrow);
         }
 
         const float iconSize = 16.0f;

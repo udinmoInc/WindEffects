@@ -21,11 +21,11 @@ public:
     void Initialize(we::UI::IconRenderer* iconRenderer);
     void InvalidateCache();
 
-    static constexpr float kThumbnailWidthFill = 0.90f;
-    static constexpr float kThumbnailHeightFill = 0.90f;
+    static constexpr float kThumbnailWidthFill = 0.825f;
+    static constexpr float kThumbnailHeightFill = 0.725f;
     static constexpr float kSmallIconWidthFill = 0.98f;
     static constexpr float kSmallIconHeightFill = 0.98f;
-    static constexpr float kFolderAspectRatio = 1.138f; // Assets/Editor/Folder.svg (231 / 203)
+    static constexpr float kFolderAspectRatio = 1.460f; // matches procedural 146/100
     static constexpr float kFolderOpenAspectRatio = 1.169f; // Assets/Editor/Folder_Open.svg (242 / 207)
 
     void PaintThumbnail(we::UI::PaintContext& context, const we::UI::Rect& thumbRect, bool hovered) const;

@@ -7,8 +7,8 @@
 
 namespace we::UI {
 namespace {
-    constexpr float kToolbarItemSpacing = 2.0f;
-    constexpr float kToolbarSeparatorSpacing = 6.0f;
+    constexpr float kToolbarItemSpacing = 6.0f;
+    constexpr float kToolbarSeparatorSpacing = 14.0f;
 }
 
 Toolbar::Toolbar()
@@ -236,11 +236,11 @@ bool Toolbar::ShowsPointerCursor(const Point& position) const {
 
 // ToolbarSeparator is rendered as a subtle 1px vertical divider
 ToolbarSeparator::ToolbarSeparator() {}
-Size ToolbarSeparator::Measure(const Size& availableSize) { return Size{1.0f, 16.0f}; }
+Size ToolbarSeparator::Measure(const Size& availableSize) { return Size{1.0f, 18.0f}; }
 void ToolbarSeparator::Arrange(const Rect& allottedRect) { m_Geometry = allottedRect; }
 void ToolbarSeparator::Paint(PaintContext& context) {
     float centerY = m_Geometry.y + m_Geometry.height / 2.0f;
-    Rect lineRect{ m_Geometry.x, centerY - 8.0f, 1.0f, 16.0f };
+    Rect lineRect{ std::floor(m_Geometry.x), std::floor(centerY - 9.0f), 1.0f, 18.0f };
     context.DrawRect(lineRect, Theme::Get().Separator);
 }
 

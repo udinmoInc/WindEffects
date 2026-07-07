@@ -54,6 +54,7 @@ void ToolbarIconButton::Paint(PaintContext& context) {
     }
     if (m_Enabled && m_PressAnim > 0.01f) {
         bgColor = Color::Lerp(bgColor, IconButtonPressed(), m_PressAnim);
+        iconColor = Color::Lerp(iconColor, theme.ToolbarIconPressed, m_PressAnim);
     }
 
     // Calculate button rect with press offset

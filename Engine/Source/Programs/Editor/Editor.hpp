@@ -13,7 +13,7 @@
 
 #include "Core/Widget.hpp"
 #include "Core/EventSystem.hpp"
-#include "Rendering/UIRenderer.hpp"
+#include "Rendering/UIRenderer2.hpp"
 #include "Widgets/Panel.hpp"
 #include "Widgets/StatusBar.hpp"
 #include "Widgets/TitleBar.hpp"
@@ -51,7 +51,7 @@ private:
 
     std::shared_ptr<UI::Widget> m_RootWidget;
     std::shared_ptr<UI::EventSystem> m_UIEventSystem;
-    std::unique_ptr<we::UI::UIRenderer> m_UIRenderer;
+    std::unique_ptr<we::UI::UIRenderer2> m_UIRenderer;
 
     std::shared_ptr<we::UI::Widget> m_ViewportWidget;
     std::shared_ptr<we::UI::StatusBar> m_StatusBar;

@@ -11,6 +11,8 @@
 #include "Runtime/Core/PluginManager.hpp"
 #include "EditorRegistry.hpp"
 #include "Environment/EnvironmentEditorApi.h"
+#include "Core/DeviceContext.h"
+#include "Rendering/IconRenderer.hpp"
 #include "Widgets/Panel.hpp"
 #include "Layout/Box.hpp"
 #include "Layout/Splitter.hpp"
@@ -105,17 +107,22 @@ Editor::Editor(SDL_Window* window) : m_Window(window) {
         HE_ERROR("[Startup] Required default assets missing — UI rendering may fail.");
     }
 
-    HE_INFO("[Startup] Stage 4/6: UIRenderer init...");
+    HE_INFO("[Startup] Stage 4/6: UIRenderer2 init...");
     try {
-        m_UIRenderer = std::make_unique<UI::UIRenderer>();
+        m_UIRenderer = std::make_unique<UI::UIRenderer2>();
         if (!m_UIRenderer->Init(
+                m_Renderer->GetDeviceContext()->GetPhysicalDevice(),
+                m_Renderer->GetDeviceContext()->GetDevice(),
+                m_Renderer->GetDeviceContext()->GetGraphicsQueue(),
+                m_Renderer->GetDeviceContext()->GetGraphicsQueueFamily(),
+                m_Renderer->GetSwapchainImageFormat(),
+                2,
                 m_Renderer->GetDeviceContext(),
-                m_Renderer->GetResourceManager(),
-                m_Renderer->GetSwapchainImageFormat())) {
-            throw std::runtime_error("Failed to initialize HouseUI Renderer!");
+                m_Renderer->GetResourceManager())) {
+            throw std::runtime_error("Failed to initialize UIRenderer2!");
         }
     } catch (const std::exception& e) {
-        HE_ERROR("[Startup] Failed to initialize UIRenderer: " + std::string(e.what()));
+        HE_ERROR("[Startup] Failed to initialize UIRenderer2: " + std::string(e.what()));
         throw;
     }
 
@@ -126,11 +133,13 @@ Editor::Editor(SDL_Window* window) : m_Window(window) {
                                             uint32_t height,
                                             uint32_t frameIndex) {
         if (m_UIRenderer && m_RootWidget) {
-            m_UIRenderer->RecordDrawCommands(cmd, targetView, targetFormat, width, height, frameIndex);
+            m_UIRenderer->BeginFrame(frameIndex, width, height);
+            m_UIRenderer->RenderWidget(m_RootWidget);
+            m_UIRenderer->EndFrame(cmd, targetView);
         }
     });
     try {
-        InitializeContentBrowserService(m_UIRenderer->GetIconRenderer().get());
+        InitializeContentBrowserService(m_UIRenderer->GetIconRenderer());
     } catch (const std::exception& e) {
         HE_ERROR("[Startup] Failed to initialize content browser service: " + std::string(e.what()));
         throw;
@@ -360,21 +369,22 @@ void Editor::BuildDynamicEditorUI() {
     EditorModeController::Get().InitializeFromRegistry();
 
     auto toolbar = std::make_shared<Toolbar>();
-    toolbar->SetHeight(30.0f);
-    toolbar->SetLeftInset(0.0f);   // Flush to border: no leading gap
-    toolbar->SetIconSize(16.0f);
+    toolbar->SetHeight(36.0f);
+    toolbar->SetLeftInset(12.0f);
+    toolbar->SetIconSize(18.0f);
 
+    // Group 1: Actors Dropdown
     auto modeSelector = std::make_shared<we::programs::editor::EditorModeSelector>();
     toolbar->AddWidget(modeSelector);
+    toolbar->AddSeparator();
 
-    // Group 1: File operations (Left)
+    // Group 2: File operations
     toolbar->AddTool(Icons::NewName, "", [this](){ CreateNewLevel(); }, "New Level (Ctrl+N)");
     toolbar->AddTool(Icons::OpenName, "", [](){}, "Open (Ctrl+O)");
     toolbar->AddTool(Icons::SaveName, "", [](){}, "Save (Ctrl+S)");
     toolbar->AddSeparator();
 
-
-    // Group 2: Transform tools (Left)
+    // Group 3: Transform tools
     toolbar->AddTool(Icons::CursorName, "", [](){}, "Select (Q)");
     toolbar->AddTool(Icons::MoveName, "", [](){}, "Move (W)");
     toolbar->AddTool(Icons::RotateName, "", [](){}, "Rotate (E)");
@@ -382,9 +392,15 @@ void Editor::BuildDynamicEditorUI() {
     toolbar->AddTool(Icons::SnapName, "", [](){}, "Snap");
     toolbar->AddSeparator();
 
+    // Group 4: Undo / Redo
+    toolbar->AddTool(Icons::UndoName, "", [](){}, "Undo (Ctrl+Z)");
+    toolbar->AddTool(Icons::RedoName, "", [](){}, "Redo (Ctrl+Y)");
+    toolbar->AddSeparator();
+
+    // Group 5: Environment Menu
     toolbar->AddWidget(we::editor::environment::CreateEnvironmentToolbarMenu());
 
-    // Group 3: Transport controls (Center) – Play / Pause / Stop
+    // Center Group: Play / Pause / Stop
     auto playBtn  = toolbar->AddTool(Icons::PlayName,  "", [](){}, "Play (Alt+P)",  false, ToolbarAlignment::Center);
     auto pauseBtn = toolbar->AddTool(Icons::PauseName, "", [](){}, "Pause (Alt+P)", false, ToolbarAlignment::Center);
     auto stopBtn  = toolbar->AddTool(Icons::StopName,  "", [](){}, "Stop",          false, ToolbarAlignment::Center);
@@ -392,16 +408,15 @@ void Editor::BuildDynamicEditorUI() {
     pauseBtn->SetButtonStyle(ToolButtonStyle::TransportButton);
     stopBtn->SetButtonStyle(ToolButtonStyle::TransportButton);
 
-    // Group 4: Platform + Settings (Right) - added right-to-left order
-    toolbar->AddSeparator(ToolbarAlignment::Right);
+    // Right Group: Settings, Platform
+    // Note: Items added with Right alignment stack from right-to-left
+    auto platformBtn = toolbar->AddTool(Icons::PackageName, "Platform", [](){}, "Platform", false, ToolbarAlignment::Right);
+    platformBtn->SetButtonStyle(ToolButtonStyle::ToolbarInline);
 
     auto settingsBtn = toolbar->AddTool(Icons::SettingsName, "Settings", [](){
         ShowViewportNavigationPreferences();
     }, "Editor Settings", false, ToolbarAlignment::Right);
     settingsBtn->SetButtonStyle(ToolButtonStyle::ToolbarInline);
-
-    auto platformBtn = toolbar->AddTool(Icons::PackageName, "Platform", [](){}, "Platform", false, ToolbarAlignment::Right);
-    platformBtn->SetButtonStyle(ToolButtonStyle::ToolbarInline);
 
     toolbar->SetActiveTool(Icons::CursorName);
     HE_INFO("[UI] Toolbar created with mode selector and tools.");
@@ -955,11 +970,16 @@ void Editor::MainLoop() {
         cameraUBO.padding = 0.0f;
 
         if (m_UIRenderer && m_RootWidget) {
-            m_UIRenderer->PrepareFrame(
-                m_Renderer->GetSwapchainWidth(),
-                m_Renderer->GetSwapchainHeight(),
-                m_Renderer->GetCurrentFrameIndex(),
-                m_RootWidget);
+            // PrepareFrame is handled in the UI overlay callback
+        }
+
+        if (m_Renderer && m_ViewportWidget) {
+            const UI::Rect viewportRect = m_ViewportWidget->GetGeometry();
+            m_Renderer->SetSceneViewportRect(
+                static_cast<int32_t>(viewportRect.x),
+                static_cast<int32_t>(viewportRect.y),
+                static_cast<uint32_t>((std::max)(0.0f, viewportRect.width)),
+                static_cast<uint32_t>((std::max)(0.0f, viewportRect.height)));
         }
 
         if (m_Renderer->BeginFrame()) {

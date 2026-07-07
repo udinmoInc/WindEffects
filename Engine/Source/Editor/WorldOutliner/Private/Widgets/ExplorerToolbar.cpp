@@ -87,7 +87,7 @@ void ExplorerToolbar::Paint(PaintContext& context) {
     const float searchIconY = m_SearchBoxGeometry.y + (m_SearchBoxGeometry.height - searchIconSize) * 0.5f;
     IconPainter::DrawIcon(context, Icons::SearchName, 
                           Rect{ searchIconX, searchIconY, searchIconSize, searchIconSize }, 
-                          theme.TextSecondary);
+                          theme.SearchIcon);
 
     // Draw search text or placeholder
     const float textX = searchIconX + searchIconSize + 6.0f;
@@ -114,7 +114,7 @@ void ExplorerToolbar::Paint(PaintContext& context) {
         const float clearY = m_SearchBoxGeometry.y + (m_SearchBoxGeometry.height - clearSize) * 0.5f;
         IconPainter::DrawIcon(context, Icons::XName,
                               Rect{ clearX, clearY, clearSize, clearSize },
-                              theme.TextSecondary);
+                              theme.SearchIcon);
     }
 
     // Draw separator between search and buttons
@@ -144,7 +144,7 @@ void ExplorerToolbar::PaintToolbarButton(PaintContext& context, const Rect& geom
     const float iconX = geometry.x + (geometry.width - iconSize) * 0.5f;
     const float iconY = geometry.y + (geometry.height - iconSize) * 0.5f;
     
-    Color iconColor = hovered ? theme.TextPrimary : theme.TextSecondary;
+    Color iconColor = hovered ? theme.SidebarIconHover : theme.SidebarIconDefault;
     IconPainter::DrawIcon(context, iconName, Rect{ iconX, iconY, iconSize, iconSize }, iconColor);
 }
 

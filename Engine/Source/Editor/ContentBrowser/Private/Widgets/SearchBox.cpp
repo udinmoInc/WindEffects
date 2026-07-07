@@ -45,7 +45,7 @@ void SearchBox::Paint(PaintContext& context) {
     const float iconSize = 13.0f;
     const float iconX = m_Geometry.x + kPadH;
     const float iconY = m_Geometry.y + (m_Geometry.height - iconSize) * 0.5f;
-    IconPainter::DrawIcon(context, Icons::SearchName, Rect{ iconX, iconY, iconSize, iconSize }, theme.TextDisabled);
+    IconPainter::DrawIcon(context, Icons::SearchName, Rect{ iconX, iconY, iconSize, iconSize }, theme.SearchIcon);
 
     Rect textRect = GetTextRect();
 
@@ -63,7 +63,7 @@ void SearchBox::Paint(PaintContext& context) {
 
     if (!m_Text.empty()) {
         Rect clearRect = GetClearButtonRect();
-        IconPainter::DrawIcon(context, Icons::XName, clearRect, theme.TextSecondary);
+        IconPainter::DrawIcon(context, Icons::XName, clearRect, theme.SearchIcon);
     }
 }
 

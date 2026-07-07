@@ -5,7 +5,7 @@
 #include "EditorCamera.hpp"
 #include "Scene/Scene.hpp"
 #include "Core/PaintContext.hpp"
-#include "Rendering/UIRenderer.hpp"
+#include "Rendering/UIRenderer2.hpp"
 #include "Core/Theme.hpp"
 #include <SDL3/SDL_keyboard.h>
 #include <algorithm>
@@ -16,7 +16,7 @@ namespace we::UI {
 ViewportWidget::ViewportWidget(we::runtime::renderer::Renderer* renderer,
                                const std::shared_ptr<we::runtime::engine::EditorCamera>& camera,
                                const std::shared_ptr<we::runtime::scene::Scene>& scene,
-                               UIRenderer* uiRenderer)
+                               UIRenderer2* uiRenderer)
     : m_Renderer(renderer), m_Camera(camera), m_Scene(scene), m_uiRenderer(uiRenderer) {
     m_Navigation.SetCamera(camera);
     m_Navigation.SetScene(scene);
@@ -94,20 +94,19 @@ void ViewportWidget::Paint(PaintContext& context) {
 
     if (m_ViewportTextureSet != VK_NULL_HANDLE) {
         context.DrawTexture(m_Geometry, m_ViewportTextureSet);
-    } else {
-        context.DrawRect(m_Geometry, Color{ 0.0f, 0.0f, 0.0f, 1.0f });
     }
 
+    const Theme& theme = Theme::Get();
     Point gizmoCenter = Point{ m_Geometry.x + m_Geometry.width - 55.0f, m_Geometry.y + 55.0f };
-    context.DrawRect(Rect{ gizmoCenter.x - 30.0f, gizmoCenter.y - 30.0f, 60.0f, 60.0f }, Color{ 0.12f, 0.12f, 0.12f, 0.6f }, 30.0f);
+    context.DrawRect(Rect{ gizmoCenter.x - 30.0f, gizmoCenter.y - 30.0f, 60.0f, 60.0f }, theme.GizmoBackground, 30.0f);
 
     glm::vec3 right = m_Camera->GetRight();
     glm::vec3 up = m_Camera->GetUp();
     glm::vec3 forward = m_Camera->GetForward();
 
-    Color colorX = Color{ 0.9f, 0.25f, 0.2f, 1.0f };
-    Color colorY = Color{ 0.25f, 0.9f, 0.2f, 1.0f };
-    Color colorZ = Color{ 0.2f, 0.45f, 0.9f, 1.0f };
+    Color colorX = theme.GizmoAxisX;
+    Color colorY = theme.GizmoAxisY;
+    Color colorZ = theme.GizmoAxisZ;
 
     glm::vec3 xAxis(1.0f, 0.0f, 0.0f);
     glm::vec3 yAxis(0.0f, 1.0f, 0.0f);
@@ -138,7 +137,7 @@ void ViewportWidget::Paint(PaintContext& context) {
         Point endPoint{ gizmoCenter.x + axis.proj.x, gizmoCenter.y + axis.proj.y };
         context.DrawLine(gizmoCenter, endPoint, axis.color, 2.5f);
         context.DrawRect(Rect{ endPoint.x - 3.0f, endPoint.y - 3.0f, 6.0f, 6.0f }, axis.color, 3.0f);
-        context.DrawText(axis.label, Point{ endPoint.x + 4.0f, endPoint.y - 6.0f }, Color::White(), 10.0f);
+        context.DrawText(axis.label, Point{ endPoint.x + 4.0f, endPoint.y - 6.0f }, axis.color, 10.0f);
     }
 
     if (m_Navigation.IsFlyLookActive()) {

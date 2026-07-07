@@ -37,9 +37,9 @@ namespace {
     }
 
     Color ResolveInteractiveIconColor(float hoverAnim, float pressStrength, bool active) {
-        Color iconColor = Theme::Get().TextSecondary;
+        Color iconColor = Theme::Get().ToolbarIconDefault;
         if (hoverAnim > 0.01f || pressStrength > 0.01f || active) {
-            iconColor = Color::Lerp(iconColor, Theme::Get().TextPrimary, std::max({hoverAnim, pressStrength, active ? 1.0f : 0.0f}));
+            iconColor = Color::Lerp(iconColor, Theme::Get().ToolbarIconHover, std::max({hoverAnim, pressStrength, active ? 1.0f : 0.0f}));
         }
         return iconColor;
     }
@@ -101,7 +101,7 @@ Size ToolButton::Measure(const Size& availableSize) {
 
     if (m_ButtonStyle == ToolButtonStyle::ToolbarInline) {
         const float padH     = 6.0f;  // extra-compact inline horizontal padding
-        const float iconSz   = 16.0f;
+        const float iconSz   = 18.0f;
         const float iconGap  = 3.0f;
         const float chevGap  = 1.0f;
         const float chevW    = 8.0f;
@@ -122,26 +122,26 @@ Size ToolButton::Measure(const Size& availableSize) {
             width += chevGap + chevW;
         }
         
-        m_DesiredSize = Size{ width, 30.0f };
+        m_DesiredSize = Size{ width, 22.0f };
         return m_DesiredSize;
     }
 
-    // TransportButton: Play / Pause / Stop – compact 24×24 hit area
+    // TransportButton: Play / Pause / Stop – compact hit area
     if (m_ButtonStyle == ToolButtonStyle::TransportButton || m_ButtonStyle == ToolButtonStyle::PlayButton) {
-        m_DesiredSize = Size{ 24.0f, 24.0f };
+        m_DesiredSize = Size{ 22.0f, 22.0f };
         return m_DesiredSize;
     }
 
     if (m_ButtonStyle == ToolButtonStyle::ToolbarIconOnly) {
-        m_DesiredSize = Size{ 24.0f, 24.0f };
+        m_DesiredSize = Size{ 22.0f, 22.0f };
         return m_DesiredSize;
     }
 
     // Normal – used for labeled dropdowns (Platform, Settings)
-    const float height  = 30.0f;
+    const float height  = 22.0f;
     const float padL    = 12.0f; // left padding (icon start) – 12px for breathing room
     const float padR    = 10.0f; // right padding (after chevron) – 10px
-    const float iconSz  = 16.0f;
+    const float iconSz  = 18.0f;
     const float iconGap = 6.0f;  // gap between icon and text
     const float chevW   = 16.0f; // chevron area (icon 8px + gap 8px)
 
@@ -188,10 +188,10 @@ void ToolButton::Paint(PaintContext& context) {
                             : Color{ 0.196f, 0.196f, 0.196f, m_HoverAnim };
             context.DrawRoundedRect(renderRect, hoverBg, 4.0f);
         }
-        Color iconColor = Color{ 0.69f, 0.69f, 0.69f, 1.0f };
-        if (m_HoverAnim > 0.01f) iconColor = Color::Lerp(iconColor, Color::White(), m_HoverAnim);
+        Color iconColor = Theme::Get().ToolbarIconDefault;
+        if (m_HoverAnim > 0.01f) iconColor = Color::Lerp(iconColor, Theme::Get().ToolbarIconHover, m_HoverAnim);
         if (m_ButtonStyle == ToolButtonStyle::WindowClose && m_HoverAnim > 0.5f)
-            iconColor = Color{ 1.0f, 1.0f, 1.0f, 1.0f };
+            iconColor = Theme::Get().ToolbarIconPressed;
         float iconSize = 16.0f;
         // Use smaller icon size for square/stop icon to match close button proportions
         if (m_IconName == Icons::StopName) iconSize = 14.0f;
@@ -228,7 +228,7 @@ void ToolButton::Paint(PaintContext& context) {
     if (isInline) {
         DrawInteractiveBackground(context, renderRect, m_HoverAnim, pressStrength, m_Active, 3.0f);
 
-        const float iconSize  = 16.0f;
+        const float iconSize  = 18.0f;
         const float textSize  = 13.0f;
         const float iconGap   = 3.0f;
         const float padLeft   = 6.0f;
@@ -261,7 +261,7 @@ void ToolButton::Paint(PaintContext& context) {
     if (isToolbarIcon) {
         DrawInteractiveBackground(context, renderRect, m_HoverAnim, pressStrength, m_Active, 3.0f);
 
-        const float iconSize = 16.0f;
+        const float iconSize = 18.0f;
         Color iconColor = ResolveInteractiveIconColor(m_HoverAnim, pressStrength, m_Active);
         float drawX = renderRect.x + (renderRect.width - iconSize) / 2.0f;
         float drawY = renderRect.y + (renderRect.height - iconSize) / 2.0f;
@@ -299,7 +299,7 @@ void ToolButton::Paint(PaintContext& context) {
 
         Color iconColor = ResolveInteractiveIconColor(m_HoverAnim, pressStrength, m_Active);
 
-        const float iconSize = 16.0f;
+        const float iconSize = 18.0f;
         float currentX = renderRect.x + 12.0f;
 
         const bool hasIcon = !m_IconName.empty() && Icons::IsKnownIcon(m_IconName);

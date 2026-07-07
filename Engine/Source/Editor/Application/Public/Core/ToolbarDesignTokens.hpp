@@ -3,6 +3,7 @@
 #include "Application/Export.hpp"
 
 #include "Core/Geometry.hpp"
+#include "Core/Theme.hpp"
 
 namespace we::UI::DesignTokens {
 
@@ -94,8 +95,8 @@ inline Color IconButtonBorder() { return Color{ 0.30f, 0.30f, 0.32f, 1.0f }; } /
 inline Color IconButtonBorderHover() { return Color{ 0.40f, 0.40f, 0.42f, 1.0f }; }
 inline Color IconButtonHighlight() { return Color{ 0.0f, 0.0f, 0.0f, 0.0f }; }
 inline Color IconButtonShadow() { return Color{ 0.0f, 0.0f, 0.0f, 0.0f }; }
-inline Color IconButtonIcon() { return Color{ 0.70f, 0.70f, 0.70f, 1.0f }; }
-inline Color IconButtonIconHover() { return Color{ 0.85f, 0.85f, 0.85f, 1.0f }; }
+inline Color IconButtonIcon() { return Theme::Get().ToolbarIconDefault; }
+inline Color IconButtonIconHover() { return Theme::Get().ToolbarIconHover; }
 
 // Navigation Button Colors - Minimal integrated
 inline Color NavigationButtonNormal() { return Color{ 0.0f, 0.0f, 0.0f, 0.0f }; } // Transparent
@@ -103,14 +104,14 @@ inline Color NavigationButtonHover() { return Color{ 1.0f, 1.0f, 1.0f, 0.05f }; 
 inline Color NavigationButtonPressed() { return Color{ 1.0f, 1.0f, 1.0f, 0.08f }; }
 inline Color NavigationButtonBorder() { return Color{ 0.0f, 0.0f, 0.0f, 0.0f }; } // No border by default
 inline Color NavigationButtonBorderHover() { return Color{ 0.35f, 0.35f, 0.37f, 1.0f }; } // Thin border on hover
-inline Color NavigationButtonIcon() { return Color{ 0.65f, 0.65f, 0.65f, 1.0f }; } // 70% opacity
-inline Color NavigationButtonIconHover() { return Color{ 0.90f, 0.90f, 0.90f, 1.0f }; } // 100% on hover
+inline Color NavigationButtonIcon() { return Theme::Get().ToolbarIconDefault; }
+inline Color NavigationButtonIconHover() { return Theme::Get().ToolbarIconHover; }
 
 // Disabled State
 inline Color DisabledBackground() { return Color{ 0.14f, 0.14f, 0.15f, 1.0f }; }
 inline Color DisabledBorder() { return Color{ 0.20f, 0.20f, 0.22f, 1.0f }; }
 inline Color DisabledText() { return Color{ 0.45f, 0.45f, 0.45f, 1.0f }; }
-inline Color DisabledIcon() { return Color{ 0.40f, 0.40f, 0.40f, 1.0f }; }
+inline Color DisabledIcon() { return Theme::Get().ToolbarIconInactive; }
 
 // Focused State
 inline Color FocusedOutline() { return Color{ 0.50f, 0.50f, 0.55f, 1.0f }; }
