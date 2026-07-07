@@ -20,6 +20,7 @@
 #endif
 
 #include <filesystem>
+#include <algorithm>
 
 namespace we::runtime::renderer {
 
@@ -122,6 +123,8 @@ void Renderer::Init(SDL_Window* window) {
     sceneConfig.depthFormat = VK_FORMAT_D32_SFLOAT;
     m_SceneRenderer->Init(sceneConfig);
     m_SceneRenderer->Resize(m_SwapchainManager->GetExtent().width, m_SwapchainManager->GetExtent().height);
+    m_SceneViewportRect.offset = {0, 0};
+    m_SceneViewportRect.extent = m_SwapchainManager->GetExtent();
 
     BuildRenderGraph();
     m_Initialized = true;
@@ -224,6 +227,7 @@ void Renderer::ExecuteFoundationPasses(VkCommandBuffer cmd) {
     frame.imageIndex = m_CurrentImageIndex;
     frame.commandBuffer = cmd;
     frame.extent = m_SwapchainManager->GetExtent();
+    frame.sceneRenderArea = m_SceneViewportRect;
     frame.colorImage = m_SwapchainManager->GetImages()[m_CurrentImageIndex];
     frame.colorImageView = m_SwapchainManager->GetImageViews()[m_CurrentImageIndex];
     frame.colorFormat = m_SwapchainManager->GetImageFormat();
@@ -241,22 +245,45 @@ void Renderer::EndFrame() {
 
     VkCommandBuffer cmd = m_CommandContext->BeginFrame(m_CurrentFrame);
     TransitionFrameImages(cmd);
-    ExecuteFoundationPasses(cmd);
 
-    // Ensure foundation passes complete before UI overlay begins
-    VkMemoryBarrier memoryBarrier{};
-    memoryBarrier.sType = VK_STRUCTURE_TYPE_MEMORY_BARRIER;
-    memoryBarrier.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-    memoryBarrier.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-
-    vkCmdPipelineBarrier(
+    // Clear swapchain to black before scene rendering
+    // UI will render after scene passes to clean LDR swapchain
+    TransitionImageLayout(
         cmd,
+        m_SwapchainManager->GetImages()[m_CurrentImageIndex],
+        VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+        VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+        VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
+        VK_ACCESS_TRANSFER_WRITE_BIT,
         VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
-        VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
-        0,
-        1, &memoryBarrier,
-        0, nullptr,
-        0, nullptr);
+        VK_PIPELINE_STAGE_TRANSFER_BIT);
+
+    VkClearColorValue frameClearColor{{0.0f, 0.0f, 0.0f, 1.0f}};
+    VkImageSubresourceRange clearRange{};
+    clearRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    clearRange.baseMipLevel = 0;
+    clearRange.levelCount = 1;
+    clearRange.baseArrayLayer = 0;
+    clearRange.layerCount = 1;
+    vkCmdClearColorImage(
+        cmd,
+        m_SwapchainManager->GetImages()[m_CurrentImageIndex],
+        VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+        &frameClearColor,
+        1,
+        &clearRange);
+
+    TransitionImageLayout(
+        cmd,
+        m_SwapchainManager->GetImages()[m_CurrentImageIndex],
+        VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+        VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+        VK_ACCESS_TRANSFER_WRITE_BIT,
+        VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
+        VK_PIPELINE_STAGE_TRANSFER_BIT,
+        VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT);
+
+    ExecuteFoundationPasses(cmd);
 
     if (m_UiOverlayRecorder) {
         const VkExtent2D extent = m_SwapchainManager->GetExtent();
@@ -303,6 +330,40 @@ void Renderer::UploadCameraUniform(const CameraUniform& uniform) {
     upload.invViewProj = glm::inverse(upload.proj * upload.view);
 #endif
     m_CameraSystem->Upload(m_CurrentFrame, upload);
+}
+
+void Renderer::SetSceneViewportRect(int32_t x, int32_t y, uint32_t width, uint32_t height) {
+    if (!m_SwapchainManager) {
+        return;
+    }
+
+    const VkExtent2D swapExtent = m_SwapchainManager->GetExtent();
+    int32_t clampedX = std::max(0, x);
+    int32_t clampedY = std::max(0, y);
+    uint32_t clampedWidth = width;
+    uint32_t clampedHeight = height;
+
+    if (clampedX >= static_cast<int32_t>(swapExtent.width) || clampedY >= static_cast<int32_t>(swapExtent.height)) {
+        m_SceneViewportRect.offset = {0, 0};
+        m_SceneViewportRect.extent = swapExtent;
+        return;
+    }
+
+    if (clampedX + static_cast<int32_t>(clampedWidth) > static_cast<int32_t>(swapExtent.width)) {
+        clampedWidth = swapExtent.width - static_cast<uint32_t>(clampedX);
+    }
+    if (clampedY + static_cast<int32_t>(clampedHeight) > static_cast<int32_t>(swapExtent.height)) {
+        clampedHeight = swapExtent.height - static_cast<uint32_t>(clampedY);
+    }
+
+    if (clampedWidth == 0 || clampedHeight == 0) {
+        m_SceneViewportRect.offset = {0, 0};
+        m_SceneViewportRect.extent = swapExtent;
+        return;
+    }
+
+    m_SceneViewportRect.offset = {clampedX, clampedY};
+    m_SceneViewportRect.extent = {clampedWidth, clampedHeight};
 }
 
 void Renderer::SetUiOverlayRecorder(UiOverlayRecorder recorder) {

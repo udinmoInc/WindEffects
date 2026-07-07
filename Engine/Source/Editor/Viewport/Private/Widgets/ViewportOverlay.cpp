@@ -85,7 +85,7 @@ void ViewportOverlay::Paint(PaintContext& context) {
     
     // Draw axis gizmo (top-right)
     if (m_GizmoVisible) {
-        context.DrawRoundedRect(m_GizmoRect, Color{0.1f, 0.1f, 0.1f, 0.5f}, 4.0f);
+        context.DrawRoundedRect(m_GizmoRect, Theme::Get().GizmoBackground, 4.0f);
         
         // Draw simplified axis representation
         float centerX = m_GizmoRect.x + m_GizmoRect.width / 2.0f;
@@ -93,16 +93,16 @@ void ViewportOverlay::Paint(PaintContext& context) {
         float axisLength = 25.0f;
         
         // X axis (red)
-        context.DrawLine(Point{ centerX, centerY }, Point{ centerX + axisLength, centerY }, Color{1.0f, 0.2f, 0.2f, 1.0f}, 2.0f);
-        context.DrawText("X", Point{ centerX + axisLength + 2.0f, centerY - 6.0f }, Color{1.0f, 0.2f, 0.2f, 1.0f}, 10.0f);
+        context.DrawLine(Point{ centerX, centerY }, Point{ centerX + axisLength, centerY }, Theme::Get().GizmoAxisX, 2.0f);
+        context.DrawText("X", Point{ centerX + axisLength + 2.0f, centerY - 6.0f }, Theme::Get().GizmoAxisX, 10.0f);
         
         // Y axis (green)
-        context.DrawLine(Point{ centerX, centerY }, Point{ centerX, centerY - axisLength }, Color{0.2f, 1.0f, 0.2f, 1.0f}, 2.0f);
-        context.DrawText("Y", Point{ centerX - 3.0f, centerY - axisLength - 8.0f }, Color{0.2f, 1.0f, 0.2f, 1.0f}, 10.0f);
+        context.DrawLine(Point{ centerX, centerY }, Point{ centerX, centerY - axisLength }, Theme::Get().GizmoAxisY, 2.0f);
+        context.DrawText("Y", Point{ centerX - 3.0f, centerY - axisLength - 8.0f }, Theme::Get().GizmoAxisY, 10.0f);
         
         // Z axis (blue)
-        context.DrawLine(Point{ centerX, centerY }, Point{ centerX - axisLength * 0.5f, centerY + axisLength * 0.5f }, Color{0.2f, 0.5f, 1.0f, 1.0f}, 2.0f);
-        context.DrawText("Z", Point{ centerX - axisLength * 0.5f - 8.0f, centerY + axisLength * 0.5f + 2.0f }, Color{0.2f, 0.5f, 1.0f, 1.0f}, 10.0f);
+        context.DrawLine(Point{ centerX, centerY }, Point{ centerX - axisLength * 0.5f, centerY + axisLength * 0.5f }, Theme::Get().GizmoAxisZ, 2.0f);
+        context.DrawText("Z", Point{ centerX - axisLength * 0.5f - 8.0f, centerY + axisLength * 0.5f + 2.0f }, Theme::Get().GizmoAxisZ, 10.0f);
     }
     
     // Draw navigation controls (bottom-right)
@@ -197,7 +197,7 @@ void AxisGizmo::Arrange(const Rect& allottedRect) {
 }
 
 void AxisGizmo::Paint(PaintContext& context) {
-    context.DrawRoundedRect(m_Geometry, Color{0.1f, 0.1f, 0.1f, 0.5f}, 4.0f);
+    context.DrawRoundedRect(m_Geometry, Theme::Get().GizmoBackground, 4.0f);
     
     float centerX = m_Geometry.x + m_Geometry.width / 2.0f;
     float centerY = m_Geometry.y + m_Geometry.height / 2.0f;
@@ -205,13 +205,13 @@ void AxisGizmo::Paint(PaintContext& context) {
     
     // Draw axes with orientation
     // X axis (red)
-    context.DrawLine(Point{ centerX, centerY }, Point{ centerX + axisLength, centerY }, Color{1.0f, 0.2f, 0.2f, 1.0f}, 2.0f);
+    context.DrawLine(Point{ centerX, centerY }, Point{ centerX + axisLength, centerY }, Theme::Get().GizmoAxisX, 2.0f);
     
     // Y axis (green)
-    context.DrawLine(Point{ centerX, centerY }, Point{ centerX, centerY - axisLength }, Color{0.2f, 1.0f, 0.2f, 1.0f}, 2.0f);
+    context.DrawLine(Point{ centerX, centerY }, Point{ centerX, centerY - axisLength }, Theme::Get().GizmoAxisY, 2.0f);
     
     // Z axis (blue)
-    context.DrawLine(Point{ centerX, centerY }, Point{ centerX - axisLength * 0.5f, centerY + axisLength * 0.5f }, Color{0.2f, 0.5f, 1.0f, 1.0f}, 2.0f);
+    context.DrawLine(Point{ centerX, centerY }, Point{ centerX - axisLength * 0.5f, centerY + axisLength * 0.5f }, Theme::Get().GizmoAxisZ, 2.0f);
 }
 
 void AxisGizmo::SetOrientation(float pitch, float yaw, float roll) {

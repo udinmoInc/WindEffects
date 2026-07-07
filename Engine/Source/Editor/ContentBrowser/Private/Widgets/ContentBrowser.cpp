@@ -723,11 +723,11 @@ void Breadcrumb::Paint(PaintContext& context) {
         }
         const float textX = crumb.geometry.x + 8.0f;
         const float textY = crumb.geometry.y + (crumb.geometry.height - 13.0f) * 0.5f;
-        const Color textColor = static_cast<int>(i) == m_HoveredCrumb ? Theme::Get().SelectedAccent : Theme::Get().TextSecondary;
+        const Color textColor = static_cast<int>(i) == m_HoveredCrumb ? Theme::Get().SidebarIconHover : Theme::Get().SidebarIconDefault;
         context.DrawText(crumb.text, Point{ textX, textY }, textColor, 13.0f, false);
         if (i < m_Crumbs.size() - 1) {
             const float sepX = crumb.geometry.x + crumb.geometry.width + 4.0f;
-            context.DrawText("/", Point{ sepX, textY }, Theme::Get().TextDisabled, 12.0f);
+            context.DrawText("/", Point{ sepX, textY }, Theme::Get().TreeArrow, 12.0f);
         }
     }
 }

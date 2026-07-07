@@ -4,7 +4,7 @@
 #include "Renderer/Renderer.hpp"
 #include "Renderer/Shader/ShaderLibrary.hpp"
 #include "Renderer/RenderGraph.hpp"
-#include "Rendering/UIRenderer.hpp"
+#include "Rendering/UIRenderer2.hpp"
 #include "Core/EventSystem.hpp"
 #include "Runtime/Core/AssetRegistry.hpp"
 #include "Core/Logger.hpp"
@@ -54,11 +54,19 @@ CrashReporterApp::CrashReporterApp(SDL_Window* window) : m_Window(window) {
     we::core::AssetRegistry::Get().LoadDefaultEditorAssets();
     HE_INFO("[CrashReporterApp] Default editor assets loaded");
 
-    HE_INFO("[CrashReporterApp] Creating UIRenderer");
-    m_UIRenderer = std::make_unique<we::UI::UIRenderer>();
-    HE_INFO("[CrashReporterApp] Initializing UIRenderer");
-    m_UIRenderer->Init(m_Context, m_Renderer->GetSwapchainRenderPass());
-    HE_INFO("[CrashReporterApp] UIRenderer initialized");
+    HE_INFO("[CrashReporterApp] Creating UIRenderer2");
+    m_UIRenderer = std::make_unique<we::UI::UIRenderer2>();
+    HE_INFO("[CrashReporterApp] Initializing UIRenderer2");
+    m_UIRenderer->Init(
+        m_Context->GetPhysicalDevice(),
+        m_Context->GetDevice(),
+        m_Context->GetGraphicsQueue(),
+        m_Context->GetGraphicsQueueFamily(),
+        m_Renderer->GetSwapchainImageFormat(),
+        2,
+        m_Context.get(),
+        m_Renderer->GetResourceManager());
+    HE_INFO("[CrashReporterApp] UIRenderer2 initialized");
     
     HE_INFO("[CrashReporterApp] Creating EventSystem");
     m_UIEventSystem = std::make_shared<we::UI::EventSystem>();

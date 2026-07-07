@@ -15,7 +15,7 @@ namespace we::runtime::scene { class Scene; }
 
 namespace we::UI {
 
-class UIRenderer;
+class UIRenderer2;
 class GraphicsDebuggerPopup;
 
 class VIEWPORT_API ViewportWidget : public Widget {
@@ -23,7 +23,7 @@ public:
     ViewportWidget(we::runtime::renderer::Renderer* renderer,
                    const std::shared_ptr<we::runtime::engine::EditorCamera>& camera,
                    const std::shared_ptr<we::runtime::scene::Scene>& scene,
-                   UIRenderer* uiRenderer = nullptr);
+                   UIRenderer2* uiRenderer = nullptr);
     virtual ~ViewportWidget();
 
     // Must be called after the widget is owned by std::shared_ptr (AddChild uses shared_from_this).
@@ -53,7 +53,7 @@ private:
     we::runtime::renderer::Renderer* m_Renderer = nullptr;
     std::shared_ptr<we::runtime::engine::EditorCamera> m_Camera;
     std::shared_ptr<we::runtime::scene::Scene> m_Scene;
-    UIRenderer* m_uiRenderer = nullptr;
+    UIRenderer2* m_uiRenderer = nullptr;
     ViewportNavigationController m_Navigation;
 
     VkDescriptorSet m_ViewportTextureSet = VK_NULL_HANDLE;

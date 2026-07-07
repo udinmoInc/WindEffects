@@ -13,8 +13,8 @@
 namespace we::programs::editor {
 
 namespace {
-constexpr float kIconSize     = 16.0f;  // Matches ToolbarInline icon size
-constexpr float kHeight       = 28.0f;  // Matches ProjectSelector height
+constexpr float kIconSize     = 18.0f;  // Matches ToolbarInline icon size
+constexpr float kHeight       = 22.0f;  // Matches ProjectSelector height
 constexpr float kPadding      = 8.0f;
 constexpr float kIconGap      = 5.0f;   // Gap between icon and label
 constexpr float kChevronWidth = 10.0f;

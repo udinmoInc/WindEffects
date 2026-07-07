@@ -574,7 +574,7 @@ public:
 
     we::UI::Size Measure(const we::UI::Size& availableSize) override {
         (void)availableSize;
-        m_DesiredSize = we::UI::Size{ 96.0f, 28.0f };
+        m_DesiredSize = we::UI::Size{ 102.0f, 22.0f }; // Slightly wider for 18px icon
         return m_DesiredSize;
     }
 
@@ -585,12 +585,17 @@ public:
         if (m_Hovered || m_Pressed) {
             context.DrawRoundedRect(rect, we::UI::Theme::Get().HoverOverlay, 3.0f);
         }
+        
+        float centerY = rect.y + rect.height / 2.0f;
+        
         we::UI::IconPainter::DrawIcon(context, we::UI::Icons::SunName,
-            we::UI::Rect{ rect.x + 6.0f, rect.y + 6.0f, 16.0f, 16.0f }, we::UI::Theme::Get().TextPrimary);
-        context.DrawText("Environment", we::UI::Point{ rect.x + 26.0f, rect.y + 7.0f },
+            we::UI::Rect{ rect.x + 6.0f, std::floor(centerY - 9.0f), 18.0f, 18.0f }, we::UI::Theme::Get().TextPrimary);
+            
+        context.DrawText("Environment", we::UI::Point{ rect.x + 28.0f, std::floor(centerY - 5.5f) },
             we::UI::Theme::Get().TextPrimary, 11.0f, true);
+            
         we::UI::IconPainter::DrawIcon(context, we::UI::Icons::ChevronDownName,
-            we::UI::Rect{ rect.x + rect.width - 16.0f, rect.y + 8.0f, 10.0f, 10.0f },
+            we::UI::Rect{ rect.x + rect.width - 16.0f, std::floor(centerY - 5.0f), 10.0f, 10.0f },
             we::UI::Theme::Get().TextSecondary);
     }
 
