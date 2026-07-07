@@ -1,7 +1,7 @@
 #include "Widgets/ViewportWidget.hpp"
 #include "Widgets/GraphicsDebuggerPopup.hpp"
 #include "PlaceActors/PlaceActorsPlacement.h"
-#include "Renderer/Renderer.hpp"
+#include "Renderer/Renderer.h"
 #include "EditorCamera.hpp"
 #include "Scene/Scene.hpp"
 #include "Core/PaintContext.hpp"
@@ -13,7 +13,7 @@
 
 namespace we::UI {
 
-ViewportWidget::ViewportWidget(const std::shared_ptr<we::runtime::renderer::Renderer>& renderer,
+ViewportWidget::ViewportWidget(we::runtime::renderer::Renderer* renderer,
                                const std::shared_ptr<we::runtime::engine::EditorCamera>& camera,
                                const std::shared_ptr<we::runtime::scene::Scene>& scene,
                                UIRenderer* uiRenderer)
@@ -74,28 +74,12 @@ void ViewportWidget::FlushPendingResize() {
     if (!m_ResizePending) return;
     m_ResizePending = false;
 
-    if (m_PendingWidth == 0 || m_PendingHeight == 0) return;
+    if (m_PendingWidth == 0 || m_PendingHeight == 0 || !m_Renderer) return;
 
-    m_Renderer->GetOffscreenFramebuffer().Resize(
-        m_PendingWidth,
-        m_PendingHeight,
-        m_Renderer->GetOffscreenRenderPass()
-    );
     m_Camera->SetViewportSize(
         static_cast<float>(m_PendingWidth),
         static_cast<float>(m_PendingHeight)
     );
-
-    if (m_uiRenderer) {
-        if (m_ViewportTextureSet != VK_NULL_HANDLE) {
-            m_uiRenderer->UnregisterTexture(m_ViewportTextureSet);
-            m_ViewportTextureSet = VK_NULL_HANDLE;
-        }
-        m_ViewportTextureSet = m_uiRenderer->RegisterTexture(
-            m_Renderer->GetOffscreenFramebuffer().GetColorImageView(),
-            m_Renderer->GetOffscreenFramebuffer().GetSampler()
-        );
-    }
 }
 
 bool ViewportWidget::HitTestGizmoReset(const Point& position) const {
@@ -191,13 +175,6 @@ void ViewportWidget::OnMouseDown(const MouseEvent& event) {
         && event.ctrlDown
         && m_Geometry.Contains(event.position)
         && m_Renderer) {
-        const float localX = event.position.x - m_Geometry.x;
-        const float localY = event.position.y - m_Geometry.y;
-        const float u = localX / (std::max)(m_Geometry.width, 1.0f);
-        const float v = localY / (std::max)(m_Geometry.height, 1.0f);
-        const auto& fb = m_Renderer->GetOffscreenFramebuffer();
-        we::runtime::renderer::RenderGpuInvestigator::Get().SetProbeFromViewportUV(
-            u, v, fb.GetWidth(), fb.GetHeight());
         return;
     }
 

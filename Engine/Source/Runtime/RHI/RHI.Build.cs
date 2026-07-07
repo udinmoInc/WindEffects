@@ -11,6 +11,8 @@ public class RHI : ModuleRules
 
         PublicDependencies.Add("Core");
 
+        PublicIncludePaths.Add(System.IO.Path.Combine(context.EngineDirectory, "ThirdParty", "Vulkan-Headers", "include"));
+
         Definitions.Add("RHI_EXPORTS");
     }
 }

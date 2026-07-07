@@ -5,15 +5,7 @@
 #include "Core/FrameCounter.hpp"
 #include "Core/StartupValidator.hpp"
 #include "Core/LogCategory.hpp"
-#include "Renderer/RenderDiagnostics.hpp"
-#include "Renderer/FrameStats.hpp"
-#include "Renderer/AtmosphereRadianceTracer.hpp"
-#include "Renderer/AtmosphereValidation.hpp"
-#include "Renderer/RenderPipelineInvestigator.hpp"
-#include "Renderer/RendererDebug.hpp"
-#include "Renderer/RenderForensics.hpp"
-#include "Renderer/Shader/ShaderLibrary.hpp"
-#include "Renderer/Shader/ShaderTypes.hpp"
+#include "Shader/ShaderLibrary.h"
 #include "Core/IgniteBTInvoker.hpp"
 #include "Runtime/Core/ModuleManager.hpp"
 #include "Runtime/Core/PluginManager.hpp"
@@ -46,8 +38,6 @@
 #include "Widgets/Label.hpp"
 #include "Widgets/RenderDebuggerPanel.hpp"
 #include "Widgets/RenderInvestigationModal.hpp"
-#include "Renderer/RenderDebugger.hpp"
-#include "Renderer/RenderGpuInvestigator.hpp"
 #include "EditorModeController.hpp"
 #include "EditorLayoutController.hpp"
 #include "EditorPanelController.hpp"
@@ -87,99 +77,27 @@ using namespace we::runtime::world;
 Editor::Editor(SDL_Window* window) : m_Window(window) {
     HE_INFO("[Startup] === Editor construction begin ===");
 
-        HE_INFO("[Startup] Stage 1/6: Vulkan context...");
-        m_Context = std::make_shared<VulkanContext>(m_Window);
+    HE_INFO("[Startup] Stage 1/6: Renderer...");
+    m_Renderer = std::make_unique<Renderer>();
+    m_Renderer->Init(m_Window);
 
-        {
-        std::string shaderRoot = "Engine/Shaders";
-        std::string bytecodeRoot = "Assets/Shaders";
-        for (const char* candidate : {"Engine/Shaders", "../Engine/Shaders", "../../Engine/Shaders"})
-        {
-            if (std::filesystem::exists(candidate))
-            {
-                shaderRoot = candidate;
-                break;
-            }
-        }
-        for (const char* candidate : {
-                 "../../../../Engine/Shaders/Bytecodes",
-                 "../../../../../Engine/Shaders/Bytecodes",
-                 "Engine/Shaders/Bytecodes",
-                 "Shaders"})
-        {
-            if (std::filesystem::exists(candidate))
-            {
-                bytecodeRoot = candidate;
-                break;
-            }
-        }
-        ShaderLibrary::Get().Initialize(shaderRoot, bytecodeRoot);
-    }
-    
-    HE_INFO("[Startup] Stage 2/6: Renderer, scene, and camera...");
-    m_Renderer = std::make_shared<Renderer>(m_Context, m_Window);
-    m_RenderGraph = std::make_shared<RenderGraph>(m_Renderer);
-    m_SceneRenderer = std::make_shared<SceneRenderer>(
-        m_Context,
-        m_Renderer->GetOffscreenRenderPass(),
-        m_Renderer->GetOffscreenRenderPassLoad(),
-        m_Renderer->GetCameraDescLayout());
-
-    we::editor::grid::EditorGridRenderer::Get().Initialize(
-        m_Context,
-        m_Renderer->GetOffscreenRenderPass(),
-        m_Renderer->GetCameraDescLayout());
-
+    HE_INFO("[Startup] Stage 2/6: Scene and camera...");
     m_Camera = std::make_shared<EditorCamera>();
     BindViewportCamera(m_Camera);
-    m_Scene = std::make_shared<Scene>(m_Context, m_SceneRenderer);
-    m_Scene->SetCameraBuffer(m_Renderer->GetCameraBuffer());
+    m_Scene = std::make_shared<Scene>();
     we::runtime::world::environment::EnvironmentSystem::Get().BindScene(m_Scene);
-    we::runtime::world::environment::EnvironmentSystem::Get().BindRenderer(m_SceneRenderer);
     PlaceActorsPlacement::Get().BindScene(m_Scene, m_Camera);
     DefaultSceneBuilder::CreateDefaultScene(*m_Scene);
-    m_SceneRenderer->InvalidateCloudTemporalHistory();
     we::runtime::world::environment::EnvironmentSystem::Get().UpdateRendering(m_Camera->GetPosition());
-
-    if (!we::runtime::renderer::RendererDebug::Get().IsMinimalRendererActive()) {
-        m_SceneRenderer->PrepareAtmosphereLUTs(VK_NULL_HANDLE);
-        if (!m_SceneRenderer->AreAtmosphereLUTsReady()) {
-            HE_ERROR("[Startup] Atmosphere LUTs not ready after initialization.");
-            m_SceneRenderer->LogAtmospherePipelineDiagnostics();
-        } else {
-            HE_INFO("[Startup] Atmosphere LUTs initialized successfully.");
-        }
-    } else {
-        HE_INFO("[Startup] Minimal renderer: skipped atmosphere LUT initialization.");
-    }
 
     {
         auto& startup = we::runtime::core::StartupValidator::Get();
-        startup.RegisterCheck("VulkanContext", [this](std::string& detail) {
-            detail = m_Context->GetGPUName();
-            return m_Context->GetDevice() != VK_NULL_HANDLE;
-        });
-        startup.RegisterCheck("SceneRendererPipelines", [this](std::string& detail) {
-            const bool pipeline = m_SceneRenderer->IsSkyPipelineCreated();
-            const bool luts = m_SceneRenderer->AreAtmosphereLUTsReady();
-            const bool minimal = we::runtime::renderer::RendererDebug::Get().IsMinimalRendererActive();
-            detail = minimal
-                ? "Minimal renderer (clear + unlit geometry)"
-                : (pipeline
-                    ? (luts ? "Sky pipeline and LUTs ready" : "Sky pipeline created, LUTs not ready")
-                    : "Sky pipeline missing");
-            return minimal || (pipeline && luts);
-        });
-        startup.RegisterCheck("ShaderBytecodes", [](std::string& detail) {
-            const auto atmosphere = ShaderLibrary::Get().GetBytecode("AtmospherePass", ShaderStage::Pixel);
-            detail = atmosphere.data.empty() ? "AtmospherePass bytecode missing" : "AtmospherePass loaded";
-            return !atmosphere.data.empty();
+        startup.RegisterCheck("Renderer", [this](std::string& detail) {
+            detail = m_Renderer->GetDeviceContext() ? "Foundation renderer initialized" : "Renderer missing device context";
+            return m_Renderer->GetDeviceContext() != nullptr
+                && m_Renderer->GetDeviceContext()->GetDevice() != VK_NULL_HANDLE;
         });
         startup.RunAll();
-        RenderDiagnostics::Get().ValidateStartup(
-            m_SceneRenderer.get(),
-            m_Renderer->GetOffscreenRenderPass(),
-            m_Renderer->GetSwapchainRenderPass());
     }
 
     HE_INFO("[Startup] Stage 3/6: Default assets (fonts, shaders, icons, theme)...");
@@ -190,13 +108,27 @@ Editor::Editor(SDL_Window* window) : m_Window(window) {
     HE_INFO("[Startup] Stage 4/6: UIRenderer init...");
     try {
         m_UIRenderer = std::make_unique<UI::UIRenderer>();
-        if (!m_UIRenderer->Init(m_Context, m_Renderer->GetSwapchainRenderPass())) {
+        if (!m_UIRenderer->Init(
+                m_Renderer->GetDeviceContext(),
+                m_Renderer->GetResourceManager(),
+                m_Renderer->GetSwapchainImageFormat())) {
             throw std::runtime_error("Failed to initialize HouseUI Renderer!");
         }
     } catch (const std::exception& e) {
         HE_ERROR("[Startup] Failed to initialize UIRenderer: " + std::string(e.what()));
         throw;
     }
+
+    m_Renderer->SetUiOverlayRecorder([this](VkCommandBuffer cmd,
+                                            VkImageView targetView,
+                                            VkFormat targetFormat,
+                                            uint32_t width,
+                                            uint32_t height,
+                                            uint32_t frameIndex) {
+        if (m_UIRenderer && m_RootWidget) {
+            m_UIRenderer->RecordDrawCommands(cmd, targetView, targetFormat, width, height, frameIndex);
+        }
+    });
     try {
         InitializeContentBrowserService(m_UIRenderer->GetIconRenderer().get());
     } catch (const std::exception& e) {
@@ -475,7 +407,7 @@ void Editor::BuildDynamicEditorUI() {
     HE_INFO("[UI] Toolbar created with mode selector and tools.");
 
     // ===== 4. Create Viewports =====
-    auto viewportWidget = std::make_shared<ViewportWidget>(m_Renderer, m_Camera, m_Scene, m_UIRenderer.get());
+    auto viewportWidget = std::make_shared<ViewportWidget>(m_Renderer.get(), m_Camera, m_Scene, m_UIRenderer.get());
     viewportWidget->Construct();
     viewportWidget->SetWindow(m_Window);
     m_ViewportWidget = viewportWidget;
@@ -583,7 +515,7 @@ void Editor::BuildDynamicEditorUI() {
     if (detailsPanel) {
         detailsEditor = std::dynamic_pointer_cast<PropertyEditor>(detailsPanel->GetContent());
     }
-    we::editor::environment::InitializeEditor(m_Scene, m_SceneRenderer, worldOutlinerTree, detailsEditor);
+    we::editor::environment::InitializeEditor(m_Scene, nullptr, worldOutlinerTree, detailsEditor);
 
     // ===== 7. Create Content Browser =====
     std::shared_ptr<Panel> contentBrowserPanel;
@@ -793,9 +725,6 @@ void Editor::SyncViewportFramebufferFromLayout() {
     if (m_ViewportWidget) {
         if (auto vp = std::dynamic_pointer_cast<ViewportWidget>(m_ViewportWidget)) {
             vp->FlushPendingResize();
-            const auto& fb = m_Renderer->GetOffscreenFramebuffer();
-            HE_INFO("[Render] Viewport offscreen framebuffer: "
-                + std::to_string(fb.GetWidth()) + "x" + std::to_string(fb.GetHeight()));
         }
     }
 }
@@ -966,13 +895,7 @@ void Editor::MainLoop() {
                 m_UIEventSystem->ProcessMouseEvent(mouseEvent);
             } else if (event.type == SDL_EVENT_KEY_DOWN || event.type == SDL_EVENT_KEY_UP) {
                 if (event.type == SDL_EVENT_KEY_DOWN && event.key.key == SDLK_F9) {
-                    auto& gpuInv = we::runtime::renderer::RenderGpuInvestigator::Get();
-                    if (event.key.mod & SDL_KMOD_SHIFT) {
-                        gpuInv.RequestComparisonCapture();
-                    } else {
-                        gpuInv.RequestBaselineCapture();
-                    }
-                    we::runtime::renderer::RenderDebugger::Get().RequestCapture();
+                    we::UI::RenderInvestigationModalHost::Toggle();
                 }
                 UI::KeyEvent keyEvent{};
                 keyEvent.type = (event.type == SDL_EVENT_KEY_DOWN)
@@ -1017,13 +940,7 @@ void Editor::MainLoop() {
             if (vp) vp->FlushPendingResize();
         }
 
-        if (m_SceneRenderer) {
-            auto& offscreenFB = m_Renderer->GetOffscreenFramebuffer();
-            m_SceneRenderer->ResizePostProcess(offscreenFB.GetWidth(), offscreenFB.GetHeight());
-        }
-
         we::runtime::core::FrameCounter::Advance();
-        FrameStatsCollector::Get().BeginFrame();
 
         if (m_UIEventSystem && m_ViewportWidget) {
             if (auto vp = std::dynamic_pointer_cast<ViewportWidget>(m_ViewportWidget)) {
@@ -1031,403 +948,26 @@ void Editor::MainLoop() {
             }
         }
 
-        we::runtime::renderer::Renderer::CameraUniform cameraUBO{};
+        we::runtime::renderer::CameraUniform cameraUBO{};
         cameraUBO.view = m_Camera->GetViewMatrix();
         cameraUBO.proj = m_Camera->GetProjectionMatrix();
-        cameraUBO.pos = m_Camera->GetPosition();
+        cameraUBO.position = m_Camera->GetPosition();
         cameraUBO.padding = 0.0f;
 
-        if (m_Renderer->BeginFrame()) {
-            m_Renderer->UploadCameraUniform(cameraUBO);
-            m_Scene->RefreshCameraDescriptorBindings(m_Renderer->GetCameraBuffer());
-
-            VkCommandBuffer cmd = m_Renderer->GetCommandBuffer();
-            auto& offscreenFB = m_Renderer->GetOffscreenFramebuffer();
-            m_SceneRenderer->ValidateRenderFrame(offscreenFB.GetFramebuffer(), offscreenFB.GetWidth(), offscreenFB.GetHeight());
-
-            if (firstFrame) {
-                WE_LOG_INFO(we::LogCategory::Renderer.data(), "First frame: offscreen 3D pass -> post exposure -> swapchain UI pass -> present");
-            }
-
-            const auto passStart = std::chrono::steady_clock::now();
-            const VkDescriptorSet cameraDescSet = m_Renderer->GetCameraDescSet();
-            auto& forensics = we::runtime::renderer::RenderForensics::Get();
-            auto& pipelineInv = we::runtime::renderer::RenderPipelineInvestigator::Get();
-            auto& renderDebugger = we::runtime::renderer::RenderDebugger::Get();
-            static bool s_LastReadback = false;
-            if (renderDebugger.WantsGpuReadback() != s_LastReadback) {
-                if (renderDebugger.WantsGpuReadback()) {
-                    forensics.EnableEditorInvestigationReadback();
-                } else {
-                    forensics.DisableEditorInvestigationReadback();
-                }
-                s_LastReadback = renderDebugger.WantsGpuReadback();
-            }
-            const uint64_t frameNumber = we::runtime::core::FrameCounter::GetFrameNumber();
-            forensics.BeginFrame(frameNumber);
-            pipelineInv.BeginFrame(frameNumber);
-            const auto& sceneEnv = m_SceneRenderer->GetSceneEnvironment();
-            forensics.RecordCameraAndEnvironment(cameraUBO.pos, m_Camera->GetForward(), sceneEnv, 0.0f);
-            pipelineInv.RecordCameraAndEnvironment(cameraUBO.pos, sceneEnv, 0.0f);
-            pipelineInv.RecordCameraMatrices(cameraUBO.view, cameraUBO.proj);
-            if (!we::runtime::renderer::RendererDebug::Get().IsMinimalRendererActive()) {
-                const auto probe = we::runtime::renderer::FrameStatsCollector::Get().ComputeAtmosphereProbe(
-                    cameraUBO.view, cameraUBO.proj, cameraUBO.pos, m_Camera->GetForward(), sceneEnv);
-                we::runtime::renderer::FrameStatsCollector::Get().SetAtmosphereProbe(probe);
-            }
-
-            if (!we::runtime::renderer::RendererDebug::Get().IsMinimalRendererActive()) {
-                static bool radianceTraceEnabled = []() {
-                    if (const char* env = std::getenv("WE_ATMOSPHERE_RADIANCE_TRACE")) {
-                        return env[0] == '1' || std::strcmp(env, "true") == 0;
-                    }
-                    return false;
-                }();
-                if (radianceTraceEnabled || frameNumber == 1 || frameNumber % 300 == 0) {
-                    we::runtime::renderer::AtmosphereRadianceTracer::Get().LogStandardTrace(
-                        cameraUBO.view,
-                        cameraUBO.proj,
-                        cameraUBO.pos,
-                        m_Camera->GetForward(),
-                        m_Camera->GetRight(),
-                        m_Camera->GetUp(),
-                        sceneEnv);
-                }
-            }
-
-            const bool atmosphereValidation = we::runtime::renderer::AtmosphereValidation::Get().IsActive();
-            const bool forensicReadback = forensics.IsReadbackEnabled();
-            const bool investigationUiReadback = forensics.IsInvestigationUiActive();
-            const bool investigatorReadback = pipelineInv.IsReadbackEnabled();
-            const uint32_t vpW = offscreenFB.GetWidth();
-            const uint32_t vpH = offscreenFB.GetHeight();
-
-            {
-                auto& gpuInvestigator = we::runtime::renderer::RenderGpuInvestigator::Get();
-                const glm::vec2 probeUV = gpuInvestigator.GetProbeUV();
-                forensics.SetProbePixel(
-                    static_cast<uint32_t>(probeUV.x * static_cast<float>((std::max)(1u, vpW) - 1)),
-                    static_cast<uint32_t>(probeUV.y * static_cast<float>((std::max)(1u, vpH) - 1)));
-            }
-
-            auto checkpointColor = [&](we::runtime::renderer::ForensicPassId passId,
-                                       int executionIndex) {
-                if (!forensicReadback) return;
-                // Investigation modal only needs composite + post readbacks, not per-pass stalls.
-                if (investigationUiReadback) return;
-                m_RenderGraph->EndOffscreenPass(cmd);
-                // Offscreen render pass finalLayout is SHADER_READ_ONLY_OPTIMAL.
-                forensics.EnqueueReadback(cmd, *m_Context, offscreenFB.GetColorImage(), vpW, vpH, passId,
-                    VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, executionIndex);
-                m_RenderGraph->BeginOffscreenPass(cmd, false);
-            };
-
-            int clearExec = -1;
-            {
-                we::runtime::renderer::ForensicPassMetadata clearMeta{};
-                clearMeta.outputTarget = "OffscreenColor";
-                clearMeta.width = vpW;
-                clearMeta.height = vpH;
-                clearMeta.clearColor = we::runtime::renderer::RendererDebug::Get().IsMinimalRendererActive()
-                    ? "0.12,0.12,0.12,1"
-                    : "0,0,0,1";
-                clearMeta.loadOp = "CLEAR";
-                clearMeta.storeOp = "STORE";
-                clearMeta.depthState = "CLEAR 0.0 reverse-Z";
-                clearExec = WE_FORENSIC_PASS_BEGIN(forensics, we::runtime::renderer::ForensicPassId::Clear, clearMeta);
-            }
-
-            m_RenderGraph->BeginOffscreenPass(cmd, true);
-            pipelineInv.AuditPassBegin(we::runtime::renderer::RenderPassId::Clear);
-            checkpointColor(we::runtime::renderer::ForensicPassId::Clear, clearExec);
-
-            if (pipelineInv.ShouldRunPass(we::runtime::renderer::RenderPassId::SkyAtmosphere)) {
-                we::runtime::renderer::ForensicPassMetadata lutMeta{};
-                lutMeta.outputTarget = "AtmosphereLUTs (GPU images)";
-                lutMeta.width = vpW;
-                lutMeta.height = vpH;
-                lutMeta.pipelineName = "AtmosphereLUTGenerator";
-                const int lutExec = WE_FORENSIC_PASS_BEGIN(forensics, we::runtime::renderer::ForensicPassId::AtmosphereLUT, lutMeta);
-                m_SceneRenderer->PrepareAtmosphereLUTs(cmd);
-                forensics.EndPassExecution(lutExec, 0.0);
-            }
-
-            if (pipelineInv.ShouldRunPass(we::runtime::renderer::RenderPassId::SkyAtmosphere)) {
-                we::runtime::renderer::ForensicPassMetadata skyMeta{};
-                skyMeta.outputTarget = "OffscreenColor";
-                skyMeta.width = vpW;
-                skyMeta.height = vpH;
-                skyMeta.pipelineName = "SkyAtmosphere";
-                skyMeta.vertexShader = "AtmospherePass_VS";
-                skyMeta.pixelShader = "AtmospherePass_PS";
-                skyMeta.blendState = "REPLACE";
-                skyMeta.depthState = "ALWAYS";
-                const int skyExec = WE_FORENSIC_PASS_BEGIN(forensics, we::runtime::renderer::ForensicPassId::SkyAtmosphere, skyMeta);
-                pipelineInv.AuditPassBegin(we::runtime::renderer::RenderPassId::SkyAtmosphere);
-                const auto skyStart = std::chrono::steady_clock::now();
-                m_SceneRenderer->DrawSkyAtmospherePass(cmd, cameraDescSet);
-                const double skyMs = std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - skyStart).count();
-                FrameStatsCollector::Get().RecordPassMs("SkyAtmosphere", skyMs);
-                forensics.EndPassExecution(skyExec, skyMs);
-                checkpointColor(we::runtime::renderer::ForensicPassId::SkyAtmosphere, skyExec);
-            }
-
-            if (!atmosphereValidation && pipelineInv.ShouldRunPass(we::runtime::renderer::RenderPassId::Geometry)) {
-                we::runtime::renderer::ForensicPassMetadata geomMeta{};
-                geomMeta.outputTarget = "OffscreenColor+Depth";
-                geomMeta.width = vpW;
-                geomMeta.height = vpH;
-                geomMeta.pipelineName = "Lit/Unlit/Wireframe";
-                geomMeta.vertexShader = "SceneObject_VS";
-                geomMeta.pixelShader = "SceneObject_PS";
-                geomMeta.depthState = "LESS reverse-Z";
-                geomMeta.blendState = "OPAQUE";
-                const int geomExec = WE_FORENSIC_PASS_BEGIN(forensics, we::runtime::renderer::ForensicPassId::Geometry, geomMeta);
-                pipelineInv.AuditPassBegin(we::runtime::renderer::RenderPassId::Geometry);
-                const auto sceneStart = std::chrono::steady_clock::now();
-                m_Scene->Draw(cmd);
-                const double sceneMs = std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - sceneStart).count();
-                FrameStatsCollector::Get().RecordPassMs("Scene", sceneMs);
-                forensics.EndPassExecution(geomExec, sceneMs);
-                checkpointColor(we::runtime::renderer::ForensicPassId::Geometry, geomExec);
-
-                we::runtime::renderer::ForensicPassMetadata lightingMeta{};
-                lightingMeta.outputTarget = "OffscreenColor+Depth";
-                lightingMeta.width = vpW;
-                lightingMeta.height = vpH;
-                lightingMeta.pipelineName = "DeferredLighting (fused in geometry pass)";
-                const int lightingExec = WE_FORENSIC_PASS_BEGIN(forensics, we::runtime::renderer::ForensicPassId::Lighting, lightingMeta);
-                forensics.EndPassExecution(lightingExec, 0.0);
-                checkpointColor(we::runtime::renderer::ForensicPassId::Lighting, lightingExec);
-                pipelineInv.AuditPassBegin(we::runtime::renderer::RenderPassId::Lighting);
-            }
-
-            if (!atmosphereValidation && pipelineInv.ShouldRunPass(we::runtime::renderer::RenderPassId::VolumetricClouds)) {
-                m_SceneRenderer->UpdateCloudTemporalState(
-                    cameraUBO.pos,
-                    m_Camera->GetForward(),
-                    cameraUBO.view,
-                    cameraUBO.proj);
-                we::runtime::renderer::ForensicPassMetadata cloudMeta{};
-                cloudMeta.outputTarget = "OffscreenColor";
-                cloudMeta.width = vpW;
-                cloudMeta.height = vpH;
-                cloudMeta.pipelineName = "VolumetricClouds";
-                cloudMeta.vertexShader = "VolumetricCloudsPass_VS";
-                cloudMeta.pixelShader = "VolumetricCloudsPass_PS";
-                cloudMeta.blendState = "ALPHA_BLEND";
-                const int cloudExec = WE_FORENSIC_PASS_BEGIN(forensics, we::runtime::renderer::ForensicPassId::VolumetricClouds, cloudMeta);
-                pipelineInv.AuditPassBegin(we::runtime::renderer::RenderPassId::VolumetricClouds);
-                const auto cloudStart = std::chrono::steady_clock::now();
-                m_SceneRenderer->DrawVolumetricCloudsPass(cmd, cameraDescSet);
-                const double cloudMs = std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - cloudStart).count();
-                FrameStatsCollector::Get().RecordPassMs("VolumetricClouds", cloudMs);
-                forensics.EndPassExecution(cloudExec, cloudMs);
-                checkpointColor(we::runtime::renderer::ForensicPassId::VolumetricClouds, cloudExec);
-            }
-
-            if (!atmosphereValidation && pipelineInv.ShouldRunPass(we::runtime::renderer::RenderPassId::Fog)) {
-                we::runtime::renderer::ForensicPassMetadata fogMeta{};
-                fogMeta.inputTarget = "OffscreenColor+Depth";
-                fogMeta.outputTarget = "OffscreenColor";
-                fogMeta.width = vpW;
-                fogMeta.height = vpH;
-                fogMeta.pipelineName = "FogComposite";
-                fogMeta.vertexShader = "FogCompositePass_VS";
-                fogMeta.pixelShader = "FogCompositePass_PS";
-                fogMeta.blendState = "ALPHA_BLEND";
-                fogMeta.depthState = "GREATER reverse-Z";
-                const int fogExec = WE_FORENSIC_PASS_BEGIN(forensics, we::runtime::renderer::ForensicPassId::Fog, fogMeta);
-                pipelineInv.AuditPassBegin(we::runtime::renderer::RenderPassId::Fog);
-                const auto fogStart = std::chrono::steady_clock::now();
-                m_SceneRenderer->DrawFogCompositePass(
-                    cmd,
-                    cameraDescSet,
-                    offscreenFB.GetDepthImageView(),
-                    offscreenFB.GetSampler());
-                const double fogMs = std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - fogStart).count();
-                FrameStatsCollector::Get().RecordPassMs("FogComposite", fogMs);
-                forensics.EndPassExecution(fogExec, fogMs);
-                checkpointColor(we::runtime::renderer::ForensicPassId::Fog, fogExec);
-
-                we::runtime::renderer::ForensicPassMetadata aerialMeta{};
-                aerialMeta.outputTarget = "OffscreenColor";
-                aerialMeta.width = vpW;
-                aerialMeta.height = vpH;
-                aerialMeta.pipelineName = "AerialPerspective (fused in fog pass)";
-                const int aerialExec = WE_FORENSIC_PASS_BEGIN(forensics, we::runtime::renderer::ForensicPassId::AerialPerspective, aerialMeta);
-                forensics.EndPassExecution(aerialExec, 0.0);
-                checkpointColor(we::runtime::renderer::ForensicPassId::AerialPerspective, aerialExec);
-                pipelineInv.AuditPassBegin(we::runtime::renderer::RenderPassId::AerialPerspective);
-            }
-
-            if (!atmosphereValidation && pipelineInv.ShouldRenderGrid()
-                && renderDebugger.ShouldRunForensicPass(we::runtime::renderer::ForensicPassId::Grid)) {
-                we::runtime::renderer::ForensicPassMetadata gridMeta{};
-                gridMeta.outputTarget = "OffscreenColor";
-                gridMeta.width = vpW;
-                gridMeta.height = vpH;
-                gridMeta.pipelineName = "EditorGrid";
-                gridMeta.vertexShader = "EditorGrid_VS";
-                gridMeta.pixelShader = "EditorGrid_PS";
-                gridMeta.depthState = "GREATER reverse-Z";
-                const int gridExec = WE_FORENSIC_PASS_BEGIN(forensics, we::runtime::renderer::ForensicPassId::Grid, gridMeta);
-                const auto gridStart = std::chrono::steady_clock::now();
-                we::editor::grid::EditorGridRenderer::Get().Render(cmd, cameraDescSet, *m_Camera);
-                forensics.EndPassExecution(gridExec,
-                    std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - gridStart).count());
-                checkpointColor(we::runtime::renderer::ForensicPassId::Grid, gridExec);
-            }
-            we::programs::editor::UpdateViewportCameraSpeedIndicator();
-            m_RenderGraph->EndOffscreenPass(cmd);
-            int sceneCompositeExec = -1;
-            if (forensicReadback) {
-                we::runtime::renderer::ForensicPassMetadata compositeMeta{};
-                compositeMeta.inputTarget = "OffscreenColor";
-                compositeMeta.outputTarget = "OffscreenColor";
-                compositeMeta.width = vpW;
-                compositeMeta.height = vpH;
-                compositeMeta.format = "R16G16B16A16_SFLOAT";
-                compositeMeta.inputLayout = "COLOR_ATTACHMENT_OPTIMAL";
-                compositeMeta.outputLayout = "SHADER_READ_ONLY_OPTIMAL";
-                sceneCompositeExec = WE_FORENSIC_PASS_BEGIN(forensics, we::runtime::renderer::ForensicPassId::SceneComposite, compositeMeta);
-                forensics.EnqueueReadback(cmd, *m_Context, offscreenFB.GetColorImage(), vpW, vpH,
-                    we::runtime::renderer::ForensicPassId::SceneComposite,
-                    VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, sceneCompositeExec);
-                forensics.EndPassExecution(sceneCompositeExec, 0.0);
-            } else if (investigatorReadback) {
-                pipelineInv.EnqueueCheckpoint(cmd, *m_Context, offscreenFB.GetColorImage(), vpW, vpH,
-                    we::runtime::renderer::RenderPassId::PostProcessing);
-            }
-
-            if (pipelineInv.ShouldRunPostProcess()) {
-                const auto postStart = std::chrono::steady_clock::now();
-                m_SceneRenderer->ApplyPostExposure(
-                    cmd,
-                    offscreenFB.GetColorImage(),
-                    offscreenFB.GetColorImageView(),
-                    vpW,
-                    vpH);
-                const double postMs = std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - postStart).count();
-                FrameStatsCollector::Get().RecordPassMs("PostExposure", postMs);
-                pipelineInv.AuditPassBegin(we::runtime::renderer::RenderPassId::Exposure);
-                pipelineInv.AuditPassBegin(we::runtime::renderer::RenderPassId::ToneMapping);
-            } else if (pipelineInv.IsActive()) {
-                auto& stats = FrameStatsCollector::Get();
-                stats.SetPassStatus("PostExposure", "skipped");
-                stats.SetPassStatus("ToneMapping", "skipped");
-                stats.SetPassStatus("Bloom", "skipped");
-            }
-
-            FrameStatsCollector::Get().RecordPassMs("Offscreen",
-                std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - passStart).count());
-
-            m_SceneRenderer->LogAtmospherePipelineDiagnosticsOnChange();
-
-            we::runtime::renderer::ForensicPassMetadata uiMeta{};
-            uiMeta.outputTarget = "Swapchain";
-            const int uiExec = WE_FORENSIC_PASS_BEGIN(forensics, we::runtime::renderer::ForensicPassId::UI, uiMeta);
-            const auto uiStart = std::chrono::steady_clock::now();
+        if (m_UIRenderer && m_RootWidget) {
             m_UIRenderer->PrepareFrame(
                 m_Renderer->GetSwapchainWidth(),
                 m_Renderer->GetSwapchainHeight(),
                 m_Renderer->GetCurrentFrameIndex(),
                 m_RootWidget);
-            m_RenderGraph->BeginSwapchainPass(cmd);
-            m_UIRenderer->RecordDrawCommands(
-                cmd,
-                m_Renderer->GetSwapchainWidth(),
-                m_Renderer->GetSwapchainHeight(),
-                m_Renderer->GetCurrentFrameIndex());
-            m_RenderGraph->EndSwapchainPass(cmd);
-            forensics.EndPassExecution(uiExec,
-                std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - uiStart).count());
-            we::runtime::renderer::ForensicPassMetadata presentMeta{};
-            presentMeta.outputTarget = "SwapchainPresent";
-            WE_FORENSIC_PASS_BEGIN(forensics, we::runtime::renderer::ForensicPassId::Present, presentMeta);
-            pipelineInv.AuditPassBegin(we::runtime::renderer::RenderPassId::Present);
+        }
 
-            const VkFence frameFence = m_Renderer->GetCurrentInFlightFence();
+        if (m_Renderer->BeginFrame()) {
+            m_Renderer->UploadCameraUniform(cameraUBO);
             m_Renderer->EndFrame();
-            if (frameFence != VK_NULL_HANDLE) {
-                m_Context->WaitForFence(frameFence, 100'000'000);
-            }
-            m_SceneRenderer->FlushPostProcessReadbacks();
-            const float gpuAvgLuminance = we::runtime::renderer::FrameStatsCollector::Get().GetStats().gpuAverageLuminance;
-            forensics.RefreshCameraGpuLuminance(gpuAvgLuminance);
-            pipelineInv.RecordCameraAndEnvironment(cameraUBO.pos, sceneEnv, gpuAvgLuminance);
-            FrameStatsCollector::Get().EndFrame();
-
-            const auto forensicReport = forensics.FinalizeFrame(*m_Context, frameFence);
-
-            const auto& frameStats = FrameStatsCollector::Get().GetStats();
-            const float fps = frameStats.cpuFrameMs > 0.0 ? static_cast<float>(1000.0 / frameStats.cpuFrameMs) : 0.0f;
-            const auto debuggerSnapshot = renderDebugger.BuildSnapshot(
-                forensicReport,
-                frameStats,
-                cameraUBO,
-                m_Camera->GetForward(),
-                m_Camera->GetRight(),
-                m_Camera->GetUp(),
-                0.1f,
-                100000.0f,
-                m_Camera->GetFov(),
-                sceneEnv,
-                m_SceneRenderer->GetLUTDebugStats(),
-                m_SceneRenderer->GetCachedLUTData(),
-                m_SceneRenderer->BuildGpuResourceCatalog(vpW, vpH),
-                fps,
-                vpW,
-                vpH,
-                0.0f,
-                forensics.GetSettings().maxHdrComponent);
-            if (m_RenderDebuggerPanel) {
-                m_RenderDebuggerPanel->UpdateFromSnapshot(debuggerSnapshot);
-            }
-            we::UI::RenderInvestigationModalHost::UpdateFromSnapshot(debuggerSnapshot);
-            if (forensics.IsActive() && forensics.ShouldHalt()) {
-                const auto& forensicSettings = forensics.GetSettings();
-                WE_LOG_CRITICAL(we::LogCategory::Renderer.data(),
-                    std::string("Render forensic diagnostics halted at pass ")
-                        + we::runtime::renderer::RenderForensics::PassName(forensicReport.firstAnomalyPass)
-                        + ": " + forensicReport.firstAnomalyReason
-                        + " | Report: Saved/RenderForensics/FINAL_DIAGNOSTIC_REPORT.txt");
-                if (forensicSettings.haltOnInvalid || forensicSettings.haltOnWhiteScreen) {
-                    m_Running = false;
-                }
-            }
-
-            if (pipelineInv.IsActive()) {
-                const auto report = pipelineInv.FinalizeFrame(*m_Context,
-                    forensics.IsActive() ? VK_NULL_HANDLE : frameFence);
-                if (pipelineInv.ShouldHalt()) {
-                    WE_LOG_CRITICAL(we::LogCategory::Renderer.data(),
-                        std::string("Pipeline investigation halted at pass ")
-                            + we::runtime::renderer::RenderPipelineInvestigator::PassName(report.firstFailingPass)
-                            + ": " + report.firstFailureReason);
-                    m_Running = false;
-                }
-            }
-
-            if (we::runtime::renderer::AtmosphereValidation::Get().IsActive()) {
-                we::runtime::renderer::AtmosphereValidation::Get().OnFrameComplete(
-                    *m_Context,
-                    offscreenFB.GetColorImage(),
-                    offscreenFB.GetWidth(),
-                    offscreenFB.GetHeight());
-                if (we::runtime::renderer::AtmosphereValidation::Get().ShouldExit()) {
-                    m_Running = false;
-                }
-            }
 
             if (firstFrame) {
-                const auto& stats = m_UIRenderer->GetLastFrameStats();
-                HE_INFO("[Render] First frame presented. UI commands=" + std::to_string(stats.drawCommands)
-                    + " vertices=" + std::to_string(stats.vertices)
-                    + " batches=" + std::to_string(stats.batches));
-                if (stats.vertices == 0) {
-                    HE_ERROR("[Render] First frame had EMPTY UI geometry — window will appear blank.");
-                }
+                HE_INFO("[Render] First foundation renderer frame presented.");
                 firstFrame = false;
             }
         }
@@ -1445,7 +985,6 @@ void Editor::Shutdown() {
     if (m_Window) {
         SDL_SetWindowRelativeMouseMode(m_Window, false);
     }
-        m_Context->WaitUntilIdle();
 
     we::core::PluginManager::Get().UnloadAllPlugins();
     we::core::ModuleManager::Get().ShutdownAllModules();
@@ -1462,9 +1001,10 @@ void Editor::Shutdown() {
     m_Scene.reset();
     m_Camera.reset();
     we::editor::grid::EditorGridRenderer::Get().Shutdown();
-    m_SceneRenderer.reset();
-    m_RenderGraph.reset();
-    m_Renderer.reset();
+    if (m_Renderer) {
+        m_Renderer->Shutdown();
+        m_Renderer.reset();
+    }
 }
 
 } // namespace we::programs::editor

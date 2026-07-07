@@ -13,11 +13,15 @@ public class Renderer : ModuleRules
         PublicDependencies.Add("CoreUObject");
         PublicDependencies.Add("RHI");
         PublicDependencies.Add("Engine");
+        PublicDependencies.Add("volk");
+        PublicDependencies.Add("vma");
 
         // Add Vulkan SDK as optional dependency
         OptionalSDK("VulkanSDK");
-        DefineIf(HasSDK("VulkanSDK"), "WE_HAS_VULKAN=1");
-        DefineIf(!HasSDK("VulkanSDK"), "WE_HAS_VULKAN=0");
+        DefineIf(HasSDK("VulkanSDK") || true, "WE_HAS_VULKAN=1");
+
+        // Force fallback to ThirdParty Vulkan-Headers
+        PublicIncludePaths.Add(System.IO.Path.Combine(context.EngineDirectory, "ThirdParty", "Vulkan-Headers", "include"));
 
         // SDL3 is used for Vulkan surface creation and window sizing
         OptionalSDK("SDL3");
@@ -25,8 +29,6 @@ public class Renderer : ModuleRules
         DefineIf(!HasSDK("SDL3"), "WE_HAS_SDL3=0");
 
         AddOptionalThirdParty("glm");
-        DefineIf(HasThirdParty("glm"), "WE_HAS_GLM=1");
-        DefineIf(!HasThirdParty("glm"), "WE_HAS_GLM=0");
 
         Definitions.Add("RENDERER_EXPORTS");
 

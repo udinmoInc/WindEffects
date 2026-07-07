@@ -8,7 +8,7 @@
 #include "Widgets/Button.hpp"
 #include "Widgets/Label.hpp"
 #include "Widgets/TextBox.hpp"
-#include "Renderer/RenderDebugger.hpp"
+#include "Renderer/EditorRenderDebugStub.h"
 #include <functional>
 #include <memory>
 #include <string>

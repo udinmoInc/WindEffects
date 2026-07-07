@@ -3,6 +3,8 @@ using Microsoft.CodeAnalysis.CSharp;
 using Serilog;
 using IgniteBT.Build.Layout;
 using IgniteBT.Build.Dependencies;
+using System.Reflection;
+using System.Runtime.Loader;
 
 namespace IgniteBT.Workspace.Modules;
 
@@ -14,6 +16,20 @@ public sealed class ModuleDiscoveryException : Exception
     public ModuleDiscoveryException(string message) : base(message)
     {
     }
+}
+
+/// <summary>
+/// Isolated load context for compiled Build.cs assemblies.
+/// Prevents "Assembly with same name is already loaded" when the build daemon
+/// discovers modules multiple times in one process.
+/// </summary>
+internal sealed class ModuleRulesLoadContext : AssemblyLoadContext
+{
+    public ModuleRulesLoadContext() : base(isCollectible: true)
+    {
+    }
+
+    protected override Assembly? Load(AssemblyName assemblyName) => null;
 }
 
 /// <summary>
@@ -102,8 +118,11 @@ public class ModuleDiscoverer
 
         references.Add(MetadataReference.CreateFromFile(typeof(ModuleRules).Assembly.Location));
 
+        var moduleName = ExtractModuleNameFromPath(buildCsPath);
+        var assemblyName = $"IgniteBT.ModuleRules.{moduleName}_{Guid.NewGuid():N}";
+
         var compilation = CSharpCompilation.Create(
-            assemblyName: Path.GetFileNameWithoutExtension(buildCsPath) + "_compiled",
+            assemblyName: assemblyName,
             syntaxTrees: new[] { syntaxTree },
             references: references,
             options: new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary)
@@ -124,96 +143,103 @@ public class ModuleDiscoverer
                 $"Failed to compile Build.cs '{buildCsPath}':{Environment.NewLine}{errors}");
         }
 
-        ms.Seek(0, SeekOrigin.Begin);
-        var assembly = System.Runtime.Loader.AssemblyLoadContext.Default.LoadFromStream(ms);
-
-        var moduleType = assembly.GetTypes()
-            .FirstOrDefault(t => t.IsClass && !t.IsAbstract && typeof(ModuleRules).IsAssignableFrom(t));
-
-        if (moduleType is null)
+        var loadContext = new ModuleRulesLoadContext();
+        try
         {
-            throw new ModuleDiscoveryException(
-                $"No concrete ModuleRules subclass found in Build.cs '{buildCsPath}'.");
-        }
+            ms.Seek(0, SeekOrigin.Begin);
+            var assembly = loadContext.LoadFromStream(ms);
 
-        var context = new ModuleContext(_engineDirectory, _configuration, _platform, _architecture);
+            var moduleType = assembly.GetTypes()
+                .FirstOrDefault(t => t.IsClass && !t.IsAbstract && typeof(ModuleRules).IsAssignableFrom(t));
 
-        if (_dependencyResult is not null)
-        {
-            var availableSDKs = new Dictionary<string, bool>();
-            foreach (var (name, sdk) in _dependencyResult.SDKs)
+            if (moduleType is null)
             {
-                availableSDKs[name] = sdk.IsValid;
+                throw new ModuleDiscoveryException(
+                    $"No concrete ModuleRules subclass found in Build.cs '{buildCsPath}'.");
             }
-            context.SetAvailableSDKs(availableSDKs);
 
-            var availableThirdParty = new Dictionary<string, bool>();
-            foreach (var (name, lib) in _dependencyResult.ThirdPartyLibraries)
+            var context = new ModuleContext(_engineDirectory, _configuration, _platform, _architecture);
+
+            if (_dependencyResult is not null)
             {
-                availableThirdParty[name] = lib.IsValid;
-            }
-            context.SetAvailableThirdParty(availableThirdParty);
-            context.SetFeatureFlags(_dependencyResult.FeatureFlags);
-        }
-
-        if (Activator.CreateInstance(moduleType, context) is not ModuleRules moduleInstance)
-        {
-            throw new ModuleDiscoveryException(
-                $"Failed to instantiate module class '{moduleType.FullName}' from '{buildCsPath}'.");
-        }
-
-        var moduleName = ExtractModuleNameFromPath(buildCsPath);
-        var moduleDirectory = Path.GetDirectoryName(buildCsPath) ?? string.Empty;
-
-        var discoveredModule = new DiscoveredModule
-        {
-            Name = moduleName,
-            BuildCsPath = buildCsPath,
-            ModuleDirectory = moduleDirectory,
-            Type = moduleInstance.Type,
-            PublicDependencies = new List<string>(moduleInstance.PublicDependencies),
-            PrivateDependencies = new List<string>(moduleInstance.PrivateDependencies),
-            PublicIncludePaths = new List<string>(moduleInstance.PublicIncludePaths),
-            PrivateIncludePaths = new List<string>(moduleInstance.PrivateIncludePaths),
-            SourceFiles = new List<string>(moduleInstance.SourceFiles),
-            PrecompiledHeader = moduleInstance.PrecompiledHeader,
-            PrecompiledHeaderSource = moduleInstance.PrecompiledHeaderSource,
-            RequiredSDKs = new List<string>(moduleInstance.RequiredSDKs),
-            OptionalSDKs = new List<string>(moduleInstance.OptionalSDKs),
-            RequiredThirdParty = new List<string>(moduleInstance.RequiredThirdParty),
-            OptionalThirdParty = new List<string>(moduleInstance.OptionalThirdParty),
-            IsDisabled = moduleInstance.IsDisabled,
-            Definitions = new List<string>(moduleInstance.Definitions),
-            IsPlugin = moduleInstance.IsPlugin,
-            IsBootstrapBinary = moduleInstance.IsBootstrapBinary,
-            BinaryName = moduleInstance.BinaryName,
-            OutputPlacement = moduleInstance.OutputPlacement,
-            PlatformSettings = moduleInstance.PlatformSettings
-        };
-
-        if (discoveredModule.IsDisabled)
-        {
-            Log.Information("Module {Name} is disabled, skipping", moduleName);
-            return;
-        }
-
-        if (_dependencyResult is not null)
-        {
-            foreach (var requiredSDK in discoveredModule.RequiredSDKs)
-            {
-                if (!_dependencyResult.SDKs.TryGetValue(requiredSDK, out var sdk) || !sdk.IsValid)
+                var availableSDKs = new Dictionary<string, bool>();
+                foreach (var (name, sdk) in _dependencyResult.SDKs)
                 {
-                    throw new ModuleDiscoveryException(
-                        $"Module '{moduleName}' requires SDK '{requiredSDK}' which is not available.");
+                    availableSDKs[name] = sdk.IsValid;
+                }
+                context.SetAvailableSDKs(availableSDKs);
+
+                var availableThirdParty = new Dictionary<string, bool>();
+                foreach (var (name, lib) in _dependencyResult.ThirdPartyLibraries)
+                {
+                    availableThirdParty[name] = lib.IsValid;
+                }
+                context.SetAvailableThirdParty(availableThirdParty);
+                context.SetFeatureFlags(_dependencyResult.FeatureFlags);
+            }
+
+            if (Activator.CreateInstance(moduleType, context) is not ModuleRules moduleInstance)
+            {
+                throw new ModuleDiscoveryException(
+                    $"Failed to instantiate module class '{moduleType.FullName}' from '{buildCsPath}'.");
+            }
+
+            var moduleDirectory = Path.GetDirectoryName(buildCsPath) ?? string.Empty;
+
+            var discoveredModule = new DiscoveredModule
+            {
+                Name = moduleName,
+                BuildCsPath = buildCsPath,
+                ModuleDirectory = moduleDirectory,
+                Type = moduleInstance.Type,
+                PublicDependencies = new List<string>(moduleInstance.PublicDependencies),
+                PrivateDependencies = new List<string>(moduleInstance.PrivateDependencies),
+                PublicIncludePaths = new List<string>(moduleInstance.PublicIncludePaths),
+                PrivateIncludePaths = new List<string>(moduleInstance.PrivateIncludePaths),
+                SourceFiles = new List<string>(moduleInstance.SourceFiles),
+                PrecompiledHeader = moduleInstance.PrecompiledHeader,
+                PrecompiledHeaderSource = moduleInstance.PrecompiledHeaderSource,
+                RequiredSDKs = new List<string>(moduleInstance.RequiredSDKs),
+                OptionalSDKs = new List<string>(moduleInstance.OptionalSDKs),
+                RequiredThirdParty = new List<string>(moduleInstance.RequiredThirdParty),
+                OptionalThirdParty = new List<string>(moduleInstance.OptionalThirdParty),
+                IsDisabled = moduleInstance.IsDisabled,
+                Definitions = new List<string>(moduleInstance.Definitions),
+                IsPlugin = moduleInstance.IsPlugin,
+                IsBootstrapBinary = moduleInstance.IsBootstrapBinary,
+                BinaryName = moduleInstance.BinaryName,
+                OutputPlacement = moduleInstance.OutputPlacement,
+                PlatformSettings = moduleInstance.PlatformSettings
+            };
+
+            if (discoveredModule.IsDisabled)
+            {
+                Log.Information("Module {Name} is disabled, skipping", moduleName);
+                return;
+            }
+
+            if (_dependencyResult is not null)
+            {
+                foreach (var requiredSDK in discoveredModule.RequiredSDKs)
+                {
+                    if (!_dependencyResult.SDKs.TryGetValue(requiredSDK, out var sdk) || !sdk.IsValid)
+                    {
+                        throw new ModuleDiscoveryException(
+                            $"Module '{moduleName}' requires SDK '{requiredSDK}' which is not available.");
+                    }
                 }
             }
-        }
 
-        _modules.Add(discoveredModule);
-        Log.Information(
-            "Loaded module: {Name} with {DepCount} dependencies",
-            moduleName,
-            discoveredModule.PublicDependencies.Count + discoveredModule.PrivateDependencies.Count);
+            _modules.Add(discoveredModule);
+            Log.Information(
+                "Loaded module: {Name} with {DepCount} dependencies",
+                moduleName,
+                discoveredModule.PublicDependencies.Count + discoveredModule.PrivateDependencies.Count);
+        }
+        finally
+        {
+            loadContext.Unload();
+        }
     }
 
     private static string PrepareBuildCsSource(string content) =>

@@ -1,11 +1,15 @@
 #include "Rendering/UIRenderer.hpp"
-#include "Renderer/VulkanContext.hpp"
-#include "Renderer/ShaderHelper.hpp"
+#include "Core/DeviceContext.h"
+#include "Core/ImageBarriers.h"
+#include "Resource/ResourceManager.h"
+#include "Shader/ShaderLibrary.h"
 #include "Core/Logger.hpp"
 #include "Core/Widget.hpp"
 #include "Runtime/Core/AssetRegistry.hpp"
 #include <array>
 #include <cmath>
+#include <cstring>
+#include <stdexcept>
 
 namespace we::UI {
 
@@ -13,25 +17,32 @@ UIRenderer::~UIRenderer() {
     Shutdown();
 }
 
-bool UIRenderer::Init(const std::shared_ptr<we::runtime::renderer::VulkanContext>& context, VkRenderPass renderPass) {
+bool UIRenderer::Init(we::runtime::renderer::DeviceContext* context,
+                      we::runtime::renderer::ResourceManager* resources,
+                      VkFormat swapchainColorFormat) {
     m_Context = context;
-    VkDevice device = m_Context->GetDevice();
+    m_Resources = resources;
+    m_ColorFormat = swapchainColorFormat;
+    if (!m_Context || !m_Resources) {
+        HE_ERROR("UIRenderer: DeviceContext or ResourceManager is null.");
+        return false;
+    }
 
-    // Initialize volk for this DLL's context (each module has its own function pointers).
     if (volkInitialize() != VK_SUCCESS) {
         HE_ERROR("UIRenderer: volkInitialize failed.");
         return false;
     }
     volkLoadInstance(m_Context->GetInstance());
-    volkLoadDevice(device);
+    volkLoadDevice(m_Context->GetDevice());
     if (!vkCmdBindPipeline) {
         HE_ERROR("UIRenderer: Vulkan command function pointers were not loaded.");
         return false;
     }
 
+    m_GpuUpload.Init(m_Context, m_Resources);
 
-    HE_INFO("UIRenderer: Initializing UI descriptor layouts...");
-    // 1. Create Descriptor Set Layout for combined image sampler
+    VkDevice device = m_Context->GetDevice();
+
     VkDescriptorSetLayoutBinding samplerLayoutBinding{};
     samplerLayoutBinding.binding = 0;
     samplerLayoutBinding.descriptorCount = 1;
@@ -45,136 +56,120 @@ bool UIRenderer::Init(const std::shared_ptr<we::runtime::renderer::VulkanContext
     layoutInfo.pBindings = &samplerLayoutBinding;
 
     if (vkCreateDescriptorSetLayout(device, &layoutInfo, nullptr, &m_TextureDescLayout) != VK_SUCCESS) {
-        HE_ERROR("UIRenderer: Failed to create UI texture descriptor set layout!");
+        HE_ERROR("UIRenderer: Failed to create UI texture descriptor set layout.");
         return false;
     }
 
-    // 2. Initialize Font Atlas
+    VkDescriptorPoolSize poolSize{};
+    poolSize.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+    poolSize.descriptorCount = 4096;
+
+    VkDescriptorPoolCreateInfo poolInfo{};
+    poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+    poolInfo.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
+    poolInfo.maxSets = 2048;
+    poolInfo.poolSizeCount = 1;
+    poolInfo.pPoolSizes = &poolSize;
+
+    if (vkCreateDescriptorPool(device, &poolInfo, nullptr, &m_DescriptorPool) != VK_SUCCESS) {
+        HE_ERROR("UIRenderer: Failed to create descriptor pool.");
+        return false;
+    }
+
     m_FontAtlas = std::make_shared<FontAtlas>();
     const std::string uiFontPath = we::core::AssetRegistry::Get().GetFontPath("Font_UI");
     const std::string fontToLoad = uiFontPath.empty() ? "Assets/Fonts/Inter-Regular.ttf" : uiFontPath;
-    if (!m_FontAtlas->Init(m_Context, fontToLoad, 32, 96, 1024, 1024)) {
-        throw std::runtime_error("Failed to initialize HouseUI Renderer!");
+    if (!m_FontAtlas->Init(m_Context, m_Resources, &m_GpuUpload, fontToLoad, 32, 96, 1024, 1024)) {
+        HE_ERROR("UIRenderer: Font atlas initialization failed.");
+        return false;
     }
 
     m_IconRenderer = std::make_shared<IconRenderer>();
-    if (!m_IconRenderer->Init(m_Context, m_TextureDescLayout)) {
+    if (!m_IconRenderer->Init(m_Context, m_Resources, &m_GpuUpload, m_DescriptorPool, m_TextureDescLayout)) {
         HE_ERROR("UIRenderer: Failed to initialize IconRenderer.");
     }
 
-    // 3. Create Dummy White Texture
     CreateDummyTexture();
-
-    // 4. Create font descriptor set
-    
-    // Register textures for Font and Dummy
     m_DummyDescriptorSet = RegisterTexture(m_DummyImageView, m_DummySampler);
     if (m_DummyDescriptorSet == VK_NULL_HANDLE) {
-        HE_ERROR("UIRenderer: Failed to allocate dummy texture descriptor set!");
+        HE_ERROR("UIRenderer: Failed to allocate dummy texture descriptor set.");
         return false;
     }
-    // Allocate Font descriptor set
-    VkDescriptorSetAllocateInfo fontAllocInfo{};
-    fontAllocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-    fontAllocInfo.descriptorPool = m_Context->GetDescriptorPool();
-    fontAllocInfo.descriptorSetCount = 1;
-    fontAllocInfo.pSetLayouts = &m_TextureDescLayout;
 
-    if (vkAllocateDescriptorSets(device, &fontAllocInfo, &m_FontAtlas->GetDescriptorSetRef()) == VK_SUCCESS) {
-        VkDescriptorImageInfo fontImageInfo{};
-        fontImageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-        fontImageInfo.imageView = m_FontAtlas->GetImageView();
-        fontImageInfo.sampler = m_FontAtlas->GetSampler();
-
-        VkWriteDescriptorSet fontWrite{};
-        fontWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        fontWrite.dstSet = m_FontAtlas->GetDescriptorSetRef();
-        fontWrite.dstBinding = 0;
-        fontWrite.dstArrayElement = 0;
-        fontWrite.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-        fontWrite.descriptorCount = 1;
-        fontWrite.pImageInfo = &fontImageInfo;
-
-        vkUpdateDescriptorSets(device, 1, &fontWrite, 0, nullptr);
-    } else {
-        // Fallback: register via manual layout
-        m_FontAtlas->GetDescriptorSetRef() = RegisterTexture(m_FontAtlas->GetImageView(), m_FontAtlas->GetSampler());
+    m_FontAtlas->GetDescriptorSetRef() = RegisterTexture(m_FontAtlas->GetImageView(), m_FontAtlas->GetSampler());
+    if (m_FontAtlas->GetDescriptorSet() == VK_NULL_HANDLE) {
+        HE_ERROR("UIRenderer: Failed to allocate font atlas descriptor set.");
+        return false;
     }
 
     we::core::AssetRegistry::Get().RegisterTexture("Font_UI_Atlas", m_FontAtlas->GetImageView(), m_FontAtlas->GetSampler());
     we::core::AssetRegistry::Get().RegisterTexture("UI_DummyWhite", m_DummyImageView, m_DummySampler);
 
-    // 5. Create pipeline
-    CreatePipeline(renderPass);
+    CreatePipeline(swapchainColorFormat);
 
-    HE_INFO("UIRenderer: Custom Slate-like UI renderer initialized successfully.");
+    HE_INFO("UIRenderer: GPU UI renderer initialized successfully.");
     return true;
 }
 
 void UIRenderer::CreateDummyTexture() {
     VkDevice device = m_Context->GetDevice();
+    std::array<uint8_t, 4> pixel = {255, 255, 255, 255};
 
-    // 1x1 white pixel data
-    std::array<uint8_t, 4> pixel = { 255, 255, 255, 255 };
-
-    VkBuffer stagingBuffer;
-    VkDeviceMemory stagingBufferMemory;
-    m_Context->CreateBuffer(
+    VkBuffer stagingBuffer = VK_NULL_HANDLE;
+    VkDeviceMemory stagingMemory = VK_NULL_HANDLE;
+    m_Resources->CreateBuffer(
         4,
         VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
         VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
         stagingBuffer,
-        stagingBufferMemory
-    );
+        stagingMemory);
 
-    void* data;
-    vkMapMemory(device, stagingBufferMemory, 0, 4, 0, &data);
-    memcpy(data, pixel.data(), 4);
-    vkUnmapMemory(device, stagingBufferMemory);
+    void* data = nullptr;
+    vkMapMemory(device, stagingMemory, 0, 4, 0, &data);
+    std::memcpy(data, pixel.data(), 4);
+    vkUnmapMemory(device, stagingMemory);
 
-    m_Context->CreateImage(
+    m_Resources->CreateImage(
         1, 1,
         VK_FORMAT_R8G8B8A8_UNORM,
         VK_IMAGE_TILING_OPTIMAL,
         VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
         VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
         m_DummyImage,
-        m_DummyMemory
-    );
+        m_DummyMemory);
 
-    m_Context->TransitionImageLayout(
-        m_DummyImage,
-        VK_FORMAT_R8G8B8A8_UNORM,
-        VK_IMAGE_LAYOUT_UNDEFINED,
-        VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL
-    );
+    m_GpuUpload.SubmitOneTime([&](VkCommandBuffer cmd) {
+        we::runtime::renderer::TransitionImageLayout(
+            cmd,
+            m_DummyImage,
+            VK_IMAGE_LAYOUT_UNDEFINED,
+            VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+            0,
+            VK_ACCESS_TRANSFER_WRITE_BIT,
+            VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
+            VK_PIPELINE_STAGE_TRANSFER_BIT);
 
-    VkCommandBuffer cmd = m_Context->BeginSingleTimeCommands();
-    VkBufferImageCopy region{};
-    region.bufferOffset = 0;
-    region.bufferRowLength = 0;
-    region.bufferImageHeight = 0;
-    region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-    region.imageSubresource.mipLevel = 0;
-    region.imageSubresource.baseArrayLayer = 0;
-    region.imageSubresource.layerCount = 1;
-    region.imageOffset = {0, 0, 0};
-    region.imageExtent = { 1, 1, 1 };
+        VkBufferImageCopy region{};
+        region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+        region.imageSubresource.layerCount = 1;
+        region.imageExtent = {1, 1, 1};
+        vkCmdCopyBufferToImage(cmd, stagingBuffer, m_DummyImage, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
 
-    vkCmdCopyBufferToImage(cmd, stagingBuffer, m_DummyImage, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
-    m_Context->EndSingleTimeCommands(cmd);
-
-    m_Context->TransitionImageLayout(
-        m_DummyImage,
-        VK_FORMAT_R8G8B8A8_UNORM,
-        VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-        VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
-    );
+        we::runtime::renderer::TransitionImageLayout(
+            cmd,
+            m_DummyImage,
+            VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+            VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+            VK_ACCESS_TRANSFER_WRITE_BIT,
+            VK_ACCESS_SHADER_READ_BIT,
+            VK_PIPELINE_STAGE_TRANSFER_BIT,
+            VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT);
+    });
 
     vkDestroyBuffer(device, stagingBuffer, nullptr);
-    vkFreeMemory(device, stagingBufferMemory, nullptr);
+    vkFreeMemory(device, stagingMemory, nullptr);
 
-    m_DummyImageView = m_Context->CreateImageView(m_DummyImage, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_ASPECT_COLOR_BIT);
+    m_DummyImageView = m_Resources->CreateImageView(m_DummyImage, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_ASPECT_COLOR_BIT);
 
     VkSamplerCreateInfo samplerInfo{};
     samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
@@ -190,72 +185,49 @@ void UIRenderer::CreateDummyTexture() {
     vkCreateSampler(device, &samplerInfo, nullptr, &m_DummySampler);
 }
 
-void UIRenderer::CreatePipeline(VkRenderPass renderPass) {
+void UIRenderer::CreatePipeline(VkFormat colorFormat) {
     VkDevice device = m_Context->GetDevice();
 
-    std::vector<char> vertCode = we::runtime::renderer::LoadShaderBytecode("UI", we::runtime::renderer::ShaderStage::Vertex);
-    std::vector<char> fragCode = we::runtime::renderer::LoadShaderBytecode("UI", we::runtime::renderer::ShaderStage::Pixel);
+    VkShaderModule vertShaderModule = we::runtime::renderer::ShaderLibrary::Get().CreateShaderModule(
+        device, "UI", we::runtime::renderer::ShaderStage::Vertex);
+    VkShaderModule fragShaderModule = we::runtime::renderer::ShaderLibrary::Get().CreateShaderModule(
+        device, "UI", we::runtime::renderer::ShaderStage::Pixel);
 
-    VkShaderModule vertShaderModule = we::runtime::renderer::CreateShaderModule(device, vertCode);
-    VkShaderModule fragShaderModule = we::runtime::renderer::CreateShaderModule(device, fragCode);
+    if (vertShaderModule == VK_NULL_HANDLE || fragShaderModule == VK_NULL_HANDLE) {
+        throw std::runtime_error("UIRenderer: Failed to load UI shader modules.");
+    }
 
     VkPipelineShaderStageCreateInfo vertShaderStageInfo{};
     vertShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
     vertShaderStageInfo.stage = VK_SHADER_STAGE_VERTEX_BIT;
     vertShaderStageInfo.module = vertShaderModule;
-    vertShaderStageInfo.pName = we::runtime::renderer::ShaderStageEntryPoint(we::runtime::renderer::ShaderStage::Vertex);
+    vertShaderStageInfo.pName = "VSMain";
 
     VkPipelineShaderStageCreateInfo fragShaderStageInfo{};
     fragShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
     fragShaderStageInfo.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
     fragShaderStageInfo.module = fragShaderModule;
-    fragShaderStageInfo.pName = we::runtime::renderer::ShaderStageEntryPoint(we::runtime::renderer::ShaderStage::Pixel);
+    fragShaderStageInfo.pName = "PSMain";
 
-    std::array<VkPipelineShaderStageCreateInfo, 2> shaderStages = { vertShaderStageInfo, fragShaderStageInfo };
+    std::array<VkPipelineShaderStageCreateInfo, 2> shaderStages = {vertShaderStageInfo, fragShaderStageInfo};
 
-    // Vertex attributes
     VkVertexInputBindingDescription bindingDescription{};
     bindingDescription.binding = 0;
     bindingDescription.stride = sizeof(UIVertex);
     bindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
 
     std::array<VkVertexInputAttributeDescription, 5> attributeDescriptions{};
-
-    // Position (vec2)
-    attributeDescriptions[0].binding = 0;
-    attributeDescriptions[0].location = 0;
-    attributeDescriptions[0].format = VK_FORMAT_R32G32_SFLOAT;
-    attributeDescriptions[0].offset = offsetof(UIVertex, pos);
-
-    // UV (vec2)
-    attributeDescriptions[1].binding = 0;
-    attributeDescriptions[1].location = 1;
-    attributeDescriptions[1].format = VK_FORMAT_R32G32_SFLOAT;
-    attributeDescriptions[1].offset = offsetof(UIVertex, uv);
-
-    // Color (vec4)
-    attributeDescriptions[2].binding = 0;
-    attributeDescriptions[2].location = 2;
-    attributeDescriptions[2].format = VK_FORMAT_R32G32B32A32_SFLOAT;
-    attributeDescriptions[2].offset = offsetof(UIVertex, color);
-
-    // SDF Rect (vec4)
-    attributeDescriptions[3].binding = 0;
-    attributeDescriptions[3].location = 3;
-    attributeDescriptions[3].format = VK_FORMAT_R32G32B32A32_SFLOAT;
-    attributeDescriptions[3].offset = offsetof(UIVertex, sdfRect);
-
-    // SDF Params (vec4)
-    attributeDescriptions[4].binding = 0;
-    attributeDescriptions[4].location = 4;
-    attributeDescriptions[4].format = VK_FORMAT_R32G32B32A32_SFLOAT;
-    attributeDescriptions[4].offset = offsetof(UIVertex, sdfParams);
+    attributeDescriptions[0] = {0, 0, VK_FORMAT_R32G32_SFLOAT, offsetof(UIVertex, pos)};
+    attributeDescriptions[1] = {0, 1, VK_FORMAT_R32G32_SFLOAT, offsetof(UIVertex, uv)};
+    attributeDescriptions[2] = {0, 2, VK_FORMAT_R32G32B32A32_SFLOAT, offsetof(UIVertex, color)};
+    attributeDescriptions[3] = {0, 3, VK_FORMAT_R32G32B32A32_SFLOAT, offsetof(UIVertex, sdfRect)};
+    attributeDescriptions[4] = {0, 4, VK_FORMAT_R32G32B32A32_SFLOAT, offsetof(UIVertex, sdfParams)};
 
     VkPipelineVertexInputStateCreateInfo vertexInputInfo{};
     vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
     vertexInputInfo.vertexBindingDescriptionCount = 1;
     vertexInputInfo.pVertexBindingDescriptions = &bindingDescription;
-    vertexInputInfo.vertexAttributeDescriptionCount = 5;
+    vertexInputInfo.vertexAttributeDescriptionCount = static_cast<uint32_t>(attributeDescriptions.size());
     vertexInputInfo.pVertexAttributeDescriptions = attributeDescriptions.data();
 
     VkPipelineInputAssemblyStateCreateInfo inputAssembly{};
@@ -299,13 +271,12 @@ void UIRenderer::CreatePipeline(VkRenderPass renderPass) {
     colorBlending.attachmentCount = 1;
     colorBlending.pAttachments = &colorBlendAttachment;
 
-    std::array<VkDynamicState, 2> dynamicStates = { VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR };
+    std::array<VkDynamicState, 2> dynamicStates = {VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR};
     VkPipelineDynamicStateCreateInfo dynamicState{};
     dynamicState.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
     dynamicState.dynamicStateCount = static_cast<uint32_t>(dynamicStates.size());
     dynamicState.pDynamicStates = dynamicStates.data();
 
-    // Push constant range (Scale & Translate)
     VkPushConstantRange pushConstantRange{};
     pushConstantRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
     pushConstantRange.offset = 0;
@@ -319,11 +290,17 @@ void UIRenderer::CreatePipeline(VkRenderPass renderPass) {
     pipelineLayoutInfo.pPushConstantRanges = &pushConstantRange;
 
     if (vkCreatePipelineLayout(device, &pipelineLayoutInfo, nullptr, &m_PipelineLayout) != VK_SUCCESS) {
-        throw std::runtime_error("Failed to create UI pipeline layout!");
+        throw std::runtime_error("UIRenderer: Failed to create UI pipeline layout.");
     }
+
+    VkPipelineRenderingCreateInfo pipelineRenderingInfo{};
+    pipelineRenderingInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO;
+    pipelineRenderingInfo.colorAttachmentCount = 1;
+    pipelineRenderingInfo.pColorAttachmentFormats = &colorFormat;
 
     VkGraphicsPipelineCreateInfo pipelineInfo{};
     pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
+    pipelineInfo.pNext = &pipelineRenderingInfo;
     pipelineInfo.stageCount = 2;
     pipelineInfo.pStages = shaderStages.data();
     pipelineInfo.pVertexInputState = &vertexInputInfo;
@@ -335,11 +312,11 @@ void UIRenderer::CreatePipeline(VkRenderPass renderPass) {
     pipelineInfo.pColorBlendState = &colorBlending;
     pipelineInfo.pDynamicState = &dynamicState;
     pipelineInfo.layout = m_PipelineLayout;
-    pipelineInfo.renderPass = renderPass;
+    pipelineInfo.renderPass = VK_NULL_HANDLE;
     pipelineInfo.subpass = 0;
 
     if (vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &m_Pipeline) != VK_SUCCESS) {
-        throw std::runtime_error("Failed to create UI pipeline!");
+        throw std::runtime_error("UIRenderer: Failed to create UI pipeline.");
     }
 
     vkDestroyShaderModule(device, fragShaderModule, nullptr);
@@ -347,13 +324,17 @@ void UIRenderer::CreatePipeline(VkRenderPass renderPass) {
 }
 
 VkDescriptorSet UIRenderer::RegisterTexture(VkImageView imageView, VkSampler sampler) {
+    if (!m_Context || m_DescriptorPool == VK_NULL_HANDLE || m_TextureDescLayout == VK_NULL_HANDLE) {
+        return VK_NULL_HANDLE;
+    }
+
     VkDescriptorSetAllocateInfo allocInfo{};
     allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-    allocInfo.descriptorPool = m_Context->GetDescriptorPool();
+    allocInfo.descriptorPool = m_DescriptorPool;
     allocInfo.descriptorSetCount = 1;
     allocInfo.pSetLayouts = &m_TextureDescLayout;
 
-    VkDescriptorSet descriptorSet;
+    VkDescriptorSet descriptorSet = VK_NULL_HANDLE;
     if (vkAllocateDescriptorSets(m_Context->GetDevice(), &allocInfo, &descriptorSet) != VK_SUCCESS) {
         return VK_NULL_HANDLE;
     }
@@ -373,7 +354,6 @@ VkDescriptorSet UIRenderer::RegisterTexture(VkImageView imageView, VkSampler sam
     descriptorWrite.pImageInfo = &imageInfo;
 
     vkUpdateDescriptorSets(m_Context->GetDevice(), 1, &descriptorWrite, 0, nullptr);
-
     return descriptorSet;
 }
 
@@ -400,8 +380,8 @@ void UIRenderer::UpdateTexture(VkDescriptorSet descriptorSet, VkImageView imageV
 }
 
 void UIRenderer::UnregisterTexture(VkDescriptorSet descSet) {
-    if (descSet != VK_NULL_HANDLE) {
-        vkFreeDescriptorSets(m_Context->GetDevice(), m_Context->GetDescriptorPool(), 1, &descSet);
+    if (descSet != VK_NULL_HANDLE && m_DescriptorPool != VK_NULL_HANDLE && m_Context) {
+        vkFreeDescriptorSets(m_Context->GetDevice(), m_DescriptorPool, 1, &descSet);
     }
 }
 
@@ -477,7 +457,9 @@ void UIRenderer::BuildGeometry(const std::vector<DrawCommand>& commands, uint32_
                 float type = 0.0f;
                 if (cmd.type == DrawCommandType::RoundedOutline) {
                     type = 2.0f;
-                } else if ((cmd.type == DrawCommandType::Rect || cmd.type == DrawCommandType::Gradient) && cmd.borderRadius > 0.0f) {
+                } else if (cmd.type == DrawCommandType::Rect || cmd.type == DrawCommandType::Gradient) {
+                    // Route solid UI chrome through the SDF branch so panel/titlebar
+                    // rendering does not depend on the sampled dummy texture path.
                     type = 1.0f;
                 }
 
@@ -631,6 +613,9 @@ void UIRenderer::BuildGeometry(const std::vector<DrawCommand>& commands, uint32_
 }
 
 void UIRenderer::UpdateBuffers(uint32_t frameIndex) {
+    if (m_Pipeline == VK_NULL_HANDLE || !m_Context || !m_Resources) {
+        return;
+    }
     if (frameIndex >= static_cast<uint32_t>(we::runtime::renderer::kMaxFramesInFlight)) {
         return;
     }
@@ -638,31 +623,30 @@ void UIRenderer::UpdateBuffers(uint32_t frameIndex) {
     VkDevice device = m_Context->GetDevice();
     FrameGeometryBuffers& buffers = m_FrameBuffers[frameIndex];
 
-    if (m_Vertices.empty()) return;
+    if (m_Vertices.empty() || m_Indices.empty()) {
+        return;
+    }
 
-    // 1. Vertex Buffer
     VkDeviceSize vertexSize = sizeof(UIVertex) * m_Vertices.size();
     if (vertexSize > buffers.vertexBufferSize) {
         if (buffers.vertexBuffer != VK_NULL_HANDLE) {
             vkDestroyBuffer(device, buffers.vertexBuffer, nullptr);
             vkFreeMemory(device, buffers.vertexMemory, nullptr);
         }
-        buffers.vertexBufferSize = vertexSize * 2; // Allocate double for padding
-        m_Context->CreateBuffer(
+        buffers.vertexBufferSize = vertexSize * 2;
+        m_Resources->CreateBuffer(
             buffers.vertexBufferSize,
             VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
             VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
             buffers.vertexBuffer,
-            buffers.vertexMemory
-        );
+            buffers.vertexMemory);
     }
 
-    void* vData;
+    void* vData = nullptr;
     vkMapMemory(device, buffers.vertexMemory, 0, vertexSize, 0, &vData);
-    memcpy(vData, m_Vertices.data(), vertexSize);
+    std::memcpy(vData, m_Vertices.data(), static_cast<size_t>(vertexSize));
     vkUnmapMemory(device, buffers.vertexMemory);
 
-    // 2. Index Buffer
     VkDeviceSize indexSize = sizeof(uint32_t) * m_Indices.size();
     if (indexSize > buffers.indexBufferSize) {
         if (buffers.indexBuffer != VK_NULL_HANDLE) {
@@ -670,18 +654,17 @@ void UIRenderer::UpdateBuffers(uint32_t frameIndex) {
             vkFreeMemory(device, buffers.indexMemory, nullptr);
         }
         buffers.indexBufferSize = indexSize * 2;
-        m_Context->CreateBuffer(
+        m_Resources->CreateBuffer(
             buffers.indexBufferSize,
             VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
             VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
             buffers.indexBuffer,
-            buffers.indexMemory
-        );
+            buffers.indexMemory);
     }
 
-    void* iData;
+    void* iData = nullptr;
     vkMapMemory(device, buffers.indexMemory, 0, indexSize, 0, &iData);
-    memcpy(iData, m_Indices.data(), indexSize);
+    std::memcpy(iData, m_Indices.data(), static_cast<size_t>(indexSize));
     vkUnmapMemory(device, buffers.indexMemory);
 }
 
@@ -699,7 +682,18 @@ void UIRenderer::PrepareFrame(uint32_t width, uint32_t height, uint32_t frameInd
     PaintContext paintCtx;
     root->Paint(paintCtx);
 
-    const auto& commands = paintCtx.GetCommands();
+    // Ensure the UI pass reaches the final presented swapchain image by drawing
+    // a fullscreen red rectangle before any widget geometry.
+    std::vector<DrawCommand> commands = paintCtx.GetCommands();
+    {
+        DrawCommand redFullscreen{};
+        redFullscreen.type = DrawCommandType::Rect;
+        redFullscreen.rect = Rect{ 0.0f, 0.0f, static_cast<float>(width), static_cast<float>(height) };
+        redFullscreen.color = Color{ 1.0f, 0.0f, 0.0f, 1.0f };
+        redFullscreen.clipRect = redFullscreen.rect;
+        redFullscreen.borderRadius = 0.0f;
+        commands.insert(commands.begin(), redFullscreen);
+    }
 
     // Generate and update GPU buffers outside any active render pass.
     BuildGeometry(commands, width, height);
@@ -715,20 +709,56 @@ void UIRenderer::PrepareFrame(uint32_t width, uint32_t height, uint32_t frameInd
 
     static uint32_t s_LoggedFrames = 0;
     if (s_LoggedFrames < 5) {
+        float minX = 0.0f;
+        float minY = 0.0f;
+        float maxX = 0.0f;
+        float maxY = 0.0f;
+        if (!m_Vertices.empty()) {
+            minX = maxX = m_Vertices[0].pos[0];
+            minY = maxY = m_Vertices[0].pos[1];
+            for (const auto& vertex : m_Vertices) {
+                minX = std::min(minX, vertex.pos[0]);
+                minY = std::min(minY, vertex.pos[1]);
+                maxX = std::max(maxX, vertex.pos[0]);
+                maxY = std::max(maxY, vertex.pos[1]);
+            }
+        }
+
         HE_INFO("[UIRenderer] Frame " + std::to_string(s_LoggedFrames)
             + ": layout=" + std::to_string(width) + "x" + std::to_string(height)
             + ", commands=" + std::to_string(m_LastFrameStats.drawCommands)
             + ", vertices=" + std::to_string(m_LastFrameStats.vertices)
             + ", indices=" + std::to_string(m_LastFrameStats.indices)
-            + ", batches=" + std::to_string(m_LastFrameStats.batches));
+            + ", batches=" + std::to_string(m_LastFrameStats.batches)
+            + ", bounds=(" + std::to_string(minX) + "," + std::to_string(minY)
+            + ")-(" + std::to_string(maxX) + "," + std::to_string(maxY) + ")");
+
+        const size_t sampleCount = std::min<size_t>(m_Vertices.size(), 6);
+        for (size_t i = 0; i < sampleCount; ++i) {
+            const auto& v = m_Vertices[i];
+            HE_INFO("[UIRenderer] Vertex " + std::to_string(i)
+                + ": pos=(" + std::to_string(v.pos[0]) + "," + std::to_string(v.pos[1])
+                + ") uv=(" + std::to_string(v.uv[0]) + "," + std::to_string(v.uv[1])
+                + ") colorA=" + std::to_string(v.color[3])
+                + " sdfType=" + std::to_string(v.sdfParams[1]) + ")");
+        }
         if (m_LastFrameStats.vertices == 0 || m_LastFrameStats.batches == 0) {
-            HE_ERROR("[UIRenderer] Empty draw list — UI geometry was not generated.");
+            HE_ERROR("[UIRenderer] Empty draw list â€” UI geometry was not generated.");
         }
         ++s_LoggedFrames;
     }
 }
 
-void UIRenderer::RecordDrawCommands(VkCommandBuffer cmd, uint32_t width, uint32_t height, uint32_t frameIndex) {
+void UIRenderer::RecordDrawCommands(VkCommandBuffer cmd,
+                                    VkImageView targetView,
+                                    VkFormat targetFormat,
+                                    uint32_t width,
+                                    uint32_t height,
+                                    uint32_t frameIndex) {
+    (void)targetFormat;
+
+    static uint32_t s_RecordLogFrames = 0;
+
     if (cmd == VK_NULL_HANDLE) {
         HE_ERROR("UIRenderer::RecordDrawCommands: command buffer is null.");
         return;
@@ -745,20 +775,58 @@ void UIRenderer::RecordDrawCommands(VkCommandBuffer cmd, uint32_t width, uint32_
         return;
     }
     if (m_Pipeline == VK_NULL_HANDLE || m_PipelineLayout == VK_NULL_HANDLE) {
-        HE_ERROR("UIRenderer::RecordDrawCommands called before pipeline initialization.");
+        if (s_RecordLogFrames < 3) {
+            HE_ERROR("UIRenderer::RecordDrawCommands: pipeline or layout is null.");
+        }
         return;
     }
     if (frameIndex >= static_cast<uint32_t>(we::runtime::renderer::kMaxFramesInFlight)) {
         HE_ERROR("UIRenderer::RecordDrawCommands: frame index out of range.");
         return;
     }
+    if (m_Vertices.empty() || m_Batches.empty()) {
+        if (s_RecordLogFrames < 3) {
+            HE_ERROR("UIRenderer::RecordDrawCommands: no vertices or batches to draw.");
+        }
+        return;
+    }
 
-    // Always bind pipeline and set dynamic state even if no geometry.
-    //    An early return here would leave the active render pass open,
-    //    causing vkQueueSubmit to fail with VK_ERROR_DEVICE_LOST.
+    const FrameGeometryBuffers& buffers = m_FrameBuffers[frameIndex];
+    if (buffers.vertexBuffer == VK_NULL_HANDLE || buffers.indexBuffer == VK_NULL_HANDLE) {
+        if (s_RecordLogFrames < 3) {
+            HE_ERROR("UIRenderer::RecordDrawCommands: missing GPU buffers for current frame.");
+        }
+        return;
+    }
+
+    if (s_RecordLogFrames < 3) {
+        HE_INFO("[UIRenderer] RecordDrawCommands: frame="
+            + std::to_string(frameIndex)
+            + " extent=" + std::to_string(width) + "x" + std::to_string(height)
+            + " batches=" + std::to_string(m_Batches.size())
+            + " vertices=" + std::to_string(m_Vertices.size())
+            + " indices=" + std::to_string(m_Indices.size()));
+    }
+
+    VkRenderingAttachmentInfo colorAttachment{};
+    colorAttachment.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
+    colorAttachment.imageView = targetView;
+    colorAttachment.imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+    colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
+    colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+
+    VkRenderingInfo renderingInfo{};
+    renderingInfo.sType = VK_STRUCTURE_TYPE_RENDERING_INFO;
+    renderingInfo.renderArea.offset = {0, 0};
+    renderingInfo.renderArea.extent = {width, height};
+    renderingInfo.layerCount = 1;
+    renderingInfo.colorAttachmentCount = 1;
+    renderingInfo.pColorAttachments = &colorAttachment;
+
+    vkCmdBeginRendering(cmd, &renderingInfo);
+
     vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_Pipeline);
 
-    // Viewport
     VkViewport viewport{};
     viewport.x = 0.0f;
     viewport.y = 0.0f;
@@ -768,13 +836,11 @@ void UIRenderer::RecordDrawCommands(VkCommandBuffer cmd, uint32_t width, uint32_
     viewport.maxDepth = 1.0f;
     vkCmdSetViewport(cmd, 0, 1, &viewport);
 
-    // Full-screen default scissor
     VkRect2D fullScissor{};
-    fullScissor.offset = { 0, 0 };
-    fullScissor.extent = { width, height };
+    fullScissor.offset = {0, 0};
+    fullScissor.extent = {width, height};
     vkCmdSetScissor(cmd, 0, 1, &fullScissor);
 
-    // Push Constants (Scale & Translate to NDC)
     float pushConstants[4];
     pushConstants[0] = 2.0f / static_cast<float>(width);
     pushConstants[1] = 2.0f / static_cast<float>(height);
@@ -782,20 +848,12 @@ void UIRenderer::RecordDrawCommands(VkCommandBuffer cmd, uint32_t width, uint32_
     pushConstants[3] = -1.0f;
     vkCmdPushConstants(cmd, m_PipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(float) * 4, pushConstants);
 
-    if (m_Vertices.empty() || m_Batches.empty()) return;
-
-    const FrameGeometryBuffers& buffers = m_FrameBuffers[frameIndex];
-    if (buffers.vertexBuffer == VK_NULL_HANDLE || buffers.indexBuffer == VK_NULL_HANDLE) {
-        return;
-    }
-
-    // Bind Vertex & Index buffers
-    VkBuffer vertexBuffers[] = { buffers.vertexBuffer };
-    VkDeviceSize offsets[] = { 0 };
+    VkBuffer vertexBuffers[] = {buffers.vertexBuffer};
+    VkDeviceSize offsets[] = {0};
     vkCmdBindVertexBuffers(cmd, 0, 1, vertexBuffers, offsets);
     vkCmdBindIndexBuffer(cmd, buffers.indexBuffer, 0, VK_INDEX_TYPE_UINT32);
 
-    // 4. Draw Batches
+    uint32_t batchIndex = 0;
     for (const auto& batch : m_Batches) {
         // Apply Scissor clip rectangle
         VkRect2D scissor{};
@@ -829,18 +887,39 @@ void UIRenderer::RecordDrawCommands(VkCommandBuffer cmd, uint32_t width, uint32_
             continue;
         }
 
+        if (s_RecordLogFrames < 3 && batchIndex < 8) {
+            HE_INFO("[UIRenderer] Batch "
+                + std::to_string(batchIndex)
+                + ": firstIndex=" + std::to_string(batch.firstIndex)
+                + " indexCount=" + std::to_string(batch.indexCount)
+                + " scissor=(" + std::to_string(fullScissor.offset.x) + "," + std::to_string(fullScissor.offset.y)
+                + " " + std::to_string(fullScissor.extent.width) + "x" + std::to_string(fullScissor.extent.height) + ")");
+        }
+
         // Bind Texture descriptor set
         vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_PipelineLayout, 0, 1, &textureSet, 0, nullptr);
 
         // Render Indexed Triangles
         vkCmdDrawIndexed(cmd, batch.indexCount, 1, batch.firstIndex, batch.vertexOffset, 0);
+        ++batchIndex;
+    }
+
+    vkCmdEndRendering(cmd);
+
+    if (s_RecordLogFrames < 3) {
+        ++s_RecordLogFrames;
     }
 }
 
-void UIRenderer::Render(VkCommandBuffer cmd, uint32_t width, uint32_t height, uint32_t frameIndex,
+void UIRenderer::Render(VkCommandBuffer cmd,
+                        VkImageView targetView,
+                        VkFormat targetFormat,
+                        uint32_t width,
+                        uint32_t height,
+                        uint32_t frameIndex,
                         const std::shared_ptr<Widget>& root) {
     PrepareFrame(width, height, frameIndex, root);
-    RecordDrawCommands(cmd, width, height, frameIndex);
+    RecordDrawCommands(cmd, targetView, targetFormat, width, height, frameIndex);
 }
 
 void UIRenderer::Shutdown() {
@@ -849,7 +928,10 @@ void UIRenderer::Shutdown() {
         m_IconRenderer.reset();
     }
 
-    if (!m_Context) return;
+    if (!m_Context) {
+        m_GpuUpload.Shutdown();
+        return;
+    }
     VkDevice device = m_Context->GetDevice();
 
     for (auto& buffers : m_FrameBuffers) {
@@ -907,6 +989,14 @@ void UIRenderer::Shutdown() {
         vkDestroyDescriptorSetLayout(device, m_TextureDescLayout, nullptr);
         m_TextureDescLayout = VK_NULL_HANDLE;
     }
+    if (m_DescriptorPool != VK_NULL_HANDLE) {
+        vkDestroyDescriptorPool(device, m_DescriptorPool, nullptr);
+        m_DescriptorPool = VK_NULL_HANDLE;
+    }
+
+    m_GpuUpload.Shutdown();
+    m_Context = nullptr;
+    m_Resources = nullptr;
 }
 
 } // namespace we::editor::application::UI

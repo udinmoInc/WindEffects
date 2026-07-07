@@ -1,8 +1,6 @@
 #include "Environment/EnvironmentLighting.h"
 
 #include "Environment/EnvironmentManager.h"
-#include "Renderer/AtmosphereValidation.hpp"
-#include "Renderer/RenderPipelineInvestigator.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -79,69 +77,69 @@ glm::vec3 SunDirectionToSky(const glm::vec3& lightTravelDirection) {
     return glm::normalize(-lightTravelDirection);
 }
 
-we::runtime::renderer::SceneEnvironmentUniform BuildSceneEnvironmentUniform(
-    const EnvironmentDirectionalLight& sun,
-    const EnvironmentSkyLight& skyLight,
-    const EnvironmentSkyAtmosphere& atmosphere,
-    const EnvironmentHeightFog& fog,
-    const EnvironmentVolumetricClouds& clouds,
-    const EnvironmentExposureController& exposure,
-    const glm::vec3& worldOrigin) {
-
-    EnvironmentManager manager;
-    const float sunDerivedEV = manager.ComputeExposureEV(sun);
-
-    we::runtime::renderer::SceneEnvironmentUniform uniform{};
-    uniform.sunDirection = sun.GetLightDirection();
-    // Artist-facing intensity scaled to approximate outdoor solar illuminance response.
-    constexpr float kSunIrradianceScale = 1.35f;
-    uniform.sunIntensity = sun.Intensity * kSunIrradianceScale;
-    uniform.sunColor = sun.GetColorFromTemperature();
-    uniform.skyLightIntensity = skyLight.Intensity;
-    uniform.skyAmbientColor = skyLight.GetAmbientColor();
-    uniform.skyLightLowerColor = skyLight.LowerHemisphereColor;
-    uniform.fogDensity = fog.Density;
-    uniform.fogColor = fog.FogColor;
-    uniform.fogHeightFalloff = fog.HeightFalloff;
-    uniform.fogStartDistance = fog.StartDistance;
-    uniform.atmosphereRayleigh = atmosphere.GetRayleighColor();
-    uniform.mieScattering = atmosphere.MieScattering;
-    uniform.ozoneAbsorption = atmosphere.GetOzoneAbsorption();
-    uniform.mieAnisotropy = atmosphere.MieAnisotropy;
-    uniform.worldOrigin = worldOrigin;
-    // GPU auto-exposure lerps manual exposureEV against the luminance-derived EV in PostCompositeCS.
-    // Keep the manual/fallback EV on the CPU uniform; do not pre-bake sun-derived EV here.
-    uniform.exposureEV = exposure.AutoExposure
-        ? std::clamp(exposure.ExposureEV, exposure.MinEV, exposure.MaxEV)
-        : exposure.GetEffectiveExposureEV(sunDerivedEV);
-    uniform.planetRadius = 6360.0f;
-    uniform.atmosphereHeight = 60.0f;
-    uniform.multiScatterStrength = atmosphere.MultiScatterStrength;
-    uniform.eyeAltitude = atmosphere.EyeAltitude;
-    uniform.cloudCoverage = clouds.Coverage;
-    uniform.cloudAltitude = clouds.Altitude;
-    uniform.cloudExtinction = clouds.Extinction;
-    uniform.enableClouds = clouds.Enabled ? 1.0f : 0.0f;
-    uniform.cloudColor = clouds.CloudColor;
-    uniform.enableVolumetricFog = fog.VolumetricFog ? 1.0f : 0.0f;
-    uniform.exposureCompensation = exposure.ExposureCompensation;
-    uniform.sunAngularRadius = 0.004675f;
-    uniform.hdrSkyLuminance = manager.ComputeHdrSkyLuminance(sun, atmosphere);
-    uniform.sunCastShadows = sun.CastDynamicShadows ? 1 : 0;
-    uniform.sunTemperature = sun.TemperatureKelvin;
-    uniform.bloomIntensity = 0.15f;
-    uniform.bloomThreshold = 4.0f;
-    uniform.enableAutoExposure = exposure.AutoExposure ? 1.0f : 0.0f;
-    uniform.atmosphereDebugMode = atmosphere.AtmosphereDebugMode;
-    uniform.cloudTemporalBlend = 0.88f;
-    uniform.cloudHistoryValid = 0;
-    uniform.enableSunDisk = 1.0f;
-    uniform.pipelineFixedExposureMultiplier = 0.0f;
-#if WE_HAS_VULKAN
-    we::runtime::renderer::AtmosphereValidation::Get().ApplyEnvironmentOverrides(uniform);
-    we::runtime::renderer::RenderPipelineInvestigator::Get().ApplyEnvironmentOverrides(uniform);
-#endif
-    return uniform;
-}
+// we::runtime::renderer::SceneEnvironmentUniform BuildSceneEnvironmentUniform(
+//     const EnvironmentDirectionalLight& sun,
+//     const EnvironmentSkyLight& skyLight,
+//     const EnvironmentSkyAtmosphere& atmosphere,
+//     const EnvironmentHeightFog& fog,
+//     const EnvironmentVolumetricClouds& clouds,
+//     const EnvironmentExposureController& exposure,
+//     const glm::vec3& worldOrigin) {
+// 
+//     EnvironmentManager manager;
+//     const float sunDerivedEV = manager.ComputeExposureEV(sun);
+// 
+//     we::runtime::renderer::SceneEnvironmentUniform uniform{};
+//     uniform.sunDirection = sun.GetLightDirection();
+//     // Artist-facing intensity scaled to approximate outdoor solar illuminance response.
+//     constexpr float kSunIrradianceScale = 1.35f;
+//     uniform.sunIntensity = sun.Intensity * kSunIrradianceScale;
+//     uniform.sunColor = sun.GetColorFromTemperature();
+//     uniform.skyLightIntensity = skyLight.Intensity;
+//     uniform.skyAmbientColor = skyLight.GetAmbientColor();
+//     uniform.skyLightLowerColor = skyLight.LowerHemisphereColor;
+//     uniform.fogDensity = fog.Density;
+//     uniform.fogColor = fog.FogColor;
+//     uniform.fogHeightFalloff = fog.HeightFalloff;
+//     uniform.fogStartDistance = fog.StartDistance;
+//     uniform.atmosphereRayleigh = atmosphere.GetRayleighColor();
+//     uniform.mieScattering = atmosphere.MieScattering;
+//     uniform.ozoneAbsorption = atmosphere.GetOzoneAbsorption();
+//     uniform.mieAnisotropy = atmosphere.MieAnisotropy;
+//     uniform.worldOrigin = worldOrigin;
+//     // GPU auto-exposure lerps manual exposureEV against the luminance-derived EV in PostCompositeCS.
+//     // Keep the manual/fallback EV on the CPU uniform; do not pre-bake sun-derived EV here.
+//     uniform.exposureEV = exposure.AutoExposure
+//         ? std::clamp(exposure.ExposureEV, exposure.MinEV, exposure.MaxEV)
+//         : exposure.GetEffectiveExposureEV(sunDerivedEV);
+//     uniform.planetRadius = 6360.0f;
+//     uniform.atmosphereHeight = 60.0f;
+//     uniform.multiScatterStrength = atmosphere.MultiScatterStrength;
+//     uniform.eyeAltitude = atmosphere.EyeAltitude;
+//     uniform.cloudCoverage = clouds.Coverage;
+//     uniform.cloudAltitude = clouds.Altitude;
+//     uniform.cloudExtinction = clouds.Extinction;
+//     uniform.enableClouds = clouds.Enabled ? 1.0f : 0.0f;
+//     uniform.cloudColor = clouds.CloudColor;
+//     uniform.enableVolumetricFog = fog.VolumetricFog ? 1.0f : 0.0f;
+//     uniform.exposureCompensation = exposure.ExposureCompensation;
+//     uniform.sunAngularRadius = 0.004675f;
+//     uniform.hdrSkyLuminance = manager.ComputeHdrSkyLuminance(sun, atmosphere);
+//     uniform.sunCastShadows = sun.CastDynamicShadows ? 1 : 0;
+//     uniform.sunTemperature = sun.TemperatureKelvin;
+//     uniform.bloomIntensity = 0.15f;
+//     uniform.bloomThreshold = 4.0f;
+//     uniform.enableAutoExposure = exposure.AutoExposure ? 1.0f : 0.0f;
+//     uniform.atmosphereDebugMode = atmosphere.AtmosphereDebugMode;
+//     uniform.cloudTemporalBlend = 0.88f;
+//     uniform.cloudHistoryValid = 0;
+//     uniform.enableSunDisk = 1.0f;
+//     uniform.pipelineFixedExposureMultiplier = 0.0f;
+// #if WE_HAS_VULKAN
+//     we::runtime::renderer::AtmosphereValidation::Get().ApplyEnvironmentOverrides(uniform);
+//     we::runtime::renderer::RenderPipelineInvestigator::Get().ApplyEnvironmentOverrides(uniform);
+// #endif
+//     return uniform;
+// }
 
 } // namespace we::runtime::world::environment

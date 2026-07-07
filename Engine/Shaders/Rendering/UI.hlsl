@@ -1,20 +1,20 @@
 struct VSInput
 {
-    float2 position : POSITION0;
-    float2 uv       : TEXCOORD0;
-    float4 color    : COLOR0;
-    float4 sdfRect  : TEXCOORD1;
-    float4 sdfParams: TEXCOORD2;
+    [[vk::location(0)]] float2 position : POSITION0;
+    [[vk::location(1)]] float2 uv       : TEXCOORD0;
+    [[vk::location(2)]] float4 color    : COLOR0;
+    [[vk::location(3)]] float4 sdfRect  : TEXCOORD1;
+    [[vk::location(4)]] float4 sdfParams: TEXCOORD2;
 };
 
 struct VSOutput
 {
-    float4 position  : SV_Position;
-    float2 uv        : TEXCOORD0;
-    float4 color     : COLOR0;
-    float4 sdfRect   : TEXCOORD1;
-    float4 sdfParams : TEXCOORD2;
-    float2 worldPos  : TEXCOORD3;
+    float4 position                     : SV_Position;
+    [[vk::location(0)]] float2 uv       : TEXCOORD0;
+    [[vk::location(1)]] float4 color    : COLOR0;
+    [[vk::location(2)]] float4 sdfRect  : TEXCOORD1;
+    [[vk::location(3)]] float4 sdfParams: TEXCOORD2;
+    [[vk::location(4)]] float2 worldPos : TEXCOORD3;
 };
 
 struct UIPushConstants

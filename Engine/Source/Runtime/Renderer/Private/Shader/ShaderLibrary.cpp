@@ -1,4 +1,4 @@
-#include "Renderer/Shader/ShaderLibrary.hpp"
+#include "Shader/ShaderLibrary.h"
 #include <filesystem>
 #include <sstream>
 

@@ -1,5 +1,5 @@
 #include "EditorPreferences.hpp"
-#include "Renderer/SceneRenderer.hpp"
+#include "Scene/SceneRenderer.h"
 
 namespace we::programs::editor {
 

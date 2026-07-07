@@ -10,9 +10,11 @@
 #include "Core/PaintContext.hpp"
 #include "Rendering/FontAtlas.hpp"
 #include "Rendering/IconRenderer.hpp"
+#include "Rendering/UiGpuUpload.h"
 
-#include "Renderer/RendererConfig.hpp"
-#include "Renderer/VulkanContext.hpp"
+#include "Core/DeviceContext.h"
+#include "Resource/ResourceManager.h"
+#include "Renderer/Renderer.h"
 
 namespace we::UI {
 
@@ -22,8 +24,8 @@ struct APPLICATION_API UIVertex {
     float pos[2];
     float uv[2];
     float color[4];
-    float sdfRect[4];   // x, y, width, height (of the primitive bounds)
-    float sdfParams[4]; // x=cornerRadius, y=type (0=texture, 1=sdf-rect)
+    float sdfRect[4];
+    float sdfParams[4];
 };
 
 class APPLICATION_API UIRenderer {
@@ -31,27 +33,33 @@ public:
     UIRenderer() = default;
     ~UIRenderer();
 
-    bool Init(const std::shared_ptr<we::runtime::renderer::VulkanContext>& context, VkRenderPass renderPass);
+    bool Init(we::runtime::renderer::DeviceContext* context,
+              we::runtime::renderer::ResourceManager* resources,
+              VkFormat swapchainColorFormat);
     void Shutdown();
 
-    // Layout, paint, and upload UI geometry. Call before BeginSwapchainPass so icon
-    // texture uploads do not run while a render pass is being recorded.
     void PrepareFrame(uint32_t width, uint32_t height, uint32_t frameIndex,
                       const std::shared_ptr<Widget>& root);
 
-    // Record UI draw commands. Requires an active swapchain render pass on cmd.
-    void RecordDrawCommands(VkCommandBuffer cmd, uint32_t width, uint32_t height, uint32_t frameIndex);
+    void RecordDrawCommands(VkCommandBuffer cmd,
+                            VkImageView targetView,
+                            VkFormat targetFormat,
+                            uint32_t width,
+                            uint32_t height,
+                            uint32_t frameIndex);
 
-    // Convenience: PrepareFrame + RecordDrawCommands.
-    void Render(VkCommandBuffer cmd, uint32_t width, uint32_t height, uint32_t frameIndex,
+    void Render(VkCommandBuffer cmd,
+                VkImageView targetView,
+                VkFormat targetFormat,
+                uint32_t width,
+                uint32_t height,
+                uint32_t frameIndex,
                 const std::shared_ptr<Widget>& root);
 
-    // Get descriptor set for an external texture (like the viewport offscreen buffer)
     VkDescriptorSet RegisterTexture(VkImageView imageView, VkSampler sampler);
     void UpdateTexture(VkDescriptorSet descriptorSet, VkImageView imageView, VkSampler sampler);
     void UnregisterTexture(VkDescriptorSet descSet);
 
-    // Helpers
     VkDescriptorSetLayout GetTextureLayout() const { return m_TextureDescLayout; }
     std::shared_ptr<FontAtlas> GetFontAtlas() const { return m_FontAtlas; }
     std::shared_ptr<IconRenderer> GetIconRenderer() const { return m_IconRenderer; }
@@ -67,7 +75,7 @@ public:
     const FrameStats& GetLastFrameStats() const { return m_LastFrameStats; }
 
 private:
-    void CreatePipeline(VkRenderPass renderPass);
+    void CreatePipeline(VkFormat colorFormat);
     void CreateDummyTexture();
     void BuildGeometry(const std::vector<DrawCommand>& commands, uint32_t width, uint32_t height);
     void UpdateBuffers(uint32_t frameIndex);
@@ -81,28 +89,30 @@ private:
         VkDeviceSize indexBufferSize = 0;
     };
 
-    std::shared_ptr<we::runtime::renderer::VulkanContext> m_Context;
+    we::runtime::renderer::DeviceContext* m_Context = nullptr;
+    we::runtime::renderer::ResourceManager* m_Resources = nullptr;
+    UiGpuUpload m_GpuUpload;
+    VkFormat m_ColorFormat = VK_FORMAT_UNDEFINED;
+
     std::shared_ptr<FontAtlas> m_FontAtlas;
     std::shared_ptr<IconRenderer> m_IconRenderer;
-    // Pipeline resources
+
+    VkDescriptorPool m_DescriptorPool = VK_NULL_HANDLE;
     VkDescriptorSetLayout m_TextureDescLayout = VK_NULL_HANDLE;
     VkPipelineLayout m_PipelineLayout = VK_NULL_HANDLE;
     VkPipeline m_Pipeline = VK_NULL_HANDLE;
 
-    // Dummy white texture (for untextured drawings)
     VkImage m_DummyImage = VK_NULL_HANDLE;
     VkDeviceMemory m_DummyMemory = VK_NULL_HANDLE;
     VkImageView m_DummyImageView = VK_NULL_HANDLE;
     VkSampler m_DummySampler = VK_NULL_HANDLE;
     VkDescriptorSet m_DummyDescriptorSet = VK_NULL_HANDLE;
 
-    // Geometry buffers
     std::vector<UIVertex> m_Vertices;
     std::vector<uint32_t> m_Indices;
 
     std::array<FrameGeometryBuffers, we::runtime::renderer::kMaxFramesInFlight> m_FrameBuffers{};
 
-    // Drawing batches
     struct DrawBatch {
         uint32_t indexCount;
         uint32_t firstIndex;
@@ -115,4 +125,4 @@ private:
     FrameStats m_LastFrameStats{};
 };
 
-} // namespace we::editor::application::UI
+} // namespace we::UI

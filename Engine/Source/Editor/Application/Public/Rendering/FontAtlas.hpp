@@ -8,7 +8,8 @@
 #include <vector>
 #include <stb_truetype.h>
 
-#include "Renderer/VulkanContext.hpp"
+#include "Core/DeviceContext.h"
+#include "Rendering/UiGpuUpload.h"
 
 namespace we::UI {
 
@@ -24,7 +25,14 @@ public:
     ~FontAtlas();
 
     // Load font from path, baking a specific range of codepoints
-    bool Init(const std::shared_ptr<we::runtime::renderer::VulkanContext>& context, const std::string& fontName, int firstChar = 32, int numChars = 96, int width = 512, int height = 512);
+    bool Init(we::runtime::renderer::DeviceContext* context,
+              we::runtime::renderer::ResourceManager* resources,
+              UiGpuUpload* gpuUpload,
+              const std::string& fontName,
+              int firstChar = 32,
+              int numChars = 96,
+              int width = 512,
+              int height = 512);
     void Shutdown();
 
     // Get UV coordinates and vertex offsets for a single character
@@ -37,7 +45,9 @@ public:
     float GetFontHeight() const { return m_FontHeight; }
 
 private:
-    std::shared_ptr<we::runtime::renderer::VulkanContext> m_Context;
+    we::runtime::renderer::DeviceContext* m_Context = nullptr;
+    we::runtime::renderer::ResourceManager* m_Resources = nullptr;
+    UiGpuUpload* m_GpuUpload = nullptr;
 
     // Font parameters
     float m_FontHeight = 18.0f;

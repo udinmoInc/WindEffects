@@ -7,7 +7,10 @@ Spacer::Spacer() = default;
 Spacer::~Spacer() = default;
 
 Size Spacer::Measure(const Size& availableSize) {
-    m_DesiredSize = Size{ 10000.0f, 10000.0f };
+    (void)availableSize;
+    // Spacer should stretch along the box axis without forcing the cross-axis
+    // to become enormous, otherwise parent boxes center their real children.
+    m_DesiredSize = Size{ 10000.0f, 0.0f };
     return m_DesiredSize;
 }
 

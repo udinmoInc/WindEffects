@@ -10,7 +10,12 @@
 #include "Core/Icon.hpp"
 #include "Core/Theme.hpp"
 
-#include "Renderer/VulkanContext.hpp"
+#include "Core/DeviceContext.h"
+#include "Rendering/UiGpuUpload.h"
+
+namespace we::runtime::renderer {
+class ResourceManager;
+}
 
 namespace we::UI {
 
@@ -31,7 +36,11 @@ public:
     IconRenderer();
     ~IconRenderer();
     
-    bool Init(const std::shared_ptr<we::runtime::renderer::VulkanContext>& context, VkDescriptorSetLayout textureLayout);
+    bool Init(we::runtime::renderer::DeviceContext* context,
+              we::runtime::renderer::ResourceManager* resources,
+              UiGpuUpload* gpuUpload,
+              VkDescriptorPool descriptorPool,
+              VkDescriptorSetLayout textureLayout);
     void Shutdown();
     
     // Get or create icon texture at specified size (path or lucide name).
@@ -56,7 +65,10 @@ private:
     // Destroy texture resources
     void DestroyTexture(IconTexture& texture);
     
-    std::shared_ptr<we::runtime::renderer::VulkanContext> m_Context;
+    we::runtime::renderer::DeviceContext* m_Context = nullptr;
+    we::runtime::renderer::ResourceManager* m_Resources = nullptr;
+    UiGpuUpload* m_GpuUpload = nullptr;
+    VkDescriptorPool m_DescriptorPool = VK_NULL_HANDLE;
     VkDescriptorSetLayout m_TextureLayout = VK_NULL_HANDLE;
     
     // Icon cache: key = "iconName_size", value = texture

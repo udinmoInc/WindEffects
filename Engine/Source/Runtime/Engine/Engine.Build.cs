@@ -15,10 +15,9 @@ public class Engine : ModuleRules
         PublicDependencies.Add("Core");
         PublicDependencies.Add("CoreUObject");
 
-        // Add GLM as optional third-party dependency
+        // WE_HAS_GLM comes from global feature flags when glm is bootstrapped.
+        // Never force WE_HAS_GLM=0 here — it overrides the global flag and breaks EditorCamera ABI.
         AddOptionalThirdParty("glm");
-        DefineIf(HasThirdParty("glm"), "WE_HAS_GLM=1");
-        DefineIf(!HasThirdParty("glm"), "WE_HAS_GLM=0");
 
         OptionalSDK("SDL3");
         DefineIf(HasSDK("SDL3"), "WE_HAS_SDL3=1");
