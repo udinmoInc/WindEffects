@@ -2,6 +2,7 @@
 #define WE_FOUNDATION_BASIC_MESH_HLSL
 
 #include "../Common/Color.hlsli"
+#include "../Common/CameraBuffer.hlsli"
 
 struct VSInput
 {
@@ -15,15 +16,6 @@ struct VSOutput
     float4 position    : SV_Position;
     float3 worldPos    : TEXCOORD0;
     float3 worldNormal : TEXCOORD1;
-};
-
-cbuffer CameraBuffer : register(b0, space0)
-{
-    float4x4 view;
-    float4x4 proj;
-    float4x4 invViewProj;
-    float3   cameraPos;
-    float    cameraPadding;
 };
 
 cbuffer ObjectBuffer : register(b0, space1)

@@ -3,13 +3,11 @@
 #include "../Common/EnvironmentBuffer.hlsli"
 #include "AtmosphereLUT.hlsli"
 
-cbuffer CameraBuffer : register(b0, space1)
-{
-    float4x4 view;
-    float4x4 proj;
-    float3   cameraPos;
-    float    cameraPadding;
-};
+#ifndef WE_DEBUG_UI
+#define WE_DEBUG_UI 0
+#endif
+
+#include "../Common/CameraBuffer.hlsli"
 
 Texture2D    transmittanceLUT : register(t0, space2);
 Texture2D    multiScatterLUT  : register(t1, space2);
@@ -35,14 +33,16 @@ VSOutput VSMain(uint vertexId : SV_VertexID)
 
 float4 PSMain(VSOutput input) : SV_Target
 {
+    const int debugMode = WE_DEBUG_UI ? atmosphereDebugMode : 0;
+
     // Validation stages — no atmosphere math.
-    if (atmosphereDebugMode == 101)
+    if (debugMode == 101)
         return float4(1.0, 0.0, 0.0, 1.0);
-    if (atmosphereDebugMode == 102)
+    if (debugMode == 102)
         return float4(0.0, 1.0, 0.0, 1.0);
-    if (atmosphereDebugMode == 103)
+    if (debugMode == 103)
         return float4(0.0, 0.0, 1.0, 1.0);
-    if (atmosphereDebugMode == 104)
+    if (debugMode == 104)
         return float4(0.2, 0.4, 1.0, 1.0);
 
     const float3 viewDirRaw = WE_UnprojectDirection(input.uv, view, proj, cameraPos);
@@ -52,13 +52,13 @@ float4 PSMain(VSOutput input) : SV_Target
     const float sunDirLen = length(sunDirection);
     const float viewSunDot = dot(viewDir, sunDir);
 
-    if (atmosphereDebugMode == 1)
+    if (debugMode == 1)
         return float4(saturate(viewDir * 0.5 + 0.5), 1.0);
-    if (atmosphereDebugMode == 2)
+    if (debugMode == 2)
         return float4(saturate(sunDir * 0.5 + 0.5), 1.0);
-    if (atmosphereDebugMode == 3)
+    if (debugMode == 3)
         return float4(saturate(viewSunDot * 0.5 + 0.5), saturate(abs(viewSunDot)), 1.0 - saturate(abs(viewSunDot)), 1.0);
-    if (atmosphereDebugMode == 13)
+    if (debugMode == 13)
         return float4(saturate(viewDirLen), saturate(viewDirLen), saturate(viewDirLen), 1.0);
 
     const float3 rayleigh = max(atmosphereRayleigh, float3(1e-6, 1e-6, 1e-6));
@@ -80,15 +80,15 @@ float4 PSMain(VSOutput input) : SV_Target
     const float3 skyViewRGB = WE_SampleSkyViewLUT(skyViewLUT, lutSampler, viewDir, sunDir);
     const float3 transmittanceRGB = WE_SampleTransmittanceLUT(transmittanceLUT, lutSampler, heightKm, viewSunDot, params);
 
-    if (atmosphereDebugMode == 10)
+    if (debugMode == 10)
         return float4(skyViewUV, 0.0, 1.0);
-    if (atmosphereDebugMode == 11)
+    if (debugMode == 11)
         return float4(saturate(skyViewRGB / max(sunIntensity, 1.0)), 1.0);
-    if (atmosphereDebugMode == 12)
+    if (debugMode == 12)
         return float4(transmittanceUV, 0.0, 1.0);
 
     const float sunDiskMask = WE_ComputeSunDiskMask(viewDir, sunDir, params.sunAngularRadius);
-    if (atmosphereDebugMode == 14)
+    if (debugMode == 14)
         return float4(sunDiskMask, sunDiskMask, sunDiskMask, 1.0);
 
     WE_InscatteringResult inscatter = WE_IntegrateInscatteringDetailed(viewDir, sunDir, origin, params);
@@ -96,19 +96,19 @@ float4 PSMain(VSOutput input) : SV_Target
 
     float3 skyLinear = float3(0.0, 0.0, 0.0);
 
-    if (atmosphereDebugMode == 4)
+    if (debugMode == 4)
         skyLinear = inscatter.opticalDepth;
-    else if (atmosphereDebugMode == 5)
+    else if (debugMode == 5)
         skyLinear = inscatter.transmittanceToCamera;
-    else if (atmosphereDebugMode == 6)
+    else if (debugMode == 6)
         skyLinear = inscatter.rayleighContribution;
-    else if (atmosphereDebugMode == 7)
+    else if (debugMode == 7)
         skyLinear = inscatter.mieContribution;
-    else if (atmosphereDebugMode == 8)
+    else if (debugMode == 8)
         skyLinear = inscatter.multiScatterContribution;
-    else if (atmosphereDebugMode == 9)
+    else if (debugMode == 9)
         skyLinear = sunRGB;
-    else if (atmosphereDebugMode == 15)
+    else if (debugMode == 15)
     {
         // Live diagnostic grid: encodes probe values as colors across the viewport.
         const float2 grid = floor(input.uv * float2(4.0, 3.0));

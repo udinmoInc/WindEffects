@@ -2,7 +2,6 @@
 
 #include "Camera/CameraSystem.h"
 #include "Lighting/DirectionalLight.h"
-#include "Resource/DepthTarget.h"
 #include "Scene/MeshPrimitives.h"
 #include <volk.h>
 #if WE_HAS_GLM
@@ -36,15 +35,10 @@ public:
 
     void Init(const SceneRendererConfig& config);
     void Shutdown();
-    void Resize(uint32_t width, uint32_t height);
-    bool ResizeIfNeeded(uint32_t width, uint32_t height);
-
     void DrawMeshes(VkCommandBuffer cmd) const;
     VkDescriptorSetLayout GetObjectDescriptorSetLayout() const { return m_ObjectDescriptorSetLayout; }
     VkDescriptorSet GetObjectDescriptorSet(uint32_t frameIndex) const;
 
-    DepthTarget* GetDepthTarget() { return &m_DepthTarget; }
-    const DepthTarget* GetDepthTarget() const { return &m_DepthTarget; }
     DirectionalLight* GetDirectionalLight() { return &m_DirectionalLight; }
     const DirectionalLight* GetDirectionalLight() const { return &m_DirectionalLight; }
 
@@ -69,7 +63,6 @@ private:
     ResourceManager* m_ResourceManager = nullptr;
 
     MeshPrimitives m_MeshPrimitives;
-    DepthTarget m_DepthTarget;
     DirectionalLight m_DirectionalLight;
 
     VkDescriptorSetLayout m_ObjectDescriptorSetLayout = VK_NULL_HANDLE;

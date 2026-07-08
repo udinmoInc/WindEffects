@@ -9,6 +9,42 @@
 #include "Scene/MeshPrimitives.h"
 
 #include <cstddef>
+#include <cstdio>
+#include <chrono>
+
+namespace {
+
+#ifndef WE_ENABLE_AGENT_DEBUG_LOG
+#define WE_ENABLE_AGENT_DEBUG_LOG 0
+#endif
+
+#if WE_ENABLE_AGENT_DEBUG_LOG
+void AgentDebugLog(const char* hypothesisId, const char* location, const char* message, const char* dataJson) {
+    using namespace std::chrono;
+    const auto now = time_point_cast<milliseconds>(steady_clock::now()).time_since_epoch().count();
+
+    std::FILE* f = std::fopen("f:/Coding/windeffects/debug-a0cfa5.log", "a");
+    if (!f) return;
+
+    std::fprintf(
+        f,
+        "{\"sessionId\":\"a0cfa5\",\"id\":\"log_%lld\",\"timestamp\":%lld,"
+        "\"runId\":\"pre-fix\",\"hypothesisId\":\"%s\",\"location\":\"%s\","
+        "\"message\":\"%s\",\"data\":%s}\n",
+        static_cast<long long>(now),
+        static_cast<long long>(now),
+        hypothesisId,
+        location,
+        message,
+        dataJson ? dataJson : "null");
+
+    std::fclose(f);
+}
+#else
+void AgentDebugLog(const char*, const char*, const char*, const char*) {}
+#endif
+
+} // namespace
 
 namespace we::runtime::renderer {
 
@@ -78,6 +114,20 @@ void PBRPass::Validate() {
     WE_VALIDATE_RENDER(m_PipelineLayout != VK_NULL_HANDLE, GetName().c_str(), "Pipeline layout is invalid.");
 }
 
+RenderPassIO PBRPass::DescribePassIO() const {
+    RenderPassIO io{};
+    io.colorResourceName = "SceneColor";
+    io.color.read = true;
+    io.color.write = true;
+    io.color.requiredLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+    io.depthResourceName = "SceneDepth";
+    io.depth.read = true;
+    io.depth.write = true;
+    io.depth.requiredLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+    return io;
+}
+
 void PBRPass::Execute(const FrameContext& frame) {
     Validate();
     WE_VALIDATE_RENDER(frame.commandBuffer != VK_NULL_HANDLE, GetName().c_str(), "Command buffer is null.");
@@ -87,6 +137,35 @@ void PBRPass::Execute(const FrameContext& frame) {
     WE_VALIDATE_RENDER(frame.sceneRenderer != nullptr, GetName().c_str(), "Scene renderer is null.");
 
     VkCommandBuffer cmd = frame.commandBuffer;
+
+    char beginJson[256];
+    std::snprintf(
+        beginJson,
+        sizeof(beginJson),
+        "{"
+        "\"passName\":\"PBRPass\","
+        "\"frameIndex\":%u,"
+        "\"imageIndex\":%u,"
+        "\"pipeline\":%llu,"
+        "\"pipelineLayout\":%llu,"
+        "\"renderArea\":{\"x\":%d,\"y\":%d,\"w\":%u,\"h\":%u}"
+        "}",
+        frame.frameIndex,
+        frame.imageIndex,
+        static_cast<unsigned long long>(reinterpret_cast<uint64_t>(m_Pipeline)),
+        static_cast<unsigned long long>(reinterpret_cast<uint64_t>(m_PipelineLayout)),
+        frame.sceneRenderArea.offset.x,
+        frame.sceneRenderArea.offset.y,
+        frame.sceneRenderArea.extent.width,
+        frame.sceneRenderArea.extent.height);
+
+    // #region agent log
+    AgentDebugLog(
+        "H2",
+        "PBRPass.cpp:Execute",
+        "PASS_BEGIN",
+        beginJson);
+    // #endregion
 
     VkRenderingAttachmentInfo colorAttachment{};
     colorAttachment.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
@@ -135,6 +214,25 @@ void PBRPass::Execute(const FrameContext& frame) {
     vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_PipelineLayout, 0, 3, sets, 0, nullptr);
 
     frame.sceneRenderer->DrawMeshes(cmd);
+
+    char drawJson[256];
+    std::snprintf(
+        drawJson,
+        sizeof(drawJson),
+        "{"
+        "\"passName\":\"PBRPass\","
+        "\"drawType\":\"vkCmdDrawIndexed\","
+        "\"expectsColorWrite\":true,"
+        "\"expectsDepthWrite\":true"
+        "}");
+
+    // #region agent log
+    AgentDebugLog(
+        "H5",
+        "PBRPass.cpp:Execute",
+        "PASS_DRAW",
+        drawJson);
+    // #endregion
 
     vkCmdEndRendering(cmd);
 }

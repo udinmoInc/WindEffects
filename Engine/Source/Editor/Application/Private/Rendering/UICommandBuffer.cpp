@@ -1,5 +1,5 @@
 #include "Rendering/UICommandBuffer.h"
-#include "Rendering/UIRenderer2.h"
+#include "Rendering/OverlayRenderer.h"
 #include "Core/Logger.h"
 #include <cstring>
 

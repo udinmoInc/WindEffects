@@ -73,11 +73,12 @@ public:
               uint32_t graphicsQueueFamilyIndex,
               VkFormat swapchainFormat,
               uint32_t maxFramesInFlight,
-              we::runtime::renderer::DeviceContext* deviceContext,
-              we::runtime::renderer::ResourceManager* resourceManager);
+              ::we::runtime::renderer::DeviceContext* deviceContext,
+              ::we::runtime::renderer::ResourceManager* resourceManager);
     void Shutdown();
 
     void BeginOverlayPass(const we::editor::rendering::OverlayRenderContext& context);
+    void SetFrameExtent(uint32_t width, uint32_t height);
     void RenderEditorUI(const std::shared_ptr<we::UI::Widget>& root);
     void EndOverlayPass(const we::editor::rendering::OverlayRenderContext& context);
 
@@ -110,8 +111,8 @@ private:
     VkFormat m_SwapchainFormat = VK_FORMAT_UNDEFINED;
     uint32_t m_MaxFramesInFlight = 2;
 
-    we::runtime::renderer::DeviceContext* m_DeviceContext = nullptr;
-    we::runtime::renderer::ResourceManager* m_ResourceManager = nullptr;
+    ::we::runtime::renderer::DeviceContext* m_DeviceContext = nullptr;
+    ::we::runtime::renderer::ResourceManager* m_ResourceManager = nullptr;
 
     VkPipeline m_GraphicsPipeline = VK_NULL_HANDLE;
     VkPipelineLayout m_PipelineLayout = VK_NULL_HANDLE;

@@ -29,7 +29,9 @@ void Widget::Tick(float deltaTime) {
     // We create a copy of children in case they modify the child list during Tick
     auto childrenCopy = m_Children;
     for (auto& child : childrenCopy) {
-        child->Tick(deltaTime);
+        if (child) {
+            child->Tick(deltaTime);
+        }
     }
 }
 

@@ -7,33 +7,57 @@
 #include "Core/PaintContext.h"
 #include "Rendering/OverlayRenderer.h"
 #include "Core/Theme.h"
+#include "Rendering/ViewportRenderTarget.h"
+#include "Core/LogCategory.h"
+#include "Core/DiagnosticMacros.h"
 #include <SDL3/SDL_keyboard.h>
 #include <algorithm>
 #include <glm/glm.hpp>
 
+#ifndef WE_DEBUG_UI
+#define WE_DEBUG_UI 0
+#endif
+
 namespace we::UI {
 
-ViewportWidget::ViewportWidget(we::runtime::renderer::Renderer* renderer,
-                               const std::shared_ptr<we::runtime::engine::EditorCamera>& camera,
-                               const std::shared_ptr<we::runtime::scene::Scene>& scene,
+ViewportWidget::ViewportWidget(::we::runtime::renderer::ISceneViewportController* viewportController,
+                               ::we::runtime::renderer::DeviceContext* deviceContext,
+                               ::we::runtime::renderer::ResourceManager* resourceManager,
+                               VkFormat viewportColorFormat,
+                               const std::shared_ptr<::we::runtime::engine::EditorCamera>& camera,
+                               const std::shared_ptr<::we::runtime::scene::Scene>& scene,
                                OverlayRenderer* uiRenderer)
-    : m_Renderer(renderer), m_Camera(camera), m_Scene(scene), m_uiRenderer(uiRenderer) {
+    : m_ViewportController(viewportController),
+      m_ResourceManager(resourceManager),
+      m_DeviceContext(deviceContext),
+      m_ViewportColorFormat(viewportColorFormat),
+      m_Camera(camera),
+      m_Scene(scene),
+      m_uiRenderer(uiRenderer) {
     m_Navigation.SetCamera(camera);
     m_Navigation.SetScene(scene);
     m_Navigation.ApplySettingsFromStore();
 
-    m_GraphicsDebugger = std::make_shared<GraphicsDebuggerPopup>(renderer, camera, scene);
+    m_ViewportRenderTarget = std::make_unique<we::editor::viewport::ViewportRenderTarget>();
+    m_ViewportRenderTarget->Init(m_DeviceContext, m_ResourceManager, m_ViewportColorFormat);
+
+#if WE_DEBUG_UI
+    m_GraphicsDebugger = std::make_shared<GraphicsDebuggerPopup>(nullptr, camera, scene);
+#endif
 }
 
 void ViewportWidget::Construct() {
+#if WE_DEBUG_UI
     AddChild(m_GraphicsDebugger);
+    if (m_GraphicsDebugger) {
+        // Debug HUD must never render unless explicitly enabled.
+        m_GraphicsDebugger->SetVisible(false);
+    }
+#endif
 }
 
 ViewportWidget::~ViewportWidget() {
-    if (m_uiRenderer && m_ViewportTextureSet != VK_NULL_HANDLE) {
-        m_uiRenderer->UnregisterTexture(m_ViewportTextureSet);
-        m_ViewportTextureSet = VK_NULL_HANDLE;
-    }
+    WE_LOG_INFO(we::LogCategory::Renderer.data(), "[ViewportWidget] Destroyed.");
 }
 
 void ViewportWidget::SetWindow(SDL_Window* window) {
@@ -54,6 +78,8 @@ void ViewportWidget::Arrange(const Rect& allottedRect) {
         m_PendingWidth  = static_cast<uint32_t>(allottedRect.width);
         m_PendingHeight = static_cast<uint32_t>(allottedRect.height);
         m_ResizePending = true;
+    } else if (allottedRect.width <= 0.0f || allottedRect.height <= 0.0f) {
+        m_ResizePending = false;
     }
 
     for (auto& child : m_Children) {
@@ -65,7 +91,7 @@ void ViewportWidget::Arrange(const Rect& allottedRect) {
         child->Arrange(Rect{ allottedRect.x, allottedRect.y, allottedRect.width, compactHeight });
     }
 
-    if (m_GraphicsDebugger) {
+    if (m_GraphicsDebugger && m_GraphicsDebugger->IsVisible()) {
         m_GraphicsDebugger->ArrangeInViewport(allottedRect);
     }
 }
@@ -74,12 +100,59 @@ void ViewportWidget::FlushPendingResize() {
     if (!m_ResizePending) return;
     m_ResizePending = false;
 
-    if (m_PendingWidth == 0 || m_PendingHeight == 0 || !m_Renderer) return;
+    if (m_PendingWidth == 0 || m_PendingHeight == 0) return;
 
     m_Camera->SetViewportSize(
         static_cast<float>(m_PendingWidth),
         static_cast<float>(m_PendingHeight)
     );
+
+    if (m_ViewportController) {
+        if (m_ViewportRenderTarget) {
+            m_ViewportRenderTarget->Resize(m_PendingWidth, m_PendingHeight);
+            WE_LOG_INFO(
+                we::LogCategory::Renderer.data(),
+                std::string("[ViewportWidget] Resize target to ") +
+                std::to_string(m_PendingWidth) + "x" + std::to_string(m_PendingHeight) +
+                " colorImage=0x" + std::to_string(reinterpret_cast<uint64_t>(m_ViewportRenderTarget->GetColorImage())) +
+                " colorView=0x" + std::to_string(reinterpret_cast<uint64_t>(m_ViewportRenderTarget->GetColorImageView())) +
+                " depthTarget=0x" + std::to_string(reinterpret_cast<uint64_t>(m_ViewportRenderTarget->GetDepthTarget())));
+            m_ViewportController->SetViewportRenderTargetColor(
+                m_ViewportRenderTarget->GetColorImage(),
+                m_ViewportRenderTarget->GetColorImageView(),
+                m_ViewportRenderTarget->GetColorFormat());
+            m_ViewportController->SetViewportDepthTarget(m_ViewportRenderTarget->GetDepthTarget());
+        }
+        m_ViewportController->SetViewportRenderTargetSize(m_PendingWidth, m_PendingHeight);
+    }
+
+    SyncRendererViewport();
+}
+
+void ViewportWidget::SyncRendererViewport() {
+    if (!m_ViewportController) {
+        return;
+    }
+
+    if (!m_Visible || m_Geometry.width <= 0.0f || m_Geometry.height <= 0.0f) {
+        m_ViewportController->SetViewportBlitRect(0, 0, 0, 0);
+        return;
+    }
+
+    const uint32_t width = static_cast<uint32_t>(m_Geometry.width);
+    const uint32_t height = static_cast<uint32_t>(m_Geometry.height);
+    m_ViewportController->SetViewportBlitRect(
+        static_cast<uint32_t>(m_Geometry.x),
+        static_cast<uint32_t>(m_Geometry.y),
+        width,
+        height);
+}
+
+VkImageView ViewportWidget::GetViewportColorImageView() const {
+    if (m_ViewportRenderTarget) {
+        return m_ViewportRenderTarget->GetColorImageView();
+    }
+    return VK_NULL_HANDLE;
 }
 
 bool ViewportWidget::HitTestGizmoReset(const Point& position) const {
@@ -91,71 +164,6 @@ bool ViewportWidget::HitTestGizmoReset(const Point& position) const {
 
 void ViewportWidget::Paint(PaintContext& context) {
     if (!m_Visible) return;
-
-    if (m_ViewportTextureSet != VK_NULL_HANDLE) {
-        context.DrawTexture(m_Geometry, m_ViewportTextureSet);
-    }
-
-    const Theme& theme = Theme::Get();
-    Point gizmoCenter = Point{ m_Geometry.x + m_Geometry.width - 55.0f, m_Geometry.y + 55.0f };
-    context.DrawRect(Rect{ gizmoCenter.x - 30.0f, gizmoCenter.y - 30.0f, 60.0f, 60.0f }, theme.GizmoBackground, 30.0f);
-
-    glm::vec3 right = m_Camera->GetRight();
-    glm::vec3 up = m_Camera->GetUp();
-    glm::vec3 forward = m_Camera->GetForward();
-
-    Color colorX = theme.GizmoAxisX;
-    Color colorY = theme.GizmoAxisY;
-    Color colorZ = theme.GizmoAxisZ;
-
-    glm::vec3 xAxis(1.0f, 0.0f, 0.0f);
-    glm::vec3 yAxis(0.0f, 1.0f, 0.0f);
-    glm::vec3 zAxis(0.0f, 0.0f, 1.0f);
-
-    Point xProj{ glm::dot(xAxis, right) * 22.0f, -glm::dot(xAxis, up) * 22.0f };
-    Point yProj{ glm::dot(yAxis, right) * 22.0f, -glm::dot(yAxis, up) * 22.0f };
-    Point zProj{ glm::dot(zAxis, right) * 22.0f, -glm::dot(zAxis, up) * 22.0f };
-
-    struct AxisInfo {
-        Point proj;
-        Color color;
-        std::string label;
-        float depth;
-    };
-
-    std::vector<AxisInfo> axes = {
-        { xProj, colorX, "X", glm::dot(xAxis, forward) },
-        { yProj, colorY, "Y", glm::dot(yAxis, forward) },
-        { zProj, colorZ, "Z", glm::dot(zAxis, forward) }
-    };
-
-    std::sort(axes.begin(), axes.end(), [](const AxisInfo& a, const AxisInfo& b) {
-        return a.depth < b.depth;
-    });
-
-    for (const auto& axis : axes) {
-        Point endPoint{ gizmoCenter.x + axis.proj.x, gizmoCenter.y + axis.proj.y };
-        context.DrawLine(gizmoCenter, endPoint, axis.color, 2.5f);
-        context.DrawText(axis.label, Point{ endPoint.x + 4.0f, endPoint.y - 6.0f }, axis.color, 10.0f);
-    }
-
-    if (m_Navigation.IsFlyLookActive()) {
-        const float centerX = m_Geometry.x + m_Geometry.width * 0.5f;
-        const float centerY = m_Geometry.y + m_Geometry.height * 0.5f;
-        const Color crosshairColor{ 1.0f, 1.0f, 1.0f, 0.9f };
-        constexpr float kArm = 8.0f;
-        constexpr float kThickness = 1.5f;
-        context.DrawLine(
-            Point{ centerX - kArm, centerY },
-            Point{ centerX + kArm, centerY },
-            crosshairColor,
-            kThickness);
-        context.DrawLine(
-            Point{ centerX, centerY - kArm },
-            Point{ centerX, centerY + kArm },
-            crosshairColor,
-            kThickness);
-    }
 
     for (auto& child : m_Children) {
         child->Paint(context);
@@ -171,8 +179,7 @@ void ViewportWidget::OnMouseDown(const MouseEvent& event) {
     if (event.type == MouseEventType::MouseDown
         && event.button == MouseButton::Left
         && event.ctrlDown
-        && m_Geometry.Contains(event.position)
-        && m_Renderer) {
+        && m_Geometry.Contains(event.position)) {
         return;
     }
 
@@ -220,13 +227,19 @@ void ViewportWidget::OnMouseWheel(const MouseEvent& event) {
 }
 
 void ViewportWidget::OnKeyDown(const KeyEvent& event) {
+#if WE_DEBUG_UI
+    if (event.type == KeyEventType::KeyDown && event.keycode == SDLK_F8 && m_GraphicsDebugger) {
+        m_GraphicsDebugger->SetVisible(!m_GraphicsDebugger->IsVisible());
+        return;
+    }
+#endif
     m_Navigation.OnKeyDown(event);
 }
 
 void ViewportWidget::Tick(float deltaTime) {
     m_FPS = 1.0f / (deltaTime > 0.0f ? deltaTime : 0.016f);
     m_FrameTime = deltaTime * 1000.0f;
-    if (m_GraphicsDebugger) {
+    if (m_GraphicsDebugger && m_GraphicsDebugger->IsVisible()) {
         m_GraphicsDebugger->SetFrameStats(m_FPS, m_FrameTime);
     }
     m_Navigation.Tick(deltaTime);

@@ -5,6 +5,42 @@
 #include "Resource/ResourceManager.h"
 
 #include <cstring>
+#include <cstdio>
+#include <chrono>
+
+namespace {
+
+#ifndef WE_ENABLE_AGENT_DEBUG_LOG
+#define WE_ENABLE_AGENT_DEBUG_LOG 0
+#endif
+
+#if WE_ENABLE_AGENT_DEBUG_LOG
+void AgentDebugLog(const char* hypothesisId, const char* location, const char* message, const char* dataJson) {
+    using namespace std::chrono;
+    const auto now = time_point_cast<milliseconds>(steady_clock::now()).time_since_epoch().count();
+
+    std::FILE* f = std::fopen("f:/Coding/windeffects/debug-a0cfa5.log", "a");
+    if (!f) return;
+
+    std::fprintf(
+        f,
+        "{\"sessionId\":\"a0cfa5\",\"id\":\"log_%lld\",\"timestamp\":%lld,"
+        "\"runId\":\"pre-fix\",\"hypothesisId\":\"%s\",\"location\":\"%s\","
+        "\"message\":\"%s\",\"data\":%s}\n",
+        static_cast<long long>(now),
+        static_cast<long long>(now),
+        hypothesisId,
+        location,
+        message,
+        dataJson ? dataJson : "null");
+
+    std::fclose(f);
+}
+#else
+void AgentDebugLog(const char*, const char*, const char*, const char*) {}
+#endif
+
+} // namespace
 
 namespace we::runtime::renderer {
 
@@ -45,7 +81,6 @@ void SceneRenderer::Shutdown() {
     if (!m_Initialized) return;
 
     m_MeshPrimitives.Shutdown();
-    m_DepthTarget.Shutdown();
     m_DirectionalLight.Shutdown();
 
     VkDevice device = m_DeviceContext->GetDevice();
@@ -69,34 +104,6 @@ void SceneRenderer::Shutdown() {
     m_ObjectMemories.clear();
     m_ObjectDescriptorSets.clear();
     m_Initialized = false;
-}
-
-void SceneRenderer::Resize(uint32_t width, uint32_t height) {
-    ResizeIfNeeded(width, height);
-}
-
-bool SceneRenderer::ResizeIfNeeded(uint32_t width, uint32_t height) {
-    if (!m_Initialized || width == 0 || height == 0) {
-        return false;
-    }
-
-    if (m_DepthTarget.GetWidth() == width && m_DepthTarget.GetHeight() == height) {
-        return false;
-    }
-
-    DepthTargetConfig depthConfig{};
-    depthConfig.deviceContext = m_DeviceContext;
-    depthConfig.resourceManager = m_ResourceManager;
-    depthConfig.width = width;
-    depthConfig.height = height;
-
-    if (m_DepthTarget.GetImage() == VK_NULL_HANDLE) {
-        m_DepthTarget.Init(depthConfig);
-    } else {
-        m_DepthTarget.Resize(width, height);
-    }
-
-    return true;
 }
 
 void SceneRenderer::CreateObjectResources(uint32_t frameCount) {
@@ -195,6 +202,30 @@ void SceneRenderer::DrawMeshes(VkCommandBuffer cmd) const {
 
     vkCmdBindVertexBuffers(cmd, 0, 1, buffers, offsets);
     vkCmdBindIndexBuffer(cmd, cube.indexBuffer, 0, VK_INDEX_TYPE_UINT32);
+
+    char dataJson[256];
+    std::snprintf(
+        dataJson,
+        sizeof(dataJson),
+        "{"
+        "\"passName\":\"PBRPass\","
+        "\"vertexBuffer\":%llu,"
+        "\"indexBuffer\":%llu,"
+        "\"indexCount\":%u,"
+        "\"instanceCount\":1"
+        "}",
+        static_cast<unsigned long long>(reinterpret_cast<uint64_t>(cube.vertexBuffer)),
+        static_cast<unsigned long long>(reinterpret_cast<uint64_t>(cube.indexBuffer)),
+        cube.indexCount);
+
+    // #region agent log
+    AgentDebugLog(
+        "H5",
+        "SceneRenderer.cpp:DrawMeshes",
+        "MESH_DRAW_INFO",
+        dataJson);
+    // #endregion
+
     vkCmdDrawIndexed(cmd, cube.indexCount, 1, 0, 0, 0);
 }
 

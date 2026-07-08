@@ -27,14 +27,6 @@ void CSMain(uint3 dtid : SV_DispatchThreadID)
 
     float3 color = WE_SanitizeHdrColor(sceneColor[dtid.xy].rgb);
 
-    // Atmosphere validation: passthrough linear color with sRGB encoding only.
-    if (atmosphereDebugMode != 0)
-    {
-        color = WE_LinearToSRGB(color);
-        sceneOutput[dtid.xy] = float4(color, 1.0);
-        return;
-    }
-
     if (pipelineBypassToneMapping != 0)
     {
         const float evScale = max(WE_ExposureFromEV100(exposureEV), 1.0 / 4096.0);

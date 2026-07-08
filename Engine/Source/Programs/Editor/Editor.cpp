@@ -19,6 +19,7 @@
 #include "Layout/Box.h"
 #include "Layout/Splitter.h"
 #include "Layout/OverlayManager.h"
+#include "Rendering/EditorCompositor.h"
 #include "Core/Icon.h"
 
 #include <cstring>
@@ -65,6 +66,10 @@
 #include <unordered_map>
 #include <vector>
 #include <filesystem>
+
+#ifndef WE_DEBUG_UI
+#define WE_DEBUG_UI 0
+#endif
 
 #if defined(_WIN32)
 #include "../Windows/Win32WindowChrome.h"
@@ -131,6 +136,7 @@ Editor::Editor(SDL_Window* window) : m_Window(window) {
         throw;
     }
 
+    // EditorCompositor no longer needed - scene renders directly to swapchain
 
     try {
         InitializeContentBrowserService(m_OverlayRenderer->GetIconRenderer());
@@ -191,7 +197,7 @@ Editor::Editor(SDL_Window* window) : m_Window(window) {
     } catch (const std::exception& e) {
         HE_ERROR("[Startup] Failed to log widget tree: " + std::string(e.what()));
     }
-    MaybeShowFirstRunAgreement();
+    m_FirstRunAgreementPending = !HasAcceptedFirstRunAgreement();
 
     HE_INFO("[Startup] Swapchain: " + std::to_string(m_Renderer->GetSwapchainWidth())
         + "x" + std::to_string(m_Renderer->GetSwapchainHeight()));
@@ -254,10 +260,12 @@ void Editor::BuildDynamicEditorUI() {
     windowItems.push_back(cbItem);
     windowItems.push_back(woItem);
     windowItems.push_back(dtItem);
+#if WE_DEBUG_UI
     auto renderInvItem = std::make_shared<MenuItem>();
     renderInvItem->label = "Render Investigation";
     renderInvItem->onClick = []() { we::UI::RenderInvestigationModalHost::Toggle(); };
     windowItems.push_back(renderInvItem);
+#endif
     menuBar->AddMenu("Window", windowItems);
 
     EditorPanelController::Get().SetOnPanelVisibilityChanged([vpItem, cbItem, woItem, dtItem]() {
@@ -271,10 +279,12 @@ void Editor::BuildDynamicEditorUI() {
     std::vector<std::shared_ptr<MenuItem>> toolsItems;
     auto placeActorsItem = std::make_shared<MenuItem>(); placeActorsItem->label = "Place Actors";
     toolsItems.push_back(placeActorsItem);
+#if WE_DEBUG_UI
     auto gpuInvItem = std::make_shared<MenuItem>();
     gpuInvItem->label = "GPU Investigation";
     gpuInvItem->onClick = []() { we::UI::RenderInvestigationModalHost::Toggle(); };
     toolsItems.push_back(gpuInvItem);
+#endif
     menuBar->AddMenu("Tools", toolsItems);
 
     // Build menu
@@ -351,7 +361,7 @@ void Editor::BuildDynamicEditorUI() {
 
     VkDescriptorSet logoSet = VK_NULL_HANDLE;
     if (m_OverlayRenderer && m_OverlayRenderer->GetIconRenderer()) {
-        logoSet = m_OverlayRenderer->GetIconRenderer()->GetIcon("Assets/Editor/windeffects.svg", finalPxSize);
+        logoSet = m_OverlayRenderer->GetIconRenderer()->GetIcon("Assets/Editor/WindEffects.svg", finalPxSize);
     }
 
     auto titleBar = std::make_shared<TitleBar>(m_Window, "WindEffects Editor", logoSet, menuBar);
@@ -416,7 +426,14 @@ void Editor::BuildDynamicEditorUI() {
     HE_INFO("[UI] Toolbar created with mode selector and tools.");
 
     // ===== 4. Create Viewports =====
-    auto viewportWidget = std::make_shared<ViewportWidget>(m_Renderer.get(), m_Camera, m_Scene, m_OverlayRenderer.get());
+    auto viewportWidget = std::make_shared<ViewportWidget>(
+        static_cast<we::runtime::renderer::ISceneViewportController*>(m_Renderer.get()),
+        m_Renderer->GetDeviceContext(),
+        m_Renderer->GetResourceManager(),
+        m_Renderer->GetSwapchainImageFormat(),
+        m_Camera,
+        m_Scene,
+        m_OverlayRenderer.get());
     viewportWidget->Construct();
     viewportWidget->SetWindow(m_Window);
     m_ViewportWidget = viewportWidget;
@@ -480,7 +497,7 @@ void Editor::BuildDynamicEditorUI() {
     if (m_OverlayRenderer && m_OverlayRenderer->GetIconRenderer()) {
         const float logoLogical = we::programs::editor::GetExplorerDockTabLogoSize();
         const int logoPx = static_cast<int>(std::round(logoLogical * displayScale));
-        VkDescriptorSet explorerLogo = m_OverlayRenderer->GetIconRenderer()->GetIcon("Assets/Editor/windeffects.svg", logoPx);
+        VkDescriptorSet explorerLogo = m_OverlayRenderer->GetIconRenderer()->GetIcon("Assets/Editor/WindEffects.svg", logoPx);
         we::UI::DockTabBrandRegistry::Get().RegisterBrand("Explorer", explorerLogo, logoLogical);
         we::programs::editor::BindExplorerBrandLogo(explorerLogo, logoLogical);
     }
@@ -549,6 +566,7 @@ void Editor::BuildDynamicEditorUI() {
         HE_WARN("[UI] OutputLog panel factory missing.");
     }
 
+#if WE_DEBUG_UI
     // ===== 7c. Create Render Debugger Panel =====
     auto debugPanel = std::make_shared<Panel>("Render Debugger");
     debugPanel->SetHeaderHeight(30.0f);
@@ -556,6 +574,7 @@ void Editor::BuildDynamicEditorUI() {
     m_RenderDebuggerPanel->Construct();
     debugPanel->SetContent(m_RenderDebuggerPanel);
     HE_INFO("[UI] Render Debugger panel created.");
+#endif
 
     EditorPanelController::Get().RegisterDockZone(EditorDockZone::Left, toolsDock);
     EditorPanelController::Get().RegisterDockZone(EditorDockZone::Center, centralDock);
@@ -568,7 +587,9 @@ void Editor::BuildDynamicEditorUI() {
     EditorPanelController::Get().RegisterPanel(EditorPanelId::ViewportNavigation, "Viewport Navigation", viewportNavigationPanel, EditorDockZone::Floating);
     EditorPanelController::Get().RegisterPanel(EditorPanelId::ContentBrowser, "Content Browser", contentBrowserPanel, EditorDockZone::Floating);
     EditorPanelController::Get().RegisterPanel(EditorPanelId::OutputLog, "Output Log", outputLogPanel, EditorDockZone::Floating);
+#if WE_DEBUG_UI
     EditorPanelController::Get().RegisterPanel(EditorPanelId::Debug, "Render Debugger", debugPanel, EditorDockZone::Floating);
+#endif
 
     vpItem->checked = EditorPanelController::Get().IsPanelVisible(EditorPanelId::Viewport);
     cbItem->checked = EditorPanelController::Get().IsPanelVisible(EditorPanelId::ContentBrowser);
@@ -635,7 +656,11 @@ void Editor::BuildDynamicEditorUI() {
     leftCenterColumn->SetFirstChild(editorTopRow);
     leftCenterColumn->SetSecondChild(contentBrowserPanel);
     EditorLayoutController::Get().SetContentBrowserSplitter(leftCenterColumn);
+#if WE_DEBUG_UI
     EditorLayoutController::Get().SetBottomPanels(contentBrowserPanel, debugPanel);
+#else
+    EditorLayoutController::Get().SetBottomPanels(contentBrowserPanel, nullptr);
+#endif
     HE_INFO("[UI] Left/center column: [Tools | Viewport] over full-width Content Browser.");
 
     // Main body: left+center column | right sidebar (narrow)
@@ -645,7 +670,6 @@ void Editor::BuildDynamicEditorUI() {
     HE_INFO("[UI] Horizontal splitter: Left/Center (78%) | Right sidebar (22%).");
 
     EditorLayoutPersistence::Get().BindLayout(mainHSplitter, leftCenterColumn, editorTopRow, rightSideSplitter, explorerDock, centralDock);
-    EditorLayoutPersistence::Get().Load();
 
     // Root VBox
     auto rootVBox = std::make_shared<VerticalBox>();
@@ -662,6 +686,9 @@ void Editor::BuildDynamicEditorUI() {
     auto overlayManager = std::make_shared<OverlayManager>();
     overlayManager->SetBaseWidget(windowShell);
     m_RootWidget = overlayManager;
+
+    // Restore saved layout after OverlayManager exists so floating panels can attach.
+    EditorLayoutPersistence::Get().Load();
 
     m_WindowHitTestData.titleBar = m_TitleBar;
     if (!SDL_SetWindowHitTest(m_Window, we::editor::mainframe::EditorWindowHitTest, &m_WindowHitTestData)) {
@@ -734,6 +761,7 @@ void Editor::SyncViewportFramebufferFromLayout() {
     if (m_ViewportWidget) {
         if (auto vp = std::dynamic_pointer_cast<ViewportWidget>(m_ViewportWidget)) {
             vp->FlushPendingResize();
+            vp->SyncRendererViewport();
         }
     }
 }
@@ -784,6 +812,7 @@ void Editor::CreateNewLevel() {
 
 void Editor::MaybeShowFirstRunAgreement() {
     if (HasAcceptedFirstRunAgreement()) {
+        m_FirstRunAgreementPending = false;
         return;
     }
 
@@ -840,6 +869,7 @@ void Editor::MaybeShowFirstRunAgreement() {
         }
     };
 
+    m_FirstRunAgreementPending = false;
     showEulaPopup();
 }
 
@@ -847,7 +877,6 @@ void Editor::MainLoop() {
     uint64_t lastTime = SDL_GetPerformanceCounter();
     double frequency = static_cast<double>(SDL_GetPerformanceFrequency());
     bool firstFrame = true;
-
     while (m_Running) {
         SDL_Event event;
         while (SDL_PollEvent(&event)) {
@@ -903,9 +932,11 @@ void Editor::MainLoop() {
 
                 m_UIEventSystem->ProcessMouseEvent(mouseEvent);
             } else if (event.type == SDL_EVENT_KEY_DOWN || event.type == SDL_EVENT_KEY_UP) {
+#if WE_DEBUG_UI
                 if (event.type == SDL_EVENT_KEY_DOWN && event.key.key == SDLK_F9) {
                     we::UI::RenderInvestigationModalHost::Toggle();
                 }
+#endif
                 UI::KeyEvent keyEvent{};
                 keyEvent.type = (event.type == SDL_EVENT_KEY_DOWN)
                     ? UI::KeyEventType::KeyDown
@@ -934,20 +965,26 @@ void Editor::MainLoop() {
         float dt = static_cast<float>((now - lastTime) / frequency);
         lastTime = now;
         if (dt > 0.1f) dt = 0.1f;
-
         // Input and fly movement update camera targets first; smoothing runs after.
-        m_RootWidget->Tick(dt);
-
-        m_Camera->Update(dt);
-        m_Scene->Update();
-        we::runtime::world::environment::EnvironmentSystem::Get().SyncFromScene(m_Camera->GetPosition());
+        if (m_RootWidget) {
+            m_RootWidget->Tick(dt);
+        } else {
+            HE_ERROR("[Render] Root widget is null during frame tick; stopping main loop.");
+            m_Running = false;
+            break;
+        }
+        if (m_Camera) {
+            m_Camera->Update(dt);
+        }
+        if (m_Scene) {
+            m_Scene->Update();
+        }
+        if (m_Camera) {
+            we::runtime::world::environment::EnvironmentSystem::Get().SyncFromScene(m_Camera->GetPosition());
+        }
         we::editor::environment::TickEditor();
 
-        // Flush viewport resize before GPU work
-        if (m_ViewportWidget) {
-            auto vp = std::dynamic_pointer_cast<ViewportWidget>(m_ViewportWidget);
-            if (vp) vp->FlushPendingResize();
-        }
+        SyncViewportFramebufferFromLayout();
 
         we::runtime::core::FrameCounter::Advance();
 
@@ -965,42 +1002,62 @@ void Editor::MainLoop() {
 
 
 
-        if (m_Renderer && m_ViewportWidget) {
-            const UI::Rect viewportRect = m_ViewportWidget->GetGeometry();
-            m_Renderer->SetSceneViewportRect(
-                static_cast<int32_t>(viewportRect.x),
-                static_cast<int32_t>(viewportRect.y),
-                static_cast<uint32_t>((std::max)(0.0f, viewportRect.width)),
-                static_cast<uint32_t>((std::max)(0.0f, viewportRect.height)));
-        }
-
-        if (m_Renderer->BeginFrame()) {
+        if (m_Renderer && m_Renderer->BeginFrame()) {
             m_Renderer->UploadCameraUniform(cameraUBO);
-            
-            // 1. Render Scene (HDR -> LDR Tone Mapping)
+
+            // 1. Render Scene (directly to swapchain at viewport rect)
             m_Renderer->RenderScene();
 
-            // 2. Render Independent UI (LDR)
+            // 2. No compositor needed - scene renders directly to swapchain
+
+            // 3. Render Independent UI (LDR) on top of compositor output
             if (m_OverlayRenderer) {
+                VkCommandBuffer cmd = m_Renderer->GetCommandBuffer();
+                auto* swapchainManager = m_Renderer->GetSwapchainManager();
+                const uint32_t imageIndex = m_Renderer->GetCurrentImageIndex();
+                const auto& imageViews = swapchainManager ? swapchainManager->GetImageViews() : std::vector<VkImageView>{};
+                const bool overlayInputsValid =
+                    cmd != VK_NULL_HANDLE &&
+                    swapchainManager != nullptr &&
+                    imageIndex < imageViews.size() &&
+                    imageViews[imageIndex] != VK_NULL_HANDLE;
+
+                if (!overlayInputsValid) {
+                    HE_ERROR(
+                        "[Render] Skipping overlay pass: invalid swapchain/ui inputs "
+                        "(cmd=" + std::to_string(static_cast<unsigned long long>(reinterpret_cast<uintptr_t>(cmd))) +
+                        ", imageIndex=" + std::to_string(imageIndex) +
+                        ", imageViews=" + std::to_string(imageViews.size()) + ").");
+                } else {
                 we::editor::rendering::OverlayRenderContext overlayContext{};
-                overlayContext.cmd = m_Renderer->GetCommandBuffer();
-                overlayContext.targetView = m_Renderer->GetSwapchainManager()->GetImageViews()[m_Renderer->GetCurrentImageIndex()];
+                overlayContext.cmd = cmd;
+                overlayContext.targetView = imageViews[imageIndex];
                 overlayContext.targetFormat = m_Renderer->GetSwapchainImageFormat();
                 overlayContext.targetExtent = { m_Renderer->GetSwapchainWidth(), m_Renderer->GetSwapchainHeight() };
 
-                m_OverlayRenderer->BeginOverlayPass(overlayContext);
+                // Build UI geometry on CPU before starting the GPU overlay pass.
+                m_OverlayRenderer->SetFrameExtent(overlayContext.targetExtent.width, overlayContext.targetExtent.height);
                 m_OverlayRenderer->RenderEditorUI(m_RootWidget);
-                // Space reserved for future: RenderDebugUI(), RenderPluginUI(), etc.
+
+                // Keep Vulkan synchronization inside Renderer module where dispatch is initialized.
+                m_Renderer->InsertOverlayPassBarrier();
+                m_OverlayRenderer->BeginOverlayPass(overlayContext);
                 m_OverlayRenderer->EndOverlayPass(overlayContext);
+                }
             }
 
-            // 3. Submit to GPU and Present
+            // 4. Submit to GPU and Present
             m_Renderer->SubmitAndPresent();
 
             if (firstFrame) {
                 HE_INFO("[Render] First foundation renderer frame presented.");
+                if (m_FirstRunAgreementPending) {
+                    MaybeShowFirstRunAgreement();
+                }
                 firstFrame = false;
             }
+        } else if (!m_Renderer) {
+            HE_ERROR("[Render] Renderer is null in main loop.");
         }
     }
 }
@@ -1027,6 +1084,8 @@ void Editor::Shutdown() {
         m_OverlayRenderer->Shutdown();
         m_OverlayRenderer.reset();
     }
+
+    // EditorCompositor no longer used
     m_UIEventSystem.reset();
 
     m_Scene.reset();

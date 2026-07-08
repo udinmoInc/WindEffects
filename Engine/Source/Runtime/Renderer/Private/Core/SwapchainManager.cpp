@@ -2,6 +2,7 @@
 #include "Core/DeviceContext.h"
 #include "Core/FrameSync.h"
 #include "Core/Validation.h"
+#include "Core/LogCategory.h"
 #include <stdexcept>
 #include <algorithm>
 #include <SDL3/SDL_vulkan.h>
@@ -118,9 +119,10 @@ void SwapchainManager::CreateSwapchain() {
     vkGetPhysicalDeviceSurfacePresentModesKHR(physicalDevice, m_Surface, &presentModeCount, presentModes.data());
 
     // Choose format - use UNORM for linear color space to avoid sRGB conversion affecting UI
+    // Use RGBA format to match UI texture formats (RGBA8) and prevent channel swapping
     VkSurfaceFormatKHR surfaceFormat = formats[0];
     for (const auto& availableFormat : formats) {
-        if (availableFormat.format == VK_FORMAT_B8G8R8A8_UNORM && availableFormat.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR) {
+        if (availableFormat.format == VK_FORMAT_R8G8B8A8_UNORM && availableFormat.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR) {
             surfaceFormat = availableFormat;
             break;
         }
@@ -230,11 +232,10 @@ void SwapchainManager::SubmitFrame(uint32_t frameIndex, uint32_t imageIndex, VkC
     WE_VALIDATE_RENDER(m_Initialized, "SwapchainManager::SubmitFrame", "Swapchain not initialized.");
     WE_VALIDATE_RENDER(m_FrameSync != nullptr, "SwapchainManager::SubmitFrame", "FrameSync is null.");
 
-  (void)imageIndex;
-
     VkSemaphore waitSemaphores[] = { m_FrameSync->GetImageAvailableSemaphore(frameIndex) };
-    VkPipelineStageFlags waitStages[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
+    VkPipelineStageFlags waitStages[] = { VK_PIPELINE_STAGE_TRANSFER_BIT | VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
     VkSemaphore signalSemaphores[] = { m_FrameSync->GetRenderFinishedSemaphore(frameIndex) };
+    VkFence inFlightFence = m_FrameSync->GetInFlightFence(frameIndex);
 
     VkSubmitInfo submitInfo{};
     submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
@@ -250,7 +251,19 @@ void SwapchainManager::SubmitFrame(uint32_t frameIndex, uint32_t imageIndex, VkC
         m_Config.deviceContext->GetGraphicsQueue(),
         1,
         &submitInfo,
-        m_FrameSync->GetInFlightFence(frameIndex));
+        inFlightFence);
+
+    if (result != VK_SUCCESS) {
+        WE_LOG_ERROR(
+            we::LogCategory::Renderer.data(),
+            std::string("[SwapchainSubmit] vkQueueSubmit failed. frame=") + std::to_string(frameIndex) +
+            " image=" + std::to_string(imageIndex) +
+            " cmd=0x" + std::to_string(reinterpret_cast<uint64_t>(commandBuffer)) +
+            " waitSem=0x" + std::to_string(reinterpret_cast<uint64_t>(waitSemaphores[0])) +
+            " signalSem=0x" + std::to_string(reinterpret_cast<uint64_t>(signalSemaphores[0])) +
+            " fence=0x" + std::to_string(reinterpret_cast<uint64_t>(inFlightFence)) +
+            " vkResult=" + std::to_string(static_cast<int32_t>(result)));
+    }
 
     WE_VALIDATE_RENDER(result == VK_SUCCESS, "SwapchainManager::SubmitFrame", "Failed to submit command buffer.");
 }

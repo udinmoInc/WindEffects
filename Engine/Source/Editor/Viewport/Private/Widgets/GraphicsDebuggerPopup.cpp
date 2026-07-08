@@ -19,9 +19,9 @@ constexpr const char* kTitle = "Graphics Debugger";
 } // namespace
 
 GraphicsDebuggerPopup::GraphicsDebuggerPopup(
-    we::runtime::renderer::Renderer* renderer,
-    const std::shared_ptr<we::runtime::engine::EditorCamera>& camera,
-    const std::shared_ptr<we::runtime::scene::Scene>& scene)
+    ::we::runtime::renderer::Renderer* renderer,
+    const std::shared_ptr<::we::runtime::engine::EditorCamera>& camera,
+    const std::shared_ptr<::we::runtime::scene::Scene>& scene)
     : m_Renderer(renderer), m_Camera(camera), m_Scene(scene) {}
 
 void GraphicsDebuggerPopup::SetFrameStats(float fps, float frameTimeMs) {
@@ -58,8 +58,8 @@ void GraphicsDebuggerPopup::BuildLines(std::vector<std::string>& outLines) const
     if (m_Scene) {
         for (const auto& entity : m_Scene->GetEntities()) {
             drawCallCount++;
-            if (entity.Type == we::runtime::scene::EntityType::Plane
-                || entity.Type == we::runtime::scene::EntityType::GroundPlane) {
+            if (entity.Type == ::we::runtime::scene::EntityType::Plane
+                || entity.Type == ::we::runtime::scene::EntityType::GroundPlane) {
                 triangleCount += 2;
             } else {
                 triangleCount += 12;

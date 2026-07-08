@@ -3,12 +3,7 @@
 
 #include "../Common/Color.hlsli"
 
-cbuffer CameraBuffer : register(b0, space0)
-{
-    float4x4 invViewProj;
-    float3   cameraPos;
-    float    cameraPadding;
-};
+#include "../Common/CameraBuffer.hlsli"
 
 struct VSOutput
 {

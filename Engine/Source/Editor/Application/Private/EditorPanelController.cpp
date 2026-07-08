@@ -17,8 +17,13 @@ class FloatingPanelHost : public we::UI::Widget {
 public:
     FloatingPanelHost(const std::shared_ptr<we::UI::Panel>& panel, std::function<void()> onClose)
         : m_Panel(panel), m_OnClose(std::move(onClose)) {
-        AddChild(panel);
         m_Title = panel ? panel->GetTitle() : "Panel";
+    }
+
+    void AttachPanel() {
+        if (m_Panel) {
+            AddChild(m_Panel);
+        }
     }
 
     we::UI::Size Measure(const we::UI::Size& availableSize) override {
@@ -275,6 +280,13 @@ void EditorPanelController::FloatPanel(EditorPanelId id) {
         return;
     }
 
+    auto overlay = we::UI::OverlayManager::Get();
+    if (!overlay) {
+        // Keep panel docked if floating cannot be completed yet.
+        HE_WARN("[EditorPanel] OverlayManager unavailable for floating panel; leaving panel docked.");
+        return;
+    }
+
     auto& entry = it->second;
     if (auto dock = GetDock(entry.zone)) {
         dock->RemovePanel(entry.panel);
@@ -286,12 +298,6 @@ void EditorPanelController::FloatPanel(EditorPanelId id) {
     entry.visible = true;
     entry.panel->SetVisible(true);
 
-    auto overlay = we::UI::OverlayManager::Get();
-    if (!overlay) {
-        HE_ERROR("[EditorPanel] OverlayManager unavailable for floating panel.");
-        return;
-    }
-
     overlay->CloseAllPopups();
 
     const EditorPanelId panelId = id;
@@ -301,6 +307,7 @@ void EditorPanelController::FloatPanel(EditorPanelId id) {
             overlayMgr->CloseAllPopups();
         }
     });
+    host->AttachPanel();
 
     const we::UI::Rect root = overlay->GetGeometry();
     const float width = std::min(root.width * 0.45f, 520.0f);

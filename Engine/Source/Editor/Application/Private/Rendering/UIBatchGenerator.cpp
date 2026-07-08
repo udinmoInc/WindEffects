@@ -1,5 +1,5 @@
 #include "Rendering/UIBatchGenerator.h"
-#include "Rendering/UIRenderer2.h"
+#include "Rendering/OverlayRenderer.h"
 #include <cmath>
 #include <algorithm>
 

@@ -3,13 +3,7 @@
 #include "../Common/EnvironmentBuffer.hlsli"
 #include "../Rendering/AtmosphereLUT.hlsli"
 
-cbuffer CameraBuffer : register(b0, space1)
-{
-    float4x4 view;
-    float4x4 proj;
-    float3   cameraPos;
-    float    cameraPadding;
-};
+#include "../Common/CameraBuffer.hlsli"
 
 Texture2D    depthTexture : register(t0, space2);
 Texture2D    aerialLUT    : register(t1, space2);

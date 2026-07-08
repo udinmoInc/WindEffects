@@ -1,15 +1,39 @@
 #pragma once
 
 #include "Application/Export.h"
-#include "Rendering/UIRenderer2.h"
+#include "Rendering/OverlayRenderer.h"
 
 #include <volk.h>
 #include <vector>
 #include <unordered_map>
 #include <memory>
 #include <mutex>
+#include <functional>
 
 namespace we::UI {
+
+// Geometry cache key for identifying cached geometry
+struct APPLICATION_API UIGeometryKey {
+    uint64_t widgetId;
+    uint32_t styleHash;
+    uint32_t layoutHash;
+    
+    bool operator==(const UIGeometryKey& other) const {
+        return widgetId == other.widgetId && 
+               styleHash == other.styleHash && 
+               layoutHash == other.layoutHash;
+    }
+};
+
+// Hash function for UIGeometryKey
+struct APPLICATION_API UIGeometryKeyHash {
+    std::size_t operator()(const UIGeometryKey& key) const {
+        std::size_t h1 = std::hash<uint64_t>{}(key.widgetId);
+        std::size_t h2 = std::hash<uint32_t>{}(key.styleHash);
+        std::size_t h3 = std::hash<uint32_t>{}(key.layoutHash);
+        return h1 ^ (h2 << 1) ^ (h3 << 2);
+    }
+};
 
 // Cached geometry entry
 struct APPLICATION_API UIGeometryEntry {

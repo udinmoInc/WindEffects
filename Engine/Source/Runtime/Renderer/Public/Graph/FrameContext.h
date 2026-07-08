@@ -1,12 +1,12 @@
 #pragma once
 
+#include "Resource/DepthTarget.h"
 #include <volk.h>
 #include <cstdint>
 
 namespace we::runtime::renderer {
 
 class CameraSystem;
-class DepthTarget;
 class DirectionalLight;
 class SceneRenderer;
 
