@@ -40,37 +40,43 @@ struct APPLICATION_API Theme {
     Color ContentBrowserFolderEdge      = { 0.541f, 0.463f, 0.333f, 1.0f }; // #8A7655
     
     // Borders
+    Color BorderLight       = { 0.227f, 0.227f, 0.227f, 1.0f }; // #3A3A3A
+    Color BorderDark        = { 0.145f, 0.145f, 0.145f, 1.0f }; // #252525
     Color BorderDefault     = { 0.188f, 0.188f, 0.188f, 1.0f }; // #303030
-    Color BorderLight       = { 0.188f, 0.188f, 0.188f, 1.0f }; // #303030
-    Color BorderDark        = { 0.188f, 0.188f, 0.188f, 1.0f }; // #303030
-    Color BorderSecondary   = { 0.227f, 0.227f, 0.227f, 1.0f }; // #3A3A3A
+    Color BorderFocus       = { 0.839f, 0.635f, 0.290f, 1.0f }; // #D6A24A
     Color Separator         = { 0.231f, 0.231f, 0.231f, 0.50f }; // #3B3B3B, 50% opacity
 
     // Interactive States
-    Color HoverOverlay      = { 0.176f, 0.176f, 0.176f, 1.0f }; // #2D2D2D
-    Color HoverPanel        = { 0.176f, 0.176f, 0.176f, 1.0f }; // #2D2D2D
-    Color HoverButton       = { 0.220f, 0.220f, 0.220f, 1.0f }; // #383838
-    Color HoverMenu         = { 0.176f, 0.176f, 0.176f, 1.0f }; // #2D2D2D
-    Color PressedOverlay    = { 0.290f, 0.290f, 0.290f, 1.0f }; // #4A4A4A
+    Color HoverBg           = { 0.176f, 0.176f, 0.176f, 1.0f }; // #2D2D2D
+    Color ActiveBg          = { 0.290f, 0.290f, 0.290f, 1.0f }; // #4A4A4A
     Color SelectedBg        = { 0.227f, 0.227f, 0.227f, 1.0f }; // #3A3A3A
+    Color DisabledBg        = { 0.125f, 0.125f, 0.125f, 1.0f }; // #202020
+    
+    // Legacy mapping (keep for now so things compile if not all updated yet)
+    Color HoverOverlay      = { 0.176f, 0.176f, 0.176f, 1.0f }; 
+    Color HoverPanel        = { 0.176f, 0.176f, 0.176f, 1.0f }; 
+    Color HoverButton       = { 0.220f, 0.220f, 0.220f, 1.0f }; 
+    Color HoverMenu         = { 0.176f, 0.176f, 0.176f, 1.0f }; 
+    Color PressedOverlay    = { 0.290f, 0.290f, 0.290f, 1.0f }; 
 
     // Text & Content
     Color TextPrimary       = { 1.000f, 1.000f, 1.000f, 1.0f }; // #FFFFFF
     Color TextSecondary     = { 0.722f, 0.745f, 0.780f, 1.0f }; // #B8BEC7
-    Color TextDisabled      = { 0.478f, 0.478f, 0.478f, 1.0f }; // #7A7A7A (Disabled)
-    Color IconMuted         = { 0.580f, 0.608f, 0.651f, 1.0f }; // Slate gray for Lucide icons
+    Color TextDisabled      = { 0.478f, 0.478f, 0.478f, 1.0f }; // #7A7A7A
+    Color TextMuted         = { 0.550f, 0.550f, 0.550f, 1.0f }; // #8C8C8C
     Color TextWindowLabel   = { 0.835f, 0.835f, 0.835f, 1.0f }; // #D5D5D5
 
-    // Icon states (centralized)
-    Color SidebarIconDefault  = { 0.655f, 0.678f, 0.710f, 1.0f }; // #A7ADB5
-    Color SidebarIconHover    = { 0.839f, 0.851f, 0.871f, 1.0f }; // #D6D9DE
-    Color SidebarIconSelected = { 1.000f, 1.000f, 1.000f, 1.0f }; // #FFFFFF
-    Color SidebarIconDisabled = { 0.416f, 0.439f, 0.471f, 1.0f }; // #6A7078
+    // Icons (centralized)
+    Color IconDefault       = { 0.491f, 0.509f, 0.533f, 1.0f }; // #7D8288 (Dimmed Gray)
+    Color IconHover         = { 1.000f, 1.000f, 1.000f, 1.0f }; // #FFFFFF (White)
+    Color IconActive        = { 1.000f, 1.000f, 1.000f, 1.0f }; // #FFFFFF
+    Color IconDisabled      = { 0.416f, 0.439f, 0.471f, 1.0f }; // #6A7078
+    Color IconFolder        = { 0.718f, 0.624f, 0.451f, 1.0f }; // #B79F73 (Colored Folder)
+    Color IconMuted         = { 0.580f, 0.608f, 0.651f, 1.0f }; // Legacy
 
-    Color ToolbarIconDefault  = { 0.722f, 0.745f, 0.780f, 1.0f }; // #B8BEC7
-    Color ToolbarIconHover    = { 1.000f, 1.000f, 1.000f, 1.0f }; // #FFFFFF
-    Color ToolbarIconPressed  = { 1.000f, 1.000f, 1.000f, 1.0f }; // #FFFFFF
-    Color ToolbarIconInactive = { 0.420f, 0.439f, 0.467f, 1.0f }; // #6B7077
+    // Extra backgrounds
+    Color ViewportToolbarBg = { 0.100f, 0.100f, 0.100f, 0.85f };
+    Color StatusBarBackground = { 0.125f, 0.125f, 0.125f, 1.0f }; // #202020
 
     Color GizmoAxisX          = { 0.839f, 0.353f, 0.353f, 1.0f }; // #D65A5A
     Color GizmoAxisY          = { 0.404f, 0.725f, 0.435f, 1.0f }; // #67B96F
@@ -82,7 +88,9 @@ struct APPLICATION_API Theme {
     Color SearchIcon          = { 0.557f, 0.580f, 0.612f, 1.0f }; // #8E949C
 
     // Accents
-    Color SelectedAccent    = { 0.839f, 0.635f, 0.290f, 1.0f }; // #D6A24A
+    Color AccentPrimary     = { 0.839f, 0.635f, 0.290f, 1.0f }; // #D6A24A
+    Color AccentHover       = { 0.900f, 0.700f, 0.350f, 1.0f };
+    Color SelectedAccent    = { 0.839f, 0.635f, 0.290f, 1.0f }; // Legacy
     Color ActiveTabLine     = { 0.839f, 0.635f, 0.290f, 1.0f }; // #D6A24A
     Color Success           = { 0.180f, 0.800f, 0.443f, 1.0f };
     Color Warning           = { 0.945f, 0.768f, 0.058f, 1.0f };

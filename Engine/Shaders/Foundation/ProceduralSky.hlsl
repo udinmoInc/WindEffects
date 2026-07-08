@@ -1,6 +1,8 @@
 #ifndef WE_FOUNDATION_PROCEDURAL_SKY_HLSL
 #define WE_FOUNDATION_PROCEDURAL_SKY_HLSL
 
+#include "../Common/Color.hlsli"
+
 cbuffer CameraBuffer : register(b0, space0)
 {
     float4x4 invViewProj;
@@ -40,7 +42,10 @@ float4 PSMain(VSOutput input) : SV_Target
   float sunDot = saturate(dot(dir, normalize(float3(0.35, -0.85, 0.25))));
   sky += float3(1.0, 0.92, 0.75) * pow(sunDot, 256.0) * 0.65;
 
-  return float4(sky, 1.0);
+  // Encode linear sky colour to sRGB before writing to the UNORM swapchain.
+  // Without this the display applies its own gamma on top of already-linear
+  // values, making the sky appear washed-out and over-bright.
+  return float4(WE_LinearToSRGB(sky), 1.0);
 }
 
 #endif

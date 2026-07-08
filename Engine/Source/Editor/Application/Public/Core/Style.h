@@ -4,6 +4,7 @@
 
 #include "Core/Geometry.h"
 #include "Core/Theme.h"
+#include "Core/Logger.h"
 #include <string>
 #include <memory>
 #include <unordered_map>
@@ -46,8 +47,8 @@ struct BackgroundStyle {
     static BackgroundStyle None() { return BackgroundStyle{ Color{0,0,0,0}, 0.0f }; }
     static BackgroundStyle Panel() { return BackgroundStyle{ Theme::Get().PanelBackground, Theme::Get().CornerRadiusSmall }; }
     static BackgroundStyle Toolbar() { return BackgroundStyle{ Theme::Get().ToolbarBackground, Theme::Get().CornerRadiusSmall }; }
-    static BackgroundStyle Hover() { return BackgroundStyle{ Theme::Get().HoverOverlay, Theme::Get().CornerRadiusSmall }; }
-    static BackgroundStyle Selected() { return BackgroundStyle{ Theme::Get().SelectedAccent * 0.3f, Theme::Get().CornerRadiusSmall }; }
+    static BackgroundStyle Hover() { return BackgroundStyle{ Theme::Get().HoverBg, Theme::Get().CornerRadiusSmall }; }
+    static BackgroundStyle Selected() { return BackgroundStyle{ Theme::Get().SelectedBg, Theme::Get().CornerRadiusSmall }; }
 };
 
 // Text styling
@@ -115,7 +116,7 @@ struct WidgetStyle {
         style.shadow = ShadowStyle::None();
         style.padding = Theme::Get().PaddingButton;
         style.backgroundHover = BackgroundStyle::Hover();
-        style.backgroundPressed = BackgroundStyle{ Theme::Get().HoverOverlay * 0.8f, Theme::Get().CornerRadiusSmall };
+        style.backgroundPressed = BackgroundStyle{ Theme::Get().ActiveBg, Theme::Get().CornerRadiusSmall };
         return style;
     }
     
@@ -127,7 +128,7 @@ struct WidgetStyle {
         style.shadow = ShadowStyle::None();
         style.padding = Theme::Get().PaddingIconBtn;
         style.backgroundHover = BackgroundStyle::Hover();
-        style.backgroundPressed = BackgroundStyle{ Theme::Get().HoverOverlay * 0.8f, Theme::Get().CornerRadiusSmall };
+        style.backgroundPressed = BackgroundStyle{ Theme::Get().ActiveBg, Theme::Get().CornerRadiusSmall };
         return style;
     }
     
@@ -192,6 +193,11 @@ public:
     static StyleManager& Get();
     
     void SetWidgetStyle(const std::string& widgetName, const WidgetStyle& style) {
+        if (m_WidgetStyles.find(widgetName) != m_WidgetStyles.end()) {
+            WE_LOG_INFO("StyleManager: Overriding style for widget '{}'", widgetName);
+        } else {
+            WE_LOG_INFO("StyleManager: Registering style for widget '{}'", widgetName);
+        }
         m_WidgetStyles[widgetName] = style;
     }
     

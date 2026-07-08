@@ -223,7 +223,9 @@ PSOutput PSMain(VSOutput input)
     const float haze = 1.0 - exp(-distToCamera * 0.0055);
     const float3 hazeColor = float3(0.02, 0.02, 0.022);
     linearColor = lerp(linearColor, hazeColor, saturate(haze * 0.35));
-    color = min(linearColor, float3(4.0, 4.0, 4.0));
+    // Encode linear grid colour to sRGB for the UNORM swapchain.
+    // PostExposure is not in the active render graph, so we do it here.
+    color = WE_LinearToSRGB(min(linearColor, float3(4.0, 4.0, 4.0)));
 
     if (lineMask <= 1e-5 && alpha <= 1e-5)
         discard;

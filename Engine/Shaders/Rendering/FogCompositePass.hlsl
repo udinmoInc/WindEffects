@@ -82,5 +82,5 @@ float4 PSMain(VSOutput input) : SV_Target
     const float3 fogTint = WE_sRGBToLinear(saturate(fogColor));
     const float3 fogFloor = fogTint * sunIntensity * 0.06 + float3(0.02, 0.04, 0.07);
     const float3 fogLinear = max(lerp(fogFloor, aerial, 0.82), fogFloor);
-    return float4(fogLinear, fogFactor * 0.45);
+    return float4(WE_LinearToSRGB(fogLinear), fogFactor * 0.45);
 }

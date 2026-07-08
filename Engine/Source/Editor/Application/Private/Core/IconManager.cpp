@@ -24,9 +24,9 @@ void IconManager::InvalidateCache() {
 }
 
 Color IconManager::GetFolderIconColor(bool hovered) const {
-    Color color = Theme::Get().ContentBrowserFolderIcon;
+    Color color = Theme::Get().IconFolder;
     if (hovered) {
-        color = Color::Lerp(color, Theme::Get().TextSecondary, 0.18f);
+        color = Color::Lerp(color, Theme::Get().IconHover, 0.18f);
     }
     return color;
 }

@@ -150,5 +150,6 @@ float4 PSMain(VSOutput input) : SV_Target
     }
 
     skyLinear = WE_SanitizeHdrColor(skyLinear);
-    return float4(skyLinear, 1.0);
+    // Encode linear sky to sRGB for the UNORM swapchain.
+    return float4(WE_LinearToSRGB(skyLinear), 1.0);
 }

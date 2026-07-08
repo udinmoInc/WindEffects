@@ -90,5 +90,6 @@ float4 PSMain(VSOutput input) : SV_Target
 
     float4 outColor = input.color;
     outColor.a *= alpha;
+    
     return outColor;
 }

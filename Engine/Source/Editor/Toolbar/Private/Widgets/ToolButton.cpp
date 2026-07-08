@@ -37,9 +37,9 @@ namespace {
     }
 
     Color ResolveInteractiveIconColor(float hoverAnim, float pressStrength, bool active) {
-        Color iconColor = Theme::Get().ToolbarIconDefault;
+        Color iconColor = Theme::Get().IconDefault;
         if (hoverAnim > 0.01f || pressStrength > 0.01f || active) {
-            iconColor = Color::Lerp(iconColor, Theme::Get().ToolbarIconHover, std::max({hoverAnim, pressStrength, active ? 1.0f : 0.0f}));
+            iconColor = Color::Lerp(iconColor, Theme::Get().IconHover, std::max({hoverAnim, pressStrength, active ? 1.0f : 0.0f}));
         }
         return iconColor;
     }
@@ -188,10 +188,10 @@ void ToolButton::Paint(PaintContext& context) {
                             : Color{ 0.196f, 0.196f, 0.196f, m_HoverAnim };
             context.DrawRoundedRect(renderRect, hoverBg, 4.0f);
         }
-        Color iconColor = Theme::Get().ToolbarIconDefault;
-        if (m_HoverAnim > 0.01f) iconColor = Color::Lerp(iconColor, Theme::Get().ToolbarIconHover, m_HoverAnim);
+        Color iconColor = Theme::Get().IconDefault;
+        if (m_HoverAnim > 0.01f) iconColor = Color::Lerp(iconColor, Theme::Get().IconHover, m_HoverAnim);
         if (m_ButtonStyle == ToolButtonStyle::WindowClose && m_HoverAnim > 0.5f)
-            iconColor = Theme::Get().ToolbarIconPressed;
+            iconColor = Theme::Get().IconActive;
         float iconSize = 16.0f;
         // Use smaller icon size for square/stop icon to match close button proportions
         if (m_IconName == Icons::StopName) iconSize = 14.0f;

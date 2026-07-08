@@ -136,7 +136,6 @@ void ViewportWidget::Paint(PaintContext& context) {
     for (const auto& axis : axes) {
         Point endPoint{ gizmoCenter.x + axis.proj.x, gizmoCenter.y + axis.proj.y };
         context.DrawLine(gizmoCenter, endPoint, axis.color, 2.5f);
-        context.DrawRect(Rect{ endPoint.x - 3.0f, endPoint.y - 3.0f, 6.0f, 6.0f }, axis.color, 3.0f);
         context.DrawText(axis.label, Point{ endPoint.x + 4.0f, endPoint.y - 6.0f }, axis.color, 10.0f);
     }
 

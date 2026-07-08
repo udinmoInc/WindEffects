@@ -1,6 +1,8 @@
 #ifndef WE_FOUNDATION_BASIC_MESH_HLSL
 #define WE_FOUNDATION_BASIC_MESH_HLSL
 
+#include "../Common/Color.hlsli"
+
 struct VSInput
 {
     float3 position : POSITION0;
@@ -64,7 +66,8 @@ float4 PSMain(VSOutput input) : SV_Target
 
     float3 ambient = albedo * float3(0.03, 0.04, 0.05);
     float3 lit = ambient + diffuse + specular;
-    return float4(lit, color.a);
+    // Encode to sRGB for the UNORM swapchain.
+    return float4(WE_LinearToSRGB(lit), color.a);
 }
 
 #endif

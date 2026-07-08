@@ -62,9 +62,6 @@ void Button::Paint(PaintContext& context) {
     float textY = m_Geometry.y + (m_Geometry.height - m_Style.text.size) * 0.5f;
     
     Color textColor = m_Style.text.color;
-    if (m_PressAnim > 0.5f) {
-        textColor = Color::Lerp(textColor, Color{0.1f, 0.1f, 0.1f, 1.0f}, m_PressAnim);
-    }
     
     context.DrawText(m_Text, Point{ textX, textY }, textColor, m_Style.text.size);
 }
