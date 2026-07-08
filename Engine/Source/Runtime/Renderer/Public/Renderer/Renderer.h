@@ -14,13 +14,7 @@ namespace we::runtime::renderer {
 
 constexpr uint32_t kMaxFramesInFlight = 2;
 
-using UiOverlayRecorder = std::function<void(
-    VkCommandBuffer cmd,
-    VkImageView targetView,
-    VkFormat targetFormat,
-    uint32_t width,
-    uint32_t height,
-    uint32_t frameIndex)>;
+
 
 class DeviceContext;
 class SwapchainManager;
@@ -44,11 +38,12 @@ public:
 
     void RenderFrame();
     bool BeginFrame();
-    void EndFrame();
+    void RenderScene();
+    void SubmitAndPresent();
 
     void UploadCameraUniform(const CameraUniform& uniform);
 
-    void SetUiOverlayRecorder(UiOverlayRecorder recorder);
+
     void SetSceneViewportRect(int32_t x, int32_t y, uint32_t width, uint32_t height);
 
     DeviceContext* GetDeviceContext() const { return m_DeviceContext.get(); }
@@ -95,7 +90,7 @@ private:
     bool m_DepthImageReady = false;
     bool m_Initialized = false;
     VkRect2D m_SceneViewportRect{};
-    UiOverlayRecorder m_UiOverlayRecorder;
+
 };
 
 } // namespace we::runtime::renderer

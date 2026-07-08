@@ -12,6 +12,8 @@
 #include "EditorRegistry.h"
 #include "Environment/EnvironmentEditorApi.h"
 #include "Core/DeviceContext.h"
+#include "Renderer/Renderer.h"
+#include "Core/SwapchainManager.h"
 #include "Rendering/IconRenderer.h"
 #include "Widgets/Panel.h"
 #include "Layout/Box.h"
@@ -100,6 +102,9 @@ Editor::Editor(SDL_Window* window) : m_Window(window) {
                 && m_Renderer->GetDeviceContext()->GetDevice() != VK_NULL_HANDLE;
         });
         startup.RunAll();
+        if (!startup.AllPassed()) {
+            throw std::runtime_error("Startup validation failed!");
+        }
     }
 
     HE_INFO("[Startup] Stage 3/6: Default assets (fonts, shaders, icons, theme)...");
@@ -107,10 +112,10 @@ Editor::Editor(SDL_Window* window) : m_Window(window) {
         HE_ERROR("[Startup] Required default assets missing — UI rendering may fail.");
     }
 
-    HE_INFO("[Startup] Stage 4/6: UIRenderer2 init...");
+    HE_INFO("[Startup] Stage 4/6: OverlayRenderer init...");
     try {
-        m_UIRenderer = std::make_unique<UI::UIRenderer2>();
-        if (!m_UIRenderer->Init(
+        m_OverlayRenderer = std::make_unique<we::UI::OverlayRenderer>();
+        if (!m_OverlayRenderer->Init(
                 m_Renderer->GetDeviceContext()->GetPhysicalDevice(),
                 m_Renderer->GetDeviceContext()->GetDevice(),
                 m_Renderer->GetDeviceContext()->GetGraphicsQueue(),
@@ -119,27 +124,16 @@ Editor::Editor(SDL_Window* window) : m_Window(window) {
                 2,
                 m_Renderer->GetDeviceContext(),
                 m_Renderer->GetResourceManager())) {
-            throw std::runtime_error("Failed to initialize UIRenderer2!");
+            throw std::runtime_error("Failed to initialize OverlayRenderer!");
         }
     } catch (const std::exception& e) {
-        HE_ERROR("[Startup] Failed to initialize UIRenderer2: " + std::string(e.what()));
+        HE_ERROR("[Startup] Failed to initialize OverlayRenderer: " + std::string(e.what()));
         throw;
     }
 
-    m_Renderer->SetUiOverlayRecorder([this](VkCommandBuffer cmd,
-                                            VkImageView targetView,
-                                            VkFormat targetFormat,
-                                            uint32_t width,
-                                            uint32_t height,
-                                            uint32_t frameIndex) {
-        if (m_UIRenderer && m_RootWidget) {
-            m_UIRenderer->BeginFrame(frameIndex, width, height);
-            m_UIRenderer->RenderWidget(m_RootWidget);
-            m_UIRenderer->EndFrame(cmd, targetView);
-        }
-    });
+
     try {
-        InitializeContentBrowserService(m_UIRenderer->GetIconRenderer());
+        InitializeContentBrowserService(m_OverlayRenderer->GetIconRenderer());
     } catch (const std::exception& e) {
         HE_ERROR("[Startup] Failed to initialize content browser service: " + std::string(e.what()));
         throw;
@@ -356,8 +350,8 @@ void Editor::BuildDynamicEditorUI() {
     int finalPxSize = static_cast<int>(std::round(we::UI::kTitleBarLogoDisplaySize * displayScale));
 
     VkDescriptorSet logoSet = VK_NULL_HANDLE;
-    if (m_UIRenderer && m_UIRenderer->GetIconRenderer()) {
-        logoSet = m_UIRenderer->GetIconRenderer()->GetIcon("Assets/Editor/windeffects.svg", finalPxSize);
+    if (m_OverlayRenderer && m_OverlayRenderer->GetIconRenderer()) {
+        logoSet = m_OverlayRenderer->GetIconRenderer()->GetIcon("Assets/Editor/windeffects.svg", finalPxSize);
     }
 
     auto titleBar = std::make_shared<TitleBar>(m_Window, "WindEffects Editor", logoSet, menuBar);
@@ -422,7 +416,7 @@ void Editor::BuildDynamicEditorUI() {
     HE_INFO("[UI] Toolbar created with mode selector and tools.");
 
     // ===== 4. Create Viewports =====
-    auto viewportWidget = std::make_shared<ViewportWidget>(m_Renderer.get(), m_Camera, m_Scene, m_UIRenderer.get());
+    auto viewportWidget = std::make_shared<ViewportWidget>(m_Renderer.get(), m_Camera, m_Scene, m_OverlayRenderer.get());
     viewportWidget->Construct();
     viewportWidget->SetWindow(m_Window);
     m_ViewportWidget = viewportWidget;
@@ -483,10 +477,10 @@ void Editor::BuildDynamicEditorUI() {
         HE_INFO("[UI] Explorer panel created (fallback).");
     }
 
-    if (m_UIRenderer && m_UIRenderer->GetIconRenderer()) {
+    if (m_OverlayRenderer && m_OverlayRenderer->GetIconRenderer()) {
         const float logoLogical = we::programs::editor::GetExplorerDockTabLogoSize();
         const int logoPx = static_cast<int>(std::round(logoLogical * displayScale));
-        VkDescriptorSet explorerLogo = m_UIRenderer->GetIconRenderer()->GetIcon("Assets/Editor/windeffects.svg", logoPx);
+        VkDescriptorSet explorerLogo = m_OverlayRenderer->GetIconRenderer()->GetIcon("Assets/Editor/windeffects.svg", logoPx);
         we::UI::DockTabBrandRegistry::Get().RegisterBrand("Explorer", explorerLogo, logoLogical);
         we::programs::editor::BindExplorerBrandLogo(explorerLogo, logoLogical);
     }
@@ -969,9 +963,7 @@ void Editor::MainLoop() {
         cameraUBO.position = m_Camera->GetPosition();
         cameraUBO.padding = 0.0f;
 
-        if (m_UIRenderer && m_RootWidget) {
-            // PrepareFrame is handled in the UI overlay callback
-        }
+
 
         if (m_Renderer && m_ViewportWidget) {
             const UI::Rect viewportRect = m_ViewportWidget->GetGeometry();
@@ -984,7 +976,26 @@ void Editor::MainLoop() {
 
         if (m_Renderer->BeginFrame()) {
             m_Renderer->UploadCameraUniform(cameraUBO);
-            m_Renderer->EndFrame();
+            
+            // 1. Render Scene (HDR -> LDR Tone Mapping)
+            m_Renderer->RenderScene();
+
+            // 2. Render Independent UI (LDR)
+            if (m_OverlayRenderer) {
+                we::editor::rendering::OverlayRenderContext overlayContext{};
+                overlayContext.cmd = m_Renderer->GetCommandBuffer();
+                overlayContext.targetView = m_Renderer->GetSwapchainManager()->GetImageViews()[m_Renderer->GetCurrentImageIndex()];
+                overlayContext.targetFormat = m_Renderer->GetSwapchainImageFormat();
+                overlayContext.targetExtent = { m_Renderer->GetSwapchainWidth(), m_Renderer->GetSwapchainHeight() };
+
+                m_OverlayRenderer->BeginOverlayPass(overlayContext);
+                m_OverlayRenderer->RenderEditorUI(m_RootWidget);
+                // Space reserved for future: RenderDebugUI(), RenderPluginUI(), etc.
+                m_OverlayRenderer->EndOverlayPass(overlayContext);
+            }
+
+            // 3. Submit to GPU and Present
+            m_Renderer->SubmitAndPresent();
 
             if (firstFrame) {
                 HE_INFO("[Render] First foundation renderer frame presented.");
@@ -1012,9 +1023,9 @@ void Editor::Shutdown() {
     m_ViewportWidget.reset();
     m_RootWidget.reset();
     ShutdownContentBrowserService();
-    if (m_UIRenderer) {
-        m_UIRenderer->Shutdown();
-        m_UIRenderer.reset();
+    if (m_OverlayRenderer) {
+        m_OverlayRenderer->Shutdown();
+        m_OverlayRenderer.reset();
     }
     m_UIEventSystem.reset();
 

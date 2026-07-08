@@ -5,7 +5,7 @@
 #include "EditorCamera.h"
 #include "Scene/Scene.h"
 #include "Core/PaintContext.h"
-#include "Rendering/UIRenderer2.h"
+#include "Rendering/OverlayRenderer.h"
 #include "Core/Theme.h"
 #include <SDL3/SDL_keyboard.h>
 #include <algorithm>
@@ -16,7 +16,7 @@ namespace we::UI {
 ViewportWidget::ViewportWidget(we::runtime::renderer::Renderer* renderer,
                                const std::shared_ptr<we::runtime::engine::EditorCamera>& camera,
                                const std::shared_ptr<we::runtime::scene::Scene>& scene,
-                               UIRenderer2* uiRenderer)
+                               OverlayRenderer* uiRenderer)
     : m_Renderer(renderer), m_Camera(camera), m_Scene(scene), m_uiRenderer(uiRenderer) {
     m_Navigation.SetCamera(camera);
     m_Navigation.SetScene(scene);

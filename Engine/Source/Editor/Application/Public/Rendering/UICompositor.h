@@ -20,7 +20,8 @@ public:
 
     // Compositing
     void BeginComposite(VkCommandBuffer cmd, VkImageView swapchainView, 
-                       uint32_t width, uint32_t height);
+                       uint32_t width, uint32_t height,
+                       VkAttachmentLoadOp loadOp = VK_ATTACHMENT_LOAD_OP_LOAD);
     void EndComposite(VkCommandBuffer cmd);
 
     // State management

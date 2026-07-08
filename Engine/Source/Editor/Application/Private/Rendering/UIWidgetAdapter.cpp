@@ -4,14 +4,42 @@
 #include "Core/Logger.h"
 #include <cmath>
 #include <cstring>
+#include <functional>
 
 namespace we::UI {
+
+uint32_t UIWidgetAdapter::s_TotalDrawCommandsGenerated = 0;
+uint32_t UIWidgetAdapter::s_RectangleCommands = 0;
+uint32_t UIWidgetAdapter::s_TextCommands = 0;
+uint32_t UIWidgetAdapter::s_ImageCommands = 0;
+uint32_t UIWidgetAdapter::s_IconCommands = 0;
+uint32_t UIWidgetAdapter::s_BorderCommands = 0;
+uint32_t UIWidgetAdapter::s_GradientCommands = 0;
+uint32_t UIWidgetAdapter::s_ShadowCommands = 0;
+uint32_t UIWidgetAdapter::s_ClipRectCount = 0;
+uint32_t UIWidgetAdapter::s_TextureSwitchCount = 0;
+uint32_t UIWidgetAdapter::s_BatchCount = 0;
+
+void UIWidgetAdapter::ResetDiagnostics() {
+    s_TotalDrawCommandsGenerated = 0;
+    s_RectangleCommands = 0;
+    s_TextCommands = 0;
+    s_ImageCommands = 0;
+    s_IconCommands = 0;
+    s_BorderCommands = 0;
+    s_GradientCommands = 0;
+    s_ShadowCommands = 0;
+    s_ClipRectCount = 0;
+    s_TextureSwitchCount = 0;
+    s_BatchCount = 0;
+}
 
 UIWidgetAdapter::UIWidgetAdapter()
     : m_Renderer(nullptr)
     , m_Width(0)
     , m_Height(0)
     , m_CurrentTextureSet(VK_NULL_HANDLE)
+    , m_DefaultTextureSet(VK_NULL_HANDLE)
 {
 }
 
@@ -19,7 +47,7 @@ UIWidgetAdapter::~UIWidgetAdapter() {
     Shutdown();
 }
 
-void UIWidgetAdapter::Initialize(UIRenderer2* renderer) {
+void UIWidgetAdapter::Initialize(OverlayRenderer* renderer) {
     m_Renderer = renderer;
     m_Vertices.clear();
     m_Indices.clear();
@@ -41,17 +69,32 @@ void UIWidgetAdapter::ProcessWidget(const std::shared_ptr<Widget>& root,
     
     m_Width = width;
     m_Height = height;
+    m_DefaultTextureSet = m_Renderer->GetDummyDescriptorSet();
     
     // Clear previous frame data
     m_Vertices.clear();
     m_Indices.clear();
     m_Batches.clear();
     
+    // Helper lambda to count widgets
+    std::function<void(const std::shared_ptr<Widget>&)> CountWidgets = [&](const std::shared_ptr<Widget>& w) {
+        if (!w) return;
+        Widget::s_TotalWidgetCount++;
+        if (w->IsVisible()) Widget::s_VisibleWidgetCount++;
+        else Widget::s_HiddenWidgetCount++;
+        for (const auto& child : w->GetChildren()) {
+            CountWidgets(child);
+        }
+    };
+    CountWidgets(root);
+
     // Layout and paint widget
+    Widget::s_LayoutPassCount++;
     root->Measure(Size{static_cast<float>(width), static_cast<float>(height)});
     root->Arrange(Rect{0.0f, 0.0f, static_cast<float>(width), static_cast<float>(height)});
     
     PaintContext paintCtx;
+    Widget::s_PaintCalls++;
     root->Paint(paintCtx);
     
     // Convert paint commands to geometry
@@ -62,7 +105,7 @@ void UIWidgetAdapter::ProcessWidget(const std::shared_ptr<Widget>& root,
 }
 
 void UIWidgetAdapter::ConvertDrawCommand(const DrawCommand& cmd) {
-    m_CurrentTextureSet = VK_NULL_HANDLE;
+    m_CurrentTextureSet = m_DefaultTextureSet;
     m_CurrentScissor = {
         static_cast<int32_t>(cmd.clipRect.x),
         static_cast<int32_t>(cmd.clipRect.y),
@@ -70,37 +113,69 @@ void UIWidgetAdapter::ConvertDrawCommand(const DrawCommand& cmd) {
         static_cast<uint32_t>(cmd.clipRect.height)
     };
     
-    // Clamp scissor to screen bounds
-    if (m_CurrentScissor.x < 0) m_CurrentScissor.x = 0;
-    if (m_CurrentScissor.y < 0) m_CurrentScissor.y = 0;
-    if (m_CurrentScissor.width > m_Width) m_CurrentScissor.width = m_Width;
-    if (m_CurrentScissor.height > m_Height) m_CurrentScissor.height = m_Height;
+    // Clamp scissor to screen bounds correctly for Vulkan
+    if (m_CurrentScissor.x < 0) {
+        m_CurrentScissor.width = (m_CurrentScissor.x + m_CurrentScissor.width > 0) ? (m_CurrentScissor.width + m_CurrentScissor.x) : 0;
+        m_CurrentScissor.x = 0;
+    }
+    if (m_CurrentScissor.y < 0) {
+        m_CurrentScissor.height = (m_CurrentScissor.y + m_CurrentScissor.height > 0) ? (m_CurrentScissor.height + m_CurrentScissor.y) : 0;
+        m_CurrentScissor.y = 0;
+    }
     
+    // Ensure extent doesn't exceed screen dimensions when added to offset
+    if (static_cast<uint32_t>(m_CurrentScissor.x) + m_CurrentScissor.width > m_Width) {
+        m_CurrentScissor.width = (m_Width > static_cast<uint32_t>(m_CurrentScissor.x)) ? (m_Width - static_cast<uint32_t>(m_CurrentScissor.x)) : 0;
+    }
+    if (static_cast<uint32_t>(m_CurrentScissor.y) + m_CurrentScissor.height > m_Height) {
+        m_CurrentScissor.height = (m_Height > static_cast<uint32_t>(m_CurrentScissor.y)) ? (m_Height - static_cast<uint32_t>(m_CurrentScissor.y)) : 0;
+    }
+    
+    s_TotalDrawCommandsGenerated++;
+
+    if (cmd.clipRect.width == 0 || cmd.clipRect.height == 0) {
+        HE_INFO(std::string("Skipped: Zero Size | Type: ") + std::to_string(static_cast<int>(cmd.type)));
+        return;
+    }
+    if (cmd.color.a == 0.0f) {
+        HE_INFO(std::string("Skipped: Zero Alpha | Type: ") + std::to_string(static_cast<int>(cmd.type)));
+        // Might still want to process if it's a clipping rect or something, but usually skipped
+    }
+
     switch (cmd.type) {
         case DrawCommandType::Rect:
+            s_RectangleCommands++;
             GenerateRectGeometry(cmd);
             break;
         case DrawCommandType::Text:
+            s_TextCommands++;
             GenerateTextGeometry(cmd);
             break;
         case DrawCommandType::Texture:
+            s_ImageCommands++;
             GenerateTextureGeometry(cmd);
             break;
         case DrawCommandType::Icon:
+            s_IconCommands++;
             GenerateIconGeometry(cmd);
             break;
         case DrawCommandType::Line:
+            s_BorderCommands++;
             GenerateLineGeometry(cmd);
             break;
         case DrawCommandType::Shadow:
+            s_ShadowCommands++;
             GenerateShadowGeometry(cmd);
             break;
         case DrawCommandType::Gradient:
+            s_GradientCommands++;
             GenerateGradientGeometry(cmd);
             break;
         case DrawCommandType::RoundedOutline:
+            s_BorderCommands++;
             GenerateRoundedOutlineGeometry(cmd);
             break;
+
     }
 }
 
@@ -169,6 +244,8 @@ void UIWidgetAdapter::GenerateTextGeometry(const DrawCommand& cmd) {
     float startX = xpos;
     float startY = ypos + cmd.fontSize * 0.85f;
     
+    uint32_t startTotalIndex = static_cast<uint32_t>(m_Indices.size());
+
     for (char c : cmd.text) {
         GlyphInfo q;
         if (fontAtlas->GetCharQuad(c, &logicalX, &logicalY, q)) {
@@ -203,10 +280,14 @@ void UIWidgetAdapter::GenerateTextGeometry(const DrawCommand& cmd) {
     }
     
     // Create batch for all text
+    if (m_Indices.size() == startTotalIndex) {
+        return; // No characters rendered
+    }
+    
     UIRenderBatch batch;
     batch.textureSet = m_CurrentTextureSet;
-    batch.indexCount = static_cast<uint32_t>(m_Indices.size()); // All indices added in this call
-    batch.firstIndex = 0; // Would need proper tracking
+    batch.indexCount = static_cast<uint32_t>(m_Indices.size()) - startTotalIndex;
+    batch.firstIndex = startTotalIndex;
     batch.vertexOffset = 0;
     batch.scissor[0] = static_cast<float>(m_CurrentScissor.x);
     batch.scissor[1] = static_cast<float>(m_CurrentScissor.y);

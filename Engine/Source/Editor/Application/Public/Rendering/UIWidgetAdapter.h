@@ -2,7 +2,7 @@
 
 #include "Application/Export.h"
 
-#include "Rendering/UIRenderer2.h"
+#include "Rendering/OverlayRenderer.h"
 #include "Core/PaintContext.h"
 #include "Core/Widget.h"
 #include <memory>
@@ -10,14 +10,14 @@
 
 namespace we::UI {
 
-// Adapter to bridge existing widget system with new UIRenderer2
-// Converts PaintContext/DrawCommand to UIRenderer2 format
+// Adapter to bridge existing widget system with new OverlayRenderer
+// Converts PaintContext/DrawCommand to OverlayRenderer format
 class APPLICATION_API UIWidgetAdapter {
 public:
     UIWidgetAdapter();
     ~UIWidgetAdapter();
 
-    void Initialize(UIRenderer2* renderer);
+    void Initialize(OverlayRenderer* renderer);
     void Shutdown();
 
     // Convert widget paint commands to renderer format
@@ -28,6 +28,20 @@ public:
     const std::vector<UIVertex2>& GetVertices() const { return m_Vertices; }
     const std::vector<uint32_t>& GetIndices() const { return m_Indices; }
     const std::vector<UIRenderBatch>& GetBatches() const { return m_Batches; }
+
+    static uint32_t s_TotalDrawCommandsGenerated;
+    static uint32_t s_RectangleCommands;
+    static uint32_t s_TextCommands;
+    static uint32_t s_ImageCommands;
+    static uint32_t s_IconCommands;
+    static uint32_t s_BorderCommands;
+    static uint32_t s_GradientCommands;
+    static uint32_t s_ShadowCommands;
+    static uint32_t s_ClipRectCount;
+    static uint32_t s_TextureSwitchCount;
+    static uint32_t s_BatchCount;
+    
+    static void ResetDiagnostics();
 
 private:
     void ConvertDrawCommand(const DrawCommand& cmd);
@@ -40,7 +54,7 @@ private:
     void GenerateGradientGeometry(const DrawCommand& cmd);
     void GenerateRoundedOutlineGeometry(const DrawCommand& cmd);
 
-    UIRenderer2* m_Renderer;
+    OverlayRenderer* m_Renderer;
     std::vector<UIVertex2> m_Vertices;
     std::vector<uint32_t> m_Indices;
     std::vector<UIRenderBatch> m_Batches;
@@ -48,6 +62,7 @@ private:
     uint32_t m_Width;
     uint32_t m_Height;
     VkDescriptorSet m_CurrentTextureSet;
+    VkDescriptorSet m_DefaultTextureSet;
     UIDirtyRegion m_CurrentScissor;
 };
 
