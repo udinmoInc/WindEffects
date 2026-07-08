@@ -57,5 +57,38 @@ float smoothstepAA(float edge0, float edge1, float x)
 
 float4 PSMain(VSOutput input) : SV_Target
 {
-    return float4(1.0, 0.0, 0.0, 1.0);
+    float type = input.sdfParams.y;
+    
+    // Type 0.0 is Texture/Text
+    if (type < 0.5)
+    {
+        return input.color * texSampler.Sample(samp0, input.uv);
+    }
+
+    // Type 1.0 is Rect, Type 2.0 is Border
+    float2 center = float2(input.sdfRect.x + input.sdfRect.z * 0.5, input.sdfRect.y + input.sdfRect.w * 0.5);
+    float2 halfSize = float2(input.sdfRect.z * 0.5, input.sdfRect.w * 0.5);
+    float radius = input.sdfParams.x;
+    
+    float2 p = input.worldPos - center;
+    float2 q = abs(p) - halfSize + radius;
+    float dist = min(max(q.x, q.y), 0.0) + length(max(q, 0.0)) - radius;
+
+    float alpha = 1.0;
+    if (type > 1.5)
+    {
+        float thickness = max(input.sdfParams.z, 1.0);
+        // Distance to the border edge
+        float borderDist = abs(dist) - thickness * 0.5;
+        alpha = clamp(0.5 - borderDist, 0.0, 1.0);
+    }
+    else
+    {
+        // Distance to the rect edge
+        alpha = clamp(0.5 - dist, 0.0, 1.0);
+    }
+
+    float4 outColor = input.color;
+    outColor.a *= alpha;
+    return outColor;
 }
