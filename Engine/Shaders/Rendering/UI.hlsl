@@ -38,12 +38,21 @@ VSOutput VSMain(VSInput input)
     return o;
 }
 
-Texture2D    texSampler : register(t0, space0);
-SamplerState samp0      : register(s0, space0);
+[[vk::binding(0, 0)]] Texture2D    texSampler : register(t0, space0);
+[[vk::binding(0, 0)]] SamplerState samp0      : register(s0, space0);
 
-float udRoundBox(float2 p, float2 b, float r)
+// Signed distance field for rounded rectangle
+float sdRoundBox(float2 p, float2 b, float r)
 {
-    return length(max(abs(p) - b + r, 0.0)) - r;
+    float2 q = abs(p) - b + r;
+    return min(max(q.x, q.y), 0.0) + length(max(q, 0.0)) - r;
+}
+
+// Smoothstep for anti-aliasing
+float smoothstepAA(float edge0, float edge1, float x)
+{
+    float t = clamp((x - edge0) / (edge1 - edge0), 0.0, 1.0);
+    return t * t * (3.0 - 2.0 * t);
 }
 
 float4 PSMain(VSOutput input) : SV_Target
@@ -55,17 +64,17 @@ float4 PSMain(VSOutput input) : SV_Target
     float2 center = float2(input.sdfRect.x + input.sdfRect.z * 0.5, input.sdfRect.y + input.sdfRect.w * 0.5);
     float2 halfSize = float2(input.sdfRect.z * 0.5, input.sdfRect.w * 0.5);
     float radius = input.sdfParams.x;
-    float dist = udRoundBox(input.worldPos - center, halfSize, radius);
+    float dist = sdRoundBox(input.worldPos - center, halfSize, radius);
 
     float alpha;
     if (type > 1.5)
     {
         float thickness = max(input.sdfParams.z, 1.0);
-        alpha = 1.0 - smoothstep(0.0, 1.0, abs(dist) - thickness * 0.5);
+        alpha = 1.0 - smoothstepAA(0.0, 1.0, abs(dist) - thickness * 0.5);
     }
     else
     {
-        alpha = 1.0 - smoothstep(-1.0, 1.0, dist);
+        alpha = 1.0 - smoothstepAA(-1.0, 1.0, dist);
     }
 
     float4 outColor = input.color;

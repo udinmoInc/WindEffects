@@ -6,15 +6,15 @@ labels: enhancement
 assignees: ''
 ---
 
-## Feature Description
+## 💡 Feature Description
 
 A clear and concise description of the feature you'd like to see added to WindEffects Engine.
 
-## Motivation
+## 🎯 Motivation
 
 Why do you want this feature? What problem does it solve?
 
-## Use Cases
+## 📋 Use Cases
 
 Describe specific use cases where this feature would be beneficial:
 
@@ -22,7 +22,7 @@ Describe specific use cases where this feature would be beneficial:
 - Use case 2
 - Use case 3
 
-## Proposed Solution
+## 🛠️ Proposed Solution
 
 Describe your proposed solution in detail. Include:
 
@@ -31,15 +31,15 @@ Describe your proposed solution in detail. Include:
 - User-facing changes
 - Performance considerations
 
-## Alternatives Considered
+## 🔄 Alternatives Considered
 
 Describe alternative solutions you've considered and why they were not chosen.
 
-## Additional Context
+## 📝 Additional Context
 
 Add any other context, screenshots, or mockups about the feature request here.
 
-## Implementation Difficulty
+## ⚙️ Implementation Difficulty
 
 Estimate the difficulty of implementing this feature:
 
@@ -48,7 +48,7 @@ Estimate the difficulty of implementing this feature:
 - [ ] High
 - [ ] Unknown
 
-## Priority
+## 🚀 Priority
 
 How important is this feature to you?
 
@@ -57,7 +57,7 @@ How important is this feature to you?
 - [ ] Medium
 - [ ] Low
 
-## Related Issues
+## 🔗 Related Issues
 
 - Related to #issue_number
 - Blocks #issue_number

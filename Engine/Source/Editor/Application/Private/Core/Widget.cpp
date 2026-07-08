@@ -3,6 +3,26 @@
 
 namespace we::UI {
 
+uint32_t Widget::s_TotalWidgetCount = 0;
+uint32_t Widget::s_VisibleWidgetCount = 0;
+uint32_t Widget::s_HiddenWidgetCount = 0;
+uint32_t Widget::s_PaintCalls = 0;
+uint32_t Widget::s_ArrangeChildrenCalls = 0;
+uint32_t Widget::s_LayoutPassCount = 0;
+uint32_t Widget::s_InvalidateCount = 0;
+uint32_t Widget::s_WidgetsPainted = 0;
+
+void Widget::ResetDiagnostics() {
+    s_TotalWidgetCount = 0;
+    s_VisibleWidgetCount = 0;
+    s_HiddenWidgetCount = 0;
+    s_PaintCalls = 0;
+    s_ArrangeChildrenCalls = 0;
+    s_LayoutPassCount = 0;
+    s_InvalidateCount = 0;
+    s_WidgetsPainted = 0;
+}
+
 void Widget::Tick(float deltaTime) {
     if (!m_Visible) return;
     

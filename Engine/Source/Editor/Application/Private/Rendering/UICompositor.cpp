@@ -41,17 +41,18 @@ void UICompositor::Shutdown() {
 }
 
 void UICompositor::BeginComposite(VkCommandBuffer cmd, VkImageView swapchainView,
-                                   uint32_t width, uint32_t height) {
+                                   uint32_t width, uint32_t height,
+                                   VkAttachmentLoadOp loadOp) {
     m_Width = width;
     m_Height = height;
     
-    // Use dynamic rendering instead of traditional render pass
     VkRenderingAttachmentInfo colorAttachment{};
     colorAttachment.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
     colorAttachment.imageView = swapchainView;
     colorAttachment.imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-    colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_LOAD; // Load existing scene
+    colorAttachment.loadOp = loadOp;
     colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+    colorAttachment.clearValue.color = {{0.0f, 0.0f, 0.0f, 1.0f}};
     
     VkRenderingInfo renderingInfo{};
     renderingInfo.sType = VK_STRUCTURE_TYPE_RENDERING_INFO;
@@ -69,19 +70,20 @@ void UICompositor::EndComposite(VkCommandBuffer cmd) {
 }
 
 void UICompositor::SetScissor(int32_t x, int32_t y, uint32_t width, uint32_t height) {
-    // This would be called during command recording
-    // Stored for use in the compositor
+    (void)x;
+    (void)y;
+    (void)width;
+    (void)height;
 }
 
 void UICompositor::SetViewport(float x, float y, float width, float height) {
-    // This would be called during command recording
-    // Stored for use in the compositor
+    (void)x;
+    (void)y;
+    (void)width;
+    (void)height;
 }
 
 void UICompositor::CreateRenderPass() {
-    // Using dynamic rendering, so traditional render pass is not needed
-    // This is kept for compatibility or fallback scenarios
-    
     VkAttachmentDescription colorAttachment{};
     colorAttachment.format = m_SwapchainFormat;
     colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
@@ -114,8 +116,6 @@ void UICompositor::CreateRenderPass() {
 }
 
 void UICompositor::CreateFramebuffer() {
-    // Framebuffer is created dynamically per swapchain image
-    // Not needed for dynamic rendering
 }
 
 } // namespace we::UI

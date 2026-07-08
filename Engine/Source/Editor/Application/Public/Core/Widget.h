@@ -58,6 +58,16 @@ public:
     virtual void SetActive(bool active) { m_IsActive = active; }
     virtual bool IsActive() const { return m_IsActive; }
 
+    static uint32_t s_TotalWidgetCount;
+    static uint32_t s_VisibleWidgetCount;
+    static uint32_t s_HiddenWidgetCount;
+    static uint32_t s_PaintCalls;
+    static uint32_t s_ArrangeChildrenCalls;
+    static uint32_t s_LayoutPassCount;
+    static uint32_t s_InvalidateCount;
+    static uint32_t s_WidgetsPainted;
+    static void ResetDiagnostics();
+
     // Child management
     void AddChild(const std::shared_ptr<Widget>& child);
     void RemoveChild(const std::shared_ptr<Widget>& child);

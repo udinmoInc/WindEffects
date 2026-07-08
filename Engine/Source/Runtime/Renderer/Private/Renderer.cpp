@@ -239,15 +239,14 @@ void Renderer::ExecuteFoundationPasses(VkCommandBuffer cmd) {
     m_RenderGraph->Execute(frame);
 }
 
-void Renderer::EndFrame() {
-    WE_VALIDATE_RENDER(m_Initialized, "Renderer::EndFrame", "Renderer not initialized.");
-    WE_VALIDATE_RENDER(m_FrameActive, "Renderer::EndFrame", "No active frame.");
+void Renderer::RenderScene() {
+    WE_VALIDATE_RENDER(m_Initialized, "Renderer::RenderScene", "Renderer not initialized.");
+    WE_VALIDATE_RENDER(m_FrameActive, "Renderer::RenderScene", "No active frame.");
 
     VkCommandBuffer cmd = m_CommandContext->BeginFrame(m_CurrentFrame);
     TransitionFrameImages(cmd);
 
     // Clear swapchain to black before scene rendering
-    // UI will render after scene passes to clean LDR swapchain
     TransitionImageLayout(
         cmd,
         m_SwapchainManager->GetImages()[m_CurrentImageIndex],
@@ -285,16 +284,24 @@ void Renderer::EndFrame() {
 
     ExecuteFoundationPasses(cmd);
 
-    if (m_UiOverlayRecorder) {
-        const VkExtent2D extent = m_SwapchainManager->GetExtent();
-        m_UiOverlayRecorder(
-            cmd,
-            m_SwapchainManager->GetImageViews()[m_CurrentImageIndex],
-            m_SwapchainManager->GetImageFormat(),
-            extent.width,
-            extent.height,
-            m_CurrentFrame);
-    }
+    // Ensure scene passes complete before the UI composite.
+    VkMemoryBarrier memoryBarrier{};
+    memoryBarrier.sType = VK_STRUCTURE_TYPE_MEMORY_BARRIER;
+    memoryBarrier.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+    memoryBarrier.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+
+    vkCmdPipelineBarrier(
+        cmd,
+        VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+        VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+        0,
+        1, &memoryBarrier,
+        0, nullptr,
+        0, nullptr);
+}
+
+void Renderer::SubmitAndPresent() {
+    VkCommandBuffer cmd = m_CommandContext->GetCurrentCommandBuffer(m_CurrentFrame);
 
     TransitionImageLayout(
         cmd,
@@ -307,7 +314,11 @@ void Renderer::EndFrame() {
         VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT);
 
     m_CommandContext->EndFrame(m_CurrentFrame);
+    
+    HE_INFO(std::string("PASS | QueueSubmit() | Swapchain Image Index: ") + std::to_string(m_CurrentImageIndex) + " | Command Buffer: " + std::to_string(reinterpret_cast<uint64_t>(cmd)));
     m_SwapchainManager->SubmitFrame(m_CurrentFrame, m_CurrentImageIndex, cmd);
+    
+    HE_INFO(std::string("PASS | Present() | Swapchain Image Index: ") + std::to_string(m_CurrentImageIndex));
     m_SwapchainManager->Present(m_CurrentFrame, m_CurrentImageIndex);
     m_HasPresentedSwapchainImage = true;
 
@@ -319,7 +330,8 @@ void Renderer::RenderFrame() {
     if (!BeginFrame()) {
         return;
     }
-    EndFrame();
+    RenderScene();
+    SubmitAndPresent();
 }
 
 void Renderer::UploadCameraUniform(const CameraUniform& uniform) {
@@ -366,9 +378,7 @@ void Renderer::SetSceneViewportRect(int32_t x, int32_t y, uint32_t width, uint32
     m_SceneViewportRect.extent = {clampedWidth, clampedHeight};
 }
 
-void Renderer::SetUiOverlayRecorder(UiOverlayRecorder recorder) {
-    m_UiOverlayRecorder = std::move(recorder);
-}
+
 
 VkCommandBuffer Renderer::GetCommandBuffer() const {
     return m_CommandContext->GetCurrentCommandBuffer(m_CurrentFrame);

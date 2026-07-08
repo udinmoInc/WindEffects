@@ -1,6 +1,44 @@
 ﻿# WindEffects Engine
 
-WindEffects Engine is a next-generation game engine designed for professional game development, built from the ground up using modern C++23 and cutting-edge graphics technologies. This document provides a comprehensive overview of the engine, its architecture, features, and how to get started with building and using it.
+![C++23](https://img.shields.io/badge/C++-23-blue?style=flat-square&logo=c%2B%2B)
+![Vulkan](https://img.shields.io/badge/Vulkan-1.3-5C2028?style=flat-square&logo=vulkan)
+![Platform](https://img.shields.io/badge/Platform-Windows-0078D7?style=flat-square&logo=windows)
+![License](https://img.shields.io/badge/License-Proprietary-red?style=flat-square)
+![IgniteBT CI](https://github.com/yourusername/windeffects/actions/workflows/ignitebt-ci.yml/badge.svg)
+
+**WindEffects Engine** is a next-generation game engine designed for professional game development, built from the ground up using modern C++23 and cutting-edge graphics technologies.
+
+## ✨ Why WindEffects?
+
+- **🚀 Modern C++23**: Leverages the latest C++ features for maximum performance and developer productivity
+- **🎮 Vulkan-Powered**: Built on Vulkan for cutting-edge graphics performance and modern GPU features
+- **🔧 Editor-First**: Comprehensive integrated editor with real-time preview and intuitive tools
+- **⚡ High Performance**: Data-oriented design, ECS architecture, and multi-threaded job system
+- **🧩 Modular Architecture**: Clean separation of concerns with independent, reusable modules
+- **🎨 PBR Rendering**: Physically-based rendering with HDR, deferred/forward+ paths, and more
+
+## 📸 Screenshots
+
+*[Add screenshots of the editor, rendering results, and key features]*
+
+## 🚀 Quick Start
+
+Get up and running in minutes:
+
+```powershell
+# Clone the repository
+git clone https://github.com/yourusername/windeffects.git
+cd windeffects
+
+# Build the engine
+dotnet build Engine/Source/Programs/IgniteBT/Source/IgniteBT.csproj -c Debug
+.\we.ps1 build --config Debug
+
+# Run the editor
+.\we.ps1 run --target Editor --config Debug
+```
+
+For detailed setup instructions, see the [Getting Started](#getting-started) section below.
 
 ## Table of Contents
 
@@ -359,13 +397,23 @@ If you encounter issues while using WindEffects, please provide:
 - Relevant log files or error messages
 - Screenshots or recordings if applicable
 
-## License
+## 🌟 Star History
+
+*[Add star history chart or link to star history]*
+
+## 🤝 Community & Support
+
+- **Discussions**: Join our [GitHub Discussions](https://github.com/yourusername/windeffects/discussions) for questions and ideas
+- **Issues**: Report bugs and request features via [GitHub Issues](https://github.com/yourusername/windeffects/issues)
+- **Documentation**: Full documentation coming soon
+
+## 📄 License
 
 WindEffects Engine is currently under active development and is not yet publicly licensed. License information will be provided when the project reaches a stable public release.
 
 For licensing inquiries or questions about using WindEffects Engine in commercial projects, please contact the development team.
 
-## Acknowledgments
+## 🙏 Acknowledgments
 
 WindEffects Engine incorporates third-party software and assets. Each component is subject to its respective license terms. See the Legal/THIRD_PARTY_NOTICES.md file for detailed information about third-party components and their licenses.
 
