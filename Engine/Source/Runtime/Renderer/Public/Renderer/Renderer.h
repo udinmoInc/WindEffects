@@ -4,6 +4,8 @@
 
 #include "Renderer/Export.h"
 #include "Camera/CameraSystem.h"
+#include "Resource/DepthTarget.h"
+#include "Renderer/ViewportInterfaces.h"
 #include <functional>
 #include <memory>
 #include <volk.h>
@@ -13,9 +15,6 @@ struct SDL_Window;
 namespace we::runtime::renderer {
 
 constexpr uint32_t kMaxFramesInFlight = 2;
-
-
-
 class DeviceContext;
 class SwapchainManager;
 class ResourceManager;
@@ -26,7 +25,7 @@ class RenderGraph;
 class SceneRenderer;
 class GraphicsPipelineFactory;
 
-class RENDERER_API Renderer {
+class RENDERER_API Renderer : public ISceneViewportController {
 public:
     static Renderer& Get();
 
@@ -42,9 +41,20 @@ public:
     void SubmitAndPresent();
 
     void UploadCameraUniform(const CameraUniform& uniform);
+    void InsertOverlayPassBarrier();
 
+    // Editor-facing viewport control (implements ISceneViewportController)
+    void SetViewportRenderTargetSize(uint32_t width, uint32_t height) override;
+    void SetViewportBlitRect(uint32_t x, uint32_t y, uint32_t width, uint32_t height) override;
+    void SetViewportRenderTargetColor(VkImage colorImage, VkImageView colorImageView, VkFormat colorFormat) override;
+    void SetViewportDepthTarget(DepthTarget* depthTarget) override;
 
-    void SetSceneViewportRect(int32_t x, int32_t y, uint32_t width, uint32_t height);
+    // Offscreen viewport render target accessors (used by editor compositor)
+    uint32_t GetViewportRenderTargetWidth() const { return m_ViewportTargetExtent.width; }
+    uint32_t GetViewportRenderTargetHeight() const { return m_ViewportTargetExtent.height; }
+    VkImage GetViewportColorImage() const { return m_ViewportColorImage; }
+    VkImageView GetViewportColorImageView() const { return m_ViewportColorImageView; }
+    VkFormat GetViewportColorFormat() const { return m_ViewportColorFormat; }
 
     DeviceContext* GetDeviceContext() const { return m_DeviceContext.get(); }
     SwapchainManager* GetSwapchainManager() const { return m_SwapchainManager.get(); }
@@ -71,6 +81,7 @@ private:
     void BuildRenderGraph();
     void ExecuteFoundationPasses(VkCommandBuffer cmd);
     void TransitionFrameImages(VkCommandBuffer cmd);
+    void ClearSwapchainBackground(VkCommandBuffer cmd);
 
     std::unique_ptr<DeviceContext> m_DeviceContext;
     std::unique_ptr<SwapchainManager> m_SwapchainManager;
@@ -88,8 +99,16 @@ private:
     bool m_FrameActive = false;
     bool m_HasPresentedSwapchainImage = false;
     bool m_DepthImageReady = false;
+    bool m_ViewportColorInShaderRead = false;
     bool m_Initialized = false;
-    VkRect2D m_SceneViewportRect{};
+    VkExtent2D m_ViewportTargetExtent{};
+    VkRect2D m_ViewportBlitRect{};
+
+    // Offscreen viewport render target (color).
+    VkImage m_ViewportColorImage = VK_NULL_HANDLE;
+    VkImageView m_ViewportColorImageView = VK_NULL_HANDLE;
+    VkFormat m_ViewportColorFormat = VK_FORMAT_UNDEFINED;
+    DepthTarget* m_ViewportDepthTarget = nullptr;
 
 };
 

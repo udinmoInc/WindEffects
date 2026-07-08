@@ -3,13 +3,7 @@
 #include "../Common/EnvironmentBuffer.hlsli"
 #include "VolumetricClouds.hlsli"
 
-cbuffer CameraBuffer : register(b0, space1)
-{
-    float4x4 view;
-    float4x4 proj;
-    float3   cameraPos;
-    float    cameraPadding;
-};
+#include "../Common/CameraBuffer.hlsli"
 
 struct VSOutput
 {

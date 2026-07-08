@@ -1,4 +1,4 @@
-#include "../Common/Camera.hlsli"
+#include "../Common/CameraBuffer.hlsli"
 #include "../Common/Color.hlsli"
 
 #define WE_ENVIRONMENT_BUFFER_REGISTER b2
@@ -18,14 +18,6 @@ struct VSOutput
     float3 worldPos   : TEXCOORD0;
     float3 worldNormal: TEXCOORD1;
     float2 texCoord   : TEXCOORD2;
-};
-
-cbuffer CameraBuffer : register(b0, space0)
-{
-    float4x4 view;
-    float4x4 proj;
-    float3   cameraPos;
-    float    cameraPadding;
 };
 
 cbuffer ObjectBuffer : register(b1, space0)

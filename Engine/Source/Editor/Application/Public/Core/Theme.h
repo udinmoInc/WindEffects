@@ -43,6 +43,7 @@ struct APPLICATION_API Theme {
     Color BorderLight       = { 0.227f, 0.227f, 0.227f, 1.0f }; // #3A3A3A
     Color BorderDark        = { 0.145f, 0.145f, 0.145f, 1.0f }; // #252525
     Color BorderDefault     = { 0.188f, 0.188f, 0.188f, 1.0f }; // #303030
+    Color BorderSecondary   = BorderLight;
     Color BorderFocus       = { 0.839f, 0.635f, 0.290f, 1.0f }; // #D6A24A
     Color Separator         = { 0.231f, 0.231f, 0.231f, 0.50f }; // #3B3B3B, 50% opacity
 
@@ -73,6 +74,10 @@ struct APPLICATION_API Theme {
     Color IconDisabled      = { 0.416f, 0.439f, 0.471f, 1.0f }; // #6A7078
     Color IconFolder        = { 0.718f, 0.624f, 0.451f, 1.0f }; // #B79F73 (Colored Folder)
     Color IconMuted         = { 0.580f, 0.608f, 0.651f, 1.0f }; // Legacy
+
+    // Sidebar text/icon colors (kept as aliases for older widgets).
+    Color SidebarIconDefault = IconDefault;
+    Color SidebarIconHover   = IconHover;
 
     // Extra backgrounds
     Color ViewportToolbarBg = { 0.100f, 0.100f, 0.100f, 0.85f };

@@ -18,6 +18,16 @@
 #include <cstring>
 #include <stdexcept>
 
+// Production builds should not emit per-frame diagnostic "PASS | ..." spam.
+#ifndef WE_DEBUG_UI
+#define WE_DEBUG_UI 0
+#endif
+#if WE_DEBUG_UI
+#define WE_OVERLAY_PASS_INFO(msg) HE_INFO(msg)
+#else
+#define WE_OVERLAY_PASS_INFO(msg) do { } while (0)
+#endif
+
 namespace we::UI {
 
 OverlayRenderer::OverlayRenderer() = default;
@@ -32,8 +42,8 @@ bool OverlayRenderer::Init(VkPhysicalDevice physicalDevice,
                        uint32_t graphicsQueueFamilyIndex,
                        VkFormat swapchainFormat,
                        uint32_t maxFramesInFlight,
-                       we::runtime::renderer::DeviceContext* deviceContext,
-                       we::runtime::renderer::ResourceManager* resourceManager) {
+                           ::we::runtime::renderer::DeviceContext* deviceContext,
+                           ::we::runtime::renderer::ResourceManager* resourceManager) {
     if (!physicalDevice || !logicalDevice || !graphicsQueue || !deviceContext || !resourceManager) {
         HE_ERROR("OverlayRenderer: Invalid initialization parameters");
         return false;
@@ -225,22 +235,22 @@ void OverlayRenderer::RenderEditorUI(const std::shared_ptr<we::UI::Widget>& root
         return;
     }
 
-    HE_INFO("==========================");
-    HE_INFO("UI BUILD");
-    HE_INFO("==========================");
-    HE_INFO("PASS | UI Tick"); // already done in Editor.cpp effectively
-    HE_INFO("PASS | Root Widget Exists");
+    WE_OVERLAY_PASS_INFO("==========================");
+    WE_OVERLAY_PASS_INFO("UI BUILD");
+    WE_OVERLAY_PASS_INFO("==========================");
+    WE_OVERLAY_PASS_INFO("PASS | UI Tick"); // already done in Editor.cpp effectively
+    WE_OVERLAY_PASS_INFO("PASS | Root Widget Exists");
     if (m_WidgetAdapter) {
-        HE_INFO("PASS | OverlayManager Exists (Adapter)");
+        WE_OVERLAY_PASS_INFO("PASS | OverlayManager Exists (Adapter)");
     }
     
     // We assume width/height is root geometry
-    HE_INFO(std::string("PASS | Root Geometry: ") + std::to_string(width) + "x" + std::to_string(height));
+    WE_OVERLAY_PASS_INFO(std::string("PASS | Root Geometry: ") + std::to_string(width) + "x" + std::to_string(height));
 
     we::UI::Widget::ResetDiagnostics();
     we::UI::UIWidgetAdapter::ResetDiagnostics();
 
-    HE_INFO("PASS | Paint() Started");
+    WE_OVERLAY_PASS_INFO("PASS | Paint() Started");
     
     if (m_WidgetAdapter) {
         m_WidgetAdapter->ProcessWidget(root, width, height);
@@ -250,31 +260,31 @@ void OverlayRenderer::RenderEditorUI(const std::shared_ptr<we::UI::Widget>& root
         m_Batches = m_WidgetAdapter->GetBatches();
     }
     
-    HE_INFO("PASS | Paint() Finished");
+    WE_OVERLAY_PASS_INFO("PASS | Paint() Finished");
     
-    HE_INFO(std::string("Root Widget Name: Root"));
-    HE_INFO(std::string("Total Widget Count: ") + std::to_string(we::UI::Widget::s_TotalWidgetCount));
-    HE_INFO(std::string("Visible Widget Count: ") + std::to_string(we::UI::Widget::s_VisibleWidgetCount));
-    HE_INFO(std::string("Hidden Widget Count: ") + std::to_string(we::UI::Widget::s_HiddenWidgetCount));
-    HE_INFO(std::string("Paint() Calls: ") + std::to_string(we::UI::Widget::s_PaintCalls));
-    HE_INFO(std::string("ArrangeChildren() Calls: ") + std::to_string(we::UI::Widget::s_ArrangeChildrenCalls));
-    HE_INFO(std::string("Layout Pass Count: ") + std::to_string(we::UI::Widget::s_LayoutPassCount));
-    HE_INFO(std::string("Invalidate Count: ") + std::to_string(we::UI::Widget::s_InvalidateCount));
+    WE_OVERLAY_PASS_INFO(std::string("Root Widget Name: Root"));
+    WE_OVERLAY_PASS_INFO(std::string("Total Widget Count: ") + std::to_string(we::UI::Widget::s_TotalWidgetCount));
+    WE_OVERLAY_PASS_INFO(std::string("Visible Widget Count: ") + std::to_string(we::UI::Widget::s_VisibleWidgetCount));
+    WE_OVERLAY_PASS_INFO(std::string("Hidden Widget Count: ") + std::to_string(we::UI::Widget::s_HiddenWidgetCount));
+    WE_OVERLAY_PASS_INFO(std::string("Paint() Calls: ") + std::to_string(we::UI::Widget::s_PaintCalls));
+    WE_OVERLAY_PASS_INFO(std::string("ArrangeChildren() Calls: ") + std::to_string(we::UI::Widget::s_ArrangeChildrenCalls));
+    WE_OVERLAY_PASS_INFO(std::string("Layout Pass Count: ") + std::to_string(we::UI::Widget::s_LayoutPassCount));
+    WE_OVERLAY_PASS_INFO(std::string("Invalidate Count: ") + std::to_string(we::UI::Widget::s_InvalidateCount));
 
-    HE_INFO("==========================");
-    HE_INFO("DRAW COMMAND GENERATION");
-    HE_INFO("==========================");
-    HE_INFO(std::string("Total Draw Commands Generated: ") + std::to_string(we::UI::UIWidgetAdapter::s_TotalDrawCommandsGenerated));
-    HE_INFO(std::string("Rectangle Commands: ") + std::to_string(we::UI::UIWidgetAdapter::s_RectangleCommands));
-    HE_INFO(std::string("Text Commands: ") + std::to_string(we::UI::UIWidgetAdapter::s_TextCommands));
-    HE_INFO(std::string("Image Commands: ") + std::to_string(we::UI::UIWidgetAdapter::s_ImageCommands));
-    HE_INFO(std::string("Icon Commands: ") + std::to_string(we::UI::UIWidgetAdapter::s_IconCommands));
-    HE_INFO(std::string("Border Commands: ") + std::to_string(we::UI::UIWidgetAdapter::s_BorderCommands));
-    HE_INFO(std::string("Gradient Commands: ") + std::to_string(we::UI::UIWidgetAdapter::s_GradientCommands));
-    HE_INFO(std::string("Shadow Commands: ") + std::to_string(we::UI::UIWidgetAdapter::s_ShadowCommands));
-    HE_INFO(std::string("Clip Rect Count: ") + std::to_string(we::UI::UIWidgetAdapter::s_ClipRectCount));
-    HE_INFO(std::string("Texture Switch Count: ") + std::to_string(we::UI::UIWidgetAdapter::s_TextureSwitchCount));
-    HE_INFO(std::string("Batch Count: ") + std::to_string(we::UI::UIWidgetAdapter::s_BatchCount));
+    WE_OVERLAY_PASS_INFO("==========================");
+    WE_OVERLAY_PASS_INFO("DRAW COMMAND GENERATION");
+    WE_OVERLAY_PASS_INFO("==========================");
+    WE_OVERLAY_PASS_INFO(std::string("Total Draw Commands Generated: ") + std::to_string(we::UI::UIWidgetAdapter::s_TotalDrawCommandsGenerated));
+    WE_OVERLAY_PASS_INFO(std::string("Rectangle Commands: ") + std::to_string(we::UI::UIWidgetAdapter::s_RectangleCommands));
+    WE_OVERLAY_PASS_INFO(std::string("Text Commands: ") + std::to_string(we::UI::UIWidgetAdapter::s_TextCommands));
+    WE_OVERLAY_PASS_INFO(std::string("Image Commands: ") + std::to_string(we::UI::UIWidgetAdapter::s_ImageCommands));
+    WE_OVERLAY_PASS_INFO(std::string("Icon Commands: ") + std::to_string(we::UI::UIWidgetAdapter::s_IconCommands));
+    WE_OVERLAY_PASS_INFO(std::string("Border Commands: ") + std::to_string(we::UI::UIWidgetAdapter::s_BorderCommands));
+    WE_OVERLAY_PASS_INFO(std::string("Gradient Commands: ") + std::to_string(we::UI::UIWidgetAdapter::s_GradientCommands));
+    WE_OVERLAY_PASS_INFO(std::string("Shadow Commands: ") + std::to_string(we::UI::UIWidgetAdapter::s_ShadowCommands));
+    WE_OVERLAY_PASS_INFO(std::string("Clip Rect Count: ") + std::to_string(we::UI::UIWidgetAdapter::s_ClipRectCount));
+    WE_OVERLAY_PASS_INFO(std::string("Texture Switch Count: ") + std::to_string(we::UI::UIWidgetAdapter::s_TextureSwitchCount));
+    WE_OVERLAY_PASS_INFO(std::string("Batch Count: ") + std::to_string(we::UI::UIWidgetAdapter::s_BatchCount));
     
     if (we::UI::UIWidgetAdapter::s_TotalDrawCommandsGenerated == 0) {
         HE_ERROR("STOPPING: DrawCommands == 0! Paint() produced nothing.");
@@ -284,29 +294,29 @@ void OverlayRenderer::RenderEditorUI(const std::shared_ptr<we::UI::Widget>& root
         return;
     }
 
-    HE_INFO("==========================");
-    HE_INFO("BUILD GEOMETRY");
-    HE_INFO("==========================");
-    HE_INFO(std::string("Input DrawCommand Count: ") + std::to_string(we::UI::UIWidgetAdapter::s_TotalDrawCommandsGenerated));
-    HE_INFO(std::string("Generated Vertices: ") + std::to_string(m_Vertices.size()));
-    HE_INFO(std::string("Generated Indices: ") + std::to_string(m_Indices.size()));
-    HE_INFO(std::string("Generated Batches: ") + std::to_string(m_Batches.size()));
-    HE_INFO(std::string("Vertex Buffer Size: ") + std::to_string(m_Vertices.size() * sizeof(UIVertex2)));
-    HE_INFO(std::string("Index Buffer Size: ") + std::to_string(m_Indices.size() * sizeof(uint32_t)));
+    WE_OVERLAY_PASS_INFO("==========================");
+    WE_OVERLAY_PASS_INFO("BUILD GEOMETRY");
+    WE_OVERLAY_PASS_INFO("==========================");
+    WE_OVERLAY_PASS_INFO(std::string("Input DrawCommand Count: ") + std::to_string(we::UI::UIWidgetAdapter::s_TotalDrawCommandsGenerated));
+    WE_OVERLAY_PASS_INFO(std::string("Generated Vertices: ") + std::to_string(m_Vertices.size()));
+    WE_OVERLAY_PASS_INFO(std::string("Generated Indices: ") + std::to_string(m_Indices.size()));
+    WE_OVERLAY_PASS_INFO(std::string("Generated Batches: ") + std::to_string(m_Batches.size()));
+    WE_OVERLAY_PASS_INFO(std::string("Vertex Buffer Size: ") + std::to_string(m_Vertices.size() * sizeof(UIVertex2)));
+    WE_OVERLAY_PASS_INFO(std::string("Index Buffer Size: ") + std::to_string(m_Indices.size() * sizeof(uint32_t)));
 
     if (we::UI::UIWidgetAdapter::s_TotalDrawCommandsGenerated > 0 && m_Vertices.size() <= 4) {
         HE_ERROR("STOPPING: DrawCommands > 0 but Vertices <= 4!");
     }
 
-    HE_INFO("==========================");
-    HE_INFO("FINAL CHECK");
-    HE_INFO("==========================");
-    HE_INFO(std::string("Expected Vertex Count: ") + std::to_string(we::UI::UIWidgetAdapter::s_TotalDrawCommandsGenerated * 4));
-    HE_INFO(std::string("Actual Vertex Count: ") + std::to_string(m_Vertices.size()));
-    HE_INFO(std::string("Expected DrawCommands: ") + std::to_string(we::UI::UIWidgetAdapter::s_TotalDrawCommandsGenerated));
-    HE_INFO(std::string("Actual DrawCommands: ") + std::to_string(we::UI::UIWidgetAdapter::s_TotalDrawCommandsGenerated));
-    HE_INFO(std::string("Expected Widgets Painted: ") + std::to_string(we::UI::Widget::s_TotalWidgetCount));
-    HE_INFO(std::string("Actual Widgets Painted: ") + std::to_string(we::UI::Widget::s_WidgetsPainted));
+    WE_OVERLAY_PASS_INFO("==========================");
+    WE_OVERLAY_PASS_INFO("FINAL CHECK");
+    WE_OVERLAY_PASS_INFO("==========================");
+    WE_OVERLAY_PASS_INFO(std::string("Expected Vertex Count: ") + std::to_string(we::UI::UIWidgetAdapter::s_TotalDrawCommandsGenerated * 4));
+    WE_OVERLAY_PASS_INFO(std::string("Actual Vertex Count: ") + std::to_string(m_Vertices.size()));
+    WE_OVERLAY_PASS_INFO(std::string("Expected DrawCommands: ") + std::to_string(we::UI::UIWidgetAdapter::s_TotalDrawCommandsGenerated));
+    WE_OVERLAY_PASS_INFO(std::string("Actual DrawCommands: ") + std::to_string(we::UI::UIWidgetAdapter::s_TotalDrawCommandsGenerated));
+    WE_OVERLAY_PASS_INFO(std::string("Expected Widgets Painted: ") + std::to_string(we::UI::Widget::s_TotalWidgetCount));
+    WE_OVERLAY_PASS_INFO(std::string("Actual Widgets Painted: ") + std::to_string(we::UI::Widget::s_WidgetsPainted));
 
     if (m_Vertices.size() <= 4) {
         m_Vertices.clear();
@@ -320,15 +330,20 @@ void OverlayRenderer::RenderEditorUI(const std::shared_ptr<we::UI::Widget>& root
     m_FrameStats.batches = static_cast<uint32_t>(m_Batches.size());
 
     UpdateGeometryBuffers(m_CurrentFrameIndex);
-    HE_INFO(std::string("PASS | Vertex Buffer Upload"));
-    HE_INFO(std::string("PASS | Index Buffer Upload"));
+    WE_OVERLAY_PASS_INFO(std::string("PASS | Vertex Buffer Upload"));
+    WE_OVERLAY_PASS_INFO(std::string("PASS | Index Buffer Upload"));
 }
 
-void OverlayRenderer::BeginOverlayPass(const we::editor::rendering::OverlayRenderContext& context) {
+void OverlayRenderer::SetFrameExtent(uint32_t width, uint32_t height) {
+    m_CurrentWidth = width;
+    m_CurrentHeight = height;
+}
+
+void OverlayRenderer::BeginOverlayPass(const ::we::editor::rendering::OverlayRenderContext& context) {
     m_Mutex.lock(); // Ensure we unlock in EndOverlayPass
 
-    HE_INFO("PASS | BeginOverlayPass()");
-    HE_INFO("PASS | vkCmdBeginRendering() executed (via Compositor)");
+    WE_OVERLAY_PASS_INFO("PASS | BeginOverlayPass()");
+    WE_OVERLAY_PASS_INFO("PASS | vkCmdBeginRendering() executed (via Compositor)");
 
     m_CurrentWidth = context.targetExtent.width;
     m_CurrentHeight = context.targetExtent.height;
@@ -338,7 +353,7 @@ void OverlayRenderer::BeginOverlayPass(const we::editor::rendering::OverlayRende
     m_Compositor->BeginComposite(context.cmd, context.targetView, m_CurrentWidth, m_CurrentHeight, VK_ATTACHMENT_LOAD_OP_LOAD);
 
     vkCmdBindPipeline(context.cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_GraphicsPipeline);
-    HE_INFO(std::string("PASS | vkCmdBindPipeline() succeed | Pipeline Handle: ") + std::to_string(reinterpret_cast<uint64_t>(m_GraphicsPipeline)));
+    WE_OVERLAY_PASS_INFO(std::string("PASS | vkCmdBindPipeline() succeed | Pipeline Handle: ") + std::to_string(reinterpret_cast<uint64_t>(m_GraphicsPipeline)));
 
     VkViewport viewport{};
     viewport.x = 0.0f;
@@ -348,7 +363,7 @@ void OverlayRenderer::BeginOverlayPass(const we::editor::rendering::OverlayRende
     viewport.minDepth = 0.0f;
     viewport.maxDepth = 1.0f;
     vkCmdSetViewport(context.cmd, 0, 1, &viewport);
-    HE_INFO(std::string("PASS | Viewport: 0,0 to ") + std::to_string(m_CurrentWidth) + "x" + std::to_string(m_CurrentHeight));
+    WE_OVERLAY_PASS_INFO(std::string("PASS | Viewport: 0,0 to ") + std::to_string(m_CurrentWidth) + "x" + std::to_string(m_CurrentHeight));
 
     VkRect2D fullScissor{};
     fullScissor.offset = {0, 0};
@@ -365,11 +380,11 @@ void OverlayRenderer::BeginOverlayPass(const we::editor::rendering::OverlayRende
 
 }
 
-void OverlayRenderer::EndOverlayPass(const we::editor::rendering::OverlayRenderContext& context) {
-    HE_INFO("==========================");
-    HE_INFO("GPU SUBMISSION (EndOverlayPass)");
-    HE_INFO("==========================");
-    HE_INFO(std::string("CPU Batch Count: ") + std::to_string(m_Batches.size()));
+void OverlayRenderer::EndOverlayPass(const ::we::editor::rendering::OverlayRenderContext& context) {
+    WE_OVERLAY_PASS_INFO("==========================");
+    WE_OVERLAY_PASS_INFO("GPU SUBMISSION (EndOverlayPass)");
+    WE_OVERLAY_PASS_INFO("==========================");
+    WE_OVERLAY_PASS_INFO(std::string("CPU Batch Count: ") + std::to_string(m_Batches.size()));
 
     uint32_t gpuBatchCount = 0;
     uint32_t executedDrawCalls = 0;
@@ -378,17 +393,17 @@ void OverlayRenderer::EndOverlayPass(const we::editor::rendering::OverlayRenderC
     if (m_CurrentFrameIndex < m_FrameGeometry.size()) {
         const FrameGeometry& buffers = m_FrameGeometry[m_CurrentFrameIndex];
         
-        HE_INFO(std::string("Frame Geometry Index: ") + std::to_string(m_CurrentFrameIndex));
-        HE_INFO(std::string("Vertex Buffer Handle: ") + std::to_string(reinterpret_cast<uint64_t>(buffers.vertexBuffer)));
-        HE_INFO(std::string("Index Buffer Handle: ") + std::to_string(reinterpret_cast<uint64_t>(buffers.indexBuffer)));
+        WE_OVERLAY_PASS_INFO(std::string("Frame Geometry Index: ") + std::to_string(m_CurrentFrameIndex));
+        WE_OVERLAY_PASS_INFO(std::string("Vertex Buffer Handle: ") + std::to_string(reinterpret_cast<uint64_t>(buffers.vertexBuffer)));
+        WE_OVERLAY_PASS_INFO(std::string("Index Buffer Handle: ") + std::to_string(reinterpret_cast<uint64_t>(buffers.indexBuffer)));
 
         if (buffers.vertexBuffer != VK_NULL_HANDLE && buffers.indexBuffer != VK_NULL_HANDLE && !m_Batches.empty()) {
             VkBuffer vertexBuffers[] = {buffers.vertexBuffer};
             VkDeviceSize vertexOffsets[] = {0};
             vkCmdBindVertexBuffers(context.cmd, 0, 1, vertexBuffers, vertexOffsets);
             vkCmdBindIndexBuffer(context.cmd, buffers.indexBuffer, 0, VK_INDEX_TYPE_UINT32);
-            HE_INFO("PASS | Bind Vertex Buffer");
-            HE_INFO("PASS | Bind Index Buffer");
+            WE_OVERLAY_PASS_INFO("PASS | Bind Vertex Buffer");
+            WE_OVERLAY_PASS_INFO("PASS | Bind Index Buffer");
 
             for (size_t i = 0; i < m_Batches.size(); ++i) {
                 const auto& batch = m_Batches[i];
@@ -426,7 +441,7 @@ void OverlayRenderer::EndOverlayPass(const we::editor::rendering::OverlayRenderC
                 executedDrawCalls++;
                 
                 // Detailed batch log
-                HE_INFO(std::string("Draw Call [") + std::to_string(i) + "] | " +
+                WE_OVERLAY_PASS_INFO(std::string("Draw Call [") + std::to_string(i) + "] | " +
                     "Indices: " + std::to_string(batch.indexCount) + " | " +
                     "FirstIdx: " + std::to_string(batch.firstIndex) + " | " +
                     "VOffset: " + std::to_string(batch.vertexOffset) + " | " +
@@ -443,13 +458,13 @@ void OverlayRenderer::EndOverlayPass(const we::editor::rendering::OverlayRenderC
         HE_ERROR("STOPPING: Invalid Frame Index");
     }
 
-    HE_INFO(std::string("GPU Batch Count: ") + std::to_string(gpuBatchCount));
-    HE_INFO(std::string("Recorded Draw Calls: ") + std::to_string(executedDrawCalls));
-    HE_INFO(std::string("Executed Draw Calls: ") + std::to_string(executedDrawCalls));
-    HE_INFO(std::string("Skipped Draw Calls: ") + std::to_string(skippedDrawCalls));
+    WE_OVERLAY_PASS_INFO(std::string("GPU Batch Count: ") + std::to_string(gpuBatchCount));
+    WE_OVERLAY_PASS_INFO(std::string("Recorded Draw Calls: ") + std::to_string(executedDrawCalls));
+    WE_OVERLAY_PASS_INFO(std::string("Executed Draw Calls: ") + std::to_string(executedDrawCalls));
+    WE_OVERLAY_PASS_INFO(std::string("Skipped Draw Calls: ") + std::to_string(skippedDrawCalls));
 
     m_Compositor->EndComposite(context.cmd);
-    HE_INFO("PASS | vkCmdEndRendering() executed (via Compositor)");
+    WE_OVERLAY_PASS_INFO("PASS | vkCmdEndRendering() executed (via Compositor)");
     m_StateManager->RestoreState(context.cmd, m_SavedState);
 
     m_CurrentFrameIndex = (m_CurrentFrameIndex + 1) % m_MaxFramesInFlight;
@@ -595,7 +610,7 @@ void OverlayRenderer::CreateDummyTexture() {
         m_DummyMemory);
 
     m_GpuUpload->SubmitOneTime([&](VkCommandBuffer uploadCmd) {
-        we::runtime::renderer::TransitionImageLayout(
+        ::we::runtime::renderer::TransitionImageLayout(
             uploadCmd,
             m_DummyImage,
             VK_IMAGE_LAYOUT_UNDEFINED,
@@ -611,7 +626,7 @@ void OverlayRenderer::CreateDummyTexture() {
         region.imageExtent = {1, 1, 1};
         vkCmdCopyBufferToImage(uploadCmd, stagingBuffer, m_DummyImage, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
 
-        we::runtime::renderer::TransitionImageLayout(
+        ::we::runtime::renderer::TransitionImageLayout(
             uploadCmd,
             m_DummyImage,
             VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
@@ -642,10 +657,10 @@ void OverlayRenderer::CreateDummyTexture() {
 void OverlayRenderer::CreateGraphicsPipeline(VkFormat colorFormat) {
     VkDevice device = m_LogicalDevice;
 
-    VkShaderModule vertShaderModule = we::runtime::renderer::ShaderLibrary::Get().CreateShaderModule(
-        device, "UI", we::runtime::renderer::ShaderStage::Vertex);
-    VkShaderModule fragShaderModule = we::runtime::renderer::ShaderLibrary::Get().CreateShaderModule(
-        device, "UI", we::runtime::renderer::ShaderStage::Pixel);
+    VkShaderModule vertShaderModule = ::we::runtime::renderer::ShaderLibrary::Get().CreateShaderModule(
+        device, "UI", ::we::runtime::renderer::ShaderStage::Vertex);
+    VkShaderModule fragShaderModule = ::we::runtime::renderer::ShaderLibrary::Get().CreateShaderModule(
+        device, "UI", ::we::runtime::renderer::ShaderStage::Pixel);
 
     if (vertShaderModule == VK_NULL_HANDLE || fragShaderModule == VK_NULL_HANDLE) {
         HE_ERROR("OverlayRenderer: Failed to load UI shader modules");

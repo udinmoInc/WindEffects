@@ -30,6 +30,7 @@ public:
 
     void Validate() override;
     void Execute(const FrameContext& frame) override;
+    RenderPassIO DescribePassIO() const override;
 
 private:
     PBRPassConfig m_Config;

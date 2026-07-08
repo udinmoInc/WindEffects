@@ -1,4 +1,5 @@
-#include "../Common/Camera.hlsli"
+#define WE_CAMERA_BUFFER_SPACE space1
+#include "../Common/CameraBuffer.hlsli"
 #include "../Common/Math.hlsli"
 #include "../Common/Color.hlsli"
 
@@ -24,14 +25,6 @@ cbuffer GridSettings : register(b0, space0)
 
     int4   gridFlags;       // x=enableGrid, y=enableAxis, z=antiAliasingEnabled
     float4 depthParams;     // x=depthOffset, y=radiusFadeEnd, z=distanceFadeStart, w=distanceFadeEnd
-};
-
-cbuffer CameraBuffer : register(b0, space1)
-{
-    float4x4 view;
-    float4x4 proj;
-    float3   cameraPos;
-    float    cameraPadding;
 };
 
 struct VSOutput

@@ -112,4 +112,28 @@ VkImageView ResourceManager::CreateImageView(VkImage image, VkFormat format, VkI
     return imageView;
 }
 
+void ResourceManager::DestroyImageView(VkImageView& imageView) const {
+    if (!imageView || !m_DeviceContext) {
+        return;
+    }
+
+    vkDestroyImageView(m_DeviceContext->GetDevice(), imageView, nullptr);
+    imageView = VK_NULL_HANDLE;
+}
+
+void ResourceManager::DestroyImage(VkImage& image, VkDeviceMemory& imageMemory) const {
+    if (!m_DeviceContext) {
+        return;
+    }
+
+    if (image) {
+        vkDestroyImage(m_DeviceContext->GetDevice(), image, nullptr);
+        image = VK_NULL_HANDLE;
+    }
+    if (imageMemory) {
+        vkFreeMemory(m_DeviceContext->GetDevice(), imageMemory, nullptr);
+        imageMemory = VK_NULL_HANDLE;
+    }
+}
+
 } // namespace we::runtime::renderer

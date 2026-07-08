@@ -28,6 +28,8 @@ public:
     void CreateBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory) const;
     void CreateImage(uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory) const;
     VkImageView CreateImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags) const;
+    void DestroyImageView(VkImageView& imageView) const;
+    void DestroyImage(VkImage& image, VkDeviceMemory& imageMemory) const;
 
 private:
     DeviceContext* m_DeviceContext = nullptr;

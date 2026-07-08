@@ -14,6 +14,9 @@
 #include "Core/Widget.h"
 #include "Core/EventSystem.h"
 #include "Rendering/OverlayRenderer.h"
+namespace we::editor::rendering {
+    class EditorCompositor;
+}
 #include "Widgets/Panel.h"
 #include "Widgets/StatusBar.h"
 #include "Widgets/TitleBar.h"
@@ -44,6 +47,7 @@ private:
 
     SDL_Window* m_Window = nullptr;
     bool m_Running = true;
+    bool m_FirstRunAgreementPending = false;
 
     std::unique_ptr<we::runtime::renderer::Renderer> m_Renderer;
     std::shared_ptr<we::runtime::engine::EditorCamera> m_Camera;

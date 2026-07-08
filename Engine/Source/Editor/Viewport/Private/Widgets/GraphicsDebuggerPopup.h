@@ -14,9 +14,9 @@ namespace we::UI {
 class GraphicsDebuggerPopup : public Widget {
 public:
     GraphicsDebuggerPopup(
-        we::runtime::renderer::Renderer* renderer,
-        const std::shared_ptr<we::runtime::engine::EditorCamera>& camera,
-        const std::shared_ptr<we::runtime::scene::Scene>& scene);
+        ::we::runtime::renderer::Renderer* renderer,
+        const std::shared_ptr<::we::runtime::engine::EditorCamera>& camera,
+        const std::shared_ptr<::we::runtime::scene::Scene>& scene);
 
     Size Measure(const Size& availableSize) override;
     void Arrange(const Rect& allottedRect) override;
@@ -34,9 +34,9 @@ private:
     void BuildLines(std::vector<std::string>& outLines) const;
     void LogMoveIfChanged();
 
-    we::runtime::renderer::Renderer* m_Renderer = nullptr;
-    std::shared_ptr<we::runtime::engine::EditorCamera> m_Camera;
-    std::shared_ptr<we::runtime::scene::Scene> m_Scene;
+    ::we::runtime::renderer::Renderer* m_Renderer = nullptr;
+    std::shared_ptr<::we::runtime::engine::EditorCamera> m_Camera;
+    std::shared_ptr<::we::runtime::scene::Scene> m_Scene;
 
     Rect m_HeaderRect;
     Point m_Offset{ 15.0f, 15.0f };
