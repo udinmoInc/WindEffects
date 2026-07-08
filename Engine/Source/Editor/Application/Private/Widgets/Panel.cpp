@@ -79,11 +79,12 @@ void Panel::Arrange(const Rect& allottedRect) {
 }
 
 void Panel::Paint(PaintContext& context) {
-    Color panelBodyColor{0.145f, 0.145f, 0.145f, 1.0f}; // #252525
-    Color headerBg = Theme::Get().HeaderBackground;
-    Color tabBg = m_HeaderHovered ? Color{0.196f, 0.196f, 0.196f, 1.0f} : Color{0.173f, 0.173f, 0.173f, 1.0f};
-    Color tabBorder{0.227f, 0.227f, 0.227f, 1.0f};
-    Color textColor{0.878f, 0.878f, 0.878f, 1.0f};
+    const auto& theme = Theme::Get();
+    Color panelBodyColor = theme.PanelBackground;
+    Color headerBg = theme.HeaderBackground;
+    Color tabBg = m_HeaderHovered ? theme.HoverBg : theme.HeaderBackground;
+    Color tabBorder = theme.BorderDefault;
+    Color textColor = m_HeaderHovered ? theme.TextPrimary : theme.TextSecondary;
     Color shadowColor{0.0f, 0.0f, 0.0f, 0.3f};
 
     context.DrawRect(m_Geometry, panelBodyColor);
@@ -124,7 +125,7 @@ void Panel::Paint(PaintContext& context) {
         float currentX = tabRect.x + tabPaddingH;
         if (!panelIcon.empty()) {
             float pIconY = m_HeaderRect.y + (m_HeaderHeight - iconSize) / 2.0f;
-            Color pIconColor = Color{0.878f, 0.878f, 0.878f, 1.0f};
+            Color pIconColor = m_HeaderHovered ? theme.IconHover : theme.IconDefault;
             IconPainter::DrawIcon(context, panelIcon, Rect{ currentX, pIconY, iconSize, iconSize }, pIconColor);
             currentX += panelIconWidth;
         }
@@ -139,7 +140,7 @@ void Panel::Paint(PaintContext& context) {
         float optionsY = m_HeaderRect.y + (m_HeaderHeight - kOptionsHeight) * 0.5f;
         m_OptionsMenuRect = Rect{ optionsX, optionsY, kOptionsWidth, kOptionsHeight };
 
-        Color optionsColor = m_OptionsMenuHovered ? Theme::Get().TextPrimary : Theme::Get().TextSecondary;
+        Color optionsColor = m_OptionsMenuHovered ? theme.IconHover : theme.IconDefault;
         IconPainter::DrawVerticalMoreMenu(context, m_OptionsMenuRect, optionsColor);
 
         float actionX = optionsX - m_ActionSpacing - iconSize;
@@ -149,14 +150,15 @@ void Panel::Paint(PaintContext& context) {
                 float closeY = m_HeaderRect.y + (m_HeaderHeight - iconSize) / 2.0f;
                 action.geometry = Rect{ closeX, closeY, iconSize, iconSize };
 
-                Color closeColor = Theme::Get().TextSecondary;
+                Color closeColor = m_HeaderHovered ? theme.IconHover : theme.IconDefault;
                 IconPainter::DrawIcon(context, Icons::XName, Rect{ closeX, closeY, iconSize, iconSize }, closeColor);
                 continue;
             }
 
             float actionY = m_HeaderRect.y + (m_HeaderHeight - iconSize) / 2.0f;
             action.geometry = Rect{ actionX, actionY, iconSize, iconSize };
-            IconPainter::DrawIcon(context, action.iconName, action.geometry, textColor);
+            Color actionColor = m_HeaderHovered ? theme.IconHover : theme.IconDefault;
+            IconPainter::DrawIcon(context, action.iconName, action.geometry, actionColor);
             actionX -= (iconSize + m_ActionSpacing);
         }
     }

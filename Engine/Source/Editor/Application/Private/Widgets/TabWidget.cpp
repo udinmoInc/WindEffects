@@ -48,7 +48,7 @@ void TabWidget::Arrange(const Rect& allottedRect) {
 
 void TabWidget::Paint(PaintContext& context) {
     // Flat dark background for the tab strip
-    Color stripBg = Color{0.165f, 0.165f, 0.165f, 1.0f}; // #2A2A2A
+    Color stripBg = Theme::Get().TabBackground;
     Rect tabBarRect{ m_Geometry.x, m_Geometry.y, m_Geometry.width, m_TabHeight };
     context.DrawRect(tabBarRect, stripBg);
     
@@ -59,7 +59,7 @@ void TabWidget::Paint(PaintContext& context) {
         m_Geometry.width,
         1.0f
     };
-    context.DrawRect(separatorRect, Color{0.145f, 0.145f, 0.145f, 1.0f}); // #252525
+    context.DrawRect(separatorRect, Theme::Get().BorderDefault);
     
     // Draw tabs
     for (size_t i = 0; i < m_Tabs.size(); ++i) {
@@ -68,8 +68,8 @@ void TabWidget::Paint(PaintContext& context) {
         bool isHovered = (static_cast<int>(i) == m_HoveredTab);
         
         // Draw tab background
-        Color tabBg = isActive ? Color{0.1725f, 0.1725f, 0.1725f, 1.0f} : 
-                     (isHovered ? Color{0.150f, 0.150f, 0.150f, 1.0f} : Color{0.1372f, 0.1372f, 0.1372f, 1.0f});
+        Color tabBg = isActive ? Theme::Get().HoverBg : 
+                     (isHovered ? Theme::Get().SelectedBg : Theme::Get().TabBackground);
                      
         Rect tabRect = tab.geometry;
         if (isActive) tabRect.height += 1.0f; // Cover the 1px separator
@@ -80,7 +80,7 @@ void TabWidget::Paint(PaintContext& context) {
         context.DrawRect(Rect{tabRect.x, tabRect.y + tabRect.height - flattenHeight, tabRect.width, flattenHeight}, tabBg);
         
         if (isActive) {
-            Color tabBorder{0.227f, 0.227f, 0.227f, 1.0f};
+            Color tabBorder = Theme::Get().BorderDefault;
             context.DrawRoundedRectOutline(tabRect, tabBorder, 1.0f, 4.0f);
             context.DrawRect(Rect{tabRect.x, tabRect.y + tabRect.height - flattenHeight, 1.0f, flattenHeight}, tabBorder);
             context.DrawRect(Rect{tabRect.x + tabRect.width - 1.0f, tabRect.y + tabRect.height - flattenHeight, 1.0f, flattenHeight}, tabBorder);
@@ -88,7 +88,7 @@ void TabWidget::Paint(PaintContext& context) {
             
             // Subtle accent line (2px blue underline) at the bottom
             Rect underlineRect{ tab.geometry.x, tab.geometry.y + m_TabHeight - 2.0f, tab.geometry.width, 2.0f };
-            context.DrawRect(underlineRect, Color{0.231f, 0.51f, 0.965f, 1.0f}); // #3B82F6
+            context.DrawRect(underlineRect, Theme::Get().ActiveTabLine);
         }
         
         // Draw tab label and icon
@@ -96,8 +96,7 @@ void TabWidget::Paint(PaintContext& context) {
         
         std::string iconName = DockTabIconRegistry::Get().GetIcon(tab.label);
         if (!iconName.empty()) {
-            float iconOpacity = isActive ? 1.0f : 0.7f;
-            Color iconColor = Color{0.878f, 0.878f, 0.878f, iconOpacity};
+            Color iconColor = isActive ? Theme::Get().IconActive : Theme::Get().IconDefault;
             float iconSize = 16.0f;
             float iconY = tab.geometry.y + (m_TabHeight - iconSize) / 2.0f;
             IconPainter::DrawIcon(context, iconName, Rect{ textX, iconY, iconSize, iconSize }, iconColor);
@@ -106,8 +105,8 @@ void TabWidget::Paint(PaintContext& context) {
         
         float textY = tab.geometry.y + (m_TabHeight - Theme::Get().TextSizeTabs) / 2.0f;
         
-        Color textColor = isActive ? Color{0.878f, 0.878f, 0.878f, 1.0f} : Color{0.627f, 0.627f, 0.627f, 1.0f}; // #E0E0E0 or #A0A0A0
-        if (isHovered && !isActive) textColor = Color{0.878f, 0.878f, 0.878f, 1.0f};
+        Color textColor = isActive ? Theme::Get().TextPrimary : Theme::Get().TextSecondary;
+        if (isHovered && !isActive) textColor = Theme::Get().TextPrimary;
         
         context.DrawText(tab.label, Point{ textX, textY }, textColor, Theme::Get().TextSizeTabs);
         // Simulate bold text for active tab by drawing it again with a small offset
@@ -121,8 +120,8 @@ void TabWidget::Paint(PaintContext& context) {
             float iconSize = 12.0f;
             float iconX = tab.geometry.x + 14.0f + textWidth + 8.0f; // 8px space after text
             
-            Color iconColor = Color{ 0.5f, 0.5f, 0.5f, 1.0f };
-            if (isActive) iconColor = Color{ 0.7f, 0.7f, 0.7f, 1.0f };
+            Color iconColor = Theme::Get().IconDefault;
+            if (isActive) iconColor = Theme::Get().IconHover;
             
             IconPainter::DrawIcon(context, Icons::XName, Rect{ iconX, tab.geometry.y + (m_TabHeight - iconSize) / 2.0f, iconSize, iconSize }, iconColor);
         }
@@ -139,7 +138,7 @@ void TabWidget::Paint(PaintContext& context) {
                 m_Geometry.width,
                 m_Geometry.height - m_TabHeight
             };
-            context.DrawRect(contentRect, Color{0.145f, 0.145f, 0.145f, 1.0f});
+            context.DrawRect(contentRect, Theme::Get().PanelBackground);
             
             tab.content->Paint(context);
         }

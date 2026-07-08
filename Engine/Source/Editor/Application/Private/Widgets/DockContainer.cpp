@@ -163,15 +163,9 @@ void DockContainer::PaintTab(PaintContext& context, TabInfo& tabInfo, int index,
     const auto& theme = Theme::Get();
     const bool isActive = (index == m_ActiveTabIndex);
 
-    Color tabBg = isActive ? Color{0.165f, 0.165f, 0.165f, 1.0f}
-                           : Color{0.125f, 0.125f, 0.125f, 1.0f};
+    Color tabBg = isActive ? theme.HoverBg : theme.HeaderBackground;
     if (!isActive && tabInfo.hoverAnim > 0.001f) {
-        tabBg = Color{
-            tabBg.r + (theme.HoverOverlay.r - tabBg.r) * tabInfo.hoverAnim * 0.65f,
-            tabBg.g + (theme.HoverOverlay.g - tabBg.g) * tabInfo.hoverAnim * 0.65f,
-            tabBg.b + (theme.HoverOverlay.b - tabBg.b) * tabInfo.hoverAnim * 0.65f,
-            1.0f
-        };
+        tabBg = Color::Lerp(tabBg, theme.HoverBg, tabInfo.hoverAnim * 0.65f);
     }
 
     const float tabWidth = MeasureTabWidth(context, tabInfo, isActive);
@@ -208,7 +202,7 @@ void DockContainer::PaintTab(PaintContext& context, TabInfo& tabInfo, int index,
         const std::string panelIcon = DockTabIconRegistry::Get().GetIcon(title);
         if (!panelIcon.empty()) {
             const float pIconY = tabRect.y + (tabRect.height - iconSize) * 0.5f;
-            const Color iconColor = isActive ? theme.TextPrimary : theme.TextSecondary;
+            const Color iconColor = isActive ? theme.IconActive : theme.IconDefault;
             IconPainter::DrawIcon(context, panelIcon, Rect{ itemX, pIconY, iconSize, iconSize }, iconColor);
             itemX += iconSize + iconTextSpacing;
         }
@@ -223,7 +217,7 @@ void DockContainer::PaintTab(PaintContext& context, TabInfo& tabInfo, int index,
         const float closeY = tabRect.y + (tabRect.height - iconSize) * 0.5f;
         tabInfo.closeRect = Rect{ closeX, closeY, iconSize, iconSize };
 
-        const Color closeColor = tabInfo.isCloseHovered ? theme.TextPrimary : theme.TextSecondary;
+        const Color closeColor = tabInfo.isCloseHovered ? theme.IconHover : theme.IconDefault;
         IconPainter::DrawIcon(context, Icons::XName, tabInfo.closeRect, closeColor);
     } else {
         tabInfo.closeRect = {};

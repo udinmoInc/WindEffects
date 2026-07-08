@@ -91,5 +91,5 @@ float4 PSMain(VSOutput input) : SV_Target
         max(sunAngularRadius, WE_SUN_ANGULAR_RADIUS));
     litLinear = lerp(litLinear, horizonInscatter, saturate(haze * 0.45));
 
-    return float4(litLinear, color.a);
+    return float4(WE_LinearToSRGB(litLinear), color.a);
 }

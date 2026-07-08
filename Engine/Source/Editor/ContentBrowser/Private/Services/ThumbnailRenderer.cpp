@@ -110,17 +110,17 @@ std::array<uint8_t, 3> ThemeRgb(const we::UI::Color& color, float hoverBrightnes
 
 std::array<uint8_t, 3> SampleFolderThemeColor(float t, float hoverBrightness) {
     const we::UI::Theme& theme = we::UI::Theme::Get();
-    const auto base = ThemeRgb(theme.ContentBrowserFolderPrimary, hoverBrightness);
-
-    // Single consistent warm yellow/gold material with subtle 5-10% top-to-bottom gradient
-    const float topFactor = 1.05f;
-    const float botFactor = 0.95f;
-    const float factor = topFactor + (botFactor - topFactor) * std::clamp(t, 0.0f, 1.0f);
-
+    
+    // Use multi-color palette for folder: blend between tab color (top) and body color (bottom)
+    const auto tabColor = ThemeRgb(theme.ContentBrowserFolderTab, hoverBrightness);
+    const auto bodyColor = ThemeRgb(theme.ContentBrowserFolderBody, hoverBrightness);
+    
+    const float factor = std::clamp(t, 0.0f, 1.0f);
+    
     return {
-        static_cast<uint8_t>(std::min(255, static_cast<int>(base[0] * factor))),
-        static_cast<uint8_t>(std::min(255, static_cast<int>(base[1] * factor))),
-        static_cast<uint8_t>(std::min(255, static_cast<int>(base[2] * factor)))
+        static_cast<uint8_t>(tabColor[0] + (bodyColor[0] - tabColor[0]) * factor),
+        static_cast<uint8_t>(tabColor[1] + (bodyColor[1] - tabColor[1]) * factor),
+        static_cast<uint8_t>(tabColor[2] + (bodyColor[2] - tabColor[2]) * factor)
     };
 }
 
@@ -533,21 +533,23 @@ void ThumbnailRenderer::FillRoundedRectVerticalGradient(BitmapRGBA& bmp, float x
 }
 
 BitmapRGBA ThumbnailRenderer::RenderContentBrowserFolderProcedural(uint32_t w, uint32_t h, float hoverBrightness) {
-    // Clean, flat, modern folder with single consistent warm yellow/gold material
+    // Multi-colored folder using theme palette
     BitmapRGBA bmp;
     bmp.width = w;
     bmp.height = h;
     bmp.pixels.assign(static_cast<size_t>(w) * h * 4, 0);
 
     const we::UI::Theme& theme = we::UI::Theme::Get();
-    const auto shadow = ThemeRgb(theme.ContentBrowserFolderShadow, hoverBrightness);
-    const auto edge = ThemeRgb(theme.ContentBrowserFolderEdge, hoverBrightness);
+    
+    // Use full theme palette for folder
+    const auto shadowRgb = ThemeRgb(theme.ContentBrowserFolderShadow, hoverBrightness);
+    const auto edgeRgb = ThemeRgb(theme.ContentBrowserFolderEdge, hoverBrightness);
     const auto tabTop = ThemeRgb(theme.ContentBrowserFolderHighlight, hoverBrightness);
     const auto tabBot = ThemeRgb(theme.ContentBrowserFolderTab, hoverBrightness);
     const auto bodyTop = ThemeRgb(theme.ContentBrowserFolderTab, hoverBrightness);
     const auto bodyMid = ThemeRgb(theme.ContentBrowserFolderPrimary, hoverBrightness);
     const auto bodyBot = ThemeRgb(theme.ContentBrowserFolderBody, hoverBrightness);
-    const auto highlight = ThemeRgb(theme.ContentBrowserFolderHighlight, hoverBrightness);
+    const auto highlightRgb = ThemeRgb(theme.ContentBrowserFolderHighlight, hoverBrightness);
 
     constexpr float kRefW = 146.0f;
     constexpr float kRefH = 100.0f;
@@ -562,9 +564,9 @@ BitmapRGBA ThumbnailRenderer::RenderContentBrowserFolderProcedural(uint32_t w, u
     const float castX = X(1.5f);
     const float castY = Y(1.5f);
     FillRoundedRect(bmp, X(9.0f) + castX, Y(27.0f) + castY, X(132.0f), Y(67.0f), S(4.0f),
-        shadow[0], shadow[1], shadow[2], 35);
+        shadowRgb[0], shadowRgb[1], shadowRgb[2], 35);
     FillRoundedRect(bmp, X(9.0f) + castX, Y(10.0f) + castY, X(35.0f), Y(18.0f), S(4.0f),
-        shadow[0], shadow[1], shadow[2], 35);
+        shadowRgb[0], shadowRgb[1], shadowRgb[2], 35);
 
     // Gradient for body
     FillRoundedRectVerticalGradient(bmp, X(9.0f), Y(27.0f), X(132.0f), Y(67.0f), S(4.0f),
@@ -576,10 +578,10 @@ BitmapRGBA ThumbnailRenderer::RenderContentBrowserFolderProcedural(uint32_t w, u
 
     // Very subtle highlight on tab edge only
     FillRoundedRect(bmp, X(12.0f), Y(13.0f), X(28.0f), Y(1.2f), S(0.6f),
-        highlight[0], highlight[1], highlight[2], 80);
+        highlightRgb[0], highlightRgb[1], highlightRgb[2], 80);
 
     // Thin outline for separation from background
-    ApplyFolderEdgeOutline(bmp, edge);
+    ApplyFolderEdgeOutline(bmp, edgeRgb);
     return bmp;
 }
 
@@ -797,8 +799,8 @@ BitmapRGBA ThumbnailRenderer::RenderContentBrowserFolder(
         ? std::max(16u, widthPx)
         : std::max(16u, static_cast<uint32_t>(std::round(static_cast<float>(h) * aspectRatio)));
 
-    const we::UI::Theme& theme = we::UI::Theme::Get();
-    const auto edge = ThemeRgb(theme.ContentBrowserFolderEdge, hoverBrightness);
+    we::UI::Color shadow = we::UI::Theme::Get().IconFolder * 0.75f; shadow.a = 1.0f;
+    const auto edge = ThemeRgb(shadow, hoverBrightness);
 
     const std::string svgPath = opened ? ResolveFolderOpenSvgPath() : ResolveFolderSvgPath();
     if (!svgPath.empty()) {
