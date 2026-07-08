@@ -57,27 +57,5 @@ float smoothstepAA(float edge0, float edge1, float x)
 
 float4 PSMain(VSOutput input) : SV_Target
 {
-    float type = input.sdfParams.y;
-    if (type < 0.5)
-        return input.color * texSampler.Sample(samp0, input.uv);
-
-    float2 center = float2(input.sdfRect.x + input.sdfRect.z * 0.5, input.sdfRect.y + input.sdfRect.w * 0.5);
-    float2 halfSize = float2(input.sdfRect.z * 0.5, input.sdfRect.w * 0.5);
-    float radius = input.sdfParams.x;
-    float dist = sdRoundBox(input.worldPos - center, halfSize, radius);
-
-    float alpha;
-    if (type > 1.5)
-    {
-        float thickness = max(input.sdfParams.z, 1.0);
-        alpha = 1.0 - smoothstepAA(0.0, 1.0, abs(dist) - thickness * 0.5);
-    }
-    else
-    {
-        alpha = 1.0 - smoothstepAA(-1.0, 1.0, dist);
-    }
-
-    float4 outColor = input.color;
-    outColor.a *= alpha;
-    return outColor;
+    return float4(1.0, 0.0, 0.0, 1.0);
 }
