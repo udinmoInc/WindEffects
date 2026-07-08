@@ -4,7 +4,6 @@
 ![Vulkan](https://img.shields.io/badge/Vulkan-1.3-5C2028?style=flat-square&logo=vulkan)
 ![Platform](https://img.shields.io/badge/Platform-Windows-0078D7?style=flat-square&logo=windows)
 ![License](https://img.shields.io/badge/License-Proprietary-red?style=flat-square)
-![IgniteBT CI](https://github.com/yourusername/windeffects/actions/workflows/ignitebt-ci.yml/badge.svg)
 
 **WindEffects Engine** is a next-generation game engine designed for professional game development, built from the ground up using modern C++23 and cutting-edge graphics technologies.
 
@@ -27,8 +26,8 @@ Get up and running in minutes:
 
 ```powershell
 # Clone the repository
-git clone https://github.com/yourusername/windeffects.git
-cd windeffects
+git clone https://github.com/udinmoInc/WindEffects.git
+cd WindEffects
 
 # Build the engine
 dotnet build Engine/Source/Programs/IgniteBT/Source/IgniteBT.csproj -c Debug
@@ -403,8 +402,8 @@ If you encounter issues while using WindEffects, please provide:
 
 ## 🤝 Community & Support
 
-- **Discussions**: Join our [GitHub Discussions](https://github.com/yourusername/windeffects/discussions) for questions and ideas
-- **Issues**: Report bugs and request features via [GitHub Issues](https://github.com/yourusername/windeffects/issues)
+- **Discussions**: Join our [GitHub Discussions](https://github.com/udinmoInc/WindEffects/discussions) for questions and ideas
+- **Issues**: Report bugs and request features via [GitHub Issues](https://github.com/udinmoInc/WindEffects/issues)
 - **Documentation**: Full documentation coming soon
 
 ## 📄 License
