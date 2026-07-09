@@ -301,7 +301,8 @@ void OverlayRenderer::SetPipelineAuditImageIndex(uint32_t imageIndex) {
     m_PipelineAuditImageIndex = imageIndex;
 }
 
-void OverlayRenderer::RenderEditorUI(const std::shared_ptr<we::UI::Widget>& root) {
+void OverlayRenderer::RenderEditorUI(const std::shared_ptr<we::UI::Widget>& root, uint32_t frameSlot) {
+    m_ActiveFrameSlot = frameSlot;
     const uint64_t frameNumber = we::runtime::core::FrameCounter::GetFrameNumber();
     uint32_t width = m_CurrentWidth;
     uint32_t height = m_CurrentHeight;
@@ -327,19 +328,31 @@ void OverlayRenderer::RenderEditorUI(const std::shared_ptr<we::UI::Widget>& root
     WE_OVERLAY_PASS_INFO("==========================");
     WE_OVERLAY_PASS_INFO("UI BUILD");
     WE_OVERLAY_PASS_INFO("==========================");
-    WE_OVERLAY_PASS_INFO("PASS | UI Tick"); // already done in Editor.cpp effectively
-    WE_OVERLAY_PASS_INFO("PASS | Root Widget Exists");
+    
+    UIPipelineCpuStats cpuStats{};
+    
+    // Evidence-based validation for Widget stage
+    cpuStats.widgetStage = UIPipelineAudit::ValidateWidgetStage(root);
+    WE_OVERLAY_PASS_INFO(std::string("Widget Stage: ") + 
+        (cpuStats.widgetStage.succeeded ? "PASS" : "FAILED") +
+        (cpuStats.widgetStage.succeeded ? "" : " | " + cpuStats.widgetStage.failureReason));
+    
     if (m_WidgetAdapter) {
         WE_OVERLAY_PASS_INFO("PASS | OverlayManager Exists (Adapter)");
     }
     
-    // We assume width/height is root geometry
+    // Evidence-based validation for geometry
+    if (width == 0 || height == 0) {
+        HE_ERROR("STOPPING: Target extent is zero (" + std::to_string(width) + "x" + std::to_string(height) + ")");
+        m_Vertices.clear();
+        m_Indices.clear();
+        m_Batches.clear();
+        return;
+    }
     WE_OVERLAY_PASS_INFO(std::string("PASS | Root Geometry: ") + std::to_string(width) + "x" + std::to_string(height));
 
     we::UI::Widget::ResetDiagnostics();
-    we::UI::UIWidgetAdapter::ResetDiagnostics();
-
-    WE_OVERLAY_PASS_INFO("PASS | Paint() Started");
+    we::UI::UIWidgetAdapter::ResetGlobalDiagnostics();
     
     if (m_WidgetAdapter) {
         m_WidgetAdapter->ProcessWidget(root, width, height);
@@ -351,7 +364,6 @@ void OverlayRenderer::RenderEditorUI(const std::shared_ptr<we::UI::Widget>& root
 
     UIPipelineAudit::WalkWidgetTree(frameNumber, root, "Root", 0, Widget::s_PaintCalls > 0);
 
-    UIPipelineCpuStats cpuStats{};
     cpuStats.rootWidgetExists = true;
     cpuStats.widgetCount = Widget::s_TotalWidgetCount;
     cpuStats.visibleWidgetCount = Widget::s_VisibleWidgetCount;
@@ -365,6 +377,18 @@ void OverlayRenderer::RenderEditorUI(const std::shared_ptr<we::UI::Widget>& root
     cpuStats.targetWidth = width;
     cpuStats.targetHeight = height;
     cpuStats.geometryUploaded = false;
+    
+    // Evidence-based validation for Layout stage
+    cpuStats.layoutStage = UIPipelineAudit::ValidateLayoutStage(cpuStats.widgetCount, cpuStats.layoutPassCount);
+    WE_OVERLAY_PASS_INFO(std::string("Layout Stage: ") + 
+        (cpuStats.layoutStage.succeeded ? "PASS" : "FAILED") +
+        (cpuStats.layoutStage.succeeded ? "" : " | " + cpuStats.layoutStage.failureReason));
+    
+    // Evidence-based validation for Paint stage
+    cpuStats.paintStage = UIPipelineAudit::ValidatePaintStage(cpuStats.paintCalls, cpuStats.paintCommands);
+    WE_OVERLAY_PASS_INFO(std::string("Paint Stage: ") + 
+        (cpuStats.paintStage.succeeded ? "PASS" : "FAILED") +
+        (cpuStats.paintStage.succeeded ? "" : " | " + cpuStats.paintStage.failureReason));
     
     if (we::UI::UIWidgetAdapter::s_TotalDrawCommandsGenerated == 0) {
         HE_ERROR("STOPPING: DrawCommands == 0! Paint() produced nothing.");
@@ -385,21 +409,14 @@ void OverlayRenderer::RenderEditorUI(const std::shared_ptr<we::UI::Widget>& root
     WE_OVERLAY_PASS_INFO(std::string("Vertex Buffer Size: ") + std::to_string(m_Vertices.size() * sizeof(UIVertex2)));
     WE_OVERLAY_PASS_INFO(std::string("Index Buffer Size: ") + std::to_string(m_Indices.size() * sizeof(uint32_t)));
 
-    if (we::UI::UIWidgetAdapter::s_TotalDrawCommandsGenerated > 0 && m_Vertices.size() <= 4) {
-        HE_ERROR("STOPPING: DrawCommands > 0 but Vertices <= 4!");
-    }
+    // Evidence-based validation for Geometry stage
+    cpuStats.geometryStage = UIPipelineAudit::ValidateGeometryStage(cpuStats.drawCommandsGenerated, cpuStats.vertexCount, cpuStats.indexCount);
+    WE_OVERLAY_PASS_INFO(std::string("Geometry Stage: ") + 
+        (cpuStats.geometryStage.succeeded ? "PASS" : "FAILED") +
+        (cpuStats.geometryStage.succeeded ? "" : " | " + cpuStats.geometryStage.failureReason));
 
-    WE_OVERLAY_PASS_INFO("==========================");
-    WE_OVERLAY_PASS_INFO("FINAL CHECK");
-    WE_OVERLAY_PASS_INFO("==========================");
-    WE_OVERLAY_PASS_INFO(std::string("Expected Vertex Count: ") + std::to_string(we::UI::UIWidgetAdapter::s_TotalDrawCommandsGenerated * 4));
-    WE_OVERLAY_PASS_INFO(std::string("Actual Vertex Count: ") + std::to_string(m_Vertices.size()));
-    WE_OVERLAY_PASS_INFO(std::string("Expected DrawCommands: ") + std::to_string(we::UI::UIWidgetAdapter::s_TotalDrawCommandsGenerated));
-    WE_OVERLAY_PASS_INFO(std::string("Actual DrawCommands: ") + std::to_string(we::UI::UIWidgetAdapter::s_TotalDrawCommandsGenerated));
-    WE_OVERLAY_PASS_INFO(std::string("Expected Widgets Painted: ") + std::to_string(we::UI::Widget::s_TotalWidgetCount));
-    WE_OVERLAY_PASS_INFO(std::string("Actual Widgets Painted: ") + std::to_string(we::UI::Widget::s_WidgetsPainted));
-
-    if (m_Vertices.size() <= 4) {
+    if (!cpuStats.geometryStage.succeeded) {
+        HE_ERROR("STOPPING: Geometry validation failed");
         UIPipelineAudit::EmitCpuPipelineReport(frameNumber, cpuStats);
         m_Vertices.clear();
         m_Indices.clear();
@@ -411,16 +428,31 @@ void OverlayRenderer::RenderEditorUI(const std::shared_ptr<we::UI::Widget>& root
     m_FrameStats.indices = static_cast<uint32_t>(m_Indices.size());
     m_FrameStats.batches = static_cast<uint32_t>(m_Batches.size());
 
-    UpdateGeometryBuffers(m_CurrentFrameIndex);
+    UpdateGeometryBuffers(m_ActiveFrameSlot);
     cpuStats.geometryUploaded = true;
+    
+    // Evidence-based validation for Upload stage
+    if (m_ActiveFrameSlot < m_FrameGeometry.size()) {
+        const FrameGeometry& buffers = m_FrameGeometry[m_ActiveFrameSlot];
+        cpuStats.uploadStage = UIPipelineAudit::ValidateUploadStage(cpuStats.geometryUploaded, buffers.vertexBuffer, buffers.indexBuffer);
+    } else {
+        cpuStats.uploadStage.executed = true;
+        cpuStats.uploadStage.succeeded = false;
+        cpuStats.uploadStage.failureReason = "Invalid frame slot";
+    }
+    
+    WE_OVERLAY_PASS_INFO(std::string("Upload Stage: ") + 
+        (cpuStats.uploadStage.succeeded ? "PASS" : "FAILED") +
+        (cpuStats.uploadStage.succeeded ? "" : " | " + cpuStats.uploadStage.failureReason));
+    
     UIPipelineAudit::EmitCpuPipelineReport(frameNumber, cpuStats);
-    WE_OVERLAY_PASS_INFO(std::string("PASS | Vertex Buffer Upload"));
-    WE_OVERLAY_PASS_INFO(std::string("PASS | Index Buffer Upload"));
 }
 
 void OverlayRenderer::SetTargetExtent(uint32_t width, uint32_t height) {
+    WE_OVERLAY_PASS_INFO(std::string("DEBUG SetTargetExtent: width=") + std::to_string(width) + " height=" + std::to_string(height));
     m_CurrentWidth = width;
     m_CurrentHeight = height;
+    WE_OVERLAY_PASS_INFO(std::string("DEBUG SetTargetExtent after: m_CurrentWidth=") + std::to_string(m_CurrentWidth) + " m_CurrentHeight=" + std::to_string(m_CurrentHeight));
 }
 
 void OverlayRenderer::BeginOverlayPass(const ::we::editor::rendering::OverlayRenderContext& context) {
@@ -428,6 +460,11 @@ void OverlayRenderer::BeginOverlayPass(const ::we::editor::rendering::OverlayRen
 
     WE_OVERLAY_PASS_INFO("PASS | BeginOverlayPass()");
     WE_OVERLAY_PASS_INFO("PASS | vkCmdBeginRendering() executed (via Compositor)");
+
+    WE_OVERLAY_PASS_INFO(std::string("DEBUG: targetExtent.width = ") + std::to_string(context.targetExtent.width));
+    WE_OVERLAY_PASS_INFO(std::string("DEBUG: targetExtent.height = ") + std::to_string(context.targetExtent.height));
+    WE_OVERLAY_PASS_INFO(std::string("DEBUG: viewportOffset.x = ") + std::to_string(context.viewportOffset.x));
+    WE_OVERLAY_PASS_INFO(std::string("DEBUG: viewportOffset.y = ") + std::to_string(context.viewportOffset.y));
 
     m_CurrentWidth = context.targetExtent.width;
     m_CurrentHeight = context.targetExtent.height;
@@ -437,27 +474,36 @@ void OverlayRenderer::BeginOverlayPass(const ::we::editor::rendering::OverlayRen
     m_Compositor->BeginComposite(context.cmd, context.targetView, m_CurrentWidth, m_CurrentHeight, VK_ATTACHMENT_LOAD_OP_LOAD);
 
     vkCmdBindPipeline(context.cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_GraphicsPipeline);
-    WE_OVERLAY_PASS_INFO(std::string("PASS | vkCmdBindPipeline() succeed | Pipeline Handle: ") + std::to_string(reinterpret_cast<uint64_t>(m_GraphicsPipeline)));
+    
+    // Evidence-based validation for pipeline binding
+    auto pipelineValidation = UIPipelineAudit::ValidatePipelineBindStage(m_GraphicsPipeline);
+    WE_OVERLAY_PASS_INFO(std::string("Pipeline Bind Stage: ") + 
+        (pipelineValidation.succeeded ? "PASS" : "FAILED") +
+        (pipelineValidation.succeeded ? "" : " | " + pipelineValidation.failureReason) +
+        " | Pipeline Handle: 0x" + std::to_string(reinterpret_cast<uint64_t>(m_GraphicsPipeline)));
 
+    // The editor UI is authored in full swapchain coordinates (0..targetExtent).
+    // Do NOT apply the scene viewport's blit offset here; doing so clips/offsets the UI.
+    // FIX: Use the actual swapchain dimensions from context.targetExtent to avoid 48-pixel height mismatch
     VkViewport viewport{};
     viewport.x = 0.0f;
     viewport.y = 0.0f;
-    viewport.width = static_cast<float>(m_CurrentWidth);
-    viewport.height = static_cast<float>(m_CurrentHeight);
+    viewport.width = static_cast<float>(context.targetExtent.width);
+    viewport.height = static_cast<float>(context.targetExtent.height);
     viewport.minDepth = 0.0f;
     viewport.maxDepth = 1.0f;
     vkCmdSetViewport(context.cmd, 0, 1, &viewport);
-    WE_OVERLAY_PASS_INFO(std::string("PASS | Viewport: 0,0 to ") + std::to_string(m_CurrentWidth) + "x" + std::to_string(m_CurrentHeight));
+    WE_OVERLAY_PASS_INFO(std::string("PASS | Viewport: 0,0 to ") + std::to_string(context.targetExtent.width) + "x" + std::to_string(context.targetExtent.height));
 
     VkRect2D fullScissor{};
     fullScissor.offset = {0, 0};
-    fullScissor.extent = {m_CurrentWidth, m_CurrentHeight};
+    fullScissor.extent = {context.targetExtent.width, context.targetExtent.height};
     vkCmdSetScissor(context.cmd, 0, 1, &fullScissor);
 
     // Top-left UI coordinates -> Vulkan NDC (Y grows up in NDC).
     float pushConstants[4];
-    pushConstants[0] = 2.0f / static_cast<float>(m_CurrentWidth);
-    pushConstants[1] = -2.0f / static_cast<float>(m_CurrentHeight);
+    pushConstants[0] = 2.0f / static_cast<float>(context.targetExtent.width);
+    pushConstants[1] = -2.0f / static_cast<float>(context.targetExtent.height);
     pushConstants[2] = -1.0f;
     pushConstants[3] = 1.0f;
     vkCmdPushConstants(context.cmd, m_PipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(float) * 4, pushConstants);
@@ -470,6 +516,14 @@ void OverlayRenderer::EndOverlayPass(const ::we::editor::rendering::OverlayRende
     WE_OVERLAY_PASS_INFO("GPU SUBMISSION (EndOverlayPass)");
     WE_OVERLAY_PASS_INFO("==========================");
     WE_OVERLAY_PASS_INFO(std::string("CPU Batch Count: ") + std::to_string(m_Batches.size()));
+
+    UIPipelineGpuStats gpuStats{};
+    gpuStats.commandBuffer = context.cmd;
+    gpuStats.pipeline = m_GraphicsPipeline;
+    gpuStats.vertices = &m_Vertices;
+    gpuStats.batches = &m_Batches;
+    gpuStats.viewportWidth = m_CurrentWidth;
+    gpuStats.viewportHeight = m_CurrentHeight;
 
     static bool loggedBlendState = false;
     static bool loggedResourceAudit = false;
@@ -489,7 +543,8 @@ void OverlayRenderer::EndOverlayPass(const ::we::editor::rendering::OverlayRende
         HE_INFO(std::string("[UI Audit] Dummy white texture descriptor: ") +
                 (m_DummyDescriptorSet != VK_NULL_HANDLE ? "valid" : "NULL") +
                 " imageView=0x" + std::to_string(reinterpret_cast<uint64_t>(m_DummyImageView)));
-        HE_INFO(std::string("[UI Audit] Viewport: 0,0 ") +
+        HE_INFO(std::string("[UI Audit] Viewport: ") +
+                std::to_string(context.viewportOffset.x) + "," + std::to_string(context.viewportOffset.y) + " " +
                 std::to_string(m_CurrentWidth) + "x" + std::to_string(m_CurrentHeight));
         loggedResourceAudit = true;
     }
@@ -498,20 +553,27 @@ void OverlayRenderer::EndOverlayPass(const ::we::editor::rendering::OverlayRende
     uint32_t executedDrawCalls = 0;
     uint32_t skippedDrawCalls = 0;
 
-    if (m_CurrentFrameIndex < m_FrameGeometry.size()) {
-        const FrameGeometry& buffers = m_FrameGeometry[m_CurrentFrameIndex];
+    if (m_ActiveFrameSlot < m_FrameGeometry.size()) {
+        const FrameGeometry& buffers = m_FrameGeometry[m_ActiveFrameSlot];
         
-        WE_OVERLAY_PASS_INFO(std::string("Frame Geometry Index: ") + std::to_string(m_CurrentFrameIndex));
+        WE_OVERLAY_PASS_INFO(std::string("Frame Geometry Index: ") + std::to_string(m_ActiveFrameSlot));
         WE_OVERLAY_PASS_INFO(std::string("Vertex Buffer Handle: ") + std::to_string(reinterpret_cast<uint64_t>(buffers.vertexBuffer)));
         WE_OVERLAY_PASS_INFO(std::string("Index Buffer Handle: ") + std::to_string(reinterpret_cast<uint64_t>(buffers.indexBuffer)));
+        
+        gpuStats.vertexBuffer = buffers.vertexBuffer;
+        gpuStats.indexBuffer = buffers.indexBuffer;
 
         if (buffers.vertexBuffer != VK_NULL_HANDLE && buffers.indexBuffer != VK_NULL_HANDLE && !m_Batches.empty()) {
             VkBuffer vertexBuffers[] = {buffers.vertexBuffer};
             VkDeviceSize vertexOffsets[] = {0};
             vkCmdBindVertexBuffers(context.cmd, 0, 1, vertexBuffers, vertexOffsets);
             vkCmdBindIndexBuffer(context.cmd, buffers.indexBuffer, 0, VK_INDEX_TYPE_UINT32);
-            WE_OVERLAY_PASS_INFO("PASS | Bind Vertex Buffer");
-            WE_OVERLAY_PASS_INFO("PASS | Bind Index Buffer");
+            
+            // Evidence-based validation for buffer binding
+            gpuStats.bufferBindStage = UIPipelineAudit::ValidateBufferBindStage(buffers.vertexBuffer, buffers.indexBuffer);
+            WE_OVERLAY_PASS_INFO(std::string("Buffer Bind Stage: ") + 
+                (gpuStats.bufferBindStage.succeeded ? "PASS" : "FAILED") +
+                (gpuStats.bufferBindStage.succeeded ? "" : " | " + gpuStats.bufferBindStage.failureReason));
 
             for (size_t i = 0; i < m_Batches.size(); ++i) {
                 const auto& batch = m_Batches[i];
@@ -608,6 +670,15 @@ void OverlayRenderer::EndOverlayPass(const ::we::editor::rendering::OverlayRende
     WE_OVERLAY_PASS_INFO(std::string("Executed Draw Calls: ") + std::to_string(executedDrawCalls));
     WE_OVERLAY_PASS_INFO(std::string("Skipped Draw Calls: ") + std::to_string(skippedDrawCalls));
 
+    // Evidence-based validation for draw call stage
+    gpuStats.executedDrawCalls = executedDrawCalls;
+    gpuStats.skippedDrawCalls = skippedDrawCalls;
+    gpuStats.batchCount = gpuBatchCount;
+    gpuStats.drawCallStage = UIPipelineAudit::ValidateDrawCallStage(executedDrawCalls, gpuBatchCount);
+    WE_OVERLAY_PASS_INFO(std::string("Draw Call Stage: ") + 
+        (gpuStats.drawCallStage.succeeded ? "PASS" : "FAILED") +
+        (gpuStats.drawCallStage.succeeded ? "" : " | " + gpuStats.drawCallStage.failureReason));
+
     if (auditThisFrame) {
         HE_INFO(std::string("[UI Audit] Executed draw calls: ") + std::to_string(executedDrawCalls) +
                 " skipped: " + std::to_string(skippedDrawCalls));
@@ -616,35 +687,23 @@ void OverlayRenderer::EndOverlayPass(const ::we::editor::rendering::OverlayRende
         }
     }
 
-    {
-        const uint64_t frameNumber = we::runtime::core::FrameCounter::GetFrameNumber();
-        UIPipelineGpuStats gpuStats{};
-        gpuStats.commandBuffer = context.cmd;
-        gpuStats.pipeline = m_GraphicsPipeline;
-        if (m_CurrentFrameIndex < m_FrameGeometry.size()) {
-            gpuStats.vertexBuffer = m_FrameGeometry[m_CurrentFrameIndex].vertexBuffer;
-            gpuStats.indexBuffer = m_FrameGeometry[m_CurrentFrameIndex].indexBuffer;
-        }
-        gpuStats.swapchainImageIndex = m_PipelineAuditImageIndex;
-        gpuStats.executedDrawCalls = executedDrawCalls;
-        gpuStats.skippedDrawCalls = skippedDrawCalls;
-        gpuStats.batchCount = static_cast<uint32_t>(m_Batches.size());
-        gpuStats.viewportWidth = m_CurrentWidth;
-        gpuStats.viewportHeight = m_CurrentHeight;
-        gpuStats.vertices = &m_Vertices;
-        gpuStats.batches = &m_Batches;
-        UIPipelineAudit::EmitGpuPipelineReport(frameNumber, gpuStats);
-        UIPipelineAudit::LogStage(frameNumber, "Presentation", m_PipelineAuditImageIndex != UINT32_MAX,
-            m_PipelineAuditImageIndex != UINT32_MAX
-                ? ("swapchain image=" + std::to_string(m_PipelineAuditImageIndex) + " (see PresentAudit)")
-                : "swapchain image index not recorded for this frame");
-    }
-
     m_Compositor->EndComposite(context.cmd);
-    WE_OVERLAY_PASS_INFO("PASS | vkCmdEndRendering() executed (via Compositor)");
+    
+    // Evidence-based validation for render pass stage
+    gpuStats.renderPassStage = UIPipelineAudit::ValidateRenderPassStage(context.cmd, true);
+    WE_OVERLAY_PASS_INFO(std::string("Render Pass Stage: ") + 
+        (gpuStats.renderPassStage.succeeded ? "PASS" : "FAILED") +
+        (gpuStats.renderPassStage.succeeded ? "" : " | " + gpuStats.renderPassStage.failureReason));
+    
     m_StateManager->RestoreState(context.cmd, m_SavedState);
 
-    m_CurrentFrameIndex = (m_CurrentFrameIndex + 1) % m_MaxFramesInFlight;
+    const uint64_t frameNumber = we::runtime::core::FrameCounter::GetFrameNumber();
+    gpuStats.swapchainImageIndex = m_PipelineAuditImageIndex;
+    UIPipelineAudit::EmitGpuPipelineReport(frameNumber, gpuStats);
+    UIPipelineAudit::LogStage(frameNumber, "Presentation", m_PipelineAuditImageIndex != UINT32_MAX,
+        m_PipelineAuditImageIndex != UINT32_MAX
+            ? ("swapchain image=" + std::to_string(m_PipelineAuditImageIndex) + " (see PresentAudit)")
+            : "swapchain image index not recorded for this frame");
 
     m_Mutex.unlock();
 }
@@ -861,10 +920,10 @@ void OverlayRenderer::CreateGraphicsPipeline(VkFormat colorFormat) {
 
     std::array<VkVertexInputAttributeDescription, 5> attributeDescriptions{};
     attributeDescriptions[0] = {0, 0, VK_FORMAT_R32G32_SFLOAT, offsetof(UIVertex2, position)};
-    attributeDescriptions[1] = {0, 1, VK_FORMAT_R32G32_SFLOAT, offsetof(UIVertex2, uv)};
-    attributeDescriptions[2] = {0, 2, VK_FORMAT_R32G32B32A32_SFLOAT, offsetof(UIVertex2, color)};
-    attributeDescriptions[3] = {0, 3, VK_FORMAT_R32G32B32A32_SFLOAT, offsetof(UIVertex2, sdfRect)};
-    attributeDescriptions[4] = {0, 4, VK_FORMAT_R32G32B32A32_SFLOAT, offsetof(UIVertex2, sdfParams)};
+    attributeDescriptions[1] = {1, 0, VK_FORMAT_R32G32_SFLOAT, offsetof(UIVertex2, uv)};
+    attributeDescriptions[2] = {2, 0, VK_FORMAT_R32G32B32A32_SFLOAT, offsetof(UIVertex2, color)};
+    attributeDescriptions[3] = {3, 0, VK_FORMAT_R32G32B32A32_SFLOAT, offsetof(UIVertex2, sdfRect)};
+    attributeDescriptions[4] = {4, 0, VK_FORMAT_R32G32B32A32_SFLOAT, offsetof(UIVertex2, sdfParams)};
 
     VkPipelineVertexInputStateCreateInfo vertexInputInfo{};
     vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
