@@ -3,6 +3,7 @@
 #include "Core/Theme.h"
 #include "Core/Icon.h"
 #include "Core/DockTabIconRegistry.h"
+#include "Core/DPIContext.h"
 #include <functional>
 #include <algorithm>
 
@@ -66,11 +67,12 @@ void Panel::Arrange(const Rect& allottedRect) {
     
     // Calculate content rect
     if (m_Content) {
+        float contentHeight = std::max(0.0f, allottedRect.y + allottedRect.height - currentY);
         m_ContentRect = Rect{
             allottedRect.x,
             currentY,
             allottedRect.width,
-            allottedRect.y + allottedRect.height - currentY
+            contentHeight
         };
         m_Content->Arrange(m_ContentRect);
     }
@@ -79,6 +81,7 @@ void Panel::Arrange(const Rect& allottedRect) {
 }
 
 void Panel::Paint(PaintContext& context) {
+    const float uiScale = (std::max)(1.0f, DPIContext::GetScale());
     const auto& theme = Theme::Get();
     Color panelBodyColor = theme.PanelBackground;
     Color headerBg = theme.HeaderBackground;
@@ -92,29 +95,29 @@ void Panel::Paint(PaintContext& context) {
     if (m_HeaderHeight > 0.0f) {
         context.DrawRect(m_HeaderRect, headerBg);
 
-        float fontSize = 13.0f;
-        float iconSize = 16.0f;
-        float tabPaddingH = 12.0f;
+        float fontSize = 13.0f * uiScale;
+        float iconSize = 16.0f * uiScale;
+        float tabPaddingH = 12.0f * uiScale;
 
         float textWidth = context.GetTextWidth(m_Title, fontSize);
 
         std::string panelIcon = DockTabIconRegistry::Get().GetIcon(m_Title);
         float panelIconWidth = 0.0f;
         if (!panelIcon.empty()) {
-            panelIconWidth = iconSize + 6.0f;
+            panelIconWidth = iconSize + 6.0f * uiScale;
         }
 
-        float closeBtnWidth = iconSize + 6.0f;
+        float closeBtnWidth = iconSize + 6.0f * uiScale;
         float tabWidth = tabPaddingH + panelIconWidth + textWidth + closeBtnWidth + tabPaddingH;
-        tabWidth = std::clamp(tabWidth, 80.0f, 220.0f);
+        tabWidth = std::clamp(tabWidth, 80.0f * uiScale, 220.0f * uiScale);
 
         Rect tabRect{ m_HeaderRect.x, m_HeaderRect.y, tabWidth, m_HeaderHeight };
 
-        context.DrawRoundedRect(tabRect, tabBg, 4.0f);
+        context.DrawRoundedRect(tabRect, tabBg, 4.0f * uiScale);
 
-        float flattenHeight = 4.0f;
+        float flattenHeight = 4.0f * uiScale;
         context.DrawRect(Rect{tabRect.x, tabRect.y + tabRect.height - flattenHeight, tabRect.width, flattenHeight}, tabBg);
-        context.DrawRoundedRectOutline(tabRect, tabBorder, 1.0f, 4.0f);
+        context.DrawRoundedRectOutline(tabRect, tabBorder, 1.0f * uiScale, 4.0f * uiScale);
         context.DrawRect(Rect{tabRect.x, tabRect.y + tabRect.height - flattenHeight, 1.0f, flattenHeight}, tabBorder);
         context.DrawRect(Rect{tabRect.x + tabRect.width - 1.0f, tabRect.y + tabRect.height - flattenHeight, 1.0f, flattenHeight}, tabBorder);
         context.DrawRect(Rect{tabRect.x + 1.0f, tabRect.y + tabRect.height - 1.0f, tabRect.width - 2.0f, 1.0f}, tabBg);
@@ -133,9 +136,9 @@ void Panel::Paint(PaintContext& context) {
         float titleY = m_HeaderRect.y + (m_HeaderHeight - fontSize) / 2.0f;
         context.DrawText(m_Title, Point{ currentX, titleY }, textColor, fontSize, false);
 
-        float headerPad = 8.0f;
-        constexpr float kOptionsWidth = 12.0f;
-        constexpr float kOptionsHeight = 14.0f;
+        float headerPad = 8.0f * uiScale;
+        const float kOptionsWidth = 12.0f * uiScale;
+        const float kOptionsHeight = 14.0f * uiScale;
         float optionsX = m_HeaderRect.x + m_HeaderRect.width - headerPad - kOptionsWidth;
         float optionsY = m_HeaderRect.y + (m_HeaderHeight - kOptionsHeight) * 0.5f;
         m_OptionsMenuRect = Rect{ optionsX, optionsY, kOptionsWidth, kOptionsHeight };

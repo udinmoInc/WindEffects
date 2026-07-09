@@ -2,6 +2,7 @@
 #include "Core/PaintContext.h"
 #include "Core/Theme.h"
 #include "Core/Icon.h"
+#include "Core/DPIContext.h"
 #include "Widgets/ToolButton.h"
 #include <algorithm>
 
@@ -29,6 +30,9 @@ Size Toolbar::Measure(const Size& availableSize) {
 
 void Toolbar::Arrange(const Rect& allottedRect) {
     m_Geometry = allottedRect;
+    const float uiScale = (std::max)(1.0f, DPIContext::GetScale());
+    const float itemSpacing = kToolbarItemSpacing * uiScale;
+    const float separatorSpacing = kToolbarSeparatorSpacing * uiScale;
     
     // Group tools by alignment
     std::vector<ToolInfo*> leftTools, centerTools, rightTools;
@@ -56,16 +60,16 @@ void Toolbar::Arrange(const Rect& allottedRect) {
             if (tool->isSeparator && tool->button) {
                 if (!isFirstButton) {
                     float w = tool->button->GetDesiredSize().width;
-                    float margin = kToolbarSeparatorSpacing / 2.0f; // Half before
+                    float margin = separatorSpacing / 2.0f; // Half before
                     items.push_back({tool->button, w, margin});
-                    pendingSpacing = kToolbarSeparatorSpacing / 2.0f; // Half after
+                    pendingSpacing = separatorSpacing / 2.0f; // Half after
                 }
             } else if (tool->button) {
                 float w = tool->button->GetDesiredSize().width;
                 float margin = isFirstButton ? 0.0f : pendingSpacing;
-                if (!isFirstButton && pendingSpacing == 0.0f) margin = kToolbarItemSpacing; // fallback
+                if (!isFirstButton && pendingSpacing == 0.0f) margin = itemSpacing; // fallback
                 items.push_back({tool->button, w, margin});
-                pendingSpacing = kToolbarItemSpacing;
+                pendingSpacing = itemSpacing;
                 isFirstButton = false;
             }
         }
@@ -102,14 +106,14 @@ void Toolbar::Arrange(const Rect& allottedRect) {
         for (auto* tool : tools) {
             if (tool->isSeparator && tool->button) {
                 if (!isFirstButton) {
-                    totalWidth += kToolbarSeparatorSpacing / 2.0f + tool->button->GetDesiredSize().width;
-                    pendingSpacing = kToolbarSeparatorSpacing / 2.0f;
+                    totalWidth += separatorSpacing / 2.0f + tool->button->GetDesiredSize().width;
+                    pendingSpacing = separatorSpacing / 2.0f;
                 }
             } else if (tool->button) {
                 float margin = isFirstButton ? 0.0f : pendingSpacing;
-                if (!isFirstButton && pendingSpacing == 0.0f) margin = kToolbarItemSpacing;
+                if (!isFirstButton && pendingSpacing == 0.0f) margin = itemSpacing;
                 totalWidth += margin + tool->button->GetDesiredSize().width;
-                pendingSpacing = kToolbarItemSpacing;
+                pendingSpacing = itemSpacing;
                 isFirstButton = false;
             }
         }

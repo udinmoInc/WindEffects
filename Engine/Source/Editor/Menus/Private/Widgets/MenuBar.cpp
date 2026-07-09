@@ -4,6 +4,7 @@
 #include "Core/PaintContext.h"
 #include "Core/Theme.h"
 #include "Core/Icon.h"
+#include "Core/DPIContext.h"
 #include <algorithm>
 
 namespace we::UI {
@@ -13,7 +14,8 @@ MenuBar::MenuBar()
 {}
 
 Size MenuBar::Measure(const Size& availableSize) {
-    const float textSize = 13.0f;
+    const float uiScale = (std::max)(1.0f, DPIContext::GetScale());
+    const float textSize = 13.0f * uiScale;
     auto getApproxTextWidth = [textSize](const std::string& str) {
         float w = 0.0f;
         for (char c : str) {
@@ -27,9 +29,9 @@ Size MenuBar::Measure(const Size& availableSize) {
     float totalWidth = 0.0f;
     for (size_t i = 0; i < m_Menus.size(); ++i) {
         float textWidth = getApproxTextWidth(m_Menus[i].label);
-        totalWidth += textWidth + m_ItemPaddingH * 2.0f;
+        totalWidth += textWidth + (m_ItemPaddingH * uiScale) * 2.0f;
         if (i + 1 < m_Menus.size()) {
-            totalWidth += m_ItemSpacing;
+            totalWidth += m_ItemSpacing * uiScale;
         }
     }
     m_DesiredSize = Size{ totalWidth, m_Height };
@@ -42,13 +44,14 @@ void MenuBar::Arrange(const Rect& allottedRect) {
 }
 
 void MenuBar::Paint(PaintContext& context) {
-    const float textSize = 13.0f;
+    const float uiScale = (std::max)(1.0f, DPIContext::GetScale());
+    const float textSize = 13.0f * uiScale;
 
     auto drawMenu = [&](const MenuInfo& menu, int index) {
         bool isActive = m_MenuOpen && index == m_HoveredMenu;
 
         if (menu.hovered && !isActive) {
-            context.DrawRoundedRect(menu.geometry, Theme::Get().HoverOverlay, Theme::Get().CornerRadiusSmall);
+            context.DrawRoundedRect(menu.geometry, Theme::Get().HoverOverlay, Theme::Get().CornerRadiusSmall * uiScale);
         }
 
         if (isActive) {
@@ -58,7 +61,7 @@ void MenuBar::Paint(PaintContext& context) {
             context.DrawRect(underlineRect, Theme::Get().ActiveTabLine);
         }
 
-        float textX = menu.geometry.x + m_ItemPaddingH;
+        float textX = menu.geometry.x + m_ItemPaddingH * uiScale;
         float textY = menu.geometry.y + (menu.geometry.height - textSize) / 2.0f;
 
         Color textColor = Theme::Get().TextPrimary;
@@ -134,9 +137,10 @@ void MenuBar::Clear() {
 }
 
 void MenuBar::CalculateMenuGeometries() {
+    const float uiScale = (std::max)(1.0f, DPIContext::GetScale());
     float x = m_Geometry.x;
     float availableWidth = m_Geometry.width;
-    const float textSize = 13.0f;
+    const float textSize = 13.0f * uiScale;
 
     m_VisibleMenus.clear();
     m_HiddenMenus.clear();
@@ -153,15 +157,15 @@ void MenuBar::CalculateMenuGeometries() {
     };
 
     float moreTextW = getApproxTextWidth("More");
-    float moreWidth = moreTextW + m_ItemPaddingH * 2.0f;
+    float moreWidth = moreTextW + (m_ItemPaddingH * uiScale) * 2.0f;
 
     for (size_t i = 0; i < m_Menus.size(); ++i) {
         auto& menu = m_Menus[i];
         float textWidth = getApproxTextWidth(menu.label);
-        float itemWidth = textWidth + m_ItemPaddingH * 2.0f;
+        float itemWidth = textWidth + (m_ItemPaddingH * uiScale) * 2.0f;
 
         bool isLast = (i == m_Menus.size() - 1);
-        float widthNeeded = isLast ? itemWidth : (itemWidth + m_ItemSpacing + moreWidth);
+        float widthNeeded = isLast ? itemWidth : (itemWidth + m_ItemSpacing * uiScale + moreWidth);
 
         if (i >= 4 && (x - m_Geometry.x) + widthNeeded > availableWidth && !m_Menus.empty()) {
             m_ShowsMore = true;
@@ -171,7 +175,7 @@ void MenuBar::CalculateMenuGeometries() {
             m_VisibleMenus.push_back(menu);
             x += itemWidth;
             if (!isLast) {
-                x += m_ItemSpacing;
+                x += m_ItemSpacing * uiScale;
             }
         }
     }

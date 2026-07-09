@@ -52,6 +52,7 @@
 #include "Runtime/Core/AssetRegistry.h"
 #include "EditorGridRenderer.h"
 #include "Core/Theme.h"
+#include "Core/DPIContext.h"
 #include "Explorer/WorldOutlinerApi.h"
 #include "Runtime/World/DefaultScene/DefaultSceneBuilder.h"
 #include "Runtime/World/Environment/EnvironmentSystem.h"
@@ -176,6 +177,7 @@ Editor::Editor(SDL_Window* window) : m_Window(window) {
     HE_INFO("[Startup] EditorRegistry menus registered: " + std::to_string(menus.size()));
 
     HE_INFO("[Startup] Stage 6/6: Widget tree and layout...");
+    UpdateUiScaleFromWindow();
     try {
         BuildDynamicEditorUI();
     } catch (const std::exception& e) {
@@ -212,6 +214,7 @@ Editor::~Editor() {
 
 void Editor::BuildDynamicEditorUI() {
     HE_INFO("[UI] Building editor layout...");
+    const float uiScale = (std::max)(1.0f, we::UI::DPIContext::GetScale());
 
     auto& panelFactories = EditorRegistry::Get().GetPanels();
 
@@ -346,18 +349,7 @@ void Editor::BuildDynamicEditorUI() {
     HE_INFO("[UI] Menu bar created with File, Edit, Window, Tools, Build, Select menus.");
 
     // ===== 2. Create Title Bar =====
-    // Scale logical size to physical pixels
-    float displayScale = 1.0f;
-    if (m_Window) {
-        int logicalW = 0;
-        int pixelW = 0;
-        SDL_GetWindowSize(m_Window, &logicalW, nullptr);
-        if (SDL_GetWindowSizeInPixels(m_Window, &pixelW, nullptr) && logicalW > 0) {
-            displayScale = static_cast<float>(pixelW) / static_cast<float>(logicalW);
-        }
-    }
-    
-    int finalPxSize = static_cast<int>(std::round(we::UI::kTitleBarLogoDisplaySize * displayScale));
+    const int finalPxSize = static_cast<int>(std::round(we::UI::kTitleBarLogoDisplaySize * uiScale));
 
     VkDescriptorSet logoSet = VK_NULL_HANDLE;
     if (m_OverlayRenderer && m_OverlayRenderer->GetIconRenderer()) {
@@ -373,9 +365,9 @@ void Editor::BuildDynamicEditorUI() {
     EditorModeController::Get().InitializeFromRegistry();
 
     auto toolbar = std::make_shared<Toolbar>();
-    toolbar->SetHeight(36.0f);
-    toolbar->SetLeftInset(12.0f);
-    toolbar->SetIconSize(18.0f);
+    toolbar->SetHeight(36.0f * uiScale);
+    toolbar->SetLeftInset(12.0f * uiScale);
+    toolbar->SetIconSize(18.0f * uiScale);
 
     // Group 1: Actors Dropdown
     auto modeSelector = std::make_shared<we::programs::editor::EditorModeSelector>();
@@ -444,7 +436,7 @@ void Editor::BuildDynamicEditorUI() {
         HE_INFO("[UI] Tools panel created from registry.");
     } else {
         toolsPanel = std::make_shared<Panel>("Tools");
-        toolsPanel->SetHeaderHeight(30.0f);
+        toolsPanel->SetHeaderHeight(30.0f * uiScale);
         auto toolsContent = std::make_shared<we::programs::editor::ToolsPanel>();
         toolsContent->InitializeFromRegistry();
         toolsPanel->SetContent(toolsContent);
@@ -463,7 +455,7 @@ void Editor::BuildDynamicEditorUI() {
         HE_INFO("[UI] Viewport panel created from registry with 3D ViewportWidget.");
     } else {
         viewportPanel = std::make_shared<Panel>("Viewport");
-        viewportPanel->SetHeaderHeight(30.0f);
+        viewportPanel->SetHeaderHeight(30.0f * uiScale);
         viewportPanel->SetContent(viewportWidget);
         HE_INFO("[UI] Viewport panel created (fallback).");
     }
@@ -474,7 +466,7 @@ void Editor::BuildDynamicEditorUI() {
         HE_INFO("[UI] Game panel created from registry.");
     } else {
         gamePanel = std::make_shared<Panel>("Game");
-        gamePanel->SetHeaderHeight(30.0f);
+        gamePanel->SetHeaderHeight(30.0f * uiScale);
         HE_INFO("[UI] Game panel created (fallback).");
     }
 
@@ -496,7 +488,7 @@ void Editor::BuildDynamicEditorUI() {
 
     if (m_OverlayRenderer && m_OverlayRenderer->GetIconRenderer()) {
         const float logoLogical = we::programs::editor::GetExplorerDockTabLogoSize();
-        const int logoPx = static_cast<int>(std::round(logoLogical * displayScale));
+        const int logoPx = static_cast<int>(std::round(logoLogical * uiScale));
         VkDescriptorSet explorerLogo = m_OverlayRenderer->GetIconRenderer()->GetIcon("Assets/Editor/WindEffects.svg", logoPx);
         we::UI::DockTabBrandRegistry::Get().RegisterBrand("Explorer", explorerLogo, logoLogical);
         we::programs::editor::BindExplorerBrandLogo(explorerLogo, logoLogical);
@@ -509,7 +501,7 @@ void Editor::BuildDynamicEditorUI() {
         HE_INFO("[UI] Details panel created from registry.");
     } else {
         detailsPanel = std::make_shared<Panel>("Details");
-        detailsPanel->SetHeaderHeight(30.0f);
+        detailsPanel->SetHeaderHeight(30.0f * uiScale);
         HE_INFO("[UI] Details panel created (fallback).");
     }
 
@@ -519,7 +511,7 @@ void Editor::BuildDynamicEditorUI() {
         HE_INFO("[UI] Viewport Navigation panel created from registry.");
     } else {
         viewportNavigationPanel = std::make_shared<Panel>("Viewport Navigation");
-        viewportNavigationPanel->SetHeaderHeight(30.0f);
+        viewportNavigationPanel->SetHeaderHeight(30.0f * uiScale);
         HE_INFO("[UI] Viewport Navigation panel created (fallback).");
     }
 
@@ -550,7 +542,7 @@ void Editor::BuildDynamicEditorUI() {
         HE_INFO("[UI] ContentBrowser panel created from registry.");
     } else {
         contentBrowserPanel = std::make_shared<Panel>("Content Browser");
-        contentBrowserPanel->SetHeaderHeight(30.0f);
+        contentBrowserPanel->SetHeaderHeight(30.0f * uiScale);
         HE_INFO("[UI] ContentBrowser panel created (fallback).");
     }
 
@@ -561,7 +553,7 @@ void Editor::BuildDynamicEditorUI() {
         HE_INFO("[UI] Output Log panel created from registry.");
     } else {
         outputLogPanel = std::make_shared<Panel>("Output Log");
-        outputLogPanel->SetHeaderHeight(30.0f);
+        outputLogPanel->SetHeaderHeight(30.0f * uiScale);
         outputLogPanel->SetContent(std::make_shared<Label>("Output log unavailable."));
         HE_WARN("[UI] OutputLog panel factory missing.");
     }
@@ -569,7 +561,7 @@ void Editor::BuildDynamicEditorUI() {
 #if WE_DEBUG_UI
     // ===== 7c. Create Render Debugger Panel =====
     auto debugPanel = std::make_shared<Panel>("Render Debugger");
-    debugPanel->SetHeaderHeight(30.0f);
+    debugPanel->SetHeaderHeight(30.0f * uiScale);
     m_RenderDebuggerPanel = std::make_shared<RenderDebuggerPanel>();
     m_RenderDebuggerPanel->Construct();
     debugPanel->SetContent(m_RenderDebuggerPanel);
@@ -599,6 +591,7 @@ void Editor::BuildDynamicEditorUI() {
     // ===== 8. Create Status Bar =====
     m_StatusBar = std::make_shared<StatusBar>();
     m_StatusBar->Construct();
+    m_StatusBar->SetHeight(28.0f * uiScale);
     m_StatusBar->SetOnFooterTabChanged([](int index) {
         EditorLayoutController::Get().SetBottomPanelIndex(index);
     });
@@ -697,6 +690,21 @@ void Editor::BuildDynamicEditorUI() {
 
     HE_INFO("[UI] Root widget tree assembled: TitleBar -> Toolbar -> [Viewport | Outliner | Details | ContentBrowser] -> StatusBar");
     HE_INFO("[UI] Root VBox children attached: " + std::to_string(rootVBox->GetChildren().size()));
+}
+
+void Editor::UpdateUiScaleFromWindow() {
+    float scale = 1.0f;
+    if (m_Window) {
+        int logicalW = 0;
+        int pixelW = 0;
+        SDL_GetWindowSize(m_Window, &logicalW, nullptr);
+        if (logicalW > 0 && SDL_GetWindowSizeInPixels(m_Window, &pixelW, nullptr) && pixelW > 0) {
+            scale = static_cast<float>(pixelW) / static_cast<float>(logicalW);
+        }
+    }
+
+    // Keep one canonical, bounded UI scale.
+    we::UI::DPIContext::SetScale(std::clamp(scale, 1.0f, 3.0f));
 }
 
 void Editor::ValidateEditorPanels(const std::unordered_map<std::string, std::function<std::shared_ptr<UI::Panel>()>>& factories) {
@@ -983,6 +991,7 @@ void Editor::MainLoop() {
             we::runtime::world::environment::EnvironmentSystem::Get().SyncFromScene(m_Camera->GetPosition());
         }
         we::editor::environment::TickEditor();
+        UpdateUiScaleFromWindow();
 
         SyncViewportFramebufferFromLayout();
 
@@ -1034,6 +1043,8 @@ void Editor::MainLoop() {
                 overlayContext.targetView = imageViews[imageIndex];
                 overlayContext.targetFormat = m_Renderer->GetSwapchainImageFormat();
                 overlayContext.targetExtent = { m_Renderer->GetSwapchainWidth(), m_Renderer->GetSwapchainHeight() };
+                // Editor UI is authored in full swapchain coordinates; do not apply the scene viewport offset.
+                overlayContext.viewportOffset = {0, 0};
 
                 const auto& swapchainImages = swapchainManager->GetImages();
                 const VkImage swapImage =
@@ -1050,7 +1061,7 @@ void Editor::MainLoop() {
 
                 // Build UI geometry before entering the dynamic render pass.
                 m_OverlayRenderer->SetTargetExtent(overlayContext.targetExtent.width, overlayContext.targetExtent.height);
-                m_OverlayRenderer->RenderEditorUI(m_RootWidget);
+                m_OverlayRenderer->RenderEditorUI(m_RootWidget, m_Renderer->GetCurrentFrameIndex());
 
                 // Keep Vulkan synchronization inside Renderer module where dispatch is initialized.
                 m_Renderer->InsertOverlayPassBarrier();
