@@ -501,13 +501,14 @@ void OverlayRenderer::BeginOverlayPass(const ::we::editor::rendering::OverlayRen
     vkCmdSetScissor(context.cmd, 0, 1, &fullScissor);
 
     // Top-left UI coordinates (Y down) -> Vulkan NDC.
-    // With a positive viewport height, NDC.y = -1 maps to top and +1 maps to bottom.
-    // So Y must use +2/H scale and -1 translation.
+    // IMPORTANT: Snap to pixel centers to avoid global soft/blurry edges.
+    // We want NDC to be computed as: ndc = ((px + 0.5) / extent) * 2 - 1
+    // (same for Y in our "Y down" convention).
     float pushConstants[4];
     pushConstants[0] = 2.0f / static_cast<float>(context.targetExtent.width);
     pushConstants[1] = 2.0f / static_cast<float>(context.targetExtent.height);
-    pushConstants[2] = -1.0f;
-    pushConstants[3] = -1.0f;
+    pushConstants[2] = -1.0f + (1.0f / static_cast<float>(context.targetExtent.width));
+    pushConstants[3] = -1.0f + (1.0f / static_cast<float>(context.targetExtent.height));
     vkCmdPushConstants(context.cmd, m_PipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(float) * 4, pushConstants);
 
 
