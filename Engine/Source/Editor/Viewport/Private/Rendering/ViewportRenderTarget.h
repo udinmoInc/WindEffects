@@ -1,5 +1,7 @@
 #pragma once
 
+#if WE_HAS_VULKAN
+
 #include <volk.h>
 #include <cstdint>
 #include <memory>
@@ -53,4 +55,6 @@ private:
 };
 
 } // namespace we::editor::viewport
+
+#endif // WE_HAS_VULKAN
 

@@ -4,10 +4,8 @@
 
 #include "Core/Geometry.h"
 #include "Core/Theme.h"
-#include "Core/Logger.h"
 #include <string>
 #include <memory>
-#include <unordered_map>
 
 namespace we::UI {
 
@@ -185,32 +183,6 @@ struct WidgetStyle {
         style.padding = Margin{ 16.0f, 8.0f, 16.0f, 8.0f };
         return style;
     }
-};
-
-// Style manager for runtime theming
-class APPLICATION_API StyleManager {
-public:
-    static StyleManager& Get();
-    
-    void SetWidgetStyle(const std::string& widgetName, const WidgetStyle& style) {
-        if (m_WidgetStyles.find(widgetName) != m_WidgetStyles.end()) {
-            WE_LOG_INFO("StyleManager: Overriding style for widget '{}'", widgetName);
-        } else {
-            WE_LOG_INFO("StyleManager: Registering style for widget '{}'", widgetName);
-        }
-        m_WidgetStyles[widgetName] = style;
-    }
-    
-    WidgetStyle GetWidgetStyle(const std::string& widgetName) const {
-        auto it = m_WidgetStyles.find(widgetName);
-        if (it != m_WidgetStyles.end()) {
-            return it->second;
-        }
-        return WidgetStyle::Panel(); // Default fallback
-    }
-    
-private:
-    std::unordered_map<std::string, WidgetStyle> m_WidgetStyles;
 };
 
 } // namespace we::editor::application::UI

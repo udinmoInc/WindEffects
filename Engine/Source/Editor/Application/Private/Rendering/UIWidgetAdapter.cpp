@@ -1,42 +1,28 @@
 #include "Rendering/UIWidgetAdapter.h"
 #include "Rendering/FontAtlas.h"
 #include "Rendering/IconRenderer.h"
+#include "Rendering/Text/Utf8.h"
 #include "Rendering/UIPipelineAudit.h"
 #include "Core/Logger.h"
 #include "Core/FrameCounter.h"
 #include <cmath>
 #include <cstring>
+#include <cstdlib>
 #include <functional>
 
 namespace we::UI {
 
-uint32_t UIWidgetAdapter::s_TotalDrawCommandsGenerated = 0;
-uint32_t UIWidgetAdapter::s_RectangleCommands = 0;
-uint32_t UIWidgetAdapter::s_TextCommands = 0;
-uint32_t UIWidgetAdapter::s_ImageCommands = 0;
-uint32_t UIWidgetAdapter::s_IconCommands = 0;
-uint32_t UIWidgetAdapter::s_BorderCommands = 0;
-uint32_t UIWidgetAdapter::s_GradientCommands = 0;
-uint32_t UIWidgetAdapter::s_ShadowCommands = 0;
-uint32_t UIWidgetAdapter::s_ClipRectCount = 0;
-uint32_t UIWidgetAdapter::s_TextureSwitchCount = 0;
-uint32_t UIWidgetAdapter::s_BatchCount = 0;
-uint32_t UIWidgetAdapter::s_PaintCommandsRecorded = 0;
-
-void UIWidgetAdapter::ResetDiagnostics() {
-    s_TotalDrawCommandsGenerated = 0;
-    s_RectangleCommands = 0;
-    s_TextCommands = 0;
-    s_ImageCommands = 0;
-    s_IconCommands = 0;
-    s_BorderCommands = 0;
-    s_GradientCommands = 0;
-    s_ShadowCommands = 0;
-    s_ClipRectCount = 0;
-    s_TextureSwitchCount = 0;
-    s_BatchCount = 0;
-    s_PaintCommandsRecorded = 0;
+namespace {
+inline float SnapPx(float v) {
+    // Snap to nearest pixel in UI space (pixel-center mapping happens in the vertex shader).
+    return std::floor(v + 0.5f);
 }
+
+bool IsEnvEnabled(const char* name) {
+    const char* v = std::getenv(name);
+    return v != nullptr && v[0] != '\0' && v[0] != '0';
+}
+} // namespace
 
 UIWidgetAdapter::UIWidgetAdapter()
     : m_Renderer(nullptr)
@@ -100,7 +86,7 @@ void UIWidgetAdapter::ProcessWidget(const std::shared_ptr<Widget>& root,
     PaintContext paintCtx;
     Widget::s_PaintCalls++;
     root->Paint(paintCtx);
-    s_PaintCommandsRecorded = static_cast<uint32_t>(paintCtx.GetCommands().size());
+    m_Diagnostics.paintCommandsRecorded = static_cast<uint32_t>(paintCtx.GetCommands().size());
     
     // Convert paint commands to geometry
     const auto& commands = paintCtx.GetCommands();
@@ -110,6 +96,15 @@ void UIWidgetAdapter::ProcessWidget(const std::shared_ptr<Widget>& root,
 }
 
 void UIWidgetAdapter::ConvertDrawCommand(const DrawCommand& cmd) {
+    const bool textOnly = IsEnvEnabled("WE_UI_AB_TEXT_ONLY");
+    const bool noText = IsEnvEnabled("WE_UI_AB_NO_TEXT");
+    if (textOnly && cmd.type != DrawCommandType::Text) {
+        return;
+    }
+    if (noText && cmd.type == DrawCommandType::Text) {
+        return;
+    }
+
     m_CurrentTextureSet = m_DefaultTextureSet;
     m_CurrentScissor = {
         static_cast<int32_t>(cmd.clipRect.x),
@@ -136,7 +131,7 @@ void UIWidgetAdapter::ConvertDrawCommand(const DrawCommand& cmd) {
         m_CurrentScissor.height = (m_Height > static_cast<uint32_t>(m_CurrentScissor.y)) ? (m_Height - static_cast<uint32_t>(m_CurrentScissor.y)) : 0;
     }
     
-    s_TotalDrawCommandsGenerated++;
+    m_Diagnostics.totalDrawCommandsGenerated++;
 
     if (cmd.clipRect.width == 0 || cmd.clipRect.height == 0) {
         HE_INFO(std::string("Skipped: Zero Size | Type: ") + std::to_string(static_cast<int>(cmd.type)));
@@ -149,35 +144,35 @@ void UIWidgetAdapter::ConvertDrawCommand(const DrawCommand& cmd) {
 
     switch (cmd.type) {
         case DrawCommandType::Rect:
-            s_RectangleCommands++;
+            m_Diagnostics.rectangleCommands++;
             GenerateRectGeometry(cmd);
             break;
         case DrawCommandType::Text:
-            s_TextCommands++;
+            m_Diagnostics.textCommands++;
             GenerateTextGeometry(cmd);
             break;
         case DrawCommandType::Texture:
-            s_ImageCommands++;
+            m_Diagnostics.imageCommands++;
             GenerateTextureGeometry(cmd);
             break;
         case DrawCommandType::Icon:
-            s_IconCommands++;
+            m_Diagnostics.iconCommands++;
             GenerateIconGeometry(cmd);
             break;
         case DrawCommandType::Line:
-            s_BorderCommands++;
+            m_Diagnostics.borderCommands++;
             GenerateLineGeometry(cmd);
             break;
         case DrawCommandType::Shadow:
-            s_ShadowCommands++;
+            m_Diagnostics.shadowCommands++;
             GenerateShadowGeometry(cmd);
             break;
         case DrawCommandType::Gradient:
-            s_GradientCommands++;
+            m_Diagnostics.gradientCommands++;
             GenerateGradientGeometry(cmd);
             break;
         case DrawCommandType::RoundedOutline:
-            s_BorderCommands++;
+            m_Diagnostics.borderCommands++;
             GenerateRoundedOutlineGeometry(cmd);
             break;
 
@@ -185,10 +180,15 @@ void UIWidgetAdapter::ConvertDrawCommand(const DrawCommand& cmd) {
 }
 
 void UIWidgetAdapter::GenerateRectGeometry(const DrawCommand& cmd) {
-    float x = cmd.rect.x;
-    float y = cmd.rect.y;
-    float w = cmd.rect.width;
-    float h = cmd.rect.height;
+    // Pixel-snap UI chrome so 1px borders and edges stay crisp.
+    float x0 = SnapPx(cmd.rect.x);
+    float y0 = SnapPx(cmd.rect.y);
+    float x1 = SnapPx(cmd.rect.x + cmd.rect.width);
+    float y1 = SnapPx(cmd.rect.y + cmd.rect.height);
+    float x = x0;
+    float y = y0;
+    float w = x1 - x0;
+    float h = y1 - y0;
     
     // Use SDF rendering for rounded rectangles
     float type = 1.0f; // SDF rounded rect
@@ -235,53 +235,57 @@ void UIWidgetAdapter::GenerateTextGeometry(const DrawCommand& cmd) {
     }
     
     FontAtlas* fontAtlas = m_Renderer->GetFontAtlas();
+    fontAtlas->EnsureTextGlyphs(cmd.text);
     m_CurrentTextureSet = fontAtlas->GetDescriptorSet();
     
-    float xpos = cmd.rect.x;
-    float ypos = cmd.rect.y;
+    float xpos = SnapPx(cmd.rect.x);
+    float ypos = SnapPx(cmd.rect.y);
     
-    float scale = 1.0f;
-    if (fontAtlas->GetFontHeight() > 0.0f) {
-        scale = cmd.fontSize / fontAtlas->GetFontHeight();
-    }
-    float logicalX = 0.0f;
-    float logicalY = 0.0f;
-    float startX = xpos;
-    float startY = ypos + cmd.fontSize * 0.85f;
-    
+    const float scale = (fontAtlas->GetFontHeight() > 0.0f)
+        ? (cmd.fontSize / fontAtlas->GetFontHeight())
+        : 1.0f;
+    const float startX = xpos;
+    const float baselineY = SnapPx(ypos + cmd.fontSize * 0.85f);
+    const float msdfRange = fontAtlas->GetMsdfPixelRange();
+    const float type = 3.0f; // MSDF text
+
+    std::vector<uint32_t> codepoints;
+    Text::DecodeUtf8(cmd.text, codepoints);
+
+    float penX = 0.0f;
+    float penY = 0.0f;
     uint32_t startTotalIndex = static_cast<uint32_t>(m_Indices.size());
 
-    for (char c : cmd.text) {
-        GlyphInfo q;
-        if (fontAtlas->GetCharQuad(c, &logicalX, &logicalY, q)) {
-            uint32_t charStart = static_cast<uint32_t>(m_Vertices.size());
-            
-            float px0 = startX + q.x0 * scale;
-            float py0 = startY + q.y0 * scale;
-            float px1 = startX + q.x1 * scale;
-            float py1 = startY + q.y1 * scale;
-            float w = px1 - px0;
-            float h = py1 - py0;
-            
-            float type = 0.0f; // Textured
-            
-            UIVertex2 v0{ {px0, py0}, {q.u0, q.v0}, {cmd.color.r, cmd.color.g, cmd.color.b, cmd.color.a}, {px0, py0, w, h}, {0.0f, type, 0.0f, 0.0f} };
-            UIVertex2 v1{ {px1, py0}, {q.u1, q.v0}, {cmd.color.r, cmd.color.g, cmd.color.b, cmd.color.a}, {px0, py0, w, h}, {0.0f, type, 0.0f, 0.0f} };
-            UIVertex2 v2{ {px1, py1}, {q.u1, q.v1}, {cmd.color.r, cmd.color.g, cmd.color.b, cmd.color.a}, {px0, py0, w, h}, {0.0f, type, 0.0f, 0.0f} };
-            UIVertex2 v3{ {px0, py1}, {q.u0, q.v1}, {cmd.color.r, cmd.color.g, cmd.color.b, cmd.color.a}, {px0, py0, w, h}, {0.0f, type, 0.0f, 0.0f} };
-            
-            m_Vertices.push_back(v0);
-            m_Vertices.push_back(v1);
-            m_Vertices.push_back(v2);
-            m_Vertices.push_back(v3);
-            
-            m_Indices.push_back(charStart + 0);
-            m_Indices.push_back(charStart + 1);
-            m_Indices.push_back(charStart + 2);
-            m_Indices.push_back(charStart + 2);
-            m_Indices.push_back(charStart + 3);
-            m_Indices.push_back(charStart + 0);
+    for (uint32_t codepoint : codepoints) {
+        GlyphInfo q{};
+        if (!fontAtlas->GetGlyphQuad(codepoint, &penX, &penY, q)) {
+            continue;
         }
+
+        const uint32_t charStart = static_cast<uint32_t>(m_Vertices.size());
+        const float px0 = startX + q.x0 * scale;
+        const float py0 = baselineY + q.y0 * scale;
+        const float px1 = startX + q.x1 * scale;
+        const float py1 = baselineY + q.y1 * scale;
+        const float w = px1 - px0;
+        const float h = py1 - py0;
+
+        UIVertex2 v0{ {px0, py0}, {q.u0, q.v0}, {cmd.color.r, cmd.color.g, cmd.color.b, cmd.color.a}, {px0, py0, w, h}, {0.0f, type, msdfRange, 0.0f} };
+        UIVertex2 v1{ {px1, py0}, {q.u1, q.v0}, {cmd.color.r, cmd.color.g, cmd.color.b, cmd.color.a}, {px0, py0, w, h}, {0.0f, type, msdfRange, 0.0f} };
+        UIVertex2 v2{ {px1, py1}, {q.u1, q.v1}, {cmd.color.r, cmd.color.g, cmd.color.b, cmd.color.a}, {px0, py0, w, h}, {0.0f, type, msdfRange, 0.0f} };
+        UIVertex2 v3{ {px0, py1}, {q.u0, q.v1}, {cmd.color.r, cmd.color.g, cmd.color.b, cmd.color.a}, {px0, py0, w, h}, {0.0f, type, msdfRange, 0.0f} };
+
+        m_Vertices.push_back(v0);
+        m_Vertices.push_back(v1);
+        m_Vertices.push_back(v2);
+        m_Vertices.push_back(v3);
+
+        m_Indices.push_back(charStart + 0);
+        m_Indices.push_back(charStart + 1);
+        m_Indices.push_back(charStart + 2);
+        m_Indices.push_back(charStart + 2);
+        m_Indices.push_back(charStart + 3);
+        m_Indices.push_back(charStart + 0);
     }
     
     // Create batch for all text
@@ -304,10 +308,15 @@ void UIWidgetAdapter::GenerateTextGeometry(const DrawCommand& cmd) {
 }
 
 void UIWidgetAdapter::GenerateTextureGeometry(const DrawCommand& cmd) {
-    float x = cmd.rect.x;
-    float y = cmd.rect.y;
-    float w = cmd.rect.width;
-    float h = cmd.rect.height;
+    // Pixel-snap textured UI elements (thumbnails, bitmaps) to avoid subpixel sampling blur.
+    float x0 = SnapPx(cmd.rect.x);
+    float y0 = SnapPx(cmd.rect.y);
+    float x1 = SnapPx(cmd.rect.x + cmd.rect.width);
+    float y1 = SnapPx(cmd.rect.y + cmd.rect.height);
+    float x = x0;
+    float y = y0;
+    float w = x1 - x0;
+    float h = y1 - y0;
     
     m_CurrentTextureSet = cmd.textureId;
     
@@ -362,10 +371,15 @@ void UIWidgetAdapter::GenerateIconGeometry(const DrawCommand& cmd) {
     }
     
     // Generate quad for icon
-    float x = cmd.rect.x;
-    float y = cmd.rect.y;
-    float w = cmd.rect.width;
-    float h = cmd.rect.height;
+    // Pixel-snap icon quads; icon bitmaps are authored/rasterized for exact pixel sizes.
+    float x0 = SnapPx(cmd.rect.x);
+    float y0 = SnapPx(cmd.rect.y);
+    float x1 = SnapPx(cmd.rect.x + cmd.rect.width);
+    float y1 = SnapPx(cmd.rect.y + cmd.rect.height);
+    float x = x0;
+    float y = y0;
+    float w = x1 - x0;
+    float h = y1 - y0;
     
     float type = 0.0f; // Textured
     Color color = Color::White();
@@ -403,8 +417,11 @@ void UIWidgetAdapter::GenerateIconGeometry(const DrawCommand& cmd) {
 }
 
 void UIWidgetAdapter::GenerateLineGeometry(const DrawCommand& cmd) {
-    float dx = cmd.lineEnd.x - cmd.lineStart.x;
-    float dy = cmd.lineEnd.y - cmd.lineStart.y;
+    // Pixel-snap line endpoints; 1px lines blur heavily when placed at half pixels.
+    Point s{SnapPx(cmd.lineStart.x), SnapPx(cmd.lineStart.y)};
+    Point e{SnapPx(cmd.lineEnd.x), SnapPx(cmd.lineEnd.y)};
+    float dx = e.x - s.x;
+    float dy = e.y - s.y;
     float len = std::sqrt(dx * dx + dy * dy);
     if (len > 0.0f) {
         dx /= len;
@@ -412,17 +429,17 @@ void UIWidgetAdapter::GenerateLineGeometry(const DrawCommand& cmd) {
         float px = -dy * (cmd.thickness * 0.5f);
         float py = dx * (cmd.thickness * 0.5f);
         
-        float sx = cmd.lineStart.x;
-        float sy = cmd.lineStart.y;
+        float sx = s.x;
+        float sy = s.y;
         float sw = dx * len;
         float sh = dy * len;
         
         float type = 0.0f; // Textured (using dummy)
         
-        UIVertex2 v0{ {cmd.lineStart.x + px, cmd.lineStart.y + py}, {0.5f, 0.5f}, {cmd.color.r, cmd.color.g, cmd.color.b, cmd.color.a}, {sx, sy, sw, sh}, {0.0f, type, 0.0f, 0.0f} };
-        UIVertex2 v1{ {cmd.lineStart.x - px, cmd.lineStart.y - py}, {0.5f, 0.5f}, {cmd.color.r, cmd.color.g, cmd.color.b, cmd.color.a}, {sx, sy, sw, sh}, {0.0f, type, 0.0f, 0.0f} };
-        UIVertex2 v2{ {cmd.lineEnd.x - px,   cmd.lineEnd.y - py},   {0.5f, 0.5f}, {cmd.color.r, cmd.color.g, cmd.color.b, cmd.color.a}, {sx, sy, sw, sh}, {0.0f, type, 0.0f, 0.0f} };
-        UIVertex2 v3{ {cmd.lineEnd.x + px,   cmd.lineEnd.y + py},   {0.5f, 0.5f}, {cmd.color.r, cmd.color.g, cmd.color.b, cmd.color.a}, {sx, sy, sw, sh}, {0.0f, type, 0.0f, 0.0f} };
+        UIVertex2 v0{ {s.x + px, s.y + py}, {0.5f, 0.5f}, {cmd.color.r, cmd.color.g, cmd.color.b, cmd.color.a}, {sx, sy, sw, sh}, {0.0f, type, 0.0f, 0.0f} };
+        UIVertex2 v1{ {s.x - px, s.y - py}, {0.5f, 0.5f}, {cmd.color.r, cmd.color.g, cmd.color.b, cmd.color.a}, {sx, sy, sw, sh}, {0.0f, type, 0.0f, 0.0f} };
+        UIVertex2 v2{ {e.x - px, e.y - py}, {0.5f, 0.5f}, {cmd.color.r, cmd.color.g, cmd.color.b, cmd.color.a}, {sx, sy, sw, sh}, {0.0f, type, 0.0f, 0.0f} };
+        UIVertex2 v3{ {e.x + px, e.y + py}, {0.5f, 0.5f}, {cmd.color.r, cmd.color.g, cmd.color.b, cmd.color.a}, {sx, sy, sw, sh}, {0.0f, type, 0.0f, 0.0f} };
         
         uint32_t startIndex = static_cast<uint32_t>(m_Vertices.size());
         m_Vertices.push_back(v0);
@@ -471,6 +488,16 @@ void UIWidgetAdapter::GenerateShadowGeometry(const DrawCommand& cmd) {
         float sh = h + expand * 2.0f;
         float alpha = baseAlpha * (1.0f - (float)i / numLayers);
         
+        // Clamp shadow coordinates to viewport bounds to prevent off-screen rendering
+        if (sx < 0.0f) {
+            sw += sx; // Reduce width by the amount we're clamping
+            sx = 0.0f;
+        }
+        if (sy < 0.0f) {
+            sh += sy; // Reduce height by the amount we're clamping
+            sy = 0.0f;
+        }
+        
         float type = 1.0f; // SDF Rect
         float r = cmd.borderRadius + expand;
         
@@ -508,10 +535,14 @@ void UIWidgetAdapter::GenerateShadowGeometry(const DrawCommand& cmd) {
 }
 
 void UIWidgetAdapter::GenerateGradientGeometry(const DrawCommand& cmd) {
-    float x = cmd.rect.x;
-    float y = cmd.rect.y;
-    float w = cmd.rect.width;
-    float h = cmd.rect.height;
+    float x0 = SnapPx(cmd.rect.x);
+    float y0 = SnapPx(cmd.rect.y);
+    float x1 = SnapPx(cmd.rect.x + cmd.rect.width);
+    float y1 = SnapPx(cmd.rect.y + cmd.rect.height);
+    float x = x0;
+    float y = y0;
+    float w = x1 - x0;
+    float h = y1 - y0;
     
     float type = 1.0f; // SDF rounded rect for gradient support
     
@@ -551,10 +582,14 @@ void UIWidgetAdapter::GenerateGradientGeometry(const DrawCommand& cmd) {
 }
 
 void UIWidgetAdapter::GenerateRoundedOutlineGeometry(const DrawCommand& cmd) {
-    float x = cmd.rect.x;
-    float y = cmd.rect.y;
-    float w = cmd.rect.width;
-    float h = cmd.rect.height;
+    float x0 = SnapPx(cmd.rect.x);
+    float y0 = SnapPx(cmd.rect.y);
+    float x1 = SnapPx(cmd.rect.x + cmd.rect.width);
+    float y1 = SnapPx(cmd.rect.y + cmd.rect.height);
+    float x = x0;
+    float y = y0;
+    float w = x1 - x0;
+    float h = y1 - y0;
     
     float type = 2.0f; // SDF rounded outline
     float thickness = cmd.thickness;

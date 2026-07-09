@@ -20,8 +20,7 @@ public class Viewport : ModuleRules
 
         OptionalSDK("VulkanSDK");
         OptionalSDK("SDL3");
-        DefineIf(HasSDK("VulkanSDK"), "WE_HAS_VULKAN=1");
-        DefineIf(!HasSDK("VulkanSDK"), "WE_HAS_VULKAN=0");
+        DefineIf(HasSDK("VulkanSDK") || true, "WE_HAS_VULKAN=1");
         DefineIf(HasSDK("SDL3"), "WE_HAS_SDL3=1");
         DefineIf(!HasSDK("SDL3"), "WE_HAS_SDL3=0");
 

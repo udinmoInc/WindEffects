@@ -784,22 +784,38 @@ void Renderer::InsertOverlayPassBarrier() {
         return;
     }
 
-    VkMemoryBarrier memoryBarrier{};
-    memoryBarrier.sType = VK_STRUCTURE_TYPE_MEMORY_BARRIER;
-    memoryBarrier.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_TRANSFER_WRITE_BIT;
-    memoryBarrier.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+    const auto& swapchainImages = m_SwapchainManager->GetImages();
+    if (m_CurrentImageIndex >= swapchainImages.size()) {
+        WE_LOG_ERROR(we::LogCategory::Renderer.data(), "InsertOverlayPassBarrier skipped: swapchain image index out of range.");
+        return;
+    }
+
+    VkImageMemoryBarrier imageBarrier{};
+    imageBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+    imageBarrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+    imageBarrier.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+    imageBarrier.oldLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+    imageBarrier.newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+    imageBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    imageBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    imageBarrier.image = swapchainImages[m_CurrentImageIndex];
+    imageBarrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    imageBarrier.subresourceRange.baseMipLevel = 0;
+    imageBarrier.subresourceRange.levelCount = 1;
+    imageBarrier.subresourceRange.baseArrayLayer = 0;
+    imageBarrier.subresourceRange.layerCount = 1;
 
     vkCmdPipelineBarrier(
         cmd,
-        VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_TRANSFER_BIT,
+        VK_PIPELINE_STAGE_TRANSFER_BIT | VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
         VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
         0,
-        1,
-        &memoryBarrier,
         0,
         nullptr,
         0,
-        nullptr);
+        nullptr,
+        1,
+        &imageBarrier);
 }
 
 void Renderer::SetViewportRenderTargetSize(uint32_t width, uint32_t height) {

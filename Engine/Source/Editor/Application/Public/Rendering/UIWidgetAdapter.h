@@ -29,21 +29,41 @@ public:
     const std::vector<uint32_t>& GetIndices() const { return m_Indices; }
     const std::vector<UIRenderBatch>& GetBatches() const { return m_Batches; }
 
-    static uint32_t s_TotalDrawCommandsGenerated;
-    static uint32_t s_RectangleCommands;
-    static uint32_t s_TextCommands;
-    static uint32_t s_ImageCommands;
-    static uint32_t s_IconCommands;
-    static uint32_t s_BorderCommands;
-    static uint32_t s_GradientCommands;
-    static uint32_t s_ShadowCommands;
-    static uint32_t s_ClipRectCount;
-    static uint32_t s_TextureSwitchCount;
-    static uint32_t s_BatchCount;
-    static uint32_t s_PaintCommandsRecorded;
+    // Diagnostics (moved from static to instance-level to avoid global state)
+    struct Diagnostics {
+        uint32_t totalDrawCommandsGenerated = 0;
+        uint32_t rectangleCommands = 0;
+        uint32_t textCommands = 0;
+        uint32_t imageCommands = 0;
+        uint32_t iconCommands = 0;
+        uint32_t borderCommands = 0;
+        uint32_t gradientCommands = 0;
+        uint32_t shadowCommands = 0;
+        uint32_t clipRectCount = 0;
+        uint32_t textureSwitchCount = 0;
+        uint32_t batchCount = 0;
+        uint32_t paintCommandsRecorded = 0;
+        
+        void Reset() {
+            totalDrawCommandsGenerated = 0;
+            rectangleCommands = 0;
+            textCommands = 0;
+            imageCommands = 0;
+            iconCommands = 0;
+            borderCommands = 0;
+            gradientCommands = 0;
+            shadowCommands = 0;
+            clipRectCount = 0;
+            textureSwitchCount = 0;
+            batchCount = 0;
+            paintCommandsRecorded = 0;
+        }
+    };
     
-    static void ResetDiagnostics();
-
+    // Get diagnostics for this adapter instance
+    const Diagnostics& GetDiagnostics() const { return m_Diagnostics; }
+    void ResetDiagnostics() { m_Diagnostics.Reset(); }
+    
 private:
     void ConvertDrawCommand(const DrawCommand& cmd);
     void GenerateRectGeometry(const DrawCommand& cmd);
@@ -65,6 +85,7 @@ private:
     VkDescriptorSet m_CurrentTextureSet;
     VkDescriptorSet m_DefaultTextureSet;
     UIDirtyRegion m_CurrentScissor;
+    Diagnostics m_Diagnostics;
 };
 
 } // namespace we::UI

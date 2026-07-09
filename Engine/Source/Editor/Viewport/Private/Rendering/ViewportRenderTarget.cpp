@@ -1,5 +1,7 @@
 #include "Rendering/ViewportRenderTarget.h"
 
+#if WE_HAS_VULKAN
+
 #include "Core/DeviceContext.h"
 #include "Resource/DepthTarget.h"
 #include "Resource/ResourceManager.h"
@@ -100,4 +102,6 @@ void ViewportRenderTarget::CreateColorResources() {
 }
 
 } // namespace we::editor::viewport
+
+#endif // WE_HAS_VULKAN
 

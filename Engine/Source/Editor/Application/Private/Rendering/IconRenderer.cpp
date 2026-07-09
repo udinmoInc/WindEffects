@@ -1,4 +1,5 @@
 #include "Rendering/IconRenderer.h"
+#include "Rendering/Icons/SvgRasterizer.h"
 #include "Core/ImageBarriers.h"
 #include "Resource/ResourceManager.h"
 #include "Core/Theme.h"
@@ -11,14 +12,6 @@
 #include <functional>
 
 #include <unordered_set>
-
-#define NANOSVG_IMPLEMENTATION
-#pragma warning(push)
-#pragma warning(disable : 4456 4244 4702)
-#include <nanosvg.h>
-#define NANOSVGRAST_IMPLEMENTATION
-#include <nanosvgrast.h>
-#pragma warning(pop)
 
 namespace we::UI {
 
@@ -38,6 +31,7 @@ bool IconRenderer::Init(we::runtime::renderer::DeviceContext* context,
     m_GpuUpload = gpuUpload;
     m_DescriptorPool = descriptorPool;
     m_TextureLayout = textureLayout;
+    m_SvgRasterizer = std::make_unique<Icons::SvgRasterizer>();
     IconRegistry::Get().InitializeDefaultIcons();
     return context != nullptr && resources != nullptr && gpuUpload != nullptr
         && descriptorPool != VK_NULL_HANDLE && textureLayout != VK_NULL_HANDLE;
@@ -45,6 +39,7 @@ bool IconRenderer::Init(we::runtime::renderer::DeviceContext* context,
 
 void IconRenderer::Shutdown() {
     ClearCache();
+    m_SvgRasterizer.reset();
 }
 
 std::string IconRenderer::ResolveLucideSvgPath(const std::string& lucideName) {
@@ -64,7 +59,7 @@ std::string IconRenderer::ResolveLucideSvgPath(const std::string& lucideName) {
 }
 
 VkDescriptorSet IconRenderer::GetLucideIcon(const std::string& iconName, uint32_t size, const Color& color, float strokeWidth) {
-    if (!m_Context || m_TextureLayout == VK_NULL_HANDLE) return VK_NULL_HANDLE;
+    if (!m_Context || m_TextureLayout == VK_NULL_HANDLE || !m_SvgRasterizer) return VK_NULL_HANDLE;
 
     const std::string lucideName = Icons::ResolveLucideName(iconName);
     const std::string svgPath = ResolveLucideSvgPath(lucideName);
@@ -88,11 +83,18 @@ VkDescriptorSet IconRenderer::GetLucideIcon(const std::string& iconName, uint32_
         return it->second.descriptorSet;
     }
 
-    std::vector<uint8_t> bitmap = RenderSVGToBitmap(svgPath, size, color, strokeWidth);
-    if (bitmap.empty()) return VK_NULL_HANDLE;
+    Icons::SvgRasterizeRequest request{};
+    request.svgPath = svgPath;
+    request.width = size;
+    request.height = size;
+    request.tint = color;
+    request.strokeWidth = strokeWidth;
+
+    const Icons::SvgRasterizeResult raster = m_SvgRasterizer->Rasterize(request);
+    if (!raster.success || raster.rgba.empty()) return VK_NULL_HANDLE;
 
     IconTexture texture;
-    if (CreateTexture(bitmap, size, size, texture)) {
+    if (CreateTexture(raster.rgba, raster.width, raster.height, texture)) {
         m_Cache[key] = texture;
         return texture.descriptorSet;
     }
@@ -109,11 +111,17 @@ VkDescriptorSet IconRenderer::GetIcon(const std::string& iconName, uint32_t size
             return it->second.descriptorSet;
         }
 
-        std::vector<uint8_t> bitmap = RenderSVGToBitmap(iconName, size, m_DefaultColor);
-        if (bitmap.empty()) return VK_NULL_HANDLE;
+        Icons::SvgRasterizeRequest request{};
+        request.svgPath = iconName;
+        request.width = size;
+        request.height = size;
+        request.tint = m_DefaultColor;
+
+        const Icons::SvgRasterizeResult raster = m_SvgRasterizer->Rasterize(request);
+        if (!raster.success || raster.rgba.empty()) return VK_NULL_HANDLE;
 
         IconTexture texture;
-        if (CreateTexture(bitmap, size, size, texture)) {
+        if (CreateTexture(raster.rgba, raster.width, raster.height, texture)) {
             m_Cache[key] = texture;
             return texture.descriptorSet;
         }
@@ -143,104 +151,6 @@ void IconRenderer::ClearCache() {
         DestroyTexture(pair.second);
     }
     m_Cache.clear();
-}
-
-std::vector<uint8_t> IconRenderer::RenderSVGToBitmap(const std::string& svgPath, uint32_t size, const Color& color, float strokeWidth) {
-    std::string finalPath = svgPath;
-    if (!std::filesystem::exists(finalPath)) {
-        if (std::filesystem::exists("../" + svgPath)) finalPath = "../" + svgPath;
-        else if (std::filesystem::exists("../../" + svgPath)) finalPath = "../../" + svgPath;
-        else if (std::filesystem::exists("../../../" + svgPath)) finalPath = "../../../" + svgPath;
-    }
-
-    NSVGimage* image = nsvgParseFromFile(finalPath.c_str(), "px", 96.0f);
-    if (!image) {
-        HE_ERROR("[UI] IconRenderer failed to parse SVG: " + finalPath);
-        return {};
-    }
-
-    int width = static_cast<int>(image->width);
-    int height = static_cast<int>(image->height);
-    if (width <= 0 || height <= 0) {
-        nsvgDelete(image);
-        return {};
-    }
-
-    if (strokeWidth > 0.0f) {
-        for (NSVGshape* shape = image->shapes; shape != nullptr; shape = shape->next) {
-            shape->strokeWidth = strokeWidth;
-        }
-    }
-
-    NSVGrasterizer* rast = nsvgCreateRasterizer();
-    if (!rast) {
-        nsvgDelete(image);
-        return {};
-    }
-
-    const int baseDim = std::max(width, height);
-    
-    // Use 4x SSAA (Supersampling Anti-Aliasing) on the CPU side since nsvgRasterize can produce aliased edges at 1x
-    constexpr int kScaleFactor = 4;
-    const int rasterSize = size * kScaleFactor;
-    const float scale = static_cast<float>(rasterSize) / static_cast<float>(baseDim);
-    
-    std::vector<uint8_t> rasterData(static_cast<size_t>(rasterSize) * static_cast<size_t>(rasterSize) * 4, 0);
-    nsvgRasterize(rast, image, 0, 0, scale, rasterData.data(), rasterSize, rasterSize, rasterSize * 4);
-
-    nsvgDeleteRasterizer(rast);
-    nsvgDelete(image);
-
-    // Downsample to target size
-    std::vector<uint8_t> finalData(static_cast<size_t>(size) * static_cast<size_t>(size) * 4, 0);
-    for (int y = 0; y < static_cast<int>(size); ++y) {
-        for (int x = 0; x < static_cast<int>(size); ++x) {
-            uint32_t sumR = 0, sumG = 0, sumB = 0, sumA = 0;
-            
-            for (int dy = 0; dy < kScaleFactor; ++dy) {
-                for (int dx = 0; dx < kScaleFactor; ++dx) {
-                    int sx = x * kScaleFactor + dx;
-                    int sy = y * kScaleFactor + dy;
-                    int srcIdx = (sy * rasterSize + sx) * 4;
-                    
-                    uint8_t r = rasterData[srcIdx];
-                    uint8_t g = rasterData[srcIdx + 1];
-                    uint8_t b = rasterData[srcIdx + 2];
-                    uint8_t a = rasterData[srcIdx + 3];
-                    
-                    // Premultiply alpha for correct color blending during downsample
-                    sumR += r * a;
-                    sumG += g * a;
-                    sumB += b * a;
-                    sumA += a;
-                }
-            }
-            
-            int dstIdx = (y * size + x) * 4;
-            uint8_t outA = static_cast<uint8_t>(sumA / (kScaleFactor * kScaleFactor));
-            finalData[dstIdx + 3] = outA;
-            
-            if (sumA > 0) {
-                finalData[dstIdx] = static_cast<uint8_t>(sumR / sumA);
-                finalData[dstIdx + 1] = static_cast<uint8_t>(sumG / sumA);
-                finalData[dstIdx + 2] = static_cast<uint8_t>(sumB / sumA);
-            } else {
-                finalData[dstIdx] = 0;
-                finalData[dstIdx + 1] = 0;
-                finalData[dstIdx + 2] = 0;
-            }
-
-            const float mask = finalData[dstIdx + 3] / 255.0f;
-            if (mask > 0.0f) {
-                finalData[dstIdx]     = static_cast<uint8_t>(color.r * 255.0f);
-                finalData[dstIdx + 1] = static_cast<uint8_t>(color.g * 255.0f);
-                finalData[dstIdx + 2] = static_cast<uint8_t>(color.b * 255.0f);
-                finalData[dstIdx + 3] = static_cast<uint8_t>(mask * color.a * 255.0f);
-            }
-        }
-    }
-
-    return finalData;
 }
 
 bool IconRenderer::CreateTexture(const std::vector<uint8_t>& bitmap, uint32_t width, uint32_t height, IconTexture& outTexture) {
@@ -320,6 +230,9 @@ bool IconRenderer::CreateTexture(const std::vector<uint8_t>& bitmap, uint32_t wi
     samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
     samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
     samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+    samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_NEAREST;
+    samplerInfo.minLod = 0.0f;
+    samplerInfo.maxLod = 0.0f;
     if (vkCreateSampler(device, &samplerInfo, nullptr, &outTexture.sampler) != VK_SUCCESS) {
         return false;
     }

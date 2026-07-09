@@ -1,18 +1,11 @@
 #include "Services/ThumbnailRenderer.h"
 #include "Registry/AssetTypeResolver.h"
+#include "Rendering/Icons/SvgRasterizer.h"
 #include "Core/Theme.h"
 #include "Core/Logger.h"
 
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
-
-#define NANOSVG_IMPLEMENTATION
-#pragma warning(push)
-#pragma warning(disable : 4456 4244)
-#include <nanosvg.h>
-#define NANOSVGRAST_IMPLEMENTATION
-#include <nanosvgrast.h>
-#pragma warning(pop)
 
 #include <algorithm>
 #include <array>
@@ -238,26 +231,21 @@ BitmapRGBA ThumbnailRenderer::LoadImageFile(const std::string& path, uint32_t ta
         [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
 
     if (lower == ".svg") {
-        NSVGimage* image = nsvgParseFromFile(resolved.c_str(), "px", 96.0f);
-        if (!image) return RenderGenericIcon(AssetType::Texture);
-
-        NSVGrasterizer* rast = nsvgCreateRasterizer();
-        if (!rast) {
-            nsvgDelete(image);
+        we::UI::Icons::SvgRasterizer rasterizer;
+        we::UI::Icons::SvgRasterizeRequest request{};
+        request.svgPath = resolved;
+        request.width = targetSize;
+        request.height = targetSize;
+        request.applyTint = false;
+        const auto raster = rasterizer.Rasterize(request);
+        if (!raster.success || raster.rgba.empty()) {
             return RenderGenericIcon(AssetType::Texture);
         }
-
-        const int rasterSize = static_cast<int>(targetSize);
-        std::vector<uint8_t> raster(static_cast<size_t>(rasterSize) * rasterSize * 4, 0);
-        const float scale = static_cast<float>(rasterSize) / std::max(image->width, image->height);
-        nsvgRasterize(rast, image, 0, 0, scale, raster.data(), rasterSize, rasterSize, rasterSize * 4);
-        nsvgDeleteRasterizer(rast);
-        nsvgDelete(image);
 
         BitmapRGBA bmp;
         bmp.width = targetSize;
         bmp.height = targetSize;
-        bmp.pixels = std::move(raster);
+        bmp.pixels = raster.rgba;
         return bmp;
     }
 
@@ -587,28 +575,21 @@ BitmapRGBA ThumbnailRenderer::RenderContentBrowserFolderProcedural(uint32_t w, u
 
 BitmapRGBA ThumbnailRenderer::RasterizeMonochromeSvg(const std::string& resolved, uint32_t w, uint32_t h, float hoverBrightness,
     const std::function<std::array<uint8_t, 3>(float verticalT)>& sampleColor) {
-    NSVGimage* image = nsvgParseFromFile(resolved.c_str(), "px", 96.0f);
-    if (!image) return {};
+    constexpr int kSSAA = 4;
+    const uint32_t rasterW = w * kSSAA;
+    const uint32_t rasterH = h * kSSAA;
 
-    NSVGrasterizer* rast = nsvgCreateRasterizer();
-    if (!rast) {
-        nsvgDelete(image);
+    we::UI::Icons::SvgRasterizer rasterizer;
+    we::UI::Icons::SvgRasterizeRequest request{};
+    request.svgPath = resolved;
+    request.width = rasterW;
+    request.height = rasterH;
+    request.applyTint = false;
+    const auto raster = rasterizer.Rasterize(request);
+    if (!raster.success || raster.rgba.empty()) {
         return {};
     }
-
-    constexpr int kSSAA = 4;
-    const int rasterW = static_cast<int>(w) * kSSAA;
-    const int rasterH = static_cast<int>(h) * kSSAA;
-    const float scale = std::min(
-        static_cast<float>(rasterW) / static_cast<float>(image->width),
-        static_cast<float>(rasterH) / static_cast<float>(image->height));
-    const float offsetX = (static_cast<float>(rasterW) - image->width * scale) * 0.5f;
-    const float offsetY = (static_cast<float>(rasterH) - image->height * scale) * 0.5f;
-
-    std::vector<uint8_t> rasterData(static_cast<size_t>(rasterW) * static_cast<size_t>(rasterH) * 4, 0);
-    nsvgRasterize(rast, image, offsetX, offsetY, scale, rasterData.data(), rasterW, rasterH, rasterW * 4);
-    nsvgDeleteRasterizer(rast);
-    nsvgDelete(image);
+    const std::vector<uint8_t>& rasterData = raster.rgba;
 
     BitmapRGBA bmp;
     bmp.width = w;

@@ -24,10 +24,6 @@ public:
                        VkAttachmentLoadOp loadOp = VK_ATTACHMENT_LOAD_OP_LOAD);
     void EndComposite(VkCommandBuffer cmd);
 
-    // State management
-    void SetScissor(int32_t x, int32_t y, uint32_t width, uint32_t height);
-    void SetViewport(float x, float y, float width, float height);
-
 private:
     void CreateRenderPass();
     void CreateFramebuffer();

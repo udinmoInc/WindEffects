@@ -10,12 +10,35 @@
 #include <fstream>
 #include <sstream>
 #include <unordered_map>
+#include <algorithm>
+#include <cmath>
 
 namespace we::programs::editor {
 
 namespace {
 
 constexpr int kLayoutVersion = 3;
+constexpr float kMinSplitRatio = 0.05f;
+constexpr float kMaxSplitRatio = 0.95f;
+
+float ParseClampedRatio(const std::unordered_map<std::string, std::string>& values,
+                        const char* key,
+                        float fallback) {
+    const auto it = values.find(key);
+    if (it == values.end()) {
+        return fallback;
+    }
+
+    try {
+        const float v = std::stof(it->second);
+        if (!std::isfinite(v)) {
+            return fallback;
+        }
+        return std::clamp(v, kMinSplitRatio, kMaxSplitRatio);
+    } catch (...) {
+        return fallback;
+    }
+}
 
 std::filesystem::path GetLayoutPath() {
     return we::core::ResolveEditorConfigPath("editor_layout.ini");
@@ -79,24 +102,49 @@ void EditorLayoutPersistence::Load() {
     }
 
     if (auto splitter = m_MainHorizontal.lock(); splitter && values.count("main_h_ratio")) {
-        if (!values.count("layout_version") || std::stoi(values.at("layout_version")) >= kLayoutVersion) {
-            splitter->SetSplitRatio(std::stof(values["main_h_ratio"]));
+        bool allowLoad = true;
+        if (values.count("layout_version")) {
+            try {
+                allowLoad = std::stoi(values.at("layout_version")) >= kLayoutVersion;
+            } catch (...) {
+                allowLoad = true;
+            }
+        }
+        if (allowLoad) {
+            splitter->SetSplitRatio(ParseClampedRatio(values, "main_h_ratio", splitter->GetSplitRatio()));
         }
     }
     if (auto splitter = m_LeftCenterVertical.lock(); splitter && values.count("left_center_v_ratio")) {
-        splitter->SetSplitRatio(std::stof(values["left_center_v_ratio"]));
+        splitter->SetSplitRatio(ParseClampedRatio(values, "left_center_v_ratio", splitter->GetSplitRatio()));
     }
     if (auto splitter = m_EditorTopRow.lock(); splitter && values.count("editor_top_h_ratio")) {
-        splitter->SetSplitRatio(std::stof(values["editor_top_h_ratio"]));
+        splitter->SetSplitRatio(ParseClampedRatio(values, "editor_top_h_ratio", splitter->GetSplitRatio()));
     }
     if (auto splitter = m_RightSideVertical.lock(); splitter && values.count("right_side_v_ratio")) {
-        splitter->SetSplitRatio(std::stof(values["right_side_v_ratio"]));
+        splitter->SetSplitRatio(ParseClampedRatio(values, "right_side_v_ratio", splitter->GetSplitRatio()));
     }
     if (auto dock = m_ExplorerDock.lock(); dock && values.count("explorer_dock_tab")) {
-        dock->SetActiveTab(std::stoi(values["explorer_dock_tab"]));
+        try {
+            dock->SetActiveTab(std::stoi(values["explorer_dock_tab"]));
+        } catch (...) {
+            // ignore invalid persisted value
+        }
     }
-    if (auto dock = m_CenterDock.lock(); dock && values.count("center_dock_tab")) {
-        dock->SetActiveTab(std::stoi(values["center_dock_tab"]));
+    if (auto dock = m_CenterDock.lock()) {
+        const int tabCount = dock->GetTabCount();
+        if (tabCount > 0) {
+            if (values.count("center_dock_tab")) {
+                try {
+                    int tab = std::stoi(values["center_dock_tab"]);
+                    tab = std::max(0, std::min(tab, tabCount - 1));
+                    dock->SetActiveTab(tab);
+                } catch (...) {
+                    dock->SetActiveTab(0);
+                }
+            } else {
+                dock->SetActiveTab(0);
+            }
+        }
     }
 
     auto& panels = EditorPanelController::Get();

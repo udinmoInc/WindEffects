@@ -60,30 +60,7 @@ renderer.RenderWidget(rootWidget);
 renderer.EndFrame(cmd, swapchainImageView);
 ```
 
-### 2. UIGeometryCache (Retained-Mode Caching)
-
-**File:** `UIGeometryCache.h/cpp`
-
-Implements retained-mode rendering with geometry caching to reduce CPU usage.
-
-**Key Features:**
-- Caches vertex/index data per widget
-- LRU eviction policy
-- Dirty region tracking
-- Cache statistics (hit/miss rates)
-
-**Usage:**
-```cpp
-// Check cache
-if (cache.GetGeometry(key, vertices, indices)) {
-    // Cache hit - use cached geometry
-} else {
-    // Cache miss - generate new geometry
-    cache.CacheGeometry(key, vertices, indices, frameIndex);
-}
-```
-
-### 3. UIBatchGenerator (Draw Call Optimization)
+### 2. UIBatchGenerator (Draw Call Optimization)
 
 **File:** `UIBatchGenerator.h/cpp`
 
@@ -99,26 +76,7 @@ Groups draw commands into efficient batches to minimize state changes.
 - Same scissor rectangle
 - Same stencil reference
 
-### 4. UITextureAtlasManager (Texture Packing)
-
-**File:** `UITextureAtlasManager.h/cpp`
-
-Manages a texture atlas for efficient texture sampling.
-
-**Key Features:**
-- Dynamic atlas expansion
-- First-fit slot allocation
-- UV coordinate conversion
-- Atlas utilization tracking
-
-**Usage:**
-```cpp
-uint32_t textureId = atlasManager.RegisterTexture(imageView, sampler, width, height);
-float u0, v0, u1, v1;
-atlasManager.GetTextureUV(textureId, u0, v0, u1, v1);
-```
-
-### 5. UICommandBuffer (Command Recording)
+### 3. UICommandBuffer (Command Recording)
 
 **File:** `UICommandBuffer.h/cpp`
 
@@ -326,9 +284,7 @@ To migrate from the old UIRenderer to UIRenderer2:
 
 **Headers:**
 - `UIRenderer2.h` - Main renderer
-- `UIGeometryCache.h` - Geometry caching
 - `UIBatchGenerator.h` - Batch generation
-- `UITextureAtlasManager.h` - Texture atlas
 - `UICommandBuffer.h` - Command buffer
 - `UICompositor.h` - Final compositing
 - `UIStateManager.h` - State management
@@ -336,9 +292,7 @@ To migrate from the old UIRenderer to UIRenderer2:
 
 **Implementation:**
 - `UIRenderer2.cpp`
-- `UIGeometryCache.cpp`
 - `UIBatchGenerator.cpp`
-- `UITextureAtlasManager.cpp`
 - `UICommandBuffer.cpp`
 - `UICompositor.cpp`
 - `UIStateManager.cpp`

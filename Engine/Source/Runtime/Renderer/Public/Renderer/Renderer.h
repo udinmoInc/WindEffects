@@ -60,6 +60,7 @@ public:
     VkImage GetViewportColorImage() const { return m_ViewportColorImage; }
     VkImageView GetViewportColorImageView() const { return m_ViewportColorImageView; }
     VkFormat GetViewportColorFormat() const { return m_ViewportColorFormat; }
+    VkRect2D GetViewportBlitRect() const { return m_ViewportBlitRect; }
 
     DeviceContext* GetDeviceContext() const { return m_DeviceContext.get(); }
     SwapchainManager* GetSwapchainManager() const { return m_SwapchainManager.get(); }

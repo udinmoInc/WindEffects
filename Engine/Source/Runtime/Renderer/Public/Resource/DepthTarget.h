@@ -1,7 +1,10 @@
 #pragma once
 
+#if WE_HAS_VULKAN
+
 #include <volk.h>
 #include <cstdint>
+#include "Renderer/Export.h"
 
 namespace we::runtime::renderer {
 
@@ -15,7 +18,7 @@ struct DepthTargetConfig {
     uint32_t height = 0;
 };
 
-class DepthTarget {
+class RENDERER_API DepthTarget {
 public:
     DepthTarget() = default;
     ~DepthTarget();
@@ -49,3 +52,5 @@ private:
 };
 
 } // namespace we::runtime::renderer
+
+#endif // WE_HAS_VULKAN

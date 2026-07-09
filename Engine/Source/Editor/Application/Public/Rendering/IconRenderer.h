@@ -5,12 +5,12 @@
 #include <volk.h>
 #include <memory>
 #include <unordered_map>
-#include <string>
 #include "Core/Geometry.h"
 #include "Core/Icon.h"
 #include "Core/Theme.h"
 
 #include "Core/DeviceContext.h"
+#include "Rendering/Icons/ISvgRasterizer.h"
 #include "Rendering/UiGpuUpload.h"
 
 namespace we::runtime::renderer {
@@ -56,9 +56,6 @@ public:
 private:
     static std::string ResolveLucideSvgPath(const std::string& lucideName);
 
-    // Parse SVG path and render to bitmap
-    std::vector<uint8_t> RenderSVGToBitmap(const std::string& svgPath, uint32_t size, const Color& color, float strokeWidth = 0.0f);
-    
     // Create Vulkan texture from bitmap
     bool CreateTexture(const std::vector<uint8_t>& bitmap, uint32_t width, uint32_t height, IconTexture& outTexture);
     
@@ -71,6 +68,8 @@ private:
     VkDescriptorPool m_DescriptorPool = VK_NULL_HANDLE;
     VkDescriptorSetLayout m_TextureLayout = VK_NULL_HANDLE;
     
+    std::unique_ptr<Icons::ISvgRasterizer> m_SvgRasterizer;
+
     // Icon cache: key = "iconName_size", value = texture
     std::unordered_map<std::string, IconTexture> m_Cache;
     

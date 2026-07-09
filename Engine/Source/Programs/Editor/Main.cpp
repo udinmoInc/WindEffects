@@ -38,6 +38,24 @@ void ConfigureModuleSearchPath() {
     we::core::ConfigureModuleSearchPaths();
 }
 
+#if defined(_WIN32)
+void EnablePerMonitorDpiAwareness() {
+    // Prevent Windows from bitmap-scaling the entire editor surface (global blur).
+    // This must happen before creating the SDL window.
+    if (SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2)) {
+        HE_INFO("[Startup] DPI awareness: Per-monitor v2 enabled.");
+        return;
+    }
+
+    // Fallback for older environments where PMv2 context may not be available.
+    if (SetProcessDPIAware()) {
+        HE_INFO("[Startup] DPI awareness: System-aware fallback enabled.");
+    } else {
+        HE_WARN("[Startup] DPI awareness: unable to enable process DPI awareness.");
+    }
+}
+#endif
+
 } // namespace
 
 int main(int argc, char* argv[]) {
@@ -80,6 +98,7 @@ int main(int argc, char* argv[]) {
 
 #if defined(_WIN32)
         we::programs::windows::ConfigureSdlClassIcons(IDI_ICON1);
+        EnablePerMonitorDpiAwareness();
 #endif
         if (!SDL_Init(SDL_INIT_VIDEO)) {
             throw std::runtime_error("Failed to initialize SDL");

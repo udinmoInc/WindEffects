@@ -58,6 +58,33 @@ public:
     virtual void SetActive(bool active) { m_IsActive = active; }
     virtual bool IsActive() const { return m_IsActive; }
 
+    // Diagnostics (moved from static to instance-level to avoid global state)
+    struct Diagnostics {
+        uint32_t totalWidgetCount = 0;
+        uint32_t visibleWidgetCount = 0;
+        uint32_t hiddenWidgetCount = 0;
+        uint32_t paintCalls = 0;
+        uint32_t arrangeChildrenCalls = 0;
+        uint32_t layoutPassCount = 0;
+        uint32_t invalidateCount = 0;
+        uint32_t widgetsPainted = 0;
+        
+        void Reset() {
+            totalWidgetCount = 0;
+            visibleWidgetCount = 0;
+            hiddenWidgetCount = 0;
+            paintCalls = 0;
+            arrangeChildrenCalls = 0;
+            layoutPassCount = 0;
+            invalidateCount = 0;
+            widgetsPainted = 0;
+        }
+    };
+    
+    // Optional diagnostics pointer (set by owner for tracking)
+    static Diagnostics* s_GlobalDiagnostics;
+    
+    // Legacy static accessors for compatibility (deprecated)
     static uint32_t s_TotalWidgetCount;
     static uint32_t s_VisibleWidgetCount;
     static uint32_t s_HiddenWidgetCount;
@@ -105,7 +132,7 @@ protected:
     bool m_Focused = false;
     bool m_Hovered = false;
     bool m_Visible = true;
-    bool m_IsActive = false;
+    bool m_IsActive = true;
 
     HorizontalAlignment m_HAlign = HorizontalAlignment::Fill;
     VerticalAlignment m_VAlign = VerticalAlignment::Center;

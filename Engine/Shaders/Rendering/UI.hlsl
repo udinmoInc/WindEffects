@@ -57,11 +57,31 @@ float smoothstepAA(float edge0, float edge1, float x)
     return t * t * (3.0 - 2.0 * t);
 }
 
+float median3(float r, float g, float b)
+{
+    return max(min(r, g), min(max(r, g), b));
+}
+
 float4 PSMain(VSOutput input) : SV_Target
 {
     float type = input.sdfParams.y;
     
-    // Type 0.0 is Texture/Text/Icon.
+    // Type 3.0 is MSDF text (FreeType + msdf-atlas-gen).
+    if (type > 2.5 && type < 3.5)
+    {
+        float4 texColor = texSampler.Sample(samp0, input.uv);
+        float sd = median3(texColor.r, texColor.g, texColor.b);
+        float pxRange = max(input.sdfParams.z, 1.0);
+        float2 unitRange = pxRange / max(input.sdfRect.zw, float2(1.0, 1.0));
+        float2 screenTexSize = 1.0 / fwidth(input.uv);
+        float screenPxRange = max(0.5 * dot(unitRange, screenTexSize), 1.0);
+        float alpha = saturate(screenPxRange * (sd - 0.5) + 0.5);
+        float4 outColor = input.color;
+        outColor.a *= alpha;
+        return outColor;
+    }
+
+    // Type 0.0 is Texture/Icon bitmap.
     // Atlases can store coverage in A (or only one color channel). Use coverage
     // as alpha mask and tint with UI color so glyphs/icons remain visible.
     if (type < 0.5)
