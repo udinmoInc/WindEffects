@@ -65,6 +65,7 @@ private:
 
     void EnsureVisibleSwapchain();
     void SyncViewportFramebufferFromLayout();
+    void UpdateUiScaleFromWindow();
     void LogWidgetTreeLayout(const std::shared_ptr<UI::Widget>& widget, const std::string& name, int depth = 0);
     void ValidateEditorPanels(const std::unordered_map<std::string, std::function<std::shared_ptr<UI::Panel>()>>& factories);
 };

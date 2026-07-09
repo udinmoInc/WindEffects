@@ -6,6 +6,7 @@
 #include "Widgets/Label.h"
 #include "Widgets/Panel.h"
 #include "Widgets/ToolButton.h"
+#include "Core/DPIContext.h"
 #include <SDL3/SDL.h>
 #include <algorithm>
 #include <cmath>
@@ -137,15 +138,16 @@ TitleBar::TitleBar(SDL_Window* window, const std::string& title, VkDescriptorSet
 }
 
 void TitleBar::Construct() {
+    const float uiScale = (std::max)(1.0f, DPIContext::GetScale());
     m_LeftContainer = std::make_shared<HorizontalBox>();
     m_LeftContainer->SetSpacing(0.0f);
     
     m_LogoWidget = std::make_shared<LogoSlotWidget>(m_LogoSet);
     m_LeftContainer->AddChild(m_LogoWidget);
-    m_LeftContainer->AddChild(std::make_shared<FixedGap>(kLogoToMenuGap));
+    m_LeftContainer->AddChild(std::make_shared<FixedGap>(kLogoToMenuGap * uiScale));
     
     if (m_MenuBar) {
-        m_MenuBar->SetHeight(kTitleBarHeight);
+        m_MenuBar->SetHeight(kTitleBarHeight * uiScale);
         m_LeftContainer->AddChild(m_MenuBar);
     }
 
@@ -167,11 +169,11 @@ void TitleBar::Construct() {
     notifBtn->SetButtonStyle(ToolButtonStyle::TitleBarTool);
 
     m_RightContainer->AddChild(undoBtn);
-    m_RightContainer->AddChild(std::make_shared<FixedGap>(6.0f));
+    m_RightContainer->AddChild(std::make_shared<FixedGap>(6.0f * uiScale));
     m_RightContainer->AddChild(redoBtn);
-    m_RightContainer->AddChild(std::make_shared<FixedGap>(6.0f));
+    m_RightContainer->AddChild(std::make_shared<FixedGap>(6.0f * uiScale));
     m_RightContainer->AddChild(notifBtn);
-    m_RightContainer->AddChild(std::make_shared<FixedGap>(8.0f));
+    m_RightContainer->AddChild(std::make_shared<FixedGap>(8.0f * uiScale));
 
     auto minimizeBtn = std::make_shared<ToolButton>(Icons::MinimizeName, "", [this]() {
         if (m_Window) SDL_MinimizeWindow(m_Window);
@@ -205,9 +207,9 @@ void TitleBar::Construct() {
     m_CloseWidget = closeBtn;
     
     m_RightContainer->AddChild(m_MinimizeWidget);
-    m_RightContainer->AddChild(std::make_shared<FixedGap>(1.0f));
+    m_RightContainer->AddChild(std::make_shared<FixedGap>(1.0f * uiScale));
     m_RightContainer->AddChild(m_MaximizeWidget);
-    m_RightContainer->AddChild(std::make_shared<FixedGap>(1.0f));
+    m_RightContainer->AddChild(std::make_shared<FixedGap>(1.0f * uiScale));
     m_RightContainer->AddChild(m_CloseWidget);
 
     // Update maximize icon based on initial window state
@@ -231,21 +233,23 @@ void TitleBar::Construct() {
 }
 
 Size TitleBar::Measure(const Size& availableSize) {
+    const float uiScale = (std::max)(1.0f, DPIContext::GetScale());
     if (m_LeftContainer) m_LeftContainer->Measure(availableSize);
     if (m_CenterContainer) m_CenterContainer->Measure(availableSize);
     if (m_RightContainer) m_RightContainer->Measure(availableSize);
 
-    m_DesiredSize = Size{ availableSize.width, kTitleBarHeight };
+    m_DesiredSize = Size{ availableSize.width, kTitleBarHeight * uiScale };
     return m_DesiredSize;
 }
 
 void TitleBar::Arrange(const Rect& allottedRect) {
+    const float uiScale = (std::max)(1.0f, DPIContext::GetScale());
     m_Geometry = allottedRect;
 
     if (m_LeftContainer) {
         Size leftSize = m_LeftContainer->GetDesiredSize();
         m_LeftContainer->Arrange(Rect{
-            allottedRect.x + kWindowPadLeft,
+            allottedRect.x + kWindowPadLeft * uiScale,
             allottedRect.y,
             leftSize.width,
             allottedRect.height
@@ -254,7 +258,7 @@ void TitleBar::Arrange(const Rect& allottedRect) {
 
     if (m_RightContainer) {
         Size rightSize = m_RightContainer->GetDesiredSize();
-        m_RightContainer->Arrange(Rect{ allottedRect.x + allottedRect.width - rightSize.width - 6.0f, allottedRect.y, rightSize.width, allottedRect.height });
+        m_RightContainer->Arrange(Rect{ allottedRect.x + allottedRect.width - rightSize.width - 6.0f * uiScale, allottedRect.y, rightSize.width, allottedRect.height });
     }
 
     if (m_CenterContainer) {

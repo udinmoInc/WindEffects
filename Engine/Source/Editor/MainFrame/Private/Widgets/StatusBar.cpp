@@ -5,6 +5,8 @@
 #include "Core/Theme.h"
 #include "Core/Icon.h"
 #include "Layout/Spacer.h"
+#include "Core/DPIContext.h"
+#include <algorithm>
 
 namespace we::UI {
 
@@ -38,13 +40,15 @@ namespace {
 }
 
 StatusBar::StatusBar() {
-    SetPadding(Margin{ 8.0f, 0.0f, 8.0f, 0.0f });
+    const float uiScale = (std::max)(1.0f, DPIContext::GetScale());
+    SetPadding(Margin{ 8.0f * uiScale, 0.0f, 8.0f * uiScale, 0.0f });
     SetSpacing(0.0f);
 }
 
 void StatusBar::Construct() {
+    const float uiScale = (std::max)(1.0f, DPIContext::GetScale());
     auto leftBox = std::make_shared<HorizontalBox>();
-    leftBox->SetSpacing(4.0f);
+    leftBox->SetSpacing(4.0f * uiScale);
 
     m_AssetsPanelButton = MakeFooterControl(Icons::FolderName, "Assets", false, "Content Browser");
     m_DiagnosticsPanelButton = MakeFooterControl(Icons::WarningName, "Diagnostics", false, "Diagnostics Panel");
@@ -56,7 +60,7 @@ void StatusBar::Construct() {
     leftBox->AddChild(m_DiagnosticsPanelButton);
     AddChild(leftBox);
 
-    AddChild(std::make_shared<FixedGap>(8.0f));
+    AddChild(std::make_shared<FixedGap>(8.0f * uiScale));
 
     m_CommandInput = std::make_shared<CommandInput>();
     m_CommandInput->SetVerticalAlignment(VerticalAlignment::Center);
@@ -66,7 +70,7 @@ void StatusBar::Construct() {
     AddChild(std::make_shared<Spacer>());
 
     auto rightBox = std::make_shared<HorizontalBox>();
-    rightBox->SetSpacing(4.0f);
+    rightBox->SetSpacing(4.0f * uiScale);
 
     m_OutputLogButton = MakeFooterControl(Icons::ConsoleName, "Output Log", false, "Open Output Log");
     m_BuildMenuButton = MakeFooterControl(Icons::BuildName, "Development", true, "Build Configuration");
@@ -75,7 +79,7 @@ void StatusBar::Construct() {
 
     rightBox->AddChild(m_OutputLogButton);
     rightBox->AddChild(m_BuildMenuButton);
-    rightBox->AddChild(std::make_shared<FixedGap>(6.0f));
+    rightBox->AddChild(std::make_shared<FixedGap>(6.0f * uiScale));
     rightBox->AddChild(m_TraceButton);
     rightBox->AddChild(m_QualityMenuButton);
 
