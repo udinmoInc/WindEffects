@@ -71,7 +71,7 @@ VkDescriptorSet IconRenderer::GetLucideIcon(const std::string& iconName, uint32_
         return VK_NULL_HANDLE;
     }
 
-    const std::string key = lucideName + "_" + std::to_string(size) + "_"
+    const std::string key = std::string("mask_") + lucideName + "_" + std::to_string(size) + "_"
         + std::to_string(static_cast<int>(color.r * 255.0f)) + "_"
         + std::to_string(static_cast<int>(color.g * 255.0f)) + "_"
         + std::to_string(static_cast<int>(color.b * 255.0f)) + "_"
@@ -87,6 +87,7 @@ VkDescriptorSet IconRenderer::GetLucideIcon(const std::string& iconName, uint32_
     request.svgPath = svgPath;
     request.width = size;
     request.height = size;
+    request.applyTint = false;
     request.tint = color;
     request.strokeWidth = strokeWidth;
 
@@ -115,6 +116,7 @@ VkDescriptorSet IconRenderer::GetIcon(const std::string& iconName, uint32_t size
         request.svgPath = iconName;
         request.width = size;
         request.height = size;
+        request.applyTint = false;
         request.tint = m_DefaultColor;
 
         const Icons::SvgRasterizeResult raster = m_SvgRasterizer->Rasterize(request);

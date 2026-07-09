@@ -40,6 +40,15 @@ public class Application : ModuleRules
         Definitions.Add("APPLICATION_EXPORTS");
 
         PlatformSettings.Windows ??= new WindowsSettings();
+
+        var freetypeLibDir = Path.Combine(thirdPartyRoot, "freetype", "lib");
+        var msdfLibDir = Path.Combine(thirdPartyRoot, "msdf-atlas-gen", "lib");
+        var lunaLibDir = Path.Combine(thirdPartyRoot, "lunasvg", "lib");
+
+        PlatformSettings.Windows.LinkerFlags.Add($"/LIBPATH:\"{freetypeLibDir}\"");
+        PlatformSettings.Windows.LinkerFlags.Add($"/LIBPATH:\"{msdfLibDir}\"");
+        PlatformSettings.Windows.LinkerFlags.Add($"/LIBPATH:\"{lunaLibDir}\"");
+
         PlatformSettings.Windows.LinkerFlags.Add("freetype.lib");
         PlatformSettings.Windows.LinkerFlags.Add("msdfgen-core.lib");
         PlatformSettings.Windows.LinkerFlags.Add("msdfgen-ext.lib");

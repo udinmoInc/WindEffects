@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Normalize editor SVG icons for pixel-perfect rasterization (nanosvg-compatible).
+"""Normalize editor SVG icons for pixel-perfect rasterization (LunaSVG-compatible).
 
 Fixes common Inkscape export issues:
   - offsets in viewBox (e.g. viewBox="13 24 231 203")

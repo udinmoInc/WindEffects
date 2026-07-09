@@ -43,6 +43,16 @@ public:
         uint32_t textureSwitchCount = 0;
         uint32_t batchCount = 0;
         uint32_t paintCommandsRecorded = 0;
+
+        // Text pipeline diagnostics
+        uint32_t textStringsProcessed = 0;
+        uint32_t textGlyphsRequested = 0;
+        uint32_t textGlyphsResolved = 0;
+        uint32_t textGlyphsMissing = 0;
+        uint32_t textVerticesGenerated = 0;
+        uint32_t textIndicesGenerated = 0;
+        uint32_t textBatchesCreated = 0;
+        uint32_t textDrawsSkipped = 0;
         
         void Reset() {
             totalDrawCommandsGenerated = 0;
@@ -57,6 +67,14 @@ public:
             textureSwitchCount = 0;
             batchCount = 0;
             paintCommandsRecorded = 0;
+            textStringsProcessed = 0;
+            textGlyphsRequested = 0;
+            textGlyphsResolved = 0;
+            textGlyphsMissing = 0;
+            textVerticesGenerated = 0;
+            textIndicesGenerated = 0;
+            textBatchesCreated = 0;
+            textDrawsSkipped = 0;
         }
     };
     

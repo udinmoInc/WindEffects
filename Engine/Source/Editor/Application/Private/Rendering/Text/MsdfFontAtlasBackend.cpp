@@ -240,10 +240,13 @@ bool MsdfFontAtlasBackend::RebuildAtlas() {
     m_AtlasHeight = bitmap.height;
     m_AtlasRgba.resize(static_cast<size_t>(m_AtlasWidth * m_AtlasHeight * 4));
 
+    // msdf-atlas-gen stores rows with Y+ up; Vulkan images use Y+ down (v=0 at top).
+    // Flip rows during CPU packing so atlas UVs match the msdf-atlas-gen convention.
     for (int y = 0; y < m_AtlasHeight; ++y) {
         for (int x = 0; x < m_AtlasWidth; ++x) {
             const float* msdf = bitmap(x, y);
-            const size_t dstIndex = static_cast<size_t>(y * m_AtlasWidth + x) * 4;
+            const int dstY = m_AtlasHeight - 1 - y;
+            const size_t dstIndex = static_cast<size_t>(dstY * m_AtlasWidth + x) * 4;
             m_AtlasRgba[dstIndex + 0] = static_cast<uint8_t>(std::clamp(msdf[0], 0.0f, 1.0f) * 255.0f);
             m_AtlasRgba[dstIndex + 1] = static_cast<uint8_t>(std::clamp(msdf[1], 0.0f, 1.0f) * 255.0f);
             m_AtlasRgba[dstIndex + 2] = static_cast<uint8_t>(std::clamp(msdf[2], 0.0f, 1.0f) * 255.0f);
@@ -279,9 +282,10 @@ bool MsdfFontAtlasBackend::RebuildAtlas() {
         double at = 0.0;
         glyph.getQuadAtlasBounds(al, ab, ar, at);
         placement.atlasLeft = static_cast<float>(al / m_AtlasWidth);
-        placement.atlasBottom = static_cast<float>(ab / m_AtlasHeight);
         placement.atlasRight = static_cast<float>(ar / m_AtlasWidth);
-        placement.atlasTop = static_cast<float>(at / m_AtlasHeight);
+        // msdf-atlas-gen atlas bounds are Y-up; GPU texture is Y-down after row flip on upload.
+        placement.atlasBottom = static_cast<float>(1.0 - (at / m_AtlasHeight));
+        placement.atlasTop = static_cast<float>(1.0 - (ab / m_AtlasHeight));
 
         m_Glyphs[i] = placement;
     }
