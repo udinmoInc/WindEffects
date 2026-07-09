@@ -1,7 +1,9 @@
 #include "Rendering/UIWidgetAdapter.h"
 #include "Rendering/FontAtlas.h"
 #include "Rendering/IconRenderer.h"
+#include "Rendering/UIPipelineAudit.h"
 #include "Core/Logger.h"
+#include "Core/FrameCounter.h"
 #include <cmath>
 #include <cstring>
 #include <functional>
@@ -19,6 +21,7 @@ uint32_t UIWidgetAdapter::s_ShadowCommands = 0;
 uint32_t UIWidgetAdapter::s_ClipRectCount = 0;
 uint32_t UIWidgetAdapter::s_TextureSwitchCount = 0;
 uint32_t UIWidgetAdapter::s_BatchCount = 0;
+uint32_t UIWidgetAdapter::s_PaintCommandsRecorded = 0;
 
 void UIWidgetAdapter::ResetDiagnostics() {
     s_TotalDrawCommandsGenerated = 0;
@@ -32,6 +35,7 @@ void UIWidgetAdapter::ResetDiagnostics() {
     s_ClipRectCount = 0;
     s_TextureSwitchCount = 0;
     s_BatchCount = 0;
+    s_PaintCommandsRecorded = 0;
 }
 
 UIWidgetAdapter::UIWidgetAdapter()
@@ -96,6 +100,7 @@ void UIWidgetAdapter::ProcessWidget(const std::shared_ptr<Widget>& root,
     PaintContext paintCtx;
     Widget::s_PaintCalls++;
     root->Paint(paintCtx);
+    s_PaintCommandsRecorded = static_cast<uint32_t>(paintCtx.GetCommands().size());
     
     // Convert paint commands to geometry
     const auto& commands = paintCtx.GetCommands();

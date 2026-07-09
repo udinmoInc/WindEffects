@@ -225,6 +225,12 @@ bool SwapchainManager::AcquireNextImage(uint32_t frameIndex, uint32_t& outImageI
     }
 
     WE_VALIDATE_RENDER(result == VK_SUCCESS, "SwapchainManager::AcquireNextImage", "Failed to acquire swapchain image.");
+
+    WE_LOG_INFO(
+        we::LogCategory::Renderer.data(),
+        std::string("[PresentAudit] vkAcquireNextImageKHR frameSlot=") + std::to_string(frameIndex) +
+        " image=" + std::to_string(outImageIndex));
+
     return true;
 }
 
@@ -285,6 +291,11 @@ void SwapchainManager::Present(uint32_t frameIndex, uint32_t imageIndex) {
     presentInfo.pImageIndices = imageIndices;
 
     VkResult result = vkQueuePresentKHR(m_PresentQueue, &presentInfo);
+
+    WE_LOG_INFO(
+        we::LogCategory::Renderer.data(),
+        std::string("[PresentAudit] vkQueuePresentKHR frameSlot=") + std::to_string(frameIndex) +
+        " image=" + std::to_string(imageIndex));
 
     if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR) {
         Recreate();

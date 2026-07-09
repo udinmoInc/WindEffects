@@ -15,8 +15,14 @@
 
 #include <volk.h>
 #include <array>
+#include <cmath>
 #include <cstring>
+#include <limits>
 #include <stdexcept>
+#include <cstdint>
+
+#include "Rendering/UIPipelineAudit.h"
+#include "Core/FrameCounter.h"
 
 // Production builds should not emit per-frame diagnostic "PASS | ..." spam.
 #ifndef WE_DEBUG_UI
@@ -29,6 +35,73 @@
 #endif
 
 namespace we::UI {
+
+namespace {
+
+float SdRoundBox(float px, float py, float rx, float ry, float rw, float rh, float radius) {
+    const float cx = rx + rw * 0.5f;
+    const float cy = ry + rh * 0.5f;
+    const float halfW = rw * 0.5f;
+    const float halfH = rh * 0.5f;
+    const float qx = std::fabs(px - cx) - halfW + radius;
+    const float qy = std::fabs(py - cy) - halfH + radius;
+    return std::min(std::max(qx, qy), 0.0f) + std::hypot(std::max(qx, 0.0f), std::max(qy, 0.0f)) - radius;
+}
+
+float EstimateFragmentAlpha(const UIVertex2& v) {
+    const float type = v.sdfParams[1];
+    if (type < 0.5f) {
+        return v.color[3];
+    }
+
+    const float px = v.position[0];
+    const float py = v.position[1];
+    const float dist = SdRoundBox(px, py, v.sdfRect[0], v.sdfRect[1], v.sdfRect[2], v.sdfRect[3], v.sdfParams[0]);
+    float alpha = 1.0f;
+    if (type > 1.5f) {
+        const float thickness = std::max(v.sdfParams[2], 1.0f);
+        const float borderDist = std::fabs(dist) - thickness * 0.5f;
+        const float t = std::clamp(1.0f - borderDist, 0.0f, 1.0f);
+        alpha = t * t * (3.0f - 2.0f * t);
+    } else {
+        const float t = std::clamp((dist + 1.0f) * 0.5f, 0.0f, 1.0f);
+        alpha = t * t * (3.0f - 2.0f * t);
+    }
+    return v.color[3] * alpha;
+}
+
+void AuditVertexAlphaRange(const std::vector<UIVertex2>& vertices, uint32_t firstVertex, uint32_t vertexCount,
+                           float& outMinAlpha, float& outMaxAlpha) {
+    outMinAlpha = std::numeric_limits<float>::max();
+    outMaxAlpha = std::numeric_limits<float>::lowest();
+    const uint32_t end = std::min(firstVertex + vertexCount, static_cast<uint32_t>(vertices.size()));
+    for (uint32_t i = firstVertex; i < end; ++i) {
+        outMinAlpha = std::min(outMinAlpha, vertices[i].color[3]);
+        outMaxAlpha = std::max(outMaxAlpha, vertices[i].color[3]);
+    }
+    if (outMinAlpha == std::numeric_limits<float>::max()) {
+        outMinAlpha = 0.0f;
+        outMaxAlpha = 0.0f;
+    }
+}
+
+void AuditFragmentAlphaRange(const std::vector<UIVertex2>& vertices, uint32_t firstVertex, uint32_t vertexCount,
+                             float& outMinAlpha, float& outMaxAlpha) {
+    outMinAlpha = std::numeric_limits<float>::max();
+    outMaxAlpha = std::numeric_limits<float>::lowest();
+    const uint32_t end = std::min(firstVertex + vertexCount, static_cast<uint32_t>(vertices.size()));
+    for (uint32_t i = firstVertex; i < end; ++i) {
+        const float alpha = EstimateFragmentAlpha(vertices[i]);
+        outMinAlpha = std::min(outMinAlpha, alpha);
+        outMaxAlpha = std::max(outMaxAlpha, alpha);
+    }
+    if (outMinAlpha == std::numeric_limits<float>::max()) {
+        outMinAlpha = 0.0f;
+        outMaxAlpha = 0.0f;
+    }
+}
+
+} // namespace
 
 OverlayRenderer::OverlayRenderer() = default;
 
@@ -224,11 +297,27 @@ void OverlayRenderer::Shutdown() {
     m_ResourceManager = nullptr;
 }
 
+void OverlayRenderer::SetPipelineAuditImageIndex(uint32_t imageIndex) {
+    m_PipelineAuditImageIndex = imageIndex;
+}
+
 void OverlayRenderer::RenderEditorUI(const std::shared_ptr<we::UI::Widget>& root) {
+    const uint64_t frameNumber = we::runtime::core::FrameCounter::GetFrameNumber();
     uint32_t width = m_CurrentWidth;
     uint32_t height = m_CurrentHeight;
 
     if (!root || width == 0 || height == 0) {
+        UIPipelineCpuStats stats{};
+        stats.rootWidgetExists = static_cast<bool>(root);
+        stats.targetWidth = width;
+        stats.targetHeight = height;
+        UIPipelineAudit::EmitCpuPipelineReport(frameNumber, stats);
+        if (!root) {
+            UIPipelineAudit::LogStage(frameNumber, "Widget Tree", false, "root widget is null");
+        } else {
+            UIPipelineAudit::LogStage(frameNumber, "Layout Pass", false,
+                "target extent is zero (" + std::to_string(width) + "x" + std::to_string(height) + ")");
+        }
         m_Vertices.clear();
         m_Indices.clear();
         m_Batches.clear();
@@ -259,35 +348,27 @@ void OverlayRenderer::RenderEditorUI(const std::shared_ptr<we::UI::Widget>& root
         m_Indices = m_WidgetAdapter->GetIndices();
         m_Batches = m_WidgetAdapter->GetBatches();
     }
-    
-    WE_OVERLAY_PASS_INFO("PASS | Paint() Finished");
-    
-    WE_OVERLAY_PASS_INFO(std::string("Root Widget Name: Root"));
-    WE_OVERLAY_PASS_INFO(std::string("Total Widget Count: ") + std::to_string(we::UI::Widget::s_TotalWidgetCount));
-    WE_OVERLAY_PASS_INFO(std::string("Visible Widget Count: ") + std::to_string(we::UI::Widget::s_VisibleWidgetCount));
-    WE_OVERLAY_PASS_INFO(std::string("Hidden Widget Count: ") + std::to_string(we::UI::Widget::s_HiddenWidgetCount));
-    WE_OVERLAY_PASS_INFO(std::string("Paint() Calls: ") + std::to_string(we::UI::Widget::s_PaintCalls));
-    WE_OVERLAY_PASS_INFO(std::string("ArrangeChildren() Calls: ") + std::to_string(we::UI::Widget::s_ArrangeChildrenCalls));
-    WE_OVERLAY_PASS_INFO(std::string("Layout Pass Count: ") + std::to_string(we::UI::Widget::s_LayoutPassCount));
-    WE_OVERLAY_PASS_INFO(std::string("Invalidate Count: ") + std::to_string(we::UI::Widget::s_InvalidateCount));
 
-    WE_OVERLAY_PASS_INFO("==========================");
-    WE_OVERLAY_PASS_INFO("DRAW COMMAND GENERATION");
-    WE_OVERLAY_PASS_INFO("==========================");
-    WE_OVERLAY_PASS_INFO(std::string("Total Draw Commands Generated: ") + std::to_string(we::UI::UIWidgetAdapter::s_TotalDrawCommandsGenerated));
-    WE_OVERLAY_PASS_INFO(std::string("Rectangle Commands: ") + std::to_string(we::UI::UIWidgetAdapter::s_RectangleCommands));
-    WE_OVERLAY_PASS_INFO(std::string("Text Commands: ") + std::to_string(we::UI::UIWidgetAdapter::s_TextCommands));
-    WE_OVERLAY_PASS_INFO(std::string("Image Commands: ") + std::to_string(we::UI::UIWidgetAdapter::s_ImageCommands));
-    WE_OVERLAY_PASS_INFO(std::string("Icon Commands: ") + std::to_string(we::UI::UIWidgetAdapter::s_IconCommands));
-    WE_OVERLAY_PASS_INFO(std::string("Border Commands: ") + std::to_string(we::UI::UIWidgetAdapter::s_BorderCommands));
-    WE_OVERLAY_PASS_INFO(std::string("Gradient Commands: ") + std::to_string(we::UI::UIWidgetAdapter::s_GradientCommands));
-    WE_OVERLAY_PASS_INFO(std::string("Shadow Commands: ") + std::to_string(we::UI::UIWidgetAdapter::s_ShadowCommands));
-    WE_OVERLAY_PASS_INFO(std::string("Clip Rect Count: ") + std::to_string(we::UI::UIWidgetAdapter::s_ClipRectCount));
-    WE_OVERLAY_PASS_INFO(std::string("Texture Switch Count: ") + std::to_string(we::UI::UIWidgetAdapter::s_TextureSwitchCount));
-    WE_OVERLAY_PASS_INFO(std::string("Batch Count: ") + std::to_string(we::UI::UIWidgetAdapter::s_BatchCount));
+    UIPipelineAudit::WalkWidgetTree(frameNumber, root, "Root", 0, Widget::s_PaintCalls > 0);
+
+    UIPipelineCpuStats cpuStats{};
+    cpuStats.rootWidgetExists = true;
+    cpuStats.widgetCount = Widget::s_TotalWidgetCount;
+    cpuStats.visibleWidgetCount = Widget::s_VisibleWidgetCount;
+    cpuStats.layoutPassCount = Widget::s_LayoutPassCount;
+    cpuStats.paintCalls = Widget::s_PaintCalls;
+    cpuStats.paintCommands = UIWidgetAdapter::s_PaintCommandsRecorded;
+    cpuStats.drawCommandsGenerated = UIWidgetAdapter::s_TotalDrawCommandsGenerated;
+    cpuStats.vertexCount = static_cast<uint32_t>(m_Vertices.size());
+    cpuStats.indexCount = static_cast<uint32_t>(m_Indices.size());
+    cpuStats.batchCount = static_cast<uint32_t>(m_Batches.size());
+    cpuStats.targetWidth = width;
+    cpuStats.targetHeight = height;
+    cpuStats.geometryUploaded = false;
     
     if (we::UI::UIWidgetAdapter::s_TotalDrawCommandsGenerated == 0) {
         HE_ERROR("STOPPING: DrawCommands == 0! Paint() produced nothing.");
+        UIPipelineAudit::EmitCpuPipelineReport(frameNumber, cpuStats);
         m_Vertices.clear();
         m_Indices.clear();
         m_Batches.clear();
@@ -319,6 +400,7 @@ void OverlayRenderer::RenderEditorUI(const std::shared_ptr<we::UI::Widget>& root
     WE_OVERLAY_PASS_INFO(std::string("Actual Widgets Painted: ") + std::to_string(we::UI::Widget::s_WidgetsPainted));
 
     if (m_Vertices.size() <= 4) {
+        UIPipelineAudit::EmitCpuPipelineReport(frameNumber, cpuStats);
         m_Vertices.clear();
         m_Indices.clear();
         m_Batches.clear();
@@ -330,11 +412,13 @@ void OverlayRenderer::RenderEditorUI(const std::shared_ptr<we::UI::Widget>& root
     m_FrameStats.batches = static_cast<uint32_t>(m_Batches.size());
 
     UpdateGeometryBuffers(m_CurrentFrameIndex);
+    cpuStats.geometryUploaded = true;
+    UIPipelineAudit::EmitCpuPipelineReport(frameNumber, cpuStats);
     WE_OVERLAY_PASS_INFO(std::string("PASS | Vertex Buffer Upload"));
     WE_OVERLAY_PASS_INFO(std::string("PASS | Index Buffer Upload"));
 }
 
-void OverlayRenderer::SetFrameExtent(uint32_t width, uint32_t height) {
+void OverlayRenderer::SetTargetExtent(uint32_t width, uint32_t height) {
     m_CurrentWidth = width;
     m_CurrentHeight = height;
 }
@@ -370,11 +454,12 @@ void OverlayRenderer::BeginOverlayPass(const ::we::editor::rendering::OverlayRen
     fullScissor.extent = {m_CurrentWidth, m_CurrentHeight};
     vkCmdSetScissor(context.cmd, 0, 1, &fullScissor);
 
+    // Top-left UI coordinates -> Vulkan NDC (Y grows up in NDC).
     float pushConstants[4];
     pushConstants[0] = 2.0f / static_cast<float>(m_CurrentWidth);
-    pushConstants[1] = 2.0f / static_cast<float>(m_CurrentHeight);
+    pushConstants[1] = -2.0f / static_cast<float>(m_CurrentHeight);
     pushConstants[2] = -1.0f;
-    pushConstants[3] = -1.0f;
+    pushConstants[3] = 1.0f;
     vkCmdPushConstants(context.cmd, m_PipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(float) * 4, pushConstants);
 
 
@@ -385,6 +470,29 @@ void OverlayRenderer::EndOverlayPass(const ::we::editor::rendering::OverlayRende
     WE_OVERLAY_PASS_INFO("GPU SUBMISSION (EndOverlayPass)");
     WE_OVERLAY_PASS_INFO("==========================");
     WE_OVERLAY_PASS_INFO(std::string("CPU Batch Count: ") + std::to_string(m_Batches.size()));
+
+    static bool loggedBlendState = false;
+    static bool loggedResourceAudit = false;
+    static uint32_t auditFramesRemaining = 1;
+    const bool auditThisFrame = auditFramesRemaining > 0;
+
+    if (auditThisFrame && !loggedBlendState) {
+        HE_INFO("[UI Audit] Blend state: enable=1 srcColor=SRC_ALPHA dstColor=ONE_MINUS_SRC_ALPHA srcAlpha=ONE dstAlpha=ZERO");
+        loggedBlendState = true;
+    }
+
+    if (auditThisFrame && !loggedResourceAudit) {
+        const VkDescriptorSet fontSet = m_FontAtlas ? m_FontAtlas->GetDescriptorSet() : VK_NULL_HANDLE;
+        HE_INFO(std::string("[UI Audit] Font atlas descriptor: ") +
+                (fontSet != VK_NULL_HANDLE ? "valid" : "NULL") +
+                " imageView=0x" + std::to_string(reinterpret_cast<uint64_t>(m_FontAtlas ? m_FontAtlas->GetImageView() : VK_NULL_HANDLE)));
+        HE_INFO(std::string("[UI Audit] Dummy white texture descriptor: ") +
+                (m_DummyDescriptorSet != VK_NULL_HANDLE ? "valid" : "NULL") +
+                " imageView=0x" + std::to_string(reinterpret_cast<uint64_t>(m_DummyImageView)));
+        HE_INFO(std::string("[UI Audit] Viewport: 0,0 ") +
+                std::to_string(m_CurrentWidth) + "x" + std::to_string(m_CurrentHeight));
+        loggedResourceAudit = true;
+    }
 
     uint32_t gpuBatchCount = 0;
     uint32_t executedDrawCalls = 0;
@@ -434,6 +542,43 @@ void OverlayRenderer::EndOverlayPass(const ::we::editor::rendering::OverlayRende
                     batchScissor = fullScissor;
                 }
 
+                if (auditThisFrame && executedDrawCalls < 8) {
+                    uint32_t firstVertex = 0;
+                    if (!m_Indices.empty() && batch.firstIndex < m_Indices.size()) {
+                        firstVertex = m_Indices[batch.firstIndex];
+                    }
+                    float vertexAlphaMin = 0.0f;
+                    float vertexAlphaMax = 0.0f;
+                    float fragmentAlphaMin = 0.0f;
+                    float fragmentAlphaMax = 0.0f;
+                    AuditVertexAlphaRange(m_Vertices, firstVertex, 4, vertexAlphaMin, vertexAlphaMax);
+                    AuditFragmentAlphaRange(m_Vertices, firstVertex, 4, fragmentAlphaMin, fragmentAlphaMax);
+
+                    const UIVertex2* sampleVertex = (firstVertex < m_Vertices.size()) ? &m_Vertices[firstVertex] : nullptr;
+                    HE_INFO(std::string("[UI Audit] Draw[") + std::to_string(i) +
+                            "] indices=" + std::to_string(batch.indexCount) +
+                            " firstIndex=" + std::to_string(batch.firstIndex) +
+                            " descriptor=0x" + std::to_string(reinterpret_cast<uint64_t>(textureSet)) +
+                            " pipeline=0x" + std::to_string(reinterpret_cast<uint64_t>(m_GraphicsPipeline)) +
+                            " scissor=" + std::to_string(batchScissor.offset.x) + "," +
+                            std::to_string(batchScissor.offset.y) + " " +
+                            std::to_string(batchScissor.extent.width) + "x" +
+                            std::to_string(batchScissor.extent.height) +
+                            " vertexAlpha=[" + std::to_string(vertexAlphaMin) + "," + std::to_string(vertexAlphaMax) + "]" +
+                            " fragmentAlpha=[" + std::to_string(fragmentAlphaMin) + "," + std::to_string(fragmentAlphaMax) + "]" +
+                            (sampleVertex
+                                ? " colorRGBA=(" + std::to_string(sampleVertex->color[0]) + "," +
+                                  std::to_string(sampleVertex->color[1]) + "," +
+                                  std::to_string(sampleVertex->color[2]) + "," +
+                                  std::to_string(sampleVertex->color[3]) + ")" +
+                                  " sdfType=" + std::to_string(sampleVertex->sdfParams[1])
+                                : ""));
+
+                    if (fragmentAlphaMax <= 0.0f) {
+                        HE_ERROR("[UI Audit] Batch has zero fragment alpha; draw would be invisible.");
+                    }
+                }
+
                 vkCmdSetScissor(context.cmd, 0, 1, &batchScissor);
                 vkCmdBindDescriptorSets(context.cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_PipelineLayout, 0, 1, &textureSet, 0, nullptr);
                 vkCmdDrawIndexed(context.cmd, batch.indexCount, 1, batch.firstIndex, batch.vertexOffset, 0);
@@ -462,6 +607,38 @@ void OverlayRenderer::EndOverlayPass(const ::we::editor::rendering::OverlayRende
     WE_OVERLAY_PASS_INFO(std::string("Recorded Draw Calls: ") + std::to_string(executedDrawCalls));
     WE_OVERLAY_PASS_INFO(std::string("Executed Draw Calls: ") + std::to_string(executedDrawCalls));
     WE_OVERLAY_PASS_INFO(std::string("Skipped Draw Calls: ") + std::to_string(skippedDrawCalls));
+
+    if (auditThisFrame) {
+        HE_INFO(std::string("[UI Audit] Executed draw calls: ") + std::to_string(executedDrawCalls) +
+                " skipped: " + std::to_string(skippedDrawCalls));
+        if (auditFramesRemaining > 0) {
+            --auditFramesRemaining;
+        }
+    }
+
+    {
+        const uint64_t frameNumber = we::runtime::core::FrameCounter::GetFrameNumber();
+        UIPipelineGpuStats gpuStats{};
+        gpuStats.commandBuffer = context.cmd;
+        gpuStats.pipeline = m_GraphicsPipeline;
+        if (m_CurrentFrameIndex < m_FrameGeometry.size()) {
+            gpuStats.vertexBuffer = m_FrameGeometry[m_CurrentFrameIndex].vertexBuffer;
+            gpuStats.indexBuffer = m_FrameGeometry[m_CurrentFrameIndex].indexBuffer;
+        }
+        gpuStats.swapchainImageIndex = m_PipelineAuditImageIndex;
+        gpuStats.executedDrawCalls = executedDrawCalls;
+        gpuStats.skippedDrawCalls = skippedDrawCalls;
+        gpuStats.batchCount = static_cast<uint32_t>(m_Batches.size());
+        gpuStats.viewportWidth = m_CurrentWidth;
+        gpuStats.viewportHeight = m_CurrentHeight;
+        gpuStats.vertices = &m_Vertices;
+        gpuStats.batches = &m_Batches;
+        UIPipelineAudit::EmitGpuPipelineReport(frameNumber, gpuStats);
+        UIPipelineAudit::LogStage(frameNumber, "Presentation", m_PipelineAuditImageIndex != UINT32_MAX,
+            m_PipelineAuditImageIndex != UINT32_MAX
+                ? ("swapchain image=" + std::to_string(m_PipelineAuditImageIndex) + " (see PresentAudit)")
+                : "swapchain image index not recorded for this frame");
+    }
 
     m_Compositor->EndComposite(context.cmd);
     WE_OVERLAY_PASS_INFO("PASS | vkCmdEndRendering() executed (via Compositor)");
