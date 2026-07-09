@@ -29,6 +29,7 @@ public:
     int GetAtlasHeight() const override { return m_AtlasHeight; }
     float GetEmSize() const override { return m_EmSizePx; }
     float GetMsdfPixelRange() const override { return m_MsdfPixelRange; }
+    int GetGlyphCount() const override { return static_cast<int>(m_Glyphs.size()); }
     bool IsDirty() const override { return m_Dirty; }
     void ClearDirty() override { m_Dirty = false; }
 

@@ -231,12 +231,26 @@ void UIWidgetAdapter::GenerateRectGeometry(const DrawCommand& cmd) {
 
 void UIWidgetAdapter::GenerateTextGeometry(const DrawCommand& cmd) {
     if (!m_Renderer || !m_Renderer->GetFontAtlas()) {
+        ++m_Diagnostics.textDrawsSkipped;
         return;
     }
     
     FontAtlas* fontAtlas = m_Renderer->GetFontAtlas();
-    fontAtlas->EnsureTextGlyphs(cmd.text);
-    m_CurrentTextureSet = fontAtlas->GetDescriptorSet();
+    ++m_Diagnostics.textStringsProcessed;
+    if (!fontAtlas->EnsureTextGlyphs(cmd.text)) {
+        ++m_Diagnostics.textDrawsSkipped;
+        HE_WARN("[UI TextAudit] Skipping text: glyph atlas update failed for \"" + cmd.text + "\"");
+        return;
+    }
+
+    const VkDescriptorSet fontDescriptor = fontAtlas->GetDescriptorSet();
+    if (fontDescriptor == VK_NULL_HANDLE || !fontAtlas->IsGpuAtlasValid()) {
+        ++m_Diagnostics.textDrawsSkipped;
+        HE_WARN("[UI TextAudit] Skipping text: font atlas GPU resources invalid (descriptor="
+                + std::to_string(reinterpret_cast<uint64_t>(fontDescriptor)) + ")");
+        return;
+    }
+    m_CurrentTextureSet = fontDescriptor;
     
     float xpos = SnapPx(cmd.rect.x);
     float ypos = SnapPx(cmd.rect.y);
@@ -246,34 +260,41 @@ void UIWidgetAdapter::GenerateTextGeometry(const DrawCommand& cmd) {
         : 1.0f;
     const float startX = xpos;
     const float baselineY = SnapPx(ypos + cmd.fontSize * 0.85f);
-    const float msdfRange = fontAtlas->GetMsdfPixelRange();
+    const float msdfRange = fontAtlas->GetMsdfPixelRange() * scale;
     const float type = 3.0f; // MSDF text
+    const float atlasW = static_cast<float>(fontAtlas->GetAtlasWidth());
+    const float atlasH = static_cast<float>(fontAtlas->GetAtlasHeight());
 
     std::vector<uint32_t> codepoints;
     Text::DecodeUtf8(cmd.text, codepoints);
+    m_Diagnostics.textGlyphsRequested += static_cast<uint32_t>(codepoints.size());
 
     float penX = 0.0f;
     float penY = 0.0f;
     uint32_t startTotalIndex = static_cast<uint32_t>(m_Indices.size());
+    uint32_t glyphsInString = 0;
 
     for (uint32_t codepoint : codepoints) {
         GlyphInfo q{};
         if (!fontAtlas->GetGlyphQuad(codepoint, &penX, &penY, q)) {
+            ++m_Diagnostics.textGlyphsMissing;
             continue;
         }
+        ++glyphsInString;
+        ++m_Diagnostics.textGlyphsResolved;
 
         const uint32_t charStart = static_cast<uint32_t>(m_Vertices.size());
         const float px0 = startX + q.x0 * scale;
         const float py0 = baselineY + q.y0 * scale;
         const float px1 = startX + q.x1 * scale;
         const float py1 = baselineY + q.y1 * scale;
-        const float w = px1 - px0;
-        const float h = py1 - py0;
+        const float glyphAtlasW = std::max((q.u1 - q.u0) * atlasW, 1.0f);
+        const float glyphAtlasH = std::max((q.v1 - q.v0) * atlasH, 1.0f);
 
-        UIVertex2 v0{ {px0, py0}, {q.u0, q.v0}, {cmd.color.r, cmd.color.g, cmd.color.b, cmd.color.a}, {px0, py0, w, h}, {0.0f, type, msdfRange, 0.0f} };
-        UIVertex2 v1{ {px1, py0}, {q.u1, q.v0}, {cmd.color.r, cmd.color.g, cmd.color.b, cmd.color.a}, {px0, py0, w, h}, {0.0f, type, msdfRange, 0.0f} };
-        UIVertex2 v2{ {px1, py1}, {q.u1, q.v1}, {cmd.color.r, cmd.color.g, cmd.color.b, cmd.color.a}, {px0, py0, w, h}, {0.0f, type, msdfRange, 0.0f} };
-        UIVertex2 v3{ {px0, py1}, {q.u0, q.v1}, {cmd.color.r, cmd.color.g, cmd.color.b, cmd.color.a}, {px0, py0, w, h}, {0.0f, type, msdfRange, 0.0f} };
+        UIVertex2 v0{ {px0, py0}, {q.u0, q.v0}, {cmd.color.r, cmd.color.g, cmd.color.b, cmd.color.a}, {px0, py0, glyphAtlasW, glyphAtlasH}, {0.0f, type, msdfRange, 0.0f} };
+        UIVertex2 v1{ {px1, py0}, {q.u1, q.v0}, {cmd.color.r, cmd.color.g, cmd.color.b, cmd.color.a}, {px0, py0, glyphAtlasW, glyphAtlasH}, {0.0f, type, msdfRange, 0.0f} };
+        UIVertex2 v2{ {px1, py1}, {q.u1, q.v1}, {cmd.color.r, cmd.color.g, cmd.color.b, cmd.color.a}, {px0, py0, glyphAtlasW, glyphAtlasH}, {0.0f, type, msdfRange, 0.0f} };
+        UIVertex2 v3{ {px0, py1}, {q.u0, q.v1}, {cmd.color.r, cmd.color.g, cmd.color.b, cmd.color.a}, {px0, py0, glyphAtlasW, glyphAtlasH}, {0.0f, type, msdfRange, 0.0f} };
 
         m_Vertices.push_back(v0);
         m_Vertices.push_back(v1);
@@ -288,10 +309,13 @@ void UIWidgetAdapter::GenerateTextGeometry(const DrawCommand& cmd) {
         m_Indices.push_back(charStart + 0);
     }
     
-    // Create batch for all text
     if (m_Indices.size() == startTotalIndex) {
-        return; // No characters rendered
+        ++m_Diagnostics.textDrawsSkipped;
+        return;
     }
+
+    m_Diagnostics.textVerticesGenerated += glyphsInString * 4;
+    m_Diagnostics.textIndicesGenerated += glyphsInString * 6;
     
     UIRenderBatch batch;
     batch.textureSet = m_CurrentTextureSet;
@@ -305,6 +329,7 @@ void UIWidgetAdapter::GenerateTextGeometry(const DrawCommand& cmd) {
     batch.stencilRef = 0;
     
     m_Batches.push_back(batch);
+    ++m_Diagnostics.textBatchesCreated;
 }
 
 void UIWidgetAdapter::GenerateTextureGeometry(const DrawCommand& cmd) {
@@ -382,7 +407,7 @@ void UIWidgetAdapter::GenerateIconGeometry(const DrawCommand& cmd) {
     float h = y1 - y0;
     
     float type = 0.0f; // Textured
-    Color color = Color::White();
+    Color color = cmd.color;
     
     UIVertex2 v0{ {x,     y},     {0.0f, 0.0f}, {color.r, color.g, color.b, color.a}, {x, y, w, h}, {0.0f, type, 0.0f, 0.0f} };
     UIVertex2 v1{ {x + w, y},     {1.0f, 0.0f}, {color.r, color.g, color.b, color.a}, {x, y, w, h}, {0.0f, type, 0.0f, 0.0f} };

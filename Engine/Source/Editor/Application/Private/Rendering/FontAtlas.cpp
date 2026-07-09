@@ -1,6 +1,7 @@
 #include "Rendering/FontAtlas.h"
 #include "Rendering/Text/MsdfFontAtlasBackend.h"
 #include "Rendering/Text/Utf8.h"
+#include "Rendering/UiDebugImageWriter.h"
 #include "Rendering/UiGpuUpload.h"
 #include "Core/DeviceContext.h"
 #include "Resource/ResourceManager.h"
@@ -13,10 +14,51 @@
 
 namespace we::UI {
 
+namespace {
+
+constexpr const char* kAtlasDebugPaths[] = {
+    "Build/Database/UI/font_atlas_debug.bmp",
+    "../Build/Database/UI/font_atlas_debug.bmp",
+    "../../Build/Database/UI/font_atlas_debug.bmp",
+    "../../../Build/Database/UI/font_atlas_debug.bmp",
+};
+
+void SaveAtlasDebugImage(const Text::IFontAtlasBackend* backend) {
+    if (!backend) {
+        return;
+    }
+    const auto& pixels = backend->GetAtlasPixels();
+    const int width = backend->GetAtlasWidth();
+    const int height = backend->GetAtlasHeight();
+    if (pixels.empty() || width <= 0 || height <= 0) {
+        return;
+    }
+    for (const char* path : kAtlasDebugPaths) {
+        if (SaveBmpRgba(path, pixels, static_cast<uint32_t>(width), static_cast<uint32_t>(height))) {
+            return;
+        }
+    }
+}
+
+} // namespace
+
 FontAtlas::FontAtlas() = default;
 
 FontAtlas::~FontAtlas() {
     Shutdown();
+}
+
+void FontAtlas::SetGpuAtlasRecreatedCallback(GpuAtlasRecreatedFn callback) {
+    m_GpuAtlasRecreatedCallback = std::move(callback);
+}
+
+bool FontAtlas::IsGpuAtlasValid() const {
+    return m_Image != VK_NULL_HANDLE && m_ImageView != VK_NULL_HANDLE && m_Sampler != VK_NULL_HANDLE
+        && m_GpuWidth > 0 && m_GpuHeight > 0;
+}
+
+int FontAtlas::GetGlyphCount() const {
+    return m_Backend ? m_Backend->GetGlyphCount() : 0;
 }
 
 bool FontAtlas::Init(we::runtime::renderer::DeviceContext* context,
@@ -40,7 +82,7 @@ bool FontAtlas::Init(we::runtime::renderer::DeviceContext* context,
 
     Text::FontAtlasBakeRequest request{};
     request.primaryFontPath = fontName;
-    request.fallbackFontPath = "Assets/Fonts/NotoSans-Regular.ttf";
+    request.fallbackFontPath = "Assets/Fonts/Inter-Regular.ttf";
     request.emSizePx = m_FontHeight;
     request.msdfPixelRange = 4.0f;
     request.atlasWidth = width;
@@ -52,12 +94,20 @@ bool FontAtlas::Init(we::runtime::renderer::DeviceContext* context,
         return false;
     }
 
+    HE_INFO(std::string("[UI FontAudit] CPU atlas baked: ") + std::to_string(m_Backend->GetAtlasWidth()) + "x"
+            + std::to_string(m_Backend->GetAtlasHeight()) + " glyphs=" + std::to_string(m_Backend->GetGlyphCount())
+            + " primaryFont=" + fontName);
+    SaveAtlasDebugImage(m_Backend.get());
+
     if (!UploadAtlasIfDirty()) {
         HE_ERROR("FontAtlas: GPU atlas upload failed");
         return false;
     }
 
-    HE_INFO("FontAtlas: MSDF atlas initialized (FreeType + msdf-atlas-gen)");
+    HE_INFO(std::string("[UI FontAudit] GPU atlas uploaded: image=0x")
+            + std::to_string(reinterpret_cast<uint64_t>(m_Image))
+            + " view=0x" + std::to_string(reinterpret_cast<uint64_t>(m_ImageView))
+            + " size=" + std::to_string(m_GpuWidth) + "x" + std::to_string(m_GpuHeight));
     return true;
 }
 
@@ -67,7 +117,23 @@ void FontAtlas::Shutdown() {
         m_Backend.reset();
     }
 
+    DestroyGpuImage();
+
+    m_Context = nullptr;
+    m_Resources = nullptr;
+    m_GpuUpload = nullptr;
+    m_GpuAtlasRecreatedCallback = nullptr;
+}
+
+void FontAtlas::DestroyGpuImage() {
     if (!m_Context) {
+        m_Image = VK_NULL_HANDLE;
+        m_Memory = VK_NULL_HANDLE;
+        m_ImageView = VK_NULL_HANDLE;
+        m_Sampler = VK_NULL_HANDLE;
+        m_GpuWidth = 0;
+        m_GpuHeight = 0;
+        m_ImageLayout = VK_IMAGE_LAYOUT_UNDEFINED;
         return;
     }
 
@@ -88,10 +154,57 @@ void FontAtlas::Shutdown() {
         vkFreeMemory(device, m_Memory, nullptr);
         m_Memory = VK_NULL_HANDLE;
     }
+    m_GpuWidth = 0;
+    m_GpuHeight = 0;
+    m_ImageLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+}
 
-    m_Context = nullptr;
-    m_Resources = nullptr;
-    m_GpuUpload = nullptr;
+bool FontAtlas::EnsureGpuImage(int atlasWidth, int atlasHeight) {
+    if (atlasWidth <= 0 || atlasHeight <= 0) {
+        return false;
+    }
+    if (m_Image != VK_NULL_HANDLE && m_GpuWidth == atlasWidth && m_GpuHeight == atlasHeight) {
+        return true;
+    }
+
+    DestroyGpuImage();
+
+    VkDevice device = m_Context->GetDevice();
+    m_Resources->CreateImage(
+        static_cast<uint32_t>(atlasWidth),
+        static_cast<uint32_t>(atlasHeight),
+        VK_FORMAT_R8G8B8A8_UNORM,
+        VK_IMAGE_TILING_OPTIMAL,
+        VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+        m_Image,
+        m_Memory);
+    m_ImageView = m_Resources->CreateImageView(m_Image, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_ASPECT_COLOR_BIT);
+
+    VkSamplerCreateInfo samplerInfo{};
+    samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+    samplerInfo.magFilter = VK_FILTER_LINEAR;
+    samplerInfo.minFilter = VK_FILTER_LINEAR;
+    samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+    samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+    samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+    samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_NEAREST;
+    samplerInfo.minLod = 0.0f;
+    samplerInfo.maxLod = 0.0f;
+    if (vkCreateSampler(device, &samplerInfo, nullptr, &m_Sampler) != VK_SUCCESS) {
+        HE_ERROR("FontAtlas: failed to create sampler");
+        DestroyGpuImage();
+        return false;
+    }
+
+    m_GpuWidth = atlasWidth;
+    m_GpuHeight = atlasHeight;
+    m_ImageLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+
+    if (m_GpuAtlasRecreatedCallback) {
+        m_GpuAtlasRecreatedCallback(m_ImageView, m_Sampler);
+    }
+    return true;
 }
 
 bool FontAtlas::EnsureTextGlyphs(std::string_view utf8Text) {
@@ -102,9 +215,14 @@ bool FontAtlas::EnsureTextGlyphs(std::string_view utf8Text) {
     std::vector<uint32_t> codepoints;
     Text::DecodeUtf8(utf8Text, codepoints);
     if (!m_Backend->EnsureGlyphs(codepoints)) {
+        HE_ERROR("FontAtlas: EnsureGlyphs failed during text layout");
         return false;
     }
-    return UploadAtlasIfDirty();
+    if (!UploadAtlasIfDirty()) {
+        HE_ERROR("FontAtlas: GPU atlas re-upload failed after glyph expansion");
+        return false;
+    }
+    return true;
 }
 
 bool FontAtlas::GetGlyphQuad(uint32_t codepoint, float* xpos, float* ypos, GlyphInfo& quad) {
@@ -125,6 +243,14 @@ float FontAtlas::GetMsdfPixelRange() const {
     return m_Backend ? m_Backend->GetMsdfPixelRange() : 4.0f;
 }
 
+int FontAtlas::GetAtlasWidth() const {
+    return m_Backend ? m_Backend->GetAtlasWidth() : 0;
+}
+
+int FontAtlas::GetAtlasHeight() const {
+    return m_Backend ? m_Backend->GetAtlasHeight() : 0;
+}
+
 bool FontAtlas::UploadAtlasIfDirty() {
     if (!m_Backend || !m_Backend->IsDirty()) {
         return true;
@@ -134,39 +260,18 @@ bool FontAtlas::UploadAtlasIfDirty() {
     const int atlasWidth = m_Backend->GetAtlasWidth();
     const int atlasHeight = m_Backend->GetAtlasHeight();
     if (pixels.empty() || atlasWidth <= 0 || atlasHeight <= 0) {
+        HE_ERROR("FontAtlas: dirty atlas has no pixel data");
         return false;
     }
 
+    if (!EnsureGpuImage(atlasWidth, atlasHeight)) {
+        return false;
+    }
+
+    SaveAtlasDebugImage(m_Backend.get());
+
     VkDevice device = m_Context->GetDevice();
     const VkDeviceSize imageSize = static_cast<VkDeviceSize>(pixels.size());
-
-    if (m_Image == VK_NULL_HANDLE) {
-        m_Resources->CreateImage(
-            static_cast<uint32_t>(atlasWidth),
-            static_cast<uint32_t>(atlasHeight),
-            VK_FORMAT_R8G8B8A8_UNORM,
-            VK_IMAGE_TILING_OPTIMAL,
-            VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
-            VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-            m_Image,
-            m_Memory);
-        m_ImageView = m_Resources->CreateImageView(m_Image, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_ASPECT_COLOR_BIT);
-
-        VkSamplerCreateInfo samplerInfo{};
-        samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
-        samplerInfo.magFilter = VK_FILTER_LINEAR;
-        samplerInfo.minFilter = VK_FILTER_LINEAR;
-        samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
-        samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
-        samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
-        samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_NEAREST;
-        samplerInfo.minLod = 0.0f;
-        samplerInfo.maxLod = 0.0f;
-        if (vkCreateSampler(device, &samplerInfo, nullptr, &m_Sampler) != VK_SUCCESS) {
-            HE_ERROR("FontAtlas: failed to create sampler");
-            return false;
-        }
-    }
 
     VkBuffer stagingBuffer = VK_NULL_HANDLE;
     VkDeviceMemory stagingMemory = VK_NULL_HANDLE;
@@ -183,14 +288,22 @@ bool FontAtlas::UploadAtlasIfDirty() {
     vkUnmapMemory(device, stagingMemory);
 
     m_GpuUpload->SubmitOneTime([&](VkCommandBuffer cmd) {
+        const VkImageLayout oldLayout = m_ImageLayout;
+        const VkPipelineStageFlags srcStage = (oldLayout == VK_IMAGE_LAYOUT_UNDEFINED)
+            ? VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT
+            : VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+        const VkAccessFlags srcAccess = (oldLayout == VK_IMAGE_LAYOUT_UNDEFINED)
+            ? 0
+            : VK_ACCESS_SHADER_READ_BIT;
+
         we::runtime::renderer::TransitionImageLayout(
             cmd,
             m_Image,
-            VK_IMAGE_LAYOUT_UNDEFINED,
+            oldLayout,
             VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-            0,
+            srcAccess,
             VK_ACCESS_TRANSFER_WRITE_BIT,
-            VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
+            srcStage,
             VK_PIPELINE_STAGE_TRANSFER_BIT);
 
         VkBufferImageCopy region{};
@@ -208,12 +321,16 @@ bool FontAtlas::UploadAtlasIfDirty() {
             VK_ACCESS_SHADER_READ_BIT,
             VK_PIPELINE_STAGE_TRANSFER_BIT,
             VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT);
+
+        m_ImageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
     });
 
     vkDestroyBuffer(device, stagingBuffer, nullptr);
     vkFreeMemory(device, stagingMemory, nullptr);
 
     m_Backend->ClearDirty();
+    HE_INFO(std::string("[UI FontAudit] Atlas upload complete: ") + std::to_string(atlasWidth) + "x"
+            + std::to_string(atlasHeight) + " bytes=" + std::to_string(imageSize));
     return true;
 }
 

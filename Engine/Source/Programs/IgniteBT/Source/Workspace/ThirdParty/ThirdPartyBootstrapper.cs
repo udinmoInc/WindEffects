@@ -17,6 +17,8 @@ public static class ThirdPartyBootstrapper
     private const string MsdfAtlasGenRemote = "https://github.com/Chlumsky/msdf-atlas-gen.git";
     private const string LunaSvgRemote = "https://github.com/sammycage/lunasvg.git";
     private const string LunaSvgTag = "v2.3.9";
+    private const string MsvcDynamicRuntimeMarker = ".msvc_md_runtime";
+    private const string MsvcDynamicRuntimeCmake = "-DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreadedDLL";
 
     public static async Task<bool> EnsureRequiredAsync(string engineRoot, int jobs = 0)
     {
@@ -133,7 +135,8 @@ public static class ThirdPartyBootstrapper
     {
         var headerPath = Path.Combine(freetypePath, "include", "ft2build.h");
         var releaseLib = Path.Combine(freetypePath, "lib", "freetype.lib");
-        if (File.Exists(headerPath) && File.Exists(releaseLib))
+        var runtimeMarker = Path.Combine(freetypePath, "lib", MsvcDynamicRuntimeMarker);
+        if (File.Exists(headerPath) && File.Exists(releaseLib) && File.Exists(runtimeMarker))
         {
             return true;
         }
@@ -156,7 +159,7 @@ public static class ThirdPartyBootstrapper
         var configureArgs =
             $"-S \"{freetypePath}\" -B \"{buildDir}\" -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=OFF " +
             "-DFT_DISABLE_HARFBUZZ=ON -DFT_DISABLE_PNG=ON -DFT_DISABLE_ZLIB=ON -DFT_DISABLE_BZIP2=ON -DFT_DISABLE_BROTLI=ON " +
-            "\"-DCMAKE_POLICY_VERSION_MINIMUM=3.5\"";
+            $"\"-DCMAKE_POLICY_VERSION_MINIMUM=3.5\" {MsvcDynamicRuntimeCmake}";
         if (!await RunProcessAsync("cmake", configureArgs))
         {
             return false;
@@ -181,6 +184,7 @@ public static class ThirdPartyBootstrapper
         }
 
         File.Copy(builtLib, releaseLib, overwrite: true);
+        File.WriteAllText(runtimeMarker, "1");
         Log.Information("FreeType bootstrapped at {Path}", releaseLib);
         return true;
     }
@@ -190,7 +194,8 @@ public static class ThirdPartyBootstrapper
         var headerPath = Path.Combine(msdfAtlasPath, "msdf-atlas-gen", "msdf-atlas-gen.h");
         var releaseLib = Path.Combine(msdfAtlasPath, "lib", "msdf-atlas-gen.lib");
         var configHeaderPath = Path.Combine(msdfAtlasPath, "msdfgen", "msdfgen-config.h");
-        if (File.Exists(headerPath) && File.Exists(releaseLib) && File.Exists(configHeaderPath))
+        var runtimeMarker = Path.Combine(msdfAtlasPath, "lib", MsvcDynamicRuntimeMarker);
+        if (File.Exists(headerPath) && File.Exists(releaseLib) && File.Exists(configHeaderPath) && File.Exists(runtimeMarker))
         {
             return true;
         }
@@ -221,7 +226,8 @@ public static class ThirdPartyBootstrapper
         var configureArgs =
             $"-S \"{msdfAtlasPath}\" -B \"{buildDir}\" -DCMAKE_BUILD_TYPE=Release " +
             "-DMSDF_ATLAS_BUILD_STANDALONE=OFF -DMSDF_ATLAS_USE_VCPKG=OFF -DMSDF_ATLAS_USE_SKIA=OFF " +
-            "-DBUILD_SHARED_LIBS=OFF -DMSDFGEN_DISABLE_PNG=ON \"-DCMAKE_POLICY_VERSION_MINIMUM=3.5\" " +
+            "-DMSDF_ATLAS_DYNAMIC_RUNTIME=ON -DBUILD_SHARED_LIBS=OFF -DMSDFGEN_DISABLE_PNG=ON " +
+            $"\"-DCMAKE_POLICY_VERSION_MINIMUM=3.5\" {MsvcDynamicRuntimeCmake} " +
             $"-DFREETYPE_INCLUDE_DIRS=\"{Path.Combine(freetypeRoot, "include").Replace('\\', '/')}\" " +
             $"-DFREETYPE_LIBRARY=\"{freetypeLib.Replace('\\', '/')}\"";
         if (!await RunProcessAsync("cmake", configureArgs))
@@ -253,6 +259,7 @@ public static class ThirdPartyBootstrapper
         }
 
         EnsureMsdfgenConfigHeader(msdfAtlasPath);
+        File.WriteAllText(runtimeMarker, "1");
 
         Log.Information("msdf-atlas-gen bootstrapped at {Path}", msdfAtlasPath);
         return true;
@@ -291,7 +298,8 @@ public static class ThirdPartyBootstrapper
     {
         var headerPath = Path.Combine(lunaSvgPath, "include", "lunasvg.h");
         var releaseLib = Path.Combine(lunaSvgPath, "lib", "lunasvg.lib");
-        if (File.Exists(headerPath) && File.Exists(releaseLib))
+        var runtimeMarker = Path.Combine(lunaSvgPath, "lib", MsvcDynamicRuntimeMarker);
+        if (File.Exists(headerPath) && File.Exists(releaseLib) && File.Exists(runtimeMarker))
         {
             return true;
         }
@@ -312,7 +320,8 @@ public static class ThirdPartyBootstrapper
 
         var buildDir = Path.Combine(lunaSvgPath, "build");
         var configureArgs =
-            $"-S \"{lunaSvgPath}\" -B \"{buildDir}\" -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=OFF \"-DCMAKE_POLICY_VERSION_MINIMUM=3.5\"";
+            $"-S \"{lunaSvgPath}\" -B \"{buildDir}\" -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=OFF " +
+            $"\"-DCMAKE_POLICY_VERSION_MINIMUM=3.5\" {MsvcDynamicRuntimeCmake}";
         if (!await RunProcessAsync("cmake", configureArgs))
         {
             return false;
@@ -340,6 +349,7 @@ public static class ThirdPartyBootstrapper
             File.Copy(builtLib, Path.Combine(lunaSvgPath, "lib", libName), overwrite: true);
         }
 
+        File.WriteAllText(runtimeMarker, "1");
         Log.Information("LunaSVG bootstrapped at {Path}", lunaSvgPath);
         return true;
     }

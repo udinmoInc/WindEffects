@@ -64,6 +64,10 @@ float SdRoundBox(float px, float py, float rx, float ry, float rw, float rh, flo
 
 float EstimateFragmentAlpha(const UIVertex2& v) {
     const float type = v.sdfParams[1];
+    if (type > 2.5f && type < 3.5f) {
+        // MSDF text: vertex alpha is scaled in the shader by atlas coverage.
+        return v.color[3];
+    }
     if (type < 0.5f) {
         return v.color[3];
     }
@@ -172,6 +176,13 @@ bool OverlayRenderer::Init(VkPhysicalDevice physicalDevice,
     }
 
     m_FontAtlas = std::make_unique<FontAtlas>();
+    m_FontAtlas->SetGpuAtlasRecreatedCallback([this](VkImageView imageView, VkSampler sampler) {
+        if (m_FontAtlas && m_FontAtlas->GetDescriptorSet() != VK_NULL_HANDLE) {
+            UpdateTexture(m_FontAtlas->GetDescriptorSet(), imageView, sampler);
+            HE_INFO(std::string("[UI FontAudit] Font descriptor rebound after GPU atlas recreate view=0x")
+                    + std::to_string(reinterpret_cast<uint64_t>(imageView)));
+        }
+    });
     const std::string uiFontPath = we::core::AssetRegistry::Get().GetFontPath("Font_UI");
     const std::string fontToLoad = uiFontPath.empty() ? "Assets/Fonts/Inter-Regular.ttf" : uiFontPath;
     m_LastFontBakeHeightPx = ComputeFontBakeHeightPx();
@@ -412,6 +423,24 @@ void OverlayRenderer::RenderEditorUI(const std::shared_ptr<we::UI::Widget>& root
     WE_OVERLAY_PASS_INFO(std::string("Paint Stage: ") + 
         (cpuStats.paintStage.succeeded ? "PASS" : "FAILED") +
         (cpuStats.paintStage.succeeded ? "" : " | " + cpuStats.paintStage.failureReason));
+
+    if (adapterDiagnostics.textCommands > 0) {
+        const FontAtlas* fontAtlas = m_FontAtlas.get();
+        HE_INFO(std::string("[UI TextAudit] paintCommands=") + std::to_string(adapterDiagnostics.textCommands)
+                + " strings=" + std::to_string(adapterDiagnostics.textStringsProcessed)
+                + " glyphsRequested=" + std::to_string(adapterDiagnostics.textGlyphsRequested)
+                + " glyphsResolved=" + std::to_string(adapterDiagnostics.textGlyphsResolved)
+                + " glyphsMissing=" + std::to_string(adapterDiagnostics.textGlyphsMissing)
+                + " vertices=" + std::to_string(adapterDiagnostics.textVerticesGenerated)
+                + " indices=" + std::to_string(adapterDiagnostics.textIndicesGenerated)
+                + " batches=" + std::to_string(adapterDiagnostics.textBatchesCreated)
+                + " skipped=" + std::to_string(adapterDiagnostics.textDrawsSkipped)
+                + (fontAtlas ? (" atlas=" + std::to_string(fontAtlas->GetAtlasWidth()) + "x"
+                    + std::to_string(fontAtlas->GetAtlasHeight())
+                    + " glyphCount=" + std::to_string(fontAtlas->GetGlyphCount())
+                    + " descriptor=0x" + std::to_string(reinterpret_cast<uint64_t>(fontAtlas->GetDescriptorSet()))
+                    + " gpuValid=" + (fontAtlas->IsGpuAtlasValid() ? "yes" : "no")) : " atlas=null"));
+    }
     
     if (adapterDiagnostics.totalDrawCommandsGenerated == 0) {
         HE_ERROR("STOPPING: DrawCommands == 0! Paint() produced nothing.");
@@ -487,6 +516,11 @@ void OverlayRenderer::SetTargetExtent(uint32_t width, uint32_t height) {
 
         m_FontAtlas->Shutdown();
         m_FontAtlas = std::make_unique<FontAtlas>();
+        m_FontAtlas->SetGpuAtlasRecreatedCallback([this](VkImageView imageView, VkSampler sampler) {
+            if (m_FontAtlas && m_FontAtlas->GetDescriptorSet() != VK_NULL_HANDLE) {
+                UpdateTexture(m_FontAtlas->GetDescriptorSet(), imageView, sampler);
+            }
+        });
 
         const int atlasDim = (desiredBakeHeight > 32.0f) ? 2048 : 1024;
         HE_INFO(
@@ -635,11 +669,28 @@ void OverlayRenderer::EndOverlayPass(const ::we::editor::rendering::OverlayRende
                 const auto& batch = m_Batches[i];
                 gpuBatchCount++;
 
-                VkDescriptorSet textureSet = batch.textureSet != VK_NULL_HANDLE ? batch.textureSet : m_DummyDescriptorSet;
+                VkDescriptorSet textureSet = batch.textureSet;
                 if (textureSet == VK_NULL_HANDLE) {
                     skippedDrawCalls++;
-                    HE_WARN(std::string("Skipped Batch ") + std::to_string(i) + " | Reason: Invalid Texture");
+                    HE_WARN(std::string("Skipped Batch ") + std::to_string(i) + " | Reason: null texture descriptor");
                     continue;
+                }
+                if (textureSet == m_DummyDescriptorSet) {
+                    uint32_t firstVertex = 0;
+                    if (!m_Indices.empty() && batch.firstIndex < m_Indices.size()) {
+                        firstVertex = m_Indices[batch.firstIndex];
+                    }
+                    const bool samplesTexture = firstVertex < m_Vertices.size()
+                        && (m_Vertices[firstVertex].sdfParams[1] < 0.5f
+                            || (m_Vertices[firstVertex].sdfParams[1] > 2.5f
+                                && m_Vertices[firstVertex].sdfParams[1] < 3.5f));
+                    if (samplesTexture) {
+                        skippedDrawCalls++;
+                        HE_WARN(std::string("Skipped Batch ") + std::to_string(i)
+                                + " | Reason: sampled draw bound to dummy white texture");
+                        continue;
+                    }
+                    textureSet = m_DummyDescriptorSet;
                 }
                 if (batch.indexCount == 0) {
                     skippedDrawCalls++;

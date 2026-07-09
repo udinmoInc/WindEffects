@@ -49,6 +49,7 @@ public:
     virtual int GetAtlasHeight() const = 0;
     virtual float GetEmSize() const = 0;
     virtual float GetMsdfPixelRange() const = 0;
+    virtual int GetGlyphCount() const = 0;
     virtual bool IsDirty() const = 0;
     virtual void ClearDirty() = 0;
 };

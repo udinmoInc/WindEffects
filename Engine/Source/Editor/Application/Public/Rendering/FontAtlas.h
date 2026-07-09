@@ -3,6 +3,7 @@
 #include "Application/Export.h"
 
 #include <volk.h>
+#include <functional>
 #include <memory>
 #include <string>
 #include <vector>
@@ -48,8 +49,17 @@ public:
     VkSampler GetSampler() const { return m_Sampler; }
     float GetFontHeight() const { return m_FontHeight; }
     float GetMsdfPixelRange() const;
+    int GetAtlasWidth() const;
+    int GetAtlasHeight() const;
+    int GetGlyphCount() const;
+    bool IsGpuAtlasValid() const;
+
+    using GpuAtlasRecreatedFn = std::function<void(VkImageView imageView, VkSampler sampler)>;
+    void SetGpuAtlasRecreatedCallback(GpuAtlasRecreatedFn callback);
 
 private:
+    void DestroyGpuImage();
+    bool EnsureGpuImage(int atlasWidth, int atlasHeight);
     bool UploadAtlasIfDirty();
 
     we::runtime::renderer::DeviceContext* m_Context = nullptr;
@@ -65,6 +75,11 @@ private:
     VkImageView m_ImageView = VK_NULL_HANDLE;
     VkSampler m_Sampler = VK_NULL_HANDLE;
     VkDescriptorSet m_DescriptorSet = VK_NULL_HANDLE;
+
+    int m_GpuWidth = 0;
+    int m_GpuHeight = 0;
+    VkImageLayout m_ImageLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+    GpuAtlasRecreatedFn m_GpuAtlasRecreatedCallback;
 };
 
 } // namespace we::UI
