@@ -1,4 +1,5 @@
 using IgniteBT.BuildSystem;
+using System.IO;
 
 public class Application : ModuleRules
 {
@@ -23,6 +24,26 @@ public class Application : ModuleRules
         DefineIf(HasSDK("SDL3"), "WE_HAS_SDL3=1");
         DefineIf(!HasSDK("SDL3"), "WE_HAS_SDL3=0");
 
+        var thirdPartyRoot = Path.Combine(context.EngineDirectory, "ThirdParty");
+        PublicIncludePaths.Add(Path.Combine(thirdPartyRoot, "freetype", "include"));
+        PublicIncludePaths.Add(Path.Combine(thirdPartyRoot, "msdf-atlas-gen"));
+        PublicIncludePaths.Add(Path.Combine(thirdPartyRoot, "msdf-atlas-gen", "msdfgen"));
+        PublicIncludePaths.Add(Path.Combine(thirdPartyRoot, "lunasvg", "include"));
+
+        RequiredThirdParty.Add("freetype");
+        RequiredThirdParty.Add("msdf-atlas-gen");
+        RequiredThirdParty.Add("lunasvg");
+
+        Definitions.Add("WE_HAS_FREETYPE=1");
+        Definitions.Add("WE_HAS_MSDFGEN=1");
+        Definitions.Add("WE_HAS_LUNASVG=1");
         Definitions.Add("APPLICATION_EXPORTS");
+
+        PlatformSettings.Windows ??= new WindowsSettings();
+        PlatformSettings.Windows.LinkerFlags.Add("freetype.lib");
+        PlatformSettings.Windows.LinkerFlags.Add("msdfgen-core.lib");
+        PlatformSettings.Windows.LinkerFlags.Add("msdfgen-ext.lib");
+        PlatformSettings.Windows.LinkerFlags.Add("msdf-atlas-gen.lib");
+        PlatformSettings.Windows.LinkerFlags.Add("lunasvg.lib");
     }
 }

@@ -13,6 +13,15 @@ namespace we::UI {
 struct UIRenderBatch;
 struct UIVertex2;
 
+// Evidence-based validation results for each pipeline stage
+struct StageValidation {
+    bool executed = false;
+    bool succeeded = false;
+    std::string failureReason;
+    uint32_t outputCount = 0;  // Number of items produced by this stage
+    uint64_t outputSize = 0;    // Size in bytes of output
+};
+
 struct UIPipelineCpuStats {
     bool rootWidgetExists = false;
     uint32_t widgetCount = 0;
@@ -27,6 +36,13 @@ struct UIPipelineCpuStats {
     uint32_t targetWidth = 0;
     uint32_t targetHeight = 0;
     bool geometryUploaded = false;
+    
+    // Evidence-based stage validation
+    StageValidation widgetStage;
+    StageValidation layoutStage;
+    StageValidation paintStage;
+    StageValidation geometryStage;
+    StageValidation uploadStage;
 };
 
 struct UIPipelineGpuStats {
@@ -42,6 +58,12 @@ struct UIPipelineGpuStats {
     uint32_t viewportHeight = 0;
     const std::vector<UIVertex2>* vertices = nullptr;
     const std::vector<UIRenderBatch>* batches = nullptr;
+    
+    // Evidence-based stage validation
+    StageValidation pipelineBindStage;
+    StageValidation bufferBindStage;
+    StageValidation drawCallStage;
+    StageValidation renderPassStage;
 };
 
 class APPLICATION_API UIPipelineAudit {
@@ -57,6 +79,17 @@ public:
 
     static void EmitCpuPipelineReport(uint64_t frameNumber, const UIPipelineCpuStats& stats);
     static void EmitGpuPipelineReport(uint64_t frameNumber, const UIPipelineGpuStats& stats);
+    
+    // Evidence-based validation helpers
+    static StageValidation ValidateWidgetStage(const std::shared_ptr<Widget>& root);
+    static StageValidation ValidateLayoutStage(uint32_t widgetCount, uint32_t layoutPassCount);
+    static StageValidation ValidatePaintStage(uint32_t paintCalls, uint32_t paintCommands);
+    static StageValidation ValidateGeometryStage(uint32_t drawCommands, uint32_t vertexCount, uint32_t indexCount);
+    static StageValidation ValidateUploadStage(bool geometryUploaded, VkBuffer vertexBuffer, VkBuffer indexBuffer);
+    static StageValidation ValidatePipelineBindStage(VkPipeline pipeline);
+    static StageValidation ValidateBufferBindStage(VkBuffer vertexBuffer, VkBuffer indexBuffer);
+    static StageValidation ValidateDrawCallStage(uint32_t executedDrawCalls, uint32_t batchCount);
+    static StageValidation ValidateRenderPassStage(VkCommandBuffer cmd, bool renderPassEnded);
 };
 
 } // namespace we::UI

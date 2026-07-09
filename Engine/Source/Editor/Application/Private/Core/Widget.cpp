@@ -3,6 +3,9 @@
 
 namespace we::UI {
 
+Widget::Diagnostics* Widget::s_GlobalDiagnostics = nullptr;
+
+// Legacy static counters for compatibility (deprecated - use s_GlobalDiagnostics instead)
 uint32_t Widget::s_TotalWidgetCount = 0;
 uint32_t Widget::s_VisibleWidgetCount = 0;
 uint32_t Widget::s_HiddenWidgetCount = 0;
@@ -13,6 +16,10 @@ uint32_t Widget::s_InvalidateCount = 0;
 uint32_t Widget::s_WidgetsPainted = 0;
 
 void Widget::ResetDiagnostics() {
+    if (s_GlobalDiagnostics) {
+        s_GlobalDiagnostics->Reset();
+    }
+    // Legacy static reset for compatibility
     s_TotalWidgetCount = 0;
     s_VisibleWidgetCount = 0;
     s_HiddenWidgetCount = 0;

@@ -69,20 +69,6 @@ void UICompositor::EndComposite(VkCommandBuffer cmd) {
     vkCmdEndRendering(cmd);
 }
 
-void UICompositor::SetScissor(int32_t x, int32_t y, uint32_t width, uint32_t height) {
-    (void)x;
-    (void)y;
-    (void)width;
-    (void)height;
-}
-
-void UICompositor::SetViewport(float x, float y, float width, float height) {
-    (void)x;
-    (void)y;
-    (void)width;
-    (void)height;
-}
-
 void UICompositor::CreateRenderPass() {
     VkAttachmentDescription colorAttachment{};
     colorAttachment.format = m_SwapchainFormat;

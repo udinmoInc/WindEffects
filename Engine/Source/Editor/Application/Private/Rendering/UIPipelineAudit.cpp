@@ -224,4 +224,208 @@ void UIPipelineAudit::EmitGpuPipelineReport(uint64_t frameNumber, const UIPipeli
     }
 }
 
+StageValidation UIPipelineAudit::ValidateWidgetStage(const std::shared_ptr<Widget>& root) {
+    StageValidation result;
+    result.executed = true;
+    
+    if (!root) {
+        result.succeeded = false;
+        result.failureReason = "Root widget is null";
+        return result;
+    }
+    
+    result.succeeded = true;
+    result.outputCount = 1; // Root widget exists
+    result.outputSize = sizeof(Widget);
+    return result;
+}
+
+StageValidation UIPipelineAudit::ValidateLayoutStage(uint32_t widgetCount, uint32_t layoutPassCount) {
+    StageValidation result;
+    result.executed = true;
+    
+    if (widgetCount == 0) {
+        result.succeeded = false;
+        result.failureReason = "No widgets to layout";
+        return result;
+    }
+    
+    if (layoutPassCount == 0) {
+        result.succeeded = false;
+        result.failureReason = "Layout pass was not executed";
+        return result;
+    }
+    
+    result.succeeded = true;
+    result.outputCount = widgetCount;
+    result.outputSize = widgetCount * sizeof(Rect); // Approximate geometry size
+    return result;
+}
+
+StageValidation UIPipelineAudit::ValidatePaintStage(uint32_t paintCalls, uint32_t paintCommands) {
+    StageValidation result;
+    result.executed = true;
+    
+    if (paintCalls == 0) {
+        result.succeeded = false;
+        result.failureReason = "Paint() was not called";
+        return result;
+    }
+    
+    if (paintCommands == 0) {
+        result.succeeded = false;
+        result.failureReason = "Paint() produced no commands";
+        return result;
+    }
+    
+    result.succeeded = true;
+    result.outputCount = paintCommands;
+    result.outputSize = paintCommands * sizeof(DrawCommand);
+    return result;
+}
+
+StageValidation UIPipelineAudit::ValidateGeometryStage(uint32_t drawCommands, uint32_t vertexCount, uint32_t indexCount) {
+    StageValidation result;
+    result.executed = true;
+    
+    if (drawCommands == 0) {
+        result.succeeded = false;
+        result.failureReason = "No draw commands to convert";
+        return result;
+    }
+    
+    if (vertexCount == 0) {
+        result.succeeded = false;
+        result.failureReason = "No vertices generated";
+        return result;
+    }
+    
+    if (vertexCount <= 4) {
+        result.succeeded = false;
+        result.failureReason = "Insufficient vertices (only " + std::to_string(vertexCount) + ")";
+        return result;
+    }
+    
+    if (indexCount == 0) {
+        result.succeeded = false;
+        result.failureReason = "No indices generated";
+        return result;
+    }
+    
+    result.succeeded = true;
+    result.outputCount = vertexCount;
+    result.outputSize = (vertexCount * sizeof(UIVertex2)) + (indexCount * sizeof(uint32_t));
+    return result;
+}
+
+StageValidation UIPipelineAudit::ValidateUploadStage(bool geometryUploaded, VkBuffer vertexBuffer, VkBuffer indexBuffer) {
+    StageValidation result;
+    result.executed = true;
+    
+    if (!geometryUploaded) {
+        result.succeeded = false;
+        result.failureReason = "Geometry upload was not executed";
+        return result;
+    }
+    
+    if (vertexBuffer == VK_NULL_HANDLE) {
+        result.succeeded = false;
+        result.failureReason = "Vertex buffer is null";
+        return result;
+    }
+    
+    if (indexBuffer == VK_NULL_HANDLE) {
+        result.succeeded = false;
+        result.failureReason = "Index buffer is null";
+        return result;
+    }
+    
+    result.succeeded = true;
+    result.outputCount = 2; // vertex and index buffers
+    result.outputSize = 0; // Size unknown from handles alone
+    return result;
+}
+
+StageValidation UIPipelineAudit::ValidatePipelineBindStage(VkPipeline pipeline) {
+    StageValidation result;
+    result.executed = true;
+    
+    if (pipeline == VK_NULL_HANDLE) {
+        result.succeeded = false;
+        result.failureReason = "Pipeline handle is null";
+        return result;
+    }
+    
+    result.succeeded = true;
+    result.outputCount = 1;
+    result.outputSize = 0; // Size unknown from handle alone
+    return result;
+}
+
+StageValidation UIPipelineAudit::ValidateBufferBindStage(VkBuffer vertexBuffer, VkBuffer indexBuffer) {
+    StageValidation result;
+    result.executed = true;
+    
+    if (vertexBuffer == VK_NULL_HANDLE) {
+        result.succeeded = false;
+        result.failureReason = "Vertex buffer handle is null";
+        return result;
+    }
+    
+    if (indexBuffer == VK_NULL_HANDLE) {
+        result.succeeded = false;
+        result.failureReason = "Index buffer handle is null";
+        return result;
+    }
+    
+    result.succeeded = true;
+    result.outputCount = 2;
+    result.outputSize = 0; // Size unknown from handles alone
+    return result;
+}
+
+StageValidation UIPipelineAudit::ValidateDrawCallStage(uint32_t executedDrawCalls, uint32_t batchCount) {
+    StageValidation result;
+    result.executed = true;
+    
+    if (executedDrawCalls == 0) {
+        result.succeeded = false;
+        result.failureReason = "No draw calls were executed";
+        return result;
+    }
+    
+    if (batchCount == 0) {
+        result.succeeded = false;
+        result.failureReason = "No batches to draw";
+        return result;
+    }
+    
+    result.succeeded = true;
+    result.outputCount = executedDrawCalls;
+    result.outputSize = 0; // Size unknown from draw calls alone
+    return result;
+}
+
+StageValidation UIPipelineAudit::ValidateRenderPassStage(VkCommandBuffer cmd, bool renderPassEnded) {
+    StageValidation result;
+    result.executed = true;
+    
+    if (cmd == VK_NULL_HANDLE) {
+        result.succeeded = false;
+        result.failureReason = "Command buffer is null";
+        return result;
+    }
+    
+    if (!renderPassEnded) {
+        result.succeeded = false;
+        result.failureReason = "Render pass was not properly ended";
+        return result;
+    }
+    
+    result.succeeded = true;
+    result.outputCount = 1;
+    result.outputSize = 0; // Size unknown from command buffer alone
+    return result;
+}
+
 } // namespace we::UI

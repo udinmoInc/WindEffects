@@ -134,18 +134,24 @@ void ViewportWidget::SyncRendererViewport() {
         return;
     }
 
-    if (!m_Visible || m_Geometry.width <= 0.0f || m_Geometry.height <= 0.0f) {
-        m_ViewportController->SetViewportBlitRect(0, 0, 0, 0);
+    if (m_Visible && m_Geometry.width > 0.0f && m_Geometry.height > 0.0f) {
+        const uint32_t width = static_cast<uint32_t>(m_Geometry.width);
+        const uint32_t height = static_cast<uint32_t>(m_Geometry.height);
+        m_LastBlitX = static_cast<uint32_t>(m_Geometry.x);
+        m_LastBlitY = static_cast<uint32_t>(m_Geometry.y);
+        m_LastBlitW = width;
+        m_LastBlitH = height;
+        m_HasLastValidBlit = true;
+        m_ViewportController->SetViewportBlitRect(m_LastBlitX, m_LastBlitY, m_LastBlitW, m_LastBlitH);
         return;
     }
 
-    const uint32_t width = static_cast<uint32_t>(m_Geometry.width);
-    const uint32_t height = static_cast<uint32_t>(m_Geometry.height);
-    m_ViewportController->SetViewportBlitRect(
-        static_cast<uint32_t>(m_Geometry.x),
-        static_cast<uint32_t>(m_Geometry.y),
-        width,
-        height);
+    if (m_HasLastValidBlit) {
+        m_ViewportController->SetViewportBlitRect(m_LastBlitX, m_LastBlitY, m_LastBlitW, m_LastBlitH);
+        return;
+    }
+
+    m_ViewportController->SetViewportBlitRect(0, 0, 0, 0);
 }
 
 VkImageView ViewportWidget::GetViewportColorImageView() const {

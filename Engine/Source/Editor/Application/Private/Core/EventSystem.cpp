@@ -57,8 +57,7 @@ void EventSystem::ProcessMouseEvent(const MouseEvent& event) {
     std::shared_ptr<Widget> targetWidget = hitWidget;
     if (event.type == MouseEventType::MouseMove || event.type == MouseEventType::MouseUp) {
         if (auto focused = m_FocusedWidget.lock()) {
-            if (auto* overlay = OverlayManager::Get();
-                overlay && hitWidget && overlay->IsWidgetInPopup(hitWidget)) {
+            if (m_OverlayManager && hitWidget && m_OverlayManager->IsWidgetInPopup(hitWidget)) {
                 targetWidget = hitWidget;
             } else {
                 targetWidget = focused;
@@ -68,9 +67,9 @@ void EventSystem::ProcessMouseEvent(const MouseEvent& event) {
 
     if (targetWidget) {
         if (event.type == MouseEventType::MouseDown) {
-            if (auto* overlay = OverlayManager::Get()) {
-                if (overlay->HasOpenPopups() && !overlay->IsWidgetInPopup(hitWidget)) {
-                    overlay->CloseAllPopups();
+            if (m_OverlayManager) {
+                if (m_OverlayManager->HasOpenPopups() && !m_OverlayManager->IsWidgetInPopup(hitWidget)) {
+                    m_OverlayManager->CloseAllPopups();
                 }
             }
 
@@ -85,8 +84,8 @@ void EventSystem::ProcessMouseEvent(const MouseEvent& event) {
         }
     } else {
         if (event.type == MouseEventType::MouseDown) {
-            if (auto* overlay = OverlayManager::Get()) {
-                overlay->CloseAllPopups();
+            if (m_OverlayManager) {
+                m_OverlayManager->CloseAllPopups();
             }
             SetFocusedWidget(nullptr);
         }

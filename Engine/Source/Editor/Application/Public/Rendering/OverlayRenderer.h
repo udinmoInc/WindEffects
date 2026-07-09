@@ -63,7 +63,7 @@ struct UIDirtyRegion {
 
 
 
-class OverlayRenderer {
+class APPLICATION_API OverlayRenderer {
 public:
     OverlayRenderer();
     ~OverlayRenderer();
@@ -80,7 +80,7 @@ public:
 
     void BeginOverlayPass(const we::editor::rendering::OverlayRenderContext& context);
     void SetTargetExtent(uint32_t width, uint32_t height);
-    void RenderEditorUI(const std::shared_ptr<we::UI::Widget>& root);
+    void RenderEditorUI(const std::shared_ptr<we::UI::Widget>& root, uint32_t frameSlot);
     void EndOverlayPass(const we::editor::rendering::OverlayRenderContext& context);
     void SetPipelineAuditImageIndex(uint32_t imageIndex);
 
@@ -144,11 +144,12 @@ private:
     std::vector<uint32_t> m_Indices;
     std::vector<UIRenderBatch> m_Batches;
 
-    uint32_t m_CurrentFrameIndex = 0;
+    uint32_t m_ActiveFrameSlot = 0;
     uint32_t m_CurrentWidth = 0;
     uint32_t m_CurrentHeight = 0;
     uint32_t m_PipelineAuditImageIndex = UINT32_MAX;
     UIFrameStats m_FrameStats;
+    float m_LastFontBakeHeightPx = 0.0f;
 
     we::UI::SavedVulkanState m_SavedState;
 

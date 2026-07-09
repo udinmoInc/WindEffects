@@ -3,6 +3,8 @@
 #include "Core/Validation.h"
 #include "Resource/ResourceManager.h"
 
+#if WE_HAS_VULKAN
+
 namespace we::runtime::renderer {
 
 DepthTarget::~DepthTarget() {
@@ -76,3 +78,5 @@ void DepthTarget::CreateResources() {
 }
 
 } // namespace we::runtime::renderer
+
+#endif // WE_HAS_VULKAN

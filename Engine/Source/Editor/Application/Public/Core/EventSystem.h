@@ -9,6 +9,7 @@
 namespace we::UI {
 
 class Widget;
+class OverlayManager;
 
 enum class MouseButton {
     None,
@@ -66,6 +67,9 @@ public:
 
     void SetFocusedWidget(const std::shared_ptr<Widget>& widget);
     void SetSuppressSystemCursor(bool suppress) { m_SuppressSystemCursor = suppress; }
+    
+    // Set overlay manager for popup management (dependency injection instead of singleton)
+    void SetOverlayManager(OverlayManager* overlayManager) { m_OverlayManager = overlayManager; }
 
     // Hit-testing helper
     static std::shared_ptr<Widget> HitTest(const std::shared_ptr<Widget>& root, const Point& pos);
@@ -76,6 +80,7 @@ private:
     std::shared_ptr<Widget> m_Root;
     std::weak_ptr<Widget> m_FocusedWidget;
     std::weak_ptr<Widget> m_HoveredWidget;
+    OverlayManager* m_OverlayManager = nullptr;
     bool m_UsingPointerCursor = false;
     bool m_SuppressSystemCursor = false;
 };

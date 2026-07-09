@@ -81,6 +81,12 @@ private:
     uint32_t m_PendingHeight = 0;
     bool     m_ResizePending = false;
 
+    bool     m_HasLastValidBlit = false;
+    uint32_t m_LastBlitX = 0;
+    uint32_t m_LastBlitY = 0;
+    uint32_t m_LastBlitW = 0;
+    uint32_t m_LastBlitH = 0;
+
     std::shared_ptr<GraphicsDebuggerPopup> m_GraphicsDebugger;
 };
 
