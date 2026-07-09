@@ -40,6 +40,7 @@ public:
     static uint32_t s_ClipRectCount;
     static uint32_t s_TextureSwitchCount;
     static uint32_t s_BatchCount;
+    static uint32_t s_PaintCommandsRecorded;
     
     static void ResetDiagnostics();
 

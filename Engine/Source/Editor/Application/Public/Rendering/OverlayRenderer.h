@@ -7,6 +7,7 @@
 #include <memory>
 #include <vector>
 #include <mutex>
+#include <cstdint>
 
 #include "Rendering/OverlayRenderContext.h"
 
@@ -78,9 +79,10 @@ public:
     void Shutdown();
 
     void BeginOverlayPass(const we::editor::rendering::OverlayRenderContext& context);
-    void SetFrameExtent(uint32_t width, uint32_t height);
+    void SetTargetExtent(uint32_t width, uint32_t height);
     void RenderEditorUI(const std::shared_ptr<we::UI::Widget>& root);
     void EndOverlayPass(const we::editor::rendering::OverlayRenderContext& context);
+    void SetPipelineAuditImageIndex(uint32_t imageIndex);
 
     VkDescriptorSet RegisterTexture(VkImageView imageView, VkSampler sampler);
     void UpdateTexture(VkDescriptorSet descriptorSet, VkImageView imageView, VkSampler sampler);
@@ -145,6 +147,7 @@ private:
     uint32_t m_CurrentFrameIndex = 0;
     uint32_t m_CurrentWidth = 0;
     uint32_t m_CurrentHeight = 0;
+    uint32_t m_PipelineAuditImageIndex = UINT32_MAX;
     UIFrameStats m_FrameStats;
 
     we::UI::SavedVulkanState m_SavedState;

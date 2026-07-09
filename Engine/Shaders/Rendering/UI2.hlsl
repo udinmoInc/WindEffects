@@ -61,11 +61,15 @@ float4 PSMain(VSOutput input) : SV_Target
 {
     float type = input.sdfParams.y;
     
-    // Type 0: Textured quad (text, icons, images)
+    // Type 0: Textured quad (text, icons, images).
+    // Use sampled coverage as alpha mask and tint with command color.
     if (type < 0.5)
     {
         float4 texColor = texSampler.Sample(samp0, input.uv);
-        return input.color * texColor;
+        float coverage = max(max(texColor.a, texColor.r), max(texColor.g, texColor.b));
+        float4 outColor = input.color;
+        outColor.a *= coverage;
+        return outColor;
     }
     
     // Type 1: SDF rounded rectangle (solid UI chrome)

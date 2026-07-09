@@ -38,8 +38,10 @@ VSOutput VSMain(VSInput input)
     return o;
 }
 
-[[vk::binding(0, 0)]] Texture2D    texSampler : register(t0, space0);
-[[vk::binding(0, 0)]] SamplerState samp0      : register(s0, space0);
+// The UI pipeline uses a single combined image sampler at set=0, binding=0.
+[[vk::binding(0, 0)]]
+Texture2D    texSampler : register(t0, space0);
+SamplerState samp0      : register(s0, space0);
 
 // Signed distance field for rounded rectangle
 float sdRoundBox(float2 p, float2 b, float r)
@@ -59,10 +61,16 @@ float4 PSMain(VSOutput input) : SV_Target
 {
     float type = input.sdfParams.y;
     
-    // Type 0.0 is Texture/Text
+    // Type 0.0 is Texture/Text/Icon.
+    // Atlases can store coverage in A (or only one color channel). Use coverage
+    // as alpha mask and tint with UI color so glyphs/icons remain visible.
     if (type < 0.5)
     {
-        return input.color * texSampler.Sample(samp0, input.uv);
+        float4 texColor = texSampler.Sample(samp0, input.uv);
+        float coverage = max(max(texColor.a, texColor.r), max(texColor.g, texColor.b));
+        float4 outColor = input.color;
+        outColor.a *= coverage;
+        return outColor;
     }
 
     // Type 1.0 is Rect, Type 2.0 is Border
@@ -74,18 +82,16 @@ float4 PSMain(VSOutput input) : SV_Target
     float2 q = abs(p) - halfSize + radius;
     float dist = min(max(q.x, q.y), 0.0) + length(max(q, 0.0)) - radius;
 
-    float alpha = 1.0;
+    float alpha;
     if (type > 1.5)
     {
         float thickness = max(input.sdfParams.z, 1.0);
-        // Distance to the border edge
-        float borderDist = abs(dist) - thickness * 0.5;
-        alpha = clamp(0.5 - borderDist, 0.0, 1.0);
+        float edgeDist = abs(dist) - thickness * 0.5;
+        alpha = 1.0 - smoothstepAA(0.0, 1.0, edgeDist);
     }
     else
     {
-        // Distance to the rect edge
-        alpha = clamp(0.5 - dist, 0.0, 1.0);
+        alpha = 1.0 - smoothstepAA(-1.0, 1.0, dist);
     }
 
     float4 outColor = input.color;

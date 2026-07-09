@@ -8,6 +8,7 @@
 #include "Renderer/ViewportInterfaces.h"
 #include <functional>
 #include <memory>
+#include <cstdint>
 #include <volk.h>
 
 struct SDL_Window;
@@ -42,6 +43,10 @@ public:
 
     void UploadCameraUniform(const CameraUniform& uniform);
     void InsertOverlayPassBarrier();
+
+    // Presentation-path audit (acquire -> scene -> UI -> submit -> present).
+    void RecordUiPresentPath(uint32_t imageIndex, VkCommandBuffer cmd);
+    void MarkOverlayPassEnded();
 
     // Editor-facing viewport control (implements ISceneViewportController)
     void SetViewportRenderTargetSize(uint32_t width, uint32_t height) override;
@@ -82,6 +87,9 @@ private:
     void ExecuteFoundationPasses(VkCommandBuffer cmd);
     void TransitionFrameImages(VkCommandBuffer cmd);
     void ClearSwapchainBackground(VkCommandBuffer cmd);
+    void ResetPresentPathAudit();
+    bool ValidatePresentPath(VkCommandBuffer submitCmd);
+    void EmitPresentPathAuditLog(VkCommandBuffer submitCmd, bool validationFailed, bool presented);
 
     std::unique_ptr<DeviceContext> m_DeviceContext;
     std::unique_ptr<SwapchainManager> m_SwapchainManager;
@@ -109,6 +117,18 @@ private:
     VkImageView m_ViewportColorImageView = VK_NULL_HANDLE;
     VkFormat m_ViewportColorFormat = VK_FORMAT_UNDEFINED;
     DepthTarget* m_ViewportDepthTarget = nullptr;
+
+    // Per-frame presentation-path audit state.
+    uint64_t m_PresentAuditFrameNumber = 0;
+    uint32_t m_AcquiredImageIndex = UINT32_MAX;
+    uint32_t m_SceneImageIndex = UINT32_MAX;
+    uint32_t m_UiImageIndex = UINT32_MAX;
+    VkCommandBuffer m_CmdAtAcquireSlot = VK_NULL_HANDLE;
+    VkCommandBuffer m_CmdAtScene = VK_NULL_HANDLE;
+    VkCommandBuffer m_CmdAtUi = VK_NULL_HANDLE;
+    bool m_FenceWaitedThisFrame = false;
+    bool m_OverlayPassRan = false;
+    bool m_OverlayPassEnded = false;
 
 };
 

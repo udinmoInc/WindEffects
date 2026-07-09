@@ -28,7 +28,9 @@
 #include <filesystem>
 #include <algorithm>
 #include <cstdio>
+#include <cstdint>
 #include <chrono>
+#include <string>
 
 namespace {
 
@@ -61,6 +63,19 @@ void AgentDebugLog(const char* hypothesisId, const char* location, const char* m
 #else
 void AgentDebugLog(const char*, const char*, const char*, const char*) {}
 #endif
+
+constexpr uint32_t kPresentAuditInvalidIndex = UINT32_MAX;
+
+const char* VkImageLayoutName(VkImageLayout layout) {
+    switch (layout) {
+    case VK_IMAGE_LAYOUT_UNDEFINED: return "UNDEFINED";
+    case VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL: return "COLOR_ATTACHMENT_OPTIMAL";
+    case VK_IMAGE_LAYOUT_PRESENT_SRC_KHR: return "PRESENT_SRC_KHR";
+    case VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL: return "TRANSFER_DST_OPTIMAL";
+    case VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL: return "TRANSFER_SRC_OPTIMAL";
+    default: return "OTHER";
+    }
+}
 
 } // namespace
 
@@ -244,11 +259,130 @@ void Renderer::Shutdown() {
     m_FrameActive = false;
 }
 
+void Renderer::ResetPresentPathAudit() {
+    m_AcquiredImageIndex = kPresentAuditInvalidIndex;
+    m_SceneImageIndex = kPresentAuditInvalidIndex;
+    m_UiImageIndex = kPresentAuditInvalidIndex;
+    m_CmdAtAcquireSlot = VK_NULL_HANDLE;
+    m_CmdAtScene = VK_NULL_HANDLE;
+    m_CmdAtUi = VK_NULL_HANDLE;
+    m_FenceWaitedThisFrame = false;
+    m_OverlayPassRan = false;
+    m_OverlayPassEnded = false;
+}
+
+void Renderer::RecordUiPresentPath(uint32_t imageIndex, VkCommandBuffer cmd) {
+    m_OverlayPassRan = true;
+    m_UiImageIndex = imageIndex;
+    m_CmdAtUi = cmd;
+}
+
+void Renderer::MarkOverlayPassEnded() {
+    m_OverlayPassEnded = true;
+}
+
+bool Renderer::ValidatePresentPath(VkCommandBuffer submitCmd) {
+    bool valid = true;
+
+    if (m_AcquiredImageIndex == kPresentAuditInvalidIndex) {
+        WE_LOG_ERROR(we::LogCategory::Renderer.data(), "[PresentAudit] IMAGE INDEX MISMATCH: acquire index was never recorded.");
+        valid = false;
+    }
+
+    if (m_SceneImageIndex != kPresentAuditInvalidIndex && m_SceneImageIndex != m_AcquiredImageIndex) {
+        WE_LOG_ERROR(
+            we::LogCategory::Renderer.data(),
+            std::string("[PresentAudit] IMAGE INDEX MISMATCH: acquire=") + std::to_string(m_AcquiredImageIndex) +
+            " scene=" + std::to_string(m_SceneImageIndex));
+        valid = false;
+    }
+
+    if (m_OverlayPassRan) {
+        if (m_UiImageIndex != kPresentAuditInvalidIndex && m_UiImageIndex != m_AcquiredImageIndex) {
+            WE_LOG_ERROR(
+                we::LogCategory::Renderer.data(),
+                std::string("[PresentAudit] IMAGE INDEX MISMATCH: acquire=") + std::to_string(m_AcquiredImageIndex) +
+                " ui=" + std::to_string(m_UiImageIndex));
+            valid = false;
+        }
+
+        if (!m_OverlayPassEnded) {
+            WE_LOG_ERROR(we::LogCategory::Renderer.data(), "[PresentAudit] Overlay pass started but MarkOverlayPassEnded() was not called.");
+            valid = false;
+        }
+    }
+
+    if (m_CurrentImageIndex != m_AcquiredImageIndex) {
+        WE_LOG_ERROR(
+            we::LogCategory::Renderer.data(),
+            std::string("[PresentAudit] IMAGE INDEX MISMATCH: acquire=") + std::to_string(m_AcquiredImageIndex) +
+            " present=" + std::to_string(m_CurrentImageIndex));
+        valid = false;
+    }
+
+    if (m_CmdAtAcquireSlot != VK_NULL_HANDLE && submitCmd != VK_NULL_HANDLE && m_CmdAtAcquireSlot != submitCmd) {
+        WE_LOG_ERROR(
+            we::LogCategory::Renderer.data(),
+            std::string("[PresentAudit] COMMAND BUFFER MISMATCH: acquireSlot=0x") +
+            std::to_string(reinterpret_cast<uint64_t>(m_CmdAtAcquireSlot)) +
+            " submit=0x" + std::to_string(reinterpret_cast<uint64_t>(submitCmd)));
+        valid = false;
+    }
+
+    if (m_CmdAtScene != VK_NULL_HANDLE && submitCmd != VK_NULL_HANDLE && m_CmdAtScene != submitCmd) {
+        WE_LOG_ERROR(
+            we::LogCategory::Renderer.data(),
+            std::string("[PresentAudit] COMMAND BUFFER MISMATCH: scene=0x") +
+            std::to_string(reinterpret_cast<uint64_t>(m_CmdAtScene)) +
+            " submit=0x" + std::to_string(reinterpret_cast<uint64_t>(submitCmd)));
+        valid = false;
+    }
+
+    if (m_OverlayPassRan && m_CmdAtUi != VK_NULL_HANDLE && submitCmd != VK_NULL_HANDLE && m_CmdAtUi != submitCmd) {
+        WE_LOG_ERROR(
+            we::LogCategory::Renderer.data(),
+            std::string("[PresentAudit] COMMAND BUFFER MISMATCH: ui=0x") +
+            std::to_string(reinterpret_cast<uint64_t>(m_CmdAtUi)) +
+            " submit=0x" + std::to_string(reinterpret_cast<uint64_t>(submitCmd)));
+        valid = false;
+    }
+
+    return valid;
+}
+
+void Renderer::EmitPresentPathAuditLog(VkCommandBuffer submitCmd, bool validationFailed, bool presented) {
+    const uint32_t sceneIndex =
+        m_SceneImageIndex == kPresentAuditInvalidIndex ? m_AcquiredImageIndex : m_SceneImageIndex;
+    const uint32_t uiIndex =
+        m_UiImageIndex == kPresentAuditInvalidIndex ? kPresentAuditInvalidIndex : m_UiImageIndex;
+
+    std::string line =
+        std::string("[PresentAudit] Frame ") + std::to_string(m_PresentAuditFrameNumber) +
+        " | Acquire image=" + std::to_string(m_AcquiredImageIndex) +
+        " | Scene renders image=" + std::to_string(sceneIndex) +
+        " | UI renders image=" + (uiIndex == kPresentAuditInvalidIndex ? "SKIPPED" : std::to_string(uiIndex)) +
+        " | Submit command buffer=0x" + std::to_string(reinterpret_cast<uint64_t>(submitCmd)) +
+        " | Present image=" + std::to_string(m_CurrentImageIndex) +
+        " | FrameSlot=" + std::to_string(m_CurrentFrame) +
+        " | Fence waited=" + (m_FenceWaitedThisFrame ? "YES" : "NO") +
+        " | Layout prePresent=" + VkImageLayoutName(VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL) +
+        " | Layout postPresent=" + VkImageLayoutName(VK_IMAGE_LAYOUT_PRESENT_SRC_KHR) +
+        " | Presented=" + (presented ? "YES" : "NO") +
+        " | Valid=" + (validationFailed ? "NO" : "YES");
+
+    if (validationFailed) {
+        WE_LOG_ERROR(we::LogCategory::Renderer.data(), line);
+    } else {
+        WE_LOG_INFO(we::LogCategory::Renderer.data(), line);
+    }
+}
+
 bool Renderer::BeginFrame() {
     WE_VALIDATE_RENDER(m_Initialized, "Renderer::BeginFrame", "Renderer not initialized.");
     WE_VALIDATE_RENDER(!m_FrameActive, "Renderer::BeginFrame", "Frame already active.");
 
     m_FrameSync->WaitForFrame(m_CurrentFrame);
+    m_FenceWaitedThisFrame = true;
 
     if (!m_SwapchainManager->AcquireNextImage(m_CurrentFrame, m_CurrentImageIndex)) {
         // #region agent log
@@ -261,8 +395,20 @@ bool Renderer::BeginFrame() {
         return false;
     }
 
-    m_FrameSync->ResetFence(m_CurrentFrame);
     m_FrameActive = true;
+
+    ++m_PresentAuditFrameNumber;
+    ResetPresentPathAudit();
+    m_FenceWaitedThisFrame = true;
+    m_AcquiredImageIndex = m_CurrentImageIndex;
+    m_CmdAtAcquireSlot = m_CommandContext->GetCurrentCommandBuffer(m_CurrentFrame);
+
+    WE_LOG_INFO(
+        we::LogCategory::Renderer.data(),
+        std::string("[PresentAudit] Acquire image=") + std::to_string(m_AcquiredImageIndex) +
+        " | FrameSlot=" + std::to_string(m_CurrentFrame) +
+        " | CmdSlot=0x" + std::to_string(reinterpret_cast<uint64_t>(m_CmdAtAcquireSlot)) +
+        " | Layout postAcquireTransition=" + VkImageLayoutName(VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL));
 
     const VkExtent2D extent = m_SwapchainManager->GetExtent();
     const VkRect2D blitRect = m_ViewportBlitRect;
@@ -440,6 +586,9 @@ void Renderer::RenderScene() {
         WE_LOG_ERROR(we::LogCategory::Renderer.data(), "RenderScene aborted: BeginFrame returned null command buffer.");
         return;
     }
+    m_CmdAtScene = cmd;
+    m_SceneImageIndex = m_CurrentImageIndex;
+
     TransitionFrameImages(cmd);
     ClearSwapchainBackground(cmd);
 
@@ -542,23 +691,47 @@ void Renderer::RenderScene() {
 
         m_ViewportColorInShaderRead = true;
     }
+
+    m_SceneImageIndex = m_CurrentImageIndex;
+    m_CmdAtScene = cmd;
+
+    WE_LOG_INFO(
+        we::LogCategory::Renderer.data(),
+        std::string("[PresentAudit] Scene renders image=") + std::to_string(m_SceneImageIndex) +
+        " | Cmd=0x" + std::to_string(reinterpret_cast<uint64_t>(m_CmdAtScene)) +
+        " | Layout preUI=" + VkImageLayoutName(VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL));
 }
 
 void Renderer::SubmitAndPresent() {
     VkCommandBuffer cmd = m_CommandContext->GetCurrentCommandBuffer(m_CurrentFrame);
     if (cmd == VK_NULL_HANDLE) {
         WE_LOG_ERROR(we::LogCategory::Renderer.data(), "SubmitAndPresent aborted: current command buffer is null.");
+        EmitPresentPathAuditLog(VK_NULL_HANDLE, true, false);
         m_FrameActive = false;
-        m_CurrentFrame = (m_CurrentFrame + 1) % kMaxFramesInFlight;
         return;
     }
     const auto& swapchainImages = m_SwapchainManager->GetImages();
     if (m_CurrentImageIndex >= swapchainImages.size()) {
         WE_LOG_ERROR(we::LogCategory::Renderer.data(), "SubmitAndPresent aborted: swapchain image index out of range.");
+        EmitPresentPathAuditLog(cmd, true, false);
         m_FrameActive = false;
-        m_CurrentFrame = (m_CurrentFrame + 1) % kMaxFramesInFlight;
         return;
     }
+
+    if (m_OverlayPassRan && !m_OverlayPassEnded) {
+        WE_LOG_ERROR(
+            we::LogCategory::Renderer.data(),
+            "[PresentAudit] SubmitAndPresent called before overlay pass ended.");
+    }
+
+    const bool validationPassed = ValidatePresentPath(cmd);
+    if (!validationPassed) {
+        EmitPresentPathAuditLog(cmd, true, false);
+        m_FrameActive = false;
+        return;
+    }
+
+    m_FrameSync->ResetFence(m_CurrentFrame);
 
     TransitionImageLayout(
         cmd,
@@ -571,19 +744,12 @@ void Renderer::SubmitAndPresent() {
         VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT);
 
     m_CommandContext->EndFrame(m_CurrentFrame);
-    
-    #if WE_DEBUG_UI
-    WE_LOG_INFO(we::LogCategory::Renderer.data(),
-        std::string("QueueSubmit | Swapchain Image Index: ") + std::to_string(m_CurrentImageIndex));
-    #endif
+
     m_SwapchainManager->SubmitFrame(m_CurrentFrame, m_CurrentImageIndex, cmd);
-    
-    #if WE_DEBUG_UI
-    WE_LOG_INFO(we::LogCategory::Renderer.data(),
-        std::string("Present | Swapchain Image Index: ") + std::to_string(m_CurrentImageIndex));
-    #endif
     m_SwapchainManager->Present(m_CurrentFrame, m_CurrentImageIndex);
     m_HasPresentedSwapchainImage = true;
+
+    EmitPresentPathAuditLog(cmd, false, true);
 
     m_FrameActive = false;
     m_CurrentFrame = (m_CurrentFrame + 1) % kMaxFramesInFlight;

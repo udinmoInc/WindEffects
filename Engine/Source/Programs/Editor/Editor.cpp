@@ -1035,14 +1035,28 @@ void Editor::MainLoop() {
                 overlayContext.targetFormat = m_Renderer->GetSwapchainImageFormat();
                 overlayContext.targetExtent = { m_Renderer->GetSwapchainWidth(), m_Renderer->GetSwapchainHeight() };
 
-                // Build UI geometry on CPU before starting the GPU overlay pass.
-                m_OverlayRenderer->SetFrameExtent(overlayContext.targetExtent.width, overlayContext.targetExtent.height);
+                const auto& swapchainImages = swapchainManager->GetImages();
+                const VkImage swapImage =
+                    imageIndex < swapchainImages.size() ? swapchainImages[imageIndex] : VK_NULL_HANDLE;
+
+                m_Renderer->RecordUiPresentPath(imageIndex, cmd);
+                m_OverlayRenderer->SetPipelineAuditImageIndex(imageIndex);
+                HE_INFO(
+                    std::string("[PresentAudit] UI renders image=") + std::to_string(imageIndex) +
+                    " | Cmd=0x" + std::to_string(reinterpret_cast<uint64_t>(cmd)) +
+                    " | targetView=0x" + std::to_string(reinterpret_cast<uint64_t>(overlayContext.targetView)) +
+                    " | swapImage=0x" + std::to_string(reinterpret_cast<uint64_t>(swapImage)) +
+                    " | Layout preUI=COLOR_ATTACHMENT_OPTIMAL");
+
+                // Build UI geometry before entering the dynamic render pass.
+                m_OverlayRenderer->SetTargetExtent(overlayContext.targetExtent.width, overlayContext.targetExtent.height);
                 m_OverlayRenderer->RenderEditorUI(m_RootWidget);
 
                 // Keep Vulkan synchronization inside Renderer module where dispatch is initialized.
                 m_Renderer->InsertOverlayPassBarrier();
                 m_OverlayRenderer->BeginOverlayPass(overlayContext);
                 m_OverlayRenderer->EndOverlayPass(overlayContext);
+                m_Renderer->MarkOverlayPassEnded();
                 }
             }
 
