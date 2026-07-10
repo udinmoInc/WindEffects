@@ -93,13 +93,8 @@ bool HarfBuzzTextLayout::Initialize(FT_FaceRec_* primaryFace, FT_FaceRec_* fallb
         return false;
     }
 
-    HE_INFO("[UI FontAudit] HarfBuzz shaping enabled ascender=" + std::to_string(m_Metrics.ascender)
-            + " descender=" + std::to_string(m_Metrics.descender)
-            + " lineHeight=" + std::to_string(m_Metrics.lineHeight)
-            + " ppem=" + std::to_string(primaryFace->size ? primaryFace->size->metrics.y_ppem : 0));
     return true;
 #else
-    HE_WARN("[UI FontAudit] HarfBuzz unavailable; using per-codepoint layout fallback");
     return true;
 #endif
 }

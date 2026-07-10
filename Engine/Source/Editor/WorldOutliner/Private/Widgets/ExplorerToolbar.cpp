@@ -4,148 +4,117 @@
 #include "Core/Theme.h"
 #include "Core/Icon.h"
 
+#include <SDL3/SDL.h>
 #include <algorithm>
 #include <cmath>
 
 namespace we::UI {
 
-namespace {
-constexpr float kPadLeft = 8.0f;
-constexpr float kPadRight = 8.0f;
-constexpr float kPadTop = 4.0f;
-constexpr float kPadBottom = 4.0f;
-constexpr float kButtonSize = 24.0f;
-constexpr float kIconSize = 14.0f;
-constexpr float kButtonGap = 2.0f;
-constexpr float kSearchBoxHeight = 24.0f;
-constexpr float kSearchBoxMinWidth = 140.0f;
-constexpr float kSearchBoxMaxWidth = 280.0f;
-constexpr float kCornerRadius = 4.0f;
-} // namespace
-
 ExplorerToolbar::ExplorerToolbar() {
 }
 
 Size ExplorerToolbar::Measure(const Size& availableSize) {
-    m_DesiredSize = Size{ availableSize.width, kDefaultHeight };
+    m_DesiredSize = Size{ availableSize.width, Theme::Get().PanelHeaderHeight };
     return m_DesiredSize;
 }
 
 void ExplorerToolbar::Arrange(const Rect& allottedRect) {
+    const auto& theme = Theme::Get();
     m_Geometry = allottedRect;
 
-    // Calculate search box width based on available space
-    float searchBoxWidth = std::min(kSearchBoxMaxWidth, std::max(kSearchBoxMinWidth, allottedRect.width - 200.0f));
-    
-    // Search box on the left
-    const float searchX = allottedRect.x + kPadLeft;
-    const float searchY = allottedRect.y + (kDefaultHeight - kSearchBoxHeight) * 0.5f;
-    m_SearchBoxGeometry = Rect{ searchX, searchY, searchBoxWidth, kSearchBoxHeight };
+    float searchBoxWidth = std::min(theme.Space6 * 11.67f, std::max(theme.Space6 * 5.83f, allottedRect.width - 200.0f));
 
-    // Buttons on the right
-    float x = allottedRect.x + allottedRect.width - kPadRight;
-    
-    // Refresh button
-    x -= kButtonSize;
-    const float refreshY = allottedRect.y + (kDefaultHeight - kButtonSize) * 0.5f;
-    m_RefreshButtonGeometry = Rect{ x, refreshY, kButtonSize, kButtonSize };
-    x -= kButtonGap;
+    const float searchX = allottedRect.x + theme.Space2;
+    const float searchY = allottedRect.y + (theme.PanelHeaderHeight - theme.SearchBoxHeight) * 0.5f;
+    m_SearchBoxGeometry = Rect{ searchX, searchY, searchBoxWidth, theme.SearchBoxHeight };
 
-    // New Folder button
-    x -= kButtonSize;
-    const float newFolderY = allottedRect.y + (kDefaultHeight - kButtonSize) * 0.5f;
-    m_NewFolderButtonGeometry = Rect{ x, newFolderY, kButtonSize, kButtonSize };
-    x -= kButtonGap;
+    float x = allottedRect.x + allottedRect.width - theme.Space2;
 
-    // Filter button
-    x -= kButtonSize;
-    const float filterY = allottedRect.y + (kDefaultHeight - kButtonSize) * 0.5f;
-    m_FilterButtonGeometry = Rect{ x, filterY, kButtonSize, kButtonSize };
+    x -= theme.IconButtonSize;
+    const float buttonY = allottedRect.y + (theme.PanelHeaderHeight - theme.IconButtonSize) * 0.5f;
+    m_RefreshButtonGeometry = Rect{ x, buttonY, theme.IconButtonSize, theme.IconButtonSize };
+    x -= theme.Space1;
+
+    x -= theme.IconButtonSize;
+    m_NewFolderButtonGeometry = Rect{ x, buttonY, theme.IconButtonSize, theme.IconButtonSize };
+    x -= theme.Space1;
+
+    x -= theme.IconButtonSize;
+    m_FilterButtonGeometry = Rect{ x, buttonY, theme.IconButtonSize, theme.IconButtonSize };
 }
 
 void ExplorerToolbar::Paint(PaintContext& context) {
     const auto& theme = Theme::Get();
+    const float iconSize = theme.IconSizeSearch;
+    const float fontSize = theme.TextSizeBody;
 
-    // Draw toolbar background
     context.DrawRect(m_Geometry, theme.HeaderBackground);
-    
-    // Draw separator at bottom
+
     context.DrawRect(
-        Rect{ m_Geometry.x, m_Geometry.y + m_Geometry.height - 1.0f, m_Geometry.width, 1.0f },
+        Rect{ m_Geometry.x, m_Geometry.y + m_Geometry.height - theme.BorderWidth, m_Geometry.width, theme.BorderWidth },
         theme.Separator);
 
-    // Draw search box
-    const Color searchBg = m_SearchFocused ? theme.InputBackground : theme.SearchBoxBg;
-    const Color searchBorder = m_SearchFocused ? theme.SelectedAccent : theme.BorderDefault;
-    
-    context.DrawRoundedRect(m_SearchBoxGeometry, searchBg, kCornerRadius);
-    context.DrawRoundedRectOutline(m_SearchBoxGeometry, searchBorder, 1.0f, kCornerRadius);
+    const Color searchBg = theme.SearchBoxBg;
+    const Color searchBorder = m_SearchFocused
+        ? Color::Lerp(theme.BorderDefault, theme.BorderFocus, 0.35f)
+        : theme.BorderDefault;
 
-    // Draw search icon
-    const float searchIconSize = 14.0f;
-    const float searchIconX = m_SearchBoxGeometry.x + 8.0f;
-    const float searchIconY = m_SearchBoxGeometry.y + (m_SearchBoxGeometry.height - searchIconSize) * 0.5f;
-    IconPainter::DrawIcon(context, Icons::SearchName, 
-                          Rect{ searchIconX, searchIconY, searchIconSize, searchIconSize }, 
+    context.DrawRoundedRect(m_SearchBoxGeometry, searchBg, theme.CornerRadiusSmall);
+    context.DrawRoundedRectOutline(m_SearchBoxGeometry, searchBorder, theme.BorderWidth, theme.CornerRadiusSmall);
+
+    const float searchIconX = m_SearchBoxGeometry.x + theme.Space2;
+    const float searchIconY = m_SearchBoxGeometry.y + (m_SearchBoxGeometry.height - iconSize) * 0.5f;
+    IconPainter::DrawIcon(context, Icons::SearchName,
+                          Rect{ searchIconX, searchIconY, iconSize, iconSize },
                           theme.SearchIcon);
 
-    // Draw search text or placeholder
-    const float textX = searchIconX + searchIconSize + 6.0f;
-    const float textY = m_SearchBoxGeometry.y + (m_SearchBoxGeometry.height - theme.TextSizeNormal) * 0.5f;
-    
+    const float textX = searchIconX + iconSize + theme.Space2 - 2.0f;
+    const float textY = m_SearchBoxGeometry.y + (m_SearchBoxGeometry.height - fontSize) * 0.5f;
+
     if (m_SearchQuery.empty()) {
-        context.DrawText("Search...", Point{ textX, textY }, theme.SearchPlaceholder, theme.TextSizeNormal);
+        context.DrawText("Search...", Point{ textX, textY }, theme.SearchPlaceholder, fontSize);
     } else {
-        context.DrawText(m_SearchQuery, Point{ textX, textY }, theme.TextPrimary, theme.TextSizeNormal);
-        
-        // Draw cursor if focused
+        context.DrawText(m_SearchQuery, Point{ textX, textY }, theme.TextPrimary, fontSize);
+
         if (m_SearchFocused) {
-            const float cursorX = textX + context.GetTextWidth(m_SearchQuery, theme.TextSizeNormal) + 1.0f;
+            const float cursorX = textX + context.GetTextWidth(m_SearchQuery, fontSize) + theme.BorderWidth;
             if (static_cast<int>(m_CursorBlink * 3.0f) % 2 == 0) {
-                context.DrawRect(Rect{ cursorX, textY, 1.0f, theme.TextSizeNormal }, theme.TextPrimary);
+                context.DrawRect(Rect{ cursorX, textY, theme.BorderWidth, fontSize }, theme.TextPrimary);
             }
         }
     }
 
-    // Draw clear button if there's text
     if (!m_SearchQuery.empty()) {
-        const float clearSize = 14.0f;
-        const float clearX = m_SearchBoxGeometry.x + m_SearchBoxGeometry.width - clearSize - 6.0f;
-        const float clearY = m_SearchBoxGeometry.y + (m_SearchBoxGeometry.height - clearSize) * 0.5f;
+        const float clearX = m_SearchBoxGeometry.x + m_SearchBoxGeometry.width - iconSize - theme.Space2 + 2.0f;
+        const float clearY = m_SearchBoxGeometry.y + (m_SearchBoxGeometry.height - iconSize) * 0.5f;
         IconPainter::DrawIcon(context, Icons::XName,
-                              Rect{ clearX, clearY, clearSize, clearSize },
+                              Rect{ clearX, clearY, iconSize, iconSize },
                               theme.SearchIcon);
     }
 
-    // Draw separator between search and buttons
-    const float separatorX = m_SearchBoxGeometry.x + m_SearchBoxGeometry.width + 8.0f;
-    context.DrawRect(Rect{ separatorX, m_Geometry.y + 6.0f, 1.0f, m_Geometry.height - 12.0f }, theme.Separator);
+    const float separatorX = m_SearchBoxGeometry.x + m_SearchBoxGeometry.width + theme.Space2;
+    context.DrawRect(Rect{ separatorX, m_Geometry.y + theme.Space2 - 2.0f, theme.BorderWidth, m_Geometry.height - theme.Space3 + 4.0f }, theme.Separator);
 
-    // Draw Filter button
-    PaintToolbarButton(context, m_FilterButtonGeometry, Icons::FilterName, 
+    PaintToolbarButton(context, m_FilterButtonGeometry, Icons::FilterName,
                       m_HoveredButton == 0 || m_PressedButton == 0, theme);
-
-    // Draw New Folder button
     PaintToolbarButton(context, m_NewFolderButtonGeometry, Icons::PlusName,
                       m_HoveredButton == 1 || m_PressedButton == 1, theme);
-
-    // Draw Refresh button
     PaintToolbarButton(context, m_RefreshButtonGeometry, Icons::RefreshName,
                       m_HoveredButton == 2 || m_PressedButton == 2, theme);
 }
 
-void ExplorerToolbar::PaintToolbarButton(PaintContext& context, const Rect& geometry, 
+void ExplorerToolbar::PaintToolbarButton(PaintContext& context, const Rect& geometry,
                                          const std::string& iconName, bool hovered, const Theme& theme) {
     if (hovered) {
-        context.DrawRoundedRect(geometry, theme.HoverOverlay, kCornerRadius);
+        context.DrawRoundedRect(geometry, theme.HoverButton, theme.CornerRadiusSmall);
     }
 
-    const float iconSize = 14.0f;
+    const float iconSize = theme.IconSizeToolbar;
     const float iconX = geometry.x + (geometry.width - iconSize) * 0.5f;
     const float iconY = geometry.y + (geometry.height - iconSize) * 0.5f;
-    
-    Color iconColor = hovered ? theme.SidebarIconHover : theme.SidebarIconDefault;
-    IconPainter::DrawIcon(context, iconName, Rect{ iconX, iconY, iconSize, iconSize }, iconColor);
+
+    IconPainter::DrawIcon(context, iconName, Rect{ iconX, iconY, iconSize, iconSize },
+                          theme.IconForState(hovered));
 }
 
 void ExplorerToolbar::Tick(float deltaTime) {
@@ -167,16 +136,16 @@ void ExplorerToolbar::OnMouseDown(const MouseEvent& event) {
         return;
     }
 
-    // Check if clicking on search box
+    const auto& theme = Theme::Get();
+    const float iconSize = theme.IconSizeSearch;
+
     if (m_SearchBoxGeometry.Contains(event.position)) {
         m_SearchFocused = true;
-        
-        // Check if clicking on clear button
+
         if (!m_SearchQuery.empty()) {
-            const float clearSize = 14.0f;
-            const float clearX = m_SearchBoxGeometry.x + m_SearchBoxGeometry.width - clearSize - 6.0f;
-            const float clearY = m_SearchBoxGeometry.y + (m_SearchBoxGeometry.height - clearSize) * 0.5f;
-            Rect clearRect{ clearX, clearY, clearSize, clearSize };
+            const float clearX = m_SearchBoxGeometry.x + m_SearchBoxGeometry.width - iconSize - theme.Space2 + 2.0f;
+            const float clearY = m_SearchBoxGeometry.y + (m_SearchBoxGeometry.height - iconSize) * 0.5f;
+            Rect clearRect{ clearX, clearY, iconSize, iconSize };
             if (clearRect.Contains(event.position)) {
                 m_SearchQuery.clear();
                 if (m_OnSearchChanged) {
@@ -189,20 +158,19 @@ void ExplorerToolbar::OnMouseDown(const MouseEvent& event) {
         m_SearchFocused = false;
     }
 
-    // Check toolbar buttons
     m_PressedButton = HitButtonIndex(event.position);
     if (m_PressedButton < 0) {
         return;
     }
 
     switch (m_PressedButton) {
-    case 0: // Filter
+    case 0:
         if (m_OnFilterClicked) m_OnFilterClicked();
         break;
-    case 1: // New Folder
+    case 1:
         if (m_OnNewFolder) m_OnNewFolder();
         break;
-    case 2: // Refresh
+    case 2:
         if (m_OnRefresh) m_OnRefresh();
         break;
     }
@@ -226,13 +194,12 @@ void ExplorerToolbar::OnKeyDown(const KeyEvent& event) {
         m_SearchFocused = false;
         return;
     }
-    
+
     if (event.keycode == SDLK_BACKSPACE && !m_SearchQuery.empty()) {
         m_SearchQuery.pop_back();
         if (m_OnSearchChanged) {
             m_OnSearchChanged(m_SearchQuery);
         }
-        return;
     }
 }
 
@@ -241,7 +208,6 @@ void ExplorerToolbar::OnTextInput(const std::string& text) {
         return;
     }
 
-    // Only accept printable characters
     for (char c : text) {
         if (c >= 32 && c <= 126 && m_SearchQuery.size() < 64) {
             m_SearchQuery.push_back(c);

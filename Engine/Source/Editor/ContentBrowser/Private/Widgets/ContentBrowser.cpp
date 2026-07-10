@@ -410,7 +410,7 @@ void ContentBrowser::Paint(PaintContext& context) {
                 const std::string countStr = std::to_string(m_Model->selectedIds.size());
                 Rect badgeRect{ ghostRect.x + ghostRect.width - 24.0f, ghostRect.y - 8.0f, 32.0f, 20.0f };
                 context.DrawRoundedRect(badgeRect, Color{ 0.9f, 0.2f, 0.2f, 1.0f }, 10.0f);
-                context.DrawText(countStr, Point{ badgeRect.x + 8.0f, badgeRect.y + 2.0f }, Color::White(), 12.0f);
+                context.DrawText(countStr, Point{ badgeRect.x + Theme::Get().Space2, badgeRect.y + Theme::Get().Space1 - 2.0f }, Theme::Get().TextPrimary, Theme::Get().TextSizeSmall);
             }
             break;
         }

@@ -15,7 +15,7 @@ MenuBar::MenuBar()
 
 Size MenuBar::Measure(const Size& availableSize) {
     const float uiScale = (std::max)(1.0f, DPIContext::GetScale());
-    const float textSize = 13.0f * uiScale;
+    const float textSize = Theme::Get().TextSizeMenu * uiScale;
     auto getApproxTextWidth = [textSize](const std::string& str) {
         float w = 0.0f;
         for (char c : str) {
@@ -45,29 +45,27 @@ void MenuBar::Arrange(const Rect& allottedRect) {
 
 void MenuBar::Paint(PaintContext& context) {
     const float uiScale = (std::max)(1.0f, DPIContext::GetScale());
-    const float textSize = 13.0f * uiScale;
+    const auto& theme = Theme::Get();
+    const float textSize = theme.TextSizeMenu * uiScale;
 
     auto drawMenu = [&](const MenuInfo& menu, int index) {
         bool isActive = m_MenuOpen && index == m_HoveredMenu;
 
         if (menu.hovered && !isActive) {
-            context.DrawRoundedRect(menu.geometry, Theme::Get().HoverOverlay, Theme::Get().CornerRadiusSmall * uiScale);
+            context.DrawRoundedRect(menu.geometry, theme.HoverMenu, theme.CornerRadiusSmall * uiScale);
         }
 
         if (isActive) {
             Rect underlineRect = menu.geometry;
-            underlineRect.y += menu.geometry.height - 2.0f;
-            underlineRect.height = 2.0f;
-            context.DrawRect(underlineRect, Theme::Get().ActiveTabLine);
+            underlineRect.y += menu.geometry.height - theme.Space1;
+            underlineRect.height = theme.Space1;
+            context.DrawRect(underlineRect, theme.ActiveTabLine);
         }
 
         float textX = menu.geometry.x + m_ItemPaddingH * uiScale;
         float textY = menu.geometry.y + (menu.geometry.height - textSize) / 2.0f;
 
-        Color textColor = Theme::Get().TextPrimary;
-        if (menu.hovered || isActive) {
-            textColor = Color::White();
-        }
+        Color textColor = theme.TextForState(menu.hovered || isActive, isActive);
         context.DrawText(menu.label, Point{ textX, textY }, textColor, textSize);
     };
 

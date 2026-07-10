@@ -71,11 +71,11 @@ namespace {
 
     class ProjectSelectorWidget : public Widget {
     public:
-        static constexpr float kHeight      = 28.0f;
-        static constexpr float kLeftPad     = 10.0f;
-        static constexpr float kRightPad    = 10.0f;
+        static constexpr float kHeight      = 24.0f;
+        static constexpr float kLeftPad     = 12.0f - 2.0f;
+        static constexpr float kRightPad    = 12.0f - 2.0f;
         static constexpr float kIconSize    = 14.0f;
-        static constexpr float kIconGap     = 6.0f;
+        static constexpr float kIconGap     = 8.0f - 2.0f;
         static constexpr float kChevSize    = 8.0f;
         static constexpr float kTextSize    = 12.0f;
         static constexpr const char* kProjectName = "WindEffects";
@@ -95,26 +95,23 @@ namespace {
             }
         }
         void Paint(PaintContext& context) override {
-            Color bg = m_Hovered
-                ? Color{ 0.165f, 0.165f, 0.165f, 1.0f }
-                : Color{ 0.137f, 0.137f, 0.137f, 1.0f };
-            context.DrawRoundedRect(m_Geometry, bg, 4.0f);
+            const auto& theme = Theme::Get();
+            Color bg = m_Hovered ? theme.HoverBg : theme.PanelBackground;
+            context.DrawRoundedRect(m_Geometry, bg, theme.CornerRadiusSmall);
 
-            Color borderCol = m_Hovered
-                ? Color{ 0.298f, 0.298f, 0.298f, 1.0f }
-                : Color{ 0.227f, 0.227f, 0.227f, 1.0f };
-            context.DrawRoundedRectOutline(m_Geometry, borderCol, 1.0f, 4.0f);
+            Color borderCol = m_Hovered ? theme.BorderLight : theme.BorderDefault;
+            context.DrawRoundedRectOutline(m_Geometry, borderCol, theme.BorderWidth, theme.CornerRadiusSmall);
 
             float centerY = m_Geometry.y + m_Geometry.height / 2.0f;
 
             IconPainter::DrawIcon(context, Icons::PackageName,
                 Rect{ m_Geometry.x + kLeftPad, centerY - kIconSize / 2.0f, kIconSize, kIconSize },
-                Theme::Get().TextSecondary);
+                theme.TextSecondary);
 
             float textX = m_Geometry.x + kLeftPad + kIconSize + kIconGap;
             context.DrawText(kProjectName,
                 Point{ textX, centerY - kTextSize / 2.0f },
-                Theme::Get().TextPrimary, kTextSize);
+                theme.TextPrimary, kTextSize);
 
             float chevX = m_Geometry.x + m_Geometry.width - kRightPad - kChevSize;
             IconPainter::DrawIcon(context, Icons::ChevronDownName,

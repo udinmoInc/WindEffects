@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Core/Widget.h"
+#include "Core/Theme.h"
 #include "Widgets/TreeView.h"
 #include <functional>
 #include <string>
@@ -10,7 +11,7 @@ namespace we::UI {
 
 class ExplorerToolbar : public Widget {
 public:
-    static constexpr float kDefaultHeight = 32.0f;
+    static float DefaultHeight() { return Theme::Get().PanelHeaderHeight; }
 
     // Use TreeView's FilterOptions for consistency
     using FilterOptions = TreeView::FilterOptions;

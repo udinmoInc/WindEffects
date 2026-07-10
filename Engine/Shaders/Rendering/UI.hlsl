@@ -62,16 +62,34 @@ float median3(float r, float g, float b)
     return max(min(r, g), min(max(r, g), b));
 }
 
+float screenPxRange(float2 uv, float pxRange, float2 atlasSize)
+{
+    float2 unitRange = float2(pxRange, pxRange) / atlasSize;
+    float2 screenTexSize = 1.0 / fwidth(uv);
+    return max(0.5 * dot(unitRange, screenTexSize), 1.0);
+}
+
 float4 PSMain(VSOutput input) : SV_Target
 {
     float type = input.sdfParams.y;
     
-    // Type 3.0 is Text (FreeType anti-aliased bitmap).
+    // Type 3.0 is MSDF text.
     if (type > 2.5 && type < 3.5)
     {
         float4 texColor = texSampler.Sample(samp0, input.uv);
+        float sd = median3(texColor.r, texColor.g, texColor.b);
+        uint atlasW = 0;
+        uint atlasH = 0;
+        texSampler.GetDimensions(atlasW, atlasH);
+        float spr = screenPxRange(input.uv, max(input.sdfParams.z, 1.0), float2(atlasW, atlasH));
+        float opacity = saturate((sd - 0.5) * spr + 0.5);
+
+        // Basic gamma-aware edge response to reduce dark fringes/halos.
+        opacity = pow(opacity, 1.0 / 1.1);
+
         float4 outColor = input.color;
-        outColor.a *= texColor.a;
+        outColor.rgb *= outColor.a;
+        outColor.a *= opacity;
         return outColor;
     }
 

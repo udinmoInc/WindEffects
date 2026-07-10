@@ -40,15 +40,15 @@ namespace {
 }
 
 StatusBar::StatusBar() {
-    const float uiScale = (std::max)(1.0f, DPIContext::GetScale());
-    SetPadding(Margin{ 8.0f * uiScale, 0.0f, 8.0f * uiScale, 0.0f });
+    const auto& theme = Theme::Get();
+    SetPadding(Margin{ theme.Space2, 0.0f, theme.Space2, 0.0f });
     SetSpacing(0.0f);
 }
 
 void StatusBar::Construct() {
-    const float uiScale = (std::max)(1.0f, DPIContext::GetScale());
+    const auto& theme = Theme::Get();
     auto leftBox = std::make_shared<HorizontalBox>();
-    leftBox->SetSpacing(4.0f * uiScale);
+    leftBox->SetSpacing(theme.Space1);
 
     m_AssetsPanelButton = MakeFooterControl(Icons::FolderName, "Assets", false, "Content Browser");
     m_DiagnosticsPanelButton = MakeFooterControl(Icons::WarningName, "Diagnostics", false, "Diagnostics Panel");
@@ -60,7 +60,7 @@ void StatusBar::Construct() {
     leftBox->AddChild(m_DiagnosticsPanelButton);
     AddChild(leftBox);
 
-    AddChild(std::make_shared<FixedGap>(8.0f * uiScale));
+    AddChild(std::make_shared<FixedGap>(theme.Space2));
 
     m_CommandInput = std::make_shared<CommandInput>();
     m_CommandInput->SetVerticalAlignment(VerticalAlignment::Center);
@@ -70,7 +70,7 @@ void StatusBar::Construct() {
     AddChild(std::make_shared<Spacer>());
 
     auto rightBox = std::make_shared<HorizontalBox>();
-    rightBox->SetSpacing(4.0f * uiScale);
+    rightBox->SetSpacing(theme.Space1);
 
     m_OutputLogButton = MakeFooterControl(Icons::ConsoleName, "Output Log", false, "Open Output Log");
     m_BuildMenuButton = MakeFooterControl(Icons::BuildName, "Development", true, "Build Configuration");
@@ -79,7 +79,7 @@ void StatusBar::Construct() {
 
     rightBox->AddChild(m_OutputLogButton);
     rightBox->AddChild(m_BuildMenuButton);
-    rightBox->AddChild(std::make_shared<FixedGap>(6.0f * uiScale));
+    rightBox->AddChild(std::make_shared<FixedGap>(theme.Space2 - 2.0f));
     rightBox->AddChild(m_TraceButton);
     rightBox->AddChild(m_QualityMenuButton);
 
@@ -113,15 +113,16 @@ Size StatusBar::Measure(const Size& availableSize) {
 }
 
 void StatusBar::Paint(PaintContext& context) {
-    context.DrawRect(m_Geometry, Theme::Get().FooterBackground);
+    const auto& theme = Theme::Get();
+    context.DrawRect(m_Geometry, theme.StatusBarBackground);
 
     Rect topBorder{
         m_Geometry.x,
         m_Geometry.y,
         m_Geometry.width,
-        1.0f
+        theme.BorderWidth
     };
-    context.DrawRect(topBorder, Theme::Get().BorderDefault);
+    context.DrawRect(topBorder, theme.Separator);
 
     HorizontalBox::Paint(context);
 }

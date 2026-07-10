@@ -8,8 +8,8 @@
 
 namespace we::UI {
 namespace {
-    constexpr float kToolbarItemSpacing = 6.0f;
-    constexpr float kToolbarSeparatorSpacing = 14.0f;
+    constexpr float kToolbarItemSpacing = 8.0f - 2.0f;
+    constexpr float kToolbarSeparatorSpacing = 12.0f + 2.0f;
 }
 
 Toolbar::Toolbar()

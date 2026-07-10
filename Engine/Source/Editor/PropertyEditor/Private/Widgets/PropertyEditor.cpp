@@ -50,17 +50,15 @@ void PropertyEditor::Paint(PaintContext& context) {
         
         Color headerBg = Theme::Get().BorderDark; // #2E3136
         if (cat.name == m_HoveredCategory) {
-            headerBg = Theme::Get().HoverOverlay;
+            headerBg = Theme::Get().HoverBg;
         }
-        
-        context.DrawRoundedRect(headerRect, headerBg, 4.0f);
-        
-        // Draw 1px separator at bottom of header
-        context.DrawRect({ m_Geometry.x, y + m_CategoryHeaderHeight - 1.0f, m_Geometry.width, 1.0f }, Theme::Get().Separator);
-        
-        // Draw expand/collapse chevron
-        float chevronSize = 12.0f;
-        float chevronX = headerRect.x + 8.0f;
+
+        context.DrawRoundedRect(headerRect, headerBg, Theme::Get().CornerRadiusSmall);
+
+        context.DrawRect({ m_Geometry.x, y + m_CategoryHeaderHeight - Theme::Get().BorderWidth, m_Geometry.width, Theme::Get().BorderWidth }, Theme::Get().Separator);
+
+        float chevronSize = Theme::Get().IconSizeTree - 2.0f;
+        float chevronX = headerRect.x + Theme::Get().Space2;
         float chevronY = headerRect.y + (m_CategoryHeaderHeight - chevronSize) / 2.0f;
         
         Rect chevronRect{ chevronX, chevronY, chevronSize, chevronSize };
@@ -68,7 +66,7 @@ void PropertyEditor::Paint(PaintContext& context) {
         IconPainter::DrawIcon(context, chevronIcon, chevronRect, Theme::Get().TextSecondary);
         
         // Draw category name
-        float textX = chevronX + chevronSize + 8.0f;
+        float textX = chevronX + chevronSize + Theme::Get().Space2;
         float textY = headerRect.y + (m_CategoryHeaderHeight - Theme::Get().TextSizeHeader) / 2.0f;
         context.DrawText(cat.name, Point{ textX, textY }, Theme::Get().TextPrimary, Theme::Get().TextSizeHeader, true);
         
@@ -79,7 +77,7 @@ void PropertyEditor::Paint(PaintContext& context) {
             for (size_t propIdx : cat.propertyIndices) {
                 const auto& prop = m_Properties[propIdx];
                 
-                Rect propRect{ m_Geometry.x + 8.0f, y, m_Geometry.width - 16.0f, m_PropertyHeight };
+                Rect propRect{ m_Geometry.x + Theme::Get().Space2, y, m_Geometry.width - Theme::Get().Space4, m_PropertyHeight };
                 
                 // Skip if outside visible area
                 if (propRect.y + propRect.height < m_Geometry.y || propRect.y > m_Geometry.y + m_Geometry.height) {
@@ -89,25 +87,25 @@ void PropertyEditor::Paint(PaintContext& context) {
                 
                 // Draw hover background
                 if (prop.name == m_HoveredProperty) {
-                    context.DrawRoundedRect(propRect, Theme::Get().HoverOverlay, 2.0f);
+                    context.DrawRoundedRect(propRect, Theme::Get().HoverBg, Theme::Get().CornerRadiusSmall);
                 }
-                
-                // Draw property label
-                float labelX = propRect.x + 4.0f;
+
+                float labelX = propRect.x + Theme::Get().Space1;
                 float labelY = propRect.y + (m_PropertyHeight - Theme::Get().TextSizeBody) / 2.0f;
                 Color labelColor = prop.hasOverride ? Theme::Get().SelectedAccent : Theme::Get().TextSecondary;
                 context.DrawText(prop.name, Point{ labelX, labelY }, labelColor, Theme::Get().TextSizeBody);
                 
                 // Draw property value as a rounded input box
-                float valueWidth = propRect.width - m_LabelWidth - 8.0f;
-                Rect valueRect{ propRect.x + m_LabelWidth, propRect.y + (m_PropertyHeight - 20.0f) / 2.0f, valueWidth, 20.0f };
-                
-                context.DrawRoundedRect(valueRect, Theme::Get().InputBackground, 4.0f); // Input box background
-                context.DrawRoundedRectOutline(valueRect, Theme::Get().BorderDefault, 1.0f, 4.0f); // Input box border
-                
-                float valueX = valueRect.x + 6.0f;
-                float valueY = valueRect.y + (20.0f - 13.0f) / 2.0f;
-                context.DrawText(prop.value, Point{ valueX, valueY }, Theme::Get().TextPrimary, 13.0f);
+                float valueWidth = propRect.width - m_LabelWidth - Theme::Get().Space2;
+                const float inputHeight = Theme::Get().ButtonHeight - Theme::Get().Space3;
+                Rect valueRect{ propRect.x + m_LabelWidth, propRect.y + (m_PropertyHeight - inputHeight) / 2.0f, valueWidth, inputHeight };
+
+                context.DrawRoundedRect(valueRect, Theme::Get().InputBackground, Theme::Get().CornerRadiusSmall);
+                context.DrawRoundedRectOutline(valueRect, Theme::Get().BorderDefault, Theme::Get().BorderWidth, Theme::Get().CornerRadiusSmall);
+
+                float valueX = valueRect.x + Theme::Get().Space2 - 2.0f;
+                float valueY = valueRect.y + (inputHeight - Theme::Get().TextSizeBody) / 2.0f;
+                context.DrawText(prop.value, Point{ valueX, valueY }, Theme::Get().TextPrimary, Theme::Get().TextSizeBody);
                 
                 // Draw reset button if has override
                 if (prop.hasOverride) {
@@ -313,7 +311,7 @@ Property* PropertyEditor::GetPropertyAtPosition(const Point& pos) {
         
         if (cat.expanded) {
             for (size_t propIdx : cat.propertyIndices) {
-                Rect propRect{ m_Geometry.x + 8.0f, y, m_Geometry.width - 16.0f, m_PropertyHeight };
+                Rect propRect{ m_Geometry.x + Theme::Get().Space2, y, m_Geometry.width - Theme::Get().Space4, m_PropertyHeight };
                 
                 if (pos.x >= propRect.x && pos.x <= propRect.x + propRect.width &&
                     pos.y >= propRect.y && pos.y <= propRect.y + propRect.height) {
@@ -384,7 +382,7 @@ void BoolPropertyWidget::Paint(PaintContext& context) {
     // Draw checkmark if checked
     if (*m_Value) {
         Rect iconRect{ checkX + 2.0f, checkY + 2.0f, checkSize - 4.0f, checkSize - 4.0f };
-        IconPainter::DrawIcon(context, Icons::CheckName, iconRect, Color{1, 1, 1, 1});
+        IconPainter::DrawIcon(context, Icons::CheckName, iconRect, Theme::Get().TextPrimary);
     }
 }
 

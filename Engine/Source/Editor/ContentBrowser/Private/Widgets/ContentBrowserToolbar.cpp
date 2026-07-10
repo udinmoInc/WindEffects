@@ -12,32 +12,13 @@ namespace we::UI {
 
 namespace {
 
-constexpr float kToolbarHeight = 40.0f;
-constexpr float kToolbarPadH = 12.0f;
-constexpr float kControlHeight = 32.0f;
-constexpr float kSearchHeight = 32.0f;
-constexpr float kSearchWidth = 360.0f;
-constexpr float kIconToggleSize = 32.0f;
-constexpr float kGroupGap = 8.0f;
-
-constexpr Color kToolbarText{ 0.816f, 0.816f, 0.816f, 1.0f };
-
 void PaintToolbarButtonChrome(PaintContext& context, const Rect& rect, float hoverAnim, float pressAnim,
     bool selected, bool primary)
 {
     const auto& theme = Theme::Get();
-    Color bg = Color{ 0.0f, 0.0f, 0.0f, 0.0f };
-    if (selected) {
-        bg = Color{ 1.0f, 1.0f, 1.0f, 0.06f };
-    }
-    if (hoverAnim > 0.01f) {
-        bg = Color::Lerp(bg, theme.HoverOverlay, hoverAnim * (selected ? 0.5f : 0.85f));
-    }
-    if (pressAnim > 0.01f) {
-        bg = Color::Lerp(bg, theme.PressedOverlay, pressAnim * 0.55f);
-    }
+    Color bg = theme.InteractiveBackground(hoverAnim, pressAnim, selected);
 
-    const float radius = 4.0f;
+    const float radius = theme.CornerRadiusSmall;
     if (bg.a > 0.01f) {
         context.DrawRoundedRect(rect, bg, radius);
     }
@@ -45,12 +26,12 @@ void PaintToolbarButtonChrome(PaintContext& context, const Rect& rect, float hov
     if (primary) {
         Color border = theme.SelectedAccent;
         border.a = 0.55f + hoverAnim * 0.2f;
-        context.DrawRoundedRectOutline(rect, border, 1.0f, radius);
+        context.DrawRoundedRectOutline(rect, border, theme.BorderWidth, radius);
         Color fill = theme.SelectedAccent;
         fill.a = 0.08f + hoverAnim * 0.06f;
         context.DrawRoundedRect(rect, fill, radius);
     } else if (selected) {
-        context.DrawRoundedRectOutline(rect, Color{ 1.0f, 1.0f, 1.0f, 0.08f }, 1.0f, radius);
+        context.DrawRoundedRectOutline(rect, theme.PressedOverlay, theme.BorderWidth, radius);
     }
 }
 
@@ -71,12 +52,14 @@ ToolbarIconToggle::ToolbarIconToggle(const std::string& iconName, const char*)
 
 Size ToolbarIconToggle::Measure(const Size& availableSize) {
     (void)availableSize;
-    m_DesiredSize = Size{ kControlHeight, kControlHeight };
+    const float h = Theme::Get().ButtonHeight;
+    m_DesiredSize = Size{ h, h };
     return m_DesiredSize;
 }
 
 void ToolbarIconToggle::Arrange(const Rect& allottedRect) {
-    m_Geometry = CenterRect(allottedRect, kControlHeight, kControlHeight);
+    const float h = Theme::Get().ButtonHeight;
+    m_Geometry = CenterRect(allottedRect, h, h);
 }
 
 void ToolbarIconToggle::Paint(PaintContext& context) {
@@ -84,9 +67,9 @@ void ToolbarIconToggle::Paint(PaintContext& context) {
     m_PressAnim = Animator::Damp(m_PressAnim, m_Pressed ? 1.0f : 0.0f, 25.0f);
     PaintToolbarButtonChrome(context, m_Geometry, m_HoverAnim, m_PressAnim, m_Selected, false);
 
-    const float iconSize = 15.0f;
+    const float iconSize = Theme::Get().IconSizeToolbar;
     const Rect iconRect = CenterRect(m_Geometry, iconSize, iconSize);
-    Color iconColor = m_Selected ? Theme::Get().TextPrimary : Theme::Get().IconMuted;
+    Color iconColor = m_Selected ? Theme::Get().TextPrimary : Theme::Get().IconDefault;
     if (m_HoverAnim > 0.01f) {
         iconColor = Color::Lerp(iconColor, Theme::Get().TextPrimary, m_HoverAnim * 0.65f);
     }
@@ -117,16 +100,17 @@ ToolbarLabeledButton::ToolbarLabeledButton(const std::string& label, const std::
 
 Size ToolbarLabeledButton::Measure(const Size& availableSize) {
     (void)availableSize;
+    const auto& theme = Theme::Get();
     float width = m_HorizontalPadding * 2.0f;
-    if (!m_IconName.empty()) width += 14.0f + 5.0f;
+    if (!m_IconName.empty()) width += theme.IconSizeToolbar + theme.Space1 + 1.0f;
     width += static_cast<float>(m_Label.size()) * 7.2f;
-    if (m_ShowChevron) width += 4.0f + 11.0f;
-    m_DesiredSize = Size{ width, kControlHeight };
+    if (m_ShowChevron) width += theme.Space1 + theme.IconSizeTree - 3.0f;
+    m_DesiredSize = Size{ width, theme.ButtonHeight };
     return m_DesiredSize;
 }
 
 void ToolbarLabeledButton::Arrange(const Rect& allottedRect) {
-    const float h = std::min(kControlHeight, allottedRect.height);
+    const float h = std::min(Theme::Get().ButtonHeight, allottedRect.height);
     m_Geometry = Rect{
         allottedRect.x,
         allottedRect.y + (allottedRect.height - h) * 0.5f,
@@ -140,51 +124,49 @@ void ToolbarLabeledButton::Paint(PaintContext& context) {
     m_PressAnim = Animator::Damp(m_PressAnim, m_Pressed ? 1.0f : 0.0f, 25.0f);
     PaintToolbarButtonChrome(context, m_Geometry, m_HoverAnim, m_PressAnim, false, m_Variant == Variant::Primary);
 
-    // Add 3D effect for Create button (UE5 style)
     if (m_Label == "Create" && m_Variant == Variant::Standard) {
         const auto& theme = Theme::Get();
-        const float radius = 4.0f;
-        
-        // Top highlight (3D bevel effect)
-        Color highlight = Color{ 1.0f, 1.0f, 1.0f, 0.08f };
+        const float radius = theme.CornerRadiusSmall;
+
         context.DrawRoundedRectOutline(
-            Rect{ m_Geometry.x + 1.0f, m_Geometry.y + 1.0f, m_Geometry.width - 2.0f, m_Geometry.height - 2.0f },
-            highlight, 1.0f, radius
+            Rect{ m_Geometry.x + theme.BorderWidth, m_Geometry.y + theme.BorderWidth,
+                m_Geometry.width - 2.0f * theme.BorderWidth, m_Geometry.height - 2.0f * theme.BorderWidth },
+            theme.HighlightSubtle, theme.BorderWidth, radius
         );
-        
-        // Bottom shadow (3D depth effect)
-        Color shadow = Color{ 0.0f, 0.0f, 0.0f, 0.15f };
+
         context.DrawRoundedRectOutline(
-            Rect{ m_Geometry.x - 1.0f, m_Geometry.y - 1.0f, m_Geometry.width + 2.0f, m_Geometry.height + 2.0f },
-            shadow, 1.0f, radius
+            Rect{ m_Geometry.x - theme.BorderWidth, m_Geometry.y - theme.BorderWidth,
+                m_Geometry.width + 2.0f * theme.BorderWidth, m_Geometry.height + 2.0f * theme.BorderWidth },
+            theme.ShadowSubtle, theme.BorderWidth, radius
         );
     }
 
+    const auto& theme = Theme::Get();
     const float hPad = m_HorizontalPadding;
     float x = m_Geometry.x + hPad;
-    const float textSize = 13.0f;
+    const float textSize = theme.TextSizeBody;
     const float textY = m_Geometry.y + (m_Geometry.height - textSize) * 0.5f;
 
     if (!m_IconName.empty()) {
-        const float iconSize = 14.0f;
+        const float iconSize = theme.IconSizeToolbar;
         const float iconY = m_Geometry.y + (m_Geometry.height - iconSize) * 0.5f;
-        Color iconColor = m_Variant == Variant::Primary ? Theme::Get().SelectedAccent : Theme::Get().IconMuted;
+        Color iconColor = m_Variant == Variant::Primary ? theme.SelectedAccent : theme.IconDefault;
         IconPainter::DrawIcon(context, m_IconName, Rect{ x, iconY, iconSize, iconSize }, iconColor);
-        x += iconSize + 5.0f;
+        x += iconSize + theme.Space1 + 1.0f;
     }
 
-    Color textColor = kToolbarText;
+    Color textColor = theme.TextPrimary;
     if (m_Variant == Variant::Primary) {
-        textColor = Color::Lerp(kToolbarText, Theme::Get().SelectedAccent, 0.25f);
+        textColor = Color::Lerp(theme.TextPrimary, theme.SelectedAccent, 0.25f);
     }
     context.DrawText(m_Label, Point{ x, textY }, textColor, textSize, m_Variant == Variant::Primary);
 
     if (m_ShowChevron) {
-        const float chevronSize = 11.0f;
+        const float chevronSize = theme.IconSizeTree - 3.0f;
         const float chevronX = m_Geometry.x + m_Geometry.width - hPad - chevronSize;
         const float chevronY = m_Geometry.y + (m_Geometry.height - chevronSize) * 0.5f;
         IconPainter::DrawIcon(context, Icons::ChevronDownName, Rect{ chevronX, chevronY, chevronSize, chevronSize },
-            Theme::Get().TextSecondary);
+            theme.TextSecondary);
     }
 }
 
@@ -229,9 +211,9 @@ void ContentBrowserToolbarControls::InitializeChildren() {
         // Asset pane toolbar: search, save all, filter icon
         m_SearchBox = std::make_shared<SearchBox>();
         m_SearchBox->SetPlaceholder("Search Assets...");
-        m_SearchBox->SetWidth(kSearchWidth);
+        m_SearchBox->SetWidth(Theme::Get().Space6 * 15.0f);
 
-        m_SaveBtn = std::make_shared<ToolbarLabeledButton>("Save All", Icons::SaveAllName, false, ToolbarLabeledButton::Variant::Standard, 12.0f);
+        m_SaveBtn = std::make_shared<ToolbarLabeledButton>("Save All", Icons::SaveAllName, false, ToolbarLabeledButton::Variant::Standard, Theme::Get().Space3);
         m_FilterIconBtn = std::make_shared<ToolbarIconToggle>(Icons::FilterName, "Filter");
 
         AddChild(m_SearchBox);
@@ -241,7 +223,7 @@ void ContentBrowserToolbarControls::InitializeChildren() {
 }
 
 Size ContentBrowserToolbarControls::Measure(const Size& availableSize) {
-    m_DesiredSize = Size{ availableSize.width, kToolbarHeight };
+    m_DesiredSize = Size{ availableSize.width, Theme::Get().ToolbarHeight };
     return m_DesiredSize;
 }
 
@@ -270,7 +252,7 @@ void ContentBrowserToolbarControls::ArrangeControlRow(const Rect& row, float con
         }
         
         // Navigation buttons group (4px spacing)
-        const float navSpacing = 4.0f;
+        const float navSpacing = Theme::Get().Space1;
         
         if (m_BackBtn) {
             const Size desired = m_BackBtn->Measure(measureSize);
@@ -290,7 +272,8 @@ void ContentBrowserToolbarControls::ArrangeControlRow(const Rect& row, float con
         }
     } else {
         // Asset pane toolbar: search, save all, filter icon
-        float searchWidth = std::min(kSearchWidth, std::max(240.0f, contentWidth * 0.5f));
+        const auto& theme = Theme::Get();
+        float searchWidth = std::min(theme.Space6 * 15.0f, std::max(theme.Space6 * 10.0f, contentWidth * 0.5f));
 
         const std::vector<std::shared_ptr<Widget>> actionButtons = {
             m_SaveBtn, m_FilterIconBtn
@@ -298,37 +281,38 @@ void ContentBrowserToolbarControls::ArrangeControlRow(const Rect& row, float con
 
         float actionsWidth = 0.0f;
         for (const auto& widget : actionButtons) {
-            actionsWidth += widget->Measure(measureSize).width + 4.0f;
+            actionsWidth += widget->Measure(measureSize).width + theme.Space1;
         }
 
-        const float fixedWidth = searchWidth + kGroupGap + actionsWidth;
+        const float fixedWidth = searchWidth + theme.Space2 + actionsWidth;
 
         if (fixedWidth > contentWidth) {
-            searchWidth = std::max(160.0f, contentWidth - (fixedWidth - searchWidth));
+            searchWidth = std::max(theme.Space6 * 6.67f, contentWidth - (fixedWidth - searchWidth));
         }
 
         float x = contentLeft;
 
         m_SearchBox->Arrange(Rect{
             x,
-            centerY - kSearchHeight * 0.5f,
+            centerY - theme.SearchBoxHeight * 0.5f,
             searchWidth,
-            kSearchHeight
+            theme.SearchBoxHeight
         });
-        x += searchWidth + kGroupGap;
+        x += searchWidth + theme.Space2;
 
         for (const auto& widget : actionButtons) {
             const Size desired = widget->Measure(measureSize);
             widget->Arrange(Rect{ x, centerY - desired.height * 0.5f, desired.width, desired.height });
-            x += desired.width + 4.0f;
+            x += desired.width + theme.Space1;
         }
     }
 }
 
 void ContentBrowserToolbarControls::Arrange(const Rect& allottedRect) {
     m_Geometry = allottedRect;
-    const float contentLeft = allottedRect.x + kToolbarPadH;
-    const float contentRight = allottedRect.x + allottedRect.width - kToolbarPadH;
+    const auto& theme = Theme::Get();
+    const float contentLeft = allottedRect.x + theme.Space3;
+    const float contentRight = allottedRect.x + allottedRect.width - theme.Space3;
     ArrangeControlRow(allottedRect, contentLeft, contentRight);
 }
 
@@ -341,14 +325,12 @@ void ContentBrowserToolbarControls::Paint(PaintContext& context) {
     context.DrawRect(m_Geometry, theme.PanelBackground);
     
     // Top highlight (elevation effect)
-    context.DrawRect(Rect{ m_Geometry.x, m_Geometry.y, m_Geometry.width, 1.0f }, ToolbarTopHighlight());
-    
-    // Bottom separator with shadow
-    context.DrawRect(Rect{ m_Geometry.x, m_Geometry.y + m_Geometry.height - 1.0f, m_Geometry.width, 1.0f },
+    context.DrawRect(Rect{ m_Geometry.x, m_Geometry.y, m_Geometry.width, theme.BorderWidth }, ToolbarTopHighlight());
+
+    context.DrawRect(Rect{ m_Geometry.x, m_Geometry.y + m_Geometry.height - theme.BorderWidth, m_Geometry.width, theme.BorderWidth },
         ToolbarSeparator());
-    
-    // Soft shadow beneath toolbar
-    context.DrawRect(Rect{ m_Geometry.x, m_Geometry.y + m_Geometry.height, m_Geometry.width, 2.0f },
+
+    context.DrawRect(Rect{ m_Geometry.x, m_Geometry.y + m_Geometry.height, m_Geometry.width, theme.Space1 },
         ToolbarBottomShadow());
     
     for (const auto& child : m_Children) {

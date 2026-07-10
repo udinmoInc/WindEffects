@@ -46,6 +46,8 @@ struct APPLICATION_API Theme {
     Color BorderSecondary   = BorderLight;
     Color BorderFocus       = { 0.839f, 0.635f, 0.290f, 1.0f }; // #D6A24A
     Color Separator         = { 0.231f, 0.231f, 0.231f, 0.50f }; // #3B3B3B, 50% opacity
+    Color HighlightSubtle   = { 1.0f, 1.0f, 1.0f, 0.05f };
+    Color ShadowSubtle      = { 0.0f, 0.0f, 0.0f, 0.2f };
 
     // Interactive States
     Color HoverBg           = { 0.176f, 0.176f, 0.176f, 1.0f }; // #2D2D2D
@@ -105,7 +107,6 @@ struct APPLICATION_API Theme {
     Color SearchBoxBg       = { 0.102f, 0.102f, 0.102f, 1.0f }; // #1A1A1A
     Color SearchPlaceholder = { 0.478f, 0.478f, 0.478f, 1.0f }; // #7A7A7A
 
-
     // ------------------------------------------------------------------------
     // Geometry & Layout Constants
     // ------------------------------------------------------------------------
@@ -136,6 +137,38 @@ struct APPLICATION_API Theme {
     Margin PaddingPanel     = { 8.0f, 8.0f, 8.0f, 8.0f }; 
     Margin PaddingButton    = { 12.0f, 8.0f, 12.0f, 8.0f }; 
     Margin PaddingIconBtn   = { 8.0f, 8.0f, 8.0f, 8.0f };
+
+    // Components & Sizes
+    float PanelHeaderHeight = 32.0f;
+    float ToolbarHeight     = 32.0f;
+    float SearchBoxHeight   = 24.0f;
+    float IconButtonSize    = 24.0f;
+    float ButtonHeight      = 24.0f;
+    float IconSizeSearch    = 14.0f;
+    float IconSizeToolbar   = 16.0f;
+    float IconSizeTree      = 14.0f;
+
+    // Spacing
+    float Space1 = 4.0f;
+    float Space2 = 8.0f;
+    float Space3 = 12.0f;
+    float Space4 = 16.0f;
+    float Space5 = 20.0f;
+    float Space6 = 24.0f;
+
+    // Helpers
+    Color InteractiveBackground(float hoverAnim, float pressAnim, bool selected) const {
+        if (pressAnim > 0.01f) {
+            Color c = PressedOverlay;
+            c.a *= pressAnim;
+            return c;
+        }
+        if (hoverAnim > 0.01f) return Color::Lerp(Color{0.0f, 0.0f, 0.0f, 0.0f}, HoverButton, hoverAnim);
+        if (selected) return SelectedBg;
+        return Color{0.0f, 0.0f, 0.0f, 0.0f};
+    }
+    Color IconForState(bool hovered) const { return hovered ? IconHover : IconDefault; }
+    Color TextForState(bool hovered, bool active = false) const { return (active || hovered) ? TextPrimary : TextSecondary; }
 
     // ------------------------------------------------------------------------
     // Global Management

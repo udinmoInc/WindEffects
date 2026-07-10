@@ -25,8 +25,8 @@ public:
     static constexpr float kThumbnailHeightFill = 0.725f;
     static constexpr float kSmallIconWidthFill = 0.98f;
     static constexpr float kSmallIconHeightFill = 0.98f;
-    static constexpr float kFolderAspectRatio = 1.460f; // matches procedural 146/100
-    static constexpr float kFolderOpenAspectRatio = 1.169f; // Assets/Editor/Folder_Open.svg (242 / 207)
+    static constexpr float kFolderAspectRatio = 231.0f / 203.0f; // Assets/Editor/Folder.svg
+    static constexpr float kFolderOpenAspectRatio = 224.22424f / 182.99149f; // Assets/Editor/Folder_Open.svg
 
     void PaintThumbnail(we::UI::PaintContext& context, const we::UI::Rect& thumbRect, bool hovered) const;
     void PaintSmallIcon(we::UI::PaintContext& context, const we::UI::Rect& iconRect, bool hovered, bool opened = false) const;

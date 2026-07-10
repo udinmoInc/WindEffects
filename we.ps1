@@ -1,7 +1,8 @@
-param(
-    [Parameter(ValueFromRemainingArguments = $true)]
-    [string[]]$CommandArgs
-)
+# Use $args instead of a param block so flags like --target/--config forward to IgniteBT.
+$CommandArgs = @($args)
+if ($CommandArgs.Length -gt 0 -and $CommandArgs[0] -eq '--') {
+    $CommandArgs = $CommandArgs[1..($CommandArgs.Length - 1)]
+}
 
 $ErrorActionPreference = "Stop"
 
@@ -148,7 +149,8 @@ function Invoke-DotNetAssembly {
     $dir = Split-Path -Parent $AssemblyPath
     Push-Location $dir
     try {
-        dotnet exec $AssemblyPath -- @ForwardArgs | Out-Host
+        $assemblyName = Split-Path -Leaf $AssemblyPath
+        dotnet exec $assemblyName @ForwardArgs | Out-Host
         return $LASTEXITCODE
     } finally {
         Pop-Location

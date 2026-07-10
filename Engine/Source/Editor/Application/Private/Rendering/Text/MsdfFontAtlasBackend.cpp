@@ -292,7 +292,7 @@ bool MsdfFontAtlasBackend::RebuildAtlas() {
         HE_WARN("MsdfFontAtlasBackend: " + std::to_string(missingGlyphs) + " codepoints missing after atlas bake");
     }
 
-    ValidatePlacementMap();
+
 
     msdfgen::destroyFont(primaryFont);
     if (fallbackFont) {
@@ -346,68 +346,6 @@ MsdfFontAtlasBackend::GlyphPlacement MsdfFontAtlasBackend::BuildPlacement(
         && atlasW > 0.0f
         && atlasH > 0.0f;
     return placement;
-}
-
-void MsdfFontAtlasBackend::ValidatePlacementMap() const {
-    std::unordered_map<uint64_t, std::vector<uint32_t>> atlasRectOwners;
-    uint32_t drawableGlyphs = 0;
-    uint32_t whitespaceGlyphs = 0;
-
-    for (const auto& [codepoint, placement] : m_PlacementsByCodepoint) {
-        if (placement.isWhitespace) {
-            ++whitespaceGlyphs;
-            continue;
-        }
-        if (placement.hasDrawableQuad) {
-            ++drawableGlyphs;
-        }
-
-        const uint64_t rectKey =
-            (static_cast<uint64_t>(static_cast<uint32_t>(placement.atlasLeft * 100000.0f)) << 48)
-            | (static_cast<uint64_t>(static_cast<uint32_t>(placement.atlasBottom * 100000.0f)) << 32)
-            | (static_cast<uint64_t>(static_cast<uint32_t>(placement.atlasRight * 100000.0f)) << 16)
-            | static_cast<uint64_t>(static_cast<uint32_t>(placement.atlasTop * 100000.0f));
-        atlasRectOwners[rectKey].push_back(codepoint);
-    }
-
-    uint32_t duplicateAtlasRects = 0;
-    for (const auto& [rectKey, owners] : atlasRectOwners) {
-        if (owners.size() > 1) {
-            ++duplicateAtlasRects;
-            if (duplicateAtlasRects <= 4) {
-                std::string ownerList;
-                for (uint32_t owner : owners) {
-                    ownerList += CodepointToHex(owner) + " ";
-                }
-                HE_WARN("[UI TextAudit] Duplicate atlas UV rect shared by: " + ownerList);
-            }
-        }
-    }
-
-    const auto logSample = [&](uint32_t cp) {
-        const auto it = m_PlacementsByCodepoint.find(cp);
-        if (it == m_PlacementsByCodepoint.end()) {
-            HE_INFO("[UI TextAudit] sample " + CodepointToHex(cp) + " missing");
-            return;
-        }
-        const GlyphPlacement& p = it->second;
-        HE_INFO("[UI TextAudit] sample " + CodepointToHex(cp)
-                + " uv=(" + std::to_string(p.atlasLeft) + "," + std::to_string(p.atlasTop)
-                + ")-(" + std::to_string(p.atlasRight) + "," + std::to_string(p.atlasBottom) + ")"
-                + " planeW=" + std::to_string(p.planeRight - p.planeLeft)
-                + " planeH=" + std::to_string(p.planeTop - p.planeBottom)
-                + " advance=" + std::to_string(p.advance)
-                + (p.hasDrawableQuad ? " drawable" : " no-quad"));
-    };
-
-    logSample(0x0041); // A
-    logSample(0x0065); // e
-    logSample(0x002E); // .
-
-    HE_INFO("[UI TextAudit] placement map: total=" + std::to_string(m_PlacementsByCodepoint.size())
-            + " drawable=" + std::to_string(drawableGlyphs)
-            + " whitespace=" + std::to_string(whitespaceGlyphs)
-            + " duplicateAtlasRects=" + std::to_string(duplicateAtlasRects));
 }
 
 bool MsdfFontAtlasBackend::GetGlyphQuadAt(uint32_t codepoint, float penX, float penY, GlyphInfo& outQuad) const {

@@ -25,8 +25,6 @@
 namespace we::programs::editor {
 
 namespace {
-constexpr float kToolbarHeight = 34.0f;
-constexpr float kPadding = 8.0f;
 constexpr float kDragThreshold = 6.0f;
 
 std::string CategoryStatePath() {
@@ -174,6 +172,8 @@ void PlaceActorsPanel::RebuildLayout() {
     m_Layout.clear();
     m_ContentHeight = 0.0f;
 
+    const auto& theme = Theme::Get();
+    const float pad = theme.Space2;
     const auto& config = PlaceActorsConfig::Get();
     PlaceActorsItemMetrics metrics;
     metrics.iconSize = config.iconSize;
@@ -199,11 +199,11 @@ void PlaceActorsPanel::RebuildLayout() {
         }
 
         if (m_ViewMode == PlaceActorsViewMode::Grid) {
-            const float cell = metrics.cardSize + kPadding;
-            const int columns = std::max(1, static_cast<int>((width - kPadding * 2.0f) / cell));
-            float x = m_ContentRect.x + kPadding;
+            const float cell = metrics.cardSize + pad;
+            const int columns = std::max(1, static_cast<int>((width - pad * 2.0f) / cell));
+            float x = m_ContentRect.x + pad;
             int column = 0;
-            float rowHeight = metrics.cardSize + kPadding;
+            float rowHeight = metrics.cardSize + pad;
             for (const auto& item : category.items) {
                 LayoutEntry entry;
                 entry.type = LayoutEntry::Type::Item;
@@ -213,10 +213,10 @@ void PlaceActorsPanel::RebuildLayout() {
                 m_Layout.push_back(entry);
 
                 ++column;
-                x += metrics.cardSize + kPadding;
+                x += metrics.cardSize + pad;
                 if (column >= columns) {
                     column = 0;
-                    x = m_ContentRect.x + kPadding;
+                    x = m_ContentRect.x + pad;
                     y += rowHeight;
                     m_ContentHeight += rowHeight;
                 }
@@ -231,10 +231,10 @@ void PlaceActorsPanel::RebuildLayout() {
                 entry.type = LayoutEntry::Type::Item;
                 entry.categoryId = category.id;
                 entry.toolId = item.toolId;
-                entry.geometry = Rect{ m_ContentRect.x + kPadding, y, width - kPadding * 2.0f, metrics.listRowHeight };
+                entry.geometry = Rect{ m_ContentRect.x + pad, y, width - pad * 2.0f, metrics.listRowHeight };
                 m_Layout.push_back(entry);
-                y += metrics.listRowHeight + 4.0f;
-                m_ContentHeight += metrics.listRowHeight + 4.0f;
+                y += metrics.listRowHeight + theme.Space1;
+                m_ContentHeight += metrics.listRowHeight + theme.Space1;
             }
         }
     }
@@ -263,27 +263,28 @@ Size PlaceActorsPanel::Measure(const Size& availableSize) {
 }
 
 void PlaceActorsPanel::Arrange(const Rect& allottedRect) {
+    const auto& theme = Theme::Get();
     m_Geometry = allottedRect;
-    m_ToolbarRect = Rect{ allottedRect.x, allottedRect.y, allottedRect.width, kToolbarHeight };
+    m_ToolbarRect = Rect{ allottedRect.x, allottedRect.y, allottedRect.width, theme.ToolbarHeight };
     m_ContentRect = Rect{
         allottedRect.x,
-        allottedRect.y + kToolbarHeight,
+        allottedRect.y + theme.ToolbarHeight,
         allottedRect.width,
-        std::max(0.0f, allottedRect.height - kToolbarHeight)
+        std::max(0.0f, allottedRect.height - theme.ToolbarHeight)
     };
 
-    float x = m_ToolbarRect.x + kPadding;
+    float x = m_ToolbarRect.x + theme.Space2;
     const float buttonWidth = 64.0f;
-    const float searchWidth = std::max(120.0f, m_ToolbarRect.width - buttonWidth * 4.0f - kPadding * 6.0f);
+    const float searchWidth = std::max(120.0f, m_ToolbarRect.width - buttonWidth * 4.0f - theme.Space2 * 6.0f);
 
-    m_SearchBox->Measure(Size{ searchWidth, 26.0f });
-    m_SearchBox->Arrange(Rect{ x, m_ToolbarRect.y + 4.0f, searchWidth, 26.0f });
-    x += searchWidth + kPadding;
+    m_SearchBox->Measure(Size{ searchWidth, theme.SearchBoxHeight });
+    m_SearchBox->Arrange(Rect{ x, m_ToolbarRect.y + theme.Space1, searchWidth, theme.SearchBoxHeight });
+    x += searchWidth + theme.Space2;
 
     auto placeButton = [&](const std::shared_ptr<we::UI::ToolButton>& button) {
-        button->Measure(Size{ buttonWidth, 26.0f });
-        button->Arrange(Rect{ x, m_ToolbarRect.y + 4.0f, buttonWidth, 26.0f });
-        x += buttonWidth + 4.0f;
+        button->Measure(Size{ buttonWidth, theme.SearchBoxHeight });
+        button->Arrange(Rect{ x, m_ToolbarRect.y + theme.Space1, buttonWidth, theme.SearchBoxHeight });
+        x += buttonWidth + theme.Space1;
     };
     placeButton(m_CategoryFilterButton);
     placeButton(m_SortButton);
@@ -303,8 +304,8 @@ void PlaceActorsPanel::Tick(float deltaTime) {
 void PlaceActorsPanel::Paint(PaintContext& context) {
     const auto& theme = Theme::Get();
     context.DrawRect(m_Geometry, theme.PanelBackground);
-    context.DrawRect(m_ToolbarRect, Color{ 0.12f, 0.12f, 0.12f, 1.0f });
-    context.DrawRect(Rect{ m_ToolbarRect.x, m_ToolbarRect.y + m_ToolbarRect.height - 1.0f, m_ToolbarRect.width, 1.0f }, theme.BorderDefault);
+    context.DrawRect(m_ToolbarRect, theme.HeaderBackground);
+    context.DrawRect(Rect{ m_ToolbarRect.x, m_ToolbarRect.y + m_ToolbarRect.height - theme.BorderWidth, m_ToolbarRect.width, theme.BorderWidth }, theme.Separator);
 
     m_SearchBox->Paint(context);
     m_CategoryFilterButton->Paint(context);

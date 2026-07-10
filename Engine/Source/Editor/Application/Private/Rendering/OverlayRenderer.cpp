@@ -2,7 +2,7 @@
 #include "Rendering/UIWidgetAdapter.h"
 #include "Rendering/UICompositor.h"
 #include "Rendering/UIStateManager.h"
-#include "Rendering/FontAtlas.h"
+#include "Rendering/TextUIService.h"
 #include "Rendering/IconRenderer.h"
 #include "Rendering/UiGpuUpload.h"
 #include "Core/Widget.h"
@@ -24,9 +24,6 @@
 #include <stdexcept>
 #include <cstdint>
 
-#include "Rendering/UIPipelineAudit.h"
-#include "Rendering/Text/UiMsdfAudit.h"
-#include "Rendering/Text/EditorUIFont.h"
 #include "Core/FrameCounter.h"
 
 // Production builds should not emit per-frame diagnostic "PASS | ..." spam.
@@ -42,115 +39,6 @@
 namespace we::UI {
 
 namespace {
-
-float ComputeMaxUiFontSizePx() {
-    const Theme& t = Theme::Get();
-    return (std::max)({t.TextSizeSection, t.TextSizeTabs, t.TextSizeMenu, t.TextSizeWindow, t.TextSizeProperty, t.TextSizeCaption});
-}
-
-float ComputeFontBakeHeightPx() {
-    const float uiScale = (std::max)(1.0f, DPIContext::GetScale());
-    // Bake at (max UI font size * DPI) so runtime rendering does not upscale glyph bitmaps.
-    return std::ceil(ComputeMaxUiFontSizePx() * uiScale);
-}
-
-bool InitEditorFontAtlas(
-    FontAtlas& atlas,
-    OverlayRenderer& renderer,
-    we::runtime::renderer::DeviceContext* deviceContext,
-    we::runtime::renderer::ResourceManager* resourceManager,
-    UiGpuUpload* gpuUpload,
-    const std::string& fontPath,
-    const std::string& fallbackPath,
-    float bakeHeightPx,
-    int atlasDim,
-    VkDescriptorSet reuseDescriptorSet) {
-    atlas.SetGpuAtlasRecreatedCallback([&renderer, &atlas](VkImageView imageView, VkSampler sampler) {
-        if (atlas.GetDescriptorSet() != VK_NULL_HANDLE) {
-            renderer.UpdateTexture(atlas.GetDescriptorSet(), imageView, sampler);
-        }
-    });
-    if (!atlas.Init(deviceContext, resourceManager, gpuUpload, fontPath, bakeHeightPx, 32, 96, atlasDim, atlasDim, fallbackPath)) {
-        return false;
-    }
-    if (reuseDescriptorSet != VK_NULL_HANDLE) {
-        atlas.GetDescriptorSetRef() = reuseDescriptorSet;
-        renderer.UpdateTexture(reuseDescriptorSet, atlas.GetImageView(), atlas.GetSampler());
-    } else {
-        atlas.GetDescriptorSetRef() = renderer.RegisterTexture(atlas.GetImageView(), atlas.GetSampler());
-    }
-    return atlas.GetDescriptorSet() != VK_NULL_HANDLE;
-}
-
-float SdRoundBox(float px, float py, float rx, float ry, float rw, float rh, float radius) {
-    const float cx = rx + rw * 0.5f;
-    const float cy = ry + rh * 0.5f;
-    const float halfW = rw * 0.5f;
-    const float halfH = rh * 0.5f;
-    const float qx = std::fabs(px - cx) - halfW + radius;
-    const float qy = std::fabs(py - cy) - halfH + radius;
-    return std::min(std::max(qx, qy), 0.0f) + std::hypot(std::max(qx, 0.0f), std::max(qy, 0.0f)) - radius;
-}
-
-float EstimateFragmentAlpha(const UIVertex2& v) {
-    const float type = v.sdfParams[1];
-    if (type > 2.5f && type < 3.5f) {
-        // MSDF text: vertex alpha is scaled in the shader by atlas coverage.
-        return v.color[3];
-    }
-    if (type < 0.5f) {
-        return v.color[3];
-    }
-    if (type > 3.5f && type < 4.5f) {
-        return v.color[3];
-    }
-
-    const float px = v.position[0];
-    const float py = v.position[1];
-    const float dist = SdRoundBox(px, py, v.sdfRect[0], v.sdfRect[1], v.sdfRect[2], v.sdfRect[3], v.sdfParams[0]);
-    float alpha = 1.0f;
-    if (type > 1.5f) {
-        const float thickness = std::max(v.sdfParams[2], 1.0f);
-        const float borderDist = std::fabs(dist) - thickness * 0.5f;
-        const float t = std::clamp(1.0f - borderDist, 0.0f, 1.0f);
-        alpha = t * t * (3.0f - 2.0f * t);
-    } else {
-        const float t = std::clamp((dist + 1.0f) * 0.5f, 0.0f, 1.0f);
-        alpha = t * t * (3.0f - 2.0f * t);
-    }
-    return v.color[3] * alpha;
-}
-
-void AuditVertexAlphaRange(const std::vector<UIVertex2>& vertices, uint32_t firstVertex, uint32_t vertexCount,
-                           float& outMinAlpha, float& outMaxAlpha) {
-    outMinAlpha = std::numeric_limits<float>::max();
-    outMaxAlpha = std::numeric_limits<float>::lowest();
-    const uint32_t end = std::min(firstVertex + vertexCount, static_cast<uint32_t>(vertices.size()));
-    for (uint32_t i = firstVertex; i < end; ++i) {
-        outMinAlpha = std::min(outMinAlpha, vertices[i].color[3]);
-        outMaxAlpha = std::max(outMaxAlpha, vertices[i].color[3]);
-    }
-    if (outMinAlpha == std::numeric_limits<float>::max()) {
-        outMinAlpha = 0.0f;
-        outMaxAlpha = 0.0f;
-    }
-}
-
-void AuditFragmentAlphaRange(const std::vector<UIVertex2>& vertices, uint32_t firstVertex, uint32_t vertexCount,
-                             float& outMinAlpha, float& outMaxAlpha) {
-    outMinAlpha = std::numeric_limits<float>::max();
-    outMaxAlpha = std::numeric_limits<float>::lowest();
-    const uint32_t end = std::min(firstVertex + vertexCount, static_cast<uint32_t>(vertices.size()));
-    for (uint32_t i = firstVertex; i < end; ++i) {
-        const float alpha = EstimateFragmentAlpha(vertices[i]);
-        outMinAlpha = std::min(outMinAlpha, alpha);
-        outMaxAlpha = std::max(outMaxAlpha, alpha);
-    }
-    if (outMinAlpha == std::numeric_limits<float>::max()) {
-        outMinAlpha = 0.0f;
-        outMaxAlpha = 0.0f;
-    }
-}
 
 } // namespace
 
@@ -208,27 +96,9 @@ bool OverlayRenderer::Init(VkPhysicalDevice physicalDevice,
         return false;
     }
 
-    const Text::EditorUIFontPaths editorFonts = Text::ResolveEditorUIFonts();
-    const std::string uiFontPath = we::core::AssetRegistry::Get().GetFontPath("Font_UI");
-    const std::string regularFont = uiFontPath.empty() ? editorFonts.regular : uiFontPath;
-    m_LastFontBakeHeightPx = ComputeFontBakeHeightPx();
-    const int atlasDim = (m_LastFontBakeHeightPx > 32.0f) ? 2048 : 1024;
-    HE_INFO(
-        std::string("[UI FontAudit] init dpi=") + std::to_string((std::max)(1.0f, DPIContext::GetScale())) +
-        " bakeHeightPx=" + std::to_string(m_LastFontBakeHeightPx) +
-        " atlasDim=" + std::to_string(atlasDim) +
-        " family=" + editorFonts.familyName);
-
-    m_FontAtlas = std::make_unique<FontAtlas>();
-    m_FontAtlasSemiBold = std::make_unique<FontAtlas>();
-    if (!InitEditorFontAtlas(*m_FontAtlas, *this, deviceContext, resourceManager, m_GpuUpload.get(),
-                             regularFont, editorFonts.fallback, m_LastFontBakeHeightPx, atlasDim, VK_NULL_HANDLE)) {
-        HE_ERROR("OverlayRenderer: Regular UI font atlas initialization failed");
-        return false;
-    }
-    if (!InitEditorFontAtlas(*m_FontAtlasSemiBold, *this, deviceContext, resourceManager, m_GpuUpload.get(),
-                             editorFonts.semibold, editorFonts.fallback, m_LastFontBakeHeightPx, atlasDim, VK_NULL_HANDLE)) {
-        HE_ERROR("OverlayRenderer: SemiBold UI font atlas initialization failed");
+    m_TextUIService = std::make_unique<TextUIService>();
+    if (!m_TextUIService->Initialize(this)) {
+        HE_ERROR("OverlayRenderer: TextUIService initialization failed");
         return false;
     }
 
@@ -240,8 +110,6 @@ bool OverlayRenderer::Init(VkPhysicalDevice physicalDevice,
 
     CreateDummyTexture();
 
-    we::core::AssetRegistry::Get().RegisterTexture("Font_UI_Atlas", m_FontAtlas->GetImageView(), m_FontAtlas->GetSampler());
-    we::core::AssetRegistry::Get().RegisterTexture("Font_UI_Atlas_SemiBold", m_FontAtlasSemiBold->GetImageView(), m_FontAtlasSemiBold->GetSampler());
     we::core::AssetRegistry::Get().RegisterTexture("UI_DummyWhite", m_DummyImageView, m_DummySampler);
 
     CreateGraphicsPipeline(swapchainFormat);
@@ -287,13 +155,9 @@ void OverlayRenderer::Shutdown() {
         m_IconRenderer->Shutdown();
         m_IconRenderer.reset();
     }
-    if (m_FontAtlas) {
-        m_FontAtlas->Shutdown();
-        m_FontAtlas.reset();
-    }
-    if (m_FontAtlasSemiBold) {
-        m_FontAtlasSemiBold->Shutdown();
-        m_FontAtlasSemiBold.reset();
+    if (m_TextUIService) {
+        m_TextUIService->Shutdown();
+        m_TextUIService.reset();
     }
 
     if (m_LogicalDevice != VK_NULL_HANDLE) {
@@ -374,17 +238,6 @@ void OverlayRenderer::RenderEditorUI(const std::shared_ptr<we::UI::Widget>& root
     uint32_t height = m_CurrentHeight;
 
     if (!root || width == 0 || height == 0) {
-        UIPipelineCpuStats stats{};
-        stats.rootWidgetExists = static_cast<bool>(root);
-        stats.targetWidth = width;
-        stats.targetHeight = height;
-        UIPipelineAudit::EmitCpuPipelineReport(frameNumber, stats);
-        if (!root) {
-            UIPipelineAudit::LogStage(frameNumber, "Widget Tree", false, "root widget is null");
-        } else {
-            UIPipelineAudit::LogStage(frameNumber, "Layout Pass", false,
-                "target extent is zero (" + std::to_string(width) + "x" + std::to_string(height) + ")");
-        }
         m_Vertices.clear();
         m_Indices.clear();
         m_Batches.clear();
@@ -394,14 +247,6 @@ void OverlayRenderer::RenderEditorUI(const std::shared_ptr<we::UI::Widget>& root
     WE_OVERLAY_PASS_INFO("==========================");
     WE_OVERLAY_PASS_INFO("UI BUILD");
     WE_OVERLAY_PASS_INFO("==========================");
-    
-    UIPipelineCpuStats cpuStats{};
-    
-    // Evidence-based validation for Widget stage
-    cpuStats.widgetStage = UIPipelineAudit::ValidateWidgetStage(root);
-    WE_OVERLAY_PASS_INFO(std::string("Widget Stage: ") + 
-        (cpuStats.widgetStage.succeeded ? "PASS" : "FAILED") +
-        (cpuStats.widgetStage.succeeded ? "" : " | " + cpuStats.widgetStage.failureReason));
     
     if (m_WidgetAdapter) {
         WE_OVERLAY_PASS_INFO("PASS | OverlayManager Exists (Adapter)");
@@ -428,57 +273,11 @@ void OverlayRenderer::RenderEditorUI(const std::shared_ptr<we::UI::Widget>& root
         m_Batches = m_WidgetAdapter->GetBatches();
     }
 
-    UIPipelineAudit::WalkWidgetTree(frameNumber, root, "Root", 0, Widget::s_PaintCalls > 0);
 
-    cpuStats.rootWidgetExists = true;
-    cpuStats.widgetCount = Widget::s_TotalWidgetCount;
-    cpuStats.visibleWidgetCount = Widget::s_VisibleWidgetCount;
-    cpuStats.layoutPassCount = Widget::s_LayoutPassCount;
-    cpuStats.paintCalls = Widget::s_PaintCalls;
     const UIWidgetAdapter::Diagnostics adapterDiagnostics =
         m_WidgetAdapter ? m_WidgetAdapter->GetDiagnostics() : UIWidgetAdapter::Diagnostics{};
-    cpuStats.paintCommands = adapterDiagnostics.paintCommandsRecorded;
-    cpuStats.drawCommandsGenerated = adapterDiagnostics.totalDrawCommandsGenerated;
-    cpuStats.vertexCount = static_cast<uint32_t>(m_Vertices.size());
-    cpuStats.indexCount = static_cast<uint32_t>(m_Indices.size());
-    cpuStats.batchCount = static_cast<uint32_t>(m_Batches.size());
-    cpuStats.targetWidth = width;
-    cpuStats.targetHeight = height;
-    cpuStats.geometryUploaded = false;
-    
-    // Evidence-based validation for Layout stage
-    cpuStats.layoutStage = UIPipelineAudit::ValidateLayoutStage(cpuStats.widgetCount, cpuStats.layoutPassCount);
-    WE_OVERLAY_PASS_INFO(std::string("Layout Stage: ") + 
-        (cpuStats.layoutStage.succeeded ? "PASS" : "FAILED") +
-        (cpuStats.layoutStage.succeeded ? "" : " | " + cpuStats.layoutStage.failureReason));
-    
-    // Evidence-based validation for Paint stage
-    cpuStats.paintStage = UIPipelineAudit::ValidatePaintStage(cpuStats.paintCalls, cpuStats.paintCommands);
-    WE_OVERLAY_PASS_INFO(std::string("Paint Stage: ") + 
-        (cpuStats.paintStage.succeeded ? "PASS" : "FAILED") +
-        (cpuStats.paintStage.succeeded ? "" : " | " + cpuStats.paintStage.failureReason));
-
-    if (adapterDiagnostics.textCommands > 0) {
-        const FontAtlas* fontAtlas = m_FontAtlas.get();
-        HE_INFO(std::string("[UI TextAudit] paintCommands=") + std::to_string(adapterDiagnostics.textCommands)
-                + " strings=" + std::to_string(adapterDiagnostics.textStringsProcessed)
-                + " glyphsRequested=" + std::to_string(adapterDiagnostics.textGlyphsRequested)
-                + " glyphsResolved=" + std::to_string(adapterDiagnostics.textGlyphsResolved)
-                + " glyphsMissing=" + std::to_string(adapterDiagnostics.textGlyphsMissing)
-                + " vertices=" + std::to_string(adapterDiagnostics.textVerticesGenerated)
-                + " indices=" + std::to_string(adapterDiagnostics.textIndicesGenerated)
-                + " batches=" + std::to_string(adapterDiagnostics.textBatchesCreated)
-                + " skipped=" + std::to_string(adapterDiagnostics.textDrawsSkipped)
-                + (fontAtlas ? (" atlas=" + std::to_string(fontAtlas->GetAtlasWidth()) + "x"
-                    + std::to_string(fontAtlas->GetAtlasHeight())
-                    + " glyphCount=" + std::to_string(fontAtlas->GetGlyphCount())
-                    + " descriptor=0x" + std::to_string(reinterpret_cast<uint64_t>(fontAtlas->GetDescriptorSet()))
-                    + " gpuValid=" + (fontAtlas->IsGpuAtlasValid() ? "yes" : "no")) : " atlas=null"));
-    }
-    
     if (adapterDiagnostics.totalDrawCommandsGenerated == 0) {
         HE_ERROR("STOPPING: DrawCommands == 0! Paint() produced nothing.");
-        UIPipelineAudit::EmitCpuPipelineReport(frameNumber, cpuStats);
         m_Vertices.clear();
         m_Indices.clear();
         m_Batches.clear();
@@ -495,84 +294,17 @@ void OverlayRenderer::RenderEditorUI(const std::shared_ptr<we::UI::Widget>& root
     WE_OVERLAY_PASS_INFO(std::string("Vertex Buffer Size: ") + std::to_string(m_Vertices.size() * sizeof(UIVertex2)));
     WE_OVERLAY_PASS_INFO(std::string("Index Buffer Size: ") + std::to_string(m_Indices.size() * sizeof(uint32_t)));
 
-    // Evidence-based validation for Geometry stage
-    cpuStats.geometryStage = UIPipelineAudit::ValidateGeometryStage(cpuStats.drawCommandsGenerated, cpuStats.vertexCount, cpuStats.indexCount);
-    WE_OVERLAY_PASS_INFO(std::string("Geometry Stage: ") + 
-        (cpuStats.geometryStage.succeeded ? "PASS" : "FAILED") +
-        (cpuStats.geometryStage.succeeded ? "" : " | " + cpuStats.geometryStage.failureReason));
-
-    if (!cpuStats.geometryStage.succeeded) {
-        HE_ERROR("STOPPING: Geometry validation failed");
-        UIPipelineAudit::EmitCpuPipelineReport(frameNumber, cpuStats);
-        m_Vertices.clear();
-        m_Indices.clear();
-        m_Batches.clear();
-        return;
-    }
 
     m_FrameStats.vertices = static_cast<uint32_t>(m_Vertices.size());
     m_FrameStats.indices = static_cast<uint32_t>(m_Indices.size());
     m_FrameStats.batches = static_cast<uint32_t>(m_Batches.size());
 
     UpdateGeometryBuffers(m_ActiveFrameSlot);
-    cpuStats.geometryUploaded = true;
-    
-    // Evidence-based validation for Upload stage
-    if (m_ActiveFrameSlot < m_FrameGeometry.size()) {
-        const FrameGeometry& buffers = m_FrameGeometry[m_ActiveFrameSlot];
-        cpuStats.uploadStage = UIPipelineAudit::ValidateUploadStage(cpuStats.geometryUploaded, buffers.vertexBuffer, buffers.indexBuffer);
-    } else {
-        cpuStats.uploadStage.executed = true;
-        cpuStats.uploadStage.succeeded = false;
-        cpuStats.uploadStage.failureReason = "Invalid frame slot";
-    }
-    
-    WE_OVERLAY_PASS_INFO(std::string("Upload Stage: ") + 
-        (cpuStats.uploadStage.succeeded ? "PASS" : "FAILED") +
-        (cpuStats.uploadStage.succeeded ? "" : " | " + cpuStats.uploadStage.failureReason));
-    
-    UIPipelineAudit::EmitCpuPipelineReport(frameNumber, cpuStats);
 }
 
 void OverlayRenderer::SetTargetExtent(uint32_t width, uint32_t height) {
-    WE_OVERLAY_PASS_INFO(std::string("DEBUG SetTargetExtent: width=") + std::to_string(width) + " height=" + std::to_string(height));
     m_CurrentWidth = width;
     m_CurrentHeight = height;
-    WE_OVERLAY_PASS_INFO(std::string("DEBUG SetTargetExtent after: m_CurrentWidth=") + std::to_string(m_CurrentWidth) + " m_CurrentHeight=" + std::to_string(m_CurrentHeight));
-
-    // DPI can change (e.g., dragging across monitors). If we keep a fixed-size baked font atlas,
-    // glyphs get upscaled and turn soft/blurry. Rebuild at the new DPI before generating geometry.
-    const float desiredBakeHeight = ComputeFontBakeHeightPx();
-    if (m_FontAtlas && std::fabs(desiredBakeHeight - m_LastFontBakeHeightPx) >= 1.0f) {
-        const Text::EditorUIFontPaths editorFonts = Text::ResolveEditorUIFonts();
-        const std::string uiFontPath = we::core::AssetRegistry::Get().GetFontPath("Font_UI");
-        const std::string regularFont = uiFontPath.empty() ? editorFonts.regular : uiFontPath;
-        const VkDescriptorSet existingRegularSet = m_FontAtlas->GetDescriptorSet();
-        const VkDescriptorSet existingSemiBoldSet = m_FontAtlasSemiBold ? m_FontAtlasSemiBold->GetDescriptorSet() : VK_NULL_HANDLE;
-
-        m_FontAtlas->Shutdown();
-        m_FontAtlas = std::make_unique<FontAtlas>();
-        if (m_FontAtlasSemiBold) {
-            m_FontAtlasSemiBold->Shutdown();
-        }
-        m_FontAtlasSemiBold = std::make_unique<FontAtlas>();
-
-        const int atlasDim = (desiredBakeHeight > 32.0f) ? 2048 : 1024;
-        HE_INFO(
-            std::string("[UI FontAudit] rebuild dpi=") + std::to_string((std::max)(1.0f, DPIContext::GetScale())) +
-            " oldBakeHeightPx=" + std::to_string(m_LastFontBakeHeightPx) +
-            " newBakeHeightPx=" + std::to_string(desiredBakeHeight) +
-            " atlasDim=" + std::to_string(atlasDim));
-        const bool regularOk = InitEditorFontAtlas(*m_FontAtlas, *this, m_DeviceContext, m_ResourceManager, m_GpuUpload.get(),
-            regularFont, editorFonts.fallback, desiredBakeHeight, atlasDim, existingRegularSet);
-        const bool semiBoldOk = InitEditorFontAtlas(*m_FontAtlasSemiBold, *this, m_DeviceContext, m_ResourceManager, m_GpuUpload.get(),
-            editorFonts.semibold, editorFonts.fallback, desiredBakeHeight, atlasDim, existingSemiBoldSet);
-        if (regularOk && semiBoldOk) {
-            m_LastFontBakeHeightPx = desiredBakeHeight;
-        } else {
-            HE_ERROR("OverlayRenderer: Font atlas rebuild failed after DPI change; UI may appear soft.");
-        }
-    }
 }
 
 void OverlayRenderer::BeginOverlayPass(const ::we::editor::rendering::OverlayRenderContext& context) {
@@ -595,12 +327,8 @@ void OverlayRenderer::BeginOverlayPass(const ::we::editor::rendering::OverlayRen
 
     vkCmdBindPipeline(context.cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_GraphicsPipeline);
     
-    // Evidence-based validation for pipeline binding
-    auto pipelineValidation = UIPipelineAudit::ValidatePipelineBindStage(m_GraphicsPipeline);
-    WE_OVERLAY_PASS_INFO(std::string("Pipeline Bind Stage: ") + 
-        (pipelineValidation.succeeded ? "PASS" : "FAILED") +
-        (pipelineValidation.succeeded ? "" : " | " + pipelineValidation.failureReason) +
-        " | Pipeline Handle: 0x" + std::to_string(reinterpret_cast<uint64_t>(m_GraphicsPipeline)));
+    WE_OVERLAY_PASS_INFO(std::string("Pipeline Bind Stage: PASS | Pipeline Handle: 0x") +
+        std::to_string(reinterpret_cast<uint64_t>(m_GraphicsPipeline)));
 
     // The editor UI is authored in full swapchain coordinates (0..targetExtent).
     // Do NOT apply the scene viewport's blit offset here; doing so clips/offsets the UI.
@@ -640,37 +368,6 @@ void OverlayRenderer::EndOverlayPass(const ::we::editor::rendering::OverlayRende
     WE_OVERLAY_PASS_INFO("==========================");
     WE_OVERLAY_PASS_INFO(std::string("CPU Batch Count: ") + std::to_string(m_Batches.size()));
 
-    UIPipelineGpuStats gpuStats{};
-    gpuStats.commandBuffer = context.cmd;
-    gpuStats.pipeline = m_GraphicsPipeline;
-    gpuStats.vertices = &m_Vertices;
-    gpuStats.batches = &m_Batches;
-    gpuStats.viewportWidth = m_CurrentWidth;
-    gpuStats.viewportHeight = m_CurrentHeight;
-
-    static bool loggedBlendState = false;
-    static bool loggedResourceAudit = false;
-    static uint32_t auditFramesRemaining = 1;
-    const bool auditThisFrame = auditFramesRemaining > 0;
-
-    if (auditThisFrame && !loggedBlendState) {
-        HE_INFO("[UI Audit] Blend state: enable=1 srcColor=SRC_ALPHA dstColor=ONE_MINUS_SRC_ALPHA srcAlpha=ONE dstAlpha=ZERO");
-        loggedBlendState = true;
-    }
-
-    if (auditThisFrame && !loggedResourceAudit) {
-        const VkDescriptorSet fontSet = m_FontAtlas ? m_FontAtlas->GetDescriptorSet() : VK_NULL_HANDLE;
-        HE_INFO(std::string("[UI Audit] Font atlas descriptor: ") +
-                (fontSet != VK_NULL_HANDLE ? "valid" : "NULL") +
-                " imageView=0x" + std::to_string(reinterpret_cast<uint64_t>(m_FontAtlas ? m_FontAtlas->GetImageView() : VK_NULL_HANDLE)));
-        HE_INFO(std::string("[UI Audit] Dummy white texture descriptor: ") +
-                (m_DummyDescriptorSet != VK_NULL_HANDLE ? "valid" : "NULL") +
-                " imageView=0x" + std::to_string(reinterpret_cast<uint64_t>(m_DummyImageView)));
-        HE_INFO(std::string("[UI Audit] Viewport: ") +
-                std::to_string(context.viewportOffset.x) + "," + std::to_string(context.viewportOffset.y) + " " +
-                std::to_string(m_CurrentWidth) + "x" + std::to_string(m_CurrentHeight));
-        loggedResourceAudit = true;
-    }
 
     uint32_t gpuBatchCount = 0;
     uint32_t executedDrawCalls = 0;
@@ -683,8 +380,6 @@ void OverlayRenderer::EndOverlayPass(const ::we::editor::rendering::OverlayRende
         WE_OVERLAY_PASS_INFO(std::string("Vertex Buffer Handle: ") + std::to_string(reinterpret_cast<uint64_t>(buffers.vertexBuffer)));
         WE_OVERLAY_PASS_INFO(std::string("Index Buffer Handle: ") + std::to_string(reinterpret_cast<uint64_t>(buffers.indexBuffer)));
         
-        gpuStats.vertexBuffer = buffers.vertexBuffer;
-        gpuStats.indexBuffer = buffers.indexBuffer;
 
         if (buffers.vertexBuffer != VK_NULL_HANDLE && buffers.indexBuffer != VK_NULL_HANDLE && !m_Batches.empty()) {
             VkBuffer vertexBuffers[] = {buffers.vertexBuffer};
@@ -692,11 +387,6 @@ void OverlayRenderer::EndOverlayPass(const ::we::editor::rendering::OverlayRende
             vkCmdBindVertexBuffers(context.cmd, 0, 1, vertexBuffers, vertexOffsets);
             vkCmdBindIndexBuffer(context.cmd, buffers.indexBuffer, 0, VK_INDEX_TYPE_UINT32);
             
-            // Evidence-based validation for buffer binding
-            gpuStats.bufferBindStage = UIPipelineAudit::ValidateBufferBindStage(buffers.vertexBuffer, buffers.indexBuffer);
-            WE_OVERLAY_PASS_INFO(std::string("Buffer Bind Stage: ") + 
-                (gpuStats.bufferBindStage.succeeded ? "PASS" : "FAILED") +
-                (gpuStats.bufferBindStage.succeeded ? "" : " | " + gpuStats.bufferBindStage.failureReason));
 
             for (size_t i = 0; i < m_Batches.size(); ++i) {
                 const auto& batch = m_Batches[i];
@@ -746,42 +436,6 @@ void OverlayRenderer::EndOverlayPass(const ::we::editor::rendering::OverlayRende
                     batchScissor = fullScissor;
                 }
 
-                if (auditThisFrame && executedDrawCalls < 8) {
-                    uint32_t firstVertex = 0;
-                    if (!m_Indices.empty() && batch.firstIndex < m_Indices.size()) {
-                        firstVertex = m_Indices[batch.firstIndex];
-                    }
-                    float vertexAlphaMin = 0.0f;
-                    float vertexAlphaMax = 0.0f;
-                    float fragmentAlphaMin = 0.0f;
-                    float fragmentAlphaMax = 0.0f;
-                    AuditVertexAlphaRange(m_Vertices, firstVertex, 4, vertexAlphaMin, vertexAlphaMax);
-                    AuditFragmentAlphaRange(m_Vertices, firstVertex, 4, fragmentAlphaMin, fragmentAlphaMax);
-
-                    const UIVertex2* sampleVertex = (firstVertex < m_Vertices.size()) ? &m_Vertices[firstVertex] : nullptr;
-                    HE_INFO(std::string("[UI Audit] Draw[") + std::to_string(i) +
-                            "] indices=" + std::to_string(batch.indexCount) +
-                            " firstIndex=" + std::to_string(batch.firstIndex) +
-                            " descriptor=0x" + std::to_string(reinterpret_cast<uint64_t>(textureSet)) +
-                            " pipeline=0x" + std::to_string(reinterpret_cast<uint64_t>(m_GraphicsPipeline)) +
-                            " scissor=" + std::to_string(batchScissor.offset.x) + "," +
-                            std::to_string(batchScissor.offset.y) + " " +
-                            std::to_string(batchScissor.extent.width) + "x" +
-                            std::to_string(batchScissor.extent.height) +
-                            " vertexAlpha=[" + std::to_string(vertexAlphaMin) + "," + std::to_string(vertexAlphaMax) + "]" +
-                            " fragmentAlpha=[" + std::to_string(fragmentAlphaMin) + "," + std::to_string(fragmentAlphaMax) + "]" +
-                            (sampleVertex
-                                ? " colorRGBA=(" + std::to_string(sampleVertex->color[0]) + "," +
-                                  std::to_string(sampleVertex->color[1]) + "," +
-                                  std::to_string(sampleVertex->color[2]) + "," +
-                                  std::to_string(sampleVertex->color[3]) + ")" +
-                                  " sdfType=" + std::to_string(sampleVertex->sdfParams[1])
-                                : ""));
-
-                    if (fragmentAlphaMax <= 0.0f) {
-                        HE_ERROR("[UI Audit] Batch has zero fragment alpha; draw would be invisible.");
-                    }
-                }
 
                 vkCmdSetScissor(context.cmd, 0, 1, &batchScissor);
                 vkCmdBindDescriptorSets(context.cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_PipelineLayout, 0, 1, &textureSet, 0, nullptr);
@@ -812,58 +466,9 @@ void OverlayRenderer::EndOverlayPass(const ::we::editor::rendering::OverlayRende
     WE_OVERLAY_PASS_INFO(std::string("Executed Draw Calls: ") + std::to_string(executedDrawCalls));
     WE_OVERLAY_PASS_INFO(std::string("Skipped Draw Calls: ") + std::to_string(skippedDrawCalls));
 
-    // Evidence-based validation for draw call stage
-    gpuStats.executedDrawCalls = executedDrawCalls;
-    gpuStats.skippedDrawCalls = skippedDrawCalls;
-    gpuStats.batchCount = gpuBatchCount;
-    gpuStats.drawCallStage = UIPipelineAudit::ValidateDrawCallStage(executedDrawCalls, gpuBatchCount);
-    WE_OVERLAY_PASS_INFO(std::string("Draw Call Stage: ") + 
-        (gpuStats.drawCallStage.succeeded ? "PASS" : "FAILED") +
-        (gpuStats.drawCallStage.succeeded ? "" : " | " + gpuStats.drawCallStage.failureReason));
-
-    if (auditThisFrame) {
-        HE_INFO(std::string("[UI Audit] Executed draw calls: ") + std::to_string(executedDrawCalls) +
-                " skipped: " + std::to_string(skippedDrawCalls));
-        if (m_FontAtlas && m_FontAtlas->GetDescriptorSet() != VK_NULL_HANDLE) {
-            Text::AuditTextVertices(
-                m_Vertices,
-                m_Indices,
-                m_Batches,
-                m_FontAtlas->GetDescriptorSet(),
-                m_FontAtlas->GetCpuAtlasPixels(),
-                m_FontAtlas->GetAtlasWidth(),
-                m_FontAtlas->GetAtlasHeight(),
-                static_cast<float>(m_CurrentWidth),
-                static_cast<float>(m_CurrentHeight),
-                6);
-            HE_INFO(std::string("[UI MsdfAudit] pipeline=0x") + std::to_string(reinterpret_cast<uint64_t>(m_GraphicsPipeline))
-                    + " fontDescriptor=0x" + std::to_string(reinterpret_cast<uint64_t>(m_FontAtlas->GetDescriptorSet()))
-                    + " fontImageView=0x" + std::to_string(reinterpret_cast<uint64_t>(m_FontAtlas->GetImageView()))
-                    + " gpuValid=" + (m_FontAtlas->IsGpuAtlasValid() ? "yes" : "no")
-                    + " blend=SrcAlpha+OneMinusSrcAlpha");
-        }
-        if (auditFramesRemaining > 0) {
-            --auditFramesRemaining;
-        }
-    }
 
     m_Compositor->EndComposite(context.cmd);
-    
-    // Evidence-based validation for render pass stage
-    gpuStats.renderPassStage = UIPipelineAudit::ValidateRenderPassStage(context.cmd, true);
-    WE_OVERLAY_PASS_INFO(std::string("Render Pass Stage: ") + 
-        (gpuStats.renderPassStage.succeeded ? "PASS" : "FAILED") +
-        (gpuStats.renderPassStage.succeeded ? "" : " | " + gpuStats.renderPassStage.failureReason));
-    
     m_StateManager->RestoreState(context.cmd, m_SavedState);
-
-    const uint64_t frameNumber = we::runtime::core::FrameCounter::GetFrameNumber();
-    gpuStats.swapchainImageIndex = m_PipelineAuditImageIndex;
-    UIPipelineAudit::EmitGpuPipelineReport(frameNumber, gpuStats);
-    UIPipelineAudit::LogStage(frameNumber, "Presentation", m_PipelineAuditImageIndex != UINT32_MAX,
-        m_PipelineAuditImageIndex != UINT32_MAX
-            ? ("swapchain image=" + std::to_string(m_PipelineAuditImageIndex) + " (see PresentAudit)")
-            : "swapchain image index not recorded for this frame");
 
     m_Mutex.unlock();
 }
@@ -934,12 +539,8 @@ void OverlayRenderer::UnregisterTexture(VkDescriptorSet descriptorSet) {
     }
 }
 
-FontAtlas* OverlayRenderer::GetFontAtlas() const {
-    return m_FontAtlas.get();
-}
-
-FontAtlas* OverlayRenderer::GetFontAtlasSemiBold() const {
-    return m_FontAtlasSemiBold.get();
+TextUIService* OverlayRenderer::GetTextUIService() const {
+    return m_TextUIService.get();
 }
 
 IconRenderer* OverlayRenderer::GetIconRenderer() const {

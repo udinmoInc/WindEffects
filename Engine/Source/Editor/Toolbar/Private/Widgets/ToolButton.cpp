@@ -46,11 +46,8 @@ namespace {
     }
 
     Color ResolveInteractiveTextColor(float hoverAnim, float pressStrength, bool active) {
-        Color textColor = Theme::Get().TextPrimary;
-        if (hoverAnim > 0.01f || pressStrength > 0.01f || active) {
-            textColor = Color::Lerp(Theme::Get().TextSecondary, Color::White(), std::max({hoverAnim, pressStrength, active ? 1.0f : 0.0f}));
-        }
-        return textColor;
+        const auto& theme = Theme::Get();
+        return theme.TextForState(hoverAnim > 0.01f || pressStrength > 0.01f, active);
     }
 
     float ApproxInlineTextWidth(const std::string& text, float textSize) {
