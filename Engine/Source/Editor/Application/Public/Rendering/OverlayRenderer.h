@@ -89,8 +89,10 @@ public:
     void UnregisterTexture(VkDescriptorSet descriptorSet);
 
     FontAtlas* GetFontAtlas() const;
+    FontAtlas* GetFontAtlasSemiBold() const;
     IconRenderer* GetIconRenderer() const;
     VkDescriptorSet GetDummyDescriptorSet() const { return m_DummyDescriptorSet; }
+    VkSampler GetDefaultSampler() const { return m_DummySampler; }
 
     const UIFrameStats& GetFrameStats() const { return m_FrameStats; }
 
@@ -138,6 +140,7 @@ private:
     std::vector<FrameGeometry> m_FrameGeometry;
 
     std::unique_ptr<FontAtlas> m_FontAtlas;
+    std::unique_ptr<FontAtlas> m_FontAtlasSemiBold;
     std::unique_ptr<IconRenderer> m_IconRenderer;
 
     std::vector<UIVertex2> m_Vertices;

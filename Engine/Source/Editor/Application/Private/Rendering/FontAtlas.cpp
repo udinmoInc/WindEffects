@@ -1,5 +1,5 @@
 #include "Rendering/FontAtlas.h"
-#include "Rendering/Text/MsdfFontAtlasBackend.h"
+#include "Rendering/Text/FreeTypeFontAtlasBackend.h"
 #include "Rendering/Text/Utf8.h"
 #include "Rendering/UiDebugImageWriter.h"
 #include "Rendering/UiGpuUpload.h"
@@ -61,6 +61,11 @@ int FontAtlas::GetGlyphCount() const {
     return m_Backend ? m_Backend->GetGlyphCount() : 0;
 }
 
+const std::vector<uint8_t>& FontAtlas::GetCpuAtlasPixels() const {
+    static const std::vector<uint8_t> kEmpty{};
+    return m_Backend ? m_Backend->GetAtlasPixels() : kEmpty;
+}
+
 bool FontAtlas::Init(we::runtime::renderer::DeviceContext* context,
                      we::runtime::renderer::ResourceManager* resources,
                      UiGpuUpload* gpuUpload,
@@ -69,7 +74,8 @@ bool FontAtlas::Init(we::runtime::renderer::DeviceContext* context,
                      int /*firstChar*/,
                      int /*numChars*/,
                      int width,
-                     int height) {
+                     int height,
+                     const std::string& fallbackFontPath) {
     m_Context = context;
     m_Resources = resources;
     m_GpuUpload = gpuUpload;
@@ -78,25 +84,33 @@ bool FontAtlas::Init(we::runtime::renderer::DeviceContext* context,
     }
 
     m_FontHeight = std::clamp(fontHeightPx, 10.0f, 96.0f);
-    m_Backend = Text::CreateMsdfFontAtlasBackend();
+    m_Backend = Text::CreateFreeTypeFontAtlasBackend();
 
     Text::FontAtlasBakeRequest request{};
     request.primaryFontPath = fontName;
-    request.fallbackFontPath = "Assets/Fonts/Inter-Regular.ttf";
+    request.fallbackFontPath = fallbackFontPath.empty() ? "Assets/Fonts/Inter-Regular.otf" : fallbackFontPath;
     request.emSizePx = m_FontHeight;
-    request.msdfPixelRange = 4.0f;
+    request.msdfPixelRange = std::max(4.0f, m_FontHeight * 0.22f);
     request.atlasWidth = width;
     request.atlasHeight = height;
 
     if (!m_Backend->Initialize(request)) {
-        HE_ERROR("FontAtlas: MSDF backend initialization failed");
+        HE_ERROR("FontAtlas: FreeType backend initialization failed");
         m_Backend.reset();
         return false;
     }
 
+    Text::FontFaceHandles faces{};
+    if (m_Backend->GetFontFaces(faces)) {
+        m_TextLayout.Initialize(faces.primary, faces.fallback);
+    }
+
     HE_INFO(std::string("[UI FontAudit] CPU atlas baked: ") + std::to_string(m_Backend->GetAtlasWidth()) + "x"
             + std::to_string(m_Backend->GetAtlasHeight()) + " glyphs=" + std::to_string(m_Backend->GetGlyphCount())
-            + " primaryFont=" + fontName);
+            + " primaryFont=" + fontName
+            + " bakeHeight=" + std::to_string(m_FontHeight)
+            + " msdfRange=" + std::to_string(m_Backend->GetMsdfPixelRange())
+            + " shaper=" + (m_TextLayout.IsReady() ? "ready" : "fallback"));
     SaveAtlasDebugImage(m_Backend.get());
 
     if (!UploadAtlasIfDirty()) {
@@ -112,6 +126,7 @@ bool FontAtlas::Init(we::runtime::renderer::DeviceContext* context,
 }
 
 void FontAtlas::Shutdown() {
+    m_TextLayout.Shutdown();
     if (m_Backend) {
         m_Backend->Shutdown();
         m_Backend.reset();
@@ -225,6 +240,10 @@ bool FontAtlas::EnsureTextGlyphs(std::string_view utf8Text) {
     return true;
 }
 
+bool FontAtlas::ShapeText(std::string_view utf8Text, std::vector<Text::ShapedGlyph>& outGlyphs) {
+    return m_TextLayout.Shape(utf8Text, outGlyphs);
+}
+
 bool FontAtlas::GetGlyphQuad(uint32_t codepoint, float* xpos, float* ypos, GlyphInfo& quad) {
     if (!m_Backend) {
         return false;
@@ -232,11 +251,47 @@ bool FontAtlas::GetGlyphQuad(uint32_t codepoint, float* xpos, float* ypos, Glyph
     return m_Backend->GetGlyphQuad(codepoint, xpos, ypos, quad);
 }
 
+bool FontAtlas::GetGlyphQuadAt(uint32_t codepoint, float penX, float penY, GlyphInfo& quad) const {
+    if (!m_Backend) {
+        return false;
+    }
+    return m_Backend->GetGlyphQuadAt(codepoint, penX, penY, quad);
+}
+
+float FontAtlas::GetGlyphAdvance(uint32_t codepoint) const {
+    return m_Backend ? m_Backend->GetGlyphAdvance(codepoint) : 0.0f;
+}
+
 bool FontAtlas::GetCharQuad(int c, float* xpos, float* ypos, GlyphInfo& quad) {
     if (c < 0) {
         return false;
     }
     return GetGlyphQuad(static_cast<uint32_t>(c), xpos, ypos, quad);
+}
+
+float FontAtlas::MeasureText(std::string_view utf8Text, float fontSize) const {
+    if (!m_Backend) {
+        return 0.0f;
+    }
+    std::vector<Text::ShapedGlyph> glyphs;
+    if (!m_TextLayout.Shape(utf8Text, glyphs)) {
+        return 0.0f;
+    }
+    float width = 0.0f;
+    for (const Text::ShapedGlyph& glyph : glyphs) {
+        width += glyph.hbAdvanceX;
+    }
+    const float scale = m_FontHeight > 0.0f ? (fontSize / m_FontHeight) : 1.0f;
+    return width * scale;
+}
+
+float FontAtlas::GetAscender() const {
+    return m_TextLayout.GetMetrics().ascender;
+}
+
+float FontAtlas::GetLineHeight() const {
+    const float lineHeight = m_TextLayout.GetMetrics().lineHeight;
+    return lineHeight > 0.0f ? lineHeight : m_FontHeight;
 }
 
 float FontAtlas::GetMsdfPixelRange() const {

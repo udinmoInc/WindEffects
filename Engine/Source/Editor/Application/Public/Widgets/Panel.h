@@ -55,6 +55,8 @@ public:
     void SetCollapsible(bool collapsible) { m_Collapsible = collapsible; }
     void SetBackgroundColor(const Color& color) { m_Style.background.color = color; }
     void SetStyle(const WidgetStyle& style) { m_Style = style; }
+    void SetTransparentBackground(bool transparent) { m_TransparentBackground = transparent; }
+    bool IsTransparentBackground() const { return m_TransparentBackground; }
 
 private:
     struct HeaderAction {
@@ -76,6 +78,7 @@ private:
     bool m_Collapsible = true;
     bool m_HeaderHovered = false;
     bool m_OptionsMenuHovered = false;
+    bool m_TransparentBackground = false;
 
     float m_HeaderHeight = 28.0f; // Thin header standard
     float m_ActionIconSize = 14.0f;

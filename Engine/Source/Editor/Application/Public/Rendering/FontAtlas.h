@@ -10,6 +10,8 @@
 
 #include "Core/DeviceContext.h"
 #include "Rendering/UiGpuUpload.h"
+#include "Rendering/Text/HarfBuzzTextLayout.h"
+#include "Rendering/Text/ShapedGlyph.h"
 
 namespace we::UI::Text {
 class IFontAtlasBackend;
@@ -36,12 +38,19 @@ public:
               int firstChar = 32,
               int numChars = 96,
               int width = 512,
-              int height = 512);
+              int height = 512,
+              const std::string& fallbackFontPath = {});
     void Shutdown();
 
     bool EnsureTextGlyphs(std::string_view utf8Text);
+    bool ShapeText(std::string_view utf8Text, std::vector<Text::ShapedGlyph>& outGlyphs);
     bool GetGlyphQuad(uint32_t codepoint, float* xpos, float* ypos, GlyphInfo& quad);
+    bool GetGlyphQuadAt(uint32_t codepoint, float penX, float penY, GlyphInfo& quad) const;
+    float GetGlyphAdvance(uint32_t codepoint) const;
     bool GetCharQuad(int c, float* xpos, float* ypos, GlyphInfo& quad);
+    float MeasureText(std::string_view utf8Text, float fontSize) const;
+    float GetAscender() const;
+    float GetLineHeight() const;
 
     VkDescriptorSet GetDescriptorSet() const { return m_DescriptorSet; }
     VkDescriptorSet& GetDescriptorSetRef() { return m_DescriptorSet; }
@@ -53,6 +62,7 @@ public:
     int GetAtlasHeight() const;
     int GetGlyphCount() const;
     bool IsGpuAtlasValid() const;
+    const std::vector<uint8_t>& GetCpuAtlasPixels() const;
 
     using GpuAtlasRecreatedFn = std::function<void(VkImageView imageView, VkSampler sampler)>;
     void SetGpuAtlasRecreatedCallback(GpuAtlasRecreatedFn callback);
@@ -67,6 +77,7 @@ private:
     UiGpuUpload* m_GpuUpload = nullptr;
 
     std::unique_ptr<Text::IFontAtlasBackend> m_Backend;
+    Text::HarfBuzzTextLayout m_TextLayout;
 
     float m_FontHeight = 18.0f;
 

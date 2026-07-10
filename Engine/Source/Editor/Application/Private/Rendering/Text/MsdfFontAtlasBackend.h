@@ -9,6 +9,11 @@
 struct FT_LibraryRec_;
 struct FT_FaceRec_;
 
+namespace msdf_atlas {
+class GlyphGeometry;
+class FontGeometry;
+}
+
 namespace we::UI::Text {
 
 // FreeType + msdf-atlas-gen backend for MSDF font atlases.
@@ -22,6 +27,9 @@ public:
 
     bool EnsureGlyphs(const std::vector<uint32_t>& codepoints) override;
     bool GetGlyphQuad(uint32_t codepoint, float* cursorX, float* cursorY, GlyphInfo& outQuad) const override;
+    bool GetGlyphQuadAt(uint32_t codepoint, float penX, float penY, GlyphInfo& outQuad) const override;
+    float GetGlyphAdvance(uint32_t codepoint) const override;
+    bool GetFontFaces(FontFaceHandles& outFaces) const override;
     float MeasureText(std::string_view utf8Text, float fontSize) const override;
 
     const std::vector<uint8_t>& GetAtlasPixels() const override { return m_AtlasRgba; }
@@ -29,7 +37,7 @@ public:
     int GetAtlasHeight() const override { return m_AtlasHeight; }
     float GetEmSize() const override { return m_EmSizePx; }
     float GetMsdfPixelRange() const override { return m_MsdfPixelRange; }
-    int GetGlyphCount() const override { return static_cast<int>(m_Glyphs.size()); }
+    int GetGlyphCount() const override { return static_cast<int>(m_PlacementsByCodepoint.size()); }
     bool IsDirty() const override { return m_Dirty; }
     void ClearDirty() override { m_Dirty = false; }
 
@@ -44,12 +52,14 @@ private:
         float atlasBottom = 0.0f;
         float atlasRight = 0.0f;
         float atlasTop = 0.0f;
+        bool isWhitespace = false;
+        bool hasDrawableQuad = false;
     };
 
     bool LoadFontFaces(const FontAtlasBakeRequest& request);
     bool RebuildAtlas();
-    bool TryAddCodepoint(uint32_t codepoint);
-    int FindGlyphIndex(uint32_t codepoint) const;
+    GlyphPlacement BuildPlacement(const msdf_atlas::GlyphGeometry& glyph) const;
+    void ValidatePlacementMap() const;
 
     FT_LibraryRec_* m_FreeTypeLibrary = nullptr;
     FT_FaceRec_* m_PrimaryFace = nullptr;
@@ -63,8 +73,7 @@ private:
     int m_AtlasHeight = 1024;
 
     std::unordered_set<uint32_t> m_Codepoints;
-    std::unordered_map<uint32_t, int> m_CodepointToGlyphIndex;
-    std::vector<GlyphPlacement> m_Glyphs;
+    std::unordered_map<uint32_t, GlyphPlacement> m_PlacementsByCodepoint;
 
     std::vector<uint8_t> m_AtlasRgba;
     bool m_Dirty = false;

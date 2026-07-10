@@ -47,7 +47,6 @@ std::filesystem::path GetLayoutPath() {
 std::string PanelKey(EditorPanelId id) {
     switch (id) {
     case EditorPanelId::Viewport: return "Viewport";
-    case EditorPanelId::Game: return "Game";
     case EditorPanelId::Tools: return "Tools";
     case EditorPanelId::ContentBrowser: return "ContentBrowser";
     case EditorPanelId::Explorer: return "Explorer";
@@ -148,7 +147,7 @@ void EditorLayoutPersistence::Load() {
     }
 
     auto& panels = EditorPanelController::Get();
-    for (const char* key : { "Explorer", "Details", "ViewportNavigation", "ContentBrowser", "Viewport", "Game", "Debug" }) {
+    for (const char* key : { "Explorer", "Details", "ViewportNavigation", "ContentBrowser", "Viewport", "Debug" }) {
         const std::string visKey = std::string("visible_") + key;
         if (!values.count(visKey)) {
             continue;
@@ -159,7 +158,6 @@ void EditorLayoutPersistence::Load() {
         else if (std::string(key) == "ViewportNavigation") id = EditorPanelId::ViewportNavigation;
         else if (std::string(key) == "ContentBrowser") id = EditorPanelId::ContentBrowser;
         else if (std::string(key) == "Viewport") id = EditorPanelId::Viewport;
-        else if (std::string(key) == "Game") id = EditorPanelId::Game;
         else if (std::string(key) == "Debug") id = EditorPanelId::Debug;
         panels.SetPanelVisible(id, visible);
     }
@@ -199,7 +197,6 @@ void EditorLayoutPersistence::Save() const {
              EditorPanelId::ViewportNavigation,
              EditorPanelId::ContentBrowser,
              EditorPanelId::Viewport,
-             EditorPanelId::Game,
              EditorPanelId::Debug }) {
         out << "visible_" << PanelKey(id) << '=' << (panels.IsPanelVisible(id) ? "1" : "0") << '\n';
     }

@@ -229,7 +229,23 @@ void DockContainer::PaintTab(PaintContext& context, TabInfo& tabInfo, int index,
 void DockContainer::Paint(PaintContext& context) {
     const auto& theme = Theme::Get();
 
-    context.DrawRect(m_Geometry, theme.PanelBackground);
+    bool drawContentBg = true;
+    if (m_ActiveTabIndex >= 0 && m_ActiveTabIndex < static_cast<int>(m_Tabs.size())) {
+        if (m_Tabs[static_cast<size_t>(m_ActiveTabIndex)].panel->IsTransparentBackground()) {
+            drawContentBg = false;
+        }
+    }
+
+    if (drawContentBg) {
+        context.DrawRect(m_Geometry, theme.PanelBackground);
+    } else {
+        // Still draw background behind the toolbar, if any
+        if (m_ActiveTabIndex >= 0 && m_ActiveTabIndex < static_cast<int>(m_Tabs.size())) {
+            if (auto toolbar = m_Tabs[static_cast<size_t>(m_ActiveTabIndex)].panel->GetToolbar()) {
+                context.DrawRect(toolbar->GetGeometry(), theme.PanelBackground);
+            }
+        }
+    }
     context.DrawRect(m_HeaderRect, theme.HeaderBackground);
     context.DrawRect(
         Rect{ m_HeaderRect.x, m_HeaderRect.y + m_HeaderRect.height - 1.0f, m_HeaderRect.width, 1.0f },

@@ -596,9 +596,7 @@ void Renderer::RenderScene() {
         m_ViewportDepthTarget == nullptr ||
         m_ViewportDepthTarget->GetImageView() == VK_NULL_HANDLE ||
         m_ViewportTargetExtent.width == 0 ||
-        m_ViewportTargetExtent.height == 0 ||
-        m_ViewportBlitRect.extent.width == 0 ||
-        m_ViewportBlitRect.extent.height == 0) {
+        m_ViewportTargetExtent.height == 0) {
         return;
     }
     if (!m_RenderGraph || !m_SceneRenderer || !m_SceneRenderer->GetDirectionalLight()) {
@@ -608,19 +606,14 @@ void Renderer::RenderScene() {
 
     ExecuteFoundationPasses(cmd);
 
-    // Copy viewport offscreen color target into the swapchain at viewport rect.
-    const auto& swapchainImages = m_SwapchainManager->GetImages();
-    if (m_ViewportColorImage != VK_NULL_HANDLE && m_CurrentImageIndex < swapchainImages.size()) {
+    // The viewport panel composites the offscreen target as a UI texture quad.
+    if (m_ViewportColorImage != VK_NULL_HANDLE) {
         if ((m_CurrentFrame % 60u) == 0u) {
             WE_LOG_INFO(
                 we::LogCategory::Renderer.data(),
-                std::string("[RendererScene] copy viewport->swapchain frame=") + std::to_string(m_CurrentFrame) +
-                " image=" + std::to_string(m_CurrentImageIndex) +
+                std::string("[RendererScene] viewport ready for UI composite frame=") + std::to_string(m_CurrentFrame) +
                 " viewportImage=0x" + std::to_string(reinterpret_cast<uint64_t>(m_ViewportColorImage)) +
                 " viewportView=0x" + std::to_string(reinterpret_cast<uint64_t>(m_ViewportColorImageView)) +
-                " swapImage=0x" + std::to_string(reinterpret_cast<uint64_t>(swapchainImages[m_CurrentImageIndex])) +
-                " blitOffset=" + std::to_string(m_ViewportBlitRect.offset.x) + "," + std::to_string(m_ViewportBlitRect.offset.y) +
-                " blitExtent=" + std::to_string(m_ViewportBlitRect.extent.width) + "x" + std::to_string(m_ViewportBlitRect.extent.height) +
                 " targetExtent=" + std::to_string(m_ViewportTargetExtent.width) + "x" + std::to_string(m_ViewportTargetExtent.height));
         }
 
@@ -628,65 +621,10 @@ void Renderer::RenderScene() {
             cmd,
             m_ViewportColorImage,
             VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-            VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-            VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
-            VK_ACCESS_TRANSFER_READ_BIT,
-            VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
-            VK_PIPELINE_STAGE_TRANSFER_BIT);
-
-        TransitionImageLayout(
-            cmd,
-            swapchainImages[m_CurrentImageIndex],
-            VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-            VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-            VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
-            VK_ACCESS_TRANSFER_WRITE_BIT,
-            VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
-            VK_PIPELINE_STAGE_TRANSFER_BIT);
-
-        VkImageCopy region{};
-        region.srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-        region.srcSubresource.baseArrayLayer = 0;
-        region.srcSubresource.layerCount = 1;
-        region.dstSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-        region.dstSubresource.baseArrayLayer = 0;
-        region.dstSubresource.layerCount = 1;
-        region.extent = {
-            m_ViewportBlitRect.extent.width,
-            m_ViewportBlitRect.extent.height,
-            1};
-        region.dstOffset = {
-            m_ViewportBlitRect.offset.x,
-            m_ViewportBlitRect.offset.y,
-            0};
-
-        vkCmdCopyImage(
-            cmd,
-            m_ViewportColorImage,
-            VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-            swapchainImages[m_CurrentImageIndex],
-            VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-            1,
-            &region);
-
-        TransitionImageLayout(
-            cmd,
-            swapchainImages[m_CurrentImageIndex],
-            VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-            VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-            VK_ACCESS_TRANSFER_WRITE_BIT,
-            VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
-            VK_PIPELINE_STAGE_TRANSFER_BIT,
-            VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT);
-
-        TransitionImageLayout(
-            cmd,
-            m_ViewportColorImage,
-            VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
             VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-            VK_ACCESS_TRANSFER_READ_BIT,
+            VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
             VK_ACCESS_SHADER_READ_BIT,
-            VK_PIPELINE_STAGE_TRANSFER_BIT,
+            VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
             VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT);
 
         m_ViewportColorInShaderRead = true;

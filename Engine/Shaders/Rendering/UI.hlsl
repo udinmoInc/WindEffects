@@ -66,37 +66,31 @@ float4 PSMain(VSOutput input) : SV_Target
 {
     float type = input.sdfParams.y;
     
-    // Type 3.0 is MSDF text (FreeType + msdf-atlas-gen).
+    // Type 3.0 is Text (FreeType anti-aliased bitmap).
     if (type > 2.5 && type < 3.5)
     {
         float4 texColor = texSampler.Sample(samp0, input.uv);
-        float sd = median3(texColor.r, texColor.g, texColor.b);
-        float pxRange = max(input.sdfParams.z, 1.0);
-        float2 atlasGlyphSize = max(input.sdfRect.zw, float2(1.0, 1.0));
-        float2 unitRange = pxRange / atlasGlyphSize;
-        float2 screenTexSize = 1.0 / fwidth(input.uv);
-        float screenPxRange = max(0.5 * dot(unitRange, screenTexSize), 1.0);
-        float sigDist = sd - 0.5;
-        float alpha = saturate(screenPxRange * sigDist + 0.5);
         float4 outColor = input.color;
-        outColor.a *= alpha;
+        outColor.a *= texColor.a;
         return outColor;
     }
 
     // Type 0.0 is Texture/Icon bitmap.
     // Icons/thumbnails store coverage in alpha; vertex color carries the tint.
-    // Do not use max(R,G,B) when RGB carries a baked tint — that forces opaque quads.
     if (type < 0.5)
     {
         float4 texColor = texSampler.Sample(samp0, input.uv);
-        float coverage = texColor.a;
-        if (coverage <= (1.0 / 255.0))
-        {
-            coverage = max(texColor.r, max(texColor.g, texColor.b));
-        }
+        float coverage = max(max(texColor.a, texColor.r), max(texColor.g, texColor.b));
         float4 outColor = input.color;
         outColor.a *= coverage;
         return outColor;
+    }
+
+    // Type 4.0 is a full-color texture (viewport / render targets).
+    if (type > 3.5 && type < 4.5)
+    {
+        float4 texColor = texSampler.Sample(samp0, input.uv);
+        return texColor * input.color;
     }
 
     // Type 1.0 is Rect, Type 2.0 is Border

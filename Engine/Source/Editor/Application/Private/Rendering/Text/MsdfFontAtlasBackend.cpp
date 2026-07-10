@@ -16,6 +16,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstdio>
 #include <filesystem>
 #include <fstream>
 #include <string_view>
@@ -24,7 +25,11 @@ namespace we::UI::Text {
 
 namespace {
 
-constexpr double kGlyphScale = 1.0;
+std::string CodepointToHex(uint32_t codepoint) {
+    char buffer[16];
+    std::snprintf(buffer, sizeof(buffer), "U+%04X", codepoint);
+    return buffer;
+}
 
 std::string ResolveFontPath(const std::string& fontName) {
     if (fontName.empty()) {
@@ -78,7 +83,7 @@ bool MsdfFontAtlasBackend::Initialize(const FontAtlasBakeRequest& request) {
     m_PrimaryFontPath = ResolveFontPath(request.primaryFontPath);
     m_FallbackFontPath = ResolveFontPath(request.fallbackFontPath);
     m_EmSizePx = std::clamp(request.emSizePx, 10.0f, 96.0f);
-    m_MsdfPixelRange = std::max(request.msdfPixelRange, 2.0f);
+    m_MsdfPixelRange = std::max(request.msdfPixelRange, m_EmSizePx * 0.2f);
     m_AtlasWidth = std::max(request.atlasWidth, 256);
     m_AtlasHeight = std::max(request.atlasHeight, 256);
 
@@ -105,8 +110,7 @@ void MsdfFontAtlasBackend::Shutdown() {
     }
 
     m_Codepoints.clear();
-    m_CodepointToGlyphIndex.clear();
-    m_Glyphs.clear();
+    m_PlacementsByCodepoint.clear();
     m_AtlasRgba.clear();
     m_Dirty = false;
 }
@@ -129,8 +133,22 @@ bool MsdfFontAtlasBackend::LoadFontFaces(const FontAtlasBakeRequest& request) {
         }
     }
 
+    if (m_PrimaryFace) {
+        m_PrimaryFace->face_flags |= FT_FACE_FLAG_HORIZONTAL;
+    }
+
+    const FT_UInt pixelHeight = static_cast<FT_UInt>(std::clamp(std::lround(m_EmSizePx), 10L, 96L));
+    if (FT_Set_Pixel_Sizes(m_PrimaryFace, 0, pixelHeight) != 0) {
+        HE_WARN("MsdfFontAtlasBackend: FT_Set_Pixel_Sizes failed for primary face");
+    }
+    if (m_FallbackFace && FT_Set_Pixel_Sizes(m_FallbackFace, 0, pixelHeight) != 0) {
+        HE_WARN("MsdfFontAtlasBackend: FT_Set_Pixel_Sizes failed for fallback face");
+    }
+
     HE_INFO("MsdfFontAtlasBackend: primary font=" + m_PrimaryFontPath +
-            (m_FallbackFace ? " fallback=" + m_FallbackFontPath : ""));
+            (m_FallbackFace ? " fallback=" + m_FallbackFontPath : "")
+            + " emSize=" + std::to_string(m_EmSizePx)
+            + " msdfRange=" + std::to_string(m_MsdfPixelRange));
     return true;
 }
 
@@ -175,7 +193,9 @@ bool MsdfFontAtlasBackend::RebuildAtlas() {
         charset.add(codepoint);
     }
 
-    if (fontGeometry.loadCharset(primaryFont, kGlyphScale, charset) <= 0) {
+    // Geometry scale must match packer.setScale(emSizePx) so plane bounds are in bake-pixel units.
+    const double geometryScale = static_cast<double>(m_EmSizePx);
+    if (fontGeometry.loadCharset(primaryFont, geometryScale, charset) <= 0) {
         HE_ERROR("MsdfFontAtlasBackend: loadCharset failed for primary font");
         msdfgen::destroyFont(primaryFont);
         if (fallbackFont) {
@@ -192,7 +212,7 @@ bool MsdfFontAtlasBackend::RebuildAtlas() {
             }
             msdf_atlas::Charset single;
             single.add(codepoint);
-            fontGeometry.loadCharset(fallbackFont, kGlyphScale, single);
+            fontGeometry.loadCharset(fallbackFont, geometryScale, single);
         }
     }
 
@@ -205,6 +225,7 @@ bool MsdfFontAtlasBackend::RebuildAtlas() {
     packer.setDimensionsConstraint(msdf_atlas::DimensionsConstraint::POWER_OF_TWO_SQUARE);
     packer.setSpacing(2);
     packer.setScale(static_cast<double>(m_EmSizePx));
+    packer.setMiterLimit(1.0);
     packer.setPixelRange(msdfgen::Range(static_cast<double>(m_MsdfPixelRange)));
     if (packer.pack(glyphGeometries.data(), static_cast<int>(glyphGeometries.size())) != 0) {
         HE_ERROR("MsdfFontAtlasBackend: atlas packer failed");
@@ -240,8 +261,8 @@ bool MsdfFontAtlasBackend::RebuildAtlas() {
     m_AtlasHeight = bitmap.height;
     m_AtlasRgba.resize(static_cast<size_t>(m_AtlasWidth * m_AtlasHeight * 4));
 
-    // msdf-atlas-gen stores rows with Y+ up; Vulkan images use Y+ down (v=0 at top).
-    // Flip rows during CPU packing so atlas UVs match the msdf-atlas-gen convention.
+    // msdfgen stores bitmap rows with Y+ up; Vulkan images use Y+ down (v=0 at top).
+    // Flip rows on upload so GPU texels align with getQuadAtlasBounds() (Y+ down, origin top-left).
     for (int y = 0; y < m_AtlasHeight; ++y) {
         for (int x = 0; x < m_AtlasWidth; ++x) {
             const float* msdf = bitmap(x, y);
@@ -254,41 +275,24 @@ bool MsdfFontAtlasBackend::RebuildAtlas() {
         }
     }
 
-    m_Glyphs.resize(glyphGeometries.size());
-    m_CodepointToGlyphIndex.clear();
-    for (size_t i = 0; i < glyphGeometries.size(); ++i) {
-        const msdf_atlas::unicode_t codepoint = glyphGeometries[i].getCodepoint();
-        if (codepoint != 0) {
-            m_CodepointToGlyphIndex[static_cast<uint32_t>(codepoint)] = static_cast<int>(i);
+    m_PlacementsByCodepoint.clear();
+    uint32_t missingGlyphs = 0;
+    for (uint32_t codepoint : m_Codepoints) {
+        const msdf_atlas::GlyphGeometry* glyph = fontGeometry.getGlyph(codepoint);
+        if (!glyph) {
+            ++missingGlyphs;
+            continue;
         }
 
-        const msdf_atlas::GlyphGeometry& glyph = glyphGeometries[i];
-        GlyphPlacement placement{};
-
-        double l = 0.0;
-        double b = 0.0;
-        double r = 0.0;
-        double t = 0.0;
-        glyph.getQuadPlaneBounds(l, b, r, t);
-        placement.planeLeft = static_cast<float>(l);
-        placement.planeBottom = static_cast<float>(b);
-        placement.planeRight = static_cast<float>(r);
-        placement.planeTop = static_cast<float>(t);
-        placement.advance = static_cast<float>(glyph.getAdvance());
-
-        double al = 0.0;
-        double ab = 0.0;
-        double ar = 0.0;
-        double at = 0.0;
-        glyph.getQuadAtlasBounds(al, ab, ar, at);
-        placement.atlasLeft = static_cast<float>(al / m_AtlasWidth);
-        placement.atlasRight = static_cast<float>(ar / m_AtlasWidth);
-        // msdf-atlas-gen atlas bounds are Y-up; GPU texture is Y-down after row flip on upload.
-        placement.atlasBottom = static_cast<float>(1.0 - (at / m_AtlasHeight));
-        placement.atlasTop = static_cast<float>(1.0 - (ab / m_AtlasHeight));
-
-        m_Glyphs[i] = placement;
+        GlyphPlacement placement = BuildPlacement(*glyph);
+        m_PlacementsByCodepoint.emplace(codepoint, placement);
     }
+
+    if (missingGlyphs > 0) {
+        HE_WARN("MsdfFontAtlasBackend: " + std::to_string(missingGlyphs) + " codepoints missing after atlas bake");
+    }
+
+    ValidatePlacementMap();
 
     msdfgen::destroyFont(primaryFont);
     if (fallbackFont) {
@@ -298,36 +302,177 @@ bool MsdfFontAtlasBackend::RebuildAtlas() {
 
     m_Dirty = true;
     HE_INFO("MsdfFontAtlasBackend: rebuilt atlas " + std::to_string(m_AtlasWidth) + "x" +
-            std::to_string(m_AtlasHeight) + " glyphs=" + std::to_string(m_Glyphs.size()));
+            std::to_string(m_AtlasHeight) + " placements=" + std::to_string(m_PlacementsByCodepoint.size()));
     return true;
 }
 
-int MsdfFontAtlasBackend::FindGlyphIndex(uint32_t codepoint) const {
-    const auto it = m_CodepointToGlyphIndex.find(codepoint);
-    if (it != m_CodepointToGlyphIndex.end()) {
-        return it->second;
-    }
-    return -1;
+MsdfFontAtlasBackend::GlyphPlacement MsdfFontAtlasBackend::BuildPlacement(
+    const msdf_atlas::GlyphGeometry& glyph) const {
+    GlyphPlacement placement{};
+    placement.isWhitespace = glyph.isWhitespace();
+    placement.advance = static_cast<float>(glyph.getAdvance());
+
+    double l = 0.0;
+    double b = 0.0;
+    double r = 0.0;
+    double t = 0.0;
+    glyph.getQuadPlaneBounds(l, b, r, t);
+    placement.planeLeft = static_cast<float>(l);
+    placement.planeBottom = static_cast<float>(std::min(b, t));
+    placement.planeRight = static_cast<float>(r);
+    placement.planeTop = static_cast<float>(std::max(b, t));
+
+    double al = 0.0;
+    double ab = 0.0;
+    double ar = 0.0;
+    double at = 0.0;
+    glyph.getQuadAtlasBounds(al, ab, ar, at);
+    placement.atlasLeft = static_cast<float>(al / m_AtlasWidth);
+    placement.atlasRight = static_cast<float>(ar / m_AtlasWidth);
+    // Atlas bounds are Y+ down in packer space; msdfgen rows are Y+ up and are flipped on GPU upload.
+    // Invert V so UVs match the row-flipped GPU image (verified: v~0.87 hits MSDF data, v~0.11 is empty).
+    const float atlasYTop = static_cast<float>(std::min(ab, at));
+    const float atlasYBottom = static_cast<float>(std::max(ab, at));
+    placement.atlasTop = 1.0f - (atlasYBottom / static_cast<float>(m_AtlasHeight));
+    placement.atlasBottom = 1.0f - (atlasYTop / static_cast<float>(m_AtlasHeight));
+
+    const float planeW = std::fabs(placement.planeRight - placement.planeLeft);
+    const float planeH = placement.planeTop - placement.planeBottom;
+    const float atlasW = placement.atlasRight - placement.atlasLeft;
+    const float atlasH = placement.atlasBottom - placement.atlasTop;
+    placement.hasDrawableQuad = !placement.isWhitespace
+        && planeW > 0.001f
+        && planeH > 0.001f
+        && atlasW > 0.0f
+        && atlasH > 0.0f;
+    return placement;
 }
 
-bool MsdfFontAtlasBackend::GetGlyphQuad(uint32_t codepoint, float* cursorX, float* cursorY, GlyphInfo& outQuad) const {
-    const int glyphIndex = FindGlyphIndex(codepoint);
-    if (glyphIndex < 0 || glyphIndex >= static_cast<int>(m_Glyphs.size())) {
+void MsdfFontAtlasBackend::ValidatePlacementMap() const {
+    std::unordered_map<uint64_t, std::vector<uint32_t>> atlasRectOwners;
+    uint32_t drawableGlyphs = 0;
+    uint32_t whitespaceGlyphs = 0;
+
+    for (const auto& [codepoint, placement] : m_PlacementsByCodepoint) {
+        if (placement.isWhitespace) {
+            ++whitespaceGlyphs;
+            continue;
+        }
+        if (placement.hasDrawableQuad) {
+            ++drawableGlyphs;
+        }
+
+        const uint64_t rectKey =
+            (static_cast<uint64_t>(static_cast<uint32_t>(placement.atlasLeft * 100000.0f)) << 48)
+            | (static_cast<uint64_t>(static_cast<uint32_t>(placement.atlasBottom * 100000.0f)) << 32)
+            | (static_cast<uint64_t>(static_cast<uint32_t>(placement.atlasRight * 100000.0f)) << 16)
+            | static_cast<uint64_t>(static_cast<uint32_t>(placement.atlasTop * 100000.0f));
+        atlasRectOwners[rectKey].push_back(codepoint);
+    }
+
+    uint32_t duplicateAtlasRects = 0;
+    for (const auto& [rectKey, owners] : atlasRectOwners) {
+        if (owners.size() > 1) {
+            ++duplicateAtlasRects;
+            if (duplicateAtlasRects <= 4) {
+                std::string ownerList;
+                for (uint32_t owner : owners) {
+                    ownerList += CodepointToHex(owner) + " ";
+                }
+                HE_WARN("[UI TextAudit] Duplicate atlas UV rect shared by: " + ownerList);
+            }
+        }
+    }
+
+    const auto logSample = [&](uint32_t cp) {
+        const auto it = m_PlacementsByCodepoint.find(cp);
+        if (it == m_PlacementsByCodepoint.end()) {
+            HE_INFO("[UI TextAudit] sample " + CodepointToHex(cp) + " missing");
+            return;
+        }
+        const GlyphPlacement& p = it->second;
+        HE_INFO("[UI TextAudit] sample " + CodepointToHex(cp)
+                + " uv=(" + std::to_string(p.atlasLeft) + "," + std::to_string(p.atlasTop)
+                + ")-(" + std::to_string(p.atlasRight) + "," + std::to_string(p.atlasBottom) + ")"
+                + " planeW=" + std::to_string(p.planeRight - p.planeLeft)
+                + " planeH=" + std::to_string(p.planeTop - p.planeBottom)
+                + " advance=" + std::to_string(p.advance)
+                + (p.hasDrawableQuad ? " drawable" : " no-quad"));
+    };
+
+    logSample(0x0041); // A
+    logSample(0x0065); // e
+    logSample(0x002E); // .
+
+    HE_INFO("[UI TextAudit] placement map: total=" + std::to_string(m_PlacementsByCodepoint.size())
+            + " drawable=" + std::to_string(drawableGlyphs)
+            + " whitespace=" + std::to_string(whitespaceGlyphs)
+            + " duplicateAtlasRects=" + std::to_string(duplicateAtlasRects));
+}
+
+bool MsdfFontAtlasBackend::GetGlyphQuadAt(uint32_t codepoint, float penX, float penY, GlyphInfo& outQuad) const {
+    const auto it = m_PlacementsByCodepoint.find(codepoint);
+    if (it == m_PlacementsByCodepoint.end()) {
         return false;
     }
 
-    const GlyphPlacement& glyph = m_Glyphs[static_cast<size_t>(glyphIndex)];
-    outQuad.x0 = *cursorX + glyph.planeLeft;
-    outQuad.y0 = *cursorY + glyph.planeBottom;
-    outQuad.x1 = *cursorX + glyph.planeRight;
-    outQuad.y1 = *cursorY + glyph.planeTop;
-    outQuad.u0 = glyph.atlasLeft;
-    outQuad.v0 = glyph.atlasBottom;
-    outQuad.u1 = glyph.atlasRight;
-    outQuad.v1 = glyph.atlasTop;
-    outQuad.xadvance = glyph.advance;
+    const GlyphPlacement& glyph = it->second;
+    if (!glyph.hasDrawableQuad) {
+        return false;
+    }
 
+    outQuad.x0 = penX + glyph.planeLeft;
+    outQuad.y0 = penY - glyph.planeTop;
+    outQuad.x1 = penX + glyph.planeRight;
+    outQuad.y1 = penY - glyph.planeBottom;
+    outQuad.u0 = glyph.atlasLeft;
+    outQuad.v0 = glyph.atlasTop;
+    outQuad.u1 = glyph.atlasRight;
+    outQuad.v1 = glyph.atlasBottom;
+    outQuad.xadvance = glyph.advance;
+    return true;
+}
+
+bool MsdfFontAtlasBackend::GetGlyphQuad(uint32_t codepoint, float* cursorX, float* cursorY, GlyphInfo& outQuad) const {
+    const auto it = m_PlacementsByCodepoint.find(codepoint);
+    if (it == m_PlacementsByCodepoint.end()) {
+        return false;
+    }
+
+    const GlyphPlacement& glyph = it->second;
+    const float penX = *cursorX;
+    const bool drawable = GetGlyphQuadAt(codepoint, penX, *cursorY, outQuad);
     *cursorX += glyph.advance;
+    return drawable;
+}
+
+float MsdfFontAtlasBackend::GetGlyphAdvance(uint32_t codepoint) const {
+    if (!m_PrimaryFace) {
+        return 0.0f;
+    }
+
+    FT_Face face = m_PrimaryFace;
+    FT_UInt glyphIndex = FT_Get_Char_Index(face, codepoint);
+    if (glyphIndex == 0 && m_FallbackFace) {
+        face = m_FallbackFace;
+        glyphIndex = FT_Get_Char_Index(face, codepoint);
+    }
+    if (glyphIndex == 0) {
+        return 0.0f;
+    }
+
+    if (FT_Load_Glyph(face, glyphIndex, FT_LOAD_TARGET_NORMAL) != 0) {
+        return 0.0f;
+    }
+    return static_cast<float>(face->glyph->advance.x) / 64.0f;
+}
+
+bool MsdfFontAtlasBackend::GetFontFaces(FontFaceHandles& outFaces) const {
+    if (!m_PrimaryFace) {
+        return false;
+    }
+    outFaces.primary = m_PrimaryFace;
+    outFaces.fallback = m_FallbackFace;
     return true;
 }
 
