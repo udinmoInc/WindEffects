@@ -108,11 +108,7 @@ void TabWidget::Paint(PaintContext& context) {
         Color textColor = isActive ? Theme::Get().TextPrimary : Theme::Get().TextSecondary;
         if (isHovered && !isActive) textColor = Theme::Get().TextPrimary;
         
-        context.DrawText(tab.label, Point{ textX, textY }, textColor, Theme::Get().TextSizeTabs);
-        // Simulate bold text for active tab by drawing it again with a small offset
-        if (isActive) {
-            context.DrawText(tab.label, Point{ textX + 0.5f, textY }, textColor, Theme::Get().TextSizeTabs);
-        }
+        context.DrawText(tab.label, Point{ textX, textY }, textColor, Theme::Get().TextSizeTabs, isActive);
         
         // Draw close button if active or hovered
         if (isActive || isHovered) {

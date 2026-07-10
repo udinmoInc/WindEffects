@@ -17,7 +17,8 @@ enum class DrawCommandType {
     Text,
     Icon,
     Line,
-    Texture
+    Texture,
+    ColorTexture
 };
 
 struct DrawCommand {
@@ -29,6 +30,8 @@ struct DrawCommand {
     VkDescriptorSet textureId = VK_NULL_HANDLE; // Used for viewport or icons
     std::string text;
     float fontSize = 14.0f;
+    bool textBold = false;
+    bool textItalic = false;
     float borderRadius = 0.0f;
     float thickness = 1.0f;
     float blur = 0.0f;  // For shadows
@@ -53,6 +56,7 @@ public:
     void DrawIcon(const std::string& iconName, const Point& pos, const Color& color, float size = 16.0f);
     void DrawLine(const Point& start, const Point& end, const Color& color, float thickness = 1.0f);
     void DrawTexture(const Rect& rect, VkDescriptorSet textureId, const Color& tint = Color::White(), const Color& tintBottom = Color::Transparent());
+    void DrawColorTexture(const Rect& rect, VkDescriptorSet textureId, const Color& tint = Color::White());
     
     float GetTextWidth(const std::string& text, float fontSize) const;
 

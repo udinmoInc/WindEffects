@@ -57,6 +57,10 @@ void ViewportWidget::Construct() {
 }
 
 ViewportWidget::~ViewportWidget() {
+    if (m_uiRenderer && m_ViewportTextureSet != VK_NULL_HANDLE) {
+        m_uiRenderer->UnregisterTexture(m_ViewportTextureSet);
+        m_ViewportTextureSet = VK_NULL_HANDLE;
+    }
     WE_LOG_INFO(we::LogCategory::Renderer.data(), "[ViewportWidget] Destroyed.");
 }
 
@@ -126,6 +130,18 @@ void ViewportWidget::FlushPendingResize() {
         m_ViewportController->SetViewportRenderTargetSize(m_PendingWidth, m_PendingHeight);
     }
 
+    if (m_uiRenderer && m_ViewportRenderTarget) {
+        const VkImageView colorView = m_ViewportRenderTarget->GetColorImageView();
+        const VkSampler sampler = m_uiRenderer->GetDefaultSampler();
+        if (colorView != VK_NULL_HANDLE && sampler != VK_NULL_HANDLE) {
+            if (m_ViewportTextureSet == VK_NULL_HANDLE) {
+                m_ViewportTextureSet = m_uiRenderer->RegisterTexture(colorView, sampler);
+            } else {
+                m_uiRenderer->UpdateTexture(m_ViewportTextureSet, colorView, sampler);
+            }
+        }
+    }
+
     SyncRendererViewport();
 }
 
@@ -170,6 +186,12 @@ bool ViewportWidget::HitTestGizmoReset(const Point& position) const {
 
 void ViewportWidget::Paint(PaintContext& context) {
     if (!m_Visible) return;
+
+    if (m_ViewportTextureSet != VK_NULL_HANDLE
+        && m_Geometry.width > 0.0f
+        && m_Geometry.height > 0.0f) {
+        context.DrawColorTexture(m_Geometry, m_ViewportTextureSet);
+    }
 
     for (auto& child : m_Children) {
         child->Paint(context);

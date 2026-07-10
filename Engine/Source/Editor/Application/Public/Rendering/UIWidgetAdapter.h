@@ -87,6 +87,7 @@ private:
     void GenerateRectGeometry(const DrawCommand& cmd);
     void GenerateTextGeometry(const DrawCommand& cmd);
     void GenerateTextureGeometry(const DrawCommand& cmd);
+    void GenerateColorTextureGeometry(const DrawCommand& cmd);
     void GenerateIconGeometry(const DrawCommand& cmd);
     void GenerateLineGeometry(const DrawCommand& cmd);
     void GenerateShadowGeometry(const DrawCommand& cmd);

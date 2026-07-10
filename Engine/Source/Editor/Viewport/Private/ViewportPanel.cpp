@@ -13,6 +13,7 @@ std::shared_ptr<we::UI::Panel> CreateViewportPanel() {
     auto panel = std::make_shared<we::UI::Panel>("Viewport");
     panel->SetHeaderHeight(30.0f);
     panel->AddHeaderAction(we::UI::Icons::XName, []() {});
+    panel->SetTransparentBackground(true);
 
     // Create Level-2 Toolbar for Scene Viewport
     auto toolbar = std::make_shared<we::UI::Toolbar>();

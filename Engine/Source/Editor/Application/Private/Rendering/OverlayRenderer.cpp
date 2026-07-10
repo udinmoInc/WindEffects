@@ -25,6 +25,8 @@
 #include <cstdint>
 
 #include "Rendering/UIPipelineAudit.h"
+#include "Rendering/Text/UiMsdfAudit.h"
+#include "Rendering/Text/EditorUIFont.h"
 #include "Core/FrameCounter.h"
 
 // Production builds should not emit per-frame diagnostic "PASS | ..." spam.
@@ -52,6 +54,34 @@ float ComputeFontBakeHeightPx() {
     return std::ceil(ComputeMaxUiFontSizePx() * uiScale);
 }
 
+bool InitEditorFontAtlas(
+    FontAtlas& atlas,
+    OverlayRenderer& renderer,
+    we::runtime::renderer::DeviceContext* deviceContext,
+    we::runtime::renderer::ResourceManager* resourceManager,
+    UiGpuUpload* gpuUpload,
+    const std::string& fontPath,
+    const std::string& fallbackPath,
+    float bakeHeightPx,
+    int atlasDim,
+    VkDescriptorSet reuseDescriptorSet) {
+    atlas.SetGpuAtlasRecreatedCallback([&renderer, &atlas](VkImageView imageView, VkSampler sampler) {
+        if (atlas.GetDescriptorSet() != VK_NULL_HANDLE) {
+            renderer.UpdateTexture(atlas.GetDescriptorSet(), imageView, sampler);
+        }
+    });
+    if (!atlas.Init(deviceContext, resourceManager, gpuUpload, fontPath, bakeHeightPx, 32, 96, atlasDim, atlasDim, fallbackPath)) {
+        return false;
+    }
+    if (reuseDescriptorSet != VK_NULL_HANDLE) {
+        atlas.GetDescriptorSetRef() = reuseDescriptorSet;
+        renderer.UpdateTexture(reuseDescriptorSet, atlas.GetImageView(), atlas.GetSampler());
+    } else {
+        atlas.GetDescriptorSetRef() = renderer.RegisterTexture(atlas.GetImageView(), atlas.GetSampler());
+    }
+    return atlas.GetDescriptorSet() != VK_NULL_HANDLE;
+}
+
 float SdRoundBox(float px, float py, float rx, float ry, float rw, float rh, float radius) {
     const float cx = rx + rw * 0.5f;
     const float cy = ry + rh * 0.5f;
@@ -69,6 +99,9 @@ float EstimateFragmentAlpha(const UIVertex2& v) {
         return v.color[3];
     }
     if (type < 0.5f) {
+        return v.color[3];
+    }
+    if (type > 3.5f && type < 4.5f) {
         return v.color[3];
     }
 
@@ -175,25 +208,27 @@ bool OverlayRenderer::Init(VkPhysicalDevice physicalDevice,
         return false;
     }
 
-    m_FontAtlas = std::make_unique<FontAtlas>();
-    m_FontAtlas->SetGpuAtlasRecreatedCallback([this](VkImageView imageView, VkSampler sampler) {
-        if (m_FontAtlas && m_FontAtlas->GetDescriptorSet() != VK_NULL_HANDLE) {
-            UpdateTexture(m_FontAtlas->GetDescriptorSet(), imageView, sampler);
-            HE_INFO(std::string("[UI FontAudit] Font descriptor rebound after GPU atlas recreate view=0x")
-                    + std::to_string(reinterpret_cast<uint64_t>(imageView)));
-        }
-    });
+    const Text::EditorUIFontPaths editorFonts = Text::ResolveEditorUIFonts();
     const std::string uiFontPath = we::core::AssetRegistry::Get().GetFontPath("Font_UI");
-    const std::string fontToLoad = uiFontPath.empty() ? "Assets/Fonts/Inter-Regular.ttf" : uiFontPath;
+    const std::string regularFont = uiFontPath.empty() ? editorFonts.regular : uiFontPath;
     m_LastFontBakeHeightPx = ComputeFontBakeHeightPx();
-    // Larger atlases avoid bake failures when DPI is high and glyphs get larger.
     const int atlasDim = (m_LastFontBakeHeightPx > 32.0f) ? 2048 : 1024;
     HE_INFO(
         std::string("[UI FontAudit] init dpi=") + std::to_string((std::max)(1.0f, DPIContext::GetScale())) +
         " bakeHeightPx=" + std::to_string(m_LastFontBakeHeightPx) +
-        " atlasDim=" + std::to_string(atlasDim));
-    if (!m_FontAtlas->Init(deviceContext, resourceManager, m_GpuUpload.get(), fontToLoad, m_LastFontBakeHeightPx, 32, 96, atlasDim, atlasDim)) {
-        HE_ERROR("OverlayRenderer: Font atlas initialization failed");
+        " atlasDim=" + std::to_string(atlasDim) +
+        " family=" + editorFonts.familyName);
+
+    m_FontAtlas = std::make_unique<FontAtlas>();
+    m_FontAtlasSemiBold = std::make_unique<FontAtlas>();
+    if (!InitEditorFontAtlas(*m_FontAtlas, *this, deviceContext, resourceManager, m_GpuUpload.get(),
+                             regularFont, editorFonts.fallback, m_LastFontBakeHeightPx, atlasDim, VK_NULL_HANDLE)) {
+        HE_ERROR("OverlayRenderer: Regular UI font atlas initialization failed");
+        return false;
+    }
+    if (!InitEditorFontAtlas(*m_FontAtlasSemiBold, *this, deviceContext, resourceManager, m_GpuUpload.get(),
+                             editorFonts.semibold, editorFonts.fallback, m_LastFontBakeHeightPx, atlasDim, VK_NULL_HANDLE)) {
+        HE_ERROR("OverlayRenderer: SemiBold UI font atlas initialization failed");
         return false;
     }
 
@@ -205,13 +240,8 @@ bool OverlayRenderer::Init(VkPhysicalDevice physicalDevice,
 
     CreateDummyTexture();
 
-    m_FontAtlas->GetDescriptorSetRef() = RegisterTexture(m_FontAtlas->GetImageView(), m_FontAtlas->GetSampler());
-    if (m_FontAtlas->GetDescriptorSet() == VK_NULL_HANDLE) {
-        HE_ERROR("OverlayRenderer: Failed to allocate font atlas descriptor set");
-        return false;
-    }
-
     we::core::AssetRegistry::Get().RegisterTexture("Font_UI_Atlas", m_FontAtlas->GetImageView(), m_FontAtlas->GetSampler());
+    we::core::AssetRegistry::Get().RegisterTexture("Font_UI_Atlas_SemiBold", m_FontAtlasSemiBold->GetImageView(), m_FontAtlasSemiBold->GetSampler());
     we::core::AssetRegistry::Get().RegisterTexture("UI_DummyWhite", m_DummyImageView, m_DummySampler);
 
     CreateGraphicsPipeline(swapchainFormat);
@@ -260,6 +290,10 @@ void OverlayRenderer::Shutdown() {
     if (m_FontAtlas) {
         m_FontAtlas->Shutdown();
         m_FontAtlas.reset();
+    }
+    if (m_FontAtlasSemiBold) {
+        m_FontAtlasSemiBold->Shutdown();
+        m_FontAtlasSemiBold.reset();
     }
 
     if (m_LogicalDevice != VK_NULL_HANDLE) {
@@ -510,17 +544,18 @@ void OverlayRenderer::SetTargetExtent(uint32_t width, uint32_t height) {
     // glyphs get upscaled and turn soft/blurry. Rebuild at the new DPI before generating geometry.
     const float desiredBakeHeight = ComputeFontBakeHeightPx();
     if (m_FontAtlas && std::fabs(desiredBakeHeight - m_LastFontBakeHeightPx) >= 1.0f) {
-        const VkDescriptorSet existingSet = m_FontAtlas->GetDescriptorSet();
+        const Text::EditorUIFontPaths editorFonts = Text::ResolveEditorUIFonts();
         const std::string uiFontPath = we::core::AssetRegistry::Get().GetFontPath("Font_UI");
-        const std::string fontToLoad = uiFontPath.empty() ? "Assets/Fonts/Inter-Regular.ttf" : uiFontPath;
+        const std::string regularFont = uiFontPath.empty() ? editorFonts.regular : uiFontPath;
+        const VkDescriptorSet existingRegularSet = m_FontAtlas->GetDescriptorSet();
+        const VkDescriptorSet existingSemiBoldSet = m_FontAtlasSemiBold ? m_FontAtlasSemiBold->GetDescriptorSet() : VK_NULL_HANDLE;
 
         m_FontAtlas->Shutdown();
         m_FontAtlas = std::make_unique<FontAtlas>();
-        m_FontAtlas->SetGpuAtlasRecreatedCallback([this](VkImageView imageView, VkSampler sampler) {
-            if (m_FontAtlas && m_FontAtlas->GetDescriptorSet() != VK_NULL_HANDLE) {
-                UpdateTexture(m_FontAtlas->GetDescriptorSet(), imageView, sampler);
-            }
-        });
+        if (m_FontAtlasSemiBold) {
+            m_FontAtlasSemiBold->Shutdown();
+        }
+        m_FontAtlasSemiBold = std::make_unique<FontAtlas>();
 
         const int atlasDim = (desiredBakeHeight > 32.0f) ? 2048 : 1024;
         HE_INFO(
@@ -528,14 +563,12 @@ void OverlayRenderer::SetTargetExtent(uint32_t width, uint32_t height) {
             " oldBakeHeightPx=" + std::to_string(m_LastFontBakeHeightPx) +
             " newBakeHeightPx=" + std::to_string(desiredBakeHeight) +
             " atlasDim=" + std::to_string(atlasDim));
-        if (m_FontAtlas->Init(m_DeviceContext, m_ResourceManager, m_GpuUpload.get(), fontToLoad, desiredBakeHeight, 32, 96, atlasDim, atlasDim)) {
+        const bool regularOk = InitEditorFontAtlas(*m_FontAtlas, *this, m_DeviceContext, m_ResourceManager, m_GpuUpload.get(),
+            regularFont, editorFonts.fallback, desiredBakeHeight, atlasDim, existingRegularSet);
+        const bool semiBoldOk = InitEditorFontAtlas(*m_FontAtlasSemiBold, *this, m_DeviceContext, m_ResourceManager, m_GpuUpload.get(),
+            editorFonts.semibold, editorFonts.fallback, desiredBakeHeight, atlasDim, existingSemiBoldSet);
+        if (regularOk && semiBoldOk) {
             m_LastFontBakeHeightPx = desiredBakeHeight;
-            m_FontAtlas->GetDescriptorSetRef() = existingSet;
-            if (existingSet != VK_NULL_HANDLE) {
-                UpdateTexture(existingSet, m_FontAtlas->GetImageView(), m_FontAtlas->GetSampler());
-            } else {
-                m_FontAtlas->GetDescriptorSetRef() = RegisterTexture(m_FontAtlas->GetImageView(), m_FontAtlas->GetSampler());
-            }
         } else {
             HE_ERROR("OverlayRenderer: Font atlas rebuild failed after DPI change; UI may appear soft.");
         }
@@ -682,6 +715,8 @@ void OverlayRenderer::EndOverlayPass(const ::we::editor::rendering::OverlayRende
                     }
                     const bool samplesTexture = firstVertex < m_Vertices.size()
                         && (m_Vertices[firstVertex].sdfParams[1] < 0.5f
+                            || (m_Vertices[firstVertex].sdfParams[1] > 3.5f
+                                && m_Vertices[firstVertex].sdfParams[1] < 4.5f)
                             || (m_Vertices[firstVertex].sdfParams[1] > 2.5f
                                 && m_Vertices[firstVertex].sdfParams[1] < 3.5f));
                     if (samplesTexture) {
@@ -789,6 +824,24 @@ void OverlayRenderer::EndOverlayPass(const ::we::editor::rendering::OverlayRende
     if (auditThisFrame) {
         HE_INFO(std::string("[UI Audit] Executed draw calls: ") + std::to_string(executedDrawCalls) +
                 " skipped: " + std::to_string(skippedDrawCalls));
+        if (m_FontAtlas && m_FontAtlas->GetDescriptorSet() != VK_NULL_HANDLE) {
+            Text::AuditTextVertices(
+                m_Vertices,
+                m_Indices,
+                m_Batches,
+                m_FontAtlas->GetDescriptorSet(),
+                m_FontAtlas->GetCpuAtlasPixels(),
+                m_FontAtlas->GetAtlasWidth(),
+                m_FontAtlas->GetAtlasHeight(),
+                static_cast<float>(m_CurrentWidth),
+                static_cast<float>(m_CurrentHeight),
+                6);
+            HE_INFO(std::string("[UI MsdfAudit] pipeline=0x") + std::to_string(reinterpret_cast<uint64_t>(m_GraphicsPipeline))
+                    + " fontDescriptor=0x" + std::to_string(reinterpret_cast<uint64_t>(m_FontAtlas->GetDescriptorSet()))
+                    + " fontImageView=0x" + std::to_string(reinterpret_cast<uint64_t>(m_FontAtlas->GetImageView()))
+                    + " gpuValid=" + (m_FontAtlas->IsGpuAtlasValid() ? "yes" : "no")
+                    + " blend=SrcAlpha+OneMinusSrcAlpha");
+        }
         if (auditFramesRemaining > 0) {
             --auditFramesRemaining;
         }
@@ -883,6 +936,10 @@ void OverlayRenderer::UnregisterTexture(VkDescriptorSet descriptorSet) {
 
 FontAtlas* OverlayRenderer::GetFontAtlas() const {
     return m_FontAtlas.get();
+}
+
+FontAtlas* OverlayRenderer::GetFontAtlasSemiBold() const {
+    return m_FontAtlasSemiBold.get();
 }
 
 IconRenderer* OverlayRenderer::GetIconRenderer() const {

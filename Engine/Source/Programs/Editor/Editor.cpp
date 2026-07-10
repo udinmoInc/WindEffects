@@ -460,20 +460,9 @@ void Editor::BuildDynamicEditorUI() {
         HE_INFO("[UI] Viewport panel created (fallback).");
     }
 
-    std::shared_ptr<Panel> gamePanel;
-    if (panelFactories.count("Game")) {
-        gamePanel = panelFactories.at("Game")();
-        HE_INFO("[UI] Game panel created from registry.");
-    } else {
-        gamePanel = std::make_shared<Panel>("Game");
-        gamePanel->SetHeaderHeight(30.0f * uiScale);
-        HE_INFO("[UI] Game panel created (fallback).");
-    }
-
-    // Group Viewport and Game into a single tabbed dock container
+    // Group Viewport into a tabbed dock container
     auto centralDock = std::make_shared<DockContainer>();
     centralDock->AddPanel(viewportPanel);
-    centralDock->AddPanel(gamePanel);
 
     // ===== 5. Create World Outliner (Explorer) =====
     std::shared_ptr<Panel> worldOutlinerPanel;
@@ -573,7 +562,7 @@ void Editor::BuildDynamicEditorUI() {
     EditorPanelController::Get().RegisterDockZone(EditorDockZone::Right, explorerDock);
     EditorPanelController::Get().RegisterPanel(EditorPanelId::Tools, "Tools", toolsPanel, EditorDockZone::Left);
     EditorPanelController::Get().RegisterPanel(EditorPanelId::Viewport, "Viewport", viewportPanel, EditorDockZone::Center);
-    EditorPanelController::Get().RegisterPanel(EditorPanelId::Game, "Game", gamePanel, EditorDockZone::Center);
+
     EditorPanelController::Get().RegisterPanel(EditorPanelId::Explorer, "Explorer", worldOutlinerPanel, EditorDockZone::Right);
     EditorPanelController::Get().RegisterPanel(EditorPanelId::Details, "Details", detailsPanel, EditorDockZone::Right);
     EditorPanelController::Get().RegisterPanel(EditorPanelId::ViewportNavigation, "Viewport Navigation", viewportNavigationPanel, EditorDockZone::Floating);
@@ -1014,12 +1003,10 @@ void Editor::MainLoop() {
         if (m_Renderer && m_Renderer->BeginFrame()) {
             m_Renderer->UploadCameraUniform(cameraUBO);
 
-            // 1. Render Scene (directly to swapchain at viewport rect)
+            // 1. Render scene into the viewport offscreen target (sampled by the UI viewport widget).
             m_Renderer->RenderScene();
 
-            // 2. No compositor needed - scene renders directly to swapchain
-
-            // 3. Render Independent UI (LDR) on top of compositor output
+            // 2. Render editor UI (viewport panel composites the 3D target as a textured quad).
             if (m_OverlayRenderer) {
                 VkCommandBuffer cmd = m_Renderer->GetCommandBuffer();
                 auto* swapchainManager = m_Renderer->GetSwapchainManager();
@@ -1063,6 +1050,13 @@ void Editor::MainLoop() {
                 m_OverlayRenderer->SetTargetExtent(overlayContext.targetExtent.width, overlayContext.targetExtent.height);
                 m_OverlayRenderer->RenderEditorUI(m_RootWidget, m_Renderer->GetCurrentFrameIndex());
 
+                if (m_ViewportWidget) {
+                    if (auto vp = std::dynamic_pointer_cast<ViewportWidget>(m_ViewportWidget)) {
+                        vp->FlushPendingResize();
+                        vp->SyncRendererViewport();
+                    }
+                }
+
                 // Keep Vulkan synchronization inside Renderer module where dispatch is initialized.
                 m_Renderer->InsertOverlayPassBarrier();
                 m_OverlayRenderer->BeginOverlayPass(overlayContext);
@@ -1071,7 +1065,7 @@ void Editor::MainLoop() {
                 }
             }
 
-            // 4. Submit to GPU and Present
+            // 3. Submit to GPU and Present
             m_Renderer->SubmitAndPresent();
 
             if (firstFrame) {

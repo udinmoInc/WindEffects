@@ -2,6 +2,7 @@
 #include "Rendering/FontAtlas.h"
 #include "Rendering/IconRenderer.h"
 #include "Rendering/Text/Utf8.h"
+#include "Rendering/Text/UiTextLayoutAudit.h"
 #include "Rendering/UIPipelineAudit.h"
 #include "Core/Logger.h"
 #include "Core/FrameCounter.h"
@@ -155,6 +156,10 @@ void UIWidgetAdapter::ConvertDrawCommand(const DrawCommand& cmd) {
             m_Diagnostics.imageCommands++;
             GenerateTextureGeometry(cmd);
             break;
+        case DrawCommandType::ColorTexture:
+            m_Diagnostics.imageCommands++;
+            GenerateColorTextureGeometry(cmd);
+            break;
         case DrawCommandType::Icon:
             m_Diagnostics.iconCommands++;
             GenerateIconGeometry(cmd);
@@ -230,12 +235,19 @@ void UIWidgetAdapter::GenerateRectGeometry(const DrawCommand& cmd) {
 }
 
 void UIWidgetAdapter::GenerateTextGeometry(const DrawCommand& cmd) {
-    if (!m_Renderer || !m_Renderer->GetFontAtlas()) {
+    if (!m_Renderer) {
         ++m_Diagnostics.textDrawsSkipped;
         return;
     }
-    
-    FontAtlas* fontAtlas = m_Renderer->GetFontAtlas();
+
+    FontAtlas* fontAtlas = cmd.textBold ? m_Renderer->GetFontAtlasSemiBold() : m_Renderer->GetFontAtlas();
+    if (!fontAtlas) {
+        fontAtlas = m_Renderer->GetFontAtlas();
+    }
+    if (!fontAtlas) {
+        ++m_Diagnostics.textDrawsSkipped;
+        return;
+    }
     ++m_Diagnostics.textStringsProcessed;
     if (!fontAtlas->EnsureTextGlyphs(cmd.text)) {
         ++m_Diagnostics.textDrawsSkipped;
@@ -258,43 +270,68 @@ void UIWidgetAdapter::GenerateTextGeometry(const DrawCommand& cmd) {
     const float scale = (fontAtlas->GetFontHeight() > 0.0f)
         ? (cmd.fontSize / fontAtlas->GetFontHeight())
         : 1.0f;
+    const float ascender = fontAtlas->GetAscender() > 0.0f
+        ? fontAtlas->GetAscender()
+        : (cmd.fontSize * 0.85f / scale);
     const float startX = xpos;
-    const float baselineY = SnapPx(ypos + cmd.fontSize * 0.85f);
+    const float baselineY = SnapPx(ypos + ascender * scale);
     const float msdfRange = fontAtlas->GetMsdfPixelRange() * scale;
     const float type = 3.0f; // MSDF text
-    const float atlasW = static_cast<float>(fontAtlas->GetAtlasWidth());
-    const float atlasH = static_cast<float>(fontAtlas->GetAtlasHeight());
 
-    std::vector<uint32_t> codepoints;
-    Text::DecodeUtf8(cmd.text, codepoints);
-    m_Diagnostics.textGlyphsRequested += static_cast<uint32_t>(codepoints.size());
+    std::vector<Text::ShapedGlyph> shapedGlyphs;
+    if (!fontAtlas->ShapeText(cmd.text, shapedGlyphs)) {
+        ++m_Diagnostics.textDrawsSkipped;
+        return;
+    }
+    m_Diagnostics.textGlyphsRequested += static_cast<uint32_t>(shapedGlyphs.size());
 
-    float penX = 0.0f;
-    float penY = 0.0f;
     uint32_t startTotalIndex = static_cast<uint32_t>(m_Indices.size());
     uint32_t glyphsInString = 0;
 
-    for (uint32_t codepoint : codepoints) {
-        GlyphInfo q{};
-        if (!fontAtlas->GetGlyphQuad(codepoint, &penX, &penY, q)) {
+    static bool s_LayoutAuditDone = false;
+    if (!s_LayoutAuditDone) {
+        std::vector<Text::ShapedGlyph> sampleGlyphs;
+        if (fontAtlas->ShapeText("File", sampleGlyphs)) {
+            Text::AuditTextLayout("File", fontAtlas, sampleGlyphs, scale, 8);
+        }
+        if (fontAtlas->ShapeText("WindEffects", sampleGlyphs)) {
+            Text::AuditTextLayout("WindEffects", fontAtlas, sampleGlyphs, scale, 12);
+        }
+        s_LayoutAuditDone = true;
+    }
+
+    float penX = 0.0f;
+    const float penY = 0.0f;
+    for (const Text::ShapedGlyph& shaped : shapedGlyphs) {
+        if (shaped.hbAdvanceX <= 0.0f) {
             ++m_Diagnostics.textGlyphsMissing;
+            continue;
+        }
+
+        GlyphInfo q{};
+        const float glyphPenX = penX + shaped.xOffset;
+        const float glyphPenY = penY + shaped.yOffset;
+        const bool drawable = fontAtlas->GetGlyphQuadAt(shaped.codepoint, glyphPenX, glyphPenY, q);
+        penX += shaped.hbAdvanceX;
+
+        if (!drawable) {
             continue;
         }
         ++glyphsInString;
         ++m_Diagnostics.textGlyphsResolved;
 
         const uint32_t charStart = static_cast<uint32_t>(m_Vertices.size());
-        const float px0 = startX + q.x0 * scale;
-        const float py0 = baselineY + q.y0 * scale;
-        const float px1 = startX + q.x1 * scale;
-        const float py1 = baselineY + q.y1 * scale;
-        const float glyphAtlasW = std::max((q.u1 - q.u0) * atlasW, 1.0f);
-        const float glyphAtlasH = std::max((q.v1 - q.v0) * atlasH, 1.0f);
+        const float px0 = SnapPx(startX + q.x0 * scale);
+        const float py0 = SnapPx(baselineY + q.y0 * scale);
+        const float px1 = SnapPx(startX + q.x1 * scale);
+        const float py1 = SnapPx(baselineY + q.y1 * scale);
+        const float screenW = std::max(px1 - px0, 1.0f);
+        const float screenH = std::max(py1 - py0, 1.0f);
 
-        UIVertex2 v0{ {px0, py0}, {q.u0, q.v0}, {cmd.color.r, cmd.color.g, cmd.color.b, cmd.color.a}, {px0, py0, glyphAtlasW, glyphAtlasH}, {0.0f, type, msdfRange, 0.0f} };
-        UIVertex2 v1{ {px1, py0}, {q.u1, q.v0}, {cmd.color.r, cmd.color.g, cmd.color.b, cmd.color.a}, {px0, py0, glyphAtlasW, glyphAtlasH}, {0.0f, type, msdfRange, 0.0f} };
-        UIVertex2 v2{ {px1, py1}, {q.u1, q.v1}, {cmd.color.r, cmd.color.g, cmd.color.b, cmd.color.a}, {px0, py0, glyphAtlasW, glyphAtlasH}, {0.0f, type, msdfRange, 0.0f} };
-        UIVertex2 v3{ {px0, py1}, {q.u0, q.v1}, {cmd.color.r, cmd.color.g, cmd.color.b, cmd.color.a}, {px0, py0, glyphAtlasW, glyphAtlasH}, {0.0f, type, msdfRange, 0.0f} };
+        UIVertex2 v0{ {px0, py0}, {q.u0, q.v0}, {cmd.color.r, cmd.color.g, cmd.color.b, cmd.color.a}, {px0, py0, screenW, screenH}, {0.0f, type, msdfRange, 0.0f} };
+        UIVertex2 v1{ {px1, py0}, {q.u1, q.v0}, {cmd.color.r, cmd.color.g, cmd.color.b, cmd.color.a}, {px0, py0, screenW, screenH}, {0.0f, type, msdfRange, 0.0f} };
+        UIVertex2 v2{ {px1, py1}, {q.u1, q.v1}, {cmd.color.r, cmd.color.g, cmd.color.b, cmd.color.a}, {px0, py0, screenW, screenH}, {0.0f, type, msdfRange, 0.0f} };
+        UIVertex2 v3{ {px0, py1}, {q.u0, q.v1}, {cmd.color.r, cmd.color.g, cmd.color.b, cmd.color.a}, {px0, py0, screenW, screenH}, {0.0f, type, msdfRange, 0.0f} };
 
         m_Vertices.push_back(v0);
         m_Vertices.push_back(v1);
@@ -379,6 +416,55 @@ void UIWidgetAdapter::GenerateTextureGeometry(const DrawCommand& cmd) {
     batch.scissor[3] = static_cast<float>(m_CurrentScissor.height);
     batch.stencilRef = 0;
     
+    m_Batches.push_back(batch);
+}
+
+void UIWidgetAdapter::GenerateColorTextureGeometry(const DrawCommand& cmd) {
+    float x0 = SnapPx(cmd.rect.x);
+    float y0 = SnapPx(cmd.rect.y);
+    float x1 = SnapPx(cmd.rect.x + cmd.rect.width);
+    float y1 = SnapPx(cmd.rect.y + cmd.rect.height);
+    float x = x0;
+    float y = y0;
+    float w = x1 - x0;
+    float h = y1 - y0;
+
+    m_CurrentTextureSet = cmd.textureId;
+
+    float type = 4.0f; // Full-color texture (viewport render targets)
+
+    Color colorTop = cmd.color;
+    Color colorBottom = cmd.colorBottom;
+
+    UIVertex2 v0{ {x,     y},     {0.0f, 0.0f}, {colorTop.r, colorTop.g, colorTop.b, colorTop.a},       {x, y, w, h}, {0.0f, type, 0.0f, 0.0f} };
+    UIVertex2 v1{ {x + w, y},     {1.0f, 0.0f}, {colorTop.r, colorTop.g, colorTop.b, colorTop.a},       {x, y, w, h}, {0.0f, type, 0.0f, 0.0f} };
+    UIVertex2 v2{ {x + w, y + h}, {1.0f, 1.0f}, {colorBottom.r, colorBottom.g, colorBottom.b, colorBottom.a}, {x, y, w, h}, {0.0f, type, 0.0f, 0.0f} };
+    UIVertex2 v3{ {x,     y + h}, {0.0f, 1.0f}, {colorBottom.r, colorBottom.g, colorBottom.b, colorBottom.a}, {x, y, w, h}, {0.0f, type, 0.0f, 0.0f} };
+
+    uint32_t startIndex = static_cast<uint32_t>(m_Vertices.size());
+    m_Vertices.push_back(v0);
+    m_Vertices.push_back(v1);
+    m_Vertices.push_back(v2);
+    m_Vertices.push_back(v3);
+
+    m_Indices.push_back(startIndex + 0);
+    m_Indices.push_back(startIndex + 1);
+    m_Indices.push_back(startIndex + 2);
+    m_Indices.push_back(startIndex + 2);
+    m_Indices.push_back(startIndex + 3);
+    m_Indices.push_back(startIndex + 0);
+
+    UIRenderBatch batch;
+    batch.textureSet = m_CurrentTextureSet;
+    batch.indexCount = 6;
+    batch.firstIndex = static_cast<uint32_t>(m_Indices.size()) - 6;
+    batch.vertexOffset = 0;
+    batch.scissor[0] = static_cast<float>(m_CurrentScissor.x);
+    batch.scissor[1] = static_cast<float>(m_CurrentScissor.y);
+    batch.scissor[2] = static_cast<float>(m_CurrentScissor.width);
+    batch.scissor[3] = static_cast<float>(m_CurrentScissor.height);
+    batch.stencilRef = 0;
+
     m_Batches.push_back(batch);
 }
 

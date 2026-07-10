@@ -90,7 +90,11 @@ void Panel::Paint(PaintContext& context) {
     Color textColor = m_HeaderHovered ? theme.TextPrimary : theme.TextSecondary;
     Color shadowColor{0.0f, 0.0f, 0.0f, 0.3f};
 
-    context.DrawRect(m_Geometry, panelBodyColor);
+    if (!m_TransparentBackground) {
+        context.DrawRect(m_Geometry, panelBodyColor);
+    } else if (m_Toolbar) {
+        context.DrawRect(m_ToolbarRect, panelBodyColor);
+    }
 
     if (m_HeaderHeight > 0.0f) {
         context.DrawRect(m_HeaderRect, headerBg);
@@ -134,7 +138,7 @@ void Panel::Paint(PaintContext& context) {
         }
 
         float titleY = m_HeaderRect.y + (m_HeaderHeight - fontSize) / 2.0f;
-        context.DrawText(m_Title, Point{ currentX, titleY }, textColor, fontSize, false);
+        context.DrawText(m_Title, Point{ currentX, titleY }, textColor, fontSize, true);
 
         float headerPad = 8.0f * uiScale;
         const float kOptionsWidth = 12.0f * uiScale;

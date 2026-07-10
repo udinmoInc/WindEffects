@@ -17,6 +17,8 @@ public static class ThirdPartyBootstrapper
     private const string MsdfAtlasGenRemote = "https://github.com/Chlumsky/msdf-atlas-gen.git";
     private const string LunaSvgRemote = "https://github.com/sammycage/lunasvg.git";
     private const string LunaSvgTag = "v2.3.9";
+    private const string HarfBuzzRemote = "https://github.com/harfbuzz/harfbuzz.git";
+    private const string HarfBuzzTag = "11.0.0";
     private const string MsvcDynamicRuntimeMarker = ".msvc_md_runtime";
     private const string MsvcDynamicRuntimeCmake = "-DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreadedDLL";
 
@@ -30,8 +32,9 @@ public static class ThirdPartyBootstrapper
         var freetypeOk = await EnsureFreeTypeAsync(Path.Combine(thirdPartyRoot, "freetype"), jobs);
         var msdfgenOk = await EnsureMsdfAtlasGenAsync(Path.Combine(thirdPartyRoot, "msdf-atlas-gen"), jobs);
         var lunaSvgOk = await EnsureLunaSvgAsync(Path.Combine(thirdPartyRoot, "lunasvg"), jobs);
+        var harfBuzzOk = await EnsureHarfBuzzAsync(Path.Combine(thirdPartyRoot, "harfbuzz"), jobs);
 
-        if (!glmOk || !sdlOk || !freetypeOk || !msdfgenOk || !lunaSvgOk)
+        if (!glmOk || !sdlOk || !freetypeOk || !msdfgenOk || !lunaSvgOk || !harfBuzzOk)
         {
             Log.Error("Third-party bootstrap failed. Install git and cmake, then rerun the build.");
             return false;
@@ -351,6 +354,74 @@ public static class ThirdPartyBootstrapper
 
         File.WriteAllText(runtimeMarker, "1");
         Log.Information("LunaSVG bootstrapped at {Path}", lunaSvgPath);
+        return true;
+    }
+
+    private static async Task<bool> EnsureHarfBuzzAsync(string harfBuzzPath, int jobs)
+    {
+        var headerPath = Path.Combine(harfBuzzPath, "src", "hb.h");
+        var releaseLib = Path.Combine(harfBuzzPath, "lib", "harfbuzz.lib");
+        var runtimeMarker = Path.Combine(harfBuzzPath, "lib", MsvcDynamicRuntimeMarker);
+        if (File.Exists(headerPath) && File.Exists(releaseLib) && File.Exists(runtimeMarker))
+        {
+            return true;
+        }
+
+        if (!File.Exists(headerPath))
+        {
+            Log.Warning("HarfBuzz missing at {Path}. Cloning {Tag}...", harfBuzzPath, HarfBuzzTag);
+            if (Directory.Exists(harfBuzzPath))
+            {
+                Directory.Delete(harfBuzzPath, recursive: true);
+            }
+
+            if (!await RunProcessAsync("git", $"clone --depth 1 --branch {HarfBuzzTag} {HarfBuzzRemote} \"{harfBuzzPath}\""))
+            {
+                return false;
+            }
+        }
+
+        var freetypeRoot = Path.GetFullPath(Path.Combine(harfBuzzPath, "..", "freetype"));
+        var freetypeLib = Path.Combine(freetypeRoot, "lib", "freetype.lib");
+        if (!File.Exists(freetypeLib))
+        {
+            Log.Error("HarfBuzz requires FreeType to be built first ({Path}).", freetypeLib);
+            return false;
+        }
+
+        var buildDir = Path.Combine(harfBuzzPath, "build");
+        var configureArgs =
+            $"-S \"{harfBuzzPath}\" -B \"{buildDir}\" -DCMAKE_BUILD_TYPE=Release " +
+            "-DHB_HAVE_FREETYPE=ON -DHB_BUILD_UTILS=OFF -DHB_BUILD_TESTS=OFF -DBUILD_SHARED_LIBS=OFF " +
+            $"\"-DCMAKE_POLICY_VERSION_MINIMUM=3.5\" {MsvcDynamicRuntimeCmake} " +
+            $"-DFREETYPE_INCLUDE_DIRS=\"{Path.Combine(freetypeRoot, "include").Replace('\\', '/')}\" " +
+            $"-DFREETYPE_LIBRARY=\"{freetypeLib.Replace('\\', '/')}\"";
+        if (!await RunProcessAsync("cmake", configureArgs))
+        {
+            return false;
+        }
+
+        var parallel = jobs > 0 ? jobs : Math.Max(1, Environment.ProcessorCount);
+        if (!await RunProcessAsync("cmake", $"--build \"{buildDir}\" --config Release --target harfbuzz -j {parallel}"))
+        {
+            return false;
+        }
+
+        Directory.CreateDirectory(Path.Combine(harfBuzzPath, "lib"));
+        var builtLib = Path.Combine(buildDir, "Release", "harfbuzz.lib");
+        if (!File.Exists(builtLib))
+        {
+            builtLib = Path.Combine(buildDir, "harfbuzz.lib");
+        }
+        if (!File.Exists(builtLib))
+        {
+            Log.Error("HarfBuzz build finished but harfbuzz.lib was not produced.");
+            return false;
+        }
+
+        File.Copy(builtLib, releaseLib, overwrite: true);
+        File.WriteAllText(runtimeMarker, "1");
+        Log.Information("HarfBuzz bootstrapped at {Path}", releaseLib);
         return true;
     }
 

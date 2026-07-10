@@ -12,7 +12,14 @@ struct GlyphInfo;
 
 } // namespace we::UI
 
+struct FT_FaceRec_;
+
 namespace we::UI::Text {
+
+struct FontFaceHandles {
+    FT_FaceRec_* primary = nullptr;
+    FT_FaceRec_* fallback = nullptr;
+};
 
 struct FontAtlasBakeRequest {
     std::string primaryFontPath;
@@ -42,6 +49,9 @@ public:
 
     virtual bool EnsureGlyphs(const std::vector<uint32_t>& codepoints) = 0;
     virtual bool GetGlyphQuad(uint32_t codepoint, float* cursorX, float* cursorY, GlyphInfo& outQuad) const = 0;
+    virtual bool GetGlyphQuadAt(uint32_t codepoint, float penX, float penY, GlyphInfo& outQuad) const = 0;
+    virtual float GetGlyphAdvance(uint32_t codepoint) const = 0;
+    virtual bool GetFontFaces(FontFaceHandles& outFaces) const = 0;
     virtual float MeasureText(std::string_view utf8Text, float fontSize) const = 0;
 
     virtual const std::vector<uint8_t>& GetAtlasPixels() const = 0;

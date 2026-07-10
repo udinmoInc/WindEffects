@@ -88,9 +88,8 @@ void PaintContext::DrawText(const std::string& text, const Point& pos, const Col
     cmd.clipRect = GetCurrentClipRect();
     cmd.text = text;
     cmd.fontSize = fontSize;
-    // TODO: Store bold/italic flags in DrawCommand if needed
-    (void)bold;
-    (void)italic;
+    cmd.textBold = bold;
+    cmd.textItalic = italic;
     m_Commands.push_back(cmd);
 }
 
@@ -127,6 +126,17 @@ void PaintContext::DrawTexture(const Rect& rect, VkDescriptorSet textureId, cons
     cmd.rect = rect;
     cmd.color = tint;
     cmd.colorBottom = (tintBottom.a > 0.0f) ? tintBottom : tint;
+    cmd.clipRect = GetCurrentClipRect();
+    cmd.textureId = textureId;
+    m_Commands.push_back(cmd);
+}
+
+void PaintContext::DrawColorTexture(const Rect& rect, VkDescriptorSet textureId, const Color& tint) {
+    DrawCommand cmd{};
+    cmd.type = DrawCommandType::ColorTexture;
+    cmd.rect = rect;
+    cmd.color = tint;
+    cmd.colorBottom = tint;
     cmd.clipRect = GetCurrentClipRect();
     cmd.textureId = textureId;
     m_Commands.push_back(cmd);

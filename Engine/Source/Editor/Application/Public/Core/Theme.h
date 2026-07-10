@@ -114,21 +114,20 @@ struct APPLICATION_API Theme {
     float CornerRadiusLarge = 6.0f;
     float WindowCornerRadius = 10.0f;
     
-    // Typography
-    float TextSizeSection   = 15.0f; // Section titles
-    float TextSizeTabs      = 14.0f; // Tabs
-    float TextSizeMenu      = 13.0f; // Menu
-    float TextSizeWindow    = 13.0f; // Window Title
-    float TextSizeProperty  = 12.0f; // Properties
-    float TextSizeCaption   = 11.0f; // Captions
-    
-    // Defaults aliases
-    float TextSizeHeader    = 15.0f;
-    float TextSizeLarge     = 14.0f;
-    float TextSizeNormal    = 13.0f;
-    float TextSizeToolbar   = 13.0f;
-    float TextSizeBody      = 12.0f; 
-    float TextSizeSmall     = 11.0f; 
+    // Typography (logical px at 100% DPI; widgets multiply by DPIContext::GetScale())
+    float TextSizeMenu      = 13.0f; // Menu bar
+    float TextSizeToolbar   = 13.0f; // Toolbar
+    float TextSizeTabs      = 13.0f; // Dock / panel titles (SemiBold)
+    float TextSizeNormal    = 13.0f; // Tree view, content browser
+    float TextSizeProperty  = 13.0f; // Inspector
+    float TextSizeCaption   = 12.0f; // Status bar
+    float TextSizeWindow    = 13.0f; // Window chrome
+
+    float TextSizeSection   = 13.0f; // Section headings (SemiBold)
+    float TextSizeHeader    = 13.0f; // Panel headers (SemiBold)
+    float TextSizeLarge     = 13.0f;
+    float TextSizeBody      = 13.0f;
+    float TextSizeSmall     = 12.0f;
     
     float BorderWidth       = 1.0f;
     
