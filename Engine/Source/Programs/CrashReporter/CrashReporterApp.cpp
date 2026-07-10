@@ -1,10 +1,11 @@
 #include "CrashReporterApp.h"
 #include "CrashReporterUI.h"
-#include "Renderer/VulkanContext.h"
-#include "Renderer/Renderer.h"
-#include "Renderer/Shader/ShaderLibrary.h"
-#include "Renderer/RenderGraph.h"
-#include "Rendering/UIRenderer2.h"
+#include "Runtime/Renderer/Public/Core/DeviceContext.h"
+#include "Runtime/Renderer/Public/Renderer/Renderer.h"
+#include "Runtime/Renderer/Public/Shader/ShaderLibrary.h"
+#include "Runtime/Renderer/Public/Graph/RenderGraph.h"
+#include "Editor/Application/Public/Rendering/OverlayRenderer.h"
+#include "Editor/Application/Public/Rendering/OverlayRenderContext.h"
 #include "Core/EventSystem.h"
 #include "Runtime/Core/AssetRegistry.h"
 #include "Core/Logger.h"
@@ -15,13 +16,20 @@ namespace we::programs::crashreporter {
 CrashReporterApp::CrashReporterApp(SDL_Window* window) : m_Window(window) {
     HE_INFO("[CrashReporterApp] Constructor started");
     
-    HE_INFO("[CrashReporterApp] Creating VulkanContext");
-    m_Context = std::make_shared<we::runtime::renderer::VulkanContext>(m_Window);
-    HE_INFO("[CrashReporterApp] VulkanContext created");
+    HE_INFO("[CrashReporterApp] Creating DeviceContext");
+    we::runtime::renderer::DeviceContextConfig deviceConfig;
+    deviceConfig.window = m_Window;
+    deviceConfig.appName = "CrashReporter";
+    deviceConfig.enableValidationLayers = false;
+    m_Context = std::make_shared<we::runtime::renderer::DeviceContext>();
+    m_Context->Init(deviceConfig);
+    HE_INFO("[CrashReporterApp] DeviceContext created");
 
     HE_INFO("[CrashReporterApp] Creating Renderer");
-    m_Renderer = std::make_shared<we::runtime::renderer::Renderer>(m_Context, m_Window);
-    m_RenderGraph = std::make_shared<we::runtime::renderer::RenderGraph>(m_Renderer);
+    m_Renderer = std::make_shared<we::runtime::renderer::Renderer>();
+    m_Renderer->Init(m_Window);
+    m_RenderGraph = std::make_shared<we::runtime::renderer::RenderGraph>();
+    m_RenderGraph->Init(m_Renderer.get());
     HE_INFO("[CrashReporterApp] Renderer created");
 
     HE_INFO("[CrashReporterApp] Initializing ShaderLibrary");
@@ -54,9 +62,9 @@ CrashReporterApp::CrashReporterApp(SDL_Window* window) : m_Window(window) {
     we::core::AssetRegistry::Get().LoadDefaultEditorAssets();
     HE_INFO("[CrashReporterApp] Default editor assets loaded");
 
-    HE_INFO("[CrashReporterApp] Creating UIRenderer2");
-    m_UIRenderer = std::make_unique<we::UI::UIRenderer2>();
-    HE_INFO("[CrashReporterApp] Initializing UIRenderer2");
+    HE_INFO("[CrashReporterApp] Creating OverlayRenderer");
+    m_UIRenderer = std::make_unique<we::UI::OverlayRenderer>();
+    HE_INFO("[CrashReporterApp] Initializing OverlayRenderer");
     m_UIRenderer->Init(
         m_Context->GetPhysicalDevice(),
         m_Context->GetDevice(),
@@ -66,7 +74,7 @@ CrashReporterApp::CrashReporterApp(SDL_Window* window) : m_Window(window) {
         2,
         m_Context.get(),
         m_Renderer->GetResourceManager());
-    HE_INFO("[CrashReporterApp] UIRenderer2 initialized");
+    HE_INFO("[CrashReporterApp] OverlayRenderer initialized");
     
     HE_INFO("[CrashReporterApp] Creating EventSystem");
     m_UIEventSystem = std::make_shared<we::UI::EventSystem>();
@@ -164,27 +172,28 @@ void CrashReporterApp::MainLoop() {
         if (m_Renderer->BeginFrame()) {
             VkCommandBuffer cmd = m_Renderer->GetCommandBuffer();
 
-            m_UIRenderer->PrepareFrame(
+            m_UIRenderer->SetTargetExtent(
                 m_Renderer->GetSwapchainWidth(),
-                m_Renderer->GetSwapchainHeight(),
-                m_Renderer->GetCurrentFrameIndex(),
-                m_UI);
-            m_RenderGraph->BeginSwapchainPass(cmd);
-            m_UIRenderer->RecordDrawCommands(
-                cmd,
-                m_Renderer->GetSwapchainWidth(),
-                m_Renderer->GetSwapchainHeight(),
-                m_Renderer->GetCurrentFrameIndex());
-            m_RenderGraph->EndSwapchainPass(cmd);
+                m_Renderer->GetSwapchainHeight());
+            
+            we::editor::rendering::OverlayRenderContext context;
+            context.cmd = cmd;
+            context.targetView = VK_NULL_HANDLE;
+            context.targetFormat = m_Renderer->GetSwapchainImageFormat();
+            context.targetExtent = { m_Renderer->GetSwapchainWidth(), m_Renderer->GetSwapchainHeight() };
+            
+            m_UIRenderer->BeginOverlayPass(context);
+            m_UIRenderer->RenderEditorUI(m_UI, m_Renderer->GetCurrentFrameIndex());
+            m_UIRenderer->EndOverlayPass(context);
 
-            m_Renderer->EndFrame();
+            m_Renderer->SubmitAndPresent();
         }
     }
 }
 
 void CrashReporterApp::Shutdown() {
     if (m_Context) {
-        m_Context->WaitUntilIdle();
+        m_Context->Shutdown();
     }
     m_UIEventSystem.reset();
     m_UI.reset();

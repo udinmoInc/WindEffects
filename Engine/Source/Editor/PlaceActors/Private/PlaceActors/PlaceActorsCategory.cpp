@@ -22,18 +22,20 @@ void PlaceActorsCategory::PaintHeader(PaintContext& context,
                                       bool expanded,
                                       float hoverAnim) {
     const auto& theme = Theme::Get();
-    Color bg = Color{ 0.12f, 0.12f, 0.12f, 1.0f };
+    Color bg = theme.HeaderBackground;
     if (hoverAnim > 0.01f) {
-        bg = Color::Lerp(bg, theme.HoverOverlay, hoverAnim);
+        bg = Color::Lerp(bg, theme.HoverBg, hoverAnim);
     }
     context.DrawRect(bounds, bg);
 
     const char* chevron = expanded ? we::UI::Icons::ChevronDownName : we::UI::Icons::ChevronRightName;
-    we::UI::IconPainter::DrawIcon(context, chevron, Rect{ bounds.x + 6.0f, bounds.y + 7.0f, 14.0f, 14.0f }, theme.TextSecondary);
+    we::UI::IconPainter::DrawIcon(context, chevron,
+        Rect{ bounds.x + theme.Space2 - 2.0f, bounds.y + theme.Space2 - 1.0f, theme.IconSizeTree, theme.IconSizeTree }, theme.TextSecondary);
     if (!iconName.empty()) {
-        we::UI::IconPainter::DrawIcon(context, iconName, Rect{ bounds.x + 24.0f, bounds.y + 6.0f, 16.0f, 16.0f }, theme.TextPrimary);
+        we::UI::IconPainter::DrawIcon(context, iconName,
+            Rect{ bounds.x + theme.Space6, bounds.y + theme.Space2 - 2.0f, theme.IconSizeToolbar, theme.IconSizeToolbar }, theme.TextPrimary);
     }
-    context.DrawText(label, Point{ bounds.x + 44.0f, bounds.y + 7.0f }, theme.TextPrimary, 12.0f, true);
+    context.DrawText(label, Point{ bounds.x + theme.Space6 - 4.0f, bounds.y + theme.Space2 - 1.0f }, theme.TextPrimary, theme.TextSizeSmall, true);
 }
 
 } // namespace we::programs::editor

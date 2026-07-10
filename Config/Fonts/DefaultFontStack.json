@@ -1,0 +1,30 @@
+{
+  "defaultFamily": "Inter",
+  "fallbackChain": [
+    {
+      "family": "Noto Sans",
+      "scripts": ["Latin", "Cyrillic", "Greek"]
+    },
+    {
+      "family": "Noto Sans Arabic",
+      "scripts": ["Arabic"]
+    },
+    {
+      "family": "Noto Sans Devanagari",
+      "scripts": ["Devanagari"]
+    },
+    {
+      "family": "Noto Sans CJK SC",
+      "scripts": ["Han"]
+    },
+    {
+      "family": "Noto Color Emoji",
+      "scripts": ["Emoji"]
+    }
+  ],
+  "import": {
+    "atlasSize": 2048,
+    "msdfPixelRange": 4.0,
+    "charset": "full"
+  }
+}

@@ -2,8 +2,6 @@
 #include "Rendering/FontAtlas.h"
 #include "Rendering/IconRenderer.h"
 #include "Rendering/Text/Utf8.h"
-#include "Rendering/Text/UiTextLayoutAudit.h"
-#include "Rendering/UIPipelineAudit.h"
 #include "Core/Logger.h"
 #include "Core/FrameCounter.h"
 #include <cmath>
@@ -240,119 +238,24 @@ void UIWidgetAdapter::GenerateTextGeometry(const DrawCommand& cmd) {
         return;
     }
 
-    FontAtlas* fontAtlas = cmd.textBold ? m_Renderer->GetFontAtlasSemiBold() : m_Renderer->GetFontAtlas();
-    if (!fontAtlas) {
-        fontAtlas = m_Renderer->GetFontAtlas();
-    }
-    if (!fontAtlas) {
+    TextUIService* textService = m_Renderer->GetTextUIService();
+    if (!textService) {
         ++m_Diagnostics.textDrawsSkipped;
         return;
     }
+
     ++m_Diagnostics.textStringsProcessed;
-    if (!fontAtlas->EnsureTextGlyphs(cmd.text)) {
+    VkDescriptorSet fontDescriptor = VK_NULL_HANDLE;
+    const uint32_t startTotalIndex = static_cast<uint32_t>(m_Indices.size());
+    if (!textService->GenerateTextGeometry(cmd, m_Vertices, m_Indices, fontDescriptor)) {
         ++m_Diagnostics.textDrawsSkipped;
-        HE_WARN("[UI TextAudit] Skipping text: glyph atlas update failed for \"" + cmd.text + "\"");
         return;
     }
 
-    const VkDescriptorSet fontDescriptor = fontAtlas->GetDescriptorSet();
-    if (fontDescriptor == VK_NULL_HANDLE || !fontAtlas->IsGpuAtlasValid()) {
-        ++m_Diagnostics.textDrawsSkipped;
-        HE_WARN("[UI TextAudit] Skipping text: font atlas GPU resources invalid (descriptor="
-                + std::to_string(reinterpret_cast<uint64_t>(fontDescriptor)) + ")");
-        return;
-    }
     m_CurrentTextureSet = fontDescriptor;
-    
-    float xpos = SnapPx(cmd.rect.x);
-    float ypos = SnapPx(cmd.rect.y);
-    
-    const float scale = (fontAtlas->GetFontHeight() > 0.0f)
-        ? (cmd.fontSize / fontAtlas->GetFontHeight())
-        : 1.0f;
-    const float ascender = fontAtlas->GetAscender() > 0.0f
-        ? fontAtlas->GetAscender()
-        : (cmd.fontSize * 0.85f / scale);
-    const float startX = xpos;
-    const float baselineY = SnapPx(ypos + ascender * scale);
-    const float msdfRange = fontAtlas->GetMsdfPixelRange() * scale;
-    const float type = 3.0f; // MSDF text
-
-    std::vector<Text::ShapedGlyph> shapedGlyphs;
-    if (!fontAtlas->ShapeText(cmd.text, shapedGlyphs)) {
-        ++m_Diagnostics.textDrawsSkipped;
-        return;
-    }
-    m_Diagnostics.textGlyphsRequested += static_cast<uint32_t>(shapedGlyphs.size());
-
-    uint32_t startTotalIndex = static_cast<uint32_t>(m_Indices.size());
-    uint32_t glyphsInString = 0;
-
-    static bool s_LayoutAuditDone = false;
-    if (!s_LayoutAuditDone) {
-        std::vector<Text::ShapedGlyph> sampleGlyphs;
-        if (fontAtlas->ShapeText("File", sampleGlyphs)) {
-            Text::AuditTextLayout("File", fontAtlas, sampleGlyphs, scale, 8);
-        }
-        if (fontAtlas->ShapeText("WindEffects", sampleGlyphs)) {
-            Text::AuditTextLayout("WindEffects", fontAtlas, sampleGlyphs, scale, 12);
-        }
-        s_LayoutAuditDone = true;
-    }
-
-    float penX = 0.0f;
-    const float penY = 0.0f;
-    for (const Text::ShapedGlyph& shaped : shapedGlyphs) {
-        if (shaped.hbAdvanceX <= 0.0f) {
-            ++m_Diagnostics.textGlyphsMissing;
-            continue;
-        }
-
-        GlyphInfo q{};
-        const float glyphPenX = penX + shaped.xOffset;
-        const float glyphPenY = penY + shaped.yOffset;
-        const bool drawable = fontAtlas->GetGlyphQuadAt(shaped.codepoint, glyphPenX, glyphPenY, q);
-        penX += shaped.hbAdvanceX;
-
-        if (!drawable) {
-            continue;
-        }
-        ++glyphsInString;
-        ++m_Diagnostics.textGlyphsResolved;
-
-        const uint32_t charStart = static_cast<uint32_t>(m_Vertices.size());
-        const float px0 = SnapPx(startX + q.x0 * scale);
-        const float py0 = SnapPx(baselineY + q.y0 * scale);
-        const float px1 = SnapPx(startX + q.x1 * scale);
-        const float py1 = SnapPx(baselineY + q.y1 * scale);
-        const float screenW = std::max(px1 - px0, 1.0f);
-        const float screenH = std::max(py1 - py0, 1.0f);
-
-        UIVertex2 v0{ {px0, py0}, {q.u0, q.v0}, {cmd.color.r, cmd.color.g, cmd.color.b, cmd.color.a}, {px0, py0, screenW, screenH}, {0.0f, type, msdfRange, 0.0f} };
-        UIVertex2 v1{ {px1, py0}, {q.u1, q.v0}, {cmd.color.r, cmd.color.g, cmd.color.b, cmd.color.a}, {px0, py0, screenW, screenH}, {0.0f, type, msdfRange, 0.0f} };
-        UIVertex2 v2{ {px1, py1}, {q.u1, q.v1}, {cmd.color.r, cmd.color.g, cmd.color.b, cmd.color.a}, {px0, py0, screenW, screenH}, {0.0f, type, msdfRange, 0.0f} };
-        UIVertex2 v3{ {px0, py1}, {q.u0, q.v1}, {cmd.color.r, cmd.color.g, cmd.color.b, cmd.color.a}, {px0, py0, screenW, screenH}, {0.0f, type, msdfRange, 0.0f} };
-
-        m_Vertices.push_back(v0);
-        m_Vertices.push_back(v1);
-        m_Vertices.push_back(v2);
-        m_Vertices.push_back(v3);
-
-        m_Indices.push_back(charStart + 0);
-        m_Indices.push_back(charStart + 1);
-        m_Indices.push_back(charStart + 2);
-        m_Indices.push_back(charStart + 2);
-        m_Indices.push_back(charStart + 3);
-        m_Indices.push_back(charStart + 0);
-    }
-    
-    if (m_Indices.size() == startTotalIndex) {
-        ++m_Diagnostics.textDrawsSkipped;
-        return;
-    }
-
-    m_Diagnostics.textVerticesGenerated += glyphsInString * 4;
-    m_Diagnostics.textIndicesGenerated += glyphsInString * 6;
+    m_Diagnostics.textGlyphsResolved += static_cast<uint32_t>((m_Indices.size() - startTotalIndex) / 6);
+    m_Diagnostics.textVerticesGenerated += static_cast<uint32_t>(m_Vertices.size());
+    m_Diagnostics.textIndicesGenerated += static_cast<uint32_t>(m_Indices.size());
     
     UIRenderBatch batch;
     batch.textureSet = m_CurrentTextureSet;

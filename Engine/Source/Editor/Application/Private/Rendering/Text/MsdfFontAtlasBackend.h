@@ -59,7 +59,7 @@ private:
     bool LoadFontFaces(const FontAtlasBakeRequest& request);
     bool RebuildAtlas();
     GlyphPlacement BuildPlacement(const msdf_atlas::GlyphGeometry& glyph) const;
-    void ValidatePlacementMap() const;
+
 
     FT_LibraryRec_* m_FreeTypeLibrary = nullptr;
     FT_FaceRec_* m_PrimaryFace = nullptr;

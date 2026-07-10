@@ -44,17 +44,16 @@ VkDescriptorSet ContentBrowserFolderArt::GetTexture(
 
     const float dpi = std::max(1.0f, we::UI::DPIContext::GetScale());
     const uint32_t rasterHeight = std::max(16u, static_cast<uint32_t>(std::ceil(static_cast<float>(heightPx) * dpi)));
-    const uint32_t rasterWidth = std::max(16u, static_cast<uint32_t>(std::ceil(static_cast<float>(widthPx) * dpi)));
 
-    const std::string key = "cb_folder_v12_" + std::to_string(rasterWidth) + "x" + std::to_string(rasterHeight)
+    const BitmapRGBA bitmap = ThumbnailRenderer::RenderContentBrowserFolder(
+        rasterHeight, hovered ? 1.0f : 0.0f, opened);
+    if (bitmap.pixels.empty()) return VK_NULL_HANDLE;
+
+    const std::string key = "cb_folder_v17_" + std::to_string(bitmap.width) + "x" + std::to_string(bitmap.height)
         + (hovered ? "_h" : "_n") + (opened ? "_o" : "_c");
 
     auto it = m_Cache.find(key);
     if (it != m_Cache.end()) return it->second;
-
-    const BitmapRGBA bitmap = ThumbnailRenderer::RenderContentBrowserFolder(
-        rasterHeight, hovered ? 1.0f : 0.0f, opened, rasterWidth);
-    if (bitmap.pixels.empty()) return VK_NULL_HANDLE;
 
     const VkDescriptorSet texture = m_Renderer->CreateTextureFromBitmap(bitmap.pixels, bitmap.width, bitmap.height);
     if (texture != VK_NULL_HANDLE) {
@@ -69,7 +68,7 @@ void ContentBrowserFolderArt::PaintThumbnail(we::UI::PaintContext& context, cons
     const uint32_t widthPx = static_cast<uint32_t>(std::ceil(folderRect.width));
     const VkDescriptorSet texture = GetTexture(widthPx, heightPx, hovered, false);
     if (texture != VK_NULL_HANDLE) {
-        context.DrawTexture(folderRect, texture);
+        context.DrawColorTexture(folderRect, texture);
     }
 }
 
@@ -87,7 +86,7 @@ void ContentBrowserFolderArt::PaintSmallIcon(
     const uint32_t heightPx = static_cast<uint32_t>(folderRect.height);
     const VkDescriptorSet texture = GetTexture(widthPx, heightPx, hovered, opened);
     if (texture != VK_NULL_HANDLE) {
-        context.DrawTexture(folderRect, texture);
+        context.DrawColorTexture(folderRect, texture);
     }
 }
 

@@ -33,8 +33,8 @@ public:
         uint32_t widthPx = 0);
     static BitmapRGBA RenderContentBrowserBlueprint(uint32_t heightPx, float hoverBrightness = 0.0f);
 
-    static constexpr float kFolderAspectRatio = 1.138f; // width / height (Assets/Editor/Folder.svg)
-    static constexpr float kFolderOpenAspectRatio = 1.169f; // width / height (Assets/Editor/Folder_Open.svg)
+    static constexpr float kFolderAspectRatio = 231.0f / 203.0f; // Assets/Editor/Folder.svg
+    static constexpr float kFolderOpenAspectRatio = 224.22424f / 182.99149f; // Assets/Editor/Folder_Open.svg
     static constexpr float kBlueprintAspectRatio = 0.947f; // width / height (Assets/Editor/Visual_Graph.svg)
 
     static BitmapRGBA FitIntoCell(const BitmapRGBA& source, uint32_t cellW, uint32_t cellH);

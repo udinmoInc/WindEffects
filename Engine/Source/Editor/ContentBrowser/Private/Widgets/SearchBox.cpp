@@ -1,62 +1,62 @@
 #include "Widgets/SearchBox.h"
 #include "Core/PaintContext.h"
 #include "Core/Theme.h"
+#include "Core/DPIContext.h"
 #include <SDL3/SDL.h>
 #include <algorithm>
 
 namespace we::UI {
 
-namespace {
-constexpr float kSearchHeight = 29.0f;
-constexpr float kCornerRadius = 5.0f;
-constexpr float kPadH = 10.0f;
-constexpr float kFontSize = 13.0f;
-} // namespace
-
 SearchBox::SearchBox()
     : m_Style(WidgetStyle::TextBox())
 {
-    m_Height = kSearchHeight;
+    m_Height = Theme::Get().SearchBoxHeight;
 }
 
 Size SearchBox::Measure(const Size& availableSize) {
     float w = m_FillWidth ? availableSize.width : m_Width;
-    m_DesiredSize = Size{ w, m_Height };
+    const float scale = (std::max)(1.0f, DPIContext::GetScale());
+    m_DesiredSize = Size{ w, m_Height * scale };
     return m_DesiredSize;
 }
 
 void SearchBox::Arrange(const Rect& allottedRect) {
-    const float h = std::min(m_Height, allottedRect.height);
+    const float scale = (std::max)(1.0f, DPIContext::GetScale());
+    const float h = std::min(m_Height * scale, allottedRect.height);
     const float y = allottedRect.y + (allottedRect.height - h) * 0.5f;
     m_Geometry = Rect{ allottedRect.x, y, allottedRect.width, h };
 }
 
 void SearchBox::Paint(PaintContext& context) {
     const auto& theme = Theme::Get();
-    const Color bg = theme.ToolbarBackground;
-    context.DrawRoundedRect(m_Geometry, bg, kCornerRadius);
+    const float scale = (std::max)(1.0f, DPIContext::GetScale());
+    const float cornerRadius = theme.CornerRadiusSmall * scale;
+    const float fontSize = theme.TextSizeBody * scale;
+    const float iconSize = theme.IconSizeSearch * scale;
+    const float padH = theme.Space3 * scale;
+
+    context.DrawRoundedRect(m_Geometry, theme.SearchBoxBg, cornerRadius);
 
     Color borderColor = theme.BorderDefault;
     if (IsFocused()) {
-        borderColor = Color::Lerp(theme.BorderDefault, theme.SelectedAccent, 0.35f);
+        borderColor = Color::Lerp(theme.BorderDefault, theme.BorderFocus, 0.35f);
     }
-    context.DrawRoundedRectOutline(m_Geometry, borderColor, 1.0f, kCornerRadius);
+    context.DrawRoundedRectOutline(m_Geometry, borderColor, theme.BorderWidth, cornerRadius);
 
-    const float iconSize = 13.0f;
-    const float iconX = m_Geometry.x + kPadH;
+    const float iconX = m_Geometry.x + padH;
     const float iconY = m_Geometry.y + (m_Geometry.height - iconSize) * 0.5f;
     IconPainter::DrawIcon(context, Icons::SearchName, Rect{ iconX, iconY, iconSize, iconSize }, theme.SearchIcon);
 
     Rect textRect = GetTextRect();
 
     if (m_Text.empty()) {
-        context.DrawText(m_Placeholder, Point{ textRect.x, textRect.y }, theme.SearchPlaceholder, kFontSize);
+        context.DrawText(m_Placeholder, Point{ textRect.x, textRect.y }, theme.SearchPlaceholder, fontSize);
     } else {
-        context.DrawText(m_Text, Point{ textRect.x, textRect.y }, theme.TextPrimary, kFontSize, false);
+        context.DrawText(m_Text, Point{ textRect.x, textRect.y }, theme.TextPrimary, fontSize, false);
 
         if (IsFocused() && m_ShowCaret) {
-            const float caretX = textRect.x + context.GetTextWidth(m_Text.substr(0, m_CaretPosition), kFontSize);
-            Rect caretRect{ caretX, textRect.y, 1.0f, kFontSize };
+            const float caretX = textRect.x + context.GetTextWidth(m_Text.substr(0, m_CaretPosition), fontSize);
+            Rect caretRect{ caretX, textRect.y, theme.BorderWidth, fontSize };
             context.DrawRect(caretRect, theme.TextPrimary);
         }
     }
@@ -71,8 +71,7 @@ void SearchBox::OnMouseDown(const MouseEvent& event) {
     if (event.button == MouseButton::Left) {
         if (!m_Text.empty()) {
             Rect clearRect = GetClearButtonRect();
-            if (event.position.x >= clearRect.x && event.position.x <= clearRect.x + clearRect.width &&
-                event.position.y >= clearRect.y && event.position.y <= clearRect.y + clearRect.height) {
+            if (clearRect.Contains(event.position)) {
                 SetText("");
                 return;
             }
@@ -80,12 +79,14 @@ void SearchBox::OnMouseDown(const MouseEvent& event) {
 
         Rect textRect = GetTextRect();
         float clickX = event.position.x - textRect.x;
+        const float scale = (std::max)(1.0f, DPIContext::GetScale());
+        const float fontSize = Theme::Get().TextSizeBody * scale;
 
         float minDist = FLT_MAX;
         size_t closestPos = 0;
 
         for (size_t i = 0; i <= m_Text.length(); ++i) {
-            float charX = kFontSize * 0.58f * static_cast<float>(i);
+            float charX = fontSize * 0.58f * static_cast<float>(i);
             float dist = std::abs(clickX - charX);
 
             if (dist < minDist) {
@@ -165,21 +166,28 @@ void SearchBox::UpdateCaretBlink(float deltaTime) {
 }
 
 Rect SearchBox::GetTextRect() const {
-    const float iconWidth = kPadH + 13.0f + 7.0f;
-    const float clearW = m_Text.empty() ? 0.0f : 24.0f;
-    const float rightPad = kPadH;
+    const auto& theme = Theme::Get();
+    const float scale = (std::max)(1.0f, DPIContext::GetScale());
+    const float padH = theme.Space3 * scale;
+    const float iconSize = theme.IconSizeSearch * scale;
+    const float fontSize = theme.TextSizeBody * scale;
+    const float iconWidth = padH + iconSize + theme.Space2 * scale;
+    const float clearW = m_Text.empty() ? 0.0f : theme.Space6 * scale;
     return Rect{
         m_Geometry.x + iconWidth,
-        m_Geometry.y + (m_Geometry.height - kFontSize) * 0.5f,
-        std::max(0.0f, m_Geometry.width - iconWidth - clearW - rightPad),
-        kFontSize
+        m_Geometry.y + (m_Geometry.height - fontSize) * 0.5f,
+        std::max(0.0f, m_Geometry.width - iconWidth - clearW - padH),
+        fontSize
     };
 }
 
 Rect SearchBox::GetClearButtonRect() const {
-    const float clearSize = 14.0f;
+    const auto& theme = Theme::Get();
+    const float scale = (std::max)(1.0f, DPIContext::GetScale());
+    const float clearSize = theme.IconSizeSearch * scale;
+    const float padH = theme.Space3 * scale;
     return Rect{
-        m_Geometry.x + m_Geometry.width - clearSize - kPadH,
+        m_Geometry.x + m_Geometry.width - clearSize - padH,
         m_Geometry.y + (m_Geometry.height - clearSize) * 0.5f,
         clearSize,
         clearSize

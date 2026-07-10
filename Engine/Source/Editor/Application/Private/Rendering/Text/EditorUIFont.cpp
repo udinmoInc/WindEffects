@@ -63,10 +63,6 @@ EditorUIFontPaths ResolveEditorUIFonts() {
         fonts.familyName = "Inter";
     }
 
-    HE_INFO(std::string("[UI FontAudit] Editor UI font family=") + fonts.familyName
-            + " regular=" + fonts.regular
-            + " semibold=" + fonts.semibold
-            + " fallback=" + fonts.fallback);
     return fonts;
 }
 

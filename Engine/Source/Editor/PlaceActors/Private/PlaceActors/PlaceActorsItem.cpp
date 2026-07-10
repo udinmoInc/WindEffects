@@ -30,11 +30,11 @@ void PlaceActorsItem::PaintGrid(PaintContext& context,
                                 bool selected,
                                 bool favorite) {
     const auto& theme = Theme::Get();
-    Color bg = Color{ 0.16f, 0.16f, 0.16f, 1.0f };
+    Color bg = theme.PanelBackground;
     if (selected) {
         bg = theme.SelectedBg;
     } else if (hoverAnim > 0.01f) {
-        bg = Color::Lerp(bg, theme.HoverOverlay, hoverAnim);
+        bg = Color::Lerp(bg, theme.HoverBg, hoverAnim);
     }
     if (pressAnim > 0.01f) {
         bg = Color::Lerp(bg, theme.PressedOverlay, pressAnim);
@@ -70,30 +70,30 @@ void PlaceActorsItem::PaintList(PaintContext& context,
                                 bool selected,
                                 bool favorite) {
     const auto& theme = Theme::Get();
-    Color bg = Color{ 0.14f, 0.14f, 0.14f, 1.0f };
+    Color bg = theme.PanelBackground;
     if (selected) {
         bg = theme.SelectedBg;
     } else if (hoverAnim > 0.01f) {
-        bg = Color::Lerp(bg, theme.HoverOverlay, hoverAnim);
+        bg = Color::Lerp(bg, theme.HoverBg, hoverAnim);
     }
     if (pressAnim > 0.01f) {
         bg = Color::Lerp(bg, theme.PressedOverlay, pressAnim * 0.5f);
     }
 
-    context.DrawRoundedRect(bounds, bg, 6.0f);
+    context.DrawRoundedRect(bounds, bg, theme.CornerRadiusMedium);
 
-    const float iconSize = 28.0f;
+    const float iconSize = theme.IconSizeToolbar + theme.Space3;
     we::UI::IconPainter::DrawIcon(context, item.iconName,
-        Rect{ bounds.x + 8.0f, bounds.y + (bounds.height - iconSize) * 0.5f, iconSize, iconSize }, theme.TextPrimary);
+        Rect{ bounds.x + theme.Space2, bounds.y + (bounds.height - iconSize) * 0.5f, iconSize, iconSize }, theme.TextPrimary);
 
-    context.DrawText(item.label, Point{ bounds.x + 44.0f, bounds.y + 8.0f }, theme.TextPrimary, 12.0f, true);
+    context.DrawText(item.label, Point{ bounds.x + theme.Space6 - 4.0f, bounds.y + theme.Space2 }, theme.TextPrimary, theme.TextSizeSmall, true);
     if (!item.description.empty()) {
-        context.DrawText(item.description, Point{ bounds.x + 44.0f, bounds.y + 24.0f }, theme.TextSecondary, 10.0f);
+        context.DrawText(item.description, Point{ bounds.x + theme.Space6 - 4.0f, bounds.y + theme.Space4 }, theme.TextSecondary, theme.TextSizeCaption);
     }
 
     if (favorite) {
         we::UI::IconPainter::DrawIcon(context, we::UI::Icons::StarFilledName,
-            Rect{ bounds.x + bounds.width - 22.0f, bounds.y + (bounds.height - 14.0f) * 0.5f, 14.0f, 14.0f }, theme.Warning);
+            Rect{ bounds.x + bounds.width - theme.Space5 - 2.0f, bounds.y + (bounds.height - theme.IconSizeTree) * 0.5f, theme.IconSizeTree, theme.IconSizeTree }, theme.Warning);
     }
 }
 

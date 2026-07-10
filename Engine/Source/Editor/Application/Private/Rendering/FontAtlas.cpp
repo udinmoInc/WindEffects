@@ -1,5 +1,5 @@
 #include "Rendering/FontAtlas.h"
-#include "Rendering/Text/FreeTypeFontAtlasBackend.h"
+#include "Rendering/Text/MsdfFontAtlasBackend.h"
 #include "Rendering/Text/Utf8.h"
 #include "Rendering/UiDebugImageWriter.h"
 #include "Rendering/UiGpuUpload.h"
@@ -84,7 +84,7 @@ bool FontAtlas::Init(we::runtime::renderer::DeviceContext* context,
     }
 
     m_FontHeight = std::clamp(fontHeightPx, 10.0f, 96.0f);
-    m_Backend = Text::CreateFreeTypeFontAtlasBackend();
+    m_Backend = Text::CreateMsdfFontAtlasBackend();
 
     Text::FontAtlasBakeRequest request{};
     request.primaryFontPath = fontName;
@@ -95,7 +95,7 @@ bool FontAtlas::Init(we::runtime::renderer::DeviceContext* context,
     request.atlasHeight = height;
 
     if (!m_Backend->Initialize(request)) {
-        HE_ERROR("FontAtlas: FreeType backend initialization failed");
+        HE_ERROR("FontAtlas: MSDF backend initialization failed");
         m_Backend.reset();
         return false;
     }
@@ -105,12 +105,6 @@ bool FontAtlas::Init(we::runtime::renderer::DeviceContext* context,
         m_TextLayout.Initialize(faces.primary, faces.fallback);
     }
 
-    HE_INFO(std::string("[UI FontAudit] CPU atlas baked: ") + std::to_string(m_Backend->GetAtlasWidth()) + "x"
-            + std::to_string(m_Backend->GetAtlasHeight()) + " glyphs=" + std::to_string(m_Backend->GetGlyphCount())
-            + " primaryFont=" + fontName
-            + " bakeHeight=" + std::to_string(m_FontHeight)
-            + " msdfRange=" + std::to_string(m_Backend->GetMsdfPixelRange())
-            + " shaper=" + (m_TextLayout.IsReady() ? "ready" : "fallback"));
     SaveAtlasDebugImage(m_Backend.get());
 
     if (!UploadAtlasIfDirty()) {
@@ -118,10 +112,6 @@ bool FontAtlas::Init(we::runtime::renderer::DeviceContext* context,
         return false;
     }
 
-    HE_INFO(std::string("[UI FontAudit] GPU atlas uploaded: image=0x")
-            + std::to_string(reinterpret_cast<uint64_t>(m_Image))
-            + " view=0x" + std::to_string(reinterpret_cast<uint64_t>(m_ImageView))
-            + " size=" + std::to_string(m_GpuWidth) + "x" + std::to_string(m_GpuHeight));
     return true;
 }
 
@@ -384,8 +374,6 @@ bool FontAtlas::UploadAtlasIfDirty() {
     vkFreeMemory(device, stagingMemory, nullptr);
 
     m_Backend->ClearDirty();
-    HE_INFO(std::string("[UI FontAudit] Atlas upload complete: ") + std::to_string(atlasWidth) + "x"
-            + std::to_string(atlasHeight) + " bytes=" + std::to_string(imageSize));
     return true;
 }
 

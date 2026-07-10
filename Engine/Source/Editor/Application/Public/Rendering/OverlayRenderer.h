@@ -26,6 +26,7 @@ class UICompositor;
 class UIStateManager;
 class FontAtlas;
 class IconRenderer;
+class TextUIService;
 class UiGpuUpload;
 
 struct APPLICATION_API UIVertex2 {
@@ -88,8 +89,7 @@ public:
     void UpdateTexture(VkDescriptorSet descriptorSet, VkImageView imageView, VkSampler sampler);
     void UnregisterTexture(VkDescriptorSet descriptorSet);
 
-    FontAtlas* GetFontAtlas() const;
-    FontAtlas* GetFontAtlasSemiBold() const;
+    TextUIService* GetTextUIService() const;
     IconRenderer* GetIconRenderer() const;
     VkDescriptorSet GetDummyDescriptorSet() const { return m_DummyDescriptorSet; }
     VkSampler GetDefaultSampler() const { return m_DummySampler; }
@@ -139,8 +139,7 @@ private:
     };
     std::vector<FrameGeometry> m_FrameGeometry;
 
-    std::unique_ptr<FontAtlas> m_FontAtlas;
-    std::unique_ptr<FontAtlas> m_FontAtlasSemiBold;
+    std::unique_ptr<TextUIService> m_TextUIService;
     std::unique_ptr<IconRenderer> m_IconRenderer;
 
     std::vector<UIVertex2> m_Vertices;

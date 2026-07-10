@@ -1,5 +1,6 @@
 {
   "SDKPaths": {
+    "MSVC": "F:\\vs\\VC\\Tools\\MSVC\\14.44.35207",
     "VulkanSDK": "F:\\Coding\\windeffects\\Engine\\ThirdParty",
     "SDL3": "F:\\Coding\\windeffects\\Engine\\ThirdParty\\SDL3"
   },

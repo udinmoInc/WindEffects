@@ -544,8 +544,10 @@ BitmapRGBA ThumbnailRenderer::RenderContentBrowserFolderProcedural(uint32_t w, u
     const float sx = static_cast<float>(w) / kRefW;
     const float sy = static_cast<float>(h) / kRefH;
     const float scale = std::min(sx, sy);
-    const auto X = [sx](float v) { return v * sx; };
-    const auto Y = [sy](float v) { return v * sy; };
+    const float offX = (static_cast<float>(w) - kRefW * scale) * 0.5f;
+    const float offY = (static_cast<float>(h) - kRefH * scale) * 0.5f;
+    const auto X = [offX, scale](float v) { return offX + v * scale; };
+    const auto Y = [offY, scale](float v) { return offY + v * scale; };
     const auto S = [scale](float v) { return v * scale; };
 
     // Very subtle cast shadow
@@ -600,9 +602,6 @@ BitmapRGBA ThumbnailRenderer::RasterizeMonochromeSvg(const std::string& resolved
     uint32_t minOpaqueY = h;
     uint32_t maxOpaqueY = 0;
     bool hasOpaque = false;
-    bool useThemeTint = true;
-    uint32_t colorEnergy = 0;
-    uint32_t opaqueCount = 0;
 
     for (uint32_t y = 0; y < h; ++y) {
         for (uint32_t x = 0; x < w; ++x) {
@@ -627,23 +626,12 @@ BitmapRGBA ThumbnailRenderer::RasterizeMonochromeSvg(const std::string& resolved
             minOpaqueY = std::min(minOpaqueY, y);
             maxOpaqueY = std::max(maxOpaqueY, y);
             hasOpaque = true;
-
-            const uint8_t r = static_cast<uint8_t>(sumR / sumA);
-            const uint8_t g = static_cast<uint8_t>(sumG / sumA);
-            const uint8_t b = static_cast<uint8_t>(sumB / sumA);
-            colorEnergy += static_cast<uint32_t>(r) + g + b;
-            ++opaqueCount;
-            if (r > 48 || g > 48 || b > 48) {
-                useThemeTint = false;
-            }
         }
     }
 
     if (!hasOpaque) return bmp;
-    if (opaqueCount > 0 && colorEnergy / opaqueCount > 90) {
-        useThemeTint = false;
-    }
 
+    // Folder SVGs are monochrome masks — always apply the theme gradient tint.
     const float opaqueSpan = std::max(1.0f, static_cast<float>(maxOpaqueY - minOpaqueY));
 
     for (uint32_t y = 0; y < h; ++y) {
@@ -655,30 +643,11 @@ BitmapRGBA ThumbnailRenderer::RasterizeMonochromeSvg(const std::string& resolved
             const size_t dstIdx = idx * 4;
             bmp.pixels[dstIdx + 3] = outA;
 
-            if (useThemeTint) {
-                const float t = (static_cast<float>(y) - static_cast<float>(minOpaqueY)) / opaqueSpan;
-                const auto rgb = sampleColor(t);
-                bmp.pixels[dstIdx] = rgb[0];
-                bmp.pixels[dstIdx + 1] = rgb[1];
-                bmp.pixels[dstIdx + 2] = rgb[2];
-            } else {
-                uint32_t sumR = 0, sumG = 0, sumB = 0, sumA = 0;
-                for (int dy = 0; dy < kSSAA; ++dy) {
-                    for (int dx = 0; dx < kSSAA; ++dx) {
-                        const int sx = static_cast<int>(x) * kSSAA + dx;
-                        const int sy = static_cast<int>(y) * kSSAA + dy;
-                        const size_t srcIdx = (static_cast<size_t>(sy) * static_cast<size_t>(rasterW) + static_cast<size_t>(sx)) * 4;
-                        const uint8_t a = rasterData[srcIdx + 3];
-                        sumR += rasterData[srcIdx] * a;
-                        sumG += rasterData[srcIdx + 1] * a;
-                        sumB += rasterData[srcIdx + 2] * a;
-                        sumA += a;
-                    }
-                }
-                bmp.pixels[dstIdx]     = BrightenChannel(static_cast<uint8_t>(sumR / sumA), hoverBrightness);
-                bmp.pixels[dstIdx + 1] = BrightenChannel(static_cast<uint8_t>(sumG / sumA), hoverBrightness);
-                bmp.pixels[dstIdx + 2] = BrightenChannel(static_cast<uint8_t>(sumB / sumA), hoverBrightness);
-            }
+            const float t = (static_cast<float>(y) - static_cast<float>(minOpaqueY)) / opaqueSpan;
+            const auto rgb = sampleColor(t);
+            bmp.pixels[dstIdx] = rgb[0];
+            bmp.pixels[dstIdx + 1] = rgb[1];
+            bmp.pixels[dstIdx + 2] = rgb[2];
         }
     }
 
@@ -774,30 +743,25 @@ BitmapRGBA ThumbnailRenderer::RenderContentBrowserBlueprintProcedural(uint32_t w
 
 BitmapRGBA ThumbnailRenderer::RenderContentBrowserFolder(
     uint32_t heightPx, float hoverBrightness, bool opened, uint32_t widthPx) {
-    const uint32_t h = std::max(16u, SnapFolderRasterHeight(heightPx));
+    (void)widthPx;
     const float aspectRatio = opened ? kFolderOpenAspectRatio : kFolderAspectRatio;
-    const uint32_t w = widthPx > 0
-        ? std::max(16u, widthPx)
-        : std::max(16u, static_cast<uint32_t>(std::round(static_cast<float>(h) * aspectRatio)));
 
-    we::UI::Color shadow = we::UI::Theme::Get().IconFolder * 0.75f; shadow.a = 1.0f;
-    const auto edge = ThemeRgb(shadow, hoverBrightness);
+    const uint32_t h = std::max(16u, SnapFolderRasterHeight(heightPx));
+    const uint32_t w = std::max(16u, static_cast<uint32_t>(std::round(static_cast<float>(h) * aspectRatio)));
 
     const std::string svgPath = opened ? ResolveFolderOpenSvgPath() : ResolveFolderSvgPath();
     if (!svgPath.empty()) {
         BitmapRGBA svgBmp = RasterizeMonochromeSvg(ResolvePath(svgPath), w, h, hoverBrightness,
             [&](float t) { return SampleFolderThemeColor(t, hoverBrightness); });
         if (!svgBmp.pixels.empty()) {
-            svgBmp = TrimTransparentPadding(svgBmp, w, h);
-            ApplyFolderEdgeOutline(svgBmp, edge);
             return svgBmp;
         }
-        HE_WARN("[ContentBrowser] Failed to rasterize folder SVG; using procedural artwork.");
+        HE_WARN(std::string("[ContentBrowser] Failed to rasterize ")
+            + (opened ? "open" : "closed") + " folder SVG; using procedural artwork.");
     } else {
         static bool s_ReportedMissingSvg = false;
         if (!s_ReportedMissingSvg) {
-            HE_WARN(std::string("[ContentBrowser] ") + (opened ? "Open" : "Closed")
-                + " folder SVG not found; using procedural artwork.");
+            HE_WARN("[ContentBrowser] Folder SVG not found (Assets/Editor/Folder.svg); using procedural artwork.");
             s_ReportedMissingSvg = true;
         }
     }

@@ -25,6 +25,7 @@ constexpr const char* kFeatureModuleDlls[] = {
     "WEEditorGridRenderer.dll",
     "WERenderer.dll",
     "WEScene.dll",
+    "WEText.dll",
     "WEWorld.dll",
 };
 

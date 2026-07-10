@@ -27,6 +27,10 @@ New-Item -ItemType Directory -Force -Path $OutputDir | Out-Null
 
 $shaders = @(
     @{ Name = "UI"; Path = "Rendering/UI.hlsl" },
+    @{ Name = "TextMSDF"; Path = "Rendering/TextMSDF.hlsl" },
+    @{ Name = "TextSDF"; Path = "Rendering/TextSDF.hlsl" },
+    @{ Name = "TextBitmap"; Path = "Rendering/TextBitmap.hlsl" },
+    @{ Name = "TextMTSDF"; Path = "Rendering/TextMTSDF.hlsl" },
     @{ Name = "EditorGrid"; Path = "Editor/EditorGrid.hlsl" },
     @{ Name = "AtmospherePass"; Path = "Rendering/AtmospherePass.hlsl" },
     @{ Name = "VolumetricCloudsPass"; Path = "Rendering/VolumetricCloudsPass.hlsl" },
