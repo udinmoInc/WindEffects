@@ -4,6 +4,7 @@
 #include "Core/Icon.h"
 #include "Core/DockTabIconRegistry.h"
 #include "Core/DockTabBrandRegistry.h"
+#include "Core/DPIContext.h"
 #include <algorithm>
 #include <cmath>
 
@@ -135,15 +136,16 @@ void DockContainer::Arrange(const Rect& allottedRect) {
 
 float DockContainer::MeasureTabWidth(PaintContext& context, const TabInfo& tabInfo, bool isActive) const {
     const auto& theme = Theme::Get();
-    const float fontSize = theme.TextSizeTabs;
-    const float iconSize = 14.0f;
-    const float leftPadding = 10.0f;
-    const float rightPadding = 10.0f;
-    const float iconTextSpacing = 6.0f;
-    const float textCloseSpacing = 6.0f;
+    const float uiScale = (std::max)(1.0f, DPIContext::GetScale());
+    const float fontSize = theme.TextSizeTabs * uiScale;
+    const float iconSize = 14.0f * uiScale;
+    const float leftPadding = 10.0f * uiScale;
+    const float rightPadding = 10.0f * uiScale;
+    const float iconTextSpacing = 6.0f * uiScale;
+    const float textCloseSpacing = 6.0f * uiScale;
 
     const std::string title = tabInfo.panel->GetTitle();
-    const float textWidth = context.GetTextWidth(title, fontSize);
+    const float textWidth = context.GetTextWidth(title, fontSize, isActive);
 
     float leadingWidth = 0.0f;
     if (DockTabBrandRegistry::Get().HasBrand(title)) {
@@ -179,12 +181,12 @@ void DockContainer::PaintTab(PaintContext& context, TabInfo& tabInfo, int index,
         context.DrawRect(Rect{ tabRect.x + 1.0f, tabRect.y, tabRect.width - 2.0f, 1.0f }, theme.ActiveTabLine);
     }
 
-    const float fontSize = theme.TextSizeTabs;
-    const float iconSize = 14.0f;
-    const float leftPadding = 10.0f;
-    const float rightPadding = 10.0f;
-    const float iconTextSpacing = 6.0f;
-    const float textCloseSpacing = 6.0f;
+    const float fontSize = theme.TextSizeTabs * (std::max)(1.0f, DPIContext::GetScale());
+    const float iconSize = 14.0f * (std::max)(1.0f, DPIContext::GetScale());
+    const float leftPadding = 10.0f * (std::max)(1.0f, DPIContext::GetScale());
+    const float rightPadding = 10.0f * (std::max)(1.0f, DPIContext::GetScale());
+    const float iconTextSpacing = 6.0f * (std::max)(1.0f, DPIContext::GetScale());
+    const float textCloseSpacing = 6.0f * (std::max)(1.0f, DPIContext::GetScale());
 
     float itemX = tabRect.x + leftPadding;
     const std::string title = tabInfo.panel->GetTitle();

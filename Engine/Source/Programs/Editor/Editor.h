@@ -21,6 +21,8 @@ namespace we::editor::rendering {
 #include "Widgets/StatusBar.h"
 #include "Widgets/TitleBar.h"
 #include "EditorWindowHitTest.h"
+#include "WindEffects/Editor/UI/Core/EditorApplicationContext.h"
+#include "WindEffects/Editor/UI/Shell/EditorShellBuilder.h"
 
 namespace we::UI {
 class RenderDebuggerPanel;
@@ -61,6 +63,7 @@ private:
     std::shared_ptr<we::UI::StatusBar> m_StatusBar;
     std::shared_ptr<we::UI::TitleBar> m_TitleBar;
     std::shared_ptr<we::UI::RenderDebuggerPanel> m_RenderDebuggerPanel;
+    std::unique_ptr<WindEffects::Editor::UI::EditorApplicationContext> m_UIContext;
     we::editor::mainframe::EditorWindowHitTestData m_WindowHitTestData{};
 
     void EnsureVisibleSwapchain();

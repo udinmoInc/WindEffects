@@ -3,6 +3,7 @@
 #include "Text/Assets/FontAsset.h"
 #include "Text/Core/Types.h"
 #include "Text/Export.h"
+#include "Text/Shaping/TextShaper.h"
 
 #include <memory>
 #include <span>
@@ -18,6 +19,9 @@ struct FontStack {
 struct ResolvedGlyph {
     FontHandle fontHandle = kInvalidFontHandle;
     GlyphMetrics metrics{};
+    float bakeSizePx = 48.0f;
+    float msdfPixelRange = 4.0f;
+    float geometryScale = 1.0f;
 };
 
 class TEXT_API IFallbackResolver {
@@ -37,7 +41,7 @@ public:
     virtual void ClearCache() = 0;
 };
 
-class TEXT_API FallbackResolver final : public IFallbackResolver {
+class FallbackResolver final : public IFallbackResolver {
 public:
     explicit FallbackResolver(IFontAssetManager& assetManager);
     [[nodiscard]] FontStack BuildStack(
@@ -48,7 +52,7 @@ private:
     IFontAssetManager& m_AssetManager;
 };
 
-class TEXT_API GlyphResolver final : public IGlyphResolver {
+class GlyphResolver final : public IGlyphResolver {
 public:
     GlyphResolver(IFontAssetManager& assetManager, IFallbackResolver& fallbackResolver);
 

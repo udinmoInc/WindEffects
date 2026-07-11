@@ -1,4 +1,5 @@
 #include "Text/Assets/GlyphResolver.h"
+#include "Text/Assets/FontAssetManager.h"
 
 #include "Text/Shaping/TextShaper.h"
 
@@ -84,6 +85,11 @@ ResolvedGlyph GlyphResolver::Resolve(
         }
         if (const GlyphMetrics* glyph = asset->FindGlyph(codepoint)) {
             ResolvedGlyph resolved{handle, *glyph};
+            resolved.bakeSizePx = asset->metrics.bakeSizePx;
+            resolved.msdfPixelRange = asset->metrics.msdfPixelRange;
+            resolved.geometryScale = asset->metrics.geometryScale > 0.0f
+                ? asset->metrics.geometryScale
+                : 1.0f;
             m_Cache.emplace(cacheKey, resolved);
             return resolved;
         }
@@ -96,6 +102,11 @@ ResolvedGlyph GlyphResolver::Resolve(
         }
         if (const GlyphMetrics* glyph = asset->FindGlyph(codepoint)) {
             ResolvedGlyph resolved{handle, *glyph};
+            resolved.bakeSizePx = asset->metrics.bakeSizePx;
+            resolved.msdfPixelRange = asset->metrics.msdfPixelRange;
+            resolved.geometryScale = asset->metrics.geometryScale > 0.0f
+                ? asset->metrics.geometryScale
+                : 1.0f;
             m_Cache.emplace(cacheKey, resolved);
             return resolved;
         }

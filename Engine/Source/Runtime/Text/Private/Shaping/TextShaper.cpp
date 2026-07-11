@@ -12,11 +12,54 @@
 
 #include <algorithm>
 #include <cmath>
+#include <filesystem>
 #include <string>
 
 namespace we::runtime::text::shaping {
 
 namespace {
+
+std::filesystem::path ResolveShapeFontPath(const assets::FontAsset& asset)
+{
+    if (!asset.sourcePath.empty() && std::filesystem::exists(asset.sourcePath)) {
+        return asset.sourcePath;
+    }
+    return {};
+}
+
+#if defined(WE_HAS_HARFBUZZ) && WE_HAS_HARFBUZZ
+TextResult<std::vector<ShapedRun>> ShapeBasic(
+    assets::IFontAssetManager& assetManager,
+    const std::span<const Codepoint> codepoints,
+    const FontHandle primaryFont,
+    const ShapeOptions& options)
+{
+    std::vector<ShapedRun> runs;
+    ShapedRun run;
+    run.direction = options.direction;
+    run.script = codepoints.empty() ? Script::Unknown : DetectScript(codepoints.front());
+    run.glyphs.reserve(codepoints.size());
+
+    const auto asset = assetManager.GetAsset(primaryFont);
+    for (const Codepoint codepoint : codepoints) {
+        ShapedGlyph glyph;
+        glyph.codepoint = codepoint;
+        glyph.fontHandle = primaryFont;
+        if (asset) {
+            if (const GlyphMetrics* metrics = asset->FindGlyph(codepoint)) {
+                const float geometryScale = asset->metrics.geometryScale > 0.0f
+                    ? asset->metrics.geometryScale
+                    : 1.0f;
+                glyph.xAdvance = metrics->advance * (options.fontSize / geometryScale);
+            }
+        }
+        run.glyphs.push_back(glyph);
+    }
+
+    runs.push_back(std::move(run));
+    return TextResult<std::vector<ShapedRun>>::Success(std::move(runs));
+}
+#endif
 
 #if defined(WE_HAS_HARFBUZZ) && WE_HAS_HARFBUZZ
 class HarfBuzzTextShaper final : public ITextShaper {
@@ -37,18 +80,23 @@ public:
         }
 
         const auto asset = m_AssetManager.GetAsset(primaryFont);
-        if (!asset || asset->sourcePath.empty()) {
+        if (!asset) {
             return TextResult<std::vector<ShapedRun>>::Failure("Primary font asset unavailable");
+        }
+
+        const auto shapeFontPath = ResolveShapeFontPath(*asset);
+        if (shapeFontPath.empty()) {
+            return ShapeBasic(m_AssetManager, codepoints, primaryFont, options);
         }
 
         FT_Library library = nullptr;
         FT_Face face = nullptr;
         if (FT_Init_FreeType(&library) != 0
-            || FT_New_Face(library, asset->sourcePath.string().c_str(), 0, &face) != 0) {
+            || FT_New_Face(library, shapeFontPath.string().c_str(), 0, &face) != 0) {
             if (library) {
                 FT_Done_FreeType(library);
             }
-            return TextResult<std::vector<ShapedRun>>::Failure("Failed to open font for shaping");
+            return ShapeBasic(m_AssetManager, codepoints, primaryFont, options);
         }
 
         const FT_UInt pixelHeight = static_cast<FT_UInt>(std::clamp(std::lround(options.fontSize), 10L, 96L));
@@ -145,7 +193,10 @@ public:
             glyph.fontHandle = primaryFont;
             if (asset) {
                 if (const GlyphMetrics* metrics = asset->FindGlyph(codepoint)) {
-                    glyph.xAdvance = metrics->advance;
+                    const float geometryScale = asset->metrics.geometryScale > 0.0f
+                        ? asset->metrics.geometryScale
+                        : 1.0f;
+                    glyph.xAdvance = metrics->advance * (options.fontSize / geometryScale);
                 }
             }
             run.glyphs.push_back(glyph);

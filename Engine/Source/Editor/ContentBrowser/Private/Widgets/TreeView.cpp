@@ -5,6 +5,7 @@
 #include "Core/PaintContext.h"
 #include "Core/Theme.h"
 #include "Core/Icon.h"
+#include "Core/DPIContext.h"
 #include <algorithm>
 #include <cmath>
 #include <functional>
@@ -28,6 +29,10 @@ bool IsBlueprintIconName(const std::string& iconName) {
 constexpr float kMinTreeZoom = 0.75f;
 constexpr float kMaxTreeZoom = 1.75f;
 constexpr float kTreeZoomStep = 0.1f;
+
+float TreeUiScale() {
+    return (std::max)(1.0f, DPIContext::GetScale());
+}
 
 void PaintTreeNodeIcon(PaintContext& context, const TreeNode& node, const Rect& iconRect, bool hovered) {
     if (node.iconTexture != VK_NULL_HANDLE) {
@@ -144,7 +149,7 @@ TreeView::TreeView()
 
 Size TreeView::Measure(const Size& availableSize) {
     BuildRenderList();
-    m_ContentHeight = static_cast<float>(m_RenderList.size()) * m_ItemHeight;
+    m_ContentHeight = static_cast<float>(m_RenderList.size()) * m_ItemHeight * TreeUiScale();
     return Size{ availableSize.width, availableSize.height };
 }
 
@@ -153,6 +158,7 @@ void TreeView::Arrange(const Rect& allottedRect) {
     BuildRenderList();
     UpdateVisibleRange();
 
+    const float rowHeight = m_ItemHeight * TreeUiScale();
     float y = m_Geometry.y - m_ScrollOffset;
     for (size_t i = 0; i < m_RenderList.size(); ++i) {
         auto& item = m_RenderList[i];
@@ -161,9 +167,9 @@ void TreeView::Arrange(const Rect& allottedRect) {
             m_Geometry.x + item.depth * m_IndentWidth,
             y,
             m_Geometry.width - item.depth * m_IndentWidth,
-            m_ItemHeight
+            rowHeight
         };
-        y += m_ItemHeight;
+        y += rowHeight;
     }
 }
 
@@ -185,9 +191,12 @@ void TreeView::Paint(PaintContext& context) {
 
     UpdateVisibleRange();
 
+    const float fontSize = m_Style.text.size * TreeUiScale();
+
     for (int i = m_FirstVisibleIndex; i <= m_LastVisibleIndex && i < static_cast<int>(m_RenderList.size()); ++i) {
         const auto& item = m_RenderList[static_cast<size_t>(i)];
         const auto& node = item.node;
+        const float rowHeight = item.geometry.height;
 
         if (item.geometry.y + item.geometry.height < m_Geometry.y ||
             item.geometry.y > m_Geometry.y + m_Geometry.height) {
@@ -217,7 +226,7 @@ void TreeView::Paint(PaintContext& context) {
         if (!node->children.empty()) {
             const float chevronSize = 12.0f;
             const float chevronX = item.geometry.x + 4.0f;
-            const float chevronY = item.geometry.y + (m_ItemHeight - chevronSize) * 0.5f;
+            const float chevronY = item.geometry.y + (rowHeight - chevronSize) * 0.5f;
             const char* chevronIcon = node->expanded ? Icons::ChevronDownName : Icons::ChevronRightName;
             IconPainter::DrawIcon(context, chevronIcon, Rect{ chevronX, chevronY, chevronSize, chevronSize }, theme.TreeArrow);
         }
@@ -225,26 +234,26 @@ void TreeView::Paint(PaintContext& context) {
         const float iconSize = 16.0f;
         const float iconX = item.geometry.x + 18.0f;
         if (!node->iconName.empty() || node->iconTexture != VK_NULL_HANDLE) {
-            const float iconY = item.geometry.y + (m_ItemHeight - iconSize) * 0.5f;
+            const float iconY = item.geometry.y + (rowHeight - iconSize) * 0.5f;
             Rect iconRect{ iconX, iconY, iconSize, iconSize };
             PaintTreeNodeIcon(context, *node, iconRect, node->id == m_HoveredId);
         }
 
         const float textX = iconX + iconSize + 6.0f;
-        const float textY = item.geometry.y + (m_ItemHeight - m_Style.text.size) * 0.5f;
+        const float textY = item.geometry.y + (rowHeight - fontSize) * 0.5f;
         Color textColor = node->locked ? theme.TextSecondary * 0.6f : theme.TextPrimary;
         if (!node->visible) {
             textColor = theme.TextSecondary * 0.45f;
         }
 
         if (node->id == m_RenamingId) {
-            Rect editBg{ textX - 4.0f, item.geometry.y + 2.0f, item.geometry.width - 80.0f, m_ItemHeight - 4.0f };
+            Rect editBg{ textX - 4.0f, item.geometry.y + 2.0f, item.geometry.width - 80.0f, rowHeight - 4.0f };
             context.DrawRoundedRect(editBg, theme.InputBackground, 3.0f);
             context.DrawRoundedRectOutline(editBg, theme.SelectedAccent, 1.0f, 3.0f);
-            context.DrawText(m_RenameBuffer, Point{ textX, textY }, theme.TextPrimary, m_Style.text.size);
+            context.DrawText(m_RenameBuffer, Point{ textX, textY }, theme.TextPrimary, fontSize);
             if (static_cast<int>(m_RenameCursorBlink * 2.0f) % 2 == 0) {
-                const float cursorX = textX + context.GetTextWidth(m_RenameBuffer, m_Style.text.size) + 1.0f;
-                context.DrawRect(Rect{ cursorX, textY, 1.0f, m_Style.text.size }, theme.TextPrimary);
+                const float cursorX = textX + context.GetTextWidth(m_RenameBuffer, fontSize) + 1.0f;
+                context.DrawRect(Rect{ cursorX, textY, 1.0f, fontSize }, theme.TextPrimary);
             }
         } else {
             // Draw text with search highlighting
@@ -278,42 +287,42 @@ void TreeView::Paint(PaintContext& context) {
                     const std::string beforeMatch = label.substr(0, matchStart);
                     float currentX = textX;
                     if (!beforeMatch.empty()) {
-                        context.DrawText(beforeMatch, Point{ currentX, textY }, textColor, m_Style.text.size);
-                        currentX += context.GetTextWidth(beforeMatch, m_Style.text.size);
+                        context.DrawText(beforeMatch, Point{ currentX, textY }, textColor, fontSize);
+                        currentX += context.GetTextWidth(beforeMatch, fontSize);
                     }
                     
                     // Draw highlighted match
                     const std::string matchText = label.substr(matchStart, matchEnd - matchStart);
-                    const float matchWidth = context.GetTextWidth(matchText, m_Style.text.size);
-                    Rect highlightRect{ currentX, textY, matchWidth, m_Style.text.size };
+                    const float matchWidth = context.GetTextWidth(matchText, fontSize);
+                    Rect highlightRect{ currentX, textY, matchWidth, fontSize };
                     context.DrawRoundedRect(highlightRect, theme.SelectedAccent * 0.3f, 2.0f);
-                    context.DrawText(matchText, Point{ currentX, textY }, theme.SelectedAccent, m_Style.text.size);
+                    context.DrawText(matchText, Point{ currentX, textY }, theme.SelectedAccent, fontSize);
                     currentX += matchWidth;
                     
                     // Draw text after match
                     const std::string afterMatch = label.substr(matchEnd);
                     if (!afterMatch.empty()) {
-                        context.DrawText(afterMatch, Point{ currentX, textY }, textColor, m_Style.text.size);
+                        context.DrawText(afterMatch, Point{ currentX, textY }, textColor, fontSize);
                     }
                 } else {
-                    context.DrawText(label, Point{ textX, textY }, textColor, m_Style.text.size);
+                    context.DrawText(label, Point{ textX, textY }, textColor, fontSize);
                 }
             } else {
-                context.DrawText(node->label, Point{ textX, textY }, textColor, m_Style.text.size);
+                context.DrawText(node->label, Point{ textX, textY }, textColor, fontSize);
             }
         }
 
         if (m_ShowRowControls) {
         const float eyeSize = 13.0f;
         const float eyeX = item.geometry.x + item.geometry.width - eyeSize - 8.0f;
-        const float eyeY = item.geometry.y + (m_ItemHeight - eyeSize) * 0.5f;
+        const float eyeY = item.geometry.y + (rowHeight - eyeSize) * 0.5f;
         const Color eyeColor = node->visible ? theme.TextSecondary : theme.TextSecondary * 0.45f;
         const char* eyeIcon = node->visible ? Icons::EyeName : Icons::EyeOffName;
         IconPainter::DrawIcon(context, eyeIcon, Rect{ eyeX, eyeY, eyeSize, eyeSize }, eyeColor);
 
         const float lockSize = 13.0f;
         const float lockX = eyeX - lockSize - 4.0f;
-        const float lockY = item.geometry.y + (m_ItemHeight - lockSize) * 0.5f;
+        const float lockY = item.geometry.y + (rowHeight - lockSize) * 0.5f;
         const Color lockColor = node->locked ? theme.Warning : theme.TextSecondary * 0.55f;
         const char* lockIcon = node->locked ? Icons::LockName : Icons::UnlockName;
         IconPainter::DrawIcon(context, lockIcon, Rect{ lockX, lockY, lockSize, lockSize }, lockColor);
@@ -435,7 +444,7 @@ void TreeView::OnMouseWheel(const MouseEvent& event) {
         return;
     }
 
-    const float scrollAmount = event.wheelDeltaY * m_ItemHeight * 0.75f;
+    const float scrollAmount = event.wheelDeltaY * m_ItemHeight * TreeUiScale() * 0.75f;
     m_ScrollOffset -= scrollAmount;
 
     const float maxScroll = std::max(0.0f, m_ContentHeight - m_Geometry.height);
@@ -612,7 +621,7 @@ void TreeView::BuildRenderList() {
 
     buildRecursive(m_Root, 0, false);
 
-    m_ContentHeight = static_cast<float>(m_RenderList.size()) * m_ItemHeight;
+    m_ContentHeight = static_cast<float>(m_RenderList.size()) * m_ItemHeight * TreeUiScale();
 }
 
 void TreeView::UpdateVisibleRange() {
@@ -622,14 +631,15 @@ void TreeView::UpdateVisibleRange() {
         return;
     }
 
+    const float rowHeight = m_ItemHeight * TreeUiScale();
     const float viewTop = m_Geometry.y;
     const float viewBottom = m_Geometry.y + m_Geometry.height;
     const int overscan = 2;
 
-    m_FirstVisibleIndex = static_cast<int>(std::floor(m_ScrollOffset / m_ItemHeight));
+    m_FirstVisibleIndex = static_cast<int>(std::floor(m_ScrollOffset / rowHeight));
     m_FirstVisibleIndex = std::max(0, m_FirstVisibleIndex - overscan);
 
-    const int visibleCount = static_cast<int>(std::ceil(m_Geometry.height / m_ItemHeight)) + overscan * 2;
+    const int visibleCount = static_cast<int>(std::ceil(m_Geometry.height / rowHeight)) + overscan * 2;
     m_LastVisibleIndex = std::min(static_cast<int>(m_RenderList.size()) - 1, m_FirstVisibleIndex + visibleCount);
 
     (void)viewTop;

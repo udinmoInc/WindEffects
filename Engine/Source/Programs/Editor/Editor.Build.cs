@@ -15,7 +15,9 @@ public class Editor : ModuleRules
         PublicDependencies.Add("Renderer");
         PublicDependencies.Add("Scene");
         PublicDependencies.Add("World");
+        PublicDependencies.Add("Text");
         PublicDependencies.Add("Application");
+        PublicDependencies.Add("UIFramework");
         PublicDependencies.Add("MainFrame");
         PublicDependencies.Add("Docking");
         PublicDependencies.Add("Viewport");

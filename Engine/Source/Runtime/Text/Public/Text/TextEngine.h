@@ -26,7 +26,8 @@ public:
     [[nodiscard]] virtual layout::LayoutResult Layout(
         std::string_view utf8Text,
         const layout::TextStyle& style,
-        const layout::LayoutConstraints& constraints) = 0;
+        const layout::LayoutConstraints& constraints,
+        FontHandle font = kInvalidFontHandle) = 0;
     virtual void SubmitFrame(
         rendering::ITextGpuBackend& backend,
         std::span<const layout::LayoutResult> layouts) = 0;
@@ -35,9 +36,14 @@ public:
 };
 
 struct TextEngineConfig {
-    std::filesystem::path fontStackConfig = "Config/Fonts/DefaultFontStack.json";
+    std::filesystem::path fontStackConfig = "Engine/Config/Fonts/DefaultFontStack.json";
     GraphicsApi graphicsApi = GraphicsApi::Vulkan;
 };
+
+#if defined(_MSC_VER)
+#pragma warning(push)
+#pragma warning(disable : 4251)
+#endif
 
 class TEXT_API TextEngine final : public ITextEngine {
 public:
@@ -48,7 +54,8 @@ public:
     [[nodiscard]] layout::LayoutResult Layout(
         std::string_view utf8Text,
         const layout::TextStyle& style,
-        const layout::LayoutConstraints& constraints) override;
+        const layout::LayoutConstraints& constraints,
+        FontHandle font = kInvalidFontHandle) override;
     void SubmitFrame(
         rendering::ITextGpuBackend& backend,
         std::span<const layout::LayoutResult> layouts) override;
@@ -66,6 +73,10 @@ private:
     std::unique_ptr<diagnostics::IFontDiagnostics> m_Diagnostics;
     FontHandle m_DefaultFont = kInvalidFontHandle;
 };
+
+#if defined(_MSC_VER)
+#pragma warning(pop)
+#endif
 
 [[nodiscard]] TEXT_API std::unique_ptr<ITextEngine> CreateTextEngine(const TextEngineConfig& config = {});
 

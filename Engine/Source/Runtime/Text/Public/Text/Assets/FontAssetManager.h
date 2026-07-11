@@ -40,6 +40,11 @@ public:
     [[nodiscard]] virtual const FontStackConfig& GetFontStackConfig() const = 0;
 };
 
+#if defined(_MSC_VER)
+#pragma warning(push)
+#pragma warning(disable : 4251)
+#endif
+
 class TEXT_API FontAssetManager final : public IFontAssetManager {
 public:
     FontAssetManager();
@@ -67,6 +72,10 @@ private:
     std::unordered_map<FontHandle, LoadedFont> m_Fonts;
     FontStackConfig m_StackConfig;
 };
+
+#if defined(_MSC_VER)
+#pragma warning(pop)
+#endif
 
 [[nodiscard]] TEXT_API std::unique_ptr<IFontAssetManager> CreateFontAssetManager();
 

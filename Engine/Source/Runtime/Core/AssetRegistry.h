@@ -62,11 +62,12 @@ public:
 
     void Clear();
 
+    static std::string ResolveAssetPath(const std::vector<std::string>& candidates);
+
 private:
     AssetRegistry() = default;
     ~AssetRegistry() = default;
 
-    static std::string ResolveAssetPath(const std::vector<std::string>& candidates);
     AssetLoadResult TryLoadAsset(std::string_view name, const std::vector<std::string>& candidates);
 
     std::unordered_map<std::string, AssetTexture> m_Textures;

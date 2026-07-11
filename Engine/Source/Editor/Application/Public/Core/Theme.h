@@ -115,7 +115,8 @@ struct APPLICATION_API Theme {
     float CornerRadiusLarge = 6.0f;
     float WindowCornerRadius = 10.0f;
     
-    // Typography (logical px at 100% DPI; widgets multiply by DPIContext::GetScale())
+    // Typography (logical px at 100% DPI; widgets multiply font sizes by DPIContext::GetScale().
+    // TextUIService renders at the passed fontSize without applying dpiScale again.)
     float TextSizeMenu      = 13.0f; // Menu bar
     float TextSizeToolbar   = 13.0f; // Toolbar
     float TextSizeTabs      = 13.0f; // Dock / panel titles (SemiBold)

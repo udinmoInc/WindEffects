@@ -1,5 +1,9 @@
 #include "Text/TextEngine.h"
 
+#include "AssetRegistry.h"
+
+#include <filesystem>
+
 namespace we::runtime::text {
 
 TextEngine::TextEngine(const TextEngineConfig& config)
@@ -14,7 +18,17 @@ TextEngine::TextEngine(const TextEngineConfig& config)
     m_Batcher = rendering::CreateTextBatcher();
 
     if (!config.fontStackConfig.empty()) {
-        m_AssetManager->LoadFontStackConfig(config.fontStackConfig);
+        const std::vector<std::string> configCandidates = {
+            config.fontStackConfig.string(),
+            "Engine/Config/Fonts/DefaultFontStack.json",
+            "Config/Fonts/DefaultFontStack.json",
+            "../Engine/Config/Fonts/DefaultFontStack.json",
+            "../Config/Fonts/DefaultFontStack.json",
+        };
+        const auto resolvedConfig = we::core::AssetRegistry::ResolveAssetPath(configCandidates);
+        if (!resolvedConfig.empty()) {
+            (void)m_AssetManager->LoadFontStackConfig(resolvedConfig);
+        }
     }
 }
 
@@ -46,7 +60,8 @@ TextResult<FontHandle> TextEngine::LoadFont(const std::filesystem::path& assetPa
 layout::LayoutResult TextEngine::Layout(
     const std::string_view utf8Text,
     const layout::TextStyle& style,
-    const layout::LayoutConstraints& constraints)
+    const layout::LayoutConstraints& constraints,
+    const FontHandle font)
 {
     unicode::UnicodeDecoder decoder;
     const auto bytes = std::span(
@@ -63,13 +78,13 @@ layout::LayoutResult TextEngine::Layout(
         }
     }
 
-    const FontHandle font = m_DefaultFont;
-    if (font == kInvalidFontHandle) {
+    const FontHandle layoutFont = font != kInvalidFontHandle ? font : m_DefaultFont;
+    if (layoutFont == kInvalidFontHandle) {
         m_Diagnostics->Log({"Layout", "No default font loaded", ""});
         return {};
     }
 
-    return m_LayoutEngine->Layout(decoded.codepoints, style, constraints, font);
+    return m_LayoutEngine->Layout(decoded.codepoints, style, constraints, layoutFont);
 }
 
 void TextEngine::SubmitFrame(

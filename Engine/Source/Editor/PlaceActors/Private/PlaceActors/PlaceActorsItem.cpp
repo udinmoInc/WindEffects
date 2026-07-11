@@ -2,6 +2,7 @@
 
 #include "Core/Theme.h"
 #include "Core/Icon.h"
+#include "Core/DPIContext.h"
 #include "EditorToolsRegistry.h"
 
 namespace we::programs::editor {
@@ -30,6 +31,8 @@ void PlaceActorsItem::PaintGrid(PaintContext& context,
                                 bool selected,
                                 bool favorite) {
     const auto& theme = Theme::Get();
+    const float uiScale = (std::max)(1.0f, we::UI::DPIContext::GetScale());
+    const float labelFontSize = 11.0f * uiScale;
     Color bg = theme.PanelBackground;
     if (selected) {
         bg = theme.SelectedBg;
@@ -51,9 +54,9 @@ void PlaceActorsItem::PaintGrid(PaintContext& context,
     we::UI::IconPainter::DrawIcon(context, item.iconName, Rect{ iconX, iconY, iconDraw, iconDraw }, theme.TextPrimary);
 
     const float textY = bounds.y + bounds.height - 22.0f;
-    const float textWidth = context.GetTextWidth(item.label, 11.0f);
+    const float textWidth = context.GetTextWidth(item.label, labelFontSize, true);
     const float textX = bounds.x + std::max(4.0f, (bounds.width - textWidth) * 0.5f);
-    context.DrawText(item.label, Point{ textX, textY }, theme.TextPrimary, 11.0f, true);
+    context.DrawText(item.label, Point{ textX, textY }, theme.TextPrimary, labelFontSize, true);
 
     if (favorite) {
         we::UI::IconPainter::DrawIcon(context, we::UI::Icons::StarFilledName,
@@ -70,6 +73,8 @@ void PlaceActorsItem::PaintList(PaintContext& context,
                                 bool selected,
                                 bool favorite) {
     const auto& theme = Theme::Get();
+    const float uiScale = (std::max)(1.0f, we::UI::DPIContext::GetScale());
+    const float labelFontSize = 11.0f * uiScale;
     Color bg = theme.PanelBackground;
     if (selected) {
         bg = theme.SelectedBg;
@@ -86,9 +91,10 @@ void PlaceActorsItem::PaintList(PaintContext& context,
     we::UI::IconPainter::DrawIcon(context, item.iconName,
         Rect{ bounds.x + theme.Space2, bounds.y + (bounds.height - iconSize) * 0.5f, iconSize, iconSize }, theme.TextPrimary);
 
-    context.DrawText(item.label, Point{ bounds.x + theme.Space6 - 4.0f, bounds.y + theme.Space2 }, theme.TextPrimary, theme.TextSizeSmall, true);
+    const float captionFontSize = theme.TextSizeCaption * uiScale;
+    context.DrawText(item.label, Point{ bounds.x + theme.Space6 - 4.0f, bounds.y + theme.Space2 }, theme.TextPrimary, labelFontSize, true);
     if (!item.description.empty()) {
-        context.DrawText(item.description, Point{ bounds.x + theme.Space6 - 4.0f, bounds.y + theme.Space4 }, theme.TextSecondary, theme.TextSizeCaption);
+        context.DrawText(item.description, Point{ bounds.x + theme.Space6 - 4.0f, bounds.y + theme.Space4 }, theme.TextSecondary, captionFontSize);
     }
 
     if (favorite) {

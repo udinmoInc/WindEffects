@@ -6,6 +6,7 @@
 #include "Text/Layout/TextLayoutEngine.h"
 
 #include <cstdint>
+#include <memory>
 #include <span>
 #include <string>
 #include <vector>

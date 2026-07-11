@@ -1,0 +1,19 @@
+
+#include "Modules/IModuleInterface.h"
+#include "Core/Logger.h"
+
+class UIFrameworkModule : public IModuleInterface
+{
+public:
+    virtual void StartupModule() override
+    {
+        WE_LOG_TRACE("Plugin", "UIFrameworkModule started");
+    }
+
+    virtual void ShutdownModule() override
+    {
+        WE_LOG_TRACE("Plugin", "UIFrameworkModule shutdown");
+    }
+};
+
+IMPLEMENT_MODULE(UIFrameworkModule, WindEffects_UIFramework)
