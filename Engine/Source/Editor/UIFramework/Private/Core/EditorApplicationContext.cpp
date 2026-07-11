@@ -42,3 +42,5 @@ void EditorApplicationContext::Shutdown() {
 }
 
 } // namespace WindEffects::Editor::UI
+
+

@@ -2,7 +2,7 @@
 #include "Widgets/DropdownMenu.h"
 #include "Layout/OverlayManager.h"
 #include "Core/PaintContext.h"
-#include "Core/Theme.h"
+#include "WindEffects/Editor/UI/Theming/ThemeToken.h"
 #include "Core/Icon.h"
 #include "Core/DPIContext.h"
 #include <algorithm>
@@ -15,7 +15,7 @@ MenuBar::MenuBar()
 
 Size MenuBar::Measure(const Size& availableSize) {
     const float uiScale = (std::max)(1.0f, DPIContext::GetScale());
-    const float textSize = Theme::Get().TextSizeMenu * uiScale;
+    const float textSize = ThemeMetric(ThemeToken::TextSizeMenu) * uiScale;
     auto getApproxTextWidth = [textSize](const std::string& str) {
         float w = 0.0f;
         for (char c : str) {
@@ -45,27 +45,26 @@ void MenuBar::Arrange(const Rect& allottedRect) {
 
 void MenuBar::Paint(PaintContext& context) {
     const float uiScale = (std::max)(1.0f, DPIContext::GetScale());
-    const auto& theme = Theme::Get();
-    const float textSize = theme.TextSizeMenu * uiScale;
+    const float textSize = ThemeMetric(ThemeToken::TextSizeMenu) * uiScale;
 
     auto drawMenu = [&](const MenuInfo& menu, int index) {
         bool isActive = m_MenuOpen && index == m_HoveredMenu;
 
         if (menu.hovered && !isActive) {
-            context.DrawRoundedRect(menu.geometry, theme.HoverMenu, theme.CornerRadiusSmall * uiScale);
+            context.DrawRoundedRect(menu.geometry, ThemeColor(ThemeToken::HoverBackground), ThemeMetric(ThemeToken::CornerRadiusSmall) * uiScale);
         }
 
         if (isActive) {
             Rect underlineRect = menu.geometry;
-            underlineRect.y += menu.geometry.height - theme.Space1;
-            underlineRect.height = theme.Space1;
-            context.DrawRect(underlineRect, theme.ActiveTabLine);
+            underlineRect.y += menu.geometry.height - ThemeMetric(ThemeToken::Space1);
+            underlineRect.height = ThemeMetric(ThemeToken::Space1);
+            context.DrawRect(underlineRect, ThemeColor(ThemeToken::ActiveTabLine));
         }
 
         float textX = menu.geometry.x + m_ItemPaddingH * uiScale;
         float textY = menu.geometry.y + (menu.geometry.height - textSize) / 2.0f;
 
-        Color textColor = theme.TextForState(menu.hovered || isActive, isActive);
+        Color textColor = ThemeTextForState(menu.hovered || isActive, isActive);
         context.DrawText(menu.label, Point{ textX, textY }, textColor, textSize);
     };
 

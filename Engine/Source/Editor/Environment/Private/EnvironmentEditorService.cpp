@@ -10,7 +10,7 @@
 #include "Widgets/MenuBar.h"
 #include "EditorWorkspaceController.h"
 #include "Core/PaintContext.h"
-#include "Core/Theme.h"
+#include "WindEffects/Editor/UI/Theming/ThemeToken.h"
 #include "Core/Icon.h"
 
 #include <glm/glm.hpp>
@@ -508,8 +508,8 @@ public:
 
     void Paint(WindEffects::Editor::UI::PaintContext& context) override {
         context.DrawShadow(m_Geometry, WindEffects::Editor::UI::Color{ 0.0f, 0.0f, 0.0f, 0.15f }, 4.0f, 12.0f);
-        context.DrawRoundedRect(m_Geometry, WindEffects::Editor::UI::Theme::Get().PanelBackground, 4.0f);
-        context.DrawRoundedRectOutline(m_Geometry, WindEffects::Editor::UI::Theme::Get().BorderDefault, 1.0f, 4.0f);
+        context.DrawRoundedRect(m_Geometry, ThemeColor(WindEffects::Editor::UI::ThemeToken::PanelBackground), 4.0f);
+        context.DrawRoundedRectOutline(m_Geometry, ThemeColor(WindEffects::Editor::UI::ThemeToken::BorderDefault), 1.0f, 4.0f);
 
         float y = m_Geometry.y + 4.0f;
         for (size_t i = 0; i < m_Items.size(); ++i) {
@@ -520,14 +520,14 @@ public:
                 continue;
             }
             if (static_cast<int>(i) == m_Hovered) {
-                context.DrawRoundedRect(row, WindEffects::Editor::UI::Theme::Get().HoverOverlay, 3.0f);
+                context.DrawRoundedRect(row, ThemeColor(WindEffects::Editor::UI::ThemeToken::HoverBackground), 3.0f);
             }
             context.DrawText(item->label, WindEffects::Editor::UI::Point{ row.x + 12.0f, row.y + 6.0f },
-                WindEffects::Editor::UI::Theme::Get().TextPrimary, 11.0f);
+                ThemeColor(WindEffects::Editor::UI::ThemeToken::TextPrimary), 11.0f);
             if (item->checked) {
                 WindEffects::Editor::UI::IconPainter::DrawIcon(context, WindEffects::Editor::UI::Icons::CheckName,
                     WindEffects::Editor::UI::Rect{ row.x + row.width - 22.0f, row.y + 5.0f, 16.0f, 16.0f },
-                    WindEffects::Editor::UI::Theme::Get().SelectedAccent);
+                    ThemeColor(WindEffects::Editor::UI::ThemeToken::AccentPrimary));
             }
             y += 28.0f;
         }
@@ -583,20 +583,20 @@ public:
     void Paint(WindEffects::Editor::UI::PaintContext& context) override {
         WindEffects::Editor::UI::Rect rect = m_Geometry;
         if (m_Hovered || m_Pressed) {
-            context.DrawRoundedRect(rect, WindEffects::Editor::UI::Theme::Get().HoverOverlay, 3.0f);
+            context.DrawRoundedRect(rect, ThemeColor(WindEffects::Editor::UI::ThemeToken::HoverBackground), 3.0f);
         }
         
         float centerY = rect.y + rect.height / 2.0f;
         
         WindEffects::Editor::UI::IconPainter::DrawIcon(context, WindEffects::Editor::UI::Icons::SunName,
-            WindEffects::Editor::UI::Rect{ rect.x + 6.0f, std::floor(centerY - 9.0f), 18.0f, 18.0f }, WindEffects::Editor::UI::Theme::Get().TextPrimary);
+            WindEffects::Editor::UI::Rect{ rect.x + 6.0f, std::floor(centerY - 9.0f), 18.0f, 18.0f }, ThemeColor(WindEffects::Editor::UI::ThemeToken::TextPrimary));
             
         context.DrawText("Environment", WindEffects::Editor::UI::Point{ rect.x + 28.0f, std::floor(centerY - 5.5f) },
-            WindEffects::Editor::UI::Theme::Get().TextPrimary, 11.0f, true);
+            ThemeColor(WindEffects::Editor::UI::ThemeToken::TextPrimary), 11.0f, true);
             
         WindEffects::Editor::UI::IconPainter::DrawIcon(context, WindEffects::Editor::UI::Icons::ChevronDownName,
             WindEffects::Editor::UI::Rect{ rect.x + rect.width - 16.0f, std::floor(centerY - 5.0f), 10.0f, 10.0f },
-            WindEffects::Editor::UI::Theme::Get().TextSecondary);
+            ThemeColor(WindEffects::Editor::UI::ThemeToken::TextSecondary));
     }
 
     void OnMouseMove(const WindEffects::Editor::UI::MouseEvent& event) override {

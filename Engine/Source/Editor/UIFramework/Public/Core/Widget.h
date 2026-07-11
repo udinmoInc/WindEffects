@@ -76,16 +76,6 @@ public:
     
     // Optional diagnostics pointer (set by owner for tracking)
     static Diagnostics* s_GlobalDiagnostics;
-    
-    // Legacy static accessors for compatibility (deprecated)
-    static uint32_t s_TotalWidgetCount;
-    static uint32_t s_VisibleWidgetCount;
-    static uint32_t s_HiddenWidgetCount;
-    static uint32_t s_PaintCalls;
-    static uint32_t s_ArrangeChildrenCalls;
-    static uint32_t s_LayoutPassCount;
-    static uint32_t s_InvalidateCount;
-    static uint32_t s_WidgetsPainted;
     static void ResetDiagnostics();
 
     // Child management
@@ -120,8 +110,13 @@ public:
     [[nodiscard]] IStyleResolver& Styles() const;
     [[nodiscard]] Color ThemeColor(ThemeToken token) const;
     [[nodiscard]] float ThemeMetric(ThemeToken token) const;
+    [[nodiscard]] Margin ThemePadding(ThemeToken token) const;
     [[nodiscard]] ResolvedStyle ResolveStyle(StyleRole role) const;
     [[nodiscard]] float Scaled(float logicalValue) const;
+    [[nodiscard]] IThemeProvider& Theme() const;
+    [[nodiscard]] Color ThemeInteractiveBackground(float hoverAnim, float pressAnim, bool selected = false) const;
+    [[nodiscard]] Color ThemeTextForState(bool hovered, bool active = false) const;
+    [[nodiscard]] Color ThemeIconForState(bool hovered, bool active = false) const;
 
     [[nodiscard]] IPopupHost* GetPopupHost() const;
 

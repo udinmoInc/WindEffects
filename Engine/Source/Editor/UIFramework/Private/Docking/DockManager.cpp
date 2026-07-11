@@ -1,8 +1,163 @@
 #include "WindEffects/Editor/UI/Docking/DockManager.h"
 
 #include <fstream>
+#include <sstream>
+
+#if WE_HAS_NLOHMANN_JSON
+#include <nlohmann/json.h>
+#endif
 
 namespace WindEffects::Editor::UI {
+namespace {
+
+#if WE_HAS_NLOHMANN_JSON
+
+const char* ToString(DockNodeType type) {
+    switch (type) {
+    case DockNodeType::Split: return "Split";
+    case DockNodeType::TabGroup: return "TabGroup";
+    case DockNodeType::Panel: return "Panel";
+    case DockNodeType::Root: return "Root";
+    }
+    return "Root";
+}
+
+const char* ToString(SplitOrientation orientation) {
+    return orientation == SplitOrientation::Vertical ? "Vertical" : "Horizontal";
+}
+
+const char* ToString(DockZone zone) {
+    switch (zone) {
+    case DockZone::Left: return "Left";
+    case DockZone::Center: return "Center";
+    case DockZone::Right: return "Right";
+    case DockZone::Bottom: return "Bottom";
+    case DockZone::Floating: return "Floating";
+    }
+    return "Floating";
+}
+
+bool TryParseNodeType(std::string_view value, DockNodeType& out) {
+    if (value == "Split") { out = DockNodeType::Split; return true; }
+    if (value == "TabGroup") { out = DockNodeType::TabGroup; return true; }
+    if (value == "Panel") { out = DockNodeType::Panel; return true; }
+    if (value == "Root") { out = DockNodeType::Root; return true; }
+    return false;
+}
+
+bool TryParseOrientation(std::string_view value, SplitOrientation& out) {
+    if (value == "Vertical") { out = SplitOrientation::Vertical; return true; }
+    if (value == "Horizontal") { out = SplitOrientation::Horizontal; return true; }
+    return false;
+}
+
+bool TryParseDockZone(std::string_view value, DockZone& out) {
+    if (value == "Left") { out = DockZone::Left; return true; }
+    if (value == "Center") { out = DockZone::Center; return true; }
+    if (value == "Right") { out = DockZone::Right; return true; }
+    if (value == "Bottom") { out = DockZone::Bottom; return true; }
+    if (value == "Floating") { out = DockZone::Floating; return true; }
+    return false;
+}
+
+nlohmann::json SerializeNode(const DockLayoutNode& node) {
+    nlohmann::json json;
+    json["type"] = ToString(node.type);
+    json["orientation"] = ToString(node.orientation);
+    json["splitRatio"] = node.splitRatio;
+    if (!node.panelId.empty()) {
+        json["panelId"] = node.panelId;
+    }
+    if (!node.children.empty()) {
+        json["children"] = nlohmann::json::array();
+        for (const auto& child : node.children) {
+            json["children"].push_back(SerializeNode(child));
+        }
+    }
+    return json;
+}
+
+bool DeserializeNode(const nlohmann::json& json, DockLayoutNode& node) {
+    if (!json.is_object()) {
+        return false;
+    }
+
+    if (json.contains("type")) {
+        DockNodeType type = DockNodeType::Root;
+        if (!TryParseNodeType(json["type"].get<std::string>(), type)) {
+            return false;
+        }
+        node.type = type;
+    }
+
+    if (json.contains("orientation")) {
+        SplitOrientation orientation = SplitOrientation::Horizontal;
+        if (!TryParseOrientation(json["orientation"].get<std::string>(), orientation)) {
+            return false;
+        }
+        node.orientation = orientation;
+    }
+
+    if (json.contains("splitRatio")) {
+        node.splitRatio = json["splitRatio"].get<float>();
+    }
+
+    if (json.contains("panelId")) {
+        node.panelId = json["panelId"].get<std::string>();
+    }
+
+    node.children.clear();
+    if (json.contains("children") && json["children"].is_array()) {
+        for (const auto& childJson : json["children"]) {
+            DockLayoutNode child;
+            if (!DeserializeNode(childJson, child)) {
+                return false;
+            }
+            node.children.push_back(std::move(child));
+        }
+    }
+
+    return true;
+}
+
+nlohmann::json SerializePanelDescriptor(const DockPanelDescriptor& panel) {
+    nlohmann::json json;
+    json["id"] = panel.id;
+    json["title"] = panel.title;
+    json["iconResource"] = panel.iconResource;
+    json["defaultZone"] = ToString(panel.defaultZone);
+    json["closable"] = panel.closable;
+    json["floatable"] = panel.floatable;
+    json["defaultVisible"] = panel.defaultVisible;
+    json["sortOrder"] = panel.sortOrder;
+    return json;
+}
+
+bool DeserializePanelDescriptor(const nlohmann::json& json, DockPanelDescriptor& panel) {
+    if (!json.is_object()) {
+        return false;
+    }
+
+    if (json.contains("id")) panel.id = json["id"].get<std::string>();
+    if (json.contains("title")) panel.title = json["title"].get<std::string>();
+    if (json.contains("iconResource")) panel.iconResource = json["iconResource"].get<std::string>();
+    if (json.contains("defaultZone")) {
+        DockZone zone = DockZone::Floating;
+        if (!TryParseDockZone(json["defaultZone"].get<std::string>(), zone)) {
+            return false;
+        }
+        panel.defaultZone = zone;
+    }
+    if (json.contains("closable")) panel.closable = json["closable"].get<bool>();
+    if (json.contains("floatable")) panel.floatable = json["floatable"].get<bool>();
+    if (json.contains("defaultVisible")) panel.defaultVisible = json["defaultVisible"].get<bool>();
+    if (json.contains("sortOrder")) panel.sortOrder = json["sortOrder"].get<int>();
+    return true;
+}
+
+#endif // WE_HAS_NLOHMANN_JSON
+
+} // namespace
 
 void DockManager::RegisterPanel(const DockPanelDescriptor& descriptor, PanelFactory factory) {
     std::lock_guard lock(m_Mutex);
@@ -67,24 +222,82 @@ void DockManager::DockPanel(std::string_view panelId, DockZone zone) {
 }
 
 bool DockLayoutSerializer::Save(const WorkspaceLayout& layout, std::string_view path) const {
+#if WE_HAS_NLOHMANN_JSON
+    nlohmann::json json;
+    json["workspaceId"] = layout.workspaceId;
+    json["root"] = SerializeNode(layout.root);
+
+    json["panels"] = nlohmann::json::object();
+    for (const auto& [id, panel] : layout.panels) {
+        (void)id;
+        json["panels"][panel.id] = SerializePanelDescriptor(panel);
+    }
+
+    std::ofstream file{std::string(path)};
+    if (!file) {
+        return false;
+    }
+    file << json.dump(2);
+    return static_cast<bool>(file);
+#else
     std::ofstream file{std::string(path)};
     if (!file) return false;
     file << "{\n";
-    file << "  \"workspaceId\": \"" << layout.workspaceId << "\",\n";
-    file << "  \"splitRatios\": {\n";
-    file << "    \"mainHorizontal\": 0.78,\n";
-    file << "    \"leftCenterVertical\": 0.70,\n";
-    file << "    \"toolsViewportHorizontal\": 0.18,\n";
-    file << "    \"rightVertical\": 0.40\n";
-    file << "  }\n";
+    file << "  \"workspaceId\": \"" << layout.workspaceId << "\"\n";
     file << "}\n";
     return true;
+#endif
 }
 
 bool DockLayoutSerializer::Load(WorkspaceLayout& layout, std::string_view path) const {
+#if WE_HAS_NLOHMANN_JSON
+    std::ifstream file{std::string(path)};
+    if (!file) {
+        return false;
+    }
+
+    nlohmann::json json;
+    try {
+        file >> json;
+    } catch (const nlohmann::json::exception&) {
+        return false;
+    }
+
+    if (!json.is_object()) {
+        return false;
+    }
+
+    WorkspaceLayout loaded;
+    if (json.contains("workspaceId")) {
+        loaded.workspaceId = json["workspaceId"].get<std::string>();
+    }
+
+    if (json.contains("root")) {
+        if (!DeserializeNode(json["root"], loaded.root)) {
+            return false;
+        }
+    }
+
+    if (json.contains("panels") && json["panels"].is_object()) {
+        for (const auto& [id, panelJson] : json["panels"].items()) {
+            DockPanelDescriptor panel;
+            if (!DeserializePanelDescriptor(panelJson, panel)) {
+                return false;
+            }
+            if (panel.id.empty()) {
+                panel.id = id;
+            }
+            loaded.panels[panel.id] = std::move(panel);
+        }
+    }
+
+    layout = std::move(loaded);
+    return true;
+#else
     (void)layout;
     (void)path;
     return false;
+#endif
 }
 
 WorkspaceLayout CreateDefaultEditorWorkspaceLayout() {

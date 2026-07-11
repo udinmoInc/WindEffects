@@ -1,6 +1,6 @@
 #include "Widgets/CommandInput.h"
 #include "Core/PaintContext.h"
-#include "Core/Theme.h"
+#include "WindEffects/Editor/UI/Theming/ThemeToken.h"
 #include "Core/Icon.h"
 #include <SDL3/SDL.h>
 #include <algorithm>
@@ -23,32 +23,32 @@ void CommandInput::Arrange(const Rect& allottedRect) {
 
 void CommandInput::Paint(PaintContext& context) {
     const float cornerRadius = 4.0f;
-    context.DrawRoundedRect(m_Geometry, Theme::Get().InputBackground, cornerRadius);
+    context.DrawRoundedRect(m_Geometry, ThemeColor(ThemeToken::InputBackground), cornerRadius);
 
-    Color borderColor = Theme::Get().BorderDefault;
+    Color borderColor = ThemeColor(ThemeToken::BorderDefault);
     if (IsFocused()) {
-        borderColor = Theme::Get().SelectedAccent;
+        borderColor = ThemeColor(ThemeToken::AccentPrimary);
     }
     context.DrawRoundedRectOutline(m_Geometry, borderColor, 1.0f, cornerRadius);
 
     const float iconSize = 14.0f;
     const float iconX = m_Geometry.x + 10.0f;
     const float iconY = m_Geometry.y + (m_Geometry.height - iconSize) / 2.0f;
-    IconPainter::DrawIcon(context, Icons::ConsoleName, Rect{ iconX, iconY, iconSize, iconSize }, Theme::Get().TextSecondary);
+    IconPainter::DrawIcon(context, Icons::ConsoleName, Rect{ iconX, iconY, iconSize, iconSize }, ThemeColor(ThemeToken::TextSecondary));
 
     const float textX = m_Geometry.x + 10.0f + iconSize + 8.0f;
     const float fontSize = 12.0f;
     const float textY = m_Geometry.y + (m_Geometry.height - fontSize) / 2.0f;
 
     if (m_Text.empty() && !IsFocused()) {
-        context.DrawText(m_Placeholder, Point{ textX, textY }, Theme::Get().SearchPlaceholder, fontSize);
+        context.DrawText(m_Placeholder, Point{ textX, textY }, ThemeColor(ThemeToken::SearchPlaceholder), fontSize);
         return;
     }
 
-    context.DrawText(m_Text, Point{ textX, textY }, Theme::Get().TextPrimary, fontSize);
+    context.DrawText(m_Text, Point{ textX, textY }, ThemeColor(ThemeToken::TextPrimary), fontSize);
     if (IsFocused() && m_ShowCaret) {
         const float caretX = textX + context.GetTextWidth(m_Text.substr(0, m_CaretPosition), fontSize);
-        context.DrawRect(Rect{ caretX, textY, 1.5f, fontSize }, Theme::Get().TextPrimary);
+        context.DrawRect(Rect{ caretX, textY, 1.5f, fontSize }, ThemeColor(ThemeToken::TextPrimary));
     }
 }
 

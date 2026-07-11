@@ -1,6 +1,6 @@
 #include "Widgets/Button.h"
 #include "Core/PaintContext.h"
-#include "Core/Theme.h"
+#include "WindEffects/Editor/UI/Theming/ThemeToken.h"
 #include "Core/Style.h"
 #include "Core/DPIContext.h"
 #include "Core/Animator.h"
@@ -15,12 +15,11 @@ Button::Button(const std::string& labelText, std::function<void()> onClicked)
 
 Size Button::Measure(const Size& availableSize) {
     (void)availableSize;
-    auto& theme = Theme::Get();
     
     // Calculate text width using proper font metrics
-    float textWidth = m_Text.length() * theme.TextSizeBody * 0.6f;
+    float textWidth = m_Text.length() * ThemeMetric(ThemeToken::TextSizeBody) * 0.6f;
     float width = textWidth + m_Style.padding.left + m_Style.padding.right;
-    float height = theme.TextSizeBody + m_Style.padding.top + m_Style.padding.bottom;
+    float height = ThemeMetric(ThemeToken::TextSizeBody) + m_Style.padding.top + m_Style.padding.bottom;
 
     m_DesiredSize = Size{ width, height };
     return m_DesiredSize;

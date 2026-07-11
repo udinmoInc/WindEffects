@@ -4,6 +4,7 @@
 #include "Widgets/Panel.h"
 #include "Widgets/TreeView.h"
 #include "Widgets/ExplorerPanelHeader.h"
+#include "WindEffects/Editor/UI/Theming/ThemeAccess.h"
 #include "Widgets/ExplorerFilterMenu.h"
 #include "Core/Icon.h"
 #include "EditorWorkspaceController.h"

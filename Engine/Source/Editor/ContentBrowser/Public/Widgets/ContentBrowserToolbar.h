@@ -5,7 +5,7 @@
 #include "Core/Widgets/SecondaryToolbarButton.h"
 #include "Core/Widgets/ToolbarIconButton.h"
 #include "Core/Widgets/ToolbarNavigationButton.h"
-#include "Core/ToolbarDesignTokens.h"
+#include "WindEffects/Editor/UI/Theming/ThemeToken.h"
 #include "Models/ContentBrowserModel.h"
 #include <functional>
 #include <memory>

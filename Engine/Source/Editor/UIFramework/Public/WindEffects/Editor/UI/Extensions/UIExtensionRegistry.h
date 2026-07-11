@@ -19,18 +19,17 @@ class Widget;
 
 namespace WindEffects::Editor::UI {
 
-using LegacyPanelFactory = std::function<std::shared_ptr<WindEffects::Editor::UI::Panel>()>;
-using LegacyMenuFactory = std::function<std::vector<std::shared_ptr<WindEffects::Editor::UI::MenuItem>>()>;
-using LegacyWidgetFactory = std::function<std::shared_ptr<WindEffects::Editor::UI::Widget>()>;
+using ExtensionPanelFactory = std::function<std::shared_ptr<WindEffects::Editor::UI::Panel>()>;
+using ExtensionMenuFactory = std::function<std::vector<std::shared_ptr<WindEffects::Editor::UI::MenuItem>>()>;
 
 struct PanelRegistration {
     DockPanelDescriptor descriptor;
-    LegacyPanelFactory factory;
+    ExtensionPanelFactory factory;
 };
 
 struct MenuRegistration {
     std::string menuName;
-    LegacyMenuFactory factory;
+    ExtensionMenuFactory factory;
     int sortOrder = 0;
 };
 
@@ -49,8 +48,8 @@ public:
     void RegisterMenu(MenuRegistration registration);
     void RegisterCommand(std::shared_ptr<ICommand> command);
 
-    [[nodiscard]] const std::unordered_map<std::string, PanelRegistration>& GetPanels() const { return m_Panels; }
-    [[nodiscard]] const std::vector<MenuRegistration>& GetMenus() const { return m_Menus; }
+    [[nodiscard]] const std::unordered_map<std::string, PanelRegistration>& GetPanels() const;
+    [[nodiscard]] const std::vector<MenuRegistration>& GetMenus() const;
 
     void PopulateDockManager(IDockManager& dockManager) const;
     void PopulateCommandRegistry(ICommandRegistry& commands) const;

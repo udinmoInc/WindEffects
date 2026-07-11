@@ -1,5 +1,5 @@
 #include "Widgets/RenderDiagnosticsPanel.h"
-#include "Core/Theme.h"
+#include "WindEffects/Editor/UI/Theming/ThemeToken.h"
 
 namespace WindEffects::Editor::UI {
 
@@ -7,8 +7,8 @@ RenderDiagnosticsPanel::RenderDiagnosticsPanel() {
     m_Scroll = std::make_shared<ScrollLayout>();
     m_ContentLabel = std::make_shared<Label>("Render forensic diagnostics unavailable in foundation renderer.");
     TextStyle style;
-    style.size = Theme::Get().TextSizeProperty - 1.0f;
-    style.color = Theme::Get().TextSecondary;
+    style.size = ThemeMetric(ThemeToken::TextSizeProperty) - 1.0f;
+    style.color = ThemeColor(ThemeToken::TextSecondary);
     m_ContentLabel->SetStyle(style);
     m_Scroll->SetContent(m_ContentLabel);
 }

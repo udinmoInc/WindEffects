@@ -92,6 +92,8 @@ EditorShellResult EditorShellBuilder::Build(
     EditorShellResult shellResult;
     const float uiScale = std::max(1.0f, deps.dpiScale);
 
+    auto widgetContext = std::make_shared<WidgetContext>(context, nullptr);
+
     context.GetExtensionRegistry().PopulateDockManager(context.GetDockManager());
 
     auto& style = context.GetStyleResolver();
@@ -99,6 +101,7 @@ EditorShellResult EditorShellBuilder::Build(
     const auto statusStyle = style.Resolve(StyleRole::StatusBar);
 
     auto menuBar = std::make_shared<MenuBar>();
+    menuBar->SetContext(widgetContext);
 
     std::vector<std::shared_ptr<MenuItem>> fileItems;
     auto newItem = std::make_shared<MenuItem>();
@@ -184,11 +187,13 @@ EditorShellResult EditorShellBuilder::Build(
     }
 
     auto titleBar = std::make_shared<TitleBar>(deps.window, "WindEffects Editor", logoSet, menuBar);
+    titleBar->SetContext(widgetContext);
     titleBar->Construct();
 
     we::programs::editor::EditorModeController::Get().InitializeFromRegistry();
 
     auto toolbar = std::make_shared<Toolbar>();
+    toolbar->SetContext(widgetContext);
     toolbar->SetHeight(toolbarStyle.height > 0.0f ? toolbarStyle.height : 36.0f * uiScale);
     toolbar->SetLeftInset(style.Scaled(12.0f));
     toolbar->SetIconSize(toolbarStyle.iconSize > 0.0f ? toolbarStyle.iconSize : 18.0f * uiScale);
@@ -339,7 +344,7 @@ EditorShellResult EditorShellBuilder::Build(
     overlayHost->SetBaseWidget(windowShell);
     workspace.SetPopupHost(overlayHost.get());
 
-    auto widgetContext = std::make_shared<WidgetContext>(context, overlayHost.get());
+    widgetContext->SetPopupHost(overlayHost.get());
     PropagateWidgetContext(overlayHost, widgetContext);
 
     shellResult.titleBar = titleBar;

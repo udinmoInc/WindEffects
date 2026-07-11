@@ -24,6 +24,14 @@ void UIExtensionRegistry::RegisterCommand(std::shared_ptr<ICommand> command) {
     }
 }
 
+const std::unordered_map<std::string, PanelRegistration>& UIExtensionRegistry::GetPanels() const {
+    return m_Panels;
+}
+
+const std::vector<MenuRegistration>& UIExtensionRegistry::GetMenus() const {
+    return m_Menus;
+}
+
 void UIExtensionRegistry::PopulateDockManager(IDockManager& dockManager) const {
     for (const auto& [id, reg] : m_Panels) {
         dockManager.RegisterPanel(reg.descriptor, [factory = reg.factory]() -> std::shared_ptr<void> {

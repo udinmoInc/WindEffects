@@ -1,7 +1,7 @@
 #include "Widgets/TitleBar.h"
 #include "Widgets/MenuBar.h"
 #include "Core/PaintContext.h"
-#include "Core/Theme.h"
+#include "WindEffects/Editor/UI/Theming/ThemeToken.h"
 #include "Core/Icon.h"
 #include "Widgets/Label.h"
 #include "Widgets/Panel.h"
@@ -60,9 +60,9 @@ namespace {
             };
 
             if (m_LogoSet != VK_NULL_HANDLE) {
-                context.DrawTexture(logoRect, m_LogoSet, Theme::Get().TextSecondary);
+                context.DrawTexture(logoRect, m_LogoSet, ThemeColor(ThemeToken::TextSecondary));
             } else {
-                IconPainter::DrawIcon(context, Icons::CameraName, logoRect, Theme::Get().SelectedAccent);
+                IconPainter::DrawIcon(context, Icons::CameraName, logoRect, ThemeColor(ThemeToken::AccentPrimary));
             }
         }
     private:
@@ -95,23 +95,22 @@ namespace {
             }
         }
         void Paint(PaintContext& context) override {
-            const auto& theme = Theme::Get();
-            Color bg = m_Hovered ? theme.HoverBg : theme.PanelBackground;
-            context.DrawRoundedRect(m_Geometry, bg, theme.CornerRadiusSmall);
+            Color bg = m_Hovered ? ThemeColor(ThemeToken::HoverBackground) : ThemeColor(ThemeToken::PanelBackground);
+            context.DrawRoundedRect(m_Geometry, bg, ThemeMetric(ThemeToken::CornerRadiusSmall));
 
-            Color borderCol = m_Hovered ? theme.BorderLight : theme.BorderDefault;
-            context.DrawRoundedRectOutline(m_Geometry, borderCol, theme.BorderWidth, theme.CornerRadiusSmall);
+            Color borderCol = m_Hovered ? ThemeColor(ThemeToken::BorderLight) : ThemeColor(ThemeToken::BorderDefault);
+            context.DrawRoundedRectOutline(m_Geometry, borderCol, ThemeMetric(ThemeToken::BorderWidth), ThemeMetric(ThemeToken::CornerRadiusSmall));
 
             float centerY = m_Geometry.y + m_Geometry.height / 2.0f;
 
             IconPainter::DrawIcon(context, Icons::PackageName,
                 Rect{ m_Geometry.x + kLeftPad, centerY - kIconSize / 2.0f, kIconSize, kIconSize },
-                theme.TextSecondary);
+                ThemeColor(ThemeToken::TextSecondary));
 
             float textX = m_Geometry.x + kLeftPad + kIconSize + kIconGap;
             context.DrawText(kProjectName,
                 Point{ textX, centerY - kTextSize / 2.0f },
-                theme.TextPrimary, kTextSize);
+                ThemeColor(ThemeToken::TextPrimary), kTextSize);
 
             float chevX = m_Geometry.x + m_Geometry.width - kRightPad - kChevSize;
             IconPainter::DrawIcon(context, Icons::ChevronDownName,
@@ -266,12 +265,12 @@ void TitleBar::Arrange(const Rect& allottedRect) {
 }
 
 void TitleBar::Paint(PaintContext& context) {
-    context.DrawRect(m_Geometry, Theme::Get().HeaderBackground);
+    context.DrawRect(m_Geometry, ThemeColor(ThemeToken::HeaderBackground));
 
     context.DrawLine(
         Point{ m_Geometry.x, m_Geometry.y + m_Geometry.height - 1.0f },
         Point{ m_Geometry.x + m_Geometry.width, m_Geometry.y + m_Geometry.height - 1.0f },
-        Theme::Get().BorderSecondary,
+        ThemeColor(ThemeToken::BorderDark),
         1.0f);
 
     HorizontalBox::Paint(context);

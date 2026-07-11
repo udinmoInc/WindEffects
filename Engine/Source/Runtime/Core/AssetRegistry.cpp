@@ -192,7 +192,7 @@ bool AssetRegistry::LoadDefaultEditorAssets() {
         }
     }
 
-    HE_INFO("[Assets] Theme loaded (in-memory defaults via Theme::Get())");
+    HE_INFO("[Assets] Theme provider initialized (GraphiteDarkTheme tokens)");
     HE_INFO("[Assets] Default asset load " + std::string(allRequiredFound ? "succeeded" : "FAILED"));
     return allRequiredFound;
 }

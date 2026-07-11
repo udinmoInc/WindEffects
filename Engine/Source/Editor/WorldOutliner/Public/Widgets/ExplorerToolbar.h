@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Core/Widget.h"
-#include "Core/Theme.h"
+#include "WindEffects/Editor/UI/Theming/ThemeAccess.h"
 #include "Widgets/TreeView.h"
 #include <functional>
 #include <string>
@@ -11,7 +11,7 @@ namespace WindEffects::Editor::UI {
 
 class ExplorerToolbar : public Widget {
 public:
-    static float DefaultHeight() { return Theme::Get().PanelHeaderHeight; }
+    static float DefaultHeight() { return ResolveThemeMetric(ThemeToken::PanelHeaderHeight); }
 
     // Use TreeView's FilterOptions for consistency
     using FilterOptions = TreeView::FilterOptions;
@@ -55,8 +55,8 @@ private:
         bool enabled = true;
     };
 
-    void PaintToolbarButton(PaintContext& context, const Rect& geometry, 
-                           const std::string& iconName, bool hovered, const Theme& theme);
+    void PaintToolbarButton(PaintContext& context, const Rect& geometry,
+                           const std::string& iconName, bool hovered);
     int HitButtonIndex(const Point& position) const;
     bool IsSearchFocused() const { return m_SearchFocused; }
 

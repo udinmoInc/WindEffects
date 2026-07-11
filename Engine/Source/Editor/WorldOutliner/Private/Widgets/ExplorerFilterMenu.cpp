@@ -2,7 +2,7 @@
 #include "Widgets/ExplorerToolbar.h"
 
 #include "Core/PaintContext.h"
-#include "Core/Theme.h"
+#include "WindEffects/Editor/UI/Theming/ThemeToken.h"
 #include "Core/Icon.h"
 #include "Layout/OverlayManager.h"
 
@@ -93,25 +93,24 @@ void ExplorerFilterMenu::Arrange(const Rect& allottedRect) {
 }
 
 void ExplorerFilterMenu::Paint(PaintContext& context) {
-    const auto& theme = Theme::Get();
     
     // Draw menu background with shadow
     context.DrawShadow(m_Geometry, Color{ 0.0f, 0.0f, 0.0f, 0.3f }, 6.0f, 12.0f);
-    context.DrawRoundedRect(m_Geometry, theme.PopupBackground, theme.CornerRadiusSmall);
-    context.DrawRoundedRectOutline(m_Geometry, theme.BorderDefault, 1.0f, theme.CornerRadiusSmall);
+    context.DrawRoundedRect(m_Geometry, ThemeColor(ThemeToken::PopupBackground), ThemeMetric(ThemeToken::CornerRadiusSmall));
+    context.DrawRoundedRectOutline(m_Geometry, ThemeColor(ThemeToken::BorderDefault), 1.0f, ThemeMetric(ThemeToken::CornerRadiusSmall));
     
     for (size_t i = 0; i < m_MenuItems.size(); ++i) {
         const auto& item = m_MenuItems[i];
         
         if (item.isSeparator) {
             const float sepY = item.geometry.y + kMenuItemHeight * 0.5f;
-            context.DrawRect(Rect{ item.geometry.x + 4.0f, sepY, item.geometry.width - 8.0f, 1.0f }, theme.Separator);
+            context.DrawRect(Rect{ item.geometry.x + 4.0f, sepY, item.geometry.width - 8.0f, 1.0f }, ThemeColor(ThemeToken::Separator));
             continue;
         }
         
         // Draw hover background
         if (static_cast<int>(i) == m_HoveredItem) {
-            context.DrawRoundedRect(item.geometry, theme.HoverOverlay, 3.0f);
+            context.DrawRoundedRect(item.geometry, ThemeColor(ThemeToken::HoverBackground), 3.0f);
         }
         
         // Draw check/radio indicator
@@ -124,20 +123,20 @@ void ExplorerFilterMenu::Paint(PaintContext& context) {
             if (i >= sortStartIndex) {
                 const bool isSelected = (m_FilterOptions.sortOrder == static_cast<int>(i - sortStartIndex));
                 if (isSelected) {
-                    IconPainter::DrawIcon(context, Icons::CheckName, Rect{ checkX, checkY, kCheckSize, kCheckSize }, theme.SelectedAccent);
+                    IconPainter::DrawIcon(context, Icons::CheckName, Rect{ checkX, checkY, kCheckSize, kCheckSize }, ThemeColor(ThemeToken::AccentPrimary));
                 }
             }
         } else {
             // Checkbox style
             if (item.value && *item.value) {
-                IconPainter::DrawIcon(context, Icons::CheckName, Rect{ checkX, checkY, kCheckSize, kCheckSize }, theme.SelectedAccent);
+                IconPainter::DrawIcon(context, Icons::CheckName, Rect{ checkX, checkY, kCheckSize, kCheckSize }, ThemeColor(ThemeToken::AccentPrimary));
             }
         }
         
         // Draw label
         const float textX = item.geometry.x + kTextOffset;
-        const float textY = item.geometry.y + (kMenuItemHeight - theme.TextSizeNormal) * 0.5f;
-        context.DrawText(item.label, Point{ textX, textY }, theme.TextPrimary, theme.TextSizeNormal);
+        const float textY = item.geometry.y + (kMenuItemHeight - ThemeMetric(ThemeToken::TextSizeNormal)) * 0.5f;
+        context.DrawText(item.label, Point{ textX, textY }, ThemeColor(ThemeToken::TextPrimary), ThemeMetric(ThemeToken::TextSizeNormal));
     }
 }
 

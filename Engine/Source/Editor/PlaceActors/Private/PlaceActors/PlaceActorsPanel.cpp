@@ -11,7 +11,7 @@
 #include "Widgets/SearchBox.h"
 #include "Widgets/ToolButton.h"
 #include "Core/PaintContext.h"
-#include "Core/Theme.h"
+#include "WindEffects/Editor/UI/Theming/ThemeToken.h"
 #include "Core/Icon.h"
 #include "Core/Animator.h"
 #include "Core/EditorConfigPaths.h"
@@ -41,7 +41,7 @@ using WindEffects::Editor::UI::PaintContext;
 using WindEffects::Editor::UI::Point;
 using WindEffects::Editor::UI::Rect;
 using WindEffects::Editor::UI::Size;
-using WindEffects::Editor::UI::Theme;
+using WindEffects::Editor::UI::ThemeToken;
 
 PlaceActorsPanel::PlaceActorsPanel() {
     auto& config = PlaceActorsConfig::Get();
@@ -171,9 +171,7 @@ void PlaceActorsPanel::RebuildData() {
 void PlaceActorsPanel::RebuildLayout() {
     m_Layout.clear();
     m_ContentHeight = 0.0f;
-
-    const auto& theme = Theme::Get();
-    const float pad = theme.Space2;
+    const float pad = ThemeMetric(ThemeToken::Space2);
     const auto& config = PlaceActorsConfig::Get();
     PlaceActorsItemMetrics metrics;
     metrics.iconSize = config.iconSize;
@@ -233,8 +231,8 @@ void PlaceActorsPanel::RebuildLayout() {
                 entry.toolId = item.toolId;
                 entry.geometry = Rect{ m_ContentRect.x + pad, y, width - pad * 2.0f, metrics.listRowHeight };
                 m_Layout.push_back(entry);
-                y += metrics.listRowHeight + theme.Space1;
-                m_ContentHeight += metrics.listRowHeight + theme.Space1;
+                y += metrics.listRowHeight + ThemeMetric(ThemeToken::Space1);
+                m_ContentHeight += metrics.listRowHeight + ThemeMetric(ThemeToken::Space1);
             }
         }
     }
@@ -263,28 +261,27 @@ Size PlaceActorsPanel::Measure(const Size& availableSize) {
 }
 
 void PlaceActorsPanel::Arrange(const Rect& allottedRect) {
-    const auto& theme = Theme::Get();
     m_Geometry = allottedRect;
-    m_ToolbarRect = Rect{ allottedRect.x, allottedRect.y, allottedRect.width, theme.ToolbarHeight };
+    m_ToolbarRect = Rect{ allottedRect.x, allottedRect.y, allottedRect.width, ThemeMetric(ThemeToken::ToolbarHeight) };
     m_ContentRect = Rect{
         allottedRect.x,
-        allottedRect.y + theme.ToolbarHeight,
+        allottedRect.y + ThemeMetric(ThemeToken::ToolbarHeight),
         allottedRect.width,
-        std::max(0.0f, allottedRect.height - theme.ToolbarHeight)
+        std::max(0.0f, allottedRect.height - ThemeMetric(ThemeToken::ToolbarHeight))
     };
 
-    float x = m_ToolbarRect.x + theme.Space2;
+    float x = m_ToolbarRect.x + ThemeMetric(ThemeToken::Space2);
     const float buttonWidth = 64.0f;
-    const float searchWidth = std::max(120.0f, m_ToolbarRect.width - buttonWidth * 4.0f - theme.Space2 * 6.0f);
+    const float searchWidth = std::max(120.0f, m_ToolbarRect.width - buttonWidth * 4.0f - ThemeMetric(ThemeToken::Space2) * 6.0f);
 
-    m_SearchBox->Measure(Size{ searchWidth, theme.SearchBoxHeight });
-    m_SearchBox->Arrange(Rect{ x, m_ToolbarRect.y + theme.Space1, searchWidth, theme.SearchBoxHeight });
-    x += searchWidth + theme.Space2;
+    m_SearchBox->Measure(Size{ searchWidth, ThemeMetric(ThemeToken::SearchBoxHeight) });
+    m_SearchBox->Arrange(Rect{ x, m_ToolbarRect.y + ThemeMetric(ThemeToken::Space1), searchWidth, ThemeMetric(ThemeToken::SearchBoxHeight) });
+    x += searchWidth + ThemeMetric(ThemeToken::Space2);
 
     auto placeButton = [&](const std::shared_ptr<WindEffects::Editor::UI::ToolButton>& button) {
-        button->Measure(Size{ buttonWidth, theme.SearchBoxHeight });
-        button->Arrange(Rect{ x, m_ToolbarRect.y + theme.Space1, buttonWidth, theme.SearchBoxHeight });
-        x += buttonWidth + theme.Space1;
+        button->Measure(Size{ buttonWidth, ThemeMetric(ThemeToken::SearchBoxHeight) });
+        button->Arrange(Rect{ x, m_ToolbarRect.y + ThemeMetric(ThemeToken::Space1), buttonWidth, ThemeMetric(ThemeToken::SearchBoxHeight) });
+        x += buttonWidth + ThemeMetric(ThemeToken::Space1);
     };
     placeButton(m_CategoryFilterButton);
     placeButton(m_SortButton);
@@ -302,10 +299,9 @@ void PlaceActorsPanel::Tick(float deltaTime) {
 }
 
 void PlaceActorsPanel::Paint(PaintContext& context) {
-    const auto& theme = Theme::Get();
-    context.DrawRect(m_Geometry, theme.PanelBackground);
-    context.DrawRect(m_ToolbarRect, theme.HeaderBackground);
-    context.DrawRect(Rect{ m_ToolbarRect.x, m_ToolbarRect.y + m_ToolbarRect.height - theme.BorderWidth, m_ToolbarRect.width, theme.BorderWidth }, theme.Separator);
+    context.DrawRect(m_Geometry, ThemeColor(ThemeToken::PanelBackground));
+    context.DrawRect(m_ToolbarRect, ThemeColor(ThemeToken::HeaderBackground));
+    context.DrawRect(Rect{ m_ToolbarRect.x, m_ToolbarRect.y + m_ToolbarRect.height - ThemeMetric(ThemeToken::BorderWidth), m_ToolbarRect.width, ThemeMetric(ThemeToken::BorderWidth) }, ThemeColor(ThemeToken::Separator));
 
     m_SearchBox->Paint(context);
     m_CategoryFilterButton->Paint(context);
@@ -313,7 +309,7 @@ void PlaceActorsPanel::Paint(PaintContext& context) {
     m_ViewToggleButton->Paint(context);
     m_RecentButton->Paint(context);
 
-    context.DrawRect(m_ContentRect, theme.PanelBackground);
+    context.DrawRect(m_ContentRect, ThemeColor(ThemeToken::PanelBackground));
 
     auto& catalog = PlaceActorsCatalog::Get();
     auto& registry = EditorToolsRegistry::Get();
@@ -355,19 +351,19 @@ void PlaceActorsPanel::Paint(PaintContext& context) {
     if (!m_TooltipText.empty() && m_TooltipRect.width > 0.0f) {
         context.DrawShadow(m_TooltipRect, Color{ 0, 0, 0, 0.2f }, 4.0f, 8.0f);
         context.DrawRoundedRect(m_TooltipRect, Color{ 0.18f, 0.18f, 0.18f, 1.0f }, 6.0f);
-        context.DrawText(m_TooltipText, Point{ m_TooltipRect.x + 8.0f, m_TooltipRect.y + 6.0f }, theme.TextPrimary, 11.0f);
+        context.DrawText(m_TooltipText, Point{ m_TooltipRect.x + 8.0f, m_TooltipRect.y + 6.0f }, ThemeColor(ThemeToken::TextPrimary), 11.0f);
     }
 
     if (m_ContextMenuOpen) {
         context.DrawShadow(m_ContextMenuRect, Color{ 0, 0, 0, 0.2f }, 4.0f, 10.0f);
-        context.DrawRoundedRect(m_ContextMenuRect, theme.PanelBackground, 6.0f);
+        context.DrawRoundedRect(m_ContextMenuRect, ThemeColor(ThemeToken::PanelBackground), 6.0f);
         for (size_t i = 0; i < m_ContextMenuItems.size(); ++i) {
             if (static_cast<int>(i) == m_ContextMenuHovered) {
-                context.DrawRect(m_ContextMenuItems[i].geometry, theme.HoverOverlay);
+                context.DrawRect(m_ContextMenuItems[i].geometry, ThemeColor(ThemeToken::HoverBackground));
             }
             context.DrawText(m_ContextMenuItems[i].label,
                 Point{ m_ContextMenuItems[i].geometry.x + 10.0f, m_ContextMenuItems[i].geometry.y + 6.0f },
-                theme.TextPrimary, 11.0f);
+                ThemeColor(ThemeToken::TextPrimary), 11.0f);
         }
     }
 }

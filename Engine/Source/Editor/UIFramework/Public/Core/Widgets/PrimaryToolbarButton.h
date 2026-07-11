@@ -3,7 +3,6 @@
 #include "WindEffects/Editor/UI/Export.h"
 
 #include "Core/Widget.h"
-#include "Core/ToolbarDesignTokens.h"
 #include <functional>
 #include <memory>
 #include <string>

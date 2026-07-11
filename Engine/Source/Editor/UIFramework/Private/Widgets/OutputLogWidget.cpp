@@ -1,6 +1,6 @@
 #include "Widgets/OutputLogWidget.h"
 #include "Core/PaintContext.h"
-#include "Core/Theme.h"
+#include "WindEffects/Editor/UI/Theming/ThemeToken.h"
 
 namespace WindEffects::Editor::UI {
 
@@ -54,16 +54,15 @@ void OutputLogWidget::SetSearchQuery(const std::string& query) {
 }
 
 Color OutputLogWidget::LevelColor(we::Logger::Level level) const {
-    const auto& theme = Theme::Get();
     switch (level) {
-        case we::Logger::Level::Trace: return theme.TextMuted;
-        case we::Logger::Level::Debug: return Color{ 0.65f, 0.75f, 0.85f, 1.0f };
-        case we::Logger::Level::Info: return theme.TextSecondary;
-        case we::Logger::Level::Warning: return theme.Warning;
-        case we::Logger::Level::Error: return theme.AccentPrimary;
-        case we::Logger::Level::Critical: return Color{ 1.0f, 0.15f, 0.15f, 1.0f };
+        case we::Logger::Level::Trace: return ThemeColor(ThemeToken::TextMuted);
+        case we::Logger::Level::Debug: return ThemeColor(ThemeToken::TextSecondary);
+        case we::Logger::Level::Info: return ThemeColor(ThemeToken::TextSecondary);
+        case we::Logger::Level::Warning: return ThemeColor(ThemeToken::Warning);
+        case we::Logger::Level::Error: return ThemeColor(ThemeToken::ErrorForeground);
+        case we::Logger::Level::Critical: return ThemeColor(ThemeToken::ErrorForeground);
     }
-    return theme.TextPrimary;
+    return ThemeColor(ThemeToken::TextPrimary);
 }
 
 bool OutputLogWidget::PassesFilter(const we::Logger::LogRecord& record) const {
@@ -107,11 +106,10 @@ void OutputLogWidget::Paint(PaintContext& context) {
         geometry = m_Geometry;
     }
 
-    const Theme& theme = Theme::Get();
-    context.DrawRect(geometry, theme.PanelBackground);
+    context.DrawRect(geometry, ThemeColor(ThemeToken::PanelBackground));
 
-    const float lineHeight = 14.0f;
-    float y = geometry.y + 4.0f - scrollOffset;
+    const float lineHeight = ThemeMetric(ThemeToken::TextSizeCaption);
+    float y = geometry.y + ThemeMetric(ThemeToken::Space1) - scrollOffset;
     const float maxY = geometry.y + geometry.height;
 
     for (size_t i = 0; i < visibleLines.size(); ++i) {
@@ -124,7 +122,7 @@ void OutputLogWidget::Paint(PaintContext& context) {
             visibleLines[i],
             Point{ geometry.x + 6.0f, y },
             LevelColor(visibleLevels[i]),
-            12.0f);
+            ThemeMetric(ThemeToken::TextSizeCaption));
         y += lineHeight;
     }
 }

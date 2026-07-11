@@ -1,6 +1,6 @@
 #include "Widgets/RenderDebuggerPanel.h"
 #include "Core/PaintContext.h"
-#include "Core/Theme.h"
+#include "WindEffects/Editor/UI/Theming/ThemeToken.h"
 
 namespace WindEffects::Editor::UI {
 

@@ -1,6 +1,6 @@
 #include "Widgets/TextBox.h"
 #include "Core/PaintContext.h"
-#include "Core/Theme.h"
+#include "WindEffects/Editor/UI/Theming/ThemeToken.h"
 #include "Core/Style.h"
 #include "Core/DPIContext.h"
 #include "Core/Animator.h"
@@ -27,15 +27,13 @@ void TextBox::Arrange(const Rect& allottedRect) {
 void TextBox::Paint(PaintContext& context) {
     if (!m_Visible) return;
 
-    auto& theme = Theme::Get();
-
     m_HoverAnim = Animator::Damp(m_HoverAnim, m_Hovered ? 1.0f : 0.0f, 15.0f);
     m_FocusAnim = Animator::Damp(m_FocusAnim, m_Focused ? 1.0f : 0.0f, 20.0f);
 
     // Interpolate background color
     Color bgColor = m_Style.background.color;
     if (m_HoverAnim > 0.01f) {
-        bgColor = Color::Lerp(bgColor, Theme::Get().HoverOverlay, m_HoverAnim);
+        bgColor = Color::Lerp(bgColor, ThemeColor(ThemeToken::HoverBackground), m_HoverAnim);
     }
 
     // Draw background
@@ -57,7 +55,7 @@ void TextBox::Paint(PaintContext& context) {
     if (m_Focused) {
         float cursorX = textX + m_Text.length() * m_Style.text.size * 0.6f + 2.0f;
         float cursorY = textY;
-        context.DrawLine(Point{ cursorX, cursorY }, Point{ cursorX, cursorY + m_Style.text.size }, Theme::Get().SelectedAccent, 1.5f);
+        context.DrawLine(Point{ cursorX, cursorY }, Point{ cursorX, cursorY + m_Style.text.size }, ThemeColor(ThemeToken::AccentPrimary), 1.5f);
     }
 }
 

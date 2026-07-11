@@ -37,6 +37,8 @@ public:
     [[nodiscard]] IResourceRegistry& GetResourceRegistry() const override;
     [[nodiscard]] IPopupHost* GetPopupHost() const override { return m_PopupHost; }
 
+    void SetPopupHost(IPopupHost* popupHost) { m_PopupHost = popupHost; }
+
 private:
     IEditorApplicationContext& m_AppContext;
     IPopupHost* m_PopupHost = nullptr;

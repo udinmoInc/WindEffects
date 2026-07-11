@@ -2,10 +2,10 @@
 #include "Widgets/SearchBox.h"
 #include "Widgets/ContentBrowser.h"
 #include "Core/PaintContext.h"
-#include "Core/Theme.h"
+#include "WindEffects/Editor/UI/Theming/ThemeAccess.h"
+#include "WindEffects/Editor/UI/Theming/ThemeToken.h"
 #include "Core/Icon.h"
 #include "Core/Animator.h"
-#include "Core/ToolbarDesignTokens.h"
 #include <algorithm>
 
 namespace WindEffects::Editor::UI {
@@ -15,23 +15,22 @@ namespace {
 void PaintToolbarButtonChrome(PaintContext& context, const Rect& rect, float hoverAnim, float pressAnim,
     bool selected, bool primary)
 {
-    const auto& theme = Theme::Get();
-    Color bg = theme.InteractiveBackground(hoverAnim, pressAnim, selected);
+    Color bg = ResolveThemeInteractiveBackground(hoverAnim, pressAnim, selected);
 
-    const float radius = theme.CornerRadiusSmall;
+    const float radius = ResolveThemeMetric(ThemeToken::CornerRadiusSmall);
     if (bg.a > 0.01f) {
         context.DrawRoundedRect(rect, bg, radius);
     }
 
     if (primary) {
-        Color border = theme.SelectedAccent;
+        Color border = ResolveThemeColor(ThemeToken::AccentPrimary);
         border.a = 0.55f + hoverAnim * 0.2f;
-        context.DrawRoundedRectOutline(rect, border, theme.BorderWidth, radius);
-        Color fill = theme.SelectedAccent;
+        context.DrawRoundedRectOutline(rect, border, ResolveThemeMetric(ThemeToken::BorderWidth), radius);
+        Color fill = ResolveThemeColor(ThemeToken::AccentPrimary);
         fill.a = 0.08f + hoverAnim * 0.06f;
         context.DrawRoundedRect(rect, fill, radius);
     } else if (selected) {
-        context.DrawRoundedRectOutline(rect, theme.PressedOverlay, theme.BorderWidth, radius);
+        context.DrawRoundedRectOutline(rect, ResolveThemeColor(ThemeToken::PressedBackground), ResolveThemeMetric(ThemeToken::BorderWidth), radius);
     }
 }
 
@@ -52,13 +51,13 @@ ToolbarIconToggle::ToolbarIconToggle(const std::string& iconName, const char*)
 
 Size ToolbarIconToggle::Measure(const Size& availableSize) {
     (void)availableSize;
-    const float h = Theme::Get().ButtonHeight;
+    const float h = ThemeMetric(ThemeToken::ButtonHeight);
     m_DesiredSize = Size{ h, h };
     return m_DesiredSize;
 }
 
 void ToolbarIconToggle::Arrange(const Rect& allottedRect) {
-    const float h = Theme::Get().ButtonHeight;
+    const float h = ThemeMetric(ThemeToken::ButtonHeight);
     m_Geometry = CenterRect(allottedRect, h, h);
 }
 
@@ -67,11 +66,11 @@ void ToolbarIconToggle::Paint(PaintContext& context) {
     m_PressAnim = Animator::Damp(m_PressAnim, m_Pressed ? 1.0f : 0.0f, 25.0f);
     PaintToolbarButtonChrome(context, m_Geometry, m_HoverAnim, m_PressAnim, m_Selected, false);
 
-    const float iconSize = Theme::Get().IconSizeToolbar;
+    const float iconSize = ThemeMetric(ThemeToken::IconSizeToolbar);
     const Rect iconRect = CenterRect(m_Geometry, iconSize, iconSize);
-    Color iconColor = m_Selected ? Theme::Get().TextPrimary : Theme::Get().IconDefault;
+    Color iconColor = m_Selected ? ThemeColor(ThemeToken::TextPrimary) : ThemeColor(ThemeToken::IconDefault);
     if (m_HoverAnim > 0.01f) {
-        iconColor = Color::Lerp(iconColor, Theme::Get().TextPrimary, m_HoverAnim * 0.65f);
+        iconColor = Color::Lerp(iconColor, ThemeColor(ThemeToken::TextPrimary), m_HoverAnim * 0.65f);
     }
     IconPainter::DrawIcon(context, m_IconName, iconRect, iconColor);
 }
@@ -100,17 +99,16 @@ ToolbarLabeledButton::ToolbarLabeledButton(const std::string& label, const std::
 
 Size ToolbarLabeledButton::Measure(const Size& availableSize) {
     (void)availableSize;
-    const auto& theme = Theme::Get();
     float width = m_HorizontalPadding * 2.0f;
-    if (!m_IconName.empty()) width += theme.IconSizeToolbar + theme.Space1 + 1.0f;
+    if (!m_IconName.empty()) width += ThemeMetric(ThemeToken::IconSizeToolbar) + ThemeMetric(ThemeToken::Space1) + 1.0f;
     width += static_cast<float>(m_Label.size()) * 7.2f;
-    if (m_ShowChevron) width += theme.Space1 + theme.IconSizeTree - 3.0f;
-    m_DesiredSize = Size{ width, theme.ButtonHeight };
+    if (m_ShowChevron) width += ThemeMetric(ThemeToken::Space1) + ThemeMetric(ThemeToken::IconSizeTree) - 3.0f;
+    m_DesiredSize = Size{ width, ThemeMetric(ThemeToken::ButtonHeight) };
     return m_DesiredSize;
 }
 
 void ToolbarLabeledButton::Arrange(const Rect& allottedRect) {
-    const float h = std::min(Theme::Get().ButtonHeight, allottedRect.height);
+    const float h = std::min(ThemeMetric(ThemeToken::ButtonHeight), allottedRect.height);
     m_Geometry = Rect{
         allottedRect.x,
         allottedRect.y + (allottedRect.height - h) * 0.5f,
@@ -125,48 +123,45 @@ void ToolbarLabeledButton::Paint(PaintContext& context) {
     PaintToolbarButtonChrome(context, m_Geometry, m_HoverAnim, m_PressAnim, false, m_Variant == Variant::Primary);
 
     if (m_Label == "Create" && m_Variant == Variant::Standard) {
-        const auto& theme = Theme::Get();
-        const float radius = theme.CornerRadiusSmall;
+        const float radius = ThemeMetric(ThemeToken::CornerRadiusSmall);
 
         context.DrawRoundedRectOutline(
-            Rect{ m_Geometry.x + theme.BorderWidth, m_Geometry.y + theme.BorderWidth,
-                m_Geometry.width - 2.0f * theme.BorderWidth, m_Geometry.height - 2.0f * theme.BorderWidth },
-            theme.HighlightSubtle, theme.BorderWidth, radius
+            Rect{ m_Geometry.x + ThemeMetric(ThemeToken::BorderWidth), m_Geometry.y + ThemeMetric(ThemeToken::BorderWidth),
+                m_Geometry.width - 2.0f * ThemeMetric(ThemeToken::BorderWidth), m_Geometry.height - 2.0f * ThemeMetric(ThemeToken::BorderWidth) },
+            ThemeColor(ThemeToken::HighlightSubtle), ThemeMetric(ThemeToken::BorderWidth), radius
         );
 
         context.DrawRoundedRectOutline(
-            Rect{ m_Geometry.x - theme.BorderWidth, m_Geometry.y - theme.BorderWidth,
-                m_Geometry.width + 2.0f * theme.BorderWidth, m_Geometry.height + 2.0f * theme.BorderWidth },
-            theme.ShadowSubtle, theme.BorderWidth, radius
+            Rect{ m_Geometry.x - ThemeMetric(ThemeToken::BorderWidth), m_Geometry.y - ThemeMetric(ThemeToken::BorderWidth),
+                m_Geometry.width + 2.0f * ThemeMetric(ThemeToken::BorderWidth), m_Geometry.height + 2.0f * ThemeMetric(ThemeToken::BorderWidth) },
+            ThemeColor(ThemeToken::ShadowSubtle), ThemeMetric(ThemeToken::BorderWidth), radius
         );
     }
-
-    const auto& theme = Theme::Get();
     const float hPad = m_HorizontalPadding;
     float x = m_Geometry.x + hPad;
-    const float textSize = theme.TextSizeBody;
+    const float textSize = ThemeMetric(ThemeToken::TextSizeBody);
     const float textY = m_Geometry.y + (m_Geometry.height - textSize) * 0.5f;
 
     if (!m_IconName.empty()) {
-        const float iconSize = theme.IconSizeToolbar;
+        const float iconSize = ThemeMetric(ThemeToken::IconSizeToolbar);
         const float iconY = m_Geometry.y + (m_Geometry.height - iconSize) * 0.5f;
-        Color iconColor = m_Variant == Variant::Primary ? theme.SelectedAccent : theme.IconDefault;
+        Color iconColor = m_Variant == Variant::Primary ? ThemeColor(ThemeToken::AccentPrimary) : ThemeColor(ThemeToken::IconDefault);
         IconPainter::DrawIcon(context, m_IconName, Rect{ x, iconY, iconSize, iconSize }, iconColor);
-        x += iconSize + theme.Space1 + 1.0f;
+        x += iconSize + ThemeMetric(ThemeToken::Space1) + 1.0f;
     }
 
-    Color textColor = theme.TextPrimary;
+    Color textColor = ThemeColor(ThemeToken::TextPrimary);
     if (m_Variant == Variant::Primary) {
-        textColor = Color::Lerp(theme.TextPrimary, theme.SelectedAccent, 0.25f);
+        textColor = Color::Lerp(ThemeColor(ThemeToken::TextPrimary), ThemeColor(ThemeToken::AccentPrimary), 0.25f);
     }
     context.DrawText(m_Label, Point{ x, textY }, textColor, textSize, m_Variant == Variant::Primary);
 
     if (m_ShowChevron) {
-        const float chevronSize = theme.IconSizeTree - 3.0f;
+        const float chevronSize = ThemeMetric(ThemeToken::IconSizeTree) - 3.0f;
         const float chevronX = m_Geometry.x + m_Geometry.width - hPad - chevronSize;
         const float chevronY = m_Geometry.y + (m_Geometry.height - chevronSize) * 0.5f;
         IconPainter::DrawIcon(context, Icons::ChevronDownName, Rect{ chevronX, chevronY, chevronSize, chevronSize },
-            theme.TextSecondary);
+            ThemeColor(ThemeToken::TextSecondary));
     }
 }
 
@@ -211,9 +206,9 @@ void ContentBrowserToolbarControls::InitializeChildren() {
         // Asset pane toolbar: search, save all, filter icon
         m_SearchBox = std::make_shared<SearchBox>();
         m_SearchBox->SetPlaceholder("Search Assets...");
-        m_SearchBox->SetWidth(Theme::Get().Space6 * 15.0f);
+        m_SearchBox->SetWidth(ThemeMetric(ThemeToken::Space6) * 15.0f);
 
-        m_SaveBtn = std::make_shared<ToolbarLabeledButton>("Save All", Icons::SaveAllName, false, ToolbarLabeledButton::Variant::Standard, Theme::Get().Space3);
+        m_SaveBtn = std::make_shared<ToolbarLabeledButton>("Save All", Icons::SaveAllName, false, ToolbarLabeledButton::Variant::Standard, ThemeMetric(ThemeToken::Space3));
         m_FilterIconBtn = std::make_shared<ToolbarIconToggle>(Icons::FilterName, "Filter");
 
         AddChild(m_SearchBox);
@@ -223,16 +218,14 @@ void ContentBrowserToolbarControls::InitializeChildren() {
 }
 
 Size ContentBrowserToolbarControls::Measure(const Size& availableSize) {
-    m_DesiredSize = Size{ availableSize.width, Theme::Get().ToolbarHeight };
+    m_DesiredSize = Size{ availableSize.width, ThemeMetric(ThemeToken::ToolbarHeight) };
     return m_DesiredSize;
 }
 
 void ContentBrowserToolbarControls::ArrangeControlRow(const Rect& row, float contentLeft, float contentRight) {
-    using namespace DesignTokens;
-    
     const float centerY = row.y + row.height * 0.5f;
     const float contentWidth = std::max(0.0f, contentRight - contentLeft);
-    const Size measureSize{ contentWidth, kButtonHeight };
+    const Size measureSize{ contentWidth, ThemeMetric(ThemeToken::ButtonHeight) };
 
     if (m_Mode == ToolbarMode::Full) {
         // Panel toolbar: create, import, back, forward, folder (left-aligned)
@@ -242,17 +235,17 @@ void ContentBrowserToolbarControls::ArrangeControlRow(const Rect& row, float con
         if (m_CreateBtn) {
             const Size desired = m_CreateBtn->Measure(measureSize);
             m_CreateBtn->Arrange(Rect{ x, centerY - desired.height * 0.5f, desired.width, desired.height });
-            x += desired.width + kButtonSpacing;
+            x += desired.width + ThemeMetric(ThemeToken::ButtonSpacing);
         }
         
         if (m_ImportBtn) {
             const Size desired = m_ImportBtn->Measure(measureSize);
             m_ImportBtn->Arrange(Rect{ x, centerY - desired.height * 0.5f, desired.width, desired.height });
-            x += desired.width + kButtonGroupSpacing;
+            x += desired.width + ThemeMetric(ThemeToken::ButtonGroupSpacing);
         }
         
         // Navigation buttons group (4px spacing)
-        const float navSpacing = Theme::Get().Space1;
+        const float navSpacing = ThemeMetric(ThemeToken::Space1);
         
         if (m_BackBtn) {
             const Size desired = m_BackBtn->Measure(measureSize);
@@ -272,8 +265,7 @@ void ContentBrowserToolbarControls::ArrangeControlRow(const Rect& row, float con
         }
     } else {
         // Asset pane toolbar: search, save all, filter icon
-        const auto& theme = Theme::Get();
-        float searchWidth = std::min(theme.Space6 * 15.0f, std::max(theme.Space6 * 10.0f, contentWidth * 0.5f));
+        float searchWidth = std::min(ThemeMetric(ThemeToken::Space6) * 15.0f, std::max(ThemeMetric(ThemeToken::Space6) * 10.0f, contentWidth * 0.5f));
 
         const std::vector<std::shared_ptr<Widget>> actionButtons = {
             m_SaveBtn, m_FilterIconBtn
@@ -281,57 +273,54 @@ void ContentBrowserToolbarControls::ArrangeControlRow(const Rect& row, float con
 
         float actionsWidth = 0.0f;
         for (const auto& widget : actionButtons) {
-            actionsWidth += widget->Measure(measureSize).width + theme.Space1;
+            actionsWidth += widget->Measure(measureSize).width + ThemeMetric(ThemeToken::Space1);
         }
 
-        const float fixedWidth = searchWidth + theme.Space2 + actionsWidth;
+        const float fixedWidth = searchWidth + ThemeMetric(ThemeToken::Space2) + actionsWidth;
 
         if (fixedWidth > contentWidth) {
-            searchWidth = std::max(theme.Space6 * 6.67f, contentWidth - (fixedWidth - searchWidth));
+            searchWidth = std::max(ThemeMetric(ThemeToken::Space6) * 6.67f, contentWidth - (fixedWidth - searchWidth));
         }
 
         float x = contentLeft;
 
         m_SearchBox->Arrange(Rect{
             x,
-            centerY - theme.SearchBoxHeight * 0.5f,
+            centerY - ThemeMetric(ThemeToken::SearchBoxHeight) * 0.5f,
             searchWidth,
-            theme.SearchBoxHeight
+            ThemeMetric(ThemeToken::SearchBoxHeight)
         });
-        x += searchWidth + theme.Space2;
+        x += searchWidth + ThemeMetric(ThemeToken::Space2);
 
         for (const auto& widget : actionButtons) {
             const Size desired = widget->Measure(measureSize);
             widget->Arrange(Rect{ x, centerY - desired.height * 0.5f, desired.width, desired.height });
-            x += desired.width + theme.Space1;
+            x += desired.width + ThemeMetric(ThemeToken::Space1);
         }
     }
 }
 
 void ContentBrowserToolbarControls::Arrange(const Rect& allottedRect) {
     m_Geometry = allottedRect;
-    const auto& theme = Theme::Get();
-    const float contentLeft = allottedRect.x + theme.Space3;
-    const float contentRight = allottedRect.x + allottedRect.width - theme.Space3;
+    const float contentLeft = allottedRect.x + ThemeMetric(ThemeToken::Space3);
+    const float contentRight = allottedRect.x + allottedRect.width - ThemeMetric(ThemeToken::Space3);
     ArrangeControlRow(allottedRect, contentLeft, contentRight);
 }
 
 void ContentBrowserToolbarControls::Paint(PaintContext& context) {
-    using namespace DesignTokens;
-    
-    const auto& theme = Theme::Get();
-    
-    // Draw toolbar background with depth
-    context.DrawRect(m_Geometry, theme.PanelBackground);
-    
-    // Top highlight (elevation effect)
-    context.DrawRect(Rect{ m_Geometry.x, m_Geometry.y, m_Geometry.width, theme.BorderWidth }, ToolbarTopHighlight());
+    context.DrawRect(m_Geometry, ThemeColor(ThemeToken::PanelBackground));
 
-    context.DrawRect(Rect{ m_Geometry.x, m_Geometry.y + m_Geometry.height - theme.BorderWidth, m_Geometry.width, theme.BorderWidth },
-        ToolbarSeparator());
+    context.DrawRect(
+        Rect{ m_Geometry.x, m_Geometry.y, m_Geometry.width, ThemeMetric(ThemeToken::BorderWidth) },
+        ThemeColor(ThemeToken::BorderLight));
 
-    context.DrawRect(Rect{ m_Geometry.x, m_Geometry.y + m_Geometry.height, m_Geometry.width, theme.Space1 },
-        ToolbarBottomShadow());
+    context.DrawRect(
+        Rect{ m_Geometry.x, m_Geometry.y + m_Geometry.height - ThemeMetric(ThemeToken::BorderWidth), m_Geometry.width, ThemeMetric(ThemeToken::BorderWidth) },
+        ThemeColor(ThemeToken::Separator));
+
+    context.DrawRect(
+        Rect{ m_Geometry.x, m_Geometry.y + m_Geometry.height, m_Geometry.width, ThemeMetric(ThemeToken::Space1) },
+        ThemeColor(ThemeToken::BorderDark));
     
     for (const auto& child : m_Children) {
         if (child->IsVisible()) child->Paint(context);

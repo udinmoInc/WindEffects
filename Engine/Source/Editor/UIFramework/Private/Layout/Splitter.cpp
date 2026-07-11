@@ -1,6 +1,6 @@
 #include "Layout/Splitter.h"
 #include "Core/PaintContext.h"
-#include "Core/Theme.h"
+#include "WindEffects/Editor/UI/Theming/ThemeToken.h"
 #include <algorithm>
 
 namespace WindEffects::Editor::UI {
@@ -181,11 +181,11 @@ void Splitter::Paint(PaintContext& context) {
     Rect barRect = GetSplitterBarRect();
     
     // Draw an extremely subtle 1px line to separate panels cleanly
-    Color subtleBorder = Theme::Get().BorderDefault; // Use theme border color
+    Color subtleBorder = ThemeColor(ThemeToken::BorderDefault); // Use theme border color
     
     if (m_Dragging || m_Hovered) {
         // Draw the soft blue highlight when hovered or dragging
-        subtleBorder = Theme::Get().SelectedAccent;
+        subtleBorder = ThemeColor(ThemeToken::AccentPrimary);
         if (!m_Dragging) {
             subtleBorder.a = 0.5f; 
         }

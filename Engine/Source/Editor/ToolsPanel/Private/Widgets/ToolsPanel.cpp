@@ -3,7 +3,7 @@
 #include "EditorToolsRegistry.h"
 #include "Widgets/SearchBox.h"
 #include "Core/PaintContext.h"
-#include "Core/Theme.h"
+#include "WindEffects/Editor/UI/Theming/ThemeToken.h"
 #include "Core/Icon.h"
 #include "Core/DPIContext.h"
 #include "Core/Animator.h"
@@ -25,7 +25,7 @@ using WindEffects::Editor::UI::PaintContext;
 using WindEffects::Editor::UI::Point;
 using WindEffects::Editor::UI::Rect;
 using WindEffects::Editor::UI::Size;
-using WindEffects::Editor::UI::Theme;
+using WindEffects::Editor::UI::ThemeToken;
 
 namespace {
 constexpr float kSearchHeight = 28.0f;
@@ -361,18 +361,16 @@ void ToolsPanel::Tick(float deltaTime) {
 
 void ToolsPanel::Paint(PaintContext& context) {
     if (m_Geometry.width < 1.0f) return;
-
-    const auto& theme = Theme::Get();
     const float uiScale = (std::max)(1.0f, WindEffects::Editor::UI::DPIContext::GetScale());
     const float labelFontSize = 11.0f * uiScale;
     const float shortcutFontSize = 10.0f * uiScale;
-    context.DrawRect(m_PanelRect, theme.PanelBackground);
+    context.DrawRect(m_PanelRect, ThemeColor(ThemeToken::PanelBackground));
 
     {
         m_SearchBox->Paint(context);
 
         for (const auto& section : m_Sections) {
-            context.DrawRect(section.headerRect, theme.HeaderBackground);
+            context.DrawRect(section.headerRect, ThemeColor(ThemeToken::HeaderBackground));
 
             std::string title = section.categoryId;
             if (section.categoryId == "__favorites__") title = "Favorites";
@@ -384,31 +382,31 @@ void ToolsPanel::Paint(PaintContext& context) {
 
             const char* chevron = section.expanded ? WindEffects::Editor::UI::Icons::ChevronDownName : WindEffects::Editor::UI::Icons::ChevronRightName;
             WindEffects::Editor::UI::IconPainter::DrawIcon(context, chevron,
-                Rect{ section.headerRect.x + 4.0f, section.headerRect.y + 5.0f, 16.0f, 16.0f }, theme.TextSecondary);
-            context.DrawText(title, Point{ section.headerRect.x + 22.0f, section.headerRect.y + 6.0f }, theme.TextPrimary, labelFontSize, true);
+                Rect{ section.headerRect.x + 4.0f, section.headerRect.y + 5.0f, 16.0f, 16.0f }, ThemeColor(ThemeToken::TextSecondary));
+            context.DrawText(title, Point{ section.headerRect.x + 22.0f, section.headerRect.y + 6.0f }, ThemeColor(ThemeToken::TextPrimary), labelFontSize, true);
         }
 
         for (const auto& toolHit : m_ToolHits) {
             if (!toolHit.tool) continue;
             if (toolHit.hovered) {
-                context.DrawRoundedRect(toolHit.geometry, theme.HoverOverlay, 4.0f);
+                context.DrawRoundedRect(toolHit.geometry, ThemeColor(ThemeToken::HoverBackground), 4.0f);
             }
 
             WindEffects::Editor::UI::IconPainter::DrawIcon(context, toolHit.tool->iconName,
-                Rect{ toolHit.geometry.x + 6.0f, toolHit.geometry.y + 3.0f, kIconSize, kIconSize }, theme.TextPrimary);
+                Rect{ toolHit.geometry.x + 6.0f, toolHit.geometry.y + 3.0f, kIconSize, kIconSize }, ThemeColor(ThemeToken::TextPrimary));
 
             context.DrawText(toolHit.tool->label,
-                Point{ toolHit.geometry.x + 34.0f, toolHit.geometry.y + 7.0f }, theme.TextPrimary, labelFontSize);
+                Point{ toolHit.geometry.x + 34.0f, toolHit.geometry.y + 7.0f }, ThemeColor(ThemeToken::TextPrimary), labelFontSize);
 
             if (!toolHit.tool->shortcut.empty()) {
                 const float shortcutWidth = context.GetTextWidth(toolHit.tool->shortcut, shortcutFontSize);
                 context.DrawText(toolHit.tool->shortcut,
                     Point{ toolHit.geometry.x + toolHit.geometry.width - shortcutWidth - 28.0f, toolHit.geometry.y + 8.0f },
-                    theme.TextDisabled, shortcutFontSize);
+                    ThemeColor(ThemeToken::TextDisabled), shortcutFontSize);
             }
 
             const char* starIcon = toolHit.favorite ? WindEffects::Editor::UI::Icons::StarFilledName : WindEffects::Editor::UI::Icons::StarName;
-            Color starColor = toolHit.favorite ? theme.Warning : theme.TextDisabled;
+            Color starColor = toolHit.favorite ? ThemeColor(ThemeToken::Warning) : ThemeColor(ThemeToken::TextDisabled);
             WindEffects::Editor::UI::IconPainter::DrawIcon(context, starIcon,
                 Rect{ toolHit.geometry.x + toolHit.geometry.width - 22.0f, toolHit.geometry.y + 5.0f, 16.0f, 16.0f },
                 starColor);
@@ -421,14 +419,14 @@ void ToolsPanel::Paint(PaintContext& context) {
 
     if (m_ContextMenuOpen) {
         context.DrawShadow(m_ContextMenuRect, Color{ 0.0f, 0.0f, 0.0f, 0.15f }, 4.0f, 12.0f);
-        context.DrawRoundedRect(m_ContextMenuRect, theme.PanelBackground, 4.0f);
+        context.DrawRoundedRect(m_ContextMenuRect, ThemeColor(ThemeToken::PanelBackground), 4.0f);
         for (size_t i = 0; i < m_ContextMenuItems.size(); ++i) {
             const auto& item = m_ContextMenuItems[i];
             if (static_cast<int>(i) == m_ContextMenuHovered) {
-                context.DrawRect(item.geometry, theme.HoverOverlay);
+                context.DrawRect(item.geometry, ThemeColor(ThemeToken::HoverBackground));
             }
             context.DrawText(item.label, Point{ item.geometry.x + 10.0f, item.geometry.y + 6.0f },
-                theme.TextPrimary, labelFontSize);
+                ThemeColor(ThemeToken::TextPrimary), labelFontSize);
         }
     }
 }

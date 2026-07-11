@@ -1,6 +1,7 @@
 #include "Core/Widget.h"
 #include "WindEffects/Editor/UI/Core/WidgetContext.h"
 #include "WindEffects/Editor/UI/Layout/IPopupHost.h"
+#include "WindEffects/Editor/UI/Theming/ThemeAccess.h"
 
 #include <algorithm>
 #include <stdexcept>
@@ -9,29 +10,10 @@ namespace WindEffects::Editor::UI {
 
 Widget::Diagnostics* Widget::s_GlobalDiagnostics = nullptr;
 
-// Legacy static counters for compatibility (deprecated - use s_GlobalDiagnostics instead)
-uint32_t Widget::s_TotalWidgetCount = 0;
-uint32_t Widget::s_VisibleWidgetCount = 0;
-uint32_t Widget::s_HiddenWidgetCount = 0;
-uint32_t Widget::s_PaintCalls = 0;
-uint32_t Widget::s_ArrangeChildrenCalls = 0;
-uint32_t Widget::s_LayoutPassCount = 0;
-uint32_t Widget::s_InvalidateCount = 0;
-uint32_t Widget::s_WidgetsPainted = 0;
-
 void Widget::ResetDiagnostics() {
     if (s_GlobalDiagnostics) {
         s_GlobalDiagnostics->Reset();
     }
-    // Legacy static reset for compatibility
-    s_TotalWidgetCount = 0;
-    s_VisibleWidgetCount = 0;
-    s_HiddenWidgetCount = 0;
-    s_PaintCalls = 0;
-    s_ArrangeChildrenCalls = 0;
-    s_LayoutPassCount = 0;
-    s_InvalidateCount = 0;
-    s_WidgetsPainted = 0;
 }
 
 void Widget::Tick(float deltaTime) {
@@ -95,11 +77,24 @@ IStyleResolver& Widget::Styles() const {
 }
 
 Color Widget::ThemeColor(ThemeToken token) const {
+    if (!m_Context) {
+        return ResolveThemeColor(token);
+    }
     return m_Context->GetThemeProvider().GetColor(token);
 }
 
 float Widget::ThemeMetric(ThemeToken token) const {
+    if (!m_Context) {
+        return ResolveThemeMetric(token);
+    }
     return m_Context->GetThemeProvider().GetMetric(token);
+}
+
+Margin Widget::ThemePadding(ThemeToken token) const {
+    if (!m_Context) {
+        return ResolveThemePadding(token);
+    }
+    return m_Context->GetThemeProvider().GetPadding(token);
 }
 
 ResolvedStyle Widget::ResolveStyle(StyleRole role) const {
@@ -110,8 +105,37 @@ float Widget::Scaled(float logicalValue) const {
     return Styles().Scaled(logicalValue);
 }
 
+IThemeProvider& Widget::Theme() const {
+    if (!m_Context) {
+        return ResolveDefaultThemeProvider();
+    }
+    return m_Context->GetThemeProvider();
+}
+
+Color Widget::ThemeInteractiveBackground(float hoverAnim, float pressAnim, bool selected) const {
+    if (!m_Context) {
+        return ResolveThemeInteractiveBackground(hoverAnim, pressAnim, selected);
+    }
+    return m_Context->GetThemeProvider().InteractiveBackground(hoverAnim, pressAnim, selected);
+}
+
+Color Widget::ThemeTextForState(bool hovered, bool active) const {
+    if (!m_Context) {
+        return ResolveThemeTextForState(hovered, active);
+    }
+    return m_Context->GetThemeProvider().TextForState(hovered, active);
+}
+
+Color Widget::ThemeIconForState(bool hovered, bool active) const {
+    if (!m_Context) {
+        return ResolveThemeIconForState(hovered, active);
+    }
+    return m_Context->GetThemeProvider().IconForState(hovered, active);
+}
+
 IPopupHost* Widget::GetPopupHost() const {
     return m_Context ? m_Context->GetPopupHost() : nullptr;
 }
 
 } // namespace WindEffects::Editor::UI
+

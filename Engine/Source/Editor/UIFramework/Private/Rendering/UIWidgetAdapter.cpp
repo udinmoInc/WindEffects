@@ -67,17 +67,20 @@ void UIWidgetAdapter::ProcessWidget(const std::shared_ptr<Widget>& root,
     // Helper lambda to count widgets
     std::function<void(const std::shared_ptr<Widget>&)> CountWidgets = [&](const std::shared_ptr<Widget>& w) {
         if (!w) return;
-        Widget::s_TotalWidgetCount++;
-        if (w->IsVisible()) Widget::s_VisibleWidgetCount++;
-        else Widget::s_HiddenWidgetCount++;
+        if (Widget::s_GlobalDiagnostics) {
+            Widget::s_GlobalDiagnostics->totalWidgetCount++;
+            if (w->IsVisible()) Widget::s_GlobalDiagnostics->visibleWidgetCount++;
+            else Widget::s_GlobalDiagnostics->hiddenWidgetCount++;
+        }
         for (const auto& child : w->GetChildren()) {
             CountWidgets(child);
         }
     };
     CountWidgets(root);
 
-    // Layout and paint widget
-    Widget::s_LayoutPassCount++;
+    if (Widget::s_GlobalDiagnostics) {
+        Widget::s_GlobalDiagnostics->layoutPassCount++;
+    }
     root->Measure(Size{static_cast<float>(width), static_cast<float>(height)});
     root->Arrange(Rect{0.0f, 0.0f, static_cast<float>(width), static_cast<float>(height)});
     
@@ -85,7 +88,9 @@ void UIWidgetAdapter::ProcessWidget(const std::shared_ptr<Widget>& root,
     if (TextUIService* textService = m_Renderer->GetTextUIService()) {
         paintCtx.SetTextUIService(textService);
     }
-    Widget::s_PaintCalls++;
+    if (Widget::s_GlobalDiagnostics) {
+        Widget::s_GlobalDiagnostics->paintCalls++;
+    }
     root->Paint(paintCtx);
     m_Diagnostics.paintCommandsRecorded = static_cast<uint32_t>(paintCtx.GetCommands().size());
     

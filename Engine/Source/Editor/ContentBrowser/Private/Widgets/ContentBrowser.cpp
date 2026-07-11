@@ -5,7 +5,7 @@
 #include "Services/ContentBrowserFolderArt.h"
 #include "Services/ContentBrowserBlueprintArt.h"
 #include "Core/PaintContext.h"
-#include "Core/Theme.h"
+#include "WindEffects/Editor/UI/Theming/ThemeToken.h"
 #include "Core/Icon.h"
 #include <SDL3/SDL.h>
 #include <algorithm>
@@ -186,12 +186,11 @@ void ContentBrowser::RequestVisibleThumbnails() {
 }
 
 void ContentBrowser::PaintTileChrome(PaintContext& context, const Rect& cell, bool selected, float hoverAlpha) {
-    const auto& theme = Theme::Get();
     constexpr float radius = 4.0f;
 
     // Removed selector box - only show hover effect
     if (hoverAlpha > 0.001f) {
-        Color hoverBg = theme.ContentBrowserHoverBg;
+        Color hoverBg = ThemeColor(ThemeToken::ContentBrowserHoverBackground);
         hoverBg.a *= hoverAlpha * 0.65f;
         context.DrawRoundedRect(cell, hoverBg, radius);
     }
@@ -202,7 +201,7 @@ void ContentBrowser::PaintAssetThumbnail(PaintContext& context, const Rect& thum
 {
     (void)selected;
     (void)hovered;
-    const Color accent = Theme::Get().SelectedAccent;
+    const Color accent = ThemeColor(ThemeToken::AccentPrimary);
 
     if (item.isFolder) {
         ContentBrowserFolderArt::Get().PaintThumbnail(context, thumbRect, hovered);
@@ -220,7 +219,7 @@ void ContentBrowser::PaintAssetThumbnail(PaintContext& context, const Rect& thum
             thumbRect.y + (thumbRect.height - iconSize) * 0.5f,
             iconSize, iconSize
         };
-        IconPainter::DrawIcon(context, item.iconName, iconRect, Theme::Get().IconMuted);
+        IconPainter::DrawIcon(context, item.iconName, iconRect, ThemeColor(ThemeToken::IconDefault));
     }
 
     if (item.isFavorite) {
@@ -229,7 +228,7 @@ void ContentBrowser::PaintAssetThumbnail(PaintContext& context, const Rect& thum
     }
     if (item.isDirty) {
         Rect dot{ thumbRect.x + 4.0f, thumbRect.y + 4.0f, 6.0f, 6.0f };
-        context.DrawRoundedRect(dot, Theme::Get().Warning, 3.0f);
+        context.DrawRoundedRect(dot, ThemeColor(ThemeToken::Warning), 3.0f);
     }
 }
 
@@ -282,9 +281,8 @@ std::vector<std::string> ContentBrowser::WrapLabelText(
 }
 
 void ContentBrowser::PaintItemLabel(PaintContext& context, const Rect& cell, const std::string& name, float maxWidth, int maxLines) {
-    const auto& theme = Theme::Get();
     const GridMetrics metrics = GetGridMetrics();
-    const float fontSize = theme.TextSizeNormal;
+    const float fontSize = ThemeMetric(ThemeToken::TextSizeNormal);
     const float lineH = metrics.labelLineHeight;
     const int lineCount = GetEffectiveViewMode() == ContentViewMode::SmallIcons ? 1 : maxLines;
 
@@ -295,7 +293,7 @@ void ContentBrowser::PaintItemLabel(PaintContext& context, const Rect& cell, con
         const float textW = context.GetTextWidth(lines[i], fontSize);
         const float x = cell.x + (cell.width - textW) * 0.5f;
         const float y = labelTop + static_cast<float>(i) * lineH;
-        context.DrawText(lines[i], Point{ x, y }, theme.ContentBrowserItemLabel, fontSize, false);
+        context.DrawText(lines[i], Point{ x, y }, ThemeColor(ThemeToken::TextPrimary), fontSize, false);
     }
 }
 
@@ -316,7 +314,7 @@ void ContentBrowser::PaintGridItem(PaintContext& context, const RenderItem& rend
         const float typeW = context.GetTextWidth(item.type, 10.0f);
         const float x = renderItem.geometry.x + (renderItem.geometry.width - typeW) * 0.5f;
         const float y = renderItem.geometry.y + renderItem.geometry.height - 26.0f;
-        context.DrawText(item.type, Point{ x, y }, Theme::Get().TextSecondary, 10.0f);
+        context.DrawText(item.type, Point{ x, y }, ThemeColor(ThemeToken::TextSecondary), 10.0f);
     }
 }
 
@@ -325,15 +323,14 @@ void ContentBrowser::PaintListItem(PaintContext& context, const RenderItem& rend
     const bool selected = IsSelected(item.id);
     const bool hovered = item.id == m_HoveredId;
     const float hoverAlpha = hovered ? m_ItemHoverAlpha : 0.0f;
-    const auto& theme = Theme::Get();
 
     Rect rowBg = renderItem.geometry;
     rowBg.x += 4.0f;
     rowBg.width -= 8.0f;
     if (selected) {
-        context.DrawRoundedRect(rowBg, Color{ theme.SelectedAccent.r, theme.SelectedAccent.g, theme.SelectedAccent.b, 0.10f }, 3.0f);
+        context.DrawRoundedRect(rowBg, Color{ ThemeColor(ThemeToken::AccentPrimary).r, ThemeColor(ThemeToken::AccentPrimary).g, ThemeColor(ThemeToken::AccentPrimary).b, 0.10f }, 3.0f);
     } else if (hoverAlpha > 0.001f) {
-        Color hoverBg = theme.ContentBrowserHoverBg;
+        Color hoverBg = ThemeColor(ThemeToken::ContentBrowserHoverBackground);
         hoverBg.a *= hoverAlpha * 0.55f;
         context.DrawRoundedRect(rowBg, hoverBg, 3.0f);
     }
@@ -350,7 +347,7 @@ void ContentBrowser::PaintListItem(PaintContext& context, const RenderItem& rend
     } else if (item.iconTexture != VK_NULL_HANDLE) {
         context.DrawTexture(iconRect, item.iconTexture);
     } else {
-        IconPainter::DrawIcon(context, item.iconName, iconRect, theme.IconMuted);
+        IconPainter::DrawIcon(context, item.iconName, iconRect, ThemeColor(ThemeToken::IconDefault));
     }
 
     const float nameX = iconX + iconSize + 8.0f;
@@ -364,13 +361,13 @@ void ContentBrowser::PaintListItem(PaintContext& context, const RenderItem& rend
         }
         displayName += "...";
     }
-    context.DrawText(displayName, Point{ nameX, nameY }, theme.ContentBrowserItemLabel, 13.0f, false);
+    context.DrawText(displayName, Point{ nameX, nameY }, ThemeColor(ThemeToken::TextPrimary), 13.0f, false);
     context.DrawText(item.type, Point{ renderItem.geometry.x + renderItem.geometry.width - typeW - 12.0f, nameY },
-        theme.TextSecondary, 13.0f);
+        ThemeColor(ThemeToken::TextSecondary), 13.0f);
 }
 
 void ContentBrowser::Paint(PaintContext& context) {
-    context.DrawRect(m_Geometry, Theme::Get().ContentBrowserBackground);
+    context.DrawRect(m_Geometry, ThemeColor(ThemeToken::ContentBrowserBackground));
     UpdateVisibleRange();
 
     const bool isGridLike = GetEffectiveViewMode() != ContentViewMode::List &&
@@ -392,8 +389,8 @@ void ContentBrowser::Paint(PaintContext& context) {
         const float minY = std::min(m_SelectStart.y, m_SelectEnd.y);
         const float maxY = std::max(m_SelectStart.y, m_SelectEnd.y);
         Rect selectBox{ minX, minY, maxX - minX, maxY - minY };
-        context.DrawRect(selectBox, Color{ Theme::Get().SelectedAccent.r, Theme::Get().SelectedAccent.g, Theme::Get().SelectedAccent.b, 0.15f });
-        context.DrawRoundedRectOutline(selectBox, Theme::Get().SelectedAccent, 1.0f, 0.0f);
+        context.DrawRect(selectBox, Color{ ThemeColor(ThemeToken::AccentPrimary).r, ThemeColor(ThemeToken::AccentPrimary).g, ThemeColor(ThemeToken::AccentPrimary).b, 0.15f });
+        context.DrawRoundedRectOutline(selectBox, ThemeColor(ThemeToken::AccentPrimary), 1.0f, 0.0f);
     }
 
     if (m_IsDragging && m_Model && !m_Model->selectedIds.empty()) {
@@ -401,7 +398,7 @@ void ContentBrowser::Paint(PaintContext& context) {
             if (!IsSelected(renderItem.item.id)) continue;
             Rect ghostRect{ m_MousePos.x - 40.0f, m_MousePos.y - 40.0f, 80.0f, 80.0f };
             context.DrawRoundedRect(ghostRect, Color{ 0.145f, 0.145f, 0.145f, 0.8f }, 4.0f);
-            context.DrawRoundedRectOutline(ghostRect, Theme::Get().SelectedAccent, 1.0f, 4.0f);
+            context.DrawRoundedRectOutline(ghostRect, ThemeColor(ThemeToken::AccentPrimary), 1.0f, 4.0f);
             if (renderItem.item.iconTexture != VK_NULL_HANDLE) {
                 Rect iconRect{ ghostRect.x + 12.0f, ghostRect.y + 12.0f, 56.0f, 56.0f };
                 context.DrawTexture(iconRect, renderItem.item.iconTexture);
@@ -410,7 +407,7 @@ void ContentBrowser::Paint(PaintContext& context) {
                 const std::string countStr = std::to_string(m_Model->selectedIds.size());
                 Rect badgeRect{ ghostRect.x + ghostRect.width - 24.0f, ghostRect.y - 8.0f, 32.0f, 20.0f };
                 context.DrawRoundedRect(badgeRect, Color{ 0.9f, 0.2f, 0.2f, 1.0f }, 10.0f);
-                context.DrawText(countStr, Point{ badgeRect.x + Theme::Get().Space2, badgeRect.y + Theme::Get().Space1 - 2.0f }, Theme::Get().TextPrimary, Theme::Get().TextSizeSmall);
+                context.DrawText(countStr, Point{ badgeRect.x + ThemeMetric(ThemeToken::Space2), badgeRect.y + ThemeMetric(ThemeToken::Space1) - 2.0f }, ThemeColor(ThemeToken::TextPrimary), ThemeMetric(ThemeToken::TextSizeSmall));
             }
             break;
         }
@@ -684,13 +681,13 @@ void ContentBrowserStatusBar::Arrange(const Rect& allottedRect) {
 }
 
 void ContentBrowserStatusBar::Paint(PaintContext& context) {
-    context.DrawRect(m_Geometry, Theme::Get().HeaderBackground);
+    context.DrawRect(m_Geometry, ThemeColor(ThemeToken::HeaderBackground));
     const size_t total = m_AssetCount + m_FolderCount;
     std::string text = std::to_string(total) + " items";
     if (m_SelectedCount > 0) {
         text += "  ·  " + std::to_string(m_SelectedCount) + " selected";
     }
-    context.DrawText(text, Point{ m_Geometry.x + 12.0f, m_Geometry.y + 3.0f }, Theme::Get().TextSecondary, 11.0f);
+    context.DrawText(text, Point{ m_Geometry.x + 12.0f, m_Geometry.y + 3.0f }, ThemeColor(ThemeToken::TextSecondary), 11.0f);
 }
 
 Breadcrumb::Breadcrumb() = default;
@@ -706,9 +703,8 @@ void Breadcrumb::Arrange(const Rect& allottedRect) {
 }
 
 void Breadcrumb::Paint(PaintContext& context) {
-    const auto& theme = Theme::Get();
-    context.DrawRect(m_Geometry, theme.PanelBackground);
-    context.DrawRect(Rect{ m_Geometry.x, m_Geometry.y + m_Geometry.height - 1.0f, m_Geometry.width, 1.0f }, theme.Separator);
+    context.DrawRect(m_Geometry, ThemeColor(ThemeToken::PanelBackground));
+    context.DrawRect(Rect{ m_Geometry.x, m_Geometry.y + m_Geometry.height - 1.0f, m_Geometry.width, 1.0f }, ThemeColor(ThemeToken::Separator));
 
     const float iconSize = 16.0f;
     const float iconY = m_Geometry.y + (m_Geometry.height - iconSize) * 0.5f;
@@ -723,11 +719,11 @@ void Breadcrumb::Paint(PaintContext& context) {
         }
         const float textX = crumb.geometry.x + 8.0f;
         const float textY = crumb.geometry.y + (crumb.geometry.height - 13.0f) * 0.5f;
-        const Color textColor = static_cast<int>(i) == m_HoveredCrumb ? Theme::Get().SidebarIconHover : Theme::Get().SidebarIconDefault;
+        const Color textColor = static_cast<int>(i) == m_HoveredCrumb ? ThemeColor(ThemeToken::IconHover) : ThemeColor(ThemeToken::IconDefault);
         context.DrawText(crumb.text, Point{ textX, textY }, textColor, 13.0f, false);
         if (i < m_Crumbs.size() - 1) {
             const float sepX = crumb.geometry.x + crumb.geometry.width + 4.0f;
-            context.DrawText("/", Point{ sepX, textY }, Theme::Get().TreeArrow, 12.0f);
+            context.DrawText("/", Point{ sepX, textY }, ThemeColor(ThemeToken::TextSecondary), 12.0f);
         }
     }
 }

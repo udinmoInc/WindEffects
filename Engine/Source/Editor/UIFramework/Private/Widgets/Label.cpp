@@ -1,6 +1,6 @@
 #include "Widgets/Label.h"
 #include "Core/PaintContext.h"
-#include "Core/Theme.h"
+#include "WindEffects/Editor/UI/Theming/ThemeToken.h"
 #include "Core/Style.h"
 #include "Core/DPIContext.h"
 #include <sstream>
