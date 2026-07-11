@@ -14,7 +14,7 @@ public class Environment : ModuleRules
         PublicDependencies.Add("Engine");
         PublicDependencies.Add("Scene");
         PublicDependencies.Add("Renderer");
-        PublicDependencies.Add("Application");
+        PublicDependencies.Add("UIFramework");
         PublicDependencies.Add("World");
         PublicDependencies.Add("PropertyEditor");
         PublicDependencies.Add("ContentBrowser");

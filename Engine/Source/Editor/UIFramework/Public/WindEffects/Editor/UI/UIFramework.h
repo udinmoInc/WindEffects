@@ -13,5 +13,4 @@
 #include "WindEffects/Editor/UI/Docking/IDockManager.h"
 #include "WindEffects/Editor/UI/Docking/DockManager.h"
 #include "WindEffects/Editor/UI/Extensions/UIExtensionRegistry.h"
-#include "WindEffects/Editor/UI/Shell/EditorShellBuilder.h"
 #include "WindEffects/Editor/UI/Shell/DockLayoutBuilder.h"

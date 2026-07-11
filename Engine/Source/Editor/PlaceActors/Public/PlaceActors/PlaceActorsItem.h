@@ -15,11 +15,11 @@ struct PlaceActorsItemMetrics {
 
 class PlaceActorsItem {
 public:
-    static we::UI::Size MeasureGrid(const PlaceActorsItemMetrics& metrics);
-    static we::UI::Size MeasureList(const PlaceActorsItemMetrics& metrics);
+    static WindEffects::Editor::UI::Size MeasureGrid(const PlaceActorsItemMetrics& metrics);
+    static WindEffects::Editor::UI::Size MeasureList(const PlaceActorsItemMetrics& metrics);
 
-    static void PaintGrid(we::UI::PaintContext& context,
-                          const we::UI::Rect& bounds,
+    static void PaintGrid(WindEffects::Editor::UI::PaintContext& context,
+                          const WindEffects::Editor::UI::Rect& bounds,
                           const PlaceActorsItemData& item,
                           const PlaceActorsItemMetrics& metrics,
                           float hoverAnim,
@@ -27,8 +27,8 @@ public:
                           bool selected,
                           bool favorite);
 
-    static void PaintList(we::UI::PaintContext& context,
-                          const we::UI::Rect& bounds,
+    static void PaintList(WindEffects::Editor::UI::PaintContext& context,
+                          const WindEffects::Editor::UI::Rect& bounds,
                           const PlaceActorsItemData& item,
                           const PlaceActorsItemMetrics& metrics,
                           float hoverAnim,

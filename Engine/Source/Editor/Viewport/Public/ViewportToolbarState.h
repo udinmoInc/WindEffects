@@ -4,7 +4,7 @@
 
 #include <memory>
 
-namespace we::UI {
+namespace WindEffects::Editor::UI {
 class ToolButton;
 }
 
@@ -16,7 +16,7 @@ namespace we::programs::editor {
 
 VIEWPORT_API void BindViewportCamera(const std::shared_ptr<we::runtime::engine::EditorCamera>& camera);
 
-VIEWPORT_API void SetViewportCameraSpeedIndicator(const std::shared_ptr<we::UI::ToolButton>& indicator);
+VIEWPORT_API void SetViewportCameraSpeedIndicator(const std::shared_ptr<WindEffects::Editor::UI::ToolButton>& indicator);
 VIEWPORT_API void UpdateViewportCameraSpeedIndicator();
 VIEWPORT_API void StepViewportCameraSpeed(int direction);
 VIEWPORT_API void AdjustViewportCameraSpeedFromWheel(float wheelDeltaY);

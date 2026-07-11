@@ -33,22 +33,22 @@ std::string CategoryStatePath() {
 
 } // namespace
 
-using we::UI::Color;
-using we::UI::KeyEvent;
-using we::UI::MouseButton;
-using we::UI::MouseEvent;
-using we::UI::PaintContext;
-using we::UI::Point;
-using we::UI::Rect;
-using we::UI::Size;
-using we::UI::Theme;
+using WindEffects::Editor::UI::Color;
+using WindEffects::Editor::UI::KeyEvent;
+using WindEffects::Editor::UI::MouseButton;
+using WindEffects::Editor::UI::MouseEvent;
+using WindEffects::Editor::UI::PaintContext;
+using WindEffects::Editor::UI::Point;
+using WindEffects::Editor::UI::Rect;
+using WindEffects::Editor::UI::Size;
+using WindEffects::Editor::UI::Theme;
 
 PlaceActorsPanel::PlaceActorsPanel() {
     auto& config = PlaceActorsConfig::Get();
     config.EnsureLoaded();
     m_ViewMode = config.defaultView;
 
-    m_SearchBox = std::make_shared<we::UI::SearchBox>();
+    m_SearchBox = std::make_shared<WindEffects::Editor::UI::SearchBox>();
     m_SearchBox->SetFillWidth(true);
     m_SearchBox->SetPlaceholder("Search classes...");
     m_SearchBox->SetOnTextChanged([this](const std::string& text) {
@@ -56,8 +56,8 @@ PlaceActorsPanel::PlaceActorsPanel() {
         m_NeedsLayout = true;
     });
 
-    m_CategoryFilterButton = std::make_shared<we::UI::ToolButton>(
-        we::UI::Icons::LayersName, "All", [this]() {
+    m_CategoryFilterButton = std::make_shared<WindEffects::Editor::UI::ToolButton>(
+        WindEffects::Editor::UI::Icons::LayersName, "All", [this]() {
             const auto labels = PlaceActorsCatalog::Get().GetCategoryFilterLabels();
             auto it = std::find(labels.begin(), labels.end(), m_CategoryFilter);
             const size_t next = (it == labels.end()) ? 0 : static_cast<size_t>((it - labels.begin() + 1) % labels.size());
@@ -65,10 +65,10 @@ PlaceActorsPanel::PlaceActorsPanel() {
             m_CategoryFilterButton->SetLabel(m_CategoryFilter);
             m_NeedsLayout = true;
         }, "Filter category");
-    m_CategoryFilterButton->SetButtonStyle(we::UI::ToolButtonStyle::ToolbarInline);
+    m_CategoryFilterButton->SetButtonStyle(WindEffects::Editor::UI::ToolButtonStyle::ToolbarInline);
 
-    m_SortButton = std::make_shared<we::UI::ToolButton>(
-        we::UI::Icons::ListName, "Sort", [this]() {
+    m_SortButton = std::make_shared<WindEffects::Editor::UI::ToolButton>(
+        WindEffects::Editor::UI::Icons::ListName, "Sort", [this]() {
             switch (m_SortMode) {
             case PlaceActorsSortMode::Name: m_SortMode = PlaceActorsSortMode::Category; break;
             case PlaceActorsSortMode::Category: m_SortMode = PlaceActorsSortMode::Recent; break;
@@ -76,24 +76,24 @@ PlaceActorsPanel::PlaceActorsPanel() {
             }
             m_NeedsLayout = true;
         }, "Sort");
-    m_SortButton->SetButtonStyle(we::UI::ToolButtonStyle::ToolbarInline);
+    m_SortButton->SetButtonStyle(WindEffects::Editor::UI::ToolButtonStyle::ToolbarInline);
 
-    m_ViewToggleButton = std::make_shared<we::UI::ToolButton>(
-        we::UI::Icons::GridName, "Grid", [this]() {
+    m_ViewToggleButton = std::make_shared<WindEffects::Editor::UI::ToolButton>(
+        WindEffects::Editor::UI::Icons::GridName, "Grid", [this]() {
             m_ViewMode = (m_ViewMode == PlaceActorsViewMode::Grid)
                 ? PlaceActorsViewMode::List
                 : PlaceActorsViewMode::Grid;
             m_ViewToggleButton->SetLabel(m_ViewMode == PlaceActorsViewMode::Grid ? "Grid" : "List");
             m_NeedsLayout = true;
         }, "Toggle view");
-    m_ViewToggleButton->SetButtonStyle(we::UI::ToolButtonStyle::ToolbarInline);
+    m_ViewToggleButton->SetButtonStyle(WindEffects::Editor::UI::ToolButtonStyle::ToolbarInline);
 
-    m_RecentButton = std::make_shared<we::UI::ToolButton>(
-        we::UI::Icons::RefreshName, "Recent", [this]() {
+    m_RecentButton = std::make_shared<WindEffects::Editor::UI::ToolButton>(
+        WindEffects::Editor::UI::Icons::RefreshName, "Recent", [this]() {
             m_ShowRecentOnly = !m_ShowRecentOnly;
             m_NeedsLayout = true;
         }, "Recently used");
-    m_RecentButton->SetButtonStyle(we::UI::ToolButtonStyle::ToolbarInline);
+    m_RecentButton->SetButtonStyle(WindEffects::Editor::UI::ToolButtonStyle::ToolbarInline);
 
     PlaceActorsCatalog::Get().Refresh();
     RebuildData();
@@ -124,7 +124,7 @@ void PlaceActorsPanel::RebuildData() {
             PlaceActorsCategoryData recentCategory;
             recentCategory.id = "__Recent";
             recentCategory.label = "Recently Used";
-            recentCategory.iconName = we::UI::Icons::RefreshName;
+            recentCategory.iconName = WindEffects::Editor::UI::Icons::RefreshName;
             recentCategory.defaultExpanded = true;
             recentCategory.items = std::move(recentItems);
             m_DisplayCategories.push_back(std::move(recentCategory));
@@ -142,7 +142,7 @@ void PlaceActorsPanel::RebuildData() {
             PlaceActorsCategoryData favCategory;
             favCategory.id = "__Favorites";
             favCategory.label = "Favorites";
-            favCategory.iconName = we::UI::Icons::StarFilledName;
+            favCategory.iconName = WindEffects::Editor::UI::Icons::StarFilledName;
             favCategory.defaultExpanded = true;
             favCategory.items = std::move(favoriteItems);
             m_DisplayCategories.push_back(std::move(favCategory));
@@ -281,7 +281,7 @@ void PlaceActorsPanel::Arrange(const Rect& allottedRect) {
     m_SearchBox->Arrange(Rect{ x, m_ToolbarRect.y + theme.Space1, searchWidth, theme.SearchBoxHeight });
     x += searchWidth + theme.Space2;
 
-    auto placeButton = [&](const std::shared_ptr<we::UI::ToolButton>& button) {
+    auto placeButton = [&](const std::shared_ptr<WindEffects::Editor::UI::ToolButton>& button) {
         button->Measure(Size{ buttonWidth, theme.SearchBoxHeight });
         button->Arrange(Rect{ x, m_ToolbarRect.y + theme.Space1, buttonWidth, theme.SearchBoxHeight });
         x += buttonWidth + theme.Space1;
@@ -298,7 +298,7 @@ void PlaceActorsPanel::Arrange(const Rect& allottedRect) {
 }
 
 void PlaceActorsPanel::Tick(float deltaTime) {
-    we::UI::Animator::Tick(deltaTime);
+    WindEffects::Editor::UI::Animator::Tick(deltaTime);
 }
 
 void PlaceActorsPanel::Paint(PaintContext& context) {
@@ -503,7 +503,7 @@ void PlaceActorsPanel::OnMouseMove(const MouseEvent& event) {
     for (auto& entry : m_Layout) {
         const bool hovered = entry.geometry.Contains(event.position);
         if (PlaceActorsConfig::Get().enableAnimations) {
-            entry.hoverAnim = we::UI::Animator::Damp(entry.hoverAnim, hovered ? 1.0f : 0.0f, 14.0f);
+            entry.hoverAnim = WindEffects::Editor::UI::Animator::Damp(entry.hoverAnim, hovered ? 1.0f : 0.0f, 14.0f);
         } else {
             entry.hoverAnim = hovered ? 1.0f : 0.0f;
         }

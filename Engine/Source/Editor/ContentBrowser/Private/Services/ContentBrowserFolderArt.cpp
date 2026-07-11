@@ -13,7 +13,7 @@ ContentBrowserFolderArt& ContentBrowserFolderArt::Get() {
     return instance;
 }
 
-void ContentBrowserFolderArt::Initialize(we::UI::IconRenderer* iconRenderer) {
+void ContentBrowserFolderArt::Initialize(WindEffects::Editor::UI::IconRenderer* iconRenderer) {
     m_Renderer = iconRenderer;
 }
 
@@ -21,8 +21,8 @@ void ContentBrowserFolderArt::InvalidateCache() {
     m_Cache.clear();
 }
 
-we::UI::Rect ContentBrowserFolderArt::ComputeFolderRect(
-    const we::UI::Rect& bounds, float widthFill, float heightFill, bool alignBottom, float aspectRatio) {
+WindEffects::Editor::UI::Rect ContentBrowserFolderArt::ComputeFolderRect(
+    const WindEffects::Editor::UI::Rect& bounds, float widthFill, float heightFill, bool alignBottom, float aspectRatio) {
     const float maxW = bounds.width * std::clamp(widthFill, 0.5f, 0.95f);
     const float maxH = bounds.height * std::clamp(heightFill, 0.5f, 0.95f);
     float width = maxW;
@@ -35,14 +35,14 @@ we::UI::Rect ContentBrowserFolderArt::ComputeFolderRect(
     const float y = alignBottom
         ? bounds.y + bounds.height - height
         : bounds.y + (bounds.height - height) * 0.5f;
-    return we::UI::Rect{ x, y, width, height };
+    return WindEffects::Editor::UI::Rect{ x, y, width, height };
 }
 
 VkDescriptorSet ContentBrowserFolderArt::GetTexture(
     uint32_t widthPx, uint32_t heightPx, bool hovered, bool opened) const {
     if (!m_Renderer || heightPx == 0 || widthPx == 0) return VK_NULL_HANDLE;
 
-    const float dpi = std::max(1.0f, we::UI::DPIContext::GetScale());
+    const float dpi = std::max(1.0f, WindEffects::Editor::UI::DPIContext::GetScale());
     const uint32_t rasterHeight = std::max(16u, static_cast<uint32_t>(std::ceil(static_cast<float>(heightPx) * dpi)));
 
     const BitmapRGBA bitmap = ThumbnailRenderer::RenderContentBrowserFolder(
@@ -62,8 +62,8 @@ VkDescriptorSet ContentBrowserFolderArt::GetTexture(
     return texture;
 }
 
-void ContentBrowserFolderArt::PaintThumbnail(we::UI::PaintContext& context, const we::UI::Rect& thumbRect, bool hovered) const {
-    const we::UI::Rect folderRect = ComputeFolderRect(thumbRect);
+void ContentBrowserFolderArt::PaintThumbnail(WindEffects::Editor::UI::PaintContext& context, const WindEffects::Editor::UI::Rect& thumbRect, bool hovered) const {
+    const WindEffects::Editor::UI::Rect folderRect = ComputeFolderRect(thumbRect);
     const uint32_t heightPx = static_cast<uint32_t>(std::ceil(folderRect.height));
     const uint32_t widthPx = static_cast<uint32_t>(std::ceil(folderRect.width));
     const VkDescriptorSet texture = GetTexture(widthPx, heightPx, hovered, false);
@@ -73,9 +73,9 @@ void ContentBrowserFolderArt::PaintThumbnail(we::UI::PaintContext& context, cons
 }
 
 void ContentBrowserFolderArt::PaintSmallIcon(
-    we::UI::PaintContext& context, const we::UI::Rect& iconRect, bool hovered, bool opened) const {
+    WindEffects::Editor::UI::PaintContext& context, const WindEffects::Editor::UI::Rect& iconRect, bool hovered, bool opened) const {
     const float aspectRatio = opened ? kFolderOpenAspectRatio : kFolderAspectRatio;
-    we::UI::Rect folderRect = ComputeFolderRect(
+    WindEffects::Editor::UI::Rect folderRect = ComputeFolderRect(
         iconRect, kSmallIconWidthFill, kSmallIconHeightFill, false, aspectRatio);
     folderRect.width = std::max(1.0f, std::round(folderRect.width));
     folderRect.height = std::max(1.0f, std::round(folderRect.height));

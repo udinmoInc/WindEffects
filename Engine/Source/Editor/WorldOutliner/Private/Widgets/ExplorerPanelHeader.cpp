@@ -10,7 +10,7 @@
 #include <algorithm>
 #include <cmath>
 
-namespace we::UI {
+namespace WindEffects::Editor::UI {
 
 ExplorerPanelHeader::ExplorerPanelHeader() {
 }
@@ -233,4 +233,4 @@ void ExplorerPanelHeader::SetSearchQuery(const std::string& query) {
     }
 }
 
-} // namespace we::UI
+} // namespace WindEffects::Editor::UI

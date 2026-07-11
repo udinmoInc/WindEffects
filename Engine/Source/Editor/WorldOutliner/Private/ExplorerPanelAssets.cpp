@@ -10,7 +10,7 @@ namespace {
 
 VkDescriptorSet g_LogoSet = VK_NULL_HANDLE;
 float g_LogoLogicalSize = 16.0f;
-std::weak_ptr<we::UI::TreeView> g_ExplorerTreeView;
+std::weak_ptr<WindEffects::Editor::UI::TreeView> g_ExplorerTreeView;
 
 } // namespace
 
@@ -27,11 +27,11 @@ float GetExplorerBrandLogoLogicalSize() {
     return g_LogoLogicalSize;
 }
 
-void RegisterExplorerTreeView(const std::shared_ptr<we::UI::TreeView>& treeView) {
+void RegisterExplorerTreeView(const std::shared_ptr<WindEffects::Editor::UI::TreeView>& treeView) {
     g_ExplorerTreeView = treeView;
 }
 
-std::shared_ptr<we::UI::TreeView> GetExplorerTreeView() {
+std::shared_ptr<WindEffects::Editor::UI::TreeView> GetExplorerTreeView() {
     return g_ExplorerTreeView.lock();
 }
 

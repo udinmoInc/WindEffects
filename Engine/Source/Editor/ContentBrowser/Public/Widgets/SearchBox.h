@@ -8,7 +8,7 @@
 #include <string>
 #include <functional>
 
-namespace we::UI {
+namespace WindEffects::Editor::UI {
 
 // Search box widget with icon and clear button
 class CONTENTBROWSER_API SearchBox : public Widget {

@@ -10,8 +10,7 @@ public class MainFrame : ModuleRules
         PrivateIncludePaths.Add("Private");
 
         PublicDependencies.Add("Core");
-        PublicDependencies.Add("Docking");
-        PublicDependencies.Add("Application");
+        PublicDependencies.Add("UIFramework");
         PublicDependencies.Add("Toolbar");
         PublicDependencies.Add("Menus");
 

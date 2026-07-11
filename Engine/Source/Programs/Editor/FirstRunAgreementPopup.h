@@ -8,7 +8,7 @@
 
 namespace we::programs::editor {
 
-class FirstRunAgreementPopup : public we::UI::Widget {
+class FirstRunAgreementPopup : public WindEffects::Editor::UI::Widget {
 public:
     explicit FirstRunAgreementPopup(std::string markdownAndTextContent);
     ~FirstRunAgreementPopup();
@@ -16,16 +16,16 @@ public:
     void SetOnAccepted(std::function<void()> callback) { m_OnAccepted = std::move(callback); }
     void SetOnDeclined(std::function<void()> callback) { m_OnDeclined = std::move(callback); }
 
-    we::UI::Size Measure(const we::UI::Size& availableSize) override;
-    void Arrange(const we::UI::Rect& allottedRect) override;
-    void Paint(we::UI::PaintContext& context) override;
+    WindEffects::Editor::UI::Size Measure(const WindEffects::Editor::UI::Size& availableSize) override;
+    void Arrange(const WindEffects::Editor::UI::Rect& allottedRect) override;
+    void Paint(WindEffects::Editor::UI::PaintContext& context) override;
 
-    void OnMouseDown(const we::UI::MouseEvent& event) override;
-    void OnMouseMove(const we::UI::MouseEvent& event) override;
-    void OnMouseUp(const we::UI::MouseEvent& event) override;
-    void OnMouseWheel(const we::UI::MouseEvent& event) override;
-    void OnKeyDown(const we::UI::KeyEvent& event) override;
-    bool ShowsPointerCursor(const we::UI::Point& position) const override;
+    void OnMouseDown(const WindEffects::Editor::UI::MouseEvent& event) override;
+    void OnMouseMove(const WindEffects::Editor::UI::MouseEvent& event) override;
+    void OnMouseUp(const WindEffects::Editor::UI::MouseEvent& event) override;
+    void OnMouseWheel(const WindEffects::Editor::UI::MouseEvent& event) override;
+    void OnKeyDown(const WindEffects::Editor::UI::KeyEvent& event) override;
+    bool ShowsPointerCursor(const WindEffects::Editor::UI::Point& position) const override;
     
     void ExecutePendingCallback();
 
@@ -74,7 +74,7 @@ private:
     };
 
     struct ButtonState {
-        we::UI::Rect rect{};
+        WindEffects::Editor::UI::Rect rect{};
         std::string label;
         std::string iconName;
         bool hovered = false;
@@ -82,8 +82,8 @@ private:
     };
 
     struct ScrollbarState {
-        we::UI::Rect track{};
-        we::UI::Rect thumb{};
+        WindEffects::Editor::UI::Rect track{};
+        WindEffects::Editor::UI::Rect thumb{};
         bool hovering = false;
         bool dragging = false;
         float dragStartY = 0.0f;
@@ -97,16 +97,16 @@ private:
     static std::string ExtractTitle(const std::string& content);
 
     // Layout engine
-    void ComputeLayout(we::UI::PaintContext& context);
-    float MeasureNode(we::UI::PaintContext& context, DocumentNode& node, float maxWidth);
-    std::vector<std::string> WrapWords(we::UI::PaintContext& context, const std::string& text, float fontSize, float maxWidth);
+    void ComputeLayout(WindEffects::Editor::UI::PaintContext& context);
+    float MeasureNode(WindEffects::Editor::UI::PaintContext& context, DocumentNode& node, float maxWidth);
+    std::vector<std::string> WrapWords(WindEffects::Editor::UI::PaintContext& context, const std::string& text, float fontSize, float maxWidth);
 
     // Rendering
-    void RenderNode(we::UI::PaintContext& context, const DocumentNode& node, float y);
-    void RenderTextRuns(we::UI::PaintContext& context, const std::vector<TextRun>& runs, float x, float& y, float fontSize, const we::UI::Color& baseColor, float maxWidth);
-    void RenderCodeBlock(we::UI::PaintContext& context, const DocumentNode& node, float y);
-    void RenderBlockquote(we::UI::PaintContext& context, const DocumentNode& node, float y);
-    void RenderList(we::UI::PaintContext& context, const DocumentNode& node, float y);
+    void RenderNode(WindEffects::Editor::UI::PaintContext& context, const DocumentNode& node, float y);
+    void RenderTextRuns(WindEffects::Editor::UI::PaintContext& context, const std::vector<TextRun>& runs, float x, float& y, float fontSize, const WindEffects::Editor::UI::Color& baseColor, float maxWidth);
+    void RenderCodeBlock(WindEffects::Editor::UI::PaintContext& context, const DocumentNode& node, float y);
+    void RenderBlockquote(WindEffects::Editor::UI::PaintContext& context, const DocumentNode& node, float y);
+    void RenderList(WindEffects::Editor::UI::PaintContext& context, const DocumentNode& node, float y);
 
     // Scrolling
     void SetScrollOffset(float offset);
@@ -116,13 +116,13 @@ private:
     void ScrollToTop();
     void ScrollToBottom();
     void UpdateScrollbarGeometry();
-    bool IsOverScrollbar(const we::UI::Point& point) const;
-    bool IsOverThumb(const we::UI::Point& point) const;
+    bool IsOverScrollbar(const WindEffects::Editor::UI::Point& point) const;
+    bool IsOverThumb(const WindEffects::Editor::UI::Point& point) const;
 
     // Utilities
     float GetFontSize(NodeType type) const;
     float GetLineHeight(NodeType type) const;
-    we::UI::Color GetTextColor(NodeType type) const;
+    WindEffects::Editor::UI::Color GetTextColor(NodeType type) const;
 
 public:
     static std::string BuildDefaultContent();
@@ -137,8 +137,8 @@ public:
     bool m_LayoutValid = false;
 
     // Layout
-    we::UI::Rect m_DialogRect{};
-    we::UI::Rect m_ContentRect{};
+    WindEffects::Editor::UI::Rect m_DialogRect{};
+    WindEffects::Editor::UI::Rect m_ContentRect{};
     float m_ContentMargin = 16.0f;
 
     // Scrolling

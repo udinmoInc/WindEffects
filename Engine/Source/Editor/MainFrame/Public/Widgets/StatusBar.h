@@ -6,7 +6,7 @@
 #include <string>
 #include <functional>
 
-namespace we::UI {
+namespace WindEffects::Editor::UI {
 
 // Status bar widget for application status information
 class MAINFRAME_API StatusBar : public HorizontalBox {
@@ -45,4 +45,4 @@ private:
     std::shared_ptr<class ToolButton> m_QualityMenuButton;
 };
 
-} // namespace we::UI
+} // namespace WindEffects::Editor::UI

@@ -12,7 +12,7 @@
 #include <string>
 #include <vector>
 
-namespace we::UI {
+namespace WindEffects::Editor::UI {
 
 class SearchBox;
 class Breadcrumb;
@@ -131,4 +131,4 @@ private:
     std::shared_ptr<ToolbarLabeledButton> m_SaveBtn;
 };
 
-} // namespace we::UI
+} // namespace WindEffects::Editor::UI

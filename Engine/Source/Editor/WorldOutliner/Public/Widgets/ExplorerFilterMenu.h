@@ -6,7 +6,7 @@
 #include <string>
 #include <vector>
 
-namespace we::UI {
+namespace WindEffects::Editor::UI {
 
 class ExplorerFilterMenu : public Widget {
 public:
@@ -44,4 +44,4 @@ private:
     int m_PressedItem = -1;
 };
 
-} // namespace we::UI
+} // namespace WindEffects::Editor::UI

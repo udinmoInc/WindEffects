@@ -2,13 +2,13 @@
 
 #include "ContentBrowser/Export.h"
 
-namespace we::UI {
+namespace WindEffects::Editor::UI {
 class IconRenderer;
 }
 
 namespace we::programs::editor {
 
-CONTENTBROWSER_API void InitializeContentBrowserService(we::UI::IconRenderer* iconRenderer);
+CONTENTBROWSER_API void InitializeContentBrowserService(WindEffects::Editor::UI::IconRenderer* iconRenderer);
 CONTENTBROWSER_API void ShutdownContentBrowserService();
 
 }

@@ -11,17 +11,17 @@
 #include <unordered_map>
 #include <vector>
 
-namespace we::UI {
+namespace WindEffects::Editor::UI {
 class Panel;
-class MenuItem;
+struct MenuItem;
 class Widget;
 }
 
 namespace WindEffects::Editor::UI {
 
-using LegacyPanelFactory = std::function<std::shared_ptr<we::UI::Panel>()>;
-using LegacyMenuFactory = std::function<std::vector<std::shared_ptr<we::UI::MenuItem>>()>;
-using LegacyWidgetFactory = std::function<std::shared_ptr<we::UI::Widget>()>;
+using LegacyPanelFactory = std::function<std::shared_ptr<WindEffects::Editor::UI::Panel>()>;
+using LegacyMenuFactory = std::function<std::vector<std::shared_ptr<WindEffects::Editor::UI::MenuItem>>()>;
+using LegacyWidgetFactory = std::function<std::shared_ptr<WindEffects::Editor::UI::Widget>()>;
 
 struct PanelRegistration {
     DockPanelDescriptor descriptor;
@@ -42,7 +42,7 @@ public:
     virtual void RegisterUI(class UIExtensionRegistry& registry) = 0;
 };
 
-class UIExtensionRegistry {
+class UIFRAMEWORK_API UIExtensionRegistry {
 public:
     void RegisterExtension(std::shared_ptr<IEditorUIExtension> extension);
     void RegisterPanel(PanelRegistration registration);

@@ -15,14 +15,14 @@ constexpr float kThumbRadius = 6.0f;
 constexpr float kSliderTop = 38.0f;
 } // namespace
 
-using we::UI::Color;
-using we::UI::MouseButton;
-using we::UI::MouseEvent;
-using we::UI::PaintContext;
-using we::UI::Point;
-using we::UI::Rect;
-using we::UI::Size;
-using we::UI::Theme;
+using WindEffects::Editor::UI::Color;
+using WindEffects::Editor::UI::MouseButton;
+using WindEffects::Editor::UI::MouseEvent;
+using WindEffects::Editor::UI::PaintContext;
+using WindEffects::Editor::UI::Point;
+using WindEffects::Editor::UI::Rect;
+using WindEffects::Editor::UI::Size;
+using WindEffects::Editor::UI::Theme;
 
 ViewportSliderPopup::ViewportSliderPopup(
     std::string title,

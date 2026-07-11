@@ -7,7 +7,7 @@
 #include <string>
 #include <vector>
 
-namespace we::UI {
+namespace WindEffects::Editor::UI {
 
 class ExplorerPanelHeader : public Widget {
 public:
@@ -78,4 +78,4 @@ private:
     std::function<void()> m_OnRefresh;
 };
 
-} // namespace we::UI
+} // namespace WindEffects::Editor::UI

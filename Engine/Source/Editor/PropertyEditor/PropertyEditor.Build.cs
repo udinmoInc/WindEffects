@@ -12,7 +12,7 @@ public class PropertyEditor : ModuleRules
         PublicDependencies.Add("Core");
         PublicDependencies.Add("CoreUObject");
         PublicDependencies.Add("Engine");
-        PublicDependencies.Add("Application");
+        PublicDependencies.Add("UIFramework");
 
         Definitions.Add("PROPERTYEDITOR_EXPORTS");
     }

@@ -8,7 +8,7 @@
 #include <algorithm>
 #include <cmath>
 
-namespace we::UI {
+namespace WindEffects::Editor::UI {
 
 ExplorerToolbar::ExplorerToolbar() {
 }
@@ -229,4 +229,4 @@ void ExplorerToolbar::SetSearchQuery(const std::string& query) {
     }
 }
 
-} // namespace we::UI
+} // namespace WindEffects::Editor::UI

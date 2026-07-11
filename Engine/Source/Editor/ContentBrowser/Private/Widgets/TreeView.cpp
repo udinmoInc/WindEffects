@@ -11,7 +11,7 @@
 #include <functional>
 #include <SDL3/SDL.h>
 
-namespace we::UI {
+namespace WindEffects::Editor::UI {
 
 namespace {
 
@@ -119,7 +119,7 @@ public:
             Rect row{ m_Geometry.x + 2.0f, y, m_Geometry.width - 4.0f, 24.0f };
             if (row.Contains(event.position) && m_Items[i].enabled && m_Items[i].onClick) {
                 m_Items[i].onClick();
-                if (auto* overlay = OverlayManager::Get()) {
+                if (auto* overlay = GetPopupHost()) {
                     overlay->CloseAllPopups();
                 }
                 if (m_OnDismiss) {
@@ -733,7 +733,7 @@ void TreeView::ShowContextMenu(const std::string& id, const Point& position) {
     items.push_back(makeItem("Create Child Actor", []() {}));
 
     auto menu = std::make_shared<TreeContextMenu>(items, nullptr);
-    if (auto* overlay = OverlayManager::Get()) {
+    if (auto* overlay = GetPopupHost()) {
         overlay->CloseAllPopups();
         overlay->ShowPopup(menu, position);
     }
@@ -793,4 +793,4 @@ void TreeView::SetSearchQuery(const std::string& query) {
     Arrange(m_Geometry);
 }
 
-} // namespace we::UI
+} // namespace WindEffects::Editor::UI

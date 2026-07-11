@@ -9,7 +9,7 @@ namespace we::runtime::engine { class EditorCamera; }
 namespace we::runtime::renderer { class Renderer; }
 namespace we::runtime::scene { class Scene; }
 
-namespace we::UI {
+namespace WindEffects::Editor::UI {
 
 class GraphicsDebuggerPopup : public Widget {
 public:
@@ -48,4 +48,4 @@ private:
     float m_FrameTimeMs = 0.0f;
 };
 
-} // namespace we::UI
+} // namespace WindEffects::Editor::UI

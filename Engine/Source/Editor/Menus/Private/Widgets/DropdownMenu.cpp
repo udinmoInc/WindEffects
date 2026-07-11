@@ -3,7 +3,7 @@
 #include "Core/Theme.h"
 #include "Layout/OverlayManager.h"
 
-namespace we::UI {
+namespace WindEffects::Editor::UI {
 
 DropdownMenu::DropdownMenu(const std::vector<std::shared_ptr<MenuItem>>& items)
     : m_Items(items)
@@ -81,8 +81,8 @@ void DropdownMenu::OnMouseMove(const MouseEvent& event) {
 void DropdownMenu::OnMouseDown(const MouseEvent& event) {
     if (event.button == MouseButton::Left) {
         const int clickedItem = HitItemAt(event.position);
-        if (OverlayManager::Get()) {
-            OverlayManager::Get()->CloseTopPopup();
+        if (auto* overlay = GetPopupHost()) {
+            overlay->CloseTopPopup();
         }
         if (clickedItem >= 0 && clickedItem < static_cast<int>(m_Items.size())) {
             const auto& item = m_Items[static_cast<size_t>(clickedItem)];
@@ -93,4 +93,4 @@ void DropdownMenu::OnMouseDown(const MouseEvent& event) {
     }
 }
 
-} // namespace we::editor::menus::UI
+} // namespace WindEffects::Editor::UI

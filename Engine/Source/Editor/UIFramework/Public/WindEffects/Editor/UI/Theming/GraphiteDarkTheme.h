@@ -7,7 +7,7 @@
 
 namespace WindEffects::Editor::UI {
 
-class UIFRAMEWORK_API GraphiteDarkTheme final : public IThemeProvider {
+class GraphiteDarkTheme final : public IThemeProvider {
 public:
     [[nodiscard]] std::string_view GetThemeId() const override { return "GraphiteDark"; }
 
@@ -20,7 +20,7 @@ public:
     [[nodiscard]] Color TextForState(bool hovered, bool active = false) const override;
 };
 
-class UIFRAMEWORK_API StyleResolver final : public IStyleResolver {
+class StyleResolver final : public IStyleResolver {
 public:
     explicit StyleResolver(std::shared_ptr<IThemeProvider> theme);
 

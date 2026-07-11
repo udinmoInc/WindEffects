@@ -3,7 +3,7 @@
 #include <volk.h>
 #include <memory>
 
-namespace we::UI {
+namespace WindEffects::Editor::UI {
 class TreeView;
 }
 
@@ -11,6 +11,6 @@ namespace we::programs::editor {
 
 VkDescriptorSet GetExplorerBrandLogo();
 float GetExplorerBrandLogoLogicalSize();
-void RegisterExplorerTreeView(const std::shared_ptr<we::UI::TreeView>& treeView);
+void RegisterExplorerTreeView(const std::shared_ptr<WindEffects::Editor::UI::TreeView>& treeView);
 
 } // namespace we::programs::editor

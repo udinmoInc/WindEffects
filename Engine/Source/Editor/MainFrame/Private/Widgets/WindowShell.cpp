@@ -2,7 +2,7 @@
 #include "Core/PaintContext.h"
 #include "Core/Theme.h"
 
-namespace we::UI {
+namespace WindEffects::Editor::UI {
 
 WindowShell::WindowShell() = default;
 
@@ -54,4 +54,4 @@ void WindowShell::Paint(PaintContext& context) {
     context.DrawLine(Point{ x, bottom }, Point{ right, bottom }, border, 1.0f);
 }
 
-} // namespace we::UI
+} // namespace WindEffects::Editor::UI

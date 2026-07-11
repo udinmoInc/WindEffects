@@ -3,7 +3,7 @@
 #include "ViewportNavigationSettings.h"
 #include "Widgets/ViewportSliderPopup.h"
 #include "EditorCamera.h"
-#include "Layout/OverlayManager.h"
+#include "EditorWorkspaceController.h"
 #include "Widgets/ToolButton.h"
 #include <cmath>
 #include <algorithm>
@@ -12,17 +12,17 @@ namespace we::programs::editor {
 
 namespace {
 std::weak_ptr<we::runtime::engine::EditorCamera> g_Camera;
-std::weak_ptr<we::UI::ToolButton> g_CameraSpeedIndicator;
+std::weak_ptr<WindEffects::Editor::UI::ToolButton> g_CameraSpeedIndicator;
 
-void ShowPopupBelowButton(const std::shared_ptr<we::UI::Widget>& popup,
-                          const std::shared_ptr<we::UI::ToolButton>& button) {
-    auto overlay = we::UI::OverlayManager::Get();
+void ShowPopupBelowButton(const std::shared_ptr<WindEffects::Editor::UI::Widget>& popup,
+                          const std::shared_ptr<WindEffects::Editor::UI::ToolButton>& button) {
+    auto* overlay = GetEditorPopupHost();
     if (!overlay || !button) {
         return;
     }
-    const we::UI::Rect anchor = button->GetGeometry();
+    const WindEffects::Editor::UI::Rect anchor = button->GetGeometry();
     overlay->CloseAllPopups();
-    overlay->ShowPopup(popup, we::UI::Point{ anchor.x, anchor.y + anchor.height + 2.0f });
+    overlay->ShowPopup(popup, WindEffects::Editor::UI::Point{ anchor.x, anchor.y + anchor.height + 2.0f });
 }
 
 float SnapCameraSpeed(float value) {
@@ -34,11 +34,11 @@ float SnapCameraSpeed(float value) {
 
 void BindViewportCamera(const std::shared_ptr<we::runtime::engine::EditorCamera>& camera) {
     g_Camera = camera;
-    we::UI::ApplyViewportNavigationSettings(camera);
+    WindEffects::Editor::UI::ApplyViewportNavigationSettings(camera);
     UpdateViewportCameraSpeedIndicator();
 }
 
-void SetViewportCameraSpeedIndicator(const std::shared_ptr<we::UI::ToolButton>& indicator) {
+void SetViewportCameraSpeedIndicator(const std::shared_ptr<WindEffects::Editor::UI::ToolButton>& indicator) {
     g_CameraSpeedIndicator = indicator;
     UpdateViewportCameraSpeedIndicator();
 }
@@ -108,7 +108,7 @@ void ShowViewportCameraSpeedPopup() {
 }
 
 void ApplyLoadedViewportNavigationSettings() {
-    we::UI::ApplyViewportNavigationSettings(g_Camera.lock());
+    WindEffects::Editor::UI::ApplyViewportNavigationSettings(g_Camera.lock());
 }
 
 } // namespace we::programs::editor

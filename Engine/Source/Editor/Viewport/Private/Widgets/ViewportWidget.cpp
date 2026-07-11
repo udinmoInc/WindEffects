@@ -18,7 +18,7 @@
 #define WE_DEBUG_UI 0
 #endif
 
-namespace we::UI {
+namespace WindEffects::Editor::UI {
 
 ViewportWidget::ViewportWidget(::we::runtime::renderer::ISceneViewportController* viewportController,
                                ::we::runtime::renderer::DeviceContext* deviceContext,
@@ -273,4 +273,4 @@ void ViewportWidget::Tick(float deltaTime) {
     m_Navigation.Tick(deltaTime);
 }
 
-} // namespace we::UI
+} // namespace WindEffects::Editor::UI

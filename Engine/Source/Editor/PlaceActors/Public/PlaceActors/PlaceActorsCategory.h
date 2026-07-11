@@ -10,8 +10,8 @@ class PlaceActorsCategory {
 public:
     static float MeasureHeaderHeight(float configuredHeight);
 
-    static void PaintHeader(we::UI::PaintContext& context,
-                            const we::UI::Rect& bounds,
+    static void PaintHeader(WindEffects::Editor::UI::PaintContext& context,
+                            const WindEffects::Editor::UI::Rect& bounds,
                             const std::string& label,
                             const std::string& iconName,
                             bool expanded,

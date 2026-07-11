@@ -2,16 +2,14 @@
 #include "ViewportNavigationSettings.h"
 #include "ViewportNavigation.h"
 #include "ViewportToolbarState.h"
-#include "EditorLayoutController.h"
-#include "EditorRegistry.h"
+#include "EditorWorkspaceController.h"
+#include "WindEffects/Editor/UI/Extensions/ExtensionBootstrap.h"
 
 #include "Widgets/ViewportSliderPopup.h"
-#include "Layout/OverlayManager.h"
 #include "Widgets/Panel.h"
 #include "Layout/Box.h"
 #include "Widgets/ToolButton.h"
 #include "Core/Icon.h"
-#include "Core/DockTabIconRegistry.h"
 
 #include <memory>
 #include <string>
@@ -20,9 +18,9 @@ namespace we::programs::editor {
 
 namespace {
 
-std::shared_ptr<we::UI::VerticalBox> BuildViewportNavigationPreferencesContent() {
-    auto content = std::make_shared<we::UI::VerticalBox>();
-    content->SetPadding(we::UI::Margin{ 12.0f, 12.0f, 12.0f, 12.0f });
+std::shared_ptr<WindEffects::Editor::UI::VerticalBox> BuildViewportNavigationPreferencesContent() {
+    auto content = std::make_shared<WindEffects::Editor::UI::VerticalBox>();
+    content->SetPadding(WindEffects::Editor::UI::Margin{ 12.0f, 12.0f, 12.0f, 12.0f });
     content->SetSpacing(6.0f);
 
     auto& store = ViewportNavigationSettingsStore::Get();
@@ -33,8 +31,8 @@ std::shared_ptr<we::UI::VerticalBox> BuildViewportNavigationPreferencesContent()
                             float minValue,
                             float maxValue,
                             auto onChanged) {
-        auto row = std::make_shared<we::UI::ToolButton>(
-            we::UI::Icons::SettingsName,
+        auto row = std::make_shared<WindEffects::Editor::UI::ToolButton>(
+            WindEffects::Editor::UI::Icons::SettingsName,
             label + ": " + std::to_string(value).substr(0, 5),
             [value, minValue, maxValue, onChanged, label]() {
                 auto popup = std::make_shared<ViewportSliderPopup>(
@@ -48,9 +46,9 @@ std::shared_ptr<we::UI::VerticalBox> BuildViewportNavigationPreferencesContent()
                     [onChanged](float v) {
                         onChanged(v);
                     });
-                if (auto overlay = we::UI::OverlayManager::Get()) {
+                if (auto* overlay = GetEditorPopupHost()) {
                     overlay->CloseAllPopups();
-                    overlay->ShowPopup(popup, we::UI::Point{ 140.0f, 120.0f });
+                    overlay->ShowPopup(popup, WindEffects::Editor::UI::Point{ 140.0f, 120.0f });
                 }
             },
             "Edit " + label);
@@ -96,8 +94,8 @@ std::shared_ptr<we::UI::VerticalBox> BuildViewportNavigationPreferencesContent()
         ApplyLoadedViewportNavigationSettings();
     });
 
-    auto presetBtn = std::make_shared<we::UI::ToolButton>(
-        we::UI::Icons::SettingsName,
+    auto presetBtn = std::make_shared<WindEffects::Editor::UI::ToolButton>(
+        WindEffects::Editor::UI::Icons::SettingsName,
         "Preset: " + ViewportNavigationSettingsStore::PresetToString(settings.preset),
         []() {
             auto& navStore = ViewportNavigationSettingsStore::Get();
@@ -118,8 +116,8 @@ std::shared_ptr<we::UI::VerticalBox> BuildViewportNavigationPreferencesContent()
         "Cycle navigation preset");
     content->AddChild(presetBtn);
 
-    auto invertX = std::make_shared<we::UI::ToolButton>(
-        we::UI::Icons::SettingsName,
+    auto invertX = std::make_shared<WindEffects::Editor::UI::ToolButton>(
+        WindEffects::Editor::UI::Icons::SettingsName,
         std::string("Invert X: ") + (settings.invertX ? "On" : "Off"),
         []() {
             auto& navStore = ViewportNavigationSettingsStore::Get();
@@ -131,8 +129,8 @@ std::shared_ptr<we::UI::VerticalBox> BuildViewportNavigationPreferencesContent()
         "Toggle invert X");
     content->AddChild(invertX);
 
-    auto invertY = std::make_shared<we::UI::ToolButton>(
-        we::UI::Icons::SettingsName,
+    auto invertY = std::make_shared<WindEffects::Editor::UI::ToolButton>(
+        WindEffects::Editor::UI::Icons::SettingsName,
         std::string("Invert Y: ") + (settings.invertY ? "On" : "Off"),
         []() {
             auto& navStore = ViewportNavigationSettingsStore::Get();
@@ -144,8 +142,8 @@ std::shared_ptr<we::UI::VerticalBox> BuildViewportNavigationPreferencesContent()
         "Toggle invert Y");
     content->AddChild(invertY);
 
-    auto orbitSelection = std::make_shared<we::UI::ToolButton>(
-        we::UI::Icons::SettingsName,
+    auto orbitSelection = std::make_shared<WindEffects::Editor::UI::ToolButton>(
+        WindEffects::Editor::UI::Icons::SettingsName,
         std::string("Orbit Around Selection: ") + (settings.orbitAroundSelection ? "On" : "Off"),
         []() {
             auto& navStore = ViewportNavigationSettingsStore::Get();
@@ -155,8 +153,8 @@ std::shared_ptr<we::UI::VerticalBox> BuildViewportNavigationPreferencesContent()
         "Toggle orbit around selection");
     content->AddChild(orbitSelection);
 
-    auto focusSelection = std::make_shared<we::UI::ToolButton>(
-        we::UI::Icons::SettingsName,
+    auto focusSelection = std::make_shared<WindEffects::Editor::UI::ToolButton>(
+        WindEffects::Editor::UI::Icons::SettingsName,
         std::string("Focus On Selection (F): ") + (settings.focusOnSelection ? "On" : "Off"),
         []() {
             auto& navStore = ViewportNavigationSettingsStore::Get();
@@ -171,19 +169,21 @@ std::shared_ptr<we::UI::VerticalBox> BuildViewportNavigationPreferencesContent()
 
 } // namespace
 
-std::shared_ptr<we::UI::Panel> CreateViewportNavigationPreferencesPanel() {
+std::shared_ptr<WindEffects::Editor::UI::Panel> CreateViewportNavigationPreferencesPanel() {
     constexpr const char* kTitle = "Viewport Navigation";
-    auto panel = std::make_shared<we::UI::Panel>(kTitle);
+    auto panel = std::make_shared<WindEffects::Editor::UI::Panel>(kTitle);
     panel->SetHeaderHeight(30.0f);
     panel->SetContent(BuildViewportNavigationPreferencesContent());
-    we::UI::DockTabIconRegistry::Get().RegisterIcon(kTitle, we::UI::Icons::SettingsName);
+    panel->SetTabIcon(WindEffects::Editor::UI::Icons::SettingsName);
     return panel;
 }
 
-REGISTER_EDITOR_PANEL(ViewportNavigation, CreateViewportNavigationPreferencesPanel)
+REGISTER_UI_PANEL(ViewportNavigation,
+    (WindEffects::Editor::UI::DockPanelDescriptor{.title = "Viewport Navigation", .iconResource = "settings", .defaultZone = WindEffects::Editor::UI::DockZone::Floating, .defaultVisible = false}),
+    CreateViewportNavigationPreferencesPanel)
 
 void ShowViewportNavigationPreferences() {
-    EditorLayoutController::Get().FocusViewportNavigationPanel();
+    EditorWorkspaceController::Get().FocusViewportNavigationPanel();
 }
 
 } // namespace we::programs::editor

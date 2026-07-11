@@ -4,7 +4,7 @@
 #include <functional>
 #include <string>
 
-namespace we::UI {
+namespace WindEffects::Editor::UI {
 
 // Compact command entry field for the status bar footer.
 class CommandInput : public Widget {
@@ -38,4 +38,4 @@ private:
     OnCommandSubmitted m_OnCommandSubmitted;
 };
 
-} // namespace we::UI
+} // namespace WindEffects::Editor::UI

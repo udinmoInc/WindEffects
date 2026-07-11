@@ -11,7 +11,7 @@
 #include <algorithm>
 #include <cctype>
 
-namespace we::UI {
+namespace WindEffects::Editor::UI {
 
 namespace {
 using we::editor::contentbrowser::ContentBrowserService;
@@ -713,7 +713,7 @@ void Breadcrumb::Paint(PaintContext& context) {
     const float iconSize = 16.0f;
     const float iconY = m_Geometry.y + (m_Geometry.height - iconSize) * 0.5f;
     ContentBrowserFolderArt::Get().PaintSmallIcon(context,
-        we::UI::Rect{ m_Geometry.x + 12.0f, iconY, iconSize, iconSize }, false);
+        WindEffects::Editor::UI::Rect{ m_Geometry.x + 12.0f, iconY, iconSize, iconSize }, false);
 
     float x = m_Geometry.x + 12.0f + iconSize + 8.0f;
     for (size_t i = 0; i < m_Crumbs.size(); ++i) {
@@ -790,4 +790,4 @@ Breadcrumb::CrumbInfo* Breadcrumb::GetCrumbAtPosition(const Point& pos) {
     return nullptr;
 }
 
-} // namespace we::UI
+} // namespace WindEffects::Editor::UI

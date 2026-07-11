@@ -3,13 +3,13 @@
 #include "MainFrame/Export.h"
 
 #include "Core/Widget.h"
-namespace we::UI { class MenuBar; class ToolButton; }
+namespace WindEffects::Editor::UI { class MenuBar; class ToolButton; }
 #include "Layout/Box.h"
 #include <volk.h>
 #include <SDL3/SDL.h>
 #include <string>
 
-namespace we::UI {
+namespace WindEffects::Editor::UI {
 
 inline constexpr float kTitleBarLogoDisplaySize = 22.0f;
 

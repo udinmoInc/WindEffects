@@ -6,11 +6,11 @@
 
 namespace we::programs::editor {
 
-using we::UI::Color;
-using we::UI::PaintContext;
-using we::UI::Point;
-using we::UI::Rect;
-using we::UI::Theme;
+using WindEffects::Editor::UI::Color;
+using WindEffects::Editor::UI::PaintContext;
+using WindEffects::Editor::UI::Point;
+using WindEffects::Editor::UI::Rect;
+using WindEffects::Editor::UI::Theme;
 
 float PlaceActorsCategory::MeasureHeaderHeight(float configuredHeight) {
     return configuredHeight;
@@ -23,7 +23,7 @@ void PlaceActorsCategory::PaintHeader(PaintContext& context,
                                       bool expanded,
                                       float hoverAnim) {
     const auto& theme = Theme::Get();
-    const float uiScale = (std::max)(1.0f, we::UI::DPIContext::GetScale());
+    const float uiScale = (std::max)(1.0f, WindEffects::Editor::UI::DPIContext::GetScale());
     const float fontSize = theme.TextSizeSmall * uiScale;
     Color bg = theme.HeaderBackground;
     if (hoverAnim > 0.01f) {
@@ -31,11 +31,11 @@ void PlaceActorsCategory::PaintHeader(PaintContext& context,
     }
     context.DrawRect(bounds, bg);
 
-    const char* chevron = expanded ? we::UI::Icons::ChevronDownName : we::UI::Icons::ChevronRightName;
-    we::UI::IconPainter::DrawIcon(context, chevron,
+    const char* chevron = expanded ? WindEffects::Editor::UI::Icons::ChevronDownName : WindEffects::Editor::UI::Icons::ChevronRightName;
+    WindEffects::Editor::UI::IconPainter::DrawIcon(context, chevron,
         Rect{ bounds.x + theme.Space2 - 2.0f, bounds.y + theme.Space2 - 1.0f, theme.IconSizeTree, theme.IconSizeTree }, theme.TextSecondary);
     if (!iconName.empty()) {
-        we::UI::IconPainter::DrawIcon(context, iconName,
+        WindEffects::Editor::UI::IconPainter::DrawIcon(context, iconName,
             Rect{ bounds.x + theme.Space6, bounds.y + theme.Space2 - 2.0f, theme.IconSizeToolbar, theme.IconSizeToolbar }, theme.TextPrimary);
     }
     const float textX = iconName.empty()

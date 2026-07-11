@@ -1,71 +1,35 @@
-#include "Editor.h"
+﻿#include "Editor.h"
 #include "FirstRunAgreementPopup.h"
 #include "Core/Logger.h"
 #include "Core/DiagnosticMacros.h"
 #include "Core/FrameCounter.h"
 #include "Core/StartupValidator.h"
 #include "Core/LogCategory.h"
-#include "Shader/ShaderLibrary.h"
 #include "Core/IgniteBTInvoker.h"
 #include "Runtime/Core/ModuleManager.h"
 #include "Runtime/Core/PluginManager.h"
-#include "EditorRegistry.h"
 #include "Environment/EnvironmentEditorApi.h"
-#include "Core/DeviceContext.h"
 #include "Renderer/Renderer.h"
 #include "Core/SwapchainManager.h"
 #include "Rendering/IconRenderer.h"
-#include "Widgets/Panel.h"
-#include "Layout/Box.h"
-#include "Layout/Splitter.h"
 #include "Layout/OverlayManager.h"
-#include "Rendering/EditorCompositor.h"
-#include "Core/Icon.h"
+#include "EditorWorkspaceController.h"
+#include "WindEffects/Editor/UI/Extensions/UIExtensionRegistry.h"
 
-#include <cstring>
-#include <cstdlib>
-
-// Feature-module widgets (linked via delay-load)
-#include "Widgets/TitleBar.h"
-#include "Widgets/WindowShell.h"
 #include "EditorWindowHitTest.h"
-#include "Widgets/StatusBar.h"
-#include "Widgets/Toolbar.h"
-#include "Widgets/MenuBar.h"
-#include "Widgets/StatusBar.h"
 #include "Widgets/ViewportWidget.h"
 #include "ViewportToolbarState.h"
-#include "ViewportNavigationPreferences.h"
 #include "PlaceActors/PlaceActorsPlacement.h"
-#include "Widgets/ToolsPanel.h"
-#include "Widgets/DockContainer.h"
-#include "Widgets/EditorModeSelector.h"
-#include "Widgets/Label.h"
-#include "Widgets/RenderDebuggerPanel.h"
-#include "Widgets/RenderInvestigationModal.h"
-#include "EditorModeController.h"
-#include "EditorLayoutController.h"
-#include "EditorPanelController.h"
 #include "ContentBrowserApi.h"
-#include "EditorLayoutPersistence.h"
-#include "Core/DockTabBrandRegistry.h"
 #include "Runtime/Core/AssetRegistry.h"
 #include "EditorGridRenderer.h"
-#include "Core/Theme.h"
 #include "Core/DPIContext.h"
-#include "Explorer/WorldOutlinerApi.h"
 #include "Runtime/World/DefaultScene/DefaultSceneBuilder.h"
 #include "Runtime/World/Environment/EnvironmentSystem.h"
-#include "Widgets/PropertyEditor.h"
-#include "Widgets/TreeView.h"
+#include "Widgets/RenderInvestigationModal.h"
 
 #include <SDL3/SDL.h>
 #include <algorithm>
-#include <chrono>
-#include <cmath>
-#include <iostream>
-#include <unordered_map>
-#include <vector>
 #include <filesystem>
 
 #ifndef WE_DEBUG_UI
@@ -78,7 +42,9 @@
 
 namespace we::programs::editor {
 
-using namespace we::UI;
+namespace UI = WindEffects::Editor::UI;
+
+using namespace WindEffects::Editor::UI;
 using namespace we::runtime::renderer;
 using namespace we::runtime::scene;
 using namespace we::runtime::engine;
@@ -115,12 +81,12 @@ Editor::Editor(SDL_Window* window) : m_Window(window) {
 
     HE_INFO("[Startup] Stage 3/6: Default assets (fonts, shaders, icons, theme)...");
     if (!we::core::AssetRegistry::Get().LoadDefaultEditorAssets()) {
-        HE_ERROR("[Startup] Required default assets missing — UI rendering may fail.");
+        HE_ERROR("[Startup] Required default assets missing â€” UI rendering may fail.");
     }
 
     HE_INFO("[Startup] Stage 4/6: OverlayRenderer init...");
     try {
-        m_OverlayRenderer = std::make_unique<we::UI::OverlayRenderer>();
+        m_OverlayRenderer = std::make_unique<WindEffects::Editor::UI::OverlayRenderer>();
         if (!m_OverlayRenderer->Init(
                 m_Renderer->GetDeviceContext()->GetPhysicalDevice(),
                 m_Renderer->GetDeviceContext()->GetDevice(),
@@ -161,38 +127,29 @@ Editor::Editor(SDL_Window* window) : m_Window(window) {
         throw;
     }
 
-    auto& panels = EditorRegistry::Get().GetPanels();
-    HE_INFO("[Startup] EditorRegistry panels registered: " + std::to_string(panels.size()));
-    for (const auto& [name, _] : panels) {
-        HE_INFO("[Startup]   - Panel factory: " + name);
-    }
-    try {
-        ValidateEditorPanels(panels);
-    } catch (const std::exception& e) {
-        HE_ERROR("[Startup] Failed to validate editor panels: " + std::string(e.what()));
-        throw;
-    }
-
-    auto& menus = EditorRegistry::Get().GetMenus();
-    HE_INFO("[Startup] EditorRegistry menus registered: " + std::to_string(menus.size()));
-
     HE_INFO("[Startup] Stage 6/6: Widget tree and layout...");
     UpdateUiScaleFromWindow();
 
     m_UIContext = std::make_unique<WindEffects::Editor::UI::EditorApplicationContext>();
-    m_UIContext->Initialize(we::UI::DPIContext::GetScale());
+    m_UIContext->Initialize(WindEffects::Editor::UI::DPIContext::GetScale());
+
+    const auto& extensionPanels = m_UIContext->GetExtensionRegistry().GetPanels();
+    HE_INFO("[Startup] UI extension panels registered: " + std::to_string(extensionPanels.size()));
+    for (const auto& [name, _] : extensionPanels) {
+        HE_INFO("[Startup]   - Panel factory: " + name);
+    }
 
     try {
         WindEffects::Editor::UI::EditorShellDependencies shellDeps;
         shellDeps.window = m_Window;
         shellDeps.renderer = m_Renderer.get();
-        shellDeps.scene = m_Scene.get();
+        shellDeps.scene = m_Scene;
         shellDeps.camera = m_Camera;
         shellDeps.overlayRenderer = m_OverlayRenderer.get();
         shellDeps.eventSystem = m_UIEventSystem;
-        shellDeps.dpiScale = we::UI::DPIContext::GetScale();
+        shellDeps.dpiScale = WindEffects::Editor::UI::DPIContext::GetScale();
         shellDeps.onCreateNewLevel = [this]() { CreateNewLevel(); };
-        shellDeps.onViewportCreated = [this](std::shared_ptr<we::UI::Widget>& viewportWidget) {
+        shellDeps.onViewportCreated = [this](std::shared_ptr<WindEffects::Editor::UI::Widget>& viewportWidget) {
             m_ViewportWidget = viewportWidget;
         };
         shellDeps.onLayoutBuilt = [this](const WindEffects::Editor::UI::DockLayoutBuildResult&) {
@@ -201,12 +158,13 @@ Editor::Editor(SDL_Window* window) : m_Window(window) {
 
         const auto shellResult = WindEffects::Editor::UI::EditorShellBuilder::Build(*m_UIContext, shellDeps);
         m_RootWidget = shellResult.rootWidget;
+        m_OverlayHost = shellResult.overlayHost;
         m_TitleBar = shellResult.titleBar;
         m_StatusBar = shellResult.statusBar;
 
         m_WindowHitTestData.titleBar = m_TitleBar;
         if (!SDL_SetWindowHitTest(m_Window, we::editor::mainframe::EditorWindowHitTest, &m_WindowHitTestData)) {
-            HE_WARN("[UI] SDL_SetWindowHitTest failed — title bar drag may not work.");
+            HE_WARN("[UI] SDL_SetWindowHitTest failed â€” title bar drag may not work.");
         }
     } catch (const std::exception& e) {
         HE_ERROR("[Startup] Failed to build editor shell: " + std::string(e.what()));
@@ -223,7 +181,7 @@ Editor::Editor(SDL_Window* window) : m_Window(window) {
     EnsureVisibleSwapchain();
     SyncViewportFramebufferFromLayout();
     try {
-        LogWidgetTreeLayout(m_RootWidget, "OverlayManager");
+        LogWidgetTreeLayout(m_RootWidget, "OverlayHost");
     } catch (const std::exception& e) {
         HE_ERROR("[Startup] Failed to log widget tree: " + std::string(e.what()));
     }
@@ -238,477 +196,6 @@ Editor::~Editor() {
     Shutdown();
 }
 
-// LoadSvgIcon has been moved to IconRenderer.cpp
-
-void Editor::BuildDynamicEditorUI() {
-    HE_INFO("[UI] Building editor layout...");
-    const float uiScale = (std::max)(1.0f, we::UI::DPIContext::GetScale());
-
-    auto& panelFactories = EditorRegistry::Get().GetPanels();
-
-    // ===== 1. Create Menu Bar =====
-    auto menuBar = std::make_shared<MenuBar>();
-    
-    // File menu
-    std::vector<std::shared_ptr<MenuItem>> fileItems;
-    auto newItem = std::make_shared<MenuItem>(); newItem->label = "New Level"; newItem->shortcut = "Ctrl+N"; newItem->onClick = [this]() { CreateNewLevel(); };
-    auto openItem = std::make_shared<MenuItem>(); openItem->label = "Open Scene"; openItem->shortcut = "Ctrl+O";
-    auto saveItem = std::make_shared<MenuItem>(); saveItem->label = "Save"; saveItem->shortcut = "Ctrl+S";
-    auto saveAsItem = std::make_shared<MenuItem>(); saveAsItem->label = "Save As..."; saveAsItem->shortcut = "Ctrl+Shift+S";
-    auto exitItem = std::make_shared<MenuItem>(); exitItem->label = "Exit"; exitItem->shortcut = "Alt+F4";
-    fileItems.push_back(newItem); fileItems.push_back(openItem); 
-    fileItems.push_back(saveItem); fileItems.push_back(saveAsItem); fileItems.push_back(exitItem);
-    menuBar->AddMenu("File", fileItems);
-
-    // Edit menu
-    std::vector<std::shared_ptr<MenuItem>> editItems;
-    auto undoItem = std::make_shared<MenuItem>(); undoItem->label = "Undo"; undoItem->shortcut = "Ctrl+Z";
-    auto redoItem = std::make_shared<MenuItem>(); redoItem->label = "Redo"; redoItem->shortcut = "Ctrl+Y";
-    auto cutItem = std::make_shared<MenuItem>(); cutItem->label = "Cut"; cutItem->shortcut = "Ctrl+X";
-    auto copyItem = std::make_shared<MenuItem>(); copyItem->label = "Copy"; copyItem->shortcut = "Ctrl+C";
-    auto pasteItem = std::make_shared<MenuItem>(); pasteItem->label = "Paste"; pasteItem->shortcut = "Ctrl+V";
-    editItems.push_back(undoItem); editItems.push_back(redoItem);
-    editItems.push_back(cutItem); editItems.push_back(copyItem); editItems.push_back(pasteItem);
-    menuBar->AddMenu("Edit", editItems);
-
-    // Window menu — wired to dockable panel visibility
-    std::vector<std::shared_ptr<MenuItem>> windowItems;
-    auto makeWindowItem = [](const std::string& label, EditorPanelId panelId) {
-        auto item = std::make_shared<MenuItem>();
-        item->label = label;
-        item->checked = true;
-        item->onClick = [panelId]() {
-            EditorPanelController::Get().TogglePanelVisibility(panelId);
-        };
-        return item;
-    };
-
-    auto vpItem = makeWindowItem("Viewport", EditorPanelId::Viewport);
-    auto cbItem = makeWindowItem("Content Browser", EditorPanelId::ContentBrowser);
-    auto woItem = makeWindowItem("Explorer", EditorPanelId::Explorer);
-    auto dtItem = makeWindowItem("Details", EditorPanelId::Details);
-    windowItems.push_back(vpItem);
-    windowItems.push_back(cbItem);
-    windowItems.push_back(woItem);
-    windowItems.push_back(dtItem);
-#if WE_DEBUG_UI
-    auto renderInvItem = std::make_shared<MenuItem>();
-    renderInvItem->label = "Render Investigation";
-    renderInvItem->onClick = []() { we::UI::RenderInvestigationModalHost::Toggle(); };
-    windowItems.push_back(renderInvItem);
-#endif
-    menuBar->AddMenu("Window", windowItems);
-
-    EditorPanelController::Get().SetOnPanelVisibilityChanged([vpItem, cbItem, woItem, dtItem]() {
-        vpItem->checked = EditorPanelController::Get().IsPanelVisible(EditorPanelId::Viewport);
-        cbItem->checked = EditorPanelController::Get().IsPanelVisible(EditorPanelId::ContentBrowser);
-        woItem->checked = EditorPanelController::Get().IsPanelVisible(EditorPanelId::Explorer);
-        dtItem->checked = EditorPanelController::Get().IsPanelVisible(EditorPanelId::Details);
-    });
-
-    // Tools menu
-    std::vector<std::shared_ptr<MenuItem>> toolsItems;
-    auto placeActorsItem = std::make_shared<MenuItem>(); placeActorsItem->label = "Place Actors";
-    toolsItems.push_back(placeActorsItem);
-#if WE_DEBUG_UI
-    auto gpuInvItem = std::make_shared<MenuItem>();
-    gpuInvItem->label = "GPU Investigation";
-    gpuInvItem->onClick = []() { we::UI::RenderInvestigationModalHost::Toggle(); };
-    toolsItems.push_back(gpuInvItem);
-#endif
-    menuBar->AddMenu("Tools", toolsItems);
-
-    // Build menu
-    std::vector<std::shared_ptr<MenuItem>> buildItems;
-    auto compileItem = std::make_shared<MenuItem>();
-    compileItem->label = "Compile";
-    compileItem->onClick = []() {
-        const auto result = we::core::InvokeIgniteBT({ "build", "--config", "Debug" });
-        if (!result.launched) {
-            HE_ERROR("[Build] " + result.errorMessage);
-        } else if (result.exitCode != 0) {
-            HE_ERROR("[Build] Compile failed with exit code " + std::to_string(result.exitCode));
-        } else {
-            HE_INFO("[Build] Compile completed successfully.");
-        }
-    };
-
-    auto buildProjectItem = std::make_shared<MenuItem>();
-    buildProjectItem->label = "Build";
-    buildProjectItem->onClick = []() {
-        const auto result = we::core::InvokeIgniteBT({ "build", "--config", "Debug" });
-        if (!result.launched) {
-            HE_ERROR("[Build] " + result.errorMessage);
-        }
-    };
-
-    auto packageItem = std::make_shared<MenuItem>();
-    packageItem->label = "Package";
-    packageItem->onClick = []() {
-        const auto result = we::core::InvokeIgniteBT({ "package" });
-        if (!result.launched) {
-            HE_ERROR("[Build] " + result.errorMessage);
-        }
-    };
-
-    auto cookItem = std::make_shared<MenuItem>();
-    cookItem->label = "Cook Content";
-    cookItem->onClick = []() {
-        const auto result = we::core::InvokeIgniteBT({ "package", "--cook" });
-        if (!result.launched) {
-            HE_ERROR("[Build] " + result.errorMessage);
-        }
-    };
-
-    buildItems.push_back(compileItem);
-    buildItems.push_back(buildProjectItem);
-    buildItems.push_back(packageItem);
-    buildItems.push_back(cookItem);
-    menuBar->AddMenu("Build", buildItems);
-
-    // Select menu
-    std::vector<std::shared_ptr<MenuItem>> selectItems;
-    auto selectAllItem = std::make_shared<MenuItem>(); selectAllItem->label = "Select All";
-    auto deselectItem = std::make_shared<MenuItem>(); deselectItem->label = "Deselect All";
-    selectItems.push_back(selectAllItem); selectItems.push_back(deselectItem);
-    menuBar->AddMenu("Select", selectItems);
-
-    menuBar->SetItemSpacing(0.0f);
-    HE_INFO("[UI] Menu bar created with File, Edit, Window, Tools, Build, Select menus.");
-
-    // ===== 2. Create Title Bar =====
-    const int finalPxSize = static_cast<int>(std::round(we::UI::kTitleBarLogoDisplaySize * uiScale));
-
-    VkDescriptorSet logoSet = VK_NULL_HANDLE;
-    if (m_OverlayRenderer && m_OverlayRenderer->GetIconRenderer()) {
-        logoSet = m_OverlayRenderer->GetIconRenderer()->GetIcon("Assets/Editor/WindEffects.svg", finalPxSize);
-    }
-
-    auto titleBar = std::make_shared<TitleBar>(m_Window, "WindEffects Editor", logoSet, menuBar);
-    titleBar->Construct();
-    m_TitleBar = titleBar;
-    HE_INFO("[UI] Title bar created.");
-
-    // ===== 3. Create Toolbar =====
-    EditorModeController::Get().InitializeFromRegistry();
-
-    auto toolbar = std::make_shared<Toolbar>();
-    toolbar->SetHeight(36.0f * uiScale);
-    toolbar->SetLeftInset(12.0f * uiScale);
-    toolbar->SetIconSize(18.0f * uiScale);
-
-    // Group 1: Actors Dropdown
-    auto modeSelector = std::make_shared<we::programs::editor::EditorModeSelector>();
-    toolbar->AddWidget(modeSelector);
-    toolbar->AddSeparator();
-
-    // Group 2: File operations
-    toolbar->AddTool(Icons::NewName, "", [this](){ CreateNewLevel(); }, "New Level (Ctrl+N)");
-    toolbar->AddTool(Icons::OpenName, "", [](){}, "Open (Ctrl+O)");
-    toolbar->AddTool(Icons::SaveName, "", [](){}, "Save (Ctrl+S)");
-    toolbar->AddSeparator();
-
-    // Group 3: Transform tools
-    toolbar->AddTool(Icons::CursorName, "", [](){}, "Select (Q)");
-    toolbar->AddTool(Icons::MoveName, "", [](){}, "Move (W)");
-    toolbar->AddTool(Icons::RotateName, "", [](){}, "Rotate (E)");
-    toolbar->AddTool(Icons::ScaleName, "", [](){}, "Scale (R)");
-    toolbar->AddTool(Icons::SnapName, "", [](){}, "Snap");
-    toolbar->AddSeparator();
-
-    // Group 4: Undo / Redo
-    toolbar->AddTool(Icons::UndoName, "", [](){}, "Undo (Ctrl+Z)");
-    toolbar->AddTool(Icons::RedoName, "", [](){}, "Redo (Ctrl+Y)");
-    toolbar->AddSeparator();
-
-    // Group 5: Environment Menu
-    toolbar->AddWidget(we::editor::environment::CreateEnvironmentToolbarMenu());
-
-    // Center Group: Play / Pause / Stop
-    auto playBtn  = toolbar->AddTool(Icons::PlayName,  "", [](){}, "Play (Alt+P)",  false, ToolbarAlignment::Center);
-    auto pauseBtn = toolbar->AddTool(Icons::PauseName, "", [](){}, "Pause (Alt+P)", false, ToolbarAlignment::Center);
-    auto stopBtn  = toolbar->AddTool(Icons::StopName,  "", [](){}, "Stop",          false, ToolbarAlignment::Center);
-    playBtn->SetButtonStyle(ToolButtonStyle::TransportButton);
-    pauseBtn->SetButtonStyle(ToolButtonStyle::TransportButton);
-    stopBtn->SetButtonStyle(ToolButtonStyle::TransportButton);
-
-    // Right Group: Settings, Platform
-    // Note: Items added with Right alignment stack from right-to-left
-    auto platformBtn = toolbar->AddTool(Icons::PackageName, "Platform", [](){}, "Platform", false, ToolbarAlignment::Right);
-    platformBtn->SetButtonStyle(ToolButtonStyle::ToolbarInline);
-
-    auto settingsBtn = toolbar->AddTool(Icons::SettingsName, "Settings", [](){
-        ShowViewportNavigationPreferences();
-    }, "Editor Settings", false, ToolbarAlignment::Right);
-    settingsBtn->SetButtonStyle(ToolButtonStyle::ToolbarInline);
-
-    toolbar->SetActiveTool(Icons::CursorName);
-    HE_INFO("[UI] Toolbar created with mode selector and tools.");
-
-    // ===== 4. Create Viewports =====
-    auto viewportWidget = std::make_shared<ViewportWidget>(
-        static_cast<we::runtime::renderer::ISceneViewportController*>(m_Renderer.get()),
-        m_Renderer->GetDeviceContext(),
-        m_Renderer->GetResourceManager(),
-        m_Renderer->GetSwapchainImageFormat(),
-        m_Camera,
-        m_Scene,
-        m_OverlayRenderer.get());
-    viewportWidget->Construct();
-    viewportWidget->SetWindow(m_Window);
-    m_ViewportWidget = viewportWidget;
-
-    std::shared_ptr<Panel> toolsPanel;
-    if (panelFactories.count("Tools")) {
-        toolsPanel = panelFactories.at("Tools")();
-        HE_INFO("[UI] Tools panel created from registry.");
-    } else {
-        toolsPanel = std::make_shared<Panel>("Tools");
-        toolsPanel->SetHeaderHeight(30.0f * uiScale);
-        auto toolsContent = std::make_shared<we::programs::editor::ToolsPanel>();
-        toolsContent->InitializeFromRegistry();
-        toolsPanel->SetContent(toolsContent);
-        HE_INFO("[UI] Tools panel created (fallback).");
-    }
-
-    auto toolsDock = std::make_shared<DockContainer>();
-    toolsDock->AddPanel(toolsPanel);
-    toolsDock->SetVisible(EditorModeController::Get().IsDrawerVisible());
-    EditorLayoutController::Get().SetToolsPanelRoot(toolsDock);
-    
-    std::shared_ptr<Panel> viewportPanel;
-    if (panelFactories.count("Viewport")) {
-        viewportPanel = panelFactories.at("Viewport")();
-        viewportPanel->SetContent(viewportWidget);
-        HE_INFO("[UI] Viewport panel created from registry with 3D ViewportWidget.");
-    } else {
-        viewportPanel = std::make_shared<Panel>("Viewport");
-        viewportPanel->SetHeaderHeight(30.0f * uiScale);
-        viewportPanel->SetContent(viewportWidget);
-        HE_INFO("[UI] Viewport panel created (fallback).");
-    }
-
-    // Group Viewport into a tabbed dock container
-    auto centralDock = std::make_shared<DockContainer>();
-    centralDock->AddPanel(viewportPanel);
-
-    // ===== 5. Create World Outliner (Explorer) =====
-    std::shared_ptr<Panel> worldOutlinerPanel;
-    if (panelFactories.count("WorldOutliner")) {
-        worldOutlinerPanel = panelFactories.at("WorldOutliner")();
-        HE_INFO("[UI] Explorer panel created from registry.");
-    } else {
-        worldOutlinerPanel = std::make_shared<Panel>("Explorer");
-        worldOutlinerPanel->SetHeaderHeight(0.0f);
-        HE_INFO("[UI] Explorer panel created (fallback).");
-    }
-
-    if (m_OverlayRenderer && m_OverlayRenderer->GetIconRenderer()) {
-        const float logoLogical = we::programs::editor::GetExplorerDockTabLogoSize();
-        const int logoPx = static_cast<int>(std::round(logoLogical * uiScale));
-        VkDescriptorSet explorerLogo = m_OverlayRenderer->GetIconRenderer()->GetIcon("Assets/Editor/WindEffects.svg", logoPx);
-        we::UI::DockTabBrandRegistry::Get().RegisterBrand("Explorer", explorerLogo, logoLogical);
-        we::programs::editor::BindExplorerBrandLogo(explorerLogo, logoLogical);
-    }
-
-    // ===== 6. Create Details Panel =====
-    std::shared_ptr<Panel> detailsPanel;
-    if (panelFactories.count("Details")) {
-        detailsPanel = panelFactories.at("Details")();
-        HE_INFO("[UI] Details panel created from registry.");
-    } else {
-        detailsPanel = std::make_shared<Panel>("Details");
-        detailsPanel->SetHeaderHeight(30.0f * uiScale);
-        HE_INFO("[UI] Details panel created (fallback).");
-    }
-
-    std::shared_ptr<Panel> viewportNavigationPanel;
-    if (panelFactories.count("ViewportNavigation")) {
-        viewportNavigationPanel = panelFactories.at("ViewportNavigation")();
-        HE_INFO("[UI] Viewport Navigation panel created from registry.");
-    } else {
-        viewportNavigationPanel = std::make_shared<Panel>("Viewport Navigation");
-        viewportNavigationPanel->SetHeaderHeight(30.0f * uiScale);
-        HE_INFO("[UI] Viewport Navigation panel created (fallback).");
-    }
-
-    auto explorerDock = std::make_shared<DockContainer>();
-    explorerDock->AddPanel(worldOutlinerPanel);
-    explorerDock->SetOnTabClosed([](const std::shared_ptr<Panel>& panel) {
-        if (panel && panel->GetTitle() == "Explorer") {
-            EditorPanelController::Get().SetPanelVisible(EditorPanelId::Explorer, false);
-        }
-    });
-    explorerDock->SetOnTabDragStarted([](const std::shared_ptr<Panel>& panel, const Point&) {
-        if (panel && panel->GetTitle() == "Explorer") {
-            EditorPanelController::Get().FloatPanel(EditorPanelId::Explorer);
-        }
-    });
-
-    std::shared_ptr<TreeView> worldOutlinerTree = we::programs::editor::GetExplorerTreeView();
-    std::shared_ptr<PropertyEditor> detailsEditor;
-    if (detailsPanel) {
-        detailsEditor = std::dynamic_pointer_cast<PropertyEditor>(detailsPanel->GetContent());
-    }
-    we::editor::environment::InitializeEditor(m_Scene, nullptr, worldOutlinerTree, detailsEditor);
-
-    // ===== 7. Create Content Browser =====
-    std::shared_ptr<Panel> contentBrowserPanel;
-    if (panelFactories.count("ContentBrowser")) {
-        contentBrowserPanel = panelFactories.at("ContentBrowser")();
-        HE_INFO("[UI] ContentBrowser panel created from registry.");
-    } else {
-        contentBrowserPanel = std::make_shared<Panel>("Content Browser");
-        contentBrowserPanel->SetHeaderHeight(30.0f * uiScale);
-        HE_INFO("[UI] ContentBrowser panel created (fallback).");
-    }
-
-    // ===== 7b. Create Output Log Panel =====
-    std::shared_ptr<Panel> outputLogPanel;
-    if (panelFactories.count("OutputLog")) {
-        outputLogPanel = panelFactories.at("OutputLog")();
-        HE_INFO("[UI] Output Log panel created from registry.");
-    } else {
-        outputLogPanel = std::make_shared<Panel>("Output Log");
-        outputLogPanel->SetHeaderHeight(30.0f * uiScale);
-        outputLogPanel->SetContent(std::make_shared<Label>("Output log unavailable."));
-        HE_WARN("[UI] OutputLog panel factory missing.");
-    }
-
-#if WE_DEBUG_UI
-    // ===== 7c. Create Render Debugger Panel =====
-    auto debugPanel = std::make_shared<Panel>("Render Debugger");
-    debugPanel->SetHeaderHeight(30.0f * uiScale);
-    m_RenderDebuggerPanel = std::make_shared<RenderDebuggerPanel>();
-    m_RenderDebuggerPanel->Construct();
-    debugPanel->SetContent(m_RenderDebuggerPanel);
-    HE_INFO("[UI] Render Debugger panel created.");
-#endif
-
-    EditorPanelController::Get().RegisterDockZone(EditorDockZone::Left, toolsDock);
-    EditorPanelController::Get().RegisterDockZone(EditorDockZone::Center, centralDock);
-    EditorPanelController::Get().RegisterDockZone(EditorDockZone::Right, explorerDock);
-    EditorPanelController::Get().RegisterPanel(EditorPanelId::Tools, "Tools", toolsPanel, EditorDockZone::Left);
-    EditorPanelController::Get().RegisterPanel(EditorPanelId::Viewport, "Viewport", viewportPanel, EditorDockZone::Center);
-
-    EditorPanelController::Get().RegisterPanel(EditorPanelId::Explorer, "Explorer", worldOutlinerPanel, EditorDockZone::Right);
-    EditorPanelController::Get().RegisterPanel(EditorPanelId::Details, "Details", detailsPanel, EditorDockZone::Right);
-    EditorPanelController::Get().RegisterPanel(EditorPanelId::ViewportNavigation, "Viewport Navigation", viewportNavigationPanel, EditorDockZone::Floating);
-    EditorPanelController::Get().RegisterPanel(EditorPanelId::ContentBrowser, "Content Browser", contentBrowserPanel, EditorDockZone::Floating);
-    EditorPanelController::Get().RegisterPanel(EditorPanelId::OutputLog, "Output Log", outputLogPanel, EditorDockZone::Floating);
-#if WE_DEBUG_UI
-    EditorPanelController::Get().RegisterPanel(EditorPanelId::Debug, "Render Debugger", debugPanel, EditorDockZone::Floating);
-#endif
-
-    vpItem->checked = EditorPanelController::Get().IsPanelVisible(EditorPanelId::Viewport);
-    cbItem->checked = EditorPanelController::Get().IsPanelVisible(EditorPanelId::ContentBrowser);
-    woItem->checked = EditorPanelController::Get().IsPanelVisible(EditorPanelId::Explorer);
-    dtItem->checked = EditorPanelController::Get().IsPanelVisible(EditorPanelId::Details);
-
-    // ===== 8. Create Status Bar =====
-    m_StatusBar = std::make_shared<StatusBar>();
-    m_StatusBar->Construct();
-    m_StatusBar->SetHeight(28.0f * uiScale);
-    m_StatusBar->SetOnFooterTabChanged([](int index) {
-        EditorLayoutController::Get().SetBottomPanelIndex(index);
-    });
-    m_StatusBar->SetOnCommandSubmitted([](const std::string& command) {
-        HE_INFO("[Command] " + command);
-    });
-    m_StatusBar->SetOnOutputLogClicked([]() {
-        EditorPanelController::Get().SetPanelVisible(EditorPanelId::OutputLog, true);
-        EditorPanelController::Get().FocusPanel(EditorPanelId::OutputLog);
-    });
-    m_StatusBar->SetOnBuildMenuClicked([]() {
-        const auto result = we::core::InvokeIgniteBT({ "build", "--config", "Debug" });
-        if (!result.launched) {
-            HE_ERROR("[Build] " + result.errorMessage);
-        }
-    });
-    m_StatusBar->SetOnTraceClicked([]() {
-        HE_INFO("[Footer] Trace clicked.");
-    });
-    m_StatusBar->SetOnQualityMenuClicked([]() {
-        HE_INFO("[Footer] Quality menu clicked.");
-    });
-    HE_INFO("[UI] Status bar created.");
-
-    // ===== 9. Assemble Layout =====
-    //
-    // VerticalBox (root)
-    // ├── TitleBar (32px)
-    // ├── Toolbar (32px)
-    // ├── Splitter (Horizontal)
-    // │   ├── Splitter (Vertical) — left + center column
-    // │   │   ├── Splitter (Horizontal) — top row only
-    // │   │   │   ├── Tools / Actors panel
-    // │   │   │   └── Viewport dock
-    // │   │   └── Content Browser (full width of left+center column)
-    // │   └── Splitter (Vertical) — Explorer dock over Details panel
-    // └── StatusBar (28px)
-
-    // Right sidebar: Explorer (tabbed) stacked above Details (always visible, not a tab)
-    auto rightSideSplitter = std::make_shared<Splitter>(Orientation::Vertical, 0.40f);
-    rightSideSplitter->SetFirstChild(explorerDock);
-    rightSideSplitter->SetSecondChild(detailsPanel);
-    HE_INFO("[UI] Right sidebar: Explorer dock over Details panel.");
-
-    // Top row inside left+center: Tools | Viewport (content browser sits below both)
-    auto editorTopRow = std::make_shared<Splitter>(Orientation::Horizontal, 0.18f);
-    editorTopRow->SetFirstChild(toolsDock);
-    editorTopRow->SetSecondChild(centralDock);
-    EditorLayoutController::Get().SetToolsPanelSplitter(editorTopRow);
-    EditorLayoutController::Get().ApplyToolsPanelVisibility(EditorModeController::Get().IsDrawerVisible());
-    HE_INFO("[UI] Top row splitter: Tools panel (18%) | Viewport.");
-
-    // Left + center column: top row + content browser spanning full column width
-    auto leftCenterColumn = std::make_shared<Splitter>(Orientation::Vertical, 0.7f);
-    leftCenterColumn->SetFirstChild(editorTopRow);
-    leftCenterColumn->SetSecondChild(contentBrowserPanel);
-    EditorLayoutController::Get().SetContentBrowserSplitter(leftCenterColumn);
-#if WE_DEBUG_UI
-    EditorLayoutController::Get().SetBottomPanels(contentBrowserPanel, debugPanel);
-#else
-    EditorLayoutController::Get().SetBottomPanels(contentBrowserPanel, nullptr);
-#endif
-    HE_INFO("[UI] Left/center column: [Tools | Viewport] over full-width Content Browser.");
-
-    // Main body: left+center column | right sidebar (narrow)
-    auto mainHSplitter = std::make_shared<Splitter>(Orientation::Horizontal, 0.78f);
-    mainHSplitter->SetFirstChild(leftCenterColumn);
-    mainHSplitter->SetSecondChild(rightSideSplitter);
-    HE_INFO("[UI] Horizontal splitter: Left/Center (78%) | Right sidebar (22%).");
-
-    EditorLayoutPersistence::Get().BindLayout(mainHSplitter, leftCenterColumn, editorTopRow, rightSideSplitter, explorerDock, centralDock);
-
-    // Root VBox
-    auto rootVBox = std::make_shared<VerticalBox>();
-    rootVBox->SetSpacing(0.0f);
-    rootVBox->AddChild(titleBar);
-    rootVBox->AddChild(toolbar);
-    rootVBox->AddChild(mainHSplitter);
-    rootVBox->AddChild(m_StatusBar);
-
-    auto windowShell = std::make_shared<WindowShell>();
-    windowShell->SetContent(rootVBox);
-
-    // Wrap in OverlayManager for popups (dropdown menus, etc.)
-    auto overlayManager = std::make_shared<OverlayManager>();
-    overlayManager->SetBaseWidget(windowShell);
-    m_RootWidget = overlayManager;
-
-    // Restore saved layout after OverlayManager exists so floating panels can attach.
-    EditorLayoutPersistence::Get().Load();
-
-    m_WindowHitTestData.titleBar = m_TitleBar;
-    if (!SDL_SetWindowHitTest(m_Window, we::editor::mainframe::EditorWindowHitTest, &m_WindowHitTestData)) {
-        HE_WARN("[UI] SDL_SetWindowHitTest failed — title bar drag may not work.");
-    }
-
-    HE_INFO("[UI] Root widget tree assembled: TitleBar -> Toolbar -> [Viewport | Outliner | Details | ContentBrowser] -> StatusBar");
-    HE_INFO("[UI] Root VBox children attached: " + std::to_string(rootVBox->GetChildren().size()));
-}
-
 void Editor::UpdateUiScaleFromWindow() {
     float scale = 1.0f;
     if (m_Window) {
@@ -721,30 +208,7 @@ void Editor::UpdateUiScaleFromWindow() {
     }
 
     // Keep one canonical, bounded UI scale.
-    we::UI::DPIContext::SetScale(std::clamp(scale, 1.0f, 3.0f));
-}
-
-void Editor::ValidateEditorPanels(const std::unordered_map<std::string, std::function<std::shared_ptr<UI::Panel>()>>& factories) {
-    static const char* kExpectedPanels[] = {
-        "ContentBrowser", "Details", "WorldOutliner", "Viewport", "MenuBar", "Toolbar"
-    };
-
-    for (const char* panelName : kExpectedPanels) {
-        // These panels are built inline in Editor — skip calling their factory to
-        // avoid creating ghost widgets that render at wrong positions.
-        if (std::string(panelName) == "Viewport" || std::string(panelName) == "MenuBar" || std::string(panelName) == "Toolbar") {
-            HE_INFO(std::string("[UI] Panel '") + panelName + "' built inline in Editor (not from registry).");
-            continue;
-        }
-        if (factories.count(panelName)) {
-            auto panel = factories.at(panelName)();
-            HE_INFO(std::string("[UI] Panel '") + panelName + "' factory OK (instance=" + (panel ? "yes" : "no") + ")");
-        } else {
-            HE_ERROR(std::string("[UI] Panel '") + panelName + "' NOT registered — fallback panel will be used.");
-        }
-    }
-    HE_INFO("[UI] MainFrame shell: TitleBar + StatusBar built inline.");
-    HE_INFO("[UI] DockManager: Explorer is a branded dock tab with layout persistence.");
+    WindEffects::Editor::UI::DPIContext::SetScale(std::clamp(scale, 1.0f, 3.0f));
 }
 
 void Editor::EnsureVisibleSwapchain() {
@@ -762,7 +226,7 @@ void Editor::EnsureVisibleSwapchain() {
             HE_INFO("[Render] Swapchain recreated for visible window.");
         }
     } else {
-        HE_ERROR("[Render] Window still reports zero size — UI layout will be empty until resized.");
+        HE_ERROR("[Render] Window still reports zero size â€” UI layout will be empty until resized.");
     }
 }
 
@@ -778,7 +242,7 @@ void Editor::SyncViewportFramebufferFromLayout() {
     }
 
     // Layout the full editor chrome, then let the viewport panel own offscreen size.
-    // Do not resize the offscreen framebuffer to the full window — that breaks aspect
+    // Do not resize the offscreen framebuffer to the full window â€” that breaks aspect
     // ratio and can clip the 3D view inside the docked viewport widget.
     m_RootWidget->Measure(UI::Size{ static_cast<float>(w), static_cast<float>(h) });
     m_RootWidget->Arrange(UI::Rect{ 0.0f, 0.0f, static_cast<float>(w), static_cast<float>(h) });
@@ -811,7 +275,7 @@ void Editor::LogWidgetTreeLayout(const std::shared_ptr<UI::Widget>& widget, cons
         + std::to_string(static_cast<int>(geom.height)));
 
     if (geom.width <= 0.0f || geom.height <= 0.0f) {
-        HE_ERROR("[UI] " + indent + name + " has ZERO size — will not paint visible content.");
+        HE_ERROR("[UI] " + indent + name + " has ZERO size â€” will not paint visible content.");
     }
 
     for (size_t i = 0; i < widget->GetChildren().size(); ++i) {
@@ -841,56 +305,48 @@ void Editor::MaybeShowFirstRunAgreement() {
         return;
     }
 
-    auto overlay = std::dynamic_pointer_cast<OverlayManager>(m_RootWidget);
-    if (!overlay) {
-        HE_WARN("[Startup] First-run agreement skipped: OverlayManager unavailable.");
+    if (!m_OverlayHost) {
+        HE_WARN("[Startup] First-run agreement skipped: overlay host unavailable.");
         return;
     }
 
-    const float viewportW = static_cast<float>(m_Renderer->GetSwapchainWidth());
-    const float viewportH = static_cast<float>(m_Renderer->GetSwapchainHeight());
+    auto* overlayHost = m_OverlayHost.get();
 
-    auto* overlayMgr = OverlayManager::Get();
-    if (!overlayMgr) {
-        HE_WARN("[Startup] First-run agreement skipped: OverlayManager singleton unavailable.");
-        return;
-    }
-
-    auto showEulaPopup = [this, overlayMgr]() {
+    auto showEulaPopup = [this, overlayHost]() {
         try {
             auto eulaPopup = std::make_shared<FirstRunAgreementPopup>(LoadFirstRunAgreementEulaContent());
-            eulaPopup->SetOnAccepted([this, overlayMgr]() {
-                overlayMgr->CloseAllPopups();
+            eulaPopup->SetOnAccepted([this, overlayHost]() {
+                overlayHost->CloseAllPopups();
 
                 auto thirdPartyPopup = std::make_shared<FirstRunAgreementPopup>(
                     LoadFirstRunAgreementThirdPartyNoticesContent());
-                thirdPartyPopup->SetOnAccepted([this, overlayMgr]() {
+                thirdPartyPopup->SetOnAccepted([this, overlayHost]() {
                     SetAcceptedFirstRunAgreement(true);
-                    overlayMgr->CloseAllPopups();
+                    overlayHost->CloseAllPopups();
                 });
-                thirdPartyPopup->SetOnDeclined([this, overlayMgr]() {
+                thirdPartyPopup->SetOnDeclined([this, overlayHost]() {
                     SetAcceptedFirstRunAgreement(false);
-                    overlayMgr->CloseAllPopups();
+                    overlayHost->CloseAllPopups();
                     m_Running = false;
                 });
 
-                overlayMgr->ShowPopup(thirdPartyPopup, Point{ 0.0f, 0.0f });
+                overlayHost->ShowPopup(thirdPartyPopup, Point{ 0.0f, 0.0f });
             });
-            eulaPopup->SetOnDeclined([this, overlayMgr]() {
+            eulaPopup->SetOnDeclined([this, overlayHost]() {
                 SetAcceptedFirstRunAgreement(false);
-                overlayMgr->CloseAllPopups();
+                overlayHost->CloseAllPopups();
                 m_Running = false;
             });
 
-            overlayMgr->CloseAllPopups();
-            overlayMgr->ShowPopup(eulaPopup, Point{ 0.0f, 0.0f });
+            overlayHost->CloseAllPopups();
+            overlayHost->ShowPopup(eulaPopup, Point{ 0.0f, 0.0f });
             HE_INFO("[Startup] First-run agreement popup (EULA) displayed.");
         } catch (const std::exception& e) {
             HE_ERROR("[Startup] Failed to show first-run agreement: " + std::string(e.what()));
-            SetAcceptedFirstRunAgreement(true); // Skip on error
+            SetAcceptedFirstRunAgreement(true);
         } catch (...) {
             HE_ERROR("[Startup] Unknown error showing first-run agreement");
-            SetAcceptedFirstRunAgreement(true); // Skip on error
+            SetAcceptedFirstRunAgreement(true);
         }
     };
 
@@ -908,8 +364,8 @@ void Editor::MainLoop() {
             if (event.type == SDL_EVENT_QUIT || (event.type == SDL_EVENT_WINDOW_CLOSE_REQUESTED && event.window.windowID == SDL_GetWindowID(m_Window))) {
                 m_Running = false;
                 // Execute pending callbacks before shutdown to prevent use-after-free
-                if (auto* overlayMgr = OverlayManager::Get()) {
-                    overlayMgr->ExecutePendingCallbacks();
+                if (m_OverlayHost) {
+                    m_OverlayHost->ExecutePendingCallbacks();
                 }
             }
 
@@ -959,7 +415,7 @@ void Editor::MainLoop() {
             } else if (event.type == SDL_EVENT_KEY_DOWN || event.type == SDL_EVENT_KEY_UP) {
 #if WE_DEBUG_UI
                 if (event.type == SDL_EVENT_KEY_DOWN && event.key.key == SDLK_F9) {
-                    we::UI::RenderInvestigationModalHost::Toggle();
+                    WindEffects::Editor::UI::RenderInvestigationModalHost::Toggle();
                 }
 #endif
                 UI::KeyEvent keyEvent{};
@@ -978,10 +434,8 @@ void Editor::MainLoop() {
         }
         
         // Execute pending callbacks after event processing to avoid use-after-free
-        if (auto* overlayMgr = OverlayManager::Get()) {
-            if (overlayMgr->HasOpenPopups()) {
-                overlayMgr->ExecutePendingCallbacks();
-            }
+        if (m_OverlayHost && m_OverlayHost->HasOpenPopups()) {
+            m_OverlayHost->ExecutePendingCallbacks();
         }
 
         if (!m_Running) break;
@@ -1110,12 +564,11 @@ void Editor::MainLoop() {
 }
 
 void Editor::Shutdown() {
-    // Clear any pending callbacks before shutdown to prevent use-after-free
-    if (auto* overlayMgr = OverlayManager::Get()) {
-        overlayMgr->CloseAllPopups();
+    if (m_OverlayHost) {
+        m_OverlayHost->CloseAllPopups();
     }
 
-    EditorLayoutPersistence::Get().Save();
+    EditorWorkspaceController::Get().SaveLayout();
 
     if (m_Window) {
         SDL_SetWindowRelativeMouseMode(m_Window, false);
@@ -1125,6 +578,7 @@ void Editor::Shutdown() {
     we::core::ModuleManager::Get().ShutdownAllModules();
 
     m_ViewportWidget.reset();
+    m_OverlayHost.reset();
     m_RootWidget.reset();
     ShutdownContentBrowserService();
     if (m_OverlayRenderer) {

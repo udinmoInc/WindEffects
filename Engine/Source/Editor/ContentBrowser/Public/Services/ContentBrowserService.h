@@ -13,7 +13,7 @@
 #include <unordered_set>
 #include <volk.h>
 
-namespace we::UI {
+namespace WindEffects::Editor::UI {
 class IconRenderer;
 }
 
@@ -23,7 +23,7 @@ class ContentBrowserService {
 public:
     static ContentBrowserService& Get();
 
-    void Initialize(we::UI::IconRenderer* iconRenderer, const std::string& contentRoot);
+    void Initialize(WindEffects::Editor::UI::IconRenderer* iconRenderer, const std::string& contentRoot);
     void Shutdown();
     void Tick(float deltaTime);
 
@@ -35,7 +35,7 @@ public:
     void SetCurrentFolder(const std::string& virtualPath);
     const std::string& GetCurrentFolder() const { return m_CurrentFolder; }
 
-    void RefreshBrowserModel(const std::shared_ptr<we::UI::ContentBrowserModel>& model);
+    void RefreshBrowserModel(const std::shared_ptr<WindEffects::Editor::UI::ContentBrowserModel>& model);
     void RequestThumbnailForItem(const std::string& id);
     void SetVisibleItemIds(const std::unordered_set<std::string>& ids);
 
@@ -50,7 +50,7 @@ private:
     void ProcessThumbnails();
     VkDescriptorSet UploadBitmap(const struct BitmapRGBA& bitmap);
 
-    we::UI::IconRenderer* m_IconRenderer = nullptr;
+    WindEffects::Editor::UI::IconRenderer* m_IconRenderer = nullptr;
     ThumbnailManager m_ThumbnailManager;
     DiskThumbnailCache m_DiskCache;
     FolderPreviewGenerator m_FolderPreview;
@@ -59,7 +59,7 @@ private:
 
     std::string m_CurrentFolder = "/Game";
     std::function<void(const std::string&, VkDescriptorSet)> m_OnThumbnailReady;
-    std::weak_ptr<we::UI::ContentBrowserModel> m_Model;
+    std::weak_ptr<WindEffects::Editor::UI::ContentBrowserModel> m_Model;
     bool m_Initialized = false;
 };
 

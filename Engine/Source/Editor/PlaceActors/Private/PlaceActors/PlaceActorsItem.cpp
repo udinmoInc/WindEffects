@@ -7,12 +7,12 @@
 
 namespace we::programs::editor {
 
-using we::UI::Color;
-using we::UI::PaintContext;
-using we::UI::Point;
-using we::UI::Rect;
-using we::UI::Size;
-using we::UI::Theme;
+using WindEffects::Editor::UI::Color;
+using WindEffects::Editor::UI::PaintContext;
+using WindEffects::Editor::UI::Point;
+using WindEffects::Editor::UI::Rect;
+using WindEffects::Editor::UI::Size;
+using WindEffects::Editor::UI::Theme;
 
 Size PlaceActorsItem::MeasureGrid(const PlaceActorsItemMetrics& metrics) {
     return Size{ metrics.cardSize, metrics.cardSize };
@@ -31,7 +31,7 @@ void PlaceActorsItem::PaintGrid(PaintContext& context,
                                 bool selected,
                                 bool favorite) {
     const auto& theme = Theme::Get();
-    const float uiScale = (std::max)(1.0f, we::UI::DPIContext::GetScale());
+    const float uiScale = (std::max)(1.0f, WindEffects::Editor::UI::DPIContext::GetScale());
     const float labelFontSize = 11.0f * uiScale;
     Color bg = theme.PanelBackground;
     if (selected) {
@@ -51,7 +51,7 @@ void PlaceActorsItem::PaintGrid(PaintContext& context,
     const float iconDraw = std::min(metrics.iconSize, bounds.width - 16.0f);
     const float iconX = bounds.x + (bounds.width - iconDraw) * 0.5f;
     const float iconY = bounds.y + 10.0f;
-    we::UI::IconPainter::DrawIcon(context, item.iconName, Rect{ iconX, iconY, iconDraw, iconDraw }, theme.TextPrimary);
+    WindEffects::Editor::UI::IconPainter::DrawIcon(context, item.iconName, Rect{ iconX, iconY, iconDraw, iconDraw }, theme.TextPrimary);
 
     const float textY = bounds.y + bounds.height - 22.0f;
     const float textWidth = context.GetTextWidth(item.label, labelFontSize, true);
@@ -59,7 +59,7 @@ void PlaceActorsItem::PaintGrid(PaintContext& context,
     context.DrawText(item.label, Point{ textX, textY }, theme.TextPrimary, labelFontSize, true);
 
     if (favorite) {
-        we::UI::IconPainter::DrawIcon(context, we::UI::Icons::StarFilledName,
+        WindEffects::Editor::UI::IconPainter::DrawIcon(context, WindEffects::Editor::UI::Icons::StarFilledName,
             Rect{ bounds.x + bounds.width - 18.0f, bounds.y + 6.0f, 12.0f, 12.0f }, theme.Warning);
     }
 }
@@ -73,7 +73,7 @@ void PlaceActorsItem::PaintList(PaintContext& context,
                                 bool selected,
                                 bool favorite) {
     const auto& theme = Theme::Get();
-    const float uiScale = (std::max)(1.0f, we::UI::DPIContext::GetScale());
+    const float uiScale = (std::max)(1.0f, WindEffects::Editor::UI::DPIContext::GetScale());
     const float labelFontSize = 11.0f * uiScale;
     Color bg = theme.PanelBackground;
     if (selected) {
@@ -88,7 +88,7 @@ void PlaceActorsItem::PaintList(PaintContext& context,
     context.DrawRoundedRect(bounds, bg, theme.CornerRadiusMedium);
 
     const float iconSize = theme.IconSizeToolbar + theme.Space3;
-    we::UI::IconPainter::DrawIcon(context, item.iconName,
+    WindEffects::Editor::UI::IconPainter::DrawIcon(context, item.iconName,
         Rect{ bounds.x + theme.Space2, bounds.y + (bounds.height - iconSize) * 0.5f, iconSize, iconSize }, theme.TextPrimary);
 
     const float captionFontSize = theme.TextSizeCaption * uiScale;
@@ -98,7 +98,7 @@ void PlaceActorsItem::PaintList(PaintContext& context,
     }
 
     if (favorite) {
-        we::UI::IconPainter::DrawIcon(context, we::UI::Icons::StarFilledName,
+        WindEffects::Editor::UI::IconPainter::DrawIcon(context, WindEffects::Editor::UI::Icons::StarFilledName,
             Rect{ bounds.x + bounds.width - theme.Space5 - 2.0f, bounds.y + (bounds.height - theme.IconSizeTree) * 0.5f, theme.IconSizeTree, theme.IconSizeTree }, theme.Warning);
     }
 }

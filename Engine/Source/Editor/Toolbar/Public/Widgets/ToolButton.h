@@ -8,7 +8,7 @@
 #include "Core/Animation.h"
 #include <functional>
 
-namespace we::UI {
+namespace WindEffects::Editor::UI {
 
 enum class ToolButtonStyle {
     Normal,

@@ -5,7 +5,7 @@
 #include <volk.h>
 #include <functional>
 
-namespace we::UI {
+namespace WindEffects::Editor::UI {
 
 struct ContentItem {
     std::string id;
@@ -53,4 +53,4 @@ public:
     }
 };
 
-} // namespace we::UI
+} // namespace WindEffects::Editor::UI

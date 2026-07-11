@@ -8,16 +8,16 @@
 namespace we::programs::editor {
 
 /// Compact toolbar control: shows active editor mode and opens a registry-driven mode menu.
-class TOOLSPANEL_API EditorModeSelector : public we::UI::Widget {
+class TOOLSPANEL_API EditorModeSelector : public WindEffects::Editor::UI::Widget {
 public:
     EditorModeSelector();
 
-    we::UI::Size Measure(const we::UI::Size& availableSize) override;
-    void Arrange(const we::UI::Rect& allottedRect) override;
-    void Paint(we::UI::PaintContext& context) override;
+    WindEffects::Editor::UI::Size Measure(const WindEffects::Editor::UI::Size& availableSize) override;
+    void Arrange(const WindEffects::Editor::UI::Rect& allottedRect) override;
+    void Paint(WindEffects::Editor::UI::PaintContext& context) override;
 
-    void OnMouseDown(const we::UI::MouseEvent& event) override;
-    void OnMouseMove(const we::UI::MouseEvent& event) override;
+    void OnMouseDown(const WindEffects::Editor::UI::MouseEvent& event) override;
+    void OnMouseMove(const WindEffects::Editor::UI::MouseEvent& event) override;
 
     void Refresh();
 

@@ -93,7 +93,7 @@ uint8_t BrightenChannel(uint8_t channel, float hoverBrightness) {
     return static_cast<uint8_t>(std::min(255.0f, (f + (1.0f - f) * 0.10f * boost) * 255.0f));
 }
 
-std::array<uint8_t, 3> ThemeRgb(const we::UI::Color& color, float hoverBrightness) {
+std::array<uint8_t, 3> ThemeRgb(const WindEffects::Editor::UI::Color& color, float hoverBrightness) {
     return {
         BrightenChannel(static_cast<uint8_t>(color.r * 255.0f), hoverBrightness),
         BrightenChannel(static_cast<uint8_t>(color.g * 255.0f), hoverBrightness),
@@ -102,7 +102,7 @@ std::array<uint8_t, 3> ThemeRgb(const we::UI::Color& color, float hoverBrightnes
 }
 
 std::array<uint8_t, 3> SampleFolderThemeColor(float t, float hoverBrightness) {
-    const we::UI::Theme& theme = we::UI::Theme::Get();
+    const WindEffects::Editor::UI::Theme& theme = WindEffects::Editor::UI::Theme::Get();
     
     // Use multi-color palette for folder: blend between tab color (top) and body color (bottom)
     const auto tabColor = ThemeRgb(theme.ContentBrowserFolderTab, hoverBrightness);
@@ -231,8 +231,8 @@ BitmapRGBA ThumbnailRenderer::LoadImageFile(const std::string& path, uint32_t ta
         [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
 
     if (lower == ".svg") {
-        we::UI::Icons::SvgRasterizer rasterizer;
-        we::UI::Icons::SvgRasterizeRequest request{};
+        WindEffects::Editor::UI::Icons::SvgRasterizer rasterizer;
+        WindEffects::Editor::UI::Icons::SvgRasterizeRequest request{};
         request.svgPath = resolved;
         request.width = targetSize;
         request.height = targetSize;
@@ -527,7 +527,7 @@ BitmapRGBA ThumbnailRenderer::RenderContentBrowserFolderProcedural(uint32_t w, u
     bmp.height = h;
     bmp.pixels.assign(static_cast<size_t>(w) * h * 4, 0);
 
-    const we::UI::Theme& theme = we::UI::Theme::Get();
+    const WindEffects::Editor::UI::Theme& theme = WindEffects::Editor::UI::Theme::Get();
     
     // Use full theme palette for folder
     const auto shadowRgb = ThemeRgb(theme.ContentBrowserFolderShadow, hoverBrightness);
@@ -581,8 +581,8 @@ BitmapRGBA ThumbnailRenderer::RasterizeMonochromeSvg(const std::string& resolved
     const uint32_t rasterW = w * kSSAA;
     const uint32_t rasterH = h * kSSAA;
 
-    we::UI::Icons::SvgRasterizer rasterizer;
-    we::UI::Icons::SvgRasterizeRequest request{};
+    WindEffects::Editor::UI::Icons::SvgRasterizer rasterizer;
+    WindEffects::Editor::UI::Icons::SvgRasterizeRequest request{};
     request.svgPath = resolved;
     request.width = rasterW;
     request.height = rasterH;
@@ -731,7 +731,7 @@ BitmapRGBA ThumbnailRenderer::RenderContentBrowserBlueprintProcedural(uint32_t w
     bmp.height = h;
     bmp.pixels.assign(static_cast<size_t>(w) * h * 4, 0);
 
-    const we::UI::Theme& theme = we::UI::Theme::Get();
+    const WindEffects::Editor::UI::Theme& theme = WindEffects::Editor::UI::Theme::Get();
     const auto tint = ThemeRgb(theme.IconMuted, hoverBrightness);
     const float cx = static_cast<float>(w) * 0.5f;
     const float cy = static_cast<float>(h) * 0.5f;
@@ -775,7 +775,7 @@ BitmapRGBA ThumbnailRenderer::RenderContentBrowserBlueprint(uint32_t heightPx, f
 
     const std::string svgPath = ResolveBlueprintSvgPath();
     if (!svgPath.empty()) {
-        const we::UI::Theme& theme = we::UI::Theme::Get();
+        const WindEffects::Editor::UI::Theme& theme = WindEffects::Editor::UI::Theme::Get();
         const auto flatTint = ThemeRgb(theme.IconMuted, hoverBrightness);
         const BitmapRGBA svgBmp = RasterizeMonochromeSvg(ResolvePath(svgPath), w, h, hoverBrightness,
             [&](float) { return flatTint; });

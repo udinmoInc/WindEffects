@@ -2,7 +2,7 @@
 
 #include <string>
 
-namespace we::UI {
+namespace WindEffects::Editor::UI {
 
 // Clean, 2px rounded stroke SVG icons matching standard AAA conventions.
 // The SVG definitions should use <svg width="48" height="48" viewBox="0 0 48 48">

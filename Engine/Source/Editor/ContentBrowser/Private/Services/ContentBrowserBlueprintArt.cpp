@@ -13,7 +13,7 @@ ContentBrowserBlueprintArt& ContentBrowserBlueprintArt::Get() {
     return instance;
 }
 
-void ContentBrowserBlueprintArt::Initialize(we::UI::IconRenderer* iconRenderer) {
+void ContentBrowserBlueprintArt::Initialize(WindEffects::Editor::UI::IconRenderer* iconRenderer) {
     m_Renderer = iconRenderer;
 }
 
@@ -21,7 +21,7 @@ void ContentBrowserBlueprintArt::InvalidateCache() {
     m_Cache.clear();
 }
 
-we::UI::Rect ContentBrowserBlueprintArt::ComputeBlueprintRect(const we::UI::Rect& bounds, float widthFill, float heightFill) {
+WindEffects::Editor::UI::Rect ContentBrowserBlueprintArt::ComputeBlueprintRect(const WindEffects::Editor::UI::Rect& bounds, float widthFill, float heightFill) {
     const float maxW = bounds.width * std::clamp(widthFill, 0.5f, 0.95f);
     const float maxH = bounds.height * std::clamp(heightFill, 0.5f, 0.95f);
     float width = maxW;
@@ -30,7 +30,7 @@ we::UI::Rect ContentBrowserBlueprintArt::ComputeBlueprintRect(const we::UI::Rect
         height = maxH;
         width = height * kBlueprintAspectRatio;
     }
-    return we::UI::Rect{
+    return WindEffects::Editor::UI::Rect{
         bounds.x + (bounds.width - width) * 0.5f,
         bounds.y + (bounds.height - height) * 0.5f,
         width,
@@ -41,7 +41,7 @@ we::UI::Rect ContentBrowserBlueprintArt::ComputeBlueprintRect(const we::UI::Rect
 VkDescriptorSet ContentBrowserBlueprintArt::GetTexture(uint32_t heightPx, bool hovered) const {
     if (!m_Renderer || heightPx == 0) return VK_NULL_HANDLE;
 
-    const float dpi = std::max(1.0f, we::UI::DPIContext::GetScale());
+    const float dpi = std::max(1.0f, WindEffects::Editor::UI::DPIContext::GetScale());
     const uint32_t rasterHeight = std::max(16u, static_cast<uint32_t>(std::ceil(static_cast<float>(heightPx) * dpi)));
     const uint32_t rasterWidth = std::max(16u,
         static_cast<uint32_t>(std::round(static_cast<float>(rasterHeight) * kBlueprintAspectRatio)));
@@ -62,8 +62,8 @@ VkDescriptorSet ContentBrowserBlueprintArt::GetTexture(uint32_t heightPx, bool h
     return texture;
 }
 
-void ContentBrowserBlueprintArt::PaintThumbnail(we::UI::PaintContext& context, const we::UI::Rect& thumbRect, bool hovered) const {
-    const we::UI::Rect blueprintRect = ComputeBlueprintRect(thumbRect);
+void ContentBrowserBlueprintArt::PaintThumbnail(WindEffects::Editor::UI::PaintContext& context, const WindEffects::Editor::UI::Rect& thumbRect, bool hovered) const {
+    const WindEffects::Editor::UI::Rect blueprintRect = ComputeBlueprintRect(thumbRect);
     const uint32_t heightPx = static_cast<uint32_t>(std::ceil(blueprintRect.height));
     const VkDescriptorSet texture = GetTexture(heightPx, hovered);
     if (texture != VK_NULL_HANDLE) {
@@ -71,8 +71,8 @@ void ContentBrowserBlueprintArt::PaintThumbnail(we::UI::PaintContext& context, c
     }
 }
 
-void ContentBrowserBlueprintArt::PaintSmallIcon(we::UI::PaintContext& context, const we::UI::Rect& iconRect, bool hovered) const {
-    const we::UI::Rect blueprintRect = ComputeBlueprintRect(iconRect, 0.88f, 0.88f);
+void ContentBrowserBlueprintArt::PaintSmallIcon(WindEffects::Editor::UI::PaintContext& context, const WindEffects::Editor::UI::Rect& iconRect, bool hovered) const {
+    const WindEffects::Editor::UI::Rect blueprintRect = ComputeBlueprintRect(iconRect, 0.88f, 0.88f);
     const uint32_t heightPx = static_cast<uint32_t>(std::ceil(blueprintRect.height));
     const VkDescriptorSet texture = GetTexture(heightPx, hovered);
     if (texture != VK_NULL_HANDLE) {
