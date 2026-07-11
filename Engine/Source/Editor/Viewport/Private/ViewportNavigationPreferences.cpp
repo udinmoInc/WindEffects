@@ -3,7 +3,7 @@
 #include "ViewportNavigation.h"
 #include "ViewportToolbarState.h"
 #include "EditorWorkspaceController.h"
-#include "WindEffects/Editor/UI/Extensions/ExtensionBootstrap.h"
+#include "WindEffects/Editor/EditorSDK.h"
 
 #include "Widgets/ViewportSliderPopup.h"
 #include "Widgets/Panel.h"
@@ -170,16 +170,13 @@ std::shared_ptr<WindEffects::Editor::UI::VerticalBox> BuildViewportNavigationPre
 } // namespace
 
 std::shared_ptr<WindEffects::Editor::UI::Panel> CreateViewportNavigationPreferencesPanel() {
-    constexpr const char* kTitle = "Viewport Navigation";
-    auto panel = std::make_shared<WindEffects::Editor::UI::Panel>(kTitle);
-    panel->SetHeaderHeight(30.0f);
-    panel->SetContent(BuildViewportNavigationPreferencesContent());
-    panel->SetTabIcon(WindEffects::Editor::UI::Icons::SettingsName);
-    return panel;
+    return WindEffects::Editor::UI::PanelBuilder("Viewport Navigation")
+        .TabIcon(WindEffects::Editor::UI::Icons::SettingsName)
+        .Content(BuildViewportNavigationPreferencesContent());
 }
 
 REGISTER_UI_PANEL(ViewportNavigation,
-    (WindEffects::Editor::UI::DockPanelDescriptor{.title = "Viewport Navigation", .iconResource = "settings", .defaultZone = WindEffects::Editor::UI::DockZone::Floating, .defaultVisible = false}),
+    WE_PANEL(ViewportNavigation).Title("Viewport Navigation").Icon("settings").Zone(WindEffects::Editor::UI::DockZone::Floating).Hidden(),
     CreateViewportNavigationPreferencesPanel)
 
 void ShowViewportNavigationPreferences() {

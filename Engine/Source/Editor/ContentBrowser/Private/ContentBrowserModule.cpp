@@ -1,18 +1,17 @@
 
 #include "Modules/IModuleInterface.h"
-#include "Core/Logger.h"
+#include "Core/DiagnosticMacros.h"
+#include "Core/LogCategory.h"
 
 class ContentBrowserModule : public we::core::IModuleInterface
 {
 public:
-    virtual void StartupModule() override
-    {
-        WE_LOG_TRACE("Plugin", "ContentBrowserModule started");
+    void StartupModule() override {
+        WE_LOG_TRACE(we::LogCategory::Plugin.data(), "ContentBrowserModule started");
     }
 
-    virtual void ShutdownModule() override
-    {
-        WE_LOG_TRACE("Plugin", "ContentBrowserModule shutdown");
+    void ShutdownModule() override {
+        WE_LOG_TRACE(we::LogCategory::Plugin.data(), "ContentBrowserModule shutdown");
     }
 };
 

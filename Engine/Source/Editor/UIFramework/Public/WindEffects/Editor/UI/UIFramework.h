@@ -1,6 +1,8 @@
 #pragma once
 
-// WindEffects Editor UI Framework — public entry point
+// WindEffects Editor UI Framework — core services and docking.
+// Extension authors: prefer #include "WindEffects/Editor/EditorSDK.h"
+
 #include "WindEffects/Editor/UI/Core/EditorApplicationContext.h"
 #include "WindEffects/Editor/UI/Core/IServiceProvider.h"
 #include "WindEffects/Editor/UI/Core/ServiceContainer.h"

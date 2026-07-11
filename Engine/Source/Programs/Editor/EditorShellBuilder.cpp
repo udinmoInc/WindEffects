@@ -180,11 +180,11 @@ EditorShellResult EditorShellBuilder::Build(
     std::vector<std::shared_ptr<MenuItem>> buildItems;
     auto compileItem = std::make_shared<MenuItem>();
     compileItem->label = "Compile";
-    compileItem->onClick = []() {
-        const auto result = we::core::InvokeIgniteBT({"build", "--config", "Debug"});
-        if (!result.launched) {
-            HE_ERROR("[Build] " + result.errorMessage);
-        }
+    compileItem->onClick = [&context]() {
+        WindEffects::Editor::UI::CommandContext commandContext;
+        commandContext.services = &context.GetServices();
+        commandContext.sourceId = "BuildMenu";
+        context.GetCommandRegistry().Execute("build.compile", commandContext);
     };
     buildItems.push_back(compileItem);
     buildItems.push_back([] { auto i = std::make_shared<MenuItem>(); i->label = "Build"; return i; }());
@@ -348,11 +348,11 @@ EditorShellResult EditorShellBuilder::Build(
         ws.SetPanelVisible("OutputLog", true);
         ws.FocusPanel("OutputLog");
     });
-    statusBar->SetOnBuildMenuClicked([]() {
-        const auto result = we::core::InvokeIgniteBT({"build", "--config", "Debug"});
-        if (!result.launched) {
-            HE_ERROR("[Build] " + result.errorMessage);
-        }
+    statusBar->SetOnBuildMenuClicked([&context]() {
+        WindEffects::Editor::UI::CommandContext commandContext;
+        commandContext.services = &context.GetServices();
+        commandContext.sourceId = "StatusBar";
+        context.GetCommandRegistry().Execute("build.compile", commandContext);
     });
 
     auto rootVBox = std::make_shared<VerticalBox>();

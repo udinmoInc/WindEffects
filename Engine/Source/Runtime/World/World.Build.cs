@@ -7,6 +7,8 @@ public class World : ModuleRules
         Type = ModuleType.SharedLibrary;
 
         PublicIncludePaths.Add("Public");
+        PublicIncludePaths.Add("Public/WindEffects");
+        PublicIncludePaths.Add("Public/WindEffects/Runtime");
         PublicIncludePaths.Add(".");
         PrivateIncludePaths.Add(".");
         PrivateIncludePaths.Add("DefaultScene");
