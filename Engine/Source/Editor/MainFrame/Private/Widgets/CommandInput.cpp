@@ -5,7 +5,7 @@
 #include <SDL3/SDL.h>
 #include <algorithm>
 
-namespace we::UI {
+namespace WindEffects::Editor::UI {
 
 CommandInput::CommandInput() = default;
 
@@ -126,4 +126,4 @@ void CommandInput::OnBlur() {
     m_ShowCaret = false;
 }
 
-} // namespace we::UI
+} // namespace WindEffects::Editor::UI

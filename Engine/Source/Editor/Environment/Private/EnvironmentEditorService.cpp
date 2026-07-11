@@ -8,7 +8,7 @@
 #include "Widgets/PropertyEditor.h"
 #include "Widgets/TreeView.h"
 #include "Widgets/MenuBar.h"
-#include "Layout/OverlayManager.h"
+#include "EditorWorkspaceController.h"
 #include "Core/PaintContext.h"
 #include "Core/Theme.h"
 #include "Core/Icon.h"
@@ -37,8 +37,8 @@ using we::runtime::world::environment::EnvironmentPreset;
 using we::runtime::world::environment::EnvironmentSystem;
 
 std::weak_ptr<Scene> g_Scene;
-std::weak_ptr<we::UI::TreeView> g_Outliner;
-std::weak_ptr<we::UI::PropertyEditor> g_Details;
+std::weak_ptr<WindEffects::Editor::UI::TreeView> g_Outliner;
+std::weak_ptr<WindEffects::Editor::UI::PropertyEditor> g_Details;
 std::uint64_t g_LastSelectedEntityId = 0;
 
 std::string EntityTypeLabel(EntityType type) {
@@ -56,19 +56,19 @@ std::string EntityTypeLabel(EntityType type) {
 std::string IconForEntity(const Entity& entity) {
     switch (entity.Type) {
     case EntityType::DirectionalLight:
-        return we::UI::Icons::SunName;
+        return WindEffects::Editor::UI::Icons::SunName;
     case EntityType::SkyLight:
-        return we::UI::Icons::LightName;
+        return WindEffects::Editor::UI::Icons::LightName;
     case EntityType::SkyAtmosphere:
-        return we::UI::Icons::SphereName;
+        return WindEffects::Editor::UI::Icons::SphereName;
     case EntityType::HeightFog:
-        return we::UI::Icons::LayersName;
+        return WindEffects::Editor::UI::Icons::LayersName;
     case EntityType::VolumetricClouds:
-        return we::UI::Icons::SphereName;
+        return WindEffects::Editor::UI::Icons::SphereName;
     case EntityType::EmptyActor:
-        return we::UI::Icons::FolderName;
+        return WindEffects::Editor::UI::Icons::FolderName;
     default:
-        return we::UI::Icons::CubeName;
+        return WindEffects::Editor::UI::Icons::CubeName;
     }
 }
 
@@ -101,8 +101,8 @@ int EnvironmentActorSortKey(const Entity& entity) {
     return 100;
 }
 
-void SortTreeChildren(std::vector<std::shared_ptr<we::UI::TreeNode>>& children, Scene& scene) {
-    std::sort(children.begin(), children.end(), [&](const std::shared_ptr<we::UI::TreeNode>& a, const std::shared_ptr<we::UI::TreeNode>& b) {
+void SortTreeChildren(std::vector<std::shared_ptr<WindEffects::Editor::UI::TreeNode>>& children, Scene& scene) {
+    std::sort(children.begin(), children.end(), [&](const std::shared_ptr<WindEffects::Editor::UI::TreeNode>& a, const std::shared_ptr<WindEffects::Editor::UI::TreeNode>& b) {
         const Entity* entityA = scene.FindEntityById(static_cast<std::uint64_t>(std::strtoull(a->id.c_str(), nullptr, 10)));
         const Entity* entityB = scene.FindEntityById(static_cast<std::uint64_t>(std::strtoull(b->id.c_str(), nullptr, 10)));
         if (!entityA || !entityB) {
@@ -160,15 +160,15 @@ int ParseInt(const std::string& text, int fallback) {
 }
 
 void AddBoolProperty(
-    we::UI::PropertyEditor& editor,
+    WindEffects::Editor::UI::PropertyEditor& editor,
     const std::string& name,
     const std::string& category,
     bool value,
     std::function<void(bool)> onChanged) {
-    we::UI::Property property;
+    WindEffects::Editor::UI::Property property;
     property.name = name;
     property.category = category;
-    property.type = we::UI::PropertyType::Bool;
+    property.type = WindEffects::Editor::UI::PropertyType::Bool;
     property.value = value ? "true" : "false";
     property.defaultValue = property.value;
     property.onValueChanged = [onChanged](const std::string& newValue) {
@@ -180,15 +180,15 @@ void AddBoolProperty(
 }
 
 void AddFloatProperty(
-    we::UI::PropertyEditor& editor,
+    WindEffects::Editor::UI::PropertyEditor& editor,
     const std::string& name,
     const std::string& category,
     float value,
     std::function<void(float)> onChanged) {
-    we::UI::Property property;
+    WindEffects::Editor::UI::Property property;
     property.name = name;
     property.category = category;
-    property.type = we::UI::PropertyType::Float;
+    property.type = WindEffects::Editor::UI::PropertyType::Float;
     property.value = FormatFloat(value);
     property.defaultValue = property.value;
     property.onValueChanged = [onChanged](const std::string& newValue) {
@@ -200,15 +200,15 @@ void AddFloatProperty(
 }
 
 void AddIntProperty(
-    we::UI::PropertyEditor& editor,
+    WindEffects::Editor::UI::PropertyEditor& editor,
     const std::string& name,
     const std::string& category,
     int value,
     std::function<void(int)> onChanged) {
-    we::UI::Property property;
+    WindEffects::Editor::UI::Property property;
     property.name = name;
     property.category = category;
-    property.type = we::UI::PropertyType::Int;
+    property.type = WindEffects::Editor::UI::PropertyType::Int;
     property.value = std::to_string(value);
     property.defaultValue = property.value;
     property.onValueChanged = [onChanged](const std::string& newValue) {
@@ -220,15 +220,15 @@ void AddIntProperty(
 }
 
 void AddVec3Property(
-    we::UI::PropertyEditor& editor,
+    WindEffects::Editor::UI::PropertyEditor& editor,
     const std::string& name,
     const std::string& category,
     const glm::vec3& value,
     std::function<void(const glm::vec3&)> onChanged) {
-    we::UI::Property property;
+    WindEffects::Editor::UI::Property property;
     property.name = name;
     property.category = category;
-    property.type = we::UI::PropertyType::Vector3;
+    property.type = WindEffects::Editor::UI::PropertyType::Vector3;
     property.value = FormatVec3(value);
     property.defaultValue = property.value;
     property.onValueChanged = [value, onChanged](const std::string& newValue) {
@@ -239,7 +239,7 @@ void AddVec3Property(
     editor.AddProperty(property);
 }
 
-void BindSunProperties(we::UI::PropertyEditor& editor, EnvironmentSystem& system) {
+void BindSunProperties(WindEffects::Editor::UI::PropertyEditor& editor, EnvironmentSystem& system) {
     auto& sun = system.GetSun();
     AddFloatProperty(editor, "Intensity", "Light", sun.Intensity, [&system](float value) {
         system.GetSun().Intensity = value;
@@ -266,7 +266,7 @@ void BindSunProperties(we::UI::PropertyEditor& editor, EnvironmentSystem& system
     });
 }
 
-void BindSkyLightProperties(we::UI::PropertyEditor& editor, EnvironmentSystem& system) {
+void BindSkyLightProperties(WindEffects::Editor::UI::PropertyEditor& editor, EnvironmentSystem& system) {
     auto& sky = system.GetSkyLight();
     AddFloatProperty(editor, "Intensity", "Sky Light", sky.Intensity, [&system](float value) {
         system.GetSkyLight().Intensity = value;
@@ -279,7 +279,7 @@ void BindSkyLightProperties(we::UI::PropertyEditor& editor, EnvironmentSystem& s
     });
 }
 
-void BindAtmosphereProperties(we::UI::PropertyEditor& editor, EnvironmentSystem& system) {
+void BindAtmosphereProperties(WindEffects::Editor::UI::PropertyEditor& editor, EnvironmentSystem& system) {
     auto& atmosphere = system.GetSkyAtmosphere();
     AddFloatProperty(editor, "Rayleigh Scattering", "Atmosphere", atmosphere.RayleighScattering, [&system](float value) {
         system.GetSkyAtmosphere().RayleighScattering = value;
@@ -296,7 +296,7 @@ void BindAtmosphereProperties(we::UI::PropertyEditor& editor, EnvironmentSystem&
     });
 }
 
-void BindFogProperties(we::UI::PropertyEditor& editor, EnvironmentSystem& system) {
+void BindFogProperties(WindEffects::Editor::UI::PropertyEditor& editor, EnvironmentSystem& system) {
     auto& fog = system.GetHeightFog();
     AddFloatProperty(editor, "Density", "Fog", fog.Density, [&system](float value) {
         system.GetHeightFog().Density = value;
@@ -317,7 +317,7 @@ void BindFogProperties(we::UI::PropertyEditor& editor, EnvironmentSystem& system
     });
 }
 
-void BindCloudProperties(we::UI::PropertyEditor& editor, EnvironmentSystem& system) {
+void BindCloudProperties(WindEffects::Editor::UI::PropertyEditor& editor, EnvironmentSystem& system) {
     auto& clouds = system.GetVolumetricClouds();
     AddBoolProperty(editor, "Enabled", "Clouds", clouds.Enabled, [&system](bool value) {
         system.SetVolumetricCloudsEnabled(value);
@@ -334,7 +334,7 @@ void BindCloudProperties(we::UI::PropertyEditor& editor, EnvironmentSystem& syst
     });
 }
 
-void BindExposureProperties(we::UI::PropertyEditor& editor, EnvironmentSystem& system) {
+void BindExposureProperties(WindEffects::Editor::UI::PropertyEditor& editor, EnvironmentSystem& system) {
     auto& exposure = system.GetExposureController();
     AddBoolProperty(editor, "Auto Exposure", "Exposure", exposure.AutoExposure, [&system](bool value) {
         system.GetExposureController().AutoExposure = value;
@@ -382,17 +382,17 @@ void RefreshDetailsPanel() {
     EnvironmentSystem& system = EnvironmentSystem::Get();
     system.SyncFromScene();
 
-    we::UI::Property actorName;
+    WindEffects::Editor::UI::Property actorName;
     actorName.name = "Name";
     actorName.category = "Actor";
-    actorName.type = we::UI::PropertyType::String;
+    actorName.type = WindEffects::Editor::UI::PropertyType::String;
     actorName.value = entity.Name;
     details->AddProperty(actorName);
 
-    we::UI::Property actorType;
+    WindEffects::Editor::UI::Property actorType;
     actorType.name = "Type";
     actorType.category = "Actor";
-    actorType.type = we::UI::PropertyType::String;
+    actorType.type = WindEffects::Editor::UI::PropertyType::String;
     actorType.value = EntityTypeLabel(entity.Type);
     details->AddProperty(actorType);
 
@@ -442,8 +442,8 @@ void RefreshDetailsPanel() {
     }
 }
 
-std::shared_ptr<we::UI::TreeNode> BuildNodeForEntity(const Entity& entity) {
-    auto node = std::make_shared<we::UI::TreeNode>();
+std::shared_ptr<WindEffects::Editor::UI::TreeNode> BuildNodeForEntity(const Entity& entity) {
+    auto node = std::make_shared<WindEffects::Editor::UI::TreeNode>();
     node->id = std::to_string(entity.Id);
     node->label = entity.Name;
     node->iconName = IconForEntity(entity);
@@ -461,12 +461,12 @@ void RefreshOutliner() {
         return;
     }
 
-    auto root = std::make_shared<we::UI::TreeNode>();
+    auto root = std::make_shared<WindEffects::Editor::UI::TreeNode>();
     root->id = "root";
     root->label = "";
     root->expanded = true;
 
-    std::unordered_map<std::uint64_t, std::shared_ptr<we::UI::TreeNode>> nodeById;
+    std::unordered_map<std::uint64_t, std::shared_ptr<WindEffects::Editor::UI::TreeNode>> nodeById;
     for (const Entity& entity : scene->GetEntities()) {
         nodeById[entity.Id] = BuildNodeForEntity(entity);
     }
@@ -490,54 +490,54 @@ void RefreshOutliner() {
     }
 }
 
-class EnvironmentDropdownMenu : public we::UI::Widget {
+class EnvironmentDropdownMenu : public WindEffects::Editor::UI::Widget {
 public:
-    explicit EnvironmentDropdownMenu(std::vector<std::shared_ptr<we::UI::MenuItem>> items)
+    explicit EnvironmentDropdownMenu(std::vector<std::shared_ptr<WindEffects::Editor::UI::MenuItem>> items)
         : m_Items(std::move(items)) {}
 
-    we::UI::Size Measure(const we::UI::Size& availableSize) override {
+    WindEffects::Editor::UI::Size Measure(const WindEffects::Editor::UI::Size& availableSize) override {
         float maxWidth = 220.0f;
         for (const auto& item : m_Items) {
             maxWidth = std::max(maxWidth, 24.0f + item->label.length() * 7.0f + 40.0f);
         }
-        m_DesiredSize = we::UI::Size{ maxWidth, 8.0f + m_Items.size() * 28.0f };
+        m_DesiredSize = WindEffects::Editor::UI::Size{ maxWidth, 8.0f + m_Items.size() * 28.0f };
         return m_DesiredSize;
     }
 
-    void Arrange(const we::UI::Rect& allottedRect) override { m_Geometry = allottedRect; }
+    void Arrange(const WindEffects::Editor::UI::Rect& allottedRect) override { m_Geometry = allottedRect; }
 
-    void Paint(we::UI::PaintContext& context) override {
-        context.DrawShadow(m_Geometry, we::UI::Color{ 0.0f, 0.0f, 0.0f, 0.15f }, 4.0f, 12.0f);
-        context.DrawRoundedRect(m_Geometry, we::UI::Theme::Get().PanelBackground, 4.0f);
-        context.DrawRoundedRectOutline(m_Geometry, we::UI::Theme::Get().BorderDefault, 1.0f, 4.0f);
+    void Paint(WindEffects::Editor::UI::PaintContext& context) override {
+        context.DrawShadow(m_Geometry, WindEffects::Editor::UI::Color{ 0.0f, 0.0f, 0.0f, 0.15f }, 4.0f, 12.0f);
+        context.DrawRoundedRect(m_Geometry, WindEffects::Editor::UI::Theme::Get().PanelBackground, 4.0f);
+        context.DrawRoundedRectOutline(m_Geometry, WindEffects::Editor::UI::Theme::Get().BorderDefault, 1.0f, 4.0f);
 
         float y = m_Geometry.y + 4.0f;
         for (size_t i = 0; i < m_Items.size(); ++i) {
             const auto& item = m_Items[i];
-            we::UI::Rect row{ m_Geometry.x + 2.0f, y, m_Geometry.width - 4.0f, 26.0f };
+            WindEffects::Editor::UI::Rect row{ m_Geometry.x + 2.0f, y, m_Geometry.width - 4.0f, 26.0f };
             if (!item->enabled) {
                 y += 28.0f;
                 continue;
             }
             if (static_cast<int>(i) == m_Hovered) {
-                context.DrawRoundedRect(row, we::UI::Theme::Get().HoverOverlay, 3.0f);
+                context.DrawRoundedRect(row, WindEffects::Editor::UI::Theme::Get().HoverOverlay, 3.0f);
             }
-            context.DrawText(item->label, we::UI::Point{ row.x + 12.0f, row.y + 6.0f },
-                we::UI::Theme::Get().TextPrimary, 11.0f);
+            context.DrawText(item->label, WindEffects::Editor::UI::Point{ row.x + 12.0f, row.y + 6.0f },
+                WindEffects::Editor::UI::Theme::Get().TextPrimary, 11.0f);
             if (item->checked) {
-                we::UI::IconPainter::DrawIcon(context, we::UI::Icons::CheckName,
-                    we::UI::Rect{ row.x + row.width - 22.0f, row.y + 5.0f, 16.0f, 16.0f },
-                    we::UI::Theme::Get().SelectedAccent);
+                WindEffects::Editor::UI::IconPainter::DrawIcon(context, WindEffects::Editor::UI::Icons::CheckName,
+                    WindEffects::Editor::UI::Rect{ row.x + row.width - 22.0f, row.y + 5.0f, 16.0f, 16.0f },
+                    WindEffects::Editor::UI::Theme::Get().SelectedAccent);
             }
             y += 28.0f;
         }
     }
 
-    void OnMouseMove(const we::UI::MouseEvent& event) override {
+    void OnMouseMove(const WindEffects::Editor::UI::MouseEvent& event) override {
         m_Hovered = -1;
         float y = m_Geometry.y + 4.0f;
         for (size_t i = 0; i < m_Items.size(); ++i) {
-            we::UI::Rect row{ m_Geometry.x + 2.0f, y, m_Geometry.width - 4.0f, 26.0f };
+            WindEffects::Editor::UI::Rect row{ m_Geometry.x + 2.0f, y, m_Geometry.width - 4.0f, 26.0f };
             if (row.Contains(event.position)) {
                 m_Hovered = static_cast<int>(i);
                 break;
@@ -546,17 +546,17 @@ public:
         }
     }
 
-    void OnMouseDown(const we::UI::MouseEvent& event) override {
-        if (event.button != we::UI::MouseButton::Left) {
+    void OnMouseDown(const WindEffects::Editor::UI::MouseEvent& event) override {
+        if (event.button != WindEffects::Editor::UI::MouseButton::Left) {
             return;
         }
 
         float y = m_Geometry.y + 4.0f;
         for (size_t i = 0; i < m_Items.size(); ++i) {
-            we::UI::Rect row{ m_Geometry.x + 2.0f, y, m_Geometry.width - 4.0f, 26.0f };
+            WindEffects::Editor::UI::Rect row{ m_Geometry.x + 2.0f, y, m_Geometry.width - 4.0f, 26.0f };
             if (row.Contains(event.position) && m_Items[i]->enabled && m_Items[i]->onClick) {
                 m_Items[i]->onClick();
-                we::UI::OverlayManager::Get()->CloseAllPopups();
+                we::programs::editor::GetEditorPopupHost()->CloseAllPopups();
                 return;
             }
             y += 28.0f;
@@ -564,66 +564,66 @@ public:
     }
 
 private:
-    std::vector<std::shared_ptr<we::UI::MenuItem>> m_Items;
+    std::vector<std::shared_ptr<WindEffects::Editor::UI::MenuItem>> m_Items;
     int m_Hovered = -1;
 };
 
-class EnvironmentToolbarButton : public we::UI::Widget {
+class EnvironmentToolbarButton : public WindEffects::Editor::UI::Widget {
 public:
     EnvironmentToolbarButton() = default;
 
-    we::UI::Size Measure(const we::UI::Size& availableSize) override {
+    WindEffects::Editor::UI::Size Measure(const WindEffects::Editor::UI::Size& availableSize) override {
         (void)availableSize;
-        m_DesiredSize = we::UI::Size{ 102.0f, 22.0f }; // Slightly wider for 18px icon
+        m_DesiredSize = WindEffects::Editor::UI::Size{ 102.0f, 22.0f }; // Slightly wider for 18px icon
         return m_DesiredSize;
     }
 
-    void Arrange(const we::UI::Rect& allottedRect) override { m_Geometry = allottedRect; }
+    void Arrange(const WindEffects::Editor::UI::Rect& allottedRect) override { m_Geometry = allottedRect; }
 
-    void Paint(we::UI::PaintContext& context) override {
-        we::UI::Rect rect = m_Geometry;
+    void Paint(WindEffects::Editor::UI::PaintContext& context) override {
+        WindEffects::Editor::UI::Rect rect = m_Geometry;
         if (m_Hovered || m_Pressed) {
-            context.DrawRoundedRect(rect, we::UI::Theme::Get().HoverOverlay, 3.0f);
+            context.DrawRoundedRect(rect, WindEffects::Editor::UI::Theme::Get().HoverOverlay, 3.0f);
         }
         
         float centerY = rect.y + rect.height / 2.0f;
         
-        we::UI::IconPainter::DrawIcon(context, we::UI::Icons::SunName,
-            we::UI::Rect{ rect.x + 6.0f, std::floor(centerY - 9.0f), 18.0f, 18.0f }, we::UI::Theme::Get().TextPrimary);
+        WindEffects::Editor::UI::IconPainter::DrawIcon(context, WindEffects::Editor::UI::Icons::SunName,
+            WindEffects::Editor::UI::Rect{ rect.x + 6.0f, std::floor(centerY - 9.0f), 18.0f, 18.0f }, WindEffects::Editor::UI::Theme::Get().TextPrimary);
             
-        context.DrawText("Environment", we::UI::Point{ rect.x + 28.0f, std::floor(centerY - 5.5f) },
-            we::UI::Theme::Get().TextPrimary, 11.0f, true);
+        context.DrawText("Environment", WindEffects::Editor::UI::Point{ rect.x + 28.0f, std::floor(centerY - 5.5f) },
+            WindEffects::Editor::UI::Theme::Get().TextPrimary, 11.0f, true);
             
-        we::UI::IconPainter::DrawIcon(context, we::UI::Icons::ChevronDownName,
-            we::UI::Rect{ rect.x + rect.width - 16.0f, std::floor(centerY - 5.0f), 10.0f, 10.0f },
-            we::UI::Theme::Get().TextSecondary);
+        WindEffects::Editor::UI::IconPainter::DrawIcon(context, WindEffects::Editor::UI::Icons::ChevronDownName,
+            WindEffects::Editor::UI::Rect{ rect.x + rect.width - 16.0f, std::floor(centerY - 5.0f), 10.0f, 10.0f },
+            WindEffects::Editor::UI::Theme::Get().TextSecondary);
     }
 
-    void OnMouseMove(const we::UI::MouseEvent& event) override {
+    void OnMouseMove(const WindEffects::Editor::UI::MouseEvent& event) override {
         m_Hovered = m_Geometry.Contains(event.position);
     }
 
-    void OnMouseDown(const we::UI::MouseEvent& event) override {
-        if (event.button != we::UI::MouseButton::Left) {
+    void OnMouseDown(const WindEffects::Editor::UI::MouseEvent& event) override {
+        if (event.button != WindEffects::Editor::UI::MouseButton::Left) {
             return;
         }
         m_Pressed = true;
         ShowMenu();
     }
 
-    void OnMouseUp(const we::UI::MouseEvent& event) override {
+    void OnMouseUp(const WindEffects::Editor::UI::MouseEvent& event) override {
         (void)event;
         m_Pressed = false;
     }
 
-    bool ShowsPointerCursor(const we::UI::Point& position) const override {
+    bool ShowsPointerCursor(const WindEffects::Editor::UI::Point& position) const override {
         return m_Geometry.Contains(position);
     }
 
 private:
     void ShowMenu() {
         auto makeItem = [](const std::string& label, std::function<void()> onClick, bool checked = false, bool enabled = true) {
-            auto item = std::make_shared<we::UI::MenuItem>();
+            auto item = std::make_shared<WindEffects::Editor::UI::MenuItem>();
             item->label = label;
             item->onClick = std::move(onClick);
             item->checked = checked;
@@ -632,7 +632,7 @@ private:
         };
 
         EnvironmentSystem& system = EnvironmentSystem::Get();
-        std::vector<std::shared_ptr<we::UI::MenuItem>> items;
+        std::vector<std::shared_ptr<WindEffects::Editor::UI::MenuItem>> items;
         items.push_back(makeItem("Create Environment", []() { EnvironmentSystem::Get().CreateEnvironment(); }));
         items.push_back(makeItem("Reset Environment", []() { EnvironmentSystem::Get().ResetEnvironment(); }));
         items.push_back(makeItem("Remove Environment", []() { EnvironmentSystem::Get().RemoveEnvironment(); }));
@@ -655,12 +655,12 @@ private:
         items.push_back(makeItem("Preset: Studio", []() { EnvironmentSystem::Get().ApplyPreset(EnvironmentPreset::Studio); }));
 
         auto menu = std::make_shared<EnvironmentDropdownMenu>(items);
-        auto overlay = we::UI::OverlayManager::Get();
+        auto* overlay = we::programs::editor::GetEditorPopupHost();
         if (!overlay) {
             return;
         }
         overlay->CloseAllPopups();
-        overlay->ShowPopup(menu, we::UI::Point{ m_Geometry.x, m_Geometry.y + m_Geometry.height + 2.0f });
+        overlay->ShowPopup(menu, WindEffects::Editor::UI::Point{ m_Geometry.x, m_Geometry.y + m_Geometry.height + 2.0f });
     }
 
     bool m_Hovered = false;
@@ -672,8 +672,8 @@ private:
 void InitializeEditor(
     const std::shared_ptr<Scene>& scene,
     const std::shared_ptr<we::runtime::renderer::SceneRenderer>& renderer,
-    const std::shared_ptr<we::UI::TreeView>& outliner,
-    const std::shared_ptr<we::UI::PropertyEditor>& details) {
+    const std::shared_ptr<WindEffects::Editor::UI::TreeView>& outliner,
+    const std::shared_ptr<WindEffects::Editor::UI::PropertyEditor>& details) {
 
     g_Scene = scene;
     g_Outliner = outliner;
@@ -731,7 +731,7 @@ void InitializeEditor(
     RefreshDetailsPanel();
 }
 
-std::shared_ptr<we::UI::Widget> CreateEnvironmentToolbarMenu() {
+std::shared_ptr<WindEffects::Editor::UI::Widget> CreateEnvironmentToolbarMenu() {
     return std::make_shared<EnvironmentToolbarButton>();
 }
 

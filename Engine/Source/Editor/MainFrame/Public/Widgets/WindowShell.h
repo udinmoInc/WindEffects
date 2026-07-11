@@ -5,7 +5,7 @@
 #include "Core/Widget.h"
 #include <memory>
 
-namespace we::UI {
+namespace WindEffects::Editor::UI {
 
 // Draws a square border around the full application client area.
 class MAINFRAME_API WindowShell : public Widget {
@@ -24,4 +24,4 @@ private:
     std::shared_ptr<Widget> m_Content;
 };
 
-} // namespace we::UI
+} // namespace WindEffects::Editor::UI

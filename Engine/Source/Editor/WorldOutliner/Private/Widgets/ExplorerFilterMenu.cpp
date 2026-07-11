@@ -8,7 +8,7 @@
 
 #include <algorithm>
 
-namespace we::UI {
+namespace WindEffects::Editor::UI {
 
 namespace {
 constexpr float kMenuItemHeight = 26.0f;
@@ -193,7 +193,7 @@ void ExplorerFilterMenu::OnMouseUp(const MouseEvent& event) {
         }
         
         // Close the menu
-        if (auto* overlay = OverlayManager::Get()) {
+        if (auto* overlay = GetPopupHost()) {
             overlay->CloseAllPopups();
         }
     }
@@ -205,4 +205,4 @@ bool ExplorerFilterMenu::ShowsPointerCursor(const Point& position) const {
     return HitMenuItemIndex(position) >= 0;
 }
 
-} // namespace we::UI
+} // namespace WindEffects::Editor::UI

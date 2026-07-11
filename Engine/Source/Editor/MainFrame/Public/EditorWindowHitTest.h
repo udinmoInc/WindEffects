@@ -7,14 +7,14 @@
 #endif
 #include <memory>
 
-namespace we::UI {
+namespace WindEffects::Editor::UI {
 class TitleBar;
 }
 
 namespace we::editor::mainframe {
 
 struct EditorWindowHitTestData {
-    std::weak_ptr<we::UI::TitleBar> titleBar;
+    std::weak_ptr<WindEffects::Editor::UI::TitleBar> titleBar;
 };
 
 #if WE_HAS_SDL3

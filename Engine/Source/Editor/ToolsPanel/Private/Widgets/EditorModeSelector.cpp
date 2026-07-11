@@ -21,18 +21,18 @@ constexpr float kIconGap      = 5.0f;   // Gap between icon and label
 constexpr float kChevronWidth = 10.0f;
 } // namespace
 
-using we::UI::Color;
-using we::UI::MenuItem;
-using we::UI::MouseButton;
-using we::UI::MouseEvent;
-using we::UI::OverlayManager;
-using we::UI::PaintContext;
-using we::UI::Point;
-using we::UI::Rect;
-using we::UI::Size;
-using we::UI::Theme;
+using WindEffects::Editor::UI::Color;
+using WindEffects::Editor::UI::MenuItem;
+using WindEffects::Editor::UI::MouseButton;
+using WindEffects::Editor::UI::MouseEvent;
+using WindEffects::Editor::UI::OverlayManager;
+using WindEffects::Editor::UI::PaintContext;
+using WindEffects::Editor::UI::Point;
+using WindEffects::Editor::UI::Rect;
+using WindEffects::Editor::UI::Size;
+using WindEffects::Editor::UI::Theme;
 
-class EditorModeMenu : public we::UI::Widget {
+class EditorModeMenu : public WindEffects::Editor::UI::Widget {
 public:
     explicit EditorModeMenu(std::vector<std::shared_ptr<MenuItem>> items)
         : m_Items(std::move(items)) {}
@@ -64,14 +64,14 @@ public:
             const auto* mode = EditorToolsRegistry::Get().FindMode(item->label);
             (void)mode;
 
-            we::UI::IconPainter::DrawIcon(context, item->shortcut,
+            WindEffects::Editor::UI::IconPainter::DrawIcon(context, item->shortcut,
                 Rect{ row.x + 8.0f, row.y + 4.0f, 18.0f, 18.0f }, Theme::Get().TextPrimary);
 
             context.DrawText(item->label, Point{ row.x + 32.0f, row.y + 6.0f },
                 Theme::Get().TextPrimary, 11.0f);
 
             if (item->checked) {
-                we::UI::IconPainter::DrawIcon(context, we::UI::Icons::CheckName,
+                WindEffects::Editor::UI::IconPainter::DrawIcon(context, WindEffects::Editor::UI::Icons::CheckName,
                     Rect{ row.x + row.width - 22.0f, row.y + 5.0f, 16.0f, 16.0f },
                     Theme::Get().SelectedAccent);
             }
@@ -106,8 +106,8 @@ public:
             y += 28.0f;
         }
 
-        if (OverlayManager::Get()) {
-            OverlayManager::Get()->CloseAllPopups();
+        if (auto* overlay = GetPopupHost()) {
+            overlay->CloseAllPopups();
         }
     }
 
@@ -128,12 +128,12 @@ void EditorModeSelector::Refresh() {
     if (const auto* mode = EditorToolsRegistry::Get().FindMode(modeId)) {
         m_Label = mode->label;
         m_IconName = mode->iconName;
-        if (!we::UI::Icons::IsKnownIcon(m_IconName)) {
-            m_IconName = we::UI::Icons::CursorName;
+        if (!WindEffects::Editor::UI::Icons::IsKnownIcon(m_IconName)) {
+            m_IconName = WindEffects::Editor::UI::Icons::CursorName;
         }
     } else {
         m_Label = "Select";
-        m_IconName = we::UI::Icons::CursorName;
+        m_IconName = WindEffects::Editor::UI::Icons::CursorName;
     }
 }
 
@@ -155,13 +155,13 @@ void EditorModeSelector::Paint(PaintContext& context) {
     context.DrawRoundedRect(m_Geometry, bg, 4.0f);
     context.DrawRoundedRectOutline(m_Geometry, theme.BorderDefault, 1.0f, 4.0f);
 
-    const float uiScale = (std::max)(1.0f, we::UI::DPIContext::GetScale());
+    const float uiScale = (std::max)(1.0f, WindEffects::Editor::UI::DPIContext::GetScale());
     const float centerY = m_Geometry.y + m_Geometry.height * 0.5f;
 
     // Mode icon — 16px, vertically centered
     const float iconSize = kIconSize * uiScale;
     const float iconY = centerY - iconSize * 0.5f;
-    we::UI::IconPainter::DrawIcon(context, m_IconName.c_str(),
+    WindEffects::Editor::UI::IconPainter::DrawIcon(context, m_IconName.c_str(),
         Point{ m_Geometry.x + kPadding * uiScale, iconY }, iconSize, theme.TextPrimary);
 
     // Label — 12px text, vertically centered
@@ -173,7 +173,7 @@ void EditorModeSelector::Paint(PaintContext& context) {
     // Chevron — 10px, vertically centered
     const float chevX = m_Geometry.x + m_Geometry.width - (kPadding + kChevronWidth) * uiScale;
     const float chevSize = kChevronWidth * uiScale;
-    we::UI::IconPainter::DrawIcon(context, we::UI::Icons::ChevronDownName,
+    WindEffects::Editor::UI::IconPainter::DrawIcon(context, WindEffects::Editor::UI::Icons::ChevronDownName,
         Rect{ chevX, centerY - chevSize * 0.5f, chevSize, chevSize },
         theme.TextSecondary);
 }
@@ -190,9 +190,10 @@ void EditorModeSelector::OnMouseMove(const MouseEvent& event) {
 }
 
 void EditorModeSelector::OpenModeMenu() {
-    if (!OverlayManager::Get()) return;
+    auto* overlay = GetPopupHost();
+    if (!overlay) return;
 
-    OverlayManager::Get()->CloseAllPopups();
+    overlay->CloseAllPopups();
 
     std::vector<std::shared_ptr<MenuItem>> items;
     const std::string& activeId = EditorModeController::Get().GetActiveModeId();
@@ -211,7 +212,7 @@ void EditorModeSelector::OpenModeMenu() {
 
     auto menu = std::make_shared<EditorModeMenu>(std::move(items));
     Point popupPos{ m_Geometry.x, m_Geometry.y + m_Geometry.height + 2.0f };
-    OverlayManager::Get()->ShowPopup(menu, popupPos);
+    overlay->ShowPopup(menu, popupPos);
 }
 
 } // namespace we::programs::editor

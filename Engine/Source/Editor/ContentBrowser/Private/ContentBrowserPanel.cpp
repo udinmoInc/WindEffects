@@ -1,5 +1,5 @@
-#include "EditorRegistry.h"
-#include "EditorLayoutController.h"
+#include "WindEffects/Editor/UI/Extensions/ExtensionBootstrap.h"
+#include "EditorWorkspaceController.h"
 #include "ContentBrowserApi.h"
 #include "Rendering/FontImportService.h"
 #include "Widgets/Panel.h"
@@ -10,7 +10,6 @@
 #include "Layout/Box.h"
 #include "Layout/Splitter.h"
 #include "Core/Icon.h"
-#include "Core/IconManager.h"
 #include "Localization.h"
 #include "Services/ContentBrowserService.h"
 #include "Registry/ContentAssetRegistry.h"
@@ -28,12 +27,12 @@ using we::editor::contentbrowser::AssetRecord;
 using we::editor::contentbrowser::ContentAssetRegistry;
 using we::editor::contentbrowser::ContentBrowserService;
 using we::editor::contentbrowser::ContentFilter;
-using we::UI::ContentViewMode;
+using WindEffects::Editor::UI::ContentViewMode;
 
-std::shared_ptr<we::UI::TreeNode> MakeSection(const std::string& id, const std::string& label,
+std::shared_ptr<WindEffects::Editor::UI::TreeNode> MakeSection(const std::string& id, const std::string& label,
     const std::string& icon, bool expanded = false)
 {
-    auto node = std::make_shared<we::UI::TreeNode>();
+    auto node = std::make_shared<WindEffects::Editor::UI::TreeNode>();
     node->id = id;
     node->label = label;
     node->iconName = icon;
@@ -41,11 +40,11 @@ std::shared_ptr<we::UI::TreeNode> MakeSection(const std::string& id, const std::
     return node;
 }
 
-std::shared_ptr<we::UI::TreeNode> BuildFolderNode(const AssetRecord* folder) {
-    auto node = std::make_shared<we::UI::TreeNode>();
+std::shared_ptr<WindEffects::Editor::UI::TreeNode> BuildFolderNode(const AssetRecord* folder) {
+    auto node = std::make_shared<WindEffects::Editor::UI::TreeNode>();
     node->id = folder->id;
     node->label = folder->name;
-    node->iconName = we::UI::IconManager::FolderIcon;
+    node->iconName = WindEffects::Editor::UI::Icons::FolderName;
     node->expanded = folder->virtualPath == "/Game";
 
     for (const auto* child : ContentAssetRegistry::Get().GetChildren(folder->virtualPath)) {
@@ -54,8 +53,8 @@ std::shared_ptr<we::UI::TreeNode> BuildFolderNode(const AssetRecord* folder) {
     return node;
 }
 
-void RefreshFolderTree(const std::shared_ptr<we::UI::TreeView>& tree) {
-    auto root = std::make_shared<we::UI::TreeNode>();
+void RefreshFolderTree(const std::shared_ptr<WindEffects::Editor::UI::TreeView>& tree) {
+    auto root = std::make_shared<WindEffects::Editor::UI::TreeNode>();
     root->id = "__content_root__";
     root->label = "Content";
     root->expanded = true;
@@ -74,7 +73,7 @@ void RefreshFolderTree(const std::shared_ptr<we::UI::TreeView>& tree) {
     tree->SetRoot(root);
 }
 
-void UpdateBreadcrumb(const std::shared_ptr<we::UI::Breadcrumb>& breadcrumb, const std::string& virtualPath) {
+void UpdateBreadcrumb(const std::shared_ptr<WindEffects::Editor::UI::Breadcrumb>& breadcrumb, const std::string& virtualPath) {
     std::vector<std::string> crumbs;
     if (virtualPath.size() <= 6) {
         crumbs.push_back("All");
@@ -92,9 +91,9 @@ void UpdateBreadcrumb(const std::shared_ptr<we::UI::Breadcrumb>& breadcrumb, con
 }
 
 void NavigateToFolder(const std::string& virtualPath,
-    const std::shared_ptr<we::UI::ContentBrowser>& browser,
-    const std::shared_ptr<we::UI::Breadcrumb>& breadcrumb,
-    const std::shared_ptr<we::UI::ContentBrowserStatusBar>& statusBar)
+    const std::shared_ptr<WindEffects::Editor::UI::ContentBrowser>& browser,
+    const std::shared_ptr<WindEffects::Editor::UI::Breadcrumb>& breadcrumb,
+    const std::shared_ptr<WindEffects::Editor::UI::ContentBrowserStatusBar>& statusBar)
 {
     ContentBrowserService::Get().SetCurrentFolder(virtualPath);
     if (breadcrumb) {
@@ -114,9 +113,9 @@ void NavigateToFolder(const std::string& virtualPath,
 }
 
 void WireContentBrowser(
-    const std::shared_ptr<we::UI::ContentBrowser>& browser,
-    const std::shared_ptr<we::UI::ContentBrowserStatusBar>& statusBar,
-    const std::shared_ptr<we::UI::Breadcrumb>& breadcrumb)
+    const std::shared_ptr<WindEffects::Editor::UI::ContentBrowser>& browser,
+    const std::shared_ptr<WindEffects::Editor::UI::ContentBrowserStatusBar>& statusBar,
+    const std::shared_ptr<WindEffects::Editor::UI::Breadcrumb>& breadcrumb)
 {
     auto& service = ContentBrowserService::Get();
     service.RefreshBrowserModel(browser->GetModel());
@@ -127,10 +126,10 @@ void WireContentBrowser(
     browser->SetOnVisibleItemsChanged([&service](const std::unordered_set<std::string>& ids) {
         service.SetVisibleItemIds(ids);
     });
-    browser->SetOnItemDoubleClicked([&service, browser, statusBar, breadcrumb](const we::UI::ContentItem& item) {
+    browser->SetOnItemDoubleClicked([&service, browser, statusBar, breadcrumb](const WindEffects::Editor::UI::ContentItem& item) {
         if (item.isFolder) NavigateToFolder(item.path, browser, breadcrumb, statusBar);
     });
-    browser->SetOnItemSelected([browser, statusBar](const we::UI::ContentItem&) {
+    browser->SetOnItemSelected([browser, statusBar](const WindEffects::Editor::UI::ContentItem&) {
         if (browser->GetModel() && statusBar) {
             statusBar->SetSelectedCount(browser->GetModel()->selectedIds.size());
         }
@@ -142,10 +141,7 @@ void WireContentBrowser(
 
 } // namespace
 
-void InitializeContentBrowserService(we::UI::IconRenderer* iconRenderer) {
-    if (iconRenderer) {
-        we::UI::IconManager::Get().Initialize(iconRenderer);
-    }
+void InitializeContentBrowserService(WindEffects::Editor::UI::IconRenderer* iconRenderer) {
     ContentBrowserService::Get().Initialize(iconRenderer, "Content");
 }
 
@@ -153,46 +149,46 @@ void ShutdownContentBrowserService() {
     ContentBrowserService::Get().Shutdown();
 }
 
-std::shared_ptr<we::UI::Panel> CreateContentBrowserPanel() {
+std::shared_ptr<WindEffects::Editor::UI::Panel> CreateContentBrowserPanel() {
     auto title = we::core::Localization::Get().GetString("Panel_ContentBrowser", "Content Browser");
-    auto panel = std::make_shared<we::UI::Panel>(std::string(title));
+    auto panel = std::make_shared<WindEffects::Editor::UI::Panel>(std::string(title));
     panel->SetHeaderHeight(28.0f);
-    panel->SetBackgroundColor(we::UI::Color{ 0.10f, 0.10f, 0.11f, 1.0f });
+    panel->SetBackgroundColor(WindEffects::Editor::UI::Color{ 0.10f, 0.10f, 0.11f, 1.0f });
 
-    panel->AddHeaderAction(we::UI::Icons::XName, []() {
-        if (EditorLayoutController::Get().IsContentBrowserExpanded()) {
-            EditorLayoutController::Get().ToggleContentBrowserExpanded();
+    panel->AddHeaderAction(WindEffects::Editor::UI::Icons::XName, []() {
+        if (EditorWorkspaceController::Get().IsContentBrowserExpanded()) {
+            EditorWorkspaceController::Get().ToggleContentBrowserExpanded();
         }
     });
 
     // Panel toolbar with global actions
-    auto panelToolbar = we::UI::ContentBrowserToolbarControls::Create(we::UI::ContentBrowserToolbarControls::ToolbarMode::Full);
+    auto panelToolbar = WindEffects::Editor::UI::ContentBrowserToolbarControls::Create(WindEffects::Editor::UI::ContentBrowserToolbarControls::ToolbarMode::Full);
     panel->SetToolbar(panelToolbar);
 
     // Left sidebar with fixed width (280px) for folder tree
-    auto folderTree = std::make_shared<we::UI::TreeView>();
+    auto folderTree = std::make_shared<WindEffects::Editor::UI::TreeView>();
     folderTree->SetExplorerStyle(true);
     folderTree->SetItemHeight(26.0f);
     folderTree->SetIndentWidth(16.0f);
     folderTree->SetShowRowControls(false);
 
     // Right pane: asset browser with its own toolbar (AssetPane mode)
-    auto assetToolbar = we::UI::ContentBrowserToolbarControls::Create(we::UI::ContentBrowserToolbarControls::ToolbarMode::AssetPane);
-    auto contentBrowser = std::make_shared<we::UI::ContentBrowser>();
-    auto statusBar = std::make_shared<we::UI::ContentBrowserStatusBar>();
+    auto assetToolbar = WindEffects::Editor::UI::ContentBrowserToolbarControls::Create(WindEffects::Editor::UI::ContentBrowserToolbarControls::ToolbarMode::AssetPane);
+    auto contentBrowser = std::make_shared<WindEffects::Editor::UI::ContentBrowser>();
+    auto statusBar = std::make_shared<WindEffects::Editor::UI::ContentBrowserStatusBar>();
 
     // Build right pane: asset toolbar + content browser + status bar
-    auto rightPane = std::make_shared<we::UI::VerticalBox>();
+    auto rightPane = std::make_shared<WindEffects::Editor::UI::VerticalBox>();
     rightPane->SetSpacing(0.0f);
     rightPane->AddChild(assetToolbar);
     rightPane->AddChild(contentBrowser);
     rightPane->AddChild(statusBar);
 
     // Split content area into left (folder tree) and right (asset browser)
-    auto contentSplitter = std::make_shared<we::UI::Splitter>(we::UI::Orientation::Horizontal, 280.0f);
+    auto contentSplitter = std::make_shared<WindEffects::Editor::UI::Splitter>(WindEffects::Editor::UI::Orientation::Horizontal, 280.0f);
     contentSplitter->SetFirstChild(folderTree);
     contentSplitter->SetSecondChild(rightPane);
-    contentSplitter->SetResizeMode(we::UI::Splitter::ResizeMode::FixedFirst);
+    contentSplitter->SetResizeMode(WindEffects::Editor::UI::Splitter::ResizeMode::FixedFirst);
     panel->SetContent(contentSplitter);
 
     RefreshFolderTree(folderTree);
@@ -238,7 +234,7 @@ std::shared_ptr<we::UI::Panel> CreateContentBrowserPanel() {
         const std::filesystem::path inputFont = "Assets/Fonts/Inter-Regular.ttf";
         const std::filesystem::path outputDir = "Assets/Fonts";
         if (std::filesystem::exists(inputFont)) {
-            (void)we::UI::FontImportService::ImportFontFile(inputFont, outputDir, 18.0f);
+            (void)WindEffects::Editor::UI::FontImportService::ImportFontFile(inputFont, outputDir, 18.0f);
         }
     });
 
@@ -263,6 +259,8 @@ std::shared_ptr<we::UI::Panel> CreateContentBrowserPanel() {
     return panel;
 }
 
-REGISTER_EDITOR_PANEL(ContentBrowser, CreateContentBrowserPanel)
+REGISTER_UI_PANEL(ContentBrowser,
+    (WindEffects::Editor::UI::DockPanelDescriptor{.title = "Content Browser", .iconResource = "content-browser", .defaultZone = WindEffects::Editor::UI::DockZone::Bottom, .defaultVisible = true}),
+    CreateContentBrowserPanel)
 
 } // namespace we::programs::editor

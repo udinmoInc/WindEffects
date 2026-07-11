@@ -8,7 +8,7 @@
 #include "Core/ToolbarDesignTokens.h"
 #include <algorithm>
 
-namespace we::UI {
+namespace WindEffects::Editor::UI {
 
 namespace {
 
@@ -423,4 +423,4 @@ void ContentBrowserToolbarControls::SetOnFolderClicked(std::function<void()> cal
     }
 }
 
-} // namespace we::UI
+} // namespace WindEffects::Editor::UI

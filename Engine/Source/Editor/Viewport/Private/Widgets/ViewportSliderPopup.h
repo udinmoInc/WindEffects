@@ -6,7 +6,7 @@
 
 namespace we::programs::editor {
 
-class ViewportSliderPopup : public we::UI::Widget {
+class ViewportSliderPopup : public WindEffects::Editor::UI::Widget {
 public:
     using ValueFormatter = std::function<std::string(float)>;
     using ValueSnapper = std::function<float(float)>;
@@ -22,20 +22,20 @@ public:
         ValueSnapper snap,
         ValueChangedFn onChanged);
 
-    we::UI::Size Measure(const we::UI::Size& availableSize) override;
-    void Arrange(const we::UI::Rect& allottedRect) override;
-    void Paint(we::UI::PaintContext& context) override;
+    WindEffects::Editor::UI::Size Measure(const WindEffects::Editor::UI::Size& availableSize) override;
+    void Arrange(const WindEffects::Editor::UI::Rect& allottedRect) override;
+    void Paint(WindEffects::Editor::UI::PaintContext& context) override;
 
-    void OnMouseDown(const we::UI::MouseEvent& event) override;
-    void OnMouseMove(const we::UI::MouseEvent& event) override;
-    void OnMouseUp(const we::UI::MouseEvent& event) override;
-    bool ShowsPointerCursor(const we::UI::Point& position) const override;
+    void OnMouseDown(const WindEffects::Editor::UI::MouseEvent& event) override;
+    void OnMouseMove(const WindEffects::Editor::UI::MouseEvent& event) override;
+    void OnMouseUp(const WindEffects::Editor::UI::MouseEvent& event) override;
+    bool ShowsPointerCursor(const WindEffects::Editor::UI::Point& position) const override;
 
 private:
     float ValueFromNormalized(float t) const;
     float NormalizedFromValue(float value) const;
     void SetValueFromMouseX(float mouseX);
-    we::UI::Rect SliderTrackRect() const;
+    WindEffects::Editor::UI::Rect SliderTrackRect() const;
 
     std::string m_Title;
     float m_Value = 0.0f;

@@ -10,7 +10,7 @@
 #include <vector>
 #include <volk.h>
 
-namespace we::UI {
+namespace WindEffects::Editor::UI {
 
 // Tree node data structure
 struct TreeNode {
@@ -153,4 +153,4 @@ private:
     WidgetStyle m_Style;
 };
 
-} // namespace we::UI
+} // namespace WindEffects::Editor::UI

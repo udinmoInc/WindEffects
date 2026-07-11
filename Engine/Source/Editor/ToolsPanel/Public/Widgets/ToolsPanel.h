@@ -11,14 +11,14 @@
 #include <string>
 #include <vector>
 
-namespace we::UI {
+namespace WindEffects::Editor::UI {
 class SearchBox;
 }
 
 namespace we::programs::editor {
 
 /// Tool list content for the active editor mode. Header/close/tab chrome is owned by Panel.
-class TOOLSPANEL_API ToolsPanel : public we::UI::Widget {
+class TOOLSPANEL_API ToolsPanel : public WindEffects::Editor::UI::Widget {
 public:
     ToolsPanel();
     ~ToolsPanel() override;
@@ -26,28 +26,28 @@ public:
     void InitializeFromRegistry();
     void OnModeChanged();
 
-    we::UI::Size Measure(const we::UI::Size& availableSize) override;
-    void Arrange(const we::UI::Rect& allottedRect) override;
-    void Paint(we::UI::PaintContext& context) override;
+    WindEffects::Editor::UI::Size Measure(const WindEffects::Editor::UI::Size& availableSize) override;
+    void Arrange(const WindEffects::Editor::UI::Rect& allottedRect) override;
+    void Paint(WindEffects::Editor::UI::PaintContext& context) override;
     void Tick(float deltaTime) override;
 
-    void OnMouseDown(const we::UI::MouseEvent& event) override;
-    void OnMouseMove(const we::UI::MouseEvent& event) override;
-    void OnMouseUp(const we::UI::MouseEvent& event) override;
-    void OnKeyDown(const we::UI::KeyEvent& event) override;
+    void OnMouseDown(const WindEffects::Editor::UI::MouseEvent& event) override;
+    void OnMouseMove(const WindEffects::Editor::UI::MouseEvent& event) override;
+    void OnMouseUp(const WindEffects::Editor::UI::MouseEvent& event) override;
+    void OnKeyDown(const WindEffects::Editor::UI::KeyEvent& event) override;
 
-    bool HitTest(const we::UI::Point& position) const;
+    bool HitTest(const WindEffects::Editor::UI::Point& position) const;
 
 private:
     struct SectionHit {
         std::string categoryId;
-        we::UI::Rect headerRect;
+        WindEffects::Editor::UI::Rect headerRect;
         bool expanded = true;
     };
 
     struct ToolHit {
         const EditorToolAction* tool = nullptr;
-        we::UI::Rect geometry;
+        WindEffects::Editor::UI::Rect geometry;
         bool hovered = false;
         bool favorite = false;
     };
@@ -55,7 +55,7 @@ private:
     struct ContextMenuItem {
         std::string label;
         std::function<void()> action;
-        we::UI::Rect geometry;
+        WindEffects::Editor::UI::Rect geometry;
     };
 
     void RebuildLayout();
@@ -64,36 +64,36 @@ private:
     bool IsCategoryExpanded(const std::string& categoryId, bool defaultExpanded) const;
     void SetCategoryExpanded(const std::string& categoryId, bool expanded);
     void CloseContextMenu();
-    void ShowToolContextMenu(const EditorToolAction* tool, const we::UI::Point& position);
-    bool HandleShortcut(const we::UI::KeyEvent& event);
+    void ShowToolContextMenu(const EditorToolAction* tool, const WindEffects::Editor::UI::Point& position);
+    bool HandleShortcut(const WindEffects::Editor::UI::KeyEvent& event);
 
     void SaveState() const;
     [[nodiscard]] std::string GetActiveModeId() const;
 
-    SectionHit* HitSectionHeader(const we::UI::Point& p);
-    ToolHit* HitTool(const we::UI::Point& p);
+    SectionHit* HitSectionHeader(const WindEffects::Editor::UI::Point& p);
+    ToolHit* HitTool(const WindEffects::Editor::UI::Point& p);
 
     ToolsPanelState m_State;
 
     std::string m_SearchText;
-    std::shared_ptr<we::UI::SearchBox> m_SearchBox;
-    std::shared_ptr<we::UI::Widget> m_ModeContentWidget;
+    std::shared_ptr<WindEffects::Editor::UI::SearchBox> m_SearchBox;
+    std::shared_ptr<WindEffects::Editor::UI::Widget> m_ModeContentWidget;
     std::string m_ModeContentModeId;
     std::string m_ModeContentSearchText;
 
-    we::UI::Rect m_PanelRect;
-    we::UI::Rect m_SearchRect;
-    we::UI::Rect m_ContentRect;
+    WindEffects::Editor::UI::Rect m_PanelRect;
+    WindEffects::Editor::UI::Rect m_SearchRect;
+    WindEffects::Editor::UI::Rect m_ContentRect;
 
     std::vector<SectionHit> m_Sections;
     std::vector<ToolHit> m_ToolHits;
 
     const EditorToolAction* m_PendingDragTool = nullptr;
-    we::UI::Point m_DragStartPosition{};
+    WindEffects::Editor::UI::Point m_DragStartPosition{};
     bool m_DragStarted = false;
 
     bool m_ContextMenuOpen = false;
-    we::UI::Rect m_ContextMenuRect;
+    WindEffects::Editor::UI::Rect m_ContextMenuRect;
     std::vector<ContextMenuItem> m_ContextMenuItems;
     int m_ContextMenuHovered = -1;
 };

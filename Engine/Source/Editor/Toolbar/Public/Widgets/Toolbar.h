@@ -13,7 +13,7 @@
 #include <memory>
 #include <vector>
 
-namespace we::UI {
+namespace WindEffects::Editor::UI {
 
 enum class ToolbarAlignment {
     Left,

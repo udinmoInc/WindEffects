@@ -6,7 +6,7 @@
 #include <string>
 #include <functional>
 
-namespace we::UI {
+namespace WindEffects::Editor::UI {
 
 // Viewport statistics data structure
 struct ViewportStats {

@@ -26,14 +26,14 @@ public:
     [[nodiscard]] virtual UIExtensionRegistry& GetExtensionRegistry() const = 0;
 };
 
-class UIFRAMEWORK_API EditorApplicationContext final
+class EditorApplicationContext final
     : public ServiceContainer
     , public IEditorApplicationContext {
 public:
-    EditorApplicationContext();
+    UIFRAMEWORK_API EditorApplicationContext();
 
-    void Initialize(float dpiScale = 1.0f);
-    void Shutdown();
+    UIFRAMEWORK_API void Initialize(float dpiScale = 1.0f);
+    UIFRAMEWORK_API void Shutdown();
 
     [[nodiscard]] IServiceProvider& GetServices() const override { return *const_cast<EditorApplicationContext*>(this); }
     [[nodiscard]] IThemeProvider& GetThemeProvider() const override { return *m_ThemeProvider; }
@@ -53,7 +53,5 @@ private:
     std::shared_ptr<IDockManager> m_DockManager;
     std::shared_ptr<UIExtensionRegistry> m_ExtensionRegistry;
 };
-
-UIFRAMEWORK_API void SyncLegacyThemeFromProvider(const IThemeProvider& theme, float dpiScale);
 
 } // namespace WindEffects::Editor::UI

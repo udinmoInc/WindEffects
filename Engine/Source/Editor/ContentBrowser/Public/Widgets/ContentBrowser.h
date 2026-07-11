@@ -12,7 +12,7 @@
 #include "Models/ContentBrowserModel.h"
 #include "Controllers/ContentBrowserController.h"
 
-namespace we::UI {
+namespace WindEffects::Editor::UI {
 
 class ContentBrowser : public Widget {
 public:
@@ -193,4 +193,4 @@ private:
     size_t m_MemoryUsage = 0;
 };
 
-} // namespace we::UI
+} // namespace WindEffects::Editor::UI

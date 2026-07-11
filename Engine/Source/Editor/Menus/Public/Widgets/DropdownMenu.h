@@ -5,7 +5,7 @@
 #include <vector>
 #include <memory>
 
-namespace we::UI {
+namespace WindEffects::Editor::UI {
 
 class DropdownMenu : public Widget {
 public:

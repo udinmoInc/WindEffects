@@ -5,7 +5,7 @@
 #include <cmath>
 #include <algorithm>
 
-namespace we::UI {
+namespace WindEffects::Editor::UI {
 
 PropertyEditor::PropertyEditor()
     : m_Style(WidgetStyle::Panel())

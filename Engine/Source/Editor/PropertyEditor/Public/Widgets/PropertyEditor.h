@@ -8,7 +8,7 @@
 #include <functional>
 #include <vector>
 
-namespace we::UI {
+namespace WindEffects::Editor::UI {
 
 // Property types
 enum class PropertyType {

@@ -1,4 +1,4 @@
-#include "EditorRegistry.h"
+#include "WindEffects/Editor/UI/Extensions/ExtensionBootstrap.h"
 #include "Widgets/Panel.h"
 #include "Core/Icon.h"
 #include "Widgets/Label.h"
@@ -7,19 +7,19 @@
 
 namespace we::programs::editor {
 
-std::shared_ptr<we::UI::Panel> CreateGamePanel() {
-    auto panel = std::make_shared<we::UI::Panel>("Game");
+std::shared_ptr<WindEffects::Editor::UI::Panel> CreateGamePanel() {
+    auto panel = std::make_shared<WindEffects::Editor::UI::Panel>("Game");
     panel->SetHeaderHeight(30.0f);
-    panel->AddHeaderAction(we::UI::Icons::XName, []() {});
+    panel->AddHeaderAction(WindEffects::Editor::UI::Icons::XName, []() {});
 
     // Create Level-2 Toolbar for Game Viewport
-    auto toolbar = std::make_shared<we::UI::Toolbar>();
+    auto toolbar = std::make_shared<WindEffects::Editor::UI::Toolbar>();
     toolbar->SetHeight(28.0f); // 28-30px toolbar height
     toolbar->SetIconSize(16.0f); // Compact size
     
-    using we::UI::ToolButtonStyle;
-    using we::UI::ToolbarAlignment;
-    namespace Icons = we::UI::Icons;
+    using WindEffects::Editor::UI::ToolButtonStyle;
+    using WindEffects::Editor::UI::ToolbarAlignment;
+    namespace Icons = WindEffects::Editor::UI::Icons;
 
     // Game dropdown
     auto btnGame = toolbar->AddTool(Icons::PlayName, "Game", [](){}, "Game View Options");
@@ -77,12 +77,14 @@ std::shared_ptr<we::UI::Panel> CreateGamePanel() {
     panel->SetToolbar(toolbar);
 
     // Placeholder for actual game view rendering
-    auto placeholder = std::make_shared<we::UI::Label>("");
+    auto placeholder = std::make_shared<WindEffects::Editor::UI::Label>("");
     panel->SetContent(placeholder);
 
     return panel;
 }
 
-REGISTER_EDITOR_PANEL(Game, CreateGamePanel)
+REGISTER_UI_PANEL(Game,
+    (WindEffects::Editor::UI::DockPanelDescriptor{.title = "Game", .defaultZone = WindEffects::Editor::UI::DockZone::Floating, .defaultVisible = false}),
+    CreateGamePanel)
 
 } // namespace we::programs::editor

@@ -13,7 +13,7 @@
 #include <cstring>
 #include <iostream>
 
-namespace we::UI {
+namespace WindEffects::Editor::UI {
 
 namespace {
     class FixedGap : public Widget {

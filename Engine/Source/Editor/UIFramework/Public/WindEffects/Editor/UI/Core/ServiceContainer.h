@@ -8,7 +8,7 @@
 
 namespace WindEffects::Editor::UI {
 
-class ServiceContainer final : public IServiceProvider {
+class ServiceContainer : public IServiceProvider {
 public:
     ServiceContainer() = default;
 

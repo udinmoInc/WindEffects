@@ -2,7 +2,6 @@
 #include "Services/ContentBrowserFolderArt.h"
 #include "Services/ContentBrowserBlueprintArt.h"
 #include "Registry/AssetTypeResolver.h"
-#include "Core/IconManager.h"
 #include "Rendering/IconRenderer.h"
 #include "Core/Logger.h"
 #include <filesystem>
@@ -14,7 +13,7 @@ ContentBrowserService& ContentBrowserService::Get() {
     return instance;
 }
 
-void ContentBrowserService::Initialize(we::UI::IconRenderer* iconRenderer, const std::string& contentRoot) {
+void ContentBrowserService::Initialize(WindEffects::Editor::UI::IconRenderer* iconRenderer, const std::string& contentRoot) {
     if (m_Initialized) return;
 
     m_IconRenderer = iconRenderer;
@@ -54,21 +53,21 @@ void ContentBrowserService::SetCurrentFolder(const std::string& virtualPath) {
     }
 }
 
-void ContentBrowserService::RefreshBrowserModel(const std::shared_ptr<we::UI::ContentBrowserModel>& model) {
+void ContentBrowserService::RefreshBrowserModel(const std::shared_ptr<WindEffects::Editor::UI::ContentBrowserModel>& model) {
     if (!model) return;
     m_Model = model;
     model->items.clear();
 
     const auto children = ContentAssetRegistry::Get().GetChildren(m_CurrentFolder);
     for (const auto* asset : children) {
-        we::UI::ContentItem item;
+        WindEffects::Editor::UI::ContentItem item;
         item.id = asset->id;
         item.name = asset->name;
         item.type = AssetTypeToString(asset->type);
         item.path = asset->virtualPath;
         item.isFolder = asset->isFolder;
         item.isFavorite = asset->isFavorite;
-        item.iconName = asset->isFolder ? we::UI::IconManager::FolderIcon : AssetTypeToKey(asset->type);
+        item.iconName = asset->isFolder ? WindEffects::Editor::UI::Icons::FolderName : AssetTypeToKey(asset->type);
         if (!asset->isFolder) {
             item.iconTexture = m_ThumbnailManager.GetCachedTexture(asset->id);
             item.thumbnailRequested = item.iconTexture != VK_NULL_HANDLE;

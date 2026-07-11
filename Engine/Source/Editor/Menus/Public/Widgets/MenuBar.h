@@ -9,7 +9,7 @@
 #include <functional>
 #include <memory>
 
-namespace we::UI {
+namespace WindEffects::Editor::UI {
 
 // Menu item structure
 struct MenuItem {

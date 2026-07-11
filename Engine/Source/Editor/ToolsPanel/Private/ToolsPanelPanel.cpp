@@ -1,16 +1,15 @@
-#include "EditorRegistry.h"
 #include "EditorModeController.h"
 #include "EditorToolsRegistry.h"
+#include "WindEffects/Editor/UI/Extensions/ExtensionBootstrap.h"
 #include "Widgets/Panel.h"
 #include "Widgets/ToolsPanel.h"
-#include "Core/DockTabIconRegistry.h"
 #include "Core/Icon.h"
 
 namespace we::programs::editor {
 
 namespace {
 
-void SyncPanelTitle(const std::shared_ptr<we::UI::Panel>& panel) {
+void SyncPanelTitle(const std::shared_ptr<WindEffects::Editor::UI::Panel>& panel) {
     if (!panel) {
         return;
     }
@@ -18,25 +17,27 @@ void SyncPanelTitle(const std::shared_ptr<we::UI::Panel>& panel) {
     const auto* mode = EditorToolsRegistry::Get().FindMode(EditorModeController::Get().GetActiveModeId());
     if (!mode) {
         panel->SetTitle("Tools");
+        panel->SetTabIcon(WindEffects::Editor::UI::Icons::LayersName);
         return;
     }
 
     panel->SetTitle(mode->label);
-    we::UI::DockTabIconRegistry::Get().RegisterIcon(mode->label, mode->iconName);
+    panel->SetTabIcon(mode->iconName);
 }
 
 } // namespace
 
-std::shared_ptr<we::UI::Panel> CreateToolsPanel() {
-    auto panel = std::make_shared<we::UI::Panel>("Tools");
+std::shared_ptr<WindEffects::Editor::UI::Panel> CreateToolsPanel() {
+    auto panel = std::make_shared<WindEffects::Editor::UI::Panel>("Tools");
     panel->SetHeaderHeight(30.0f);
+    panel->SetTabIcon(WindEffects::Editor::UI::Icons::LayersName);
 
-    panel->AddHeaderAction(we::UI::Icons::LockName, []() {
+    panel->AddHeaderAction(WindEffects::Editor::UI::Icons::LockName, []() {
         auto& modeController = EditorModeController::Get();
         modeController.SetDrawerPinned(!modeController.IsDrawerPinned());
     });
 
-    panel->AddHeaderAction(we::UI::Icons::XName, []() {
+    panel->AddHeaderAction(WindEffects::Editor::UI::Icons::XName, []() {
         EditorModeController::Get().SetDrawerVisible(false);
     });
 
@@ -56,6 +57,8 @@ std::shared_ptr<we::UI::Panel> CreateToolsPanel() {
     return panel;
 }
 
-REGISTER_EDITOR_PANEL(Tools, CreateToolsPanel)
+REGISTER_UI_PANEL(Tools,
+    (WindEffects::Editor::UI::DockPanelDescriptor{.title = "Place Actors", .iconResource = "tools-panel", .defaultZone = WindEffects::Editor::UI::DockZone::Left, .defaultVisible = true}),
+    CreateToolsPanel)
 
 } // namespace we::programs::editor

@@ -12,7 +12,7 @@ public class Details : ModuleRules
         PublicDependencies.Add("Core");
         PublicDependencies.Add("CoreUObject");
         PublicDependencies.Add("Engine");
-        PublicDependencies.Add("Application");
+        PublicDependencies.Add("UIFramework");
         PublicDependencies.Add("PropertyEditor");
         PublicDependencies.Add("ContentBrowser");
 

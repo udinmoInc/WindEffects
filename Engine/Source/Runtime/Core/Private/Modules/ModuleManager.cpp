@@ -16,7 +16,7 @@
 typedef IModuleInterface* (*InitializeModuleFunc)();
 
 bool IsRuntimeLinkedModule(const std::string& moduleName) {
-    return moduleName == "WindEffects-Application";
+    return moduleName == "WindEffects-UIFramework";
 }
 
 ModuleManager& ModuleManager::Get()

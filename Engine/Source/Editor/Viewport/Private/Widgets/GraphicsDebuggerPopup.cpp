@@ -8,7 +8,7 @@
 #include <iomanip>
 #include <sstream>
 
-namespace we::UI {
+namespace WindEffects::Editor::UI {
 
 namespace {
 constexpr float kHeaderHeight = 22.0f;
@@ -162,4 +162,4 @@ bool GraphicsDebuggerPopup::ShowsPointerCursor(const Point& position) const {
     return m_HeaderRect.Contains(position);
 }
 
-} // namespace we::UI
+} // namespace WindEffects::Editor::UI

@@ -6,7 +6,7 @@
 #include "Widgets/ToolButton.h"
 #include <algorithm>
 
-namespace we::UI {
+namespace WindEffects::Editor::UI {
 namespace {
     constexpr float kToolbarItemSpacing = 8.0f - 2.0f;
     constexpr float kToolbarSeparatorSpacing = 12.0f + 2.0f;

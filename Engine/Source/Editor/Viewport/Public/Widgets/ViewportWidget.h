@@ -17,7 +17,7 @@ namespace we::runtime::scene { class Scene; }
 
 namespace we::editor::viewport { class ViewportRenderTarget; }
 
-namespace we::UI {
+namespace WindEffects::Editor::UI {
 
 class OverlayRenderer;
 class GraphicsDebuggerPopup;
@@ -90,4 +90,4 @@ private:
     std::shared_ptr<GraphicsDebuggerPopup> m_GraphicsDebugger;
 };
 
-} // namespace we::UI
+} // namespace WindEffects::Editor::UI

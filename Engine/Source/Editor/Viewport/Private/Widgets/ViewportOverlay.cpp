@@ -4,7 +4,7 @@
 #include "Core/Icon.h"
 #include <algorithm>
 
-namespace we::UI {
+namespace WindEffects::Editor::UI {
 
 ViewportOverlay::ViewportOverlay()
     : m_Style(WidgetStyle::Panel())

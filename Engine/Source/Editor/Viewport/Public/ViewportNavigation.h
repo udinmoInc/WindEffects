@@ -10,7 +10,7 @@ namespace we::programs::editor {
 class ViewportNavigationSettingsStore;
 }
 
-namespace we::UI {
+namespace WindEffects::Editor::UI {
 
 enum class ViewportCursorMode {
     Default,
@@ -80,4 +80,4 @@ private:
 void ApplyViewportNavigationSettings(
     const std::shared_ptr<we::runtime::engine::EditorCamera>& camera);
 
-} // namespace we::UI
+} // namespace WindEffects::Editor::UI

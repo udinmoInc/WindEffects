@@ -6,7 +6,7 @@
 #include <SDL3/SDL_hints.h>
 #include <algorithm>
 
-namespace we::UI {
+namespace WindEffects::Editor::UI {
 
 namespace {
 
@@ -372,4 +372,4 @@ void ViewportNavigationController::PersistCameraSpeed() const {
     store.Save();
 }
 
-} // namespace we::UI
+} // namespace WindEffects::Editor::UI

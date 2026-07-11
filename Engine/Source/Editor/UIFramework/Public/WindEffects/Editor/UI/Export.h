@@ -5,3 +5,7 @@
 #else
     #define UIFRAMEWORK_API __declspec(dllimport)
 #endif
+
+#if defined(_MSC_VER)
+#pragma warning(disable : 4251)
+#endif

@@ -9,11 +9,9 @@
 namespace {
 
 constexpr const char* kFeatureModuleDlls[] = {
-    "WEApplication.dll",
     "WEUIFramework.dll",
     "WEMainFrame.dll",
     "WEViewport.dll",
-    "WEDocking.dll",
     "WEContentBrowser.dll",
     "WEWorldOutliner.dll",
     "WEPropertyEditor.dll",

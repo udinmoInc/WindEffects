@@ -11,7 +11,7 @@ public class Toolbar : ModuleRules
 
         PublicDependencies.Add("Core");
         PublicDependencies.Add("Menus");
-        PublicDependencies.Add("Application");
+        PublicDependencies.Add("UIFramework");
 
         Definitions.Add("TOOLBAR_EXPORTS");
     }

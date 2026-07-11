@@ -8,7 +8,7 @@
 #include "Core/DPIContext.h"
 #include <algorithm>
 
-namespace we::UI {
+namespace WindEffects::Editor::UI {
 
 namespace {
     class FixedGap : public Widget {
@@ -165,4 +165,4 @@ void StatusBar::SetOnQualityMenuClicked(std::function<void()> onClicked) {
     }
 }
 
-} // namespace we::UI
+} // namespace WindEffects::Editor::UI

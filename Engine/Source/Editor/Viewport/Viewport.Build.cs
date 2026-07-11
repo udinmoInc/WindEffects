@@ -14,7 +14,7 @@ public class Viewport : ModuleRules
         PublicDependencies.Add("Renderer");
         PublicDependencies.Add("Engine");
         PublicDependencies.Add("Scene");
-        PublicDependencies.Add("Application");
+        PublicDependencies.Add("UIFramework");
         PublicDependencies.Add("Toolbar");
         PublicDependencies.Add("PlaceActors");
 

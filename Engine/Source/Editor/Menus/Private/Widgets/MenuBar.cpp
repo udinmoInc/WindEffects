@@ -7,7 +7,7 @@
 #include "Core/DPIContext.h"
 #include <algorithm>
 
-namespace we::UI {
+namespace WindEffects::Editor::UI {
 
 MenuBar::MenuBar()
     : m_Style(WidgetStyle::Panel())
@@ -81,9 +81,9 @@ void MenuBar::Paint(PaintContext& context) {
 void MenuBar::OnMouseDown(const MouseEvent& event) {
     MenuInfo* menu = GetMenuAtPosition(event.position);
     if (menu) {
-        if (OverlayManager::Get()) {
+        if (auto* overlay = GetPopupHost()) {
             bool wasOpen = m_MenuOpen;
-            OverlayManager::Get()->CloseAllPopups();
+            overlay->CloseAllPopups();
 
             if (wasOpen && menu->hovered) {
                 m_MenuOpen = false;
@@ -99,14 +99,14 @@ void MenuBar::OnMouseDown(const MouseEvent& event) {
                 }
 
                 auto dropdown = std::make_shared<DropdownMenu>(itemsToShow);
-                OverlayManager::Get()->ShowPopup(dropdown, Point{menu->geometry.x, menu->geometry.y + menu->geometry.height});
+                overlay->ShowPopup(dropdown, Point{menu->geometry.x, menu->geometry.y + menu->geometry.height});
             }
         }
     }
 }
 
 void MenuBar::OnMouseMove(const MouseEvent& event) {
-    if (m_MenuOpen && OverlayManager::Get() && !OverlayManager::Get()->HasOpenPopups()) {
+    if (m_MenuOpen && GetPopupHost() && !GetPopupHost()->HasOpenPopups()) {
         m_MenuOpen = false;
     }
 

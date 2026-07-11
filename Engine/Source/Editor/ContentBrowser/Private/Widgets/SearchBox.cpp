@@ -5,7 +5,7 @@
 #include <SDL3/SDL.h>
 #include <algorithm>
 
-namespace we::UI {
+namespace WindEffects::Editor::UI {
 
 SearchBox::SearchBox()
     : m_Style(WidgetStyle::TextBox())
@@ -202,4 +202,4 @@ void SearchBox::SetText(const std::string& text) {
     }
 }
 
-} // namespace we::UI
+} // namespace WindEffects::Editor::UI

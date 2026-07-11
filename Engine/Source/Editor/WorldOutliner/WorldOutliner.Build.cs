@@ -13,7 +13,7 @@ public class WorldOutliner : ModuleRules
         PublicDependencies.Add("CoreUObject");
         PublicDependencies.Add("Engine");
         PublicDependencies.Add("Scene");
-        PublicDependencies.Add("Application");
+        PublicDependencies.Add("UIFramework");
         PublicDependencies.Add("ContentBrowser");
 
         Definitions.Add("WORLDOUTLINER_EXPORTS");

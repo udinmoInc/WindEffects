@@ -17,15 +17,15 @@
 
 namespace we::programs::editor {
 
-using we::UI::Color;
-using we::UI::KeyEvent;
-using we::UI::MouseButton;
-using we::UI::MouseEvent;
-using we::UI::PaintContext;
-using we::UI::Point;
-using we::UI::Rect;
-using we::UI::Size;
-using we::UI::Theme;
+using WindEffects::Editor::UI::Color;
+using WindEffects::Editor::UI::KeyEvent;
+using WindEffects::Editor::UI::MouseButton;
+using WindEffects::Editor::UI::MouseEvent;
+using WindEffects::Editor::UI::PaintContext;
+using WindEffects::Editor::UI::Point;
+using WindEffects::Editor::UI::Rect;
+using WindEffects::Editor::UI::Size;
+using WindEffects::Editor::UI::Theme;
 
 namespace {
 constexpr float kSearchHeight = 28.0f;
@@ -70,7 +70,7 @@ bool ShortcutMatches(const std::string& toolShortcut, const KeyEvent& event) {
 ToolsPanel::ToolsPanel() {
     m_State.Load();
 
-    m_SearchBox = std::make_shared<we::UI::SearchBox>();
+    m_SearchBox = std::make_shared<WindEffects::Editor::UI::SearchBox>();
     m_SearchBox->SetFillWidth(true);
     m_SearchBox->SetPlaceholder("Search tools...");
     m_SearchBox->SetOnTextChanged([this](const std::string& text) {
@@ -356,14 +356,14 @@ void ToolsPanel::RebuildLayout() {
 }
 
 void ToolsPanel::Tick(float deltaTime) {
-    we::UI::Animator::Tick(deltaTime);
+    WindEffects::Editor::UI::Animator::Tick(deltaTime);
 }
 
 void ToolsPanel::Paint(PaintContext& context) {
     if (m_Geometry.width < 1.0f) return;
 
     const auto& theme = Theme::Get();
-    const float uiScale = (std::max)(1.0f, we::UI::DPIContext::GetScale());
+    const float uiScale = (std::max)(1.0f, WindEffects::Editor::UI::DPIContext::GetScale());
     const float labelFontSize = 11.0f * uiScale;
     const float shortcutFontSize = 10.0f * uiScale;
     context.DrawRect(m_PanelRect, theme.PanelBackground);
@@ -382,8 +382,8 @@ void ToolsPanel::Paint(PaintContext& context) {
                 title = cat->label;
             }
 
-            const char* chevron = section.expanded ? we::UI::Icons::ChevronDownName : we::UI::Icons::ChevronRightName;
-            we::UI::IconPainter::DrawIcon(context, chevron,
+            const char* chevron = section.expanded ? WindEffects::Editor::UI::Icons::ChevronDownName : WindEffects::Editor::UI::Icons::ChevronRightName;
+            WindEffects::Editor::UI::IconPainter::DrawIcon(context, chevron,
                 Rect{ section.headerRect.x + 4.0f, section.headerRect.y + 5.0f, 16.0f, 16.0f }, theme.TextSecondary);
             context.DrawText(title, Point{ section.headerRect.x + 22.0f, section.headerRect.y + 6.0f }, theme.TextPrimary, labelFontSize, true);
         }
@@ -394,7 +394,7 @@ void ToolsPanel::Paint(PaintContext& context) {
                 context.DrawRoundedRect(toolHit.geometry, theme.HoverOverlay, 4.0f);
             }
 
-            we::UI::IconPainter::DrawIcon(context, toolHit.tool->iconName,
+            WindEffects::Editor::UI::IconPainter::DrawIcon(context, toolHit.tool->iconName,
                 Rect{ toolHit.geometry.x + 6.0f, toolHit.geometry.y + 3.0f, kIconSize, kIconSize }, theme.TextPrimary);
 
             context.DrawText(toolHit.tool->label,
@@ -407,9 +407,9 @@ void ToolsPanel::Paint(PaintContext& context) {
                     theme.TextDisabled, shortcutFontSize);
             }
 
-            const char* starIcon = toolHit.favorite ? we::UI::Icons::StarFilledName : we::UI::Icons::StarName;
+            const char* starIcon = toolHit.favorite ? WindEffects::Editor::UI::Icons::StarFilledName : WindEffects::Editor::UI::Icons::StarName;
             Color starColor = toolHit.favorite ? theme.Warning : theme.TextDisabled;
-            we::UI::IconPainter::DrawIcon(context, starIcon,
+            WindEffects::Editor::UI::IconPainter::DrawIcon(context, starIcon,
                 Rect{ toolHit.geometry.x + toolHit.geometry.width - 22.0f, toolHit.geometry.y + 5.0f, 16.0f, 16.0f },
                 starColor);
         }

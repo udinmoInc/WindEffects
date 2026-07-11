@@ -13,7 +13,7 @@ public class EditorGridRenderer : ModuleRules
         PublicDependencies.Add("RHI");
         PublicDependencies.Add("Renderer");
         PublicDependencies.Add("Engine");
-        PublicDependencies.Add("Application");
+        PublicDependencies.Add("UIFramework");
 
         OptionalSDK("VulkanSDK");
         DefineIf(HasSDK("VulkanSDK"), "WE_HAS_VULKAN=1");

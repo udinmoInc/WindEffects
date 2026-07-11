@@ -7,7 +7,7 @@
 #include <algorithm>
 #include <cctype>
 
-namespace we::UI {
+namespace WindEffects::Editor::UI {
 namespace {
     float PressStrength(bool pressed, float pressAnim) {
         return pressed ? 1.0f : pressAnim;
