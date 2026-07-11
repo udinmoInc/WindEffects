@@ -1,5 +1,6 @@
 #include "Widgets/RenderDebuggerPanel.h"
 #include "Core/PaintContext.h"
+#include "WindEffects/Editor/UI/Theming/ThemeAccess.h"
 #include "WindEffects/Editor/UI/Theming/ThemeToken.h"
 
 namespace WindEffects::Editor::UI {
@@ -51,7 +52,7 @@ void RenderDebuggerPanel::Paint(PaintContext& context) {
     if (!m_Visible) {
         return;
     }
-    context.DrawRect(m_Geometry, Color{ 0.08f, 0.08f, 0.08f, 1.0f });
+    context.DrawRect(m_Geometry, ResolveThemeColor(ThemeToken::PanelBackground));
     if (m_Scroll) {
         m_Scroll->Paint(context);
     }

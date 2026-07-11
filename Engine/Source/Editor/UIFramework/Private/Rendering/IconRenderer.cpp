@@ -62,6 +62,36 @@ VkDescriptorSet IconRenderer::GetLucideIcon(const std::string& iconName, uint32_
     if (!m_Context || m_TextureLayout == VK_NULL_HANDLE || !m_SvgRasterizer) return VK_NULL_HANDLE;
 
     const std::string lucideName = Icons::ResolveLucideName(iconName);
+
+    if (IconRegistry::Get().HasIcon(lucideName)) {
+        const std::string relativePath = IconRegistry::Get().GetIconPath(lucideName);
+        const std::string resolvedPath = Icons::SvgRasterizer::ResolveAssetPath(relativePath);
+        if (!resolvedPath.empty() && std::filesystem::exists(resolvedPath)) {
+            const std::string key = std::string("maskreg_") + lucideName + "_" + std::to_string(size);
+            auto cached = m_Cache.find(key);
+            if (cached != m_Cache.end()) {
+                return cached->second.descriptorSet;
+            }
+
+            Icons::SvgRasterizeRequest request{};
+            request.svgPath = relativePath;
+            request.width = size;
+            request.height = size;
+            request.applyTint = false;
+            request.tint = color;
+            request.strokeWidth = strokeWidth;
+
+            const Icons::SvgRasterizeResult raster = m_SvgRasterizer->Rasterize(request);
+            if (raster.success && !raster.rgba.empty()) {
+                IconTexture texture;
+                if (CreateTexture(raster.rgba, raster.width, raster.height, texture)) {
+                    m_Cache[key] = texture;
+                    return texture.descriptorSet;
+                }
+            }
+        }
+    }
+
     const std::string svgPath = ResolveLucideSvgPath(lucideName);
     if (svgPath.empty()) {
         static std::unordered_set<std::string> s_ReportedMissing;

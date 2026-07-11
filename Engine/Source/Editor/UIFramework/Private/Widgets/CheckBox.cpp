@@ -1,5 +1,6 @@
 #include "Widgets/CheckBox.h"
 #include "Core/PaintContext.h"
+#include "WindEffects/Editor/UI/Theming/ThemeAccess.h"
 
 namespace WindEffects::Editor::UI {
 
@@ -24,11 +25,11 @@ void CheckBox::Paint(PaintContext& context) {
 
     // Draw checkbox background
     Rect boxRect = { m_Geometry.x, m_Geometry.y + (m_Geometry.height - m_BoxSize) * 0.5f, m_BoxSize, m_BoxSize };
-    context.DrawRect(boxRect, m_Hovered ? Color{0.3f, 0.3f, 0.3f, 1.0f} : Color{0.2f, 0.2f, 0.2f, 1.0f});
+    context.DrawRect(boxRect, m_Hovered ? ResolveThemeColor(ThemeToken::HoverBackground) : ResolveThemeColor(ThemeToken::InputBackground));
 
     // Draw checkmark
     if (m_Checked) {
-        context.DrawRect(Rect{ boxRect.x + 3.0f, boxRect.y + 3.0f, boxRect.width - 6.0f, boxRect.height - 6.0f }, Color::White());
+        context.DrawRect(Rect{ boxRect.x + 3.0f, boxRect.y + 3.0f, boxRect.width - 6.0f, boxRect.height - 6.0f }, ResolveThemeColor(ThemeToken::TextPrimary));
     }
 
     // Draw text

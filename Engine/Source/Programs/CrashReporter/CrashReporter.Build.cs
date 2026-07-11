@@ -13,6 +13,7 @@ public class CrashReporter : ModuleRules
         PublicDependencies.Add("Engine");
         PublicDependencies.Add("Renderer");
         PublicDependencies.Add("Application");
+        PublicDependencies.Add("UIFramework");
 
         AddOptionalThirdParty("nlohmann_json");
 

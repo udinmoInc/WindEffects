@@ -4,6 +4,7 @@
 #include "Widgets/DockContainer.h"
 #include "Layout/Splitter.h"
 #include "Core/Icon.h"
+#include "WindEffects/Editor/UI/Theming/ThemeAccess.h"
 
 namespace WindEffects::Editor::UI {
 namespace {
@@ -59,14 +60,14 @@ std::shared_ptr<Panel> DockLayoutBuilder::CreatePanel(
     const auto it = panels.find(std::string(panelId));
     if (it == panels.end()) {
         auto fallback = std::make_shared<Panel>(std::string(panelId));
-        fallback->SetHeaderHeight(32.0f * dpiScale);
+        fallback->SetHeaderHeight(ResolveThemeMetric(ThemeToken::PanelTabHeight) * dpiScale);
         result.panels[std::string(panelId)] = fallback;
         return fallback;
     }
 
     auto panel = it->second.factory();
     if (panel) {
-        panel->SetHeaderHeight(32.0f * dpiScale);
+        panel->SetHeaderHeight(ResolveThemeMetric(ThemeToken::PanelTabHeight) * dpiScale);
         ApplyPanelDescriptor(panel, it->second.descriptor);
     }
     result.panels[std::string(panelId)] = panel;
@@ -97,6 +98,7 @@ std::shared_ptr<Widget> DockLayoutBuilder::BuildNode(
     }
     case DockNodeType::Split: {
         auto splitter = std::make_shared<Splitter>(ToOrientation(node.orientation), node.splitRatio);
+        splitter->SetPanelGapEnabled(true);
         if (node.children.size() >= 1) {
             splitter->SetFirstChild(BuildNode(node.children[0], extensions, dpiScale, result));
         }

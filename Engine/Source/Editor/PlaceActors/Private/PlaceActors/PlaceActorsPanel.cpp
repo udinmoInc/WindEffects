@@ -1,5 +1,6 @@
 #include "PlaceActors/PlaceActorsPanel.h"
 
+#include "PlaceActors/ActorsPanelLayout.h"
 #include "PlaceActors/PlaceActorsCatalog.h"
 #include "PlaceActors/PlaceActorsConfig.h"
 #include "PlaceActors/PlaceActorsSearch.h"
@@ -10,6 +11,7 @@
 #include "EditorToolsRegistry.h"
 #include "Widgets/SearchBox.h"
 #include "Widgets/ToolButton.h"
+#include "WindEffects/Editor/UI/Panel/PanelChrome.h"
 #include "Core/PaintContext.h"
 #include "WindEffects/Editor/UI/Theming/ThemeToken.h"
 #include "Core/Icon.h"
@@ -42,6 +44,7 @@ using WindEffects::Editor::UI::Point;
 using WindEffects::Editor::UI::Rect;
 using WindEffects::Editor::UI::Size;
 using WindEffects::Editor::UI::ThemeToken;
+namespace PanelChrome = WindEffects::Editor::UI::PanelChrome;
 
 PlaceActorsPanel::PlaceActorsPanel() {
     auto& config = PlaceActorsConfig::Get();
@@ -53,47 +56,45 @@ PlaceActorsPanel::PlaceActorsPanel() {
     m_SearchBox->SetPlaceholder("Search Actors...");
     m_SearchBox->SetOnTextChanged([this](const std::string& text) {
         m_SearchText = text;
-        m_NeedsLayout = true;
+        RefreshFilteredContent();
     });
 
     m_CategoryFilterButton = std::make_shared<WindEffects::Editor::UI::ToolButton>(
-        WindEffects::Editor::UI::Icons::LayersName, "All", [this]() {
+        WindEffects::Editor::UI::Icons::FilterName, "", [this]() {
             const auto labels = PlaceActorsCatalog::Get().GetCategoryFilterLabels();
             auto it = std::find(labels.begin(), labels.end(), m_CategoryFilter);
             const size_t next = (it == labels.end()) ? 0 : static_cast<size_t>((it - labels.begin() + 1) % labels.size());
             m_CategoryFilter = labels[next];
-            m_CategoryFilterButton->SetLabel(m_CategoryFilter);
-            m_NeedsLayout = true;
+            RefreshFilteredContent();
         }, "Filter category");
-    m_CategoryFilterButton->SetButtonStyle(WindEffects::Editor::UI::ToolButtonStyle::ToolbarInline);
+    m_CategoryFilterButton->SetButtonStyle(WindEffects::Editor::UI::ToolButtonStyle::ToolbarIconOnly);
 
     m_SortButton = std::make_shared<WindEffects::Editor::UI::ToolButton>(
-        WindEffects::Editor::UI::Icons::ListName, "Sort", [this]() {
+        WindEffects::Editor::UI::Icons::ListName, "", [this]() {
             switch (m_SortMode) {
             case PlaceActorsSortMode::Name: m_SortMode = PlaceActorsSortMode::Category; break;
             case PlaceActorsSortMode::Category: m_SortMode = PlaceActorsSortMode::Recent; break;
             default: m_SortMode = PlaceActorsSortMode::Name; break;
             }
-            m_NeedsLayout = true;
+            RefreshFilteredContent();
         }, "Sort");
-    m_SortButton->SetButtonStyle(WindEffects::Editor::UI::ToolButtonStyle::ToolbarInline);
+    m_SortButton->SetButtonStyle(WindEffects::Editor::UI::ToolButtonStyle::ToolbarIconOnly);
 
     m_ViewToggleButton = std::make_shared<WindEffects::Editor::UI::ToolButton>(
-        WindEffects::Editor::UI::Icons::GridName, "Grid", [this]() {
+        WindEffects::Editor::UI::Icons::GridName, "", [this]() {
             m_ViewMode = (m_ViewMode == PlaceActorsViewMode::Grid)
                 ? PlaceActorsViewMode::List
                 : PlaceActorsViewMode::Grid;
-            m_ViewToggleButton->SetLabel(m_ViewMode == PlaceActorsViewMode::Grid ? "Grid" : "List");
-            m_NeedsLayout = true;
-        }, "Toggle view");
-    m_ViewToggleButton->SetButtonStyle(WindEffects::Editor::UI::ToolButtonStyle::ToolbarInline);
+            RefreshFilteredContent();
+        }, m_ViewMode == PlaceActorsViewMode::Grid ? "Switch to list view" : "Switch to grid view");
+    m_ViewToggleButton->SetButtonStyle(WindEffects::Editor::UI::ToolButtonStyle::ToolbarIconOnly);
 
     m_RecentButton = std::make_shared<WindEffects::Editor::UI::ToolButton>(
-        WindEffects::Editor::UI::Icons::RefreshName, "Recent", [this]() {
+        WindEffects::Editor::UI::Icons::RefreshName, "", [this]() {
             m_ShowRecentOnly = !m_ShowRecentOnly;
-            m_NeedsLayout = true;
+            RefreshFilteredContent();
         }, "Recently used");
-    m_RecentButton->SetButtonStyle(WindEffects::Editor::UI::ToolButtonStyle::ToolbarInline);
+    m_RecentButton->SetButtonStyle(WindEffects::Editor::UI::ToolButtonStyle::ToolbarIconOnly);
 
     PlaceActorsCatalog::Get().Refresh();
     RebuildData();
@@ -168,22 +169,37 @@ void PlaceActorsPanel::RebuildData() {
     m_NeedsLayout = true;
 }
 
+void PlaceActorsPanel::RefreshFilteredContent() {
+    RebuildData();
+    if (m_ContentRect.width > 0.0f) {
+        RebuildLayout();
+    }
+}
+
 void PlaceActorsPanel::RebuildLayout() {
     m_Layout.clear();
+    m_SectionBackgrounds.clear();
     m_ContentHeight = 0.0f;
-    const float pad = ThemeMetric(ThemeToken::Space2);
     const auto& config = PlaceActorsConfig::Get();
     PlaceActorsItemMetrics metrics;
-    metrics.iconSize = config.iconSize;
+    metrics.iconSize = ActorsPanelLayout::IconSize();
     metrics.cardSize = config.cardSize;
-    metrics.listRowHeight = config.listRowHeight;
+    metrics.listRowHeight = ActorsPanelLayout::RowHeight();
+    metrics.cornerRadius = ThemeMetric(ThemeToken::CornerRadiusSmall);
 
     float y = m_ContentRect.y - m_ScrollOffset;
     const float width = m_ContentRect.width;
+    bool firstCategory = true;
 
     for (const auto& category : m_DisplayCategories) {
+        if (!firstCategory) {
+            y += ActorsPanelLayout::CategoryGap();
+            m_ContentHeight += ActorsPanelLayout::CategoryGap();
+        }
+        firstCategory = false;
+
         const bool expanded = m_CategoryExpanded[category.id];
-        const float headerHeight = PlaceActorsCategory::MeasureHeaderHeight(config.categoryHeaderHeight);
+        const float headerHeight = ActorsPanelLayout::CategoryHeight();
         LayoutEntry header;
         header.type = LayoutEntry::Type::CategoryHeader;
         header.categoryId = category.id;
@@ -196,12 +212,15 @@ void PlaceActorsPanel::RebuildLayout() {
             continue;
         }
 
+        const float sectionStartY = y;
+
         if (m_ViewMode == PlaceActorsViewMode::Grid) {
+            const float pad = ActorsPanelLayout::ContentPadH();
             const float cell = metrics.cardSize + pad;
             const int columns = std::max(1, static_cast<int>((width - pad * 2.0f) / cell));
             float x = m_ContentRect.x + pad;
             int column = 0;
-            float rowHeight = metrics.cardSize + pad;
+            const float rowHeight = metrics.cardSize + pad;
             for (const auto& item : category.items) {
                 LayoutEntry entry;
                 entry.type = LayoutEntry::Type::Item;
@@ -229,11 +248,20 @@ void PlaceActorsPanel::RebuildLayout() {
                 entry.type = LayoutEntry::Type::Item;
                 entry.categoryId = category.id;
                 entry.toolId = item.toolId;
-                entry.geometry = Rect{ m_ContentRect.x + pad, y, width - pad * 2.0f, metrics.listRowHeight };
+                entry.geometry = Rect{ m_ContentRect.x, y, width, metrics.listRowHeight };
                 m_Layout.push_back(entry);
-                y += metrics.listRowHeight + ThemeMetric(ThemeToken::Space1);
-                m_ContentHeight += metrics.listRowHeight + ThemeMetric(ThemeToken::Space1);
+                y += metrics.listRowHeight;
+                m_ContentHeight += metrics.listRowHeight;
             }
+        }
+
+        if (!category.items.empty()) {
+            m_SectionBackgrounds.push_back(Rect{
+                m_ContentRect.x,
+                sectionStartY,
+                width,
+                y - sectionStartY
+            });
         }
     }
 
@@ -262,26 +290,33 @@ Size PlaceActorsPanel::Measure(const Size& availableSize) {
 
 void PlaceActorsPanel::Arrange(const Rect& allottedRect) {
     m_Geometry = allottedRect;
-    m_ToolbarRect = Rect{ allottedRect.x, allottedRect.y, allottedRect.width, ThemeMetric(ThemeToken::ToolbarHeight) };
+
+    const float padH = ActorsPanelLayout::ContentPadH();
+    const float searchRowH = ActorsPanelLayout::SearchRowHeight();
+    const float iconBtn = ActorsPanelLayout::ToolbarIconSize();
+    const float iconGap = ThemeMetric(ThemeToken::Space1);
+
+    m_SearchRowRect = Rect{ allottedRect.x, allottedRect.y, allottedRect.width, searchRowH };
     m_ContentRect = Rect{
         allottedRect.x,
-        allottedRect.y + ThemeMetric(ThemeToken::ToolbarHeight),
+        allottedRect.y + searchRowH,
         allottedRect.width,
-        std::max(0.0f, allottedRect.height - ThemeMetric(ThemeToken::ToolbarHeight))
+        std::max(0.0f, allottedRect.height - searchRowH)
     };
 
-    float x = m_ToolbarRect.x + ThemeMetric(ThemeToken::Space2);
-    const float buttonWidth = 64.0f;
-    const float searchWidth = std::max(120.0f, m_ToolbarRect.width - buttonWidth * 4.0f - ThemeMetric(ThemeToken::Space2) * 6.0f);
+    const float toolbarWidth = iconBtn * 4.0f + iconGap * 3.0f;
+    const float searchWidth = std::max(80.0f, m_SearchRowRect.width - padH * 2.0f - toolbarWidth - iconGap);
+    const float searchY = m_SearchRowRect.y + (searchRowH - ActorsPanelLayout::SearchHeight()) * 0.5f;
 
-    m_SearchBox->Measure(Size{ searchWidth, ThemeMetric(ThemeToken::SearchBoxHeight) });
-    m_SearchBox->Arrange(Rect{ x, m_ToolbarRect.y + ThemeMetric(ThemeToken::Space1), searchWidth, ThemeMetric(ThemeToken::SearchBoxHeight) });
-    x += searchWidth + ThemeMetric(ThemeToken::Space2);
+    m_SearchBox->Measure(Size{ searchWidth, ActorsPanelLayout::SearchHeight() });
+    m_SearchBox->Arrange(Rect{ m_SearchRowRect.x + padH, searchY, searchWidth, ActorsPanelLayout::SearchHeight() });
 
+    float x = m_SearchRowRect.x + m_SearchRowRect.width - padH - toolbarWidth;
+    const float btnY = m_SearchRowRect.y + (searchRowH - iconBtn) * 0.5f;
     auto placeButton = [&](const std::shared_ptr<WindEffects::Editor::UI::ToolButton>& button) {
-        button->Measure(Size{ buttonWidth, ThemeMetric(ThemeToken::SearchBoxHeight) });
-        button->Arrange(Rect{ x, m_ToolbarRect.y + ThemeMetric(ThemeToken::Space1), buttonWidth, ThemeMetric(ThemeToken::SearchBoxHeight) });
-        x += buttonWidth + ThemeMetric(ThemeToken::Space1);
+        button->Measure(Size{ iconBtn, iconBtn });
+        button->Arrange(Rect{ x, btnY, iconBtn, iconBtn });
+        x += iconBtn + iconGap;
     };
     placeButton(m_CategoryFilterButton);
     placeButton(m_SortButton);
@@ -296,12 +331,16 @@ void PlaceActorsPanel::Arrange(const Rect& allottedRect) {
 
 void PlaceActorsPanel::Tick(float deltaTime) {
     WindEffects::Editor::UI::Animator::Tick(deltaTime);
+    if (!PlaceActorsConfig::Get().enableAnimations) {
+        return;
+    }
+    for (auto& entry : m_Layout) {
+        entry.pressAnim = WindEffects::Editor::UI::Animator::Damp(entry.pressAnim, 0.0f, 18.0f);
+    }
 }
 
 void PlaceActorsPanel::Paint(PaintContext& context) {
-    context.DrawRect(m_Geometry, ThemeColor(ThemeToken::PanelBackground));
-    context.DrawRect(m_ToolbarRect, ThemeColor(ThemeToken::HeaderBackground));
-    context.DrawRect(Rect{ m_ToolbarRect.x, m_ToolbarRect.y + m_ToolbarRect.height - ThemeMetric(ThemeToken::BorderWidth), m_ToolbarRect.width, ThemeMetric(ThemeToken::BorderWidth) }, ThemeColor(ThemeToken::Separator));
+    PanelChrome::PaintContentRegion(context, m_Geometry);
 
     m_SearchBox->Paint(context);
     m_CategoryFilterButton->Paint(context);
@@ -309,17 +348,28 @@ void PlaceActorsPanel::Paint(PaintContext& context) {
     m_ViewToggleButton->Paint(context);
     m_RecentButton->Paint(context);
 
-    context.DrawRect(m_ContentRect, ThemeColor(ThemeToken::PanelBackground));
-
     auto& catalog = PlaceActorsCatalog::Get();
     auto& registry = EditorToolsRegistry::Get();
-    const auto& config = PlaceActorsConfig::Get();
     PlaceActorsItemMetrics metrics;
-    metrics.iconSize = config.iconSize;
-    metrics.cardSize = config.cardSize;
-    metrics.listRowHeight = config.listRowHeight;
+    metrics.iconSize = ActorsPanelLayout::IconSize();
+    metrics.cardSize = PlaceActorsConfig::Get().cardSize;
+    metrics.listRowHeight = ActorsPanelLayout::RowHeight();
+    metrics.cornerRadius = ThemeMetric(ThemeToken::CornerRadiusSmall);
 
     const Rect clip = m_ContentRect;
+    const float textSize = ThemeMetric(ThemeToken::TextSizeSmall);
+
+    context.PushClipRect(clip);
+
+    for (const auto& section : m_SectionBackgrounds) {
+        if (section.y + section.height < clip.y || section.y > clip.y + clip.height) {
+            continue;
+        }
+        Color sectionBg = ThemeColor(ThemeToken::ActiveBackground);
+        sectionBg.a = 0.22f;
+        context.DrawRect(section, sectionBg);
+    }
+
     for (auto& entry : m_Layout) {
         if (entry.geometry.y + entry.geometry.height < clip.y) continue;
         if (entry.geometry.y > clip.y + clip.height) break;
@@ -348,22 +398,27 @@ void PlaceActorsPanel::Paint(PaintContext& context) {
         }
     }
 
+    context.PopClipRect();
+
     if (!m_TooltipText.empty() && m_TooltipRect.width > 0.0f) {
-        context.DrawShadow(m_TooltipRect, Color{ 0, 0, 0, 0.2f }, 4.0f, 8.0f);
-        context.DrawRoundedRect(m_TooltipRect, Color{ 0.18f, 0.18f, 0.18f, 1.0f }, 6.0f);
-        context.DrawText(m_TooltipText, Point{ m_TooltipRect.x + 8.0f, m_TooltipRect.y + 6.0f }, ThemeColor(ThemeToken::TextPrimary), 11.0f);
+        context.DrawShadow(m_TooltipRect, ThemeColor(ThemeToken::ShadowPopup), 3.0f, 6.0f);
+        context.DrawRoundedRect(m_TooltipRect, ThemeColor(ThemeToken::PopupBackground), ThemeMetric(ThemeToken::CornerRadiusSmall));
+        context.DrawText(m_TooltipText,
+            Point{ m_TooltipRect.x + ActorsPanelLayout::ContentPadH(), m_TooltipRect.y + (m_TooltipRect.height - textSize) * 0.5f },
+            ThemeColor(ThemeToken::TextSecondary), textSize);
     }
 
     if (m_ContextMenuOpen) {
-        context.DrawShadow(m_ContextMenuRect, Color{ 0, 0, 0, 0.2f }, 4.0f, 10.0f);
-        context.DrawRoundedRect(m_ContextMenuRect, ThemeColor(ThemeToken::PanelBackground), 6.0f);
+        context.DrawShadow(m_ContextMenuRect, ThemeColor(ThemeToken::ShadowPopup), 3.0f, 8.0f);
+        context.DrawRoundedRect(m_ContextMenuRect, ThemeColor(ThemeToken::PopupBackground), ThemeMetric(ThemeToken::CornerRadiusSmall));
+        const float rowH = ActorsPanelLayout::RowHeight();
         for (size_t i = 0; i < m_ContextMenuItems.size(); ++i) {
             if (static_cast<int>(i) == m_ContextMenuHovered) {
                 context.DrawRect(m_ContextMenuItems[i].geometry, ThemeColor(ThemeToken::HoverBackground));
             }
             context.DrawText(m_ContextMenuItems[i].label,
-                Point{ m_ContextMenuItems[i].geometry.x + 10.0f, m_ContextMenuItems[i].geometry.y + 6.0f },
-                ThemeColor(ThemeToken::TextPrimary), 11.0f);
+                Point{ m_ContextMenuItems[i].geometry.x + ActorsPanelLayout::ContentPadH(), m_ContextMenuItems[i].geometry.y + (rowH - textSize) * 0.5f },
+                ThemeColor(ThemeToken::TextPrimary), textSize);
         }
     }
 }
@@ -384,18 +439,19 @@ void PlaceActorsPanel::SpawnItem(const std::string& toolId) {
 
 void PlaceActorsPanel::ToggleFavorite(const std::string& toolId) {
     EditorToolsRegistry::Get().ToggleFavorite(toolId);
-    RebuildData();
+    RefreshFilteredContent();
 }
 
 void PlaceActorsPanel::OpenContextMenu(const std::string& toolId, const Point& position) {
     m_ContextMenuOpen = true;
     m_ContextMenuItems.clear();
-    constexpr float itemHeight = 26.0f;
+    const float itemHeight = ActorsPanelLayout::RowHeight();
+    const float menuWidth = 168.0f;
     float y = position.y;
     auto addItem = [&](const std::string& label, auto action) {
         ContextMenuItem item;
         item.label = label;
-        item.geometry = Rect{ position.x, y, 160.0f, itemHeight };
+        item.geometry = Rect{ position.x, y, menuWidth, itemHeight };
         item.action = std::move(action);
         m_ContextMenuItems.push_back(std::move(item));
         y += itemHeight;
@@ -404,7 +460,7 @@ void PlaceActorsPanel::OpenContextMenu(const std::string& toolId, const Point& p
     addItem("Place in Level", [this, toolId]() { SpawnItem(toolId); });
     addItem("Drag to Viewport", [toolId]() { PlaceActorsPlacement::Get().BeginDragPlacement(toolId); });
     addItem("Toggle Favorite", [this, toolId]() { ToggleFavorite(toolId); });
-    m_ContextMenuRect = Rect{ position.x, position.y, 160.0f, itemHeight * static_cast<float>(m_ContextMenuItems.size()) };
+    m_ContextMenuRect = Rect{ position.x, position.y, menuWidth, itemHeight * static_cast<float>(m_ContextMenuItems.size()) };
 }
 
 void PlaceActorsPanel::CloseContextMenu() {
@@ -441,7 +497,7 @@ void PlaceActorsPanel::OnMouseDown(const MouseEvent& event) {
         return;
     }
 
-    if (m_ToolbarRect.Contains(event.position)) {
+    if (m_SearchRowRect.Contains(event.position)) {
         if (m_SearchBox->GetGeometry().Contains(event.position)) m_SearchBox->OnMouseDown(event);
         else if (m_CategoryFilterButton->GetGeometry().Contains(event.position)) m_CategoryFilterButton->OnMouseDown(event);
         else if (m_SortButton->GetGeometry().Contains(event.position)) m_SortButton->OnMouseDown(event);
@@ -472,6 +528,14 @@ void PlaceActorsPanel::OnMouseDown(const MouseEvent& event) {
             return;
         }
 
+        if (entry->type == LayoutEntry::Type::Item) {
+            const float starX = ActorsPanelLayout::StarIconX(entry->geometry.x, entry->geometry.width);
+            if (event.position.x >= starX) {
+                ToggleFavorite(entry->toolId);
+                return;
+            }
+        }
+
         entry->pressAnim = 1.0f;
         for (auto& e : m_Layout) {
             e.selected = (&e == entry);
@@ -487,7 +551,7 @@ void PlaceActorsPanel::OnMouseDown(const MouseEvent& event) {
 }
 
 void PlaceActorsPanel::OnMouseMove(const MouseEvent& event) {
-    if (m_ToolbarRect.Contains(event.position)) {
+    if (m_SearchRowRect.Contains(event.position)) {
         m_SearchBox->OnMouseMove(event);
         m_CategoryFilterButton->OnMouseMove(event);
         m_SortButton->OnMouseMove(event);
@@ -543,7 +607,7 @@ void PlaceActorsPanel::OnMouseWheel(const MouseEvent& event) {
     if (!m_ContentRect.Contains(event.position)) {
         return;
     }
-    m_ScrollOffset -= event.wheelDeltaY * 24.0f;
+    m_ScrollOffset -= event.wheelDeltaY * ActorsPanelLayout::RowHeight();
     m_NeedsLayout = true;
     RebuildLayout();
 }

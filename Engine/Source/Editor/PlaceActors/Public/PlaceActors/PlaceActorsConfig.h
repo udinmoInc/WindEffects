@@ -11,9 +11,9 @@ public:
 
     void EnsureLoaded();
 
-    PlaceActorsViewMode defaultView = PlaceActorsViewMode::Grid;
-    float iconSize = 56.0f;
-    float cardSize = 88.0f;
+    PlaceActorsViewMode defaultView = PlaceActorsViewMode::List;
+    float iconSize = 14.0f;
+    float cardSize = 72.0f;
     bool showDescriptions = true;
     bool enableAnimations = true;
     bool rememberCategoryState = true;
@@ -21,8 +21,8 @@ public:
     bool showRecent = true;
     bool showFavorites = true;
     int gridColumns = 3;
-    float listRowHeight = 44.0f;
-    float categoryHeaderHeight = 30.0f;
+    float listRowHeight = 22.0f;
+    float categoryHeaderHeight = 22.0f;
 
 private:
     PlaceActorsConfig() = default;

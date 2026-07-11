@@ -2,6 +2,7 @@
 
 #include "WindEffects/Editor/UI/Export.h"
 #include "Core/Geometry.h"
+#include "WindEffects/Editor/UI/Theming/ThemeAccess.h"
 #include <string>
 #include <memory>
 
@@ -38,21 +39,21 @@ struct TextStyle {
     bool italic = false;
 
     static TextStyle Body() {
-        return TextStyle{ Color{0.722f, 0.745f, 0.780f, 1.0f}, 13.0f, false, false };
+        return TextStyle{ ResolveThemeColor(ThemeToken::TextSecondary), 13.0f, false, false };
     }
 };
 
 struct ShadowStyle {
-    Color color = Color{0.0f, 0.0f, 0.0f, 0.15f};
+    Color color = ResolveThemeColor(ThemeToken::ShadowSubtle);
     float offsetX = 0.0f;
     float offsetY = 2.0f;
     float blur = 4.0f;
     float spread = 0.0f;
 
     static ShadowStyle None() { return ShadowStyle{Color::Transparent(), 0, 0, 0, 0}; }
-    static ShadowStyle Small() { return ShadowStyle{Color{0, 0, 0, 0.1f}, 0, 1, 2, 0}; }
-    static ShadowStyle Medium() { return ShadowStyle{Color{0, 0, 0, 0.15f}, 0, 2, 4, 0}; }
-    static ShadowStyle Large() { return ShadowStyle{Color{0, 0, 0, 0.2f}, 0, 4, 8, 0}; }
+    static ShadowStyle Small() { return ShadowStyle{ResolveThemeColor(ThemeToken::ShadowPopup), 0, 1, 2, 0}; }
+    static ShadowStyle Medium() { return ShadowStyle{ResolveThemeColor(ThemeToken::ShadowSubtle), 0, 2, 4, 0}; }
+    static ShadowStyle Large() { return ShadowStyle{ResolveThemeColor(ThemeToken::ShadowOverlay), 0, 4, 8, 0}; }
 };
 
 struct WidgetStyle {

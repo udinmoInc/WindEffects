@@ -95,7 +95,7 @@ void ExplorerFilterMenu::Arrange(const Rect& allottedRect) {
 void ExplorerFilterMenu::Paint(PaintContext& context) {
     
     // Draw menu background with shadow
-    context.DrawShadow(m_Geometry, Color{ 0.0f, 0.0f, 0.0f, 0.3f }, 6.0f, 12.0f);
+    context.DrawShadow(m_Geometry, ThemeColor(ThemeToken::ShadowOverlay), 6.0f, 12.0f);
     context.DrawRoundedRect(m_Geometry, ThemeColor(ThemeToken::PopupBackground), ThemeMetric(ThemeToken::CornerRadiusSmall));
     context.DrawRoundedRectOutline(m_Geometry, ThemeColor(ThemeToken::BorderDefault), 1.0f, ThemeMetric(ThemeToken::CornerRadiusSmall));
     

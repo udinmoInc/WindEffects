@@ -22,11 +22,14 @@ public:
 
     void SetSpacing(float spacing) { m_Spacing = spacing; }
     void SetPadding(const Margin& padding) { m_Padding = padding; }
+    void SetBackgroundColor(const Color& color) { m_BackgroundColor = color; m_HasBackground = true; }
 
 private:
     Orientation m_Orientation;
     float m_Spacing = 2.0f;
     Margin m_Padding = { 0.0f, 0.0f, 0.0f, 0.0f };
+    Color m_BackgroundColor{};
+    bool m_HasBackground = false;
 };
 
 class UIFRAMEWORK_API HorizontalBox : public Box {

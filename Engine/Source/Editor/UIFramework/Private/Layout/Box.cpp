@@ -1,4 +1,5 @@
 #include "Layout/Box.h"
+#include "Core/PaintContext.h"
 #include <algorithm>
 
 namespace WindEffects::Editor::UI {
@@ -165,6 +166,9 @@ void Box::Arrange(const Rect& allottedRect) {
 
 void Box::Paint(PaintContext& context) {
     if (!m_Visible) return;
+    if (m_HasBackground) {
+        context.DrawRect(m_Geometry, m_BackgroundColor);
+    }
     for (const auto& child : m_Children) {
         if (child->IsVisible()) {
             child->Paint(context);

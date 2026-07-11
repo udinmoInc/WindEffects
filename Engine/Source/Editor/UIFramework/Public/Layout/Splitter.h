@@ -34,9 +34,13 @@ public:
     void SetResizeMode(ResizeMode mode);
     [[nodiscard]] ResizeMode GetResizeMode() const { return m_ResizeMode; }
 
+    void SetPanelGapEnabled(bool enabled) { m_PanelGapEnabled = enabled; }
+    [[nodiscard]] bool IsPanelGapEnabled() const { return m_PanelGapEnabled; }
+
 private:
     Rect GetSplitterBarRect() const;
     Rect GetSplitterHitRect() const; // Wider area for grabbing
+    [[nodiscard]] float GetEffectiveBarThickness() const;
 
     Orientation m_Orientation;
     float m_SplitRatio = 0.5f;
@@ -44,6 +48,7 @@ private:
     ResizeMode m_ResizeMode = ResizeMode::Ratio;
     float m_BarThickness = 2.0f; // Visual layout thickness
     float m_HitThickness = 8.0f; // Transparent grab area
+    bool m_PanelGapEnabled = false;
     bool m_Dragging = false;
     bool m_Hovered = false;
 

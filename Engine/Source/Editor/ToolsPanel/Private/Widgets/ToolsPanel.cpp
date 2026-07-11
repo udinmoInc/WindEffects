@@ -1,4 +1,5 @@
 #include "Widgets/ToolsPanel.h"
+#include "WindEffects/Editor/UI/Panel/PanelChrome.h"
 #include "EditorModeController.h"
 #include "EditorToolsRegistry.h"
 #include "Widgets/SearchBox.h"
@@ -26,14 +27,9 @@ using WindEffects::Editor::UI::Point;
 using WindEffects::Editor::UI::Rect;
 using WindEffects::Editor::UI::Size;
 using WindEffects::Editor::UI::ThemeToken;
+namespace PanelChrome = WindEffects::Editor::UI::PanelChrome;
 
 namespace {
-constexpr float kSearchHeight = 26.0f;
-constexpr float kIconSize = 16.0f;
-constexpr float kToolRowHeight = 28.0f;
-constexpr float kSectionHeaderHeight = 28.0f;
-constexpr float kPadding = 12.0f;
-constexpr float kContextMenuItemHeight = 24.0f;
 constexpr float kDragThreshold = 6.0f;
 
 std::string ToUpper(std::string value) {
@@ -146,8 +142,8 @@ void ToolsPanel::RebuildModeContent() {
     }
 
     if (m_ModeContentWidget) {
-        m_ModeContentWidget->Measure(Size{ m_ContentRect.width, m_ContentRect.height });
-        m_ModeContentWidget->Arrange(m_ContentRect);
+        m_ModeContentWidget->Measure(Size{ m_PanelRect.width, m_PanelRect.height });
+        m_ModeContentWidget->Arrange(m_PanelRect);
     }
 }
 
@@ -164,9 +160,9 @@ void ToolsPanel::ShowToolContextMenu(const EditorToolAction* tool, const Point& 
     m_ContextMenuOpen = true;
 
     const float menuWidth = 168.0f;
-    float menuHeight = kContextMenuItemHeight * 2.0f + 8.0f;
-    if (tool->onDragStart) menuHeight += kContextMenuItemHeight;
-    if (tool->favoritable) menuHeight += kContextMenuItemHeight;
+    float menuHeight = PanelChrome::ListRowHeight() * 2.0f + ThemeMetric(ThemeToken::Space1) * 2.0f;
+    if (tool->onDragStart) menuHeight += PanelChrome::ListRowHeight();
+    if (tool->favoritable) menuHeight += PanelChrome::ListRowHeight();
 
     float menuX = position.x;
     float menuY = position.y;
@@ -178,15 +174,15 @@ void ToolsPanel::ShowToolContextMenu(const EditorToolAction* tool, const Point& 
     }
 
     m_ContextMenuRect = Rect{ menuX, menuY, menuWidth, menuHeight };
-    float itemY = menuY + 4.0f;
+    float itemY = menuY + ThemeMetric(ThemeToken::Space1);
 
     auto addItem = [&](const std::string& label, std::function<void()> action) {
         ContextMenuItem item;
         item.label = label;
         item.action = std::move(action);
-        item.geometry = Rect{ menuX, itemY, menuWidth, kContextMenuItemHeight };
+        item.geometry = Rect{ menuX, itemY, menuWidth, PanelChrome::ListRowHeight() };
         m_ContextMenuItems.push_back(std::move(item));
-        itemY += kContextMenuItemHeight;
+        itemY += PanelChrome::ListRowHeight();
     };
 
     addItem("Execute", [this, tool]() { ExecuteTool(tool); });
@@ -255,12 +251,20 @@ void ToolsPanel::RebuildLayout() {
     const EditorToolMode* activeMode = EditorToolsRegistry::Get().FindMode(GetActiveModeId());
     const bool useCustomContent = activeMode && activeMode->customContent;
 
-    float y = m_PanelRect.y + kPadding;
+    const float padH = PanelChrome::PanelPaddingH();
+    const float searchH = PanelChrome::SearchHeight();
+    const float searchRowH = searchH + ThemeMetric(ThemeToken::Space1);
+    const float rowH = PanelChrome::ListRowHeight();
+    const float sectionH = PanelChrome::CategoryHeaderHeight();
+    const float iconSize = ThemeMetric(ThemeToken::IconSizeTree);
+    const float sectionGap = ThemeMetric(ThemeToken::Space2);
+
+    float y = m_PanelRect.y + padH;
     if (!useCustomContent) {
-        m_SearchRect = Rect{ m_PanelRect.x + kPadding, y, m_PanelRect.width - kPadding * 2.0f, kSearchHeight };
+        m_SearchRect = Rect{ m_PanelRect.x + padH, y, m_PanelRect.width - padH * 2.0f, searchH };
         m_SearchBox->Measure(Size{ m_SearchRect.width, m_SearchRect.height });
         m_SearchBox->Arrange(m_SearchRect);
-        y = m_SearchRect.y + m_SearchRect.height + 4.0f;
+        y = m_PanelRect.y + searchRowH;
     } else {
         m_SearchRect = {};
         y = m_PanelRect.y;
@@ -276,8 +280,6 @@ void ToolsPanel::RebuildLayout() {
     m_Sections.clear();
     m_ToolHits.clear();
 
-    float contentY = m_ContentRect.y + kPadding;
-    const float contentWidth = m_ContentRect.width - kPadding * 2.0f;
     const std::string activeModeId = GetActiveModeId();
 
     auto drawToolList = [&](const std::vector<const EditorToolAction*>& tools, float& yPos) {
@@ -285,32 +287,44 @@ void ToolsPanel::RebuildLayout() {
             ToolHit hit;
             hit.tool = tool;
             hit.favorite = EditorToolsRegistry::Get().IsFavorite(tool->id);
-            hit.geometry = Rect{ m_ContentRect.x + kPadding, yPos, contentWidth, kToolRowHeight };
+            hit.geometry = Rect{ m_ContentRect.x, yPos, m_ContentRect.width, rowH };
             m_ToolHits.push_back(hit);
-            yPos += kToolRowHeight + 2.0f;
+            yPos += rowH;
         }
     };
 
     if (!m_SearchText.empty()) {
         SectionHit section;
         section.categoryId = "__search__";
-        section.headerRect = Rect{ m_ContentRect.x + kPadding, contentY, contentWidth, kSectionHeaderHeight };
+        section.headerRect = Rect{ m_ContentRect.x, m_ContentRect.y, m_ContentRect.width, sectionH };
         section.expanded = true;
         m_Sections.push_back(section);
-        contentY += kSectionHeaderHeight + 4.0f;
+        float contentY = m_ContentRect.y + sectionH;
         drawToolList(EditorToolsRegistry::Get().SearchTools(m_SearchText, activeModeId), contentY);
         return;
     }
 
+    float contentY = m_ContentRect.y;
+    bool firstSection = true;
+
+    auto addSection = [&](const std::string& id, bool defaultExpanded) -> SectionHit* {
+        if (!firstSection) {
+            contentY += sectionGap;
+        }
+        firstSection = false;
+        SectionHit section;
+        section.categoryId = id;
+        section.headerRect = Rect{ m_ContentRect.x, contentY, m_ContentRect.width, sectionH };
+        section.expanded = IsCategoryExpanded(id, defaultExpanded);
+        m_Sections.push_back(section);
+        contentY += sectionH;
+        return &m_Sections.back();
+    };
+
     auto favorites = EditorToolsRegistry::Get().GetFavoriteTools(activeModeId);
     if (!favorites.empty()) {
-        SectionHit section;
-        section.categoryId = "__favorites__";
-        section.headerRect = Rect{ m_ContentRect.x + kPadding, contentY, contentWidth, kSectionHeaderHeight };
-        section.expanded = IsCategoryExpanded("__favorites__", true);
-        m_Sections.push_back(section);
-        contentY += kSectionHeaderHeight + 4.0f;
-        if (section.expanded) drawToolList(favorites, contentY);
+        SectionHit* section = addSection("__favorites__", true);
+        if (section->expanded) drawToolList(favorites, contentY);
     }
 
     const auto& recentIds = EditorToolsRegistry::Get().GetRecentToolIds();
@@ -324,13 +338,8 @@ void ToolsPanel::RebuildLayout() {
         if (recentTools.size() >= 6) break;
     }
     if (!recentTools.empty()) {
-        SectionHit section;
-        section.categoryId = "__recent__";
-        section.headerRect = Rect{ m_ContentRect.x + kPadding, contentY, contentWidth, kSectionHeaderHeight };
-        section.expanded = IsCategoryExpanded("__recent__", true);
-        m_Sections.push_back(section);
-        contentY += kSectionHeaderHeight + 4.0f;
-        if (section.expanded) drawToolList(recentTools, contentY);
+        SectionHit* section = addSection("__recent__", true);
+        if (section->expanded) drawToolList(recentTools, contentY);
     }
 
     const EditorToolMode* modeForContent = EditorToolsRegistry::Get().FindMode(activeModeId);
@@ -343,16 +352,13 @@ void ToolsPanel::RebuildLayout() {
     m_ModeContentModeId.clear();
 
     for (const auto* category : EditorToolsRegistry::Get().GetCategoriesForMode(activeModeId)) {
-        SectionHit section;
-        section.categoryId = category->id;
-        section.expanded = IsCategoryExpanded(category->id, category->defaultExpanded);
-        section.headerRect = Rect{ m_ContentRect.x + kPadding, contentY, contentWidth, kSectionHeaderHeight };
-        m_Sections.push_back(section);
-        contentY += kSectionHeaderHeight + 4.0f;
-        if (section.expanded) {
+        SectionHit* section = addSection(category->id, category->defaultExpanded);
+        if (section->expanded) {
             drawToolList(EditorToolsRegistry::Get().GetToolsForCategory(category->id), contentY);
         }
     }
+
+    (void)iconSize;
 }
 
 void ToolsPanel::Tick(float deltaTime) {
@@ -361,17 +367,24 @@ void ToolsPanel::Tick(float deltaTime) {
 
 void ToolsPanel::Paint(PaintContext& context) {
     if (m_Geometry.width < 1.0f) return;
-    const float uiScale = (std::max)(1.0f, WindEffects::Editor::UI::DPIContext::GetScale());
-    const float labelFontSize = ThemeMetric(ThemeToken::TextSizeBody) * uiScale;
-    const float shortcutFontSize = ThemeMetric(ThemeToken::TextSizeCaption) * uiScale;
-    context.DrawRect(m_PanelRect, ThemeColor(ThemeToken::PanelBackground));
 
-    {
-        m_SearchBox->Paint(context);
+    if (m_ModeContentWidget) {
+        m_ModeContentWidget->Paint(context);
+    } else {
+        const float uiScale = (std::max)(1.0f, WindEffects::Editor::UI::DPIContext::GetScale());
+        const float labelFontSize = ThemeMetric(ThemeToken::TextSizeBody) * uiScale;
+        const float shortcutFontSize = ThemeMetric(ThemeToken::TextSizeCaption) * uiScale;
+        const float iconSize = ThemeMetric(ThemeToken::IconSizeTree) * uiScale;
+        const float padH = PanelChrome::PanelPaddingH();
+        const float chevronGap = ThemeMetric(ThemeToken::Space2) * uiScale;
+
+        PanelChrome::PaintContentRegion(context, m_PanelRect);
+
+        if (m_SearchRect.width > 0.0f) {
+            m_SearchBox->Paint(context);
+        }
 
         for (const auto& section : m_Sections) {
-            context.DrawRect(section.headerRect, ThemeColor(ThemeToken::HeaderBackground));
-
             std::string title = section.categoryId;
             if (section.categoryId == "__favorites__") title = "Favorites";
             else if (section.categoryId == "__recent__") title = "Recently Used";
@@ -380,54 +393,53 @@ void ToolsPanel::Paint(PaintContext& context) {
                 title = cat->label;
             }
 
-            const char* chevron = section.expanded ? WindEffects::Editor::UI::Icons::ChevronDownName : WindEffects::Editor::UI::Icons::ChevronRightName;
-            WindEffects::Editor::UI::IconPainter::DrawIcon(context, chevron,
-                Rect{ section.headerRect.x + 4.0f, section.headerRect.y + 5.0f, 16.0f, 16.0f }, ThemeColor(ThemeToken::TextSecondary));
-            context.DrawText(title, Point{ section.headerRect.x + 22.0f, section.headerRect.y + 6.0f }, ThemeColor(ThemeToken::TextPrimary), labelFontSize, true);
+            PanelChrome::PaintCategoryHeader(context, section.headerRect, title, section.expanded, false);
         }
 
         for (const auto& toolHit : m_ToolHits) {
             if (!toolHit.tool) continue;
             if (toolHit.hovered) {
-                context.DrawRoundedRect(toolHit.geometry, ThemeColor(ThemeToken::HoverBackground), 4.0f);
+                PanelChrome::PaintListRowBackground(context, toolHit.geometry, true, false);
             }
 
+            const float rowIconX = toolHit.geometry.x + padH + iconSize + chevronGap;
+            const float iconY = toolHit.geometry.y + (toolHit.geometry.height - iconSize) * 0.5f;
             WindEffects::Editor::UI::IconPainter::DrawIcon(context, toolHit.tool->iconName,
-                Rect{ toolHit.geometry.x + ThemeMetric(ThemeToken::Space2), toolHit.geometry.y + (toolHit.geometry.height - kIconSize) * 0.5f, kIconSize, kIconSize },
-                ThemeColor(ThemeToken::IconDefault));
+                Rect{ rowIconX, iconY, iconSize, iconSize }, ThemeColor(ThemeToken::IconDefault));
 
             context.DrawText(toolHit.tool->label,
-                Point{ toolHit.geometry.x + ThemeMetric(ThemeToken::Space6), toolHit.geometry.y + (toolHit.geometry.height - labelFontSize) * 0.5f },
+                Point{ rowIconX + iconSize + chevronGap, toolHit.geometry.y + (toolHit.geometry.height - labelFontSize) * 0.5f },
                 ThemeColor(ThemeToken::TextPrimary), labelFontSize);
 
             if (!toolHit.tool->shortcut.empty()) {
                 const float shortcutWidth = context.GetTextWidth(toolHit.tool->shortcut, shortcutFontSize);
+                const float starReserve = iconSize + padH * 2.0f;
                 context.DrawText(toolHit.tool->shortcut,
-                    Point{ toolHit.geometry.x + toolHit.geometry.width - shortcutWidth - 28.0f, toolHit.geometry.y + 8.0f },
+                    Point{ toolHit.geometry.x + toolHit.geometry.width - starReserve - shortcutWidth, toolHit.geometry.y + (toolHit.geometry.height - shortcutFontSize) * 0.5f },
                     ThemeColor(ThemeToken::TextDisabled), shortcutFontSize);
             }
 
-            const char* starIcon = WindEffects::Editor::UI::Icons::StarName;
+            const float starX = toolHit.geometry.x + toolHit.geometry.width - padH - iconSize;
+            const char* starIcon = toolHit.favorite ? WindEffects::Editor::UI::Icons::StarFilledName : WindEffects::Editor::UI::Icons::StarName;
             Color starColor = toolHit.favorite ? ThemeColor(ThemeToken::Warning) : ThemeColor(ThemeToken::IconDefault);
             WindEffects::Editor::UI::IconPainter::DrawIcon(context, starIcon,
-                Rect{ toolHit.geometry.x + toolHit.geometry.width - ThemeMetric(ThemeToken::Space5), toolHit.geometry.y + (toolHit.geometry.height - kIconSize) * 0.5f, kIconSize, kIconSize },
-                starColor);
-        }
-
-        if (m_ModeContentWidget) {
-            m_ModeContentWidget->Paint(context);
+                Rect{ starX, iconY, iconSize, iconSize }, starColor);
         }
     }
 
     if (m_ContextMenuOpen) {
-        context.DrawShadow(m_ContextMenuRect, Color{ 0.0f, 0.0f, 0.0f, 0.15f }, 4.0f, 12.0f);
-        context.DrawRoundedRect(m_ContextMenuRect, ThemeColor(ThemeToken::PanelBackground), 4.0f);
+        const float uiScale = (std::max)(1.0f, WindEffects::Editor::UI::DPIContext::GetScale());
+        const float labelFontSize = ThemeMetric(ThemeToken::TextSizeBody) * uiScale;
+        const float rowH = PanelChrome::ListRowHeight();
+        context.DrawShadow(m_ContextMenuRect, ThemeColor(ThemeToken::ShadowPopup), 3.0f, 8.0f);
+        context.DrawRoundedRect(m_ContextMenuRect, ThemeColor(ThemeToken::PopupBackground), ThemeMetric(ThemeToken::CornerRadiusSmall));
         for (size_t i = 0; i < m_ContextMenuItems.size(); ++i) {
             const auto& item = m_ContextMenuItems[i];
             if (static_cast<int>(i) == m_ContextMenuHovered) {
                 context.DrawRect(item.geometry, ThemeColor(ThemeToken::HoverBackground));
             }
-            context.DrawText(item.label, Point{ item.geometry.x + 10.0f, item.geometry.y + 6.0f },
+            context.DrawText(item.label,
+                Point{ item.geometry.x + PanelChrome::PanelPaddingH(), item.geometry.y + (rowH - labelFontSize) * 0.5f },
                 ThemeColor(ThemeToken::TextPrimary), labelFontSize);
         }
     }
@@ -475,6 +487,11 @@ void ToolsPanel::OnMouseDown(const MouseEvent& event) {
         return;
     }
 
+    if (m_ModeContentWidget && m_ModeContentWidget->GetGeometry().Contains(event.position)) {
+        m_ModeContentWidget->OnMouseDown(event);
+        return;
+    }
+
     if (m_SearchRect.Contains(event.position)) {
         m_SearchBox->OnMouseDown(event);
         return;
@@ -486,7 +503,8 @@ void ToolsPanel::OnMouseDown(const MouseEvent& event) {
     }
 
     if (auto* toolHit = HitTool(event.position)) {
-        const float starX = toolHit->geometry.x + toolHit->geometry.width - 22.0f;
+        const float iconSize = ThemeMetric(ThemeToken::IconSizeTree);
+        const float starX = toolHit->geometry.x + toolHit->geometry.width - PanelChrome::PanelPaddingH() - iconSize;
         if (event.position.x >= starX && toolHit->tool && toolHit->tool->favoritable) {
             EditorToolsRegistry::Get().ToggleFavorite(toolHit->tool->id);
             RebuildLayout();
@@ -503,15 +521,15 @@ void ToolsPanel::OnMouseDown(const MouseEvent& event) {
         ExecuteTool(toolHit->tool);
         return;
     }
-
-    if (m_ModeContentWidget) {
-        m_ModeContentWidget->OnMouseDown(event);
-    }
 }
 
 void ToolsPanel::OnMouseMove(const MouseEvent& event) {
-    for (auto& tool : m_ToolHits) {
-        tool.hovered = tool.geometry.Contains(event.position);
+    if (m_ModeContentWidget) {
+        m_ModeContentWidget->OnMouseMove(event);
+    } else {
+        for (auto& tool : m_ToolHits) {
+            tool.hovered = tool.geometry.Contains(event.position);
+        }
     }
 
     if (m_ContextMenuOpen) {
@@ -533,10 +551,6 @@ void ToolsPanel::OnMouseMove(const MouseEvent& event) {
             if (m_PendingDragTool->onDragStart) m_PendingDragTool->onDragStart();
             m_PendingDragTool = nullptr;
         }
-    }
-
-    if (m_ModeContentWidget) {
-        m_ModeContentWidget->OnMouseMove(event);
     }
 }
 

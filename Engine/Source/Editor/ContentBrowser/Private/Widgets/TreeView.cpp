@@ -3,6 +3,7 @@
 #include "Services/ContentBrowserFolderArt.h"
 #include "Services/ContentBrowserBlueprintArt.h"
 #include "Core/PaintContext.h"
+#include "WindEffects/Editor/UI/Panel/PanelChrome.h"
 #include "WindEffects/Editor/UI/Theming/ThemeAccess.h"
 #include "WindEffects/Editor/UI/Theming/ThemeToken.h"
 #include "Core/Icon.h"
@@ -77,7 +78,7 @@ public:
     void Arrange(const Rect& allottedRect) override { m_Geometry = allottedRect; }
 
     void Paint(PaintContext& context) override {
-        context.DrawShadow(m_Geometry, Color{ 0.0f, 0.0f, 0.0f, 0.2f }, 4.0f, 10.0f);
+        context.DrawShadow(m_Geometry, ThemeColor(ThemeToken::ShadowSubtle), 4.0f, 10.0f);
         context.DrawRoundedRect(m_Geometry, ThemeColor(ThemeToken::PopupBackground), ThemeMetric(ThemeToken::CornerRadiusSmall));
         context.DrawRoundedRectOutline(m_Geometry, ThemeColor(ThemeToken::BorderDefault), 1.0f, ThemeMetric(ThemeToken::CornerRadiusSmall));
 
@@ -181,8 +182,7 @@ void TreeView::Tick(float deltaTime) {
 }
 
 void TreeView::Paint(PaintContext& context) {
-    const Color bg = m_ExplorerStyle ? ThemeColor(ThemeToken::WorkspaceBackground) : ThemeColor(ThemeToken::ContentBrowserBackground);
-    context.DrawRect(m_Geometry, bg);
+    PanelChrome::PaintContentRegion(context, m_Geometry);
 
     if (m_RenderList.empty()) {
         return;
@@ -204,17 +204,12 @@ void TreeView::Paint(PaintContext& context) {
 
         Color bgColor{0, 0, 0, 0};
         const bool selected = IsSelected(node->id);
-        if (selected) {
-            bgColor = ThemeColor(ThemeToken::SelectionHighlight);
-        } else if (node->id == m_HoveredId) {
-            bgColor = ThemeColor(ThemeToken::HoverBackground);
-        }
-
-        if (bgColor.a > 0.001f) {
+        const bool hovered = node->id == m_HoveredId;
+        if (selected || hovered) {
             Rect rowRect = item.geometry;
             rowRect.x = m_Geometry.x;
             rowRect.width = m_Geometry.width;
-            context.DrawRect(rowRect, bgColor);
+            PanelChrome::PaintListRowBackground(context, rowRect, hovered, selected);
         }
 
         if (node->id == m_DropTargetId && m_Dragging) {
@@ -230,7 +225,7 @@ void TreeView::Paint(PaintContext& context) {
             IconPainter::DrawIcon(context, chevronIcon, Rect{ chevronX, chevronY, chevronSize, chevronSize }, ThemeColor(ThemeToken::TextSecondary));
         }
 
-        const float iconSize = 16.0f;
+        const float iconSize = ThemeMetric(ThemeToken::IconSizeTree) * TreeUiScale();
         const float iconX = item.geometry.x + 18.0f;
         if (!node->iconName.empty() || node->iconTexture != VK_NULL_HANDLE) {
             const float iconY = item.geometry.y + (rowHeight - iconSize) * 0.5f;

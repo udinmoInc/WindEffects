@@ -1,4 +1,5 @@
 #include "Widgets/PropertyEditor.h"
+#include "WindEffects/Editor/UI/Panel/PanelChrome.h"
 #include "Core/PaintContext.h"
 #include "WindEffects/Editor/UI/Theming/ThemeToken.h"
 #include "Core/Icon.h"
@@ -32,91 +33,64 @@ void PropertyEditor::Arrange(const Rect& allottedRect) {
 }
 
 void PropertyEditor::Paint(PaintContext& context) {
-    // Draw background
-    context.DrawRect(m_Geometry, ThemeColor(ThemeToken::ContentBrowserBackground)); // #25272B
-    
+    PanelChrome::PaintContentRegion(context, m_Geometry);
+
     float y = m_Geometry.y - m_ScrollOffset;
-    
+
     for (const auto& cat : m_Categories) {
-        // Skip if entirely outside visible area
         if (y + m_CategoryHeaderHeight < m_Geometry.y || y > m_Geometry.y + m_Geometry.height) {
             y += m_CategoryHeaderHeight;
             if (cat.expanded) y += cat.contentHeight;
             continue;
         }
-        
-        // Draw category header
+
         Rect headerRect{ m_Geometry.x, y, m_Geometry.width, m_CategoryHeaderHeight };
-        
-        Color headerBg = ThemeColor(ThemeToken::BorderDark); // #2E3136
-        if (cat.name == m_HoveredCategory) {
-            headerBg = ThemeColor(ThemeToken::HoverBackground);
-        }
+        PanelChrome::PaintCategoryHeader(context, headerRect, cat.name, cat.expanded, cat.name == m_HoveredCategory);
 
-        context.DrawRoundedRect(headerRect, headerBg, ThemeMetric(ThemeToken::CornerRadiusSmall));
-
-        context.DrawRect({ m_Geometry.x, y + m_CategoryHeaderHeight - ThemeMetric(ThemeToken::BorderWidth), m_Geometry.width, ThemeMetric(ThemeToken::BorderWidth) }, ThemeColor(ThemeToken::Separator));
-
-        float chevronSize = ThemeMetric(ThemeToken::IconSizeTree) - 2.0f;
-        float chevronX = headerRect.x + ThemeMetric(ThemeToken::Space2);
-        float chevronY = headerRect.y + (m_CategoryHeaderHeight - chevronSize) / 2.0f;
-        
-        Rect chevronRect{ chevronX, chevronY, chevronSize, chevronSize };
-        const char* chevronIcon = cat.expanded ? Icons::ChevronDownName : Icons::ChevronRightName;
-        IconPainter::DrawIcon(context, chevronIcon, chevronRect, ThemeColor(ThemeToken::TextSecondary));
-        
-        // Draw category name
-        float textX = chevronX + chevronSize + ThemeMetric(ThemeToken::Space2);
-        float textY = headerRect.y + (m_CategoryHeaderHeight - ThemeMetric(ThemeToken::TextSizeHeader)) / 2.0f;
-        context.DrawText(cat.name, Point{ textX, textY }, ThemeColor(ThemeToken::TextPrimary), ThemeMetric(ThemeToken::TextSizeHeader), true);
-        
         y += m_CategoryHeaderHeight;
-        
-        // Draw properties in category
+
         if (cat.expanded) {
             for (size_t propIdx : cat.propertyIndices) {
                 const auto& prop = m_Properties[propIdx];
-                
-                Rect propRect{ m_Geometry.x + ThemeMetric(ThemeToken::Space2), y, m_Geometry.width - ThemeMetric(ThemeToken::Space4), m_PropertyHeight };
-                
-                // Skip if outside visible area
+
+                Rect propRect{ m_Geometry.x, y, m_Geometry.width, m_PropertyHeight };
+
                 if (propRect.y + propRect.height < m_Geometry.y || propRect.y > m_Geometry.y + m_Geometry.height) {
                     y += m_PropertyHeight;
                     continue;
                 }
-                
-                // Draw hover background
+
                 if (prop.name == m_HoveredProperty) {
-                    context.DrawRoundedRect(propRect, ThemeColor(ThemeToken::HoverBackground), ThemeMetric(ThemeToken::CornerRadiusSmall));
+                    PanelChrome::PaintListRowBackground(context, propRect, true, false);
                 }
 
-                float labelX = propRect.x + ThemeMetric(ThemeToken::Space1);
-                float labelY = propRect.y + (m_PropertyHeight - ThemeMetric(ThemeToken::TextSizeBody)) / 2.0f;
+                const float labelX = propRect.x + PanelChrome::PanelPaddingH();
+                const float labelY = propRect.y + (m_PropertyHeight - ThemeMetric(ThemeToken::TextSizeBody)) * 0.5f;
                 Color labelColor = prop.hasOverride ? ThemeColor(ThemeToken::AccentPrimary) : ThemeColor(ThemeToken::TextSecondary);
                 context.DrawText(prop.name, Point{ labelX, labelY }, labelColor, ThemeMetric(ThemeToken::TextSizeBody));
-                
-                // Draw property value as a rounded input box
-                float valueWidth = propRect.width - m_LabelWidth - ThemeMetric(ThemeToken::Space2);
-                const float inputHeight = ThemeMetric(ThemeToken::ButtonHeight) - ThemeMetric(ThemeToken::Space3);
-                Rect valueRect{ propRect.x + m_LabelWidth, propRect.y + (m_PropertyHeight - inputHeight) / 2.0f, valueWidth, inputHeight };
+
+                float valueWidth = propRect.width - m_LabelWidth - PanelChrome::PanelPaddingH() * 2.0f;
+                const float inputHeight = ThemeMetric(ThemeToken::SearchBoxHeight) - ThemeMetric(ThemeToken::Space2);
+                Rect valueRect{
+                    propRect.x + m_LabelWidth,
+                    propRect.y + (m_PropertyHeight - inputHeight) * 0.5f,
+                    valueWidth,
+                    inputHeight
+                };
 
                 context.DrawRoundedRect(valueRect, ThemeColor(ThemeToken::InputBackground), ThemeMetric(ThemeToken::CornerRadiusSmall));
-                context.DrawRoundedRectOutline(valueRect, ThemeColor(ThemeToken::BorderDefault), ThemeMetric(ThemeToken::BorderWidth), ThemeMetric(ThemeToken::CornerRadiusSmall));
 
-                float valueX = valueRect.x + ThemeMetric(ThemeToken::Space2) - 2.0f;
-                float valueY = valueRect.y + (inputHeight - ThemeMetric(ThemeToken::TextSizeBody)) / 2.0f;
+                const float valueX = valueRect.x + ThemeMetric(ThemeToken::Space2);
+                const float valueY = valueRect.y + (inputHeight - ThemeMetric(ThemeToken::TextSizeBody)) * 0.5f;
                 context.DrawText(prop.value, Point{ valueX, valueY }, ThemeColor(ThemeToken::TextPrimary), ThemeMetric(ThemeToken::TextSizeBody));
-                
-                // Draw reset button if has override
+
                 if (prop.hasOverride) {
-                    float resetSize = 16.0f;
-                    float resetX = propRect.x + propRect.width - resetSize - 4.0f;
-                    float resetY = propRect.y + (m_PropertyHeight - resetSize) / 2.0f;
-                    
-                    Rect resetRect{ resetX, resetY, resetSize, resetSize };
-                    IconPainter::DrawIcon(context, Icons::XName, resetRect, ThemeColor(ThemeToken::TextSecondary));
+                    const float resetSize = ThemeMetric(ThemeToken::IconSizeTree);
+                    const float resetX = propRect.x + propRect.width - resetSize - PanelChrome::PanelPaddingH();
+                    const float resetY = propRect.y + (m_PropertyHeight - resetSize) * 0.5f;
+                    IconPainter::DrawIcon(context, Icons::XName, Rect{ resetX, resetY, resetSize, resetSize }, ThemeColor(ThemeToken::TextSecondary));
                 }
-                
+
                 y += m_PropertyHeight;
             }
         }
@@ -368,7 +342,7 @@ void BoolPropertyWidget::Paint(PaintContext& context) {
     
     Rect checkRect{ checkX, checkY, checkSize, checkSize };
     
-    Color bgColor = ThemeColor(ThemeToken::ToolbarBackground);
+    Color bgColor = ThemeColor(ThemeToken::InputBackground);
     Color borderColor = ThemeColor(ThemeToken::BorderDefault);
     
     if (*m_Value) {

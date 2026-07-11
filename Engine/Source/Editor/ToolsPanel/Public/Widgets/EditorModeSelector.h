@@ -26,6 +26,7 @@ private:
 
     bool m_Hovered = false;
     bool m_Pressed = false;
+    float m_HoverAnim = 0.0f;
     std::string m_Label;
     std::string m_IconName = "cursor";
 };

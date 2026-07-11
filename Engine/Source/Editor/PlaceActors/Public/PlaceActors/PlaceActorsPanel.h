@@ -57,6 +57,7 @@ private:
 
     void RebuildData();
     void RebuildLayout();
+    void RefreshFilteredContent();
     void SaveCategoryState() const;
 
     LayoutEntry* HitEntry(const WindEffects::Editor::UI::Point& position);
@@ -76,18 +77,19 @@ private:
     std::string m_SearchText;
     std::string m_ExternalSearchFilter;
     std::string m_CategoryFilter = "All";
-    PlaceActorsViewMode m_ViewMode = PlaceActorsViewMode::Grid;
+    PlaceActorsViewMode m_ViewMode = PlaceActorsViewMode::List;
     PlaceActorsSortMode m_SortMode = PlaceActorsSortMode::Name;
     bool m_ShowRecentOnly = false;
 
     float m_ScrollOffset = 0.0f;
     float m_ContentHeight = 0.0f;
-    WindEffects::Editor::UI::Rect m_ToolbarRect;
+    WindEffects::Editor::UI::Rect m_SearchRowRect;
     WindEffects::Editor::UI::Rect m_ContentRect;
     WindEffects::Editor::UI::Rect m_TooltipRect;
 
     std::vector<PlaceActorsCategoryData> m_DisplayCategories;
     std::vector<LayoutEntry> m_Layout;
+    std::vector<WindEffects::Editor::UI::Rect> m_SectionBackgrounds;
     std::unordered_map<std::string, bool> m_CategoryExpanded;
 
     bool m_ContextMenuOpen = false;

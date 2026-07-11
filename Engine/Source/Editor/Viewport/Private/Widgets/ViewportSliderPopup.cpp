@@ -108,7 +108,7 @@ void ViewportSliderPopup::SetValueFromMouseX(float mouseX) {
 }
 
 void ViewportSliderPopup::Paint(PaintContext& context) {
-    context.DrawShadow(m_Geometry, Color{ 0.0f, 0.0f, 0.0f, 0.15f }, 4.0f, 12.0f);
+    context.DrawShadow(m_Geometry, ThemeColor(ThemeToken::ShadowSubtle), 4.0f, 12.0f);
     context.DrawRoundedRect(m_Geometry, ThemeColor(ThemeToken::PanelBackground), 4.0f);
     context.DrawRoundedRectOutline(m_Geometry, ThemeColor(ThemeToken::BorderDefault), 1.0f, 4.0f);
 

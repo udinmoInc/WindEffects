@@ -4,6 +4,8 @@
 #include "Core/PaintContext.h"
 #include "WindEffects/Editor/UI/Theming/ThemeToken.h"
 #include "Core/Icon.h"
+#include "Core/ToolbarButtonChrome.h"
+#include "Core/Animator.h"
 #include "Core/DPIContext.h"
 #include "Layout/OverlayManager.h"
 #include "Widgets/MenuBar.h"
@@ -13,19 +15,10 @@
 
 namespace we::programs::editor {
 
-namespace {
-constexpr float kIconSize     = 18.0f;  // Matches ToolbarInline icon size
-constexpr float kHeight       = 22.0f;  // Matches ProjectSelector height
-constexpr float kPadding      = 8.0f;
-constexpr float kIconGap      = 5.0f;   // Gap between icon and label
-constexpr float kChevronWidth = 10.0f;
-} // namespace
-
 using WindEffects::Editor::UI::Color;
 using WindEffects::Editor::UI::MenuItem;
 using WindEffects::Editor::UI::MouseButton;
 using WindEffects::Editor::UI::MouseEvent;
-using WindEffects::Editor::UI::OverlayManager;
 using WindEffects::Editor::UI::PaintContext;
 using WindEffects::Editor::UI::Point;
 using WindEffects::Editor::UI::Rect;
@@ -38,72 +31,81 @@ public:
         : m_Items(std::move(items)) {}
 
     Size Measure(const Size& availableSize) override {
-        float maxWidth = 180.0f;
+        const float rowH = ThemeMetric(ThemeToken::ListRowHeight);
+        const float padY = ThemeMetric(ThemeToken::Space1);
+        const float textSize = ThemeMetric(ThemeToken::TextSizeSmall);
+        float maxWidth = 160.0f;
         for (const auto& item : m_Items) {
-            maxWidth = (std::max)(maxWidth, 24.0f + item->label.length() * 7.0f + 40.0f);
+            maxWidth = (std::max)(maxWidth, ThemeMetric(ThemeToken::Space6) + item->label.length() * textSize * 0.52f + 28.0f);
         }
-        m_DesiredSize = Size{ maxWidth, 6.0f + m_Items.size() * 28.0f };
+        m_DesiredSize = Size{ maxWidth, padY * 2.0f + m_Items.size() * rowH };
         return m_DesiredSize;
     }
 
     void Arrange(const Rect& allottedRect) override { m_Geometry = allottedRect; }
 
     void Paint(PaintContext& context) override {
-        context.DrawShadow(m_Geometry, Color{ 0.0f, 0.0f, 0.0f, 0.15f }, 4.0f, 12.0f);
-        context.DrawRoundedRect(m_Geometry, ThemeColor(ThemeToken::PanelBackground), 4.0f);
-        context.DrawRoundedRectOutline(m_Geometry, ThemeColor(ThemeToken::BorderDefault), 1.0f, 4.0f);
+        context.DrawShadow(m_Geometry, ThemeColor(ThemeToken::ShadowPopup), 3.0f, 8.0f);
+        context.DrawRoundedRect(m_Geometry, ThemeColor(ThemeToken::PopupBackground), ThemeMetric(ThemeToken::CornerRadiusSmall));
 
-        float y = m_Geometry.y + 4.0f;
+        const float rowH = ThemeMetric(ThemeToken::ListRowHeight);
+        const float padY = ThemeMetric(ThemeToken::Space1);
+        const float padX = ThemeMetric(ThemeToken::Space2);
+        const float textSize = ThemeMetric(ThemeToken::TextSizeSmall);
+        const float iconSize = ThemeMetric(ThemeToken::IconSizeTree);
+
+        float y = m_Geometry.y + padY;
         for (size_t i = 0; i < m_Items.size(); ++i) {
             const auto& item = m_Items[i];
-            Rect row{ m_Geometry.x + 2.0f, y, m_Geometry.width - 4.0f, 26.0f };
+            Rect row{ m_Geometry.x + 1.0f, y, m_Geometry.width - 2.0f, rowH };
             if (static_cast<int>(i) == m_Hovered) {
-                context.DrawRoundedRect(row, ThemeColor(ThemeToken::HoverBackground), 3.0f);
+                context.DrawRect(row, ThemeColor(ThemeToken::HoverBackground));
             }
 
-            const auto* mode = EditorToolsRegistry::Get().FindMode(item->label);
-            (void)mode;
-
             WindEffects::Editor::UI::IconPainter::DrawIcon(context, item->shortcut,
-                Rect{ row.x + 8.0f, row.y + 4.0f, 18.0f, 18.0f }, ThemeColor(ThemeToken::TextPrimary));
+                Rect{ row.x + padX, row.y + (rowH - iconSize) * 0.5f, iconSize, iconSize }, ThemeColor(ThemeToken::TextPrimary));
 
-            context.DrawText(item->label, Point{ row.x + 32.0f, row.y + 6.0f },
-                ThemeColor(ThemeToken::TextPrimary), 11.0f);
+            context.DrawText(item->label, Point{ row.x + padX + iconSize + ThemeMetric(ThemeToken::Space1), row.y + (rowH - textSize) * 0.5f },
+                ThemeColor(ThemeToken::TextPrimary), textSize);
 
             if (item->checked) {
                 WindEffects::Editor::UI::IconPainter::DrawIcon(context, WindEffects::Editor::UI::Icons::CheckName,
-                    Rect{ row.x + row.width - 22.0f, row.y + 5.0f, 16.0f, 16.0f },
+                    Rect{ row.x + row.width - padX - iconSize, row.y + (rowH - iconSize) * 0.5f, iconSize, iconSize },
                     ThemeColor(ThemeToken::AccentPrimary));
             }
 
-            y += 28.0f;
+            y += rowH;
         }
     }
 
     void OnMouseMove(const MouseEvent& event) override {
         m_Hovered = -1;
-        float y = m_Geometry.y + 4.0f;
+        const float rowH = ThemeMetric(ThemeToken::ListRowHeight);
+        const float padY = ThemeMetric(ThemeToken::Space1);
+        float y = m_Geometry.y + padY;
         for (size_t i = 0; i < m_Items.size(); ++i) {
-            Rect row{ m_Geometry.x + 2.0f, y, m_Geometry.width - 4.0f, 26.0f };
+            Rect row{ m_Geometry.x + 1.0f, y, m_Geometry.width - 2.0f, rowH };
             if (row.Contains(event.position)) {
                 m_Hovered = static_cast<int>(i);
                 break;
             }
-            y += 28.0f;
+            y += rowH;
         }
     }
 
     void OnMouseDown(const MouseEvent& event) override {
         if (event.button != MouseButton::Left) return;
 
-        float y = m_Geometry.y + 4.0f;
+        const float rowH = ThemeMetric(ThemeToken::ListRowHeight);
+        const float padY = ThemeMetric(ThemeToken::Space1);
+        float y = m_Geometry.y + padY;
         for (size_t i = 0; i < m_Items.size(); ++i) {
-            Rect row{ m_Geometry.x + 2.0f, y, m_Geometry.width - 4.0f, 26.0f };
+            Rect row{ m_Geometry.x + 1.0f, y, m_Geometry.width - 2.0f, rowH };
             if (row.Contains(event.position)) {
                 if (m_Items[i]->onClick) m_Items[i]->onClick();
                 break;
             }
-            y += 28.0f;
+            y += rowH;
         }
 
         if (auto* overlay = GetPopupHost()) {
@@ -139,8 +141,16 @@ void EditorModeSelector::Refresh() {
 
 Size EditorModeSelector::Measure(const Size& availableSize) {
     (void)availableSize;
-    const float labelWidth = (std::max)(48.0f, m_Label.length() * 7.4f);
-    m_DesiredSize = Size{ kPadding + kIconSize + kIconGap + labelWidth + 8.0f + kChevronWidth + kPadding, kHeight };
+    const float uiScale = (std::max)(1.0f, WindEffects::Editor::UI::DPIContext::GetScale());
+    const float padH = WindEffects::Editor::UI::ToolbarButtonChrome::HorizontalPad(uiScale);
+    const float iconSz = WindEffects::Editor::UI::ToolbarButtonChrome::IconSize(uiScale);
+    const float iconGap = 4.0f * uiScale;
+    const float chevW = 8.0f * uiScale;
+    const float controlH = ThemeMetric(ThemeToken::IconButtonSize) * uiScale;
+    m_DesiredSize = Size{
+        padH + iconSz + iconGap + chevW + padH,
+        controlH
+    };
     return m_DesiredSize;
 }
 
@@ -149,32 +159,27 @@ void EditorModeSelector::Arrange(const Rect& allottedRect) {
 }
 
 void EditorModeSelector::Paint(PaintContext& context) {
-    Color bg = m_Pressed ? Color{ 0.14f, 0.14f, 0.14f, 1.0f }
-               : (m_Hovered ? ThemeColor(ThemeToken::HoverBackground) : Color{ 0.18f, 0.18f, 0.18f, 1.0f });
-    context.DrawRoundedRect(m_Geometry, bg, 4.0f);
-    context.DrawRoundedRectOutline(m_Geometry, ThemeColor(ThemeToken::BorderDefault), 1.0f, 4.0f);
-
     const float uiScale = (std::max)(1.0f, WindEffects::Editor::UI::DPIContext::GetScale());
+    m_HoverAnim = WindEffects::Editor::UI::Animator::Damp(
+        m_HoverAnim, m_Hovered ? 1.0f : 0.0f, ThemeMetric(ThemeToken::HoverAnimationDamping));
+
+    const float pressStrength = m_Pressed ? 1.0f : 0.0f;
+    WindEffects::Editor::UI::ToolbarButtonChrome::PaintIconButton(
+        context, m_Geometry, m_HoverAnim, pressStrength, false, 0.0f, uiScale);
+
     const float centerY = m_Geometry.y + m_Geometry.height * 0.5f;
+    const float padH = WindEffects::Editor::UI::ToolbarButtonChrome::HorizontalPad(uiScale);
+    const float iconSize = WindEffects::Editor::UI::ToolbarButtonChrome::IconSize(uiScale);
+    Color iconColor = WindEffects::Editor::UI::ToolbarButtonChrome::ResolveIconColor(
+        m_HoverAnim, pressStrength, false);
 
-    // Mode icon — 16px, vertically centered
-    const float iconSize = kIconSize * uiScale;
-    const float iconY = centerY - iconSize * 0.5f;
-    WindEffects::Editor::UI::IconPainter::DrawIcon(context, m_IconName.c_str(),
-        Point{ m_Geometry.x + kPadding * uiScale, iconY }, iconSize, ThemeColor(ThemeToken::TextPrimary));
+    WindEffects::Editor::UI::IconPainter::DrawIcon(context, WindEffects::Editor::UI::Icons::ToolbarObjectName,
+        Rect{ m_Geometry.x + padH, centerY - iconSize * 0.5f, iconSize, iconSize }, iconColor);
 
-    // Label — 12px text, vertically centered
-    const float textX = m_Geometry.x + (kPadding + kIconSize + kIconGap) * uiScale;
-    const float textSize = 12.0f * uiScale;
-    context.DrawText(m_Label, Point{ textX, centerY - textSize * 0.5f },
-        ThemeColor(ThemeToken::TextPrimary), textSize, true);
-
-    // Chevron — 10px, vertically centered
-    const float chevX = m_Geometry.x + m_Geometry.width - (kPadding + kChevronWidth) * uiScale;
-    const float chevSize = kChevronWidth * uiScale;
+    const float chevSize = 8.0f * uiScale;
+    const float chevX = m_Geometry.x + m_Geometry.width - padH - chevSize;
     WindEffects::Editor::UI::IconPainter::DrawIcon(context, WindEffects::Editor::UI::Icons::ChevronDownName,
-        Rect{ chevX, centerY - chevSize * 0.5f, chevSize, chevSize },
-        ThemeColor(ThemeToken::TextSecondary));
+        Rect{ chevX, centerY - chevSize * 0.5f, chevSize, chevSize }, iconColor);
 }
 
 void EditorModeSelector::OnMouseDown(const MouseEvent& event) {

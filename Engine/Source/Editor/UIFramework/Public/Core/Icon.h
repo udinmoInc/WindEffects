@@ -81,10 +81,14 @@ namespace Icons {
     constexpr const char* OpenName       = "folder-open";
     constexpr const char* NewName        = "file-plus";
     constexpr const char* FolderName     = "folder";
+    constexpr const char* ProjectFolderName = "project-folder";
+    constexpr const char* ToolbarObjectName = "toolbar-object";
+    constexpr const char* ToolbarEnvironmentName = "toolbar-environment";
     constexpr const char* DocumentName   = "file";
     constexpr const char* CodeName       = "code";
     constexpr const char* BuildName      = "wrench";
     constexpr const char* PackageName    = "package";
+    constexpr const char* MonitorName    = "monitor";
     constexpr const char* UndoName       = "undo";
     constexpr const char* RedoName       = "redo";
     constexpr const char* CopyName       = "copy";
@@ -228,6 +232,9 @@ namespace Icons {
 
     inline bool IsKnownIcon(const std::string& name) {
         const std::string resolved = ResolveLucideName(name);
+        if (IconRegistry::Get().HasIcon(name) || IconRegistry::Get().HasIcon(resolved)) {
+            return true;
+        }
         return !resolved.empty() && resolved != "circle-help";
     }
 }

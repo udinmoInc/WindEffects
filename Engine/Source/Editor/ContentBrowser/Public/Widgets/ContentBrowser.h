@@ -119,7 +119,7 @@ private:
     bool m_IsDragging = false;
 
     float m_ScrollOffset = 0.0f;
-    float m_ListRowHeight = 28.0f;
+    float m_ListRowHeight = 22.0f;
 
     int m_FirstVisibleIndex = 0;
     int m_LastVisibleIndex = 0;

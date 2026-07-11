@@ -32,7 +32,7 @@ namespace {
 
     class LogoSlotWidget : public Widget {
     public:
-        static constexpr float kSlotSize = 32.0f;
+        static constexpr float kSlotSize = 28.0f;
 
         explicit LogoSlotWidget(VkDescriptorSet logoSet) : m_LogoSet(logoSet) {}
 
@@ -61,7 +61,7 @@ namespace {
             };
 
             if (m_LogoSet != VK_NULL_HANDLE) {
-                context.DrawTexture(logoRect, m_LogoSet, ThemeColor(ThemeToken::TextSecondary));
+                context.DrawTexture(logoRect, m_LogoSet, ThemeColor(ThemeToken::AccentPrimary));
             } else {
                 IconPainter::DrawIcon(context, Icons::CameraName, logoRect, ThemeColor(ThemeToken::AccentPrimary));
             }
@@ -98,25 +98,19 @@ namespace {
         }
         void Paint(PaintContext& context) override {
             const float uiScale = (std::max)(1.0f, DPIContext::GetScale());
-            m_HoverAnim = Animator::Damp(m_HoverAnim, m_Hovered ? 1.0f : 0.0f, 15.0f);
+            m_HoverAnim = Animator::Damp(m_HoverAnim, m_Hovered ? 1.0f : 0.0f, ThemeMetric(ThemeToken::HoverAnimationDamping));
 
-            const float radius = ThemeMetric(ThemeToken::CornerRadiusSmall) * uiScale;
-            Color bg = Color::Lerp(
-                ThemeColor(ThemeToken::ButtonPrimaryBackground),
-                ThemeColor(ThemeToken::HoverBackground),
-                m_HoverAnim);
-            context.DrawRoundedRect(m_Geometry, bg, radius);
-
+            const float radius = ThemeMetric(ThemeToken::CornerRadiusMedium) * uiScale;
             if (m_HoverAnim > 0.01f) {
-                Color borderCol = Color::Lerp(
-                    Color{ 0.0f, 0.0f, 0.0f, 0.0f },
-                    ThemeColor(ThemeToken::BorderLight),
+                Color hoverBg = Color::Lerp(
+                    ThemeColor(ThemeToken::ButtonPrimaryBackground),
+                    ThemeColor(ThemeToken::HoverBackground),
                     m_HoverAnim);
-                context.DrawRoundedRectOutline(m_Geometry, borderCol, ThemeMetric(ThemeToken::BorderWidth), radius);
+                context.DrawRoundedRect(m_Geometry, hoverBg, radius);
             } else {
-                Color idleBorder = ThemeColor(ThemeToken::BorderDefault);
-                idleBorder.a = 0.45f;
-                context.DrawRoundedRectOutline(m_Geometry, idleBorder, ThemeMetric(ThemeToken::BorderWidth), radius);
+                Color idleBg = ThemeColor(ThemeToken::ButtonPrimaryBackground);
+                idleBg.a = 0.65f;
+                context.DrawRoundedRect(m_Geometry, idleBg, radius);
             }
 
             const float centerY = m_Geometry.y + m_Geometry.height * 0.5f;
@@ -125,7 +119,7 @@ namespace {
 
             IconPainter::DrawIcon(context, Icons::PackageName,
                 Rect{ m_Geometry.x + kPadH * uiScale, centerY - iconSize * 0.5f, iconSize, iconSize },
-                ThemeColor(ThemeToken::TextSecondary));
+                ThemeColor(ThemeToken::IconDefault));
 
             const float textX = m_Geometry.x + (kPadH + kIconSize + kIconGap) * uiScale;
             context.DrawText(kProjectName,
@@ -136,7 +130,7 @@ namespace {
             const float chevX = m_Geometry.x + m_Geometry.width - (kPadH + kChevSize) * uiScale;
             IconPainter::DrawIcon(context, Icons::ChevronDownName,
                 Rect{ chevX, centerY - chevSize * 0.5f, chevSize, chevSize },
-                ThemeColor(ThemeToken::TextSecondary));
+                ThemeColor(ThemeToken::IconDefault));
         }
         bool ShowsPointerCursor(const Point&) const override { return true; }
     private:
@@ -170,9 +164,6 @@ void TitleBar::Construct() {
 
     m_CenterContainer = std::make_shared<HorizontalBox>();
     m_CenterContainer->SetSpacing(0.0f);
-
-    auto projectSelector = std::make_shared<ProjectSelectorWidget>();
-    m_CenterContainer->AddChild(projectSelector);
 
     m_RightContainer = std::make_shared<HorizontalBox>();
     m_RightContainer->SetSpacing(0.0f);
@@ -219,10 +210,8 @@ void TitleBar::Construct() {
     UpdateMaximizeIcon();
 
     AddChild(m_LeftContainer);
-    AddChild(m_CenterContainer);
     AddChild(m_RightContainer);
 
-    m_InteractableWidgets.push_back(projectSelector);
     m_InteractableWidgets.push_back(m_MinimizeWidget);
     m_InteractableWidgets.push_back(m_MaximizeWidget);
     m_InteractableWidgets.push_back(m_CloseWidget);
@@ -274,7 +263,18 @@ void TitleBar::Arrange(const Rect& allottedRect) {
 }
 
 void TitleBar::Paint(PaintContext& context) {
-    context.DrawRect(m_Geometry, ThemeColor(ThemeToken::HeaderBackground));
+    const float uiScale = (std::max)(1.0f, DPIContext::GetScale());
+
+    context.DrawRect(m_Geometry, ThemeColor(ThemeToken::WindowBackground));
+
+    Rect bottomEdge{
+        m_Geometry.x,
+        m_Geometry.y + m_Geometry.height - 1.0f * uiScale,
+        m_Geometry.width,
+        1.0f * uiScale
+    };
+    context.DrawRect(bottomEdge, ThemeColor(ThemeToken::BorderDark));
+
     HorizontalBox::Paint(context);
 }
 

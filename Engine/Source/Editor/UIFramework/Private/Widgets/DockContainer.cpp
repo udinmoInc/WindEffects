@@ -1,4 +1,5 @@
 #include "Widgets/DockContainer.h"
+#include "WindEffects/Editor/UI/Panel/PanelChrome.h"
 #include "Core/PaintContext.h"
 #include "Core/Icon.h"
 #include "Core/DPIContext.h"
@@ -12,7 +13,9 @@ namespace {
 constexpr float kTabDragThreshold = 6.0f;
 }
 
-DockContainer::DockContainer() {}
+DockContainer::DockContainer() {
+    m_HeaderHeight = ThemeMetric(ThemeToken::PanelTabHeight);
+}
 
 void DockContainer::AddPanel(const std::shared_ptr<Panel>& panel) {
     if (!panel) return;
@@ -132,127 +135,72 @@ void DockContainer::Arrange(const Rect& allottedRect) {
     }
 }
 
-float DockContainer::MeasureTabWidth(PaintContext& context, const TabInfo& tabInfo, bool isActive) {
-    const float fontSize = ThemeMetric(ThemeToken::TextSizeTabs) * (std::max)(1.0f, DPIContext::GetScale());
-    const float iconSize = 14.0f * (std::max)(1.0f, DPIContext::GetScale());
-    const float leftPadding = 10.0f * (std::max)(1.0f, DPIContext::GetScale());
-    const float rightPadding = 10.0f * (std::max)(1.0f, DPIContext::GetScale());
-    const float iconTextSpacing = 6.0f * (std::max)(1.0f, DPIContext::GetScale());
-    const float textCloseSpacing = 6.0f * (std::max)(1.0f, DPIContext::GetScale());
-
-    const std::string title = tabInfo.panel->GetTitle();
-    const float textWidth = context.GetTextWidth(title, fontSize, isActive);
-
-    float leadingWidth = 0.0f;
-    if (tabInfo.panel->HasTabBrand()) {
-        leadingWidth = tabInfo.panel->GetTabBrandLogicalSize() + iconTextSpacing;
-    } else if (!tabInfo.panel->GetTabIcon().empty()) {
-        leadingWidth = iconSize + iconTextSpacing;
-    }
-
-    const float closeBtnWidth = (isActive || tabInfo.isHovered) ? iconSize : 0.0f;
-    return leftPadding + leadingWidth + textWidth + textCloseSpacing + closeBtnWidth + rightPadding;
+float DockContainer::MeasureTabWidth(PaintContext& context, const TabInfo& tabInfo, bool isActive, bool flushLeft) {
+    PanelChrome::DockTabDescriptor descriptor{};
+    descriptor.title = tabInfo.panel->GetTitle();
+    descriptor.iconName = tabInfo.panel->GetTabIcon();
+    descriptor.hasBrand = tabInfo.panel->HasTabBrand();
+    descriptor.brandDescriptor = tabInfo.panel->GetTabBrandDescriptor();
+    descriptor.brandLogicalSize = tabInfo.panel->GetTabBrandLogicalSize();
+    const bool showClose = isActive || tabInfo.isHovered;
+    return PanelChrome::MeasureDockTabWidth(context, descriptor, isActive, showClose, flushLeft);
 }
 
 void DockContainer::PaintTab(PaintContext& context, TabInfo& tabInfo, int index, float& currentX) {
     const bool isActive = (index == m_ActiveTabIndex);
+    const bool showClose = isActive || tabInfo.isHovered;
+    const bool flushLeft = (index == 0);
 
-    Color tabBg = isActive ? ThemeColor(ThemeToken::HoverBackground) : ThemeColor(ThemeToken::HeaderBackground);
-    if (!isActive && tabInfo.hoverAnim > 0.001f) {
-        tabBg = Color::Lerp(tabBg, ThemeColor(ThemeToken::HoverBackground), tabInfo.hoverAnim * 0.65f);
-    }
+    PanelChrome::DockTabDescriptor descriptor{};
+    descriptor.title = tabInfo.panel->GetTitle();
+    descriptor.iconName = tabInfo.panel->GetTabIcon();
+    descriptor.hasBrand = tabInfo.panel->HasTabBrand();
+    descriptor.brandDescriptor = tabInfo.panel->GetTabBrandDescriptor();
+    descriptor.brandLogicalSize = tabInfo.panel->GetTabBrandLogicalSize();
 
-    const float tabWidth = MeasureTabWidth(context, tabInfo, isActive);
-    Rect tabRect{ currentX, m_HeaderRect.y + 2.0f, tabWidth, m_HeaderHeight - 2.0f };
-    tabInfo.tabRect = tabRect;
+    const auto layout = PanelChrome::PaintDockTab(
+        context,
+        descriptor,
+        m_HeaderRect,
+        currentX,
+        isActive,
+        tabInfo.hoverAnim,
+        showClose,
+        tabInfo.isCloseHovered,
+        flushLeft);
 
-    const float cornerRadius = ThemeMetric(ThemeToken::CornerRadiusSmall);
-    context.DrawRoundedRect(tabRect, tabBg, cornerRadius);
-
-    if (isActive) {
-        context.DrawRoundedRectOutline(tabRect, ThemeColor(ThemeToken::BorderDefault), 1.0f, cornerRadius);
-        context.DrawRect(Rect{ tabRect.x + 1.0f, tabRect.y, tabRect.width - 2.0f, 1.0f }, ThemeColor(ThemeToken::ActiveTabLine));
-    }
-
-    const float fontSize = ThemeMetric(ThemeToken::TextSizeTabs) * (std::max)(1.0f, DPIContext::GetScale());
-    const float iconSize = 14.0f * (std::max)(1.0f, DPIContext::GetScale());
-    const float leftPadding = 10.0f * (std::max)(1.0f, DPIContext::GetScale());
-    const float rightPadding = 10.0f * (std::max)(1.0f, DPIContext::GetScale());
-    const float iconTextSpacing = 6.0f * (std::max)(1.0f, DPIContext::GetScale());
-    const float textCloseSpacing = 6.0f * (std::max)(1.0f, DPIContext::GetScale());
-
-    float itemX = tabRect.x + leftPadding;
-
-    if (tabInfo.panel->HasTabBrand()) {
-        const float brandSize = tabInfo.panel->GetTabBrandLogicalSize();
-        const float logoY = tabRect.y + (tabRect.height - brandSize) * 0.5f;
-        const auto snap = [](float v) { return std::floor(v + 0.5f); };
-        Rect logoRect{ snap(itemX), snap(logoY), brandSize, brandSize };
-        if (tabInfo.panel->GetTabBrandDescriptor() != VK_NULL_HANDLE) {
-            context.DrawTexture(logoRect, tabInfo.panel->GetTabBrandDescriptor(), ThemeColor(ThemeToken::TextPrimary));
-        }
-        itemX += brandSize + iconTextSpacing;
-    } else if (!tabInfo.panel->GetTabIcon().empty()) {
-        const float pIconY = tabRect.y + (tabRect.height - iconSize) * 0.5f;
-        const Color iconColor = isActive ? ThemeColor(ThemeToken::IconActive) : ThemeColor(ThemeToken::IconDefault);
-        IconPainter::DrawIcon(context, tabInfo.panel->GetTabIcon(), Rect{ itemX, pIconY, iconSize, iconSize }, iconColor);
-        itemX += iconSize + iconTextSpacing;
-    }
-
-    const Color textColor = isActive ? ThemeColor(ThemeToken::TextPrimary) : ThemeColor(ThemeToken::TextSecondary);
-    const float titleY = tabRect.y + (tabRect.height - fontSize) * 0.5f;
-    context.DrawText(tabInfo.panel->GetTitle(), Point{ itemX, titleY }, textColor, fontSize, isActive);
-
-    if (isActive || tabInfo.isHovered) {
-        const float closeX = tabRect.x + tabRect.width - rightPadding - iconSize;
-        const float closeY = tabRect.y + (tabRect.height - iconSize) * 0.5f;
-        tabInfo.closeRect = Rect{ closeX, closeY, iconSize, iconSize };
-
-        const Color closeColor = tabInfo.isCloseHovered ? ThemeColor(ThemeToken::IconHover) : ThemeColor(ThemeToken::IconDefault);
-        IconPainter::DrawIcon(context, Icons::XName, tabInfo.closeRect, closeColor);
-    } else {
-        tabInfo.closeRect = {};
-    }
-
-    currentX += tabWidth + 2.0f;
+    tabInfo.tabRect = layout.tabRect;
+    tabInfo.closeRect = showClose ? layout.closeRect : Rect{};
+    currentX += layout.tabRect.width + PanelChrome::TabGap();
 }
 
 void DockContainer::Paint(PaintContext& context) {
-    bool drawContentBg = true;
-    if (m_ActiveTabIndex >= 0 && m_ActiveTabIndex < static_cast<int>(m_Tabs.size())) {
-        if (m_Tabs[static_cast<size_t>(m_ActiveTabIndex)].panel->IsTransparentBackground()) {
-            drawContentBg = false;
-        }
-    }
+    context.DrawRect(m_HeaderRect, ThemeColor(ThemeToken::WorkspaceBackground));
 
-    if (drawContentBg) {
-        context.DrawRect(m_Geometry, ThemeColor(ThemeToken::PanelBackground));
-    } else if (m_ActiveTabIndex >= 0 && m_ActiveTabIndex < static_cast<int>(m_Tabs.size())) {
-        if (auto toolbar = m_Tabs[static_cast<size_t>(m_ActiveTabIndex)].panel->GetToolbar()) {
-            context.DrawRect(toolbar->GetGeometry(), ThemeColor(ThemeToken::PanelBackground));
-        }
-    }
-
-    context.DrawRect(m_HeaderRect, ThemeColor(ThemeToken::HeaderBackground));
-    context.DrawRect(
-        Rect{ m_HeaderRect.x, m_HeaderRect.y + m_HeaderRect.height - 1.0f, m_HeaderRect.width, 1.0f },
-        ThemeColor(ThemeToken::Separator));
-
-    float currentX = m_HeaderRect.x + 4.0f;
+    float currentX = m_HeaderRect.x;
     for (int i = 0; i < static_cast<int>(m_Tabs.size()); ++i) {
         PaintTab(context, m_Tabs[static_cast<size_t>(i)], i, currentX);
     }
 
+    const Rect bodyRect{
+        m_Geometry.x,
+        m_ContentRect.y,
+        m_Geometry.width,
+        m_Geometry.height - m_HeaderHeight
+    };
+
     if (m_ActiveTabIndex >= 0 && m_ActiveTabIndex < static_cast<int>(m_Tabs.size())) {
         auto activePanel = m_Tabs[static_cast<size_t>(m_ActiveTabIndex)].panel;
-        if (auto toolbar = activePanel->GetToolbar()) {
-            toolbar->Paint(context);
 
-            Rect tbRect = toolbar->GetGeometry();
-            context.DrawRect(
-                Rect{ tbRect.x, tbRect.y + tbRect.height - 1.0f, tbRect.width, 1.0f },
-                ThemeColor(ThemeToken::Separator));
+        if (!activePanel->IsTransparentBackground()) {
+            PanelChrome::PaintPanelSurface(context, bodyRect);
         }
+
+        if (auto toolbar = activePanel->GetToolbar()) {
+            PanelChrome::PaintToolbarRegion(context, toolbar->GetGeometry());
+            toolbar->Paint(context);
+        }
+
         if (auto content = activePanel->GetContent()) {
             content->Paint(context);
         }

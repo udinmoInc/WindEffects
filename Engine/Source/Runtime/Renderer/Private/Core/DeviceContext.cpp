@@ -278,4 +278,11 @@ void DeviceContext::CreateLogicalDevice() {
     vkGetDeviceQueue(m_Device, m_GraphicsQueueFamily, 0, &m_GraphicsQueue);
 }
 
+VkInstance DeviceContext::GetInstance() const { return m_Instance; }
+VkPhysicalDevice DeviceContext::GetPhysicalDevice() const { return m_PhysicalDevice; }
+VkDevice DeviceContext::GetDevice() const { return m_Device; }
+
+uint32_t DeviceContext::GetGraphicsQueueFamily() const { return m_GraphicsQueueFamily; }
+VkQueue DeviceContext::GetGraphicsQueue() const { return m_GraphicsQueue; }
+
 } // namespace we::runtime::renderer

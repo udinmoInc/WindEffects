@@ -1,4 +1,5 @@
 #include "Widgets/ContentBrowserToolbar.h"
+#include "WindEffects/Editor/UI/Panel/PanelChrome.h"
 #include "Widgets/SearchBox.h"
 #include "Widgets/ContentBrowser.h"
 #include "Core/PaintContext.h"
@@ -213,7 +214,7 @@ void ContentBrowserToolbarControls::InitializeChildren() {
 }
 
 Size ContentBrowserToolbarControls::Measure(const Size& availableSize) {
-    m_DesiredSize = Size{ availableSize.width, ThemeMetric(ThemeToken::ToolbarHeight) };
+    m_DesiredSize = Size{ availableSize.width, ThemeMetric(ThemeToken::PanelToolbarHeight) };
     return m_DesiredSize;
 }
 
@@ -286,20 +287,8 @@ void ContentBrowserToolbarControls::Arrange(const Rect& allottedRect) {
 }
 
 void ContentBrowserToolbarControls::Paint(PaintContext& context) {
-    context.DrawRect(m_Geometry, ThemeColor(ThemeToken::PanelBackground));
+    PanelChrome::PaintToolbarRegion(context, m_Geometry);
 
-    context.DrawRect(
-        Rect{ m_Geometry.x, m_Geometry.y, m_Geometry.width, ThemeMetric(ThemeToken::BorderWidth) },
-        ThemeColor(ThemeToken::BorderLight));
-
-    context.DrawRect(
-        Rect{ m_Geometry.x, m_Geometry.y + m_Geometry.height - ThemeMetric(ThemeToken::BorderWidth), m_Geometry.width, ThemeMetric(ThemeToken::BorderWidth) },
-        ThemeColor(ThemeToken::Separator));
-
-    context.DrawRect(
-        Rect{ m_Geometry.x, m_Geometry.y + m_Geometry.height, m_Geometry.width, ThemeMetric(ThemeToken::Space1) },
-        ThemeColor(ThemeToken::BorderDark));
-    
     for (const auto& child : m_Children) {
         if (child->IsVisible()) child->Paint(context);
     }

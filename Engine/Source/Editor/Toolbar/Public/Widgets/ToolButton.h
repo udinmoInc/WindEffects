@@ -18,7 +18,8 @@ enum class ToolButtonStyle {
     WindowClose,
     TitleBarTool,
     ToolbarIconOnly,
-    ToolbarInline    // Transparent inline item – icon + label + chevron, hover only
+    ToolbarInline,    // Icon + optional label + chevron
+    ToolbarLabeled    // Icon above text label (transform tools)
 };
 
 // Icon and text button for toolbar use
@@ -37,6 +38,8 @@ public:
     void OnMouseWheel(const MouseEvent& event) override;
     bool ShowsPointerCursor(const Point& position) const override { return m_Geometry.Contains(position); }
 
+    const std::string& GetIconName() const { return m_IconName; }
+    const std::string& GetTooltip() const { return m_Tooltip; }
     void SetIcon(const std::string& iconName) { m_IconName = iconName; }
     void SetLabel(const std::string& label) { m_Label = label; }
     const std::string& GetLabel() const { return m_Label; }
