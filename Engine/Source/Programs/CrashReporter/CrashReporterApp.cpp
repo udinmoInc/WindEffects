@@ -4,8 +4,8 @@
 #include "Runtime/Renderer/Public/Renderer/Renderer.h"
 #include "Runtime/Renderer/Public/Shader/ShaderLibrary.h"
 #include "Runtime/Renderer/Public/Graph/RenderGraph.h"
-#include "Editor/Application/Public/Rendering/OverlayRenderer.h"
-#include "Editor/Application/Public/Rendering/OverlayRenderContext.h"
+#include "Rendering/OverlayRenderer.h"
+#include "Rendering/OverlayRenderContext.h"
 #include "Core/EventSystem.h"
 #include "Runtime/Core/AssetRegistry.h"
 #include "Core/Logger.h"
@@ -63,7 +63,7 @@ CrashReporterApp::CrashReporterApp(SDL_Window* window) : m_Window(window) {
     HE_INFO("[CrashReporterApp] Default editor assets loaded");
 
     HE_INFO("[CrashReporterApp] Creating OverlayRenderer");
-    m_UIRenderer = std::make_unique<we::UI::OverlayRenderer>();
+    m_UIRenderer = std::make_unique<WindEffects::Editor::UI::OverlayRenderer>();
     HE_INFO("[CrashReporterApp] Initializing OverlayRenderer");
     m_UIRenderer->Init(
         m_Context->GetPhysicalDevice(),
@@ -77,7 +77,7 @@ CrashReporterApp::CrashReporterApp(SDL_Window* window) : m_Window(window) {
     HE_INFO("[CrashReporterApp] OverlayRenderer initialized");
     
     HE_INFO("[CrashReporterApp] Creating EventSystem");
-    m_UIEventSystem = std::make_shared<we::UI::EventSystem>();
+    m_UIEventSystem = std::make_shared<WindEffects::Editor::UI::EventSystem>();
     HE_INFO("[CrashReporterApp] EventSystem created");
 
     HE_INFO("[CrashReporterApp] Creating CrashReporterUI");
@@ -118,22 +118,22 @@ void CrashReporterApp::MainLoop() {
                 event.type == SDL_EVENT_MOUSE_BUTTON_UP ||
                 event.type == SDL_EVENT_MOUSE_WHEEL) {
 
-                we::UI::MouseEvent mouseEvent{};
-                mouseEvent.position = we::UI::Point{ static_cast<float>(event.motion.x), static_cast<float>(event.motion.y) };
+                WindEffects::Editor::UI::MouseEvent mouseEvent{};
+                mouseEvent.position = WindEffects::Editor::UI::Point{ static_cast<float>(event.motion.x), static_cast<float>(event.motion.y) };
 
                 if (event.type == SDL_EVENT_MOUSE_MOTION) {
-                    mouseEvent.type = we::UI::MouseEventType::MouseMove;
+                    mouseEvent.type = WindEffects::Editor::UI::MouseEventType::MouseMove;
                 } else if (event.type == SDL_EVENT_MOUSE_BUTTON_DOWN || event.type == SDL_EVENT_MOUSE_BUTTON_UP) {
                     mouseEvent.type = (event.type == SDL_EVENT_MOUSE_BUTTON_DOWN)
-                        ? we::UI::MouseEventType::MouseDown
-                        : we::UI::MouseEventType::MouseUp;
-                    mouseEvent.position = we::UI::Point{ static_cast<float>(event.button.x), static_cast<float>(event.button.y) };
+                        ? WindEffects::Editor::UI::MouseEventType::MouseDown
+                        : WindEffects::Editor::UI::MouseEventType::MouseUp;
+                    mouseEvent.position = WindEffects::Editor::UI::Point{ static_cast<float>(event.button.x), static_cast<float>(event.button.y) };
 
-                    if (event.button.button == SDL_BUTTON_LEFT)   mouseEvent.button = we::UI::MouseButton::Left;
-                    else if (event.button.button == SDL_BUTTON_RIGHT)  mouseEvent.button = we::UI::MouseButton::Right;
-                    else if (event.button.button == SDL_BUTTON_MIDDLE) mouseEvent.button = we::UI::MouseButton::Middle;
+                    if (event.button.button == SDL_BUTTON_LEFT)   mouseEvent.button = WindEffects::Editor::UI::MouseButton::Left;
+                    else if (event.button.button == SDL_BUTTON_RIGHT)  mouseEvent.button = WindEffects::Editor::UI::MouseButton::Right;
+                    else if (event.button.button == SDL_BUTTON_MIDDLE) mouseEvent.button = WindEffects::Editor::UI::MouseButton::Middle;
                 } else if (event.type == SDL_EVENT_MOUSE_WHEEL) {
-                    mouseEvent.type = we::UI::MouseEventType::MouseWheel;
+                    mouseEvent.type = WindEffects::Editor::UI::MouseEventType::MouseWheel;
                     mouseEvent.wheelDeltaX = static_cast<float>(event.wheel.x);
                     mouseEvent.wheelDeltaY = static_cast<float>(event.wheel.y);
                 }
@@ -145,10 +145,10 @@ void CrashReporterApp::MainLoop() {
 
                 m_UIEventSystem->ProcessMouseEvent(mouseEvent);
             } else if (event.type == SDL_EVENT_KEY_DOWN || event.type == SDL_EVENT_KEY_UP) {
-                we::UI::KeyEvent keyEvent{};
+                WindEffects::Editor::UI::KeyEvent keyEvent{};
                 keyEvent.type = (event.type == SDL_EVENT_KEY_DOWN)
-                    ? we::UI::KeyEventType::KeyDown
-                    : we::UI::KeyEventType::KeyUp;
+                    ? WindEffects::Editor::UI::KeyEventType::KeyDown
+                    : WindEffects::Editor::UI::KeyEventType::KeyUp;
                 keyEvent.keycode = event.key.key;
 
                 const SDL_Keymod mods = event.key.mod;

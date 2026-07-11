@@ -35,7 +35,7 @@ int DropdownMenu::HitItemAt(const Point& pos) const {
     }
     float y = m_Geometry.y + m_PaddingY;
     for (size_t i = 0; i < m_Items.size(); ++i) {
-        const Rect itemRect{ m_Geometry.x + 2.0f, y, m_Geometry.width - 4.0f, m_ItemHeight };
+        const Rect itemRect{ m_Geometry.x + 1.0f, y, m_Geometry.width - 2.0f, m_ItemHeight };
         if (itemRect.Contains(pos)) {
             return static_cast<int>(i);
         }
@@ -45,29 +45,26 @@ int DropdownMenu::HitItemAt(const Point& pos) const {
 }
 
 void DropdownMenu::Paint(PaintContext& context) {
-    // Background and border
-    context.DrawRoundedRect(m_Geometry, ThemeColor(ThemeToken::PanelBackground), 4.0f);
-    context.DrawRoundedRectOutline(m_Geometry, ThemeColor(ThemeToken::BorderDefault), 1.0f, 4.0f);
-    
+    context.DrawRoundedRect(m_Geometry, ThemeColor(ThemeToken::PopupBackground), ThemeMetric(ThemeToken::CornerRadiusSmall));
+
     float y = m_Geometry.y + m_PaddingY;
-    
+
     for (size_t i = 0; i < m_Items.size(); ++i) {
         const auto& item = m_Items[i];
-        Rect itemRect{ m_Geometry.x + 2.0f, y, m_Geometry.width - 4.0f, m_ItemHeight };
-        
-        // Hover
+        Rect itemRect{ m_Geometry.x + 1.0f, y, m_Geometry.width - 2.0f, m_ItemHeight };
+
         if (m_HoveredItem == (int)i) {
-            context.DrawRoundedRect(itemRect, ThemeColor(ThemeToken::HoverBackground), 2.0f);
+            context.DrawRect(itemRect, ThemeColor(ThemeToken::HoverBackground));
         }
-        
-        // Text
-        float textY = itemRect.y + (m_ItemHeight - ThemeMetric(ThemeToken::TextSizeMenu)) / 2.0f;
-        context.DrawText(item->label, Point{ itemRect.x + m_PaddingX, textY }, ThemeColor(ThemeToken::TextPrimary), ThemeMetric(ThemeToken::TextSizeMenu));
+
+        const float textSize = ThemeMetric(ThemeToken::TextSizeSmall);
+        float textY = itemRect.y + (m_ItemHeight - textSize) * 0.5f;
+        context.DrawText(item->label, Point{ itemRect.x + m_PaddingX, textY }, ThemeColor(ThemeToken::TextPrimary), textSize);
         
         if (!item->shortcut.empty()) {
-            float shortcutWidth = item->shortcut.length() * ThemeMetric(ThemeToken::TextSizeMenu) * 0.6f;
+            float shortcutWidth = item->shortcut.length() * textSize * 0.55f;
             float shortcutX = itemRect.x + itemRect.width - m_PaddingX - shortcutWidth;
-            context.DrawText(item->shortcut, Point{ shortcutX, textY }, ThemeColor(ThemeToken::TextSecondary), ThemeMetric(ThemeToken::TextSizeMenu));
+            context.DrawText(item->shortcut, Point{ shortcutX, textY }, ThemeColor(ThemeToken::TextSecondary), textSize);
         }
         
         y += m_ItemHeight;

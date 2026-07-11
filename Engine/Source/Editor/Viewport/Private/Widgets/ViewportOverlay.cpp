@@ -30,7 +30,7 @@ void ViewportOverlay::Arrange(const Rect& allottedRect) {
 void ViewportOverlay::Paint(PaintContext& context) {
     // Draw stats panel (top-left)
     if (m_StatsVisible) {
-        context.DrawRoundedRect(m_StatsRect, Color{0.1f, 0.1f, 0.1f, 0.7f}, 4.0f);
+        context.DrawRoundedRect(m_StatsRect, ThemeColor(ThemeToken::GizmoBackground), 4.0f);
         
         float y = m_StatsRect.y + m_StatsPadding;
         float lineHeight = 14.0f;
@@ -76,7 +76,7 @@ void ViewportOverlay::Paint(PaintContext& context) {
                 m_Stats.atmosphereStatus.c_str(),
                 Point{ m_StatsRect.x + m_StatsPadding, y },
                 m_Stats.atmosphereStatus.find("MISSING") != std::string::npos
-                    ? Color{ 1.0f, 0.35f, 0.35f, 1.0f }
+                    ? ThemeColor(ThemeToken::ErrorForeground)
                     : ThemeColor(ThemeToken::TextSecondary),
                 12.0f);
             y += lineHeight;
@@ -107,7 +107,7 @@ void ViewportOverlay::Paint(PaintContext& context) {
     
     // Draw navigation controls (bottom-right)
     if (m_NavigationVisible) {
-        context.DrawRoundedRect(m_NavigationRect, Color{0.1f, 0.1f, 0.1f, 0.7f}, 4.0f);
+        context.DrawRoundedRect(m_NavigationRect, ThemeColor(ThemeToken::GizmoBackground), 4.0f);
         
         for (const auto& btn : m_NavButtons) {
             IconPainter::DrawIcon(context, btn.iconName, btn.geometry, ThemeColor(ThemeToken::TextPrimary));
@@ -240,7 +240,7 @@ void NavigationControls::Arrange(const Rect& allottedRect) {
 }
 
 void NavigationControls::Paint(PaintContext& context) {
-    context.DrawRoundedRect(m_Geometry, Color{0.1f, 0.1f, 0.1f, 0.7f}, 4.0f);
+    context.DrawRoundedRect(m_Geometry, ThemeColor(ThemeToken::GizmoBackground), 4.0f);
     
     for (const auto& btn : m_Buttons) {
         Color iconColor = btn.hovered ? ThemeColor(ThemeToken::AccentPrimary) : ThemeColor(ThemeToken::TextPrimary);

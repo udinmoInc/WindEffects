@@ -17,6 +17,9 @@ void IconRegistry::InitializeDefaultIcons() {
     RegisterIcon("search", "Assets/Editor/Ic_Search.svg");
     RegisterIcon("settings", "Assets/Editor/Ic_Settings.svg");
     RegisterIcon("save", "Assets/Editor/Ic_Save.svg");
+    RegisterIcon("project-folder", "Assets/Editor/Folder.svg");
+    RegisterIcon("toolbar-object", "Assets/Editor/Ic_Object.svg");
+    RegisterIcon("toolbar-environment", "Assets/Editor/Ic_Environment.svg");
 }
 
 void IconPainter::DrawIcon(PaintContext& context, const std::string& iconName,

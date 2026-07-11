@@ -1,5 +1,6 @@
 #include "Layout/ScrollLayout.h"
 #include "Core/PaintContext.h"
+#include "WindEffects/Editor/UI/Theming/ThemeAccess.h"
 #include <algorithm>
 
 namespace WindEffects::Editor::UI {
@@ -64,7 +65,7 @@ void ScrollLayout::Paint(PaintContext& context) {
             float trackH = m_Geometry.height;
 
             // Draw track (very dark)
-            context.DrawRect(Rect{ trackX, trackY, trackW, trackH }, Color{ 0.08f, 0.08f, 0.10f, 1.0f });
+            context.DrawRect(Rect{ trackX, trackY, trackW, trackH }, ResolveThemeColor(ThemeToken::ScrollbarTrack));
 
             // Draw thumb
             float ratio = m_Geometry.height / contentHeight;
@@ -73,7 +74,7 @@ void ScrollLayout::Paint(PaintContext& context) {
             float scrollRatio = (maxScroll > 0.0f) ? (m_ScrollOffset / maxScroll) : 0.0f;
             float thumbY = trackY + (trackH - thumbH) * scrollRatio;
 
-            context.DrawRect(Rect{ trackX, thumbY, trackW, thumbH }, Color{ 0.28f, 0.28f, 0.32f, 1.0f }, 2.0f);
+            context.DrawRect(Rect{ trackX, thumbY, trackW, thumbH }, ResolveThemeColor(ThemeToken::ScrollbarThumb), 2.0f);
         }
     }
 }

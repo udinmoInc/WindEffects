@@ -11,7 +11,7 @@ namespace WindEffects::Editor::UI {
 
 class ExplorerPanelHeader : public Widget {
 public:
-    static float DefaultHeight() { return ResolveThemeMetric(ThemeToken::PanelHeaderHeight); }
+    static float DefaultHeight() { return ResolveThemeMetric(ThemeToken::PanelToolbarHeight); }
     static float LogoLogicalSize() { return ResolveThemeMetric(ThemeToken::IconSizeToolbar); }
 
     using FilterOptions = TreeView::FilterOptions;

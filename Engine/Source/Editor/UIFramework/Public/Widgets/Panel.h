@@ -87,6 +87,9 @@ private:
     bool m_Collapsible = true;
     bool m_HeaderHovered = false;
     bool m_OptionsMenuHovered = false;
+    bool m_OptionsMenuPressed = false;
+    int m_HoveredActionIndex = -1;
+    int m_PressedActionIndex = -1;
     bool m_TransparentBackground = false;
 
     float m_HeaderHeight = 28.0f; // Thin header standard

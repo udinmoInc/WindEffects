@@ -11,10 +11,10 @@ namespace WindEffects::Editor::UI { class MenuBar; class ToolButton; }
 
 namespace WindEffects::Editor::UI {
 
-inline constexpr float kTitleBarHeight          = 40.0f;
-inline constexpr float kTitleBarLogoDisplaySize = 20.0f;
-inline constexpr float kHeaderControlHeight     = 28.0f;
-inline constexpr float kWindowControlWidth      = 46.0f;
+inline constexpr float kTitleBarHeight          = 34.0f;
+inline constexpr float kTitleBarLogoDisplaySize = 18.0f;
+inline constexpr float kHeaderControlHeight     = 24.0f;
+inline constexpr float kWindowControlWidth      = 40.0f;
 inline constexpr float kWindowControlCount      = 3.0f;
 
 class MAINFRAME_API TitleBar : public HorizontalBox {

@@ -1,10 +1,14 @@
 #pragma once
 
+#pragma warning(disable: 4251)
+
 #include <volk.h>
 #include <SDL3/SDL.h>
 #include <vector>
 #include <string>
 #include <memory>
+
+#include "Renderer/Export.h"
 
 namespace we::runtime::renderer {
 
@@ -14,7 +18,7 @@ struct DeviceContextConfig {
     bool enableValidationLayers = false;
 };
 
-class DeviceContext {
+class RENDERER_API DeviceContext {
 public:
     DeviceContext() = default;
     ~DeviceContext();
@@ -25,12 +29,12 @@ public:
     void Init(const DeviceContextConfig& config);
     void Shutdown();
 
-    VkInstance GetInstance() const { return m_Instance; }
-    VkPhysicalDevice GetPhysicalDevice() const { return m_PhysicalDevice; }
-    VkDevice GetDevice() const { return m_Device; }
+    VkInstance GetInstance() const;
+    VkPhysicalDevice GetPhysicalDevice() const;
+    VkDevice GetDevice() const;
 
-    uint32_t GetGraphicsQueueFamily() const { return m_GraphicsQueueFamily; }
-    VkQueue GetGraphicsQueue() const { return m_GraphicsQueue; }
+    uint32_t GetGraphicsQueueFamily() const;
+    VkQueue GetGraphicsQueue() const;
 
 private:
     void InitVolk();

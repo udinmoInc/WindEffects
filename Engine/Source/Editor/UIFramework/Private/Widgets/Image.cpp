@@ -1,5 +1,6 @@
 #include "Widgets/Image.h"
 #include "Core/PaintContext.h"
+#include "WindEffects/Editor/UI/Theming/ThemeAccess.h"
 
 namespace WindEffects::Editor::UI {
 
@@ -26,7 +27,7 @@ void Image::Paint(PaintContext& context) {
         context.DrawTexture(m_Geometry, m_TextureId, m_TintColor, m_TintBottom);
     } else {
         // Placeholder checkboard or solid color
-        context.DrawRect(m_Geometry, Color{ 0.15f, 0.15f, 0.18f, 1.0f });
+        context.DrawRect(m_Geometry, ResolveThemeColor(ThemeToken::DisabledBackground));
     }
 }
 

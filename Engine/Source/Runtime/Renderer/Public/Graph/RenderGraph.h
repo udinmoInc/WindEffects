@@ -1,5 +1,7 @@
 #pragma once
 
+#pragma warning(disable: 4251)
+
 #include <memory>
 
 #include "Graph/RenderPass.h"
@@ -7,14 +9,19 @@
 #include <memory>
 #include <volk.h>
 
+#include "Renderer/Export.h"
+
 namespace we::runtime::renderer {
 
 class Renderer;
 
-class RenderGraph {
+class RENDERER_API RenderGraph {
 public:
     RenderGraph() = default;
     ~RenderGraph();
+
+    RenderGraph(const RenderGraph&) = delete;
+    RenderGraph& operator=(const RenderGraph&) = delete;
 
     void Init(Renderer* renderer);
     void Shutdown();

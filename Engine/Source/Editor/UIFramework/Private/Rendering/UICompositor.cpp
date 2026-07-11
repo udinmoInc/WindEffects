@@ -1,5 +1,6 @@
 #include "Rendering/UICompositor.h"
 #include "Core/Logger.h"
+#include "WindEffects/Editor/UI/Theming/ThemeAccess.h"
 
 namespace WindEffects::Editor::UI {
 
@@ -52,7 +53,8 @@ void UICompositor::BeginComposite(VkCommandBuffer cmd, VkImageView swapchainView
     colorAttachment.imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
     colorAttachment.loadOp = loadOp;
     colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-    colorAttachment.clearValue.color = {{0.09f, 0.09f, 0.09f, 1.0f}};
+    const Color windowBg = ResolveThemeColor(ThemeToken::WindowBackground);
+    colorAttachment.clearValue.color = {{windowBg.r, windowBg.g, windowBg.b, windowBg.a}};
     
     VkRenderingInfo renderingInfo{};
     renderingInfo.sType = VK_STRUCTURE_TYPE_RENDERING_INFO;

@@ -54,7 +54,7 @@ private:
         float hoverAnim = 0.0f;
     };
 
-    float MeasureTabWidth(PaintContext& context, const TabInfo& tabInfo, bool isActive);
+    float MeasureTabWidth(PaintContext& context, const TabInfo& tabInfo, bool isActive, bool flushLeft = false);
     void PaintTab(PaintContext& context, TabInfo& tabInfo, int index, float& currentX);
 
     std::vector<TabInfo> m_Tabs;

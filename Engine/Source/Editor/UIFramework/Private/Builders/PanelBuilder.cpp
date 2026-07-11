@@ -1,10 +1,12 @@
 #include "WindEffects/Editor/UI/Builders/PanelBuilder.h"
+#include "WindEffects/Editor/UI/Theming/ThemeAccess.h"
+#include "WindEffects/Editor/UI/Theming/ThemeToken.h"
 
 namespace WindEffects::Editor::UI {
 
 PanelBuilder::PanelBuilder(std::string_view title)
     : m_Panel(std::make_shared<Panel>(std::string(title))) {
-    m_Panel->SetHeaderHeight(30.0f);
+    m_Panel->SetHeaderHeight(ResolveThemeMetric(ThemeToken::PanelTabHeight));
 }
 
 PanelBuilder& PanelBuilder::TabIcon(std::string_view iconName) {
@@ -44,7 +46,12 @@ PanelBuilder& PanelBuilder::Toolbar(std::shared_ptr<Widget> toolbar) {
 
 PanelBuilder& PanelBuilder::ToolbarBox(std::function<void(HorizontalBox&)> build) {
     auto toolbarBox = std::make_shared<HorizontalBox>();
-    toolbarBox->SetPadding(Margin{8.0f, 4.0f, 8.0f, 4.0f});
+    toolbarBox->SetPadding(Margin{
+        ResolveThemeMetric(ThemeToken::Space3),
+        ResolveThemeMetric(ThemeToken::Space1),
+        ResolveThemeMetric(ThemeToken::Space3),
+        ResolveThemeMetric(ThemeToken::Space1)
+    });
     if (build) {
         build(*toolbarBox);
     }

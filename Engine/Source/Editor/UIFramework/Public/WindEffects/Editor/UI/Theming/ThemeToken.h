@@ -19,6 +19,11 @@ enum class ThemeToken : uint32_t {
     TabBackground,
     PopupBackground,
     ContentBrowserBackground,
+    PanelContentBackground,
+    PanelToolbarBackground,
+    PanelTabActiveBackground,
+    PanelTabInactiveBackground,
+    DockAreaBackground,
 
     BorderLight,
     BorderDark,
@@ -86,6 +91,15 @@ enum class ThemeToken : uint32_t {
     DragGhostBackground,
     TooltipBackground,
 
+    DialogBackground,
+
+    ScrollbarTrack,
+    ScrollbarThumb,
+    ScrollbarThumbHover,
+
+    PlayForeground,
+    ShadowPopup,
+
     CornerRadiusSmall,
     CornerRadiusMedium,
     CornerRadiusLarge,
@@ -101,10 +115,15 @@ enum class ThemeToken : uint32_t {
     TextSizeHeader,
     TextSizeBody,
     TextSizeSmall,
+    TextSizeCategory,
 
     BorderWidth,
 
     PanelHeaderHeight,
+    PanelTabHeight,
+    PanelToolbarHeight,
+    ListRowHeight,
+    CategoryHeaderHeight,
     TitleBarHeight,
     HeaderControlHeight,
     WindowControlWidth,

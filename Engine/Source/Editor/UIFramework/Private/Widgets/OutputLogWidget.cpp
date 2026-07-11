@@ -1,4 +1,5 @@
 #include "Widgets/OutputLogWidget.h"
+#include "WindEffects/Editor/UI/Panel/PanelChrome.h"
 #include "Core/PaintContext.h"
 #include "WindEffects/Editor/UI/Theming/ThemeToken.h"
 
@@ -86,7 +87,7 @@ void OutputLogWidget::RebuildVisibleLinesUnlocked() {
         m_VisibleLevels.push_back(record.level);
     }
     if (m_AutoScroll) {
-        const float contentHeight = static_cast<float>(m_VisibleLines.size()) * 14.0f;
+        const float contentHeight = static_cast<float>(m_VisibleLines.size()) * PanelChrome::ListRowHeight();
         m_ScrollOffset = std::max(0.0f, contentHeight - m_Geometry.height);
     }
 }
@@ -106,10 +107,10 @@ void OutputLogWidget::Paint(PaintContext& context) {
         geometry = m_Geometry;
     }
 
-    context.DrawRect(geometry, ThemeColor(ThemeToken::PanelBackground));
+    PanelChrome::PaintContentRegion(context, geometry);
 
-    const float lineHeight = ThemeMetric(ThemeToken::TextSizeCaption);
-    float y = geometry.y + ThemeMetric(ThemeToken::Space1) - scrollOffset;
+    const float lineHeight = PanelChrome::ListRowHeight();
+    float y = geometry.y - scrollOffset;
     const float maxY = geometry.y + geometry.height;
 
     for (size_t i = 0; i < visibleLines.size(); ++i) {
@@ -120,7 +121,7 @@ void OutputLogWidget::Paint(PaintContext& context) {
         if (y > maxY) break;
         context.DrawText(
             visibleLines[i],
-            Point{ geometry.x + 6.0f, y },
+            Point{ geometry.x + PanelChrome::PanelPaddingH(), y + (lineHeight - ThemeMetric(ThemeToken::TextSizeCaption)) * 0.5f },
             LevelColor(visibleLevels[i]),
             ThemeMetric(ThemeToken::TextSizeCaption));
         y += lineHeight;

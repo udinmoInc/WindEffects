@@ -6,15 +6,15 @@
 
 namespace we::programs::crashreporter {
 
-class CrashReporterUI : public we::UI::Widget {
+class CrashReporterUI : public WindEffects::Editor::UI::Widget {
 public:
     CrashReporterUI();
     ~CrashReporterUI() override = default;
 
     void Construct();
-    void Paint(we::UI::PaintContext& context) override;
-    void Arrange(const we::UI::Rect& allottedRect) override;
-    we::UI::Size Measure(const we::UI::Size& availableSize) override;
+    void Paint(WindEffects::Editor::UI::PaintContext& context) override;
+    void Arrange(const WindEffects::Editor::UI::Rect& allottedRect) override;
+    WindEffects::Editor::UI::Size Measure(const WindEffects::Editor::UI::Size& availableSize) override;
 
 private:
     void LoadCrashData();
@@ -38,7 +38,7 @@ private:
     bool m_IncludeSystemInfo = true;
     std::string m_UserComments;
 
-    std::shared_ptr<we::UI::Widget> m_RootLayout;
+    std::shared_ptr<WindEffects::Editor::UI::Widget> m_RootLayout;
 };
 
 } // namespace we::programs::crashreporter

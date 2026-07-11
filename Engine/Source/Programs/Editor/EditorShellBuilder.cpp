@@ -217,38 +217,55 @@ EditorShellResult EditorShellBuilder::Build(
     auto toolbar = std::make_shared<Toolbar>();
     toolbar->SetContext(widgetContext);
     toolbar->SetHeight(toolbarStyle.height > 0.0f ? toolbarStyle.height : ResolveThemeMetric(ThemeToken::ToolbarHeight) * uiScale);
-    toolbar->SetLeftInset(style.Scaled(ResolveThemeMetric(ThemeToken::Space4)));
+    toolbar->SetLeftInset(style.Scaled(ResolveThemeMetric(ThemeToken::Space3)));
     toolbar->SetRightInset(style.Scaled(ResolveThemeMetric(ThemeToken::WindowControlWidth) * kWindowControlCount));
     toolbar->SetEdgePadding(style.Scaled(ResolveThemeMetric(ThemeToken::Space2)));
     toolbar->SetIconSize(toolbarStyle.iconSize > 0.0f ? toolbarStyle.iconSize : ResolveThemeMetric(ThemeToken::IconSizeToolbar) * uiScale);
+
+    // Actor / object mode selector
     toolbar->AddWidget(std::make_shared<we::programs::editor::EditorModeSelector>());
     toolbar->AddSeparator();
+
+    // File operations
     toolbar->AddTool(Icons::NewName, "", deps.onCreateNewLevel ? deps.onCreateNewLevel : [](){}, "New Level (Ctrl+N)");
     toolbar->AddTool(Icons::OpenName, "", [](){}, "Open (Ctrl+O)");
     toolbar->AddTool(Icons::SaveName, "", [](){}, "Save (Ctrl+S)");
+    toolbar->AddTool(Icons::SaveAllName, "", [](){}, "Save All");
     toolbar->AddSeparator();
-    toolbar->AddTool(Icons::CursorName, "", [](){}, "Select (Q)");
-    toolbar->AddTool(Icons::MoveName, "", [](){}, "Move (W)");
-    toolbar->AddTool(Icons::RotateName, "", [](){}, "Rotate (E)");
-    toolbar->AddTool(Icons::ScaleName, "", [](){}, "Scale (R)");
+
+    // Transform tools (icon + label)
+    auto selectBtn = toolbar->AddTool(Icons::CursorName, "Select", [](){}, "Select (Q)");
+    auto moveBtn = toolbar->AddTool(Icons::MoveName, "Move", [](){}, "Move (W)");
+    auto rotateBtn = toolbar->AddTool(Icons::RotateName, "Rotate", [](){}, "Rotate (E)");
+    auto scaleBtn = toolbar->AddTool(Icons::ScaleName, "Scale", [](){}, "Scale (R)");
+    selectBtn->SetButtonStyle(ToolButtonStyle::ToolbarLabeled);
+    moveBtn->SetButtonStyle(ToolButtonStyle::ToolbarLabeled);
+    rotateBtn->SetButtonStyle(ToolButtonStyle::ToolbarLabeled);
+    scaleBtn->SetButtonStyle(ToolButtonStyle::ToolbarLabeled);
     toolbar->AddTool(Icons::SnapName, "", [](){}, "Snap");
     toolbar->AddSeparator();
+
+    // History
     toolbar->AddTool(Icons::UndoName, "", [](){}, "Undo (Ctrl+Z)");
     toolbar->AddTool(Icons::RedoName, "", [](){}, "Redo (Ctrl+Y)");
     toolbar->AddSeparator();
+
     toolbar->AddWidget(we::editor::environment::CreateEnvironmentToolbarMenu());
 
+    // Transport (centered)
     auto playBtn = toolbar->AddTool(Icons::PlayName, "", [](){}, "Play (Alt+P)", false, ToolbarAlignment::Center);
     auto pauseBtn = toolbar->AddTool(Icons::PauseName, "", [](){}, "Pause (Alt+P)", false, ToolbarAlignment::Center);
     auto stopBtn = toolbar->AddTool(Icons::StopName, "", [](){}, "Stop", false, ToolbarAlignment::Center);
-    playBtn->SetButtonStyle(ToolButtonStyle::TransportButton);
-    pauseBtn->SetButtonStyle(ToolButtonStyle::TransportButton);
-    stopBtn->SetButtonStyle(ToolButtonStyle::TransportButton);
-    auto platformBtn = toolbar->AddTool(Icons::PackageName, "Platform", [](){}, "Platform", false, ToolbarAlignment::Right);
-    platformBtn->SetButtonStyle(ToolButtonStyle::ToolbarInline);
-    platformBtn->SetIsDropdown(true);
-    toolbar->AddTool(Icons::SettingsName, "Settings", [](){ we::programs::editor::ShowViewportNavigationPreferences(); }, "Editor Settings", false, ToolbarAlignment::Right)
-        ->SetButtonStyle(ToolButtonStyle::ToolbarInline);
+
+    // Platform, project, settings (right)
+    auto windowsBtn = toolbar->AddTool(Icons::MonitorName, "Windows", [](){}, "Windows", false, ToolbarAlignment::Right);
+    windowsBtn->SetButtonStyle(ToolButtonStyle::ToolbarInline);
+    windowsBtn->SetIsDropdown(true);
+    auto projectBtn = toolbar->AddTool(Icons::ProjectFolderName, "MyProject", [](){}, "MyProject", false, ToolbarAlignment::Right);
+    projectBtn->SetButtonStyle(ToolButtonStyle::ToolbarInline);
+    projectBtn->SetIsDropdown(true);
+    toolbar->AddTool(Icons::SettingsName, "", [](){ we::programs::editor::ShowViewportNavigationPreferences(); }, "Editor Settings", false, ToolbarAlignment::Right);
+
     toolbar->SetActiveTool(Icons::CursorName);
 
     DockLayoutBuilder layoutBuilder;
@@ -335,7 +352,7 @@ EditorShellResult EditorShellBuilder::Build(
 
     auto statusBar = std::make_shared<StatusBar>();
     statusBar->Construct();
-    statusBar->SetHeight(statusStyle.height > 0.0f ? statusStyle.height : 30.0f * uiScale);
+    statusBar->SetHeight(statusStyle.height > 0.0f ? statusStyle.height : 28.0f * uiScale);
     statusBar->SetOnFooterTabChanged([](int index) {
         we::programs::editor::EditorWorkspaceController::Get().SetBottomPanelIndex(index);
     });
@@ -364,7 +381,12 @@ EditorShellResult EditorShellBuilder::Build(
     rootVBox->AddChild(titleBar);
     rootVBox->AddChild(toolbar);
     if (shellResult.layout.root) {
-        rootVBox->AddChild(shellResult.layout.root);
+        const float workspaceGap = ResolveThemeMetric(ThemeToken::Space2) * uiScale;
+        auto workspaceArea = std::make_shared<VerticalBox>();
+        workspaceArea->SetPadding({ workspaceGap, workspaceGap, workspaceGap, workspaceGap });
+        workspaceArea->SetBackgroundColor(ResolveThemeColor(ThemeToken::WorkspaceBackground));
+        workspaceArea->AddChild(shellResult.layout.root);
+        rootVBox->AddChild(workspaceArea);
     }
     rootVBox->AddChild(statusBar);
 

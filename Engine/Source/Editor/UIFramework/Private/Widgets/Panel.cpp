@@ -1,4 +1,5 @@
 #include "Widgets/Panel.h"
+#include "WindEffects/Editor/UI/Panel/PanelChrome.h"
 #include "Core/PaintContext.h"
 #include "Core/Icon.h"
 #include "Core/DPIContext.h"
@@ -11,7 +12,7 @@ namespace WindEffects::Editor::UI {
 Panel::Panel(const std::string& title)
     : m_Title(title)
 {
-    m_HeaderHeight = 28.0f;
+    m_HeaderHeight = ThemeMetric(ThemeToken::PanelTabHeight);
 }
 
 void Panel::SetTabBrand(VkDescriptorSet descriptor, float logicalSize) {
@@ -83,109 +84,62 @@ void Panel::Arrange(const Rect& allottedRect) {
 }
 
 void Panel::Paint(PaintContext& context) {
-    const float uiScale = (std::max)(1.0f, DPIContext::GetScale());
-    Color panelBodyColor = ThemeColor(ThemeToken::PanelBackground);
-    Color headerBg = ThemeColor(ThemeToken::HeaderBackground);
-    Color tabBg = m_HeaderHovered ? ThemeColor(ThemeToken::HoverBackground) : ThemeColor(ThemeToken::HeaderBackground);
-    Color tabBorder = ThemeColor(ThemeToken::BorderDefault);
-
     if (!m_TransparentBackground) {
-        context.DrawRect(m_Geometry, panelBodyColor);
+        PanelChrome::PaintContentRegion(context, m_Geometry);
     } else if (m_Toolbar) {
-        context.DrawRect(m_ToolbarRect, panelBodyColor);
+        PanelChrome::PaintToolbarRegion(context, m_ToolbarRect);
     }
 
     if (m_HeaderHeight > 0.0f) {
-        context.DrawRect(m_HeaderRect, headerBg);
-
-        const float fontSize = ThemeMetric(ThemeToken::TextSizeTabs) * uiScale;
-        const float iconSize = ThemeMetric(ThemeToken::IconSizeNavigation) * uiScale;
-        const float tabPaddingH = ThemeMetric(ThemeToken::Space3) * uiScale;
-
-        float textWidth = context.GetTextWidth(m_Title, fontSize, true);
-
-        std::string panelIcon = m_TabIconName;
-        float panelIconWidth = 0.0f;
-        if (!panelIcon.empty()) {
-            panelIconWidth = iconSize + ThemeMetric(ThemeToken::Space2) * uiScale;
+        std::vector<PanelChrome::FloatingHeaderAction> chromeActions;
+        chromeActions.reserve(m_HeaderActions.size());
+        for (size_t i = 0; i < m_HeaderActions.size(); ++i) {
+            PanelChrome::FloatingHeaderAction action{};
+            action.iconName = m_HeaderActions[i].iconName;
+            action.hovered = static_cast<int>(i) == m_HoveredActionIndex;
+            action.pressed = static_cast<int>(i) == m_PressedActionIndex;
+            chromeActions.push_back(action);
         }
 
-        float closeBtnWidth = iconSize + ThemeMetric(ThemeToken::Space2) * uiScale;
-        float tabWidth = tabPaddingH + panelIconWidth + textWidth + closeBtnWidth + tabPaddingH;
-        tabWidth = std::clamp(tabWidth, 96.0f * uiScale, 240.0f * uiScale);
+        PanelChrome::PaintFloatingPanelHeader(
+            context,
+            m_HeaderRect,
+            m_Title,
+            m_TabIconName,
+            HasTabBrand(),
+            m_TabBrandDescriptor,
+            m_TabBrandLogicalSize,
+            chromeActions,
+            HasOptionsMenuHandler(),
+            m_OptionsMenuHovered,
+            m_OptionsMenuRect);
 
-        Rect tabRect{ m_HeaderRect.x, m_HeaderRect.y, tabWidth, m_HeaderHeight };
+        const float buttonSize = PanelChrome::HeaderButtonSize();
+        const float padH = PanelChrome::TabPadH();
+        const float gap = ThemeMetric(ThemeToken::Space1) * PanelChrome::UiScale();
+        const float centerY = m_HeaderRect.y + m_HeaderRect.height * 0.5f;
+        float actionX = m_HeaderRect.x + m_HeaderRect.width - padH - buttonSize;
 
-        Color activeTabBg = m_HeaderHovered ? ThemeColor(ThemeToken::HoverBackground) : ThemeColor(ThemeToken::PanelBackground);
-        context.DrawRect(tabRect, activeTabBg);
-
-        Rect accentLine{
-            tabRect.x,
-            tabRect.y + tabRect.height - 2.0f * uiScale,
-            tabRect.width,
-            2.0f * uiScale
-        };
-        context.DrawRect(accentLine, ThemeColor(ThemeToken::ActiveTabLine));
-
-        context.DrawRect(
-            Rect{ m_HeaderRect.x, m_HeaderRect.y + m_HeaderRect.height - 1.0f, m_HeaderRect.width, 1.0f },
-            ThemeColor(ThemeToken::BorderDefault));
-
-        float currentX = tabRect.x + tabPaddingH;
-        if (!panelIcon.empty()) {
-            float pIconY = m_HeaderRect.y + (m_HeaderHeight - iconSize) / 2.0f;
-            Color pIconColor = m_HeaderHovered ? ThemeColor(ThemeToken::IconHover) : ThemeColor(ThemeToken::IconDefault);
-            IconPainter::DrawIcon(context, panelIcon, Rect{ currentX, pIconY, iconSize, iconSize }, pIconColor);
-            currentX += panelIconWidth;
+        if (HasOptionsMenuHandler()) {
+            actionX -= buttonSize + gap;
         }
 
-        float titleY = m_HeaderRect.y + (m_HeaderHeight - fontSize) / 2.0f;
-        context.DrawText(m_Title, Point{ currentX, titleY }, ThemeColor(ThemeToken::TextPrimary), fontSize, true);
-
-        float headerPad = ThemeMetric(ThemeToken::Space2) * uiScale;
-        const float kOptionsWidth = 12.0f * uiScale;
-        const float kOptionsHeight = 14.0f * uiScale;
-        float optionsX = m_HeaderRect.x + m_HeaderRect.width - headerPad - kOptionsWidth;
-        float optionsY = m_HeaderRect.y + (m_HeaderHeight - kOptionsHeight) * 0.5f;
-        m_OptionsMenuRect = Rect{ optionsX, optionsY, kOptionsWidth, kOptionsHeight };
-
-        Color optionsColor = m_OptionsMenuHovered ? ThemeColor(ThemeToken::IconHover) : ThemeColor(ThemeToken::IconDefault);
-        IconPainter::DrawVerticalMoreMenu(context, m_OptionsMenuRect, optionsColor);
-
-        float actionX = optionsX - m_ActionSpacing - iconSize;
-        for (auto& action : m_HeaderActions) {
-            if (action.iconName == Icons::XName) {
-                float closeX = tabRect.x + tabRect.width - tabPaddingH - iconSize;
-                float closeY = m_HeaderRect.y + (m_HeaderHeight - iconSize) / 2.0f;
-                action.geometry = Rect{ closeX, closeY, iconSize, iconSize };
-
-                Color closeColor = m_HeaderHovered ? ThemeColor(ThemeToken::IconHover) : ThemeColor(ThemeToken::IconDefault);
-                IconPainter::DrawIcon(context, Icons::XName, Rect{ closeX, closeY, iconSize, iconSize }, closeColor);
-                continue;
-            }
-
-            float actionY = m_HeaderRect.y + (m_HeaderHeight - iconSize) / 2.0f;
-            action.geometry = Rect{ actionX, actionY, iconSize, iconSize };
-            Color actionColor = m_HeaderHovered ? ThemeColor(ThemeToken::IconHover) : ThemeColor(ThemeToken::IconDefault);
-            IconPainter::DrawIcon(context, action.iconName, action.geometry, actionColor);
-            actionX -= (iconSize + m_ActionSpacing);
+        for (int i = static_cast<int>(m_HeaderActions.size()) - 1; i >= 0; --i) {
+            m_HeaderActions[static_cast<size_t>(i)].geometry = Rect{
+                actionX,
+                centerY - buttonSize * 0.5f,
+                buttonSize,
+                buttonSize
+            };
+            actionX -= buttonSize + gap;
         }
     }
-    // Draw toolbar
+
     if (m_Toolbar) {
+        PanelChrome::PaintToolbarRegion(context, m_ToolbarRect);
         m_Toolbar->Paint(context);
-        
-        // Draw subtle 1px divider below toolbar
-        Rect toolbarDividerRect{
-            m_ToolbarRect.x,
-            m_ToolbarRect.y + m_ToolbarRect.height - 1.0f,
-            m_ToolbarRect.width,
-            1.0f
-        };
-        context.DrawRect(toolbarDividerRect, tabBorder);
     }
-    
-    // Draw content (always expanded now since it's a dock tab)
+
     if (m_Content) {
         m_Content->Paint(context);
     }
@@ -194,13 +148,22 @@ void Panel::Paint(PaintContext& context) {
 void Panel::OnMouseDown(const MouseEvent& event) {
     if (m_HeaderHeight > 0.0f && m_HeaderRect.Contains(event.position)) {
         if (m_OptionsMenuRect.Contains(event.position)) {
+            m_PressedActionIndex = -1;
             InvokeOptionsMenu();
             return;
         }
 
         HeaderAction* action = GetActionAtPosition(event.position);
-        if (action && action->onClick) {
-            action->onClick();
+        if (action) {
+            for (size_t i = 0; i < m_HeaderActions.size(); ++i) {
+                if (&m_HeaderActions[i] == action) {
+                    m_PressedActionIndex = static_cast<int>(i);
+                    break;
+                }
+            }
+            if (action->onClick) {
+                action->onClick();
+            }
             return;
         }
         return;
@@ -232,9 +195,18 @@ void Panel::OnMouseMove(const MouseEvent& event) {
     if (m_HeaderHeight > 0.0f) {
         m_HeaderHovered = m_HeaderRect.Contains(event.position);
         m_OptionsMenuHovered = m_OptionsMenuRect.Contains(event.position);
+
+        m_HoveredActionIndex = -1;
+        for (size_t i = 0; i < m_HeaderActions.size(); ++i) {
+            if (m_HeaderActions[i].geometry.Contains(event.position)) {
+                m_HoveredActionIndex = static_cast<int>(i);
+                break;
+            }
+        }
     } else {
         m_HeaderHovered = false;
         m_OptionsMenuHovered = false;
+        m_HoveredActionIndex = -1;
     }
 
     if (m_Toolbar && m_ToolbarRect.Contains(event.position)) {
@@ -248,6 +220,9 @@ void Panel::OnMouseMove(const MouseEvent& event) {
 }
 
 void Panel::OnMouseUp(const MouseEvent& event) {
+    (void)event;
+    m_PressedActionIndex = -1;
+
     if (m_Toolbar && m_ToolbarRect.Contains(event.position)) {
         m_Toolbar->OnMouseUp(event);
         return;

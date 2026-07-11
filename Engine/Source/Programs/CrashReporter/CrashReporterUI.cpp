@@ -15,7 +15,7 @@
 #include <windows.h>
 #include <cstdlib>
 
-using namespace we::UI;
+using namespace WindEffects::Editor::UI;
 
 namespace we::programs::crashreporter {
 
@@ -188,7 +188,7 @@ void CrashReporterUI::Construct() {
     m_RootLayout = rootBox;
 }
 
-we::UI::Size CrashReporterUI::Measure(const Size& availableSize) {
+Size CrashReporterUI::Measure(const Size& availableSize) {
     if (m_RootLayout) m_RootLayout->Measure(availableSize);
     return availableSize;
 }
