@@ -2,7 +2,7 @@
 #include "EditorCamera.h"
 #include "Scene/Scene.h"
 #include "Core/PaintContext.h"
-#include "Core/Theme.h"
+#include "WindEffects/Editor/UI/Theming/ThemeToken.h"
 #include "Core/Logger.h"
 #include <glm/gtc/type_ptr.hpp>
 #include <iomanip>
@@ -94,14 +94,12 @@ void GraphicsDebuggerPopup::Paint(PaintContext& context) {
     if (!m_Visible) {
         return;
     }
-
-    const auto& theme = Theme::Get();
     context.DrawShadow(m_Geometry, Color{ 0.0f, 0.0f, 0.0f, 0.35f }, 6.0f, 12.0f);
-    context.DrawRoundedRect(m_Geometry, Color{ 0.08f, 0.08f, 0.08f, 0.88f }, theme.CornerRadiusSmall);
-    context.DrawRoundedRectOutline(m_Geometry, theme.BorderDefault, 1.0f, theme.CornerRadiusSmall);
+    context.DrawRoundedRect(m_Geometry, Color{ 0.08f, 0.08f, 0.08f, 0.88f }, ThemeMetric(ThemeToken::CornerRadiusSmall));
+    context.DrawRoundedRectOutline(m_Geometry, ThemeColor(ThemeToken::BorderDefault), 1.0f, ThemeMetric(ThemeToken::CornerRadiusSmall));
     context.DrawRect(m_HeaderRect, Color{ 0.14f, 0.14f, 0.14f, 0.95f });
     context.DrawText(kTitle, Point{ m_Geometry.x + kPadding, m_Geometry.y + 5.0f },
-        theme.TextPrimary, 11.0f, true);
+        ThemeColor(ThemeToken::TextPrimary), 11.0f, true);
 
     std::vector<std::string> lines;
     BuildLines(lines);

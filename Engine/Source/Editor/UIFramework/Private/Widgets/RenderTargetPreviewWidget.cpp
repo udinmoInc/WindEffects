@@ -1,5 +1,5 @@
 #include "Widgets/RenderTargetPreviewWidget.h"
-#include "Core/Theme.h"
+#include "WindEffects/Editor/UI/Theming/ThemeToken.h"
 #include "Core/PaintContext.h"
 
 #include <algorithm>
@@ -53,14 +53,13 @@ void RenderTargetPreviewWidget::Arrange(const Rect& allottedRect) {
 }
 
 void RenderTargetPreviewWidget::Paint(PaintContext& context) {
-    const auto& theme = Theme::Get();
-    context.DrawRect(m_Geometry, theme.PanelBackground, 4.0f);
-    context.DrawText(m_Title, Point{ m_Geometry.x + kPadding, m_Geometry.y + 6.0f }, theme.TextPrimary, theme.TextSizeProperty);
-    context.DrawRect(m_CloseRect, theme.SelectedAccent, 2.0f);
+    context.DrawRect(m_Geometry, ThemeColor(ThemeToken::PanelBackground), 4.0f);
+    context.DrawText(m_Title, Point{ m_Geometry.x + kPadding, m_Geometry.y + 6.0f }, ThemeColor(ThemeToken::TextPrimary), ThemeMetric(ThemeToken::TextSizeProperty));
+    context.DrawRect(m_CloseRect, ThemeColor(ThemeToken::AccentPrimary), 2.0f);
 
     if (m_Rgba.empty() || m_Width == 0 || m_Height == 0) {
         context.DrawText("No preview data (enable GPU readback)", Point{ m_PreviewRect.x, m_PreviewRect.y },
-            theme.TextSecondary, theme.TextSizeProperty - 1.0f);
+            ThemeColor(ThemeToken::TextSecondary), ThemeMetric(ThemeToken::TextSizeProperty) - 1.0f);
         return;
     }
 

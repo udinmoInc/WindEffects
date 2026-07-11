@@ -1,6 +1,6 @@
 #include "Widgets/DropdownMenu.h"
 #include "Core/PaintContext.h"
-#include "Core/Theme.h"
+#include "WindEffects/Editor/UI/Theming/ThemeToken.h"
 #include "Layout/OverlayManager.h"
 
 namespace WindEffects::Editor::UI {
@@ -13,9 +13,9 @@ DropdownMenu::DropdownMenu(const std::vector<std::shared_ptr<MenuItem>>& items)
 Size DropdownMenu::Measure(const Size& availableSize) {
     float maxWidth = 100.0f; // min width
     for (const auto& item : m_Items) {
-        float textWidth = item->label.length() * Theme::Get().TextSizeMenu * 0.6f; // rough estimate
+        float textWidth = item->label.length() * ThemeMetric(ThemeToken::TextSizeMenu) * 0.6f; // rough estimate
         if (!item->shortcut.empty()) {
-            textWidth += item->shortcut.length() * Theme::Get().TextSizeMenu * 0.6f + 20.0f;
+            textWidth += item->shortcut.length() * ThemeMetric(ThemeToken::TextSizeMenu) * 0.6f + 20.0f;
         }
         maxWidth = std::max(maxWidth, textWidth + m_PaddingX * 2.0f);
     }
@@ -46,8 +46,8 @@ int DropdownMenu::HitItemAt(const Point& pos) const {
 
 void DropdownMenu::Paint(PaintContext& context) {
     // Background and border
-    context.DrawRoundedRect(m_Geometry, Theme::Get().PanelBackground, 4.0f);
-    context.DrawRoundedRectOutline(m_Geometry, Theme::Get().BorderDefault, 1.0f, 4.0f);
+    context.DrawRoundedRect(m_Geometry, ThemeColor(ThemeToken::PanelBackground), 4.0f);
+    context.DrawRoundedRectOutline(m_Geometry, ThemeColor(ThemeToken::BorderDefault), 1.0f, 4.0f);
     
     float y = m_Geometry.y + m_PaddingY;
     
@@ -57,17 +57,17 @@ void DropdownMenu::Paint(PaintContext& context) {
         
         // Hover
         if (m_HoveredItem == (int)i) {
-            context.DrawRoundedRect(itemRect, Theme::Get().HoverOverlay, 2.0f);
+            context.DrawRoundedRect(itemRect, ThemeColor(ThemeToken::HoverBackground), 2.0f);
         }
         
         // Text
-        float textY = itemRect.y + (m_ItemHeight - Theme::Get().TextSizeMenu) / 2.0f;
-        context.DrawText(item->label, Point{ itemRect.x + m_PaddingX, textY }, Theme::Get().TextPrimary, Theme::Get().TextSizeMenu);
+        float textY = itemRect.y + (m_ItemHeight - ThemeMetric(ThemeToken::TextSizeMenu)) / 2.0f;
+        context.DrawText(item->label, Point{ itemRect.x + m_PaddingX, textY }, ThemeColor(ThemeToken::TextPrimary), ThemeMetric(ThemeToken::TextSizeMenu));
         
         if (!item->shortcut.empty()) {
-            float shortcutWidth = item->shortcut.length() * Theme::Get().TextSizeMenu * 0.6f;
+            float shortcutWidth = item->shortcut.length() * ThemeMetric(ThemeToken::TextSizeMenu) * 0.6f;
             float shortcutX = itemRect.x + itemRect.width - m_PaddingX - shortcutWidth;
-            context.DrawText(item->shortcut, Point{ shortcutX, textY }, Theme::Get().TextSecondary, Theme::Get().TextSizeMenu);
+            context.DrawText(item->shortcut, Point{ shortcutX, textY }, ThemeColor(ThemeToken::TextSecondary), ThemeMetric(ThemeToken::TextSizeMenu));
         }
         
         y += m_ItemHeight;

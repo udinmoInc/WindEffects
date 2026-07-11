@@ -1,8 +1,8 @@
 #include "Core/Widgets/SecondaryToolbarButton.h"
 #include "Core/PaintContext.h"
-#include "Core/Theme.h"
 #include "Core/Icon.h"
 #include "Core/Animator.h"
+#include "WindEffects/Editor/UI/Theming/ThemeToken.h"
 #include <algorithm>
 
 namespace WindEffects::Editor::UI {
@@ -14,15 +14,18 @@ SecondaryToolbarButton::SecondaryToolbarButton(const std::string& label, const s
 
 Size SecondaryToolbarButton::Measure(const Size& availableSize) {
     (void)availableSize;
-    float width = DesignTokens::kButtonPaddingHorizontal * 2.0f;
-    if (!m_IconName.empty()) width += DesignTokens::kIconSize + 6.0f;
-    width += static_cast<float>(m_Label.size()) * 7.2f;
-    m_DesiredSize = Size{ width, DesignTokens::kButtonHeight };
+    const float hPad = ThemeMetric(ThemeToken::ButtonPaddingHorizontal);
+    const float iconSize = ThemeMetric(ThemeToken::IconSizeToolbar);
+    const float iconGap = ThemeMetric(ThemeToken::Space2) - 2.0f;
+    float width = hPad * 2.0f;
+    if (!m_IconName.empty()) width += iconSize + iconGap;
+    width += static_cast<float>(m_Label.size()) * ThemeMetric(ThemeToken::TextSizeToolbar) * 0.55f;
+    m_DesiredSize = Size{ width, ThemeMetric(ThemeToken::ButtonHeight) };
     return m_DesiredSize;
 }
 
 void SecondaryToolbarButton::Arrange(const Rect& allottedRect) {
-    const float h = std::min(DesignTokens::kButtonHeight, allottedRect.height);
+    const float h = std::min(ThemeMetric(ThemeToken::ButtonHeight), allottedRect.height);
     m_Geometry = Rect{
         allottedRect.x,
         allottedRect.y + (allottedRect.height - h) * 0.5f,
@@ -32,58 +35,56 @@ void SecondaryToolbarButton::Arrange(const Rect& allottedRect) {
 }
 
 void SecondaryToolbarButton::Paint(PaintContext& context) {
-    using namespace DesignTokens;
-    
-    m_HoverAnim = Animator::Damp(m_HoverAnim, m_Hovered && m_Enabled ? 1.0f : 0.0f, kHoverDamping);
-    m_PressAnim = Animator::Damp(m_PressAnim, m_Pressed && m_Enabled ? 1.0f : 0.0f, kPressDamping);
-    
-    // Animate press offset
-    const float targetOffset = m_Pressed && m_Enabled ? kPressOffset : 0.0f;
-    m_PressOffset = Animator::Damp(m_PressOffset, targetOffset, kPressDamping);
+    const auto baseStyle = ResolveStyle(StyleRole::ButtonSecondary);
+    const auto hoverStyle = ResolveStyle(StyleRole::ButtonHover);
+    const auto pressStyle = ResolveStyle(StyleRole::ButtonActive);
 
-    const auto& theme = Theme::Get();
-    const float radius = kButtonCornerRadius;
-    
-    // Determine colors based on state
-    Color bgColor = m_Enabled ? SecondaryButtonNormal() : DisabledBackground();
-    Color borderColor = m_Enabled ? SecondaryButtonBorder() : DisabledBorder();
-    Color textColor = m_Enabled ? SecondaryButtonText() : DisabledText();
-    
+    const float hoverDamping = ThemeMetric(ThemeToken::HoverAnimationDamping);
+    const float pressDamping = ThemeMetric(ThemeToken::PressAnimationDamping);
+    const float pressOffsetTarget = ThemeMetric(ThemeToken::PressOffset);
+
+    m_HoverAnim = Animator::Damp(m_HoverAnim, m_Hovered && m_Enabled ? 1.0f : 0.0f, hoverDamping);
+    m_PressAnim = Animator::Damp(m_PressAnim, m_Pressed && m_Enabled ? 1.0f : 0.0f, pressDamping);
+
+    const float targetOffset = m_Pressed && m_Enabled ? pressOffsetTarget : 0.0f;
+    m_PressOffset = Animator::Damp(m_PressOffset, targetOffset, pressDamping);
+
+    const float radius = baseStyle.cornerRadius;
+
+    Color bgColor = m_Enabled ? baseStyle.background : ThemeColor(ThemeToken::DisabledBackground);
+    Color borderColor = m_Enabled ? baseStyle.border : ThemeColor(ThemeToken::BorderDark);
+    Color textColor = m_Enabled ? baseStyle.foreground : ThemeColor(ThemeToken::TextDisabled);
+
     if (m_Enabled && m_HoverAnim > 0.01f) {
-        bgColor = Color::Lerp(bgColor, SecondaryButtonHover(), m_HoverAnim);
-        textColor = Color::Lerp(textColor, SecondaryButtonTextHover(), m_HoverAnim);
-        borderColor = Color::Lerp(borderColor, SecondaryButtonBorderHover(), m_HoverAnim);
+        bgColor = Color::Lerp(bgColor, hoverStyle.background, m_HoverAnim);
+        textColor = Color::Lerp(textColor, hoverStyle.foreground, m_HoverAnim);
+        borderColor = Color::Lerp(borderColor, hoverStyle.border, m_HoverAnim);
     }
     if (m_Enabled && m_PressAnim > 0.01f) {
-        bgColor = Color::Lerp(bgColor, SecondaryButtonPressed(), m_PressAnim);
+        bgColor = Color::Lerp(bgColor, pressStyle.background, m_PressAnim);
     }
 
-    // Calculate button rect with press offset
     Rect buttonRect = m_Geometry;
     buttonRect.y += m_PressOffset;
 
-    // Draw button background (transparent by default)
     if (bgColor.a > 0.01f) {
         context.DrawRoundedRect(buttonRect, bgColor, radius);
     }
 
-    // Draw border only on hover
     if (m_Enabled && m_HoverAnim > 0.01f) {
-        context.DrawRoundedRectOutline(buttonRect, borderColor, 0.5f, radius);
+        context.DrawRoundedRectOutline(buttonRect, borderColor, baseStyle.borderWidth * 0.5f, radius);
     }
 
-    // Draw icon and text
-    const float hPad = kButtonPaddingHorizontal;
+    const float hPad = ThemeMetric(ThemeToken::ButtonPaddingHorizontal);
     float x = buttonRect.x + hPad;
-    const float textSize = 13.0f;
+    const float textSize = baseStyle.fontSize;
     const float textY = buttonRect.y + (buttonRect.height - textSize) * 0.5f;
 
     if (!m_IconName.empty()) {
-        const float iconSize = kIconSize;
+        const float iconSize = baseStyle.iconSize;
         const float iconY = buttonRect.y + (buttonRect.height - iconSize) * 0.5f;
-        Color iconColor = textColor;
-        IconPainter::DrawIcon(context, m_IconName, Rect{ x, iconY, iconSize, iconSize }, iconColor);
-        x += iconSize + 6.0f;
+        IconPainter::DrawIcon(context, m_IconName, Rect{ x, iconY, iconSize, iconSize }, textColor);
+        x += iconSize + ThemeMetric(ThemeToken::Space2) - 2.0f;
     }
 
     context.DrawText(m_Label, Point{ x, textY }, textColor, textSize, false);

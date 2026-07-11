@@ -2,7 +2,7 @@
 #include "Rendering/Icons/SvgRasterizer.h"
 #include "Core/ImageBarriers.h"
 #include "Resource/ResourceManager.h"
-#include "Core/Theme.h"
+#include "WindEffects/Editor/UI/Theming/ThemeToken.h"
 #include "Core/Logger.h"
 #include <volk.h>
 #include <stdexcept>

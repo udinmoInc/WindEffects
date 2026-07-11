@@ -2,7 +2,7 @@
 #include "EditorModeController.h"
 #include "EditorToolsRegistry.h"
 #include "Core/PaintContext.h"
-#include "Core/Theme.h"
+#include "WindEffects/Editor/UI/Theming/ThemeToken.h"
 #include "Core/Icon.h"
 #include "Core/DPIContext.h"
 #include "Layout/OverlayManager.h"
@@ -30,7 +30,7 @@ using WindEffects::Editor::UI::PaintContext;
 using WindEffects::Editor::UI::Point;
 using WindEffects::Editor::UI::Rect;
 using WindEffects::Editor::UI::Size;
-using WindEffects::Editor::UI::Theme;
+using WindEffects::Editor::UI::ThemeToken;
 
 class EditorModeMenu : public WindEffects::Editor::UI::Widget {
 public:
@@ -50,30 +50,30 @@ public:
 
     void Paint(PaintContext& context) override {
         context.DrawShadow(m_Geometry, Color{ 0.0f, 0.0f, 0.0f, 0.15f }, 4.0f, 12.0f);
-        context.DrawRoundedRect(m_Geometry, Theme::Get().PanelBackground, 4.0f);
-        context.DrawRoundedRectOutline(m_Geometry, Theme::Get().BorderDefault, 1.0f, 4.0f);
+        context.DrawRoundedRect(m_Geometry, ThemeColor(ThemeToken::PanelBackground), 4.0f);
+        context.DrawRoundedRectOutline(m_Geometry, ThemeColor(ThemeToken::BorderDefault), 1.0f, 4.0f);
 
         float y = m_Geometry.y + 4.0f;
         for (size_t i = 0; i < m_Items.size(); ++i) {
             const auto& item = m_Items[i];
             Rect row{ m_Geometry.x + 2.0f, y, m_Geometry.width - 4.0f, 26.0f };
             if (static_cast<int>(i) == m_Hovered) {
-                context.DrawRoundedRect(row, Theme::Get().HoverOverlay, 3.0f);
+                context.DrawRoundedRect(row, ThemeColor(ThemeToken::HoverBackground), 3.0f);
             }
 
             const auto* mode = EditorToolsRegistry::Get().FindMode(item->label);
             (void)mode;
 
             WindEffects::Editor::UI::IconPainter::DrawIcon(context, item->shortcut,
-                Rect{ row.x + 8.0f, row.y + 4.0f, 18.0f, 18.0f }, Theme::Get().TextPrimary);
+                Rect{ row.x + 8.0f, row.y + 4.0f, 18.0f, 18.0f }, ThemeColor(ThemeToken::TextPrimary));
 
             context.DrawText(item->label, Point{ row.x + 32.0f, row.y + 6.0f },
-                Theme::Get().TextPrimary, 11.0f);
+                ThemeColor(ThemeToken::TextPrimary), 11.0f);
 
             if (item->checked) {
                 WindEffects::Editor::UI::IconPainter::DrawIcon(context, WindEffects::Editor::UI::Icons::CheckName,
                     Rect{ row.x + row.width - 22.0f, row.y + 5.0f, 16.0f, 16.0f },
-                    Theme::Get().SelectedAccent);
+                    ThemeColor(ThemeToken::AccentPrimary));
             }
 
             y += 28.0f;
@@ -149,11 +149,10 @@ void EditorModeSelector::Arrange(const Rect& allottedRect) {
 }
 
 void EditorModeSelector::Paint(PaintContext& context) {
-    const auto& theme = Theme::Get();
     Color bg = m_Pressed ? Color{ 0.14f, 0.14f, 0.14f, 1.0f }
-               : (m_Hovered ? theme.HoverOverlay : Color{ 0.18f, 0.18f, 0.18f, 1.0f });
+               : (m_Hovered ? ThemeColor(ThemeToken::HoverBackground) : Color{ 0.18f, 0.18f, 0.18f, 1.0f });
     context.DrawRoundedRect(m_Geometry, bg, 4.0f);
-    context.DrawRoundedRectOutline(m_Geometry, theme.BorderDefault, 1.0f, 4.0f);
+    context.DrawRoundedRectOutline(m_Geometry, ThemeColor(ThemeToken::BorderDefault), 1.0f, 4.0f);
 
     const float uiScale = (std::max)(1.0f, WindEffects::Editor::UI::DPIContext::GetScale());
     const float centerY = m_Geometry.y + m_Geometry.height * 0.5f;
@@ -162,20 +161,20 @@ void EditorModeSelector::Paint(PaintContext& context) {
     const float iconSize = kIconSize * uiScale;
     const float iconY = centerY - iconSize * 0.5f;
     WindEffects::Editor::UI::IconPainter::DrawIcon(context, m_IconName.c_str(),
-        Point{ m_Geometry.x + kPadding * uiScale, iconY }, iconSize, theme.TextPrimary);
+        Point{ m_Geometry.x + kPadding * uiScale, iconY }, iconSize, ThemeColor(ThemeToken::TextPrimary));
 
     // Label — 12px text, vertically centered
     const float textX = m_Geometry.x + (kPadding + kIconSize + kIconGap) * uiScale;
     const float textSize = 12.0f * uiScale;
     context.DrawText(m_Label, Point{ textX, centerY - textSize * 0.5f },
-        theme.TextPrimary, textSize, true);
+        ThemeColor(ThemeToken::TextPrimary), textSize, true);
 
     // Chevron — 10px, vertically centered
     const float chevX = m_Geometry.x + m_Geometry.width - (kPadding + kChevronWidth) * uiScale;
     const float chevSize = kChevronWidth * uiScale;
     WindEffects::Editor::UI::IconPainter::DrawIcon(context, WindEffects::Editor::UI::Icons::ChevronDownName,
         Rect{ chevX, centerY - chevSize * 0.5f, chevSize, chevSize },
-        theme.TextSecondary);
+        ThemeColor(ThemeToken::TextSecondary));
 }
 
 void EditorModeSelector::OnMouseDown(const MouseEvent& event) {

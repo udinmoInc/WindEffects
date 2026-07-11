@@ -2,7 +2,7 @@
 #include "Widgets/CommandInput.h"
 #include "Widgets/ToolButton.h"
 #include "Core/PaintContext.h"
-#include "Core/Theme.h"
+#include "WindEffects/Editor/UI/Theming/ThemeToken.h"
 #include "Core/Icon.h"
 #include "Layout/Spacer.h"
 #include "Core/DPIContext.h"
@@ -40,15 +40,13 @@ namespace {
 }
 
 StatusBar::StatusBar() {
-    const auto& theme = Theme::Get();
-    SetPadding(Margin{ theme.Space2, 0.0f, theme.Space2, 0.0f });
+    SetPadding(Margin{ ThemeMetric(ThemeToken::Space2), 0.0f, ThemeMetric(ThemeToken::Space2), 0.0f });
     SetSpacing(0.0f);
 }
 
 void StatusBar::Construct() {
-    const auto& theme = Theme::Get();
     auto leftBox = std::make_shared<HorizontalBox>();
-    leftBox->SetSpacing(theme.Space1);
+    leftBox->SetSpacing(ThemeMetric(ThemeToken::Space1));
 
     m_AssetsPanelButton = MakeFooterControl(Icons::FolderName, "Assets", false, "Content Browser");
     m_DiagnosticsPanelButton = MakeFooterControl(Icons::WarningName, "Diagnostics", false, "Diagnostics Panel");
@@ -60,7 +58,7 @@ void StatusBar::Construct() {
     leftBox->AddChild(m_DiagnosticsPanelButton);
     AddChild(leftBox);
 
-    AddChild(std::make_shared<FixedGap>(theme.Space2));
+    AddChild(std::make_shared<FixedGap>(ThemeMetric(ThemeToken::Space2)));
 
     m_CommandInput = std::make_shared<CommandInput>();
     m_CommandInput->SetVerticalAlignment(VerticalAlignment::Center);
@@ -70,7 +68,7 @@ void StatusBar::Construct() {
     AddChild(std::make_shared<Spacer>());
 
     auto rightBox = std::make_shared<HorizontalBox>();
-    rightBox->SetSpacing(theme.Space1);
+    rightBox->SetSpacing(ThemeMetric(ThemeToken::Space1));
 
     m_OutputLogButton = MakeFooterControl(Icons::ConsoleName, "Output Log", false, "Open Output Log");
     m_BuildMenuButton = MakeFooterControl(Icons::BuildName, "Development", true, "Build Configuration");
@@ -79,7 +77,7 @@ void StatusBar::Construct() {
 
     rightBox->AddChild(m_OutputLogButton);
     rightBox->AddChild(m_BuildMenuButton);
-    rightBox->AddChild(std::make_shared<FixedGap>(theme.Space2 - 2.0f));
+    rightBox->AddChild(std::make_shared<FixedGap>(ThemeMetric(ThemeToken::Space2) - 2.0f));
     rightBox->AddChild(m_TraceButton);
     rightBox->AddChild(m_QualityMenuButton);
 
@@ -113,16 +111,15 @@ Size StatusBar::Measure(const Size& availableSize) {
 }
 
 void StatusBar::Paint(PaintContext& context) {
-    const auto& theme = Theme::Get();
-    context.DrawRect(m_Geometry, theme.StatusBarBackground);
+    context.DrawRect(m_Geometry, ThemeColor(ThemeToken::StatusBarBackground));
 
     Rect topBorder{
         m_Geometry.x,
         m_Geometry.y,
         m_Geometry.width,
-        theme.BorderWidth
+        ThemeMetric(ThemeToken::BorderWidth)
     };
-    context.DrawRect(topBorder, theme.Separator);
+    context.DrawRect(topBorder, ThemeColor(ThemeToken::Separator));
 
     HorizontalBox::Paint(context);
 }

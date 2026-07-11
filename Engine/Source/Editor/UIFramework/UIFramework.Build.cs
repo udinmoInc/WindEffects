@@ -31,6 +31,10 @@ public class UIFramework : ModuleRules
 
         RequiredThirdParty.Add("lunasvg");
 
+        AddOptionalThirdParty("nlohmann_json");
+        DefineIf(HasThirdParty("nlohmann_json"), "WE_HAS_NLOHMANN_JSON=1");
+        DefineIf(!HasThirdParty("nlohmann_json"), "WE_HAS_NLOHMANN_JSON=0");
+
         Definitions.Add("WE_HAS_LUNASVG=1");
         Definitions.Add("UIFRAMEWORK_EXPORTS");
 

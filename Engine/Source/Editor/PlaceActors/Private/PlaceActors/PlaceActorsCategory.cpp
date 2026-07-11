@@ -1,6 +1,7 @@
 #include "PlaceActors/PlaceActorsCategory.h"
 
-#include "Core/Theme.h"
+#include "WindEffects/Editor/UI/Theming/ThemeAccess.h"
+#include "WindEffects/Editor/UI/Theming/ThemeToken.h"
 #include "Core/Icon.h"
 #include "Core/DPIContext.h"
 
@@ -10,7 +11,7 @@ using WindEffects::Editor::UI::Color;
 using WindEffects::Editor::UI::PaintContext;
 using WindEffects::Editor::UI::Point;
 using WindEffects::Editor::UI::Rect;
-using WindEffects::Editor::UI::Theme;
+using WindEffects::Editor::UI::ThemeToken;
 
 float PlaceActorsCategory::MeasureHeaderHeight(float configuredHeight) {
     return configuredHeight;
@@ -22,26 +23,25 @@ void PlaceActorsCategory::PaintHeader(PaintContext& context,
                                       const std::string& iconName,
                                       bool expanded,
                                       float hoverAnim) {
-    const auto& theme = Theme::Get();
     const float uiScale = (std::max)(1.0f, WindEffects::Editor::UI::DPIContext::GetScale());
-    const float fontSize = theme.TextSizeSmall * uiScale;
-    Color bg = theme.HeaderBackground;
+    const float fontSize = ResolveThemeMetric(ThemeToken::TextSizeSmall) * uiScale;
+    Color bg = ResolveThemeColor(ThemeToken::HeaderBackground);
     if (hoverAnim > 0.01f) {
-        bg = Color::Lerp(bg, theme.HoverBg, hoverAnim);
+        bg = Color::Lerp(bg, ResolveThemeColor(ThemeToken::HoverBackground), hoverAnim);
     }
     context.DrawRect(bounds, bg);
 
     const char* chevron = expanded ? WindEffects::Editor::UI::Icons::ChevronDownName : WindEffects::Editor::UI::Icons::ChevronRightName;
     WindEffects::Editor::UI::IconPainter::DrawIcon(context, chevron,
-        Rect{ bounds.x + theme.Space2 - 2.0f, bounds.y + theme.Space2 - 1.0f, theme.IconSizeTree, theme.IconSizeTree }, theme.TextSecondary);
+        Rect{ bounds.x + ResolveThemeMetric(ThemeToken::Space2) - 2.0f, bounds.y + ResolveThemeMetric(ThemeToken::Space2) - 1.0f, ResolveThemeMetric(ThemeToken::IconSizeTree), ResolveThemeMetric(ThemeToken::IconSizeTree) }, ResolveThemeColor(ThemeToken::TextSecondary));
     if (!iconName.empty()) {
         WindEffects::Editor::UI::IconPainter::DrawIcon(context, iconName,
-            Rect{ bounds.x + theme.Space6, bounds.y + theme.Space2 - 2.0f, theme.IconSizeToolbar, theme.IconSizeToolbar }, theme.TextPrimary);
+            Rect{ bounds.x + ResolveThemeMetric(ThemeToken::Space6), bounds.y + ResolveThemeMetric(ThemeToken::Space2) - 2.0f, ResolveThemeMetric(ThemeToken::IconSizeToolbar), ResolveThemeMetric(ThemeToken::IconSizeToolbar) }, ResolveThemeColor(ThemeToken::TextPrimary));
     }
     const float textX = iconName.empty()
-        ? bounds.x + theme.Space6
-        : bounds.x + theme.Space6 + theme.IconSizeToolbar + theme.Space2;
-    context.DrawText(label, Point{ textX, bounds.y + theme.Space2 - 1.0f }, theme.TextPrimary, fontSize, true);
+        ? bounds.x + ResolveThemeMetric(ThemeToken::Space6)
+        : bounds.x + ResolveThemeMetric(ThemeToken::Space6) + ResolveThemeMetric(ThemeToken::IconSizeToolbar) + ResolveThemeMetric(ThemeToken::Space2);
+    context.DrawText(label, Point{ textX, bounds.y + ResolveThemeMetric(ThemeToken::Space2) - 1.0f }, ResolveThemeColor(ThemeToken::TextPrimary), fontSize, true);
 }
 
 } // namespace we::programs::editor

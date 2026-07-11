@@ -1,6 +1,6 @@
 #include "Widgets/Toolbar.h"
 #include "Core/PaintContext.h"
-#include "Core/Theme.h"
+#include "WindEffects/Editor/UI/Theming/ThemeToken.h"
 #include "Core/Icon.h"
 #include "Core/DPIContext.h"
 #include "Widgets/ToolButton.h"
@@ -126,7 +126,7 @@ void Toolbar::Arrange(const Rect& allottedRect) {
 }
 
 void Toolbar::Paint(PaintContext& context) {
-    context.DrawRect(m_Geometry, Theme::Get().ToolbarBackground);
+    context.DrawRect(m_Geometry, ThemeColor(ThemeToken::ToolbarBackground));
 
     Rect bottomBorder{
         m_Geometry.x,
@@ -134,7 +134,7 @@ void Toolbar::Paint(PaintContext& context) {
         m_Geometry.width,
         1.0f
     };
-    context.DrawRect(bottomBorder, Theme::Get().BorderSecondary);
+    context.DrawRect(bottomBorder, ThemeColor(ThemeToken::BorderDark));
     
     for (auto& tool : m_Tools) {
         if (tool.button && tool.button->IsVisible()) {
@@ -245,7 +245,7 @@ void ToolbarSeparator::Arrange(const Rect& allottedRect) { m_Geometry = allotted
 void ToolbarSeparator::Paint(PaintContext& context) {
     float centerY = m_Geometry.y + m_Geometry.height / 2.0f;
     Rect lineRect{ std::floor(m_Geometry.x), std::floor(centerY - 9.0f), 1.0f, 18.0f };
-    context.DrawRect(lineRect, Theme::Get().Separator);
+    context.DrawRect(lineRect, ThemeColor(ThemeToken::Separator));
 }
 
 } // namespace we::editor::toolbar::UI

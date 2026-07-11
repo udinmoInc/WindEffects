@@ -1,6 +1,7 @@
 #include "Widgets/ToolButton.h"
 #include "Core/PaintContext.h"
-#include "Core/Theme.h"
+#include "WindEffects/Editor/UI/Theming/ThemeAccess.h"
+#include "Core/Animator.h"
 #include "Core/Icon.h"
 #include "Core/Animator.h"
 #include "Core/DPIContext.h"
@@ -14,7 +15,7 @@ namespace {
     }
 
     Color MakePressBackground(float strength) {
-        Color pressed = Theme::Get().PressedOverlay;
+        Color pressed = ResolveThemeColor(ThemeToken::PressedBackground);
         pressed.a *= strength;
         return pressed;
     }
@@ -30,24 +31,23 @@ namespace {
         if (pressStrength > 0.01f) {
             context.DrawRoundedRect(rect, MakePressBackground(pressStrength), radius);
         } else if (hoverAnim > 0.01f) {
-            Color hoverBg = Color::Lerp(Color{0.0f, 0.0f, 0.0f, 0.0f}, Theme::Get().HoverButton, hoverAnim);
+            Color hoverBg = Color::Lerp(Color{0.0f, 0.0f, 0.0f, 0.0f}, ResolveThemeColor(ThemeToken::HoverBackground), hoverAnim);
             context.DrawRoundedRect(rect, hoverBg, radius);
         } else if (active) {
-            context.DrawRoundedRect(rect, Theme::Get().SelectedBg, radius);
+            context.DrawRoundedRect(rect, ResolveThemeColor(ThemeToken::SelectedBackground), radius);
         }
     }
 
     Color ResolveInteractiveIconColor(float hoverAnim, float pressStrength, bool active) {
-        Color iconColor = Theme::Get().IconDefault;
+        Color iconColor = ResolveThemeColor(ThemeToken::IconDefault);
         if (hoverAnim > 0.01f || pressStrength > 0.01f || active) {
-            iconColor = Color::Lerp(iconColor, Theme::Get().IconHover, std::max({hoverAnim, pressStrength, active ? 1.0f : 0.0f}));
+            iconColor = Color::Lerp(iconColor, ResolveThemeColor(ThemeToken::IconHover), std::max({hoverAnim, pressStrength, active ? 1.0f : 0.0f}));
         }
         return iconColor;
     }
 
     Color ResolveInteractiveTextColor(float hoverAnim, float pressStrength, bool active) {
-        const auto& theme = Theme::Get();
-        return theme.TextForState(hoverAnim > 0.01f || pressStrength > 0.01f, active);
+        return ResolveThemeTextForState(hoverAnim > 0.01f || pressStrength > 0.01f, active);
     }
 
     float ApproxInlineTextWidth(const std::string& text, float textSize) {
@@ -188,10 +188,10 @@ void ToolButton::Paint(PaintContext& context) {
                             : Color{ 0.196f, 0.196f, 0.196f, m_HoverAnim };
             context.DrawRoundedRect(renderRect, hoverBg, 4.0f * uiScale);
         }
-        Color iconColor = Theme::Get().IconDefault;
-        if (m_HoverAnim > 0.01f) iconColor = Color::Lerp(iconColor, Theme::Get().IconHover, m_HoverAnim);
+        Color iconColor = ThemeColor(ThemeToken::IconDefault);
+        if (m_HoverAnim > 0.01f) iconColor = Color::Lerp(iconColor, ThemeColor(ThemeToken::IconHover), m_HoverAnim);
         if (m_ButtonStyle == ToolButtonStyle::WindowClose && m_HoverAnim > 0.5f)
-            iconColor = Theme::Get().IconActive;
+            iconColor = ThemeColor(ThemeToken::IconActive);
         float iconSize = 16.0f * uiScale;
         // Use smaller icon size for square/stop icon to match close button proportions
         if (m_IconName == Icons::StopName) iconSize = 14.0f * uiScale;
@@ -278,10 +278,10 @@ void ToolButton::Paint(PaintContext& context) {
             bg = MakePressBackground(pressStrength);
             drawBg = true;
         } else if (m_HoverAnim > 0.01f) {
-            bg = Color::Lerp(Color{0.0f, 0.0f, 0.0f, 0.0f}, Theme::Get().HoverButton, m_HoverAnim);
+            bg = Color::Lerp(Color{0.0f, 0.0f, 0.0f, 0.0f}, ThemeColor(ThemeToken::HoverBackground), m_HoverAnim);
             drawBg = true;
         } else if (m_Active) {
-            bg = Theme::Get().SelectedBg;
+            bg = ThemeColor(ThemeToken::SelectedBackground);
             drawBg = true;
         } else if (isDropdownControl) {
             bg = Color{ 0.137f, 0.137f, 0.137f, 1.0f }; // #232323
@@ -320,7 +320,7 @@ void ToolButton::Paint(PaintContext& context) {
         }
 
         if (!m_Label.empty()) {
-            const float textSize = Theme::Get().TextSizeToolbar * uiScale;
+            const float textSize = ThemeMetric(ThemeToken::TextSizeToolbar) * uiScale;
             context.DrawText(m_Label, Point{ currentX, centerY - textSize / 2.0f }, iconColor, textSize);
         }
 
@@ -374,7 +374,7 @@ void ToolSeparator::Paint(PaintContext& context) {
     float halfHeight = SEPARATOR_HEIGHT / 2.0f;
     
     Rect lineRect{ m_Geometry.x, centerY - halfHeight, SEPARATOR_WIDTH, SEPARATOR_HEIGHT };
-    context.DrawRect(lineRect, Theme::Get().BorderDefault);
+    context.DrawRect(lineRect, ThemeColor(ThemeToken::BorderDefault));
 }
 
 } // namespace we::editor::toolbar::UI

@@ -8,7 +8,7 @@
 #include "Core/Widget.h"
 #include "Core/PaintContext.h"
 #include "Core/DPIContext.h"
-#include "Core/Theme.h"
+#include "WindEffects/Editor/UI/Theming/ThemeToken.h"
 #include "Core/Logger.h"
 #include "Core/ImageBarriers.h"
 #include "Resource/ResourceManager.h"

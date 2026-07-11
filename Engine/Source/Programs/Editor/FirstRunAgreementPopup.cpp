@@ -2,7 +2,7 @@
 #include "Core/EditorConfigPaths.h"
 #include "Core/Icon.h"
 #include "Core/PaintContext.h"
-#include "Core/Theme.h"
+#include "WindEffects/Editor/UI/Theming/ThemeToken.h"
 #include "Core/DPIContext.h"
 #include "Core/Logger.h"
 
@@ -16,6 +16,8 @@
 #include <regex>
 
 namespace we::programs::editor {
+
+using WindEffects::Editor::UI::ThemeToken;
 
 namespace {
 
@@ -177,29 +179,27 @@ void FirstRunAgreementPopup::Arrange(const WindEffects::Editor::UI::Rect& allott
 }
 
 void FirstRunAgreementPopup::Paint(WindEffects::Editor::UI::PaintContext& context) {
-    const auto& theme = WindEffects::Editor::UI::Theme::Get();
-    
     // Background overlay - cover entire viewport
     context.DrawRect(m_Geometry, WindEffects::Editor::UI::Color{ 0.0f, 0.0f, 0.0f, 0.65f });
     
     // Dialog shadow and background
     context.DrawShadow(m_DialogRect, WindEffects::Editor::UI::Color{ 0.0f, 0.0f, 0.0f, 0.40f }, 16.0f, 24.0f);
-    context.DrawRoundedRect(m_DialogRect, theme.PanelBackground, 8.0f);
-    context.DrawRoundedRectOutline(m_DialogRect, theme.BorderDefault, 1.0f, 8.0f);
+    context.DrawRoundedRect(m_DialogRect, ThemeColor(ThemeToken::PanelBackground), 8.0f);
+    context.DrawRoundedRectOutline(m_DialogRect, ThemeColor(ThemeToken::BorderDefault), 1.0f, 8.0f);
     
     // Header
     const float titleFontSize = 17.0f * m_DpiScale;
     const float subtitleFontSize = 11.0f * m_DpiScale;
     context.DrawText(m_Title.empty() ? "License Agreement" : m_Title,
         WindEffects::Editor::UI::Point{ m_DialogRect.x + kDialogPadding * m_DpiScale, m_DialogRect.y + kDialogPadding * m_DpiScale + 6.0f * m_DpiScale },
-        theme.TextPrimary, titleFontSize, true);
+        ThemeColor(ThemeToken::TextPrimary), titleFontSize, true);
     context.DrawText("Please review and accept before using the editor.",
         WindEffects::Editor::UI::Point{ m_DialogRect.x + kDialogPadding * m_DpiScale, m_DialogRect.y + kDialogPadding * m_DpiScale + 28.0f * m_DpiScale },
-        theme.TextSecondary, subtitleFontSize);
+        ThemeColor(ThemeToken::TextSecondary), subtitleFontSize);
     
     // Content area background
-    context.DrawRoundedRect(m_ContentRect, theme.WorkspaceBackground, 6.0f);
-    context.DrawRoundedRectOutline(m_ContentRect, theme.BorderDefault, 1.0f, 6.0f);
+    context.DrawRoundedRect(m_ContentRect, ThemeColor(ThemeToken::WorkspaceBackground), 6.0f);
+    context.DrawRoundedRectOutline(m_ContentRect, ThemeColor(ThemeToken::BorderDefault), 1.0f, 6.0f);
     context.PushClipRect(m_ContentRect);
     
     // Compute layout if invalid
@@ -237,15 +237,15 @@ void FirstRunAgreementPopup::Paint(WindEffects::Editor::UI::PaintContext& contex
     const float hintFontSize = 10.0f * m_DpiScale;
     context.DrawText("Press Ctrl+C to copy the full agreement text.",
         WindEffects::Editor::UI::Point{ m_DialogRect.x + kDialogPadding * m_DpiScale, m_DialogRect.y + m_DialogRect.height - kDialogPadding * m_DpiScale - 14.0f * m_DpiScale },
-        theme.TextSecondary, hintFontSize);
+        ThemeColor(ThemeToken::TextSecondary), hintFontSize);
     
     // Buttons
     auto paintButton = [&](const ButtonState& button, bool primary) {
-        WindEffects::Editor::UI::Color bg = primary ? theme.SelectedAccent : theme.HoverOverlay;
+        WindEffects::Editor::UI::Color bg = primary ? ThemeColor(ThemeToken::AccentPrimary) : ThemeColor(ThemeToken::HoverBackground);
         if (!button.hovered) bg.a *= 0.85f;
-        if (button.pressed) bg = WindEffects::Editor::UI::Color::Lerp(bg, theme.PressedOverlay, 0.45f);
+        if (button.pressed) bg = WindEffects::Editor::UI::Color::Lerp(bg, ThemeColor(ThemeToken::PressedBackground), 0.45f);
         context.DrawRoundedRect(button.rect, bg, 4.0f);
-        context.DrawRoundedRectOutline(button.rect, theme.BorderDefault, 1.0f, 4.0f);
+        context.DrawRoundedRectOutline(button.rect, ThemeColor(ThemeToken::BorderDefault), 1.0f, 4.0f);
         
         const float iconSize = 13.0f * m_DpiScale;
         const float textGap = button.iconName.empty() ? 0.0f : 6.0f * m_DpiScale;
@@ -253,7 +253,7 @@ void FirstRunAgreementPopup::Paint(WindEffects::Editor::UI::PaintContext& contex
         const float tw = context.GetTextWidth(button.label, fontSize);
         const float contentW = tw + (button.iconName.empty() ? 0.0f : iconSize + textGap);
         float contentX = button.rect.x + (button.rect.width - contentW) * 0.5f;
-        const WindEffects::Editor::UI::Color textColor = primary ? WindEffects::Editor::UI::Color{ 0.10f, 0.10f, 0.10f, 1.0f } : theme.TextPrimary;
+        const WindEffects::Editor::UI::Color textColor = primary ? WindEffects::Editor::UI::Color{ 0.10f, 0.10f, 0.10f, 1.0f } : ThemeColor(ThemeToken::TextPrimary);
         
         if (!button.iconName.empty()) {
             WindEffects::Editor::UI::IconPainter::DrawIcon(context, button.iconName,
@@ -919,8 +919,7 @@ std::vector<std::string> FirstRunAgreementPopup::WrapText(WindEffects::Editor::U
 
 /*
 void FirstRunAgreementPopup::PaintBlock(WindEffects::Editor::UI::PaintContext& context, const MarkdownBlock& block, float y, float viewportTop, float viewportBottom) {
-    const auto& theme = WindEffects::Editor::UI::Theme::Get();
-    const float contentMargin = kContentMargin * m_DpiScale;
+const float contentMargin = kContentMargin * m_DpiScale;
     
     switch (block.type) {
         case BlockType::Heading1:
@@ -951,7 +950,7 @@ void FirstRunAgreementPopup::PaintBlock(WindEffects::Editor::UI::PaintContext& c
             const float ruleY = y + 2.0f * m_DpiScale;
             const float ruleWidth = m_ContentRect.width - contentMargin * 2.0f;
             context.DrawRect(WindEffects::Editor::UI::Rect{ m_ContentRect.x + contentMargin, ruleY, ruleWidth, 1.0f * m_DpiScale },
-                theme.BorderDefault);
+                ThemeColor(ThemeToken::BorderDefault));
             break;
         }
             
@@ -962,8 +961,7 @@ void FirstRunAgreementPopup::PaintBlock(WindEffects::Editor::UI::PaintContext& c
 }
 
 void FirstRunAgreementPopup::PaintSpans(WindEffects::Editor::UI::PaintContext& context, const std::vector<TextSpan>& spans, float x, float& y, float fontSize, const WindEffects::Editor::UI::Color& baseColor, float maxWidth, float viewportTop, float viewportBottom) {
-    const auto& theme = WindEffects::Editor::UI::Theme::Get();
-    const float lineHeight = fontSize * kBaseLineHeight;
+const float lineHeight = fontSize * kBaseLineHeight;
     
     // Combine all spans into a single string for wrapping, then render with formatting
     std::string fullText;
@@ -994,11 +992,11 @@ void FirstRunAgreementPopup::PaintSpans(WindEffects::Editor::UI::PaintContext& c
             
             switch (span.type) {
                 case SpanType::Bold:
-                    color = theme.TextPrimary;
+                    color = ThemeColor(ThemeToken::TextPrimary);
                     bold = true;
                     break;
                 case SpanType::Italic:
-                    color = theme.TextPrimary;
+                    color = ThemeColor(ThemeToken::TextPrimary);
                     break;
                 case SpanType::Code:
                     color = WindEffects::Editor::UI::Color{ 0.9f, 0.7f, 0.4f, 1.0f };
@@ -1037,8 +1035,7 @@ void FirstRunAgreementPopup::PaintSpans(WindEffects::Editor::UI::PaintContext& c
 }
 
 void FirstRunAgreementPopup::PaintCodeBlock(WindEffects::Editor::UI::PaintContext& context, const MarkdownBlock& block, float y, float viewportTop, float viewportBottom) {
-    const auto& theme = WindEffects::Editor::UI::Theme::Get();
-    const float padding = kCodeBlockPadding * m_DpiScale;
+const float padding = kCodeBlockPadding * m_DpiScale;
     const float fontSize = kCodeFontSize * m_DpiScale;
     const float lineHeight = fontSize * kCodeLineHeight;
     const float contentMargin = kContentMargin * m_DpiScale;
@@ -1070,27 +1067,25 @@ void FirstRunAgreementPopup::PaintCodeBlock(WindEffects::Editor::UI::PaintContex
 }
 
 void FirstRunAgreementPopup::PaintBlockquote(WindEffects::Editor::UI::PaintContext& context, const MarkdownBlock& block, float y, float viewportTop, float viewportBottom) {
-    const auto& theme = WindEffects::Editor::UI::Theme::Get();
-    const float padding = kBlockquotePadding * m_DpiScale;
+const float padding = kBlockquotePadding * m_DpiScale;
     const float fontSize = kBlockquoteFontSize * m_DpiScale;
     const float contentMargin = kContentMargin * m_DpiScale;
     
     // Left border
     const float borderX = m_ContentRect.x + contentMargin;
     context.DrawRect(WindEffects::Editor::UI::Rect{ borderX, y, 3.0f * m_DpiScale, MeasureBlockHeight(context, block, m_ContentRect.width - contentMargin * 2.0f) },
-        theme.SelectedAccent);
+        ThemeColor(ThemeToken::AccentPrimary));
     
     // Quote text
     float textY = y;
     PaintSpans(context, block.spans, borderX + padding + 3.0f * m_DpiScale, textY,
-        fontSize, theme.TextSecondary,
+        fontSize, ThemeColor(ThemeToken::TextSecondary),
         m_ContentRect.width - contentMargin * 2.0f - padding - 6.0f * m_DpiScale,
         viewportTop, viewportBottom);
 }
 
 void FirstRunAgreementPopup::PaintList(WindEffects::Editor::UI::PaintContext& context, const MarkdownBlock& block, float y, float viewportTop, float viewportBottom) {
-    const auto& theme = WindEffects::Editor::UI::Theme::Get();
-    const float fontSize = kBaseFontSize * m_DpiScale;
+const float fontSize = kBaseFontSize * m_DpiScale;
     const float lineHeight = fontSize * kBaseLineHeight;
     const float indent = 20.0f * m_DpiScale;
     const float contentMargin = kContentMargin * m_DpiScale;
@@ -1100,14 +1095,14 @@ void FirstRunAgreementPopup::PaintList(WindEffects::Editor::UI::PaintContext& co
     
     // Draw bullet or number
     if (block.type == BlockType::UnorderedList) {
-        context.DrawText("•", WindEffects::Editor::UI::Point{ bulletX, textY }, theme.TextPrimary, fontSize, true);
+        context.DrawText("•", WindEffects::Editor::UI::Point{ bulletX, textY }, ThemeColor(ThemeToken::TextPrimary), fontSize, true);
     } else {
         std::string numStr = std::to_string(block.listNumber) + ".";
-        context.DrawText(numStr, WindEffects::Editor::UI::Point{ bulletX, textY }, theme.TextPrimary, fontSize, true);
+        context.DrawText(numStr, WindEffects::Editor::UI::Point{ bulletX, textY }, ThemeColor(ThemeToken::TextPrimary), fontSize, true);
     }
     
     // Draw text
-    PaintSpans(context, block.spans, bulletX + indent, textY, fontSize, theme.TextPrimary,
+    PaintSpans(context, block.spans, bulletX + indent, textY, fontSize, ThemeColor(ThemeToken::TextPrimary),
         m_ContentRect.width - contentMargin * 2.0f - indent * 1.5f,
         viewportTop, viewportBottom);
 }
@@ -1299,8 +1294,7 @@ std::vector<std::string> FirstRunAgreementPopup::WrapWords(WindEffects::Editor::
 // ============================================================================
 
 void FirstRunAgreementPopup::RenderNode(WindEffects::Editor::UI::PaintContext& context, const DocumentNode& node, float y) {
-    const auto& theme = WindEffects::Editor::UI::Theme::Get();
-    const float margin = kContentMargin * m_DpiScale;
+const float margin = kContentMargin * m_DpiScale;
     
     switch (node.type) {
         case NodeType::Heading1:
@@ -1326,7 +1320,7 @@ void FirstRunAgreementPopup::RenderNode(WindEffects::Editor::UI::PaintContext& c
             const float ruleY = y + 2.0f * m_DpiScale;
             const float ruleWidth = m_ContentRect.width - margin * 2.0f;
             context.DrawRect(WindEffects::Editor::UI::Rect{ m_ContentRect.x + margin, ruleY, ruleWidth, 1.0f * m_DpiScale },
-                theme.BorderDefault);
+                ThemeColor(ThemeToken::BorderDefault));
             break;
         }
         case NodeType::Spacer:
@@ -1335,8 +1329,7 @@ void FirstRunAgreementPopup::RenderNode(WindEffects::Editor::UI::PaintContext& c
 }
 
 void FirstRunAgreementPopup::RenderTextRuns(WindEffects::Editor::UI::PaintContext& context, const std::vector<TextRun>& runs, float x, float& y, float fontSize, const WindEffects::Editor::UI::Color& baseColor, float maxWidth) {
-    const auto& theme = WindEffects::Editor::UI::Theme::Get();
-    const float lineHeight = fontSize * kBaseLineHeight;
+const float lineHeight = fontSize * kBaseLineHeight;
     
     // Combine all runs for wrapping
     std::string fullText;
@@ -1360,11 +1353,11 @@ void FirstRunAgreementPopup::RenderTextRuns(WindEffects::Editor::UI::PaintContex
             
             switch (run.style) {
                 case TextStyle::Bold:
-                    color = theme.TextPrimary;
+                    color = ThemeColor(ThemeToken::TextPrimary);
                     bold = true;
                     break;
                 case TextStyle::Italic:
-                    color = theme.TextPrimary;
+                    color = ThemeColor(ThemeToken::TextPrimary);
                     break;
                 case TextStyle::Code:
                     color = WindEffects::Editor::UI::Color{ 0.9f, 0.7f, 0.4f, 1.0f };
@@ -1402,8 +1395,7 @@ void FirstRunAgreementPopup::RenderTextRuns(WindEffects::Editor::UI::PaintContex
 }
 
 void FirstRunAgreementPopup::RenderCodeBlock(WindEffects::Editor::UI::PaintContext& context, const DocumentNode& node, float y) {
-    const auto& theme = WindEffects::Editor::UI::Theme::Get();
-    const float padding = kCodeBlockPadding * m_DpiScale;
+const float padding = kCodeBlockPadding * m_DpiScale;
     const float fontSize = kCodeFontSize * m_DpiScale;
     const float lineHeight = fontSize * kCodeLineHeight;
     const float margin = kContentMargin * m_DpiScale;
@@ -1428,24 +1420,22 @@ void FirstRunAgreementPopup::RenderCodeBlock(WindEffects::Editor::UI::PaintConte
 }
 
 void FirstRunAgreementPopup::RenderBlockquote(WindEffects::Editor::UI::PaintContext& context, const DocumentNode& node, float y) {
-    const auto& theme = WindEffects::Editor::UI::Theme::Get();
-    const float padding = kBlockquotePadding * m_DpiScale;
+const float padding = kBlockquotePadding * m_DpiScale;
     const float fontSize = kBlockquoteFontSize * m_DpiScale;
     const float margin = kContentMargin * m_DpiScale;
     
     const float borderX = m_ContentRect.x + margin;
     context.DrawRect(WindEffects::Editor::UI::Rect{ borderX, y, 3.0f * m_DpiScale, node.cachedHeight },
-        theme.SelectedAccent);
+        ThemeColor(ThemeToken::AccentPrimary));
     
     float textY = y;
     RenderTextRuns(context, node.runs, borderX + padding + 3.0f * m_DpiScale, textY,
-        fontSize, theme.TextSecondary,
+        fontSize, ThemeColor(ThemeToken::TextSecondary),
         m_ContentRect.width - margin * 2.0f - padding - 6.0f * m_DpiScale);
 }
 
 void FirstRunAgreementPopup::RenderList(WindEffects::Editor::UI::PaintContext& context, const DocumentNode& node, float y) {
-    const auto& theme = WindEffects::Editor::UI::Theme::Get();
-    const float fontSize = kBaseFontSize * m_DpiScale;
+const float fontSize = kBaseFontSize * m_DpiScale;
     const float lineHeight = fontSize * kBaseLineHeight;
     const float indent = 20.0f * m_DpiScale;
     const float margin = kContentMargin * m_DpiScale;
@@ -1454,13 +1444,13 @@ void FirstRunAgreementPopup::RenderList(WindEffects::Editor::UI::PaintContext& c
     const float bulletX = m_ContentRect.x + margin + indent * 0.5f;
     
     if (node.type == NodeType::UnorderedList) {
-        context.DrawText("•", WindEffects::Editor::UI::Point{ bulletX, textY }, theme.TextPrimary, fontSize, true);
+        context.DrawText("•", WindEffects::Editor::UI::Point{ bulletX, textY }, ThemeColor(ThemeToken::TextPrimary), fontSize, true);
     } else {
         std::string numStr = std::to_string(node.listNumber) + ".";
-        context.DrawText(numStr, WindEffects::Editor::UI::Point{ bulletX, textY }, theme.TextPrimary, fontSize, true);
+        context.DrawText(numStr, WindEffects::Editor::UI::Point{ bulletX, textY }, ThemeColor(ThemeToken::TextPrimary), fontSize, true);
     }
     
-    RenderTextRuns(context, node.runs, bulletX + indent, textY, fontSize, theme.TextPrimary,
+    RenderTextRuns(context, node.runs, bulletX + indent, textY, fontSize, ThemeColor(ThemeToken::TextPrimary),
         m_ContentRect.width - margin * 2.0f - indent * 1.5f);
 }
 
@@ -1553,18 +1543,17 @@ float FirstRunAgreementPopup::GetLineHeight(NodeType type) const {
 }
 
 WindEffects::Editor::UI::Color FirstRunAgreementPopup::GetTextColor(NodeType type) const {
-    const auto& theme = WindEffects::Editor::UI::Theme::Get();
-    switch (type) {
+switch (type) {
         case NodeType::Heading1:
         case NodeType::Heading2:
         case NodeType::Heading3:
-            return theme.TextPrimary;
+            return ThemeColor(ThemeToken::TextPrimary);
         case NodeType::CodeBlock:
             return WindEffects::Editor::UI::Color{ 0.9f, 0.9f, 0.85f, 1.0f };
         case NodeType::Blockquote:
-            return theme.TextSecondary;
+            return ThemeColor(ThemeToken::TextSecondary);
         default:
-            return theme.TextPrimary;
+            return ThemeColor(ThemeToken::TextPrimary);
     }
 }
 

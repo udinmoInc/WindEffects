@@ -7,7 +7,7 @@
 #include <unordered_map>
 #include "Core/Geometry.h"
 #include "Core/Icon.h"
-#include "Core/Theme.h"
+#include "WindEffects/Editor/UI/Theming/ThemeToken.h"
 
 #include "Core/DeviceContext.h"
 #include "Rendering/Icons/ISvgRasterizer.h"
@@ -76,7 +76,7 @@ private:
     std::unordered_map<std::string, IconTexture> m_Cache;
     
     // Default icon color
-    Color m_DefaultColor = Theme::Get().TextPrimary;
+    Color m_DefaultColor = Color::White();
 #pragma warning(pop)
 };
 

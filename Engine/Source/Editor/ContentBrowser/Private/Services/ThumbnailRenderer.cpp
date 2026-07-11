@@ -1,7 +1,7 @@
 #include "Services/ThumbnailRenderer.h"
 #include "Registry/AssetTypeResolver.h"
 #include "Rendering/Icons/SvgRasterizer.h"
-#include "Core/Theme.h"
+#include "WindEffects/Editor/UI/Theming/ThemeAccess.h"
 #include "Core/Logger.h"
 
 #define STB_IMAGE_IMPLEMENTATION
@@ -19,6 +19,10 @@
 namespace we::editor::contentbrowser {
 
 namespace {
+
+WindEffects::Editor::UI::Color ThumbnailThemeColor(WindEffects::Editor::UI::ThemeToken token) {
+    return WindEffects::Editor::UI::ResolveThemeColor(token);
+}
 
 std::string ResolvePath(const std::string& path) {
     if (std::filesystem::exists(path)) return path;
@@ -102,11 +106,9 @@ std::array<uint8_t, 3> ThemeRgb(const WindEffects::Editor::UI::Color& color, flo
 }
 
 std::array<uint8_t, 3> SampleFolderThemeColor(float t, float hoverBrightness) {
-    const WindEffects::Editor::UI::Theme& theme = WindEffects::Editor::UI::Theme::Get();
-    
     // Use multi-color palette for folder: blend between tab color (top) and body color (bottom)
-    const auto tabColor = ThemeRgb(theme.ContentBrowserFolderTab, hoverBrightness);
-    const auto bodyColor = ThemeRgb(theme.ContentBrowserFolderBody, hoverBrightness);
+    const auto tabColor = ThemeRgb(ThumbnailThemeColor(WindEffects::Editor::UI::ThemeToken::ContentBrowserFolderTab), hoverBrightness);
+    const auto bodyColor = ThemeRgb(ThumbnailThemeColor(WindEffects::Editor::UI::ThemeToken::ContentBrowserFolderBody), hoverBrightness);
     
     const float factor = std::clamp(t, 0.0f, 1.0f);
     
@@ -527,17 +529,15 @@ BitmapRGBA ThumbnailRenderer::RenderContentBrowserFolderProcedural(uint32_t w, u
     bmp.height = h;
     bmp.pixels.assign(static_cast<size_t>(w) * h * 4, 0);
 
-    const WindEffects::Editor::UI::Theme& theme = WindEffects::Editor::UI::Theme::Get();
-    
     // Use full theme palette for folder
-    const auto shadowRgb = ThemeRgb(theme.ContentBrowserFolderShadow, hoverBrightness);
-    const auto edgeRgb = ThemeRgb(theme.ContentBrowserFolderEdge, hoverBrightness);
-    const auto tabTop = ThemeRgb(theme.ContentBrowserFolderHighlight, hoverBrightness);
-    const auto tabBot = ThemeRgb(theme.ContentBrowserFolderTab, hoverBrightness);
-    const auto bodyTop = ThemeRgb(theme.ContentBrowserFolderTab, hoverBrightness);
-    const auto bodyMid = ThemeRgb(theme.ContentBrowserFolderPrimary, hoverBrightness);
-    const auto bodyBot = ThemeRgb(theme.ContentBrowserFolderBody, hoverBrightness);
-    const auto highlightRgb = ThemeRgb(theme.ContentBrowserFolderHighlight, hoverBrightness);
+    const auto shadowRgb = ThemeRgb(ThumbnailThemeColor(WindEffects::Editor::UI::ThemeToken::ContentBrowserFolderShadow), hoverBrightness);
+    const auto edgeRgb = ThemeRgb(ThumbnailThemeColor(WindEffects::Editor::UI::ThemeToken::ContentBrowserFolderEdge), hoverBrightness);
+    const auto tabTop = ThemeRgb(ThumbnailThemeColor(WindEffects::Editor::UI::ThemeToken::ContentBrowserFolderHighlight), hoverBrightness);
+    const auto tabBot = ThemeRgb(ThumbnailThemeColor(WindEffects::Editor::UI::ThemeToken::ContentBrowserFolderTab), hoverBrightness);
+    const auto bodyTop = ThemeRgb(ThumbnailThemeColor(WindEffects::Editor::UI::ThemeToken::ContentBrowserFolderTab), hoverBrightness);
+    const auto bodyMid = ThemeRgb(ThumbnailThemeColor(WindEffects::Editor::UI::ThemeToken::ContentBrowserFolderPrimary), hoverBrightness);
+    const auto bodyBot = ThemeRgb(ThumbnailThemeColor(WindEffects::Editor::UI::ThemeToken::ContentBrowserFolderBody), hoverBrightness);
+    const auto highlightRgb = ThemeRgb(ThumbnailThemeColor(WindEffects::Editor::UI::ThemeToken::ContentBrowserFolderHighlight), hoverBrightness);
 
     constexpr float kRefW = 146.0f;
     constexpr float kRefH = 100.0f;
@@ -731,8 +731,7 @@ BitmapRGBA ThumbnailRenderer::RenderContentBrowserBlueprintProcedural(uint32_t w
     bmp.height = h;
     bmp.pixels.assign(static_cast<size_t>(w) * h * 4, 0);
 
-    const WindEffects::Editor::UI::Theme& theme = WindEffects::Editor::UI::Theme::Get();
-    const auto tint = ThemeRgb(theme.IconMuted, hoverBrightness);
+const auto tint = ThemeRgb(ThumbnailThemeColor(WindEffects::Editor::UI::ThemeToken::IconDefault), hoverBrightness);
     const float cx = static_cast<float>(w) * 0.5f;
     const float cy = static_cast<float>(h) * 0.5f;
     const float boxW = static_cast<float>(w) * 0.72f;
@@ -775,8 +774,7 @@ BitmapRGBA ThumbnailRenderer::RenderContentBrowserBlueprint(uint32_t heightPx, f
 
     const std::string svgPath = ResolveBlueprintSvgPath();
     if (!svgPath.empty()) {
-        const WindEffects::Editor::UI::Theme& theme = WindEffects::Editor::UI::Theme::Get();
-        const auto flatTint = ThemeRgb(theme.IconMuted, hoverBrightness);
+    const auto flatTint = ThemeRgb(ThumbnailThemeColor(WindEffects::Editor::UI::ThemeToken::IconDefault), hoverBrightness);
         const BitmapRGBA svgBmp = RasterizeMonochromeSvg(ResolvePath(svgPath), w, h, hoverBrightness,
             [&](float) { return flatTint; });
         if (!svgBmp.pixels.empty()) {

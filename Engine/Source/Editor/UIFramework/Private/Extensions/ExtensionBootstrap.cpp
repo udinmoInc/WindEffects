@@ -39,3 +39,5 @@ void ExtensionBootstrap::FlushTo(UIExtensionRegistry& registry) {
 }
 
 } // namespace WindEffects::Editor::UI
+
+

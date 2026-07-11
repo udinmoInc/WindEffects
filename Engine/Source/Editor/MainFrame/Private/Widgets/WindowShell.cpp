@@ -1,6 +1,6 @@
 #include "Widgets/WindowShell.h"
 #include "Core/PaintContext.h"
-#include "Core/Theme.h"
+#include "WindEffects/Editor/UI/Theming/ThemeToken.h"
 
 namespace WindEffects::Editor::UI {
 
@@ -33,14 +33,14 @@ void WindowShell::Arrange(const Rect& allottedRect) {
 }
 
 void WindowShell::Paint(PaintContext& context) {
-    context.DrawRect(m_Geometry, Theme::Get().WindowBackground);
+    context.DrawRect(m_Geometry, ThemeColor(ThemeToken::WindowBackground));
 
     if (m_Content) {
         m_Content->Paint(context);
     }
 
     // Square frame — bottom edge stays flush with the system edge (no rounded cutout).
-    const Color border = Theme::Get().BorderDefault;
+    const Color border = ThemeColor(ThemeToken::BorderDefault);
     const float x = m_Geometry.x;
     const float y = m_Geometry.y;
     const float w = m_Geometry.width;

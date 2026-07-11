@@ -3,7 +3,8 @@
 #include "Services/ContentBrowserFolderArt.h"
 #include "Services/ContentBrowserBlueprintArt.h"
 #include "Core/PaintContext.h"
-#include "Core/Theme.h"
+#include "WindEffects/Editor/UI/Theming/ThemeAccess.h"
+#include "WindEffects/Editor/UI/Theming/ThemeToken.h"
 #include "Core/Icon.h"
 #include "Core/DPIContext.h"
 #include <algorithm>
@@ -48,7 +49,7 @@ void PaintTreeNodeIcon(PaintContext& context, const TreeNode& node, const Rect& 
         return;
     }
     if (!node.iconName.empty()) {
-        IconPainter::DrawIcon(context, node.iconName, iconRect, Theme::Get().SidebarIconDefault);
+        IconPainter::DrawIcon(context, node.iconName, iconRect, ResolveThemeColor(ThemeToken::IconDefault));
     }
 }
 
@@ -76,10 +77,9 @@ public:
     void Arrange(const Rect& allottedRect) override { m_Geometry = allottedRect; }
 
     void Paint(PaintContext& context) override {
-        const auto& theme = Theme::Get();
         context.DrawShadow(m_Geometry, Color{ 0.0f, 0.0f, 0.0f, 0.2f }, 4.0f, 10.0f);
-        context.DrawRoundedRect(m_Geometry, theme.PopupBackground, theme.CornerRadiusSmall);
-        context.DrawRoundedRectOutline(m_Geometry, theme.BorderDefault, 1.0f, theme.CornerRadiusSmall);
+        context.DrawRoundedRect(m_Geometry, ThemeColor(ThemeToken::PopupBackground), ThemeMetric(ThemeToken::CornerRadiusSmall));
+        context.DrawRoundedRectOutline(m_Geometry, ThemeColor(ThemeToken::BorderDefault), 1.0f, ThemeMetric(ThemeToken::CornerRadiusSmall));
 
         float y = m_Geometry.y + 3.0f;
         for (size_t i = 0; i < m_Items.size(); ++i) {
@@ -90,9 +90,9 @@ public:
                 continue;
             }
             if (static_cast<int>(i) == m_Hovered) {
-                context.DrawRoundedRect(row, theme.HoverOverlay, 3.0f);
+                context.DrawRoundedRect(row, ThemeColor(ThemeToken::HoverBackground), 3.0f);
             }
-            context.DrawText(item.label, Point{ row.x + 10.0f, row.y + 5.0f }, theme.TextPrimary, 11.0f);
+            context.DrawText(item.label, Point{ row.x + 10.0f, row.y + 5.0f }, ThemeColor(ThemeToken::TextPrimary), 11.0f);
             y += 26.0f;
         }
     }
@@ -181,8 +181,7 @@ void TreeView::Tick(float deltaTime) {
 }
 
 void TreeView::Paint(PaintContext& context) {
-    const auto& theme = Theme::Get();
-    const Color bg = m_ExplorerStyle ? theme.WorkspaceBackground : theme.ContentBrowserBackground;
+    const Color bg = m_ExplorerStyle ? ThemeColor(ThemeToken::WorkspaceBackground) : ThemeColor(ThemeToken::ContentBrowserBackground);
     context.DrawRect(m_Geometry, bg);
 
     if (m_RenderList.empty()) {
@@ -206,9 +205,9 @@ void TreeView::Paint(PaintContext& context) {
         Color bgColor{0, 0, 0, 0};
         const bool selected = IsSelected(node->id);
         if (selected) {
-            bgColor = theme.SelectionHighlight;
+            bgColor = ThemeColor(ThemeToken::SelectionHighlight);
         } else if (node->id == m_HoveredId) {
-            bgColor = theme.HoverOverlay;
+            bgColor = ThemeColor(ThemeToken::HoverBackground);
         }
 
         if (bgColor.a > 0.001f) {
@@ -220,7 +219,7 @@ void TreeView::Paint(PaintContext& context) {
 
         if (node->id == m_DropTargetId && m_Dragging) {
             Rect dropLine{ m_Geometry.x + 4.0f, item.geometry.y, m_Geometry.width - 8.0f, 2.0f };
-            context.DrawRect(dropLine, theme.SelectedAccent);
+            context.DrawRect(dropLine, ThemeColor(ThemeToken::AccentPrimary));
         }
 
         if (!node->children.empty()) {
@@ -228,7 +227,7 @@ void TreeView::Paint(PaintContext& context) {
             const float chevronX = item.geometry.x + 4.0f;
             const float chevronY = item.geometry.y + (rowHeight - chevronSize) * 0.5f;
             const char* chevronIcon = node->expanded ? Icons::ChevronDownName : Icons::ChevronRightName;
-            IconPainter::DrawIcon(context, chevronIcon, Rect{ chevronX, chevronY, chevronSize, chevronSize }, theme.TreeArrow);
+            IconPainter::DrawIcon(context, chevronIcon, Rect{ chevronX, chevronY, chevronSize, chevronSize }, ThemeColor(ThemeToken::TextSecondary));
         }
 
         const float iconSize = 16.0f;
@@ -241,19 +240,19 @@ void TreeView::Paint(PaintContext& context) {
 
         const float textX = iconX + iconSize + 6.0f;
         const float textY = item.geometry.y + (rowHeight - fontSize) * 0.5f;
-        Color textColor = node->locked ? theme.TextSecondary * 0.6f : theme.TextPrimary;
+        Color textColor = node->locked ? ThemeColor(ThemeToken::TextSecondary) * 0.6f : ThemeColor(ThemeToken::TextPrimary);
         if (!node->visible) {
-            textColor = theme.TextSecondary * 0.45f;
+            textColor = ThemeColor(ThemeToken::TextSecondary) * 0.45f;
         }
 
         if (node->id == m_RenamingId) {
             Rect editBg{ textX - 4.0f, item.geometry.y + 2.0f, item.geometry.width - 80.0f, rowHeight - 4.0f };
-            context.DrawRoundedRect(editBg, theme.InputBackground, 3.0f);
-            context.DrawRoundedRectOutline(editBg, theme.SelectedAccent, 1.0f, 3.0f);
-            context.DrawText(m_RenameBuffer, Point{ textX, textY }, theme.TextPrimary, fontSize);
+            context.DrawRoundedRect(editBg, ThemeColor(ThemeToken::InputBackground), 3.0f);
+            context.DrawRoundedRectOutline(editBg, ThemeColor(ThemeToken::AccentPrimary), 1.0f, 3.0f);
+            context.DrawText(m_RenameBuffer, Point{ textX, textY }, ThemeColor(ThemeToken::TextPrimary), fontSize);
             if (static_cast<int>(m_RenameCursorBlink * 2.0f) % 2 == 0) {
                 const float cursorX = textX + context.GetTextWidth(m_RenameBuffer, fontSize) + 1.0f;
-                context.DrawRect(Rect{ cursorX, textY, 1.0f, fontSize }, theme.TextPrimary);
+                context.DrawRect(Rect{ cursorX, textY, 1.0f, fontSize }, ThemeColor(ThemeToken::TextPrimary));
             }
         } else {
             // Draw text with search highlighting
@@ -295,8 +294,8 @@ void TreeView::Paint(PaintContext& context) {
                     const std::string matchText = label.substr(matchStart, matchEnd - matchStart);
                     const float matchWidth = context.GetTextWidth(matchText, fontSize);
                     Rect highlightRect{ currentX, textY, matchWidth, fontSize };
-                    context.DrawRoundedRect(highlightRect, theme.SelectedAccent * 0.3f, 2.0f);
-                    context.DrawText(matchText, Point{ currentX, textY }, theme.SelectedAccent, fontSize);
+                    context.DrawRoundedRect(highlightRect, ThemeColor(ThemeToken::AccentPrimary) * 0.3f, 2.0f);
+                    context.DrawText(matchText, Point{ currentX, textY }, ThemeColor(ThemeToken::AccentPrimary), fontSize);
                     currentX += matchWidth;
                     
                     // Draw text after match
@@ -316,14 +315,14 @@ void TreeView::Paint(PaintContext& context) {
         const float eyeSize = 13.0f;
         const float eyeX = item.geometry.x + item.geometry.width - eyeSize - 8.0f;
         const float eyeY = item.geometry.y + (rowHeight - eyeSize) * 0.5f;
-        const Color eyeColor = node->visible ? theme.TextSecondary : theme.TextSecondary * 0.45f;
+        const Color eyeColor = node->visible ? ThemeColor(ThemeToken::TextSecondary) : ThemeColor(ThemeToken::TextSecondary) * 0.45f;
         const char* eyeIcon = node->visible ? Icons::EyeName : Icons::EyeOffName;
         IconPainter::DrawIcon(context, eyeIcon, Rect{ eyeX, eyeY, eyeSize, eyeSize }, eyeColor);
 
         const float lockSize = 13.0f;
         const float lockX = eyeX - lockSize - 4.0f;
         const float lockY = item.geometry.y + (rowHeight - lockSize) * 0.5f;
-        const Color lockColor = node->locked ? theme.Warning : theme.TextSecondary * 0.55f;
+        const Color lockColor = node->locked ? ThemeColor(ThemeToken::Warning) : ThemeColor(ThemeToken::TextSecondary) * 0.55f;
         const char* lockIcon = node->locked ? Icons::LockName : Icons::UnlockName;
         IconPainter::DrawIcon(context, lockIcon, Rect{ lockX, lockY, lockSize, lockSize }, lockColor);
         }

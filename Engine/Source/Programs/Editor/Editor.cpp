@@ -17,6 +17,7 @@
 #include "WindEffects/Editor/UI/Extensions/UIExtensionRegistry.h"
 
 #include "EditorWindowHitTest.h"
+#include "EditorShellBuilder.h"
 #include "Widgets/ViewportWidget.h"
 #include "ViewportToolbarState.h"
 #include "PlaceActors/PlaceActorsPlacement.h"

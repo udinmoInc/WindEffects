@@ -1,6 +1,6 @@
 #include "Widgets/SearchBox.h"
 #include "Core/PaintContext.h"
-#include "Core/Theme.h"
+#include "WindEffects/Editor/UI/Theming/ThemeToken.h"
 #include "Core/DPIContext.h"
 #include <SDL3/SDL.h>
 #include <algorithm>
@@ -10,7 +10,7 @@ namespace WindEffects::Editor::UI {
 SearchBox::SearchBox()
     : m_Style(WidgetStyle::TextBox())
 {
-    m_Height = Theme::Get().SearchBoxHeight;
+    m_Height = ThemeMetric(ThemeToken::SearchBoxHeight);
 }
 
 Size SearchBox::Measure(const Size& availableSize) {
@@ -28,42 +28,41 @@ void SearchBox::Arrange(const Rect& allottedRect) {
 }
 
 void SearchBox::Paint(PaintContext& context) {
-    const auto& theme = Theme::Get();
     const float scale = (std::max)(1.0f, DPIContext::GetScale());
-    const float cornerRadius = theme.CornerRadiusSmall * scale;
-    const float fontSize = theme.TextSizeBody * scale;
-    const float iconSize = theme.IconSizeSearch * scale;
-    const float padH = theme.Space3 * scale;
+    const float cornerRadius = ThemeMetric(ThemeToken::CornerRadiusSmall) * scale;
+    const float fontSize = ThemeMetric(ThemeToken::TextSizeBody) * scale;
+    const float iconSize = ThemeMetric(ThemeToken::IconSizeSearch) * scale;
+    const float padH = ThemeMetric(ThemeToken::Space3) * scale;
 
-    context.DrawRoundedRect(m_Geometry, theme.SearchBoxBg, cornerRadius);
+    context.DrawRoundedRect(m_Geometry, ThemeColor(ThemeToken::SearchBoxBackground), cornerRadius);
 
-    Color borderColor = theme.BorderDefault;
+    Color borderColor = ThemeColor(ThemeToken::BorderDefault);
     if (IsFocused()) {
-        borderColor = Color::Lerp(theme.BorderDefault, theme.BorderFocus, 0.35f);
+        borderColor = Color::Lerp(ThemeColor(ThemeToken::BorderDefault), ThemeColor(ThemeToken::BorderFocus), 0.35f);
     }
-    context.DrawRoundedRectOutline(m_Geometry, borderColor, theme.BorderWidth, cornerRadius);
+    context.DrawRoundedRectOutline(m_Geometry, borderColor, ThemeMetric(ThemeToken::BorderWidth), cornerRadius);
 
     const float iconX = m_Geometry.x + padH;
     const float iconY = m_Geometry.y + (m_Geometry.height - iconSize) * 0.5f;
-    IconPainter::DrawIcon(context, Icons::SearchName, Rect{ iconX, iconY, iconSize, iconSize }, theme.SearchIcon);
+    IconPainter::DrawIcon(context, Icons::SearchName, Rect{ iconX, iconY, iconSize, iconSize }, ThemeColor(ThemeToken::IconDefault));
 
     Rect textRect = GetTextRect();
 
     if (m_Text.empty()) {
-        context.DrawText(m_Placeholder, Point{ textRect.x, textRect.y }, theme.SearchPlaceholder, fontSize);
+        context.DrawText(m_Placeholder, Point{ textRect.x, textRect.y }, ThemeColor(ThemeToken::SearchPlaceholder), fontSize);
     } else {
-        context.DrawText(m_Text, Point{ textRect.x, textRect.y }, theme.TextPrimary, fontSize, false);
+        context.DrawText(m_Text, Point{ textRect.x, textRect.y }, ThemeColor(ThemeToken::TextPrimary), fontSize, false);
 
         if (IsFocused() && m_ShowCaret) {
             const float caretX = textRect.x + context.GetTextWidth(m_Text.substr(0, m_CaretPosition), fontSize);
-            Rect caretRect{ caretX, textRect.y, theme.BorderWidth, fontSize };
-            context.DrawRect(caretRect, theme.TextPrimary);
+            Rect caretRect{ caretX, textRect.y, ThemeMetric(ThemeToken::BorderWidth), fontSize };
+            context.DrawRect(caretRect, ThemeColor(ThemeToken::TextPrimary));
         }
     }
 
     if (!m_Text.empty()) {
         Rect clearRect = GetClearButtonRect();
-        IconPainter::DrawIcon(context, Icons::XName, clearRect, theme.SearchIcon);
+        IconPainter::DrawIcon(context, Icons::XName, clearRect, ThemeColor(ThemeToken::IconDefault));
     }
 }
 
@@ -80,7 +79,7 @@ void SearchBox::OnMouseDown(const MouseEvent& event) {
         Rect textRect = GetTextRect();
         float clickX = event.position.x - textRect.x;
         const float scale = (std::max)(1.0f, DPIContext::GetScale());
-        const float fontSize = Theme::Get().TextSizeBody * scale;
+        const float fontSize = ThemeMetric(ThemeToken::TextSizeBody) * scale;
 
         float minDist = FLT_MAX;
         size_t closestPos = 0;
@@ -166,13 +165,12 @@ void SearchBox::UpdateCaretBlink(float deltaTime) {
 }
 
 Rect SearchBox::GetTextRect() const {
-    const auto& theme = Theme::Get();
     const float scale = (std::max)(1.0f, DPIContext::GetScale());
-    const float padH = theme.Space3 * scale;
-    const float iconSize = theme.IconSizeSearch * scale;
-    const float fontSize = theme.TextSizeBody * scale;
-    const float iconWidth = padH + iconSize + theme.Space2 * scale;
-    const float clearW = m_Text.empty() ? 0.0f : theme.Space6 * scale;
+    const float padH = ThemeMetric(ThemeToken::Space3) * scale;
+    const float iconSize = ThemeMetric(ThemeToken::IconSizeSearch) * scale;
+    const float fontSize = ThemeMetric(ThemeToken::TextSizeBody) * scale;
+    const float iconWidth = padH + iconSize + ThemeMetric(ThemeToken::Space2) * scale;
+    const float clearW = m_Text.empty() ? 0.0f : ThemeMetric(ThemeToken::Space6) * scale;
     return Rect{
         m_Geometry.x + iconWidth,
         m_Geometry.y + (m_Geometry.height - fontSize) * 0.5f,
@@ -182,10 +180,9 @@ Rect SearchBox::GetTextRect() const {
 }
 
 Rect SearchBox::GetClearButtonRect() const {
-    const auto& theme = Theme::Get();
     const float scale = (std::max)(1.0f, DPIContext::GetScale());
-    const float clearSize = theme.IconSizeSearch * scale;
-    const float padH = theme.Space3 * scale;
+    const float clearSize = ThemeMetric(ThemeToken::IconSizeSearch) * scale;
+    const float padH = ThemeMetric(ThemeToken::Space3) * scale;
     return Rect{
         m_Geometry.x + m_Geometry.width - clearSize - padH,
         m_Geometry.y + (m_Geometry.height - clearSize) * 0.5f,

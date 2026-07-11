@@ -1,8 +1,8 @@
 #include "Core/Widgets/ToolbarNavigationButton.h"
 #include "Core/PaintContext.h"
-#include "Core/Theme.h"
 #include "Core/Icon.h"
 #include "Core/Animator.h"
+#include "WindEffects/Editor/UI/Theming/ThemeToken.h"
 #include <algorithm>
 
 namespace WindEffects::Editor::UI {
@@ -15,12 +15,13 @@ ToolbarNavigationButton::ToolbarNavigationButton(const std::string& iconName, co
 
 Size ToolbarNavigationButton::Measure(const Size& availableSize) {
     (void)availableSize;
-    m_DesiredSize = Size{ DesignTokens::kNavigationButtonSize, DesignTokens::kNavigationButtonSize };
+    const float size = ThemeMetric(ThemeToken::NavigationButtonSize);
+    m_DesiredSize = Size{ size, size };
     return m_DesiredSize;
 }
 
 void ToolbarNavigationButton::Arrange(const Rect& allottedRect) {
-    const float size = DesignTokens::kNavigationButtonSize;
+    const float size = ThemeMetric(ThemeToken::NavigationButtonSize);
     m_Geometry = Rect{
         allottedRect.x,
         allottedRect.y + (allottedRect.height - size) * 0.5f,
@@ -30,49 +31,48 @@ void ToolbarNavigationButton::Arrange(const Rect& allottedRect) {
 }
 
 void ToolbarNavigationButton::Paint(PaintContext& context) {
-    using namespace DesignTokens;
-    
-    m_HoverAnim = Animator::Damp(m_HoverAnim, m_Hovered && m_Enabled ? 1.0f : 0.0f, kHoverDamping);
-    m_PressAnim = Animator::Damp(m_PressAnim, m_Pressed && m_Enabled ? 1.0f : 0.0f, kPressDamping);
-    
-    // Animate press offset
-    const float targetOffset = m_Pressed && m_Enabled ? kPressOffset : 0.0f;
-    m_PressOffset = Animator::Damp(m_PressOffset, targetOffset, kPressDamping);
+    const auto baseStyle = ResolveStyle(StyleRole::NavigationButton);
+    const auto hoverStyle = ResolveStyle(StyleRole::IconButtonHover);
+    const auto pressStyle = ResolveStyle(StyleRole::IconButtonPressed);
 
-    const auto& theme = Theme::Get();
-    const float radius = 4.0f; // Small rounded square
-    
-    // Determine colors based on state
-    Color bgColor = m_Enabled ? NavigationButtonNormal() : DisabledBackground();
-    Color borderColor = m_Enabled ? NavigationButtonBorder() : DisabledBorder();
-    Color iconColor = m_Enabled ? (m_Selected ? NavigationButtonIconHover() : NavigationButtonIcon()) : DisabledIcon();
-    
+    const float hoverDamping = ThemeMetric(ThemeToken::HoverAnimationDamping);
+    const float pressDamping = ThemeMetric(ThemeToken::PressAnimationDamping);
+    const float pressOffsetTarget = ThemeMetric(ThemeToken::PressOffset);
+
+    m_HoverAnim = Animator::Damp(m_HoverAnim, m_Hovered && m_Enabled ? 1.0f : 0.0f, hoverDamping);
+    m_PressAnim = Animator::Damp(m_PressAnim, m_Pressed && m_Enabled ? 1.0f : 0.0f, pressDamping);
+
+    const float targetOffset = m_Pressed && m_Enabled ? pressOffsetTarget : 0.0f;
+    m_PressOffset = Animator::Damp(m_PressOffset, targetOffset, pressDamping);
+
+    const float radius = baseStyle.cornerRadius;
+
+    Color bgColor = m_Enabled ? baseStyle.background : ThemeColor(ThemeToken::DisabledBackground);
+    Color borderColor = m_Enabled ? baseStyle.border : ThemeColor(ThemeToken::BorderDark);
+    Color iconColor = m_Enabled ? (m_Selected ? hoverStyle.icon : baseStyle.icon) : ThemeColor(ThemeToken::IconDisabled);
+
     if (m_Enabled && m_HoverAnim > 0.01f) {
-        bgColor = Color::Lerp(bgColor, NavigationButtonHover(), m_HoverAnim);
-        iconColor = Color::Lerp(iconColor, NavigationButtonIconHover(), m_HoverAnim);
-        borderColor = Color::Lerp(borderColor, NavigationButtonBorderHover(), m_HoverAnim);
+        bgColor = Color::Lerp(bgColor, hoverStyle.background, m_HoverAnim);
+        iconColor = Color::Lerp(iconColor, hoverStyle.icon, m_HoverAnim);
+        borderColor = Color::Lerp(borderColor, hoverStyle.border, m_HoverAnim);
     }
     if (m_Enabled && m_PressAnim > 0.01f) {
-        bgColor = Color::Lerp(bgColor, NavigationButtonPressed(), m_PressAnim);
-        iconColor = Color::Lerp(iconColor, theme.IconActive, m_PressAnim);
+        bgColor = Color::Lerp(bgColor, pressStyle.background, m_PressAnim);
+        iconColor = Color::Lerp(iconColor, pressStyle.icon, m_PressAnim);
     }
 
-    // Calculate button rect with press offset
     Rect buttonRect = m_Geometry;
     buttonRect.y += m_PressOffset;
 
-    // Draw button background (transparent by default, integrated)
     if (bgColor.a > 0.01f) {
         context.DrawRoundedRect(buttonRect, bgColor, radius);
     }
 
-    // Draw border only on hover
     if (m_Enabled && m_HoverAnim > 0.01f) {
-        context.DrawRoundedRectOutline(buttonRect, borderColor, 0.5f, radius);
+        context.DrawRoundedRectOutline(buttonRect, borderColor, baseStyle.borderWidth * 0.5f, radius);
     }
 
-    // Draw icon centered
-    const float iconSize = kNavigationIconSize;
+    const float iconSize = baseStyle.iconSize;
     const float iconX = buttonRect.x + (buttonRect.width - iconSize) * 0.5f;
     const float iconY = buttonRect.y + (buttonRect.height - iconSize) * 0.5f;
     IconPainter::DrawIcon(context, m_IconName, Rect{ iconX, iconY, iconSize, iconSize }, iconColor);

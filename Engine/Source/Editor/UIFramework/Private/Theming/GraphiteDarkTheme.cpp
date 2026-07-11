@@ -63,6 +63,36 @@ Color GraphiteDarkTheme::GetColor(ThemeToken token) const {
 
     case ThemeToken::ViewportToolbarBackground: return MakeColor(0.100f, 0.100f, 0.100f, 0.85f);
     case ThemeToken::StatusBarBackground: return MakeColor(0.125f, 0.125f, 0.125f);
+
+    case ThemeToken::ButtonPrimaryBackground: return MakeColor(0.145f, 0.145f, 0.145f);
+    case ThemeToken::ButtonPrimaryHover: return MakeColor(0.176f, 0.176f, 0.176f);
+    case ThemeToken::ButtonPrimaryPressed: return MakeColor(0.290f, 0.290f, 0.290f);
+
+    case ThemeToken::GizmoBackground: return MakeColor(0.12f, 0.12f, 0.12f, 0.85f);
+    case ThemeToken::GizmoAxisX: return MakeColor(0.90f, 0.25f, 0.25f, 1.0f);
+    case ThemeToken::GizmoAxisY: return MakeColor(0.30f, 0.85f, 0.35f, 1.0f);
+    case ThemeToken::GizmoAxisZ: return MakeColor(0.30f, 0.50f, 0.95f, 1.0f);
+
+    case ThemeToken::HighlightSubtle: return MakeColor(1.0f, 1.0f, 1.0f, 0.06f);
+    case ThemeToken::ShadowSubtle: return MakeColor(0.0f, 0.0f, 0.0f, 0.25f);
+    case ThemeToken::ShadowOverlay: return MakeColor(0.0f, 0.0f, 0.0f, 0.40f);
+    case ThemeToken::ModalScrim: return MakeColor(0.0f, 0.0f, 0.0f, 0.65f);
+
+    case ThemeToken::ContentBrowserHoverBackground: return MakeColor(0.176f, 0.176f, 0.176f);
+    case ThemeToken::ContentBrowserFolderShadow: return MakeColor(0.0f, 0.0f, 0.0f, 0.35f);
+    case ThemeToken::ContentBrowserFolderEdge: return MakeColor(0.188f, 0.188f, 0.188f);
+    case ThemeToken::ContentBrowserFolderHighlight: return MakeColor(0.45f, 0.48f, 0.52f);
+    case ThemeToken::ContentBrowserFolderTab: return MakeColor(0.32f, 0.35f, 0.39f);
+    case ThemeToken::ContentBrowserFolderPrimary: return MakeColor(0.28f, 0.31f, 0.35f);
+    case ThemeToken::ContentBrowserFolderBody: return MakeColor(0.24f, 0.27f, 0.31f);
+
+    case ThemeToken::CloseButtonHover: return MakeColor(0.549f, 0.549f, 0.549f);
+    case ThemeToken::DragGhostBackground: return MakeColor(0.145f, 0.145f, 0.145f, 0.85f);
+    case ThemeToken::TooltipBackground: return MakeColor(0.18f, 0.18f, 0.18f, 0.95f);
+
+    case ThemeToken::ErrorForeground: return MakeColor(0.839f, 0.635f, 0.290f);
+    case ThemeToken::LinkForeground: return MakeColor(0.4f, 0.7f, 1.0f);
+    case ThemeToken::CodeForeground: return MakeColor(0.9f, 0.9f, 0.85f);
     default: return Color::Transparent();
     }
 }
@@ -80,21 +110,36 @@ float GraphiteDarkTheme::GetMetric(ThemeToken token) const {
     case ThemeToken::TextSizeProperty: return 13.0f;
     case ThemeToken::TextSizeCaption: return 12.0f;
     case ThemeToken::TextSizeWindow: return 13.0f;
+    case ThemeToken::TextSizeHeader: return 13.0f;
+    case ThemeToken::TextSizeBody: return 13.0f;
+    case ThemeToken::TextSizeSmall: return 11.0f;
     case ThemeToken::BorderWidth: return 1.0f;
     case ThemeToken::PanelHeaderHeight: return 32.0f;
     case ThemeToken::ToolbarHeight: return 32.0f;
     case ThemeToken::SearchBoxHeight: return 24.0f;
-    case ThemeToken::IconButtonSize: return 24.0f;
-    case ThemeToken::ButtonHeight: return 24.0f;
+    case ThemeToken::IconButtonSize: return 28.0f;
+    case ThemeToken::ButtonHeight: return 28.0f;
+    case ThemeToken::NavigationButtonSize: return 28.0f;
     case ThemeToken::IconSizeSearch: return 14.0f;
-    case ThemeToken::IconSizeToolbar: return 16.0f;
+    case ThemeToken::IconSizeToolbar: return 18.0f;
     case ThemeToken::IconSizeTree: return 14.0f;
+    case ThemeToken::IconSizeNavigation: return 16.0f;
+    case ThemeToken::IconButtonRadius: return 4.0f;
+    case ThemeToken::ButtonPaddingHorizontal: return 10.0f;
+    case ThemeToken::ButtonSpacing: return 4.0f;
+    case ThemeToken::ButtonGroupSpacing: return 12.0f;
     case ThemeToken::Space1: return 4.0f;
     case ThemeToken::Space2: return 8.0f;
     case ThemeToken::Space3: return 12.0f;
     case ThemeToken::Space4: return 16.0f;
     case ThemeToken::Space5: return 20.0f;
     case ThemeToken::Space6: return 24.0f;
+    case ThemeToken::HoverAnimationDamping: return 12.0f;
+    case ThemeToken::PressAnimationDamping: return 12.0f;
+    case ThemeToken::PressOffset: return 1.0f;
+    case ThemeToken::ShadowBlurSmall: return 4.0f;
+    case ThemeToken::ShadowBlurMedium: return 8.0f;
+    case ThemeToken::ShadowSpreadMedium: return 16.0f;
     default: return 0.0f;
     }
 }
@@ -203,14 +248,60 @@ ResolvedStyle StyleResolver::Resolve(StyleRole role) const {
     case StyleRole::Button:
         style.background = Color::Transparent();
         style.foreground = theme.GetColor(ThemeToken::TextSecondary);
+        style.border = theme.GetColor(ThemeToken::BorderDefault);
         style.height = Scaled(theme.GetMetric(ThemeToken::ButtonHeight));
         style.iconSize = Scaled(theme.GetMetric(ThemeToken::IconSizeToolbar));
+        style.cornerRadius = Scaled(theme.GetMetric(ThemeToken::CornerRadiusSmall));
+        break;
+    case StyleRole::ButtonHover:
+        style.background = theme.GetColor(ThemeToken::HoverBackground);
+        style.foreground = theme.GetColor(ThemeToken::TextPrimary);
+        style.border = theme.GetColor(ThemeToken::BorderLight);
+        break;
+    case StyleRole::ButtonActive:
+        style.background = theme.GetColor(ThemeToken::PressedBackground);
+        style.foreground = theme.GetColor(ThemeToken::TextPrimary);
+        break;
+    case StyleRole::ButtonPrimary:
+        style.background = theme.GetColor(ThemeToken::ButtonPrimaryBackground);
+        style.foreground = theme.GetColor(ThemeToken::TextPrimary);
+        style.border = theme.GetColor(ThemeToken::BorderDefault);
+        style.height = Scaled(theme.GetMetric(ThemeToken::ButtonHeight));
+        style.iconSize = Scaled(theme.GetMetric(ThemeToken::IconSizeToolbar));
+        style.cornerRadius = Scaled(theme.GetMetric(ThemeToken::CornerRadiusSmall));
+        break;
+    case StyleRole::ButtonSecondary:
+        style.background = Color::Transparent();
+        style.foreground = theme.GetColor(ThemeToken::TextSecondary);
+        style.border = theme.GetColor(ThemeToken::BorderDefault);
+        style.height = Scaled(theme.GetMetric(ThemeToken::ButtonHeight));
+        style.iconSize = Scaled(theme.GetMetric(ThemeToken::IconSizeToolbar));
+        style.cornerRadius = Scaled(theme.GetMetric(ThemeToken::CornerRadiusSmall));
         break;
     case StyleRole::IconButton:
         style.background = Color::Transparent();
         style.icon = theme.GetColor(ThemeToken::IconDefault);
+        style.border = theme.GetColor(ThemeToken::BorderDefault);
         style.height = Scaled(theme.GetMetric(ThemeToken::IconButtonSize));
         style.iconSize = Scaled(theme.GetMetric(ThemeToken::IconSizeToolbar));
+        style.cornerRadius = Scaled(theme.GetMetric(ThemeToken::IconButtonRadius));
+        break;
+    case StyleRole::IconButtonHover:
+        style.background = theme.GetColor(ThemeToken::HoverBackground);
+        style.icon = theme.GetColor(ThemeToken::IconHover);
+        style.border = theme.GetColor(ThemeToken::BorderLight);
+        break;
+    case StyleRole::IconButtonPressed:
+        style.background = theme.GetColor(ThemeToken::PressedBackground);
+        style.icon = theme.GetColor(ThemeToken::IconActive);
+        break;
+    case StyleRole::NavigationButton:
+        style.background = Color::Transparent();
+        style.icon = theme.GetColor(ThemeToken::IconDefault);
+        style.border = theme.GetColor(ThemeToken::BorderDefault);
+        style.height = Scaled(theme.GetMetric(ThemeToken::NavigationButtonSize));
+        style.iconSize = Scaled(theme.GetMetric(ThemeToken::IconSizeNavigation));
+        style.cornerRadius = Scaled(theme.GetMetric(ThemeToken::IconButtonRadius));
         break;
     case StyleRole::Input:
     case StyleRole::SearchBox:
@@ -229,6 +320,38 @@ ResolvedStyle StyleResolver::Resolve(StyleRole role) const {
         style.background = theme.GetColor(ThemeToken::MenuBarBackground);
         style.foreground = theme.GetColor(ThemeToken::TextSecondary);
         style.fontSize = Scaled(theme.GetMetric(ThemeToken::TextSizeMenu));
+        break;
+    case StyleRole::MenuItem:
+        style.background = Color::Transparent();
+        style.foreground = theme.GetColor(ThemeToken::TextSecondary);
+        style.fontSize = Scaled(theme.GetMetric(ThemeToken::TextSizeMenu));
+        break;
+    case StyleRole::Popup:
+        style.background = theme.GetColor(ThemeToken::PopupBackground);
+        style.foreground = theme.GetColor(ThemeToken::TextPrimary);
+        style.border = theme.GetColor(ThemeToken::BorderDefault);
+        style.cornerRadius = Scaled(theme.GetMetric(ThemeToken::CornerRadiusMedium));
+        break;
+    case StyleRole::Tooltip:
+        style.background = theme.GetColor(ThemeToken::TooltipBackground);
+        style.foreground = theme.GetColor(ThemeToken::TextPrimary);
+        style.fontSize = Scaled(theme.GetMetric(ThemeToken::TextSizeSmall));
+        style.cornerRadius = Scaled(theme.GetMetric(ThemeToken::CornerRadiusSmall));
+        break;
+    case StyleRole::Modal:
+        style.background = theme.GetColor(ThemeToken::PopupBackground);
+        style.foreground = theme.GetColor(ThemeToken::TextPrimary);
+        style.border = theme.GetColor(ThemeToken::BorderDefault);
+        style.cornerRadius = Scaled(theme.GetMetric(ThemeToken::WindowCornerRadius));
+        break;
+    case StyleRole::Gizmo:
+        style.background = theme.GetColor(ThemeToken::GizmoBackground);
+        style.cornerRadius = Scaled(theme.GetMetric(ThemeToken::CornerRadiusSmall));
+        break;
+    case StyleRole::ContentBrowser:
+        style.background = theme.GetColor(ThemeToken::ContentBrowserBackground);
+        style.foreground = theme.GetColor(ThemeToken::TextPrimary);
+        style.fontSize = Scaled(theme.GetMetric(ThemeToken::TextSizeBody));
         break;
     case StyleRole::Splitter:
         style.background = theme.GetColor(ThemeToken::BorderDefault);
