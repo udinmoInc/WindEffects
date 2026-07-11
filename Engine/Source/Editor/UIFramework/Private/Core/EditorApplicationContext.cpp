@@ -35,10 +35,10 @@ void EditorApplicationContext::Initialize(float dpiScale) {
     m_DockManager->SetLayout(CreateDefaultEditorWorkspaceLayout());
     ExtensionBootstrap::Instance().FlushTo(*m_ExtensionRegistry);
     m_ExtensionRegistry->PopulateDockManager(*m_DockManager);
+    m_ExtensionRegistry->PopulateCommandRegistry(*m_CommandRegistry);
 }
 
 void EditorApplicationContext::Shutdown() {
-    m_ExtensionRegistry->PopulateCommandRegistry(*m_CommandRegistry);
 }
 
 } // namespace WindEffects::Editor::UI

@@ -2,7 +2,7 @@
 #include "Modules/IModuleInterface.h"
 #include "Core/Logger.h"
 
-class DetailsModule : public IModuleInterface
+class DetailsModule : public we::core::IModuleInterface
 {
 public:
     virtual void StartupModule() override

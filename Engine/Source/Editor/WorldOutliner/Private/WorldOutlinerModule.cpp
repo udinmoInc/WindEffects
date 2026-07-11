@@ -2,7 +2,7 @@
 #include "Modules/IModuleInterface.h"
 #include "Core/Logger.h"
 
-class WorldOutlinerModule : public IModuleInterface
+class WorldOutlinerModule : public we::core::IModuleInterface
 {
 public:
     virtual void StartupModule() override

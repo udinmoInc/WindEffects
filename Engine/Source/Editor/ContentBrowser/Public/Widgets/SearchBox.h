@@ -60,4 +60,4 @@ private:
     WidgetStyle m_Style;
 };
 
-} // namespace we::editor::contentbrowser::UI
+} // namespace WindEffects::Editor::UI

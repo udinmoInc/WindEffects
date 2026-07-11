@@ -1,7 +1,7 @@
 #include "Modules/IModuleInterface.h"
 #include "Core/Logger.h"
 
-class TextModule : public IModuleInterface
+class TextModule : public we::core::IModuleInterface
 {
 public:
     void StartupModule() override

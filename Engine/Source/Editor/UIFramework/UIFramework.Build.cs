@@ -9,6 +9,7 @@ public class UIFramework : ModuleRules
 
         PublicIncludePaths.Add("Public");
         PublicIncludePaths.Add("Public/WindEffects/Editor/UI");
+        PublicIncludePaths.Add("Public/WindEffects/Editor");
         PrivateIncludePaths.Add("Private");
 
         PublicDependencies.Add("Core");

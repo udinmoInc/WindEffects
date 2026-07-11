@@ -28,6 +28,8 @@ struct DockPanelDescriptor {
     bool floatable = true;
     bool defaultVisible = true;
     int sortOrder = 0;
+    bool showInWindowMenu = false;
+    std::string windowMenuLabel;
 };
 
 using PanelFactory = std::function<std::shared_ptr<void>()>;

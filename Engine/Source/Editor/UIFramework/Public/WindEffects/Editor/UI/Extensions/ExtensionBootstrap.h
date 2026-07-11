@@ -2,6 +2,7 @@
 
 #include "WindEffects/Editor/UI/Export.h"
 #include "WindEffects/Editor/UI/Extensions/UIExtensionRegistry.h"
+#include "WindEffects/Editor/UI/Commands/LambdaCommand.h"
 
 namespace WindEffects::Editor::UI {
 
@@ -48,6 +49,17 @@ private:
             } \
         }; \
         static UiMenuBootstrap_##MenuName g_UiMenuBootstrap_##MenuName; \
+    }
+
+#define REGISTER_COMMAND(CommandId, DisplayName, ExecuteFunc) \
+    namespace { \
+        struct UiCommandBootstrap_##CommandId { \
+            UiCommandBootstrap_##CommandId() { \
+                WindEffects::Editor::UI::ExtensionBootstrap::Instance().RegisterCommand( \
+                    WindEffects::Editor::UI::MakeCommand(#CommandId, DisplayName, ExecuteFunc)); \
+            } \
+        }; \
+        static UiCommandBootstrap_##CommandId g_UiCommandBootstrap_##CommandId; \
     }
 
 } // namespace WindEffects::Editor::UI

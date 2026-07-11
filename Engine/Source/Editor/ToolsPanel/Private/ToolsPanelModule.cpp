@@ -1,7 +1,7 @@
 #include "Modules/IModuleInterface.h"
 #include "Core/Logger.h"
 
-class ToolsPanelModule : public IModuleInterface {
+class ToolsPanelModule : public we::core::IModuleInterface {
 public:
     void StartupModule() override {
         HE_INFO("ToolsPanelModule: Editor tools panel module started.");
@@ -12,6 +12,4 @@ public:
     }
 };
 
-extern "C" __declspec(dllexport) IModuleInterface* InitializeModule() {
-    return new ToolsPanelModule();
-}
+IMPLEMENT_MODULE(ToolsPanelModule, WindEffects_ToolsPanel)

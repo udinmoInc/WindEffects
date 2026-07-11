@@ -1,6 +1,6 @@
 #include "Explorer/WorldOutlinerApi.h"
 #include "Explorer/ExplorerPanelAssets.h"
-#include "WindEffects/Editor/UI/Extensions/ExtensionBootstrap.h"
+#include "WindEffects/Editor/EditorSDK.h"
 #include "Widgets/Panel.h"
 #include "Widgets/TreeView.h"
 #include "Widgets/ExplorerPanelHeader.h"
@@ -64,7 +64,7 @@ std::shared_ptr<Panel> CreateWorldOutlinerPanel() {
 }
 
 REGISTER_UI_PANEL(WorldOutliner,
-    (WindEffects::Editor::UI::DockPanelDescriptor{.title = "Environment", .iconResource = "outliner", .defaultZone = WindEffects::Editor::UI::DockZone::Right, .defaultVisible = true}),
+    WE_PANEL(WorldOutliner).Title("Environment").Icon("outliner").Zone(DockZone::Right).WindowMenu("Explorer").SortOrder(2),
     CreateWorldOutlinerPanel)
 
 } // namespace we::programs::editor

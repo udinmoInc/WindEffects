@@ -6,7 +6,6 @@
 #include "Core/StartupValidator.h"
 #include "Core/LogCategory.h"
 #include "Core/IgniteBTInvoker.h"
-#include "Runtime/Core/ModuleManager.h"
 #include "Runtime/Core/PluginManager.h"
 #include "Environment/EnvironmentEditorApi.h"
 #include "Renderer/Renderer.h"
@@ -114,13 +113,7 @@ Editor::Editor(SDL_Window* window) : m_Window(window) {
     }
     m_UIEventSystem = std::make_shared<UI::EventSystem>();
 
-  HE_INFO("[Startup] Stage 5/6: Modules and plugins...");
-    try {
-        we::core::ModuleManager::Get().StartupAllModules();
-    } catch (const std::exception& e) {
-        HE_ERROR("[Startup] Failed to startup modules: " + std::string(e.what()));
-        throw;
-    }
+    HE_INFO("[Startup] Stage 5/6: Plugins...");
     try {
         we::core::PluginManager::Get().ScanAndLoadPlugins("Plugins");
     } catch (const std::exception& e) {
@@ -576,7 +569,6 @@ void Editor::Shutdown() {
     }
 
     we::core::PluginManager::Get().UnloadAllPlugins();
-    we::core::ModuleManager::Get().ShutdownAllModules();
 
     m_ViewportWidget.reset();
     m_OverlayHost.reset();
