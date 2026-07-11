@@ -7,6 +7,7 @@
 #include "Explorer/WorldOutlinerApi.h"
 #include "Environment/EnvironmentEditorApi.h"
 #include "ViewportNavigationPreferences.h"
+#include "WindEffects/Editor/UI/Theming/ThemeAccess.h"
 
 #include "Widgets/Panel.h"
 #include "Widgets/DockContainer.h"
@@ -215,9 +216,11 @@ EditorShellResult EditorShellBuilder::Build(
 
     auto toolbar = std::make_shared<Toolbar>();
     toolbar->SetContext(widgetContext);
-    toolbar->SetHeight(toolbarStyle.height > 0.0f ? toolbarStyle.height : 36.0f * uiScale);
-    toolbar->SetLeftInset(style.Scaled(12.0f));
-    toolbar->SetIconSize(toolbarStyle.iconSize > 0.0f ? toolbarStyle.iconSize : 18.0f * uiScale);
+    toolbar->SetHeight(toolbarStyle.height > 0.0f ? toolbarStyle.height : ResolveThemeMetric(ThemeToken::ToolbarHeight) * uiScale);
+    toolbar->SetLeftInset(style.Scaled(ResolveThemeMetric(ThemeToken::Space4)));
+    toolbar->SetRightInset(style.Scaled(ResolveThemeMetric(ThemeToken::WindowControlWidth) * kWindowControlCount));
+    toolbar->SetEdgePadding(style.Scaled(ResolveThemeMetric(ThemeToken::Space2)));
+    toolbar->SetIconSize(toolbarStyle.iconSize > 0.0f ? toolbarStyle.iconSize : ResolveThemeMetric(ThemeToken::IconSizeToolbar) * uiScale);
     toolbar->AddWidget(std::make_shared<we::programs::editor::EditorModeSelector>());
     toolbar->AddSeparator();
     toolbar->AddTool(Icons::NewName, "", deps.onCreateNewLevel ? deps.onCreateNewLevel : [](){}, "New Level (Ctrl+N)");
@@ -241,8 +244,9 @@ EditorShellResult EditorShellBuilder::Build(
     playBtn->SetButtonStyle(ToolButtonStyle::TransportButton);
     pauseBtn->SetButtonStyle(ToolButtonStyle::TransportButton);
     stopBtn->SetButtonStyle(ToolButtonStyle::TransportButton);
-    toolbar->AddTool(Icons::PackageName, "Platform", [](){}, "Platform", false, ToolbarAlignment::Right)
-        ->SetButtonStyle(ToolButtonStyle::ToolbarInline);
+    auto platformBtn = toolbar->AddTool(Icons::PackageName, "Platform", [](){}, "Platform", false, ToolbarAlignment::Right);
+    platformBtn->SetButtonStyle(ToolButtonStyle::ToolbarInline);
+    platformBtn->SetIsDropdown(true);
     toolbar->AddTool(Icons::SettingsName, "Settings", [](){ we::programs::editor::ShowViewportNavigationPreferences(); }, "Editor Settings", false, ToolbarAlignment::Right)
         ->SetButtonStyle(ToolButtonStyle::ToolbarInline);
     toolbar->SetActiveTool(Icons::CursorName);
@@ -331,7 +335,7 @@ EditorShellResult EditorShellBuilder::Build(
 
     auto statusBar = std::make_shared<StatusBar>();
     statusBar->Construct();
-    statusBar->SetHeight(statusStyle.height > 0.0f ? statusStyle.height : 28.0f * uiScale);
+    statusBar->SetHeight(statusStyle.height > 0.0f ? statusStyle.height : 30.0f * uiScale);
     statusBar->SetOnFooterTabChanged([](int index) {
         we::programs::editor::EditorWorkspaceController::Get().SetBottomPanelIndex(index);
     });

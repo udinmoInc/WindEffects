@@ -88,8 +88,6 @@ void Panel::Paint(PaintContext& context) {
     Color headerBg = ThemeColor(ThemeToken::HeaderBackground);
     Color tabBg = m_HeaderHovered ? ThemeColor(ThemeToken::HoverBackground) : ThemeColor(ThemeToken::HeaderBackground);
     Color tabBorder = ThemeColor(ThemeToken::BorderDefault);
-    Color textColor = m_HeaderHovered ? ThemeColor(ThemeToken::TextPrimary) : ThemeColor(ThemeToken::TextSecondary);
-    Color shadowColor{0.0f, 0.0f, 0.0f, 0.3f};
 
     if (!m_TransparentBackground) {
         context.DrawRect(m_Geometry, panelBodyColor);
@@ -100,35 +98,38 @@ void Panel::Paint(PaintContext& context) {
     if (m_HeaderHeight > 0.0f) {
         context.DrawRect(m_HeaderRect, headerBg);
 
-        float fontSize = 13.0f * uiScale;
-        float iconSize = 16.0f * uiScale;
-        float tabPaddingH = 12.0f * uiScale;
+        const float fontSize = ThemeMetric(ThemeToken::TextSizeTabs) * uiScale;
+        const float iconSize = ThemeMetric(ThemeToken::IconSizeNavigation) * uiScale;
+        const float tabPaddingH = ThemeMetric(ThemeToken::Space3) * uiScale;
 
         float textWidth = context.GetTextWidth(m_Title, fontSize, true);
 
         std::string panelIcon = m_TabIconName;
         float panelIconWidth = 0.0f;
         if (!panelIcon.empty()) {
-            panelIconWidth = iconSize + 6.0f * uiScale;
+            panelIconWidth = iconSize + ThemeMetric(ThemeToken::Space2) * uiScale;
         }
 
-        float closeBtnWidth = iconSize + 6.0f * uiScale;
+        float closeBtnWidth = iconSize + ThemeMetric(ThemeToken::Space2) * uiScale;
         float tabWidth = tabPaddingH + panelIconWidth + textWidth + closeBtnWidth + tabPaddingH;
-        tabWidth = std::clamp(tabWidth, 80.0f * uiScale, 220.0f * uiScale);
+        tabWidth = std::clamp(tabWidth, 96.0f * uiScale, 240.0f * uiScale);
 
         Rect tabRect{ m_HeaderRect.x, m_HeaderRect.y, tabWidth, m_HeaderHeight };
 
-        context.DrawRoundedRect(tabRect, tabBg, 4.0f * uiScale);
+        Color activeTabBg = m_HeaderHovered ? ThemeColor(ThemeToken::HoverBackground) : ThemeColor(ThemeToken::PanelBackground);
+        context.DrawRect(tabRect, activeTabBg);
 
-        float flattenHeight = 4.0f * uiScale;
-        context.DrawRect(Rect{tabRect.x, tabRect.y + tabRect.height - flattenHeight, tabRect.width, flattenHeight}, tabBg);
-        context.DrawRoundedRectOutline(tabRect, tabBorder, 1.0f * uiScale, 4.0f * uiScale);
-        context.DrawRect(Rect{tabRect.x, tabRect.y + tabRect.height - flattenHeight, 1.0f, flattenHeight}, tabBorder);
-        context.DrawRect(Rect{tabRect.x + tabRect.width - 1.0f, tabRect.y + tabRect.height - flattenHeight, 1.0f, flattenHeight}, tabBorder);
-        context.DrawRect(Rect{tabRect.x + 1.0f, tabRect.y + tabRect.height - 1.0f, tabRect.width - 2.0f, 1.0f}, tabBg);
+        Rect accentLine{
+            tabRect.x,
+            tabRect.y + tabRect.height - 2.0f * uiScale,
+            tabRect.width,
+            2.0f * uiScale
+        };
+        context.DrawRect(accentLine, ThemeColor(ThemeToken::ActiveTabLine));
 
-        context.DrawRect(Rect{m_HeaderRect.x, m_HeaderRect.y + m_HeaderRect.height - 1.0f, m_HeaderRect.width, 1.0f}, shadowColor);
-        context.DrawRect(Rect{tabRect.x, m_HeaderRect.y + m_HeaderRect.height - 1.0f, tabRect.width, 1.0f}, tabBg);
+        context.DrawRect(
+            Rect{ m_HeaderRect.x, m_HeaderRect.y + m_HeaderRect.height - 1.0f, m_HeaderRect.width, 1.0f },
+            ThemeColor(ThemeToken::BorderDefault));
 
         float currentX = tabRect.x + tabPaddingH;
         if (!panelIcon.empty()) {
@@ -139,9 +140,9 @@ void Panel::Paint(PaintContext& context) {
         }
 
         float titleY = m_HeaderRect.y + (m_HeaderHeight - fontSize) / 2.0f;
-        context.DrawText(m_Title, Point{ currentX, titleY }, textColor, fontSize, true);
+        context.DrawText(m_Title, Point{ currentX, titleY }, ThemeColor(ThemeToken::TextPrimary), fontSize, true);
 
-        float headerPad = 8.0f * uiScale;
+        float headerPad = ThemeMetric(ThemeToken::Space2) * uiScale;
         const float kOptionsWidth = 12.0f * uiScale;
         const float kOptionsHeight = 14.0f * uiScale;
         float optionsX = m_HeaderRect.x + m_HeaderRect.width - headerPad - kOptionsWidth;

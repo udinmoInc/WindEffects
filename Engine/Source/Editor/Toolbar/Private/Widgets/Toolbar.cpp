@@ -8,8 +8,8 @@
 
 namespace WindEffects::Editor::UI {
 namespace {
-    constexpr float kToolbarItemSpacing = 8.0f - 2.0f;
-    constexpr float kToolbarSeparatorSpacing = 12.0f + 2.0f;
+    constexpr float kToolbarItemSpacing = 8.0f;
+    constexpr float kToolbarSeparatorSpacing = 16.0f;
 }
 
 Toolbar::Toolbar()
@@ -96,7 +96,7 @@ void Toolbar::Arrange(const Rect& allottedRect) {
     };
     
     layoutGroup(leftTools, allottedRect.x + m_LeftInset, false);
-    layoutGroup(rightTools, allottedRect.x + allottedRect.width - m_EdgePadding, true);
+    layoutGroup(rightTools, allottedRect.x + allottedRect.width - m_EdgePadding - m_RightInset, true);
     
     // Center group remains perfectly centered within the viewport region
     auto computeWidth = [&](const std::vector<ToolInfo*>& tools) -> float {
@@ -126,21 +126,21 @@ void Toolbar::Arrange(const Rect& allottedRect) {
 }
 
 void Toolbar::Paint(PaintContext& context) {
-    context.DrawRect(m_Geometry, ThemeColor(ThemeToken::ToolbarBackground));
+    context.DrawRect(m_Geometry, ThemeColor(ThemeToken::HeaderBackground));
 
-    Rect bottomBorder{
-        m_Geometry.x,
-        m_Geometry.y + m_Geometry.height - 1.0f,
-        m_Geometry.width,
-        1.0f
-    };
-    context.DrawRect(bottomBorder, ThemeColor(ThemeToken::BorderDark));
-    
     for (auto& tool : m_Tools) {
         if (tool.button && tool.button->IsVisible()) {
             tool.button->Paint(context);
         }
     }
+
+    Rect bottomBorder{
+        m_Geometry.x,
+        m_Geometry.y + m_Geometry.height - ThemeMetric(ThemeToken::BorderWidth),
+        m_Geometry.width,
+        ThemeMetric(ThemeToken::BorderWidth)
+    };
+    context.DrawRect(bottomBorder, ThemeColor(ThemeToken::BorderDark));
 }
 
 std::shared_ptr<ToolButton> Toolbar::AddTool(const std::string& iconName, const std::string& label, std::function<void()> onClick, const std::string& tooltip, bool isPlayButton, ToolbarAlignment align) {

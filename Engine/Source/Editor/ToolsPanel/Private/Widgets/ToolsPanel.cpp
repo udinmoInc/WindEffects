@@ -28,11 +28,11 @@ using WindEffects::Editor::UI::Size;
 using WindEffects::Editor::UI::ThemeToken;
 
 namespace {
-constexpr float kSearchHeight = 28.0f;
-constexpr float kIconSize = 24.0f;
-constexpr float kToolRowHeight = 30.0f;
-constexpr float kSectionHeaderHeight = 26.0f;
-constexpr float kPadding = 8.0f;
+constexpr float kSearchHeight = 26.0f;
+constexpr float kIconSize = 16.0f;
+constexpr float kToolRowHeight = 28.0f;
+constexpr float kSectionHeaderHeight = 28.0f;
+constexpr float kPadding = 12.0f;
 constexpr float kContextMenuItemHeight = 24.0f;
 constexpr float kDragThreshold = 6.0f;
 
@@ -72,7 +72,7 @@ ToolsPanel::ToolsPanel() {
 
     m_SearchBox = std::make_shared<WindEffects::Editor::UI::SearchBox>();
     m_SearchBox->SetFillWidth(true);
-    m_SearchBox->SetPlaceholder("Search tools...");
+    m_SearchBox->SetPlaceholder("Search Actors...");
     m_SearchBox->SetOnTextChanged([this](const std::string& text) {
         m_SearchText = text;
         RebuildLayout();
@@ -362,8 +362,8 @@ void ToolsPanel::Tick(float deltaTime) {
 void ToolsPanel::Paint(PaintContext& context) {
     if (m_Geometry.width < 1.0f) return;
     const float uiScale = (std::max)(1.0f, WindEffects::Editor::UI::DPIContext::GetScale());
-    const float labelFontSize = 11.0f * uiScale;
-    const float shortcutFontSize = 10.0f * uiScale;
+    const float labelFontSize = ThemeMetric(ThemeToken::TextSizeBody) * uiScale;
+    const float shortcutFontSize = ThemeMetric(ThemeToken::TextSizeCaption) * uiScale;
     context.DrawRect(m_PanelRect, ThemeColor(ThemeToken::PanelBackground));
 
     {
@@ -393,10 +393,12 @@ void ToolsPanel::Paint(PaintContext& context) {
             }
 
             WindEffects::Editor::UI::IconPainter::DrawIcon(context, toolHit.tool->iconName,
-                Rect{ toolHit.geometry.x + 6.0f, toolHit.geometry.y + 3.0f, kIconSize, kIconSize }, ThemeColor(ThemeToken::TextPrimary));
+                Rect{ toolHit.geometry.x + ThemeMetric(ThemeToken::Space2), toolHit.geometry.y + (toolHit.geometry.height - kIconSize) * 0.5f, kIconSize, kIconSize },
+                ThemeColor(ThemeToken::IconDefault));
 
             context.DrawText(toolHit.tool->label,
-                Point{ toolHit.geometry.x + 34.0f, toolHit.geometry.y + 7.0f }, ThemeColor(ThemeToken::TextPrimary), labelFontSize);
+                Point{ toolHit.geometry.x + ThemeMetric(ThemeToken::Space6), toolHit.geometry.y + (toolHit.geometry.height - labelFontSize) * 0.5f },
+                ThemeColor(ThemeToken::TextPrimary), labelFontSize);
 
             if (!toolHit.tool->shortcut.empty()) {
                 const float shortcutWidth = context.GetTextWidth(toolHit.tool->shortcut, shortcutFontSize);
@@ -405,10 +407,10 @@ void ToolsPanel::Paint(PaintContext& context) {
                     ThemeColor(ThemeToken::TextDisabled), shortcutFontSize);
             }
 
-            const char* starIcon = toolHit.favorite ? WindEffects::Editor::UI::Icons::StarFilledName : WindEffects::Editor::UI::Icons::StarName;
-            Color starColor = toolHit.favorite ? ThemeColor(ThemeToken::Warning) : ThemeColor(ThemeToken::TextDisabled);
+            const char* starIcon = WindEffects::Editor::UI::Icons::StarName;
+            Color starColor = toolHit.favorite ? ThemeColor(ThemeToken::Warning) : ThemeColor(ThemeToken::IconDefault);
             WindEffects::Editor::UI::IconPainter::DrawIcon(context, starIcon,
-                Rect{ toolHit.geometry.x + toolHit.geometry.width - 22.0f, toolHit.geometry.y + 5.0f, 16.0f, 16.0f },
+                Rect{ toolHit.geometry.x + toolHit.geometry.width - ThemeMetric(ThemeToken::Space5), toolHit.geometry.y + (toolHit.geometry.height - kIconSize) * 0.5f, kIconSize, kIconSize },
                 starColor);
         }
 

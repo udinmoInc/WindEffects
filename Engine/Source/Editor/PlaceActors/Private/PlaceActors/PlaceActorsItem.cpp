@@ -73,7 +73,8 @@ void PlaceActorsItem::PaintList(PaintContext& context,
                                 bool selected,
                                 bool favorite) {
     const float uiScale = (std::max)(1.0f, WindEffects::Editor::UI::DPIContext::GetScale());
-    const float labelFontSize = 11.0f * uiScale;
+    const float labelFontSize = ResolveThemeMetric(ThemeToken::TextSizeBody) * uiScale;
+    const float iconSize = ResolveThemeMetric(ThemeToken::IconSizeTree);
     Color bg = ResolveThemeColor(ThemeToken::PanelBackground);
     if (selected) {
         bg = ResolveThemeColor(ThemeToken::SelectedBackground);
@@ -84,22 +85,20 @@ void PlaceActorsItem::PaintList(PaintContext& context,
         bg = Color::Lerp(bg, ResolveThemeColor(ThemeToken::PressedBackground), pressAnim * 0.5f);
     }
 
-    context.DrawRoundedRect(bounds, bg, ResolveThemeMetric(ThemeToken::CornerRadiusMedium));
+    context.DrawRoundedRect(bounds, bg, ResolveThemeMetric(ThemeToken::CornerRadiusSmall));
 
-    const float iconSize = ResolveThemeMetric(ThemeToken::IconSizeToolbar) + ResolveThemeMetric(ThemeToken::Space3);
+    const float iconX = bounds.x + ResolveThemeMetric(ThemeToken::Space2);
+    const float iconY = bounds.y + (bounds.height - iconSize) * 0.5f;
     WindEffects::Editor::UI::IconPainter::DrawIcon(context, item.iconName,
-        Rect{ bounds.x + ResolveThemeMetric(ThemeToken::Space2), bounds.y + (bounds.height - iconSize) * 0.5f, iconSize, iconSize }, ResolveThemeColor(ThemeToken::TextPrimary));
+        Rect{ iconX, iconY, iconSize, iconSize }, ResolveThemeColor(ThemeToken::IconDefault));
 
-    const float captionFontSize = ResolveThemeMetric(ThemeToken::TextSizeCaption) * uiScale;
-    context.DrawText(item.label, Point{ bounds.x + ResolveThemeMetric(ThemeToken::Space6) - 4.0f, bounds.y + ResolveThemeMetric(ThemeToken::Space2) }, ResolveThemeColor(ThemeToken::TextPrimary), labelFontSize, true);
-    if (!item.description.empty()) {
-        context.DrawText(item.description, Point{ bounds.x + ResolveThemeMetric(ThemeToken::Space6) - 4.0f, bounds.y + ResolveThemeMetric(ThemeToken::Space4) }, ResolveThemeColor(ThemeToken::TextSecondary), captionFontSize);
-    }
+    context.DrawText(item.label,
+        Point{ iconX + iconSize + ResolveThemeMetric(ThemeToken::Space2), bounds.y + (bounds.height - labelFontSize) * 0.5f },
+        ResolveThemeColor(ThemeToken::TextPrimary), labelFontSize);
 
-    if (favorite) {
-        WindEffects::Editor::UI::IconPainter::DrawIcon(context, WindEffects::Editor::UI::Icons::StarFilledName,
-            Rect{ bounds.x + bounds.width - ResolveThemeMetric(ThemeToken::Space5) - 2.0f, bounds.y + (bounds.height - ResolveThemeMetric(ThemeToken::IconSizeTree)) * 0.5f, ResolveThemeMetric(ThemeToken::IconSizeTree), ResolveThemeMetric(ThemeToken::IconSizeTree) }, ResolveThemeColor(ThemeToken::Warning));
-    }
+    WindEffects::Editor::UI::IconPainter::DrawIcon(context, WindEffects::Editor::UI::Icons::StarName,
+        Rect{ bounds.x + bounds.width - ResolveThemeMetric(ThemeToken::Space5), bounds.y + (bounds.height - iconSize) * 0.5f, iconSize, iconSize },
+        favorite ? ResolveThemeColor(ThemeToken::Warning) : ResolveThemeColor(ThemeToken::IconDefault));
 }
 
 } // namespace we::programs::editor

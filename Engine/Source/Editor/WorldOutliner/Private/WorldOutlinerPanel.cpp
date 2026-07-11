@@ -18,14 +18,14 @@ std::shared_ptr<ExplorerPanelHeader> g_ExplorerHeader;
 
 std::shared_ptr<Panel> CreateWorldOutlinerPanel() {
     auto panel = std::make_shared<Panel>("Explorer");
-    panel->SetHeaderHeight(ExplorerPanelHeader::DefaultHeight());
+    panel->SetHeaderHeight(ResolveThemeMetric(ThemeToken::PanelHeaderHeight));
     panel->SetCollapsible(false);
     panel->SetTabIcon(Icons::HierarchyName);
 
     auto treeView = std::make_shared<TreeView>();
     treeView->SetExplorerStyle(true);
-    treeView->SetItemHeight(22.0f);
-    treeView->SetIndentWidth(18.0f);
+    treeView->SetItemHeight(26.0f);
+    treeView->SetIndentWidth(16.0f);
     RegisterExplorerTreeView(treeView);
 
     g_ExplorerHeader = std::make_shared<ExplorerPanelHeader>();
@@ -59,12 +59,13 @@ std::shared_ptr<Panel> CreateWorldOutlinerPanel() {
         treeView->SetSearchQuery(treeView->GetSearchQuery());
     });
 
+    panel->SetToolbar(g_ExplorerHeader);
     panel->SetContent(treeView);
     return panel;
 }
 
 REGISTER_UI_PANEL(WorldOutliner,
-    WE_PANEL(WorldOutliner).Title("Environment").Icon("outliner").Zone(DockZone::Right).WindowMenu("Explorer").SortOrder(2),
+    WE_PANEL(WorldOutliner).Title("Explorer").Icon("outliner").Zone(DockZone::Right).WindowMenu("Explorer").SortOrder(2),
     CreateWorldOutlinerPanel)
 
 } // namespace we::programs::editor
