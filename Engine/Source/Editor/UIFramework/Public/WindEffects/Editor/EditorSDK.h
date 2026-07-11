@@ -1,7 +1,8 @@
 #pragma once
 
-// WindEffects Editor SDK — single include for extension authors.
-// Panels, commands, tools, core widgets, and registration macros.
+// WindEffects Editor SDK — single include for editor extension authors.
+
+#include "WindEffects/Platform.h"
 
 #include "WindEffects/Editor/UI/UIFramework.h"
 #include "WindEffects/Editor/UI/Extensions/ExtensionBootstrap.h"

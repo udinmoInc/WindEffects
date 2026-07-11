@@ -10,6 +10,7 @@ public class Core : ModuleRules
         SetBinaryName("WindeffectsCore.dll");
 
         PublicIncludePaths.Add("Public");
+        PublicIncludePaths.Add("Public/WindEffects");
         PublicIncludePaths.Add(".");
         PrivateIncludePaths.Add("Private");
 

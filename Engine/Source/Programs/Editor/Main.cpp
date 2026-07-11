@@ -1,13 +1,12 @@
-#include "Modules/ModuleManager.h"
+#include "WindEffects/Platform.h"
+#include "WindEffects/Runtime/CoreSDK.h"
 #include "Editor.h"
+
 #include <SDL3/SDL.h>
-#include <iostream>
-#include <cstring>
-#include <exception>
+
 #include <filesystem>
-#include "Core/Logger.h"
-#include "Core/LogCategory.h"
-#include "Core/BuildPaths.h"
+#include <stdexcept>
+#include <string>
 
 #if defined(_WIN32)
 #define WIN32_LEAN_AND_MEAN
@@ -62,7 +61,7 @@ int main(int argc, char* argv[]) {
     (void)argc;
     (void)argv;
     try {
-        we::runtime::core::Logger::Init();
+        we::platform::InitializeLogging();
         SetWorkingDirectoryToExecutable();
         ConfigureModuleSearchPath();
 

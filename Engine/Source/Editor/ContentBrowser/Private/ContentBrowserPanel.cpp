@@ -20,6 +20,7 @@
 #include <sstream>
 
 namespace we::programs::editor {
+using namespace WindEffects::Editor::UI;
 
 namespace {
 

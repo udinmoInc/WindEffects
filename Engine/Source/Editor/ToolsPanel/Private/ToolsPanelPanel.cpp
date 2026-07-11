@@ -1,15 +1,13 @@
+#include "WindEffects/Editor/EditorSDK.h"
 #include "EditorModeController.h"
-#include "EditorToolsRegistry.h"
-#include "WindEffects/Editor/UI/Extensions/ExtensionBootstrap.h"
-#include "Widgets/Panel.h"
 #include "Widgets/ToolsPanel.h"
-#include "Core/Icon.h"
 
 namespace we::programs::editor {
+using namespace WindEffects::Editor::UI;
 
 namespace {
 
-void SyncPanelTitle(const std::shared_ptr<WindEffects::Editor::UI::Panel>& panel) {
+void SyncPanelTitle(const std::shared_ptr<Panel>& panel) {
     if (!panel) {
         return;
     }
@@ -17,7 +15,7 @@ void SyncPanelTitle(const std::shared_ptr<WindEffects::Editor::UI::Panel>& panel
     const auto* mode = EditorToolsRegistry::Get().FindMode(EditorModeController::Get().GetActiveModeId());
     if (!mode) {
         panel->SetTitle("Tools");
-        panel->SetTabIcon(WindEffects::Editor::UI::Icons::LayersName);
+        panel->SetTabIcon(Icons::LayersName);
         return;
     }
 
@@ -27,23 +25,20 @@ void SyncPanelTitle(const std::shared_ptr<WindEffects::Editor::UI::Panel>& panel
 
 } // namespace
 
-std::shared_ptr<WindEffects::Editor::UI::Panel> CreateToolsPanel() {
-    auto panel = std::make_shared<WindEffects::Editor::UI::Panel>("Tools");
-    panel->SetHeaderHeight(30.0f);
-    panel->SetTabIcon(WindEffects::Editor::UI::Icons::LayersName);
-
-    panel->AddHeaderAction(WindEffects::Editor::UI::Icons::LockName, []() {
-        auto& modeController = EditorModeController::Get();
-        modeController.SetDrawerPinned(!modeController.IsDrawerPinned());
-    });
-
-    panel->AddHeaderAction(WindEffects::Editor::UI::Icons::XName, []() {
-        EditorModeController::Get().SetDrawerVisible(false);
-    });
-
+std::shared_ptr<Panel> CreateToolsPanel() {
     auto toolsContent = std::make_shared<ToolsPanel>();
     toolsContent->InitializeFromRegistry();
-    panel->SetContent(toolsContent);
+
+    auto panel = PanelBuilder("Tools")
+        .TabIcon(Icons::LayersName)
+        .WithHeaderAction(Icons::LockName, []() {
+            auto& modeController = EditorModeController::Get();
+            modeController.SetDrawerPinned(!modeController.IsDrawerPinned());
+        })
+        .WithHeaderAction(Icons::XName, []() {
+            EditorModeController::Get().SetDrawerVisible(false);
+        })
+        .Content(toolsContent);
 
     SyncPanelTitle(panel);
     EditorModeController::Get().AddModeChangedListener([panel](const std::string&) {
@@ -58,7 +53,7 @@ std::shared_ptr<WindEffects::Editor::UI::Panel> CreateToolsPanel() {
 }
 
 REGISTER_UI_PANEL(Tools,
-    (WindEffects::Editor::UI::DockPanelDescriptor{.title = "Place Actors", .iconResource = "tools-panel", .defaultZone = WindEffects::Editor::UI::DockZone::Left, .defaultVisible = true}),
+    WE_PANEL(Tools).Title("Place Actors").Icon("tools-panel").Zone(DockZone::Left).SortOrder(0),
     CreateToolsPanel)
 
 } // namespace we::programs::editor

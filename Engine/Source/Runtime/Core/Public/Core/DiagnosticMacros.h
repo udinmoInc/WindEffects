@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Core/Logger.h"
+#include "Core/LogCategory.h"
 
 namespace we::runtime::core {
 
@@ -26,10 +27,11 @@ inline const char* StripPath(const char* path) {
 #define WE_LOG_ERROR(category, message)   WE_LOG_(::we::Logger::Level::Error, category, message)
 #define WE_LOG_CRITICAL(category, message) WE_LOG_(::we::Logger::Level::Critical, category, message)
 
-#define HE_INFO(msg)  WE_LOG_INFO("General", msg)
-#define HE_WARN(msg)  WE_LOG_WARN("General", msg)
-#define HE_ERROR(msg) WE_LOG_ERROR("General", msg)
-#define HE_DEBUG(msg) WE_LOG_DEBUG("General", msg)
+// Legacy aliases — route to Startup category. Prefer WE_LOG_* with we::LogCategory.
+#define HE_INFO(msg)  WE_LOG_INFO(we::LogCategory::Startup.data(), msg)
+#define HE_WARN(msg)  WE_LOG_WARN(we::LogCategory::Startup.data(), msg)
+#define HE_ERROR(msg) WE_LOG_ERROR(we::LogCategory::Startup.data(), msg)
+#define HE_DEBUG(msg) WE_LOG_DEBUG(we::LogCategory::Startup.data(), msg)
 
 #define WE_CHECK(condition, category, message) \
     do { \

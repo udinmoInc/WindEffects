@@ -3,6 +3,7 @@
 #include "Core/BuildPaths.h"
 #include "Core/DiagnosticMacros.h"
 #include "Core/LogCategory.h"
+#include "WindEffects/ModuleInitializer.h"
 
 #include <filesystem>
 
@@ -113,6 +114,7 @@ IModuleInterface* ModuleManager::LoadModule(const std::string& moduleName) {
     m_LoadedModules[moduleName] = {handle, moduleInterface};
     m_LoadOrder.push_back(moduleName);
     moduleInterface->StartupModule();
+    ModuleInitializerRegistry::Get().RunStartup(moduleName);
     return moduleInterface;
 }
 
@@ -122,6 +124,7 @@ void ModuleManager::UnloadAllModules() {
         ModuleData& data = m_LoadedModules[moduleName];
 
         if (data.interface) {
+            ModuleInitializerRegistry::Get().RunShutdown(moduleName);
             data.interface->ShutdownModule();
             delete data.interface;
         }
