@@ -31,6 +31,7 @@
 
 #include <volk.h>
 #include <algorithm>
+#include <vector>
 
 namespace WindEffects::Editor::UI {
 namespace {
@@ -126,33 +127,53 @@ EditorShellResult EditorShellBuilder::Build(
     menuBar->AddMenu("Edit", editItems);
 
     auto& workspace = we::programs::editor::EditorWorkspaceController::Get();
+
+    struct WindowMenuBinding {
+        std::shared_ptr<MenuItem> item;
+        std::string panelId;
+    };
+    std::vector<WindowMenuBinding> windowMenuBindings;
     std::vector<std::shared_ptr<MenuItem>> windowItems;
-    auto makeWindowItem = [&workspace](const std::string& label, const std::string& panelId) {
+
+    std::vector<const PanelRegistration*> windowPanels;
+    for (const auto& [panelId, reg] : context.GetExtensionRegistry().GetPanels()) {
+        if (reg.descriptor.showInWindowMenu) {
+            windowPanels.push_back(&reg);
+        }
+    }
+    std::sort(windowPanels.begin(), windowPanels.end(), [](const PanelRegistration* a, const PanelRegistration* b) {
+        if (a->descriptor.sortOrder != b->descriptor.sortOrder) {
+            return a->descriptor.sortOrder < b->descriptor.sortOrder;
+        }
+        return a->descriptor.windowMenuLabel < b->descriptor.windowMenuLabel;
+    });
+
+    for (const PanelRegistration* reg : windowPanels) {
+        const std::string& panelId = reg->descriptor.id;
+        const std::string label = reg->descriptor.windowMenuLabel.empty()
+            ? reg->descriptor.title
+            : reg->descriptor.windowMenuLabel;
+
         auto item = std::make_shared<MenuItem>();
         item->label = label;
-        item->checked = true;
+        item->checked = reg->descriptor.defaultVisible;
         item->onClick = [panelId, &workspace]() {
             workspace.TogglePanelVisibility(panelId);
         };
-        return item;
-    };
-
-    auto vpItem = makeWindowItem("Viewport", "Viewport");
-    auto cbItem = makeWindowItem("Content Browser", "ContentBrowser");
-    auto woItem = makeWindowItem("Explorer", "WorldOutliner");
-    auto dtItem = makeWindowItem("Details", "Details");
-    windowItems.push_back(vpItem);
-    windowItems.push_back(cbItem);
-    windowItems.push_back(woItem);
-    windowItems.push_back(dtItem);
+        windowItems.push_back(item);
+        windowMenuBindings.push_back({item, panelId});
+    }
     menuBar->AddMenu("Window", windowItems);
 
-    workspace.SetOnPanelVisibilityChanged([vpItem, cbItem, woItem, dtItem, &workspace]() {
-        vpItem->checked = workspace.IsPanelVisible("Viewport");
-        cbItem->checked = workspace.IsPanelVisible("ContentBrowser");
-        woItem->checked = workspace.IsPanelVisible("WorldOutliner");
-        dtItem->checked = workspace.IsPanelVisible("Details");
+    workspace.SetOnPanelVisibilityChanged([&windowMenuBindings, &workspace]() {
+        for (const auto& binding : windowMenuBindings) {
+            binding.item->checked = workspace.IsPanelVisible(binding.panelId);
+        }
     });
+
+    for (const auto& menu : context.GetExtensionRegistry().GetMenus()) {
+        menuBar->AddMenu(menu.menuName, menu.factory());
+    }
 
     menuBar->AddMenu("Tools", {[] { auto i = std::make_shared<MenuItem>(); i->label = "Place Actors"; return i; }()});
 
@@ -293,12 +314,13 @@ EditorShellResult EditorShellBuilder::Build(
     we::editor::environment::InitializeEditor(deps.scene, nullptr, worldOutlinerTree, detailsEditor);
 
     workspace.BindLayout(shellResult.layout);
-    workspace.RegisterPanel("Tools", shellResult.layout.panels["Tools"], DockZone::Left);
-    workspace.RegisterPanel("Viewport", shellResult.layout.panels["Viewport"], DockZone::Center);
-    workspace.RegisterPanel("WorldOutliner", shellResult.layout.panels["WorldOutliner"], DockZone::Right);
-    workspace.RegisterPanel("Details", shellResult.layout.panels["Details"], DockZone::Right);
-    workspace.RegisterPanel("ContentBrowser", shellResult.layout.panels["ContentBrowser"], DockZone::Bottom);
-    workspace.RegisterPanel("OutputLog", shellResult.layout.panels["OutputLog"], DockZone::Floating);
+
+    for (const auto& [panelId, reg] : context.GetExtensionRegistry().GetPanels()) {
+        const auto panelIt = shellResult.layout.panels.find(panelId);
+        if (panelIt != shellResult.layout.panels.end() && panelIt->second) {
+            workspace.RegisterPanel(panelId, panelIt->second, reg.descriptor.defaultZone);
+        }
+    }
 
     if (const auto navPanel = context.GetExtensionRegistry().GetPanels().find("ViewportNavigation");
         navPanel != context.GetExtensionRegistry().GetPanels().end()) {
@@ -313,8 +335,13 @@ EditorShellResult EditorShellBuilder::Build(
     statusBar->SetOnFooterTabChanged([](int index) {
         we::programs::editor::EditorWorkspaceController::Get().SetBottomPanelIndex(index);
     });
-    statusBar->SetOnCommandSubmitted([](const std::string& command) {
-        HE_INFO("[Command] " + command);
+    statusBar->SetOnCommandSubmitted([&context](const std::string& command) {
+        WindEffects::Editor::UI::CommandContext commandContext;
+        commandContext.services = &context.GetServices();
+        commandContext.sourceId = "StatusBar";
+        if (!context.GetCommandRegistry().Execute(command, commandContext)) {
+            HE_INFO("[Command] " + command);
+        }
     });
     statusBar->SetOnOutputLogClicked([]() {
         auto& ws = we::programs::editor::EditorWorkspaceController::Get();
@@ -354,10 +381,9 @@ EditorShellResult EditorShellBuilder::Build(
 
     workspace.LoadLayout();
 
-    vpItem->checked = workspace.IsPanelVisible("Viewport");
-    cbItem->checked = workspace.IsPanelVisible("ContentBrowser");
-    woItem->checked = workspace.IsPanelVisible("WorldOutliner");
-    dtItem->checked = workspace.IsPanelVisible("Details");
+    for (const auto& binding : windowMenuBindings) {
+        binding.item->checked = workspace.IsPanelVisible(binding.panelId);
+    }
 
     if (deps.onLayoutBuilt) {
         deps.onLayoutBuilt(shellResult.layout);

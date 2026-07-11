@@ -82,4 +82,4 @@ public:
     static constexpr float SEPARATOR_HEIGHT = 24.0f;
 };
 
-} // namespace we::editor::toolbar::UI
+} // namespace WindEffects::Editor::UI

@@ -68,7 +68,7 @@ int main(int argc, char* argv[]) {
 
         HE_INFO("[Startup] === WindEffects Editor bootstrap begin ===");
 
-        ModuleManager& ModuleManager = ModuleManager::Get();
+        auto& moduleManager = we::core::ModuleManager::Get();
 
         HE_INFO("[Startup] Loading editor feature modules...");
         const char* modules[] = {
@@ -86,7 +86,7 @@ int main(int argc, char* argv[]) {
             "WindEffects-Environment",
         };
         for (const char* mod : modules) {
-            if (!ModuleManager.LoadModule(mod)) {
+            if (!moduleManager.LoadModule(mod)) {
                 HE_ERROR(std::string("[Startup] Failed to load module: ") + mod);
             } else {
                 HE_INFO(std::string("[Startup]   Loaded module: ") + mod);

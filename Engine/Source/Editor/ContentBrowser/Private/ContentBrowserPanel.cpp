@@ -1,4 +1,4 @@
-#include "WindEffects/Editor/UI/Extensions/ExtensionBootstrap.h"
+#include "WindEffects/Editor/EditorSDK.h"
 #include "EditorWorkspaceController.h"
 #include "ContentBrowserApi.h"
 #include "Rendering/FontImportService.h"
@@ -260,7 +260,7 @@ std::shared_ptr<WindEffects::Editor::UI::Panel> CreateContentBrowserPanel() {
 }
 
 REGISTER_UI_PANEL(ContentBrowser,
-    (WindEffects::Editor::UI::DockPanelDescriptor{.title = "Content Browser", .iconResource = "content-browser", .defaultZone = WindEffects::Editor::UI::DockZone::Bottom, .defaultVisible = true}),
+    WE_PANEL(ContentBrowser).Title("Content Browser").Icon("content-browser").Zone(DockZone::Bottom).WindowMenu("Content Browser").SortOrder(4),
     CreateContentBrowserPanel)
 
 } // namespace we::programs::editor

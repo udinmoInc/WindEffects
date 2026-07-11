@@ -88,4 +88,4 @@ public:
     void Paint(PaintContext& context) override;
 };
 
-} // namespace we::editor::toolbar::UI
+} // namespace WindEffects::Editor::UI

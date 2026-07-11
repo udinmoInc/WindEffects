@@ -1,10 +1,10 @@
 #include "Modules/ModuleManager.h"
+
 #include "Core/BuildPaths.h"
 #include "Core/DiagnosticMacros.h"
 #include "Core/LogCategory.h"
-#include <filesystem>
 
-// Dynamic editor module loader (exported via CORE_API).
+#include <filesystem>
 
 #ifdef _WIN32
 #define WIN32_LEAN_AND_MEAN
@@ -13,137 +13,130 @@
 #include <dlfcn.h>
 #endif
 
-typedef IModuleInterface* (*InitializeModuleFunc)();
+namespace we::core {
 
-bool IsRuntimeLinkedModule(const std::string& moduleName) {
+namespace {
+
+using InitializeModuleFunc = IModuleInterface* (*)();
+
+bool IsRuntimeLinkedModule(std::string_view moduleName) {
     return moduleName == "WindEffects-UIFramework";
 }
 
-ModuleManager& ModuleManager::Get()
-{
+} // namespace
+
+ModuleManager& ModuleManager::Get() {
     static ModuleManager instance;
     return instance;
 }
 
-ModuleManager::~ModuleManager()
-{
+ModuleManager::~ModuleManager() {
     UnloadAllModules();
 }
 
-IModuleInterface* ModuleManager::LoadModule(const std::string& ModuleName)
-{
-    if (LoadedModules.find(ModuleName) != LoadedModules.end())
-    {
-        return LoadedModules[ModuleName].Interface;
+IModuleInterface* ModuleManager::LoadModule(const std::string& moduleName) {
+    if (const auto it = m_LoadedModules.find(moduleName); it != m_LoadedModules.end()) {
+        return it->second.interface;
     }
 
-    std::string LoadedLibraryName;
-    void* Handle = nullptr;
+    std::string loadedLibraryName;
+    void* handle = nullptr;
 
 #ifdef _WIN32
-    if (const auto modulePath = we::core::ResolveModuleLibraryPath(ModuleName)) {
-        Handle = LoadLibraryExW(
+    if (const auto modulePath = ResolveModuleLibraryPath(moduleName)) {
+        handle = LoadLibraryExW(
             modulePath->wstring().c_str(),
             nullptr,
             LOAD_WITH_ALTERED_SEARCH_PATH);
-        if (Handle) {
-            LoadedLibraryName = modulePath->string();
+        if (handle) {
+            loadedLibraryName = modulePath->string();
         }
     }
 
-    if (!Handle && IsRuntimeLinkedModule(ModuleName)) {
-        const auto candidates = we::core::BuildModuleBinaryCandidates(
-            we::core::StripLegacyModulePrefix(ModuleName));
+    if (!handle && IsRuntimeLinkedModule(moduleName)) {
+        const auto candidates = BuildModuleBinaryCandidates(StripLegacyModulePrefix(moduleName));
         for (const auto& libName : candidates) {
-            Handle = LoadLibraryA(libName.c_str());
-            if (Handle) {
-                LoadedLibraryName = libName;
+            handle = LoadLibraryA(libName.c_str());
+            if (handle) {
+                loadedLibraryName = libName;
                 break;
             }
         }
     }
 #else
-    if (const auto modulePath = we::core::ResolveModuleLibraryPath(ModuleName)) {
-        Handle = dlopen(modulePath->c_str(), RTLD_NOW);
-        if (Handle) {
-            LoadedLibraryName = modulePath->string();
+    if (const auto modulePath = ResolveModuleLibraryPath(moduleName)) {
+        handle = dlopen(modulePath->c_str(), RTLD_NOW);
+        if (handle) {
+            loadedLibraryName = modulePath->string();
         }
-    } else if (IsRuntimeLinkedModule(ModuleName)) {
-        const auto candidates = we::core::BuildModuleBinaryCandidates(
-            we::core::StripLegacyModulePrefix(ModuleName));
+    } else if (IsRuntimeLinkedModule(moduleName)) {
+        const auto candidates = BuildModuleBinaryCandidates(StripLegacyModulePrefix(moduleName));
         for (const auto& libName : candidates) {
             const std::string prefixed = "lib" + libName;
-            Handle = dlopen(prefixed.c_str(), RTLD_NOW);
-            if (Handle) {
-                LoadedLibraryName = prefixed;
+            handle = dlopen(prefixed.c_str(), RTLD_NOW);
+            if (handle) {
+                loadedLibraryName = prefixed;
                 break;
             }
         }
     }
 #endif
 
-    if (!Handle)
-    {
-        WE_LOG_ERROR(we::LogCategory::Build.data(), "Failed to load module: " + ModuleName);
+    if (!handle) {
+        WE_LOG_ERROR(LogCategory::Build.data(), "Failed to load module: " + moduleName);
         return nullptr;
     }
 
 #ifdef _WIN32
-    InitializeModuleFunc InitFunc = (InitializeModuleFunc)GetProcAddress((HMODULE)Handle, "InitializeModule");
+    const auto initFunc = reinterpret_cast<InitializeModuleFunc>(
+        GetProcAddress(static_cast<HMODULE>(handle), "InitializeModule"));
 #else
-    InitializeModuleFunc InitFunc = (InitializeModuleFunc)dlsym(Handle, "InitializeModule");
+    const auto initFunc = reinterpret_cast<InitializeModuleFunc>(
+        dlsym(handle, "InitializeModule"));
 #endif
 
-    if (!InitFunc)
-    {
-        WE_LOG_ERROR(we::LogCategory::Build.data(), "Failed to find InitializeModule in: " + LoadedLibraryName);
+    if (!initFunc) {
+        WE_LOG_ERROR(LogCategory::Build.data(), "Failed to find InitializeModule in: " + loadedLibraryName);
 #ifdef _WIN32
-        FreeLibrary((HMODULE)Handle);
+        FreeLibrary(static_cast<HMODULE>(handle));
 #else
-        dlclose(Handle);
+        dlclose(handle);
 #endif
         return nullptr;
     }
 
-    IModuleInterface* ModuleInterface = InitFunc();
-    if (ModuleInterface)
-    {
-        ModuleData Data;
-        Data.Handle = Handle;
-        Data.Interface = ModuleInterface;
-        
-        LoadedModules[ModuleName] = Data;
-        LoadOrder.push_back(ModuleName);
-        
-        ModuleInterface->StartupModule();
-        return ModuleInterface;
+    IModuleInterface* moduleInterface = initFunc();
+    if (!moduleInterface) {
+        return nullptr;
     }
 
-    return nullptr;
+    m_LoadedModules[moduleName] = {handle, moduleInterface};
+    m_LoadOrder.push_back(moduleName);
+    moduleInterface->StartupModule();
+    return moduleInterface;
 }
 
-void ModuleManager::UnloadAllModules()
-{
-    for (auto it = LoadOrder.rbegin(); it != LoadOrder.rend(); ++it)
-    {
-        const std::string& ModuleName = *it;
-        ModuleData& Data = LoadedModules[ModuleName];
-        
-        if (Data.Interface)
-        {
-            Data.Interface->ShutdownModule();
-            delete Data.Interface;
+void ModuleManager::UnloadAllModules() {
+    for (auto it = m_LoadOrder.rbegin(); it != m_LoadOrder.rend(); ++it) {
+        const std::string& moduleName = *it;
+        ModuleData& data = m_LoadedModules[moduleName];
+
+        if (data.interface) {
+            data.interface->ShutdownModule();
+            delete data.interface;
         }
 
-        if (Data.Handle)
-        {
+        if (data.handle) {
 #ifdef _WIN32
-            FreeLibrary((HMODULE)Data.Handle);
+            FreeLibrary(static_cast<HMODULE>(data.handle));
 #else
-            dlclose(Data.Handle);
+            dlclose(data.handle);
 #endif
         }
     }
-    LoadedModules.clear();
-    LoadOrder.clear();
+
+    m_LoadedModules.clear();
+    m_LoadOrder.clear();
 }
+
+} // namespace we::core

@@ -2,9 +2,10 @@
 
 #include "Core/Export.h"
 #include "Modules/IModuleInterface.h"
+
+#include <memory>
 #include <string>
 #include <unordered_map>
-#include <memory>
 #include <vector>
 
 #if defined(_MSC_VER)
@@ -12,36 +13,29 @@
 #pragma warning(disable : 4251)
 #endif
 
-class CORE_API ModuleManager
-{
+namespace we::core {
+
+class CORE_API ModuleManager {
 public:
     static ModuleManager& Get();
 
-    /**
-     * Loads a module dynamically by name (loads the DLL).
-     * @param ModuleName The name of the module (e.g. "WindEffects-ContentBrowser")
-     * @return Pointer to the loaded module interface.
-     */
-    IModuleInterface* LoadModule(const std::string& ModuleName);
-
-    /**
-     * Unloads all loaded modules in reverse order of loading.
-     */
+    IModuleInterface* LoadModule(const std::string& moduleName);
     void UnloadAllModules();
 
 private:
     ModuleManager() = default;
     ~ModuleManager();
 
-    struct ModuleData
-    {
-        void* Handle; // OS specific DLL handle
-        IModuleInterface* Interface;
+    struct ModuleData {
+        void* handle = nullptr;
+        IModuleInterface* interface = nullptr;
     };
 
-    std::unordered_map<std::string, ModuleData> LoadedModules;
-    std::vector<std::string> LoadOrder;
+    std::unordered_map<std::string, ModuleData> m_LoadedModules;
+    std::vector<std::string> m_LoadOrder;
 };
+
+} // namespace we::core
 
 #if defined(_MSC_VER)
 #pragma warning(pop)

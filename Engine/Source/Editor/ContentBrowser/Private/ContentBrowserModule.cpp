@@ -2,7 +2,7 @@
 #include "Modules/IModuleInterface.h"
 #include "Core/Logger.h"
 
-class ContentBrowserModule : public IModuleInterface
+class ContentBrowserModule : public we::core::IModuleInterface
 {
 public:
     virtual void StartupModule() override

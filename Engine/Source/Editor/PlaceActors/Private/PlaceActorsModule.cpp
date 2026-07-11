@@ -1,7 +1,7 @@
 #include "Modules/IModuleInterface.h"
 #include "Core/Logger.h"
 
-class PlaceActorsModule : public IModuleInterface
+class PlaceActorsModule : public we::core::IModuleInterface
 {
 public:
     void StartupModule() override

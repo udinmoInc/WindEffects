@@ -2,7 +2,7 @@
 #include "Modules/IModuleInterface.h"
 #include "Core/Logger.h"
 
-class UIFrameworkModule : public IModuleInterface
+class UIFrameworkModule : public we::core::IModuleInterface
 {
 public:
     virtual void StartupModule() override

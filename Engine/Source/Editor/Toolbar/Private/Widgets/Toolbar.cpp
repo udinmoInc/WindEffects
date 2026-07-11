@@ -248,4 +248,4 @@ void ToolbarSeparator::Paint(PaintContext& context) {
     context.DrawRect(lineRect, ThemeColor(ThemeToken::Separator));
 }
 
-} // namespace we::editor::toolbar::UI
+} // namespace WindEffects::Editor::UI
