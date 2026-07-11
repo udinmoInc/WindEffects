@@ -306,7 +306,7 @@ WorkspaceLayout CreateDefaultEditorWorkspaceLayout() {
 
     layout.panels["Tools"] = {
         .id = "Tools",
-        .title = "Place Actors",
+        .title = "Actors",
         .iconResource = "tools-panel",
         .defaultZone = DockZone::Left,
         .defaultVisible = true,
@@ -314,7 +314,7 @@ WorkspaceLayout CreateDefaultEditorWorkspaceLayout() {
     };
     layout.panels["Viewport"] = {
         .id = "Viewport",
-        .title = "Viewport 1",
+        .title = "Viewport",
         .iconResource = "viewport",
         .defaultZone = DockZone::Center,
         .defaultVisible = true,
@@ -322,7 +322,7 @@ WorkspaceLayout CreateDefaultEditorWorkspaceLayout() {
     };
     layout.panels["WorldOutliner"] = {
         .id = "WorldOutliner",
-        .title = "Environment",
+        .title = "Explorer",
         .iconResource = "outliner",
         .defaultZone = DockZone::Right,
         .defaultVisible = true,

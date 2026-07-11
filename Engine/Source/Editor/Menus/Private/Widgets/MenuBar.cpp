@@ -49,22 +49,19 @@ void MenuBar::Paint(PaintContext& context) {
 
     auto drawMenu = [&](const MenuInfo& menu, int index) {
         bool isActive = m_MenuOpen && index == m_HoveredMenu;
+        const bool isHighlighted = menu.hovered || isActive;
 
-        if (menu.hovered && !isActive) {
-            context.DrawRoundedRect(menu.geometry, ThemeColor(ThemeToken::HoverBackground), ThemeMetric(ThemeToken::CornerRadiusSmall) * uiScale);
-        }
-
-        if (isActive) {
-            Rect underlineRect = menu.geometry;
-            underlineRect.y += menu.geometry.height - ThemeMetric(ThemeToken::Space1);
-            underlineRect.height = ThemeMetric(ThemeToken::Space1);
-            context.DrawRect(underlineRect, ThemeColor(ThemeToken::ActiveTabLine));
+        if (isHighlighted) {
+            context.DrawRoundedRect(
+                menu.geometry,
+                ThemeColor(ThemeToken::HoverBackground),
+                ThemeMetric(ThemeToken::CornerRadiusSmall) * uiScale);
         }
 
         float textX = menu.geometry.x + m_ItemPaddingH * uiScale;
-        float textY = menu.geometry.y + (menu.geometry.height - textSize) / 2.0f;
+        float textY = menu.geometry.y + (menu.geometry.height - textSize) * 0.5f;
 
-        Color textColor = ThemeTextForState(menu.hovered || isActive, isActive);
+        Color textColor = ThemeTextForState(isHighlighted, isActive);
         context.DrawText(menu.label, Point{ textX, textY }, textColor, textSize);
     };
 
@@ -137,7 +134,7 @@ void MenuBar::CalculateMenuGeometries() {
     const float uiScale = (std::max)(1.0f, DPIContext::GetScale());
     float x = m_Geometry.x;
     float availableWidth = m_Geometry.width;
-    const float textSize = 13.0f * uiScale;
+    const float textSize = ThemeMetric(ThemeToken::TextSizeMenu) * uiScale;
 
     m_VisibleMenus.clear();
     m_HiddenMenus.clear();

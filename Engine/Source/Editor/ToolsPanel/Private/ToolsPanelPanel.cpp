@@ -14,7 +14,7 @@ void SyncPanelTitle(const std::shared_ptr<Panel>& panel) {
 
     const auto* mode = EditorToolsRegistry::Get().FindMode(EditorModeController::Get().GetActiveModeId());
     if (!mode) {
-        panel->SetTitle("Tools");
+        panel->SetTitle("Actors");
         panel->SetTabIcon(Icons::LayersName);
         return;
     }
@@ -29,7 +29,7 @@ std::shared_ptr<Panel> CreateToolsPanel() {
     auto toolsContent = std::make_shared<ToolsPanel>();
     toolsContent->InitializeFromRegistry();
 
-    auto panel = PanelBuilder("Tools")
+    auto panel = PanelBuilder("Actors")
         .TabIcon(Icons::LayersName)
         .WithHeaderAction(Icons::LockName, []() {
             auto& modeController = EditorModeController::Get();
@@ -53,7 +53,7 @@ std::shared_ptr<Panel> CreateToolsPanel() {
 }
 
 REGISTER_UI_PANEL(Tools,
-    WE_PANEL(Tools).Title("Place Actors").Icon("tools-panel").Zone(DockZone::Left).SortOrder(0),
+    WE_PANEL(Tools).Title("Actors").Icon("tools-panel").Zone(DockZone::Left).SortOrder(0),
     CreateToolsPanel)
 
 } // namespace we::programs::editor

@@ -105,6 +105,9 @@ enum class ThemeToken : uint32_t {
     BorderWidth,
 
     PanelHeaderHeight,
+    TitleBarHeight,
+    HeaderControlHeight,
+    WindowControlWidth,
     ToolbarHeight,
     SearchBoxHeight,
     IconButtonSize,

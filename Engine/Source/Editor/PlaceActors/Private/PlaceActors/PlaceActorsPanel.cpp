@@ -50,7 +50,7 @@ PlaceActorsPanel::PlaceActorsPanel() {
 
     m_SearchBox = std::make_shared<WindEffects::Editor::UI::SearchBox>();
     m_SearchBox->SetFillWidth(true);
-    m_SearchBox->SetPlaceholder("Search classes...");
+    m_SearchBox->SetPlaceholder("Search Actors...");
     m_SearchBox->SetOnTextChanged([this](const std::string& text) {
         m_SearchText = text;
         m_NeedsLayout = true;

@@ -35,6 +35,7 @@ private:
     int m_ActivePanelTab = 0;
 
     std::function<void(int)> m_OnFooterTabChanged;
+    std::function<void()> m_OnOutputLogClicked;
 
     std::shared_ptr<class ToolButton> m_AssetsPanelButton;
     std::shared_ptr<class ToolButton> m_DiagnosticsPanelButton;

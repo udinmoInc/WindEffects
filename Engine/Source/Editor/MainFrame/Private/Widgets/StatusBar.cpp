@@ -48,8 +48,8 @@ void StatusBar::Construct() {
     auto leftBox = std::make_shared<HorizontalBox>();
     leftBox->SetSpacing(ThemeMetric(ThemeToken::Space1));
 
-    m_AssetsPanelButton = MakeFooterControl(Icons::FolderName, "Assets", false, "Content Browser");
-    m_DiagnosticsPanelButton = MakeFooterControl(Icons::WarningName, "Diagnostics", false, "Diagnostics Panel");
+    m_AssetsPanelButton = MakeFooterControl(Icons::FolderName, "Content Drawer", false, "Content Browser");
+    m_DiagnosticsPanelButton = MakeFooterControl(Icons::ConsoleName, "Output Log", false, "Output Log");
 
     m_AssetsPanelButton->SetOnClicked([this]() { SelectPanelTab(0, true); });
     m_DiagnosticsPanelButton->SetOnClicked([this]() { SelectPanelTab(1, true); });
@@ -62,7 +62,7 @@ void StatusBar::Construct() {
 
     m_CommandInput = std::make_shared<CommandInput>();
     m_CommandInput->SetVerticalAlignment(VerticalAlignment::Center);
-    m_CommandInput->SetPlaceholder("Enter command...");
+    m_CommandInput->SetPlaceholder("Console Commands...");
     AddChild(m_CommandInput);
 
     AddChild(std::make_shared<Spacer>());
@@ -70,10 +70,10 @@ void StatusBar::Construct() {
     auto rightBox = std::make_shared<HorizontalBox>();
     rightBox->SetSpacing(ThemeMetric(ThemeToken::Space1));
 
-    m_OutputLogButton = MakeFooterControl(Icons::ConsoleName, "Output Log", false, "Open Output Log");
-    m_BuildMenuButton = MakeFooterControl(Icons::BuildName, "Development", true, "Build Configuration");
-    m_TraceButton = MakeFooterControl(Icons::ProfilerName, "Trace", false, "Open Trace Insights");
-    m_QualityMenuButton = MakeFooterControl(Icons::LitName, "High", true, "Rendering Quality");
+    m_OutputLogButton = MakeFooterControl(Icons::BuildName, "Source Control", false, "Source Control");
+    m_BuildMenuButton = MakeFooterControl(Icons::ProfilerName, "FPS", false, "Frame Rate");
+    m_TraceButton = MakeFooterControl(Icons::PackageName, "Memory", false, "Memory Usage");
+    m_QualityMenuButton = MakeFooterControl(Icons::LitName, "Vulkan", false, "Graphics API");
 
     rightBox->AddChild(m_OutputLogButton);
     rightBox->AddChild(m_BuildMenuButton);
@@ -139,8 +139,14 @@ void StatusBar::SetOnCommandSubmitted(std::function<void(const std::string&)> on
 }
 
 void StatusBar::SetOnOutputLogClicked(std::function<void()> onClicked) {
-    if (m_OutputLogButton) {
-        m_OutputLogButton->SetOnClicked(std::move(onClicked));
+    m_OnOutputLogClicked = std::move(onClicked);
+    if (m_DiagnosticsPanelButton) {
+        m_DiagnosticsPanelButton->SetOnClicked([this]() {
+            SelectPanelTab(1, true);
+            if (m_OnOutputLogClicked) {
+                m_OnOutputLogClicked();
+            }
+        });
     }
 }
 

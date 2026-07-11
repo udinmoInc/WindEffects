@@ -52,6 +52,8 @@ public:
     void SetIconSize(float size) { m_IconSize = size; }
     void SetFloating(bool floating) { m_IsFloating = floating; }
     void SetLeftInset(float inset) { m_LeftInset = inset; }
+    void SetRightInset(float inset) { m_RightInset = inset; }
+    void SetEdgePadding(float padding) { m_EdgePadding = padding; }
 
 private:
     struct ToolInfo {
@@ -69,7 +71,8 @@ private:
     float m_ButtonSpacing = 4.0f;
     float m_GroupSpacing = 10.0f;
     float m_EdgePadding = 12.0f;
-    float m_LeftInset = 8.0f;    // Standard edge padding
+    float m_LeftInset = 8.0f;
+    float m_RightInset = 0.0f;
     bool m_IsFloating = false;
 
     WidgetStyle m_Style;

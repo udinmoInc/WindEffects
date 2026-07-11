@@ -190,18 +190,13 @@ ContentBrowserToolbarControls::ContentBrowserToolbarControls(ToolbarMode mode)
 
 void ContentBrowserToolbarControls::InitializeChildren() {
     if (m_Mode == ToolbarMode::Full) {
-        // Panel toolbar: create, import, back, forward, folder
-        m_CreateBtn = std::make_shared<PrimaryToolbarButton>("Create", Icons::PlusName);
+        m_CreateBtn = std::make_shared<PrimaryToolbarButton>("Add", Icons::PlusName);
         m_ImportBtn = std::make_shared<SecondaryToolbarButton>("Import", "import");
-        m_BackBtn = std::make_shared<ToolbarNavigationButton>(Icons::ArrowLeftName, "Back");
-        m_ForwardBtn = std::make_shared<ToolbarNavigationButton>(Icons::ArrowRightName, "Forward");
-        m_FolderBtn = std::make_shared<ToolbarNavigationButton>(Icons::FolderName, "Folder");
+        m_SaveBtn = std::make_shared<ToolbarLabeledButton>("Save All", Icons::SaveAllName, false, ToolbarLabeledButton::Variant::Standard, ThemeMetric(ThemeToken::Space3));
 
         AddChild(m_CreateBtn);
         AddChild(m_ImportBtn);
-        AddChild(m_BackBtn);
-        AddChild(m_ForwardBtn);
-        AddChild(m_FolderBtn);
+        AddChild(m_SaveBtn);
     } else {
         // Asset pane toolbar: search, save all, filter icon
         m_SearchBox = std::make_shared<SearchBox>();
@@ -228,40 +223,23 @@ void ContentBrowserToolbarControls::ArrangeControlRow(const Rect& row, float con
     const Size measureSize{ contentWidth, ThemeMetric(ThemeToken::ButtonHeight) };
 
     if (m_Mode == ToolbarMode::Full) {
-        // Panel toolbar: create, import, back, forward, folder (left-aligned)
         float x = contentLeft;
-        
-        // Action buttons group
+
         if (m_CreateBtn) {
             const Size desired = m_CreateBtn->Measure(measureSize);
             m_CreateBtn->Arrange(Rect{ x, centerY - desired.height * 0.5f, desired.width, desired.height });
             x += desired.width + ThemeMetric(ThemeToken::ButtonSpacing);
         }
-        
+
         if (m_ImportBtn) {
             const Size desired = m_ImportBtn->Measure(measureSize);
             m_ImportBtn->Arrange(Rect{ x, centerY - desired.height * 0.5f, desired.width, desired.height });
             x += desired.width + ThemeMetric(ThemeToken::ButtonGroupSpacing);
         }
-        
-        // Navigation buttons group (4px spacing)
-        const float navSpacing = ThemeMetric(ThemeToken::Space1);
-        
-        if (m_BackBtn) {
-            const Size desired = m_BackBtn->Measure(measureSize);
-            m_BackBtn->Arrange(Rect{ x, centerY - desired.height * 0.5f, desired.width, desired.height });
-            x += desired.width + navSpacing;
-        }
-        
-        if (m_ForwardBtn) {
-            const Size desired = m_ForwardBtn->Measure(measureSize);
-            m_ForwardBtn->Arrange(Rect{ x, centerY - desired.height * 0.5f, desired.width, desired.height });
-            x += desired.width + navSpacing;
-        }
-        
-        if (m_FolderBtn) {
-            const Size desired = m_FolderBtn->Measure(measureSize);
-            m_FolderBtn->Arrange(Rect{ x, centerY - desired.height * 0.5f, desired.width, desired.height });
+
+        if (m_SaveBtn) {
+            const Size desired = m_SaveBtn->Measure(measureSize);
+            m_SaveBtn->Arrange(Rect{ x, centerY - desired.height * 0.5f, desired.width, desired.height });
         }
     } else {
         // Asset pane toolbar: search, save all, filter icon

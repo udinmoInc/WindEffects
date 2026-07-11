@@ -72,7 +72,7 @@ void ExplorerPanelHeader::Paint(PaintContext& context) {
     const float textY = m_SearchBoxGeometry.y + (m_SearchBoxGeometry.height - fontSize) * 0.5f;
 
     if (m_SearchQuery.empty()) {
-        context.DrawText("Search...", Point{ textX, textY }, ThemeColor(ThemeToken::SearchPlaceholder), fontSize);
+        context.DrawText("Search Actors...", Point{ textX, textY }, ThemeColor(ThemeToken::SearchPlaceholder), fontSize);
     } else {
         context.DrawText(m_SearchQuery, Point{ textX, textY }, ThemeColor(ThemeToken::TextPrimary), fontSize);
 

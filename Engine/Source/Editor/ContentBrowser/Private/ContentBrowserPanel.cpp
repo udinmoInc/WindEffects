@@ -2,6 +2,7 @@
 #include "EditorWorkspaceController.h"
 #include "ContentBrowserApi.h"
 #include "Rendering/FontImportService.h"
+#include "WindEffects/Editor/UI/Theming/ThemeAccess.h"
 #include "Widgets/Panel.h"
 #include "Widgets/ContentBrowser.h"
 #include "Widgets/ContentBrowserToolbar.h"
@@ -153,8 +154,7 @@ void ShutdownContentBrowserService() {
 std::shared_ptr<WindEffects::Editor::UI::Panel> CreateContentBrowserPanel() {
     auto title = we::core::Localization::Get().GetString("Panel_ContentBrowser", "Content Browser");
     auto panel = std::make_shared<WindEffects::Editor::UI::Panel>(std::string(title));
-    panel->SetHeaderHeight(28.0f);
-    panel->SetBackgroundColor(WindEffects::Editor::UI::Color{ 0.10f, 0.10f, 0.11f, 1.0f });
+    panel->SetHeaderHeight(ResolveThemeMetric(ThemeToken::PanelHeaderHeight));
 
     panel->AddHeaderAction(WindEffects::Editor::UI::Icons::XName, []() {
         if (EditorWorkspaceController::Get().IsContentBrowserExpanded()) {
@@ -212,23 +212,12 @@ std::shared_ptr<WindEffects::Editor::UI::Panel> CreateContentBrowserPanel() {
     });
 
     // Wire up panel toolbar (top) - create, import, back, forward, folder
-    panelToolbar->SetOnPreviousClicked([contentBrowser, statusBar]() {
-        // Navigate to previous folder in history
-        // Placeholder for navigation history implementation
-    });
-
-    panelToolbar->SetOnNextClicked([contentBrowser, statusBar]() {
-        // Navigate to next folder in history
-        // Placeholder for navigation history implementation
-    });
-
-    panelToolbar->SetOnFolderClicked([contentBrowser, statusBar]() {
-        // Open folder picker or navigate to parent
-        // Placeholder for folder navigation
-    });
-
     panelToolbar->SetOnCreateClicked([]() {
-        // Create asset menu placeholder – layout hook for future creation workflow.
+        // Add asset menu placeholder – layout hook for future creation workflow.
+    });
+
+    panelToolbar->SetOnSaveClicked([]() {
+        // Save all placeholder – layout hook for future save workflow.
     });
 
     panelToolbar->SetOnImportClicked([]() {

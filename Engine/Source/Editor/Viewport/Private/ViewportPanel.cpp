@@ -2,6 +2,7 @@
 #include "ViewportToolbarState.h"
 #include "Widgets/ToolbarBuilder.h"
 #include "Widgets/Label.h"
+#include "WindEffects/Editor/UI/Theming/ThemeAccess.h"
 
 namespace we::programs::editor {
 using namespace WindEffects::Editor::UI;
@@ -10,23 +11,21 @@ std::shared_ptr<Panel> CreateViewportPanel() {
     std::shared_ptr<ToolButton> cameraSpeedButton;
 
     auto toolbar = ToolbarBuilder()
-        .Height(28.0f)
-        .IconSize(16.0f)
-        .Dropdown(Icons::PerspectiveName, "Viewport", {}, "Viewport Type")
-        .Separator()
-        .Dropdown(Icons::ConsoleName, "Display 1", {}, "Select Display")
+        .Height(ResolveThemeMetric(ThemeToken::PanelHeaderHeight))
+        .IconSize(ResolveThemeMetric(ThemeToken::IconSizeNavigation))
+        .Dropdown(Icons::PerspectiveName, "Perspective", {}, "Viewport Type")
         .Separator()
         .Dropdown(Icons::LitName, "Lit", {}, "Render Mode")
         .Separator()
-        .Dropdown(Icons::CameraName, "Camera", {}, "Camera Settings")
-        .Separator()
         .Dropdown(Icons::EyeName, "Show", {}, "Show/Hide Elements")
-        .Separator()
-        .Item(Icons::ProfilerName, "Stats", {}, "Toggle Stats")
-        .Separator()
-        .Dropdown(Icons::GridName, "Gizmos", {}, "Toggle Gizmos")
         .Separator(ToolbarAlignment::Right)
         .Right([&](ToolbarBuilder& right) {
+            right.Item(Icons::CursorName, "", [](){}, "Select (Q)");
+            right.Item(Icons::MoveName, "", [](){}, "Move (W)");
+            right.Item(Icons::RotateName, "", [](){}, "Rotate (E)");
+            right.Item(Icons::ScaleName, "", [](){}, "Scale (R)");
+            right.Item(Icons::SnapName, "", [](){}, "Snap");
+            right.Separator();
             right.Dropdown(
                 Icons::CameraName,
                 "4",
@@ -54,7 +53,7 @@ std::shared_ptr<Panel> CreateViewportPanel() {
 }
 
 REGISTER_UI_PANEL(Viewport,
-    WE_PANEL(Viewport).Title("Viewport 1").Icon("viewport").Zone(DockZone::Center).WindowMenu("Viewport").SortOrder(1),
+    WE_PANEL(Viewport).Title("Viewport").Icon("viewport").Zone(DockZone::Center).WindowMenu("Viewport").SortOrder(1),
     CreateViewportPanel)
 
 } // namespace we::programs::editor
