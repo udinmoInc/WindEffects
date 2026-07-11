@@ -1,5 +1,6 @@
 #include "Text/Assets/FontAsset.h"
 #include "Text/Import/FontImporter.h"
+#include "Core/BuildPaths.h"
 
 #include <filesystem>
 #include <iostream>
@@ -39,6 +40,8 @@ bool HasArg(int argc, char** argv, const std::string& key)
 
 int main(int argc, char** argv)
 {
+    we::core::ConfigureModuleSearchPaths();
+
     using namespace we::runtime::text::assets;
     using namespace we::runtime::text::importing;
 

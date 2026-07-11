@@ -9,6 +9,8 @@
 
 namespace we::UI {
 
+class TextUIService;
+
 enum class DrawCommandType {
     Rect,
     Gradient,
@@ -41,6 +43,8 @@ struct DrawCommand {
 
 class APPLICATION_API PaintContext {
 public:
+    void SetTextUIService(TextUIService* service) { m_TextService = service; }
+
     void PushClipRect(const Rect& clip);
     void PopClipRect();
 
@@ -58,12 +62,13 @@ public:
     void DrawTexture(const Rect& rect, VkDescriptorSet textureId, const Color& tint = Color::White(), const Color& tintBottom = Color::Transparent());
     void DrawColorTexture(const Rect& rect, VkDescriptorSet textureId, const Color& tint = Color::White());
     
-    float GetTextWidth(const std::string& text, float fontSize) const;
+    float GetTextWidth(const std::string& text, float fontSize, bool bold = false, bool italic = false) const;
 
     const std::vector<DrawCommand>& GetCommands() const { return m_Commands; }
     void Clear() { m_Commands.clear(); m_ClipStack.clear(); }
 
 private:
+    TextUIService* m_TextService = nullptr;
     std::vector<DrawCommand> m_Commands;
     std::vector<Rect> m_ClipStack;
     Rect GetCurrentClipRect() const;

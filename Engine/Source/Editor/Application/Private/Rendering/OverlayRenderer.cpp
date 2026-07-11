@@ -40,6 +40,44 @@ namespace we::UI {
 
 namespace {
 
+struct TextPushConstants {
+    float uScale[2];
+    float uTranslate[2];
+    float uAtlasSize[2];
+    float uPixelRange;
+    float padding;
+};
+
+static_assert(sizeof(TextPushConstants) == 32, "Text push constants must match TextMSDF.hlsl layout");
+
+void FillUiTransformPushConstants(const uint32_t width, const uint32_t height, float out[4])
+{
+    out[0] = 2.0f / static_cast<float>(width);
+    out[1] = 2.0f / static_cast<float>(height);
+    out[2] = -1.0f + (1.0f / static_cast<float>(width));
+    out[3] = -1.0f + (1.0f / static_cast<float>(height));
+}
+
+void FillTextPushConstants(
+    const uint32_t width,
+    const uint32_t height,
+    const uint32_t atlasWidth,
+    const uint32_t atlasHeight,
+    const float msdfPixelRange,
+    TextPushConstants& out)
+{
+    float transform[4];
+    FillUiTransformPushConstants(width, height, transform);
+    out.uScale[0] = transform[0];
+    out.uScale[1] = transform[1];
+    out.uTranslate[0] = transform[2];
+    out.uTranslate[1] = transform[3];
+    out.uAtlasSize[0] = static_cast<float>(std::max(atlasWidth, 1u));
+    out.uAtlasSize[1] = static_cast<float>(std::max(atlasHeight, 1u));
+    out.uPixelRange = std::max(msdfPixelRange, 1.0f);
+    out.padding = 0.0f;
+}
+
 } // namespace
 
 OverlayRenderer::OverlayRenderer() = default;
@@ -72,15 +110,14 @@ bool OverlayRenderer::Init(VkPhysicalDevice physicalDevice,
 
     HE_INFO("OverlayRenderer: Starting Volk Init");
     if (volkInitialize() != VK_SUCCESS) {
-        HE_ERROR("OverlayRenderer: Failed to initialize Volk for this module");
+        HE_ERROR("OverlayRenderer: Failed to initialize Volk");
         return false;
     }
-    HE_INFO("OverlayRenderer: Volk Load Instance");
     volkLoadInstance(deviceContext->GetInstance());
-    HE_INFO("OverlayRenderer: Volk Load Device");
     volkLoadDevice(logicalDevice);
-    if (!vkCreateDescriptorSetLayout || !vkCreateCommandPool) {
-        HE_ERROR("OverlayRenderer: Vulkan function pointers were not loaded");
+    if (!vkCmdDrawIndexed || !vkCmdBindPipeline || !vkCmdPushConstants
+        || !vkCmdBeginRendering || !vkCmdEndRendering) {
+        HE_ERROR("OverlayRenderer: Vulkan command function pointers were not loaded");
         return false;
     }
 
@@ -96,6 +133,10 @@ bool OverlayRenderer::Init(VkPhysicalDevice physicalDevice,
         return false;
     }
 
+    CreateDummyTexture();
+
+    we::core::AssetRegistry::Get().RegisterTexture("UI_DummyWhite", m_DummyImageView, m_DummySampler);
+
     m_TextUIService = std::make_unique<TextUIService>();
     if (!m_TextUIService->Initialize(this)) {
         HE_ERROR("OverlayRenderer: TextUIService initialization failed");
@@ -108,12 +149,10 @@ bool OverlayRenderer::Init(VkPhysicalDevice physicalDevice,
         return false;
     }
 
-    CreateDummyTexture();
-
-    we::core::AssetRegistry::Get().RegisterTexture("UI_DummyWhite", m_DummyImageView, m_DummySampler);
-
     CreateGraphicsPipeline(swapchainFormat);
-    if (m_GraphicsPipeline == VK_NULL_HANDLE || m_PipelineLayout == VK_NULL_HANDLE) {
+    CreateTextGraphicsPipeline(swapchainFormat);
+    if (m_GraphicsPipeline == VK_NULL_HANDLE || m_PipelineLayout == VK_NULL_HANDLE
+        || m_TextGraphicsPipeline == VK_NULL_HANDLE || m_TextPipelineLayout == VK_NULL_HANDLE) {
         HE_ERROR("OverlayRenderer: Failed to create graphics pipeline");
         return false;
     }
@@ -161,6 +200,14 @@ void OverlayRenderer::Shutdown() {
     }
 
     if (m_LogicalDevice != VK_NULL_HANDLE) {
+        if (m_TextGraphicsPipeline != VK_NULL_HANDLE) {
+            vkDestroyPipeline(m_LogicalDevice, m_TextGraphicsPipeline, nullptr);
+            m_TextGraphicsPipeline = VK_NULL_HANDLE;
+        }
+        if (m_TextPipelineLayout != VK_NULL_HANDLE) {
+            vkDestroyPipelineLayout(m_LogicalDevice, m_TextPipelineLayout, nullptr);
+            m_TextPipelineLayout = VK_NULL_HANDLE;
+        }
         if (m_GraphicsPipeline != VK_NULL_HANDLE) {
             vkDestroyPipeline(m_LogicalDevice, m_GraphicsPipeline, nullptr);
             m_GraphicsPipeline = VK_NULL_HANDLE;
@@ -353,10 +400,7 @@ void OverlayRenderer::BeginOverlayPass(const ::we::editor::rendering::OverlayRen
     // We want NDC to be computed as: ndc = ((px + 0.5) / extent) * 2 - 1
     // (same for Y in our "Y down" convention).
     float pushConstants[4];
-    pushConstants[0] = 2.0f / static_cast<float>(context.targetExtent.width);
-    pushConstants[1] = 2.0f / static_cast<float>(context.targetExtent.height);
-    pushConstants[2] = -1.0f + (1.0f / static_cast<float>(context.targetExtent.width));
-    pushConstants[3] = -1.0f + (1.0f / static_cast<float>(context.targetExtent.height));
+    FillUiTransformPushConstants(context.targetExtent.width, context.targetExtent.height, pushConstants);
     vkCmdPushConstants(context.cmd, m_PipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(float) * 4, pushConstants);
 
 
@@ -388,15 +432,18 @@ void OverlayRenderer::EndOverlayPass(const ::we::editor::rendering::OverlayRende
             vkCmdBindIndexBuffer(context.cmd, buffers.indexBuffer, 0, VK_INDEX_TYPE_UINT32);
             
 
-            for (size_t i = 0; i < m_Batches.size(); ++i) {
-                const auto& batch = m_Batches[i];
+            VkRect2D fullScissor{};
+            fullScissor.offset = {0, 0};
+            fullScissor.extent = {m_CurrentWidth, m_CurrentHeight};
+
+            auto tryDrawBatch = [&](const UIRenderBatch& batch, const size_t batchIndex, const bool useTextPipeline) -> bool {
                 gpuBatchCount++;
 
                 VkDescriptorSet textureSet = batch.textureSet;
                 if (textureSet == VK_NULL_HANDLE) {
                     skippedDrawCalls++;
-                    HE_WARN(std::string("Skipped Batch ") + std::to_string(i) + " | Reason: null texture descriptor");
-                    continue;
+                    HE_WARN(std::string("Skipped Batch ") + std::to_string(batchIndex) + " | Reason: null texture descriptor");
+                    return false;
                 }
                 if (textureSet == m_DummyDescriptorSet) {
                     uint32_t firstVertex = 0;
@@ -411,16 +458,16 @@ void OverlayRenderer::EndOverlayPass(const ::we::editor::rendering::OverlayRende
                                 && m_Vertices[firstVertex].sdfParams[1] < 3.5f));
                     if (samplesTexture) {
                         skippedDrawCalls++;
-                        HE_WARN(std::string("Skipped Batch ") + std::to_string(i)
+                        HE_WARN(std::string("Skipped Batch ") + std::to_string(batchIndex)
                                 + " | Reason: sampled draw bound to dummy white texture");
-                        continue;
+                        return false;
                     }
                     textureSet = m_DummyDescriptorSet;
                 }
                 if (batch.indexCount == 0) {
                     skippedDrawCalls++;
-                    HE_WARN(std::string("Skipped Batch ") + std::to_string(i) + " | Reason: IndexCount == 0");
-                    continue;
+                    HE_WARN(std::string("Skipped Batch ") + std::to_string(batchIndex) + " | Reason: IndexCount == 0");
+                    return false;
                 }
 
                 VkRect2D batchScissor{};
@@ -428,28 +475,79 @@ void OverlayRenderer::EndOverlayPass(const ::we::editor::rendering::OverlayRende
                 batchScissor.offset.y = static_cast<int32_t>(batch.scissor[1]);
                 batchScissor.extent.width = static_cast<uint32_t>(batch.scissor[2]);
                 batchScissor.extent.height = static_cast<uint32_t>(batch.scissor[3]);
-                
-                VkRect2D fullScissor{};
-                fullScissor.offset = {0, 0};
-                fullScissor.extent = {m_CurrentWidth, m_CurrentHeight};
                 if (batchScissor.extent.width == 0 || batchScissor.extent.height == 0) {
                     batchScissor = fullScissor;
                 }
 
-
                 vkCmdSetScissor(context.cmd, 0, 1, &batchScissor);
-                vkCmdBindDescriptorSets(context.cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_PipelineLayout, 0, 1, &textureSet, 0, nullptr);
+
+                if (useTextPipeline) {
+                    TextPushConstants textPush{};
+                    FillTextPushConstants(
+                        m_CurrentWidth,
+                        m_CurrentHeight,
+                        batch.atlasWidth,
+                        batch.atlasHeight,
+                        batch.msdfPixelRange,
+                        textPush);
+                    vkCmdPushConstants(
+                        context.cmd,
+                        m_TextPipelineLayout,
+                        VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
+                        0,
+                        sizeof(TextPushConstants),
+                        &textPush);
+                    vkCmdBindDescriptorSets(
+                        context.cmd,
+                        VK_PIPELINE_BIND_POINT_GRAPHICS,
+                        m_TextPipelineLayout,
+                        0,
+                        1,
+                        &textureSet,
+                        0,
+                        nullptr);
+                } else {
+                    vkCmdBindDescriptorSets(
+                        context.cmd,
+                        VK_PIPELINE_BIND_POINT_GRAPHICS,
+                        m_PipelineLayout,
+                        0,
+                        1,
+                        &textureSet,
+                        0,
+                        nullptr);
+                }
+
                 vkCmdDrawIndexed(context.cmd, batch.indexCount, 1, batch.firstIndex, batch.vertexOffset, 0);
-                
                 executedDrawCalls++;
-                
-                // Detailed batch log
-                WE_OVERLAY_PASS_INFO(std::string("Draw Call [") + std::to_string(i) + "] | " +
+
+                WE_OVERLAY_PASS_INFO(std::string("Draw Call [") + std::to_string(batchIndex) + "] | " +
                     "Indices: " + std::to_string(batch.indexCount) + " | " +
                     "FirstIdx: " + std::to_string(batch.firstIndex) + " | " +
                     "VOffset: " + std::to_string(batch.vertexOffset) + " | " +
                     "Scissor: " + std::to_string(batchScissor.extent.width) + "x" + std::to_string(batchScissor.extent.height) + " | " +
                     "Desc: " + std::to_string(reinterpret_cast<uint64_t>(textureSet)));
+                return true;
+            };
+
+            for (size_t i = 0; i < m_Batches.size(); ++i) {
+                const auto& batch = m_Batches[i];
+                if (!batch.isText) {
+                    (void)tryDrawBatch(batch, i, false);
+                }
+            }
+
+            bool textPipelineBound = false;
+            for (size_t i = 0; i < m_Batches.size(); ++i) {
+                const auto& batch = m_Batches[i];
+                if (!batch.isText) {
+                    continue;
+                }
+                if (!textPipelineBound) {
+                    vkCmdBindPipeline(context.cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_TextGraphicsPipeline);
+                    textPipelineBound = true;
+                }
+                (void)tryDrawBatch(batch, i, true);
             }
         } else {
             HE_ERROR("STOPPING: Geometry buffers are null or batches are empty!");
@@ -785,6 +883,144 @@ void OverlayRenderer::CreateGraphicsPipeline(VkFormat colorFormat) {
     if (vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &m_GraphicsPipeline) != VK_SUCCESS) {
         HE_ERROR("OverlayRenderer: Failed to create graphics pipeline");
         m_GraphicsPipeline = VK_NULL_HANDLE;
+    }
+
+    vkDestroyShaderModule(device, fragShaderModule, nullptr);
+    vkDestroyShaderModule(device, vertShaderModule, nullptr);
+}
+
+void OverlayRenderer::CreateTextGraphicsPipeline(VkFormat colorFormat) {
+    VkDevice device = m_LogicalDevice;
+
+    VkShaderModule vertShaderModule = ::we::runtime::renderer::ShaderLibrary::Get().CreateShaderModule(
+        device, "TextMSDF", ::we::runtime::renderer::ShaderStage::Vertex);
+    VkShaderModule fragShaderModule = ::we::runtime::renderer::ShaderLibrary::Get().CreateShaderModule(
+        device, "TextMSDF", ::we::runtime::renderer::ShaderStage::Pixel);
+
+    if (vertShaderModule == VK_NULL_HANDLE || fragShaderModule == VK_NULL_HANDLE) {
+        HE_ERROR("OverlayRenderer: Failed to load TextMSDF shader modules");
+        return;
+    }
+
+    VkPipelineShaderStageCreateInfo shaderStages[2]{};
+    shaderStages[0].sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+    shaderStages[0].stage = VK_SHADER_STAGE_VERTEX_BIT;
+    shaderStages[0].module = vertShaderModule;
+    shaderStages[0].pName = "VSMain";
+    shaderStages[1].sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+    shaderStages[1].stage = VK_SHADER_STAGE_FRAGMENT_BIT;
+    shaderStages[1].module = fragShaderModule;
+    shaderStages[1].pName = "PSMain";
+
+    VkVertexInputBindingDescription bindingDescription{};
+    bindingDescription.binding = 0;
+    bindingDescription.stride = sizeof(UIVertex2);
+    bindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
+
+    std::array<VkVertexInputAttributeDescription, 5> attributeDescriptions{};
+    attributeDescriptions[0] = {0, 0, VK_FORMAT_R32G32_SFLOAT, offsetof(UIVertex2, position)};
+    attributeDescriptions[1] = {1, 0, VK_FORMAT_R32G32_SFLOAT, offsetof(UIVertex2, uv)};
+    attributeDescriptions[2] = {2, 0, VK_FORMAT_R32G32B32A32_SFLOAT, offsetof(UIVertex2, color)};
+    attributeDescriptions[3] = {3, 0, VK_FORMAT_R32G32B32A32_SFLOAT, offsetof(UIVertex2, sdfRect)};
+    attributeDescriptions[4] = {4, 0, VK_FORMAT_R32G32B32A32_SFLOAT, offsetof(UIVertex2, sdfParams)};
+
+    VkPipelineVertexInputStateCreateInfo vertexInputInfo{};
+    vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
+    vertexInputInfo.vertexBindingDescriptionCount = 1;
+    vertexInputInfo.pVertexBindingDescriptions = &bindingDescription;
+    vertexInputInfo.vertexAttributeDescriptionCount = static_cast<uint32_t>(attributeDescriptions.size());
+    vertexInputInfo.pVertexAttributeDescriptions = attributeDescriptions.data();
+
+    VkPipelineInputAssemblyStateCreateInfo inputAssembly{};
+    inputAssembly.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
+    inputAssembly.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+
+    VkPipelineViewportStateCreateInfo viewportState{};
+    viewportState.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
+    viewportState.viewportCount = 1;
+    viewportState.scissorCount = 1;
+
+    VkPipelineRasterizationStateCreateInfo rasterizer{};
+    rasterizer.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
+    rasterizer.cullMode = VK_CULL_MODE_NONE;
+    rasterizer.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
+    rasterizer.polygonMode = VK_POLYGON_MODE_FILL;
+    rasterizer.lineWidth = 1.0f;
+
+    VkPipelineMultisampleStateCreateInfo multisampling{};
+    multisampling.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
+    multisampling.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
+
+    VkPipelineDepthStencilStateCreateInfo depthStencil{};
+    depthStencil.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
+    depthStencil.depthTestEnable = VK_FALSE;
+    depthStencil.depthWriteEnable = VK_FALSE;
+
+    VkPipelineColorBlendAttachmentState colorBlendAttachment{};
+    colorBlendAttachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT |
+                                          VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
+    colorBlendAttachment.blendEnable = VK_TRUE;
+    colorBlendAttachment.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
+    colorBlendAttachment.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+    colorBlendAttachment.colorBlendOp = VK_BLEND_OP_ADD;
+    colorBlendAttachment.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
+    colorBlendAttachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
+    colorBlendAttachment.alphaBlendOp = VK_BLEND_OP_ADD;
+
+    VkPipelineColorBlendStateCreateInfo colorBlending{};
+    colorBlending.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
+    colorBlending.attachmentCount = 1;
+    colorBlending.pAttachments = &colorBlendAttachment;
+
+    std::array<VkDynamicState, 2> dynamicStates = {VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR};
+    VkPipelineDynamicStateCreateInfo dynamicState{};
+    dynamicState.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
+    dynamicState.dynamicStateCount = static_cast<uint32_t>(dynamicStates.size());
+    dynamicState.pDynamicStates = dynamicStates.data();
+
+    VkPushConstantRange pushConstantRange{};
+    pushConstantRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
+    pushConstantRange.offset = 0;
+    pushConstantRange.size = sizeof(TextPushConstants);
+
+    VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
+    pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+    pipelineLayoutInfo.setLayoutCount = 1;
+    pipelineLayoutInfo.pSetLayouts = &m_TextureDescriptorSetLayout;
+    pipelineLayoutInfo.pushConstantRangeCount = 1;
+    pipelineLayoutInfo.pPushConstantRanges = &pushConstantRange;
+
+    if (vkCreatePipelineLayout(device, &pipelineLayoutInfo, nullptr, &m_TextPipelineLayout) != VK_SUCCESS) {
+        HE_ERROR("OverlayRenderer: Failed to create text pipeline layout");
+        vkDestroyShaderModule(device, fragShaderModule, nullptr);
+        vkDestroyShaderModule(device, vertShaderModule, nullptr);
+        return;
+    }
+
+    VkPipelineRenderingCreateInfo pipelineRenderingInfo{};
+    pipelineRenderingInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO;
+    pipelineRenderingInfo.colorAttachmentCount = 1;
+    pipelineRenderingInfo.pColorAttachmentFormats = &colorFormat;
+
+    VkGraphicsPipelineCreateInfo pipelineInfo{};
+    pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
+    pipelineInfo.pNext = &pipelineRenderingInfo;
+    pipelineInfo.stageCount = 2;
+    pipelineInfo.pStages = shaderStages;
+    pipelineInfo.pVertexInputState = &vertexInputInfo;
+    pipelineInfo.pInputAssemblyState = &inputAssembly;
+    pipelineInfo.pViewportState = &viewportState;
+    pipelineInfo.pRasterizationState = &rasterizer;
+    pipelineInfo.pMultisampleState = &multisampling;
+    pipelineInfo.pDepthStencilState = &depthStencil;
+    pipelineInfo.pColorBlendState = &colorBlending;
+    pipelineInfo.pDynamicState = &dynamicState;
+    pipelineInfo.layout = m_TextPipelineLayout;
+    pipelineInfo.renderPass = VK_NULL_HANDLE;
+
+    if (vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &m_TextGraphicsPipeline) != VK_SUCCESS) {
+        HE_ERROR("OverlayRenderer: Failed to create text graphics pipeline");
+        m_TextGraphicsPipeline = VK_NULL_HANDLE;
     }
 
     vkDestroyShaderModule(device, fragShaderModule, nullptr);

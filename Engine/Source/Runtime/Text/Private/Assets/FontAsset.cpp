@@ -9,6 +9,30 @@ namespace we::runtime::text::assets {
 
 namespace {
 
+void ResolveShapeSourcePath(FontAsset& asset, const std::filesystem::path& assetPath)
+{
+    const auto ext = asset.sourcePath.extension().string();
+    const bool hasShapeSource = !asset.sourcePath.empty()
+        && (ext == ".ttf" || ext == ".otf" || ext == ".TTC" || ext == ".ttc")
+        && std::filesystem::exists(asset.sourcePath);
+    if (hasShapeSource) {
+        return;
+    }
+
+    auto ttfPath = assetPath;
+    ttfPath.replace_extension(".ttf");
+    if (std::filesystem::exists(ttfPath)) {
+        asset.sourcePath = ttfPath;
+        return;
+    }
+
+    auto otfPath = assetPath;
+    otfPath.replace_extension(".otf");
+    if (std::filesystem::exists(otfPath)) {
+        asset.sourcePath = otfPath;
+    }
+}
+
 enum class ChunkType : uint32_t {
     Metrics = 1,
     Glyphs = 2,
@@ -132,6 +156,18 @@ TextResult<FontAsset> FontAssetReader::LoadFromMemory(const std::span<const std:
                 || !ReadPod(chunk, asset.metrics.italic)) {
                 return TextResult<FontAsset>::Failure("Invalid metrics chunk");
             }
+            if (!chunk.empty()) {
+                std::string shapeSource;
+                if (!ReadString(chunk, shapeSource)) {
+                    return TextResult<FontAsset>::Failure("Invalid metrics chunk source path");
+                }
+                if (!shapeSource.empty()) {
+                    asset.sourcePath = shapeSource;
+                }
+            }
+            if (!chunk.empty()) {
+                (void)ReadPod(chunk, asset.metrics.geometryScale);
+            }
             break;
         }
         case ChunkType::Glyphs: {
@@ -254,7 +290,7 @@ TextResult<FontAsset> FontAssetReader::LoadFromFile(const std::filesystem::path&
     stream.read(reinterpret_cast<char*>(bytes.data()), size);
     auto result = LoadFromMemory(bytes);
     if (result.ok) {
-        result.value.sourcePath = path;
+        ResolveShapeSourcePath(result.value, path);
     }
     return result;
 }
@@ -291,6 +327,8 @@ TextResult<void> FontAssetWriter::WriteToFile(
         WriteString(chunk, asset.metrics.familyName);
         WriteString(chunk, asset.metrics.styleName);
         WritePod(chunk, asset.metrics.italic);
+        WriteString(chunk, asset.sourcePath.string());
+        WritePod(chunk, asset.metrics.geometryScale);
         WritePod(file, static_cast<uint32_t>(ChunkType::Metrics));
         WritePod(file, static_cast<uint32_t>(chunk.size()));
         file.insert(file.end(), chunk.begin(), chunk.end());
@@ -375,7 +413,7 @@ TextResult<void> FontAssetWriter::WriteToFile(
         return TextResult<void>::Failure("Failed to write .wefont file", path.string());
     }
     stream.write(reinterpret_cast<const char*>(file.data()), static_cast<std::streamsize>(file.size()));
-    return TextResult<void>::Success({});
+    return TextResult<void>::Success();
 }
 
 FontAssetValidator::ValidationReport FontAssetValidator::Validate(const FontAsset& asset)

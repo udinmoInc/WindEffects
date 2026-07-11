@@ -178,10 +178,38 @@ Editor::Editor(SDL_Window* window) : m_Window(window) {
 
     HE_INFO("[Startup] Stage 6/6: Widget tree and layout...");
     UpdateUiScaleFromWindow();
+
+    m_UIContext = std::make_unique<WindEffects::Editor::UI::EditorApplicationContext>();
+    m_UIContext->Initialize(we::UI::DPIContext::GetScale());
+
     try {
-        BuildDynamicEditorUI();
+        WindEffects::Editor::UI::EditorShellDependencies shellDeps;
+        shellDeps.window = m_Window;
+        shellDeps.renderer = m_Renderer.get();
+        shellDeps.scene = m_Scene.get();
+        shellDeps.camera = m_Camera;
+        shellDeps.overlayRenderer = m_OverlayRenderer.get();
+        shellDeps.eventSystem = m_UIEventSystem;
+        shellDeps.dpiScale = we::UI::DPIContext::GetScale();
+        shellDeps.onCreateNewLevel = [this]() { CreateNewLevel(); };
+        shellDeps.onViewportCreated = [this](std::shared_ptr<we::UI::Widget>& viewportWidget) {
+            m_ViewportWidget = viewportWidget;
+        };
+        shellDeps.onLayoutBuilt = [this](const WindEffects::Editor::UI::DockLayoutBuildResult&) {
+            // Title bar reference retained for window hit testing.
+        };
+
+        const auto shellResult = WindEffects::Editor::UI::EditorShellBuilder::Build(*m_UIContext, shellDeps);
+        m_RootWidget = shellResult.rootWidget;
+        m_TitleBar = shellResult.titleBar;
+        m_StatusBar = shellResult.statusBar;
+
+        m_WindowHitTestData.titleBar = m_TitleBar;
+        if (!SDL_SetWindowHitTest(m_Window, we::editor::mainframe::EditorWindowHitTest, &m_WindowHitTestData)) {
+            HE_WARN("[UI] SDL_SetWindowHitTest failed — title bar drag may not work.");
+        }
     } catch (const std::exception& e) {
-        HE_ERROR("[Startup] Failed to build dynamic UI: " + std::string(e.what()));
+        HE_ERROR("[Startup] Failed to build editor shell: " + std::string(e.what()));
         throw;
     }
 

@@ -1,5 +1,7 @@
 #include "Text/Rendering/TextGpuBackend.h"
 
+#include <unordered_map>
+
 #include "Core/Logger.h"
 
 #if defined(WE_HAS_VULKAN) && WE_HAS_VULKAN

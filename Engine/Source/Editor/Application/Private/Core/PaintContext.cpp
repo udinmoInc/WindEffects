@@ -1,4 +1,5 @@
 #include "Core/PaintContext.h"
+#include "Rendering/TextUIService.h"
 
 namespace we::UI {
 
@@ -104,9 +105,13 @@ void PaintContext::DrawIcon(const std::string& iconName, const Point& pos, const
     m_Commands.push_back(cmd);
 }
 
-float PaintContext::GetTextWidth(const std::string& text, float fontSize) const {
-    // Approximate text width (should use font atlas for accurate measurement)
-    return static_cast<float>(text.length()) * fontSize * 0.6f;
+float PaintContext::GetTextWidth(const std::string& text, const float fontSize, const bool bold, const bool italic) const {
+    (void)italic;
+    if (m_TextService) {
+        return m_TextService->MeasureText(text, fontSize, bold);
+    }
+    const float weightScale = bold ? 1.08f : 1.0f;
+    return static_cast<float>(text.size()) * fontSize * 0.6f * weightScale;
 }
 
 void PaintContext::DrawLine(const Point& start, const Point& end, const Color& color, float thickness) {

@@ -5,6 +5,7 @@
 #include "Core/PaintContext.h"
 #include "Core/Theme.h"
 #include "Core/Icon.h"
+#include "Core/DPIContext.h"
 #include "Core/Animator.h"
 #include "Core/Geometry.h"
 #include "Core/Logger.h"
@@ -362,6 +363,9 @@ void ToolsPanel::Paint(PaintContext& context) {
     if (m_Geometry.width < 1.0f) return;
 
     const auto& theme = Theme::Get();
+    const float uiScale = (std::max)(1.0f, we::UI::DPIContext::GetScale());
+    const float labelFontSize = 11.0f * uiScale;
+    const float shortcutFontSize = 10.0f * uiScale;
     context.DrawRect(m_PanelRect, theme.PanelBackground);
 
     {
@@ -381,7 +385,7 @@ void ToolsPanel::Paint(PaintContext& context) {
             const char* chevron = section.expanded ? we::UI::Icons::ChevronDownName : we::UI::Icons::ChevronRightName;
             we::UI::IconPainter::DrawIcon(context, chevron,
                 Rect{ section.headerRect.x + 4.0f, section.headerRect.y + 5.0f, 16.0f, 16.0f }, theme.TextSecondary);
-            context.DrawText(title, Point{ section.headerRect.x + 22.0f, section.headerRect.y + 6.0f }, theme.TextPrimary, 11.0f, true);
+            context.DrawText(title, Point{ section.headerRect.x + 22.0f, section.headerRect.y + 6.0f }, theme.TextPrimary, labelFontSize, true);
         }
 
         for (const auto& toolHit : m_ToolHits) {
@@ -394,13 +398,13 @@ void ToolsPanel::Paint(PaintContext& context) {
                 Rect{ toolHit.geometry.x + 6.0f, toolHit.geometry.y + 3.0f, kIconSize, kIconSize }, theme.TextPrimary);
 
             context.DrawText(toolHit.tool->label,
-                Point{ toolHit.geometry.x + 34.0f, toolHit.geometry.y + 7.0f }, theme.TextPrimary, 11.0f);
+                Point{ toolHit.geometry.x + 34.0f, toolHit.geometry.y + 7.0f }, theme.TextPrimary, labelFontSize);
 
             if (!toolHit.tool->shortcut.empty()) {
-                const float shortcutWidth = context.GetTextWidth(toolHit.tool->shortcut, 10.0f);
+                const float shortcutWidth = context.GetTextWidth(toolHit.tool->shortcut, shortcutFontSize);
                 context.DrawText(toolHit.tool->shortcut,
                     Point{ toolHit.geometry.x + toolHit.geometry.width - shortcutWidth - 28.0f, toolHit.geometry.y + 8.0f },
-                    theme.TextDisabled, 10.0f);
+                    theme.TextDisabled, shortcutFontSize);
             }
 
             const char* starIcon = toolHit.favorite ? we::UI::Icons::StarFilledName : we::UI::Icons::StarName;
@@ -424,7 +428,7 @@ void ToolsPanel::Paint(PaintContext& context) {
                 context.DrawRect(item.geometry, theme.HoverOverlay);
             }
             context.DrawText(item.label, Point{ item.geometry.x + 10.0f, item.geometry.y + 6.0f },
-                theme.TextPrimary, 11.0f);
+                theme.TextPrimary, labelFontSize);
         }
     }
 }

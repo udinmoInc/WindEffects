@@ -1025,7 +1025,7 @@ void FirstRunAgreementPopup::PaintSpans(we::UI::PaintContext& context, const std
             if (intersectStart < intersectEnd) {
                 std::string segment = span.text.substr(intersectStart - spanStart, intersectEnd - intersectStart);
                 context.DrawText(segment, we::UI::Point{ lineX, y }, color, fontSize, bold);
-                lineX += context.GetTextWidth(segment, fontSize);
+                lineX += context.GetTextWidth(segment, fontSize, bold);
             }
             
             charIndex += span.text.length();
@@ -1390,7 +1390,7 @@ void FirstRunAgreementPopup::RenderTextRuns(we::UI::PaintContext& context, const
             if (intersectStart < intersectEnd) {
                 std::string segment = run.text.substr(intersectStart - runStart, intersectEnd - intersectStart);
                 context.DrawText(segment, we::UI::Point{ lineX, y }, color, fontSize, bold);
-                lineX += context.GetTextWidth(segment, fontSize);
+                lineX += context.GetTextWidth(segment, fontSize, bold);
             }
             
             charIndex += run.text.length();

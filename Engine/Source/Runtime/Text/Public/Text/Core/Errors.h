@@ -2,12 +2,13 @@
 
 #include "Text/Export.h"
 
+#include <span>
 #include <string>
 #include <utility>
 
 namespace we::runtime::text {
 
-struct TEXT_API TextError {
+struct TextError {
     std::string message;
     std::string context;
 };
@@ -23,6 +24,28 @@ struct TextResult {
         TextResult result;
         result.ok = true;
         result.value = std::move(value);
+        return result;
+    }
+
+    [[nodiscard]] static TextResult Failure(std::string message, std::string context = {})
+    {
+        TextResult result;
+        result.ok = false;
+        result.error.message = std::move(message);
+        result.error.context = std::move(context);
+        return result;
+    }
+};
+
+template<>
+struct TextResult<void> {
+    bool ok = false;
+    TextError error{};
+
+    [[nodiscard]] static TextResult Success()
+    {
+        TextResult result;
+        result.ok = true;
         return result;
     }
 

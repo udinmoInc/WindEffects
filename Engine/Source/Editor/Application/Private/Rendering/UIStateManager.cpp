@@ -46,41 +46,11 @@ void UIStateManager::SaveState(VkCommandBuffer cmd, SavedVulkanState& outState) 
 }
 
 void UIStateManager::RestoreState(VkCommandBuffer cmd, const SavedVulkanState& state) {
-    // Restore pipeline if it was bound
-    if (state.boundPipeline != VK_NULL_HANDLE && state.pipelineLayout != VK_NULL_HANDLE) {
-        vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, state.boundPipeline);
-    }
-    
-    // Restore descriptor sets
-    if (state.descriptorSetCount > 0) {
-        vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, 
-                               state.pipelineLayout, 0, state.descriptorSetCount,
-                               state.descriptorSets, 0, nullptr);
-    }
-    
-    // Restore viewport
-    if (state.viewportValid) {
-        vkCmdSetViewport(cmd, 0, 1, &state.viewport);
-    }
-    
-    // Restore scissor
-    if (state.scissorValid) {
-        vkCmdSetScissor(cmd, 0, 1, &state.scissor);
-    }
-    
-    // Restore blend constants
-    vkCmdSetBlendConstants(cmd, state.blendConstants);
-    
-    // Restore depth bias
-    vkCmdSetDepthBias(cmd, state.depthBias[0], state.depthBias[1], 0.0f);
-    
-    // Restore depth bounds
-    vkCmdSetDepthBounds(cmd, state.depthBounds[0], state.depthBounds[1]);
-    
-    // Restore stencil state
-    vkCmdSetStencilCompareMask(cmd, VK_STENCIL_FACE_FRONT_AND_BACK, state.stencilCompareMask);
-    vkCmdSetStencilWriteMask(cmd, VK_STENCIL_FACE_FRONT_AND_BACK, state.stencilWriteMask);
-    vkCmdSetStencilReference(cmd, VK_STENCIL_FACE_FRONT_AND_BACK, state.stencilReference);
+    (void)cmd;
+    (void)state;
+    // SaveState does not capture prior pipeline/descriptor/dynamic state.
+    // Restoring guessed defaults was invoking optional vkCmd* entry points
+    // that are not always loaded in the overlay module's volk table.
 }
 
 bool UIStateManager::ValidateState(const SavedVulkanState& state) const {

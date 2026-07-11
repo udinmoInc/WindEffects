@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Text/Core/Types.h"
 #include "Text/Core/Errors.h"
 #include "Text/Export.h"
 

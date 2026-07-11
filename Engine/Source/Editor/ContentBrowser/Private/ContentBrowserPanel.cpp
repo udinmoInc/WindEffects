@@ -1,6 +1,7 @@
 #include "EditorRegistry.h"
 #include "EditorLayoutController.h"
 #include "ContentBrowserApi.h"
+#include "Rendering/FontImportService.h"
 #include "Widgets/Panel.h"
 #include "Widgets/ContentBrowser.h"
 #include "Widgets/ContentBrowserToolbar.h"
@@ -15,6 +16,7 @@
 #include "Registry/ContentAssetRegistry.h"
 #include "Controllers/FilterController.h"
 #include "Models/ContentBrowserModel.h"
+#include <filesystem>
 #include <memory>
 #include <sstream>
 
@@ -233,7 +235,11 @@ std::shared_ptr<we::UI::Panel> CreateContentBrowserPanel() {
     });
 
     panelToolbar->SetOnImportClicked([]() {
-        // Import dialog placeholder – layout hook for future import workflow.
+        const std::filesystem::path inputFont = "Assets/Fonts/Inter-Regular.ttf";
+        const std::filesystem::path outputDir = "Assets/Fonts";
+        if (std::filesystem::exists(inputFont)) {
+            (void)we::UI::FontImportService::ImportFontFile(inputFont, outputDir, 18.0f);
+        }
     });
 
     folderTree->SetOnSelectionChanged([contentBrowser, statusBar](const std::vector<std::string>& ids) {

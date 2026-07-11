@@ -126,6 +126,17 @@ bool UIBatchGenerator::CanMergeBatches(const UIRenderBatch& a, const UIRenderBat
     if (a.stencilRef != b.stencilRef) {
         return false;
     }
+
+    if (a.isText != b.isText) {
+        return false;
+    }
+
+    if (a.isText
+        && (a.atlasWidth != b.atlasWidth
+            || a.atlasHeight != b.atlasHeight
+            || std::abs(a.msdfPixelRange - b.msdfPixelRange) > 0.01f)) {
+        return false;
+    }
     
     return true;
 }

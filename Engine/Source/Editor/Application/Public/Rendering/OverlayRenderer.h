@@ -24,7 +24,6 @@ class Widget;
 class UIWidgetAdapter;
 class UICompositor;
 class UIStateManager;
-class FontAtlas;
 class IconRenderer;
 class TextUIService;
 class UiGpuUpload;
@@ -44,6 +43,10 @@ struct UIRenderBatch {
     int32_t vertexOffset = 0;
     float scissor[4]{};
     uint32_t stencilRef = 0;
+    bool isText = false;
+    uint32_t atlasWidth = 0;
+    uint32_t atlasHeight = 0;
+    float msdfPixelRange = 4.0f;
 };
 
 struct UIFrameStats {
@@ -91,6 +94,9 @@ public:
 
     TextUIService* GetTextUIService() const;
     IconRenderer* GetIconRenderer() const;
+    ::we::runtime::renderer::DeviceContext* GetDeviceContext() const { return m_DeviceContext; }
+    ::we::runtime::renderer::ResourceManager* GetResourceManager() const { return m_ResourceManager; }
+    UiGpuUpload* GetGpuUpload() const { return m_GpuUpload.get(); }
     VkDescriptorSet GetDummyDescriptorSet() const { return m_DummyDescriptorSet; }
     VkSampler GetDefaultSampler() const { return m_DummySampler; }
 
@@ -98,6 +104,7 @@ public:
 
 private:
     void CreateGraphicsPipeline(VkFormat colorFormat);
+    void CreateTextGraphicsPipeline(VkFormat colorFormat);
     void CreateDescriptorSetLayouts();
     void CreateDescriptorPool();
     void CreateDummyTexture();
@@ -119,7 +126,9 @@ private:
     ::we::runtime::renderer::ResourceManager* m_ResourceManager = nullptr;
 
     VkPipeline m_GraphicsPipeline = VK_NULL_HANDLE;
+    VkPipeline m_TextGraphicsPipeline = VK_NULL_HANDLE;
     VkPipelineLayout m_PipelineLayout = VK_NULL_HANDLE;
+    VkPipelineLayout m_TextPipelineLayout = VK_NULL_HANDLE;
     VkDescriptorSetLayout m_TextureDescriptorSetLayout = VK_NULL_HANDLE;
     VkDescriptorPool m_DescriptorPool = VK_NULL_HANDLE;
 

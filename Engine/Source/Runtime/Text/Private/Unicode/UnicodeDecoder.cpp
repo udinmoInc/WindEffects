@@ -38,7 +38,7 @@ uint32_t ReadU32Be(const std::byte* bytes)
 
 void PushReplacement(DecodeOutput& output, size_t byteOffset, DecodeErrorReason reason)
 {
-    output.codepoints.push_back(ReplacementCharacter());
+        output.codepoints.push_back(IUnicodeDecoder::ReplacementCharacter());
     output.errors.push_back({byteOffset, reason});
 }
 

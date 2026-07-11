@@ -19,6 +19,9 @@
 #include <algorithm>
 #include <cmath>
 #include <filesystem>
+#include <fstream>
+#include <stdexcept>
+#include <vector>
 
 namespace we::runtime::text::importing {
 
@@ -120,11 +123,53 @@ GlyphMetrics BuildGlyphMetrics(
     return metrics;
 }
 
+bool ValidateAtlasDimensions(const int width, const int height, std::string& error)
+{
+    if (width <= 0 || height <= 0) {
+        error = "Invalid atlas dimensions: " + std::to_string(width) + "x" + std::to_string(height);
+        return false;
+    }
+    if (width > 8192 || height > 8192) {
+        error = "Atlas dimensions too large: " + std::to_string(width) + "x" + std::to_string(height);
+        return false;
+    }
+    const size_t bytes = static_cast<size_t>(width) * static_cast<size_t>(height) * 4;
+    if (bytes > 64ull * 1024 * 1024) {
+        error = "Atlas allocation too large";
+        return false;
+    }
+    return true;
+}
+
+msdfgen::FontHandle* LoadFontFromPath(msdfgen::FreetypeHandle* ft, const std::filesystem::path& inputPath)
+{
+    msdfgen::FontHandle* font = msdfgen::loadFont(ft, inputPath.string().c_str());
+    if (font) {
+        return font;
+    }
+
+    std::ifstream fontFile(inputPath, std::ios::binary | std::ios::ate);
+    if (!fontFile) {
+        return nullptr;
+    }
+    const std::streamsize fileSize = fontFile.tellg();
+    if (fileSize <= 0) {
+        return nullptr;
+    }
+    fontFile.seekg(0, std::ios::beg);
+    std::vector<unsigned char> buffer(static_cast<size_t>(fileSize));
+    if (!fontFile.read(reinterpret_cast<char*>(buffer.data()), fileSize)) {
+        return nullptr;
+    }
+    return msdfgen::loadFontData(ft, buffer.data(), static_cast<int>(buffer.size()));
+}
+
 TextResult<FontAsset> ImportMsdfFont(
     const std::filesystem::path& inputPath,
     const ImportOptions& options,
     const uint32_t faceIndex)
 {
+    try {
     if (!std::filesystem::exists(inputPath)) {
         return TextResult<FontAsset>::Failure("Font file not found", inputPath.string());
     }
@@ -138,7 +183,7 @@ TextResult<FontAsset> ImportMsdfFont(
         return TextResult<FontAsset>::Failure("msdfgen::initializeFreetype failed");
     }
 
-    msdfgen::FontHandle* primaryFont = msdfgen::loadFont(ft, inputPath.string().c_str(), faceIndex);
+    msdfgen::FontHandle* primaryFont = LoadFontFromPath(ft, inputPath);
     if (!primaryFont) {
         msdfgen::deinitializeFreetype(ft);
         return TextResult<FontAsset>::Failure("Failed to load font", inputPath.string());
@@ -148,7 +193,7 @@ TextResult<FontAsset> ImportMsdfFont(
     if (!options.fallbackFontPath.empty()
         && options.fallbackFontPath != inputPath
         && std::filesystem::exists(options.fallbackFontPath)) {
-        fallbackFont = msdfgen::loadFont(ft, options.fallbackFontPath.string().c_str(), 0);
+        fallbackFont = LoadFontFromPath(ft, options.fallbackFontPath);
     }
 
     std::vector<msdf_atlas::GlyphGeometry> glyphGeometries;
@@ -159,8 +204,9 @@ TextResult<FontAsset> ImportMsdfFont(
         charset.add(static_cast<uint32_t>(codepoint));
     }
 
-    const double geometryScale = static_cast<double>(bakeSizePx);
-    if (fontGeometry.loadCharset(primaryFont, geometryScale, charset) <= 0) {
+    const double geometryLoadScale = 1.0;
+    const double packerScale = static_cast<double>(bakeSizePx);
+    if (fontGeometry.loadCharset(primaryFont, geometryLoadScale, charset) <= 0) {
         msdfgen::destroyFont(primaryFont);
         if (fallbackFont) {
             msdfgen::destroyFont(fallbackFont);
@@ -176,7 +222,7 @@ TextResult<FontAsset> ImportMsdfFont(
             }
             msdf_atlas::Charset single;
             single.add(static_cast<uint32_t>(codepoint));
-            fontGeometry.loadCharset(fallbackFont, geometryScale, single);
+            fontGeometry.loadCharset(fallbackFont, geometryLoadScale, single);
         }
     }
 
@@ -188,7 +234,7 @@ TextResult<FontAsset> ImportMsdfFont(
     packer.unsetDimensions();
     packer.setDimensionsConstraint(msdf_atlas::DimensionsConstraint::POWER_OF_TWO_SQUARE);
     packer.setSpacing(2);
-    packer.setScale(geometryScale);
+    packer.setScale(packerScale);
     packer.setMiterLimit(1.0);
     packer.setPixelRange(msdfgen::Range(static_cast<double>(msdfPixelRange)));
     if (packer.pack(glyphGeometries.data(), static_cast<int>(glyphGeometries.size())) != 0) {
@@ -203,11 +249,28 @@ TextResult<FontAsset> ImportMsdfFont(
     int width = 0;
     int height = 0;
     packer.getDimensions(width, height);
+    std::string dimensionError;
+    if (!ValidateAtlasDimensions(width, height, dimensionError)) {
+        msdfgen::destroyFont(primaryFont);
+        if (fallbackFont) {
+            msdfgen::destroyFont(fallbackFont);
+        }
+        msdfgen::deinitializeFreetype(ft);
+        return TextResult<FontAsset>::Failure(dimensionError);
+    }
     if (options.atlasWidth > 0) {
         width = std::max(width, options.atlasWidth);
     }
     if (options.atlasHeight > 0) {
         height = std::max(height, options.atlasHeight);
+    }
+    if (!ValidateAtlasDimensions(width, height, dimensionError)) {
+        msdfgen::destroyFont(primaryFont);
+        if (fallbackFont) {
+            msdfgen::destroyFont(fallbackFont);
+        }
+        msdfgen::deinitializeFreetype(ft);
+        return TextResult<FontAsset>::Failure(dimensionError);
     }
 
     msdf_atlas::ImmediateAtlasGenerator<
@@ -217,13 +280,21 @@ TextResult<FontAsset> ImportMsdfFont(
         msdf_atlas::BitmapAtlasStorage<float, 3>> generator(width, height);
 
     msdf_atlas::GeneratorAttributes generatorAttributes;
-    generatorAttributes.config.overlapSupport = true;
+    generatorAttributes.config.overlapSupport = false;
     generatorAttributes.scanlinePass = true;
     generator.setAttributes(generatorAttributes);
     generator.generate(glyphGeometries.data(), static_cast<int>(glyphGeometries.size()));
 
     const auto& storage = generator.atlasStorage();
     const msdfgen::BitmapConstRef<float, 3> bitmap = storage;
+    if (!ValidateAtlasDimensions(bitmap.width, bitmap.height, dimensionError)) {
+        msdfgen::destroyFont(primaryFont);
+        if (fallbackFont) {
+            msdfgen::destroyFont(fallbackFont);
+        }
+        msdfgen::deinitializeFreetype(ft);
+        return TextResult<FontAsset>::Failure(dimensionError);
+    }
 
     FontAsset asset;
     asset.atlasFormat = AtlasFormat::Msdf;
@@ -233,7 +304,8 @@ TextResult<FontAsset> ImportMsdfFont(
     page.width = static_cast<uint32_t>(bitmap.width);
     page.height = static_cast<uint32_t>(bitmap.height);
     page.format = AtlasFormat::Msdf;
-    page.rgba.resize(static_cast<size_t>(page.width) * static_cast<size_t>(page.height) * 4);
+    const size_t rgbaBytes = static_cast<size_t>(page.width) * static_cast<size_t>(page.height) * 4;
+    page.rgba.resize(rgbaBytes);
 
     for (int y = 0; y < bitmap.height; ++y) {
         for (int x = 0; x < bitmap.width; ++x) {
@@ -271,6 +343,7 @@ TextResult<FontAsset> ImportMsdfFont(
 
     asset.metrics.bakeSizePx = bakeSizePx;
     asset.metrics.msdfPixelRange = msdfPixelRange;
+    asset.metrics.geometryScale = 1.0f;
 
     asset.glyphs.reserve(codepoints.size());
     for (const Codepoint codepoint : codepoints) {
@@ -308,6 +381,11 @@ TextResult<FontAsset> ImportMsdfFont(
     msdfgen::deinitializeFreetype(ft);
 
     return TextResult<FontAsset>::Success(std::move(asset));
+    } catch (const std::exception& ex) {
+        return TextResult<FontAsset>::Failure(std::string("MSDF import exception: ") + ex.what());
+    } catch (...) {
+        return TextResult<FontAsset>::Failure("MSDF import failed with unknown exception");
+    }
 }
 
 } // namespace

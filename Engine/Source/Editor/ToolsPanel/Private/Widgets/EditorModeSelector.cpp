@@ -4,6 +4,7 @@
 #include "Core/PaintContext.h"
 #include "Core/Theme.h"
 #include "Core/Icon.h"
+#include "Core/DPIContext.h"
 #include "Layout/OverlayManager.h"
 #include "Widgets/MenuBar.h"
 
@@ -154,23 +155,26 @@ void EditorModeSelector::Paint(PaintContext& context) {
     context.DrawRoundedRect(m_Geometry, bg, 4.0f);
     context.DrawRoundedRectOutline(m_Geometry, theme.BorderDefault, 1.0f, 4.0f);
 
+    const float uiScale = (std::max)(1.0f, we::UI::DPIContext::GetScale());
     const float centerY = m_Geometry.y + m_Geometry.height * 0.5f;
 
     // Mode icon — 16px, vertically centered
-    const float iconY = centerY - kIconSize * 0.5f;
+    const float iconSize = kIconSize * uiScale;
+    const float iconY = centerY - iconSize * 0.5f;
     we::UI::IconPainter::DrawIcon(context, m_IconName.c_str(),
-        Point{ m_Geometry.x + kPadding, iconY }, kIconSize, theme.TextPrimary);
+        Point{ m_Geometry.x + kPadding * uiScale, iconY }, iconSize, theme.TextPrimary);
 
     // Label — 12px text, vertically centered
-    const float textX = m_Geometry.x + kPadding + kIconSize + kIconGap;
-    const float textSize = 12.0f;
+    const float textX = m_Geometry.x + (kPadding + kIconSize + kIconGap) * uiScale;
+    const float textSize = 12.0f * uiScale;
     context.DrawText(m_Label, Point{ textX, centerY - textSize * 0.5f },
         theme.TextPrimary, textSize, true);
 
     // Chevron — 10px, vertically centered
-    const float chevX = m_Geometry.x + m_Geometry.width - kPadding - kChevronWidth;
+    const float chevX = m_Geometry.x + m_Geometry.width - (kPadding + kChevronWidth) * uiScale;
+    const float chevSize = kChevronWidth * uiScale;
     we::UI::IconPainter::DrawIcon(context, we::UI::Icons::ChevronDownName,
-        Rect{ chevX, centerY - 5.0f, kChevronWidth, 10.0f },
+        Rect{ chevX, centerY - chevSize * 0.5f, chevSize, chevSize },
         theme.TextSecondary);
 }
 

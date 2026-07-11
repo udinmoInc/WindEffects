@@ -1,41 +1,45 @@
-#include "Text/Rendering/TextGpuBackend.h"
+#include "Text/Assets/FontAsset.h"
 #include "Text/TextEngine.h"
 
+#include "Core/BuildPaths.h"
+
 #include <iostream>
+
+#if defined(_WIN32)
+#define WIN32_LEAN_AND_MEAN
+#include <windows.h>
+struct TextRenderTestBootstrap {
+    TextRenderTestBootstrap() { we::core::ConfigureModuleSearchPaths(); }
+};
+#pragma init_seg(lib)
+TextRenderTestBootstrap g_Bootstrap;
+#endif
 
 int main()
 {
     using namespace we::runtime::text;
 
     auto engine = CreateTextEngine();
-    auto vulkanBackend = rendering::CreateTextGpuBackend(GraphicsApi::Vulkan);
-    auto dx12Backend = rendering::CreateTextGpuBackend(GraphicsApi::DirectX12);
-    auto metalBackend = rendering::CreateTextGpuBackend(GraphicsApi::Metal);
-    auto glBackend = rendering::CreateTextGpuBackend(GraphicsApi::OpenGL);
-
-    rendering::GpuBackendConfig config;
-    vulkanBackend->Initialize(config);
-    dx12Backend->Initialize(config);
-    metalBackend->Initialize(config);
-    glBackend->Initialize(config);
+    const auto loaded = engine->LoadFont("Assets/Fonts/Inter-Regular.wefont");
+    if (!loaded.ok) {
+        std::cerr << "LoadFont failed\n";
+        return 1;
+    }
 
     layout::TextStyle style;
-    style.family = "Inter";
-    style.sizePx = 18.0f;
-
+    style.sizePx = 13.0f;
     layout::LayoutConstraints constraints;
-    constraints.maxWidth = 640.0f;
+    constraints.dpiScale = 1.0f;
 
-    const auto layout = engine->Layout("Hello, WindEffects text engine.", style, constraints);
-    std::cout << "Layout glyphs: " << layout.glyphs.size() << " width: " << layout.bounds.width << '\n';
-
-    const layout::LayoutResult layouts[] = {layout};
-    engine->SubmitFrame(*vulkanBackend, layouts);
-    engine->SubmitFrame(*dx12Backend, layouts);
-    engine->SubmitFrame(*metalBackend, layouts);
-    engine->SubmitFrame(*glBackend, layouts);
-
-    const auto snapshot = engine->Diagnostics().CaptureSnapshot();
-    std::cout << "Diagnostics messages: " << snapshot.messages.size() << '\n';
+    const auto layout = engine->Layout("Hello", style, constraints, loaded.value);
+    std::cout << "glyphs=" << layout.glyphs.size() << " width=" << layout.bounds.width << '\n';
+    for (const auto& g : layout.glyphs) {
+        if (!g.glyph.metrics.hasDrawableQuad) {
+            continue;
+        }
+        std::cout << " cp=" << static_cast<char>(g.glyph.metrics.codepoint)
+                  << " x=" << g.x << " y=" << g.y
+                  << " w=" << g.width << " h=" << g.height << '\n';
+    }
     return 0;
 }

@@ -24,7 +24,7 @@ enum class GraphicsApi : uint8_t {
     Unknown = 255,
 };
 
-struct TEXT_API FontMetrics {
+struct FontMetrics {
     float ascender = 0.0f;
     float descender = 0.0f;
     float lineHeight = 0.0f;
@@ -32,13 +32,15 @@ struct TEXT_API FontMetrics {
     float underlineThickness = 0.0f;
     float bakeSizePx = 0.0f;
     float msdfPixelRange = 4.0f;
+    /// Scale used when baking glyph plane bounds (1.0 = em units, bakeSizePx = bake pixels).
+    float geometryScale = 1.0f;
     std::string familyName;
     std::string styleName;
     uint16_t weight = 400;
     bool italic = false;
 };
 
-struct TEXT_API GlyphMetrics {
+struct GlyphMetrics {
     Codepoint codepoint = 0;
     Rect bounds{};
     Vec2 bearing{};
@@ -49,18 +51,18 @@ struct TEXT_API GlyphMetrics {
     bool hasDrawableQuad = false;
 };
 
-struct TEXT_API KerningPair {
+struct KerningPair {
     Codepoint left = 0;
     Codepoint right = 0;
     float advance = 0.0f;
 };
 
-struct TEXT_API UnicodeRange {
+struct UnicodeRange {
     Codepoint start = 0;
     Codepoint end = 0;
 };
 
-struct TEXT_API AtlasPage {
+struct AtlasPage {
     uint32_t width = 0;
     uint32_t height = 0;
     AtlasFormat format = AtlasFormat::Msdf;

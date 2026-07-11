@@ -89,9 +89,10 @@ public:
                 }
 
                 const assets::ResolvedGlyph resolved = m_GlyphResolver.Resolve(stack, shapedGlyph.codepoint);
-                const float scale = resolved.metrics.advance > 0.0f
-                    ? (style.sizePx * constraints.dpiScale) / std::max(resolved.metrics.advance, 1.0f)
-                    : 1.0f;
+                const float displaySize = style.sizePx * constraints.dpiScale;
+                const float geometryScale = std::max(resolved.geometryScale, 1.0f);
+                const float quadScale = displaySize / geometryScale;
+                const float bakeScale = displaySize / std::max(resolved.bakeSizePx, 1.0f);
 
                 float advance = shapedGlyph.xAdvance + style.letterSpacing + constraints.letterSpacing;
                 if (shapedGlyph.codepoint == '\t') {
@@ -111,15 +112,16 @@ public:
 
                 PositionedGlyph positioned;
                 positioned.glyph = resolved;
-                positioned.x = penX + shapedGlyph.xOffset * scale;
-                positioned.y = shapedGlyph.yOffset * scale;
-                positioned.width = resolved.metrics.bounds.width * scale;
-                positioned.height = resolved.metrics.bounds.height * scale;
+                const float planeTop = resolved.metrics.bounds.y + resolved.metrics.bounds.height;
+                positioned.x = penX + shapedGlyph.xOffset + resolved.metrics.bounds.x * quadScale;
+                positioned.y = shapedGlyph.yOffset - planeTop * quadScale;
+                positioned.width = resolved.metrics.bounds.width * quadScale;
+                positioned.height = resolved.metrics.bounds.height * quadScale;
                 positioned.lineIndex = static_cast<uint32_t>(lineStates.size() - 1);
                 positioned.style = style;
                 positioned.color = style.color;
                 positioned.color.a *= style.opacity;
-                positioned.msdfPixelRange = 4.0f;
+                positioned.msdfPixelRange = resolved.msdfPixelRange * bakeScale;
 
                 lineStates.back().glyphs.push_back(positioned);
                 lineStates.back().width = penX + advance;
@@ -150,14 +152,14 @@ public:
             metrics.lineIndex = lineIndex;
             metrics.width = line.width;
             metrics.height = lineHeight;
-            metrics.baselineY = y + lineHeight * 0.8f;
+            metrics.baselineY = y + (style.sizePx * constraints.dpiScale) * 0.85f;
             metrics.startIndex = line.startIndex;
             metrics.endIndex = line.endIndex;
             result.lines.push_back(metrics);
 
             for (PositionedGlyph& glyph : line.glyphs) {
                 glyph.x += alignOffset;
-                glyph.y += y;
+                glyph.y += metrics.baselineY;
                 if (constraints.clip && constraints.maxWidth > 0.0f
                     && (glyph.x > constraints.maxWidth || glyph.y > constraints.maxHeight)) {
                     continue;

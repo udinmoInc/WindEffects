@@ -2,6 +2,7 @@
 
 #include "Core/Theme.h"
 #include "Core/Icon.h"
+#include "Core/DPIContext.h"
 
 namespace we::programs::editor {
 
@@ -22,6 +23,8 @@ void PlaceActorsCategory::PaintHeader(PaintContext& context,
                                       bool expanded,
                                       float hoverAnim) {
     const auto& theme = Theme::Get();
+    const float uiScale = (std::max)(1.0f, we::UI::DPIContext::GetScale());
+    const float fontSize = theme.TextSizeSmall * uiScale;
     Color bg = theme.HeaderBackground;
     if (hoverAnim > 0.01f) {
         bg = Color::Lerp(bg, theme.HoverBg, hoverAnim);
@@ -35,7 +38,10 @@ void PlaceActorsCategory::PaintHeader(PaintContext& context,
         we::UI::IconPainter::DrawIcon(context, iconName,
             Rect{ bounds.x + theme.Space6, bounds.y + theme.Space2 - 2.0f, theme.IconSizeToolbar, theme.IconSizeToolbar }, theme.TextPrimary);
     }
-    context.DrawText(label, Point{ bounds.x + theme.Space6 - 4.0f, bounds.y + theme.Space2 - 1.0f }, theme.TextPrimary, theme.TextSizeSmall, true);
+    const float textX = iconName.empty()
+        ? bounds.x + theme.Space6
+        : bounds.x + theme.Space6 + theme.IconSizeToolbar + theme.Space2;
+    context.DrawText(label, Point{ textX, bounds.y + theme.Space2 - 1.0f }, theme.TextPrimary, fontSize, true);
 }
 
 } // namespace we::programs::editor

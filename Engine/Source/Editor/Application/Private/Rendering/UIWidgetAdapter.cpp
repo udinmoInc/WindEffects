@@ -1,7 +1,6 @@
 #include "Rendering/UIWidgetAdapter.h"
-#include "Rendering/FontAtlas.h"
 #include "Rendering/IconRenderer.h"
-#include "Rendering/Text/Utf8.h"
+#include "Rendering/TextUIService.h"
 #include "Core/Logger.h"
 #include "Core/FrameCounter.h"
 #include <cmath>
@@ -83,6 +82,9 @@ void UIWidgetAdapter::ProcessWidget(const std::shared_ptr<Widget>& root,
     root->Arrange(Rect{0.0f, 0.0f, static_cast<float>(width), static_cast<float>(height)});
     
     PaintContext paintCtx;
+    if (TextUIService* textService = m_Renderer->GetTextUIService()) {
+        paintCtx.SetTextUIService(textService);
+    }
     Widget::s_PaintCalls++;
     root->Paint(paintCtx);
     m_Diagnostics.paintCommandsRecorded = static_cast<uint32_t>(paintCtx.GetCommands().size());
@@ -247,7 +249,8 @@ void UIWidgetAdapter::GenerateTextGeometry(const DrawCommand& cmd) {
     ++m_Diagnostics.textStringsProcessed;
     VkDescriptorSet fontDescriptor = VK_NULL_HANDLE;
     const uint32_t startTotalIndex = static_cast<uint32_t>(m_Indices.size());
-    if (!textService->GenerateTextGeometry(cmd, m_Vertices, m_Indices, fontDescriptor)) {
+    UIRenderBatch batchInfo;
+    if (!textService->GenerateTextGeometry(cmd, m_Vertices, m_Indices, fontDescriptor, &batchInfo)) {
         ++m_Diagnostics.textDrawsSkipped;
         return;
     }
@@ -267,6 +270,10 @@ void UIWidgetAdapter::GenerateTextGeometry(const DrawCommand& cmd) {
     batch.scissor[2] = static_cast<float>(m_CurrentScissor.width);
     batch.scissor[3] = static_cast<float>(m_CurrentScissor.height);
     batch.stencilRef = 0;
+    batch.isText = batchInfo.isText;
+    batch.atlasWidth = batchInfo.atlasWidth;
+    batch.atlasHeight = batchInfo.atlasHeight;
+    batch.msdfPixelRange = batchInfo.msdfPixelRange;
     
     m_Batches.push_back(batch);
     ++m_Diagnostics.textBatchesCreated;

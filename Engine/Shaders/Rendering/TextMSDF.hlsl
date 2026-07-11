@@ -1,17 +1,18 @@
 struct VSInput
 {
-    [[vk::location(0)]] float2 position : POSITION0;
-    [[vk::location(1)]] float2 uv       : TEXCOORD0;
-    [[vk::location(2)]] float4 color    : COLOR0;
-    [[vk::location(3)]] float4 params   : TEXCOORD1;
+    [[vk::location(0)]] float2 position  : POSITION0;
+    [[vk::location(1)]] float2 uv        : TEXCOORD0;
+    [[vk::location(2)]] float4 color     : COLOR0;
+    [[vk::location(3)]] float4 sdfRect   : TEXCOORD1;
+    [[vk::location(4)]] float4 sdfParams : TEXCOORD2;
 };
 
 struct VSOutput
 {
-    float4 position                     : SV_Position;
-    [[vk::location(0)]] float2 uv       : TEXCOORD0;
-    [[vk::location(1)]] float4 color    : COLOR0;
-    [[vk::location(2)]] float4 params   : TEXCOORD1;
+    float4 position                      : SV_Position;
+    [[vk::location(0)]] float2 uv        : TEXCOORD0;
+    [[vk::location(1)]] float4 color     : COLOR0;
+    [[vk::location(2)]] float4 sdfParams : TEXCOORD1;
 };
 
 struct TextPushConstants
@@ -20,6 +21,7 @@ struct TextPushConstants
     float2 uTranslate;
     float2 uAtlasSize;
     float  uPixelRange;
+    float  padding;
 };
 
 [[vk::push_constant]]
@@ -34,7 +36,7 @@ VSOutput VSMain(VSInput input)
     VSOutput o;
     o.uv = input.uv;
     o.color = input.color;
-    o.params = input.params;
+    o.sdfParams = input.sdfParams;
     o.position = float4(input.position * pc.uScale + pc.uTranslate, 0.0, 1.0);
     return o;
 }
@@ -55,8 +57,9 @@ float4 PSMain(VSOutput input) : SV_Target
 {
     float3 msdf = texAtlas.Sample(samp0, input.uv).rgb;
     float sd = median3(msdf.r, msdf.g, msdf.b);
-    float pxRange = screenPxRange(input.uv, pc.uPixelRange, pc.uAtlasSize);
-    float opacity = saturate((sd - 0.5) * pxRange + 0.5);
+    float pxRange = max(input.sdfParams.z, max(pc.uPixelRange, 1.0));
+    float spr = screenPxRange(input.uv, pxRange, pc.uAtlasSize);
+    float opacity = saturate((sd - 0.5) * spr + 0.5);
     float4 outColor = input.color;
     outColor.a *= opacity;
     return outColor;

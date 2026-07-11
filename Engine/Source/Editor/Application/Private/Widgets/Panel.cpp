@@ -103,7 +103,7 @@ void Panel::Paint(PaintContext& context) {
         float iconSize = 16.0f * uiScale;
         float tabPaddingH = 12.0f * uiScale;
 
-        float textWidth = context.GetTextWidth(m_Title, fontSize);
+        float textWidth = context.GetTextWidth(m_Title, fontSize, true);
 
         std::string panelIcon = DockTabIconRegistry::Get().GetIcon(m_Title);
         float panelIconWidth = 0.0f;

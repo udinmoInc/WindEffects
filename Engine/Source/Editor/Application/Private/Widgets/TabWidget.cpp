@@ -112,9 +112,9 @@ void TabWidget::Paint(PaintContext& context) {
         
         // Draw close button if active or hovered
         if (isActive || isHovered) {
-            float textWidth = tab.label.length() * 7.5f;
+            const float textWidth = context.GetTextWidth(tab.label, Theme::Get().TextSizeTabs, isActive);
             float iconSize = 12.0f;
-            float iconX = tab.geometry.x + 14.0f + textWidth + 8.0f; // 8px space after text
+            float iconX = tab.geometry.x + 14.0f + textWidth + 8.0f;
             
             Color iconColor = Theme::Get().IconDefault;
             if (isActive) iconColor = Theme::Get().IconHover;
