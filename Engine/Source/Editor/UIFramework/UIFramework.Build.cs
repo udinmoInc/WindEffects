@@ -19,6 +19,7 @@ public class UIFramework : ModuleRules
         PublicDependencies.Add("Scene");
         PublicDependencies.Add("World");
         PublicDependencies.Add("Text");
+        PublicDependencies.Add("Icons");
 
         OptionalSDK("VulkanSDK");
         OptionalSDK("SDL3");
@@ -28,6 +29,7 @@ public class UIFramework : ModuleRules
         DefineIf(!HasSDK("SDL3"), "WE_HAS_SDL3=0");
 
         var thirdPartyRoot = Path.Combine(context.EngineDirectory, "ThirdParty");
+        // Legacy thumbnail SVG rasterization for Content Browser only — not used by the icon atlas pipeline.
         PublicIncludePaths.Add(Path.Combine(thirdPartyRoot, "lunasvg", "include"));
 
         RequiredThirdParty.Add("lunasvg");

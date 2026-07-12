@@ -5,7 +5,7 @@
 #include "Core/PaintContext.h"
 #include "WindEffects/Editor/UI/Theming/ThemeAccess.h"
 #include "Core/Icon.h"
-#include "Core/DPIContext.h"
+#include "Rendering/IconMetrics.h"
 
 #include <SDL3/SDL.h>
 #include <algorithm>
@@ -86,7 +86,7 @@ void ExplorerPanelHeader::OnMouseDown(const MouseEvent& event) {
     if (event.button != MouseButton::Left) {
         return;
     }
-    const float iconSize = ThemeMetric(ThemeToken::IconSizeSearch);
+    const float iconSize = static_cast<float>(IconMetrics::NativeIconTierPx(ThemeMetric(ThemeToken::IconSizeSearch)));
 
     if (m_SearchBoxGeometry.Contains(event.position)) {
         m_SearchFocused = true;

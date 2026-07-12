@@ -13,7 +13,7 @@ namespace WindEffects::Editor::UI {
 namespace {
 constexpr float kMenuItemHeight = 26.0f;
 constexpr float kMenuPadding = 4.0f;
-constexpr float kCheckSize = 14.0f;
+constexpr float kCheckSize = 16.0f;
 constexpr float kTextOffset = 24.0f;
 } // namespace
 

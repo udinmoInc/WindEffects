@@ -1,5 +1,6 @@
 #include "Widgets/TreeView.h"
 #include "Layout/OverlayManager.h"
+#include "Layout/ScrollViewport.h"
 #include "Services/ContentBrowserFolderArt.h"
 #include "Services/ContentBrowserBlueprintArt.h"
 #include "Core/PaintContext.h"
@@ -8,6 +9,7 @@
 #include "WindEffects/Editor/UI/Theming/ThemeToken.h"
 #include "Core/Icon.h"
 #include "Core/DPIContext.h"
+#include "Rendering/IconMetrics.h"
 #include <algorithm>
 #include <cmath>
 #include <functional>
@@ -148,6 +150,31 @@ TreeView::TreeView()
     m_Root->label = "Root";
 }
 
+void TreeView::SyncScrollMetrics() {
+    m_Scroll.Sync(m_Geometry.height, m_ContentHeight);
+    m_ScrollMetrics = m_Scroll.ComputeMetrics(m_Geometry, m_ContentHeight, TreeUiScale());
+}
+
+void TreeView::ScrollSelectionIntoView() {
+    if (m_SelectedIds.empty()) {
+        return;
+    }
+
+    const std::string& selectedId = m_SelectedIds.back();
+    const float rowHeight = m_ItemHeight * TreeUiScale();
+    for (const auto& item : m_RenderList) {
+        if (item.node->id != selectedId) {
+            continue;
+        }
+        const float top = static_cast<float>(item.flatIndex) * rowHeight;
+        const float bottom = top + rowHeight;
+        if (m_Scroll.ScrollToRange(top, bottom, m_Geometry.height, m_ContentHeight)) {
+            Arrange(m_Geometry);
+        }
+        break;
+    }
+}
+
 Size TreeView::Measure(const Size& availableSize) {
     BuildRenderList();
     m_ContentHeight = static_cast<float>(m_RenderList.size()) * m_ItemHeight * TreeUiScale();
@@ -157,17 +184,20 @@ Size TreeView::Measure(const Size& availableSize) {
 void TreeView::Arrange(const Rect& allottedRect) {
     m_Geometry = allottedRect;
     BuildRenderList();
+    SyncScrollMetrics();
     UpdateVisibleRange();
 
     const float rowHeight = m_ItemHeight * TreeUiScale();
-    float y = m_Geometry.y - m_ScrollOffset;
+    const float viewportX = m_ScrollMetrics.viewport.x;
+    const float viewportWidth = m_ScrollMetrics.viewport.width;
+    float y = m_ScrollMetrics.viewport.y - m_Scroll.offset;
     for (size_t i = 0; i < m_RenderList.size(); ++i) {
         auto& item = m_RenderList[i];
         item.flatIndex = static_cast<int>(i);
         item.geometry = Rect{
-            m_Geometry.x + item.depth * m_IndentWidth,
+            viewportX + item.depth * m_IndentWidth,
             y,
-            m_Geometry.width - item.depth * m_IndentWidth,
+            std::max(0.0f, viewportWidth - item.depth * m_IndentWidth),
             rowHeight
         };
         y += rowHeight;
@@ -188,17 +218,22 @@ void TreeView::Paint(PaintContext& context) {
         return;
     }
 
+    SyncScrollMetrics();
     UpdateVisibleRange();
 
     const float fontSize = m_Style.text.size * TreeUiScale();
+    const float viewTop = m_ScrollMetrics.viewport.y;
+    const float viewBottom = m_ScrollMetrics.viewport.y + m_ScrollMetrics.viewport.height;
+
+    context.PushClipRect(m_ScrollMetrics.viewport);
 
     for (int i = m_FirstVisibleIndex; i <= m_LastVisibleIndex && i < static_cast<int>(m_RenderList.size()); ++i) {
         const auto& item = m_RenderList[static_cast<size_t>(i)];
         const auto& node = item.node;
         const float rowHeight = item.geometry.height;
 
-        if (item.geometry.y + item.geometry.height < m_Geometry.y ||
-            item.geometry.y > m_Geometry.y + m_Geometry.height) {
+        if (item.geometry.y + item.geometry.height < viewTop ||
+            item.geometry.y > viewBottom) {
             continue;
         }
 
@@ -207,13 +242,18 @@ void TreeView::Paint(PaintContext& context) {
         const bool hovered = node->id == m_HoveredId;
         if (selected || hovered) {
             Rect rowRect = item.geometry;
-            rowRect.x = m_Geometry.x;
-            rowRect.width = m_Geometry.width;
+            rowRect.x = m_ScrollMetrics.viewport.x;
+            rowRect.width = m_ScrollMetrics.viewport.width;
             PanelChrome::PaintListRowBackground(context, rowRect, hovered, selected);
         }
 
         if (node->id == m_DropTargetId && m_Dragging) {
-            Rect dropLine{ m_Geometry.x + 4.0f, item.geometry.y, m_Geometry.width - 8.0f, 2.0f };
+            Rect dropLine{
+                m_ScrollMetrics.viewport.x + 4.0f,
+                item.geometry.y,
+                m_ScrollMetrics.viewport.width - 8.0f,
+                2.0f
+            };
             context.DrawRect(dropLine, ThemeColor(ThemeToken::AccentPrimary));
         }
 
@@ -225,7 +265,7 @@ void TreeView::Paint(PaintContext& context) {
             IconPainter::DrawIcon(context, chevronIcon, Rect{ chevronX, chevronY, chevronSize, chevronSize }, ThemeColor(ThemeToken::TextSecondary));
         }
 
-        const float iconSize = ThemeMetric(ThemeToken::IconSizeTree) * TreeUiScale();
+        const float iconSize = static_cast<float>(IconMetrics::NativeIconTierPx(ThemeMetric(ThemeToken::IconSizeTree)));
         const float iconX = item.geometry.x + 18.0f;
         if (!node->iconName.empty() || node->iconTexture != VK_NULL_HANDLE) {
             const float iconY = item.geometry.y + (rowHeight - iconSize) * 0.5f;
@@ -322,9 +362,18 @@ void TreeView::Paint(PaintContext& context) {
         IconPainter::DrawIcon(context, lockIcon, Rect{ lockX, lockY, lockSize, lockSize }, lockColor);
         }
     }
+
+    context.PopClipRect();
+    m_Scroll.Paint(context, m_ScrollMetrics, m_Scroll.IsThumbHovered());
 }
 
 void TreeView::OnMouseDown(const MouseEvent& event) {
+    SyncScrollMetrics();
+    if (m_Scroll.OnMouseDown(event, m_ScrollMetrics, m_Geometry.height, m_ContentHeight)) {
+        Arrange(m_Geometry);
+        return;
+    }
+
     if (event.button == MouseButton::Right) {
         RenderItem* item = GetItemAtPosition(event.position);
         if (item) {
@@ -384,6 +433,8 @@ void TreeView::OnMouseDown(const MouseEvent& event) {
 }
 
 void TreeView::OnMouseUp(const MouseEvent& event) {
+    m_Scroll.OnMouseUp(event);
+
     if (m_Dragging && !m_DropTargetId.empty() && m_DropTargetId != m_DragSourceId) {
         if (m_OnReparentRequested) {
             m_OnReparentRequested(m_DragSourceId, m_DropTargetId);
@@ -416,6 +467,13 @@ void TreeView::OnMouseUp(const MouseEvent& event) {
 }
 
 void TreeView::OnMouseMove(const MouseEvent& event) {
+    SyncScrollMetrics();
+    m_Scroll.OnMouseMove(event, m_ScrollMetrics, m_Geometry.height, m_ContentHeight);
+    if (m_Scroll.IsDraggingThumb()) {
+        Arrange(m_Geometry);
+        return;
+    }
+
     RenderItem* item = GetItemAtPosition(event.position);
     m_HoveredId = item ? item->node->id : "";
 
@@ -438,12 +496,12 @@ void TreeView::OnMouseWheel(const MouseEvent& event) {
         return;
     }
 
-    const float scrollAmount = event.wheelDeltaY * m_ItemHeight * TreeUiScale() * 0.75f;
-    m_ScrollOffset -= scrollAmount;
-
-    const float maxScroll = std::max(0.0f, m_ContentHeight - m_Geometry.height);
-    m_ScrollOffset = std::max(0.0f, std::min(m_ScrollOffset, maxScroll));
-
+    SyncScrollMetrics();
+    m_Scroll.ApplyWheel(
+        event.wheelDeltaY,
+        m_ItemHeight * TreeUiScale() * 0.75f,
+        m_Geometry.height,
+        m_ContentHeight);
     Arrange(m_Geometry);
 }
 
@@ -630,7 +688,7 @@ void TreeView::UpdateVisibleRange() {
     const float viewBottom = m_Geometry.y + m_Geometry.height;
     const int overscan = 2;
 
-    m_FirstVisibleIndex = static_cast<int>(std::floor(m_ScrollOffset / rowHeight));
+    m_FirstVisibleIndex = static_cast<int>(std::floor(m_Scroll.offset / rowHeight));
     m_FirstVisibleIndex = std::max(0, m_FirstVisibleIndex - overscan);
 
     const int visibleCount = static_cast<int>(std::ceil(m_Geometry.height / rowHeight)) + overscan * 2;
@@ -771,6 +829,8 @@ void TreeView::HandleSelection(const std::string& id, bool shift, bool ctrl) {
     if (m_OnSelectionChanged) {
         m_OnSelectionChanged(m_SelectedIds);
     }
+
+    ScrollSelectionIntoView();
 }
 
 bool TreeView::IsSelected(const std::string& id) const {
@@ -785,6 +845,11 @@ void TreeView::SetSearchQuery(const std::string& query) {
     m_SearchQuery = query;
     BuildRenderList();
     Arrange(m_Geometry);
+}
+
+bool TreeView::ShowsPointerCursor(const Point& position) const {
+    return m_ScrollMetrics.showsScrollbar &&
+        (m_ScrollMetrics.thumb.Contains(position) || m_ScrollMetrics.track.Contains(position));
 }
 
 } // namespace WindEffects::Editor::UI

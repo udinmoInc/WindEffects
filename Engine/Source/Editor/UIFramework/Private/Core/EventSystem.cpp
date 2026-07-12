@@ -1,6 +1,7 @@
 #include "Core/EventSystem.h"
 #include "Core/Widget.h"
 #include "Layout/OverlayManager.h"
+#include "Layout/ScrollLayout.h"
 #include <SDL3/SDL_mouse.h>
 
 namespace WindEffects::Editor::UI {
@@ -16,6 +17,20 @@ SDL_Cursor* GetArrowCursor() {
 SDL_Cursor* GetPointerCursor() {
     static SDL_Cursor* cursor = SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_POINTER);
     return cursor;
+}
+
+void BubbleMouseWheelToScrollParents(
+    const std::shared_ptr<Widget>& start,
+    const MouseEvent& event)
+{
+    for (auto parent = start ? start->GetParent() : nullptr; parent; parent = parent->GetParent()) {
+        auto scrollLayout = std::dynamic_pointer_cast<ScrollLayout>(parent);
+        if (!scrollLayout || !scrollLayout->GetGeometry().Contains(event.position)) {
+            continue;
+        }
+        scrollLayout->OnMouseWheel(event);
+        break;
+    }
 }
 } // namespace
 
@@ -83,6 +98,7 @@ void EventSystem::ProcessMouseEvent(const MouseEvent& event) {
             targetWidget->OnMouseMove(event);
         } else if (event.type == MouseEventType::MouseWheel) {
             targetWidget->OnMouseWheel(event);
+            BubbleMouseWheelToScrollParents(targetWidget, event);
         }
     } else {
         if (event.type == MouseEventType::MouseDown) {

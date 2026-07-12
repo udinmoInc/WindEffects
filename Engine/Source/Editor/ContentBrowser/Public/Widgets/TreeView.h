@@ -5,6 +5,7 @@
 #include "Core/Widget.h"
 #include "Core/Style.h"
 #include "Core/Icon.h"
+#include "Layout/ScrollViewport.h"
 #include <functional>
 #include <string>
 #include <vector>
@@ -48,6 +49,7 @@ public:
     void OnMouseMove(const MouseEvent& event) override;
     void OnMouseWheel(const MouseEvent& event) override;
     void OnKeyDown(const KeyEvent& event) override;
+    bool ShowsPointerCursor(const Point& position) const override;
 
     // Tree management
     void SetRoot(const std::shared_ptr<TreeNode>& root);
@@ -113,6 +115,8 @@ private:
     void SetZoomLevel(float zoomLevel);
     bool IsSelected(const std::string& id) const;
     int GetVisibleRowCount() const;
+    void SyncScrollMetrics();
+    void ScrollSelectionIntoView();
 
     std::shared_ptr<TreeNode> m_Root;
     std::vector<RenderItem> m_RenderList;
@@ -120,8 +124,9 @@ private:
     std::string m_HoveredId;
     std::string m_DropTargetId;
 
-    float m_ScrollOffset = 0.0f;
     float m_ContentHeight = 0.0f;
+    ScrollViewport m_Scroll;
+    ScrollViewportMetrics m_ScrollMetrics{};
     int m_FirstVisibleIndex = 0;
     int m_LastVisibleIndex = 0;
     float m_BaseItemHeight = 24.0f;

@@ -3,6 +3,8 @@
 #include "Widgets/SearchBox.h"
 #include "Widgets/ContentBrowser.h"
 #include "Core/PaintContext.h"
+#include "Core/DPIContext.h"
+#include "Rendering/IconMetrics.h"
 #include "WindEffects/Editor/UI/Theming/ThemeAccess.h"
 #include "WindEffects/Editor/UI/Theming/ThemeToken.h"
 #include "Core/Icon.h"
@@ -67,7 +69,7 @@ void ToolbarIconToggle::Paint(PaintContext& context) {
     m_PressAnim = Animator::Damp(m_PressAnim, m_Pressed ? 1.0f : 0.0f, 25.0f);
     PaintToolbarButtonChrome(context, m_Geometry, m_HoverAnim, m_PressAnim, m_Selected, false);
 
-    const float iconSize = ThemeMetric(ThemeToken::IconSizeToolbar);
+    const float iconSize = static_cast<float>(IconMetrics::NativeIconTierPx(ThemeMetric(ThemeToken::IconSizeToolbar)));
     const Rect iconRect = CenterRect(m_Geometry, iconSize, iconSize);
     Color iconColor = m_Selected ? ThemeColor(ThemeToken::TextPrimary) : ThemeColor(ThemeToken::IconDefault);
     if (m_HoverAnim > 0.01f) {
@@ -144,7 +146,7 @@ void ToolbarLabeledButton::Paint(PaintContext& context) {
     const float textY = m_Geometry.y + (m_Geometry.height - textSize) * 0.5f;
 
     if (!m_IconName.empty()) {
-        const float iconSize = ThemeMetric(ThemeToken::IconSizeToolbar);
+        const float iconSize = static_cast<float>(IconMetrics::NativeIconTierPx(ThemeMetric(ThemeToken::IconSizeToolbar)));
         const float iconY = m_Geometry.y + (m_Geometry.height - iconSize) * 0.5f;
         Color iconColor = m_Variant == Variant::Primary ? ThemeColor(ThemeToken::AccentPrimary) : ThemeColor(ThemeToken::IconDefault);
         IconPainter::DrawIcon(context, m_IconName, Rect{ x, iconY, iconSize, iconSize }, iconColor);
@@ -158,7 +160,7 @@ void ToolbarLabeledButton::Paint(PaintContext& context) {
     context.DrawText(m_Label, Point{ x, textY }, textColor, textSize, m_Variant == Variant::Primary);
 
     if (m_ShowChevron) {
-        const float chevronSize = ThemeMetric(ThemeToken::IconSizeTree) - 3.0f;
+        const float chevronSize = static_cast<float>(IconMetrics::NativeIconTierPx(ThemeMetric(ThemeToken::IconSizeTree) - 3.0f));
         const float chevronX = m_Geometry.x + m_Geometry.width - hPad - chevronSize;
         const float chevronY = m_Geometry.y + (m_Geometry.height - chevronSize) * 0.5f;
         IconPainter::DrawIcon(context, Icons::ChevronDownName, Rect{ chevronX, chevronY, chevronSize, chevronSize },

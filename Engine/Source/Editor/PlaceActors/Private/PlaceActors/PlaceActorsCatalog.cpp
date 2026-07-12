@@ -18,6 +18,10 @@ struct ItemMeta {
 const ItemMeta& MetaForTool(const std::string& toolId) {
     static const std::unordered_map<std::string, ItemMeta> kMeta = {
         {"PlaceEmptyActor", {"Empty transform root for grouping.", {"actor", "empty"}, {"empty", "null"}}},
+        {"PlaceEmptyCharacter", {"Character without a mesh assigned.", {"character", "pawn"}, {"empty character"}}},
+        {"PlaceEmptyPawn", {"Pawn without a mesh assigned.", {"pawn"}, {"empty pawn"}}},
+        {"PlaceCone", {"Static mesh cone primitive.", {"mesh", "primitive", "geometry"}, {"cone"}}},
+        {"PlaceCapsule", {"Static mesh capsule primitive.", {"mesh", "primitive", "geometry"}, {"capsule", "pill"}}},
         {"PlaceCharacter", {"Player or NPC character pawn.", {"character", "pawn"}, {"pawn", "player"}}},
         {"PlaceBlueprint", {"Logic-driven actor from a Blueprint class.", {"blueprint", "script"}, {"bp", "class"}}},
         {"PlaceCube", {"Static mesh cube primitive.", {"mesh", "primitive", "geometry"}, {"box", "block"}}},

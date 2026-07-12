@@ -27,19 +27,19 @@ void Panel::SetToolbar(const std::shared_ptr<Widget>& toolbar) {
 }
 
 Size Panel::Measure(const Size& availableSize) {
-    float totalHeight = m_HeaderHeight;
-    
-    if (m_Toolbar) {
+    float reservedHeight = m_HeaderHeight;
+
+    if (m_Toolbar && !m_FloatingToolbar) {
         Size tbSize = m_Toolbar->Measure(availableSize);
-        totalHeight += tbSize.height;
+        reservedHeight += tbSize.height;
     }
-    
+
     if (m_Content) {
-        Size contentSize = m_Content->Measure(availableSize);
-        totalHeight += contentSize.height;
+        const float contentHeight = std::max(0.0f, availableSize.height - reservedHeight);
+        m_Content->Measure(Size{ availableSize.width, contentHeight });
     }
-    
-    return Size{ availableSize.width, std::max(totalHeight, availableSize.height) };
+
+    return Size{ availableSize.width, availableSize.height };
 }
 
 void Panel::Arrange(const Rect& allottedRect) {
@@ -54,10 +54,11 @@ void Panel::Arrange(const Rect& allottedRect) {
     };
     
     float currentY = allottedRect.y + m_HeaderHeight;
-    
-    // Calculate toolbar rect
-    if (m_Toolbar) {
-        Size tbSize = m_Toolbar->GetDesiredSize();
+
+    // Docked toolbar sits below the header; content starts underneath it.
+    if (m_Toolbar && !m_FloatingToolbar) {
+        m_Toolbar->Measure(Size{ allottedRect.width, allottedRect.height });
+        const Size tbSize = m_Toolbar->GetDesiredSize();
         m_ToolbarRect = Rect{
             allottedRect.x,
             currentY,
@@ -67,10 +68,9 @@ void Panel::Arrange(const Rect& allottedRect) {
         m_Toolbar->Arrange(m_ToolbarRect);
         currentY += tbSize.height;
     }
-    
-    // Calculate content rect
+
     if (m_Content) {
-        float contentHeight = std::max(0.0f, allottedRect.y + allottedRect.height - currentY);
+        const float contentHeight = std::max(0.0f, allottedRect.y + allottedRect.height - currentY);
         m_ContentRect = Rect{
             allottedRect.x,
             currentY,
@@ -79,6 +79,23 @@ void Panel::Arrange(const Rect& allottedRect) {
         };
         m_Content->Arrange(m_ContentRect);
     }
+
+    // Floating toolbar overlays the top of the content region.
+    if (m_Toolbar && m_FloatingToolbar) {
+        const float uiScale = std::max(1.0f, DPIContext::GetScale());
+        const float inset = ThemeMetric(ThemeToken::Space2) * uiScale;
+        m_Toolbar->Measure(m_ContentRect.width > 0.0f
+            ? Size{ m_ContentRect.width, m_ContentRect.height }
+            : Size{ allottedRect.width, allottedRect.height });
+        const Size tbSize = m_Toolbar->GetDesiredSize();
+        m_ToolbarRect = Rect{
+            m_ContentRect.x + inset,
+            m_ContentRect.y + inset,
+            std::max(0.0f, m_ContentRect.width - inset * 2.0f),
+            tbSize.height
+        };
+        m_Toolbar->Arrange(m_ToolbarRect);
+    }
     
     CalculateHeaderGeometries();
 }
@@ -86,7 +103,7 @@ void Panel::Arrange(const Rect& allottedRect) {
 void Panel::Paint(PaintContext& context) {
     if (!m_TransparentBackground) {
         PanelChrome::PaintContentRegion(context, m_Geometry);
-    } else if (m_Toolbar) {
+    } else if (m_Toolbar && !m_FloatingToolbar) {
         PanelChrome::PaintToolbarRegion(context, m_ToolbarRect);
     }
 
@@ -135,13 +152,17 @@ void Panel::Paint(PaintContext& context) {
         }
     }
 
-    if (m_Toolbar) {
-        PanelChrome::PaintToolbarRegion(context, m_ToolbarRect);
-        m_Toolbar->Paint(context);
+    if (m_Content) {
+        context.PushClipRect(m_ContentRect);
+        m_Content->Paint(context);
+        context.PopClipRect();
     }
 
-    if (m_Content) {
-        m_Content->Paint(context);
+    if (m_Toolbar) {
+        if (!m_FloatingToolbar) {
+            PanelChrome::PaintToolbarRegion(context, m_ToolbarRect);
+        }
+        m_Toolbar->Paint(context);
     }
 }
 

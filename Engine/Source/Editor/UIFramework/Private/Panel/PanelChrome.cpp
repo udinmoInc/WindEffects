@@ -4,6 +4,7 @@
 #include "WindEffects/Editor/UI/Theming/ThemeToken.h"
 #include "Core/Icon.h"
 #include "Core/DPIContext.h"
+#include "Rendering/IconMetrics.h"
 #include <algorithm>
 #include <cmath>
 
@@ -77,7 +78,7 @@ float TabPadH() {
 }
 
 float TabIconSize() {
-    return ResolveThemeMetric(ThemeToken::IconSizeToolbar) * UiScale();
+    return static_cast<float>(IconMetrics::NativeIconTierPx(ResolveThemeMetric(ThemeToken::IconSizeToolbar)));
 }
 
 float TabGap() {
@@ -312,7 +313,7 @@ void PaintSearchField(
     const float scale = UiScale();
     const float radius = ResolveThemeMetric(ThemeToken::CornerRadiusSmall) * scale;
     const float fontSize = ResolveThemeMetric(ThemeToken::TextSizeBody) * scale;
-    const float iconSize = ResolveThemeMetric(ThemeToken::IconSizeSearch) * scale;
+    const float iconSize = static_cast<float>(IconMetrics::NativeIconTierPx(ResolveThemeMetric(ThemeToken::IconSizeSearch)));
     const float padH = TabPadH();
 
     Color bg = ResolveThemeColor(ThemeToken::SearchBoxBackground);

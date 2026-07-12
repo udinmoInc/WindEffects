@@ -72,4 +72,50 @@ void PlaceActorsSearch::SortItems(std::vector<PlaceActorsItemData>& items, Place
     }
 }
 
+PlaceActorsSearchMatch PlaceActorsSearch::FindLabelMatch(const std::string& label, const std::string& query) {
+    PlaceActorsSearchMatch match{};
+    if (query.empty() || label.empty()) {
+        return match;
+    }
+
+    const std::string lowerLabel = ToLower(label);
+    const std::string lowerQuery = ToLower(query);
+    const size_t found = lowerLabel.find(lowerQuery);
+    if (found != std::string::npos) {
+        match.start = found;
+        match.length = query.size();
+    }
+    return match;
+}
+
+void PlaceActorsSearch::PaintHighlightedLabel(
+    WindEffects::Editor::UI::PaintContext& context,
+    const std::string& label,
+    const WindEffects::Editor::UI::Point& position,
+    float fontSize,
+    const std::string& query,
+    const WindEffects::Editor::UI::Color& normalColor,
+    const WindEffects::Editor::UI::Color& highlightColor,
+    float maxWidth)
+{
+    const PlaceActorsSearchMatch match = FindLabelMatch(label, query);
+    if (match.length == 0) {
+        context.DrawText(label, position, normalColor, fontSize);
+        return;
+    }
+
+    float x = position.x;
+    const auto drawSegment = [&](const std::string& segment, const WindEffects::Editor::UI::Color& color) {
+        if (segment.empty()) return;
+        context.DrawText(segment, WindEffects::Editor::UI::Point{ x, position.y }, color, fontSize);
+        x += context.GetTextWidth(segment, fontSize);
+    };
+
+    drawSegment(label.substr(0, match.start), normalColor);
+    drawSegment(label.substr(match.start, match.length), highlightColor);
+    drawSegment(label.substr(match.start + match.length), normalColor);
+
+    (void)maxWidth;
+}
+
 } // namespace we::programs::editor

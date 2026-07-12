@@ -3,6 +3,7 @@
 #include "WindEffects/Editor/UI/Theming/ThemeAccess.h"
 #include "WindEffects/Editor/UI/Theming/ThemeToken.h"
 #include <algorithm>
+#include <cmath>
 
 namespace WindEffects::Editor::UI {
 
@@ -139,11 +140,19 @@ void Splitter::Arrange(const Rect& allottedRect) {
         }
 
         if (m_FirstChild && m_FirstChild->IsVisible()) {
-            m_FirstChild->Arrange(Rect{ allottedRect.x, allottedRect.y, w1, availH });
+            float snappedX = std::round(allottedRect.x);
+            float snappedY = std::round(allottedRect.y);
+            float snappedW = std::round(allottedRect.x + w1) - snappedX;
+            float snappedH = std::round(allottedRect.y + availH) - snappedY;
+            m_FirstChild->Arrange(Rect{ snappedX, snappedY, snappedW, snappedH });
         }
         if (m_SecondChild && m_SecondChild->IsVisible()) {
             const float secondX = w1 > 0.0f ? barX + barThickness : allottedRect.x;
-            m_SecondChild->Arrange(Rect{ secondX, allottedRect.y, w2, availH });
+            float snappedX = std::round(secondX);
+            float snappedY = std::round(allottedRect.y);
+            float snappedW = std::round(secondX + w2) - snappedX;
+            float snappedH = std::round(allottedRect.y + availH) - snappedY;
+            m_SecondChild->Arrange(Rect{ snappedX, snappedY, snappedW, snappedH });
         }
     } else {
         const float firstRatio = (m_FirstChild && m_FirstChild->IsVisible()) ? m_SplitRatio : 0.0f;
@@ -157,11 +166,19 @@ void Splitter::Arrange(const Rect& allottedRect) {
         }
 
         if (m_FirstChild && m_FirstChild->IsVisible()) {
-            m_FirstChild->Arrange(Rect{ allottedRect.x, allottedRect.y, availW, h1 });
+            float snappedX = std::round(allottedRect.x);
+            float snappedY = std::round(allottedRect.y);
+            float snappedW = std::round(allottedRect.x + availW) - snappedX;
+            float snappedH = std::round(allottedRect.y + h1) - snappedY;
+            m_FirstChild->Arrange(Rect{ snappedX, snappedY, snappedW, snappedH });
         }
         if (m_SecondChild && m_SecondChild->IsVisible()) {
             const float secondY = h1 > 0.0f ? barY + barThickness : allottedRect.y;
-            m_SecondChild->Arrange(Rect{ allottedRect.x, secondY, availW, h2 });
+            float snappedX = std::round(allottedRect.x);
+            float snappedY = std::round(secondY);
+            float snappedW = std::round(allottedRect.x + availW) - snappedX;
+            float snappedH = std::round(secondY + h2) - snappedY;
+            m_SecondChild->Arrange(Rect{ snappedX, snappedY, snappedW, snappedH });
         }
     }
 }

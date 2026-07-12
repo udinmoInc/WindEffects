@@ -1,191 +1,116 @@
 #include "Rendering/IconRenderer.h"
-#include "Rendering/Icons/SvgRasterizer.h"
-#include "Core/ImageBarriers.h"
-#include "Resource/ResourceManager.h"
-#include "WindEffects/Editor/UI/Theming/ThemeToken.h"
-#include "Core/Logger.h"
-#include <volk.h>
-#include <stdexcept>
-#include <filesystem>
-#include <cmath>
-#include <algorithm>
-#include <functional>
 
-#include <unordered_set>
+#include "Core/ImageBarriers.h"
+#include "Rendering/IconMetrics.h"
+#include "Resource/ResourceManager.h"
+#include "Core/Logger.h"
+
+#include <cstring>
+#include <functional>
 
 namespace WindEffects::Editor::UI {
 
 IconRenderer::IconRenderer() = default;
 
-IconRenderer::~IconRenderer() {
+IconRenderer::~IconRenderer()
+{
     Shutdown();
 }
 
-bool IconRenderer::Init(we::runtime::renderer::DeviceContext* context,
-                        we::runtime::renderer::ResourceManager* resources,
-                        UiGpuUpload* gpuUpload,
-                        VkDescriptorPool descriptorPool,
-                        VkDescriptorSetLayout textureLayout) {
+bool IconRenderer::Init(
+    we::runtime::renderer::DeviceContext* context,
+    we::runtime::renderer::ResourceManager* resources,
+    UiGpuUpload* gpuUpload,
+    VkDescriptorPool descriptorPool,
+    VkDescriptorSetLayout textureLayout)
+{
     m_Context = context;
     m_Resources = resources;
     m_GpuUpload = gpuUpload;
     m_DescriptorPool = descriptorPool;
     m_TextureLayout = textureLayout;
-    m_SvgRasterizer = std::make_unique<Icons::SvgRasterizer>();
-    IconRegistry::Get().InitializeDefaultIcons();
     return context != nullptr && resources != nullptr && gpuUpload != nullptr
         && descriptorPool != VK_NULL_HANDLE && textureLayout != VK_NULL_HANDLE;
 }
 
-void IconRenderer::Shutdown() {
+void IconRenderer::Shutdown()
+{
     ClearCache();
-    m_SvgRasterizer.reset();
 }
 
-std::string IconRenderer::ResolveLucideSvgPath(const std::string& lucideName) {
-    const std::string fileName = lucideName + ".svg";
-    const std::string candidates[] = {
-        "Assets/Icons/icons/" + fileName,
-        "Icons/icons/" + fileName,
-        "../Assets/Icons/icons/" + fileName,
-        "../../Assets/Icons/icons/" + fileName,
-        "Engine/Content/Icons/icons/" + fileName,
-        "../Engine/Content/Icons/icons/" + fileName,
-    };
-    for (const auto& path : candidates) {
-        if (std::filesystem::exists(path)) return path;
+IconDrawInfo IconRenderer::GetLucideIconDrawInfo(
+    const std::string& iconName,
+    const uint32_t size,
+    const Color& color,
+    const float strokeWidth) const
+{
+    (void)strokeWidth;
+    if (!m_IconManager) {
+        return {};
     }
-    return {};
+    return m_IconManager->ResolveIcon(iconName, size, color);
 }
 
-VkDescriptorSet IconRenderer::GetLucideIcon(const std::string& iconName, uint32_t size, const Color& color, float strokeWidth) {
-    if (!m_Context || m_TextureLayout == VK_NULL_HANDLE || !m_SvgRasterizer) return VK_NULL_HANDLE;
+VkDescriptorSet IconRenderer::GetLucideIcon(
+    const std::string& iconName,
+    const uint32_t size,
+    const Color& color,
+    const float strokeWidth)
+{
+    const IconDrawInfo info = GetLucideIconDrawInfo(iconName, size, color, strokeWidth);
+    return info.valid ? info.descriptorSet : VK_NULL_HANDLE;
+}
 
-    const std::string lucideName = Icons::ResolveLucideName(iconName);
-
-    if (IconRegistry::Get().HasIcon(lucideName)) {
-        const std::string relativePath = IconRegistry::Get().GetIconPath(lucideName);
-        const std::string resolvedPath = Icons::SvgRasterizer::ResolveAssetPath(relativePath);
-        if (!resolvedPath.empty() && std::filesystem::exists(resolvedPath)) {
-            const std::string key = std::string("maskreg_") + lucideName + "_" + std::to_string(size);
-            auto cached = m_Cache.find(key);
-            if (cached != m_Cache.end()) {
-                return cached->second.descriptorSet;
-            }
-
-            Icons::SvgRasterizeRequest request{};
-            request.svgPath = relativePath;
-            request.width = size;
-            request.height = size;
-            request.applyTint = false;
-            request.tint = color;
-            request.strokeWidth = strokeWidth;
-
-            const Icons::SvgRasterizeResult raster = m_SvgRasterizer->Rasterize(request);
-            if (raster.success && !raster.rgba.empty()) {
-                IconTexture texture;
-                if (CreateTexture(raster.rgba, raster.width, raster.height, texture)) {
-                    m_Cache[key] = texture;
-                    return texture.descriptorSet;
-                }
-            }
-        }
-    }
-
-    const std::string svgPath = ResolveLucideSvgPath(lucideName);
-    if (svgPath.empty()) {
-        static std::unordered_set<std::string> s_ReportedMissing;
-        if (s_ReportedMissing.insert(lucideName).second) {
-            HE_ERROR("[UI] Lucide icon not found: " + lucideName);
-        }
+VkDescriptorSet IconRenderer::GetIcon(const std::string& iconName, const uint32_t size)
+{
+    if (!m_IconManager) {
         return VK_NULL_HANDLE;
     }
 
-    const std::string key = std::string("mask_") + lucideName + "_" + std::to_string(size) + "_"
-        + std::to_string(static_cast<int>(color.r * 255.0f)) + "_"
-        + std::to_string(static_cast<int>(color.g * 255.0f)) + "_"
-        + std::to_string(static_cast<int>(color.b * 255.0f)) + "_"
-        + std::to_string(static_cast<int>(color.a * 255.0f)) + "_"
-        + std::to_string(static_cast<int>(strokeWidth * 100.0f));
-
-    auto it = m_Cache.find(key);
-    if (it != m_Cache.end()) {
-        return it->second.descriptorSet;
-    }
-
-    Icons::SvgRasterizeRequest request{};
-    request.svgPath = svgPath;
-    request.width = size;
-    request.height = size;
-    request.applyTint = false;
-    request.tint = color;
-    request.strokeWidth = strokeWidth;
-
-    const Icons::SvgRasterizeResult raster = m_SvgRasterizer->Rasterize(request);
-    if (!raster.success || raster.rgba.empty()) return VK_NULL_HANDLE;
-
-    IconTexture texture;
-    if (CreateTexture(raster.rgba, raster.width, raster.height, texture)) {
-        m_Cache[key] = texture;
-        return texture.descriptorSet;
-    }
-    return VK_NULL_HANDLE;
-}
-
-VkDescriptorSet IconRenderer::GetIcon(const std::string& iconName, uint32_t size) {
-    if (!m_Context || m_TextureLayout == VK_NULL_HANDLE) return VK_NULL_HANDLE;
-
+    const uint32_t tierPx = IconMetrics::SnapToAtlasTier(size);
     if (iconName.find('/') != std::string::npos || iconName.find('\\') != std::string::npos) {
-        std::string key = iconName + "_" + std::to_string(size);
-        auto it = m_Cache.find(key);
-        if (it != m_Cache.end()) {
-            return it->second.descriptorSet;
-        }
-
-        Icons::SvgRasterizeRequest request{};
-        request.svgPath = iconName;
-        request.width = size;
-        request.height = size;
-        request.applyTint = false;
-        request.tint = m_DefaultColor;
-
-        const Icons::SvgRasterizeResult raster = m_SvgRasterizer->Rasterize(request);
-        if (!raster.success || raster.rgba.empty()) return VK_NULL_HANDLE;
-
-        IconTexture texture;
-        if (CreateTexture(raster.rgba, raster.width, raster.height, texture)) {
-            m_Cache[key] = texture;
-            return texture.descriptorSet;
-        }
-        return VK_NULL_HANDLE;
+        const IconDrawInfo info = m_IconManager->ResolvePathIcon(iconName, tierPx, m_DefaultColor);
+        return info.valid ? info.descriptorSet : VK_NULL_HANDLE;
     }
 
-    return GetLucideIcon(iconName, size, m_DefaultColor);
+    return GetLucideIcon(iconName, tierPx, m_DefaultColor);
 }
 
-VkDescriptorSet IconRenderer::CreateTextureFromBitmap(const std::vector<uint8_t>& bitmap, uint32_t width, uint32_t height) {
-    if (!m_Context || m_TextureLayout == VK_NULL_HANDLE || bitmap.empty() || width == 0 || height == 0) return VK_NULL_HANDLE;
+VkDescriptorSet IconRenderer::CreateTextureFromBitmap(
+    const std::vector<uint8_t>& bitmap,
+    const uint32_t width,
+    const uint32_t height)
+{
+    if (!m_Context || m_TextureLayout == VK_NULL_HANDLE || bitmap.empty() || width == 0 || height == 0) {
+        return VK_NULL_HANDLE;
+    }
 
     IconTexture texture;
     if (CreateTexture(bitmap, width, height, texture)) {
-        const std::string key = "thumb_" + std::to_string(width) + "x" + std::to_string(height) + "_" +
-            std::to_string(std::hash<std::string>{}(std::string(
+        const std::string key = "thumb_" + std::to_string(width) + "x" + std::to_string(height) + "_"
+            + std::to_string(std::hash<std::string>{}(std::string(
                 reinterpret_cast<const char*>(bitmap.data()),
                 std::min(bitmap.size(), static_cast<size_t>(64)))));
-        m_Cache[key] = texture;
+        m_ThumbnailCache[key] = texture;
         return texture.descriptorSet;
     }
     return VK_NULL_HANDLE;
 }
 
-void IconRenderer::ClearCache() {
-    for (auto& pair : m_Cache) {
+void IconRenderer::ClearCache()
+{
+    for (auto& pair : m_ThumbnailCache) {
         DestroyTexture(pair.second);
     }
-    m_Cache.clear();
+    m_ThumbnailCache.clear();
 }
 
-bool IconRenderer::CreateTexture(const std::vector<uint8_t>& bitmap, uint32_t width, uint32_t height, IconTexture& outTexture) {
+bool IconRenderer::CreateTexture(
+    const std::vector<uint8_t>& bitmap,
+    const uint32_t width,
+    const uint32_t height,
+    IconTexture& outTexture)
+{
     if (!m_Context || !m_Resources || !m_GpuUpload || m_DescriptorPool == VK_NULL_HANDLE || m_TextureLayout == VK_NULL_HANDLE) {
         return false;
     }
@@ -257,8 +182,8 @@ bool IconRenderer::CreateTexture(const std::vector<uint8_t>& bitmap, uint32_t wi
 
     VkSamplerCreateInfo samplerInfo{};
     samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
-    samplerInfo.magFilter = VK_FILTER_LINEAR;
-    samplerInfo.minFilter = VK_FILTER_LINEAR;
+    samplerInfo.magFilter = VK_FILTER_NEAREST;
+    samplerInfo.minFilter = VK_FILTER_NEAREST;
     samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
     samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
     samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
@@ -296,7 +221,8 @@ bool IconRenderer::CreateTexture(const std::vector<uint8_t>& bitmap, uint32_t wi
     return true;
 }
 
-void IconRenderer::DestroyTexture(IconTexture& texture) {
+void IconRenderer::DestroyTexture(IconTexture& texture)
+{
     if (!m_Context) {
         texture = {};
         return;

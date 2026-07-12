@@ -3,6 +3,7 @@
 #include "Core/Widget.h"
 #include "Core/Style.h"
 #include "Core/Icon.h"
+#include "Layout/ScrollViewport.h"
 #include <string>
 #include <vector>
 #include <functional>
@@ -33,6 +34,7 @@ public:
     void OnMouseUp(const MouseEvent& event) override;
     void OnMouseWheel(const MouseEvent& event) override;
     void OnKeyDown(const KeyEvent& event) override;
+    bool ShowsPointerCursor(const Point& position) const override;
 
     void AddItem(const ContentItem& item);
     void RemoveItem(const std::string& id);
@@ -92,6 +94,10 @@ private:
     GridMetrics GetGridMetrics() const;
     ContentViewMode GetEffectiveViewMode() const;
     RenderItem* GetItemAtPosition(const Point& pos);
+    void SyncScrollMetrics();
+    void RecalculateLayout();
+    void ScrollSelectionIntoView();
+    float ComputeContentHeight() const;
 
     void PaintGridItem(PaintContext& context, const RenderItem& renderItem);
     void PaintListItem(PaintContext& context, const RenderItem& renderItem);
@@ -118,8 +124,10 @@ private:
     bool m_IsSelecting = false;
     bool m_IsDragging = false;
 
-    float m_ScrollOffset = 0.0f;
     float m_ListRowHeight = 22.0f;
+    ScrollViewport m_Scroll;
+    ScrollViewportMetrics m_ScrollMetrics{};
+    float m_ContentHeight = 0.0f;
 
     int m_FirstVisibleIndex = 0;
     int m_LastVisibleIndex = 0;

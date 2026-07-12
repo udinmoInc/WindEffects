@@ -1,6 +1,7 @@
 #include "Widgets/ExplorerToolbar.h"
 
 #include "Core/PaintContext.h"
+#include "Rendering/IconMetrics.h"
 #include "WindEffects/Editor/UI/Theming/ThemeAccess.h"
 #include "Core/Icon.h"
 
@@ -43,7 +44,7 @@ void ExplorerToolbar::Arrange(const Rect& allottedRect) {
 }
 
 void ExplorerToolbar::Paint(PaintContext& context) {
-    const float iconSize = ThemeMetric(ThemeToken::IconSizeSearch);
+    const float iconSize = static_cast<float>(IconMetrics::NativeIconTierPx(ThemeMetric(ThemeToken::IconSizeSearch)));
     const float fontSize = ThemeMetric(ThemeToken::TextSizeBody);
 
     context.DrawRect(m_Geometry, ThemeColor(ThemeToken::HeaderBackground));
@@ -107,7 +108,7 @@ void ExplorerToolbar::PaintToolbarButton(PaintContext& context, const Rect& geom
         context.DrawRoundedRect(geometry, ThemeColor(ThemeToken::HoverBackground), ThemeMetric(ThemeToken::CornerRadiusSmall));
     }
 
-    const float iconSize = ThemeMetric(ThemeToken::IconSizeToolbar);
+    const float iconSize = static_cast<float>(IconMetrics::NativeIconTierPx(ThemeMetric(ThemeToken::IconSizeToolbar)));
     const float iconX = geometry.x + (geometry.width - iconSize) * 0.5f;
     const float iconY = geometry.y + (geometry.height - iconSize) * 0.5f;
 
@@ -133,7 +134,7 @@ void ExplorerToolbar::OnMouseDown(const MouseEvent& event) {
     if (event.button != MouseButton::Left) {
         return;
     }
-    const float iconSize = ThemeMetric(ThemeToken::IconSizeSearch);
+    const float iconSize = static_cast<float>(IconMetrics::NativeIconTierPx(ThemeMetric(ThemeToken::IconSizeSearch)));
 
     if (m_SearchBoxGeometry.Contains(event.position)) {
         m_SearchFocused = true;

@@ -30,6 +30,9 @@ public:
         return m_Icons.find(name) != m_Icons.end();
     }
 
+    // Registered editor SVGs carry their own fill colors and need full-color compositing.
+    bool IsEditorSvgIcon(const std::string& name) const { return HasIcon(name); }
+
     void InitializeDefaultIcons();
 
 private:
@@ -77,13 +80,31 @@ namespace Icons {
     constexpr const char* ShaderName     = "code-2";
     constexpr const char* TextureName    = "image";
     constexpr const char* SaveName       = "save";
-    constexpr const char* SaveAllName    = "save-all";
+    constexpr const char* SaveAllName    = "save";
     constexpr const char* OpenName       = "folder-open";
     constexpr const char* NewName        = "file-plus";
     constexpr const char* FolderName     = "folder";
-    constexpr const char* ProjectFolderName = "project-folder";
-    constexpr const char* ToolbarObjectName = "toolbar-object";
-    constexpr const char* ToolbarEnvironmentName = "toolbar-environment";
+    constexpr const char* ProjectFolderName = "folder-kanban";
+    constexpr const char* ToolbarObjectName = "component";
+    constexpr const char* ToolbarEnvironmentName = "globe";
+    constexpr const char* GlobeName      = "globe";
+    constexpr const char* UserName       = "user";
+    constexpr const char* MountainName   = "mountain";
+    constexpr const char* TreesName      = "trees";
+    constexpr const char* VideoName      = "video";
+    constexpr const char* ConeName       = "cone";
+    constexpr const char* CapsuleName    = "pill";
+    constexpr const char* FlashlightName = "flashlight";
+    constexpr const char* BlocksName     = "blocks";
+    constexpr const char* BrainName      = "brain";
+    constexpr const char* LayoutPanelName = "layout";
+    constexpr const char* StickyNoteName = "sticky-note";
+    constexpr const char* CrosshairName  = "crosshair";
+    constexpr const char* ComponentName  = "component";
+    constexpr const char* SparklesName   = "sparkles";
+    constexpr const char* Volume2Name    = "volume-2";
+    constexpr const char* ZapName        = "zap";
+    constexpr const char* MapName        = "map";
     constexpr const char* DocumentName   = "file";
     constexpr const char* CodeName       = "code";
     constexpr const char* BuildName      = "wrench";
@@ -126,8 +147,8 @@ namespace Icons {
     constexpr const char* ErrorName      = "x-circle";
     constexpr const char* SuccessName    = "check";
     constexpr const char* MinimizeName   = "minus";
-    constexpr const char* MaximizeName   = "maximize-2";
-    constexpr const char* RestoreName    = "maximize";
+    constexpr const char* MaximizeName   = "square";
+    constexpr const char* RestoreName    = "copy";
     constexpr const char* CompassName    = "compass";
     constexpr const char* EraserName     = "eraser";
     constexpr const char* BrushName      = "paintbrush";
@@ -232,9 +253,6 @@ namespace Icons {
 
     inline bool IsKnownIcon(const std::string& name) {
         const std::string resolved = ResolveLucideName(name);
-        if (IconRegistry::Get().HasIcon(name) || IconRegistry::Get().HasIcon(resolved)) {
-            return true;
-        }
         return !resolved.empty() && resolved != "circle-help";
     }
 }

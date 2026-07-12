@@ -49,10 +49,14 @@ public:
     void RegisterFontPath(std::string_view name, std::string_view resolvedPath);
     void RegisterShaderPath(std::string_view name, std::string_view resolvedPath);
     void RegisterIconPath(std::string_view name, std::string_view resolvedPath);
+    void RegisterIconAtlasRoot(std::string_view resolvedPath);
+    void RegisterIconMetaPath(std::string_view resolvedPath);
 
     std::string GetFontPath(std::string_view name) const;
     std::string GetShaderPath(std::string_view name) const;
     std::string GetIconPath(std::string_view name) const;
+    std::string GetIconAtlasRoot() const;
+    std::string GetIconMetaPath() const;
 
     /// Verifies default editor assets on disk and registers their resolved paths.
     /// Returns false if any required asset is missing.
@@ -74,6 +78,8 @@ private:
     std::unordered_map<std::string, std::string> m_FontPaths;
     std::unordered_map<std::string, std::string> m_ShaderPaths;
     std::unordered_map<std::string, std::string> m_IconPaths;
+    std::string m_IconAtlasRoot;
+    std::string m_IconMetaPath;
     std::vector<AssetLoadResult> m_LastLoadResults;
 };
 

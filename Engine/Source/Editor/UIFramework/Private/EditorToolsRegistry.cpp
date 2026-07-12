@@ -134,8 +134,17 @@ void EditorToolsRegistry::RecordToolUsage(std::string_view toolId) {
 }
 
 void EditorToolsRegistry::ToggleFavorite(std::string_view toolId) {
-    const std::string id(toolId);
-    m_Favorites[id] = !IsFavorite(toolId);
+    SetFavorite(toolId, !IsFavorite(toolId));
+}
+
+void EditorToolsRegistry::SetFavorite(std::string_view toolId, bool enabled) {
+    m_Favorites[std::string(toolId)] = enabled;
+}
+
+void EditorToolsRegistry::LoadFavorites(const std::unordered_map<std::string, bool>& favorites) {
+    for (const auto& [toolId, enabled] : favorites) {
+        m_Favorites[toolId] = enabled;
+    }
 }
 
 bool EditorToolsRegistry::IsFavorite(std::string_view toolId) const {

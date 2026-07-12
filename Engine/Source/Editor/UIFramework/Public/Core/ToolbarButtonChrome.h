@@ -11,6 +11,7 @@ namespace ToolbarButtonChrome {
 
 UIFRAMEWORK_API float ButtonRadius(float uiScale);
 UIFRAMEWORK_API float IconSize(float uiScale);
+UIFRAMEWORK_API float PrimaryIconSize(float uiScale);
 UIFRAMEWORK_API float HorizontalPad(float uiScale);
 UIFRAMEWORK_API float ChipHorizontalPad(float uiScale);
 
@@ -26,6 +27,13 @@ UIFRAMEWORK_API void PaintIconButton(
     float uiScale);
 
 UIFRAMEWORK_API void PaintChipDropdown(
+    PaintContext& context,
+    const Rect& rect,
+    float hoverAnim,
+    float pressStrength,
+    float uiScale);
+
+UIFRAMEWORK_API void PaintViewportChip(
     PaintContext& context,
     const Rect& rect,
     float hoverAnim,

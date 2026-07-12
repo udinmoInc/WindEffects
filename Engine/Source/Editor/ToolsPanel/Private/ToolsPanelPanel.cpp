@@ -29,8 +29,8 @@ std::shared_ptr<Panel> CreateToolsPanel() {
     auto toolsContent = std::make_shared<ToolsPanel>();
     toolsContent->InitializeFromRegistry();
 
-    auto panel = PanelBuilder("Actors")
-        .TabIcon(Icons::LayersName)
+    auto panel = PanelBuilder("Assets")
+        .TabIcon(Icons::CubeName)
         .WithHeaderAction(Icons::LockName, []() {
             auto& modeController = EditorModeController::Get();
             modeController.SetDrawerPinned(!modeController.IsDrawerPinned());

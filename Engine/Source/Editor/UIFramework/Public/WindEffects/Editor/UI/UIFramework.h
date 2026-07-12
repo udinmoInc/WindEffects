@@ -9,6 +9,7 @@
 #include "WindEffects/Editor/UI/Core/Types.h"
 #include "WindEffects/Editor/UI/Theming/IThemeProvider.h"
 #include "WindEffects/Editor/UI/Theming/GraphiteDarkTheme.h"
+#include "WindEffects/Editor/UI/Theming/ThemeToken.h"
 #include "WindEffects/Editor/UI/Resources/IResourceRegistry.h"
 #include "WindEffects/Editor/UI/Events/IEventBus.h"
 #include "WindEffects/Editor/UI/Commands/ICommandRegistry.h"

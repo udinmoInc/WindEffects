@@ -27,6 +27,7 @@
 #include "WindEffects/Editor/UI/Core/WidgetContext.h"
 #include "Rendering/OverlayRenderer.h"
 #include "Rendering/IconRenderer.h"
+#include "Rendering/IconMetrics.h"
 #include "Renderer/Renderer.h"
 #include "Scene/Scene.h"
 
@@ -220,7 +221,9 @@ EditorShellResult EditorShellBuilder::Build(
     toolbar->SetLeftInset(style.Scaled(ResolveThemeMetric(ThemeToken::Space3)));
     toolbar->SetRightInset(style.Scaled(ResolveThemeMetric(ThemeToken::WindowControlWidth) * kWindowControlCount));
     toolbar->SetEdgePadding(style.Scaled(ResolveThemeMetric(ThemeToken::Space2)));
-    toolbar->SetIconSize(toolbarStyle.iconSize > 0.0f ? toolbarStyle.iconSize : ResolveThemeMetric(ThemeToken::IconSizeToolbar) * uiScale);
+    const float toolbarIconTier = static_cast<float>(IconMetrics::NativeIconTierPx(
+        toolbarStyle.iconSize > 0.0f ? toolbarStyle.iconSize : ResolveThemeMetric(ThemeToken::IconSizeToolbar)));
+    toolbar->SetIconSize(toolbarIconTier);
 
     // Actor / object mode selector
     toolbar->AddWidget(std::make_shared<we::programs::editor::EditorModeSelector>());
@@ -256,6 +259,9 @@ EditorShellResult EditorShellBuilder::Build(
     auto playBtn = toolbar->AddTool(Icons::PlayName, "", [](){}, "Play (Alt+P)", false, ToolbarAlignment::Center);
     auto pauseBtn = toolbar->AddTool(Icons::PauseName, "", [](){}, "Pause (Alt+P)", false, ToolbarAlignment::Center);
     auto stopBtn = toolbar->AddTool(Icons::StopName, "", [](){}, "Stop", false, ToolbarAlignment::Center);
+    playBtn->SetButtonStyle(ToolButtonStyle::TransportButton);
+    pauseBtn->SetButtonStyle(ToolButtonStyle::TransportButton);
+    stopBtn->SetButtonStyle(ToolButtonStyle::TransportButton);
 
     // Platform, project, settings (right)
     auto windowsBtn = toolbar->AddTool(Icons::MonitorName, "Windows", [](){}, "Windows", false, ToolbarAlignment::Right);

@@ -1,6 +1,10 @@
 #include "Layout/ScrollLayout.h"
+
 #include "Core/PaintContext.h"
+#include "Core/DPIContext.h"
 #include "WindEffects/Editor/UI/Theming/ThemeAccess.h"
+#include "WindEffects/Editor/UI/Theming/ThemeToken.h"
+
 #include <algorithm>
 
 namespace WindEffects::Editor::UI {
@@ -8,17 +12,40 @@ namespace WindEffects::Editor::UI {
 ScrollLayout::ScrollLayout() {}
 
 void ScrollLayout::SetContent(const std::shared_ptr<Widget>& child) {
-    if (m_Content) RemoveChild(m_Content);
+    if (m_Content) {
+        RemoveChild(m_Content);
+    }
     m_Content = child;
-    AddChild(child);
+    if (m_Content) {
+        AddChild(m_Content);
+    }
+}
+
+float ScrollLayout::ContentHeight() const {
+    return m_Content ? m_Content->GetDesiredSize().height : 0.0f;
+}
+
+float ScrollLayout::WheelStep() const {
+    const float uiScale = std::max(1.0f, DPIContext::GetScale());
+    return ResolveThemeMetric(ThemeToken::ListRowHeight) * uiScale;
+}
+
+void ScrollLayout::SyncScrollMetrics() {
+    m_ContentHeight = ContentHeight();
+    m_MaxScroll = ScrollViewport::MaxScroll(ViewportHeight(), m_ContentHeight);
+    m_Scroll.Sync(ViewportHeight(), m_ContentHeight);
+    m_Metrics = m_Scroll.ComputeMetrics(m_Geometry, m_ContentHeight, std::max(1.0f, DPIContext::GetScale()));
 }
 
 Size ScrollLayout::Measure(const Size& availableSize) {
     m_DesiredSize = availableSize;
 
     if (m_Content && m_Content->IsVisible()) {
-        // Measure with infinite height to find total scrolling size
-        m_Content->Measure(Size{ availableSize.width - m_ScrollBarWidth, 100000.0f });
+        const float uiScale = std::max(1.0f, DPIContext::GetScale());
+        const float contentWidth = std::max(
+            0.0f,
+            availableSize.width - ScrollViewport::ScrollbarWidth(uiScale));
+        m_Content->Measure(Size{ contentWidth, 100000.0f });
     }
 
     return m_DesiredSize;
@@ -26,71 +53,103 @@ Size ScrollLayout::Measure(const Size& availableSize) {
 
 void ScrollLayout::Arrange(const Rect& allottedRect) {
     m_Geometry = allottedRect;
+    SyncScrollMetrics();
 
     if (m_Content && m_Content->IsVisible()) {
-        float contentHeight = m_Content->GetDesiredSize().height;
-        float maxScroll = std::max(0.0f, contentHeight - allottedRect.height);
-        m_ScrollOffset = std::clamp(m_ScrollOffset, 0.0f, maxScroll);
-
-        // Arrange child with its full height offset by scroll offset
         m_Content->Arrange(Rect{
-            allottedRect.x,
-            allottedRect.y - m_ScrollOffset,
-            allottedRect.width - m_ScrollBarWidth,
-            contentHeight
+            m_Metrics.viewport.x,
+            m_Metrics.viewport.y - m_Scroll.offset,
+            m_Metrics.viewport.width,
+            m_ContentHeight
         });
     }
 }
 
 void ScrollLayout::Paint(PaintContext& context) {
-    if (!m_Visible) return;
+    if (!m_Visible) {
+        return;
+    }
 
-    // 1. Push scissor clip rect
-    context.PushClipRect(m_Geometry);
+    SyncScrollMetrics();
 
+    context.PushClipRect(m_Metrics.viewport);
     if (m_Content && m_Content->IsVisible()) {
         m_Content->Paint(context);
     }
-
-    // 2. Pop scissor clip rect
     context.PopClipRect();
 
-    // 3. Draw Scrollbar if content exceeds height
-    if (m_Content && m_Content->IsVisible()) {
-        float contentHeight = m_Content->GetDesiredSize().height;
-        if (contentHeight > m_Geometry.height) {
-            float trackX = m_Geometry.x + m_Geometry.width - m_ScrollBarWidth;
-            float trackY = m_Geometry.y;
-            float trackW = m_ScrollBarWidth;
-            float trackH = m_Geometry.height;
+    m_Scroll.Paint(context, m_Metrics, m_Scroll.IsThumbHovered());
+}
 
-            // Draw track (very dark)
-            context.DrawRect(Rect{ trackX, trackY, trackW, trackH }, ResolveThemeColor(ThemeToken::ScrollbarTrack));
+void ScrollLayout::OnMouseDown(const MouseEvent& event) {
+    SyncScrollMetrics();
+    if (m_Scroll.OnMouseDown(event, m_Metrics, ViewportHeight(), m_ContentHeight)) {
+        Arrange(m_Geometry);
+        return;
+    }
 
-            // Draw thumb
-            float ratio = m_Geometry.height / contentHeight;
-            float thumbH = std::max(20.0f, trackH * ratio);
-            float maxScroll = contentHeight - m_Geometry.height;
-            float scrollRatio = (maxScroll > 0.0f) ? (m_ScrollOffset / maxScroll) : 0.0f;
-            float thumbY = trackY + (trackH - thumbH) * scrollRatio;
+    if (m_Content && m_Metrics.viewport.Contains(event.position)) {
+        m_Content->OnMouseDown(event);
+    }
+}
 
-            context.DrawRect(Rect{ trackX, thumbY, trackW, thumbH }, ResolveThemeColor(ThemeToken::ScrollbarThumb), 2.0f);
-        }
+void ScrollLayout::OnMouseMove(const MouseEvent& event) {
+    SyncScrollMetrics();
+    m_Scroll.OnMouseMove(event, m_Metrics, ViewportHeight(), m_ContentHeight);
+    if (m_Scroll.IsDraggingThumb()) {
+        Arrange(m_Geometry);
+        return;
+    }
+
+    if (m_Content && m_Metrics.viewport.Contains(event.position)) {
+        m_Content->OnMouseMove(event);
+    }
+}
+
+void ScrollLayout::OnMouseUp(const MouseEvent& event) {
+    m_Scroll.OnMouseUp(event);
+    if (m_Content && m_Metrics.viewport.Contains(event.position)) {
+        m_Content->OnMouseUp(event);
     }
 }
 
 void ScrollLayout::OnMouseWheel(const MouseEvent& event) {
-    if (m_Content && m_Content->IsVisible()) {
-        float contentHeight = m_Content->GetDesiredSize().height;
-        float maxScroll = std::max(0.0f, contentHeight - m_Geometry.height);
+    if (!m_Metrics.viewport.Contains(event.position) && !m_Geometry.Contains(event.position)) {
+        return;
+    }
 
-        // Adjust scroll offset (standard scroll speed)
-        m_ScrollOffset -= event.wheelDeltaY * 20.0f;
-        m_ScrollOffset = std::clamp(m_ScrollOffset, 0.0f, maxScroll);
+    SyncScrollMetrics();
+    m_Scroll.ApplyWheel(event.wheelDeltaY, WheelStep(), ViewportHeight(), m_ContentHeight);
+    Arrange(m_Geometry);
+}
 
-        // Re-arrange content instantly
+bool ScrollLayout::ShowsPointerCursor(const Point& position) const {
+    return m_Metrics.showsScrollbar &&
+        (m_Metrics.thumb.Contains(position) || m_Metrics.track.Contains(position));
+}
+
+void ScrollLayout::SetScrollOffset(float offset) {
+    m_Scroll.SetOffset(offset, ViewportHeight(), m_ContentHeight);
+    Arrange(m_Geometry);
+}
+
+bool ScrollLayout::ScrollToOffset(float offset) {
+    const float previous = m_Scroll.offset;
+    m_Scroll.SetOffset(offset, ViewportHeight(), m_ContentHeight);
+    Arrange(m_Geometry);
+    return std::abs(m_Scroll.offset - previous) > 0.01f;
+}
+
+bool ScrollLayout::ScrollToMakeVisible(const Rect& contentRect) {
+    const bool changed = m_Scroll.ScrollToRange(
+        contentRect.y,
+        contentRect.y + contentRect.height,
+        ViewportHeight(),
+        m_ContentHeight);
+    if (changed) {
         Arrange(m_Geometry);
     }
+    return changed;
 }
 
 } // namespace WindEffects::Editor::UI

@@ -2,8 +2,6 @@
 #include "EditorWorkspaceController.h"
 #include "ContentBrowserApi.h"
 #include "Rendering/FontImportService.h"
-#include "WindEffects/Editor/UI/Theming/ThemeAccess.h"
-#include "Widgets/Panel.h"
 #include "Widgets/ContentBrowser.h"
 #include "Widgets/ContentBrowserToolbar.h"
 #include "Widgets/SearchBox.h"
@@ -153,20 +151,10 @@ void ShutdownContentBrowserService() {
 
 std::shared_ptr<WindEffects::Editor::UI::Panel> CreateContentBrowserPanel() {
     auto title = we::core::Localization::Get().GetString("Panel_ContentBrowser", "Content Browser");
-    auto panel = std::make_shared<WindEffects::Editor::UI::Panel>(std::string(title));
-    panel->SetHeaderHeight(ResolveThemeMetric(ThemeToken::PanelHeaderHeight));
 
-    panel->AddHeaderAction(WindEffects::Editor::UI::Icons::XName, []() {
-        if (EditorWorkspaceController::Get().IsContentBrowserExpanded()) {
-            EditorWorkspaceController::Get().ToggleContentBrowserExpanded();
-        }
-    });
+    auto panelToolbar = WindEffects::Editor::UI::ContentBrowserToolbarControls::Create(
+        WindEffects::Editor::UI::ContentBrowserToolbarControls::ToolbarMode::Full);
 
-    // Panel toolbar with global actions
-    auto panelToolbar = WindEffects::Editor::UI::ContentBrowserToolbarControls::Create(WindEffects::Editor::UI::ContentBrowserToolbarControls::ToolbarMode::Full);
-    panel->SetToolbar(panelToolbar);
-
-    // Left sidebar with fixed width (280px) for folder tree
     auto folderTree = std::make_shared<WindEffects::Editor::UI::TreeView>();
     folderTree->SetExplorerStyle(true);
     folderTree->SetItemHeight(26.0f);
@@ -190,7 +178,16 @@ std::shared_ptr<WindEffects::Editor::UI::Panel> CreateContentBrowserPanel() {
     contentSplitter->SetFirstChild(folderTree);
     contentSplitter->SetSecondChild(rightPane);
     contentSplitter->SetResizeMode(WindEffects::Editor::UI::Splitter::ResizeMode::FixedFirst);
-    panel->SetContent(contentSplitter);
+
+    auto panel = PanelBuilder(title)
+        .TabIcon(Icons::FolderName)
+        .WithCloseButton([]() {
+            if (EditorWorkspaceController::Get().IsContentBrowserExpanded()) {
+                EditorWorkspaceController::Get().ToggleContentBrowserExpanded();
+            }
+        })
+        .Toolbar(panelToolbar)
+        .Content(contentSplitter);
 
     RefreshFolderTree(folderTree);
     WireContentBrowser(contentBrowser, statusBar, nullptr);

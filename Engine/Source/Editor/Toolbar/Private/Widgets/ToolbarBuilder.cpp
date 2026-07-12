@@ -12,6 +12,11 @@ ToolbarBuilder& ToolbarBuilder::IconSize(float size) {
     return *this;
 }
 
+ToolbarBuilder& ToolbarBuilder::Floating() {
+    m_Floating = true;
+    return *this;
+}
+
 ToolbarBuilder& ToolbarBuilder::Item(
     std::string_view icon,
     std::string_view label,
@@ -69,6 +74,7 @@ std::shared_ptr<Toolbar> ToolbarBuilder::Build() {
     auto toolbar = std::make_shared<Toolbar>();
     toolbar->SetHeight(m_Height);
     toolbar->SetIconSize(m_IconSize);
+    toolbar->SetFloating(m_Floating);
 
     for (const auto& spec : m_Items) {
         if (spec.icon == "__separator__") {

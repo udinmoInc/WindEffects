@@ -16,6 +16,7 @@ public:
 
     void Construct() override;
     Size Measure(const Size& availableSize) override;
+    void Arrange(const Rect& allottedRect) override;
     void Paint(PaintContext& context) override;
 
     void SetHeight(float height) { m_Height = height; }
@@ -36,6 +37,9 @@ private:
 
     std::function<void(int)> m_OnFooterTabChanged;
     std::function<void()> m_OnOutputLogClicked;
+
+    std::shared_ptr<HorizontalBox> m_LeftBox;
+    std::shared_ptr<HorizontalBox> m_RightBox;
 
     std::shared_ptr<class ToolButton> m_AssetsPanelButton;
     std::shared_ptr<class ToolButton> m_DiagnosticsPanelButton;

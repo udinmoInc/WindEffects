@@ -24,6 +24,11 @@ PanelBuilder& PanelBuilder::Transparent() {
     return *this;
 }
 
+PanelBuilder& PanelBuilder::FloatingToolbar() {
+    m_Panel->SetFloatingToolbar(true);
+    return *this;
+}
+
 PanelBuilder& PanelBuilder::Collapsible(bool collapsible) {
     m_Panel->SetCollapsible(collapsible);
     return *this;

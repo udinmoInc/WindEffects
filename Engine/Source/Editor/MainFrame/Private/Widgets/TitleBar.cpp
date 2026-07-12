@@ -8,6 +8,7 @@
 #include "Widgets/Panel.h"
 #include "Widgets/ToolButton.h"
 #include "Core/DPIContext.h"
+#include "Rendering/IconMetrics.h"
 #include <SDL3/SDL.h>
 #include <algorithm>
 #include <cmath>
@@ -74,10 +75,10 @@ namespace {
     public:
         static constexpr float kHeight   = kHeaderControlHeight;
         static constexpr float kPadH     = 8.0f;
-        static constexpr float kIconSize = 14.0f;
+        static constexpr float kIconSize = 16.0f;
         static constexpr float kIconGap  = 8.0f;
         static constexpr float kChevGap  = 8.0f;
-        static constexpr float kChevSize = 10.0f;
+        static constexpr float kChevSize = 16.0f;
         static constexpr float kTextSize = 12.0f;
         static constexpr const char* kProjectName = "MyProject";
 
@@ -114,20 +115,20 @@ namespace {
             }
 
             const float centerY = m_Geometry.y + m_Geometry.height * 0.5f;
-            const float iconSize = kIconSize * uiScale;
+            const float iconSize = static_cast<float>(IconMetrics::NativeIconTierPx(kIconSize));
             const float textSize = kTextSize * uiScale;
 
             IconPainter::DrawIcon(context, Icons::PackageName,
                 Rect{ m_Geometry.x + kPadH * uiScale, centerY - iconSize * 0.5f, iconSize, iconSize },
                 ThemeColor(ThemeToken::IconDefault));
 
-            const float textX = m_Geometry.x + (kPadH + kIconSize + kIconGap) * uiScale;
+            const float textX = m_Geometry.x + (kPadH + iconSize + kIconGap) * uiScale;
             context.DrawText(kProjectName,
                 Point{ textX, centerY - textSize * 0.5f },
                 ThemeColor(ThemeToken::TextPrimary), textSize);
 
-            const float chevSize = kChevSize * uiScale;
-            const float chevX = m_Geometry.x + m_Geometry.width - (kPadH + kChevSize) * uiScale;
+            const float chevSize = static_cast<float>(IconMetrics::NativeIconTierPx(kChevSize));
+            const float chevX = m_Geometry.x + m_Geometry.width - (kPadH + chevSize) * uiScale;
             IconPainter::DrawIcon(context, Icons::ChevronDownName,
                 Rect{ chevX, centerY - chevSize * 0.5f, chevSize, chevSize },
                 ThemeColor(ThemeToken::IconDefault));
@@ -171,7 +172,7 @@ void TitleBar::Construct() {
     auto minimizeBtn = std::make_shared<ToolButton>(Icons::MinimizeName, "", [this]() {
         if (m_Window) SDL_MinimizeWindow(m_Window);
     });
-    auto maximizeBtn = std::make_shared<ToolButton>(Icons::StopName, "", [this]() {
+    auto maximizeBtn = std::make_shared<ToolButton>(Icons::MaximizeName, "", [this]() {
         if (m_Window) {
             auto flags = SDL_GetWindowFlags(m_Window);
             if (flags & SDL_WINDOW_MAXIMIZED) {
@@ -294,7 +295,7 @@ void TitleBar::UpdateMaximizeIcon() {
     if (flags & SDL_WINDOW_MAXIMIZED) {
         toolBtn->SetIcon(Icons::RestoreName);
     } else {
-        toolBtn->SetIcon(Icons::StopName);
+        toolBtn->SetIcon(Icons::MaximizeName);
     }
 }
 

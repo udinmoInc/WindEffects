@@ -58,6 +58,8 @@ public:
     void SetStyle(const WidgetStyle& style) { m_Style = style; }
     void SetTransparentBackground(bool transparent) { m_TransparentBackground = transparent; }
     bool IsTransparentBackground() const { return m_TransparentBackground; }
+    void SetFloatingToolbar(bool floating) { m_FloatingToolbar = floating; }
+    bool IsFloatingToolbar() const { return m_FloatingToolbar; }
 
     void SetTabIcon(const std::string& iconName) { m_TabIconName = iconName; }
     [[nodiscard]] const std::string& GetTabIcon() const { return m_TabIconName; }
@@ -91,9 +93,10 @@ private:
     int m_HoveredActionIndex = -1;
     int m_PressedActionIndex = -1;
     bool m_TransparentBackground = false;
+    bool m_FloatingToolbar = false;
 
     float m_HeaderHeight = 28.0f; // Thin header standard
-    float m_ActionIconSize = 14.0f;
+    float m_ActionIconSize = 16.0f;
     float m_ActionSpacing = 4.0f;
 
     Rect m_HeaderRect;

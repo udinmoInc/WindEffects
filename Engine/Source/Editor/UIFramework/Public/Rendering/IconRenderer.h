@@ -5,12 +5,12 @@
 #include <volk.h>
 #include <memory>
 #include <unordered_map>
+#include <vector>
 #include "Core/Geometry.h"
 #include "Core/Icon.h"
-#include "WindEffects/Editor/UI/Theming/ThemeToken.h"
+#include "Rendering/Icons/IconManager.h"
 
 #include "Core/DeviceContext.h"
-#include "Rendering/Icons/ISvgRasterizer.h"
 #include "Rendering/UiGpuUpload.h"
 
 namespace we::runtime::renderer {
@@ -19,7 +19,6 @@ class ResourceManager;
 
 namespace WindEffects::Editor::UI {
 
-// Cached icon texture
 struct IconTexture {
     VkImage image = VK_NULL_HANDLE;
     VkDeviceMemory memory = VK_NULL_HANDLE;
@@ -30,54 +29,45 @@ struct IconTexture {
     uint32_t height = 0;
 };
 
-// Icon renderer with caching support
 class UIFRAMEWORK_API IconRenderer {
 public:
     IconRenderer();
     ~IconRenderer();
-    
+
     bool Init(we::runtime::renderer::DeviceContext* context,
               we::runtime::renderer::ResourceManager* resources,
               UiGpuUpload* gpuUpload,
               VkDescriptorPool descriptorPool,
               VkDescriptorSetLayout textureLayout);
     void Shutdown();
-    
-    // Get or create icon texture at specified size (path or lucide name).
-    VkDescriptorSet GetIcon(const std::string& iconName, uint32_t size);
+
+    void SetIconManager(IconManager* iconManager) { m_IconManager = iconManager; }
+
+    [[nodiscard]] IconDrawInfo GetLucideIconDrawInfo(
+        const std::string& iconName,
+        uint32_t size,
+        const Color& color,
+        float strokeWidth = 0.0f) const;
+
     VkDescriptorSet GetLucideIcon(const std::string& iconName, uint32_t size, const Color& color, float strokeWidth = 0.0f);
-
-    // Create a texture from raw RGBA bitmap data (for thumbnails)
+    VkDescriptorSet GetIcon(const std::string& iconName, uint32_t size);
     VkDescriptorSet CreateTextureFromBitmap(const std::vector<uint8_t>& bitmap, uint32_t width, uint32_t height);
-    
-    // Clear icon cache
-    void ClearCache();
-    
-private:
-#pragma warning(push)
-#pragma warning(disable: 4251)
-    static std::string ResolveLucideSvgPath(const std::string& lucideName);
 
-    // Create Vulkan texture from bitmap
+    void ClearCache();
+
+private:
     bool CreateTexture(const std::vector<uint8_t>& bitmap, uint32_t width, uint32_t height, IconTexture& outTexture);
-    
-    // Destroy texture resources
     void DestroyTexture(IconTexture& texture);
-    
+
     we::runtime::renderer::DeviceContext* m_Context = nullptr;
     we::runtime::renderer::ResourceManager* m_Resources = nullptr;
     UiGpuUpload* m_GpuUpload = nullptr;
     VkDescriptorPool m_DescriptorPool = VK_NULL_HANDLE;
     VkDescriptorSetLayout m_TextureLayout = VK_NULL_HANDLE;
-    
-    std::unique_ptr<Icons::ISvgRasterizer> m_SvgRasterizer;
+    IconManager* m_IconManager = nullptr;
 
-    // Icon cache: key = "iconName_size", value = texture
-    std::unordered_map<std::string, IconTexture> m_Cache;
-    
-    // Default icon color
+    std::unordered_map<std::string, IconTexture> m_ThumbnailCache;
     Color m_DefaultColor = Color::White();
-#pragma warning(pop)
 };
 
 } // namespace WindEffects::Editor::UI

@@ -4,6 +4,7 @@
 
 #include "Core/Widget.h"
 #include "Core/Style.h"
+#include "Layout/ScrollViewport.h"
 #include <string>
 #include <functional>
 #include <vector>
@@ -57,7 +58,9 @@ public:
 
     void OnMouseDown(const MouseEvent& event) override;
     void OnMouseMove(const MouseEvent& event) override;
+    void OnMouseUp(const MouseEvent& event) override;
     void OnMouseWheel(const MouseEvent& event) override;
+    bool ShowsPointerCursor(const Point& position) const override;
 
     // Property management
     void AddProperty(const Property& property);
@@ -86,13 +89,16 @@ private:
 
     void BuildCategories();
     void CalculateGeometries();
+    void SyncScrollMetrics();
     Property* GetPropertyAtPosition(const Point& pos);
     CategoryGroup* GetCategoryAtPosition(const Point& pos);
 
     std::vector<Property> m_Properties;
     std::vector<CategoryGroup> m_Categories;
-    
-    float m_ScrollOffset = 0.0f;
+
+    ScrollViewport m_Scroll;
+    ScrollViewportMetrics m_ScrollMetrics{};
+    float m_ContentHeight = 0.0f;
     float m_PropertyHeight = 22.0f;
     float m_LabelWidth = 120.0f;
     float m_CategoryHeaderHeight = 22.0f;
