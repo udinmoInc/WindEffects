@@ -20,24 +20,19 @@ Color Hex(uint8_t r, uint8_t g, uint8_t b, float a = 1.0f) {
 Color GraphiteDarkTheme::GetColor(ThemeToken token) const {
     switch (token) {
     // ── Material stack (darkest → lightest) ──────────────────────────────────
-    // Editor chrome base — deepest charcoal layer
-    case ThemeToken::WindowBackground:              return Hex(0x16,0x17,0x18);
-    case ThemeToken::ViewportBackground:            return Hex(0x16,0x17,0x18);
-    case ThemeToken::DockAreaBackground:            return Hex(0x16,0x17,0x18);
+    case ThemeToken::WindowBackground:              return Hex(0x16,0x16,0x16);
+    case ThemeToken::ViewportBackground:            return Hex(0x16,0x16,0x16);
+    case ThemeToken::DockAreaBackground:            return Hex(0x16,0x16,0x16);
+    case ThemeToken::WorkspaceBackground:           return Hex(0x16,0x16,0x16);
+    case ThemeToken::DisabledBackground:            return Hex(0x16,0x16,0x16);
 
-    // Workspace — main editor canvas behind dock panels
-    case ThemeToken::WorkspaceBackground:           return Hex(0x16,0x17,0x18);
-    case ThemeToken::DisabledBackground:            return Hex(0x16,0x17,0x18);
+    case ThemeToken::SearchBoxBackground:           return Hex(0x1A,0x1A,0x1A);
+    case ThemeToken::InputBackground:               return Hex(0x1A,0x1A,0x1A);
+    case ThemeToken::ScrollbarTrack:                return Hex(0x16,0x16,0x16);
 
-    // Recessed inputs — below panel surface
-    case ThemeToken::SearchBoxBackground:           return Hex(0x1A,0x1A,0x1E);
-    case ThemeToken::InputBackground:               return Hex(0x1A,0x1A,0x1E);
-    case ThemeToken::ScrollbarTrack:                return Hex(0x16,0x16,0x1A);
-
-    // Panel body — one step above workspace
-    case ThemeToken::PanelBackground:               return Hex(0x20,0x21,0x24);
-    case ThemeToken::PanelContentBackground:        return Hex(0x20,0x21,0x24);
-    case ThemeToken::ContentBrowserBackground:      return Hex(0x20,0x21,0x24);
+    case ThemeToken::PanelBackground:               return Hex(0x1D,0x1D,0x1D);
+    case ThemeToken::PanelContentBackground:        return Hex(0x1D,0x1D,0x1D);
+    case ThemeToken::ContentBrowserBackground:      return Hex(0x1D,0x1D,0x1D);
     case ThemeToken::ContentBrowserFolderBody:      return Hex(0xB8,0x95,0x48);
 
     // Floating surfaces — elevation via luminance + shadow tokens
@@ -49,7 +44,7 @@ Color GraphiteDarkTheme::GetColor(ThemeToken token) const {
         
 
     // Panel chrome — header strips inside dock panels (not top window chrome)
-    case ThemeToken::HeaderBackground:              return Hex(0x1A,0x1B,0x1E);
+    case ThemeToken::HeaderBackground:              return Hex(0x1A,0x1A,0x1A);
     case ThemeToken::ContentBrowserFolderPrimary:   return Hex(0xC9,0xA9,0x62);
     
 
@@ -71,39 +66,39 @@ Color GraphiteDarkTheme::GetColor(ThemeToken token) const {
     // ── Borders (minimal — soft luminance separators) ────────────────────────
     case ThemeToken::Separator:                     return Hex(0xFF,0xFF,0xFF,0.08f);
     case ThemeToken::BorderDark:                    return Hex(0xFF,0xFF,0xFF,0.04f);
-    case ThemeToken::BorderDefault:                 return Hex(0x32,0x33,0x38);
+    case ThemeToken::BorderDefault:                 return Hex(0x30,0x30,0x30);
     case ThemeToken::BorderLight:                   return Hex(0xFF,0xFF,0xFF,0.16f);
     
     case ThemeToken::ContentBrowserFolderEdge:      return Hex(0x7A,0x65,0x32);
     case ThemeToken::ContentBrowserFolderHighlight: return Hex(0xEB,0xD8,0x9A);
 
     // ── Interactive material states ────────────────────────────────────────
-    case ThemeToken::HoverBackground:               return Hex(0x26,0x27,0x2A);
-    case ThemeToken::ContentBrowserHoverBackground: return Hex(0x26,0x27,0x2A);
+    case ThemeToken::HoverBackground:               return Hex(0x2B,0x2B,0x2B);
+    case ThemeToken::ContentBrowserHoverBackground: return Hex(0x2B,0x2B,0x2B);
     case ThemeToken::ButtonPrimaryBackground:       return Hex(0x23,0x23,0x26);
     
     case ThemeToken::PressedBackground:             return Hex(0x34,0x36,0x3B);
     case ThemeToken::ButtonPrimaryPressed:          return Hex(0x34,0x36,0x3B);
     
-    case ThemeToken::SelectedBackground:            return Hex(0x34,0x36,0x3B);
-    case ThemeToken::ActiveBackground:              return Hex(0x34,0x36,0x3B);
+    case ThemeToken::SelectedBackground:            return Hex(0x34,0x34,0x34);
+    case ThemeToken::ActiveBackground:              return Hex(0x23,0x23,0x23);
     case ThemeToken::ButtonPrimaryHover:            return Hex(0x2E,0x2F,0x33);
     case ThemeToken::ContentBrowserFolderTab:       return Hex(0xD4,0xBC,0x78);
 
     // ── Typography ─────────────────────────────────────────────────────────
-    case ThemeToken::TextPrimary:                   return Hex(0xF5,0xF5,0xF5);
-    case ThemeToken::TextWindowLabel:               return Hex(0xF5,0xF5,0xF5);
-    case ThemeToken::CodeForeground:                return Hex(0xF5,0xF5,0xF5);
-    
-    case ThemeToken::TextSecondary:                 return Hex(0x98,0x98,0xA0);
+    case ThemeToken::TextPrimary:                   return Hex(0xF0,0xF0,0xF0);
+    case ThemeToken::TextWindowLabel:               return Hex(0xF0,0xF0,0xF0);
+    case ThemeToken::CodeForeground:                return Hex(0xF0,0xF0,0xF0);
+
+    case ThemeToken::TextSecondary:                 return Hex(0xA8,0xA8,0xA8);
     case ThemeToken::TextMuted:                     return Hex(0x70,0x70,0x78);
     case ThemeToken::SearchPlaceholder:             return Hex(0x70,0x70,0x78);
     case ThemeToken::TextDisabled:                  return Hex(0x58,0x58,0x60);
 
     // ── Icons ──────────────────────────────────────────────────────────────
-    case ThemeToken::IconDefault:                   return Hex(0x9E,0xA3,0xAA);
-    case ThemeToken::IconHover:                     return Hex(0xD5,0xD7,0xDB);
-    case ThemeToken::IconActive:                    return Hex(0xD5,0xD7,0xDB);
+    case ThemeToken::IconDefault:                   return Hex(0xCF,0xCF,0xCF);
+    case ThemeToken::IconHover:                     return Hex(0xE8,0xE8,0xE8);
+    case ThemeToken::IconActive:                    return Hex(0xF0,0xF0,0xF0);
     case ThemeToken::IconDisabled:                  return Hex(0x58,0x58,0x60);
     // ── Accent & semantic ──────────────────────────────────────────────────
     case ThemeToken::AccentPrimary:                 return Hex(0xF0,0xA4,0x2A);
@@ -111,7 +106,7 @@ Color GraphiteDarkTheme::GetColor(ThemeToken token) const {
     
     case ThemeToken::BorderFocus:                   return Hex(0xF0,0xA4,0x2A);
     case ThemeToken::ActiveTabLine:                 return Hex(0xF0,0xA4,0x2A,0.80f);
-    case ThemeToken::SelectionHighlight:            return Hex(0xF0,0xA4,0x2A,0.16f);
+    case ThemeToken::SelectionHighlight:            return Hex(0x34,0x34,0x34,0.85f);
     case ThemeToken::LinkForeground:                return Hex(0xF0,0xA4,0x2A);
 
     case ThemeToken::PlayForeground:                return Hex(0xF0,0xA4,0x2A);
@@ -159,27 +154,29 @@ float GraphiteDarkTheme::GetMetric(ThemeToken token) const {
     case ThemeToken::TextSizeSmall: return 11.0f;
     case ThemeToken::TextSizeCategory: return 12.0f;
     case ThemeToken::BorderWidth: return 1.0f;
-    case ThemeToken::PanelHeaderHeight: return 28.0f;
-    case ThemeToken::PanelTabHeight: return 28.0f;
-    case ThemeToken::PanelToolbarHeight: return 28.0f;
-    case ThemeToken::ListRowHeight: return 22.0f;
-    case ThemeToken::CategoryHeaderHeight: return 22.0f;
+    case ThemeToken::PanelHeaderHeight: return 32.0f;
+    case ThemeToken::PanelTabHeight: return 32.0f;
+    case ThemeToken::PanelToolbarHeight: return 32.0f;
+    case ThemeToken::ListRowHeight: return 32.0f;
+    case ThemeToken::CategoryHeaderHeight: return 28.0f;
     case ThemeToken::TitleBarHeight: return 34.0f;
-    case ThemeToken::HeaderControlHeight: return 24.0f;
+    case ThemeToken::HeaderControlHeight: return 32.0f;
     case ThemeToken::WindowControlWidth: return 40.0f;
-    case ThemeToken::ToolbarHeight: return 40.0f;
-    case ThemeToken::SearchBoxHeight: return 22.0f;
-    case ThemeToken::IconButtonSize: return 24.0f;
-    case ThemeToken::ButtonHeight: return 24.0f;
-    case ThemeToken::NavigationButtonSize: return 24.0f;
-    case ThemeToken::IconSizeSearch: return 14.0f;
+    case ThemeToken::ToolbarHeight: return 44.0f;
+    case ThemeToken::SearchBoxHeight: return 28.0f;
+    case ThemeToken::IconButtonSize: return 32.0f;
+    case ThemeToken::ButtonHeight: return 32.0f;
+    case ThemeToken::NavigationButtonSize: return 32.0f;
+    case ThemeToken::IconSizeSearch: return 16.0f;
     case ThemeToken::IconSizeToolbar: return 16.0f;
-    case ThemeToken::IconSizeTree: return 14.0f;
+    case ThemeToken::IconSizePrimary: return 16.0f;
+    case ThemeToken::IconSizeTree: return 16.0f;
     case ThemeToken::IconSizeNavigation: return 16.0f;
     case ThemeToken::IconButtonRadius: return 6.0f;
     case ThemeToken::ButtonPaddingHorizontal: return 8.0f;
     case ThemeToken::ButtonSpacing: return 4.0f;
     case ThemeToken::ButtonGroupSpacing: return 10.0f;
+    case ThemeToken::ScrollbarWidth: return 10.0f;
     case ThemeToken::Space1: return 4.0f;
     case ThemeToken::Space2: return 8.0f;
     case ThemeToken::Space3: return 12.0f;

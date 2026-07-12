@@ -620,7 +620,7 @@ public:
         WindEffects::Editor::UI::Color iconColor = WindEffects::Editor::UI::ToolbarButtonChrome::ResolveIconColor(
             m_HoverAnim, pressStrength, false);
 
-        WindEffects::Editor::UI::IconPainter::DrawIcon(context, WindEffects::Editor::UI::Icons::ToolbarEnvironmentName,
+        WindEffects::Editor::UI::IconPainter::DrawIcon(context, WindEffects::Editor::UI::Icons::GlobeName,
             WindEffects::Editor::UI::Rect{ m_Geometry.x + padH, centerY - iconSize * 0.5f, iconSize, iconSize }, iconColor);
 
         const float chevSize = 8.0f * uiScale;

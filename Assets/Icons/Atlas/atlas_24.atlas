@@ -1,0 +1,111 @@
+
+atlas_24.png
+size: 210, 54
+format: RGBA8888
+filter: Nearest, Nearest
+repeat: none
+Icons_Close
+  rotate: false
+  xy: 2, 28
+  size: 24, 24
+  orig: 24, 24
+  offset: 0, 0
+  index: 24
+Icons_Cursor
+  rotate: false
+  xy: 2, 2
+  size: 24, 24
+  orig: 24, 24
+  offset: 0, 0
+  index: 24
+Icons_Grid
+  rotate: false
+  xy: 28, 28
+  size: 24, 24
+  orig: 24, 24
+  offset: 0, 0
+  index: 24
+Icons_Info
+  rotate: false
+  xy: 28, 2
+  size: 24, 24
+  orig: 24, 24
+  offset: 0, 0
+  index: 24
+Icons_Move
+  rotate: false
+  xy: 54, 28
+  size: 24, 24
+  orig: 24, 24
+  offset: 0, 0
+  index: 24
+Icons_Object
+  rotate: false
+  xy: 54, 2
+  size: 24, 24
+  orig: 24, 24
+  offset: 0, 0
+  index: 24
+Icons_Play
+  rotate: false
+  xy: 80, 28
+  size: 24, 24
+  orig: 24, 24
+  offset: 0, 0
+  index: 24
+Icons_Plus
+  rotate: false
+  xy: 80, 2
+  size: 24, 24
+  orig: 24, 24
+  offset: 0, 0
+  index: 24
+Icons_Redo
+  rotate: false
+  xy: 106, 28
+  size: 24, 24
+  orig: 24, 24
+  offset: 0, 0
+  index: 24
+Icons_Rotate
+  rotate: false
+  xy: 106, 2
+  size: 24, 24
+  orig: 24, 24
+  offset: 0, 0
+  index: 24
+Icons_Scale
+  rotate: false
+  xy: 132, 28
+  size: 24, 24
+  orig: 24, 24
+  offset: 0, 0
+  index: 24
+Icons_Search
+  rotate: false
+  xy: 132, 2
+  size: 24, 24
+  orig: 24, 24
+  offset: 0, 0
+  index: 24
+Icons_Settings
+  rotate: false
+  xy: 158, 28
+  size: 24, 24
+  orig: 24, 24
+  offset: 0, 0
+  index: 24
+Icons_Stop
+  rotate: false
+  xy: 158, 2
+  size: 24, 24
+  orig: 24, 24
+  offset: 0, 0
+  index: 24
+Icons_Undo
+  rotate: false
+  xy: 184, 28
+  size: 24, 24
+  orig: 24, 24
+  offset: 0, 0
+  index: 24

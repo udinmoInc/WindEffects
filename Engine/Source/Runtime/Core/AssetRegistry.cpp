@@ -45,6 +45,14 @@ void AssetRegistry::RegisterIconPath(std::string_view name, std::string_view res
     m_IconPaths[std::string(name)] = std::string(resolvedPath);
 }
 
+void AssetRegistry::RegisterIconAtlasRoot(std::string_view resolvedPath) {
+    m_IconAtlasRoot = std::string(resolvedPath);
+}
+
+void AssetRegistry::RegisterIconMetaPath(std::string_view resolvedPath) {
+    m_IconMetaPath = std::string(resolvedPath);
+}
+
 std::string AssetRegistry::GetFontPath(std::string_view name) const {
     auto it = m_FontPaths.find(std::string(name));
     return it != m_FontPaths.end() ? it->second : std::string{};
@@ -58,6 +66,14 @@ std::string AssetRegistry::GetShaderPath(std::string_view name) const {
 std::string AssetRegistry::GetIconPath(std::string_view name) const {
     auto it = m_IconPaths.find(std::string(name));
     return it != m_IconPaths.end() ? it->second : std::string{};
+}
+
+std::string AssetRegistry::GetIconAtlasRoot() const {
+    return m_IconAtlasRoot;
+}
+
+std::string AssetRegistry::GetIconMetaPath() const {
+    return m_IconMetaPath;
 }
 
 std::string AssetRegistry::ResolveAssetPath(const std::vector<std::string>& candidates) {
@@ -152,6 +168,24 @@ bool AssetRegistry::LoadDefaultEditorAssets() {
         }},
     };
 
+    const std::vector<std::pair<std::string, std::vector<std::string>>> iconAtlases = {
+        {"Icon_AtlasRoot", {
+            "Assets/Icons/Atlas",
+            "Icons/Atlas",
+            "../Assets/Icons/Atlas",
+            "Build/Output/Win64/Shipping/Assets/Icons/Atlas"
+        }},
+    };
+
+    const std::vector<std::pair<std::string, std::vector<std::string>>> iconMeta = {
+        {"Icon_Meta", {
+            "Assets/Icons/Atlas/icons.weiconmeta",
+            "Icons/Atlas/icons.weiconmeta",
+            "../Assets/Icons/Atlas/icons.weiconmeta",
+            "Build/Output/Win64/Shipping/Assets/Icons/Atlas/icons.weiconmeta"
+        }},
+    };
+
     bool allRequiredFound = true;
 
     for (const auto& [name, paths] : fonts) {
@@ -187,7 +221,28 @@ bool AssetRegistry::LoadDefaultEditorAssets() {
             RegisterIconPath(name, result.resolvedPath);
             HE_INFO("[Assets]   Icon source '" + name + "' -> " + result.resolvedPath);
         } else {
-            HE_ERROR("[Assets]   MISSING icon source '" + name + "'");
+            HE_INFO("[Assets]   Optional icon source '" + name + "' not found (offline import only)");
+        }
+    }
+
+    for (const auto& [name, paths] : iconAtlases) {
+        auto result = TryLoadAsset(name, paths);
+        if (result.found) {
+            RegisterIconAtlasRoot(result.resolvedPath);
+            HE_INFO("[Assets]   Icon atlas root '" + name + "' -> " + result.resolvedPath);
+        } else {
+            HE_ERROR("[Assets]   MISSING icon atlas root '" + name + "'");
+            allRequiredFound = false;
+        }
+    }
+
+    for (const auto& [name, paths] : iconMeta) {
+        auto result = TryLoadAsset(name, paths);
+        if (result.found) {
+            RegisterIconMetaPath(result.resolvedPath);
+            HE_INFO("[Assets]   Icon meta '" + name + "' -> " + result.resolvedPath);
+        } else {
+            HE_ERROR("[Assets]   MISSING icon meta '" + name + "'");
             allRequiredFound = false;
         }
     }
@@ -202,6 +257,8 @@ void AssetRegistry::Clear() {
     m_FontPaths.clear();
     m_ShaderPaths.clear();
     m_IconPaths.clear();
+    m_IconAtlasRoot.clear();
+    m_IconMetaPath.clear();
     m_LastLoadResults.clear();
 }
 

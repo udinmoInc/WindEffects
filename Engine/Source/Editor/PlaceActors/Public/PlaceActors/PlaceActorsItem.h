@@ -3,6 +3,7 @@
 #include "PlaceActors/PlaceActorsTypes.h"
 #include "Core/PaintContext.h"
 #include "Core/Geometry.h"
+#include <string>
 
 namespace we::programs::editor {
 
@@ -34,7 +35,9 @@ public:
                           float hoverAnim,
                           float pressAnim,
                           bool selected,
-                          bool favorite);
+                          bool favorite,
+                          const std::string& searchQuery = {},
+                          float revealAnim = 1.0f);
 };
 
 } // namespace we::programs::editor

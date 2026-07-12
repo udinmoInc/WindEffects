@@ -1,44 +1,80 @@
 #include "WindEffects/Editor/EditorSDK.h"
 #include "ViewportToolbarState.h"
-#include "Widgets/ToolbarBuilder.h"
+#include "Widgets/Toolbar.h"
+#include "Widgets/ToolButton.h"
 #include "Widgets/Label.h"
 #include "WindEffects/Editor/UI/Theming/ThemeAccess.h"
+
+#include <functional>
 
 namespace we::programs::editor {
 using namespace WindEffects::Editor::UI;
 
+namespace {
+
+std::shared_ptr<ToolButton> MakeViewportDropdown(
+    const char* icon,
+    const std::string& label,
+    std::function<void()> onClick = {},
+    const char* tooltip = nullptr)
+{
+    auto button = std::make_shared<ToolButton>(icon, label, std::move(onClick), tooltip ? tooltip : label.c_str());
+    button->SetButtonStyle(ToolButtonStyle::ViewportChip);
+    button->SetIsDropdown(true);
+    button->SetVerticalAlignment(VerticalAlignment::Center);
+    return button;
+}
+
+std::shared_ptr<ToolButton> MakeViewportIconDropdown(
+    const char* icon,
+    std::function<void()> onClick = {},
+    const char* tooltip = nullptr)
+{
+    auto button = std::make_shared<ToolButton>(icon, "", std::move(onClick), tooltip ? tooltip : icon);
+    button->SetButtonStyle(ToolButtonStyle::ViewportChip);
+    button->SetIsDropdown(true);
+    button->SetVerticalAlignment(VerticalAlignment::Center);
+    return button;
+}
+
+std::shared_ptr<ToolButton> MakeViewportIconButton(
+    const char* icon,
+    std::function<void()> onClick = {},
+    const char* tooltip = nullptr)
+{
+    auto button = std::make_shared<ToolButton>(icon, "", std::move(onClick), tooltip ? tooltip : icon);
+    button->SetButtonStyle(ToolButtonStyle::ViewportChip);
+    button->SetVerticalAlignment(VerticalAlignment::Center);
+    return button;
+}
+
+} // namespace
+
 std::shared_ptr<Panel> CreateViewportPanel() {
     std::shared_ptr<ToolButton> cameraSpeedButton;
 
-    auto toolbar = ToolbarBuilder()
-        .Height(ResolveThemeMetric(ThemeToken::PanelHeaderHeight))
-        .IconSize(ResolveThemeMetric(ThemeToken::IconSizeNavigation))
-        .Dropdown(Icons::PerspectiveName, "Perspective", {}, "Viewport Type")
-        .Separator()
-        .Dropdown(Icons::LitName, "Lit", {}, "Render Mode")
-        .Separator()
-        .Dropdown(Icons::EyeName, "Show", {}, "Show/Hide Elements")
-        .Separator(ToolbarAlignment::Right)
-        .Right([&](ToolbarBuilder& right) {
-            right.Item(Icons::CursorName, "", [](){}, "Select (Q)");
-            right.Item(Icons::MoveName, "", [](){}, "Move (W)");
-            right.Item(Icons::RotateName, "", [](){}, "Rotate (E)");
-            right.Item(Icons::ScaleName, "", [](){}, "Scale (R)");
-            right.Item(Icons::SnapName, "", [](){}, "Snap");
-            right.Separator();
-            right.Dropdown(
-                Icons::CameraName,
-                "4",
-                []() { ShowViewportCameraSpeedPopup(); },
-                "Camera Speed",
-                [&](std::shared_ptr<ToolButton> button) {
-                    button->SetOnMouseWheel([](float wheelDeltaY) {
-                        AdjustViewportCameraSpeedFromWheel(wheelDeltaY);
-                    });
-                    cameraSpeedButton = button;
-                });
-        })
-        .Build();
+    auto cameraButton = MakeViewportDropdown(
+        Icons::CameraName,
+        "Camera",
+        []() { ShowViewportCameraSpeedPopup(); },
+        "Camera Speed");
+    cameraButton->SetOnMouseWheel([](float wheelDeltaY) {
+        AdjustViewportCameraSpeedFromWheel(wheelDeltaY);
+    });
+    cameraSpeedButton = cameraButton;
+
+    auto toolbar = std::make_shared<Toolbar>();
+    toolbar->SetFloating(true);
+    toolbar->SetHeight(ResolveThemeMetric(ThemeToken::PanelHeaderHeight));
+
+    toolbar->AddWidget(MakeViewportDropdown(Icons::PerspectiveName, "Perspective", {}, "Viewport Type"), ToolbarAlignment::Left);
+    toolbar->AddWidget(MakeViewportDropdown(Icons::LitName, "Lit", {}, "Render Mode"), ToolbarAlignment::Left);
+    toolbar->AddWidget(cameraButton, ToolbarAlignment::Left);
+
+    toolbar->AddWidget(MakeViewportIconDropdown(Icons::EyeName, {}, "Show/Hide Elements"), ToolbarAlignment::Right);
+    toolbar->AddWidget(MakeViewportIconButton(Icons::ProfilerName, [](){}, "Toggle Stats"), ToolbarAlignment::Right);
+    toolbar->AddWidget(MakeViewportIconDropdown(Icons::MoveName, {}, "Toggle Gizmos"), ToolbarAlignment::Right);
+    toolbar->AddWidget(MakeViewportIconDropdown(Icons::GridName, {}, "Viewport Grid"), ToolbarAlignment::Right);
 
     if (cameraSpeedButton) {
         SetViewportCameraSpeedIndicator(cameraSpeedButton);
@@ -47,6 +83,7 @@ std::shared_ptr<Panel> CreateViewportPanel() {
     return PanelBuilder("Viewport")
         .TabIcon(Icons::PerspectiveName)
         .Transparent()
+        .FloatingToolbar()
         .WithCloseButton()
         .Toolbar(toolbar)
         .Content(std::make_shared<Label>(""));

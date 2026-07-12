@@ -360,7 +360,7 @@ WorkspaceLayout CreateDefaultEditorWorkspaceLayout() {
         .splitRatio = 0.40f,
         .children = {
             {.type = DockNodeType::TabGroup, .panelId = "WorldOutliner"},
-            {.type = DockNodeType::Panel, .panelId = "Details"}
+            {.type = DockNodeType::TabGroup, .panelId = "Details"}
         }
     };
 
@@ -380,7 +380,7 @@ WorkspaceLayout CreateDefaultEditorWorkspaceLayout() {
         .splitRatio = 0.70f,
         .children = {
             toolsViewport,
-            {.type = DockNodeType::Panel, .panelId = "ContentBrowser"}
+            {.type = DockNodeType::TabGroup, .panelId = "ContentBrowser"}
         }
     };
 

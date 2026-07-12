@@ -98,7 +98,7 @@ float4 PSMain(VSOutput input) : SV_Target
     if (type < 0.5)
     {
         float4 texColor = texSampler.Sample(samp0, input.uv);
-        float coverage = max(max(texColor.a, texColor.r), max(texColor.g, texColor.b));
+        float coverage = texColor.a;
         float4 outColor = input.color;
         outColor.a *= coverage;
         return outColor;

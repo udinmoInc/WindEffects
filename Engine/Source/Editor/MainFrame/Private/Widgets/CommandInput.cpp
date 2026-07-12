@@ -1,6 +1,9 @@
 #include "Widgets/CommandInput.h"
 #include "Core/PaintContext.h"
+#include "Core/DPIContext.h"
+#include "Rendering/IconMetrics.h"
 #include "WindEffects/Editor/UI/Theming/ThemeToken.h"
+#include "WindEffects/Editor/UI/Theming/ThemeAccess.h"
 #include "Core/Icon.h"
 #include <SDL3/SDL.h>
 #include <algorithm>
@@ -31,7 +34,7 @@ void CommandInput::Paint(PaintContext& context) {
     }
     context.DrawRoundedRectOutline(m_Geometry, borderColor, 1.0f, cornerRadius);
 
-    const float iconSize = 14.0f;
+    const float iconSize = static_cast<float>(IconMetrics::NativeIconTierPx(ThemeMetric(ThemeToken::IconSizeSearch)));
     const float iconX = m_Geometry.x + 10.0f;
     const float iconY = m_Geometry.y + (m_Geometry.height - iconSize) / 2.0f;
     IconPainter::DrawIcon(context, Icons::ConsoleName, Rect{ iconX, iconY, iconSize, iconSize }, ThemeColor(ThemeToken::TextSecondary));

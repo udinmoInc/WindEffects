@@ -7,6 +7,7 @@
 #include "WindEffects/Editor/UI/Theming/ThemeToken.h"
 #include "Core/Icon.h"
 #include "Core/DPIContext.h"
+#include "Rendering/IconMetrics.h"
 #include "Core/Animator.h"
 #include "Core/Geometry.h"
 #include "Core/Logger.h"
@@ -374,7 +375,7 @@ void ToolsPanel::Paint(PaintContext& context) {
         const float uiScale = (std::max)(1.0f, WindEffects::Editor::UI::DPIContext::GetScale());
         const float labelFontSize = ThemeMetric(ThemeToken::TextSizeBody) * uiScale;
         const float shortcutFontSize = ThemeMetric(ThemeToken::TextSizeCaption) * uiScale;
-        const float iconSize = ThemeMetric(ThemeToken::IconSizeTree) * uiScale;
+        const float iconSize = static_cast<float>(WindEffects::Editor::UI::IconMetrics::NativeIconTierPx(ThemeMetric(ThemeToken::IconSizeTree)));
         const float padH = PanelChrome::PanelPaddingH();
         const float chevronGap = ThemeMetric(ThemeToken::Space2) * uiScale;
 

@@ -28,6 +28,7 @@ class TOOLBAR_API ToolbarBuilder {
 public:
     ToolbarBuilder& Height(float height);
     ToolbarBuilder& IconSize(float size);
+    ToolbarBuilder& Floating();
 
     ToolbarBuilder& Item(
         std::string_view icon,
@@ -51,6 +52,7 @@ public:
 private:
     float m_Height = 28.0f;
     float m_IconSize = 16.0f;
+    bool m_Floating = false;
     std::vector<ToolbarItemSpec> m_Items;
 };
 

@@ -1,6 +1,7 @@
 #include "Layout/Box.h"
 #include "Core/PaintContext.h"
 #include <algorithm>
+#include <cmath>
 
 namespace WindEffects::Editor::UI {
 
@@ -125,14 +126,19 @@ void Box::Arrange(const Rect& allottedRect) {
                 childHeight = std::min(contentHeight, childDesired.height);
             }
             
-            float childY = currentY;
+            float exactChildY = currentY;
             if (child->GetVerticalAlignment() == VerticalAlignment::Center) {
-                childY = currentY + (contentHeight - childHeight) * 0.5f;
+                exactChildY = currentY + (contentHeight - childHeight) * 0.5f;
             } else if (child->GetVerticalAlignment() == VerticalAlignment::Bottom) {
-                childY = currentY + contentHeight - childHeight;
+                exactChildY = currentY + contentHeight - childHeight;
             }
 
-            child->Arrange(Rect{ currentX, childY, childWidth, childHeight });
+            float snappedX = std::round(currentX);
+            float snappedY = std::round(exactChildY);
+            float snappedW = std::round(currentX + childWidth) - snappedX;
+            float snappedH = std::round(exactChildY + childHeight) - snappedY;
+
+            child->Arrange(Rect{ snappedX, snappedY, snappedW, snappedH });
             currentX += childWidth;
         } else {
             if (!first) currentY += m_Spacing;
@@ -150,14 +156,19 @@ void Box::Arrange(const Rect& allottedRect) {
                 childHeight = allottedRect.y + allottedRect.height - currentY; // Fill remaining if any
             }
             
-            float childX = currentX;
+            float exactChildX = currentX;
             if (child->GetHorizontalAlignment() == HorizontalAlignment::Center) {
-                childX = currentX + (contentWidth - childWidth) * 0.5f;
+                exactChildX = currentX + (contentWidth - childWidth) * 0.5f;
             } else if (child->GetHorizontalAlignment() == HorizontalAlignment::Right) {
-                childX = currentX + contentWidth - childWidth;
+                exactChildX = currentX + contentWidth - childWidth;
             }
 
-            child->Arrange(Rect{ childX, currentY, childWidth, childHeight });
+            float snappedX = std::round(exactChildX);
+            float snappedY = std::round(currentY);
+            float snappedW = std::round(exactChildX + childWidth) - snappedX;
+            float snappedH = std::round(currentY + childHeight) - snappedY;
+
+            child->Arrange(Rect{ snappedX, snappedY, snappedW, snappedH });
             currentY += childHeight;
         }
         first = false;

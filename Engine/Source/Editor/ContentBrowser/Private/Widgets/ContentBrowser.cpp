@@ -1,4 +1,5 @@
 #include "Widgets/ContentBrowser.h"
+#include "Layout/ScrollViewport.h"
 #include "Controllers/FilterController.h"
 #include "Controllers/SearchController.h"
 #include "Services/ContentBrowserService.h"
@@ -6,6 +7,8 @@
 #include "Services/ContentBrowserBlueprintArt.h"
 #include "WindEffects/Editor/UI/Panel/PanelChrome.h"
 #include "Core/PaintContext.h"
+#include "Core/DPIContext.h"
+#include "Rendering/IconMetrics.h"
 #include "WindEffects/Editor/UI/Theming/ThemeToken.h"
 #include "Core/Icon.h"
 #include <SDL3/SDL.h>
@@ -86,39 +89,56 @@ ContentBrowser::GridMetrics ContentBrowser::GetGridMetrics() const {
 }
 
 Size ContentBrowser::Measure(const Size& availableSize) {
+    m_DesiredSize = availableSize;
+    RecalculateLayout();
+    return m_DesiredSize;
+}
+
+void ContentBrowser::SyncScrollMetrics() {
+    m_Scroll.Sync(m_Geometry.height, m_ContentHeight);
+    const float uiScale = std::max(1.0f, DPIContext::GetScale());
+    m_ScrollMetrics = m_Scroll.ComputeMetrics(m_Geometry, m_ContentHeight, uiScale);
+}
+
+float ContentBrowser::ComputeContentHeight() const {
+    if (m_RenderList.empty()) {
+        return 0.0f;
+    }
+
+    float maxBottom = 0.0f;
+    for (const auto& item : m_RenderList) {
+        maxBottom = std::max(maxBottom, item.geometry.y + item.geometry.height);
+    }
+    const float originY = m_ScrollMetrics.viewport.y > 0.0f
+        ? m_ScrollMetrics.viewport.y - m_Scroll.offset
+        : m_Geometry.y - m_Scroll.offset;
+    return std::max(0.0f, maxBottom - originY) + 16.0f;
+}
+
+void ContentBrowser::RecalculateLayout() {
     BuildRenderList();
 
-    const float oldWidth = m_Geometry.width;
-    m_Geometry.width = std::max(1.0f, availableSize.width);
+    const auto layoutPass = [&]() {
+        switch (GetEffectiveViewMode()) {
+            case ContentViewMode::List: CalculateListLayout(); break;
+            case ContentViewMode::Details: CalculateDetailsLayout(); break;
+            case ContentViewMode::Tiles: CalculateTilesLayout(); break;
+            default: CalculateGridLayout(); break;
+        }
+    };
 
-    switch (GetEffectiveViewMode()) {
-        case ContentViewMode::List: CalculateListLayout(); break;
-        case ContentViewMode::Details: CalculateDetailsLayout(); break;
-        case ContentViewMode::Tiles: CalculateTilesLayout(); break;
-        default: CalculateGridLayout(); break;
-    }
-
-    m_Geometry.width = oldWidth;
-
-    float totalHeight = 0.0f;
-    for (const auto& item : m_RenderList) {
-        totalHeight = std::max(totalHeight, item.geometry.y + item.geometry.height - m_Geometry.y);
-    }
-
-    m_DesiredSize = Size{ availableSize.width, totalHeight + 16.0f };
-    return m_DesiredSize;
+    m_ScrollMetrics.viewport = m_Geometry;
+    layoutPass();
+    m_ContentHeight = ComputeContentHeight();
+    SyncScrollMetrics();
+    layoutPass();
+    m_ContentHeight = ComputeContentHeight();
+    SyncScrollMetrics();
 }
 
 void ContentBrowser::Arrange(const Rect& allottedRect) {
     m_Geometry = allottedRect;
-
-    switch (GetEffectiveViewMode()) {
-        case ContentViewMode::List: CalculateListLayout(); break;
-        case ContentViewMode::Details: CalculateDetailsLayout(); break;
-        case ContentViewMode::Tiles: CalculateTilesLayout(); break;
-        default: CalculateGridLayout(); break;
-    }
-
+    RecalculateLayout();
     UpdateVisibleRange();
     RequestVisibleThumbnails();
 }
@@ -328,7 +348,7 @@ void ContentBrowser::PaintListItem(PaintContext& context, const RenderItem& rend
         PanelChrome::PaintListRowBackground(context, renderItem.geometry, hovered, selected);
     }
 
-    const float iconSize = ThemeMetric(ThemeToken::IconSizeTree);
+    const float iconSize = static_cast<float>(IconMetrics::NativeIconTierPx(ThemeMetric(ThemeToken::IconSizeTree)));
     const float iconX = renderItem.geometry.x + PanelChrome::PanelPaddingH();
     const float iconY = renderItem.geometry.y + (renderItem.geometry.height - iconSize) * 0.5f;
     Rect iconRect{ iconX, iconY, iconSize, iconSize };
@@ -361,20 +381,27 @@ void ContentBrowser::PaintListItem(PaintContext& context, const RenderItem& rend
 
 void ContentBrowser::Paint(PaintContext& context) {
     PanelChrome::PaintContentRegion(context, m_Geometry);
+    SyncScrollMetrics();
     UpdateVisibleRange();
 
+    const float viewTop = m_ScrollMetrics.viewport.y;
+    const float viewBottom = m_ScrollMetrics.viewport.y + m_ScrollMetrics.viewport.height;
     const bool isGridLike = GetEffectiveViewMode() != ContentViewMode::List &&
                             GetEffectiveViewMode() != ContentViewMode::Details;
 
+    context.PushClipRect(m_ScrollMetrics.viewport);
+
     for (int i = m_FirstVisibleIndex; i <= m_LastVisibleIndex && i < static_cast<int>(m_RenderList.size()); ++i) {
         const auto& renderItem = m_RenderList[static_cast<size_t>(i)];
-        if (renderItem.geometry.y + renderItem.geometry.height < m_Geometry.y ||
-            renderItem.geometry.y > m_Geometry.y + m_Geometry.height) {
+        if (renderItem.geometry.y + renderItem.geometry.height < viewTop ||
+            renderItem.geometry.y > viewBottom) {
             continue;
         }
         if (isGridLike) PaintGridItem(context, renderItem);
         else PaintListItem(context, renderItem);
     }
+
+    context.PopClipRect();
 
     if (m_IsSelecting) {
         const float minX = std::min(m_SelectStart.x, m_SelectEnd.x);
@@ -405,9 +432,38 @@ void ContentBrowser::Paint(PaintContext& context) {
             break;
         }
     }
+
+    m_Scroll.Paint(context, m_ScrollMetrics, m_Scroll.IsThumbHovered());
+}
+
+void ContentBrowser::ScrollSelectionIntoView() {
+    if (!m_Model || m_Model->selectedIds.empty()) {
+        return;
+    }
+
+    const std::string& selectedId = m_Model->selectedIds.back();
+    for (const auto& item : m_RenderList) {
+        if (item.item.id != selectedId) {
+            continue;
+        }
+        const float top = item.geometry.y + m_Scroll.offset - m_ScrollMetrics.viewport.y;
+        const float bottom = top + item.geometry.height;
+        if (m_Scroll.ScrollToRange(top, bottom, m_Geometry.height, m_ContentHeight)) {
+            RecalculateLayout();
+            UpdateVisibleRange();
+        }
+        break;
+    }
 }
 
 void ContentBrowser::OnMouseDown(const MouseEvent& event) {
+    SyncScrollMetrics();
+    if (m_Scroll.OnMouseDown(event, m_ScrollMetrics, m_Geometry.height, m_ContentHeight)) {
+        RecalculateLayout();
+        UpdateVisibleRange();
+        return;
+    }
+
     RenderItem* renderItem = GetItemAtPosition(event.position);
 
     if (event.button == MouseButton::Left) {
@@ -478,6 +534,14 @@ void ContentBrowser::OnMouseDown(const MouseEvent& event) {
 void ContentBrowser::OnMouseMove(const MouseEvent& event) {
     m_MousePos = event.position;
 
+    SyncScrollMetrics();
+    m_Scroll.OnMouseMove(event, m_ScrollMetrics, m_Geometry.height, m_ContentHeight);
+    if (m_Scroll.IsDraggingThumb()) {
+        RecalculateLayout();
+        UpdateVisibleRange();
+        return;
+    }
+
     if (m_IsSelecting) {
         m_SelectEnd = event.position;
         const float minX = std::min(m_SelectStart.x, m_SelectEnd.x);
@@ -503,6 +567,8 @@ void ContentBrowser::OnMouseMove(const MouseEvent& event) {
 }
 
 void ContentBrowser::OnMouseUp(const MouseEvent& event) {
+    m_Scroll.OnMouseUp(event);
+
     if (event.button != MouseButton::Left) return;
 
     if (m_IsSelecting) {
@@ -523,16 +589,23 @@ void ContentBrowser::OnMouseUp(const MouseEvent& event) {
 }
 
 void ContentBrowser::OnMouseWheel(const MouseEvent& event) {
+    SyncScrollMetrics();
     const GridMetrics metrics = GetGridMetrics();
     const float stride = (GetEffectiveViewMode() == ContentViewMode::List ||
                           GetEffectiveViewMode() == ContentViewMode::Details)
         ? m_ListRowHeight : metrics.cellHeight + metrics.vSpacing;
-    const float scrollAmount = event.wheelDeltaY * stride * 0.5f;
-    m_ScrollOffset -= scrollAmount;
-    const float totalHeight = Measure(Size{ m_Geometry.width, m_Geometry.height }).height;
-    const float maxScroll = std::max(0.0f, totalHeight - m_Geometry.height);
-    m_ScrollOffset = std::max(0.0f, std::min(m_ScrollOffset, maxScroll));
-    Arrange(m_Geometry);
+    m_Scroll.ApplyWheel(
+        event.wheelDeltaY,
+        stride * 0.5f,
+        m_Geometry.height,
+        m_ContentHeight);
+    RecalculateLayout();
+    UpdateVisibleRange();
+}
+
+bool ContentBrowser::ShowsPointerCursor(const Point& position) const {
+    return m_ScrollMetrics.showsScrollbar &&
+        (m_ScrollMetrics.thumb.Contains(position) || m_ScrollMetrics.track.Contains(position));
 }
 
 void ContentBrowser::OnKeyDown(const KeyEvent& event) {
@@ -549,6 +622,7 @@ void ContentBrowser::OnKeyDown(const KeyEvent& event) {
 
     m_Controller->SetSelectedId(m_RenderList[static_cast<size_t>(current)].item.id);
     if (m_OnItemSelected) m_OnItemSelected(m_RenderList[static_cast<size_t>(current)].item);
+    ScrollSelectionIntoView();
 }
 
 void ContentBrowser::AddItem(const ContentItem& item) {
@@ -598,10 +672,12 @@ void ContentBrowser::BuildRenderList() {
 
 void ContentBrowser::CalculateGridLayout() {
     const GridMetrics m = GetGridMetrics();
-    float x = m_Geometry.x + m.padding;
-    float y = m_Geometry.y + m.padding - m_ScrollOffset;
+    const float contentX = m_ScrollMetrics.viewport.x;
+    const float contentWidth = m_ScrollMetrics.viewport.width;
+    float x = contentX + m.padding;
+    float y = m_ScrollMetrics.viewport.y + m.padding - m_Scroll.offset;
     const int itemsPerRow = std::max(1,
-        static_cast<int>((m_Geometry.width - m.padding * 2.0f + m.hSpacing) / (m.cellWidth + m.hSpacing)));
+        static_cast<int>((contentWidth - m.padding * 2.0f + m.hSpacing) / (m.cellWidth + m.hSpacing)));
 
     for (size_t i = 0; i < m_RenderList.size(); ++i) {
         const int col = static_cast<int>(i) % itemsPerRow;
@@ -619,10 +695,12 @@ void ContentBrowser::CalculateGridLayout() {
 
 void ContentBrowser::CalculateTilesLayout() {
     const GridMetrics m = GetGridMetrics();
-    float x = m_Geometry.x + m.padding;
-    float y = m_Geometry.y + m.padding - m_ScrollOffset;
+    const float contentX = m_ScrollMetrics.viewport.x;
+    const float contentWidth = m_ScrollMetrics.viewport.width;
+    float x = contentX + m.padding;
+    float y = m_ScrollMetrics.viewport.y + m.padding - m_Scroll.offset;
     const int itemsPerRow = std::max(1,
-        static_cast<int>((m_Geometry.width - m.padding * 2.0f + m.hSpacing) / (m.cellWidth + m.hSpacing)));
+        static_cast<int>((contentWidth - m.padding * 2.0f + m.hSpacing) / (m.cellWidth + m.hSpacing)));
 
     for (size_t i = 0; i < m_RenderList.size(); ++i) {
         const int col = static_cast<int>(i) % itemsPerRow;
@@ -642,9 +720,11 @@ void ContentBrowser::CalculateTilesLayout() {
 }
 
 void ContentBrowser::CalculateListLayout() {
-    float y = m_Geometry.y - m_ScrollOffset;
+    const float contentX = m_ScrollMetrics.viewport.x;
+    const float contentWidth = m_ScrollMetrics.viewport.width;
+    float y = m_ScrollMetrics.viewport.y - m_Scroll.offset;
     for (auto& renderItem : m_RenderList) {
-        renderItem.geometry = Rect{ m_Geometry.x, y, m_Geometry.width, m_ListRowHeight };
+        renderItem.geometry = Rect{ contentX, y, contentWidth, m_ListRowHeight };
         renderItem.thumbGeometry = renderItem.geometry;
         y += m_ListRowHeight;
     }

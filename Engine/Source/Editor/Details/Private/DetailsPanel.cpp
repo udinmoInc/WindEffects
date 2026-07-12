@@ -2,6 +2,7 @@
 #include "Widgets/PropertyEditor.h"
 #include "Widgets/SearchBox.h"
 #include "Localization.h"
+#include "Core/Icon.h"
 
 namespace we::programs::editor {
 using namespace WindEffects::Editor::UI;

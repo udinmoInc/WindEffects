@@ -9,10 +9,6 @@ namespace we::runtime::world::environment {
 
 namespace {
 
-float Clamp01(float value) {
-    return std::clamp(value, 0.0f, 1.0f);
-}
-
 float SrgbChannelToLinear(float channel) {
     return channel <= 0.04045f ? channel / 12.92f : std::pow((channel + 0.055f) / 1.055f, 2.4f);
 }
@@ -56,7 +52,10 @@ glm::vec3 TemperatureKelvinToRgb(int kelvin) {
         blue = 138.5177312231f * std::log(blue) - 305.0447927307f;
     }
 
-    const glm::vec3 srgb(Clamp01(red / 255.0f), Clamp01(green / 255.0f), Clamp01(blue / 255.0f));
+    const glm::vec3 srgb(
+        std::clamp(red / 255.0f, 0.0f, 1.0f),
+        std::clamp(green / 255.0f, 0.0f, 1.0f),
+        std::clamp(blue / 255.0f, 0.0f, 1.0f));
     return SrgbToLinear(srgb);
 }
 

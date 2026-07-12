@@ -19,7 +19,8 @@ enum class ToolButtonStyle {
     TitleBarTool,
     ToolbarIconOnly,
     ToolbarInline,    // Icon + optional label + chevron
-    ToolbarLabeled    // Icon above text label (transform tools)
+    ToolbarLabeled,   // Icon above text label (transform tools)
+    ViewportChip      // Individual floating viewport control pill
 };
 
 // Icon and text button for toolbar use
@@ -51,6 +52,8 @@ public:
     void SetButtonStyle(ToolButtonStyle style) { m_ButtonStyle = style; }
     void SetIsDropdown(bool isDropdown) { m_IsDropdown = isDropdown; }
     bool IsDropdown() const { return m_IsDropdown; }
+    void SetChromeless(bool chromeless) { m_Chromeless = chromeless; }
+    bool IsChromeless() const { return m_Chromeless; }
 
 private:
     std::string m_IconName;
@@ -61,6 +64,7 @@ private:
     bool m_Active = false;
     bool m_Pressed = false;
     bool m_IsDropdown = false;
+    bool m_Chromeless = false;
     ToolButtonStyle m_ButtonStyle = ToolButtonStyle::Normal;
 
     // Animation states [0.0, 1.0]

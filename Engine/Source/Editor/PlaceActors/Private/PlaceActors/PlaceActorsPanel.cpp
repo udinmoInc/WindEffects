@@ -1,6 +1,7 @@
 #include "PlaceActors/PlaceActorsPanel.h"
 
 #include "PlaceActors/ActorsPanelLayout.h"
+#include "PlaceActors/ActorsPanelChrome.h"
 #include "PlaceActors/PlaceActorsCatalog.h"
 #include "PlaceActors/PlaceActorsConfig.h"
 #include "PlaceActors/PlaceActorsSearch.h"
@@ -13,6 +14,7 @@
 #include "Widgets/ToolButton.h"
 #include "WindEffects/Editor/UI/Panel/PanelChrome.h"
 #include "Core/PaintContext.h"
+#include "Core/DPIContext.h"
 #include "WindEffects/Editor/UI/Theming/ThemeToken.h"
 #include "Core/Icon.h"
 #include "Core/Animator.h"
@@ -21,6 +23,7 @@
 #include <algorithm>
 #include <cmath>
 #include <fstream>
+#include <sstream>
 
 #include <SDL3/SDL.h>
 
@@ -28,9 +31,26 @@ namespace we::programs::editor {
 
 namespace {
 constexpr float kDragThreshold = 6.0f;
+constexpr const char* kFavoritesCategoryId = "__Favorites";
+constexpr const char* kRecentCategoryId = "__Recent";
 
-std::string CategoryStatePath() {
+std::string PanelStatePath() {
     return we::core::ResolveEditorConfigPath("place_actors.ini").string();
+}
+
+std::unordered_map<std::string, std::string> LoadIniValues(const std::string& path) {
+    std::unordered_map<std::string, std::string> values;
+    std::ifstream file(path);
+    if (!file.is_open()) {
+        return values;
+    }
+    std::string line;
+    while (std::getline(file, line)) {
+        const size_t eq = line.find('=');
+        if (eq == std::string::npos) continue;
+        values[line.substr(0, eq)] = line.substr(eq + 1);
+    }
+    return values;
 }
 
 } // namespace
@@ -49,59 +69,87 @@ namespace PanelChrome = WindEffects::Editor::UI::PanelChrome;
 PlaceActorsPanel::PlaceActorsPanel() {
     auto& config = PlaceActorsConfig::Get();
     config.EnsureLoaded();
-    m_ViewMode = config.defaultView;
+    m_ViewMode = PlaceActorsViewMode::List;
 
     m_SearchBox = std::make_shared<WindEffects::Editor::UI::SearchBox>();
     m_SearchBox->SetFillWidth(true);
-    m_SearchBox->SetPlaceholder("Search Actors...");
+    m_SearchBox->SetPlaceholder("Search Assets...");
     m_SearchBox->SetOnTextChanged([this](const std::string& text) {
         m_SearchText = text;
         RefreshFilteredContent();
     });
 
-    m_CategoryFilterButton = std::make_shared<WindEffects::Editor::UI::ToolButton>(
+    m_FilterButton = std::make_shared<WindEffects::Editor::UI::ToolButton>(
         WindEffects::Editor::UI::Icons::FilterName, "", [this]() {
-            const auto labels = PlaceActorsCatalog::Get().GetCategoryFilterLabels();
-            auto it = std::find(labels.begin(), labels.end(), m_CategoryFilter);
-            const size_t next = (it == labels.end()) ? 0 : static_cast<size_t>((it - labels.begin() + 1) % labels.size());
-            m_CategoryFilter = labels[next];
-            RefreshFilteredContent();
-        }, "Filter category");
-    m_CategoryFilterButton->SetButtonStyle(WindEffects::Editor::UI::ToolButtonStyle::ToolbarIconOnly);
+            const Rect btn = m_FilterButton->GetGeometry();
+            ToggleFilterMenu(Point{ btn.x, btn.y + btn.height });
+        }, "Filter and view options");
+    m_FilterButton->SetButtonStyle(WindEffects::Editor::UI::ToolButtonStyle::ToolbarIconOnly);
 
-    m_SortButton = std::make_shared<WindEffects::Editor::UI::ToolButton>(
-        WindEffects::Editor::UI::Icons::ListName, "", [this]() {
-            switch (m_SortMode) {
-            case PlaceActorsSortMode::Name: m_SortMode = PlaceActorsSortMode::Category; break;
-            case PlaceActorsSortMode::Category: m_SortMode = PlaceActorsSortMode::Recent; break;
-            default: m_SortMode = PlaceActorsSortMode::Name; break;
-            }
-            RefreshFilteredContent();
-        }, "Sort");
-    m_SortButton->SetButtonStyle(WindEffects::Editor::UI::ToolButtonStyle::ToolbarIconOnly);
-
-    m_ViewToggleButton = std::make_shared<WindEffects::Editor::UI::ToolButton>(
-        WindEffects::Editor::UI::Icons::GridName, "", [this]() {
-            m_ViewMode = (m_ViewMode == PlaceActorsViewMode::Grid)
-                ? PlaceActorsViewMode::List
-                : PlaceActorsViewMode::Grid;
-            RefreshFilteredContent();
-        }, m_ViewMode == PlaceActorsViewMode::Grid ? "Switch to list view" : "Switch to grid view");
-    m_ViewToggleButton->SetButtonStyle(WindEffects::Editor::UI::ToolButtonStyle::ToolbarIconOnly);
-
-    m_RecentButton = std::make_shared<WindEffects::Editor::UI::ToolButton>(
-        WindEffects::Editor::UI::Icons::RefreshName, "", [this]() {
-            m_ShowRecentOnly = !m_ShowRecentOnly;
-            RefreshFilteredContent();
-        }, "Recently used");
-    m_RecentButton->SetButtonStyle(WindEffects::Editor::UI::ToolButtonStyle::ToolbarIconOnly);
-
+    LoadPanelState();
     PlaceActorsCatalog::Get().Refresh();
     RebuildData();
 }
 
 PlaceActorsPanel::~PlaceActorsPanel() {
     SaveCategoryState();
+    SaveFavorites();
+}
+
+void PlaceActorsPanel::LoadPanelState() {
+    const auto values = LoadIniValues(PanelStatePath());
+    for (const auto& [key, value] : values) {
+        if (key.rfind("category.", 0) == 0) {
+            m_CategoryExpanded[key.substr(9)] = (value == "1");
+        }
+    }
+
+    std::unordered_map<std::string, bool> favorites;
+    for (const auto& [key, value] : values) {
+        if (key.rfind("favorite.", 0) == 0) {
+            favorites[key.substr(9)] = (value == "1");
+        }
+    }
+    if (!favorites.empty()) {
+        EditorToolsRegistry::Get().LoadFavorites(favorites);
+    }
+}
+
+void PlaceActorsPanel::SaveCategoryState() const {
+    if (!PlaceActorsConfig::Get().rememberCategoryState) {
+        return;
+    }
+    const auto existing = LoadIniValues(PanelStatePath());
+    std::ofstream file(PanelStatePath());
+    if (!file.is_open()) {
+        return;
+    }
+    for (const auto& [key, value] : existing) {
+        if (key.rfind("category.", 0) != 0 && key.rfind("favorite.", 0) != 0) {
+            file << key << "=" << value << "\n";
+        }
+    }
+    for (const auto& [categoryId, expanded] : m_CategoryExpanded) {
+        file << "category." << categoryId << "=" << (expanded ? "1" : "0") << "\n";
+    }
+    for (const auto& [toolId, enabled] : EditorToolsRegistry::Get().GetFavoriteStates()) {
+        if (enabled) {
+            file << "favorite." << toolId << "=1\n";
+        }
+    }
+}
+
+void PlaceActorsPanel::SaveFavorites() const {
+    SaveCategoryState();
+}
+
+bool PlaceActorsPanel::IsFavoritesCategory(const std::string& categoryId) const {
+    return categoryId == kFavoritesCategoryId;
+}
+
+float PlaceActorsPanel::CategoryExpandAnim(const std::string& categoryId) const {
+    const auto it = m_CategoryExpandAnim.find(categoryId);
+    return it != m_CategoryExpandAnim.end() ? it->second : (m_CategoryExpanded.count(categoryId) ? (m_CategoryExpanded.at(categoryId) ? 1.0f : 0.0f) : 1.0f);
 }
 
 void PlaceActorsPanel::RebuildData() {
@@ -113,44 +161,55 @@ void PlaceActorsPanel::RebuildData() {
     m_DisplayCategories.clear();
     auto& registry = EditorToolsRegistry::Get();
     const auto& config = PlaceActorsConfig::Get();
-
-    std::vector<PlaceActorsItemData> recentItems;
-    if (config.showRecent && m_ShowRecentOnly) {
-        for (const std::string& toolId : registry.GetRecentToolIds()) {
-            if (const PlaceActorsItemData* item = catalog.FindItem(toolId)) {
-                recentItems.push_back(*item);
-            }
-        }
-        if (!recentItems.empty()) {
-            PlaceActorsCategoryData recentCategory;
-            recentCategory.id = "__Recent";
-            recentCategory.label = "Recently Used";
-            recentCategory.iconName = WindEffects::Editor::UI::Icons::RefreshName;
-            recentCategory.defaultExpanded = true;
-            recentCategory.items = std::move(recentItems);
-            m_DisplayCategories.push_back(std::move(recentCategory));
-        }
-    }
+    const std::string query = !m_ExternalSearchFilter.empty() ? m_ExternalSearchFilter : m_SearchText;
 
     if (config.showFavorites) {
         std::vector<PlaceActorsItemData> favoriteItems;
         for (const EditorToolAction* tool : registry.GetFavoriteTools("Actors")) {
             if (const PlaceActorsItemData* item = catalog.FindItem(tool->id)) {
+                if (PlaceActorsSearch::FilterItems({ *item }, query, "All").empty()) {
+                    continue;
+                }
                 favoriteItems.push_back(*item);
             }
         }
-        if (!favoriteItems.empty()) {
-            PlaceActorsCategoryData favCategory;
-            favCategory.id = "__Favorites";
-            favCategory.label = "Favorites";
-            favCategory.iconName = WindEffects::Editor::UI::Icons::StarFilledName;
-            favCategory.defaultExpanded = true;
-            favCategory.items = std::move(favoriteItems);
-            m_DisplayCategories.push_back(std::move(favCategory));
+        PlaceActorsSearch::SortItems(favoriteItems, m_SortMode);
+
+        PlaceActorsCategoryData favCategory;
+        favCategory.id = kFavoritesCategoryId;
+        favCategory.label = "Favorites";
+        favCategory.iconName = WindEffects::Editor::UI::Icons::StarName;
+        favCategory.defaultExpanded = true;
+        favCategory.items = std::move(favoriteItems);
+        if (m_CategoryExpanded.find(favCategory.id) == m_CategoryExpanded.end()) {
+            m_CategoryExpanded[favCategory.id] = favCategory.defaultExpanded;
+        }
+        m_DisplayCategories.push_back(std::move(favCategory));
+    }
+
+    if (config.showRecent && m_ShowRecentOnly) {
+        std::vector<PlaceActorsItemData> recentItems;
+        for (const std::string& toolId : registry.GetRecentToolIds()) {
+            if (const PlaceActorsItemData* item = catalog.FindItem(toolId)) {
+                if (!PlaceActorsSearch::FilterItems({ *item }, query, "All").empty()) {
+                    recentItems.push_back(*item);
+                }
+            }
+        }
+        if (!recentItems.empty()) {
+            PlaceActorsCategoryData recentCategory;
+            recentCategory.id = kRecentCategoryId;
+            recentCategory.label = "Recently Used";
+            recentCategory.iconName = WindEffects::Editor::UI::Icons::RefreshName;
+            recentCategory.defaultExpanded = true;
+            recentCategory.items = std::move(recentItems);
+            if (m_CategoryExpanded.find(recentCategory.id) == m_CategoryExpanded.end()) {
+                m_CategoryExpanded[recentCategory.id] = true;
+            }
+            m_DisplayCategories.push_back(std::move(recentCategory));
         }
     }
 
-    const std::string query = !m_ExternalSearchFilter.empty() ? m_ExternalSearchFilter : m_SearchText;
     for (const auto& sourceCategory : catalog.GetCategories()) {
         auto items = PlaceActorsSearch::FilterItems(sourceCategory.items, query, m_CategoryFilter);
         PlaceActorsSearch::SortItems(items, m_SortMode);
@@ -166,30 +225,58 @@ void PlaceActorsPanel::RebuildData() {
         m_DisplayCategories.push_back(std::move(category));
     }
 
+    m_HasSearchResults = false;
+    for (const auto& category : m_DisplayCategories) {
+        if (!category.items.empty()) {
+            m_HasSearchResults = true;
+            break;
+        }
+    }
+    if (!query.empty() && !m_HasSearchResults) {
+        m_DisplayCategories.clear();
+    } else if (m_DisplayCategories.empty() && query.empty()) {
+        m_HasSearchResults = false;
+    } else {
+        m_HasSearchResults = true;
+    }
+
     m_NeedsLayout = true;
 }
 
-void PlaceActorsPanel::RefreshFilteredContent() {
-    RebuildData();
-    if (m_ContentRect.width > 0.0f) {
-        RebuildLayout();
-    }
+void PlaceActorsPanel::SyncScrollMetrics() {
+    m_Scroll.Sync(m_ContentRect.height, m_ContentHeight);
+    const float uiScale = std::max(1.0f, WindEffects::Editor::UI::DPIContext::GetScale());
+    m_ScrollMetrics = m_Scroll.ComputeMetrics(m_ContentRect, m_ContentHeight, uiScale);
 }
 
 void PlaceActorsPanel::RebuildLayout() {
     m_Layout.clear();
     m_SectionBackgrounds.clear();
     m_ContentHeight = 0.0f;
+
     const auto& config = PlaceActorsConfig::Get();
     PlaceActorsItemMetrics metrics;
     metrics.iconSize = ActorsPanelLayout::IconSize();
     metrics.cardSize = config.cardSize;
-    metrics.listRowHeight = ActorsPanelLayout::RowHeight();
+    metrics.listRowHeight = ActorsPanelLayout::ActorRowHeight();
     metrics.cornerRadius = ThemeMetric(ThemeToken::CornerRadiusSmall);
 
-    float y = m_ContentRect.y - m_ScrollOffset;
-    const float width = m_ContentRect.width;
+    const float viewportX = m_ScrollMetrics.viewport.x;
+    const float viewportWidth = m_ScrollMetrics.viewport.width;
+    float y = m_ScrollMetrics.viewport.y - m_Scroll.offset;
     bool firstCategory = true;
+
+    if (!m_HasSearchResults) {
+        const float emptyHeight = ActorsPanelLayout::ActorRowHeight() * 3.0f;
+        LayoutEntry emptyEntry;
+        emptyEntry.type = LayoutEntry::Type::EmptyState;
+        emptyEntry.geometry = Rect{ viewportX, y, viewportWidth, emptyHeight };
+        m_Layout.push_back(emptyEntry);
+        m_ContentHeight = emptyHeight;
+        SyncScrollMetrics();
+        m_NeedsLayout = false;
+        return;
+    }
 
     for (const auto& category : m_DisplayCategories) {
         if (!firstCategory) {
@@ -198,12 +285,15 @@ void PlaceActorsPanel::RebuildLayout() {
         }
         firstCategory = false;
 
-        const bool expanded = m_CategoryExpanded[category.id];
+        const float expandAnim = CategoryExpandAnim(category.id);
+        const bool expanded = expandAnim > 0.01f;
         const float headerHeight = ActorsPanelLayout::CategoryHeight();
+
         LayoutEntry header;
         header.type = LayoutEntry::Type::CategoryHeader;
         header.categoryId = category.id;
-        header.geometry = Rect{ m_ContentRect.x, y, width, headerHeight };
+        header.geometry = Rect{ viewportX, y, viewportWidth, headerHeight };
+        header.revealAnim = 1.0f;
         m_Layout.push_back(header);
         y += headerHeight;
         m_ContentHeight += headerHeight;
@@ -213,34 +303,46 @@ void PlaceActorsPanel::RebuildLayout() {
         }
 
         const float sectionStartY = y;
+        const float rowHeight = metrics.listRowHeight;
 
-        if (m_ViewMode == PlaceActorsViewMode::Grid) {
+        if (category.items.empty() && IsFavoritesCategory(category.id)) {
+            const float emptyHeight = rowHeight * 1.5f;
+            LayoutEntry emptyEntry;
+            emptyEntry.type = LayoutEntry::Type::EmptyState;
+            emptyEntry.categoryId = category.id;
+            emptyEntry.geometry = Rect{ viewportX + ActorsPanelLayout::ItemIndent(), y, viewportWidth - ActorsPanelLayout::ItemIndent(), emptyHeight };
+            emptyEntry.revealAnim = expandAnim;
+            m_Layout.push_back(emptyEntry);
+            y += emptyHeight * expandAnim;
+            m_ContentHeight += emptyHeight * expandAnim;
+        } else if (m_ViewMode == PlaceActorsViewMode::Grid) {
             const float pad = ActorsPanelLayout::ContentPadH();
             const float cell = metrics.cardSize + pad;
-            const int columns = std::max(1, static_cast<int>((width - pad * 2.0f) / cell));
-            float x = m_ContentRect.x + pad;
+            const int columns = std::max(1, static_cast<int>((viewportWidth - pad * 2.0f) / cell));
+            float x = viewportX + pad;
             int column = 0;
-            const float rowHeight = metrics.cardSize + pad;
+            const float gridRowHeight = metrics.cardSize + pad;
             for (const auto& item : category.items) {
                 LayoutEntry entry;
                 entry.type = LayoutEntry::Type::Item;
                 entry.categoryId = category.id;
                 entry.toolId = item.toolId;
                 entry.geometry = Rect{ x, y, metrics.cardSize, metrics.cardSize };
+                entry.revealAnim = expandAnim;
                 m_Layout.push_back(entry);
 
                 ++column;
                 x += metrics.cardSize + pad;
                 if (column >= columns) {
                     column = 0;
-                    x = m_ContentRect.x + pad;
-                    y += rowHeight;
-                    m_ContentHeight += rowHeight;
+                    x = viewportX + pad;
+                    y += gridRowHeight;
+                    m_ContentHeight += gridRowHeight * expandAnim;
                 }
             }
             if (column != 0) {
-                y += rowHeight;
-                m_ContentHeight += rowHeight;
+                y += gridRowHeight;
+                m_ContentHeight += gridRowHeight * expandAnim;
             }
         } else {
             for (const auto& item : category.items) {
@@ -248,38 +350,49 @@ void PlaceActorsPanel::RebuildLayout() {
                 entry.type = LayoutEntry::Type::Item;
                 entry.categoryId = category.id;
                 entry.toolId = item.toolId;
-                entry.geometry = Rect{ m_ContentRect.x, y, width, metrics.listRowHeight };
+                entry.geometry = Rect{ viewportX, y, viewportWidth, rowHeight };
+                entry.revealAnim = expandAnim;
                 m_Layout.push_back(entry);
-                y += metrics.listRowHeight;
-                m_ContentHeight += metrics.listRowHeight;
+                y += rowHeight;
+                m_ContentHeight += rowHeight * expandAnim;
             }
         }
 
-        if (!category.items.empty()) {
-            m_SectionBackgrounds.push_back(Rect{
-                m_ContentRect.x,
-                sectionStartY,
-                width,
-                y - sectionStartY
-            });
+        if (!category.items.empty() || IsFavoritesCategory(category.id)) {
+            const float sectionHeight = std::max(0.0f, y - sectionStartY);
+            if (sectionHeight > 0.0f) {
+                m_SectionBackgrounds.push_back(Rect{
+                    viewportX + ActorsPanelLayout::ContentPadH() * 0.25f,
+                    sectionStartY,
+                    viewportWidth - ActorsPanelLayout::ContentPadH() * 0.5f,
+                    sectionHeight
+                });
+            }
         }
     }
 
-    const float maxScroll = std::max(0.0f, m_ContentHeight - m_ContentRect.height);
-    m_ScrollOffset = std::clamp(m_ScrollOffset, 0.0f, maxScroll);
+    m_ContentHeight += ActorsPanelLayout::ContentPadV();
+    SyncScrollMetrics();
     m_NeedsLayout = false;
 }
 
-void PlaceActorsPanel::SaveCategoryState() const {
-    if (!PlaceActorsConfig::Get().rememberCategoryState) {
+void PlaceActorsPanel::RefreshFilteredContent() {
+    RebuildData();
+    if (m_ContentRect.width > 0.0f) {
+        m_ScrollMetrics.viewport = m_ContentRect;
+        RebuildLayout();
+    }
+}
+
+void PlaceActorsPanel::ScrollFocusedIntoView() {
+    if (m_FocusedIndex < 0 || m_FocusedIndex >= static_cast<int>(m_Layout.size())) {
         return;
     }
-    std::ofstream file(CategoryStatePath());
-    if (!file.is_open()) {
-        return;
-    }
-    for (const auto& [categoryId, expanded] : m_CategoryExpanded) {
-        file << "category." << categoryId << "=" << (expanded ? "1" : "0") << "\n";
+    const auto& entry = m_Layout[static_cast<size_t>(m_FocusedIndex)];
+    const float top = entry.geometry.y + m_Scroll.offset - m_ScrollMetrics.viewport.y;
+    const float bottom = top + entry.geometry.height;
+    if (m_Scroll.ScrollToRange(top, bottom, m_ContentRect.height, m_ContentHeight)) {
+        RebuildLayout();
     }
 }
 
@@ -293,8 +406,8 @@ void PlaceActorsPanel::Arrange(const Rect& allottedRect) {
 
     const float padH = ActorsPanelLayout::ContentPadH();
     const float searchRowH = ActorsPanelLayout::SearchRowHeight();
-    const float iconBtn = ActorsPanelLayout::ToolbarIconSize();
-    const float iconGap = ThemeMetric(ThemeToken::Space1);
+    const float filterBtn = ActorsPanelLayout::ToolbarIconSize();
+    const float filterGap = ActorsPanelLayout::FilterButtonGap();
 
     m_SearchRowRect = Rect{ allottedRect.x, allottedRect.y, allottedRect.width, searchRowH };
     m_ContentRect = Rect{
@@ -304,60 +417,74 @@ void PlaceActorsPanel::Arrange(const Rect& allottedRect) {
         std::max(0.0f, allottedRect.height - searchRowH)
     };
 
-    const float toolbarWidth = iconBtn * 4.0f + iconGap * 3.0f;
-    const float searchWidth = std::max(80.0f, m_SearchRowRect.width - padH * 2.0f - toolbarWidth - iconGap);
+    const float searchWidth = std::max(80.0f, m_SearchRowRect.width - padH * 2.0f - filterBtn - filterGap);
     const float searchY = m_SearchRowRect.y + (searchRowH - ActorsPanelLayout::SearchHeight()) * 0.5f;
 
     m_SearchBox->Measure(Size{ searchWidth, ActorsPanelLayout::SearchHeight() });
     m_SearchBox->Arrange(Rect{ m_SearchRowRect.x + padH, searchY, searchWidth, ActorsPanelLayout::SearchHeight() });
 
-    float x = m_SearchRowRect.x + m_SearchRowRect.width - padH - toolbarWidth;
-    const float btnY = m_SearchRowRect.y + (searchRowH - iconBtn) * 0.5f;
-    auto placeButton = [&](const std::shared_ptr<WindEffects::Editor::UI::ToolButton>& button) {
-        button->Measure(Size{ iconBtn, iconBtn });
-        button->Arrange(Rect{ x, btnY, iconBtn, iconBtn });
-        x += iconBtn + iconGap;
-    };
-    placeButton(m_CategoryFilterButton);
-    placeButton(m_SortButton);
-    placeButton(m_ViewToggleButton);
-    placeButton(m_RecentButton);
+    const float filterX = m_SearchRowRect.x + m_SearchRowRect.width - padH - filterBtn;
+    const float filterY = m_SearchRowRect.y + (searchRowH - filterBtn) * 0.5f;
+    m_FilterButton->Measure(Size{ filterBtn, filterBtn });
+    m_FilterButton->Arrange(Rect{ filterX, filterY, filterBtn, filterBtn });
 
     if (m_NeedsLayout) {
+        m_ScrollMetrics.viewport = m_ContentRect;
         RebuildData();
         RebuildLayout();
     }
 }
 
 void PlaceActorsPanel::Tick(float deltaTime) {
+    m_SearchBox->Tick(deltaTime);
     WindEffects::Editor::UI::Animator::Tick(deltaTime);
-    if (!PlaceActorsConfig::Get().enableAnimations) {
-        return;
+    const float expandSpeed = PlaceActorsConfig::Get().enableAnimations ? 16.0f : 1000.0f;
+    const float pressSpeed = PlaceActorsConfig::Get().enableAnimations ? 18.0f : 1000.0f;
+
+    bool expandChanged = false;
+    for (const auto& category : m_DisplayCategories) {
+        const float target = m_CategoryExpanded[category.id] ? 1.0f : 0.0f;
+        float& anim = m_CategoryExpandAnim[category.id];
+        const float previous = anim;
+        anim = WindEffects::Editor::UI::Animator::Damp(anim, target, expandSpeed);
+        if (std::abs(anim - previous) > 0.001f) {
+            expandChanged = true;
+        }
     }
+
     for (auto& entry : m_Layout) {
-        entry.pressAnim = WindEffects::Editor::UI::Animator::Damp(entry.pressAnim, 0.0f, 18.0f);
+        entry.pressAnim = WindEffects::Editor::UI::Animator::Damp(entry.pressAnim, 0.0f, pressSpeed);
+    }
+
+    if (expandChanged) {
+        RebuildLayout();
     }
 }
 
 void PlaceActorsPanel::Paint(PaintContext& context) {
     PanelChrome::PaintContentRegion(context, m_Geometry);
 
-    m_SearchBox->Paint(context);
-    m_CategoryFilterButton->Paint(context);
-    m_SortButton->Paint(context);
-    m_ViewToggleButton->Paint(context);
-    m_RecentButton->Paint(context);
+    ActorsPanelChrome::PaintSearchField(
+        context,
+        m_SearchBox->GetGeometry(),
+        "Search Assets...",
+        m_SearchText,
+        m_SearchBox->IsFocused(),
+        m_SearchBox->ShouldShowCaret());
+    m_FilterButton->Paint(context);
 
     auto& catalog = PlaceActorsCatalog::Get();
     auto& registry = EditorToolsRegistry::Get();
     PlaceActorsItemMetrics metrics;
     metrics.iconSize = ActorsPanelLayout::IconSize();
     metrics.cardSize = PlaceActorsConfig::Get().cardSize;
-    metrics.listRowHeight = ActorsPanelLayout::RowHeight();
+    metrics.listRowHeight = ActorsPanelLayout::ActorRowHeight();
     metrics.cornerRadius = ThemeMetric(ThemeToken::CornerRadiusSmall);
 
-    const Rect clip = m_ContentRect;
+    SyncScrollMetrics();
+    const std::string query = !m_ExternalSearchFilter.empty() ? m_ExternalSearchFilter : m_SearchText;
     const float textSize = ThemeMetric(ThemeToken::TextSizeSmall);
+    const Rect clip = m_ScrollMetrics.viewport;
 
     context.PushClipRect(clip);
 
@@ -365,14 +492,20 @@ void PlaceActorsPanel::Paint(PaintContext& context) {
         if (section.y + section.height < clip.y || section.y > clip.y + clip.height) {
             continue;
         }
-        Color sectionBg = ThemeColor(ThemeToken::ActiveBackground);
-        sectionBg.a = 0.22f;
-        context.DrawRect(section, sectionBg);
+        PlaceActorsCategory::PaintSectionBackground(context, section);
     }
 
     for (auto& entry : m_Layout) {
         if (entry.geometry.y + entry.geometry.height < clip.y) continue;
         if (entry.geometry.y > clip.y + clip.height) break;
+
+        if (entry.type == LayoutEntry::Type::EmptyState) {
+            const std::string message = m_HasSearchResults
+                ? "Drag actors here to favorite"
+                : "No Results Found";
+            PlaceActorsCategory::PaintEmptyState(context, entry.geometry, message);
+            continue;
+        }
 
         if (entry.type == LayoutEntry::Type::CategoryHeader) {
             const PlaceActorsCategoryData* category = nullptr;
@@ -383,8 +516,18 @@ void PlaceActorsPanel::Paint(PaintContext& context) {
                 }
             }
             if (!category) continue;
-            const bool expanded = m_CategoryExpanded[entry.categoryId];
-            PlaceActorsCategory::PaintHeader(context, entry.geometry, category->label, category->iconName, expanded, entry.hoverAnim);
+            const bool expanded = CategoryExpandAnim(entry.categoryId) > 0.5f;
+            const bool showChevron = !category->items.empty() || IsFavoritesCategory(entry.categoryId);
+            PlaceActorsCategory::PaintHeader(
+                context,
+                entry.geometry,
+                category->label,
+                category->iconName,
+                expanded,
+                entry.hoverAnim,
+                CategoryExpandAnim(entry.categoryId),
+                IsFavoritesCategory(entry.categoryId),
+                showChevron);
             continue;
         }
 
@@ -394,11 +537,12 @@ void PlaceActorsPanel::Paint(PaintContext& context) {
         if (m_ViewMode == PlaceActorsViewMode::Grid) {
             PlaceActorsItem::PaintGrid(context, entry.geometry, *item, metrics, entry.hoverAnim, entry.pressAnim, entry.selected, favorite);
         } else {
-            PlaceActorsItem::PaintList(context, entry.geometry, *item, metrics, entry.hoverAnim, entry.pressAnim, entry.selected, favorite);
+            PlaceActorsItem::PaintList(context, entry.geometry, *item, metrics, entry.hoverAnim, entry.pressAnim, entry.selected, favorite, query, entry.revealAnim);
         }
     }
 
     context.PopClipRect();
+    m_Scroll.Paint(context, m_ScrollMetrics, m_Scroll.IsThumbHovered());
 
     if (!m_TooltipText.empty() && m_TooltipRect.width > 0.0f) {
         context.DrawShadow(m_TooltipRect, ThemeColor(ThemeToken::ShadowPopup), 3.0f, 6.0f);
@@ -408,10 +552,26 @@ void PlaceActorsPanel::Paint(PaintContext& context) {
             ThemeColor(ThemeToken::TextSecondary), textSize);
     }
 
+    if (m_FilterMenuOpen) {
+        context.DrawShadow(m_FilterMenuRect, ThemeColor(ThemeToken::ShadowPopup), 3.0f, 8.0f);
+        context.DrawRoundedRect(m_FilterMenuRect, ThemeColor(ThemeToken::PopupBackground), ThemeMetric(ThemeToken::CornerRadiusSmall));
+        for (size_t i = 0; i < m_FilterMenuItems.size(); ++i) {
+            if (static_cast<int>(i) == m_FilterMenuHovered) {
+                context.DrawRect(m_FilterMenuItems[i].geometry, ThemeColor(ThemeToken::HoverBackground));
+            }
+            const Color textColor = m_FilterMenuItems[i].checked
+                ? ThemeColor(ThemeToken::AccentPrimary)
+                : ThemeColor(ThemeToken::TextPrimary);
+            context.DrawText(m_FilterMenuItems[i].label,
+                Point{ m_FilterMenuItems[i].geometry.x + ActorsPanelLayout::ContentPadH(), m_FilterMenuItems[i].geometry.y + (m_FilterMenuItems[i].geometry.height - textSize) * 0.5f },
+                textColor, textSize);
+        }
+    }
+
     if (m_ContextMenuOpen) {
         context.DrawShadow(m_ContextMenuRect, ThemeColor(ThemeToken::ShadowPopup), 3.0f, 8.0f);
         context.DrawRoundedRect(m_ContextMenuRect, ThemeColor(ThemeToken::PopupBackground), ThemeMetric(ThemeToken::CornerRadiusSmall));
-        const float rowH = ActorsPanelLayout::RowHeight();
+        const float rowH = ActorsPanelLayout::ActorRowHeight();
         for (size_t i = 0; i < m_ContextMenuItems.size(); ++i) {
             if (static_cast<int>(i) == m_ContextMenuHovered) {
                 context.DrawRect(m_ContextMenuItems[i].geometry, ThemeColor(ThemeToken::HoverBackground));
@@ -439,13 +599,80 @@ void PlaceActorsPanel::SpawnItem(const std::string& toolId) {
 
 void PlaceActorsPanel::ToggleFavorite(const std::string& toolId) {
     EditorToolsRegistry::Get().ToggleFavorite(toolId);
+    SaveFavorites();
     RefreshFilteredContent();
+}
+
+void PlaceActorsPanel::ToggleFilterMenu(const Point& anchor) {
+    if (m_FilterMenuOpen) {
+        CloseFilterMenu();
+        return;
+    }
+
+    m_FilterMenuOpen = true;
+    m_FilterMenuItems.clear();
+    const float rowH = ActorsPanelLayout::ActorRowHeight();
+    const float menuWidth = 196.0f;
+    float y = anchor.y;
+
+    auto addItem = [&](const std::string& label, bool checked, auto action) {
+        FilterMenuItem item;
+        item.label = label;
+        item.checked = checked;
+        item.geometry = Rect{ anchor.x - menuWidth + ActorsPanelLayout::ToolbarIconSize(), y, menuWidth, rowH };
+        item.action = std::move(action);
+        m_FilterMenuItems.push_back(std::move(item));
+        y += rowH;
+    };
+
+    addItem("Show Recent Only", m_ShowRecentOnly, [this]() {
+        m_ShowRecentOnly = !m_ShowRecentOnly;
+        RefreshFilteredContent();
+    });
+
+    addItem(m_ViewMode == PlaceActorsViewMode::List ? "Grid View" : "List View", false, [this]() {
+        m_ViewMode = (m_ViewMode == PlaceActorsViewMode::Grid) ? PlaceActorsViewMode::List : PlaceActorsViewMode::Grid;
+        RefreshFilteredContent();
+    });
+
+    switch (m_SortMode) {
+    case PlaceActorsSortMode::Category:
+        addItem("Sort: Category", true, [this]() { m_SortMode = PlaceActorsSortMode::Name; RefreshFilteredContent(); });
+        break;
+    case PlaceActorsSortMode::Recent:
+        addItem("Sort: Recent", true, [this]() { m_SortMode = PlaceActorsSortMode::Name; RefreshFilteredContent(); });
+        break;
+    default:
+        addItem("Sort: Name", true, [this]() { m_SortMode = PlaceActorsSortMode::Category; RefreshFilteredContent(); });
+        break;
+    }
+
+    const auto labels = PlaceActorsCatalog::Get().GetCategoryFilterLabels();
+    for (const auto& label : labels) {
+        addItem(label == "All" ? "Category: All" : "Category: " + label, m_CategoryFilter == label, [this, label]() {
+            m_CategoryFilter = label;
+            RefreshFilteredContent();
+        });
+    }
+
+    m_FilterMenuRect = Rect{
+        m_FilterMenuItems.front().geometry.x,
+        m_FilterMenuItems.front().geometry.y,
+        menuWidth,
+        rowH * static_cast<float>(m_FilterMenuItems.size())
+    };
+}
+
+void PlaceActorsPanel::CloseFilterMenu() {
+    m_FilterMenuOpen = false;
+    m_FilterMenuItems.clear();
+    m_FilterMenuHovered = -1;
 }
 
 void PlaceActorsPanel::OpenContextMenu(const std::string& toolId, const Point& position) {
     m_ContextMenuOpen = true;
     m_ContextMenuItems.clear();
-    const float itemHeight = ActorsPanelLayout::RowHeight();
+    const float itemHeight = ActorsPanelLayout::ActorRowHeight();
     const float menuWidth = 168.0f;
     float y = position.y;
     auto addItem = [&](const std::string& label, auto action) {
@@ -484,11 +711,28 @@ void PlaceActorsPanel::HideTooltip() {
     m_TooltipRect = {};
 }
 
+bool PlaceActorsPanel::ShowsPointerCursor(const Point& position) const {
+    return m_ScrollMetrics.showsScrollbar &&
+        (m_ScrollMetrics.thumb.Contains(position) || m_ScrollMetrics.track.Contains(position));
+}
+
 void PlaceActorsPanel::OnMouseDown(const MouseEvent& event) {
+    if (m_FilterMenuOpen) {
+        if (m_FilterMenuRect.Contains(event.position)) {
+            if (m_FilterMenuHovered >= 0 && m_FilterMenuHovered < static_cast<int>(m_FilterMenuItems.size())) {
+                m_FilterMenuItems[static_cast<size_t>(m_FilterMenuHovered)].action();
+            }
+            CloseFilterMenu();
+            return;
+        }
+        CloseFilterMenu();
+        return;
+    }
+
     if (m_ContextMenuOpen) {
         if (m_ContextMenuRect.Contains(event.position)) {
             if (m_ContextMenuHovered >= 0 && m_ContextMenuHovered < static_cast<int>(m_ContextMenuItems.size())) {
-                m_ContextMenuItems[m_ContextMenuHovered].action();
+                m_ContextMenuItems[static_cast<size_t>(m_ContextMenuHovered)].action();
             }
             CloseContextMenu();
             return;
@@ -497,12 +741,15 @@ void PlaceActorsPanel::OnMouseDown(const MouseEvent& event) {
         return;
     }
 
+    SyncScrollMetrics();
+    if (m_Scroll.OnMouseDown(event, m_ScrollMetrics, m_ContentRect.height, m_ContentHeight)) {
+        RebuildLayout();
+        return;
+    }
+
     if (m_SearchRowRect.Contains(event.position)) {
         if (m_SearchBox->GetGeometry().Contains(event.position)) m_SearchBox->OnMouseDown(event);
-        else if (m_CategoryFilterButton->GetGeometry().Contains(event.position)) m_CategoryFilterButton->OnMouseDown(event);
-        else if (m_SortButton->GetGeometry().Contains(event.position)) m_SortButton->OnMouseDown(event);
-        else if (m_ViewToggleButton->GetGeometry().Contains(event.position)) m_ViewToggleButton->OnMouseDown(event);
-        else if (m_RecentButton->GetGeometry().Contains(event.position)) m_RecentButton->OnMouseDown(event);
+        else if (m_FilterButton->GetGeometry().Contains(event.position)) m_FilterButton->OnMouseDown(event);
         return;
     }
 
@@ -530,7 +777,7 @@ void PlaceActorsPanel::OnMouseDown(const MouseEvent& event) {
 
         if (entry->type == LayoutEntry::Type::Item) {
             const float starX = ActorsPanelLayout::StarIconX(entry->geometry.x, entry->geometry.width);
-            if (event.position.x >= starX) {
+            if (event.position.x >= starX - 4.0f) {
                 ToggleFavorite(entry->toolId);
                 return;
             }
@@ -542,10 +789,12 @@ void PlaceActorsPanel::OnMouseDown(const MouseEvent& event) {
         }
         m_FocusedIndex = static_cast<int>(std::distance(m_Layout.data(), entry));
 
-        if (const PlaceActorsItemData* item = PlaceActorsCatalog::Get().FindItem(entry->toolId)) {
-            m_PendingDragItem = item;
-            m_DragStartPosition = event.position;
-            m_DragStarted = false;
+        if (entry->type == LayoutEntry::Type::Item) {
+            if (const PlaceActorsItemData* item = PlaceActorsCatalog::Get().FindItem(entry->toolId)) {
+                m_PendingDragItem = item;
+                m_DragStartPosition = event.position;
+                m_DragStarted = false;
+            }
         }
     }
 }
@@ -553,10 +802,14 @@ void PlaceActorsPanel::OnMouseDown(const MouseEvent& event) {
 void PlaceActorsPanel::OnMouseMove(const MouseEvent& event) {
     if (m_SearchRowRect.Contains(event.position)) {
         m_SearchBox->OnMouseMove(event);
-        m_CategoryFilterButton->OnMouseMove(event);
-        m_SortButton->OnMouseMove(event);
-        m_ViewToggleButton->OnMouseMove(event);
-        m_RecentButton->OnMouseMove(event);
+        m_FilterButton->OnMouseMove(event);
+    }
+
+    SyncScrollMetrics();
+    m_Scroll.OnMouseMove(event, m_ScrollMetrics, m_ContentRect.height, m_ContentHeight);
+    if (m_Scroll.IsDraggingThumb()) {
+        RebuildLayout();
+        return;
     }
 
     HideTooltip();
@@ -579,6 +832,7 @@ void PlaceActorsPanel::OnMouseMove(const MouseEvent& event) {
         const float dy = event.position.y - m_DragStartPosition.y;
         if ((dx * dx + dy * dy) >= (kDragThreshold * kDragThreshold)) {
             m_DragStarted = true;
+            m_LastClickToolId = m_PendingDragItem->toolId;
             PlaceActorsPlacement::Get().BeginDragPlacement(m_PendingDragItem->toolId);
             m_PendingDragItem = nullptr;
         }
@@ -593,11 +847,51 @@ void PlaceActorsPanel::OnMouseMove(const MouseEvent& event) {
             }
         }
     }
+
+    if (m_FilterMenuOpen) {
+        m_FilterMenuHovered = -1;
+        for (size_t i = 0; i < m_FilterMenuItems.size(); ++i) {
+            if (m_FilterMenuItems[i].geometry.Contains(event.position)) {
+                m_FilterMenuHovered = static_cast<int>(i);
+                break;
+            }
+        }
+    }
 }
 
 void PlaceActorsPanel::OnMouseUp(const MouseEvent& event) {
+    m_Scroll.OnMouseUp(event);
+
     if (m_PendingDragItem && !m_DragStarted && event.button == MouseButton::Left) {
-        SpawnItem(m_PendingDragItem->toolId);
+        const std::string toolId = m_PendingDragItem->toolId;
+        const double now = SDL_GetTicks() / 1000.0;
+        const bool isDoubleClick = toolId == m_LastClickToolId && (now - m_LastClickTime) < 0.35;
+        if (isDoubleClick) {
+            SpawnItem(toolId);
+            m_LastClickToolId.clear();
+            m_LastClickTime = 0.0;
+        } else {
+            m_LastClickToolId = toolId;
+            m_LastClickTime = now;
+        }
+    }
+
+    if (event.button == MouseButton::Left) {
+        if (LayoutEntry* dropTarget = HitEntry(event.position)) {
+            if (dropTarget->type == LayoutEntry::Type::CategoryHeader && IsFavoritesCategory(dropTarget->categoryId)) {
+                std::string toolId;
+                if (m_PendingDragItem) {
+                    toolId = m_PendingDragItem->toolId;
+                } else if (!m_LastClickToolId.empty()) {
+                    toolId = m_LastClickToolId;
+                }
+                if (!toolId.empty() && !EditorToolsRegistry::Get().IsFavorite(toolId)) {
+                    EditorToolsRegistry::Get().SetFavorite(toolId, true);
+                    SaveFavorites();
+                    RefreshFilteredContent();
+                }
+            }
+        }
     }
     m_PendingDragItem = nullptr;
     m_DragStarted = false;
@@ -607,18 +901,52 @@ void PlaceActorsPanel::OnMouseWheel(const MouseEvent& event) {
     if (!m_ContentRect.Contains(event.position)) {
         return;
     }
-    m_ScrollOffset -= event.wheelDeltaY * ActorsPanelLayout::RowHeight();
-    m_NeedsLayout = true;
+    SyncScrollMetrics();
+    m_Scroll.ApplyWheel(
+        event.wheelDeltaY,
+        ActorsPanelLayout::ActorRowHeight() * 0.75f,
+        m_ContentRect.height,
+        m_ContentHeight);
     RebuildLayout();
 }
 
 void PlaceActorsPanel::OnKeyDown(const KeyEvent& event) {
+    if (m_Layout.empty()) {
+        return;
+    }
+
     if (event.keycode == SDLK_RETURN && m_FocusedIndex >= 0 && m_FocusedIndex < static_cast<int>(m_Layout.size())) {
-        const auto& entry = m_Layout[m_FocusedIndex];
+        const auto& entry = m_Layout[static_cast<size_t>(m_FocusedIndex)];
         if (entry.type == LayoutEntry::Type::Item) {
             SpawnItem(entry.toolId);
         }
+        return;
     }
+
+    int step = 0;
+    if (event.keycode == SDLK_DOWN) step = 1;
+    else if (event.keycode == SDLK_UP) step = -1;
+    else return;
+
+    int next = m_FocusedIndex;
+    if (next < 0) next = 0;
+    next += step;
+    next = std::clamp(next, 0, static_cast<int>(m_Layout.size()) - 1);
+
+    while (next >= 0 && next < static_cast<int>(m_Layout.size()) &&
+           m_Layout[static_cast<size_t>(next)].type != LayoutEntry::Type::Item) {
+        next += step;
+    }
+    if (next < 0 || next >= static_cast<int>(m_Layout.size())) {
+        return;
+    }
+
+    m_FocusedIndex = next;
+    for (auto& entry : m_Layout) {
+        entry.selected = false;
+    }
+    m_Layout[static_cast<size_t>(m_FocusedIndex)].selected = true;
+    ScrollFocusedIntoView();
 }
 
 } // namespace we::programs::editor

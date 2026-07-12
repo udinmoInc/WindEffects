@@ -18,12 +18,16 @@ using we::runtime::scene::EntityType;
 EntityType EntityTypeForTool(const std::string& toolId) {
     static const std::unordered_map<std::string, EntityType> kMap = {
         {"PlaceEmptyActor", EntityType::EmptyActor},
+        {"PlaceEmptyCharacter", EntityType::Character},
+        {"PlaceEmptyPawn", EntityType::Character},
         {"PlaceCharacter", EntityType::Character},
         {"PlaceBlueprint", EntityType::Blueprint},
         {"PlaceCube", EntityType::Cube},
         {"PlaceSphere", EntityType::Sphere},
         {"PlacePlane", EntityType::Plane},
         {"PlaceCylinder", EntityType::Cylinder},
+        {"PlaceCone", EntityType::Cylinder},
+        {"PlaceCapsule", EntityType::Sphere},
         {"LightDirectional", EntityType::DirectionalLight},
         {"LightPoint", EntityType::PointLight},
         {"LightSpot", EntityType::SpotLight},

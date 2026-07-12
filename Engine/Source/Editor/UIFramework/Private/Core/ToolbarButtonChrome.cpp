@@ -1,4 +1,5 @@
 #include "Core/ToolbarButtonChrome.h"
+#include "Rendering/IconMetrics.h"
 #include "Core/PaintContext.h"
 #include "WindEffects/Editor/UI/Theming/ThemeAccess.h"
 
@@ -18,7 +19,13 @@ float ButtonRadius(float uiScale) {
 }
 
 float IconSize(float uiScale) {
-    return ResolveThemeMetric(ThemeToken::IconSizeToolbar) * uiScale;
+    (void)uiScale;
+    return static_cast<float>(IconMetrics::NativeIconTierPx(ResolveThemeMetric(ThemeToken::IconSizeToolbar)));
+}
+
+float PrimaryIconSize(float uiScale) {
+    (void)uiScale;
+    return static_cast<float>(IconMetrics::NativeIconTierPx(ResolveThemeMetric(ThemeToken::IconSizePrimary)));
 }
 
 float HorizontalPad(float uiScale) {
@@ -99,6 +106,45 @@ void PaintChipDropdown(
     if (emphasis > 0.01f) {
         Color border = ResolveThemeColor(ThemeToken::BorderLight);
         border.a *= emphasis * 0.65f;
+        context.DrawRoundedRectOutline(rect, border, 1.0f * uiScale, radius);
+    }
+}
+
+void PaintViewportChip(
+    PaintContext& context,
+    const Rect& rect,
+    float hoverAnim,
+    float pressStrength,
+    float uiScale)
+{
+    const float radius = ResolveThemeMetric(ThemeToken::CornerRadiusSmall) * uiScale;
+    Color idleBg = ResolveThemeColor(ThemeToken::ViewportToolbarBackground);
+    Color hoverBg = Color::Lerp(idleBg, ResolveThemeColor(ThemeToken::ButtonPrimaryHover), 0.55f);
+    Color pressBg = ResolveThemeColor(ThemeToken::ButtonPrimaryPressed);
+
+    context.DrawShadow(
+        rect,
+        ResolveThemeColor(ThemeToken::ShadowSubtle),
+        radius,
+        ResolveThemeMetric(ThemeToken::Space2) * uiScale);
+
+    Color bg = idleBg;
+    if (pressStrength > 0.01f) {
+        bg = Color::Lerp(hoverBg, pressBg, pressStrength);
+    } else if (hoverAnim > 0.01f) {
+        bg = Color::Lerp(idleBg, hoverBg, hoverAnim);
+    }
+    context.DrawRoundedRect(rect, bg, radius);
+    context.DrawRoundedRectOutline(
+        rect,
+        ResolveThemeColor(ThemeToken::BorderDefault),
+        1.0f * uiScale,
+        radius);
+
+    const float emphasis = std::max(hoverAnim, pressStrength);
+    if (emphasis > 0.01f) {
+        Color border = ResolveThemeColor(ThemeToken::BorderLight);
+        border.a *= emphasis * 0.75f;
         context.DrawRoundedRectOutline(rect, border, 1.0f * uiScale, radius);
     }
 }

@@ -19,6 +19,7 @@ public:
     PanelBuilder& TabIcon(std::string_view iconName);
     PanelBuilder& HeaderHeight(float height);
     PanelBuilder& Transparent();
+    PanelBuilder& FloatingToolbar();
     PanelBuilder& Collapsible(bool collapsible);
     PanelBuilder& WithCloseButton(std::function<void()> onClose = {});
     PanelBuilder& WithHeaderAction(std::string_view iconName, std::function<void()> onClick);

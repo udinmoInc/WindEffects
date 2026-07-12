@@ -4,6 +4,7 @@
 #include "Rendering/UIStateManager.h"
 #include "Rendering/TextUIService.h"
 #include "Rendering/IconRenderer.h"
+#include "Rendering/Icons/IconManager.h"
 #include "Rendering/UiGpuUpload.h"
 #include "Core/Widget.h"
 #include "Core/PaintContext.h"
@@ -52,10 +53,11 @@ static_assert(sizeof(TextPushConstants) == 32, "Text push constants must match T
 
 void FillUiTransformPushConstants(const uint32_t width, const uint32_t height, float out[4])
 {
+    // Pixel-center NDC: ndc = ((px + 0.5) / extent) * 2 - 1
     out[0] = 2.0f / static_cast<float>(width);
     out[1] = 2.0f / static_cast<float>(height);
-    out[2] = -1.0f + (1.0f / static_cast<float>(width));
-    out[3] = -1.0f + (1.0f / static_cast<float>(height));
+    out[2] = 1.0f / static_cast<float>(width) - 1.0f;
+    out[3] = 1.0f / static_cast<float>(height) - 1.0f;
 }
 
 void FillTextPushConstants(
@@ -143,11 +145,27 @@ bool OverlayRenderer::Init(VkPhysicalDevice physicalDevice,
         return false;
     }
 
+    m_IconManager = std::make_unique<IconManager>();
+    const std::string metaPath = we::core::AssetRegistry::Get().GetIconMetaPath();
+    const std::string atlasRoot = we::core::AssetRegistry::Get().GetIconAtlasRoot();
+    if (!m_IconManager->Init(
+            deviceContext,
+            resourceManager,
+            m_GpuUpload.get(),
+            m_DescriptorPool,
+            m_TextureDescriptorSetLayout,
+            metaPath,
+            atlasRoot)) {
+        HE_ERROR("OverlayRenderer: IconManager initialization failed");
+        return false;
+    }
+
     m_IconRenderer = std::make_unique<IconRenderer>();
     if (!m_IconRenderer->Init(deviceContext, resourceManager, m_GpuUpload.get(), m_DescriptorPool, m_TextureDescriptorSetLayout)) {
         HE_ERROR("OverlayRenderer: IconRenderer initialization failed");
         return false;
     }
+    m_IconRenderer->SetIconManager(m_IconManager.get());
 
     CreateGraphicsPipeline(swapchainFormat);
     CreateTextGraphicsPipeline(swapchainFormat);
@@ -193,6 +211,10 @@ void OverlayRenderer::Shutdown() {
     if (m_IconRenderer) {
         m_IconRenderer->Shutdown();
         m_IconRenderer.reset();
+    }
+    if (m_IconManager) {
+        m_IconManager->Shutdown();
+        m_IconManager.reset();
     }
     if (m_TextUIService) {
         m_TextUIService->Shutdown();
@@ -643,6 +665,10 @@ TextUIService* OverlayRenderer::GetTextUIService() const {
 
 IconRenderer* OverlayRenderer::GetIconRenderer() const {
     return m_IconRenderer.get();
+}
+
+IconManager* OverlayRenderer::GetIconManager() const {
+    return m_IconManager.get();
 }
 
 void OverlayRenderer::CreateDescriptorSetLayouts() {

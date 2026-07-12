@@ -78,6 +78,10 @@ public:
     [[nodiscard]] bool IsFavorite(std::string_view toolId) const;
     [[nodiscard]] std::vector<const EditorToolAction*> GetFavoriteTools(std::string_view modeId) const;
 
+    void SetFavorite(std::string_view toolId, bool enabled);
+    void LoadFavorites(const std::unordered_map<std::string, bool>& favorites);
+    [[nodiscard]] const std::unordered_map<std::string, bool>& GetFavoriteStates() const { return m_Favorites; }
+
 private:
     EditorToolsRegistry() = default;
 

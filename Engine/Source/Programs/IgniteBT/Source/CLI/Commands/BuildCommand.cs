@@ -5,6 +5,7 @@ using IgniteBT.Build.Dependencies;
 using IgniteBT.Core.Cache;
 using IgniteBT.Build.Toolchain;
 using IgniteBT.Build.Shaders;
+using IgniteBT.Build.Icons;
 using IgniteBT.Workspace.ThirdParty;
 using IgniteBT.Build.Orchestration;
 using IgniteBT.Build.Compiler;
@@ -205,6 +206,13 @@ public static class BuildCommand
 
             if (result.Success)
             {
+                using (profiler.Scope(BuildStages.AssetCompilation))
+                {
+                    var iconStats = IconAtlasCompiler.CompileAndStage(projectRoot, engineDir, outputLayout.ConfigurationRoot, layout.CacheDirectory);
+                    if (iconStats.Skipped > 0)
+                        profiler.RecordShaderCacheHit(iconStats.Skipped);
+                }
+
                 using (profiler.Scope(BuildStages.RuntimeDependencyStaging))
                 {
                     outputLayout.PruneConfigurationRoot(result.Modules);

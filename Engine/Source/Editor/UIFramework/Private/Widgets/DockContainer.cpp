@@ -92,9 +92,11 @@ Size DockContainer::Measure(const Size& availableSize) {
         float usedHeight = m_HeaderHeight;
 
         if (auto toolbar = activePanel->GetToolbar()) {
-            Size tbSize = toolbar->Measure(contentAvailable);
-            contentAvailable.height -= tbSize.height;
-            usedHeight += tbSize.height;
+            if (!activePanel->IsFloatingToolbar()) {
+                Size tbSize = toolbar->Measure(contentAvailable);
+                contentAvailable.height -= tbSize.height;
+                usedHeight += tbSize.height;
+            }
         }
 
         if (auto content = activePanel->GetContent()) {
@@ -196,13 +198,17 @@ void DockContainer::Paint(PaintContext& context) {
             PanelChrome::PaintPanelSurface(context, bodyRect);
         }
 
-        if (auto toolbar = activePanel->GetToolbar()) {
-            PanelChrome::PaintToolbarRegion(context, toolbar->GetGeometry());
-            toolbar->Paint(context);
+        if (auto content = activePanel->GetContent()) {
+            context.PushClipRect(bodyRect);
+            content->Paint(context);
+            context.PopClipRect();
         }
 
-        if (auto content = activePanel->GetContent()) {
-            content->Paint(context);
+        if (auto toolbar = activePanel->GetToolbar()) {
+            if (!activePanel->IsFloatingToolbar()) {
+                PanelChrome::PaintToolbarRegion(context, toolbar->GetGeometry());
+            }
+            toolbar->Paint(context);
         }
     }
 }

@@ -388,8 +388,8 @@ bool TextUIService::GenerateTextGeometry(
         }
         const float x0 = SnapPx(cmd.rect.x + glyph.x);
         const float y0 = SnapPx(cmd.rect.y + glyph.y);
-        const float x1 = SnapPx(x0 + std::max(glyph.width, 1.0f));
-        const float y1 = SnapPx(y0 + std::max(glyph.height, 1.0f));
+        const float x1 = x0 + std::max(glyph.width, 1.0f);
+        const float y1 = y0 + std::max(glyph.height, 1.0f);
 
         UIVertex2 v0{
             {x0, y0},

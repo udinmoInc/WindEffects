@@ -1,5 +1,6 @@
 #include "Rendering/UIWidgetAdapter.h"
 #include "Rendering/IconRenderer.h"
+#include "Rendering/IconMetrics.h"
 #include "Rendering/TextUIService.h"
 #include "Core/Logger.h"
 #include "Core/FrameCounter.h"
@@ -387,17 +388,17 @@ void UIWidgetAdapter::GenerateIconGeometry(const DrawCommand& cmd) {
     if (!m_Renderer || !m_Renderer->GetIconRenderer()) {
         return;
     }
-    
+
     IconRenderer* iconRenderer = m_Renderer->GetIconRenderer();
-    uint32_t iconSize = static_cast<uint32_t>(std::max(8.0f, cmd.fontSize));
-    m_CurrentTextureSet = iconRenderer->GetLucideIcon(cmd.text, iconSize, cmd.color);
-    
-    if (m_CurrentTextureSet == VK_NULL_HANDLE) {
+    const uint32_t iconSize = IconMetrics::SnapToAtlasTier(cmd.fontSize);
+    const IconDrawInfo drawInfo = iconRenderer->GetLucideIconDrawInfo(cmd.text, iconSize, cmd.color);
+
+    if (!drawInfo.valid || drawInfo.descriptorSet == VK_NULL_HANDLE) {
         return;
     }
-    
-    // Generate quad for icon
-    // Pixel-snap icon quads; icon bitmaps are authored/rasterized for exact pixel sizes.
+
+    m_CurrentTextureSet = drawInfo.descriptorSet;
+
     float x0 = SnapPx(cmd.rect.x);
     float y0 = SnapPx(cmd.rect.y);
     float x1 = SnapPx(cmd.rect.x + cmd.rect.width);
@@ -406,14 +407,14 @@ void UIWidgetAdapter::GenerateIconGeometry(const DrawCommand& cmd) {
     float y = y0;
     float w = x1 - x0;
     float h = y1 - y0;
-    
-    float type = 0.0f; // Textured
+
+    const float type = drawInfo.shaderType;
     Color color = cmd.color;
-    
-    UIVertex2 v0{ {x,     y},     {0.0f, 0.0f}, {color.r, color.g, color.b, color.a}, {x, y, w, h}, {0.0f, type, 0.0f, 0.0f} };
-    UIVertex2 v1{ {x + w, y},     {1.0f, 0.0f}, {color.r, color.g, color.b, color.a}, {x, y, w, h}, {0.0f, type, 0.0f, 0.0f} };
-    UIVertex2 v2{ {x + w, y + h}, {1.0f, 1.0f}, {color.r, color.g, color.b, color.a}, {x, y, w, h}, {0.0f, type, 0.0f, 0.0f} };
-    UIVertex2 v3{ {x,     y + h}, {0.0f, 1.0f}, {color.r, color.g, color.b, color.a}, {x, y, w, h}, {0.0f, type, 0.0f, 0.0f} };
+
+    UIVertex2 v0{ {x,     y},     {drawInfo.uvMin[0], drawInfo.uvMin[1]}, {color.r, color.g, color.b, color.a}, {x, y, w, h}, {0.0f, type, 0.0f, 0.0f} };
+    UIVertex2 v1{ {x + w, y},     {drawInfo.uvMax[0], drawInfo.uvMin[1]}, {color.r, color.g, color.b, color.a}, {x, y, w, h}, {0.0f, type, 0.0f, 0.0f} };
+    UIVertex2 v2{ {x + w, y + h}, {drawInfo.uvMax[0], drawInfo.uvMax[1]}, {color.r, color.g, color.b, color.a}, {x, y, w, h}, {0.0f, type, 0.0f, 0.0f} };
+    UIVertex2 v3{ {x,     y + h}, {drawInfo.uvMin[0], drawInfo.uvMax[1]}, {color.r, color.g, color.b, color.a}, {x, y, w, h}, {0.0f, type, 0.0f, 0.0f} };
     
     uint32_t startIndex = static_cast<uint32_t>(m_Vertices.size());
     m_Vertices.push_back(v0);

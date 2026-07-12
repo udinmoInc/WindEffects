@@ -1,6 +1,8 @@
 #include "Widgets/PropertyEditor.h"
 #include "WindEffects/Editor/UI/Panel/PanelChrome.h"
 #include "Core/PaintContext.h"
+#include "Core/DPIContext.h"
+#include "Rendering/IconMetrics.h"
 #include "WindEffects/Editor/UI/Theming/ThemeToken.h"
 #include "Core/Icon.h"
 #include <cmath>
@@ -12,39 +14,50 @@ PropertyEditor::PropertyEditor()
     : m_Style(WidgetStyle::Panel())
 {}
 
+void PropertyEditor::SyncScrollMetrics() {
+    m_Scroll.Sync(m_Geometry.height, m_ContentHeight);
+    const float uiScale = std::max(1.0f, DPIContext::GetScale());
+    m_ScrollMetrics = m_Scroll.ComputeMetrics(m_Geometry, m_ContentHeight, uiScale);
+}
+
 Size PropertyEditor::Measure(const Size& availableSize) {
     BuildCategories();
     CalculateGeometries();
-    
-    float totalHeight = 0.0f;
-    for (const auto& cat : m_Categories) {
-        totalHeight += m_CategoryHeaderHeight;
-        if (cat.expanded) {
-            totalHeight += cat.contentHeight;
-        }
-    }
-    
-    return Size{ availableSize.width, totalHeight };
+    return Size{ availableSize.width, availableSize.height };
 }
 
 void PropertyEditor::Arrange(const Rect& allottedRect) {
     m_Geometry = allottedRect;
     CalculateGeometries();
+    SyncScrollMetrics();
 }
 
 void PropertyEditor::Paint(PaintContext& context) {
     PanelChrome::PaintContentRegion(context, m_Geometry);
+    SyncScrollMetrics();
 
-    float y = m_Geometry.y - m_ScrollOffset;
+    const float uiScale = std::max(1.0f, DPIContext::GetScale());
+    const float viewTop = m_ScrollMetrics.viewport.y;
+    const float viewBottom = m_ScrollMetrics.viewport.y + m_ScrollMetrics.viewport.height;
+    float y = m_ScrollMetrics.viewport.y - m_Scroll.offset;
+
+    context.PushClipRect(m_ScrollMetrics.viewport);
 
     for (const auto& cat : m_Categories) {
-        if (y + m_CategoryHeaderHeight < m_Geometry.y || y > m_Geometry.y + m_Geometry.height) {
+        if (y + m_CategoryHeaderHeight < viewTop || y > viewBottom) {
             y += m_CategoryHeaderHeight;
-            if (cat.expanded) y += cat.contentHeight;
+            if (cat.expanded) {
+                y += cat.contentHeight;
+            }
             continue;
         }
 
-        Rect headerRect{ m_Geometry.x, y, m_Geometry.width, m_CategoryHeaderHeight };
+        Rect headerRect{
+            m_ScrollMetrics.viewport.x,
+            y,
+            m_ScrollMetrics.viewport.width,
+            m_CategoryHeaderHeight
+        };
         PanelChrome::PaintCategoryHeader(context, headerRect, cat.name, cat.expanded, cat.name == m_HoveredCategory);
 
         y += m_CategoryHeaderHeight;
@@ -53,9 +66,14 @@ void PropertyEditor::Paint(PaintContext& context) {
             for (size_t propIdx : cat.propertyIndices) {
                 const auto& prop = m_Properties[propIdx];
 
-                Rect propRect{ m_Geometry.x, y, m_Geometry.width, m_PropertyHeight };
+                Rect propRect{
+                    m_ScrollMetrics.viewport.x,
+                    y,
+                    m_ScrollMetrics.viewport.width,
+                    m_PropertyHeight
+                };
 
-                if (propRect.y + propRect.height < m_Geometry.y || propRect.y > m_Geometry.y + m_Geometry.height) {
+                if (propRect.y + propRect.height < viewTop || propRect.y > viewBottom) {
                     y += m_PropertyHeight;
                     continue;
                 }
@@ -85,7 +103,7 @@ void PropertyEditor::Paint(PaintContext& context) {
                 context.DrawText(prop.value, Point{ valueX, valueY }, ThemeColor(ThemeToken::TextPrimary), ThemeMetric(ThemeToken::TextSizeBody));
 
                 if (prop.hasOverride) {
-                    const float resetSize = ThemeMetric(ThemeToken::IconSizeTree);
+                    const float resetSize = static_cast<float>(IconMetrics::NativeIconTierPx(ThemeMetric(ThemeToken::IconSizeTree)));
                     const float resetX = propRect.x + propRect.width - resetSize - PanelChrome::PanelPaddingH();
                     const float resetY = propRect.y + (m_PropertyHeight - resetSize) * 0.5f;
                     IconPainter::DrawIcon(context, Icons::XName, Rect{ resetX, resetY, resetSize, resetSize }, ThemeColor(ThemeToken::TextSecondary));
@@ -95,9 +113,18 @@ void PropertyEditor::Paint(PaintContext& context) {
             }
         }
     }
+
+    context.PopClipRect();
+    m_Scroll.Paint(context, m_ScrollMetrics, m_Scroll.IsThumbHovered());
 }
 
 void PropertyEditor::OnMouseDown(const MouseEvent& event) {
+    SyncScrollMetrics();
+    if (m_Scroll.OnMouseDown(event, m_ScrollMetrics, m_Geometry.height, m_ContentHeight)) {
+        Arrange(m_Geometry);
+        return;
+    }
+
     CategoryGroup* clickedCategory = GetCategoryAtPosition(event.position);
     if (clickedCategory) {
         // Check if clicked on chevron area
@@ -147,6 +174,13 @@ void PropertyEditor::OnMouseDown(const MouseEvent& event) {
 }
 
 void PropertyEditor::OnMouseMove(const MouseEvent& event) {
+    SyncScrollMetrics();
+    m_Scroll.OnMouseMove(event, m_ScrollMetrics, m_Geometry.height, m_ContentHeight);
+    if (m_Scroll.IsDraggingThumb()) {
+        Arrange(m_Geometry);
+        return;
+    }
+
     m_HoveredCategory.clear();
     m_HoveredProperty.clear();
     
@@ -162,23 +196,24 @@ void PropertyEditor::OnMouseMove(const MouseEvent& event) {
     }
 }
 
+void PropertyEditor::OnMouseUp(const MouseEvent& event) {
+    m_Scroll.OnMouseUp(event);
+}
+
 void PropertyEditor::OnMouseWheel(const MouseEvent& event) {
-    float scrollAmount = event.wheelDeltaY * m_PropertyHeight * 0.5f;
-    m_ScrollOffset -= scrollAmount;
-    
-    // Calculate total height
-    float totalHeight = 0.0f;
-    for (const auto& cat : m_Categories) {
-        totalHeight += m_CategoryHeaderHeight;
-        if (cat.expanded) {
-            totalHeight += cat.contentHeight;
-        }
-    }
-    
-    float maxScroll = std::max(0.0f, totalHeight - m_Geometry.height);
-    m_ScrollOffset = std::max(0.0f, std::min(m_ScrollOffset, maxScroll));
-    
+    SyncScrollMetrics();
+    m_Scroll.ApplyWheel(
+        event.wheelDeltaY,
+        m_PropertyHeight * 0.5f,
+        m_Geometry.height,
+        m_ContentHeight);
     CalculateGeometries();
+    SyncScrollMetrics();
+}
+
+bool PropertyEditor::ShowsPointerCursor(const Point& position) const {
+    return m_ScrollMetrics.showsScrollbar &&
+        (m_ScrollMetrics.thumb.Contains(position) || m_ScrollMetrics.track.Contains(position));
 }
 
 void PropertyEditor::AddProperty(const Property& property) {
@@ -200,7 +235,8 @@ void PropertyEditor::RemoveProperty(const std::string& name) {
 void PropertyEditor::Clear() {
     m_Properties.clear();
     m_Categories.clear();
-    m_ScrollOffset = 0.0f;
+    m_Scroll.offset = 0.0f;
+    m_ContentHeight = 0.0f;
 }
 
 std::string PropertyEditor::GetPropertyValue(const std::string& name) const {
@@ -262,61 +298,74 @@ void PropertyEditor::BuildCategories() {
 
 void PropertyEditor::CalculateGeometries() {
     float y = 0.0f;
-    
+
     for (auto& cat : m_Categories) {
-        cat.headerGeometry = Rect{ m_Geometry.x, y, m_Geometry.width, m_CategoryHeaderHeight };
+        cat.headerGeometry = Rect{ 0.0f, y, m_Geometry.width, m_CategoryHeaderHeight };
         y += m_CategoryHeaderHeight;
-        
+
         cat.contentHeight = 0.0f;
         if (cat.expanded) {
             for (size_t propIdx : cat.propertyIndices) {
+                (void)propIdx;
                 cat.contentHeight += m_PropertyHeight;
             }
             y += cat.contentHeight;
         }
     }
+
+    m_ContentHeight = y;
 }
 
 Property* PropertyEditor::GetPropertyAtPosition(const Point& pos) {
-    float y = -m_ScrollOffset;
-    
+    SyncScrollMetrics();
+    float y = m_ScrollMetrics.viewport.y - m_Scroll.offset;
+
     for (const auto& cat : m_Categories) {
         y += m_CategoryHeaderHeight;
-        
+
         if (cat.expanded) {
             for (size_t propIdx : cat.propertyIndices) {
-                Rect propRect{ m_Geometry.x + ThemeMetric(ThemeToken::Space2), y, m_Geometry.width - ThemeMetric(ThemeToken::Space4), m_PropertyHeight };
-                
-                if (pos.x >= propRect.x && pos.x <= propRect.x + propRect.width &&
-                    pos.y >= propRect.y && pos.y <= propRect.y + propRect.height) {
+                Rect propRect{
+                    m_ScrollMetrics.viewport.x + ThemeMetric(ThemeToken::Space2),
+                    y,
+                    m_ScrollMetrics.viewport.width - ThemeMetric(ThemeToken::Space4),
+                    m_PropertyHeight
+                };
+
+                if (propRect.Contains(pos)) {
                     return &m_Properties[propIdx];
                 }
-                
+
                 y += m_PropertyHeight;
             }
         }
     }
-    
+
     return nullptr;
 }
 
 PropertyEditor::CategoryGroup* PropertyEditor::GetCategoryAtPosition(const Point& pos) {
-    float y = -m_ScrollOffset;
-    
+    SyncScrollMetrics();
+    float y = m_ScrollMetrics.viewport.y - m_Scroll.offset;
+
     for (auto& cat : m_Categories) {
-        Rect headerRect{ m_Geometry.x + 4.0f, y, m_Geometry.width - 8.0f, m_CategoryHeaderHeight };
-        
-        if (pos.x >= headerRect.x && pos.x <= headerRect.x + headerRect.width &&
-            pos.y >= headerRect.y && pos.y <= headerRect.y + headerRect.height) {
+        Rect headerRect{
+            m_ScrollMetrics.viewport.x + 4.0f,
+            y,
+            m_ScrollMetrics.viewport.width - 8.0f,
+            m_CategoryHeaderHeight
+        };
+
+        if (headerRect.Contains(pos)) {
             return &cat;
         }
-        
+
         y += m_CategoryHeaderHeight;
         if (cat.expanded) {
             y += cat.contentHeight;
         }
     }
-    
+
     return nullptr;
 }
 

@@ -44,18 +44,22 @@ Toolbar::Toolbar()
 }
 
 Size Toolbar::Measure(const Size& availableSize) {
+    float contentHeight = m_Height;
     for (auto& tool : m_Tools) {
         if (tool.button && tool.button->IsVisible()) {
             tool.button->Measure(availableSize);
+            contentHeight = (std::max)(contentHeight, tool.button->GetDesiredSize().height);
         }
     }
-    m_DesiredSize = Size{ availableSize.width, m_Height };
+    m_DesiredSize = Size{ availableSize.width, contentHeight };
     return m_DesiredSize;
 }
 
 void Toolbar::Arrange(const Rect& allottedRect) {
     m_Geometry = allottedRect;
-    const float itemSpacing = ScaledMetric(ThemeToken::Space2);
+    const float itemSpacing = m_IsFloating
+        ? ScaledMetric(ThemeToken::ButtonGroupSpacing)
+        : ScaledMetric(ThemeToken::Space2);
     const float groupSpacing = ScaledMetric(ThemeToken::ButtonGroupSpacing);
 
     std::vector<ToolInfo*> leftTools, centerTools, rightTools;
@@ -107,7 +111,8 @@ void Toolbar::Arrange(const Rect& allottedRect) {
         for (const auto& item : items) {
             currentX += item.marginBefore;
             float itemHeight = item.button->GetDesiredSize().height;
-            float y = allottedRect.y + (m_Height - itemHeight) * 0.5f;
+            const float barHeight = m_IsFloating ? allottedRect.height : m_Height;
+            float y = allottedRect.y + (barHeight - itemHeight) * 0.5f;
             item.button->Arrange(Rect{ currentX, y, item.width, itemHeight });
             currentX += item.width;
         }
@@ -145,17 +150,19 @@ void Toolbar::Arrange(const Rect& allottedRect) {
 }
 
 void Toolbar::Paint(PaintContext& context) {
-    const float uiScale = (std::max)(1.0f, DPIContext::GetScale());
+    if (!m_IsFloating) {
+        const float uiScale = (std::max)(1.0f, DPIContext::GetScale());
 
-    context.DrawRect(m_Geometry, ThemeColor(ThemeToken::ToolbarBackground));
+        context.DrawRect(m_Geometry, ThemeColor(ThemeToken::ToolbarBackground));
 
-    Rect bottomEdge{
-        m_Geometry.x,
-        m_Geometry.y + m_Geometry.height - 1.0f * uiScale,
-        m_Geometry.width,
-        1.0f * uiScale
-    };
-    context.DrawRect(bottomEdge, ThemeColor(ThemeToken::BorderDark));
+        Rect bottomEdge{
+            m_Geometry.x,
+            m_Geometry.y + m_Geometry.height - 1.0f * uiScale,
+            m_Geometry.width,
+            1.0f * uiScale
+        };
+        context.DrawRect(bottomEdge, ThemeColor(ThemeToken::BorderDark));
+    }
 
     for (auto& tool : m_Tools) {
         if (tool.button && tool.button->IsVisible()) {
@@ -294,6 +301,9 @@ ToolbarGroup::ToolbarGroup() = default;
 
 void ToolbarGroup::AddChildWidget(const std::shared_ptr<Widget>& child) {
     if (child) {
+        if (auto button = std::dynamic_pointer_cast<ToolButton>(child)) {
+            button->SetChromeless(true);
+        }
         m_Items.push_back(child);
         AddChild(child);
     }
@@ -335,12 +345,26 @@ void ToolbarGroup::Arrange(const Rect& allottedRect) {
 
 void ToolbarGroup::Paint(PaintContext& context) {
     const float uiScale = (std::max)(1.0f, DPIContext::GetScale());
-    const float radius = ThemeMetric(ThemeToken::IconButtonRadius) * uiScale;
-    Color groupBg = ThemeColor(ThemeToken::ButtonPrimaryBackground);
+    const float radius = ThemeMetric(ThemeToken::CornerRadiusSmall) * uiScale;
+    Color groupBg = m_Elevated
+        ? ThemeColor(ThemeToken::ViewportToolbarBackground)
+        : ThemeColor(ThemeToken::ButtonPrimaryBackground);
     if (m_Elevated) {
-        groupBg = Color::Lerp(groupBg, ThemeColor(ThemeToken::HoverBackground), 0.18f);
+        context.DrawShadow(
+            m_Geometry,
+            ThemeColor(ThemeToken::ShadowSubtle),
+            radius,
+            ThemeMetric(ThemeToken::Space2) * uiScale);
     }
     context.DrawRoundedRect(m_Geometry, groupBg, radius);
+
+    if (m_Elevated) {
+        context.DrawRoundedRectOutline(
+            m_Geometry,
+            ThemeColor(ThemeToken::BorderDefault),
+            1.0f * uiScale,
+            radius);
+    }
 
     for (const auto& item : m_Items) {
         if (item && item->IsVisible()) {

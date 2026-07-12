@@ -25,6 +25,7 @@ class UIWidgetAdapter;
 class UICompositor;
 class UIStateManager;
 class IconRenderer;
+class IconManager;
 class TextUIService;
 class UiGpuUpload;
 
@@ -94,6 +95,7 @@ public:
 
     TextUIService* GetTextUIService() const;
     IconRenderer* GetIconRenderer() const;
+    IconManager* GetIconManager() const;
     ::we::runtime::renderer::DeviceContext* GetDeviceContext() const { return m_DeviceContext; }
     ::we::runtime::renderer::ResourceManager* GetResourceManager() const { return m_ResourceManager; }
     UiGpuUpload* GetGpuUpload() const { return m_GpuUpload.get(); }
@@ -151,6 +153,7 @@ private:
     std::vector<FrameGeometry> m_FrameGeometry;
 
     std::unique_ptr<TextUIService> m_TextUIService;
+    std::unique_ptr<IconManager> m_IconManager;
     std::unique_ptr<IconRenderer> m_IconRenderer;
 
     std::vector<UIVertex2> m_Vertices;

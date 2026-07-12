@@ -5,6 +5,7 @@
 #include "Core/Icon.h"
 #include "Core/ToolbarButtonChrome.h"
 #include "Core/DPIContext.h"
+#include "Rendering/IconMetrics.h"
 #include <algorithm>
 #include <cctype>
 
@@ -82,7 +83,7 @@ Size ToolButton::Measure(const Size& availableSize) {
         const float padH     = ChipHorizontalPad(uiScale);
         const float iconSz   = IconSize(uiScale);
         const float iconGap  = 4.0f * uiScale;
-        const float chevGap  = 4.0f * uiScale;
+        const float chevGap  = 6.0f * uiScale;
         const float chevW    = 8.0f * uiScale;
         const float textSize = ThemeMetric(ThemeToken::TextSizeToolbar) * uiScale;
         const float controlH = ThemeMetric(ThemeToken::IconButtonSize) * uiScale;
@@ -93,13 +94,41 @@ Size ToolButton::Measure(const Size& availableSize) {
         float width = padH * 2.0f;
         if (hasIcon) {
             width += iconSz;
-            if (!m_Label.empty()) {
+            if (!m_Label.empty() || m_IsDropdown) {
                 width += iconGap;
             }
         }
         width += textW;
         if (m_IsDropdown) {
-            width += (m_Label.empty() ? iconGap : chevGap) + chevW;
+            width += chevGap + chevW;
+        }
+
+        m_DesiredSize = Size{ width, controlH };
+        return m_DesiredSize;
+    }
+
+    if (m_ButtonStyle == ToolButtonStyle::ViewportChip) {
+        const float padH     = ChipHorizontalPad(uiScale);
+        const float iconSz   = IconSize(uiScale);
+        const float iconGap  = 5.0f * uiScale;
+        const float chevGap  = 8.0f * uiScale;
+        const float chevW    = 8.0f * uiScale;
+        const float textSize = ThemeMetric(ThemeToken::TextSizeToolbar) * uiScale;
+        const float controlH = ThemeMetric(ThemeToken::IconButtonSize) * uiScale;
+        const bool hasIcon = !m_IconName.empty() && Icons::IsKnownIcon(m_IconName);
+
+        float textW = m_Label.empty() ? 0.0f : ApproxInlineTextWidth(m_Label, textSize);
+
+        float width = padH * 2.0f;
+        if (hasIcon) {
+            width += iconSz;
+            if (!m_Label.empty() || m_IsDropdown) {
+                width += iconGap;
+            }
+        }
+        width += textW;
+        if (m_IsDropdown) {
+            width += chevGap + chevW;
         }
 
         m_DesiredSize = Size{ width, controlH };
@@ -134,7 +163,7 @@ Size ToolButton::Measure(const Size& availableSize) {
     const float height  = ThemeMetric(ThemeToken::ButtonHeight) * uiScale;
     const float padL    = ThemeMetric(ThemeToken::ButtonPaddingHorizontal) * uiScale;
     const float padR    = ThemeMetric(ThemeToken::Space2) * uiScale;
-    const float iconSz  = ThemeMetric(ThemeToken::IconSizeToolbar) * uiScale;
+    const float iconSz  = IconSize(uiScale);
     const float iconGap = 4.0f * uiScale;
     const float chevW   = 12.0f * uiScale;
 
@@ -173,6 +202,7 @@ void ToolButton::Paint(PaintContext& context) {
                                    m_ButtonStyle == ToolButtonStyle::PlayButton);
     const bool isLabeled       = (m_ButtonStyle == ToolButtonStyle::ToolbarLabeled);
     const bool isInline        = (m_ButtonStyle == ToolButtonStyle::ToolbarInline);
+    const bool isViewportChip  = (m_ButtonStyle == ToolButtonStyle::ViewportChip);
     const bool isNormal        = (m_ButtonStyle == ToolButtonStyle::Normal);
 
     // ── Window controls (Minimize / Maximize / Close) ────────────────────────
@@ -192,7 +222,7 @@ void ToolButton::Paint(PaintContext& context) {
             iconColor = ThemeColor(ThemeToken::IconActive);
         }
 
-        const float iconSize = 14.0f * uiScale;
+        const float iconSize = IconSize(uiScale);
         const float drawX = renderRect.x + (renderRect.width - iconSize) * 0.5f;
         IconPainter::DrawIcon(context, m_IconName, Rect{ drawX, centerY - iconSize * 0.5f, iconSize, iconSize }, iconColor);
         return;
@@ -202,7 +232,7 @@ void ToolButton::Paint(PaintContext& context) {
     if (m_ButtonStyle == ToolButtonStyle::TitleBarTool) {
         PaintIconButton(context, renderRect, m_HoverAnim, pressStrength, m_Active, m_ActiveAnim, uiScale);
 
-        const float iconSize = 15.0f * uiScale;
+        const float iconSize = IconSize(uiScale);
         Color iconColor = ResolveIconColor(m_HoverAnim, pressStrength, m_Active);
         float drawX = renderRect.x + (renderRect.width  - iconSize) / 2.0f;
         float drawY = renderRect.y + (renderRect.height - iconSize) / 2.0f;
@@ -214,7 +244,7 @@ void ToolButton::Paint(PaintContext& context) {
     if (isLabeled) {
         PaintIconButton(context, renderRect, m_HoverAnim, pressStrength, m_Active, m_ActiveAnim, uiScale);
 
-        const float iconSize = IconSize(uiScale);
+        const float iconSize = PrimaryIconSize(uiScale);
         const float textSize = ThemeMetric(ThemeToken::TextSizeCaption) * uiScale;
         const float labelGap = 2.0f * uiScale;
         const float contentH = iconSize + labelGap + textSize;
@@ -242,11 +272,16 @@ void ToolButton::Paint(PaintContext& context) {
 
     // ── Inline toolbar items (Windows / MyProject chip dropdowns) ────────────
     if (isInline) {
-        PaintChipDropdown(context, renderRect, m_HoverAnim, pressStrength, uiScale);
+        if (!m_Chromeless) {
+            PaintChipDropdown(context, renderRect, m_HoverAnim, pressStrength, uiScale);
+        } else {
+            PaintIconButton(context, renderRect, m_HoverAnim, pressStrength, m_Active, m_ActiveAnim, uiScale);
+        }
 
         const float iconSize  = IconSize(uiScale);
         const float textSize  = ThemeMetric(ThemeToken::TextSizeToolbar) * uiScale;
         const float iconGap   = 4.0f * uiScale;
+        const float chevGap   = 6.0f * uiScale;
         const float padH      = ChipHorizontalPad(uiScale);
         Color iconColor = ResolveIconColor(m_HoverAnim, pressStrength, false);
 
@@ -254,21 +289,51 @@ void ToolButton::Paint(PaintContext& context) {
         const bool hasIcon = !m_IconName.empty() && Icons::IsKnownIcon(m_IconName);
         if (hasIcon) {
             IconPainter::DrawIcon(context, m_IconName, Rect{ currentX, centerY - iconSize * 0.5f, iconSize, iconSize }, iconColor);
-            currentX += iconSize;
-            if (!m_Label.empty()) {
-                currentX += iconGap;
-            }
+            currentX += iconSize + iconGap;
         }
 
         if (!m_Label.empty()) {
             Color textColor = ResolveInteractiveTextColor(m_HoverAnim, pressStrength, false);
             context.DrawText(m_Label, Point{ currentX, centerY - textSize * 0.5f }, textColor, textSize);
+            currentX += ApproxInlineTextWidth(m_Label, textSize);
         }
 
         if (m_IsDropdown) {
-            const float chevSize = 8.0f * uiScale;
-            float chevX = renderRect.x + renderRect.width - padH - chevSize;
-            IconPainter::DrawIcon(context, Icons::ChevronDownName, Rect{ chevX, centerY - chevSize * 0.5f, chevSize, chevSize }, iconColor);
+            currentX += chevGap;
+            const float chevSize = static_cast<float>(IconMetrics::NativeIconTierPx(8.0f));
+            IconPainter::DrawIcon(context, Icons::ChevronDownName, Rect{ currentX, centerY - chevSize * 0.5f, chevSize, chevSize }, iconColor);
+        }
+        return;
+    }
+
+    // ── Individual floating viewport controls ────────────────────────────────
+    if (isViewportChip) {
+        PaintViewportChip(context, renderRect, m_HoverAnim, pressStrength, uiScale);
+
+        const float iconSize  = IconSize(uiScale);
+        const float textSize  = ThemeMetric(ThemeToken::TextSizeToolbar) * uiScale;
+        const float iconGap   = 5.0f * uiScale;
+        const float chevGap   = 8.0f * uiScale;
+        const float padH      = ChipHorizontalPad(uiScale);
+        Color iconColor = ResolveIconColor(m_HoverAnim, pressStrength, m_Active);
+
+        float currentX = renderRect.x + padH;
+        const bool hasIcon = !m_IconName.empty() && Icons::IsKnownIcon(m_IconName);
+        if (hasIcon) {
+            IconPainter::DrawIcon(context, m_IconName, Rect{ currentX, centerY - iconSize * 0.5f, iconSize, iconSize }, iconColor);
+            currentX += iconSize + iconGap;
+        }
+
+        if (!m_Label.empty()) {
+            Color textColor = ResolveInteractiveTextColor(m_HoverAnim, pressStrength, m_Active);
+            context.DrawText(m_Label, Point{ currentX, centerY - textSize * 0.5f }, textColor, textSize);
+            currentX += ApproxInlineTextWidth(m_Label, textSize);
+        }
+
+        if (m_IsDropdown) {
+            currentX += chevGap;
+            const float chevSize = static_cast<float>(IconMetrics::NativeIconTierPx(8.0f));
+            IconPainter::DrawIcon(context, Icons::ChevronDownName, Rect{ currentX, centerY - chevSize * 0.5f, chevSize, chevSize }, iconColor);
         }
         return;
     }
@@ -277,7 +342,9 @@ void ToolButton::Paint(PaintContext& context) {
     if (isToolbarIcon) {
         PaintIconButton(context, renderRect, m_HoverAnim, pressStrength, m_Active, m_ActiveAnim, uiScale);
 
-        const float iconSize = IconSize(uiScale);
+        const bool isTransport = (m_ButtonStyle == ToolButtonStyle::TransportButton
+            || m_ButtonStyle == ToolButtonStyle::PlayButton);
+        const float iconSize = isTransport ? PrimaryIconSize(uiScale) : IconSize(uiScale);
         Color iconColor = ResolveIconColor(m_HoverAnim, pressStrength, m_Active);
         const float drawX = renderRect.x + (renderRect.width - iconSize) * 0.5f;
         const float drawY = renderRect.y + (renderRect.height - iconSize) * 0.5f;
@@ -316,7 +383,7 @@ void ToolButton::Paint(PaintContext& context) {
 
         Color iconColor = ResolveIconColor(m_HoverAnim, pressStrength, m_Active);
 
-        const float iconSize = 18.0f * uiScale;
+        const float iconSize = IconSize(uiScale);
         float currentX = renderRect.x + 12.0f * uiScale;
 
         const bool hasIcon = !m_IconName.empty() && Icons::IsKnownIcon(m_IconName);
@@ -342,7 +409,7 @@ void ToolButton::Paint(PaintContext& context) {
         }
 
         if (m_IsDropdown) {
-            const float chevSize = 8.0f * uiScale;
+            const float chevSize = static_cast<float>(IconMetrics::NativeIconTierPx(8.0f));
             float chevX = renderRect.x + renderRect.width - 10.0f * uiScale - chevSize;
             IconPainter::DrawIcon(context, Icons::ChevronDownName, Rect{ chevX, centerY - chevSize / 2.0f, chevSize, chevSize }, iconColor);
         }

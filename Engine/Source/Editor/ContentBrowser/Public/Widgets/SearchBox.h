@@ -40,6 +40,9 @@ public:
     void SetFillWidth(bool fill) { m_FillWidth = fill; }
     void SetWidth(float width) { m_Width = width; }
 
+    void Tick(float deltaTime);
+    bool ShouldShowCaret() const { return m_ShowCaret; }
+
 private:
     void UpdateCaretBlink(float deltaTime);
     Rect GetTextRect() const;

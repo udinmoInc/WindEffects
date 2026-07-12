@@ -51,10 +51,7 @@ void UpdateViewportCameraSpeedIndicator() {
     }
 
     const int speed = static_cast<int>(std::lround(camera->GetCameraSpeed()));
-    const std::string label = std::to_string(speed);
-    if (indicator->GetLabel() != label) {
-        indicator->SetLabel(label);
-    }
+    indicator->SetTooltip("Camera Speed: " + std::to_string(speed));
 }
 
 void StepViewportCameraSpeed(int direction) {

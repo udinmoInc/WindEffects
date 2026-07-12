@@ -7,6 +7,7 @@
 #include "Core/ToolbarButtonChrome.h"
 #include "Core/Animator.h"
 #include "Core/DPIContext.h"
+#include "Rendering/IconMetrics.h"
 #include "Layout/OverlayManager.h"
 #include "Widgets/MenuBar.h"
 
@@ -52,7 +53,7 @@ public:
         const float padY = ThemeMetric(ThemeToken::Space1);
         const float padX = ThemeMetric(ThemeToken::Space2);
         const float textSize = ThemeMetric(ThemeToken::TextSizeSmall);
-        const float iconSize = ThemeMetric(ThemeToken::IconSizeTree);
+        const float iconSize = static_cast<float>(WindEffects::Editor::UI::IconMetrics::NativeIconTierPx(ThemeMetric(ThemeToken::IconSizeTree)));
 
         float y = m_Geometry.y + padY;
         for (size_t i = 0; i < m_Items.size(); ++i) {
@@ -173,7 +174,7 @@ void EditorModeSelector::Paint(PaintContext& context) {
     Color iconColor = WindEffects::Editor::UI::ToolbarButtonChrome::ResolveIconColor(
         m_HoverAnim, pressStrength, false);
 
-    WindEffects::Editor::UI::IconPainter::DrawIcon(context, WindEffects::Editor::UI::Icons::ToolbarObjectName,
+    WindEffects::Editor::UI::IconPainter::DrawIcon(context, m_IconName,
         Rect{ m_Geometry.x + padH, centerY - iconSize * 0.5f, iconSize, iconSize }, iconColor);
 
     const float chevSize = 8.0f * uiScale;
