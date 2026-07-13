@@ -10,7 +10,7 @@ std::shared_ptr<Panel> CreateOutputLogPanel() {
     auto outputWidget = std::make_shared<OutputLogWidget>();
 
     return PanelBuilder("Output Log")
-        .TabIcon(Icons::ConsoleName)
+        .TabIcon(Icons::OutputLogName)
         .ToolbarBox([&](HorizontalBox& toolbar) {
             toolbar.SetPadding(Margin{6.0f, 4.0f, 6.0f, 4.0f});
 

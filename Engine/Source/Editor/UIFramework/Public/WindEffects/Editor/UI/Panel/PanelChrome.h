@@ -112,7 +112,7 @@ UIFRAMEWORK_API void PaintHeaderIconButton(
     const std::string& iconName,
     bool hovered,
     bool pressed,
-    bool closeButton = false);
+    bool compactGlyph = false);
 
 UIFRAMEWORK_API void PaintToolbarIconButton(
     PaintContext& context,

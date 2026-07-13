@@ -1,6 +1,7 @@
 #include "Rendering/Icons/AtlasCache.h"
 
 #include "Icons/Core/IconHash.h"
+#include "Rendering/IconMetrics.h"
 
 namespace WindEffects::Editor::UI {
 
@@ -42,6 +43,27 @@ const CachedIconEntry* AtlasCache::FindByHash(const uint64_t nameHash, const uin
         return nullptr;
     }
     return &m_Entries[it->second];
+}
+
+const CachedIconEntry* AtlasCache::FindWithTierFallback(const std::string_view iconName, const uint32_t tierPx) const
+{
+    const uint64_t nameHash = we::runtime::icons::Fnv1a64(iconName);
+
+    uint32_t startIndex = 0;
+    for (uint32_t i = 0; i < IconMetrics::kAtlasTierCount; ++i) {
+        if (IconMetrics::kAtlasTiers[i] >= tierPx) {
+            startIndex = i;
+            break;
+        }
+    }
+
+    for (uint32_t i = startIndex; i < IconMetrics::kAtlasTierCount; ++i) {
+        if (const CachedIconEntry* entry = FindByHash(nameHash, IconMetrics::kAtlasTiers[i])) {
+            return entry;
+        }
+    }
+
+    return nullptr;
 }
 
 void AtlasCache::RebuildLookup()

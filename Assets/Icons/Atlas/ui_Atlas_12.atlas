@@ -1,6 +1,6 @@
 
 ui_Atlas_12.png
-size: 44, 30
+size: 86, 30
 format: RGBA8888
 filter: Nearest, Nearest
 repeat: none
@@ -39,9 +39,51 @@ Icons_Close
   orig: 12, 12
   offset: 0, 0
   index: 12
-Icons_Plus
+Icons_Copy
   rotate: false
   xy: 30, 2
+  size: 12, 12
+  orig: 12, 12
+  offset: 0, 0
+  index: 12
+Icons_Maximize
+  rotate: false
+  xy: 44, 16
+  size: 12, 12
+  orig: 12, 12
+  offset: 0, 0
+  index: 12
+Icons_Minus
+  rotate: false
+  xy: 44, 2
+  size: 12, 12
+  orig: 12, 12
+  offset: 0, 0
+  index: 12
+Icons_Pivot
+  rotate: false
+  xy: 58, 16
+  size: 12, 12
+  orig: 12, 12
+  offset: 0, 0
+  index: 12
+Icons_Plus
+  rotate: false
+  xy: 58, 2
+  size: 12, 12
+  orig: 12, 12
+  offset: 0, 0
+  index: 12
+Icons_Recent
+  rotate: false
+  xy: 72, 16
+  size: 12, 12
+  orig: 12, 12
+  offset: 0, 0
+  index: 12
+Icons_Wrench
+  rotate: false
+  xy: 72, 2
   size: 12, 12
   orig: 12, 12
   offset: 0, 0

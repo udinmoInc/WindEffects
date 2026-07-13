@@ -21,12 +21,24 @@ void IconPainter::DrawIcon(PaintContext& context, const std::string& iconName,
 
 void IconPainter::DrawIcon(PaintContext& context, const std::string& iconName,
                            const Rect& bounds, const Color& color) {
-    const uint32_t tierPx = IconMetrics::SnapToAtlasTier(std::min(bounds.width, bounds.height));
+    const std::string resolved = Icons::ResolveLucideName(iconName);
+    const float displayPx = std::min(bounds.width, bounds.height);
+    const uint32_t atlasTier = IconMetrics::TierPxForIcon(resolved, displayPx);
+    const Rect drawRect = IconMetrics::PlaceGlyphCentered(bounds, static_cast<float>(atlasTier));
     context.DrawIcon(
-        Icons::ResolveLucideName(iconName),
-        Point{ IconMetrics::SnapPx(bounds.x), IconMetrics::SnapPx(bounds.y) },
+        resolved,
+        drawRect,
         color,
-        static_cast<float>(tierPx));
+        static_cast<float>(atlasTier));
+}
+
+void IconPainter::DrawCompactIcon(PaintContext& context, const std::string& iconName,
+                                  const Rect& bounds, const Color& color) {
+    const std::string resolved = Icons::ResolveLucideName(iconName);
+    const float displayPx = IconMetrics::CompactDisplayPx();
+    const float atlasTier = static_cast<float>(IconMetrics::CompactSourceTierPx());
+    const Rect drawRect = IconMetrics::PlaceGlyphCentered(bounds, displayPx);
+    context.DrawIcon(resolved, drawRect, color, atlasTier);
 }
 
 void IconPainter::DrawVerticalMoreMenu(PaintContext& context, const Rect& bounds, const Color& color) {

@@ -37,7 +37,7 @@ void CommandInput::Paint(PaintContext& context) {
     const float iconSize = static_cast<float>(IconMetrics::NativeIconTierPx(ThemeMetric(ThemeToken::IconSizeSearch)));
     const float iconX = m_Geometry.x + 10.0f;
     const float iconY = m_Geometry.y + (m_Geometry.height - iconSize) / 2.0f;
-    IconPainter::DrawIcon(context, Icons::ConsoleName, Rect{ iconX, iconY, iconSize, iconSize }, ThemeColor(ThemeToken::TextSecondary));
+    IconPainter::DrawIcon(context, Icons::TerminalName, Rect{ iconX, iconY, iconSize, iconSize }, ThemeColor(ThemeToken::TextSecondary));
 
     const float textX = m_Geometry.x + 10.0f + iconSize + 8.0f;
     const float fontSize = 12.0f;

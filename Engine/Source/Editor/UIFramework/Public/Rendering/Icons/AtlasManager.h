@@ -2,6 +2,8 @@
 
 #include "WindEffects/Editor/UI/Export.h"
 
+#include "Rendering/IconMetrics.h"
+
 #include <volk.h>
 #include <cstdint>
 #include <filesystem>
@@ -49,6 +51,7 @@ public:
 
     [[nodiscard]] const AtlasGpuResource* GetTier(uint32_t tierPx) const;
     [[nodiscard]] bool IsTierReady(uint32_t tierPx) const;
+    void WaitDeviceIdle() const;
 
 private:
     bool UploadAtlasPage(AtlasGpuResource& tier, const std::vector<uint8_t>& rgba, uint32_t width, uint32_t height);
@@ -60,8 +63,8 @@ private:
     VkDescriptorPool m_DescriptorPool = VK_NULL_HANDLE;
     VkDescriptorSetLayout m_TextureLayout = VK_NULL_HANDLE;
 
-    AtlasGpuResource m_Tiers[6]{};
-    std::filesystem::path m_TierPaths[6]{};
+    AtlasGpuResource m_Tiers[IconMetrics::kAtlasTierCount]{};
+    std::filesystem::path m_TierPaths[IconMetrics::kAtlasTierCount]{};
     mutable std::mutex m_Mutex;
 };
 

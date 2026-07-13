@@ -19,8 +19,8 @@ std::string ResolveTabIconName(const DockPanelDescriptor& descriptor) {
         {"viewport", Icons::PerspectiveName},
         {"outliner", Icons::HierarchyName},
         {"details", Icons::PropertiesName},
-        {"content-browser", Icons::FolderName},
-        {"output-log", Icons::ConsoleName},
+        {"content-browser", Icons::ContentBrowserName},
+        {"output-log", Icons::OutputLogName},
     };
 
     if (descriptor.iconResource.empty()) {

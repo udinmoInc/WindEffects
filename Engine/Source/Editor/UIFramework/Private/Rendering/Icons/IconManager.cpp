@@ -82,6 +82,8 @@ void IconManager::Shutdown()
     }
     m_LoadedTiers.clear();
     m_PendingTiers.clear();
+    m_FailedTiers.clear();
+    m_CompactTierLoadRequested = false;
     m_Ready = false;
 }
 
@@ -112,31 +114,65 @@ void IconManager::LoadMeta(const std::filesystem::path& metaPath)
 void IconManager::PreloadAtlases()
 {
     for (const uint32_t tierPx : IconMetrics::kAtlasTiers) {
+        if (tierPx == IconMetrics::kCompactTierPx || tierPx >= 48) {
+            continue;
+        }
+        HE_INFO("[Icons] Preloading atlas tier " + std::to_string(tierPx));
         RequestTierLoad(tierPx);
     }
 }
 
-void IconManager::RequestTierLoad(const uint32_t tierPx)
+void IconManager::EnsureCompactTierLoaded()
 {
-    std::scoped_lock lock(m_LoadMutex);
-    if (m_LoadedTiers.contains(tierPx) || m_PendingTiers.contains(tierPx)) {
+    if (!m_AtlasManager || m_AtlasManager->IsTierReady(IconMetrics::kCompactTierPx)) {
         return;
     }
-    m_PendingTiers.insert(tierPx);
+
+    {
+        std::scoped_lock lock(m_LoadMutex);
+        if (m_FailedTiers.contains(IconMetrics::kCompactTierPx)
+            || m_PendingTiers.contains(IconMetrics::kCompactTierPx)
+            || m_LoadedTiers.contains(IconMetrics::kCompactTierPx)) {
+            return;
+        }
+        m_CompactTierLoadRequested = true;
+    }
+
+    m_AtlasManager->WaitDeviceIdle();
+    HE_INFO("[Icons] Loading compact atlas tier " + std::to_string(IconMetrics::kCompactTierPx));
+    RequestTierLoad(IconMetrics::kCompactTierPx);
+}
+
+void IconManager::RequestTierLoad(const uint32_t tierPx)
+{
+    {
+        std::scoped_lock lock(m_LoadMutex);
+        if (m_LoadedTiers.contains(tierPx) || m_PendingTiers.contains(tierPx) || m_FailedTiers.contains(tierPx)) {
+            return;
+        }
+        m_PendingTiers.insert(tierPx);
+    }
 
     const auto atlasPath = AtlasPathForTier(tierPx);
     if (!std::filesystem::exists(atlasPath)) {
         HE_ERROR("[Icons] Missing atlas tier asset: " + atlasPath.string());
+        std::scoped_lock lock(m_LoadMutex);
         m_PendingTiers.erase(tierPx);
+        m_FailedTiers.insert(tierPx);
         return;
     }
 
-    if (m_AtlasManager->LoadTierFromFile(tierPx, atlasPath)) {
+    const bool uploaded = m_AtlasManager->LoadTierFromFile(tierPx, atlasPath);
+
+    std::scoped_lock lock(m_LoadMutex);
+    m_PendingTiers.erase(tierPx);
+    if (uploaded) {
         m_LoadedTiers.insert(tierPx);
+        HE_INFO("[Icons] Atlas tier ready: " + std::to_string(tierPx));
     } else {
+        m_FailedTiers.insert(tierPx);
         HE_ERROR("[Icons] Failed to upload atlas tier: " + atlasPath.string());
     }
-    m_PendingTiers.erase(tierPx);
 }
 
 std::filesystem::path IconManager::AtlasPathForTier(const uint32_t tierPx) const
@@ -160,9 +196,11 @@ IconDrawInfo IconManager::ResolveIcon(
         return info;
     }
 
-    const uint32_t tierPx = IconMetrics::SnapToAtlasTier(requestedTierPx);
     const std::string logicalName = ResolveLogicalName(iconName);
-    const CachedIconEntry* entry = m_Cache->Find(logicalName, tierPx);
+    const uint32_t tierPx = IconMetrics::TierPxForIcon(
+        logicalName,
+        static_cast<float>(requestedTierPx));
+    const CachedIconEntry* entry = m_Cache->FindWithTierFallback(logicalName, tierPx);
     if (!entry) {
         static thread_local std::unordered_set<std::string> s_ReportedMissing;
         const std::string key = logicalName + "_" + std::to_string(tierPx);
@@ -172,21 +210,24 @@ IconDrawInfo IconManager::ResolveIcon(
         return info;
     }
 
-    const AtlasGpuResource* atlas = m_AtlasManager->GetTier(tierPx);
+    const AtlasGpuResource* atlas = m_AtlasManager->GetTier(entry->tierPx);
+    const CachedIconEntry* drawEntry = entry;
+
     if (!atlas) {
-        const_cast<IconManager*>(this)->RequestTierLoad(tierPx);
-        atlas = m_AtlasManager->GetTier(tierPx);
-        if (!atlas) {
-            return info;
-        }
+        const_cast<IconManager*>(this)->RequestTierLoad(entry->tierPx);
+        atlas = m_AtlasManager->GetTier(entry->tierPx);
+    }
+
+    if (!atlas) {
+        return info;
     }
 
     info.descriptorSet = atlas->descriptorSet;
-    info.uvMin[0] = entry->uv.u0;
-    info.uvMin[1] = entry->uv.v0;
-    info.uvMax[0] = entry->uv.u1;
-    info.uvMax[1] = entry->uv.v1;
-    info.shaderType = HasIconFlag(entry->flags, IconEntryFlags::FullColor) ? 4.0f : 0.0f;
+    info.uvMin[0] = drawEntry->uv.u0;
+    info.uvMin[1] = drawEntry->uv.v0;
+    info.uvMax[0] = drawEntry->uv.u1;
+    info.uvMax[1] = drawEntry->uv.v1;
+    info.shaderType = HasIconFlag(drawEntry->flags, IconEntryFlags::FullColor) ? 4.0f : 0.0f;
     info.valid = true;
 
     if (IsAtlasAuditEnabled()) {
@@ -202,7 +243,7 @@ IconDrawInfo IconManager::ResolveIcon(
                 + " descriptor=0x" + std::to_string(reinterpret_cast<uintptr_t>(info.descriptorSet))
                 + " format=VK_FORMAT_R8G8B8A8_UNORM"
                 + " shaderType=" + std::to_string(info.shaderType)
-                + " fullColor=" + (HasIconFlag(entry->flags, IconEntryFlags::FullColor) ? "yes" : "no"));
+                + " fullColor=" + (HasIconFlag(drawEntry->flags, IconEntryFlags::FullColor) ? "yes" : "no"));
         }
     }
 

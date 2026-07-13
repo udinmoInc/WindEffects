@@ -39,7 +39,9 @@ namespace {
     }
 
     bool IsPlayTransportIcon(const std::string& iconName) {
-        return iconName == Icons::PlaySolidName || iconName == Icons::PlayName;
+        return iconName == Icons::MediaPlayName
+            || iconName == Icons::PlaySolidName
+            || iconName == Icons::PlayName;
     }
 
     float ApproxInlineTextWidth(const std::string& text, float textSize) {
@@ -98,7 +100,7 @@ Size ToolButton::Measure(const Size& availableSize) {
         const float iconSz   = IconSize(uiScale);
         const float iconGap  = IconGapPx(uiScale);
         const float chevGap  = ChevronGapPx(uiScale);
-        const float chevW    = IconSize(uiScale);
+        const float chevW    = IconMetrics::CompactDisplayPx();
         const float textSize = ThemeMetric(ThemeToken::TextSizeToolbar) * uiScale;
         const float controlH = ThemeMetric(ThemeToken::IconButtonSize) * uiScale;
         const bool hasIcon = !m_IconName.empty() && Icons::IsKnownIcon(m_IconName);
@@ -126,7 +128,7 @@ Size ToolButton::Measure(const Size& availableSize) {
         const float iconSz   = IconSize(uiScale);
         const float iconGap  = IconGapPx(uiScale);
         const float chevGap  = ChevronGapPx(uiScale);
-        const float chevW    = IconSize(uiScale);
+        const float chevW    = IconMetrics::CompactDisplayPx();
         const float textSize = ThemeMetric(ThemeToken::TextSizeToolbar) * uiScale;
         const float controlH = ThemeMetric(ThemeToken::IconButtonSize) * uiScale;
         const bool hasIcon = !m_IconName.empty() && Icons::IsKnownIcon(m_IconName);
@@ -179,7 +181,7 @@ Size ToolButton::Measure(const Size& availableSize) {
     const float padR    = ThemeMetric(ThemeToken::Space2) * uiScale;
     const float iconSz  = IconSize(uiScale);
     const float iconGap = 4.0f * uiScale;
-    const float chevW   = 12.0f * uiScale;
+    const float chevW   = IconMetrics::CompactDisplayPx();
 
     float width = padL + iconSz;
     if (!m_Label.empty()) {
@@ -313,10 +315,9 @@ void ToolButton::Paint(PaintContext& context) {
 
         if (m_IsDropdown) {
             currentX += chevGap;
-            const float tier = iconSize;
-            Rect chevronControl{ currentX, centerY - tier * 0.5f, tier, tier };
-            IconPainter::DrawIcon(context, Icons::ChevronDownName,
-                PlaceIconInControl(chevronControl, tier), iconColor);
+            const float display = IconMetrics::CompactDisplayPx();
+            Rect chevronControl{ currentX, centerY - display * 0.5f, display, display };
+            IconPainter::DrawCompactIcon(context, Icons::ChevronDownName, chevronControl, iconColor);
         }
         return;
     }
@@ -349,10 +350,9 @@ void ToolButton::Paint(PaintContext& context) {
 
         if (m_IsDropdown) {
             currentX += chevGap;
-            const float tier = iconSize;
-            Rect chevronControl{ currentX, centerY - tier * 0.5f, tier, tier };
-            IconPainter::DrawIcon(context, Icons::ChevronDownName,
-                PlaceIconInControl(chevronControl, tier), iconColor);
+            const float display = IconMetrics::CompactDisplayPx();
+            Rect chevronControl{ currentX, centerY - display * 0.5f, display, display };
+            IconPainter::DrawCompactIcon(context, Icons::ChevronDownName, chevronControl, iconColor);
         }
         return;
     }
@@ -428,11 +428,10 @@ void ToolButton::Paint(PaintContext& context) {
         }
 
         if (m_IsDropdown) {
-            const float tier = iconSize;
-            const float chevronX = renderRect.x + renderRect.width - ChipHorizontalPad(uiScale) - tier;
-            Rect chevronControl{ chevronX, centerY - tier * 0.5f, tier, tier };
-            IconPainter::DrawIcon(context, Icons::ChevronDownName,
-                PlaceIconInControl(chevronControl, tier), iconColor);
+            const float display = IconMetrics::CompactDisplayPx();
+            const float chevronX = renderRect.x + renderRect.width - ChipHorizontalPad(uiScale) - display;
+            Rect chevronControl{ chevronX, centerY - display * 0.5f, display, display };
+            IconPainter::DrawCompactIcon(context, Icons::ChevronDownName, chevronControl, iconColor);
         }
     }
 }

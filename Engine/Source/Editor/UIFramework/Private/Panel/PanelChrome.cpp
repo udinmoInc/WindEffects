@@ -78,7 +78,7 @@ float TabPadH() {
 }
 
 float TabIconSize() {
-    return 14.0f * UiScale();
+    return static_cast<float>(IconMetrics::GlyphTierPx(ThemeToken::IconSizeToolbar)) * UiScale();
 }
 
 float TabGap() {
@@ -297,7 +297,7 @@ void PaintFloatingPanelHeader(
     for (auto it = actions.rbegin(); it != actions.rend(); ++it) {
         const auto& action = *it;
         Rect actionRect{ actionX, centerY - buttonSize * 0.5f, buttonSize, buttonSize };
-        PaintHeaderIconButton(context, actionRect, action.iconName, action.hovered, action.pressed, action.iconName == Icons::XName);
+        PaintHeaderIconButton(context, actionRect, action.iconName, action.hovered, action.pressed, false);
         actionX -= buttonSize + ResolveThemeMetric(ThemeToken::Space1) * scale;
     }
 }
@@ -347,7 +347,7 @@ void PaintSearchField(
         const float clearSize = iconSize;
         const float clearX = rect.x + rect.width - clearSize - padH;
         const float clearY = rect.y + (rect.height - clearSize) * 0.5f;
-        PaintHeaderIconButton(context, Rect{ clearX, clearY, clearSize, clearSize }, Icons::XName, false, false, true);
+        PaintHeaderIconButton(context, Rect{ clearX, clearY, clearSize, clearSize }, Icons::XName, false, false, false);
     }
 }
 
@@ -373,7 +373,7 @@ void PaintCategoryHeader(
 {
     const float scale = UiScale();
     const float padH = PanelPaddingH() + indent;
-    const float chevronSize = TabIconSize();
+    const float chevronSize = static_cast<float>(IconMetrics::StandardGlyphTierPx());
     const float fontSize = ResolveThemeMetric(ThemeToken::TextSizeCategory) * scale;
     const float centerY = rect.y + rect.height * 0.5f;
 
@@ -398,11 +398,10 @@ void PaintHeaderIconButton(
     const std::string& iconName,
     bool hovered,
     bool pressed,
-    bool closeButton)
+    bool compactGlyph)
 {
     const float scale = UiScale();
     const float radius = ResolveThemeMetric(ThemeToken::IconButtonRadius) * scale;
-    const float iconSize = closeButton ? 12.0f * scale : TabIconSize();
 
     if (pressed) {
         context.DrawRoundedRect(rect, ResolveThemeColor(ThemeToken::PressedBackground), radius);
@@ -410,13 +409,19 @@ void PaintHeaderIconButton(
         context.DrawRoundedRect(rect, ResolveThemeColor(ThemeToken::HoverBackground), radius);
     }
 
-    Color iconColor = closeButton ? ResolveThemeColor(ThemeToken::TextMuted) : ResolveThemeColor(ThemeToken::IconDefault);
+    const bool isClose = iconName == Icons::XName;
+    Color iconColor = isClose ? ResolveThemeColor(ThemeToken::TextMuted) : ResolveThemeColor(ThemeToken::IconDefault);
     if (hovered || pressed) {
-        iconColor = closeButton ? ResolveThemeColor(ThemeToken::IconActive) : ResolveThemeColor(ThemeToken::IconHover);
+        iconColor = isClose ? ResolveThemeColor(ThemeToken::IconActive) : ResolveThemeColor(ThemeToken::IconHover);
     }
 
-    const Rect iconRect = IconMetrics::PlaceGlyphCentered(rect, iconSize);
-    IconPainter::DrawIcon(context, iconName, iconRect, iconColor);
+    if (compactGlyph) {
+        IconPainter::DrawCompactIcon(context, iconName, rect, iconColor);
+    } else {
+        const float iconSize = static_cast<float>(TabIconSize());
+        const Rect iconRect = IconMetrics::PlaceGlyphCentered(rect, iconSize);
+        IconPainter::DrawIcon(context, iconName, iconRect, iconColor);
+    }
 }
 
 void PaintToolbarIconButton(PaintContext& context, const Rect& rect, const std::string& iconName, bool hovered, bool pressed) {

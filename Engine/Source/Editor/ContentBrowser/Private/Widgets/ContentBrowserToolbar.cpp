@@ -105,7 +105,7 @@ Size ToolbarLabeledButton::Measure(const Size& availableSize) {
     float width = m_HorizontalPadding * 2.0f;
     if (!m_IconName.empty()) width += ThemeMetric(ThemeToken::IconSizeToolbar) + ThemeMetric(ThemeToken::Space1) + 1.0f;
     width += static_cast<float>(m_Label.size()) * 7.2f;
-    if (m_ShowChevron) width += ThemeMetric(ThemeToken::Space2) + static_cast<float>(IconMetrics::StandardGlyphTierPx());
+    if (m_ShowChevron) width += ThemeMetric(ThemeToken::Space2) + IconMetrics::CompactDisplayPx();
     m_DesiredSize = Size{ width, ThemeMetric(ThemeToken::ButtonHeight) };
     return m_DesiredSize;
 }
@@ -160,12 +160,11 @@ void ToolbarLabeledButton::Paint(PaintContext& context) {
     context.DrawText(m_Label, Point{ x, textY }, textColor, textSize, m_Variant == Variant::Primary);
 
     if (m_ShowChevron) {
-        const float tier = static_cast<float>(IconMetrics::StandardGlyphTierPx());
-        const float chevronX = m_Geometry.x + m_Geometry.width - hPad - tier;
+        const float display = IconMetrics::CompactDisplayPx();
+        const float chevronX = m_Geometry.x + m_Geometry.width - hPad - display;
         const float centerY = m_Geometry.y + m_Geometry.height * 0.5f;
-        Rect chevronControl{ chevronX, centerY - tier * 0.5f, tier, tier };
-        IconPainter::DrawIcon(context, Icons::ChevronDownName,
-            IconMetrics::PlaceGlyphCentered(chevronControl, tier),
+        Rect chevronControl{ chevronX, centerY - display * 0.5f, display, display };
+        IconPainter::DrawCompactIcon(context, Icons::ChevronDownName, chevronControl,
             ThemeColor(ThemeToken::TextSecondary));
     }
 }

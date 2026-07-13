@@ -594,7 +594,7 @@ public:
         const float padH = WindEffects::Editor::UI::ToolbarButtonChrome::HorizontalPad(uiScale);
         const float iconSz = WindEffects::Editor::UI::ToolbarButtonChrome::IconSize(uiScale);
         const float iconGap = WindEffects::Editor::UI::ToolbarButtonChrome::IconGapPx(uiScale);
-        const float chevW = WindEffects::Editor::UI::ToolbarButtonChrome::IconSize(uiScale);
+        const float chevW = WindEffects::Editor::UI::IconMetrics::CompactDisplayPx();
         const float controlH = ThemeMetric(WindEffects::Editor::UI::ThemeToken::IconButtonSize) * uiScale;
         m_DesiredSize = WindEffects::Editor::UI::Size{
             padH + iconSz + iconGap + chevW + padH,
@@ -627,12 +627,11 @@ public:
                 iconSize),
             iconColor);
 
-        const float tier = iconSize;
-        const float chevronX = m_Geometry.x + m_Geometry.width - padH - tier;
-        WindEffects::Editor::UI::Rect chevronControl{ chevronX, centerY - tier * 0.5f, tier, tier };
-        WindEffects::Editor::UI::IconPainter::DrawIcon(context, WindEffects::Editor::UI::Icons::ChevronDownName,
-            WindEffects::Editor::UI::IconMetrics::PlaceGlyphCentered(chevronControl, tier),
-            iconColor);
+        const float display = WindEffects::Editor::UI::IconMetrics::CompactDisplayPx();
+        const float chevronX = m_Geometry.x + m_Geometry.width - padH - display;
+        WindEffects::Editor::UI::Rect chevronControl{ chevronX, centerY - display * 0.5f, display, display };
+        WindEffects::Editor::UI::IconPainter::DrawCompactIcon(context, WindEffects::Editor::UI::Icons::ChevronDownName,
+            chevronControl, iconColor);
     }
 
     void OnMouseMove(const WindEffects::Editor::UI::MouseEvent& event) override {

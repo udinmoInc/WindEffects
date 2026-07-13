@@ -180,7 +180,7 @@ std::shared_ptr<WindEffects::Editor::UI::Panel> CreateContentBrowserPanel() {
     contentSplitter->SetResizeMode(WindEffects::Editor::UI::Splitter::ResizeMode::FixedFirst);
 
     auto panel = PanelBuilder(title)
-        .TabIcon(Icons::FolderName)
+        .TabIcon(Icons::ContentBrowserName)
         .WithCloseButton([]() {
             if (EditorWorkspaceController::Get().IsContentBrowserExpanded()) {
                 EditorWorkspaceController::Get().ToggleContentBrowserExpanded();
