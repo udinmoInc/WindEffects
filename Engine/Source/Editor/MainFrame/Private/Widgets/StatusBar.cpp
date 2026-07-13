@@ -36,8 +36,8 @@ void StatusBar::Construct() {
     m_LeftBox = std::make_shared<HorizontalBox>();
     m_LeftBox->SetSpacing(ThemeMetric(ThemeToken::Space1));
 
-    m_AssetsPanelButton = MakeFooterControl(Icons::FolderName, "Content Drawer", false, "Content Browser");
-    m_DiagnosticsPanelButton = MakeFooterControl(Icons::ConsoleName, "Output Log", false, "Output Log");
+    m_AssetsPanelButton = MakeFooterControl(Icons::ContentBrowserName, "Content Drawer", false, "Content Browser");
+    m_DiagnosticsPanelButton = MakeFooterControl(Icons::OutputLogName, "Output Log", false, "Output Log");
 
     m_AssetsPanelButton->SetOnClicked([this]() { SelectPanelTab(0, true); });
     m_DiagnosticsPanelButton->SetOnClicked([this]() { SelectPanelTab(1, true); });

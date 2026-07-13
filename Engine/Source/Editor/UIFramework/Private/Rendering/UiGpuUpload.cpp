@@ -1,5 +1,6 @@
 #include "Rendering/UiGpuUpload.h"
 #include "Core/DeviceContext.h"
+#include "Core/Logger.h"
 #include "Resource/ResourceManager.h"
 
 namespace WindEffects::Editor::UI {
@@ -74,8 +75,20 @@ void UiGpuUpload::SubmitOneTime(const std::function<void(VkCommandBuffer)>& reco
     submitInfo.commandBufferCount = 1;
     submitInfo.pCommandBuffers = &cmd;
 
-    vkQueueSubmit(m_Device->GetGraphicsQueue(), 1, &submitInfo, m_Fence);
-    vkWaitForFences(device, 1, &m_Fence, VK_TRUE, UINT64_MAX);
+    const VkResult submitResult = vkQueueSubmit(m_Device->GetGraphicsQueue(), 1, &submitInfo, m_Fence);
+    if (submitResult != VK_SUCCESS) {
+        HE_ERROR("[UiGpuUpload] vkQueueSubmit failed: " + std::to_string(static_cast<int>(submitResult)));
+        vkFreeCommandBuffers(device, m_CommandPool, 1, &cmd);
+        return;
+    }
+
+    const VkResult waitResult = vkWaitForFences(device, 1, &m_Fence, VK_TRUE, UINT64_MAX);
+    if (waitResult != VK_SUCCESS) {
+        HE_ERROR("[UiGpuUpload] vkWaitForFences failed: " + std::to_string(static_cast<int>(waitResult)));
+        vkFreeCommandBuffers(device, m_CommandPool, 1, &cmd);
+        return;
+    }
+
     vkResetFences(device, 1, &m_Fence);
     vkFreeCommandBuffers(device, m_CommandPool, 1, &cmd);
 }

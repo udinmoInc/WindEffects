@@ -10,17 +10,18 @@ namespace WindEffects::Editor::UI::IconMetrics {
 namespace {
 
 uint32_t NearestTier(uint32_t requestedPx) {
-    if (requestedPx <= kAtlasTiers[0]) {
-        return kAtlasTiers[0];
-    }
-    if (requestedPx >= kAtlasTiers[kAtlasTierCount - 1]) {
+    const uint32_t clamped = std::max(requestedPx, kMinTierPx);
+    if (clamped >= kAtlasTiers[kAtlasTierCount - 1]) {
         return kAtlasTiers[kAtlasTierCount - 1];
     }
 
-    uint32_t bestTier = kAtlasTiers[0];
+    uint32_t bestTier = kMinTierPx;
     uint32_t bestDistance = UINT32_MAX;
     for (const uint32_t tier : kAtlasTiers) {
-        const uint32_t distance = tier >= requestedPx ? tier - requestedPx : requestedPx - tier;
+        if (tier < kMinTierPx) {
+            continue;
+        }
+        const uint32_t distance = tier >= clamped ? tier - clamped : clamped - tier;
         if (distance < bestDistance || (distance == bestDistance && tier < bestTier)) {
             bestDistance = distance;
             bestTier = tier;
@@ -101,6 +102,30 @@ uint32_t GlyphTierPx(ThemeToken role) {
     return TierForThemeToken(role);
 }
 
+uint32_t CompactGlyphTierPx() {
+    return kCompactTierPx;
+}
+
+float CompactDisplayPx() {
+    return static_cast<float>(kCompactTierPx);
+}
+
+uint32_t CompactSourceTierPx() {
+    return kCompactSourceTierPx;
+}
+
+bool IsChevronIcon(const std::string_view resolvedIconName) {
+    return resolvedIconName == "chevrondown"
+        || resolvedIconName == "chevronright"
+        || resolvedIconName == "chevronleft"
+        || resolvedIconName == "chevronup";
+}
+
+uint32_t TierPxForIcon(const std::string_view resolvedIconName, const float requestedPx) {
+    (void)resolvedIconName;
+    return SnapToAtlasTier(std::max(requestedPx, static_cast<float>(kMinTierPx)));
+}
+
 float IconButtonHitPx(float uiScale) {
     return ResolveThemeMetric(ThemeToken::IconButtonSize) * std::max(1.0f, uiScale);
 }
@@ -119,6 +144,10 @@ Rect PlaceGlyphCentered(const Rect& controlBounds, uint32_t tierPx) {
 }
 
 Rect PlaceGlyphCentered(const Rect& controlBounds, float logicalTierPx) {
+    const uint32_t rounded = static_cast<uint32_t>(std::lround(std::max(0.0f, logicalTierPx)));
+    if (rounded == kCompactTierPx) {
+        return PlaceGlyphCentered(controlBounds, kCompactTierPx);
+    }
     return PlaceGlyphCentered(controlBounds, SnapToAtlasTier(logicalTierPx));
 }
 

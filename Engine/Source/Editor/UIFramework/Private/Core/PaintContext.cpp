@@ -95,13 +95,17 @@ void PaintContext::DrawText(const std::string& text, const Point& pos, const Col
 }
 
 void PaintContext::DrawIcon(const std::string& iconName, const Point& pos, const Color& color, float size) {
+    DrawIcon(iconName, Rect{ pos.x, pos.y, size, size }, color, size);
+}
+
+void PaintContext::DrawIcon(const std::string& iconName, const Rect& rect, const Color& color, float atlasTierPx) {
     DrawCommand cmd{};
     cmd.type = DrawCommandType::Icon;
-    cmd.rect = { pos.x, pos.y, size, size };
+    cmd.rect = rect;
     cmd.color = color;
     cmd.clipRect = GetCurrentClipRect();
     cmd.text = iconName;
-    cmd.fontSize = size;
+    cmd.fontSize = atlasTierPx;
     m_Commands.push_back(cmd);
 }
 

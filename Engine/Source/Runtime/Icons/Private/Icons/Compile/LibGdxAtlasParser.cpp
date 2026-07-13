@@ -159,6 +159,7 @@ bool IsFullColorIcon(const std::string& runtimeName)
         || runtimeName == "toolbar-environment"
         || runtimeName == "windeffects"
         || runtimeName == "save"
+        || runtimeName == "saveall"
         || runtimeName == "save-all"
         || runtimeName == "project-folder";
 }
@@ -180,6 +181,11 @@ std::vector<std::string> RuntimeAliasesFor(const std::string& runtimeName)
         {"sun", {"lit", "globe", "toolbar-environment"}},
         {"eyeoff", {"eye-off"}},
         {"playsolid", {"play-solid"}},
+        {"outputlog", {"output-log"}},
+        {"mediaplay", {"media-play"}},
+        {"saveall", {"save-all"}},
+        {"contentbrowser", {"content-browser"}},
+        {"maximize", {"square"}},
     };
 
     std::vector<std::string> names;

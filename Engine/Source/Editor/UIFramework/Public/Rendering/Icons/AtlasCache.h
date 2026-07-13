@@ -53,6 +53,10 @@ public:
 
     [[nodiscard]] const CachedIconEntry* Find(std::string_view iconName, uint32_t tierPx) const;
     [[nodiscard]] const CachedIconEntry* FindByHash(uint64_t nameHash, uint32_t tierPx) const;
+
+    // Returns the entry at tierPx, or the same icon at the next larger tier when the
+    // requested tier is a sparse subset atlas (e.g. tier 12 only packs window controls).
+    [[nodiscard]] const CachedIconEntry* FindWithTierFallback(std::string_view iconName, uint32_t tierPx) const;
     [[nodiscard]] size_t EntryCount() const { return m_Entries.size(); }
 
 private:

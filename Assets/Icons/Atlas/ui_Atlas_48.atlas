@@ -1,6 +1,6 @@
 
 ui_Atlas_48.png
-size: 652, 102
+size: 952, 102
 format: RGBA8888
 filter: Nearest, Nearest
 repeat: none
@@ -39,149 +39,226 @@ Icons_Close
   orig: 48, 48
   offset: 0, 0
   index: 48
-Icons_Cursor
+Icons_ContentBrowser
   rotate: false
   xy: 102, 2
   size: 48, 48
   orig: 48, 48
   offset: 0, 0
   index: 48
-Icons_Eye
-  rotate: false
-  xy: 152, 2
-  size: 48, 48
-  orig: 48, 48
-  offset: 0, 0
-  index: 48
-Icons_EyeOff
+Icons_Copy
   rotate: false
   xy: 152, 52
   size: 48, 48
   orig: 48, 48
   offset: 0, 0
   index: 48
-Icons_Filter
+Icons_Cursor
   rotate: false
-  xy: 202, 52
+  xy: 152, 2
   size: 48, 48
   orig: 48, 48
   offset: 0, 0
   index: 48
-Icons_Grid
+Icons_Eye
   rotate: false
   xy: 202, 2
   size: 48, 48
   orig: 48, 48
   offset: 0, 0
   index: 48
-Icons_Info
+Icons_EyeOff
+  rotate: false
+  xy: 202, 52
+  size: 48, 48
+  orig: 48, 48
+  offset: 0, 0
+  index: 48
+Icons_Filter
   rotate: false
   xy: 252, 52
   size: 48, 48
   orig: 48, 48
   offset: 0, 0
   index: 48
-Icons_Magnet
+Icons_Grid
   rotate: false
   xy: 252, 2
   size: 48, 48
   orig: 48, 48
   offset: 0, 0
   index: 48
-Icons_MediaPlay
+Icons_Info
   rotate: false
   xy: 302, 52
   size: 48, 48
   orig: 48, 48
   offset: 0, 0
   index: 48
-Icons_Move
+Icons_Magnet
   rotate: false
   xy: 302, 2
   size: 48, 48
   orig: 48, 48
   offset: 0, 0
   index: 48
-Icons_Object
+Icons_Maximize
   rotate: false
   xy: 352, 52
   size: 48, 48
   orig: 48, 48
   offset: 0, 0
   index: 48
-Icons_Play
-  rotate: false
-  xy: 402, 52
-  size: 48, 48
-  orig: 48, 48
-  offset: 0, 0
-  index: 48
-Icons_PlaySolid
+Icons_MediaPlay
   rotate: false
   xy: 352, 2
   size: 48, 48
   orig: 48, 48
   offset: 0, 0
   index: 48
-Icons_Plus
+Icons_Minus
+  rotate: false
+  xy: 402, 52
+  size: 48, 48
+  orig: 48, 48
+  offset: 0, 0
+  index: 48
+Icons_Move
   rotate: false
   xy: 402, 2
   size: 48, 48
   orig: 48, 48
   offset: 0, 0
   index: 48
-Icons_Redo
+Icons_Object
   rotate: false
   xy: 452, 52
   size: 48, 48
   orig: 48, 48
   offset: 0, 0
   index: 48
-Icons_Rotate
+Icons_OutputLog
   rotate: false
   xy: 452, 2
   size: 48, 48
   orig: 48, 48
   offset: 0, 0
   index: 48
-Icons_Scale
+Icons_Pivot
   rotate: false
   xy: 502, 52
   size: 48, 48
   orig: 48, 48
   offset: 0, 0
   index: 48
-Icons_Search
-  rotate: false
-  xy: 502, 2
-  size: 48, 48
-  orig: 48, 48
-  offset: 0, 0
-  index: 48
-Icons_Settings
+Icons_Play
   rotate: false
   xy: 552, 52
   size: 48, 48
   orig: 48, 48
   offset: 0, 0
   index: 48
-Icons_Stop
+Icons_PlaySolid
+  rotate: false
+  xy: 502, 2
+  size: 48, 48
+  orig: 48, 48
+  offset: 0, 0
+  index: 48
+Icons_Plus
   rotate: false
   xy: 552, 2
   size: 48, 48
   orig: 48, 48
   offset: 0, 0
   index: 48
-Icons_Sun
+Icons_Recent
   rotate: false
   xy: 602, 52
   size: 48, 48
   orig: 48, 48
   offset: 0, 0
   index: 48
-Icons_Undo
+Icons_Redo
   rotate: false
   xy: 602, 2
+  size: 48, 48
+  orig: 48, 48
+  offset: 0, 0
+  index: 48
+Icons_Rotate
+  rotate: false
+  xy: 652, 52
+  size: 48, 48
+  orig: 48, 48
+  offset: 0, 0
+  index: 48
+Icons_Save
+  rotate: false
+  xy: 702, 52
+  size: 48, 48
+  orig: 48, 48
+  offset: 0, 0
+  index: 48
+Icons_SaveAll
+  rotate: false
+  xy: 652, 2
+  size: 48, 48
+  orig: 48, 48
+  offset: 0, 0
+  index: 48
+Icons_Scale
+  rotate: false
+  xy: 702, 2
+  size: 48, 48
+  orig: 48, 48
+  offset: 0, 0
+  index: 48
+Icons_Search
+  rotate: false
+  xy: 752, 52
+  size: 48, 48
+  orig: 48, 48
+  offset: 0, 0
+  index: 48
+Icons_Settings
+  rotate: false
+  xy: 752, 2
+  size: 48, 48
+  orig: 48, 48
+  offset: 0, 0
+  index: 48
+Icons_Stop
+  rotate: false
+  xy: 802, 52
+  size: 48, 48
+  orig: 48, 48
+  offset: 0, 0
+  index: 48
+Icons_Sun
+  rotate: false
+  xy: 802, 2
+  size: 48, 48
+  orig: 48, 48
+  offset: 0, 0
+  index: 48
+Icons_Terminal
+  rotate: false
+  xy: 852, 52
+  size: 48, 48
+  orig: 48, 48
+  offset: 0, 0
+  index: 48
+Icons_Undo
+  rotate: false
+  xy: 852, 2
+  size: 48, 48
+  orig: 48, 48
+  offset: 0, 0
+  index: 48
+Icons_Wrench
+  rotate: false
+  xy: 902, 52
   size: 48, 48
   orig: 48, 48
   offset: 0, 0

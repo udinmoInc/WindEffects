@@ -55,8 +55,8 @@ std::string ResolveTabIconName(const DockPanelDescriptor& descriptor) {
         {"viewport", Icons::PerspectiveName},
         {"outliner", Icons::HierarchyName},
         {"details", Icons::PropertiesName},
-        {"content-browser", Icons::FolderName},
-        {"output-log", Icons::ConsoleName},
+        {"content-browser", Icons::ContentBrowserName},
+        {"output-log", Icons::OutputLogName},
     };
 
     if (descriptor.iconResource.empty()) {
@@ -256,7 +256,7 @@ EditorShellResult EditorShellBuilder::Build(
     toolbar->AddWidget(we::editor::environment::CreateEnvironmentToolbarMenu());
 
     // Transport (centered)
-    auto playBtn = toolbar->AddTool(Icons::PlaySolidName, "", [](){}, "Play (Alt+P)", false, ToolbarAlignment::Center);
+    auto playBtn = toolbar->AddTool(Icons::MediaPlayName, "", [](){}, "Play (Alt+P)", false, ToolbarAlignment::Center);
     auto pauseBtn = toolbar->AddTool(Icons::PauseName, "", [](){}, "Pause (Alt+P)", false, ToolbarAlignment::Center);
     auto stopBtn = toolbar->AddTool(Icons::StopName, "", [](){}, "Stop", false, ToolbarAlignment::Center);
     playBtn->SetButtonStyle(ToolButtonStyle::TransportButton);

@@ -5,13 +5,16 @@
 #include "WindEffects/Editor/UI/Theming/ThemeToken.h"
 
 #include <cstdint>
+#include <string_view>
 
 namespace WindEffects::Editor::UI::IconMetrics {
 
 // Native atlas tiers — icons are only ever drawn at these pixel sizes.
 constexpr uint32_t kAtlasTiers[] = {12, 16, 20, 24, 32, 48, 64};
 constexpr uint32_t kAtlasTierCount = 7;
-constexpr uint32_t kMinTierPx = 12;
+constexpr uint32_t kCompactTierPx = 12; // compact layout size (dock-tab close, dropdown chevrons)
+constexpr uint32_t kCompactSourceTierPx = 16; // atlas tier used for compact glyphs
+constexpr uint32_t kMinTierPx = 16;
 constexpr uint32_t kMaxTierPx = 64;
 
 constexpr float kSizeCompact = 16.0f;
@@ -45,6 +48,13 @@ UIFRAMEWORK_API float SnapPx(float value);
 // Standard toolbar / panel glyph tier (never DPI-scaled).
 UIFRAMEWORK_API uint32_t StandardGlyphTierPx();
 UIFRAMEWORK_API uint32_t GlyphTierPx(ThemeToken role);
+
+// Compact layout (12px) — dock-tab close and dropdown chevrons only.
+UIFRAMEWORK_API uint32_t CompactGlyphTierPx();
+UIFRAMEWORK_API float CompactDisplayPx();
+UIFRAMEWORK_API uint32_t CompactSourceTierPx();
+UIFRAMEWORK_API bool IsChevronIcon(std::string_view resolvedIconName);
+UIFRAMEWORK_API uint32_t TierPxForIcon(std::string_view resolvedIconName, float requestedPx);
 
 // Square icon-button hit area (DPI-scaled control chrome only).
 UIFRAMEWORK_API float IconButtonHitPx(float uiScale);

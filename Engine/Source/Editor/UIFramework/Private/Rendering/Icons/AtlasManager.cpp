@@ -4,6 +4,7 @@
 #include "Core/ImageBarriers.h"
 #include "Core/Logger.h"
 #include "Icons/Assets/IconAsset.h"
+#include "Rendering/IconMetrics.h"
 #include "Rendering/UiGpuUpload.h"
 #include "Resource/ResourceManager.h"
 
@@ -17,9 +18,8 @@ namespace {
 
 uint32_t TierIndex(uint32_t tierPx)
 {
-    static constexpr uint32_t kTiers[] = {16, 20, 24, 32, 48, 64};
-    for (uint32_t i = 0; i < 6; ++i) {
-        if (kTiers[i] == tierPx) {
+    for (uint32_t i = 0; i < IconMetrics::kAtlasTierCount; ++i) {
+        if (IconMetrics::kAtlasTiers[i] == tierPx) {
             return i;
         }
     }
@@ -133,6 +133,13 @@ bool AtlasManager::IsTierReady(const uint32_t tierPx) const
     return GetTier(tierPx) != nullptr;
 }
 
+void AtlasManager::WaitDeviceIdle() const
+{
+    if (m_Context) {
+        vkDeviceWaitIdle(m_Context->GetDevice());
+    }
+}
+
 bool AtlasManager::UploadAtlasPage(
     AtlasGpuResource& tier,
     const std::vector<uint8_t>& rgba,
@@ -169,6 +176,10 @@ bool AtlasManager::UploadAtlasPage(
         VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
         tier.image,
         tier.memory);
+
+    if (tier.image == VK_NULL_HANDLE) {
+        return false;
+    }
 
     m_GpuUpload->SubmitOneTime([&](VkCommandBuffer cmd) {
         we::runtime::renderer::TransitionImageLayout(

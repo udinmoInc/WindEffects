@@ -97,7 +97,7 @@ void PaintSoftSeparator(PaintContext& context, const Rect& bounds) {
 }
 
 void PaintChevron(PaintContext& context, const Rect& bounds, bool expanded, float hoverAnim) {
-    const float tier = static_cast<float>(WindEffects::Editor::UI::IconMetrics::GlyphTierPx(bounds.width));
+    const float tier = static_cast<float>(WindEffects::Editor::UI::IconMetrics::StandardGlyphTierPx());
     Color color = ResolveThemeColor(ThemeToken::TextSecondary);
     color = Color::Lerp(color, ResolveThemeColor(ThemeToken::TextPrimary), std::clamp(hoverAnim, 0.0f, 1.0f));
 

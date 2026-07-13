@@ -1,6 +1,6 @@
 
 ui_Atlas_24.png
-size: 340, 54
+size: 496, 54
 format: RGBA8888
 filter: Nearest, Nearest
 repeat: none
@@ -39,149 +39,226 @@ Icons_Close
   orig: 24, 24
   offset: 0, 0
   index: 24
-Icons_Cursor
+Icons_ContentBrowser
   rotate: false
   xy: 54, 2
   size: 24, 24
   orig: 24, 24
   offset: 0, 0
   index: 24
-Icons_Eye
-  rotate: false
-  xy: 80, 2
-  size: 24, 24
-  orig: 24, 24
-  offset: 0, 0
-  index: 24
-Icons_EyeOff
+Icons_Copy
   rotate: false
   xy: 80, 28
   size: 24, 24
   orig: 24, 24
   offset: 0, 0
   index: 24
-Icons_Filter
+Icons_Cursor
   rotate: false
-  xy: 106, 28
+  xy: 80, 2
   size: 24, 24
   orig: 24, 24
   offset: 0, 0
   index: 24
-Icons_Grid
+Icons_Eye
   rotate: false
   xy: 106, 2
   size: 24, 24
   orig: 24, 24
   offset: 0, 0
   index: 24
-Icons_Info
+Icons_EyeOff
+  rotate: false
+  xy: 106, 28
+  size: 24, 24
+  orig: 24, 24
+  offset: 0, 0
+  index: 24
+Icons_Filter
   rotate: false
   xy: 132, 28
   size: 24, 24
   orig: 24, 24
   offset: 0, 0
   index: 24
-Icons_Magnet
+Icons_Grid
   rotate: false
   xy: 132, 2
   size: 24, 24
   orig: 24, 24
   offset: 0, 0
   index: 24
-Icons_MediaPlay
+Icons_Info
   rotate: false
   xy: 158, 28
   size: 24, 24
   orig: 24, 24
   offset: 0, 0
   index: 24
-Icons_Move
+Icons_Magnet
   rotate: false
   xy: 158, 2
   size: 24, 24
   orig: 24, 24
   offset: 0, 0
   index: 24
-Icons_Object
+Icons_Maximize
   rotate: false
   xy: 184, 28
   size: 24, 24
   orig: 24, 24
   offset: 0, 0
   index: 24
-Icons_Play
-  rotate: false
-  xy: 210, 28
-  size: 24, 24
-  orig: 24, 24
-  offset: 0, 0
-  index: 24
-Icons_PlaySolid
+Icons_MediaPlay
   rotate: false
   xy: 184, 2
   size: 24, 24
   orig: 24, 24
   offset: 0, 0
   index: 24
-Icons_Plus
+Icons_Minus
+  rotate: false
+  xy: 210, 28
+  size: 24, 24
+  orig: 24, 24
+  offset: 0, 0
+  index: 24
+Icons_Move
   rotate: false
   xy: 210, 2
   size: 24, 24
   orig: 24, 24
   offset: 0, 0
   index: 24
-Icons_Redo
+Icons_Object
   rotate: false
   xy: 236, 28
   size: 24, 24
   orig: 24, 24
   offset: 0, 0
   index: 24
-Icons_Rotate
+Icons_OutputLog
   rotate: false
   xy: 236, 2
   size: 24, 24
   orig: 24, 24
   offset: 0, 0
   index: 24
-Icons_Scale
+Icons_Pivot
   rotate: false
   xy: 262, 28
   size: 24, 24
   orig: 24, 24
   offset: 0, 0
   index: 24
-Icons_Search
-  rotate: false
-  xy: 262, 2
-  size: 24, 24
-  orig: 24, 24
-  offset: 0, 0
-  index: 24
-Icons_Settings
+Icons_Play
   rotate: false
   xy: 288, 28
   size: 24, 24
   orig: 24, 24
   offset: 0, 0
   index: 24
-Icons_Stop
+Icons_PlaySolid
+  rotate: false
+  xy: 262, 2
+  size: 24, 24
+  orig: 24, 24
+  offset: 0, 0
+  index: 24
+Icons_Plus
   rotate: false
   xy: 288, 2
   size: 24, 24
   orig: 24, 24
   offset: 0, 0
   index: 24
-Icons_Sun
+Icons_Recent
   rotate: false
   xy: 314, 28
   size: 24, 24
   orig: 24, 24
   offset: 0, 0
   index: 24
-Icons_Undo
+Icons_Redo
   rotate: false
   xy: 314, 2
+  size: 24, 24
+  orig: 24, 24
+  offset: 0, 0
+  index: 24
+Icons_Rotate
+  rotate: false
+  xy: 340, 28
+  size: 24, 24
+  orig: 24, 24
+  offset: 0, 0
+  index: 24
+Icons_Save
+  rotate: false
+  xy: 366, 28
+  size: 24, 24
+  orig: 24, 24
+  offset: 0, 0
+  index: 24
+Icons_SaveAll
+  rotate: false
+  xy: 340, 2
+  size: 24, 24
+  orig: 24, 24
+  offset: 0, 0
+  index: 24
+Icons_Scale
+  rotate: false
+  xy: 366, 2
+  size: 24, 24
+  orig: 24, 24
+  offset: 0, 0
+  index: 24
+Icons_Search
+  rotate: false
+  xy: 392, 28
+  size: 24, 24
+  orig: 24, 24
+  offset: 0, 0
+  index: 24
+Icons_Settings
+  rotate: false
+  xy: 392, 2
+  size: 24, 24
+  orig: 24, 24
+  offset: 0, 0
+  index: 24
+Icons_Stop
+  rotate: false
+  xy: 418, 28
+  size: 24, 24
+  orig: 24, 24
+  offset: 0, 0
+  index: 24
+Icons_Sun
+  rotate: false
+  xy: 418, 2
+  size: 24, 24
+  orig: 24, 24
+  offset: 0, 0
+  index: 24
+Icons_Terminal
+  rotate: false
+  xy: 444, 28
+  size: 24, 24
+  orig: 24, 24
+  offset: 0, 0
+  index: 24
+Icons_Undo
+  rotate: false
+  xy: 444, 2
+  size: 24, 24
+  orig: 24, 24
+  offset: 0, 0
+  index: 24
+Icons_Wrench
+  rotate: false
+  xy: 470, 28
   size: 24, 24
   orig: 24, 24
   offset: 0, 0

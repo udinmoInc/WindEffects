@@ -58,6 +58,7 @@ public:
     
     void DrawText(const std::string& text, const Point& pos, const Color& color, float fontSize = 14.0f, bool bold = false, bool italic = false);
     void DrawIcon(const std::string& iconName, const Point& pos, const Color& color, float size = 16.0f);
+    void DrawIcon(const std::string& iconName, const Rect& rect, const Color& color, float atlasTierPx);
     void DrawLine(const Point& start, const Point& end, const Color& color, float thickness = 1.0f);
     void DrawTexture(const Rect& rect, VkDescriptorSet textureId, const Color& tint = Color::White(), const Color& tintBottom = Color::Transparent());
     void DrawColorTexture(const Rect& rect, VkDescriptorSet textureId, const Color& tint = Color::White());

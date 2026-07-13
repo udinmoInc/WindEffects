@@ -1,6 +1,7 @@
 #include "Rendering/UIWidgetAdapter.h"
 #include "Rendering/IconRenderer.h"
 #include "Rendering/IconMetrics.h"
+#include "Core/Icon.h"
 #include "Rendering/TextUIService.h"
 #include "Core/Logger.h"
 #include "Core/FrameCounter.h"
@@ -390,8 +391,10 @@ void UIWidgetAdapter::GenerateIconGeometry(const DrawCommand& cmd) {
     }
 
     IconRenderer* iconRenderer = m_Renderer->GetIconRenderer();
-    const uint32_t iconSize = IconMetrics::SnapToAtlasTier(cmd.fontSize);
-    const IconDrawInfo drawInfo = iconRenderer->GetLucideIconDrawInfo(cmd.text, iconSize, cmd.color);
+    const uint32_t atlasTier = IconMetrics::TierPxForIcon(
+        Icons::ResolveLucideName(cmd.text),
+        cmd.fontSize);
+    const IconDrawInfo drawInfo = iconRenderer->GetLucideIconDrawInfo(cmd.text, atlasTier, cmd.color);
 
     if (!drawInfo.valid || drawInfo.descriptorSet == VK_NULL_HANDLE) {
         return;
@@ -399,9 +402,8 @@ void UIWidgetAdapter::GenerateIconGeometry(const DrawCommand& cmd) {
 
     m_CurrentTextureSet = drawInfo.descriptorSet;
 
-    // 1:1 atlas rendering: quad dimensions are always the native tier; never stretch to layout bounds.
-    const float w = static_cast<float>(iconSize);
-    const float h = static_cast<float>(iconSize);
+    const float w = cmd.rect.width > 0.0f ? cmd.rect.width : static_cast<float>(atlasTier);
+    const float h = cmd.rect.height > 0.0f ? cmd.rect.height : static_cast<float>(atlasTier);
     const float x = SnapPx(cmd.rect.x);
     const float y = SnapPx(cmd.rect.y);
 
@@ -409,8 +411,20 @@ void UIWidgetAdapter::GenerateIconGeometry(const DrawCommand& cmd) {
         bool perfect = true;
         std::string report = "Icon Verification [" + cmd.text + "]: ";
         if (cmd.rect.x != std::floor(cmd.rect.x) || cmd.rect.y != std::floor(cmd.rect.y)) { perfect = false; report += "Fractional Layout Position; "; }
-        if (w != cmd.rect.width || h != cmd.rect.height) { perfect = false; report += "Size Mismatch (Requested " + std::to_string(cmd.rect.width) + ", Atlas " + std::to_string(w) + "); "; }
-        if (cmd.fontSize != static_cast<float>(iconSize)) { perfect = false; report += "DPI/FontSize Resampling; "; }
+        if (cmd.fontSize != static_cast<float>(atlasTier) && (w != cmd.rect.width || h != cmd.rect.height)) {
+            perfect = false;
+            report += "Compact/Scaled Icon Draw; ";
+        }
+        if (w != static_cast<float>(atlasTier) || h != static_cast<float>(atlasTier)) {
+            if (cmd.fontSize == static_cast<float>(atlasTier)) {
+                perfect = false;
+                report += "Display Size Mismatch (Atlas " + std::to_string(atlasTier) + ", Draw " + std::to_string(w) + "); ";
+            }
+        }
+        if (cmd.fontSize != static_cast<float>(atlasTier) && w == static_cast<float>(atlasTier)) {
+            perfect = false;
+            report += "DPI/FontSize Resampling; ";
+        }
         
         if (!perfect) {
             HE_WARN(report);

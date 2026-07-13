@@ -50,6 +50,10 @@ public:
     static void DrawIcon(PaintContext& context, const std::string& iconName,
         const Rect& bounds, const Color& color);
 
+    // 12px layout using the 16px atlas tier (dock-tab close, dropdown chevrons).
+    static void DrawCompactIcon(PaintContext& context, const std::string& iconName,
+        const Rect& bounds, const Color& color);
+
     static void DrawVerticalMoreMenu(PaintContext& context, const Rect& bounds, const Color& color);
 };
 
@@ -81,10 +85,12 @@ namespace Icons {
     constexpr const char* ShaderName     = "code-2";
     constexpr const char* TextureName    = "image";
     constexpr const char* SaveName       = "save";
-    constexpr const char* SaveAllName    = "save";
+    constexpr const char* SaveAllName    = "saveall";
     constexpr const char* OpenName       = "folder-open";
     constexpr const char* NewName        = "file-plus";
     constexpr const char* FolderName     = "folder";
+    constexpr const char* ContentBrowserName = "contentbrowser";
+    constexpr const char* RecentName     = "recent";
     constexpr const char* ProjectFolderName = "folder-kanban";
     constexpr const char* ToolbarObjectName = "object";
     constexpr const char* ToolbarEnvironmentName = "sun";
@@ -133,7 +139,10 @@ namespace Icons {
     constexpr const char* LayersName     = "layers";
     constexpr const char* HierarchyName  = "list-tree";
     constexpr const char* PropertiesName = "sliders-horizontal";
-    constexpr const char* ConsoleName    = "terminal";
+    constexpr const char* TerminalName   = "terminal";
+    constexpr const char* OutputLogName  = "outputlog";
+    constexpr const char* ConsoleName    = TerminalName;
+    constexpr const char* MediaPlayName  = "mediaplay";
     constexpr const char* ProfilerName   = "activity";
     constexpr const char* ListName       = "list";
     constexpr const char* RefreshName    = "refresh-cw";
@@ -149,7 +158,7 @@ namespace Icons {
     constexpr const char* ErrorName      = "x-circle";
     constexpr const char* SuccessName    = "check";
     constexpr const char* MinimizeName   = "minus";
-    constexpr const char* MaximizeName   = "square";
+    constexpr const char* MaximizeName   = "maximize";
     constexpr const char* RestoreName    = "copy";
     constexpr const char* CompassName    = "compass";
     constexpr const char* EraserName     = "eraser";
@@ -192,9 +201,13 @@ namespace Icons {
             {"shader", ShaderName},
             {"texture", TextureName},
             {"save", SaveName},
+            {"save-all", SaveAllName},
+            {"saveall", SaveAllName},
             {"open", OpenName},
             {"new", NewName},
             {"folder", FolderName},
+            {"content-browser", ContentBrowserName},
+            {"contentbrowser", ContentBrowserName},
             {"document", DocumentName},
             {"code", CodeName},
             {"build", BuildName},
@@ -226,6 +239,11 @@ namespace Icons {
             {"hierarchy", HierarchyName},
             {"properties", PropertiesName},
             {"console", ConsoleName},
+            {"terminal", TerminalName},
+            {"output-log", OutputLogName},
+            {"outputlog", OutputLogName},
+            {"mediaplay", MediaPlayName},
+            {"media-play", MediaPlayName},
             {"profiler", ProfilerName},
             {"list", ListName},
             {"refresh", RefreshName},

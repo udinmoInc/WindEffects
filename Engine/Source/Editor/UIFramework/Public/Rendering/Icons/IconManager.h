@@ -60,6 +60,8 @@ public:
 
     [[nodiscard]] bool IsReady() const { return m_Ready; }
 
+    void EnsureCompactTierLoaded();
+
 private:
     void LoadMeta(const std::filesystem::path& metaPath);
     void PreloadAtlases();
@@ -77,6 +79,8 @@ private:
     mutable std::mutex m_LoadMutex;
     std::unordered_set<uint32_t> m_LoadedTiers;
     std::unordered_set<uint32_t> m_PendingTiers;
+    std::unordered_set<uint32_t> m_FailedTiers;
+    bool m_CompactTierLoadRequested = false;
 };
 
 } // namespace WindEffects::Editor::UI
