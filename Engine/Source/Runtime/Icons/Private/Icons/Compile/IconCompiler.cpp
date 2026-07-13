@@ -65,7 +65,7 @@ public:
         metaAsset.version = assets::kWeIconMetaVersion;
 
         for (const uint32_t tierPx : kIconAtlasTiers) {
-            const auto atlasPath = options.inputDir / ("atlas_" + std::to_string(tierPx) + ".atlas");
+            const auto atlasPath = options.inputDir / ("ui_Atlas_" + std::to_string(tierPx) + ".atlas");
             if (!std::filesystem::exists(atlasPath)) {
                 continue;
             }
@@ -125,7 +125,7 @@ public:
                     atlasPath.string());
             }
 
-            const auto outputAtlasPath = options.outputDir / ("atlas_" + std::to_string(tierPx) + ".weiconatlas");
+            const auto outputAtlasPath = options.outputDir / ("ui_Atlas_" + std::to_string(tierPx) + ".weiconatlas");
             const auto writeAtlas = assets::IconAtlasWriter::WriteToFile(atlasAsset, outputAtlasPath);
             if (!writeAtlas.ok) {
                 return IconResult<CompileResult>::Failure(writeAtlas.error.message, writeAtlas.error.context);

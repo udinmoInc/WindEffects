@@ -53,11 +53,11 @@ static_assert(sizeof(TextPushConstants) == 32, "Text push constants must match T
 
 void FillUiTransformPushConstants(const uint32_t width, const uint32_t height, float out[4])
 {
-    // Pixel-center NDC: ndc = ((px + 0.5) / extent) * 2 - 1
+    // Vertex coordinates are pixel boundaries. NDC -1 corresponds to pixel 0 left edge.
     out[0] = 2.0f / static_cast<float>(width);
     out[1] = 2.0f / static_cast<float>(height);
-    out[2] = 1.0f / static_cast<float>(width) - 1.0f;
-    out[3] = 1.0f / static_cast<float>(height) - 1.0f;
+    out[2] = -1.0f;
+    out[3] = -1.0f;
 }
 
 void FillTextPushConstants(

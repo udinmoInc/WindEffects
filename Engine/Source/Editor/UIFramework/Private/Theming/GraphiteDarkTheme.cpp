@@ -1,4 +1,5 @@
 #include "WindEffects/Editor/UI/Theming/GraphiteDarkTheme.h"
+#include "Rendering/IconMetrics.h"
 
 #include <algorithm>
 #include <array>
@@ -109,8 +110,8 @@ Color GraphiteDarkTheme::GetColor(ThemeToken token) const {
     case ThemeToken::SelectionHighlight:            return Hex(0x34,0x34,0x34,0.85f);
     case ThemeToken::LinkForeground:                return Hex(0xF0,0xA4,0x2A);
 
-    case ThemeToken::PlayForeground:                return Hex(0xF0,0xA4,0x2A);
-    case ThemeToken::Success:                       return Hex(0x47,0xC5,0x6C);
+    case ThemeToken::PlayForeground:                return Hex(0x5E,0xAD,0x6E);
+    case ThemeToken::Success:                       return Hex(0x5E,0xAD,0x6E);
     case ThemeToken::Warning:                       return Hex(0xE0,0xA2,0x3A);
     case ThemeToken::ErrorForeground:               return Hex(0xDD,0x5A,0x5A);
     case ThemeToken::CloseButtonHover:              return Hex(0xDD,0x5A,0x5A);
@@ -260,7 +261,7 @@ ResolvedStyle StyleResolver::Resolve(StyleRole role) const {
         style.background = theme.GetColor(ThemeToken::ToolbarBackground);
         style.height = Scaled(theme.GetMetric(ThemeToken::ToolbarHeight));
         style.fontSize = Scaled(theme.GetMetric(ThemeToken::TextSizeToolbar));
-        style.iconSize = Scaled(theme.GetMetric(ThemeToken::IconSizeToolbar));
+        style.iconSize = static_cast<float>(IconMetrics::GlyphTierPx(ThemeToken::IconSizeToolbar));
         break;
     case StyleRole::Panel:
         style.background = theme.GetColor(ThemeToken::PanelBackground);
@@ -295,7 +296,7 @@ ResolvedStyle StyleResolver::Resolve(StyleRole role) const {
         style.foreground = theme.GetColor(ThemeToken::TextSecondary);
         style.border = theme.GetColor(ThemeToken::BorderDefault);
         style.height = Scaled(theme.GetMetric(ThemeToken::ButtonHeight));
-        style.iconSize = Scaled(theme.GetMetric(ThemeToken::IconSizeToolbar));
+        style.iconSize = static_cast<float>(IconMetrics::GlyphTierPx(ThemeToken::IconSizeToolbar));
         style.cornerRadius = Scaled(theme.GetMetric(ThemeToken::CornerRadiusSmall));
         break;
     case StyleRole::ButtonHover:
@@ -312,7 +313,7 @@ ResolvedStyle StyleResolver::Resolve(StyleRole role) const {
         style.foreground = theme.GetColor(ThemeToken::TextPrimary);
         style.border = theme.GetColor(ThemeToken::BorderDefault);
         style.height = Scaled(theme.GetMetric(ThemeToken::ButtonHeight));
-        style.iconSize = Scaled(theme.GetMetric(ThemeToken::IconSizeToolbar));
+        style.iconSize = static_cast<float>(IconMetrics::GlyphTierPx(ThemeToken::IconSizeToolbar));
         style.cornerRadius = Scaled(theme.GetMetric(ThemeToken::CornerRadiusSmall));
         break;
     case StyleRole::ButtonSecondary:
@@ -320,7 +321,7 @@ ResolvedStyle StyleResolver::Resolve(StyleRole role) const {
         style.foreground = theme.GetColor(ThemeToken::TextSecondary);
         style.border = theme.GetColor(ThemeToken::BorderDefault);
         style.height = Scaled(theme.GetMetric(ThemeToken::ButtonHeight));
-        style.iconSize = Scaled(theme.GetMetric(ThemeToken::IconSizeToolbar));
+        style.iconSize = static_cast<float>(IconMetrics::GlyphTierPx(ThemeToken::IconSizeToolbar));
         style.cornerRadius = Scaled(theme.GetMetric(ThemeToken::CornerRadiusSmall));
         break;
     case StyleRole::IconButton:
@@ -328,7 +329,7 @@ ResolvedStyle StyleResolver::Resolve(StyleRole role) const {
         style.icon = theme.GetColor(ThemeToken::IconDefault);
         style.border = theme.GetColor(ThemeToken::BorderDefault);
         style.height = Scaled(theme.GetMetric(ThemeToken::IconButtonSize));
-        style.iconSize = Scaled(theme.GetMetric(ThemeToken::IconSizeToolbar));
+        style.iconSize = static_cast<float>(IconMetrics::GlyphTierPx(ThemeToken::IconSizeToolbar));
         style.cornerRadius = Scaled(theme.GetMetric(ThemeToken::IconButtonRadius));
         break;
     case StyleRole::IconButtonHover:
@@ -345,7 +346,7 @@ ResolvedStyle StyleResolver::Resolve(StyleRole role) const {
         style.icon = theme.GetColor(ThemeToken::IconDefault);
         style.border = theme.GetColor(ThemeToken::BorderDefault);
         style.height = Scaled(theme.GetMetric(ThemeToken::NavigationButtonSize));
-        style.iconSize = Scaled(theme.GetMetric(ThemeToken::IconSizeNavigation));
+        style.iconSize = static_cast<float>(IconMetrics::GlyphTierPx(ThemeToken::IconSizeNavigation));
         style.cornerRadius = Scaled(theme.GetMetric(ThemeToken::IconButtonRadius));
         break;
     case StyleRole::Input:

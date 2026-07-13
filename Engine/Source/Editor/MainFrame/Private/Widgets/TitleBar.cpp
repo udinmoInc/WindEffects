@@ -78,7 +78,6 @@ namespace {
         static constexpr float kIconSize = 16.0f;
         static constexpr float kIconGap  = 8.0f;
         static constexpr float kChevGap  = 8.0f;
-        static constexpr float kChevSize = 16.0f;
         static constexpr float kTextSize = 12.0f;
         static constexpr const char* kProjectName = "MyProject";
 
@@ -86,7 +85,7 @@ namespace {
         Size Measure(const Size& availableSize) override {
             (void)availableSize;
             float textW = kProjectName[0] ? static_cast<float>(strlen(kProjectName)) * 6.8f : 0.0f;
-            float width = kPadH + kIconSize + kIconGap + textW + kChevGap + kChevSize + kPadH;
+            float width = kPadH + kIconSize + kIconGap + textW + kChevGap + static_cast<float>(IconMetrics::StandardGlyphTierPx()) + kPadH;
             m_DesiredSize = Size{ width, kHeight };
             return m_DesiredSize;
         }
@@ -127,10 +126,11 @@ namespace {
                 Point{ textX, centerY - textSize * 0.5f },
                 ThemeColor(ThemeToken::TextPrimary), textSize);
 
-            const float chevSize = static_cast<float>(IconMetrics::NativeIconTierPx(kChevSize));
-            const float chevX = m_Geometry.x + m_Geometry.width - (kPadH + chevSize) * uiScale;
+            const float tier = static_cast<float>(IconMetrics::StandardGlyphTierPx());
+            const float chevronX = m_Geometry.x + m_Geometry.width - (kPadH + tier) * uiScale;
+            Rect chevronControl{ chevronX, centerY - tier * 0.5f, tier, tier };
             IconPainter::DrawIcon(context, Icons::ChevronDownName,
-                Rect{ chevX, centerY - chevSize * 0.5f, chevSize, chevSize },
+                IconMetrics::PlaceGlyphCentered(chevronControl, tier),
                 ThemeColor(ThemeToken::IconDefault));
         }
         bool ShowsPointerCursor(const Point&) const override { return true; }

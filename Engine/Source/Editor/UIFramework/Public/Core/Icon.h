@@ -53,22 +53,23 @@ public:
     static void DrawVerticalMoreMenu(PaintContext& context, const Rect& bounds, const Color& color);
 };
 
-// Lucide icon names (kebab-case, matching Engine/Content/Icons/icons/*.svg).
+// Icon names resolve to atlas entries in icons.weiconmeta (PascalCase stripped to lowercase).
 namespace Icons {
 
-    constexpr const char* CursorName     = "mouse-pointer-2";
+    constexpr const char* CursorName     = "cursor";
     constexpr const char* MoveName       = "move";
-    constexpr const char* RotateName     = "rotate-cw";
-    constexpr const char* ScaleName      = "scaling";
+    constexpr const char* RotateName     = "rotate";
+    constexpr const char* ScaleName      = "scale";
     constexpr const char* PlayName       = "play";
+    constexpr const char* PlaySolidName  = "playsolid";
     constexpr const char* PauseName      = "pause";
-    constexpr const char* StopName       = "square";
+    constexpr const char* StopName       = "stop";
     constexpr const char* PerspectiveName = "box";
     constexpr const char* LitName        = "sun";
-    constexpr const char* WireframeName  = "grid-3x3";
+    constexpr const char* WireframeName  = "grid";
     constexpr const char* CameraName     = "camera";
     constexpr const char* SnapName       = "magnet";
-    constexpr const char* GridName       = "grid-3x3";
+    constexpr const char* GridName       = "grid";
     constexpr const char* CubeName       = "box";
     constexpr const char* SphereName     = "circle";
     constexpr const char* PlaneName      = "square";
@@ -85,9 +86,9 @@ namespace Icons {
     constexpr const char* NewName        = "file-plus";
     constexpr const char* FolderName     = "folder";
     constexpr const char* ProjectFolderName = "folder-kanban";
-    constexpr const char* ToolbarObjectName = "component";
-    constexpr const char* ToolbarEnvironmentName = "globe";
-    constexpr const char* GlobeName      = "globe";
+    constexpr const char* ToolbarObjectName = "object";
+    constexpr const char* ToolbarEnvironmentName = "sun";
+    constexpr const char* GlobeName      = "sun";
     constexpr const char* UserName       = "user";
     constexpr const char* MountainName   = "mountain";
     constexpr const char* TreesName      = "trees";
@@ -119,13 +120,14 @@ namespace Icons {
     constexpr const char* SettingsName   = "settings";
     constexpr const char* MenuName       = "menu";
     constexpr const char* MoreName       = "more-vertical";
-    constexpr const char* ChevronRightName = "chevron-right";
-    constexpr const char* ChevronDownName  = "chevron-down";
-    constexpr const char* ChevronLeftName  = "chevron-left";
+    constexpr const char* ChevronRightName = "chevronright";
+    constexpr const char* ChevronDownName  = "chevrondown";
+    constexpr const char* ChevronLeftName  = "chevronleft";
+    constexpr const char* ChevronUpName    = "chevronup";
     constexpr const char* ArrowLeftName    = "arrow-left";
     constexpr const char* ArrowRightName   = "arrow-right";
     constexpr const char* EyeName        = "eye";
-    constexpr const char* EyeOffName     = "eye-off";
+    constexpr const char* EyeOffName     = "eyeoff";
     constexpr const char* LockName       = "lock";
     constexpr const char* UnlockName     = "unlock";
     constexpr const char* LayersName     = "layers";
@@ -140,7 +142,7 @@ namespace Icons {
     constexpr const char* FilterName     = "filter";
     constexpr const char* PlusName       = "plus";
     constexpr const char* MinusName      = "minus";
-    constexpr const char* XName          = "x";
+    constexpr const char* XName          = "close";
     constexpr const char* CheckName      = "check";
     constexpr const char* InfoName       = "info";
     constexpr const char* WarningName    = "alert-triangle";
@@ -157,24 +159,33 @@ namespace Icons {
     inline std::string ResolveLucideName(const std::string& name) {
         static const std::unordered_map<std::string, std::string> kAliases = {
             {"cursor", CursorName},
+            {"mouse-pointer-2", CursorName},
             {"move", MoveName},
             {"rotate", RotateName},
+            {"rotate-cw", RotateName},
             {"scale", ScaleName},
+            {"scaling", ScaleName},
             {"play", PlayName},
+            {"playsolid", PlaySolidName},
             {"pause", PauseName},
             {"stop", StopName},
+            {"square", StopName},
             {"perspective", PerspectiveName},
             {"lit", LitName},
             {"wireframe", WireframeName},
+            {"grid-3x3", GridName},
+            {"grid", GridName},
             {"camera", CameraName},
             {"snap", SnapName},
-            {"grid", GridName},
+            {"magnet", SnapName},
             {"cube", CubeName},
             {"sphere", SphereName},
             {"plane", PlaneName},
             {"cylinder", CylinderName},
             {"light", LightName},
             {"sun", SunName},
+            {"globe", SunName},
+            {"toolbar-environment", ToolbarEnvironmentName},
             {"point-light", PointLightName},
             {"material", MaterialName},
             {"material_instance", "layers"},
@@ -199,10 +210,16 @@ namespace Icons {
             {"more", MoreName},
             {"ellipsis-vertical", MoreName},
             {"chevron-right", ChevronRightName},
+            {"chevronright", ChevronRightName},
             {"chevron-down", ChevronDownName},
+            {"chevrondown", ChevronDownName},
             {"chevron-left", ChevronLeftName},
+            {"chevronleft", ChevronLeftName},
+            {"chevron-up", ChevronUpName},
+            {"chevronup", ChevronUpName},
             {"eye", EyeName},
             {"eye-off", EyeOffName},
+            {"eyeoff", EyeOffName},
             {"lock", LockName},
             {"unlock", UnlockName},
             {"layers", LayersName},
@@ -217,6 +234,7 @@ namespace Icons {
             {"plus", PlusName},
             {"minus", MinusName},
             {"x", XName},
+            {"close", XName},
             {"check", CheckName},
             {"info", InfoName},
             {"warning", WarningName},
@@ -229,6 +247,10 @@ namespace Icons {
             {"eraser", EraserName},
             {"brush", BrushName},
             {"record", RecordName},
+            {"component", ToolbarObjectName},
+            {"toolbar-object", ToolbarObjectName},
+            {"object", ToolbarObjectName},
+            {"filter", FilterName},
             {"blueprint", "blocks"},
             {"static_mesh", "box"},
             {"skeletal_mesh", "bone"},

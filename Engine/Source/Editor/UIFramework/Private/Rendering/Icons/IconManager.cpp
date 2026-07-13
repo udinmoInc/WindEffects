@@ -141,7 +141,7 @@ void IconManager::RequestTierLoad(const uint32_t tierPx)
 
 std::filesystem::path IconManager::AtlasPathForTier(const uint32_t tierPx) const
 {
-    return m_AtlasRoot / ("atlas_" + std::to_string(tierPx) + ".weiconatlas");
+    return m_AtlasRoot / ("ui_Atlas_" + std::to_string(tierPx) + ".weiconatlas");
 }
 
 std::string IconManager::ResolveLogicalName(const std::string& iconName) const

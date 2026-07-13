@@ -258,22 +258,27 @@ void TreeView::Paint(PaintContext& context) {
         }
 
         if (!node->children.empty()) {
-            const float chevronSize = 12.0f;
-            const float chevronX = item.geometry.x + 4.0f;
-            const float chevronY = item.geometry.y + (rowHeight - chevronSize) * 0.5f;
+            const float tier = static_cast<float>(IconMetrics::StandardGlyphTierPx());
+            const float chevronX = item.geometry.x + ThemeMetric(ThemeToken::Space1) * TreeUiScale();
+            const float centerY = item.geometry.y + rowHeight * 0.5f;
             const char* chevronIcon = node->expanded ? Icons::ChevronDownName : Icons::ChevronRightName;
-            IconPainter::DrawIcon(context, chevronIcon, Rect{ chevronX, chevronY, chevronSize, chevronSize }, ThemeColor(ThemeToken::TextSecondary));
+            Rect chevronControl{ chevronX, centerY - tier * 0.5f, tier, tier };
+            IconPainter::DrawIcon(context, chevronIcon,
+                IconMetrics::PlaceGlyphCentered(chevronControl, tier),
+                ThemeColor(ThemeToken::TextSecondary));
         }
 
-        const float iconSize = static_cast<float>(IconMetrics::NativeIconTierPx(ThemeMetric(ThemeToken::IconSizeTree)));
-        const float iconX = item.geometry.x + 18.0f;
+        const float iconSize = static_cast<float>(IconMetrics::GlyphTierPx(ThemeToken::IconSizeTree));
+        const float iconX = item.geometry.x + ThemeMetric(ThemeToken::Space2)
+            + static_cast<float>(IconMetrics::StandardGlyphTierPx())
+            + ThemeMetric(ThemeToken::Space1) * TreeUiScale();
         if (!node->iconName.empty() || node->iconTexture != VK_NULL_HANDLE) {
-            const float iconY = item.geometry.y + (rowHeight - iconSize) * 0.5f;
-            Rect iconRect{ iconX, iconY, iconSize, iconSize };
+            Rect iconBand{ iconX, item.geometry.y, iconSize, rowHeight };
+            Rect iconRect = IconMetrics::PlaceGlyphCentered(iconBand, iconSize);
             PaintTreeNodeIcon(context, *node, iconRect, node->id == m_HoveredId);
         }
 
-        const float textX = iconX + iconSize + 6.0f;
+        const float textX = iconX + iconSize + ThemeMetric(ThemeToken::Space2) * TreeUiScale();
         const float textY = item.geometry.y + (rowHeight - fontSize) * 0.5f;
         Color textColor = node->locked ? ThemeColor(ThemeToken::TextSecondary) * 0.6f : ThemeColor(ThemeToken::TextPrimary);
         if (!node->visible) {
@@ -347,19 +352,23 @@ void TreeView::Paint(PaintContext& context) {
         }
 
         if (m_ShowRowControls) {
-        const float eyeSize = 13.0f;
-        const float eyeX = item.geometry.x + item.geometry.width - eyeSize - 8.0f;
-        const float eyeY = item.geometry.y + (rowHeight - eyeSize) * 0.5f;
+        const float accessorySize = static_cast<float>(IconMetrics::GlyphTierPx(ThemeToken::IconSizeTree));
+        const float accessoryGap = ThemeMetric(ThemeToken::Space1) * TreeUiScale();
+        const float rowPad = ThemeMetric(ThemeToken::Space2) * TreeUiScale();
+        const float eyeX = item.geometry.x + item.geometry.width - accessorySize - rowPad;
+        const float centerY = item.geometry.y + rowHeight * 0.5f;
         const Color eyeColor = node->visible ? ThemeColor(ThemeToken::TextSecondary) : ThemeColor(ThemeToken::TextSecondary) * 0.45f;
         const char* eyeIcon = node->visible ? Icons::EyeName : Icons::EyeOffName;
-        IconPainter::DrawIcon(context, eyeIcon, Rect{ eyeX, eyeY, eyeSize, eyeSize }, eyeColor);
+        Rect eyeControl{ eyeX, centerY - accessorySize * 0.5f, accessorySize, accessorySize };
+        IconPainter::DrawIcon(context, eyeIcon,
+            IconMetrics::PlaceGlyphCentered(eyeControl, accessorySize), eyeColor);
 
-        const float lockSize = 13.0f;
-        const float lockX = eyeX - lockSize - 4.0f;
-        const float lockY = item.geometry.y + (rowHeight - lockSize) * 0.5f;
+        const float lockX = eyeX - accessorySize - accessoryGap;
         const Color lockColor = node->locked ? ThemeColor(ThemeToken::Warning) : ThemeColor(ThemeToken::TextSecondary) * 0.55f;
         const char* lockIcon = node->locked ? Icons::LockName : Icons::UnlockName;
-        IconPainter::DrawIcon(context, lockIcon, Rect{ lockX, lockY, lockSize, lockSize }, lockColor);
+        Rect lockControl{ lockX, centerY - accessorySize * 0.5f, accessorySize, accessorySize };
+        IconPainter::DrawIcon(context, lockIcon,
+            IconMetrics::PlaceGlyphCentered(lockControl, accessorySize), lockColor);
         }
     }
 
@@ -393,22 +402,24 @@ void TreeView::OnMouseDown(const MouseEvent& event) {
     }
 
     const auto& node = item->node;
+    const float rowHeight = m_ItemHeight * TreeUiScale();
 
     if (!node->children.empty()) {
-        const float chevronSize = 12.0f;
-        const float chevronX = item->geometry.x + 4.0f;
-        Rect chevronRect{ chevronX, item->geometry.y + (m_ItemHeight - chevronSize) * 0.5f, chevronSize, chevronSize };
+        const float tier = static_cast<float>(IconMetrics::StandardGlyphTierPx());
+        const float chevronX = item->geometry.x + ThemeMetric(ThemeToken::Space1) * TreeUiScale();
+        Rect chevronRect{ chevronX, item->geometry.y + (rowHeight - tier) * 0.5f, tier, tier };
         if (chevronRect.Contains(event.position)) {
             ToggleExpand(node->id);
             return;
         }
     }
 
-    const float lockSize = 13.0f;
-    const float eyeSize = 13.0f;
-    const float eyeX = item->geometry.x + item->geometry.width - eyeSize - 8.0f;
-    const float lockX = eyeX - lockSize - 4.0f;
-    Rect lockRect{ lockX, item->geometry.y + (m_ItemHeight - lockSize) * 0.5f, lockSize, lockSize };
+    const float accessorySize = static_cast<float>(IconMetrics::GlyphTierPx(ThemeToken::IconSizeTree));
+    const float accessoryGap = ThemeMetric(ThemeToken::Space1) * TreeUiScale();
+    const float rowPad = ThemeMetric(ThemeToken::Space2) * TreeUiScale();
+    const float eyeX = item->geometry.x + item->geometry.width - accessorySize - rowPad;
+    const float lockX = eyeX - accessorySize - accessoryGap;
+    Rect lockRect{ lockX, item->geometry.y + (rowHeight - accessorySize) * 0.5f, accessorySize, accessorySize };
     if (lockRect.Contains(event.position)) {
         node->locked = !node->locked;
         if (m_OnLockToggled) {
@@ -417,7 +428,7 @@ void TreeView::OnMouseDown(const MouseEvent& event) {
         return;
     }
 
-    Rect eyeRect{ eyeX, item->geometry.y + (m_ItemHeight - eyeSize) * 0.5f, eyeSize, eyeSize };
+    Rect eyeRect{ eyeX, item->geometry.y + (rowHeight - accessorySize) * 0.5f, accessorySize, accessorySize };
     if (eyeRect.Contains(event.position)) {
         node->visible = !node->visible;
         if (m_OnVisibilityToggled) {

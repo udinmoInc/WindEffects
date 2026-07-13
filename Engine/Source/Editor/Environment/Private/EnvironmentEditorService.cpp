@@ -15,6 +15,7 @@
 #include "WindEffects/Editor/UI/Theming/ThemeToken.h"
 #include "Core/Icon.h"
 #include "Core/ToolbarButtonChrome.h"
+#include "Rendering/IconMetrics.h"
 
 #include <glm/glm.hpp>
 
@@ -592,8 +593,8 @@ public:
         const float uiScale = (std::max)(1.0f, WindEffects::Editor::UI::DPIContext::GetScale());
         const float padH = WindEffects::Editor::UI::ToolbarButtonChrome::HorizontalPad(uiScale);
         const float iconSz = WindEffects::Editor::UI::ToolbarButtonChrome::IconSize(uiScale);
-        const float iconGap = 4.0f * uiScale;
-        const float chevW = 8.0f * uiScale;
+        const float iconGap = WindEffects::Editor::UI::ToolbarButtonChrome::IconGapPx(uiScale);
+        const float chevW = WindEffects::Editor::UI::ToolbarButtonChrome::IconSize(uiScale);
         const float controlH = ThemeMetric(WindEffects::Editor::UI::ThemeToken::IconButtonSize) * uiScale;
         m_DesiredSize = WindEffects::Editor::UI::Size{
             padH + iconSz + iconGap + chevW + padH,
@@ -620,13 +621,18 @@ public:
         WindEffects::Editor::UI::Color iconColor = WindEffects::Editor::UI::ToolbarButtonChrome::ResolveIconColor(
             m_HoverAnim, pressStrength, false);
 
-        WindEffects::Editor::UI::IconPainter::DrawIcon(context, WindEffects::Editor::UI::Icons::GlobeName,
-            WindEffects::Editor::UI::Rect{ m_Geometry.x + padH, centerY - iconSize * 0.5f, iconSize, iconSize }, iconColor);
+        WindEffects::Editor::UI::IconPainter::DrawIcon(context, WindEffects::Editor::UI::Icons::ToolbarEnvironmentName,
+            WindEffects::Editor::UI::ToolbarButtonChrome::PlaceIconInControl(
+                WindEffects::Editor::UI::Rect{ m_Geometry.x + padH, centerY - iconSize * 0.5f, iconSize, iconSize },
+                iconSize),
+            iconColor);
 
-        const float chevSize = 8.0f * uiScale;
-        const float chevX = m_Geometry.x + m_Geometry.width - padH - chevSize;
+        const float tier = iconSize;
+        const float chevronX = m_Geometry.x + m_Geometry.width - padH - tier;
+        WindEffects::Editor::UI::Rect chevronControl{ chevronX, centerY - tier * 0.5f, tier, tier };
         WindEffects::Editor::UI::IconPainter::DrawIcon(context, WindEffects::Editor::UI::Icons::ChevronDownName,
-            WindEffects::Editor::UI::Rect{ chevX, centerY - chevSize * 0.5f, chevSize, chevSize }, iconColor);
+            WindEffects::Editor::UI::IconMetrics::PlaceGlyphCentered(chevronControl, tier),
+            iconColor);
     }
 
     void OnMouseMove(const WindEffects::Editor::UI::MouseEvent& event) override {

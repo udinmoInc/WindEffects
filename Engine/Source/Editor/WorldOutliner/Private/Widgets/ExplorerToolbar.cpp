@@ -109,11 +109,8 @@ void ExplorerToolbar::PaintToolbarButton(PaintContext& context, const Rect& geom
     }
 
     const float iconSize = static_cast<float>(IconMetrics::NativeIconTierPx(ThemeMetric(ThemeToken::IconSizeToolbar)));
-    const float iconX = geometry.x + (geometry.width - iconSize) * 0.5f;
-    const float iconY = geometry.y + (geometry.height - iconSize) * 0.5f;
-
-    IconPainter::DrawIcon(context, iconName, Rect{ iconX, iconY, iconSize, iconSize },
-                          ThemeIconForState(hovered));
+    const Rect iconRect = IconMetrics::PlaceGlyphCentered(geometry, iconSize);
+    IconPainter::DrawIcon(context, iconName, iconRect, ThemeIconForState(hovered));
 }
 
 void ExplorerToolbar::Tick(float deltaTime) {

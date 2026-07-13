@@ -2,6 +2,7 @@
 #include "Core/PaintContext.h"
 #include "Core/Icon.h"
 #include "Core/Animator.h"
+#include "Rendering/IconMetrics.h"
 #include "WindEffects/Editor/UI/Theming/ThemeToken.h"
 #include <algorithm>
 
@@ -82,10 +83,10 @@ void PrimaryToolbarButton::Paint(PaintContext& context) {
     const float textY = buttonRect.y + (buttonRect.height - textSize) * 0.5f;
 
     if (!m_IconName.empty()) {
-        const float iconSize = baseStyle.iconSize;
-        const float iconY = buttonRect.y + (buttonRect.height - iconSize) * 0.5f;
-        IconPainter::DrawIcon(context, m_IconName, Rect{ x, iconY, iconSize, iconSize }, textColor);
-        x += iconSize + ThemeMetric(ThemeToken::Space2) - 2.0f;
+        const float iconSize = static_cast<float>(IconMetrics::StandardGlyphTierPx());
+        Rect iconBand{ x, buttonRect.y, iconSize, buttonRect.height };
+        IconPainter::DrawIcon(context, m_IconName, IconMetrics::PlaceGlyphCentered(iconBand, iconSize), textColor);
+        x += iconSize + ThemeMetric(ThemeToken::Space2);
     }
 
     context.DrawText(m_Label, Point{ x, textY }, textColor, textSize, false);

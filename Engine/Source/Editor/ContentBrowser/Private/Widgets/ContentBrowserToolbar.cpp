@@ -105,7 +105,7 @@ Size ToolbarLabeledButton::Measure(const Size& availableSize) {
     float width = m_HorizontalPadding * 2.0f;
     if (!m_IconName.empty()) width += ThemeMetric(ThemeToken::IconSizeToolbar) + ThemeMetric(ThemeToken::Space1) + 1.0f;
     width += static_cast<float>(m_Label.size()) * 7.2f;
-    if (m_ShowChevron) width += ThemeMetric(ThemeToken::Space1) + ThemeMetric(ThemeToken::IconSizeTree) - 3.0f;
+    if (m_ShowChevron) width += ThemeMetric(ThemeToken::Space2) + static_cast<float>(IconMetrics::StandardGlyphTierPx());
     m_DesiredSize = Size{ width, ThemeMetric(ThemeToken::ButtonHeight) };
     return m_DesiredSize;
 }
@@ -147,10 +147,10 @@ void ToolbarLabeledButton::Paint(PaintContext& context) {
 
     if (!m_IconName.empty()) {
         const float iconSize = static_cast<float>(IconMetrics::NativeIconTierPx(ThemeMetric(ThemeToken::IconSizeToolbar)));
-        const float iconY = m_Geometry.y + (m_Geometry.height - iconSize) * 0.5f;
         Color iconColor = m_Variant == Variant::Primary ? ThemeColor(ThemeToken::AccentPrimary) : ThemeColor(ThemeToken::IconDefault);
-        IconPainter::DrawIcon(context, m_IconName, Rect{ x, iconY, iconSize, iconSize }, iconColor);
-        x += iconSize + ThemeMetric(ThemeToken::Space1) + 1.0f;
+        Rect iconBand{ x, m_Geometry.y, iconSize, m_Geometry.height };
+        IconPainter::DrawIcon(context, m_IconName, IconMetrics::PlaceGlyphCentered(iconBand, iconSize), iconColor);
+        x += iconSize + ThemeMetric(ThemeToken::Space2);
     }
 
     Color textColor = ThemeColor(ThemeToken::TextPrimary);
@@ -160,10 +160,12 @@ void ToolbarLabeledButton::Paint(PaintContext& context) {
     context.DrawText(m_Label, Point{ x, textY }, textColor, textSize, m_Variant == Variant::Primary);
 
     if (m_ShowChevron) {
-        const float chevronSize = static_cast<float>(IconMetrics::NativeIconTierPx(ThemeMetric(ThemeToken::IconSizeTree) - 3.0f));
-        const float chevronX = m_Geometry.x + m_Geometry.width - hPad - chevronSize;
-        const float chevronY = m_Geometry.y + (m_Geometry.height - chevronSize) * 0.5f;
-        IconPainter::DrawIcon(context, Icons::ChevronDownName, Rect{ chevronX, chevronY, chevronSize, chevronSize },
+        const float tier = static_cast<float>(IconMetrics::StandardGlyphTierPx());
+        const float chevronX = m_Geometry.x + m_Geometry.width - hPad - tier;
+        const float centerY = m_Geometry.y + m_Geometry.height * 0.5f;
+        Rect chevronControl{ chevronX, centerY - tier * 0.5f, tier, tier };
+        IconPainter::DrawIcon(context, Icons::ChevronDownName,
+            IconMetrics::PlaceGlyphCentered(chevronControl, tier),
             ThemeColor(ThemeToken::TextSecondary));
     }
 }

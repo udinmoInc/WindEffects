@@ -1,5 +1,7 @@
 #include "Rendering/IconMetrics.h"
 
+#include "WindEffects/Editor/UI/Theming/ThemeAccess.h"
+
 #include <algorithm>
 #include <cmath>
 #include <cstdlib>
@@ -25,6 +27,22 @@ uint32_t NearestTier(uint32_t requestedPx) {
         }
     }
     return bestTier;
+}
+
+uint32_t TierForThemeToken(ThemeToken role) {
+    switch (role) {
+    case ThemeToken::IconSizeSearch:
+        return NativeIconTierPx(ResolveThemeMetric(ThemeToken::IconSizeSearch));
+    case ThemeToken::IconSizePrimary:
+        return NativeIconTierPx(ResolveThemeMetric(ThemeToken::IconSizePrimary));
+    case ThemeToken::IconSizeTree:
+        return NativeIconTierPx(ResolveThemeMetric(ThemeToken::IconSizeTree));
+    case ThemeToken::IconSizeNavigation:
+        return NativeIconTierPx(ResolveThemeMetric(ThemeToken::IconSizeNavigation));
+    case ThemeToken::IconSizeToolbar:
+    default:
+        return NativeIconTierPx(ResolveThemeMetric(ThemeToken::IconSizeToolbar));
+    }
 }
 
 } // namespace
@@ -69,6 +87,39 @@ uint32_t ClampDisplaySizePx(uint32_t sizePx) {
 uint32_t RasterSizeForDisplay(uint32_t displaySizePx, bool highDetail) {
     (void)highDetail;
     return SnapToAtlasTier(displaySizePx);
+}
+
+float SnapPx(float value) {
+    return std::floor(value + 0.5f);
+}
+
+uint32_t StandardGlyphTierPx() {
+    return GlyphTierPx(ThemeToken::IconSizeToolbar);
+}
+
+uint32_t GlyphTierPx(ThemeToken role) {
+    return TierForThemeToken(role);
+}
+
+float IconButtonHitPx(float uiScale) {
+    return ResolveThemeMetric(ThemeToken::IconButtonSize) * std::max(1.0f, uiScale);
+}
+
+float IconContentPaddingPx(float uiScale) {
+    const float hit = IconButtonHitPx(uiScale);
+    const float tier = static_cast<float>(StandardGlyphTierPx());
+    return std::max(0.0f, (hit - tier) * 0.5f);
+}
+
+Rect PlaceGlyphCentered(const Rect& controlBounds, uint32_t tierPx) {
+    const float drawSize = static_cast<float>(tierPx);
+    const float x = SnapPx(controlBounds.x + (controlBounds.width - drawSize) * 0.5f);
+    const float y = SnapPx(controlBounds.y + (controlBounds.height - drawSize) * 0.5f);
+    return Rect{ x, y, drawSize, drawSize };
+}
+
+Rect PlaceGlyphCentered(const Rect& controlBounds, float logicalTierPx) {
+    return PlaceGlyphCentered(controlBounds, SnapToAtlasTier(logicalTierPx));
 }
 
 } // namespace WindEffects::Editor::UI::IconMetrics

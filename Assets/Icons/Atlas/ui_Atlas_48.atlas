@@ -1,110 +1,187 @@
 
-atlas_48.png
-size: 402, 102
+ui_Atlas_48.png
+size: 652, 102
 format: RGBA8888
 filter: Nearest, Nearest
 repeat: none
-Icons_Close
+Icons_ChevronDown
   rotate: false
   xy: 2, 52
   size: 48, 48
   orig: 48, 48
   offset: 0, 0
   index: 48
-Icons_Cursor
+Icons_ChevronLeft
   rotate: false
   xy: 2, 2
   size: 48, 48
   orig: 48, 48
   offset: 0, 0
   index: 48
-Icons_Grid
+Icons_ChevronRight
   rotate: false
   xy: 52, 52
   size: 48, 48
   orig: 48, 48
   offset: 0, 0
   index: 48
-Icons_Info
+Icons_ChevronUp
   rotate: false
   xy: 52, 2
   size: 48, 48
   orig: 48, 48
   offset: 0, 0
   index: 48
-Icons_Move
+Icons_Close
   rotate: false
   xy: 102, 52
   size: 48, 48
   orig: 48, 48
   offset: 0, 0
   index: 48
-Icons_Object
+Icons_Cursor
   rotate: false
   xy: 102, 2
   size: 48, 48
   orig: 48, 48
   offset: 0, 0
   index: 48
-Icons_Play
-  rotate: false
-  xy: 152, 52
-  size: 48, 48
-  orig: 48, 48
-  offset: 0, 0
-  index: 48
-Icons_Plus
+Icons_Eye
   rotate: false
   xy: 152, 2
   size: 48, 48
   orig: 48, 48
   offset: 0, 0
   index: 48
-Icons_Redo
+Icons_EyeOff
+  rotate: false
+  xy: 152, 52
+  size: 48, 48
+  orig: 48, 48
+  offset: 0, 0
+  index: 48
+Icons_Filter
   rotate: false
   xy: 202, 52
   size: 48, 48
   orig: 48, 48
   offset: 0, 0
   index: 48
-Icons_Rotate
+Icons_Grid
   rotate: false
   xy: 202, 2
   size: 48, 48
   orig: 48, 48
   offset: 0, 0
   index: 48
-Icons_Scale
+Icons_Info
   rotate: false
   xy: 252, 52
   size: 48, 48
   orig: 48, 48
   offset: 0, 0
   index: 48
-Icons_Search
+Icons_Magnet
   rotate: false
   xy: 252, 2
   size: 48, 48
   orig: 48, 48
   offset: 0, 0
   index: 48
-Icons_Settings
+Icons_MediaPlay
   rotate: false
   xy: 302, 52
   size: 48, 48
   orig: 48, 48
   offset: 0, 0
   index: 48
-Icons_Stop
+Icons_Move
   rotate: false
   xy: 302, 2
   size: 48, 48
   orig: 48, 48
   offset: 0, 0
   index: 48
-Icons_Undo
+Icons_Object
   rotate: false
   xy: 352, 52
+  size: 48, 48
+  orig: 48, 48
+  offset: 0, 0
+  index: 48
+Icons_Play
+  rotate: false
+  xy: 402, 52
+  size: 48, 48
+  orig: 48, 48
+  offset: 0, 0
+  index: 48
+Icons_PlaySolid
+  rotate: false
+  xy: 352, 2
+  size: 48, 48
+  orig: 48, 48
+  offset: 0, 0
+  index: 48
+Icons_Plus
+  rotate: false
+  xy: 402, 2
+  size: 48, 48
+  orig: 48, 48
+  offset: 0, 0
+  index: 48
+Icons_Redo
+  rotate: false
+  xy: 452, 52
+  size: 48, 48
+  orig: 48, 48
+  offset: 0, 0
+  index: 48
+Icons_Rotate
+  rotate: false
+  xy: 452, 2
+  size: 48, 48
+  orig: 48, 48
+  offset: 0, 0
+  index: 48
+Icons_Scale
+  rotate: false
+  xy: 502, 52
+  size: 48, 48
+  orig: 48, 48
+  offset: 0, 0
+  index: 48
+Icons_Search
+  rotate: false
+  xy: 502, 2
+  size: 48, 48
+  orig: 48, 48
+  offset: 0, 0
+  index: 48
+Icons_Settings
+  rotate: false
+  xy: 552, 52
+  size: 48, 48
+  orig: 48, 48
+  offset: 0, 0
+  index: 48
+Icons_Stop
+  rotate: false
+  xy: 552, 2
+  size: 48, 48
+  orig: 48, 48
+  offset: 0, 0
+  index: 48
+Icons_Sun
+  rotate: false
+  xy: 602, 52
+  size: 48, 48
+  orig: 48, 48
+  offset: 0, 0
+  index: 48
+Icons_Undo
+  rotate: false
+  xy: 602, 2
   size: 48, 48
   orig: 48, 48
   offset: 0, 0

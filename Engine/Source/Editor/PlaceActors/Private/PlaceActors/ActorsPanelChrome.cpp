@@ -5,6 +5,7 @@
 #include "WindEffects/Editor/UI/Theming/ThemeToken.h"
 #include "Core/Icon.h"
 #include "Core/DPIContext.h"
+#include "Rendering/IconMetrics.h"
 
 #include <algorithm>
 
@@ -28,12 +29,12 @@ void PaintSearchField(PaintContext& context, const Rect& bounds, const std::stri
     context.DrawRoundedRect(bounds, bg, radius);
     context.DrawRoundedRectOutline(bounds, ResolveThemeColor(ThemeToken::BorderDefault), 1.0f, radius);
 
-    const float iconSize = 16.0f * uiScale;
-    const float iconY = bounds.y + (bounds.height - iconSize) * 0.5f;
+    const float iconSize = static_cast<float>(WindEffects::Editor::UI::IconMetrics::GlyphTierPx(ThemeToken::IconSizeSearch));
+    Rect iconBand{ bounds.x + pad, bounds.y, iconSize, bounds.height };
     WindEffects::Editor::UI::IconPainter::DrawIcon(
         context,
         WindEffects::Editor::UI::Icons::SearchName,
-        Rect{ bounds.x + pad, iconY, iconSize, iconSize },
+        WindEffects::Editor::UI::IconMetrics::PlaceGlyphCentered(iconBand, iconSize),
         ResolveThemeColor(ThemeToken::IconDefault));
 
     const float fontSize = ResolveThemeMetric(ThemeToken::TextSizeBody) * uiScale;
@@ -96,19 +97,18 @@ void PaintSoftSeparator(PaintContext& context, const Rect& bounds) {
 }
 
 void PaintChevron(PaintContext& context, const Rect& bounds, bool expanded, float hoverAnim) {
-    const float cx = bounds.x + bounds.width * 0.5f;
-    const float cy = bounds.y + bounds.height * 0.5f;
-    const float half = bounds.width * 0.22f;
+    const float tier = static_cast<float>(WindEffects::Editor::UI::IconMetrics::GlyphTierPx(bounds.width));
     Color color = ResolveThemeColor(ThemeToken::TextSecondary);
     color = Color::Lerp(color, ResolveThemeColor(ThemeToken::TextPrimary), std::clamp(hoverAnim, 0.0f, 1.0f));
 
-    if (expanded) {
-        context.DrawLine(Point{ cx - half, cy - half * 0.35f }, Point{ cx, cy + half * 0.45f }, color, 1.5f);
-        context.DrawLine(Point{ cx, cy + half * 0.45f }, Point{ cx + half, cy - half * 0.35f }, color, 1.5f);
-    } else {
-        context.DrawLine(Point{ cx - half * 0.35f, cy - half }, Point{ cx + half * 0.45f, cy }, color, 1.5f);
-        context.DrawLine(Point{ cx + half * 0.45f, cy }, Point{ cx - half * 0.35f, cy + half }, color, 1.5f);
-    }
+    const char* chevronIcon = expanded
+        ? WindEffects::Editor::UI::Icons::ChevronDownName
+        : WindEffects::Editor::UI::Icons::ChevronRightName;
+    WindEffects::Editor::UI::IconPainter::DrawIcon(
+        context,
+        chevronIcon,
+        WindEffects::Editor::UI::IconMetrics::PlaceGlyphCentered(bounds, tier),
+        color);
 }
 
 } // namespace we::programs::editor::ActorsPanelChrome
