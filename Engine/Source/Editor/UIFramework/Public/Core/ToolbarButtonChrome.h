@@ -14,6 +14,10 @@ UIFRAMEWORK_API float IconSize(float uiScale);
 UIFRAMEWORK_API float PrimaryIconSize(float uiScale);
 UIFRAMEWORK_API float HorizontalPad(float uiScale);
 UIFRAMEWORK_API float ChipHorizontalPad(float uiScale);
+UIFRAMEWORK_API float IconGapPx(float uiScale);
+UIFRAMEWORK_API float ChevronGapPx(float uiScale);
+
+UIFRAMEWORK_API Rect PlaceIconInControl(const Rect& controlBounds, float glyphTierPx);
 
 UIFRAMEWORK_API Color ResolveIconColor(float hoverAnim, float pressStrength, bool active);
 

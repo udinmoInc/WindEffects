@@ -20,12 +20,12 @@ float ButtonRadius(float uiScale) {
 
 float IconSize(float uiScale) {
     (void)uiScale;
-    return static_cast<float>(IconMetrics::NativeIconTierPx(ResolveThemeMetric(ThemeToken::IconSizeToolbar)));
+    return static_cast<float>(IconMetrics::GlyphTierPx(ThemeToken::IconSizeToolbar));
 }
 
 float PrimaryIconSize(float uiScale) {
     (void)uiScale;
-    return static_cast<float>(IconMetrics::NativeIconTierPx(ResolveThemeMetric(ThemeToken::IconSizePrimary)));
+    return static_cast<float>(IconMetrics::GlyphTierPx(ThemeToken::IconSizePrimary));
 }
 
 float HorizontalPad(float uiScale) {
@@ -33,7 +33,19 @@ float HorizontalPad(float uiScale) {
 }
 
 float ChipHorizontalPad(float uiScale) {
-    return 6.0f * uiScale;
+    return ResolveThemeMetric(ThemeToken::Space2) * uiScale;
+}
+
+float IconGapPx(float uiScale) {
+    return ResolveThemeMetric(ThemeToken::Space1) * uiScale;
+}
+
+float ChevronGapPx(float uiScale) {
+    return ResolveThemeMetric(ThemeToken::Space2) * uiScale;
+}
+
+Rect PlaceIconInControl(const Rect& controlBounds, float glyphTierPx) {
+    return IconMetrics::PlaceGlyphCentered(controlBounds, glyphTierPx);
 }
 
 Color ResolveIconColor(float hoverAnim, float pressStrength, bool active) {

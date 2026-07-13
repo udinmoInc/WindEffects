@@ -8,8 +8,8 @@
 
 namespace we::runtime::icons {
 
-constexpr uint32_t kIconAtlasTiers[] = {16, 20, 24, 32, 48, 64};
-constexpr uint32_t kIconAtlasTierCount = 6;
+constexpr uint32_t kIconAtlasTiers[] = {12, 16, 20, 24, 32, 48, 64};
+constexpr uint32_t kIconAtlasTierCount = 7;
 
 enum class IconAtlasFormat : uint8_t {
     Rgba8 = 0,

@@ -53,10 +53,10 @@ void PlaceActorsItem::PaintGrid(PaintContext& context,
 
     ActorsPanelChrome::PaintActorRowBackground(context, bounds, hoverAnim, pressAnim, selected);
 
-    const float iconDraw = std::min(metrics.iconSize, bounds.width - ActorsPanelLayout::ContentPadH() * 2.0f);
-    const float iconX = bounds.x + (bounds.width - iconDraw) * 0.5f;
+    const float iconSize = static_cast<float>(WindEffects::Editor::UI::IconMetrics::GlyphTierPx(ThemeToken::IconSizeTree));
+    const float iconX = bounds.x + (bounds.width - iconSize) * 0.5f;
     const float iconY = bounds.y + ActorsPanelLayout::ContentPadH();
-    PaintItemIcon(context, item.iconName, Rect{ iconX, iconY, iconDraw, iconDraw });
+    PaintItemIcon(context, item.iconName, Rect{ iconX, iconY, iconSize, iconSize });
 
     const float textY = bounds.y + bounds.height - labelFontSize - ActorsPanelLayout::ContentPadH();
     const float textWidth = context.GetTextWidth(item.label, labelFontSize);
@@ -64,8 +64,7 @@ void PlaceActorsItem::PaintGrid(PaintContext& context,
     context.DrawText(item.label, Point{ textX, textY }, ResolveThemeColor(ThemeToken::TextPrimary), labelFontSize);
 
     if (favorite) {
-        const float starSize = static_cast<float>(WindEffects::Editor::UI::IconMetrics::NativeIconTierPx(
-            ActorsPanelLayout::IconSize() * 0.75f));
+        const float starSize = static_cast<float>(WindEffects::Editor::UI::IconMetrics::StandardGlyphTierPx());
         WindEffects::Editor::UI::IconPainter::DrawIcon(
             context,
             WEIcons::StarName,
@@ -92,7 +91,7 @@ void PlaceActorsItem::PaintList(PaintContext& context,
 
     const float uiScale = std::max(1.0f, WindEffects::Editor::UI::DPIContext::GetScale());
     const float labelFontSize = ResolveThemeMetric(ThemeToken::TextSizeBody) * uiScale;
-    const float iconSize = ActorsPanelLayout::IconSize();
+    const float iconSize = static_cast<float>(WindEffects::Editor::UI::IconMetrics::GlyphTierPx(ThemeToken::IconSizeTree));
 
     const Rect rowRect{
         bounds.x + 2.0f,
@@ -103,8 +102,8 @@ void PlaceActorsItem::PaintList(PaintContext& context,
     ActorsPanelChrome::PaintActorRowBackground(context, rowRect, hoverAnim, pressAnim, selected);
 
     const float iconX = ActorsPanelLayout::ItemIconX(bounds.x);
-    const float iconY = bounds.y + (bounds.height - iconSize) * 0.5f;
-    PaintItemIcon(context, item.iconName, Rect{ iconX, iconY, iconSize, iconSize });
+    Rect iconBand{ iconX, bounds.y, iconSize, bounds.height };
+    PaintItemIcon(context, item.iconName, WindEffects::Editor::UI::IconMetrics::PlaceGlyphCentered(iconBand, iconSize));
 
     const Point labelPos{
         ActorsPanelLayout::LabelX(bounds.x),
@@ -119,10 +118,9 @@ void PlaceActorsItem::PaintList(PaintContext& context,
         ResolveThemeColor(ThemeToken::TextPrimary),
         ResolveThemeColor(ThemeToken::TextPrimary));
 
-    const float starSize = static_cast<float>(WindEffects::Editor::UI::IconMetrics::NativeIconTierPx(
-        ActorsPanelLayout::IconSize() * 0.75f));
+    const float starSize = static_cast<float>(WindEffects::Editor::UI::IconMetrics::StandardGlyphTierPx());
     const float starX = ActorsPanelLayout::StarIconX(bounds.x, bounds.width);
-    const float starY = bounds.y + (bounds.height - starSize) * 0.5f;
+    Rect starBand{ starX, bounds.y, starSize, bounds.height };
     if (favorite || hoverAnim > 0.01f) {
         const Color starColor = favorite
             ? ResolveThemeColor(ThemeToken::Warning)
@@ -130,7 +128,7 @@ void PlaceActorsItem::PaintList(PaintContext& context,
         WindEffects::Editor::UI::IconPainter::DrawIcon(
             context,
             WEIcons::StarName,
-            Rect{ starX, starY, starSize, starSize },
+            WindEffects::Editor::UI::IconMetrics::PlaceGlyphCentered(starBand, starSize),
             starColor);
     }
 }

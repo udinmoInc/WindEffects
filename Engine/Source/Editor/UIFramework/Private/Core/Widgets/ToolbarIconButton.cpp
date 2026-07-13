@@ -2,6 +2,7 @@
 #include "Core/PaintContext.h"
 #include "Core/Icon.h"
 #include "Core/Animator.h"
+#include "Rendering/IconMetrics.h"
 #include "WindEffects/Editor/UI/Theming/ThemeToken.h"
 #include <algorithm>
 
@@ -70,10 +71,8 @@ void ToolbarIconButton::Paint(PaintContext& context) {
 
     context.DrawRoundedRectOutline(buttonRect, borderColor, baseStyle.borderWidth * 0.5f, radius);
 
-    const float iconSize = baseStyle.iconSize;
-    const float iconX = buttonRect.x + (buttonRect.width - iconSize) * 0.5f;
-    const float iconY = buttonRect.y + (buttonRect.height - iconSize) * 0.5f;
-    IconPainter::DrawIcon(context, m_IconName, Rect{ iconX, iconY, iconSize, iconSize }, iconColor);
+    const float iconSize = static_cast<float>(IconMetrics::StandardGlyphTierPx());
+    IconPainter::DrawIcon(context, m_IconName, IconMetrics::PlaceGlyphCentered(buttonRect, iconSize), iconColor);
 }
 
 void ToolbarIconButton::OnMouseDown(const MouseEvent& event) {

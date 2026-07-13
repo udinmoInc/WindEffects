@@ -58,7 +58,7 @@ bool ParsePair(const std::string& value, uint16_t& outA, uint16_t& outB)
 uint32_t TierFromAtlasStem(const std::filesystem::path& atlasPath)
 {
     const std::string stem = atlasPath.stem().string();
-    const std::string prefix = "atlas_";
+    const std::string prefix = "ui_Atlas_";
     if (!stem.starts_with(prefix)) {
         return 0;
     }
@@ -142,50 +142,12 @@ bool ParseLibGdxAtlasFile(
 
 std::string ResolveRuntimeIconName(const std::string& atlasRegionName)
 {
-    static const std::unordered_map<std::string, std::string> kAtlasNameMap = {
-        {"Icons_Close", "x"},
-        {"Icons_Cursor", "mouse-pointer-2"},
-        {"Icons_Grid", "grid-3x3"},
-        {"Icons_Info", "info"},
-        {"Icons_Move", "move"},
-        {"Icons_Object", "toolbar-object"},
-        {"Icons_Play", "play"},
-        {"Icons_Plus", "plus"},
-        {"Icons_Redo", "redo"},
-        {"Icons_Rotate", "rotate-cw"},
-        {"Icons_Scale", "scaling"},
-        {"Icons_Search", "search"},
-        {"Icons_Settings", "settings"},
-        {"Icons_Stop", "square"},
-        {"Icons_Undo", "undo"},
-    };
-
-    if (const auto it = kAtlasNameMap.find(atlasRegionName); it != kAtlasNameMap.end()) {
-        return it->second;
+    std::string stem = StripIconsPrefix(atlasRegionName);
+    
+    if (stem == "cons_object" || atlasRegionName == "cons_Object") {
+        return "object";
     }
-
-    const std::string stem = StripIconsPrefix(atlasRegionName);
-    if (stem == "close") {
-        return "x";
-    }
-    if (stem == "cursor") {
-        return "mouse-pointer-2";
-    }
-    if (stem == "grid") {
-        return "grid-3x3";
-    }
-    if (stem == "object") {
-        return "toolbar-object";
-    }
-    if (stem == "rotate") {
-        return "rotate-cw";
-    }
-    if (stem == "scale") {
-        return "scaling";
-    }
-    if (stem == "stop") {
-        return "square";
-    }
+    
     return stem;
 }
 
@@ -204,13 +166,20 @@ bool IsFullColorIcon(const std::string& runtimeName)
 std::vector<std::string> RuntimeAliasesFor(const std::string& runtimeName)
 {
     static const std::unordered_map<std::string, std::vector<std::string>> kAliases = {
-        {"mouse-pointer-2", {"cursor"}},
-        {"grid-3x3", {"grid", "wireframe"}},
-        {"rotate-cw", {"rotate"}},
-        {"scaling", {"scale"}},
-        {"square", {"stop"}},
-        {"toolbar-object", {"object", "component", "toolbar-object"}},
-        {"x", {"close"}},
+        {"cursor", {"mouse-pointer-2"}},
+        {"grid", {"grid-3x3", "wireframe"}},
+        {"rotate", {"rotate-cw"}},
+        {"scale", {"scaling"}},
+        {"stop", {"square"}},
+        {"object", {"component", "toolbar-object"}},
+        {"close", {"x"}},
+        {"chevrondown", {"chevron-down"}},
+        {"chevronright", {"chevron-right"}},
+        {"chevronleft", {"chevron-left"}},
+        {"chevronup", {"chevron-up"}},
+        {"sun", {"lit", "globe", "toolbar-environment"}},
+        {"eyeoff", {"eye-off"}},
+        {"playsolid", {"play-solid"}},
     };
 
     std::vector<std::string> names;

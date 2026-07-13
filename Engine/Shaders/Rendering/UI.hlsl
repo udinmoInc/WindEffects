@@ -97,11 +97,34 @@ float4 PSMain(VSOutput input) : SV_Target
     // Icons/thumbnails store coverage in alpha; vertex color carries the tint.
     if (type < 0.5)
     {
-        float4 texColor = texSampler.Sample(samp0, input.uv);
-        float coverage = texColor.a;
-        float4 outColor = input.color;
-        outColor.a *= coverage;
-        return outColor;
+        uint atlasW = 0, atlasH = 0;
+        texSampler.GetDimensions(atlasW, atlasH);
+        
+        // 1 px offset in Y for depth effect
+        float2 dy = float2(0.0, 1.0 / (float)atlasH);
+
+        float coverage = texSampler.Sample(samp0, input.uv).a;
+        float shadowCov = texSampler.Sample(samp0, input.uv - dy).a;
+        float highCov = texSampler.Sample(samp0, input.uv + dy).a;
+
+        // Shadow is black, opacity ~10%
+        float4 shadowLayer = float4(0.0, 0.0, 0.0, shadowCov * 0.10);
+        // Highlight is white, opacity ~12%
+        float4 highlightLayer = float4(1.0, 1.0, 1.0, highCov * 0.12);
+        
+        // Base icon layer
+        float4 iconLayer = float4(input.color.rgb, input.color.a * coverage);
+
+        // Composite bottom-up: Shadow -> Highlight -> Icon
+        // 1. Shadow + Highlight
+        float outAlpha1 = highlightLayer.a + shadowLayer.a * (1.0 - highlightLayer.a);
+        float3 outColor1 = (highlightLayer.rgb * highlightLayer.a + shadowLayer.rgb * shadowLayer.a * (1.0 - highlightLayer.a)) / max(outAlpha1, 0.00001);
+        
+        // 2. (Shadow + Highlight) + Icon
+        float finalAlpha = iconLayer.a + outAlpha1 * (1.0 - iconLayer.a);
+        float3 finalColor = (iconLayer.rgb * iconLayer.a + outColor1 * outAlpha1 * (1.0 - iconLayer.a)) / max(finalAlpha, 0.00001);
+        
+        return float4(finalColor, finalAlpha);
     }
 
     // Type 4.0 is a full-color texture (viewport / render targets).

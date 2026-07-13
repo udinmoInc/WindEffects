@@ -256,7 +256,7 @@ EditorShellResult EditorShellBuilder::Build(
     toolbar->AddWidget(we::editor::environment::CreateEnvironmentToolbarMenu());
 
     // Transport (centered)
-    auto playBtn = toolbar->AddTool(Icons::PlayName, "", [](){}, "Play (Alt+P)", false, ToolbarAlignment::Center);
+    auto playBtn = toolbar->AddTool(Icons::PlaySolidName, "", [](){}, "Play (Alt+P)", false, ToolbarAlignment::Center);
     auto pauseBtn = toolbar->AddTool(Icons::PauseName, "", [](){}, "Pause (Alt+P)", false, ToolbarAlignment::Center);
     auto stopBtn = toolbar->AddTool(Icons::StopName, "", [](){}, "Stop", false, ToolbarAlignment::Center);
     playBtn->SetButtonStyle(ToolButtonStyle::TransportButton);

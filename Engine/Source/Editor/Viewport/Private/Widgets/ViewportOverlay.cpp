@@ -2,6 +2,8 @@
 #include "Core/PaintContext.h"
 #include "WindEffects/Editor/UI/Theming/ThemeToken.h"
 #include "Core/Icon.h"
+#include "WindEffects/Editor/UI/Theming/ThemeAccess.h"
+#include "Rendering/IconMetrics.h"
 #include <algorithm>
 
 namespace WindEffects::Editor::UI {
@@ -110,7 +112,10 @@ void ViewportOverlay::Paint(PaintContext& context) {
         context.DrawRoundedRect(m_NavigationRect, ThemeColor(ThemeToken::GizmoBackground), 4.0f);
         
         for (const auto& btn : m_NavButtons) {
-            IconPainter::DrawIcon(context, btn.iconName, btn.geometry, ThemeColor(ThemeToken::TextPrimary));
+            const float tier = static_cast<float>(IconMetrics::GlyphTierPx(ThemeToken::IconSizeNavigation));
+            IconPainter::DrawIcon(context, btn.iconName,
+                IconMetrics::PlaceGlyphCentered(btn.geometry, tier),
+                ThemeColor(ThemeToken::TextPrimary));
         }
     }
 }
@@ -244,7 +249,9 @@ void NavigationControls::Paint(PaintContext& context) {
     
     for (const auto& btn : m_Buttons) {
         Color iconColor = btn.hovered ? ThemeColor(ThemeToken::AccentPrimary) : ThemeColor(ThemeToken::TextPrimary);
-        IconPainter::DrawIcon(context, btn.iconName, btn.geometry, iconColor);
+        const float tier = static_cast<float>(IconMetrics::GlyphTierPx(ThemeToken::IconSizeNavigation));
+        IconPainter::DrawIcon(context, btn.iconName,
+            IconMetrics::PlaceGlyphCentered(btn.geometry, tier), iconColor);
     }
 }
 

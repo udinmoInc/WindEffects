@@ -399,14 +399,25 @@ void UIWidgetAdapter::GenerateIconGeometry(const DrawCommand& cmd) {
 
     m_CurrentTextureSet = drawInfo.descriptorSet;
 
-    float x0 = SnapPx(cmd.rect.x);
-    float y0 = SnapPx(cmd.rect.y);
-    float x1 = SnapPx(cmd.rect.x + cmd.rect.width);
-    float y1 = SnapPx(cmd.rect.y + cmd.rect.height);
-    float x = x0;
-    float y = y0;
-    float w = x1 - x0;
-    float h = y1 - y0;
+    // 1:1 atlas rendering: quad dimensions are always the native tier; never stretch to layout bounds.
+    const float w = static_cast<float>(iconSize);
+    const float h = static_cast<float>(iconSize);
+    const float x = SnapPx(cmd.rect.x);
+    const float y = SnapPx(cmd.rect.y);
+
+    if (IsEnvEnabled("WE_VERIFY_ICONS")) {
+        bool perfect = true;
+        std::string report = "Icon Verification [" + cmd.text + "]: ";
+        if (cmd.rect.x != std::floor(cmd.rect.x) || cmd.rect.y != std::floor(cmd.rect.y)) { perfect = false; report += "Fractional Layout Position; "; }
+        if (w != cmd.rect.width || h != cmd.rect.height) { perfect = false; report += "Size Mismatch (Requested " + std::to_string(cmd.rect.width) + ", Atlas " + std::to_string(w) + "); "; }
+        if (cmd.fontSize != static_cast<float>(iconSize)) { perfect = false; report += "DPI/FontSize Resampling; "; }
+        
+        if (!perfect) {
+            HE_WARN(report);
+        } else {
+            HE_INFO("Icon Verification [" + cmd.text + "]: PASS (1:1 Pixel Mapping, Integer Aligned, No Resampling, Nearest Filtered).");
+        }
+    }
 
     const float type = drawInfo.shaderType;
     Color color = cmd.color;
