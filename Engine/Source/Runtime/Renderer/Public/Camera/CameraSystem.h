@@ -25,6 +25,7 @@ struct CameraUniform {
     float invViewProj[16]{};
     float position[3]{};
 #endif
+    // Foundation sky debug: 0=final, 1=sky only, 2=sun mask, 3=luminance, 4=no sun, 5=linear HDR.
     float padding = 0.0f;
 };
 
