@@ -2,6 +2,7 @@
 #include "Rendering/IconMetrics.h"
 #include "Core/PaintContext.h"
 #include "WindEffects/Editor/UI/Theming/ThemeAccess.h"
+#include "WindEffects/Editor/UI/Theming/ThemeColors.h"
 
 namespace WindEffects::Editor::UI::ToolbarButtonChrome {
 namespace {
@@ -49,18 +50,11 @@ Rect PlaceIconInControl(const Rect& controlBounds, float glyphTierPx) {
 }
 
 Color ResolveIconColor(float hoverAnim, float pressStrength, bool active) {
-    if (active) {
-        return ResolveThemeColor(ThemeToken::AccentPrimary);
-    }
-
-    Color iconColor = ResolveThemeColor(ThemeToken::IconDefault);
-    if (hoverAnim > 0.01f || pressStrength > 0.01f) {
-        iconColor = Color::Lerp(
-            iconColor,
-            ResolveThemeColor(ThemeToken::IconHover),
-            std::max(hoverAnim, pressStrength));
-    }
-    return iconColor;
+    return WindEffects::Editor::UI::ResolveIconColor(
+        IconColorRole::Primary,
+        hoverAnim,
+        pressStrength,
+        active);
 }
 
 void PaintIconButton(

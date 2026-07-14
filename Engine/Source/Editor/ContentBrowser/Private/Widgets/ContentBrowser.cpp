@@ -240,7 +240,7 @@ void ContentBrowser::PaintAssetThumbnail(PaintContext& context, const Rect& thum
             thumbRect.y + (thumbRect.height - iconSize) * 0.5f,
             iconSize, iconSize
         };
-        IconPainter::DrawIcon(context, item.iconName, iconRect, ThemeColor(ThemeToken::IconDefault));
+        IconPainter::DrawIcon(context, item.iconName, iconRect, ThemeColor(ThemeToken::IconPrimary));
     }
 
     if (item.isFavorite) {
@@ -360,7 +360,7 @@ void ContentBrowser::PaintListItem(PaintContext& context, const RenderItem& rend
     } else if (item.iconTexture != VK_NULL_HANDLE) {
         context.DrawTexture(iconRect, item.iconTexture);
     } else {
-        IconPainter::DrawIcon(context, item.iconName, iconRect, ThemeColor(ThemeToken::IconDefault));
+        IconPainter::DrawIcon(context, item.iconName, iconRect, ThemeColor(ThemeToken::IconPrimary));
     }
 
     const float nameX = iconX + iconSize + ThemeMetric(ThemeToken::Space2);
@@ -792,7 +792,7 @@ void Breadcrumb::Paint(PaintContext& context) {
         }
         const float textX = crumb.geometry.x + 8.0f;
         const float textY = crumb.geometry.y + (crumb.geometry.height - 13.0f) * 0.5f;
-        const Color textColor = static_cast<int>(i) == m_HoveredCrumb ? ThemeColor(ThemeToken::IconHover) : ThemeColor(ThemeToken::IconDefault);
+        const Color textColor = static_cast<int>(i) == m_HoveredCrumb ? ThemeColor(ThemeToken::IconHover) : ThemeColor(ThemeToken::IconPrimary);
         context.DrawText(crumb.text, Point{ textX, textY }, textColor, 13.0f, false);
         if (i < m_Crumbs.size() - 1) {
             const float sepX = crumb.geometry.x + crumb.geometry.width + 4.0f;

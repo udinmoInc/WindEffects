@@ -35,7 +35,7 @@ void PaintSearchField(PaintContext& context, const Rect& bounds, const std::stri
         context,
         WindEffects::Editor::UI::Icons::SearchName,
         WindEffects::Editor::UI::IconMetrics::PlaceGlyphCentered(iconBand, iconSize),
-        ResolveThemeColor(ThemeToken::IconDefault));
+        ResolveThemeColor(ThemeToken::IconPrimary));
 
     const float fontSize = ResolveThemeMetric(ThemeToken::TextSizeBody) * uiScale;
     const float textX = bounds.x + pad + iconSize + ResolveThemeMetric(ThemeToken::Space2);

@@ -15,4 +15,6 @@ UIFRAMEWORK_API Color ResolveThemeInteractiveBackground(float hoverAnim, float p
 UIFRAMEWORK_API Color ResolveThemeTextForState(bool hovered, bool active = false);
 UIFRAMEWORK_API Color ResolveThemeIconForState(bool hovered, bool active = false);
 
+// Prefer ResolveIconColor / ResolveIconColorForState from ThemeColors.h for new code.
+
 } // namespace WindEffects::Editor::UI

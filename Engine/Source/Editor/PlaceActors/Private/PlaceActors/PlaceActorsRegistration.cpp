@@ -119,7 +119,7 @@ void ConfigureActorsModePanel() {
     } else {
         mode.id = "Actors";
         mode.label = "Assets";
-        mode.iconName = WEIcons::CubeName;
+        mode.iconName = WEIcons::AddActorName;
         mode.sortOrder = 20;
         mode.keywords = "Actors Place Assets";
         mode.opensToolDrawerByDefault = true;

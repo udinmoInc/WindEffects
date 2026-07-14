@@ -73,7 +73,7 @@ void PlaceActorsCategory::PaintHeader(PaintContext& context,
             context,
             iconName,
             Rect{ cursorX, centerY - iconDraw * 0.5f, iconDraw, iconDraw },
-            ResolveThemeColor(ThemeToken::IconDefault));
+            ResolveThemeColor(ThemeToken::IconPrimary));
         cursorX += iconDraw + ResolveThemeMetric(ThemeToken::Space1) * uiScale;
     }
 

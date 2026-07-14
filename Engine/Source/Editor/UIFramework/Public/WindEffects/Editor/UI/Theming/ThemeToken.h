@@ -43,6 +43,10 @@ enum class ThemeToken : uint32_t {
     TextMuted,
     TextWindowLabel,
 
+    IconPrimary,
+    IconSecondary,
+    IconAccent,
+
     IconDefault,
     IconHover,
     IconActive,

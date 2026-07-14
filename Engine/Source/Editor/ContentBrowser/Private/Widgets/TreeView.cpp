@@ -52,7 +52,7 @@ void PaintTreeNodeIcon(PaintContext& context, const TreeNode& node, const Rect& 
         return;
     }
     if (!node.iconName.empty()) {
-        IconPainter::DrawIcon(context, node.iconName, iconRect, ResolveThemeColor(ThemeToken::IconDefault));
+        IconPainter::DrawIcon(context, node.iconName, iconRect, ResolveThemeColor(ThemeToken::IconPrimary));
     }
 }
 

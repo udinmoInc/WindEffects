@@ -22,7 +22,7 @@
 #include "Widgets/TreeView.h"
 #include "Layout/Box.h"
 #include "Layout/OverlayManager.h"
-#include "Core/Icon.h"
+#include "Core/PanelIconResolver.h"
 #include "Core/Widget.h"
 #include "WindEffects/Editor/UI/Core/WidgetContext.h"
 #include "Rendering/OverlayRenderer.h"
@@ -50,24 +50,7 @@ void PropagateWidgetContext(const std::shared_ptr<Widget>& widget, const std::sh
 }
 
 std::string ResolveTabIconName(const DockPanelDescriptor& descriptor) {
-    static const std::unordered_map<std::string, const char*> kAliases = {
-        {"tools-panel", Icons::LayersName},
-        {"viewport", Icons::PerspectiveName},
-        {"outliner", Icons::HierarchyName},
-        {"details", Icons::PropertiesName},
-        {"content-browser", Icons::ContentBrowserName},
-        {"output-log", Icons::OutputLogName},
-    };
-
-    if (descriptor.iconResource.empty()) {
-        return {};
-    }
-
-    if (const auto it = kAliases.find(descriptor.iconResource); it != kAliases.end()) {
-        return it->second;
-    }
-
-    return descriptor.iconResource;
+    return ResolvePanelTabIconName(descriptor.iconResource);
 }
 
 void ApplyPanelDescriptor(

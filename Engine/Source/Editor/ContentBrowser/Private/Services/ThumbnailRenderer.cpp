@@ -731,7 +731,7 @@ BitmapRGBA ThumbnailRenderer::RenderContentBrowserBlueprintProcedural(uint32_t w
     bmp.height = h;
     bmp.pixels.assign(static_cast<size_t>(w) * h * 4, 0);
 
-const auto tint = ThemeRgb(ThumbnailThemeColor(WindEffects::Editor::UI::ThemeToken::IconDefault), hoverBrightness);
+const auto tint = ThemeRgb(ThumbnailThemeColor(WindEffects::Editor::UI::ThemeToken::IconPrimary), hoverBrightness);
     const float cx = static_cast<float>(w) * 0.5f;
     const float cy = static_cast<float>(h) * 0.5f;
     const float boxW = static_cast<float>(w) * 0.72f;
@@ -774,7 +774,7 @@ BitmapRGBA ThumbnailRenderer::RenderContentBrowserBlueprint(uint32_t heightPx, f
 
     const std::string svgPath = ResolveBlueprintSvgPath();
     if (!svgPath.empty()) {
-    const auto flatTint = ThemeRgb(ThumbnailThemeColor(WindEffects::Editor::UI::ThemeToken::IconDefault), hoverBrightness);
+    const auto flatTint = ThemeRgb(ThumbnailThemeColor(WindEffects::Editor::UI::ThemeToken::IconPrimary), hoverBrightness);
         const BitmapRGBA svgBmp = RasterizeMonochromeSvg(ResolvePath(svgPath), w, h, hoverBrightness,
             [&](float) { return flatTint; });
         if (!svgBmp.pixels.empty()) {

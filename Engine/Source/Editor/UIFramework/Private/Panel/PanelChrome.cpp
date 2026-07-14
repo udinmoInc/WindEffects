@@ -1,6 +1,7 @@
 #include "WindEffects/Editor/UI/Panel/PanelChrome.h"
 
 #include "WindEffects/Editor/UI/Theming/ThemeAccess.h"
+#include "WindEffects/Editor/UI/Theming/ThemeColors.h"
 #include "WindEffects/Editor/UI/Theming/ThemeToken.h"
 #include "Core/Icon.h"
 #include "Core/DPIContext.h"
@@ -23,13 +24,9 @@ void DrawRoundedRectTop(PaintContext& context, const Rect& rect, const Color& co
 
 Color ResolveTabIconColor(bool isActive, float hoverAnim) {
     if (isActive) {
-        return ResolveThemeColor(ThemeToken::IconActive);
+        return ResolveThemeColor(ThemeToken::IconPrimary);
     }
-    Color icon = ResolveThemeColor(ThemeToken::IconDefault);
-    if (hoverAnim > 0.01f) {
-        icon = Color::Lerp(icon, ResolveThemeColor(ThemeToken::IconHover), hoverAnim);
-    }
-    return icon;
+    return ResolveIconColor(IconColorRole::Secondary, hoverAnim);
 }
 
 Color ResolveTabTextColor(bool isActive, float hoverAnim) {
@@ -328,7 +325,7 @@ void PaintSearchField(
         context,
         Icons::SearchName,
         IconMetrics::PlaceGlyphCentered(iconBand, iconSize),
-        ResolveThemeColor(ThemeToken::IconDefault));
+        ResolveThemeColor(ThemeToken::IconPrimary));
 
     const float textX = iconX + iconSize + ResolveThemeMetric(ThemeToken::Space1) * scale;
     const float textY = rect.y + (rect.height - fontSize) * 0.5f;
@@ -410,7 +407,7 @@ void PaintHeaderIconButton(
     }
 
     const bool isClose = iconName == Icons::XName;
-    Color iconColor = isClose ? ResolveThemeColor(ThemeToken::TextMuted) : ResolveThemeColor(ThemeToken::IconDefault);
+    Color iconColor = isClose ? ResolveThemeColor(ThemeToken::IconSecondary) : ResolveThemeColor(ThemeToken::IconPrimary);
     if (hovered || pressed) {
         iconColor = isClose ? ResolveThemeColor(ThemeToken::IconActive) : ResolveThemeColor(ThemeToken::IconHover);
     }
