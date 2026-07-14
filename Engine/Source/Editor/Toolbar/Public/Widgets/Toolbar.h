@@ -52,6 +52,7 @@ public:
     void SetHeight(float height) { m_Height = height; }
     void SetIconSize(float size) { m_IconSize = size; }
     void SetFloating(bool floating) { m_IsFloating = floating; }
+    void SetContext(std::shared_ptr<IWidgetContext> context);
     void SetLeftInset(float inset) { m_LeftInset = inset; }
     void SetRightInset(float inset) { m_RightInset = inset; }
     void SetEdgePadding(float padding) { m_EdgePadding = padding; }

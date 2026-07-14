@@ -10,6 +10,8 @@ namespace we::programs::editor {
 struct PlaceActorsItemMetrics {
     float iconSize = 56.0f;
     float cardSize = 88.0f;
+    float cardHeight = 108.0f;
+    float previewSize = 88.0f;
     float listRowHeight = 44.0f;
     float cornerRadius = 7.0f;
 };

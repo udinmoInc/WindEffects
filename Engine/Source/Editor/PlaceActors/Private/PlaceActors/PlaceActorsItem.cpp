@@ -2,7 +2,10 @@
 
 #include "PlaceActors/ActorsPanelLayout.h"
 #include "PlaceActors/ActorsPanelChrome.h"
+#include "PlaceActors/PlaceActorsActorCard.h"
+#include "PlaceActors/PlaceActorsIconProvider.h"
 #include "PlaceActors/PlaceActorsSearch.h"
+#include "PlaceActors/PlaceActorsResponsiveGrid.h"
 #include "WindEffects/Editor/UI/Theming/ThemeAccess.h"
 #include "WindEffects/Editor/UI/Theming/ThemeToken.h"
 #include "Core/Icon.h"
@@ -32,7 +35,7 @@ void PaintItemIcon(PaintContext& context, const std::string& iconName, const Rec
 } // namespace
 
 Size PlaceActorsItem::MeasureGrid(const PlaceActorsItemMetrics& metrics) {
-    return Size{ metrics.cardSize, metrics.cardSize };
+    return Size{ metrics.cardSize, metrics.cardHeight > 0.0f ? metrics.cardHeight : metrics.cardSize };
 }
 
 Size PlaceActorsItem::MeasureList(const PlaceActorsItemMetrics& metrics) {
@@ -47,30 +50,12 @@ void PlaceActorsItem::PaintGrid(PaintContext& context,
                                 float pressAnim,
                                 bool selected,
                                 bool favorite) {
-    const float uiScale = std::max(1.0f, WindEffects::Editor::UI::DPIContext::GetScale());
-    const float labelFontSize = ResolveThemeMetric(ThemeToken::TextSizeSmall) * uiScale;
-    const bool hovered = hoverAnim > 0.01f || pressAnim > 0.01f;
-
-    ActorsPanelChrome::PaintActorRowBackground(context, bounds, hoverAnim, pressAnim, selected);
-
-    const float iconSize = static_cast<float>(WindEffects::Editor::UI::IconMetrics::GlyphTierPx(ThemeToken::IconSizeTree));
-    const float iconX = bounds.x + (bounds.width - iconSize) * 0.5f;
-    const float iconY = bounds.y + ActorsPanelLayout::ContentPadH();
-    PaintItemIcon(context, item.iconName, Rect{ iconX, iconY, iconSize, iconSize });
-
-    const float textY = bounds.y + bounds.height - labelFontSize - ActorsPanelLayout::ContentPadH();
-    const float textWidth = context.GetTextWidth(item.label, labelFontSize);
-    const float textX = bounds.x + std::max(ActorsPanelLayout::ContentPadH(), (bounds.width - textWidth) * 0.5f);
-    context.DrawText(item.label, Point{ textX, textY }, ResolveThemeColor(ThemeToken::TextPrimary), labelFontSize);
-
-    if (favorite) {
-        const float starSize = static_cast<float>(WindEffects::Editor::UI::IconMetrics::StandardGlyphTierPx());
-        WindEffects::Editor::UI::IconPainter::DrawIcon(
-            context,
-            WEIcons::StarName,
-            Rect{ bounds.x + bounds.width - starSize - 4.0f, bounds.y + 4.0f, starSize, starSize },
-            ResolveThemeColor(ThemeToken::Warning));
-    }
+    PlaceActorsGridLayout gridLayout;
+    gridLayout.previewSize = metrics.previewSize > 0.0f ? metrics.previewSize : metrics.cardSize;
+    gridLayout.cardWidth = bounds.width;
+    gridLayout.cardHeight = bounds.height;
+    const Rect preview = PlaceActorsResponsiveGrid::PreviewRect(gridLayout, bounds);
+    PlaceActorsActorCard::Paint(context, bounds, preview, item, hoverAnim, pressAnim, selected, favorite);
 }
 
 void PlaceActorsItem::PaintList(PaintContext& context,
@@ -103,7 +88,11 @@ void PlaceActorsItem::PaintList(PaintContext& context,
 
     const float iconX = ActorsPanelLayout::ItemIconX(bounds.x);
     Rect iconBand{ iconX, bounds.y, iconSize, bounds.height };
-    PaintItemIcon(context, item.iconName, WindEffects::Editor::UI::IconMetrics::PlaceGlyphCentered(iconBand, iconSize));
+    const std::string chromeIcon = PlaceActorsIconProvider::Get().ResolveChromeIcon(item);
+    PaintItemIcon(
+        context,
+        !chromeIcon.empty() ? chromeIcon : item.iconName,
+        WindEffects::Editor::UI::IconMetrics::PlaceGlyphCentered(iconBand, iconSize));
 
     const Point labelPos{
         ActorsPanelLayout::LabelX(bounds.x),

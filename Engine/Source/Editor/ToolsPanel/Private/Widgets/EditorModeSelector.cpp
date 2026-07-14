@@ -11,6 +11,7 @@
 #include "Layout/OverlayManager.h"
 #include "Widgets/MenuBar.h"
 
+#include <algorithm>
 #include <memory>
 #include <vector>
 
@@ -171,13 +172,21 @@ void EditorModeSelector::Paint(PaintContext& context) {
     const float centerY = m_Geometry.y + m_Geometry.height * 0.5f;
     const float padH = WindEffects::Editor::UI::ToolbarButtonChrome::HorizontalPad(uiScale);
     const float iconSize = WindEffects::Editor::UI::ToolbarButtonChrome::IconSize(uiScale);
+    const float iconGap = WindEffects::Editor::UI::ToolbarButtonChrome::IconGapPx(uiScale);
+    const float chevSize = WindEffects::Editor::UI::IconMetrics::CompactDisplayPx();
     Color iconColor = WindEffects::Editor::UI::ToolbarButtonChrome::ResolveIconColor(
         m_HoverAnim, pressStrength, false);
 
+    const Rect iconBand{
+        m_Geometry.x + padH,
+        m_Geometry.y,
+        (std::max)(iconSize, m_Geometry.width - padH * 2.0f - iconGap - chevSize),
+        m_Geometry.height
+    };
     WindEffects::Editor::UI::IconPainter::DrawIcon(context, m_IconName,
-        Rect{ m_Geometry.x + padH, centerY - iconSize * 0.5f, iconSize, iconSize }, iconColor);
+        WindEffects::Editor::UI::ToolbarButtonChrome::PlaceIconInControl(iconBand, iconSize),
+        iconColor);
 
-    const float chevSize = WindEffects::Editor::UI::IconMetrics::CompactDisplayPx();
     const float chevX = m_Geometry.x + m_Geometry.width - padH - chevSize;
     WindEffects::Editor::UI::IconPainter::DrawCompactIcon(context, WindEffects::Editor::UI::Icons::ChevronDownName,
         Rect{ chevX, centerY - chevSize * 0.5f, chevSize, chevSize },

@@ -29,6 +29,14 @@ EditorToolsRegistry& EditorToolsRegistry::Get() {
 }
 
 void EditorToolsRegistry::RegisterMode(EditorToolMode mode) {
+    auto it = m_Modes.find(mode.id);
+    if (it != m_Modes.end()) {
+        // Keep any previously attached custom drawer content unless the new registration
+        // explicitly provides its own (avoids static-init order wiping Place Actors).
+        if (!mode.customContent && it->second.customContent) {
+            mode.customContent = it->second.customContent;
+        }
+    }
     m_Modes[mode.id] = std::move(mode);
 }
 

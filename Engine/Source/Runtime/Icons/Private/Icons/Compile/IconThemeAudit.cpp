@@ -37,7 +37,7 @@ const std::unordered_set<std::string>& CanonicalActionIcons()
         "copy", "paste", "undo", "redo",
         "move", "rotate", "scale",
         "close", "chevrondown", "chevronright",
-        "contentbrowser", "outputlog", "terminal", "addactor",
+        "contentbrowser", "outputlog", "terminal", "pivot", "addactor",
     };
     return kIcons;
 }
@@ -79,12 +79,14 @@ IconAuditReport AuditIconAtlas(const std::filesystem::path& inputDir)
 
             iconSizesByTier[runtimeName][tierPx] = {region.width, region.height};
 
-            if (IsFullColorIcon(runtimeName) && runtimeName != "windeffects") {
+            if (IsFullColorIcon(runtimeName)
+                && runtimeName != "windeffects"
+                && runtimeName.rfind("3d", 0) != 0) {
                 AddFinding(
                     report,
                     IconAuditFinding::Severity::Warning,
                     "full-color",
-                    "Icon '" + runtimeName + "' is flagged full-color; only 'windeffects' should bypass tinting");
+                    "Icon '" + runtimeName + "' is flagged full-color; verify it should bypass mono tinting");
             }
 
             if (region.width != region.height) {

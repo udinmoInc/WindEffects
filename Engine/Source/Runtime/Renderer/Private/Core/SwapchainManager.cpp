@@ -5,10 +5,19 @@
 #include "Core/LogCategory.h"
 #include <stdexcept>
 #include <algorithm>
+#include <cstdlib>
 #include <SDL3/SDL_vulkan.h>
 #include <algorithm>
 
 namespace we::runtime::renderer {
+namespace {
+
+bool IsPresentAuditEnabled() {
+    const char* value = std::getenv("WE_PRESENT_AUDIT");
+    return value != nullptr && value[0] != '\0' && value[0] != '0';
+}
+
+} // namespace
 
 SwapchainManager::~SwapchainManager() {
     Shutdown();
@@ -226,10 +235,12 @@ bool SwapchainManager::AcquireNextImage(uint32_t frameIndex, uint32_t& outImageI
 
     WE_VALIDATE_RENDER(result == VK_SUCCESS, "SwapchainManager::AcquireNextImage", "Failed to acquire swapchain image.");
 
-    WE_LOG_INFO(
-        we::LogCategory::Renderer.data(),
-        std::string("[PresentAudit] vkAcquireNextImageKHR frameSlot=") + std::to_string(frameIndex) +
-        " image=" + std::to_string(outImageIndex));
+    if (IsPresentAuditEnabled()) {
+        WE_LOG_INFO(
+            we::LogCategory::Renderer.data(),
+            std::string("[PresentAudit] vkAcquireNextImageKHR frameSlot=") + std::to_string(frameIndex) +
+            " image=" + std::to_string(outImageIndex));
+    }
 
     return true;
 }
@@ -292,10 +303,12 @@ void SwapchainManager::Present(uint32_t frameIndex, uint32_t imageIndex) {
 
     VkResult result = vkQueuePresentKHR(m_PresentQueue, &presentInfo);
 
-    WE_LOG_INFO(
-        we::LogCategory::Renderer.data(),
-        std::string("[PresentAudit] vkQueuePresentKHR frameSlot=") + std::to_string(frameIndex) +
-        " image=" + std::to_string(imageIndex));
+    if (IsPresentAuditEnabled()) {
+        WE_LOG_INFO(
+            we::LogCategory::Renderer.data(),
+            std::string("[PresentAudit] vkQueuePresentKHR frameSlot=") + std::to_string(frameIndex) +
+            " image=" + std::to_string(imageIndex));
+    }
 
     if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR) {
         Recreate();

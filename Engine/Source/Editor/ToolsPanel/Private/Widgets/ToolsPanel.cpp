@@ -102,6 +102,19 @@ std::string ToolsPanel::GetActiveModeId() const {
     return EditorModeController::Get().GetActiveModeId();
 }
 
+std::string ToolsPanel::GetDrawerContentModeId() const {
+    const std::string activeModeId = GetActiveModeId();
+    const EditorToolMode* activeMode = EditorToolsRegistry::Get().FindMode(activeModeId);
+    if (activeMode && !activeMode->opensToolDrawerByDefault) {
+        if (const EditorToolMode* actors = EditorToolsRegistry::Get().FindMode("Actors")) {
+            if (actors->customContent) {
+                return "Actors";
+            }
+        }
+    }
+    return activeModeId;
+}
+
 void ToolsPanel::SaveState() const {
     m_State.Save();
 }
@@ -127,18 +140,18 @@ void ToolsPanel::ExecuteTool(const EditorToolAction* tool) {
 }
 
 void ToolsPanel::RebuildModeContent() {
-    const EditorToolMode* activeMode = EditorToolsRegistry::Get().FindMode(GetActiveModeId());
-    if (!activeMode || !activeMode->customContent) {
+    const std::string contentModeId = GetDrawerContentModeId();
+    const EditorToolMode* contentMode = EditorToolsRegistry::Get().FindMode(contentModeId);
+    if (!contentMode || !contentMode->customContent) {
         m_ModeContentWidget.reset();
         m_ModeContentModeId.clear();
         return;
     }
 
-    const std::string activeModeId = GetActiveModeId();
-    if (!m_ModeContentWidget || m_ModeContentModeId != activeModeId
+    if (!m_ModeContentWidget || m_ModeContentModeId != contentModeId
         || m_ModeContentSearchText != m_SearchText) {
-        m_ModeContentWidget = activeMode->customContent(*activeMode, m_SearchText);
-        m_ModeContentModeId = activeModeId;
+        m_ModeContentWidget = contentMode->customContent(*contentMode, m_SearchText);
+        m_ModeContentModeId = contentModeId;
         m_ModeContentSearchText = m_SearchText;
     }
 
@@ -249,8 +262,9 @@ void ToolsPanel::RebuildLayout() {
 
     m_PanelRect = Rect{ m_Geometry.x, m_Geometry.y, width, m_Geometry.height };
 
-    const EditorToolMode* activeMode = EditorToolsRegistry::Get().FindMode(GetActiveModeId());
-    const bool useCustomContent = activeMode && activeMode->customContent;
+    const std::string contentModeId = GetDrawerContentModeId();
+    const EditorToolMode* contentMode = EditorToolsRegistry::Get().FindMode(contentModeId);
+    const bool useCustomContent = contentMode && contentMode->customContent;
 
     const float padH = PanelChrome::PanelPaddingH();
     const float searchH = PanelChrome::SearchHeight();
@@ -281,8 +295,6 @@ void ToolsPanel::RebuildLayout() {
     m_Sections.clear();
     m_ToolHits.clear();
 
-    const std::string activeModeId = GetActiveModeId();
-
     auto drawToolList = [&](const std::vector<const EditorToolAction*>& tools, float& yPos) {
         for (const auto* tool : tools) {
             ToolHit hit;
@@ -294,6 +306,15 @@ void ToolsPanel::RebuildLayout() {
         }
     };
 
+    // Place Actors (and other custom drawer UIs) always win for modes that provide them.
+    if (useCustomContent) {
+        RebuildModeContent();
+        return;
+    }
+
+    m_ModeContentWidget.reset();
+    m_ModeContentModeId.clear();
+
     if (!m_SearchText.empty()) {
         SectionHit section;
         section.categoryId = "__search__";
@@ -301,7 +322,7 @@ void ToolsPanel::RebuildLayout() {
         section.expanded = true;
         m_Sections.push_back(section);
         float contentY = m_ContentRect.y + sectionH;
-        drawToolList(EditorToolsRegistry::Get().SearchTools(m_SearchText, activeModeId), contentY);
+        drawToolList(EditorToolsRegistry::Get().SearchTools(m_SearchText, contentModeId), contentY);
         return;
     }
 
@@ -322,7 +343,7 @@ void ToolsPanel::RebuildLayout() {
         return &m_Sections.back();
     };
 
-    auto favorites = EditorToolsRegistry::Get().GetFavoriteTools(activeModeId);
+    auto favorites = EditorToolsRegistry::Get().GetFavoriteTools(contentModeId);
     if (!favorites.empty()) {
         SectionHit* section = addSection("__favorites__", true);
         if (section->expanded) drawToolList(favorites, contentY);
@@ -334,7 +355,7 @@ void ToolsPanel::RebuildLayout() {
         const auto* tool = EditorToolsRegistry::Get().FindTool(toolId);
         if (!tool) continue;
         const auto* category = EditorToolsRegistry::Get().FindCategory(tool->categoryId);
-        if (!category || category->modeId != activeModeId) continue;
+        if (!category || category->modeId != contentModeId) continue;
         recentTools.push_back(tool);
         if (recentTools.size() >= 6) break;
     }
@@ -343,16 +364,7 @@ void ToolsPanel::RebuildLayout() {
         if (section->expanded) drawToolList(recentTools, contentY);
     }
 
-    const EditorToolMode* modeForContent = EditorToolsRegistry::Get().FindMode(activeModeId);
-    if (modeForContent && modeForContent->customContent) {
-        RebuildModeContent();
-        return;
-    }
-
-    m_ModeContentWidget.reset();
-    m_ModeContentModeId.clear();
-
-    for (const auto* category : EditorToolsRegistry::Get().GetCategoriesForMode(activeModeId)) {
+    for (const auto* category : EditorToolsRegistry::Get().GetCategoriesForMode(contentModeId)) {
         SectionHit* section = addSection(category->id, category->defaultExpanded);
         if (section->expanded) {
             drawToolList(EditorToolsRegistry::Get().GetToolsForCategory(category->id), contentY);

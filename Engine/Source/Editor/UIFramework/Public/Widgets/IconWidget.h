@@ -26,7 +26,7 @@ public:
 
     void Paint(PaintContext& context) override {
         Rect iconRect = { m_Geometry.x, m_Geometry.y, m_Size, m_Size };
-        IconPainter::DrawIcon(context, m_IconName, iconRect, ThemeColor(ThemeToken::IconPrimary));
+        IconPainter::DrawIcon(context, m_IconName, iconRect, ThemeColor(ThemeToken::IconSecondary));
     }
 
 private:

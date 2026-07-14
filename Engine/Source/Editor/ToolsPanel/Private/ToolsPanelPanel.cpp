@@ -12,7 +12,19 @@ void SyncPanelTitle(const std::shared_ptr<Panel>& panel) {
         return;
     }
 
-    const auto* mode = EditorToolsRegistry::Get().FindMode(EditorModeController::Get().GetActiveModeId());
+    const std::string activeModeId = EditorModeController::Get().GetActiveModeId();
+    const auto* mode = EditorToolsRegistry::Get().FindMode(activeModeId);
+    // Compact modes (Select) keep the Place Actors drawer UI while transform tools stay active.
+    if (mode && !mode->opensToolDrawerByDefault) {
+        if (const auto* actors = EditorToolsRegistry::Get().FindMode("Actors")) {
+            if (actors->customContent) {
+                panel->SetTitle(actors->label);
+                panel->SetTabIcon(actors->iconName);
+                return;
+            }
+        }
+    }
+
     if (!mode) {
         panel->SetTitle("Actors");
         panel->SetTabIcon(Icons::LayersName);

@@ -50,14 +50,12 @@ Color ResolveIconColor(
         return ResolveThemeColor(ThemeToken::IconDisabled);
     }
 
-    Color base = role == IconColorRole::Secondary
-        ? ResolveThemeColor(ThemeToken::IconSecondary)
-        : ResolveThemeColor(ThemeToken::IconPrimary);
-
+    Color base = ResolveThemeColor(ThemeToken::IconSecondary);
     const float emphasis = std::max(hoverAnim, pressStrength);
     if (emphasis > 0.01f) {
-        const Color hover = ResolveThemeColor(ThemeToken::IconHover);
-        base = Color::Lerp(base, hover, emphasis);
+        Color bright = ResolveThemeColor(ThemeToken::IconPrimary);
+        bright = Color::Lerp(bright, ResolveThemeColor(ThemeToken::IconHover), emphasis);
+        base = Color::Lerp(base, bright, emphasis);
     }
     return base;
 }
@@ -70,8 +68,10 @@ Color ResolveIconColorForState(bool hovered, bool accent, bool disabled, bool se
         return ResolveIconColor(IconColorRole::Accent, hovered ? 1.0f : 0.0f, 0.0f, true);
     }
     return ResolveIconColor(
-        secondary ? IconColorRole::Secondary : IconColorRole::Primary,
-        hovered ? 1.0f : 0.0f);
+        IconColorRole::Secondary,
+        hovered ? 1.0f : 0.0f,
+        0.0f,
+        accent);
 }
 
 } // namespace WindEffects::Editor::UI

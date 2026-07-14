@@ -8,6 +8,11 @@
 #include "PlaceActors/PlaceActorsPlacement.h"
 #include "PlaceActors/PlaceActorsItem.h"
 #include "PlaceActors/PlaceActorsCategory.h"
+#include "PlaceActors/PlaceActorsActorCard.h"
+#include "PlaceActors/PlaceActorsResponsiveGrid.h"
+#include "PlaceActors/PlaceActorsFavoritesManager.h"
+#include "PlaceActors/PlaceActorsRecentlyUsedManager.h"
+#include "PlaceActors/PlaceActorsThumbnailProvider.h"
 
 #include "EditorToolsRegistry.h"
 #include "Widgets/SearchBox.h"
@@ -33,6 +38,23 @@ namespace {
 constexpr float kDragThreshold = 6.0f;
 constexpr const char* kFavoritesCategoryId = "__Favorites";
 constexpr const char* kRecentCategoryId = "__Recent";
+constexpr const char* kQuickAccessCategoryId = "__QuickAccess";
+
+const std::vector<std::string>& QuickAccessToolIds() {
+    static const std::vector<std::string> kIds = {
+        "PlaceEmptyActor",
+        "PlaceEmptyCharacter",
+        "PlaceEmptyPawn",
+        "PlaceCube",
+        "PlaceSphere",
+        "PlaceCylinder",
+        "PlacePlane",
+        "PlaceCone",
+        "PlaceCapsule",
+        "PlaceCamera",
+    };
+    return kIds;
+}
 
 std::string PanelStatePath() {
     return we::core::ResolveEditorConfigPath("place_actors.ini").string();
@@ -69,7 +91,7 @@ namespace PanelChrome = WindEffects::Editor::UI::PanelChrome;
 PlaceActorsPanel::PlaceActorsPanel() {
     auto& config = PlaceActorsConfig::Get();
     config.EnsureLoaded();
-    m_ViewMode = PlaceActorsViewMode::List;
+    m_ViewMode = config.defaultView;
 
     m_SearchBox = std::make_shared<WindEffects::Editor::UI::SearchBox>();
     m_SearchBox->SetFillWidth(true);
@@ -96,6 +118,57 @@ PlaceActorsPanel::~PlaceActorsPanel() {
     SaveFavorites();
 }
 
+PlaceActorsGridMetrics PlaceActorsPanel::MakeGridMetrics() const {
+    PlaceActorsGridMetrics metrics;
+    metrics.minCardWidth = ActorsPanelLayout::GridMinCardWidth();
+    metrics.maxCardWidth = ActorsPanelLayout::GridMaxCardWidth();
+    metrics.cardGap = ActorsPanelLayout::GridCardGap();
+    metrics.contentPad = ActorsPanelLayout::ContentPadH();
+    metrics.scrollbarReserve = ActorsPanelLayout::GridScrollbarReserve();
+    metrics.labelHeight = ActorsPanelLayout::GridLabelHeight();
+    metrics.labelGap = ActorsPanelLayout::GridLabelGap();
+    return metrics;
+}
+
+bool PlaceActorsPanel::IsFavoritesCategory(const std::string& categoryId) const {
+    return categoryId == kFavoritesCategoryId;
+}
+
+bool PlaceActorsPanel::IsQuickAccessCategory(const std::string& categoryId) const {
+    return categoryId == kQuickAccessCategoryId;
+}
+
+bool PlaceActorsPanel::IsPinnedCategory(const std::string& categoryId) const {
+    return IsQuickAccessCategory(categoryId);
+}
+
+void PlaceActorsPanel::BuildQuickAccessCategory(const std::string& query) {
+    auto& catalog = PlaceActorsCatalog::Get();
+    std::vector<PlaceActorsItemData> items;
+    items.reserve(QuickAccessToolIds().size());
+    for (const std::string& toolId : QuickAccessToolIds()) {
+        if (const PlaceActorsItemData* item = catalog.FindItem(toolId)) {
+            if (PlaceActorsSearch::FilterItems({ *item }, query, "All").empty()) {
+                continue;
+            }
+            items.push_back(*item);
+        }
+    }
+    if (items.empty() && !query.empty()) {
+        return;
+    }
+
+    PlaceActorsCategoryData quick;
+    quick.id = kQuickAccessCategoryId;
+    quick.label = "Quick Access";
+    quick.iconName = WindEffects::Editor::UI::Icons::PivotName;
+    quick.defaultExpanded = true;
+    quick.items = std::move(items);
+    m_CategoryExpanded[quick.id] = true;
+    m_CategoryExpandAnim[quick.id] = 1.0f;
+    m_DisplayCategories.push_back(std::move(quick));
+}
+
 void PlaceActorsPanel::LoadPanelState() {
     const auto values = LoadIniValues(PanelStatePath());
     for (const auto& [key, value] : values) {
@@ -111,7 +184,7 @@ void PlaceActorsPanel::LoadPanelState() {
         }
     }
     if (!favorites.empty()) {
-        EditorToolsRegistry::Get().LoadFavorites(favorites);
+        PlaceActorsFavoritesManager::Get().Load(favorites);
     }
 }
 
@@ -132,7 +205,7 @@ void PlaceActorsPanel::SaveCategoryState() const {
     for (const auto& [categoryId, expanded] : m_CategoryExpanded) {
         file << "category." << categoryId << "=" << (expanded ? "1" : "0") << "\n";
     }
-    for (const auto& [toolId, enabled] : EditorToolsRegistry::Get().GetFavoriteStates()) {
+    for (const auto& [toolId, enabled] : PlaceActorsFavoritesManager::Get().GetStates()) {
         if (enabled) {
             file << "favorite." << toolId << "=1\n";
         }
@@ -143,11 +216,10 @@ void PlaceActorsPanel::SaveFavorites() const {
     SaveCategoryState();
 }
 
-bool PlaceActorsPanel::IsFavoritesCategory(const std::string& categoryId) const {
-    return categoryId == kFavoritesCategoryId;
-}
-
 float PlaceActorsPanel::CategoryExpandAnim(const std::string& categoryId) const {
+    if (IsPinnedCategory(categoryId)) {
+        return 1.0f;
+    }
     const auto it = m_CategoryExpandAnim.find(categoryId);
     return it != m_CategoryExpandAnim.end() ? it->second : (m_CategoryExpanded.count(categoryId) ? (m_CategoryExpanded.at(categoryId) ? 1.0f : 0.0f) : 1.0f);
 }
@@ -159,20 +231,13 @@ void PlaceActorsPanel::RebuildData() {
     }
 
     m_DisplayCategories.clear();
-    auto& registry = EditorToolsRegistry::Get();
     const auto& config = PlaceActorsConfig::Get();
     const std::string query = !m_ExternalSearchFilter.empty() ? m_ExternalSearchFilter : m_SearchText;
 
+    BuildQuickAccessCategory(query);
+
     if (config.showFavorites) {
-        std::vector<PlaceActorsItemData> favoriteItems;
-        for (const EditorToolAction* tool : registry.GetFavoriteTools("Actors")) {
-            if (const PlaceActorsItemData* item = catalog.FindItem(tool->id)) {
-                if (PlaceActorsSearch::FilterItems({ *item }, query, "All").empty()) {
-                    continue;
-                }
-                favoriteItems.push_back(*item);
-            }
-        }
+        auto favoriteItems = PlaceActorsFavoritesManager::Get().CollectFavoriteItems(query);
         PlaceActorsSearch::SortItems(favoriteItems, m_SortMode);
 
         PlaceActorsCategoryData favCategory;
@@ -188,14 +253,7 @@ void PlaceActorsPanel::RebuildData() {
     }
 
     if (config.showRecent && m_ShowRecentOnly) {
-        std::vector<PlaceActorsItemData> recentItems;
-        for (const std::string& toolId : registry.GetRecentToolIds()) {
-            if (const PlaceActorsItemData* item = catalog.FindItem(toolId)) {
-                if (!PlaceActorsSearch::FilterItems({ *item }, query, "All").empty()) {
-                    recentItems.push_back(*item);
-                }
-            }
-        }
+        auto recentItems = PlaceActorsRecentlyUsedManager::Get().CollectRecentItems(query);
         if (!recentItems.empty()) {
             PlaceActorsCategoryData recentCategory;
             recentCategory.id = kRecentCategoryId;
@@ -211,6 +269,9 @@ void PlaceActorsPanel::RebuildData() {
     }
 
     for (const auto& sourceCategory : catalog.GetCategories()) {
+        if (sourceCategory.id == "ActorBasic") {
+            continue;
+        }
         auto items = PlaceActorsSearch::FilterItems(sourceCategory.items, query, m_CategoryFilter);
         PlaceActorsSearch::SortItems(items, m_SortMode);
         if (items.empty()) {
@@ -220,14 +281,14 @@ void PlaceActorsPanel::RebuildData() {
         PlaceActorsCategoryData category = sourceCategory;
         category.items = std::move(items);
         if (m_CategoryExpanded.find(category.id) == m_CategoryExpanded.end()) {
-            m_CategoryExpanded[category.id] = category.defaultExpanded;
+            m_CategoryExpanded[category.id] = false;
         }
         m_DisplayCategories.push_back(std::move(category));
     }
 
     m_HasSearchResults = false;
     for (const auto& category : m_DisplayCategories) {
-        if (!category.items.empty()) {
+        if (!category.items.empty() || IsQuickAccessCategory(category.id) || IsFavoritesCategory(category.id)) {
             m_HasSearchResults = true;
             break;
         }
@@ -249,6 +310,35 @@ void PlaceActorsPanel::SyncScrollMetrics() {
     m_ScrollMetrics = m_Scroll.ComputeMetrics(m_ContentRect, m_ContentHeight, uiScale);
 }
 
+void PlaceActorsPanel::UpdateVisibleRange() {
+    m_FirstVisibleIndex = 0;
+    m_LastVisibleIndex = static_cast<int>(m_Layout.size()) - 1;
+    if (m_Layout.empty()) {
+        return;
+    }
+
+    const float viewTop = m_ScrollMetrics.viewport.y;
+    const float viewBottom = viewTop + m_ScrollMetrics.viewport.height;
+
+    m_FirstVisibleIndex = static_cast<int>(m_Layout.size());
+    m_LastVisibleIndex = -1;
+    for (int i = 0; i < static_cast<int>(m_Layout.size()); ++i) {
+        const auto& entry = m_Layout[static_cast<size_t>(i)];
+        if (entry.geometry.y + entry.geometry.height < viewTop) {
+            continue;
+        }
+        if (entry.geometry.y > viewBottom) {
+            break;
+        }
+        m_FirstVisibleIndex = std::min(m_FirstVisibleIndex, i);
+        m_LastVisibleIndex = i;
+    }
+    if (m_LastVisibleIndex < 0) {
+        m_FirstVisibleIndex = 0;
+        m_LastVisibleIndex = -1;
+    }
+}
+
 void PlaceActorsPanel::RebuildLayout() {
     m_Layout.clear();
     m_SectionBackgrounds.clear();
@@ -266,6 +356,12 @@ void PlaceActorsPanel::RebuildLayout() {
     float y = m_ScrollMetrics.viewport.y - m_Scroll.offset;
     bool firstCategory = true;
 
+    const PlaceActorsGridLayout gridLayout =
+        PlaceActorsResponsiveGrid::Compute(viewportWidth, MakeGridMetrics());
+    metrics.cardSize = gridLayout.cardWidth;
+    metrics.previewSize = gridLayout.previewSize;
+    metrics.cardHeight = gridLayout.cardHeight;
+
     if (!m_HasSearchResults) {
         const float emptyHeight = ActorsPanelLayout::ActorRowHeight() * 3.0f;
         LayoutEntry emptyEntry;
@@ -274,7 +370,9 @@ void PlaceActorsPanel::RebuildLayout() {
         m_Layout.push_back(emptyEntry);
         m_ContentHeight = emptyHeight;
         SyncScrollMetrics();
+        UpdateVisibleRange();
         m_NeedsLayout = false;
+        m_LastViewportWidth = viewportWidth;
         return;
     }
 
@@ -286,7 +384,7 @@ void PlaceActorsPanel::RebuildLayout() {
         firstCategory = false;
 
         const float expandAnim = CategoryExpandAnim(category.id);
-        const bool expanded = expandAnim > 0.01f;
+        const bool expanded = expandAnim > 0.01f || IsPinnedCategory(category.id);
         const float headerHeight = ActorsPanelLayout::CategoryHeight();
 
         LayoutEntry header;
@@ -302,59 +400,61 @@ void PlaceActorsPanel::RebuildLayout() {
             continue;
         }
 
+        y += ActorsPanelLayout::CategoryContentGap();
+        m_ContentHeight += ActorsPanelLayout::CategoryContentGap();
+
         const float sectionStartY = y;
-        const float rowHeight = metrics.listRowHeight;
 
         if (category.items.empty() && IsFavoritesCategory(category.id)) {
-            const float emptyHeight = rowHeight * 1.5f;
+            const float emptyHeight = metrics.listRowHeight * 1.5f;
             LayoutEntry emptyEntry;
             emptyEntry.type = LayoutEntry::Type::EmptyState;
             emptyEntry.categoryId = category.id;
-            emptyEntry.geometry = Rect{ viewportX + ActorsPanelLayout::ItemIndent(), y, viewportWidth - ActorsPanelLayout::ItemIndent(), emptyHeight };
+            emptyEntry.geometry = Rect{
+                viewportX + ActorsPanelLayout::ItemIndent(),
+                y,
+                viewportWidth - ActorsPanelLayout::ItemIndent(),
+                emptyHeight
+            };
             emptyEntry.revealAnim = expandAnim;
             m_Layout.push_back(emptyEntry);
             y += emptyHeight * expandAnim;
             m_ContentHeight += emptyHeight * expandAnim;
         } else if (m_ViewMode == PlaceActorsViewMode::Grid) {
-            const float pad = ActorsPanelLayout::ContentPadH();
-            const float cell = metrics.cardSize + pad;
-            const int columns = std::max(1, static_cast<int>((viewportWidth - pad * 2.0f) / cell));
-            float x = viewportX + pad;
-            int column = 0;
-            const float gridRowHeight = metrics.cardSize + pad;
-            for (const auto& item : category.items) {
+            const float sectionOriginY = y;
+            for (int i = 0; i < static_cast<int>(category.items.size()); ++i) {
+                const auto& item = category.items[static_cast<size_t>(i)];
+                const Rect card = PlaceActorsResponsiveGrid::CardRect(
+                    gridLayout, viewportX, sectionOriginY, i);
+
                 LayoutEntry entry;
                 entry.type = LayoutEntry::Type::Item;
                 entry.categoryId = category.id;
                 entry.toolId = item.toolId;
-                entry.geometry = Rect{ x, y, metrics.cardSize, metrics.cardSize };
+                entry.geometry = card;
+                entry.previewGeometry = PlaceActorsResponsiveGrid::PreviewRect(gridLayout, card);
                 entry.revealAnim = expandAnim;
+                entry.gridColumn = i % gridLayout.columns;
+                entry.gridColumns = gridLayout.columns;
                 m_Layout.push_back(entry);
+            }
 
-                ++column;
-                x += metrics.cardSize + pad;
-                if (column >= columns) {
-                    column = 0;
-                    x = viewportX + pad;
-                    y += gridRowHeight;
-                    m_ContentHeight += gridRowHeight * expandAnim;
-                }
-            }
-            if (column != 0) {
-                y += gridRowHeight;
-                m_ContentHeight += gridRowHeight * expandAnim;
-            }
+            const float gridHeight =
+                PlaceActorsResponsiveGrid::ContentHeight(gridLayout, static_cast<int>(category.items.size()));
+            y += gridHeight * expandAnim;
+            m_ContentHeight += gridHeight * expandAnim;
         } else {
             for (const auto& item : category.items) {
                 LayoutEntry entry;
                 entry.type = LayoutEntry::Type::Item;
                 entry.categoryId = category.id;
                 entry.toolId = item.toolId;
-                entry.geometry = Rect{ viewportX, y, viewportWidth, rowHeight };
+                entry.geometry = Rect{ viewportX, y, viewportWidth, metrics.listRowHeight };
+                entry.previewGeometry = {};
                 entry.revealAnim = expandAnim;
                 m_Layout.push_back(entry);
-                y += rowHeight;
-                m_ContentHeight += rowHeight * expandAnim;
+                y += metrics.listRowHeight;
+                m_ContentHeight += metrics.listRowHeight * expandAnim;
             }
         }
 
@@ -373,7 +473,9 @@ void PlaceActorsPanel::RebuildLayout() {
 
     m_ContentHeight += ActorsPanelLayout::ContentPadV();
     SyncScrollMetrics();
+    UpdateVisibleRange();
     m_NeedsLayout = false;
+    m_LastViewportWidth = viewportWidth;
 }
 
 void PlaceActorsPanel::RefreshFilteredContent() {
@@ -428,9 +530,12 @@ void PlaceActorsPanel::Arrange(const Rect& allottedRect) {
     m_FilterButton->Measure(Size{ filterBtn, filterBtn });
     m_FilterButton->Arrange(Rect{ filterX, filterY, filterBtn, filterBtn });
 
-    if (m_NeedsLayout) {
+    const bool widthChanged = std::abs(m_ContentRect.width - m_LastViewportWidth) > 0.5f;
+    if (m_NeedsLayout || widthChanged) {
         m_ScrollMetrics.viewport = m_ContentRect;
-        RebuildData();
+        if (m_NeedsLayout) {
+            RebuildData();
+        }
         RebuildLayout();
     }
 }
@@ -443,6 +548,11 @@ void PlaceActorsPanel::Tick(float deltaTime) {
 
     bool expandChanged = false;
     for (const auto& category : m_DisplayCategories) {
+        if (IsPinnedCategory(category.id)) {
+            m_CategoryExpanded[category.id] = true;
+            m_CategoryExpandAnim[category.id] = 1.0f;
+            continue;
+        }
         const float target = m_CategoryExpanded[category.id] ? 1.0f : 0.0f;
         float& anim = m_CategoryExpandAnim[category.id];
         const float previous = anim;
@@ -474,14 +584,18 @@ void PlaceActorsPanel::Paint(PaintContext& context) {
     m_FilterButton->Paint(context);
 
     auto& catalog = PlaceActorsCatalog::Get();
-    auto& registry = EditorToolsRegistry::Get();
+    auto& favorites = PlaceActorsFavoritesManager::Get();
     PlaceActorsItemMetrics metrics;
     metrics.iconSize = ActorsPanelLayout::IconSize();
     metrics.cardSize = PlaceActorsConfig::Get().cardSize;
     metrics.listRowHeight = ActorsPanelLayout::ActorRowHeight();
     metrics.cornerRadius = ThemeMetric(ThemeToken::CornerRadiusSmall);
 
+    // Warm thumbnail cache lazily for visible grid items.
+    (void)PlaceActorsThumbnailProvider::Get();
+
     SyncScrollMetrics();
+    UpdateVisibleRange();
     const std::string query = !m_ExternalSearchFilter.empty() ? m_ExternalSearchFilter : m_SearchText;
     const float textSize = ThemeMetric(ThemeToken::TextSizeSmall);
     const Rect clip = m_ScrollMetrics.viewport;
@@ -495,9 +609,8 @@ void PlaceActorsPanel::Paint(PaintContext& context) {
         PlaceActorsCategory::PaintSectionBackground(context, section);
     }
 
-    for (auto& entry : m_Layout) {
-        if (entry.geometry.y + entry.geometry.height < clip.y) continue;
-        if (entry.geometry.y > clip.y + clip.height) break;
+    for (int i = m_FirstVisibleIndex; i <= m_LastVisibleIndex && i < static_cast<int>(m_Layout.size()); ++i) {
+        auto& entry = m_Layout[static_cast<size_t>(i)];
 
         if (entry.type == LayoutEntry::Type::EmptyState) {
             const std::string message = m_HasSearchResults
@@ -516,8 +629,9 @@ void PlaceActorsPanel::Paint(PaintContext& context) {
                 }
             }
             if (!category) continue;
-            const bool expanded = CategoryExpandAnim(entry.categoryId) > 0.5f;
-            const bool showChevron = !category->items.empty() || IsFavoritesCategory(entry.categoryId);
+            const bool expanded = CategoryExpandAnim(entry.categoryId) > 0.5f || IsPinnedCategory(entry.categoryId);
+            const bool showChevron = !IsPinnedCategory(entry.categoryId)
+                && (!category->items.empty() || IsFavoritesCategory(entry.categoryId));
             PlaceActorsCategory::PaintHeader(
                 context,
                 entry.geometry,
@@ -533,11 +647,18 @@ void PlaceActorsPanel::Paint(PaintContext& context) {
 
         const PlaceActorsItemData* item = catalog.FindItem(entry.toolId);
         if (!item) continue;
-        const bool favorite = registry.IsFavorite(item->toolId);
+        const bool favorite = favorites.IsFavorite(item->toolId);
         if (m_ViewMode == PlaceActorsViewMode::Grid) {
-            PlaceActorsItem::PaintGrid(context, entry.geometry, *item, metrics, entry.hoverAnim, entry.pressAnim, entry.selected, favorite);
+            const Rect preview = entry.previewGeometry.width > 0.0f
+                ? entry.previewGeometry
+                : Rect{ entry.geometry.x, entry.geometry.y, entry.geometry.width, entry.geometry.width };
+            PlaceActorsActorCard::Paint(
+                context, entry.geometry, preview, *item,
+                entry.hoverAnim, entry.pressAnim, entry.selected, favorite);
         } else {
-            PlaceActorsItem::PaintList(context, entry.geometry, *item, metrics, entry.hoverAnim, entry.pressAnim, entry.selected, favorite, query, entry.revealAnim);
+            PlaceActorsItem::PaintList(
+                context, entry.geometry, *item, metrics,
+                entry.hoverAnim, entry.pressAnim, entry.selected, favorite, query, entry.revealAnim);
         }
     }
 
@@ -598,7 +719,7 @@ void PlaceActorsPanel::SpawnItem(const std::string& toolId) {
 }
 
 void PlaceActorsPanel::ToggleFavorite(const std::string& toolId) {
-    EditorToolsRegistry::Get().ToggleFavorite(toolId);
+    PlaceActorsFavoritesManager::Get().Toggle(toolId);
     SaveFavorites();
     RefreshFilteredContent();
 }
@@ -768,6 +889,9 @@ void PlaceActorsPanel::OnMouseDown(const MouseEvent& event) {
 
     if (LayoutEntry* entry = HitEntry(event.position)) {
         if (entry->type == LayoutEntry::Type::CategoryHeader) {
+            if (IsPinnedCategory(entry->categoryId)) {
+                return;
+            }
             m_CategoryExpanded[entry->categoryId] = !m_CategoryExpanded[entry->categoryId];
             SaveCategoryState();
             m_NeedsLayout = true;
@@ -776,8 +900,10 @@ void PlaceActorsPanel::OnMouseDown(const MouseEvent& event) {
         }
 
         if (entry->type == LayoutEntry::Type::Item) {
-            const float starX = ActorsPanelLayout::StarIconX(entry->geometry.x, entry->geometry.width);
-            if (event.position.x >= starX - 4.0f) {
+            const bool hitStar = (m_ViewMode == PlaceActorsViewMode::Grid)
+                ? PlaceActorsActorCard::HitFavoriteStar(entry->geometry, event.position)
+                : (event.position.x >= ActorsPanelLayout::StarIconX(entry->geometry.x, entry->geometry.width) - 4.0f);
+            if (hitStar) {
                 ToggleFavorite(entry->toolId);
                 return;
             }
@@ -885,8 +1011,8 @@ void PlaceActorsPanel::OnMouseUp(const MouseEvent& event) {
                 } else if (!m_LastClickToolId.empty()) {
                     toolId = m_LastClickToolId;
                 }
-                if (!toolId.empty() && !EditorToolsRegistry::Get().IsFavorite(toolId)) {
-                    EditorToolsRegistry::Get().SetFavorite(toolId, true);
+                if (!toolId.empty() && !PlaceActorsFavoritesManager::Get().IsFavorite(toolId)) {
+                    PlaceActorsFavoritesManager::Get().SetFavorite(toolId, true);
                     SaveFavorites();
                     RefreshFilteredContent();
                 }
@@ -902,11 +1028,10 @@ void PlaceActorsPanel::OnMouseWheel(const MouseEvent& event) {
         return;
     }
     SyncScrollMetrics();
-    m_Scroll.ApplyWheel(
-        event.wheelDeltaY,
-        ActorsPanelLayout::ActorRowHeight() * 0.75f,
-        m_ContentRect.height,
-        m_ContentHeight);
+    const float wheelStep = (m_ViewMode == PlaceActorsViewMode::Grid)
+        ? ActorsPanelLayout::GridMinCardWidth() * 0.55f
+        : ActorsPanelLayout::ActorRowHeight() * 0.75f;
+    m_Scroll.ApplyWheel(event.wheelDeltaY, wheelStep, m_ContentRect.height, m_ContentHeight);
     RebuildLayout();
 }
 
@@ -924,18 +1049,33 @@ void PlaceActorsPanel::OnKeyDown(const KeyEvent& event) {
     }
 
     int step = 0;
-    if (event.keycode == SDLK_DOWN) step = 1;
-    else if (event.keycode == SDLK_UP) step = -1;
-    else return;
+    if (event.keycode == SDLK_DOWN) {
+        step = (m_ViewMode == PlaceActorsViewMode::Grid && m_FocusedIndex >= 0
+            && m_FocusedIndex < static_cast<int>(m_Layout.size()))
+            ? std::max(1, m_Layout[static_cast<size_t>(m_FocusedIndex)].gridColumns)
+            : 1;
+    } else if (event.keycode == SDLK_UP) {
+        step = (m_ViewMode == PlaceActorsViewMode::Grid && m_FocusedIndex >= 0
+            && m_FocusedIndex < static_cast<int>(m_Layout.size()))
+            ? -std::max(1, m_Layout[static_cast<size_t>(m_FocusedIndex)].gridColumns)
+            : -1;
+    } else if (event.keycode == SDLK_RIGHT) {
+        step = 1;
+    } else if (event.keycode == SDLK_LEFT) {
+        step = -1;
+    } else {
+        return;
+    }
 
     int next = m_FocusedIndex;
     if (next < 0) next = 0;
     next += step;
     next = std::clamp(next, 0, static_cast<int>(m_Layout.size()) - 1);
 
+    const int direction = step >= 0 ? 1 : -1;
     while (next >= 0 && next < static_cast<int>(m_Layout.size()) &&
            m_Layout[static_cast<size_t>(next)].type != LayoutEntry::Type::Item) {
-        next += step;
+        next += direction;
     }
     if (next < 0 || next >= static_cast<int>(m_Layout.size())) {
         return;

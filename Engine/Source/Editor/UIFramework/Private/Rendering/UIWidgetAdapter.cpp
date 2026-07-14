@@ -66,25 +66,32 @@ void UIWidgetAdapter::ProcessWidget(const std::shared_ptr<Widget>& root,
     m_Indices.clear();
     m_Batches.clear();
     
-    // Helper lambda to count widgets
-    std::function<void(const std::shared_ptr<Widget>&)> CountWidgets = [&](const std::shared_ptr<Widget>& w) {
-        if (!w) return;
-        if (Widget::s_GlobalDiagnostics) {
+    // Helper lambda to count widgets (diagnostics only — avoid per-frame tree walk).
+    if (Widget::s_GlobalDiagnostics) {
+        std::function<void(const std::shared_ptr<Widget>&)> CountWidgets = [&](const std::shared_ptr<Widget>& w) {
+            if (!w) return;
             Widget::s_GlobalDiagnostics->totalWidgetCount++;
             if (w->IsVisible()) Widget::s_GlobalDiagnostics->visibleWidgetCount++;
             else Widget::s_GlobalDiagnostics->hiddenWidgetCount++;
-        }
-        for (const auto& child : w->GetChildren()) {
-            CountWidgets(child);
-        }
-    };
-    CountWidgets(root);
-
-    if (Widget::s_GlobalDiagnostics) {
+            for (const auto& child : w->GetChildren()) {
+                CountWidgets(child);
+            }
+        };
+        CountWidgets(root);
         Widget::s_GlobalDiagnostics->layoutPassCount++;
     }
-    root->Measure(Size{static_cast<float>(width), static_cast<float>(height)});
-    root->Arrange(Rect{0.0f, 0.0f, static_cast<float>(width), static_cast<float>(height)});
+
+    // Skip Measure/Arrange when the editor main loop already laid out this frame
+    // (same swapchain size) to avoid a second full-tree layout pass.
+    const Rect& existing = root->GetGeometry();
+    const bool alreadyLaidOut =
+        existing.x == 0.0f && existing.y == 0.0f &&
+        std::abs(existing.width - static_cast<float>(width)) < 0.5f &&
+        std::abs(existing.height - static_cast<float>(height)) < 0.5f;
+    if (!alreadyLaidOut) {
+        root->Measure(Size{static_cast<float>(width), static_cast<float>(height)});
+        root->Arrange(Rect{0.0f, 0.0f, static_cast<float>(width), static_cast<float>(height)});
+    }
     
     PaintContext paintCtx;
     if (TextUIService* textService = m_Renderer->GetTextUIService()) {
@@ -142,12 +149,10 @@ void UIWidgetAdapter::ConvertDrawCommand(const DrawCommand& cmd) {
     m_Diagnostics.totalDrawCommandsGenerated++;
 
     if (cmd.clipRect.width == 0 || cmd.clipRect.height == 0) {
-        HE_INFO(std::string("Skipped: Zero Size | Type: ") + std::to_string(static_cast<int>(cmd.type)));
         return;
     }
     if (cmd.color.a == 0.0f) {
-        HE_INFO(std::string("Skipped: Zero Alpha | Type: ") + std::to_string(static_cast<int>(cmd.type)));
-        // Might still want to process if it's a clipping rect or something, but usually skipped
+        return;
     }
 
     switch (cmd.type) {

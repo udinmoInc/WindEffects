@@ -176,14 +176,18 @@ void TreeView::ScrollSelectionIntoView() {
 }
 
 Size TreeView::Measure(const Size& availableSize) {
-    BuildRenderList();
+    if (m_RenderListDirty) {
+        BuildRenderList();
+    }
     m_ContentHeight = static_cast<float>(m_RenderList.size()) * m_ItemHeight * TreeUiScale();
     return Size{ availableSize.width, availableSize.height };
 }
 
 void TreeView::Arrange(const Rect& allottedRect) {
     m_Geometry = allottedRect;
-    BuildRenderList();
+    if (m_RenderListDirty) {
+        BuildRenderList();
+    }
     SyncScrollMetrics();
     UpdateVisibleRange();
 
@@ -561,6 +565,7 @@ void TreeView::OnKeyDown(const KeyEvent& event) {
 void TreeView::SetRoot(const std::shared_ptr<TreeNode>& root) {
     m_Root = root;
     m_SelectedIds.clear();
+    MarkRenderListDirty();
     BuildRenderList();
 }
 
@@ -570,6 +575,7 @@ void TreeView::AddItem(const std::shared_ptr<TreeNode>& item, const std::string&
     } else if (auto parent = FindNode(parentId)) {
         parent->children.push_back(item);
     }
+    MarkRenderListDirty();
     BuildRenderList();
 }
 
@@ -588,12 +594,14 @@ void TreeView::RemoveItem(const std::string& id) {
             return false;
         };
     removeRecursive(m_Root->children);
+    MarkRenderListDirty();
     BuildRenderList();
 }
 
 void TreeView::Clear() {
     m_Root->children.clear();
     m_SelectedIds.clear();
+    MarkRenderListDirty();
     BuildRenderList();
 }
 
@@ -610,6 +618,10 @@ std::string TreeView::GetSelectedId() const {
 }
 
 void TreeView::BuildRenderList() {
+    if (!m_RenderListDirty && !m_RenderList.empty()) {
+        return;
+    }
+
     m_RenderList.clear();
 
     // Fuzzy match helper function
@@ -685,6 +697,7 @@ void TreeView::BuildRenderList() {
     buildRecursive(m_Root, 0, false);
 
     m_ContentHeight = static_cast<float>(m_RenderList.size()) * m_ItemHeight * TreeUiScale();
+    m_RenderListDirty = false;
 }
 
 void TreeView::UpdateVisibleRange() {
@@ -747,6 +760,7 @@ void TreeView::ToggleExpand(const std::string& id) {
     if (auto node = FindNode(id)) {
         node->expanded = !node->expanded;
     }
+    MarkRenderListDirty();
     BuildRenderList();
     Arrange(m_Geometry);
 }
@@ -854,6 +868,7 @@ int TreeView::GetVisibleRowCount() const {
 
 void TreeView::SetSearchQuery(const std::string& query) {
     m_SearchQuery = query;
+    MarkRenderListDirty();
     BuildRenderList();
     Arrange(m_Geometry);
 }

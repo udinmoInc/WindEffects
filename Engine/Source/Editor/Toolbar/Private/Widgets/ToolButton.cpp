@@ -226,13 +226,7 @@ void ToolButton::Paint(PaintContext& context) {
             context.DrawRect(renderRect, hoverBg);
         }
 
-        Color iconColor = ThemeColor(ThemeToken::IconPrimary);
-        if (m_HoverAnim > 0.01f) {
-            iconColor = Color::Lerp(iconColor, ThemeColor(ThemeToken::IconHover), m_HoverAnim);
-        }
-        if (m_ButtonStyle == ToolButtonStyle::WindowClose && m_HoverAnim > 0.35f) {
-            iconColor = ThemeColor(ThemeToken::IconHover);
-        }
+        Color iconColor = ResolveIconColor(IconColorRole::Secondary, m_HoverAnim, pressStrength, false);
 
         const float iconSize = IconSize(uiScale);
         const Rect iconRect = PlaceIconInControl(renderRect, iconSize);

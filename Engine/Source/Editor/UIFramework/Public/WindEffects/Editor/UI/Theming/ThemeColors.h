@@ -36,7 +36,7 @@ enum class IconColorRole {
     Disabled,
 };
 
-// Resolve mono icon tint: Accent only for active/selected/running; hover brightens Primary.
+// Resolve mono icon tint: Secondary (gray) at rest; brightens on hover; Accent only when active.
 [[nodiscard]] UIFRAMEWORK_API Color ResolveIconColor(
     IconColorRole role,
     float hoverAnim = 0.0f,

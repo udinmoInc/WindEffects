@@ -77,7 +77,9 @@ void PlaceActorsCategory::PaintHeader(PaintContext& context,
         cursorX += iconDraw + ResolveThemeMetric(ThemeToken::Space1) * uiScale;
     }
 
-    const Color titleColor = isFavoritesSection
+    // Emphasize pinned/non-collapsible sections (Quick Access) and Favorites.
+    const bool emphasize = isFavoritesSection || !showChevron;
+    const Color titleColor = emphasize
         ? ResolveThemeColor(ThemeToken::TextPrimary)
         : ResolveThemeColor(ThemeToken::TextSecondary);
     context.DrawText(
@@ -85,7 +87,7 @@ void PlaceActorsCategory::PaintHeader(PaintContext& context,
         Point{ cursorX, centerY - fontSize * 0.5f },
         titleColor,
         fontSize,
-        isFavoritesSection);
+        emphasize);
 }
 
 } // namespace we::programs::editor

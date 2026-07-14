@@ -91,7 +91,7 @@ public:
         bool showFavorites = false;
         int sortOrder = 0; // 0: A-Z, 1: Z-A, 2: Modified Recently
     };
-    void SetFilterOptions(const FilterOptions& options) { m_FilterOptions = options; BuildRenderList(); }
+    void SetFilterOptions(const FilterOptions& options) { m_FilterOptions = options; MarkRenderListDirty(); BuildRenderList(); }
     FilterOptions GetFilterOptions() const { return m_FilterOptions; }
 
 private:
@@ -103,6 +103,7 @@ private:
     };
 
     void BuildRenderList();
+    void MarkRenderListDirty() { m_RenderListDirty = true; }
     void UpdateVisibleRange();
     RenderItem* GetItemAtPosition(const Point& pos);
     std::shared_ptr<TreeNode> FindNode(const std::string& id);
@@ -120,6 +121,7 @@ private:
 
     std::shared_ptr<TreeNode> m_Root;
     std::vector<RenderItem> m_RenderList;
+    bool m_RenderListDirty = true;
     std::vector<std::string> m_SelectedIds;
     std::string m_HoveredId;
     std::string m_DropTargetId;

@@ -11,9 +11,9 @@ public:
 
     void EnsureLoaded();
 
-    PlaceActorsViewMode defaultView = PlaceActorsViewMode::List;
+    PlaceActorsViewMode defaultView = PlaceActorsViewMode::Grid;
     float iconSize = 16.0f;
-    float cardSize = 72.0f;
+    float cardSize = 88.0f;
     bool showDescriptions = true;
     bool enableAnimations = true;
     bool rememberCategoryState = true;

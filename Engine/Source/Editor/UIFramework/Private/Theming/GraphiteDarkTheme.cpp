@@ -233,8 +233,11 @@ Color GraphiteDarkTheme::IconForState(bool hovered, bool active) const {
     if (active) {
         return GetColor(ThemeToken::IconAccent);
     }
-    Color base = GetColor(ThemeToken::IconPrimary);
-    return hovered ? Color::Lerp(base, GetColor(ThemeToken::IconHover), 1.0f) : base;
+    Color base = GetColor(ThemeToken::IconSecondary);
+    if (hovered) {
+        return Color::Lerp(base, GetColor(ThemeToken::IconPrimary), 1.0f);
+    }
+    return base;
 }
 
 Color GraphiteDarkTheme::TextForState(bool hovered, bool active) const {
@@ -332,7 +335,7 @@ ResolvedStyle StyleResolver::Resolve(StyleRole role) const {
         break;
     case StyleRole::IconButton:
         style.background = Color::Transparent();
-        style.icon = theme.GetColor(ThemeToken::IconPrimary);
+        style.icon = theme.GetColor(ThemeToken::IconSecondary);
         style.border = theme.GetColor(ThemeToken::BorderDefault);
         style.height = Scaled(theme.GetMetric(ThemeToken::IconButtonSize));
         style.iconSize = static_cast<float>(IconMetrics::GlyphTierPx(ThemeToken::IconSizeToolbar));
@@ -349,7 +352,7 @@ ResolvedStyle StyleResolver::Resolve(StyleRole role) const {
         break;
     case StyleRole::NavigationButton:
         style.background = Color::Transparent();
-        style.icon = theme.GetColor(ThemeToken::IconPrimary);
+        style.icon = theme.GetColor(ThemeToken::IconSecondary);
         style.border = theme.GetColor(ThemeToken::BorderDefault);
         style.height = Scaled(theme.GetMetric(ThemeToken::NavigationButtonSize));
         style.iconSize = static_cast<float>(IconMetrics::GlyphTierPx(ThemeToken::IconSizeNavigation));
