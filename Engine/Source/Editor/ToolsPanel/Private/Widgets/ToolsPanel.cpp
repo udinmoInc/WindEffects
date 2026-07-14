@@ -406,7 +406,7 @@ void ToolsPanel::Paint(PaintContext& context) {
             const float rowIconX = toolHit.geometry.x + padH + iconSize + chevronGap;
             const float iconY = toolHit.geometry.y + (toolHit.geometry.height - iconSize) * 0.5f;
             WindEffects::Editor::UI::IconPainter::DrawIcon(context, toolHit.tool->iconName,
-                Rect{ rowIconX, iconY, iconSize, iconSize }, ThemeColor(ThemeToken::IconDefault));
+                Rect{ rowIconX, iconY, iconSize, iconSize }, ThemeColor(ThemeToken::IconPrimary));
 
             context.DrawText(toolHit.tool->label,
                 Point{ rowIconX + iconSize + chevronGap, toolHit.geometry.y + (toolHit.geometry.height - labelFontSize) * 0.5f },
@@ -422,7 +422,7 @@ void ToolsPanel::Paint(PaintContext& context) {
 
             const float starX = toolHit.geometry.x + toolHit.geometry.width - padH - iconSize;
             const char* starIcon = toolHit.favorite ? WindEffects::Editor::UI::Icons::StarFilledName : WindEffects::Editor::UI::Icons::StarName;
-            Color starColor = toolHit.favorite ? ThemeColor(ThemeToken::Warning) : ThemeColor(ThemeToken::IconDefault);
+            Color starColor = toolHit.favorite ? ThemeColor(ThemeToken::IconAccent) : ThemeColor(ThemeToken::IconSecondary);
             WindEffects::Editor::UI::IconPainter::DrawIcon(context, starIcon,
                 Rect{ starX, iconY, iconSize, iconSize }, starColor);
         }

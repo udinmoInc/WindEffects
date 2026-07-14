@@ -96,7 +96,10 @@ Color GraphiteDarkTheme::GetColor(ThemeToken token) const {
     case ThemeToken::SearchPlaceholder:             return Hex(0x70,0x70,0x78);
     case ThemeToken::TextDisabled:                  return Hex(0x58,0x58,0x60);
 
-    // ── Icons ──────────────────────────────────────────────────────────────
+    // ── Icons (Primary / Secondary / Accent semantic roles) ─────────────────
+    case ThemeToken::IconPrimary:                   return Hex(0xCF,0xCF,0xCF);
+    case ThemeToken::IconSecondary:                 return Hex(0xA8,0xA8,0xA8);
+    case ThemeToken::IconAccent:                    return Hex(0xF0,0xA4,0x2A);
     case ThemeToken::IconDefault:                   return Hex(0xCF,0xCF,0xCF);
     case ThemeToken::IconHover:                     return Hex(0xE8,0xE8,0xE8);
     case ThemeToken::IconActive:                    return Hex(0xF0,0xF0,0xF0);
@@ -110,7 +113,7 @@ Color GraphiteDarkTheme::GetColor(ThemeToken token) const {
     case ThemeToken::SelectionHighlight:            return Hex(0x34,0x34,0x34,0.85f);
     case ThemeToken::LinkForeground:                return Hex(0xF0,0xA4,0x2A);
 
-    case ThemeToken::PlayForeground:                return Hex(0x5E,0xAD,0x6E);
+    case ThemeToken::PlayForeground:                return Hex(0xF0,0xA4,0x2A);
     case ThemeToken::Success:                       return Hex(0x5E,0xAD,0x6E);
     case ThemeToken::Warning:                       return Hex(0xE0,0xA2,0x3A);
     case ThemeToken::ErrorForeground:               return Hex(0xDD,0x5A,0x5A);
@@ -227,8 +230,11 @@ Color GraphiteDarkTheme::InteractiveBackground(float hoverAnim, float pressAnim,
 }
 
 Color GraphiteDarkTheme::IconForState(bool hovered, bool active) const {
-    if (active) return GetColor(ThemeToken::IconActive);
-    return hovered ? GetColor(ThemeToken::IconHover) : GetColor(ThemeToken::IconDefault);
+    if (active) {
+        return GetColor(ThemeToken::IconAccent);
+    }
+    Color base = GetColor(ThemeToken::IconPrimary);
+    return hovered ? Color::Lerp(base, GetColor(ThemeToken::IconHover), 1.0f) : base;
 }
 
 Color GraphiteDarkTheme::TextForState(bool hovered, bool active) const {
@@ -326,7 +332,7 @@ ResolvedStyle StyleResolver::Resolve(StyleRole role) const {
         break;
     case StyleRole::IconButton:
         style.background = Color::Transparent();
-        style.icon = theme.GetColor(ThemeToken::IconDefault);
+        style.icon = theme.GetColor(ThemeToken::IconPrimary);
         style.border = theme.GetColor(ThemeToken::BorderDefault);
         style.height = Scaled(theme.GetMetric(ThemeToken::IconButtonSize));
         style.iconSize = static_cast<float>(IconMetrics::GlyphTierPx(ThemeToken::IconSizeToolbar));
@@ -343,7 +349,7 @@ ResolvedStyle StyleResolver::Resolve(StyleRole role) const {
         break;
     case StyleRole::NavigationButton:
         style.background = Color::Transparent();
-        style.icon = theme.GetColor(ThemeToken::IconDefault);
+        style.icon = theme.GetColor(ThemeToken::IconPrimary);
         style.border = theme.GetColor(ThemeToken::BorderDefault);
         style.height = Scaled(theme.GetMetric(ThemeToken::NavigationButtonSize));
         style.iconSize = static_cast<float>(IconMetrics::GlyphTierPx(ThemeToken::IconSizeNavigation));

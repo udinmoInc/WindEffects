@@ -86,8 +86,11 @@ namespace Icons {
     constexpr const char* TextureName    = "image";
     constexpr const char* SaveName       = "save";
     constexpr const char* SaveAllName    = "saveall";
-    constexpr const char* OpenName       = "folder-open";
-    constexpr const char* NewName        = "file-plus";
+    constexpr const char* AddActorName   = "addactor";
+    constexpr const char* OpenFolderName = "openfolder";
+    constexpr const char* NewFileName    = "newfile";
+    constexpr const char* OpenName       = OpenFolderName;
+    constexpr const char* NewName        = NewFileName;
     constexpr const char* FolderName     = "folder";
     constexpr const char* ContentBrowserName = "contentbrowser";
     constexpr const char* RecentName     = "recent";
@@ -203,6 +206,14 @@ namespace Icons {
             {"save", SaveName},
             {"save-all", SaveAllName},
             {"saveall", SaveAllName},
+            {"addactor", AddActorName},
+            {"add-actor", AddActorName},
+            {"openfolder", OpenFolderName},
+            {"open-folder", OpenFolderName},
+            {"folder-open", OpenFolderName},
+            {"newfile", NewFileName},
+            {"new-file", NewFileName},
+            {"file-plus", NewFileName},
             {"open", OpenName},
             {"new", NewName},
             {"folder", FolderName},

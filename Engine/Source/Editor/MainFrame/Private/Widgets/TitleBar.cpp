@@ -62,9 +62,9 @@ namespace {
             };
 
             if (m_LogoSet != VK_NULL_HANDLE) {
-                context.DrawTexture(logoRect, m_LogoSet, ThemeColor(ThemeToken::AccentPrimary));
+                context.DrawTexture(logoRect, m_LogoSet, ThemeColor(ThemeToken::IconPrimary));
             } else {
-                IconPainter::DrawIcon(context, Icons::CameraName, logoRect, ThemeColor(ThemeToken::AccentPrimary));
+                IconPainter::DrawIcon(context, Icons::CameraName, logoRect, ThemeColor(ThemeToken::IconPrimary));
             }
         }
     private:
@@ -119,7 +119,7 @@ namespace {
 
             IconPainter::DrawIcon(context, Icons::PackageName,
                 Rect{ m_Geometry.x + kPadH * uiScale, centerY - iconSize * 0.5f, iconSize, iconSize },
-                ThemeColor(ThemeToken::IconDefault));
+                ThemeColor(ThemeToken::IconPrimary));
 
             const float textX = m_Geometry.x + (kPadH + iconSize + kIconGap) * uiScale;
             context.DrawText(kProjectName,
@@ -130,7 +130,7 @@ namespace {
             const float chevronX = m_Geometry.x + m_Geometry.width - (kPadH + display) * uiScale;
             Rect chevronControl{ chevronX, centerY - display * 0.5f, display, display };
             IconPainter::DrawCompactIcon(context, Icons::ChevronDownName, chevronControl,
-                ThemeColor(ThemeToken::IconDefault));
+                ThemeColor(ThemeToken::IconPrimary));
         }
         bool ShowsPointerCursor(const Point&) const override { return true; }
     private:

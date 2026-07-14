@@ -71,9 +71,11 @@ void ToolbarIconToggle::Paint(PaintContext& context) {
 
     const float iconSize = static_cast<float>(IconMetrics::NativeIconTierPx(ThemeMetric(ThemeToken::IconSizeToolbar)));
     const Rect iconRect = CenterRect(m_Geometry, iconSize, iconSize);
-    Color iconColor = m_Selected ? ThemeColor(ThemeToken::TextPrimary) : ThemeColor(ThemeToken::IconDefault);
-    if (m_HoverAnim > 0.01f) {
-        iconColor = Color::Lerp(iconColor, ThemeColor(ThemeToken::TextPrimary), m_HoverAnim * 0.65f);
+    Color iconColor = m_Selected
+        ? ThemeColor(ThemeToken::IconAccent)
+        : ThemeColor(ThemeToken::IconPrimary);
+    if (m_HoverAnim > 0.01f && !m_Selected) {
+        iconColor = Color::Lerp(iconColor, ThemeColor(ThemeToken::IconHover), m_HoverAnim);
     }
     IconPainter::DrawIcon(context, m_IconName, iconRect, iconColor);
 }
@@ -147,7 +149,9 @@ void ToolbarLabeledButton::Paint(PaintContext& context) {
 
     if (!m_IconName.empty()) {
         const float iconSize = static_cast<float>(IconMetrics::NativeIconTierPx(ThemeMetric(ThemeToken::IconSizeToolbar)));
-        Color iconColor = m_Variant == Variant::Primary ? ThemeColor(ThemeToken::AccentPrimary) : ThemeColor(ThemeToken::IconDefault);
+        Color iconColor = m_Variant == Variant::Primary
+            ? ThemeColor(ThemeToken::IconAccent)
+            : ThemeColor(ThemeToken::IconPrimary);
         Rect iconBand{ x, m_Geometry.y, iconSize, m_Geometry.height };
         IconPainter::DrawIcon(context, m_IconName, IconMetrics::PlaceGlyphCentered(iconBand, iconSize), iconColor);
         x += iconSize + ThemeMetric(ThemeToken::Space2);

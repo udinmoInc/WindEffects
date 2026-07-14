@@ -153,15 +153,8 @@ std::string ResolveRuntimeIconName(const std::string& atlasRegionName)
 
 bool IsFullColorIcon(const std::string& runtimeName)
 {
-    return runtimeName == "search"
-        || runtimeName == "settings"
-        || runtimeName == "toolbar-object"
-        || runtimeName == "toolbar-environment"
-        || runtimeName == "windeffects"
-        || runtimeName == "save"
-        || runtimeName == "saveall"
-        || runtimeName == "save-all"
-        || runtimeName == "project-folder";
+    // Brand mark only — all toolbar/panel glyphs are mono-tinted at draw time.
+    return runtimeName == "windeffects";
 }
 
 std::vector<std::string> RuntimeAliasesFor(const std::string& runtimeName)
@@ -185,7 +178,9 @@ std::vector<std::string> RuntimeAliasesFor(const std::string& runtimeName)
         {"mediaplay", {"media-play"}},
         {"saveall", {"save-all"}},
         {"contentbrowser", {"content-browser"}},
-        {"maximize", {"square"}},
+        {"newfile", {"new-file", "file-plus", "new"}},
+        {"openfolder", {"open-folder", "folder-open", "open"}},
+        {"addactor", {"add-actor"}},
     };
 
     std::vector<std::string> names;

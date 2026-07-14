@@ -4,261 +4,282 @@ size: 182, 74
 format: RGBA8888
 filter: Nearest, Nearest
 repeat: none
-Icons_ChevronDown
+Icons_AddActor
   rotate: false
   xy: 2, 56
   size: 16, 16
   orig: 16, 16
   offset: 0, 0
   index: 16
-Icons_ChevronLeft
+Icons_ChevronDown
   rotate: false
   xy: 2, 38
   size: 16, 16
   orig: 16, 16
   offset: 0, 0
   index: 16
-Icons_ChevronRight
+Icons_ChevronLeft
   rotate: false
   xy: 20, 56
   size: 16, 16
   orig: 16, 16
   offset: 0, 0
   index: 16
-Icons_ChevronUp
+Icons_ChevronRight
   rotate: false
   xy: 2, 20
   size: 16, 16
   orig: 16, 16
   offset: 0, 0
   index: 16
-Icons_Close
+Icons_ChevronUp
   rotate: false
   xy: 20, 38
   size: 16, 16
   orig: 16, 16
   offset: 0, 0
   index: 16
-Icons_ContentBrowser
+Icons_Close
   rotate: false
   xy: 38, 56
   size: 16, 16
   orig: 16, 16
   offset: 0, 0
   index: 16
-Icons_Copy
+Icons_ContentBrowser
   rotate: false
   xy: 2, 2
   size: 16, 16
   orig: 16, 16
   offset: 0, 0
   index: 16
-Icons_Cursor
+Icons_Copy
   rotate: false
   xy: 20, 20
   size: 16, 16
   orig: 16, 16
   offset: 0, 0
   index: 16
-Icons_Eye
-  rotate: false
-  xy: 56, 56
-  size: 16, 16
-  orig: 16, 16
-  offset: 0, 0
-  index: 16
-Icons_EyeOff
+Icons_Cursor
   rotate: false
   xy: 38, 38
   size: 16, 16
   orig: 16, 16
   offset: 0, 0
   index: 16
-Icons_Filter
+Icons_Eye
   rotate: false
   xy: 20, 2
   size: 16, 16
   orig: 16, 16
   offset: 0, 0
   index: 16
-Icons_Grid
+Icons_EyeOff
+  rotate: false
+  xy: 56, 56
+  size: 16, 16
+  orig: 16, 16
+  offset: 0, 0
+  index: 16
+Icons_Filter
   rotate: false
   xy: 38, 20
   size: 16, 16
   orig: 16, 16
   offset: 0, 0
   index: 16
-Icons_Info
+Icons_Grid
   rotate: false
   xy: 56, 38
   size: 16, 16
   orig: 16, 16
   offset: 0, 0
   index: 16
-Icons_Magnet
+Icons_Info
   rotate: false
   xy: 74, 56
   size: 16, 16
   orig: 16, 16
   offset: 0, 0
   index: 16
-Icons_Maximize
+Icons_Magnet
   rotate: false
   xy: 38, 2
   size: 16, 16
   orig: 16, 16
   offset: 0, 0
   index: 16
-Icons_MediaPlay
+Icons_Maximize
   rotate: false
   xy: 56, 20
   size: 16, 16
   orig: 16, 16
   offset: 0, 0
   index: 16
-Icons_Minus
+Icons_MediaPlay
   rotate: false
   xy: 74, 38
   size: 16, 16
   orig: 16, 16
   offset: 0, 0
   index: 16
-Icons_Move
+Icons_Minus
   rotate: false
   xy: 92, 56
   size: 16, 16
   orig: 16, 16
   offset: 0, 0
   index: 16
-Icons_Object
+Icons_Move
   rotate: false
   xy: 56, 2
   size: 16, 16
   orig: 16, 16
   offset: 0, 0
   index: 16
-Icons_OutputLog
+Icons_NewFile
   rotate: false
   xy: 74, 20
   size: 16, 16
   orig: 16, 16
   offset: 0, 0
   index: 16
-Icons_Pivot
+Icons_Object
   rotate: false
   xy: 92, 38
   size: 16, 16
   orig: 16, 16
   offset: 0, 0
   index: 16
-Icons_Play
-  rotate: false
-  xy: 74, 2
-  size: 16, 16
-  orig: 16, 16
-  offset: 0, 0
-  index: 16
-Icons_PlaySolid
+Icons_OpenFolder
   rotate: false
   xy: 110, 56
   size: 16, 16
   orig: 16, 16
   offset: 0, 0
   index: 16
-Icons_Plus
+Icons_OutputLog
+  rotate: false
+  xy: 74, 2
+  size: 16, 16
+  orig: 16, 16
+  offset: 0, 0
+  index: 16
+Icons_Pivot
   rotate: false
   xy: 92, 20
   size: 16, 16
   orig: 16, 16
   offset: 0, 0
   index: 16
-Icons_Recent
-  rotate: false
-  xy: 110, 38
-  size: 16, 16
-  orig: 16, 16
-  offset: 0, 0
-  index: 16
-Icons_Redo
+Icons_Play
   rotate: false
   xy: 128, 56
   size: 16, 16
   orig: 16, 16
   offset: 0, 0
   index: 16
-Icons_Rotate
+Icons_PlaySolid
+  rotate: false
+  xy: 110, 38
+  size: 16, 16
+  orig: 16, 16
+  offset: 0, 0
+  index: 16
+Icons_Plus
   rotate: false
   xy: 92, 2
   size: 16, 16
   orig: 16, 16
   offset: 0, 0
   index: 16
-Icons_Save
-  rotate: false
-  xy: 128, 38
-  size: 16, 16
-  orig: 16, 16
-  offset: 0, 0
-  index: 16
-Icons_SaveAll
+Icons_Recent
   rotate: false
   xy: 110, 20
   size: 16, 16
   orig: 16, 16
   offset: 0, 0
   index: 16
-Icons_Scale
+Icons_Redo
+  rotate: false
+  xy: 128, 38
+  size: 16, 16
+  orig: 16, 16
+  offset: 0, 0
+  index: 16
+Icons_Rotate
   rotate: false
   xy: 146, 56
   size: 16, 16
   orig: 16, 16
   offset: 0, 0
   index: 16
-Icons_Search
-  rotate: false
-  xy: 110, 2
-  size: 16, 16
-  orig: 16, 16
-  offset: 0, 0
-  index: 16
-Icons_Settings
+Icons_Save
   rotate: false
   xy: 128, 20
   size: 16, 16
   orig: 16, 16
   offset: 0, 0
   index: 16
-Icons_Stop
+Icons_SaveAll
+  rotate: false
+  xy: 110, 2
+  size: 16, 16
+  orig: 16, 16
+  offset: 0, 0
+  index: 16
+Icons_Scale
   rotate: false
   xy: 146, 38
   size: 16, 16
   orig: 16, 16
   offset: 0, 0
   index: 16
-Icons_Sun
+Icons_Search
   rotate: false
   xy: 164, 56
   size: 16, 16
   orig: 16, 16
   offset: 0, 0
   index: 16
-Icons_Terminal
+Icons_Settings
   rotate: false
   xy: 128, 2
   size: 16, 16
   orig: 16, 16
   offset: 0, 0
   index: 16
-Icons_Undo
+Icons_Stop
   rotate: false
   xy: 146, 20
   size: 16, 16
   orig: 16, 16
   offset: 0, 0
   index: 16
-Icons_Wrench
+Icons_Sun
   rotate: false
   xy: 164, 38
+  size: 16, 16
+  orig: 16, 16
+  offset: 0, 0
+  index: 16
+Icons_Terminal
+  rotate: false
+  xy: 146, 2
+  size: 16, 16
+  orig: 16, 16
+  offset: 0, 0
+  index: 16
+Icons_Undo
+  rotate: false
+  xy: 164, 20
+  size: 16, 16
+  orig: 16, 16
+  offset: 0, 0
+  index: 16
+Icons_Wrench
+  rotate: false
+  xy: 164, 2
   size: 16, 16
   orig: 16, 16
   offset: 0, 0

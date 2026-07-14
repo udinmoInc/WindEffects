@@ -4,7 +4,8 @@
 
 #include "Core/Widget.h"
 #include "Core/Icon.h"
-#include "WindEffects/Editor/UI/Theming/ThemeToken.h"
+#include "WindEffects/Editor/UI/Theming/ThemeAccess.h"
+#include "WindEffects/Editor/UI/Theming/ThemeColors.h"
 #include <string>
 
 namespace WindEffects::Editor::UI {
@@ -25,7 +26,7 @@ public:
 
     void Paint(PaintContext& context) override {
         Rect iconRect = { m_Geometry.x, m_Geometry.y, m_Size, m_Size };
-        IconPainter::DrawIcon(context, m_IconName, iconRect, ThemeColor(ThemeToken::TextPrimary));
+        IconPainter::DrawIcon(context, m_IconName, iconRect, ThemeColor(ThemeToken::IconPrimary));
     }
 
 private:

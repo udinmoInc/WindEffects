@@ -1,6 +1,7 @@
 #include "Widgets/ToolButton.h"
 #include "Core/PaintContext.h"
 #include "WindEffects/Editor/UI/Theming/ThemeAccess.h"
+#include "WindEffects/Editor/UI/Theming/ThemeColors.h"
 #include "Core/Animator.h"
 #include "Core/Icon.h"
 #include "Core/ToolbarButtonChrome.h"
@@ -29,13 +30,8 @@ namespace {
         return ResolveThemeTextForState(hoverAnim > 0.01f || pressStrength > 0.01f, active);
     }
 
-    Color ResolvePlayIconColor(float hoverAnim, float pressStrength) {
-        Color base = ResolveThemeColor(ThemeToken::PlayForeground);
-        Color hover = Color::Lerp(base, ResolveThemeColor(ThemeToken::IconActive), 0.35f);
-        if (hoverAnim > 0.01f || pressStrength > 0.01f) {
-            return Color::Lerp(base, hover, std::max(hoverAnim, pressStrength));
-        }
-        return base;
+    Color ResolvePlayIconColor(float hoverAnim, float pressStrength, bool active) {
+        return ResolveIconColor(IconColorRole::Primary, hoverAnim, pressStrength, active);
     }
 
     bool IsPlayTransportIcon(const std::string& iconName) {
@@ -230,12 +226,12 @@ void ToolButton::Paint(PaintContext& context) {
             context.DrawRect(renderRect, hoverBg);
         }
 
-        Color iconColor = ThemeColor(ThemeToken::IconDefault);
+        Color iconColor = ThemeColor(ThemeToken::IconPrimary);
         if (m_HoverAnim > 0.01f) {
             iconColor = Color::Lerp(iconColor, ThemeColor(ThemeToken::IconHover), m_HoverAnim);
         }
         if (m_ButtonStyle == ToolButtonStyle::WindowClose && m_HoverAnim > 0.35f) {
-            iconColor = ThemeColor(ThemeToken::IconActive);
+            iconColor = ThemeColor(ThemeToken::IconHover);
         }
 
         const float iconSize = IconSize(uiScale);
@@ -274,7 +270,7 @@ void ToolButton::Paint(PaintContext& context) {
             const float labelX = renderRect.x + (renderRect.width - labelW) * 0.5f;
             const float labelY = topY + iconSize + labelGap;
             Color labelColor = m_Active
-                ? ThemeColor(ThemeToken::AccentPrimary)
+                ? ThemeColor(ThemeToken::IconAccent)
                 : ThemeColor(ThemeToken::TextSecondary);
             if (m_HoverAnim > 0.01f && !m_Active) {
                 labelColor = Color::Lerp(labelColor, ThemeColor(ThemeToken::TextPrimary), m_HoverAnim);
@@ -365,7 +361,7 @@ void ToolButton::Paint(PaintContext& context) {
             || m_ButtonStyle == ToolButtonStyle::PlayButton);
         const float iconSize = isTransport ? PrimaryIconSize(uiScale) : IconSize(uiScale);
         Color iconColor = IsPlayTransportIcon(m_IconName)
-            ? ResolvePlayIconColor(m_HoverAnim, pressStrength)
+            ? ResolvePlayIconColor(m_HoverAnim, pressStrength, m_Active)
             : ResolveIconColor(m_HoverAnim, pressStrength, m_Active);
         IconPainter::DrawIcon(context, m_IconName, PlaceIconInControl(renderRect, iconSize), iconColor);
         return;

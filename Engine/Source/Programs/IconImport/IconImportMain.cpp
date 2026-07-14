@@ -1,4 +1,5 @@
 #include "Icons/Compile/IconCompiler.h"
+#include "Icons/Compile/IconThemeAudit.h"
 #include "Core/BuildPaths.h"
 
 #include <filesystem>
@@ -72,6 +73,12 @@ int main(int argc, char** argv)
     std::cout << "Meta: " << result.value.metaPath.string() << '\n';
     for (const auto& atlasPath : result.value.atlasPaths) {
         std::cout << "Atlas: " << atlasPath.string() << '\n';
+    }
+
+    const auto audit = AuditIconAtlas(options.inputDir);
+    PrintIconAuditReport(audit);
+    if (!audit.ok) {
+        return 2;
     }
     return 0;
 }

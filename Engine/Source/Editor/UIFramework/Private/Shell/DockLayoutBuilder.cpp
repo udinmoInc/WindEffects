@@ -3,7 +3,7 @@
 #include "Widgets/Panel.h"
 #include "Widgets/DockContainer.h"
 #include "Layout/Splitter.h"
-#include "Core/Icon.h"
+#include "Core/PanelIconResolver.h"
 #include "WindEffects/Editor/UI/Theming/ThemeAccess.h"
 
 namespace WindEffects::Editor::UI {
@@ -14,24 +14,7 @@ Orientation ToOrientation(SplitOrientation orientation) {
 }
 
 std::string ResolveTabIconName(const DockPanelDescriptor& descriptor) {
-    static const std::unordered_map<std::string, const char*> kAliases = {
-        {"tools-panel", Icons::LayersName},
-        {"viewport", Icons::PerspectiveName},
-        {"outliner", Icons::HierarchyName},
-        {"details", Icons::PropertiesName},
-        {"content-browser", Icons::ContentBrowserName},
-        {"output-log", Icons::OutputLogName},
-    };
-
-    if (descriptor.iconResource.empty()) {
-        return {};
-    }
-
-    if (const auto it = kAliases.find(descriptor.iconResource); it != kAliases.end()) {
-        return it->second;
-    }
-
-    return descriptor.iconResource;
+    return ResolvePanelTabIconName(descriptor.iconResource);
 }
 
 void ApplyPanelDescriptor(const std::shared_ptr<Panel>& panel, const DockPanelDescriptor& descriptor) {

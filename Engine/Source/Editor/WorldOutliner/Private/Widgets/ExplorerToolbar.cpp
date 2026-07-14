@@ -65,7 +65,7 @@ void ExplorerToolbar::Paint(PaintContext& context) {
     const float searchIconY = m_SearchBoxGeometry.y + (m_SearchBoxGeometry.height - iconSize) * 0.5f;
     IconPainter::DrawIcon(context, Icons::SearchName,
                           Rect{ searchIconX, searchIconY, iconSize, iconSize },
-                          ThemeColor(ThemeToken::IconDefault));
+                          ThemeColor(ThemeToken::IconPrimary));
 
     const float textX = searchIconX + iconSize + ThemeMetric(ThemeToken::Space2) - 2.0f;
     const float textY = m_SearchBoxGeometry.y + (m_SearchBoxGeometry.height - fontSize) * 0.5f;
@@ -88,7 +88,7 @@ void ExplorerToolbar::Paint(PaintContext& context) {
         const float clearY = m_SearchBoxGeometry.y + (m_SearchBoxGeometry.height - iconSize) * 0.5f;
         IconPainter::DrawIcon(context, Icons::XName,
                               Rect{ clearX, clearY, iconSize, iconSize },
-                              ThemeColor(ThemeToken::IconDefault));
+                              ThemeColor(ThemeToken::IconPrimary));
     }
 
     const float separatorX = m_SearchBoxGeometry.x + m_SearchBoxGeometry.width + ThemeMetric(ThemeToken::Space2);

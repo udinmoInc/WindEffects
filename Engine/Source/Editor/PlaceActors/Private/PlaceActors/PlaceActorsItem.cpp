@@ -26,7 +26,7 @@ namespace {
 
 void PaintItemIcon(PaintContext& context, const std::string& iconName, const Rect& iconRect) {
     WindEffects::Editor::UI::IconPainter::DrawIcon(
-        context, iconName, iconRect, ResolveThemeColor(ThemeToken::IconDefault));
+        context, iconName, iconRect, ResolveThemeColor(ThemeToken::IconPrimary));
 }
 
 } // namespace
@@ -124,7 +124,7 @@ void PlaceActorsItem::PaintList(PaintContext& context,
     if (favorite || hoverAnim > 0.01f) {
         const Color starColor = favorite
             ? ResolveThemeColor(ThemeToken::Warning)
-            : ResolveThemeColor(ThemeToken::IconDefault);
+            : ResolveThemeColor(ThemeToken::IconPrimary);
         WindEffects::Editor::UI::IconPainter::DrawIcon(
             context,
             WEIcons::StarName,
