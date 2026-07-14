@@ -3,6 +3,7 @@
 #include "Core/Widget.h"
 #include "Layout/ScrollViewport.h"
 #include "PlaceActors/PlaceActorsTypes.h"
+#include "PlaceActors/PlaceActorsResponsiveGrid.h"
 #include <functional>
 #include <memory>
 #include <string>
@@ -46,10 +47,13 @@ private:
         std::string categoryId;
         std::string toolId;
         WindEffects::Editor::UI::Rect geometry;
+        WindEffects::Editor::UI::Rect previewGeometry;
         float hoverAnim = 0.0f;
         float pressAnim = 0.0f;
         float revealAnim = 1.0f;
         bool selected = false;
+        int gridColumn = 0;
+        int gridColumns = 1;
     };
 
     struct ContextMenuItem {
@@ -69,6 +73,7 @@ private:
     void RebuildLayout();
     void RefreshFilteredContent();
     void SyncScrollMetrics();
+    void UpdateVisibleRange();
     void LoadPanelState();
     void SaveCategoryState() const;
     void SaveFavorites() const;
@@ -85,6 +90,10 @@ private:
     void HideTooltip();
     float CategoryExpandAnim(const std::string& categoryId) const;
     bool IsFavoritesCategory(const std::string& categoryId) const;
+    bool IsQuickAccessCategory(const std::string& categoryId) const;
+    bool IsPinnedCategory(const std::string& categoryId) const;
+    PlaceActorsGridMetrics MakeGridMetrics() const;
+    void BuildQuickAccessCategory(const std::string& query);
 
     std::shared_ptr<WindEffects::Editor::UI::SearchBox> m_SearchBox;
     std::shared_ptr<WindEffects::Editor::UI::ToolButton> m_FilterButton;
@@ -92,13 +101,14 @@ private:
     std::string m_SearchText;
     std::string m_ExternalSearchFilter;
     std::string m_CategoryFilter = "All";
-    PlaceActorsViewMode m_ViewMode = PlaceActorsViewMode::List;
+    PlaceActorsViewMode m_ViewMode = PlaceActorsViewMode::Grid;
     PlaceActorsSortMode m_SortMode = PlaceActorsSortMode::Name;
     bool m_ShowRecentOnly = false;
 
     WindEffects::Editor::UI::ScrollViewport m_Scroll;
     WindEffects::Editor::UI::ScrollViewportMetrics m_ScrollMetrics{};
     float m_ContentHeight = 0.0f;
+    float m_LastViewportWidth = -1.0f;
 
     WindEffects::Editor::UI::Rect m_SearchRowRect;
     WindEffects::Editor::UI::Rect m_ContentRect;
@@ -109,6 +119,9 @@ private:
     std::vector<WindEffects::Editor::UI::Rect> m_SectionBackgrounds;
     std::unordered_map<std::string, bool> m_CategoryExpanded;
     std::unordered_map<std::string, float> m_CategoryExpandAnim;
+
+    int m_FirstVisibleIndex = 0;
+    int m_LastVisibleIndex = -1;
 
     bool m_ContextMenuOpen = false;
     WindEffects::Editor::UI::Rect m_ContextMenuRect;

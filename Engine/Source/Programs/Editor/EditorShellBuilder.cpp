@@ -208,8 +208,11 @@ EditorShellResult EditorShellBuilder::Build(
         toolbarStyle.iconSize > 0.0f ? toolbarStyle.iconSize : ResolveThemeMetric(ThemeToken::IconSizeToolbar)));
     toolbar->SetIconSize(toolbarIconTier);
 
-    // Actor / object mode selector
-    toolbar->AddWidget(std::make_shared<we::programs::editor::EditorModeSelector>());
+    // Actor / object mode selector (pivot icon opens place-actors drawer)
+    auto modeSelector = std::make_shared<we::programs::editor::EditorModeSelector>();
+    modeSelector->SetContext(widgetContext);
+    modeSelector->Refresh();
+    toolbar->AddWidget(modeSelector);
     toolbar->AddSeparator();
 
     // File operations

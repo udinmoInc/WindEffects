@@ -78,6 +78,14 @@ namespace Icons {
     constexpr const char* SphereName     = "circle";
     constexpr const char* PlaneName      = "square";
     constexpr const char* CylinderName   = "cylinder";
+    // Full-color 3D primitive thumbnails baked into the UI icon atlas (tiers 32+).
+    constexpr const char* Cube3DName        = "3dcube";
+    constexpr const char* Sphere3DName      = "3dsphere";
+    constexpr const char* Cylinder3DName    = "3dcylinder";
+    constexpr const char* Plane3DName       = "3dplane";
+    constexpr const char* Cone3DName        = "3dcone";
+    constexpr const char* Capsule3DName     = "3dcapsule";
+    constexpr const char* BlankActor3DName  = "3dblankactor";
     constexpr const char* LightName      = "lightbulb";
     constexpr const char* SunName        = "sun";
     constexpr const char* PointLightName = "lightbulb";
@@ -87,6 +95,7 @@ namespace Icons {
     constexpr const char* SaveName       = "save";
     constexpr const char* SaveAllName    = "saveall";
     constexpr const char* AddActorName   = "addactor";
+    constexpr const char* PivotName      = "pivot";
     constexpr const char* OpenFolderName = "openfolder";
     constexpr const char* NewFileName    = "newfile";
     constexpr const char* OpenName       = OpenFolderName;
@@ -194,6 +203,14 @@ namespace Icons {
             {"sphere", SphereName},
             {"plane", PlaneName},
             {"cylinder", CylinderName},
+            {"3dcube", Cube3DName},
+            {"3dsphere", Sphere3DName},
+            {"3dcylinder", Cylinder3DName},
+            {"3dplane", Plane3DName},
+            {"3dcone", Cone3DName},
+            {"3dcapsule", Capsule3DName},
+            {"3dblankactor", BlankActor3DName},
+            {"3d-blank-actor", BlankActor3DName},
             {"light", LightName},
             {"sun", SunName},
             {"globe", SunName},
@@ -208,6 +225,7 @@ namespace Icons {
             {"saveall", SaveAllName},
             {"addactor", AddActorName},
             {"add-actor", AddActorName},
+            {"pivot", PivotName},
             {"openfolder", OpenFolderName},
             {"open-folder", OpenFolderName},
             {"folder-open", OpenFolderName},

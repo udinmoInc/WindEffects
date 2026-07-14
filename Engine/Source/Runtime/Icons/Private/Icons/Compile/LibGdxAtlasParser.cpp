@@ -153,8 +153,15 @@ std::string ResolveRuntimeIconName(const std::string& atlasRegionName)
 
 bool IsFullColorIcon(const std::string& runtimeName)
 {
-    // Brand mark only — all toolbar/panel glyphs are mono-tinted at draw time.
-    return runtimeName == "windeffects";
+    // Brand / shaded 3D previews keep baked RGB instead of mono tinting.
+    return runtimeName == "windeffects"
+        || runtimeName == "3dcube"
+        || runtimeName == "3dsphere"
+        || runtimeName == "3dcylinder"
+        || runtimeName == "3dplane"
+        || runtimeName == "3dcone"
+        || runtimeName == "3dcapsule"
+        || runtimeName == "3dblankactor";
 }
 
 std::vector<std::string> RuntimeAliasesFor(const std::string& runtimeName)

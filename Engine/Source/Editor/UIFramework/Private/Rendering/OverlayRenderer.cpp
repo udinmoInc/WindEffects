@@ -1,4 +1,6 @@
 #include "Rendering/OverlayRenderer.h"
+#include "Core/UIRepaintGate.h"
+#include "Core/FrameCounter.h"
 #include "Rendering/UIWidgetAdapter.h"
 #include "Rendering/UICompositor.h"
 #include "Rendering/UIStateManager.h"
@@ -7,6 +9,7 @@
 #include "Rendering/Icons/IconManager.h"
 #include "Rendering/UiGpuUpload.h"
 #include "Core/Widget.h"
+#include "Core/UIRepaintGate.h"
 #include "Core/PaintContext.h"
 #include "Core/DPIContext.h"
 #include "WindEffects/Editor/UI/Theming/ThemeToken.h"
@@ -321,7 +324,6 @@ void OverlayRenderer::RenderEditorUI(const std::shared_ptr<WindEffects::Editor::
         WE_OVERLAY_PASS_INFO("PASS | OverlayManager Exists (Adapter)");
     }
     
-    // Evidence-based validation for geometry
     if (width == 0 || height == 0) {
         HE_ERROR("STOPPING: Target extent is zero (" + std::to_string(width) + "x" + std::to_string(height) + ")");
         m_Vertices.clear();
@@ -331,21 +333,39 @@ void OverlayRenderer::RenderEditorUI(const std::shared_ptr<WindEffects::Editor::
     }
     WE_OVERLAY_PASS_INFO(std::string("PASS | Root Geometry: ") + std::to_string(width) + "x" + std::to_string(height));
 
-    WindEffects::Editor::UI::Widget::ResetDiagnostics();
-    
-    if (m_WidgetAdapter) {
-        m_WidgetAdapter->ResetDiagnostics();
-        m_WidgetAdapter->ProcessWidget(root, width, height);
-        
-        m_Vertices = m_WidgetAdapter->GetVertices();
-        m_Indices = m_WidgetAdapter->GetIndices();
-        m_Batches = m_WidgetAdapter->GetBatches();
+    const bool sizeChanged = width != m_LastBuiltWidth || height != m_LastBuiltHeight;
+    const bool forceRebuild = frameNumber <= 3 || sizeChanged || m_Vertices.empty();
+    const bool rebuild = forceRebuild || UIRepaintGate::ConsumeNeedsRebuild();
+
+    if (rebuild) {
+        WindEffects::Editor::UI::Widget::ResetDiagnostics();
+
+        if (m_WidgetAdapter) {
+            m_WidgetAdapter->ResetDiagnostics();
+            m_WidgetAdapter->ProcessWidget(root, width, height);
+
+            m_Vertices = m_WidgetAdapter->GetVertices();
+            m_Indices = m_WidgetAdapter->GetIndices();
+            m_Batches = m_WidgetAdapter->GetBatches();
+        }
+
+        m_LastBuiltWidth = width;
+        m_LastBuiltHeight = height;
+        ++m_GeometryGeneration;
     }
 
+    // Upload only when this frame slot lacks the current geometry generation.
+    if (!m_Vertices.empty()) {
+        if (m_ActiveFrameSlot < m_FrameGeometry.size()
+            && m_FrameGeometry[m_ActiveFrameSlot].geometryGeneration != m_GeometryGeneration) {
+            UpdateGeometryBuffers(m_ActiveFrameSlot);
+            m_FrameGeometry[m_ActiveFrameSlot].geometryGeneration = m_GeometryGeneration;
+        }
+    }
 
     const UIWidgetAdapter::Diagnostics adapterDiagnostics =
         m_WidgetAdapter ? m_WidgetAdapter->GetDiagnostics() : UIWidgetAdapter::Diagnostics{};
-    if (adapterDiagnostics.totalDrawCommandsGenerated == 0) {
+    if (rebuild && adapterDiagnostics.totalDrawCommandsGenerated == 0 && m_Vertices.empty()) {
         HE_ERROR("STOPPING: DrawCommands == 0! Paint() produced nothing.");
         m_Vertices.clear();
         m_Indices.clear();
@@ -363,12 +383,11 @@ void OverlayRenderer::RenderEditorUI(const std::shared_ptr<WindEffects::Editor::
     WE_OVERLAY_PASS_INFO(std::string("Vertex Buffer Size: ") + std::to_string(m_Vertices.size() * sizeof(UIVertex2)));
     WE_OVERLAY_PASS_INFO(std::string("Index Buffer Size: ") + std::to_string(m_Indices.size() * sizeof(uint32_t)));
 
-
     m_FrameStats.vertices = static_cast<uint32_t>(m_Vertices.size());
     m_FrameStats.indices = static_cast<uint32_t>(m_Indices.size());
     m_FrameStats.batches = static_cast<uint32_t>(m_Batches.size());
-
-    UpdateGeometryBuffers(m_ActiveFrameSlot);
+    m_FrameStats.width = width;
+    m_FrameStats.height = height;
 }
 
 void OverlayRenderer::SetTargetExtent(uint32_t width, uint32_t height) {

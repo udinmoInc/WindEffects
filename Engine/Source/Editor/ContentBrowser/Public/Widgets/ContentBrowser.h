@@ -85,6 +85,7 @@ private:
     };
 
     void BuildRenderList();
+    void MarkLayoutDirty() { m_LayoutDirty = true; }
     void CalculateGridLayout();
     void CalculateListLayout();
     void CalculateDetailsLayout();
@@ -111,6 +112,10 @@ private:
     std::vector<std::string> m_EmptySelectedIds;
 
     std::vector<RenderItem> m_RenderList;
+    bool m_LayoutDirty = true;
+    float m_LastLayoutWidth = -1.0f;
+    float m_LastLayoutHeight = -1.0f;
+    float m_LastScrollOffset = -1.0f;
     std::string m_LastSelectedId;
     std::string m_HoveredId;
     float m_ItemHoverAlpha = 0.0f;

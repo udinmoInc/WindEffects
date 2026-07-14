@@ -1,3 +1,4 @@
+#include "PlaceActors/PlaceActorsRegistration.h"
 #include "PlaceActors/PlaceActorsPanel.h"
 #include "PlaceActors/PlaceActorsPlacement.h"
 #include "EditorToolsRegistry.h"
@@ -57,23 +58,17 @@ void RegisterTool(const char* categoryId,
 }
 
 void RegisterActorCatalog() {
-    RegisterCategory("Actors", "ActorBasic", "Basic", WEIcons::CrosshairName, 10, true);
-    RegisterCategory("Actors", "ActorGeometry", "Geometry", WEIcons::CubeName, 20, true);
-    RegisterCategory("Actors", "ActorLights", "Lights", WEIcons::LightName, 30);
-    RegisterCategory("Actors", "ActorCameras", "Cameras", WEIcons::CameraName, 40);
-    RegisterCategory("Actors", "ActorCharacters", "Characters", WEIcons::UserName, 50);
-    RegisterCategory("Actors", "ActorEnvironment", "Environment", WEIcons::MountainName, 60);
-    RegisterCategory("Actors", "ActorCinematics", "Cinematics", WEIcons::VideoName, 70);
-    RegisterCategory("Actors", "ActorAudio", "Audio", WEIcons::Volume2Name, 80);
-    RegisterCategory("Actors", "ActorFX", "Visual Effects", WEIcons::SparklesName, 90);
-    RegisterCategory("Actors", "ActorVolumes", "Volumes", WEIcons::LayersName, 100);
-    RegisterCategory("Actors", "ActorAllClasses", "All Classes", WEIcons::ListName, 110);
-
-    RegisterTool("ActorBasic", "PlaceEmptyActor", "Empty Actor", WEIcons::CrosshairName, 10, {"empty", "actor", "transform"});
-    RegisterTool("ActorBasic", "PlaceEmptyCharacter", "Empty Character", WEIcons::UserName, 20, {"character", "pawn", "empty"});
-    RegisterTool("ActorBasic", "PlaceEmptyPawn", "Empty Pawn", WEIcons::UserName, 30, {"pawn", "empty"});
-    RegisterTool("ActorBasic", "LightPoint", "Point Light", WEIcons::PointLightName, 40, {"point", "omni", "light"});
-    RegisterTool("ActorBasic", "LightSpot", "Spot Light", WEIcons::FlashlightName, 50, {"spot", "cone", "light"});
+    // Basic category removed — Quick Access is synthesized by PlaceActorsPanel.
+    RegisterCategory("Actors", "ActorGeometry", "Geometry", WEIcons::CubeName, 20, false);
+    RegisterCategory("Actors", "ActorLights", "Lights", WEIcons::LightName, 30, false);
+    RegisterCategory("Actors", "ActorCameras", "Cameras", WEIcons::CameraName, 40, false);
+    RegisterCategory("Actors", "ActorCharacters", "Characters", WEIcons::UserName, 50, false);
+    RegisterCategory("Actors", "ActorEnvironment", "Environment", WEIcons::MountainName, 60, false);
+    RegisterCategory("Actors", "ActorCinematics", "Cinematics", WEIcons::VideoName, 70, false);
+    RegisterCategory("Actors", "ActorAudio", "Audio", WEIcons::Volume2Name, 80, false);
+    RegisterCategory("Actors", "ActorFX", "Visual Effects", WEIcons::SparklesName, 90, false);
+    RegisterCategory("Actors", "ActorVolumes", "Volumes", WEIcons::LayersName, 100, false);
+    RegisterCategory("Actors", "ActorAllClasses", "All Classes", WEIcons::ListName, 110, false);
 
     RegisterTool("ActorGeometry", "PlaceCube", "Cube", WEIcons::CubeName, 10, {"box", "mesh", "geometry"});
     RegisterTool("ActorGeometry", "PlaceSphere", "Sphere", WEIcons::SphereName, 20, {"ball", "mesh", "geometry"});
@@ -82,13 +77,17 @@ void RegisterActorCatalog() {
     RegisterTool("ActorGeometry", "PlaceCone", "Cone", WEIcons::ConeName, 50, {"cone", "mesh", "geometry"});
     RegisterTool("ActorGeometry", "PlaceCapsule", "Capsule", WEIcons::CapsuleName, 60, {"capsule", "mesh", "geometry"});
 
+    // Empty transforms live under Characters / All Classes for catalog search; Quick Access surfaces them.
+    RegisterTool("ActorCharacters", "PlaceEmptyActor", "Empty Actor", WEIcons::CrosshairName, 5, {"empty", "actor", "transform"});
+    RegisterTool("ActorCharacters", "PlaceEmptyCharacter", "Empty Character", WEIcons::UserName, 8, {"character", "pawn", "empty"});
+    RegisterTool("ActorCharacters", "PlaceEmptyPawn", "Empty Pawn", WEIcons::UserName, 9, {"pawn", "empty"});
+    RegisterTool("ActorCharacters", "PlaceCharacter", "Character", WEIcons::UserName, 10, {"pawn", "character", "player"});
+
     RegisterTool("ActorLights", "LightDirectional", "Directional Light", WEIcons::SunName, 10, {"sun", "directional", "light"});
     RegisterTool("ActorLights", "LightPoint", "Point Light", WEIcons::PointLightName, 20, {"point", "omni", "light"});
     RegisterTool("ActorLights", "LightSpot", "Spot Light", WEIcons::FlashlightName, 30, {"spot", "cone", "light"});
 
     RegisterTool("ActorCameras", "PlaceCamera", "Camera", WEIcons::CameraName, 10, {"camera", "cine", "view"});
-
-    RegisterTool("ActorCharacters", "PlaceCharacter", "Character", WEIcons::UserName, 10, {"pawn", "character", "player"});
 
     RegisterTool("ActorEnvironment", "TerrainGenerate", "Landscape", WEIcons::MountainName, 10, {"terrain", "heightfield", "environment"});
     RegisterTool("ActorEnvironment", "FoliagePaintTool", "Foliage", WEIcons::TreesName, 20, {"foliage", "grass", "environment"});
@@ -119,7 +118,7 @@ void ConfigureActorsModePanel() {
     } else {
         mode.id = "Actors";
         mode.label = "Assets";
-        mode.iconName = WEIcons::AddActorName;
+        mode.iconName = WEIcons::PivotName;
         mode.sortOrder = 20;
         mode.keywords = "Actors Place Assets";
         mode.opensToolDrawerByDefault = true;
@@ -142,6 +141,16 @@ struct PlaceActorsRegistration {
 
 static PlaceActorsRegistration g_PlaceActorsRegistration;
 
+void EnsureRegisteredImpl() {
+    RegisterActorCatalog();
+    ConfigureActorsModePanel();
+}
+
 } // namespace
+
+void EnsurePlaceActorsRegistered() {
+    // Re-apply in case an earlier static registrar overwrote Actors mode without customContent.
+    EnsureRegisteredImpl();
+}
 
 } // namespace we::programs::editor

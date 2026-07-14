@@ -24,17 +24,30 @@
 #include "Runtime/Core/AssetRegistry.h"
 #include "EditorGridRenderer.h"
 #include "Core/DPIContext.h"
+#include "Core/UIRepaintGate.h"
+#include "Core/EditorPerfStats.h"
 #include "Runtime/World/DefaultScene/DefaultSceneBuilder.h"
 #include "Runtime/World/Environment/EnvironmentSystem.h"
 #include "Widgets/RenderInvestigationModal.h"
 
 #include <SDL3/SDL.h>
 #include <algorithm>
+#include <cstdlib>
 #include <filesystem>
 
 #ifndef WE_DEBUG_UI
 #define WE_DEBUG_UI 0
 #endif
+
+namespace {
+bool PresentAuditEnabled() {
+    static const bool enabled = []() {
+        const char* value = std::getenv("WE_PRESENT_AUDIT");
+        return value != nullptr && value[0] != '\0' && value[0] != '0';
+    }();
+    return enabled;
+}
+} // namespace
 
 #if defined(_WIN32)
 #include "../Windows/Win32WindowChrome.h"
@@ -202,7 +215,12 @@ void Editor::UpdateUiScaleFromWindow() {
     }
 
     // Keep one canonical, bounded UI scale.
-    WindEffects::Editor::UI::DPIContext::SetScale(std::clamp(scale, 1.0f, 3.0f));
+    const float clamped = std::clamp(scale, 1.0f, 3.0f);
+    const float previous = WindEffects::Editor::UI::DPIContext::GetScale();
+    WindEffects::Editor::UI::DPIContext::SetScale(clamped);
+    if (std::abs(clamped - previous) > 0.001f) {
+        WindEffects::Editor::UI::UIRepaintGate::Request();
+    }
 }
 
 void Editor::EnsureVisibleSwapchain() {
@@ -235,11 +253,18 @@ void Editor::SyncViewportFramebufferFromLayout() {
         return;
     }
 
-    // Layout the full editor chrome, then let the viewport panel own offscreen size.
-    // Do not resize the offscreen framebuffer to the full window â€” that breaks aspect
-    // ratio and can clip the 3D view inside the docked viewport widget.
-    m_RootWidget->Measure(UI::Size{ static_cast<float>(w), static_cast<float>(h) });
-    m_RootWidget->Arrange(UI::Rect{ 0.0f, 0.0f, static_cast<float>(w), static_cast<float>(h) });
+    const bool sizeChanged = w != m_LastLayoutSwapchainW || h != m_LastLayoutSwapchainH;
+    const bool needsLayout = sizeChanged || WindEffects::Editor::UI::UIRepaintGate::PeekNeedsRebuild();
+
+    if (needsLayout) {
+        // Layout the full editor chrome, then let the viewport panel own offscreen size.
+        // Do not resize the offscreen framebuffer to the full window — that breaks aspect
+        // ratio and can clip the 3D view inside the docked viewport widget.
+        m_RootWidget->Measure(UI::Size{ static_cast<float>(w), static_cast<float>(h) });
+        m_RootWidget->Arrange(UI::Rect{ 0.0f, 0.0f, static_cast<float>(w), static_cast<float>(h) });
+        m_LastLayoutSwapchainW = w;
+        m_LastLayoutSwapchainH = h;
+    }
 
     if (m_ViewportWidget) {
         if (auto vp = std::dynamic_pointer_cast<ViewportWidget>(m_ViewportWidget)) {
@@ -352,9 +377,15 @@ void Editor::MainLoop() {
     uint64_t lastTime = SDL_GetPerformanceCounter();
     double frequency = static_cast<double>(SDL_GetPerformanceFrequency());
     bool firstFrame = true;
+    WindEffects::Editor::UI::UIRepaintGate::Request();
+
     while (m_Running) {
+        WindEffects::Editor::UI::EditorPerfStats::Get().BeginFrame();
+
         SDL_Event event;
         while (SDL_PollEvent(&event)) {
+            bool requestUiRebuild = false;
+
             if (event.type == SDL_EVENT_QUIT || (event.type == SDL_EVENT_WINDOW_CLOSE_REQUESTED && event.window.windowID == SDL_GetWindowID(m_Window))) {
                 m_Running = false;
                 // Execute pending callbacks before shutdown to prevent use-after-free
@@ -369,8 +400,15 @@ void Editor::MainLoop() {
                  event.type == SDL_EVENT_WINDOW_MAXIMIZED ||
                  event.type == SDL_EVENT_WINDOW_RESTORED)) {
                 we::programs::windows::UpdateBorderlessWindowShape(m_Window);
+                requestUiRebuild = true;
             }
 #endif
+
+            if (event.type == SDL_EVENT_WINDOW_RESIZED ||
+                event.type == SDL_EVENT_WINDOW_PIXEL_SIZE_CHANGED ||
+                event.type == SDL_EVENT_WINDOW_DISPLAY_SCALE_CHANGED) {
+                requestUiRebuild = true;
+            }
 
             // Simple event processing
             if (event.type == SDL_EVENT_MOUSE_MOTION ||
@@ -406,6 +444,17 @@ void Editor::MainLoop() {
                 mouseEvent.ctrlDown  = (mods & SDL_KMOD_CTRL) != 0;
 
                 m_UIEventSystem->ProcessMouseEvent(mouseEvent);
+
+                // Fly-look mouse motion only updates the camera; skip full UI rebuilds.
+                bool flyLook = false;
+                if (m_ViewportWidget) {
+                    if (auto vp = std::dynamic_pointer_cast<ViewportWidget>(m_ViewportWidget)) {
+                        flyLook = vp->IsFlyLookActive();
+                    }
+                }
+                if (!(flyLook && event.type == SDL_EVENT_MOUSE_MOTION)) {
+                    requestUiRebuild = true;
+                }
             } else if (event.type == SDL_EVENT_KEY_DOWN || event.type == SDL_EVENT_KEY_UP) {
 #if WE_DEBUG_UI
                 if (event.type == SDL_EVENT_KEY_DOWN && event.key.key == SDLK_F9) {
@@ -424,6 +473,13 @@ void Editor::MainLoop() {
                 keyEvent.ctrlDown  = (mods & SDL_KMOD_CTRL) != 0;
 
                 m_UIEventSystem->ProcessKeyEvent(keyEvent);
+                requestUiRebuild = true;
+            } else if (event.type == SDL_EVENT_TEXT_INPUT) {
+                requestUiRebuild = true;
+            }
+
+            if (requestUiRebuild) {
+                WindEffects::Editor::UI::UIRepaintGate::Request();
             }
         }
         
@@ -457,8 +513,10 @@ void Editor::MainLoop() {
         }
         we::editor::environment::TickEditor();
         UpdateUiScaleFromWindow();
+        WindEffects::Editor::UI::EditorPerfStats::Get().Mark("tick");
 
         SyncViewportFramebufferFromLayout();
+        WindEffects::Editor::UI::EditorPerfStats::Get().Mark("layout");
 
         we::runtime::core::FrameCounter::Advance();
 
@@ -481,6 +539,7 @@ void Editor::MainLoop() {
 
             // 1. Render scene into the viewport offscreen target (sampled by the UI viewport widget).
             m_Renderer->RenderScene();
+            WindEffects::Editor::UI::EditorPerfStats::Get().Mark("scene");
 
             // 2. Render editor UI (viewport panel composites the 3D target as a textured quad).
             if (m_OverlayRenderer) {
@@ -515,16 +574,19 @@ void Editor::MainLoop() {
 
                 m_Renderer->RecordUiPresentPath(imageIndex, cmd);
                 m_OverlayRenderer->SetPipelineAuditImageIndex(imageIndex);
-                HE_INFO(
-                    std::string("[PresentAudit] UI renders image=") + std::to_string(imageIndex) +
-                    " | Cmd=0x" + std::to_string(reinterpret_cast<uint64_t>(cmd)) +
-                    " | targetView=0x" + std::to_string(reinterpret_cast<uint64_t>(overlayContext.targetView)) +
-                    " | swapImage=0x" + std::to_string(reinterpret_cast<uint64_t>(swapImage)) +
-                    " | Layout preUI=COLOR_ATTACHMENT_OPTIMAL");
+                if (PresentAuditEnabled()) {
+                    HE_INFO(
+                        std::string("[PresentAudit] UI renders image=") + std::to_string(imageIndex) +
+                        " | Cmd=0x" + std::to_string(reinterpret_cast<uint64_t>(cmd)) +
+                        " | targetView=0x" + std::to_string(reinterpret_cast<uint64_t>(overlayContext.targetView)) +
+                        " | swapImage=0x" + std::to_string(reinterpret_cast<uint64_t>(swapImage)) +
+                        " | Layout preUI=COLOR_ATTACHMENT_OPTIMAL");
+                }
 
                 // Build UI geometry before entering the dynamic render pass.
                 m_OverlayRenderer->SetTargetExtent(overlayContext.targetExtent.width, overlayContext.targetExtent.height);
                 m_OverlayRenderer->RenderEditorUI(m_RootWidget, m_Renderer->GetCurrentFrameIndex());
+                WindEffects::Editor::UI::EditorPerfStats::Get().Mark("ui");
 
                 if (m_ViewportWidget) {
                     if (auto vp = std::dynamic_pointer_cast<ViewportWidget>(m_ViewportWidget)) {
@@ -543,6 +605,14 @@ void Editor::MainLoop() {
 
             // 3. Submit to GPU and Present
             m_Renderer->SubmitAndPresent();
+            WindEffects::Editor::UI::EditorPerfStats::Get().Mark("present");
+
+            {
+                const auto& stats = m_OverlayRenderer
+                    ? m_OverlayRenderer->GetFrameStats()
+                    : WindEffects::Editor::UI::UIFrameStats{};
+                WindEffects::Editor::UI::EditorPerfStats::Get().EndFrame(stats.vertices, stats.batches);
+            }
 
             if (firstFrame) {
                 HE_INFO("[Render] First foundation renderer frame presented.");
@@ -553,6 +623,9 @@ void Editor::MainLoop() {
             }
         } else if (!m_Renderer) {
             HE_ERROR("[Render] Renderer is null in main loop.");
+            WindEffects::Editor::UI::EditorPerfStats::Get().EndFrame(0, 0);
+        } else {
+            WindEffects::Editor::UI::EditorPerfStats::Get().EndFrame(0, 0);
         }
     }
 }

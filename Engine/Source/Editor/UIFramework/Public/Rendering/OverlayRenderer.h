@@ -149,6 +149,7 @@ private:
         VkBuffer indexBuffer = VK_NULL_HANDLE;
         VkDeviceMemory indexMemory = VK_NULL_HANDLE;
         VkDeviceSize indexSize = 0;
+        uint64_t geometryGeneration = 0;
     };
     std::vector<FrameGeometry> m_FrameGeometry;
 
@@ -159,10 +160,13 @@ private:
     std::vector<UIVertex2> m_Vertices;
     std::vector<uint32_t> m_Indices;
     std::vector<UIRenderBatch> m_Batches;
+    uint64_t m_GeometryGeneration = 0;
 
     uint32_t m_ActiveFrameSlot = 0;
     uint32_t m_CurrentWidth = 0;
     uint32_t m_CurrentHeight = 0;
+    uint32_t m_LastBuiltWidth = 0;
+    uint32_t m_LastBuiltHeight = 0;
     uint32_t m_PipelineAuditImageIndex = UINT32_MAX;
     UIFrameStats m_FrameStats;
     float m_LastFontBakeHeightPx = 0.0f;

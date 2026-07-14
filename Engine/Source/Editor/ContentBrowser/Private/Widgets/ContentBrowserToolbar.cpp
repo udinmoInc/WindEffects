@@ -6,6 +6,7 @@
 #include "Core/DPIContext.h"
 #include "Rendering/IconMetrics.h"
 #include "WindEffects/Editor/UI/Theming/ThemeAccess.h"
+#include "WindEffects/Editor/UI/Theming/ThemeColors.h"
 #include "WindEffects/Editor/UI/Theming/ThemeToken.h"
 #include "Core/Icon.h"
 #include "Core/Animator.h"
@@ -73,10 +74,7 @@ void ToolbarIconToggle::Paint(PaintContext& context) {
     const Rect iconRect = CenterRect(m_Geometry, iconSize, iconSize);
     Color iconColor = m_Selected
         ? ThemeColor(ThemeToken::IconAccent)
-        : ThemeColor(ThemeToken::IconPrimary);
-    if (m_HoverAnim > 0.01f && !m_Selected) {
-        iconColor = Color::Lerp(iconColor, ThemeColor(ThemeToken::IconHover), m_HoverAnim);
-    }
+        : ResolveIconColor(IconColorRole::Secondary, m_HoverAnim, m_PressAnim);
     IconPainter::DrawIcon(context, m_IconName, iconRect, iconColor);
 }
 
@@ -151,7 +149,7 @@ void ToolbarLabeledButton::Paint(PaintContext& context) {
         const float iconSize = static_cast<float>(IconMetrics::NativeIconTierPx(ThemeMetric(ThemeToken::IconSizeToolbar)));
         Color iconColor = m_Variant == Variant::Primary
             ? ThemeColor(ThemeToken::IconAccent)
-            : ThemeColor(ThemeToken::IconPrimary);
+            : ResolveIconColor(IconColorRole::Secondary, m_HoverAnim, m_PressAnim);
         Rect iconBand{ x, m_Geometry.y, iconSize, m_Geometry.height };
         IconPainter::DrawIcon(context, m_IconName, IconMetrics::PlaceGlyphCentered(iconBand, iconSize), iconColor);
         x += iconSize + ThemeMetric(ThemeToken::Space2);
@@ -168,8 +166,8 @@ void ToolbarLabeledButton::Paint(PaintContext& context) {
         const float chevronX = m_Geometry.x + m_Geometry.width - hPad - display;
         const float centerY = m_Geometry.y + m_Geometry.height * 0.5f;
         Rect chevronControl{ chevronX, centerY - display * 0.5f, display, display };
-        IconPainter::DrawCompactIcon(context, Icons::ChevronDownName, chevronControl,
-            ThemeColor(ThemeToken::TextSecondary));
+            IconPainter::DrawCompactIcon(context, Icons::ChevronDownName, chevronControl,
+            ResolveIconColor(IconColorRole::Secondary, m_HoverAnim, m_PressAnim));
     }
 }
 

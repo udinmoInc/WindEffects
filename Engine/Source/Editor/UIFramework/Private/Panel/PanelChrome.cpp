@@ -24,7 +24,7 @@ void DrawRoundedRectTop(PaintContext& context, const Rect& rect, const Color& co
 
 Color ResolveTabIconColor(bool isActive, float hoverAnim) {
     if (isActive) {
-        return ResolveThemeColor(ThemeToken::IconPrimary);
+        return ResolveThemeColor(ThemeToken::IconAccent);
     }
     return ResolveIconColor(IconColorRole::Secondary, hoverAnim);
 }
@@ -325,7 +325,7 @@ void PaintSearchField(
         context,
         Icons::SearchName,
         IconMetrics::PlaceGlyphCentered(iconBand, iconSize),
-        ResolveThemeColor(ThemeToken::IconPrimary));
+        ResolveThemeColor(ThemeToken::IconSecondary));
 
     const float textX = iconX + iconSize + ResolveThemeMetric(ThemeToken::Space1) * scale;
     const float textY = rect.y + (rect.height - fontSize) * 0.5f;
@@ -406,11 +406,8 @@ void PaintHeaderIconButton(
         context.DrawRoundedRect(rect, ResolveThemeColor(ThemeToken::HoverBackground), radius);
     }
 
-    const bool isClose = iconName == Icons::XName;
-    Color iconColor = isClose ? ResolveThemeColor(ThemeToken::IconSecondary) : ResolveThemeColor(ThemeToken::IconPrimary);
-    if (hovered || pressed) {
-        iconColor = isClose ? ResolveThemeColor(ThemeToken::IconActive) : ResolveThemeColor(ThemeToken::IconHover);
-    }
+    const float emphasis = (hovered || pressed) ? 1.0f : 0.0f;
+    Color iconColor = ResolveIconColor(IconColorRole::Secondary, emphasis, pressed ? 1.0f : 0.0f);
 
     if (compactGlyph) {
         IconPainter::DrawCompactIcon(context, iconName, rect, iconColor);

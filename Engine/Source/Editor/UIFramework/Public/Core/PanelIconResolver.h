@@ -22,7 +22,7 @@ inline std::string ResolvePanelTabIconName(std::string_view iconResource) {
         {"content-browser", Icons::ContentBrowserName},
         {"output-log", Icons::OutputLogName},
         {"terminal", Icons::TerminalName},
-        {"place-actors", Icons::AddActorName},
+        {"place-actors", Icons::PivotName},
     };
 
     const std::string key(iconResource);

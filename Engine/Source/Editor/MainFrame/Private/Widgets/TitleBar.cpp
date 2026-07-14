@@ -1,6 +1,8 @@
 #include "Widgets/TitleBar.h"
 #include "Widgets/MenuBar.h"
 #include "Core/PaintContext.h"
+#include "WindEffects/Editor/UI/Theming/ThemeAccess.h"
+#include "WindEffects/Editor/UI/Theming/ThemeColors.h"
 #include "WindEffects/Editor/UI/Theming/ThemeToken.h"
 #include "Core/Icon.h"
 #include "Core/Animator.h"
@@ -117,9 +119,11 @@ namespace {
             const float iconSize = static_cast<float>(IconMetrics::NativeIconTierPx(kIconSize));
             const float textSize = kTextSize * uiScale;
 
+            Color iconColor = ResolveIconColor(IconColorRole::Secondary, m_HoverAnim);
+
             IconPainter::DrawIcon(context, Icons::PackageName,
                 Rect{ m_Geometry.x + kPadH * uiScale, centerY - iconSize * 0.5f, iconSize, iconSize },
-                ThemeColor(ThemeToken::IconPrimary));
+                iconColor);
 
             const float textX = m_Geometry.x + (kPadH + iconSize + kIconGap) * uiScale;
             context.DrawText(kProjectName,
@@ -129,8 +133,7 @@ namespace {
             const float display = IconMetrics::CompactDisplayPx();
             const float chevronX = m_Geometry.x + m_Geometry.width - (kPadH + display) * uiScale;
             Rect chevronControl{ chevronX, centerY - display * 0.5f, display, display };
-            IconPainter::DrawCompactIcon(context, Icons::ChevronDownName, chevronControl,
-                ThemeColor(ThemeToken::IconPrimary));
+            IconPainter::DrawCompactIcon(context, Icons::ChevronDownName, chevronControl, iconColor);
         }
         bool ShowsPointerCursor(const Point&) const override { return true; }
     private:

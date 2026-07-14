@@ -62,7 +62,11 @@ inline float StarIconX(float contentX, float contentWidth) {
 }
 
 inline float CategoryGap() {
-    return WindEffects::Editor::UI::ResolveThemeMetric(WindEffects::Editor::UI::ThemeToken::Space1);
+    return WindEffects::Editor::UI::ResolveThemeMetric(WindEffects::Editor::UI::ThemeToken::Space3);
+}
+
+inline float CategoryContentGap() {
+    return WindEffects::Editor::UI::ResolveThemeMetric(WindEffects::Editor::UI::ThemeToken::Space2);
 }
 
 inline float SectionRadius() {
@@ -76,6 +80,33 @@ inline float ToolbarIconSize() {
 
 inline float FilterButtonGap() {
     return WindEffects::Editor::UI::ResolveThemeMetric(WindEffects::Editor::UI::ThemeToken::Space2);
+}
+
+inline float GridMinCardWidth() {
+    return 76.0f * WindEffects::Editor::UI::PanelChrome::UiScale();
+}
+
+inline float GridMaxCardWidth() {
+    return 112.0f * WindEffects::Editor::UI::PanelChrome::UiScale();
+}
+
+inline float GridCardGap() {
+    return WindEffects::Editor::UI::ResolveThemeMetric(WindEffects::Editor::UI::ThemeToken::Space3);
+}
+
+inline float GridLabelHeight() {
+    return 16.0f * WindEffects::Editor::UI::PanelChrome::UiScale();
+}
+
+inline float GridLabelGap() {
+    return WindEffects::Editor::UI::ResolveThemeMetric(WindEffects::Editor::UI::ThemeToken::Space1);
+}
+
+// Always reserve scrollbar track width so the last column never sits under the thumb.
+inline float GridScrollbarReserve() {
+    return WindEffects::Editor::UI::ResolveThemeMetric(WindEffects::Editor::UI::ThemeToken::ScrollbarWidth)
+        * WindEffects::Editor::UI::PanelChrome::UiScale()
+        + WindEffects::Editor::UI::ResolveThemeMetric(WindEffects::Editor::UI::ThemeToken::Space1);
 }
 
 } // namespace we::programs::editor::ActorsPanelLayout

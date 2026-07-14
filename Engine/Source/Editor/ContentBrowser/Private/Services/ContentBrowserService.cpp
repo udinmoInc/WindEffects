@@ -4,6 +4,7 @@
 #include "Registry/AssetTypeResolver.h"
 #include "Rendering/IconRenderer.h"
 #include "Core/Logger.h"
+#include "Core/UIRepaintGate.h"
 #include <filesystem>
 
 namespace we::editor::contentbrowser {
@@ -123,6 +124,7 @@ void ContentBrowserService::ProcessThumbnails() {
                 }
                 model->NotifyChanged();
             }
+            WindEffects::Editor::UI::UIRepaintGate::Request();
         });
 }
 

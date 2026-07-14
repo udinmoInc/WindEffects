@@ -11,9 +11,11 @@
 #include "Rendering/IconMetrics.h"
 #include "WindEffects/Editor/UI/Theming/ThemeToken.h"
 #include "Core/Icon.h"
+#include "Core/UIRepaintGate.h"
 #include <SDL3/SDL.h>
 #include <algorithm>
 #include <cctype>
+#include <cmath>
 
 namespace WindEffects::Editor::UI {
 
@@ -39,7 +41,11 @@ ContentBrowser::ContentBrowser()
 void ContentBrowser::SetModel(std::shared_ptr<ContentBrowserModel> model) {
     m_Model = model;
     if (m_Model) {
-        m_Model->onModelChanged = [this]() { BuildRenderList(); };
+        m_Model->onModelChanged = [this]() {
+            MarkLayoutDirty();
+            BuildRenderList();
+        };
+        MarkLayoutDirty();
         BuildRenderList();
     }
 }
@@ -131,14 +137,34 @@ void ContentBrowser::RecalculateLayout() {
     layoutPass();
     m_ContentHeight = ComputeContentHeight();
     SyncScrollMetrics();
-    layoutPass();
-    m_ContentHeight = ComputeContentHeight();
-    SyncScrollMetrics();
+
+    // Second pass only when scrollbar/content feedback can change tile placement.
+    const float contentAfter = ComputeContentHeight();
+    if (std::abs(contentAfter - m_ContentHeight) > 0.5f
+        || m_ScrollMetrics.showsScrollbar) {
+        layoutPass();
+        m_ContentHeight = ComputeContentHeight();
+        SyncScrollMetrics();
+    }
+
+    m_LastLayoutWidth = m_Geometry.width;
+    m_LastLayoutHeight = m_Geometry.height;
+    m_LastScrollOffset = m_Scroll.offset;
+    m_LayoutDirty = false;
 }
 
 void ContentBrowser::Arrange(const Rect& allottedRect) {
+    const bool sizeChanged =
+        std::abs(allottedRect.width - m_LastLayoutWidth) > 0.5f
+        || std::abs(allottedRect.height - m_LastLayoutHeight) > 0.5f;
+    const bool scrollChanged = std::abs(m_Scroll.offset - m_LastScrollOffset) > 0.5f;
+
     m_Geometry = allottedRect;
-    RecalculateLayout();
+    if (m_LayoutDirty || sizeChanged || scrollChanged || m_RenderList.empty()) {
+        RecalculateLayout();
+    } else {
+        SyncScrollMetrics();
+    }
     UpdateVisibleRange();
     RequestVisibleThumbnails();
 }
@@ -151,10 +177,14 @@ void ContentBrowser::Tick(float deltaTime) {
     constexpr float kHoverDuration = 0.135f;
     const float hoverSpeed = 1.0f / kHoverDuration;
     const float target = m_HoveredId.empty() ? 0.0f : 1.0f;
+    const float prev = m_ItemHoverAlpha;
     if (m_ItemHoverAlpha < target) {
         m_ItemHoverAlpha = std::min(target, m_ItemHoverAlpha + hoverSpeed * deltaTime);
     } else if (m_ItemHoverAlpha > target) {
         m_ItemHoverAlpha = std::max(target, m_ItemHoverAlpha - hoverSpeed * deltaTime);
+    }
+    if (std::abs(m_ItemHoverAlpha - prev) > 0.0005f) {
+        UIRepaintGate::MarkAnimating();
     }
 }
 

@@ -184,9 +184,21 @@ std::shared_ptr<ToolButton> Toolbar::AddTool(const std::string& iconName, const 
         btn->SetButtonStyle(ToolButtonStyle::ToolbarIconOnly);
     }
     tool.button = btn;
+    if (m_Context) {
+        btn->SetContext(m_Context);
+    }
     m_Tools.push_back(tool);
 
     return btn;
+}
+
+void Toolbar::SetContext(std::shared_ptr<IWidgetContext> context) {
+    Widget::SetContext(std::move(context));
+    for (auto& tool : m_Tools) {
+        if (tool.button) {
+            tool.button->SetContext(m_Context);
+        }
+    }
 }
 
 void Toolbar::AddSeparator(ToolbarAlignment align) {
@@ -194,6 +206,9 @@ void Toolbar::AddSeparator(ToolbarAlignment align) {
     tool.isSeparator = true;
     tool.align = align;
     tool.button = std::make_shared<ToolbarSeparator>();
+    if (m_Context) {
+        tool.button->SetContext(m_Context);
+    }
     m_Tools.push_back(tool);
 }
 
@@ -203,6 +218,9 @@ void Toolbar::AddWidget(std::shared_ptr<Widget> widget, ToolbarAlignment align) 
     tool.isSeparator = false;
     tool.align = align;
     tool.button = widget;
+    if (m_Context && widget) {
+        widget->SetContext(m_Context);
+    }
     m_Tools.push_back(tool);
 }
 

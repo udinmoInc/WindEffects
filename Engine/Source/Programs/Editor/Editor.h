@@ -63,6 +63,9 @@ private:
     void SyncViewportFramebufferFromLayout();
     void UpdateUiScaleFromWindow();
     void LogWidgetTreeLayout(const std::shared_ptr<WindEffects::Editor::UI::Widget>& widget, const std::string& name, int depth = 0);
+
+    uint32_t m_LastLayoutSwapchainW = 0;
+    uint32_t m_LastLayoutSwapchainH = 0;
 };
 
 } // namespace we::programs::editor

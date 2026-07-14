@@ -30,11 +30,21 @@
 #include <algorithm>
 #include <cstdio>
 #include <cstdint>
+#include <cstdlib>
 #include <string>
 
 namespace {
 
 constexpr uint32_t kPresentAuditInvalidIndex = UINT32_MAX;
+
+bool IsPresentAuditEnabled() {
+#if WE_DEBUG_UI
+    return true;
+#else
+    const char* value = std::getenv("WE_PRESENT_AUDIT");
+    return value != nullptr && value[0] != '\0' && value[0] != '0';
+#endif
+}
 
 const char* VkImageLayoutName(VkImageLayout layout) {
     switch (layout) {
@@ -321,6 +331,10 @@ bool Renderer::ValidatePresentPath(VkCommandBuffer submitCmd) {
 }
 
 void Renderer::EmitPresentPathAuditLog(VkCommandBuffer submitCmd, bool validationFailed, bool presented) {
+    if (!validationFailed && !IsPresentAuditEnabled()) {
+        return;
+    }
+
     const uint32_t sceneIndex =
         m_SceneImageIndex == kPresentAuditInvalidIndex ? m_AcquiredImageIndex : m_SceneImageIndex;
     const uint32_t uiIndex =
@@ -373,12 +387,14 @@ bool Renderer::BeginFrame() {
     m_AcquiredImageIndex = m_CurrentImageIndex;
     m_CmdAtAcquireSlot = m_CommandContext->GetCurrentCommandBuffer(m_CurrentFrame);
 
-    WE_LOG_INFO(
-        we::LogCategory::Renderer.data(),
-        std::string("[PresentAudit] Acquire image=") + std::to_string(m_AcquiredImageIndex) +
-        " | FrameSlot=" + std::to_string(m_CurrentFrame) +
-        " | CmdSlot=0x" + std::to_string(reinterpret_cast<uint64_t>(m_CmdAtAcquireSlot)) +
-        " | Layout postAcquireTransition=" + VkImageLayoutName(VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL));
+    if (IsPresentAuditEnabled()) {
+        WE_LOG_INFO(
+            we::LogCategory::Renderer.data(),
+            std::string("[PresentAudit] Acquire image=") + std::to_string(m_AcquiredImageIndex) +
+            " | FrameSlot=" + std::to_string(m_CurrentFrame) +
+            " | CmdSlot=0x" + std::to_string(reinterpret_cast<uint64_t>(m_CmdAtAcquireSlot)) +
+            " | Layout postAcquireTransition=" + VkImageLayoutName(VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL));
+    }
 
     const VkExtent2D extent = m_SwapchainManager->GetExtent();
     const VkRect2D blitRect = m_ViewportBlitRect;
@@ -603,11 +619,13 @@ void Renderer::RenderScene() {
     m_SceneImageIndex = m_CurrentImageIndex;
     m_CmdAtScene = cmd;
 
-    WE_LOG_INFO(
-        we::LogCategory::Renderer.data(),
-        std::string("[PresentAudit] Scene renders image=") + std::to_string(m_SceneImageIndex) +
-        " | Cmd=0x" + std::to_string(reinterpret_cast<uint64_t>(m_CmdAtScene)) +
-        " | Layout preUI=" + VkImageLayoutName(VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL));
+    if (IsPresentAuditEnabled()) {
+        WE_LOG_INFO(
+            we::LogCategory::Renderer.data(),
+            std::string("[PresentAudit] Scene renders image=") + std::to_string(m_SceneImageIndex) +
+            " | Cmd=0x" + std::to_string(reinterpret_cast<uint64_t>(m_CmdAtScene)) +
+            " | Layout preUI=" + VkImageLayoutName(VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL));
+    }
 }
 
 void Renderer::SubmitAndPresent() {
