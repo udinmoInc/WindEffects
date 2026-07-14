@@ -27,7 +27,7 @@ public:
     static EnvironmentSystem& Get();
 
     void BindScene(const std::shared_ptr<we::runtime::scene::Scene>& scene);
-    void BindRenderer(const std::shared_ptr<we::runtime::renderer::SceneRenderer>& renderer);
+    void BindRenderer(we::runtime::renderer::SceneRenderer* renderer);
 
     bool HasEnvironment() const;
     bool HasEnvironmentActors() const;
@@ -43,7 +43,9 @@ public:
     bool IsVolumetricCloudsEnabled() const;
 
     void ApplyPreset(EnvironmentPreset preset);
+    void ApplyCloudPreset(CloudPreset preset);
 
+    void Tick(float deltaTime);
     void SyncFromScene(const glm::vec3& cameraPosition = glm::vec3(0.0f));
     void SyncToScene();
     void UpdateRendering(const glm::vec3& cameraPosition = glm::vec3(0.0f));
@@ -89,7 +91,7 @@ private:
 
     std::weak_ptr<we::runtime::scene::Scene> m_Scene;
 #if WE_HAS_VULKAN
-    std::weak_ptr<we::runtime::renderer::SceneRenderer> m_Renderer;
+    we::runtime::renderer::SceneRenderer* m_Renderer = nullptr;
 #endif
 
     std::uint64_t m_FolderEntityId = 0;

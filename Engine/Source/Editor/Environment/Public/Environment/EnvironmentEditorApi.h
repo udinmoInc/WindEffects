@@ -20,7 +20,7 @@ namespace we::editor::environment {
 
 ENVIRONMENT_API void InitializeEditor(
     const std::shared_ptr<we::runtime::scene::Scene>& scene,
-    const std::shared_ptr<we::runtime::renderer::SceneRenderer>& renderer,
+    we::runtime::renderer::SceneRenderer* renderer,
     const std::shared_ptr<WindEffects::Editor::UI::TreeView>& outliner,
     const std::shared_ptr<WindEffects::Editor::UI::PropertyEditor>& details);
 

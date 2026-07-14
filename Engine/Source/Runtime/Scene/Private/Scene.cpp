@@ -61,6 +61,11 @@ Scene::~Scene() {
 }
 
 void Scene::CreateEntity(const std::string& name, EntityType type) {
+    if (type == EntityType::VolumetricClouds && HasEntityOfType(EntityType::VolumetricClouds)) {
+        HE_ERROR("Only one Cloud actor is allowed per level; ignored duplicate spawn.");
+        return;
+    }
+
     Entity entity{};
     entity.Id = m_NextEntityId++;
     entity.Name = name;

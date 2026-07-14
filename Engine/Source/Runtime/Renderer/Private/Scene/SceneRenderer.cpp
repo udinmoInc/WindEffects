@@ -36,6 +36,12 @@ void SceneRenderer::Init(const SceneRendererConfig& config) {
     lightConfig.maxFramesInFlight = config.maxFramesInFlight;
     m_DirectionalLight.Init(lightConfig);
 
+    EnvironmentUniformConfig envConfig{};
+    envConfig.deviceContext = config.deviceContext;
+    envConfig.resourceManager = config.resourceManager;
+    envConfig.maxFramesInFlight = config.maxFramesInFlight;
+    m_EnvironmentUniform.Init(envConfig);
+
     CreateObjectResources(config.maxFramesInFlight);
     UploadObjectUniforms();
 
@@ -47,6 +53,7 @@ void SceneRenderer::Shutdown() {
 
     m_MeshPrimitives.Shutdown();
     m_DirectionalLight.Shutdown();
+    m_EnvironmentUniform.Shutdown();
 
     VkDevice device = m_DeviceContext->GetDevice();
 

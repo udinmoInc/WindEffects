@@ -499,8 +499,10 @@ void OverlayRenderer::EndOverlayPass(const ::we::editor::rendering::OverlayRende
                                 && m_Vertices[firstVertex].sdfParams[1] < 3.5f));
                     if (samplesTexture) {
                         skippedDrawCalls++;
+#if WE_DEBUG_UI
                         HE_WARN(std::string("Skipped Batch ") + std::to_string(batchIndex)
                                 + " | Reason: sampled draw bound to dummy white texture");
+#endif
                         return false;
                     }
                     textureSet = m_DummyDescriptorSet;
@@ -1083,42 +1085,68 @@ void OverlayRenderer::UpdateGeometryBuffers(uint32_t frameIndex) {
     const VkDeviceSize vertexSize = static_cast<VkDeviceSize>(m_Vertices.size() * sizeof(UIVertex2));
     const VkDeviceSize indexSize = static_cast<VkDeviceSize>(m_Indices.size() * sizeof(uint32_t));
 
+    // Grow-only: never destroy an in-flight buffer before a replacement exists.
     if (vertexSize > frame.vertexSize) {
+        VkBuffer newBuffer = VK_NULL_HANDLE;
+        VkDeviceMemory newMemory = VK_NULL_HANDLE;
+        const VkDeviceSize newSize = vertexSize * 2;
+        m_ResourceManager->CreateBuffer(
+            newSize,
+            VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+            VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+            newBuffer,
+            newMemory);
+        if (newBuffer == VK_NULL_HANDLE || newMemory == VK_NULL_HANDLE) {
+            HE_ERROR("OverlayRenderer: failed to grow vertex buffer");
+            return;
+        }
         if (frame.vertexBuffer != VK_NULL_HANDLE) {
             vkDestroyBuffer(device, frame.vertexBuffer, nullptr);
             vkFreeMemory(device, frame.vertexMemory, nullptr);
         }
-        frame.vertexSize = vertexSize * 2;
-        m_ResourceManager->CreateBuffer(
-            frame.vertexSize,
-            VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
-            VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-            frame.vertexBuffer,
-            frame.vertexMemory);
+        frame.vertexBuffer = newBuffer;
+        frame.vertexMemory = newMemory;
+        frame.vertexSize = newSize;
     }
 
     if (indexSize > frame.indexSize) {
+        VkBuffer newBuffer = VK_NULL_HANDLE;
+        VkDeviceMemory newMemory = VK_NULL_HANDLE;
+        const VkDeviceSize newSize = indexSize * 2;
+        m_ResourceManager->CreateBuffer(
+            newSize,
+            VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
+            VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+            newBuffer,
+            newMemory);
+        if (newBuffer == VK_NULL_HANDLE || newMemory == VK_NULL_HANDLE) {
+            HE_ERROR("OverlayRenderer: failed to grow index buffer");
+            return;
+        }
         if (frame.indexBuffer != VK_NULL_HANDLE) {
             vkDestroyBuffer(device, frame.indexBuffer, nullptr);
             vkFreeMemory(device, frame.indexMemory, nullptr);
         }
-        frame.indexSize = indexSize * 2;
-        m_ResourceManager->CreateBuffer(
-            frame.indexSize,
-            VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
-            VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-            frame.indexBuffer,
-            frame.indexMemory);
+        frame.indexBuffer = newBuffer;
+        frame.indexMemory = newMemory;
+        frame.indexSize = newSize;
+    }
+
+    if (frame.vertexBuffer == VK_NULL_HANDLE || frame.indexBuffer == VK_NULL_HANDLE
+        || frame.vertexMemory == VK_NULL_HANDLE || frame.indexMemory == VK_NULL_HANDLE) {
+        return;
     }
 
     void* mapped = nullptr;
-    vkMapMemory(device, frame.vertexMemory, 0, vertexSize, 0, &mapped);
-    std::memcpy(mapped, m_Vertices.data(), static_cast<size_t>(vertexSize));
-    vkUnmapMemory(device, frame.vertexMemory);
+    if (vkMapMemory(device, frame.vertexMemory, 0, vertexSize, 0, &mapped) == VK_SUCCESS && mapped) {
+        std::memcpy(mapped, m_Vertices.data(), static_cast<size_t>(vertexSize));
+        vkUnmapMemory(device, frame.vertexMemory);
+    }
 
-    vkMapMemory(device, frame.indexMemory, 0, indexSize, 0, &mapped);
-    std::memcpy(mapped, m_Indices.data(), static_cast<size_t>(indexSize));
-    vkUnmapMemory(device, frame.indexMemory);
+    if (vkMapMemory(device, frame.indexMemory, 0, indexSize, 0, &mapped) == VK_SUCCESS && mapped) {
+        std::memcpy(mapped, m_Indices.data(), static_cast<size_t>(indexSize));
+        vkUnmapMemory(device, frame.indexMemory);
+    }
 }
 
 } // namespace WindEffects::Editor::UI

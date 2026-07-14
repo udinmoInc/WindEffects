@@ -22,6 +22,11 @@ struct GraphicsPipelineDesc {
     VkCullModeFlags cullMode = VK_CULL_MODE_BACK_BIT;
     VkFormat colorFormat = VK_FORMAT_UNDEFINED;
     VkFormat depthFormat = VK_FORMAT_UNDEFINED;
+    bool blendEnable = false;
+    VkBlendFactor srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
+    VkBlendFactor dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+    VkBlendFactor srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
+    VkBlendFactor dstAlphaBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
 };
 
 class GraphicsPipelineFactory {

@@ -5,7 +5,11 @@
 #define WE_ENVIRONMENT_BUFFER_REGISTER b0
 #endif
 
-cbuffer EnvironmentBuffer : register(WE_ENVIRONMENT_BUFFER_REGISTER, space0)
+#ifndef WE_ENVIRONMENT_BUFFER_SPACE
+#define WE_ENVIRONMENT_BUFFER_SPACE space1
+#endif
+
+cbuffer EnvironmentBuffer : register(WE_ENVIRONMENT_BUFFER_REGISTER, WE_ENVIRONMENT_BUFFER_SPACE)
 {
     float3 sunDirection;
     float  sunIntensity;
@@ -47,6 +51,27 @@ cbuffer EnvironmentBuffer : register(WE_ENVIRONMENT_BUFFER_REGISTER, space0)
     int    cloudHistoryValid;
     float  enableSunDisk;
     float  pipelineFixedExposureMultiplier;
+
+    float  cloudDensityMult;
+    float  cloudThickness;
+    float  cloudBottomAltitude;
+    float  cloudTopAltitude;
+    float3 cloudWindDir;
+    float  cloudWindSpeed;
+    float  cloudNoiseScale;
+    float  cloudDetailScale;
+    float  cloudLightingIntensity;
+    float  cloudSilverLining;
+    float  cloudAmbient;
+    float  cloudMultiScatter;
+    float  cloudPhaseG;
+    float  cloudPowder;
+    float  cloudSeed;
+    float  cloudAnimTime;
+    float  cloudShadowStrength;
+    int    cloudQualitySteps;
+    float  cloudShapeNoise;
+    float  cloudErosionNoise;
 };
 
 #endif // WE_ENVIRONMENT_BUFFER_HLSLI

@@ -446,14 +446,19 @@ void Editor::MainLoop() {
 
                 m_UIEventSystem->ProcessMouseEvent(mouseEvent);
 
-                // Fly-look mouse motion only updates the camera; skip full UI rebuilds.
-                bool flyLook = false;
+                // Skip full UI chrome rebuild while navigating the viewport — camera moves
+                // only need the scene pass; rebuilding Measure/Arrange every mouse sample hitching
+                // the editor and stress-tests host-visible buffer reallocation.
+                bool skipUiRebuild = false;
                 if (m_ViewportWidget) {
                     if (auto vp = std::dynamic_pointer_cast<ViewportWidget>(m_ViewportWidget)) {
-                        flyLook = vp->IsFlyLookActive();
+                        const bool navigating = vp->IsViewportNavigating();
+                        if (navigating && event.type == SDL_EVENT_MOUSE_MOTION) {
+                            skipUiRebuild = true;
+                        }
                     }
                 }
-                if (!(flyLook && event.type == SDL_EVENT_MOUSE_MOTION)) {
+                if (!skipUiRebuild) {
                     requestUiRebuild = true;
                 }
             } else if (event.type == SDL_EVENT_KEY_DOWN || event.type == SDL_EVENT_KEY_UP) {
@@ -510,7 +515,9 @@ void Editor::MainLoop() {
             m_Scene->Update();
         }
         if (m_Camera) {
-            we::runtime::world::environment::EnvironmentSystem::Get().SyncFromScene(m_Camera->GetPosition());
+            auto& env = we::runtime::world::environment::EnvironmentSystem::Get();
+            env.Tick(dt);
+            env.SyncFromScene(m_Camera->GetPosition());
         }
         we::editor::environment::TickEditor();
         UpdateUiScaleFromWindow();

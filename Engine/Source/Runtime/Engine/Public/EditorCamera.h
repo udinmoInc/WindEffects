@@ -87,6 +87,7 @@ private:
     void UpdateOrbitPositionFromAngles();
     void UpdateLookAtFromFlyOrientation();
     glm::vec3 ComputeForwardFromAngles() const;
+    glm::vec3 ComputeRightFromYaw(float yawDegrees) const;
 
     glm::vec3 m_Position{ 0.0f, 6.0f, 15.0f };
     glm::vec3 m_LookAt{ 0.0f, 0.0f, 0.0f };
