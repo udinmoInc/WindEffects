@@ -2,9 +2,9 @@
 
 #include "Environment/EnvironmentLighting.h"
 #include "Environment/EnvironmentManager.h"
-// #include "Renderer/SceneRenderer.h"
-// #include "Renderer/RendererDebug.h"
-// #include "Renderer/FrameStats.h"
+#include "Scene/SceneRenderer.h"
+#include "Lighting/DirectionalLight.h"
+#include "Lighting/EnvironmentUniform.h"
 #include "Core/Logger.h"
 #include "Core/LogCategory.h"
 
@@ -51,10 +51,9 @@ void EnvironmentSystem::BindScene(const std::shared_ptr<Scene>& scene) {
     DiscoverExistingActors();
 }
 
-void EnvironmentSystem::BindRenderer(const std::shared_ptr<we::runtime::renderer::SceneRenderer>& renderer) {
+void EnvironmentSystem::BindRenderer(we::runtime::renderer::SceneRenderer* renderer) {
 #if WE_HAS_VULKAN
     m_Renderer = renderer;
-    // Environment uniforms are pushed from SyncFromScene / CreateEnvironment once actors exist.
 #else
     (void)renderer;
 #endif
@@ -277,6 +276,10 @@ void EnvironmentSystem::DiscoverExistingActors() {
             continue;
         }
         if (entity.Type == EntityType::VolumetricClouds || entity.Name == kVolumetricCloudsActorName) {
+            if (m_VolumetricClouds.EntityId != 0 && m_VolumetricClouds.EntityId != entity.Id) {
+                // Enforce a single global Cloud actor per level.
+                continue;
+            }
             m_VolumetricClouds.EntityId = entity.Id;
             m_VolumetricClouds.Enabled = true;
             continue;
@@ -515,6 +518,7 @@ void EnvironmentSystem::ApplyPreset(EnvironmentPreset preset) {
         m_SkyLight.Intensity = 1.0f;
         m_HeightFog.Density = 0.01f;
         m_HeightFog.VolumetricFog = true;
+        ApplyCloudPreset(CloudPreset::ScatteredClouds);
         break;
     case EnvironmentPreset::Sunset:
         m_Sun.Intensity = 6.0f;
@@ -522,6 +526,7 @@ void EnvironmentSystem::ApplyPreset(EnvironmentPreset preset) {
         m_Sun.Rotation = glm::vec3(-8.0f, 280.0f, 0.0f);
         m_SkyLight.Intensity = 0.7f;
         m_HeightFog.Density = 0.015f;
+        ApplyCloudPreset(CloudPreset::SunsetClouds);
         break;
     case EnvironmentPreset::Night:
         m_Sun.Intensity = 0.15f;
@@ -530,6 +535,7 @@ void EnvironmentSystem::ApplyPreset(EnvironmentPreset preset) {
         m_SkyLight.Intensity = 0.2f;
         m_HeightFog.Density = 0.005f;
         m_HeightFog.VolumetricFog = false;
+        ApplyCloudPreset(CloudPreset::FewClouds);
         break;
     case EnvironmentPreset::Overcast:
         m_Sun.Intensity = 3.0f;
@@ -537,6 +543,7 @@ void EnvironmentSystem::ApplyPreset(EnvironmentPreset preset) {
         m_Sun.Rotation = glm::vec3(-55.0f, 60.0f, 0.0f);
         m_SkyLight.Intensity = 1.4f;
         m_HeightFog.Density = 0.02f;
+        ApplyCloudPreset(CloudPreset::Overcast);
         break;
     case EnvironmentPreset::Foggy:
         m_Sun.Intensity = 4.0f;
@@ -545,6 +552,7 @@ void EnvironmentSystem::ApplyPreset(EnvironmentPreset preset) {
         m_SkyLight.Intensity = 0.9f;
         m_HeightFog.Density = 0.06f;
         m_HeightFog.VolumetricFog = true;
+        ApplyCloudPreset(CloudPreset::BrokenClouds);
         break;
     case EnvironmentPreset::Studio:
         m_Sun.Intensity = 8.0f;
@@ -553,12 +561,33 @@ void EnvironmentSystem::ApplyPreset(EnvironmentPreset preset) {
         m_SkyLight.Intensity = 0.6f;
         m_HeightFog.Density = 0.0f;
         m_HeightFog.VolumetricFog = false;
+        ApplyCloudPreset(CloudPreset::ClearSky);
         break;
     }
 
     UpdateRendering();
     ApplyComponentsToActors();
     NotifyChanged();
+}
+
+void EnvironmentSystem::ApplyCloudPreset(CloudPreset preset) {
+    m_VolumetricClouds.ApplyPreset(preset);
+    if (preset == CloudPreset::ClearSky) {
+        // Keep actor present but disable rendering.
+        m_VolumetricClouds.Enabled = false;
+    } else if (m_VolumetricClouds.EntityId == 0) {
+        SetVolumetricCloudsEnabled(true);
+        m_VolumetricClouds.ApplyPreset(preset);
+    } else {
+        m_VolumetricClouds.Enabled = true;
+    }
+    SyncToScene();
+    UpdateRendering();
+    NotifyChanged();
+}
+
+void EnvironmentSystem::Tick(float deltaTime) {
+    m_VolumetricClouds.Tick(deltaTime);
 }
 
 void EnvironmentSystem::SyncFromScene(const glm::vec3& cameraPosition) {
@@ -591,6 +620,40 @@ void EnvironmentSystem::SyncToScene() {
 }
 
 void EnvironmentSystem::UpdateRendering(const glm::vec3& cameraPosition) {
+    m_Manager.UpdateDerivedState(m_Sun, m_SkyLight, m_HeightFog, m_SkyAtmosphere, cameraPosition);
+
+#if WE_HAS_VULKAN
+    if (!m_Renderer || !m_Renderer->IsReady()) {
+        return;
+    }
+
+    const glm::vec3 worldOrigin = m_Manager.GetWorldOrigin(cameraPosition);
+    const we::runtime::renderer::SceneEnvironmentUniform envUniform = BuildSceneEnvironmentUniform(
+        m_Sun,
+        m_SkyLight,
+        m_SkyAtmosphere,
+        m_HeightFog,
+        m_VolumetricClouds,
+        m_ExposureController,
+        worldOrigin);
+
+    we::runtime::renderer::DirectionalLightData lightData{};
+    lightData.direction = m_Sun.GetLightDirection();
+    lightData.intensity = envUniform.sunIntensity;
+    lightData.color = envUniform.sunColor;
+
+    if (auto* envGpu = m_Renderer->GetEnvironmentUniform()) {
+        // Upload both in-flight frames so either can pick up the latest environment state.
+        envGpu->Upload(0, envUniform);
+        envGpu->Upload(1, envUniform);
+    }
+    if (auto* lightGpu = m_Renderer->GetDirectionalLight()) {
+        lightGpu->Upload(0, lightData);
+        lightGpu->Upload(1, lightData);
+    }
+#else
+    (void)cameraPosition;
+#endif
 }
 
 EnvironmentActorKind EnvironmentSystem::GetActorKind(std::uint64_t entityId) const {

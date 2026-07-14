@@ -76,69 +76,96 @@ glm::vec3 SunDirectionToSky(const glm::vec3& lightTravelDirection) {
     return glm::normalize(-lightTravelDirection);
 }
 
-// we::runtime::renderer::SceneEnvironmentUniform BuildSceneEnvironmentUniform(
-//     const EnvironmentDirectionalLight& sun,
-//     const EnvironmentSkyLight& skyLight,
-//     const EnvironmentSkyAtmosphere& atmosphere,
-//     const EnvironmentHeightFog& fog,
-//     const EnvironmentVolumetricClouds& clouds,
-//     const EnvironmentExposureController& exposure,
-//     const glm::vec3& worldOrigin) {
-// 
-//     EnvironmentManager manager;
-//     const float sunDerivedEV = manager.ComputeExposureEV(sun);
-// 
-//     we::runtime::renderer::SceneEnvironmentUniform uniform{};
-//     uniform.sunDirection = sun.GetLightDirection();
-//     // Artist-facing intensity scaled to approximate outdoor solar illuminance response.
-//     constexpr float kSunIrradianceScale = 1.35f;
-//     uniform.sunIntensity = sun.Intensity * kSunIrradianceScale;
-//     uniform.sunColor = sun.GetColorFromTemperature();
-//     uniform.skyLightIntensity = skyLight.Intensity;
-//     uniform.skyAmbientColor = skyLight.GetAmbientColor();
-//     uniform.skyLightLowerColor = skyLight.LowerHemisphereColor;
-//     uniform.fogDensity = fog.Density;
-//     uniform.fogColor = fog.FogColor;
-//     uniform.fogHeightFalloff = fog.HeightFalloff;
-//     uniform.fogStartDistance = fog.StartDistance;
-//     uniform.atmosphereRayleigh = atmosphere.GetRayleighColor();
-//     uniform.mieScattering = atmosphere.MieScattering;
-//     uniform.ozoneAbsorption = atmosphere.GetOzoneAbsorption();
-//     uniform.mieAnisotropy = atmosphere.MieAnisotropy;
-//     uniform.worldOrigin = worldOrigin;
-//     // GPU auto-exposure lerps manual exposureEV against the luminance-derived EV in PostCompositeCS.
-//     // Keep the manual/fallback EV on the CPU uniform; do not pre-bake sun-derived EV here.
-//     uniform.exposureEV = exposure.AutoExposure
-//         ? std::clamp(exposure.ExposureEV, exposure.MinEV, exposure.MaxEV)
-//         : exposure.GetEffectiveExposureEV(sunDerivedEV);
-//     uniform.planetRadius = 6360.0f;
-//     uniform.atmosphereHeight = 60.0f;
-//     uniform.multiScatterStrength = atmosphere.MultiScatterStrength;
-//     uniform.eyeAltitude = atmosphere.EyeAltitude;
-//     uniform.cloudCoverage = clouds.Coverage;
-//     uniform.cloudAltitude = clouds.Altitude;
-//     uniform.cloudExtinction = clouds.Extinction;
-//     uniform.enableClouds = clouds.Enabled ? 1.0f : 0.0f;
-//     uniform.cloudColor = clouds.CloudColor;
-//     uniform.enableVolumetricFog = fog.VolumetricFog ? 1.0f : 0.0f;
-//     uniform.exposureCompensation = exposure.ExposureCompensation;
-//     uniform.sunAngularRadius = 0.004675f;
-//     uniform.hdrSkyLuminance = manager.ComputeHdrSkyLuminance(sun, atmosphere);
-//     uniform.sunCastShadows = sun.CastDynamicShadows ? 1 : 0;
-//     uniform.sunTemperature = sun.TemperatureKelvin;
-//     uniform.bloomIntensity = 0.15f;
-//     uniform.bloomThreshold = 4.0f;
-//     uniform.enableAutoExposure = exposure.AutoExposure ? 1.0f : 0.0f;
-//     uniform.atmosphereDebugMode = atmosphere.AtmosphereDebugMode;
-//     uniform.cloudTemporalBlend = 0.88f;
-//     uniform.cloudHistoryValid = 0;
-//     uniform.enableSunDisk = 1.0f;
-//     uniform.pipelineFixedExposureMultiplier = 0.0f;
-// #if WE_HAS_VULKAN
-//     we::runtime::renderer::AtmosphereValidation::Get().ApplyEnvironmentOverrides(uniform);
-//     we::runtime::renderer::RenderPipelineInvestigator::Get().ApplyEnvironmentOverrides(uniform);
-// #endif
-//     return uniform;
-// }
+we::runtime::renderer::SceneEnvironmentUniform BuildSceneEnvironmentUniform(
+    const EnvironmentDirectionalLight& sun,
+    const EnvironmentSkyLight& skyLight,
+    const EnvironmentSkyAtmosphere& atmosphere,
+    const EnvironmentHeightFog& fog,
+    const EnvironmentVolumetricClouds& clouds,
+    const EnvironmentExposureController& exposure,
+    const glm::vec3& worldOrigin) {
+
+    EnvironmentManager manager;
+    const float sunDerivedEV = manager.ComputeExposureEV(sun);
+
+    // Artist intensity (~10 daytime) maps to display-referred outdoor irradiance.
+    constexpr float kSunArtistToIrradiance = 0.12f;
+
+    we::runtime::renderer::SceneEnvironmentUniform uniform{};
+    uniform.sunDirection = sun.GetLightDirection();
+    uniform.sunIntensity = sun.Intensity * kSunArtistToIrradiance;
+    uniform.sunColor = sun.GetColorFromTemperature();
+    uniform.skyLightIntensity = skyLight.Intensity;
+    uniform.skyAmbientColor = skyLight.GetAmbientColor();
+    uniform.skyLightLowerColor = skyLight.LowerHemisphereColor;
+    uniform.fogDensity = fog.Density;
+    uniform.fogColor = fog.FogColor;
+    uniform.fogHeightFalloff = fog.HeightFalloff;
+    uniform.fogStartDistance = fog.StartDistance;
+    uniform.atmosphereRayleigh = atmosphere.GetRayleighColor();
+    uniform.mieScattering = atmosphere.MieScattering;
+    uniform.ozoneAbsorption = atmosphere.GetOzoneAbsorption();
+    uniform.mieAnisotropy = atmosphere.MieAnisotropy;
+    uniform.worldOrigin = worldOrigin;
+    uniform.exposureEV = exposure.AutoExposure
+        ? std::clamp(exposure.ExposureEV, exposure.MinEV, exposure.MaxEV)
+        : exposure.GetEffectiveExposureEV(sunDerivedEV);
+    uniform.planetRadius = 6360.0f;
+    uniform.atmosphereHeight = 60.0f;
+    uniform.multiScatterStrength = atmosphere.MultiScatterStrength;
+    uniform.eyeAltitude = atmosphere.EyeAltitude;
+
+    EnvironmentVolumetricClouds cloudState = clouds;
+    cloudState.SyncAltitudeFromBounds();
+
+    const bool cloudsActive = cloudState.Enabled && cloudState.EntityId != 0;
+    uniform.cloudCoverage = cloudState.Coverage;
+    uniform.cloudAltitude = cloudState.Altitude;
+    uniform.cloudExtinction = cloudState.Extinction;
+    uniform.enableClouds = cloudsActive ? 1.0f : 0.0f;
+    uniform.cloudColor = cloudState.CloudColor * cloudState.CloudColorTint;
+    uniform.enableVolumetricFog = fog.VolumetricFog ? 1.0f : 0.0f;
+    uniform.exposureCompensation = exposure.ExposureCompensation;
+    uniform.sunAngularRadius = 0.004675f;
+    uniform.hdrSkyLuminance = manager.ComputeHdrSkyLuminance(sun, atmosphere);
+    uniform.sunCastShadows = sun.CastDynamicShadows ? 1 : 0;
+    uniform.sunTemperature = sun.TemperatureKelvin;
+    uniform.bloomIntensity = 0.15f;
+    uniform.bloomThreshold = 4.0f;
+    uniform.enableAutoExposure = exposure.AutoExposure ? 1.0f : 0.0f;
+    uniform.atmosphereDebugMode = atmosphere.AtmosphereDebugMode;
+    uniform.cloudTemporalBlend = 0.88f;
+    uniform.cloudHistoryValid = 0;
+    uniform.enableSunDisk = 1.0f;
+    uniform.pipelineFixedExposureMultiplier = 0.0f;
+
+    uniform.cloudDensityMult = cloudState.Density * cloudState.DensityMultiplier;
+    uniform.cloudThickness = cloudState.CloudThickness;
+    uniform.cloudBottomAltitude = cloudState.BottomAltitude;
+    uniform.cloudTopAltitude = cloudState.TopAltitude;
+    uniform.cloudWindDir = glm::length(cloudState.WindDirection) > 1e-4f
+        ? glm::normalize(cloudState.WindDirection)
+        : glm::vec3(1.0f, 0.0f, 0.0f);
+    uniform.cloudWindSpeed = cloudState.WindSpeed;
+    uniform.cloudNoiseScale = cloudState.NoiseScale;
+    uniform.cloudDetailScale = cloudState.DetailNoiseScale;
+    uniform.cloudLightingIntensity = cloudState.LightingIntensity;
+    uniform.cloudSilverLining = cloudState.SilverLiningIntensity;
+    uniform.cloudAmbient = cloudState.AmbientContribution;
+    uniform.cloudMultiScatter = cloudState.MultiScatteringStrength;
+    uniform.cloudPhaseG = cloudState.PhaseG;
+    uniform.cloudPowder = cloudState.PowderEffect;
+    uniform.cloudSeed = cloudState.Seed;
+    uniform.cloudAnimTime = cloudState.AnimationTime;
+    uniform.cloudShadowStrength = cloudState.ShadowStrength;
+    uniform.cloudQualitySteps = EnvironmentVolumetricClouds::RaymarchStepsForQuality(cloudState.Quality);
+    uniform.cloudShapeNoise = cloudState.ShapeNoise;
+    uniform.cloudErosionNoise = cloudState.ErosionNoise;
+    (void)cloudState.WeatherMapInfluence;
+    (void)cloudState.ShadowDistance;
+    (void)cloudState.ShadowResolution;
+
+    return uniform;
+}
 
 } // namespace we::runtime::world::environment

@@ -37,6 +37,9 @@ public:
     void Tick(float deltaTime);
 
     bool IsFlyLookActive() const { return m_FlyLookActive; }
+    bool IsViewportNavigating() const {
+        return m_FlyLookActive || m_OrbitDragMode != OrbitDragMode::None;
+    }
     ViewportCursorMode GetCursorMode() const { return m_CursorMode; }
 
     void PersistCameraSpeed() const;

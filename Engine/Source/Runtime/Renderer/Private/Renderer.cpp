@@ -12,6 +12,7 @@
 #include "Camera/CameraSystem.h"
 #include "Pipeline/GraphicsPipelineFactory.h"
 #include "Passes/SkyPass.h"
+#include "Passes/VolumetricCloudsPass.h"
 #include "Passes/PBRPass.h"
 #include "Core/Validation.h"
 #include "Core/LogCategory.h"
@@ -28,6 +29,10 @@
 
 #include <filesystem>
 #include <algorithm>
+#include <cmath>
+#include <cstdlib>
+#include <cstring>
+#include <string>
 #include <cstdio>
 #include <cstdint>
 #include <cstdlib>
@@ -202,6 +207,15 @@ void Renderer::BuildRenderGraph() {
     skyConfig.colorFormat = m_SwapchainManager->GetImageFormat();
     skyPass->Init(skyConfig);
 
+    auto cloudsPass = std::make_unique<VolumetricCloudsPass>();
+    VolumetricCloudsPassConfig cloudsConfig{};
+    cloudsConfig.deviceContext = m_DeviceContext.get();
+    cloudsConfig.pipelineFactory = m_PipelineFactory.get();
+    cloudsConfig.cameraDescriptorSetLayout = m_CameraSystem->GetDescriptorSetLayout();
+    cloudsConfig.environmentDescriptorSetLayout = m_SceneRenderer->GetEnvironmentUniform()->GetDescriptorSetLayout();
+    cloudsConfig.colorFormat = m_SwapchainManager->GetImageFormat();
+    cloudsPass->Init(cloudsConfig);
+
     auto pbrPass = std::make_unique<PBRPass>();
     PBRPassConfig pbrConfig{};
     pbrConfig.deviceContext = m_DeviceContext.get();
@@ -215,6 +229,7 @@ void Renderer::BuildRenderGraph() {
 
     m_RenderGraph->Init(this);
     m_RenderGraph->AddPass(std::move(skyPass));
+    m_RenderGraph->AddPass(std::move(cloudsPass));
     m_RenderGraph->AddPass(std::move(pbrPass));
     m_RenderGraph->Compile();
 }
@@ -515,6 +530,7 @@ void Renderer::ExecuteFoundationPasses(VkCommandBuffer cmd) {
     frame.colorFormat = m_ViewportColorFormat;
     frame.camera = m_CameraSystem.get();
     frame.directionalLight = m_SceneRenderer->GetDirectionalLight();
+    frame.environmentUniform = m_SceneRenderer->GetEnvironmentUniform();
     frame.depthTarget = m_ViewportDepthTarget;
     frame.sceneRenderer = m_SceneRenderer.get();
 
@@ -694,7 +710,23 @@ void Renderer::UploadCameraUniform(const CameraUniform& uniform) {
 
     CameraUniform upload = uniform;
 #if WE_HAS_GLM
+    const bool viewOk =
+        std::isfinite(upload.view[0][0]) && std::isfinite(upload.view[3][3]) &&
+        std::isfinite(upload.position.x) && std::isfinite(upload.position.y) &&
+        std::isfinite(upload.position.z);
+    const bool projOk =
+        std::isfinite(upload.proj[0][0]) && std::isfinite(upload.proj[1][1]);
+    if (!viewOk || !projOk) {
+        WE_LOG_ERROR(we::LogCategory::Renderer.data(),
+                     "UploadCameraUniform: rejecting non-finite camera matrices.");
+        upload.view = glm::mat4(1.0f);
+        upload.proj = glm::mat4(1.0f);
+        upload.position = glm::vec3(0.0f);
+    }
     upload.invViewProj = glm::inverse(upload.proj * upload.view);
+    if (!std::isfinite(upload.invViewProj[0][0]) || !std::isfinite(upload.invViewProj[3][3])) {
+        upload.invViewProj = glm::mat4(1.0f);
+    }
 #endif
     m_CameraSystem->Upload(m_CurrentFrame, upload);
 }

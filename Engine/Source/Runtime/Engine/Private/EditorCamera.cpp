@@ -99,7 +99,17 @@ glm::vec3 EditorCamera::ComputeForwardFromAngles() const {
     forward.x = cos(phi) * cos(theta);
     forward.y = sin(phi);
     forward.z = cos(phi) * sin(theta);
-    return glm::normalize(forward);
+    const float lenSq = glm::dot(forward, forward);
+    if (lenSq < 1e-12f) {
+        return glm::vec3(0.0f, 0.0f, -1.0f);
+    }
+    return forward * (1.0f / std::sqrt(lenSq));
+}
+
+glm::vec3 EditorCamera::ComputeRightFromYaw(float yawDegrees) const {
+    // Yaw-derived lateral axis stays valid at extreme pitch (avoids normalize(0)).
+    const float yaw = glm::radians(yawDegrees);
+    return glm::vec3(-std::sin(yaw), 0.0f, std::cos(yaw));
 }
 
 void EditorCamera::SyncOrientationFromView() {
@@ -188,7 +198,7 @@ void EditorCamera::Update(float dt) {
     m_PrevPitch = m_Pitch;
     m_PrevYaw = m_Yaw;
 
-    m_TargetPitch = std::clamp(m_TargetPitch, -89.0f, 89.0f);
+    m_TargetPitch = std::clamp(m_TargetPitch, -88.5f, 88.5f);
 
     if (m_FlyMode) {
         UpdateLookAtFromFlyOrientation();
@@ -226,7 +236,7 @@ void EditorCamera::ProcessFlyLook(float dx, float dy) {
     const float ySign = m_InvertY ? 1.0f : -1.0f;
     m_TargetYaw += dx * m_Sensitivity * xSign;
     m_TargetPitch += dy * m_Sensitivity * ySign;
-    m_TargetPitch = std::clamp(m_TargetPitch, -89.0f, 89.0f);
+    m_TargetPitch = std::clamp(m_TargetPitch, -88.5f, 88.5f);
 }
 
 void EditorCamera::ProcessMouseOrbit(float dx, float dy) {
@@ -240,7 +250,7 @@ void EditorCamera::ProcessMouseOrbit(float dx, float dy) {
     const float ySign = m_InvertY ? 1.0f : -1.0f;
     m_TargetYaw += dx * m_Sensitivity * xSign;
     m_TargetPitch += dy * m_Sensitivity * ySign;
-    m_TargetPitch = std::clamp(m_TargetPitch, -89.0f, 89.0f);
+    m_TargetPitch = std::clamp(m_TargetPitch, -88.5f, 88.5f);
 }
 
 void EditorCamera::ProcessMousePan(float dx, float dy) {
@@ -254,7 +264,7 @@ void EditorCamera::ProcessMousePan(float dx, float dy) {
     const float panSpeed = std::max(0.01f, m_TargetDistance * 0.0015f) * speedScale;
 
     const glm::vec3 forward = ComputeForwardFromAngles();
-    const glm::vec3 right = glm::normalize(glm::cross(forward, glm::vec3(0.0f, 1.0f, 0.0f)));
+    const glm::vec3 right = ComputeRightFromYaw(m_TargetYaw);
     const glm::vec3 up = glm::normalize(glm::cross(right, forward));
 
     m_TargetLookAt -= right * dx * panSpeed;
@@ -296,7 +306,7 @@ void EditorCamera::ProcessFlyMovement(const bool* keys, float dt) {
 
     const float distance = speed * dt;
     const glm::vec3 forward = ComputeForwardFromAngles();
-    const glm::vec3 right = glm::normalize(glm::cross(forward, glm::vec3(0.0f, 1.0f, 0.0f)));
+    const glm::vec3 right = ComputeRightFromYaw(m_TargetYaw);
     const glm::vec3 up = glm::vec3(0.0f, 1.0f, 0.0f);
 
     if (keys[SDL_SCANCODE_W] || keys[SDL_SCANCODE_UP]) {
@@ -331,25 +341,68 @@ void EditorCamera::AdjustFlySpeed(float wheelDeltaY) {
 }
 
 glm::mat4 EditorCamera::GetViewMatrix() const {
-    return glm::lookAt(m_Position, m_LookAt, glm::vec3(0.0f, 1.0f, 0.0f));
+    // Build an orthonormal basis from yaw/pitch so look-at never collapses when
+    // pitched near ±90° (world-up lookAt produces NaNs and hard GPU/device faults).
+    const float yaw = glm::radians(m_Yaw);
+    const float pitch = glm::radians(m_Pitch);
+
+    glm::vec3 forward;
+    forward.x = std::cos(pitch) * std::cos(yaw);
+    forward.y = std::sin(pitch);
+    forward.z = std::cos(pitch) * std::sin(yaw);
+    const float fLenSq = glm::dot(forward, forward);
+    if (fLenSq < 1e-12f) {
+        forward = glm::vec3(0.0f, 0.0f, -1.0f);
+    } else {
+        forward *= 1.0f / std::sqrt(fLenSq);
+    }
+
+    const glm::vec3 right = ComputeRightFromYaw(m_Yaw);
+    glm::vec3 up = glm::cross(right, forward);
+    const float uLenSq = glm::dot(up, up);
+    if (uLenSq < 1e-12f) {
+        up = glm::vec3(0.0f, 1.0f, 0.0f);
+    } else {
+        up *= 1.0f / std::sqrt(uLenSq);
+    }
+
+    return glm::lookAt(m_Position, m_Position + forward, up);
 }
 
 glm::mat4 EditorCamera::GetProjectionMatrix() const {
-    glm::mat4 proj = glm::perspectiveRH_ZO(glm::radians(m_Fov), m_AspectRatio, m_Near, m_Far);
+    const float aspect = std::max(m_AspectRatio, 0.01f);
+    glm::mat4 proj = glm::perspectiveRH_ZO(glm::radians(m_Fov), aspect, m_Near, m_Far);
     proj[1][1] *= -1.0f;
     return proj;
 }
 
 glm::vec3 EditorCamera::GetForward() const {
-    return glm::normalize(m_LookAt - m_Position);
+    const float yaw = glm::radians(m_Yaw);
+    const float pitch = glm::radians(m_Pitch);
+    glm::vec3 forward;
+    forward.x = std::cos(pitch) * std::cos(yaw);
+    forward.y = std::sin(pitch);
+    forward.z = std::cos(pitch) * std::sin(yaw);
+    const float lenSq = glm::dot(forward, forward);
+    if (lenSq < 1e-12f) {
+        return glm::vec3(0.0f, 0.0f, -1.0f);
+    }
+    return forward * (1.0f / std::sqrt(lenSq));
 }
 
 glm::vec3 EditorCamera::GetRight() const {
-    return glm::normalize(glm::cross(GetForward(), glm::vec3(0.0f, 1.0f, 0.0f)));
+    return ComputeRightFromYaw(m_Yaw);
 }
 
 glm::vec3 EditorCamera::GetUp() const {
-    return glm::normalize(glm::cross(GetRight(), GetForward()));
+    const glm::vec3 forward = GetForward();
+    const glm::vec3 right = GetRight();
+    glm::vec3 up = glm::cross(right, forward);
+    const float lenSq = glm::dot(up, up);
+    if (lenSq < 1e-12f) {
+        return glm::vec3(0.0f, 1.0f, 0.0f);
+    }
+    return up * (1.0f / std::sqrt(lenSq));
 }
 
 float EditorCamera::GetGridLodDistance() const {

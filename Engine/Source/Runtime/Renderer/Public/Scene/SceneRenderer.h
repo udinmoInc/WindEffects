@@ -2,6 +2,7 @@
 
 #include "Camera/CameraSystem.h"
 #include "Lighting/DirectionalLight.h"
+#include "Lighting/EnvironmentUniform.h"
 #include "Scene/MeshPrimitives.h"
 #include <volk.h>
 #if WE_HAS_GLM
@@ -42,6 +43,9 @@ public:
     DirectionalLight* GetDirectionalLight() { return &m_DirectionalLight; }
     const DirectionalLight* GetDirectionalLight() const { return &m_DirectionalLight; }
 
+    EnvironmentUniform* GetEnvironmentUniform() { return &m_EnvironmentUniform; }
+    const EnvironmentUniform* GetEnvironmentUniform() const { return &m_EnvironmentUniform; }
+
     bool IsReady() const { return m_Initialized; }
 
 private:
@@ -64,6 +68,7 @@ private:
 
     MeshPrimitives m_MeshPrimitives;
     DirectionalLight m_DirectionalLight;
+    EnvironmentUniform m_EnvironmentUniform;
 
     VkDescriptorSetLayout m_ObjectDescriptorSetLayout = VK_NULL_HANDLE;
     VkDescriptorPool m_ObjectDescriptorPool = VK_NULL_HANDLE;

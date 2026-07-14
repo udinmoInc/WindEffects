@@ -51,7 +51,7 @@ std::string EntityTypeLabel(EntityType type) {
     case EntityType::SkyLight: return "Sky Light";
     case EntityType::SkyAtmosphere: return "Sky Atmosphere";
     case EntityType::HeightFog: return "Exponential Height Fog";
-    case EntityType::VolumetricClouds: return "Volumetric Clouds";
+    case EntityType::VolumetricClouds: return "Cloud";
     case EntityType::EmptyActor: return "Folder";
     default: return "Actor";
     }
@@ -321,20 +321,178 @@ void BindFogProperties(WindEffects::Editor::UI::PropertyEditor& editor, Environm
     });
 }
 
+void AddStringProperty(
+    WindEffects::Editor::UI::PropertyEditor& editor,
+    const std::string& name,
+    const std::string& category,
+    const std::string& value,
+    std::function<void(const std::string&)> onChanged) {
+    WindEffects::Editor::UI::Property property;
+    property.name = name;
+    property.category = category;
+    property.type = WindEffects::Editor::UI::PropertyType::String;
+    property.value = value;
+    property.defaultValue = property.value;
+    property.onValueChanged = [onChanged](const std::string& newValue) {
+        if (onChanged) {
+            onChanged(newValue);
+        }
+    };
+    editor.AddProperty(property);
+}
+
 void BindCloudProperties(WindEffects::Editor::UI::PropertyEditor& editor, EnvironmentSystem& system) {
+    using we::runtime::world::environment::CloudPreset;
+    using we::runtime::world::environment::CloudQualityPreset;
+    using we::runtime::world::environment::EnvironmentVolumetricClouds;
+
     auto& clouds = system.GetVolumetricClouds();
+    auto refresh = [&system]() {
+        system.GetVolumetricClouds().SyncAltitudeFromBounds();
+        system.SyncToScene();
+        system.UpdateRendering();
+    };
+
     AddBoolProperty(editor, "Enabled", "Clouds", clouds.Enabled, [&system](bool value) {
         system.SetVolumetricCloudsEnabled(value);
     });
-    AddFloatProperty(editor, "Coverage", "Clouds", clouds.Coverage, [&system](float value) {
-        system.GetVolumetricClouds().Coverage = value;
-        system.SyncToScene();
-        system.UpdateRendering();
+    AddStringProperty(editor, "Preset", "Clouds", EnvironmentVolumetricClouds::PresetName(clouds.ActivePreset),
+        [&system](const std::string& value) {
+            for (int i = 0; i <= static_cast<int>(CloudPreset::Stratocumulus); ++i) {
+                const auto preset = static_cast<CloudPreset>(i);
+                if (value == EnvironmentVolumetricClouds::PresetName(preset)) {
+                    system.ApplyCloudPreset(preset);
+                    return;
+                }
+            }
+        });
+    AddStringProperty(editor, "Quality Preset", "Clouds",
+        clouds.Quality == CloudQualityPreset::Low ? "Low"
+            : clouds.Quality == CloudQualityPreset::High ? "High"
+            : clouds.Quality == CloudQualityPreset::Epic ? "Epic" : "Medium",
+        [&system, refresh](const std::string& value) {
+            auto& c = system.GetVolumetricClouds();
+            if (value == "Low") c.Quality = CloudQualityPreset::Low;
+            else if (value == "High") c.Quality = CloudQualityPreset::High;
+            else if (value == "Epic") c.Quality = CloudQualityPreset::Epic;
+            else c.Quality = CloudQualityPreset::Medium;
+            refresh();
+        });
+
+    AddFloatProperty(editor, "Coverage", "Clouds", clouds.Coverage, [&system, refresh](float value) {
+        system.GetVolumetricClouds().Coverage = std::clamp(value, 0.0f, 1.0f);
+        refresh();
     });
-    AddFloatProperty(editor, "Altitude", "Clouds", clouds.Altitude, [&system](float value) {
-        system.GetVolumetricClouds().Altitude = value;
-        system.SyncToScene();
-        system.UpdateRendering();
+    AddFloatProperty(editor, "Density", "Clouds", clouds.Density, [&system, refresh](float value) {
+        system.GetVolumetricClouds().Density = std::max(0.0f, value);
+        refresh();
+    });
+    AddFloatProperty(editor, "Density Multiplier", "Clouds", clouds.DensityMultiplier, [&system, refresh](float value) {
+        system.GetVolumetricClouds().DensityMultiplier = std::max(0.0f, value);
+        refresh();
+    });
+    AddFloatProperty(editor, "Cloud Height", "Clouds", clouds.CloudHeight, [&system, refresh](float value) {
+        auto& c = system.GetVolumetricClouds();
+        const float half = c.CloudThickness * 0.5f;
+        c.CloudHeight = std::max(0.0f, value);
+        c.BottomAltitude = c.CloudHeight - half;
+        c.TopAltitude = c.CloudHeight + half;
+        refresh();
+    });
+    AddFloatProperty(editor, "Cloud Thickness", "Clouds", clouds.CloudThickness, [&system, refresh](float value) {
+        auto& c = system.GetVolumetricClouds();
+        c.CloudThickness = std::max(50.0f, value);
+        c.BottomAltitude = c.CloudHeight - c.CloudThickness * 0.5f;
+        c.TopAltitude = c.CloudHeight + c.CloudThickness * 0.5f;
+        refresh();
+    });
+    AddFloatProperty(editor, "Bottom Altitude", "Clouds", clouds.BottomAltitude, [&system, refresh](float value) {
+        system.GetVolumetricClouds().BottomAltitude = value;
+        refresh();
+    });
+    AddFloatProperty(editor, "Top Altitude", "Clouds", clouds.TopAltitude, [&system, refresh](float value) {
+        system.GetVolumetricClouds().TopAltitude = value;
+        refresh();
+    });
+    AddVec3Property(editor, "Wind Direction", "Clouds", clouds.WindDirection, [&system, refresh](const glm::vec3& value) {
+        system.GetVolumetricClouds().WindDirection = value;
+        refresh();
+    });
+    AddFloatProperty(editor, "Wind Speed", "Clouds", clouds.WindSpeed, [&system, refresh](float value) {
+        system.GetVolumetricClouds().WindSpeed = std::max(0.0f, value);
+        refresh();
+    });
+    AddFloatProperty(editor, "Animation Speed", "Clouds", clouds.AnimationSpeed, [&system, refresh](float value) {
+        system.GetVolumetricClouds().AnimationSpeed = std::max(0.0f, value);
+        refresh();
+    });
+    AddFloatProperty(editor, "Noise Scale", "Clouds", clouds.NoiseScale, [&system, refresh](float value) {
+        system.GetVolumetricClouds().NoiseScale = std::max(0.05f, value);
+        refresh();
+    });
+    AddFloatProperty(editor, "Detail Noise Scale", "Clouds", clouds.DetailNoiseScale, [&system, refresh](float value) {
+        system.GetVolumetricClouds().DetailNoiseScale = std::max(0.5f, value);
+        refresh();
+    });
+    AddFloatProperty(editor, "Shape Noise", "Clouds", clouds.ShapeNoise, [&system, refresh](float value) {
+        system.GetVolumetricClouds().ShapeNoise = std::clamp(value, 0.0f, 1.0f);
+        refresh();
+    });
+    AddFloatProperty(editor, "Erosion Noise", "Clouds", clouds.ErosionNoise, [&system, refresh](float value) {
+        system.GetVolumetricClouds().ErosionNoise = std::clamp(value, 0.0f, 1.0f);
+        refresh();
+    });
+    AddFloatProperty(editor, "Seed", "Clouds", clouds.Seed, [&system, refresh](float value) {
+        system.GetVolumetricClouds().Seed = value;
+        refresh();
+    });
+    AddFloatProperty(editor, "Lighting Intensity", "Lighting", clouds.LightingIntensity, [&system, refresh](float value) {
+        system.GetVolumetricClouds().LightingIntensity = std::max(0.0f, value);
+        refresh();
+    });
+    AddFloatProperty(editor, "Silver Lining Intensity", "Lighting", clouds.SilverLiningIntensity, [&system, refresh](float value) {
+        system.GetVolumetricClouds().SilverLiningIntensity = std::max(0.0f, value);
+        refresh();
+    });
+    AddFloatProperty(editor, "Ambient Contribution", "Lighting", clouds.AmbientContribution, [&system, refresh](float value) {
+        system.GetVolumetricClouds().AmbientContribution = std::max(0.0f, value);
+        refresh();
+    });
+    AddFloatProperty(editor, "Multi-Scattering Strength", "Lighting", clouds.MultiScatteringStrength, [&system, refresh](float value) {
+        system.GetVolumetricClouds().MultiScatteringStrength = std::clamp(value, 0.0f, 2.0f);
+        refresh();
+    });
+    AddFloatProperty(editor, "Phase Function (Forward Scattering)", "Lighting", clouds.PhaseG, [&system, refresh](float value) {
+        system.GetVolumetricClouds().PhaseG = std::clamp(value, 0.0f, 0.95f);
+        refresh();
+    });
+    AddFloatProperty(editor, "Powder Effect", "Lighting", clouds.PowderEffect, [&system, refresh](float value) {
+        system.GetVolumetricClouds().PowderEffect = std::clamp(value, 0.0f, 1.0f);
+        refresh();
+    });
+    AddFloatProperty(editor, "Shadow Strength", "Shadows", clouds.ShadowStrength, [&system, refresh](float value) {
+        system.GetVolumetricClouds().ShadowStrength = std::clamp(value, 0.0f, 1.0f);
+        refresh();
+    });
+    AddFloatProperty(editor, "Shadow Distance", "Shadows", clouds.ShadowDistance, [&system, refresh](float value) {
+        system.GetVolumetricClouds().ShadowDistance = std::max(100.0f, value);
+        refresh();
+    });
+    AddIntProperty(editor, "Shadow Resolution", "Shadows", clouds.ShadowResolution, [&system, refresh](int value) {
+        system.GetVolumetricClouds().ShadowResolution = std::clamp(value, 64, 2048);
+        refresh();
+    });
+    AddVec3Property(editor, "Cloud Color Tint", "Appearance", clouds.CloudColorTint, [&system, refresh](const glm::vec3& value) {
+        system.GetVolumetricClouds().CloudColorTint = value;
+        refresh();
+    });
+    AddVec3Property(editor, "Cloud Color", "Appearance", clouds.CloudColor, [&system, refresh](const glm::vec3& value) {
+        system.GetVolumetricClouds().CloudColor = value;
+        refresh();
+    });
+    AddFloatProperty(editor, "Weather Map Influence", "Weather", clouds.WeatherMapInfluence, [&system, refresh](float value) {
+        system.GetVolumetricClouds().WeatherMapInfluence = std::clamp(value, 0.0f, 1.0f);
+        refresh();
     });
 }
 
@@ -682,6 +840,19 @@ private:
             env.SetVolumetricCloudsEnabled(!env.IsVolumetricCloudsEnabled());
         }, system.IsVolumetricCloudsEnabled()));
         items.push_back(makeItem("", []() {}, false, false));
+        items.push_back(makeItem("Cloud: Clear Sky", []() { EnvironmentSystem::Get().ApplyCloudPreset(we::runtime::world::environment::CloudPreset::ClearSky); }));
+        items.push_back(makeItem("Cloud: Few Clouds", []() { EnvironmentSystem::Get().ApplyCloudPreset(we::runtime::world::environment::CloudPreset::FewClouds); }));
+        items.push_back(makeItem("Cloud: Scattered", []() { EnvironmentSystem::Get().ApplyCloudPreset(we::runtime::world::environment::CloudPreset::ScatteredClouds); }));
+        items.push_back(makeItem("Cloud: Broken", []() { EnvironmentSystem::Get().ApplyCloudPreset(we::runtime::world::environment::CloudPreset::BrokenClouds); }));
+        items.push_back(makeItem("Cloud: Overcast", []() { EnvironmentSystem::Get().ApplyCloudPreset(we::runtime::world::environment::CloudPreset::Overcast); }));
+        items.push_back(makeItem("Cloud: Storm", []() { EnvironmentSystem::Get().ApplyCloudPreset(we::runtime::world::environment::CloudPreset::Storm); }));
+        items.push_back(makeItem("Cloud: Heavy Storm", []() { EnvironmentSystem::Get().ApplyCloudPreset(we::runtime::world::environment::CloudPreset::HeavyStorm); }));
+        items.push_back(makeItem("Cloud: Sunset", []() { EnvironmentSystem::Get().ApplyCloudPreset(we::runtime::world::environment::CloudPreset::SunsetClouds); }));
+        items.push_back(makeItem("Cloud: Sunrise", []() { EnvironmentSystem::Get().ApplyCloudPreset(we::runtime::world::environment::CloudPreset::SunriseClouds); }));
+        items.push_back(makeItem("Cloud: High Cirrus", []() { EnvironmentSystem::Get().ApplyCloudPreset(we::runtime::world::environment::CloudPreset::HighCirrus); }));
+        items.push_back(makeItem("Cloud: Cumulus", []() { EnvironmentSystem::Get().ApplyCloudPreset(we::runtime::world::environment::CloudPreset::Cumulus); }));
+        items.push_back(makeItem("Cloud: Stratocumulus", []() { EnvironmentSystem::Get().ApplyCloudPreset(we::runtime::world::environment::CloudPreset::Stratocumulus); }));
+        items.push_back(makeItem("", []() {}, false, false));
         items.push_back(makeItem("Preset: Sunny", []() { EnvironmentSystem::Get().ApplyPreset(EnvironmentPreset::Sunny); }));
         items.push_back(makeItem("Preset: Sunset", []() { EnvironmentSystem::Get().ApplyPreset(EnvironmentPreset::Sunset); }));
         items.push_back(makeItem("Preset: Night", []() { EnvironmentSystem::Get().ApplyPreset(EnvironmentPreset::Night); }));
@@ -707,7 +878,7 @@ private:
 
 void InitializeEditor(
     const std::shared_ptr<Scene>& scene,
-    const std::shared_ptr<we::runtime::renderer::SceneRenderer>& renderer,
+    we::runtime::renderer::SceneRenderer* renderer,
     const std::shared_ptr<WindEffects::Editor::UI::TreeView>& outliner,
     const std::shared_ptr<WindEffects::Editor::UI::PropertyEditor>& details) {
 

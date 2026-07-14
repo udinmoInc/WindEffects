@@ -8,6 +8,7 @@ namespace we::runtime::renderer {
 
 class CameraSystem;
 class DirectionalLight;
+class EnvironmentUniform;
 class SceneRenderer;
 
 struct FrameContext {
@@ -21,6 +22,7 @@ struct FrameContext {
     VkFormat colorFormat = VK_FORMAT_UNDEFINED;
     CameraSystem* camera = nullptr;
     DirectionalLight* directionalLight = nullptr;
+    EnvironmentUniform* environmentUniform = nullptr;
     DepthTarget* depthTarget = nullptr;
     SceneRenderer* sceneRenderer = nullptr;
 };

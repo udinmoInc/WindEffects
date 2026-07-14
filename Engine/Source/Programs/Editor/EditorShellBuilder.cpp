@@ -324,7 +324,11 @@ EditorShellResult EditorShellBuilder::Build(
     if (auto detailsPanel = shellResult.layout.panels["Details"]) {
         detailsEditor = std::dynamic_pointer_cast<PropertyEditor>(detailsPanel->GetContent());
     }
-    we::editor::environment::InitializeEditor(deps.scene, nullptr, worldOutlinerTree, detailsEditor);
+    we::editor::environment::InitializeEditor(
+        deps.scene,
+        deps.renderer ? deps.renderer->GetSceneRenderer() : nullptr,
+        worldOutlinerTree,
+        detailsEditor);
 
     workspace.BindLayout(shellResult.layout);
 

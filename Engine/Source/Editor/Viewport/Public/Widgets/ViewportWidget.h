@@ -54,6 +54,7 @@ public:
     void SyncRendererViewport();
 
     bool IsFlyLookActive() const { return m_Navigation.IsFlyLookActive(); }
+    bool IsViewportNavigating() const { return m_Navigation.IsViewportNavigating(); }
 
     // Exposes the owned offscreen color target for compositor sampling.
     VkImageView GetViewportColorImageView() const;
