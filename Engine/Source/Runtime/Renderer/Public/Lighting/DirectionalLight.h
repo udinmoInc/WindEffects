@@ -14,13 +14,14 @@ class ResourceManager;
 
 struct DirectionalLightData {
 #if WE_HAS_GLM
+    // Travel direction (from sun toward scene). Sky uses -direction as sun vector.
     glm::vec3 direction{0.3f, -0.8f, 0.2f};
-    float intensity = 3.5f;
+    float intensity = 1.2f;
     glm::vec3 color{1.0f, 0.98f, 0.95f};
     float padding = 0.0f;
 #else
     float direction[3]{0.3f, -0.8f, 0.2f};
-    float intensity = 3.5f;
+    float intensity = 1.2f;
     float color[3]{1.0f, 0.98f, 0.95f};
     float padding = 0.0f;
 #endif

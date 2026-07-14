@@ -7,6 +7,7 @@
 //   proj (float4x4)
 //   invViewProj (float4x4)
 //   cameraPos (float3) + cameraPadding (float)
+//   Foundation sky reuses cameraPadding as skyDebugMode (see ProceduralSky.hlsl).
 //
 // Shaders may override the descriptor-set ("space") via WE_CAMERA_BUFFER_SPACE.
 #ifndef WE_CAMERA_BUFFER_SPACE

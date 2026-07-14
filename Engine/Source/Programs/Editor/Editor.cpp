@@ -26,6 +26,7 @@
 #include "Core/DPIContext.h"
 #include "Core/UIRepaintGate.h"
 #include "Core/EditorPerfStats.h"
+#include "Debug/FoundationRenderDebug.h"
 #include "Runtime/World/DefaultScene/DefaultSceneBuilder.h"
 #include "Runtime/World/Environment/EnvironmentSystem.h"
 #include "Widgets/RenderInvestigationModal.h"
@@ -530,7 +531,15 @@ void Editor::MainLoop() {
         cameraUBO.view = m_Camera->GetViewMatrix();
         cameraUBO.proj = m_Camera->GetProjectionMatrix();
         cameraUBO.position = m_Camera->GetPosition();
-        cameraUBO.padding = 0.0f;
+        {
+            // WE_SKY_DEBUG: 0 final, 1 sky only, 2 sun mask, 3 luminance, 4 no sun, 5 linear HDR.
+            int skyDebugMode = 0;
+            if (const char* v = std::getenv("WE_SKY_DEBUG")) {
+                skyDebugMode = std::atoi(v);
+            }
+            cameraUBO.padding = static_cast<float>(skyDebugMode);
+            we::runtime::renderer::FoundationRenderDebug::MaybeLog(skyDebugMode);
+        }
 
 
 
