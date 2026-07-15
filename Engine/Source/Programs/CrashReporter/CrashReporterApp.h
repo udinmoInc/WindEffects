@@ -1,5 +1,6 @@
 #pragma once
-#include <SDL3/SDL.h>
+
+#include "Platform/Types.h"
 #include <memory>
 
 namespace we::runtime::renderer { class DeviceContext; class Renderer; class RenderGraph; }
@@ -10,7 +11,7 @@ namespace we::programs::crashreporter {
 
 class CrashReporterApp {
 public:
-    CrashReporterApp(SDL_Window* window);
+    explicit CrashReporterApp(we::platform::WindowId window);
     ~CrashReporterApp();
 
     void Run();
@@ -19,7 +20,7 @@ private:
     void MainLoop();
     void Shutdown();
 
-    SDL_Window* m_Window;
+    we::platform::WindowId m_Window = we::platform::WindowId::Invalid;
     bool m_Running = true;
 
     std::shared_ptr<we::runtime::renderer::DeviceContext> m_Context;

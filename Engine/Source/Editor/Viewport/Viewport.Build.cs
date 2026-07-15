@@ -10,6 +10,7 @@ public class Viewport : ModuleRules
         PrivateIncludePaths.Add("Private");
 
         PublicDependencies.Add("Core");
+        PublicDependencies.Add("Platform");
         PublicDependencies.Add("RHI");
         PublicDependencies.Add("Renderer");
         PublicDependencies.Add("Engine");
@@ -19,10 +20,7 @@ public class Viewport : ModuleRules
         PublicDependencies.Add("PlaceActors");
 
         OptionalSDK("VulkanSDK");
-        OptionalSDK("SDL3");
         DefineIf(HasSDK("VulkanSDK") || true, "WE_HAS_VULKAN=1");
-        DefineIf(HasSDK("SDL3"), "WE_HAS_SDL3=1");
-        DefineIf(!HasSDK("SDL3"), "WE_HAS_SDL3=0");
 
         Definitions.Add("VIEWPORT_EXPORTS");
     }

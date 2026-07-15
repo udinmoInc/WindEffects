@@ -5,17 +5,23 @@
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 #include <dwmapi.h>
-#include <SDL3/SDL.h>
-#include "Win32SdlWindow.h"
+#include "Platform/NativeHandle.h"
 
 #pragma comment(lib, "dwmapi.lib")
 
 namespace we::programs::windows {
 
+inline HWND GetHwnd(const we::platform::NativeWindowHandle& handle) {
+    if (handle.type != we::platform::NativeWindowType::Win32Hwnd) {
+        return nullptr;
+    }
+    return static_cast<HWND>(handle.window);
+}
+
 // DWM-only chrome: do not use SetWindowRgn — it clips bottom corners and leaves
 // a visible gap above the taskbar / system edge.
-inline void ConfigureBorderlessWindow(SDL_Window* window) {
-    const HWND hwnd = GetHwndFromSdlWindow(window);
+inline void ConfigureBorderlessWindow(const we::platform::NativeWindowHandle& handle) {
+    const HWND hwnd = GetHwnd(handle);
     if (!hwnd) {
         return;
     }
@@ -37,7 +43,7 @@ inline void ConfigureBorderlessWindow(SDL_Window* window) {
     DwmSetWindowAttribute(hwnd, DWMWA_BORDER_COLOR, &borderColor, sizeof(borderColor));
 }
 
-inline void UpdateBorderlessWindowShape(SDL_Window* /*window*/) {
+inline void UpdateBorderlessWindowShape(const we::platform::NativeWindowHandle& /*handle*/) {
     // Intentionally empty — window region clipping removed to keep the bottom edge flush.
 }
 

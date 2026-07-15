@@ -2,18 +2,22 @@
 
 #pragma warning(disable: 4251)
 
+#if defined(_WIN32)
+#define VK_USE_PLATFORM_WIN32_KHR
+#endif
+
 #include <volk.h>
-#include <SDL3/SDL.h>
 #include <vector>
 #include <string>
 #include <memory>
 
+#include "Platform/NativeHandle.h"
 #include "Renderer/Export.h"
 
 namespace we::runtime::renderer {
 
 struct DeviceContextConfig {
-    SDL_Window* window = nullptr;
+    we::platform::NativeWindowHandle nativeWindow{};
     std::string appName = "WindEffects";
     bool enableValidationLayers = false;
 };
@@ -36,12 +40,15 @@ public:
     uint32_t GetGraphicsQueueFamily() const;
     VkQueue GetGraphicsQueue() const;
 
+    [[nodiscard]] const we::platform::NativeWindowHandle& GetNativeWindow() const { return m_NativeWindow; }
+
 private:
     void InitVolk();
     void CreateInstance(const DeviceContextConfig& config);
     void PickPhysicalDevice();
     void CreateLogicalDevice();
 
+    we::platform::NativeWindowHandle m_NativeWindow{};
     VkInstance m_Instance = VK_NULL_HANDLE;
     VkDebugUtilsMessengerEXT m_DebugMessenger = VK_NULL_HANDLE;
     VkPhysicalDevice m_PhysicalDevice = VK_NULL_HANDLE;

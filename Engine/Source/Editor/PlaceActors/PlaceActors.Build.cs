@@ -10,6 +10,7 @@ public class PlaceActors : ModuleRules
         PrivateIncludePaths.Add("Private");
 
         PublicDependencies.Add("Core");
+        PublicDependencies.Add("Platform");
         PublicDependencies.Add("CoreUObject");
         PublicDependencies.Add("Engine");
         PublicDependencies.Add("Scene");
@@ -19,10 +20,6 @@ public class PlaceActors : ModuleRules
         PublicDependencies.Add("Toolbar");
         PublicDependencies.Add("Terrain");
         PublicDependencies.Add("TerrainEditor");
-
-        OptionalSDK("SDL3");
-        DefineIf(HasSDK("SDL3"), "WE_HAS_SDL3=1");
-        DefineIf(!HasSDK("SDL3"), "WE_HAS_SDL3=0");
 
         Definitions.Add("PLACEACTORS_EXPORTS");
     }

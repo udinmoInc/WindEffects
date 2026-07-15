@@ -1,3 +1,4 @@
+#include "Platform/Platform.h"
 #include "Widgets/ExplorerToolbar.h"
 
 #include "Core/PaintContext.h"
@@ -5,7 +6,6 @@
 #include "WindEffects/Editor/UI/Theming/ThemeAccess.h"
 #include "Core/Icon.h"
 
-#include <SDL3/SDL.h>
 #include <algorithm>
 #include <cmath>
 
@@ -184,12 +184,12 @@ void ExplorerToolbar::OnKeyDown(const KeyEvent& event) {
         return;
     }
 
-    if (event.keycode == SDLK_ESCAPE) {
+    if (event.key == we::platform::KeyCode::Escape) {
         m_SearchFocused = false;
         return;
     }
 
-    if (event.keycode == SDLK_BACKSPACE && !m_SearchQuery.empty()) {
+    if (event.key == we::platform::KeyCode::Backspace && !m_SearchQuery.empty()) {
         m_SearchQuery.pop_back();
         if (m_OnSearchChanged) {
             m_OnSearchChanged(m_SearchQuery);

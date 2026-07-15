@@ -3,7 +3,7 @@
 #include "Core/EventSystem.h"
 #include "EditorCamera.h"
 #include "Scene/Scene.h"
-#include <SDL3/SDL.h>
+#include "Platform/Types.h"
 #include <memory>
 
 namespace we::programs::editor {
@@ -22,7 +22,7 @@ enum class ViewportCursorMode {
 
 class ViewportNavigationController {
 public:
-    void SetWindow(SDL_Window* window) { m_Window = window; }
+    void SetWindow(we::platform::WindowId window) { m_Window = window; }
     void SetCamera(const std::shared_ptr<we::runtime::engine::EditorCamera>& camera) { m_Camera = camera; }
     void SetScene(const std::shared_ptr<we::runtime::scene::Scene>& scene) { m_Scene = scene; }
     void SetViewportRect(const Rect& rect) { m_ViewportRect = rect; }
@@ -62,7 +62,7 @@ private:
     void RestoreCursorPosition();
     void CenterFlyCursor();
 
-    SDL_Window* m_Window = nullptr;
+    we::platform::WindowId m_Window = we::platform::WindowId::Invalid;
     std::shared_ptr<we::runtime::engine::EditorCamera> m_Camera;
     std::shared_ptr<we::runtime::scene::Scene> m_Scene;
 

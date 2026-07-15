@@ -291,16 +291,15 @@ void EditorCamera::ProcessMouseScroll(float yoffset) {
     ProcessMouseDolly(yoffset);
 }
 
-void EditorCamera::ProcessFlyMovement(const bool* keys, float dt) {
-    if (!m_FlyMode || keys == nullptr) {
+void EditorCamera::ProcessFlyMovement(const EditorCameraFlyKeys& keys, float dt) {
+    if (!m_FlyMode) {
         return;
     }
 
-#if WE_HAS_SDL3
     float speed = m_MoveSpeed * m_Acceleration;
-    if (keys[SDL_SCANCODE_LSHIFT] || keys[SDL_SCANCODE_RSHIFT]) {
+    if (keys.boost) {
         speed *= m_BoostMultiplier;
-    } else if (keys[SDL_SCANCODE_LCTRL] || keys[SDL_SCANCODE_RCTRL]) {
+    } else if (keys.slow) {
         speed *= m_SlowMultiplier;
     }
 
@@ -309,27 +308,24 @@ void EditorCamera::ProcessFlyMovement(const bool* keys, float dt) {
     const glm::vec3 right = ComputeRightFromYaw(m_TargetYaw);
     const glm::vec3 up = glm::vec3(0.0f, 1.0f, 0.0f);
 
-    if (keys[SDL_SCANCODE_W] || keys[SDL_SCANCODE_UP]) {
+    if (keys.forward) {
         m_TargetPosition += forward * distance;
     }
-    if (keys[SDL_SCANCODE_S] || keys[SDL_SCANCODE_DOWN]) {
+    if (keys.back) {
         m_TargetPosition -= forward * distance;
     }
-    if (keys[SDL_SCANCODE_A] || keys[SDL_SCANCODE_LEFT]) {
+    if (keys.left) {
         m_TargetPosition -= right * distance;
     }
-    if (keys[SDL_SCANCODE_D] || keys[SDL_SCANCODE_RIGHT]) {
+    if (keys.right) {
         m_TargetPosition += right * distance;
     }
-    if (keys[SDL_SCANCODE_E]) {
+    if (keys.up) {
         m_TargetPosition += up * distance;
     }
-    if (keys[SDL_SCANCODE_Q]) {
+    if (keys.down) {
         m_TargetPosition -= up * distance;
     }
-#else
-    (void)dt;
-#endif
 }
 
 void EditorCamera::AdjustFlySpeed(float wheelDeltaY) {
@@ -546,9 +542,9 @@ void EditorCamera::ProcessMouseScroll(float yoffset) {
     (void)yoffset; // Suppress unused parameter warning
 }
 
-void EditorCamera::ProcessFlyMovement(const bool* keys, float dt) {
-    (void)keys; // Suppress unused parameter warning
-    (void)dt; // Suppress unused parameter warning
+void EditorCamera::ProcessFlyMovement(const EditorCameraFlyKeys& keys, float dt) {
+    (void)keys;
+    (void)dt;
 }
 
 void EditorCamera::AdjustFlySpeed(float wheelDeltaY) {

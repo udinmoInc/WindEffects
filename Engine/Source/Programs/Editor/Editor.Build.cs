@@ -12,6 +12,7 @@ public class Editor : ModuleRules
         PublicDependencies.Add("Core");
         PublicDependencies.Add("CoreUObject");
         PublicDependencies.Add("Engine");
+        PublicDependencies.Add("Platform");
         PublicDependencies.Add("Renderer");
         PublicDependencies.Add("Scene");
         PublicDependencies.Add("World");
@@ -33,11 +34,8 @@ public class Editor : ModuleRules
         PublicDependencies.Add("TerrainEditor");
 
         OptionalSDK("VulkanSDK");
-        OptionalSDK("SDL3");
         DefineIf(HasSDK("VulkanSDK"), "WE_HAS_VULKAN=1");
         DefineIf(!HasSDK("VulkanSDK"), "WE_HAS_VULKAN=0");
-        DefineIf(HasSDK("SDL3"), "WE_HAS_SDL3=1");
-        DefineIf(!HasSDK("SDL3"), "WE_HAS_SDL3=0");
 
         PlatformSettings.Windows ??= new WindowsSettings();
         PlatformSettings.Windows.Subsystem = "Console";

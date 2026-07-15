@@ -1,10 +1,7 @@
 #pragma once
 
 #include "MainFrame/Export.h"
-
-#if WE_HAS_SDL3
-#include <SDL3/SDL.h>
-#endif
+#include "Platform/Types.h"
 #include <memory>
 
 namespace WindEffects::Editor::UI {
@@ -17,8 +14,9 @@ struct EditorWindowHitTestData {
     std::weak_ptr<WindEffects::Editor::UI::TitleBar> titleBar;
 };
 
-#if WE_HAS_SDL3
-MAINFRAME_API SDL_HitTestResult SDLCALL EditorWindowHitTest(SDL_Window* window, const SDL_Point* area, void* userdata);
-#endif
+MAINFRAME_API we::platform::WindowHitTestResult EditorWindowHitTest(
+    we::platform::WindowId window,
+    we::platform::Int2 area,
+    void* userdata);
 
 } // namespace we::editor::mainframe

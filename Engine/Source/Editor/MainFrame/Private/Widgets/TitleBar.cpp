@@ -11,7 +11,7 @@
 #include "Widgets/ToolButton.h"
 #include "Core/DPIContext.h"
 #include "Rendering/IconMetrics.h"
-#include <SDL3/SDL.h>
+#include "Platform/Platform.h"
 #include <algorithm>
 #include <cmath>
 #include <cstring>
@@ -144,7 +144,7 @@ namespace {
     constexpr float kLogoToMenuGap = 8.0f;
 }
 
-TitleBar::TitleBar(SDL_Window* window, const std::string& title, VkDescriptorSet logoSet, std::shared_ptr<MenuBar> menuBar)
+TitleBar::TitleBar(we::platform::WindowId window, const std::string& title, VkDescriptorSet logoSet, std::shared_ptr<MenuBar> menuBar)
     : m_Window(window), m_Title(title), m_LogoSet(logoSet), m_MenuBar(menuBar)
 {
     SetPadding(Margin{ 0.0f, 0.0f, 0.0f, 0.0f });
@@ -172,25 +172,24 @@ void TitleBar::Construct() {
     m_RightContainer->SetSpacing(0.0f);
 
     auto minimizeBtn = std::make_shared<ToolButton>(Icons::MinimizeName, "", [this]() {
-        if (m_Window) SDL_MinimizeWindow(m_Window);
+        if (m_Window != we::platform::WindowId::Invalid) {
+            we::platform::Platform::Get().MinimizeWindow(m_Window);
+        }
     });
     auto maximizeBtn = std::make_shared<ToolButton>(Icons::MaximizeName, "", [this]() {
-        if (m_Window) {
-            auto flags = SDL_GetWindowFlags(m_Window);
-            if (flags & SDL_WINDOW_MAXIMIZED) {
-                SDL_RestoreWindow(m_Window);
+        if (m_Window != we::platform::WindowId::Invalid) {
+            auto& platform = we::platform::Platform::Get();
+            if (platform.IsWindowMaximized(m_Window)) {
+                platform.RestoreWindow(m_Window);
             } else {
-                SDL_MaximizeWindow(m_Window);
+                platform.MaximizeWindow(m_Window);
             }
             UpdateMaximizeIcon();
         }
     });
     auto closeBtn = std::make_shared<ToolButton>(Icons::XName, "", [this]() {
-        if (m_Window) {
-            SDL_Event event;
-            event.type = SDL_EVENT_WINDOW_CLOSE_REQUESTED;
-            event.window.windowID = SDL_GetWindowID(m_Window);
-            SDL_PushEvent(&event);
+        if (m_Window != we::platform::WindowId::Invalid) {
+            we::platform::Platform::Get().PushEvent(we::platform::WindowCloseEvent{m_Window});
         }
     });
 
@@ -290,38 +289,32 @@ void TitleBar::OnMouseMove(const MouseEvent& event) {
 }
 
 void TitleBar::UpdateMaximizeIcon() {
-    if (!m_Window || !m_MaximizeWidget) return;
+    if (m_Window == we::platform::WindowId::Invalid || !m_MaximizeWidget) return;
 
     auto toolBtn = std::static_pointer_cast<ToolButton>(m_MaximizeWidget);
-    auto flags = SDL_GetWindowFlags(m_Window);
-    if (flags & SDL_WINDOW_MAXIMIZED) {
+    if (we::platform::Platform::Get().IsWindowMaximized(m_Window)) {
         toolBtn->SetIcon(Icons::RestoreName);
     } else {
         toolBtn->SetIcon(Icons::MaximizeName);
     }
 }
 
-SDL_HitTestResult TitleBar::HitTest(SDL_Point point) {
-    Point p{ (float)point.x, (float)point.y };
+we::platform::WindowHitTestResult TitleBar::HitTest(we::platform::Int2 point) {
+    Point p{ static_cast<float>(point.x), static_cast<float>(point.y) };
 
     for (const auto& w : m_InteractableWidgets) {
         if (p.x >= w->GetGeometry().x && p.x <= w->GetGeometry().x + w->GetGeometry().width &&
             p.y >= w->GetGeometry().y && p.y <= w->GetGeometry().y + w->GetGeometry().height) {
-
-            if (w == m_MinimizeWidget) return SDL_HITTEST_NORMAL;
-            if (w == m_MaximizeWidget) return SDL_HITTEST_NORMAL;
-            if (w == m_CloseWidget) return SDL_HITTEST_NORMAL;
-
-            return SDL_HITTEST_NORMAL;
+            return we::platform::WindowHitTestResult::Client;
         }
     }
 
     if (p.x >= m_Geometry.x && p.x <= m_Geometry.x + m_Geometry.width &&
         p.y >= m_Geometry.y && p.y <= m_Geometry.y + m_Geometry.height) {
-        return SDL_HITTEST_DRAGGABLE;
+        return we::platform::WindowHitTestResult::Draggable;
     }
 
-    return SDL_HITTEST_NORMAL;
+    return we::platform::WindowHitTestResult::Client;
 }
 
 } // namespace WindEffects::Editor::UI

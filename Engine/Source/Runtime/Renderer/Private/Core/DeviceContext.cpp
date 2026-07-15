@@ -1,12 +1,12 @@
 #define VOLK_IMPLEMENTATION
 #include "Core/DeviceContext.h"
 #include "Core/Validation.h"
+#include "Core/VulkanSurface.h"
 #include <stdexcept>
 #include <string>
 #include <set>
 #include <algorithm>
 #include <cstring>
-#include <SDL3/SDL_vulkan.h>
 #include <vector>
 
 namespace we::runtime::renderer {
@@ -97,6 +97,7 @@ DeviceContext::~DeviceContext() {
 void DeviceContext::Init(const DeviceContextConfig& config) {
     WE_VALIDATE_INIT(!m_Initialized, "DeviceContext", "DeviceContext is already initialized.");
     
+    m_NativeWindow = config.nativeWindow;
     InitVolk();
     CreateInstance(config);
     PickPhysicalDevice();
@@ -145,16 +146,8 @@ void DeviceContext::CreateInstance(const DeviceContextConfig& config) {
     createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
     createInfo.pApplicationInfo = &appInfo;
 
-    uint32_t sdlExtCount = 0;
-    const char* const* sdlExts = SDL_Vulkan_GetInstanceExtensions(&sdlExtCount);
-    if (sdlExts == nullptr || sdlExtCount == 0) {
-        const char* sdlError = SDL_GetError();
-        WE_VALIDATE_INIT(false, "DeviceContext",
-            std::string("Failed to get SDL Vulkan instance extensions: ")
-                + (sdlError && sdlError[0] != '\0' ? sdlError : "unknown SDL error"));
-    }
-
-    std::vector<const char*> extensions(sdlExts, sdlExts + sdlExtCount);
+    std::vector<const char*> extensions = GetRequiredVulkanInstanceExtensions();
+    WE_VALIDATE_INIT(!extensions.empty(), "DeviceContext", "No Vulkan instance extensions available for this platform.");
 
     bool useValidationLayers = config.enableValidationLayers;
     if (!ValidationDisabledFromEnvironment() && ValidationRequestedFromEnvironment()) {

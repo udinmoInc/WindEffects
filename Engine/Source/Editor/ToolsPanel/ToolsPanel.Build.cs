@@ -10,14 +10,11 @@ public class ToolsPanel : ModuleRules
         PrivateIncludePaths.Add("Private");
 
         PublicDependencies.Add("Core");
+        PublicDependencies.Add("Platform");
         PublicDependencies.Add("Engine");
         PublicDependencies.Add("UIFramework");
         PublicDependencies.Add("Menus");
         PublicDependencies.Add("ContentBrowser");
-
-        OptionalSDK("SDL3");
-        DefineIf(HasSDK("SDL3"), "WE_HAS_SDL3=1");
-        DefineIf(!HasSDK("SDL3"), "WE_HAS_SDL3=0");
 
         Definitions.Add("TOOLSPANEL_EXPORTS");
     }

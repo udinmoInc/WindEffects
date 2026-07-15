@@ -4,10 +4,6 @@
 
 #include <glm/glm.hpp>
 
-#if WE_HAS_SDL3
-#include <SDL3/SDL.h>
-#endif
-
 namespace we::runtime::engine {
 
 inline constexpr float kEditorCameraMinSpeed = 1.0f;
@@ -25,6 +21,17 @@ struct EditorCameraNavigationSettings {
     float scrollWheelSpeedMultiplier = 1.0f;
 };
 
+struct EditorCameraFlyKeys {
+    bool forward = false;
+    bool back = false;
+    bool left = false;
+    bool right = false;
+    bool up = false;
+    bool down = false;
+    bool boost = false;
+    bool slow = false;
+};
+
 class ENGINE_API EditorCamera {
 public:
     EditorCamera();
@@ -34,20 +41,18 @@ public:
 
     void SetNavigationSettings(const EditorCameraNavigationSettings& settings);
 
-    // Fly mode (RMB held)
     void EnterFlyMode();
     void ExitFlyMode();
     bool IsFlyMode() const;
 
     void ProcessFlyLook(float dx, float dy);
 
-    // Orbit navigation (Alt + mouse)
     void ProcessMouseOrbit(float dx, float dy);
     void ProcessMousePan(float dx, float dy);
     void ProcessMouseDolly(float delta);
     void ProcessMouseScroll(float yoffset);
 
-    void ProcessFlyMovement(const bool* keys, float dt);
+    void ProcessFlyMovement(const EditorCameraFlyKeys& keys, float dt);
     void AdjustFlySpeed(float wheelDeltaY);
 
     void SetViewportSize(float width, float height);

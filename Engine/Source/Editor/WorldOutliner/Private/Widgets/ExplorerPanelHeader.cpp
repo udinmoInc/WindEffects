@@ -1,3 +1,4 @@
+#include "Platform/Platform.h"
 #include "Widgets/ExplorerPanelHeader.h"
 
 #include "Explorer/ExplorerPanelAssets.h"
@@ -7,7 +8,6 @@
 #include "Core/Icon.h"
 #include "Rendering/IconMetrics.h"
 
-#include <SDL3/SDL.h>
 #include <algorithm>
 #include <cmath>
 
@@ -141,12 +141,12 @@ void ExplorerPanelHeader::OnKeyDown(const KeyEvent& event) {
         return;
     }
 
-    if (event.keycode == SDLK_ESCAPE) {
+    if (event.key == we::platform::KeyCode::Escape) {
         m_SearchFocused = false;
         return;
     }
 
-    if (event.keycode == SDLK_BACKSPACE && !m_SearchQuery.empty()) {
+    if (event.key == we::platform::KeyCode::Backspace && !m_SearchQuery.empty()) {
         m_SearchQuery.pop_back();
         if (m_OnSearchChanged) {
             m_OnSearchChanged(m_SearchQuery);

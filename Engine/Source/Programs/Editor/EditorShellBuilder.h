@@ -3,11 +3,10 @@
 #include "WindEffects/Editor/UI/Export.h"
 #include "WindEffects/Editor/UI/Core/EditorApplicationContext.h"
 #include "WindEffects/Editor/UI/Shell/DockLayoutBuilder.h"
+#include "Platform/Types.h"
 
 #include <functional>
 #include <memory>
-
-struct SDL_Window;
 
 namespace WindEffects::Editor::UI {
 class Widget;
@@ -34,7 +33,7 @@ class EditorCamera;
 namespace WindEffects::Editor::UI {
 
 struct EditorShellDependencies {
-    SDL_Window* window = nullptr;
+    we::platform::WindowId window = we::platform::WindowId::Invalid;
     we::runtime::renderer::Renderer* renderer = nullptr;
     std::shared_ptr<we::runtime::scene::Scene> scene;
     std::shared_ptr<we::runtime::engine::EditorCamera> camera;

@@ -4,8 +4,7 @@
 
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
-#include <SDL3/SDL.h>
-#include "Win32SdlWindow.h"
+#include "Platform/NativeHandle.h"
 #include "resource.h"
 
 namespace we::programs::windows {
@@ -33,13 +32,11 @@ inline HICON LoadSizedIcon(int resourceId, int width, int height) {
     return icon;
 }
 
-// Apply multi-resolution embedded EXE icon to an SDL top-level window.
-// Uses LoadImage at system icon metrics and WM_SETICON for taskbar/title chrome.
-inline void ApplyEmbeddedWindowIcon(SDL_Window* window, int resourceId = IDI_ICON1) {
-    const HWND hwnd = GetHwndFromSdlWindow(window);
-    if (!hwnd) {
+inline void ApplyEmbeddedWindowIcon(const we::platform::NativeWindowHandle& handle, int resourceId = IDI_ICON1) {
+    if (handle.type != we::platform::NativeWindowType::Win32Hwnd || !handle.window) {
         return;
     }
+    const HWND hwnd = static_cast<HWND>(handle.window);
 
     const int bigW = GetSystemMetrics(SM_CXICON);
     const int bigH = GetSystemMetrics(SM_CYICON);
@@ -62,13 +59,6 @@ inline void ApplyEmbeddedWindowIcon(SDL_Window* window, int resourceId = IDI_ICO
     if (hIconSm) {
         SendMessageW(hwnd, WM_SETICON, ICON_SMALL, reinterpret_cast<LPARAM>(hIconSm));
     }
-}
-
-inline void ConfigureSdlClassIcons(int resourceId = IDI_ICON1) {
-    char idBuffer[16]{};
-    SDL_snprintf(idBuffer, sizeof(idBuffer), "%d", resourceId);
-    SDL_SetHint(SDL_HINT_WINDOWS_INTRESOURCE_ICON, idBuffer);
-    SDL_SetHint(SDL_HINT_WINDOWS_INTRESOURCE_ICON_SMALL, idBuffer);
 }
 
 } // namespace we::programs::windows

@@ -14,6 +14,7 @@ public class Terrain : ModuleRules
         PrivateIncludePaths.Add(Path.Combine(context.EngineDirectory, "ThirdParty", "stb"));
 
         PublicDependencies.Add("Core");
+        PublicDependencies.Add("Platform");
         PublicDependencies.Add("CoreUObject");
         PublicDependencies.Add("Engine");
         PublicDependencies.Add("Scene");

@@ -10,6 +10,7 @@ public class Menus : ModuleRules
         PrivateIncludePaths.Add("Private");
 
         PublicDependencies.Add("Core");
+        PublicDependencies.Add("Platform");
         PublicDependencies.Add("UIFramework");
 
         Definitions.Add("MENUS_EXPORTS");

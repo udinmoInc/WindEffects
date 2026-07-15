@@ -31,10 +31,11 @@
 #include "Runtime/World/Environment/EnvironmentSystem.h"
 #include "Widgets/RenderInvestigationModal.h"
 
-#include <SDL3/SDL.h>
+#include "Platform/PlatformSDK.h"
 #include <algorithm>
 #include <cstdlib>
 #include <filesystem>
+#include <variant>
 
 #ifndef WE_DEBUG_UI
 #define WE_DEBUG_UI 0
@@ -50,10 +51,6 @@ bool PresentAuditEnabled() {
 }
 } // namespace
 
-#if defined(_WIN32)
-#include "../Windows/Win32WindowChrome.h"
-#endif
-
 namespace we::programs::editor {
 
 namespace UI = WindEffects::Editor::UI;
@@ -64,7 +61,7 @@ using namespace we::runtime::scene;
 using namespace we::runtime::engine;
 using namespace we::runtime::world;
 
-Editor::Editor(SDL_Window* window) : m_Window(window) {
+Editor::Editor(we::platform::WindowId window) : m_Window(window) {
     HE_INFO("[Startup] === Editor construction begin ===");
 
     HE_INFO("[Startup] Stage 1/6: Renderer...");
@@ -171,9 +168,10 @@ Editor::Editor(SDL_Window* window) : m_Window(window) {
         m_StatusBar = shellResult.statusBar;
 
         m_WindowHitTestData.titleBar = m_TitleBar;
-        if (!SDL_SetWindowHitTest(m_Window, we::editor::mainframe::EditorWindowHitTest, &m_WindowHitTestData)) {
-            HE_WARN("[UI] SDL_SetWindowHitTest failed â€” title bar drag may not work.");
-        }
+        we::platform::Platform::Get().SetWindowHitTest(
+            m_Window,
+            we::editor::mainframe::EditorWindowHitTest,
+            &m_WindowHitTestData);
     } catch (const std::exception& e) {
         HE_ERROR("[Startup] Failed to build editor shell: " + std::string(e.what()));
         throw;
@@ -206,12 +204,14 @@ Editor::~Editor() {
 
 void Editor::UpdateUiScaleFromWindow() {
     float scale = 1.0f;
-    if (m_Window) {
-        int logicalW = 0;
-        int pixelW = 0;
-        SDL_GetWindowSize(m_Window, &logicalW, nullptr);
-        if (logicalW > 0 && SDL_GetWindowSizeInPixels(m_Window, &pixelW, nullptr) && pixelW > 0) {
-            scale = static_cast<float>(pixelW) / static_cast<float>(logicalW);
+    if (m_Window != we::platform::WindowId::Invalid) {
+        auto& platform = we::platform::Platform::Get();
+        const auto logical = platform.GetWindowSize(m_Window);
+        const auto pixels = platform.GetWindowPixelSize(m_Window);
+        if (logical.x > 0 && pixels.x > 0) {
+            scale = static_cast<float>(pixels.x) / static_cast<float>(logical.x);
+        } else {
+            scale = platform.GetWindowDpiScale(m_Window);
         }
     }
 
@@ -225,11 +225,15 @@ void Editor::UpdateUiScaleFromWindow() {
 }
 
 void Editor::EnsureVisibleSwapchain() {
-    int width = 0;
-    int height = 0;
-    if (!SDL_GetWindowSizeInPixels(m_Window, &width, &height) || width <= 0 || height <= 0) {
-        SDL_GetWindowSize(m_Window, &width, &height);
+    auto& platform = we::platform::Platform::Get();
+    auto pixelSize = platform.GetWindowPixelSize(m_Window);
+    if (pixelSize.x == 0 || pixelSize.y == 0) {
+        const auto logical = platform.GetWindowSize(m_Window);
+        pixelSize = {logical.x, logical.y};
     }
+
+    const int width = static_cast<int>(pixelSize.x);
+    const int height = static_cast<int>(pixelSize.y);
 
     HE_INFO("[Render] Ensuring swapchain matches visible window (" + std::to_string(width) + "x" + std::to_string(height) + ")...");
     if (width > 0 && height > 0) {
@@ -239,7 +243,7 @@ void Editor::EnsureVisibleSwapchain() {
             HE_INFO("[Render] Swapchain recreated for visible window.");
         }
     } else {
-        HE_ERROR("[Render] Window still reports zero size â€” UI layout will be empty until resized.");
+        HE_ERROR("[Render] Window still reports zero size — UI layout will be empty until resized.");
     }
 }
 
@@ -375,85 +379,60 @@ void Editor::MaybeShowFirstRunAgreement() {
 }
 
 void Editor::MainLoop() {
-    uint64_t lastTime = SDL_GetPerformanceCounter();
-    double frequency = static_cast<double>(SDL_GetPerformanceFrequency());
+    auto& platform = we::platform::Platform::Get();
+    uint64_t lastTime = platform.GetHighResolutionCounter();
+    const double frequency = static_cast<double>(platform.GetHighResolutionFrequency());
     bool firstFrame = true;
     WindEffects::Editor::UI::UIRepaintGate::Request();
 
     while (m_Running) {
         WindEffects::Editor::UI::EditorPerfStats::Get().BeginFrame();
 
-        SDL_Event event;
-        while (SDL_PollEvent(&event)) {
-            bool requestUiRebuild = false;
+        if (!platform.PollEvents()) {
+            m_Running = false;
+            if (m_OverlayHost) {
+                m_OverlayHost->ExecutePendingCallbacks();
+            }
+        }
 
-            if (event.type == SDL_EVENT_QUIT || (event.type == SDL_EVENT_WINDOW_CLOSE_REQUESTED && event.window.windowID == SDL_GetWindowID(m_Window))) {
+        for (const auto& event : platform.GetFrameEvents()) {
+            bool requestUiRebuild = false;
+            const bool isMotion = std::holds_alternative<we::platform::MouseMoveEvent>(event)
+                || std::holds_alternative<we::platform::RawMouseEvent>(event);
+
+            if (std::holds_alternative<we::platform::QuitEvent>(event)) {
                 m_Running = false;
-                // Execute pending callbacks before shutdown to prevent use-after-free
                 if (m_OverlayHost) {
                     m_OverlayHost->ExecutePendingCallbacks();
                 }
-            }
-
-#if defined(_WIN32)
-            if (event.window.windowID == SDL_GetWindowID(m_Window) &&
-                (event.type == SDL_EVENT_WINDOW_RESIZED ||
-                 event.type == SDL_EVENT_WINDOW_MAXIMIZED ||
-                 event.type == SDL_EVENT_WINDOW_RESTORED)) {
-                we::programs::windows::UpdateBorderlessWindowShape(m_Window);
-                requestUiRebuild = true;
-            }
-#endif
-
-            if (event.type == SDL_EVENT_WINDOW_RESIZED ||
-                event.type == SDL_EVENT_WINDOW_PIXEL_SIZE_CHANGED ||
-                event.type == SDL_EVENT_WINDOW_DISPLAY_SCALE_CHANGED) {
-                requestUiRebuild = true;
-            }
-
-            // Simple event processing
-            if (event.type == SDL_EVENT_MOUSE_MOTION ||
-                event.type == SDL_EVENT_MOUSE_BUTTON_DOWN ||
-                event.type == SDL_EVENT_MOUSE_BUTTON_UP ||
-                event.type == SDL_EVENT_MOUSE_WHEEL) {
-
-                UI::MouseEvent mouseEvent{};
-                mouseEvent.position = UI::Point{ static_cast<float>(event.motion.x), static_cast<float>(event.motion.y) };
-
-                if (event.type == SDL_EVENT_MOUSE_MOTION) {
-                    mouseEvent.type = UI::MouseEventType::MouseMove;
-                    mouseEvent.deltaX = static_cast<float>(event.motion.xrel);
-                    mouseEvent.deltaY = static_cast<float>(event.motion.yrel);
-                } else if (event.type == SDL_EVENT_MOUSE_BUTTON_DOWN || event.type == SDL_EVENT_MOUSE_BUTTON_UP) {
-                    mouseEvent.type = (event.type == SDL_EVENT_MOUSE_BUTTON_DOWN)
-                        ? UI::MouseEventType::MouseDown
-                        : UI::MouseEventType::MouseUp;
-                    mouseEvent.position = UI::Point{ static_cast<float>(event.button.x), static_cast<float>(event.button.y) };
-
-                    if (event.button.button == SDL_BUTTON_LEFT)   mouseEvent.button = UI::MouseButton::Left;
-                    else if (event.button.button == SDL_BUTTON_RIGHT)  mouseEvent.button = UI::MouseButton::Right;
-                    else if (event.button.button == SDL_BUTTON_MIDDLE) mouseEvent.button = UI::MouseButton::Middle;
-                } else if (event.type == SDL_EVENT_MOUSE_WHEEL) {
-                    mouseEvent.type = UI::MouseEventType::MouseWheel;
-                    mouseEvent.wheelDeltaX = static_cast<float>(event.wheel.x);
-                    mouseEvent.wheelDeltaY = static_cast<float>(event.wheel.y);
+            } else if (const auto* close = std::get_if<we::platform::WindowCloseEvent>(&event)) {
+                if (close->window == m_Window) {
+                    m_Running = false;
+                    if (m_OverlayHost) {
+                        m_OverlayHost->ExecutePendingCallbacks();
+                    }
                 }
-
-                const SDL_Keymod mods = SDL_GetModState();
-                mouseEvent.altDown   = (mods & SDL_KMOD_ALT) != 0;
-                mouseEvent.shiftDown = (mods & SDL_KMOD_SHIFT) != 0;
-                mouseEvent.ctrlDown  = (mods & SDL_KMOD_CTRL) != 0;
-
+            } else if (std::holds_alternative<we::platform::WindowResizeEvent>(event)
+                || std::holds_alternative<we::platform::WindowDpiEvent>(event)
+                || std::holds_alternative<we::platform::WindowMaximizeEvent>(event)
+                || std::holds_alternative<we::platform::WindowMinimizeEvent>(event)) {
+                requestUiRebuild = true;
+            } else if (const auto* move = std::get_if<we::platform::MouseMoveEvent>(&event)) {
+                UI::MouseEvent mouseEvent{};
+                mouseEvent.type = UI::MouseEventType::MouseMove;
+                mouseEvent.position = UI::Point{ static_cast<float>(move->position.x), static_cast<float>(move->position.y) };
+                mouseEvent.deltaX = move->delta.x;
+                mouseEvent.deltaY = move->delta.y;
+                const auto mods = platform.GetKeyModifiers();
+                mouseEvent.altDown = we::platform::HasFlag(mods, we::platform::KeyModifier::Alt);
+                mouseEvent.shiftDown = we::platform::HasFlag(mods, we::platform::KeyModifier::Shift);
+                mouseEvent.ctrlDown = we::platform::HasFlag(mods, we::platform::KeyModifier::Control);
                 m_UIEventSystem->ProcessMouseEvent(mouseEvent);
 
-                // Skip full UI chrome rebuild while navigating the viewport — camera moves
-                // only need the scene pass; rebuilding Measure/Arrange every mouse sample hitching
-                // the editor and stress-tests host-visible buffer reallocation.
                 bool skipUiRebuild = false;
                 if (m_ViewportWidget) {
                     if (auto vp = std::dynamic_pointer_cast<ViewportWidget>(m_ViewportWidget)) {
-                        const bool navigating = vp->IsViewportNavigating();
-                        if (navigating && event.type == SDL_EVENT_MOUSE_MOTION) {
+                        if (vp->IsViewportNavigating()) {
                             skipUiRebuild = true;
                         }
                     }
@@ -461,29 +440,76 @@ void Editor::MainLoop() {
                 if (!skipUiRebuild) {
                     requestUiRebuild = true;
                 }
-            } else if (event.type == SDL_EVENT_KEY_DOWN || event.type == SDL_EVENT_KEY_UP) {
+            } else if (const auto* raw = std::get_if<we::platform::RawMouseEvent>(&event)) {
+                UI::MouseEvent mouseEvent{};
+                mouseEvent.type = UI::MouseEventType::MouseMove;
+                const auto pos = platform.GetMousePosition(m_Window);
+                mouseEvent.position = UI::Point{ static_cast<float>(pos.x), static_cast<float>(pos.y) };
+                mouseEvent.deltaX = raw->delta.x;
+                mouseEvent.deltaY = raw->delta.y;
+                const auto mods = platform.GetKeyModifiers();
+                mouseEvent.altDown = we::platform::HasFlag(mods, we::platform::KeyModifier::Alt);
+                mouseEvent.shiftDown = we::platform::HasFlag(mods, we::platform::KeyModifier::Shift);
+                mouseEvent.ctrlDown = we::platform::HasFlag(mods, we::platform::KeyModifier::Control);
+                m_UIEventSystem->ProcessMouseEvent(mouseEvent);
+
+                bool skipUiRebuild = false;
+                if (m_ViewportWidget) {
+                    if (auto vp = std::dynamic_pointer_cast<ViewportWidget>(m_ViewportWidget)) {
+                        if (vp->IsViewportNavigating()) {
+                            skipUiRebuild = true;
+                        }
+                    }
+                }
+                if (!skipUiRebuild) {
+                    requestUiRebuild = true;
+                }
+            } else if (const auto* button = std::get_if<we::platform::MouseButtonEvent>(&event)) {
+                UI::MouseEvent mouseEvent{};
+                mouseEvent.type = button->pressed ? UI::MouseEventType::MouseDown : UI::MouseEventType::MouseUp;
+                mouseEvent.position = UI::Point{ static_cast<float>(button->position.x), static_cast<float>(button->position.y) };
+                switch (button->button) {
+                case we::platform::MouseButton::Left: mouseEvent.button = UI::MouseButton::Left; break;
+                case we::platform::MouseButton::Right: mouseEvent.button = UI::MouseButton::Right; break;
+                case we::platform::MouseButton::Middle: mouseEvent.button = UI::MouseButton::Middle; break;
+                default: mouseEvent.button = UI::MouseButton::None; break;
+                }
+                mouseEvent.altDown = we::platform::HasFlag(button->modifiers, we::platform::KeyModifier::Alt);
+                mouseEvent.shiftDown = we::platform::HasFlag(button->modifiers, we::platform::KeyModifier::Shift);
+                mouseEvent.ctrlDown = we::platform::HasFlag(button->modifiers, we::platform::KeyModifier::Control);
+                m_UIEventSystem->ProcessMouseEvent(mouseEvent);
+                requestUiRebuild = true;
+            } else if (const auto* wheel = std::get_if<we::platform::MouseWheelEvent>(&event)) {
+                UI::MouseEvent mouseEvent{};
+                mouseEvent.type = UI::MouseEventType::MouseWheel;
+                mouseEvent.position = UI::Point{ static_cast<float>(wheel->position.x), static_cast<float>(wheel->position.y) };
+                mouseEvent.wheelDeltaX = wheel->delta.x;
+                mouseEvent.wheelDeltaY = wheel->delta.y;
+                const auto mods = platform.GetKeyModifiers();
+                mouseEvent.altDown = we::platform::HasFlag(mods, we::platform::KeyModifier::Alt);
+                mouseEvent.shiftDown = we::platform::HasFlag(mods, we::platform::KeyModifier::Shift);
+                mouseEvent.ctrlDown = we::platform::HasFlag(mods, we::platform::KeyModifier::Control);
+                m_UIEventSystem->ProcessMouseEvent(mouseEvent);
+                requestUiRebuild = true;
+            } else if (const auto* key = std::get_if<we::platform::KeyEvent>(&event)) {
 #if WE_DEBUG_UI
-                if (event.type == SDL_EVENT_KEY_DOWN && event.key.key == SDLK_F9) {
+                if (key->pressed && key->key == we::platform::KeyCode::F9) {
                     WindEffects::Editor::UI::RenderInvestigationModalHost::Toggle();
                 }
 #endif
                 UI::KeyEvent keyEvent{};
-                keyEvent.type = (event.type == SDL_EVENT_KEY_DOWN)
-                    ? UI::KeyEventType::KeyDown
-                    : UI::KeyEventType::KeyUp;
-                keyEvent.keycode = event.key.key;
-
-                const SDL_Keymod mods = event.key.mod;
-                keyEvent.altDown   = (mods & SDL_KMOD_ALT) != 0;
-                keyEvent.shiftDown = (mods & SDL_KMOD_SHIFT) != 0;
-                keyEvent.ctrlDown  = (mods & SDL_KMOD_CTRL) != 0;
-
+                keyEvent.type = key->pressed ? UI::KeyEventType::KeyDown : UI::KeyEventType::KeyUp;
+                keyEvent.key = key->key;
+                keyEvent.altDown = we::platform::HasFlag(key->modifiers, we::platform::KeyModifier::Alt);
+                keyEvent.shiftDown = we::platform::HasFlag(key->modifiers, we::platform::KeyModifier::Shift);
+                keyEvent.ctrlDown = we::platform::HasFlag(key->modifiers, we::platform::KeyModifier::Control);
                 m_UIEventSystem->ProcessKeyEvent(keyEvent);
                 requestUiRebuild = true;
-            } else if (event.type == SDL_EVENT_TEXT_INPUT) {
+            } else if (std::holds_alternative<we::platform::TextInputEvent>(event)) {
                 requestUiRebuild = true;
             }
 
+            (void)isMotion;
             if (requestUiRebuild) {
                 WindEffects::Editor::UI::UIRepaintGate::Request();
             }
@@ -496,7 +522,7 @@ void Editor::MainLoop() {
 
         if (!m_Running) break;
 
-        uint64_t now = SDL_GetPerformanceCounter();
+        uint64_t now = platform.GetHighResolutionCounter();
         float dt = static_cast<float>((now - lastTime) / frequency);
         lastTime = now;
         if (dt > 0.1f) dt = 0.1f;
@@ -653,8 +679,8 @@ void Editor::Shutdown() {
 
     EditorWorkspaceController::Get().SaveLayout();
 
-    if (m_Window) {
-        SDL_SetWindowRelativeMouseMode(m_Window, false);
+    if (m_Window != we::platform::WindowId::Invalid) {
+        we::platform::Platform::Get().SetRelativeMouseMode(m_Window, false);
     }
 
     we::core::PluginManager::Get().UnloadAllPlugins();

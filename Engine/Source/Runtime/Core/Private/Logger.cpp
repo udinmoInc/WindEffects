@@ -2,16 +2,6 @@
 #include "Core/FrameCounter.h"
 #include "Core/LogCategory.h"
 
-#if defined(__has_include)
-#  if __has_include(<SDL3/SDL_messagebox.h>)
-#    include <SDL3/SDL_messagebox.h>
-#    define WE_LOGGER_HAS_SDL_MESSAGEBOX 1
-#  endif
-#endif
-#ifndef WE_LOGGER_HAS_SDL_MESSAGEBOX
-#  define WE_LOGGER_HAS_SDL_MESSAGEBOX 0
-#endif
-
 #if WE_HAS_NLOHMANN_JSON
 #include <nlohmann/json.h>
 #endif
@@ -44,6 +34,8 @@ std::atomic<Logger::Level> Logger::s_MinimumLevel{ Logger::Level::Trace };
 std::ofstream Logger::s_LogFile;
 std::string Logger::s_LogFilePath;
 std::string Logger::s_SessionDirectory;
+Logger::ErrorDialogHandler Logger::s_ErrorDialogHandler = nullptr;
+void* Logger::s_ErrorDialogUserData = nullptr;
 
 void Logger::Init() {
     LogRecord startup{};
@@ -211,11 +203,21 @@ void Logger::RotateLogFilesIfNeeded() {
     s_LogFile.open(s_LogFilePath, std::ios::out | std::ios::app);
 }
 
+void Logger::SetErrorDialogHandler(ErrorDialogHandler handler, void* userData) {
+    s_ErrorDialogHandler = handler;
+    s_ErrorDialogUserData = userData;
+}
+
 void Logger::ReportError(const std::string& title, const std::string& description, bool fatal) {
     Log(Level::Critical, "General", "Error Reported: " + title + " - " + description + (fatal ? " [FATAL]" : ""));
 
-#if WE_LOGGER_HAS_SDL_MESSAGEBOX
-    SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, title.c_str(), description.c_str(), nullptr);
+    if (s_ErrorDialogHandler) {
+        s_ErrorDialogHandler(title.c_str(), description.c_str(), fatal, s_ErrorDialogUserData);
+    }
+#if defined(_WIN32)
+    else {
+        MessageBoxA(nullptr, description.c_str(), title.c_str(), MB_OK | MB_ICONERROR | (fatal ? MB_SYSTEMMODAL : 0));
+    }
 #endif
 
     if (fatal) {

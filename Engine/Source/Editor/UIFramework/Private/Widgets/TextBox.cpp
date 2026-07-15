@@ -1,4 +1,6 @@
+#include "Platform/Platform.h"
 #include "Widgets/TextBox.h"
+#include "Core/EventSystem.h"
 #include "Core/PaintContext.h"
 #include "WindEffects/Editor/UI/Theming/ThemeToken.h"
 #include "Core/Style.h"
@@ -69,37 +71,20 @@ void TextBox::OnKeyDown(const KeyEvent& event) {
 
     bool changed = false;
 
-    if (event.keycode == SDLK_BACKSPACE) {
+    if (event.key == we::platform::KeyCode::Backspace) {
         if (!m_Text.empty()) {
             m_Text.pop_back();
             changed = true;
         }
-    } else if (event.keycode == SDLK_RETURN || event.keycode == SDLK_ESCAPE) {
+    } else if (event.key == we::platform::KeyCode::Enter || event.key == we::platform::KeyCode::Escape) {
         // Blur text box on commit/cancel
         m_Focused = false;
-    } else if (event.keycode == SDLK_SPACE) {
+    } else if (event.key == we::platform::KeyCode::Space) {
         m_Text += ' ';
         changed = true;
     } else {
-        char typedChar = 0;
-        // Map alphabetical keys
-        if (event.keycode >= 'a' && event.keycode <= 'z') {
-            if (event.shiftDown) {
-                typedChar = static_cast<char>(event.keycode - 32); // Uppercase
-            } else {
-                typedChar = static_cast<char>(event.keycode); // Lowercase
-            }
-        }
-        // Map digits
-        else if (event.keycode >= '0' && event.keycode <= '9') {
-            typedChar = static_cast<char>(event.keycode);
-        }
-        // Basic symbols
-        else if (event.keycode == '-' || event.keycode == '_' || event.keycode == '.' || event.keycode == ',') {
-            typedChar = static_cast<char>(event.keycode);
-        }
-
-        if (typedChar != 0 && m_Text.length() < 32) { // Limit length
+        const char typedChar = KeyCodeToChar(event.key, event.shiftDown);
+        if (typedChar != 0 && m_Text.length() < 32) {
             m_Text += typedChar;
             changed = true;
         }
