@@ -125,6 +125,9 @@ struct VertexAttributeDesc {
     uint32_t binding = 0;
     Format format = Format::R32G32B32A32_SFLOAT;
     uint32_t offset = 0;
+    // DX12 input layout; ignored by Vulkan (uses location). Defaults: TEXCOORD+location.
+    const char* semanticName = nullptr;
+    uint32_t semanticIndex = ~0u;
 };
 
 struct VertexBindingDesc {

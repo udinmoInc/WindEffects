@@ -62,11 +62,11 @@ void FillVertexLayout(we::rhi::GraphicsPipelineDesc& pso) {
     pso.vertexBindings = {binding};
 
     pso.vertexAttributes = {
-        {0, 0, we::rhi::Format::R32G32_SFLOAT, static_cast<uint32_t>(offsetof(we::rhi::UIVertex, position))},
-        {1, 0, we::rhi::Format::R32G32_SFLOAT, static_cast<uint32_t>(offsetof(we::rhi::UIVertex, uv))},
-        {2, 0, we::rhi::Format::R32G32B32A32_SFLOAT, static_cast<uint32_t>(offsetof(we::rhi::UIVertex, color))},
-        {3, 0, we::rhi::Format::R32G32B32A32_SFLOAT, static_cast<uint32_t>(offsetof(we::rhi::UIVertex, sdfRect))},
-        {4, 0, we::rhi::Format::R32G32B32A32_SFLOAT, static_cast<uint32_t>(offsetof(we::rhi::UIVertex, sdfParams))},
+        {0, 0, we::rhi::Format::R32G32_SFLOAT, static_cast<uint32_t>(offsetof(we::rhi::UIVertex, position)), "POSITION", 0},
+        {1, 0, we::rhi::Format::R32G32_SFLOAT, static_cast<uint32_t>(offsetof(we::rhi::UIVertex, uv)), "TEXCOORD", 0},
+        {2, 0, we::rhi::Format::R32G32B32A32_SFLOAT, static_cast<uint32_t>(offsetof(we::rhi::UIVertex, color)), "COLOR", 0},
+        {3, 0, we::rhi::Format::R32G32B32A32_SFLOAT, static_cast<uint32_t>(offsetof(we::rhi::UIVertex, sdfRect)), "TEXCOORD", 1},
+        {4, 0, we::rhi::Format::R32G32B32A32_SFLOAT, static_cast<uint32_t>(offsetof(we::rhi::UIVertex, sdfParams)), "TEXCOORD", 2},
     };
 }
 

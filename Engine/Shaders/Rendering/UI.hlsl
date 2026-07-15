@@ -23,8 +23,15 @@ struct UIPushConstants
     float2 uTranslate;
 };
 
+#if defined(WE_TARGET_DXIL)
+cbuffer UIPushConstantBuffer : register(b0, space0)
+{
+    UIPushConstants pc;
+};
+#else
 [[vk::push_constant]]
 UIPushConstants pc;
+#endif
 
 VSOutput VSMain(VSInput input)
 {

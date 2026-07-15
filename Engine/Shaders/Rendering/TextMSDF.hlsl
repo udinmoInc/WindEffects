@@ -24,8 +24,15 @@ struct TextPushConstants
     float  padding;
 };
 
+#if defined(WE_TARGET_DXIL)
+cbuffer TextPushConstantBuffer : register(b0, space0)
+{
+    TextPushConstants pc;
+};
+#else
 [[vk::push_constant]]
 TextPushConstants pc;
+#endif
 
 [[vk::binding(0, 0)]]
 Texture2D    texAtlas : register(t0, space0);
