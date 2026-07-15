@@ -16,6 +16,8 @@ public class ECS : ModuleRules
         PublicDependencies.Add("Engine");
 
         AddOptionalThirdParty("glm");
+        // Match Engine/Scene ABI — TransformComponent always uses glm.
+        Definitions.Add("WE_HAS_GLM=1");
 
         Definitions.Add("ECS_EXPORTS");
     }

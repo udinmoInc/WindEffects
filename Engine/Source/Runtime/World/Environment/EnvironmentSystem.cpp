@@ -286,12 +286,10 @@ void EnvironmentSystem::DiscoverExistingActors() {
         }
         if (entity.Type == EntityType::VolumetricClouds || entity.Name == kVolumetricCloudsActorName) {
             if (m_VolumetricClouds.EntityId != 0 && m_VolumetricClouds.EntityId != entity.Id) {
-                // Enforce a single global Cloud actor per level.
                 continue;
             }
             m_VolumetricClouds.EntityId = entity.Id;
             m_VolumetricClouds.Enabled = true;
-            // Keep layer bounds coherent when rediscovering without a full ApplyDefaults.
             m_VolumetricClouds.SyncAltitudeFromBounds();
             continue;
         }
@@ -301,7 +299,12 @@ void EnvironmentSystem::DiscoverExistingActors() {
         }
     }
 
-    ReparentEnvironmentActors();
+    // Only reparent when environment actors already exist — avoid creating the
+    // Environment folder during BindScene on an empty level (CreateDefaultScene
+    // will EnsureDefaultEnvironment separately).
+    if (HasEnvironmentActors() || m_FolderEntityId != 0) {
+        ReparentEnvironmentActors();
+    }
 }
 
 void EnvironmentSystem::ReparentEnvironmentActors() {
