@@ -64,6 +64,9 @@ std::string PlaceActorsIconProvider::ResolvePreviewIcon(const std::string& toolI
     if (toolId == "PlaceEmptyActor") {
         return WEIcons::BlankActor3DName;
     }
+    if (toolId == "PlaceCamera") {
+        return WEIcons::CameraName;
+    }
     return {};
 }
 

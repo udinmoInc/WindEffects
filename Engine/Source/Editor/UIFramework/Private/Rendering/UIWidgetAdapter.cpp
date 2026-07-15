@@ -28,8 +28,8 @@ UIWidgetAdapter::UIWidgetAdapter()
     : m_Renderer(nullptr)
     , m_Width(0)
     , m_Height(0)
-    , m_CurrentTextureSet(VK_NULL_HANDLE)
-    , m_DefaultTextureSet(VK_NULL_HANDLE)
+    , m_CurrentTextureSet(we::rhi::RHIDescriptorSetHandle::Invalid)
+    , m_DefaultTextureSet(we::rhi::RHIDescriptorSetHandle::Invalid)
 {
 }
 
@@ -259,7 +259,7 @@ void UIWidgetAdapter::GenerateTextGeometry(const DrawCommand& cmd) {
     }
 
     ++m_Diagnostics.textStringsProcessed;
-    VkDescriptorSet fontDescriptor = VK_NULL_HANDLE;
+    we::rhi::RHIDescriptorSetHandle fontDescriptor = we::rhi::RHIDescriptorSetHandle::Invalid;
     const uint32_t startTotalIndex = static_cast<uint32_t>(m_Indices.size());
     UIRenderBatch batchInfo;
     if (!textService->GenerateTextGeometry(cmd, m_Vertices, m_Indices, fontDescriptor, &batchInfo)) {
@@ -401,7 +401,7 @@ void UIWidgetAdapter::GenerateIconGeometry(const DrawCommand& cmd) {
         cmd.fontSize);
     const IconDrawInfo drawInfo = iconRenderer->GetLucideIconDrawInfo(cmd.text, atlasTier, cmd.color);
 
-    if (!drawInfo.valid || drawInfo.descriptorSet == VK_NULL_HANDLE) {
+    if (!drawInfo.valid || drawInfo.descriptorSet == we::rhi::RHIDescriptorSetHandle::Invalid) {
         return;
     }
 

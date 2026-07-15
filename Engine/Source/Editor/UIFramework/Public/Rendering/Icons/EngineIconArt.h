@@ -8,7 +8,7 @@
 #include <string_view>
 #include <unordered_map>
 
-#include <volk.h>
+#include "RHI/Types.h"
 
 namespace WindEffects::Editor::UI {
 
@@ -117,7 +117,7 @@ public:
 
     [[nodiscard]] bool IsEngineIcon(std::string_view iconName) const;
 
-    [[nodiscard]] VkDescriptorSet GetTexture(
+    [[nodiscard]] we::rhi::RHIDescriptorSetHandle GetTexture(
         std::string_view iconName,
         uint32_t displaySizePx,
         float hoverAnim = 0.0f,
@@ -132,7 +132,7 @@ public:
 
 private:
     IconRenderer* m_Renderer = nullptr;
-    mutable std::unordered_map<std::string, VkDescriptorSet> m_Cache;
+    mutable std::unordered_map<std::string, we::rhi::RHIDescriptorSetHandle> m_Cache;
 };
 
 } // namespace WindEffects::Editor::UI

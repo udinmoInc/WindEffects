@@ -9,7 +9,6 @@
 #include <functional>
 #include <memory>
 #include <unordered_set>
-#include <volk.h>
 #include "Models/ContentBrowserModel.h"
 #include "Controllers/ContentBrowserController.h"
 

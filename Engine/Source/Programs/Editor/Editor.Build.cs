@@ -13,6 +13,7 @@ public class Editor : ModuleRules
         PublicDependencies.Add("CoreUObject");
         PublicDependencies.Add("Engine");
         PublicDependencies.Add("Platform");
+        PublicDependencies.Add("RHI");
         PublicDependencies.Add("Renderer");
         PublicDependencies.Add("Scene");
         PublicDependencies.Add("World");
@@ -33,9 +34,14 @@ public class Editor : ModuleRules
         PublicDependencies.Add("Terrain");
         PublicDependencies.Add("TerrainEditor");
 
-        OptionalSDK("VulkanSDK");
-        DefineIf(HasSDK("VulkanSDK"), "WE_HAS_VULKAN=1");
-        DefineIf(!HasSDK("VulkanSDK"), "WE_HAS_VULKAN=0");
+        // RHI backends — load-order DLLs via ModuleBootstrap; ensure they are built/staged with Editor.
+        PrivateDependencies.Add("NullRHI");
+        PrivateDependencies.Add("VulkanRHI");
+        PrivateDependencies.Add("DirectX12RHI");
+        PrivateDependencies.Add("DirectX11RHI");
+        PrivateDependencies.Add("MetalRHI");
+        PrivateDependencies.Add("OpenGLRHI");
+        PrivateDependencies.Add("OpenGLESRHI");
 
         PlatformSettings.Windows ??= new WindowsSettings();
         PlatformSettings.Windows.Subsystem = "Console";

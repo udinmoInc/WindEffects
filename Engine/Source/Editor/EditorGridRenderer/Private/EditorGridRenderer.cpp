@@ -1,6 +1,4 @@
 #include "EditorGridRenderer.h"
-#include "EditorCamera.h"
-#include "Core/DeviceContext.h"
 
 namespace we::editor::grid {
 
@@ -9,21 +7,16 @@ EditorGridRenderer& EditorGridRenderer::Get() {
     return instance;
 }
 
-void EditorGridRenderer::Initialize(we::runtime::renderer::DeviceContext* context,
-                                    VkRenderPass /*renderPass*/,
-                                    VkDescriptorSetLayout /*cameraDescLayout*/) {
-    m_Context = context;
-    m_Initialized = context != nullptr;
+void EditorGridRenderer::Initialize(we::rhi::IRHIDevice* device) {
+    m_Device = device;
+    m_Initialized = m_Device != nullptr;
 }
 
 void EditorGridRenderer::Shutdown() {
-    m_Context = nullptr;
+    m_Device = nullptr;
     m_Initialized = false;
 }
 
-void EditorGridRenderer::Render(VkCommandBuffer /*commandBuffer*/,
-                                VkDescriptorSet /*cameraDescriptorSet*/,
-                                const we::runtime::engine::EditorCamera& /*camera*/) const {
-}
+void EditorGridRenderer::Render(we::rhi::IRHICommandList*, const we::runtime::engine::EditorCamera&) const {}
 
 } // namespace we::editor::grid

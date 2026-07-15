@@ -497,8 +497,8 @@ bool EngineIconArt::IsEngineIcon(std::string_view iconName) const {
     return EngineIcons::IsEngineIcon(iconName);
 }
 
-VkDescriptorSet EngineIconArt::GetTexture(std::string_view iconName, uint32_t displaySizePx, float hoverAnim, float activeAnim) const {
-    if (!m_Renderer || displaySizePx == 0) return VK_NULL_HANDLE;
+we::rhi::RHIDescriptorSetHandle EngineIconArt::GetTexture(std::string_view iconName, uint32_t displaySizePx, float hoverAnim, float activeAnim) const {
+    if (!m_Renderer || displaySizePx == 0) return we::rhi::RHIDescriptorSetHandle::Invalid;
 
     const float dpi = std::max(1.0f, DPIContext::GetScale());
     const uint32_t rasterSize = std::max(kIconDesignSize, static_cast<uint32_t>(std::ceil(static_cast<float>(displaySizePx) * dpi)));
@@ -512,10 +512,10 @@ VkDescriptorSet EngineIconArt::GetTexture(std::string_view iconName, uint32_t di
     }
 
     const IconBitmap bitmap = RenderIconBitmap(iconName, rasterSize, hoverAnim, activeAnim);
-    if (bitmap.pixels.empty()) return VK_NULL_HANDLE;
+    if (bitmap.pixels.empty()) return we::rhi::RHIDescriptorSetHandle::Invalid;
 
-    const VkDescriptorSet texture = m_Renderer->CreateTextureFromBitmap(bitmap.pixels, bitmap.width, bitmap.height);
-    if (texture != VK_NULL_HANDLE) {
+    const we::rhi::RHIDescriptorSetHandle texture = m_Renderer->CreateTextureFromBitmap(bitmap.pixels, bitmap.width, bitmap.height);
+    if ((texture != we::rhi::RHIDescriptorSetHandle::Invalid)) {
         m_Cache[key] = texture;
     }
     return texture;
@@ -531,8 +531,8 @@ void EngineIconArt::Paint(
     if (bounds.width <= 0.0f || bounds.height <= 0.0f) return;
 
     const uint32_t sizePx = static_cast<uint32_t>(std::max(bounds.width, bounds.height));
-    const VkDescriptorSet texture = GetTexture(iconName, sizePx, hoverAnim, activeAnim);
-    if (texture != VK_NULL_HANDLE) {
+    const we::rhi::RHIDescriptorSetHandle texture = GetTexture(iconName, sizePx, hoverAnim, activeAnim);
+    if ((texture != we::rhi::RHIDescriptorSetHandle::Invalid)) {
         context.DrawColorTexture(bounds, texture);
     }
 }

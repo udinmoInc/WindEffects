@@ -1,7 +1,7 @@
 #pragma once
 
-#include <volk.h>
 #include <memory>
+#include <string>
 
 #include "Platform/Types.h"
 #include "Renderer/Renderer.h"
@@ -20,6 +20,7 @@
 namespace WindEffects::Editor::UI {
 class OverlayHost;
 class RenderDebuggerPanel;
+class IconRenderer;
 }
 
 namespace we::programs::editor {

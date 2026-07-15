@@ -11,6 +11,7 @@ public class ToolsPanel : ModuleRules
 
         PublicDependencies.Add("Core");
         PublicDependencies.Add("Platform");
+        PublicDependencies.Add("RHI");
         PublicDependencies.Add("Engine");
         PublicDependencies.Add("UIFramework");
         PublicDependencies.Add("Menus");

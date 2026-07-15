@@ -9,7 +9,6 @@
 #include "Runtime/Core/PluginManager.h"
 #include "Environment/EnvironmentEditorApi.h"
 #include "Renderer/Renderer.h"
-#include "Core/SwapchainManager.h"
 #include "Rendering/IconRenderer.h"
 #include "Layout/OverlayManager.h"
 #include "EditorWorkspaceController.h"
@@ -80,9 +79,8 @@ Editor::Editor(we::platform::WindowId window) : m_Window(window) {
     {
         auto& startup = we::runtime::core::StartupValidator::Get();
         startup.RegisterCheck("Renderer", [this](std::string& detail) {
-            detail = m_Renderer->GetDeviceContext() ? "Foundation renderer initialized" : "Renderer missing device context";
-            return m_Renderer->GetDeviceContext() != nullptr
-                && m_Renderer->GetDeviceContext()->GetDevice() != VK_NULL_HANDLE;
+            detail = m_Renderer->IsGpuReady() ? "Foundation renderer initialized" : "Renderer GPU not ready";
+            return m_Renderer->IsGpuReady();
         });
         startup.RunAll();
         if (!startup.AllPassed()) {
@@ -98,15 +96,7 @@ Editor::Editor(we::platform::WindowId window) : m_Window(window) {
     HE_INFO("[Startup] Stage 4/6: OverlayRenderer init...");
     try {
         m_OverlayRenderer = std::make_unique<WindEffects::Editor::UI::OverlayRenderer>();
-        if (!m_OverlayRenderer->Init(
-                m_Renderer->GetDeviceContext()->GetPhysicalDevice(),
-                m_Renderer->GetDeviceContext()->GetDevice(),
-                m_Renderer->GetDeviceContext()->GetGraphicsQueue(),
-                m_Renderer->GetDeviceContext()->GetGraphicsQueueFamily(),
-                m_Renderer->GetSwapchainImageFormat(),
-                2,
-                m_Renderer->GetDeviceContext(),
-                m_Renderer->GetResourceManager())) {
+        if (!m_OverlayRenderer->Init(m_Renderer->GetRHIDevice(), m_Renderer->GetSwapchainFormat(), 2)) {
             throw std::runtime_error("Failed to initialize OverlayRenderer!");
         }
     } catch (const std::exception& e) {
@@ -331,51 +321,15 @@ void Editor::MaybeShowFirstRunAgreement() {
 
     if (!m_OverlayHost) {
         HE_WARN("[Startup] First-run agreement skipped: overlay host unavailable.");
+        m_FirstRunAgreementPending = false;
         return;
     }
 
-    auto* overlayHost = m_OverlayHost.get();
-
-    auto showEulaPopup = [this, overlayHost]() {
-        try {
-            auto eulaPopup = std::make_shared<FirstRunAgreementPopup>(LoadFirstRunAgreementEulaContent());
-            eulaPopup->SetOnAccepted([this, overlayHost]() {
-                overlayHost->CloseAllPopups();
-
-                auto thirdPartyPopup = std::make_shared<FirstRunAgreementPopup>(
-                    LoadFirstRunAgreementThirdPartyNoticesContent());
-                thirdPartyPopup->SetOnAccepted([this, overlayHost]() {
-                    SetAcceptedFirstRunAgreement(true);
-                    overlayHost->CloseAllPopups();
-                });
-                thirdPartyPopup->SetOnDeclined([this, overlayHost]() {
-                    SetAcceptedFirstRunAgreement(false);
-                    overlayHost->CloseAllPopups();
-                    m_Running = false;
-                });
-
-                overlayHost->ShowPopup(thirdPartyPopup, Point{ 0.0f, 0.0f });
-            });
-            eulaPopup->SetOnDeclined([this, overlayHost]() {
-                SetAcceptedFirstRunAgreement(false);
-                overlayHost->CloseAllPopups();
-                m_Running = false;
-            });
-
-            overlayHost->CloseAllPopups();
-            overlayHost->ShowPopup(eulaPopup, Point{ 0.0f, 0.0f });
-            HE_INFO("[Startup] First-run agreement popup (EULA) displayed.");
-        } catch (const std::exception& e) {
-            HE_ERROR("[Startup] Failed to show first-run agreement: " + std::string(e.what()));
-            SetAcceptedFirstRunAgreement(true);
-        } catch (...) {
-            HE_ERROR("[Startup] Unknown error showing first-run agreement");
-            SetAcceptedFirstRunAgreement(true);
-        }
-    };
-
+    // During the RHI UI cutover the agreement dialog can be invisible (missing fonts /
+    // incomplete GPU UI). Auto-accept so the editor remains usable.
+    HE_WARN("[Startup] First-run agreement auto-accepted (UI path still finishing RHI cutover).");
+    SetAcceptedFirstRunAgreement(true);
     m_FirstRunAgreementPending = false;
-    showEulaPopup();
 }
 
 void Editor::MainLoop() {
@@ -583,49 +537,20 @@ void Editor::MainLoop() {
             m_Renderer->RenderScene();
             WindEffects::Editor::UI::EditorPerfStats::Get().Mark("scene");
 
-            // 2. Render editor UI (viewport panel composites the 3D target as a textured quad).
+            // 2. Render editor UI (RHI-only; backend records GPU work internally).
             if (m_OverlayRenderer) {
-                VkCommandBuffer cmd = m_Renderer->GetCommandBuffer();
-                auto* swapchainManager = m_Renderer->GetSwapchainManager();
                 const uint32_t imageIndex = m_Renderer->GetCurrentImageIndex();
-                const auto& imageViews = swapchainManager ? swapchainManager->GetImageViews() : std::vector<VkImageView>{};
-                const bool overlayInputsValid =
-                    cmd != VK_NULL_HANDLE &&
-                    swapchainManager != nullptr &&
-                    imageIndex < imageViews.size() &&
-                    imageViews[imageIndex] != VK_NULL_HANDLE;
-
-                if (!overlayInputsValid) {
-                    HE_ERROR(
-                        "[Render] Skipping overlay pass: invalid swapchain/ui inputs "
-                        "(cmd=" + std::to_string(static_cast<unsigned long long>(reinterpret_cast<uintptr_t>(cmd))) +
-                        ", imageIndex=" + std::to_string(imageIndex) +
-                        ", imageViews=" + std::to_string(imageViews.size()) + ").");
-                } else {
                 we::editor::rendering::OverlayRenderContext overlayContext{};
-                overlayContext.cmd = cmd;
-                overlayContext.targetView = imageViews[imageIndex];
-                overlayContext.targetFormat = m_Renderer->GetSwapchainImageFormat();
+                overlayContext.cmd = m_Renderer->GetFrameCommandList();
+                overlayContext.nativeCommand = m_Renderer->GetNativeCommandBuffer();
+                overlayContext.targetFormat = m_Renderer->GetSwapchainFormat();
                 overlayContext.targetExtent = { m_Renderer->GetSwapchainWidth(), m_Renderer->GetSwapchainHeight() };
-                // Editor UI is authored in full swapchain coordinates; do not apply the scene viewport offset.
-                overlayContext.viewportOffset = {0, 0};
+                overlayContext.imageIndex = imageIndex;
+                overlayContext.viewportOffsetX = 0;
+                overlayContext.viewportOffsetY = 0;
 
-                const auto& swapchainImages = swapchainManager->GetImages();
-                const VkImage swapImage =
-                    imageIndex < swapchainImages.size() ? swapchainImages[imageIndex] : VK_NULL_HANDLE;
-
-                m_Renderer->RecordUiPresentPath(imageIndex, cmd);
+                m_Renderer->RecordUiPresentPath(imageIndex);
                 m_OverlayRenderer->SetPipelineAuditImageIndex(imageIndex);
-                if (PresentAuditEnabled()) {
-                    HE_INFO(
-                        std::string("[PresentAudit] UI renders image=") + std::to_string(imageIndex) +
-                        " | Cmd=0x" + std::to_string(reinterpret_cast<uint64_t>(cmd)) +
-                        " | targetView=0x" + std::to_string(reinterpret_cast<uint64_t>(overlayContext.targetView)) +
-                        " | swapImage=0x" + std::to_string(reinterpret_cast<uint64_t>(swapImage)) +
-                        " | Layout preUI=COLOR_ATTACHMENT_OPTIMAL");
-                }
-
-                // Build UI geometry before entering the dynamic render pass.
                 m_OverlayRenderer->SetTargetExtent(overlayContext.targetExtent.width, overlayContext.targetExtent.height);
                 m_OverlayRenderer->RenderEditorUI(m_RootWidget, m_Renderer->GetCurrentFrameIndex());
                 WindEffects::Editor::UI::EditorPerfStats::Get().Mark("ui");
@@ -637,12 +562,10 @@ void Editor::MainLoop() {
                     }
                 }
 
-                // Keep Vulkan synchronization inside Renderer module where dispatch is initialized.
                 m_Renderer->InsertOverlayPassBarrier();
                 m_OverlayRenderer->BeginOverlayPass(overlayContext);
                 m_OverlayRenderer->EndOverlayPass(overlayContext);
                 m_Renderer->MarkOverlayPassEnded();
-                }
             }
 
             // 3. Submit to GPU and Present

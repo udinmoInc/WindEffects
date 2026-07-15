@@ -31,10 +31,6 @@ public class Text : ModuleRules
         Definitions.Add("WE_HAS_HARFBUZZ=1");
         Definitions.Add("TEXT_EXPORTS");
 
-        OptionalSDK("VulkanSDK");
-        DefineIf(HasSDK("VulkanSDK"), "WE_HAS_VULKAN=1");
-        DefineIf(!HasSDK("VulkanSDK"), "WE_HAS_VULKAN=0");
-
         PlatformSettings.Windows ??= new WindowsSettings();
 
         var freetypeLibDir = Path.Combine(thirdPartyRoot, "freetype", "lib");

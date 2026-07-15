@@ -1,6 +1,7 @@
 #pragma once
 
-#include <volk.h>
+#include "RHI/Types.h"
+
 #include <memory>
 
 namespace WindEffects::Editor::UI {
@@ -9,7 +10,7 @@ class TreeView;
 
 namespace we::programs::editor {
 
-VkDescriptorSet GetExplorerBrandLogo();
+we::rhi::RHIDescriptorSetHandle GetExplorerBrandLogo();
 float GetExplorerBrandLogoLogicalSize();
 void RegisterExplorerTreeView(const std::shared_ptr<WindEffects::Editor::UI::TreeView>& treeView);
 

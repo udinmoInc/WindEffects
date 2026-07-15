@@ -1,40 +1,26 @@
 #include "Rendering/IconRenderer.h"
 
-#include "Core/ImageBarriers.h"
 #include "Rendering/IconMetrics.h"
-#include "Resource/ResourceManager.h"
 #include "Core/Logger.h"
-
-#include <cstring>
-#include <functional>
 
 namespace WindEffects::Editor::UI {
 
 IconRenderer::IconRenderer() = default;
 
-IconRenderer::~IconRenderer()
-{
+IconRenderer::~IconRenderer() {
     Shutdown();
 }
 
 bool IconRenderer::Init(
-    we::runtime::renderer::DeviceContext* context,
-    we::runtime::renderer::ResourceManager* resources,
-    UiGpuUpload* gpuUpload,
-    VkDescriptorPool descriptorPool,
-    VkDescriptorSetLayout textureLayout)
-{
-    m_Context = context;
-    m_Resources = resources;
-    m_GpuUpload = gpuUpload;
-    m_DescriptorPool = descriptorPool;
-    m_TextureLayout = textureLayout;
-    return context != nullptr && resources != nullptr && gpuUpload != nullptr
-        && descriptorPool != VK_NULL_HANDLE && textureLayout != VK_NULL_HANDLE;
+    we::runtime::renderer::DeviceContext*,
+    we::runtime::renderer::ResourceManager*,
+    UiGpuUpload*,
+    uint64_t,
+    uint64_t) {
+    return true;
 }
 
-void IconRenderer::Shutdown()
-{
+void IconRenderer::Shutdown() {
     ClearCache();
 }
 
@@ -42,8 +28,7 @@ IconDrawInfo IconRenderer::GetLucideIconDrawInfo(
     const std::string& iconName,
     const uint32_t size,
     const Color& color,
-    const float strokeWidth) const
-{
+    const float strokeWidth) const {
     (void)strokeWidth;
     if (!m_IconManager) {
         return {};
@@ -51,200 +36,51 @@ IconDrawInfo IconRenderer::GetLucideIconDrawInfo(
     return m_IconManager->ResolveIcon(iconName, size, color);
 }
 
-VkDescriptorSet IconRenderer::GetLucideIcon(
+we::rhi::RHIDescriptorSetHandle IconRenderer::GetLucideIcon(
     const std::string& iconName,
     const uint32_t size,
     const Color& color,
-    const float strokeWidth)
-{
+    const float strokeWidth) {
     const IconDrawInfo info = GetLucideIconDrawInfo(iconName, size, color, strokeWidth);
-    return info.valid ? info.descriptorSet : VK_NULL_HANDLE;
+    return info.valid ? info.descriptorSet : we::rhi::RHIDescriptorSetHandle::Invalid;
 }
 
-VkDescriptorSet IconRenderer::GetIcon(const std::string& iconName, const uint32_t size)
-{
+we::rhi::RHIDescriptorSetHandle IconRenderer::GetIcon(const std::string& iconName, const uint32_t size) {
     if (!m_IconManager) {
-        return VK_NULL_HANDLE;
+        return we::rhi::RHIDescriptorSetHandle::Invalid;
     }
 
     const uint32_t tierPx = IconMetrics::SnapToAtlasTier(size);
     if (iconName.find('/') != std::string::npos || iconName.find('\\') != std::string::npos) {
         const IconDrawInfo info = m_IconManager->ResolvePathIcon(iconName, tierPx, m_DefaultColor);
-        return info.valid ? info.descriptorSet : VK_NULL_HANDLE;
+        return info.valid ? info.descriptorSet : we::rhi::RHIDescriptorSetHandle::Invalid;
     }
 
     return GetLucideIcon(iconName, tierPx, m_DefaultColor);
 }
 
-VkDescriptorSet IconRenderer::CreateTextureFromBitmap(
+we::rhi::RHIDescriptorSetHandle IconRenderer::CreateTextureFromBitmap(
     const std::vector<uint8_t>& bitmap,
     const uint32_t width,
-    const uint32_t height)
-{
-    if (!m_Context || m_TextureLayout == VK_NULL_HANDLE || bitmap.empty() || width == 0 || height == 0) {
-        return VK_NULL_HANDLE;
-    }
-
-    IconTexture texture;
-    if (CreateTexture(bitmap, width, height, texture)) {
-        const std::string key = "thumb_" + std::to_string(width) + "x" + std::to_string(height) + "_"
-            + std::to_string(std::hash<std::string>{}(std::string(
-                reinterpret_cast<const char*>(bitmap.data()),
-                std::min(bitmap.size(), static_cast<size_t>(64)))));
-        m_ThumbnailCache[key] = texture;
-        return texture.descriptorSet;
-    }
-    return VK_NULL_HANDLE;
+    const uint32_t height) {
+    (void)bitmap;
+    (void)width;
+    (void)height;
+    return we::rhi::RHIDescriptorSetHandle::Invalid;
 }
 
-void IconRenderer::ClearCache()
-{
-    for (auto& pair : m_ThumbnailCache) {
-        DestroyTexture(pair.second);
-    }
+void IconRenderer::ClearCache() {
     m_ThumbnailCache.clear();
 }
 
 bool IconRenderer::CreateTexture(
-    const std::vector<uint8_t>& bitmap,
-    const uint32_t width,
-    const uint32_t height,
-    IconTexture& outTexture)
-{
-    if (!m_Context || !m_Resources || !m_GpuUpload || m_DescriptorPool == VK_NULL_HANDLE || m_TextureLayout == VK_NULL_HANDLE) {
-        return false;
-    }
-    if (bitmap.empty() || width == 0 || height == 0) {
-        return false;
-    }
-
-    VkDevice device = m_Context->GetDevice();
-    const VkDeviceSize imageSize = static_cast<VkDeviceSize>(bitmap.size());
-
-    VkBuffer stagingBuffer = VK_NULL_HANDLE;
-    VkDeviceMemory stagingMemory = VK_NULL_HANDLE;
-    m_Resources->CreateBuffer(
-        imageSize,
-        VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-        stagingBuffer,
-        stagingMemory);
-
-    void* mapped = nullptr;
-    vkMapMemory(device, stagingMemory, 0, imageSize, 0, &mapped);
-    std::memcpy(mapped, bitmap.data(), bitmap.size());
-    vkUnmapMemory(device, stagingMemory);
-
-    m_Resources->CreateImage(
-        width,
-        height,
-        VK_FORMAT_R8G8B8A8_UNORM,
-        VK_IMAGE_TILING_OPTIMAL,
-        VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
-        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-        outTexture.image,
-        outTexture.memory);
-
-    m_GpuUpload->SubmitOneTime([&](VkCommandBuffer cmd) {
-        we::runtime::renderer::TransitionImageLayout(
-            cmd,
-            outTexture.image,
-            VK_IMAGE_LAYOUT_UNDEFINED,
-            VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-            0,
-            VK_ACCESS_TRANSFER_WRITE_BIT,
-            VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
-            VK_PIPELINE_STAGE_TRANSFER_BIT);
-
-        VkBufferImageCopy region{};
-        region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-        region.imageSubresource.layerCount = 1;
-        region.imageExtent = {width, height, 1};
-        vkCmdCopyBufferToImage(cmd, stagingBuffer, outTexture.image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
-
-        we::runtime::renderer::TransitionImageLayout(
-            cmd,
-            outTexture.image,
-            VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-            VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-            VK_ACCESS_TRANSFER_WRITE_BIT,
-            VK_ACCESS_SHADER_READ_BIT,
-            VK_PIPELINE_STAGE_TRANSFER_BIT,
-            VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT);
-    });
-
-    vkDestroyBuffer(device, stagingBuffer, nullptr);
-    vkFreeMemory(device, stagingMemory, nullptr);
-
-    outTexture.view = m_Resources->CreateImageView(outTexture.image, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_ASPECT_COLOR_BIT);
-    outTexture.width = width;
-    outTexture.height = height;
-
-    VkSamplerCreateInfo samplerInfo{};
-    samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
-    samplerInfo.magFilter = VK_FILTER_NEAREST;
-    samplerInfo.minFilter = VK_FILTER_NEAREST;
-    samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
-    samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
-    samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
-    samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_NEAREST;
-    samplerInfo.minLod = 0.0f;
-    samplerInfo.maxLod = 0.0f;
-    if (vkCreateSampler(device, &samplerInfo, nullptr, &outTexture.sampler) != VK_SUCCESS) {
-        return false;
-    }
-
-    VkDescriptorSetAllocateInfo allocInfo{};
-    allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-    allocInfo.descriptorPool = m_DescriptorPool;
-    allocInfo.descriptorSetCount = 1;
-    allocInfo.pSetLayouts = &m_TextureLayout;
-    if (vkAllocateDescriptorSets(device, &allocInfo, &outTexture.descriptorSet) != VK_SUCCESS) {
-        return false;
-    }
-
-    VkDescriptorImageInfo imageInfo{};
-    imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-    imageInfo.imageView = outTexture.view;
-    imageInfo.sampler = outTexture.sampler;
-
-    VkWriteDescriptorSet descriptorWrite{};
-    descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-    descriptorWrite.dstSet = outTexture.descriptorSet;
-    descriptorWrite.dstBinding = 0;
-    descriptorWrite.dstArrayElement = 0;
-    descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-    descriptorWrite.descriptorCount = 1;
-    descriptorWrite.pImageInfo = &imageInfo;
-    vkUpdateDescriptorSets(device, 1, &descriptorWrite, 0, nullptr);
-
-    return true;
+    const std::vector<uint8_t>&,
+    const uint32_t,
+    const uint32_t,
+    IconTexture&) {
+    return false;
 }
 
-void IconRenderer::DestroyTexture(IconTexture& texture)
-{
-    if (!m_Context) {
-        texture = {};
-        return;
-    }
-
-    VkDevice device = m_Context->GetDevice();
-    if (texture.descriptorSet != VK_NULL_HANDLE && m_DescriptorPool != VK_NULL_HANDLE) {
-        vkFreeDescriptorSets(device, m_DescriptorPool, 1, &texture.descriptorSet);
-    }
-    if (texture.sampler != VK_NULL_HANDLE) {
-        vkDestroySampler(device, texture.sampler, nullptr);
-    }
-    if (texture.view != VK_NULL_HANDLE) {
-        vkDestroyImageView(device, texture.view, nullptr);
-    }
-    if (texture.image != VK_NULL_HANDLE) {
-        vkDestroyImage(device, texture.image, nullptr);
-    }
-    if (texture.memory != VK_NULL_HANDLE) {
-        vkFreeMemory(device, texture.memory, nullptr);
-    }
-    texture = {};
-}
+void IconRenderer::DestroyTexture(IconTexture&) {}
 
 } // namespace WindEffects::Editor::UI

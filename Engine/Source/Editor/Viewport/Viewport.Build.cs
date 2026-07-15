@@ -19,9 +19,6 @@ public class Viewport : ModuleRules
         PublicDependencies.Add("Toolbar");
         PublicDependencies.Add("PlaceActors");
 
-        OptionalSDK("VulkanSDK");
-        DefineIf(HasSDK("VulkanSDK") || true, "WE_HAS_VULKAN=1");
-
         Definitions.Add("VIEWPORT_EXPORTS");
     }
 }

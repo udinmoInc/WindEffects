@@ -4,7 +4,7 @@
 
 namespace WindEffects::Editor::UI {
 
-Image::Image(VkDescriptorSet textureId) : m_TextureId(textureId) {}
+Image::Image(we::rhi::RHIDescriptorSetHandle textureId) : m_TextureId(textureId) {}
 
 Size Image::Measure(const Size& availableSize) {
     (void)availableSize;
@@ -23,7 +23,7 @@ void Image::Arrange(const Rect& allottedRect) {
 void Image::Paint(PaintContext& context) {
     if (!m_Visible) return;
 
-    if (m_TextureId != VK_NULL_HANDLE) {
+    if ((m_TextureId != we::rhi::RHIDescriptorSetHandle::Invalid)) {
         context.DrawTexture(m_Geometry, m_TextureId, m_TintColor, m_TintBottom);
     } else {
         // Placeholder checkboard or solid color

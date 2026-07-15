@@ -5,9 +5,6 @@
 #include "Core/Widget.h"
 #include <memory>
 
-namespace we::runtime::renderer {
-class SceneRenderer;
-}
 namespace we::runtime::scene {
 class Scene;
 }
@@ -20,7 +17,6 @@ namespace we::editor::environment {
 
 ENVIRONMENT_API void InitializeEditor(
     const std::shared_ptr<we::runtime::scene::Scene>& scene,
-    we::runtime::renderer::SceneRenderer* renderer,
     const std::shared_ptr<WindEffects::Editor::UI::TreeView>& outliner,
     const std::shared_ptr<WindEffects::Editor::UI::PropertyEditor>& details);
 

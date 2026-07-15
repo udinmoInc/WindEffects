@@ -11,7 +11,7 @@
 #include <memory>
 #include <string>
 #include <unordered_set>
-#include <volk.h>
+#include "RHI/Types.h"
 
 namespace WindEffects::Editor::UI {
 class IconRenderer;
@@ -39,7 +39,7 @@ public:
     void RequestThumbnailForItem(const std::string& id);
     void SetVisibleItemIds(const std::unordered_set<std::string>& ids);
 
-    void SetOnThumbnailReady(std::function<void(const std::string&, VkDescriptorSet)> callback) {
+    void SetOnThumbnailReady(std::function<void(const std::string&, we::rhi::RHIDescriptorSetHandle)> callback) {
         m_OnThumbnailReady = std::move(callback);
     }
 
@@ -48,7 +48,7 @@ public:
 private:
     void OnRegistryRefreshed();
     void ProcessThumbnails();
-    VkDescriptorSet UploadBitmap(const struct BitmapRGBA& bitmap);
+    we::rhi::RHIDescriptorSetHandle UploadBitmap(const struct BitmapRGBA& bitmap);
 
     WindEffects::Editor::UI::IconRenderer* m_IconRenderer = nullptr;
     ThumbnailManager m_ThumbnailManager;
@@ -58,7 +58,7 @@ private:
     FilterController m_FilterController;
 
     std::string m_CurrentFolder = "/Game";
-    std::function<void(const std::string&, VkDescriptorSet)> m_OnThumbnailReady;
+    std::function<void(const std::string&, we::rhi::RHIDescriptorSetHandle)> m_OnThumbnailReady;
     std::weak_ptr<WindEffects::Editor::UI::ContentBrowserModel> m_Model;
     bool m_Initialized = false;
 };

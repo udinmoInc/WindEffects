@@ -55,10 +55,17 @@ const CachedIconEntry* AtlasCache::FindWithTierFallback(const std::string_view i
             startIndex = i;
             break;
         }
+        startIndex = i;
     }
 
+    // Prefer exact-or-higher tiers first, then fall back to smaller atlases.
     for (uint32_t i = startIndex; i < IconMetrics::kAtlasTierCount; ++i) {
         if (const CachedIconEntry* entry = FindByHash(nameHash, IconMetrics::kAtlasTiers[i])) {
+            return entry;
+        }
+    }
+    for (int i = static_cast<int>(startIndex) - 1; i >= 0; --i) {
+        if (const CachedIconEntry* entry = FindByHash(nameHash, IconMetrics::kAtlasTiers[static_cast<uint32_t>(i)])) {
             return entry;
         }
     }

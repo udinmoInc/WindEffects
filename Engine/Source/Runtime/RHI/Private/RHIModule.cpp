@@ -1,17 +1,16 @@
-
 #include "Modules/IModuleInterface.h"
+#include "RHI/RHI.h"
+
 #include "Core/Logger.h"
 
-class RHIModule : public we::core::IModuleInterface
-{
+class RHIModule : public we::core::IModuleInterface {
 public:
-    virtual void StartupModule() override
-    {
+    void StartupModule() override {
         WE_LOG_TRACE("Plugin", "RHIModule started");
     }
 
-    virtual void ShutdownModule() override
-    {
+    void ShutdownModule() override {
+        we::rhi::RHI::Shutdown();
         WE_LOG_TRACE("Plugin", "RHIModule shutdown");
     }
 };

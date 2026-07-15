@@ -1,5 +1,7 @@
 #pragma once
 
+#include "RHI/Types.h"
+
 #include "WindEffects/Editor/UI/Export.h"
 
 #include "Rendering/OverlayRenderer.h"
@@ -101,8 +103,8 @@ private:
     
     uint32_t m_Width;
     uint32_t m_Height;
-    VkDescriptorSet m_CurrentTextureSet;
-    VkDescriptorSet m_DefaultTextureSet;
+    we::rhi::RHIDescriptorSetHandle m_CurrentTextureSet;
+    we::rhi::RHIDescriptorSetHandle m_DefaultTextureSet;
     UIDirtyRegion m_CurrentScissor;
     Diagnostics m_Diagnostics;
 };

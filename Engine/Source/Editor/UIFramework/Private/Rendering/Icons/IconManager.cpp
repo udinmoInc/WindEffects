@@ -46,11 +46,7 @@ IconManager::~IconManager()
 }
 
 bool IconManager::Init(
-    we::runtime::renderer::DeviceContext* context,
-    we::runtime::renderer::ResourceManager* resources,
-    UiGpuUpload* gpuUpload,
-    VkDescriptorPool descriptorPool,
-    VkDescriptorSetLayout textureLayout,
+    OverlayRenderer* renderer,
     const std::filesystem::path& metaPath,
     const std::filesystem::path& atlasRoot)
 {
@@ -59,7 +55,7 @@ bool IconManager::Init(
 
     m_Cache = std::make_unique<AtlasCache>();
     m_AtlasManager = std::make_unique<AtlasManager>();
-    if (!m_AtlasManager->Init(context, resources, gpuUpload, descriptorPool, textureLayout)) {
+    if (!m_AtlasManager->Init(renderer)) {
         return false;
     }
 
@@ -240,8 +236,8 @@ IconDrawInfo IconManager::ResolveIcon(
                 + " uv=(" + std::to_string(info.uvMin[0]) + "," + std::to_string(info.uvMin[1])
                 + ")-(" + std::to_string(info.uvMax[0]) + "," + std::to_string(info.uvMax[1]) + ")"
                 + " atlas=" + std::to_string(atlas->width) + "x" + std::to_string(atlas->height)
-                + " descriptor=0x" + std::to_string(reinterpret_cast<uintptr_t>(info.descriptorSet))
-                + " format=VK_FORMAT_R8G8B8A8_UNORM"
+                + " descriptor=0x" + std::to_string(static_cast<uint64_t>(info.descriptorSet))
+                + " format=R8G8B8A8_UNORM"
                 + " shaderType=" + std::to_string(info.shaderType)
                 + " fullColor=" + (HasIconFlag(drawEntry->flags, IconEntryFlags::FullColor) ? "yes" : "no"));
         }

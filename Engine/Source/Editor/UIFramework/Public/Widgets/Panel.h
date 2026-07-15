@@ -5,7 +5,7 @@
 #include "Core/Widget.h"
 #include "Core/Style.h"
 #include "Core/Icon.h"
-#include <volk.h>
+#include "RHI/Types.h"
 #include <string>
 #include <memory>
 #include <functional>
@@ -64,9 +64,9 @@ public:
     void SetTabIcon(const std::string& iconName) { m_TabIconName = iconName; }
     [[nodiscard]] const std::string& GetTabIcon() const { return m_TabIconName; }
 
-    void SetTabBrand(VkDescriptorSet descriptor, float logicalSize);
-    [[nodiscard]] bool HasTabBrand() const { return m_TabBrandDescriptor != VK_NULL_HANDLE; }
-    [[nodiscard]] VkDescriptorSet GetTabBrandDescriptor() const { return m_TabBrandDescriptor; }
+    void SetTabBrand(we::rhi::RHIDescriptorSetHandle descriptor, float logicalSize);
+    [[nodiscard]] bool HasTabBrand() const { return m_TabBrandDescriptor != we::rhi::RHIDescriptorSetHandle::Invalid; }
+    [[nodiscard]] we::rhi::RHIDescriptorSetHandle GetTabBrandDescriptor() const { return m_TabBrandDescriptor; }
     [[nodiscard]] float GetTabBrandLogicalSize() const { return m_TabBrandLogicalSize; }
 
 private:
@@ -108,7 +108,7 @@ private:
     WidgetStyle m_HeaderStyle;
 
     std::string m_TabIconName;
-    VkDescriptorSet m_TabBrandDescriptor = VK_NULL_HANDLE;
+    we::rhi::RHIDescriptorSetHandle m_TabBrandDescriptor = we::rhi::RHIDescriptorSetHandle::Invalid;
     float m_TabBrandLogicalSize = 0.0f;
 };
 

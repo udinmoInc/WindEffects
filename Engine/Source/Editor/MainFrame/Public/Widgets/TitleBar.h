@@ -1,12 +1,11 @@
 #pragma once
 
 #include "MainFrame/Export.h"
-
 #include "Core/Widget.h"
 #include "Platform/Types.h"
+#include "RHI/Types.h"
 namespace WindEffects::Editor::UI { class MenuBar; class ToolButton; }
 #include "Layout/Box.h"
-#include <volk.h>
 #include <string>
 
 namespace WindEffects::Editor::UI {
@@ -19,7 +18,9 @@ inline constexpr float kWindowControlCount      = 3.0f;
 
 class MAINFRAME_API TitleBar : public HorizontalBox {
 public:
-    TitleBar(we::platform::WindowId window, const std::string& title, VkDescriptorSet logoSet = VK_NULL_HANDLE, std::shared_ptr<MenuBar> menuBar = nullptr);
+    TitleBar(we::platform::WindowId window, const std::string& title,
+             we::rhi::RHIDescriptorSetHandle logoSet = we::rhi::RHIDescriptorSetHandle::Invalid,
+             std::shared_ptr<MenuBar> menuBar = nullptr);
     virtual ~TitleBar() = default;
 
     void Construct() override;
@@ -36,7 +37,7 @@ public:
 
     we::platform::WindowId m_Window = we::platform::WindowId::Invalid;
     std::string m_Title;
-    VkDescriptorSet m_LogoSet = VK_NULL_HANDLE;
+    we::rhi::RHIDescriptorSetHandle m_LogoSet = we::rhi::RHIDescriptorSetHandle::Invalid;
     std::shared_ptr<MenuBar> m_MenuBar = nullptr;
 
     std::shared_ptr<Widget> m_LogoWidget;

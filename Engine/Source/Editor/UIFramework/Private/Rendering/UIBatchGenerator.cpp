@@ -38,7 +38,7 @@ void UIBatchGenerator::BeginBatching(uint32_t width, uint32_t height) {
 
 void UIBatchGenerator::AddGeometry(const std::vector<UIVertex2>& vertices,
                                    const std::vector<uint32_t>& indices,
-                                   VkDescriptorSet textureSet,
+                                   we::rhi::RHIDescriptorSetHandle textureSet,
                                    const UIDirtyRegion& scissor,
                                    uint32_t stencilRef) {
     if (!m_BatchingActive) {

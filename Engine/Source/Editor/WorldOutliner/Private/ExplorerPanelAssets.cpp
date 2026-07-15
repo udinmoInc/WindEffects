@@ -8,18 +8,18 @@ namespace we::programs::editor {
 
 namespace {
 
-VkDescriptorSet g_LogoSet = VK_NULL_HANDLE;
+we::rhi::RHIDescriptorSetHandle g_LogoSet = we::rhi::RHIDescriptorSetHandle::Invalid;
 float g_LogoLogicalSize = 16.0f;
 std::weak_ptr<WindEffects::Editor::UI::TreeView> g_ExplorerTreeView;
 
 } // namespace
 
-void BindExplorerBrandLogo(VkDescriptorSet logoSet, float logicalSize) {
+void BindExplorerBrandLogo(we::rhi::RHIDescriptorSetHandle logoSet, float logicalSize) {
     g_LogoSet = logoSet;
     g_LogoLogicalSize = logicalSize;
 }
 
-VkDescriptorSet GetExplorerBrandLogo() {
+we::rhi::RHIDescriptorSetHandle GetExplorerBrandLogo() {
     return g_LogoSet;
 }
 

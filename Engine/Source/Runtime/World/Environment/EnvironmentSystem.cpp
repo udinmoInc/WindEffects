@@ -2,9 +2,6 @@
 
 #include "Environment/EnvironmentLighting.h"
 #include "Environment/EnvironmentManager.h"
-#include "Scene/SceneRenderer.h"
-#include "Lighting/DirectionalLight.h"
-#include "Lighting/EnvironmentUniform.h"
 #include "Core/Logger.h"
 #include "Core/LogCategory.h"
 
@@ -50,14 +47,6 @@ void EnvironmentSystem::BindScene(const std::shared_ptr<Scene>& scene) {
         m_ExposureController.ApplyDefaults();
     }
     DiscoverExistingActors();
-}
-
-void EnvironmentSystem::BindRenderer(we::runtime::renderer::SceneRenderer* renderer) {
-#if WE_HAS_VULKAN
-    m_Renderer = renderer;
-#else
-    (void)renderer;
-#endif
 }
 
 Scene* EnvironmentSystem::GetScene() const {
@@ -181,11 +170,7 @@ std::uint64_t EnvironmentSystem::SpawnActor(
     const std::function<void(Entity&)>& configure) {
 
     Scene* scene = GetScene();
-#if WE_HAS_VULKAN
-    if (!scene || !scene->IsCameraBufferAssigned()) {
-#else
     if (!scene) {
-#endif
         return 0;
     }
 
@@ -366,11 +351,7 @@ bool EnvironmentSystem::EnsureDefaultEnvironment() {
 
 void EnvironmentSystem::CreateEnvironment() {
     Scene* scene = GetScene();
-#if WE_HAS_VULKAN
-    if (!scene || !scene->IsCameraBufferAssigned()) {
-#else
     if (!scene) {
-#endif
         return;
     }
 
@@ -635,76 +616,7 @@ void EnvironmentSystem::SyncToScene() {
 
 void EnvironmentSystem::UpdateRendering(const glm::vec3& cameraPosition) {
     m_Manager.UpdateDerivedState(m_Sun, m_SkyLight, m_HeightFog, m_SkyAtmosphere, cameraPosition);
-
-#if WE_HAS_VULKAN
-    if (!m_Renderer || !m_Renderer->IsReady()) {
-        static bool s_LoggedMissingRenderer = false;
-        if (!s_LoggedMissingRenderer) {
-            HE_ERROR("[Clouds] UpdateRendering skipped: SceneRenderer not bound/ready.");
-            s_LoggedMissingRenderer = true;
-        }
-        return;
-    }
-
-    const glm::vec3 worldOrigin = m_Manager.GetWorldOrigin(cameraPosition);
-    const we::runtime::renderer::SceneEnvironmentUniform envUniform = BuildSceneEnvironmentUniform(
-        m_Sun,
-        m_SkyLight,
-        m_SkyAtmosphere,
-        m_HeightFog,
-        m_VolumetricClouds,
-        m_ExposureController,
-        worldOrigin);
-
-    we::runtime::renderer::DirectionalLightData lightData{};
-    lightData.direction = m_Sun.GetLightDirection();
-    lightData.intensity = envUniform.sunIntensity;
-    lightData.color = envUniform.sunColor;
-
-    // Approximate cloud occlusion of the sun for world lighting when shadows are enabled.
-    if (envUniform.enableClouds > 0.5f && envUniform.sunCastShadows != 0) {
-        const float occlude = std::clamp(
-            envUniform.cloudCoverage * envUniform.cloudShadowStrength * 0.45f,
-            0.0f,
-            0.75f);
-        lightData.intensity *= (1.0f - occlude);
-    }
-
-    {
-        static int s_CloudDiagFrames = 0;
-        if (s_CloudDiagFrames < 3 || (s_CloudDiagFrames % 120) == 0) {
-            const float camY = cameraPosition.y;
-            const float bottom = envUniform.cloudBottomAltitude;
-            const float top = envUniform.cloudTopAltitude;
-            HE_INFO(
-                std::string("[Clouds] diag enabled=") + (envUniform.enableClouds > 0.5f ? "1" : "0")
-                + " entityId=" + std::to_string(m_VolumetricClouds.EntityId)
-                + " coverage=" + std::to_string(envUniform.cloudCoverage)
-                + " densityMult=" + std::to_string(envUniform.cloudDensityMult)
-                + " bottom=" + std::to_string(bottom)
-                + " top=" + std::to_string(top)
-                + " camY=" + std::to_string(camY)
-                + " lookUpNeeded=" + (camY < bottom ? "yes" : "no")
-                + " steps=" + std::to_string(envUniform.cloudQualitySteps)
-                + " shape=" + std::to_string(envUniform.cloudShapeNoise)
-                + " erosion=" + std::to_string(envUniform.cloudErosionNoise)
-                + " sizeofEnvUBO=" + std::to_string(sizeof(we::runtime::renderer::SceneEnvironmentUniform)));
-        }
-        ++s_CloudDiagFrames;
-    }
-
-    if (auto* envGpu = m_Renderer->GetEnvironmentUniform()) {
-        // Upload both in-flight frames so either can pick up the latest environment state.
-        envGpu->Upload(0, envUniform);
-        envGpu->Upload(1, envUniform);
-    }
-    if (auto* lightGpu = m_Renderer->GetDirectionalLight()) {
-        lightGpu->Upload(0, lightData);
-        lightGpu->Upload(1, lightData);
-    }
-#else
     (void)cameraPosition;
-#endif
 }
 
 EnvironmentActorKind EnvironmentSystem::GetActorKind(std::uint64_t entityId) const {

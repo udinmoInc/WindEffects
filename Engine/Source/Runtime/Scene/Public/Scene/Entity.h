@@ -1,11 +1,12 @@
 #pragma once
 
-#include <string>
+#include "Scene/Export.h"
+
 #include <cstdint>
+#include <string>
 #if WE_HAS_GLM
 #include <glm/glm.hpp>
 #else
-// Fallback simple math types when GLM is not available
 #ifndef GLM_FALLBACK_TYPES_DEFINED
 #define GLM_FALLBACK_TYPES_DEFINED
 struct glm_vec3 { float x, y, z; };
@@ -17,9 +18,6 @@ namespace glm {
     using mat4 = glm_mat4;
 }
 #endif
-#endif
-#if WE_HAS_VULKAN
-#include <volk.h>
 #endif
 
 namespace we::runtime::scene {
@@ -49,23 +47,21 @@ enum class EntityType {
 struct Entity {
     std::uint64_t Id = 0;
     std::string Name;
-    EntityType Type;
-    glm::vec3 Position{ 0.0f, 0.0f, 0.0f };
-    glm::vec3 Rotation{ 0.0f, 0.0f, 0.0f }; // Euler angles in degrees
-    glm::vec3 Scale{ 1.0f, 1.0f, 1.0f };
-    glm::vec4 Color{ 1.0f, 1.0f, 1.0f, 1.0f };
-    int Mode = 0; // 0 = Lit, 1 = Unlit, 2 = Wireframe
+    EntityType Type = EntityType::EmptyActor;
+    glm::vec3 Position{0.0f, 0.0f, 0.0f};
+    glm::vec3 Rotation{0.0f, 0.0f, 0.0f};
+    glm::vec3 Scale{1.0f, 1.0f, 1.0f};
+    glm::vec4 Color{1.0f, 1.0f, 1.0f, 1.0f};
+    int Mode = 0;
     bool EditorOnly = false;
     std::uint64_t ParentId = 0;
 
-#if WE_HAS_VULKAN
-    // Vulkan resources (allocated when added to Scene)
-    VkBuffer UniformBuffer = VK_NULL_HANDLE;
-    VkDeviceMemory UniformMemory = VK_NULL_HANDLE;
-    VkDescriptorSet DescriptorSet = VK_NULL_HANDLE;
-#endif
+    // Opaque GPU bindings owned by the active RHI backend (not Vulkan/DX types).
+    std::uint64_t GpuUniformBuffer = 0;
+    std::uint64_t GpuUniformMemory = 0;
+    std::uint64_t GpuDescriptorSet = 0;
 
-    glm::mat4 GetModelMatrix() const;
+    SCENE_API glm::mat4 GetModelMatrix() const;
 };
 
 } // namespace we::runtime::scene

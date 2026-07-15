@@ -17,15 +17,9 @@ public class Core : ModuleRules
         Definitions.Add("CORE_EXPORTS");
         PlatformSettings.Windows ??= new WindowsSettings();
         PlatformSettings.Windows.LinkerFlags.Add("delayimp.lib");
-        // Vulkan is optional for Core - only needed for rendering features
-        OptionalSDK("VulkanSDK");
-        
+
         // nlohmann/json is optional for Core - only needed for crash reporting
         AddOptionalThirdParty("nlohmann_json");
-        
-        // Add feature flags for SDK availability
-        DefineIf(HasSDK("VulkanSDK"), "WE_HAS_VULKAN=1");
-        DefineIf(!HasSDK("VulkanSDK"), "WE_HAS_VULKAN=0");
         DefineIf(HasThirdParty("nlohmann_json"), "WE_HAS_NLOHMANN_JSON=1");
         DefineIf(!HasThirdParty("nlohmann_json"), "WE_HAS_NLOHMANN_JSON=0");
     }

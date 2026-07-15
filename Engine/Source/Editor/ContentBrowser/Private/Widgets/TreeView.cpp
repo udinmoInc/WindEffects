@@ -40,7 +40,7 @@ float TreeUiScale() {
 }
 
 void PaintTreeNodeIcon(PaintContext& context, const TreeNode& node, const Rect& iconRect, bool hovered) {
-    if (node.iconTexture != VK_NULL_HANDLE) {
+    if (node.iconTexture != we::rhi::RHIDescriptorSetHandle::Invalid) {
         context.DrawTexture(iconRect, node.iconTexture);
         return;
     }
@@ -277,7 +277,7 @@ void TreeView::Paint(PaintContext& context) {
         const float iconX = item.geometry.x + ThemeMetric(ThemeToken::Space2)
             + static_cast<float>(IconMetrics::StandardGlyphTierPx())
             + ThemeMetric(ThemeToken::Space1) * TreeUiScale();
-        if (!node->iconName.empty() || node->iconTexture != VK_NULL_HANDLE) {
+        if (!node->iconName.empty() || node->iconTexture != we::rhi::RHIDescriptorSetHandle::Invalid) {
             Rect iconBand{ iconX, item.geometry.y, iconSize, rowHeight };
             Rect iconRect = IconMetrics::PlaceGlyphCentered(iconBand, iconSize);
             PaintTreeNodeIcon(context, *node, iconRect, node->id == m_HoveredId);

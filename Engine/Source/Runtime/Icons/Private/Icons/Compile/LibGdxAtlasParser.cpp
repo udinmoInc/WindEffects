@@ -24,8 +24,14 @@ std::string Trim(std::string value)
 
 std::string StripIconsPrefix(std::string value)
 {
+    // Canonical: Icons_3DPlane. Tolerate missing underscore: Icons3DPlane.
     if (value.starts_with("Icons_")) {
         value = value.substr(6);
+    } else if (value.size() > 5 && value.starts_with("Icons")) {
+        const unsigned char next = static_cast<unsigned char>(value[5]);
+        if (std::isdigit(next) || std::isupper(next)) {
+            value = value.substr(5);
+        }
     }
     std::transform(value.begin(), value.end(), value.begin(), [](unsigned char c) {
         return static_cast<char>(std::tolower(c));
@@ -143,11 +149,15 @@ bool ParseLibGdxAtlasFile(
 std::string ResolveRuntimeIconName(const std::string& atlasRegionName)
 {
     std::string stem = StripIconsPrefix(atlasRegionName);
-    
+
     if (stem == "cons_object" || atlasRegionName == "cons_Object") {
         return "object";
     }
-    
+    // Legacy mislabeled region from ui_Atlas_64 (Icons3DPlane → icons3dplane).
+    if (stem == "icons3dplane") {
+        return "3dplane";
+    }
+
     return stem;
 }
 

@@ -4,10 +4,6 @@
 #include <fstream>
 #include <filesystem>
 
-#if WE_HAS_VULKAN
-#include <volk.h>
-#endif
-
 namespace we::core {
 
 AssetRegistry& AssetRegistry::Get() {
@@ -15,15 +11,9 @@ AssetRegistry& AssetRegistry::Get() {
     return instance;
 }
 
-#if WE_HAS_VULKAN
-void AssetRegistry::RegisterTexture(std::string_view name, VkImageView view, VkSampler sampler) {
-    m_Textures[std::string(name)] = {view, sampler};
+void AssetRegistry::RegisterTexture(std::string_view name, uint64_t view, uint64_t sampler) {
+    m_Textures[std::string(name)] = AssetTexture{view, sampler};
 }
-#else
-void AssetRegistry::RegisterTexture(std::string_view name, void* view, void* sampler) {
-    m_Textures[std::string(name)] = {view, sampler};
-}
-#endif
 
 AssetTexture AssetRegistry::GetTexture(std::string_view name) const {
     auto it = m_Textures.find(std::string(name));
@@ -102,11 +92,11 @@ bool AssetRegistry::LoadDefaultEditorAssets() {
 
     const std::vector<std::pair<std::string, std::vector<std::string>>> fonts = {
         {"Font_UI", {
-            "Assets/Fonts/Inter-Regular.ttf",
-            "Fonts/Inter-Regular.ttf",
-            "../Assets/Fonts/Inter-Regular.ttf",
-            "bin/Fonts/Inter-Regular.ttf",
-            "../../bin/Fonts/Inter-Regular.ttf"
+            "Assets/Fonts/Inter-Regular.wefont",
+            "Fonts/Inter-Regular.wefont",
+            "../Assets/Fonts/Inter-Regular.wefont",
+            "bin/Fonts/Inter-Regular.wefont",
+            "../../bin/Fonts/Inter-Regular.wefont"
         }},
     };
 

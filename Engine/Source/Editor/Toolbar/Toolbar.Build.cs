@@ -11,6 +11,7 @@ public class Toolbar : ModuleRules
 
         PublicDependencies.Add("Core");
         PublicDependencies.Add("Platform");
+        PublicDependencies.Add("RHI");
         PublicDependencies.Add("Menus");
         PublicDependencies.Add("UIFramework");
 

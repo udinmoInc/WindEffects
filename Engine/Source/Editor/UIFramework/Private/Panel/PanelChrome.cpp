@@ -185,7 +185,7 @@ DockTabLayout PaintDockTab(
         const float brandSize = tab.brandLogicalSize * scale;
         const float logoY = centerY - brandSize * 0.5f;
         const auto snap = [](float v) { return std::floor(v + 0.5f); };
-        if (tab.brandDescriptor != VK_NULL_HANDLE) {
+        if (tab.brandDescriptor != we::rhi::RHIDescriptorSetHandle::Invalid) {
             context.DrawTexture(
                 Rect{ snap(itemX), snap(logoY), brandSize, brandSize },
                 tab.brandDescriptor,
@@ -225,7 +225,7 @@ void PaintFloatingPanelHeader(
     const std::string& title,
     const std::string& iconName,
     bool hasBrand,
-    VkDescriptorSet brandDescriptor,
+    we::rhi::RHIDescriptorSetHandle brandDescriptor,
     float brandLogicalSize,
     const std::vector<FloatingHeaderAction>& actions,
     bool showOptionsMenu,
@@ -259,7 +259,7 @@ void PaintFloatingPanelHeader(
 
     if (hasBrand) {
         const float brandSize = brandLogicalSize * scale;
-        if (brandDescriptor != VK_NULL_HANDLE) {
+        if ((brandDescriptor != we::rhi::RHIDescriptorSetHandle::Invalid)) {
             context.DrawTexture(
                 Rect{ itemX, centerY - brandSize * 0.5f, brandSize, brandSize },
                 brandDescriptor,

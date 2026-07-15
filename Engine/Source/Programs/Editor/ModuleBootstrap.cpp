@@ -9,6 +9,14 @@
 namespace {
 
 constexpr const char* kFeatureModuleDlls[] = {
+    "WERHI.dll",
+    "WENullRHI.dll",
+    "WEVulkanRHI.dll",
+    "WEDX12RHI.dll",
+    "WEDX11RHI.dll",
+    "WEMetalRHI.dll",
+    "WEOpenGLRHI.dll",
+    "WEOpenGLESRHI.dll",
     "WEUIFramework.dll",
     "WEMainFrame.dll",
     "WEViewport.dll",
