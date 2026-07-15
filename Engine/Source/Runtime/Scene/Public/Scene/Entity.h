@@ -39,6 +39,7 @@ enum class EntityType {
     SkyAtmosphere,
     HeightFog,
     VolumetricClouds,
+    Landscape,
     GroundPlane,
     CameraIcon,
     AudioSource,

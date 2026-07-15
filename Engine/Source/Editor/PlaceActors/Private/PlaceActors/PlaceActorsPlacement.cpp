@@ -4,6 +4,7 @@
 #include "EditorCamera.h"
 #include "Scene/Scene.h"
 #include "Scene/Entity.h"
+#include "TerrainEditor/TerrainEditorService.h"
 #include "Core/Logger.h"
 
 #include <glm/gtc/constants.hpp>
@@ -38,6 +39,7 @@ EntityType EntityTypeForTool(const std::string& toolId) {
         {"UIWidget", EntityType::Volume},
         {"NavPaint", EntityType::Volume},
         {"PhysicsCollision", EntityType::Volume},
+        {"TerrainGenerate", EntityType::Landscape},
     };
     auto it = kMap.find(toolId);
     return it != kMap.end() ? it->second : EntityType::EmptyActor;
@@ -61,6 +63,9 @@ void PlaceActorsPlacement::BindScene(const std::shared_ptr<we::runtime::scene::S
                                      const std::shared_ptr<we::runtime::engine::EditorCamera>& camera) {
     m_Scene = scene;
     m_Camera = camera;
+    if (scene) {
+        we::editor::terrain::TerrainEditorService::Get().BindScene(scene.get());
+    }
 }
 
 glm::vec3 PlaceActorsPlacement::ComputeSpawnPosition() const {
@@ -83,6 +88,16 @@ bool PlaceActorsPlacement::SpawnToolAt(const std::string& toolId, const glm::vec
     if (!scene) {
         HE_ERROR("[PlaceActors] Scene is not bound.");
         return false;
+    }
+
+    if (toolId == "TerrainGenerate") {
+        we::editor::terrain::TerrainEditorService::Get().BindScene(scene.get());
+        if (!we::editor::terrain::TerrainEditorService::Get().GenerateDefaultLandscape()) {
+            return false;
+        }
+        EditorToolsRegistry::Get().RecordToolUsage(toolId);
+        HE_INFO("[PlaceActors] Spawned Landscape terrain.");
+        return true;
     }
 
     const EditorToolAction* tool = EditorToolsRegistry::Get().FindTool(toolId);

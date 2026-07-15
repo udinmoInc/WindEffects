@@ -30,8 +30,8 @@ struct EnvironmentSettings {
     float fogHeightFalloff = 0.2f;
     float fogStartDistance = 0.0f;
 
-    float cloudCoverage = 0.45f;
-    float cloudAltitude = 5000.0f;
+    float cloudCoverage = 0.55f;
+    float cloudAltitude = 1250.0f;
 };
 
 class EnvironmentSettingsLoader {

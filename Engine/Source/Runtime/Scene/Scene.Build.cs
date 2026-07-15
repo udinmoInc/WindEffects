@@ -15,6 +15,7 @@ public class Scene : ModuleRules
         PublicDependencies.Add("CoreUObject");
         PublicDependencies.Add("Engine");
         PublicDependencies.Add("Renderer");
+        PublicDependencies.Add("ECS");
 
         AddOptionalThirdParty("glm");
 

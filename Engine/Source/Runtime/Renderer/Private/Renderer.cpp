@@ -204,6 +204,7 @@ void Renderer::BuildRenderGraph() {
     skyConfig.deviceContext = m_DeviceContext.get();
     skyConfig.pipelineFactory = m_PipelineFactory.get();
     skyConfig.cameraDescriptorSetLayout = m_CameraSystem->GetDescriptorSetLayout();
+    skyConfig.environmentDescriptorSetLayout = m_SceneRenderer->GetEnvironmentUniform()->GetDescriptorSetLayout();
     skyConfig.colorFormat = m_SwapchainManager->GetImageFormat();
     skyPass->Init(skyConfig);
 
@@ -211,9 +212,11 @@ void Renderer::BuildRenderGraph() {
     VolumetricCloudsPassConfig cloudsConfig{};
     cloudsConfig.deviceContext = m_DeviceContext.get();
     cloudsConfig.pipelineFactory = m_PipelineFactory.get();
+    cloudsConfig.resourceManager = m_ResourceManager.get();
     cloudsConfig.cameraDescriptorSetLayout = m_CameraSystem->GetDescriptorSetLayout();
     cloudsConfig.environmentDescriptorSetLayout = m_SceneRenderer->GetEnvironmentUniform()->GetDescriptorSetLayout();
     cloudsConfig.colorFormat = m_SwapchainManager->GetImageFormat();
+    cloudsConfig.resolutionScale = 0.5f;
     cloudsPass->Init(cloudsConfig);
 
     auto pbrPass = std::make_unique<PBRPass>();
@@ -229,8 +232,9 @@ void Renderer::BuildRenderGraph() {
 
     m_RenderGraph->Init(this);
     m_RenderGraph->AddPass(std::move(skyPass));
-    m_RenderGraph->AddPass(std::move(cloudsPass));
+    // Opaque geometry first so SceneDepth is available for cloud ray truncation / occlusion.
     m_RenderGraph->AddPass(std::move(pbrPass));
+    m_RenderGraph->AddPass(std::move(cloudsPass));
     m_RenderGraph->Compile();
 }
 

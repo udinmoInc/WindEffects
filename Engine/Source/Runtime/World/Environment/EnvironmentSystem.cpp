@@ -45,6 +45,7 @@ EnvironmentSystem& EnvironmentSystem::Get() {
 
 void EnvironmentSystem::BindScene(const std::shared_ptr<Scene>& scene) {
     m_Scene = scene;
+    m_ScenePinned = scene;
     if (m_ExposureController.NeedsDefaultMigration()) {
         m_ExposureController.ApplyDefaults();
     }
@@ -60,7 +61,10 @@ void EnvironmentSystem::BindRenderer(we::runtime::renderer::SceneRenderer* rende
 }
 
 Scene* EnvironmentSystem::GetScene() const {
-    return m_Scene.lock().get();
+    // Keep a temporary owner so callers don't observe a dangling raw pointer from a
+    // destroyed lock() temporary. Prefer holding shared_ptr at call sites long-term.
+    m_ScenePinned = m_Scene.lock();
+    return m_ScenePinned.get();
 }
 
 bool EnvironmentSystem::HasEnvironment() const {
@@ -112,6 +116,11 @@ void EnvironmentSystem::ApplySettingsToComponents(const EnvironmentSettings& set
     m_VolumetricClouds.Enabled = settings.createVolumetricClouds;
     m_VolumetricClouds.Coverage = settings.cloudCoverage;
     m_VolumetricClouds.Altitude = settings.cloudAltitude;
+    m_VolumetricClouds.CloudHeight = settings.cloudAltitude;
+    const float halfThickness = std::max(50.0f, m_VolumetricClouds.CloudThickness * 0.5f);
+    m_VolumetricClouds.BottomAltitude = settings.cloudAltitude - halfThickness;
+    m_VolumetricClouds.TopAltitude = settings.cloudAltitude + halfThickness;
+    m_VolumetricClouds.SyncAltitudeFromBounds();
 
     m_ExposureController.ApplyDefaults();
 }
@@ -282,6 +291,8 @@ void EnvironmentSystem::DiscoverExistingActors() {
             }
             m_VolumetricClouds.EntityId = entity.Id;
             m_VolumetricClouds.Enabled = true;
+            // Keep layer bounds coherent when rediscovering without a full ApplyDefaults.
+            m_VolumetricClouds.SyncAltitudeFromBounds();
             continue;
         }
         if (IsExposureControllerEntity(entity)) {
@@ -624,6 +635,11 @@ void EnvironmentSystem::UpdateRendering(const glm::vec3& cameraPosition) {
 
 #if WE_HAS_VULKAN
     if (!m_Renderer || !m_Renderer->IsReady()) {
+        static bool s_LoggedMissingRenderer = false;
+        if (!s_LoggedMissingRenderer) {
+            HE_ERROR("[Clouds] UpdateRendering skipped: SceneRenderer not bound/ready.");
+            s_LoggedMissingRenderer = true;
+        }
         return;
     }
 
@@ -641,6 +657,38 @@ void EnvironmentSystem::UpdateRendering(const glm::vec3& cameraPosition) {
     lightData.direction = m_Sun.GetLightDirection();
     lightData.intensity = envUniform.sunIntensity;
     lightData.color = envUniform.sunColor;
+
+    // Approximate cloud occlusion of the sun for world lighting when shadows are enabled.
+    if (envUniform.enableClouds > 0.5f && envUniform.sunCastShadows != 0) {
+        const float occlude = std::clamp(
+            envUniform.cloudCoverage * envUniform.cloudShadowStrength * 0.45f,
+            0.0f,
+            0.75f);
+        lightData.intensity *= (1.0f - occlude);
+    }
+
+    {
+        static int s_CloudDiagFrames = 0;
+        if (s_CloudDiagFrames < 3 || (s_CloudDiagFrames % 120) == 0) {
+            const float camY = cameraPosition.y;
+            const float bottom = envUniform.cloudBottomAltitude;
+            const float top = envUniform.cloudTopAltitude;
+            HE_INFO(
+                std::string("[Clouds] diag enabled=") + (envUniform.enableClouds > 0.5f ? "1" : "0")
+                + " entityId=" + std::to_string(m_VolumetricClouds.EntityId)
+                + " coverage=" + std::to_string(envUniform.cloudCoverage)
+                + " densityMult=" + std::to_string(envUniform.cloudDensityMult)
+                + " bottom=" + std::to_string(bottom)
+                + " top=" + std::to_string(top)
+                + " camY=" + std::to_string(camY)
+                + " lookUpNeeded=" + (camY < bottom ? "yes" : "no")
+                + " steps=" + std::to_string(envUniform.cloudQualitySteps)
+                + " shape=" + std::to_string(envUniform.cloudShapeNoise)
+                + " erosion=" + std::to_string(envUniform.cloudErosionNoise)
+                + " sizeofEnvUBO=" + std::to_string(sizeof(we::runtime::renderer::SceneEnvironmentUniform)));
+        }
+        ++s_CloudDiagFrames;
+    }
 
     if (auto* envGpu = m_Renderer->GetEnvironmentUniform()) {
         // Upload both in-flight frames so either can pick up the latest environment state.

@@ -1,9 +1,12 @@
 #include "Lighting/EnvironmentUniform.h"
 #include "Core/DeviceContext.h"
 #include "Core/Validation.h"
+#include "Core/Logger.h"
+#include "Core/LogCategory.h"
 #include "Resource/ResourceManager.h"
 
 #include <cstring>
+#include <string>
 
 namespace we::runtime::renderer {
 
@@ -15,6 +18,10 @@ void EnvironmentUniform::Init(const EnvironmentUniformConfig& config) {
     WE_VALIDATE_INIT(!m_Initialized, "EnvironmentUniform", "Already initialized.");
     WE_VALIDATE_INIT(config.deviceContext != nullptr, "EnvironmentUniform", "DeviceContext is null.");
     WE_VALIDATE_INIT(config.resourceManager != nullptr, "EnvironmentUniform", "ResourceManager is null.");
+#if WE_HAS_GLM
+    // sizeof assert lives in SceneEnvironmentUniform.h (kSceneEnvironmentUniformSize).
+    // Touching this TU on layout changes forces buffer allocation to match callers.
+#endif
 
     m_DeviceContext = config.deviceContext;
     m_ResourceManager = config.resourceManager;
@@ -25,6 +32,10 @@ void EnvironmentUniform::Init(const EnvironmentUniformConfig& config) {
 
     m_Data.resize(config.maxFramesInFlight, SceneEnvironmentUniform{});
     m_Initialized = true;
+    WE_LOG_INFO(
+        we::LogCategory::Renderer.data(),
+        std::string("[Clouds] EnvironmentUniform init sizeof=") + std::to_string(sizeof(SceneEnvironmentUniform))
+        + " frames=" + std::to_string(config.maxFramesInFlight));
     for (uint32_t i = 0; i < config.maxFramesInFlight; ++i) {
         Upload(i, m_Data[i]);
     }

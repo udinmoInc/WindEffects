@@ -17,6 +17,8 @@ public class PlaceActors : ModuleRules
         PublicDependencies.Add("UIFramework");
         PublicDependencies.Add("ContentBrowser");
         PublicDependencies.Add("Toolbar");
+        PublicDependencies.Add("Terrain");
+        PublicDependencies.Add("TerrainEditor");
 
         OptionalSDK("SDL3");
         DefineIf(HasSDK("SDL3"), "WE_HAS_SDL3=1");

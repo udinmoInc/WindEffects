@@ -90,6 +90,8 @@ private:
     bool ActorExists(we::runtime::scene::EntityType type, const char* name) const;
 
     std::weak_ptr<we::runtime::scene::Scene> m_Scene;
+    // Pins the scene for the duration of GetScene()-based operations (weak_ptr.lock() temp fix).
+    mutable std::shared_ptr<we::runtime::scene::Scene> m_ScenePinned;
 #if WE_HAS_VULKAN
     we::runtime::renderer::SceneRenderer* m_Renderer = nullptr;
 #endif

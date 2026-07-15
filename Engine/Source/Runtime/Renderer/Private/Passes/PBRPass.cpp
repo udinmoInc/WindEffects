@@ -144,7 +144,7 @@ void PBRPass::Execute(const FrameContext& frame) {
     depthAttachment.imageView = frame.depthTarget->GetImageView();
     depthAttachment.imageLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
     depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-    depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+    depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
     depthAttachment.clearValue.depthStencil = {1.0f, 0};
 
     VkRenderingInfo renderingInfo{};

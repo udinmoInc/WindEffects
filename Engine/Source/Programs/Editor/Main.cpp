@@ -83,6 +83,7 @@ int main(int argc, char* argv[]) {
             "WindEffects-ToolsPanel",
             "WindEffects-PlaceActors",
             "WindEffects-Environment",
+            "WindEffects-TerrainEditor",
         };
         for (const char* mod : modules) {
             if (!moduleManager.LoadModule(mod)) {

@@ -4,6 +4,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstdlib>
 
 namespace we::runtime::world::environment {
 
@@ -133,7 +134,15 @@ we::runtime::renderer::SceneEnvironmentUniform BuildSceneEnvironmentUniform(
     uniform.bloomIntensity = 0.15f;
     uniform.bloomThreshold = 4.0f;
     uniform.enableAutoExposure = exposure.AutoExposure ? 1.0f : 0.0f;
-    uniform.atmosphereDebugMode = atmosphere.AtmosphereDebugMode;
+    // WE_CLOUD_DEBUG overrides AtmosphereDebugMode for cloud isolation:
+    // 10 white, 11 bounds, 12 altitude, 13 weather, 14 shape, 15 density,
+    // 16 steps, 19 rayOrigin, 20 rayDir, 21 emptySkip, 22 occupancy,
+    // 23 history, 24 temporalBlend, 25 upsampleColor, 26 alpha, 27 composite.
+    int cloudDebugMode = atmosphere.AtmosphereDebugMode;
+    if (const char* cloudDbg = std::getenv("WE_CLOUD_DEBUG")) {
+        cloudDebugMode = std::atoi(cloudDbg);
+    }
+    uniform.atmosphereDebugMode = cloudDebugMode;
     uniform.cloudTemporalBlend = 0.88f;
     uniform.cloudHistoryValid = 0;
     uniform.enableSunDisk = 1.0f;

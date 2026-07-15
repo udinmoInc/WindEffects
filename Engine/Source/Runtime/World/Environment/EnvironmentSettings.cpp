@@ -114,6 +114,7 @@ void EnvironmentSettingsLoader::SaveSettings(const EnvironmentSettings& settings
     output << "FogDensity=" << settings.fogDensity << "\n";
     output << "FogHeightFalloff=" << settings.fogHeightFalloff << "\n";
     output << "CloudCoverage=" << settings.cloudCoverage << "\n";
+    output << "CloudAltitude=" << settings.cloudAltitude << "\n";
 }
 
 std::filesystem::path EnvironmentSettingsLoader::GetConfigPath() const {
@@ -178,6 +179,7 @@ void EnvironmentSettingsLoader::EnsureLoaded() {
     m_Settings.fogDensity = std::max(0.0f, ParseFloat(get("FogDensity"), m_Settings.fogDensity));
     m_Settings.fogHeightFalloff = std::max(0.0f, ParseFloat(get("FogHeightFalloff"), m_Settings.fogHeightFalloff));
     m_Settings.cloudCoverage = std::clamp(ParseFloat(get("CloudCoverage"), m_Settings.cloudCoverage), 0.0f, 1.0f);
+    m_Settings.cloudAltitude = std::max(50.0f, ParseFloat(get("CloudAltitude"), m_Settings.cloudAltitude));
 
     m_Loaded = true;
 }

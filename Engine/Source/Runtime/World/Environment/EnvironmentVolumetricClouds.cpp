@@ -11,31 +11,38 @@ void Clamp01(float& v) {
     v = std::clamp(v, 0.0f, 1.0f);
 }
 
+void SetLayer(EnvironmentVolumetricClouds& clouds, float bottom, float top) {
+    clouds.BottomAltitude = bottom;
+    clouds.TopAltitude = top;
+    clouds.SyncAltitudeFromBounds();
+}
+
 } // namespace
 
 void EnvironmentVolumetricClouds::ApplyDefaults() {
     Enabled = true;
-    Coverage = 0.45f;
-    Density = 1.0f;
+    Coverage = 0.55f;
+    Density = 1.15f;
     DensityMultiplier = 1.0f;
-    CloudHeight = 5000.0f;
-    CloudThickness = 800.0f;
-    BottomAltitude = 4600.0f;
-    TopAltitude = 5400.0f;
-    Altitude = 5000.0f;
-    Extinction = 0.35f;
+    // Editor default: low-alt cumulus so camera at ~6m looks through the sky lobe and sees clouds.
+    CloudThickness = 700.0f;
+    BottomAltitude = 900.0f;
+    TopAltitude = 1600.0f;
+    CloudHeight = 1250.0f;
+    Altitude = 1250.0f;
+    Extinction = 0.55f;
     WindDirection = glm::vec3(1.0f, 0.0f, 0.25f);
-    WindSpeed = 12.0f;
+    WindSpeed = 18.0f;
     AnimationSpeed = 1.0f;
-    NoiseScale = 1.0f;
-    DetailNoiseScale = 3.7f;
-    ShapeNoise = 0.75f;
-    ErosionNoise = 0.25f;
+    NoiseScale = 1.15f;
+    DetailNoiseScale = 4.2f;
+    ShapeNoise = 0.85f;
+    ErosionNoise = 0.32f;
     Seed = 17.3f;
     LightingIntensity = 1.0f;
-    SilverLiningIntensity = 0.85f;
-    AmbientContribution = 0.42f;
-    MultiScatteringStrength = 0.35f;
+    SilverLiningIntensity = 0.9f;
+    AmbientContribution = 0.45f;
+    MultiScatteringStrength = 0.4f;
     PhaseG = 0.6f;
     PowderEffect = 0.5f;
     WeatherMapInfluence = 0.0f;
@@ -63,7 +70,6 @@ void EnvironmentVolumetricClouds::Tick(float deltaTime) {
         return;
     }
     AnimationTime += deltaTime * AnimationSpeed;
-    // Keep deterministic wrap for GPU float stability.
     constexpr float kWrap = 3600.0f;
     if (AnimationTime > kWrap) {
         AnimationTime = std::fmod(AnimationTime, kWrap);
@@ -109,111 +115,89 @@ void EnvironmentVolumetricClouds::ApplyPreset(CloudPreset preset) {
         Density = 0.2f;
         break;
     case CloudPreset::FewClouds:
-        Coverage = 0.22f;
-        Density = 0.7f;
-        CloudThickness = 600.0f;
-        BottomAltitude = 4700.0f;
-        TopAltitude = 5300.0f;
+        Coverage = 0.28f;
+        Density = 0.85f;
+        SetLayer(*this, 1000.0f, 1500.0f);
         break;
     case CloudPreset::ScatteredClouds:
-        Coverage = 0.45f;
-        Density = 1.0f;
-        CloudThickness = 800.0f;
-        BottomAltitude = 4600.0f;
-        TopAltitude = 5400.0f;
+        Coverage = 0.55f;
+        Density = 1.15f;
+        SetLayer(*this, 900.0f, 1600.0f);
         break;
     case CloudPreset::BrokenClouds:
-        Coverage = 0.62f;
-        Density = 1.15f;
-        Extinction = 0.42f;
-        CloudThickness = 1000.0f;
-        BottomAltitude = 4400.0f;
-        TopAltitude = 5400.0f;
+        Coverage = 0.7f;
+        Density = 1.25f;
+        Extinction = 0.6f;
+        SetLayer(*this, 800.0f, 1700.0f);
         break;
     case CloudPreset::Overcast:
-        Coverage = 0.88f;
-        Density = 1.3f;
-        Extinction = 0.55f;
+        Coverage = 0.9f;
+        Density = 1.4f;
+        Extinction = 0.7f;
         AmbientContribution = 0.55f;
-        CloudThickness = 1400.0f;
-        BottomAltitude = 4000.0f;
-        TopAltitude = 5400.0f;
         LightingIntensity = 0.75f;
+        SetLayer(*this, 700.0f, 1800.0f);
         break;
     case CloudPreset::Storm:
-        Coverage = 0.78f;
-        Density = 1.45f;
-        Extinction = 0.7f;
+        Coverage = 0.82f;
+        Density = 1.5f;
+        Extinction = 0.8f;
         CloudColor = glm::vec3(0.72f, 0.74f, 0.78f);
-        WindSpeed = 28.0f;
-        CloudThickness = 1800.0f;
-        BottomAltitude = 3500.0f;
-        TopAltitude = 5300.0f;
+        WindSpeed = 35.0f;
         ShadowStrength = 0.85f;
+        SetLayer(*this, 500.0f, 2000.0f);
         break;
     case CloudPreset::HeavyStorm:
-        Coverage = 0.92f;
-        Density = 1.7f;
-        Extinction = 0.9f;
+        Coverage = 0.94f;
+        Density = 1.75f;
+        Extinction = 0.95f;
         CloudColor = glm::vec3(0.55f, 0.57f, 0.62f);
-        WindSpeed = 40.0f;
+        WindSpeed = 48.0f;
         AnimationSpeed = 1.35f;
-        CloudThickness = 2200.0f;
-        BottomAltitude = 2800.0f;
-        TopAltitude = 5000.0f;
         ShadowStrength = 0.95f;
         LightingIntensity = 0.55f;
+        SetLayer(*this, 400.0f, 2200.0f);
         break;
     case CloudPreset::SunsetClouds:
-        Coverage = 0.5f;
-        Density = 1.05f;
+        Coverage = 0.55f;
+        Density = 1.1f;
         CloudColorTint = glm::vec3(1.15f, 0.75f, 0.55f);
         SilverLiningIntensity = 1.25f;
         LightingIntensity = 1.1f;
-        CloudThickness = 900.0f;
-        BottomAltitude = 4500.0f;
-        TopAltitude = 5400.0f;
+        SetLayer(*this, 950.0f, 1650.0f);
         break;
     case CloudPreset::SunriseClouds:
-        Coverage = 0.48f;
-        Density = 1.0f;
+        Coverage = 0.52f;
+        Density = 1.05f;
         CloudColorTint = glm::vec3(1.05f, 0.82f, 0.7f);
         SilverLiningIntensity = 1.15f;
-        CloudThickness = 850.0f;
-        BottomAltitude = 4550.0f;
-        TopAltitude = 5400.0f;
+        SetLayer(*this, 950.0f, 1600.0f);
         break;
     case CloudPreset::HighCirrus:
-        Coverage = 0.35f;
-        Density = 0.45f;
-        Extinction = 0.18f;
-        CloudThickness = 350.0f;
-        BottomAltitude = 9000.0f;
-        TopAltitude = 9350.0f;
+        Coverage = 0.4f;
+        Density = 0.5f;
+        Extinction = 0.22f;
         NoiseScale = 0.55f;
         DetailNoiseScale = 5.5f;
-        WindSpeed = 35.0f;
+        WindSpeed = 40.0f;
+        SetLayer(*this, 5500.0f, 6200.0f);
         break;
     case CloudPreset::Cumulus:
-        Coverage = 0.4f;
-        Density = 1.25f;
-        Extinction = 0.48f;
-        ShapeNoise = 0.85f;
+        Coverage = 0.5f;
+        Density = 1.35f;
+        Extinction = 0.6f;
+        ShapeNoise = 0.88f;
         ErosionNoise = 0.35f;
-        CloudThickness = 1200.0f;
-        BottomAltitude = 4200.0f;
-        TopAltitude = 5400.0f;
         SilverLiningIntensity = 1.0f;
+        SetLayer(*this, 850.0f, 1800.0f);
         break;
     case CloudPreset::Stratocumulus:
-        Coverage = 0.68f;
-        Density = 1.1f;
-        Extinction = 0.4f;
-        CloudThickness = 500.0f;
-        BottomAltitude = 1800.0f;
-        TopAltitude = 2300.0f;
-        NoiseScale = 0.8f;
-        WindSpeed = 18.0f;
+        Coverage = 0.72f;
+        Density = 1.15f;
+        Extinction = 0.5f;
+        NoiseScale = 0.85f;
+        WindSpeed = 22.0f;
+        SetLayer(*this, 600.0f, 1100.0f);
         break;
     }
 
