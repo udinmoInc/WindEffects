@@ -89,7 +89,6 @@ public:
     [[nodiscard]] uint32_t GetCurrentFrameIndex() const override { return m_FrameIndex; }
     [[nodiscard]] uint32_t GetCurrentImageIndex() const override { return m_ImageIndex; }
     [[nodiscard]] IRHICommandList* GetActiveCommandList() override { return nullptr; }
-    [[nodiscard]] void* GetNativeCommandBuffer() const override { return nullptr; }
 
 private:
     IRHIDevice* m_Device = nullptr;

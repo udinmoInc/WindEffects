@@ -9,7 +9,6 @@ namespace we::editor::rendering {
 
 struct OverlayRenderContext {
     we::rhi::IRHICommandList* cmd = nullptr;
-    void* nativeCommand = nullptr;
     we::rhi::RHITextureViewHandle targetView = we::rhi::RHITextureViewHandle::Invalid;
     we::rhi::Format targetFormat = we::rhi::Format::Unknown;
     we::rhi::Extent2D targetExtent{};

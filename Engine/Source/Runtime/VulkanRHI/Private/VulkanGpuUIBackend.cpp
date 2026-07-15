@@ -1,4 +1,4 @@
-#include "RHI/GpuBackends.h"
+﻿#include "RHI/GpuBackends.h"
 #include "RHI/RHIFactory.h"
 
 #include "VulkanBackendShared.h"
@@ -26,7 +26,6 @@
 #include <functional>
 #include <memory>
 #include <mutex>
-#include <span>
 #include <unordered_map>
 #include <vector>
 
@@ -147,15 +146,19 @@ void SubmitOneTimeUpload(
 }
 
 [[nodiscard]] VkCommandBuffer ResolveCommandBuffer(const FramePresentParams& params) {
-    if (params.nativeCommand.handle) {
-        return static_cast<VkCommandBuffer>(params.nativeCommand.handle);
-    }
     if (params.commandList) {
         if (auto* vkList = dynamic_cast<VulkanCommandList*>(params.commandList)) {
             return vkList->GetVkCommandBuffer();
         }
     }
     return VK_NULL_HANDLE;
+}
+
+void BindVolkToVkDevice(VkDevice device) {
+    if (device == VK_NULL_HANDLE) {
+        return;
+    }
+    volkLoadDevice(device);
 }
 
 struct FrameGeometry {
@@ -167,17 +170,10 @@ struct FrameGeometry {
     VkDeviceSize indexSize = 0;
 };
 
-// Scene command buffers are allocated via volk. Reload only the device table —
-// volkLoadInstance also loads device cmds via GIPA stubs and has been observed to
-// leave vkCmdBindDescriptorSets as a trampoline that AVs on these buffers.
-void BindVolkToDevice(we::runtime::renderer::DeviceContext* deviceContext) {
-    if (!deviceContext || deviceContext->GetDevice() == VK_NULL_HANDLE) {
-        return;
-    }
-    volkLoadDevice(deviceContext->GetDevice());
-}
-
 struct UploadedUITexture {
+    RHITextureHandle texture = RHITextureHandle::Invalid;
+    RHITextureViewHandle viewHandle = RHITextureViewHandle::Invalid;
+    RHISamplerHandle samplerHandle = RHISamplerHandle::Invalid;
     VkImage image = VK_NULL_HANDLE;
     VkDeviceMemory memory = VK_NULL_HANDLE;
     VkImageView view = VK_NULL_HANDLE;
@@ -187,25 +183,23 @@ struct UploadedUITexture {
 
 class VulkanGpuUIBackend final : public IGpuUIBackend {
 public:
-    bool Initialize(IRHIDevice& /*device*/, Format swapchainFormat, uint32_t framesInFlight) override {
-        auto& shared = VulkanBackendShared::Get();
-        m_DeviceContext = shared.deviceContext;
-        m_ResourceManager = shared.resourceManager;
-        m_Swapchain = shared.swapchain;
-
-        if (!m_DeviceContext || !m_ResourceManager || !m_Swapchain) {
-            WE_LOG_WARN(we::LogCategory::Renderer.data(), "VulkanGpuUIBackend: shared Vulkan context is not populated.");
+    bool Initialize(IRHIDevice& device, Format swapchainFormat, uint32_t framesInFlight) override {
+        m_RHIDevice = &device;
+        m_VulkanDevice = dynamic_cast<VulkanDevice*>(&device);
+        if (!m_VulkanDevice) {
+            WE_LOG_WARN(we::LogCategory::Renderer.data(),
+                "VulkanGpuUIBackend: IRHIDevice is not a VulkanDevice; UI GPU recording disabled.");
             return false;
         }
 
-        m_Device = m_DeviceContext->GetDevice();
+        m_Device = m_VulkanDevice->GetVkDevice();
         m_SwapchainFormat = ToVkFormat(swapchainFormat);
-        if (m_SwapchainFormat == VK_FORMAT_UNDEFINED && m_Swapchain) {
-            m_SwapchainFormat = m_Swapchain->GetImageFormat();
+        if (m_SwapchainFormat == VK_FORMAT_UNDEFINED) {
+            m_SwapchainFormat = VK_FORMAT_B8G8R8A8_UNORM;
         }
         m_MaxFramesInFlight = framesInFlight ? framesInFlight : 2;
 
-        BindVolkToDevice(m_DeviceContext);
+        BindVolkToVkDevice(m_Device);
         if (!vkCmdBindDescriptorSets || !vkCmdDrawIndexed || !vkCmdBindPipeline) {
             WE_LOG_WARN(we::LogCategory::Renderer.data(),
                 "VulkanGpuUIBackend: required device command entry points unavailable.");
@@ -238,12 +232,12 @@ public:
 
         m_FrameGeometry.resize(m_MaxFramesInFlight);
         m_Ready = true;
-        WE_LOG_INFO(we::LogCategory::Startup, "VulkanGpuUIBackend initialized.");
+        WE_LOG_INFO(we::LogCategory::Startup, "VulkanGpuUIBackend initialized on shared IRHI VulkanDevice.");
         return true;
     }
 
     void Shutdown() override {
-        std::lock_guard<std::mutex> lock(m_Mutex);
+        std::lock_guard lock(m_Mutex);
         if (!m_Ready) {
             return;
         }
@@ -275,36 +269,37 @@ public:
                 vkDestroyDescriptorPool(m_Device, m_DescriptorPool, nullptr);
                 m_DescriptorPool = VK_NULL_HANDLE;
             }
-            if (m_DummySampler != VK_NULL_HANDLE) {
-                vkDestroySampler(m_Device, m_DummySampler, nullptr);
+
+            if (m_DummyDescriptorSet != VK_NULL_HANDLE && m_RHIDevice) {
+                if (m_DummySamplerHandle != RHISamplerHandle::Invalid) {
+                    (void)m_RHIDevice->DestroySampler(m_DummySamplerHandle);
+                    m_DummySamplerHandle = RHISamplerHandle::Invalid;
+                }
+                if (m_DummyViewHandle != RHITextureViewHandle::Invalid) {
+                    (void)m_RHIDevice->DestroyTextureView(m_DummyViewHandle);
+                    m_DummyViewHandle = RHITextureViewHandle::Invalid;
+                }
+                if (m_DummyTexture != RHITextureHandle::Invalid) {
+                    (void)m_RHIDevice->DestroyTexture(m_DummyTexture);
+                    m_DummyTexture = RHITextureHandle::Invalid;
+                }
+                m_DummyDescriptorSet = VK_NULL_HANDLE;
                 m_DummySampler = VK_NULL_HANDLE;
-            }
-            if (m_DummyImageView != VK_NULL_HANDLE) {
-                vkDestroyImageView(m_Device, m_DummyImageView, nullptr);
                 m_DummyImageView = VK_NULL_HANDLE;
-            }
-            if (m_DummyImage != VK_NULL_HANDLE) {
-                vkDestroyImage(m_Device, m_DummyImage, nullptr);
-                m_DummyImage = VK_NULL_HANDLE;
-            }
-            if (m_DummyMemory != VK_NULL_HANDLE) {
-                vkFreeMemory(m_Device, m_DummyMemory, nullptr);
-                m_DummyMemory = VK_NULL_HANDLE;
             }
 
             for (auto& [set, uploaded] : m_UploadedTextures) {
                 (void)set;
-                if (uploaded.sampler != VK_NULL_HANDLE) {
-                    vkDestroySampler(m_Device, uploaded.sampler, nullptr);
-                }
-                if (uploaded.view != VK_NULL_HANDLE && m_ResourceManager) {
-                    m_ResourceManager->DestroyImageView(uploaded.view);
-                }
-                if (uploaded.image != VK_NULL_HANDLE && m_ResourceManager) {
-                    m_ResourceManager->DestroyImage(uploaded.image, uploaded.memory);
-                }
-                if (uploaded.set != VK_NULL_HANDLE && m_DescriptorPool != VK_NULL_HANDLE) {
-                    vkFreeDescriptorSets(m_Device, m_DescriptorPool, 1, &uploaded.set);
+                if (m_RHIDevice) {
+                    if (uploaded.samplerHandle != RHISamplerHandle::Invalid) {
+                        (void)m_RHIDevice->DestroySampler(uploaded.samplerHandle);
+                    }
+                    if (uploaded.viewHandle != RHITextureViewHandle::Invalid) {
+                        (void)m_RHIDevice->DestroyTextureView(uploaded.viewHandle);
+                    }
+                    if (uploaded.texture != RHITextureHandle::Invalid) {
+                        (void)m_RHIDevice->DestroyTexture(uploaded.texture);
+                    }
                 }
             }
             m_UploadedTextures.clear();
@@ -330,9 +325,8 @@ public:
         }
 
         m_FrameGeometry.clear();
-        m_DeviceContext = nullptr;
-        m_ResourceManager = nullptr;
-        m_Swapchain = nullptr;
+        m_RHIDevice = nullptr;
+        m_VulkanDevice = nullptr;
         m_Cmd = VK_NULL_HANDLE;
         m_Ready = false;
     }
@@ -340,122 +334,108 @@ public:
     [[nodiscard]] RHIDescriptorSetHandle RegisterTexture(
         RHITextureViewHandle view, RHISamplerHandle sampler) override
     {
-        std::lock_guard<std::mutex> lock(m_Mutex);
-        return FromVkDescriptorSet(AllocateTextureDescriptor(ToVkImageView(view), ToVkSampler(sampler)));
+        std::lock_guard lock(m_Mutex);
+        VkImageView vkView = VK_NULL_HANDLE;
+        VkSampler vkSampler = VK_NULL_HANDLE;
+        if (m_VulkanDevice) {
+            if (auto* v = m_VulkanDevice->FindTextureView(view)) {
+                vkView = v->view;
+            }
+            if (auto* s = m_VulkanDevice->FindSampler(sampler)) {
+                vkSampler = s->sampler;
+            }
+        }
+        if (vkView == VK_NULL_HANDLE) {
+            vkView = ToVkImageView(view);
+        }
+        if (vkSampler == VK_NULL_HANDLE) {
+            vkSampler = ToVkSampler(sampler);
+        }
+        return FromVkDescriptorSet(AllocateTextureDescriptor(vkView, vkSampler));
     }
 
     void UpdateTexture(
         RHIDescriptorSetHandle set, RHITextureViewHandle view, RHISamplerHandle sampler) override
     {
-        std::lock_guard<std::mutex> lock(m_Mutex);
+        std::lock_guard lock(m_Mutex);
         UpdateTextureDescriptor(ToVkDescriptorSet(set), ToVkImageView(view), ToVkSampler(sampler));
     }
 
     void UnregisterTexture(RHIDescriptorSetHandle set) override {
-        std::lock_guard<std::mutex> lock(m_Mutex);
+        std::lock_guard lock(m_Mutex);
         DestroyUploadedTextureLocked(ToVkDescriptorSet(set));
     }
 
     [[nodiscard]] RHIDescriptorSetHandle UploadRgbaTexture(
         uint32_t width, uint32_t height, std::span<const uint8_t> rgba, bool linearFilter) override
     {
-        std::lock_guard<std::mutex> lock(m_Mutex);
-        if (!m_ResourceManager || m_Device == VK_NULL_HANDLE || width == 0 || height == 0
+        std::lock_guard lock(m_Mutex);
+        if (!m_RHIDevice || !m_VulkanDevice || width == 0 || height == 0
             || rgba.size() < static_cast<size_t>(width) * height * 4) {
             return RHIDescriptorSetHandle::Invalid;
         }
 
+        TextureDesc texDesc{};
+        texDesc.extent = {width, height, 1};
+        texDesc.format = Format::R8G8B8A8_UNORM;
+        texDesc.usage = TextureUsage::Sampled | TextureUsage::TransferDst;
+        texDesc.debugName = "UIAtlas";
+        auto tex = m_RHIDevice->CreateTexture(texDesc);
+        if (!tex) {
+            return RHIDescriptorSetHandle::Invalid;
+        }
+
+        TextureUpdateDesc update{};
+        update.extent = {width, height, 1};
+        update.data = rgba;
+        if (!m_RHIDevice->UpdateTexture(*tex, update)) {
+            (void)m_RHIDevice->DestroyTexture(*tex);
+            return RHIDescriptorSetHandle::Invalid;
+        }
+
+        TextureViewDesc viewDesc{};
+        viewDesc.texture = *tex;
+        auto view = m_RHIDevice->CreateTextureView(viewDesc);
+        if (!view) {
+            (void)m_RHIDevice->DestroyTexture(*tex);
+            return RHIDescriptorSetHandle::Invalid;
+        }
+
+        SamplerDesc samplerDesc{};
+        samplerDesc.magFilter = linearFilter ? Filter::Linear : Filter::Nearest;
+        samplerDesc.minFilter = samplerDesc.magFilter;
+        samplerDesc.mipFilter = Filter::Nearest;
+        samplerDesc.addressU = AddressMode::ClampToEdge;
+        samplerDesc.addressV = AddressMode::ClampToEdge;
+        samplerDesc.addressW = AddressMode::ClampToEdge;
+        samplerDesc.anisotropy = false;
+        auto sampler = m_RHIDevice->CreateSampler(samplerDesc);
+        if (!sampler) {
+            (void)m_RHIDevice->DestroyTextureView(*view);
+            (void)m_RHIDevice->DestroyTexture(*tex);
+            return RHIDescriptorSetHandle::Invalid;
+        }
+
+        auto* vkView = m_VulkanDevice->FindTextureView(*view);
+        auto* vkSampler = m_VulkanDevice->FindSampler(*sampler);
+        if (!vkView || !vkSampler) {
+            (void)m_RHIDevice->DestroySampler(*sampler);
+            (void)m_RHIDevice->DestroyTextureView(*view);
+            (void)m_RHIDevice->DestroyTexture(*tex);
+            return RHIDescriptorSetHandle::Invalid;
+        }
+
         UploadedUITexture uploaded{};
-        const VkDeviceSize imageSize = static_cast<VkDeviceSize>(rgba.size());
-
-        VkBuffer stagingBuffer = VK_NULL_HANDLE;
-        VkDeviceMemory stagingMemory = VK_NULL_HANDLE;
-        m_ResourceManager->CreateBuffer(
-            imageSize,
-            VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-            VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-            stagingBuffer,
-            stagingMemory);
-
-        void* mapped = nullptr;
-        vkMapMemory(m_Device, stagingMemory, 0, imageSize, 0, &mapped);
-        std::memcpy(mapped, rgba.data(), static_cast<size_t>(imageSize));
-        vkUnmapMemory(m_Device, stagingMemory);
-
-        m_ResourceManager->CreateImage(
-            width,
-            height,
-            VK_FORMAT_R8G8B8A8_UNORM,
-            VK_IMAGE_TILING_OPTIMAL,
-            VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
-            VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-            uploaded.image,
-            uploaded.memory);
-
-        if (uploaded.image == VK_NULL_HANDLE) {
-            vkDestroyBuffer(m_Device, stagingBuffer, nullptr);
-            vkFreeMemory(m_Device, stagingMemory, nullptr);
-            return RHIDescriptorSetHandle::Invalid;
-        }
-
-        SubmitOneTimeUpload(m_DeviceContext, [&](VkCommandBuffer uploadCmd) {
-            we::runtime::renderer::TransitionImageLayout(
-                uploadCmd,
-                uploaded.image,
-                VK_IMAGE_LAYOUT_UNDEFINED,
-                VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-                0,
-                VK_ACCESS_TRANSFER_WRITE_BIT,
-                VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
-                VK_PIPELINE_STAGE_TRANSFER_BIT);
-
-            VkBufferImageCopy region{};
-            region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-            region.imageSubresource.layerCount = 1;
-            region.imageExtent = {width, height, 1};
-            vkCmdCopyBufferToImage(
-                uploadCmd, stagingBuffer, uploaded.image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
-
-            we::runtime::renderer::TransitionImageLayout(
-                uploadCmd,
-                uploaded.image,
-                VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-                VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-                VK_ACCESS_TRANSFER_WRITE_BIT,
-                VK_ACCESS_SHADER_READ_BIT,
-                VK_PIPELINE_STAGE_TRANSFER_BIT,
-                VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT);
-        });
-
-        vkDestroyBuffer(m_Device, stagingBuffer, nullptr);
-        vkFreeMemory(m_Device, stagingMemory, nullptr);
-
-        uploaded.view = m_ResourceManager->CreateImageView(
-            uploaded.image, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_ASPECT_COLOR_BIT);
-
-        VkSamplerCreateInfo samplerInfo{};
-        samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
-        samplerInfo.magFilter = linearFilter ? VK_FILTER_LINEAR : VK_FILTER_NEAREST;
-        samplerInfo.minFilter = linearFilter ? VK_FILTER_LINEAR : VK_FILTER_NEAREST;
-        samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
-        samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
-        samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
-        samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_NEAREST;
-        if (vkCreateSampler(m_Device, &samplerInfo, nullptr, &uploaded.sampler) != VK_SUCCESS) {
-            if (uploaded.view != VK_NULL_HANDLE) {
-                m_ResourceManager->DestroyImageView(uploaded.view);
-            }
-            if (uploaded.image != VK_NULL_HANDLE) {
-                m_ResourceManager->DestroyImage(uploaded.image, uploaded.memory);
-            }
-            return RHIDescriptorSetHandle::Invalid;
-        }
-
+        uploaded.texture = *tex;
+        uploaded.viewHandle = *view;
+        uploaded.samplerHandle = *sampler;
+        uploaded.view = vkView->view;
+        uploaded.sampler = vkSampler->sampler;
         uploaded.set = AllocateTextureDescriptor(uploaded.view, uploaded.sampler);
         if (uploaded.set == VK_NULL_HANDLE) {
-            vkDestroySampler(m_Device, uploaded.sampler, nullptr);
-            m_ResourceManager->DestroyImageView(uploaded.view);
-            m_ResourceManager->DestroyImage(uploaded.image, uploaded.memory);
+            (void)m_RHIDevice->DestroySampler(*sampler);
+            (void)m_RHIDevice->DestroyTextureView(*view);
+            (void)m_RHIDevice->DestroyTexture(*tex);
             return RHIDescriptorSetHandle::Invalid;
         }
 
@@ -472,27 +452,34 @@ public:
     }
 
     void BeginFrame(const FramePresentParams& params) override {
-        BindVolkToDevice(m_DeviceContext);
+        BindVolkToVkDevice(m_Device);
         m_Cmd = ResolveCommandBuffer(params);
-        if (!m_Cmd || !m_Swapchain) {
+        if (!m_Cmd || !m_VulkanDevice || !m_RHIDevice) {
             return;
         }
 
-        const uint32_t width = params.extent.width ? params.extent.width : m_Swapchain->GetExtent().width;
-        const uint32_t height = params.extent.height ? params.extent.height : m_Swapchain->GetExtent().height;
+        auto* swap = m_RHIDevice->GetSwapchain();
+        const uint32_t width = params.extent.width
+            ? params.extent.width
+            : (swap ? swap->GetExtent().width : 0);
+        const uint32_t height = params.extent.height
+            ? params.extent.height
+            : (swap ? swap->GetExtent().height : 0);
         m_CurrentWidth = width;
         m_CurrentHeight = height;
 
-        const auto& imageViews = m_Swapchain->GetImageViews();
-        if (imageViews.empty()) {
-            WE_LOG_ERROR(we::LogCategory::Renderer.data(), "VulkanGpuUIBackend::BeginFrame: no swapchain image views");
-            m_Cmd = VK_NULL_HANDLE;
-            return;
+        VkImageView targetView = VK_NULL_HANDLE;
+        if (swap) {
+            if (auto* tex = m_VulkanDevice->FindTexture(swap->GetCurrentImage())) {
+                targetView = tex->view;
+            }
         }
-        const uint32_t imageIndex = params.imageIndex < imageViews.size() ? params.imageIndex : 0;
-        VkImageView targetView = imageViews[imageIndex];
         if (targetView == VK_NULL_HANDLE && params.targetView != RHITextureViewHandle::Invalid) {
-            targetView = ToVkImageView(params.targetView);
+            if (auto* view = m_VulkanDevice->FindTextureView(params.targetView)) {
+                targetView = view->view;
+            } else {
+                targetView = ToVkImageView(params.targetView);
+            }
         }
         if (targetView == VK_NULL_HANDLE) {
             WE_LOG_WARN(we::LogCategory::Renderer.data(), "VulkanGpuUIBackend::BeginFrame: null target view");
@@ -753,23 +740,25 @@ private:
         const auto it = m_UploadedTextures.find(descriptorSet);
         if (it != m_UploadedTextures.end()) {
             UploadedUITexture& uploaded = it->second;
-            if (uploaded.sampler != VK_NULL_HANDLE) {
-                vkDestroySampler(m_Device, uploaded.sampler, nullptr);
-            }
-            if (uploaded.view != VK_NULL_HANDLE && m_ResourceManager) {
-                m_ResourceManager->DestroyImageView(uploaded.view);
-            }
-            if (uploaded.image != VK_NULL_HANDLE && m_ResourceManager) {
-                m_ResourceManager->DestroyImage(uploaded.image, uploaded.memory);
-            }
             if (uploaded.set != VK_NULL_HANDLE && m_DescriptorPool != VK_NULL_HANDLE) {
                 vkFreeDescriptorSets(m_Device, m_DescriptorPool, 1, &uploaded.set);
+            }
+            if (m_RHIDevice) {
+                if (uploaded.samplerHandle != RHISamplerHandle::Invalid) {
+                    (void)m_RHIDevice->DestroySampler(uploaded.samplerHandle);
+                }
+                if (uploaded.viewHandle != RHITextureViewHandle::Invalid) {
+                    (void)m_RHIDevice->DestroyTextureView(uploaded.viewHandle);
+                }
+                if (uploaded.texture != RHITextureHandle::Invalid) {
+                    (void)m_RHIDevice->DestroyTexture(uploaded.texture);
+                }
             }
             m_UploadedTextures.erase(it);
             return;
         }
 
-        if (m_DescriptorPool != VK_NULL_HANDLE && m_Device != VK_NULL_HANDLE) {
+        if (descriptorSet != m_DummyDescriptorSet && m_DescriptorPool != VK_NULL_HANDLE) {
             vkFreeDescriptorSets(m_Device, m_DescriptorPool, 1, &descriptorSet);
         }
     }
@@ -809,76 +798,22 @@ private:
     }
 
     void CreateDummyTexture() {
-        using namespace we::runtime::renderer;
-
         std::array<uint8_t, 4> pixel = {255, 255, 255, 255};
-
-        VkBuffer stagingBuffer = VK_NULL_HANDLE;
-        VkDeviceMemory stagingMemory = VK_NULL_HANDLE;
-        m_ResourceManager->CreateBuffer(
-            4,
-            VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-            VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-            stagingBuffer,
-            stagingMemory);
-
-        void* data = nullptr;
-        vkMapMemory(m_Device, stagingMemory, 0, 4, 0, &data);
-        std::memcpy(data, pixel.data(), 4);
-        vkUnmapMemory(m_Device, stagingMemory);
-
-        m_ResourceManager->CreateImage(
-            1, 1,
-            VK_FORMAT_R8G8B8A8_UNORM,
-            VK_IMAGE_TILING_OPTIMAL,
-            VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
-            VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-            m_DummyImage,
-            m_DummyMemory);
-
-        SubmitOneTimeUpload(m_DeviceContext, [&](VkCommandBuffer uploadCmd) {
-            TransitionImageLayout(
-                uploadCmd,
-                m_DummyImage,
-                VK_IMAGE_LAYOUT_UNDEFINED,
-                VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-                0,
-                VK_ACCESS_TRANSFER_WRITE_BIT,
-                VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
-                VK_PIPELINE_STAGE_TRANSFER_BIT);
-
-            VkBufferImageCopy region{};
-            region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-            region.imageSubresource.layerCount = 1;
-            region.imageExtent = {1, 1, 1};
-            vkCmdCopyBufferToImage(uploadCmd, stagingBuffer, m_DummyImage, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
-
-            TransitionImageLayout(
-                uploadCmd,
-                m_DummyImage,
-                VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-                VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-                VK_ACCESS_TRANSFER_WRITE_BIT,
-                VK_ACCESS_SHADER_READ_BIT,
-                VK_PIPELINE_STAGE_TRANSFER_BIT,
-                VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT);
-        });
-
-        vkDestroyBuffer(m_Device, stagingBuffer, nullptr);
-        vkFreeMemory(m_Device, stagingMemory, nullptr);
-
-        m_DummyImageView = m_ResourceManager->CreateImageView(m_DummyImage, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_ASPECT_COLOR_BIT);
-
-        VkSamplerCreateInfo samplerInfo{};
-        samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
-        samplerInfo.magFilter = VK_FILTER_NEAREST;
-        samplerInfo.minFilter = VK_FILTER_NEAREST;
-        samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-        samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-        samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-        vkCreateSampler(m_Device, &samplerInfo, nullptr, &m_DummySampler);
-
-        m_DummyDescriptorSet = AllocateTextureDescriptor(m_DummyImageView, m_DummySampler);
+        auto set = UploadRgbaTexture(1, 1, pixel, false);
+        if (set == RHIDescriptorSetHandle::Invalid) {
+            return;
+        }
+        m_DummyDescriptorSet = ToVkDescriptorSet(set);
+        // Keep dummy out of the uploaded destroy map's normal Unregister path by tracking separately.
+        auto it = m_UploadedTextures.find(m_DummyDescriptorSet);
+        if (it != m_UploadedTextures.end()) {
+            m_DummySampler = it->second.sampler;
+            m_DummyImageView = it->second.view;
+            m_DummyTexture = it->second.texture;
+            m_DummyViewHandle = it->second.viewHandle;
+            m_DummySamplerHandle = it->second.samplerHandle;
+            m_UploadedTextures.erase(it);
+        }
     }
 
     void CreateGraphicsPipeline(VkFormat colorFormat) {
@@ -1150,15 +1085,10 @@ private:
     }
 
     [[nodiscard]] uint32_t FindHostVisibleMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties) const {
-        VkPhysicalDeviceMemoryProperties memProperties{};
-        vkGetPhysicalDeviceMemoryProperties(m_DeviceContext->GetPhysicalDevice(), &memProperties);
-        for (uint32_t i = 0; i < memProperties.memoryTypeCount; ++i) {
-            if ((typeFilter & (1u << i))
-                && (memProperties.memoryTypes[i].propertyFlags & properties) == properties) {
-                return i;
-            }
+        if (!m_VulkanDevice) {
+            return UINT32_MAX;
         }
-        return UINT32_MAX;
+        return m_VulkanDevice->FindMemoryType(typeFilter, properties);
     }
 
     bool CreateHostVisibleBuffer(
@@ -1225,7 +1155,7 @@ private:
         const std::vector<uint32_t>& indices)
     {
         if (frameIndex >= m_FrameGeometry.size() || vertices.empty() || indices.empty()
-            || !m_DeviceContext) {
+            || !m_VulkanDevice) {
             return;
         }
 
@@ -1283,9 +1213,8 @@ private:
     VkCommandBuffer m_Cmd = VK_NULL_HANDLE;
     PFN_vkCmdBeginRendering m_BeginRendering = nullptr;
     PFN_vkCmdEndRendering m_EndRendering = nullptr;
-    we::runtime::renderer::DeviceContext* m_DeviceContext = nullptr;
-    we::runtime::renderer::ResourceManager* m_ResourceManager = nullptr;
-    we::runtime::renderer::SwapchainManager* m_Swapchain = nullptr;
+    IRHIDevice* m_RHIDevice = nullptr;
+    VulkanDevice* m_VulkanDevice = nullptr;
 
     VkDescriptorSetLayout m_TextureDescriptorSetLayout = VK_NULL_HANDLE;
     VkDescriptorPool m_DescriptorPool = VK_NULL_HANDLE;
@@ -1294,8 +1223,9 @@ private:
     VkPipelineLayout m_TextPipelineLayout = VK_NULL_HANDLE;
     VkPipeline m_TextGraphicsPipeline = VK_NULL_HANDLE;
 
-    VkImage m_DummyImage = VK_NULL_HANDLE;
-    VkDeviceMemory m_DummyMemory = VK_NULL_HANDLE;
+    RHITextureHandle m_DummyTexture = RHITextureHandle::Invalid;
+    RHITextureViewHandle m_DummyViewHandle = RHITextureViewHandle::Invalid;
+    RHISamplerHandle m_DummySamplerHandle = RHISamplerHandle::Invalid;
     VkImageView m_DummyImageView = VK_NULL_HANDLE;
     VkSampler m_DummySampler = VK_NULL_HANDLE;
     VkDescriptorSet m_DummyDescriptorSet = VK_NULL_HANDLE;
@@ -1303,7 +1233,7 @@ private:
 
     std::unordered_map<VkDescriptorSet, UploadedUITexture> m_UploadedTextures;
     std::vector<FrameGeometry> m_FrameGeometry;
-    std::mutex m_Mutex;
+    std::recursive_mutex m_Mutex;
 };
 
 std::unique_ptr<IGpuUIBackend> CreateVulkanGpuUIBackend() {

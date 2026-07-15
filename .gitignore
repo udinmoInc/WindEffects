@@ -1,7 +1,8 @@
 # ==========================
 # IgniteBT Build Output
 # ==========================
-Build/
+# Root-only: a bare "Build/" also matched Engine/.../IgniteBT/Source/Build/
+/Build/
 
 # ==========================
 # Legacy / Generated Artifacts

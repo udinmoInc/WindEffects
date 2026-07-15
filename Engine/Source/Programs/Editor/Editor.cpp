@@ -542,7 +542,6 @@ void Editor::MainLoop() {
                 const uint32_t imageIndex = m_Renderer->GetCurrentImageIndex();
                 we::editor::rendering::OverlayRenderContext overlayContext{};
                 overlayContext.cmd = m_Renderer->GetFrameCommandList();
-                overlayContext.nativeCommand = m_Renderer->GetNativeCommandBuffer();
                 overlayContext.targetFormat = m_Renderer->GetSwapchainFormat();
                 overlayContext.targetExtent = { m_Renderer->GetSwapchainWidth(), m_Renderer->GetSwapchainHeight() };
                 overlayContext.imageIndex = imageIndex;

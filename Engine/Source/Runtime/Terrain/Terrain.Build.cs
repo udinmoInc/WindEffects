@@ -19,12 +19,9 @@ public class Terrain : ModuleRules
         PublicDependencies.Add("Engine");
         PublicDependencies.Add("Scene");
         PublicDependencies.Add("Renderer");
+        PublicDependencies.Add("RHI");
 
         AddOptionalThirdParty("glm");
-
-        OptionalSDK("VulkanSDK");
-        DefineIf(HasSDK("VulkanSDK"), "WE_HAS_VULKAN=1");
-        DefineIf(!HasSDK("VulkanSDK"), "WE_HAS_VULKAN=0");
 
         Definitions.Add("TERRAIN_EXPORTS");
     }

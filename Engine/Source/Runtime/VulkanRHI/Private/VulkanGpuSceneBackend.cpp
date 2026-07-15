@@ -407,9 +407,6 @@ public:
     [[nodiscard]] uint32_t GetCurrentFrameIndex() const override { return m_FrameSlot; }
     [[nodiscard]] uint32_t GetCurrentImageIndex() const override { return m_ImageIndex; }
     [[nodiscard]] IRHICommandList* GetActiveCommandList() override { return nullptr; }
-    [[nodiscard]] void* GetNativeCommandBuffer() const override {
-        return reinterpret_cast<void*>(m_Cmd);
-    }
 
 private:
     void DestroyViewportTargets() {
@@ -498,7 +495,8 @@ std::unique_ptr<IGpuSceneBackend> CreateVulkanGpuSceneBackend() {
 
 struct VulkanSceneRegistrar {
     VulkanSceneRegistrar() {
-        GpuBackendRegistry::RegisterScene(&CreateVulkanGpuSceneBackend);
+        // Scene rendering is owned by Renderer via IRHIDevice; do not register the legacy
+        // DeviceContext dual-stack path.
     }
 };
 

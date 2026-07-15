@@ -1,6 +1,7 @@
 #pragma once
 
 #include "WindEffects/Editor/UI/Export.h"
+#include "RHI/IRHI.h"
 #include "RHI/Types.h"
 
 #include <memory>
@@ -10,21 +11,14 @@
 #include "Core/Icon.h"
 #include "Rendering/Icons/IconManager.h"
 
-namespace we::runtime::renderer {
-class DeviceContext;
-class ResourceManager;
-}
-
 namespace WindEffects::Editor::UI {
 
 class UiGpuUpload;
 
 struct IconTexture {
-    // TODO(migr to VulkanRHI): opaque native handles
-    uint64_t image = 0;
-    uint64_t memory = 0;
-    uint64_t view = 0;
-    uint64_t sampler = 0;
+    we::rhi::RHITextureHandle texture = we::rhi::RHITextureHandle::Invalid;
+    we::rhi::RHITextureViewHandle view = we::rhi::RHITextureViewHandle::Invalid;
+    we::rhi::RHISamplerHandle sampler = we::rhi::RHISamplerHandle::Invalid;
     we::rhi::RHIDescriptorSetHandle descriptorSet = we::rhi::RHIDescriptorSetHandle::Invalid;
     uint32_t width = 0;
     uint32_t height = 0;
@@ -35,11 +29,7 @@ public:
     IconRenderer();
     ~IconRenderer();
 
-    bool Init(we::runtime::renderer::DeviceContext* context,
-              we::runtime::renderer::ResourceManager* resources,
-              UiGpuUpload* gpuUpload,
-              uint64_t descriptorPool,
-              uint64_t textureLayout);
+    bool Init(we::rhi::IRHIDevice* device, UiGpuUpload* gpuUpload);
     void Shutdown();
 
     void SetIconManager(IconManager* iconManager) { m_IconManager = iconManager; }
@@ -60,11 +50,8 @@ private:
     bool CreateTexture(const std::vector<uint8_t>& bitmap, uint32_t width, uint32_t height, IconTexture& outTexture);
     void DestroyTexture(IconTexture& texture);
 
-    we::runtime::renderer::DeviceContext* m_Context = nullptr;
-    we::runtime::renderer::ResourceManager* m_Resources = nullptr;
+    we::rhi::IRHIDevice* m_Device = nullptr;
     UiGpuUpload* m_GpuUpload = nullptr;
-    uint64_t m_DescriptorPool = 0;
-    uint64_t m_TextureLayout = 0;
     IconManager* m_IconManager = nullptr;
 
     std::unordered_map<std::string, IconTexture> m_ThumbnailCache;

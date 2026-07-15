@@ -6,14 +6,10 @@
 #include "Terrain/Export.h"
 #include "Terrain/TerrainTypes.h"
 #include "Terrain/TerrainChunkManager.h"
+#include "RHI/IRHI.h"
 
 #include <cstdint>
 #include <vector>
-
-namespace we::runtime::renderer {
-class DeviceContext;
-class ResourceManager;
-}
 
 namespace we::runtime::terrain {
 
@@ -21,8 +17,7 @@ namespace we::runtime::terrain {
 // can replace the CPU mesh path without changing TerrainSystem ownership.
 class TERRAIN_API TerrainRenderer {
 public:
-    void Init(we::runtime::renderer::DeviceContext* device,
-        we::runtime::renderer::ResourceManager* resources);
+    void Init(we::rhi::IRHIDevice* device);
     void Shutdown();
 
     // Upload / refresh GPU buffers for dirty visible chunks (stub uploads CPU-side for now
@@ -44,8 +39,7 @@ public:
     bool ClipmapsEnabled() const { return m_Clipmaps; }
 
 private:
-    we::runtime::renderer::DeviceContext* m_Device = nullptr;
-    we::runtime::renderer::ResourceManager* m_Resources = nullptr;
+    we::rhi::IRHIDevice* m_Device = nullptr;
     std::uint32_t m_Uploaded = 0;
     bool m_Clipmaps = false;
     bool m_Initialized = false;

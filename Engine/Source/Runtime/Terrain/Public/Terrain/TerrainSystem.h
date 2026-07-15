@@ -23,10 +23,8 @@ namespace we::runtime::scene {
 class Scene;
 }
 
-namespace we::runtime::renderer {
-class SceneRenderer;
-class DeviceContext;
-class ResourceManager;
+namespace we::rhi {
+class IRHIDevice;
 }
 
 namespace we::runtime::terrain {
@@ -42,9 +40,7 @@ public:
     bool IsCreated() const { return m_Created; }
 
     void BindScene(we::runtime::scene::Scene* scene);
-    void BindRenderer(we::runtime::renderer::SceneRenderer* renderer,
-        we::runtime::renderer::DeviceContext* device,
-        we::runtime::renderer::ResourceManager* resources);
+    void BindRenderer(we::rhi::IRHIDevice* device);
 
     std::uint64_t SpawnLandscapeActor(const char* name = "Landscape");
 
@@ -88,7 +84,6 @@ private:
     TerrainFoliageSystem m_Foliage;
 
     we::runtime::scene::Scene* m_Scene = nullptr;
-    we::runtime::renderer::SceneRenderer* m_SceneRenderer = nullptr;
     std::uint64_t m_LandscapeEntityId = 0;
     bool m_Created = false;
 };
