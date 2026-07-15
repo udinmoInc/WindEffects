@@ -12,11 +12,8 @@
 namespace we::runtime::scene {
 
 inline Entity* SelectEntity(Scene& scene, std::uint64_t entityId) {
-    if (const int index = scene.FindEntityIndexById(entityId); index >= 0) {
-        scene.SetSelectedEntityIndex(index);
-        return &scene.GetEntities()[static_cast<size_t>(index)];
-    }
-    return nullptr;
+    scene.SetSelectedEntityId(entityId);
+    return scene.FindEntityById(entityId);
 }
 
 inline Entity* FindByName(Scene& scene, std::string_view name) {

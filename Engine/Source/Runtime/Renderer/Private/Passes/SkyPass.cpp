@@ -4,6 +4,7 @@
 #include "Core/AgentDebugLog.h"
 #include "Pipeline/GraphicsPipelineFactory.h"
 #include "Camera/CameraSystem.h"
+#include "Lighting/EnvironmentUniform.h"
 
 namespace we::runtime::renderer {
 
@@ -18,6 +19,7 @@ void SkyPass::Init(const SkyPassConfig& config) {
     WE_VALIDATE_INIT(config.deviceContext != nullptr, "SkyPass", "DeviceContext is null.");
     WE_VALIDATE_INIT(config.pipelineFactory != nullptr, "SkyPass", "PipelineFactory is null.");
     WE_VALIDATE_INIT(config.cameraDescriptorSetLayout != VK_NULL_HANDLE, "SkyPass", "Camera descriptor layout is null.");
+    WE_VALIDATE_INIT(config.environmentDescriptorSetLayout != VK_NULL_HANDLE, "SkyPass", "Environment descriptor layout is null.");
     WE_VALIDATE_INIT(config.colorFormat != VK_FORMAT_UNDEFINED, "SkyPass", "Color format is undefined.");
 
     m_Config = config;
@@ -25,7 +27,10 @@ void SkyPass::Init(const SkyPassConfig& config) {
     GraphicsPipelineDesc pipelineDesc{};
     pipelineDesc.vertexShaderName = "ProceduralSky";
     pipelineDesc.pixelShaderName = "ProceduralSky";
-    pipelineDesc.descriptorSetLayouts = { config.cameraDescriptorSetLayout };
+    pipelineDesc.descriptorSetLayouts = {
+        config.cameraDescriptorSetLayout,
+        config.environmentDescriptorSetLayout
+    };
     pipelineDesc.cullMode = VK_CULL_MODE_NONE;
     pipelineDesc.depthTest = false;
     pipelineDesc.depthWrite = false;
@@ -70,6 +75,7 @@ void SkyPass::Execute(const FrameContext& frame) {
     Validate();
     WE_VALIDATE_RENDER(frame.commandBuffer != VK_NULL_HANDLE, GetName().c_str(), "Command buffer is null.");
     WE_VALIDATE_RENDER(frame.camera != nullptr, GetName().c_str(), "Camera system is null.");
+    WE_VALIDATE_RENDER(frame.environmentUniform != nullptr, GetName().c_str(), "Environment uniform is null.");
     WE_VALIDATE_RENDER(frame.colorImageView != VK_NULL_HANDLE, GetName().c_str(), "Color image view is null.");
 
     VkCommandBuffer cmd = frame.commandBuffer;
@@ -135,8 +141,11 @@ void SkyPass::Execute(const FrameContext& frame) {
 
     vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_Pipeline);
 
-    const VkDescriptorSet cameraSet = frame.camera->GetDescriptorSet(frame.frameIndex);
-    vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_PipelineLayout, 0, 1, &cameraSet, 0, nullptr);
+    const VkDescriptorSet sets[2] = {
+        frame.camera->GetDescriptorSet(frame.frameIndex),
+        frame.environmentUniform->GetDescriptorSet(frame.frameIndex)
+    };
+    vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_PipelineLayout, 0, 2, sets, 0, nullptr);
 
     vkCmdDraw(cmd, 3, 1, 0, 0);
 

@@ -29,6 +29,8 @@ public class Editor : ModuleRules
         PublicDependencies.Add("PlaceActors");
         PublicDependencies.Add("Environment");
         PublicDependencies.Add("EditorGridRenderer");
+        PublicDependencies.Add("Terrain");
+        PublicDependencies.Add("TerrainEditor");
 
         OptionalSDK("VulkanSDK");
         OptionalSDK("SDL3");

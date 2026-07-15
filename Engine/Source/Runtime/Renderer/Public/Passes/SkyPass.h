@@ -13,6 +13,7 @@ struct SkyPassConfig {
     DeviceContext* deviceContext = nullptr;
     GraphicsPipelineFactory* pipelineFactory = nullptr;
     VkDescriptorSetLayout cameraDescriptorSetLayout = VK_NULL_HANDLE;
+    VkDescriptorSetLayout environmentDescriptorSetLayout = VK_NULL_HANDLE;
     VkFormat colorFormat = VK_FORMAT_UNDEFINED;
 };
 

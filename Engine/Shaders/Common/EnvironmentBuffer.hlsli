@@ -56,6 +56,7 @@ cbuffer EnvironmentBuffer : register(WE_ENVIRONMENT_BUFFER_REGISTER, WE_ENVIRONM
     float  cloudThickness;
     float  cloudBottomAltitude;
     float  cloudTopAltitude;
+    // Implicit 8-byte pad before float3 (must match SceneEnvironmentUniform cloudBoundsPad*).
     float3 cloudWindDir;
     float  cloudWindSpeed;
     float  cloudNoiseScale;
