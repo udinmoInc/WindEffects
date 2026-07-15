@@ -9,4 +9,5 @@
 #include "RHI/RHIFactory.h"
 #include "RHI/Result.h"
 #include "RHI/Scoped.h"
+#include "RHI/ShaderBytecode.h"
 #include "RHI/Types.h"

@@ -17,7 +17,20 @@ enum class RHIBackend : uint8_t {
     OpenGLES
 };
 
+// Backend-independent compiled shader IR. Assets stage one file per format;
+// consumers request PreferredShaderBytecodeFormat(backend) and never assume SPIR-V.
+enum class ShaderBytecodeFormat : uint8_t {
+    Auto = 0,       // Infer from magic / backend preference
+    SpirV,          // Vulkan, OpenGL (SPIR-V), Null soft-load
+    Dxil,           // DirectX 12 / 11 (DXIL/DXBC container)
+    Metallib,       // Metal library
+    GlslSource      // OpenGL fallback when SPIR-V unavailable
+};
+
 [[nodiscard]] RHI_API const char* ToString(RHIBackend backend) noexcept;
+[[nodiscard]] RHI_API const char* ToString(ShaderBytecodeFormat format) noexcept;
+[[nodiscard]] RHI_API const char* ShaderBytecodeExtension(ShaderBytecodeFormat format) noexcept;
+[[nodiscard]] RHI_API ShaderBytecodeFormat PreferredShaderBytecodeFormat(RHIBackend backend) noexcept;
 
 // Opaque GPU resource handles — never map to API objects outside backend modules.
 enum class RHIBufferHandle : uint64_t { Invalid = 0 };

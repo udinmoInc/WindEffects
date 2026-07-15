@@ -12,15 +12,11 @@ public class VulkanRHI : ModuleRules
 
         PublicIncludePaths.Add("Public");
         PrivateIncludePaths.Add("Private");
-        PrivateIncludePaths.Add("Private/Scene");
-        PrivateIncludePaths.Add("Private/Scene/Public");
 
         PublicDependencies.Add("Core");
         PublicDependencies.Add("Platform");
         PublicDependencies.Add("RHI");
         PrivateDependencies.Add("Engine");
-        PrivateDependencies.Add("Renderer");
-        PrivateDependencies.Add("Scene");
 
         var thirdPartyRoot = Path.Combine(context.EngineDirectory, "ThirdParty");
         PrivateIncludePaths.Add(Path.Combine(thirdPartyRoot, "volk"));
@@ -34,7 +30,6 @@ public class VulkanRHI : ModuleRules
         DefineIf(!HasThirdParty("glm"), "WE_HAS_GLM=0");
 
         Definitions.Add("VULKANRHI_EXPORTS");
-        Definitions.Add("RENDERER_EXPORTS"); // legacy symbols moved from Renderer during cutover
 
         PlatformSettings.Windows ??= new WindowsSettings();
     }

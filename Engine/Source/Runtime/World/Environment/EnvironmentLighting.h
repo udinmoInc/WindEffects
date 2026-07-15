@@ -1,5 +1,6 @@
 #pragma once
 
+#include "World/Export.h"
 #include "EnvironmentDirectionalLight.h"
 #include "EnvironmentExposureController.h"
 #include "EnvironmentHeightFog.h"
@@ -11,11 +12,11 @@
 
 namespace we::runtime::world::environment {
 
-glm::vec3 TemperatureKelvinToRgb(int kelvin);
-glm::vec3 EulerDegreesToLightDirection(const glm::vec3& rotationDegrees);
-glm::vec3 SunDirectionToSky(const glm::vec3& lightTravelDirection);
+WORLD_API glm::vec3 TemperatureKelvinToRgb(int kelvin);
+WORLD_API glm::vec3 EulerDegreesToLightDirection(const glm::vec3& rotationDegrees);
+WORLD_API glm::vec3 SunDirectionToSky(const glm::vec3& lightTravelDirection);
 
-we::runtime::renderer::SceneEnvironmentUniform BuildSceneEnvironmentUniform(
+WORLD_API we::runtime::renderer::SceneEnvironmentUniform BuildSceneEnvironmentUniform(
     const EnvironmentDirectionalLight& sun,
     const EnvironmentSkyLight& skyLight,
     const EnvironmentSkyAtmosphere& atmosphere,

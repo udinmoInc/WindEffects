@@ -4,6 +4,7 @@
 
 #include "Core/LogCategory.h"
 #include "Core/Logger.h"
+#include "RHI/ShaderBytecode.h"
 
 #include <algorithm>
 #include <chrono>
@@ -752,8 +753,20 @@ RHIResult<RHIShaderHandle> VulkanDevice::CreateShader(const ShaderDesc& desc) {
     if (desc.bytecode.empty()) {
         return RHIError::Make(RHIErrorCode::InvalidArgument, "Empty shader bytecode.", "CreateShader");
     }
+    ShaderBytecodeFormat format = desc.format;
+    if (format == ShaderBytecodeFormat::Auto) {
+        format = we::rhi::ShaderBytecodeLoader::DetectFormat(desc.bytecode);
+    }
+    if (format != ShaderBytecodeFormat::Auto && format != ShaderBytecodeFormat::SpirV) {
+        return RHIError::Make(RHIErrorCode::InvalidArgument,
+            "Vulkan CreateShader requires SPIR-V bytecode.", "CreateShader");
+    }
+    if (desc.bytecode.size() % 4 != 0) {
+        return RHIError::Make(RHIErrorCode::InvalidArgument, "SPIR-V size must be 4-byte aligned.", "CreateShader");
+    }
     VulkanShader shader{};
     shader.desc = desc;
+    shader.desc.format = ShaderBytecodeFormat::SpirV;
     shader.entryPoint = desc.entryPoint ? desc.entryPoint : "main";
     VkShaderModuleCreateInfo createInfo{};
     createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;

@@ -66,6 +66,8 @@ private:
     ViewportNavigationController m_Navigation;
 
     we::rhi::RHIDescriptorSetHandle m_ViewportTextureSet = we::rhi::RHIDescriptorSetHandle::Invalid;
+    we::rhi::RHITextureViewHandle m_BoundViewportView = we::rhi::RHITextureViewHandle::Invalid;
+    we::rhi::RHISamplerHandle m_BoundViewportSampler = we::rhi::RHISamplerHandle::Invalid;
     std::unique_ptr<we::editor::viewport::ViewportRenderTarget> m_ViewportRenderTarget;
 
     float m_FPS = 0.0f;

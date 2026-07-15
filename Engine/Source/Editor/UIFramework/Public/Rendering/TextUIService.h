@@ -34,13 +34,7 @@ public:
 
 private:
     struct FontGpuAtlas {
-        // TODO(migr to VulkanRHI): opaque native handles
-        uint64_t image = 0;
-        uint64_t memory = 0;
-        uint64_t imageView = 0;
-        uint64_t sampler = 0;
         we::rhi::RHIDescriptorSetHandle descriptorSet = we::rhi::RHIDescriptorSetHandle::Invalid;
-        uint32_t layout = 0; // VkImageLayout as uint32
         uint32_t width = 0;
         uint32_t height = 0;
     };

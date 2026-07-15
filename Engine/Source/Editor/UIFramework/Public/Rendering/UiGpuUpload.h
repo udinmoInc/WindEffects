@@ -7,7 +7,7 @@
 
 namespace WindEffects::Editor::UI {
 
-// Backend-agnostic one-shot GPU upload. Vulkan/DX details live in RHI backends.
+// Backend-agnostic one-shot GPU upload helper. Graphics API details stay in RHI backends.
 class UiGpuUpload {
 public:
     void Init(we::rhi::IRHIDevice* device);

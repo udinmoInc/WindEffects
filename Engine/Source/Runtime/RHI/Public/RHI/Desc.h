@@ -114,6 +114,7 @@ struct SamplerDesc {
 
 struct ShaderDesc {
     ShaderStage stage = ShaderStage::Vertex;
+    ShaderBytecodeFormat format = ShaderBytecodeFormat::Auto;
     std::span<const uint8_t> bytecode{};
     const char* entryPoint = "main";
     const char* debugName = nullptr;

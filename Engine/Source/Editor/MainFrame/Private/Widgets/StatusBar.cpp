@@ -57,7 +57,7 @@ void StatusBar::Construct() {
     m_OutputLogButton = MakeFooterControl(Icons::BuildName, "Source Control", false, "Source Control");
     m_BuildMenuButton = MakeFooterControl(Icons::ProfilerName, "FPS", false, "Frame Rate");
     m_TraceButton = MakeFooterControl(Icons::PackageName, "Memory", false, "Memory Usage");
-    m_QualityMenuButton = MakeFooterControl(Icons::LitName, "Vulkan", false, "Graphics API");
+    m_QualityMenuButton = MakeFooterControl(Icons::LitName, "RHI", false, "Graphics API");
 
     m_RightBox->AddChild(m_OutputLogButton);
     m_RightBox->AddChild(m_BuildMenuButton);

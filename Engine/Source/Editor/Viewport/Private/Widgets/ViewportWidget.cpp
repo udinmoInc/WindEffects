@@ -59,6 +59,8 @@ ViewportWidget::~ViewportWidget() {
         m_uiRenderer->UnregisterTexture(m_ViewportTextureSet);
         m_ViewportTextureSet = we::rhi::RHIDescriptorSetHandle::Invalid;
     }
+    m_BoundViewportView = we::rhi::RHITextureViewHandle::Invalid;
+    m_BoundViewportSampler = we::rhi::RHISamplerHandle::Invalid;
 }
 
 void ViewportWidget::SetWindow(we::platform::WindowId window) {
@@ -122,10 +124,16 @@ void ViewportWidget::FlushPendingResize() {
         const auto sampler = m_ViewportController->GetViewportColorSampler();
         if (view != we::rhi::RHITextureViewHandle::Invalid
             && sampler != we::rhi::RHISamplerHandle::Invalid) {
+            const bool bindingsChanged =
+                view != m_BoundViewportView || sampler != m_BoundViewportSampler;
             if (m_ViewportTextureSet == we::rhi::RHIDescriptorSetHandle::Invalid) {
                 m_ViewportTextureSet = m_uiRenderer->RegisterTexture(view, sampler);
-            } else {
+                m_BoundViewportView = view;
+                m_BoundViewportSampler = sampler;
+            } else if (bindingsChanged) {
                 m_uiRenderer->UpdateTexture(m_ViewportTextureSet, view, sampler);
+                m_BoundViewportView = view;
+                m_BoundViewportSampler = sampler;
             }
         }
     }
@@ -173,16 +181,22 @@ void ViewportWidget::Paint(PaintContext& context) {
         return;
     }
 
-    // Bind/update viewport RT after the scene backend creates/resizes the offscreen image.
+    // Bind/update viewport RT after the scene pass creates/resizes the offscreen image.
     if (m_uiRenderer && m_ViewportController) {
         const auto view = m_ViewportController->GetViewportColorView();
         const auto sampler = m_ViewportController->GetViewportColorSampler();
         if (view != we::rhi::RHITextureViewHandle::Invalid
             && sampler != we::rhi::RHISamplerHandle::Invalid) {
+            const bool bindingsChanged =
+                view != m_BoundViewportView || sampler != m_BoundViewportSampler;
             if (m_ViewportTextureSet == we::rhi::RHIDescriptorSetHandle::Invalid) {
                 m_ViewportTextureSet = m_uiRenderer->RegisterTexture(view, sampler);
-            } else {
+                m_BoundViewportView = view;
+                m_BoundViewportSampler = sampler;
+            } else if (bindingsChanged) {
                 m_uiRenderer->UpdateTexture(m_ViewportTextureSet, view, sampler);
+                m_BoundViewportView = view;
+                m_BoundViewportSampler = sampler;
             }
         }
     }

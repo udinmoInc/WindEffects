@@ -36,4 +36,44 @@ const char* ToString(RHIBackend backend) noexcept {
     return "Unknown";
 }
 
+const char* ToString(ShaderBytecodeFormat format) noexcept {
+    switch (format) {
+    case ShaderBytecodeFormat::Auto: return "Auto";
+    case ShaderBytecodeFormat::SpirV: return "SPIR-V";
+    case ShaderBytecodeFormat::Dxil: return "DXIL";
+    case ShaderBytecodeFormat::Metallib: return "Metallib";
+    case ShaderBytecodeFormat::GlslSource: return "GLSL";
+    }
+    return "Unknown";
+}
+
+const char* ShaderBytecodeExtension(ShaderBytecodeFormat format) noexcept {
+    switch (format) {
+    case ShaderBytecodeFormat::SpirV: return ".spv";
+    case ShaderBytecodeFormat::Dxil: return ".dxil";
+    case ShaderBytecodeFormat::Metallib: return ".metallib";
+    case ShaderBytecodeFormat::GlslSource: return ".glsl";
+    case ShaderBytecodeFormat::Auto: return "";
+    }
+    return "";
+}
+
+ShaderBytecodeFormat PreferredShaderBytecodeFormat(RHIBackend backend) noexcept {
+    switch (backend) {
+    case RHIBackend::DirectX12:
+    case RHIBackend::DirectX11:
+        return ShaderBytecodeFormat::Dxil;
+    case RHIBackend::Metal:
+        return ShaderBytecodeFormat::Metallib;
+    case RHIBackend::OpenGL:
+    case RHIBackend::OpenGLES:
+        return ShaderBytecodeFormat::SpirV;
+    case RHIBackend::Vulkan:
+    case RHIBackend::Null:
+    case RHIBackend::Auto:
+    default:
+        return ShaderBytecodeFormat::SpirV;
+    }
+}
+
 } // namespace we::rhi

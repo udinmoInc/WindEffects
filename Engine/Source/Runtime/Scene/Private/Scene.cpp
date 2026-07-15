@@ -6,7 +6,6 @@
 #if WE_HAS_GLM
 #include <glm/glm.hpp>
 #endif
-
 namespace we::runtime::scene {
 
 namespace {

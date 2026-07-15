@@ -9,6 +9,7 @@ namespace we::editor::rendering {
 
 struct OverlayRenderContext {
     we::rhi::IRHICommandList* cmd = nullptr;
+    we::rhi::RHITextureHandle colorTarget = we::rhi::RHITextureHandle::Invalid;
     we::rhi::RHITextureViewHandle targetView = we::rhi::RHITextureViewHandle::Invalid;
     we::rhi::Format targetFormat = we::rhi::Format::Unknown;
     we::rhi::Extent2D targetExtent{};

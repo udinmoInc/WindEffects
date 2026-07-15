@@ -7,6 +7,7 @@
 #include "Rendering/UICompositor.h"
 #include "Rendering/UIStateManager.h"
 #include "Rendering/UiGpuUpload.h"
+#include "Rendering/UiImmediateRenderer.h"
 
 #include "AssetRegistry.h"
 #include "Core/FrameCounter.h"
@@ -14,7 +15,6 @@
 #include "Core/Logger.h"
 #include "Core/UIRepaintGate.h"
 #include "Core/Widget.h"
-#include "RHI/GpuBackends.h"
 
 #include <algorithm>
 #include <cstring>
@@ -78,21 +78,16 @@ bool OverlayRenderer::Init(we::rhi::IRHIDevice* device, we::rhi::Format swapchai
     m_SwapchainFormat = swapchainFormat;
     m_MaxFramesInFlight = maxFramesInFlight ? maxFramesInFlight : 2;
 
-    m_UIBackend = we::rhi::GpuBackendRegistry::CreateUI();
-    if (m_UIBackend) {
-        if (!m_UIBackend->Initialize(*device, swapchainFormat, m_MaxFramesInFlight)) {
-            WE_LOG_WARN(we::LogCategory::Startup,
-                "OverlayRenderer: IGpuUIBackend Initialize failed; UI will not record GPU draws.");
-            m_UIBackend.reset();
-        }
-    } else {
+    m_UIImmediate = std::make_unique<UiImmediateRenderer>();
+    if (!m_UIImmediate->Init(device, swapchainFormat, m_MaxFramesInFlight)) {
         WE_LOG_WARN(we::LogCategory::Startup,
-            "OverlayRenderer: no IGpuUIBackend registered; UI will not record GPU draws.");
+            "OverlayRenderer: UiImmediateRenderer Init failed; UI will not record GPU draws.");
+        m_UIImmediate.reset();
     }
 
-    if (m_UIBackend) {
-        m_DummyDescriptorSet = static_cast<uint64_t>(m_UIBackend->GetDummyTexture());
-        m_DummySampler = static_cast<uint64_t>(m_UIBackend->GetDefaultSampler());
+    if (m_UIImmediate) {
+        m_DummyDescriptorSet = static_cast<uint64_t>(m_UIImmediate->GetDummyTexture());
+        m_DummySampler = static_cast<uint64_t>(m_UIImmediate->GetDefaultSampler());
     } else {
         m_DummyDescriptorSet = 1;
         m_DummySampler = 1;
@@ -137,9 +132,9 @@ bool OverlayRenderer::Init(we::rhi::IRHIDevice* device, we::rhi::Format swapchai
     m_StateManager = std::make_unique<UIStateManager>();
 
     WE_LOG_INFO(we::LogCategory::Startup,
-        m_UIBackend
-            ? "OverlayRenderer initialized (geometry + IGpuUIBackend)."
-            : "OverlayRenderer initialized (CPU geometry only; GPU UI backend unavailable).");
+        m_UIImmediate
+            ? "OverlayRenderer initialized (geometry + UiImmediateRenderer/IRHI)."
+            : "OverlayRenderer initialized (CPU geometry only; GPU UI unavailable).");
     return true;
 }
 
@@ -153,9 +148,9 @@ void OverlayRenderer::Shutdown() {
     if (m_GpuUpload) {
         m_GpuUpload->Shutdown();
     }
-    if (m_UIBackend) {
-        m_UIBackend->Shutdown();
-        m_UIBackend.reset();
+    if (m_UIImmediate) {
+        m_UIImmediate->Shutdown();
+        m_UIImmediate.reset();
     }
     m_RHIDevice = nullptr;
     m_Vertices.clear();
@@ -218,7 +213,7 @@ void OverlayRenderer::BeginOverlayPass(const we::editor::rendering::OverlayRende
 }
 
 void OverlayRenderer::EndOverlayPass(const we::editor::rendering::OverlayRenderContext& context) {
-    if (!m_UIBackend || m_Vertices.empty() || m_Batches.empty()) {
+    if (!m_UIImmediate || m_Vertices.empty() || m_Batches.empty()) {
         return;
     }
     if (!context.cmd) {
@@ -230,14 +225,15 @@ void OverlayRenderer::EndOverlayPass(const we::editor::rendering::OverlayRenderC
     we::rhi::FramePresentParams params{};
     params.commandList = context.cmd;
     params.targetView = context.targetView;
+    params.colorTarget = context.colorTarget;
     params.extent = context.targetExtent;
     params.imageIndex = context.imageIndex;
 
-    m_UIBackend->BeginFrame(params);
-    m_UIBackend->SubmitDrawList(
+    m_UIImmediate->BeginFrame(params);
+    m_UIImmediate->SubmitDrawList(
         BuildDrawList(m_Vertices, m_Indices, m_Batches, m_CurrentWidth, m_CurrentHeight),
         m_ActiveFrameSlot);
-    m_UIBackend->EndFrame();
+    m_UIImmediate->EndFrame();
 }
 
 void OverlayRenderer::SetPipelineAuditImageIndex(uint32_t imageIndex) {
@@ -248,8 +244,8 @@ we::rhi::RHIDescriptorSetHandle OverlayRenderer::RegisterTexture(
     we::rhi::RHITextureViewHandle imageView,
     we::rhi::RHISamplerHandle sampler)
 {
-    if (m_UIBackend) {
-        return m_UIBackend->RegisterTexture(imageView, sampler);
+    if (m_UIImmediate) {
+        return m_UIImmediate->RegisterTexture(imageView, sampler);
     }
     return static_cast<we::rhi::RHIDescriptorSetHandle>(++m_DummyDescriptorSet);
 }
@@ -259,14 +255,14 @@ void OverlayRenderer::UpdateTexture(
     we::rhi::RHITextureViewHandle imageView,
     we::rhi::RHISamplerHandle sampler)
 {
-    if (m_UIBackend) {
-        m_UIBackend->UpdateTexture(descriptorSet, imageView, sampler);
+    if (m_UIImmediate) {
+        m_UIImmediate->UpdateTexture(descriptorSet, imageView, sampler);
     }
 }
 
 void OverlayRenderer::UnregisterTexture(we::rhi::RHIDescriptorSetHandle descriptorSet) {
-    if (m_UIBackend) {
-        m_UIBackend->UnregisterTexture(descriptorSet);
+    if (m_UIImmediate) {
+        m_UIImmediate->UnregisterTexture(descriptorSet);
     }
 }
 
@@ -276,8 +272,8 @@ we::rhi::RHIDescriptorSetHandle OverlayRenderer::UploadRgbaTexture(
     std::span<const uint8_t> rgba,
     bool linearFilter)
 {
-    if (m_UIBackend) {
-        return m_UIBackend->UploadRgbaTexture(width, height, rgba, linearFilter);
+    if (m_UIImmediate) {
+        return m_UIImmediate->UploadRgbaTexture(width, height, rgba, linearFilter);
     }
     return we::rhi::RHIDescriptorSetHandle::Invalid;
 }
