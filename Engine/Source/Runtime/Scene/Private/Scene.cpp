@@ -106,14 +106,12 @@ void Scene::AttachEcsComponents(Entity& entity, std::uint64_t ecsEntityId) {
     const we::runtime::ecs::Entity ecsEntity{ ecsEntityId };
     m_Registry->Replace(ecsEntity, NameComponent{ entity.Name });
 
-#if WE_HAS_GLM
     TransformComponent transform{};
     transform.localPosition = entity.Position;
     transform.localRotation = entity.Rotation;
     transform.localScale = entity.Scale;
     transform.dirty = true;
     m_Registry->Replace(ecsEntity, transform);
-#endif
 
     m_Registry->Replace(ecsEntity, LegacyActorComponent{
         static_cast<int>(entity.Type),
@@ -122,9 +120,7 @@ void Scene::AttachEcsComponents(Entity& entity, std::uint64_t ecsEntityId) {
     });
 
     MaterialComponent material{};
-#if WE_HAS_GLM
     material.color = entity.Color;
-#endif
     m_Registry->Replace(ecsEntity, material);
 
     switch (entity.Type) {
@@ -317,7 +313,6 @@ void Scene::SyncLegacyToEcs() {
             m_Registry->Add<NameComponent>(ecs, NameComponent{ entity.Name });
         }
 
-#if WE_HAS_GLM
         if (TransformComponent* t = m_Registry->TryGet<TransformComponent>(ecs)) {
             if (t->localPosition != entity.Position
                 || t->localRotation != entity.Rotation
@@ -328,7 +323,6 @@ void Scene::SyncLegacyToEcs() {
                 t->dirty = true;
             }
         }
-#endif
 
         if (LegacyActorComponent* legacy = m_Registry->TryGet<LegacyActorComponent>(ecs)) {
             legacy->entityType = static_cast<int>(entity.Type);
@@ -337,9 +331,7 @@ void Scene::SyncLegacyToEcs() {
         }
 
         if (MaterialComponent* mat = m_Registry->TryGet<MaterialComponent>(ecs)) {
-#if WE_HAS_GLM
             mat->color = entity.Color;
-#endif
         }
 
         HierarchyComponent* h = m_Registry->TryGet<HierarchyComponent>(ecs);
@@ -362,13 +354,11 @@ void Scene::SyncEcsToLegacy() {
         if (const NameComponent* name = m_Registry->TryGet<NameComponent>(ecs)) {
             entity.Name = name->value;
         }
-#if WE_HAS_GLM
         if (const TransformComponent* t = m_Registry->TryGet<TransformComponent>(ecs)) {
             entity.Position = t->localPosition;
             entity.Rotation = t->localRotation;
             entity.Scale = t->localScale;
         }
-#endif
         if (const HierarchyComponent* h = m_Registry->TryGet<HierarchyComponent>(ecs)) {
             entity.ParentId = h->parent ? h->parent.id : 0;
         }
@@ -377,9 +367,7 @@ void Scene::SyncEcsToLegacy() {
             entity.Mode = legacy->mode;
         }
         if (const MaterialComponent* mat = m_Registry->TryGet<MaterialComponent>(ecs)) {
-#if WE_HAS_GLM
             entity.Color = mat->color;
-#endif
         }
     }
 }

@@ -1,19 +1,19 @@
 #include "ECS/Components/CoreComponents.h"
 
 #include <cstdio>
-#include <random>
+#include <intrin.h>
 #include <sstream>
 
 namespace we::runtime::ecs {
 
 Uuid Uuid::Generate() {
     Uuid id{};
-    static thread_local std::mt19937_64 rng{ std::random_device{}() };
-    std::uniform_int_distribution<int> dist(0, 255);
-    for (auto& b : id.bytes) {
-        b = static_cast<std::uint8_t>(dist(rng));
+    static thread_local std::uint64_t counter =
+        static_cast<std::uint64_t>(__rdtsc() ^ 0x9E3779B97F4A7C15ull);
+    for (std::size_t i = 0; i < id.bytes.size(); ++i) {
+        counter = counter * 6364136223846793005ull + 1ull;
+        id.bytes[i] = static_cast<std::uint8_t>(counter >> 56);
     }
-    // RFC 4122 variant/version bits (version 4).
     id.bytes[6] = static_cast<std::uint8_t>((id.bytes[6] & 0x0F) | 0x40);
     id.bytes[8] = static_cast<std::uint8_t>((id.bytes[8] & 0x3F) | 0x80);
     return id;

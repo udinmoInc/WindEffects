@@ -11,10 +11,7 @@
 #include <cstdint>
 #include <string>
 
-#if WE_HAS_GLM
 #include <glm/glm.hpp>
-#include <glm/gtc/quaternion.hpp>
-#endif
 
 namespace we::runtime::ecs {
 
@@ -28,15 +25,15 @@ struct Uuid {
     bool operator==(const Uuid& o) const { return bytes == o.bytes; }
 };
 
-// ---- Core components (POD, no virtuals) ----
+// ---- Core components (POD, no virtuals). Always GLM for stable cross-DLL ABI. ----
 
 struct NameComponent {
     std::string value;
 };
 
 struct TagComponent {
-    std::uint64_t mask = 0; // bitfield tags
-    std::string label;      // optional string tag
+    std::uint64_t mask = 0;
+    std::string label;
 };
 
 struct UuidComponent {
@@ -44,17 +41,10 @@ struct UuidComponent {
 };
 
 struct TransformComponent {
-#if WE_HAS_GLM
     glm::vec3 localPosition{ 0.0f };
     glm::vec3 localRotation{ 0.0f }; // euler degrees
     glm::vec3 localScale{ 1.0f };
     glm::mat4 worldMatrix{ 1.0f };
-#else
-    float localPosition[3]{ 0, 0, 0 };
-    float localRotation[3]{ 0, 0, 0 };
-    float localScale[3]{ 1, 1, 1 };
-    float worldMatrix[16]{ 1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1 };
-#endif
     bool dirty = true;
 };
 
@@ -80,35 +70,21 @@ struct CameraComponent {
 };
 
 struct DirectionalLightComponent {
-#if WE_HAS_GLM
     glm::vec3 color{ 1.0f };
     glm::vec3 direction{ 0.0f, -1.0f, 0.0f };
-#else
-    float color[3]{ 1, 1, 1 };
-    float direction[3]{ 0, -1, 0 };
-#endif
     float intensity = 1.0f;
     bool castShadows = true;
 };
 
 struct PointLightComponent {
-#if WE_HAS_GLM
     glm::vec3 color{ 1.0f };
-#else
-    float color[3]{ 1, 1, 1 };
-#endif
     float intensity = 1.0f;
     float range = 10.0f;
 };
 
 struct SpotLightComponent {
-#if WE_HAS_GLM
     glm::vec3 color{ 1.0f };
     glm::vec3 direction{ 0.0f, -1.0f, 0.0f };
-#else
-    float color[3]{ 1, 1, 1 };
-    float direction[3]{ 0, -1, 0 };
-#endif
     float intensity = 1.0f;
     float range = 10.0f;
     float innerConeDegrees = 20.0f;
@@ -123,11 +99,7 @@ struct StaticMeshComponent {
 struct MaterialComponent {
     std::uint64_t materialAssetId = 0;
     std::string materialPath;
-#if WE_HAS_GLM
     glm::vec4 color{ 1.0f };
-#else
-    float color[4]{ 1, 1, 1, 1 };
-#endif
 };
 
 struct SkyAtmosphereComponent {
@@ -159,11 +131,7 @@ struct WaterComponent {
 struct ColliderComponent {
     enum class Shape : std::uint8_t { Box, Sphere, Capsule, Mesh };
     Shape shape = Shape::Box;
-#if WE_HAS_GLM
     glm::vec3 size{ 1.0f };
-#else
-    float size[3]{ 1, 1, 1 };
-#endif
     bool isTrigger = false;
 };
 
@@ -198,9 +166,8 @@ struct LODComponent {
     int forcedLod = -1;
 };
 
-// Bridge: maps ECS entity to legacy Scene EntityType discriminator.
 struct LegacyActorComponent {
-    int entityType = 0; // we::runtime::scene::EntityType as int
+    int entityType = 0;
     bool editorOnly = false;
     int mode = 0;
 };

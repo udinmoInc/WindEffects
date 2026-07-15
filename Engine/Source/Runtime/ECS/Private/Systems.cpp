@@ -6,16 +6,13 @@
 #include <queue>
 #include <unordered_set>
 
-#if WE_HAS_GLM
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/quaternion.hpp>
-#endif
 
 namespace we::runtime::ecs {
 
 namespace {
 
-#if WE_HAS_GLM
 glm::mat4 ComposeLocal(const TransformComponent& t) {
     const glm::mat4 T = glm::translate(glm::mat4(1.0f), t.localPosition);
     const glm::quat q = glm::quat(glm::radians(t.localRotation));
@@ -23,7 +20,6 @@ glm::mat4 ComposeLocal(const TransformComponent& t) {
     const glm::mat4 S = glm::scale(glm::mat4(1.0f), t.localScale);
     return T * R * S;
 }
-#endif
 
 } // namespace
 
@@ -197,7 +193,6 @@ void TransformSystem::MarkDirty(Registry& registry, Entity entity) {
 }
 
 void TransformSystem::Update(Registry& registry, float /*deltaSeconds*/) {
-#if WE_HAS_GLM
     // Build root list then BFS for stable non-recursive world updates.
     std::vector<Entity> roots;
     registry.ViewAll<TransformComponent, HierarchyComponent>().Each(
@@ -234,7 +229,6 @@ void TransformSystem::Update(Registry& registry, float /*deltaSeconds*/) {
             }
             t->dirty = false;
 
-            // Dirty children so their world matrices refresh.
             Entity child = h->firstChild;
             while (child) {
                 if (TransformComponent* ct = registry.TryGet<TransformComponent>(child)) {
@@ -252,9 +246,6 @@ void TransformSystem::Update(Registry& registry, float /*deltaSeconds*/) {
             child = ch ? ch->nextSibling : Entity{};
         }
     }
-#else
-    (void)registry;
-#endif
 }
 
 void VisibilitySystem::Update(Registry& registry, float /*deltaSeconds*/) {
