@@ -3,11 +3,11 @@
 #include "Core/FrameSync.h"
 #include "Core/Validation.h"
 #include "Core/LogCategory.h"
+#include "Core/VulkanSurface.h"
+#include "Platform/Platform.h"
 #include <stdexcept>
 #include <algorithm>
 #include <cstdlib>
-#include <SDL3/SDL_vulkan.h>
-#include <algorithm>
 
 namespace we::runtime::renderer {
 namespace {
@@ -26,7 +26,8 @@ SwapchainManager::~SwapchainManager() {
 void SwapchainManager::Init(const SwapchainManagerConfig& config) {
     WE_VALIDATE_INIT(!m_Initialized, "SwapchainManager", "Already initialized.");
     WE_VALIDATE_INIT(config.deviceContext != nullptr, "SwapchainManager", "DeviceContext is null.");
-    WE_VALIDATE_INIT(config.window != nullptr, "SwapchainManager", "Window is null.");
+    WE_VALIDATE_INIT(config.window != we::platform::WindowId::Invalid, "SwapchainManager", "Window is invalid.");
+    WE_VALIDATE_INIT(we::platform::IsValid(config.nativeWindow), "SwapchainManager", "Native window is invalid.");
 
     m_Config = config;
 
@@ -53,9 +54,8 @@ void SwapchainManager::Shutdown() {
 void SwapchainManager::Recreate() {
     WE_VALIDATE_RENDER(m_Initialized, "Swapchain", "Cannot recreate uninitialized swapchain.");
     
-    int width = 0, height = 0;
-    SDL_GetWindowSizeInPixels(m_Config.window, &width, &height);
-    if (width == 0 || height == 0) return; // Minimized
+    const auto pixelSize = we::platform::Platform::Get().GetWindowPixelSize(m_Config.window);
+    if (pixelSize.x == 0 || pixelSize.y == 0) return; // Minimized
 
     vkDeviceWaitIdle(m_Config.deviceContext->GetDevice());
 
@@ -79,8 +79,8 @@ void SwapchainManager::CleanupSwapchain() {
 }
 
 void SwapchainManager::CreateSurface() {
-    bool success = SDL_Vulkan_CreateSurface(m_Config.window, m_Config.deviceContext->GetInstance(), nullptr, &m_Surface);
-    WE_VALIDATE_INIT(success, "SwapchainManager", "Failed to create SDL Vulkan surface.");
+    m_Surface = CreateVulkanSurface(m_Config.deviceContext->GetInstance(), m_Config.nativeWindow);
+    WE_VALIDATE_INIT(m_Surface != VK_NULL_HANDLE, "SwapchainManager", "Failed to create Vulkan surface.");
 
     VkPhysicalDevice physicalDevice = m_Config.deviceContext->GetPhysicalDevice();
     const uint32_t graphicsFamily = m_Config.deviceContext->GetGraphicsQueueFamily();
@@ -149,11 +149,10 @@ void SwapchainManager::CreateSwapchain() {
     }
 
     // Choose extent
-    int width, height;
-    SDL_GetWindowSizeInPixels(m_Config.window, &width, &height);
+    const auto pixelSize = we::platform::Platform::Get().GetWindowPixelSize(m_Config.window);
     VkExtent2D extent = {
-        static_cast<uint32_t>(width),
-        static_cast<uint32_t>(height)
+        pixelSize.x,
+        pixelSize.y
     };
 
     extent.width = std::clamp(extent.width, capabilities.minImageExtent.width, capabilities.maxImageExtent.width);

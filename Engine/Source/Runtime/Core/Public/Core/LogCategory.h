@@ -24,6 +24,7 @@ namespace LogCategory {
     inline constexpr std::string_view Startup       = "Startup";
     inline constexpr std::string_view Diagnostics   = "Diagnostics";
     inline constexpr std::string_view Crash         = "Crash";
+    inline constexpr std::string_view Platform     = "Platform";
 }
 
 } // namespace we::runtime::core

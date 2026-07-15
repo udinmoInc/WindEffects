@@ -1,59 +1,31 @@
 #include "WindEffects/Platform.h"
 #include "WindEffects/Runtime/CoreSDK.h"
+#include "Platform/PlatformSDK.h"
 #include "Editor.h"
-
-#include <SDL3/SDL.h>
 
 #include <filesystem>
 #include <stdexcept>
 #include <string>
 
 #if defined(_WIN32)
-#define WIN32_LEAN_AND_MEAN
-#include <windows.h>
-#include "../Windows/Win32WindowIcon.h"
-#include "../Windows/Win32WindowChrome.h"
 #include "../Windows/resource.h"
 #endif
 
 namespace {
 
 void SetWorkingDirectoryToExecutable() {
-#if defined(_WIN32)
-    wchar_t exePath[MAX_PATH]{};
-    const DWORD len = GetModuleFileNameW(nullptr, exePath, MAX_PATH);
-    if (len == 0 || len >= MAX_PATH) {
+    auto& platform = we::platform::Platform::Get();
+    const std::string exeDir = platform.GetExecutableDirectory();
+    if (!exeDir.empty() && platform.SetCurrentWorkingDirectory(exeDir)) {
+        HE_INFO("[Startup] Working directory set to executable folder.");
+    } else {
         HE_INFO("[Startup] Could not resolve executable path; asset loading uses process CWD.");
-        return;
     }
-    std::filesystem::current_path(std::filesystem::path(exePath).parent_path());
-    HE_INFO("[Startup] Working directory set to executable folder.");
-#else
-    HE_INFO("[Startup] Non-Windows platform: using process CWD for assets.");
-#endif
 }
 
 void ConfigureModuleSearchPath() {
     we::core::ConfigureModuleSearchPaths();
 }
-
-#if defined(_WIN32)
-void EnablePerMonitorDpiAwareness() {
-    // Prevent Windows from bitmap-scaling the entire editor surface (global blur).
-    // This must happen before creating the SDL window.
-    if (SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2)) {
-        HE_INFO("[Startup] DPI awareness: Per-monitor v2 enabled.");
-        return;
-    }
-
-    // Fallback for older environments where PMv2 context may not be available.
-    if (SetProcessDPIAware()) {
-        HE_INFO("[Startup] DPI awareness: System-aware fallback enabled.");
-    } else {
-        HE_WARN("[Startup] DPI awareness: unable to enable process DPI awareness.");
-    }
-}
-#endif
 
 } // namespace
 
@@ -62,10 +34,22 @@ int main(int argc, char* argv[]) {
     (void)argv;
     try {
         we::platform::InitializeLogging();
+
+        auto& platform = we::platform::Platform::Initialize({
+            .appName = "WindEffects Editor",
+            .highDpiAware = true,
+            .enableRawInput = true,
+            .enableGamepad = true,
+            .enableDiagnostics = true,
+        });
         SetWorkingDirectoryToExecutable();
         ConfigureModuleSearchPath();
 
         HE_INFO("[Startup] === WindEffects Editor bootstrap begin ===");
+        HE_INFO(std::string("[Startup] Platform backend: ") + platform.GetName());
+        if (platform.GetCapabilities().SupportsHighDPI()) {
+            HE_INFO("[Startup] Platform capabilities: HighDPI enabled.");
+        }
 
         auto& moduleManager = we::core::ModuleManager::Get();
 
@@ -95,41 +79,37 @@ int main(int argc, char* argv[]) {
 
         HE_INFO("[Startup] Engine successfully initialized and modules loaded.");
 
-#if defined(_WIN32)
-        we::programs::windows::ConfigureSdlClassIcons(IDI_ICON1);
-        EnablePerMonitorDpiAwareness();
-#endif
-        if (!SDL_Init(SDL_INIT_VIDEO)) {
-            throw std::runtime_error("Failed to initialize SDL");
+        const auto windowResult = platform.CreateWindow({
+            .title = "WindEffects Editor",
+            .width = 1280,
+            .height = 720,
+            .resizable = true,
+            .maximized = true,
+            .borderless = true,
+            .visible = true,
+            .highDpi = true,
+            .acceptDropFiles = true,
+        });
+        if (!windowResult) {
+            throw std::runtime_error(
+                std::string("Failed to create platform window: ") + windowResult.error.message);
         }
-        HE_INFO("[Startup] SDL video initialized.");
+        const we::platform::WindowId window = *windowResult;
+        HE_INFO("[Startup] Platform window created (1280x720, maximized, borderless).");
 
-        SDL_WindowFlags window_flags = static_cast<SDL_WindowFlags>(
-            SDL_WINDOW_VULKAN |
-            SDL_WINDOW_RESIZABLE |
-            SDL_WINDOW_HIGH_PIXEL_DENSITY |
-            SDL_WINDOW_HIDDEN |
-            SDL_WINDOW_BORDERLESS);
-
-        SDL_Window* window = SDL_CreateWindow("WindEffects Editor", 1280, 720, window_flags);
-        if (!window) {
-            throw std::runtime_error("Failed to create SDL Window");
-        }
-        HE_INFO("[Startup] SDL window created (1280x720, hidden until UI is ready).");
-
-        SDL_ShowWindow(window);
-        SDL_MaximizeWindow(window);
+        (void)platform.ApplyWindowChrome(window, {
+            .roundedCorners = true,
+            .borderColorRgb = 0x303030,
+        });
 #if defined(_WIN32)
-        we::programs::windows::ConfigureBorderlessWindow(window);
-        we::programs::windows::ApplyEmbeddedWindowIcon(window, IDI_ICON1);
+        (void)platform.SetWindowIcon(window, IDI_ICON1);
 #endif
-        HE_INFO("[Startup] Window shown — swapchain will use visible pixel dimensions.");
 
         we::programs::editor::Editor editor(window);
         editor.Run();
 
-        SDL_DestroyWindow(window);
-        SDL_Quit();
+        (void)platform.DestroyWindow(window);
+        we::platform::Platform::Shutdown();
         HE_INFO("[Startup] === WindEffects Editor shutdown complete ===");
     } catch (const std::exception& e) {
         WE_LOG_CRITICAL(we::LogCategory::Crash.data(), std::string("Fatal exception: ") + e.what());

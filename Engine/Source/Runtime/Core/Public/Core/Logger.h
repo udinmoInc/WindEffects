@@ -58,6 +58,10 @@ public:
 
     CORE_API static void ReportError(const std::string& title, const std::string& description, bool fatal = false);
 
+    // Optional host message-box bridge (registered by Platform; keeps Core free of OS UI APIs).
+    using ErrorDialogHandler = void (*)(const char* title, const char* message, bool fatal, void* userData);
+    CORE_API static void SetErrorDialogHandler(ErrorDialogHandler handler, void* userData = nullptr);
+
     // UI / diagnostics
     CORE_API static std::vector<LogRecord> GetNewLogs();
     CORE_API static std::vector<LogRecord> GetHistory();
@@ -97,6 +101,8 @@ private:
     static std::ofstream s_LogFile;
     static std::string s_LogFilePath;
     static std::string s_SessionDirectory;
+    static ErrorDialogHandler s_ErrorDialogHandler;
+    static void* s_ErrorDialogUserData;
     static constexpr size_t kMaxHistoryEntries = 10000;
     static constexpr size_t kMaxLogFileBytes = 16 * 1024 * 1024;
 };

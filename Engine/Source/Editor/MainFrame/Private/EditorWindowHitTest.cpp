@@ -1,42 +1,43 @@
 #include "EditorWindowHitTest.h"
 #include "Widgets/TitleBar.h"
+#include "Platform/Platform.h"
 
 namespace we::editor::mainframe {
 
-#if WE_HAS_SDL3
-SDL_HitTestResult SDLCALL EditorWindowHitTest(SDL_Window* window, const SDL_Point* area, void* userdata) {
-    if (!window || !area) {
-        return SDL_HITTEST_NORMAL;
-    }
+we::platform::WindowHitTestResult EditorWindowHitTest(
+    we::platform::WindowId window,
+    we::platform::Int2 area,
+    void* userdata)
+{
+    using Result = we::platform::WindowHitTestResult;
 
-    int width = 0;
-    int height = 0;
-    SDL_GetWindowSize(window, &width, &height);
+    const auto size = we::platform::Platform::Get().GetWindowSize(window);
+    const int width = static_cast<int>(size.x);
+    const int height = static_cast<int>(size.y);
 
     constexpr int kResizeBorder = 8;
-    const bool left = area->x < kResizeBorder;
-    const bool right = area->x >= width - kResizeBorder;
-    const bool top = area->y < kResizeBorder;
-    const bool bottom = area->y >= height - kResizeBorder;
+    const bool left = area.x < kResizeBorder;
+    const bool right = area.x >= width - kResizeBorder;
+    const bool top = area.y < kResizeBorder;
+    const bool bottom = area.y >= height - kResizeBorder;
 
-    if (top && left) return SDL_HITTEST_RESIZE_TOPLEFT;
-    if (top && right) return SDL_HITTEST_RESIZE_TOPRIGHT;
-    if (bottom && left) return SDL_HITTEST_RESIZE_BOTTOMLEFT;
-    if (bottom && right) return SDL_HITTEST_RESIZE_BOTTOMRIGHT;
-    if (left) return SDL_HITTEST_RESIZE_LEFT;
-    if (right) return SDL_HITTEST_RESIZE_RIGHT;
-    if (top) return SDL_HITTEST_RESIZE_TOP;
-    if (bottom) return SDL_HITTEST_RESIZE_BOTTOM;
+    if (top && left) return Result::ResizeTopLeft;
+    if (top && right) return Result::ResizeTopRight;
+    if (bottom && left) return Result::ResizeBottomLeft;
+    if (bottom && right) return Result::ResizeBottomRight;
+    if (left) return Result::ResizeLeft;
+    if (right) return Result::ResizeRight;
+    if (top) return Result::ResizeTop;
+    if (bottom) return Result::ResizeBottom;
 
     if (userdata) {
         auto* data = static_cast<EditorWindowHitTestData*>(userdata);
         if (auto titleBar = data->titleBar.lock()) {
-            return titleBar->HitTest(*area);
+            return titleBar->HitTest(area);
         }
     }
 
-    return SDL_HITTEST_NORMAL;
+    return Result::Client;
 }
-#endif
 
 } // namespace we::editor::mainframe

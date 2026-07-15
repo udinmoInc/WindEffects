@@ -2,22 +2,13 @@
 #include "Core/Widget.h"
 #include "Layout/OverlayManager.h"
 #include "Layout/ScrollLayout.h"
-#include <SDL3/SDL_mouse.h>
+#include "Platform/Platform.h"
 
 namespace WindEffects::Editor::UI {
 
 EventSystem::~EventSystem() = default;
 
 namespace {
-SDL_Cursor* GetArrowCursor() {
-    static SDL_Cursor* cursor = SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_DEFAULT);
-    return cursor;
-}
-
-SDL_Cursor* GetPointerCursor() {
-    static SDL_Cursor* cursor = SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_POINTER);
-    return cursor;
-}
 
 void BubbleMouseWheelToScrollParents(
     const std::shared_ptr<Widget>& start,
@@ -38,7 +29,6 @@ std::shared_ptr<Widget> EventSystem::HitTest(const std::shared_ptr<Widget>& root
     if (!root || !root->IsVisible()) return nullptr;
     if (!root->GetGeometry().Contains(pos)) return nullptr;
 
-    // Search children in reverse order (top-most widgets drawn last)
     const auto& children = root->GetChildren();
     for (auto it = children.rbegin(); it != children.rend(); ++it) {
         auto hit = HitTest(*it, pos);
@@ -51,10 +41,8 @@ std::shared_ptr<Widget> EventSystem::HitTest(const std::shared_ptr<Widget>& root
 void EventSystem::ProcessMouseEvent(const MouseEvent& event) {
     if (!m_Root) return;
 
-    // Find widget under mouse
     std::shared_ptr<Widget> hitWidget = HitTest(m_Root, event.position);
 
-    // Handle Hover changes
     std::shared_ptr<Widget> oldHovered = m_HoveredWidget.lock();
     if (hitWidget != oldHovered) {
         if (oldHovered) {
@@ -70,7 +58,6 @@ void EventSystem::ProcessMouseEvent(const MouseEvent& event) {
         UpdateCursorForWidget(hitWidget, event.position);
     }
 
-    // Process mouse actions
     std::shared_ptr<Widget> targetWidget = hitWidget;
     if (event.type == MouseEventType::MouseMove || event.type == MouseEventType::MouseUp) {
         if (auto focused = m_FocusedWidget.lock()) {
@@ -116,7 +103,10 @@ void EventSystem::UpdateCursorForWidget(const std::shared_ptr<Widget>& widget, c
         return;
     }
 
-    SDL_SetCursor(shouldUsePointerCursor ? GetPointerCursor() : GetArrowCursor());
+    auto& platform = we::platform::Platform::Get();
+    platform.SetSystemCursor(shouldUsePointerCursor
+        ? we::platform::SystemCursor::Hand
+        : we::platform::SystemCursor::Arrow);
     m_UsingPointerCursor = shouldUsePointerCursor;
 }
 

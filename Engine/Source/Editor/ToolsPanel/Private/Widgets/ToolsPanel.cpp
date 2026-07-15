@@ -1,3 +1,4 @@
+#include "Platform/Platform.h"
 #include "Widgets/ToolsPanel.h"
 #include "WindEffects/Editor/UI/Panel/PanelChrome.h"
 #include "EditorModeController.h"
@@ -15,7 +16,6 @@
 #include <algorithm>
 #include <cmath>
 #include <cctype>
-#include <SDL3/SDL_keyboard.h>
 
 namespace we::programs::editor {
 
@@ -46,10 +46,10 @@ std::string BuildShortcutFromKeyEvent(const KeyEvent& event) {
     if (event.altDown) shortcut += "Alt+";
     if (event.shiftDown) shortcut += "Shift+";
 
-    if (event.keycode >= SDLK_A && event.keycode <= SDLK_Z) {
-        shortcut += static_cast<char>('A' + (event.keycode - SDLK_A));
-    } else if (event.keycode >= SDLK_0 && event.keycode <= SDLK_9) {
-        shortcut += static_cast<char>('0' + (event.keycode - SDLK_0));
+    if (event.key >= we::platform::KeyCode::A && event.key <= we::platform::KeyCode::Z) {
+        shortcut += static_cast<char>('A' + (static_cast<int>(event.key) - static_cast<int>(we::platform::KeyCode::A)));
+    } else if (event.key >= we::platform::KeyCode::Num0 && event.key <= we::platform::KeyCode::Num9) {
+        shortcut += static_cast<char>('0' + (static_cast<int>(event.key) - static_cast<int>(we::platform::KeyCode::Num0)));
     } else {
         return {};
     }

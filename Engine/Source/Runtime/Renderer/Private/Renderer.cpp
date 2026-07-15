@@ -18,6 +18,7 @@
 #include "Core/LogCategory.h"
 #include "Core/AgentDebugLog.h"
 #include "Shader/ShaderLibrary.h"
+#include "Platform/Platform.h"
 
 #ifndef WE_DEBUG_UI
 #define WE_DEBUG_UI 0
@@ -117,21 +118,25 @@ void Renderer::InitializeShaderLibrary() {
     ShaderLibrary::Get().Initialize(shaderRoot, bytecodeRoot);
 }
 
-void Renderer::Init(SDL_Window* window) {
+void Renderer::Init(we::platform::WindowId window) {
     WE_VALIDATE_INIT(!m_Initialized, "Renderer", "Renderer already initialized.");
-    WE_VALIDATE_INIT(window != nullptr, "Renderer", "Window is null.");
+    WE_VALIDATE_INIT(window != we::platform::WindowId::Invalid, "Renderer", "Window is invalid.");
 
     m_Window = window;
+    const auto nativeWindow = we::platform::Platform::Get().GetNativeWindowHandle(window);
+    WE_VALIDATE_INIT(we::platform::IsValid(nativeWindow), "Renderer", "Native window handle is invalid.");
+
     InitializeShaderLibrary();
 
     DeviceContextConfig deviceConfig{};
-    deviceConfig.window = window;
+    deviceConfig.nativeWindow = nativeWindow;
     m_DeviceContext->Init(deviceConfig);
     m_PipelineFactory = std::make_unique<GraphicsPipelineFactory>(m_DeviceContext.get());
 
     SwapchainManagerConfig swapConfig{};
     swapConfig.deviceContext = m_DeviceContext.get();
     swapConfig.window = window;
+    swapConfig.nativeWindow = nativeWindow;
     m_SwapchainManager->Init(swapConfig);
 
     ResourceManagerConfig resConfig{};

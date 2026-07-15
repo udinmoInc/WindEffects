@@ -3,8 +3,8 @@
 #include "WindEffects/Editor/UI/Export.h"
 
 #include "Core/Geometry.h"
+#include "Platform/InputTypes.h"
 #include <memory>
-#include <SDL3/SDL_keycode.h>
 
 namespace WindEffects::Editor::UI {
 
@@ -45,11 +45,37 @@ enum class KeyEventType {
 
 struct KeyEvent {
     KeyEventType type;
-    SDL_Keycode keycode;
+    we::platform::KeyCode key = we::platform::KeyCode::Unknown;
     bool altDown = false;
     bool shiftDown = false;
     bool ctrlDown = false;
 };
+
+[[nodiscard]] inline char KeyCodeToChar(we::platform::KeyCode key, bool shift) {
+    using KC = we::platform::KeyCode;
+    if (key >= KC::A && key <= KC::Z) {
+        const int i = static_cast<int>(key) - static_cast<int>(KC::A);
+        return static_cast<char>((shift ? 'A' : 'a') + i);
+    }
+    if (key >= KC::Num0 && key <= KC::Num9) {
+        return static_cast<char>('0' + (static_cast<int>(key) - static_cast<int>(KC::Num0)));
+    }
+    switch (key) {
+    case KC::Space: return ' ';
+    case KC::Minus: return shift ? '_' : '-';
+    case KC::Equal: return shift ? '+' : '=';
+    case KC::Period: return shift ? '>' : '.';
+    case KC::Comma: return shift ? '<' : ',';
+    case KC::Slash: return shift ? '?' : '/';
+    case KC::Semicolon: return shift ? ':' : ';';
+    case KC::Apostrophe: return shift ? '"' : '\'';
+    case KC::LeftBracket: return shift ? '{' : '[';
+    case KC::RightBracket: return shift ? '}' : ']';
+    case KC::Backslash: return shift ? '|' : '\\';
+    case KC::Grave: return shift ? '~' : '`';
+    default: return '\0';
+    }
+}
 
 class UIFRAMEWORK_API EventSystem {
 public:

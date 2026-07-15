@@ -13,11 +13,12 @@
 #include "Core/SwapchainManager.h"
 #include "Core/DeviceContext.h"
 #include "Resource/ResourceManager.h"
+#include "Platform/Types.h"
 
 namespace we::runtime::renderer {
 
 struct RendererInitOptions {
-    SDL_Window* window = nullptr;
+    we::platform::WindowId window = we::platform::WindowId::Invalid;
 };
 
 inline void InitializeRenderer(Renderer& renderer, const RendererInitOptions& options) {

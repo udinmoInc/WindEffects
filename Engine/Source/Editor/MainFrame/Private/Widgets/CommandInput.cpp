@@ -1,11 +1,12 @@
+#include "Platform/Platform.h"
 #include "Widgets/CommandInput.h"
+#include "Core/EventSystem.h"
 #include "Core/PaintContext.h"
 #include "Core/DPIContext.h"
 #include "Rendering/IconMetrics.h"
 #include "WindEffects/Editor/UI/Theming/ThemeToken.h"
 #include "WindEffects/Editor/UI/Theming/ThemeAccess.h"
 #include "Core/Icon.h"
-#include <SDL3/SDL.h>
 #include <algorithm>
 
 namespace WindEffects::Editor::UI {
@@ -80,7 +81,7 @@ void CommandInput::OnKeyDown(const KeyEvent& event) {
         return;
     }
 
-    if (event.keycode == SDLK_RETURN) {
+    if (event.key == we::platform::KeyCode::Enter) {
         if (!m_Text.empty() && m_OnCommandSubmitted) {
             m_OnCommandSubmitted(m_Text);
         }
@@ -89,13 +90,13 @@ void CommandInput::OnKeyDown(const KeyEvent& event) {
         return;
     }
 
-    if (event.keycode == SDLK_ESCAPE) {
+    if (event.key == we::platform::KeyCode::Escape) {
         m_Text.clear();
         m_CaretPosition = 0;
         return;
     }
 
-    if (event.keycode == SDLK_BACKSPACE) {
+    if (event.key == we::platform::KeyCode::Backspace) {
         if (m_CaretPosition > 0) {
             m_Text.erase(m_CaretPosition - 1, 1);
             --m_CaretPosition;
@@ -103,18 +104,18 @@ void CommandInput::OnKeyDown(const KeyEvent& event) {
         return;
     }
 
-    if (event.keycode == SDLK_LEFT && m_CaretPosition > 0) {
+    if (event.key == we::platform::KeyCode::Left && m_CaretPosition > 0) {
         --m_CaretPosition;
         return;
     }
 
-    if (event.keycode == SDLK_RIGHT && m_CaretPosition < m_Text.length()) {
+    if (event.key == we::platform::KeyCode::Right && m_CaretPosition < m_Text.length()) {
         ++m_CaretPosition;
         return;
     }
 
-    if (event.keycode >= 32 && event.keycode <= 126 && m_Text.length() < 128) {
-        m_Text.insert(m_CaretPosition, 1, static_cast<char>(event.keycode));
+    if (const char ch = KeyCodeToChar(event.key, event.shiftDown); ch != '\0' && m_Text.length() < 128) {
+        m_Text.insert(m_CaretPosition, 1, ch);
         ++m_CaretPosition;
     }
 }

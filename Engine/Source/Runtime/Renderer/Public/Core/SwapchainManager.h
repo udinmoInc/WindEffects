@@ -1,8 +1,10 @@
 #pragma once
 
 #include <volk.h>
-#include <SDL3/SDL.h>
 #include <vector>
+
+#include "Platform/NativeHandle.h"
+#include "Platform/Types.h"
 
 namespace we::runtime::renderer {
 
@@ -11,7 +13,8 @@ class FrameSync;
 
 struct SwapchainManagerConfig {
     DeviceContext* deviceContext = nullptr;
-    SDL_Window* window = nullptr;
+    we::platform::WindowId window = we::platform::WindowId::Invalid;
+    we::platform::NativeWindowHandle nativeWindow{};
     bool vsync = true;
 };
 

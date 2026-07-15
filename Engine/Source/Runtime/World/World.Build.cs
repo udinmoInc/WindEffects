@@ -15,6 +15,7 @@ public class World : ModuleRules
         PrivateIncludePaths.Add("Environment");
 
         PublicDependencies.Add("Core");
+        PublicDependencies.Add("Platform");
         PublicDependencies.Add("CoreUObject");
         PublicDependencies.Add("Engine");
         PublicDependencies.Add("Scene");

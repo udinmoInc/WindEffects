@@ -13,6 +13,7 @@ public class Text : ModuleRules
         PrivateIncludePaths.Add("Private");
 
         PublicDependencies.Add("Core");
+        PublicDependencies.Add("Platform");
         PublicDependencies.Add("Renderer");
 
         var thirdPartyRoot = Path.Combine(context.EngineDirectory, "ThirdParty");

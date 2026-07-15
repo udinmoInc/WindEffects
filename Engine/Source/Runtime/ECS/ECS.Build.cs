@@ -12,6 +12,7 @@ public class ECS : ModuleRules
         PrivateIncludePaths.Add("Private");
 
         PublicDependencies.Add("Core");
+        PublicDependencies.Add("Platform");
         PublicDependencies.Add("CoreUObject");
         PublicDependencies.Add("Engine");
 

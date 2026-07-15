@@ -1,9 +1,9 @@
 #pragma once
 
 #include <volk.h>
-#include <SDL3/SDL.h>
 #include <memory>
 
+#include "Platform/Types.h"
 #include "Renderer/Renderer.h"
 #include "EditorCamera.h"
 #include "Scene/Scene.h"
@@ -25,7 +25,7 @@ class RenderDebuggerPanel;
 namespace we::programs::editor {
 class Editor {
 public:
-    Editor(SDL_Window* window);
+    explicit Editor(we::platform::WindowId window);
     ~Editor();
 
     Editor(const Editor&) = delete;
@@ -39,7 +39,7 @@ private:
     void CreateNewLevel();
     void MaybeShowFirstRunAgreement();
 
-    SDL_Window* m_Window = nullptr;
+    we::platform::WindowId m_Window = we::platform::WindowId::Invalid;
     bool m_Running = true;
     bool m_FirstRunAgreementPending = false;
 
@@ -67,5 +67,4 @@ private:
     uint32_t m_LastLayoutSwapchainW = 0;
     uint32_t m_LastLayoutSwapchainH = 0;
 };
-
 } // namespace we::programs::editor

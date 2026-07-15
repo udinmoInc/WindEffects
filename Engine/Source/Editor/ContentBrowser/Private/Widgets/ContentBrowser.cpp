@@ -1,3 +1,4 @@
+#include "Platform/Platform.h"
 #include "Widgets/ContentBrowser.h"
 #include "Layout/ScrollViewport.h"
 #include "Controllers/FilterController.h"
@@ -12,7 +13,6 @@
 #include "WindEffects/Editor/UI/Theming/ThemeToken.h"
 #include "Core/Icon.h"
 #include "Core/UIRepaintGate.h"
-#include <SDL3/SDL.h>
 #include <algorithm>
 #include <cctype>
 #include <cmath>
@@ -497,7 +497,7 @@ void ContentBrowser::OnMouseDown(const MouseEvent& event) {
     RenderItem* renderItem = GetItemAtPosition(event.position);
 
     if (event.button == MouseButton::Left) {
-        const double now = SDL_GetTicks() / 1000.0;
+        const double now = we::platform::Platform::Get().GetTimeSeconds();
         const bool isDoubleClick = renderItem &&
             (now - m_LastClickTime) < 0.35 &&
             std::abs(event.position.x - m_LastClickPos.x) < 4.0f &&
@@ -646,8 +646,8 @@ void ContentBrowser::OnKeyDown(const KeyEvent& event) {
     }
     if (current < 0) current = 0;
 
-    if (event.keycode == SDLK_DOWN) current = std::min(current + 1, static_cast<int>(m_RenderList.size()) - 1);
-    else if (event.keycode == SDLK_UP) current = std::max(current - 1, 0);
+    if (event.key == we::platform::KeyCode::Down) current = std::min(current + 1, static_cast<int>(m_RenderList.size()) - 1);
+    else if (event.key == we::platform::KeyCode::Up) current = std::max(current - 1, 0);
     else return;
 
     m_Controller->SetSelectedId(m_RenderList[static_cast<size_t>(current)].item.id);

@@ -3,10 +3,10 @@
 #include "MainFrame/Export.h"
 
 #include "Core/Widget.h"
+#include "Platform/Types.h"
 namespace WindEffects::Editor::UI { class MenuBar; class ToolButton; }
 #include "Layout/Box.h"
 #include <volk.h>
-#include <SDL3/SDL.h>
 #include <string>
 
 namespace WindEffects::Editor::UI {
@@ -19,7 +19,7 @@ inline constexpr float kWindowControlCount      = 3.0f;
 
 class MAINFRAME_API TitleBar : public HorizontalBox {
 public:
-    TitleBar(SDL_Window* window, const std::string& title, VkDescriptorSet logoSet = VK_NULL_HANDLE, std::shared_ptr<MenuBar> menuBar = nullptr);
+    TitleBar(we::platform::WindowId window, const std::string& title, VkDescriptorSet logoSet = VK_NULL_HANDLE, std::shared_ptr<MenuBar> menuBar = nullptr);
     virtual ~TitleBar() = default;
 
     void Construct() override;
@@ -31,18 +31,14 @@ public:
     void OnMouseDown(const MouseEvent& event) override;
     void OnMouseMove(const MouseEvent& event) override;
 
-    SDL_HitTestResult HitTest(SDL_Point point);
+    we::platform::WindowHitTestResult HitTest(we::platform::Int2 point);
     void UpdateMaximizeIcon();
 
-    SDL_Window* m_Window = nullptr;
+    we::platform::WindowId m_Window = we::platform::WindowId::Invalid;
     std::string m_Title;
     VkDescriptorSet m_LogoSet = VK_NULL_HANDLE;
     std::shared_ptr<MenuBar> m_MenuBar = nullptr;
 
-    // Replaced explicit mock geometries with layout.
-    // We only keep the HitTest implementation
-    
-    // For HitTest, cache interactable widgets
     std::shared_ptr<Widget> m_LogoWidget;
     std::shared_ptr<Widget> m_MinimizeWidget;
     std::shared_ptr<Widget> m_MaximizeWidget;
@@ -54,4 +50,4 @@ public:
     std::shared_ptr<HorizontalBox> m_RightContainer;
 };
 
-} // namespace we::editor::mainframe::UI
+} // namespace WindEffects::Editor::UI

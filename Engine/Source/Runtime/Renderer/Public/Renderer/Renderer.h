@@ -6,12 +6,11 @@
 #include "Camera/CameraSystem.h"
 #include "Resource/DepthTarget.h"
 #include "Renderer/ViewportInterfaces.h"
+#include "Platform/Types.h"
 #include <functional>
 #include <memory>
 #include <cstdint>
 #include <volk.h>
-
-struct SDL_Window;
 
 namespace we::runtime::renderer {
 
@@ -33,7 +32,7 @@ public:
     Renderer();
     ~Renderer();
 
-    void Init(SDL_Window* window);
+    void Init(we::platform::WindowId window);
     void Shutdown();
 
     void RenderFrame();
@@ -102,7 +101,7 @@ private:
     std::unique_ptr<RenderGraph> m_RenderGraph;
     std::unique_ptr<SceneRenderer> m_SceneRenderer;
 
-    SDL_Window* m_Window = nullptr;
+    we::platform::WindowId m_Window = we::platform::WindowId::Invalid;
     uint32_t m_CurrentFrame = 0;
     uint32_t m_CurrentImageIndex = 0;
     bool m_FrameActive = false;

@@ -1,9 +1,8 @@
 #include "ViewportNavigation.h"
 #include "ViewportNavigationSettings.h"
 #include "ViewportToolbarState.h"
+#include "Platform/Platform.h"
 
-#include <SDL3/SDL_mouse.h>
-#include <SDL3/SDL_hints.h>
 #include <algorithm>
 
 namespace WindEffects::Editor::UI {
@@ -21,12 +20,6 @@ we::runtime::engine::EditorCameraNavigationSettings ToCameraSettings(const we::p
     result.slowMultiplier = settings.slowMultiplier;
     result.scrollWheelSpeedMultiplier = settings.scrollWheelSpeedMultiplier;
     return result;
-}
-
-constexpr const char* kRelativeCursorVisibleHint = "SDL_MOUSE_RELATIVE_CURSOR_VISIBLE";
-
-void SetRelativeCursorVisible(bool visible) {
-    SDL_SetHint(kRelativeCursorVisibleHint, visible ? "1" : "0");
 }
 
 } // namespace
@@ -77,61 +70,38 @@ void ViewportNavigationController::SaveCursorPosition(const Point& position) {
 }
 
 void ViewportNavigationController::RestoreCursorPosition() {
-    if (!m_Window || !m_HasSavedCursorPos) {
+    if (m_Window == we::platform::WindowId::Invalid || !m_HasSavedCursorPos) {
         return;
     }
-
-    SDL_SetWindowMouseRect(m_Window, nullptr);
-    SDL_WarpMouseInWindow(m_Window, m_SavedCursorPos.x, m_SavedCursorPos.y);
+    we::platform::Platform::Get().SetMousePosition(
+        m_Window,
+        static_cast<int32_t>(m_SavedCursorPos.x),
+        static_cast<int32_t>(m_SavedCursorPos.y));
 }
 
 void ViewportNavigationController::CenterFlyCursor() {
-    if (!m_Window || m_ViewportRect.width <= 0.0f || m_ViewportRect.height <= 0.0f) {
+    if (m_Window == we::platform::WindowId::Invalid || m_ViewportRect.width <= 0.0f || m_ViewportRect.height <= 0.0f) {
         return;
     }
 
     const float centerX = m_ViewportRect.x + m_ViewportRect.width * 0.5f;
     const float centerY = m_ViewportRect.y + m_ViewportRect.height * 0.5f;
-    SDL_WarpMouseInWindow(m_Window, centerX, centerY);
-
-    const SDL_Rect mouseRect{
-        static_cast<int>(centerX),
-        static_cast<int>(centerY),
-        1,
-        1
-    };
-    SDL_SetWindowMouseRect(m_Window, &mouseRect);
+    we::platform::Platform::Get().SetMousePosition(
+        m_Window,
+        static_cast<int32_t>(centerX),
+        static_cast<int32_t>(centerY));
 }
 
 void ViewportNavigationController::ApplySystemCursor(ViewportCursorMode mode) {
-    static SDL_Cursor* defaultCursor = SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_DEFAULT);
-    static SDL_Cursor* crosshairCursor = SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_CROSSHAIR);
-    static SDL_Cursor* moveCursor = SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_MOVE);
-    static SDL_Cursor* zoomCursor = SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_NS_RESIZE);
-
-    SDL_Cursor* cursor = defaultCursor;
+    using SC = we::platform::SystemCursor;
+    SC cursor = SC::Arrow;
     switch (mode) {
-    case ViewportCursorMode::FlyLook:
-        cursor = defaultCursor;
-        break;
-    case ViewportCursorMode::Orbit:
-        cursor = crosshairCursor;
-        break;
-    case ViewportCursorMode::Pan:
-        cursor = moveCursor;
-        break;
-    case ViewportCursorMode::Zoom:
-        cursor = zoomCursor;
-        break;
-    case ViewportCursorMode::Default:
-    default:
-        cursor = defaultCursor;
-        break;
+    case ViewportCursorMode::Orbit: cursor = SC::Crosshair; break;
+    case ViewportCursorMode::Pan: cursor = SC::SizeAll; break;
+    case ViewportCursorMode::Zoom: cursor = SC::SizeNS; break;
+    default: cursor = SC::Arrow; break;
     }
-
-    if (cursor) {
-        SDL_SetCursor(cursor);
-    }
+    we::platform::Platform::Get().SetSystemCursor(cursor);
 }
 
 void ViewportNavigationController::UpdateCursorMode(bool altDown) {
@@ -155,7 +125,7 @@ void ViewportNavigationController::UpdateCursorMode(bool altDown) {
 }
 
 void ViewportNavigationController::BeginFlyLook(const Point& cursorPosition) {
-    if (!m_Camera || !m_Window || m_FlyLookActive) {
+    if (!m_Camera || m_Window == we::platform::WindowId::Invalid || m_FlyLookActive) {
         return;
     }
 
@@ -164,27 +134,27 @@ void ViewportNavigationController::BeginFlyLook(const Point& cursorPosition) {
     m_FlyLookActive = true;
     m_IgnoreNextFlyDelta = true;
     m_OrbitDragMode = OrbitDragMode::None;
-    SetRelativeCursorVisible(false);
-    SDL_HideCursor();
+    auto& platform = we::platform::Platform::Get();
+    platform.SetCursorVisible(false);
     CenterFlyCursor();
-    SDL_SetWindowRelativeMouseMode(m_Window, true);
+    platform.SetRelativeMouseMode(m_Window, true);
     m_CursorMode = ViewportCursorMode::FlyLook;
 }
 
 void ViewportNavigationController::EndFlyLook() {
-    if (!m_Camera || !m_Window || !m_FlyLookActive) {
+    if (!m_Camera || m_Window == we::platform::WindowId::Invalid || !m_FlyLookActive) {
         return;
     }
 
-    SDL_SetWindowRelativeMouseMode(m_Window, false);
-    SetRelativeCursorVisible(false);
+    auto& platform = we::platform::Platform::Get();
+    platform.SetRelativeMouseMode(m_Window, false);
     m_Camera->ExitFlyMode();
     m_FlyLookActive = false;
     RestoreCursorPosition();
     m_IgnoreNextFlyDelta = true;
     m_LastMousePos = m_SavedCursorPos;
     m_CursorMode = ViewportCursorMode::Default;
-    SDL_ShowCursor();
+    platform.SetCursorVisible(true);
     ApplySystemCursor(ViewportCursorMode::Default);
 }
 
@@ -327,7 +297,7 @@ void ViewportNavigationController::OnKeyDown(const KeyEvent& event) {
     auto& store = we::programs::editor::ViewportNavigationSettingsStore::Get();
     store.EnsureLoaded();
 
-    if (event.keycode == SDLK_F && store.GetSettings().focusOnSelection && m_Scene) {
+    if (event.key == we::platform::KeyCode::F && store.GetSettings().focusOnSelection && m_Scene) {
         const int selectedIndex = m_Scene->GetSelectedEntityIndex();
         if (selectedIndex >= 0 && selectedIndex < static_cast<int>(m_Scene->GetEntities().size())) {
             const glm::vec3 target = m_Scene->GetEntities()[static_cast<size_t>(selectedIndex)].Position;
@@ -342,23 +312,17 @@ void ViewportNavigationController::Tick(float deltaTime) {
         return;
     }
 
-    const bool* state = SDL_GetKeyboardState(nullptr);
-    bool keys[512] = { false };
-    keys[SDL_SCANCODE_W] = state[SDL_SCANCODE_W];
-    keys[SDL_SCANCODE_S] = state[SDL_SCANCODE_S];
-    keys[SDL_SCANCODE_A] = state[SDL_SCANCODE_A];
-    keys[SDL_SCANCODE_D] = state[SDL_SCANCODE_D];
-    keys[SDL_SCANCODE_E] = state[SDL_SCANCODE_E];
-    keys[SDL_SCANCODE_Q] = state[SDL_SCANCODE_Q];
-    keys[SDL_SCANCODE_UP] = state[SDL_SCANCODE_UP];
-    keys[SDL_SCANCODE_DOWN] = state[SDL_SCANCODE_DOWN];
-    keys[SDL_SCANCODE_LEFT] = state[SDL_SCANCODE_LEFT];
-    keys[SDL_SCANCODE_RIGHT] = state[SDL_SCANCODE_RIGHT];
-    keys[SDL_SCANCODE_LSHIFT] = state[SDL_SCANCODE_LSHIFT];
-    keys[SDL_SCANCODE_RSHIFT] = state[SDL_SCANCODE_RSHIFT];
-    keys[SDL_SCANCODE_LCTRL] = state[SDL_SCANCODE_LCTRL];
-    keys[SDL_SCANCODE_RCTRL] = state[SDL_SCANCODE_RCTRL];
-
+    auto& platform = we::platform::Platform::Get();
+    using KC = we::platform::KeyCode;
+    we::runtime::engine::EditorCameraFlyKeys keys{};
+    keys.forward = platform.IsKeyDown(KC::W) || platform.IsKeyDown(KC::Up);
+    keys.back = platform.IsKeyDown(KC::S) || platform.IsKeyDown(KC::Down);
+    keys.left = platform.IsKeyDown(KC::A) || platform.IsKeyDown(KC::Left);
+    keys.right = platform.IsKeyDown(KC::D) || platform.IsKeyDown(KC::Right);
+    keys.up = platform.IsKeyDown(KC::E);
+    keys.down = platform.IsKeyDown(KC::Q);
+    keys.boost = platform.IsKeyDown(KC::LeftShift) || platform.IsKeyDown(KC::RightShift);
+    keys.slow = platform.IsKeyDown(KC::LeftControl) || platform.IsKeyDown(KC::RightControl);
     m_Camera->ProcessFlyMovement(keys, deltaTime);
 }
 

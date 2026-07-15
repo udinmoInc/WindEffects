@@ -1,10 +1,11 @@
+#include "Platform/Platform.h"
 #include "Widgets/SearchBox.h"
+#include "Core/EventSystem.h"
 #include "Core/PaintContext.h"
 #include "WindEffects/Editor/UI/Panel/PanelChrome.h"
 #include "WindEffects/Editor/UI/Theming/ThemeToken.h"
 #include "Core/DPIContext.h"
 #include "Rendering/IconMetrics.h"
-#include <SDL3/SDL.h>
 #include <algorithm>
 
 namespace WindEffects::Editor::UI {
@@ -73,13 +74,13 @@ void SearchBox::OnKeyDown(const KeyEvent& event) {
     if (!IsFocused()) return;
 
     if (event.type == KeyEventType::KeyDown) {
-        if (event.keycode >= 32 && event.keycode <= 126) {
-            m_Text.insert(m_CaretPosition, 1, static_cast<char>(event.keycode));
+        if (const char ch = KeyCodeToChar(event.key, event.shiftDown); ch != '\0') {
+            m_Text.insert(m_CaretPosition, 1, ch);
             m_CaretPosition++;
             if (m_OnTextChanged) {
                 m_OnTextChanged(m_Text);
             }
-        } else if (event.keycode == SDLK_BACKSPACE) {
+        } else if (event.key == we::platform::KeyCode::Backspace) {
             if (m_CaretPosition > 0) {
                 m_Text.erase(m_CaretPosition - 1, 1);
                 m_CaretPosition--;
@@ -87,24 +88,24 @@ void SearchBox::OnKeyDown(const KeyEvent& event) {
                     m_OnTextChanged(m_Text);
                 }
             }
-        } else if (event.keycode == SDLK_DELETE) {
+        } else if (event.key == we::platform::KeyCode::Delete) {
             if (m_CaretPosition < m_Text.length()) {
                 m_Text.erase(m_CaretPosition, 1);
                 if (m_OnTextChanged) {
                     m_OnTextChanged(m_Text);
                 }
             }
-        } else if (event.keycode == SDLK_LEFT) {
+        } else if (event.key == we::platform::KeyCode::Left) {
             if (m_CaretPosition > 0) {
                 m_CaretPosition--;
             }
-        } else if (event.keycode == SDLK_RIGHT) {
+        } else if (event.key == we::platform::KeyCode::Right) {
             if (m_CaretPosition < m_Text.length()) {
                 m_CaretPosition++;
             }
-        } else if (event.keycode == SDLK_HOME) {
+        } else if (event.key == we::platform::KeyCode::Home) {
             m_CaretPosition = 0;
-        } else if (event.keycode == SDLK_END) {
+        } else if (event.key == we::platform::KeyCode::End) {
             m_CaretPosition = m_Text.length();
         }
     }

@@ -12,15 +12,12 @@ public class ContentBrowser : ModuleRules
         PrivateIncludePaths.Add("Private");
 
         PublicDependencies.Add("Core");
+        PublicDependencies.Add("Platform");
         PublicDependencies.Add("CoreUObject");
         PublicDependencies.Add("Engine");
         PublicDependencies.Add("UIFramework");
         PublicDependencies.Add("Renderer");
         PublicDependencies.Add("Text");
-
-        OptionalSDK("SDL3");
-        DefineIf(HasSDK("SDL3"), "WE_HAS_SDL3=1");
-        DefineIf(!HasSDK("SDL3"), "WE_HAS_SDL3=0");
 
         Definitions.Add("CONTENTBROWSER_EXPORTS");
     }

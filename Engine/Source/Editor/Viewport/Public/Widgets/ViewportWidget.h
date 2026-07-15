@@ -5,9 +5,8 @@
 #include <volk.h>
 #include "Core/Widget.h"
 #include "ViewportNavigation.h"
+#include "Platform/Types.h"
 #include <memory>
-
-struct SDL_Window;
 
 namespace we::runtime::renderer { class ISceneViewportController; }
 namespace we::runtime::renderer { class ResourceManager; }
@@ -36,7 +35,7 @@ public:
     // Must be called after the widget is owned by std::shared_ptr (AddChild uses shared_from_this).
     void Construct();
 
-    void SetWindow(SDL_Window* window);
+    void SetWindow(we::platform::WindowId window);
 
     Size Measure(const Size& availableSize) override;
     void Arrange(const Rect& allottedRect) override;

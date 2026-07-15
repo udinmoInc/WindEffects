@@ -1,3 +1,4 @@
+#include "Platform/Platform.h"
 #include "PlaceActors/PlaceActorsPanel.h"
 
 #include "PlaceActors/ActorsPanelLayout.h"
@@ -30,7 +31,6 @@
 #include <fstream>
 #include <sstream>
 
-#include <SDL3/SDL.h>
 
 namespace we::programs::editor {
 
@@ -990,7 +990,7 @@ void PlaceActorsPanel::OnMouseUp(const MouseEvent& event) {
 
     if (m_PendingDragItem && !m_DragStarted && event.button == MouseButton::Left) {
         const std::string toolId = m_PendingDragItem->toolId;
-        const double now = SDL_GetTicks() / 1000.0;
+        const double now = we::platform::Platform::Get().GetTimeSeconds();
         const bool isDoubleClick = toolId == m_LastClickToolId && (now - m_LastClickTime) < 0.35;
         if (isDoubleClick) {
             SpawnItem(toolId);
@@ -1040,7 +1040,7 @@ void PlaceActorsPanel::OnKeyDown(const KeyEvent& event) {
         return;
     }
 
-    if (event.keycode == SDLK_RETURN && m_FocusedIndex >= 0 && m_FocusedIndex < static_cast<int>(m_Layout.size())) {
+    if (event.key == we::platform::KeyCode::Enter && m_FocusedIndex >= 0 && m_FocusedIndex < static_cast<int>(m_Layout.size())) {
         const auto& entry = m_Layout[static_cast<size_t>(m_FocusedIndex)];
         if (entry.type == LayoutEntry::Type::Item) {
             SpawnItem(entry.toolId);
@@ -1049,19 +1049,19 @@ void PlaceActorsPanel::OnKeyDown(const KeyEvent& event) {
     }
 
     int step = 0;
-    if (event.keycode == SDLK_DOWN) {
+    if (event.key == we::platform::KeyCode::Down) {
         step = (m_ViewMode == PlaceActorsViewMode::Grid && m_FocusedIndex >= 0
             && m_FocusedIndex < static_cast<int>(m_Layout.size()))
             ? std::max(1, m_Layout[static_cast<size_t>(m_FocusedIndex)].gridColumns)
             : 1;
-    } else if (event.keycode == SDLK_UP) {
+    } else if (event.key == we::platform::KeyCode::Up) {
         step = (m_ViewMode == PlaceActorsViewMode::Grid && m_FocusedIndex >= 0
             && m_FocusedIndex < static_cast<int>(m_Layout.size()))
             ? -std::max(1, m_Layout[static_cast<size_t>(m_FocusedIndex)].gridColumns)
             : -1;
-    } else if (event.keycode == SDLK_RIGHT) {
+    } else if (event.key == we::platform::KeyCode::Right) {
         step = 1;
-    } else if (event.keycode == SDLK_LEFT) {
+    } else if (event.key == we::platform::KeyCode::Left) {
         step = -1;
     } else {
         return;

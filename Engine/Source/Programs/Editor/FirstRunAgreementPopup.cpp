@@ -1,3 +1,4 @@
+#include "Platform/Platform.h"
 #include "FirstRunAgreementPopup.h"
 #include "Core/EditorConfigPaths.h"
 #include "Core/Icon.h"
@@ -6,8 +7,6 @@
 #include "Core/DPIContext.h"
 #include "Core/Logger.h"
 
-#include <SDL3/SDL_clipboard.h>
-#include <SDL3/SDL_keycode.h>
 #include <algorithm>
 #include <cmath>
 #include <filesystem>
@@ -321,7 +320,7 @@ void FirstRunAgreementPopup::OnMouseUp(const WindEffects::Editor::UI::MouseEvent
     m_Scrollbar.dragging = false;
     
     if (copyClicked) {
-        SDL_SetClipboardText(m_RawContent.c_str());
+        we::platform::Platform::Get().SetClipboardText(m_RawContent.c_str());
     }
     
     // Defer callback execution to avoid use-after-free during event processing
@@ -357,38 +356,38 @@ void FirstRunAgreementPopup::OnMouseWheel(const WindEffects::Editor::UI::MouseEv
 }
 
 void FirstRunAgreementPopup::OnKeyDown(const WindEffects::Editor::UI::KeyEvent& event) {
-    if (event.ctrlDown && event.keycode == SDLK_C) {
-        SDL_SetClipboardText(m_RawContent.c_str());
+    if (event.ctrlDown && event.key == we::platform::KeyCode::C) {
+        we::platform::Platform::Get().SetClipboardText(m_RawContent.c_str());
         return;
     }
     
-    if (event.keycode == SDLK_ESCAPE) {
+    if (event.key == we::platform::KeyCode::Escape) {
         if (m_OnDeclined) m_OnDeclined();
         return;
     }
     
     const float lineHeight = GetFontSize(NodeType::Paragraph) * GetLineHeight(NodeType::Paragraph);
     
-    switch (event.keycode) {
-        case SDLK_PAGEUP:
+    switch (event.key) {
+        case we::platform::KeyCode::PageUp:
             ScrollPageUp();
             break;
-        case SDLK_PAGEDOWN:
+        case we::platform::KeyCode::PageDown:
             ScrollPageDown();
             break;
-        case SDLK_HOME:
+        case we::platform::KeyCode::Home:
             ScrollToTop();
             break;
-        case SDLK_END:
+        case we::platform::KeyCode::End:
             ScrollToBottom();
             break;
-        case SDLK_UP:
+        case we::platform::KeyCode::Up:
             ScrollBy(-lineHeight * 3.0f);
             break;
-        case SDLK_DOWN:
+        case we::platform::KeyCode::Down:
             ScrollBy(lineHeight * 3.0f);
             break;
-        case SDLK_SPACE:
+        case we::platform::KeyCode::Space:
             if (event.shiftDown) ScrollPageUp();
             else ScrollPageDown();
             break;

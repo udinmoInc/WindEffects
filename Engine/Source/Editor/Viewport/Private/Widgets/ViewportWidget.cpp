@@ -10,7 +10,6 @@
 #include "Rendering/ViewportRenderTarget.h"
 #include "Core/LogCategory.h"
 #include "Core/DiagnosticMacros.h"
-#include <SDL3/SDL_keyboard.h>
 #include <algorithm>
 #include <glm/glm.hpp>
 
@@ -64,7 +63,7 @@ ViewportWidget::~ViewportWidget() {
     WE_LOG_INFO(we::LogCategory::Renderer.data(), "[ViewportWidget] Destroyed.");
 }
 
-void ViewportWidget::SetWindow(SDL_Window* window) {
+void ViewportWidget::SetWindow(we::platform::WindowId window) {
     m_Navigation.SetWindow(window);
 }
 
@@ -256,7 +255,7 @@ void ViewportWidget::OnMouseWheel(const MouseEvent& event) {
 
 void ViewportWidget::OnKeyDown(const KeyEvent& event) {
 #if WE_DEBUG_UI
-    if (event.type == KeyEventType::KeyDown && event.keycode == SDLK_F8 && m_GraphicsDebugger) {
+    if (event.type == KeyEventType::KeyDown && event.key == we::platform::KeyCode::F8 && m_GraphicsDebugger) {
         m_GraphicsDebugger->SetVisible(!m_GraphicsDebugger->IsVisible());
         return;
     }

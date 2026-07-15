@@ -14,14 +14,9 @@ public class Engine : ModuleRules
 
         PublicDependencies.Add("Core");
         PublicDependencies.Add("CoreUObject");
+        PublicDependencies.Add("Platform");
 
-        // WE_HAS_GLM comes from global feature flags when glm is bootstrapped.
-        // Never force WE_HAS_GLM=0 here — it overrides the global flag and breaks EditorCamera ABI.
         AddOptionalThirdParty("glm");
-
-        OptionalSDK("SDL3");
-        DefineIf(HasSDK("SDL3"), "WE_HAS_SDL3=1");
-        DefineIf(!HasSDK("SDL3"), "WE_HAS_SDL3=0");
 
         Definitions.Add("ENGINE_EXPORTS");
     }

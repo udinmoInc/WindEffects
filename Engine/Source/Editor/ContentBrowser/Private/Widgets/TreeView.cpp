@@ -1,4 +1,6 @@
+#include "Platform/Platform.h"
 #include "Widgets/TreeView.h"
+#include "Core/EventSystem.h"
 #include "Layout/OverlayManager.h"
 #include "Layout/ScrollViewport.h"
 #include "Services/ContentBrowserFolderArt.h"
@@ -13,7 +15,6 @@
 #include <algorithm>
 #include <cmath>
 #include <functional>
-#include <SDL3/SDL.h>
 
 namespace WindEffects::Editor::UI {
 
@@ -466,8 +467,9 @@ void TreeView::OnMouseUp(const MouseEvent& event) {
         return;
     }
 
-    const uint64_t now = SDL_GetPerformanceCounter();
-    const uint64_t freq = SDL_GetPerformanceFrequency();
+    const auto& platform = we::platform::Platform::Get();
+    const uint64_t now = platform.GetHighResolutionCounter();
+    const uint64_t freq = platform.GetHighResolutionFrequency();
     const double elapsed = static_cast<double>(now - lastClickTime) / static_cast<double>(freq);
 
     if (item->node->id == lastClickedId && elapsed < 0.3) {
@@ -539,25 +541,25 @@ void TreeView::SetZoomLevel(float zoomLevel) {
 
 void TreeView::OnKeyDown(const KeyEvent& event) {
     if (!m_RenamingId.empty()) {
-        if (event.keycode == SDLK_ESCAPE) {
+        if (event.key == we::platform::KeyCode::Escape) {
             CancelRename();
             return;
         }
-        if (event.keycode == SDLK_RETURN || event.keycode == SDLK_KP_ENTER) {
+        if (event.key == we::platform::KeyCode::Enter || event.key == we::platform::KeyCode::NumpadEnter) {
             CommitRename();
             return;
         }
-        if (event.keycode == SDLK_BACKSPACE && !m_RenameBuffer.empty()) {
+        if (event.key == we::platform::KeyCode::Backspace && !m_RenameBuffer.empty()) {
             m_RenameBuffer.pop_back();
             return;
         }
-        if (event.keycode >= 32 && event.keycode <= 126 && m_RenameBuffer.size() < 96) {
-            m_RenameBuffer.push_back(static_cast<char>(event.keycode));
+        if (const char ch = KeyCodeToChar(event.key, event.shiftDown); ch != '\0' && m_RenameBuffer.size() < 96) {
+            m_RenameBuffer.push_back(ch);
         }
         return;
     }
 
-    if (event.keycode == SDLK_F2 && !m_SelectedIds.empty()) {
+    if (event.key == we::platform::KeyCode::F2 && !m_SelectedIds.empty()) {
         BeginRename(m_SelectedIds.back());
     }
 }
