@@ -10,7 +10,7 @@
 #include <thread>
 #include <unordered_map>
 #include <unordered_set>
-#include <volk.h>
+#include "RHI/Types.h"
 
 namespace we::editor::contentbrowser {
 
@@ -44,11 +44,11 @@ public:
     void Invalidate(const std::string& id);
     void InvalidateAll();
 
-    VkDescriptorSet GetCachedTexture(const std::string& id) const;
+    we::rhi::RHIDescriptorSetHandle GetCachedTexture(const std::string& id) const;
     bool HasCachedTexture(const std::string& id) const;
 
-    void ProcessCompletedRequests(std::function<VkDescriptorSet(const BitmapRGBA&)> uploader,
-                                  std::function<void(const std::string&, VkDescriptorSet)> onComplete);
+    void ProcessCompletedRequests(std::function<we::rhi::RHIDescriptorSetHandle(const BitmapRGBA&)> uploader,
+                                  std::function<void(const std::string&, we::rhi::RHIDescriptorSetHandle)> onComplete);
 
 private:
     void WorkerThread();
@@ -68,7 +68,7 @@ private:
     std::queue<ThumbnailResult> m_ResultQueue;
     std::mutex m_ResultMutex;
 
-    std::unordered_map<std::string, VkDescriptorSet> m_MemoryCache;
+    std::unordered_map<std::string, we::rhi::RHIDescriptorSetHandle> m_MemoryCache;
     mutable std::mutex m_CacheMutex;
 
     std::atomic<bool> m_Running{true};

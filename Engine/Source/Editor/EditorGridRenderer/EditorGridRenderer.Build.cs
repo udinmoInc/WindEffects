@@ -16,10 +16,6 @@ public class EditorGridRenderer : ModuleRules
         PublicDependencies.Add("Engine");
         PublicDependencies.Add("UIFramework");
 
-        OptionalSDK("VulkanSDK");
-        DefineIf(HasSDK("VulkanSDK"), "WE_HAS_VULKAN=1");
-        DefineIf(!HasSDK("VulkanSDK"), "WE_HAS_VULKAN=0");
-
         Definitions.Add("EDITORGRIDRENDERER_EXPORTS");
     }
 }

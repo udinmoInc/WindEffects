@@ -1,16 +1,12 @@
 #include "CrashReporterApp.h"
 #include "CrashReporterUI.h"
-#include "Runtime/Renderer/Public/Core/DeviceContext.h"
-#include "Runtime/Renderer/Public/Renderer/Renderer.h"
-#include "Runtime/Renderer/Public/Shader/ShaderLibrary.h"
-#include "Runtime/Renderer/Public/Graph/RenderGraph.h"
+#include "Renderer/Renderer.h"
 #include "Rendering/OverlayRenderer.h"
 #include "Rendering/OverlayRenderContext.h"
 #include "Core/EventSystem.h"
 #include "Runtime/Core/AssetRegistry.h"
 #include "Core/Logger.h"
 #include "Platform/PlatformSDK.h"
-#include <filesystem>
 #include <variant>
 
 namespace we::programs::crashreporter {
@@ -18,48 +14,14 @@ namespace we::programs::crashreporter {
 CrashReporterApp::CrashReporterApp(we::platform::WindowId window) : m_Window(window) {
     HE_INFO("[CrashReporterApp] Constructor started");
 
-    const auto native = we::platform::Platform::Get().GetNativeWindowHandle(m_Window);
-
-    we::runtime::renderer::DeviceContextConfig deviceConfig;
-    deviceConfig.nativeWindow = native;
-    deviceConfig.appName = "CrashReporter";
-    deviceConfig.enableValidationLayers = false;
-    m_Context = std::make_shared<we::runtime::renderer::DeviceContext>();
-    m_Context->Init(deviceConfig);
-
     m_Renderer = std::make_shared<we::runtime::renderer::Renderer>();
     m_Renderer->Init(m_Window);
-    m_RenderGraph = std::make_shared<we::runtime::renderer::RenderGraph>();
-    m_RenderGraph->Init(m_Renderer.get());
-
-    std::string shaderRoot = "Engine/Shaders";
-    std::string bytecodeRoot = "Assets/Shaders";
-    for (const char* candidate : {"Engine/Shaders", "../Engine/Shaders", "../../Engine/Shaders"}) {
-        if (std::filesystem::exists(candidate)) {
-            shaderRoot = candidate;
-            break;
-        }
-    }
-    for (const char* candidate : {
-             "Engine/Shaders/Bytecodes", "Assets/Shaders", "../Assets/Shaders", "Shaders"}) {
-        if (std::filesystem::exists(candidate)) {
-            bytecodeRoot = candidate;
-            break;
-        }
-    }
-    we::runtime::renderer::ShaderLibrary::Get().Initialize(shaderRoot, bytecodeRoot);
     we::core::AssetRegistry::Get().LoadDefaultEditorAssets();
 
     m_UIRenderer = std::make_unique<WindEffects::Editor::UI::OverlayRenderer>();
-    m_UIRenderer->Init(
-        m_Context->GetPhysicalDevice(),
-        m_Context->GetDevice(),
-        m_Context->GetGraphicsQueue(),
-        m_Context->GetGraphicsQueueFamily(),
-        m_Renderer->GetSwapchainImageFormat(),
-        2,
-        m_Context.get(),
-        m_Renderer->GetResourceManager());
+    if (m_Renderer->IsGpuReady()) {
+        m_UIRenderer->Init(m_Renderer->GetRHIDevice(), m_Renderer->GetSwapchainFormat(), 2);
+    }
 
     m_UIEventSystem = std::make_shared<WindEffects::Editor::UI::EventSystem>();
     m_UI = std::make_shared<CrashReporterUI>();
@@ -147,16 +109,14 @@ void CrashReporterApp::MainLoop() {
         m_UI->Tick(dt);
 
         if (m_Renderer->BeginFrame()) {
-            VkCommandBuffer cmd = m_Renderer->GetCommandBuffer();
-
             m_UIRenderer->SetTargetExtent(
                 m_Renderer->GetSwapchainWidth(),
                 m_Renderer->GetSwapchainHeight());
 
             we::editor::rendering::OverlayRenderContext context;
-            context.cmd = cmd;
-            context.targetView = VK_NULL_HANDLE;
-            context.targetFormat = m_Renderer->GetSwapchainImageFormat();
+            context.cmd = m_Renderer->GetFrameCommandList();
+            context.targetView = we::rhi::RHITextureViewHandle::Invalid;
+            context.targetFormat = m_Renderer->GetSwapchainFormat();
             context.targetExtent = { m_Renderer->GetSwapchainWidth(), m_Renderer->GetSwapchainHeight() };
 
             m_UIRenderer->BeginOverlayPass(context);
@@ -169,18 +129,16 @@ void CrashReporterApp::MainLoop() {
 }
 
 void CrashReporterApp::Shutdown() {
-    if (m_Context) {
-        m_Context->Shutdown();
-    }
     m_UIEventSystem.reset();
     m_UI.reset();
     if (m_UIRenderer) {
         m_UIRenderer->Shutdown();
-        m_RenderGraph.reset();
         m_UIRenderer.reset();
     }
-    m_Renderer.reset();
-    m_Context.reset();
+    if (m_Renderer) {
+        m_Renderer->Shutdown();
+        m_Renderer.reset();
+    }
 }
 
 }

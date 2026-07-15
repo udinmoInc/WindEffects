@@ -15,16 +15,13 @@ public class UIFramework : ModuleRules
         PublicDependencies.Add("Core");
         PublicDependencies.Add("CoreUObject");
         PublicDependencies.Add("Platform");
+        PublicDependencies.Add("RHI");
         PublicDependencies.Add("Engine");
         PublicDependencies.Add("Renderer");
         PublicDependencies.Add("Scene");
         PublicDependencies.Add("World");
         PublicDependencies.Add("Text");
         PublicDependencies.Add("Icons");
-
-        OptionalSDK("VulkanSDK");
-        DefineIf(HasSDK("VulkanSDK"), "WE_HAS_VULKAN=1");
-        DefineIf(!HasSDK("VulkanSDK"), "WE_HAS_VULKAN=0");
 
         var thirdPartyRoot = Path.Combine(context.EngineDirectory, "ThirdParty");
         PublicIncludePaths.Add(Path.Combine(thirdPartyRoot, "lunasvg", "include"));

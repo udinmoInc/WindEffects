@@ -1,16 +1,10 @@
 #pragma once
 
-#if WE_HAS_VULKAN
+#include "RHI/IRHI.h"
+#include "RHI/Types.h"
 
-#include <volk.h>
 #include <cstdint>
 #include <memory>
-#include "Resource/DepthTarget.h"
-
-namespace we::runtime::renderer {
-class ResourceManager;
-class DeviceContext;
-}
 
 namespace we::editor::viewport {
 
@@ -19,42 +13,25 @@ public:
     ViewportRenderTarget() = default;
     ~ViewportRenderTarget();
 
-    ViewportRenderTarget(const ViewportRenderTarget&) = delete;
-    ViewportRenderTarget& operator=(const ViewportRenderTarget&) = delete;
-
-    void Init(we::runtime::renderer::DeviceContext* deviceContext,
-              we::runtime::renderer::ResourceManager* resourceManager,
-              VkFormat colorFormat);
+    bool Init(we::rhi::IRHIDevice* device, we::rhi::Format colorFormat);
     void Shutdown();
-
     void Resize(uint32_t width, uint32_t height);
 
-    VkImage GetColorImage() const { return m_ColorImage; }
-    VkImageView GetColorImageView() const { return m_ColorImageView; }
-    VkFormat GetColorFormat() const { return m_ColorFormat; }
-    we::runtime::renderer::DepthTarget* GetDepthTarget() const { return m_DepthTarget.get(); }
-    uint32_t GetWidth() const { return m_Width; }
-    uint32_t GetHeight() const { return m_Height; }
+    [[nodiscard]] we::rhi::RHITextureHandle GetColorTexture() const { return m_ColorTexture; }
+    [[nodiscard]] we::rhi::RHITextureHandle GetDepthTexture() const { return m_DepthTexture; }
+    [[nodiscard]] we::rhi::Format GetColorFormat() const { return m_ColorFormat; }
+    [[nodiscard]] uint32_t GetWidth() const { return m_Width; }
+    [[nodiscard]] uint32_t GetHeight() const { return m_Height; }
 
 private:
-    void DestroyColorResources();
-    void CreateColorResources();
+    void Recreate();
 
-    we::runtime::renderer::DeviceContext* m_DeviceContext = nullptr;
-    we::runtime::renderer::ResourceManager* m_ResourceManager = nullptr;
-    VkDevice m_Device = VK_NULL_HANDLE;
-    VkFormat m_ColorFormat = VK_FORMAT_UNDEFINED;
-    std::unique_ptr<we::runtime::renderer::DepthTarget> m_DepthTarget;
-
-    VkImage m_ColorImage = VK_NULL_HANDLE;
-    VkDeviceMemory m_ColorMemory = VK_NULL_HANDLE;
-    VkImageView m_ColorImageView = VK_NULL_HANDLE;
-
+    we::rhi::IRHIDevice* m_Device = nullptr;
+    we::rhi::RHITextureHandle m_ColorTexture = we::rhi::RHITextureHandle::Invalid;
+    we::rhi::RHITextureHandle m_DepthTexture = we::rhi::RHITextureHandle::Invalid;
+    we::rhi::Format m_ColorFormat = we::rhi::Format::R8G8B8A8_UNORM;
     uint32_t m_Width = 0;
     uint32_t m_Height = 0;
 };
 
 } // namespace we::editor::viewport
-
-#endif // WE_HAS_VULKAN
-

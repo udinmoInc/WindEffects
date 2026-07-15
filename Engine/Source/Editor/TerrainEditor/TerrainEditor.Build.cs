@@ -11,6 +11,7 @@ public class TerrainEditor : ModuleRules
 
         PublicDependencies.Add("Core");
         PublicDependencies.Add("Platform");
+        PublicDependencies.Add("RHI");
         PublicDependencies.Add("CoreUObject");
         PublicDependencies.Add("Engine");
         PublicDependencies.Add("Scene");

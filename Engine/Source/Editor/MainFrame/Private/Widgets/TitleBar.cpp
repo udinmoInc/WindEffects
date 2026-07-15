@@ -37,7 +37,7 @@ namespace {
     public:
         static constexpr float kSlotSize = 28.0f;
 
-        explicit LogoSlotWidget(VkDescriptorSet logoSet) : m_LogoSet(logoSet) {}
+        explicit LogoSlotWidget(we::rhi::RHIDescriptorSetHandle logoSet) : m_LogoSet(logoSet) {}
 
         Size Measure(const Size& availableSize) override {
             (void)availableSize;
@@ -63,14 +63,14 @@ namespace {
                 kTitleBarLogoDisplaySize
             };
 
-            if (m_LogoSet != VK_NULL_HANDLE) {
+            if ((m_LogoSet != we::rhi::RHIDescriptorSetHandle::Invalid)) {
                 context.DrawTexture(logoRect, m_LogoSet, ThemeColor(ThemeToken::IconPrimary));
             } else {
                 IconPainter::DrawIcon(context, Icons::CameraName, logoRect, ThemeColor(ThemeToken::IconPrimary));
             }
         }
     private:
-        VkDescriptorSet m_LogoSet;
+        we::rhi::RHIDescriptorSetHandle m_LogoSet;
     };
 
     class ProjectSelectorWidget : public Widget {
@@ -144,7 +144,7 @@ namespace {
     constexpr float kLogoToMenuGap = 8.0f;
 }
 
-TitleBar::TitleBar(we::platform::WindowId window, const std::string& title, VkDescriptorSet logoSet, std::shared_ptr<MenuBar> menuBar)
+TitleBar::TitleBar(we::platform::WindowId window, const std::string& title, we::rhi::RHIDescriptorSetHandle logoSet, std::shared_ptr<MenuBar> menuBar)
     : m_Window(window), m_Title(title), m_LogoSet(logoSet), m_MenuBar(menuBar)
 {
     SetPadding(Margin{ 0.0f, 0.0f, 0.0f, 0.0f });

@@ -218,7 +218,7 @@ void ContentBrowser::RequestVisibleThumbnails() {
     for (int i = m_FirstVisibleIndex; i <= m_LastVisibleIndex && i < static_cast<int>(m_RenderList.size()); ++i) {
         const auto& item = m_RenderList[static_cast<size_t>(i)].item;
         visibleIds.insert(item.id);
-        if (item.iconTexture == VK_NULL_HANDLE && !item.thumbnailRequested && !item.isFolder) {
+        if (item.iconTexture == we::rhi::RHIDescriptorSetHandle::Invalid && !item.thumbnailRequested && !item.isFolder) {
             m_OnItemNeedsThumbnail(item.id);
             if (m_Model) {
                 for (auto& orig : m_Model->items) {
@@ -261,7 +261,7 @@ void ContentBrowser::PaintAssetThumbnail(PaintContext& context, const Rect& thum
 
     if (IsBlueprintItem(item)) {
         ContentBrowserBlueprintArt::Get().PaintThumbnail(context, thumbRect, hovered);
-    } else if (item.iconTexture != VK_NULL_HANDLE) {
+    } else if (item.iconTexture != we::rhi::RHIDescriptorSetHandle::Invalid) {
         context.DrawTexture(thumbRect, item.iconTexture);
     } else {
         const float iconSize = std::min(thumbRect.width, thumbRect.height) * 0.42f;
@@ -387,7 +387,7 @@ void ContentBrowser::PaintListItem(PaintContext& context, const RenderItem& rend
         ContentBrowserFolderArt::Get().PaintSmallIcon(context, iconRect, hovered);
     } else if (IsBlueprintItem(item)) {
         ContentBrowserBlueprintArt::Get().PaintSmallIcon(context, iconRect, hovered);
-    } else if (item.iconTexture != VK_NULL_HANDLE) {
+    } else if (item.iconTexture != we::rhi::RHIDescriptorSetHandle::Invalid) {
         context.DrawTexture(iconRect, item.iconTexture);
     } else {
         IconPainter::DrawIcon(context, item.iconName, iconRect, ThemeColor(ThemeToken::IconPrimary));
@@ -449,7 +449,7 @@ void ContentBrowser::Paint(PaintContext& context) {
             Rect ghostRect{ m_MousePos.x - 40.0f, m_MousePos.y - 40.0f, 80.0f, 80.0f };
             context.DrawRoundedRect(ghostRect, ThemeColor(ThemeToken::DragGhostBackground), 4.0f);
             context.DrawRoundedRectOutline(ghostRect, ThemeColor(ThemeToken::AccentPrimary), 1.0f, 4.0f);
-            if (renderItem.item.iconTexture != VK_NULL_HANDLE) {
+            if (renderItem.item.iconTexture != we::rhi::RHIDescriptorSetHandle::Invalid) {
                 Rect iconRect{ ghostRect.x + 12.0f, ghostRect.y + 12.0f, 56.0f, 56.0f };
                 context.DrawTexture(iconRect, renderItem.item.iconTexture);
             }

@@ -2,8 +2,8 @@
 
 #include <string>
 #include <vector>
-#include <volk.h>
 #include <functional>
+#include "RHI/Types.h"
 
 namespace WindEffects::Editor::UI {
 
@@ -13,7 +13,7 @@ struct ContentItem {
     std::string type;
     std::string path;
     std::string iconName;
-    VkDescriptorSet iconTexture = VK_NULL_HANDLE;
+    we::rhi::RHIDescriptorSetHandle iconTexture = we::rhi::RHIDescriptorSetHandle::Invalid;
     bool isFolder = false;
     bool isFavorite = false;
     bool isDirty = false;

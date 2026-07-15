@@ -6,26 +6,20 @@
 #include "Rendering/Icons/AtlasCache.h"
 #include "Rendering/Icons/AtlasManager.h"
 
-#include <volk.h>
+#include "RHI/Types.h"
 #include <cstdint>
 #include <filesystem>
-#include <future>
 #include <memory>
 #include <mutex>
 #include <string>
 #include <unordered_set>
 
-namespace we::runtime::renderer {
-class DeviceContext;
-class ResourceManager;
-}
-
 namespace WindEffects::Editor::UI {
 
-class UiGpuUpload;
+class OverlayRenderer;
 
 struct IconDrawInfo {
-    VkDescriptorSet descriptorSet = VK_NULL_HANDLE;
+    we::rhi::RHIDescriptorSetHandle descriptorSet = we::rhi::RHIDescriptorSetHandle::Invalid;
     float uvMin[2] = {0.0f, 0.0f};
     float uvMax[2] = {1.0f, 1.0f};
     float shaderType = 0.0f;
@@ -38,11 +32,7 @@ public:
     ~IconManager();
 
     bool Init(
-        we::runtime::renderer::DeviceContext* context,
-        we::runtime::renderer::ResourceManager* resources,
-        UiGpuUpload* gpuUpload,
-        VkDescriptorPool descriptorPool,
-        VkDescriptorSetLayout textureLayout,
+        OverlayRenderer* renderer,
         const std::filesystem::path& metaPath,
         const std::filesystem::path& atlasRoot);
 

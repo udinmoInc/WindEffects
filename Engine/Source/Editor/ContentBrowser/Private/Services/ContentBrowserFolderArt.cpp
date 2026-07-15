@@ -38,16 +38,16 @@ WindEffects::Editor::UI::Rect ContentBrowserFolderArt::ComputeFolderRect(
     return WindEffects::Editor::UI::Rect{ x, y, width, height };
 }
 
-VkDescriptorSet ContentBrowserFolderArt::GetTexture(
+we::rhi::RHIDescriptorSetHandle ContentBrowserFolderArt::GetTexture(
     uint32_t widthPx, uint32_t heightPx, bool hovered, bool opened) const {
-    if (!m_Renderer || heightPx == 0 || widthPx == 0) return VK_NULL_HANDLE;
+    if (!m_Renderer || heightPx == 0 || widthPx == 0) return we::rhi::RHIDescriptorSetHandle::Invalid;
 
     const float dpi = std::max(1.0f, WindEffects::Editor::UI::DPIContext::GetScale());
     const uint32_t rasterHeight = std::max(16u, static_cast<uint32_t>(std::ceil(static_cast<float>(heightPx) * dpi)));
 
     const BitmapRGBA bitmap = ThumbnailRenderer::RenderContentBrowserFolder(
         rasterHeight, hovered ? 1.0f : 0.0f, opened);
-    if (bitmap.pixels.empty()) return VK_NULL_HANDLE;
+    if (bitmap.pixels.empty()) return we::rhi::RHIDescriptorSetHandle::Invalid;
 
     const std::string key = "cb_folder_v17_" + std::to_string(bitmap.width) + "x" + std::to_string(bitmap.height)
         + (hovered ? "_h" : "_n") + (opened ? "_o" : "_c");
@@ -55,8 +55,8 @@ VkDescriptorSet ContentBrowserFolderArt::GetTexture(
     auto it = m_Cache.find(key);
     if (it != m_Cache.end()) return it->second;
 
-    const VkDescriptorSet texture = m_Renderer->CreateTextureFromBitmap(bitmap.pixels, bitmap.width, bitmap.height);
-    if (texture != VK_NULL_HANDLE) {
+    const we::rhi::RHIDescriptorSetHandle texture = m_Renderer->CreateTextureFromBitmap(bitmap.pixels, bitmap.width, bitmap.height);
+    if ((texture != we::rhi::RHIDescriptorSetHandle::Invalid)) {
         m_Cache[key] = texture;
     }
     return texture;
@@ -66,8 +66,8 @@ void ContentBrowserFolderArt::PaintThumbnail(WindEffects::Editor::UI::PaintConte
     const WindEffects::Editor::UI::Rect folderRect = ComputeFolderRect(thumbRect);
     const uint32_t heightPx = static_cast<uint32_t>(std::ceil(folderRect.height));
     const uint32_t widthPx = static_cast<uint32_t>(std::ceil(folderRect.width));
-    const VkDescriptorSet texture = GetTexture(widthPx, heightPx, hovered, false);
-    if (texture != VK_NULL_HANDLE) {
+    const we::rhi::RHIDescriptorSetHandle texture = GetTexture(widthPx, heightPx, hovered, false);
+    if ((texture != we::rhi::RHIDescriptorSetHandle::Invalid)) {
         context.DrawColorTexture(folderRect, texture);
     }
 }
@@ -84,8 +84,8 @@ void ContentBrowserFolderArt::PaintSmallIcon(
 
     const uint32_t widthPx = static_cast<uint32_t>(folderRect.width);
     const uint32_t heightPx = static_cast<uint32_t>(folderRect.height);
-    const VkDescriptorSet texture = GetTexture(widthPx, heightPx, hovered, opened);
-    if (texture != VK_NULL_HANDLE) {
+    const we::rhi::RHIDescriptorSetHandle texture = GetTexture(widthPx, heightPx, hovered, opened);
+    if ((texture != we::rhi::RHIDescriptorSetHandle::Invalid)) {
         context.DrawColorTexture(folderRect, texture);
     }
 }

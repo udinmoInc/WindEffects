@@ -4,7 +4,7 @@ size: 1586, 134
 format: RGBA8888
 filter: Nearest, Nearest
 repeat: none
-Icons3DPlane
+Icons_3DPlane
   rotate: false
   xy: 2, 68
   size: 64, 64

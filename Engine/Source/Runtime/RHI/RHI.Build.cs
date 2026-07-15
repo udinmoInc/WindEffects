@@ -6,14 +6,16 @@ public class RHI : ModuleRules
     {
         Type = ModuleType.SharedLibrary;
 
+        BootstrapBinary();
+        SetBinaryName("WERHI.dll");
+
         PublicIncludePaths.Add("Public");
         PrivateIncludePaths.Add("Private");
 
         PublicDependencies.Add("Core");
         PublicDependencies.Add("Platform");
 
-        PublicIncludePaths.Add(System.IO.Path.Combine(context.EngineDirectory, "ThirdParty", "Vulkan-Headers", "include"));
-
+        // Public headers must stay free of Vulkan / DX / Metal / GL.
         Definitions.Add("RHI_EXPORTS");
     }
 }

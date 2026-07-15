@@ -11,6 +11,7 @@ public class Menus : ModuleRules
 
         PublicDependencies.Add("Core");
         PublicDependencies.Add("Platform");
+        PublicDependencies.Add("RHI");
         PublicDependencies.Add("UIFramework");
 
         Definitions.Add("MENUS_EXPORTS");

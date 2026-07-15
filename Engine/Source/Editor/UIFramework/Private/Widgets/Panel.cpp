@@ -15,7 +15,7 @@ Panel::Panel(const std::string& title)
     m_HeaderHeight = ThemeMetric(ThemeToken::PanelTabHeight);
 }
 
-void Panel::SetTabBrand(VkDescriptorSet descriptor, float logicalSize) {
+void Panel::SetTabBrand(we::rhi::RHIDescriptorSetHandle descriptor, float logicalSize) {
     m_TabBrandDescriptor = descriptor;
     m_TabBrandLogicalSize = logicalSize;
 }

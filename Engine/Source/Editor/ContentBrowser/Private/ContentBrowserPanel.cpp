@@ -134,7 +134,7 @@ void WireContentBrowser(
             statusBar->SetSelectedCount(browser->GetModel()->selectedIds.size());
         }
     });
-    service.SetOnThumbnailReady([browser](const std::string& id, VkDescriptorSet texture) {
+    service.SetOnThumbnailReady([browser](const std::string& id, we::rhi::RHIDescriptorSetHandle texture) {
         if (browser->GetController()) browser->GetController()->UpdateItemIcon(id, texture);
     });
 }

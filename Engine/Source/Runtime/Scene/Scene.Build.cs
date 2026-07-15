@@ -19,11 +19,8 @@ public class Scene : ModuleRules
         PublicDependencies.Add("ECS");
 
         AddOptionalThirdParty("glm");
-
-        // Add Vulkan SDK as optional dependency
-        OptionalSDK("VulkanSDK");
-        DefineIf(HasSDK("VulkanSDK"), "WE_HAS_VULKAN=1");
-        DefineIf(!HasSDK("VulkanSDK"), "WE_HAS_VULKAN=0");
+        DefineIf(HasThirdParty("glm"), "WE_HAS_GLM=1");
+        DefineIf(!HasThirdParty("glm"), "WE_HAS_GLM=0");
 
         Definitions.Add("SCENE_EXPORTS");
     }

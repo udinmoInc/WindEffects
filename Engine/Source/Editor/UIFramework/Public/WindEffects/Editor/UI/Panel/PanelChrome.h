@@ -3,7 +3,7 @@
 #include "WindEffects/Editor/UI/Export.h"
 #include "WindEffects/Editor/UI/Core/Types.h"
 #include "Core/PaintContext.h"
-#include <volk.h>
+#include "RHI/Types.h"
 #include <string>
 #include <vector>
 
@@ -37,7 +37,7 @@ struct DockTabDescriptor {
     std::string title;
     std::string iconName;
     bool hasBrand = false;
-    VkDescriptorSet brandDescriptor = VK_NULL_HANDLE;
+    we::rhi::RHIDescriptorSetHandle brandDescriptor = we::rhi::RHIDescriptorSetHandle::Invalid;
     float brandLogicalSize = 0.0f;
 };
 
@@ -77,7 +77,7 @@ UIFRAMEWORK_API void PaintFloatingPanelHeader(
     const std::string& title,
     const std::string& iconName,
     bool hasBrand,
-    VkDescriptorSet brandDescriptor,
+    we::rhi::RHIDescriptorSetHandle brandDescriptor,
     float brandLogicalSize,
     const std::vector<FloatingHeaderAction>& actions,
     bool showOptionsMenu,

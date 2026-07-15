@@ -1,28 +1,21 @@
 #pragma once
 
 #include "Core/Export.h"
+
+#include <cstdint>
 #include <string>
 #include <string_view>
 #include <unordered_map>
 #include <vector>
 
-#if WE_HAS_VULKAN
-#include <volk.h>
-#endif
-
 namespace we::core {
 
-#if WE_HAS_VULKAN
+// Opaque GPU texture bindings — NOT Vulkan/DX/Metal types.
+// Renderer/RHI map these to RHITextureViewHandle / RHISamplerHandle.
 struct AssetTexture {
-    VkImageView view = VK_NULL_HANDLE;
-    VkSampler sampler = VK_NULL_HANDLE;
+    uint64_t view = 0;
+    uint64_t sampler = 0;
 };
-#else
-struct AssetTexture {
-    void* view = nullptr;
-    void* sampler = nullptr;
-};
-#endif
 
 struct AssetLoadResult {
     std::string name;
@@ -39,11 +32,7 @@ class CORE_API AssetRegistry {
 public:
     static AssetRegistry& Get();
 
-#if WE_HAS_VULKAN
-    void RegisterTexture(std::string_view name, VkImageView view, VkSampler sampler);
-#else
-    void RegisterTexture(std::string_view name, void* view, void* sampler);
-#endif
+    void RegisterTexture(std::string_view name, uint64_t view, uint64_t sampler);
     AssetTexture GetTexture(std::string_view name) const;
 
     void RegisterFontPath(std::string_view name, std::string_view resolvedPath);
@@ -58,8 +47,6 @@ public:
     std::string GetIconAtlasRoot() const;
     std::string GetIconMetaPath() const;
 
-    /// Verifies default editor assets on disk and registers their resolved paths.
-    /// Returns false if any required asset is missing.
     bool LoadDefaultEditorAssets();
 
     const std::vector<AssetLoadResult>& GetLastLoadResults() const { return m_LastLoadResults; }

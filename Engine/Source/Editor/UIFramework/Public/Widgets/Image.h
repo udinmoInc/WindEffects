@@ -1,23 +1,22 @@
 #pragma once
 
 #include "WindEffects/Editor/UI/Export.h"
-
-#include <volk.h>
+#include "RHI/Types.h"
 #include "Core/Widget.h"
 
 namespace WindEffects::Editor::UI {
 
 class UIFRAMEWORK_API Image : public Widget {
 public:
-    Image(VkDescriptorSet textureId = VK_NULL_HANDLE);
+    Image(we::rhi::RHIDescriptorSetHandle textureId = we::rhi::RHIDescriptorSetHandle::Invalid);
     virtual ~Image() = default;
 
     Size Measure(const Size& availableSize) override;
     void Arrange(const Rect& allottedRect) override;
     void Paint(PaintContext& context) override;
 
-    void SetTexture(VkDescriptorSet textureId) { m_TextureId = textureId; }
-    VkDescriptorSet GetTexture() const { return m_TextureId; }
+    void SetTexture(we::rhi::RHIDescriptorSetHandle textureId) { m_TextureId = textureId; }
+    we::rhi::RHIDescriptorSetHandle GetTexture() const { return m_TextureId; }
 
     void SetSize(const Size& size) { m_CustomSize = size; m_UseCustomSize = true; }
     void SetWidth(float w) { m_CustomSize.width = w; m_UseCustomSize = true; }
@@ -27,7 +26,7 @@ public:
     void SetGradientTintColor(const Color& top, const Color& bottom) { m_TintColor = top; m_TintBottom = bottom; }
 
 private:
-    VkDescriptorSet m_TextureId = VK_NULL_HANDLE;
+    we::rhi::RHIDescriptorSetHandle m_TextureId = we::rhi::RHIDescriptorSetHandle::Invalid;
     Size m_CustomSize = { 64.0f, 64.0f };
     bool m_UseCustomSize = false;
     Color m_TintColor = Color::White();

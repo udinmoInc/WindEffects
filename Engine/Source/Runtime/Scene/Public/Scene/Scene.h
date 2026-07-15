@@ -2,11 +2,10 @@
 
 #include "Scene/Export.h"
 #include "Entity.h"
-#if WE_HAS_VULKAN
-#include <volk.h>
-#endif
+
 #include <cstdint>
 #include <memory>
+#include <string>
 #include <vector>
 
 namespace we::runtime::ecs {
@@ -45,7 +44,6 @@ public:
     std::uint64_t GetSelectedEntityId() const { return m_SelectedEntityId; }
     SCENE_API void SetSelectedEntityId(std::uint64_t id);
 
-    // ECS foundation — include ECSSDK.h / Registry.h to use the concrete types.
     SCENE_API we::runtime::ecs::Registry& Registry();
     SCENE_API const we::runtime::ecs::Registry& Registry() const;
     SCENE_API we::runtime::ecs::SystemScheduler& Systems();
@@ -53,18 +51,6 @@ public:
     SCENE_API void Update();
     SCENE_API void SyncLegacyToEcs();
     SCENE_API void SyncEcsToLegacy();
-
-#if WE_HAS_VULKAN
-    SCENE_API bool IsCameraBufferAssigned() const { return true; }
-#endif
-
-#if WE_HAS_VULKAN
-    enum class DrawMode {
-        Editor,
-        Game
-    };
-    SCENE_API void Draw(VkCommandBuffer cmd, DrawMode drawMode = DrawMode::Editor) const;
-#endif
 
 private:
     void AttachEcsComponents(Entity& entity, std::uint64_t ecsEntityId);

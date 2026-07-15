@@ -9,7 +9,7 @@
 #include <functional>
 #include <string>
 #include <vector>
-#include <volk.h>
+#include "RHI/Types.h"
 
 namespace WindEffects::Editor::UI {
 
@@ -18,7 +18,7 @@ struct TreeNode {
     std::string id;
     std::string label;
     std::string iconName;
-    VkDescriptorSet iconTexture = VK_NULL_HANDLE;
+    we::rhi::RHIDescriptorSetHandle iconTexture = we::rhi::RHIDescriptorSetHandle::Invalid;
     std::vector<std::shared_ptr<TreeNode>> children;
     bool expanded = true;
     bool visible = true;

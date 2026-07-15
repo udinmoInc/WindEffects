@@ -878,7 +878,6 @@ private:
 
 void InitializeEditor(
     const std::shared_ptr<Scene>& scene,
-    we::runtime::renderer::SceneRenderer* renderer,
     const std::shared_ptr<WindEffects::Editor::UI::TreeView>& outliner,
     const std::shared_ptr<WindEffects::Editor::UI::PropertyEditor>& details) {
 
@@ -887,7 +886,6 @@ void InitializeEditor(
     g_Details = details;
 
     EnvironmentSystem::Get().BindScene(scene);
-    EnvironmentSystem::Get().BindRenderer(renderer);
     EnvironmentSystem::Get().AddChangeListener([]() {
         RefreshOutliner();
         RefreshDetailsPanel();

@@ -72,7 +72,7 @@ public:
         m_Model->NotifyChanged();
     }
 
-    void UpdateItemIcon(const std::string& id, VkDescriptorSet textureId) {
+    void UpdateItemIcon(const std::string& id, we::rhi::RHIDescriptorSetHandle textureId) {
         if (!m_Model) return;
         bool changed = false;
         for (auto& item : m_Model->items) {

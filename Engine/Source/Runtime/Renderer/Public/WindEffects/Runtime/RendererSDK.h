@@ -1,19 +1,11 @@
 #pragma once
 
-// WindEffects Renderer SDK — rendering, shaders, and viewport control.
-// Prefer this header over including Renderer internals directly.
-
-#include "WindEffects/Platform.h"
-
 #include "Renderer/Renderer.h"
 #include "Renderer/ViewportInterfaces.h"
-#include "Graph/RenderGraph.h"
-#include "Scene/SceneRenderer.h"
-#include "Shader/ShaderLibrary.h"
-#include "Core/SwapchainManager.h"
-#include "Core/DeviceContext.h"
-#include "Resource/ResourceManager.h"
+#include "Camera/CameraUniform.h"
+#include "Resource/DepthTarget.h"
 #include "Platform/Types.h"
+#include "RHI/RHISDK.h"
 
 namespace we::runtime::renderer {
 

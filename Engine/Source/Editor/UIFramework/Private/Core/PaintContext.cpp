@@ -129,7 +129,7 @@ void PaintContext::DrawLine(const Point& start, const Point& end, const Color& c
     m_Commands.push_back(cmd);
 }
 
-void PaintContext::DrawTexture(const Rect& rect, VkDescriptorSet textureId, const Color& tint, const Color& tintBottom) {
+void PaintContext::DrawTexture(const Rect& rect, we::rhi::RHIDescriptorSetHandle textureId, const Color& tint, const Color& tintBottom) {
     DrawCommand cmd{};
     cmd.type = DrawCommandType::Texture;
     cmd.rect = rect;
@@ -140,7 +140,7 @@ void PaintContext::DrawTexture(const Rect& rect, VkDescriptorSet textureId, cons
     m_Commands.push_back(cmd);
 }
 
-void PaintContext::DrawColorTexture(const Rect& rect, VkDescriptorSet textureId, const Color& tint) {
+void PaintContext::DrawColorTexture(const Rect& rect, we::rhi::RHIDescriptorSetHandle textureId, const Color& tint) {
     DrawCommand cmd{};
     cmd.type = DrawCommandType::ColorTexture;
     cmd.rect = rect;

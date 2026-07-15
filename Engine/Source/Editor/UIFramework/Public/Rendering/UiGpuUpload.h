@@ -1,32 +1,24 @@
 #pragma once
 
-#include <volk.h>
-#include <functional>
+#include "RHI/IRHI.h"
+#include "RHI/Types.h"
 
-namespace we::runtime::renderer {
-class DeviceContext;
-class ResourceManager;
-}
+#include <functional>
 
 namespace WindEffects::Editor::UI {
 
-// One-shot command buffer uploads shared by UI texture resources.
+// Backend-agnostic one-shot GPU upload. Vulkan/DX details live in RHI backends.
 class UiGpuUpload {
 public:
-    void Init(we::runtime::renderer::DeviceContext* device, we::runtime::renderer::ResourceManager* resources);
+    void Init(we::rhi::IRHIDevice* device);
     void Shutdown();
 
-    void SubmitOneTime(const std::function<void(VkCommandBuffer)>& record);
+    void SubmitOneTime(const std::function<void(we::rhi::IRHICommandList&)>& record);
 
-    we::runtime::renderer::DeviceContext* GetDeviceContext() const { return m_Device; }
-    we::runtime::renderer::ResourceManager* GetResourceManager() const { return m_Resources; }
-    VkDevice GetDevice() const;
+    [[nodiscard]] we::rhi::IRHIDevice* GetDevice() const { return m_Device; }
 
 private:
-    we::runtime::renderer::DeviceContext* m_Device = nullptr;
-    we::runtime::renderer::ResourceManager* m_Resources = nullptr;
-    VkCommandPool m_CommandPool = VK_NULL_HANDLE;
-    VkFence m_Fence = VK_NULL_HANDLE;
+    we::rhi::IRHIDevice* m_Device = nullptr;
 };
 
 } // namespace WindEffects::Editor::UI

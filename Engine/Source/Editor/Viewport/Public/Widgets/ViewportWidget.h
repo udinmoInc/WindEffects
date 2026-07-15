@@ -1,19 +1,18 @@
 #pragma once
 
-#include "Viewport/Export.h"
+#include "RHI/IRHI.h"
+#include "RHI/Types.h"
 
-#include <volk.h>
+#include "Viewport/Export.h"
 #include "Core/Widget.h"
 #include "ViewportNavigation.h"
 #include "Platform/Types.h"
+
 #include <memory>
 
 namespace we::runtime::renderer { class ISceneViewportController; }
-namespace we::runtime::renderer { class ResourceManager; }
-namespace we::runtime::renderer { class DeviceContext; }
 namespace we::runtime::engine { class EditorCamera; }
 namespace we::runtime::scene { class Scene; }
-
 namespace we::editor::viewport { class ViewportRenderTarget; }
 
 namespace WindEffects::Editor::UI {
@@ -24,15 +23,13 @@ class GraphicsDebuggerPopup;
 class VIEWPORT_API ViewportWidget : public Widget {
 public:
     ViewportWidget(::we::runtime::renderer::ISceneViewportController* viewportController,
-                   ::we::runtime::renderer::DeviceContext* deviceContext,
-                   ::we::runtime::renderer::ResourceManager* resourceManager,
-                   VkFormat viewportColorFormat,
+                   we::rhi::IRHIDevice* device,
+                   we::rhi::Format viewportColorFormat,
                    const std::shared_ptr<::we::runtime::engine::EditorCamera>& camera,
                    const std::shared_ptr<::we::runtime::scene::Scene>& scene,
                    OverlayRenderer* uiRenderer = nullptr);
-    virtual ~ViewportWidget();
+    ~ViewportWidget() override;
 
-    // Must be called after the widget is owned by std::shared_ptr (AddChild uses shared_from_this).
     void Construct();
 
     void SetWindow(we::platform::WindowId window);
@@ -55,33 +52,30 @@ public:
     bool IsFlyLookActive() const { return m_Navigation.IsFlyLookActive(); }
     bool IsViewportNavigating() const { return m_Navigation.IsViewportNavigating(); }
 
-    // Exposes the owned offscreen color target for compositor sampling.
-    VkImageView GetViewportColorImageView() const;
+    we::rhi::RHITextureHandle GetViewportColorTexture() const;
 
 private:
     bool HitTestGizmoReset(const Point& position) const;
 
     ::we::runtime::renderer::ISceneViewportController* m_ViewportController = nullptr;
+    we::rhi::IRHIDevice* m_Device = nullptr;
+    we::rhi::Format m_ViewportColorFormat = we::rhi::Format::R8G8B8A8_UNORM;
     std::shared_ptr<::we::runtime::engine::EditorCamera> m_Camera;
     std::shared_ptr<::we::runtime::scene::Scene> m_Scene;
     OverlayRenderer* m_uiRenderer = nullptr;
     ViewportNavigationController m_Navigation;
 
-    VkDescriptorSet m_ViewportTextureSet = VK_NULL_HANDLE;
-
-    ::we::runtime::renderer::ResourceManager* m_ResourceManager = nullptr;
-    ::we::runtime::renderer::DeviceContext* m_DeviceContext = nullptr;
-    VkFormat m_ViewportColorFormat = VK_FORMAT_UNDEFINED;
+    we::rhi::RHIDescriptorSetHandle m_ViewportTextureSet = we::rhi::RHIDescriptorSetHandle::Invalid;
     std::unique_ptr<we::editor::viewport::ViewportRenderTarget> m_ViewportRenderTarget;
 
     float m_FPS = 0.0f;
     float m_FrameTime = 0.0f;
 
-    uint32_t m_PendingWidth  = 0;
+    uint32_t m_PendingWidth = 0;
     uint32_t m_PendingHeight = 0;
-    bool     m_ResizePending = false;
+    bool m_ResizePending = false;
 
-    bool     m_HasLastValidBlit = false;
+    bool m_HasLastValidBlit = false;
     uint32_t m_LastBlitX = 0;
     uint32_t m_LastBlitY = 0;
     uint32_t m_LastBlitW = 0;

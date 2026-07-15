@@ -95,10 +95,10 @@ void ThumbnailManager::InvalidateAll() {
     m_MemoryCache.clear();
 }
 
-VkDescriptorSet ThumbnailManager::GetCachedTexture(const std::string& id) const {
+we::rhi::RHIDescriptorSetHandle ThumbnailManager::GetCachedTexture(const std::string& id) const {
     std::lock_guard<std::mutex> lock(m_CacheMutex);
     auto it = m_MemoryCache.find(id);
-    return it != m_MemoryCache.end() ? it->second : VK_NULL_HANDLE;
+    return it != m_MemoryCache.end() ? it->second : we::rhi::RHIDescriptorSetHandle::Invalid;
 }
 
 bool ThumbnailManager::HasCachedTexture(const std::string& id) const {
@@ -107,8 +107,8 @@ bool ThumbnailManager::HasCachedTexture(const std::string& id) const {
 }
 
 void ThumbnailManager::ProcessCompletedRequests(
-    std::function<VkDescriptorSet(const BitmapRGBA&)> uploader,
-    std::function<void(const std::string&, VkDescriptorSet)> onComplete)
+    std::function<we::rhi::RHIDescriptorSetHandle(const BitmapRGBA&)> uploader,
+    std::function<void(const std::string&, we::rhi::RHIDescriptorSetHandle)> onComplete)
 {
     std::queue<ThumbnailResult> localResults;
     {
@@ -121,14 +121,14 @@ void ThumbnailManager::ProcessCompletedRequests(
         localResults.pop();
         if (!result.valid || !uploader) continue;
 
-        VkDescriptorSet existing = GetCachedTexture(result.id);
-        if (existing != VK_NULL_HANDLE) {
+        we::rhi::RHIDescriptorSetHandle existing = GetCachedTexture(result.id);
+        if ((existing != we::rhi::RHIDescriptorSetHandle::Invalid)) {
             if (onComplete) onComplete(result.id, existing);
             continue;
         }
 
-        VkDescriptorSet texture = uploader(result.bitmap);
-        if (texture == VK_NULL_HANDLE) continue;
+        we::rhi::RHIDescriptorSetHandle texture = uploader(result.bitmap);
+        if ((texture == we::rhi::RHIDescriptorSetHandle::Invalid)) continue;
 
         {
             std::lock_guard<std::mutex> lock(m_CacheMutex);

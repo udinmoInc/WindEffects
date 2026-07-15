@@ -1,16 +1,13 @@
 #pragma once
 
 #include "EditorGridRenderer/Export.h"
+#include "RHI/IRHI.h"
+#include "RHI/Types.h"
 
 #include <memory>
-#include <volk.h>
 
 namespace we::runtime::engine {
 class EditorCamera;
-}
-
-namespace we::runtime::renderer {
-class DeviceContext;
 }
 
 namespace we::editor::grid {
@@ -19,21 +16,17 @@ class EDITORGRIDRENDERER_API EditorGridRenderer {
 public:
     static EditorGridRenderer& Get();
 
-    void Initialize(we::runtime::renderer::DeviceContext* context,
-                    VkRenderPass renderPass,
-                    VkDescriptorSetLayout cameraDescLayout);
+    void Initialize(we::rhi::IRHIDevice* device);
     void Shutdown();
 
-    void Render(VkCommandBuffer commandBuffer,
-                VkDescriptorSet cameraDescriptorSet,
-                const we::runtime::engine::EditorCamera& camera) const;
+    void Render(we::rhi::IRHICommandList* commandList, const we::runtime::engine::EditorCamera& camera) const;
 
     bool IsInitialized() const { return m_Initialized; }
 
 private:
     EditorGridRenderer() = default;
 
-    we::runtime::renderer::DeviceContext* m_Context = nullptr;
+    we::rhi::IRHIDevice* m_Device = nullptr;
     bool m_Initialized = false;
 };
 

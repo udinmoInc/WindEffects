@@ -2,6 +2,7 @@
 #include "Widgets/GraphicsDebuggerPopup.h"
 #include "PlaceActors/PlaceActorsPlacement.h"
 #include "Renderer/Renderer.h"
+#include "RHI/Types.h"
 #include "EditorCamera.h"
 #include "Scene/Scene.h"
 #include "Core/PaintContext.h"
@@ -20,25 +21,24 @@
 namespace WindEffects::Editor::UI {
 
 ViewportWidget::ViewportWidget(::we::runtime::renderer::ISceneViewportController* viewportController,
-                               ::we::runtime::renderer::DeviceContext* deviceContext,
-                               ::we::runtime::renderer::ResourceManager* resourceManager,
-                               VkFormat viewportColorFormat,
+                               we::rhi::IRHIDevice* device,
+                               we::rhi::Format viewportColorFormat,
                                const std::shared_ptr<::we::runtime::engine::EditorCamera>& camera,
                                const std::shared_ptr<::we::runtime::scene::Scene>& scene,
                                OverlayRenderer* uiRenderer)
-    : m_ViewportController(viewportController),
-      m_ResourceManager(resourceManager),
-      m_DeviceContext(deviceContext),
-      m_ViewportColorFormat(viewportColorFormat),
-      m_Camera(camera),
-      m_Scene(scene),
-      m_uiRenderer(uiRenderer) {
+    : m_ViewportController(viewportController)
+    , m_Device(device)
+    , m_ViewportColorFormat(viewportColorFormat)
+    , m_Camera(camera)
+    , m_Scene(scene)
+    , m_uiRenderer(uiRenderer)
+{
     m_Navigation.SetCamera(camera);
     m_Navigation.SetScene(scene);
     m_Navigation.ApplySettingsFromStore();
 
     m_ViewportRenderTarget = std::make_unique<we::editor::viewport::ViewportRenderTarget>();
-    m_ViewportRenderTarget->Init(m_DeviceContext, m_ResourceManager, m_ViewportColorFormat);
+    m_ViewportRenderTarget->Init(m_Device, m_ViewportColorFormat);
 
 #if WE_DEBUG_UI
     m_GraphicsDebugger = std::make_shared<GraphicsDebuggerPopup>(nullptr, camera, scene);
@@ -49,18 +49,16 @@ void ViewportWidget::Construct() {
 #if WE_DEBUG_UI
     AddChild(m_GraphicsDebugger);
     if (m_GraphicsDebugger) {
-        // Debug HUD must never render unless explicitly enabled.
         m_GraphicsDebugger->SetVisible(false);
     }
 #endif
 }
 
 ViewportWidget::~ViewportWidget() {
-    if (m_uiRenderer && m_ViewportTextureSet != VK_NULL_HANDLE) {
+    if (m_uiRenderer && m_ViewportTextureSet != we::rhi::RHIDescriptorSetHandle::Invalid) {
         m_uiRenderer->UnregisterTexture(m_ViewportTextureSet);
-        m_ViewportTextureSet = VK_NULL_HANDLE;
+        m_ViewportTextureSet = we::rhi::RHIDescriptorSetHandle::Invalid;
     }
-    WE_LOG_INFO(we::LogCategory::Renderer.data(), "[ViewportWidget] Destroyed.");
 }
 
 void ViewportWidget::SetWindow(we::platform::WindowId window) {
@@ -78,7 +76,7 @@ void ViewportWidget::Arrange(const Rect& allottedRect) {
     m_Navigation.SetViewportRect(allottedRect);
 
     if (sizeChanged && allottedRect.width > 0.0f && allottedRect.height > 0.0f) {
-        m_PendingWidth  = static_cast<uint32_t>(allottedRect.width);
+        m_PendingWidth = static_cast<uint32_t>(allottedRect.width);
         m_PendingHeight = static_cast<uint32_t>(allottedRect.height);
         m_ResizePending = true;
     } else if (allottedRect.width <= 0.0f || allottedRect.height <= 0.0f) {
@@ -90,8 +88,8 @@ void ViewportWidget::Arrange(const Rect& allottedRect) {
             continue;
         }
         float compactHeight = 34.0f;
-        child->Measure(Size{ allottedRect.width, compactHeight });
-        child->Arrange(Rect{ allottedRect.x, allottedRect.y, allottedRect.width, compactHeight });
+        child->Measure(Size{allottedRect.width, compactHeight});
+        child->Arrange(Rect{allottedRect.x, allottedRect.y, allottedRect.width, compactHeight});
     }
 
     if (m_GraphicsDebugger && m_GraphicsDebugger->IsVisible()) {
@@ -100,43 +98,34 @@ void ViewportWidget::Arrange(const Rect& allottedRect) {
 }
 
 void ViewportWidget::FlushPendingResize() {
-    if (!m_ResizePending) return;
+    if (!m_ResizePending) {
+        return;
+    }
     m_ResizePending = false;
+    if (m_PendingWidth == 0 || m_PendingHeight == 0) {
+        return;
+    }
 
-    if (m_PendingWidth == 0 || m_PendingHeight == 0) return;
-
-    m_Camera->SetViewportSize(
-        static_cast<float>(m_PendingWidth),
-        static_cast<float>(m_PendingHeight)
-    );
+    m_Camera->SetViewportSize(static_cast<float>(m_PendingWidth), static_cast<float>(m_PendingHeight));
 
     if (m_ViewportController) {
         if (m_ViewportRenderTarget) {
             m_ViewportRenderTarget->Resize(m_PendingWidth, m_PendingHeight);
-            WE_LOG_INFO(
-                we::LogCategory::Renderer.data(),
-                std::string("[ViewportWidget] Resize target to ") +
-                std::to_string(m_PendingWidth) + "x" + std::to_string(m_PendingHeight) +
-                " colorImage=0x" + std::to_string(reinterpret_cast<uint64_t>(m_ViewportRenderTarget->GetColorImage())) +
-                " colorView=0x" + std::to_string(reinterpret_cast<uint64_t>(m_ViewportRenderTarget->GetColorImageView())) +
-                " depthTarget=0x" + std::to_string(reinterpret_cast<uint64_t>(m_ViewportRenderTarget->GetDepthTarget())));
-            m_ViewportController->SetViewportRenderTargetColor(
-                m_ViewportRenderTarget->GetColorImage(),
-                m_ViewportRenderTarget->GetColorImageView(),
-                m_ViewportRenderTarget->GetColorFormat());
-            m_ViewportController->SetViewportDepthTarget(m_ViewportRenderTarget->GetDepthTarget());
+            m_ViewportController->SetViewportRenderTargetColor(m_ViewportRenderTarget->GetColorTexture());
+            m_ViewportController->SetViewportDepthTarget(m_ViewportRenderTarget->GetDepthTexture());
         }
         m_ViewportController->SetViewportRenderTargetSize(m_PendingWidth, m_PendingHeight);
     }
 
-    if (m_uiRenderer && m_ViewportRenderTarget) {
-        const VkImageView colorView = m_ViewportRenderTarget->GetColorImageView();
-        const VkSampler sampler = m_uiRenderer->GetDefaultSampler();
-        if (colorView != VK_NULL_HANDLE && sampler != VK_NULL_HANDLE) {
-            if (m_ViewportTextureSet == VK_NULL_HANDLE) {
-                m_ViewportTextureSet = m_uiRenderer->RegisterTexture(colorView, sampler);
+    if (m_uiRenderer && m_ViewportController) {
+        const auto view = m_ViewportController->GetViewportColorView();
+        const auto sampler = m_ViewportController->GetViewportColorSampler();
+        if (view != we::rhi::RHITextureViewHandle::Invalid
+            && sampler != we::rhi::RHISamplerHandle::Invalid) {
+            if (m_ViewportTextureSet == we::rhi::RHIDescriptorSetHandle::Invalid) {
+                m_ViewportTextureSet = m_uiRenderer->RegisterTexture(view, sampler);
             } else {
-                m_uiRenderer->UpdateTexture(m_ViewportTextureSet, colorView, sampler);
+                m_uiRenderer->UpdateTexture(m_ViewportTextureSet, view, sampler);
             }
         }
     }
@@ -150,12 +139,10 @@ void ViewportWidget::SyncRendererViewport() {
     }
 
     if (m_Visible && m_Geometry.width > 0.0f && m_Geometry.height > 0.0f) {
-        const uint32_t width = static_cast<uint32_t>(m_Geometry.width);
-        const uint32_t height = static_cast<uint32_t>(m_Geometry.height);
         m_LastBlitX = static_cast<uint32_t>(m_Geometry.x);
         m_LastBlitY = static_cast<uint32_t>(m_Geometry.y);
-        m_LastBlitW = width;
-        m_LastBlitH = height;
+        m_LastBlitW = static_cast<uint32_t>(m_Geometry.width);
+        m_LastBlitH = static_cast<uint32_t>(m_Geometry.height);
         m_HasLastValidBlit = true;
         m_ViewportController->SetViewportBlitRect(m_LastBlitX, m_LastBlitY, m_LastBlitW, m_LastBlitH);
         return;
@@ -169,24 +156,38 @@ void ViewportWidget::SyncRendererViewport() {
     m_ViewportController->SetViewportBlitRect(0, 0, 0, 0);
 }
 
-VkImageView ViewportWidget::GetViewportColorImageView() const {
-    if (m_ViewportRenderTarget) {
-        return m_ViewportRenderTarget->GetColorImageView();
-    }
-    return VK_NULL_HANDLE;
+we::rhi::RHITextureHandle ViewportWidget::GetViewportColorTexture() const {
+    return m_ViewportRenderTarget ? m_ViewportRenderTarget->GetColorTexture()
+                                  : we::rhi::RHITextureHandle::Invalid;
 }
 
 bool ViewportWidget::HitTestGizmoReset(const Point& position) const {
-    Point gizmoCenter = Point{ m_Geometry.x + m_Geometry.width - 55.0f, m_Geometry.y + 55.0f };
+    Point gizmoCenter = Point{m_Geometry.x + m_Geometry.width - 55.0f, m_Geometry.y + 55.0f};
     float dx = position.x - gizmoCenter.x;
     float dy = position.y - gizmoCenter.y;
     return dx * dx + dy * dy <= 900.0f;
 }
 
 void ViewportWidget::Paint(PaintContext& context) {
-    if (!m_Visible) return;
+    if (!m_Visible) {
+        return;
+    }
 
-    if (m_ViewportTextureSet != VK_NULL_HANDLE
+    // Bind/update viewport RT after the scene backend creates/resizes the offscreen image.
+    if (m_uiRenderer && m_ViewportController) {
+        const auto view = m_ViewportController->GetViewportColorView();
+        const auto sampler = m_ViewportController->GetViewportColorSampler();
+        if (view != we::rhi::RHITextureViewHandle::Invalid
+            && sampler != we::rhi::RHISamplerHandle::Invalid) {
+            if (m_ViewportTextureSet == we::rhi::RHIDescriptorSetHandle::Invalid) {
+                m_ViewportTextureSet = m_uiRenderer->RegisterTexture(view, sampler);
+            } else {
+                m_uiRenderer->UpdateTexture(m_ViewportTextureSet, view, sampler);
+            }
+        }
+    }
+
+    if (m_ViewportTextureSet != we::rhi::RHIDescriptorSetHandle::Invalid
         && m_Geometry.width > 0.0f
         && m_Geometry.height > 0.0f) {
         context.DrawColorTexture(m_Geometry, m_ViewportTextureSet);
@@ -235,7 +236,6 @@ void ViewportWidget::OnMouseDown(const MouseEvent& event) {
 
 void ViewportWidget::OnMouseMove(const MouseEvent& event) {
     m_Navigation.OnMouseMove(event);
-
     for (auto& child : m_Children) {
         child->OnMouseMove(event);
     }
@@ -243,7 +243,6 @@ void ViewportWidget::OnMouseMove(const MouseEvent& event) {
 
 void ViewportWidget::OnMouseUp(const MouseEvent& event) {
     m_Navigation.OnMouseUp(event);
-
     for (auto& child : m_Children) {
         child->OnMouseUp(event);
     }

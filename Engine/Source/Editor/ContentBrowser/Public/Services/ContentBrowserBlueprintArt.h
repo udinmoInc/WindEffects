@@ -4,7 +4,7 @@
 #include <cstdint>
 #include <string>
 #include <unordered_map>
-#include <volk.h>
+#include "RHI/Types.h"
 
 namespace WindEffects::Editor::UI {
 class IconRenderer;
@@ -32,10 +32,10 @@ public:
         float widthFill = kThumbnailWidthFill, float heightFill = kThumbnailHeightFill);
 
 private:
-    VkDescriptorSet GetTexture(uint32_t heightPx, bool hovered) const;
+    we::rhi::RHIDescriptorSetHandle GetTexture(uint32_t heightPx, bool hovered) const;
 
     WindEffects::Editor::UI::IconRenderer* m_Renderer = nullptr;
-    mutable std::unordered_map<std::string, VkDescriptorSet> m_Cache;
+    mutable std::unordered_map<std::string, we::rhi::RHIDescriptorSetHandle> m_Cache;
 };
 
 } // namespace we::editor::contentbrowser

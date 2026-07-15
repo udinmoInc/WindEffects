@@ -1,42 +1,22 @@
 #pragma once
 
-#include "WindEffects/Editor/UI/Export.h"
-
-#include <volk.h>
-#include <memory>
+#include "RHI/IRHI.h"
+#include "RHI/Types.h"
 
 namespace WindEffects::Editor::UI {
 
-// UI compositor for final overlay pass (UE5 Slate-inspired)
-class UIFRAMEWORK_API UICompositor {
+class UICompositor {
 public:
-    UICompositor();
-    ~UICompositor();
-
-    bool Initialize(VkDevice device,
-                   VkPhysicalDevice physicalDevice,
-                   VkFormat swapchainFormat);
+    bool Initialize(we::rhi::IRHIDevice* device, we::rhi::Format format);
     void Shutdown();
 
-    // Compositing
-    void BeginComposite(VkCommandBuffer cmd, VkImageView swapchainView, 
-                       uint32_t width, uint32_t height,
-                       VkAttachmentLoadOp loadOp = VK_ATTACHMENT_LOAD_OP_LOAD);
-    void EndComposite(VkCommandBuffer cmd);
+    void BeginComposite(we::rhi::IRHICommandList* cmd, we::rhi::RHITextureViewHandle targetView,
+                        we::rhi::Extent2D extent);
+    void EndComposite(we::rhi::IRHICommandList* cmd);
 
 private:
-    void CreateRenderPass();
-    void CreateFramebuffer();
-
-    VkDevice m_Device;
-    VkPhysicalDevice m_PhysicalDevice;
-    VkFormat m_SwapchainFormat;
-
-    VkRenderPass m_RenderPass = VK_NULL_HANDLE;
-    VkFramebuffer m_Framebuffer = VK_NULL_HANDLE;
-
-    uint32_t m_Width;
-    uint32_t m_Height;
+    we::rhi::IRHIDevice* m_Device = nullptr;
+    we::rhi::Format m_Format = we::rhi::Format::Unknown;
 };
 
 } // namespace WindEffects::Editor::UI

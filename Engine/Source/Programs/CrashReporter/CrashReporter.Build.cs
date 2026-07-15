@@ -13,13 +13,10 @@ public class CrashReporter : ModuleRules
         PublicDependencies.Add("Engine");
         PublicDependencies.Add("Renderer");
         PublicDependencies.Add("Platform");
+        PublicDependencies.Add("RHI");
         PublicDependencies.Add("UIFramework");
 
         AddOptionalThirdParty("nlohmann_json");
-
-        OptionalSDK("VulkanSDK");
-        DefineIf(HasSDK("VulkanSDK"), "WE_HAS_VULKAN=1");
-        DefineIf(!HasSDK("VulkanSDK"), "WE_HAS_VULKAN=0");
 
         PlatformSettings.Windows ??= new WindowsSettings();
         PlatformSettings.Windows.Subsystem = "Windows";

@@ -1,4 +1,5 @@
 using IgniteBT.BuildSystem;
+using System.IO;
 
 public class Renderer : ModuleRules
 {
@@ -16,15 +17,10 @@ public class Renderer : ModuleRules
         PublicDependencies.Add("Platform");
         PublicDependencies.Add("RHI");
         PublicDependencies.Add("Engine");
-        PublicDependencies.Add("volk");
-        PublicDependencies.Add("vma");
-
-        OptionalSDK("VulkanSDK");
-        DefineIf(HasSDK("VulkanSDK") || true, "WE_HAS_VULKAN=1");
-
-        PublicIncludePaths.Add(System.IO.Path.Combine(context.EngineDirectory, "ThirdParty", "Vulkan-Headers", "include"));
 
         AddOptionalThirdParty("glm");
+        DefineIf(HasThirdParty("glm"), "WE_HAS_GLM=1");
+        DefineIf(!HasThirdParty("glm"), "WE_HAS_GLM=0");
 
         Definitions.Add("RENDERER_EXPORTS");
 

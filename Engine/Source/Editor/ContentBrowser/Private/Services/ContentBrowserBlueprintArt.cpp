@@ -38,8 +38,8 @@ WindEffects::Editor::UI::Rect ContentBrowserBlueprintArt::ComputeBlueprintRect(c
     };
 }
 
-VkDescriptorSet ContentBrowserBlueprintArt::GetTexture(uint32_t heightPx, bool hovered) const {
-    if (!m_Renderer || heightPx == 0) return VK_NULL_HANDLE;
+we::rhi::RHIDescriptorSetHandle ContentBrowserBlueprintArt::GetTexture(uint32_t heightPx, bool hovered) const {
+    if (!m_Renderer || heightPx == 0) return we::rhi::RHIDescriptorSetHandle::Invalid;
 
     const float dpi = std::max(1.0f, WindEffects::Editor::UI::DPIContext::GetScale());
     const uint32_t rasterHeight = std::max(16u, static_cast<uint32_t>(std::ceil(static_cast<float>(heightPx) * dpi)));
@@ -53,10 +53,10 @@ VkDescriptorSet ContentBrowserBlueprintArt::GetTexture(uint32_t heightPx, bool h
     if (it != m_Cache.end()) return it->second;
 
     const BitmapRGBA bitmap = ThumbnailRenderer::RenderContentBrowserBlueprint(rasterHeight, hovered ? 1.0f : 0.0f);
-    if (bitmap.pixels.empty()) return VK_NULL_HANDLE;
+    if (bitmap.pixels.empty()) return we::rhi::RHIDescriptorSetHandle::Invalid;
 
-    const VkDescriptorSet texture = m_Renderer->CreateTextureFromBitmap(bitmap.pixels, bitmap.width, bitmap.height);
-    if (texture != VK_NULL_HANDLE) {
+    const we::rhi::RHIDescriptorSetHandle texture = m_Renderer->CreateTextureFromBitmap(bitmap.pixels, bitmap.width, bitmap.height);
+    if ((texture != we::rhi::RHIDescriptorSetHandle::Invalid)) {
         m_Cache[key] = texture;
     }
     return texture;
@@ -65,8 +65,8 @@ VkDescriptorSet ContentBrowserBlueprintArt::GetTexture(uint32_t heightPx, bool h
 void ContentBrowserBlueprintArt::PaintThumbnail(WindEffects::Editor::UI::PaintContext& context, const WindEffects::Editor::UI::Rect& thumbRect, bool hovered) const {
     const WindEffects::Editor::UI::Rect blueprintRect = ComputeBlueprintRect(thumbRect);
     const uint32_t heightPx = static_cast<uint32_t>(std::ceil(blueprintRect.height));
-    const VkDescriptorSet texture = GetTexture(heightPx, hovered);
-    if (texture != VK_NULL_HANDLE) {
+    const we::rhi::RHIDescriptorSetHandle texture = GetTexture(heightPx, hovered);
+    if ((texture != we::rhi::RHIDescriptorSetHandle::Invalid)) {
         context.DrawTexture(blueprintRect, texture);
     }
 }
@@ -74,8 +74,8 @@ void ContentBrowserBlueprintArt::PaintThumbnail(WindEffects::Editor::UI::PaintCo
 void ContentBrowserBlueprintArt::PaintSmallIcon(WindEffects::Editor::UI::PaintContext& context, const WindEffects::Editor::UI::Rect& iconRect, bool hovered) const {
     const WindEffects::Editor::UI::Rect blueprintRect = ComputeBlueprintRect(iconRect, 0.88f, 0.88f);
     const uint32_t heightPx = static_cast<uint32_t>(std::ceil(blueprintRect.height));
-    const VkDescriptorSet texture = GetTexture(heightPx, hovered);
-    if (texture != VK_NULL_HANDLE) {
+    const we::rhi::RHIDescriptorSetHandle texture = GetTexture(heightPx, hovered);
+    if ((texture != we::rhi::RHIDescriptorSetHandle::Invalid)) {
         context.DrawTexture(blueprintRect, texture);
     }
 }

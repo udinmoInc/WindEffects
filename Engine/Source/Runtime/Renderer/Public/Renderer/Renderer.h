@@ -1,29 +1,21 @@
 #pragma once
 
-#pragma warning(disable: 4251)
+#pragma warning(disable : 4251)
 
 #include "Renderer/Export.h"
-#include "Camera/CameraSystem.h"
-#include "Resource/DepthTarget.h"
+#include "Camera/CameraUniform.h"
 #include "Renderer/ViewportInterfaces.h"
 #include "Platform/Types.h"
-#include <functional>
-#include <memory>
+#include "RHI/GpuBackends.h"
+#include "RHI/IRHI.h"
+#include "RHI/Types.h"
+
 #include <cstdint>
-#include <volk.h>
+#include <memory>
 
 namespace we::runtime::renderer {
 
 constexpr uint32_t kMaxFramesInFlight = 2;
-class DeviceContext;
-class SwapchainManager;
-class ResourceManager;
-class CommandContext;
-class FrameSync;
-class CameraSystem;
-class RenderGraph;
-class SceneRenderer;
-class GraphicsPipelineFactory;
 
 class RENDERER_API Renderer : public ISceneViewportController {
 public:
@@ -43,93 +35,68 @@ public:
     void UploadCameraUniform(const CameraUniform& uniform);
     void InsertOverlayPassBarrier();
 
-    // Presentation-path audit (acquire -> scene -> UI -> submit -> present).
-    void RecordUiPresentPath(uint32_t imageIndex, VkCommandBuffer cmd);
+    void RecordUiPresentPath(uint32_t imageIndex);
     void MarkOverlayPassEnded();
 
-    // Editor-facing viewport control (implements ISceneViewportController)
     void SetViewportRenderTargetSize(uint32_t width, uint32_t height) override;
     void SetViewportBlitRect(uint32_t x, uint32_t y, uint32_t width, uint32_t height) override;
-    void SetViewportRenderTargetColor(VkImage colorImage, VkImageView colorImageView, VkFormat colorFormat) override;
-    void SetViewportDepthTarget(DepthTarget* depthTarget) override;
+    void SetViewportRenderTargetColor(we::rhi::RHITextureHandle colorTexture) override;
+    void SetViewportDepthTarget(we::rhi::RHITextureHandle depthTexture) override;
+    [[nodiscard]] we::rhi::RHITextureViewHandle GetViewportColorView() const override;
+    [[nodiscard]] we::rhi::RHISamplerHandle GetViewportColorSampler() const override;
 
-    // Offscreen viewport render target accessors (used by editor compositor)
-    uint32_t GetViewportRenderTargetWidth() const { return m_ViewportTargetExtent.width; }
-    uint32_t GetViewportRenderTargetHeight() const { return m_ViewportTargetExtent.height; }
-    VkImage GetViewportColorImage() const { return m_ViewportColorImage; }
-    VkImageView GetViewportColorImageView() const { return m_ViewportColorImageView; }
-    VkFormat GetViewportColorFormat() const { return m_ViewportColorFormat; }
-    VkRect2D GetViewportBlitRect() const { return m_ViewportBlitRect; }
+    uint32_t GetViewportRenderTargetWidth() const { return m_ViewportTargetWidth; }
+    uint32_t GetViewportRenderTargetHeight() const { return m_ViewportTargetHeight; }
+    we::rhi::RHITextureHandle GetViewportColorTexture() const { return m_ViewportColorTexture; }
+    we::rhi::RHITextureHandle GetViewportDepthTexture() const { return m_ViewportDepthTexture; }
+    void GetViewportBlitRect(uint32_t& x, uint32_t& y, uint32_t& width, uint32_t& height) const;
 
-    DeviceContext* GetDeviceContext() const { return m_DeviceContext.get(); }
-    SwapchainManager* GetSwapchainManager() const { return m_SwapchainManager.get(); }
-    ResourceManager* GetResourceManager() const { return m_ResourceManager.get(); }
-    CommandContext* GetCommandContext() const { return m_CommandContext.get(); }
-    FrameSync* GetFrameSync() const { return m_FrameSync.get(); }
-    CameraSystem* GetCameraSystem() const { return m_CameraSystem.get(); }
-    RenderGraph* GetRenderGraph() const { return m_RenderGraph.get(); }
-    SceneRenderer* GetSceneRenderer() const { return m_SceneRenderer.get(); }
+    [[nodiscard]] we::rhi::IRHIDevice* GetRHIDevice() const { return m_RHIDevice.get(); }
+    [[nodiscard]] we::rhi::IRHICommandList* GetFrameCommandList() const { return m_FrameCmd; }
+    [[nodiscard]] void* GetNativeCommandBuffer() const {
+        return m_SceneBackend ? m_SceneBackend->GetNativeCommandBuffer() : nullptr;
+    }
+    [[nodiscard]] bool IsGpuReady() const;
+    [[nodiscard]] bool HasGpuScene() const { return m_SceneBackend != nullptr; }
 
-    VkCommandBuffer GetCommandBuffer() const;
-    VkBuffer GetCameraBuffer() const;
-    VkDescriptorSetLayout GetCameraDescLayout() const;
-    VkDescriptorSet GetCameraDescSet() const;
     uint32_t GetCurrentFrameIndex() const { return m_CurrentFrame; }
     uint32_t GetCurrentImageIndex() const { return m_CurrentImageIndex; }
     uint32_t GetSwapchainWidth() const;
     uint32_t GetSwapchainHeight() const;
-    VkFormat GetSwapchainImageFormat() const;
+    we::rhi::Format GetSwapchainFormat() const;
     void RecreateSwapchain(uint32_t width, uint32_t height);
 
 private:
-    void InitializeShaderLibrary();
-    void BuildRenderGraph();
-    void ExecuteFoundationPasses(VkCommandBuffer cmd);
-    void TransitionFrameImages(VkCommandBuffer cmd);
-    void ClearSwapchainBackground(VkCommandBuffer cmd);
     void ResetPresentPathAudit();
-    bool ValidatePresentPath(VkCommandBuffer submitCmd);
-    void EmitPresentPathAuditLog(VkCommandBuffer submitCmd, bool validationFailed, bool presented);
 
-    std::unique_ptr<DeviceContext> m_DeviceContext;
-    std::unique_ptr<SwapchainManager> m_SwapchainManager;
-    std::unique_ptr<ResourceManager> m_ResourceManager;
-    std::unique_ptr<CommandContext> m_CommandContext;
-    std::unique_ptr<FrameSync> m_FrameSync;
-    std::unique_ptr<CameraSystem> m_CameraSystem;
-    std::unique_ptr<GraphicsPipelineFactory> m_PipelineFactory;
-    std::unique_ptr<RenderGraph> m_RenderGraph;
-    std::unique_ptr<SceneRenderer> m_SceneRenderer;
+    std::unique_ptr<we::rhi::IRHIDevice> m_RHIDevice;
+    std::unique_ptr<we::rhi::IGpuSceneBackend> m_SceneBackend;
+    we::rhi::IRHICommandList* m_FrameCmd = nullptr;
 
     we::platform::WindowId m_Window = we::platform::WindowId::Invalid;
     uint32_t m_CurrentFrame = 0;
     uint32_t m_CurrentImageIndex = 0;
     bool m_FrameActive = false;
-    bool m_HasPresentedSwapchainImage = false;
-    bool m_DepthImageReady = false;
-    bool m_ViewportColorInShaderRead = false;
     bool m_Initialized = false;
-    VkExtent2D m_ViewportTargetExtent{};
-    VkRect2D m_ViewportBlitRect{};
 
-    // Offscreen viewport render target (color).
-    VkImage m_ViewportColorImage = VK_NULL_HANDLE;
-    VkImageView m_ViewportColorImageView = VK_NULL_HANDLE;
-    VkFormat m_ViewportColorFormat = VK_FORMAT_UNDEFINED;
-    DepthTarget* m_ViewportDepthTarget = nullptr;
+    uint32_t m_ViewportTargetWidth = 0;
+    uint32_t m_ViewportTargetHeight = 0;
+    uint32_t m_ViewportBlitX = 0;
+    uint32_t m_ViewportBlitY = 0;
+    uint32_t m_ViewportBlitW = 0;
+    uint32_t m_ViewportBlitH = 0;
 
-    // Per-frame presentation-path audit state.
+    we::rhi::RHITextureHandle m_ViewportColorTexture = we::rhi::RHITextureHandle::Invalid;
+    we::rhi::RHITextureHandle m_ViewportDepthTexture = we::rhi::RHITextureHandle::Invalid;
+
+    CameraUniform m_LastCamera{};
+
     uint64_t m_PresentAuditFrameNumber = 0;
     uint32_t m_AcquiredImageIndex = UINT32_MAX;
     uint32_t m_SceneImageIndex = UINT32_MAX;
     uint32_t m_UiImageIndex = UINT32_MAX;
-    VkCommandBuffer m_CmdAtAcquireSlot = VK_NULL_HANDLE;
-    VkCommandBuffer m_CmdAtScene = VK_NULL_HANDLE;
-    VkCommandBuffer m_CmdAtUi = VK_NULL_HANDLE;
-    bool m_FenceWaitedThisFrame = false;
     bool m_OverlayPassRan = false;
     bool m_OverlayPassEnded = false;
-
 };
 
 } // namespace we::runtime::renderer

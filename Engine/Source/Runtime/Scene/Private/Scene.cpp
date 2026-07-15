@@ -378,11 +378,4 @@ void Scene::Update() {
     SyncEcsToLegacy();
 }
 
-#if WE_HAS_VULKAN
-
-void Scene::Draw(VkCommandBuffer /*cmd*/, DrawMode /*drawMode*/) const {
-}
-
-#endif
-
 } // namespace we::runtime::scene

@@ -31,7 +31,6 @@
 #include "Renderer/Renderer.h"
 #include "Scene/Scene.h"
 
-#include <volk.h>
 #include <algorithm>
 #include <vector>
 
@@ -187,7 +186,7 @@ EditorShellResult EditorShellBuilder::Build(
     menuBar->SetItemSpacing(0.0f);
 
     const int logoPx = static_cast<int>(std::round(kTitleBarLogoDisplaySize * uiScale));
-    VkDescriptorSet logoSet = VK_NULL_HANDLE;
+    we::rhi::RHIDescriptorSetHandle logoSet = we::rhi::RHIDescriptorSetHandle::Invalid;
     if (deps.overlayRenderer && deps.overlayRenderer->GetIconRenderer()) {
         logoSet = deps.overlayRenderer->GetIconRenderer()->GetIcon("Assets/Editor/WindEffects.svg", logoPx);
     }
@@ -276,9 +275,8 @@ EditorShellResult EditorShellBuilder::Build(
     if (auto viewportPanel = shellResult.layout.panels["Viewport"]) {
         auto viewportWidget = std::make_shared<ViewportWidget>(
             static_cast<we::runtime::renderer::ISceneViewportController*>(deps.renderer),
-            deps.renderer->GetDeviceContext(),
-            deps.renderer->GetResourceManager(),
-            deps.renderer->GetSwapchainImageFormat(),
+            deps.renderer->GetRHIDevice(),
+            deps.renderer->GetSwapchainFormat(),
             deps.camera,
             deps.scene,
             deps.overlayRenderer);
@@ -295,7 +293,7 @@ EditorShellResult EditorShellBuilder::Build(
         if (deps.overlayRenderer && deps.overlayRenderer->GetIconRenderer()) {
             const float logoLogical = we::programs::editor::GetExplorerDockTabLogoSize();
             const int explorerLogoPx = static_cast<int>(std::round(logoLogical * uiScale));
-            VkDescriptorSet explorerLogo = deps.overlayRenderer->GetIconRenderer()->GetIcon(
+            we::rhi::RHIDescriptorSetHandle explorerLogo = deps.overlayRenderer->GetIconRenderer()->GetIcon(
                 "Assets/Editor/WindEffects.svg", explorerLogoPx);
             explorerPanel->SetTabBrand(explorerLogo, logoLogical);
             we::programs::editor::BindExplorerBrandLogo(explorerLogo, logoLogical);
@@ -326,7 +324,6 @@ EditorShellResult EditorShellBuilder::Build(
     }
     we::editor::environment::InitializeEditor(
         deps.scene,
-        deps.renderer ? deps.renderer->GetSceneRenderer() : nullptr,
         worldOutlinerTree,
         detailsEditor);
 

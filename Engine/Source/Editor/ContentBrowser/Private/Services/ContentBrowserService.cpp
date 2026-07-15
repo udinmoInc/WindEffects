@@ -71,7 +71,7 @@ void ContentBrowserService::RefreshBrowserModel(const std::shared_ptr<WindEffect
         item.iconName = asset->isFolder ? WindEffects::Editor::UI::Icons::FolderName : AssetTypeToKey(asset->type);
         if (!asset->isFolder) {
             item.iconTexture = m_ThumbnailManager.GetCachedTexture(asset->id);
-            item.thumbnailRequested = item.iconTexture != VK_NULL_HANDLE;
+            item.thumbnailRequested = item.iconTexture != we::rhi::RHIDescriptorSetHandle::Invalid;
         }
         item.userData = const_cast<AssetRecord*>(asset);
         model->items.push_back(item);
@@ -105,15 +105,15 @@ void ContentBrowserService::SetVisibleItemIds(const std::unordered_set<std::stri
     m_ThumbnailManager.SetVisibleItems(ids);
 }
 
-VkDescriptorSet ContentBrowserService::UploadBitmap(const BitmapRGBA& bitmap) {
-    if (!m_IconRenderer || bitmap.pixels.empty()) return VK_NULL_HANDLE;
+we::rhi::RHIDescriptorSetHandle ContentBrowserService::UploadBitmap(const BitmapRGBA& bitmap) {
+    if (!m_IconRenderer || bitmap.pixels.empty()) return we::rhi::RHIDescriptorSetHandle::Invalid;
     return m_IconRenderer->CreateTextureFromBitmap(bitmap.pixels, bitmap.width, bitmap.height);
 }
 
 void ContentBrowserService::ProcessThumbnails() {
     m_ThumbnailManager.ProcessCompletedRequests(
         [this](const BitmapRGBA& bitmap) { return UploadBitmap(bitmap); },
-        [this](const std::string& id, VkDescriptorSet texture) {
+        [this](const std::string& id, we::rhi::RHIDescriptorSetHandle texture) {
             if (m_OnThumbnailReady) m_OnThumbnailReady(id, texture);
             if (auto model = m_Model.lock()) {
                 for (auto& item : model->items) {

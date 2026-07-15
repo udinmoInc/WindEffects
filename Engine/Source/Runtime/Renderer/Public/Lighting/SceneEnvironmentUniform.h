@@ -56,11 +56,8 @@ struct RENDERER_API SceneEnvironmentUniform {
     float enableSunDisk = 1.0f;
     float pipelineFixedExposureMultiplier = 0.0f;
 
-    // Extended cloud controls (appended — keep HLSL in sync).
-    // HLSL float3 after two floats inserts 8 bytes of padding before cloudWindDir.
     float cloudDensityMult = 1.0f;
     float cloudThickness = 800.0f;
-    // Default struct fields also use scene-scale cumulus so new levels match ApplyDefaults.
     float cloudBottomAltitude = 900.0f;
     float cloudTopAltitude = 1600.0f;
     float cloudBoundsPad0 = 0.0f;
@@ -84,16 +81,10 @@ struct RENDERER_API SceneEnvironmentUniform {
 #else
     float sunDirection[3]{};
     float sunIntensity = 1.2f;
-    // Remainder unused without GLM.
 #endif
 };
 
 #if WE_HAS_GLM
-// Cloud-debug modes carried in atmosphereDebugMode (override via WE_CLOUD_DEBUG):
-// 10 white layer, 11 volume bounds, 12 altitude planes, 13 weather, 14 shape, 15 density,
-// 16 steps, 19 ray origin, 20 ray direction, 21 empty skips, 22 occupancy,
-// 23 history, 24 temporal blend, 25 upsample color, 26 alpha, 27 composite,
-// 28 entry/exit, 29 march distance, 30 sample positions, 31 cloud mask
 constexpr std::size_t kSceneEnvironmentUniformSize = 328;
 static_assert(sizeof(SceneEnvironmentUniform) == kSceneEnvironmentUniformSize,
     "Environment UBO size drift — rebuild ALL Renderer/World translation units that include this header.");
