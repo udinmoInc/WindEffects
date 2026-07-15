@@ -154,8 +154,9 @@ public static class ShaderBytecodeCompiler
             TryDeleteFile(tempOutputPath);
 
         var spirvFlag = spirv ? "-spirv " : "";
+        var targetDefine = spirv ? "-DWE_TARGET_SPIRV=1 " : "-DWE_TARGET_DXIL=1 ";
         var arguments =
-            $"-nologo {spirvFlag}-T {profile} -E {entryPoint} " +
+            $"-nologo {spirvFlag}{targetDefine}-T {profile} -E {entryPoint} " +
             $"-I \"{includeRoot}\" \"{sourcePath}\" -Fo \"{tempOutputPath}\"";
 
         var startInfo = new ProcessStartInfo

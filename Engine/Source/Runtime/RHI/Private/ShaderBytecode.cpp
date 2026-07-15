@@ -81,27 +81,4 @@ std::vector<uint8_t> ShaderBytecodeLoader::Load(
     return {};
 }
 
-bool ShaderBytecodeLoader::LoadIntoDesc(
-    ShaderDesc& outDesc,
-    std::string_view shaderName,
-    std::string_view stageToken,
-    ShaderStage stage,
-    IRHIDevice* device,
-    const char* entryPoint,
-    const char* debugName)
-{
-    // Prefer Load() — callers must keep the returned vector alive for CreateShader.
-    const ShaderBytecodeFormat format = ResolveFormat(device, ShaderBytecodeFormat::Auto);
-    auto bytes = Load(shaderName, stageToken, format);
-    if (bytes.empty()) {
-        return false;
-    }
-    // This helper cannot safely transfer ownership of 'bytes'; use Load() instead.
-    (void)outDesc;
-    (void)stage;
-    (void)entryPoint;
-    (void)debugName;
-    return !bytes.empty();
-}
-
 } // namespace we::rhi
