@@ -221,15 +221,14 @@ void OverlayRenderer::EndOverlayPass(const we::editor::rendering::OverlayRenderC
     if (!m_UIBackend || m_Vertices.empty() || m_Batches.empty()) {
         return;
     }
-    if (!context.nativeCommand && !context.cmd) {
+    if (!context.cmd) {
         WE_LOG_WARN(we::LogCategory::Renderer.data(),
-            "OverlayRenderer::EndOverlayPass: no command buffer available; skipping UI draw.");
+            "OverlayRenderer::EndOverlayPass: no command list available; skipping UI draw.");
         return;
     }
 
     we::rhi::FramePresentParams params{};
     params.commandList = context.cmd;
-    params.nativeCommand.handle = context.nativeCommand;
     params.targetView = context.targetView;
     params.extent = context.targetExtent;
     params.imageIndex = context.imageIndex;

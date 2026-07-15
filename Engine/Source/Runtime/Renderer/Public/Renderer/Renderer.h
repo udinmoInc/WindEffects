@@ -2,11 +2,11 @@
 
 #pragma warning(disable : 4251)
 
-#include "Renderer/Export.h"
 #include "Camera/CameraUniform.h"
+#include "Renderer/Export.h"
+#include "Renderer/Graph/RenderGraph.h"
 #include "Renderer/ViewportInterfaces.h"
 #include "Platform/Types.h"
-#include "RHI/GpuBackends.h"
 #include "RHI/IRHI.h"
 #include "RHI/Types.h"
 
@@ -53,11 +53,8 @@ public:
 
     [[nodiscard]] we::rhi::IRHIDevice* GetRHIDevice() const { return m_RHIDevice.get(); }
     [[nodiscard]] we::rhi::IRHICommandList* GetFrameCommandList() const { return m_FrameCmd; }
-    [[nodiscard]] void* GetNativeCommandBuffer() const {
-        return m_SceneBackend ? m_SceneBackend->GetNativeCommandBuffer() : nullptr;
-    }
     [[nodiscard]] bool IsGpuReady() const;
-    [[nodiscard]] bool HasGpuScene() const { return m_SceneBackend != nullptr; }
+    [[nodiscard]] bool HasGpuScene() const { return m_RHIDevice != nullptr && m_RHIDevice->IsValid(); }
 
     uint32_t GetCurrentFrameIndex() const { return m_CurrentFrame; }
     uint32_t GetCurrentImageIndex() const { return m_CurrentImageIndex; }
@@ -68,9 +65,13 @@ public:
 
 private:
     void ResetPresentPathAudit();
+    void EnsureViewportTargets();
+    void DestroyViewportTargets();
+    void ClearSwapchainChrome();
+    void RenderViewportSky();
 
     std::unique_ptr<we::rhi::IRHIDevice> m_RHIDevice;
-    std::unique_ptr<we::rhi::IGpuSceneBackend> m_SceneBackend;
+    std::unique_ptr<RenderGraph> m_RenderGraph;
     we::rhi::IRHICommandList* m_FrameCmd = nullptr;
 
     we::platform::WindowId m_Window = we::platform::WindowId::Invalid;
@@ -88,6 +89,10 @@ private:
 
     we::rhi::RHITextureHandle m_ViewportColorTexture = we::rhi::RHITextureHandle::Invalid;
     we::rhi::RHITextureHandle m_ViewportDepthTexture = we::rhi::RHITextureHandle::Invalid;
+    we::rhi::RHITextureViewHandle m_ViewportColorView = we::rhi::RHITextureViewHandle::Invalid;
+    we::rhi::RHISamplerHandle m_ViewportColorSampler = we::rhi::RHISamplerHandle::Invalid;
+    uint32_t m_OwnedViewportWidth = 0;
+    uint32_t m_OwnedViewportHeight = 0;
 
     CameraUniform m_LastCamera{};
 

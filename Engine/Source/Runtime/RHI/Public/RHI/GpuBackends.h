@@ -55,17 +55,12 @@ struct UIDrawList {
     uint32_t targetHeight = 0;
 };
 
-struct NativeGraphicsCommand {
-    void* handle = nullptr;
-};
-
 struct FramePresentParams {
     RHITextureHandle colorTarget = RHITextureHandle::Invalid;
     RHITextureViewHandle targetView = RHITextureViewHandle::Invalid;
     Extent2D extent{};
     uint32_t imageIndex = 0;
     IRHICommandList* commandList = nullptr;
-    NativeGraphicsCommand nativeCommand{};
 };
 
 struct SceneFrameParams {
@@ -109,7 +104,6 @@ public:
     [[nodiscard]] virtual uint32_t GetCurrentFrameIndex() const = 0;
     [[nodiscard]] virtual uint32_t GetCurrentImageIndex() const = 0;
     [[nodiscard]] virtual IRHICommandList* GetActiveCommandList() = 0;
-    [[nodiscard]] virtual void* GetNativeCommandBuffer() const = 0;
 };
 
 // Optional GPU UI path — records Overlay batches without leaking API types.

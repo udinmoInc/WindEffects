@@ -63,11 +63,8 @@ void TerrainSystem::BindScene(we::runtime::scene::Scene* scene) {
     m_Scene = scene;
 }
 
-void TerrainSystem::BindRenderer(we::runtime::renderer::SceneRenderer* renderer,
-    we::runtime::renderer::DeviceContext* device,
-    we::runtime::renderer::ResourceManager* resources) {
-    m_SceneRenderer = renderer;
-    m_Renderer.Init(device, resources);
+void TerrainSystem::BindRenderer(we::rhi::IRHIDevice* device) {
+    m_Renderer.Init(device);
 }
 
 std::uint64_t TerrainSystem::SpawnLandscapeActor(const char* name) {

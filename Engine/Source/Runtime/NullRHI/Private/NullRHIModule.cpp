@@ -2,14 +2,16 @@
 #include "RHI/RHIFactory.h"
 #include "RHI/IRHI.h"
 #include "RHI/Result.h"
+#include "Platform/Platform.h"
 
 #include "Core/LogCategory.h"
 #include "Core/Logger.h"
 
 #include <cstring>
+#include <deque>
 #include <memory>
-#include <mutex>
 #include <unordered_map>
+#include <unordered_set>
 #include <vector>
 
 namespace we::rhi {
@@ -33,11 +35,18 @@ public:
     void BindComputePipeline(RHIComputePipelineHandle) override {}
     void BindVertexBuffer(uint32_t, RHIBufferHandle, uint64_t) override {}
     void BindIndexBuffer(RHIBufferHandle, uint64_t, IndexType) override {}
+    void BindDescriptorSets(PipelineBindPoint, RHIPipelineLayoutHandle, uint32_t, std::span<const RHIDescriptorSetHandle>) override {}
+    void PushConstants(RHIPipelineLayoutHandle, ShaderStageFlags, uint32_t, std::span<const uint8_t>) override {}
     void Draw(uint32_t, uint32_t, uint32_t, uint32_t) override {}
     void DrawIndexed(uint32_t, uint32_t, uint32_t, int32_t, uint32_t) override {}
     void Dispatch(uint32_t, uint32_t, uint32_t) override {}
     void CopyBuffer(RHIBufferHandle, RHIBufferHandle, uint64_t, uint64_t, uint64_t) override {}
+    void CopyTexture(RHITextureHandle, RHITextureHandle, const TextureCopyRegion&) override {}
+    void BlitTexture(RHITextureHandle, RHITextureHandle, const TextureBlitRegion&, Filter) override {}
+    void CopyBufferToTexture(RHIBufferHandle, RHITextureHandle, const BufferImageCopyRegion&) override {}
+    void CopyTextureToBuffer(RHITextureHandle, RHIBufferHandle, const BufferImageCopyRegion&) override {}
     void TransitionTexture(RHITextureHandle, ResourceState, ResourceState) override {}
+    void ResourceBarrier(std::span<const ResourceBarrierDesc>) override {}
     void PushDebugGroup(std::string_view) override {}
     void PopDebugGroup() override {}
     void InsertDebugMarker(std::string_view) override {}
@@ -51,6 +60,7 @@ public:
     explicit NullQueue(QueueType type) : m_Type(type) {}
     [[nodiscard]] QueueType GetType() const override { return m_Type; }
     RHIResult<void> Submit(IRHICommandList&) override { return RHIResult<void>::Success(); }
+    RHIResult<void> Submit(const SubmitDesc&) override { return RHIResult<void>::Success(); }
     RHIResult<void> WaitIdle() override { return RHIResult<void>::Success(); }
 
 private:
@@ -105,6 +115,12 @@ struct NullBuffer {
 
 struct NullTexture {
     TextureDesc desc{};
+    std::vector<uint8_t> pixels;
+    ResourceState state = ResourceState::Undefined;
+};
+
+struct NullFence {
+    bool signaled = false;
 };
 
 class NullDevice final : public IRHIDevice {
@@ -113,15 +129,21 @@ public:
         : m_GraphicsQueue(QueueType::Graphics)
         , m_ComputeQueue(QueueType::Compute)
         , m_TransferQueue(QueueType::Transfer)
+        , m_FramesInFlight(desc.framesInFlight ? desc.framesInFlight : 2)
     {
         m_Caps.dynamicRendering = true;
-        m_Caps.maxFramesInFlight = desc.framesInFlight ? desc.framesInFlight : 2;
+        m_Caps.maxFramesInFlight = m_FramesInFlight;
         m_Caps.debugMarkers = true;
+        m_Caps.maxPushConstantBytes = 128;
+        m_Caps.maxBoundDescriptorSets = 8;
+        m_Caps.maxColorAttachments = 8;
+        m_Caps.maxTextureDimension2D = 16384;
+        m_Caps.samplerAnisotropy = true;
+        m_Caps.fillModeNonSolid = true;
 
-        Extent2D extent{1280, 720};
-        if (we::platform::IsValid(desc.window)) {
-            // Headless null still creates a logical swapchain for Present API coverage.
-        }
+        Extent2D extent = desc.headlessExtent.width && desc.headlessExtent.height
+            ? desc.headlessExtent
+            : Extent2D{1280, 720};
         m_Swapchain = std::make_unique<NullSwapchain>(extent, Format::B8G8R8A8_UNORM);
         m_Diagnostics.deviceCreateMs = 0.1;
         ++m_Diagnostics.resourcesCreated;
@@ -186,7 +208,11 @@ public:
 
     [[nodiscard]] RHIResult<RHITextureHandle> CreateTexture(const TextureDesc& desc) override {
         const auto handle = static_cast<RHITextureHandle>(AllocHandle());
-        m_Textures.emplace(static_cast<uint64_t>(handle), NullTexture{desc});
+        NullTexture tex{};
+        tex.desc = desc;
+        const size_t bytes = static_cast<size_t>(desc.extent.width) * desc.extent.height * desc.extent.depth * 4u;
+        tex.pixels.resize(bytes);
+        m_Textures.emplace(static_cast<uint64_t>(handle), std::move(tex));
         ++m_Diagnostics.resourcesCreated;
         return handle;
     }
@@ -205,6 +231,21 @@ public:
 
     RHIResult<void> DestroyTextureView(RHITextureViewHandle) override { return RHIResult<void>::Success(); }
 
+    RHIResult<void> UpdateTexture(RHITextureHandle handle, const TextureUpdateDesc& update) override {
+        auto it = m_Textures.find(static_cast<uint64_t>(handle));
+        if (it == m_Textures.end()) {
+            return RHIError::Make(RHIErrorCode::InvalidHandle, "Unknown texture.", "UpdateTexture");
+        }
+        if (update.data.empty()) {
+            return RHIError::Make(RHIErrorCode::InvalidArgument, "Empty texture update.", "UpdateTexture");
+        }
+        auto& pixels = it->second.pixels;
+        const size_t copy = std::min(pixels.size(), update.data.size());
+        std::memcpy(pixels.data(), update.data.data(), copy);
+        it->second.state = ResourceState::ShaderResource;
+        return RHIResult<void>::Success();
+    }
+
     [[nodiscard]] RHIResult<RHISamplerHandle> CreateSampler(const SamplerDesc&) override {
         return static_cast<RHISamplerHandle>(AllocHandle());
     }
@@ -216,6 +257,39 @@ public:
     }
 
     RHIResult<void> DestroyShader(RHIShaderHandle) override { return RHIResult<void>::Success(); }
+
+    [[nodiscard]] RHIResult<RHIDescriptorSetLayoutHandle> CreateDescriptorSetLayout(const DescriptorSetLayoutDesc&) override {
+        return static_cast<RHIDescriptorSetLayoutHandle>(AllocHandle());
+    }
+
+    RHIResult<void> DestroyDescriptorSetLayout(RHIDescriptorSetLayoutHandle) override { return RHIResult<void>::Success(); }
+
+    [[nodiscard]] RHIResult<RHIDescriptorPoolHandle> CreateDescriptorPool(const DescriptorPoolDesc&) override {
+        const auto handle = static_cast<RHIDescriptorPoolHandle>(AllocHandle());
+        m_Pools.insert(static_cast<uint64_t>(handle));
+        return handle;
+    }
+
+    RHIResult<void> DestroyDescriptorPool(RHIDescriptorPoolHandle handle) override {
+        m_Pools.erase(static_cast<uint64_t>(handle));
+        return RHIResult<void>::Success();
+    }
+
+    RHIResult<void> ResetDescriptorPool(RHIDescriptorPoolHandle handle) override {
+        if (m_Pools.find(static_cast<uint64_t>(handle)) == m_Pools.end()) {
+            return RHIError::Make(RHIErrorCode::InvalidHandle, "Unknown descriptor pool.", "ResetDescriptorPool");
+        }
+        return RHIResult<void>::Success();
+    }
+
+    [[nodiscard]] RHIResult<RHIDescriptorSetHandle> AllocateDescriptorSet(const DescriptorSetAllocateDesc& desc) override {
+        if (m_Pools.find(static_cast<uint64_t>(desc.pool)) == m_Pools.end()) {
+            return RHIError::Make(RHIErrorCode::InvalidHandle, "Unknown descriptor pool.", "AllocateDescriptorSet");
+        }
+        return static_cast<RHIDescriptorSetHandle>(AllocHandle());
+    }
+
+    void UpdateDescriptorSets(std::span<const WriteDescriptorSet>) override {}
 
     [[nodiscard]] RHIResult<RHIPipelineLayoutHandle> CreatePipelineLayout(const PipelineLayoutDesc&) override {
         return static_cast<RHIPipelineLayoutHandle>(AllocHandle());
@@ -234,6 +308,48 @@ public:
     }
 
     RHIResult<void> DestroyComputePipeline(RHIComputePipelineHandle) override { return RHIResult<void>::Success(); }
+
+    [[nodiscard]] RHIResult<RHIFenceHandle> CreateFence(const FenceDesc& desc = {}) override {
+        const auto handle = static_cast<RHIFenceHandle>(AllocHandle());
+        m_Fences.emplace(static_cast<uint64_t>(handle), NullFence{desc.signaled});
+        return handle;
+    }
+
+    RHIResult<void> DestroyFence(RHIFenceHandle handle) override {
+        m_Fences.erase(static_cast<uint64_t>(handle));
+        return RHIResult<void>::Success();
+    }
+
+    RHIResult<void> WaitForFences(std::span<const RHIFenceHandle> fences, bool, uint64_t) override {
+        for (auto h : fences) {
+            auto it = m_Fences.find(static_cast<uint64_t>(h));
+            if (it != m_Fences.end()) {
+                it->second.signaled = true;
+            }
+        }
+        return RHIResult<void>::Success();
+    }
+
+    RHIResult<void> ResetFences(std::span<const RHIFenceHandle> fences) override {
+        for (auto h : fences) {
+            auto it = m_Fences.find(static_cast<uint64_t>(h));
+            if (it != m_Fences.end()) {
+                it->second.signaled = false;
+            }
+        }
+        return RHIResult<void>::Success();
+    }
+
+    [[nodiscard]] bool IsFenceSignaled(RHIFenceHandle handle) override {
+        auto it = m_Fences.find(static_cast<uint64_t>(handle));
+        return it != m_Fences.end() && it->second.signaled;
+    }
+
+    [[nodiscard]] RHIResult<RHISemaphoreHandle> CreateSemaphore(const SemaphoreDesc&) override {
+        return static_cast<RHISemaphoreHandle>(AllocHandle());
+    }
+
+    RHIResult<void> DestroySemaphore(RHISemaphoreHandle) override { return RHIResult<void>::Success(); }
 
     [[nodiscard]] IRHICommandList* BeginFrame() override {
         if (m_Swapchain) {
@@ -256,12 +372,18 @@ public:
     }
 
     RHIResult<void> EndFrame() override {
+        m_FrameSlot = (m_FrameSlot + 1) % m_FramesInFlight;
+        ++m_FrameNumber;
         ++m_Diagnostics.lastFrame.frameIndex;
         TickDeferredDestruction();
         return RHIResult<void>::Success();
     }
 
     RHIResult<void> WaitIdle() override { return RHIResult<void>::Success(); }
+
+    [[nodiscard]] uint64_t GetFrameNumber() const override { return m_FrameNumber; }
+    [[nodiscard]] uint32_t GetFramesInFlight() const override { return m_FramesInFlight; }
+    [[nodiscard]] uint32_t GetCurrentFrameSlot() const override { return m_FrameSlot; }
 
     void SetResourceName(RHIBufferHandle, std::string_view) override {}
     void SetResourceName(RHITextureHandle, std::string_view) override {}
@@ -277,6 +399,11 @@ private:
     NullCommandList m_FrameCmd;
     std::unordered_map<uint64_t, NullBuffer> m_Buffers;
     std::unordered_map<uint64_t, NullTexture> m_Textures;
+    std::unordered_set<uint64_t> m_Pools;
+    std::unordered_map<uint64_t, NullFence> m_Fences;
+    uint32_t m_FramesInFlight = 2;
+    uint32_t m_FrameSlot = 0;
+    uint64_t m_FrameNumber = 0;
 };
 
 class NullRHIBackend final : public IRHI {
@@ -284,6 +411,8 @@ public:
     bool Initialize(const RHIInitDesc& desc = {}) override {
         m_Desc = desc;
         m_Caps.maxFramesInFlight = desc.framesInFlight ? desc.framesInFlight : 2;
+        m_Caps.dynamicRendering = true;
+        m_Caps.debugMarkers = true;
         m_Initialized = true;
         WE_LOG_INFO(we::LogCategory::Startup, "NullRHI initialized.");
         return true;
@@ -311,7 +440,14 @@ public:
         if (!m_Initialized) {
             return RHIError::Make(RHIErrorCode::NotInitialized, "NullRHI not initialized.", "CreateDevice");
         }
-        return std::unique_ptr<IRHIDevice>(std::make_unique<NullDevice>(desc));
+        DeviceDesc resolved = desc;
+        if (m_Desc.headless || desc.headless) {
+            resolved.headless = true;
+            if (!resolved.headlessExtent.width) {
+                resolved.headlessExtent = {1280, 720};
+            }
+        }
+        return std::unique_ptr<IRHIDevice>(std::make_unique<NullDevice>(resolved));
     }
 
     [[nodiscard]] const RHICapabilities& GetCapabilities() const override { return m_Caps; }
@@ -326,7 +462,6 @@ std::unique_ptr<IRHI> CreateNullRHI() {
     return std::make_unique<NullRHIBackend>();
 }
 
-// Register at DLL load so RHI::Initialize works before ModuleManager::LoadModule.
 static RHIBackendRegistrar g_NullRHIRegistrar(RHIBackend::Null, &CreateNullRHI, "Null");
 
 } // namespace
@@ -334,7 +469,6 @@ static RHIBackendRegistrar g_NullRHIRegistrar(RHIBackend::Null, &CreateNullRHI, 
 class NullRHIModule : public we::core::IModuleInterface {
 public:
     void StartupModule() override {
-        // Ensured by static registrar; keep explicit register for late loads.
         RHIFactory::Register(RHIBackend::Null, &CreateNullRHI, "Null");
     }
 

@@ -1,79 +1,11 @@
 #include "VulkanDevice.h"
 #include "VulkanFormats.h"
-#include "VulkanPlatformSurface.h"
 
-#include "Core/LogCategory.h"
-#include "Core/Logger.h"
-#include "Platform/Platform.h"
-
-#include <algorithm>
-#include <chrono>
-#include <cstring>
-#include <cstdlib>
-#include <set>
 #include <string>
+#include <vector>
 
 namespace we::rhi::vulkan {
 namespace {
-
-bool AreValidationLayersAvailable() {
-    uint32_t layerCount = 0;
-    vkEnumerateInstanceLayerProperties(&layerCount, nullptr);
-    if (layerCount == 0) {
-        return false;
-    }
-    std::vector<VkLayerProperties> layers(layerCount);
-    vkEnumerateInstanceLayerProperties(&layerCount, layers.data());
-    for (const auto& layer : layers) {
-        if (std::strcmp(layer.layerName, "VK_LAYER_KHRONOS_validation") == 0) {
-            return true;
-        }
-    }
-    return false;
-}
-
-bool ValidationRequestedFromEnvironment() {
-    if (const char* env = std::getenv("WE_VULKAN_VALIDATION")) {
-        return env[0] == '1' || std::strcmp(env, "true") == 0;
-    }
-    return false;
-}
-
-bool ValidationDisabledFromEnvironment() {
-    if (const char* env = std::getenv("WE_VULKAN_VALIDATION")) {
-        return env[0] == '0' || std::strcmp(env, "false") == 0;
-    }
-    return false;
-}
-
-uint32_t SelectInstanceApiVersion() {
-    uint32_t requested = VK_API_VERSION_1_3;
-    const auto enumerateInstanceVersion = reinterpret_cast<PFN_vkEnumerateInstanceVersion>(
-        vkGetInstanceProcAddr(nullptr, "vkEnumerateInstanceVersion"));
-    if (!enumerateInstanceVersion) {
-        return requested;
-    }
-    uint32_t supported = 0;
-    if (enumerateInstanceVersion(&supported) != VK_SUCCESS) {
-        return requested;
-    }
-    return std::min(requested, supported);
-}
-
-VKAPI_ATTR VkBool32 VKAPI_CALL DebugCallback(
-    VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
-    VkDebugUtilsMessageTypeFlagsEXT,
-    const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
-    void*)
-{
-    if (!pCallbackData || !pCallbackData->pMessage) {
-        return VK_FALSE;
-    }
-    if (messageSeverity >= VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT) {
-        WE_LOG_ERROR(we::LogCategory::Renderer.data(), std::string("Vulkan: ") + pCallbackData->pMessage);
-    }
-    return VK_FALSE;
-}
 
 VkAccessFlags AccessForLayout(VkImageLayout layout) {
     switch (layout) {
@@ -108,9 +40,59 @@ VkPipelineStageFlags StageForLayout(VkImageLayout layout) {
 
 } // namespace
 
-// --- Queue --------------------------------------------------------------------
+RHIResult<void> VulkanQueue::Submit(IRHICommandList& commandList) {
+    SubmitDesc desc{};
+    desc.commandList = &commandList;
+    return Submit(desc);
+}
 
-RHIResult<void> VulkanQueue::Submit(IRHICommandList&) {
+RHIResult<void> VulkanQueue::Submit(const SubmitDesc& desc) {
+    if (!m_Queue || !desc.commandList || !m_Device) {
+        return RHIError::Make(RHIErrorCode::InvalidArgument, "Invalid queue submit.", "Submit");
+    }
+    auto* vkCmd = static_cast<VulkanCommandList*>(desc.commandList);
+    VkCommandBuffer cmd = vkCmd->GetVkCommandBuffer();
+    if (!cmd) {
+        return RHIError::Make(RHIErrorCode::InvalidArgument, "Command list has no buffer.", "Submit");
+    }
+
+    std::vector<VkSemaphore> waits;
+    std::vector<VkPipelineStageFlags> waitStages;
+    waits.reserve(desc.waitSemaphores.size());
+    waitStages.reserve(desc.waitSemaphores.size());
+    for (auto h : desc.waitSemaphores) {
+        if (auto* s = m_Device->FindSemaphore(h); s && s->semaphore) {
+            waits.push_back(s->semaphore);
+            waitStages.push_back(VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_TRANSFER_BIT);
+        }
+    }
+
+    std::vector<VkSemaphore> signals;
+    signals.reserve(desc.signalSemaphores.size());
+    for (auto h : desc.signalSemaphores) {
+        if (auto* s = m_Device->FindSemaphore(h); s && s->semaphore) {
+            signals.push_back(s->semaphore);
+        }
+    }
+
+    VkFence fence = VK_NULL_HANDLE;
+    if (auto* f = m_Device->FindFence(desc.signalFence); f) {
+        fence = f->fence;
+    }
+
+    VkSubmitInfo submitInfo{};
+    submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+    submitInfo.waitSemaphoreCount = static_cast<uint32_t>(waits.size());
+    submitInfo.pWaitSemaphores = waits.empty() ? nullptr : waits.data();
+    submitInfo.pWaitDstStageMask = waitStages.empty() ? nullptr : waitStages.data();
+    submitInfo.commandBufferCount = 1;
+    submitInfo.pCommandBuffers = &cmd;
+    submitInfo.signalSemaphoreCount = static_cast<uint32_t>(signals.size());
+    submitInfo.pSignalSemaphores = signals.empty() ? nullptr : signals.data();
+
+    if (vkQueueSubmit(m_Queue, 1, &submitInfo, fence) != VK_SUCCESS) {
+        return RHIError::Make(RHIErrorCode::BackendFailure, "vkQueueSubmit failed.", "Submit");
+    }
     return RHIResult<void>::Success();
 }
 
@@ -120,8 +102,6 @@ RHIResult<void> VulkanQueue::WaitIdle() {
     }
     return RHIResult<void>::Success();
 }
-
-// --- Command list -------------------------------------------------------------
 
 VulkanCommandList::VulkanCommandList(VulkanDevice* device)
     : m_Device(device)
@@ -267,6 +247,64 @@ void VulkanCommandList::BindIndexBuffer(RHIBufferHandle buffer, uint64_t offset,
     vkCmdBindIndexBuffer(m_Cmd, buf->buffer, offset, indexType);
 }
 
+void VulkanCommandList::BindDescriptorSets(
+    PipelineBindPoint bindPoint,
+    RHIPipelineLayoutHandle layout,
+    uint32_t firstSet,
+    std::span<const RHIDescriptorSetHandle> sets)
+{
+    if (!m_Cmd || !m_Device || sets.empty()) {
+        return;
+    }
+    auto* pipeLayout = m_Device->FindPipelineLayout(layout);
+    if (!pipeLayout || !pipeLayout->layout) {
+        return;
+    }
+    std::vector<VkDescriptorSet> vkSets;
+    vkSets.reserve(sets.size());
+    for (auto h : sets) {
+        auto* set = m_Device->FindDescriptorSet(h);
+        if (!set || !set->set) {
+            return;
+        }
+        vkSets.push_back(set->set);
+    }
+    const VkPipelineBindPoint bp = bindPoint == PipelineBindPoint::Compute
+        ? VK_PIPELINE_BIND_POINT_COMPUTE
+        : VK_PIPELINE_BIND_POINT_GRAPHICS;
+    vkCmdBindDescriptorSets(
+        m_Cmd,
+        bp,
+        pipeLayout->layout,
+        firstSet,
+        static_cast<uint32_t>(vkSets.size()),
+        vkSets.data(),
+        0,
+        nullptr);
+}
+
+void VulkanCommandList::PushConstants(
+    RHIPipelineLayoutHandle layout,
+    ShaderStageFlags stages,
+    uint32_t offset,
+    std::span<const uint8_t> data)
+{
+    if (!m_Cmd || !m_Device || data.empty()) {
+        return;
+    }
+    auto* pipeLayout = m_Device->FindPipelineLayout(layout);
+    if (!pipeLayout || !pipeLayout->layout) {
+        return;
+    }
+    vkCmdPushConstants(
+        m_Cmd,
+        pipeLayout->layout,
+        ToVkShaderStageFlags(stages),
+        offset,
+        static_cast<uint32_t>(data.size()),
+        data.data());
+}
+
 void VulkanCommandList::Draw(uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance) {
     if (m_Cmd) {
         vkCmdDraw(m_Cmd, vertexCount, instanceCount, firstVertex, firstInstance);
@@ -313,61 +351,232 @@ void VulkanCommandList::CopyBuffer(
     vkCmdCopyBuffer(m_Cmd, s->buffer, d->buffer, 1, &region);
 }
 
-void VulkanCommandList::TransitionTexture(RHITextureHandle texture, ResourceState before, ResourceState after) {
+void VulkanCommandList::CopyTexture(RHITextureHandle src, RHITextureHandle dst, const TextureCopyRegion& region) {
     if (!m_Cmd || !m_Device) {
         return;
     }
-    VulkanTexture* tex = m_Device->FindTexture(texture);
-    if (!tex || !tex->image) {
+    VulkanTexture* s = m_Device->FindTexture(src);
+    VulkanTexture* d = m_Device->FindTexture(dst);
+    if (!s || !d) {
+        return;
+    }
+    VkImageCopy copy{};
+    copy.srcSubresource.aspectMask = IsDepthFormat(s->desc.format) ? VK_IMAGE_ASPECT_DEPTH_BIT : VK_IMAGE_ASPECT_COLOR_BIT;
+    copy.srcSubresource.mipLevel = region.src.mipLevel;
+    copy.srcSubresource.baseArrayLayer = region.src.baseLayer;
+    copy.srcSubresource.layerCount = region.src.layerCount;
+    copy.srcOffset = {
+        static_cast<int32_t>(region.srcOffsetX),
+        static_cast<int32_t>(region.srcOffsetY),
+        static_cast<int32_t>(region.srcOffsetZ)};
+    copy.dstSubresource.aspectMask = IsDepthFormat(d->desc.format) ? VK_IMAGE_ASPECT_DEPTH_BIT : VK_IMAGE_ASPECT_COLOR_BIT;
+    copy.dstSubresource.mipLevel = region.dst.mipLevel;
+    copy.dstSubresource.baseArrayLayer = region.dst.baseLayer;
+    copy.dstSubresource.layerCount = region.dst.layerCount;
+    copy.dstOffset = {
+        static_cast<int32_t>(region.dstOffsetX),
+        static_cast<int32_t>(region.dstOffsetY),
+        static_cast<int32_t>(region.dstOffsetZ)};
+    copy.extent = {region.extent.width, region.extent.height, region.extent.depth};
+    vkCmdCopyImage(
+        m_Cmd,
+        s->image,
+        VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+        d->image,
+        VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+        1,
+        &copy);
+}
+
+void VulkanCommandList::BlitTexture(
+    RHITextureHandle src,
+    RHITextureHandle dst,
+    const TextureBlitRegion& region,
+    Filter filter)
+{
+    if (!m_Cmd || !m_Device) {
+        return;
+    }
+    VulkanTexture* s = m_Device->FindTexture(src);
+    VulkanTexture* d = m_Device->FindTexture(dst);
+    if (!s || !d) {
+        return;
+    }
+    VkImageBlit blit{};
+    blit.srcSubresource.aspectMask = IsDepthFormat(s->desc.format) ? VK_IMAGE_ASPECT_DEPTH_BIT : VK_IMAGE_ASPECT_COLOR_BIT;
+    blit.srcSubresource.mipLevel = region.src.mipLevel;
+    blit.srcSubresource.baseArrayLayer = region.src.baseLayer;
+    blit.srcSubresource.layerCount = region.src.layerCount;
+    blit.srcOffsets[0] = {region.srcOffset0X, region.srcOffset0Y, region.srcOffset0Z};
+    blit.srcOffsets[1] = {region.srcOffset1X, region.srcOffset1Y, region.srcOffset1Z};
+    blit.dstSubresource.aspectMask = IsDepthFormat(d->desc.format) ? VK_IMAGE_ASPECT_DEPTH_BIT : VK_IMAGE_ASPECT_COLOR_BIT;
+    blit.dstSubresource.mipLevel = region.dst.mipLevel;
+    blit.dstSubresource.baseArrayLayer = region.dst.baseLayer;
+    blit.dstSubresource.layerCount = region.dst.layerCount;
+    blit.dstOffsets[0] = {region.dstOffset0X, region.dstOffset0Y, region.dstOffset0Z};
+    blit.dstOffsets[1] = {region.dstOffset1X, region.dstOffset1Y, region.dstOffset1Z};
+    vkCmdBlitImage(
+        m_Cmd,
+        s->image,
+        VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+        d->image,
+        VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+        1,
+        &blit,
+        ToVkFilter(filter));
+}
+
+void VulkanCommandList::CopyBufferToTexture(RHIBufferHandle src, RHITextureHandle dst, const BufferImageCopyRegion& region) {
+    if (!m_Cmd || !m_Device) {
+        return;
+    }
+    VulkanBuffer* s = m_Device->FindBuffer(src);
+    VulkanTexture* d = m_Device->FindTexture(dst);
+    if (!s || !d) {
+        return;
+    }
+    VkBufferImageCopy copy{};
+    copy.bufferOffset = region.bufferOffset;
+    copy.bufferRowLength = region.bufferRowLength;
+    copy.bufferImageHeight = region.bufferImageHeight;
+    copy.imageSubresource.aspectMask = IsDepthFormat(d->desc.format) ? VK_IMAGE_ASPECT_DEPTH_BIT : VK_IMAGE_ASPECT_COLOR_BIT;
+    copy.imageSubresource.mipLevel = region.image.mipLevel;
+    copy.imageSubresource.baseArrayLayer = region.image.baseLayer;
+    copy.imageSubresource.layerCount = region.image.layerCount;
+    copy.imageOffset = {
+        static_cast<int32_t>(region.imageOffsetX),
+        static_cast<int32_t>(region.imageOffsetY),
+        static_cast<int32_t>(region.imageOffsetZ)};
+    copy.imageExtent = {region.imageExtent.width, region.imageExtent.height, region.imageExtent.depth};
+    vkCmdCopyBufferToImage(m_Cmd, s->buffer, d->image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &copy);
+}
+
+void VulkanCommandList::CopyTextureToBuffer(RHITextureHandle src, RHIBufferHandle dst, const BufferImageCopyRegion& region) {
+    if (!m_Cmd || !m_Device) {
+        return;
+    }
+    VulkanTexture* s = m_Device->FindTexture(src);
+    VulkanBuffer* d = m_Device->FindBuffer(dst);
+    if (!s || !d) {
+        return;
+    }
+    VkBufferImageCopy copy{};
+    copy.bufferOffset = region.bufferOffset;
+    copy.bufferRowLength = region.bufferRowLength;
+    copy.bufferImageHeight = region.bufferImageHeight;
+    copy.imageSubresource.aspectMask = IsDepthFormat(s->desc.format) ? VK_IMAGE_ASPECT_DEPTH_BIT : VK_IMAGE_ASPECT_COLOR_BIT;
+    copy.imageSubresource.mipLevel = region.image.mipLevel;
+    copy.imageSubresource.baseArrayLayer = region.image.baseLayer;
+    copy.imageSubresource.layerCount = region.image.layerCount;
+    copy.imageOffset = {
+        static_cast<int32_t>(region.imageOffsetX),
+        static_cast<int32_t>(region.imageOffsetY),
+        static_cast<int32_t>(region.imageOffsetZ)};
+    copy.imageExtent = {region.imageExtent.width, region.imageExtent.height, region.imageExtent.depth};
+    vkCmdCopyImageToBuffer(m_Cmd, s->image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, d->buffer, 1, &copy);
+}
+
+void VulkanCommandList::TransitionTexture(RHITextureHandle texture, ResourceState before, ResourceState after) {
+    ResourceBarrierDesc barrier{};
+    barrier.isTexture = true;
+    barrier.texture.texture = texture;
+    barrier.texture.before = before;
+    barrier.texture.after = after;
+    ResourceBarrier(std::span<const ResourceBarrierDesc>(&barrier, 1));
+}
+
+void VulkanCommandList::ResourceBarrier(std::span<const ResourceBarrierDesc> barriers) {
+    if (!m_Cmd || !m_Device || barriers.empty()) {
         return;
     }
 
-    const VkImageLayout oldLayout = ToVkImageLayout(before);
-    const VkImageLayout newLayout = ToVkImageLayout(after);
-    if (oldLayout == newLayout) {
-        tex->state = after;
-        return;
+    std::vector<VkImageMemoryBarrier> imageBarriers;
+    std::vector<VkBufferMemoryBarrier> bufferBarriers;
+    VkPipelineStageFlags srcStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+    VkPipelineStageFlags dstStage = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
+
+    for (const auto& b : barriers) {
+        if (b.isTexture) {
+            VulkanTexture* tex = m_Device->FindTexture(b.texture.texture);
+            if (!tex || !tex->image) {
+                continue;
+            }
+            const ResourceState before = b.texture.before;
+            const ResourceState after = b.texture.after;
+            VkImageMemoryBarrier barrier{};
+            barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+            barrier.oldLayout = ToVkImageLayout(before);
+            barrier.newLayout = ToVkImageLayout(after);
+            barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+            barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+            barrier.image = tex->image;
+            barrier.subresourceRange.aspectMask = IsDepthFormat(tex->desc.format)
+                ? VK_IMAGE_ASPECT_DEPTH_BIT
+                : VK_IMAGE_ASPECT_COLOR_BIT;
+            barrier.subresourceRange.baseMipLevel = b.texture.baseMip;
+            barrier.subresourceRange.levelCount = b.texture.mipCount == ~0u
+                ? (tex->desc.mipLevels ? tex->desc.mipLevels : 1u)
+                : b.texture.mipCount;
+            barrier.subresourceRange.baseArrayLayer = b.texture.baseLayer;
+            barrier.subresourceRange.layerCount = b.texture.layerCount == ~0u
+                ? (tex->desc.arrayLayers ? tex->desc.arrayLayers : 1u)
+                : b.texture.layerCount;
+            barrier.srcAccessMask = AccessForState(before);
+            barrier.dstAccessMask = AccessForState(after);
+            if (barrier.srcAccessMask == 0) {
+                barrier.srcAccessMask = AccessForLayout(barrier.oldLayout);
+            }
+            if (barrier.dstAccessMask == 0) {
+                barrier.dstAccessMask = AccessForLayout(barrier.newLayout);
+            }
+            srcStage |= StageForState(before);
+            dstStage |= StageForState(after);
+            imageBarriers.push_back(barrier);
+            tex->state = after;
+        } else {
+            VulkanBuffer* buf = m_Device->FindBuffer(b.buffer.buffer);
+            if (!buf || !buf->buffer) {
+                continue;
+            }
+            VkBufferMemoryBarrier barrier{};
+            barrier.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
+            barrier.srcAccessMask = AccessForState(b.buffer.before);
+            barrier.dstAccessMask = AccessForState(b.buffer.after);
+            barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+            barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+            barrier.buffer = buf->buffer;
+            barrier.offset = b.buffer.offset;
+            barrier.size = b.buffer.size;
+            srcStage |= StageForState(b.buffer.before);
+            dstStage |= StageForState(b.buffer.after);
+            bufferBarriers.push_back(barrier);
+        }
     }
 
-    VkImageMemoryBarrier barrier{};
-    barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-    barrier.oldLayout = oldLayout;
-    barrier.newLayout = newLayout;
-    barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-    barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-    barrier.image = tex->image;
-    barrier.subresourceRange.aspectMask = IsDepthFormat(tex->desc.format)
-        ? VK_IMAGE_ASPECT_DEPTH_BIT
-        : VK_IMAGE_ASPECT_COLOR_BIT;
-    barrier.subresourceRange.baseMipLevel = 0;
-    barrier.subresourceRange.levelCount = tex->desc.mipLevels ? tex->desc.mipLevels : 1;
-    barrier.subresourceRange.baseArrayLayer = 0;
-    barrier.subresourceRange.layerCount = tex->desc.arrayLayers ? tex->desc.arrayLayers : 1;
-    barrier.srcAccessMask = AccessForLayout(oldLayout);
-    barrier.dstAccessMask = AccessForLayout(newLayout);
-
+    if (imageBarriers.empty() && bufferBarriers.empty()) {
+        return;
+    }
     vkCmdPipelineBarrier(
         m_Cmd,
-        StageForLayout(oldLayout),
-        StageForLayout(newLayout),
+        srcStage,
+        dstStage,
         0,
         0,
         nullptr,
-        0,
-        nullptr,
-        1,
-        &barrier);
-
-    tex->state = after;
+        static_cast<uint32_t>(bufferBarriers.size()),
+        bufferBarriers.empty() ? nullptr : bufferBarriers.data(),
+        static_cast<uint32_t>(imageBarriers.size()),
+        imageBarriers.empty() ? nullptr : imageBarriers.data());
 }
 
 void VulkanCommandList::PushDebugGroup(std::string_view name) {
     if (!m_Cmd || !vkCmdBeginDebugUtilsLabelEXT) {
         return;
     }
+    const std::string labelName(name);
     VkDebugUtilsLabelEXT label{};
     label.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT;
-    label.pLabelName = name.data();
+    label.pLabelName = labelName.c_str();
     vkCmdBeginDebugUtilsLabelEXT(m_Cmd, &label);
 }
 
@@ -381,9 +590,10 @@ void VulkanCommandList::InsertDebugMarker(std::string_view name) {
     if (!m_Cmd || !vkCmdInsertDebugUtilsLabelEXT) {
         return;
     }
+    const std::string labelName(name);
     VkDebugUtilsLabelEXT label{};
     label.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT;
-    label.pLabelName = name.data();
+    label.pLabelName = labelName.c_str();
     vkCmdInsertDebugUtilsLabelEXT(m_Cmd, &label);
 }
 

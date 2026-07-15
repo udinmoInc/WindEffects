@@ -13,5 +13,10 @@ public class DirectX12RHI : ModuleRules
         PublicDependencies.Add("Platform");
         PublicDependencies.Add("RHI");
         Definitions.Add("DX12RHI_EXPORTS");
+
+        PlatformSettings.Windows ??= new WindowsSettings();
+        PlatformSettings.Windows.LinkerFlags.Add("d3d12.lib");
+        PlatformSettings.Windows.LinkerFlags.Add("dxgi.lib");
+        PlatformSettings.Windows.LinkerFlags.Add("dxguid.lib");
     }
 }

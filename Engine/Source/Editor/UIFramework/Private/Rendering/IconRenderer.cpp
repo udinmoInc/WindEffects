@@ -11,17 +11,16 @@ IconRenderer::~IconRenderer() {
     Shutdown();
 }
 
-bool IconRenderer::Init(
-    we::runtime::renderer::DeviceContext*,
-    we::runtime::renderer::ResourceManager*,
-    UiGpuUpload*,
-    uint64_t,
-    uint64_t) {
+bool IconRenderer::Init(we::rhi::IRHIDevice* device, UiGpuUpload* gpuUpload) {
+    m_Device = device;
+    m_GpuUpload = gpuUpload;
     return true;
 }
 
 void IconRenderer::Shutdown() {
     ClearCache();
+    m_Device = nullptr;
+    m_GpuUpload = nullptr;
 }
 
 IconDrawInfo IconRenderer::GetLucideIconDrawInfo(

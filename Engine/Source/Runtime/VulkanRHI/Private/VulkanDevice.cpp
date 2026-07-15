@@ -9,6 +9,7 @@
 #include <chrono>
 #include <cstring>
 #include <cstdlib>
+#include <functional>
 #include <string>
 #include <vector>
 
@@ -108,12 +109,11 @@ VulkanDevice::VulkanDevice(const DeviceDesc& desc)
         return;
     }
 
-    m_Caps.dynamicRendering = true;
+    FillCapabilities();
     m_Caps.debugMarkers = m_DebugMessenger != VK_NULL_HANDLE;
     m_Caps.maxFramesInFlight = m_FramesInFlight;
-    m_Caps.timestamps = true;
 
-    if (we::platform::IsValid(desc.window)) {
+    if (we::platform::IsValid(desc.window) && !desc.headless) {
         m_Swapchain = std::make_unique<VulkanSwapchain>(this);
         m_Swapchain->SetFrameSync(m_ImageAvailable, m_RenderFinished, m_InFlight);
         if (auto r = m_Swapchain->Create(desc); !r) {
@@ -311,9 +311,60 @@ RHIResult<void> VulkanDevice::CreateLogicalDevice() {
     VkQueue graphicsQueue = VK_NULL_HANDLE;
     vkGetDeviceQueue(m_Device, m_GraphicsFamily, 0, &graphicsQueue);
     m_GraphicsQueue.SetQueue(graphicsQueue);
+    m_GraphicsQueue.SetDevice(this);
     m_ComputeQueue.SetQueue(graphicsQueue);
+    m_ComputeQueue.SetDevice(this);
     m_TransferQueue.SetQueue(graphicsQueue);
+    m_TransferQueue.SetDevice(this);
     return RHIResult<void>::Success();
+}
+
+void VulkanDevice::FillCapabilities() {
+    VkPhysicalDeviceProperties props{};
+    vkGetPhysicalDeviceProperties(m_PhysicalDevice, &props);
+    VkPhysicalDeviceFeatures features{};
+    vkGetPhysicalDeviceFeatures(m_PhysicalDevice, &features);
+    VkPhysicalDeviceMemoryProperties memProps{};
+    vkGetPhysicalDeviceMemoryProperties(m_PhysicalDevice, &memProps);
+
+    m_Caps.dynamicRendering = true;
+    m_Caps.timestamps = true;
+    m_Caps.geometryShaders = features.geometryShader == VK_TRUE;
+    m_Caps.tessellation = features.tessellationShader == VK_TRUE;
+    m_Caps.multiDrawIndirect = features.multiDrawIndirect == VK_TRUE;
+    m_Caps.samplerAnisotropy = features.samplerAnisotropy == VK_TRUE;
+    m_Caps.fillModeNonSolid = features.fillModeNonSolid == VK_TRUE;
+    m_Caps.depthClamp = features.depthClamp == VK_TRUE;
+    m_Caps.independentBlend = features.independentBlend == VK_TRUE;
+    m_Caps.shaderFloat64 = features.shaderFloat64 == VK_TRUE;
+    m_Caps.shaderInt64 = features.shaderInt64 == VK_TRUE;
+    m_Caps.drawIndirectFirstInstance = features.drawIndirectFirstInstance == VK_TRUE;
+    m_Caps.textureCompressionBC = features.textureCompressionBC == VK_TRUE;
+    m_Caps.maxSamplerAnisotropy = props.limits.maxSamplerAnisotropy;
+    m_Caps.maxColorAttachments = props.limits.maxColorAttachments;
+    m_Caps.maxPushConstantBytes = props.limits.maxPushConstantsSize;
+    m_Caps.maxBoundDescriptorSets = props.limits.maxBoundDescriptorSets;
+    m_Caps.maxDescriptorSetSamplers = props.limits.maxDescriptorSetSamplers;
+    m_Caps.maxDescriptorSetUniformBuffers = props.limits.maxDescriptorSetUniformBuffers;
+    m_Caps.maxDescriptorSetStorageBuffers = props.limits.maxDescriptorSetStorageBuffers;
+    m_Caps.maxDescriptorSetSampledImages = props.limits.maxDescriptorSetSampledImages;
+    m_Caps.maxDescriptorSetStorageImages = props.limits.maxDescriptorSetStorageImages;
+    m_Caps.maxComputeWorkGroupInvocations = props.limits.maxComputeWorkGroupInvocations;
+    m_Caps.maxComputeWorkGroupSizeX = props.limits.maxComputeWorkGroupSize[0];
+    m_Caps.maxComputeWorkGroupSizeY = props.limits.maxComputeWorkGroupSize[1];
+    m_Caps.maxComputeWorkGroupSizeZ = props.limits.maxComputeWorkGroupSize[2];
+    m_Caps.maxTextureDimension2D = props.limits.maxImageDimension2D;
+    m_Caps.minUniformBufferOffsetAlignment = props.limits.minUniformBufferOffsetAlignment;
+    m_Caps.minStorageBufferOffsetAlignment = props.limits.minStorageBufferOffsetAlignment;
+
+    for (uint32_t i = 0; i < memProps.memoryTypeCount; ++i) {
+        const auto flags = memProps.memoryTypes[i].propertyFlags;
+        if ((flags & VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)
+            && (flags & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT)) {
+            m_Caps.hostVisibleDeviceLocal = true;
+            break;
+        }
+    }
 }
 
 RHIResult<void> VulkanDevice::CreateFrameSync() {
@@ -392,6 +443,31 @@ VulkanTexture* VulkanDevice::FindTexture(RHITextureHandle handle) {
     return it == m_Textures.end() ? nullptr : &it->second;
 }
 
+VulkanTextureView* VulkanDevice::FindTextureView(RHITextureViewHandle handle) {
+    auto it = m_TextureViews.find(static_cast<uint64_t>(handle));
+    return it == m_TextureViews.end() ? nullptr : &it->second;
+}
+
+VulkanSampler* VulkanDevice::FindSampler(RHISamplerHandle handle) {
+    auto it = m_Samplers.find(static_cast<uint64_t>(handle));
+    return it == m_Samplers.end() ? nullptr : &it->second;
+}
+
+VulkanShader* VulkanDevice::FindShader(RHIShaderHandle handle) {
+    auto it = m_Shaders.find(static_cast<uint64_t>(handle));
+    return it == m_Shaders.end() ? nullptr : &it->second;
+}
+
+VulkanDescriptorSet* VulkanDevice::FindDescriptorSet(RHIDescriptorSetHandle handle) {
+    auto it = m_DescriptorSets.find(static_cast<uint64_t>(handle));
+    return it == m_DescriptorSets.end() ? nullptr : &it->second;
+}
+
+VulkanPipelineLayout* VulkanDevice::FindPipelineLayout(RHIPipelineLayoutHandle handle) {
+    auto it = m_PipelineLayouts.find(static_cast<uint64_t>(handle));
+    return it == m_PipelineLayouts.end() ? nullptr : &it->second;
+}
+
 VulkanGraphicsPipeline* VulkanDevice::FindGraphicsPipeline(RHIGraphicsPipelineHandle handle) {
     auto it = m_GraphicsPipelines.find(static_cast<uint64_t>(handle));
     return it == m_GraphicsPipelines.end() ? nullptr : &it->second;
@@ -400,6 +476,16 @@ VulkanGraphicsPipeline* VulkanDevice::FindGraphicsPipeline(RHIGraphicsPipelineHa
 VulkanComputePipeline* VulkanDevice::FindComputePipeline(RHIComputePipelineHandle handle) {
     auto it = m_ComputePipelines.find(static_cast<uint64_t>(handle));
     return it == m_ComputePipelines.end() ? nullptr : &it->second;
+}
+
+VulkanFence* VulkanDevice::FindFence(RHIFenceHandle handle) {
+    auto it = m_Fences.find(static_cast<uint64_t>(handle));
+    return it == m_Fences.end() ? nullptr : &it->second;
+}
+
+VulkanSemaphore* VulkanDevice::FindSemaphore(RHISemaphoreHandle handle) {
+    auto it = m_Semaphores.find(static_cast<uint64_t>(handle));
+    return it == m_Semaphores.end() ? nullptr : &it->second;
 }
 
 RHITextureHandle VulkanDevice::RegisterSwapchainTexture(
@@ -633,15 +719,18 @@ RHIResult<RHISamplerHandle> VulkanDevice::CreateSampler(const SamplerDesc& desc)
     sampler.desc = desc;
     VkSamplerCreateInfo info{};
     info.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
-    info.magFilter = VK_FILTER_LINEAR;
-    info.minFilter = VK_FILTER_LINEAR;
-    info.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
-    info.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-    info.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-    info.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+    info.magFilter = ToVkFilter(desc.magFilter);
+    info.minFilter = ToVkFilter(desc.minFilter);
+    info.mipmapMode = desc.mipFilter == Filter::Nearest ? VK_SAMPLER_MIPMAP_MODE_NEAREST : VK_SAMPLER_MIPMAP_MODE_LINEAR;
+    info.addressModeU = ToVkAddressMode(desc.addressU);
+    info.addressModeV = ToVkAddressMode(desc.addressV);
+    info.addressModeW = ToVkAddressMode(desc.addressW);
     info.anisotropyEnable = desc.anisotropy ? VK_TRUE : VK_FALSE;
     info.maxAnisotropy = desc.maxAnisotropy;
-    info.maxLod = VK_LOD_CLAMP_NONE;
+    info.compareEnable = desc.compareEnable ? VK_TRUE : VK_FALSE;
+    info.compareOp = ToVkCompareOp(desc.compareOp);
+    info.minLod = desc.minLod;
+    info.maxLod = desc.maxLod;
     if (vkCreateSampler(m_Device, &info, nullptr, &sampler.sampler) != VK_SUCCESS) {
         return RHIError::Make(RHIErrorCode::BackendFailure, "vkCreateSampler failed.", "CreateSampler");
     }
@@ -665,6 +754,7 @@ RHIResult<RHIShaderHandle> VulkanDevice::CreateShader(const ShaderDesc& desc) {
     }
     VulkanShader shader{};
     shader.desc = desc;
+    shader.entryPoint = desc.entryPoint ? desc.entryPoint : "main";
     VkShaderModuleCreateInfo createInfo{};
     createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
     createInfo.codeSize = desc.bytecode.size();
@@ -673,7 +763,7 @@ RHIResult<RHIShaderHandle> VulkanDevice::CreateShader(const ShaderDesc& desc) {
         return RHIError::Make(RHIErrorCode::BackendFailure, "vkCreateShaderModule failed.", "CreateShader");
     }
     const auto handle = static_cast<RHIShaderHandle>(AllocHandle());
-    m_Shaders.emplace(static_cast<uint64_t>(handle), shader);
+    m_Shaders.emplace(static_cast<uint64_t>(handle), std::move(shader));
     ++m_Diagnostics.resourcesCreated;
     return handle;
 }
@@ -686,15 +776,241 @@ RHIResult<void> VulkanDevice::DestroyShader(RHIShaderHandle handle) {
     return RHIResult<void>::Success();
 }
 
-RHIResult<RHIPipelineLayoutHandle> VulkanDevice::CreatePipelineLayout(const PipelineLayoutDesc&) {
+RHIResult<RHIDescriptorSetLayoutHandle> VulkanDevice::CreateDescriptorSetLayout(const DescriptorSetLayoutDesc& desc) {
+    std::vector<VkDescriptorSetLayoutBinding> bindings;
+    bindings.reserve(desc.bindings.size());
+    for (const auto& b : desc.bindings) {
+        VkDescriptorSetLayoutBinding vb{};
+        vb.binding = b.binding;
+        vb.descriptorType = ToVkDescriptorType(b.type);
+        vb.descriptorCount = b.count ? b.count : 1u;
+        vb.stageFlags = ToVkShaderStageFlags(b.stages);
+        bindings.push_back(vb);
+    }
+
+    VulkanDescriptorSetLayout layout{};
+    layout.desc = desc;
+    VkDescriptorSetLayoutCreateInfo info{};
+    info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+    info.bindingCount = static_cast<uint32_t>(bindings.size());
+    info.pBindings = bindings.empty() ? nullptr : bindings.data();
+    if (vkCreateDescriptorSetLayout(m_Device, &info, nullptr, &layout.layout) != VK_SUCCESS) {
+        return RHIError::Make(RHIErrorCode::BackendFailure, "vkCreateDescriptorSetLayout failed.", "CreateDescriptorSetLayout");
+    }
+    const auto handle = static_cast<RHIDescriptorSetLayoutHandle>(AllocHandle());
+    m_DescriptorSetLayouts.emplace(static_cast<uint64_t>(handle), std::move(layout));
+    ++m_Diagnostics.resourcesCreated;
+    return handle;
+}
+
+RHIResult<void> VulkanDevice::DestroyDescriptorSetLayout(RHIDescriptorSetLayoutHandle handle) {
+    if (m_DescriptorSetLayouts.find(static_cast<uint64_t>(handle)) == m_DescriptorSetLayouts.end()) {
+        return RHIError::Make(RHIErrorCode::InvalidHandle, "Unknown descriptor set layout.", "DestroyDescriptorSetLayout");
+    }
+    EnqueueDeferred(DeferredKind::DescriptorSetLayout, static_cast<uint64_t>(handle));
+    return RHIResult<void>::Success();
+}
+
+RHIResult<RHIDescriptorPoolHandle> VulkanDevice::CreateDescriptorPool(const DescriptorPoolDesc& desc) {
+    std::vector<VkDescriptorPoolSize> sizes;
+    sizes.reserve(desc.poolSizes.size());
+    for (const auto& s : desc.poolSizes) {
+        VkDescriptorPoolSize vs{};
+        vs.type = ToVkDescriptorType(s.type);
+        vs.descriptorCount = s.count ? s.count : 1u;
+        sizes.push_back(vs);
+    }
+    if (sizes.empty()) {
+        sizes.push_back(VkDescriptorPoolSize{VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1});
+    }
+
+    VulkanDescriptorPool pool{};
+    pool.desc = desc;
+    VkDescriptorPoolCreateInfo info{};
+    info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+    info.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
+    info.maxSets = desc.maxSets ? desc.maxSets : 1u;
+    info.poolSizeCount = static_cast<uint32_t>(sizes.size());
+    info.pPoolSizes = sizes.data();
+    if (vkCreateDescriptorPool(m_Device, &info, nullptr, &pool.pool) != VK_SUCCESS) {
+        return RHIError::Make(RHIErrorCode::BackendFailure, "vkCreateDescriptorPool failed.", "CreateDescriptorPool");
+    }
+    const auto handle = static_cast<RHIDescriptorPoolHandle>(AllocHandle());
+    m_DescriptorPools.emplace(static_cast<uint64_t>(handle), std::move(pool));
+    ++m_Diagnostics.resourcesCreated;
+    return handle;
+}
+
+RHIResult<void> VulkanDevice::DestroyDescriptorPool(RHIDescriptorPoolHandle handle) {
+    if (m_DescriptorPools.find(static_cast<uint64_t>(handle)) == m_DescriptorPools.end()) {
+        return RHIError::Make(RHIErrorCode::InvalidHandle, "Unknown descriptor pool.", "DestroyDescriptorPool");
+    }
+    EnqueueDeferred(DeferredKind::DescriptorPool, static_cast<uint64_t>(handle));
+    return RHIResult<void>::Success();
+}
+
+RHIResult<void> VulkanDevice::ResetDescriptorPool(RHIDescriptorPoolHandle handle) {
+    auto it = m_DescriptorPools.find(static_cast<uint64_t>(handle));
+    if (it == m_DescriptorPools.end()) {
+        return RHIError::Make(RHIErrorCode::InvalidHandle, "Unknown descriptor pool.", "ResetDescriptorPool");
+    }
+    vkResetDescriptorPool(m_Device, it->second.pool, 0);
+    for (auto setIt = m_DescriptorSets.begin(); setIt != m_DescriptorSets.end();) {
+        if (setIt->second.pool == handle) {
+            setIt = m_DescriptorSets.erase(setIt);
+        } else {
+            ++setIt;
+        }
+    }
+    return RHIResult<void>::Success();
+}
+
+RHIResult<RHIDescriptorSetHandle> VulkanDevice::AllocateDescriptorSet(const DescriptorSetAllocateDesc& desc) {
+    auto poolIt = m_DescriptorPools.find(static_cast<uint64_t>(desc.pool));
+    auto layoutIt = m_DescriptorSetLayouts.find(static_cast<uint64_t>(desc.layout));
+    if (poolIt == m_DescriptorPools.end() || layoutIt == m_DescriptorSetLayouts.end()) {
+        return RHIError::Make(RHIErrorCode::InvalidHandle, "Invalid pool or layout.", "AllocateDescriptorSet");
+    }
+
+    VulkanDescriptorSet set{};
+    set.pool = desc.pool;
+    set.layout = desc.layout;
+    VkDescriptorSetAllocateInfo info{};
+    info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+    info.descriptorPool = poolIt->second.pool;
+    info.descriptorSetCount = 1;
+    info.pSetLayouts = &layoutIt->second.layout;
+    if (vkAllocateDescriptorSets(m_Device, &info, &set.set) != VK_SUCCESS) {
+        return RHIError::Make(RHIErrorCode::BackendFailure, "vkAllocateDescriptorSets failed.", "AllocateDescriptorSet");
+    }
+    const auto handle = static_cast<RHIDescriptorSetHandle>(AllocHandle());
+    m_DescriptorSets.emplace(static_cast<uint64_t>(handle), set);
+    ++m_Diagnostics.resourcesCreated;
+    return handle;
+}
+
+void VulkanDevice::UpdateDescriptorSets(std::span<const WriteDescriptorSet> writes) {
+    if (writes.empty()) {
+        return;
+    }
+    std::vector<VkDescriptorBufferInfo> bufferInfos;
+    std::vector<VkDescriptorImageInfo> imageInfos;
+    struct PendingWrite {
+        WriteDescriptorSet src{};
+        bool isBuffer = false;
+        size_t infoOffset = 0;
+    };
+    std::vector<PendingWrite> pending;
+    pending.reserve(writes.size());
+
+    for (const auto& w : writes) {
+        if (!FindDescriptorSet(w.set) || w.count == 0) {
+            continue;
+        }
+        PendingWrite p{};
+        p.src = w;
+        if (w.bufferInfos) {
+            p.isBuffer = true;
+            p.infoOffset = bufferInfos.size();
+            for (uint32_t i = 0; i < w.count; ++i) {
+                const auto& bi = w.bufferInfos[i];
+                auto* buf = FindBuffer(bi.buffer);
+                VkDescriptorBufferInfo info{};
+                info.buffer = buf ? buf->buffer : VK_NULL_HANDLE;
+                info.offset = bi.offset;
+                info.range = bi.range == ~0ull
+                    ? (buf && buf->desc.size > bi.offset ? buf->desc.size - bi.offset : VK_WHOLE_SIZE)
+                    : bi.range;
+                bufferInfos.push_back(info);
+            }
+        } else if (w.imageInfos) {
+            p.isBuffer = false;
+            p.infoOffset = imageInfos.size();
+            for (uint32_t i = 0; i < w.count; ++i) {
+                const auto& ii = w.imageInfos[i];
+                auto* view = FindTextureView(ii.view);
+                auto* sampler = FindSampler(ii.sampler);
+                VkDescriptorImageInfo info{};
+                info.sampler = sampler ? sampler->sampler : VK_NULL_HANDLE;
+                info.imageView = view ? view->view : VK_NULL_HANDLE;
+                info.imageLayout = ToVkImageLayout(ii.imageLayout);
+                imageInfos.push_back(info);
+            }
+        } else {
+            continue;
+        }
+        pending.push_back(p);
+    }
+
+    std::vector<VkWriteDescriptorSet> vkWrites;
+    vkWrites.reserve(pending.size());
+    for (const auto& p : pending) {
+        auto* set = FindDescriptorSet(p.src.set);
+        if (!set) {
+            continue;
+        }
+        VkWriteDescriptorSet write{};
+        write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        write.dstSet = set->set;
+        write.dstBinding = p.src.binding;
+        write.dstArrayElement = p.src.arrayElement;
+        write.descriptorType = ToVkDescriptorType(p.src.type);
+        write.descriptorCount = p.src.count;
+        if (p.isBuffer) {
+            write.pBufferInfo = bufferInfos.data() + p.infoOffset;
+        } else {
+            write.pImageInfo = imageInfos.data() + p.infoOffset;
+        }
+        vkWrites.push_back(write);
+    }
+
+    if (!vkWrites.empty()) {
+        vkUpdateDescriptorSets(m_Device, static_cast<uint32_t>(vkWrites.size()), vkWrites.data(), 0, nullptr);
+    }
+}
+
+RHIResult<RHIPipelineLayoutHandle> VulkanDevice::CreatePipelineLayout(const PipelineLayoutDesc& desc) {
+    std::vector<VkDescriptorSetLayout> setLayouts;
+    setLayouts.reserve(desc.setLayouts.size());
+    for (auto h : desc.setLayouts) {
+        auto it = m_DescriptorSetLayouts.find(static_cast<uint64_t>(h));
+        if (it == m_DescriptorSetLayouts.end()) {
+            return RHIError::Make(RHIErrorCode::InvalidHandle, "Unknown descriptor set layout.", "CreatePipelineLayout");
+        }
+        setLayouts.push_back(it->second.layout);
+    }
+
+    std::vector<VkPushConstantRange> ranges;
+    if (!desc.pushConstantRanges.empty()) {
+        ranges.reserve(desc.pushConstantRanges.size());
+        for (const auto& r : desc.pushConstantRanges) {
+            VkPushConstantRange vr{};
+            vr.stageFlags = ToVkShaderStageFlags(r.stages);
+            vr.offset = r.offset;
+            vr.size = r.size;
+            ranges.push_back(vr);
+        }
+    } else if (desc.pushConstantSize > 0) {
+        VkPushConstantRange vr{};
+        vr.stageFlags = ToVkShaderStageFlags(desc.pushConstantStages);
+        vr.offset = 0;
+        vr.size = desc.pushConstantSize;
+        ranges.push_back(vr);
+    }
+
     VulkanPipelineLayout layout{};
+    layout.desc = desc;
     VkPipelineLayoutCreateInfo info{};
     info.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+    info.setLayoutCount = static_cast<uint32_t>(setLayouts.size());
+    info.pSetLayouts = setLayouts.empty() ? nullptr : setLayouts.data();
+    info.pushConstantRangeCount = static_cast<uint32_t>(ranges.size());
+    info.pPushConstantRanges = ranges.empty() ? nullptr : ranges.data();
     if (vkCreatePipelineLayout(m_Device, &info, nullptr, &layout.layout) != VK_SUCCESS) {
         return RHIError::Make(RHIErrorCode::BackendFailure, "vkCreatePipelineLayout failed.", "CreatePipelineLayout");
     }
     const auto handle = static_cast<RHIPipelineLayoutHandle>(AllocHandle());
-    m_PipelineLayouts.emplace(static_cast<uint64_t>(handle), layout);
+    m_PipelineLayouts.emplace(static_cast<uint64_t>(handle), std::move(layout));
     ++m_Diagnostics.resourcesCreated;
     return handle;
 }
@@ -708,9 +1024,126 @@ RHIResult<void> VulkanDevice::DestroyPipelineLayout(RHIPipelineLayoutHandle hand
 }
 
 RHIResult<RHIGraphicsPipelineHandle> VulkanDevice::CreateGraphicsPipeline(const GraphicsPipelineDesc& desc) {
-    // Minimal stub: full graphics PSO creation lands with pass migration.
+    auto* vert = FindShader(desc.vertexShader);
+    auto* frag = FindShader(desc.fragmentShader);
+    auto* layout = FindPipelineLayout(desc.layout);
+    if (!vert || !frag || !layout || !vert->module || !frag->module || !layout->layout) {
+        return RHIError::Make(RHIErrorCode::InvalidArgument, "Missing shaders or layout.", "CreateGraphicsPipeline");
+    }
+
+    VkPipelineShaderStageCreateInfo stages[2]{};
+    stages[0].sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+    stages[0].stage = VK_SHADER_STAGE_VERTEX_BIT;
+    stages[0].module = vert->module;
+    stages[0].pName = vert->entryPoint.c_str();
+    stages[1].sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+    stages[1].stage = VK_SHADER_STAGE_FRAGMENT_BIT;
+    stages[1].module = frag->module;
+    stages[1].pName = frag->entryPoint.c_str();
+
+    std::vector<VkVertexInputBindingDescription> bindings;
+    bindings.reserve(desc.vertexBindings.size());
+    for (const auto& b : desc.vertexBindings) {
+        VkVertexInputBindingDescription vb{};
+        vb.binding = b.binding;
+        vb.stride = b.stride;
+        vb.inputRate = b.perInstance ? VK_VERTEX_INPUT_RATE_INSTANCE : VK_VERTEX_INPUT_RATE_VERTEX;
+        bindings.push_back(vb);
+    }
+    std::vector<VkVertexInputAttributeDescription> attrs;
+    attrs.reserve(desc.vertexAttributes.size());
+    for (const auto& a : desc.vertexAttributes) {
+        VkVertexInputAttributeDescription va{};
+        va.location = a.location;
+        va.binding = a.binding;
+        va.format = ToVkFormat(a.format);
+        va.offset = a.offset;
+        attrs.push_back(va);
+    }
+
+    VkPipelineVertexInputStateCreateInfo vertexInput{};
+    vertexInput.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
+    vertexInput.vertexBindingDescriptionCount = static_cast<uint32_t>(bindings.size());
+    vertexInput.pVertexBindingDescriptions = bindings.empty() ? nullptr : bindings.data();
+    vertexInput.vertexAttributeDescriptionCount = static_cast<uint32_t>(attrs.size());
+    vertexInput.pVertexAttributeDescriptions = attrs.empty() ? nullptr : attrs.data();
+
+    VkPipelineInputAssemblyStateCreateInfo inputAssembly{};
+    inputAssembly.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
+    inputAssembly.topology = ToVkTopology(desc.topology);
+
+    VkPipelineViewportStateCreateInfo viewportState{};
+    viewportState.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
+    viewportState.viewportCount = 1;
+    viewportState.scissorCount = 1;
+
+    VkPipelineRasterizationStateCreateInfo rasterizer{};
+    rasterizer.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
+    rasterizer.polygonMode = VK_POLYGON_MODE_FILL;
+    rasterizer.lineWidth = 1.0f;
+    rasterizer.cullMode = ToVkCullMode(desc.cullMode);
+    rasterizer.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
+
+    VkPipelineMultisampleStateCreateInfo multisampling{};
+    multisampling.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
+    multisampling.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
+
+    VkPipelineDepthStencilStateCreateInfo depthStencil{};
+    depthStencil.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
+    depthStencil.depthTestEnable = desc.depthTest ? VK_TRUE : VK_FALSE;
+    depthStencil.depthWriteEnable = desc.depthWrite ? VK_TRUE : VK_FALSE;
+    depthStencil.depthCompareOp = ToVkCompareOp(desc.depthCompare);
+
+    VkPipelineColorBlendAttachmentState colorBlendAttachment{};
+    colorBlendAttachment.colorWriteMask =
+        VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
+    colorBlendAttachment.blendEnable = desc.blend.enable ? VK_TRUE : VK_FALSE;
+    colorBlendAttachment.srcColorBlendFactor = ToVkBlendFactor(desc.blend.srcColor);
+    colorBlendAttachment.dstColorBlendFactor = ToVkBlendFactor(desc.blend.dstColor);
+    colorBlendAttachment.colorBlendOp = ToVkBlendOp(desc.blend.colorOp);
+    colorBlendAttachment.srcAlphaBlendFactor = ToVkBlendFactor(desc.blend.srcAlpha);
+    colorBlendAttachment.dstAlphaBlendFactor = ToVkBlendFactor(desc.blend.dstAlpha);
+    colorBlendAttachment.alphaBlendOp = ToVkBlendOp(desc.blend.alphaOp);
+
+    VkPipelineColorBlendStateCreateInfo colorBlending{};
+    colorBlending.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
+    colorBlending.attachmentCount = 1;
+    colorBlending.pAttachments = &colorBlendAttachment;
+
+    const VkDynamicState dynamicStates[] = {VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR};
+    VkPipelineDynamicStateCreateInfo dynamicState{};
+    dynamicState.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
+    dynamicState.dynamicStateCount = 2;
+    dynamicState.pDynamicStates = dynamicStates;
+
+    const VkFormat colorFormat = ToVkFormat(desc.colorFormat);
+    VkPipelineRenderingCreateInfo renderingInfo{};
+    renderingInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO;
+    renderingInfo.colorAttachmentCount = 1;
+    renderingInfo.pColorAttachmentFormats = &colorFormat;
+    renderingInfo.depthAttachmentFormat = desc.depthAttachment ? ToVkFormat(desc.depthFormat) : VK_FORMAT_UNDEFINED;
+
+    VkGraphicsPipelineCreateInfo pipelineInfo{};
+    pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
+    pipelineInfo.pNext = &renderingInfo;
+    pipelineInfo.stageCount = 2;
+    pipelineInfo.pStages = stages;
+    pipelineInfo.pVertexInputState = &vertexInput;
+    pipelineInfo.pInputAssemblyState = &inputAssembly;
+    pipelineInfo.pViewportState = &viewportState;
+    pipelineInfo.pRasterizationState = &rasterizer;
+    pipelineInfo.pMultisampleState = &multisampling;
+    pipelineInfo.pDepthStencilState = &depthStencil;
+    pipelineInfo.pColorBlendState = &colorBlending;
+    pipelineInfo.pDynamicState = &dynamicState;
+    pipelineInfo.layout = layout->layout;
+
     VulkanGraphicsPipeline pipeline{};
     pipeline.desc = desc;
+    pipeline.layout = layout->layout;
+    if (vkCreateGraphicsPipelines(m_Device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &pipeline.pipeline) != VK_SUCCESS) {
+        return RHIError::Make(RHIErrorCode::BackendFailure, "vkCreateGraphicsPipelines failed.", "CreateGraphicsPipeline");
+    }
     const auto handle = static_cast<RHIGraphicsPipelineHandle>(AllocHandle());
     m_GraphicsPipelines.emplace(static_cast<uint64_t>(handle), pipeline);
     ++m_Diagnostics.resourcesCreated;
@@ -726,8 +1159,29 @@ RHIResult<void> VulkanDevice::DestroyGraphicsPipeline(RHIGraphicsPipelineHandle 
 }
 
 RHIResult<RHIComputePipelineHandle> VulkanDevice::CreateComputePipeline(const ComputePipelineDesc& desc) {
+    auto* shader = FindShader(desc.computeShader);
+    auto* layout = FindPipelineLayout(desc.layout);
+    if (!shader || !layout || !shader->module || !layout->layout) {
+        return RHIError::Make(RHIErrorCode::InvalidArgument, "Missing compute shader or layout.", "CreateComputePipeline");
+    }
+
+    VkPipelineShaderStageCreateInfo stage{};
+    stage.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+    stage.stage = VK_SHADER_STAGE_COMPUTE_BIT;
+    stage.module = shader->module;
+    stage.pName = shader->entryPoint.c_str();
+
+    VkComputePipelineCreateInfo info{};
+    info.sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
+    info.stage = stage;
+    info.layout = layout->layout;
+
     VulkanComputePipeline pipeline{};
     pipeline.desc = desc;
+    pipeline.layout = layout->layout;
+    if (vkCreateComputePipelines(m_Device, VK_NULL_HANDLE, 1, &info, nullptr, &pipeline.pipeline) != VK_SUCCESS) {
+        return RHIError::Make(RHIErrorCode::BackendFailure, "vkCreateComputePipelines failed.", "CreateComputePipeline");
+    }
     const auto handle = static_cast<RHIComputePipelineHandle>(AllocHandle());
     m_ComputePipelines.emplace(static_cast<uint64_t>(handle), pipeline);
     ++m_Diagnostics.resourcesCreated;
@@ -740,6 +1194,180 @@ RHIResult<void> VulkanDevice::DestroyComputePipeline(RHIComputePipelineHandle ha
     }
     EnqueueDeferred(DeferredKind::ComputePipeline, static_cast<uint64_t>(handle));
     return RHIResult<void>::Success();
+}
+
+RHIResult<RHIFenceHandle> VulkanDevice::CreateFence(const FenceDesc& desc) {
+    VulkanFence fence{};
+    fence.desc = desc;
+    VkFenceCreateInfo info{};
+    info.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+    if (desc.signaled) {
+        info.flags = VK_FENCE_CREATE_SIGNALED_BIT;
+    }
+    if (vkCreateFence(m_Device, &info, nullptr, &fence.fence) != VK_SUCCESS) {
+        return RHIError::Make(RHIErrorCode::BackendFailure, "vkCreateFence failed.", "CreateFence");
+    }
+    const auto handle = static_cast<RHIFenceHandle>(AllocHandle());
+    m_Fences.emplace(static_cast<uint64_t>(handle), fence);
+    ++m_Diagnostics.resourcesCreated;
+    return handle;
+}
+
+RHIResult<void> VulkanDevice::DestroyFence(RHIFenceHandle handle) {
+    if (!FindFence(handle)) {
+        return RHIError::Make(RHIErrorCode::InvalidHandle, "Unknown fence.", "DestroyFence");
+    }
+    EnqueueDeferred(DeferredKind::Fence, static_cast<uint64_t>(handle));
+    return RHIResult<void>::Success();
+}
+
+RHIResult<void> VulkanDevice::WaitForFences(std::span<const RHIFenceHandle> fences, bool waitAll, uint64_t timeoutNs) {
+    std::vector<VkFence> vkFences;
+    vkFences.reserve(fences.size());
+    for (auto h : fences) {
+        if (auto* f = FindFence(h); f && f->fence) {
+            vkFences.push_back(f->fence);
+        }
+    }
+    if (vkFences.empty()) {
+        return RHIResult<void>::Success();
+    }
+    const VkResult result = vkWaitForFences(
+        m_Device,
+        static_cast<uint32_t>(vkFences.size()),
+        vkFences.data(),
+        waitAll ? VK_TRUE : VK_FALSE,
+        timeoutNs);
+    if (result != VK_SUCCESS && result != VK_TIMEOUT) {
+        return RHIError::Make(RHIErrorCode::BackendFailure, "vkWaitForFences failed.", "WaitForFences");
+    }
+    return RHIResult<void>::Success();
+}
+
+RHIResult<void> VulkanDevice::ResetFences(std::span<const RHIFenceHandle> fences) {
+    std::vector<VkFence> vkFences;
+    vkFences.reserve(fences.size());
+    for (auto h : fences) {
+        if (auto* f = FindFence(h); f && f->fence) {
+            vkFences.push_back(f->fence);
+        }
+    }
+    if (!vkFences.empty()) {
+        vkResetFences(m_Device, static_cast<uint32_t>(vkFences.size()), vkFences.data());
+    }
+    return RHIResult<void>::Success();
+}
+
+bool VulkanDevice::IsFenceSignaled(RHIFenceHandle handle) {
+    auto* f = FindFence(handle);
+    if (!f || !f->fence) {
+        return false;
+    }
+    return vkGetFenceStatus(m_Device, f->fence) == VK_SUCCESS;
+}
+
+RHIResult<RHISemaphoreHandle> VulkanDevice::CreateSemaphore(const SemaphoreDesc& desc) {
+    VulkanSemaphore semaphore{};
+    semaphore.desc = desc;
+    VkSemaphoreCreateInfo info{};
+    info.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+    if (vkCreateSemaphore(m_Device, &info, nullptr, &semaphore.semaphore) != VK_SUCCESS) {
+        return RHIError::Make(RHIErrorCode::BackendFailure, "vkCreateSemaphore failed.", "CreateSemaphore");
+    }
+    const auto handle = static_cast<RHISemaphoreHandle>(AllocHandle());
+    m_Semaphores.emplace(static_cast<uint64_t>(handle), semaphore);
+    ++m_Diagnostics.resourcesCreated;
+    return handle;
+}
+
+RHIResult<void> VulkanDevice::DestroySemaphore(RHISemaphoreHandle handle) {
+    if (!FindSemaphore(handle)) {
+        return RHIError::Make(RHIErrorCode::InvalidHandle, "Unknown semaphore.", "DestroySemaphore");
+    }
+    EnqueueDeferred(DeferredKind::Semaphore, static_cast<uint64_t>(handle));
+    return RHIResult<void>::Success();
+}
+
+RHIResult<void> VulkanDevice::SubmitOneTime(std::function<void(VkCommandBuffer)> record) {
+    VkCommandBufferAllocateInfo allocInfo{};
+    allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+    allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+    allocInfo.commandPool = m_CommandPool;
+    allocInfo.commandBufferCount = 1;
+    VkCommandBuffer cmd = VK_NULL_HANDLE;
+    if (vkAllocateCommandBuffers(m_Device, &allocInfo, &cmd) != VK_SUCCESS) {
+        return RHIError::Make(RHIErrorCode::BackendFailure, "Failed to allocate one-time command buffer.", "SubmitOneTime");
+    }
+    VkCommandBufferBeginInfo beginInfo{};
+    beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+    beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+    vkBeginCommandBuffer(cmd, &beginInfo);
+    record(cmd);
+    vkEndCommandBuffer(cmd);
+
+    VkSubmitInfo submitInfo{};
+    submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+    submitInfo.commandBufferCount = 1;
+    submitInfo.pCommandBuffers = &cmd;
+    vkQueueSubmit(m_GraphicsQueue.GetVkQueue(), 1, &submitInfo, VK_NULL_HANDLE);
+    vkQueueWaitIdle(m_GraphicsQueue.GetVkQueue());
+    vkFreeCommandBuffers(m_Device, m_CommandPool, 1, &cmd);
+    return RHIResult<void>::Success();
+}
+
+RHIResult<void> VulkanDevice::UpdateTexture(RHITextureHandle handle, const TextureUpdateDesc& update) {
+    auto* tex = FindTexture(handle);
+    if (!tex || !tex->image) {
+        return RHIError::Make(RHIErrorCode::InvalidHandle, "Unknown texture.", "UpdateTexture");
+    }
+    if (update.data.empty()) {
+        return RHIError::Make(RHIErrorCode::InvalidArgument, "Empty texture update.", "UpdateTexture");
+    }
+
+    BufferDesc stagingDesc{};
+    stagingDesc.size = update.data.size();
+    stagingDesc.usage = BufferUsage::TransferSrc;
+    stagingDesc.memory = MemoryUsage::HostVisible;
+    auto staging = CreateBuffer(stagingDesc);
+    if (!staging) {
+        return staging.error;
+    }
+    if (void* mapped = MapBuffer(*staging)) {
+        std::memcpy(mapped, update.data.data(), update.data.size());
+        UnmapBuffer(*staging);
+    }
+
+    BufferImageCopyRegion region{};
+    region.bufferOffset = 0;
+    region.bufferRowLength = 0;
+    if (update.rowPitch > 0 && update.extent.width > 0) {
+        // Desc documents rowPitch in bytes; Vulkan bufferRowLength is in texels.
+        region.bufferRowLength = update.rowPitch / 4u;
+        if (region.bufferRowLength == 0) {
+            region.bufferRowLength = update.extent.width;
+        }
+    }
+    region.image.mipLevel = update.mipLevel;
+    region.image.baseLayer = update.arrayLayer;
+    region.image.layerCount = 1;
+    region.imageOffsetX = update.offsetX;
+    region.imageOffsetY = update.offsetY;
+    region.imageOffsetZ = update.offsetZ;
+    region.imageExtent = update.extent;
+
+    auto result = SubmitOneTime([&](VkCommandBuffer cmd) {
+        VulkanCommandList list(this);
+        list.SetCommandBuffer(cmd);
+        list.Begin();
+        const ResourceState old = tex->state;
+        list.TransitionTexture(handle, old, ResourceState::CopyDst);
+        list.CopyBufferToTexture(*staging, handle, region);
+        list.TransitionTexture(handle, ResourceState::CopyDst, old == ResourceState::Undefined ? ResourceState::ShaderResource : old);
+        list.End();
+    });
+
+    DestroyBuffer(*staging);
+    return result;
 }
 
 IRHICommandList* VulkanDevice::BeginFrame() {
@@ -934,6 +1562,33 @@ void VulkanDevice::DestroyImmediate(DeferredKind kind, uint64_t handle) {
         ++m_Diagnostics.resourcesDestroyed;
         break;
     }
+    case DeferredKind::DescriptorSetLayout: {
+        auto it = m_DescriptorSetLayouts.find(handle);
+        if (it == m_DescriptorSetLayouts.end()) {
+            break;
+        }
+        vkDestroyDescriptorSetLayout(m_Device, it->second.layout, nullptr);
+        m_DescriptorSetLayouts.erase(it);
+        ++m_Diagnostics.resourcesDestroyed;
+        break;
+    }
+    case DeferredKind::DescriptorPool: {
+        auto it = m_DescriptorPools.find(handle);
+        if (it == m_DescriptorPools.end()) {
+            break;
+        }
+        for (auto setIt = m_DescriptorSets.begin(); setIt != m_DescriptorSets.end();) {
+            if (static_cast<uint64_t>(setIt->second.pool) == handle) {
+                setIt = m_DescriptorSets.erase(setIt);
+            } else {
+                ++setIt;
+            }
+        }
+        vkDestroyDescriptorPool(m_Device, it->second.pool, nullptr);
+        m_DescriptorPools.erase(it);
+        ++m_Diagnostics.resourcesDestroyed;
+        break;
+    }
     case DeferredKind::PipelineLayout: {
         auto it = m_PipelineLayouts.find(handle);
         if (it == m_PipelineLayouts.end()) {
@@ -965,6 +1620,26 @@ void VulkanDevice::DestroyImmediate(DeferredKind kind, uint64_t handle) {
             vkDestroyPipeline(m_Device, it->second.pipeline, nullptr);
         }
         m_ComputePipelines.erase(it);
+        ++m_Diagnostics.resourcesDestroyed;
+        break;
+    }
+    case DeferredKind::Fence: {
+        auto it = m_Fences.find(handle);
+        if (it == m_Fences.end()) {
+            break;
+        }
+        vkDestroyFence(m_Device, it->second.fence, nullptr);
+        m_Fences.erase(it);
+        ++m_Diagnostics.resourcesDestroyed;
+        break;
+    }
+    case DeferredKind::Semaphore: {
+        auto it = m_Semaphores.find(handle);
+        if (it == m_Semaphores.end()) {
+            break;
+        }
+        vkDestroySemaphore(m_Device, it->second.semaphore, nullptr);
+        m_Semaphores.erase(it);
         ++m_Diagnostics.resourcesDestroyed;
         break;
     }
