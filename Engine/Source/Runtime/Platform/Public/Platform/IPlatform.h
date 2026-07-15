@@ -8,6 +8,7 @@
 #include "Platform/NativeHandle.h"
 #include "Platform/Result.h"
 #include "Platform/Types.h"
+#include "Platform/UndefWin32Macros.h"
 
 #include <functional>
 #include <optional>
@@ -15,38 +16,6 @@
 #include <string>
 #include <string_view>
 #include <vector>
-
-#if defined(_WIN32)
-// Win32 headers poison common identifier names via macros. Keep them undefined
-// for the remainder of the TU so IPlatform method names are usable.
-#ifdef CreateWindow
-#undef CreateWindow
-#endif
-#ifdef LoadLibrary
-#undef LoadLibrary
-#endif
-#ifdef GetMonitorInfo
-#undef GetMonitorInfo
-#endif
-#ifdef GetEnvironmentVariable
-#undef GetEnvironmentVariable
-#endif
-#ifdef SetEnvironmentVariable
-#undef SetEnvironmentVariable
-#endif
-#ifdef GetComputerName
-#undef GetComputerName
-#endif
-#ifdef GetUserName
-#undef GetUserName
-#endif
-#ifdef CreateEvent
-#undef CreateEvent
-#endif
-#ifdef MessageBox
-#undef MessageBox
-#endif
-#endif
 
 namespace we::platform {
 
@@ -59,6 +28,9 @@ using EventHandler = std::function<void(const PlatformEvent&)>;
 // - Capability queries instead of platform #ifdefs in Engine / Editor / Tools.
 // - Failures report via Result<T> and/or GetLastError() — no silent failures.
 // - Main-thread vs thread-safe contract documented in ThreadSafety.h.
+//
+// If a TU includes windows.h after this header, also include Platform/UndefWin32Macros.h
+// afterward so CreateWindow / LoadLibrary / etc. stay usable as method names.
 class PLATFORM_API IPlatform {
 public:
     virtual ~IPlatform() = default;

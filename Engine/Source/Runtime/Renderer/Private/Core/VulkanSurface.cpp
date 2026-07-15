@@ -1,6 +1,7 @@
 #include "Core/VulkanSurface.h"
 
 #include <stdexcept>
+#include <string>
 
 #if WE_PLATFORM_WINDOWS
 #ifndef WIN32_LEAN_AND_MEAN
@@ -36,7 +37,10 @@ VkSurfaceKHR CreateVulkanSurface(VkInstance instance, const we::platform::Native
 
 #if WE_PLATFORM_WINDOWS
     if (nativeWindow.type != we::platform::NativeWindowType::Win32Hwnd) {
-        throw std::runtime_error("CreateVulkanSurface: expected Win32 HWND.");
+        throw std::runtime_error(
+            "CreateVulkanSurface: expected Win32 HWND (type="
+            + std::to_string(static_cast<uint32_t>(nativeWindow.type)) + "). "
+            "Rebuild modules that include IPlatform.h after Platform API changes.");
     }
     if (!vkCreateWin32SurfaceKHR) {
         throw std::runtime_error("vkCreateWin32SurfaceKHR is unavailable (volk not loaded?).");
