@@ -3,6 +3,7 @@
 #pragma warning(disable : 4251)
 
 #include "Camera/CameraUniform.h"
+#include "Lighting/SceneEnvironmentUniform.h"
 #include "Renderer/Export.h"
 #include "Renderer/Graph/RenderGraph.h"
 #include "Renderer/ViewportInterfaces.h"
@@ -16,6 +17,9 @@
 namespace we::runtime::renderer {
 
 constexpr uint32_t kMaxFramesInFlight = 2;
+
+class ViewportSkyRenderer;
+class ViewportGridRenderer;
 
 class RENDERER_API Renderer : public ISceneViewportController {
 public:
@@ -33,6 +37,7 @@ public:
     void SubmitAndPresent();
 
     void UploadCameraUniform(const CameraUniform& uniform);
+    void UploadEnvironmentUniform(const SceneEnvironmentUniform& uniform);
     void InsertOverlayPassBarrier();
 
     void RecordUiPresentPath(uint32_t imageIndex);
@@ -72,6 +77,8 @@ private:
 
     std::unique_ptr<we::rhi::IRHIDevice> m_RHIDevice;
     std::unique_ptr<RenderGraph> m_RenderGraph;
+    std::unique_ptr<ViewportSkyRenderer> m_ViewportSky;
+    std::unique_ptr<ViewportGridRenderer> m_ViewportGrid;
     we::rhi::IRHICommandList* m_FrameCmd = nullptr;
 
     we::platform::WindowId m_Window = we::platform::WindowId::Invalid;
@@ -95,6 +102,7 @@ private:
     uint32_t m_OwnedViewportHeight = 0;
 
     CameraUniform m_LastCamera{};
+    SceneEnvironmentUniform m_LastEnvironment{};
 
     uint64_t m_PresentAuditFrameNumber = 0;
     uint32_t m_AcquiredImageIndex = UINT32_MAX;

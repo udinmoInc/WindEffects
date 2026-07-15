@@ -6,6 +6,10 @@
 #include "RHI/IRHI.h"
 #include "RHI/Types.h"
 
+namespace WindEffects::Editor::UI {
+class UiImmediateRenderer;
+}
+
 #include <array>
 #include <cstdint>
 #include <memory>
@@ -109,7 +113,7 @@ private:
     std::unique_ptr<UICompositor> m_Compositor;
     std::unique_ptr<UIStateManager> m_StateManager;
     std::unique_ptr<UiGpuUpload> m_GpuUpload;
-    std::unique_ptr<we::rhi::IGpuUIBackend> m_UIBackend;
+    std::unique_ptr<UiImmediateRenderer> m_UIImmediate;
 
     we::rhi::IRHIDevice* m_RHIDevice = nullptr;
     we::rhi::Format m_SwapchainFormat = we::rhi::Format::Unknown;

@@ -3,6 +3,7 @@
 #include "Core/LogCategory.h"
 #include "Core/Logger.h"
 #include "Platform/NativeHandle.h"
+#include "RHI/ShaderBytecode.h"
 
 #include <chrono>
 #include <cstring>
@@ -97,6 +98,69 @@ namespace {
     case CompareOp::GreaterOrEqual: return D3D12_COMPARISON_FUNC_GREATER_EQUAL;
     case CompareOp::Always:
     default: return D3D12_COMPARISON_FUNC_ALWAYS;
+    }
+}
+
+[[nodiscard]] D3D12_TEXTURE_ADDRESS_MODE ToAddressMode(AddressMode mode) noexcept {
+    switch (mode) {
+    case AddressMode::MirroredRepeat: return D3D12_TEXTURE_ADDRESS_MODE_MIRROR;
+    case AddressMode::ClampToEdge: return D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
+    case AddressMode::ClampToBorder: return D3D12_TEXTURE_ADDRESS_MODE_BORDER;
+    case AddressMode::Repeat:
+    default: return D3D12_TEXTURE_ADDRESS_MODE_WRAP;
+    }
+}
+
+[[nodiscard]] D3D12_FILTER ToSamplerFilter(const SamplerDesc& desc) noexcept {
+    const bool linearMag = desc.magFilter == Filter::Linear;
+    const bool linearMin = desc.minFilter == Filter::Linear;
+    const bool linearMip = desc.mipFilter == Filter::Linear;
+    if (desc.anisotropy && desc.maxAnisotropy > 1.0f) {
+        return D3D12_FILTER_ANISOTROPIC;
+    }
+    if (linearMin && linearMag && linearMip) {
+        return D3D12_FILTER_MIN_MAG_MIP_LINEAR;
+    }
+    if (linearMin && linearMag) {
+        return D3D12_FILTER_MIN_MAG_LINEAR_MIP_POINT;
+    }
+    if (linearMin) {
+        return D3D12_FILTER_MIN_LINEAR_MAG_MIP_POINT;
+    }
+    if (linearMag) {
+        return D3D12_FILTER_MIN_POINT_MAG_LINEAR_MIP_POINT;
+    }
+    return D3D12_FILTER_MIN_MAG_MIP_POINT;
+}
+
+[[nodiscard]] bool BindingUsesSrvHeap(DescriptorType type) noexcept {
+    switch (type) {
+    case DescriptorType::UniformBuffer:
+    case DescriptorType::StorageBuffer:
+    case DescriptorType::SampledTexture:
+    case DescriptorType::StorageTexture:
+    case DescriptorType::CombinedImageSampler:
+        return true;
+    default:
+        return false;
+    }
+}
+
+[[nodiscard]] bool BindingUsesSamplerHeap(DescriptorType type) noexcept {
+    return type == DescriptorType::Sampler || type == DescriptorType::CombinedImageSampler;
+}
+
+[[nodiscard]] D3D12_DESCRIPTOR_RANGE_TYPE ToSrvHeapRangeType(DescriptorType type) noexcept {
+    switch (type) {
+    case DescriptorType::UniformBuffer:
+        return D3D12_DESCRIPTOR_RANGE_TYPE_CBV;
+    case DescriptorType::StorageBuffer:
+    case DescriptorType::StorageTexture:
+        return D3D12_DESCRIPTOR_RANGE_TYPE_UAV;
+    case DescriptorType::SampledTexture:
+    case DescriptorType::CombinedImageSampler:
+    default:
+        return D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
     }
 }
 
@@ -383,8 +447,80 @@ void DX12CommandList::BindIndexBuffer(RHIBufferHandle buffer, uint64_t offset, I
     m_List->IASetIndexBuffer(&view);
 }
 
-void DX12CommandList::BindDescriptorSets(PipelineBindPoint, RHIPipelineLayoutHandle, uint32_t, std::span<const RHIDescriptorSetHandle>) {}
-void DX12CommandList::PushConstants(RHIPipelineLayoutHandle, ShaderStageFlags, uint32_t, std::span<const uint8_t>) {}
+void DX12CommandList::BindDescriptorSets(
+    PipelineBindPoint bindPoint,
+    RHIPipelineLayoutHandle layoutHandle,
+    uint32_t firstSet,
+    std::span<const RHIDescriptorSetHandle> sets)
+{
+    if (!m_List || !m_Device || sets.empty()) {
+        return;
+    }
+    auto* layout = m_Device->FindPipelineLayout(layoutHandle);
+    if (!layout || !layout->rootSignature) {
+        return;
+    }
+    m_Device->BindShaderHeaps(m_List);
+    for (size_t i = 0; i < sets.size(); ++i) {
+        const uint32_t setIndex = firstSet + static_cast<uint32_t>(i);
+        if (setIndex >= layout->setRoots.size()) {
+            break;
+        }
+        auto* set = m_Device->FindDescriptorSet(sets[i]);
+        if (!set) {
+            continue;
+        }
+        const auto& mapping = layout->setRoots[setIndex];
+        if (mapping.srvUavCbvRootParam != UINT32_MAX && set->srvUavCbvCount > 0) {
+            const auto gpu = m_Device->SrvGpu(set->srvUavCbvHeapOffset);
+            if (bindPoint == PipelineBindPoint::Compute) {
+                m_List->SetComputeRootDescriptorTable(mapping.srvUavCbvRootParam, gpu);
+            } else {
+                m_List->SetGraphicsRootDescriptorTable(mapping.srvUavCbvRootParam, gpu);
+            }
+        }
+        if (mapping.samplerRootParam != UINT32_MAX && set->samplerCount > 0) {
+            const auto gpu = m_Device->SamplerGpu(set->samplerHeapOffset);
+            if (bindPoint == PipelineBindPoint::Compute) {
+                m_List->SetComputeRootDescriptorTable(mapping.samplerRootParam, gpu);
+            } else {
+                m_List->SetGraphicsRootDescriptorTable(mapping.samplerRootParam, gpu);
+            }
+        }
+    }
+}
+
+void DX12CommandList::PushConstants(
+    RHIPipelineLayoutHandle layoutHandle,
+    ShaderStageFlags,
+    uint32_t offset,
+    std::span<const uint8_t> data)
+{
+    if (!m_List || !m_Device || data.empty()) {
+        return;
+    }
+    auto* layout = m_Device->FindPipelineLayout(layoutHandle);
+    if (!layout || layout->pushConstantRootParam == UINT32_MAX) {
+        return;
+    }
+    const uint32_t dwordOffset = offset / 4u;
+    const uint32_t dwordCount = static_cast<uint32_t>((data.size() + 3u) / 4u);
+    if (dwordCount == 0 || dwordOffset + dwordCount > layout->pushConstantDwords) {
+        return;
+    }
+    // Pad to 4-byte alignment for SetGraphicsRoot32BitConstants.
+    alignas(4) uint8_t scratch[256];
+    const size_t copySize = (std::min)(data.size(), sizeof(scratch));
+    std::memcpy(scratch, data.data(), copySize);
+    if (copySize < dwordCount * 4u) {
+        std::memset(scratch + copySize, 0, dwordCount * 4u - copySize);
+    }
+    m_List->SetGraphicsRoot32BitConstants(
+        layout->pushConstantRootParam,
+        dwordCount,
+        scratch,
+        dwordOffset);
+}
 
 void DX12CommandList::Draw(uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance) {
     if (!m_List) {
@@ -791,11 +927,11 @@ DX12Device::DX12Device(const DeviceDesc& desc)
     m_Caps.shaderInt64 = true;
     m_Caps.drawIndirectFirstInstance = true;
     m_Caps.textureCompressionBC = true;
-    m_Caps.timelineSemaphores = true;
-    m_Caps.asyncCompute = true;
-    m_Caps.bindlessResources = true;
+    m_Caps.timelineSemaphores = false;
+    m_Caps.asyncCompute = false;
+    m_Caps.bindlessResources = false;
     m_Caps.debugMarkers = true;
-    m_Caps.multipleWindows = true;
+    m_Caps.multipleWindows = false;
     m_Caps.maxSamplerAnisotropy = 16.0f;
     m_Caps.maxColorAttachments = 8;
     m_Caps.maxPushConstantBytes = 256;
@@ -969,7 +1105,82 @@ RHIResult<void> DX12Device::CreateDeviceAndQueue() {
     }
     m_DsvDescriptorSize = m_Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_DSV);
 
+    if (auto heaps = CreateShaderVisibleHeaps(); !heaps) {
+        return heaps;
+    }
+
     return RHIResult<void>::Success();
+}
+
+RHIResult<void> DX12Device::CreateShaderVisibleHeaps() {
+    D3D12_DESCRIPTOR_HEAP_DESC srvHeapDesc{};
+    srvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+    srvHeapDesc.NumDescriptors = kSrvHeapCapacity;
+    srvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+    if (FAILED(m_Device->CreateDescriptorHeap(&srvHeapDesc, IID_PPV_ARGS(&m_SrvHeap)))) {
+        return RHIError::Make(RHIErrorCode::BackendFailure, "CreateDescriptorHeap(SRV) failed.", "CreateShaderVisibleHeaps");
+    }
+    m_SrvDescriptorSize = m_Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+
+    D3D12_DESCRIPTOR_HEAP_DESC samplerHeapDesc{};
+    samplerHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER;
+    samplerHeapDesc.NumDescriptors = kSamplerHeapCapacity;
+    samplerHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+    if (FAILED(m_Device->CreateDescriptorHeap(&samplerHeapDesc, IID_PPV_ARGS(&m_SamplerHeap)))) {
+        return RHIError::Make(RHIErrorCode::BackendFailure, "CreateDescriptorHeap(Sampler) failed.", "CreateShaderVisibleHeaps");
+    }
+    m_SamplerDescriptorSize = m_Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
+    m_SrvCursor = 0;
+    m_SamplerCursor = 0;
+    return RHIResult<void>::Success();
+}
+
+void DX12Device::BindShaderHeaps(ID3D12GraphicsCommandList* list) {
+    if (!list || !m_SrvHeap || !m_SamplerHeap) {
+        return;
+    }
+    ID3D12DescriptorHeap* heaps[] = {m_SrvHeap.Get(), m_SamplerHeap.Get()};
+    list->SetDescriptorHeaps(2, heaps);
+}
+
+bool DX12Device::AllocateShaderVisibleSlots(
+    uint32_t srvCount,
+    uint32_t samplerCount,
+    uint32_t& outSrvOffset,
+    uint32_t& outSamplerOffset)
+{
+    if (m_SrvCursor + srvCount > kSrvHeapCapacity || m_SamplerCursor + samplerCount > kSamplerHeapCapacity) {
+        return false;
+    }
+    outSrvOffset = m_SrvCursor;
+    outSamplerOffset = m_SamplerCursor;
+    m_SrvCursor += srvCount;
+    m_SamplerCursor += samplerCount;
+    return true;
+}
+
+D3D12_CPU_DESCRIPTOR_HANDLE DX12Device::SrvCpu(uint32_t offset) const {
+    D3D12_CPU_DESCRIPTOR_HANDLE h = m_SrvHeap->GetCPUDescriptorHandleForHeapStart();
+    h.ptr += static_cast<SIZE_T>(offset) * m_SrvDescriptorSize;
+    return h;
+}
+
+D3D12_GPU_DESCRIPTOR_HANDLE DX12Device::SrvGpu(uint32_t offset) const {
+    D3D12_GPU_DESCRIPTOR_HANDLE h = m_SrvHeap->GetGPUDescriptorHandleForHeapStart();
+    h.ptr += static_cast<UINT64>(offset) * m_SrvDescriptorSize;
+    return h;
+}
+
+D3D12_CPU_DESCRIPTOR_HANDLE DX12Device::SamplerCpu(uint32_t offset) const {
+    D3D12_CPU_DESCRIPTOR_HANDLE h = m_SamplerHeap->GetCPUDescriptorHandleForHeapStart();
+    h.ptr += static_cast<SIZE_T>(offset) * m_SamplerDescriptorSize;
+    return h;
+}
+
+D3D12_GPU_DESCRIPTOR_HANDLE DX12Device::SamplerGpu(uint32_t offset) const {
+    D3D12_GPU_DESCRIPTOR_HANDLE h = m_SamplerHeap->GetGPUDescriptorHandleForHeapStart();
+    h.ptr += static_cast<UINT64>(offset) * m_SamplerDescriptorSize;
+    return h;
 }
 
 uint64_t DX12Device::AllocHandle() {
@@ -1036,6 +1247,31 @@ DX12GraphicsPipeline* DX12Device::FindGraphicsPipeline(RHIGraphicsPipelineHandle
 DX12ComputePipeline* DX12Device::FindComputePipeline(RHIComputePipelineHandle handle) {
     auto it = m_ComputePipelines.find(static_cast<uint64_t>(handle));
     return it == m_ComputePipelines.end() ? nullptr : &it->second;
+}
+
+DX12TextureView* DX12Device::FindTextureView(RHITextureViewHandle handle) {
+    auto it = m_TextureViews.find(static_cast<uint64_t>(handle));
+    return it == m_TextureViews.end() ? nullptr : &it->second;
+}
+
+DX12Sampler* DX12Device::FindSampler(RHISamplerHandle handle) {
+    auto it = m_Samplers.find(static_cast<uint64_t>(handle));
+    return it == m_Samplers.end() ? nullptr : &it->second;
+}
+
+DX12PipelineLayout* DX12Device::FindPipelineLayout(RHIPipelineLayoutHandle handle) {
+    auto it = m_Layouts.find(static_cast<uint64_t>(handle));
+    return it == m_Layouts.end() ? nullptr : &it->second;
+}
+
+DX12DescriptorSet* DX12Device::FindDescriptorSet(RHIDescriptorSetHandle handle) {
+    auto it = m_Sets.find(static_cast<uint64_t>(handle));
+    return it == m_Sets.end() ? nullptr : &it->second;
+}
+
+DX12DescriptorSetLayout* DX12Device::FindDescriptorSetLayout(RHIDescriptorSetLayoutHandle handle) {
+    auto it = m_SetLayouts.find(static_cast<uint64_t>(handle));
+    return it == m_SetLayouts.end() ? nullptr : &it->second;
 }
 
 RHITextureHandle DX12Device::RegisterSwapchainTexture(ComPtr<ID3D12Resource> resource, Extent2D extent, Format format) {

@@ -1,6 +1,8 @@
 #include "Renderer/Renderer.h"
 #include "Renderer/Graph/RenderGraph.h"
 #include "Renderer/Graph/ScenePasses.h"
+#include "Graph/ViewportSkyRenderer.h"
+#include "Graph/ViewportGridRenderer.h"
 
 #include "Core/LogCategory.h"
 #include "Core/Logger.h"
@@ -13,6 +15,9 @@
 #include <cstdlib>
 #include <cstring>
 #include <memory>
+#if WE_HAS_GLM
+#include <glm/gtc/matrix_inverse.hpp>
+#endif
 
 namespace we::runtime::renderer {
 namespace {
@@ -77,6 +82,16 @@ void Renderer::Init(we::platform::WindowId window) {
     m_RHIDevice = std::move(deviceResult.value);
     m_RenderGraph = std::make_unique<RenderGraph>();
     m_RenderGraph->Init(m_RHIDevice.get());
+    m_ViewportSky = std::make_unique<ViewportSkyRenderer>();
+    if (!m_ViewportSky->Init(m_RHIDevice.get())) {
+        WE_LOG_WARN(we::LogCategory::Renderer.data(),
+            "ViewportSkyRenderer init failed; viewport will clear without sky.");
+    }
+    m_ViewportGrid = std::make_unique<ViewportGridRenderer>();
+    if (!m_ViewportGrid->Init(m_RHIDevice.get())) {
+        WE_LOG_WARN(we::LogCategory::Renderer.data(),
+            "ViewportGridRenderer init failed; viewport grid disabled.");
+    }
 
     m_Initialized = true;
     WE_LOG_INFO(we::LogCategory::Renderer.data(),
@@ -89,6 +104,14 @@ void Renderer::Shutdown() {
         return;
     }
     DestroyViewportTargets();
+    if (m_ViewportGrid) {
+        m_ViewportGrid->Shutdown();
+        m_ViewportGrid.reset();
+    }
+    if (m_ViewportSky) {
+        m_ViewportSky->Shutdown();
+        m_ViewportSky.reset();
+    }
     if (m_RenderGraph) {
         m_RenderGraph->Shutdown();
         m_RenderGraph.reset();
@@ -245,9 +268,13 @@ void Renderer::RenderScene() {
         we::rhi::Color4f{0.09f, 0.09f, 0.10f, 1.0f},
         swapExtent));
     m_RenderGraph->AddPass(std::make_unique<ViewportSkyPass>(
+        m_ViewportSky.get(),
+        m_ViewportGrid.get(),
         m_ViewportColorTexture,
         m_ViewportDepthTexture,
-        we::rhi::Extent2D{m_OwnedViewportWidth, m_OwnedViewportHeight}));
+        we::rhi::Extent2D{m_OwnedViewportWidth, m_OwnedViewportHeight},
+        &m_LastCamera,
+        &m_LastEnvironment));
     m_RenderGraph->AddPass(std::make_unique<TonemapPresentPrepPass>(swapImage));
     m_RenderGraph->Execute(*m_FrameCmd, m_CurrentFrame);
     m_SceneImageIndex = m_CurrentImageIndex;
@@ -282,6 +309,14 @@ void Renderer::RenderFrame() {
 
 void Renderer::UploadCameraUniform(const CameraUniform& uniform) {
     m_LastCamera = uniform;
+#if WE_HAS_GLM
+    const glm::mat4 viewProj = uniform.proj * uniform.view;
+    m_LastCamera.invViewProj = glm::inverse(viewProj);
+#endif
+}
+
+void Renderer::UploadEnvironmentUniform(const SceneEnvironmentUniform& uniform) {
+    m_LastEnvironment = uniform;
 }
 
 void Renderer::InsertOverlayPassBarrier() {

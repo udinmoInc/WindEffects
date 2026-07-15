@@ -28,6 +28,7 @@
 #include "Debug/FoundationRenderDebug.h"
 #include "Runtime/World/DefaultScene/DefaultSceneBuilder.h"
 #include "Runtime/World/Environment/EnvironmentSystem.h"
+#include "Runtime/World/Environment/EnvironmentLighting.h"
 #include "Widgets/RenderInvestigationModal.h"
 
 #include "Platform/PlatformSDK.h"
@@ -532,6 +533,18 @@ void Editor::MainLoop() {
 
         if (m_Renderer && m_Renderer->BeginFrame()) {
             m_Renderer->UploadCameraUniform(cameraUBO);
+            {
+                auto& env = we::runtime::world::environment::EnvironmentSystem::Get();
+                const auto envUBO = we::runtime::world::environment::BuildSceneEnvironmentUniform(
+                    env.GetSun(),
+                    env.GetSkyLight(),
+                    env.GetSkyAtmosphere(),
+                    env.GetHeightFog(),
+                    env.GetVolumetricClouds(),
+                    env.GetExposureController(),
+                    m_Camera->GetPosition());
+                m_Renderer->UploadEnvironmentUniform(envUBO);
+            }
 
             // 1. Render scene into the viewport offscreen target (sampled by the UI viewport widget).
             m_Renderer->RenderScene();
@@ -542,6 +555,11 @@ void Editor::MainLoop() {
                 const uint32_t imageIndex = m_Renderer->GetCurrentImageIndex();
                 we::editor::rendering::OverlayRenderContext overlayContext{};
                 overlayContext.cmd = m_Renderer->GetFrameCommandList();
+                if (auto* device = m_Renderer->GetRHIDevice()) {
+                    if (auto* swap = device->GetSwapchain()) {
+                        overlayContext.colorTarget = swap->GetCurrentImage();
+                    }
+                }
                 overlayContext.targetFormat = m_Renderer->GetSwapchainFormat();
                 overlayContext.targetExtent = { m_Renderer->GetSwapchainWidth(), m_Renderer->GetSwapchainHeight() };
                 overlayContext.imageIndex = imageIndex;

@@ -16,8 +16,10 @@ public static class ShaderBytecodeCompiler
     {
         ("Editor/EditorBackground.hlsl", "EditorBackground"),
         ("Editor/EditorGrid.hlsl", "EditorGrid"),
+        ("Foundation/ProceduralSky.hlsl", "ProceduralSky"),
         ("Rendering/AtmospherePass.hlsl", "AtmospherePass"),
         ("Rendering/SceneObject.hlsl", "SceneObject"),
+        ("Rendering/TextMSDF.hlsl", "TextMSDF"),
         ("Rendering/UI.hlsl", "UI"),
     };
 
@@ -61,7 +63,7 @@ public static class ShaderBytecodeCompiler
             return stats;
         }
 
-        var tasks = new List<(string Source, string Output, string Profile, string Entry)>();
+        var tasks = new List<(string Source, string Output, string Profile, string Entry, bool Spirv)>();
         foreach (var (relativeSource, shaderName) in EntryShaders)
         {
             var sourcePath = Path.Combine(shaderSourceRoot, relativeSource);
@@ -71,8 +73,12 @@ public static class ShaderBytecodeCompiler
                 continue;
             }
 
-            tasks.Add((sourcePath, Path.Combine(outputDir, $"{shaderName}_VS.spv"), "vs_6_0", "VSMain"));
-            tasks.Add((sourcePath, Path.Combine(outputDir, $"{shaderName}_PS.spv"), "ps_6_0", "PSMain"));
+            // SPIR-V for Vulkan / OpenGL / Null soft-load
+            tasks.Add((sourcePath, Path.Combine(outputDir, $"{shaderName}_VS.spv"), "vs_6_0", "VSMain", true));
+            tasks.Add((sourcePath, Path.Combine(outputDir, $"{shaderName}_PS.spv"), "ps_6_0", "PSMain", true));
+            // DXIL for DirectX 12 / 11
+            tasks.Add((sourcePath, Path.Combine(outputDir, $"{shaderName}_VS.dxil"), "vs_6_0", "VSMain", false));
+            tasks.Add((sourcePath, Path.Combine(outputDir, $"{shaderName}_PS.dxil"), "ps_6_0", "PSMain", false));
         }
 
         var compiled = 0;
@@ -81,7 +87,8 @@ public static class ShaderBytecodeCompiler
         Parallel.ForEach(tasks, task =>
         {
             var sourceHash = FastHash.HashFile(task.Source);
-            var cacheKey = FastHash.CombineHashes(sourceHash, includeHash, dxcVersion, task.Profile, task.Entry);
+            var targetTag = task.Spirv ? "spirv" : "dxil";
+            var cacheKey = FastHash.CombineHashes(sourceHash, includeHash, dxcVersion, task.Profile, task.Entry, targetTag);
 
             if (cache.TryGetHit(cacheKey, task.Output))
             {
@@ -89,7 +96,7 @@ public static class ShaderBytecodeCompiler
                 return;
             }
 
-            if (CompileStage(dxcPath, shaderSourceRoot, task.Source, task.Output, task.Profile, task.Entry))
+            if (CompileStage(dxcPath, shaderSourceRoot, task.Source, task.Output, task.Profile, task.Entry, task.Spirv))
             {
                 cache.Store(cacheKey, task.Output, sourceHash, includeHash, dxcVersion, task.Profile, task.Entry);
                 Interlocked.Increment(ref compiled);
@@ -139,14 +146,16 @@ public static class ShaderBytecodeCompiler
         string sourcePath,
         string outputPath,
         string profile,
-        string entryPoint)
+        string entryPoint,
+        bool spirv)
     {
         var tempOutputPath = outputPath + ".tmp";
         if (File.Exists(tempOutputPath))
             TryDeleteFile(tempOutputPath);
 
+        var spirvFlag = spirv ? "-spirv " : "";
         var arguments =
-            $"-nologo -spirv -T {profile} -E {entryPoint} " +
+            $"-nologo {spirvFlag}-T {profile} -E {entryPoint} " +
             $"-I \"{includeRoot}\" \"{sourcePath}\" -Fo \"{tempOutputPath}\"";
 
         var startInfo = new ProcessStartInfo

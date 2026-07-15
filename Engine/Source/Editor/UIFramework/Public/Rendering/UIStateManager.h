@@ -25,6 +25,4 @@ private:
     we::rhi::IRHIDevice* m_Device = nullptr;
 };
 
-using SavedVulkanState = SavedGpuState; // temporary alias during cutover
-
 } // namespace WindEffects::Editor::UI

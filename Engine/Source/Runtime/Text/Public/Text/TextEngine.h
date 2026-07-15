@@ -37,7 +37,7 @@ public:
 
 struct TextEngineConfig {
     std::filesystem::path fontStackConfig = "Engine/Config/Fonts/DefaultFontStack.json";
-    GraphicsApi graphicsApi = GraphicsApi::Vulkan;
+    GraphicsApi graphicsApi = GraphicsApi::Unknown;
 };
 
 #if defined(_MSC_VER)

@@ -12,9 +12,6 @@ public class TextRenderTest : ModuleRules
         PublicDependencies.Add("Core");
         PublicDependencies.Add("Text");
 
-        OptionalSDK("VulkanSDK");
-        DefineIf(HasSDK("VulkanSDK"), "WE_HAS_VULKAN=1");
-
         PlatformSettings.Windows ??= new WindowsSettings();
         PlatformSettings.Windows.Subsystem = "Console";
     }

@@ -9,7 +9,6 @@
 #include "Core/LogCategory.h"
 
 #include <commdlg.h>
-#include <dxgi.h>
 #include <intrin.h>
 #include <shellapi.h>
 #include <shlobj.h>
@@ -19,7 +18,6 @@
 #include <cmath>
 #include <cstring>
 
-#pragma comment(lib, "dxgi.lib")
 #pragma comment(lib, "xinput.lib")
 #pragma comment(lib, "comdlg32.lib")
 #pragma comment(lib, "advapi32.lib")
@@ -818,31 +816,9 @@ CpuInfo WindowsPlatform::GetCpuInfo() const {
 }
 
 std::vector<GpuAdapterInfo> WindowsPlatform::GetGpuAdapters() const {
-    std::vector<GpuAdapterInfo> adapters;
-    IDXGIFactory1* factory = nullptr;
-    if (FAILED(CreateDXGIFactory1(IID_PPV_ARGS(&factory))) || !factory) {
-        return adapters;
-    }
-
-    IDXGIAdapter1* adapter = nullptr;
-    for (UINT i = 0; factory->EnumAdapters1(i, &adapter) != DXGI_ERROR_NOT_FOUND; ++i) {
-        DXGI_ADAPTER_DESC1 desc{};
-        adapter->GetDesc1(&desc);
-        GpuAdapterInfo info{};
-        info.index = i;
-        info.name = win32::WideToUtf8(desc.Description);
-        info.dedicatedVideoMemory = desc.DedicatedVideoMemory;
-        info.dedicatedSystemMemory = desc.DedicatedSystemMemory;
-        info.sharedSystemMemory = desc.SharedSystemMemory;
-        info.vendorId = desc.VendorId;
-        info.deviceId = desc.DeviceId;
-        info.isSoftware = (desc.Flags & DXGI_ADAPTER_FLAG_SOFTWARE) != 0;
-        adapters.push_back(std::move(info));
-        adapter->Release();
-        adapter = nullptr;
-    }
-    factory->Release();
-    return adapters;
+    // GPU adapter identity is owned by RHI backends after device create.
+    // Platform must not link graphics SDKs (DXGI/Vulkan/etc.).
+    return {};
 }
 
 std::string WindowsPlatform::GetLocale() const {

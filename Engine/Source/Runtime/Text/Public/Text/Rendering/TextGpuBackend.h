@@ -17,7 +17,7 @@ using CommandBufferHandle = void*;
 constexpr AtlasGpuHandle kInvalidAtlasGpuHandle = 0;
 
 struct GpuBackendConfig {
-    GraphicsApi api = GraphicsApi::Vulkan;
+    GraphicsApi api = GraphicsApi::Unknown;
     void* device = nullptr;
     void* instance = nullptr;
     uint32_t backbufferWidth = 0;

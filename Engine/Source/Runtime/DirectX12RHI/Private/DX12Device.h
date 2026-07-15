@@ -130,10 +130,12 @@ struct DX12Texture {
 
 struct DX12TextureView {
     TextureViewDesc desc{};
+    DXGI_FORMAT format = DXGI_FORMAT_UNKNOWN;
 };
 
 struct DX12Sampler {
     SamplerDesc desc{};
+    D3D12_SAMPLER_DESC samplerDesc{};
 };
 
 struct DX12Shader {
@@ -141,8 +143,19 @@ struct DX12Shader {
     std::vector<uint8_t> bytecode;
 };
 
+struct DX12DescriptorBinding {
+    DescriptorBindingDesc binding{};
+    uint32_t srvUavCbvOffset = 0; // within the set's CBV/SRV/UAV block
+    uint32_t samplerOffset = 0;   // within the set's sampler block
+    bool usesSrvUavCbv = false;
+    bool usesSampler = false;
+};
+
 struct DX12DescriptorSetLayout {
     DescriptorSetLayoutDesc desc{};
+    std::vector<DX12DescriptorBinding> bindings;
+    uint32_t srvUavCbvCount = 0;
+    uint32_t samplerCount = 0;
 };
 
 struct DX12DescriptorPool {
@@ -152,16 +165,30 @@ struct DX12DescriptorPool {
 struct DX12DescriptorSet {
     RHIDescriptorPoolHandle pool = RHIDescriptorPoolHandle::Invalid;
     RHIDescriptorSetLayoutHandle layout = RHIDescriptorSetLayoutHandle::Invalid;
+    uint32_t srvUavCbvHeapOffset = 0;
+    uint32_t samplerHeapOffset = 0;
+    uint32_t srvUavCbvCount = 0;
+    uint32_t samplerCount = 0;
+};
+
+struct DX12SetRootMapping {
+    uint32_t srvUavCbvRootParam = UINT32_MAX;
+    uint32_t samplerRootParam = UINT32_MAX;
 };
 
 struct DX12PipelineLayout {
     PipelineLayoutDesc desc{};
+    ComPtr<ID3D12RootSignature> rootSignature;
+    uint32_t pushConstantRootParam = UINT32_MAX;
+    uint32_t pushConstantDwords = 0;
+    std::vector<DX12SetRootMapping> setRoots;
 };
 
 struct DX12GraphicsPipeline {
     GraphicsPipelineDesc desc{};
     ComPtr<ID3D12RootSignature> rootSignature;
     ComPtr<ID3D12PipelineState> pso;
+    RHIPipelineLayoutHandle layoutHandle = RHIPipelineLayoutHandle::Invalid;
 };
 
 struct DX12ComputePipeline {
@@ -250,17 +277,30 @@ public:
     [[nodiscard]] IDXGIFactory4* GetFactory() const { return m_Factory.Get(); }
     [[nodiscard]] DX12Buffer* FindBuffer(RHIBufferHandle handle);
     [[nodiscard]] DX12Texture* FindTexture(RHITextureHandle handle);
+    [[nodiscard]] DX12TextureView* FindTextureView(RHITextureViewHandle handle);
+    [[nodiscard]] DX12Sampler* FindSampler(RHISamplerHandle handle);
     [[nodiscard]] DX12GraphicsPipeline* FindGraphicsPipeline(RHIGraphicsPipelineHandle handle);
     [[nodiscard]] DX12ComputePipeline* FindComputePipeline(RHIComputePipelineHandle handle);
+    [[nodiscard]] DX12PipelineLayout* FindPipelineLayout(RHIPipelineLayoutHandle handle);
+    [[nodiscard]] DX12DescriptorSet* FindDescriptorSet(RHIDescriptorSetHandle handle);
+    [[nodiscard]] DX12DescriptorSetLayout* FindDescriptorSetLayout(RHIDescriptorSetLayoutHandle handle);
     RHITextureHandle RegisterSwapchainTexture(ComPtr<ID3D12Resource> resource, Extent2D extent, Format format);
     void ClearSwapchainTextures(const std::vector<RHITextureHandle>& handles);
     void ResetFrameDescriptors();
     [[nodiscard]] D3D12_CPU_DESCRIPTOR_HANDLE AllocateRtv(ID3D12Resource* resource, DXGI_FORMAT format);
     [[nodiscard]] D3D12_CPU_DESCRIPTOR_HANDLE AllocateDsv(ID3D12Resource* resource, DXGI_FORMAT format);
+    void BindShaderHeaps(ID3D12GraphicsCommandList* list);
+    bool AllocateShaderVisibleSlots(uint32_t srvCount, uint32_t samplerCount,
+        uint32_t& outSrvOffset, uint32_t& outSamplerOffset);
+    [[nodiscard]] D3D12_CPU_DESCRIPTOR_HANDLE SrvCpu(uint32_t offset) const;
+    [[nodiscard]] D3D12_GPU_DESCRIPTOR_HANDLE SrvGpu(uint32_t offset) const;
+    [[nodiscard]] D3D12_CPU_DESCRIPTOR_HANDLE SamplerCpu(uint32_t offset) const;
+    [[nodiscard]] D3D12_GPU_DESCRIPTOR_HANDLE SamplerGpu(uint32_t offset) const;
 
 private:
     [[nodiscard]] uint64_t AllocHandle();
     RHIResult<void> CreateDeviceAndQueue();
+    RHIResult<void> CreateShaderVisibleHeaps();
 
     DeviceDesc m_Desc{};
     bool m_Valid = false;
@@ -278,10 +318,18 @@ private:
 
     ComPtr<ID3D12DescriptorHeap> m_RtvHeap;
     ComPtr<ID3D12DescriptorHeap> m_DsvHeap;
+    ComPtr<ID3D12DescriptorHeap> m_SrvHeap;
+    ComPtr<ID3D12DescriptorHeap> m_SamplerHeap;
     UINT m_RtvDescriptorSize = 0;
     UINT m_DsvDescriptorSize = 0;
+    UINT m_SrvDescriptorSize = 0;
+    UINT m_SamplerDescriptorSize = 0;
     uint32_t m_RtvCursor = 0;
     uint32_t m_DsvCursor = 0;
+    uint32_t m_SrvCursor = 0;
+    uint32_t m_SamplerCursor = 0;
+    static constexpr uint32_t kSrvHeapCapacity = 16384;
+    static constexpr uint32_t kSamplerHeapCapacity = 2048;
 
     DX12Queue m_GraphicsQueue{QueueType::Graphics};
     DX12Queue m_ComputeQueue{QueueType::Compute};

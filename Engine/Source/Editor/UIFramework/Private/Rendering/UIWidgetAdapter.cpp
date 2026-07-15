@@ -128,7 +128,7 @@ void UIWidgetAdapter::ConvertDrawCommand(const DrawCommand& cmd) {
         static_cast<uint32_t>(cmd.clipRect.height)
     };
     
-    // Clamp scissor to screen bounds correctly for Vulkan
+    // Clamp scissor to screen bounds.
     if (m_CurrentScissor.x < 0) {
         m_CurrentScissor.width = (m_CurrentScissor.x + m_CurrentScissor.width > 0) ? (m_CurrentScissor.width + m_CurrentScissor.x) : 0;
         m_CurrentScissor.x = 0;

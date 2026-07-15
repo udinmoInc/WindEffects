@@ -29,6 +29,5 @@ public class Platform : ModuleRules
         PlatformSettings.Windows.LinkerFlags.Add("shlwapi.lib");
         PlatformSettings.Windows.LinkerFlags.Add("winmm.lib");
         PlatformSettings.Windows.LinkerFlags.Add("xinput.lib");
-        PlatformSettings.Windows.LinkerFlags.Add("dxgi.lib");
     }
 }

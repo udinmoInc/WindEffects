@@ -56,7 +56,7 @@ struct Entity {
     bool EditorOnly = false;
     std::uint64_t ParentId = 0;
 
-    // Opaque GPU bindings owned by the active RHI backend (not Vulkan/DX types).
+    // Reserved for future RHI-owned entity GPU resources (opaque handle integers).
     std::uint64_t GpuUniformBuffer = 0;
     std::uint64_t GpuUniformMemory = 0;
     std::uint64_t GpuDescriptorSet = 0;
