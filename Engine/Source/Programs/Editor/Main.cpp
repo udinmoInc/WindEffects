@@ -4,6 +4,7 @@
 #include "Editor.h"
 
 #include <filesystem>
+#include <optional>
 #include <stdexcept>
 #include <string>
 
@@ -27,11 +28,19 @@ void ConfigureModuleSearchPath() {
     we::core::ConfigureModuleSearchPaths();
 }
 
+std::optional<std::filesystem::path> ParseProjectArgument(int argc, char* argv[]) {
+    for (int i = 1; i < argc; ++i) {
+        const std::string arg = argv[i];
+        if ((arg == "-project" || arg == "--project") && i + 1 < argc) {
+            return std::filesystem::path(argv[i + 1]);
+        }
+    }
+    return std::nullopt;
+}
+
 } // namespace
 
 int main(int argc, char* argv[]) {
-    (void)argc;
-    (void)argv;
     try {
         we::platform::InitializeLogging();
 
@@ -42,7 +51,18 @@ int main(int argc, char* argv[]) {
             .enableGamepad = true,
             .enableDiagnostics = true,
         });
-        SetWorkingDirectoryToExecutable();
+        const auto projectPath = ParseProjectArgument(argc, argv);
+        if (projectPath) {
+            const auto projectRoot = projectPath->parent_path();
+            if (!projectRoot.empty() && platform.SetCurrentWorkingDirectory(projectRoot.string())) {
+                HE_INFO("[Startup] Working directory set to project root: " + projectRoot.string());
+            } else {
+                SetWorkingDirectoryToExecutable();
+            }
+            HE_INFO("[Startup] Opening project: " + projectPath->string());
+        } else {
+            SetWorkingDirectoryToExecutable();
+        }
         ConfigureModuleSearchPath();
 
         HE_INFO("[Startup] === WindEffects Editor bootstrap begin ===");

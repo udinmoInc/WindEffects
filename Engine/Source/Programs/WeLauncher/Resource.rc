@@ -1,0 +1,3 @@
+#include "../Windows/resource.h"
+
+IDI_ICON1 ICON "../../../../Assets/Editor/favicon_dif1.ico"

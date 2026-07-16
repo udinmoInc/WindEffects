@@ -6,6 +6,7 @@ ProgramsRoot=Engine/Source/Programs
 BuildRoot=Build
 AssetsRoot=Assets
 ProjectsRoot=Projects
+TemplatesRoot=Engine/Templates/Projects
 bootstrap.manifest=Build/Manifest/bootstrap.manifest
 bootstrap.entry=IgniteBT
 bootstrap.entry.source=IgniteBT/Source/IgniteBT.csproj

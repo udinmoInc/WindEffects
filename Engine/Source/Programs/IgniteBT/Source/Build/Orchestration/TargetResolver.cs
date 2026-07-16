@@ -30,6 +30,11 @@ public static class TargetResolver
         {
             RootModules = ["WindeffectsGame", "Game"],
             IncludeDependents = false
+        },
+        ["WeLauncher"] = new TargetSpec
+        {
+            RootModules = ["WeLauncher"],
+            IncludeDependents = false
         }
     };
 
