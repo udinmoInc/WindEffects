@@ -106,6 +106,23 @@ void ThinDivider::Arrange(const Rect& allottedRect) {
 void ThinDivider::Paint(PaintContext& context) {
     context.DrawRect(m_Geometry, LColor(ThemeToken::Separator));
 }
+Size ThinVerticalDivider::Measure(const Size& availableSize) {
+    const float s = LScale();
+    m_DesiredSize = Size{
+        1.0f * s,
+        availableSize.height > 0.0f ? availableSize.height : 100.0f * s
+    };
+    return m_DesiredSize;
+}
+
+void ThinVerticalDivider::Arrange(const Rect& allottedRect) {
+    m_Geometry = allottedRect;
+}
+
+void ThinVerticalDivider::Paint(PaintContext& context) {
+    context.DrawRect(m_Geometry, LColor(ThemeToken::Separator));
+}
+
 
 // â”€â”€ LauncherTitleBar â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
