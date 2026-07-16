@@ -1,4 +1,0 @@
-World::~ begin
-World::~ after Clear
-JobPool::~ begin workers=0 running=0
-JobPool::~ end

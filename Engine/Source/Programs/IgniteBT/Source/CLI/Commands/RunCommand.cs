@@ -107,6 +107,7 @@ public static class RunCommand
         target.ToLowerInvariant() switch
         {
             "editor" => "Editor",
+            "welauncher" or "launcher" => "WeLauncher",
             _ => target
         };
 
