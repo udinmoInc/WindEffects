@@ -6,7 +6,8 @@
 #include "Camera/CameraUniform.h"
 #include "Lighting/SceneEnvironmentUniform.h"
 #include "Renderer/Graph/RenderGraph.h"
-#include "ECS/RenderExtract.h"
+
+namespace we::runtime::ecs { struct ExtractedFrameData; }
 
 #include <functional>
 

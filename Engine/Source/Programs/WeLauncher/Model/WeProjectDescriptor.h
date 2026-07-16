@@ -65,13 +65,38 @@ struct ProjectTemplateInfo {
     std::string displayName;
     std::string description;
     std::string category;
+    std::string recommendedUse;
+    std::vector<std::string> platforms;
+    std::vector<std::string> tags;
+    std::vector<std::string> features;
+    std::vector<std::string> plugins;
+    std::vector<std::string> starterAssets;
     std::filesystem::path templateRoot;
 };
 
 struct LauncherSettings {
     std::string defaultProjectsRoot;
     std::string selectedEngineRoot;
-    std::string lastBuildConfig = "Debug";
+    std::string lastBuildConfig = "Development";
+    std::string defaultTemplateId = "Blank";
+    std::string theme = "Graphite Dark";
+    std::string language = "English";
+    std::string accentColor = "#5B8DEF";
+    std::string iconStyle = "Outline";
+    std::string rhiBackend = "Vulkan";
+    std::string loggingLevel = "Info";
+    float uiScale = 1.0f;
+    float fontSize = 13.0f;
+    bool autoSave = true;
+    bool checkUpdatesOnStartup = true;
+    bool developerMode = false;
+    bool gpuValidation = false;
+    bool renderGraphDebug = false;
+    bool ecsDebug = false;
+    bool crashDumps = true;
+    bool showExperimental = false;
+    bool telemetry = false;
+    bool downloadOverMetered = false;
 };
 
 } // namespace we::programs::welauncher

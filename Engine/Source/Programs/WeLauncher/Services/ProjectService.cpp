@@ -207,7 +207,7 @@ void ProjectService::CopyTemplateTree(
         }
 
         std::string contents((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
-        const auto ext = entry.path().extension().string();
+        const auto ext = PathUtils::ToUtf8(entry.path().extension());
         if (ext == ".ini" || ext == ".json" || ext == ".cpp" || ext == ".h" || ext == ".cs" || ext == ".md" || ext.empty()) {
             contents = PathUtils::ReplaceTokens(contents, projectName);
         }

@@ -36,11 +36,24 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
     we::core::ConfigureModuleSearchPaths();
 
+#if defined(_WIN32)
+#ifdef CreateWindow
+#undef CreateWindow
+#endif
+#ifdef CreateWindowA
+#undef CreateWindowA
+#endif
+#ifdef CreateWindowW
+#undef CreateWindowW
+#endif
+#endif
+
     const auto windowResult = platform.CreateWindow({
         .title = "WindEffects Launcher",
-        .width = 1400,
-        .height = 900,
+        .width = 1440,
+        .height = 920,
         .resizable = true,
+        .borderless = true,
         .visible = true,
         .highDpi = true,
     });
@@ -50,6 +63,10 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
     }
     const we::platform::WindowId window = *windowResult;
 
+    (void)platform.ApplyWindowChrome(window, {
+        .roundedCorners = true,
+        .borderColorRgb = 0x303030,
+    });
 #if defined(_WIN32)
     (void)platform.SetWindowIcon(window, IDI_ICON1);
 #endif
@@ -58,9 +75,16 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
         we::programs::welauncher::WeLauncherApp app(window);
         app.Run();
     } catch (const std::exception& e) {
-        HE_ERROR(std::string("[WeLauncher] Exception: ") + e.what());
+        const std::string message = std::string("[WeLauncher] Exception: ") + e.what();
+        HE_ERROR(message);
+#if defined(_WIN32)
+        MessageBoxA(nullptr, e.what(), "WindEffects Launcher", MB_OK | MB_ICONERROR);
+#endif
     } catch (...) {
         HE_ERROR("[WeLauncher] Unknown exception.");
+#if defined(_WIN32)
+        MessageBoxA(nullptr, "Unknown exception during launcher startup.", "WindEffects Launcher", MB_OK | MB_ICONERROR);
+#endif
     }
 
     (void)platform.DestroyWindow(window);

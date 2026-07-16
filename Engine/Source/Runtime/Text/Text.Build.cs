@@ -34,7 +34,11 @@ public class Text : ModuleRules
         PlatformSettings.Windows ??= new WindowsSettings();
 
         var freetypeLibDir = Path.Combine(thirdPartyRoot, "freetype", "lib");
-        var msdfLibDir = Path.Combine(thirdPartyRoot, "msdf-atlas-gen", "lib");
+        var configName = context.Configuration ?? string.Empty;
+        var msdfConfigLibDir = Path.Combine(thirdPartyRoot, "msdf-atlas-gen", "lib", configName);
+        var msdfLibDir = Directory.Exists(msdfConfigLibDir)
+            ? msdfConfigLibDir
+            : Path.Combine(thirdPartyRoot, "msdf-atlas-gen", "lib");
         var harfBuzzLibDir = Path.Combine(thirdPartyRoot, "harfbuzz", "lib");
 
         PlatformSettings.Windows.LinkerFlags.Add($"/LIBPATH:\"{freetypeLibDir}\"");
@@ -46,5 +50,12 @@ public class Text : ModuleRules
         PlatformSettings.Windows.LinkerFlags.Add("msdfgen-ext.lib");
         PlatformSettings.Windows.LinkerFlags.Add("msdf-atlas-gen.lib");
         PlatformSettings.Windows.LinkerFlags.Add("harfbuzz.lib");
+
+        if (string.Equals(context.Configuration, "Debug", System.StringComparison.OrdinalIgnoreCase))
+        {
+            // Keep Text's runtime model aligned with prebuilt third-party msdf libs.
+            PlatformSettings.Windows.CompilerFlags.Add("/MD");
+            PlatformSettings.Windows.CompilerFlags.Add("/D_ITERATOR_DEBUG_LEVEL=0");
+        }
     }
 }

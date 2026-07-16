@@ -21,6 +21,7 @@ public class WeLauncher : ModuleRules
         PublicDependencies.Add("UIFramework");
 
         PrivateDependencies.Add("VulkanRHI");
+        PrivateDependencies.Add("NullRHI");
 
         AddOptionalThirdParty("nlohmann_json");
 

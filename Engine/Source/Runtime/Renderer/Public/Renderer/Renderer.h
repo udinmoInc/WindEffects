@@ -11,7 +11,8 @@
 #include "Platform/Types.h"
 #include "RHI/IRHI.h"
 #include "RHI/Types.h"
-#include "ECS/RenderExtract.h"
+
+namespace we::runtime::ecs { struct ExtractedFrameData; }
 
 #include <cstdint>
 #include <functional>

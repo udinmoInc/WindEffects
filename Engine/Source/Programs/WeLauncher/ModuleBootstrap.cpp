@@ -8,6 +8,19 @@
 
 namespace {
 
+constexpr const char* kLauncherModuleDlls[] = {
+    "WERHI.dll",
+    "WENullRHI.dll",
+    "WEVulkanRHI.dll",
+    "WERenderer.dll",
+    "WEScene.dll",
+    "WEText.dll",
+    "WEWorld.dll",
+    "WEUIFramework.dll",
+    "WEIcons.dll",
+    "WEECS.dll",
+};
+
 HMODULE LoadResolvedDelayLoadDll(const char* dllName) {
     if (dllName == nullptr || dllName[0] == '\0') {
         return nullptr;
@@ -26,9 +39,17 @@ HMODULE LoadResolvedDelayLoadDll(const char* dllName) {
         LOAD_WITH_ALTERED_SEARCH_PATH);
 }
 
+void PreloadLauncherModules() {
+    we::core::ConfigureModuleSearchPaths();
+
+    for (const char* dllName : kLauncherModuleDlls) {
+        LoadResolvedDelayLoadDll(dllName);
+    }
+}
+
 struct WeLauncherModuleBootstrap {
     WeLauncherModuleBootstrap() {
-        we::core::ConfigureModuleSearchPaths();
+        PreloadLauncherModules();
     }
 };
 

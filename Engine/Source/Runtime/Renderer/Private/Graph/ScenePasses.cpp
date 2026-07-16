@@ -1,6 +1,7 @@
 #include "Renderer/Graph/ScenePasses.h"
 #include "Graph/ViewportSkyRenderer.h"
 #include "Graph/ViewportGridRenderer.h"
+#include "ECS/RenderExtract.h"
 
 namespace we::runtime::renderer {
 

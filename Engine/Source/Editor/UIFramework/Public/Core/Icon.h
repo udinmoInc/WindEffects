@@ -68,16 +68,16 @@ namespace Icons {
     constexpr const char* PlaySolidName  = "playsolid";
     constexpr const char* PauseName      = "pause";
     constexpr const char* StopName       = "stop";
-    constexpr const char* PerspectiveName = "box";
-    constexpr const char* LitName        = "sun";
-    constexpr const char* WireframeName  = "grid";
-    constexpr const char* CameraName     = "camera";
+    constexpr const char* PerspectiveName = "3dcube";
+    constexpr const char* LitName        = "lit";
+    constexpr const char* WireframeName  = "wireframe";
+    constexpr const char* CameraName     = "pivot";
     constexpr const char* SnapName       = "magnet";
     constexpr const char* GridName       = "grid";
-    constexpr const char* CubeName       = "box";
-    constexpr const char* SphereName     = "circle";
+    constexpr const char* CubeName       = "3dcube";
+    constexpr const char* SphereName     = "3dsphere";
     constexpr const char* PlaneName      = "square";
-    constexpr const char* CylinderName   = "cylinder";
+    constexpr const char* CylinderName   = "3dcylinder";
     // Full-color 3D primitive thumbnails baked into the UI icon atlas (tiers 32+).
     constexpr const char* Cube3DName        = "3dcube";
     constexpr const char* Sphere3DName      = "3dsphere";
@@ -86,12 +86,12 @@ namespace Icons {
     constexpr const char* Cone3DName        = "3dcone";
     constexpr const char* Capsule3DName     = "3dcapsule";
     constexpr const char* BlankActor3DName  = "3dblankactor";
-    constexpr const char* LightName      = "lightbulb";
+    constexpr const char* LightName      = "sun";
     constexpr const char* SunName        = "sun";
-    constexpr const char* PointLightName = "lightbulb";
-    constexpr const char* MaterialName   = "palette";
-    constexpr const char* ShaderName     = "code-2";
-    constexpr const char* TextureName    = "image";
+    constexpr const char* PointLightName = "sun";
+    constexpr const char* MaterialName   = "lit";
+    constexpr const char* ShaderName     = "terminal";
+    constexpr const char* TextureName    = "contentbrowser";
     constexpr const char* SaveName       = "save";
     constexpr const char* SaveAllName    = "saveall";
     constexpr const char* AddActorName   = "addactor";
@@ -100,82 +100,82 @@ namespace Icons {
     constexpr const char* NewFileName    = "newfile";
     constexpr const char* OpenName       = OpenFolderName;
     constexpr const char* NewName        = NewFileName;
-    constexpr const char* FolderName     = "folder";
+    constexpr const char* FolderName     = "openfolder";
     constexpr const char* ContentBrowserName = "contentbrowser";
     constexpr const char* RecentName     = "recent";
-    constexpr const char* ProjectFolderName = "folder-kanban";
+    constexpr const char* ProjectFolderName = "openfolder";
     constexpr const char* ToolbarObjectName = "object";
     constexpr const char* ToolbarEnvironmentName = "sun";
-    constexpr const char* GlobeName      = "sun";
-    constexpr const char* UserName       = "user";
-    constexpr const char* MountainName   = "mountain";
-    constexpr const char* TreesName      = "trees";
-    constexpr const char* VideoName      = "video";
-    constexpr const char* ConeName       = "cone";
-    constexpr const char* CapsuleName    = "pill";
-    constexpr const char* FlashlightName = "flashlight";
-    constexpr const char* BlocksName     = "blocks";
-    constexpr const char* BrainName      = "brain";
-    constexpr const char* LayoutPanelName = "layout";
-    constexpr const char* StickyNoteName = "sticky-note";
-    constexpr const char* CrosshairName  = "crosshair";
+    constexpr const char* GlobeName      = "globe";
+    constexpr const char* UserName       = "object";
+    constexpr const char* MountainName   = "globe";
+    constexpr const char* TreesName      = "globe";
+    constexpr const char* VideoName      = "mediaplay";
+    constexpr const char* ConeName       = "3dcone";
+    constexpr const char* CapsuleName    = "3dcapsule";
+    constexpr const char* FlashlightName = "sun";
+    constexpr const char* BlocksName     = "component";
+    constexpr const char* BrainName      = "object";
+    constexpr const char* LayoutPanelName = "grid";
+    constexpr const char* StickyNoteName = "newfile";
+    constexpr const char* CrosshairName  = "pivot";
     constexpr const char* ComponentName  = "component";
-    constexpr const char* SparklesName   = "sparkles";
-    constexpr const char* Volume2Name    = "volume-2";
-    constexpr const char* ZapName        = "zap";
-    constexpr const char* MapName        = "map";
-    constexpr const char* DocumentName   = "file";
-    constexpr const char* CodeName       = "code";
+    constexpr const char* SparklesName   = "lit";
+    constexpr const char* Volume2Name    = "mediaplay";
+    constexpr const char* ZapName        = "lit";
+    constexpr const char* MapName        = "globe";
+    constexpr const char* DocumentName   = "newfile";
+    constexpr const char* CodeName       = "terminal";
     constexpr const char* BuildName      = "wrench";
-    constexpr const char* PackageName    = "package";
-    constexpr const char* MonitorName    = "monitor";
+    constexpr const char* PackageName    = "object";
+    constexpr const char* MonitorName    = "sun";
     constexpr const char* UndoName       = "undo";
     constexpr const char* RedoName       = "redo";
     constexpr const char* CopyName       = "copy";
-    constexpr const char* PasteName      = "clipboard";
-    constexpr const char* DeleteName     = "trash-2";
+    constexpr const char* PasteName      = "copy";
+    constexpr const char* DeleteName     = "close";
     constexpr const char* SearchName     = "search";
     constexpr const char* SettingsName   = "settings";
-    constexpr const char* MenuName       = "menu";
-    constexpr const char* MoreName       = "more-vertical";
+    constexpr const char* MenuName       = "settings";
+    constexpr const char* MoreName       = "chevronright";
     constexpr const char* ChevronRightName = "chevronright";
     constexpr const char* ChevronDownName  = "chevrondown";
     constexpr const char* ChevronLeftName  = "chevronleft";
     constexpr const char* ChevronUpName    = "chevronup";
-    constexpr const char* ArrowLeftName    = "arrow-left";
-    constexpr const char* ArrowRightName   = "arrow-right";
+    constexpr const char* ArrowLeftName    = "chevronleft";
+    constexpr const char* ArrowRightName   = "chevronright";
     constexpr const char* EyeName        = "eye";
     constexpr const char* EyeOffName     = "eyeoff";
-    constexpr const char* LockName       = "lock";
-    constexpr const char* UnlockName     = "unlock";
-    constexpr const char* LayersName     = "layers";
-    constexpr const char* HierarchyName  = "list-tree";
-    constexpr const char* PropertiesName = "sliders-horizontal";
+    constexpr const char* LockName       = "settings";
+    constexpr const char* UnlockName     = "settings";
+    constexpr const char* LayersName     = "contentbrowser";
+    constexpr const char* HierarchyName  = "object";
+    constexpr const char* PropertiesName = "settings";
     constexpr const char* TerminalName   = "terminal";
     constexpr const char* OutputLogName  = "outputlog";
     constexpr const char* ConsoleName    = TerminalName;
     constexpr const char* MediaPlayName  = "mediaplay";
-    constexpr const char* ProfilerName   = "activity";
-    constexpr const char* ListName       = "list";
-    constexpr const char* RefreshName    = "refresh-cw";
-    constexpr const char* StarName       = "star";
-    constexpr const char* StarFilledName = "star";
+    constexpr const char* ProfilerName   = "wrench";
+    constexpr const char* ListName       = "object";
+    constexpr const char* RefreshName    = "redo";
+    constexpr const char* StarName       = "sun";
+    constexpr const char* StarFilledName = "lit";
     constexpr const char* FilterName     = "filter";
     constexpr const char* PlusName       = "plus";
     constexpr const char* MinusName      = "minus";
     constexpr const char* XName          = "close";
-    constexpr const char* CheckName      = "check";
+    constexpr const char* CheckName      = "save";
     constexpr const char* InfoName       = "info";
-    constexpr const char* WarningName    = "alert-triangle";
-    constexpr const char* ErrorName      = "x-circle";
-    constexpr const char* SuccessName    = "check";
+    constexpr const char* WarningName    = "info";
+    constexpr const char* ErrorName      = "close";
+    constexpr const char* SuccessName    = "save";
     constexpr const char* MinimizeName   = "minus";
     constexpr const char* MaximizeName   = "maximize";
     constexpr const char* RestoreName    = "copy";
-    constexpr const char* CompassName    = "compass";
-    constexpr const char* EraserName     = "eraser";
-    constexpr const char* BrushName      = "paintbrush";
-    constexpr const char* RecordName     = "circle";
+    constexpr const char* CompassName    = "globe";
+    constexpr const char* EraserName     = "close";
+    constexpr const char* BrushName      = "lit";
+    constexpr const char* RecordName     = "stop";
 
     inline std::string ResolveLucideName(const std::string& name) {
         static const std::unordered_map<std::string, std::string> kAliases = {
@@ -213,11 +213,11 @@ namespace Icons {
             {"3d-blank-actor", BlankActor3DName},
             {"light", LightName},
             {"sun", SunName},
-            {"globe", SunName},
+            {"globe", GlobeName},
             {"toolbar-environment", ToolbarEnvironmentName},
             {"point-light", PointLightName},
             {"material", MaterialName},
-            {"material_instance", "layers"},
+            {"material_instance", LayersName},
             {"shader", ShaderName},
             {"texture", TextureName},
             {"save", SaveName},
@@ -251,6 +251,8 @@ namespace Icons {
             {"menu", MenuName},
             {"more", MoreName},
             {"ellipsis-vertical", MoreName},
+            {"more-vertical", MoreName},
+            {"list-tree", HierarchyName},
             {"chevron-right", ChevronRightName},
             {"chevronright", ChevronRightName},
             {"chevron-down", ChevronDownName},
@@ -276,6 +278,7 @@ namespace Icons {
             {"profiler", ProfilerName},
             {"list", ListName},
             {"refresh", RefreshName},
+            {"refresh-cw", RefreshName},
             {"star", StarName},
             {"star-filled", StarFilledName},
             {"plus", PlusName},
@@ -298,21 +301,30 @@ namespace Icons {
             {"toolbar-object", ToolbarObjectName},
             {"object", ToolbarObjectName},
             {"filter", FilterName},
-            {"blueprint", "blocks"},
-            {"static_mesh", "box"},
-            {"skeletal_mesh", "bone"},
-            {"audio", "volume-2"},
-            {"font", "type"},
-            {"script", "file-code"},
-            {"scene", "map"},
-            {"level", "map"},
-            {"animation", "clapperboard"},
-            {"particle", "sparkles"},
-            {"collection", "library"},
-            {"plugin", "plug"},
-            {"engine", "cpu"},
-            {"project", "folder-kanban"},
-            {"favorites", "star"},
+            {"blueprint", BlocksName},
+            {"static_mesh", CubeName},
+            {"skeletal_mesh", CubeName},
+            {"audio", Volume2Name},
+            {"font", DocumentName},
+            {"script", CodeName},
+            {"scene", MapName},
+            {"level", MapName},
+            {"animation", MediaPlayName},
+            {"particle", SparklesName},
+            {"collection", LayersName},
+            {"plugin", PackageName},
+            {"engine", BuildName},
+            {"project", ProjectFolderName},
+            {"favorites", StarName},
+            {"trash-2", DeleteName},
+            {"clipboard", PasteName},
+            {"alert-triangle", WarningName},
+            {"x-circle", ErrorName},
+            {"folder-kanban", ProjectFolderName},
+            {"blocks", BlocksName},
+            {"sliders-horizontal", PropertiesName},
+            {"activity", ProfilerName},
+            {"pause", StopName},
         };
 
         auto it = kAliases.find(name);

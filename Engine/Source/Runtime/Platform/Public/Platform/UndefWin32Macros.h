@@ -1,5 +1,3 @@
-#pragma once
-
 // Include this AFTER any Windows SDK headers (`windows.h`, etc.).
 // Win32 A/W macros collide with Platform API names.
 
