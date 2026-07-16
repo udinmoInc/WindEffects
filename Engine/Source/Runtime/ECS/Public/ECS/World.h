@@ -24,7 +24,7 @@ namespace we::runtime::ecs {
 template <typename... Ts>
 class ArchetypeQuery;
 
-// Top-level runtime container: entity manager + archetype/chunk storage + queries.
+// Archetype/chunk ECS world container.
 class ECS_API World {
 public:
     World();
@@ -100,6 +100,7 @@ public:
 
     // Low-level access for systems and extraction paths.
     [[nodiscard]] ChunkView GetChunkView(Entity entity);
+    [[nodiscard]] ChunkView GetChunkView(Entity entity) const;
     void MigrateAddComponent(Entity entity, ComponentTypeId typeId, const void* initialData);
     void MigrateRemoveComponent(Entity entity, ComponentTypeId typeId);
     void ApplySlotRelocation(const SlotRelocation& relocation);

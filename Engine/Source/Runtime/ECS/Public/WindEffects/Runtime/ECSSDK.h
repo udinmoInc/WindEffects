@@ -1,5 +1,6 @@
 #pragma once
 
+#include "ECS/DynamicBuffer.h"
 #include "ECS/Export.h"
 #include "ECS/Entity.h"
 #include "ECS/Registry.h"
