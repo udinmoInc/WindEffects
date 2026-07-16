@@ -80,6 +80,9 @@ Color GraphiteDarkTheme::GetColor(ThemeToken token) const {
     
     case ThemeToken::PressedBackground:             return Hex(0x34,0x36,0x3B);
     case ThemeToken::ButtonPrimaryPressed:          return Hex(0x34,0x36,0x3B);
+    case ThemeToken::ButtonDangerBackground:        return Hex(0x8B,0x2E,0x2E);
+    case ThemeToken::ButtonDangerHover:             return Hex(0xA3,0x3A,0x3A);
+    case ThemeToken::ButtonDangerPressed:           return Hex(0x6E,0x22,0x22);
     
     case ThemeToken::SelectedBackground:            return Hex(0x34,0x34,0x34);
     case ThemeToken::ActiveBackground:              return Hex(0x23,0x23,0x23);
@@ -97,23 +100,25 @@ Color GraphiteDarkTheme::GetColor(ThemeToken token) const {
     case ThemeToken::TextDisabled:                  return Hex(0x58,0x58,0x60);
 
     // ── Icons (Primary / Secondary / Accent semantic roles) ─────────────────
+    // Base Graphite uses a muted cool-gray accent. EditorTheme / LauncherTheme
+    // override Accent* / IconAccent / BorderFocus for product identity.
     case ThemeToken::IconPrimary:                   return Hex(0xCF,0xCF,0xCF);
     case ThemeToken::IconSecondary:                 return Hex(0xA8,0xA8,0xA8);
-    case ThemeToken::IconAccent:                    return Hex(0xF0,0xA4,0x2A);
+    case ThemeToken::IconAccent:                    return Hex(0x8A,0x96,0xA8);
     case ThemeToken::IconDefault:                   return Hex(0xCF,0xCF,0xCF);
     case ThemeToken::IconHover:                     return Hex(0xE8,0xE8,0xE8);
     case ThemeToken::IconActive:                    return Hex(0xF0,0xF0,0xF0);
     case ThemeToken::IconDisabled:                  return Hex(0x58,0x58,0x60);
-    // ── Accent & semantic ──────────────────────────────────────────────────
-    case ThemeToken::AccentPrimary:                 return Hex(0xF0,0xA4,0x2A);
-    case ThemeToken::AccentHover:                   return Hex(0xF5,0xB8,0x45);
+    // ── Accent & semantic (neutral base — specialized by Editor/Launcher) ──
+    case ThemeToken::AccentPrimary:                 return Hex(0x8A,0x96,0xA8);
+    case ThemeToken::AccentHover:                   return Hex(0xA0,0xAA,0xB8);
     
-    case ThemeToken::BorderFocus:                   return Hex(0xF0,0xA4,0x2A);
-    case ThemeToken::ActiveTabLine:                 return Hex(0xF0,0xA4,0x2A,0.80f);
+    case ThemeToken::BorderFocus:                   return Hex(0x8A,0x96,0xA8);
+    case ThemeToken::ActiveTabLine:                 return Hex(0x8A,0x96,0xA8,0.80f);
     case ThemeToken::SelectionHighlight:            return Hex(0x34,0x34,0x34,0.85f);
-    case ThemeToken::LinkForeground:                return Hex(0xF0,0xA4,0x2A);
+    case ThemeToken::LinkForeground:                return Hex(0x8A,0x96,0xA8);
 
-    case ThemeToken::PlayForeground:                return Hex(0xF0,0xA4,0x2A);
+    case ThemeToken::PlayForeground:                return Hex(0x8A,0x96,0xA8);
     case ThemeToken::Success:                       return Hex(0x5E,0xAD,0x6E);
     case ThemeToken::Warning:                       return Hex(0xE0,0xA2,0x3A);
     case ThemeToken::ErrorForeground:               return Hex(0xDD,0x5A,0x5A);
@@ -151,17 +156,19 @@ float GraphiteDarkTheme::GetMetric(ThemeToken token) const {
     case ThemeToken::TextSizeTabs: return 12.0f;
     case ThemeToken::TextSizeNormal: return 12.0f;
     case ThemeToken::TextSizeProperty: return 12.0f;
-    case ThemeToken::TextSizeCaption: return 10.0f;
-    case ThemeToken::TextSizeWindow: return 12.0f;
-    case ThemeToken::TextSizeHeader: return 12.0f;
-    case ThemeToken::TextSizeBody: return 12.0f;
+    case ThemeToken::TextSizeCaption: return 11.0f;
+    case ThemeToken::TextSizeWindow: return 13.0f;
+    case ThemeToken::TextSizeHeader: return 18.0f;
+    case ThemeToken::TextSizeBody: return 13.0f;
     case ThemeToken::TextSizeSmall: return 11.0f;
     case ThemeToken::TextSizeCategory: return 12.0f;
+    case ThemeToken::TextSizeTitle: return 22.0f;
     case ThemeToken::BorderWidth: return 1.0f;
+    case ThemeToken::FocusRingWidth: return 2.0f;
     case ThemeToken::PanelHeaderHeight: return 32.0f;
     case ThemeToken::PanelTabHeight: return 32.0f;
     case ThemeToken::PanelToolbarHeight: return 32.0f;
-    case ThemeToken::ListRowHeight: return 32.0f;
+    case ThemeToken::ListRowHeight: return 48.0f;
     case ThemeToken::CategoryHeaderHeight: return 28.0f;
     case ThemeToken::TitleBarHeight: return 34.0f;
     case ThemeToken::HeaderControlHeight: return 32.0f;
@@ -320,13 +327,13 @@ ResolvedStyle StyleResolver::Resolve(StyleRole role) const {
     case StyleRole::ButtonPrimary:
         style.background = theme.GetColor(ThemeToken::ButtonPrimaryBackground);
         style.foreground = theme.GetColor(ThemeToken::TextPrimary);
-        style.border = theme.GetColor(ThemeToken::BorderDefault);
+        style.border = theme.GetColor(ThemeToken::AccentPrimary);
         style.height = Scaled(theme.GetMetric(ThemeToken::ButtonHeight));
         style.iconSize = static_cast<float>(IconMetrics::GlyphTierPx(ThemeToken::IconSizeToolbar));
         style.cornerRadius = Scaled(theme.GetMetric(ThemeToken::CornerRadiusSmall));
         break;
     case StyleRole::ButtonSecondary:
-        style.background = Color::Transparent();
+        style.background = theme.GetColor(ThemeToken::ActiveBackground);
         style.foreground = theme.GetColor(ThemeToken::TextSecondary);
         style.border = theme.GetColor(ThemeToken::BorderDefault);
         style.height = Scaled(theme.GetMetric(ThemeToken::ButtonHeight));
@@ -368,7 +375,7 @@ ResolvedStyle StyleResolver::Resolve(StyleRole role) const {
     case StyleRole::StatusBar:
         style.background = theme.GetColor(ThemeToken::StatusBarBackground);
         style.foreground = theme.GetColor(ThemeToken::TextSecondary);
-        style.height = Scaled(30.0f);
+        style.height = Scaled(theme.GetMetric(ThemeToken::Space6) + theme.GetMetric(ThemeToken::Space2));
         style.fontSize = Scaled(theme.GetMetric(ThemeToken::TextSizeSmall));
         break;
     case StyleRole::MenuBar:
@@ -386,12 +393,14 @@ ResolvedStyle StyleResolver::Resolve(StyleRole role) const {
         style.foreground = theme.GetColor(ThemeToken::TextPrimary);
         style.border = theme.GetColor(ThemeToken::BorderDefault);
         style.cornerRadius = Scaled(theme.GetMetric(ThemeToken::CornerRadiusMedium));
+        style.elevation = 2;
         break;
     case StyleRole::Tooltip:
         style.background = theme.GetColor(ThemeToken::TooltipBackground);
         style.foreground = theme.GetColor(ThemeToken::TextPrimary);
         style.fontSize = Scaled(theme.GetMetric(ThemeToken::TextSizeSmall));
         style.cornerRadius = Scaled(theme.GetMetric(ThemeToken::CornerRadiusSmall));
+        style.elevation = 2;
         break;
     case StyleRole::Modal:
         style.background = theme.GetColor(ThemeToken::DialogBackground);
@@ -416,15 +425,147 @@ ResolvedStyle StyleResolver::Resolve(StyleRole role) const {
         break;
     case StyleRole::TextPrimary:
         style.foreground = theme.GetColor(ThemeToken::TextPrimary);
-        style.fontSize = Scaled(theme.GetMetric(ThemeToken::TextSizeNormal));
+        style.fontSize = Scaled(theme.GetMetric(ThemeToken::TextSizeBody));
         break;
     case StyleRole::TextSecondary:
         style.foreground = theme.GetColor(ThemeToken::TextSecondary);
-        style.fontSize = Scaled(theme.GetMetric(ThemeToken::TextSizeNormal));
+        style.fontSize = Scaled(theme.GetMetric(ThemeToken::TextSizeBody));
         break;
     case StyleRole::TextCaption:
-        style.foreground = theme.GetColor(ThemeToken::TextSecondary);
+        style.foreground = theme.GetColor(ThemeToken::TextMuted);
         style.fontSize = Scaled(theme.GetMetric(ThemeToken::TextSizeCaption));
+        break;
+    case StyleRole::ButtonGhost:
+        style.background = Color::Transparent();
+        style.foreground = theme.GetColor(ThemeToken::TextSecondary);
+        style.border = Color::Transparent();
+        style.height = Scaled(theme.GetMetric(ThemeToken::ButtonHeight));
+        style.iconSize = static_cast<float>(IconMetrics::GlyphTierPx(ThemeToken::IconSizeToolbar));
+        style.cornerRadius = Scaled(theme.GetMetric(ThemeToken::CornerRadiusSmall));
+        break;
+    case StyleRole::ButtonDanger:
+        style.background = theme.GetColor(ThemeToken::ButtonDangerBackground);
+        style.foreground = theme.GetColor(ThemeToken::TextPrimary);
+        style.border = theme.GetColor(ThemeToken::ButtonDangerHover);
+        style.height = Scaled(theme.GetMetric(ThemeToken::ButtonHeight));
+        style.iconSize = static_cast<float>(IconMetrics::GlyphTierPx(ThemeToken::IconSizeToolbar));
+        style.cornerRadius = Scaled(theme.GetMetric(ThemeToken::CornerRadiusSmall));
+        break;
+    case StyleRole::ToolbarButton:
+        style.background = Color::Transparent();
+        style.foreground = theme.GetColor(ThemeToken::TextSecondary);
+        style.border = theme.GetColor(ThemeToken::BorderDefault);
+        style.height = Scaled(theme.GetMetric(ThemeToken::HeaderControlHeight));
+        style.iconSize = static_cast<float>(IconMetrics::GlyphTierPx(ThemeToken::IconSizeToolbar));
+        style.cornerRadius = Scaled(theme.GetMetric(ThemeToken::CornerRadiusSmall));
+        style.fontSize = Scaled(theme.GetMetric(ThemeToken::TextSizeToolbar));
+        break;
+    case StyleRole::Card:
+        style.background = theme.GetColor(ThemeToken::PanelBackground);
+        style.foreground = theme.GetColor(ThemeToken::TextPrimary);
+        style.border = theme.GetColor(ThemeToken::BorderDefault);
+        style.cornerRadius = Scaled(theme.GetMetric(ThemeToken::CornerRadiusMedium));
+        style.padding = { Scaled(12.0f), Scaled(12.0f), Scaled(12.0f), Scaled(12.0f) };
+        style.elevation = 1;
+        break;
+    case StyleRole::CardHover:
+        style.background = theme.GetColor(ThemeToken::HoverBackground);
+        style.foreground = theme.GetColor(ThemeToken::TextPrimary);
+        style.border = theme.GetColor(ThemeToken::BorderLight);
+        style.cornerRadius = Scaled(theme.GetMetric(ThemeToken::CornerRadiusMedium));
+        style.elevation = 2;
+        break;
+    case StyleRole::TableHeader:
+        style.background = theme.GetColor(ThemeToken::PanelToolbarBackground);
+        style.foreground = theme.GetColor(ThemeToken::TextMuted);
+        style.height = Scaled(28.0f);
+        style.fontSize = Scaled(theme.GetMetric(ThemeToken::TextSizeCaption));
+        break;
+    case StyleRole::TableRow:
+        style.background = Color::Transparent();
+        style.foreground = theme.GetColor(ThemeToken::TextPrimary);
+        style.height = Scaled(theme.GetMetric(ThemeToken::ListRowHeight));
+        style.fontSize = Scaled(theme.GetMetric(ThemeToken::TextSizeBody));
+        style.cornerRadius = Scaled(theme.GetMetric(ThemeToken::CornerRadiusSmall));
+        break;
+    case StyleRole::TableRowHover:
+        style.background = theme.GetColor(ThemeToken::HoverBackground);
+        style.foreground = theme.GetColor(ThemeToken::TextPrimary);
+        style.height = Scaled(theme.GetMetric(ThemeToken::ListRowHeight));
+        break;
+    case StyleRole::TableRowSelected:
+        style.background = theme.GetColor(ThemeToken::SelectedBackground);
+        style.foreground = theme.GetColor(ThemeToken::TextPrimary);
+        style.border = theme.GetColor(ThemeToken::AccentPrimary);
+        style.height = Scaled(theme.GetMetric(ThemeToken::ListRowHeight));
+        style.cornerRadius = Scaled(theme.GetMetric(ThemeToken::CornerRadiusSmall));
+        break;
+    case StyleRole::SectionHeader:
+        style.background = Color::Transparent();
+        style.foreground = theme.GetColor(ThemeToken::TextPrimary);
+        style.fontSize = Scaled(theme.GetMetric(ThemeToken::TextSizeHeader));
+        style.bold = true;
+        style.height = Scaled(theme.GetMetric(ThemeToken::CategoryHeaderHeight));
+        break;
+    case StyleRole::PropertyRow:
+        style.background = Color::Transparent();
+        style.foreground = theme.GetColor(ThemeToken::TextSecondary);
+        style.height = Scaled(theme.GetMetric(ThemeToken::ListRowHeight) * 0.75f);
+        style.fontSize = Scaled(theme.GetMetric(ThemeToken::TextSizeProperty));
+        break;
+    case StyleRole::SidebarItem:
+        style.background = Color::Transparent();
+        style.foreground = theme.GetColor(ThemeToken::TextSecondary);
+        style.icon = theme.GetColor(ThemeToken::IconSecondary);
+        style.height = Scaled(40.0f);
+        style.fontSize = Scaled(theme.GetMetric(ThemeToken::TextSizeBody));
+        style.iconSize = static_cast<float>(IconMetrics::GlyphTierPx(ThemeToken::IconSizeNavigation));
+        style.cornerRadius = Scaled(theme.GetMetric(ThemeToken::CornerRadiusSmall));
+        break;
+    case StyleRole::SidebarItemActive:
+        style.background = theme.GetColor(ThemeToken::SelectedBackground);
+        style.foreground = theme.GetColor(ThemeToken::TextPrimary);
+        style.icon = theme.GetColor(ThemeToken::AccentPrimary);
+        style.border = theme.GetColor(ThemeToken::AccentPrimary);
+        style.height = Scaled(40.0f);
+        style.fontSize = Scaled(theme.GetMetric(ThemeToken::TextSizeBody));
+        style.iconSize = static_cast<float>(IconMetrics::GlyphTierPx(ThemeToken::IconSizeNavigation));
+        style.cornerRadius = Scaled(theme.GetMetric(ThemeToken::CornerRadiusSmall));
+        style.bold = true;
+        break;
+    case StyleRole::WindowHeader:
+        style.background = theme.GetColor(ThemeToken::HeaderBackground);
+        style.foreground = theme.GetColor(ThemeToken::TextWindowLabel);
+        style.height = Scaled(theme.GetMetric(ThemeToken::TitleBarHeight));
+        style.fontSize = Scaled(theme.GetMetric(ThemeToken::TextSizeWindow));
+        break;
+    case StyleRole::Checkbox:
+    case StyleRole::ToggleSwitch:
+        style.background = theme.GetColor(ThemeToken::InputBackground);
+        style.foreground = theme.GetColor(ThemeToken::AccentPrimary);
+        style.border = theme.GetColor(ThemeToken::BorderDefault);
+        style.cornerRadius = Scaled(theme.GetMetric(ThemeToken::CornerRadiusSmall));
+        style.height = Scaled(22.0f);
+        style.iconSize = Scaled(14.0f);
+        break;
+    case StyleRole::Scrollbar:
+        style.background = theme.GetColor(ThemeToken::ScrollbarTrack);
+        style.foreground = theme.GetColor(ThemeToken::ScrollbarThumb);
+        style.border = theme.GetColor(ThemeToken::ScrollbarThumbHover);
+        style.height = Scaled(theme.GetMetric(ThemeToken::ScrollbarWidth));
+        break;
+    case StyleRole::TreeItem:
+        style.background = Color::Transparent();
+        style.foreground = theme.GetColor(ThemeToken::TextSecondary);
+        style.height = Scaled(24.0f);
+        style.fontSize = Scaled(theme.GetMetric(ThemeToken::TextSizeSmall));
+        style.iconSize = static_cast<float>(IconMetrics::GlyphTierPx(ThemeToken::IconSizeTree));
+        break;
+    case StyleRole::TreeItemSelected:
+        style.background = theme.GetColor(ThemeToken::SelectedBackground);
+        style.foreground = theme.GetColor(ThemeToken::TextPrimary);
+        style.height = Scaled(24.0f);
+        style.fontSize = Scaled(theme.GetMetric(ThemeToken::TextSizeSmall));
         break;
     default:
         break;

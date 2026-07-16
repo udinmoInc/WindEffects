@@ -3,9 +3,11 @@
 #include "UI/LauncherHelpers.h"
 
 #include "Core/Animator.h"
+#include "Core/ControlChrome.h"
 #include "Core/EventSystem.h"
 #include "Core/Icon.h"
 #include "Core/PaintContext.h"
+#include "Core/Widgets/DesignSystemControls.h"
 #include "Core/Widgets/PrimaryToolbarButton.h"
 #include "Core/Widgets/SecondaryToolbarButton.h"
 #include "Layout/Box.h"
@@ -60,23 +62,6 @@ const char* SettingsCategoryTitle(SettingsCategory category) {
     case SettingsCategory::Developer: return "Developer";
     case SettingsCategory::Experimental: return "Experimental";
     default: return "Settings";
-    }
-}
-
-const char* SettingsCategoryIcon(SettingsCategory category) {
-    switch (category) {
-    case SettingsCategory::General: return Icons::SettingsName;
-    case SettingsCategory::Projects: return Icons::OpenFolderName;
-    case SettingsCategory::Templates: return Icons::LayersName;
-    case SettingsCategory::Engine: return Icons::BuildName;
-    case SettingsCategory::Appearance: return Icons::SunName;
-    case SettingsCategory::Updates: return Icons::RefreshName;
-    case SettingsCategory::Cache: return Icons::SaveName;
-    case SettingsCategory::Downloads: return Icons::RecentName;
-    case SettingsCategory::Plugins: return Icons::ComponentName;
-    case SettingsCategory::Developer: return Icons::TerminalName;
-    case SettingsCategory::Experimental: return Icons::ProfilerName;
-    default: return Icons::SettingsName;
     }
 }
 
@@ -136,177 +121,7 @@ int IndexOfOption(const std::vector<std::string>& options, const std::string& va
     return 0;
 }
 
-std::uint32_t SettingsSearchMatchMask(const std::string& queryLower) {
-    std::uint32_t mask = 0;
-    if (queryLower.empty()) {
-        return ~0u;
-    }
-    for (int i = 0; i < static_cast<int>(SettingsCategory::Count); ++i) {
-        const auto cat = static_cast<SettingsCategory>(i);
-        const std::string hay = std::string(SettingsCategoryTitle(cat)) + " "
-            + SettingsCategoryKeywords(cat);
-        if (ContainsInsensitive(hay, queryLower)) {
-            mask |= (1u << i);
-        }
-    }
-    return mask;
-}
-
-// â”€â”€ SettingsCategoryNav â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-
-void SettingsCategoryNav::SetActive(SettingsCategory category) {
-    m_Active = category;
-    InvalidateUI();
-}
-
-void SettingsCategoryNav::SetMatchMask(std::uint32_t mask) {
-    m_MatchMask = mask;
-    InvalidateUI();
-}
-
-Size SettingsCategoryNav::Measure(const Size& availableSize) {
-    (void)availableSize;
-    const float s = LScale();
-    const float h = static_cast<float>(SettingsCategory::Count) * kItemH * s + 8.0f * s;
-    m_DesiredSize = Size{ kWidth * s, h };
-    return m_DesiredSize;
-}
-
-void SettingsCategoryNav::Arrange(const Rect& allottedRect) {
-    m_Geometry = allottedRect;
-}
-
-Rect SettingsCategoryNav::ItemRect(int index) const {
-    const float s = LScale();
-    const float pad = 6.0f * s;
-    return Rect{
-        m_Geometry.x + pad,
-        m_Geometry.y + 4.0f * s + static_cast<float>(index) * kItemH * s,
-        m_Geometry.width - pad * 2.0f,
-        kItemH * s - 2.0f * s
-    };
-}
-
-int SettingsCategoryNav::HitIndex(const Point& p) const {
-    for (int i = 0; i < static_cast<int>(SettingsCategory::Count); ++i) {
-        if (ItemRect(i).Contains(p)) {
-            return i;
-        }
-    }
-    return -1;
-}
-
-void SettingsCategoryNav::Paint(PaintContext& context) {
-    const float s = LScale();
-    const float radius = LMetric(ThemeToken::CornerRadiusSmall) * s;
-    context.DrawRoundedRect(m_Geometry, LColor(ThemeToken::PanelBackground), radius);
-    context.DrawRoundedRectOutline(m_Geometry, LColor(ThemeToken::BorderDefault), 1.0f, radius);
-
-    const float textSize = LMetric(ThemeToken::TextSizeBody) * s;
-    const float iconSize = 14.0f * s;
-
-    for (int i = 0; i < static_cast<int>(SettingsCategory::Count); ++i) {
-        const auto cat = static_cast<SettingsCategory>(i);
-        const Rect r = ItemRect(i);
-        const bool active = cat == m_Active;
-        const bool matched = (m_MatchMask & (1u << i)) != 0;
-        const float hover = m_HoverAnims[static_cast<std::size_t>(i)];
-
-        if (active) {
-            context.DrawRoundedRect(r, LColor(ThemeToken::SelectedBackground), radius - 1.0f);
-            context.DrawRect(
-                Rect{ r.x, r.y + 4.0f * s, 2.0f * s, r.height - 8.0f * s },
-                LColor(ThemeToken::AccentPrimary));
-        } else if (hover > 0.01f) {
-            context.DrawRoundedRect(
-                r,
-                Color::Lerp(Color::Transparent(), LColor(ThemeToken::HoverBackground), hover),
-                radius - 1.0f);
-        }
-
-        Color iconColor = active ? LColor(ThemeToken::AccentPrimary)
-                                 : (matched ? LColor(ThemeToken::IconSecondary) : LColor(ThemeToken::TextDisabled));
-        Color textColor = active ? LColor(ThemeToken::TextPrimary)
-                                 : (matched ? LColor(ThemeToken::TextSecondary) : LColor(ThemeToken::TextDisabled));
-
-        IconPainter::DrawIcon(
-            context,
-            SettingsCategoryIcon(cat),
-            Rect{ r.x + 10.0f * s, r.y + (r.height - iconSize) * 0.5f, iconSize, iconSize },
-            iconColor);
-        context.DrawText(
-            SettingsCategoryTitle(cat),
-            Point{ r.x + 32.0f * s, r.y + (r.height - textSize) * 0.5f },
-            textColor,
-            textSize,
-            active);
-    }
-}
-
-void SettingsCategoryNav::OnMouseDown(const MouseEvent& event) {
-    if (event.button == MouseButton::Left) {
-        m_Pressed = HitIndex(event.position);
-    }
-}
-
-void SettingsCategoryNav::OnMouseMove(const MouseEvent& event) {
-    m_Hovered = HitIndex(event.position);
-}
-
-void SettingsCategoryNav::OnMouseUp(const MouseEvent& event) {
-    if (event.button != MouseButton::Left) {
-        return;
-    }
-    const int hit = HitIndex(event.position);
-    if (hit >= 0 && hit == m_Pressed) {
-        const auto cat = static_cast<SettingsCategory>(hit);
-        if (cat != m_Active) {
-            m_Active = cat;
-            if (m_OnChanged) {
-                m_OnChanged(cat);
-            }
-            InvalidateUI();
-        }
-    }
-    m_Pressed = -1;
-}
-
-bool SettingsCategoryNav::ShowsPointerCursor(const Point& position) const {
-    return HitIndex(position) >= 0;
-}
-
-void SettingsCategoryNav::Tick(float deltaTime) {
-    (void)deltaTime;
-    const float damp = LMetric(ThemeToken::HoverAnimationDamping);
-    for (int i = 0; i < static_cast<int>(m_HoverAnims.size()); ++i) {
-        const bool hovered = i == m_Hovered && static_cast<SettingsCategory>(i) != m_Active;
-        m_HoverAnims[static_cast<std::size_t>(i)] =
-            Animator::Damp(m_HoverAnims[static_cast<std::size_t>(i)], hovered ? 1.0f : 0.0f, damp);
-    }
-    Widget::Tick(deltaTime);
-    InvalidateUI();
-}
-
-void SettingsCategoryNav::OnKeyDown(const KeyEvent& event) {
-    int idx = static_cast<int>(m_Active);
-    if (event.key == we::platform::KeyCode::Up) {
-        idx = std::max(0, idx - 1);
-    } else if (event.key == we::platform::KeyCode::Down) {
-        idx = std::min(static_cast<int>(SettingsCategory::Count) - 1, idx + 1);
-    } else {
-        return;
-    }
-    const auto cat = static_cast<SettingsCategory>(idx);
-    if (cat != m_Active) {
-        m_Active = cat;
-        if (m_OnChanged) {
-            m_OnChanged(cat);
-        }
-        InvalidateUI();
-    }
-}
-
-// â”€â”€ SettingsGroup â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── SettingsGroup ────────────────────────────────────────────────────────────
 
 SettingsGroup::SettingsGroup(std::string title, std::string description)
     : m_Title(std::move(title))
@@ -323,8 +138,9 @@ void SettingsGroup::SetContent(const std::shared_ptr<Widget>& content) {
 
 Size SettingsGroup::Measure(const Size& availableSize) {
     const float s = LScale();
-    const float pad = 12.0f * s;
-    const float titleSize = LMetric(ThemeToken::TextSizeBody) * s;
+    const float padX = 0.0f;
+    const float padY = 8.0f * s;
+    const float titleSize = LMetric(ThemeToken::TextSizeHeader) * s;
     const float descSize = LMetric(ThemeToken::TextSizeCaption) * s;
     float headerH = titleSize + 4.0f * s;
     if (!m_Description.empty()) {
@@ -335,7 +151,7 @@ Size SettingsGroup::Measure(const Size& availableSize) {
     float contentH = 0.0f;
     if (m_Content) {
         const Size child = m_Content->Measure(Size{
-            std::max(40.0f, availableSize.width - pad * 2.0f),
+            std::max(40.0f, availableSize.width - padX * 2.0f),
             availableSize.height
         });
         contentH = child.height;
@@ -343,7 +159,7 @@ Size SettingsGroup::Measure(const Size& availableSize) {
 
     m_DesiredSize = Size{
         availableSize.width > 0.0f ? availableSize.width : 480.0f * s,
-        pad + headerH + contentH + pad
+        padY + headerH + contentH + padY + 1.0f * s
     };
     return m_DesiredSize;
 }
@@ -351,61 +167,68 @@ Size SettingsGroup::Measure(const Size& availableSize) {
 void SettingsGroup::Arrange(const Rect& allottedRect) {
     m_Geometry = allottedRect;
     const float s = LScale();
-    const float pad = 12.0f * s;
-    const float titleSize = LMetric(ThemeToken::TextSizeBody) * s;
+    const float padX = 0.0f;
+    const float padY = 8.0f * s;
+    const float titleSize = LMetric(ThemeToken::TextSizeHeader) * s;
     const float descSize = LMetric(ThemeToken::TextSizeCaption) * s;
-    float y = allottedRect.y + pad + titleSize + 4.0f * s;
+    float y = allottedRect.y + padY + titleSize + 4.0f * s;
     if (!m_Description.empty()) {
         y += descSize + 4.0f * s;
     }
     y += 8.0f * s;
     if (m_Content) {
         m_Content->Arrange(Rect{
-            allottedRect.x + pad,
+            allottedRect.x + padX,
             y,
-            allottedRect.width - pad * 2.0f,
-            std::max(0.0f, allottedRect.y + allottedRect.height - pad - y)
+            allottedRect.width - padX * 2.0f,
+            std::max(0.0f, allottedRect.y + allottedRect.height - padY - 1.0f * s - y)
         });
     }
 }
 
 void SettingsGroup::Paint(PaintContext& context) {
     const float s = LScale();
-    const float radius = LMetric(ThemeToken::CornerRadiusMedium) * s;
-    const float pad = 12.0f * s;
+    const float padY = 8.0f * s;
 
-    Color bg = LColor(ThemeToken::PanelBackground);
     if (m_Highlighted) {
-        bg = Color::Lerp(bg, LColor(ThemeToken::SelectedBackground), 0.35f);
+        context.DrawRoundedRect(
+            m_Geometry,
+            Color::Lerp(Color::Transparent(), LColor(ThemeToken::SelectedBackground), 0.4f),
+            LMetric(ThemeToken::CornerRadiusSmall) * s);
+        context.DrawRect(
+            Rect{ m_Geometry.x, m_Geometry.y + 6.0f * s, 2.0f * s, m_Geometry.height - 12.0f * s },
+            LColor(ThemeToken::AccentPrimary));
     }
-    context.DrawRoundedRect(m_Geometry, bg, radius);
-    context.DrawRoundedRectOutline(
-        m_Geometry,
-        m_Highlighted ? LColor(ThemeToken::AccentPrimary) : LColor(ThemeToken::BorderDefault),
-        m_Highlighted ? 1.5f : 1.0f,
-        radius);
 
-    const float titleSize = LMetric(ThemeToken::TextSizeBody) * s;
-    const float descSize = LMetric(ThemeToken::TextSizeCaption) * s;
-    float y = m_Geometry.y + pad;
-    context.DrawText(
+    ControlChrome::PaintSectionHeader(
+        context,
+        Rect{ m_Geometry.x, m_Geometry.y + padY, m_Geometry.width, 48.0f * s },
         m_Title,
-        Point{ m_Geometry.x + pad, y },
-        LColor(ThemeToken::TextPrimary),
-        titleSize,
-        true);
-    y += titleSize + 4.0f * s;
+        m_Description);
+
+    const float titleSize = LMetric(ThemeToken::TextSizeHeader) * s;
+    const float descSize = LMetric(ThemeToken::TextSizeCaption) * s;
+    float y = m_Geometry.y + padY + titleSize + 4.0f * s;
     if (!m_Description.empty()) {
-        context.DrawText(
-            m_Description,
-            Point{ m_Geometry.x + pad, y },
-            LColor(ThemeToken::TextMuted),
-            descSize);
+        y += descSize + 4.0f * s;
     }
+    y += 10.0f * s;
+    context.DrawRect(
+        Rect{ m_Geometry.x, y, m_Geometry.width, 1.0f * s },
+        LColor(ThemeToken::Separator));
 
     if (m_Content && m_Content->IsVisible()) {
         m_Content->Paint(context);
     }
+
+    context.DrawRect(
+        Rect{
+            m_Geometry.x,
+            m_Geometry.y + m_Geometry.height - 1.0f * s,
+            m_Geometry.width,
+            1.0f * s
+        },
+        LColor(ThemeToken::BorderDefault));
 }
 
 void SettingsGroup::Tick(float deltaTime) {
@@ -771,8 +594,7 @@ void SettingsDropdown::Paint(PaintContext& context) {
 
     if (m_Open) {
         const Rect menu = MenuRect();
-        context.DrawRoundedRect(menu, LColor(ThemeToken::PanelBackground), radius);
-        context.DrawRoundedRectOutline(menu, LColor(ThemeToken::BorderDefault), 1.0f, radius);
+        ControlChrome::PaintPopupSurface(context, menu);
         for (int i = 0; i < static_cast<int>(m_Options.size()); ++i) {
             const Rect opt = OptionRect(i);
             if (i == m_Selected || i == m_HoverOption) {
@@ -1614,11 +1436,11 @@ void SettingsActionBar::AddAction(
     bool primary) {
     std::shared_ptr<Widget> btn;
     if (primary) {
-        auto p = std::make_shared<PrimaryToolbarButton>(std::move(label), icon);
+        auto p = std::make_shared<PrimaryButton>(std::move(label), icon);
         p->SetOnClicked(std::move(onClick));
         btn = p;
     } else {
-        auto s = std::make_shared<SecondaryToolbarButton>(std::move(label), icon);
+        auto s = std::make_shared<SecondaryButton>(std::move(label), icon);
         s->SetOnClicked(std::move(onClick));
         btn = s;
     }

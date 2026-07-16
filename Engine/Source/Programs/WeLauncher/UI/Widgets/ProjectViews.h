@@ -18,7 +18,8 @@ enum class ProjectCardAction {
     Delete,
     ShowInExplorer,
     Favorite,
-    More
+    More,
+    Regenerate
 };
 
 class ProjectCard : public WindEffects::Editor::UI::Widget {

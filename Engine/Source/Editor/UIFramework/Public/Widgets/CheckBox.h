@@ -32,6 +32,7 @@ private:
     std::function<void(bool)> m_OnChanged;
     TextStyle m_Style;
     float m_BoxSize = 14.0f;
+    float m_HoverAnim = 0.0f;
 };
 
 } // namespace WindEffects::Editor::UI

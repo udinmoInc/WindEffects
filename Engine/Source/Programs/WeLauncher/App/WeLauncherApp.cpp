@@ -16,6 +16,7 @@
 #include "Platform/PlatformSDK.h"
 #include "WindEffects/Editor/UI/Core/EditorApplicationContext.h"
 #include "WindEffects/Editor/UI/Core/WidgetContext.h"
+#include "WindEffects/Editor/UI/Theming/LauncherTheme.h"
 #include "Core/DPIContext.h"
 
 #include <algorithm>
@@ -46,7 +47,8 @@ WeLauncherApp::WeLauncherApp(we::platform::WindowId window)
     m_Context->Initialize();
     HE_INFO("[WeLauncher] Context ready");
 
-    m_AppContext = std::make_unique<WindEffects::Editor::UI::EditorApplicationContext>();
+    m_AppContext = std::make_unique<WindEffects::Editor::UI::EditorApplicationContext>(
+        std::make_shared<WindEffects::Editor::UI::LauncherTheme>());
     auto& platform = we::platform::Platform::Get();
     HE_INFO("[WeLauncher] Updating UI scale...");
     UpdateUiScaleFromWindow();

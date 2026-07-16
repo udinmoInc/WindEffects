@@ -39,7 +39,12 @@ struct TextStyle {
     bool italic = false;
 
     static TextStyle Body() {
-        return TextStyle{ ResolveThemeColor(ThemeToken::TextSecondary), 13.0f, false, false };
+        return TextStyle{
+            ResolveThemeColor(ThemeToken::TextPrimary),
+            ResolveThemeMetric(ThemeToken::TextSizeBody),
+            false,
+            false
+        };
     }
 };
 
@@ -67,11 +72,12 @@ struct WidgetStyle {
     BackgroundStyle backgroundPressed;
     BorderStyle borderFocused;
 
-    static WidgetStyle Panel() { return WidgetStyle{}; }
-    static WidgetStyle Button() { return WidgetStyle{}; }
-    static WidgetStyle ToolButton() { return WidgetStyle{}; }
-    static WidgetStyle TextBox() { return WidgetStyle{}; }
-    static WidgetStyle TreeItem() { return WidgetStyle{}; }
+    // Built from ThemeManager StyleRoles (see StyleFactory).
+    static WidgetStyle Panel();
+    static WidgetStyle Button();
+    static WidgetStyle ToolButton();
+    static WidgetStyle TextBox();
+    static WidgetStyle TreeItem();
 };
 
 } // namespace WindEffects::Editor::UI

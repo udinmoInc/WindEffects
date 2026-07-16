@@ -1,8 +1,9 @@
 #include "Widgets/Button.h"
+#include "Core/ControlChrome.h"
 #include "Core/PaintContext.h"
+#include "WindEffects/Editor/UI/Theming/ThemeManager.h"
 #include "WindEffects/Editor/UI/Theming/ThemeToken.h"
 #include "Core/Style.h"
-#include "Core/DPIContext.h"
 #include "Core/Animator.h"
 
 namespace WindEffects::Editor::UI {
@@ -15,13 +16,13 @@ Button::Button(const std::string& labelText, std::function<void()> onClicked)
 
 Size Button::Measure(const Size& availableSize) {
     (void)availableSize;
-    
-    // Calculate text width using proper font metrics
-    float textWidth = m_Text.length() * ThemeMetric(ThemeToken::TextSizeBody) * 0.6f;
-    float width = textWidth + m_Style.padding.left + m_Style.padding.right;
-    float height = ThemeMetric(ThemeToken::TextSizeBody) + m_Style.padding.top + m_Style.padding.bottom;
-
-    m_DesiredSize = Size{ width, height };
+    const ResolvedStyle role = ThemeManager::Get().Resolve(StyleRole::ButtonSecondary);
+    const float textWidth = static_cast<float>(m_Text.length()) * role.fontSize * 0.55f;
+    const float pad = ResolveThemeMetric(ThemeToken::ButtonPaddingHorizontal);
+    m_DesiredSize = Size{
+        textWidth + pad * 2.0f,
+        role.height > 0.0f ? role.height : ResolveThemeMetric(ThemeToken::ButtonHeight)
+    };
     return m_DesiredSize;
 }
 
@@ -30,39 +31,23 @@ void Button::Arrange(const Rect& allottedRect) {
 }
 
 void Button::Paint(PaintContext& context) {
-    if (!m_Visible) return;
-
-    // 1. Tick Animations
-    m_HoverAnim = Animator::Damp(m_HoverAnim, m_Hovered ? 1.0f : 0.0f, 15.0f);
-    m_PressAnim = Animator::Damp(m_PressAnim, m_Pressed ? 1.0f : 0.0f, 25.0f);
-
-    // 2. Interpolate Colors using Style system
-    Color currentBg = m_Style.background.color;
-    if (m_HoverAnim > 0.01f) {
-        currentBg = Color::Lerp(currentBg, m_Style.backgroundHover.color, m_HoverAnim);
-    }
-    if (m_PressAnim > 0.01f) {
-        currentBg = Color::Lerp(currentBg, m_Style.backgroundPressed.color, m_PressAnim);
+    if (!m_Visible) {
+        return;
     }
 
-    // 3. Draw rounded button background
-    context.DrawRoundedRect(m_Geometry, currentBg, m_Style.background.cornerRadius);
+    m_HoverAnim = Animator::Damp(m_HoverAnim, m_Hovered ? 1.0f : 0.0f, ControlChrome::HoverDamping());
+    m_PressAnim = Animator::Damp(m_PressAnim, m_Pressed ? 1.0f : 0.0f, ControlChrome::PressDamping());
 
-    // 4. Draw subtle border
-    Color borderColor = m_Style.border.color;
-    if (m_HoverAnim > 0.01f) {
-        borderColor.a = std::min(1.0f, borderColor.a + m_HoverAnim * 0.3f);
-    }
-    context.DrawRoundedRectOutline(m_Geometry, borderColor, m_Style.border.width, m_Style.background.cornerRadius);
-
-    // 5. Draw text centered
-    float textWidth = m_Text.length() * m_Style.text.size * 0.6f;
-    float textX = m_Geometry.x + (m_Geometry.width - textWidth) * 0.5f;
-    float textY = m_Geometry.y + (m_Geometry.height - m_Style.text.size) * 0.5f;
-    
-    Color textColor = m_Style.text.color;
-    
-    context.DrawText(m_Text, Point{ textX, textY }, textColor, m_Style.text.size);
+    const ResolvedStyle style = ThemeManager::Get().Resolve(StyleRole::ButtonSecondary);
+    ControlChrome::InteractionState state{ m_HoverAnim, m_PressAnim, false, m_Focused, false };
+    ControlChrome::PaintFilledButton(context, m_Geometry, style, state);
+    ControlChrome::PaintCenteredLabel(
+        context,
+        m_Geometry,
+        m_Text,
+        style.foreground,
+        style.fontSize,
+        style.bold);
 }
 
 void Button::OnMouseDown(const MouseEvent& event) {

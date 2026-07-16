@@ -7,7 +7,7 @@
 
 namespace WindEffects::Editor::UI {
 
-class GraphiteDarkTheme final : public IThemeProvider {
+class UIFRAMEWORK_API GraphiteDarkTheme : public IThemeProvider {
 public:
     [[nodiscard]] std::string_view GetThemeId() const override { return "GraphiteDark"; }
 

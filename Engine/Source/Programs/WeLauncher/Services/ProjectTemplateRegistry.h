@@ -3,6 +3,7 @@
 #include "Model/WeProjectDescriptor.h"
 #include "Services/EngineDiscoveryService.h"
 
+#include <string_view>
 #include <vector>
 
 namespace we::programs::welauncher {

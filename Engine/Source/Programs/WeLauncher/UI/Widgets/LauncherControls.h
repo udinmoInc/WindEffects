@@ -44,25 +44,17 @@ private:
     float m_Height = 1.0f;
 };
 
-// Global chrome only: logo + title | search | Help / Settings / window controls.
+// Global chrome: logo + Help / Settings + window controls (no search).
 class LauncherTitleBar : public WindEffects::Editor::UI::Widget {
 public:
-    using SearchChanged = std::function<void(const std::string&)>;
     using ActionFn = std::function<void()>;
 
     LauncherTitleBar(we::platform::WindowId window, std::string title);
 
     void SetLogoTexture(we::rhi::RHIDescriptorSetHandle logoSet);
-    void SetSearchText(const std::string& text);
-    [[nodiscard]] const std::string& GetSearchText() const { return m_SearchText; }
-    void SetSearchPlaceholder(std::string placeholder) { m_SearchPlaceholder = std::move(placeholder); }
-    void SetOnSearchChanged(SearchChanged cb) { m_OnSearchChanged = std::move(cb); }
     void SetOnHelp(ActionFn cb) { m_OnHelp = std::move(cb); }
     void SetOnSettings(ActionFn cb) { m_OnSettings = std::move(cb); }
     void UpdateMaximizeIcon();
-    void AppendSearchCodepoint(char32_t codepoint);
-    void HandleSearchKey(const WindEffects::Editor::UI::KeyEvent& event);
-    [[nodiscard]] bool IsSearchFocused() const { return m_SearchFocused; }
 
     WindEffects::Editor::UI::Size Measure(const WindEffects::Editor::UI::Size& availableSize) override;
     void Arrange(const WindEffects::Editor::UI::Rect& allottedRect) override;
@@ -70,9 +62,6 @@ public:
     void OnMouseDown(const WindEffects::Editor::UI::MouseEvent& event) override;
     void OnMouseMove(const WindEffects::Editor::UI::MouseEvent& event) override;
     void OnMouseUp(const WindEffects::Editor::UI::MouseEvent& event) override;
-    void OnKeyDown(const WindEffects::Editor::UI::KeyEvent& event) override;
-    void OnFocus() override;
-    void OnBlur() override;
     bool ShowsPointerCursor(const WindEffects::Editor::UI::Point& position) const override;
     void Tick(float deltaTime) override;
 
@@ -82,8 +71,6 @@ private:
     enum class HitZone {
         None,
         Drag,
-        Search,
-        SearchClear,
         Help,
         Settings,
         Minimize,
@@ -93,7 +80,6 @@ private:
 
     HitZone HitTest(const WindEffects::Editor::UI::Point& p) const;
     void LayoutRects();
-    void NotifySearchChanged();
     void PaintIconButton(
         WindEffects::Editor::UI::PaintContext& context,
         const WindEffects::Editor::UI::Rect& r,
@@ -105,11 +91,6 @@ private:
     std::string m_Title;
     we::rhi::RHIDescriptorSetHandle m_LogoSet = we::rhi::RHIDescriptorSetHandle::Invalid;
 
-    std::string m_SearchText;
-    std::string m_SearchPlaceholder = "Search...";
-    bool m_SearchFocused = false;
-
-    SearchChanged m_OnSearchChanged;
     ActionFn m_OnHelp;
     ActionFn m_OnSettings;
 
@@ -120,14 +101,8 @@ private:
     float m_HoverClose = 0.0f;
     float m_HoverHelp = 0.0f;
     float m_HoverSettings = 0.0f;
-    float m_SearchHover = 0.0f;
-    float m_SearchFocusAnim = 0.0f;
-    float m_CaretBlink = 0.0f;
-    bool m_ShowCaret = true;
 
     WindEffects::Editor::UI::Rect m_BrandRect{};
-    WindEffects::Editor::UI::Rect m_SearchRect{};
-    WindEffects::Editor::UI::Rect m_ClearRect{};
     WindEffects::Editor::UI::Rect m_HelpRect{};
     WindEffects::Editor::UI::Rect m_SettingsRect{};
     WindEffects::Editor::UI::Rect m_MinRect{};
@@ -135,6 +110,22 @@ private:
     WindEffects::Editor::UI::Rect m_CloseRect{};
 
     bool m_IsMaximized = false;
+};
+
+// 1px horizontal rule for Hub-style page separators.
+class ThinDivider : public WindEffects::Editor::UI::Widget {
+public:
+    WindEffects::Editor::UI::Size Measure(const WindEffects::Editor::UI::Size& availableSize) override;
+    void Arrange(const WindEffects::Editor::UI::Rect& allottedRect) override;
+    void Paint(WindEffects::Editor::UI::PaintContext& context) override;
+};
+
+// 1px vertical rule (sidebar | content).
+class ThinVerticalDivider : public WindEffects::Editor::UI::Widget {
+public:
+    WindEffects::Editor::UI::Size Measure(const WindEffects::Editor::UI::Size& availableSize) override;
+    void Arrange(const WindEffects::Editor::UI::Rect& allottedRect) override;
+    void Paint(WindEffects::Editor::UI::PaintContext& context) override;
 };
 
 class NavSidebar : public WindEffects::Editor::UI::Widget {
@@ -314,6 +305,35 @@ private:
     WindEffects::Editor::UI::Rect m_SecondaryRect{};
     HitZone m_Hover = HitZone::None;
     HitZone m_Pressed = HitZone::None;
+};
+
+// Compact toolbar search field (Projects page).
+class CompactSearchField : public WindEffects::Editor::UI::Widget {
+public:
+    using ChangedFn = std::function<void(const std::string&)>;
+
+    explicit CompactSearchField(std::string placeholder = "Search projects…");
+
+    void SetText(std::string text);
+    [[nodiscard]] const std::string& GetText() const { return m_Text; }
+    void SetOnChanged(ChangedFn cb) { m_OnChanged = std::move(cb); }
+    void AppendCodepoint(char32_t codepoint);
+
+    WindEffects::Editor::UI::Size Measure(const WindEffects::Editor::UI::Size& availableSize) override;
+    void Arrange(const WindEffects::Editor::UI::Rect& allottedRect) override;
+    void Paint(WindEffects::Editor::UI::PaintContext& context) override;
+    void OnMouseDown(const WindEffects::Editor::UI::MouseEvent& event) override;
+    void OnKeyDown(const WindEffects::Editor::UI::KeyEvent& event) override;
+    void OnFocus() override;
+    void OnBlur() override;
+    void Tick(float deltaTime) override;
+    bool ShowsPointerCursor(const WindEffects::Editor::UI::Point& position) const override;
+
+private:
+    std::string m_Placeholder;
+    std::string m_Text;
+    float m_HoverAnim = 0.0f;
+    ChangedFn m_OnChanged;
 };
 
 class ModalOverlay : public WindEffects::Editor::UI::Widget {

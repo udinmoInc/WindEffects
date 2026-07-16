@@ -26,45 +26,9 @@ enum class SettingsCategory : int {
 };
 
 [[nodiscard]] const char* SettingsCategoryTitle(SettingsCategory category);
-[[nodiscard]] const char* SettingsCategoryIcon(SettingsCategory category);
 [[nodiscard]] const char* SettingsCategoryKeywords(SettingsCategory category);
 
-// Left-rail category list for the Settings page.
-class SettingsCategoryNav : public WindEffects::Editor::UI::Widget {
-public:
-    using Changed = std::function<void(SettingsCategory)>;
-
-    void SetActive(SettingsCategory category);
-    void SetMatchMask(std::uint32_t mask); // bit i = category i has search matches
-    void SetOnChanged(Changed cb) { m_OnChanged = std::move(cb); }
-    [[nodiscard]] SettingsCategory GetActive() const { return m_Active; }
-
-    WindEffects::Editor::UI::Size Measure(const WindEffects::Editor::UI::Size& availableSize) override;
-    void Arrange(const WindEffects::Editor::UI::Rect& allottedRect) override;
-    void Paint(WindEffects::Editor::UI::PaintContext& context) override;
-    void OnMouseDown(const WindEffects::Editor::UI::MouseEvent& event) override;
-    void OnMouseMove(const WindEffects::Editor::UI::MouseEvent& event) override;
-    void OnMouseUp(const WindEffects::Editor::UI::MouseEvent& event) override;
-    bool ShowsPointerCursor(const WindEffects::Editor::UI::Point& position) const override;
-    void Tick(float deltaTime) override;
-    void OnKeyDown(const WindEffects::Editor::UI::KeyEvent& event) override;
-
-    static constexpr float kWidth = 196.0f;
-    static constexpr float kItemH = 32.0f;
-
-private:
-    [[nodiscard]] int HitIndex(const WindEffects::Editor::UI::Point& p) const;
-    [[nodiscard]] WindEffects::Editor::UI::Rect ItemRect(int index) const;
-
-    SettingsCategory m_Active = SettingsCategory::General;
-    std::uint32_t m_MatchMask = ~0u;
-    Changed m_OnChanged;
-    int m_Hovered = -1;
-    int m_Pressed = -1;
-    std::vector<float> m_HoverAnims{ static_cast<std::size_t>(SettingsCategory::Count), 0.0f };
-};
-
-// Compact titled group that hugs content height.
+// Compact titled section with header + description + subtle separator (not a card).
 class SettingsGroup : public WindEffects::Editor::UI::Widget {
 public:
     SettingsGroup(std::string title, std::string description = {});
@@ -412,6 +376,5 @@ private:
 
 [[nodiscard]] WindEffects::Editor::UI::Color ParseHexColor(const std::string& hex);
 [[nodiscard]] int IndexOfOption(const std::vector<std::string>& options, const std::string& value);
-[[nodiscard]] std::uint32_t SettingsSearchMatchMask(const std::string& queryLower);
 
 } // namespace we::programs::welauncher
