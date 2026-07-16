@@ -166,6 +166,43 @@ struct BlendStateDesc {
     BlendFactor srcAlpha = BlendFactor::One;
     BlendFactor dstAlpha = BlendFactor::OneMinusSrcAlpha;
     BlendOp alphaOp = BlendOp::Add;
+    uint8_t writeMask = 0xF; // RGBA
+};
+
+struct StencilOpStateDesc {
+    StencilOp failOp = StencilOp::Keep;
+    StencilOp passOp = StencilOp::Keep;
+    StencilOp depthFailOp = StencilOp::Keep;
+    CompareOp compareOp = CompareOp::Always;
+    uint32_t compareMask = 0xFF;
+    uint32_t writeMask = 0xFF;
+    uint32_t reference = 0;
+};
+
+struct DepthStencilStateDesc {
+    bool depthTest = true;
+    bool depthWrite = true;
+    CompareOp depthCompare = CompareOp::Less;
+    bool stencilTest = false;
+    StencilOpStateDesc front{};
+    StencilOpStateDesc back{};
+};
+
+struct RasterizerStateDesc {
+    FillMode fillMode = FillMode::Solid;
+    CullMode cullMode = CullMode::Back;
+    bool frontCounterClockwise = true;
+    bool depthClamp = false;
+    bool depthBiasEnable = false;
+    float depthBiasConstant = 0.0f;
+    float depthBiasSlope = 0.0f;
+    float depthBiasClamp = 0.0f;
+};
+
+struct MultisampleStateDesc {
+    uint32_t sampleCount = 1;
+    uint32_t sampleMask = ~0u;
+    bool alphaToCoverage = false;
 };
 
 struct GraphicsPipelineDesc {
@@ -175,14 +212,22 @@ struct GraphicsPipelineDesc {
     std::vector<VertexBindingDesc> vertexBindings{};
     std::vector<VertexAttributeDesc> vertexAttributes{};
     PrimitiveTopology topology = PrimitiveTopology::TriangleList;
+    RasterizerStateDesc rasterizer{};
+    DepthStencilStateDesc depthStencil{};
+    MultisampleStateDesc multisample{};
+    // Per-RT blend; if empty, uses `blend` for RT0.
+    std::vector<BlendStateDesc> colorBlends{};
+    BlendStateDesc blend{};
+    // Color attachment formats (MRT). If empty, uses colorFormat for a single RT.
+    std::vector<Format> colorFormats{};
+    Format colorFormat = Format::B8G8R8A8_UNORM;
+    Format depthFormat = Format::D32_SFLOAT;
+    bool depthAttachment = true;
+    // Legacy convenience fields (map into rasterizer/depthStencil when left default).
     CullMode cullMode = CullMode::Back;
     bool depthTest = true;
     bool depthWrite = true;
     CompareOp depthCompare = CompareOp::Less;
-    BlendStateDesc blend{};
-    Format colorFormat = Format::B8G8R8A8_UNORM;
-    Format depthFormat = Format::D32_SFLOAT;
-    bool depthAttachment = true;
     const char* debugName = nullptr;
 };
 
@@ -353,6 +398,28 @@ struct SubmitDesc {
     std::span<const RHISemaphoreHandle> waitSemaphores{};
     std::span<const RHISemaphoreHandle> signalSemaphores{};
     RHIFenceHandle signalFence = RHIFenceHandle::Invalid;
+};
+
+struct CommandPoolDesc {
+    QueueType queue = QueueType::Graphics;
+    CommandPoolFlags flags = CommandPoolFlags::ResetCommandBuffer;
+    const char* debugName = nullptr;
+};
+
+struct QueryPoolDesc {
+    QueryType type = QueryType::Timestamp;
+    uint32_t count = 1;
+    const char* debugName = nullptr;
+};
+
+struct TextureResolveRegion {
+    TextureSubresourceLayers src{};
+    TextureSubresourceLayers dst{};
+    uint32_t srcOffsetX = 0;
+    uint32_t srcOffsetY = 0;
+    uint32_t dstOffsetX = 0;
+    uint32_t dstOffsetY = 0;
+    Extent2D extent{1, 1};
 };
 
 } // namespace we::rhi

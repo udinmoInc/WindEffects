@@ -1,12 +1,15 @@
-﻿#include "DX12Device.h"
+#include "DX12Device.h"
 
 #include "Core/LogCategory.h"
 #include "Core/Logger.h"
 #include "Platform/NativeHandle.h"
 #include "RHI/ShaderBytecode.h"
 
+#include <algorithm>
 #include <chrono>
+#include <cstdio>
 #include <cstring>
+#include <string>
 
 #if defined(_WIN32)
 
@@ -101,6 +104,20 @@ namespace {
     }
 }
 
+[[nodiscard]] D3D12_STENCIL_OP ToStencilOp(StencilOp op) noexcept {
+    switch (op) {
+    case StencilOp::Zero: return D3D12_STENCIL_OP_ZERO;
+    case StencilOp::Replace: return D3D12_STENCIL_OP_REPLACE;
+    case StencilOp::IncrementAndClamp: return D3D12_STENCIL_OP_INCR_SAT;
+    case StencilOp::DecrementAndClamp: return D3D12_STENCIL_OP_DECR_SAT;
+    case StencilOp::Invert: return D3D12_STENCIL_OP_INVERT;
+    case StencilOp::IncrementAndWrap: return D3D12_STENCIL_OP_INCR;
+    case StencilOp::DecrementAndWrap: return D3D12_STENCIL_OP_DECR;
+    case StencilOp::Keep:
+    default: return D3D12_STENCIL_OP_KEEP;
+    }
+}
+
 [[nodiscard]] D3D12_TEXTURE_ADDRESS_MODE ToAddressMode(AddressMode mode) noexcept {
     switch (mode) {
     case AddressMode::MirroredRepeat: return D3D12_TEXTURE_ADDRESS_MODE_MIRROR;
@@ -190,6 +207,22 @@ namespace {
     case BlendOp::Max: return D3D12_BLEND_OP_MAX;
     case BlendOp::Add:
     default: return D3D12_BLEND_OP_ADD;
+    }
+}
+
+void ApplyBlendTarget(D3D12_RENDER_TARGET_BLEND_DESC& rt, const BlendStateDesc& blend) noexcept {
+    rt.RenderTargetWriteMask = blend.writeMask & 0xF;
+    if (!rt.RenderTargetWriteMask) {
+        rt.RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL;
+    }
+    if (blend.enable) {
+        rt.BlendEnable = TRUE;
+        rt.SrcBlend = ToBlend(blend.srcColor);
+        rt.DestBlend = ToBlend(blend.dstColor);
+        rt.BlendOp = ToBlendOp(blend.colorOp);
+        rt.SrcBlendAlpha = ToBlend(blend.srcAlpha);
+        rt.DestBlendAlpha = ToBlend(blend.dstAlpha);
+        rt.BlendOpAlpha = ToBlendOp(blend.alphaOp);
     }
 }
 
@@ -540,11 +573,50 @@ void DX12CommandList::DrawIndexed(uint32_t indexCount, uint32_t instanceCount, u
     m_List->DrawIndexedInstanced(indexCount, instanceCount, firstIndex, vertexOffset, firstInstance);
 }
 
+void DX12CommandList::DrawIndirect(RHIBufferHandle buffer, uint64_t offset, uint32_t drawCount, uint32_t stride) {
+    if (!m_List || !m_Device || drawCount == 0) {
+        return;
+    }
+    auto* buf = m_Device->FindBuffer(buffer);
+    auto* sig = m_Device->GetDrawIndirectSignature();
+    if (!buf || !buf->resource || !sig) {
+        return;
+    }
+    const UINT byteStride = stride ? stride : static_cast<UINT>(sizeof(D3D12_DRAW_ARGUMENTS));
+    m_List->ExecuteIndirect(sig, drawCount, buf->resource.Get(), offset, nullptr, 0);
+    (void)byteStride;
+}
+
+void DX12CommandList::DrawIndexedIndirect(RHIBufferHandle buffer, uint64_t offset, uint32_t drawCount, uint32_t stride) {
+    if (!m_List || !m_Device || drawCount == 0) {
+        return;
+    }
+    auto* buf = m_Device->FindBuffer(buffer);
+    auto* sig = m_Device->GetDrawIndexedIndirectSignature();
+    if (!buf || !buf->resource || !sig) {
+        return;
+    }
+    (void)stride;
+    m_List->ExecuteIndirect(sig, drawCount, buf->resource.Get(), offset, nullptr, 0);
+}
+
 void DX12CommandList::Dispatch(uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ) {
     if (!m_List) {
         return;
     }
     m_List->Dispatch(groupCountX, groupCountY, groupCountZ);
+}
+
+void DX12CommandList::DispatchIndirect(RHIBufferHandle buffer, uint64_t offset) {
+    if (!m_List || !m_Device) {
+        return;
+    }
+    auto* buf = m_Device->FindBuffer(buffer);
+    auto* sig = m_Device->GetDispatchIndirectSignature();
+    if (!buf || !buf->resource || !sig) {
+        return;
+    }
+    m_List->ExecuteIndirect(sig, 1, buf->resource.Get(), offset, nullptr, 0);
 }
 
 void DX12CommandList::CopyBuffer(RHIBufferHandle src, RHIBufferHandle dst, uint64_t size, uint64_t srcOffset, uint64_t dstOffset) {
@@ -630,7 +702,8 @@ void DX12CommandList::CopyBufferToTexture(RHIBufferHandle src, RHITextureHandle 
     srcLoc.PlacedFootprint.Footprint.Depth = region.imageExtent.depth;
     const UINT rowPitch = region.bufferRowLength
         ? region.bufferRowLength
-        : region.imageExtent.width * 4u;
+        : ((region.imageExtent.width * 4u + 255u) & ~255u);
+    // D3D12 placed footprints require 256-byte row alignment.
     srcLoc.PlacedFootprint.Footprint.RowPitch = (rowPitch + 255u) & ~255u;
 
     m_List->CopyTextureRegion(&dstLoc, region.imageOffsetX, region.imageOffsetY, region.imageOffsetZ, &srcLoc, nullptr);
@@ -726,12 +799,58 @@ void DX12CommandList::ResourceBarrier(std::span<const ResourceBarrierDesc> barri
             barrier.Transition.StateBefore = ToD3DState(b.buffer.before);
             barrier.Transition.StateAfter = ToD3DState(b.buffer.after);
             d3dBarriers.push_back(barrier);
+            buf->resourceState = b.buffer.after;
             buf->state = barrier.Transition.StateAfter;
         }
     }
     if (!d3dBarriers.empty()) {
         m_List->ResourceBarrier(static_cast<UINT>(d3dBarriers.size()), d3dBarriers.data());
     }
+}
+
+void DX12CommandList::WriteTimestamp(RHIQueryPoolHandle pool, uint32_t queryIndex) {
+    if (!m_List || !m_Device) {
+        return;
+    }
+    auto* q = m_Device->FindQueryPool(pool);
+    if (!q || !q->heap || queryIndex >= q->desc.count) {
+        return;
+    }
+    m_List->EndQuery(q->heap.Get(), D3D12_QUERY_TYPE_TIMESTAMP, queryIndex);
+}
+
+void DX12CommandList::BeginQuery(RHIQueryPoolHandle pool, uint32_t queryIndex) {
+    if (!m_List || !m_Device) {
+        return;
+    }
+    auto* q = m_Device->FindQueryPool(pool);
+    if (!q || !q->heap || queryIndex >= q->desc.count) {
+        return;
+    }
+    const D3D12_QUERY_TYPE type = q->desc.type == QueryType::Occlusion
+        ? D3D12_QUERY_TYPE_OCCLUSION
+        : D3D12_QUERY_TYPE_TIMESTAMP;
+    if (type == D3D12_QUERY_TYPE_OCCLUSION) {
+        m_List->BeginQuery(q->heap.Get(), type, queryIndex);
+    }
+}
+
+void DX12CommandList::EndQuery(RHIQueryPoolHandle pool, uint32_t queryIndex) {
+    if (!m_List || !m_Device) {
+        return;
+    }
+    auto* q = m_Device->FindQueryPool(pool);
+    if (!q || !q->heap || queryIndex >= q->desc.count) {
+        return;
+    }
+    const D3D12_QUERY_TYPE type = q->desc.type == QueryType::Occlusion
+        ? D3D12_QUERY_TYPE_OCCLUSION
+        : D3D12_QUERY_TYPE_TIMESTAMP;
+    m_List->EndQuery(q->heap.Get(), type, queryIndex);
+}
+
+void DX12CommandList::ResetQueryPool(RHIQueryPoolHandle, uint32_t, uint32_t) {
+    // DX12 query heaps do not require an explicit reset between frames when resolved.
 }
 
 void DX12CommandList::PushDebugGroup(std::string_view) {}
@@ -890,6 +1009,16 @@ RHIResult<void> DX12Swapchain::Present() {
         return RHIError::Make(RHIErrorCode::NotInitialized, "Swapchain not created.", "Present");
     }
     const HRESULT hr = m_Swap->Present(1, 0);
+    if (hr == DXGI_ERROR_DEVICE_REMOVED || hr == DXGI_ERROR_DEVICE_RESET) {
+        HRESULT reason = DXGI_ERROR_DEVICE_REMOVED;
+        if (m_Device && m_Device->GetD3DDevice()) {
+            reason = m_Device->GetD3DDevice()->GetDeviceRemovedReason();
+        }
+        return RHIError::Make(RHIErrorCode::DeviceLost, "DX12 device removed/reset during Present.", "Present", reason);
+    }
+    if (hr == DXGI_STATUS_OCCLUDED) {
+        return RHIResult<void>::Success();
+    }
     if (FAILED(hr)) {
         return RHIError::Make(RHIErrorCode::BackendFailure, "Present failed.", "Present", hr);
     }
@@ -919,7 +1048,8 @@ DX12Device::DX12Device(const DeviceDesc& desc)
     }
 
     m_Caps.dynamicRendering = true;
-    m_Caps.timestamps = true;
+    m_Caps.timestamps = true; // query heaps + WriteTimestamp
+    m_Caps.pipelineStatistics = false;
     m_Caps.geometryShaders = true;
     m_Caps.tessellation = true;
     m_Caps.multiDrawIndirect = true;
@@ -932,10 +1062,13 @@ DX12Device::DX12Device(const DeviceDesc& desc)
     m_Caps.drawIndirectFirstInstance = true;
     m_Caps.textureCompressionBC = true;
     m_Caps.timelineSemaphores = false;
-    m_Caps.asyncCompute = false;
+    m_Caps.asyncCompute = false; // single DIRECT queue shared today
     m_Caps.bindlessResources = false;
-    m_Caps.debugMarkers = true;
+    m_Caps.debugMarkers = false; // PIX markers optional; object naming via SetName
     m_Caps.multipleWindows = false;
+    m_Caps.meshShaders = false;
+    m_Caps.rayTracing = false;
+    m_Caps.sparseResources = false;
     m_Caps.maxSamplerAnisotropy = 16.0f;
     m_Caps.maxColorAttachments = 8;
     m_Caps.maxPushConstantBytes = 256;
@@ -972,7 +1105,14 @@ DX12Device::DX12Device(const DeviceDesc& desc)
 
 DX12Device::~DX12Device() {
     WaitIdle();
+    while (!m_Deferred.empty()) {
+        auto item = m_Deferred.front();
+        m_Deferred.pop_front();
+        DestroyImmediate(item.kind, item.handle);
+    }
     m_Swapchain.reset();
+    m_CommandPools.clear();
+    m_QueryPools.clear();
     m_Buffers.clear();
     m_Textures.clear();
     m_TextureViews.clear();
@@ -990,8 +1130,13 @@ DX12Device::~DX12Device() {
         m_CmdLists[i].Reset();
         m_Allocators[i].Reset();
     }
+    m_DrawIndirectSig.Reset();
+    m_DrawIndexedIndirectSig.Reset();
+    m_DispatchIndirectSig.Reset();
     m_RtvHeap.Reset();
     m_DsvHeap.Reset();
+    m_SrvHeap.Reset();
+    m_SamplerHeap.Reset();
     m_FrameFence.Reset();
     m_CommandQueue.Reset();
     m_Device.Reset();
@@ -1112,7 +1257,40 @@ RHIResult<void> DX12Device::CreateDeviceAndQueue() {
     if (auto heaps = CreateShaderVisibleHeaps(); !heaps) {
         return heaps;
     }
+    if (auto sigs = CreateIndirectSignatures(); !sigs) {
+        return sigs;
+    }
 
+    return RHIResult<void>::Success();
+}
+
+RHIResult<void> DX12Device::CreateIndirectSignatures() {
+    if (!m_Device) {
+        return RHIError::Make(RHIErrorCode::NotInitialized, "Device null.", "CreateIndirectSignatures");
+    }
+
+    D3D12_INDIRECT_ARGUMENT_DESC arg{};
+    D3D12_COMMAND_SIGNATURE_DESC sigDesc{};
+    sigDesc.NumArgumentDescs = 1;
+    sigDesc.pArgumentDescs = &arg;
+
+    arg.Type = D3D12_INDIRECT_ARGUMENT_TYPE_DRAW;
+    sigDesc.ByteStride = sizeof(D3D12_DRAW_ARGUMENTS);
+    if (FAILED(m_Device->CreateCommandSignature(&sigDesc, nullptr, IID_PPV_ARGS(&m_DrawIndirectSig)))) {
+        return RHIError::Make(RHIErrorCode::BackendFailure, "CreateCommandSignature(Draw) failed.", "CreateIndirectSignatures");
+    }
+
+    arg.Type = D3D12_INDIRECT_ARGUMENT_TYPE_DRAW_INDEXED;
+    sigDesc.ByteStride = sizeof(D3D12_DRAW_INDEXED_ARGUMENTS);
+    if (FAILED(m_Device->CreateCommandSignature(&sigDesc, nullptr, IID_PPV_ARGS(&m_DrawIndexedIndirectSig)))) {
+        return RHIError::Make(RHIErrorCode::BackendFailure, "CreateCommandSignature(DrawIndexed) failed.", "CreateIndirectSignatures");
+    }
+
+    arg.Type = D3D12_INDIRECT_ARGUMENT_TYPE_DISPATCH;
+    sigDesc.ByteStride = sizeof(D3D12_DISPATCH_ARGUMENTS);
+    if (FAILED(m_Device->CreateCommandSignature(&sigDesc, nullptr, IID_PPV_ARGS(&m_DispatchIndirectSig)))) {
+        return RHIError::Make(RHIErrorCode::BackendFailure, "CreateCommandSignature(Dispatch) failed.", "CreateIndirectSignatures");
+    }
     return RHIResult<void>::Success();
 }
 
@@ -1363,16 +1541,10 @@ RHIResult<RHIBufferHandle> DX12Device::CreateBuffer(const BufferDesc& desc) {
 }
 
 RHIResult<void> DX12Device::DestroyBuffer(RHIBufferHandle handle) {
-    auto it = m_Buffers.find(static_cast<uint64_t>(handle));
-    if (it == m_Buffers.end()) {
+    if (!FindBuffer(handle)) {
         return RHIError::Make(RHIErrorCode::InvalidHandle, "Unknown buffer.", "DestroyBuffer");
     }
-    if (it->second.mapped && it->second.resource) {
-        it->second.resource->Unmap(0, nullptr);
-        it->second.mapped = nullptr;
-    }
-    m_Buffers.erase(it);
-    ++m_Diagnostics.resourcesDestroyed;
+    EnqueueDeferred(DeferredKind::Buffer, static_cast<uint64_t>(handle));
     return RHIResult<void>::Success();
 }
 
@@ -1485,7 +1657,17 @@ RHIResult<RHITextureHandle> DX12Device::CreateTexture(const TextureDesc& desc) {
         pClear,
         IID_PPV_ARGS(&tex.resource));
     if (FAILED(hr)) {
-        return RHIError::Make(RHIErrorCode::OutOfMemory, "CreateCommittedResource(texture) failed.", "CreateTexture", hr);
+        char buf[256];
+        std::snprintf(
+            buf,
+            sizeof(buf),
+            "CreateCommittedResource(texture) failed. hr=0x%08X %ux%u fmt=%u flags=0x%X",
+            static_cast<unsigned>(hr),
+            desc.extent.width,
+            desc.extent.height,
+            static_cast<unsigned>(desc.format),
+            static_cast<unsigned>(resDesc.Flags));
+        return RHIError::Make(RHIErrorCode::OutOfMemory, buf, "CreateTexture", static_cast<int32_t>(hr));
     }
 
     const auto handle = static_cast<RHITextureHandle>(AllocHandle());
@@ -1495,15 +1677,14 @@ RHIResult<RHITextureHandle> DX12Device::CreateTexture(const TextureDesc& desc) {
 }
 
 RHIResult<void> DX12Device::DestroyTexture(RHITextureHandle handle) {
-    auto it = m_Textures.find(static_cast<uint64_t>(handle));
-    if (it == m_Textures.end()) {
+    auto* tex = FindTexture(handle);
+    if (!tex) {
         return RHIError::Make(RHIErrorCode::InvalidHandle, "Unknown texture.", "DestroyTexture");
     }
-    if (it->second.isSwapchain) {
+    if (tex->isSwapchain) {
         return RHIError::Make(RHIErrorCode::InvalidArgument, "Cannot destroy swapchain texture.", "DestroyTexture");
     }
-    m_Textures.erase(it);
-    ++m_Diagnostics.resourcesDestroyed;
+    EnqueueDeferred(DeferredKind::Texture, static_cast<uint64_t>(handle));
     return RHIResult<void>::Success();
 }
 
@@ -1522,10 +1703,10 @@ RHIResult<RHITextureViewHandle> DX12Device::CreateTextureView(const TextureViewD
 }
 
 RHIResult<void> DX12Device::DestroyTextureView(RHITextureViewHandle handle) {
-    if (m_TextureViews.erase(static_cast<uint64_t>(handle)) == 0) {
+    if (!FindTextureView(handle)) {
         return RHIError::Make(RHIErrorCode::InvalidHandle, "Unknown texture view.", "DestroyTextureView");
     }
-    ++m_Diagnostics.resourcesDestroyed;
+    EnqueueDeferred(DeferredKind::TextureView, static_cast<uint64_t>(handle));
     return RHIResult<void>::Success();
 }
 
@@ -1538,8 +1719,17 @@ RHIResult<void> DX12Device::UpdateTexture(RHITextureHandle handle, const Texture
         return RHIError::Make(RHIErrorCode::InvalidArgument, "Empty texture update data.", "UpdateTexture");
     }
 
+    const uint32_t width = update.extent.width ? update.extent.width : 1u;
+    const uint32_t height = update.extent.height ? update.extent.height : 1u;
+    const uint32_t depth = update.extent.depth ? update.extent.depth : 1u;
+    const uint32_t srcRowBytes = update.rowPitch
+        ? update.rowPitch
+        : width * 4u; // R8G8B8A8 (and similar 4-byte formats) used by current callers
+    const uint32_t alignedRowPitch = (srcRowBytes + 255u) & ~255u;
+    const uint64_t stagingSize = static_cast<uint64_t>(alignedRowPitch) * height * depth;
+
     BufferDesc stagingDesc{};
-    stagingDesc.size = update.data.size();
+    stagingDesc.size = stagingSize;
     stagingDesc.usage = BufferUsage::TransferSrc;
     stagingDesc.memory = MemoryUsage::HostVisible;
     auto staging = CreateBuffer(stagingDesc);
@@ -1547,13 +1737,32 @@ RHIResult<void> DX12Device::UpdateTexture(RHITextureHandle handle, const Texture
         return staging.error;
     }
     if (void* mapped = MapBuffer(*staging)) {
-        std::memcpy(mapped, update.data.data(), update.data.size());
+        auto* dst = static_cast<uint8_t*>(mapped);
+        const auto* src = update.data.data();
+        const uint64_t srcPlaneBytes = static_cast<uint64_t>(srcRowBytes) * height;
+        for (uint32_t z = 0; z < depth; ++z) {
+            for (uint32_t y = 0; y < height; ++y) {
+                const uint64_t srcOffset = z * srcPlaneBytes + static_cast<uint64_t>(y) * srcRowBytes;
+                const uint64_t dstOffset =
+                    (static_cast<uint64_t>(z) * height + y) * alignedRowPitch;
+                if (srcOffset + srcRowBytes > update.data.size()) {
+                    DestroyBuffer(*staging);
+                    return RHIError::Make(
+                        RHIErrorCode::InvalidArgument, "Texture update data too small.", "UpdateTexture");
+                }
+                std::memcpy(dst + dstOffset, src + srcOffset, srcRowBytes);
+                if (alignedRowPitch > srcRowBytes) {
+                    std::memset(dst + dstOffset + srcRowBytes, 0, alignedRowPitch - srcRowBytes);
+                }
+            }
+        }
     }
 
     // One-shot upload using a temporary list on frame slot 0.
     WaitIdle();
     m_Allocators[0]->Reset();
     m_CmdLists[0]->Reset(m_Allocators[0].Get(), nullptr);
+    BindShaderHeaps(m_CmdLists[0].Get());
     DX12CommandList list(this);
     list.Set(m_CmdLists[0].Get());
     list.Begin();
@@ -1561,14 +1770,14 @@ RHIResult<void> DX12Device::UpdateTexture(RHITextureHandle handle, const Texture
     list.TransitionTexture(handle, old, ResourceState::CopyDst);
     BufferImageCopyRegion region{};
     region.bufferOffset = 0;
-    region.bufferRowLength = update.rowPitch;
+    region.bufferRowLength = alignedRowPitch;
     region.image.mipLevel = update.mipLevel;
     region.image.baseLayer = update.arrayLayer;
     region.image.layerCount = 1;
     region.imageOffsetX = update.offsetX;
     region.imageOffsetY = update.offsetY;
     region.imageOffsetZ = update.offsetZ;
-    region.imageExtent = update.extent;
+    region.imageExtent = {width, height, depth};
     list.CopyBufferToTexture(*staging, handle, region);
     list.TransitionTexture(
         handle,
@@ -1605,10 +1814,10 @@ RHIResult<RHISamplerHandle> DX12Device::CreateSampler(const SamplerDesc& desc) {
 }
 
 RHIResult<void> DX12Device::DestroySampler(RHISamplerHandle handle) {
-    if (m_Samplers.erase(static_cast<uint64_t>(handle)) == 0) {
+    if (m_Samplers.find(static_cast<uint64_t>(handle)) == m_Samplers.end()) {
         return RHIError::Make(RHIErrorCode::InvalidHandle, "Unknown sampler.", "DestroySampler");
     }
-    ++m_Diagnostics.resourcesDestroyed;
+    EnqueueDeferred(DeferredKind::Sampler, static_cast<uint64_t>(handle));
     return RHIResult<void>::Success();
 }
 
@@ -1635,10 +1844,10 @@ RHIResult<RHIShaderHandle> DX12Device::CreateShader(const ShaderDesc& desc) {
 }
 
 RHIResult<void> DX12Device::DestroyShader(RHIShaderHandle handle) {
-    if (m_Shaders.erase(static_cast<uint64_t>(handle)) == 0) {
+    if (m_Shaders.find(static_cast<uint64_t>(handle)) == m_Shaders.end()) {
         return RHIError::Make(RHIErrorCode::InvalidHandle, "Unknown shader.", "DestroyShader");
     }
-    ++m_Diagnostics.resourcesDestroyed;
+    EnqueueDeferred(DeferredKind::Shader, static_cast<uint64_t>(handle));
     return RHIResult<void>::Success();
 }
 
@@ -1673,10 +1882,10 @@ RHIResult<RHIDescriptorSetLayoutHandle> DX12Device::CreateDescriptorSetLayout(co
 }
 
 RHIResult<void> DX12Device::DestroyDescriptorSetLayout(RHIDescriptorSetLayoutHandle handle) {
-    if (m_SetLayouts.erase(static_cast<uint64_t>(handle)) == 0) {
+    if (m_SetLayouts.find(static_cast<uint64_t>(handle)) == m_SetLayouts.end()) {
         return RHIError::Make(RHIErrorCode::InvalidHandle, "Unknown descriptor set layout.", "DestroyDescriptorSetLayout");
     }
-    ++m_Diagnostics.resourcesDestroyed;
+    EnqueueDeferred(DeferredKind::DescriptorSetLayout, static_cast<uint64_t>(handle));
     return RHIResult<void>::Success();
 }
 
@@ -1690,17 +1899,10 @@ RHIResult<RHIDescriptorPoolHandle> DX12Device::CreateDescriptorPool(const Descri
 }
 
 RHIResult<void> DX12Device::DestroyDescriptorPool(RHIDescriptorPoolHandle handle) {
-    for (auto it = m_Sets.begin(); it != m_Sets.end();) {
-        if (it->second.pool == handle) {
-            it = m_Sets.erase(it);
-        } else {
-            ++it;
-        }
-    }
-    if (m_Pools.erase(static_cast<uint64_t>(handle)) == 0) {
+    if (m_Pools.find(static_cast<uint64_t>(handle)) == m_Pools.end()) {
         return RHIError::Make(RHIErrorCode::InvalidHandle, "Unknown descriptor pool.", "DestroyDescriptorPool");
     }
-    ++m_Diagnostics.resourcesDestroyed;
+    EnqueueDeferred(DeferredKind::DescriptorPool, static_cast<uint64_t>(handle));
     return RHIResult<void>::Success();
 }
 
@@ -2002,10 +2204,10 @@ RHIResult<RHIPipelineLayoutHandle> DX12Device::CreatePipelineLayout(const Pipeli
 }
 
 RHIResult<void> DX12Device::DestroyPipelineLayout(RHIPipelineLayoutHandle handle) {
-    if (m_Layouts.erase(static_cast<uint64_t>(handle)) == 0) {
+    if (m_Layouts.find(static_cast<uint64_t>(handle)) == m_Layouts.end()) {
         return RHIError::Make(RHIErrorCode::InvalidHandle, "Unknown pipeline layout.", "DestroyPipelineLayout");
     }
-    ++m_Diagnostics.resourcesDestroyed;
+    EnqueueDeferred(DeferredKind::PipelineLayout, static_cast<uint64_t>(handle));
     return RHIResult<void>::Success();
 }
 
@@ -2053,33 +2255,60 @@ RHIResult<RHIGraphicsPipelineHandle> DX12Device::CreateGraphicsPipeline(const Gr
     psoDesc.pRootSignature = layout->rootSignature.Get();
     psoDesc.VS = {vsIt->second.bytecode.data(), vsIt->second.bytecode.size()};
     psoDesc.PS = {fsIt->second.bytecode.data(), fsIt->second.bytecode.size()};
-    psoDesc.BlendState.RenderTarget[0].RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL;
-    if (desc.blend.enable) {
-        auto& rt = psoDesc.BlendState.RenderTarget[0];
-        rt.BlendEnable = TRUE;
-        rt.SrcBlend = ToBlend(desc.blend.srcColor);
-        rt.DestBlend = ToBlend(desc.blend.dstColor);
-        rt.BlendOp = ToBlendOp(desc.blend.colorOp);
-        rt.SrcBlendAlpha = ToBlend(desc.blend.srcAlpha);
-        rt.DestBlendAlpha = ToBlend(desc.blend.dstAlpha);
-        rt.BlendOpAlpha = ToBlendOp(desc.blend.alphaOp);
+
+    const std::vector<Format>& colorFormats = !desc.colorFormats.empty()
+        ? desc.colorFormats
+        : std::vector<Format>{desc.colorFormat};
+    psoDesc.NumRenderTargets = static_cast<UINT>(std::min<size_t>(colorFormats.size(), 8));
+    for (UINT i = 0; i < psoDesc.NumRenderTargets; ++i) {
+        psoDesc.RTVFormats[i] = ToDxgiFormat(colorFormats[i]);
+        const BlendStateDesc& blend = !desc.colorBlends.empty()
+            ? desc.colorBlends[std::min<size_t>(i, desc.colorBlends.size() - 1)]
+            : desc.blend;
+        ApplyBlendTarget(psoDesc.BlendState.RenderTarget[i], blend);
     }
-    psoDesc.SampleMask = UINT_MAX;
-    psoDesc.RasterizerState.FillMode = D3D12_FILL_MODE_SOLID;
+
+    psoDesc.SampleMask = desc.multisample.sampleMask;
+    psoDesc.RasterizerState.FillMode = desc.rasterizer.fillMode == FillMode::Wireframe
+        ? D3D12_FILL_MODE_WIREFRAME
+        : D3D12_FILL_MODE_SOLID;
     psoDesc.RasterizerState.CullMode = desc.cullMode == CullMode::None
         ? D3D12_CULL_MODE_NONE
         : (desc.cullMode == CullMode::Front ? D3D12_CULL_MODE_FRONT : D3D12_CULL_MODE_BACK);
-    psoDesc.RasterizerState.FrontCounterClockwise = FALSE;
-    psoDesc.RasterizerState.DepthClipEnable = TRUE;
+    psoDesc.RasterizerState.FrontCounterClockwise = desc.rasterizer.frontCounterClockwise ? TRUE : FALSE;
+    psoDesc.RasterizerState.DepthClipEnable = desc.rasterizer.depthClamp ? FALSE : TRUE;
+    psoDesc.RasterizerState.DepthBias = desc.rasterizer.depthBiasEnable
+        ? static_cast<INT>(desc.rasterizer.depthBiasConstant)
+        : 0;
+    psoDesc.RasterizerState.SlopeScaledDepthBias = desc.rasterizer.depthBiasEnable
+        ? desc.rasterizer.depthBiasSlope
+        : 0.0f;
+    psoDesc.RasterizerState.DepthBiasClamp = desc.rasterizer.depthBiasEnable
+        ? desc.rasterizer.depthBiasClamp
+        : 0.0f;
+
     psoDesc.DepthStencilState.DepthEnable = desc.depthTest ? TRUE : FALSE;
     psoDesc.DepthStencilState.DepthWriteMask = desc.depthWrite ? D3D12_DEPTH_WRITE_MASK_ALL : D3D12_DEPTH_WRITE_MASK_ZERO;
     psoDesc.DepthStencilState.DepthFunc = ToCompare(desc.depthCompare);
+    psoDesc.DepthStencilState.StencilEnable = desc.depthStencil.stencilTest ? TRUE : FALSE;
+    if (desc.depthStencil.stencilTest) {
+        psoDesc.DepthStencilState.StencilReadMask = static_cast<UINT8>(desc.depthStencil.front.compareMask);
+        psoDesc.DepthStencilState.StencilWriteMask = static_cast<UINT8>(desc.depthStencil.front.writeMask);
+        auto applyFace = [](D3D12_DEPTH_STENCILOP_DESC& face, const StencilOpStateDesc& src) {
+            face.StencilFailOp = ToStencilOp(src.failOp);
+            face.StencilDepthFailOp = ToStencilOp(src.depthFailOp);
+            face.StencilPassOp = ToStencilOp(src.passOp);
+            face.StencilFunc = ToCompare(src.compareOp);
+        };
+        applyFace(psoDesc.DepthStencilState.FrontFace, desc.depthStencil.front);
+        applyFace(psoDesc.DepthStencilState.BackFace, desc.depthStencil.back);
+    }
+
     psoDesc.InputLayout = {elements.data(), static_cast<UINT>(elements.size())};
     psoDesc.PrimitiveTopologyType = ToTopologyType(desc.topology);
-    psoDesc.NumRenderTargets = 1;
-    psoDesc.RTVFormats[0] = ToDxgiFormat(desc.colorFormat);
     psoDesc.DSVFormat = desc.depthAttachment ? ToDxgiFormat(desc.depthFormat) : DXGI_FORMAT_UNKNOWN;
-    psoDesc.SampleDesc.Count = 1;
+    psoDesc.SampleDesc.Count = desc.multisample.sampleCount ? desc.multisample.sampleCount : 1;
+    psoDesc.SampleDesc.Quality = 0;
 
     ComPtr<ID3D12PipelineState> pso;
     const HRESULT hr = m_Device->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&pso));
@@ -2097,10 +2326,10 @@ RHIResult<RHIGraphicsPipelineHandle> DX12Device::CreateGraphicsPipeline(const Gr
 }
 
 RHIResult<void> DX12Device::DestroyGraphicsPipeline(RHIGraphicsPipelineHandle handle) {
-    if (m_GfxPipelines.erase(static_cast<uint64_t>(handle)) == 0) {
+    if (m_GfxPipelines.find(static_cast<uint64_t>(handle)) == m_GfxPipelines.end()) {
         return RHIError::Make(RHIErrorCode::InvalidHandle, "Unknown graphics pipeline.", "DestroyGraphicsPipeline");
     }
-    ++m_Diagnostics.resourcesDestroyed;
+    EnqueueDeferred(DeferredKind::GraphicsPipeline, static_cast<uint64_t>(handle));
     return RHIResult<void>::Success();
 }
 
@@ -2138,10 +2367,10 @@ RHIResult<RHIComputePipelineHandle> DX12Device::CreateComputePipeline(const Comp
 }
 
 RHIResult<void> DX12Device::DestroyComputePipeline(RHIComputePipelineHandle handle) {
-    if (m_ComputePipelines.erase(static_cast<uint64_t>(handle)) == 0) {
+    if (m_ComputePipelines.find(static_cast<uint64_t>(handle)) == m_ComputePipelines.end()) {
         return RHIError::Make(RHIErrorCode::InvalidHandle, "Unknown compute pipeline.", "DestroyComputePipeline");
     }
-    ++m_Diagnostics.resourcesDestroyed;
+    EnqueueDeferred(DeferredKind::ComputePipeline, static_cast<uint64_t>(handle));
     return RHIResult<void>::Success();
 }
 
@@ -2159,10 +2388,10 @@ RHIResult<RHIFenceHandle> DX12Device::CreateFence(const FenceDesc& desc) {
 }
 
 RHIResult<void> DX12Device::DestroyFence(RHIFenceHandle handle) {
-    if (m_Fences.erase(static_cast<uint64_t>(handle)) == 0) {
+    if (m_Fences.find(static_cast<uint64_t>(handle)) == m_Fences.end()) {
         return RHIError::Make(RHIErrorCode::InvalidHandle, "Unknown fence.", "DestroyFence");
     }
-    ++m_Diagnostics.resourcesDestroyed;
+    EnqueueDeferred(DeferredKind::Fence, static_cast<uint64_t>(handle));
     return RHIResult<void>::Success();
 }
 
@@ -2239,10 +2468,10 @@ RHIResult<RHISemaphoreHandle> DX12Device::CreateSemaphore(const SemaphoreDesc& d
 }
 
 RHIResult<void> DX12Device::DestroySemaphore(RHISemaphoreHandle handle) {
-    if (m_Semaphores.erase(static_cast<uint64_t>(handle)) == 0) {
+    if (m_Semaphores.find(static_cast<uint64_t>(handle)) == m_Semaphores.end()) {
         return RHIError::Make(RHIErrorCode::InvalidHandle, "Unknown semaphore.", "DestroySemaphore");
     }
-    ++m_Diagnostics.resourcesDestroyed;
+    EnqueueDeferred(DeferredKind::Semaphore, static_cast<uint64_t>(handle));
     return RHIResult<void>::Success();
 }
 
@@ -2327,10 +2556,267 @@ RHIResult<void> DX12Device::WaitIdle() {
         m_FrameFence->SetEventOnCompletion(value, m_FenceEvent);
         WaitForSingleObject(m_FenceEvent, INFINITE);
     }
+    while (!m_Deferred.empty()) {
+        auto item = m_Deferred.front();
+        m_Deferred.pop_front();
+        DestroyImmediate(item.kind, item.handle);
+    }
     return RHIResult<void>::Success();
 }
 
-void DX12Device::TickDeferredDestruction() {}
+void DX12Device::EnqueueDeferred(DeferredKind kind, uint64_t handle) {
+    m_Deferred.push_back(DeferredDestroyItem{kind, handle, m_FrameNumber + m_FramesInFlight});
+    ++m_Diagnostics.deferredDestroys;
+}
+
+void DX12Device::DestroyImmediate(DeferredKind kind, uint64_t handle) {
+    switch (kind) {
+    case DeferredKind::Buffer: {
+        auto it = m_Buffers.find(handle);
+        if (it == m_Buffers.end()) {
+            break;
+        }
+        if (it->second.mapped && it->second.resource) {
+            it->second.resource->Unmap(0, nullptr);
+            it->second.mapped = nullptr;
+        }
+        m_Buffers.erase(it);
+        ++m_Diagnostics.resourcesDestroyed;
+        break;
+    }
+    case DeferredKind::Texture: {
+        auto it = m_Textures.find(handle);
+        if (it == m_Textures.end() || it->second.isSwapchain) {
+            break;
+        }
+        m_Textures.erase(it);
+        ++m_Diagnostics.resourcesDestroyed;
+        break;
+    }
+    case DeferredKind::TextureView:
+        if (m_TextureViews.erase(handle)) {
+            ++m_Diagnostics.resourcesDestroyed;
+        }
+        break;
+    case DeferredKind::Sampler:
+        if (m_Samplers.erase(handle)) {
+            ++m_Diagnostics.resourcesDestroyed;
+        }
+        break;
+    case DeferredKind::Shader:
+        if (m_Shaders.erase(handle)) {
+            ++m_Diagnostics.resourcesDestroyed;
+        }
+        break;
+    case DeferredKind::DescriptorSetLayout:
+        if (m_SetLayouts.erase(handle)) {
+            ++m_Diagnostics.resourcesDestroyed;
+        }
+        break;
+    case DeferredKind::DescriptorPool: {
+        for (auto it = m_Sets.begin(); it != m_Sets.end();) {
+            if (static_cast<uint64_t>(it->second.pool) == handle) {
+                it = m_Sets.erase(it);
+            } else {
+                ++it;
+            }
+        }
+        if (m_Pools.erase(handle)) {
+            ++m_Diagnostics.resourcesDestroyed;
+        }
+        break;
+    }
+    case DeferredKind::PipelineLayout:
+        if (m_Layouts.erase(handle)) {
+            ++m_Diagnostics.resourcesDestroyed;
+        }
+        break;
+    case DeferredKind::GraphicsPipeline:
+        if (m_GfxPipelines.erase(handle)) {
+            ++m_Diagnostics.resourcesDestroyed;
+        }
+        break;
+    case DeferredKind::ComputePipeline:
+        if (m_ComputePipelines.erase(handle)) {
+            ++m_Diagnostics.resourcesDestroyed;
+        }
+        break;
+    case DeferredKind::Fence:
+        if (m_Fences.erase(handle)) {
+            ++m_Diagnostics.resourcesDestroyed;
+        }
+        break;
+    case DeferredKind::Semaphore:
+        if (m_Semaphores.erase(handle)) {
+            ++m_Diagnostics.resourcesDestroyed;
+        }
+        break;
+    case DeferredKind::CommandPool:
+        if (m_CommandPools.erase(handle)) {
+            ++m_Diagnostics.resourcesDestroyed;
+        }
+        break;
+    case DeferredKind::QueryPool:
+        if (m_QueryPools.erase(handle)) {
+            ++m_Diagnostics.resourcesDestroyed;
+        }
+        break;
+    }
+}
+
+void DX12Device::TickDeferredDestruction() {
+    while (!m_Deferred.empty() && m_Deferred.front().frame <= m_FrameNumber) {
+        auto item = m_Deferred.front();
+        m_Deferred.pop_front();
+        DestroyImmediate(item.kind, item.handle);
+    }
+}
+
+RHIResult<RHICommandPoolHandle> DX12Device::CreateCommandPool(const CommandPoolDesc& desc) {
+    if (!m_Device) {
+        return RHIError::Make(RHIErrorCode::NotInitialized, "Device null.", "CreateCommandPool");
+    }
+    DX12CommandPool pool{};
+    pool.desc = desc;
+    if (FAILED(m_Device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&pool.allocator)))) {
+        return RHIError::Make(RHIErrorCode::BackendFailure, "CreateCommandAllocator failed.", "CreateCommandPool");
+    }
+    const auto handle = static_cast<RHICommandPoolHandle>(AllocHandle());
+    m_CommandPools.emplace(static_cast<uint64_t>(handle), std::move(pool));
+    ++m_Diagnostics.resourcesCreated;
+    return handle;
+}
+
+RHIResult<void> DX12Device::DestroyCommandPool(RHICommandPoolHandle handle) {
+    if (m_CommandPools.find(static_cast<uint64_t>(handle)) == m_CommandPools.end()) {
+        return RHIError::Make(RHIErrorCode::InvalidHandle, "Unknown command pool.", "DestroyCommandPool");
+    }
+    EnqueueDeferred(DeferredKind::CommandPool, static_cast<uint64_t>(handle));
+    return RHIResult<void>::Success();
+}
+
+RHIResult<void> DX12Device::ResetCommandPool(RHICommandPoolHandle handle) {
+    auto it = m_CommandPools.find(static_cast<uint64_t>(handle));
+    if (it == m_CommandPools.end() || !it->second.allocator) {
+        return RHIError::Make(RHIErrorCode::InvalidHandle, "Unknown command pool.", "ResetCommandPool");
+    }
+    if (FAILED(it->second.allocator->Reset())) {
+        return RHIError::Make(RHIErrorCode::BackendFailure, "Command allocator Reset failed.", "ResetCommandPool");
+    }
+    return RHIResult<void>::Success();
+}
+
+RHIResult<IRHICommandList*> DX12Device::AllocateCommandList(RHICommandPoolHandle poolHandle) {
+    auto it = m_CommandPools.find(static_cast<uint64_t>(poolHandle));
+    if (it == m_CommandPools.end() || !it->second.allocator || !m_Device) {
+        return RHIError::Make(RHIErrorCode::InvalidHandle, "Unknown command pool.", "AllocateCommandList");
+    }
+    ComPtr<ID3D12GraphicsCommandList> list;
+    if (FAILED(m_Device->CreateCommandList(
+            0, D3D12_COMMAND_LIST_TYPE_DIRECT, it->second.allocator.Get(), nullptr, IID_PPV_ARGS(&list)))) {
+        return RHIError::Make(RHIErrorCode::BackendFailure, "CreateCommandList failed.", "AllocateCommandList");
+    }
+    list->Close();
+    auto cmd = std::make_unique<DX12CommandList>(this);
+    cmd->Set(list.Get());
+    IRHICommandList* raw = cmd.get();
+    it->second.lists.push_back(std::move(cmd));
+    it->second.nativeLists.push_back(std::move(list));
+    return raw;
+}
+
+RHIResult<RHIQueryPoolHandle> DX12Device::CreateQueryPool(const QueryPoolDesc& desc) {
+    if (!m_Device || desc.count == 0) {
+        return RHIError::Make(RHIErrorCode::InvalidArgument, "Invalid query pool desc.", "CreateQueryPool");
+    }
+    D3D12_QUERY_HEAP_DESC heapDesc{};
+    heapDesc.Count = desc.count;
+    switch (desc.type) {
+    case QueryType::Occlusion:
+        heapDesc.Type = D3D12_QUERY_HEAP_TYPE_OCCLUSION;
+        break;
+    case QueryType::PipelineStatistics:
+        heapDesc.Type = D3D12_QUERY_HEAP_TYPE_PIPELINE_STATISTICS;
+        break;
+    case QueryType::Timestamp:
+    default:
+        heapDesc.Type = D3D12_QUERY_HEAP_TYPE_TIMESTAMP;
+        break;
+    }
+    DX12QueryPool pool{};
+    pool.desc = desc;
+    pool.results.assign(desc.count, 0);
+    if (FAILED(m_Device->CreateQueryHeap(&heapDesc, IID_PPV_ARGS(&pool.heap)))) {
+        return RHIError::Make(RHIErrorCode::BackendFailure, "CreateQueryHeap failed.", "CreateQueryPool");
+    }
+    const auto handle = static_cast<RHIQueryPoolHandle>(AllocHandle());
+    m_QueryPools.emplace(static_cast<uint64_t>(handle), std::move(pool));
+    ++m_Diagnostics.resourcesCreated;
+    return handle;
+}
+
+RHIResult<void> DX12Device::DestroyQueryPool(RHIQueryPoolHandle handle) {
+    if (m_QueryPools.find(static_cast<uint64_t>(handle)) == m_QueryPools.end()) {
+        return RHIError::Make(RHIErrorCode::InvalidHandle, "Unknown query pool.", "DestroyQueryPool");
+    }
+    EnqueueDeferred(DeferredKind::QueryPool, static_cast<uint64_t>(handle));
+    return RHIResult<void>::Success();
+}
+
+RHIResult<void> DX12Device::GetQueryPoolResults(
+    RHIQueryPoolHandle handle,
+    uint32_t firstQuery,
+    uint32_t queryCount,
+    std::span<uint64_t> results,
+    bool)
+{
+    auto* pool = FindQueryPool(handle);
+    if (!pool) {
+        return RHIError::Make(RHIErrorCode::InvalidHandle, "Unknown query pool.", "GetQueryPoolResults");
+    }
+    if (firstQuery + queryCount > pool->desc.count || results.size() < queryCount) {
+        return RHIError::Make(RHIErrorCode::InvalidArgument, "Query range invalid.", "GetQueryPoolResults");
+    }
+    // Full resolve requires a readback buffer + ResolveQueryData on a command list.
+    // Return cached zeros until a frame resolve path is wired.
+    for (uint32_t i = 0; i < queryCount; ++i) {
+        results[i] = pool->results[firstQuery + i];
+    }
+    return RHIResult<void>::Success();
+}
+
+ResourceState DX12Device::GetTextureState(RHITextureHandle handle) const {
+    auto it = m_Textures.find(static_cast<uint64_t>(handle));
+    return it == m_Textures.end() ? ResourceState::Undefined : it->second.state;
+}
+
+ResourceState DX12Device::GetBufferState(RHIBufferHandle handle) const {
+    auto it = m_Buffers.find(static_cast<uint64_t>(handle));
+    return it == m_Buffers.end() ? ResourceState::Undefined : it->second.resourceState;
+}
+
+DX12QueryPool* DX12Device::FindQueryPool(RHIQueryPoolHandle handle) {
+    auto it = m_QueryPools.find(static_cast<uint64_t>(handle));
+    return it == m_QueryPools.end() ? nullptr : &it->second;
+}
+
+void DX12Device::SetResourceName(RHIBufferHandle handle, std::string_view name) {
+    auto* buf = FindBuffer(handle);
+    if (!buf || !buf->resource || name.empty()) {
+        return;
+    }
+    std::wstring wide(name.begin(), name.end());
+    buf->resource->SetName(wide.c_str());
+}
+
+void DX12Device::SetResourceName(RHITextureHandle handle, std::string_view name) {
+    auto* tex = FindTexture(handle);
+    if (!tex || !tex->resource || name.empty()) {
+        return;
+    }
+    std::wstring wide(name.begin(), name.end());
+    tex->resource->SetName(wide.c_str());
+}
 
 std::unique_ptr<IRHIDevice> CreateDX12Device(const DeviceDesc& desc) {
     auto device = std::make_unique<DX12Device>(desc);
@@ -2343,3 +2829,4 @@ std::unique_ptr<IRHIDevice> CreateDX12Device(const DeviceDesc& desc) {
 } // namespace we::rhi::dx12
 
 #endif // _WIN32
+

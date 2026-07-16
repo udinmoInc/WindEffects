@@ -105,7 +105,7 @@ VulkanDevice::VulkanDevice(const DeviceDesc& desc)
         WE_LOG_ERROR(we::LogCategory::Startup, r.error.message);
         return;
     }
-    if (auto r = CreateCommandPool(); !r) {
+    if (auto r = CreateFrameCommandPool(); !r) {
         WE_LOG_ERROR(we::LogCategory::Startup, r.error.message);
         return;
     }
@@ -329,7 +329,14 @@ void VulkanDevice::FillCapabilities() {
     vkGetPhysicalDeviceMemoryProperties(m_PhysicalDevice, &memProps);
 
     m_Caps.dynamicRendering = true;
-    m_Caps.timestamps = true;
+    m_Caps.timestamps = true; // query pools + WriteTimestamp
+    m_Caps.pipelineStatistics = false;
+    m_Caps.timelineSemaphores = false;
+    m_Caps.asyncCompute = false; // graphics queue used for compute today
+    m_Caps.bindlessResources = false;
+    m_Caps.meshShaders = false;
+    m_Caps.rayTracing = false;
+    m_Caps.debugMarkers = m_DebugMessenger != VK_NULL_HANDLE;
     m_Caps.geometryShaders = features.geometryShader == VK_TRUE;
     m_Caps.tessellation = features.tessellationShader == VK_TRUE;
     m_Caps.multiDrawIndirect = features.multiDrawIndirect == VK_TRUE;
@@ -389,13 +396,13 @@ RHIResult<void> VulkanDevice::CreateFrameSync() {
     return RHIResult<void>::Success();
 }
 
-RHIResult<void> VulkanDevice::CreateCommandPool() {
+RHIResult<void> VulkanDevice::CreateFrameCommandPool() {
     VkCommandPoolCreateInfo poolInfo{};
     poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
     poolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
     poolInfo.queueFamilyIndex = m_GraphicsFamily;
     if (vkCreateCommandPool(m_Device, &poolInfo, nullptr, &m_CommandPool) != VK_SUCCESS) {
-        return RHIError::Make(RHIErrorCode::BackendFailure, "Failed to create command pool.", "CreateCommandPool");
+        return RHIError::Make(RHIErrorCode::BackendFailure, "Failed to create command pool.", "CreateFrameCommandPool");
     }
 
     m_CommandBuffers.resize(m_FramesInFlight);
@@ -405,7 +412,7 @@ RHIResult<void> VulkanDevice::CreateCommandPool() {
     allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
     allocInfo.commandBufferCount = m_FramesInFlight;
     if (vkAllocateCommandBuffers(m_Device, &allocInfo, m_CommandBuffers.data()) != VK_SUCCESS) {
-        return RHIError::Make(RHIErrorCode::BackendFailure, "Failed to allocate command buffers.", "CreateCommandPool");
+        return RHIError::Make(RHIErrorCode::BackendFailure, "Failed to allocate command buffers.", "CreateFrameCommandPool");
     }
     return RHIResult<void>::Success();
 }
@@ -1092,36 +1099,76 @@ RHIResult<RHIGraphicsPipelineHandle> VulkanDevice::CreateGraphicsPipeline(const 
 
     VkPipelineRasterizationStateCreateInfo rasterizer{};
     rasterizer.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
-    rasterizer.polygonMode = VK_POLYGON_MODE_FILL;
+    rasterizer.depthClampEnable = desc.rasterizer.depthClamp ? VK_TRUE : VK_FALSE;
+    rasterizer.polygonMode = desc.rasterizer.fillMode == FillMode::Wireframe
+        ? VK_POLYGON_MODE_LINE
+        : VK_POLYGON_MODE_FILL;
     rasterizer.lineWidth = 1.0f;
     rasterizer.cullMode = ToVkCullMode(desc.cullMode);
-    rasterizer.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
+    rasterizer.frontFace = desc.rasterizer.frontCounterClockwise
+        ? VK_FRONT_FACE_COUNTER_CLOCKWISE
+        : VK_FRONT_FACE_CLOCKWISE;
+    rasterizer.depthBiasEnable = desc.rasterizer.depthBiasEnable ? VK_TRUE : VK_FALSE;
+    rasterizer.depthBiasConstantFactor = desc.rasterizer.depthBiasConstant;
+    rasterizer.depthBiasClamp = desc.rasterizer.depthBiasClamp;
+    rasterizer.depthBiasSlopeFactor = desc.rasterizer.depthBiasSlope;
 
     VkPipelineMultisampleStateCreateInfo multisampling{};
     multisampling.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
-    multisampling.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
+    multisampling.rasterizationSamples = ToVkSampleCount(
+        desc.multisample.sampleCount ? desc.multisample.sampleCount : 1u);
+    multisampling.alphaToCoverageEnable = desc.multisample.alphaToCoverage ? VK_TRUE : VK_FALSE;
 
     VkPipelineDepthStencilStateCreateInfo depthStencil{};
     depthStencil.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
     depthStencil.depthTestEnable = desc.depthTest ? VK_TRUE : VK_FALSE;
     depthStencil.depthWriteEnable = desc.depthWrite ? VK_TRUE : VK_FALSE;
     depthStencil.depthCompareOp = ToVkCompareOp(desc.depthCompare);
+    depthStencil.stencilTestEnable = desc.depthStencil.stencilTest ? VK_TRUE : VK_FALSE;
+    if (desc.depthStencil.stencilTest) {
+        auto applyFace = [](VkStencilOpState& face, const StencilOpStateDesc& src) {
+            face.failOp = ToVkStencilOp(src.failOp);
+            face.passOp = ToVkStencilOp(src.passOp);
+            face.depthFailOp = ToVkStencilOp(src.depthFailOp);
+            face.compareOp = ToVkCompareOp(src.compareOp);
+            face.compareMask = src.compareMask;
+            face.writeMask = src.writeMask;
+            face.reference = src.reference;
+        };
+        applyFace(depthStencil.front, desc.depthStencil.front);
+        applyFace(depthStencil.back, desc.depthStencil.back);
+    }
 
-    VkPipelineColorBlendAttachmentState colorBlendAttachment{};
-    colorBlendAttachment.colorWriteMask =
-        VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
-    colorBlendAttachment.blendEnable = desc.blend.enable ? VK_TRUE : VK_FALSE;
-    colorBlendAttachment.srcColorBlendFactor = ToVkBlendFactor(desc.blend.srcColor);
-    colorBlendAttachment.dstColorBlendFactor = ToVkBlendFactor(desc.blend.dstColor);
-    colorBlendAttachment.colorBlendOp = ToVkBlendOp(desc.blend.colorOp);
-    colorBlendAttachment.srcAlphaBlendFactor = ToVkBlendFactor(desc.blend.srcAlpha);
-    colorBlendAttachment.dstAlphaBlendFactor = ToVkBlendFactor(desc.blend.dstAlpha);
-    colorBlendAttachment.alphaBlendOp = ToVkBlendOp(desc.blend.alphaOp);
+    std::vector<VkPipelineColorBlendAttachmentState> colorBlendAttachments;
+    const size_t colorCount = !desc.colorFormats.empty() ? desc.colorFormats.size() : 1u;
+    colorBlendAttachments.resize(colorCount);
+    for (size_t i = 0; i < colorCount; ++i) {
+        const BlendStateDesc& blend = !desc.colorBlends.empty()
+            ? desc.colorBlends[std::min(i, desc.colorBlends.size() - 1)]
+            : desc.blend;
+        auto& att = colorBlendAttachments[i];
+        att.colorWriteMask = 0;
+        if (blend.writeMask & 0x1) att.colorWriteMask |= VK_COLOR_COMPONENT_R_BIT;
+        if (blend.writeMask & 0x2) att.colorWriteMask |= VK_COLOR_COMPONENT_G_BIT;
+        if (blend.writeMask & 0x4) att.colorWriteMask |= VK_COLOR_COMPONENT_B_BIT;
+        if (blend.writeMask & 0x8) att.colorWriteMask |= VK_COLOR_COMPONENT_A_BIT;
+        if (att.colorWriteMask == 0) {
+            att.colorWriteMask =
+                VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
+        }
+        att.blendEnable = blend.enable ? VK_TRUE : VK_FALSE;
+        att.srcColorBlendFactor = ToVkBlendFactor(blend.srcColor);
+        att.dstColorBlendFactor = ToVkBlendFactor(blend.dstColor);
+        att.colorBlendOp = ToVkBlendOp(blend.colorOp);
+        att.srcAlphaBlendFactor = ToVkBlendFactor(blend.srcAlpha);
+        att.dstAlphaBlendFactor = ToVkBlendFactor(blend.dstAlpha);
+        att.alphaBlendOp = ToVkBlendOp(blend.alphaOp);
+    }
 
     VkPipelineColorBlendStateCreateInfo colorBlending{};
     colorBlending.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
-    colorBlending.attachmentCount = 1;
-    colorBlending.pAttachments = &colorBlendAttachment;
+    colorBlending.attachmentCount = static_cast<uint32_t>(colorBlendAttachments.size());
+    colorBlending.pAttachments = colorBlendAttachments.data();
 
     const VkDynamicState dynamicStates[] = {VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR};
     VkPipelineDynamicStateCreateInfo dynamicState{};
@@ -1129,11 +1176,19 @@ RHIResult<RHIGraphicsPipelineHandle> VulkanDevice::CreateGraphicsPipeline(const 
     dynamicState.dynamicStateCount = 2;
     dynamicState.pDynamicStates = dynamicStates;
 
-    const VkFormat colorFormat = ToVkFormat(desc.colorFormat);
+    std::vector<VkFormat> colorVkFormats;
+    if (!desc.colorFormats.empty()) {
+        colorVkFormats.reserve(desc.colorFormats.size());
+        for (Format f : desc.colorFormats) {
+            colorVkFormats.push_back(ToVkFormat(f));
+        }
+    } else {
+        colorVkFormats.push_back(ToVkFormat(desc.colorFormat));
+    }
     VkPipelineRenderingCreateInfo renderingInfo{};
     renderingInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO;
-    renderingInfo.colorAttachmentCount = 1;
-    renderingInfo.pColorAttachmentFormats = &colorFormat;
+    renderingInfo.colorAttachmentCount = static_cast<uint32_t>(colorVkFormats.size());
+    renderingInfo.pColorAttachmentFormats = colorVkFormats.data();
     renderingInfo.depthAttachmentFormat = desc.depthAttachment ? ToVkFormat(desc.depthFormat) : VK_FORMAT_UNDEFINED;
 
     VkGraphicsPipelineCreateInfo pipelineInfo{};
@@ -1656,6 +1711,30 @@ void VulkanDevice::DestroyImmediate(DeferredKind kind, uint64_t handle) {
         ++m_Diagnostics.resourcesDestroyed;
         break;
     }
+    case DeferredKind::CommandPool: {
+        auto it = m_UserCommandPools.find(handle);
+        if (it == m_UserCommandPools.end()) {
+            break;
+        }
+        if (it->second.pool) {
+            vkDestroyCommandPool(m_Device, it->second.pool, nullptr);
+        }
+        m_UserCommandPools.erase(it);
+        ++m_Diagnostics.resourcesDestroyed;
+        break;
+    }
+    case DeferredKind::QueryPool: {
+        auto it = m_QueryPools.find(handle);
+        if (it == m_QueryPools.end()) {
+            break;
+        }
+        if (it->second.pool) {
+            vkDestroyQueryPool(m_Device, it->second.pool, nullptr);
+        }
+        m_QueryPools.erase(it);
+        ++m_Diagnostics.resourcesDestroyed;
+        break;
+    }
     }
 }
 
@@ -1667,6 +1746,151 @@ void VulkanDevice::TickDeferredDestruction() {
     }
 }
 
+RHIResult<RHICommandPoolHandle> VulkanDevice::CreateCommandPool(const CommandPoolDesc& desc) {
+    if (!m_Device) {
+        return RHIError::Make(RHIErrorCode::NotInitialized, "Device null.", "CreateCommandPool");
+    }
+    VulkanCommandPool pool{};
+    pool.desc = desc;
+    VkCommandPoolCreateInfo info{};
+    info.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+    info.queueFamilyIndex = m_GraphicsFamily;
+    if (HasFlag(desc.flags, CommandPoolFlags::Transient)) {
+        info.flags |= VK_COMMAND_POOL_CREATE_TRANSIENT_BIT;
+    }
+    if (HasFlag(desc.flags, CommandPoolFlags::ResetCommandBuffer)) {
+        info.flags |= VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+    }
+    if (vkCreateCommandPool(m_Device, &info, nullptr, &pool.pool) != VK_SUCCESS) {
+        return RHIError::Make(RHIErrorCode::BackendFailure, "vkCreateCommandPool failed.", "CreateCommandPool");
+    }
+    const auto handle = static_cast<RHICommandPoolHandle>(AllocHandle());
+    m_UserCommandPools.emplace(static_cast<uint64_t>(handle), std::move(pool));
+    ++m_Diagnostics.resourcesCreated;
+    return handle;
+}
+
+RHIResult<void> VulkanDevice::DestroyCommandPool(RHICommandPoolHandle handle) {
+    if (m_UserCommandPools.find(static_cast<uint64_t>(handle)) == m_UserCommandPools.end()) {
+        return RHIError::Make(RHIErrorCode::InvalidHandle, "Unknown command pool.", "DestroyCommandPool");
+    }
+    EnqueueDeferred(DeferredKind::CommandPool, static_cast<uint64_t>(handle));
+    return RHIResult<void>::Success();
+}
+
+RHIResult<void> VulkanDevice::ResetCommandPool(RHICommandPoolHandle handle) {
+    auto it = m_UserCommandPools.find(static_cast<uint64_t>(handle));
+    if (it == m_UserCommandPools.end() || !it->second.pool) {
+        return RHIError::Make(RHIErrorCode::InvalidHandle, "Unknown command pool.", "ResetCommandPool");
+    }
+    vkResetCommandPool(m_Device, it->second.pool, 0);
+    return RHIResult<void>::Success();
+}
+
+RHIResult<IRHICommandList*> VulkanDevice::AllocateCommandList(RHICommandPoolHandle poolHandle) {
+    auto it = m_UserCommandPools.find(static_cast<uint64_t>(poolHandle));
+    if (it == m_UserCommandPools.end() || !it->second.pool) {
+        return RHIError::Make(RHIErrorCode::InvalidHandle, "Unknown command pool.", "AllocateCommandList");
+    }
+    VkCommandBufferAllocateInfo alloc{};
+    alloc.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+    alloc.commandPool = it->second.pool;
+    alloc.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+    alloc.commandBufferCount = 1;
+    VkCommandBuffer cmd = VK_NULL_HANDLE;
+    if (vkAllocateCommandBuffers(m_Device, &alloc, &cmd) != VK_SUCCESS) {
+        return RHIError::Make(RHIErrorCode::BackendFailure, "vkAllocateCommandBuffers failed.", "AllocateCommandList");
+    }
+    auto list = std::make_unique<VulkanCommandList>(this);
+    list->SetCommandBuffer(cmd);
+    IRHICommandList* raw = list.get();
+    it->second.lists.push_back(std::move(list));
+    it->second.buffers.push_back(cmd);
+    return raw;
+}
+
+RHIResult<RHIQueryPoolHandle> VulkanDevice::CreateQueryPool(const QueryPoolDesc& desc) {
+    if (!m_Device || desc.count == 0) {
+        return RHIError::Make(RHIErrorCode::InvalidArgument, "Invalid query pool desc.", "CreateQueryPool");
+    }
+    VulkanQueryPool pool{};
+    pool.desc = desc;
+    VkQueryPoolCreateInfo info{};
+    info.sType = VK_STRUCTURE_TYPE_QUERY_POOL_CREATE_INFO;
+    info.queryCount = desc.count;
+    switch (desc.type) {
+    case QueryType::Occlusion:
+        info.queryType = VK_QUERY_TYPE_OCCLUSION;
+        break;
+    case QueryType::PipelineStatistics:
+        info.queryType = VK_QUERY_TYPE_PIPELINE_STATISTICS;
+        break;
+    case QueryType::Timestamp:
+    default:
+        info.queryType = VK_QUERY_TYPE_TIMESTAMP;
+        break;
+    }
+    if (vkCreateQueryPool(m_Device, &info, nullptr, &pool.pool) != VK_SUCCESS) {
+        return RHIError::Make(RHIErrorCode::BackendFailure, "vkCreateQueryPool failed.", "CreateQueryPool");
+    }
+    const auto handle = static_cast<RHIQueryPoolHandle>(AllocHandle());
+    m_QueryPools.emplace(static_cast<uint64_t>(handle), pool);
+    ++m_Diagnostics.resourcesCreated;
+    return handle;
+}
+
+RHIResult<void> VulkanDevice::DestroyQueryPool(RHIQueryPoolHandle handle) {
+    if (m_QueryPools.find(static_cast<uint64_t>(handle)) == m_QueryPools.end()) {
+        return RHIError::Make(RHIErrorCode::InvalidHandle, "Unknown query pool.", "DestroyQueryPool");
+    }
+    EnqueueDeferred(DeferredKind::QueryPool, static_cast<uint64_t>(handle));
+    return RHIResult<void>::Success();
+}
+
+RHIResult<void> VulkanDevice::GetQueryPoolResults(
+    RHIQueryPoolHandle handle,
+    uint32_t firstQuery,
+    uint32_t queryCount,
+    std::span<uint64_t> results,
+    bool wait)
+{
+    auto* pool = FindQueryPool(handle);
+    if (!pool || !pool->pool) {
+        return RHIError::Make(RHIErrorCode::InvalidHandle, "Unknown query pool.", "GetQueryPoolResults");
+    }
+    if (results.size() < queryCount) {
+        return RHIError::Make(RHIErrorCode::InvalidArgument, "Results span too small.", "GetQueryPoolResults");
+    }
+    VkResult r = vkGetQueryPoolResults(
+        m_Device,
+        pool->pool,
+        firstQuery,
+        queryCount,
+        results.size() * sizeof(uint64_t),
+        results.data(),
+        sizeof(uint64_t),
+        VK_QUERY_RESULT_64_BIT | (wait ? VK_QUERY_RESULT_WAIT_BIT : 0));
+    if (r != VK_SUCCESS && r != VK_NOT_READY) {
+        return RHIError::Make(RHIErrorCode::BackendFailure, "vkGetQueryPoolResults failed.", "GetQueryPoolResults");
+    }
+    return RHIResult<void>::Success();
+}
+
+ResourceState VulkanDevice::GetTextureState(RHITextureHandle handle) const {
+    auto it = m_Textures.find(static_cast<uint64_t>(handle));
+    return it == m_Textures.end() ? ResourceState::Undefined : it->second.state;
+}
+
+ResourceState VulkanDevice::GetBufferState(RHIBufferHandle handle) const {
+    auto it = m_Buffers.find(static_cast<uint64_t>(handle));
+    return it == m_Buffers.end() ? ResourceState::Undefined : it->second.state;
+}
+
+VulkanQueryPool* VulkanDevice::FindQueryPool(RHIQueryPoolHandle handle) {
+    auto it = m_QueryPools.find(static_cast<uint64_t>(handle));
+    return it == m_QueryPools.end() ? nullptr : &it->second;
+}
+
 std::unique_ptr<IRHIDevice> CreateVulkanDevice(const DeviceDesc& desc) {
     auto device = std::make_unique<VulkanDevice>(desc);
     if (!device->IsValid()) {
@@ -1676,3 +1900,4 @@ std::unique_ptr<IRHIDevice> CreateVulkanDevice(const DeviceDesc& desc) {
 }
 
 } // namespace we::rhi::vulkan
+

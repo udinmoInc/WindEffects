@@ -69,7 +69,10 @@ public:
     void PushConstants(RHIPipelineLayoutHandle, ShaderStageFlags, uint32_t, std::span<const uint8_t>) override;
     void Draw(uint32_t vertexCount, uint32_t instanceCount = 1, uint32_t firstVertex = 0, uint32_t firstInstance = 0) override;
     void DrawIndexed(uint32_t, uint32_t = 1, uint32_t = 0, int32_t = 0, uint32_t = 0) override;
+    void DrawIndirect(RHIBufferHandle buffer, uint64_t offset, uint32_t drawCount, uint32_t stride) override;
+    void DrawIndexedIndirect(RHIBufferHandle buffer, uint64_t offset, uint32_t drawCount, uint32_t stride) override;
     void Dispatch(uint32_t, uint32_t, uint32_t) override;
+    void DispatchIndirect(RHIBufferHandle buffer, uint64_t offset) override;
     void CopyBuffer(RHIBufferHandle, RHIBufferHandle, uint64_t, uint64_t = 0, uint64_t = 0) override;
     void CopyTexture(RHITextureHandle, RHITextureHandle, const TextureCopyRegion&) override;
     void BlitTexture(RHITextureHandle, RHITextureHandle, const TextureBlitRegion&, Filter = Filter::Linear) override;
@@ -77,6 +80,10 @@ public:
     void CopyTextureToBuffer(RHITextureHandle, RHIBufferHandle, const BufferImageCopyRegion&) override;
     void TransitionTexture(RHITextureHandle, ResourceState, ResourceState) override;
     void ResourceBarrier(std::span<const ResourceBarrierDesc> barriers) override;
+    void WriteTimestamp(RHIQueryPoolHandle pool, uint32_t queryIndex) override;
+    void BeginQuery(RHIQueryPoolHandle pool, uint32_t queryIndex) override;
+    void EndQuery(RHIQueryPoolHandle pool, uint32_t queryIndex) override;
+    void ResetQueryPool(RHIQueryPoolHandle pool, uint32_t firstQuery, uint32_t queryCount) override;
     void PushDebugGroup(std::string_view) override;
     void PopDebugGroup() override;
     void InsertDebugMarker(std::string_view) override;
@@ -117,6 +124,7 @@ struct DX12Buffer {
     BufferDesc desc{};
     ComPtr<ID3D12Resource> resource;
     void* mapped = nullptr;
+    ResourceState resourceState = ResourceState::Undefined;
     D3D12_RESOURCE_STATES state = D3D12_RESOURCE_STATE_COMMON;
 };
 
@@ -207,6 +215,42 @@ struct DX12Semaphore {
     SemaphoreDesc desc{};
 };
 
+enum class DeferredKind : uint8_t {
+    Buffer,
+    Texture,
+    TextureView,
+    Sampler,
+    Shader,
+    DescriptorSetLayout,
+    DescriptorPool,
+    PipelineLayout,
+    GraphicsPipeline,
+    ComputePipeline,
+    Fence,
+    Semaphore,
+    CommandPool,
+    QueryPool
+};
+
+struct DeferredDestroyItem {
+    DeferredKind kind = DeferredKind::Buffer;
+    uint64_t handle = 0;
+    uint64_t frame = 0;
+};
+
+struct DX12CommandPool {
+    CommandPoolDesc desc{};
+    ComPtr<ID3D12CommandAllocator> allocator;
+    std::vector<std::unique_ptr<DX12CommandList>> lists;
+    std::vector<ComPtr<ID3D12GraphicsCommandList>> nativeLists;
+};
+
+struct DX12QueryPool {
+    QueryPoolDesc desc{};
+    ComPtr<ID3D12QueryHeap> heap;
+    std::vector<uint64_t> results;
+};
+
 class DX12Device final : public IRHIDevice {
 public:
     explicit DX12Device(const DeviceDesc& desc);
@@ -261,6 +305,23 @@ public:
     [[nodiscard]] RHIResult<RHISemaphoreHandle> CreateSemaphore(const SemaphoreDesc& desc = {}) override;
     RHIResult<void> DestroySemaphore(RHISemaphoreHandle handle) override;
 
+    [[nodiscard]] RHIResult<RHICommandPoolHandle> CreateCommandPool(const CommandPoolDesc& desc = {}) override;
+    RHIResult<void> DestroyCommandPool(RHICommandPoolHandle handle) override;
+    RHIResult<void> ResetCommandPool(RHICommandPoolHandle handle) override;
+    [[nodiscard]] RHIResult<IRHICommandList*> AllocateCommandList(RHICommandPoolHandle pool) override;
+
+    [[nodiscard]] RHIResult<RHIQueryPoolHandle> CreateQueryPool(const QueryPoolDesc& desc) override;
+    RHIResult<void> DestroyQueryPool(RHIQueryPoolHandle handle) override;
+    RHIResult<void> GetQueryPoolResults(
+        RHIQueryPoolHandle handle,
+        uint32_t firstQuery,
+        uint32_t queryCount,
+        std::span<uint64_t> results,
+        bool wait) override;
+
+    [[nodiscard]] ResourceState GetTextureState(RHITextureHandle handle) const override;
+    [[nodiscard]] ResourceState GetBufferState(RHIBufferHandle handle) const override;
+
     [[nodiscard]] IRHICommandList* BeginFrame() override;
     RHIResult<void> Submit(IRHICommandList* commandList) override;
     RHIResult<void> Present() override;
@@ -269,8 +330,8 @@ public:
     [[nodiscard]] uint64_t GetFrameNumber() const override { return m_FrameNumber; }
     [[nodiscard]] uint32_t GetFramesInFlight() const override { return m_FramesInFlight; }
     [[nodiscard]] uint32_t GetCurrentFrameSlot() const override { return m_FrameSlot; }
-    void SetResourceName(RHIBufferHandle, std::string_view) override {}
-    void SetResourceName(RHITextureHandle, std::string_view) override {}
+    void SetResourceName(RHIBufferHandle, std::string_view) override;
+    void SetResourceName(RHITextureHandle, std::string_view) override;
     void TickDeferredDestruction() override;
 
     [[nodiscard]] ID3D12Device* GetD3DDevice() const { return m_Device.Get(); }
@@ -284,6 +345,7 @@ public:
     [[nodiscard]] DX12PipelineLayout* FindPipelineLayout(RHIPipelineLayoutHandle handle);
     [[nodiscard]] DX12DescriptorSet* FindDescriptorSet(RHIDescriptorSetHandle handle);
     [[nodiscard]] DX12DescriptorSetLayout* FindDescriptorSetLayout(RHIDescriptorSetLayoutHandle handle);
+    [[nodiscard]] DX12QueryPool* FindQueryPool(RHIQueryPoolHandle handle);
     RHITextureHandle RegisterSwapchainTexture(ComPtr<ID3D12Resource> resource, Extent2D extent, Format format);
     void ClearSwapchainTextures(const std::vector<RHITextureHandle>& handles);
     void ResetFrameDescriptors();
@@ -296,11 +358,17 @@ public:
     [[nodiscard]] D3D12_GPU_DESCRIPTOR_HANDLE SrvGpu(uint32_t offset) const;
     [[nodiscard]] D3D12_CPU_DESCRIPTOR_HANDLE SamplerCpu(uint32_t offset) const;
     [[nodiscard]] D3D12_GPU_DESCRIPTOR_HANDLE SamplerGpu(uint32_t offset) const;
+    void EnqueueDeferred(DeferredKind kind, uint64_t handle);
+    [[nodiscard]] ID3D12CommandSignature* GetDrawIndirectSignature() const { return m_DrawIndirectSig.Get(); }
+    [[nodiscard]] ID3D12CommandSignature* GetDrawIndexedIndirectSignature() const { return m_DrawIndexedIndirectSig.Get(); }
+    [[nodiscard]] ID3D12CommandSignature* GetDispatchIndirectSignature() const { return m_DispatchIndirectSig.Get(); }
 
 private:
     [[nodiscard]] uint64_t AllocHandle();
     RHIResult<void> CreateDeviceAndQueue();
     RHIResult<void> CreateShaderVisibleHeaps();
+    RHIResult<void> CreateIndirectSignatures();
+    void DestroyImmediate(DeferredKind kind, uint64_t handle);
 
     DeviceDesc m_Desc{};
     bool m_Valid = false;
@@ -315,6 +383,9 @@ private:
     ComPtr<ID3D12Fence> m_FrameFence;
     HANDLE m_FenceEvent = nullptr;
     uint64_t m_FenceValues[3]{};
+    ComPtr<ID3D12CommandSignature> m_DrawIndirectSig;
+    ComPtr<ID3D12CommandSignature> m_DrawIndexedIndirectSig;
+    ComPtr<ID3D12CommandSignature> m_DispatchIndirectSig;
 
     ComPtr<ID3D12DescriptorHeap> m_RtvHeap;
     ComPtr<ID3D12DescriptorHeap> m_DsvHeap;
@@ -356,6 +427,9 @@ private:
     std::unordered_map<uint64_t, DX12ComputePipeline> m_ComputePipelines;
     std::unordered_map<uint64_t, DX12Fence> m_Fences;
     std::unordered_map<uint64_t, DX12Semaphore> m_Semaphores;
+    std::unordered_map<uint64_t, DX12CommandPool> m_CommandPools;
+    std::unordered_map<uint64_t, DX12QueryPool> m_QueryPools;
+    std::deque<DeferredDestroyItem> m_Deferred;
     std::mutex m_HandleMutex;
 };
 

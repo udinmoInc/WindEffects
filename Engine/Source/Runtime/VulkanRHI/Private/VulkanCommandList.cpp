@@ -323,10 +323,45 @@ void VulkanCommandList::DrawIndexed(
     }
 }
 
+void VulkanCommandList::DrawIndirect(RHIBufferHandle buffer, uint64_t offset, uint32_t drawCount, uint32_t stride) {
+    if (!m_Cmd || !m_Device || drawCount == 0) {
+        return;
+    }
+    VulkanBuffer* buf = m_Device->FindBuffer(buffer);
+    if (!buf || !buf->buffer) {
+        return;
+    }
+    const uint32_t byteStride = stride ? stride : 16u;
+    vkCmdDrawIndirect(m_Cmd, buf->buffer, offset, drawCount, byteStride);
+}
+
+void VulkanCommandList::DrawIndexedIndirect(RHIBufferHandle buffer, uint64_t offset, uint32_t drawCount, uint32_t stride) {
+    if (!m_Cmd || !m_Device || drawCount == 0) {
+        return;
+    }
+    VulkanBuffer* buf = m_Device->FindBuffer(buffer);
+    if (!buf || !buf->buffer) {
+        return;
+    }
+    const uint32_t byteStride = stride ? stride : 20u;
+    vkCmdDrawIndexedIndirect(m_Cmd, buf->buffer, offset, drawCount, byteStride);
+}
+
 void VulkanCommandList::Dispatch(uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ) {
     if (m_Cmd) {
         vkCmdDispatch(m_Cmd, groupCountX, groupCountY, groupCountZ);
     }
+}
+
+void VulkanCommandList::DispatchIndirect(RHIBufferHandle buffer, uint64_t offset) {
+    if (!m_Cmd || !m_Device) {
+        return;
+    }
+    VulkanBuffer* buf = m_Device->FindBuffer(buffer);
+    if (!buf || !buf->buffer) {
+        return;
+    }
+    vkCmdDispatchIndirect(m_Cmd, buf->buffer, offset);
 }
 
 void VulkanCommandList::CopyBuffer(
@@ -550,6 +585,7 @@ void VulkanCommandList::ResourceBarrier(std::span<const ResourceBarrierDesc> bar
             srcStage |= StageForState(b.buffer.before);
             dstStage |= StageForState(b.buffer.after);
             bufferBarriers.push_back(barrier);
+            buf->state = b.buffer.after;
         }
     }
 
@@ -567,6 +603,62 @@ void VulkanCommandList::ResourceBarrier(std::span<const ResourceBarrierDesc> bar
         bufferBarriers.empty() ? nullptr : bufferBarriers.data(),
         static_cast<uint32_t>(imageBarriers.size()),
         imageBarriers.empty() ? nullptr : imageBarriers.data());
+}
+
+void VulkanCommandList::WriteTimestamp(RHIQueryPoolHandle pool, uint32_t queryIndex) {
+    if (!m_Cmd || !m_Device) {
+        return;
+    }
+    auto* q = m_Device->FindQueryPool(pool);
+    if (!q || !q->pool || queryIndex >= q->desc.count) {
+        return;
+    }
+    vkCmdWriteTimestamp(m_Cmd, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, q->pool, queryIndex);
+}
+
+void VulkanCommandList::BeginQuery(RHIQueryPoolHandle pool, uint32_t queryIndex) {
+    if (!m_Cmd || !m_Device) {
+        return;
+    }
+    auto* q = m_Device->FindQueryPool(pool);
+    if (!q || !q->pool || queryIndex >= q->desc.count) {
+        return;
+    }
+    const VkQueryType type = q->desc.type == QueryType::Occlusion
+        ? VK_QUERY_TYPE_OCCLUSION
+        : (q->desc.type == QueryType::PipelineStatistics
+            ? VK_QUERY_TYPE_PIPELINE_STATISTICS
+            : VK_QUERY_TYPE_TIMESTAMP);
+    if (type == VK_QUERY_TYPE_TIMESTAMP) {
+        return;
+    }
+    vkCmdBeginQuery(m_Cmd, q->pool, queryIndex, 0);
+}
+
+void VulkanCommandList::EndQuery(RHIQueryPoolHandle pool, uint32_t queryIndex) {
+    if (!m_Cmd || !m_Device) {
+        return;
+    }
+    auto* q = m_Device->FindQueryPool(pool);
+    if (!q || !q->pool || queryIndex >= q->desc.count) {
+        return;
+    }
+    if (q->desc.type == QueryType::Timestamp) {
+        vkCmdWriteTimestamp(m_Cmd, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, q->pool, queryIndex);
+        return;
+    }
+    vkCmdEndQuery(m_Cmd, q->pool, queryIndex);
+}
+
+void VulkanCommandList::ResetQueryPool(RHIQueryPoolHandle pool, uint32_t firstQuery, uint32_t queryCount) {
+    if (!m_Cmd || !m_Device) {
+        return;
+    }
+    auto* q = m_Device->FindQueryPool(pool);
+    if (!q || !q->pool) {
+        return;
+    }
+    vkCmdResetQueryPool(m_Cmd, q->pool, firstQuery, queryCount);
 }
 
 void VulkanCommandList::PushDebugGroup(std::string_view name) {
@@ -598,3 +690,4 @@ void VulkanCommandList::InsertDebugMarker(std::string_view name) {
 }
 
 } // namespace we::rhi::vulkan
+

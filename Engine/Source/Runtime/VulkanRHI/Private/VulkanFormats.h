@@ -183,6 +183,30 @@ namespace we::rhi::vulkan {
     }
 }
 
+[[nodiscard]] inline VkStencilOp ToVkStencilOp(StencilOp op) noexcept {
+    switch (op) {
+    case StencilOp::Zero: return VK_STENCIL_OP_ZERO;
+    case StencilOp::Replace: return VK_STENCIL_OP_REPLACE;
+    case StencilOp::IncrementAndClamp: return VK_STENCIL_OP_INCREMENT_AND_CLAMP;
+    case StencilOp::DecrementAndClamp: return VK_STENCIL_OP_DECREMENT_AND_CLAMP;
+    case StencilOp::Invert: return VK_STENCIL_OP_INVERT;
+    case StencilOp::IncrementAndWrap: return VK_STENCIL_OP_INCREMENT_AND_WRAP;
+    case StencilOp::DecrementAndWrap: return VK_STENCIL_OP_DECREMENT_AND_WRAP;
+    case StencilOp::Keep:
+    default: return VK_STENCIL_OP_KEEP;
+    }
+}
+
+[[nodiscard]] inline VkSampleCountFlagBits ToVkSampleCount(uint32_t count) noexcept {
+    switch (count) {
+    case 2: return VK_SAMPLE_COUNT_2_BIT;
+    case 4: return VK_SAMPLE_COUNT_4_BIT;
+    case 8: return VK_SAMPLE_COUNT_8_BIT;
+    case 16: return VK_SAMPLE_COUNT_16_BIT;
+    default: return VK_SAMPLE_COUNT_1_BIT;
+    }
+}
+
 [[nodiscard]] inline VkBlendFactor ToVkBlendFactor(BlendFactor f) noexcept {
     switch (f) {
     case BlendFactor::Zero: return VK_BLEND_FACTOR_ZERO;

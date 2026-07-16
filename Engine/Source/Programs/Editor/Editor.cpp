@@ -546,29 +546,12 @@ void Editor::MainLoop() {
                 m_Renderer->UploadEnvironmentUniform(envUBO);
             }
 
-            // 1. Render scene into the viewport offscreen target (sampled by the UI viewport widget).
-            m_Renderer->RenderScene();
-            WindEffects::Editor::UI::EditorPerfStats::Get().Mark("scene");
-
-            // 2. Render editor UI (RHI-only; backend records GPU work internally).
+            // CPU UI build + viewport sync before the graph (GPU overlay records inside UiOverlayPass).
             if (m_OverlayRenderer) {
                 const uint32_t imageIndex = m_Renderer->GetCurrentImageIndex();
-                we::editor::rendering::OverlayRenderContext overlayContext{};
-                overlayContext.cmd = m_Renderer->GetFrameCommandList();
-                if (auto* device = m_Renderer->GetRHIDevice()) {
-                    if (auto* swap = device->GetSwapchain()) {
-                        overlayContext.colorTarget = swap->GetCurrentImage();
-                    }
-                }
-                overlayContext.targetFormat = m_Renderer->GetSwapchainFormat();
-                overlayContext.targetExtent = { m_Renderer->GetSwapchainWidth(), m_Renderer->GetSwapchainHeight() };
-                overlayContext.imageIndex = imageIndex;
-                overlayContext.viewportOffsetX = 0;
-                overlayContext.viewportOffsetY = 0;
-
-                m_Renderer->RecordUiPresentPath(imageIndex);
                 m_OverlayRenderer->SetPipelineAuditImageIndex(imageIndex);
-                m_OverlayRenderer->SetTargetExtent(overlayContext.targetExtent.width, overlayContext.targetExtent.height);
+                m_OverlayRenderer->SetTargetExtent(
+                    m_Renderer->GetSwapchainWidth(), m_Renderer->GetSwapchainHeight());
                 m_OverlayRenderer->RenderEditorUI(m_RootWidget, m_Renderer->GetCurrentFrameIndex());
                 WindEffects::Editor::UI::EditorPerfStats::Get().Mark("ui");
 
@@ -579,15 +562,39 @@ void Editor::MainLoop() {
                     }
                 }
 
-                m_Renderer->InsertOverlayPassBarrier();
-                m_OverlayRenderer->BeginOverlayPass(overlayContext);
-                m_OverlayRenderer->EndOverlayPass(overlayContext);
-                m_Renderer->MarkOverlayPassEnded();
+                m_Renderer->SetOverlayRecorder(
+                    [this](const we::runtime::renderer::GraphPassContext& ctx,
+                        we::rhi::RHITextureHandle swapImage) {
+                        if (!m_OverlayRenderer || !ctx.commandList) {
+                            return;
+                        }
+                        const uint32_t imageIndex = m_Renderer->GetCurrentImageIndex();
+                        we::editor::rendering::OverlayRenderContext overlayContext{};
+                        overlayContext.cmd = ctx.commandList;
+                        overlayContext.colorTarget = swapImage;
+                        overlayContext.targetFormat = m_Renderer->GetSwapchainFormat();
+                        overlayContext.targetExtent = {
+                            m_Renderer->GetSwapchainWidth(), m_Renderer->GetSwapchainHeight()};
+                        overlayContext.imageIndex = imageIndex;
+                        overlayContext.viewportOffsetX = 0;
+                        overlayContext.viewportOffsetY = 0;
+
+                        m_Renderer->RecordUiPresentPath(imageIndex);
+                        m_Renderer->InsertOverlayPassBarrier();
+                        m_OverlayRenderer->BeginOverlayPass(overlayContext);
+                        m_OverlayRenderer->EndOverlayPass(overlayContext);
+                        m_Renderer->MarkOverlayPassEnded();
+                    });
+            } else {
+                m_Renderer->ClearOverlayRecorder();
             }
 
-            // 3. Submit to GPU and Present
+            m_Renderer->RenderScene();
+            WindEffects::Editor::UI::EditorPerfStats::Get().Mark("scene");
+
             m_Renderer->SubmitAndPresent();
             WindEffects::Editor::UI::EditorPerfStats::Get().Mark("present");
+            m_Renderer->ClearOverlayRecorder();
 
             {
                 const auto& stats = m_OverlayRenderer

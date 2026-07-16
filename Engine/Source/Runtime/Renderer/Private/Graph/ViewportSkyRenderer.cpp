@@ -271,6 +271,25 @@ bool ViewportSkyRenderer::EnsurePipeline(
     return true;
 }
 
+void ViewportSkyRenderer::UploadFrameUniforms(
+    const CameraUniform& camera,
+    const SceneEnvironmentUniform& environment)
+{
+    if (!m_Ready || !m_Device) {
+        return;
+    }
+    if (m_CameraBuffer != we::rhi::RHIBufferHandle::Invalid) {
+        (void)m_Device->UpdateBuffer(
+            m_CameraBuffer,
+            std::span(reinterpret_cast<const uint8_t*>(&camera), sizeof(camera)));
+    }
+    if (m_EnvBuffer != we::rhi::RHIBufferHandle::Invalid) {
+        (void)m_Device->UpdateBuffer(
+            m_EnvBuffer,
+            std::span(reinterpret_cast<const uint8_t*>(&environment), sizeof(environment)));
+    }
+}
+
 void ViewportSkyRenderer::Draw(
     we::rhi::IRHICommandList& cmd,
     we::rhi::RHITextureHandle color,
@@ -292,12 +311,7 @@ void ViewportSkyRenderer::Draw(
         return;
     }
 
-    (void)m_Device->UpdateBuffer(
-        m_CameraBuffer,
-        std::span(reinterpret_cast<const uint8_t*>(&camera), sizeof(camera)));
-    (void)m_Device->UpdateBuffer(
-        m_EnvBuffer,
-        std::span(reinterpret_cast<const uint8_t*>(&environment), sizeof(environment)));
+    UploadFrameUniforms(camera, environment);
 
     we::rhi::RenderingInfo info{};
     we::rhi::ColorAttachmentDesc colorAtt{};
