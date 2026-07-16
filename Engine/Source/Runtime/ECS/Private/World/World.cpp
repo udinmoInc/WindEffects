@@ -122,6 +122,18 @@ ChunkView World::GetChunkView(Entity entity) {
     return ChunkView(archetype, archetype->chunks[loc.chunkIndex]);
 }
 
+ChunkView World::GetChunkView(Entity entity) const {
+    if (!Valid(entity)) {
+        return {};
+    }
+    const EntityLocation& loc = m_Entities.Location(entity);
+    ArchetypeLayout* archetype = m_Archetypes.Get(loc.archetypeIndex);
+    if (!archetype || loc.chunkIndex >= archetype->chunks.size()) {
+        return {};
+    }
+    return ChunkView(archetype, archetype->chunks[loc.chunkIndex]);
+}
+
 void World::ApplySlotRelocation(const SlotRelocation& relocation) {
     if (!relocation.valid || !Valid(relocation.entity)) {
         return;
