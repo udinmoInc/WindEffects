@@ -3,7 +3,9 @@
 #pragma warning(push)
 #pragma warning(disable: 4251)
 
+#include "ECS/ComponentMask.h"
 #include "ECS/Export.h"
+#include "ECS/Types.h"
 
 #include <cstdint>
 #include <string>
@@ -46,7 +48,10 @@ struct ComponentTypeInfo {
     ComponentTypeId id = kInvalidComponentType;
     std::string name;
     std::size_t size = 0;
-    std::size_t alignment = 0;
+    std::size_t alignment = 1;
+    ComponentCategory category = ComponentCategory::Data;
+    bool enableable = true;
+    ComponentMask mask{};
 };
 
 template <typename T>
@@ -56,6 +61,16 @@ struct ComponentTypeTrait;
     template <> struct ComponentTypeTrait<Type> { \
         static constexpr ComponentTypeId Id() { return static_cast<ComponentTypeId>(CoreComponentId::EnumId); } \
         static constexpr const char* Name() { return #Type; } \
+        static constexpr ComponentCategory Category() { return ComponentCategory::Data; } \
+        static constexpr bool Enableable() { return true; } \
+    }
+
+#define WE_ECS_DECLARE_TAG_COMPONENT(Type, EnumId) \
+    template <> struct ComponentTypeTrait<Type> { \
+        static constexpr ComponentTypeId Id() { return static_cast<ComponentTypeId>(CoreComponentId::EnumId); } \
+        static constexpr const char* Name() { return #Type; } \
+        static constexpr ComponentCategory Category() { return ComponentCategory::Tag; } \
+        static constexpr bool Enableable() { return false; } \
     }
 
 class ECS_API ComponentTypeRegistry {
@@ -68,32 +83,39 @@ public:
     }
 
     template <typename T>
-    ComponentTypeId Register(const char* /*name*/ = nullptr) {
-        EnsureRegistered<T>();
-        return ComponentTypeTrait<T>::Id();
+    ComponentTypeId Register(const char* nameOverride = nullptr) {
+        return RegisterType(
+            ComponentTypeTrait<T>::Id(),
+            nameOverride ? nameOverride : ComponentTypeTrait<T>::Name(),
+            ComponentTypeTrait<T>::Category() == ComponentCategory::Tag ? 0 : sizeof(T),
+            ComponentTypeTrait<T>::Category() == ComponentCategory::Tag ? 1 : alignof(T),
+            ComponentTypeTrait<T>::Category(),
+            ComponentTypeTrait<T>::Enableable());
     }
 
+    ComponentTypeId RegisterDynamic(
+        const char* name,
+        std::size_t size,
+        std::size_t alignment,
+        ComponentCategory category = ComponentCategory::Data,
+        bool enableable = true);
+
     const ComponentTypeInfo* Find(ComponentTypeId id) const;
-    std::size_t Count() const { return static_cast<std::size_t>(CoreComponentId::Count); }
+    [[nodiscard]] std::size_t Count() const { return m_Types.size(); }
+    [[nodiscard]] const std::vector<ComponentTypeInfo>& All() const { return m_Types; }
 
 private:
     ComponentTypeRegistry();
-
-    template <typename T>
-    void EnsureRegistered() {
-        const ComponentTypeId id = ComponentTypeTrait<T>::Id();
-        if (id >= m_Types.size()) {
-            m_Types.resize(static_cast<std::size_t>(CoreComponentId::Count));
-        }
-        if (m_Types[id].id == kInvalidComponentType) {
-            m_Types[id].id = id;
-            m_Types[id].name = ComponentTypeTrait<T>::Name();
-            m_Types[id].size = sizeof(T);
-            m_Types[id].alignment = alignof(T);
-        }
-    }
+    ComponentTypeId RegisterType(
+        ComponentTypeId id,
+        const char* name,
+        std::size_t size,
+        std::size_t alignment,
+        ComponentCategory category,
+        bool enableable);
 
     std::vector<ComponentTypeInfo> m_Types;
+    ComponentTypeId m_NextDynamicId = static_cast<ComponentTypeId>(CoreComponentId::Count);
 };
 
 } // namespace we::runtime::ecs

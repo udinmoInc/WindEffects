@@ -6,25 +6,16 @@
 #include "ECS/Export.h"
 #include "ECS/Entity.h"
 #include "ECS/ComponentType.h"
-#include "ECS/ComponentPool.h"
 #include "ECS/View.h"
+#include "ECS/World.h"
 
 #include <cstdint>
 #include <functional>
-#include <memory>
 #include <string>
-#include <unordered_map>
-#include <vector>
 
 namespace we::runtime::ecs {
 
-struct EntityMeta {
-    Entity entity{};
-    bool alive = false;
-    std::uint32_t generation = 0;
-};
-
-// Central ECS store. Owns component pools as sparse sets; no behavior here.
+// Backward-compatible facade over the archetype/chunk World.
 class ECS_API Registry {
 public:
     Registry();
@@ -33,71 +24,71 @@ public:
     Registry(const Registry&) = delete;
     Registry& operator=(const Registry&) = delete;
 
+    [[nodiscard]] World& GetWorld() { return m_World; }
+    [[nodiscard]] const World& GetWorld() const { return m_World; }
+
     Entity Create();
     Entity Create(const std::string& name);
     void Destroy(Entity entity);
-    bool Valid(Entity entity) const;
+    [[nodiscard]] bool Valid(Entity entity) const;
     void Clear();
 
-    std::size_t LivingCount() const { return m_Living; }
-    std::size_t Capacity() const { return m_Entities.size(); }
+    [[nodiscard]] std::size_t LivingCount() const { return m_World.Entities().LivingCount(); }
+    [[nodiscard]] std::size_t Capacity() const { return m_World.Entities().Capacity(); }
 
     template <typename T, typename... Args>
     T& Add(Entity entity, Args&&... args) {
-        T& value = Pool<T>().Set().Emplace(entity, std::forward<Args>(args)...);
-        NotifyChanged();
-        return value;
+        return m_World.AddComponent<T>(entity, std::forward<Args>(args)...);
     }
 
     template <typename T>
     T& Replace(Entity entity, T value) {
-        T& stored = Pool<T>().Set().Replace(entity, std::move(value));
-        NotifyChanged();
-        return stored;
+        if (T* existing = m_World.TryGet<T>(entity)) {
+            *existing = std::move(value);
+            m_World.BumpChangeVersion();
+            return *existing;
+        }
+        return m_World.AddComponent<T>(entity, std::move(value));
     }
 
     template <typename T>
     bool Remove(Entity entity) {
-        const bool removed = Pool<T>().Set().Remove(entity);
-        if (removed) {
-            NotifyChanged();
-        }
-        return removed;
+        return m_World.RemoveComponent<T>(entity);
     }
 
     template <typename T>
     T* TryGet(Entity entity) {
-        return Pool<T>().Set().TryGet(entity);
+        return m_World.TryGet<T>(entity);
     }
 
     template <typename T>
     const T* TryGet(Entity entity) const {
-        return const_cast<Registry*>(this)->Pool<T>().Set().TryGet(entity);
+        return m_World.TryGet<T>(entity);
     }
 
     template <typename T>
     T& Get(Entity entity) {
-        return Pool<T>().Set().Get(entity);
+        return m_World.Get<T>(entity);
     }
 
     template <typename T>
     const T& Get(Entity entity) const {
-        return const_cast<Registry*>(this)->Pool<T>().Set().Get(entity);
+        return m_World.Get<T>(entity);
     }
 
     template <typename T>
     bool Has(Entity entity) const {
-        return const_cast<Registry*>(this)->Pool<T>().Set().Contains(entity);
+        return m_World.Has<T>(entity);
     }
 
     template <typename T>
     void SetEnabled(Entity entity, bool enabled) {
-        Pool<T>().Set().SetEnabled(entity, enabled);
+        m_World.SetComponentEnabled<T>(entity, enabled);
     }
 
     template <typename T>
     bool IsEnabled(Entity entity) const {
-        return const_cast<Registry*>(this)->Pool<T>().Set().IsEnabled(entity);
+        return m_World.IsComponentEnabled<T>(entity);
     }
 
     template <typename... Ts>
@@ -105,39 +96,13 @@ public:
         return View<Ts...>(*this);
     }
 
-    template <typename T>
-    ComponentPool<T>& Pool() {
-        const ComponentTypeId id = ComponentTypeRegistry::Get().Id<T>();
-        EnsurePoolCapacity(id);
-        if (!m_Pools[id]) {
-            m_Pools[id] = std::make_unique<ComponentPool<T>>(id);
-        }
-        return *static_cast<ComponentPool<T>*>(m_Pools[id].get());
-    }
+    [[nodiscard]] std::uint64_t Version() const { return m_World.ChangeVersion(); }
+    void NotifyChanged() { m_World.BumpChangeVersion(); }
 
-    template <typename T>
-    const ComponentPool<T>& Pool() const {
-        return const_cast<Registry*>(this)->Pool<T>();
-    }
-
-    IComponentPool* PoolById(ComponentTypeId id);
-    const IComponentPool* PoolById(ComponentTypeId id) const;
-
-    // Structural change generation — query caches invalidate when this bumps.
-    std::uint64_t Version() const { return m_Version; }
-    void NotifyChanged() { ++m_Version; }
-
-    // Iterate living entities (not cache-friendly for components — prefer Views).
     void ForEachLiving(const std::function<void(Entity)>& fn) const;
 
 private:
-    void EnsurePoolCapacity(ComponentTypeId id);
-
-    std::vector<EntityMeta> m_Entities;
-    std::vector<std::uint32_t> m_FreeList;
-    std::vector<std::unique_ptr<IComponentPool>> m_Pools;
-    std::size_t m_Living = 0;
-    std::uint64_t m_Version = 1;
+    World m_World;
 };
 
 } // namespace we::runtime::ecs
