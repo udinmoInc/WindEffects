@@ -165,7 +165,14 @@ const we::runtime::ecs::ExtractedFrameData* Scene::GetExtractedFrame() const {
 
 void Scene::AttachEcsComponents(const Entity& entity, std::uint64_t ecsEntityId) {
     const we::runtime::ecs::Entity ecsEntity{ ecsEntityId };
-    m_Registry->Replace(ecsEntity, NameComponent{ entity.Name });
+    NameComponent nameComp{};
+    const std::size_t maxChars = sizeof(nameComp.value) - 1u;
+    std::size_t i = 0;
+    for (; i < maxChars && i < entity.Name.size(); ++i) {
+        nameComp.value[i] = entity.Name[i];
+    }
+    nameComp.value[i] = '\0';
+    m_Registry->Replace(ecsEntity, nameComp);
 
     TransformComponent transform{};
     transform.localPosition = entity.Position;
@@ -190,7 +197,7 @@ void Scene::AttachEcsComponents(const Entity& entity, std::uint64_t ecsEntityId)
     case EntityType::Cylinder:
     case EntityType::Plane:
     case EntityType::GroundPlane:
-        m_Registry->Replace(ecsEntity, StaticMeshComponent{});
+        m_Registry->Replace(ecsEntity, StaticMeshComponent{ 1, {} });
         break;
     case EntityType::DirectionalLight:
         m_Registry->Replace(ecsEntity, DirectionalLightComponent{});
@@ -368,9 +375,21 @@ void Scene::PushViewEntityToEcs(const Entity& entity) {
     }
 
     if (NameComponent* name = m_Registry->TryGet<NameComponent>(ecs)) {
-        name->value = entity.Name;
+        const std::size_t maxChars = sizeof(name->value) - 1u;
+        std::size_t i = 0;
+        for (; i < maxChars && i < entity.Name.size(); ++i) {
+            name->value[i] = entity.Name[i];
+        }
+        name->value[i] = '\0';
     } else {
-        m_Registry->Add<NameComponent>(ecs, NameComponent{ entity.Name });
+        NameComponent nameComp{};
+        const std::size_t maxChars = sizeof(nameComp.value) - 1u;
+        std::size_t i = 0;
+        for (; i < maxChars && i < entity.Name.size(); ++i) {
+            nameComp.value[i] = entity.Name[i];
+        }
+        nameComp.value[i] = '\0';
+        m_Registry->Add<NameComponent>(ecs, nameComp);
     }
 
     if (TransformComponent* t = m_Registry->TryGet<TransformComponent>(ecs)) {
@@ -392,6 +411,25 @@ void Scene::PushViewEntityToEcs(const Entity& entity) {
 
     if (MaterialComponent* mat = m_Registry->TryGet<MaterialComponent>(ecs)) {
         mat->color = entity.Color;
+    }
+
+    // Keep mesh binding in sync for geometry actors (extract queries StaticMesh).
+    switch (entity.Type) {
+    case EntityType::Cube:
+    case EntityType::Sphere:
+    case EntityType::Cylinder:
+    case EntityType::Plane:
+    case EntityType::GroundPlane:
+        if (!m_Registry->Has<StaticMeshComponent>(ecs)) {
+            m_Registry->Add<StaticMeshComponent>(ecs, StaticMeshComponent{ 1, {} });
+        } else if (StaticMeshComponent* mesh = m_Registry->TryGet<StaticMeshComponent>(ecs)) {
+            if (mesh->meshAssetId == 0) {
+                mesh->meshAssetId = 1;
+            }
+        }
+        break;
+    default:
+        break;
     }
 
     HierarchyComponent* h = m_Registry->TryGet<HierarchyComponent>(ecs);

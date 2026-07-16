@@ -16,10 +16,11 @@ namespace {
 
 glm::mat4 ComposeLocal(const TransformComponent& t) {
     const glm::mat4 T = glm::translate(glm::mat4(1.0f), t.localPosition);
-    const glm::quat q = glm::quat(glm::radians(t.localRotation));
-    const glm::mat4 R = glm::mat4_cast(q);
+    const glm::mat4 Rx = glm::rotate(glm::mat4(1.0f), glm::radians(t.localRotation.x), glm::vec3(1.0f, 0.0f, 0.0f));
+    const glm::mat4 Ry = glm::rotate(glm::mat4(1.0f), glm::radians(t.localRotation.y), glm::vec3(0.0f, 1.0f, 0.0f));
+    const glm::mat4 Rz = glm::rotate(glm::mat4(1.0f), glm::radians(t.localRotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
     const glm::mat4 S = glm::scale(glm::mat4(1.0f), t.localScale);
-    return T * R * S;
+    return T * Ry * Rx * Rz * S;
 }
 
 } // namespace
@@ -216,6 +217,11 @@ void HierarchySystem::SetParent(Registry& registry, Entity child, Entity parent)
     }
     if (TransformComponent* t = registry.TryGet<TransformComponent>(child)) {
         t->dirty = true;
+    }
+    if (parent) {
+        if (TransformComponent* pt = registry.TryGet<TransformComponent>(parent)) {
+            pt->dirty = true;
+        }
     }
     registry.NotifyChanged();
 }

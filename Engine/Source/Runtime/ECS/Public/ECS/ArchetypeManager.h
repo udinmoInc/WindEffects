@@ -9,6 +9,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <memory>
 #include <unordered_map>
 #include <vector>
 
@@ -47,6 +48,8 @@ struct SlotRelocation {
 class ECS_API ArchetypeManager {
 public:
     ArchetypeManager() = default;
+    ArchetypeManager(const ArchetypeManager&) = delete;
+    ArchetypeManager& operator=(const ArchetypeManager&) = delete;
 
     void Init(ChunkAllocator* allocator, ComponentTypeRegistry* registry);
     [[nodiscard]] ArchetypeLayout* FindOrCreate(const ComponentMask& mask, std::uint32_t sharedHash = 0);
@@ -67,7 +70,8 @@ private:
 
     ChunkAllocator* m_Allocator = nullptr;
     ComponentTypeRegistry* m_Registry = nullptr;
-    std::vector<ArchetypeLayout> m_Storage;
+    // Stable element addresses across growth (chunks / queries hold ArchetypeLayout*).
+    std::vector<std::unique_ptr<ArchetypeLayout>> m_Storage;
     std::vector<ArchetypeLayout*> m_Archetypes;
     std::unordered_map<std::uint64_t, std::uint32_t> m_Lookup;
     std::uint64_t m_StructuralVersion = 1;

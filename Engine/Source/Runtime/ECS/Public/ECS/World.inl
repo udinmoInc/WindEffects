@@ -52,7 +52,7 @@ T* World::TryGet(Entity entity) {
     if (!view.Valid() || !view.Archetype()->mask.Test(typeId)) {
         return nullptr;
     }
-    const EntityLocation& loc = m_Entities.Location(entity);
+    const EntityLocation& loc = Entities().Location(entity);
     return &view.Get<T>(loc.slot);
 }
 
@@ -86,11 +86,11 @@ bool World::Has(Entity entity) const {
     if (info && info->category == ComponentCategory::Singleton) {
         return TryGetSingleton<T>() != nullptr;
     }
-    const EntityLocation& loc = m_Entities.Location(entity);
+    const EntityLocation& loc = Entities().Location(entity);
     if (loc.archetypeIndex == kInvalidArchetypeIndex) {
         return false;
     }
-    const ArchetypeLayout* archetype = m_Archetypes.Get(loc.archetypeIndex);
+    const ArchetypeLayout* archetype = Archetypes().Get(loc.archetypeIndex);
     return archetype && archetype->mask.Test(typeId);
 }
 
@@ -104,7 +104,7 @@ void World::SetComponentEnabled(Entity entity, bool enabled) {
     if (!view.Valid()) {
         return;
     }
-    const EntityLocation& loc = m_Entities.Location(entity);
+    const EntityLocation& loc = Entities().Location(entity);
     std::uint8_t* enabledColumn = static_cast<std::uint8_t*>(view.ColumnPtr(typeId));
     if (!enabledColumn) {
         return;
@@ -119,11 +119,11 @@ bool World::IsComponentEnabled(Entity entity) const {
         return false;
     }
     const ComponentTypeId typeId = ComponentTypeRegistry::Get().Id<T>();
-    const EntityLocation& loc = m_Entities.Location(entity);
+    const EntityLocation& loc = Entities().Location(entity);
     if (loc.archetypeIndex == kInvalidArchetypeIndex) {
         return false;
     }
-    const ArchetypeLayout* archetype = m_Archetypes.Get(loc.archetypeIndex);
+    const ArchetypeLayout* archetype = Archetypes().Get(loc.archetypeIndex);
     if (!archetype || !archetype->mask.Test(typeId)) {
         return false;
     }
@@ -135,7 +135,7 @@ bool World::IsComponentEnabled(Entity entity) const {
 template <typename T, typename... Args>
 T& World::SetSingleton(Args&&... args) {
     const ComponentTypeId typeId = ComponentTypeRegistry::Get().Register<T>();
-    auto& storage = m_Singletons[typeId];
+    auto& storage = Singletons()[typeId];
     storage.resize(sizeof(T));
     new (storage.data()) T(std::forward<Args>(args)...);
     BumpChangeVersion();
@@ -145,8 +145,8 @@ T& World::SetSingleton(Args&&... args) {
 template <typename T>
 T* World::TryGetSingleton() {
     const ComponentTypeId typeId = ComponentTypeRegistry::Get().Id<T>();
-    auto it = m_Singletons.find(typeId);
-    if (it == m_Singletons.end() || it->second.size() < sizeof(T)) {
+    auto it = Singletons().find(typeId);
+    if (it == Singletons().end() || it->second.size() < sizeof(T)) {
         return nullptr;
     }
     return reinterpret_cast<T*>(it->second.data());

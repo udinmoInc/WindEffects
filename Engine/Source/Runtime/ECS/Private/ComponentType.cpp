@@ -54,6 +54,18 @@ void ComponentTypeRegistry::EnsureCoreTypesRegistered() {
     RegisterComponentOps(Id<AudioSourceComponent>(), MakeOpsFor<AudioSourceComponent>());
     RegisterComponentOps(Id<ScriptComponent>(), MakeOpsFor<ScriptComponent>());
     RegisterComponentOps(Id<AnimationComponent>(), MakeOpsFor<AnimationComponent>());
+    RegisterComponentOps(Id<CameraComponent>(), MakeOpsFor<CameraComponent>());
+    RegisterComponentOps(Id<DirectionalLightComponent>(), MakeOpsFor<DirectionalLightComponent>());
+    RegisterComponentOps(Id<PointLightComponent>(), MakeOpsFor<PointLightComponent>());
+    RegisterComponentOps(Id<SpotLightComponent>(), MakeOpsFor<SpotLightComponent>());
+    RegisterComponentOps(Id<SkyAtmosphereComponent>(), MakeOpsFor<SkyAtmosphereComponent>());
+    RegisterComponentOps(Id<VolumetricCloudComponent>(), MakeOpsFor<VolumetricCloudComponent>());
+    RegisterComponentOps(Id<TerrainComponent>(), MakeOpsFor<TerrainComponent>());
+    RegisterComponentOps(Id<WaterComponent>(), MakeOpsFor<WaterComponent>());
+    RegisterComponentOps(Id<ColliderComponent>(), MakeOpsFor<ColliderComponent>());
+    RegisterComponentOps(Id<RigidBodyComponent>(), MakeOpsFor<RigidBodyComponent>());
+    RegisterComponentOps(Id<LODComponent>(), MakeOpsFor<LODComponent>());
+    RegisterComponentOps(Id<LegacyActorComponent>(), MakeOpsFor<LegacyActorComponent>());
 }
 
 ComponentTypeId ComponentTypeRegistry::RegisterType(

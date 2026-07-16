@@ -67,7 +67,7 @@ private:
     ComponentMask m_Required{};
     ComponentMask m_Excluded{};
     bool m_EnabledEntitiesOnly = true;
-    bool m_EnabledComponentsOnly = true;
+    bool m_EnabledComponentsOnly = false;
 };
 
 } // namespace we::runtime::ecs

@@ -7,8 +7,10 @@ namespace we::runtime::ecs {
 template <typename... Ts>
 template <typename Fn>
 void View<Ts...>::EachImpl(Fn&& fn, bool enabledOnly) {
-    ArchetypeQuery<Ts...> query(m_Registry->GetWorld());
-    query.EnabledEntitiesOnly(enabledOnly).EnabledComponentsOnly(enabledOnly).Each(std::forward<Fn>(fn));
+    ArchetypeQuery<Ts...> query = m_Registry->GetWorld().template QueryAll<Ts...>();
+    // Entity enable gate only — component enable bits are not reliably preserved
+    // across archetype migrations (AllocateSlot defaults them; copies skip enable columns).
+    query.EnabledEntitiesOnly(enabledOnly).EnabledComponentsOnly(false).Each(std::forward<Fn>(fn));
 }
 
 template <typename... Ts>
