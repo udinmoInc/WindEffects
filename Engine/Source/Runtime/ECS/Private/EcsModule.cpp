@@ -1,7 +1,10 @@
 #include "Modules/IModuleInterface.h"
 #include "Core/Logger.h"
+#include "ECS/ComponentOps.h"
 #include "ECS/ComponentType.h"
 #include "ECS/Components/CoreComponents.h"
+
+#include <cstring>
 
 class EcsModule : public we::core::IModuleInterface
 {
@@ -33,7 +36,18 @@ public:
         types.Register<AnimationComponent>("Animation");
         types.Register<LODComponent>("LOD");
         types.Register<LegacyActorComponent>("LegacyActor");
-        WE_LOG_TRACE("Plugin", "EcsModule started");
+
+        auto registerOps = [](auto*) {};
+        (void)registerOps;
+        RegisterComponentOps(types.Id<TransformComponent>(), MakeOpsFor<TransformComponent>());
+        RegisterComponentOps(types.Id<HierarchyComponent>(), MakeOpsFor<HierarchyComponent>());
+        RegisterComponentOps(types.Id<VisibilityComponent>(), MakeOpsFor<VisibilityComponent>());
+        RegisterComponentOps(types.Id<NameComponent>(), MakeOpsFor<NameComponent>());
+        RegisterComponentOps(types.Id<TagComponent>(), MakeOpsFor<TagComponent>());
+        RegisterComponentOps(types.Id<StaticMeshComponent>(), MakeOpsFor<StaticMeshComponent>());
+        RegisterComponentOps(types.Id<MaterialComponent>(), MakeOpsFor<MaterialComponent>());
+        RegisterComponentOps(types.Id<UuidComponent>(), MakeOpsFor<UuidComponent>());
+        WE_LOG_TRACE("Plugin", "EcsModule started (archetype ECS)");
     }
 
     virtual void ShutdownModule() override

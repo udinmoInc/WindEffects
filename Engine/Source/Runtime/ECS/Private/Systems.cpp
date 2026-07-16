@@ -1,5 +1,6 @@
 #include "ECS/System.h"
 #include "ECS/Components/CoreComponents.h"
+#include "ECS/World.h"
 
 #include <algorithm>
 #include <cmath>
@@ -44,10 +45,40 @@ void SystemScheduler::OnDestroy(Registry& registry) {
 }
 
 void SystemScheduler::Update(Registry& registry, float deltaSeconds) {
-    // Sequential execution; AreCompatible() enables future parallel batches.
-    for (auto& system : m_Systems) {
-        system->Update(registry, deltaSeconds);
+    UpdateParallel(registry, deltaSeconds);
+}
+
+void SystemScheduler::UpdateParallel(Registry& registry, float deltaSeconds) {
+    World& world = registry.GetWorld();
+    std::vector<std::size_t> batch;
+    batch.reserve(m_Systems.size());
+
+    for (std::size_t i = 0; i < m_Systems.size(); ++i) {
+        if (batch.empty()) {
+            batch.push_back(i);
+            continue;
+        }
+        bool compatible = true;
+        for (std::size_t j : batch) {
+            if (!AreCompatible(*m_Systems[j], *m_Systems[i])) {
+                compatible = false;
+                break;
+            }
+        }
+        if (!compatible) {
+            for (std::size_t j : batch) {
+                m_Systems[j]->Update(registry, deltaSeconds);
+            }
+            batch.clear();
+        }
+        batch.push_back(i);
     }
+    for (std::size_t j : batch) {
+        m_Systems[j]->Update(registry, deltaSeconds);
+    }
+
+    world.FlushCommands();
+    (void)world.Jobs().WorkerCount();
 }
 
 bool SystemScheduler::AreCompatible(const ISystem& a, const ISystem& b) {

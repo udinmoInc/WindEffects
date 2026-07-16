@@ -6,16 +6,13 @@
 #include "ECS/Export.h"
 #include "ECS/Registry.h"
 
+#include "ECS/Types.h"
+
 #include <memory>
 #include <string>
 #include <vector>
 
 namespace we::runtime::ecs {
-
-enum class AccessMode : std::uint8_t {
-    Read,
-    Write
-};
 
 struct ComponentAccess {
     ComponentTypeId type = kInvalidComponentType;
@@ -50,8 +47,11 @@ public:
     void OnCreate(Registry& registry);
     void OnDestroy(Registry& registry);
 
-    // Sequential today; dependency graph prepared for parallel job dispatch.
+    // Sequential fallback.
     void Update(Registry& registry, float deltaSeconds);
+
+    // Dependency-aware parallel execution over independent systems/chunks.
+    void UpdateParallel(Registry& registry, float deltaSeconds);
 
     // Returns true if two systems have no Write conflicts (safe for parallel).
     static bool AreCompatible(const ISystem& a, const ISystem& b);
