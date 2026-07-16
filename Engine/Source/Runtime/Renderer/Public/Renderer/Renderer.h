@@ -6,13 +6,16 @@
 #include "Lighting/SceneEnvironmentUniform.h"
 #include "Renderer/Export.h"
 #include "Renderer/Graph/RenderGraph.h"
+#include "Renderer/Graph/ScenePasses.h"
 #include "Renderer/ViewportInterfaces.h"
 #include "Platform/Types.h"
 #include "RHI/IRHI.h"
 #include "RHI/Types.h"
 
 #include <cstdint>
+#include <functional>
 #include <memory>
+#include <string>
 
 namespace we::runtime::renderer {
 
@@ -40,8 +43,13 @@ public:
     void UploadEnvironmentUniform(const SceneEnvironmentUniform& uniform);
     void InsertOverlayPassBarrier();
 
+    void SetOverlayRecorder(OverlayRecordFn recorder);
+    void ClearOverlayRecorder();
+
     void RecordUiPresentPath(uint32_t imageIndex);
     void MarkOverlayPassEnded();
+
+    [[nodiscard]] std::string DumpRenderGraph() const;
 
     void SetViewportRenderTargetSize(uint32_t width, uint32_t height) override;
     void SetViewportBlitRect(uint32_t x, uint32_t y, uint32_t width, uint32_t height) override;
@@ -103,6 +111,7 @@ private:
 
     CameraUniform m_LastCamera{};
     SceneEnvironmentUniform m_LastEnvironment{};
+    OverlayRecordFn m_OverlayRecorder;
 
     uint64_t m_PresentAuditFrameNumber = 0;
     uint32_t m_AcquiredImageIndex = UINT32_MAX;

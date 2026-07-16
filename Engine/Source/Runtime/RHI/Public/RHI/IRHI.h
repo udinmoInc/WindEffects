@@ -52,7 +52,10 @@ public:
 
     virtual void Draw(uint32_t vertexCount, uint32_t instanceCount = 1, uint32_t firstVertex = 0, uint32_t firstInstance = 0) = 0;
     virtual void DrawIndexed(uint32_t indexCount, uint32_t instanceCount = 1, uint32_t firstIndex = 0, int32_t vertexOffset = 0, uint32_t firstInstance = 0) = 0;
+    virtual void DrawIndirect(RHIBufferHandle buffer, uint64_t offset, uint32_t drawCount, uint32_t stride) = 0;
+    virtual void DrawIndexedIndirect(RHIBufferHandle buffer, uint64_t offset, uint32_t drawCount, uint32_t stride) = 0;
     virtual void Dispatch(uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ) = 0;
+    virtual void DispatchIndirect(RHIBufferHandle buffer, uint64_t offset) = 0;
 
     virtual void CopyBuffer(RHIBufferHandle src, RHIBufferHandle dst, uint64_t size, uint64_t srcOffset = 0, uint64_t dstOffset = 0) = 0;
     virtual void CopyTexture(RHITextureHandle src, RHITextureHandle dst, const TextureCopyRegion& region) = 0;
@@ -62,6 +65,11 @@ public:
 
     virtual void TransitionTexture(RHITextureHandle texture, ResourceState before, ResourceState after) = 0;
     virtual void ResourceBarrier(std::span<const ResourceBarrierDesc> barriers) = 0;
+
+    virtual void WriteTimestamp(RHIQueryPoolHandle pool, uint32_t queryIndex) = 0;
+    virtual void BeginQuery(RHIQueryPoolHandle pool, uint32_t queryIndex) = 0;
+    virtual void EndQuery(RHIQueryPoolHandle pool, uint32_t queryIndex) = 0;
+    virtual void ResetQueryPool(RHIQueryPoolHandle pool, uint32_t firstQuery, uint32_t queryCount) = 0;
 
     virtual void PushDebugGroup(std::string_view name) = 0;
     virtual void PopDebugGroup() = 0;
@@ -150,6 +158,23 @@ public:
 
     [[nodiscard]] virtual RHIResult<RHISemaphoreHandle> CreateSemaphore(const SemaphoreDesc& desc = {}) = 0;
     virtual RHIResult<void> DestroySemaphore(RHISemaphoreHandle handle) = 0;
+
+    [[nodiscard]] virtual RHIResult<RHICommandPoolHandle> CreateCommandPool(const CommandPoolDesc& desc = {}) = 0;
+    virtual RHIResult<void> DestroyCommandPool(RHICommandPoolHandle handle) = 0;
+    virtual RHIResult<void> ResetCommandPool(RHICommandPoolHandle handle) = 0;
+    [[nodiscard]] virtual RHIResult<IRHICommandList*> AllocateCommandList(RHICommandPoolHandle pool) = 0;
+
+    [[nodiscard]] virtual RHIResult<RHIQueryPoolHandle> CreateQueryPool(const QueryPoolDesc& desc) = 0;
+    virtual RHIResult<void> DestroyQueryPool(RHIQueryPoolHandle handle) = 0;
+    virtual RHIResult<void> GetQueryPoolResults(
+        RHIQueryPoolHandle handle,
+        uint32_t firstQuery,
+        uint32_t queryCount,
+        std::span<uint64_t> results,
+        bool wait) = 0;
+
+    [[nodiscard]] virtual ResourceState GetTextureState(RHITextureHandle handle) const = 0;
+    [[nodiscard]] virtual ResourceState GetBufferState(RHIBufferHandle handle) const = 0;
 
     [[nodiscard]] virtual IRHICommandList* BeginFrame() = 0;
     virtual RHIResult<void> Submit(IRHICommandList* commandList) = 0;

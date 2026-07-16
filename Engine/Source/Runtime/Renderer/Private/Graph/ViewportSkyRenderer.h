@@ -30,7 +30,11 @@ public:
         const CameraUniform& camera,
         const SceneEnvironmentUniform& environment);
 
+    void UploadFrameUniforms(const CameraUniform& camera, const SceneEnvironmentUniform& environment);
+
     [[nodiscard]] bool IsReady() const { return m_Ready; }
+    [[nodiscard]] we::rhi::RHIBufferHandle GetEnvironmentBuffer() const { return m_EnvBuffer; }
+    [[nodiscard]] we::rhi::RHIBufferHandle GetCameraBuffer() const { return m_CameraBuffer; }
 
 private:
     bool EnsurePipeline(we::rhi::Format colorFormat, we::rhi::Format depthFormat, bool hasDepth);

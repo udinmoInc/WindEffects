@@ -153,6 +153,41 @@ enum class CullMode : uint8_t {
     Back
 };
 
+enum class FillMode : uint8_t {
+    Solid = 0,
+    Wireframe
+};
+
+enum class StencilOp : uint8_t {
+    Keep = 0,
+    Zero,
+    Replace,
+    IncrementAndClamp,
+    DecrementAndClamp,
+    Invert,
+    IncrementAndWrap,
+    DecrementAndWrap
+};
+
+enum class QueryType : uint8_t {
+    Timestamp = 0,
+    Occlusion,
+    PipelineStatistics
+};
+
+enum class CommandPoolFlags : uint32_t {
+    None = 0,
+    Transient = 1u << 0,
+    ResetCommandBuffer = 1u << 1
+};
+
+[[nodiscard]] constexpr CommandPoolFlags operator|(CommandPoolFlags a, CommandPoolFlags b) noexcept {
+    return static_cast<CommandPoolFlags>(static_cast<uint32_t>(a) | static_cast<uint32_t>(b));
+}
+[[nodiscard]] constexpr bool HasFlag(CommandPoolFlags mask, CommandPoolFlags bit) noexcept {
+    return (static_cast<uint32_t>(mask) & static_cast<uint32_t>(bit)) != 0;
+}
+
 enum class CompareOp : uint8_t {
     Never = 0,
     Less,

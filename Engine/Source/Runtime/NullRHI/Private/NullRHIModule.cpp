@@ -1,4 +1,4 @@
-#include "Modules/IModuleInterface.h"
+﻿#include "Modules/IModuleInterface.h"
 #include "RHI/RHIFactory.h"
 #include "RHI/IRHI.h"
 #include "RHI/Result.h"
@@ -39,7 +39,10 @@ public:
     void PushConstants(RHIPipelineLayoutHandle, ShaderStageFlags, uint32_t, std::span<const uint8_t>) override {}
     void Draw(uint32_t, uint32_t, uint32_t, uint32_t) override {}
     void DrawIndexed(uint32_t, uint32_t, uint32_t, int32_t, uint32_t) override {}
+    void DrawIndirect(RHIBufferHandle, uint64_t, uint32_t, uint32_t) override {}
+    void DrawIndexedIndirect(RHIBufferHandle, uint64_t, uint32_t, uint32_t) override {}
     void Dispatch(uint32_t, uint32_t, uint32_t) override {}
+    void DispatchIndirect(RHIBufferHandle, uint64_t) override {}
     void CopyBuffer(RHIBufferHandle, RHIBufferHandle, uint64_t, uint64_t, uint64_t) override {}
     void CopyTexture(RHITextureHandle, RHITextureHandle, const TextureCopyRegion&) override {}
     void BlitTexture(RHITextureHandle, RHITextureHandle, const TextureBlitRegion&, Filter) override {}
@@ -47,6 +50,10 @@ public:
     void CopyTextureToBuffer(RHITextureHandle, RHIBufferHandle, const BufferImageCopyRegion&) override {}
     void TransitionTexture(RHITextureHandle, ResourceState, ResourceState) override {}
     void ResourceBarrier(std::span<const ResourceBarrierDesc>) override {}
+    void WriteTimestamp(RHIQueryPoolHandle, uint32_t) override {}
+    void BeginQuery(RHIQueryPoolHandle, uint32_t) override {}
+    void EndQuery(RHIQueryPoolHandle, uint32_t) override {}
+    void ResetQueryPool(RHIQueryPoolHandle, uint32_t, uint32_t) override {}
     void PushDebugGroup(std::string_view) override {}
     void PopDebugGroup() override {}
     void InsertDebugMarker(std::string_view) override {}
@@ -111,12 +118,23 @@ private:
 struct NullBuffer {
     BufferDesc desc{};
     std::vector<uint8_t> storage;
+    ResourceState state = ResourceState::Undefined;
 };
 
 struct NullTexture {
     TextureDesc desc{};
     std::vector<uint8_t> pixels;
     ResourceState state = ResourceState::Undefined;
+};
+
+struct NullCommandPool {
+    CommandPoolDesc desc{};
+    std::vector<std::unique_ptr<NullCommandList>> lists;
+};
+
+struct NullQueryPool {
+    QueryPoolDesc desc{};
+    std::vector<uint64_t> results;
 };
 
 struct NullFence {
@@ -351,6 +369,81 @@ public:
 
     RHIResult<void> DestroySemaphore(RHISemaphoreHandle) override { return RHIResult<void>::Success(); }
 
+    [[nodiscard]] RHIResult<RHICommandPoolHandle> CreateCommandPool(const CommandPoolDesc& desc = {}) override {
+        const auto handle = static_cast<RHICommandPoolHandle>(AllocHandle());
+        NullCommandPool pool{};
+        pool.desc = desc;
+        m_CommandPools.emplace(static_cast<uint64_t>(handle), std::move(pool));
+        return handle;
+    }
+
+    RHIResult<void> DestroyCommandPool(RHICommandPoolHandle handle) override {
+        m_CommandPools.erase(static_cast<uint64_t>(handle));
+        return RHIResult<void>::Success();
+    }
+
+    RHIResult<void> ResetCommandPool(RHICommandPoolHandle handle) override {
+        if (m_CommandPools.find(static_cast<uint64_t>(handle)) == m_CommandPools.end()) {
+            return RHIError::Make(RHIErrorCode::InvalidHandle, "Unknown command pool.", "ResetCommandPool");
+        }
+        return RHIResult<void>::Success();
+    }
+
+    [[nodiscard]] RHIResult<IRHICommandList*> AllocateCommandList(RHICommandPoolHandle pool) override {
+        auto it = m_CommandPools.find(static_cast<uint64_t>(pool));
+        if (it == m_CommandPools.end()) {
+            return RHIError::Make(RHIErrorCode::InvalidHandle, "Unknown command pool.", "AllocateCommandList");
+        }
+        auto cmd = std::make_unique<NullCommandList>();
+        IRHICommandList* raw = cmd.get();
+        it->second.lists.push_back(std::move(cmd));
+        return raw;
+    }
+
+    [[nodiscard]] RHIResult<RHIQueryPoolHandle> CreateQueryPool(const QueryPoolDesc& desc) override {
+        const auto handle = static_cast<RHIQueryPoolHandle>(AllocHandle());
+        NullQueryPool pool{};
+        pool.desc = desc;
+        pool.results.assign(desc.count, 0);
+        m_QueryPools.emplace(static_cast<uint64_t>(handle), std::move(pool));
+        return handle;
+    }
+
+    RHIResult<void> DestroyQueryPool(RHIQueryPoolHandle handle) override {
+        m_QueryPools.erase(static_cast<uint64_t>(handle));
+        return RHIResult<void>::Success();
+    }
+
+    RHIResult<void> GetQueryPoolResults(
+        RHIQueryPoolHandle handle,
+        uint32_t firstQuery,
+        uint32_t queryCount,
+        std::span<uint64_t> results,
+        bool) override
+    {
+        auto it = m_QueryPools.find(static_cast<uint64_t>(handle));
+        if (it == m_QueryPools.end()) {
+            return RHIError::Make(RHIErrorCode::InvalidHandle, "Unknown query pool.", "GetQueryPoolResults");
+        }
+        if (firstQuery + queryCount > it->second.desc.count || results.size() < queryCount) {
+            return RHIError::Make(RHIErrorCode::InvalidArgument, "Query range invalid.", "GetQueryPoolResults");
+        }
+        for (uint32_t i = 0; i < queryCount; ++i) {
+            results[i] = it->second.results[firstQuery + i];
+        }
+        return RHIResult<void>::Success();
+    }
+
+    [[nodiscard]] ResourceState GetTextureState(RHITextureHandle handle) const override {
+        auto it = m_Textures.find(static_cast<uint64_t>(handle));
+        return it == m_Textures.end() ? ResourceState::Undefined : it->second.state;
+    }
+
+    [[nodiscard]] ResourceState GetBufferState(RHIBufferHandle handle) const override {
+        auto it = m_Buffers.find(static_cast<uint64_t>(handle));
+        return it == m_Buffers.end() ? ResourceState::Undefined : it->second.state;
+    }
+
     [[nodiscard]] IRHICommandList* BeginFrame() override {
         if (m_Swapchain) {
             (void)m_Swapchain->AcquireNextImage();
@@ -401,6 +494,8 @@ private:
     std::unordered_map<uint64_t, NullTexture> m_Textures;
     std::unordered_set<uint64_t> m_Pools;
     std::unordered_map<uint64_t, NullFence> m_Fences;
+    std::unordered_map<uint64_t, NullCommandPool> m_CommandPools;
+    std::unordered_map<uint64_t, NullQueryPool> m_QueryPools;
     uint32_t m_FramesInFlight = 2;
     uint32_t m_FrameSlot = 0;
     uint64_t m_FrameNumber = 0;
@@ -478,3 +573,4 @@ public:
 } // namespace we::rhi
 
 IMPLEMENT_MODULE(we::rhi::NullRHIModule, WindEffects_NullRHI)
+

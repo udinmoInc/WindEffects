@@ -1,4 +1,4 @@
-﻿#include "DX12Device.h"
+#include "DX12Device.h"
 
 #include "Modules/IModuleInterface.h"
 #include "RHI/RHIFactory.h"
@@ -19,15 +19,19 @@ public:
     bool Initialize(const RHIInitDesc& desc = {}) override {
         m_Desc = desc;
         m_Caps.dynamicRendering = true;
-        m_Caps.debugMarkers = true;
-        m_Caps.timelineSemaphores = true;
-        m_Caps.asyncCompute = true;
+        m_Caps.debugMarkers = false;
+        m_Caps.timelineSemaphores = false;
+        m_Caps.asyncCompute = false;
+        m_Caps.bindlessResources = false;
+        m_Caps.timestamps = true;
+        m_Caps.pipelineStatistics = false;
         m_Caps.textureCompressionBC = true;
         m_Caps.multiDrawIndirect = true;
         m_Caps.geometryShaders = true;
         m_Caps.tessellation = true;
         m_Caps.samplerAnisotropy = true;
         m_Caps.fillModeNonSolid = true;
+        m_Caps.multipleWindows = false;
         m_Caps.maxFramesInFlight = desc.framesInFlight ? desc.framesInFlight : 2;
         m_Caps.maxTextureDimension2D = 16384;
         m_Caps.maxColorAttachments = 8;

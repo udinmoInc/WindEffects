@@ -67,7 +67,10 @@ public:
         std::span<const uint8_t> data) override;
     void Draw(uint32_t vertexCount, uint32_t instanceCount = 1, uint32_t firstVertex = 0, uint32_t firstInstance = 0) override;
     void DrawIndexed(uint32_t indexCount, uint32_t instanceCount = 1, uint32_t firstIndex = 0, int32_t vertexOffset = 0, uint32_t firstInstance = 0) override;
+    void DrawIndirect(RHIBufferHandle buffer, uint64_t offset, uint32_t drawCount, uint32_t stride) override;
+    void DrawIndexedIndirect(RHIBufferHandle buffer, uint64_t offset, uint32_t drawCount, uint32_t stride) override;
     void Dispatch(uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ) override;
+    void DispatchIndirect(RHIBufferHandle buffer, uint64_t offset) override;
     void CopyBuffer(RHIBufferHandle src, RHIBufferHandle dst, uint64_t size, uint64_t srcOffset = 0, uint64_t dstOffset = 0) override;
     void CopyTexture(RHITextureHandle src, RHITextureHandle dst, const TextureCopyRegion& region) override;
     void BlitTexture(RHITextureHandle src, RHITextureHandle dst, const TextureBlitRegion& region, Filter filter = Filter::Linear) override;
@@ -75,6 +78,10 @@ public:
     void CopyTextureToBuffer(RHITextureHandle src, RHIBufferHandle dst, const BufferImageCopyRegion& region) override;
     void TransitionTexture(RHITextureHandle texture, ResourceState before, ResourceState after) override;
     void ResourceBarrier(std::span<const ResourceBarrierDesc> barriers) override;
+    void WriteTimestamp(RHIQueryPoolHandle pool, uint32_t queryIndex) override;
+    void BeginQuery(RHIQueryPoolHandle pool, uint32_t queryIndex) override;
+    void EndQuery(RHIQueryPoolHandle pool, uint32_t queryIndex) override;
+    void ResetQueryPool(RHIQueryPoolHandle pool, uint32_t firstQuery, uint32_t queryCount) override;
     void PushDebugGroup(std::string_view name) override;
     void PopDebugGroup() override;
     void InsertDebugMarker(std::string_view name) override;
@@ -152,6 +159,7 @@ struct VulkanBuffer {
     VkDeviceMemory memory = VK_NULL_HANDLE;
     void* mapped = nullptr;
     bool hostVisible = false;
+    ResourceState state = ResourceState::Undefined;
 };
 
 struct VulkanTexture {
@@ -235,13 +243,27 @@ enum class DeferredKind : uint8_t {
     GraphicsPipeline,
     ComputePipeline,
     Fence,
-    Semaphore
+    Semaphore,
+    CommandPool,
+    QueryPool
 };
 
 struct DeferredDestroyItem {
     DeferredKind kind = DeferredKind::Buffer;
     uint64_t handle = 0;
     uint64_t frame = 0;
+};
+
+struct VulkanCommandPool {
+    CommandPoolDesc desc{};
+    VkCommandPool pool = VK_NULL_HANDLE;
+    std::vector<std::unique_ptr<VulkanCommandList>> lists;
+    std::vector<VkCommandBuffer> buffers;
+};
+
+struct VulkanQueryPool {
+    QueryPoolDesc desc{};
+    VkQueryPool pool = VK_NULL_HANDLE;
 };
 
 class VulkanDevice final : public IRHIDevice {
@@ -304,6 +326,23 @@ public:
     [[nodiscard]] RHIResult<RHISemaphoreHandle> CreateSemaphore(const SemaphoreDesc& desc = {}) override;
     RHIResult<void> DestroySemaphore(RHISemaphoreHandle handle) override;
 
+    [[nodiscard]] RHIResult<RHICommandPoolHandle> CreateCommandPool(const CommandPoolDesc& desc = {}) override;
+    RHIResult<void> DestroyCommandPool(RHICommandPoolHandle handle) override;
+    RHIResult<void> ResetCommandPool(RHICommandPoolHandle handle) override;
+    [[nodiscard]] RHIResult<IRHICommandList*> AllocateCommandList(RHICommandPoolHandle pool) override;
+
+    [[nodiscard]] RHIResult<RHIQueryPoolHandle> CreateQueryPool(const QueryPoolDesc& desc) override;
+    RHIResult<void> DestroyQueryPool(RHIQueryPoolHandle handle) override;
+    RHIResult<void> GetQueryPoolResults(
+        RHIQueryPoolHandle handle,
+        uint32_t firstQuery,
+        uint32_t queryCount,
+        std::span<uint64_t> results,
+        bool wait) override;
+
+    [[nodiscard]] ResourceState GetTextureState(RHITextureHandle handle) const override;
+    [[nodiscard]] ResourceState GetBufferState(RHIBufferHandle handle) const override;
+
     [[nodiscard]] IRHICommandList* BeginFrame() override;
     RHIResult<void> Submit(IRHICommandList* commandList) override;
     RHIResult<void> Present() override;
@@ -333,6 +372,7 @@ public:
     [[nodiscard]] VulkanComputePipeline* FindComputePipeline(RHIComputePipelineHandle handle);
     [[nodiscard]] VulkanFence* FindFence(RHIFenceHandle handle);
     [[nodiscard]] VulkanSemaphore* FindSemaphore(RHISemaphoreHandle handle);
+    [[nodiscard]] VulkanQueryPool* FindQueryPool(RHIQueryPoolHandle handle);
     RHITextureHandle RegisterSwapchainTexture(VkImage image, VkImageView view, Extent2D extent, Format format);
     void ClearSwapchainTextureHandles(const std::vector<RHITextureHandle>& handles);
     [[nodiscard]] uint32_t FindMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties) const;
@@ -344,7 +384,7 @@ private:
     RHIResult<void> PickPhysicalDevice(uint32_t adapterIndex);
     RHIResult<void> CreateLogicalDevice();
     RHIResult<void> CreateFrameSync();
-    RHIResult<void> CreateCommandPool();
+    RHIResult<void> CreateFrameCommandPool();
     void FillCapabilities();
     void DestroyImmediate(DeferredKind kind, uint64_t handle);
     [[nodiscard]] uint64_t AllocHandle();
@@ -393,6 +433,8 @@ private:
     std::unordered_map<uint64_t, VulkanComputePipeline> m_ComputePipelines;
     std::unordered_map<uint64_t, VulkanFence> m_Fences;
     std::unordered_map<uint64_t, VulkanSemaphore> m_Semaphores;
+    std::unordered_map<uint64_t, VulkanCommandPool> m_UserCommandPools;
+    std::unordered_map<uint64_t, VulkanQueryPool> m_QueryPools;
     std::deque<DeferredDestroyItem> m_Deferred;
     std::mutex m_HandleMutex;
 };
