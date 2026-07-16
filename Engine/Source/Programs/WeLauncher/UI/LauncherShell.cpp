@@ -40,9 +40,9 @@ std::shared_ptr<HorizontalBox> MakePageHeaderRow() {
     auto row = std::make_shared<HorizontalBox>();
     row->SetSpacing(LMetric(ThemeToken::Space2) * LScale());
     row->SetPadding(Margin{
+        kLauncherContentPadX * LScale(),
         LMetric(ThemeToken::Space4) * LScale(),
-        LMetric(ThemeToken::Space3) * LScale(),
-        LMetric(ThemeToken::Space4) * LScale(),
+        kLauncherContentPadX * LScale(),
         LMetric(ThemeToken::Space2) * LScale()
     });
     row->SetVerticalAlignment(VerticalAlignment::Center);
@@ -52,12 +52,12 @@ std::shared_ptr<HorizontalBox> MakePageHeaderRow() {
 std::shared_ptr<VerticalBox> MakePageBodyPadding() {
     auto content = std::make_shared<VerticalBox>();
     content->SetPadding(Margin{
-        LMetric(ThemeToken::Space6) * LScale(),
+        kLauncherContentPadX * LScale(),
         LMetric(ThemeToken::Space4) * LScale(),
-        LMetric(ThemeToken::Space6) * LScale(),
-        LMetric(ThemeToken::Space6) * LScale()
+        kLauncherContentPadX * LScale(),
+        LMetric(ThemeToken::Space4) * LScale()
     });
-    content->SetSpacing(LMetric(ThemeToken::Space5) * LScale());
+    content->SetSpacing(LMetric(ThemeToken::Space4) * LScale());
     content->SetHorizontalAlignment(HorizontalAlignment::Fill);
     return content;
 }
@@ -525,10 +525,15 @@ std::shared_ptr<Widget> LauncherShell::BuildProjectsEmptyState() {
 std::shared_ptr<Widget> LauncherShell::BuildProjectsPageHeader() {
     const float s = LScale();
     auto row = std::make_shared<HorizontalBox>();
-    row->SetSpacing(8.0f * s);
+    row->SetSpacing(LMetric(ThemeToken::Space2) * s);
     row->SetVerticalAlignment(VerticalAlignment::Center);
     row->SetHorizontalAlignment(HorizontalAlignment::Fill);
-    row->SetPadding(Margin{ 12.0f * s, 10.0f * s, 12.0f * s, 10.0f * s });
+    row->SetPadding(Margin{
+        kLauncherContentPadX * s,
+        LMetric(ThemeToken::Space4) * s,
+        kLauncherContentPadX * s,
+        0.0f
+    });
     row->SetBackgroundColor(LColor(ThemeToken::PanelContentBackground));
 
     auto title = MakeLabel(
@@ -553,10 +558,15 @@ std::shared_ptr<Widget> LauncherShell::BuildProjectsPageHeader() {
 std::shared_ptr<Widget> LauncherShell::BuildProjectToolbar() {
     const float s = LScale();
     auto bar = std::make_shared<HorizontalBox>();
-    bar->SetSpacing(8.0f * s);
+    bar->SetSpacing(LMetric(ThemeToken::Space2) * s);
     bar->SetVerticalAlignment(VerticalAlignment::Center);
     bar->SetHorizontalAlignment(HorizontalAlignment::Fill);
-    bar->SetPadding(Margin{ 12.0f * s, 8.0f * s, 12.0f * s, 8.0f * s });
+    bar->SetPadding(Margin{
+        kLauncherContentPadX * s,
+        0.0f,
+        kLauncherContentPadX * s,
+        kLauncherToolbarToDivider * s
+    });
     bar->SetBackgroundColor(LColor(ThemeToken::PanelContentBackground));
 
     auto search = std::make_shared<CompactSearchField>("Search Projects");
@@ -603,14 +613,21 @@ void LauncherShell::RebuildProjectsPage() {
     const float s = LScale();
     page->AddChild(BuildProjectsPageHeader());
     page->AddChild(std::make_shared<ThinDivider>());
+    page->AddChild(std::make_shared<FixedGap>(1.0f, kLauncherTitleToToolbar * s));
     page->AddChild(BuildProjectToolbar());
     page->AddChild(std::make_shared<ThinDivider>());
+    page->AddChild(std::make_shared<FixedGap>(1.0f, kLauncherDividerToTable * s));
 
     auto tableHost = std::make_shared<VerticalBox>();
     tableHost->SetSpacing(0.0f);
     tableHost->SetHorizontalAlignment(HorizontalAlignment::Fill);
     tableHost->SetVerticalAlignment(VerticalAlignment::Fill);
-    tableHost->SetPadding(Margin{ 12.0f * s, 0.0f, 12.0f * s, 8.0f * s });
+    tableHost->SetPadding(Margin{
+        kLauncherContentPadX * s,
+        0.0f,
+        kLauncherContentPadX * s,
+        LMetric(ThemeToken::Space4) * s
+    });
     tableHost->SetBackgroundColor(LColor(ThemeToken::PanelContentBackground));
 
     state.scroll = nullptr;
@@ -642,6 +659,7 @@ void LauncherShell::RebuildProjectsPage() {
         header->SetSortMode(m_SortMode);
         header->SetOnSort([this](ProjectSortMode mode) { SetSortMode(mode); });
         tableHost->AddChild(header);
+        tableHost->AddChild(std::make_shared<ThinDivider>());
 
         auto scroll = std::make_shared<ScrollLayout>();
         auto list = std::make_shared<VerticalBox>();

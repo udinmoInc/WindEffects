@@ -39,7 +39,7 @@ public:
     void OnMouseUp(const WindEffects::Editor::UI::MouseEvent& event) override;
     bool ShowsPointerCursor(const WindEffects::Editor::UI::Point& position) const override;
 
-    static constexpr float kHeight = 30.0f;
+    static constexpr float kHeight = 32.0f;
 
 private:
     ProjectSortMode m_SortMode = ProjectSortMode::Recent;
@@ -47,7 +47,7 @@ private:
     int m_PressedCol = -1;
 };
 
-// Compact desktop table row (44–48 px). Single-line cells; context menu via ⋮ / right-click.
+// Compact desktop table row (~52 px with 14–16 px vertical padding). Name + path; ⋮ for actions.
 class ProjectTableRow : public WindEffects::Editor::UI::Widget {
 public:
     using ActionFn = std::function<void(ProjectCardAction)>;
@@ -69,7 +69,8 @@ public:
     bool ShowsPointerCursor(const WindEffects::Editor::UI::Point& position) const override;
     void Tick(float deltaTime) override;
 
-    static constexpr float kRowH = 48.0f;
+    // ~14–16 px vertical padding around two-line name/path cells.
+    static constexpr float kRowH = 52.0f;
 
 private:
     enum class HitZone { None, Body, Favorite, More };

@@ -139,13 +139,11 @@ void ProjectTableHeader::Paint(PaintContext& context) {
     const float s = LScale();
     const auto header = ThemeManager::Get().Resolve(StyleRole::TableHeader);
     context.DrawRect(m_Geometry, header.background);
-    context.DrawRect(
-        Rect{ m_Geometry.x, m_Geometry.y + m_Geometry.height - 1.0f * s, m_Geometry.width, 1.0f * s },
-        LColor(ThemeToken::Separator));
+    // Bottom rule is provided by ThinDivider in the page layout.
 
     const auto cols = ProjectColumnLayout::Compute(m_Geometry.width, s);
     const float textSize = header.fontSize > 0.0f ? header.fontSize : LMetric(ThemeToken::TextSizeCaption) * s;
-    float x = m_Geometry.x + 8.0f * s;
+    float x = m_Geometry.x + LMetric(ThemeToken::Space2) * s;
 
     auto drawCol = [&](const char* label, float width, bool sorted) {
         if (width <= 1.0f) {
@@ -199,7 +197,7 @@ void ProjectTableHeader::OnMouseUp(const MouseEvent& event) {
     }
     const float s = LScale();
     const auto cols = ProjectColumnLayout::Compute(m_Geometry.width, s);
-    float x = m_Geometry.x + 8.0f * s;
+    float x = m_Geometry.x + LMetric(ThemeToken::Space2) * s;
     const float local = event.position.x - x;
     float cursor = cols.favorite;
     if (local < cursor + cols.name) {
@@ -246,7 +244,7 @@ Rect ProjectTableRow::FavoriteRect() const {
     const float s = LScale();
     const float btn = 22.0f * s;
     return Rect{
-        m_Geometry.x + 7.0f * s,
+        m_Geometry.x + LMetric(ThemeToken::Space2) * s,
         m_Geometry.y + (m_Geometry.height - btn) * 0.5f,
         btn,
         btn
@@ -257,7 +255,7 @@ Rect ProjectTableRow::MoreRect() const {
     const float s = LScale();
     const float btn = 22.0f * s;
     return Rect{
-        m_Geometry.x + m_Geometry.width - 5.0f * s - btn,
+        m_Geometry.x + m_Geometry.width - LMetric(ThemeToken::Space2) * s - btn,
         m_Geometry.y + (m_Geometry.height - btn) * 0.5f,
         btn,
         btn
@@ -283,6 +281,9 @@ void ProjectTableRow::Paint(PaintContext& context) {
 
     ControlChrome::InteractionState rowState{ m_HoverAnim, 0.0f, m_Selected, m_Focused, false };
     ControlChrome::PaintListRow(context, m_Geometry, rowState);
+    context.DrawRect(
+        Rect{ m_Geometry.x, m_Geometry.y + m_Geometry.height - 1.0f * s, m_Geometry.width, 1.0f * s },
+        LColor(ThemeToken::Separator));
 
     const auto cols = ProjectColumnLayout::Compute(m_Geometry.width, s);
     const float textSize = LMetric(ThemeToken::TextSizeBody) * s;
@@ -300,7 +301,7 @@ void ProjectTableRow::Paint(PaintContext& context) {
         m_Favorite,
         radius);
 
-    float x = m_Geometry.x + 8.0f * s + cols.favorite;
+    float x = m_Geometry.x + LMetric(ThemeToken::Space2) * s + cols.favorite;
 
     const std::string displayName = m_Summary.descriptor.displayName.empty()
         ? m_Summary.descriptor.projectName
