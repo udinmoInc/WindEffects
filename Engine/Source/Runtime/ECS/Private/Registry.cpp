@@ -1,5 +1,7 @@
 #include "ECS/Registry.h"
 
+// Rebuild after World pimpl (accessors moved out of header).
+
 namespace we::runtime::ecs {
 
 Registry::Registry() = default;

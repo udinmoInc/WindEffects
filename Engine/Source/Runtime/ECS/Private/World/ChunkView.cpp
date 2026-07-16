@@ -70,16 +70,14 @@ bool ChunkView::IsComponentEnabled(ComponentTypeId typeId, std::uint16_t slot) c
     if (index < 0) {
         return false;
     }
-    if (!m_Archetype->columnEnableable[static_cast<std::size_t>(index)]) {
+    const std::size_t idx = static_cast<std::size_t>(index);
+    if (!m_Archetype->columnEnableable[idx]) {
         return true;
     }
-    const ComponentTypeInfo* info = ComponentTypeRegistry::Get().Find(typeId);
-    if (!info) {
+    if (idx >= m_Archetype->columnEnableOffsets.size() || m_Archetype->columnEnableOffsets[idx] == 0) {
         return true;
     }
-    const std::uint32_t enableOffset = m_Archetype->columnOffsets[static_cast<std::size_t>(index)]
-        + static_cast<std::uint32_t>(info->size) * m_Archetype->entitiesPerChunk;
-    const std::uint8_t* compEnabled = m_Chunk->data + enableOffset;
+    const std::uint8_t* compEnabled = m_Chunk->data + m_Archetype->columnEnableOffsets[idx];
     return compEnabled[slot] != 0;
 }
 

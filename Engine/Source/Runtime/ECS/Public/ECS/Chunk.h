@@ -42,6 +42,7 @@ struct ArchetypeLayout {
     std::vector<std::uint32_t> columnOffsets;
     std::vector<std::uint32_t> columnSizes;
     std::vector<std::uint32_t> columnAlignments;
+    std::vector<std::uint32_t> columnEnableOffsets; // 0 if not enableable
     std::vector<bool> columnEnableable;
     std::uint16_t entitiesPerChunk = 0;
     std::uint32_t chunkDataSize = 0;

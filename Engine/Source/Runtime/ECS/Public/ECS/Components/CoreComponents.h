@@ -28,12 +28,12 @@ struct Uuid {
 // ---- Core components (POD, no virtuals). Always GLM for stable cross-DLL ABI. ----
 
 struct NameComponent {
-    std::string value;
+    char value[32]{};
 };
 
 struct TagComponent {
     std::uint64_t mask = 0;
-    std::string label;
+    char label[64]{};
 };
 
 struct UuidComponent {
@@ -93,12 +93,12 @@ struct SpotLightComponent {
 
 struct StaticMeshComponent {
     std::uint64_t meshAssetId = 0;
-    std::string meshPath;
+    char meshPath[96]{};
 };
 
 struct MaterialComponent {
     std::uint64_t materialAssetId = 0;
-    std::string materialPath;
+    char materialPath[96]{};
     glm::vec4 color{ 1.0f };
 };
 

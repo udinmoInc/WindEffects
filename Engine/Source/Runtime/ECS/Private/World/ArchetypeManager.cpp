@@ -27,7 +27,11 @@ ChunkAllocator::ChunkAllocator(std::size_t chunkSizeBytes)
 
 ChunkAllocator::~ChunkAllocator() {
     for (Chunk* chunk : m_FreeList) {
-        delete[] reinterpret_cast<std::uint8_t*>(chunk);
+        if (!chunk) {
+            continue;
+        }
+        delete[] chunk->data;
+        delete chunk;
     }
     m_FreeList.clear();
 }
@@ -99,6 +103,7 @@ void ArchetypeManager::BuildLayout(ArchetypeLayout& layout) {
     layout.columnOffsets.clear();
     layout.columnSizes.clear();
     layout.columnAlignments.clear();
+    layout.columnEnableOffsets.clear();
     layout.columnEnableable.clear();
 
     for (std::uint32_t typeId = 0; typeId < kMaxComponentTypes; ++typeId) {
@@ -150,41 +155,78 @@ void ArchetypeManager::BuildLayout(ArchetypeLayout& layout) {
     }
 
     const std::uint32_t perEntityBytes = perEntityMeta + perEntityComponents;
-    const std::uint32_t available = static_cast<std::uint32_t>(m_Allocator->ChunkSizeBytes()) - kChunkHeaderSize;
+    const std::uint32_t available = static_cast<std::uint32_t>(m_Allocator->ChunkSizeBytes());
     std::uint16_t capacity = static_cast<std::uint16_t>(available / std::max(1u, perEntityBytes));
     if (capacity == 0) {
         capacity = 1;
     }
     layout.entitiesPerChunk = capacity;
 
-    layout.entityIdColumnOffset = kChunkHeaderSize;
-    layout.entityEnabledColumnOffset = layout.entityIdColumnOffset
-        + static_cast<std::uint32_t>(sizeof(std::uint64_t)) * layout.entitiesPerChunk;
+    // Shrink capacity until packed SoA layout fits the chunk budget.
+    // Chunk::data is a separate allocation from ChunkHeader — start at offset 0.
+    for (;;) {
+        layout.entityIdColumnOffset = 0;
+        layout.entityEnabledColumnOffset = layout.entityIdColumnOffset
+            + static_cast<std::uint32_t>(sizeof(std::uint64_t)) * layout.entitiesPerChunk;
 
-    offset = layout.entityEnabledColumnOffset + static_cast<std::uint32_t>(sizeof(std::uint8_t)) * layout.entitiesPerChunk;
-    layout.columnOffsets.clear();
-    layout.columnSizes.clear();
-    layout.columnAlignments.clear();
-    layout.columnEnableable.clear();
+        offset = layout.entityEnabledColumnOffset
+            + static_cast<std::uint32_t>(sizeof(std::uint8_t)) * layout.entitiesPerChunk;
+        layout.columnOffsets.clear();
+        layout.columnSizes.clear();
+        layout.columnAlignments.clear();
+        layout.columnEnableOffsets.clear();
+        layout.columnEnableable.clear();
 
-    for (ComponentTypeId typeId : layout.typeIds) {
-        const ComponentTypeInfo* info = m_Registry->Find(typeId);
-        if (!info) {
-            continue;
+        for (ComponentTypeId typeId : layout.typeIds) {
+            const ComponentTypeInfo* info = m_Registry->Find(typeId);
+            if (!info) {
+                continue;
+            }
+            offset = AlignUp(offset, static_cast<std::uint32_t>(info->alignment));
+            layout.columnOffsets.push_back(offset);
+            layout.columnSizes.push_back(static_cast<std::uint32_t>(info->size));
+            layout.columnAlignments.push_back(static_cast<std::uint32_t>(info->alignment));
+            layout.columnEnableable.push_back(info->enableable);
+            offset += static_cast<std::uint32_t>(info->size) * layout.entitiesPerChunk;
+            if (info->enableable) {
+                offset = AlignUp(offset, alignof(std::uint8_t));
+                layout.columnEnableOffsets.push_back(offset);
+                offset += static_cast<std::uint32_t>(sizeof(std::uint8_t)) * layout.entitiesPerChunk;
+            } else {
+                layout.columnEnableOffsets.push_back(0);
+            }
         }
-        offset = AlignUp(offset, static_cast<std::uint32_t>(info->alignment));
-        layout.columnOffsets.push_back(offset);
-        layout.columnSizes.push_back(static_cast<std::uint32_t>(info->size));
-        layout.columnAlignments.push_back(static_cast<std::uint32_t>(info->alignment));
-        layout.columnEnableable.push_back(info->enableable);
-        offset += static_cast<std::uint32_t>(info->size) * layout.entitiesPerChunk;
-        if (info->enableable) {
-            offset = AlignUp(offset, alignof(std::uint8_t));
-            offset += static_cast<std::uint32_t>(sizeof(std::uint8_t)) * layout.entitiesPerChunk;
+
+        layout.chunkDataSize = AlignUp(offset, alignof(std::uint64_t));
+        if (layout.chunkDataSize <= m_Allocator->ChunkSizeBytes() || layout.entitiesPerChunk <= 1) {
+            break;
+        }
+        layout.entitiesPerChunk = static_cast<std::uint16_t>(layout.entitiesPerChunk / 2u);
+        if (layout.entitiesPerChunk == 0) {
+            layout.entitiesPerChunk = 1;
         }
     }
 
-    layout.chunkDataSize = AlignUp(offset, alignof(std::uint64_t));
+    // Validate every column fits for the last slot.
+    for (std::size_t i = 0; i < layout.typeIds.size(); ++i) {
+        const ComponentTypeInfo* info = m_Registry->Find(layout.typeIds[i]);
+        if (!info) {
+            continue;
+        }
+        const std::uint32_t end =
+            layout.columnOffsets[i] + static_cast<std::uint32_t>(info->size) * layout.entitiesPerChunk;
+        if (end > layout.chunkDataSize) {
+            layout.entitiesPerChunk = 1;
+            layout.chunkDataSize = end;
+        }
+        if (layout.columnEnableable[i] && layout.columnEnableOffsets[i] != 0) {
+            const std::uint32_t enableEnd =
+                layout.columnEnableOffsets[i] + static_cast<std::uint32_t>(sizeof(std::uint8_t)) * layout.entitiesPerChunk;
+            if (enableEnd > layout.chunkDataSize) {
+                layout.chunkDataSize = enableEnd;
+            }
+        }
+    }
 }
 
 ArchetypeLayout* ArchetypeManager::FindOrCreate(const ComponentMask& mask, std::uint32_t sharedHash) {
@@ -192,14 +234,14 @@ ArchetypeLayout* ArchetypeManager::FindOrCreate(const ComponentMask& mask, std::
         return existing;
     }
 
-    ArchetypeLayout layout{};
-    layout.index = static_cast<std::uint32_t>(m_Storage.size());
-    layout.mask = mask;
-    layout.sharedComponentHash = sharedHash;
-    BuildLayout(layout);
+    auto owned = std::make_unique<ArchetypeLayout>();
+    owned->index = static_cast<std::uint32_t>(m_Storage.size());
+    owned->mask = mask;
+    owned->sharedComponentHash = sharedHash;
+    BuildLayout(*owned);
 
-    m_Storage.push_back(layout);
-    ArchetypeLayout* created = &m_Storage.back();
+    m_Storage.push_back(std::move(owned));
+    ArchetypeLayout* created = m_Storage.back().get();
     created->index = static_cast<std::uint32_t>(m_Storage.size() - 1);
     m_Archetypes.push_back(created);
     m_Lookup[MaskHash(mask, sharedHash)] = created->index;
@@ -219,7 +261,7 @@ ArchetypeLayout* ArchetypeManager::Get(std::uint32_t index) const {
     if (index >= m_Storage.size()) {
         return nullptr;
     }
-    return const_cast<ArchetypeLayout*>(&m_Storage[index]);
+    return m_Storage[index].get();
 }
 
 ChunkView ArchetypeManager::AllocateSlot(ArchetypeLayout& archetype, Entity entity) {
@@ -250,17 +292,13 @@ ChunkView ArchetypeManager::AllocateSlot(ArchetypeLayout& archetype, Entity enti
             continue;
         }
         void* dst = static_cast<std::uint8_t*>(column) + info->size * slot;
-        if (const ComponentOps* ops = FindComponentOps(typeId)) {
-            if (ops->construct) {
-                ops->construct(dst, info->size);
-            }
+        if (const ComponentOps* ops = FindComponentOps(typeId); ops && ops->construct) {
+            ops->construct(dst, info->size);
         } else {
             std::memset(dst, 0, info->size);
         }
-        if (archetype.columnEnableable[i]) {
-            const std::uint32_t enableOffset = archetype.columnOffsets[i]
-                + static_cast<std::uint32_t>(info->size) * archetype.entitiesPerChunk;
-            std::uint8_t* compEnabled = chunk->data + enableOffset;
+        if (archetype.columnEnableable[i] && archetype.columnEnableOffsets[i] != 0) {
+            std::uint8_t* compEnabled = chunk->data + archetype.columnEnableOffsets[i];
             compEnabled[slot] = 1;
         }
     }
@@ -294,22 +332,23 @@ SlotRelocation ArchetypeManager::DeallocateSlot(ArchetypeLayout& archetype, Chun
             void* dst = static_cast<std::uint8_t*>(column) + info->size * slot;
             void* src = static_cast<std::uint8_t*>(column) + info->size * last;
             if (const ComponentOps* ops = FindComponentOps(typeId)) {
-                if (ops->destruct) {
-                    ops->destruct(dst, info->size);
-                }
-                if (ops->move) {
-                    ops->move(dst, src, info->size);
-                }
-                if (ops->destruct) {
-                    ops->destruct(src, info->size);
+                if (ops->trivial) {
+                    if (ops->move) {
+                        ops->move(dst, src, info->size);
+                    }
+                } else {
+                    if (ops->move) {
+                        ops->move(dst, src, info->size);
+                    }
+                    if (ops->destruct) {
+                        ops->destruct(src, info->size);
+                    }
                 }
             } else {
                 std::memmove(dst, src, info->size);
             }
-            if (archetype.columnEnableable[i]) {
-                const std::uint32_t enableOffset = archetype.columnOffsets[i]
-                    + static_cast<std::uint32_t>(info->size) * archetype.entitiesPerChunk;
-                std::uint8_t* compEnabled = chunk->data + enableOffset;
+            if (archetype.columnEnableable[i] && archetype.columnEnableOffsets[i] != 0) {
+                std::uint8_t* compEnabled = chunk->data + archetype.columnEnableOffsets[i];
                 compEnabled[slot] = compEnabled[last];
             }
         }

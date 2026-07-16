@@ -5,7 +5,6 @@
 
 #include "ECS/ArchetypeManager.h"
 #include "ECS/Chunk.h"
-#include "ECS/CommandBuffer.h"
 #include "ECS/ComponentMask.h"
 #include "ECS/ComponentType.h"
 #include "ECS/Entity.h"
@@ -14,17 +13,18 @@
 #include "ECS/JobPool.h"
 
 #include <cstdint>
-#include <memory>
 #include <string>
 #include <unordered_map>
 #include <vector>
 
 namespace we::runtime::ecs {
 
+class CommandBufferQueue;
+
 template <typename... Ts>
 class ArchetypeQuery;
 
-// Archetype/chunk ECS world container.
+// Storage lives in a DLL-local Impl so STL teardown stays inside WEECS.dll.
 class ECS_API World {
 public:
     World();
@@ -84,21 +84,20 @@ public:
     template <typename... Ts>
     ArchetypeQuery<Ts...> QueryAll();
 
-    [[nodiscard]] EntityManager& Entities() { return m_Entities; }
-    [[nodiscard]] const EntityManager& Entities() const { return m_Entities; }
-    [[nodiscard]] ArchetypeManager& Archetypes() { return m_Archetypes; }
-    [[nodiscard]] const ArchetypeManager& Archetypes() const { return m_Archetypes; }
-    [[nodiscard]] ChunkAllocator& Chunks() { return m_ChunkAllocator; }
-    [[nodiscard]] JobPool& Jobs() { return m_JobPool; }
-    [[nodiscard]] CommandBufferQueue& Commands() { return m_Commands; }
+    [[nodiscard]] EntityManager& Entities();
+    [[nodiscard]] const EntityManager& Entities() const;
+    [[nodiscard]] ArchetypeManager& Archetypes();
+    [[nodiscard]] const ArchetypeManager& Archetypes() const;
+    [[nodiscard]] ChunkAllocator& Chunks();
+    [[nodiscard]] JobPool& Jobs();
+    [[nodiscard]] CommandBufferQueue& Commands();
 
     [[nodiscard]] std::uint64_t StructuralVersion() const;
-    [[nodiscard]] std::uint64_t ChangeVersion() const { return m_ChangeVersion; }
-    void BumpChangeVersion() { ++m_ChangeVersion; }
+    [[nodiscard]] std::uint64_t ChangeVersion() const;
+    void BumpChangeVersion();
 
     void FlushCommands();
 
-    // Low-level access for systems and extraction paths.
     [[nodiscard]] ChunkView GetChunkView(Entity entity);
     [[nodiscard]] ChunkView GetChunkView(Entity entity) const;
     void MigrateAddComponent(Entity entity, ComponentTypeId typeId, const void* initialData);
@@ -108,18 +107,13 @@ public:
 private:
     friend class CommandBufferQueue;
 
-    [[nodiscard]] ArchetypeLayout* GetEntityArchetype(Entity entity) const;
-    void WriteComponentDefault(ComponentTypeId typeId, void* dst);
-    void EnsureDefaultComponents(Entity entity);
+    struct Impl;
 
-    EntityManager m_Entities;
-    ArchetypeManager m_Archetypes;
-    ChunkAllocator m_ChunkAllocator;
-    JobPool m_JobPool;
-    CommandBufferQueue m_Commands;
-    std::unordered_map<ComponentTypeId, std::vector<std::uint8_t>> m_Singletons;
-    ComponentMask m_DefaultEntityMask{};
-    std::uint64_t m_ChangeVersion = 1;
+    [[nodiscard]] ArchetypeLayout* GetEntityArchetype(Entity entity) const;
+    [[nodiscard]] std::unordered_map<ComponentTypeId, std::vector<std::uint8_t>>& Singletons();
+    [[nodiscard]] const std::unordered_map<ComponentTypeId, std::vector<std::uint8_t>>& Singletons() const;
+
+    Impl* m_Impl = nullptr;
 };
 
 } // namespace we::runtime::ecs

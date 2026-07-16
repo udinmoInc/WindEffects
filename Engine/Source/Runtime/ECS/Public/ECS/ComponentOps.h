@@ -36,12 +36,13 @@ ComponentOps MakeOpsFor() {
         ops.trivial = false;
         ops.construct = [](void* dst, std::size_t) { new (dst) T(); };
         ops.destruct = [](void* ptr, std::size_t) { static_cast<T*>(ptr)->~T(); };
+        // Move/copy assign into an already-constructed slot (AllocateSlot default-constructs).
+        // Caller destroys `src` after move when the source slot is being retired.
         ops.move = [](void* dst, void* src, std::size_t) {
-            new (dst) T(std::move(*static_cast<T*>(src)));
-            static_cast<T*>(src)->~T();
+            *static_cast<T*>(dst) = std::move(*static_cast<T*>(src));
         };
         ops.copy = [](void* dst, const void* src, std::size_t) {
-            new (dst) T(*static_cast<const T*>(src));
+            *static_cast<T*>(dst) = *static_cast<const T*>(src);
         };
         return ops;
     }

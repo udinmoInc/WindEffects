@@ -1,36 +1,103 @@
 #include "ECS/World.h"
 
+#include "ECS/CommandBuffer.h"
 #include "ECS/ComponentOps.h"
 #include "ECS/Components/CoreComponents.h"
+#include "ECS/EntityManager.h"
+#include "ECS/JobPool.h"
 
 #include <algorithm>
 #include <cstring>
+#include <unordered_map>
+#include <vector>
+
+// World pimpl: all STL storage stays inside WEECS.dll.
 
 namespace we::runtime::ecs {
 
+struct World::Impl {
+    EntityManager entities;
+    ChunkAllocator chunkAllocator;
+    ArchetypeManager archetypes;
+    JobPool jobs;
+    CommandBufferQueue commands{32};
+    std::unordered_map<ComponentTypeId, std::vector<std::uint8_t>> singletons;
+    ComponentMask defaultEntityMask{};
+    std::uint64_t changeVersion = 1;
+};
+
 World::World()
-    : m_Commands(32)
+    : m_Impl(new Impl())
 {
     ComponentTypeRegistry::Get().EnsureCoreTypesRegistered();
-    m_Archetypes.Init(&m_ChunkAllocator, &ComponentTypeRegistry::Get());
+    m_Impl->archetypes.Init(&m_Impl->chunkAllocator, &ComponentTypeRegistry::Get());
 
-    m_DefaultEntityMask.Set(ComponentTypeRegistry::Get().Id<UuidComponent>());
-    m_DefaultEntityMask.Set(ComponentTypeRegistry::Get().Id<TransformComponent>());
-    m_DefaultEntityMask.Set(ComponentTypeRegistry::Get().Id<HierarchyComponent>());
-    m_DefaultEntityMask.Set(ComponentTypeRegistry::Get().Id<VisibilityComponent>());
+    m_Impl->defaultEntityMask.Set(ComponentTypeRegistry::Get().Id<UuidComponent>());
+    m_Impl->defaultEntityMask.Set(ComponentTypeRegistry::Get().Id<NameComponent>());
+    m_Impl->defaultEntityMask.Set(ComponentTypeRegistry::Get().Id<TransformComponent>());
+    m_Impl->defaultEntityMask.Set(ComponentTypeRegistry::Get().Id<HierarchyComponent>());
+    m_Impl->defaultEntityMask.Set(ComponentTypeRegistry::Get().Id<VisibilityComponent>());
 }
 
 World::~World() {
     Clear();
+    delete m_Impl;
+    m_Impl = nullptr;
+}
+
+EntityManager& World::Entities() { return m_Impl->entities; }
+const EntityManager& World::Entities() const { return m_Impl->entities; }
+ArchetypeManager& World::Archetypes() { return m_Impl->archetypes; }
+const ArchetypeManager& World::Archetypes() const { return m_Impl->archetypes; }
+ChunkAllocator& World::Chunks() { return m_Impl->chunkAllocator; }
+JobPool& World::Jobs() { return m_Impl->jobs; }
+CommandBufferQueue& World::Commands() { return m_Impl->commands; }
+
+std::uint64_t World::ChangeVersion() const { return m_Impl->changeVersion; }
+void World::BumpChangeVersion() { ++m_Impl->changeVersion; }
+
+std::unordered_map<ComponentTypeId, std::vector<std::uint8_t>>& World::Singletons() {
+    return m_Impl->singletons;
+}
+const std::unordered_map<ComponentTypeId, std::vector<std::uint8_t>>& World::Singletons() const {
+    return m_Impl->singletons;
+}
+
+void World::Clear() {
+    if (!m_Impl) {
+        return;
+    }
+    for (ArchetypeLayout* archetype : m_Impl->archetypes.All()) {
+        if (!archetype) {
+            continue;
+        }
+        for (Chunk* chunk : archetype->chunks) {
+            if (chunk) {
+                m_Impl->chunkAllocator.DestroyChunk(chunk);
+            }
+        }
+        archetype->chunks.clear();
+        archetype->entityCount = 0;
+    }
+    m_Impl->entities.Clear();
+    m_Impl->singletons.clear();
+    m_Impl->commands.ClearAll();
+    BumpChangeVersion();
 }
 
 Entity World::CreateEntity() {
-    Entity entity = m_Entities.Create();
-    ArchetypeLayout* archetype = m_Archetypes.FindOrCreate(m_DefaultEntityMask);
-    ChunkView view = m_Archetypes.AllocateSlot(*archetype, entity);
+    Entity entity = m_Impl->entities.Create();
+    ArchetypeLayout* archetype = m_Impl->archetypes.FindOrCreate(m_Impl->defaultEntityMask);
+    if (!archetype) {
+        return {};
+    }
+    ChunkView view = m_Impl->archetypes.AllocateSlot(*archetype, entity);
     Chunk* chunk = view.RawChunk();
+    if (!chunk) {
+        return {};
+    }
 
-    EntityLocation& loc = m_Entities.Location(entity);
+    EntityLocation& loc = m_Impl->entities.Location(entity);
     loc.archetypeIndex = archetype->index;
     loc.chunkIndex = chunk->header.chunkIndex;
     loc.slot = static_cast<std::uint16_t>(chunk->header.count - 1u);
@@ -45,7 +112,14 @@ Entity World::CreateEntity() {
 
 Entity World::CreateEntity(const std::string& name) {
     Entity entity = CreateEntity();
-    AddComponent<NameComponent>(entity, NameComponent{name});
+    if (NameComponent* n = TryGet<NameComponent>(entity)) {
+        const std::size_t maxChars = sizeof(n->value) - 1u;
+        std::size_t i = 0;
+        for (; i < maxChars && i < name.size(); ++i) {
+            n->value[i] = name[i];
+        }
+        n->value[i] = '\0';
+    }
     return entity;
 }
 
@@ -53,70 +127,53 @@ void World::DestroyEntity(Entity entity) {
     if (!Valid(entity)) {
         return;
     }
-    EntityLocation& loc = m_Entities.Location(entity);
-    if (ArchetypeLayout* archetype = m_Archetypes.Get(loc.archetypeIndex)) {
+    EntityLocation& loc = m_Impl->entities.Location(entity);
+    if (ArchetypeLayout* archetype = m_Impl->archetypes.Get(loc.archetypeIndex)) {
         if (loc.chunkIndex < archetype->chunks.size()) {
             Chunk* chunk = archetype->chunks[loc.chunkIndex];
-            const SlotRelocation relocation = m_Archetypes.DeallocateSlot(*archetype, chunk, loc.slot);
+            const SlotRelocation relocation = m_Impl->archetypes.DeallocateSlot(*archetype, chunk, loc.slot);
             ApplySlotRelocation(relocation);
         }
     }
-    m_Entities.Destroy(entity);
+    m_Impl->entities.Destroy(entity);
     BumpChangeVersion();
 }
 
 bool World::Valid(Entity entity) const {
-    return m_Entities.Valid(entity);
-}
-
-void World::Clear() {
-    for (ArchetypeLayout* archetype : m_Archetypes.All()) {
-        if (!archetype) {
-            continue;
-        }
-        for (Chunk* chunk : archetype->chunks) {
-            m_ChunkAllocator.DestroyChunk(chunk);
-        }
-        archetype->chunks.clear();
-        archetype->entityCount = 0;
-    }
-    m_Entities.Clear();
-    m_Singletons.clear();
-    m_Commands.ClearAll();
-    BumpChangeVersion();
+    return m_Impl->entities.Valid(entity);
 }
 
 bool World::IsEntityEnabled(Entity entity) const {
-    return m_Entities.IsEnabled(entity);
+    return m_Impl->entities.IsEnabled(entity);
 }
 
 void World::SetEntityEnabled(Entity entity, bool enabled) {
-    m_Entities.SetEnabled(entity, enabled);
+    m_Impl->entities.SetEnabled(entity, enabled);
     BumpChangeVersion();
 }
 
 std::uint64_t World::StructuralVersion() const {
-    return m_Archetypes.StructuralVersion();
+    return m_Impl->archetypes.StructuralVersion();
 }
 
 void World::FlushCommands() {
-    m_Commands.FlushAll(*this);
+    m_Impl->commands.FlushAll(*this);
 }
 
 ArchetypeLayout* World::GetEntityArchetype(Entity entity) const {
     if (!Valid(entity)) {
         return nullptr;
     }
-    const EntityLocation& loc = m_Entities.Location(entity);
-    return m_Archetypes.Get(loc.archetypeIndex);
+    const EntityLocation& loc = m_Impl->entities.Location(entity);
+    return m_Impl->archetypes.Get(loc.archetypeIndex);
 }
 
 ChunkView World::GetChunkView(Entity entity) {
     if (!Valid(entity)) {
         return {};
     }
-    const EntityLocation& loc = m_Entities.Location(entity);
-    ArchetypeLayout* archetype = m_Archetypes.Get(loc.archetypeIndex);
+    const EntityLocation& loc = m_Impl->entities.Location(entity);
+    ArchetypeLayout* archetype = m_Impl->archetypes.Get(loc.archetypeIndex);
     if (!archetype || loc.chunkIndex >= archetype->chunks.size()) {
         return {};
     }
@@ -127,8 +184,8 @@ ChunkView World::GetChunkView(Entity entity) const {
     if (!Valid(entity)) {
         return {};
     }
-    const EntityLocation& loc = m_Entities.Location(entity);
-    ArchetypeLayout* archetype = m_Archetypes.Get(loc.archetypeIndex);
+    const EntityLocation& loc = m_Impl->entities.Location(entity);
+    ArchetypeLayout* archetype = m_Impl->archetypes.Get(loc.archetypeIndex);
     if (!archetype || loc.chunkIndex >= archetype->chunks.size()) {
         return {};
     }
@@ -139,7 +196,7 @@ void World::ApplySlotRelocation(const SlotRelocation& relocation) {
     if (!relocation.valid || !Valid(relocation.entity)) {
         return;
     }
-    EntityLocation& loc = m_Entities.Location(relocation.entity);
+    EntityLocation& loc = m_Impl->entities.Location(relocation.entity);
     loc.chunkIndex = relocation.chunkIndex;
     loc.slot = relocation.slot;
 }
@@ -158,12 +215,10 @@ void World::MigrateAddComponent(Entity entity, ComponentTypeId typeId, const voi
             void* dst = GetChunkView(entity).ColumnPtr(typeId);
             if (dst) {
                 const ComponentTypeInfo* info = ComponentTypeRegistry::Get().Find(typeId);
-                const EntityLocation& loc = m_Entities.Location(entity);
+                const EntityLocation& loc = m_Impl->entities.Location(entity);
                 void* slotPtr = static_cast<std::uint8_t*>(dst) + info->size * loc.slot;
-                if (const ComponentOps* ops = FindComponentOps(typeId)) {
-                    if (ops->copy) {
-                        ops->copy(slotPtr, initialData, info->size);
-                    }
+                if (const ComponentOps* ops = FindComponentOps(typeId); ops && ops->copy) {
+                    ops->copy(slotPtr, initialData, info->size);
                 } else {
                     std::memcpy(slotPtr, initialData, info->size);
                 }
@@ -174,13 +229,19 @@ void World::MigrateAddComponent(Entity entity, ComponentTypeId typeId, const voi
 
     ComponentMask newMask = srcArchetype->mask;
     newMask.Set(typeId);
-    ArchetypeLayout* dstArchetype = m_Archetypes.FindOrCreate(newMask, srcArchetype->sharedComponentHash);
+    const std::uint32_t srcArchetypeIndex = srcArchetype->index;
+    const std::uint32_t sharedHash = srcArchetype->sharedComponentHash;
+    ArchetypeLayout* dstArchetype = m_Impl->archetypes.FindOrCreate(newMask, sharedHash);
+    srcArchetype = m_Impl->archetypes.Get(srcArchetypeIndex);
+    if (!srcArchetype || !dstArchetype) {
+        return;
+    }
 
-    EntityLocation& loc = m_Entities.Location(entity);
+    EntityLocation& loc = m_Impl->entities.Location(entity);
     Chunk* srcChunk = srcArchetype->chunks[loc.chunkIndex];
     const std::uint16_t srcSlot = loc.slot;
 
-    ChunkView dstView = m_Archetypes.AllocateSlot(*dstArchetype, entity);
+    ChunkView dstView = m_Impl->archetypes.AllocateSlot(*dstArchetype, entity);
     Chunk* dstChunk = dstView.RawChunk();
     const std::uint16_t dstSlot = static_cast<std::uint16_t>(dstChunk->header.count - 1u);
 
@@ -202,14 +263,8 @@ void World::MigrateAddComponent(Entity entity, ComponentTypeId typeId, const voi
                 std::find(dstArchetype->typeIds.begin(), dstArchetype->typeIds.end(), existingId)))];
         void* srcPtr = static_cast<std::uint8_t*>(srcColumn) + info->size * srcSlot;
         void* dstPtr = static_cast<std::uint8_t*>(dstColumn) + info->size * dstSlot;
-        if (const ComponentOps* ops = FindComponentOps(existingId)) {
-            // Slot was default-constructed by AllocateSlot — destroy before placement-copy.
-            if (ops->destruct) {
-                ops->destruct(dstPtr, info->size);
-            }
-            if (ops->copy) {
-                ops->copy(dstPtr, srcPtr, info->size);
-            }
+        if (const ComponentOps* ops = FindComponentOps(existingId); ops && ops->copy) {
+            ops->copy(dstPtr, srcPtr, info->size);
         } else {
             std::memcpy(dstPtr, srcPtr, info->size);
         }
@@ -219,19 +274,14 @@ void World::MigrateAddComponent(Entity entity, ComponentTypeId typeId, const voi
         void* dstColumn = dstView.ColumnPtr(typeId);
         const ComponentTypeInfo* info = ComponentTypeRegistry::Get().Find(typeId);
         void* dstPtr = static_cast<std::uint8_t*>(dstColumn) + info->size * dstSlot;
-        if (const ComponentOps* ops = FindComponentOps(typeId)) {
-            if (ops->destruct) {
-                ops->destruct(dstPtr, info->size);
-            }
-            if (ops->copy) {
-                ops->copy(dstPtr, initialData, info->size);
-            }
+        if (const ComponentOps* ops = FindComponentOps(typeId); ops && ops->copy) {
+            ops->copy(dstPtr, initialData, info->size);
         } else {
             std::memcpy(dstPtr, initialData, info->size);
         }
     }
 
-    const SlotRelocation relocation = m_Archetypes.DeallocateSlot(*srcArchetype, srcChunk, srcSlot);
+    const SlotRelocation relocation = m_Impl->archetypes.DeallocateSlot(*srcArchetype, srcChunk, srcSlot);
     ApplySlotRelocation(relocation);
 
     loc.archetypeIndex = dstArchetype->index;
@@ -242,7 +292,7 @@ void World::MigrateAddComponent(Entity entity, ComponentTypeId typeId, const voi
         dstChunk->data + dstArchetype->entityIdColumnOffset);
     entityColumn[dstSlot] = entity.id;
 
-    m_Archetypes.BumpStructuralVersion();
+    m_Impl->archetypes.BumpStructuralVersion();
 }
 
 void World::MigrateRemoveComponent(Entity entity, ComponentTypeId typeId) {
@@ -256,14 +306,20 @@ void World::MigrateRemoveComponent(Entity entity, ComponentTypeId typeId) {
 
     ComponentMask newMask = srcArchetype->mask;
     newMask.Set(typeId, false);
-    ArchetypeLayout* dstArchetype = m_Archetypes.FindOrCreate(newMask, srcArchetype->sharedComponentHash);
+    const std::uint32_t srcArchetypeIndex = srcArchetype->index;
+    const std::uint32_t sharedHash = srcArchetype->sharedComponentHash;
+    ArchetypeLayout* dstArchetype = m_Impl->archetypes.FindOrCreate(newMask, sharedHash);
+    srcArchetype = m_Impl->archetypes.Get(srcArchetypeIndex);
+    if (!srcArchetype || !dstArchetype) {
+        return;
+    }
 
-    EntityLocation& loc = m_Entities.Location(entity);
+    EntityLocation& loc = m_Impl->entities.Location(entity);
     Chunk* srcChunk = srcArchetype->chunks[loc.chunkIndex];
     const std::uint16_t srcSlot = loc.slot;
 
     if (newMask.Any()) {
-        ChunkView dstView = m_Archetypes.AllocateSlot(*dstArchetype, entity);
+        ChunkView dstView = m_Impl->archetypes.AllocateSlot(*dstArchetype, entity);
         Chunk* dstChunk = dstView.RawChunk();
         const std::uint16_t dstSlot = static_cast<std::uint16_t>(dstChunk->header.count - 1u);
 
@@ -285,30 +341,25 @@ void World::MigrateRemoveComponent(Entity entity, ComponentTypeId typeId) {
             void* dstColumn = dstChunk->data + dstArchetype->columnOffsets[dstIndex];
             void* srcPtr = static_cast<std::uint8_t*>(srcColumn) + info->size * srcSlot;
             void* dstPtr = static_cast<std::uint8_t*>(dstColumn) + info->size * dstSlot;
-            if (const ComponentOps* ops = FindComponentOps(existingId)) {
-                if (ops->destruct) {
-                    ops->destruct(dstPtr, info->size);
-                }
-                if (ops->copy) {
-                    ops->copy(dstPtr, srcPtr, info->size);
-                }
+            if (const ComponentOps* ops = FindComponentOps(existingId); ops && ops->copy) {
+                ops->copy(dstPtr, srcPtr, info->size);
             } else {
                 std::memcpy(dstPtr, srcPtr, info->size);
             }
         }
 
-        const SlotRelocation relocation = m_Archetypes.DeallocateSlot(*srcArchetype, srcChunk, srcSlot);
+        const SlotRelocation relocation = m_Impl->archetypes.DeallocateSlot(*srcArchetype, srcChunk, srcSlot);
         ApplySlotRelocation(relocation);
         loc.archetypeIndex = dstArchetype->index;
         loc.chunkIndex = dstChunk->header.chunkIndex;
         loc.slot = dstSlot;
     } else {
-        const SlotRelocation relocation = m_Archetypes.DeallocateSlot(*srcArchetype, srcChunk, srcSlot);
+        const SlotRelocation relocation = m_Impl->archetypes.DeallocateSlot(*srcArchetype, srcChunk, srcSlot);
         ApplySlotRelocation(relocation);
         loc = {};
     }
 
-    m_Archetypes.BumpStructuralVersion();
+    m_Impl->archetypes.BumpStructuralVersion();
 }
 
 } // namespace we::runtime::ecs

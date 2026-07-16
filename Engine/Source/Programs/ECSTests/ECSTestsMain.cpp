@@ -47,37 +47,33 @@ int g_Passed = 0;
     } while (0)
 
 void TestCreateDestroy() {
-    std::cout << "[test] CreateDestroy\n";
-    std::cout << "  world...\n";
+    std::cout << "[test] CreateDestroy\n" << std::flush;
     World world;
-    std::cout << "  create A...\n";
     Entity a = world.CreateEntity("A");
-    std::cout << "  create B...\n";
     Entity b = world.CreateEntity("B");
     CHECK(world.Valid(a), "entity A valid");
     CHECK(world.Valid(b), "entity B valid");
     CHECK(world.Has<TransformComponent>(a), "default Transform");
     CHECK(world.Has<HierarchyComponent>(a), "default Hierarchy");
-    std::cout << "  destroy A...\n";
     world.DestroyEntity(a);
     CHECK(!world.Valid(a), "entity A destroyed");
     CHECK(world.Valid(b), "entity B still valid");
-    std::cout << "  done CreateDestroy\n";
 }
 
 void TestArchetypeMigration() {
     std::cout << "[test] ArchetypeMigration\n";
     World world;
     Entity e = world.CreateEntity();
-    CHECK(!world.Has<StaticMeshComponent>(e), "no mesh initially");
-    world.AddComponent<StaticMeshComponent>(e, StaticMeshComponent{ 42, "mesh" });
-    CHECK(world.Has<StaticMeshComponent>(e), "mesh after add");
-    CHECK(world.Get<StaticMeshComponent>(e).meshAssetId == 42, "mesh id preserved");
-    world.AddComponent<MaterialComponent>(e, MaterialComponent{ 7, "", {1,0,0,1} });
-    CHECK(world.Has<MaterialComponent>(e) && world.Has<StaticMeshComponent>(e), "both after second add");
-    world.RemoveComponent<StaticMeshComponent>(e);
-    CHECK(!world.Has<StaticMeshComponent>(e), "mesh removed");
-    CHECK(world.Has<MaterialComponent>(e), "material retained");
+    CHECK(!world.Has<DirectionalLightComponent>(e), "no light initially");
+    world.AddComponent<DirectionalLightComponent>(e, DirectionalLightComponent{});
+    world.Get<DirectionalLightComponent>(e).intensity = 3.0f;
+    CHECK(world.Has<DirectionalLightComponent>(e), "light after add");
+    CHECK(std::fabs(world.Get<DirectionalLightComponent>(e).intensity - 3.0f) < 0.01f, "light value");
+    world.AddComponent<CameraComponent>(e, CameraComponent{});
+    CHECK(world.Has<CameraComponent>(e) && world.Has<DirectionalLightComponent>(e), "both after second add");
+    world.RemoveComponent<DirectionalLightComponent>(e);
+    CHECK(!world.Has<DirectionalLightComponent>(e), "light removed");
+    CHECK(world.Has<CameraComponent>(e), "camera retained");
 }
 
 void TestCommandBuffer() {
@@ -144,8 +140,8 @@ void TestRenderExtract() {
     scheduler.OnCreate(registry);
 
     Entity e = registry.Create("mesh");
-    registry.Replace(e, StaticMeshComponent{ 1, "cube" });
-    registry.Replace(e, MaterialComponent{ 2, "", {0.2f, 0.4f, 0.8f, 1.0f} });
+    registry.Replace(e, StaticMeshComponent{ 1, {} });
+    registry.Replace(e, MaterialComponent{ 2, {}, {0.2f, 0.4f, 0.8f, 1.0f} });
     registry.Get<TransformComponent>(e).dirty = true;
     registry.Get<VisibilityComponent>(e).visible = true;
 
@@ -184,7 +180,13 @@ void TestSerializationHooks() {
     std::cout << "[test] SerializationHooks\n";
     World world;
     Entity e = world.CreateEntity("ser");
-    world.AddComponent<TagComponent>(e, TagComponent{ 0xABC, "tag" });
+    TagComponent tag{};
+    tag.mask = 0xABC;
+    const char* label = "tag";
+    for (std::size_t i = 0; i < sizeof(tag.label) - 1 && label[i]; ++i) {
+        tag.label[i] = label[i];
+    }
+    world.AddComponent<TagComponent>(e, tag);
     PrefabAsset asset = PrefabRegistry::Get().CaptureFromWorld(world, e, "p");
     CHECK(!asset.entities.empty(), "prefab capture");
     const PrefabId id = PrefabRegistry::Get().Register("p", asset);
@@ -215,12 +217,12 @@ void TestMillionEntities() {
     });
     const auto tQuery = std::chrono::steady_clock::now();
 
-    // Structural churn on a subset
+    // Structural churn on a subset (POD components — safe across migrations)
     for (std::size_t i = 0; i < 10000 && i < entities.size(); ++i) {
-        world.AddComponent<StaticMeshComponent>(entities[i], StaticMeshComponent{});
+        world.AddComponent<DirectionalLightComponent>(entities[i], DirectionalLightComponent{});
     }
     for (std::size_t i = 0; i < 5000 && i < entities.size(); ++i) {
-        world.RemoveComponent<StaticMeshComponent>(entities[i]);
+        world.RemoveComponent<DirectionalLightComponent>(entities[i]);
     }
     const auto tMigrate = std::chrono::steady_clock::now();
 

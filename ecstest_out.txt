@@ -1,0 +1,5 @@
+ECS production validation
+[test] CreateDestroy
+  before ~World
+  after ~World
+Passed=6 Failed=0

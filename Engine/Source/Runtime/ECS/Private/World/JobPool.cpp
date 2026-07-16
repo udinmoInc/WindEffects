@@ -11,7 +11,6 @@ JobPool::JobPool(std::uint32_t workerCount) {
         workerCount = std::max(1u, hw > 1 ? hw - 1 : 1u);
     }
     m_WorkerCount = std::min(workerCount, kMaxJobThreads);
-    // Workers start lazily on first ParallelFor to avoid init-order / loader-lock issues.
 }
 
 JobPool::~JobPool() {
@@ -34,6 +33,7 @@ void JobPool::EnsureWorkers() {
 }
 
 void JobPool::ShutdownWorkers() {
+    std::vector<std::thread> workers;
     {
         std::lock_guard<std::mutex> lock(m_JobMutex);
         if (!m_Running.load(std::memory_order_relaxed) && m_Workers.empty()) {
@@ -42,14 +42,14 @@ void JobPool::ShutdownWorkers() {
         m_Running.store(false, std::memory_order_release);
         m_CurrentJob = nullptr;
         ++m_JobEpoch;
+        workers.swap(m_Workers);
     }
     m_JobCv.notify_all();
-    for (std::thread& worker : m_Workers) {
+    for (std::thread& worker : workers) {
         if (worker.joinable()) {
             worker.join();
         }
     }
-    m_Workers.clear();
 }
 
 void JobPool::ParallelFor(std::size_t count, const std::function<void(std::size_t)>& fn) {

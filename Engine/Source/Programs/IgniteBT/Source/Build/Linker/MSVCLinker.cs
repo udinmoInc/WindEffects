@@ -584,6 +584,20 @@ public class MSVCLinker : ILinker
             return false;
         }
 
+        // Scalar/vector deleting destructors must never be exported (LNK4102).
+        // Exporting them makes delete/new and cross-module teardown call the wrong free.
+        if (symbol.StartsWith("??_G", StringComparison.Ordinal) ||
+            symbol.StartsWith("??_E", StringComparison.Ordinal))
+        {
+            return false;
+        }
+
+        // STL symbols pulled in via templates/members — not part of the module ABI.
+        if (symbol.Contains("@std@@", StringComparison.Ordinal))
+        {
+            return false;
+        }
+
         // Internal methods that must not be exported (avoids EH metadata link failures).
         if (symbol.Contains("SetExternalSearchFilter", StringComparison.Ordinal))
         {
