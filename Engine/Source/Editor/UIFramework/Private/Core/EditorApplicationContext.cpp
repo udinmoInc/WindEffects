@@ -1,6 +1,7 @@
 #include "WindEffects/Editor/UI/Core/EditorApplicationContext.h"
 
-#include "WindEffects/Editor/UI/Theming/GraphiteDarkTheme.h"
+#include "WindEffects/Editor/UI/Theming/EditorTheme.h"
+#include "WindEffects/Editor/UI/Theming/ThemeManager.h"
 #include "WindEffects/Editor/UI/Resources/ModuleResourceRegistry.h"
 #include "WindEffects/Editor/UI/Events/EventBus.h"
 #include "WindEffects/Editor/UI/Commands/CommandRegistry.h"
@@ -11,9 +12,13 @@
 
 namespace WindEffects::Editor::UI {
 
-EditorApplicationContext::EditorApplicationContext() {
-    m_ThemeProvider = std::make_shared<GraphiteDarkTheme>();
-    m_StyleResolver = std::make_shared<StyleResolver>(m_ThemeProvider);
+EditorApplicationContext::EditorApplicationContext(std::shared_ptr<IThemeProvider> theme) {
+    if (!theme) {
+        theme = std::make_shared<EditorTheme>();
+    }
+    ThemeManager::Get().Initialize(std::move(theme), 1.0f);
+    m_ThemeProvider = ThemeManager::Get().SharedProvider();
+    m_StyleResolver = ThemeManager::Get().SharedResolver();
     m_ResourceRegistry = std::make_shared<ModuleResourceRegistry>();
     m_EventBus = std::make_shared<EventBus>();
     m_CommandRegistry = std::make_shared<CommandRegistry>();
@@ -29,8 +34,19 @@ EditorApplicationContext::EditorApplicationContext() {
     RegisterService(typeid(UIExtensionRegistry), m_ExtensionRegistry);
 }
 
+void EditorApplicationContext::SyncThemeFromManager() {
+    m_ThemeProvider = ThemeManager::Get().SharedProvider();
+    m_StyleResolver = ThemeManager::Get().SharedResolver();
+    RegisterService(typeid(IThemeProvider), m_ThemeProvider);
+    RegisterService(typeid(IStyleResolver), m_StyleResolver);
+}
+
 void EditorApplicationContext::Initialize(float dpiScale) {
-    m_StyleResolver->SetDpiScale(dpiScale);
+    ThemeManager::Get().SetDpiScale(dpiScale);
+    SyncThemeFromManager();
+    if (m_StyleResolver) {
+        m_StyleResolver->SetDpiScale(dpiScale);
+    }
     DPIContext::SetScale(dpiScale);
     m_DockManager->SetLayout(CreateDefaultEditorWorkspaceLayout());
     ExtensionBootstrap::Instance().FlushTo(*m_ExtensionRegistry);
@@ -42,5 +58,3 @@ void EditorApplicationContext::Shutdown() {
 }
 
 } // namespace WindEffects::Editor::UI
-
-

@@ -1,43 +1,35 @@
 #include "WindEffects/Editor/UI/Theming/ThemeAccess.h"
 
-#include "WindEffects/Editor/UI/Theming/GraphiteDarkTheme.h"
+#include "WindEffects/Editor/UI/Theming/ThemeManager.h"
 
 namespace WindEffects::Editor::UI {
-namespace {
-
-IThemeProvider& DefaultThemeProvider() {
-    static GraphiteDarkTheme theme;
-    return theme;
-}
-
-} // namespace
 
 IThemeProvider& ResolveDefaultThemeProvider() {
-    return DefaultThemeProvider();
+    return ThemeManager::Get().Provider();
 }
 
 Color ResolveThemeColor(ThemeToken token) {
-    return DefaultThemeProvider().GetColor(token);
+    return ThemeManager::Get().Provider().GetColor(token);
 }
 
 float ResolveThemeMetric(ThemeToken token) {
-    return DefaultThemeProvider().GetMetric(token);
+    return ThemeManager::Get().Provider().GetMetric(token);
 }
 
 Margin ResolveThemePadding(ThemeToken token) {
-    return DefaultThemeProvider().GetPadding(token);
+    return ThemeManager::Get().Provider().GetPadding(token);
 }
 
 Color ResolveThemeInteractiveBackground(float hoverAnim, float pressAnim, bool selected) {
-    return DefaultThemeProvider().InteractiveBackground(hoverAnim, pressAnim, selected);
+    return ThemeManager::Get().Provider().InteractiveBackground(hoverAnim, pressAnim, selected);
 }
 
 Color ResolveThemeTextForState(bool hovered, bool active) {
-    return DefaultThemeProvider().TextForState(hovered, active);
+    return ThemeManager::Get().Provider().TextForState(hovered, active);
 }
 
 Color ResolveThemeIconForState(bool hovered, bool active) {
-    return DefaultThemeProvider().IconForState(hovered, active);
+    return ThemeManager::Get().Provider().IconForState(hovered, active);
 }
 
 } // namespace WindEffects::Editor::UI

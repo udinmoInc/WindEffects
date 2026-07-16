@@ -1,8 +1,9 @@
-#include "UI/Widgets/LauncherControls.h"
+﻿#include "UI/Widgets/LauncherControls.h"
 
 #include "UI/LauncherHelpers.h"
 
 #include "Core/Animator.h"
+#include "Core/ControlChrome.h"
 #include "Core/DPIContext.h"
 #include "Core/EventSystem.h"
 #include "Core/Icon.h"
@@ -10,6 +11,7 @@
 #include "Rendering/IconMetrics.h"
 #include "Platform/Events.h"
 #include "Platform/PlatformSDK.h"
+#include "WindEffects/Editor/UI/Theming/ThemeManager.h"
 #include "WindEffects/Editor/UI/Theming/ThemeToken.h"
 
 #include <algorithm>
@@ -65,7 +67,7 @@ void EraseLastUtf8Codepoint(std::string& text) {
 
 } // namespace
 
-// â”€â”€ FixedGap â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// Ã¢â€â‚¬Ã¢â€â‚¬ FixedGap Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
 
 FixedGap::FixedGap(float width, float height)
     : m_Width(width)
@@ -86,7 +88,26 @@ void FixedGap::Paint(PaintContext& context) {
     (void)context;
 }
 
-// â”€â”€ LauncherTitleBar â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// â”€â”€ ThinDivider â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+Size ThinDivider::Measure(const Size& availableSize) {
+    const float s = LScale();
+    m_DesiredSize = Size{
+        availableSize.width > 0.0f ? availableSize.width : 100.0f * s,
+        1.0f * s
+    };
+    return m_DesiredSize;
+}
+
+void ThinDivider::Arrange(const Rect& allottedRect) {
+    m_Geometry = allottedRect;
+}
+
+void ThinDivider::Paint(PaintContext& context) {
+    context.DrawRect(m_Geometry, LColor(ThemeToken::Separator));
+}
+
+// â”€â”€ LauncherTitleBar â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 LauncherTitleBar::LauncherTitleBar(we::platform::WindowId window, std::string title)
     : m_Window(window)
@@ -98,69 +119,12 @@ void LauncherTitleBar::SetLogoTexture(we::rhi::RHIDescriptorSetHandle logoSet) {
     InvalidateUI();
 }
 
-void LauncherTitleBar::SetSearchText(const std::string& text) {
-    if (m_SearchText == text) {
-        return;
-    }
-    m_SearchText = text;
-    InvalidateUI();
-}
-
 void LauncherTitleBar::UpdateMaximizeIcon() {
     if (m_Window == we::platform::WindowId::Invalid) {
         return;
     }
     m_IsMaximized = we::platform::Platform::Get().IsWindowMaximized(m_Window);
     InvalidateUI();
-}
-
-void LauncherTitleBar::NotifySearchChanged() {
-    if (m_OnSearchChanged) {
-        m_OnSearchChanged(m_SearchText);
-    }
-    InvalidateUI();
-}
-
-void LauncherTitleBar::AppendSearchCodepoint(char32_t codepoint) {
-    if (!m_SearchFocused) {
-        return;
-    }
-    if (m_SearchText.size() >= 128) {
-        return;
-    }
-    if (AppendUtf8(m_SearchText, codepoint)) {
-        NotifySearchChanged();
-    }
-}
-
-void LauncherTitleBar::HandleSearchKey(const KeyEvent& event) {
-    if (!m_SearchFocused) {
-        return;
-    }
-    bool changed = false;
-    if (event.key == we::platform::KeyCode::Backspace) {
-        if (!m_SearchText.empty()) {
-            EraseLastUtf8Codepoint(m_SearchText);
-            changed = true;
-        }
-    } else if (event.key == we::platform::KeyCode::Escape) {
-        if (!m_SearchText.empty()) {
-            m_SearchText.clear();
-            changed = true;
-        } else {
-            m_SearchFocused = false;
-            InvalidateUI();
-        }
-    } else {
-        const char typed = KeyCodeToChar(event.key, event.shiftDown);
-        if (typed != '\0' && m_SearchText.size() < 128) {
-            m_SearchText.push_back(typed);
-            changed = true;
-        }
-    }
-    if (changed) {
-        NotifySearchChanged();
-    }
 }
 
 Size LauncherTitleBar::Measure(const Size& availableSize) {
@@ -194,34 +158,8 @@ void LauncherTitleBar::LayoutRects() {
     right = m_SettingsRect.x - gap;
     m_HelpRect = Rect{ right - actionW, actionY, actionW, actionH };
 
-    const float brandW = 210.0f * s;
+    const float brandW = 220.0f * s;
     m_BrandRect = Rect{ m_Geometry.x + padL, m_Geometry.y, brandW, h };
-
-    const float searchH = kLauncherSearchH * s;
-    const float searchMax = 420.0f * s;
-    const float searchMin = 180.0f * s;
-    const float leftEdge = m_BrandRect.x + m_BrandRect.width + gap;
-    const float rightEdge = m_HelpRect.x - groupGap;
-    float searchW = std::clamp(rightEdge - leftEdge, searchMin, searchMax);
-    float searchX = m_Geometry.x + (m_Geometry.width - searchW) * 0.5f;
-    searchX = std::max(searchX, leftEdge);
-    if (searchX + searchW > rightEdge) {
-        searchW = std::max(0.0f, rightEdge - searchX);
-    }
-    m_SearchRect = Rect{
-        searchX,
-        m_Geometry.y + (h - searchH) * 0.5f,
-        searchW,
-        searchH
-    };
-
-    const float clear = 14.0f * s;
-    m_ClearRect = Rect{
-        m_SearchRect.x + m_SearchRect.width - clear - 8.0f * s,
-        m_SearchRect.y + (m_SearchRect.height - clear) * 0.5f,
-        clear,
-        clear
-    };
 }
 
 LauncherTitleBar::HitZone LauncherTitleBar::HitTest(const Point& p) const {
@@ -230,12 +168,6 @@ LauncherTitleBar::HitZone LauncherTitleBar::HitTest(const Point& p) const {
     if (m_MinRect.Contains(p)) return HitZone::Minimize;
     if (m_SettingsRect.Contains(p)) return HitZone::Settings;
     if (m_HelpRect.Contains(p)) return HitZone::Help;
-    if (m_SearchRect.Contains(p)) {
-        if (!m_SearchText.empty() && m_ClearRect.Contains(p)) {
-            return HitZone::SearchClear;
-        }
-        return HitZone::Search;
-    }
     if (m_Geometry.Contains(p)) return HitZone::Drag;
     return HitZone::None;
 }
@@ -270,12 +202,11 @@ void LauncherTitleBar::PaintIconButton(
 
 void LauncherTitleBar::Paint(PaintContext& context) {
     const float s = LScale();
-    context.DrawRect(m_Geometry, LColor(ThemeToken::WindowBackground));
+    context.DrawRect(m_Geometry, LColor(ThemeToken::HeaderBackground));
     context.DrawRect(
         Rect{ m_Geometry.x, m_Geometry.y + m_Geometry.height - 1.0f * s, m_Geometry.width, 1.0f * s },
-        LColor(ThemeToken::BorderDark));
+        LColor(ThemeToken::Separator));
 
-    // Brand: logo + title
     const float logoSize = kLauncherLogoDisplaySize * s;
     const float logoX = m_BrandRect.x;
     const float logoY = m_Geometry.y + (m_Geometry.height - logoSize) * 0.5f;
@@ -293,44 +224,6 @@ void LauncherTitleBar::Paint(PaintContext& context) {
         LColor(ThemeToken::TextWindowLabel),
         titleSize,
         true);
-
-    // Centered global search
-    if (m_SearchRect.width > 8.0f) {
-        const float radius = LMetric(ThemeToken::CornerRadiusSmall) * s;
-        Color bg = LColor(ThemeToken::SearchBoxBackground);
-        const float focusMix = std::max(m_SearchHover, m_SearchFocusAnim);
-        if (focusMix > 0.01f) {
-            bg = Color::Lerp(bg, LColor(ThemeToken::HoverBackground), focusMix * 0.35f);
-        }
-        context.DrawRoundedRect(m_SearchRect, bg, radius);
-        Color border = LColor(ThemeToken::BorderDefault);
-        if (m_SearchFocusAnim > 0.01f) {
-            border = Color::Lerp(border, LColor(ThemeToken::BorderFocus), m_SearchFocusAnim);
-        }
-        context.DrawRoundedRectOutline(m_SearchRect, border, 1.0f, radius);
-
-        const float iconSize = static_cast<float>(IconMetrics::NativeIconTierPx(LMetric(ThemeToken::IconSizeSearch)));
-        const float pad = 10.0f * s;
-        IconPainter::DrawIcon(
-            context,
-            Icons::SearchName,
-            Rect{ m_SearchRect.x + pad, m_SearchRect.y + (m_SearchRect.height - iconSize) * 0.5f, iconSize, iconSize },
-            LColor(ThemeToken::IconSecondary));
-
-        const float textSize = LMetric(ThemeToken::TextSizeBody) * s;
-        const float textX = m_SearchRect.x + pad + iconSize + 8.0f * s;
-        const float textY = m_SearchRect.y + (m_SearchRect.height - textSize) * 0.5f;
-        if (m_SearchText.empty()) {
-            context.DrawText(m_SearchPlaceholder, Point{ textX, textY }, LColor(ThemeToken::SearchPlaceholder), textSize);
-        } else {
-            context.DrawText(m_SearchText, Point{ textX, textY }, LColor(ThemeToken::TextPrimary), textSize);
-            IconPainter::DrawIcon(context, Icons::XName, m_ClearRect, LColor(ThemeToken::IconSecondary));
-        }
-        if (m_SearchFocused && m_ShowCaret) {
-            const float caretX = textX + ApproxTextWidth(m_SearchText, textSize);
-            context.DrawRect(Rect{ caretX, textY, 1.0f * s, textSize }, LColor(ThemeToken::TextPrimary));
-        }
-    }
 
     PaintIconButton(context, m_HelpRect, Icons::InfoName, m_HoverHelp);
     PaintIconButton(context, m_SettingsRect, Icons::SettingsName, m_HoverSettings);
@@ -364,14 +257,6 @@ void LauncherTitleBar::OnMouseDown(const MouseEvent& event) {
         return;
     }
     m_PressedZone = HitTest(event.position);
-    if (m_PressedZone == HitZone::Search) {
-        m_SearchFocused = true;
-        m_CaretBlink = 0.0f;
-        m_ShowCaret = true;
-        InvalidateUI();
-    } else if (m_PressedZone != HitZone::SearchClear) {
-        m_SearchFocused = false;
-    }
 }
 
 void LauncherTitleBar::OnMouseUp(const MouseEvent& event) {
@@ -410,10 +295,6 @@ void LauncherTitleBar::OnMouseUp(const MouseEvent& event) {
             m_OnSettings();
         }
         break;
-    case HitZone::SearchClear:
-        m_SearchText.clear();
-        NotifySearchChanged();
-        break;
     default:
         break;
     }
@@ -423,18 +304,6 @@ void LauncherTitleBar::OnMouseUp(const MouseEvent& event) {
 void LauncherTitleBar::OnMouseMove(const MouseEvent& event) {
     m_HoverZone = HitTest(event.position);
     m_Hovered = m_HoverZone != HitZone::None && m_HoverZone != HitZone::Drag;
-}
-
-void LauncherTitleBar::OnKeyDown(const KeyEvent& event) {
-    HandleSearchKey(event);
-}
-
-void LauncherTitleBar::OnFocus() {
-    // Focus managed via search click; keep widget focusable for EventSystem.
-}
-
-void LauncherTitleBar::OnBlur() {
-    m_SearchFocused = false;
 }
 
 bool LauncherTitleBar::ShowsPointerCursor(const Point& position) const {
@@ -449,8 +318,6 @@ we::platform::WindowHitTestResult LauncherTitleBar::WindowHitTest(we::platform::
     case HitZone::Minimize:
     case HitZone::Maximize:
     case HitZone::Close:
-    case HitZone::Search:
-    case HitZone::SearchClear:
     case HitZone::Help:
     case HitZone::Settings:
         return we::platform::WindowHitTestResult::Client;
@@ -468,23 +335,10 @@ void LauncherTitleBar::Tick(float deltaTime) {
     m_HoverClose = Animator::Damp(m_HoverClose, m_HoverZone == HitZone::Close ? 1.0f : 0.0f, damp);
     m_HoverHelp = Animator::Damp(m_HoverHelp, m_HoverZone == HitZone::Help ? 1.0f : 0.0f, damp);
     m_HoverSettings = Animator::Damp(m_HoverSettings, m_HoverZone == HitZone::Settings ? 1.0f : 0.0f, damp);
-    m_SearchHover = Animator::Damp(
-        m_SearchHover,
-        (m_HoverZone == HitZone::Search || m_HoverZone == HitZone::SearchClear) ? 1.0f : 0.0f,
-        damp);
-    m_SearchFocusAnim = Animator::Damp(m_SearchFocusAnim, m_SearchFocused ? 1.0f : 0.0f, damp);
-    if (m_SearchFocused) {
-        m_CaretBlink += deltaTime;
-        if (m_CaretBlink >= 0.53f) {
-            m_CaretBlink = 0.0f;
-            m_ShowCaret = !m_ShowCaret;
-            InvalidateUI();
-        }
-    }
     Widget::Tick(deltaTime);
 }
 
-// â”€â”€ NavSidebar â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// Ã¢â€â‚¬Ã¢â€â‚¬ NavSidebar Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
 
 NavSidebar::NavSidebar() {
     m_Items = {
@@ -559,9 +413,9 @@ void NavSidebar::Arrange(const Rect& allottedRect) {
 Rect NavSidebar::ItemRect(int index) const {
     const float s = LScale();
     const float padH = LMetric(ThemeToken::Space2) * s;
-    const float padTop = LMetric(ThemeToken::Space3) * s;
+    const float padTop = LMetric(ThemeToken::Space4) * s;
     const float itemH = kLauncherNavItemH * s;
-    const float gap = 6.0f * s;
+    const float gap = LMetric(ThemeToken::Space2) * s;
     const float top = m_Geometry.y + padTop + static_cast<float>(index) * (itemH + gap);
     return Rect{
         m_Geometry.x + padH,
@@ -583,55 +437,69 @@ int NavSidebar::HitItem(const Point& p) const {
 void NavSidebar::Paint(PaintContext& context) {
     const float s = LScale();
     context.DrawRect(m_Geometry, LColor(ThemeToken::PanelBackground));
-    context.DrawLine(
-        Point{ m_Geometry.x + m_Geometry.width - 1.0f, m_Geometry.y },
-        Point{ m_Geometry.x + m_Geometry.width - 1.0f, m_Geometry.y + m_Geometry.height },
-        LColor(ThemeToken::BorderDark),
-        1.0f);
+    // Right edge separator is drawn by ThinVerticalDivider in the shell chrome.
 
-    const float radius = LMetric(ThemeToken::CornerRadiusSmall) * s;
     for (int i = 0; i < static_cast<int>(m_Items.size()); ++i) {
         auto& item = m_Items[static_cast<std::size_t>(i)];
         const Rect r = ItemRect(i);
         const bool active = item.page == m_Active;
 
-        Color bg = Color::Transparent();
-        if (item.selectAnim > 0.01f) {
-            bg = Color::Lerp(bg, LColor(ThemeToken::SelectedBackground), item.selectAnim);
-        } else if (item.hoverAnim > 0.01f) {
-            bg = Color::Lerp(bg, LColor(ThemeToken::HoverBackground), item.hoverAnim);
+        ControlChrome::InteractionState state{
+            item.hoverAnim,
+            0.0f,
+            active || item.selectAnim > 0.5f,
+            false,
+            false
+        };
+        if (active || item.selectAnim > 0.01f || item.hoverAnim > 0.01f) {
+            const ResolvedStyle style = ThemeManager::Get().Resolve(
+                active ? StyleRole::SidebarItemActive : StyleRole::SidebarItem);
+            Color bg = Color::Transparent();
+            if (item.selectAnim > 0.01f) {
+                bg = Color::Lerp(bg, style.background.a > 0.01f
+                    ? style.background
+                    : LColor(ThemeToken::SelectedBackground), item.selectAnim);
+            } else if (item.hoverAnim > 0.01f) {
+                bg = Color::Lerp(bg, LColor(ThemeToken::HoverBackground), item.hoverAnim);
+            }
+            if (bg.a > 0.01f) {
+                context.DrawRoundedRect(r, bg, style.cornerRadius);
+            }
+            if (item.selectAnim > 0.01f) {
+                Color accent = LColor(ThemeToken::AccentPrimary);
+                accent.a *= item.selectAnim;
+                context.DrawRect(
+                    Rect{ r.x, r.y + 6.0f * s, 3.0f * s, r.height - 12.0f * s },
+                    accent);
+            }
         }
-        if (bg.a > 0.01f) {
-            context.DrawRoundedRect(r, bg, radius);
-        }
-        if (item.selectAnim > 0.01f) {
-            Color accent = LColor(ThemeToken::AccentPrimary);
-            accent.a *= item.selectAnim;
-            context.DrawRect(
-                Rect{ r.x, r.y + 6.0f * s, 3.0f * s, r.height - 12.0f * s },
-                accent);
-        }
+        (void)state;
 
-        const float iconSize = static_cast<float>(IconMetrics::NativeIconTierPx(LMetric(ThemeToken::IconSizeNavigation)));
+        const ResolvedStyle itemStyle = ThemeManager::Get().Resolve(
+            active ? StyleRole::SidebarItemActive : StyleRole::SidebarItem);
+        const float iconSize = itemStyle.iconSize > 0.0f
+            ? itemStyle.iconSize
+            : static_cast<float>(IconMetrics::NativeIconTierPx(LMetric(ThemeToken::IconSizeNavigation)));
         const float iconPad = LMetric(ThemeToken::Space2) * s;
         const float iconX = r.x + (m_Collapsed ? (r.width - iconSize) * 0.5f : iconPad);
-        const Color iconColor = active
-            ? LColor(ThemeToken::IconAccent)
-            : LColor(ThemeToken::IconSecondary);
         IconPainter::DrawIcon(
             context,
             item.icon,
             Rect{ iconX, r.y + (r.height - iconSize) * 0.5f, iconSize, iconSize },
-            iconColor);
+            itemStyle.icon.a > 0.01f ? itemStyle.icon : (active
+                ? LColor(ThemeToken::IconAccent)
+                : LColor(ThemeToken::IconSecondary)));
 
         if (!m_Collapsed) {
-            const float textSize = LMetric(ThemeToken::TextSizeBody) * s;
+            const float textSize = itemStyle.fontSize > 0.0f
+                ? itemStyle.fontSize
+                : LMetric(ThemeToken::TextSizeBody) * s;
             context.DrawText(
                 item.label,
                 Point{ iconX + iconSize + LMetric(ThemeToken::Space2) * s, r.y + (r.height - textSize) * 0.5f },
-                active ? LColor(ThemeToken::TextPrimary) : LColor(ThemeToken::TextSecondary),
+                itemStyle.foreground,
                 textSize,
-                active);
+                active || itemStyle.bold);
         }
     }
 }
@@ -680,7 +548,7 @@ void NavSidebar::Tick(float deltaTime) {
     Widget::Tick(deltaTime);
 }
 
-// â”€â”€ SearchField â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// Ã¢â€â‚¬Ã¢â€â‚¬ SearchField Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
 
 SearchField::SearchField() = default;
 
@@ -841,7 +709,7 @@ void SearchField::Tick(float deltaTime) {
     Widget::Tick(deltaTime);
 }
 
-// â”€â”€ SegmentedControl â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// Ã¢â€â‚¬Ã¢â€â‚¬ SegmentedControl Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
 
 SegmentedControl::SegmentedControl(std::vector<std::string> labels, std::vector<std::string> icons)
     : m_Labels(std::move(labels))
@@ -957,7 +825,7 @@ void SegmentedControl::Tick(float deltaTime) {
     Widget::Tick(deltaTime);
 }
 
-// â”€â”€ StatusFooter â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// Ã¢â€â‚¬Ã¢â€â‚¬ StatusFooter Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
 
 void StatusFooter::SetStatus(std::string status) {
     m_Status = std::move(status);
@@ -985,15 +853,13 @@ void StatusFooter::Arrange(const Rect& allottedRect) {
 
 void StatusFooter::Paint(PaintContext& context) {
     const float s = LScale();
-    context.DrawRect(m_Geometry, LColor(ThemeToken::StatusBarBackground));
-    context.DrawLine(
-        Point{ m_Geometry.x, m_Geometry.y },
-        Point{ m_Geometry.x + m_Geometry.width, m_Geometry.y },
-        LColor(ThemeToken::BorderDark),
-        1.0f);
+    context.DrawRect(m_Geometry, LColor(ThemeToken::FooterBackground));
+    context.DrawRect(
+        Rect{ m_Geometry.x, m_Geometry.y, m_Geometry.width, 1.0f * s },
+        LColor(ThemeToken::Separator));
 
     const float textSize = LMetric(ThemeToken::TextSizeCaption) * s;
-    const float pad = LMetric(ThemeToken::Space3) * s;
+    const float pad = kLauncherContentPadX * s;
     const float textY = m_Geometry.y + (m_Geometry.height - textSize) * 0.5f;
 
     context.DrawText(m_Status, Point{ m_Geometry.x + pad, textY }, LColor(ThemeToken::TextMuted), textSize);
@@ -1004,7 +870,7 @@ void StatusFooter::Paint(PaintContext& context) {
     }
     if (!m_SdkSummary.empty()) {
         if (!right.empty()) {
-            right += "  Â·  ";
+            right += "  ·  ";
         }
         right += m_SdkSummary;
     }
@@ -1018,7 +884,7 @@ void StatusFooter::Paint(PaintContext& context) {
     }
 }
 
-// â”€â”€ SectionCard â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// Ã¢â€â‚¬Ã¢â€â‚¬ SectionCard Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
 
 SectionCard::SectionCard() {
     m_HeaderHeight = 32.0f;
@@ -1090,7 +956,7 @@ void SectionCard::Tick(float deltaTime) {
     Widget::Tick(deltaTime);
 }
 
-// â”€â”€ EmptyStatePanel â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// Ã¢â€â‚¬Ã¢â€â‚¬ EmptyStatePanel Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
 
 EmptyStatePanel::EmptyStatePanel(std::string title, std::string subtitle, const char* iconName)
     : m_Title(std::move(title))
@@ -1114,11 +980,11 @@ void EmptyStatePanel::SetSecondaryAction(std::string label, const char* icon, st
 
 Size EmptyStatePanel::Measure(const Size& availableSize) {
     const float s = LScale();
-    // Intrinsic hub empty-state height â€” never stretch into a giant black canvas.
-    const float intrinsicH = 320.0f * s;
+    // Stretch to fill the host so the page never shows a large empty void.
+    const float h = availableSize.height > 0.0f ? availableSize.height : 320.0f * s;
     m_DesiredSize = Size{
         availableSize.width > 0.0f ? availableSize.width : 560.0f * s,
-        intrinsicH
+        h
     };
     return m_DesiredSize;
 }
@@ -1133,10 +999,10 @@ void EmptyStatePanel::Arrange(const Rect& allottedRect) {
     const bool hasSecondary = !m_SecondaryLabel.empty();
 
     const float primaryW = hasPrimary
-        ? std::max(120.0f * s, ApproxTextWidth(m_PrimaryLabel, LMetric(ThemeToken::TextSizeToolbar) * s) + 48.0f * s)
+        ? std::max(140.0f * s, ApproxTextWidth(m_PrimaryLabel, LMetric(ThemeToken::TextSizeToolbar) * s) + 48.0f * s)
         : 0.0f;
     const float secondaryW = hasSecondary
-        ? std::max(110.0f * s, ApproxTextWidth(m_SecondaryLabel, LMetric(ThemeToken::TextSizeToolbar) * s) + 48.0f * s)
+        ? std::max(160.0f * s, ApproxTextWidth(m_SecondaryLabel, LMetric(ThemeToken::TextSizeToolbar) * s) + 48.0f * s)
         : 0.0f;
 
     float totalW = primaryW + secondaryW;
@@ -1144,7 +1010,10 @@ void EmptyStatePanel::Arrange(const Rect& allottedRect) {
         totalW += gap;
     }
 
-    const float y = m_Geometry.y + m_Geometry.height * 0.55f;
+    // Vertically center the action row under the illustration block.
+    const float blockH = 220.0f * s;
+    const float blockTop = m_Geometry.y + std::max(24.0f * s, (m_Geometry.height - blockH) * 0.5f);
+    const float y = blockTop + 168.0f * s;
     float x = m_Geometry.x + (m_Geometry.width - totalW) * 0.5f;
 
     m_PrimaryRect = {};
@@ -1170,13 +1039,17 @@ EmptyStatePanel::HitZone EmptyStatePanel::HitTest(const Point& p) const {
 
 void EmptyStatePanel::Paint(PaintContext& context) {
     const float s = LScale();
-    const float cx = m_Geometry.x + m_Geometry.width * 0.5f;
+    // Fill surface so the host never reads as a black void.
+    context.DrawRect(m_Geometry, LColor(ThemeToken::PanelContentBackground));
 
-    // Illustration circle
+    const float cx = m_Geometry.x + m_Geometry.width * 0.5f;
+    const float blockH = 220.0f * s;
+    const float blockTop = m_Geometry.y + std::max(24.0f * s, (m_Geometry.height - blockH) * 0.5f);
+
     const float circle = 72.0f * s;
-    const float circleY = m_Geometry.y + m_Geometry.height * 0.28f - circle * 0.5f;
+    const float circleY = blockTop;
     const Rect circleRect{ cx - circle * 0.5f, circleY, circle, circle };
-    context.DrawRoundedRect(circleRect, LColor(ThemeToken::PanelContentBackground), circle * 0.5f);
+    context.DrawRoundedRect(circleRect, LColor(ThemeToken::PanelBackground), circle * 0.5f);
     Color ring = LColor(ThemeToken::BorderDefault);
     ring.a *= 0.85f;
     context.DrawRoundedRectOutline(circleRect, ring, 1.0f, circle * 0.5f);
@@ -1184,7 +1057,7 @@ void EmptyStatePanel::Paint(PaintContext& context) {
     const float iconSize = 32.0f * s;
     IconPainter::DrawIcon(
         context,
-        m_Icon ? m_Icon : Icons::Cube3DName,
+        m_Icon ? m_Icon : Icons::PackageName,
         Rect{
             cx - iconSize * 0.5f,
             circleY + (circle - iconSize) * 0.5f,
@@ -1217,25 +1090,24 @@ void EmptyStatePanel::Paint(PaintContext& context) {
             return;
         }
         const float radius = LMetric(ThemeToken::CornerRadiusSmall) * s;
-        Color bg = primary ? LColor(ThemeToken::ButtonPrimaryBackground) : Color::Transparent();
+        Color bg = primary
+            ? LColor(ThemeToken::ButtonPrimaryBackground)
+            : LColor(ThemeToken::ActiveBackground);
         if (primary) {
-            bg.a = pressed ? 0.85f : 0.70f;
+            if (pressed) {
+                bg = LColor(ThemeToken::ButtonPrimaryPressed);
+            } else if (hovered) {
+                bg = Color::Lerp(bg, LColor(ThemeToken::ButtonPrimaryHover), 0.85f);
+            }
+        } else if (hovered) {
+            bg = Color::Lerp(bg, LColor(ThemeToken::HoverBackground), 0.75f);
         }
-        if (hovered && !primary) {
-            bg = LColor(ThemeToken::HoverBackground);
-        } else if (hovered && primary) {
-            bg = Color::Lerp(bg, LColor(ThemeToken::ButtonPrimaryHover), 0.55f);
-        }
-        if (bg.a > 0.01f) {
-            context.DrawRoundedRect(r, bg, radius);
-        }
-        if (primary) {
-            Color outline = LColor(ThemeToken::AccentPrimary);
-            outline.a = 0.55f;
-            context.DrawRoundedRectOutline(r, outline, 1.0f, radius);
-        } else {
-            context.DrawRoundedRectOutline(r, LColor(ThemeToken::BorderDefault), 1.0f, radius);
-        }
+        context.DrawRoundedRect(r, bg, radius);
+        context.DrawRoundedRectOutline(
+            r,
+            primary ? LColor(ThemeToken::AccentPrimary) : LColor(ThemeToken::BorderDefault),
+            1.0f,
+            radius);
 
         const float glyph = 14.0f * s;
         const float textSize = LMetric(ThemeToken::TextSizeToolbar) * s;
@@ -1244,7 +1116,7 @@ void EmptyStatePanel::Paint(PaintContext& context) {
             contentW += glyph + 6.0f * s;
         }
         float x = r.x + (r.width - contentW) * 0.5f;
-        const Color fg = primary || hovered ? LColor(ThemeToken::TextPrimary) : LColor(ThemeToken::TextSecondary);
+        const Color fg = LColor(ThemeToken::TextPrimary);
         if (icon && icon[0]) {
             IconPainter::DrawIcon(
                 context,
@@ -1310,7 +1182,126 @@ void EmptyStatePanel::Tick(float deltaTime) {
     Widget::Tick(deltaTime);
 }
 
-// â”€â”€ ModalOverlay â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// â”€â”€ CompactSearchField â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+CompactSearchField::CompactSearchField(std::string placeholder)
+    : m_Placeholder(std::move(placeholder)) {
+}
+
+void CompactSearchField::SetText(std::string text) {
+    if (m_Text == text) {
+        return;
+    }
+    m_Text = std::move(text);
+    InvalidateUI();
+}
+
+void CompactSearchField::AppendCodepoint(char32_t codepoint) {
+    if (!m_Focused) {
+        return;
+    }
+    if (AppendUtf8(m_Text, codepoint) && m_OnChanged) {
+        m_OnChanged(m_Text);
+    }
+    InvalidateUI();
+}
+
+Size CompactSearchField::Measure(const Size& availableSize) {
+    (void)availableSize;
+    const float s = LScale();
+    m_DesiredSize = Size{
+        220.0f * s,
+        LMetric(ThemeToken::HeaderControlHeight) * s
+    };
+    return m_DesiredSize;
+}
+
+void CompactSearchField::Arrange(const Rect& allottedRect) {
+    m_Geometry = allottedRect;
+}
+
+void CompactSearchField::Paint(PaintContext& context) {
+    ControlChrome::InteractionState state{ m_HoverAnim, 0.0f, false, m_Focused, false };
+    ControlChrome::PaintInputFrame(context, m_Geometry, state);
+
+    const float s = LScale();
+    const float iconSize = 14.0f * s;
+    const float pad = 8.0f * s;
+    IconPainter::DrawIcon(
+        context,
+        Icons::SearchName,
+        Rect{
+            m_Geometry.x + pad,
+            m_Geometry.y + (m_Geometry.height - iconSize) * 0.5f,
+            iconSize,
+            iconSize
+        },
+        LColor(ThemeToken::IconSecondary));
+
+    const float textSize = LMetric(ThemeToken::TextSizeCaption) * s;
+    const bool empty = m_Text.empty();
+    const std::string& draw = empty ? m_Placeholder : m_Text;
+    context.DrawText(
+        draw,
+        Point{
+            m_Geometry.x + pad + iconSize + 6.0f * s,
+            m_Geometry.y + (m_Geometry.height - textSize) * 0.5f
+        },
+        empty ? LColor(ThemeToken::SearchPlaceholder) : LColor(ThemeToken::TextPrimary),
+        textSize);
+}
+
+void CompactSearchField::OnMouseDown(const MouseEvent& event) {
+    (void)event;
+}
+
+void CompactSearchField::OnKeyDown(const KeyEvent& event) {
+    if (!m_Focused) {
+        return;
+    }
+    if (event.key == we::platform::KeyCode::Backspace) {
+        if (!m_Text.empty()) {
+            EraseLastUtf8Codepoint(m_Text);
+            if (m_OnChanged) {
+                m_OnChanged(m_Text);
+            }
+            InvalidateUI();
+        }
+    } else if (event.key == we::platform::KeyCode::Escape) {
+        if (!m_Text.empty()) {
+            m_Text.clear();
+            if (m_OnChanged) {
+                m_OnChanged(m_Text);
+            }
+            InvalidateUI();
+        }
+    }
+}
+
+void CompactSearchField::OnFocus() {
+    m_Focused = true;
+    InvalidateUI();
+}
+
+void CompactSearchField::OnBlur() {
+    m_Focused = false;
+    InvalidateUI();
+}
+
+void CompactSearchField::Tick(float deltaTime) {
+    (void)deltaTime;
+    m_HoverAnim = Animator::Damp(
+        m_HoverAnim,
+        m_Hovered ? 1.0f : 0.0f,
+        LMetric(ThemeToken::HoverAnimationDamping));
+    Widget::Tick(deltaTime);
+}
+
+bool CompactSearchField::ShowsPointerCursor(const Point& position) const {
+    return m_Geometry.Contains(position);
+}
+
+// â”€â”€ ModalOverlay â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 void ModalOverlay::SetDialog(const std::shared_ptr<Widget>& dialog) {
     ClearChildren();

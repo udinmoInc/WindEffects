@@ -4,6 +4,7 @@
 #include "Util/PathUtils.h"
 
 #include <fstream>
+#include <sstream>
 
 namespace we::programs::welauncher {
 namespace {
@@ -19,6 +20,61 @@ std::vector<std::string> RequiredProjectFolders() {
         "Intermediate",
         "Binaries",
     };
+}
+
+std::uint64_t EstimateDirectoryBytes(const std::filesystem::path& root, std::size_t maxEntries = 400) {
+    std::uint64_t total = 0;
+    std::size_t seen = 0;
+    std::error_code ec;
+    if (!std::filesystem::exists(root, ec)) {
+        return 0;
+    }
+    const auto options = std::filesystem::directory_options::skip_permission_denied;
+    for (std::filesystem::recursive_directory_iterator it(root, options, ec), end;
+         it != end && !ec && seen < maxEntries;
+         it.increment(ec), ++seen) {
+        if (it->is_regular_file(ec)) {
+            total += it->file_size(ec);
+        }
+    }
+    return total;
+}
+
+std::string JoinPlatforms(const std::vector<std::string>& platforms) {
+    if (platforms.empty()) {
+        return "Windows";
+    }
+    std::ostringstream oss;
+    for (std::size_t i = 0; i < platforms.size(); ++i) {
+        if (i > 0) {
+            oss << ", ";
+        }
+        oss << platforms[i];
+    }
+    return oss.str();
+}
+
+void FillDerivedFields(ProjectSummary& summary, const ProjectTemplateRegistry& templates) {
+    if (!summary.compatible) {
+        summary.statusLabel = "Incompatible";
+    } else if (summary.compatibilityMessage.find("migration") != std::string::npos
+        || summary.compatibilityMessage.find("differs") != std::string::npos) {
+        summary.statusLabel = "Warning";
+    } else {
+        summary.statusLabel = "Compatible";
+    }
+
+    summary.projectType = summary.descriptor.templateId.empty() ? "Project" : summary.descriptor.templateId;
+    summary.platforms = "Windows";
+    summary.description.clear();
+
+    if (const auto* tmpl = templates.Find(summary.descriptor.templateId)) {
+        summary.projectType = tmpl->displayName.empty() ? tmpl->id : tmpl->displayName;
+        summary.platforms = JoinPlatforms(tmpl->platforms);
+        summary.description = tmpl->description;
+    }
+
+    summary.diskBytes = EstimateDirectoryBytes(PathUtils::FromUtf8(summary.projectRoot));
 }
 
 } // namespace
@@ -47,6 +103,7 @@ std::optional<ProjectSummary> ProjectService::LoadSummary(const std::filesystem:
     summary.projectRoot = PathUtils::ToUtf8(weprojPath.parent_path());
     summary.descriptor = json.get<WeProjectDescriptor>();
     summary.compatible = ValidateCompatibility(summary.descriptor, summary.compatibilityMessage);
+    FillDerivedFields(summary, m_Templates);
     return summary;
 }
 

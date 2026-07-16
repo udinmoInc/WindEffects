@@ -60,11 +60,7 @@ private:
     void RebuildLibraryPage();
     void RebuildEnginePage();
     void RebuildSettingsPage();
-    void SelectSettingsCategory(SettingsCategory category);
     void PersistLauncherSettings(const std::string& statusMessage = {});
-    [[nodiscard]] std::shared_ptr<WindEffects::Editor::UI::Widget> BuildSettingsCategoryContent(
-        SettingsCategory category,
-        const std::string& queryLower);
     [[nodiscard]] std::shared_ptr<WindEffects::Editor::UI::Widget> BuildSettingsGeneral(const std::string& queryLower);
     [[nodiscard]] std::shared_ptr<WindEffects::Editor::UI::Widget> BuildSettingsProjects(const std::string& queryLower);
     [[nodiscard]] std::shared_ptr<WindEffects::Editor::UI::Widget> BuildSettingsTemplates(const std::string& queryLower);
@@ -98,27 +94,24 @@ private:
     void RenameSelectedProject(const std::string& newName);
     void DeleteSelectedProject();
     void ShowSelectedInExplorer();
-    void SelectProject(std::size_t index);
+    void SelectProject(std::size_t index, bool additive = false);
     void HandleProjectAction(std::size_t index, ProjectCardAction action);
     void ApplySearchFilter();
     void ApplyProjectSort();
     void OnSearchChanged(const std::string& text);
     void OnViewModeChanged(ProjectViewMode mode);
     void CycleSortMode();
+    void SetSortMode(ProjectSortMode mode);
     void ToggleCompatibleFilter();
     void ShowHelp();
     void ToggleFavorite(const std::string& weprojPath);
     [[nodiscard]] bool IsFavorite(const std::string& weprojPath) const;
     void ShowProjectMoreMenu(std::size_t index);
+    void RegenerateSelectedProjectFiles();
 
-    std::shared_ptr<WindEffects::Editor::UI::Widget> BuildWelcomeHero(bool compact);
-    std::shared_ptr<WindEffects::Editor::UI::Widget> BuildProjectsDashboard();
-    std::shared_ptr<WindEffects::Editor::UI::Widget> BuildProjectsOnboarding();
-    std::shared_ptr<WindEffects::Editor::UI::Widget> BuildRecentProjectsSection();
-    std::shared_ptr<WindEffects::Editor::UI::Widget> BuildRecentlyOpenedSection();
-    std::shared_ptr<WindEffects::Editor::UI::Widget> BuildPinnedProjectsSection();
-    std::shared_ptr<WindEffects::Editor::UI::Widget> BuildTemplatesPreviewSection();
-    std::shared_ptr<WindEffects::Editor::UI::Widget> BuildInstalledEngineSection();
+    std::shared_ptr<WindEffects::Editor::UI::Widget> BuildProjectsPageHeader();
+    std::shared_ptr<WindEffects::Editor::UI::Widget> BuildProjectToolbar();
+    std::shared_ptr<WindEffects::Editor::UI::Widget> BuildProjectsEmptyState();
 
     std::shared_ptr<LauncherContext> m_Context;
     we::platform::WindowId m_Window = we::platform::WindowId::Invalid;
@@ -129,15 +122,17 @@ private:
     std::shared_ptr<WindEffects::Editor::UI::Widget> m_ContentHost;
     std::shared_ptr<StatusFooter> m_Footer;
     std::shared_ptr<ModalOverlay> m_ModalHost;
+    std::shared_ptr<CompactSearchField> m_ProjectsSearch;
 
     std::array<PageState, static_cast<std::size_t>(LauncherPage::Count)> m_Pages{};
 
     std::vector<ProjectSummary> m_Projects;
     std::vector<ProjectSummary> m_FilteredProjects;
     std::vector<std::string> m_FavoritePaths;
+    std::vector<std::size_t> m_MultiSelected;
     int m_SelectedIndex = -1;
     LauncherPage m_Page = LauncherPage::Projects;
-    ProjectViewMode m_ViewMode = ProjectViewMode::Grid;
+    ProjectViewMode m_ViewMode = ProjectViewMode::List;
     ProjectSortMode m_SortMode = ProjectSortMode::Recent;
     bool m_CompatibleOnly = false;
     std::string m_SearchQuery;
@@ -153,7 +148,8 @@ private:
     bool m_PageContentLoading = false;
     float m_PageLoadTimer = 0.0f;
     float m_PageLoadDuration = 0.28f;
-    SettingsCategory m_SettingsCategory = SettingsCategory::General;
+    std::shared_ptr<WindEffects::Editor::UI::Widget> m_SettingsScrollTarget;
+    bool m_SettingsPendingScroll = false;
 };
 
 } // namespace we::programs::welauncher

@@ -1,10 +1,11 @@
 #include "Platform/Platform.h"
 #include "Widgets/TextBox.h"
+#include "Core/ControlChrome.h"
 #include "Core/EventSystem.h"
 #include "Core/PaintContext.h"
+#include "WindEffects/Editor/UI/Theming/ThemeManager.h"
 #include "WindEffects/Editor/UI/Theming/ThemeToken.h"
 #include "Core/Style.h"
-#include "Core/DPIContext.h"
 #include "Core/Animator.h"
 
 namespace WindEffects::Editor::UI {
@@ -17,8 +18,11 @@ TextBox::TextBox(const std::string& initialText, std::function<void(const std::s
 
 Size TextBox::Measure(const Size& availableSize) {
     (void)availableSize;
-    float height = m_Style.text.size + m_Style.padding.top + m_Style.padding.bottom;
-    m_DesiredSize = Size{ 150.0f, height };
+    const ResolvedStyle role = ThemeManager::Get().Resolve(StyleRole::Input);
+    m_DesiredSize = Size{
+        150.0f,
+        role.height > 0.0f ? role.height : ResolveThemeMetric(ThemeToken::SearchBoxHeight)
+    };
     return m_DesiredSize;
 }
 
@@ -27,47 +31,40 @@ void TextBox::Arrange(const Rect& allottedRect) {
 }
 
 void TextBox::Paint(PaintContext& context) {
-    if (!m_Visible) return;
-
-    m_HoverAnim = Animator::Damp(m_HoverAnim, m_Hovered ? 1.0f : 0.0f, 15.0f);
-    m_FocusAnim = Animator::Damp(m_FocusAnim, m_Focused ? 1.0f : 0.0f, 20.0f);
-
-    // Interpolate background color
-    Color bgColor = m_Style.background.color;
-    if (m_HoverAnim > 0.01f) {
-        bgColor = Color::Lerp(bgColor, ThemeColor(ThemeToken::HoverBackground), m_HoverAnim);
+    if (!m_Visible) {
+        return;
     }
 
-    // Draw background
-    context.DrawRoundedRect(m_Geometry, bgColor, m_Style.background.cornerRadius);
+    m_HoverAnim = Animator::Damp(m_HoverAnim, m_Hovered ? 1.0f : 0.0f, ControlChrome::HoverDamping());
+    m_FocusAnim = Animator::Damp(m_FocusAnim, m_Focused ? 1.0f : 0.0f, ControlChrome::HoverDamping());
 
-    // Draw border
-    Color borderColor = m_Style.border.color;
-    if (m_FocusAnim > 0.01f) {
-        borderColor = Color::Lerp(borderColor, m_Style.borderFocused.color, m_FocusAnim);
-    }
-    context.DrawRoundedRectOutline(m_Geometry, borderColor, m_Style.border.width, m_Style.background.cornerRadius);
+    ControlChrome::InteractionState state{ m_HoverAnim, 0.0f, false, m_Focused, false };
+    ControlChrome::PaintInputFrame(context, m_Geometry, state);
 
-    // Draw text
-    float textX = m_Geometry.x + m_Style.padding.left;
-    float textY = m_Geometry.y + (m_Geometry.height - m_Style.text.size) * 0.5f;
-    context.DrawText(m_Text, Point{ textX, textY }, m_Style.text.color, m_Style.text.size);
+    const ResolvedStyle style = ThemeManager::Get().Resolve(StyleRole::Input);
+    const float pad = ResolveThemeMetric(ThemeToken::Space2);
+    const float textX = m_Geometry.x + pad;
+    const float textY = m_Geometry.y + (m_Geometry.height - style.fontSize) * 0.5f;
+    context.DrawText(m_Text, Point{ textX, textY }, style.foreground, style.fontSize);
 
-    // Draw cursor if focused
     if (m_Focused) {
-        float cursorX = textX + m_Text.length() * m_Style.text.size * 0.6f + 2.0f;
-        float cursorY = textY;
-        context.DrawLine(Point{ cursorX, cursorY }, Point{ cursorX, cursorY + m_Style.text.size }, ThemeColor(ThemeToken::AccentPrimary), 1.5f);
+        const float cursorX = textX + static_cast<float>(m_Text.length()) * style.fontSize * 0.55f + 2.0f;
+        context.DrawLine(
+            Point{ cursorX, textY },
+            Point{ cursorX, textY + style.fontSize },
+            ResolveThemeColor(ThemeToken::AccentPrimary),
+            1.5f);
     }
 }
 
 void TextBox::OnMouseDown(const MouseEvent& event) {
     (void)event;
-    // Handled by EventSystem focus router
 }
 
 void TextBox::OnKeyDown(const KeyEvent& event) {
-    if (!m_Focused) return;
+    if (!m_Focused) {
+        return;
+    }
 
     bool changed = false;
 
@@ -77,7 +74,6 @@ void TextBox::OnKeyDown(const KeyEvent& event) {
             changed = true;
         }
     } else if (event.key == we::platform::KeyCode::Enter || event.key == we::platform::KeyCode::Escape) {
-        // Blur text box on commit/cancel
         m_Focused = false;
     } else if (event.key == we::platform::KeyCode::Space) {
         m_Text += ' ';

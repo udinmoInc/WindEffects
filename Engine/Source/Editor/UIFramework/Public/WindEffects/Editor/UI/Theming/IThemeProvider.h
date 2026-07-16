@@ -19,6 +19,8 @@ struct ResolvedStyle {
     Margin padding{};
     float height = 0.0f;
     float iconSize = 16.0f;
+    bool bold = false;
+    int elevation = 0; // 0=none, 1=small, 2=medium, 3=large
 };
 
 class UIFRAMEWORK_API IThemeProvider {

@@ -72,6 +72,9 @@ enum class ThemeToken : uint32_t {
     ButtonPrimaryBackground,
     ButtonPrimaryHover,
     ButtonPrimaryPressed,
+    ButtonDangerBackground,
+    ButtonDangerHover,
+    ButtonDangerPressed,
 
     GizmoBackground,
     GizmoAxisX,
@@ -120,8 +123,10 @@ enum class ThemeToken : uint32_t {
     TextSizeBody,
     TextSizeSmall,
     TextSizeCategory,
+    TextSizeTitle,
 
     BorderWidth,
+    FocusRingWidth,
 
     PanelHeaderHeight,
     PanelTabHeight,
@@ -185,6 +190,9 @@ enum class StyleRole {
     ButtonActive,
     ButtonPrimary,
     ButtonSecondary,
+    ButtonGhost,
+    ButtonDanger,
+    ToolbarButton,
     IconButton,
     IconButtonHover,
     IconButtonPressed,
@@ -206,6 +214,22 @@ enum class StyleRole {
     TextPrimary,
     TextSecondary,
     TextCaption,
+    Card,
+    CardHover,
+    TableHeader,
+    TableRow,
+    TableRowHover,
+    TableRowSelected,
+    SectionHeader,
+    PropertyRow,
+    SidebarItem,
+    SidebarItemActive,
+    WindowHeader,
+    Checkbox,
+    ToggleSwitch,
+    Scrollbar,
+    TreeItem,
+    TreeItemSelected,
 };
 
 } // namespace WindEffects::Editor::UI

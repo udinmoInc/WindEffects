@@ -10,6 +10,8 @@
 #include "WindEffects/Editor/UI/Docking/IDockManager.h"
 #include "WindEffects/Editor/UI/Extensions/UIExtensionRegistry.h"
 
+#include <memory>
+
 namespace WindEffects::Editor::UI {
 
 class UIFRAMEWORK_API IEditorApplicationContext {
@@ -30,10 +32,15 @@ class EditorApplicationContext final
     : public ServiceContainer
     , public IEditorApplicationContext {
 public:
-    UIFRAMEWORK_API EditorApplicationContext();
+    // Defaults to EditorTheme (orange). Pass LauncherTheme for WeLauncher, etc.
+    UIFRAMEWORK_API explicit EditorApplicationContext(
+        std::shared_ptr<IThemeProvider> theme = nullptr);
 
     UIFRAMEWORK_API void Initialize(float dpiScale = 1.0f);
     UIFRAMEWORK_API void Shutdown();
+
+    // Rebind context services after ThemeManager::SetTheme.
+    UIFRAMEWORK_API void SyncThemeFromManager();
 
     [[nodiscard]] IServiceProvider& GetServices() const override { return *const_cast<EditorApplicationContext*>(this); }
     [[nodiscard]] IThemeProvider& GetThemeProvider() const override { return *m_ThemeProvider; }

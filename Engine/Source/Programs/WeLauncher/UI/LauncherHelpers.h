@@ -10,21 +10,29 @@
 
 #include <algorithm>
 #include <chrono>
+#include <cstdint>
+#include <cstdio>
 #include <ctime>
 #include <string>
 
 namespace we::programs::welauncher {
 
 // Editor-matched chrome metrics (logical px, multiply by LScale at use sites).
-inline constexpr float kLauncherTitleBarH = 34.0f;
+// Spacing follows an 8-point grid (4/8/12/16/20/24).
+inline constexpr float kLauncherTitleBarH = 36.0f;
 inline constexpr float kLauncherLogoDisplaySize = 18.0f;
 inline constexpr float kLauncherNavWidth = 212.0f;
 inline constexpr float kLauncherNavCollapsedWidth = 60.0f;
 inline constexpr float kLauncherNavItemH = 40.0f;
-inline constexpr float kLauncherFooterH = 30.0f;
+inline constexpr float kLauncherFooterH = 32.0f;
 inline constexpr float kLauncherSearchH = 28.0f;
 inline constexpr float kLauncherWindowControlW = 40.0f;
 inline constexpr float kLauncherHeaderPadL = 16.0f;
+inline constexpr float kLauncherContentPadX = 24.0f;      // content L/R gutters
+inline constexpr float kLauncherTitleToToolbar = 20.0f;   // below title divider → toolbar
+inline constexpr float kLauncherToolbarToDivider = 16.0f; // toolbar → divider below
+inline constexpr float kLauncherDividerToTable = 12.0f;   // divider → table
+inline constexpr float kLauncherRowPadY = 14.0f;          // table row vertical padding
 
 inline WindEffects::Editor::UI::Color LColor(WindEffects::Editor::UI::ThemeToken token) {
     return WindEffects::Editor::UI::ResolveThemeColor(token);
@@ -90,6 +98,25 @@ inline std::string FormatRelativeTime(const std::string& isoUtc) {
         return std::to_string(days) + (days == 1 ? " day ago" : " days ago");
     }
     return isoUtc.substr(0, 10);
+}
+
+inline std::string FormatByteSize(std::uint64_t bytes) {
+    const char* units[] = { "B", "KB", "MB", "GB", "TB" };
+    double value = static_cast<double>(bytes);
+    int unit = 0;
+    while (value >= 1024.0 && unit < 4) {
+        value /= 1024.0;
+        ++unit;
+    }
+    char buf[48];
+    if (unit == 0) {
+        std::snprintf(buf, sizeof(buf), "%llu %s", static_cast<unsigned long long>(bytes), units[unit]);
+    } else if (value >= 100.0) {
+        std::snprintf(buf, sizeof(buf), "%.0f %s", value, units[unit]);
+    } else {
+        std::snprintf(buf, sizeof(buf), "%.1f %s", value, units[unit]);
+    }
+    return buf;
 }
 
 inline std::string EllipsizePath(const std::string& path, std::size_t maxChars = 48) {

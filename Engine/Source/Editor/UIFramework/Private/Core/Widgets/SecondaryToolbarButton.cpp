@@ -72,7 +72,7 @@ void SecondaryToolbarButton::Paint(PaintContext& context) {
         context.DrawRoundedRect(buttonRect, bgColor, radius);
     }
 
-    if (m_Enabled && m_HoverAnim > 0.01f) {
+    if (m_Enabled) {
         context.DrawRoundedRectOutline(buttonRect, borderColor, baseStyle.borderWidth * 0.5f, radius);
     }
 

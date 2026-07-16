@@ -77,6 +77,10 @@ bool EngineDiscoveryService::Discover(const std::filesystem::path& startDirector
     current.engineRoot = PathUtils::ToUtf8(m_Current.engineRoot);
     current.engineVersion = m_Current.engineVersion;
     current.displayLabel = "Current (" + m_Current.engineVersion + ")";
+    current.buildId = "Development";
+    current.sdkStatus = "Checking…";
+    current.pluginCount = 0;
+    current.updateStatus = "Local development build";
     current.isCurrent = true;
     m_Installed.push_back(current);
 
@@ -92,6 +96,10 @@ bool EngineDiscoveryService::Discover(const std::filesystem::path& startDirector
                     info.engineRoot = utf8;
                     info.engineVersion = extra.engineVersion;
                     info.displayLabel = "Installed (" + extra.engineVersion + ")";
+                    info.buildId = "Development";
+                    info.sdkStatus = "Unknown";
+                    info.pluginCount = 0;
+                    info.updateStatus = "Alternate install";
                     m_Installed.push_back(info);
                 }
             }

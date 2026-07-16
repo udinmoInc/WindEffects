@@ -51,12 +51,22 @@ struct ProjectSummary {
     WeProjectDescriptor descriptor;
     bool compatible = true;
     std::string compatibilityMessage;
+    // Derived display fields for the project manager table / details panel.
+    std::string statusLabel = "Unknown";
+    std::string projectType = "Project";
+    std::string platforms = "Windows";
+    std::string description;
+    std::uint64_t diskBytes = 0;
 };
 
 struct EngineInstallInfo {
     std::string engineRoot;
     std::string engineVersion;
     std::string displayLabel;
+    std::string buildId = "Development";
+    std::string sdkStatus = "Unknown";
+    int pluginCount = 0;
+    std::string updateStatus = "Up to date";
     bool isCurrent = false;
 };
 

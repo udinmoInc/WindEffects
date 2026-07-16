@@ -1,14 +1,63 @@
 #include "WindEffects/Editor/UI/Theming/StyleFactory.h"
 
+#include "WindEffects/Editor/UI/Theming/ThemeManager.h"
+#include "WindEffects/Editor/UI/Theming/ThemeAccess.h"
+#include "WindEffects/Editor/UI/Theming/ThemeToken.h"
+
 namespace WindEffects::Editor::UI {
+namespace {
+
+ShadowStyle ElevationToShadow(int elevation) {
+    switch (elevation) {
+    case 1: return ShadowStyle::Small();
+    case 2: return ShadowStyle::Medium();
+    case 3: return ShadowStyle::Large();
+    default: return ShadowStyle::None();
+    }
+}
+
+WidgetStyle FromRole(StyleRole role, StyleRole hoverRole, StyleRole pressRole) {
+    const auto& styles = ThemeManager::Get().Styles();
+    const ResolvedStyle base = styles.Resolve(role);
+    const ResolvedStyle hover = styles.Resolve(hoverRole);
+    const ResolvedStyle press = styles.Resolve(pressRole);
+
+    WidgetStyle style;
+    style.background = BackgroundStyle{ base.background, base.cornerRadius };
+    style.border = BorderStyle{
+        base.borderWidth,
+        base.border,
+        base.cornerRadius,
+        base.cornerRadius,
+        base.cornerRadius,
+        base.cornerRadius,
+        base.cornerRadius
+    };
+    style.text = TextStyle{ base.foreground, base.fontSize, base.bold, false };
+    style.shadow = ElevationToShadow(base.elevation);
+    style.padding = base.padding;
+    style.backgroundHover = BackgroundStyle{ hover.background, hover.cornerRadius };
+    style.backgroundPressed = BackgroundStyle{ press.background, press.cornerRadius };
+    style.borderFocused = BorderStyle{
+        ResolveThemeMetric(ThemeToken::FocusRingWidth),
+        ResolveThemeColor(ThemeToken::BorderFocus),
+        base.cornerRadius,
+        base.cornerRadius,
+        base.cornerRadius,
+        base.cornerRadius,
+        base.cornerRadius
+    };
+    return style;
+}
+
+} // namespace
 
 BorderStyle StyleFactory::BorderNone() {
     return BorderStyle{0.0f, Color::Transparent(), 0.0f, 0.0f, 0.0f, 0.0f, 0.0f};
 }
 
 BorderStyle StyleFactory::BorderThin(const IStyleResolver& styles) {
-    const auto& theme = styles;
-    const auto resolved = theme.Resolve(StyleRole::Panel);
+    const auto resolved = styles.Resolve(StyleRole::Panel);
     return BorderStyle{
         resolved.borderWidth,
         resolved.border,
@@ -21,8 +70,16 @@ BorderStyle StyleFactory::BorderThin(const IStyleResolver& styles) {
 }
 
 BorderStyle StyleFactory::BorderSelected(const IStyleResolver& styles) {
-    const auto resolved = styles.Resolve(StyleRole::DockTabActive);
-    return BorderStyle{1.5f, resolved.border, resolved.cornerRadius, resolved.cornerRadius, resolved.cornerRadius, resolved.cornerRadius, resolved.cornerRadius};
+    const auto resolved = styles.Resolve(StyleRole::TableRowSelected);
+    return BorderStyle{
+        ResolveThemeMetric(ThemeToken::FocusRingWidth),
+        ResolveThemeColor(ThemeToken::AccentPrimary),
+        resolved.cornerRadius,
+        resolved.cornerRadius,
+        resolved.cornerRadius,
+        resolved.cornerRadius,
+        resolved.cornerRadius
+    };
 }
 
 BackgroundStyle StyleFactory::BackgroundNone() {
@@ -40,12 +97,12 @@ BackgroundStyle StyleFactory::BackgroundToolbar(const IStyleResolver& styles) {
 }
 
 BackgroundStyle StyleFactory::BackgroundHover(const IStyleResolver& styles) {
-    const auto resolved = styles.Resolve(StyleRole::Button);
+    const auto resolved = styles.Resolve(StyleRole::ButtonHover);
     return BackgroundStyle{resolved.background, resolved.cornerRadius};
 }
 
 BackgroundStyle StyleFactory::BackgroundSelected(const IStyleResolver& styles) {
-    const auto resolved = styles.Resolve(StyleRole::Panel);
+    const auto resolved = styles.Resolve(StyleRole::TableRowSelected);
     return BackgroundStyle{resolved.background, resolved.cornerRadius};
 }
 
@@ -65,7 +122,7 @@ TextStyle StyleFactory::TextToolbar(const IStyleResolver& styles) {
 }
 
 TextStyle StyleFactory::TextHeader(const IStyleResolver& styles) {
-    const auto resolved = styles.Resolve(StyleRole::PanelHeader);
+    const auto resolved = styles.Resolve(StyleRole::SectionHeader);
     return TextStyle{resolved.foreground, resolved.fontSize, true, false};
 }
 
@@ -75,84 +132,79 @@ TextStyle StyleFactory::TextBody(const IStyleResolver& styles) {
 }
 
 TextStyle StyleFactory::TextSmall(const IStyleResolver& styles) {
-    const auto resolved = styles.Resolve(StyleRole::TextSecondary);
+    const auto resolved = styles.Resolve(StyleRole::TextCaption);
     return TextStyle{resolved.foreground, resolved.fontSize, false, false};
 }
 
 WidgetStyle StyleFactory::Panel(const IStyleResolver& styles) {
-    WidgetStyle style;
-    style.background = BackgroundPanel(styles);
-    style.border = BorderThin(styles);
-    style.text = TextBody(styles);
-    style.shadow = ShadowStyle::None();
-    style.padding = styles.Resolve(StyleRole::Panel).padding;
-    return style;
+    (void)styles;
+    return FromRole(StyleRole::Panel, StyleRole::CardHover, StyleRole::ButtonActive);
 }
 
 WidgetStyle StyleFactory::Button(const IStyleResolver& styles) {
-    WidgetStyle style;
-    style.background = BackgroundNone();
-    style.border = BorderNone();
-    style.text = TextToolbar(styles);
-    style.shadow = ShadowStyle::None();
-    style.padding = styles.Resolve(StyleRole::Button).padding;
-    style.backgroundHover = BackgroundHover(styles);
-    style.backgroundPressed = BackgroundSelected(styles);
-    return style;
+    (void)styles;
+    return FromRole(StyleRole::ButtonSecondary, StyleRole::ButtonHover, StyleRole::ButtonActive);
 }
 
 WidgetStyle StyleFactory::ToolButton(const IStyleResolver& styles) {
-    return Button(styles);
+    (void)styles;
+    return FromRole(StyleRole::ToolbarButton, StyleRole::ButtonHover, StyleRole::ButtonActive);
 }
 
 WidgetStyle StyleFactory::TextBox(const IStyleResolver& styles) {
-    WidgetStyle style;
-    style.background = BackgroundInput(styles);
-    style.border = BorderThin(styles);
-    style.text = TextBody(styles);
-    style.shadow = ShadowStyle::None();
-    style.padding = Margin{8.0f, 6.0f, 8.0f, 6.0f};
-    style.borderFocused = BorderSelected(styles);
+    (void)styles;
+    WidgetStyle style = FromRole(StyleRole::Input, StyleRole::Input, StyleRole::Input);
+    const auto pad = ThemeManager::Get().Provider().GetPadding(ThemeToken::PaddingButtonLeft);
+    style.padding = Margin{
+        ResolveThemeMetric(ThemeToken::Space2),
+        ResolveThemeMetric(ThemeToken::Space1),
+        ResolveThemeMetric(ThemeToken::Space2),
+        ResolveThemeMetric(ThemeToken::Space1)
+    };
+    (void)pad;
     return style;
 }
 
 WidgetStyle StyleFactory::TreeItem(const IStyleResolver& styles) {
-    WidgetStyle style;
-    style.background = BackgroundNone();
-    style.border = BorderNone();
-    style.text = TextBody(styles);
-    style.shadow = ShadowStyle::None();
-    style.padding = Margin{4.0f, 2.0f, 4.0f, 2.0f};
-    style.backgroundHover = BackgroundHover(styles);
-    style.backgroundPressed = BackgroundSelected(styles);
-    return style;
+    (void)styles;
+    return FromRole(StyleRole::TreeItem, StyleRole::TableRowHover, StyleRole::TreeItemSelected);
 }
 
 WidgetStyle StyleFactory::PropertyLabel(const IStyleResolver& styles) {
-    WidgetStyle style;
-    style.background = BackgroundNone();
-    style.border = BorderNone();
-    style.text = TextSmall(styles);
-    style.shadow = ShadowStyle::None();
-    style.padding = Margin{0.0f, 4.0f, 0.0f, 4.0f};
-    return style;
+    (void)styles;
+    return FromRole(StyleRole::PropertyRow, StyleRole::PropertyRow, StyleRole::PropertyRow);
 }
 
 WidgetStyle StyleFactory::Tab(const IStyleResolver& styles) {
-    WidgetStyle style;
-    style.background = BackgroundNone();
-    style.border = BorderNone();
-    style.text = TextToolbar(styles);
-    style.shadow = ShadowStyle::None();
-    style.padding = Margin{16.0f, 8.0f, 16.0f, 8.0f};
-    style.backgroundHover = BackgroundHover(styles);
-    return style;
+    (void)styles;
+    return FromRole(StyleRole::Tab, StyleRole::ButtonHover, StyleRole::TabActive);
 }
 
 WidgetStyle StyleFactory::TabActive(const IStyleResolver& styles) {
-    WidgetStyle style = Tab(styles);
+    (void)styles;
+    WidgetStyle style = FromRole(StyleRole::TabActive, StyleRole::TabActive, StyleRole::TabActive);
     style.text.bold = true;
     return style;
+}
+
+WidgetStyle WidgetStyle::Panel() {
+    return StyleFactory::Panel(ThemeManager::Get().Styles());
+}
+
+WidgetStyle WidgetStyle::Button() {
+    return StyleFactory::Button(ThemeManager::Get().Styles());
+}
+
+WidgetStyle WidgetStyle::ToolButton() {
+    return StyleFactory::ToolButton(ThemeManager::Get().Styles());
+}
+
+WidgetStyle WidgetStyle::TextBox() {
+    return StyleFactory::TextBox(ThemeManager::Get().Styles());
+}
+
+WidgetStyle WidgetStyle::TreeItem() {
+    return StyleFactory::TreeItem(ThemeManager::Get().Styles());
 }
 
 } // namespace WindEffects::Editor::UI

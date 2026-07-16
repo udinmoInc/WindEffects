@@ -1,7 +1,9 @@
 #include "Layout/ScrollViewport.h"
 
+#include "Core/ControlChrome.h"
 #include "Core/PaintContext.h"
 #include "WindEffects/Editor/UI/Theming/ThemeAccess.h"
+#include "WindEffects/Editor/UI/Theming/ThemeManager.h"
 #include "WindEffects/Editor/UI/Theming/ThemeToken.h"
 
 #include <algorithm>
@@ -111,11 +113,10 @@ void ScrollViewport::Paint(
         return;
     }
 
-    context.DrawRect(metrics.track, ResolveThemeColor(ThemeToken::ScrollbarTrack));
+    const ResolvedStyle style = ThemeManager::Get().Resolve(StyleRole::Scrollbar);
+    context.DrawRect(metrics.track, style.background);
 
-    Color thumbColor = thumbHovered || m_DraggingThumb
-        ? ResolveThemeColor(ThemeToken::ScrollbarThumbHover)
-        : ResolveThemeColor(ThemeToken::ScrollbarThumb);
+    Color thumbColor = thumbHovered || m_DraggingThumb ? style.border : style.foreground;
     context.DrawRoundedRect(metrics.thumb, thumbColor, metrics.thumb.width * 0.5f);
 }
 
