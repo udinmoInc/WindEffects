@@ -17,6 +17,8 @@ public class Renderer : ModuleRules
         PublicDependencies.Add("Platform");
         PublicDependencies.Add("RHI");
         PublicDependencies.Add("Engine");
+        // ExtractedFrameData POD packet lives in ECS; Renderer never touches World/Chunks.
+        PublicDependencies.Add("ECS");
 
         AddOptionalThirdParty("glm");
         DefineIf(HasThirdParty("glm"), "WE_HAS_GLM=1");

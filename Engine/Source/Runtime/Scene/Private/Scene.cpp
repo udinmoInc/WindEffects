@@ -1,11 +1,18 @@
 #include "Scene/Scene.h"
+
 #include "Core/Logger.h"
 #include "ECS/Registry.h"
 #include "ECS/System.h"
 #include "ECS/Components/CoreComponents.h"
+#include "ECS/RenderExtract.h"
+#include "ECS/World.h"
+
+#include <cstring>
+
 #if WE_HAS_GLM
 #include <glm/glm.hpp>
 #endif
+
 namespace we::runtime::scene {
 
 namespace {
@@ -24,6 +31,7 @@ using we::runtime::ecs::SkyAtmosphereComponent;
 using we::runtime::ecs::VolumetricCloudComponent;
 using we::runtime::ecs::TerrainComponent;
 using we::runtime::ecs::AudioSourceComponent;
+using we::runtime::ecs::VisibilityComponent;
 
 void ApplyDefaultEntityProperties(Entity& entity, EntityType type) {
     entity.Mode = 0;
@@ -73,6 +81,32 @@ void ApplyDefaultEntityProperties(Entity& entity, EntityType type) {
     }
 }
 
+Entity ProjectFromEcs(const we::runtime::ecs::Registry& registry, we::runtime::ecs::Entity ecs) {
+    Entity view{};
+    view.Id = ecs.id;
+
+    if (const NameComponent* name = registry.TryGet<NameComponent>(ecs)) {
+        view.Name = name->value;
+    }
+    if (const TransformComponent* t = registry.TryGet<TransformComponent>(ecs)) {
+        view.Position = t->localPosition;
+        view.Rotation = t->localRotation;
+        view.Scale = t->localScale;
+    }
+    if (const HierarchyComponent* h = registry.TryGet<HierarchyComponent>(ecs)) {
+        view.ParentId = h->parent ? h->parent.id : 0;
+    }
+    if (const LegacyActorComponent* legacy = registry.TryGet<LegacyActorComponent>(ecs)) {
+        view.Type = static_cast<EntityType>(legacy->entityType);
+        view.EditorOnly = legacy->editorOnly;
+        view.Mode = legacy->mode;
+    }
+    if (const MaterialComponent* mat = registry.TryGet<MaterialComponent>(ecs)) {
+        view.Color = mat->color;
+    }
+    return view;
+}
+
 } // namespace
 
 Scene::Scene()
@@ -86,7 +120,7 @@ Scene::~Scene() {
     if (m_Systems && m_Registry) {
         m_Systems->OnDestroy(*m_Registry);
     }
-    DestroyEntity(0xFFFFFFFF);
+    Clear();
 }
 
 we::runtime::ecs::Registry& Scene::Registry() {
@@ -97,11 +131,39 @@ const we::runtime::ecs::Registry& Scene::Registry() const {
     return *m_Registry;
 }
 
+we::runtime::ecs::World& Scene::World() {
+    return m_Registry->GetWorld();
+}
+
+const we::runtime::ecs::World& Scene::World() const {
+    return m_Registry->GetWorld();
+}
+
 we::runtime::ecs::SystemScheduler& Scene::Systems() {
     return *m_Systems;
 }
 
-void Scene::AttachEcsComponents(Entity& entity, std::uint64_t ecsEntityId) {
+we::runtime::ecs::RenderExtractionSystem* Scene::FindExtractionSystem() const {
+    for (const auto& system : m_Systems->Systems()) {
+        if (!system) {
+            continue;
+        }
+        // Prefer name match — avoids RTTI dependency (/GR- on some toolchains).
+        if (std::strcmp(system->Name(), "RenderExtractionSystem") == 0) {
+            return static_cast<we::runtime::ecs::RenderExtractionSystem*>(system.get());
+        }
+    }
+    return nullptr;
+}
+
+const we::runtime::ecs::ExtractedFrameData* Scene::GetExtractedFrame() const {
+    if (const we::runtime::ecs::RenderExtractionSystem* extract = FindExtractionSystem()) {
+        return &extract->FrameData();
+    }
+    return nullptr;
+}
+
+void Scene::AttachEcsComponents(const Entity& entity, std::uint64_t ecsEntityId) {
     const we::runtime::ecs::Entity ecsEntity{ ecsEntityId };
     m_Registry->Replace(ecsEntity, NameComponent{ entity.Name });
 
@@ -170,6 +232,7 @@ void Scene::CreateEntity(const std::string& name, EntityType type) {
         return;
     }
 
+    // ECS is the source of truth — create there first.
     const we::runtime::ecs::Entity ecsEntity = m_Registry->Create(name);
 
     Entity entity{};
@@ -178,12 +241,12 @@ void Scene::CreateEntity(const std::string& name, EntityType type) {
     entity.Type = type;
     ApplyDefaultEntityProperties(entity, type);
     AttachEcsComponents(entity, ecsEntity.id);
-    m_Entities.push_back(entity);
+    m_ViewCache.push_back(entity);
     HE_INFO("Created scene entity: " + name);
 }
 
 bool Scene::HasEntityOfType(EntityType type) const {
-    for (const Entity& entity : m_Entities) {
+    for (const Entity& entity : m_ViewCache) {
         if (entity.Type == type) {
             return true;
         }
@@ -192,7 +255,7 @@ bool Scene::HasEntityOfType(EntityType type) const {
 }
 
 bool Scene::HasEntityNamed(const std::string& name) const {
-    for (const Entity& entity : m_Entities) {
+    for (const Entity& entity : m_ViewCache) {
         if (entity.Name == name) {
             return true;
         }
@@ -201,8 +264,8 @@ bool Scene::HasEntityNamed(const std::string& name) const {
 }
 
 int Scene::FindEntityIndexById(std::uint64_t id) const {
-    for (size_t i = 0; i < m_Entities.size(); ++i) {
-        if (m_Entities[i].Id == id) {
+    for (size_t i = 0; i < m_ViewCache.size(); ++i) {
+        if (m_ViewCache[i].Id == id) {
             return static_cast<int>(i);
         }
     }
@@ -210,8 +273,8 @@ int Scene::FindEntityIndexById(std::uint64_t id) const {
 }
 
 int Scene::FindEntityIndexByName(const std::string& name) const {
-    for (size_t i = 0; i < m_Entities.size(); ++i) {
-        if (m_Entities[i].Name == name) {
+    for (size_t i = 0; i < m_ViewCache.size(); ++i) {
+        if (m_ViewCache[i].Name == name) {
             return static_cast<int>(i);
         }
     }
@@ -220,18 +283,18 @@ int Scene::FindEntityIndexByName(const std::string& name) const {
 
 Entity* Scene::FindEntityById(std::uint64_t id) {
     const int index = FindEntityIndexById(id);
-    return index >= 0 ? &m_Entities[static_cast<size_t>(index)] : nullptr;
+    return index >= 0 ? &m_ViewCache[static_cast<size_t>(index)] : nullptr;
 }
 
 const Entity* Scene::FindEntityById(std::uint64_t id) const {
     const int index = FindEntityIndexById(id);
-    return index >= 0 ? &m_Entities[static_cast<size_t>(index)] : nullptr;
+    return index >= 0 ? &m_ViewCache[static_cast<size_t>(index)] : nullptr;
 }
 
 std::vector<int> Scene::FindChildIndices(std::uint64_t parentId) const {
     std::vector<int> children;
-    for (size_t i = 0; i < m_Entities.size(); ++i) {
-        if (m_Entities[i].ParentId == parentId) {
+    for (size_t i = 0; i < m_ViewCache.size(); ++i) {
+        if (m_ViewCache[i].ParentId == parentId) {
             children.push_back(static_cast<int>(i));
         }
     }
@@ -239,7 +302,7 @@ std::vector<int> Scene::FindChildIndices(std::uint64_t parentId) const {
 }
 
 bool Scene::IsEmpty() const {
-    return m_Entities.empty();
+    return m_Registry->LivingCount() == 0;
 }
 
 void Scene::Clear() {
@@ -248,22 +311,22 @@ void Scene::Clear() {
 
 void Scene::DestroyEntity(size_t index) {
     if (index == 0xFFFFFFFF) {
-        for (const Entity& entity : m_Entities) {
-            m_Registry->Destroy(we::runtime::ecs::Entity{ entity.Id });
-        }
-        m_Entities.clear();
+        m_Registry->Clear();
+        m_ViewCache.clear();
         m_SelectedEntityIndex = -1;
         m_SelectedEntityId = 0;
         return;
     }
 
-    if (index >= m_Entities.size()) return;
+    if (index >= m_ViewCache.size()) {
+        return;
+    }
 
-    const std::uint64_t destroyedId = m_Entities[index].Id;
+    const std::uint64_t destroyedId = m_ViewCache[index].Id;
     m_Registry->Destroy(we::runtime::ecs::Entity{ destroyedId });
-    m_Entities.erase(m_Entities.begin() + static_cast<std::ptrdiff_t>(index));
+    m_ViewCache.erase(m_ViewCache.begin() + static_cast<std::ptrdiff_t>(index));
 
-    for (auto& childEntity : m_Entities) {
+    for (auto& childEntity : m_ViewCache) {
         if (childEntity.ParentId == destroyedId) {
             childEntity.ParentId = 0;
             if (HierarchyComponent* h = m_Registry->TryGet<HierarchyComponent>(
@@ -286,8 +349,8 @@ void Scene::DestroyEntity(size_t index) {
 
 void Scene::SetSelectedEntityIndex(int index) {
     m_SelectedEntityIndex = index;
-    if (index >= 0 && index < static_cast<int>(m_Entities.size())) {
-        m_SelectedEntityId = m_Entities[static_cast<std::size_t>(index)].Id;
+    if (index >= 0 && index < static_cast<int>(m_ViewCache.size())) {
+        m_SelectedEntityId = m_ViewCache[static_cast<std::size_t>(index)].Id;
     } else {
         m_SelectedEntityId = 0;
     }
@@ -298,83 +361,92 @@ void Scene::SetSelectedEntityId(std::uint64_t id) {
     m_SelectedEntityIndex = FindEntityIndexById(id);
 }
 
-void Scene::SyncLegacyToEcs() {
-    we::runtime::ecs::HierarchySystem hierarchy;
-    for (Entity& entity : m_Entities) {
-        const we::runtime::ecs::Entity ecs{ entity.Id };
-        if (!m_Registry->Valid(ecs)) {
-            continue;
-        }
+void Scene::PushViewEntityToEcs(const Entity& entity) {
+    const we::runtime::ecs::Entity ecs{ entity.Id };
+    if (!m_Registry->Valid(ecs)) {
+        return;
+    }
 
-        if (NameComponent* name = m_Registry->TryGet<NameComponent>(ecs)) {
-            name->value = entity.Name;
-        } else {
-            m_Registry->Add<NameComponent>(ecs, NameComponent{ entity.Name });
-        }
+    if (NameComponent* name = m_Registry->TryGet<NameComponent>(ecs)) {
+        name->value = entity.Name;
+    } else {
+        m_Registry->Add<NameComponent>(ecs, NameComponent{ entity.Name });
+    }
 
-        if (TransformComponent* t = m_Registry->TryGet<TransformComponent>(ecs)) {
-            if (t->localPosition != entity.Position
-                || t->localRotation != entity.Rotation
-                || t->localScale != entity.Scale) {
-                t->localPosition = entity.Position;
-                t->localRotation = entity.Rotation;
-                t->localScale = entity.Scale;
-                t->dirty = true;
-            }
-        }
-
-        if (LegacyActorComponent* legacy = m_Registry->TryGet<LegacyActorComponent>(ecs)) {
-            legacy->entityType = static_cast<int>(entity.Type);
-            legacy->editorOnly = entity.EditorOnly;
-            legacy->mode = entity.Mode;
-        }
-
-        if (MaterialComponent* mat = m_Registry->TryGet<MaterialComponent>(ecs)) {
-            mat->color = entity.Color;
-        }
-
-        HierarchyComponent* h = m_Registry->TryGet<HierarchyComponent>(ecs);
-        const std::uint64_t ecsParent = h && h->parent ? h->parent.id : 0;
-        if (ecsParent != entity.ParentId) {
-            hierarchy.SetParent(*m_Registry, ecs,
-                entity.ParentId ? we::runtime::ecs::Entity{ entity.ParentId }
-                                : we::runtime::ecs::Entity{});
+    if (TransformComponent* t = m_Registry->TryGet<TransformComponent>(ecs)) {
+        if (t->localPosition != entity.Position
+            || t->localRotation != entity.Rotation
+            || t->localScale != entity.Scale) {
+            t->localPosition = entity.Position;
+            t->localRotation = entity.Rotation;
+            t->localScale = entity.Scale;
+            t->dirty = true;
         }
     }
+
+    if (LegacyActorComponent* legacy = m_Registry->TryGet<LegacyActorComponent>(ecs)) {
+        legacy->entityType = static_cast<int>(entity.Type);
+        legacy->editorOnly = entity.EditorOnly;
+        legacy->mode = entity.Mode;
+    }
+
+    if (MaterialComponent* mat = m_Registry->TryGet<MaterialComponent>(ecs)) {
+        mat->color = entity.Color;
+    }
+
+    HierarchyComponent* h = m_Registry->TryGet<HierarchyComponent>(ecs);
+    const std::uint64_t ecsParent = h && h->parent ? h->parent.id : 0;
+    if (ecsParent != entity.ParentId) {
+        we::runtime::ecs::HierarchySystem hierarchy;
+        hierarchy.SetParent(*m_Registry, ecs,
+            entity.ParentId ? we::runtime::ecs::Entity{ entity.ParentId }
+                            : we::runtime::ecs::Entity{});
+    }
+}
+
+void Scene::SyncViewToEcs() {
+    for (const Entity& entity : m_ViewCache) {
+        PushViewEntityToEcs(entity);
+    }
+}
+
+void Scene::RebuildViewFromEcs() {
+    m_ViewCache.clear();
+    m_Registry->GetWorld().Entities().ForEachLiving([&](we::runtime::ecs::Entity ecs) {
+        // Skip entities without LegacyActor (pure runtime/system entities).
+        if (!m_Registry->Has<LegacyActorComponent>(ecs)) {
+            return;
+        }
+        m_ViewCache.push_back(ProjectFromEcs(*m_Registry, ecs));
+    });
+
+    if (m_SelectedEntityId != 0) {
+        m_SelectedEntityIndex = FindEntityIndexById(m_SelectedEntityId);
+        if (m_SelectedEntityIndex < 0) {
+            m_SelectedEntityId = 0;
+        }
+    }
+}
+
+void Scene::SyncLegacyToEcs() {
+    SyncViewToEcs();
 }
 
 void Scene::SyncEcsToLegacy() {
-    for (Entity& entity : m_Entities) {
-        const we::runtime::ecs::Entity ecs{ entity.Id };
-        if (!m_Registry->Valid(ecs)) {
-            continue;
-        }
-
-        if (const NameComponent* name = m_Registry->TryGet<NameComponent>(ecs)) {
-            entity.Name = name->value;
-        }
-        if (const TransformComponent* t = m_Registry->TryGet<TransformComponent>(ecs)) {
-            entity.Position = t->localPosition;
-            entity.Rotation = t->localRotation;
-            entity.Scale = t->localScale;
-        }
-        if (const HierarchyComponent* h = m_Registry->TryGet<HierarchyComponent>(ecs)) {
-            entity.ParentId = h->parent ? h->parent.id : 0;
-        }
-        if (const LegacyActorComponent* legacy = m_Registry->TryGet<LegacyActorComponent>(ecs)) {
-            entity.EditorOnly = legacy->editorOnly;
-            entity.Mode = legacy->mode;
-        }
-        if (const MaterialComponent* mat = m_Registry->TryGet<MaterialComponent>(ecs)) {
-            entity.Color = mat->color;
-        }
-    }
+    RebuildViewFromEcs();
 }
 
 void Scene::Update() {
-    SyncLegacyToEcs();
-    m_Systems->Update(*m_Registry, 1.0f / 60.0f);
-    SyncEcsToLegacy();
+    Update(1.0f / 60.0f);
+}
+
+void Scene::Update(float deltaSeconds) {
+    // 1) Editor view mutations → ECS
+    SyncViewToEcs();
+    // 2) Systems (transform, extract, …) on ECS World
+    m_Systems->Update(*m_Registry, deltaSeconds);
+    // 3) Rebuild editor projection from ECS authority
+    RebuildViewFromEcs();
 }
 
 } // namespace we::runtime::scene

@@ -11,6 +11,7 @@
 #include "Platform/Types.h"
 #include "RHI/IRHI.h"
 #include "RHI/Types.h"
+#include "ECS/RenderExtract.h"
 
 #include <cstdint>
 #include <functional>
@@ -42,6 +43,13 @@ public:
     void UploadCameraUniform(const CameraUniform& uniform);
     void UploadEnvironmentUniform(const SceneEnvironmentUniform& uniform);
     void InsertOverlayPassBarrier();
+
+    // Bind frame-local extract packet (filled by ECS RenderExtractionSystem).
+    // Renderer never owns entities — only consumes this POD packet.
+    void SetExtractedFrame(const we::runtime::ecs::ExtractedFrameData* frame);
+    [[nodiscard]] const we::runtime::ecs::ExtractedFrameData* GetExtractedFrame() const {
+        return m_ExtractedFrame;
+    }
 
     void SetOverlayRecorder(OverlayRecordFn recorder);
     void ClearOverlayRecorder();
@@ -111,6 +119,7 @@ private:
 
     CameraUniform m_LastCamera{};
     SceneEnvironmentUniform m_LastEnvironment{};
+    const we::runtime::ecs::ExtractedFrameData* m_ExtractedFrame = nullptr;
     OverlayRecordFn m_OverlayRecorder;
 
     uint64_t m_PresentAuditFrameNumber = 0;

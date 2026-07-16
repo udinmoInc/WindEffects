@@ -332,12 +332,10 @@ void Renderer::RenderScene() {
         &m_LastCamera));
     m_RenderGraph->AddPass(std::make_unique<StubGraphicsPass>(
         "TerrainPass", terrainId, we::rhi::ResourceState::RenderTarget, depthId, we::rhi::ResourceState::DepthRead));
-    m_RenderGraph->AddPass(std::make_unique<StubGraphicsPass>(
-        "PbrOpaquePass",
+    m_RenderGraph->AddPass(std::make_unique<PbrOpaquePass>(
         gbufferId,
-        we::rhi::ResourceState::RenderTarget,
         shadowId,
-        we::rhi::ResourceState::ShaderResource));
+        m_ExtractedFrame));
     m_RenderGraph->AddPass(std::make_unique<StubComputePass>(
         "CloudsPass", cloudsId, atmosphereId));
     m_RenderGraph->AddPass(std::make_unique<StubGraphicsPass>(
@@ -360,6 +358,10 @@ void Renderer::RenderScene() {
 
 void Renderer::SetOverlayRecorder(OverlayRecordFn recorder) {
     m_OverlayRecorder = std::move(recorder);
+}
+
+void Renderer::SetExtractedFrame(const we::runtime::ecs::ExtractedFrameData* frame) {
+    m_ExtractedFrame = frame;
 }
 
 void Renderer::ClearOverlayRecorder() {

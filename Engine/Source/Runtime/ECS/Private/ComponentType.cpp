@@ -1,4 +1,6 @@
 #include "ECS/ComponentType.h"
+#include "ECS/ComponentOps.h"
+#include "ECS/Components/CoreComponents.h"
 
 namespace we::runtime::ecs {
 
@@ -9,6 +11,49 @@ ComponentTypeRegistry::ComponentTypeRegistry() {
 ComponentTypeRegistry& ComponentTypeRegistry::Get() {
     static ComponentTypeRegistry instance;
     return instance;
+}
+
+void ComponentTypeRegistry::EnsureCoreTypesRegistered() {
+    if (m_CoreRegistered) {
+        return;
+    }
+    m_CoreRegistered = true;
+
+    Register<NameComponent>("Name");
+    Register<TagComponent>("Tag");
+    Register<UuidComponent>("Uuid");
+    Register<TransformComponent>("Transform");
+    Register<HierarchyComponent>("Hierarchy");
+    Register<VisibilityComponent>("Visibility");
+    Register<CameraComponent>("Camera");
+    Register<DirectionalLightComponent>("DirectionalLight");
+    Register<PointLightComponent>("PointLight");
+    Register<SpotLightComponent>("SpotLight");
+    Register<StaticMeshComponent>("StaticMesh");
+    Register<MaterialComponent>("Material");
+    Register<SkyAtmosphereComponent>("SkyAtmosphere");
+    Register<VolumetricCloudComponent>("VolumetricCloud");
+    Register<TerrainComponent>("Terrain");
+    Register<WaterComponent>("Water");
+    Register<ColliderComponent>("Collider");
+    Register<RigidBodyComponent>("RigidBody");
+    Register<AudioSourceComponent>("AudioSource");
+    Register<ScriptComponent>("Script");
+    Register<AnimationComponent>("Animation");
+    Register<LODComponent>("LOD");
+    Register<LegacyActorComponent>("LegacyActor");
+
+    RegisterComponentOps(Id<TransformComponent>(), MakeOpsFor<TransformComponent>());
+    RegisterComponentOps(Id<HierarchyComponent>(), MakeOpsFor<HierarchyComponent>());
+    RegisterComponentOps(Id<VisibilityComponent>(), MakeOpsFor<VisibilityComponent>());
+    RegisterComponentOps(Id<NameComponent>(), MakeOpsFor<NameComponent>());
+    RegisterComponentOps(Id<TagComponent>(), MakeOpsFor<TagComponent>());
+    RegisterComponentOps(Id<StaticMeshComponent>(), MakeOpsFor<StaticMeshComponent>());
+    RegisterComponentOps(Id<MaterialComponent>(), MakeOpsFor<MaterialComponent>());
+    RegisterComponentOps(Id<UuidComponent>(), MakeOpsFor<UuidComponent>());
+    RegisterComponentOps(Id<AudioSourceComponent>(), MakeOpsFor<AudioSourceComponent>());
+    RegisterComponentOps(Id<ScriptComponent>(), MakeOpsFor<ScriptComponent>());
+    RegisterComponentOps(Id<AnimationComponent>(), MakeOpsFor<AnimationComponent>());
 }
 
 ComponentTypeId ComponentTypeRegistry::RegisterType(

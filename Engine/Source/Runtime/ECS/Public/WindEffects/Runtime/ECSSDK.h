@@ -10,6 +10,8 @@
 #include "ECS/CommandBuffer.h"
 #include "ECS/Prefab.h"
 #include "ECS/Reflection.h"
+#include "ECS/RenderExtract.h"
+#include "ECS/SharedComponentStore.h"
 #include "ECS/Components/CoreComponents.h"
 #include "ECS/Serialization/SceneSerializer.h"
 #include "ECS/View.h"

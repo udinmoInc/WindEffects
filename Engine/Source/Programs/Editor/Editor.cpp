@@ -546,6 +546,9 @@ void Editor::MainLoop() {
                 m_Renderer->UploadEnvironmentUniform(envUBO);
             }
 
+            // Forward ECS extract packet — Renderer never queries World/entities.
+            m_Renderer->SetExtractedFrame(m_Scene ? m_Scene->GetExtractedFrame() : nullptr);
+
             // CPU UI build + viewport sync before the graph (GPU overlay records inside UiOverlayPass).
             if (m_OverlayRenderer) {
                 const uint32_t imageIndex = m_Renderer->GetCurrentImageIndex();

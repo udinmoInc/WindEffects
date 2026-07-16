@@ -6,6 +6,7 @@
 #include "Camera/CameraUniform.h"
 #include "Lighting/SceneEnvironmentUniform.h"
 #include "Renderer/Graph/RenderGraph.h"
+#include "ECS/RenderExtract.h"
 
 #include <functional>
 
@@ -135,6 +136,24 @@ private:
     uint32_t m_ReadId = kInvalidGraphResourceId;
     we::rhi::ResourceState m_WriteState = we::rhi::ResourceState::RenderTarget;
     we::rhi::ResourceState m_ReadState = we::rhi::ResourceState::ShaderResource;
+};
+
+// Consumes ECS ExtractedFrameData mesh/light lists (no ECS World access).
+class RENDERER_API PbrOpaquePass final : public RenderPass {
+public:
+    PbrOpaquePass(
+        uint32_t writeTextureId,
+        uint32_t shadowTextureId,
+        const we::runtime::ecs::ExtractedFrameData* extract);
+    void Setup(std::vector<GraphTextureRef>& textures, std::vector<GraphBufferRef>& buffers) override;
+    void Execute(const GraphPassContext& ctx) override;
+    [[nodiscard]] std::size_t LastMeshCount() const { return m_LastMeshCount; }
+
+private:
+    uint32_t m_WriteId = kInvalidGraphResourceId;
+    uint32_t m_ShadowId = kInvalidGraphResourceId;
+    const we::runtime::ecs::ExtractedFrameData* m_Extract = nullptr;
+    std::size_t m_LastMeshCount = 0;
 };
 
 class RENDERER_API StubComputePass final : public RenderPass {

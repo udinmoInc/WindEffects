@@ -77,6 +77,9 @@ class ECS_API ComponentTypeRegistry {
 public:
     static ComponentTypeRegistry& Get();
 
+    // Registers all CoreComponentId types + ops. Safe to call repeatedly.
+    void EnsureCoreTypesRegistered();
+
     template <typename T>
     ComponentTypeId Id() {
         return ComponentTypeTrait<T>::Id();
@@ -116,6 +119,7 @@ private:
 
     std::vector<ComponentTypeInfo> m_Types;
     ComponentTypeId m_NextDynamicId = static_cast<ComponentTypeId>(CoreComponentId::Count);
+    bool m_CoreRegistered = false;
 };
 
 } // namespace we::runtime::ecs
