@@ -5,7 +5,7 @@
 
 #include "ECS/Export.h"
 #include "ECS/Registry.h"
-
+#include "ECS/RenderExtract.h"
 #include "ECS/Types.h"
 
 #include <memory>
@@ -106,15 +106,25 @@ public:
     void Update(Registry& registry, float deltaSeconds) override;
 };
 
-class ECS_API RenderSystem : public ISystem {
+// Builds frame-local ExtractedFrameData from visible ECS entities.
+// Renderer consumes the packet only — never World/Chunk internals.
+class ECS_API RenderExtractionSystem : public ISystem {
 public:
-    const char* Name() const override { return "RenderSystem"; }
+    const char* Name() const override { return "RenderExtractionSystem"; }
+    const std::vector<ComponentAccess>& Access() const override;
     void Update(Registry& registry, float deltaSeconds) override;
-    std::size_t LastDrawCount() const { return m_LastDrawCount; }
+
+    [[nodiscard]] const ExtractedFrameData& FrameData() const { return m_Frame; }
+    [[nodiscard]] ExtractedFrameData& FrameData() { return m_Frame; }
+    [[nodiscard]] std::size_t LastDrawCount() const { return m_Frame.TotalDrawableCount(); }
 
 private:
-    std::size_t m_LastDrawCount = 0;
+    ExtractedFrameData m_Frame{};
+    std::uint64_t m_FrameIndex = 0;
 };
+
+// Backward-compatible alias used by older call sites.
+using RenderSystem = RenderExtractionSystem;
 
 class ECS_API SkyAtmosphereSystem : public ISystem {
 public:

@@ -207,6 +207,41 @@ void StubGraphicsPass::Setup(std::vector<GraphTextureRef>& textures, std::vector
 
 void StubGraphicsPass::Execute(const GraphPassContext&) {}
 
+PbrOpaquePass::PbrOpaquePass(
+    uint32_t writeTextureId,
+    uint32_t shadowTextureId,
+    const we::runtime::ecs::ExtractedFrameData* extract)
+    : RenderPass("PbrOpaquePass", we::rhi::QueueType::Graphics, GraphPassFlags::KeepAlive)
+    , m_WriteId(writeTextureId)
+    , m_ShadowId(shadowTextureId)
+    , m_Extract(extract)
+{
+}
+
+void PbrOpaquePass::Setup(std::vector<GraphTextureRef>& textures, std::vector<GraphBufferRef>&) {
+    if (m_ShadowId != kInvalidGraphResourceId) {
+        textures.push_back({
+            m_ShadowId,
+            we::rhi::RHITextureHandle::Invalid,
+            we::rhi::ResourceState::ShaderResource,
+            GraphResourceAccess::Read});
+    }
+    if (m_WriteId != kInvalidGraphResourceId) {
+        textures.push_back({
+            m_WriteId,
+            we::rhi::RHITextureHandle::Invalid,
+            we::rhi::ResourceState::RenderTarget,
+            GraphResourceAccess::Write});
+    }
+}
+
+void PbrOpaquePass::Execute(const GraphPassContext&) {
+    // Mesh GPU submission lands here once mesh pipelines exist.
+    // Today we bind the extract packet so the graph path is wired end-to-end.
+    m_LastMeshCount = m_Extract ? m_Extract->meshes.size() : 0;
+    (void)m_LastMeshCount;
+}
+
 StubComputePass::StubComputePass(std::string name, uint32_t writeTextureId, uint32_t readTextureId)
     : RenderPass(
           std::move(name),

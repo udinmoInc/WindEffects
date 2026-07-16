@@ -122,7 +122,29 @@ void HierarchySystem::RelinkRemove(Registry& registry, Entity child) {
     h->parent = {};
     h->nextSibling = {};
     h->prevSibling = {};
+
+    // Reset depth for detached subtree.
+    std::queue<Entity> q;
     h->depth = 0;
+    q.push(child);
+    while (!q.empty()) {
+        Entity e = q.front();
+        q.pop();
+        HierarchyComponent* eh = registry.TryGet<HierarchyComponent>(e);
+        if (!eh) {
+            continue;
+        }
+        Entity c = eh->firstChild;
+        while (c) {
+            if (HierarchyComponent* ch = registry.TryGet<HierarchyComponent>(c)) {
+                ch->depth = static_cast<std::uint16_t>(eh->depth + 1);
+                q.push(c);
+                c = ch->nextSibling;
+            } else {
+                break;
+            }
+        }
+    }
 }
 
 void HierarchySystem::RelinkInsert(Registry& registry, Entity child, Entity parent) {
@@ -140,7 +162,29 @@ void HierarchySystem::RelinkInsert(Registry& registry, Entity child, Entity pare
         }
     }
     p->firstChild = child;
+
+    // Recompute depth for the whole subtree (required for parallel transform by depth).
+    std::queue<Entity> q;
     h->depth = static_cast<std::uint16_t>(p->depth + 1);
+    q.push(child);
+    while (!q.empty()) {
+        Entity e = q.front();
+        q.pop();
+        HierarchyComponent* eh = registry.TryGet<HierarchyComponent>(e);
+        if (!eh) {
+            continue;
+        }
+        Entity c = eh->firstChild;
+        while (c) {
+            if (HierarchyComponent* ch = registry.TryGet<HierarchyComponent>(c)) {
+                ch->depth = static_cast<std::uint16_t>(eh->depth + 1);
+                q.push(c);
+                c = ch->nextSibling;
+            } else {
+                break;
+            }
+        }
+    }
 }
 
 void HierarchySystem::Detach(Registry& registry, Entity child) {
@@ -224,33 +268,38 @@ void TransformSystem::MarkDirty(Registry& registry, Entity entity) {
 }
 
 void TransformSystem::Update(Registry& registry, float /*deltaSeconds*/) {
-    // Build root list then BFS for stable non-recursive world updates.
-    std::vector<Entity> roots;
+    World& world = registry.GetWorld();
+
+    // Bucket entities by hierarchy depth so parents finish before children.
+    // Within each depth level, world-matrix updates are independent and parallel.
+    std::vector<std::vector<Entity>> byDepth;
+    byDepth.resize(1);
+
     registry.ViewAll<TransformComponent, HierarchyComponent>().Each(
         [&](Entity e, TransformComponent&, HierarchyComponent& h) {
-            if (!h.parent) {
-                roots.push_back(e);
+            const std::size_t depth = static_cast<std::size_t>(h.depth);
+            if (depth >= byDepth.size()) {
+                byDepth.resize(depth + 1u);
             }
+            byDepth[depth].push_back(e);
         });
 
-    std::queue<Entity> q;
-    for (Entity root : roots) {
-        q.push(root);
-    }
-
-    while (!q.empty()) {
-        Entity e = q.front();
-        q.pop();
-        TransformComponent* t = registry.TryGet<TransformComponent>(e);
-        HierarchyComponent* h = registry.TryGet<HierarchyComponent>(e);
-        if (!t || !h) {
+    for (std::vector<Entity>& level : byDepth) {
+        if (level.empty()) {
             continue;
         }
 
-        if (t->dirty) {
+        auto updateOne = [&](std::size_t index) {
+            Entity e = level[index];
+            TransformComponent* t = registry.TryGet<TransformComponent>(e);
+            HierarchyComponent* h = registry.TryGet<HierarchyComponent>(e);
+            if (!t || !h || !t->dirty) {
+                return;
+            }
+
             const glm::mat4 local = ComposeLocal(*t);
             if (h->parent) {
-                if (TransformComponent* pt = registry.TryGet<TransformComponent>(h->parent)) {
+                if (const TransformComponent* pt = registry.TryGet<TransformComponent>(h->parent)) {
                     t->worldMatrix = pt->worldMatrix * local;
                 } else {
                     t->worldMatrix = local;
@@ -260,6 +309,7 @@ void TransformSystem::Update(Registry& registry, float /*deltaSeconds*/) {
             }
             t->dirty = false;
 
+            // Mark children dirty so the next depth level recomposes.
             Entity child = h->firstChild;
             while (child) {
                 if (TransformComponent* ct = registry.TryGet<TransformComponent>(child)) {
@@ -268,13 +318,14 @@ void TransformSystem::Update(Registry& registry, float /*deltaSeconds*/) {
                 HierarchyComponent* ch = registry.TryGet<HierarchyComponent>(child);
                 child = ch ? ch->nextSibling : Entity{};
             }
-        }
+        };
 
-        Entity child = h->firstChild;
-        while (child) {
-            q.push(child);
-            HierarchyComponent* ch = registry.TryGet<HierarchyComponent>(child);
-            child = ch ? ch->nextSibling : Entity{};
+        if (level.size() > 64) {
+            world.Jobs().ParallelFor(level.size(), updateOne);
+        } else {
+            for (std::size_t i = 0; i < level.size(); ++i) {
+                updateOne(i);
+            }
         }
     }
 }
@@ -295,14 +346,33 @@ void CameraSystem::Update(Registry& registry, float /*deltaSeconds*/) {
 }
 
 void LightingSystem::Update(Registry& registry, float /*deltaSeconds*/) {
-    // Collect lights for renderer consumption in a later pass.
     (void)registry.ViewAll<DirectionalLightComponent, TransformComponent>().Count();
     (void)registry.ViewAll<PointLightComponent, TransformComponent>().Count();
     (void)registry.ViewAll<SpotLightComponent, TransformComponent>().Count();
 }
 
-void RenderSystem::Update(Registry& registry, float /*deltaSeconds*/) {
-    m_LastDrawCount = registry.ViewAll<TransformComponent, StaticMeshComponent, MaterialComponent>().Count();
+const std::vector<ComponentAccess>& RenderExtractionSystem::Access() const {
+    static const std::vector<ComponentAccess> access = {
+        { ComponentTypeRegistry::Get().Id<TransformComponent>(), AccessMode::Read },
+        { ComponentTypeRegistry::Get().Id<StaticMeshComponent>(), AccessMode::Read },
+        { ComponentTypeRegistry::Get().Id<MaterialComponent>(), AccessMode::Read },
+        { ComponentTypeRegistry::Get().Id<VisibilityComponent>(), AccessMode::Read },
+        { ComponentTypeRegistry::Get().Id<DirectionalLightComponent>(), AccessMode::Read },
+        { ComponentTypeRegistry::Get().Id<PointLightComponent>(), AccessMode::Read },
+        { ComponentTypeRegistry::Get().Id<SpotLightComponent>(), AccessMode::Read },
+        { ComponentTypeRegistry::Get().Id<CameraComponent>(), AccessMode::Read },
+        { ComponentTypeRegistry::Get().Id<SkyAtmosphereComponent>(), AccessMode::Read },
+        { ComponentTypeRegistry::Get().Id<VolumetricCloudComponent>(), AccessMode::Read },
+        { ComponentTypeRegistry::Get().Id<TerrainComponent>(), AccessMode::Read },
+        { ComponentTypeRegistry::Get().Id<WaterComponent>(), AccessMode::Read },
+    };
+    return access;
+}
+
+void RenderExtractionSystem::Update(Registry& registry, float /*deltaSeconds*/) {
+    ++m_FrameIndex;
+    ExtractRenderFrame(registry.GetWorld(), m_Frame);
+    m_Frame.frameIndex = m_FrameIndex;
 }
 
 void SkyAtmosphereSystem::Update(Registry& registry, float /*deltaSeconds*/) {
@@ -346,7 +416,7 @@ void RegisterDefaultSystems(SystemScheduler& scheduler) {
     scheduler.Add(std::make_unique<PhysicsSystem>());
     scheduler.Add(std::make_unique<AnimationSystem>());
     scheduler.Add(std::make_unique<AudioSystem>());
-    scheduler.Add(std::make_unique<RenderSystem>());
+    scheduler.Add(std::make_unique<RenderExtractionSystem>());
 }
 
 } // namespace we::runtime::ecs

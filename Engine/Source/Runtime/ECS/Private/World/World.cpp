@@ -11,6 +11,7 @@ namespace we::runtime::ecs {
 World::World()
     : m_Commands(32)
 {
+    ComponentTypeRegistry::Get().EnsureCoreTypesRegistered();
     m_Archetypes.Init(&m_ChunkAllocator, &ComponentTypeRegistry::Get());
 
     m_DefaultEntityMask.Set(ComponentTypeRegistry::Get().Id<UuidComponent>());
@@ -202,6 +203,10 @@ void World::MigrateAddComponent(Entity entity, ComponentTypeId typeId, const voi
         void* srcPtr = static_cast<std::uint8_t*>(srcColumn) + info->size * srcSlot;
         void* dstPtr = static_cast<std::uint8_t*>(dstColumn) + info->size * dstSlot;
         if (const ComponentOps* ops = FindComponentOps(existingId)) {
+            // Slot was default-constructed by AllocateSlot — destroy before placement-copy.
+            if (ops->destruct) {
+                ops->destruct(dstPtr, info->size);
+            }
             if (ops->copy) {
                 ops->copy(dstPtr, srcPtr, info->size);
             }
@@ -215,6 +220,9 @@ void World::MigrateAddComponent(Entity entity, ComponentTypeId typeId, const voi
         const ComponentTypeInfo* info = ComponentTypeRegistry::Get().Find(typeId);
         void* dstPtr = static_cast<std::uint8_t*>(dstColumn) + info->size * dstSlot;
         if (const ComponentOps* ops = FindComponentOps(typeId)) {
+            if (ops->destruct) {
+                ops->destruct(dstPtr, info->size);
+            }
             if (ops->copy) {
                 ops->copy(dstPtr, initialData, info->size);
             }
@@ -278,6 +286,9 @@ void World::MigrateRemoveComponent(Entity entity, ComponentTypeId typeId) {
             void* srcPtr = static_cast<std::uint8_t*>(srcColumn) + info->size * srcSlot;
             void* dstPtr = static_cast<std::uint8_t*>(dstColumn) + info->size * dstSlot;
             if (const ComponentOps* ops = FindComponentOps(existingId)) {
+                if (ops->destruct) {
+                    ops->destruct(dstPtr, info->size);
+                }
                 if (ops->copy) {
                     ops->copy(dstPtr, srcPtr, info->size);
                 }

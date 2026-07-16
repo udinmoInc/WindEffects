@@ -10,24 +10,46 @@ JobPool::JobPool(std::uint32_t workerCount) {
         const std::uint32_t hw = std::max(1u, static_cast<std::uint32_t>(std::thread::hardware_concurrency()));
         workerCount = std::max(1u, hw > 1 ? hw - 1 : 1u);
     }
-    workerCount = std::min(workerCount, kMaxJobThreads);
-    m_WorkerCount = workerCount;
-    m_Running.store(true, std::memory_order_release);
+    m_WorkerCount = std::min(workerCount, kMaxJobThreads);
+    // Workers start lazily on first ParallelFor to avoid init-order / loader-lock issues.
+}
 
+JobPool::~JobPool() {
+    ShutdownWorkers();
+}
+
+void JobPool::EnsureWorkers() {
+    if (m_Running.load(std::memory_order_acquire)) {
+        return;
+    }
+    std::lock_guard<std::mutex> lock(m_JobMutex);
+    if (m_Running.load(std::memory_order_relaxed)) {
+        return;
+    }
+    m_Running.store(true, std::memory_order_release);
     m_Workers.reserve(m_WorkerCount);
     for (std::uint32_t i = 0; i < m_WorkerCount; ++i) {
         m_Workers.emplace_back([this, i]() { WorkerLoop(i); });
     }
 }
 
-JobPool::~JobPool() {
-    m_Running.store(false, std::memory_order_release);
+void JobPool::ShutdownWorkers() {
+    {
+        std::lock_guard<std::mutex> lock(m_JobMutex);
+        if (!m_Running.load(std::memory_order_relaxed) && m_Workers.empty()) {
+            return;
+        }
+        m_Running.store(false, std::memory_order_release);
+        m_CurrentJob = nullptr;
+        ++m_JobEpoch;
+    }
     m_JobCv.notify_all();
     for (std::thread& worker : m_Workers) {
         if (worker.joinable()) {
             worker.join();
         }
     }
+    m_Workers.clear();
 }
 
 void JobPool::ParallelFor(std::size_t count, const std::function<void(std::size_t)>& fn) {
@@ -35,9 +57,13 @@ void JobPool::ParallelFor(std::size_t count, const std::function<void(std::size_
         return;
     }
     if (count == 1 || m_WorkerCount == 0) {
-        fn(0);
+        for (std::size_t i = 0; i < count; ++i) {
+            fn(i);
+        }
         return;
     }
+
+    EnsureWorkers();
 
     Job job{};
     job.task = fn;
@@ -48,6 +74,7 @@ void JobPool::ParallelFor(std::size_t count, const std::function<void(std::size_
     {
         std::lock_guard<std::mutex> lock(m_JobMutex);
         m_CurrentJob = &job;
+        ++m_JobEpoch;
         m_ActiveJobs.store(m_WorkerCount + 1, std::memory_order_release);
     }
     m_JobCv.notify_all();
@@ -57,9 +84,17 @@ void JobPool::ParallelFor(std::size_t count, const std::function<void(std::size_
         fn(index);
     }
 
-    std::unique_lock<std::mutex> lock(m_JobMutex);
-    m_WaitCv.wait(lock, [this]() { return m_ActiveJobs.load(std::memory_order_acquire) == 0; });
-    m_CurrentJob = nullptr;
+    if (m_ActiveJobs.fetch_sub(1, std::memory_order_acq_rel) == 1) {
+        m_WaitCv.notify_all();
+    }
+
+    {
+        std::unique_lock<std::mutex> lock(m_JobMutex);
+        m_WaitCv.wait(lock, [this]() {
+            return m_ActiveJobs.load(std::memory_order_acquire) == 0;
+        });
+        m_CurrentJob = nullptr;
+    }
 }
 
 void JobPool::ParallelForRange(std::size_t begin, std::size_t end, const std::function<void(std::size_t)>& fn) {
@@ -70,18 +105,22 @@ void JobPool::ParallelForRange(std::size_t begin, std::size_t end, const std::fu
 }
 
 void JobPool::WorkerLoop(std::uint32_t /*workerIndex*/) {
-    while (m_Running.load(std::memory_order_acquire)) {
+    std::uint64_t seenEpoch = 0;
+    while (true) {
         Job* job = nullptr;
         {
             std::unique_lock<std::mutex> lock(m_JobMutex);
-            m_JobCv.wait(lock, [this]() {
-                return !m_Running.load(std::memory_order_acquire) || m_CurrentJob != nullptr;
+            m_JobCv.wait(lock, [this, &seenEpoch]() {
+                return !m_Running.load(std::memory_order_acquire)
+                    || (m_CurrentJob != nullptr && m_JobEpoch != seenEpoch);
             });
+            if (!m_Running.load(std::memory_order_acquire)) {
+                break;
+            }
+            seenEpoch = m_JobEpoch;
             job = m_CurrentJob;
         }
-        if (!m_Running.load(std::memory_order_acquire)) {
-            break;
-        }
+
         if (!job || !job->task) {
             continue;
         }

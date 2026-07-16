@@ -40,12 +40,15 @@ private:
         std::atomic<std::size_t> next{0};
     };
 
+    void EnsureWorkers();
+    void ShutdownWorkers();
     void WorkerLoop(std::uint32_t workerIndex);
 
     std::uint32_t m_WorkerCount = 0;
     std::vector<std::thread> m_Workers;
     std::atomic<bool> m_Running{false};
     std::atomic<std::size_t> m_ActiveJobs{0};
+    std::uint64_t m_JobEpoch = 0;
     Job* m_CurrentJob = nullptr;
     std::mutex m_JobMutex;
     std::condition_variable m_JobCv;
