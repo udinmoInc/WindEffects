@@ -29,8 +29,16 @@ ECS_API const ComponentOps* FindComponentOps(std::uint32_t typeId);
 
 template <typename T>
 ComponentOps MakeOpsFor() {
+    // Always value-construct (T{}) so in-class defaults apply (e.g. scale=1, visible=true).
+    // Zero-fill would break Transform/Visibility and other POD components with non-zero defaults.
     if constexpr (std::is_trivially_copyable_v<T> && std::is_trivially_destructible_v<T>) {
-        return MakePODOps();
+        ComponentOps ops{};
+        ops.trivial = true;
+        ops.construct = [](void* dst, std::size_t) { new (dst) T(); };
+        ops.destruct = [](void*, std::size_t) {};
+        ops.move = [](void* dst, void* src, std::size_t size) { std::memmove(dst, src, size); };
+        ops.copy = [](void* dst, const void* src, std::size_t size) { std::memcpy(dst, src, size); };
+        return ops;
     } else {
         ComponentOps ops{};
         ops.trivial = false;
