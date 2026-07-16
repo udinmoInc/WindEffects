@@ -37,8 +37,18 @@ public class UIFramework : ModuleRules
 
         PlatformSettings.Windows ??= new WindowsSettings();
 
-        var lunaLibDir = Path.Combine(thirdPartyRoot, "lunasvg", "lib");
+        var configName = context.Configuration ?? string.Empty;
+        var lunaConfigLibDir = Path.Combine(thirdPartyRoot, "lunasvg", "lib", configName);
+        var lunaLibDir = Directory.Exists(lunaConfigLibDir)
+            ? lunaConfigLibDir
+            : Path.Combine(thirdPartyRoot, "lunasvg", "lib");
         PlatformSettings.Windows.LinkerFlags.Add($"/LIBPATH:\"{lunaLibDir}\"");
         PlatformSettings.Windows.LinkerFlags.Add("lunasvg.lib");
+
+        if (string.Equals(context.Configuration, "Debug", System.StringComparison.OrdinalIgnoreCase))
+        {
+            PlatformSettings.Windows.CompilerFlags.Add("/MD");
+            PlatformSettings.Windows.CompilerFlags.Add("/D_ITERATOR_DEBUG_LEVEL=0");
+        }
     }
 }

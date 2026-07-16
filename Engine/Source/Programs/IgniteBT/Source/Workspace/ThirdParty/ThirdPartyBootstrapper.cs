@@ -20,7 +20,7 @@ public static class ThirdPartyBootstrapper
     private const string HarfBuzzRemote = "https://github.com/harfbuzz/harfbuzz.git";
     private const string HarfBuzzTag = "11.0.0";
     private const string MsvcDynamicRuntimeMarker = ".msvc_md_runtime";
-    private const string MsvcDynamicRuntimeCmake = "-DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreadedDLL";
+    private const string MsvcDynamicRuntimeCmake = "-DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded$<$<CONFIG:Debug>:Debug>DLL";
 
     public static async Task<bool> EnsureRequiredAsync(string engineRoot, int jobs = 0)
     {
@@ -195,10 +195,11 @@ public static class ThirdPartyBootstrapper
     private static async Task<bool> EnsureMsdfAtlasGenAsync(string msdfAtlasPath, int jobs)
     {
         var headerPath = Path.Combine(msdfAtlasPath, "msdf-atlas-gen", "msdf-atlas-gen.h");
-        var releaseLib = Path.Combine(msdfAtlasPath, "lib", "msdf-atlas-gen.lib");
+        var releaseLib = Path.Combine(msdfAtlasPath, "lib", "Release", "msdf-atlas-gen.lib");
+        var debugLib = Path.Combine(msdfAtlasPath, "lib", "Debug", "msdf-atlas-gen.lib");
         var configHeaderPath = Path.Combine(msdfAtlasPath, "msdfgen", "msdfgen-config.h");
-        var runtimeMarker = Path.Combine(msdfAtlasPath, "lib", MsvcDynamicRuntimeMarker);
-        if (File.Exists(headerPath) && File.Exists(releaseLib) && File.Exists(configHeaderPath) && File.Exists(runtimeMarker))
+        var runtimeMarker = Path.Combine(msdfAtlasPath, "lib", $"{MsvcDynamicRuntimeMarker}.debugcrt");
+        if (File.Exists(headerPath) && File.Exists(releaseLib) && File.Exists(debugLib) && File.Exists(configHeaderPath) && File.Exists(runtimeMarker))
         {
             return true;
         }
@@ -243,22 +244,31 @@ public static class ThirdPartyBootstrapper
         {
             return false;
         }
-
-        Directory.CreateDirectory(Path.Combine(msdfAtlasPath, "lib"));
-        var libCopies = new (string Source, string Name)[]
+        if (!await RunProcessAsync("cmake", $"--build \"{buildDir}\" --config Debug -j {parallel}"))
         {
-            (Path.Combine(buildDir, "Release", "msdf-atlas-gen.lib"), "msdf-atlas-gen.lib"),
-            (Path.Combine(buildDir, "msdfgen", "Release", "msdfgen-core.lib"), "msdfgen-core.lib"),
-            (Path.Combine(buildDir, "msdfgen", "Release", "msdfgen-ext.lib"), "msdfgen-ext.lib"),
+            return false;
+        }
+
+        var libCopies = new (string Source, string ConfigDir, string Name)[]
+        {
+            (Path.Combine(buildDir, "Release", "msdf-atlas-gen.lib"), "Release", "msdf-atlas-gen.lib"),
+            (Path.Combine(buildDir, "msdfgen", "Release", "msdfgen-core.lib"), "Release", "msdfgen-core.lib"),
+            (Path.Combine(buildDir, "msdfgen", "Release", "msdfgen-ext.lib"), "Release", "msdfgen-ext.lib"),
+            (Path.Combine(buildDir, "Debug", "msdf-atlas-gen.lib"), "Debug", "msdf-atlas-gen.lib"),
+            (Path.Combine(buildDir, "msdfgen", "Debug", "msdfgen-core.lib"), "Debug", "msdfgen-core.lib"),
+            (Path.Combine(buildDir, "msdfgen", "Debug", "msdfgen-ext.lib"), "Debug", "msdfgen-ext.lib"),
         };
-        foreach (var (source, name) in libCopies)
+        foreach (var (source, configDir, name) in libCopies)
         {
             if (!File.Exists(source))
             {
                 Log.Error("msdf-atlas-gen build finished but {Lib} was not produced.", source);
                 return false;
             }
-            File.Copy(source, Path.Combine(msdfAtlasPath, "lib", name), overwrite: true);
+
+            var destinationDir = Path.Combine(msdfAtlasPath, "lib", configDir);
+            Directory.CreateDirectory(destinationDir);
+            File.Copy(source, Path.Combine(destinationDir, name), overwrite: true);
         }
 
         EnsureMsdfgenConfigHeader(msdfAtlasPath);
