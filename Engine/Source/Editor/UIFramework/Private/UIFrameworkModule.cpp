@@ -16,4 +16,4 @@ public:
     }
 };
 
-IMPLEMENT_MODULE(UIFrameworkModule, WindEffects_UIFramework)
+IMPLEMENT_MODULE(UIFrameworkModule, WindEffects_KindUIFramework)

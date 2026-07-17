@@ -2,11 +2,11 @@
 
 #include "Widgets/Panel.h"
 #include "Widgets/DockContainer.h"
-#include "Layout/Splitter.h"
+#include "KindUI/Layout/Splitter.h"
 #include "Core/PanelIconResolver.h"
-#include "WindEffects/Editor/UI/Theming/ThemeAccess.h"
+#include "KindUI/Theming/ThemeAccess.h"
 
-namespace WindEffects::Editor::UI {
+namespace we::runtime::kindui {
 namespace {
 
 Orientation ToOrientation(SplitOrientation orientation) {
@@ -117,6 +117,6 @@ DockLayoutBuildResult DockLayoutBuilder::Build(
     return result;
 }
 
-} // namespace WindEffects::Editor::UI
+} // namespace we::runtime::kindui
 
 

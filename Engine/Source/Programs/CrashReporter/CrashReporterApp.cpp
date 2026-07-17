@@ -1,9 +1,9 @@
 #include "CrashReporterApp.h"
 #include "CrashReporterUI.h"
 #include "Renderer/Renderer.h"
-#include "Rendering/OverlayRenderer.h"
-#include "Rendering/OverlayRenderContext.h"
-#include "Core/EventSystem.h"
+#include "KindUI/Rendering/OverlayRenderer.h"
+#include "KindUI/Rendering/OverlayRenderContext.h"
+#include "KindUI/Core/EventSystem.h"
 #include "Runtime/Core/AssetRegistry.h"
 #include "Core/Logger.h"
 #include "Platform/PlatformSDK.h"
@@ -18,12 +18,12 @@ CrashReporterApp::CrashReporterApp(we::platform::WindowId window) : m_Window(win
     m_Renderer->Init(m_Window);
     we::core::AssetRegistry::Get().LoadDefaultEditorAssets();
 
-    m_UIRenderer = std::make_unique<WindEffects::Editor::UI::OverlayRenderer>();
+    m_UIRenderer = std::make_unique<we::runtime::kindui::OverlayRenderer>();
     if (m_Renderer->IsGpuReady()) {
         m_UIRenderer->Init(m_Renderer->GetRHIDevice(), m_Renderer->GetSwapchainFormat(), 2);
     }
 
-    m_UIEventSystem = std::make_shared<WindEffects::Editor::UI::EventSystem>();
+    m_UIEventSystem = std::make_shared<we::runtime::kindui::EventSystem>();
     m_UI = std::make_shared<CrashReporterUI>();
     m_UI->Construct();
     m_UIEventSystem->SetRootWidget(m_UI);
@@ -55,8 +55,8 @@ void CrashReporterApp::MainLoop() {
                     m_Running = false;
                 }
             } else if (const auto* move = std::get_if<we::platform::MouseMoveEvent>(&event)) {
-                WindEffects::Editor::UI::MouseEvent mouseEvent{};
-                mouseEvent.type = WindEffects::Editor::UI::MouseEventType::MouseMove;
+                we::runtime::kindui::MouseEvent mouseEvent{};
+                mouseEvent.type = we::runtime::kindui::MouseEventType::MouseMove;
                 mouseEvent.position = {static_cast<float>(move->position.x), static_cast<float>(move->position.y)};
                 const auto mods = platform.GetKeyModifiers();
                 mouseEvent.altDown = we::platform::HasFlag(mods, we::platform::KeyModifier::Alt);
@@ -64,15 +64,15 @@ void CrashReporterApp::MainLoop() {
                 mouseEvent.ctrlDown = we::platform::HasFlag(mods, we::platform::KeyModifier::Control);
                 m_UIEventSystem->ProcessMouseEvent(mouseEvent);
             } else if (const auto* button = std::get_if<we::platform::MouseButtonEvent>(&event)) {
-                WindEffects::Editor::UI::MouseEvent mouseEvent{};
+                we::runtime::kindui::MouseEvent mouseEvent{};
                 mouseEvent.type = button->pressed
-                    ? WindEffects::Editor::UI::MouseEventType::MouseDown
-                    : WindEffects::Editor::UI::MouseEventType::MouseUp;
+                    ? we::runtime::kindui::MouseEventType::MouseDown
+                    : we::runtime::kindui::MouseEventType::MouseUp;
                 mouseEvent.position = {static_cast<float>(button->position.x), static_cast<float>(button->position.y)};
                 switch (button->button) {
-                case we::platform::MouseButton::Left: mouseEvent.button = WindEffects::Editor::UI::MouseButton::Left; break;
-                case we::platform::MouseButton::Right: mouseEvent.button = WindEffects::Editor::UI::MouseButton::Right; break;
-                case we::platform::MouseButton::Middle: mouseEvent.button = WindEffects::Editor::UI::MouseButton::Middle; break;
+                case we::platform::MouseButton::Left: mouseEvent.button = we::runtime::kindui::MouseButton::Left; break;
+                case we::platform::MouseButton::Right: mouseEvent.button = we::runtime::kindui::MouseButton::Right; break;
+                case we::platform::MouseButton::Middle: mouseEvent.button = we::runtime::kindui::MouseButton::Middle; break;
                 default: break;
                 }
                 mouseEvent.altDown = we::platform::HasFlag(button->modifiers, we::platform::KeyModifier::Alt);
@@ -80,17 +80,17 @@ void CrashReporterApp::MainLoop() {
                 mouseEvent.ctrlDown = we::platform::HasFlag(button->modifiers, we::platform::KeyModifier::Control);
                 m_UIEventSystem->ProcessMouseEvent(mouseEvent);
             } else if (const auto* wheel = std::get_if<we::platform::MouseWheelEvent>(&event)) {
-                WindEffects::Editor::UI::MouseEvent mouseEvent{};
-                mouseEvent.type = WindEffects::Editor::UI::MouseEventType::MouseWheel;
+                we::runtime::kindui::MouseEvent mouseEvent{};
+                mouseEvent.type = we::runtime::kindui::MouseEventType::MouseWheel;
                 mouseEvent.position = {static_cast<float>(wheel->position.x), static_cast<float>(wheel->position.y)};
                 mouseEvent.wheelDeltaX = wheel->delta.x;
                 mouseEvent.wheelDeltaY = wheel->delta.y;
                 m_UIEventSystem->ProcessMouseEvent(mouseEvent);
             } else if (const auto* key = std::get_if<we::platform::KeyEvent>(&event)) {
-                WindEffects::Editor::UI::KeyEvent keyEvent{};
+                we::runtime::kindui::KeyEvent keyEvent{};
                 keyEvent.type = key->pressed
-                    ? WindEffects::Editor::UI::KeyEventType::KeyDown
-                    : WindEffects::Editor::UI::KeyEventType::KeyUp;
+                    ? we::runtime::kindui::KeyEventType::KeyDown
+                    : we::runtime::kindui::KeyEventType::KeyUp;
                 keyEvent.key = key->key;
                 keyEvent.altDown = we::platform::HasFlag(key->modifiers, we::platform::KeyModifier::Alt);
                 keyEvent.shiftDown = we::platform::HasFlag(key->modifiers, we::platform::KeyModifier::Shift);

@@ -3,7 +3,7 @@
 #include "Widgets/ToolsPanel.h"
 
 namespace we::programs::editor {
-using namespace WindEffects::Editor::UI;
+using namespace we::runtime::kindui;
 
 namespace {
 

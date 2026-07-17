@@ -1,14 +1,14 @@
 #pragma once
 
 #include "WindEffects/Editor/UI/Export.h"
-#include "Core/Widget.h"
-#include "Layout/Box.h"
-#include "Layout/ScrollLayout.h"
-#include "Widgets/CheckBox.h"
-#include "Widgets/Label.h"
+#include "KindUI/Core/Widget.h"
+#include "KindUI/Layout/Box.h"
+#include "KindUI/Layout/ScrollLayout.h"
+#include "KindUI/Widgets/CheckBox.h"
+#include "KindUI/Widgets/Label.h"
 #include "Renderer/EditorRenderDebugStub.h"
 
-namespace WindEffects::Editor::UI {
+namespace we::runtime::kindui {
 
 class UIFRAMEWORK_API RenderDebuggerPanel : public Widget {
 public:
@@ -42,4 +42,4 @@ private:
     we::runtime::renderer::RenderDebuggerFrameSnapshot m_LastSnapshot{};
 };
 
-} // namespace WindEffects::Editor::UI
+} // namespace we::runtime::kindui

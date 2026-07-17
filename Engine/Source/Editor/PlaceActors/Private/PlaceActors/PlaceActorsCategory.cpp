@@ -2,21 +2,21 @@
 
 #include "PlaceActors/ActorsPanelLayout.h"
 #include "PlaceActors/ActorsPanelChrome.h"
-#include "WindEffects/Editor/UI/Theming/ThemeAccess.h"
-#include "WindEffects/Editor/UI/Theming/ThemeToken.h"
-#include "Core/Icon.h"
-#include "Core/DPIContext.h"
+#include "KindUI/Theming/ThemeAccess.h"
+#include "KindUI/Theming/ThemeToken.h"
+#include "KindUI/Core/Icon.h"
+#include "KindUI/Core/DPIContext.h"
 
 #include <algorithm>
 
 namespace we::programs::editor {
 
-using WindEffects::Editor::UI::Color;
-using WindEffects::Editor::UI::PaintContext;
-using WindEffects::Editor::UI::Point;
-using WindEffects::Editor::UI::Rect;
-using WindEffects::Editor::UI::ThemeToken;
-namespace WEIcons = WindEffects::Editor::UI::Icons;
+using we::runtime::kindui::Color;
+using we::runtime::kindui::PaintContext;
+using we::runtime::kindui::Point;
+using we::runtime::kindui::Rect;
+using we::runtime::kindui::ThemeToken;
+namespace WEIcons = we::runtime::kindui::Icons;
 
 float PlaceActorsCategory::MeasureHeaderHeight(float configuredHeight) {
     (void)configuredHeight;
@@ -45,7 +45,7 @@ void PlaceActorsCategory::PaintHeader(PaintContext& context,
                                       bool showChevron)
 {
     (void)expandAnim;
-    const float uiScale = std::max(1.0f, WindEffects::Editor::UI::DPIContext::GetScale());
+    const float uiScale = std::max(1.0f, we::runtime::kindui::DPIContext::GetScale());
     const float padH = ActorsPanelLayout::ContentPadH();
     const float chevronSize = ActorsPanelLayout::ChevronSize();
     const float fontSize = ResolveThemeMetric(ThemeToken::TextSizeBody) * uiScale;
@@ -62,14 +62,14 @@ void PlaceActorsCategory::PaintHeader(PaintContext& context,
 
     const float iconDraw = ActorsPanelLayout::IconSize();
     if (isFavoritesSection) {
-        WindEffects::Editor::UI::IconPainter::DrawIcon(
+        we::runtime::kindui::IconPainter::DrawIcon(
             context,
             WEIcons::StarName,
             Rect{ cursorX, centerY - iconDraw * 0.5f, iconDraw, iconDraw },
             ResolveThemeColor(ThemeToken::Warning));
         cursorX += iconDraw + ResolveThemeMetric(ThemeToken::Space1) * uiScale;
     } else if (!iconName.empty()) {
-        WindEffects::Editor::UI::IconPainter::DrawIcon(
+        we::runtime::kindui::IconPainter::DrawIcon(
             context,
             iconName,
             Rect{ cursorX, centerY - iconDraw * 0.5f, iconDraw, iconDraw },

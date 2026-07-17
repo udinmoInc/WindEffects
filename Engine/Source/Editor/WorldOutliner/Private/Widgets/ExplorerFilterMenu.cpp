@@ -1,14 +1,14 @@
 #include "Widgets/ExplorerFilterMenu.h"
 #include "Widgets/ExplorerToolbar.h"
 
-#include "Core/PaintContext.h"
-#include "WindEffects/Editor/UI/Theming/ThemeToken.h"
-#include "Core/Icon.h"
-#include "Layout/OverlayManager.h"
+#include "KindUI/Core/PaintContext.h"
+#include "KindUI/Theming/ThemeToken.h"
+#include "KindUI/Core/Icon.h"
+#include "KindUI/Layout/OverlayManager.h"
 
 #include <algorithm>
 
-namespace WindEffects::Editor::UI {
+namespace we::runtime::kindui {
 
 namespace {
 constexpr float kMenuItemHeight = 26.0f;
@@ -204,4 +204,4 @@ bool ExplorerFilterMenu::ShowsPointerCursor(const Point& position) const {
     return HitMenuItemIndex(position) >= 0;
 }
 
-} // namespace WindEffects::Editor::UI
+} // namespace we::runtime::kindui

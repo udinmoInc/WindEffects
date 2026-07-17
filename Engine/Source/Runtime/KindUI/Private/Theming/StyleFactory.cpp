@@ -1,10 +1,10 @@
-#include "WindEffects/Runtime/UI/Theming/StyleFactory.h"
+#include "KindUI/Theming/StyleFactory.h"
 
-#include "WindEffects/Runtime/UI/Theming/ThemeManager.h"
-#include "WindEffects/Runtime/UI/Theming/ThemeAccess.h"
-#include "WindEffects/Runtime/UI/Theming/ThemeToken.h"
+#include "KindUI/Theming/ThemeManager.h"
+#include "KindUI/Theming/ThemeAccess.h"
+#include "KindUI/Theming/ThemeToken.h"
 
-namespace WindEffects::Editor::UI {
+namespace we::runtime::kindui {
 namespace {
 
 ShadowStyle ElevationToShadow(int elevation) {
@@ -207,6 +207,6 @@ WidgetStyle WidgetStyle::TreeItem() {
     return StyleFactory::TreeItem(ThemeManager::Get().Styles());
 }
 
-} // namespace WindEffects::Editor::UI
+} // namespace we::runtime::kindui
 
 // export

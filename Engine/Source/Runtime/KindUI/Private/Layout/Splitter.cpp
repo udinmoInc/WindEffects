@@ -1,11 +1,11 @@
-#include "WindEffects/Runtime/UI/Layout/Splitter.h"
-#include "WindEffects/Runtime/UI/Core/PaintContext.h"
-#include "WindEffects/Runtime/UI/Theming/ThemeAccess.h"
-#include "WindEffects/Runtime/UI/Theming/ThemeToken.h"
+#include "KindUI/Layout/Splitter.h"
+#include "KindUI/Core/PaintContext.h"
+#include "KindUI/Theming/ThemeAccess.h"
+#include "KindUI/Theming/ThemeToken.h"
 #include <algorithm>
 #include <cmath>
 
-namespace WindEffects::Editor::UI {
+namespace we::runtime::kindui {
 
 Splitter::Splitter(Orientation orientation, float initialRatio)
     : m_Orientation(orientation), m_SplitRatio(initialRatio) {}
@@ -266,4 +266,4 @@ void Splitter::OnMouseUp(const MouseEvent& event) {
     m_Dragging = false;
 }
 
-} // namespace WindEffects::Editor::UI
+} // namespace we::runtime::kindui

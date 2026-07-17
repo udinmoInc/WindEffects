@@ -2,7 +2,7 @@
 #include "PlaceActors/PlaceActorsPanel.h"
 #include "PlaceActors/PlaceActorsPlacement.h"
 #include "EditorToolsRegistry.h"
-#include "Core/Icon.h"
+#include "KindUI/Core/Icon.h"
 
 #include <memory>
 #include <string>
@@ -12,7 +12,7 @@ namespace we::programs::editor {
 
 namespace {
 
-namespace WEIcons = WindEffects::Editor::UI::Icons;
+namespace WEIcons = we::runtime::kindui::Icons;
 
 void RegisterCategory(const char* modeId, const char* categoryId, const char* label, const char* icon,
     int sortOrder, bool defaultExpanded = false)

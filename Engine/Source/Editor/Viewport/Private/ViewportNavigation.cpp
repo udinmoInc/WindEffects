@@ -5,7 +5,7 @@
 
 #include <algorithm>
 
-namespace WindEffects::Editor::UI {
+namespace we::runtime::kindui {
 
 namespace {
 
@@ -336,4 +336,4 @@ void ViewportNavigationController::PersistCameraSpeed() const {
     store.Save();
 }
 
-} // namespace WindEffects::Editor::UI
+} // namespace we::runtime::kindui

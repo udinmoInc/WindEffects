@@ -1,8 +1,8 @@
-#include "WindEffects/Runtime/UI/Widgets/Image.h"
-#include "WindEffects/Runtime/UI/Core/PaintContext.h"
-#include "WindEffects/Runtime/UI/Theming/ThemeAccess.h"
+#include "KindUI/Widgets/Image.h"
+#include "KindUI/Core/PaintContext.h"
+#include "KindUI/Theming/ThemeAccess.h"
 
-namespace WindEffects::Editor::UI {
+namespace we::runtime::kindui {
 
 Image::Image(we::rhi::RHIDescriptorSetHandle textureId) : m_TextureId(textureId) {}
 
@@ -31,4 +31,4 @@ void Image::Paint(PaintContext& context) {
     }
 }
 
-} // namespace WindEffects::Editor::UI
+} // namespace we::runtime::kindui

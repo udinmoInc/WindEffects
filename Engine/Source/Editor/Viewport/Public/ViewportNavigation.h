@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Core/EventSystem.h"
+#include "KindUI/Core/EventSystem.h"
 #include "EditorCamera.h"
 #include "Scene/Scene.h"
 #include "Platform/Types.h"
@@ -10,7 +10,7 @@ namespace we::programs::editor {
 class ViewportNavigationSettingsStore;
 }
 
-namespace WindEffects::Editor::UI {
+namespace we::runtime::kindui {
 
 enum class ViewportCursorMode {
     Default,
@@ -83,4 +83,4 @@ private:
 void ApplyViewportNavigationSettings(
     const std::shared_ptr<we::runtime::engine::EditorCamera>& camera);
 
-} // namespace WindEffects::Editor::UI
+} // namespace we::runtime::kindui

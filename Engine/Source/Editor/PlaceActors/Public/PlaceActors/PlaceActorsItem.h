@@ -1,8 +1,8 @@
 #pragma once
 
 #include "PlaceActors/PlaceActorsTypes.h"
-#include "Core/PaintContext.h"
-#include "Core/Geometry.h"
+#include "KindUI/Core/PaintContext.h"
+#include "KindUI/Core/Geometry.h"
 #include <string>
 
 namespace we::programs::editor {
@@ -18,11 +18,11 @@ struct PlaceActorsItemMetrics {
 
 class PlaceActorsItem {
 public:
-    static WindEffects::Editor::UI::Size MeasureGrid(const PlaceActorsItemMetrics& metrics);
-    static WindEffects::Editor::UI::Size MeasureList(const PlaceActorsItemMetrics& metrics);
+    static we::runtime::kindui::Size MeasureGrid(const PlaceActorsItemMetrics& metrics);
+    static we::runtime::kindui::Size MeasureList(const PlaceActorsItemMetrics& metrics);
 
-    static void PaintGrid(WindEffects::Editor::UI::PaintContext& context,
-                          const WindEffects::Editor::UI::Rect& bounds,
+    static void PaintGrid(we::runtime::kindui::PaintContext& context,
+                          const we::runtime::kindui::Rect& bounds,
                           const PlaceActorsItemData& item,
                           const PlaceActorsItemMetrics& metrics,
                           float hoverAnim,
@@ -30,8 +30,8 @@ public:
                           bool selected,
                           bool favorite);
 
-    static void PaintList(WindEffects::Editor::UI::PaintContext& context,
-                          const WindEffects::Editor::UI::Rect& bounds,
+    static void PaintList(we::runtime::kindui::PaintContext& context,
+                          const we::runtime::kindui::Rect& bounds,
                           const PlaceActorsItemData& item,
                           const PlaceActorsItemMetrics& metrics,
                           float hoverAnim,

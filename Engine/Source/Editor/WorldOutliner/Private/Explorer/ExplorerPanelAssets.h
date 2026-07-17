@@ -4,7 +4,7 @@
 
 #include <memory>
 
-namespace WindEffects::Editor::UI {
+namespace we::runtime::kindui {
 class TreeView;
 }
 
@@ -12,6 +12,6 @@ namespace we::programs::editor {
 
 we::rhi::RHIDescriptorSetHandle GetExplorerBrandLogo();
 float GetExplorerBrandLogoLogicalSize();
-void RegisterExplorerTreeView(const std::shared_ptr<WindEffects::Editor::UI::TreeView>& treeView);
+void RegisterExplorerTreeView(const std::shared_ptr<we::runtime::kindui::TreeView>& treeView);
 
 } // namespace we::programs::editor

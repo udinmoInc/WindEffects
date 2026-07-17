@@ -9,7 +9,7 @@
 #include <unordered_map>
 #include <vector>
 
-namespace WindEffects::Editor::UI {
+namespace we::runtime::kindui {
 class Widget;
 }
 
@@ -44,7 +44,7 @@ struct EditorToolMode {
     std::string keywords;
     int sortOrder = 0;
     bool opensToolDrawerByDefault = true;
-    using ContentFactory = std::function<std::shared_ptr<WindEffects::Editor::UI::Widget>(
+    using ContentFactory = std::function<std::shared_ptr<we::runtime::kindui::Widget>(
         const EditorToolMode& mode,
         const std::string& searchFilter)>;
     ContentFactory customContent;

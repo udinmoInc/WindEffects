@@ -2,14 +2,14 @@
 
 #include "Menus/Export.h"
 
-#include "Core/Widget.h"
-#include "Core/Style.h"
+#include "KindUI/Core/Widget.h"
+#include "KindUI/Core/Style.h"
 #include <string>
 #include <vector>
 #include <functional>
 #include <memory>
 
-namespace WindEffects::Editor::UI {
+namespace we::runtime::kindui {
 
 // Menu item structure
 struct MenuItem {

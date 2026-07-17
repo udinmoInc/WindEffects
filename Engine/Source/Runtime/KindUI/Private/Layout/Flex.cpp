@@ -1,9 +1,9 @@
-#include "WindEffects/Runtime/UI/Layout/Flex.h"
+#include "KindUI/Layout/Flex.h"
 
 #include <algorithm>
 #include <cmath>
 
-namespace WindEffects::Editor::UI {
+namespace we::runtime::kindui {
 
 Flex::Flex(FlexDirection direction) : m_Direction(direction) {}
 
@@ -252,4 +252,4 @@ std::shared_ptr<Column> MakeColumn() {
     return std::make_shared<Column>();
 }
 
-} // namespace WindEffects::Editor::UI
+} // namespace we::runtime::kindui

@@ -3,15 +3,15 @@
 
 #include "Explorer/ExplorerPanelAssets.h"
 #include "WindEffects/Editor/UI/Panel/PanelChrome.h"
-#include "Core/PaintContext.h"
-#include "WindEffects/Editor/UI/Theming/ThemeAccess.h"
-#include "Core/Icon.h"
-#include "Rendering/IconMetrics.h"
+#include "KindUI/Core/PaintContext.h"
+#include "KindUI/Theming/ThemeAccess.h"
+#include "KindUI/Core/Icon.h"
+#include "KindUI/Rendering/IconMetrics.h"
 
 #include <algorithm>
 #include <cmath>
 
-namespace WindEffects::Editor::UI {
+namespace we::runtime::kindui {
 
 ExplorerPanelHeader::ExplorerPanelHeader() {
 }
@@ -180,4 +180,4 @@ void ExplorerPanelHeader::SetSearchQuery(const std::string& query) {
     }
 }
 
-} // namespace WindEffects::Editor::UI
+} // namespace we::runtime::kindui

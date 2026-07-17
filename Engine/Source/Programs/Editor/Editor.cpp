@@ -1,4 +1,4 @@
-﻿#include "Editor.h"
+#include "Editor.h"
 #include "FirstRunAgreementPopup.h"
 #include "Core/Logger.h"
 #include "Core/DiagnosticMacros.h"
@@ -9,8 +9,8 @@
 #include "Runtime/Core/PluginManager.h"
 #include "Environment/EnvironmentEditorApi.h"
 #include "Renderer/Renderer.h"
-#include "Rendering/IconRenderer.h"
-#include "Layout/OverlayManager.h"
+#include "KindUI/Rendering/IconRenderer.h"
+#include "KindUI/Layout/OverlayManager.h"
 #include "EditorWorkspaceController.h"
 #include "WindEffects/Editor/UI/Extensions/UIExtensionRegistry.h"
 
@@ -22,8 +22,8 @@
 #include "ContentBrowserApi.h"
 #include "Runtime/Core/AssetRegistry.h"
 #include "EditorGridRenderer.h"
-#include "Core/DPIContext.h"
-#include "Core/UIRepaintGate.h"
+#include "KindUI/Core/DPIContext.h"
+#include "KindUI/Core/UIRepaintGate.h"
 #include "Core/EditorPerfStats.h"
 #include "Debug/FoundationRenderDebug.h"
 #include "Runtime/World/DefaultScene/DefaultSceneBuilder.h"
@@ -53,9 +53,9 @@ bool PresentAuditEnabled() {
 
 namespace we::programs::editor {
 
-namespace UI = WindEffects::Editor::UI;
+namespace UI = we::runtime::kindui;
 
-using namespace WindEffects::Editor::UI;
+using namespace we::runtime::kindui;
 using namespace we::runtime::renderer;
 using namespace we::runtime::scene;
 using namespace we::runtime::engine;
@@ -91,12 +91,12 @@ Editor::Editor(we::platform::WindowId window) : m_Window(window) {
 
     HE_INFO("[Startup] Stage 3/6: Default assets (fonts, shaders, icons, theme)...");
     if (!we::core::AssetRegistry::Get().LoadDefaultEditorAssets()) {
-        HE_ERROR("[Startup] Required default assets missing â€” UI rendering may fail.");
+        HE_ERROR("[Startup] Required default assets missing - UI rendering may fail.");
     }
 
     HE_INFO("[Startup] Stage 4/6: OverlayRenderer init...");
     try {
-        m_OverlayRenderer = std::make_unique<WindEffects::Editor::UI::OverlayRenderer>();
+        m_OverlayRenderer = std::make_unique<we::runtime::kindui::OverlayRenderer>();
         if (!m_OverlayRenderer->Init(m_Renderer->GetRHIDevice(), m_Renderer->GetSwapchainFormat(), 2)) {
             throw std::runtime_error("Failed to initialize OverlayRenderer!");
         }
@@ -126,8 +126,8 @@ Editor::Editor(we::platform::WindowId window) : m_Window(window) {
     HE_INFO("[Startup] Stage 6/6: Widget tree and layout...");
     UpdateUiScaleFromWindow();
 
-    m_UIContext = std::make_unique<WindEffects::Editor::UI::EditorApplicationContext>();
-    m_UIContext->Initialize(WindEffects::Editor::UI::DPIContext::GetScale());
+    m_UIContext = std::make_unique<we::runtime::kindui::EditorApplicationContext>();
+    m_UIContext->Initialize(we::runtime::kindui::DPIContext::GetScale());
 
     const auto& extensionPanels = m_UIContext->GetExtensionRegistry().GetPanels();
     HE_INFO("[Startup] UI extension panels registered: " + std::to_string(extensionPanels.size()));
@@ -136,23 +136,23 @@ Editor::Editor(we::platform::WindowId window) : m_Window(window) {
     }
 
     try {
-        WindEffects::Editor::UI::EditorShellDependencies shellDeps;
+        we::runtime::kindui::EditorShellDependencies shellDeps;
         shellDeps.window = m_Window;
         shellDeps.renderer = m_Renderer.get();
         shellDeps.scene = m_Scene;
         shellDeps.camera = m_Camera;
         shellDeps.overlayRenderer = m_OverlayRenderer.get();
         shellDeps.eventSystem = m_UIEventSystem;
-        shellDeps.dpiScale = WindEffects::Editor::UI::DPIContext::GetScale();
+        shellDeps.dpiScale = we::runtime::kindui::DPIContext::GetScale();
         shellDeps.onCreateNewLevel = [this]() { CreateNewLevel(); };
-        shellDeps.onViewportCreated = [this](std::shared_ptr<WindEffects::Editor::UI::Widget>& viewportWidget) {
+        shellDeps.onViewportCreated = [this](std::shared_ptr<we::runtime::kindui::Widget>& viewportWidget) {
             m_ViewportWidget = viewportWidget;
         };
-        shellDeps.onLayoutBuilt = [this](const WindEffects::Editor::UI::DockLayoutBuildResult&) {
+        shellDeps.onLayoutBuilt = [this](const we::runtime::kindui::DockLayoutBuildResult&) {
             // Title bar reference retained for window hit testing.
         };
 
-        const auto shellResult = WindEffects::Editor::UI::EditorShellBuilder::Build(*m_UIContext, shellDeps);
+        const auto shellResult = we::runtime::kindui::EditorShellBuilder::Build(*m_UIContext, shellDeps);
         m_RootWidget = shellResult.rootWidget;
         m_OverlayHost = shellResult.overlayHost;
         m_TitleBar = shellResult.titleBar;
@@ -208,10 +208,10 @@ void Editor::UpdateUiScaleFromWindow() {
 
     // Keep one canonical, bounded UI scale.
     const float clamped = std::clamp(scale, 1.0f, 3.0f);
-    const float previous = WindEffects::Editor::UI::DPIContext::GetScale();
-    WindEffects::Editor::UI::DPIContext::SetScale(clamped);
+    const float previous = we::runtime::kindui::DPIContext::GetScale();
+    we::runtime::kindui::DPIContext::SetScale(clamped);
     if (std::abs(clamped - previous) > 0.001f) {
-        WindEffects::Editor::UI::UIRepaintGate::Request();
+        we::runtime::kindui::UIRepaintGate::Request();
     }
 }
 
@@ -234,7 +234,7 @@ void Editor::EnsureVisibleSwapchain() {
             HE_INFO("[Render] Swapchain recreated for visible window.");
         }
     } else {
-        HE_ERROR("[Render] Window still reports zero size — UI layout will be empty until resized.");
+        HE_ERROR("[Render] Window still reports zero size  UI layout will be empty until resized.");
     }
 }
 
@@ -250,11 +250,11 @@ void Editor::SyncViewportFramebufferFromLayout() {
     }
 
     const bool sizeChanged = w != m_LastLayoutSwapchainW || h != m_LastLayoutSwapchainH;
-    const bool needsLayout = sizeChanged || WindEffects::Editor::UI::UIRepaintGate::PeekNeedsRebuild();
+    const bool needsLayout = sizeChanged || we::runtime::kindui::UIRepaintGate::PeekNeedsRebuild();
 
     if (needsLayout) {
         // Layout the full editor chrome, then let the viewport panel own offscreen size.
-        // Do not resize the offscreen framebuffer to the full window — that breaks aspect
+        // Do not resize the offscreen framebuffer to the full window  that breaks aspect
         // ratio and can clip the 3D view inside the docked viewport widget.
         m_RootWidget->Measure(UI::Size{ static_cast<float>(w), static_cast<float>(h) });
         m_RootWidget->Arrange(UI::Rect{ 0.0f, 0.0f, static_cast<float>(w), static_cast<float>(h) });
@@ -290,7 +290,7 @@ void Editor::LogWidgetTreeLayout(const std::shared_ptr<UI::Widget>& widget, cons
         + std::to_string(static_cast<int>(geom.height)));
 
     if (geom.width <= 0.0f || geom.height <= 0.0f) {
-        HE_ERROR("[UI] " + indent + name + " has ZERO size â€” will not paint visible content.");
+        HE_ERROR("[UI] " + indent + name + " has ZERO size - will not paint visible content.");
     }
 
     for (size_t i = 0; i < widget->GetChildren().size(); ++i) {
@@ -338,10 +338,10 @@ void Editor::MainLoop() {
     uint64_t lastTime = platform.GetHighResolutionCounter();
     const double frequency = static_cast<double>(platform.GetHighResolutionFrequency());
     bool firstFrame = true;
-    WindEffects::Editor::UI::UIRepaintGate::Request();
+    we::runtime::kindui::UIRepaintGate::Request();
 
     while (m_Running) {
-        WindEffects::Editor::UI::EditorPerfStats::Get().BeginFrame();
+        we::runtime::kindui::EditorPerfStats::Get().BeginFrame();
 
         if (!platform.PollEvents()) {
             m_Running = false;
@@ -449,7 +449,7 @@ void Editor::MainLoop() {
             } else if (const auto* key = std::get_if<we::platform::KeyEvent>(&event)) {
 #if WE_DEBUG_UI
                 if (key->pressed && key->key == we::platform::KeyCode::F9) {
-                    WindEffects::Editor::UI::RenderInvestigationModalHost::Toggle();
+                    we::runtime::kindui::RenderInvestigationModalHost::Toggle();
                 }
 #endif
                 UI::KeyEvent keyEvent{};
@@ -466,7 +466,7 @@ void Editor::MainLoop() {
 
             (void)isMotion;
             if (requestUiRebuild) {
-                WindEffects::Editor::UI::UIRepaintGate::Request();
+                we::runtime::kindui::UIRepaintGate::Request();
             }
         }
         
@@ -502,10 +502,10 @@ void Editor::MainLoop() {
         }
         we::editor::environment::TickEditor();
         UpdateUiScaleFromWindow();
-        WindEffects::Editor::UI::EditorPerfStats::Get().Mark("tick");
+        we::runtime::kindui::EditorPerfStats::Get().Mark("tick");
 
         SyncViewportFramebufferFromLayout();
-        WindEffects::Editor::UI::EditorPerfStats::Get().Mark("layout");
+        we::runtime::kindui::EditorPerfStats::Get().Mark("layout");
 
         we::runtime::core::FrameCounter::Advance();
 
@@ -546,7 +546,7 @@ void Editor::MainLoop() {
                 m_Renderer->UploadEnvironmentUniform(envUBO);
             }
 
-            // Forward ECS extract packet — Renderer never queries World/entities.
+            // Forward ECS extract packet  Renderer never queries World/entities.
             m_Renderer->SetExtractedFrame(m_Scene ? m_Scene->GetExtractedFrame() : nullptr);
 
             // CPU UI build + viewport sync before the graph (GPU overlay records inside UiOverlayPass).
@@ -556,7 +556,7 @@ void Editor::MainLoop() {
                 m_OverlayRenderer->SetTargetExtent(
                     m_Renderer->GetSwapchainWidth(), m_Renderer->GetSwapchainHeight());
                 m_OverlayRenderer->RenderEditorUI(m_RootWidget, m_Renderer->GetCurrentFrameIndex());
-                WindEffects::Editor::UI::EditorPerfStats::Get().Mark("ui");
+                we::runtime::kindui::EditorPerfStats::Get().Mark("ui");
 
                 if (m_ViewportWidget) {
                     if (auto vp = std::dynamic_pointer_cast<ViewportWidget>(m_ViewportWidget)) {
@@ -593,17 +593,17 @@ void Editor::MainLoop() {
             }
 
             m_Renderer->RenderScene();
-            WindEffects::Editor::UI::EditorPerfStats::Get().Mark("scene");
+            we::runtime::kindui::EditorPerfStats::Get().Mark("scene");
 
             m_Renderer->SubmitAndPresent();
-            WindEffects::Editor::UI::EditorPerfStats::Get().Mark("present");
+            we::runtime::kindui::EditorPerfStats::Get().Mark("present");
             m_Renderer->ClearOverlayRecorder();
 
             {
                 const auto& stats = m_OverlayRenderer
                     ? m_OverlayRenderer->GetFrameStats()
-                    : WindEffects::Editor::UI::UIFrameStats{};
-                WindEffects::Editor::UI::EditorPerfStats::Get().EndFrame(stats.vertices, stats.batches);
+                    : we::runtime::kindui::UIFrameStats{};
+                we::runtime::kindui::EditorPerfStats::Get().EndFrame(stats.vertices, stats.batches);
             }
 
             if (firstFrame) {
@@ -615,9 +615,9 @@ void Editor::MainLoop() {
             }
         } else if (!m_Renderer) {
             HE_ERROR("[Render] Renderer is null in main loop.");
-            WindEffects::Editor::UI::EditorPerfStats::Get().EndFrame(0, 0);
+            we::runtime::kindui::EditorPerfStats::Get().EndFrame(0, 0);
         } else {
-            WindEffects::Editor::UI::EditorPerfStats::Get().EndFrame(0, 0);
+            we::runtime::kindui::EditorPerfStats::Get().EndFrame(0, 0);
         }
     }
 }

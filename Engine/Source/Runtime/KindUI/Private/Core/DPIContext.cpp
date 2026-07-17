@@ -1,6 +1,6 @@
-#include "WindEffects/Runtime/UI/Core/DPIContext.h"
+#include "KindUI/Core/DPIContext.h"
 
-namespace WindEffects::Editor::UI {
+namespace we::runtime::kindui {
 
 namespace {
 
@@ -16,4 +16,4 @@ void DPIContext::SetScale(float scale) {
     s_DPIScale = scale;
 }
 
-} // namespace WindEffects::Editor::UI
+} // namespace we::runtime::kindui

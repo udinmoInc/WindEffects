@@ -6,14 +6,14 @@
 
 #include <unordered_map>
 
-namespace WindEffects::Editor::UI {
+namespace we::runtime::kindui {
 class Widget;
 class Panel;
 class Splitter;
 class DockContainer;
 }
 
-namespace WindEffects::Editor::UI {
+namespace we::runtime::kindui {
 
 struct DockLayoutBuildResult {
     std::shared_ptr<Widget> root;
@@ -57,4 +57,4 @@ private:
         DockLayoutBuildResult& result);
 };
 
-} // namespace WindEffects::Editor::UI
+} // namespace we::runtime::kindui

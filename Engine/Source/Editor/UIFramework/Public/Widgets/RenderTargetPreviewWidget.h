@@ -1,13 +1,13 @@
 #pragma once
 
 #include "WindEffects/Editor/UI/Export.h"
-#include "Core/Widget.h"
+#include "KindUI/Core/Widget.h"
 #include <cstdint>
 #include <functional>
 #include <string>
 #include <vector>
 
-namespace WindEffects::Editor::UI {
+namespace we::runtime::kindui {
 
 class UIFRAMEWORK_API RenderTargetPreviewWidget : public Widget {
 public:
@@ -33,4 +33,4 @@ private:
     std::function<void()> m_OnClose;
 };
 
-} // namespace WindEffects::Editor::UI
+} // namespace we::runtime::kindui

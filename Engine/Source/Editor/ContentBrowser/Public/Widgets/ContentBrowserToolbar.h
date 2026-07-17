@@ -1,18 +1,18 @@
 #pragma once
 
-#include "Core/Widget.h"
-#include "Core/Widgets/PrimaryToolbarButton.h"
-#include "Core/Widgets/SecondaryToolbarButton.h"
-#include "Core/Widgets/ToolbarIconButton.h"
-#include "Core/Widgets/ToolbarNavigationButton.h"
-#include "WindEffects/Editor/UI/Theming/ThemeToken.h"
+#include "KindUI/Core/Widget.h"
+#include "KindUI/Core/Widgets/PrimaryToolbarButton.h"
+#include "KindUI/Core/Widgets/SecondaryToolbarButton.h"
+#include "KindUI/Core/Widgets/ToolbarIconButton.h"
+#include "KindUI/Core/Widgets/ToolbarNavigationButton.h"
+#include "KindUI/Theming/ThemeToken.h"
 #include "Models/ContentBrowserModel.h"
 #include <functional>
 #include <memory>
 #include <string>
 #include <vector>
 
-namespace WindEffects::Editor::UI {
+namespace we::runtime::kindui {
 
 class SearchBox;
 class Breadcrumb;
@@ -131,4 +131,4 @@ private:
     std::shared_ptr<ToolbarLabeledButton> m_SaveBtn;
 };
 
-} // namespace WindEffects::Editor::UI
+} // namespace we::runtime::kindui

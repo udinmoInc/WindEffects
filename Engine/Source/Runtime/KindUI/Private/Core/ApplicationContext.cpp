@@ -1,13 +1,13 @@
-#include "WindEffects/Runtime/UI/Core/ApplicationContext.h"
+#include "KindUI/Core/ApplicationContext.h"
 
-#include "WindEffects/Runtime/UI/Theming/GraphiteDarkTheme.h"
-#include "WindEffects/Runtime/UI/Theming/ThemeManager.h"
-#include "WindEffects/Runtime/UI/Resources/ModuleResourceRegistry.h"
-#include "WindEffects/Runtime/UI/Events/EventBus.h"
-#include "WindEffects/Runtime/UI/Commands/CommandRegistry.h"
-#include "WindEffects/Runtime/UI/Core/DPIContext.h"
+#include "KindUI/Theming/GraphiteDarkTheme.h"
+#include "KindUI/Theming/ThemeManager.h"
+#include "KindUI/Resources/ModuleResourceRegistry.h"
+#include "KindUI/Events/EventBus.h"
+#include "KindUI/Commands/CommandRegistry.h"
+#include "KindUI/Core/DPIContext.h"
 
-namespace WindEffects::Editor::UI {
+namespace we::runtime::kindui {
 
 ApplicationContext::ApplicationContext(std::shared_ptr<IThemeProvider> theme) {
     if (!theme) {
@@ -46,4 +46,4 @@ void ApplicationContext::Initialize(float dpiScale) {
 void ApplicationContext::Shutdown() {
 }
 
-} // namespace WindEffects::Editor::UI
+} // namespace we::runtime::kindui

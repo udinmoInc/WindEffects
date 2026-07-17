@@ -13,7 +13,7 @@ public class Toolbar : ModuleRules
         PublicDependencies.Add("Platform");
         PublicDependencies.Add("RHI");
         PublicDependencies.Add("Menus");
-        PublicDependencies.Add("UI");
+        PublicDependencies.Add("KindUI");
         PublicDependencies.Add("UIFramework");
 
         Definitions.Add("TOOLBAR_EXPORTS");

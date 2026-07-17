@@ -2,10 +2,10 @@
 
 #include "MainFrame/Export.h"
 
-#include "Core/Widget.h"
+#include "KindUI/Core/Widget.h"
 #include <memory>
 
-namespace WindEffects::Editor::UI {
+namespace we::runtime::kindui {
 
 // Draws a square border around the full application client area.
 class MAINFRAME_API WindowShell : public Widget {
@@ -24,4 +24,4 @@ private:
     std::shared_ptr<Widget> m_Content;
 };
 
-} // namespace WindEffects::Editor::UI
+} // namespace we::runtime::kindui

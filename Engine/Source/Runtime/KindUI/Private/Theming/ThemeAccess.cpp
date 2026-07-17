@@ -1,8 +1,8 @@
-#include "WindEffects/Runtime/UI/Theming/ThemeAccess.h"
+#include "KindUI/Theming/ThemeAccess.h"
 
-#include "WindEffects/Runtime/UI/Theming/ThemeManager.h"
+#include "KindUI/Theming/ThemeManager.h"
 
-namespace WindEffects::Editor::UI {
+namespace we::runtime::kindui {
 
 IThemeProvider& ResolveDefaultThemeProvider() {
     return ThemeManager::Get().Provider();
@@ -32,4 +32,4 @@ Color ResolveThemeIconForState(bool hovered, bool active) {
     return ThemeManager::Get().Provider().IconForState(hovered, active);
 }
 
-} // namespace WindEffects::Editor::UI
+} // namespace we::runtime::kindui

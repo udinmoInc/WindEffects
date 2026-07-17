@@ -1,14 +1,14 @@
 #include "Widgets/EditorModeSelector.h"
 #include "EditorModeController.h"
 #include "EditorToolsRegistry.h"
-#include "Core/PaintContext.h"
-#include "WindEffects/Editor/UI/Theming/ThemeToken.h"
-#include "Core/Icon.h"
-#include "Core/ToolbarButtonChrome.h"
-#include "Core/Animator.h"
-#include "Core/DPIContext.h"
-#include "Rendering/IconMetrics.h"
-#include "Layout/OverlayManager.h"
+#include "KindUI/Core/PaintContext.h"
+#include "KindUI/Theming/ThemeToken.h"
+#include "KindUI/Core/Icon.h"
+#include "KindUI/Core/ToolbarButtonChrome.h"
+#include "KindUI/Core/Animator.h"
+#include "KindUI/Core/DPIContext.h"
+#include "KindUI/Rendering/IconMetrics.h"
+#include "KindUI/Layout/OverlayManager.h"
 #include "Widgets/MenuBar.h"
 
 #include <algorithm>
@@ -17,17 +17,17 @@
 
 namespace we::programs::editor {
 
-using WindEffects::Editor::UI::Color;
-using WindEffects::Editor::UI::MenuItem;
-using WindEffects::Editor::UI::MouseButton;
-using WindEffects::Editor::UI::MouseEvent;
-using WindEffects::Editor::UI::PaintContext;
-using WindEffects::Editor::UI::Point;
-using WindEffects::Editor::UI::Rect;
-using WindEffects::Editor::UI::Size;
-using WindEffects::Editor::UI::ThemeToken;
+using we::runtime::kindui::Color;
+using we::runtime::kindui::MenuItem;
+using we::runtime::kindui::MouseButton;
+using we::runtime::kindui::MouseEvent;
+using we::runtime::kindui::PaintContext;
+using we::runtime::kindui::Point;
+using we::runtime::kindui::Rect;
+using we::runtime::kindui::Size;
+using we::runtime::kindui::ThemeToken;
 
-class EditorModeMenu : public WindEffects::Editor::UI::Widget {
+class EditorModeMenu : public we::runtime::kindui::Widget {
 public:
     explicit EditorModeMenu(std::vector<std::shared_ptr<MenuItem>> items)
         : m_Items(std::move(items)) {}
@@ -54,7 +54,7 @@ public:
         const float padY = ThemeMetric(ThemeToken::Space1);
         const float padX = ThemeMetric(ThemeToken::Space2);
         const float textSize = ThemeMetric(ThemeToken::TextSizeSmall);
-        const float iconSize = static_cast<float>(WindEffects::Editor::UI::IconMetrics::NativeIconTierPx(ThemeMetric(ThemeToken::IconSizeTree)));
+        const float iconSize = static_cast<float>(we::runtime::kindui::IconMetrics::NativeIconTierPx(ThemeMetric(ThemeToken::IconSizeTree)));
 
         float y = m_Geometry.y + padY;
         for (size_t i = 0; i < m_Items.size(); ++i) {
@@ -64,14 +64,14 @@ public:
                 context.DrawRect(row, ThemeColor(ThemeToken::HoverBackground));
             }
 
-            WindEffects::Editor::UI::IconPainter::DrawIcon(context, item->shortcut,
+            we::runtime::kindui::IconPainter::DrawIcon(context, item->shortcut,
                 Rect{ row.x + padX, row.y + (rowH - iconSize) * 0.5f, iconSize, iconSize }, ThemeColor(ThemeToken::TextPrimary));
 
             context.DrawText(item->label, Point{ row.x + padX + iconSize + ThemeMetric(ThemeToken::Space1), row.y + (rowH - textSize) * 0.5f },
                 ThemeColor(ThemeToken::TextPrimary), textSize);
 
             if (item->checked) {
-                WindEffects::Editor::UI::IconPainter::DrawIcon(context, WindEffects::Editor::UI::Icons::CheckName,
+                we::runtime::kindui::IconPainter::DrawIcon(context, we::runtime::kindui::Icons::CheckName,
                     Rect{ row.x + row.width - padX - iconSize, row.y + (rowH - iconSize) * 0.5f, iconSize, iconSize },
                     ThemeColor(ThemeToken::AccentPrimary));
             }
@@ -132,22 +132,22 @@ void EditorModeSelector::Refresh() {
     if (const auto* mode = EditorToolsRegistry::Get().FindMode(modeId)) {
         m_Label = mode->label;
         m_IconName = mode->iconName;
-        if (!WindEffects::Editor::UI::Icons::IsKnownIcon(m_IconName)) {
-            m_IconName = WindEffects::Editor::UI::Icons::CursorName;
+        if (!we::runtime::kindui::Icons::IsKnownIcon(m_IconName)) {
+            m_IconName = we::runtime::kindui::Icons::CursorName;
         }
     } else {
         m_Label = "Select";
-        m_IconName = WindEffects::Editor::UI::Icons::CursorName;
+        m_IconName = we::runtime::kindui::Icons::CursorName;
     }
 }
 
 Size EditorModeSelector::Measure(const Size& availableSize) {
     (void)availableSize;
-    const float uiScale = (std::max)(1.0f, WindEffects::Editor::UI::DPIContext::GetScale());
-    const float padH = WindEffects::Editor::UI::ToolbarButtonChrome::HorizontalPad(uiScale);
-    const float iconSz = WindEffects::Editor::UI::ToolbarButtonChrome::IconSize(uiScale);
-    const float iconGap = WindEffects::Editor::UI::ToolbarButtonChrome::IconGapPx(uiScale);
-    const float chevW = WindEffects::Editor::UI::IconMetrics::CompactDisplayPx();
+    const float uiScale = (std::max)(1.0f, we::runtime::kindui::DPIContext::GetScale());
+    const float padH = we::runtime::kindui::ToolbarButtonChrome::HorizontalPad(uiScale);
+    const float iconSz = we::runtime::kindui::ToolbarButtonChrome::IconSize(uiScale);
+    const float iconGap = we::runtime::kindui::ToolbarButtonChrome::IconGapPx(uiScale);
+    const float chevW = we::runtime::kindui::IconMetrics::CompactDisplayPx();
     const float controlH = ThemeMetric(ThemeToken::IconButtonSize) * uiScale;
     m_DesiredSize = Size{
         padH + iconSz + iconGap + chevW + padH,
@@ -161,20 +161,20 @@ void EditorModeSelector::Arrange(const Rect& allottedRect) {
 }
 
 void EditorModeSelector::Paint(PaintContext& context) {
-    const float uiScale = (std::max)(1.0f, WindEffects::Editor::UI::DPIContext::GetScale());
-    m_HoverAnim = WindEffects::Editor::UI::Animator::Damp(
+    const float uiScale = (std::max)(1.0f, we::runtime::kindui::DPIContext::GetScale());
+    m_HoverAnim = we::runtime::kindui::Animator::Damp(
         m_HoverAnim, m_Hovered ? 1.0f : 0.0f, ThemeMetric(ThemeToken::HoverAnimationDamping));
 
     const float pressStrength = m_Pressed ? 1.0f : 0.0f;
-    WindEffects::Editor::UI::ToolbarButtonChrome::PaintIconButton(
+    we::runtime::kindui::ToolbarButtonChrome::PaintIconButton(
         context, m_Geometry, m_HoverAnim, pressStrength, false, 0.0f, uiScale);
 
     const float centerY = m_Geometry.y + m_Geometry.height * 0.5f;
-    const float padH = WindEffects::Editor::UI::ToolbarButtonChrome::HorizontalPad(uiScale);
-    const float iconSize = WindEffects::Editor::UI::ToolbarButtonChrome::IconSize(uiScale);
-    const float iconGap = WindEffects::Editor::UI::ToolbarButtonChrome::IconGapPx(uiScale);
-    const float chevSize = WindEffects::Editor::UI::IconMetrics::CompactDisplayPx();
-    Color iconColor = WindEffects::Editor::UI::ToolbarButtonChrome::ResolveIconColor(
+    const float padH = we::runtime::kindui::ToolbarButtonChrome::HorizontalPad(uiScale);
+    const float iconSize = we::runtime::kindui::ToolbarButtonChrome::IconSize(uiScale);
+    const float iconGap = we::runtime::kindui::ToolbarButtonChrome::IconGapPx(uiScale);
+    const float chevSize = we::runtime::kindui::IconMetrics::CompactDisplayPx();
+    Color iconColor = we::runtime::kindui::ToolbarButtonChrome::ResolveIconColor(
         m_HoverAnim, pressStrength, false);
 
     const Rect iconBand{
@@ -183,12 +183,12 @@ void EditorModeSelector::Paint(PaintContext& context) {
         (std::max)(iconSize, m_Geometry.width - padH * 2.0f - iconGap - chevSize),
         m_Geometry.height
     };
-    WindEffects::Editor::UI::IconPainter::DrawIcon(context, m_IconName,
-        WindEffects::Editor::UI::ToolbarButtonChrome::PlaceIconInControl(iconBand, iconSize),
+    we::runtime::kindui::IconPainter::DrawIcon(context, m_IconName,
+        we::runtime::kindui::ToolbarButtonChrome::PlaceIconInControl(iconBand, iconSize),
         iconColor);
 
     const float chevX = m_Geometry.x + m_Geometry.width - padH - chevSize;
-    WindEffects::Editor::UI::IconPainter::DrawCompactIcon(context, WindEffects::Editor::UI::Icons::ChevronDownName,
+    we::runtime::kindui::IconPainter::DrawCompactIcon(context, we::runtime::kindui::Icons::ChevronDownName,
         Rect{ chevX, centerY - chevSize * 0.5f, chevSize, chevSize },
         iconColor);
 }

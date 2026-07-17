@@ -4,13 +4,13 @@
 #include "EditorModeController.h"
 #include "EditorToolsRegistry.h"
 #include "Widgets/SearchBox.h"
-#include "Core/PaintContext.h"
-#include "WindEffects/Editor/UI/Theming/ThemeToken.h"
-#include "Core/Icon.h"
-#include "Core/DPIContext.h"
-#include "Rendering/IconMetrics.h"
-#include "Core/Animator.h"
-#include "Core/Geometry.h"
+#include "KindUI/Core/PaintContext.h"
+#include "KindUI/Theming/ThemeToken.h"
+#include "KindUI/Core/Icon.h"
+#include "KindUI/Core/DPIContext.h"
+#include "KindUI/Rendering/IconMetrics.h"
+#include "KindUI/Core/Animator.h"
+#include "KindUI/Core/Geometry.h"
 #include "Core/Logger.h"
 
 #include <algorithm>
@@ -19,16 +19,16 @@
 
 namespace we::programs::editor {
 
-using WindEffects::Editor::UI::Color;
-using WindEffects::Editor::UI::KeyEvent;
-using WindEffects::Editor::UI::MouseButton;
-using WindEffects::Editor::UI::MouseEvent;
-using WindEffects::Editor::UI::PaintContext;
-using WindEffects::Editor::UI::Point;
-using WindEffects::Editor::UI::Rect;
-using WindEffects::Editor::UI::Size;
-using WindEffects::Editor::UI::ThemeToken;
-namespace PanelChrome = WindEffects::Editor::UI::PanelChrome;
+using we::runtime::kindui::Color;
+using we::runtime::kindui::KeyEvent;
+using we::runtime::kindui::MouseButton;
+using we::runtime::kindui::MouseEvent;
+using we::runtime::kindui::PaintContext;
+using we::runtime::kindui::Point;
+using we::runtime::kindui::Rect;
+using we::runtime::kindui::Size;
+using we::runtime::kindui::ThemeToken;
+namespace PanelChrome = we::runtime::kindui::PanelChrome;
 
 namespace {
 constexpr float kDragThreshold = 6.0f;
@@ -67,7 +67,7 @@ bool ShortcutMatches(const std::string& toolShortcut, const KeyEvent& event) {
 ToolsPanel::ToolsPanel() {
     m_State.Load();
 
-    m_SearchBox = std::make_shared<WindEffects::Editor::UI::SearchBox>();
+    m_SearchBox = std::make_shared<we::runtime::kindui::SearchBox>();
     m_SearchBox->SetFillWidth(true);
     m_SearchBox->SetPlaceholder("Search Actors...");
     m_SearchBox->SetOnTextChanged([this](const std::string& text) {
@@ -375,7 +375,7 @@ void ToolsPanel::RebuildLayout() {
 }
 
 void ToolsPanel::Tick(float deltaTime) {
-    WindEffects::Editor::UI::Animator::Tick(deltaTime);
+    we::runtime::kindui::Animator::Tick(deltaTime);
 }
 
 void ToolsPanel::Paint(PaintContext& context) {
@@ -384,10 +384,10 @@ void ToolsPanel::Paint(PaintContext& context) {
     if (m_ModeContentWidget) {
         m_ModeContentWidget->Paint(context);
     } else {
-        const float uiScale = (std::max)(1.0f, WindEffects::Editor::UI::DPIContext::GetScale());
+        const float uiScale = (std::max)(1.0f, we::runtime::kindui::DPIContext::GetScale());
         const float labelFontSize = ThemeMetric(ThemeToken::TextSizeBody) * uiScale;
         const float shortcutFontSize = ThemeMetric(ThemeToken::TextSizeCaption) * uiScale;
-        const float iconSize = static_cast<float>(WindEffects::Editor::UI::IconMetrics::NativeIconTierPx(ThemeMetric(ThemeToken::IconSizeTree)));
+        const float iconSize = static_cast<float>(we::runtime::kindui::IconMetrics::NativeIconTierPx(ThemeMetric(ThemeToken::IconSizeTree)));
         const float padH = PanelChrome::PanelPaddingH();
         const float chevronGap = ThemeMetric(ThemeToken::Space2) * uiScale;
 
@@ -417,7 +417,7 @@ void ToolsPanel::Paint(PaintContext& context) {
 
             const float rowIconX = toolHit.geometry.x + padH + iconSize + chevronGap;
             const float iconY = toolHit.geometry.y + (toolHit.geometry.height - iconSize) * 0.5f;
-            WindEffects::Editor::UI::IconPainter::DrawIcon(context, toolHit.tool->iconName,
+            we::runtime::kindui::IconPainter::DrawIcon(context, toolHit.tool->iconName,
                 Rect{ rowIconX, iconY, iconSize, iconSize }, ThemeColor(ThemeToken::IconPrimary));
 
             context.DrawText(toolHit.tool->label,
@@ -433,15 +433,15 @@ void ToolsPanel::Paint(PaintContext& context) {
             }
 
             const float starX = toolHit.geometry.x + toolHit.geometry.width - padH - iconSize;
-            const char* starIcon = toolHit.favorite ? WindEffects::Editor::UI::Icons::StarFilledName : WindEffects::Editor::UI::Icons::StarName;
+            const char* starIcon = toolHit.favorite ? we::runtime::kindui::Icons::StarFilledName : we::runtime::kindui::Icons::StarName;
             Color starColor = toolHit.favorite ? ThemeColor(ThemeToken::IconAccent) : ThemeColor(ThemeToken::IconSecondary);
-            WindEffects::Editor::UI::IconPainter::DrawIcon(context, starIcon,
+            we::runtime::kindui::IconPainter::DrawIcon(context, starIcon,
                 Rect{ starX, iconY, iconSize, iconSize }, starColor);
         }
     }
 
     if (m_ContextMenuOpen) {
-        const float uiScale = (std::max)(1.0f, WindEffects::Editor::UI::DPIContext::GetScale());
+        const float uiScale = (std::max)(1.0f, we::runtime::kindui::DPIContext::GetScale());
         const float labelFontSize = ThemeMetric(ThemeToken::TextSizeBody) * uiScale;
         const float rowH = PanelChrome::ListRowHeight();
         context.DrawShadow(m_ContextMenuRect, ThemeColor(ThemeToken::ShadowPopup), 3.0f, 8.0f);

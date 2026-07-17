@@ -1,9 +1,9 @@
 #include "Widgets/RenderDebuggerPanel.h"
-#include "Core/PaintContext.h"
-#include "WindEffects/Editor/UI/Theming/ThemeAccess.h"
-#include "WindEffects/Editor/UI/Theming/ThemeToken.h"
+#include "KindUI/Core/PaintContext.h"
+#include "KindUI/Theming/ThemeAccess.h"
+#include "KindUI/Theming/ThemeToken.h"
 
-namespace WindEffects::Editor::UI {
+namespace we::runtime::kindui {
 
 RenderDebuggerPanel::RenderDebuggerPanel() {
     m_ScrollContentBox = std::make_shared<VerticalBox>();
@@ -64,4 +64,4 @@ void RenderDebuggerPanel::OnMouseWheel(const MouseEvent& event) {
     }
 }
 
-} // namespace WindEffects::Editor::UI
+} // namespace we::runtime::kindui

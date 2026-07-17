@@ -12,17 +12,17 @@ namespace we::programs::editor {
 
 namespace {
 std::weak_ptr<we::runtime::engine::EditorCamera> g_Camera;
-std::weak_ptr<WindEffects::Editor::UI::ToolButton> g_CameraSpeedIndicator;
+std::weak_ptr<we::runtime::kindui::ToolButton> g_CameraSpeedIndicator;
 
-void ShowPopupBelowButton(const std::shared_ptr<WindEffects::Editor::UI::Widget>& popup,
-                          const std::shared_ptr<WindEffects::Editor::UI::ToolButton>& button) {
+void ShowPopupBelowButton(const std::shared_ptr<we::runtime::kindui::Widget>& popup,
+                          const std::shared_ptr<we::runtime::kindui::ToolButton>& button) {
     auto* overlay = GetEditorPopupHost();
     if (!overlay || !button) {
         return;
     }
-    const WindEffects::Editor::UI::Rect anchor = button->GetGeometry();
+    const we::runtime::kindui::Rect anchor = button->GetGeometry();
     overlay->CloseAllPopups();
-    overlay->ShowPopup(popup, WindEffects::Editor::UI::Point{ anchor.x, anchor.y + anchor.height + 2.0f });
+    overlay->ShowPopup(popup, we::runtime::kindui::Point{ anchor.x, anchor.y + anchor.height + 2.0f });
 }
 
 float SnapCameraSpeed(float value) {
@@ -34,11 +34,11 @@ float SnapCameraSpeed(float value) {
 
 void BindViewportCamera(const std::shared_ptr<we::runtime::engine::EditorCamera>& camera) {
     g_Camera = camera;
-    WindEffects::Editor::UI::ApplyViewportNavigationSettings(camera);
+    we::runtime::kindui::ApplyViewportNavigationSettings(camera);
     UpdateViewportCameraSpeedIndicator();
 }
 
-void SetViewportCameraSpeedIndicator(const std::shared_ptr<WindEffects::Editor::UI::ToolButton>& indicator) {
+void SetViewportCameraSpeedIndicator(const std::shared_ptr<we::runtime::kindui::ToolButton>& indicator) {
     g_CameraSpeedIndicator = indicator;
     UpdateViewportCameraSpeedIndicator();
 }
@@ -105,7 +105,7 @@ void ShowViewportCameraSpeedPopup() {
 }
 
 void ApplyLoadedViewportNavigationSettings() {
-    WindEffects::Editor::UI::ApplyViewportNavigationSettings(g_Camera.lock());
+    we::runtime::kindui::ApplyViewportNavigationSettings(g_Camera.lock());
 }
 
 } // namespace we::programs::editor

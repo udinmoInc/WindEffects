@@ -1,43 +1,43 @@
 #pragma once
 
 #include "WindEffects/Editor/UI/Panel/PanelChrome.h"
-#include "WindEffects/Editor/UI/Theming/ThemeAccess.h"
-#include "WindEffects/Editor/UI/Theming/ThemeToken.h"
-#include "Rendering/IconMetrics.h"
+#include "KindUI/Theming/ThemeAccess.h"
+#include "KindUI/Theming/ThemeToken.h"
+#include "KindUI/Rendering/IconMetrics.h"
 
 namespace we::programs::editor::ActorsPanelLayout {
 
 inline float ContentPadH() {
-    return WindEffects::Editor::UI::PanelChrome::PanelPaddingH();
+    return we::runtime::kindui::PanelChrome::PanelPaddingH();
 }
 
 inline float ContentPadV() {
-    return WindEffects::Editor::UI::ResolveThemeMetric(WindEffects::Editor::UI::ThemeToken::Space2);
+    return we::runtime::kindui::ResolveThemeMetric(we::runtime::kindui::ThemeToken::Space2);
 }
 
 inline float ChevronSize() {
-    return WindEffects::Editor::UI::ResolveThemeMetric(WindEffects::Editor::UI::ThemeToken::IconSizeTree);
+    return we::runtime::kindui::ResolveThemeMetric(we::runtime::kindui::ThemeToken::IconSizeTree);
 }
 
 inline float ActorRowHeight() {
-    return 32.0f * WindEffects::Editor::UI::PanelChrome::UiScale();
+    return 32.0f * we::runtime::kindui::PanelChrome::UiScale();
 }
 
 inline float CategoryHeight() {
-    return 28.0f * WindEffects::Editor::UI::PanelChrome::UiScale();
+    return 28.0f * we::runtime::kindui::PanelChrome::UiScale();
 }
 
 inline float IconSize() {
-    return static_cast<float>(WindEffects::Editor::UI::IconMetrics::NativeIconTierPx(
-        WindEffects::Editor::UI::ResolveThemeMetric(WindEffects::Editor::UI::ThemeToken::IconSizeTree)));
+    return static_cast<float>(we::runtime::kindui::IconMetrics::NativeIconTierPx(
+        we::runtime::kindui::ResolveThemeMetric(we::runtime::kindui::ThemeToken::IconSizeTree)));
 }
 
 inline float RowRadius() {
-    return 5.0f * WindEffects::Editor::UI::PanelChrome::UiScale();
+    return 5.0f * we::runtime::kindui::PanelChrome::UiScale();
 }
 
 inline float SearchHeight() {
-    return 28.0f * WindEffects::Editor::UI::PanelChrome::UiScale();
+    return 28.0f * we::runtime::kindui::PanelChrome::UiScale();
 }
 
 inline float SearchRowHeight() {
@@ -45,7 +45,7 @@ inline float SearchRowHeight() {
 }
 
 inline float ItemIndent() {
-    return ChevronSize() + WindEffects::Editor::UI::ResolveThemeMetric(WindEffects::Editor::UI::ThemeToken::Space2);
+    return ChevronSize() + we::runtime::kindui::ResolveThemeMetric(we::runtime::kindui::ThemeToken::Space2);
 }
 
 inline float ItemIconX(float contentX) {
@@ -54,7 +54,7 @@ inline float ItemIconX(float contentX) {
 
 inline float LabelX(float contentX) {
     return ItemIconX(contentX) + IconSize()
-        + WindEffects::Editor::UI::ResolveThemeMetric(WindEffects::Editor::UI::ThemeToken::Space2);
+        + we::runtime::kindui::ResolveThemeMetric(we::runtime::kindui::ThemeToken::Space2);
 }
 
 inline float StarIconX(float contentX, float contentWidth) {
@@ -62,51 +62,51 @@ inline float StarIconX(float contentX, float contentWidth) {
 }
 
 inline float CategoryGap() {
-    return WindEffects::Editor::UI::ResolveThemeMetric(WindEffects::Editor::UI::ThemeToken::Space3);
+    return we::runtime::kindui::ResolveThemeMetric(we::runtime::kindui::ThemeToken::Space3);
 }
 
 inline float CategoryContentGap() {
-    return WindEffects::Editor::UI::ResolveThemeMetric(WindEffects::Editor::UI::ThemeToken::Space2);
+    return we::runtime::kindui::ResolveThemeMetric(we::runtime::kindui::ThemeToken::Space2);
 }
 
 inline float SectionRadius() {
-    return WindEffects::Editor::UI::ResolveThemeMetric(WindEffects::Editor::UI::ThemeToken::CornerRadiusSmall);
+    return we::runtime::kindui::ResolveThemeMetric(we::runtime::kindui::ThemeToken::CornerRadiusSmall);
 }
 
 inline float ToolbarIconSize() {
-    return WindEffects::Editor::UI::ResolveThemeMetric(WindEffects::Editor::UI::ThemeToken::IconButtonSize)
-        * WindEffects::Editor::UI::PanelChrome::UiScale();
+    return we::runtime::kindui::ResolveThemeMetric(we::runtime::kindui::ThemeToken::IconButtonSize)
+        * we::runtime::kindui::PanelChrome::UiScale();
 }
 
 inline float FilterButtonGap() {
-    return WindEffects::Editor::UI::ResolveThemeMetric(WindEffects::Editor::UI::ThemeToken::Space2);
+    return we::runtime::kindui::ResolveThemeMetric(we::runtime::kindui::ThemeToken::Space2);
 }
 
 inline float GridMinCardWidth() {
-    return 76.0f * WindEffects::Editor::UI::PanelChrome::UiScale();
+    return 76.0f * we::runtime::kindui::PanelChrome::UiScale();
 }
 
 inline float GridMaxCardWidth() {
-    return 112.0f * WindEffects::Editor::UI::PanelChrome::UiScale();
+    return 112.0f * we::runtime::kindui::PanelChrome::UiScale();
 }
 
 inline float GridCardGap() {
-    return WindEffects::Editor::UI::ResolveThemeMetric(WindEffects::Editor::UI::ThemeToken::Space3);
+    return we::runtime::kindui::ResolveThemeMetric(we::runtime::kindui::ThemeToken::Space3);
 }
 
 inline float GridLabelHeight() {
-    return 16.0f * WindEffects::Editor::UI::PanelChrome::UiScale();
+    return 16.0f * we::runtime::kindui::PanelChrome::UiScale();
 }
 
 inline float GridLabelGap() {
-    return WindEffects::Editor::UI::ResolveThemeMetric(WindEffects::Editor::UI::ThemeToken::Space1);
+    return we::runtime::kindui::ResolveThemeMetric(we::runtime::kindui::ThemeToken::Space1);
 }
 
 // Always reserve scrollbar track width so the last column never sits under the thumb.
 inline float GridScrollbarReserve() {
-    return WindEffects::Editor::UI::ResolveThemeMetric(WindEffects::Editor::UI::ThemeToken::ScrollbarWidth)
-        * WindEffects::Editor::UI::PanelChrome::UiScale()
-        + WindEffects::Editor::UI::ResolveThemeMetric(WindEffects::Editor::UI::ThemeToken::Space1);
+    return we::runtime::kindui::ResolveThemeMetric(we::runtime::kindui::ThemeToken::ScrollbarWidth)
+        * we::runtime::kindui::PanelChrome::UiScale()
+        + we::runtime::kindui::ResolveThemeMetric(we::runtime::kindui::ThemeToken::Space1);
 }
 
 } // namespace we::programs::editor::ActorsPanelLayout

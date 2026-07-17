@@ -2,18 +2,18 @@
 
 #include "Toolbar/Export.h"
 
-#include "Core/Widget.h"
-#include "Layout/Box.h"
-#include "Layout/Spacer.h"
-#include "Core/Style.h"
-#include "Core/Icon.h"
+#include "KindUI/Core/Widget.h"
+#include "KindUI/Layout/Box.h"
+#include "KindUI/Layout/Spacer.h"
+#include "KindUI/Core/Style.h"
+#include "KindUI/Core/Icon.h"
 #include "Widgets/ToolButton.h"
 #include <string>
 #include <functional>
 #include <memory>
 #include <vector>
 
-namespace WindEffects::Editor::UI {
+namespace we::runtime::kindui {
 
 enum class ToolbarAlignment {
     Left,
@@ -120,4 +120,4 @@ public:
     void Paint(PaintContext& context) override;
 };
 
-} // namespace WindEffects::Editor::UI
+} // namespace we::runtime::kindui

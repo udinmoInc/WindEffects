@@ -3,16 +3,16 @@
 #include "UI/LauncherHelpers.h"
 #include "UI/Widgets/ManagerViews.h"
 
-#include "WindEffects/Runtime/UI/Core/Animator.h"
-#include "WindEffects/Runtime/UI/Core/Icon.h"
-#include "WindEffects/Runtime/UI/Core/PaintContext.h"
-#include "WindEffects/Runtime/UI/Theming/ThemeToken.h"
+#include "KindUI/Core/Animator.h"
+#include "KindUI/Core/Icon.h"
+#include "KindUI/Core/PaintContext.h"
+#include "KindUI/Theming/ThemeToken.h"
 
 #include <algorithm>
 #include <cmath>
 #include <cstdint>
 
-using namespace WindEffects::Editor::UI;
+using namespace we::runtime::kindui;
 
 namespace we::programs::welauncher {
 namespace {

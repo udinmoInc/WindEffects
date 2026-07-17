@@ -1,12 +1,13 @@
-#include "WindEffects/Runtime/UI/Widgets/Button.h"
-#include "WindEffects/Runtime/UI/Core/ControlChrome.h"
-#include "WindEffects/Runtime/UI/Core/PaintContext.h"
-#include "WindEffects/Runtime/UI/Core/TextMetrics.h"
-#include "WindEffects/Runtime/UI/Theming/ThemeManager.h"
-#include "WindEffects/Runtime/UI/Theming/ThemeToken.h"
-#include "WindEffects/Runtime/UI/Core/Animator.h"
+#include "KindUI/Widgets/Button.h"
+#include "KindUI/Core/ControlChrome.h"
+#include "KindUI/Core/PaintContext.h"
+#include "KindUI/Core/TextMetrics.h"
+#include "KindUI/Theming/ThemeAccess.h"
+#include "KindUI/Theming/ThemeManager.h"
+#include "KindUI/Theming/ThemeToken.h"
+#include "KindUI/Core/Animator.h"
 
-namespace WindEffects::Editor::UI {
+namespace we::runtime::kindui {
 
 Button::Button(const std::string& labelText, std::function<void()> onClicked)
     : m_Text(labelText)
@@ -65,4 +66,4 @@ void Button::OnMouseUp(const MouseEvent& event) {
     }
 }
 
-} // namespace WindEffects::Editor::UI
+} // namespace we::runtime::kindui

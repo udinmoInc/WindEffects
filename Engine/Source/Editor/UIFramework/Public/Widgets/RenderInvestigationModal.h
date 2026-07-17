@@ -1,20 +1,20 @@
 #pragma once
 
 #include "WindEffects/Editor/UI/Export.h"
-#include "Core/Widget.h"
-#include "Layout/Box.h"
-#include "Layout/ScrollLayout.h"
-#include "Layout/Splitter.h"
-#include "Widgets/Button.h"
-#include "Widgets/Label.h"
-#include "Widgets/TextBox.h"
+#include "KindUI/Core/Widget.h"
+#include "KindUI/Layout/Box.h"
+#include "KindUI/Layout/ScrollLayout.h"
+#include "KindUI/Layout/Splitter.h"
+#include "KindUI/Widgets/Button.h"
+#include "KindUI/Widgets/Label.h"
+#include "KindUI/Widgets/TextBox.h"
 #include "Renderer/EditorRenderDebugStub.h"
 #include <functional>
 #include <memory>
 #include <string>
 #include <vector>
 
-namespace WindEffects::Editor::UI {
+namespace we::runtime::kindui {
 
 enum class InvestigationTextureViewMode {
     RGB,
@@ -130,4 +130,4 @@ public:
     static void UpdateFromSnapshot(const we::runtime::renderer::RenderDebuggerFrameSnapshot& snapshot);
 };
 
-} // namespace WindEffects::Editor::UI
+} // namespace we::runtime::kindui

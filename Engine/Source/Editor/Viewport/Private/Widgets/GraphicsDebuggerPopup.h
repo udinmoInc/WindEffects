@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Core/Widget.h"
+#include "KindUI/Core/Widget.h"
 #include <memory>
 #include <string>
 #include <vector>
@@ -9,7 +9,7 @@ namespace we::runtime::engine { class EditorCamera; }
 namespace we::runtime::renderer { class Renderer; }
 namespace we::runtime::scene { class Scene; }
 
-namespace WindEffects::Editor::UI {
+namespace we::runtime::kindui {
 
 class GraphicsDebuggerPopup : public Widget {
 public:
@@ -48,4 +48,4 @@ private:
     float m_FrameTimeMs = 0.0f;
 };
 
-} // namespace WindEffects::Editor::UI
+} // namespace we::runtime::kindui

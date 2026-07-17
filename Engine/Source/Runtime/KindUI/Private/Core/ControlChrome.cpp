@@ -1,14 +1,14 @@
-#include "WindEffects/Runtime/UI/Core/ControlChrome.h"
+#include "KindUI/Core/ControlChrome.h"
 
-#include "WindEffects/Runtime/UI/Core/PaintContext.h"
-#include "WindEffects/Runtime/UI/Theming/ThemeManager.h"
-#include "WindEffects/Runtime/UI/Theming/ThemeAccess.h"
-#include "WindEffects/Runtime/UI/Theming/ThemeToken.h"
+#include "KindUI/Core/PaintContext.h"
+#include "KindUI/Theming/ThemeManager.h"
+#include "KindUI/Theming/ThemeAccess.h"
+#include "KindUI/Theming/ThemeToken.h"
 
 #include <algorithm>
 #include <string>
 
-namespace WindEffects::Editor::UI {
+namespace we::runtime::kindui {
 namespace ControlChrome {
 
 ResolvedStyle Role(StyleRole role) {
@@ -280,4 +280,4 @@ void PaintCheckbox(
 }
 
 } // namespace ControlChrome
-} // namespace WindEffects::Editor::UI
+} // namespace we::runtime::kindui

@@ -5,7 +5,7 @@
 
 namespace we::programs::editor {
 
-using WindEffects::Editor::UI::Rect;
+using we::runtime::kindui::Rect;
 
 PlaceActorsGridLayout PlaceActorsResponsiveGrid::Compute(
     float viewportWidth,

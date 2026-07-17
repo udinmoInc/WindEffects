@@ -1,6 +1,6 @@
 #include "Widgets/ToolbarBuilder.h"
 
-namespace WindEffects::Editor::UI {
+namespace we::runtime::kindui {
 
 ToolbarBuilder& ToolbarBuilder::Height(float height) {
     m_Height = height;
@@ -104,4 +104,4 @@ std::shared_ptr<Toolbar> ToolbarBuilder::Build() {
     return toolbar;
 }
 
-} // namespace WindEffects::Editor::UI
+} // namespace we::runtime::kindui

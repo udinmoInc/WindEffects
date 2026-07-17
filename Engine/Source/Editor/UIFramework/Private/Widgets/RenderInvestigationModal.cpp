@@ -1,7 +1,7 @@
 #include "Widgets/RenderInvestigationModal.h"
 #include "EditorWorkspaceController.h"
 
-namespace WindEffects::Editor::UI {
+namespace we::runtime::kindui {
 
 namespace {
 
@@ -101,4 +101,4 @@ void RenderInvestigationModalHost::UpdateFromSnapshot(const we::runtime::rendere
     }
 }
 
-} // namespace WindEffects::Editor::UI
+} // namespace we::runtime::kindui

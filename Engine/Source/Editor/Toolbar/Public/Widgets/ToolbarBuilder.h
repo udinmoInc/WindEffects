@@ -10,7 +10,7 @@
 #include <string_view>
 #include <vector>
 
-namespace WindEffects::Editor::UI {
+namespace we::runtime::kindui {
 
 struct ToolbarItemSpec {
     std::string icon;
@@ -56,4 +56,4 @@ private:
     std::vector<ToolbarItemSpec> m_Items;
 };
 
-} // namespace WindEffects::Editor::UI
+} // namespace we::runtime::kindui

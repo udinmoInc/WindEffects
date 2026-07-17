@@ -1,15 +1,15 @@
-#include "WindEffects/Runtime/UI/Layout/ScrollViewport.h"
+#include "KindUI/Layout/ScrollViewport.h"
 
-#include "WindEffects/Runtime/UI/Core/ControlChrome.h"
-#include "WindEffects/Runtime/UI/Core/PaintContext.h"
-#include "WindEffects/Runtime/UI/Theming/ThemeAccess.h"
-#include "WindEffects/Runtime/UI/Theming/ThemeManager.h"
-#include "WindEffects/Runtime/UI/Theming/ThemeToken.h"
+#include "KindUI/Core/ControlChrome.h"
+#include "KindUI/Core/PaintContext.h"
+#include "KindUI/Theming/ThemeAccess.h"
+#include "KindUI/Theming/ThemeManager.h"
+#include "KindUI/Theming/ThemeToken.h"
 
 #include <algorithm>
 #include <cmath>
 
-namespace WindEffects::Editor::UI {
+namespace we::runtime::kindui {
 namespace {
 
 constexpr float kMinThumbHeight = 24.0f;
@@ -185,4 +185,4 @@ void ScrollViewport::JumpToTrack(
     offset = ClampOffset((centeredY / trackTravel) * maxScroll, viewportHeight, contentHeight);
 }
 
-} // namespace WindEffects::Editor::UI
+} // namespace we::runtime::kindui

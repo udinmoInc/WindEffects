@@ -5,7 +5,7 @@
 #include <functional>
 #include "RHI/Types.h"
 
-namespace WindEffects::Editor::UI {
+namespace we::runtime::kindui {
 
 struct ContentItem {
     std::string id;
@@ -53,4 +53,4 @@ public:
     }
 };
 
-} // namespace WindEffects::Editor::UI
+} // namespace we::runtime::kindui

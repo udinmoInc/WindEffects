@@ -1,9 +1,9 @@
-#include "WindEffects/Runtime/UI/Core/TextMetrics.h"
+#include "KindUI/Core/TextMetrics.h"
 
-#include "WindEffects/Runtime/UI/Theming/ThemeAccess.h"
-#include "WindEffects/Runtime/UI/Theming/ThemeToken.h"
+#include "KindUI/Theming/ThemeAccess.h"
+#include "KindUI/Theming/ThemeToken.h"
 
-namespace WindEffects::Editor::UI {
+namespace we::runtime::kindui {
 
 float TextMetrics::CharWidth(float fontSize) {
     const float ratio = ResolveThemeMetric(ThemeToken::TextCharWidthRatio);
@@ -14,4 +14,4 @@ float TextMetrics::EstimateWidth(std::string_view text, float fontSize) {
     return static_cast<float>(text.size()) * CharWidth(fontSize);
 }
 
-} // namespace WindEffects::Editor::UI
+} // namespace we::runtime::kindui

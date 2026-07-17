@@ -1,9 +1,9 @@
 #pragma once
 
-#include "Core/Widget.h"
-#include "Core/Style.h"
-#include "Core/Icon.h"
-#include "Layout/ScrollViewport.h"
+#include "KindUI/Core/Widget.h"
+#include "KindUI/Core/Style.h"
+#include "KindUI/Core/Icon.h"
+#include "KindUI/Layout/ScrollViewport.h"
 #include <string>
 #include <vector>
 #include <functional>
@@ -12,7 +12,7 @@
 #include "Models/ContentBrowserModel.h"
 #include "Controllers/ContentBrowserController.h"
 
-namespace WindEffects::Editor::UI {
+namespace we::runtime::kindui {
 
 class ContentBrowser : public Widget {
 public:
@@ -205,4 +205,4 @@ private:
     size_t m_MemoryUsage = 0;
 };
 
-} // namespace WindEffects::Editor::UI
+} // namespace we::runtime::kindui

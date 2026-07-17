@@ -8,16 +8,16 @@
 #include "EditorCamera.h"
 #include "Scene/Scene.h"
 
-#include "Core/Widget.h"
-#include "Core/EventSystem.h"
-#include "Rendering/OverlayRenderer.h"
+#include "KindUI/Core/Widget.h"
+#include "KindUI/Core/EventSystem.h"
+#include "KindUI/Rendering/OverlayRenderer.h"
 #include "Widgets/StatusBar.h"
 #include "Widgets/TitleBar.h"
 #include "EditorWindowHitTest.h"
 #include "WindEffects/Editor/UI/Core/EditorApplicationContext.h"
 #include "EditorShellBuilder.h"
 
-namespace WindEffects::Editor::UI {
+namespace we::runtime::kindui {
 class OverlayHost;
 class RenderDebuggerPanel;
 class IconRenderer;
@@ -48,22 +48,22 @@ private:
     std::shared_ptr<we::runtime::engine::EditorCamera> m_Camera;
     std::shared_ptr<we::runtime::scene::Scene> m_Scene;
 
-    std::shared_ptr<WindEffects::Editor::UI::Widget> m_RootWidget;
-    std::shared_ptr<WindEffects::Editor::UI::OverlayHost> m_OverlayHost;
-    std::shared_ptr<WindEffects::Editor::UI::EventSystem> m_UIEventSystem;
-    std::unique_ptr<WindEffects::Editor::UI::OverlayRenderer> m_OverlayRenderer;
+    std::shared_ptr<we::runtime::kindui::Widget> m_RootWidget;
+    std::shared_ptr<we::runtime::kindui::OverlayHost> m_OverlayHost;
+    std::shared_ptr<we::runtime::kindui::EventSystem> m_UIEventSystem;
+    std::unique_ptr<we::runtime::kindui::OverlayRenderer> m_OverlayRenderer;
 
-    std::shared_ptr<WindEffects::Editor::UI::Widget> m_ViewportWidget;
-    std::shared_ptr<WindEffects::Editor::UI::StatusBar> m_StatusBar;
-    std::shared_ptr<WindEffects::Editor::UI::TitleBar> m_TitleBar;
-    std::shared_ptr<WindEffects::Editor::UI::RenderDebuggerPanel> m_RenderDebuggerPanel;
-    std::unique_ptr<WindEffects::Editor::UI::EditorApplicationContext> m_UIContext;
+    std::shared_ptr<we::runtime::kindui::Widget> m_ViewportWidget;
+    std::shared_ptr<we::runtime::kindui::StatusBar> m_StatusBar;
+    std::shared_ptr<we::runtime::kindui::TitleBar> m_TitleBar;
+    std::shared_ptr<we::runtime::kindui::RenderDebuggerPanel> m_RenderDebuggerPanel;
+    std::unique_ptr<we::runtime::kindui::EditorApplicationContext> m_UIContext;
     we::editor::mainframe::EditorWindowHitTestData m_WindowHitTestData{};
 
     void EnsureVisibleSwapchain();
     void SyncViewportFramebufferFromLayout();
     void UpdateUiScaleFromWindow();
-    void LogWidgetTreeLayout(const std::shared_ptr<WindEffects::Editor::UI::Widget>& widget, const std::string& name, int depth = 0);
+    void LogWidgetTreeLayout(const std::shared_ptr<we::runtime::kindui::Widget>& widget, const std::string& name, int depth = 0);
 
     uint32_t m_LastLayoutSwapchainW = 0;
     uint32_t m_LastLayoutSwapchainH = 0;

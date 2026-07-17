@@ -1,9 +1,9 @@
-#include "WindEffects/Runtime/UI/Layout/Grid.h"
+#include "KindUI/Layout/Grid.h"
 
 #include <algorithm>
 #include <cmath>
 
-namespace WindEffects::Editor::UI {
+namespace we::runtime::kindui {
 
 std::shared_ptr<Grid> MakeGrid() {
     return std::make_shared<Grid>();
@@ -205,4 +205,4 @@ void Grid::Paint(PaintContext& context) {
     }
 }
 
-} // namespace WindEffects::Editor::UI
+} // namespace we::runtime::kindui

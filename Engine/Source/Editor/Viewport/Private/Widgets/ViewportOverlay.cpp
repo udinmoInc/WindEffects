@@ -1,12 +1,12 @@
 #include "Widgets/ViewportOverlay.h"
-#include "Core/PaintContext.h"
-#include "WindEffects/Editor/UI/Theming/ThemeToken.h"
-#include "Core/Icon.h"
-#include "WindEffects/Editor/UI/Theming/ThemeAccess.h"
-#include "Rendering/IconMetrics.h"
+#include "KindUI/Core/PaintContext.h"
+#include "KindUI/Theming/ThemeToken.h"
+#include "KindUI/Core/Icon.h"
+#include "KindUI/Theming/ThemeAccess.h"
+#include "KindUI/Rendering/IconMetrics.h"
 #include <algorithm>
 
-namespace WindEffects::Editor::UI {
+namespace we::runtime::kindui {
 
 ViewportOverlay::ViewportOverlay()
     : m_Style(WidgetStyle::Panel())

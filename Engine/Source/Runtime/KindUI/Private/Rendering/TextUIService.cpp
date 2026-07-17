@@ -1,7 +1,7 @@
-#include "WindEffects/Runtime/UI/Rendering/TextUIService.h"
+#include "KindUI/Rendering/TextUIService.h"
 
-#include "WindEffects/Runtime/UI/Rendering/FontImportService.h"
-#include "WindEffects/Runtime/UI/Rendering/OverlayRenderer.h"
+#include "KindUI/Rendering/FontImportService.h"
+#include "KindUI/Rendering/OverlayRenderer.h"
 #include "AssetRegistry.h"
 #include "Core/Logger.h"
 
@@ -9,7 +9,7 @@
 #include <cmath>
 #include <filesystem>
 
-namespace WindEffects::Editor::UI {
+namespace we::runtime::kindui {
 
 namespace {
 
@@ -333,4 +333,4 @@ bool TextUIService::GenerateTextGeometry(
     return vertices.size() > startVertex;
 }
 
-} // namespace WindEffects::Editor::UI
+} // namespace we::runtime::kindui

@@ -13,7 +13,7 @@
 #include <unordered_set>
 #include "RHI/Types.h"
 
-namespace WindEffects::Editor::UI {
+namespace we::runtime::kindui {
 class IconRenderer;
 }
 
@@ -23,7 +23,7 @@ class ContentBrowserService {
 public:
     static ContentBrowserService& Get();
 
-    void Initialize(WindEffects::Editor::UI::IconRenderer* iconRenderer, const std::string& contentRoot);
+    void Initialize(we::runtime::kindui::IconRenderer* iconRenderer, const std::string& contentRoot);
     void Shutdown();
     void Tick(float deltaTime);
 
@@ -35,7 +35,7 @@ public:
     void SetCurrentFolder(const std::string& virtualPath);
     const std::string& GetCurrentFolder() const { return m_CurrentFolder; }
 
-    void RefreshBrowserModel(const std::shared_ptr<WindEffects::Editor::UI::ContentBrowserModel>& model);
+    void RefreshBrowserModel(const std::shared_ptr<we::runtime::kindui::ContentBrowserModel>& model);
     void RequestThumbnailForItem(const std::string& id);
     void SetVisibleItemIds(const std::unordered_set<std::string>& ids);
 
@@ -50,7 +50,7 @@ private:
     void ProcessThumbnails();
     we::rhi::RHIDescriptorSetHandle UploadBitmap(const struct BitmapRGBA& bitmap);
 
-    WindEffects::Editor::UI::IconRenderer* m_IconRenderer = nullptr;
+    we::runtime::kindui::IconRenderer* m_IconRenderer = nullptr;
     ThumbnailManager m_ThumbnailManager;
     DiskThumbnailCache m_DiskCache;
     FolderPreviewGenerator m_FolderPreview;
@@ -59,7 +59,7 @@ private:
 
     std::string m_CurrentFolder = "/Game";
     std::function<void(const std::string&, we::rhi::RHIDescriptorSetHandle)> m_OnThumbnailReady;
-    std::weak_ptr<WindEffects::Editor::UI::ContentBrowserModel> m_Model;
+    std::weak_ptr<we::runtime::kindui::ContentBrowserModel> m_Model;
     bool m_Initialized = false;
 };
 

@@ -1,7 +1,7 @@
-#include "WindEffects/Runtime/UI/Core/Animation.h"
-#include "WindEffects/Runtime/UI/Core/Geometry.h"
+#include "KindUI/Core/Animation.h"
+#include "KindUI/Core/Geometry.h"
 
-namespace WindEffects::Editor::UI {
+namespace we::runtime::kindui {
 
 AnimationManager& AnimationManager::Get() {
     static AnimationManager instance;
@@ -26,4 +26,4 @@ Color ColorAnimation::GetValue() const {
     };
 }
 
-} // namespace WindEffects::Editor::UI
+} // namespace we::runtime::kindui

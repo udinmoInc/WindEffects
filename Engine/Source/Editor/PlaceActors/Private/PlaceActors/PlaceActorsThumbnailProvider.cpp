@@ -1,19 +1,19 @@
 #include "PlaceActors/PlaceActorsThumbnailProvider.h"
 
 #include "PlaceActors/PlaceActorsIconProvider.h"
-#include "Core/Icon.h"
-#include "WindEffects/Editor/UI/Theming/ThemeAccess.h"
-#include "WindEffects/Editor/UI/Theming/ThemeToken.h"
+#include "KindUI/Core/Icon.h"
+#include "KindUI/Theming/ThemeAccess.h"
+#include "KindUI/Theming/ThemeToken.h"
 
 #include <algorithm>
 
 namespace we::programs::editor {
 
-using WindEffects::Editor::UI::Color;
-using WindEffects::Editor::UI::PaintContext;
-using WindEffects::Editor::UI::Rect;
-using WindEffects::Editor::UI::ThemeToken;
-namespace WEIcons = WindEffects::Editor::UI::Icons;
+using we::runtime::kindui::Color;
+using we::runtime::kindui::PaintContext;
+using we::runtime::kindui::Rect;
+using we::runtime::kindui::ThemeToken;
+namespace WEIcons = we::runtime::kindui::Icons;
 
 PlaceActorsThumbnailProvider& PlaceActorsThumbnailProvider::Get() {
     static PlaceActorsThumbnailProvider instance;
@@ -82,7 +82,7 @@ void PlaceActorsThumbnailProvider::Paint(PaintContext& context,
             previewRect.width - inset * 2.0f,
             previewRect.height - inset * 2.0f
         };
-        WindEffects::Editor::UI::IconPainter::DrawIcon(
+        we::runtime::kindui::IconPainter::DrawIcon(
             context, thumb.atlasIconName, iconRect, Color::White());
         return;
     }
@@ -97,7 +97,7 @@ void PlaceActorsThumbnailProvider::Paint(PaintContext& context,
     };
     const std::string chromeIcon = PlaceActorsIconProvider::Get().ResolveChromeIcon(item);
     const std::string& placeholderIcon = !chromeIcon.empty() ? chromeIcon : WEIcons::PackageName;
-    WindEffects::Editor::UI::IconPainter::DrawIcon(
+    we::runtime::kindui::IconPainter::DrawIcon(
         context,
         placeholderIcon,
         iconRect,

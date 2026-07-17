@@ -1,14 +1,14 @@
 #include "Platform/Platform.h"
 #include "Widgets/SearchBox.h"
-#include "Core/EventSystem.h"
-#include "Core/PaintContext.h"
+#include "KindUI/Core/EventSystem.h"
+#include "KindUI/Core/PaintContext.h"
 #include "WindEffects/Editor/UI/Panel/PanelChrome.h"
-#include "WindEffects/Editor/UI/Theming/ThemeToken.h"
-#include "Core/DPIContext.h"
-#include "Rendering/IconMetrics.h"
+#include "KindUI/Theming/ThemeToken.h"
+#include "KindUI/Core/DPIContext.h"
+#include "KindUI/Rendering/IconMetrics.h"
 #include <algorithm>
 
-namespace WindEffects::Editor::UI {
+namespace we::runtime::kindui {
 
 SearchBox::SearchBox()
     : m_Style(WidgetStyle::TextBox())
@@ -171,4 +171,4 @@ void SearchBox::SetText(const std::string& text) {
     }
 }
 
-} // namespace WindEffects::Editor::UI
+} // namespace we::runtime::kindui

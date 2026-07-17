@@ -1,10 +1,10 @@
 #pragma once
 
-#include "Core/Widget.h"
+#include "KindUI/Core/Widget.h"
 #include <functional>
 #include <string>
 
-namespace WindEffects::Editor::UI {
+namespace we::runtime::kindui {
 
 // Compact command entry field for the status bar footer.
 class CommandInput : public Widget {
@@ -38,4 +38,4 @@ private:
     OnCommandSubmitted m_OnCommandSubmitted;
 };
 
-} // namespace WindEffects::Editor::UI
+} // namespace we::runtime::kindui

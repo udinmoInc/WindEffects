@@ -1,20 +1,20 @@
 #include "WindEffects/Editor/UI/Core/EditorApplicationContext.h"
 
-#include "WindEffects/Runtime/UI/Theming/EditorTheme.h"
-#include "WindEffects/Runtime/UI/Theming/ThemeManager.h"
-#include "WindEffects/Runtime/UI/Resources/ModuleResourceRegistry.h"
-#include "WindEffects/Runtime/UI/Events/EventBus.h"
-#include "WindEffects/Runtime/UI/Commands/CommandRegistry.h"
+#include "WindEffects/Editor/UI/Theming/EditorTheme.h"
+#include "KindUI/Theming/ThemeManager.h"
+#include "KindUI/Resources/ModuleResourceRegistry.h"
+#include "KindUI/Events/EventBus.h"
+#include "KindUI/Commands/CommandRegistry.h"
 #include "WindEffects/Editor/UI/Docking/DockManager.h"
 #include "WindEffects/Editor/UI/Extensions/ExtensionBootstrap.h"
 
-#include "WindEffects/Runtime/UI/Core/DPIContext.h"
+#include "KindUI/Core/DPIContext.h"
 
-namespace WindEffects::Editor::UI {
+namespace we::runtime::kindui {
 
 EditorApplicationContext::EditorApplicationContext(std::shared_ptr<IThemeProvider> theme) {
     if (!theme) {
-        theme = std::make_shared<EditorTheme>();
+        theme = std::make_shared<we::editor::ui::EditorTheme>();
     }
     ThemeManager::Get().Initialize(std::move(theme), 1.0f);
     m_ThemeProvider = ThemeManager::Get().SharedProvider();
@@ -57,6 +57,6 @@ void EditorApplicationContext::Initialize(float dpiScale) {
 void EditorApplicationContext::Shutdown() {
 }
 
-} // namespace WindEffects::Editor::UI
+} // namespace we::runtime::kindui
 
 // relink

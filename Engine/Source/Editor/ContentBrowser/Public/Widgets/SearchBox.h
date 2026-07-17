@@ -2,13 +2,13 @@
 
 #include "ContentBrowser/Export.h"
 
-#include "Core/Widget.h"
-#include "Core/Style.h"
-#include "Core/Icon.h"
+#include "KindUI/Core/Widget.h"
+#include "KindUI/Core/Style.h"
+#include "KindUI/Core/Icon.h"
 #include <string>
 #include <functional>
 
-namespace WindEffects::Editor::UI {
+namespace we::runtime::kindui {
 
 // Search box widget with icon and clear button
 class CONTENTBROWSER_API SearchBox : public Widget {
@@ -63,4 +63,4 @@ private:
     WidgetStyle m_Style;
 };
 
-} // namespace WindEffects::Editor::UI
+} // namespace we::runtime::kindui

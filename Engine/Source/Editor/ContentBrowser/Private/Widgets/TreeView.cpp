@@ -1,22 +1,22 @@
 #include "Platform/Platform.h"
 #include "Widgets/TreeView.h"
-#include "Core/EventSystem.h"
-#include "Layout/OverlayManager.h"
-#include "Layout/ScrollViewport.h"
+#include "KindUI/Core/EventSystem.h"
+#include "KindUI/Layout/OverlayManager.h"
+#include "KindUI/Layout/ScrollViewport.h"
 #include "Services/ContentBrowserFolderArt.h"
 #include "Services/ContentBrowserBlueprintArt.h"
-#include "Core/PaintContext.h"
+#include "KindUI/Core/PaintContext.h"
 #include "WindEffects/Editor/UI/Panel/PanelChrome.h"
-#include "WindEffects/Editor/UI/Theming/ThemeAccess.h"
-#include "WindEffects/Editor/UI/Theming/ThemeToken.h"
-#include "Core/Icon.h"
-#include "Core/DPIContext.h"
-#include "Rendering/IconMetrics.h"
+#include "KindUI/Theming/ThemeAccess.h"
+#include "KindUI/Theming/ThemeToken.h"
+#include "KindUI/Core/Icon.h"
+#include "KindUI/Core/DPIContext.h"
+#include "KindUI/Rendering/IconMetrics.h"
 #include <algorithm>
 #include <cmath>
 #include <functional>
 
-namespace WindEffects::Editor::UI {
+namespace we::runtime::kindui {
 
 namespace {
 
@@ -880,4 +880,4 @@ bool TreeView::ShowsPointerCursor(const Point& position) const {
         (m_ScrollMetrics.thumb.Contains(position) || m_ScrollMetrics.track.Contains(position));
 }
 
-} // namespace WindEffects::Editor::UI
+} // namespace we::runtime::kindui

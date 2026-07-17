@@ -1,12 +1,12 @@
 #include "Core/EditorPerfStats.h"
-#include "Core/UIRepaintGate.h"
+#include "KindUI/Core/UIRepaintGate.h"
 #include "Core/Logger.h"
 
 #include <chrono>
 #include <cstdlib>
 #include <cstring>
 
-namespace WindEffects::Editor::UI {
+namespace we::runtime::kindui {
 
 namespace {
 
@@ -107,4 +107,4 @@ void EditorPerfStats::EndFrame(uint32_t uiVertices, uint32_t uiBatches) {
     m_LastLogMs = now;
 }
 
-} // namespace WindEffects::Editor::UI
+} // namespace we::runtime::kindui

@@ -1,6 +1,6 @@
-#include "WindEffects/Runtime/UI/Rendering/UIPipelineAudit.h"
+#include "KindUI/Rendering/UIPipelineAudit.h"
 
-namespace WindEffects::Editor::UI {
+namespace we::runtime::kindui {
 
 StageValidation UIPipelineAudit::ValidateRenderPassStage(we::rhi::IRHICommandList* cmd, bool renderPassEnded) {
     StageValidation result;
@@ -12,4 +12,4 @@ StageValidation UIPipelineAudit::ValidateRenderPassStage(we::rhi::IRHICommandLis
     return result;
 }
 
-} // namespace WindEffects::Editor::UI
+} // namespace we::runtime::kindui

@@ -1,10 +1,10 @@
-#include "WindEffects/Runtime/UI/Widgets/Label.h"
-#include "WindEffects/Runtime/UI/Core/PaintContext.h"
-#include "WindEffects/Runtime/UI/Theming/ThemeToken.h"
-#include "WindEffects/Runtime/UI/Core/Style.h"
+#include "KindUI/Widgets/Label.h"
+#include "KindUI/Core/PaintContext.h"
+#include "KindUI/Theming/ThemeToken.h"
+#include "KindUI/Core/Style.h"
 #include <sstream>
 
-namespace WindEffects::Editor::UI {
+namespace we::runtime::kindui {
 
 Label::Label(const std::string& text, const Color& color, float fontSize)
     : m_Text(text)
@@ -87,4 +87,4 @@ void Label::Paint(PaintContext& context) {
     }
 }
 
-} // namespace WindEffects::Editor::UI
+} // namespace we::runtime::kindui

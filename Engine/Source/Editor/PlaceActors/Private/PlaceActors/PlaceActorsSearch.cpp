@@ -89,13 +89,13 @@ PlaceActorsSearchMatch PlaceActorsSearch::FindLabelMatch(const std::string& labe
 }
 
 void PlaceActorsSearch::PaintHighlightedLabel(
-    WindEffects::Editor::UI::PaintContext& context,
+    we::runtime::kindui::PaintContext& context,
     const std::string& label,
-    const WindEffects::Editor::UI::Point& position,
+    const we::runtime::kindui::Point& position,
     float fontSize,
     const std::string& query,
-    const WindEffects::Editor::UI::Color& normalColor,
-    const WindEffects::Editor::UI::Color& highlightColor,
+    const we::runtime::kindui::Color& normalColor,
+    const we::runtime::kindui::Color& highlightColor,
     float maxWidth)
 {
     const PlaceActorsSearchMatch match = FindLabelMatch(label, query);
@@ -105,9 +105,9 @@ void PlaceActorsSearch::PaintHighlightedLabel(
     }
 
     float x = position.x;
-    const auto drawSegment = [&](const std::string& segment, const WindEffects::Editor::UI::Color& color) {
+    const auto drawSegment = [&](const std::string& segment, const we::runtime::kindui::Color& color) {
         if (segment.empty()) return;
-        context.DrawText(segment, WindEffects::Editor::UI::Point{ x, position.y }, color, fontSize);
+        context.DrawText(segment, we::runtime::kindui::Point{ x, position.y }, color, fontSize);
         x += context.GetTextWidth(segment, fontSize);
     };
 

@@ -1,18 +1,18 @@
 #include "Modules/IModuleInterface.h"
 #include "Core/Logger.h"
 
-class UIModule : public we::core::IModuleInterface
+class KindUIModule : public we::core::IModuleInterface
 {
 public:
     void StartupModule() override
     {
-        WE_LOG_TRACE("UI", "UIModule started");
+        WE_LOG_TRACE("KindUI", "KindUIModule started");
     }
 
     void ShutdownModule() override
     {
-        WE_LOG_TRACE("UI", "UIModule shutdown");
+        WE_LOG_TRACE("KindUI", "KindUIModule shutdown");
     }
 };
 
-IMPLEMENT_MODULE(UIModule, WindEffects_UI)
+IMPLEMENT_MODULE(KindUIModule, WindEffects_KindUI)

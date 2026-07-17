@@ -4,8 +4,8 @@
 #include "Core/Logger.h"
 #include "Widgets/Panel.h"
 #include "Widgets/DockContainer.h"
-#include "Layout/Splitter.h"
-#include "Layout/OverlayManager.h"
+#include "KindUI/Layout/Splitter.h"
+#include "KindUI/Layout/OverlayManager.h"
 
 #include <filesystem>
 #include <fstream>
@@ -32,26 +32,26 @@ EditorWorkspaceController& EditorWorkspaceController::Get() {
     return instance;
 }
 
-WindEffects::Editor::UI::IPopupHost* GetEditorPopupHost() {
+we::runtime::kindui::IPopupHost* GetEditorPopupHost() {
     return EditorWorkspaceController::Get().GetPopupHost();
 }
 
-void EditorWorkspaceController::BindLayout(const WindEffects::Editor::UI::DockLayoutBuildResult& layout) {
+void EditorWorkspaceController::BindLayout(const we::runtime::kindui::DockLayoutBuildResult& layout) {
     m_Layout = layout;
 }
 
-void EditorWorkspaceController::SetPopupHost(WindEffects::Editor::UI::OverlayHost* host) {
+void EditorWorkspaceController::SetPopupHost(we::runtime::kindui::OverlayHost* host) {
     m_PopupHost = host;
 }
 
-WindEffects::Editor::UI::IPopupHost* EditorWorkspaceController::GetPopupHost() const {
+we::runtime::kindui::IPopupHost* EditorWorkspaceController::GetPopupHost() const {
     return m_PopupHost;
 }
 
 void EditorWorkspaceController::RegisterPanel(
     const std::string& panelId,
-    const std::shared_ptr<WindEffects::Editor::UI::Panel>& panel,
-    WindEffects::Editor::UI::DockZone zone) {
+    const std::shared_ptr<we::runtime::kindui::Panel>& panel,
+    we::runtime::kindui::DockZone zone) {
     if (!panel) {
         return;
     }
@@ -63,14 +63,14 @@ void EditorWorkspaceController::RegisterPanel(
     m_Panels[panelId] = std::move(entry);
 }
 
-std::shared_ptr<WindEffects::Editor::UI::DockContainer> EditorWorkspaceController::DockForZone(
-    WindEffects::Editor::UI::DockZone zone) const {
+std::shared_ptr<we::runtime::kindui::DockContainer> EditorWorkspaceController::DockForZone(
+    we::runtime::kindui::DockZone zone) const {
     switch (zone) {
-    case WindEffects::Editor::UI::DockZone::Left:
+    case we::runtime::kindui::DockZone::Left:
         return m_Layout.toolsDock;
-    case WindEffects::Editor::UI::DockZone::Center:
+    case we::runtime::kindui::DockZone::Center:
         return m_Layout.viewportDock;
-    case WindEffects::Editor::UI::DockZone::Right:
+    case we::runtime::kindui::DockZone::Right:
         return m_Layout.explorerDock;
     default:
         return nullptr;
@@ -121,7 +121,7 @@ void EditorWorkspaceController::FloatPanel(const std::string& panelId) {
         dock->RemovePanel(it->second.panel);
     }
 
-    m_PopupHost->ShowPopup(it->second.panel, WindEffects::Editor::UI::Point{ 120.0f, 120.0f });
+    m_PopupHost->ShowPopup(it->second.panel, we::runtime::kindui::Point{ 120.0f, 120.0f });
     it->second.visible = true;
     it->second.panel->SetVisible(true);
 }
@@ -246,7 +246,7 @@ void EditorWorkspaceController::SaveLayout() const {
         return;
     }
 
-    auto writeRatio = [&](const char* key, const std::shared_ptr<WindEffects::Editor::UI::Splitter>& splitter) {
+    auto writeRatio = [&](const char* key, const std::shared_ptr<we::runtime::kindui::Splitter>& splitter) {
         if (splitter) {
             file << key << "=" << splitter->GetSplitRatio() << "\n";
         }

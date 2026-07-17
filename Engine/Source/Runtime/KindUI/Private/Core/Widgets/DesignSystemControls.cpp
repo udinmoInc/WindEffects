@@ -1,17 +1,18 @@
-#include "WindEffects/Runtime/UI/Core/Widgets/DesignSystemControls.h"
+#include "KindUI/Core/Widgets/DesignSystemControls.h"
 
-#include "WindEffects/Runtime/UI/Core/Animator.h"
-#include "WindEffects/Runtime/UI/Core/ControlChrome.h"
-#include "WindEffects/Runtime/UI/Core/Icon.h"
-#include "WindEffects/Runtime/UI/Core/PaintContext.h"
-#include "WindEffects/Runtime/UI/Theming/ThemeAccess.h"
-#include "WindEffects/Runtime/UI/Core/TextMetrics.h"
-#include "WindEffects/Runtime/UI/Input/InputEvents.h"
-#include "WindEffects/Runtime/UI/Theming/ThemeManager.h"
+#include "KindUI/Core/Animator.h"
+#include "KindUI/Core/ControlChrome.h"
+#include "KindUI/Core/Icon.h"
+#include "KindUI/Core/PaintContext.h"
+#include "KindUI/Core/TextMetrics.h"
+#include "KindUI/Input/InputEvents.h"
+#include "KindUI/Theming/ThemeAccess.h"
+#include "KindUI/Theming/ThemeManager.h"
+#include "Platform/Platform.h"
 
 #include <algorithm>
 
-namespace WindEffects::Editor::UI {
+namespace we::runtime::kindui {
 
 DesignButton::DesignButton(std::string label, StyleRole role, const char* icon)
     : m_Label(std::move(label))
@@ -90,7 +91,7 @@ void DesignButton::OnMouseDown(const MouseEvent& event) {
 void DesignButton::OnMouseUp(const MouseEvent& event) {
     if (event.button == MouseButton::Left && m_Pressed) {
         SetPressed(false);
-        if (m_Enabled && m_Geometry.Contains(event.position) && m_OnClicked) {
+        if (IsEnabled() && m_Geometry.Contains(event.position) && m_OnClicked) {
             m_OnClicked();
         }
     }
@@ -487,4 +488,4 @@ void TableRowBase::Tick(float deltaTime) {
     Widget::Tick(deltaTime);
 }
 
-} // namespace WindEffects::Editor::UI
+} // namespace we::runtime::kindui

@@ -1,7 +1,7 @@
 #pragma once
 
 #include "PlaceActors/Export.h"
-#include "Core/Geometry.h"
+#include "KindUI/Core/Geometry.h"
 #include <algorithm>
 #include <cmath>
 
@@ -32,19 +32,19 @@ public:
     // Automatically picks 1..N columns from available width. No manual column config needed.
     static PlaceActorsGridLayout Compute(float viewportWidth, const PlaceActorsGridMetrics& metrics = {});
 
-    static WindEffects::Editor::UI::Rect CardRect(
+    static we::runtime::kindui::Rect CardRect(
         const PlaceActorsGridLayout& layout,
         float originX,
         float originY,
         int index);
 
-    static WindEffects::Editor::UI::Rect PreviewRect(
+    static we::runtime::kindui::Rect PreviewRect(
         const PlaceActorsGridLayout& layout,
-        const WindEffects::Editor::UI::Rect& cardRect);
+        const we::runtime::kindui::Rect& cardRect);
 
-    static WindEffects::Editor::UI::Rect LabelRect(
+    static we::runtime::kindui::Rect LabelRect(
         const PlaceActorsGridLayout& layout,
-        const WindEffects::Editor::UI::Rect& cardRect);
+        const we::runtime::kindui::Rect& cardRect);
 
     static float ContentHeight(const PlaceActorsGridLayout& layout, int itemCount);
 };

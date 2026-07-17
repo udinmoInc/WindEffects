@@ -1,16 +1,16 @@
 #include "Widgets/ToolButton.h"
-#include "Core/PaintContext.h"
-#include "WindEffects/Editor/UI/Theming/ThemeAccess.h"
-#include "WindEffects/Editor/UI/Theming/ThemeColors.h"
-#include "Core/Animator.h"
-#include "Core/Icon.h"
-#include "Core/ToolbarButtonChrome.h"
-#include "Core/DPIContext.h"
-#include "Rendering/IconMetrics.h"
+#include "KindUI/Core/PaintContext.h"
+#include "KindUI/Theming/ThemeAccess.h"
+#include "KindUI/Theming/ThemeColors.h"
+#include "KindUI/Core/Animator.h"
+#include "KindUI/Core/Icon.h"
+#include "KindUI/Core/ToolbarButtonChrome.h"
+#include "KindUI/Core/DPIContext.h"
+#include "KindUI/Rendering/IconMetrics.h"
 #include <algorithm>
 #include <cctype>
 
-namespace WindEffects::Editor::UI {
+namespace we::runtime::kindui {
 namespace {
     using namespace ToolbarButtonChrome;
 
@@ -472,4 +472,4 @@ void ToolSeparator::Paint(PaintContext& context) {
     context.DrawRect(lineRect, ThemeColor(ThemeToken::Separator));
 }
 
-} // namespace WindEffects::Editor::UI
+} // namespace we::runtime::kindui

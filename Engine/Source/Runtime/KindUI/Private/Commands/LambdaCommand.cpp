@@ -1,6 +1,6 @@
-#include "WindEffects/Runtime/UI/Commands/LambdaCommand.h"
+#include "KindUI/Commands/LambdaCommand.h"
 
-namespace WindEffects::Editor::UI {
+namespace we::runtime::kindui {
 
 LambdaCommand::LambdaCommand(
     std::string id,
@@ -34,4 +34,4 @@ std::shared_ptr<ICommand> MakeCommand(
         std::move(canExecute));
 }
 
-} // namespace WindEffects::Editor::UI
+} // namespace we::runtime::kindui

@@ -1,10 +1,10 @@
 #include "PlaceActors/PlaceActorsIconProvider.h"
 
-#include "Core/Icon.h"
+#include "KindUI/Core/Icon.h"
 
 namespace we::programs::editor {
 
-namespace WEIcons = WindEffects::Editor::UI::Icons;
+namespace WEIcons = we::runtime::kindui::Icons;
 
 PlaceActorsIconProvider& PlaceActorsIconProvider::Get() {
     static PlaceActorsIconProvider instance;

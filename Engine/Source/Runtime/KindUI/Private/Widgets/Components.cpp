@@ -1,10 +1,10 @@
-#include "WindEffects/Runtime/UI/Widgets/Components.h"
-#include "WindEffects/Runtime/UI/Core/PaintContext.h"
-#include "WindEffects/Runtime/UI/Theming/ThemeToken.h"
+#include "KindUI/Widgets/Components.h"
+#include "KindUI/Core/PaintContext.h"
+#include "KindUI/Theming/ThemeToken.h"
 
 #include <cmath>
 
-namespace WindEffects::Editor::UI {
+namespace we::runtime::kindui {
 
 EmptyState::EmptyState(std::string title, std::string subtitle) {
     SetStyleClass("Page");
@@ -136,4 +136,4 @@ std::shared_ptr<SkeletonBlock> MakeSkeleton() {
     return std::make_shared<SkeletonBlock>();
 }
 
-} // namespace WindEffects::Editor::UI
+} // namespace we::runtime::kindui

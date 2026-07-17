@@ -1,11 +1,11 @@
-#include "WindEffects/Runtime/UI/Theming/ThemeColors.h"
+#include "KindUI/Theming/ThemeColors.h"
 
-#include "WindEffects/Runtime/UI/Theming/ThemeAccess.h"
-#include "WindEffects/Runtime/UI/Theming/ThemeToken.h"
+#include "KindUI/Theming/ThemeAccess.h"
+#include "KindUI/Theming/ThemeToken.h"
 
 #include <algorithm>
 
-namespace WindEffects::Editor::UI {
+namespace we::runtime::kindui {
 
 ThemeColors ThemeColors::Resolve(const IThemeProvider& theme) {
     ThemeColors colors{};
@@ -74,4 +74,4 @@ Color ResolveIconColorForState(bool hovered, bool accent, bool disabled, bool se
         accent);
 }
 
-} // namespace WindEffects::Editor::UI
+} // namespace we::runtime::kindui

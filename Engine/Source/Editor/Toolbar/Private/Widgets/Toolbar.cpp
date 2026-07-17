@@ -1,14 +1,14 @@
 #include "Widgets/Toolbar.h"
-#include "Core/PaintContext.h"
-#include "WindEffects/Editor/UI/Theming/ThemeToken.h"
-#include "Core/Icon.h"
-#include "WindEffects/Editor/UI/Theming/ThemeAccess.h"
-#include "Core/DPIContext.h"
+#include "KindUI/Core/PaintContext.h"
+#include "KindUI/Theming/ThemeToken.h"
+#include "KindUI/Core/Icon.h"
+#include "KindUI/Theming/ThemeAccess.h"
+#include "KindUI/Core/DPIContext.h"
 #include "Widgets/ToolButton.h"
 #include <algorithm>
 #include <functional>
 
-namespace WindEffects::Editor::UI {
+namespace we::runtime::kindui {
 namespace {
     float ScaledMetric(ThemeToken token) {
         return ResolveThemeMetric(token) * (std::max)(1.0f, DPIContext::GetScale());
@@ -423,4 +423,4 @@ bool ToolbarGroup::ShowsPointerCursor(const Point& position) const {
     return false;
 }
 
-} // namespace WindEffects::Editor::UI
+} // namespace we::runtime::kindui

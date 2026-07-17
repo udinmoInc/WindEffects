@@ -1,12 +1,12 @@
-#include "WindEffects/Runtime/UI/Theming/GraphiteDarkTheme.h"
-#include "WindEffects/Runtime/UI/Theming/StyleResolve.h"
-#include "WindEffects/Runtime/UI/Rendering/IconMetrics.h"
+#include "KindUI/Theming/GraphiteDarkTheme.h"
+#include "KindUI/Theming/StyleResolve.h"
+#include "KindUI/Rendering/IconMetrics.h"
 
 #include <algorithm>
 #include <array>
 #include <unordered_map>
 
-namespace WindEffects::Editor::UI {
+namespace we::runtime::kindui {
 namespace {
 
 Color MakeColor(float r, float g, float b, float a = 1.0f) {
@@ -585,4 +585,4 @@ ResolvedStyle StyleResolver::Resolve(StyleRole role) const {
     return style;
 }
 
-} // namespace WindEffects::Editor::UI
+} // namespace we::runtime::kindui

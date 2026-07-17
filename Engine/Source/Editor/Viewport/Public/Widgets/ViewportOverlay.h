@@ -1,12 +1,12 @@
 #pragma once
 
-#include "Core/Widget.h"
-#include "Core/Style.h"
-#include "Core/Icon.h"
+#include "KindUI/Core/Widget.h"
+#include "KindUI/Core/Style.h"
+#include "KindUI/Core/Icon.h"
 #include <string>
 #include <functional>
 
-namespace WindEffects::Editor::UI {
+namespace we::runtime::kindui {
 
 // Viewport statistics data structure
 struct ViewportStats {

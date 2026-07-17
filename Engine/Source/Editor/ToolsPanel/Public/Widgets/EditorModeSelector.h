@@ -2,22 +2,22 @@
 
 #include "ToolsPanel/Export.h"
 
-#include "Core/Widget.h"
+#include "KindUI/Core/Widget.h"
 #include <string>
 
 namespace we::programs::editor {
 
 /// Compact toolbar control: shows active editor mode and opens a registry-driven mode menu.
-class TOOLSPANEL_API EditorModeSelector : public WindEffects::Editor::UI::Widget {
+class TOOLSPANEL_API EditorModeSelector : public we::runtime::kindui::Widget {
 public:
     EditorModeSelector();
 
-    WindEffects::Editor::UI::Size Measure(const WindEffects::Editor::UI::Size& availableSize) override;
-    void Arrange(const WindEffects::Editor::UI::Rect& allottedRect) override;
-    void Paint(WindEffects::Editor::UI::PaintContext& context) override;
+    we::runtime::kindui::Size Measure(const we::runtime::kindui::Size& availableSize) override;
+    void Arrange(const we::runtime::kindui::Rect& allottedRect) override;
+    void Paint(we::runtime::kindui::PaintContext& context) override;
 
-    void OnMouseDown(const WindEffects::Editor::UI::MouseEvent& event) override;
-    void OnMouseMove(const WindEffects::Editor::UI::MouseEvent& event) override;
+    void OnMouseDown(const we::runtime::kindui::MouseEvent& event) override;
+    void OnMouseMove(const we::runtime::kindui::MouseEvent& event) override;
 
     void Refresh();
 

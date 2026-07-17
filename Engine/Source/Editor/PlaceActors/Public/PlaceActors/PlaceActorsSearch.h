@@ -1,8 +1,8 @@
 #pragma once
 
 #include "PlaceActors/PlaceActorsTypes.h"
-#include "Core/PaintContext.h"
-#include "Core/Geometry.h"
+#include "KindUI/Core/PaintContext.h"
+#include "KindUI/Core/Geometry.h"
 #include <string>
 #include <utility>
 #include <vector>
@@ -26,13 +26,13 @@ public:
     static PlaceActorsSearchMatch FindLabelMatch(const std::string& label, const std::string& query);
 
     static void PaintHighlightedLabel(
-        WindEffects::Editor::UI::PaintContext& context,
+        we::runtime::kindui::PaintContext& context,
         const std::string& label,
-        const WindEffects::Editor::UI::Point& position,
+        const we::runtime::kindui::Point& position,
         float fontSize,
         const std::string& query,
-        const WindEffects::Editor::UI::Color& normalColor,
-        const WindEffects::Editor::UI::Color& highlightColor,
+        const we::runtime::kindui::Color& normalColor,
+        const we::runtime::kindui::Color& highlightColor,
         float maxWidth = 0.0f);
 };
 

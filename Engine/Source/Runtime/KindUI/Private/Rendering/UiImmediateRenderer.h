@@ -10,7 +10,7 @@
 #include <unordered_map>
 #include <vector>
 
-namespace WindEffects::Editor::UI {
+namespace we::runtime::kindui {
 
 // Backend-agnostic immediate-mode UI recorder. All GPU work goes through IRHI only.
 class UiImmediateRenderer {
@@ -118,4 +118,4 @@ private:
     std::recursive_mutex m_Mutex;
 };
 
-} // namespace WindEffects::Editor::UI
+} // namespace we::runtime::kindui

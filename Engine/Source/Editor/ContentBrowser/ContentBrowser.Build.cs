@@ -16,7 +16,7 @@ public class ContentBrowser : ModuleRules
         PublicDependencies.Add("RHI");
         PublicDependencies.Add("CoreUObject");
         PublicDependencies.Add("Engine");
-        PublicDependencies.Add("UI");
+        PublicDependencies.Add("KindUI");
         PublicDependencies.Add("UIFramework");
         PublicDependencies.Add("Renderer");
         PublicDependencies.Add("Text");

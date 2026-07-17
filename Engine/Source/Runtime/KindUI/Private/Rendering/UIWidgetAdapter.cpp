@@ -1,8 +1,8 @@
-#include "WindEffects/Runtime/UI/Rendering/UIWidgetAdapter.h"
-#include "WindEffects/Runtime/UI/Rendering/IconRenderer.h"
-#include "WindEffects/Runtime/UI/Rendering/IconMetrics.h"
-#include "WindEffects/Runtime/UI/Core/Icon.h"
-#include "WindEffects/Runtime/UI/Rendering/TextUIService.h"
+#include "KindUI/Rendering/UIWidgetAdapter.h"
+#include "KindUI/Rendering/IconRenderer.h"
+#include "KindUI/Rendering/IconMetrics.h"
+#include "KindUI/Core/Icon.h"
+#include "KindUI/Rendering/TextUIService.h"
 #include "Core/Logger.h"
 #include "Core/FrameCounter.h"
 #include <cmath>
@@ -10,7 +10,7 @@
 #include <cstdlib>
 #include <functional>
 
-namespace WindEffects::Editor::UI {
+namespace we::runtime::kindui {
 
 namespace {
 inline float SnapPx(float v) {
@@ -683,4 +683,4 @@ void UIWidgetAdapter::GenerateRoundedOutlineGeometry(const DrawCommand& cmd) {
     m_Batches.push_back(batch);
 }
 
-} // namespace WindEffects::Editor::UI
+} // namespace we::runtime::kindui

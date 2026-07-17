@@ -1,10 +1,10 @@
-#include "WindEffects/Runtime/UI/Core/EventSystem.h"
-#include "WindEffects/Runtime/UI/Core/Widget.h"
-#include "WindEffects/Runtime/UI/Layout/OverlayManager.h"
-#include "WindEffects/Runtime/UI/Layout/ScrollLayout.h"
+#include "KindUI/Core/EventSystem.h"
+#include "KindUI/Core/Widget.h"
+#include "KindUI/Layout/OverlayManager.h"
+#include "KindUI/Layout/ScrollLayout.h"
 #include "Platform/Platform.h"
 
-namespace WindEffects::Editor::UI {
+namespace we::runtime::kindui {
 
 EventSystem::~EventSystem() = default;
 
@@ -179,4 +179,4 @@ void EventSystem::SetFocusedWidget(const std::shared_ptr<Widget>& widget) {
     m_FocusedWidget = widget;
 }
 
-} // namespace WindEffects::Editor::UI
+} // namespace we::runtime::kindui

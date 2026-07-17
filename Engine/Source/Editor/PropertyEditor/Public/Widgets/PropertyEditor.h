@@ -2,14 +2,14 @@
 
 #include "PropertyEditor/Export.h"
 
-#include "Core/Widget.h"
-#include "Core/Style.h"
-#include "Layout/ScrollViewport.h"
+#include "KindUI/Core/Widget.h"
+#include "KindUI/Core/Style.h"
+#include "KindUI/Layout/ScrollViewport.h"
 #include <string>
 #include <functional>
 #include <vector>
 
-namespace WindEffects::Editor::UI {
+namespace we::runtime::kindui {
 
 // Property types
 enum class PropertyType {

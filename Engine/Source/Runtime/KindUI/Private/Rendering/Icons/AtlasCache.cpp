@@ -1,9 +1,9 @@
-#include "WindEffects/Runtime/UI/Rendering/Icons/AtlasCache.h"
+#include "KindUI/Rendering/Icons/AtlasCache.h"
 
 #include "Icons/Core/IconHash.h"
-#include "WindEffects/Runtime/UI/Rendering/IconMetrics.h"
+#include "KindUI/Rendering/IconMetrics.h"
 
-namespace WindEffects::Editor::UI {
+namespace we::runtime::kindui {
 
 void AtlasCache::LoadMeta(const std::vector<IconMetaEntryInput>& entries)
 {
@@ -82,4 +82,4 @@ void AtlasCache::RebuildLookup()
     }
 }
 
-} // namespace WindEffects::Editor::UI
+} // namespace we::runtime::kindui

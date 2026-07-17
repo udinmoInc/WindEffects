@@ -1,7 +1,7 @@
-#include "WindEffects/Runtime/UI/Rendering/UiGpuUpload.h"
+#include "KindUI/Rendering/UiGpuUpload.h"
 #include "RHI/IRHI.h"
 
-namespace WindEffects::Editor::UI {
+namespace we::runtime::kindui {
 
 void UiGpuUpload::Init(we::rhi::IRHIDevice* device) {
     m_Device = device;
@@ -19,4 +19,4 @@ void UiGpuUpload::SubmitOneTime(const std::function<void(we::rhi::IRHICommandLis
     (void)record;
 }
 
-} // namespace WindEffects::Editor::UI
+} // namespace we::runtime::kindui

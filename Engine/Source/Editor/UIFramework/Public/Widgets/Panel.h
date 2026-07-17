@@ -2,15 +2,15 @@
 
 #include "WindEffects/Editor/UI/Export.h"
 
-#include "Core/Widget.h"
-#include "Core/Style.h"
-#include "Core/Icon.h"
+#include "KindUI/Core/Widget.h"
+#include "KindUI/Core/Style.h"
+#include "KindUI/Core/Icon.h"
 #include "RHI/Types.h"
 #include <string>
 #include <memory>
 #include <functional>
 
-namespace WindEffects::Editor::UI {
+namespace we::runtime::kindui {
 
 // Panel widget with collapsible header and content area
 class UIFRAMEWORK_API Panel : public Widget {
@@ -112,4 +112,4 @@ private:
     float m_TabBrandLogicalSize = 0.0f;
 };
 
-} // namespace WindEffects::Editor::UI
+} // namespace we::runtime::kindui

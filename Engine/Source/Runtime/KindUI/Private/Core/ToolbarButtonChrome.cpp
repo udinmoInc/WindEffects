@@ -1,10 +1,10 @@
-#include "WindEffects/Runtime/UI/Core/ToolbarButtonChrome.h"
-#include "WindEffects/Runtime/UI/Rendering/IconMetrics.h"
-#include "WindEffects/Runtime/UI/Core/PaintContext.h"
-#include "WindEffects/Runtime/UI/Theming/ThemeAccess.h"
-#include "WindEffects/Runtime/UI/Theming/ThemeColors.h"
+#include "KindUI/Core/ToolbarButtonChrome.h"
+#include "KindUI/Rendering/IconMetrics.h"
+#include "KindUI/Core/PaintContext.h"
+#include "KindUI/Theming/ThemeAccess.h"
+#include "KindUI/Theming/ThemeColors.h"
 
-namespace WindEffects::Editor::UI::ToolbarButtonChrome {
+namespace we::runtime::kindui::ToolbarButtonChrome {
 namespace {
 
 Color MakePressBackground(float strength) {
@@ -50,7 +50,7 @@ Rect PlaceIconInControl(const Rect& controlBounds, float glyphTierPx) {
 }
 
 Color ResolveIconColor(float hoverAnim, float pressStrength, bool active) {
-    return WindEffects::Editor::UI::ResolveIconColor(
+    return we::runtime::kindui::ResolveIconColor(
         IconColorRole::Primary,
         hoverAnim,
         pressStrength,
@@ -155,4 +155,4 @@ void PaintViewportChip(
     }
 }
 
-} // namespace WindEffects::Editor::UI::ToolbarButtonChrome
+} // namespace we::runtime::kindui::ToolbarButtonChrome

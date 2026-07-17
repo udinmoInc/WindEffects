@@ -14,7 +14,7 @@ public class EditorGridRenderer : ModuleRules
         PublicDependencies.Add("RHI");
         PublicDependencies.Add("Renderer");
         PublicDependencies.Add("Engine");
-        PublicDependencies.Add("UI");
+        PublicDependencies.Add("KindUI");
         PublicDependencies.Add("UIFramework");
 
         Definitions.Add("EDITORGRIDRENDERER_EXPORTS");

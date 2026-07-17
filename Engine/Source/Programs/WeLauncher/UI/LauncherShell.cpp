@@ -8,20 +8,20 @@
 #include "Util/LauncherMaintenance.h"
 #include "Util/PathUtils.h"
 
-#include "WindEffects/Runtime/UI/Core/EventSystem.h"
-#include "WindEffects/Runtime/UI/Core/Icon.h"
-#include "WindEffects/Runtime/UI/Core/PaintContext.h"
-#include "WindEffects/Runtime/UI/Core/Widgets/DesignSystemControls.h"
-#include "WindEffects/Runtime/UI/Core/Widgets/PrimaryToolbarButton.h"
-#include "WindEffects/Runtime/UI/Core/Widgets/SecondaryToolbarButton.h"
-#include "WindEffects/Runtime/UI/Layout/Box.h"
-#include "WindEffects/Runtime/UI/Layout/Flex.h"
-#include "WindEffects/Runtime/UI/Layout/ScrollLayout.h"
-#include "WindEffects/Runtime/UI/Layout/Spacer.h"
+#include "KindUI/Core/EventSystem.h"
+#include "KindUI/Core/Icon.h"
+#include "KindUI/Core/PaintContext.h"
+#include "KindUI/Core/Widgets/DesignSystemControls.h"
+#include "KindUI/Core/Widgets/PrimaryToolbarButton.h"
+#include "KindUI/Core/Widgets/SecondaryToolbarButton.h"
+#include "KindUI/Layout/Box.h"
+#include "KindUI/Layout/Flex.h"
+#include "KindUI/Layout/ScrollLayout.h"
+#include "KindUI/Layout/Spacer.h"
 #include "Platform/PlatformSDK.h"
-#include "WindEffects/Runtime/UI/Widgets/Label.h"
-#include "WindEffects/Runtime/UI/Widgets/TextBox.h"
-#include "WindEffects/Runtime/UI/Theming/ThemeToken.h"
+#include "KindUI/Widgets/Label.h"
+#include "KindUI/Widgets/TextBox.h"
+#include "KindUI/Theming/ThemeToken.h"
 
 #include <algorithm>
 #include <cctype>
@@ -30,7 +30,7 @@
 #include <filesystem>
 #include <functional>
 
-using namespace WindEffects::Editor::UI;
+using namespace we::runtime::kindui;
 
 namespace we::programs::welauncher {
 namespace {

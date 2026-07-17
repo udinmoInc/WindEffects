@@ -1,8 +1,8 @@
 #include "Services/ContentBrowserFolderArt.h"
 #include "Services/ThumbnailRenderer.h"
-#include "Core/DPIContext.h"
-#include "Core/PaintContext.h"
-#include "Rendering/IconRenderer.h"
+#include "KindUI/Core/DPIContext.h"
+#include "KindUI/Core/PaintContext.h"
+#include "KindUI/Rendering/IconRenderer.h"
 #include <algorithm>
 #include <cmath>
 
@@ -13,7 +13,7 @@ ContentBrowserFolderArt& ContentBrowserFolderArt::Get() {
     return instance;
 }
 
-void ContentBrowserFolderArt::Initialize(WindEffects::Editor::UI::IconRenderer* iconRenderer) {
+void ContentBrowserFolderArt::Initialize(we::runtime::kindui::IconRenderer* iconRenderer) {
     m_Renderer = iconRenderer;
 }
 
@@ -21,8 +21,8 @@ void ContentBrowserFolderArt::InvalidateCache() {
     m_Cache.clear();
 }
 
-WindEffects::Editor::UI::Rect ContentBrowserFolderArt::ComputeFolderRect(
-    const WindEffects::Editor::UI::Rect& bounds, float widthFill, float heightFill, bool alignBottom, float aspectRatio) {
+we::runtime::kindui::Rect ContentBrowserFolderArt::ComputeFolderRect(
+    const we::runtime::kindui::Rect& bounds, float widthFill, float heightFill, bool alignBottom, float aspectRatio) {
     const float maxW = bounds.width * std::clamp(widthFill, 0.5f, 0.95f);
     const float maxH = bounds.height * std::clamp(heightFill, 0.5f, 0.95f);
     float width = maxW;
@@ -35,14 +35,14 @@ WindEffects::Editor::UI::Rect ContentBrowserFolderArt::ComputeFolderRect(
     const float y = alignBottom
         ? bounds.y + bounds.height - height
         : bounds.y + (bounds.height - height) * 0.5f;
-    return WindEffects::Editor::UI::Rect{ x, y, width, height };
+    return we::runtime::kindui::Rect{ x, y, width, height };
 }
 
 we::rhi::RHIDescriptorSetHandle ContentBrowserFolderArt::GetTexture(
     uint32_t widthPx, uint32_t heightPx, bool hovered, bool opened) const {
     if (!m_Renderer || heightPx == 0 || widthPx == 0) return we::rhi::RHIDescriptorSetHandle::Invalid;
 
-    const float dpi = std::max(1.0f, WindEffects::Editor::UI::DPIContext::GetScale());
+    const float dpi = std::max(1.0f, we::runtime::kindui::DPIContext::GetScale());
     const uint32_t rasterHeight = std::max(16u, static_cast<uint32_t>(std::ceil(static_cast<float>(heightPx) * dpi)));
 
     const BitmapRGBA bitmap = ThumbnailRenderer::RenderContentBrowserFolder(
@@ -62,8 +62,8 @@ we::rhi::RHIDescriptorSetHandle ContentBrowserFolderArt::GetTexture(
     return texture;
 }
 
-void ContentBrowserFolderArt::PaintThumbnail(WindEffects::Editor::UI::PaintContext& context, const WindEffects::Editor::UI::Rect& thumbRect, bool hovered) const {
-    const WindEffects::Editor::UI::Rect folderRect = ComputeFolderRect(thumbRect);
+void ContentBrowserFolderArt::PaintThumbnail(we::runtime::kindui::PaintContext& context, const we::runtime::kindui::Rect& thumbRect, bool hovered) const {
+    const we::runtime::kindui::Rect folderRect = ComputeFolderRect(thumbRect);
     const uint32_t heightPx = static_cast<uint32_t>(std::ceil(folderRect.height));
     const uint32_t widthPx = static_cast<uint32_t>(std::ceil(folderRect.width));
     const we::rhi::RHIDescriptorSetHandle texture = GetTexture(widthPx, heightPx, hovered, false);
@@ -73,9 +73,9 @@ void ContentBrowserFolderArt::PaintThumbnail(WindEffects::Editor::UI::PaintConte
 }
 
 void ContentBrowserFolderArt::PaintSmallIcon(
-    WindEffects::Editor::UI::PaintContext& context, const WindEffects::Editor::UI::Rect& iconRect, bool hovered, bool opened) const {
+    we::runtime::kindui::PaintContext& context, const we::runtime::kindui::Rect& iconRect, bool hovered, bool opened) const {
     const float aspectRatio = opened ? kFolderOpenAspectRatio : kFolderAspectRatio;
-    WindEffects::Editor::UI::Rect folderRect = ComputeFolderRect(
+    we::runtime::kindui::Rect folderRect = ComputeFolderRect(
         iconRect, kSmallIconWidthFill, kSmallIconHeightFill, false, aspectRatio);
     folderRect.width = std::max(1.0f, std::round(folderRect.width));
     folderRect.height = std::max(1.0f, std::round(folderRect.height));

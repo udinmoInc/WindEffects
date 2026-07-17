@@ -1,14 +1,14 @@
 #pragma once
 
 #include "MainFrame/Export.h"
-#include "Core/Widget.h"
+#include "KindUI/Core/Widget.h"
 #include "Platform/Types.h"
 #include "RHI/Types.h"
-namespace WindEffects::Editor::UI { class MenuBar; class ToolButton; }
-#include "Layout/Box.h"
+namespace we::runtime::kindui { class MenuBar; class ToolButton; }
+#include "KindUI/Layout/Box.h"
 #include <string>
 
-namespace WindEffects::Editor::UI {
+namespace we::runtime::kindui {
 
 inline constexpr float kTitleBarHeight          = 34.0f;
 inline constexpr float kTitleBarLogoDisplaySize = 18.0f;
@@ -51,4 +51,4 @@ public:
     std::shared_ptr<HorizontalBox> m_RightContainer;
 };
 
-} // namespace WindEffects::Editor::UI
+} // namespace we::runtime::kindui

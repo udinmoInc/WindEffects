@@ -7,17 +7,17 @@
 #include "Util/PathUtils.h"
 
 #include "Renderer/Renderer.h"
-#include "WindEffects/Runtime/UI/Rendering/OverlayRenderer.h"
-#include "WindEffects/Runtime/UI/Rendering/OverlayRenderContext.h"
-#include "WindEffects/Runtime/UI/Core/EventSystem.h"
-#include "WindEffects/Runtime/UI/Core/UIRepaintGate.h"
+#include "KindUI/Rendering/OverlayRenderer.h"
+#include "KindUI/Rendering/OverlayRenderContext.h"
+#include "KindUI/Core/EventSystem.h"
+#include "KindUI/Core/UIRepaintGate.h"
 #include "Runtime/Core/AssetRegistry.h"
 #include "Core/Logger.h"
 #include "Platform/PlatformSDK.h"
-#include "WindEffects/Runtime/UI/Core/ApplicationContext.h"
-#include "WindEffects/Runtime/UI/Core/WidgetContext.h"
+#include "KindUI/Core/ApplicationContext.h"
+#include "KindUI/Core/WidgetContext.h"
 #include "UI/Theming/LauncherTheme.h"
-#include "WindEffects/Runtime/UI/Core/DPIContext.h"
+#include "KindUI/Core/DPIContext.h"
 
 #include <algorithm>
 #include <cmath>
@@ -47,12 +47,12 @@ WeLauncherApp::WeLauncherApp(we::platform::WindowId window)
     m_Context->Initialize();
     HE_INFO("[WeLauncher] Context ready");
 
-    m_AppContext = std::make_unique<WindEffects::Editor::UI::ApplicationContext>(
+    m_AppContext = std::make_unique<we::runtime::kindui::ApplicationContext>(
         std::make_shared<LauncherTheme>());
     auto& platform = we::platform::Platform::Get();
     HE_INFO("[WeLauncher] Updating UI scale...");
     UpdateUiScaleFromWindow();
-    const float dpiScale = WindEffects::Editor::UI::DPIContext::GetScale();
+    const float dpiScale = we::runtime::kindui::DPIContext::GetScale();
     HE_INFO("[WeLauncher] AppContext Initialize...");
     m_AppContext->Initialize(dpiScale);
 
@@ -63,7 +63,7 @@ WeLauncherApp::WeLauncherApp(we::platform::WindowId window)
     we::core::AssetRegistry::Get().LoadDefaultEditorAssets();
 
     HE_INFO("[WeLauncher] OverlayRenderer Init...");
-    m_UIRenderer = std::make_unique<WindEffects::Editor::UI::OverlayRenderer>();
+    m_UIRenderer = std::make_unique<we::runtime::kindui::OverlayRenderer>();
     if (m_Presenter->IsGpuReady()) {
         m_UIRenderer->Init(m_Presenter->GetRHIDevice(), m_Presenter->GetSwapchainFormat(), 2);
     } else {
@@ -81,9 +81,9 @@ WeLauncherApp::WeLauncherApp(we::platform::WindowId window)
     m_LogoSet = LoadLauncherLogoTexture(m_UIRenderer.get(), engineRoot, static_cast<uint32_t>(std::max(18, logoPx)));
 
     HE_INFO("[WeLauncher] Constructing shell...");
-    m_WidgetContext = std::make_shared<WindEffects::Editor::UI::WidgetContext>(*m_AppContext);
+    m_WidgetContext = std::make_shared<we::runtime::kindui::WidgetContext>(*m_AppContext);
 
-    m_UIEventSystem = std::make_shared<WindEffects::Editor::UI::EventSystem>();
+    m_UIEventSystem = std::make_shared<we::runtime::kindui::EventSystem>();
     m_UI = std::make_shared<LauncherShell>(m_Context, m_Window);
     m_UI->SetContext(m_WidgetContext);
     m_UI->SetLogoTexture(m_LogoSet);
@@ -103,7 +103,7 @@ WeLauncherApp::WeLauncherApp(we::platform::WindowId window)
     }
 
     platform.SetWindowHitTest(m_Window, &WeLauncherApp::HitTestThunk, this);
-    WindEffects::Editor::UI::UIRepaintGate::Request();
+    we::runtime::kindui::UIRepaintGate::Request();
     HE_INFO("[WeLauncher] Ready");
 }
 
@@ -129,8 +129,8 @@ void WeLauncherApp::UpdateUiScaleFromWindow() {
     }
 
     const float clamped = std::clamp(scale, 1.0f, 3.0f);
-    const float previous = WindEffects::Editor::UI::DPIContext::GetScale();
-    WindEffects::Editor::UI::DPIContext::SetScale(clamped);
+    const float previous = we::runtime::kindui::DPIContext::GetScale();
+    we::runtime::kindui::DPIContext::SetScale(clamped);
     if (std::abs(clamped - previous) > 0.001f) {
         if (m_AppContext) {
             m_AppContext->Initialize(clamped);
@@ -144,7 +144,7 @@ void WeLauncherApp::UpdateUiScaleFromWindow() {
             m_LogoSet = LoadLauncherLogoTexture(m_UIRenderer.get(), engineRoot, static_cast<uint32_t>(std::max(18, logoPx)));
             m_UI->SetLogoTexture(m_LogoSet);
         }
-        WindEffects::Editor::UI::UIRepaintGate::Request();
+        we::runtime::kindui::UIRepaintGate::Request();
     }
 }
 
@@ -180,10 +180,10 @@ void WeLauncherApp::SyncLayoutFromSwapchain() {
     }
 
     const bool sizeChanged = w != m_LastLayoutSwapchainW || h != m_LastLayoutSwapchainH;
-    const bool needsLayout = sizeChanged || WindEffects::Editor::UI::UIRepaintGate::PeekNeedsRebuild();
+    const bool needsLayout = sizeChanged || we::runtime::kindui::UIRepaintGate::PeekNeedsRebuild();
     if (needsLayout) {
-        using Size = WindEffects::Editor::UI::Size;
-        using Rect = WindEffects::Editor::UI::Rect;
+        using Size = we::runtime::kindui::Size;
+        using Rect = we::runtime::kindui::Rect;
         m_UI->Measure(Size{ static_cast<float>(w), static_cast<float>(h) });
         m_UI->Arrange(Rect{ 0.0f, 0.0f, static_cast<float>(w), static_cast<float>(h) });
         m_LastLayoutSwapchainW = w;
@@ -195,7 +195,7 @@ void WeLauncherApp::MainLoop() {
     auto& platform = we::platform::Platform::Get();
     uint64_t lastTime = platform.GetHighResolutionCounter();
     const double frequency = static_cast<double>(platform.GetHighResolutionFrequency());
-    WindEffects::Editor::UI::UIRepaintGate::Request();
+    we::runtime::kindui::UIRepaintGate::Request();
 
     while (m_Running) {
         if (!platform.PollEvents()) {
@@ -229,8 +229,8 @@ void WeLauncherApp::MainLoop() {
                     requestUiRebuild = true;
                 }
             } else if (const auto* move = std::get_if<we::platform::MouseMoveEvent>(&event)) {
-                WindEffects::Editor::UI::MouseEvent mouseEvent{};
-                mouseEvent.type = WindEffects::Editor::UI::MouseEventType::MouseMove;
+                we::runtime::kindui::MouseEvent mouseEvent{};
+                mouseEvent.type = we::runtime::kindui::MouseEventType::MouseMove;
                 mouseEvent.position = { static_cast<float>(move->position.x), static_cast<float>(move->position.y) };
                 const auto mods = platform.GetKeyModifiers();
                 mouseEvent.altDown = we::platform::HasFlag(mods, we::platform::KeyModifier::Alt);
@@ -239,15 +239,15 @@ void WeLauncherApp::MainLoop() {
                 m_UIEventSystem->ProcessMouseEvent(mouseEvent);
                 requestUiRebuild = true;
             } else if (const auto* button = std::get_if<we::platform::MouseButtonEvent>(&event)) {
-                WindEffects::Editor::UI::MouseEvent mouseEvent{};
+                we::runtime::kindui::MouseEvent mouseEvent{};
                 mouseEvent.type = button->pressed
-                    ? WindEffects::Editor::UI::MouseEventType::MouseDown
-                    : WindEffects::Editor::UI::MouseEventType::MouseUp;
+                    ? we::runtime::kindui::MouseEventType::MouseDown
+                    : we::runtime::kindui::MouseEventType::MouseUp;
                 mouseEvent.position = { static_cast<float>(button->position.x), static_cast<float>(button->position.y) };
                 switch (button->button) {
-                case we::platform::MouseButton::Left: mouseEvent.button = WindEffects::Editor::UI::MouseButton::Left; break;
-                case we::platform::MouseButton::Right: mouseEvent.button = WindEffects::Editor::UI::MouseButton::Right; break;
-                case we::platform::MouseButton::Middle: mouseEvent.button = WindEffects::Editor::UI::MouseButton::Middle; break;
+                case we::platform::MouseButton::Left: mouseEvent.button = we::runtime::kindui::MouseButton::Left; break;
+                case we::platform::MouseButton::Right: mouseEvent.button = we::runtime::kindui::MouseButton::Right; break;
+                case we::platform::MouseButton::Middle: mouseEvent.button = we::runtime::kindui::MouseButton::Middle; break;
                 default: break;
                 }
                 mouseEvent.altDown = we::platform::HasFlag(button->modifiers, we::platform::KeyModifier::Alt);
@@ -256,18 +256,18 @@ void WeLauncherApp::MainLoop() {
                 m_UIEventSystem->ProcessMouseEvent(mouseEvent);
                 requestUiRebuild = true;
             } else if (const auto* wheel = std::get_if<we::platform::MouseWheelEvent>(&event)) {
-                WindEffects::Editor::UI::MouseEvent mouseEvent{};
-                mouseEvent.type = WindEffects::Editor::UI::MouseEventType::MouseWheel;
+                we::runtime::kindui::MouseEvent mouseEvent{};
+                mouseEvent.type = we::runtime::kindui::MouseEventType::MouseWheel;
                 mouseEvent.position = { static_cast<float>(wheel->position.x), static_cast<float>(wheel->position.y) };
                 mouseEvent.wheelDeltaX = wheel->delta.x;
                 mouseEvent.wheelDeltaY = wheel->delta.y;
                 m_UIEventSystem->ProcessMouseEvent(mouseEvent);
                 requestUiRebuild = true;
             } else if (const auto* key = std::get_if<we::platform::KeyEvent>(&event)) {
-                WindEffects::Editor::UI::KeyEvent keyEvent{};
+                we::runtime::kindui::KeyEvent keyEvent{};
                 keyEvent.type = key->pressed
-                    ? WindEffects::Editor::UI::KeyEventType::KeyDown
-                    : WindEffects::Editor::UI::KeyEventType::KeyUp;
+                    ? we::runtime::kindui::KeyEventType::KeyDown
+                    : we::runtime::kindui::KeyEventType::KeyUp;
                 keyEvent.key = key->key;
                 keyEvent.altDown = we::platform::HasFlag(key->modifiers, we::platform::KeyModifier::Alt);
                 keyEvent.shiftDown = we::platform::HasFlag(key->modifiers, we::platform::KeyModifier::Shift);
@@ -285,7 +285,7 @@ void WeLauncherApp::MainLoop() {
             }
 
             if (requestUiRebuild) {
-                WindEffects::Editor::UI::UIRepaintGate::Request();
+                we::runtime::kindui::UIRepaintGate::Request();
             }
         }
 
@@ -327,7 +327,7 @@ void WeLauncherApp::MainLoop() {
             m_Presenter->SubmitAndPresent();
         } else {
             // Swapchain not ready (e.g. mid-resize) â€” keep requesting layout for next frame.
-            WindEffects::Editor::UI::UIRepaintGate::Request();
+            we::runtime::kindui::UIRepaintGate::Request();
         }
     }
 

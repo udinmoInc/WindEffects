@@ -1,8 +1,8 @@
 #include "Services/ContentBrowserBlueprintArt.h"
 #include "Services/ThumbnailRenderer.h"
-#include "Core/DPIContext.h"
-#include "Core/PaintContext.h"
-#include "Rendering/IconRenderer.h"
+#include "KindUI/Core/DPIContext.h"
+#include "KindUI/Core/PaintContext.h"
+#include "KindUI/Rendering/IconRenderer.h"
 #include <algorithm>
 #include <cmath>
 
@@ -13,7 +13,7 @@ ContentBrowserBlueprintArt& ContentBrowserBlueprintArt::Get() {
     return instance;
 }
 
-void ContentBrowserBlueprintArt::Initialize(WindEffects::Editor::UI::IconRenderer* iconRenderer) {
+void ContentBrowserBlueprintArt::Initialize(we::runtime::kindui::IconRenderer* iconRenderer) {
     m_Renderer = iconRenderer;
 }
 
@@ -21,7 +21,7 @@ void ContentBrowserBlueprintArt::InvalidateCache() {
     m_Cache.clear();
 }
 
-WindEffects::Editor::UI::Rect ContentBrowserBlueprintArt::ComputeBlueprintRect(const WindEffects::Editor::UI::Rect& bounds, float widthFill, float heightFill) {
+we::runtime::kindui::Rect ContentBrowserBlueprintArt::ComputeBlueprintRect(const we::runtime::kindui::Rect& bounds, float widthFill, float heightFill) {
     const float maxW = bounds.width * std::clamp(widthFill, 0.5f, 0.95f);
     const float maxH = bounds.height * std::clamp(heightFill, 0.5f, 0.95f);
     float width = maxW;
@@ -30,7 +30,7 @@ WindEffects::Editor::UI::Rect ContentBrowserBlueprintArt::ComputeBlueprintRect(c
         height = maxH;
         width = height * kBlueprintAspectRatio;
     }
-    return WindEffects::Editor::UI::Rect{
+    return we::runtime::kindui::Rect{
         bounds.x + (bounds.width - width) * 0.5f,
         bounds.y + (bounds.height - height) * 0.5f,
         width,
@@ -41,7 +41,7 @@ WindEffects::Editor::UI::Rect ContentBrowserBlueprintArt::ComputeBlueprintRect(c
 we::rhi::RHIDescriptorSetHandle ContentBrowserBlueprintArt::GetTexture(uint32_t heightPx, bool hovered) const {
     if (!m_Renderer || heightPx == 0) return we::rhi::RHIDescriptorSetHandle::Invalid;
 
-    const float dpi = std::max(1.0f, WindEffects::Editor::UI::DPIContext::GetScale());
+    const float dpi = std::max(1.0f, we::runtime::kindui::DPIContext::GetScale());
     const uint32_t rasterHeight = std::max(16u, static_cast<uint32_t>(std::ceil(static_cast<float>(heightPx) * dpi)));
     const uint32_t rasterWidth = std::max(16u,
         static_cast<uint32_t>(std::round(static_cast<float>(rasterHeight) * kBlueprintAspectRatio)));
@@ -62,8 +62,8 @@ we::rhi::RHIDescriptorSetHandle ContentBrowserBlueprintArt::GetTexture(uint32_t 
     return texture;
 }
 
-void ContentBrowserBlueprintArt::PaintThumbnail(WindEffects::Editor::UI::PaintContext& context, const WindEffects::Editor::UI::Rect& thumbRect, bool hovered) const {
-    const WindEffects::Editor::UI::Rect blueprintRect = ComputeBlueprintRect(thumbRect);
+void ContentBrowserBlueprintArt::PaintThumbnail(we::runtime::kindui::PaintContext& context, const we::runtime::kindui::Rect& thumbRect, bool hovered) const {
+    const we::runtime::kindui::Rect blueprintRect = ComputeBlueprintRect(thumbRect);
     const uint32_t heightPx = static_cast<uint32_t>(std::ceil(blueprintRect.height));
     const we::rhi::RHIDescriptorSetHandle texture = GetTexture(heightPx, hovered);
     if ((texture != we::rhi::RHIDescriptorSetHandle::Invalid)) {
@@ -71,8 +71,8 @@ void ContentBrowserBlueprintArt::PaintThumbnail(WindEffects::Editor::UI::PaintCo
     }
 }
 
-void ContentBrowserBlueprintArt::PaintSmallIcon(WindEffects::Editor::UI::PaintContext& context, const WindEffects::Editor::UI::Rect& iconRect, bool hovered) const {
-    const WindEffects::Editor::UI::Rect blueprintRect = ComputeBlueprintRect(iconRect, 0.88f, 0.88f);
+void ContentBrowserBlueprintArt::PaintSmallIcon(we::runtime::kindui::PaintContext& context, const we::runtime::kindui::Rect& iconRect, bool hovered) const {
+    const we::runtime::kindui::Rect blueprintRect = ComputeBlueprintRect(iconRect, 0.88f, 0.88f);
     const uint32_t heightPx = static_cast<uint32_t>(std::ceil(blueprintRect.height));
     const we::rhi::RHIDescriptorSetHandle texture = GetTexture(heightPx, hovered);
     if ((texture != we::rhi::RHIDescriptorSetHandle::Invalid)) {

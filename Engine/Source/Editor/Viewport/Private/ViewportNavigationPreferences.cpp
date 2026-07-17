@@ -7,9 +7,9 @@
 
 #include "Widgets/ViewportSliderPopup.h"
 #include "Widgets/Panel.h"
-#include "Layout/Box.h"
+#include "KindUI/Layout/Box.h"
 #include "Widgets/ToolButton.h"
-#include "Core/Icon.h"
+#include "KindUI/Core/Icon.h"
 
 #include <memory>
 #include <string>
@@ -18,9 +18,9 @@ namespace we::programs::editor {
 
 namespace {
 
-std::shared_ptr<WindEffects::Editor::UI::VerticalBox> BuildViewportNavigationPreferencesContent() {
-    auto content = std::make_shared<WindEffects::Editor::UI::VerticalBox>();
-    content->SetPadding(WindEffects::Editor::UI::Margin{ 12.0f, 12.0f, 12.0f, 12.0f });
+std::shared_ptr<we::runtime::kindui::VerticalBox> BuildViewportNavigationPreferencesContent() {
+    auto content = std::make_shared<we::runtime::kindui::VerticalBox>();
+    content->SetPadding(we::runtime::kindui::Margin{ 12.0f, 12.0f, 12.0f, 12.0f });
     content->SetSpacing(6.0f);
 
     auto& store = ViewportNavigationSettingsStore::Get();
@@ -31,8 +31,8 @@ std::shared_ptr<WindEffects::Editor::UI::VerticalBox> BuildViewportNavigationPre
                             float minValue,
                             float maxValue,
                             auto onChanged) {
-        auto row = std::make_shared<WindEffects::Editor::UI::ToolButton>(
-            WindEffects::Editor::UI::Icons::SettingsName,
+        auto row = std::make_shared<we::runtime::kindui::ToolButton>(
+            we::runtime::kindui::Icons::SettingsName,
             label + ": " + std::to_string(value).substr(0, 5),
             [value, minValue, maxValue, onChanged, label]() {
                 auto popup = std::make_shared<ViewportSliderPopup>(
@@ -48,7 +48,7 @@ std::shared_ptr<WindEffects::Editor::UI::VerticalBox> BuildViewportNavigationPre
                     });
                 if (auto* overlay = GetEditorPopupHost()) {
                     overlay->CloseAllPopups();
-                    overlay->ShowPopup(popup, WindEffects::Editor::UI::Point{ 140.0f, 120.0f });
+                    overlay->ShowPopup(popup, we::runtime::kindui::Point{ 140.0f, 120.0f });
                 }
             },
             "Edit " + label);
@@ -94,8 +94,8 @@ std::shared_ptr<WindEffects::Editor::UI::VerticalBox> BuildViewportNavigationPre
         ApplyLoadedViewportNavigationSettings();
     });
 
-    auto presetBtn = std::make_shared<WindEffects::Editor::UI::ToolButton>(
-        WindEffects::Editor::UI::Icons::SettingsName,
+    auto presetBtn = std::make_shared<we::runtime::kindui::ToolButton>(
+        we::runtime::kindui::Icons::SettingsName,
         "Preset: " + ViewportNavigationSettingsStore::PresetToString(settings.preset),
         []() {
             auto& navStore = ViewportNavigationSettingsStore::Get();
@@ -116,8 +116,8 @@ std::shared_ptr<WindEffects::Editor::UI::VerticalBox> BuildViewportNavigationPre
         "Cycle navigation preset");
     content->AddChild(presetBtn);
 
-    auto invertX = std::make_shared<WindEffects::Editor::UI::ToolButton>(
-        WindEffects::Editor::UI::Icons::SettingsName,
+    auto invertX = std::make_shared<we::runtime::kindui::ToolButton>(
+        we::runtime::kindui::Icons::SettingsName,
         std::string("Invert X: ") + (settings.invertX ? "On" : "Off"),
         []() {
             auto& navStore = ViewportNavigationSettingsStore::Get();
@@ -129,8 +129,8 @@ std::shared_ptr<WindEffects::Editor::UI::VerticalBox> BuildViewportNavigationPre
         "Toggle invert X");
     content->AddChild(invertX);
 
-    auto invertY = std::make_shared<WindEffects::Editor::UI::ToolButton>(
-        WindEffects::Editor::UI::Icons::SettingsName,
+    auto invertY = std::make_shared<we::runtime::kindui::ToolButton>(
+        we::runtime::kindui::Icons::SettingsName,
         std::string("Invert Y: ") + (settings.invertY ? "On" : "Off"),
         []() {
             auto& navStore = ViewportNavigationSettingsStore::Get();
@@ -142,8 +142,8 @@ std::shared_ptr<WindEffects::Editor::UI::VerticalBox> BuildViewportNavigationPre
         "Toggle invert Y");
     content->AddChild(invertY);
 
-    auto orbitSelection = std::make_shared<WindEffects::Editor::UI::ToolButton>(
-        WindEffects::Editor::UI::Icons::SettingsName,
+    auto orbitSelection = std::make_shared<we::runtime::kindui::ToolButton>(
+        we::runtime::kindui::Icons::SettingsName,
         std::string("Orbit Around Selection: ") + (settings.orbitAroundSelection ? "On" : "Off"),
         []() {
             auto& navStore = ViewportNavigationSettingsStore::Get();
@@ -153,8 +153,8 @@ std::shared_ptr<WindEffects::Editor::UI::VerticalBox> BuildViewportNavigationPre
         "Toggle orbit around selection");
     content->AddChild(orbitSelection);
 
-    auto focusSelection = std::make_shared<WindEffects::Editor::UI::ToolButton>(
-        WindEffects::Editor::UI::Icons::SettingsName,
+    auto focusSelection = std::make_shared<we::runtime::kindui::ToolButton>(
+        we::runtime::kindui::Icons::SettingsName,
         std::string("Focus On Selection (F): ") + (settings.focusOnSelection ? "On" : "Off"),
         []() {
             auto& navStore = ViewportNavigationSettingsStore::Get();
@@ -169,14 +169,14 @@ std::shared_ptr<WindEffects::Editor::UI::VerticalBox> BuildViewportNavigationPre
 
 } // namespace
 
-std::shared_ptr<WindEffects::Editor::UI::Panel> CreateViewportNavigationPreferencesPanel() {
-    return WindEffects::Editor::UI::PanelBuilder("Viewport Navigation")
-        .TabIcon(WindEffects::Editor::UI::Icons::SettingsName)
+std::shared_ptr<we::runtime::kindui::Panel> CreateViewportNavigationPreferencesPanel() {
+    return we::runtime::kindui::PanelBuilder("Viewport Navigation")
+        .TabIcon(we::runtime::kindui::Icons::SettingsName)
         .Content(BuildViewportNavigationPreferencesContent());
 }
 
 REGISTER_UI_PANEL(ViewportNavigation,
-    WE_PANEL(ViewportNavigation).Title("Viewport Navigation").Icon("settings").Zone(WindEffects::Editor::UI::DockZone::Floating).Hidden(),
+    WE_PANEL(ViewportNavigation).Title("Viewport Navigation").Icon("settings").Zone(we::runtime::kindui::DockZone::Floating).Hidden(),
     CreateViewportNavigationPreferencesPanel)
 
 void ShowViewportNavigationPreferences() {

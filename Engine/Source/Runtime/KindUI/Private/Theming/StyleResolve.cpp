@@ -1,6 +1,6 @@
-#include "WindEffects/Runtime/UI/Theming/StyleResolve.h"
+#include "KindUI/Theming/StyleResolve.h"
 
-namespace WindEffects::Editor::UI {
+namespace we::runtime::kindui {
 namespace {
 
 float ScaleMetric(float value, float dpiScale) {
@@ -72,4 +72,4 @@ ResolvedStyle StyleResolve::ApplyState(
     return style;
 }
 
-} // namespace WindEffects::Editor::UI
+} // namespace we::runtime::kindui

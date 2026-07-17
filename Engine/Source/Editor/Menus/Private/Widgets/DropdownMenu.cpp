@@ -1,9 +1,9 @@
 #include "Widgets/DropdownMenu.h"
-#include "Core/PaintContext.h"
-#include "WindEffects/Editor/UI/Theming/ThemeToken.h"
-#include "Layout/OverlayManager.h"
+#include "KindUI/Core/PaintContext.h"
+#include "KindUI/Theming/ThemeToken.h"
+#include "KindUI/Layout/OverlayManager.h"
 
-namespace WindEffects::Editor::UI {
+namespace we::runtime::kindui {
 
 DropdownMenu::DropdownMenu(const std::vector<std::shared_ptr<MenuItem>>& items)
     : m_Items(items)
@@ -90,4 +90,4 @@ void DropdownMenu::OnMouseDown(const MouseEvent& event) {
     }
 }
 
-} // namespace WindEffects::Editor::UI
+} // namespace we::runtime::kindui

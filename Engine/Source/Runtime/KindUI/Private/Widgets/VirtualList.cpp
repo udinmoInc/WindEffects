@@ -1,9 +1,9 @@
-#include "WindEffects/Runtime/UI/Widgets/VirtualList.h"
+#include "KindUI/Widgets/VirtualList.h"
 
 #include <algorithm>
 #include <cmath>
 
-namespace WindEffects::Editor::UI {
+namespace we::runtime::kindui {
 
 std::shared_ptr<VirtualList> MakeVirtualList() {
     return std::make_shared<VirtualList>();
@@ -98,4 +98,4 @@ void VirtualList::OnMouseWheel(const MouseEvent& event) {
     SetScrollOffset(m_ScrollOffset - event.wheelDeltaY * m_ItemHeight);
 }
 
-} // namespace WindEffects::Editor::UI
+} // namespace we::runtime::kindui

@@ -1,6 +1,6 @@
-#include "WindEffects/Runtime/UI/Core/UIRepaintGate.h"
+#include "KindUI/Core/UIRepaintGate.h"
 
-namespace WindEffects::Editor::UI {
+namespace we::runtime::kindui {
 
 bool UIRepaintGate::s_NeedsRebuild = true;
 bool UIRepaintGate::s_Animating = false;
@@ -46,4 +46,4 @@ uint64_t UIRepaintGate::SkipCount() {
     return s_SkipCount;
 }
 
-} // namespace WindEffects::Editor::UI
+} // namespace we::runtime::kindui

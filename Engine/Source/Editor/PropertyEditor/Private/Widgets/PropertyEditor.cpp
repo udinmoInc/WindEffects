@@ -1,14 +1,14 @@
 #include "Widgets/PropertyEditor.h"
 #include "WindEffects/Editor/UI/Panel/PanelChrome.h"
-#include "Core/PaintContext.h"
-#include "Core/DPIContext.h"
-#include "Rendering/IconMetrics.h"
-#include "WindEffects/Editor/UI/Theming/ThemeToken.h"
-#include "Core/Icon.h"
+#include "KindUI/Core/PaintContext.h"
+#include "KindUI/Core/DPIContext.h"
+#include "KindUI/Rendering/IconMetrics.h"
+#include "KindUI/Theming/ThemeToken.h"
+#include "KindUI/Core/Icon.h"
 #include <cmath>
 #include <algorithm>
 
-namespace WindEffects::Editor::UI {
+namespace we::runtime::kindui {
 
 PropertyEditor::PropertyEditor()
     : m_Style(WidgetStyle::Panel())

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "WindEffects/Runtime/UI/Core/Widget.h"
+#include "KindUI/Core/Widget.h"
 
 #include <functional>
 #include <memory>
@@ -13,8 +13,8 @@ namespace we::programs::welauncher {
 void AdvanceSkeletonShimmer(float deltaTime);
 
 void PaintSkeletonBone(
-    WindEffects::Editor::UI::PaintContext& context,
-    const WindEffects::Editor::UI::Rect& rect,
+    we::runtime::kindui::PaintContext& context,
+    const we::runtime::kindui::Rect& rect,
     float radius,
     float phaseOffset = 0.0f);
 
@@ -28,29 +28,29 @@ enum class SkeletonKind {
 };
 
 // Reusable shimmering skeleton placeholder for dynamic launcher content.
-class SkeletonCard : public WindEffects::Editor::UI::Widget {
+class SkeletonCard : public we::runtime::kindui::Widget {
 public:
     explicit SkeletonCard(SkeletonKind kind = SkeletonKind::ProjectCard);
 
     void SetKind(SkeletonKind kind) { m_Kind = kind; }
 
-    WindEffects::Editor::UI::Size Measure(const WindEffects::Editor::UI::Size& availableSize) override;
-    void Arrange(const WindEffects::Editor::UI::Rect& allottedRect) override;
-    void Paint(WindEffects::Editor::UI::PaintContext& context) override;
+    we::runtime::kindui::Size Measure(const we::runtime::kindui::Size& availableSize) override;
+    void Arrange(const we::runtime::kindui::Rect& allottedRect) override;
+    void Paint(we::runtime::kindui::PaintContext& context) override;
     void Tick(float deltaTime) override;
 
 private:
     SkeletonKind m_Kind = SkeletonKind::ProjectCard;
 };
 
-class SkeletonGrid : public WindEffects::Editor::UI::Widget {
+class SkeletonGrid : public we::runtime::kindui::Widget {
 public:
     void SetCount(int count, SkeletonKind kind = SkeletonKind::ProjectCard);
     void SetGap(float gap) { m_Gap = gap; }
 
-    WindEffects::Editor::UI::Size Measure(const WindEffects::Editor::UI::Size& availableSize) override;
-    void Arrange(const WindEffects::Editor::UI::Rect& allottedRect) override;
-    void Paint(WindEffects::Editor::UI::PaintContext& context) override;
+    we::runtime::kindui::Size Measure(const we::runtime::kindui::Size& availableSize) override;
+    void Arrange(const we::runtime::kindui::Rect& allottedRect) override;
+    void Paint(we::runtime::kindui::PaintContext& context) override;
     void Tick(float deltaTime) override;
 
 private:

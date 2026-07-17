@@ -1,10 +1,10 @@
 #include "WindEffects/Editor/EditorSDK.h"
 #include "Widgets/OutputLogWidget.h"
-#include "Widgets/TextBox.h"
-#include "Widgets/Button.h"
+#include "KindUI/Widgets/TextBox.h"
+#include "KindUI/Widgets/Button.h"
 
 namespace we::programs::editor {
-using namespace WindEffects::Editor::UI;
+using namespace we::runtime::kindui;
 
 std::shared_ptr<Panel> CreateOutputLogPanel() {
     auto outputWidget = std::make_shared<OutputLogWidget>();

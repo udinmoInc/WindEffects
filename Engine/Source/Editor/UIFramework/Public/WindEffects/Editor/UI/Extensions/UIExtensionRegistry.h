@@ -1,7 +1,7 @@
 #pragma once
 
 #include "WindEffects/Editor/UI/Export.h"
-#include "WindEffects/Editor/UI/Commands/ICommandRegistry.h"
+#include "KindUI/Commands/ICommandRegistry.h"
 #include "WindEffects/Editor/UI/Docking/IDockManager.h"
 
 #include <functional>
@@ -11,16 +11,16 @@
 #include <unordered_map>
 #include <vector>
 
-namespace WindEffects::Editor::UI {
+namespace we::runtime::kindui {
 class Panel;
 struct MenuItem;
 class Widget;
 }
 
-namespace WindEffects::Editor::UI {
+namespace we::runtime::kindui {
 
-using ExtensionPanelFactory = std::function<std::shared_ptr<WindEffects::Editor::UI::Panel>()>;
-using ExtensionMenuFactory = std::function<std::vector<std::shared_ptr<WindEffects::Editor::UI::MenuItem>>()>;
+using ExtensionPanelFactory = std::function<std::shared_ptr<we::runtime::kindui::Panel>()>;
+using ExtensionMenuFactory = std::function<std::vector<std::shared_ptr<we::runtime::kindui::MenuItem>>()>;
 
 struct PanelRegistration {
     DockPanelDescriptor descriptor;
@@ -61,4 +61,4 @@ private:
     std::vector<std::shared_ptr<ICommand>> m_PendingCommands;
 };
 
-} // namespace WindEffects::Editor::UI
+} // namespace we::runtime::kindui
