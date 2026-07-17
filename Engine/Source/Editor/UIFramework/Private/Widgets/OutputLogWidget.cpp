@@ -93,7 +93,7 @@ void OutputLogWidget::RebuildVisibleLinesUnlocked() {
         m_VisibleLevels.push_back(record.level);
     }
     if (m_AutoScroll) {
-        const float contentHeight = static_cast<float>(m_VisibleLines.size()) * PanelChrome::ListRowHeight();
+        const float contentHeight = static_cast<float>(m_VisibleLines.size()) * ::we::editor::panels::PanelChrome::ListRowHeight();
         m_ScrollOffset = std::max(0.0f, contentHeight - m_Geometry.height);
     }
 }
@@ -113,9 +113,9 @@ void OutputLogWidget::Paint(PaintContext& context) {
         geometry = m_Geometry;
     }
 
-    PanelChrome::PaintContentRegion(context, geometry);
+    ::we::editor::panels::PanelChrome::PaintContentRegion(context, geometry);
 
-    const float lineHeight = PanelChrome::ListRowHeight();
+    const float lineHeight = ::we::editor::panels::PanelChrome::ListRowHeight();
     float y = geometry.y - scrollOffset;
     const float maxY = geometry.y + geometry.height;
 
@@ -127,7 +127,7 @@ void OutputLogWidget::Paint(PaintContext& context) {
         if (y > maxY) break;
         context.DrawText(
             visibleLines[i],
-            Point{ geometry.x + PanelChrome::PanelPaddingH(), y + (lineHeight - ThemeMetric(MetricToken::TextSizeCaption)) * 0.5f },
+            Point{ geometry.x + ::we::editor::panels::PanelChrome::PanelPaddingH(), y + (lineHeight - ThemeMetric(MetricToken::TextSizeCaption)) * 0.5f },
             LevelColor(visibleLevels[i]),
             ThemeMetric(MetricToken::TextSizeCaption));
         y += lineHeight;

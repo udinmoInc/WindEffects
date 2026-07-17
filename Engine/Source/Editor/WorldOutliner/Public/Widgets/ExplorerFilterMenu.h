@@ -16,7 +16,7 @@ using ::we::runtime::kindui::Color;
 using ::we::runtime::kindui::PaintContext;
 using ::we::runtime::kindui::MouseEvent;
 using ::we::runtime::kindui::WidgetStyle;
-
+using ::we::editor::contentbrowser::TreeView;
 
 class ExplorerFilterMenu : public Widget {
 public:

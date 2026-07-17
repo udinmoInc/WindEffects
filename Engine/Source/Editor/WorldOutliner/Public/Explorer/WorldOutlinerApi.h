@@ -5,9 +5,7 @@
 
 #include <memory>
 
-namespace we::editor::outliner {
-class TreeView;
-}
+namespace we::editor::contentbrowser { class TreeView; }
 
 namespace we::programs::editor {
 

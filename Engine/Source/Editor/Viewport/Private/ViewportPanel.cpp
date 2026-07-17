@@ -21,6 +21,7 @@ using ::we::editor::toolbar::ToolbarAlignment;
 using ::we::editor::panels::Panel;
 using ::we::editor::panels::PanelBuilder;
 using ::we::editor::docking::DockZone;
+using ::we::runtime::kindui::Label;
 namespace Icons = ::we::runtime::kindui::Icons;
 
 namespace {

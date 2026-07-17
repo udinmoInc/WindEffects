@@ -8,11 +8,8 @@
 #include <filesystem>
 
 namespace we::editor::contentbrowser {
-using ::we::runtime::kindui::MouseButton;
-using ::we::runtime::kindui::KeyEventType;
-using ::we::runtime::kindui::IconPainter;
+using ::we::runtime::kindui::UIRepaintGate;
 namespace Icons = ::we::runtime::kindui::Icons;
-namespace IconMetrics = ::we::runtime::kindui::IconMetrics;
 
 
 ContentBrowserService& ContentBrowserService::Get() {

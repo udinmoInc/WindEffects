@@ -5,6 +5,7 @@
 #include "KindUI/Tokens/DesignToken.h"
 #include "KindUI/Theming/StyleRole.h"
 #include "KindUI/Core/Icon.h"
+#include "KindUI/Input/InputEvents.h"
 #include "KindUI/Layout/OverlayManager.h"
 
 #include <algorithm>
@@ -14,12 +15,9 @@ using ::we::runtime::kindui::MetricToken;
 using ::we::runtime::kindui::PaddingToken;
 
 namespace we::editor::outliner {
-using ::we::runtime::kindui::MouseButton;
-using ::we::runtime::kindui::KeyEventType;
 using ::we::runtime::kindui::IconPainter;
+using ::we::runtime::kindui::MouseButton;
 namespace Icons = ::we::runtime::kindui::Icons;
-namespace IconMetrics = ::we::runtime::kindui::IconMetrics;
-
 
 namespace {
 constexpr float kMenuItemHeight = 26.0f;

@@ -16,6 +16,10 @@
 #include <regex>
 
 namespace we::programs::editor {
+using ::we::runtime::kindui::DPIContext;
+using ::we::runtime::kindui::IconPainter;
+using ::we::runtime::kindui::MouseButton;
+namespace Icons = ::we::runtime::kindui::Icons;
 
 using we::runtime::kindui::ColorToken;
 using we::runtime::kindui::MetricToken;

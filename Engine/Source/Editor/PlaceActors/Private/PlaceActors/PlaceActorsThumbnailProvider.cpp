@@ -9,6 +9,8 @@
 #include <algorithm>
 
 namespace we::programs::editor {
+using ::we::runtime::kindui::IconPainter;
+namespace Icons = ::we::runtime::kindui::Icons;
 using ::we::runtime::kindui::Color;
 using ::we::runtime::kindui::PaintContext;
 using ::we::runtime::kindui::Rect;

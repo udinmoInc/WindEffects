@@ -5,13 +5,10 @@
 
 #include <algorithm>
 
-namespace we::editor::viewport {
-using ::we::runtime::kindui::MouseButton;
-using ::we::runtime::kindui::KeyEventType;
-using ::we::runtime::kindui::IconPainter;
-namespace Icons = ::we::runtime::kindui::Icons;
-namespace IconMetrics = ::we::runtime::kindui::IconMetrics;
+#include "KindUI/Input/InputEvents.h"
+#include "Platform/Platform.h"
 
+namespace we::editor::viewport {
 using ::we::runtime::kindui::MouseButton;
 using ::we::runtime::kindui::KeyEventType;
 

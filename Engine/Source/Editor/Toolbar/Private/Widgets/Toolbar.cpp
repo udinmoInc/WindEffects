@@ -14,6 +14,9 @@ using ::we::runtime::kindui::MetricToken;
 using ::we::runtime::kindui::PaddingToken;
 
 namespace we::editor::toolbar {
+using ::we::runtime::kindui::DPIContext;
+using ::we::runtime::kindui::Widget;
+using ::we::runtime::kindui::Point;
 namespace {
     float ScaledMetric(MetricToken token) {
         return we::runtime::kindui::ResolveMetric(token) * (std::max)(1.0f, DPIContext::GetScale());

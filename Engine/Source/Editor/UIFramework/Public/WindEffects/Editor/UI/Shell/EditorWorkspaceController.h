@@ -16,7 +16,6 @@
 
 namespace we::programs::editor {
 using ::we::runtime::kindui::Splitter;
-using ::we::runtime::kindui::OverlayHost;
 
 class UIFRAMEWORK_API EditorWorkspaceController {
 public:

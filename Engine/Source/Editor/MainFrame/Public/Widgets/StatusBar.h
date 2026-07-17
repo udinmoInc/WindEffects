@@ -7,6 +7,8 @@
 #include <functional>
 #include "KindUI/Core/Style.h"
 
+namespace we::editor::toolbar { class ToolButton; }
+
 namespace we::editor::shell {
 using ::we::runtime::kindui::Widget;
 using ::we::runtime::kindui::Size;
@@ -51,13 +53,13 @@ private:
     std::shared_ptr<Row> m_LeftBox;
     std::shared_ptr<Row> m_RightBox;
 
-    std::shared_ptr<class ToolButton> m_AssetsPanelButton;
-    std::shared_ptr<class ToolButton> m_DiagnosticsPanelButton;
+    std::shared_ptr<::we::editor::toolbar::ToolButton> m_AssetsPanelButton;
+    std::shared_ptr<::we::editor::toolbar::ToolButton> m_DiagnosticsPanelButton;
     std::shared_ptr<class CommandInput> m_CommandInput;
-    std::shared_ptr<class ToolButton> m_OutputLogButton;
-    std::shared_ptr<class ToolButton> m_BuildMenuButton;
-    std::shared_ptr<class ToolButton> m_TraceButton;
-    std::shared_ptr<class ToolButton> m_QualityMenuButton;
+    std::shared_ptr<::we::editor::toolbar::ToolButton> m_OutputLogButton;
+    std::shared_ptr<::we::editor::toolbar::ToolButton> m_BuildMenuButton;
+    std::shared_ptr<::we::editor::toolbar::ToolButton> m_TraceButton;
+    std::shared_ptr<::we::editor::toolbar::ToolButton> m_QualityMenuButton;
 };
 
 } // namespace we::editor::shell

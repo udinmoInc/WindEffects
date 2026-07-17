@@ -7,6 +7,7 @@
 #include "KindUI/Tokens/DesignToken.h"
 #include "KindUI/Theming/StyleRole.h"
 #include "KindUI/Theming/ThemeAccess.h"
+#include "KindUI/Input/InputEvents.h"
 #include "KindUI/Core/Icon.h"
 #include <algorithm>
 
@@ -21,6 +22,8 @@ using ::we::runtime::kindui::IconPainter;
 namespace Icons = ::we::runtime::kindui::Icons;
 namespace IconMetrics = ::we::runtime::kindui::IconMetrics;
 using ::we::runtime::kindui::KeyCodeToChar;
+
+CommandInput::CommandInput() = default;
 
 Size CommandInput::Measure(const Size& availableSize) {
     (void)availableSize;

@@ -13,6 +13,9 @@ using ::we::runtime::kindui::MetricToken;
 using ::we::runtime::kindui::PaddingToken;
 
 namespace we::editor::menus {
+using ::we::runtime::kindui::DPIContext;
+using ::we::runtime::kindui::IconPainter;
+namespace Icons = ::we::runtime::kindui::Icons;
 
 MenuBar::MenuBar()
     : m_Style(WidgetStyle::Panel())

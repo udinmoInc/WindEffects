@@ -11,11 +11,7 @@
 #include "KindUI/Tokens/DesignToken.h"
 
 namespace we::programs::editor {
-using ::we::runtime::kindui::MouseButton;
-using ::we::runtime::kindui::KeyEventType;
-using ::we::runtime::kindui::IconPainter;
 namespace Icons = ::we::runtime::kindui::Icons;
-namespace IconMetrics = ::we::runtime::kindui::IconMetrics;
 
 
 using ::we::runtime::kindui::ColorToken;
@@ -27,6 +23,9 @@ using namespace ::we::runtime::kindui;
 using ::we::editor::panels::Panel;
 using ::we::editor::panels::PanelBuilder;
 using ::we::editor::docking::DockZone;
+using ::we::editor::outliner::ExplorerPanelHeader;
+using ::we::editor::outliner::ExplorerFilterMenu;
+using ::we::editor::contentbrowser::TreeView;
 
 namespace {
 std::shared_ptr<ExplorerPanelHeader> g_ExplorerHeader;

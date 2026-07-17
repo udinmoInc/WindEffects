@@ -7,6 +7,7 @@
 #include <cmath>
 
 namespace we::editor::contentbrowser {
+using ::we::runtime::kindui::DPIContext;
 
 ContentBrowserBlueprintArt& ContentBrowserBlueprintArt::Get() {
     static ContentBrowserBlueprintArt instance;

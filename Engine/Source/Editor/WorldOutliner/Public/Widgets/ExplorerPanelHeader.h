@@ -28,7 +28,7 @@ public:
     static float DefaultHeight() { return we::runtime::kindui::ResolveMetric(MetricToken::PanelToolbarHeight); }
     static float LogoLogicalSize() { return we::runtime::kindui::ResolveMetric(MetricToken::IconSizeToolbar); }
 
-    using FilterOptions = TreeView::FilterOptions;
+    using FilterOptions = ::we::editor::contentbrowser::TreeView::FilterOptions;
 
     ExplorerPanelHeader();
 

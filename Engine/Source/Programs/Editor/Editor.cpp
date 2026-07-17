@@ -30,6 +30,7 @@
 #include "Runtime/World/Environment/EnvironmentSystem.h"
 #include "Runtime/World/Environment/EnvironmentLighting.h"
 #include "WindEffects/Editor/UI/Widgets/RenderInvestigationModal.h"
+#include "WindEffects/Editor/UI/Builders/PanelBuilder.h"
 
 #include "Platform/PlatformSDK.h"
 #include <algorithm>
@@ -52,6 +53,10 @@ bool PresentAuditEnabled() {
 } // namespace
 
 namespace we::programs::editor {
+using ::we::runtime::kindui::DPIContext;
+using ::we::runtime::kindui::UIRepaintGate;
+using ::we::runtime::kindui::MouseButton;
+using ::we::runtime::kindui::MouseEventType;
 
 namespace UI = we::runtime::kindui;
 
@@ -60,6 +65,7 @@ using namespace we::runtime::kindui;
 using ::we::editor::panels::Panel;
 using ::we::editor::panels::PanelBuilder;
 using ::we::editor::docking::DockZone;
+using ::we::editor::viewport::ViewportWidget;
 using namespace we::runtime::renderer;
 using namespace we::runtime::scene;
 using namespace we::runtime::engine;
