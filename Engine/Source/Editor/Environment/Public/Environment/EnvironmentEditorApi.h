@@ -9,6 +9,9 @@ namespace we::runtime::scene {
 class Scene;
 }
 
+namespace we::editor::contentbrowser { class TreeView; }
+namespace we::editor::property { class PropertyEditor; }
+
 namespace we::editor::environment {
 
 ENVIRONMENT_API void InitializeEditor(

@@ -12,6 +12,7 @@
 #include "KindUI/Theming/StyleRole.h"
 #include "KindUI/Core/Icon.h"
 #include "KindUI/Core/DPIContext.h"
+#include "KindUI/Input/InputEvents.h"
 #include "KindUI/Rendering/IconMetrics.h"
 #include <algorithm>
 #include <cmath>
@@ -23,11 +24,13 @@ using ::we::runtime::kindui::PaddingToken;
 using ::we::runtime::kindui::Point;
 
 namespace we::editor::contentbrowser {
-using ::we::runtime::kindui::MouseButton;
-using ::we::runtime::kindui::KeyEventType;
 using ::we::runtime::kindui::IconPainter;
+using ::we::runtime::kindui::MouseButton;
+using ::we::runtime::kindui::KeyCodeToChar;
 namespace Icons = ::we::runtime::kindui::Icons;
 namespace IconMetrics = ::we::runtime::kindui::IconMetrics;
+namespace PanelChrome = ::we::editor::panels::PanelChrome;
+using ::we::runtime::kindui::DPIContext;
 
 
 namespace {

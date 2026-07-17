@@ -9,6 +9,7 @@
 #include <vector>
 
 namespace we::programs::editor {
+namespace Icons = ::we::runtime::kindui::Icons;
 using ::we::editor::toolspanel::EditorToolsRegistry;
 using ::we::editor::toolspanel::EditorToolCategory;
 using ::we::editor::toolspanel::EditorToolAction;

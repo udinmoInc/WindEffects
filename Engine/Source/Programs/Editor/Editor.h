@@ -19,8 +19,6 @@
 
 namespace we::programs::editor {
 using ::we::editor::services::EditorApplicationContext;
-class OverlayHost;
-class IconRenderer;
 }
 
 namespace we::programs::editor {

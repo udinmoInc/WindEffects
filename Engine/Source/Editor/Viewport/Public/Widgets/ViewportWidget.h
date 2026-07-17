@@ -15,6 +15,7 @@
 namespace we::runtime::renderer { class ISceneViewportController; }
 namespace we::runtime::engine { class EditorCamera; }
 namespace we::runtime::scene { class Scene; }
+namespace we::runtime::kindui { class OverlayRenderer; }
 
 namespace we::editor::viewport {
 using ::we::runtime::kindui::Widget;
@@ -28,7 +29,6 @@ using ::we::runtime::kindui::KeyEvent;
 using ::we::runtime::kindui::WidgetStyle;
 
 class ViewportRenderTarget;
-class OverlayRenderer;
 class GraphicsDebuggerPopup;
 
 class VIEWPORT_API ViewportWidget : public Widget {
@@ -38,7 +38,7 @@ public:
                    we::rhi::Format viewportColorFormat,
                    const std::shared_ptr<::we::runtime::engine::EditorCamera>& camera,
                    const std::shared_ptr<::we::runtime::scene::Scene>& scene,
-                   OverlayRenderer* uiRenderer = nullptr);
+                   ::we::runtime::kindui::OverlayRenderer* uiRenderer = nullptr);
     ~ViewportWidget() override;
 
     void Construct();
@@ -73,7 +73,7 @@ private:
     we::rhi::Format m_ViewportColorFormat = we::rhi::Format::R8G8B8A8_UNORM;
     std::shared_ptr<::we::runtime::engine::EditorCamera> m_Camera;
     std::shared_ptr<::we::runtime::scene::Scene> m_Scene;
-    OverlayRenderer* m_uiRenderer = nullptr;
+    ::we::runtime::kindui::OverlayRenderer* m_uiRenderer = nullptr;
     ViewportNavigationController m_Navigation;
 
     we::rhi::RHIDescriptorSetHandle m_ViewportTextureSet = we::rhi::RHIDescriptorSetHandle::Invalid;

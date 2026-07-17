@@ -10,10 +10,6 @@ using ::we::runtime::kindui::PaddingToken;
 
 namespace we::editor::menus {
 using ::we::runtime::kindui::MouseButton;
-using ::we::runtime::kindui::KeyEventType;
-using ::we::runtime::kindui::IconPainter;
-namespace Icons = ::we::runtime::kindui::Icons;
-namespace IconMetrics = ::we::runtime::kindui::IconMetrics;
 
 
 DropdownMenu::DropdownMenu(const std::vector<std::shared_ptr<MenuItem>>& items)

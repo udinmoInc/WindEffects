@@ -4,6 +4,7 @@
 #include "KindUI/Core/Widgets/DesignSystemControls.h"
 
 namespace we::programs::editor {
+namespace Icons = ::we::runtime::kindui::Icons;
 using namespace ::we::runtime::kindui;
 using ::we::editor::panels::Panel;
 using ::we::editor::panels::PanelBuilder;

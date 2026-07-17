@@ -12,12 +12,10 @@ using ::we::runtime::kindui::MetricToken;
 using ::we::runtime::kindui::PaddingToken;
 
 namespace we::editor::viewport {
-using ::we::runtime::kindui::MouseButton;
-using ::we::runtime::kindui::KeyEventType;
-using ::we::runtime::kindui::IconPainter;
+using ::we::runtime::kindui::WidgetStyle;
 namespace Icons = ::we::runtime::kindui::Icons;
 namespace IconMetrics = ::we::runtime::kindui::IconMetrics;
-
+using ::we::runtime::kindui::IconPainter;
 
 ViewportOverlay::ViewportOverlay()
     : m_Style(WidgetStyle::Panel())

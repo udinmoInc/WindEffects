@@ -20,11 +20,19 @@
 using ::we::runtime::kindui::ColorToken;
 using ::we::runtime::kindui::MetricToken;
 using ::we::runtime::kindui::PaddingToken;
+using ::we::runtime::kindui::IconColorRole;
+using ::we::runtime::kindui::ResolveIconColor;
+using ::we::runtime::kindui::Margin;
+using ::we::runtime::kindui::Widget;
 
 namespace we::editor::shell {
-using ::we::runtime::kindui::MouseButton;
-using ::we::runtime::kindui::KeyEventType;
 using ::we::runtime::kindui::IconPainter;
+using ::we::runtime::kindui::DPIContext;
+using ::we::runtime::kindui::Animator;
+using ::we::editor::toolbar::ToolButton;
+using ::we::editor::toolbar::ToolButtonStyle;
+using ::we::editor::menus::MenuBar;
+using ::we::runtime::kindui::VerticalAlignment;
 namespace Icons = ::we::runtime::kindui::Icons;
 namespace IconMetrics = ::we::runtime::kindui::IconMetrics;
 
@@ -156,7 +164,7 @@ namespace {
     constexpr float kLogoToMenuGap = 8.0f;
 }
 
-TitleBar::TitleBar(we::platform::WindowId window, const std::string& title, we::rhi::RHIDescriptorSetHandle logoSet, std::shared_ptr<MenuBar> menuBar)
+TitleBar::TitleBar(we::platform::WindowId window, const std::string& title, we::rhi::RHIDescriptorSetHandle logoSet, std::shared_ptr<::we::editor::menus::MenuBar> menuBar)
     : m_Window(window), m_Title(title), m_LogoSet(logoSet), m_MenuBar(menuBar)
 {
     Padding(Margin{ 0.0f, 0.0f, 0.0f, 0.0f });

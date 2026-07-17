@@ -12,6 +12,7 @@
 #include "KindUI/Theming/StyleRole.h"
 #include "KindUI/Core/Icon.h"
 #include "KindUI/Core/Animator.h"
+#include "KindUI/Input/InputEvents.h"
 #include <algorithm>
 
 using ::we::runtime::kindui::ColorToken;
@@ -19,12 +20,11 @@ using ::we::runtime::kindui::MetricToken;
 using ::we::runtime::kindui::PaddingToken;
 
 namespace we::editor::contentbrowser {
+using ::we::runtime::kindui::ResolveIconColor;
 using ::we::runtime::kindui::MouseButton;
-using ::we::runtime::kindui::KeyEventType;
 using ::we::runtime::kindui::IconPainter;
 namespace Icons = ::we::runtime::kindui::Icons;
 namespace IconMetrics = ::we::runtime::kindui::IconMetrics;
-
 using ::we::runtime::kindui::MakePrimaryAction;
 using ::we::runtime::kindui::MakeSecondaryAction;
 using ::we::runtime::kindui::Animator;

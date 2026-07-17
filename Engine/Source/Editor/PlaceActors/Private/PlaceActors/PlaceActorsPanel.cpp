@@ -34,12 +34,10 @@
 
 
 namespace we::programs::editor {
-using ::we::runtime::kindui::MouseButton;
-using ::we::runtime::kindui::KeyEventType;
-using ::we::runtime::kindui::IconPainter;
+using ::we::runtime::kindui::DPIContext;
+using ::we::runtime::kindui::Animator;
 namespace Icons = ::we::runtime::kindui::Icons;
-namespace IconMetrics = ::we::runtime::kindui::IconMetrics;
-
+namespace PanelChrome = ::we::editor::panels::PanelChrome;
 
 namespace {
 constexpr float kDragThreshold = 6.0f;

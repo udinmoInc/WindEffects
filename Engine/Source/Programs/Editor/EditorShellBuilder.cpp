@@ -41,6 +41,16 @@ using we::runtime::kindui::MetricToken;
 using we::runtime::kindui::PaddingToken;
 
 namespace we::programs::editor {
+using ::we::runtime::kindui::Widget;
+using ::we::runtime::kindui::IWidgetContext;
+using ::we::runtime::kindui::WidgetContext;
+using ::we::runtime::kindui::StyleRole;
+using ::we::runtime::kindui::Point;
+using ::we::runtime::kindui::Column;
+using ::we::runtime::kindui::OverlayHost;
+using ::we::editor::viewport::ViewportWidget;
+using ::we::editor::contentbrowser::TreeView;
+using ::we::editor::property::PropertyEditor;
 using ::we::editor::docking::DockContainer;
 using ::we::editor::shell::DockLayoutBuilder;
 using ::we::editor::docking::DockPanelDescriptor;
@@ -49,6 +59,18 @@ using ::we::editor::services::IEditorApplicationContext;
 using ::we::editor::panels::Panel;
 using ::we::editor::extensions::PanelRegistration;
 using ::we::editor::services::ResolvePanelTabIconName;
+using ::we::editor::menus::MenuBar;
+using ::we::editor::menus::MenuItem;
+using ::we::editor::shell::TitleBar;
+using ::we::editor::shell::StatusBar;
+using ::we::editor::shell::WindowShell;
+using ::we::editor::shell::kTitleBarLogoDisplaySize;
+using ::we::editor::shell::kWindowControlCount;
+using ::we::editor::toolbar::Toolbar;
+using ::we::editor::toolbar::ToolButtonStyle;
+using ::we::editor::toolbar::ToolbarAlignment;
+namespace Icons = ::we::runtime::kindui::Icons;
+namespace IconMetrics = ::we::runtime::kindui::IconMetrics;
 namespace {
 
 void PropagateWidgetContext(const std::shared_ptr<Widget>& widget, const std::shared_ptr<IWidgetContext>& context) {

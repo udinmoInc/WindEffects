@@ -14,6 +14,7 @@ using ::we::runtime::kindui::PaddingToken;
 using ::we::runtime::kindui::DPIContext;
 
 namespace we::editor::panels {
+namespace Chrome = ::we::editor::panels::PanelChrome;
 
 Panel::Panel(const std::string& title)
     : m_Title(title)
@@ -108,23 +109,23 @@ void Panel::Arrange(const Rect& allottedRect) {
 
 void Panel::Paint(PaintContext& context) {
     if (!m_TransparentBackground) {
-        PanelChrome::PaintContentRegion(context, m_Geometry);
+        Chrome::PaintContentRegion(context, m_Geometry);
     } else if (m_Toolbar && !m_FloatingToolbar) {
-        PanelChrome::PaintToolbarRegion(context, m_ToolbarRect);
+        Chrome::PaintToolbarRegion(context, m_ToolbarRect);
     }
 
     if (m_HeaderHeight > 0.0f) {
-        std::vector<PanelChrome::FloatingHeaderAction> chromeActions;
+        std::vector<Chrome::FloatingHeaderAction> chromeActions;
         chromeActions.reserve(m_HeaderActions.size());
         for (size_t i = 0; i < m_HeaderActions.size(); ++i) {
-            PanelChrome::FloatingHeaderAction action{};
+            Chrome::FloatingHeaderAction action{};
             action.iconName = m_HeaderActions[i].iconName;
             action.hovered = static_cast<int>(i) == m_HoveredActionIndex;
             action.pressed = static_cast<int>(i) == m_PressedActionIndex;
             chromeActions.push_back(action);
         }
 
-        PanelChrome::PaintFloatingPanelHeader(
+        Chrome::PaintFloatingPanelHeader(
             context,
             m_HeaderRect,
             m_Title,
@@ -137,9 +138,9 @@ void Panel::Paint(PaintContext& context) {
             m_OptionsMenuHovered,
             m_OptionsMenuRect);
 
-        const float buttonSize = PanelChrome::HeaderButtonSize();
-        const float padH = PanelChrome::TabPadH();
-        const float gap = ThemeMetric(MetricToken::Space1) * PanelChrome::UiScale();
+        const float buttonSize = Chrome::HeaderButtonSize();
+        const float padH = Chrome::TabPadH();
+        const float gap = ThemeMetric(MetricToken::Space1) * Chrome::UiScale();
         const float centerY = m_HeaderRect.y + m_HeaderRect.height * 0.5f;
         float actionX = m_HeaderRect.x + m_HeaderRect.width - padH - buttonSize;
 
@@ -166,7 +167,7 @@ void Panel::Paint(PaintContext& context) {
 
     if (m_Toolbar) {
         if (!m_FloatingToolbar) {
-            PanelChrome::PaintToolbarRegion(context, m_ToolbarRect);
+            Chrome::PaintToolbarRegion(context, m_ToolbarRect);
         }
         m_Toolbar->Paint(context);
     }

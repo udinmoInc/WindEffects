@@ -3,6 +3,7 @@
 #include "KindUI/Core/Icon.h"
 
 namespace we::programs::editor {
+namespace Icons = ::we::runtime::kindui::Icons;
 namespace WEIcons = ::we::runtime::kindui::Icons;
 
 PlaceActorsIconProvider& PlaceActorsIconProvider::Get() {

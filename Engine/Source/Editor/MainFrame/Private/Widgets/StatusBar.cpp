@@ -13,12 +13,11 @@ using ::we::runtime::kindui::MetricToken;
 using ::we::runtime::kindui::PaddingToken;
 
 namespace we::editor::shell {
-using ::we::runtime::kindui::MouseButton;
-using ::we::runtime::kindui::KeyEventType;
-using ::we::runtime::kindui::IconPainter;
+using ::we::editor::toolbar::ToolButton;
+using ::we::editor::toolbar::ToolButtonStyle;
+using ::we::runtime::kindui::VerticalAlignment;
+using ::we::runtime::kindui::DPIContext;
 namespace Icons = ::we::runtime::kindui::Icons;
-namespace IconMetrics = ::we::runtime::kindui::IconMetrics;
-
 
 namespace {
 

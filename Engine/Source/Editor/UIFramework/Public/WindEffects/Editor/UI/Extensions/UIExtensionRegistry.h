@@ -14,7 +14,7 @@
 #include <vector>
 
 namespace we::editor::menus {
-class MenuItem;
+struct MenuItem;
 }
 
 namespace we::editor::extensions {

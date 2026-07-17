@@ -15,10 +15,11 @@ using ::we::runtime::kindui::PaddingToken;
 
 namespace we::editor::property {
 using ::we::runtime::kindui::MouseButton;
-using ::we::runtime::kindui::KeyEventType;
+using ::we::runtime::kindui::DPIContext;
 using ::we::runtime::kindui::IconPainter;
-namespace Icons = ::we::runtime::kindui::Icons;
+namespace PanelChrome = ::we::editor::panels::PanelChrome;
 namespace IconMetrics = ::we::runtime::kindui::IconMetrics;
+namespace Icons = ::we::runtime::kindui::Icons;
 
 
 PropertyEditor::PropertyEditor()

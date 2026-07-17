@@ -5,17 +5,15 @@
 #include "KindUI/Core/Icon.h"
 
 namespace we::programs::editor {
-using ::we::runtime::kindui::MouseButton;
-using ::we::runtime::kindui::KeyEventType;
-using ::we::runtime::kindui::IconPainter;
 namespace Icons = ::we::runtime::kindui::Icons;
-namespace IconMetrics = ::we::runtime::kindui::IconMetrics;
 
 using namespace ::we::runtime::kindui;
 using namespace ::we::runtime::kindui;
 using ::we::editor::panels::Panel;
 using ::we::editor::panels::PanelBuilder;
 using ::we::editor::docking::DockZone;
+using ::we::editor::widgets::SearchBox;
+using ::we::editor::property::PropertyEditor;
 
 std::shared_ptr<Panel> CreateDetailsPanel() {
     const auto title = we::core::Localization::Get().GetString("Panel_Details", "Details");

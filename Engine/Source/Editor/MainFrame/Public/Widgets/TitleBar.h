@@ -9,6 +9,9 @@
 
 #include <string>
 
+namespace we::editor::menus { class MenuBar; }
+namespace we::editor::toolbar { class ToolButton; }
+
 namespace we::editor::shell {
 using ::we::runtime::kindui::Widget;
 using ::we::runtime::kindui::Size;
@@ -20,9 +23,6 @@ using ::we::runtime::kindui::MouseEvent;
 using ::we::runtime::kindui::WidgetStyle;
 using ::we::runtime::kindui::Row;
 
-class MenuBar;
-class ToolButton;
-
 inline constexpr float kTitleBarHeight          = 34.0f;
 inline constexpr float kTitleBarLogoDisplaySize = 18.0f;
 inline constexpr float kHeaderControlHeight     = 24.0f;
@@ -33,7 +33,7 @@ class MAINFRAME_API TitleBar : public Row {
 public:
     TitleBar(we::platform::WindowId window, const std::string& title,
              we::rhi::RHIDescriptorSetHandle logoSet = we::rhi::RHIDescriptorSetHandle::Invalid,
-             std::shared_ptr<MenuBar> menuBar = nullptr);
+             std::shared_ptr<::we::editor::menus::MenuBar> menuBar = nullptr);
     virtual ~TitleBar() = default;
 
     void Construct() override;
@@ -51,7 +51,7 @@ public:
     we::platform::WindowId m_Window = we::platform::WindowId::Invalid;
     std::string m_Title;
     we::rhi::RHIDescriptorSetHandle m_LogoSet = we::rhi::RHIDescriptorSetHandle::Invalid;
-    std::shared_ptr<MenuBar> m_MenuBar = nullptr;
+    std::shared_ptr<::we::editor::menus::MenuBar> m_MenuBar = nullptr;
 
     std::shared_ptr<Widget> m_LogoWidget;
     std::shared_ptr<Widget> m_MinimizeWidget;

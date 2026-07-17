@@ -12,15 +12,12 @@
 #include <vector>
 #include "KindUI/Input/InputEvents.h"
 
-namespace we::editor::toolspanel {
-using ::we::runtime::kindui::KeyEvent;
-
-class SearchBox;
-}
+namespace we::editor::widgets { class SearchBox; }
 
 namespace we::programs::editor {
+using ::we::editor::toolspanel::EditorToolAction;
 
-/// Tool list content for the active editor mode. Header/close/tab chrome is owned by Panel.
+/// Tool list content for the active editor mode.
 class TOOLSPANEL_API ToolsPanel : public we::runtime::kindui::Widget {
 public:
     ToolsPanel();

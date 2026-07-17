@@ -31,11 +31,13 @@
 #include <vector>
 
 namespace we::editor::environment {
-using ::we::runtime::kindui::MouseButton;
-using ::we::runtime::kindui::KeyEventType;
 using ::we::runtime::kindui::IconPainter;
+using ::we::runtime::kindui::MouseButton;
+using ::we::runtime::kindui::Animator;
 namespace Icons = ::we::runtime::kindui::Icons;
 namespace IconMetrics = ::we::runtime::kindui::IconMetrics;
+namespace ToolbarButtonChrome = ::we::runtime::kindui::ToolbarButtonChrome;
+using ::we::runtime::kindui::DPIContext;
 
 
 namespace {

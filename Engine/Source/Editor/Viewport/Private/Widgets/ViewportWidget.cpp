@@ -19,12 +19,10 @@
 #define WE_DEBUG_UI 0
 #endif
 
-namespace we::editor::viewport {
+using ::we::runtime::kindui::MouseEventType;
 using ::we::runtime::kindui::MouseButton;
-using ::we::runtime::kindui::KeyEventType;
-using ::we::runtime::kindui::IconPainter;
-namespace Icons = ::we::runtime::kindui::Icons;
-namespace IconMetrics = ::we::runtime::kindui::IconMetrics;
+
+namespace we::editor::viewport {
 
 
 ViewportWidget::ViewportWidget(::we::runtime::renderer::ISceneViewportController* viewportController,
@@ -32,7 +30,7 @@ ViewportWidget::ViewportWidget(::we::runtime::renderer::ISceneViewportController
                                we::rhi::Format viewportColorFormat,
                                const std::shared_ptr<::we::runtime::engine::EditorCamera>& camera,
                                const std::shared_ptr<::we::runtime::scene::Scene>& scene,
-                               OverlayRenderer* uiRenderer)
+                               ::we::runtime::kindui::OverlayRenderer* uiRenderer)
     : m_ViewportController(viewportController)
     , m_Device(device)
     , m_ViewportColorFormat(viewportColorFormat)

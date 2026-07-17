@@ -13,8 +13,7 @@
 #include <algorithm>
 
 namespace we::programs::editor {
-using ::we::runtime::kindui::MouseButton;
-using ::we::runtime::kindui::KeyEventType;
+using ::we::runtime::kindui::DPIContext;
 using ::we::runtime::kindui::IconPainter;
 namespace Icons = ::we::runtime::kindui::Icons;
 namespace IconMetrics = ::we::runtime::kindui::IconMetrics;

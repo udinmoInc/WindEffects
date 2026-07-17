@@ -16,11 +16,14 @@ using ::we::runtime::kindui::MetricToken;
 using ::we::runtime::kindui::PaddingToken;
 
 namespace we::editor::toolbar {
-using ::we::runtime::kindui::MouseButton;
-using ::we::runtime::kindui::KeyEventType;
+using ::we::runtime::kindui::DPIContext;
+using ::we::runtime::kindui::IconColorRole;
+using ::we::runtime::kindui::Animator;
 using ::we::runtime::kindui::IconPainter;
+using ::we::runtime::kindui::MouseButton;
 namespace Icons = ::we::runtime::kindui::Icons;
 namespace IconMetrics = ::we::runtime::kindui::IconMetrics;
+namespace ToolbarButtonChrome = ::we::runtime::kindui::ToolbarButtonChrome;
 
 namespace {
     using namespace ToolbarButtonChrome;
@@ -42,7 +45,7 @@ namespace {
     }
 
     Color ResolvePlayIconColor(float hoverAnim, float pressStrength, bool active) {
-        return ResolveIconColor(IconColorRole::Primary, hoverAnim, pressStrength, active);
+        return ::we::runtime::kindui::ResolveIconColor(IconColorRole::Primary, hoverAnim, pressStrength, active);
     }
 
     bool IsPlayTransportIcon(const std::string& iconName) {
@@ -237,7 +240,7 @@ void ToolButton::Paint(PaintContext& context) {
             context.DrawRect(renderRect, hoverBg);
         }
 
-        Color iconColor = ResolveIconColor(IconColorRole::Secondary, m_HoverAnim, pressStrength, false);
+        Color iconColor = ::we::runtime::kindui::ResolveIconColor(IconColorRole::Secondary, m_HoverAnim, pressStrength, false);
 
         const float iconSize = IconSize(uiScale);
         const Rect iconRect = PlaceIconInControl(renderRect, iconSize);
@@ -250,7 +253,7 @@ void ToolButton::Paint(PaintContext& context) {
         PaintIconButton(context, renderRect, m_HoverAnim, pressStrength, m_Active, m_ActiveAnim, uiScale);
 
         const float iconSize = IconSize(uiScale);
-        Color iconColor = ResolveIconColor(m_HoverAnim, pressStrength, m_Active);
+        Color iconColor = ToolbarButtonChrome::ResolveIconColor(m_HoverAnim, pressStrength, m_Active);
         IconPainter::DrawIcon(context, m_IconName, PlaceIconInControl(renderRect, iconSize), iconColor);
         return;
     }
@@ -265,7 +268,7 @@ void ToolButton::Paint(PaintContext& context) {
         const float contentH = iconSize + labelGap + textSize;
         const float topY = renderRect.y + (renderRect.height - contentH) * 0.5f;
 
-        Color iconColor = ResolveIconColor(m_HoverAnim, pressStrength, m_Active);
+        Color iconColor = ToolbarButtonChrome::ResolveIconColor(m_HoverAnim, pressStrength, m_Active);
 
         Rect iconBand{ renderRect.x, topY, renderRect.width, iconSize };
         IconPainter::DrawIcon(context, m_IconName, PlaceIconInControl(iconBand, iconSize), iconColor);
@@ -298,7 +301,7 @@ void ToolButton::Paint(PaintContext& context) {
         const float iconGap   = IconGapPx(uiScale);
         const float chevGap   = ChevronGapPx(uiScale);
         const float padH      = ChipHorizontalPad(uiScale);
-        Color iconColor = ResolveIconColor(m_HoverAnim, pressStrength, false);
+        Color iconColor = ToolbarButtonChrome::ResolveIconColor(m_HoverAnim, pressStrength, false);
 
         float currentX = renderRect.x + padH;
         const bool hasIcon = !m_IconName.empty() && Icons::IsKnownIcon(m_IconName);
@@ -333,7 +336,7 @@ void ToolButton::Paint(PaintContext& context) {
         const float chevGap   = ChevronGapPx(uiScale);
         const float padH      = ChipHorizontalPad(uiScale);
         const float chevSlot  = IconSize(uiScale);
-        Color iconColor = ResolveIconColor(m_HoverAnim, pressStrength, m_Active);
+        Color iconColor = ToolbarButtonChrome::ResolveIconColor(m_HoverAnim, pressStrength, m_Active);
 
         float currentX = renderRect.x + padH;
         const bool hasIcon = !m_IconName.empty() && Icons::IsKnownIcon(m_IconName);
@@ -367,7 +370,7 @@ void ToolButton::Paint(PaintContext& context) {
         const float iconSize = isTransport ? PrimaryIconSize(uiScale) : IconSize(uiScale);
         Color iconColor = IsPlayTransportIcon(m_IconName)
             ? ResolvePlayIconColor(m_HoverAnim, pressStrength, m_Active)
-            : ResolveIconColor(m_HoverAnim, pressStrength, m_Active);
+            : ToolbarButtonChrome::ResolveIconColor(m_HoverAnim, pressStrength, m_Active);
         IconPainter::DrawIcon(context, m_IconName, PlaceIconInControl(renderRect, iconSize), iconColor);
         return;
     }
@@ -401,7 +404,7 @@ void ToolButton::Paint(PaintContext& context) {
             context.DrawRoundedRectOutline(renderRect, borderCol, 1.0f * uiScale, ThemeMetric(MetricToken::CornerRadiusSmall) * uiScale);
         }
 
-        Color iconColor = ResolveIconColor(m_HoverAnim, pressStrength, m_Active);
+        Color iconColor = ToolbarButtonChrome::ResolveIconColor(m_HoverAnim, pressStrength, m_Active);
 
         const float iconSize = IconSize(uiScale);
         float currentX = renderRect.x + ThemeMetric(MetricToken::ButtonPaddingHorizontal) * uiScale;
