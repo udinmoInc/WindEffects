@@ -1,7 +1,7 @@
 #include "UI/LauncherLogo.h"
 
-#include "Rendering/IconRenderer.h"
-#include "Rendering/OverlayRenderer.h"
+#include "WindEffects/Runtime/UI/Rendering/IconRenderer.h"
+#include "WindEffects/Runtime/UI/Rendering/OverlayRenderer.h"
 #include "Util/PathUtils.h"
 
 #include "Core/Logger.h"

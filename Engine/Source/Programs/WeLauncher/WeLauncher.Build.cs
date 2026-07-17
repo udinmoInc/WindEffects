@@ -18,7 +18,9 @@ public class WeLauncher : ModuleRules
         PublicDependencies.Add("RHI");
         PublicDependencies.Add("Renderer");
         PublicDependencies.Add("ECS");
-        PublicDependencies.Add("UIFramework");
+        PublicDependencies.Add("UI");
+        PublicDependencies.Add("Text");
+        PublicDependencies.Add("Icons");
 
         PrivateDependencies.Add("VulkanRHI");
         PrivateDependencies.Add("NullRHI");

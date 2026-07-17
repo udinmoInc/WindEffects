@@ -2,17 +2,17 @@
 
 #include "UI/LauncherHelpers.h"
 
-#include "Core/Animator.h"
-#include "Core/ControlChrome.h"
-#include "Core/DPIContext.h"
-#include "Core/EventSystem.h"
-#include "Core/Icon.h"
-#include "Core/PaintContext.h"
-#include "Rendering/IconMetrics.h"
+#include "WindEffects/Runtime/UI/Core/Animator.h"
+#include "WindEffects/Runtime/UI/Core/ControlChrome.h"
+#include "WindEffects/Runtime/UI/Core/DPIContext.h"
+#include "WindEffects/Runtime/UI/Core/EventSystem.h"
+#include "WindEffects/Runtime/UI/Core/Icon.h"
+#include "WindEffects/Runtime/UI/Core/PaintContext.h"
+#include "WindEffects/Runtime/UI/Rendering/IconMetrics.h"
 #include "Platform/Events.h"
 #include "Platform/PlatformSDK.h"
-#include "WindEffects/Editor/UI/Theming/ThemeManager.h"
-#include "WindEffects/Editor/UI/Theming/ThemeToken.h"
+#include "WindEffects/Runtime/UI/Theming/ThemeManager.h"
+#include "WindEffects/Runtime/UI/Theming/ThemeToken.h"
 
 #include <algorithm>
 #include <cmath>
@@ -1576,14 +1576,16 @@ void ModalOverlay::Arrange(const Rect& allottedRect) {
         return;
     }
     const float s = LScale();
-    const float maxW = std::min(m_DialogWidth * s, allottedRect.width * 0.94f);
+    const float maxW = std::min(m_DialogWidth * s, allottedRect.width * 0.96f);
     Size desired = m_Dialog->GetDesiredSize();
-    const float w = maxW;
+    float w = maxW;
     float h = desired.height;
     if (m_DialogHeight > 0.0f) {
-        h = m_DialogHeight * s;
+        h = std::min(m_DialogHeight * s, allottedRect.height * 0.94f);
+        w = std::min(m_DialogWidth * s, allottedRect.width * 0.96f);
+    } else {
+        h = std::min(std::max(desired.height, 200.0f * s), allottedRect.height * 0.90f);
     }
-    h = std::min(std::max(h, 200.0f * s), allottedRect.height * 0.90f);
     m_Dialog->Arrange(Rect{
         allottedRect.x + (allottedRect.width - w) * 0.5f,
         allottedRect.y + (allottedRect.height - h) * 0.5f,
@@ -1593,7 +1595,11 @@ void ModalOverlay::Arrange(const Rect& allottedRect) {
 }
 
 void ModalOverlay::Paint(PaintContext& context) {
-    context.DrawRect(m_Geometry, LColor(ThemeToken::ModalScrim));
+    Color scrim = LColor(ThemeToken::ModalScrim);
+    if (scrim.a < 0.40f || scrim.a > 0.50f) {
+        scrim = Color{ 0.0f, 0.0f, 0.0f, 0.45f };
+    }
+    context.DrawRect(m_Geometry, scrim);
     if (m_Dialog && m_Dialog->IsVisible()) {
         m_Dialog->Paint(context);
     }

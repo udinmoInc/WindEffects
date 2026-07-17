@@ -1,7 +1,7 @@
 #pragma once
 
 #include "App/LauncherContext.h"
-#include "Core/Widget.h"
+#include "WindEffects/Runtime/UI/Core/Widget.h"
 #include "RHI/Types.h"
 #include "UI/Widgets/LauncherControls.h"
 #include "UI/Widgets/ProjectViews.h"
@@ -66,6 +66,8 @@ private:
     [[nodiscard]] std::shared_ptr<WindEffects::Editor::UI::Widget> BuildSettingsFileAssociations(const std::string& queryLower);
     [[nodiscard]] std::shared_ptr<WindEffects::Editor::UI::Widget> BuildSettingsAbout(const std::string& queryLower);
     void RebuildCreateWizard();
+    void CommitCreateProject();
+    void SelectWizardTemplateByDelta(int delta);
     void RebuildRenameDialog();
     void RebuildProjectActionsDialog();
     void UpdateFooter();
@@ -137,6 +139,7 @@ private:
     std::string m_WizardTemplateQuery;
     std::string m_WizardName = "MyProject";
     std::string m_WizardLocation;
+    std::string m_WizardQuality = "Balanced";
     std::string m_RenameName;
 
     bool m_PageContentLoading = false;

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Core/Widget.h"
+#include "WindEffects/Runtime/UI/Core/Widget.h"
 #include "Model/WeProjectDescriptor.h"
 #include "RHI/Types.h"
 #include "UI/ThumbnailPlaceholders.h"

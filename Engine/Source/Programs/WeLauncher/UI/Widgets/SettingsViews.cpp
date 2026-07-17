@@ -2,17 +2,17 @@
 
 #include "UI/LauncherHelpers.h"
 
-#include "Core/Animator.h"
-#include "Core/ControlChrome.h"
-#include "Core/EventSystem.h"
-#include "Core/Icon.h"
-#include "Core/PaintContext.h"
-#include "Core/Widgets/DesignSystemControls.h"
-#include "Core/Widgets/PrimaryToolbarButton.h"
-#include "Core/Widgets/SecondaryToolbarButton.h"
-#include "Layout/Box.h"
+#include "WindEffects/Runtime/UI/Core/Animator.h"
+#include "WindEffects/Runtime/UI/Core/ControlChrome.h"
+#include "WindEffects/Runtime/UI/Core/EventSystem.h"
+#include "WindEffects/Runtime/UI/Core/Icon.h"
+#include "WindEffects/Runtime/UI/Core/PaintContext.h"
+#include "WindEffects/Runtime/UI/Core/Widgets/DesignSystemControls.h"
+#include "WindEffects/Runtime/UI/Core/Widgets/PrimaryToolbarButton.h"
+#include "WindEffects/Runtime/UI/Core/Widgets/SecondaryToolbarButton.h"
+#include "WindEffects/Runtime/UI/Layout/Box.h"
 #include "Platform/PlatformSDK.h"
-#include "WindEffects/Editor/UI/Theming/ThemeToken.h"
+#include "WindEffects/Runtime/UI/Theming/ThemeToken.h"
 
 #include <algorithm>
 #include <cmath>
@@ -482,45 +482,50 @@ const std::string& SettingsDropdown::SelectedLabel() const {
 }
 
 Size SettingsDropdown::Measure(const Size& availableSize) {
-    (void)availableSize;
     const float s = LScale();
     float maxW = 80.0f * s;
-    const float textSize = LMetric(ThemeToken::TextSizeBody) * s;
+    const float textSize = 13.0f * s;
     for (const auto& opt : m_Options) {
         maxW = std::max(maxW, ApproxTextWidth(opt, textSize) + 36.0f * s);
     }
-    float h = 28.0f * s;
+    if (availableSize.width > maxW) {
+        maxW = availableSize.width;
+    }
+    float h = 34.0f * s;
     if (m_Open) {
-        h += 4.0f * s + static_cast<float>(m_Options.size()) * 26.0f * s;
+        h += 4.0f * s + static_cast<float>(m_Options.size()) * 28.0f * s;
     }
     m_DesiredSize = Size{ maxW, h };
     return m_DesiredSize;
 }
 
 void SettingsDropdown::Arrange(const Rect& allottedRect) {
+    const float s = LScale();
+    const float triggerH = 34.0f * s;
+    const float w = allottedRect.width > 0.0f ? allottedRect.width : m_DesiredSize.width;
     m_Geometry = Rect{
-        allottedRect.x + allottedRect.width - m_DesiredSize.width,
+        allottedRect.x,
         allottedRect.y,
-        m_DesiredSize.width,
-        m_DesiredSize.height
+        w,
+        m_Open ? m_DesiredSize.height : triggerH
     };
 }
 
 Rect SettingsDropdown::MenuRect() const {
     const float s = LScale();
-    const float triggerH = 28.0f * s;
+    const float triggerH = 34.0f * s;
     return Rect{
         m_Geometry.x,
         m_Geometry.y + triggerH + 2.0f * s,
         m_Geometry.width,
-        static_cast<float>(m_Options.size()) * 26.0f * s
+        static_cast<float>(m_Options.size()) * 28.0f * s
     };
 }
 
 Rect SettingsDropdown::OptionRect(int index) const {
     const float s = LScale();
     const Rect menu = MenuRect();
-    return Rect{ menu.x, menu.y + static_cast<float>(index) * 26.0f * s, menu.width, 26.0f * s };
+    return Rect{ menu.x, menu.y + static_cast<float>(index) * 28.0f * s, menu.width, 28.0f * s };
 }
 
 int SettingsDropdown::HitOption(const Point& p) const {
@@ -538,7 +543,7 @@ int SettingsDropdown::HitOption(const Point& p) const {
 void SettingsDropdown::Paint(PaintContext& context) {
     const float s = LScale();
     const float radius = LMetric(ThemeToken::CornerRadiusSmall) * s;
-    const float triggerH = 28.0f * s;
+    const float triggerH = 34.0f * s;
     Rect trigger{ m_Geometry.x, m_Geometry.y, m_Geometry.width, triggerH };
 
     Color bg = LColor(ThemeToken::InputBackground);
@@ -552,7 +557,7 @@ void SettingsDropdown::Paint(PaintContext& context) {
         1.0f,
         radius);
 
-    const float textSize = LMetric(ThemeToken::TextSizeBody) * s;
+    const float textSize = 13.0f * s;
     context.DrawText(
         SelectedLabel(),
         Point{ trigger.x + 10.0f * s, trigger.y + (triggerH - textSize) * 0.5f },
@@ -586,7 +591,7 @@ void SettingsDropdown::OnMouseDown(const MouseEvent& event) {
         return;
     }
     const float s = LScale();
-    Rect trigger{ m_Geometry.x, m_Geometry.y, m_Geometry.width, 28.0f * s };
+    Rect trigger{ m_Geometry.x, m_Geometry.y, m_Geometry.width, 34.0f * s };
     if (trigger.Contains(event.position)) {
         m_Open = !m_Open;
         InvalidateUI();
@@ -895,7 +900,7 @@ void PathPickerField::SetPath(std::string path) {
 Size PathPickerField::Measure(const Size& availableSize) {
     const float s = LScale();
     const float w = availableSize.width > 80.0f * s ? availableSize.width : 320.0f * s;
-    m_DesiredSize = Size{ w, 28.0f * s };
+    m_DesiredSize = Size{ w, 34.0f * s };
     return m_DesiredSize;
 }
 

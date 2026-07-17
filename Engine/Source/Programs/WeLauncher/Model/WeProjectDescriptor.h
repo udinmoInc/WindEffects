@@ -90,6 +90,7 @@ struct LauncherSettings {
     std::string engineInstallDirectory;
     std::string lastBuildConfig = "Development";
     std::string defaultTemplateId = "Blank";
+    std::string qualityPreset = "Balanced"; // wizard quality dropdown
     int recentProjectsLimit = 20; // 0 = unlimited
     bool openLastProjectOnStart = false;
 };

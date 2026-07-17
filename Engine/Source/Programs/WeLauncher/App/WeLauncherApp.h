@@ -8,7 +8,7 @@
 namespace WindEffects::Editor::UI {
 class OverlayRenderer;
 class EventSystem;
-class EditorApplicationContext;
+class ApplicationContext;
 class IWidgetContext;
 }
 
@@ -44,7 +44,7 @@ private:
     bool m_Running = true;
 
     std::shared_ptr<LauncherContext> m_Context;
-    std::unique_ptr<WindEffects::Editor::UI::EditorApplicationContext> m_AppContext;
+    std::unique_ptr<WindEffects::Editor::UI::ApplicationContext> m_AppContext;
     std::shared_ptr<WindEffects::Editor::UI::IWidgetContext> m_WidgetContext;
     std::shared_ptr<we::runtime::renderer::Renderer> m_Presenter;
     std::unique_ptr<WindEffects::Editor::UI::OverlayRenderer> m_UIRenderer;

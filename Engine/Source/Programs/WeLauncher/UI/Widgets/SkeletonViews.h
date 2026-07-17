@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Core/Widget.h"
+#include "WindEffects/Runtime/UI/Core/Widget.h"
 
 #include <functional>
 #include <memory>

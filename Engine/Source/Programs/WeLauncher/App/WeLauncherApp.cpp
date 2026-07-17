@@ -7,17 +7,17 @@
 #include "Util/PathUtils.h"
 
 #include "Renderer/Renderer.h"
-#include "Rendering/OverlayRenderer.h"
-#include "Rendering/OverlayRenderContext.h"
-#include "Core/EventSystem.h"
-#include "Core/UIRepaintGate.h"
+#include "WindEffects/Runtime/UI/Rendering/OverlayRenderer.h"
+#include "WindEffects/Runtime/UI/Rendering/OverlayRenderContext.h"
+#include "WindEffects/Runtime/UI/Core/EventSystem.h"
+#include "WindEffects/Runtime/UI/Core/UIRepaintGate.h"
 #include "Runtime/Core/AssetRegistry.h"
 #include "Core/Logger.h"
 #include "Platform/PlatformSDK.h"
-#include "WindEffects/Editor/UI/Core/EditorApplicationContext.h"
-#include "WindEffects/Editor/UI/Core/WidgetContext.h"
-#include "WindEffects/Editor/UI/Theming/LauncherTheme.h"
-#include "Core/DPIContext.h"
+#include "WindEffects/Runtime/UI/Core/ApplicationContext.h"
+#include "WindEffects/Runtime/UI/Core/WidgetContext.h"
+#include "UI/Theming/LauncherTheme.h"
+#include "WindEffects/Runtime/UI/Core/DPIContext.h"
 
 #include <algorithm>
 #include <cmath>
@@ -47,8 +47,8 @@ WeLauncherApp::WeLauncherApp(we::platform::WindowId window)
     m_Context->Initialize();
     HE_INFO("[WeLauncher] Context ready");
 
-    m_AppContext = std::make_unique<WindEffects::Editor::UI::EditorApplicationContext>(
-        std::make_shared<WindEffects::Editor::UI::LauncherTheme>());
+    m_AppContext = std::make_unique<WindEffects::Editor::UI::ApplicationContext>(
+        std::make_shared<LauncherTheme>());
     auto& platform = we::platform::Platform::Get();
     HE_INFO("[WeLauncher] Updating UI scale...");
     UpdateUiScaleFromWindow();

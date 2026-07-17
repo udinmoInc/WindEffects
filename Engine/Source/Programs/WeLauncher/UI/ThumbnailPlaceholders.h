@@ -1,10 +1,10 @@
 #pragma once
 
-#include "Core/Icon.h"
-#include "Core/PaintContext.h"
+#include "WindEffects/Runtime/UI/Core/Icon.h"
+#include "WindEffects/Runtime/UI/Core/PaintContext.h"
 #include "UI/LauncherHelpers.h"
 #include "UI/Widgets/SkeletonViews.h"
-#include "WindEffects/Editor/UI/Theming/ThemeToken.h"
+#include "WindEffects/Runtime/UI/Theming/ThemeToken.h"
 
 #include <algorithm>
 #include <cctype>
