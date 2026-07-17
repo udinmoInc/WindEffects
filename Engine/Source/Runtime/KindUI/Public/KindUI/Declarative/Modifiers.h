@@ -107,6 +107,14 @@ namespace we::runtime::kindui::UI {
     return e;
 }
 
+[[nodiscard]] inline Element AlignStart(Element e) {
+    return AlignH(std::move(e), HorizontalAlignment::Left);
+}
+
+[[nodiscard]] inline Element AlignEnd(Element e) {
+    return AlignH(std::move(e), HorizontalAlignment::Right);
+}
+
 [[nodiscard]] inline Element Visible(Element e, bool visible) {
     e.visible = visible;
     return e;

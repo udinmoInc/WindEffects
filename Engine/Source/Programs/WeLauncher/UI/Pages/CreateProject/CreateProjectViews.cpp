@@ -6,6 +6,7 @@
 #include "KindUI/Core/Animator.h"
 #include "KindUI/Core/Icon.h"
 #include "KindUI/Core/PaintContext.h"
+#include "KindUI/Core/TextMetrics.h"
 #include "KindUI/Tokens/DesignToken.h"
 #include "KindUI/Theming/StyleRole.h"
 
@@ -33,7 +34,7 @@ bool HasTag(const ProjectTemplateInfo& tmpl, const char* tag) {
 }
 
 float ApproxW(const std::string& text, float textSize) {
-    return static_cast<float>(text.size()) * textSize * 0.55f;
+    return TextMetrics::MeasureWidth(text, textSize);
 }
 
 std::string Ellipsize(const std::string& text, float maxWidth, float textSize) {

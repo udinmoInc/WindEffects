@@ -1,4 +1,5 @@
 #include "Text/Layout/TextLayoutEngine.h"
+#include "Text/Shaping/BidiProcessor.h"
 
 #include <algorithm>
 #include <cmath>
@@ -27,6 +28,11 @@ float ResolveTabStop(const float x, const std::vector<float>& tabStops)
     return std::ceil((x + 1.0f) / 40.0f) * 40.0f;
 }
 
+float SnapPixel(const float v)
+{
+    return std::floor(v + 0.5f);
+}
+
 } // namespace
 
 class TextLayoutEngine final : public ITextLayoutEngine {
@@ -34,10 +40,12 @@ public:
     TextLayoutEngine(
         shaping::ITextShaper& shaper,
         assets::IGlyphResolver& glyphResolver,
-        assets::IFallbackResolver& fallbackResolver)
+        assets::IFallbackResolver& fallbackResolver,
+        shaping::IBidiProcessor* bidiProcessor)
         : m_Shaper(shaper)
         , m_GlyphResolver(glyphResolver)
         , m_FallbackResolver(fallbackResolver)
+        , m_BidiProcessor(bidiProcessor)
     {
     }
 
@@ -52,27 +60,16 @@ public:
             return result;
         }
 
-        shaping::ShapeOptions shapeOptions;
-        shapeOptions.fontSize = style.sizePx * constraints.dpiScale;
-        const auto shaped = m_Shaper.Shape(codepoints, primaryFont, shapeOptions);
-        if (!shaped.ok || shaped.value.empty()) {
-            return result;
-        }
-
-        // Prefer the explicitly requested face (e.g. Inter Bold) before family/fallback
-        // lookup. BuildStack matches on family name only, so Regular and Bold both named
-        // "Inter" would otherwise resolve UVs from the first loaded face while the UI
-        // binds a different atlas — producing garbled MSDF glyphs.
-        assets::FontStack stack;
-        if (primaryFont != kInvalidFontHandle) {
-            stack.faces.push_back(primaryFont);
-        }
-        const assets::FontStack fallback =
-            m_FallbackResolver.BuildStack(style.family, shaped.value.front().script);
-        for (const FontHandle handle : fallback.faces) {
-            if (std::find(stack.faces.begin(), stack.faces.end(), handle) == stack.faces.end()) {
-                stack.faces.push_back(handle);
-            }
+        std::vector<shaping::VisualRun> visualRuns;
+        if (m_BidiProcessor) {
+            visualRuns = m_BidiProcessor->ReorderVisual(codepoints);
+        } else {
+            shaping::VisualRun run;
+            run.codepoints = codepoints;
+            run.startIndex = 0;
+            run.length = codepoints.size();
+            run.direction = shaping::TextDirection::LeftToRight;
+            visualRuns.push_back(run);
         }
 
         struct LineState {
@@ -80,6 +77,7 @@ public:
             float width = 0.0f;
             float maxAscent = 0.0f;
             float maxDescent = 0.0f;
+            float lineHeight = 0.0f;
             size_t startIndex = 0;
             size_t endIndex = 0;
         };
@@ -90,61 +88,100 @@ public:
 
         float penX = 0.0f;
         size_t codepointIndex = 0;
+        const float displaySize = style.sizePx * constraints.dpiScale;
 
-        for (const shaping::ShapedRun& run : shaped.value) {
-            for (const shaping::ShapedGlyph& shapedGlyph : run.glyphs) {
-                if (shapedGlyph.codepoint == '\n') {
+        for (const shaping::VisualRun& visualRun : visualRuns) {
+            shaping::ShapeOptions shapeOptions;
+            shapeOptions.fontSize = displaySize;
+            shapeOptions.direction = visualRun.direction;
+            const auto shaped = m_Shaper.Shape(visualRun.codepoints, primaryFont, shapeOptions);
+            if (!shaped.ok || shaped.value.empty()) {
+                codepointIndex += visualRun.length;
+                continue;
+            }
+
+            assets::FontStack stack;
+            if (primaryFont != kInvalidFontHandle) {
+                stack.faces.push_back(primaryFont);
+            }
+            const assets::FontStack fallback =
+                m_FallbackResolver.BuildStack(style.family, shaped.value.front().script);
+            for (const FontHandle handle : fallback.faces) {
+                if (std::find(stack.faces.begin(), stack.faces.end(), handle) == stack.faces.end()) {
+                    stack.faces.push_back(handle);
+                }
+            }
+
+            for (const shaping::ShapedRun& run : shaped.value) {
+                for (const shaping::ShapedGlyph& shapedGlyph : run.glyphs) {
+                    if (shapedGlyph.codepoint == '\n') {
+                        lineStates.back().endIndex = codepointIndex;
+                        lineStates.emplace_back();
+                        lineStates.back().startIndex = codepointIndex + 1;
+                        penX = 0.0f;
+                        ++codepointIndex;
+                        continue;
+                    }
+
+                    const assets::ResolvedGlyph resolved =
+                        m_GlyphResolver.Resolve(stack, shapedGlyph.codepoint);
+                    const float geometryScale = resolved.EffectiveGeometryScale();
+                    const float quadScale = displaySize / geometryScale;
+
+                    // Face metrics are stored in bake-pixel units (same as geometryScale).
+                    const float ascent = (resolved.ascender > 0.0f ? resolved.ascender : geometryScale * 0.8f)
+                        * quadScale;
+                    const float descent = (resolved.descender < 0.0f
+                            ? -resolved.descender
+                            : std::abs(resolved.descender))
+                        * quadScale;
+                    const float faceLineHeight = resolved.lineHeight > 0.0f
+                        ? resolved.lineHeight * quadScale
+                        : (ascent + descent);
+
+                    float advance = shapedGlyph.xAdvance + style.letterSpacing + constraints.letterSpacing;
+                    if (shapedGlyph.codepoint == '\t') {
+                        penX = ResolveTabStop(penX, constraints.tabStops);
+                        advance = 0.0f;
+                    }
+
+                    if (constraints.wordWrap && constraints.maxWidth > 0.0f
+                        && penX + advance > constraints.maxWidth
+                        && !lineStates.back().glyphs.empty()
+                        && IsBreakOpportunity(shapedGlyph.codepoint)) {
+                        lineStates.back().endIndex = codepointIndex;
+                        lineStates.emplace_back();
+                        lineStates.back().startIndex = codepointIndex;
+                        penX = 0.0f;
+                    }
+
+                    PositionedGlyph positioned;
+                    positioned.glyph = resolved;
+                    // Plane bounds are y-up; UI is y-down. Position relative to baseline (y=0 here).
+                    const float planeTop = resolved.metrics.bounds.y + resolved.metrics.bounds.height;
+                    positioned.x = penX + shapedGlyph.xOffset + resolved.metrics.bounds.x * quadScale;
+                    positioned.y = shapedGlyph.yOffset - planeTop * quadScale;
+                    positioned.width = resolved.metrics.bounds.width * quadScale;
+                    positioned.height = resolved.metrics.bounds.height * quadScale;
+                    positioned.lineIndex = static_cast<uint32_t>(lineStates.size() - 1);
+                    positioned.style = style;
+                    positioned.color = style.color;
+                    positioned.color.a *= style.opacity;
+                    // Atlas distance range in texels — screenPxRange uses fwidth for scale.
+                    positioned.msdfPixelRange = resolved.msdfPixelRange;
+
+                    lineStates.back().glyphs.push_back(positioned);
+                    lineStates.back().width = penX + advance;
+                    lineStates.back().maxAscent = std::max(lineStates.back().maxAscent, ascent);
+                    lineStates.back().maxDescent = std::max(lineStates.back().maxDescent, descent);
+                    lineStates.back().lineHeight = std::max(
+                        lineStates.back().lineHeight,
+                        std::max(faceLineHeight, ascent + descent) * constraints.lineSpacing);
                     lineStates.back().endIndex = codepointIndex;
-                    lineStates.emplace_back();
-                    lineStates.back().startIndex = codepointIndex + 1;
-                    penX = 0.0f;
+
+                    penX += advance;
                     ++codepointIndex;
-                    continue;
                 }
-
-                const assets::ResolvedGlyph resolved = m_GlyphResolver.Resolve(stack, shapedGlyph.codepoint);
-                const float displaySize = style.sizePx * constraints.dpiScale;
-                const float geometryScale = std::max(resolved.geometryScale, 1.0f);
-                const float quadScale = displaySize / geometryScale;
-                const float bakeScale = displaySize / std::max(resolved.bakeSizePx, 1.0f);
-
-                float advance = shapedGlyph.xAdvance + style.letterSpacing + constraints.letterSpacing;
-                if (shapedGlyph.codepoint == '\t') {
-                    penX = ResolveTabStop(penX, constraints.tabStops);
-                    advance = 0.0f;
-                }
-
-                if (constraints.wordWrap && constraints.maxWidth > 0.0f
-                    && penX + advance > constraints.maxWidth
-                    && !lineStates.back().glyphs.empty()
-                    && IsBreakOpportunity(shapedGlyph.codepoint)) {
-                    lineStates.back().endIndex = codepointIndex;
-                    lineStates.emplace_back();
-                    lineStates.back().startIndex = codepointIndex;
-                    penX = 0.0f;
-                }
-
-                PositionedGlyph positioned;
-                positioned.glyph = resolved;
-                const float planeTop = resolved.metrics.bounds.y + resolved.metrics.bounds.height;
-                positioned.x = penX + shapedGlyph.xOffset + resolved.metrics.bounds.x * quadScale;
-                positioned.y = shapedGlyph.yOffset - planeTop * quadScale;
-                positioned.width = resolved.metrics.bounds.width * quadScale;
-                positioned.height = resolved.metrics.bounds.height * quadScale;
-                positioned.lineIndex = static_cast<uint32_t>(lineStates.size() - 1);
-                positioned.style = style;
-                positioned.color = style.color;
-                positioned.color.a *= style.opacity;
-                positioned.msdfPixelRange = resolved.msdfPixelRange * bakeScale;
-
-                lineStates.back().glyphs.push_back(positioned);
-                lineStates.back().width = penX + advance;
-                lineStates.back().maxAscent = std::max(lineStates.back().maxAscent, positioned.height);
-                lineStates.back().maxDescent = std::max(lineStates.back().maxDescent, 0.0f);
-                lineStates.back().endIndex = codepointIndex;
-
-                penX += advance;
-                ++codepointIndex;
             }
         }
 
@@ -154,7 +191,11 @@ public:
 
         for (uint32_t lineIndex = 0; lineIndex < lineStates.size(); ++lineIndex) {
             LineState& line = lineStates[lineIndex];
-            const float lineHeight = (style.sizePx * constraints.dpiScale) * constraints.lineSpacing;
+            const float lineHeight = line.lineHeight > 0.0f
+                ? line.lineHeight
+                : displaySize * constraints.lineSpacing;
+            const float ascent = line.maxAscent > 0.0f ? line.maxAscent : displaySize * 0.8f;
+
             float alignOffset = 0.0f;
             if (constraints.horizontalAlign == TextAlign::Center) {
                 alignOffset = std::max((constraints.maxWidth - line.width) * 0.5f, 0.0f);
@@ -162,28 +203,39 @@ public:
                 alignOffset = std::max(constraints.maxWidth - line.width, 0.0f);
             }
 
+            // Snap baseline to physical pixels after DPI scaling for stable edges.
+            const float baselineY = SnapPixel(y + ascent);
+            const float snappedAlign = SnapPixel(alignOffset);
+
             LineMetrics metrics;
             metrics.lineIndex = lineIndex;
             metrics.width = line.width;
             metrics.height = lineHeight;
-            metrics.baselineY = y + (style.sizePx * constraints.dpiScale) * 0.85f;
+            metrics.baselineY = baselineY;
             metrics.startIndex = line.startIndex;
             metrics.endIndex = line.endIndex;
             result.lines.push_back(metrics);
 
+            CaretPosition startCaret;
+            startCaret.codepointIndex = line.startIndex;
+            startCaret.x = snappedAlign;
+            startCaret.y = y;
+            startCaret.lineIndex = lineIndex;
+            result.caretMap.push_back(startCaret);
+
             for (PositionedGlyph& glyph : line.glyphs) {
-                glyph.x += alignOffset;
-                glyph.y += metrics.baselineY;
-                if (constraints.clip && constraints.maxWidth > 0.0f
-                    && (glyph.x > constraints.maxWidth || glyph.y > constraints.maxHeight)) {
-                    continue;
+                glyph.x = SnapPixel(glyph.x + snappedAlign);
+                glyph.y = SnapPixel(glyph.y + baselineY);
+                // Keep intrinsic size (do not independently snap far corner — avoids thickness jitter).
+                if (!(constraints.clip && constraints.maxWidth > 0.0f
+                        && (glyph.x > constraints.maxWidth || glyph.y > constraints.maxHeight))) {
+                    result.glyphs.push_back(glyph);
                 }
-                result.glyphs.push_back(glyph);
             }
 
             CaretPosition caret;
-            caret.codepointIndex = line.endIndex;
-            caret.x = line.width + alignOffset;
+            caret.codepointIndex = line.endIndex + 1;
+            caret.x = SnapPixel(line.width + snappedAlign);
             caret.y = y;
             caret.lineIndex = lineIndex;
             result.caretMap.push_back(caret);
@@ -202,14 +254,16 @@ private:
     shaping::ITextShaper& m_Shaper;
     assets::IGlyphResolver& m_GlyphResolver;
     assets::IFallbackResolver& m_FallbackResolver;
+    shaping::IBidiProcessor* m_BidiProcessor = nullptr;
 };
 
 std::unique_ptr<ITextLayoutEngine> CreateTextLayoutEngine(
     shaping::ITextShaper& shaper,
     assets::IGlyphResolver& glyphResolver,
-    assets::IFallbackResolver& fallbackResolver)
+    assets::IFallbackResolver& fallbackResolver,
+    shaping::IBidiProcessor* bidiProcessor)
 {
-    return std::make_unique<TextLayoutEngine>(shaper, glyphResolver, fallbackResolver);
+    return std::make_unique<TextLayoutEngine>(shaper, glyphResolver, fallbackResolver, bidiProcessor);
 }
 
 } // namespace we::runtime::text::layout

@@ -15,7 +15,6 @@ struct PageChromeModel {
     std::string subtitle;
     std::string searchPlaceholder;
     std::string searchQuery;
-    bool loading = false;
     std::function<void(const std::string&)> onSearchChanged;
     std::vector<we::runtime::kindui::Element> toolbarActions;
 };

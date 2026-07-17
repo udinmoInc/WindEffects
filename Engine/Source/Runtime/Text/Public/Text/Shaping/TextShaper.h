@@ -7,6 +7,7 @@
 #include <memory>
 #include <span>
 #include <string>
+#include <string_view>
 #include <vector>
 
 namespace we::runtime::text::assets {
@@ -69,6 +70,7 @@ public:
 };
 
 [[nodiscard]] TEXT_API Script DetectScript(Codepoint codepoint);
+[[nodiscard]] TEXT_API Script DetectScriptFromName(std::string_view name);
 [[nodiscard]] TEXT_API std::unique_ptr<ITextShaper> CreateTextShaper(assets::IFontAssetManager& assetManager);
 
 } // namespace we::runtime::text::shaping

@@ -1,5 +1,7 @@
 #include "KindUI/Rendering/TextUIService.h"
 
+#include "KindUI/Core/DPIContext.h"
+#include "KindUI/Core/TextMetrics.h"
 #include "KindUI/Rendering/FontImportService.h"
 #include "KindUI/Rendering/OverlayRenderer.h"
 #include "Core/AssetRegistry.h"
@@ -114,38 +116,89 @@ bool TextUIService::Initialize(OverlayRenderer* renderer) {
         m_SemiBoldFont = m_RegularFont;
     }
 
-    if (GetDescriptorForFont(m_RegularFont) == we::rhi::RHIDescriptorSetHandle::Invalid) {
-        WE_LOG_ERROR("TextUIService", "Failed to upload regular font atlas");
-        return false;
-    }
-
-    if (m_SemiBoldFont != m_RegularFont) {
-        if (GetDescriptorForFont(m_SemiBoldFont) == we::rhi::RHIDescriptorSetHandle::Invalid) {
-            WE_LOG_WARN("TextUIService",
-                "Semi-bold font atlas upload failed; falling back to regular font for bold text");
-            m_SemiBoldFont = m_RegularFont;
+    SyncDirtyAtlasPages();
+    if (m_DynamicPages.empty()) {
+        if (GetDescriptorForFont(m_RegularFont) == we::rhi::RHIDescriptorSetHandle::Invalid) {
+            WE_LOG_ERROR("TextUIService", "Failed to upload regular font atlas");
+            return false;
         }
     }
+
+    TextMetrics::SetMeasureProvider([this](const std::string_view text, const float fontSize, const bool bold) {
+        return MeasureText(std::string(text), fontSize, bold);
+    });
 
     return true;
 }
 
 void TextUIService::Shutdown() {
+    TextMetrics::SetMeasureProvider({});
     if (m_Renderer) {
         for (auto& [_, atlas] : m_FontAtlases) {
             if (atlas.descriptorSet != we::rhi::RHIDescriptorSetHandle::Invalid) {
                 m_Renderer->UnregisterTexture(atlas.descriptorSet);
             }
         }
+        for (auto& [_, page] : m_DynamicPages) {
+            if (page.descriptorSet != we::rhi::RHIDescriptorSetHandle::Invalid) {
+                m_Renderer->UnregisterTexture(page.descriptorSet);
+            }
+        }
     }
     m_FontAtlases.clear();
+    m_DynamicPages.clear();
     m_TextEngine.reset();
     m_Renderer = nullptr;
 }
 
-bool TextUIService::UploadFontAtlas(
+void TextUIService::SyncDirtyAtlasPages() {
+    auto* atlas = m_TextEngine ? m_TextEngine->AtlasManager() : nullptr;
+    if (!atlas || !m_Renderer) {
+        return;
+    }
+    for (const uint32_t pageIndex : atlas->TakeDirtyPages()) {
+        (void)EnsureAtlasPageUploaded(pageIndex);
+    }
+    // Ensure all existing pages are uploaded at least once.
+    for (uint32_t i = 0; i < atlas->PageCount(); ++i) {
+        (void)EnsureAtlasPageUploaded(i);
+    }
+}
+
+we::rhi::RHIDescriptorSetHandle TextUIService::EnsureAtlasPageUploaded(const uint32_t pageIndex) {
+    auto* atlas = m_TextEngine ? m_TextEngine->AtlasManager() : nullptr;
+    if (!atlas || !m_Renderer) {
+        return we::rhi::RHIDescriptorSetHandle::Invalid;
+    }
+    const auto pageCopy = atlas->CopyPage(pageIndex);
+    if (!pageCopy || pageCopy->page.rgba.empty()) {
+        return we::rhi::RHIDescriptorSetHandle::Invalid;
+    }
+
+    auto& gpu = m_DynamicPages[pageIndex];
+    if (gpu.descriptorSet != we::rhi::RHIDescriptorSetHandle::Invalid
+        && gpu.width == pageCopy->page.width
+        && gpu.height == pageCopy->page.height
+        && gpu.version == pageCopy->version) {
+        return gpu.descriptorSet;
+    }
+
+    if (gpu.descriptorSet != we::rhi::RHIDescriptorSetHandle::Invalid) {
+        m_Renderer->UnregisterTexture(gpu.descriptorSet);
+        gpu.descriptorSet = we::rhi::RHIDescriptorSetHandle::Invalid;
+    }
+
+    gpu.width = pageCopy->page.width;
+    gpu.height = pageCopy->page.height;
+    gpu.version = pageCopy->version;
+    gpu.descriptorSet = m_Renderer->UploadRgbaTexture(
+        pageCopy->page.width, pageCopy->page.height, pageCopy->page.rgba, true);
+    return gpu.descriptorSet;
+}
+
+bool TextUIService::UploadFontAtlasFallback(
     const we::runtime::text::FontHandle handle,
-    FontGpuAtlas& gpuAtlas)
+    GpuAtlasPage& gpuAtlas)
 {
     if (!m_Renderer || !m_TextEngine) {
         return false;
@@ -193,28 +246,38 @@ float TextUIService::MeasureText(const std::string& text, float fontSize, bool b
         return 0.0f;
     }
     we::runtime::text::layout::TextStyle style{};
+    // fontSize is logical (CSS-like) px; DPI is applied via constraints.
     style.sizePx = fontSize;
     style.weight = bold ? we::runtime::text::layout::FontWeight::SemiBold
                         : we::runtime::text::layout::FontWeight::Regular;
 
     we::runtime::text::layout::LayoutConstraints constraints{};
     constraints.maxWidth = 1.0e9f;
+    constraints.wordWrap = false;
     constraints.dpiScale = 1.0f;
     const we::runtime::text::FontHandle fontHandle = bold ? m_SemiBoldFont : m_RegularFont;
-    return m_TextEngine->Layout(text, style, constraints, fontHandle).bounds.width;
+    return m_TextEngine->Measure(text, style, constraints, fontHandle).width;
 }
 
 we::rhi::RHIDescriptorSetHandle TextUIService::GetDescriptorForFont(
     const we::runtime::text::FontHandle handle) {
-    auto& atlas = m_FontAtlases[handle];
-    if (atlas.descriptorSet != we::rhi::RHIDescriptorSetHandle::Invalid) {
-        return atlas.descriptorSet;
+    // Prefer dynamic atlas page 0 when seeded.
+    if (auto* atlas = m_TextEngine ? m_TextEngine->AtlasManager() : nullptr; atlas && atlas->PageCount() > 0) {
+        const auto set = EnsureAtlasPageUploaded(0);
+        if (set != we::rhi::RHIDescriptorSetHandle::Invalid) {
+            return set;
+        }
     }
-    if (!UploadFontAtlas(handle, atlas)) {
+
+    auto& gpu = m_FontAtlases[handle];
+    if (gpu.descriptorSet != we::rhi::RHIDescriptorSetHandle::Invalid) {
+        return gpu.descriptorSet;
+    }
+    if (!UploadFontAtlasFallback(handle, gpu)) {
         WE_LOG_ERROR("TextUIService", "Failed to upload font atlas for handle " + std::to_string(handle));
         return we::rhi::RHIDescriptorSetHandle::Invalid;
     }
-    return atlas.descriptorSet;
+    return gpu.descriptorSet;
 }
 
 bool TextUIService::GenerateTextGeometry(
@@ -228,10 +291,13 @@ bool TextUIService::GenerateTextGeometry(
         return false;
     }
 
+    SyncDirtyAtlasPages();
+
     we::runtime::text::FontHandle layoutFont = cmd.textBold ? m_SemiBoldFont : m_RegularFont;
 
     we::runtime::text::layout::LayoutConstraints constraints{};
     constraints.maxWidth = 1.0e9f;
+    constraints.wordWrap = false;
     constraints.dpiScale = 1.0f;
 
     auto layout = m_TextEngine->Layout(cmd.text, BuildStyle(cmd), constraints, layoutFont);
@@ -239,35 +305,47 @@ bool TextUIService::GenerateTextGeometry(
         return false;
     }
 
-    // Bind the atlas that matches the glyphs we resolved (must stay in sync with UVs).
+    uint32_t atlasPageIndex = 0;
+    bool useDynamic = false;
     for (const auto& glyph : layout.glyphs) {
-        if (glyph.glyph.fontHandle != we::runtime::text::kInvalidFontHandle) {
-            layoutFont = glyph.glyph.fontHandle;
+        if (glyph.glyph.metrics.hasDrawableQuad) {
+            atlasPageIndex = glyph.glyph.metrics.atlasPage;
+            useDynamic = m_TextEngine->AtlasManager() != nullptr
+                && atlasPageIndex < m_TextEngine->AtlasManager()->PageCount();
             break;
         }
     }
 
-    outTextureSet = GetDescriptorForFont(layoutFont);
+    if (useDynamic) {
+        outTextureSet = EnsureAtlasPageUploaded(atlasPageIndex);
+    } else {
+        for (const auto& glyph : layout.glyphs) {
+            if (glyph.glyph.fontHandle != we::runtime::text::kInvalidFontHandle) {
+                layoutFont = glyph.glyph.fontHandle;
+                break;
+            }
+        }
+        outTextureSet = GetDescriptorForFont(layoutFont);
+    }
+
     if (outTextureSet == we::rhi::RHIDescriptorSetHandle::Invalid
         || (m_Renderer && outTextureSet == m_Renderer->GetDummyDescriptorSet())) {
-        if (cmd.textBold
-            && m_RegularFont != we::runtime::text::kInvalidFontHandle
-            && layoutFont != m_RegularFont) {
-            layoutFont = m_RegularFont;
-            layout = m_TextEngine->Layout(cmd.text, BuildStyle(cmd), constraints, layoutFont);
-            if (layout.glyphs.empty()) {
-                return false;
-            }
-            outTextureSet = GetDescriptorForFont(layoutFont);
-        }
-        if (outTextureSet == we::rhi::RHIDescriptorSetHandle::Invalid
-            || (m_Renderer && outTextureSet == m_Renderer->GetDummyDescriptorSet())) {
-            return false;
-        }
+        return false;
     }
 
     constexpr float type = 3.0f;
     float batchMsdfRange = 4.0f;
+    uint32_t atlasWidth = 0;
+    uint32_t atlasHeight = 0;
+    if (useDynamic) {
+        if (const auto it = m_DynamicPages.find(atlasPageIndex); it != m_DynamicPages.end()) {
+            atlasWidth = it->second.width;
+            atlasHeight = it->second.height;
+        }
+    } else if (const auto it = m_FontAtlases.find(layoutFont); it != m_FontAtlases.end()) {
+        atlasWidth = it->second.width;
+        atlasHeight = it->second.height;
+    }
 
     const uint32_t startVertex = static_cast<uint32_t>(vertices.size());
     for (const auto& glyph : layout.glyphs) {
@@ -275,14 +353,17 @@ bool TextUIService::GenerateTextGeometry(
             continue;
         }
 
-        const float msdfRange = glyph.msdfPixelRange;
-        if (vertices.size() == startVertex) {
-            batchMsdfRange = msdfRange;
-        }
+        // Snap glyph origin only; preserve measured width/height for consistent spacing.
         const float x0 = SnapPx(cmd.rect.x + glyph.x);
         const float y0 = SnapPx(cmd.rect.y + glyph.y);
         const float x1 = x0 + std::max(glyph.width, 1.0f);
         const float y1 = y0 + std::max(glyph.height, 1.0f);
+
+        // Atlas texel distance range (not scaled by font size — fwidth handles scale).
+        const float msdfRange = std::max(glyph.msdfPixelRange, 1.0f);
+        if (vertices.size() == startVertex) {
+            batchMsdfRange = msdfRange;
+        }
 
         UIVertex2 v0{
             {x0, y0},
@@ -323,10 +404,9 @@ bool TextUIService::GenerateTextGeometry(
     }
 
     if (outBatchInfo) {
-        const auto& atlas = m_FontAtlases[layoutFont];
         outBatchInfo->isText = true;
-        outBatchInfo->atlasWidth = atlas.width;
-        outBatchInfo->atlasHeight = atlas.height;
+        outBatchInfo->atlasWidth = atlasWidth;
+        outBatchInfo->atlasHeight = atlasHeight;
         outBatchInfo->msdfPixelRange = batchMsdfRange;
     }
 

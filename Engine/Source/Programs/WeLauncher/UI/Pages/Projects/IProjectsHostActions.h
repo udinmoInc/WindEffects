@@ -19,7 +19,6 @@ public:
     virtual void ShowProjectMoreMenu(std::size_t sourceIndex) = 0;
     virtual void SetStatus(const std::string& message) = 0;
     virtual void UpdateFooter() = 0;
-    virtual void BeginLoading(float durationSeconds = 0.24f) = 0;
 };
 
 } // namespace we::programs::welauncher

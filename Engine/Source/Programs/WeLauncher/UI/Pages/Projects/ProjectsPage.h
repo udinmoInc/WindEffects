@@ -27,7 +27,6 @@ public:
     void RestoreScroll(PageState& state) const;
 
     void Reload();
-    void SetLoading(bool loading);
     void SetSearchText(std::string text);
     [[nodiscard]] std::string SearchText() const;
 

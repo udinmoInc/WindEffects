@@ -1,6 +1,7 @@
 #include "KindUI/Theming/ThemeAccess.h"
 
 #include "KindUI/Theming/ThemeManager.h"
+#include "KindUI/Tokens/TypographySpec.h"
 
 
 namespace we::runtime::kindui {
@@ -31,6 +32,10 @@ float ResolveRadius(RadiusToken token) {
 
 float ResolveFontSize(TypographyToken token) {
     return ThemeManager::Get().Theme().ResolveFontSize(token);
+}
+
+TypographySpec ResolveTypography(TypographyToken token) {
+    return ThemeManager::Get().Theme().ResolveTypography(token);
 }
 
 Color ResolveInteractiveBackground(float hoverAnim, float pressAnim, bool selected) {

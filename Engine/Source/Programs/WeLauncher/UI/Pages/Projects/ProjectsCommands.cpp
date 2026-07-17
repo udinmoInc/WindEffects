@@ -79,7 +79,6 @@ ProjectsCommands::ProjectsCommands(
         [this](const auto&) { return m_ViewModel.SelectedProject() != nullptr; });
 
     RefreshProjects = MakeCommand("projects.refresh", "Refresh", [this](const auto&) {
-        m_Host.BeginLoading(0.24f);
         m_ViewModel.ReloadFromModel();
         m_Host.UpdateFooter();
         m_Host.SetStatus("Project list refreshed");

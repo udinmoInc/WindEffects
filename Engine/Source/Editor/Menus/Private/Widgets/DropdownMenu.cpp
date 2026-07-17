@@ -69,7 +69,7 @@ void DropdownMenu::Paint(PaintContext& context) {
         context.DrawText(item->label, Point{ itemRect.x + m_PaddingX, textY }, ThemeColor(ColorToken::TextPrimary), textSize);
         
         if (!item->shortcut.empty()) {
-            float shortcutWidth = item->shortcut.length() * textSize * 0.55f;
+            const float shortcutWidth = context.GetTextWidth(item->shortcut, textSize);
             float shortcutX = itemRect.x + itemRect.width - m_PaddingX - shortcutWidth;
             context.DrawText(item->shortcut, Point{ shortcutX, textY }, ThemeColor(ColorToken::TextSecondary), textSize);
         }

@@ -189,15 +189,57 @@ float DefaultTheme::ResolveRadius(RadiusToken token) const {
 
 float DefaultTheme::ResolveFontSize(TypographyToken token) const {
     switch (token) {
-    case TypographyToken::Display:   return 28.0f;
-    case TypographyToken::Heading:  return 22.0f;
-    case TypographyToken::Title:     return 16.0f;
-    case TypographyToken::Subtitle:  return 14.0f;
-    case TypographyToken::Body:      return 13.0f;
-    case TypographyToken::Caption:   return 11.0f;
-    case TypographyToken::Button:    return 13.0f;
-    case TypographyToken::Monospace: return 12.0f;
-    default:                         return 13.0f;
+    case TypographyToken::WindowTitle:
+    case TypographyToken::Display:
+        return 28.0f;
+    case TypographyToken::PageTitle:
+    case TypographyToken::Heading1:
+        return 24.0f;
+    case TypographyToken::SectionTitle:
+    case TypographyToken::DialogTitle:
+    case TypographyToken::Heading2:
+    case TypographyToken::Heading:
+        return 20.0f;
+    case TypographyToken::CardTitle:
+    case TypographyToken::Heading3:
+        return 16.0f;
+    case TypographyToken::Heading4:
+    case TypographyToken::Title:
+        return 14.0f;
+    case TypographyToken::Heading5:
+    case TypographyToken::Subtitle:
+        return 13.0f;
+    case TypographyToken::Heading6:
+    case TypographyToken::Body:
+    case TypographyToken::BodyStrong:
+    case TypographyToken::Button:
+    case TypographyToken::Link:
+        return 13.0f;
+    case TypographyToken::Label:
+    case TypographyToken::Menu:
+    case TypographyToken::Toolbar:
+    case TypographyToken::Navigation:
+    case TypographyToken::TableHeader:
+    case TypographyToken::PropertyValue:
+        return 12.0f;
+    case TypographyToken::Code:
+    case TypographyToken::Console:
+    case TypographyToken::Monospace:
+        return 12.0f;
+    case TypographyToken::Caption:
+    case TypographyToken::Status:
+    case TypographyToken::StatusBar:
+    case TypographyToken::Tooltip:
+    case TypographyToken::PropertyLabel:
+    case TypographyToken::Error:
+    case TypographyToken::Warning:
+    case TypographyToken::Success:
+    case TypographyToken::Disabled:
+        return 11.0f;
+    case TypographyToken::CaptionSmall:
+        return 10.0f;
+    default:
+        return 13.0f;
     }
 }
 

@@ -4,6 +4,33 @@
 #include <cmath>
 
 namespace we::runtime::kindui {
+namespace {
+
+float EffectiveFlexGrow(const Widget& child, bool row) {
+    float grow = child.GetFlexGrow();
+    // VerticalAlignment::Fill on a Column child (main axis) means consume free space.
+    // Do not mirror HorizontalAlignment::Fill on Row — that is the default cross-axis
+    // stretch hint and must not force every row child to grow.
+    if (grow <= 0.0f && !row && child.GetVerticalAlignment() == VerticalAlignment::Fill) {
+        grow = 1.0f;
+    }
+    return grow;
+}
+
+// Flex base size on the main axis. Grow items start at their minimum (usually 0)
+// so they do not each claim 100% of availableSize during Measure and then get
+// flex-shrinked to empty rectangles — the KindUI declarative layout regression.
+float ResolveMainBasis(const Widget& child, float desiredMain, bool row) {
+    if (child.GetFlexBasis() >= 0.0f) {
+        return child.GetFlexBasis();
+    }
+    if (EffectiveFlexGrow(child, row) > 0.0f) {
+        return row ? child.GetMinSize().width : child.GetMinSize().height;
+    }
+    return desiredMain;
+}
+
+} // namespace
 
 Flex::Flex(FlexDirection direction) : m_Direction(direction) {}
 
@@ -28,18 +55,22 @@ Size Flex::Measure(const Size& availableSize) {
     for (const auto& child : m_Children) {
         if (!child || !child->IsVisible()) continue;
 
-        const Size childAvail = contentAvail;
-        Size desired = child->Measure(childAvail);
+        Size desired = child->Measure(contentAvail);
         desired = child->ClampDesiredSize(desired);
 
+        const float desiredMain = row ? desired.width : desired.height;
+        const float desiredCross = row ? desired.height : desired.width;
+        const float basisMain = ResolveMainBasis(*child, desiredMain, row);
+
+        const Margin& margin = child->GetMargin();
         if (row) {
             if (!first) main += m_Gap;
-            main += desired.width + child->GetMargin().left + child->GetMargin().right;
-            cross = std::max(cross, desired.height + child->GetMargin().top + child->GetMargin().bottom);
+            main += basisMain + margin.left + margin.right;
+            cross = std::max(cross, desiredCross + margin.top + margin.bottom);
         } else {
             if (!first) main += m_Gap;
-            main += desired.height + child->GetMargin().top + child->GetMargin().bottom;
-            cross = std::max(cross, desired.width + child->GetMargin().left + child->GetMargin().right);
+            main += basisMain + margin.top + margin.bottom;
+            cross = std::max(cross, desiredCross + margin.left + margin.right);
         }
         first = false;
     }
@@ -60,6 +91,13 @@ void Flex::Arrange(const Rect& allottedRect) {
     const float contentH = std::max(0.0f, allottedRect.height - padH);
     const bool row = IsRow();
 
+    // Re-measure against the final content box so text wrapping and fill-width
+    // controls see the real cross-axis constraint before basis resolution.
+    for (const auto& child : m_Children) {
+        if (!child || !child->IsVisible()) continue;
+        child->Measure(Size{ contentW, contentH });
+    }
+
     struct Item {
         std::shared_ptr<Widget> widget;
         Size desired{};
@@ -69,6 +107,7 @@ void Flex::Arrange(const Rect& allottedRect) {
         float marginMainEnd = 0.0f;
         float marginCrossStart = 0.0f;
         float marginCrossEnd = 0.0f;
+        float grow = 0.0f;
     };
 
     std::vector<Item> items;
@@ -85,6 +124,7 @@ void Flex::Arrange(const Rect& allottedRect) {
         Item item;
         item.widget = child;
         item.desired = child->ClampDesiredSize(child->GetDesiredSize());
+        item.grow = EffectiveFlexGrow(*child, row);
         const Margin& m = child->GetMargin();
 
         if (row) {
@@ -92,21 +132,19 @@ void Flex::Arrange(const Rect& allottedRect) {
             item.marginMainEnd = m.right;
             item.marginCrossStart = m.top;
             item.marginCrossEnd = m.bottom;
-            const float basis = child->GetFlexBasis() >= 0.0f ? child->GetFlexBasis() : item.desired.width;
-            item.mainSize = basis;
+            item.mainSize = ResolveMainBasis(*child, item.desired.width, row);
             item.crossSize = item.desired.height;
         } else {
             item.marginMainStart = m.top;
             item.marginMainEnd = m.bottom;
             item.marginCrossStart = m.left;
             item.marginCrossEnd = m.right;
-            const float basis = child->GetFlexBasis() >= 0.0f ? child->GetFlexBasis() : item.desired.height;
-            item.mainSize = basis;
+            item.mainSize = ResolveMainBasis(*child, item.desired.height, row);
             item.crossSize = item.desired.width;
         }
 
         totalFixedMain += item.mainSize + item.marginMainStart + item.marginMainEnd;
-        totalGrow += child->GetFlexGrow();
+        totalGrow += item.grow;
         totalShrink += child->GetFlexShrink();
         items.push_back(item);
     }
@@ -117,9 +155,8 @@ void Flex::Arrange(const Rect& allottedRect) {
 
     if (freeSpace > 0.0f && totalGrow > 0.0f) {
         for (auto& item : items) {
-            const float grow = item.widget->GetFlexGrow();
-            if (grow > 0.0f) {
-                item.mainSize += freeSpace * (grow / totalGrow);
+            if (item.grow > 0.0f) {
+                item.mainSize += freeSpace * (item.grow / totalGrow);
             }
         }
         freeSpace = 0.0f;
@@ -138,7 +175,6 @@ void Flex::Arrange(const Rect& allottedRect) {
         ? allottedRect.x + m_Padding.left
         : allottedRect.y + m_Padding.top;
 
-    // Justify remaining free space
     float justifyExtra = 0.0f;
     float justifyGap = 0.0f;
     if (freeSpace > 0.0f && visibleCount > 0) {
@@ -201,7 +237,6 @@ void Flex::Arrange(const Rect& allottedRect) {
             break;
         }
 
-        // Honor per-widget alignment when not stretch
         if (m_Align == AlignItems::Stretch) {
             if (row && item.widget->GetVerticalAlignment() != VerticalAlignment::Fill) {
                 crossSize = item.crossSize;

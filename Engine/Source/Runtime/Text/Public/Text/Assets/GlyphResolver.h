@@ -1,10 +1,12 @@
 #pragma once
 
 #include "Text/Assets/FontAsset.h"
+#include "Text/Atlas/FontAtlasManager.h"
 #include "Text/Core/Types.h"
 #include "Text/Export.h"
 #include "Text/Shaping/TextShaper.h"
 
+#include <algorithm>
 #include <memory>
 #include <span>
 #include <unordered_map>
@@ -19,9 +21,22 @@ struct FontStack {
 struct ResolvedGlyph {
     FontHandle fontHandle = kInvalidFontHandle;
     GlyphMetrics metrics{};
-    float bakeSizePx = 48.0f;
+    float bakeSizePx = 18.0f;
     float msdfPixelRange = 4.0f;
-    float geometryScale = 1.0f;
+    float geometryScale = 18.0f;
+    float ascender = 0.0f;
+    float descender = 0.0f;
+    float lineHeight = 0.0f;
+    uint64_t atlasPageVersion = 0;
+
+    /// Bake-pixel geometry scale used by MSDF plane bounds / advances.
+    [[nodiscard]] float EffectiveGeometryScale() const {
+        if (geometryScale > 1.5f) {
+            return geometryScale;
+        }
+        // Legacy .wefont assets stored geometryScale=1 while plane bounds are bake-pixel sized.
+        return std::max(bakeSizePx, 1.0f);
+    }
 };
 
 class TEXT_API IFallbackResolver {
@@ -54,22 +69,28 @@ private:
 
 class GlyphResolver final : public IGlyphResolver {
 public:
-    GlyphResolver(IFontAssetManager& assetManager, IFallbackResolver& fallbackResolver);
+    GlyphResolver(
+        IFontAssetManager& assetManager,
+        IFallbackResolver& fallbackResolver,
+        atlas::IFontAtlasManager* atlasManager = nullptr);
 
     [[nodiscard]] ResolvedGlyph Resolve(
         const FontStack& stack,
         Codepoint codepoint) const override;
     void ClearCache() override;
+    void SetAtlasManager(atlas::IFontAtlasManager* atlasManager) { m_AtlasManager = atlasManager; }
 
 private:
     IFontAssetManager& m_AssetManager;
     IFallbackResolver& m_FallbackResolver;
+    atlas::IFontAtlasManager* m_AtlasManager = nullptr;
     mutable std::unordered_map<uint64_t, ResolvedGlyph> m_Cache;
 };
 
 [[nodiscard]] TEXT_API std::unique_ptr<IFallbackResolver> CreateFallbackResolver(IFontAssetManager& assetManager);
 [[nodiscard]] TEXT_API std::unique_ptr<IGlyphResolver> CreateGlyphResolver(
     IFontAssetManager& assetManager,
-    IFallbackResolver& fallbackResolver);
+    IFallbackResolver& fallbackResolver,
+    atlas::IFontAtlasManager* atlasManager = nullptr);
 
 } // namespace we::runtime::text::assets

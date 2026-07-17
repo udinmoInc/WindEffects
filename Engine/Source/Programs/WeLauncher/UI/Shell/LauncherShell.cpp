@@ -9,7 +9,6 @@
 #include "UI/Pages/CreateProject/CreateProjectViews.h"
 #include "UI/Pages/Library/ManagerViews.h"
 #include "UI/Pages/Settings/SettingsViews.h"
-#include "UI/Pages/Skeleton/SkeletonViews.h"
 #include "Util/LauncherMaintenance.h"
 #include "Util/PathUtils.h"
 
@@ -124,7 +123,6 @@ void LauncherShell::Construct(float dpiScale) {
     m_ProjectsPage = std::make_unique<ProjectsPage>(*m_Context, *this);
     m_ProjectsPage->SetSearchText(m_SearchQuery);
 
-    BeginPageContentLoad(0.32f);
     RebuildChrome();
     EnsurePageBuilt(m_Page);
     ShowPage(m_Page);
@@ -184,12 +182,6 @@ const ProjectSummary* LauncherShell::SelectedProjectSummary() const {
     return m_ProjectsPage->ViewModel().SelectedProject();
 }
 
-void LauncherShell::BeginLoading(float durationSeconds) {
-    BeginPageContentLoad(durationSeconds);
-    EnsureProjectsPage();
-    m_ProjectsPage->SetLoading(true);
-}
-
 void LauncherShell::SetLogoTexture(we::rhi::RHIDescriptorSetHandle logoSet) {
     m_LogoSet = logoSet;
     if (m_TitleBar) {
@@ -225,6 +217,8 @@ void LauncherShell::RebuildChrome() {
     auto body = std::make_shared<Row>();
     body->Gap(0.0f);
     body->SetVerticalAlignment(VerticalAlignment::Fill);
+    body->SetFlexGrow(1.0f);
+    body->SetFlexBasis(0.0f);
 
     m_Sidebar = std::make_shared<NavSidebar>();
     m_Sidebar->SetActivePage(m_Page);
@@ -241,10 +235,15 @@ void LauncherShell::RebuildChrome() {
     mainColumn->Gap(0.0f);
     mainColumn->SetHorizontalAlignment(HorizontalAlignment::Fill);
     mainColumn->SetVerticalAlignment(VerticalAlignment::Fill);
+    mainColumn->SetFlexGrow(1.0f);
+    mainColumn->SetFlexBasis(0.0f);
+    mainColumn->SetFlexShrink(1.0f);
 
     auto contentHost = std::make_shared<Column>();
     contentHost->SetHorizontalAlignment(HorizontalAlignment::Fill);
     contentHost->SetVerticalAlignment(VerticalAlignment::Fill);
+    contentHost->SetFlexGrow(1.0f);
+    contentHost->SetFlexBasis(0.0f);
     contentHost->Background(LColor(ColorToken::PanelContentBackground));
     m_ContentHost = contentHost;
     mainColumn->AddChild(m_ContentHost);
@@ -310,7 +309,6 @@ void LauncherShell::GoToPage(LauncherPage page) {
     if (m_Sidebar) {
         m_Sidebar->SetActivePage(page);
     }
-    BeginPageContentLoad(0.22f);
     if (page == LauncherPage::Projects && m_ProjectsPage) {
         m_ProjectsPage->SetSearchText(m_SearchQuery);
     }
@@ -319,51 +317,6 @@ void LauncherShell::GoToPage(LauncherPage page) {
     ShowPage(page);
     SyncHeaderFromState();
     InvalidateUI();
-}
-
-void LauncherShell::BeginPageContentLoad(float durationSeconds) {
-    m_PageContentLoading = true;
-    m_PageLoadTimer = 0.0f;
-    m_PageLoadDuration = std::max(0.12f, durationSeconds);
-}
-
-std::shared_ptr<Widget> LauncherShell::BuildPageSkeleton(LauncherPage page) {
-    auto root = std::make_shared<Column>();
-    root->Gap(LMetric(MetricToken::Space4) * LScale());
-    root->SetHorizontalAlignment(HorizontalAlignment::Fill);
-
-    switch (page) {
-    case LauncherPage::Projects: {
-        root->AddChild(MakeSectionHeader("Projects", "Loading workspace…"));
-        for (int i = 0; i < 8; ++i) {
-            root->AddChild(std::make_shared<SkeletonCard>(SkeletonKind::ListRow));
-        }
-        break;
-    }
-    case LauncherPage::Learn: {
-        root->AddChild(MakeSectionHeader("Learn", "Loading samples…"));
-        for (int i = 0; i < 8; ++i) {
-            root->AddChild(std::make_shared<SkeletonCard>(SkeletonKind::ListRow));
-        }
-        break;
-    }
-    case LauncherPage::Engine: {
-        root->AddChild(MakeSectionHeader("Engine", "Reading installs…"));
-        for (int i = 0; i < 4; ++i) {
-            root->AddChild(std::make_shared<SkeletonCard>(SkeletonKind::ListRow));
-        }
-        break;
-    }
-    case LauncherPage::Settings:
-    default: {
-        root->AddChild(MakeSectionHeader("Settings", "Loading preferences…"));
-        for (int i = 0; i < 4; ++i) {
-            root->AddChild(std::make_shared<SkeletonCard>(SkeletonKind::ListRow));
-        }
-        break;
-    }
-    }
-    return root;
 }
 
 void LauncherShell::MarkPageDirty(LauncherPage page) {
@@ -486,7 +439,6 @@ void LauncherShell::ShowProjectMoreMenu(std::size_t index) {
 void LauncherShell::RebuildProjectsPage() {
     EnsureProjectsPage();
     auto& state = m_Pages[static_cast<std::size_t>(LauncherPage::Projects)];
-    m_ProjectsPage->SetLoading(IsPageContentLoading());
     m_ProjectsPage->SetSearchText(m_SearchQuery);
     m_ProjectsPage->Attach(state, m_HostContext);
 }
@@ -519,7 +471,6 @@ LearnPageModel LauncherShell::BuildLearnPageModel() {
     model.chrome.subtitle = "Samples, guides, and getting started";
     model.chrome.searchPlaceholder = "Search Learn...";
     model.chrome.searchQuery = m_SearchQuery;
-    model.chrome.loading = IsPageContentLoading();
     model.chrome.onSearchChanged = [this](const std::string& text) { OnSearchChanged(text); };
 
     model.chrome.toolbarActions.push_back(UI::Host([this]() {
@@ -530,7 +481,6 @@ LearnPageModel LauncherShell::BuildLearnPageModel() {
     model.chrome.toolbarActions.push_back(UI::Host([this]() {
         auto btn = MakeSecondaryAction("Refresh", Icons::RefreshName);
         btn->SetOnClicked([this] {
-            BeginPageContentLoad(0.2f);
             MarkPageDirty(LauncherPage::Learn);
             EnsurePageBuilt(LauncherPage::Learn);
             ShowPage(LauncherPage::Learn);
@@ -538,10 +488,6 @@ LearnPageModel LauncherShell::BuildLearnPageModel() {
         });
         return btn;
     }));
-
-    if (model.chrome.loading) {
-        return model;
-    }
 
     const std::vector<LearnEntryModel> allEntries = {
         { "Guide", "Create your first project", "Walk through New Project and open it in the editor",
@@ -589,13 +535,11 @@ EnginePageModel LauncherShell::BuildEnginePageModel() {
     model.chrome.subtitle = "Installed engines and SDK health";
     model.chrome.searchPlaceholder = "Search Engine installs...";
     model.chrome.searchQuery = m_SearchQuery;
-    model.chrome.loading = IsPageContentLoading();
     model.chrome.onSearchChanged = [this](const std::string& text) { OnSearchChanged(text); };
 
     model.chrome.toolbarActions.push_back(UI::Host([this]() {
         auto btn = MakeSecondaryAction("Refresh", Icons::RefreshName);
         btn->SetOnClicked([this] {
-            BeginPageContentLoad(0.2f);
             UpdateFooter();
             MarkPageDirty(LauncherPage::Engine);
             EnsurePageBuilt(LauncherPage::Engine);
@@ -604,10 +548,6 @@ EnginePageModel LauncherShell::BuildEnginePageModel() {
         });
         return btn;
     }));
-
-    if (model.chrome.loading) {
-        return model;
-    }
 
     model.hasEngine = m_Context->Engines().HasEngine()
         && !m_Context->Engines().InstalledEngines().empty();
@@ -618,7 +558,6 @@ EnginePageModel LauncherShell::BuildEnginePageModel() {
         model.emptySubtitle = "Place the launcher next to an Engine install, or build the engine from source.";
         model.onOpenProjects = [this] { GoToPage(LauncherPage::Projects); };
         model.onRefresh = [this] {
-            BeginPageContentLoad(0.2f);
             MarkPageDirty(LauncherPage::Engine);
             EnsurePageBuilt(LauncherPage::Engine);
             ShowPage(LauncherPage::Engine);
@@ -1119,19 +1058,6 @@ void LauncherShell::RebuildSettingsPage() {
     page->SetHorizontalAlignment(HorizontalAlignment::Fill);
     page->SetVerticalAlignment(VerticalAlignment::Fill);
     page->Background(LColor(ColorToken::PanelContentBackground));
-
-    if (IsPageContentLoading()) {
-        auto scroll = std::make_shared<ScrollLayout>();
-        auto content = MakePageBodyPadding();
-        content->AddChild(BuildPageSkeleton(LauncherPage::Settings));
-        scroll->SetContent(content);
-        page->AddChild(scroll);
-        state.root = page;
-        state.scroll = scroll;
-        m_SettingsScrollTarget.reset();
-        m_SettingsPendingScroll = false;
-        return;
-    }
 
     const float s = LScale();
     const std::string queryLower = ToLowerCopy(m_SearchQuery);
@@ -1662,7 +1588,6 @@ void LauncherShell::RefreshProjectList() {
     EnsureProjectsPage();
     m_ProjectsPage->Reload();
     UpdateFooter();
-    BeginPageContentLoad(0.24f);
     MarkPageDirty(LauncherPage::Projects);
     if (m_Page == LauncherPage::Projects) {
         EnsurePageBuilt(LauncherPage::Projects);
@@ -1861,6 +1786,7 @@ Size LauncherShell::Measure(const Size& availableSize) {
 
 void LauncherShell::Arrange(const Rect& allottedRect) {
     m_Geometry = allottedRect;
+    ClearLayoutDirty();
     UpdateAdaptiveLayout(allottedRect.width);
     if (m_Root) {
         m_Root->Arrange(allottedRect);
@@ -1893,23 +1819,7 @@ void LauncherShell::Paint(PaintContext& context) {
 }
 
 void LauncherShell::Tick(float deltaTime) {
-    if (m_PageContentLoading) {
-        m_PageLoadTimer += deltaTime;
-        AdvanceSkeletonShimmer(deltaTime);
-        if (m_PageLoadTimer >= m_PageLoadDuration) {
-            m_PageContentLoading = false;
-            m_PageLoadTimer = 0.0f;
-            if (m_Page == LauncherPage::Projects && m_ProjectsPage) {
-                m_ProjectsPage->SetLoading(false);
-            }
-            MarkPageDirty(m_Page);
-            EnsurePageBuilt(m_Page);
-            ShowPage(m_Page);
-            InvalidateUI();
-        } else {
-            InvalidateUI();
-        }
-    }
+    (void)deltaTime;
 
     if (m_SettingsPendingScroll && m_SettingsScrollTarget && m_Page == LauncherPage::Settings) {
         auto& state = m_Pages[static_cast<std::size_t>(LauncherPage::Settings)];

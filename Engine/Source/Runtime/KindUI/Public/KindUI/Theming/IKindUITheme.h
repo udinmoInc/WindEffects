@@ -3,6 +3,7 @@
 #include "KindUI/Export.h"
 #include "KindUI/Core/Types.h"
 #include "KindUI/Tokens/DesignToken.h"
+#include "KindUI/Tokens/TypographySpec.h"
 
 #include <string_view>
 
@@ -22,6 +23,8 @@ public:
     [[nodiscard]] virtual float ResolveSpacing(SpacingToken token) const = 0;
     [[nodiscard]] virtual float ResolveRadius(RadiusToken token) const = 0;
     [[nodiscard]] virtual float ResolveFontSize(TypographyToken token) const = 0;
+    /// Full typography resolution (size, weight, color, line height) for a semantic role.
+    [[nodiscard]] virtual TypographySpec ResolveTypography(TypographyToken token) const;
     [[nodiscard]] virtual int ResolveElevation(ElevationToken token) const = 0;
     [[nodiscard]] virtual float ResolveAnimationDuration(AnimationToken token) const = 0;
 

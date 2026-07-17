@@ -1,4 +1,5 @@
 #include "KindUI/Core/Widget.h"
+#include "KindUI/Core/UIRepaintGate.h"
 #include "KindUI/Core/WidgetContext.h"
 #include "KindUI/Layout/IPopupHost.h"
 #include "KindUI/Theming/StyleResolve.h"
@@ -42,6 +43,7 @@ Size Widget::ClampDesiredSize(const Size& desired) const {
 void Widget::InvalidateLayout() {
     m_NeedsLayout = true;
     m_NeedsPaint = true;
+    UIRepaintGate::Request();
     if (s_GlobalDiagnostics) {
         ++s_GlobalDiagnostics->invalidateCount;
     }

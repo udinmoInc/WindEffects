@@ -62,6 +62,73 @@ std::shared_ptr<ContainerT> MakeContainer(const Element& element) {
     return container;
 }
 
+// Containers whose Element.children map 1:1 onto Widget children.
+bool IsDirectChildContainer(ElementType type) {
+    switch (type) {
+    case ElementType::Row:
+    case ElementType::Column:
+    case ElementType::Flex:
+    case ElementType::Grid:
+    case ElementType::Stack:
+    case ElementType::Overlay:
+    case ElementType::Wrap:
+    case ElementType::Card:
+    case ElementType::Toolbar:
+        return true;
+    default:
+        return false;
+    }
+}
+
+// Leaf / host widgets own their internal tree. Reconcile must never ClearChildren on them.
+bool IsLeafOrHosted(ElementType type) {
+    return !IsDirectChildContainer(type)
+        && type != ElementType::ScrollView
+        && type != ElementType::Dialog
+        && type != ElementType::Menu
+        && type != ElementType::SplitView;
+}
+
+bool WidgetMatchesElementType(const Widget& widget, ElementType type) {
+    switch (type) {
+    case ElementType::Row:
+    case ElementType::Toolbar:
+        return dynamic_cast<const Row*>(&widget) != nullptr;
+    case ElementType::Column:
+        return dynamic_cast<const Column*>(&widget) != nullptr;
+    case ElementType::Flex:
+        return dynamic_cast<const Flex*>(&widget) != nullptr;
+    case ElementType::ScrollView:
+        return dynamic_cast<const ScrollLayout*>(&widget) != nullptr;
+    case ElementType::Card:
+        return dynamic_cast<const Card*>(&widget) != nullptr;
+    case ElementType::Button:
+        return dynamic_cast<const DesignButton*>(&widget) != nullptr
+            || dynamic_cast<const IconButton*>(&widget) != nullptr;
+    case ElementType::SectionHeader:
+        return dynamic_cast<const SectionHeader*>(&widget) != nullptr;
+    case ElementType::Label:
+        return dynamic_cast<const Label*>(&widget) != nullptr;
+    case ElementType::TextBox:
+        return dynamic_cast<const TextBox*>(&widget) != nullptr;
+    case ElementType::SearchBox:
+        return dynamic_cast<const SearchBoxControl*>(&widget) != nullptr;
+    case ElementType::CheckBox:
+        return dynamic_cast<const CheckBox*>(&widget) != nullptr;
+    case ElementType::EmptyState:
+        return dynamic_cast<const EmptyState*>(&widget) != nullptr;
+    case ElementType::Spacer:
+        return dynamic_cast<const Spacer*>(&widget) != nullptr;
+    case ElementType::Dialog:
+        return dynamic_cast<const DialogChrome*>(&widget) != nullptr;
+    case ElementType::Host:
+        // Host can be any application widget; identity is by id only.
+        return true;
+    default:
+        return true;
+    }
+}
+
 } // namespace
 
 ViewBuilder::ViewBuilder(std::shared_ptr<IWidgetContext> context)
@@ -103,6 +170,14 @@ void ViewBuilder::ApplyLayoutIntent(Widget& widget, const LayoutIntent& intent) 
     if (intent.fill) {
         widget.SetHorizontalAlignment(HorizontalAlignment::Fill);
         widget.SetVerticalAlignment(VerticalAlignment::Fill);
+        // Fill implies consuming free space on the parent main axis from a zero basis,
+        // matching CSS flex: 1 1 0% — avoid claiming 100% available as desired size.
+        if (intent.flexGrow <= 0.0f) {
+            widget.SetFlexGrow(1.0f);
+        }
+        if (intent.flexBasis < 0.0f) {
+            widget.SetFlexBasis(0.0f);
+        }
     }
     if (intent.hAlign) {
         widget.SetHorizontalAlignment(*intent.hAlign);
@@ -128,6 +203,9 @@ void ViewBuilder::ApplyLayoutIntent(Widget& widget, const LayoutIntent& intent) 
                 intent.paddingRight >= 0.0f ? intent.paddingRight : 0.0f,
                 intent.paddingBottom >= 0.0f ? intent.paddingBottom : 0.0f,
             });
+        }
+        if (intent.gap >= 0.0f) {
+            flex->Gap(intent.gap);
         }
     }
 }
@@ -165,22 +243,28 @@ Widget* ViewBuilder::FindDirectChildById(Widget& parent, std::string_view id) co
 
 bool ViewBuilder::ElementsMatchForReuse(const Widget& widget, const Element& element) const {
     if (!element.id.empty() && widget.GetId() == element.id) {
-        return true;
+        return WidgetMatchesElementType(widget, element.type);
     }
-    return element.id.empty();
+    return false;
 }
 
 void ViewBuilder::ReconcileElement(Widget& existing, const Element& updated) {
-    const Element expanded = Expand(updated);
-    existing.SetVisible(expanded.visible);
-    existing.SetEnabled(expanded.enabled);
-    if (!expanded.styleClass.empty()) {
-        existing.SetStyleClass(expanded.styleClass);
+    existing.SetVisible(updated.visible);
+    existing.SetEnabled(updated.enabled);
+    if (!updated.styleClass.empty()) {
+        existing.SetStyleClass(updated.styleClass);
     }
-    ApplyLayoutIntent(existing, expanded.layout);
-    if (expanded.configure) {
-        expanded.configure(existing);
+    ApplyLayoutIntent(existing, updated.layout);
+    if (updated.width.has_value() || updated.height.has_value()) {
+        existing.SetMinSize({
+            updated.width.value_or(existing.GetMinSize().width),
+            updated.height.value_or(existing.GetMinSize().height),
+        });
     }
+    if (updated.configure) {
+        updated.configure(existing);
+    }
+    WireButtonEvents(existing, updated);
 }
 
 void ViewBuilder::ReconcileChildren(Widget& container, const std::vector<Element>& children) {
@@ -197,27 +281,45 @@ void ViewBuilder::ReconcileChildren(Widget& container, const std::vector<Element
     newChildren.reserve(children.size());
     std::vector<bool> reused(existingChildren.size(), false);
 
-    for (const Element& childElement : children) {
-        const Element expanded = Expand(childElement);
+    for (std::size_t childIndex = 0; childIndex < children.size(); ++childIndex) {
+        const Element& expanded = children[childIndex];
         if (!expanded.visible && expanded.when) {
             continue;
         }
 
         std::shared_ptr<Widget> childWidget;
+
+        // Prefer stable identity via id.
         if (!expanded.id.empty()) {
             const auto it = idToIndex.find(expanded.id);
-            if (it != idToIndex.end() && !reused[it->second]) {
+            if (it != idToIndex.end() && !reused[it->second]
+                && ElementsMatchForReuse(*existingChildren[it->second], expanded)) {
                 childWidget = existingChildren[it->second];
                 reused[it->second] = true;
                 Reconcile(*childWidget, expanded);
             }
         }
 
+        // Fall back to same-index reuse when types match (reduces Host churn).
+        if (!childWidget
+            && childIndex < existingChildren.size()
+            && !reused[childIndex]
+            && existingChildren[childIndex]
+            && expanded.id.empty()
+            && WidgetMatchesElementType(*existingChildren[childIndex], expanded.type)
+            && !IsLeafOrHosted(expanded.type)) {
+            childWidget = existingChildren[childIndex];
+            reused[childIndex] = true;
+            Reconcile(*childWidget, expanded);
+        }
+
         if (!childWidget) {
             childWidget = BuildElement(expanded);
         }
 
-        newChildren.push_back(std::move(childWidget));
+        if (childWidget) {
+            newChildren.push_back(std::move(childWidget));
+        }
     }
 
     container.ClearChildren();
@@ -226,13 +328,87 @@ void ViewBuilder::ReconcileChildren(Widget& container, const std::vector<Element
     }
 }
 
+void ViewBuilder::ReconcileScrollView(Widget& existing, const Element& expanded) {
+    auto* scroll = dynamic_cast<ScrollLayout*>(&existing);
+    if (!scroll) {
+        return;
+    }
+
+    std::shared_ptr<Widget> content = scroll->GetContent();
+    if (!content) {
+        auto column = MakeContainer<Column>(expanded);
+        for (const Element& child : expanded.children) {
+            if (auto built = BuildElement(child)) {
+                column->AddChild(built);
+            }
+        }
+        ApplyElementProperties(*column, expanded);
+        scroll->SetContent(column);
+        return;
+    }
+
+    ReconcileChildren(*content, expanded.children);
+    ApplyLayoutIntent(*content, expanded.layout);
+}
+
 void ViewBuilder::Reconcile(Widget& existing, const Element& updated) {
-    ReconcileElement(existing, updated);
     const Element expanded = Expand(updated);
-    ReconcileChildren(existing, expanded.children);
+    ReconcileElement(existing, expanded);
+
+    // Hosted / leaf widgets own internal children (VirtualList rows, search chrome, etc.).
+    // Touching them here was clearing real content and leaving zero-size leftovers painted
+    // at the origin — the declarative layout regression.
+    if (IsLeafOrHosted(expanded.type)) {
+        existing.InvalidateLayout();
+        return;
+    }
+
+    if (expanded.type == ElementType::ScrollView) {
+        ReconcileScrollView(existing, expanded);
+        existing.InvalidateLayout();
+        return;
+    }
+
+    if (expanded.type == ElementType::Dialog) {
+        // DialogChrome = title header + optional body column. Only reconcile the body.
+        auto& kids = existing.GetChildren();
+        if (kids.size() >= 2 && kids[1]) {
+            ReconcileChildren(*kids[1], expanded.children);
+        } else if (!expanded.children.empty()) {
+            auto body = MakeContainer<Column>(expanded);
+            for (const Element& child : expanded.children) {
+                if (auto built = BuildElement(child)) {
+                    body->AddChild(built);
+                }
+            }
+            existing.AddChild(body);
+        }
+        existing.InvalidateLayout();
+        return;
+    }
+
+    if (expanded.type == ElementType::Menu) {
+        // Menu builds Card -> Column(items). Reconcile the inner column when present.
+        auto& kids = existing.GetChildren();
+        if (!kids.empty() && kids[0]) {
+            ReconcileChildren(*kids[0], expanded.children);
+        } else {
+            ReconcileChildren(existing, expanded.children);
+        }
+        existing.InvalidateLayout();
+        return;
+    }
+
+    if (IsDirectChildContainer(expanded.type)) {
+        ReconcileChildren(existing, expanded.children);
+    }
+
+    existing.InvalidateLayout();
 }
 
 std::shared_ptr<Widget> ViewBuilder::BuildElement(const Element& element) {
+    // Callers may pass already-expanded trees; Expand is idempotent for plain children
+    // and re-evaluates forEach/when so Build stays correct either way.
     const Element expanded = Expand(element);
     if (!expanded.visible && expanded.when) {
         auto placeholder = std::make_shared<Spacer>();
@@ -398,6 +574,7 @@ std::shared_ptr<Widget> ViewBuilder::BuildElement(const Element& element) {
         if (expanded.enabled == false) {
             btn->SetEnabled(false);
         }
+        WireButtonEvents(*btn, expanded);
         widget = std::move(btn);
         break;
     }

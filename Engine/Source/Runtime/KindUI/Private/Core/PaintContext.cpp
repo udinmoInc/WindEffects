@@ -1,4 +1,5 @@
 #include "KindUI/Core/PaintContext.h"
+#include "KindUI/Core/TextMetrics.h"
 #include "KindUI/Rendering/TextUIService.h"
 
 namespace we::runtime::kindui {
@@ -114,8 +115,7 @@ float PaintContext::GetTextWidth(const std::string& text, const float fontSize, 
     if (m_TextService) {
         return m_TextService->MeasureText(text, fontSize, bold);
     }
-    const float weightScale = bold ? 1.08f : 1.0f;
-    return static_cast<float>(text.size()) * fontSize * 0.6f * weightScale;
+    return TextMetrics::MeasureWidth(text, fontSize, bold);
 }
 
 void PaintContext::DrawLine(const Point& start, const Point& end, const Color& color, float thickness) {

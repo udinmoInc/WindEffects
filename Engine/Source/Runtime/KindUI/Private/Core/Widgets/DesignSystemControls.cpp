@@ -37,7 +37,7 @@ Size DesignButton::Measure(const Size& availableSize) {
     (void)availableSize;
     const ResolvedStyle style = ThemeManager::Get().Resolve(m_Role);
     const float pad = ResolveMetric(MetricToken::ButtonPaddingHorizontal);
-    const float textW = TextMetrics::EstimateWidth(m_Label, style.fontSize);
+    const float textW = TextMetrics::MeasureWidth(m_Label, style.fontSize);
     const float iconW = m_Icon ? (style.iconSize + ResolveMetric(MetricToken::Space1)) : 0.0f;
     m_DesiredSize = Size{ textW + iconW + pad * 2.0f, style.height > 0.0f ? style.height : ResolveMetric(MetricToken::ButtonHeight) };
     return m_DesiredSize;
@@ -232,13 +232,19 @@ SectionHeader::SectionHeader(std::string title, std::string subtitle)
 }
 
 Size SectionHeader::Measure(const Size& availableSize) {
+    (void)availableSize;
     const ResolvedStyle header = ThemeManager::Get().Resolve(StyleRole::SectionHeader);
     const ResolvedStyle caption = ThemeManager::Get().Resolve(StyleRole::TextCaption);
     float h = header.fontSize + ResolveMetric(MetricToken::Space2);
+    float w = TextMetrics::MeasureWidth(m_Title, header.fontSize, header.bold);
     if (!m_Subtitle.empty()) {
         h += caption.fontSize + ResolveMetric(MetricToken::Space1);
+        w = std::max(w, TextMetrics::MeasureWidth(m_Subtitle, caption.fontSize, caption.bold));
     }
-    m_DesiredSize = Size{ availableSize.width > 0.0f ? availableSize.width : 320.0f, h };
+    // Report content-intrinsic width. Parent Flex Stretch expands on the cross axis;
+    // claiming availableSize.width made every Column inside a Row overflow and shrink
+    // all siblings to 0x0.
+    m_DesiredSize = Size{ std::max(w, 32.0f), h };
     return m_DesiredSize;
 }
 

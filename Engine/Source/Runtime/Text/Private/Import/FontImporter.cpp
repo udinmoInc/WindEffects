@@ -320,19 +320,32 @@ TextResult<FontAsset> ImportMsdfFont(
     }
     asset.atlasPages.push_back(std::move(page));
 
+    asset.metrics.bakeSizePx = bakeSizePx;
+    asset.metrics.msdfPixelRange = msdfPixelRange;
+    // Plane bounds / advances from msdf-atlas-gen are in bake-pixel units when scale=bakeSizePx.
+    asset.metrics.geometryScale = bakeSizePx;
+
     FT_Library freeTypeLibrary = nullptr;
-  FT_Face face = nullptr;
+    FT_Face face = nullptr;
     if (FT_Init_FreeType(&freeTypeLibrary) == 0) {
         if (FT_New_Face(freeTypeLibrary, inputPath.string().c_str(), static_cast<FT_Long>(faceIndex), &face) == 0) {
             asset.metrics.familyName = face->family_name ? face->family_name : "";
             asset.metrics.styleName = face->style_name ? face->style_name : "";
-            asset.metrics.ascender = static_cast<float>(face->size ? face->size->metrics.ascender : face->ascender) / 64.0f;
-            asset.metrics.descender = static_cast<float>(face->size ? face->size->metrics.descender : face->descender) / 64.0f;
-            asset.metrics.lineHeight = static_cast<float>(
-                face->size ? face->size->metrics.height : (face->ascender - face->descender)) / 64.0f;
-            asset.metrics.underlinePosition = static_cast<float>(face->underline_position) / 64.0f;
-            asset.metrics.underlineThickness = static_cast<float>(face->underline_thickness) / 64.0f;
-            asset.metrics.weight = 400;
+            // Request metrics at the same pixel size used for MSDF bake so layout scales consistently.
+            FT_Set_Pixel_Sizes(face, 0, static_cast<FT_UInt>(std::lround(bakeSizePx)));
+            asset.metrics.ascender = static_cast<float>(face->size->metrics.ascender) / 64.0f;
+            asset.metrics.descender = static_cast<float>(face->size->metrics.descender) / 64.0f;
+            asset.metrics.lineHeight = static_cast<float>(face->size->metrics.height) / 64.0f;
+            const float em = static_cast<float>(std::max<FT_Long>(face->units_per_EM, 1));
+            asset.metrics.underlinePosition =
+                static_cast<float>(face->underline_position) / em * bakeSizePx;
+            asset.metrics.underlineThickness =
+                static_cast<float>(face->underline_thickness) / em * bakeSizePx;
+            if (face->style_flags & FT_STYLE_FLAG_BOLD) {
+                asset.metrics.weight = 700;
+            } else {
+                asset.metrics.weight = 400;
+            }
             asset.metrics.italic = (face->style_flags & FT_STYLE_FLAG_ITALIC) != 0;
         }
         if (face) {
@@ -340,10 +353,6 @@ TextResult<FontAsset> ImportMsdfFont(
         }
         FT_Done_FreeType(freeTypeLibrary);
     }
-
-    asset.metrics.bakeSizePx = bakeSizePx;
-    asset.metrics.msdfPixelRange = msdfPixelRange;
-    asset.metrics.geometryScale = 1.0f;
 
     asset.glyphs.reserve(codepoints.size());
     for (const Codepoint codepoint : codepoints) {

@@ -54,9 +54,13 @@ void VirtualList::RebuildVisible() {
 }
 
 Size VirtualList::Measure(const Size& availableSize) {
+    // Intrinsic height from item count; width follows available when known.
+    // Do not claim availableSize.height — that overflows parent Flex and triggers
+    // a shrink-to-zero pass on the whole shell.
+    const float contentH = static_cast<float>(m_ItemCount) * m_ItemHeight;
     m_DesiredSize = {
-        availableSize.width,
-        std::min(availableSize.height, static_cast<float>(m_ItemCount) * m_ItemHeight)
+        availableSize.width > 0.0f ? availableSize.width : GetMinSize().width,
+        GetFlexGrow() > 0.0f ? GetMinSize().height : contentH
     };
     return m_DesiredSize;
 }

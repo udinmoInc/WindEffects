@@ -5,30 +5,10 @@
 #include "KindUI/Core/Icon.h"
 #include "UI/Controls/LauncherControls.h"
 #include "UI/Pages/Library/ManagerViews.h"
-#include "UI/Pages/Skeleton/SkeletonViews.h"
 
 namespace we::programs::welauncher {
 namespace UI = we::runtime::kindui::UI;
 using namespace we::runtime::kindui;
-
-namespace {
-
-we::runtime::kindui::Element PageBody(std::vector<we::runtime::kindui::Element> children) {
-    const float s = LScale();
-    return UI::Column(std::move(children));
-}
-
-we::runtime::kindui::Element LoadingRows(int count) {
-    std::vector<we::runtime::kindui::Element> rows;
-    rows.reserve(static_cast<size_t>(count));
-    for (int i = 0; i < count; ++i) {
-        rows.push_back(UI::Host([] { return std::make_shared<SkeletonCard>(SkeletonKind::ListRow); }));
-    }
-    rows.push_back(UI::Spacer());
-    return UI::Column(std::move(rows));
-}
-
-} // namespace
 
 we::runtime::kindui::Element BuildPageChrome(const PageChromeModel& model) {
     const float s = LScale();
@@ -64,13 +44,7 @@ we::runtime::kindui::Element BuildPageChrome(const PageChromeModel& model) {
 
 we::runtime::kindui::Element BuildLearnPage(const LearnPageModel& model) {
     const float s = LScale();
-
-    if (model.chrome.loading) {
-        return UI::Column({
-            BuildPageChrome(model.chrome),
-            UI::Fill(PageBody({ LoadingRows(8) })),
-        });
-    }
+    (void)s;
 
     std::vector<we::runtime::kindui::Element> tableChildren;
     tableChildren.push_back(UI::Host([] {
@@ -118,13 +92,6 @@ we::runtime::kindui::Element BuildLearnPage(const LearnPageModel& model) {
 }
 
 we::runtime::kindui::Element BuildEnginePage(const EnginePageModel& model) {
-    if (model.chrome.loading) {
-        return UI::Column({
-            BuildPageChrome(model.chrome),
-            UI::Fill(PageBody({ LoadingRows(4) })),
-        });
-    }
-
     std::vector<we::runtime::kindui::Element> tableChildren;
     tableChildren.push_back(UI::Host([] {
         return std::make_shared<SimpleColumnHeader>(

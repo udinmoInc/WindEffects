@@ -62,6 +62,10 @@ struct TextStyle {
     ColorRGBA color{};
     float opacity = 1.0f;
     float letterSpacing = 0.0f;
+    /// Future-ready writing mode (0 = horizontal LTR/RTL, 1 = vertical).
+    uint8_t writingMode = 0;
+    bool underline = false;
+    bool strikethrough = false;
     std::optional<OutlineStyle> outline;
     std::optional<ShadowStyle> shadow;
     std::optional<GradientStyle> gradient;

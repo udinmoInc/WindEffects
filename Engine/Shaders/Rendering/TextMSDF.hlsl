@@ -53,20 +53,30 @@ float median3(float r, float g, float b)
     return max(min(r, g), min(max(r, g), b));
 }
 
+// Chlumsky MSDF screen-space range: atlas distance field range in texels,
+// converted to screen pixels via UV derivatives (handles DPI/scale automatically).
 float screenPxRange(float2 uv, float pxRange, float2 atlasSize)
 {
-    float2 unitRange = pxRange / atlasSize;
-    float2 screenTexSize = 1.0 / fwidth(uv);
+    float2 unitRange = pxRange / max(atlasSize, float2(1.0, 1.0));
+    float2 screenTexSize = 1.0 / max(fwidth(uv), float2(1e-5, 1e-5));
     return max(0.5 * dot(unitRange, screenTexSize), 1.0);
 }
 
 float4 PSMain(VSOutput input) : SV_Target
 {
+    // Sample MSDF in linear atlas space (no sRGB decode on distance fields).
     float3 msdf = texAtlas.Sample(samp0, input.uv).rgb;
     float sd = median3(msdf.r, msdf.g, msdf.b);
+
+    // sdfParams.z carries the atlas pixel range; push constant is the batch fallback.
     float pxRange = max(input.sdfParams.z, max(pc.uPixelRange, 1.0));
     float spr = screenPxRange(input.uv, pxRange, pc.uAtlasSize);
+
+    // Center the threshold at 0.5 (MSDF mid-edge). spr scales AA to ~1 screen pixel.
     float opacity = saturate((sd - 0.5) * spr + 0.5);
+
+    // Premultiplied-friendly output: keep vertex color in the working color space
+    // of the UI pass (linear blend). Do not apply additional gamma here.
     float4 outColor = input.color;
     outColor.a *= opacity;
     return outColor;

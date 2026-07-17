@@ -33,19 +33,23 @@ public:
         UIRenderBatch* outBatchInfo = nullptr);
 
 private:
-    struct FontGpuAtlas {
+    struct GpuAtlasPage {
         we::rhi::RHIDescriptorSetHandle descriptorSet = we::rhi::RHIDescriptorSetHandle::Invalid;
         uint32_t width = 0;
         uint32_t height = 0;
+        uint64_t version = 0;
     };
 
     [[nodiscard]] we::runtime::text::layout::TextStyle BuildStyle(const DrawCommand& cmd) const;
+    [[nodiscard]] we::rhi::RHIDescriptorSetHandle EnsureAtlasPageUploaded(uint32_t pageIndex);
     [[nodiscard]] we::rhi::RHIDescriptorSetHandle GetDescriptorForFont(we::runtime::text::FontHandle handle);
-    bool UploadFontAtlas(we::runtime::text::FontHandle handle, FontGpuAtlas& gpuAtlas);
+    bool UploadFontAtlasFallback(we::runtime::text::FontHandle handle, GpuAtlasPage& gpuAtlas);
+    void SyncDirtyAtlasPages();
 
     OverlayRenderer* m_Renderer = nullptr;
     std::unique_ptr<we::runtime::text::ITextEngine> m_TextEngine;
-    std::unordered_map<we::runtime::text::FontHandle, FontGpuAtlas> m_FontAtlases;
+    std::unordered_map<uint32_t, GpuAtlasPage> m_DynamicPages;
+    std::unordered_map<we::runtime::text::FontHandle, GpuAtlasPage> m_FontAtlases;
     we::runtime::text::FontHandle m_RegularFont = we::runtime::text::kInvalidFontHandle;
     we::runtime::text::FontHandle m_SemiBoldFont = we::runtime::text::kInvalidFontHandle;
 };

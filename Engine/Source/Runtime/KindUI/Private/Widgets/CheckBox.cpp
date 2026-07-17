@@ -2,6 +2,7 @@
 #include "KindUI/Core/Animator.h"
 #include "KindUI/Core/ControlChrome.h"
 #include "KindUI/Core/PaintContext.h"
+#include "KindUI/Core/TextMetrics.h"
 #include "KindUI/Theming/ThemeAccess.h"
 #include "KindUI/Theming/ThemeManager.h"
 #include "KindUI/Tokens/DesignToken.h"
@@ -21,7 +22,7 @@ Size CheckBox::Measure(const Size& availableSize) {
     (void)availableSize;
     const ResolvedStyle role = ThemeManager::Get().Resolve(StyleRole::Checkbox);
     m_BoxSize = role.height > 0.0f ? role.height : 14.0f;
-    const float textWidth = static_cast<float>(m_Label.length()) * (m_Style.size * 0.55f);
+    const float textWidth = TextMetrics::MeasureWidth(m_Label, m_Style.size, m_Style.bold);
     const float gap = ResolveMetric(MetricToken::Space2);
     m_DesiredSize = Size{ m_BoxSize + gap + textWidth, std::max(m_BoxSize, m_Style.size + 4.0f) };
     return m_DesiredSize;
