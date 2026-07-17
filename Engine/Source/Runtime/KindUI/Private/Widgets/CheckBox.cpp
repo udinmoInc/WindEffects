@@ -7,6 +7,7 @@
 #include "KindUI/Tokens/DesignToken.h"
 #include "KindUI/Theming/StyleRole.h"
 
+
 namespace we::runtime::kindui {
 
 CheckBox::CheckBox(const std::string& label, bool initialState)

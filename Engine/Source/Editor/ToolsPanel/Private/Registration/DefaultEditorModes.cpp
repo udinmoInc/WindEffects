@@ -1,4 +1,4 @@
-#include "EditorToolsRegistry.h"
+#include "WindEffects/Editor/UI/Shell/EditorToolsRegistry.h"
 
 namespace we::programs::editor {
 

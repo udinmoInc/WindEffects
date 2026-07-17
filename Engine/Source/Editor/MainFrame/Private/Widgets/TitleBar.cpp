@@ -8,7 +8,7 @@
 #include "KindUI/Core/Icon.h"
 #include "KindUI/Core/Animator.h"
 #include "KindUI/Widgets/Label.h"
-#include "Widgets/Panel.h"
+#include "WindEffects/Editor/UI/Widgets/Panel.h"
 #include "Widgets/ToolButton.h"
 #include "KindUI/Core/DPIContext.h"
 #include "KindUI/Rendering/IconMetrics.h"
@@ -17,7 +17,12 @@
 #include <cmath>
 #include <cstring>
 
+using we::runtime::kindui::ColorToken;
+using we::runtime::kindui::MetricToken;
+using we::runtime::kindui::PaddingToken;
+
 namespace we::runtime::kindui {
+using we::editor::ui::Panel;
 
 namespace {
     class FixedGap : public Widget {

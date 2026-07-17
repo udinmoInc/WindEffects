@@ -6,7 +6,7 @@
 #include <mutex>
 #include <unordered_map>
 
-namespace we::runtime::kindui {
+namespace we::editor::ui {
 
 class DockManager final : public IDockManager {
 public:
@@ -45,4 +45,4 @@ public:
 
 UIFRAMEWORK_API WorkspaceLayout CreateDefaultEditorWorkspaceLayout();
 
-} // namespace we::runtime::kindui
+} // namespace we::editor::ui

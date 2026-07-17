@@ -4,6 +4,7 @@
 #include "KindUI/Core/Style.h"
 #include "KindUI/Core/Types.h"
 #include "KindUI/Styles/StyleProperty.h"
+#include "KindUI/Tokens/DesignToken.h"
 
 namespace we::runtime::kindui {
 

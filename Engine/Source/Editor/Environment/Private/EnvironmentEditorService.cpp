@@ -8,7 +8,7 @@
 #include "Widgets/PropertyEditor.h"
 #include "Widgets/TreeView.h"
 #include "Widgets/MenuBar.h"
-#include "EditorWorkspaceController.h"
+#include "WindEffects/Editor/UI/Shell/EditorWorkspaceController.h"
 #include "KindUI/Core/PaintContext.h"
 #include "KindUI/Core/Animator.h"
 #include "KindUI/Core/DPIContext.h"

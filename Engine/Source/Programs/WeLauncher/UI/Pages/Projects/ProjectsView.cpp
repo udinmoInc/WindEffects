@@ -1,11 +1,11 @@
 #include "UI/Pages/Projects/ProjectsView.h"
 
 #include "KindUI/Declarative/UI.h"
-#include "UI/LauncherHelpers.h"
+#include "UI/Shell/LauncherHelpers.h"
 #include "UI/Pages/Projects/ProjectsComponents.h"
 #include "UI/Pages/Projects/ProjectsResources.h"
 #include "UI/Pages/Projects/ProjectsStyles.h"
-#include "UI/Widgets/LauncherControls.h"
+#include "UI/Controls/LauncherControls.h"
 
 namespace we::programs::welauncher {
 namespace UI = we::runtime::kindui::UI;

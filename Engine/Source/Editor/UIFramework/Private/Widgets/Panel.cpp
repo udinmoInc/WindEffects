@@ -1,4 +1,4 @@
-#include "Widgets/Panel.h"
+#include "WindEffects/Editor/UI/Widgets/Panel.h"
 #include "WindEffects/Editor/UI/Panel/PanelChrome.h"
 #include "KindUI/Core/PaintContext.h"
 #include "KindUI/Core/Icon.h"
@@ -8,7 +8,11 @@
 #include <functional>
 #include <algorithm>
 
-namespace we::runtime::kindui {
+using we::runtime::kindui::ColorToken;
+using we::runtime::kindui::MetricToken;
+using we::runtime::kindui::PaddingToken;
+
+namespace we::editor::ui {
 
 Panel::Panel(const std::string& title)
     : m_Title(title)
@@ -297,4 +301,4 @@ Panel::HeaderAction* Panel::GetActionAtPosition(const Point& pos) {
     return nullptr;
 }
 
-} // namespace we::runtime::kindui
+} // namespace we::editor::ui

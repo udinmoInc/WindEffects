@@ -1,16 +1,23 @@
 #include "Explorer/WorldOutlinerApi.h"
 #include "Explorer/ExplorerPanelAssets.h"
 #include "WindEffects/Editor/EditorSDK.h"
-#include "Widgets/Panel.h"
+#include "WindEffects/Editor/UI/Widgets/Panel.h"
 #include "Widgets/TreeView.h"
 #include "Widgets/ExplorerPanelHeader.h"
 #include "KindUI/Theming/ThemeAccess.h"
 #include "Widgets/ExplorerFilterMenu.h"
 #include "KindUI/Core/Icon.h"
-#include "EditorWorkspaceController.h"
+#include "WindEffects/Editor/UI/Shell/EditorWorkspaceController.h"
+#include "KindUI/Tokens/DesignToken.h"
 
 namespace we::programs::editor {
+
+using we::runtime::kindui::ColorToken;
+using we::runtime::kindui::MetricToken;
+using we::runtime::kindui::PaddingToken;
+
 using namespace we::runtime::kindui;
+using namespace we::editor::ui;
 
 namespace {
 std::shared_ptr<ExplorerPanelHeader> g_ExplorerHeader;
@@ -18,7 +25,7 @@ std::shared_ptr<ExplorerPanelHeader> g_ExplorerHeader;
 
 std::shared_ptr<Panel> CreateWorldOutlinerPanel() {
     auto panel = std::make_shared<Panel>("Explorer");
-    panel->SetHeaderHeight(ResolveMetric(MetricToken::PanelHeaderHeight));
+    panel->SetHeaderHeight(we::runtime::kindui::ResolveMetric(MetricToken::PanelHeaderHeight));
     panel->SetCollapsible(false);
     panel->SetTabIcon(Icons::HierarchyName);
 

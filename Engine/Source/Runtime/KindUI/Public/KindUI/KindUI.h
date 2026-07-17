@@ -44,10 +44,10 @@
 #include "KindUI/Widgets/Components.h"
 #include "KindUI/Widgets/ModalHost.h"
 #include "KindUI/Widgets/VirtualList.h"
+#include "KindUI/Tokens/DesignToken.h"
 
 // --- Advanced / extension (include directly when needed) ----------------------
 //
 // KindUI/Core/Widget.h              — subclassing & custom widgets
 // KindUI/StylePipeline/StylePipeline.h — custom style resolution
 // KindUI/Rendering/OverlayRenderer.h — shell GPU integration
-// KindUI/Theming/ColorToken.h       — legacy token bridge (deprecated)

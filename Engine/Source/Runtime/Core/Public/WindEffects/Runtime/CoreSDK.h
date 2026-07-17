@@ -4,8 +4,8 @@
 
 #include "WindEffects/Platform.h"
 
-#include "AssetRegistry.h"
+#include "Core/AssetRegistry.h"
 #include "Modules/ModuleManager.h"
-#include "PluginManager.h"
-#include "Localization.h"
+#include "Core/PluginManager.h"
+#include "Core/Localization.h"
 #include "Core/IgniteBTInvoker.h"

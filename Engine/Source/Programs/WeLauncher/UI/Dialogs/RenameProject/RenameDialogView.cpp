@@ -1,7 +1,7 @@
 #include "UI/Dialogs/RenameProject/RenameDialogView.h"
 
 #include "UI/Dialogs/DialogStyles.h"
-#include "UI/LauncherHelpers.h"
+#include "UI/Shell/LauncherHelpers.h"
 
 #include "KindUI/Core/Icon.h"
 #include "KindUI/Core/Widgets/DesignSystemControls.h"

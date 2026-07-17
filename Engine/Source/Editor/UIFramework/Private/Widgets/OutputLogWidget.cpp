@@ -1,10 +1,14 @@
-#include "Widgets/OutputLogWidget.h"
+#include "WindEffects/Editor/UI/Widgets/OutputLogWidget.h"
 #include "WindEffects/Editor/UI/Panel/PanelChrome.h"
 #include "KindUI/Core/PaintContext.h"
 #include "KindUI/Tokens/DesignToken.h"
 #include "KindUI/Theming/StyleRole.h"
 
-namespace we::runtime::kindui {
+using we::runtime::kindui::ColorToken;
+using we::runtime::kindui::MetricToken;
+using we::runtime::kindui::PaddingToken;
+
+namespace we::editor::ui {
 
 OutputLogWidget::OutputLogWidget() {
     for (const auto& record : we::Logger::GetHistory()) {
@@ -129,4 +133,4 @@ void OutputLogWidget::Paint(PaintContext& context) {
     }
 }
 
-} // namespace we::runtime::kindui
+} // namespace we::editor::ui

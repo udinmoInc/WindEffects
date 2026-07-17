@@ -18,6 +18,7 @@
 #include "EditorShellBuilder.h"
 
 namespace we::runtime::kindui {
+using we::editor::ui::EditorApplicationContext;
 class OverlayHost;
 class IconRenderer;
 }
@@ -55,7 +56,7 @@ private:
     std::shared_ptr<we::runtime::kindui::Widget> m_ViewportWidget;
     std::shared_ptr<we::runtime::kindui::StatusBar> m_StatusBar;
     std::shared_ptr<we::runtime::kindui::TitleBar> m_TitleBar;
-    std::unique_ptr<we::runtime::kindui::EditorApplicationContext> m_UIContext;
+    std::unique_ptr<we::editor::ui::EditorApplicationContext> m_UIContext;
     we::editor::mainframe::EditorWindowHitTestData m_WindowHitTestData{};
 
     void EnsureVisibleSwapchain();

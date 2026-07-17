@@ -1,6 +1,6 @@
 #include "PlaceActors/PlaceActorsPlacement.h"
 
-#include "EditorToolsRegistry.h"
+#include "WindEffects/Editor/UI/Shell/EditorToolsRegistry.h"
 #include "EditorCamera.h"
 #include "Scene/Scene.h"
 #include "Scene/Entity.h"

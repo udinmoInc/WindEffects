@@ -4,6 +4,10 @@
 #include "KindUI/Theming/StyleRole.h"
 #include "KindUI/Layout/OverlayManager.h"
 
+using we::runtime::kindui::ColorToken;
+using we::runtime::kindui::MetricToken;
+using we::runtime::kindui::PaddingToken;
+
 namespace we::runtime::kindui {
 
 DropdownMenu::DropdownMenu(const std::vector<std::shared_ptr<MenuItem>>& items)

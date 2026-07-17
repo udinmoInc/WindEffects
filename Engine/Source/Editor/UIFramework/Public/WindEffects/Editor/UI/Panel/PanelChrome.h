@@ -1,15 +1,18 @@
 #pragma once
 
 #include "WindEffects/Editor/UI/Export.h"
+#include "KindUI/Core/Widget.h"
 #include "KindUI/Core/Types.h"
 #include "KindUI/Core/PaintContext.h"
 #include "RHI/Types.h"
 #include <string>
 #include <vector>
 
-namespace we::runtime::kindui {
-
-class Widget;
+namespace we::editor::ui {
+using we::runtime::kindui::Widget;
+using we::runtime::kindui::PaintContext;
+using we::runtime::kindui::Rect;
+using we::runtime::kindui::Color;
 
 /// Shared panel design system — dock tabs, headers, toolbars, search, and rows.
 namespace PanelChrome {
@@ -125,4 +128,4 @@ UIFRAMEWORK_API Rect InsetSearchRect(const Rect& toolbarRect, float searchWidth)
 
 } // namespace PanelChrome
 
-} // namespace we::runtime::kindui
+} // namespace we::editor::ui

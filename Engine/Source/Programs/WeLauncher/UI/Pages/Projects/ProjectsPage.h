@@ -1,12 +1,12 @@
 #pragma once
 
 #include "App/LauncherContext.h"
-#include "UI/PageState.h"
+#include "UI/Pages/PageState.h"
 #include "UI/Pages/Projects/IProjectsHostActions.h"
 #include "UI/Pages/Projects/ProjectsCommands.h"
 #include "UI/Pages/Projects/ProjectsModel.h"
 #include "UI/Pages/Projects/ProjectsViewModel.h"
-#include "UI/Widgets/LauncherControls.h"
+#include "UI/Controls/LauncherControls.h"
 
 #include <memory>
 

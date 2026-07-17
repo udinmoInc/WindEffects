@@ -1,7 +1,7 @@
 #include "PlaceActors/PlaceActorsRegistration.h"
 #include "PlaceActors/PlaceActorsPanel.h"
 #include "PlaceActors/PlaceActorsPlacement.h"
-#include "EditorToolsRegistry.h"
+#include "WindEffects/Editor/UI/Shell/EditorToolsRegistry.h"
 #include "KindUI/Core/Icon.h"
 
 #include <memory>

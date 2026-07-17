@@ -12,7 +12,7 @@ void EventBus::UnsubscribeAll(std::string_view eventType) {
     m_Handlers.erase(std::string(eventType));
 }
 
-void EventBus::Publish(const EditorEvent& event) {
+void EventBus::Publish(const UIEvent& event) {
     std::vector<EventHandler> handlers;
     {
         std::lock_guard lock(m_Mutex);

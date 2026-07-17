@@ -4,6 +4,7 @@
 
 namespace we::programs::editor {
 using namespace we::runtime::kindui;
+using namespace we::editor::ui;
 
 std::shared_ptr<Panel> CreateGamePanel() {
     auto toolbar = ToolbarBuilder()

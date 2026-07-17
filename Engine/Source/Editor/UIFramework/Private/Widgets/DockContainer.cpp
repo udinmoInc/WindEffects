@@ -1,4 +1,4 @@
-#include "Widgets/DockContainer.h"
+#include "WindEffects/Editor/UI/Widgets/DockContainer.h"
 #include "WindEffects/Editor/UI/Panel/PanelChrome.h"
 #include "KindUI/Core/PaintContext.h"
 #include "KindUI/Core/Icon.h"
@@ -8,7 +8,9 @@
 #include <algorithm>
 #include <cmath>
 
-namespace we::runtime::kindui {
+using we::runtime::kindui::PaddingToken;
+
+namespace we::editor::ui {
 
 namespace {
 constexpr float kTabDragThreshold = 6.0f;
@@ -355,4 +357,4 @@ bool DockContainer::ShowsPointerCursor(const Point& position) const {
     return false;
 }
 
-} // namespace we::runtime::kindui
+} // namespace we::editor::ui

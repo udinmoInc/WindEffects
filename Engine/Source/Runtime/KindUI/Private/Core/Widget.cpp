@@ -8,6 +8,8 @@
 #include <algorithm>
 #include <cmath>
 #include <stdexcept>
+#include "KindUI/Tokens/DesignToken.h"
+
 namespace we::runtime::kindui {
 
 Widget::Diagnostics* Widget::s_GlobalDiagnostics = nullptr;

@@ -1,6 +1,6 @@
 #include "Text/TextEngine.h"
 
-#include "AssetRegistry.h"
+#include "Core/AssetRegistry.h"
 
 #include <filesystem>
 

@@ -1,12 +1,12 @@
 #include "ViewportNavigationPreferences.h"
-#include "ViewportNavigationSettings.h"
+#include "WindEffects/Editor/UI/Shell/ViewportNavigationSettings.h"
 #include "ViewportNavigation.h"
 #include "ViewportToolbarState.h"
-#include "EditorWorkspaceController.h"
+#include "WindEffects/Editor/UI/Shell/EditorWorkspaceController.h"
 #include "WindEffects/Editor/EditorSDK.h"
 
 #include "Widgets/ViewportSliderPopup.h"
-#include "Widgets/Panel.h"
+#include "WindEffects/Editor/UI/Widgets/Panel.h"
 #include "KindUI/Layout/Flex.h"
 #include "Widgets/ToolButton.h"
 #include "KindUI/Core/Icon.h"
@@ -169,14 +169,14 @@ std::shared_ptr<we::runtime::kindui::Column> BuildViewportNavigationPreferencesC
 
 } // namespace
 
-std::shared_ptr<we::runtime::kindui::Panel> CreateViewportNavigationPreferencesPanel() {
-    return we::runtime::kindui::PanelBuilder("Viewport Navigation")
+std::shared_ptr<we::editor::ui::Panel> CreateViewportNavigationPreferencesPanel() {
+    return we::editor::ui::PanelBuilder("Viewport Navigation")
         .TabIcon(we::runtime::kindui::Icons::SettingsName)
         .Content(BuildViewportNavigationPreferencesContent());
 }
 
 REGISTER_UI_PANEL(ViewportNavigation,
-    WE_PANEL(ViewportNavigation).Title("Viewport Navigation").Icon("settings").Zone(we::runtime::kindui::DockZone::Floating).Hidden(),
+    WE_PANEL(ViewportNavigation).Title("Viewport Navigation").Icon("settings").Zone(we::editor::ui::DockZone::Floating).Hidden(),
     CreateViewportNavigationPreferencesPanel)
 
 void ShowViewportNavigationPreferences() {

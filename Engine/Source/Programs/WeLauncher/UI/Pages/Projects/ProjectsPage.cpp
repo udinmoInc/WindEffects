@@ -5,7 +5,7 @@
 #include "KindUI/App/ViewHost.h"
 #include "KindUI/Layout/Flex.h"
 #include "KindUI/Widgets/VirtualList.h"
-#include "UI/LauncherHelpers.h"
+#include "UI/Shell/LauncherHelpers.h"
 #include "KindUI/Tokens/DesignToken.h"
 #include "KindUI/Theming/StyleRole.h"
 

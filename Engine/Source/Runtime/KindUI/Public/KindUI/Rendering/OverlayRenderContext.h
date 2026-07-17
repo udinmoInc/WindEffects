@@ -20,7 +20,3 @@ struct OverlayRenderContext {
 
 } // namespace we::runtime::uigfx
 
-// Compatibility alias for existing Editor/Launcher call sites.
-namespace we::editor::rendering {
-using we::runtime::uigfx::OverlayRenderContext;
-}

@@ -2,7 +2,7 @@
 
 #include "KindUI/Commands/ICommandRegistry.h"
 
-namespace we::runtime::kindui {
+namespace we::editor::ui {
 
 void UIExtensionRegistry::RegisterExtension(std::shared_ptr<IEditorUIExtension> extension) {
     if (!extension) return;
@@ -46,4 +46,4 @@ void UIExtensionRegistry::PopulateCommandRegistry(ICommandRegistry& commands) co
     }
 }
 
-} // namespace we::runtime::kindui
+} // namespace we::editor::ui

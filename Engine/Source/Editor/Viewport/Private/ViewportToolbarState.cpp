@@ -1,9 +1,9 @@
 #include "ViewportToolbarState.h"
 #include "ViewportNavigation.h"
-#include "ViewportNavigationSettings.h"
+#include "WindEffects/Editor/UI/Shell/ViewportNavigationSettings.h"
 #include "Widgets/ViewportSliderPopup.h"
 #include "EditorCamera.h"
-#include "EditorWorkspaceController.h"
+#include "WindEffects/Editor/UI/Shell/EditorWorkspaceController.h"
 #include "Widgets/ToolButton.h"
 #include <cmath>
 #include <algorithm>

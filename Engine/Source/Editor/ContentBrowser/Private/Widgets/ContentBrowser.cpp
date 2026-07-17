@@ -18,7 +18,12 @@
 #include <cctype>
 #include <cmath>
 
+using we::runtime::kindui::ColorToken;
+using we::runtime::kindui::MetricToken;
+using we::runtime::kindui::PaddingToken;
+
 namespace we::runtime::kindui {
+using we::editor::ui::Panel;
 
 namespace {
 using we::editor::contentbrowser::ContentBrowserService;

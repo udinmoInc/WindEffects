@@ -1,6 +1,8 @@
 #pragma once
 
 #include "KindUI/Theming/GraphiteDarkTheme.h"
+#include "KindUI/Tokens/DesignToken.h"
+#include "KindUI/Theming/ThemeAccess.h"
 
 namespace we::programs::welauncher {
 

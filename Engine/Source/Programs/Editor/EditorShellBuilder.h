@@ -9,6 +9,11 @@
 #include <memory>
 
 namespace we::runtime::kindui {
+using we::editor::ui::DockLayoutBuildResult;
+using we::editor::ui::DockLayoutBuilder;
+using we::editor::ui::EditorApplicationContext;
+using we::editor::ui::IEditorApplicationContext;
+using we::editor::ui::Panel;
 class Widget;
 class OverlayHost;
 class OverlayRenderer;

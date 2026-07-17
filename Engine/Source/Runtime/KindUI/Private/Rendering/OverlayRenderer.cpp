@@ -8,7 +8,7 @@
 #include "KindUI/Rendering/UiGpuUpload.h"
 #include "Rendering/UiImmediateRenderer.h"
 
-#include "AssetRegistry.h"
+#include "Core/AssetRegistry.h"
 #include "Core/FrameCounter.h"
 #include "Core/LogCategory.h"
 #include "Core/Logger.h"
@@ -159,7 +159,7 @@ void OverlayRenderer::SetTargetExtent(uint32_t width, uint32_t height) {
     m_FrameStats.height = height;
 }
 
-void OverlayRenderer::RenderEditorUI(const std::shared_ptr<Widget>& root, uint32_t frameSlot) {
+void OverlayRenderer::RenderUI(const std::shared_ptr<Widget>& root, uint32_t frameSlot) {
     m_ActiveFrameSlot = frameSlot;
     const uint64_t frameNumber = we::runtime::core::FrameCounter::GetFrameNumber();
     const uint32_t width = m_CurrentWidth;
@@ -198,7 +198,7 @@ void OverlayRenderer::RenderEditorUI(const std::shared_ptr<Widget>& root, uint32
     m_FrameStats.height = height;
 }
 
-void OverlayRenderer::BeginOverlayPass(const we::editor::rendering::OverlayRenderContext& context) {
+void OverlayRenderer::BeginOverlayPass(const we::runtime::uigfx::OverlayRenderContext& context) {
     m_PendingContext = context;
     if (context.targetExtent.width != 0 && context.targetExtent.height != 0) {
         m_CurrentWidth = context.targetExtent.width;
@@ -206,7 +206,7 @@ void OverlayRenderer::BeginOverlayPass(const we::editor::rendering::OverlayRende
     }
 }
 
-void OverlayRenderer::EndOverlayPass(const we::editor::rendering::OverlayRenderContext& context) {
+void OverlayRenderer::EndOverlayPass(const we::runtime::uigfx::OverlayRenderContext& context) {
     if (!m_UIImmediate || m_Vertices.empty() || m_Batches.empty()) {
         return;
     }

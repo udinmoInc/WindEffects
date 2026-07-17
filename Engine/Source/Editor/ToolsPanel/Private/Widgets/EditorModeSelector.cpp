@@ -1,6 +1,6 @@
 #include "Widgets/EditorModeSelector.h"
-#include "EditorModeController.h"
-#include "EditorToolsRegistry.h"
+#include "WindEffects/Editor/UI/Shell/EditorModeController.h"
+#include "WindEffects/Editor/UI/Shell/EditorToolsRegistry.h"
 #include "KindUI/Core/PaintContext.h"
 #include "KindUI/Tokens/DesignToken.h"
 #include "KindUI/Theming/StyleRole.h"
@@ -27,6 +27,8 @@ using we::runtime::kindui::Point;
 using we::runtime::kindui::Rect;
 using we::runtime::kindui::Size;
 using we::runtime::kindui::ColorToken;
+using we::runtime::kindui::MetricToken;
+using we::runtime::kindui::PaddingToken;
 
 class EditorModeMenu : public we::runtime::kindui::Widget {
 public:

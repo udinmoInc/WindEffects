@@ -1,9 +1,16 @@
 #include "WindEffects/Editor/UI/Builders/PanelBuilder.h"
 #include "KindUI/Theming/ThemeAccess.h"
 #include "KindUI/Tokens/DesignToken.h"
-#include "KindUI/Theming/StyleRole.h"
+#include "KindUI/Core/Geometry.h"
 
-namespace we::runtime::kindui {
+using we::runtime::kindui::ColorToken;
+using we::runtime::kindui::MetricToken;
+using we::runtime::kindui::ResolveMetric;
+using we::runtime::kindui::Margin;
+using namespace we::runtime::kindui::Icons;
+
+namespace we::editor::ui {
+using we::runtime::kindui::Row;
 
 PanelBuilder::PanelBuilder(std::string_view title)
     : m_Panel(std::make_shared<Panel>(std::string(title))) {
@@ -36,7 +43,7 @@ PanelBuilder& PanelBuilder::Collapsible(bool collapsible) {
 }
 
 PanelBuilder& PanelBuilder::WithCloseButton(std::function<void()> onClose) {
-    m_Panel->AddHeaderAction(Icons::XName, std::move(onClose));
+    m_Panel->AddHeaderAction(XName, std::move(onClose));
     return *this;
 }
 
@@ -54,10 +61,10 @@ PanelBuilder& PanelBuilder::ToolbarBox(std::function<void(Row&)> build) {
     auto toolbarBox = std::make_shared<Row>();
     toolbarBox->Gap(4.0f);
     toolbarBox->Padding(Margin{
-        ResolveMetric(MetricToken::Space3),
-        ResolveMetric(MetricToken::Space1),
-        ResolveMetric(MetricToken::Space3),
-        ResolveMetric(MetricToken::Space1)
+        we::runtime::kindui::ResolveMetric(MetricToken::Space3),
+        we::runtime::kindui::ResolveMetric(MetricToken::Space1),
+        we::runtime::kindui::ResolveMetric(MetricToken::Space3),
+        we::runtime::kindui::ResolveMetric(MetricToken::Space1)
     });
     if (build) {
         build(*toolbarBox);
@@ -75,4 +82,4 @@ std::shared_ptr<Panel> PanelBuilder::Build() {
     return m_Panel;
 }
 
-} // namespace we::runtime::kindui
+} // namespace we::editor::ui

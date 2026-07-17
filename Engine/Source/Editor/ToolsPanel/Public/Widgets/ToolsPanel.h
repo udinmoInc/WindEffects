@@ -4,7 +4,7 @@
 
 #include "KindUI/Core/Widget.h"
 #include "KindUI/Core/PaintContext.h"
-#include "EditorToolsRegistry.h"
+#include "WindEffects/Editor/UI/Shell/EditorToolsRegistry.h"
 #include "ToolsPanelState.h"
 #include <functional>
 #include <memory>
@@ -12,6 +12,7 @@
 #include <vector>
 
 namespace we::runtime::kindui {
+using we::editor::ui::Panel;
 class SearchBox;
 }
 

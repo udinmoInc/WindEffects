@@ -12,14 +12,20 @@
 #include <vector>
 
 namespace we::runtime::kindui {
-class Panel;
 struct MenuItem;
 class Widget;
 }
+namespace we::editor::ui {
+using we::runtime::kindui::Widget;
+using we::runtime::kindui::ICommand;
+using we::runtime::kindui::ICommandRegistry;
+using we::runtime::kindui::MenuItem;
+class Panel;
+}
 
-namespace we::runtime::kindui {
+namespace we::editor::ui {
 
-using ExtensionPanelFactory = std::function<std::shared_ptr<we::runtime::kindui::Panel>()>;
+using ExtensionPanelFactory = std::function<std::shared_ptr<we::editor::ui::Panel>()>;
 using ExtensionMenuFactory = std::function<std::vector<std::shared_ptr<we::runtime::kindui::MenuItem>>()>;
 
 struct PanelRegistration {
@@ -61,4 +67,4 @@ private:
     std::vector<std::shared_ptr<ICommand>> m_PendingCommands;
 };
 
-} // namespace we::runtime::kindui
+} // namespace we::editor::ui

@@ -4,7 +4,7 @@
 #include "KindUI/Rendering/OverlayRenderer.h"
 #include "KindUI/Rendering/OverlayRenderContext.h"
 #include "KindUI/Core/EventSystem.h"
-#include "Runtime/Core/AssetRegistry.h"
+#include "Core/AssetRegistry.h"
 #include "Core/Logger.h"
 #include "Platform/PlatformSDK.h"
 #include <variant>
@@ -113,14 +113,14 @@ void CrashReporterApp::MainLoop() {
                 m_Renderer->GetSwapchainWidth(),
                 m_Renderer->GetSwapchainHeight());
 
-            we::editor::rendering::OverlayRenderContext context;
+            we::runtime::uigfx::OverlayRenderContext context;
             context.cmd = m_Renderer->GetFrameCommandList();
             context.targetView = we::rhi::RHITextureViewHandle::Invalid;
             context.targetFormat = m_Renderer->GetSwapchainFormat();
             context.targetExtent = { m_Renderer->GetSwapchainWidth(), m_Renderer->GetSwapchainHeight() };
 
             m_UIRenderer->BeginOverlayPass(context);
-            m_UIRenderer->RenderEditorUI(m_UI, m_Renderer->GetCurrentFrameIndex());
+            m_UIRenderer->RenderUI(m_UI, m_Renderer->GetCurrentFrameIndex());
             m_UIRenderer->EndOverlayPass(context);
 
             m_Renderer->SubmitAndPresent();

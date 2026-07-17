@@ -2,6 +2,7 @@
 
 #include "KindUI/Theming/ThemeManager.h"
 
+
 namespace we::runtime::kindui {
 
 IKindUITheme& ResolveDefaultTheme() {

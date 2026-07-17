@@ -6,6 +6,7 @@
 #include <algorithm>
 #include <cmath>
 
+
 namespace we::runtime::kindui {
 
 Splitter::Splitter(Orientation orientation, float initialRatio)

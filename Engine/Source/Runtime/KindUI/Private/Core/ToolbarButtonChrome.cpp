@@ -3,6 +3,8 @@
 #include "KindUI/Core/PaintContext.h"
 #include "KindUI/Theming/ThemeAccess.h"
 #include "KindUI/Theming/ThemeColors.h"
+#include "KindUI/Tokens/DesignToken.h"
+
 
 namespace we::runtime::kindui::ToolbarButtonChrome {
 namespace {

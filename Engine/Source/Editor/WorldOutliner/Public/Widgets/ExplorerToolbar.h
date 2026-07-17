@@ -6,12 +6,13 @@
 #include <functional>
 #include <string>
 #include <vector>
+#include "KindUI/Tokens/DesignToken.h"
 
 namespace we::runtime::kindui {
 
 class ExplorerToolbar : public Widget {
 public:
-    static float DefaultHeight() { return ResolveMetric(MetricToken::PanelHeaderHeight); }
+    static float DefaultHeight() { return we::runtime::kindui::ResolveMetric(MetricToken::PanelHeaderHeight); }
 
     // Use TreeView's FilterOptions for consistency
     using FilterOptions = TreeView::FilterOptions;

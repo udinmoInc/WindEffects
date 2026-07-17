@@ -11,7 +11,6 @@ public class Core : ModuleRules
 
         PublicIncludePaths.Add("Public");
         PublicIncludePaths.Add("Public/WindEffects");
-        PublicIncludePaths.Add(".");
         PrivateIncludePaths.Add("Private");
 
         Definitions.Add("CORE_EXPORTS");
