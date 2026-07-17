@@ -1,6 +1,11 @@
 #include "UI/LauncherShell.h"
 
 #include "UI/LauncherHelpers.h"
+#include "UI/Pages/LauncherPages.h"
+#include "UI/Pages/Projects/ProjectsPage.h"
+
+#include "KindUI/App/ViewHost.h"
+#include "KindUI/Declarative/UI.h"
 #include "UI/Widgets/CreateProjectViews.h"
 #include "UI/Widgets/ManagerViews.h"
 #include "UI/Widgets/SettingsViews.h"
@@ -29,11 +34,28 @@
 #include <cstdint>
 #include <filesystem>
 #include <functional>
+#include <string_view>
 
 using namespace we::runtime::kindui;
 
 namespace we::programs::welauncher {
 namespace {
+namespace UI = we::runtime::kindui::UI;
+
+std::shared_ptr<ScrollLayout> FindScrollById(const std::shared_ptr<Widget>& root, std::string_view id) {
+    if (!root) {
+        return nullptr;
+    }
+    if (root->GetId() == id) {
+        return std::dynamic_pointer_cast<ScrollLayout>(root);
+    }
+    for (const auto& child : root->GetChildren()) {
+        if (auto found = FindScrollById(child, id)) {
+            return found;
+        }
+    }
+    return nullptr;
+}
 
 std::shared_ptr<Label> MakeLabel(const std::string& text, float size, Color color) {
     auto label = std::make_shared<Label>(text, color, size);
@@ -101,13 +123,6 @@ std::string SortModeLabel(ProjectSortMode mode) {
     }
 }
 
-std::string ToLowerCopy(std::string text) {
-    std::transform(text.begin(), text.end(), text.begin(), [](unsigned char c) {
-        return static_cast<char>(std::tolower(c));
-    });
-    return text;
-}
-
 std::shared_ptr<VerticalBox> MakeSettingsRow(const std::string& caption, const std::string& value) {
     auto row = std::make_shared<VerticalBox>();
     row->SetSpacing(2.0f * LScale());
@@ -170,8 +185,8 @@ LauncherShell::LauncherShell(std::shared_ptr<LauncherContext> context, we::platf
 void LauncherShell::Construct(float dpiScale) {
     (void)dpiScale;
     m_WizardLocation = m_Context->Settings().Settings().defaultProjectsRoot;
-    m_Projects = m_Context->Projects().LoadRecentSummaries();
-    ApplySearchFilter();
+    m_ProjectsPage = std::make_unique<ProjectsPage>(*m_Context, *this);
+    m_ProjectsPage->SetSearchText(m_SearchQuery);
 
     BeginPageContentLoad(0.32f);
     RebuildChrome();
@@ -181,6 +196,62 @@ void LauncherShell::Construct(float dpiScale) {
     SyncHeaderFromState();
     SetStatus(m_Context->StatusMessage().empty() ? "Ready" : m_Context->StatusMessage());
     InvalidateUI();
+}
+
+void LauncherShell::SetHostContext(std::shared_ptr<IWidgetContext> context) {
+    m_HostContext = std::move(context);
+    InitializeApplicationServices();
+}
+
+void LauncherShell::InitializeApplicationServices() {
+    if (!m_HostContext) {
+        return;
+    }
+
+    if (auto widgetContext = std::dynamic_pointer_cast<WidgetContext>(m_HostContext)) {
+        if (!m_PopupHost) {
+            m_PopupHost = std::make_shared<OverlayHost>();
+        }
+        widgetContext->SetPopupHost(m_PopupHost.get());
+    }
+
+    if (!m_Services.dialogs) {
+        m_Services.Initialize(m_HostContext, m_PopupHost ? m_PopupHost.get() : nullptr);
+        m_DialogOverlay = m_Services.dialogs ? m_Services.dialogs->Overlay() : nullptr;
+        if (m_DialogOverlay) {
+            m_DialogOverlay->SetVisible(false);
+            m_DialogOverlay->SetOnScrimClicked([this] {
+                if (m_Services.dialogs) {
+                    m_Services.dialogs->Dismiss();
+                }
+            });
+        }
+    }
+
+    if (!m_RenameDialog) {
+        m_RenameDialog = std::make_unique<RenameProjectDialog>(
+            *this,
+            [this] { return SelectedProjectSummary(); });
+    }
+}
+
+void LauncherShell::EnsureProjectsPage() {
+    if (!m_ProjectsPage) {
+        m_ProjectsPage = std::make_unique<ProjectsPage>(*m_Context, *this);
+    }
+}
+
+const ProjectSummary* LauncherShell::SelectedProjectSummary() const {
+    if (!m_ProjectsPage) {
+        return nullptr;
+    }
+    return m_ProjectsPage->ViewModel().SelectedProject();
+}
+
+void LauncherShell::BeginLoading(float durationSeconds) {
+    BeginPageContentLoad(durationSeconds);
+    EnsureProjectsPage();
+    m_ProjectsPage->SetLoading(true);
 }
 
 void LauncherShell::SetLogoTexture(we::rhi::RHIDescriptorSetHandle logoSet) {
@@ -199,9 +270,7 @@ void LauncherShell::OnWindowStateChanged() {
 }
 
 void LauncherShell::OnTextInput(char32_t codepoint) {
-    if (m_ProjectsSearch && m_ProjectsSearch->IsFocused()) {
-        m_ProjectsSearch->AppendCodepoint(codepoint);
-    }
+    (void)codepoint;
 }
 
 void LauncherShell::RebuildChrome() {
@@ -260,8 +329,8 @@ void LauncherShell::RebuildChrome() {
 }
 
 void LauncherShell::SyncHeaderFromState() {
-    if (m_ProjectsSearch) {
-        m_ProjectsSearch->SetText(m_SearchQuery);
+    if (m_Page == LauncherPage::Projects && m_ProjectsPage) {
+        m_SearchQuery = m_ProjectsPage->SearchText();
     }
 }
 
@@ -271,6 +340,10 @@ void LauncherShell::CapturePageScroll(LauncherPage page) {
         return;
     }
     auto& state = m_Pages[idx];
+    if (page == LauncherPage::Projects && m_ProjectsPage) {
+        m_ProjectsPage->CaptureScroll(state);
+        return;
+    }
     if (state.scroll) {
         state.scrollOffset = state.scroll->GetScrollOffset();
     }
@@ -282,6 +355,10 @@ void LauncherShell::RestorePageScroll(LauncherPage page) {
         return;
     }
     auto& state = m_Pages[idx];
+    if (page == LauncherPage::Projects && m_ProjectsPage) {
+        m_ProjectsPage->RestoreScroll(state);
+        return;
+    }
     if (state.scroll) {
         state.scroll->SetScrollOffset(state.scrollOffset);
     }
@@ -298,6 +375,9 @@ void LauncherShell::GoToPage(LauncherPage page) {
         m_Sidebar->SetActivePage(page);
     }
     BeginPageContentLoad(0.22f);
+    if (page == LauncherPage::Projects && m_ProjectsPage) {
+        m_ProjectsPage->SetSearchText(m_SearchQuery);
+    }
     MarkPageDirty(page);
     EnsurePageBuilt(page);
     ShowPage(page);
@@ -402,10 +482,8 @@ void LauncherShell::OnSearchChanged(const std::string& text) {
     }
     m_SearchQuery = text;
     if (m_Page == LauncherPage::Projects) {
-        ApplySearchFilter();
-        MarkPageDirty(LauncherPage::Projects);
-        EnsurePageBuilt(LauncherPage::Projects);
-        ShowPage(LauncherPage::Projects);
+        EnsureProjectsPage();
+        m_ProjectsPage->SetSearchText(text);
     } else if (m_Page == LauncherPage::Learn) {
         MarkPageDirty(LauncherPage::Learn);
         EnsurePageBuilt(LauncherPage::Learn);
@@ -436,7 +514,8 @@ void LauncherShell::OnViewModeChanged(ProjectViewMode mode) {
 }
 
 void LauncherShell::CycleSortMode() {
-    switch (m_SortMode) {
+    EnsureProjectsPage();
+    switch (m_ProjectsPage->SortMode()) {
     case ProjectSortMode::Recent: SetSortMode(ProjectSortMode::Name); break;
     case ProjectSortMode::Name: SetSortMode(ProjectSortMode::Engine); break;
     case ProjectSortMode::Engine:
@@ -445,35 +524,13 @@ void LauncherShell::CycleSortMode() {
 }
 
 void LauncherShell::SetSortMode(ProjectSortMode mode) {
-    if (m_SortMode == mode) {
-        ApplyProjectSort();
-        MarkPageDirty(LauncherPage::Projects);
-        if (m_Page == LauncherPage::Projects) {
-            EnsurePageBuilt(LauncherPage::Projects);
-            ShowPage(LauncherPage::Projects);
-        }
-        InvalidateUI();
-        return;
-    }
-    m_SortMode = mode;
-    ApplyProjectSort();
-    MarkPageDirty(LauncherPage::Projects);
-    if (m_Page == LauncherPage::Projects) {
-        EnsurePageBuilt(LauncherPage::Projects);
-        ShowPage(LauncherPage::Projects);
-    }
-    InvalidateUI();
+    EnsureProjectsPage();
+    m_ProjectsPage->SetSortMode(mode);
 }
 
 void LauncherShell::ToggleCompatibleFilter() {
-    m_CompatibleOnly = !m_CompatibleOnly;
-    ApplySearchFilter();
-    MarkPageDirty(LauncherPage::Projects);
-    if (m_Page == LauncherPage::Projects) {
-        EnsurePageBuilt(LauncherPage::Projects);
-        ShowPage(LauncherPage::Projects);
-    }
-    InvalidateUI();
+    EnsureProjectsPage();
+    m_ProjectsPage->ToggleCompatibleFilter();
 }
 
 void LauncherShell::ShowHelp() {
@@ -483,26 +540,18 @@ void LauncherShell::ShowHelp() {
 }
 
 bool LauncherShell::IsFavorite(const std::string& weprojPath) const {
-    return std::find(m_FavoritePaths.begin(), m_FavoritePaths.end(), weprojPath) != m_FavoritePaths.end();
+    return m_ProjectsPage && m_ProjectsPage->Model().IsFavorite(weprojPath);
 }
 
 void LauncherShell::ToggleFavorite(const std::string& weprojPath) {
-    if (weprojPath.empty()) {
+    if (weprojPath.empty() || !m_ProjectsPage) {
         return;
     }
-    const auto it = std::find(m_FavoritePaths.begin(), m_FavoritePaths.end(), weprojPath);
-    if (it != m_FavoritePaths.end()) {
-        m_FavoritePaths.erase(it);
-        SetStatus("Removed from pinned projects");
-    } else {
-        m_FavoritePaths.push_back(weprojPath);
-        SetStatus("Pinned project");
-    }
-    MarkPageDirty(LauncherPage::Projects);
-    if (m_Page == LauncherPage::Projects) {
-        EnsurePageBuilt(LauncherPage::Projects);
-        ShowPage(LauncherPage::Projects);
-    }
+    m_ProjectsPage->Model().ToggleFavorite(weprojPath);
+    m_ProjectsPage->ViewModel().RecomputeVisibleProjects();
+    SetStatus(m_ProjectsPage->Model().IsFavorite(weprojPath)
+        ? "Pinned project"
+        : "Removed from pinned projects");
 }
 
 void LauncherShell::ShowProjectMoreMenu(std::size_t index) {
@@ -511,314 +560,67 @@ void LauncherShell::ShowProjectMoreMenu(std::size_t index) {
     RebuildProjectActionsDialog();
 }
 
-std::shared_ptr<Widget> LauncherShell::BuildProjectsPageHeader(bool showActions) {
-    const float s = LScale();
-    auto row = MakeRow();
-    row->Gap(kLauncherButtonGap * s)
-        .Align(AlignItems::Center)
-        .Background(LColor(ThemeToken::PanelContentBackground));
-
-    auto titleCol = MakeColumn();
-    titleCol->Gap(2.0f * s).Align(AlignItems::Start);
-
-    auto title = MakeLabel(
-        "Projects",
-        LMetric(ThemeToken::TextSizeTitle) * s,
-        LColor(ThemeToken::TextPrimary));
-    title->SetHorizontalAlignment(HorizontalAlignment::Left);
-    titleCol->AddChild(title);
-
-    auto subtitle = MakeLabel(
-        "Open, create, and manage WindEffects projects",
-        LMetric(ThemeToken::TextSizeBody) * s,
-        LColor(ThemeToken::TextMuted));
-    subtitle->SetHorizontalAlignment(HorizontalAlignment::Left);
-    titleCol->AddChild(subtitle);
-
-    titleCol->SetFlexGrow(1.0f);
-    row->AddChild(titleCol);
-
-    if (showActions) {
-        auto openBtn = std::make_shared<SecondaryToolbarButton>("Open Project", Icons::OpenFolderName);
-        openBtn->SetOnClicked([this] { BrowseForProject(); });
-        row->AddChild(openBtn);
-
-        auto newBtn = std::make_shared<PrimaryToolbarButton>("New Project", Icons::PlusName);
-        newBtn->SetOnClicked([this] { ShowCreateWizard(); });
-        row->AddChild(newBtn);
-    }
-
-    return row;
-}
-
-std::shared_ptr<Widget> LauncherShell::BuildProjectSearchRow() {
-    const float s = LScale();
-    auto bar = std::make_shared<HorizontalBox>();
-    bar->SetSpacing(0.0f);
-    bar->SetVerticalAlignment(VerticalAlignment::Center);
-    bar->SetHorizontalAlignment(HorizontalAlignment::Fill);
-    bar->SetPadding(Margin{});
-    bar->SetBackgroundColor(LColor(ThemeToken::PanelContentBackground));
-
-    bar->AddChild(std::make_shared<Spacer>());
-
-    auto search = std::make_shared<CompactSearchField>("Search Projects...");
-    search->SetText(m_SearchQuery);
-    search->SetOnChanged([this](const std::string& text) { OnSearchChanged(text); });
-    search->SetVerticalAlignment(VerticalAlignment::Center);
-    search->SetHorizontalAlignment(HorizontalAlignment::Left);
-    m_ProjectsSearch = search;
-    bar->AddChild(search);
-
-    return bar;
-}
-
 void LauncherShell::RebuildProjectsPage() {
+    EnsureProjectsPage();
     auto& state = m_Pages[static_cast<std::size_t>(LauncherPage::Projects)];
-
-    auto page = std::make_shared<VerticalBox>();
-    page->SetSpacing(0.0f);
-    page->SetHorizontalAlignment(HorizontalAlignment::Fill);
-    page->SetVerticalAlignment(VerticalAlignment::Fill);
-    page->SetBackgroundColor(LColor(ThemeToken::PanelContentBackground));
-
-    const float s = LScale();
-
-    // Padded chrome (title / actions / search) — table below is full-bleed.
-    auto chrome = std::make_shared<VerticalBox>();
-    chrome->SetSpacing(0.0f);
-    chrome->SetHorizontalAlignment(HorizontalAlignment::Fill);
-    chrome->SetVerticalAlignment(VerticalAlignment::Top);
-    chrome->SetPadding(Margin{
-        kLauncherContentPadX * s,
-        kLauncherContentPadTop * s,
-        kLauncherContentPadX * s,
-        0.0f
-    });
-    chrome->SetBackgroundColor(LColor(ThemeToken::PanelContentBackground));
-    chrome->AddChild(BuildProjectsPageHeader(true));
-
-    if (IsPageContentLoading()) {
-        chrome->AddChild(std::make_shared<FixedGap>(1.0f, kLauncherTitleToToolbar * s));
-        chrome->AddChild(BuildProjectSearchRow());
-        chrome->AddChild(std::make_shared<FixedGap>(1.0f, kLauncherToolbarToDivider * s));
-        page->AddChild(chrome);
-
-        auto tableHost = std::make_shared<VerticalBox>();
-        tableHost->SetSpacing(0.0f);
-        tableHost->SetHorizontalAlignment(HorizontalAlignment::Fill);
-        tableHost->SetVerticalAlignment(VerticalAlignment::Fill);
-        tableHost->SetPadding(Margin{});
-        tableHost->SetBackgroundColor(LColor(ThemeToken::PanelContentBackground));
-        for (int i = 0; i < 8; ++i) {
-            auto row = std::make_shared<SkeletonCard>(SkeletonKind::ListRow);
-            row->SetHorizontalAlignment(HorizontalAlignment::Fill);
-            tableHost->AddChild(row);
-        }
-        auto filler = std::make_shared<FixedGap>(1.0f, 1.0f);
-        filler->SetVerticalAlignment(VerticalAlignment::Fill);
-        tableHost->AddChild(filler);
-        page->AddChild(tableHost);
-
-        state.root = page;
-        state.scroll = nullptr;
-        return;
-    }
-
-    chrome->AddChild(std::make_shared<FixedGap>(1.0f, kLauncherTitleToToolbar * s));
-    chrome->AddChild(BuildProjectSearchRow());
-    chrome->AddChild(std::make_shared<FixedGap>(1.0f, kLauncherToolbarToDivider * s));
-    page->AddChild(chrome);
-
-    auto tableHost = std::make_shared<VerticalBox>();
-    tableHost->SetSpacing(0.0f);
-    tableHost->SetHorizontalAlignment(HorizontalAlignment::Fill);
-    tableHost->SetVerticalAlignment(VerticalAlignment::Fill);
-    tableHost->SetPadding(Margin{});
-    tableHost->SetBackgroundColor(LColor(ThemeToken::PanelContentBackground));
-    state.scroll = nullptr;
-
-    // Column header always visible (Unity Hub-style), then empty message or rows.
-    auto header = std::make_shared<ProjectTableHeader>();
-    header->SetSortMode(m_SortMode);
-    header->SetOnSort([this](ProjectSortMode mode) { SetSortMode(mode); });
-    tableHost->AddChild(header);
-
-    if (m_Projects.empty() && m_SearchQuery.empty()) {
-        auto empty = std::make_shared<EmptyStatePanel>(
-            "No projects yet",
-            "Create a new project or open an existing one.",
-            Icons::Cube3DName);
-        empty->SetHorizontalAlignment(HorizontalAlignment::Fill);
-        empty->SetVerticalAlignment(VerticalAlignment::Fill);
-        tableHost->AddChild(empty);
-    } else if (m_FilteredProjects.empty()) {
-        auto empty = std::make_shared<EmptyStatePanel>(
-            "No matching projects",
-            "Try a different search or clear the current query.",
-            Icons::SearchName);
-        empty->SetPrimaryAction("Clear Search", Icons::RefreshName, [this] {
-            OnSearchChanged({});
-        });
-        empty->SetHorizontalAlignment(HorizontalAlignment::Fill);
-        empty->SetVerticalAlignment(VerticalAlignment::Fill);
-        tableHost->AddChild(empty);
-    } else {
-        auto scroll = std::make_shared<ScrollLayout>();
-        auto list = std::make_shared<VerticalBox>();
-        list->SetSpacing(0.0f);
-        list->SetHorizontalAlignment(HorizontalAlignment::Fill);
-        list->SetBackgroundColor(LColor(ThemeToken::PanelContentBackground));
-
-        auto mapIndex = [this](const ProjectSummary& project, std::size_t fallback) -> std::size_t {
-            for (std::size_t j = 0; j < m_Projects.size(); ++j) {
-                if (m_Projects[j].weprojPath == project.weprojPath) {
-                    return j;
-                }
-            }
-            return fallback;
-        };
-
-        for (std::size_t i = 0; i < m_FilteredProjects.size(); ++i) {
-            const auto& project = m_FilteredProjects[i];
-            const std::size_t selectIndex = mapIndex(project, i);
-            const bool selected = static_cast<int>(selectIndex) == m_SelectedIndex
-                || std::find(m_MultiSelected.begin(), m_MultiSelected.end(), selectIndex)
-                    != m_MultiSelected.end();
-            auto row = std::make_shared<ProjectTableRow>(
-                project, selected, IsFavorite(project.weprojPath));
-            row->SetOnSelect([this, selectIndex](bool additive) {
-                SelectProject(selectIndex, additive);
-            });
-            row->SetOnAction([this, selectIndex](ProjectCardAction action) {
-                HandleProjectAction(selectIndex, action);
-            });
-            list->AddChild(row);
-        }
-
-        auto filler = std::make_shared<FixedGap>(1.0f, 1.0f);
-        filler->SetVerticalAlignment(VerticalAlignment::Fill);
-        list->AddChild(filler);
-
-        scroll->SetContent(list);
-        scroll->SetHorizontalAlignment(HorizontalAlignment::Fill);
-        scroll->SetVerticalAlignment(VerticalAlignment::Fill);
-        tableHost->AddChild(scroll);
-        state.scroll = scroll;
-    }
-
-    page->AddChild(tableHost);
-    state.root = page;
+    m_ProjectsPage->SetLoading(IsPageContentLoading());
+    m_ProjectsPage->SetSearchText(m_SearchQuery);
+    m_ProjectsPage->Attach(state, m_HostContext);
 }
 
-void LauncherShell::RebuildLearnPage() {
-    auto& state = m_Pages[static_cast<std::size_t>(LauncherPage::Learn)];
 
-    auto page = std::make_shared<VerticalBox>();
-    page->SetSpacing(0.0f);
-    page->SetHorizontalAlignment(HorizontalAlignment::Fill);
-    page->SetVerticalAlignment(VerticalAlignment::Fill);
-    page->SetBackgroundColor(LColor(ThemeToken::PanelContentBackground));
-
-    const float s = LScale();
-
-    auto chrome = std::make_shared<VerticalBox>();
-    chrome->SetSpacing(0.0f);
-    chrome->SetHorizontalAlignment(HorizontalAlignment::Fill);
-    chrome->SetVerticalAlignment(VerticalAlignment::Top);
-    chrome->SetPadding(Margin{
-        kLauncherContentPadX * s,
-        kLauncherContentPadTop * s,
-        kLauncherContentPadX * s,
-        0.0f
-    });
-    chrome->SetBackgroundColor(LColor(ThemeToken::PanelContentBackground));
-
-    auto headerRow = std::make_shared<HorizontalBox>();
-    headerRow->SetSpacing(kLauncherButtonGap * s);
-    headerRow->SetVerticalAlignment(VerticalAlignment::Center);
-    headerRow->SetHorizontalAlignment(HorizontalAlignment::Fill);
-
-    auto titleCol = std::make_shared<VerticalBox>();
-    titleCol->SetSpacing(2.0f * s);
-    titleCol->SetHorizontalAlignment(HorizontalAlignment::Left);
-    auto title = MakeLabel(
-        "Learn",
-        LMetric(ThemeToken::TextSizeTitle) * s,
-        LColor(ThemeToken::TextPrimary));
-    title->SetVerticalAlignment(VerticalAlignment::Center);
-    titleCol->AddChild(title);
-    auto subtitle = MakeLabel(
-        "Samples, guides, and getting started",
-        LMetric(ThemeToken::TextSizeBody) * s,
-        LColor(ThemeToken::TextMuted));
-    subtitle->SetVerticalAlignment(VerticalAlignment::Center);
-    titleCol->AddChild(subtitle);
-    headerRow->AddChild(titleCol);
-    headerRow->AddChild(std::make_shared<Spacer>());
-
-    auto docsBtn = std::make_shared<SecondaryToolbarButton>("Open Docs", Icons::DocumentName);
-    docsBtn->SetOnClicked([this] { SetStatus("Documentation — coming soon"); });
-    headerRow->AddChild(docsBtn);
-    auto refreshBtn = std::make_shared<SecondaryToolbarButton>("Refresh", Icons::RefreshName);
-    refreshBtn->SetOnClicked([this] {
-        BeginPageContentLoad(0.2f);
-        MarkPageDirty(LauncherPage::Learn);
-        EnsurePageBuilt(LauncherPage::Learn);
-        ShowPage(LauncherPage::Learn);
-        SetStatus("Learn content refreshed");
-    });
-    headerRow->AddChild(refreshBtn);
-    chrome->AddChild(headerRow);
-
-    auto searchBar = std::make_shared<HorizontalBox>();
-    searchBar->SetSpacing(0.0f);
-    searchBar->SetVerticalAlignment(VerticalAlignment::Center);
-    searchBar->SetHorizontalAlignment(HorizontalAlignment::Fill);
-    searchBar->SetBackgroundColor(LColor(ThemeToken::PanelContentBackground));
-    searchBar->AddChild(std::make_shared<Spacer>());
-    auto search = std::make_shared<CompactSearchField>("Search Learn...");
-    search->SetText(m_SearchQuery);
-    search->SetOnChanged([this](const std::string& text) { OnSearchChanged(text); });
-    searchBar->AddChild(search);
-
-    if (IsPageContentLoading()) {
-        chrome->AddChild(std::make_shared<FixedGap>(1.0f, kLauncherTitleToToolbar * s));
-        chrome->AddChild(searchBar);
-        chrome->AddChild(std::make_shared<FixedGap>(1.0f, kLauncherToolbarToDivider * s));
-        page->AddChild(chrome);
-
-        auto tableHost = std::make_shared<VerticalBox>();
-        tableHost->SetSpacing(0.0f);
-        tableHost->SetHorizontalAlignment(HorizontalAlignment::Fill);
-        tableHost->SetVerticalAlignment(VerticalAlignment::Fill);
-        tableHost->SetBackgroundColor(LColor(ThemeToken::PanelContentBackground));
-        for (int i = 0; i < 8; ++i) {
-            tableHost->AddChild(std::make_shared<SkeletonCard>(SkeletonKind::ListRow));
-        }
-        auto filler = std::make_shared<FixedGap>(1.0f, 1.0f);
-        filler->SetVerticalAlignment(VerticalAlignment::Fill);
-        tableHost->AddChild(filler);
-        page->AddChild(tableHost);
-        state.root = page;
-        state.scroll = nullptr;
+void LauncherShell::ApplyDeclarativePage(PageState& state, const Element& view, const char* scrollId) {
+    if (!m_HostContext) {
         return;
     }
+    if (!state.viewHost) {
+        state.viewHost = std::make_unique<ViewHost>(m_HostContext);
+        state.viewHost->SetView(view);
+    } else {
+        state.viewHost->Reconcile(view);
+    }
+    state.root = state.viewHost->GetRoot();
+    if (state.root) {
+        state.root->SetHorizontalAlignment(HorizontalAlignment::Fill);
+        state.root->SetVerticalAlignment(VerticalAlignment::Fill);
+        if (auto box = std::dynamic_pointer_cast<VerticalBox>(state.root)) {
+            box->SetBackgroundColor(LColor(ThemeToken::PanelContentBackground));
+        }
+    }
+    state.scroll = scrollId ? FindScrollById(state.root, scrollId) : nullptr;
+}
 
-    chrome->AddChild(std::make_shared<FixedGap>(1.0f, kLauncherTitleToToolbar * s));
-    chrome->AddChild(searchBar);
-    chrome->AddChild(std::make_shared<FixedGap>(1.0f, kLauncherToolbarToDivider * s));
-    page->AddChild(chrome);
+LearnPageModel LauncherShell::BuildLearnPageModel() {
+    LearnPageModel model;
+    model.chrome.title = "Learn";
+    model.chrome.subtitle = "Samples, guides, and getting started";
+    model.chrome.searchPlaceholder = "Search Learn...";
+    model.chrome.searchQuery = m_SearchQuery;
+    model.chrome.loading = IsPageContentLoading();
+    model.chrome.onSearchChanged = [this](const std::string& text) { OnSearchChanged(text); };
 
-    struct LearnEntry {
-        const char* kind;
-        const char* name;
-        const char* detail;
-        const char* icon;
-        std::function<void()> onClick;
-    };
+    model.chrome.toolbarActions.push_back(UI::Host([this]() {
+        auto btn = std::make_shared<SecondaryToolbarButton>("Open Docs", Icons::DocumentName);
+        btn->SetOnClicked([this] { SetStatus("Documentation — coming soon"); });
+        return btn;
+    }));
+    model.chrome.toolbarActions.push_back(UI::Host([this]() {
+        auto btn = std::make_shared<SecondaryToolbarButton>("Refresh", Icons::RefreshName);
+        btn->SetOnClicked([this] {
+            BeginPageContentLoad(0.2f);
+            MarkPageDirty(LauncherPage::Learn);
+            EnsurePageBuilt(LauncherPage::Learn);
+            ShowPage(LauncherPage::Learn);
+            SetStatus("Learn content refreshed");
+        });
+        return btn;
+    }));
 
-    std::vector<LearnEntry> entries = {
+    if (model.chrome.loading) {
+        return model;
+    }
+
+    const std::vector<LearnEntryModel> allEntries = {
         { "Guide", "Create your first project", "Walk through New Project and open it in the editor",
           Icons::PlusName, [this] { ShowCreateWizard(); } },
         { "Guide", "Open documentation", "API reference and engine guides",
@@ -834,207 +636,78 @@ void LauncherShell::RebuildLearnPage() {
     };
 
     const std::string query = ToLowerCopy(m_SearchQuery);
-    std::vector<LearnEntry> visible;
-    visible.reserve(entries.size());
-    for (auto& entry : entries) {
+    model.entries.reserve(allEntries.size());
+    for (const auto& entry : allEntries) {
         if (!query.empty()) {
-            const std::string hay = ToLowerCopy(
-                std::string(entry.kind) + " " + entry.name + " " + entry.detail);
+            const std::string hay = ToLowerCopy(entry.kind + " " + entry.name + " " + entry.detail);
             if (hay.find(query) == std::string::npos) {
                 continue;
             }
         }
-        visible.push_back(std::move(entry));
+        model.entries.push_back(entry);
     }
 
-    auto tableHost = std::make_shared<VerticalBox>();
-    tableHost->SetSpacing(0.0f);
-    tableHost->SetHorizontalAlignment(HorizontalAlignment::Fill);
-    tableHost->SetVerticalAlignment(VerticalAlignment::Fill);
-    tableHost->SetBackgroundColor(LColor(ThemeToken::PanelContentBackground));
-    tableHost->AddChild(std::make_shared<SimpleColumnHeader>(
-        std::vector<std::string>{ "NAME", "TYPE", "DETAIL" }));
-
-    if (visible.empty()) {
-        auto empty = std::make_shared<EmptyStatePanel>(
-            query.empty() ? "Nothing here yet" : "No matching items",
-            query.empty()
-                ? "Samples and guides will appear here as they become available."
-                : "Try a different search or clear the current query.",
-            query.empty() ? Icons::MediaPlayName : Icons::SearchName);
+    if (model.entries.empty()) {
+        model.showEmpty = true;
+        model.emptyTitle = query.empty() ? "Nothing here yet" : "No matching items";
+        model.emptySubtitle = query.empty()
+            ? "Samples and guides will appear here as they become available."
+            : "Try a different search or clear the current query.";
         if (!query.empty()) {
-            empty->SetPrimaryAction("Clear Search", Icons::RefreshName, [this] {
-                OnSearchChanged({});
-            });
+            model.onClearSearch = [this] { OnSearchChanged({}); };
         }
-        empty->SetHorizontalAlignment(HorizontalAlignment::Fill);
-        empty->SetVerticalAlignment(VerticalAlignment::Fill);
-        tableHost->AddChild(empty);
-        state.scroll = nullptr;
-    } else {
-        auto scroll = std::make_shared<ScrollLayout>();
-        auto list = std::make_shared<VerticalBox>();
-        list->SetSpacing(0.0f);
-        list->SetHorizontalAlignment(HorizontalAlignment::Fill);
-        list->SetBackgroundColor(LColor(ThemeToken::PanelContentBackground));
-
-        for (const auto& entry : visible) {
-            list->AddChild(std::make_shared<LibraryPackageRow>(
-                entry.kind,
-                entry.name,
-                entry.detail,
-                entry.icon,
-                entry.onClick));
-        }
-
-        auto filler = std::make_shared<FixedGap>(1.0f, 1.0f);
-        filler->SetVerticalAlignment(VerticalAlignment::Fill);
-        list->AddChild(filler);
-        scroll->SetContent(list);
-        scroll->SetHorizontalAlignment(HorizontalAlignment::Fill);
-        scroll->SetVerticalAlignment(VerticalAlignment::Fill);
-        tableHost->AddChild(scroll);
-        state.scroll = scroll;
     }
-
-    page->AddChild(tableHost);
-    state.root = page;
+    return model;
 }
 
-void LauncherShell::RebuildEnginePage() {
-    auto& state = m_Pages[static_cast<std::size_t>(LauncherPage::Engine)];
+EnginePageModel LauncherShell::BuildEnginePageModel() {
+    EnginePageModel model;
+    model.chrome.title = "Engine";
+    model.chrome.subtitle = "Installed engines and SDK health";
+    model.chrome.searchPlaceholder = "Search Engine installs...";
+    model.chrome.searchQuery = m_SearchQuery;
+    model.chrome.loading = IsPageContentLoading();
+    model.chrome.onSearchChanged = [this](const std::string& text) { OnSearchChanged(text); };
 
-    auto page = std::make_shared<VerticalBox>();
-    page->SetSpacing(0.0f);
-    page->SetHorizontalAlignment(HorizontalAlignment::Fill);
-    page->SetVerticalAlignment(VerticalAlignment::Fill);
-    page->SetBackgroundColor(LColor(ThemeToken::PanelContentBackground));
+    model.chrome.toolbarActions.push_back(UI::Host([this]() {
+        auto btn = std::make_shared<SecondaryToolbarButton>("Refresh", Icons::RefreshName);
+        btn->SetOnClicked([this] {
+            BeginPageContentLoad(0.2f);
+            UpdateFooter();
+            MarkPageDirty(LauncherPage::Engine);
+            EnsurePageBuilt(LauncherPage::Engine);
+            ShowPage(LauncherPage::Engine);
+            SetStatus("Engine status refreshed");
+        });
+        return btn;
+    }));
 
-    const float s = LScale();
-
-    auto chrome = std::make_shared<VerticalBox>();
-    chrome->SetSpacing(0.0f);
-    chrome->SetHorizontalAlignment(HorizontalAlignment::Fill);
-    chrome->SetVerticalAlignment(VerticalAlignment::Top);
-    chrome->SetPadding(Margin{
-        kLauncherContentPadX * s,
-        kLauncherContentPadTop * s,
-        kLauncherContentPadX * s,
-        0.0f
-    });
-    chrome->SetBackgroundColor(LColor(ThemeToken::PanelContentBackground));
-
-    auto headerRow = std::make_shared<HorizontalBox>();
-    headerRow->SetSpacing(kLauncherButtonGap * s);
-    headerRow->SetVerticalAlignment(VerticalAlignment::Center);
-    headerRow->SetHorizontalAlignment(HorizontalAlignment::Fill);
-
-    auto titleCol = std::make_shared<VerticalBox>();
-    titleCol->SetSpacing(2.0f * s);
-    titleCol->SetHorizontalAlignment(HorizontalAlignment::Left);
-    auto title = MakeLabel(
-        "Engine",
-        LMetric(ThemeToken::TextSizeTitle) * s,
-        LColor(ThemeToken::TextPrimary));
-    title->SetVerticalAlignment(VerticalAlignment::Center);
-    titleCol->AddChild(title);
-    auto subtitle = MakeLabel(
-        "Installed engines and SDK health",
-        LMetric(ThemeToken::TextSizeBody) * s,
-        LColor(ThemeToken::TextMuted));
-    subtitle->SetVerticalAlignment(VerticalAlignment::Center);
-    titleCol->AddChild(subtitle);
-    headerRow->AddChild(titleCol);
-    headerRow->AddChild(std::make_shared<Spacer>());
-
-    auto refresh = std::make_shared<SecondaryToolbarButton>("Refresh", Icons::RefreshName);
-    refresh->SetOnClicked([this] {
-        BeginPageContentLoad(0.2f);
-        UpdateFooter();
-        MarkPageDirty(LauncherPage::Engine);
-        EnsurePageBuilt(LauncherPage::Engine);
-        ShowPage(LauncherPage::Engine);
-        SetStatus("Engine status refreshed");
-    });
-    headerRow->AddChild(refresh);
-    chrome->AddChild(headerRow);
-
-    auto searchBar = std::make_shared<HorizontalBox>();
-    searchBar->SetSpacing(0.0f);
-    searchBar->SetVerticalAlignment(VerticalAlignment::Center);
-    searchBar->SetHorizontalAlignment(HorizontalAlignment::Fill);
-    searchBar->SetBackgroundColor(LColor(ThemeToken::PanelContentBackground));
-    searchBar->AddChild(std::make_shared<Spacer>());
-    auto search = std::make_shared<CompactSearchField>("Search Engine installs...");
-    search->SetText(m_SearchQuery);
-    search->SetOnChanged([this](const std::string& text) { OnSearchChanged(text); });
-    searchBar->AddChild(search);
-
-    if (IsPageContentLoading()) {
-        chrome->AddChild(std::make_shared<FixedGap>(1.0f, kLauncherTitleToToolbar * s));
-        chrome->AddChild(searchBar);
-        chrome->AddChild(std::make_shared<FixedGap>(1.0f, kLauncherToolbarToDivider * s));
-        page->AddChild(chrome);
-
-        auto tableHost = std::make_shared<VerticalBox>();
-        tableHost->SetSpacing(0.0f);
-        tableHost->SetHorizontalAlignment(HorizontalAlignment::Fill);
-        tableHost->SetVerticalAlignment(VerticalAlignment::Fill);
-        tableHost->SetBackgroundColor(LColor(ThemeToken::PanelContentBackground));
-        for (int i = 0; i < 4; ++i) {
-            tableHost->AddChild(std::make_shared<SkeletonCard>(SkeletonKind::ListRow));
-        }
-        auto filler = std::make_shared<FixedGap>(1.0f, 1.0f);
-        filler->SetVerticalAlignment(VerticalAlignment::Fill);
-        tableHost->AddChild(filler);
-        page->AddChild(tableHost);
-        state.root = page;
-        state.scroll = nullptr;
-        return;
+    if (model.chrome.loading) {
+        return model;
     }
 
-    chrome->AddChild(std::make_shared<FixedGap>(1.0f, kLauncherTitleToToolbar * s));
-    chrome->AddChild(searchBar);
-    chrome->AddChild(std::make_shared<FixedGap>(1.0f, kLauncherToolbarToDivider * s));
-    page->AddChild(chrome);
-
-    auto tableHost = std::make_shared<VerticalBox>();
-    tableHost->SetSpacing(0.0f);
-    tableHost->SetHorizontalAlignment(HorizontalAlignment::Fill);
-    tableHost->SetVerticalAlignment(VerticalAlignment::Fill);
-    tableHost->SetBackgroundColor(LColor(ThemeToken::PanelContentBackground));
-    tableHost->AddChild(std::make_shared<SimpleColumnHeader>(
-        std::vector<std::string>{ "VERSION", "BUILD", "PATH", "SDK" }));
-
-    const bool hasEngine = m_Context->Engines().HasEngine()
+    model.hasEngine = m_Context->Engines().HasEngine()
         && !m_Context->Engines().InstalledEngines().empty();
 
-    if (!hasEngine) {
-        auto empty = std::make_shared<EmptyStatePanel>(
-            "No Engine Found",
-            "Place the launcher next to an Engine install, or build the engine from source.",
-            Icons::BuildName);
-        empty->SetPrimaryAction("Open Projects", Icons::OpenFolderName, [this] {
-            GoToPage(LauncherPage::Projects);
-        });
-        empty->SetSecondaryAction("Refresh", Icons::RefreshName, [this] {
+    if (!model.hasEngine) {
+        model.showEmpty = true;
+        model.emptyTitle = "No Engine Found";
+        model.emptySubtitle = "Place the launcher next to an Engine install, or build the engine from source.";
+        model.onOpenProjects = [this] { GoToPage(LauncherPage::Projects); };
+        model.onRefresh = [this] {
             BeginPageContentLoad(0.2f);
             MarkPageDirty(LauncherPage::Engine);
             EnsurePageBuilt(LauncherPage::Engine);
             ShowPage(LauncherPage::Engine);
-        });
-        empty->SetHorizontalAlignment(HorizontalAlignment::Fill);
-        empty->SetVerticalAlignment(VerticalAlignment::Fill);
-        tableHost->AddChild(empty);
-        state.scroll = nullptr;
-        page->AddChild(tableHost);
-        state.root = page;
-        return;
+        };
+        return model;
     }
 
     std::string sdkSummary;
     {
-        int pass = 0, warn = 0, fail = 0;
+        int pass = 0;
+        int warn = 0;
+        int fail = 0;
         for (const auto& check : m_Context->Sdk().RunChecks()) {
             switch (check.status) {
             case SdkCheckStatus::Pass: ++pass; break;
@@ -1074,27 +747,20 @@ void LauncherShell::RebuildEnginePage() {
     }
 
     if (visible.empty()) {
-        auto empty = std::make_shared<EmptyStatePanel>(
-            "No matching installs",
-            "Try a different search or clear the current query.",
-            Icons::SearchName);
-        empty->SetPrimaryAction("Clear Search", Icons::RefreshName, [this] {
-            OnSearchChanged({});
-        });
-        empty->SetHorizontalAlignment(HorizontalAlignment::Fill);
-        empty->SetVerticalAlignment(VerticalAlignment::Fill);
-        tableHost->AddChild(empty);
-        state.scroll = nullptr;
-    } else {
-        auto scroll = std::make_shared<ScrollLayout>();
-        auto list = std::make_shared<VerticalBox>();
-        list->SetSpacing(0.0f);
-        list->SetHorizontalAlignment(HorizontalAlignment::Fill);
-        list->SetBackgroundColor(LColor(ThemeToken::PanelContentBackground));
+        model.showEmpty = true;
+        model.emptyTitle = "No matching installs";
+        model.emptySubtitle = "Try a different search or clear the current query.";
+        model.onClearSearch = [this] { OnSearchChanged({}); };
+        return model;
+    }
 
-        for (const auto& rowInfo : visible) {
+    const float s = LScale();
+    model.rows.reserve(visible.size() + m_Context->Sdk().RunChecks().size() + 1);
+    for (std::size_t i = 0; i < visible.size(); ++i) {
+        const EngineInstallInfo rowInfo = visible[i];
+        const std::string root = rowInfo.engineRoot;
+        model.rows.push_back(UI::Id(UI::Host([this, rowInfo, root]() {
             auto row = std::make_shared<EngineInstallRow>(rowInfo, rowInfo.isCurrent);
-            const std::string root = rowInfo.engineRoot;
             row->SetOnAction([this, root](const std::string& action) {
                 if (action == "launch") {
                     GoToPage(LauncherPage::Projects);
@@ -1117,36 +783,49 @@ void LauncherShell::RebuildEnginePage() {
                     SetStatus("Uninstall is not available for local development installs");
                 }
             });
-            list->AddChild(row);
-        }
-
-        list->AddChild(MakeLabel(
-            "SDK checks",
-            LMetric(ThemeToken::TextSizeBody) * s,
-            LColor(ThemeToken::TextPrimary)));
-        for (const auto& check : m_Context->Sdk().RunChecks()) {
-            Color color = LColor(ThemeToken::TextMuted);
-            if (check.status == SdkCheckStatus::Pass) color = LColor(ThemeToken::Success);
-            else if (check.status == SdkCheckStatus::Warn) color = LColor(ThemeToken::Warning);
-            else if (check.status == SdkCheckStatus::Fail) color = LColor(ThemeToken::ErrorForeground);
-            list->AddChild(MakeLabel(
-                check.name + " — " + check.detail,
-                LMetric(ThemeToken::TextSizeCaption) * s,
-                color));
-        }
-
-        auto filler = std::make_shared<FixedGap>(1.0f, 1.0f);
-        filler->SetVerticalAlignment(VerticalAlignment::Fill);
-        list->AddChild(filler);
-        scroll->SetContent(list);
-        scroll->SetHorizontalAlignment(HorizontalAlignment::Fill);
-        scroll->SetVerticalAlignment(VerticalAlignment::Fill);
-        tableHost->AddChild(scroll);
-        state.scroll = scroll;
+            return row;
+        }), "engine-row-" + std::to_string(i)));
     }
 
-    page->AddChild(tableHost);
-    state.root = page;
+    model.rows.push_back(UI::Host([s]() {
+        auto label = std::make_shared<Label>(
+            "SDK checks",
+            LColor(ThemeToken::TextPrimary),
+            LMetric(ThemeToken::TextSizeBody) * s);
+        label->SetHorizontalAlignment(HorizontalAlignment::Left);
+        return label;
+    }));
+
+    for (const auto& check : m_Context->Sdk().RunChecks()) {
+        Color color = LColor(ThemeToken::TextMuted);
+        if (check.status == SdkCheckStatus::Pass) {
+            color = LColor(ThemeToken::Success);
+        } else if (check.status == SdkCheckStatus::Warn) {
+            color = LColor(ThemeToken::Warning);
+        } else if (check.status == SdkCheckStatus::Fail) {
+            color = LColor(ThemeToken::ErrorForeground);
+        }
+        const std::string line = check.name + " — " + check.detail;
+        model.rows.push_back(UI::Host([s, line, color]() {
+            auto label = std::make_shared<Label>(line, color, LMetric(ThemeToken::TextSizeCaption) * s);
+            label->SetHorizontalAlignment(HorizontalAlignment::Left);
+            return label;
+        }));
+    }
+
+    return model;
+}
+
+void LauncherShell::RebuildLearnPage() {
+    auto& state = m_Pages[static_cast<std::size_t>(LauncherPage::Learn)];
+    const LearnPageModel model = BuildLearnPageModel();
+    ApplyDeclarativePage(state, BuildLearnPage(model), model.showEmpty ? nullptr : "learn-scroll");
+}
+
+void LauncherShell::RebuildEnginePage() {
+    auto& state = m_Pages[static_cast<std::size_t>(LauncherPage::Engine)];
+    const EnginePageModel model = BuildEnginePageModel();
+    ApplyDeclarativePage(state, BuildEnginePage(model), model.showEmpty ? nullptr : "engine-scroll");
 }
 
 void LauncherShell::PersistLauncherSettings(const std::string& statusMessage) {
@@ -1957,63 +1636,16 @@ void LauncherShell::RebuildCreateWizard() {
     InvalidateUI();
 }
 
-void LauncherShell::RebuildRenameDialog() {
-    if (!m_ModalHost) {
-        return;
-    }
-    m_ModalHost->SetVisible(true);
-    m_ModalHost->SetDialogWidth(420.0f);
-
-    auto panel = std::make_shared<VerticalBox>();
-    panel->SetPadding(Margin{
-        LMetric(ThemeToken::Space6) * LScale(),
-        LMetric(ThemeToken::Space6) * LScale(),
-        LMetric(ThemeToken::Space6) * LScale(),
-        LMetric(ThemeToken::Space6) * LScale()
-    });
-    panel->SetSpacing(LMetric(ThemeToken::Space3) * LScale());
-    panel->SetBackgroundColor(LColor(ThemeToken::DialogBackground));
-    panel->AddChild(MakeLabel(
-        "Rename Project",
-        LMetric(ThemeToken::TextSizeHeader) * LScale(),
-        LColor(ThemeToken::TextPrimary)));
-    panel->AddChild(MakeLabel(
-        "Enter a new display name.",
-        LMetric(ThemeToken::TextSizeBody) * LScale(),
-        LColor(ThemeToken::TextMuted)));
-    auto nameBox = std::make_shared<TextBox>(m_RenameName, [this](const std::string& text) {
-        m_RenameName = text;
-    });
-    panel->AddChild(nameBox);
-
-    auto buttons = std::make_shared<HorizontalBox>();
-    buttons->SetSpacing(LMetric(ThemeToken::Space2) * LScale());
-    auto cancel = std::make_shared<SecondaryToolbarButton>("Cancel", "");
-    cancel->SetOnClicked([this] { CloseModal(); });
-    buttons->AddChild(cancel);
-    buttons->AddChild(std::make_shared<Spacer>());
-    auto rename = std::make_shared<PrimaryToolbarButton>("Rename", Icons::CheckName);
-    rename->SetOnClicked([this] {
-        RenameSelectedProject(m_RenameName);
-        CloseModal();
-    });
-    buttons->AddChild(rename);
-    panel->AddChild(buttons);
-
-    m_ModalHost->SetDialog(panel);
-    InvalidateUI();
-}
-
 void LauncherShell::RebuildProjectActionsDialog() {
     if (!m_ModalHost) {
         return;
     }
-    if (m_SelectedIndex < 0 || m_SelectedIndex >= static_cast<int>(m_Projects.size())) {
+    const ProjectSummary* project = SelectedProjectSummary();
+    if (!project) {
         CloseModal();
         return;
     }
 
-    const auto& project = m_Projects[static_cast<std::size_t>(m_SelectedIndex)];
     m_ModalHost->SetVisible(true);
     m_ModalHost->SetDialogWidth(420.0f);
 
@@ -2027,11 +1659,11 @@ void LauncherShell::RebuildProjectActionsDialog() {
     panel->SetSpacing(LMetric(ThemeToken::Space2) * LScale());
     panel->SetBackgroundColor(LColor(ThemeToken::DialogBackground));
     panel->AddChild(MakeLabel(
-        project.descriptor.displayName,
+        project->descriptor.displayName,
         LMetric(ThemeToken::TextSizeHeader) * LScale(),
         LColor(ThemeToken::TextPrimary)));
     panel->AddChild(MakeLabel(
-        EllipsizePath(project.projectRoot, 52),
+        EllipsizePath(project->projectRoot, 52),
         LMetric(ThemeToken::TextSizeCaption) * LScale(),
         LColor(ThemeToken::TextMuted)));
 
@@ -2050,9 +1682,9 @@ void LauncherShell::RebuildProjectActionsDialog() {
     addAction("Clone", Icons::CopyName, [this] { CloneSelectedProject(); });
     addAction("Rename", Icons::DocumentName, [this] { ShowRenameDialog(); }, false);
     addAction(
-        IsFavorite(project.weprojPath) ? "Unpin" : "Pin",
+        IsFavorite(project->weprojPath) ? "Unpin" : "Pin",
         Icons::StarName,
-        [this, path = project.weprojPath] { ToggleFavorite(path); });
+        [this, path = project->weprojPath] { ToggleFavorite(path); });
     addAction("Show in Explorer", Icons::OpenFolderName, [this] { ShowSelectedInExplorer(); });
     addAction("Regenerate Project Files", Icons::BuildName, [this] { RegenerateSelectedProjectFiles(); });
     addAction("Delete", Icons::DeleteName, [this] { DeleteSelectedProject(); });
@@ -2104,11 +1736,8 @@ void LauncherShell::UpdateAdaptiveLayout(float width) {
 }
 
 void LauncherShell::RefreshProjectList() {
-    m_Projects = m_Context->Projects().LoadRecentSummaries();
-    ApplySearchFilter();
-    if (m_SelectedIndex >= static_cast<int>(m_Projects.size())) {
-        m_SelectedIndex = m_Projects.empty() ? -1 : 0;
-    }
+    EnsureProjectsPage();
+    m_ProjectsPage->Reload();
     UpdateFooter();
     BeginPageContentLoad(0.24f);
     MarkPageDirty(LauncherPage::Projects);
@@ -2117,59 +1746,6 @@ void LauncherShell::RefreshProjectList() {
         ShowPage(LauncherPage::Projects);
     }
     InvalidateUI();
-}
-
-void LauncherShell::ApplySearchFilter() {
-    m_FilteredProjects.clear();
-    const std::string query = ToLowerCopy(m_SearchQuery);
-    for (const auto& project : m_Projects) {
-        if (m_CompatibleOnly && !project.compatible) {
-            continue;
-        }
-        if (!query.empty()) {
-            const std::string hay = ToLowerCopy(
-                project.descriptor.displayName + " " + project.projectRoot + " "
-                + project.descriptor.templateId + " " + project.descriptor.engineVersion);
-            if (hay.find(query) == std::string::npos) {
-                continue;
-            }
-        }
-        m_FilteredProjects.push_back(project);
-    }
-    ApplyProjectSort();
-}
-
-void LauncherShell::ApplyProjectSort() {
-    switch (m_SortMode) {
-    case ProjectSortMode::Name:
-        std::stable_sort(
-            m_FilteredProjects.begin(),
-            m_FilteredProjects.end(),
-            [](const ProjectSummary& a, const ProjectSummary& b) {
-                return ToLowerCopy(a.descriptor.displayName) < ToLowerCopy(b.descriptor.displayName);
-            });
-        break;
-    case ProjectSortMode::Engine:
-        std::stable_sort(
-            m_FilteredProjects.begin(),
-            m_FilteredProjects.end(),
-            [](const ProjectSummary& a, const ProjectSummary& b) {
-                if (a.descriptor.engineVersion != b.descriptor.engineVersion) {
-                    return a.descriptor.engineVersion < b.descriptor.engineVersion;
-                }
-                return ToLowerCopy(a.descriptor.displayName) < ToLowerCopy(b.descriptor.displayName);
-            });
-        break;
-    case ProjectSortMode::Recent:
-    default:
-        std::stable_sort(
-            m_FilteredProjects.begin(),
-            m_FilteredProjects.end(),
-            [](const ProjectSummary& a, const ProjectSummary& b) {
-                return a.descriptor.lastOpenedUtc > b.descriptor.lastOpenedUtc;
-            });
-        break;
-    }
 }
 
 void LauncherShell::SetStatus(const std::string& message) {
@@ -2181,83 +1757,17 @@ void LauncherShell::SetStatus(const std::string& message) {
 }
 
 void LauncherShell::SelectProject(std::size_t index, bool additive) {
-    if (m_Projects.empty() || index >= m_Projects.size()) {
-        m_SelectedIndex = -1;
-        m_MultiSelected.clear();
-        return;
-    }
-
-    if (additive) {
-        const auto it = std::find(m_MultiSelected.begin(), m_MultiSelected.end(), index);
-        if (it != m_MultiSelected.end()) {
-            m_MultiSelected.erase(it);
-            if (m_SelectedIndex == static_cast<int>(index)) {
-                m_SelectedIndex = m_MultiSelected.empty()
-                    ? -1
-                    : static_cast<int>(m_MultiSelected.back());
-            }
-        } else {
-            m_MultiSelected.push_back(index);
-            m_SelectedIndex = static_cast<int>(index);
-        }
-    } else {
-        if (m_SelectedIndex == static_cast<int>(index) && m_MultiSelected.size() <= 1) {
-            // Keep selection; still refresh details if needed.
-        }
-        m_SelectedIndex = static_cast<int>(index);
-        m_MultiSelected.clear();
-        m_MultiSelected.push_back(index);
-    }
-
-    if (m_SelectedIndex >= 0) {
-        SetStatus("Selected " + m_Projects[static_cast<std::size_t>(m_SelectedIndex)].descriptor.displayName);
-    }
-    MarkPageDirty(LauncherPage::Projects);
-    if (m_Page == LauncherPage::Projects) {
-        EnsurePageBuilt(LauncherPage::Projects);
-        ShowPage(LauncherPage::Projects);
-    }
-}
-
-void LauncherShell::HandleProjectAction(std::size_t index, ProjectCardAction action) {
-    SelectProject(index, false);
-    switch (action) {
-    case ProjectCardAction::Open:
-        OpenSelectedProject();
-        break;
-    case ProjectCardAction::Clone:
-        CloneSelectedProject();
-        break;
-    case ProjectCardAction::Rename:
-        ShowRenameDialog();
-        break;
-    case ProjectCardAction::Delete:
-        DeleteSelectedProject();
-        break;
-    case ProjectCardAction::ShowInExplorer:
-        ShowSelectedInExplorer();
-        break;
-    case ProjectCardAction::Favorite:
-        if (index < m_Projects.size()) {
-            ToggleFavorite(m_Projects[index].weprojPath);
-        }
-        break;
-    case ProjectCardAction::More:
-        ShowProjectMoreMenu(index);
-        break;
-    case ProjectCardAction::Regenerate:
-        RegenerateSelectedProjectFiles();
-        break;
-    }
+    EnsureProjectsPage();
+    m_ProjectsPage->SelectProject(index, additive);
 }
 
 void LauncherShell::RegenerateSelectedProjectFiles() {
-    if (m_SelectedIndex < 0 || m_SelectedIndex >= static_cast<int>(m_Projects.size())) {
+    const ProjectSummary* project = SelectedProjectSummary();
+    if (!project) {
         SetStatus("No project selected.");
         return;
     }
-    const auto& project = m_Projects[static_cast<std::size_t>(m_SelectedIndex)];
-    SetStatus("Regenerate project files queued for " + project.descriptor.displayName);
+    SetStatus("Regenerate project files queued for " + project->descriptor.displayName);
 }
 
 void LauncherShell::ShowCreateWizard() {
@@ -2279,16 +1789,28 @@ void LauncherShell::ShowCreateWizard() {
 }
 
 void LauncherShell::ShowRenameDialog() {
-    if (m_SelectedIndex < 0 || m_SelectedIndex >= static_cast<int>(m_Projects.size())) {
-        SetStatus("No project selected.");
+    if (!m_Services.dialogs || !m_RenameDialog) {
+        SetStatus("Rename dialog unavailable.");
         return;
     }
-    m_RenameName = m_Projects[static_cast<std::size_t>(m_SelectedIndex)].descriptor.displayName;
-    m_Modal = ModalKind::Rename;
-    RebuildRenameDialog();
+    if (m_Modal != ModalKind::None) {
+        CloseModal();
+    }
+    m_RenameDialog->Show(*m_Services.dialogs);
+    InvalidateUI();
+}
+
+void LauncherShell::CommitRenameProject(const std::string& newName) {
+    RenameSelectedProject(newName);
 }
 
 void LauncherShell::CloseModal() {
+    if (m_Services.dialogs && m_Services.dialogs->IsOpen()) {
+        m_Services.dialogs->Dismiss();
+        if (m_DialogOverlay) {
+            m_DialogOverlay->SetVisible(false);
+        }
+    }
     m_Modal = ModalKind::None;
     if (m_ModalHost) {
         m_ModalHost->SetDialog(nullptr);
@@ -2316,54 +1838,55 @@ void LauncherShell::BrowseForProject() {
 }
 
 void LauncherShell::OpenSelectedProject() {
-    if (m_SelectedIndex < 0 || m_SelectedIndex >= static_cast<int>(m_Projects.size())) {
+    const ProjectSummary* project = SelectedProjectSummary();
+    if (!project) {
         SetStatus("No project selected.");
         return;
     }
     const auto launch = m_Context->EditorLaunch().Launch(
-        PathUtils::FromUtf8(m_Projects[static_cast<std::size_t>(m_SelectedIndex)].weprojPath));
+        PathUtils::FromUtf8(project->weprojPath));
     SetStatus(launch.message);
     RefreshProjectList();
 }
 
 void LauncherShell::CloneSelectedProject() {
-    if (m_SelectedIndex < 0 || m_SelectedIndex >= static_cast<int>(m_Projects.size())) {
+    const ProjectSummary* selected = SelectedProjectSummary();
+    if (!selected) {
         return;
     }
-    const auto& selected = m_Projects[static_cast<std::size_t>(m_SelectedIndex)];
     const auto result = m_Context->Projects().CloneProject(
-        PathUtils::FromUtf8(selected.weprojPath),
-        selected.descriptor.displayName + "_Copy");
+        PathUtils::FromUtf8(selected->weprojPath),
+        selected->descriptor.displayName + "_Copy");
     SetStatus(result.message);
     RefreshProjectList();
 }
 
 void LauncherShell::RenameSelectedProject(const std::string& newName) {
-    if (m_SelectedIndex < 0 || m_SelectedIndex >= static_cast<int>(m_Projects.size())) {
+    const ProjectSummary* selected = SelectedProjectSummary();
+    if (!selected) {
         return;
     }
     if (newName.empty()) {
         SetStatus("Name cannot be empty.");
         return;
     }
-    const auto& selected = m_Projects[static_cast<std::size_t>(m_SelectedIndex)];
     const auto result = m_Context->Projects().RenameProject(
-        PathUtils::FromUtf8(selected.weprojPath),
+        PathUtils::FromUtf8(selected->weprojPath),
         newName);
     SetStatus(result.message);
     RefreshProjectList();
 }
 
 void LauncherShell::DeleteSelectedProject() {
-    if (m_SelectedIndex < 0 || m_SelectedIndex >= static_cast<int>(m_Projects.size())) {
+    const ProjectSummary* selected = SelectedProjectSummary();
+    if (!selected) {
         return;
     }
-    const auto& selected = m_Projects[static_cast<std::size_t>(m_SelectedIndex)];
 
     auto& platform = we::platform::Platform::Get();
     const auto confirm = platform.ShowMessageBox({
         .title = "Delete Project",
-        .message = ("Delete project and all files?\n" + selected.weprojPath).c_str(),
+        .message = ("Delete project and all files?\n" + selected->weprojPath).c_str(),
         .type = we::platform::MessageBoxType::Warning,
         .yesNo = true,
     });
@@ -2371,18 +1894,17 @@ void LauncherShell::DeleteSelectedProject() {
         return;
     }
 
-    const auto result = m_Context->Projects().DeleteProject(PathUtils::FromUtf8(selected.weprojPath));
+    const auto result = m_Context->Projects().DeleteProject(PathUtils::FromUtf8(selected->weprojPath));
     SetStatus(result.message);
-    m_SelectedIndex = -1;
     RefreshProjectList();
 }
 
 void LauncherShell::ShowSelectedInExplorer() {
-    if (m_SelectedIndex < 0 || m_SelectedIndex >= static_cast<int>(m_Projects.size())) {
+    const ProjectSummary* selected = SelectedProjectSummary();
+    if (!selected) {
         return;
     }
-    const auto& selected = m_Projects[static_cast<std::size_t>(m_SelectedIndex)];
-    if (RevealInExplorer(selected.weprojPath)) {
+    if (RevealInExplorer(selected->projectRoot)) {
         SetStatus("Revealed in Explorer");
     } else {
         SetStatus("Failed to reveal project in Explorer.");
@@ -2401,8 +1923,14 @@ Size LauncherShell::Measure(const Size& availableSize) {
     if (m_Root) {
         m_Root->Measure(availableSize);
     }
+    if (m_DialogOverlay && m_Services.dialogs && m_Services.dialogs->IsOpen()) {
+        m_DialogOverlay->Measure(availableSize);
+    }
     if (m_ModalHost && m_ModalHost->IsVisible()) {
         m_ModalHost->Measure(availableSize);
+    }
+    if (m_PopupHost && m_PopupHost->HasOpenPopups()) {
+        m_PopupHost->Measure(availableSize);
     }
     m_DesiredSize = availableSize;
     return availableSize;
@@ -2414,8 +1942,14 @@ void LauncherShell::Arrange(const Rect& allottedRect) {
     if (m_Root) {
         m_Root->Arrange(allottedRect);
     }
+    if (m_DialogOverlay && m_Services.dialogs && m_Services.dialogs->IsOpen()) {
+        m_DialogOverlay->Arrange(allottedRect);
+    }
     if (m_ModalHost && m_ModalHost->IsVisible()) {
         m_ModalHost->Arrange(allottedRect);
+    }
+    if (m_PopupHost && m_PopupHost->HasOpenPopups()) {
+        m_PopupHost->Arrange(allottedRect);
     }
 }
 
@@ -2424,10 +1958,16 @@ void LauncherShell::Paint(PaintContext& context) {
     if (m_Root) {
         m_Root->Paint(context);
     }
+    if (m_DialogOverlay && m_Services.dialogs && m_Services.dialogs->IsOpen()) {
+        m_DialogOverlay->Paint(context);
+    }
     if (m_ModalHost && m_ModalHost->IsVisible()) {
         Color scrim = LColor(ThemeToken::ModalScrim);
         context.DrawRect(GetGeometry(), scrim);
         m_ModalHost->Paint(context);
+    }
+    if (m_PopupHost && m_PopupHost->HasOpenPopups()) {
+        m_PopupHost->Paint(context);
     }
 }
 
@@ -2438,6 +1978,9 @@ void LauncherShell::Tick(float deltaTime) {
         if (m_PageLoadTimer >= m_PageLoadDuration) {
             m_PageContentLoading = false;
             m_PageLoadTimer = 0.0f;
+            if (m_Page == LauncherPage::Projects && m_ProjectsPage) {
+                m_ProjectsPage->SetLoading(false);
+            }
             MarkPageDirty(m_Page);
             EnsurePageBuilt(m_Page);
             ShowPage(m_Page);
@@ -2468,17 +2011,23 @@ void LauncherShell::Tick(float deltaTime) {
     }
 
     Widget::Tick(deltaTime);
+    m_Services.notifications.Tick(deltaTime);
 }
 
 void LauncherShell::OnKeyDown(const KeyEvent& event) {
-    if (m_ProjectsSearch && m_ProjectsSearch->IsFocused()) {
-        m_ProjectsSearch->OnKeyDown(event);
-        return;
-    }
-
-    if (event.key == we::platform::KeyCode::Escape && m_Modal != ModalKind::None) {
-        CloseModal();
-        return;
+    if (event.key == we::platform::KeyCode::Escape) {
+        if (m_Services.dialogs && m_Services.dialogs->IsOpen()) {
+            m_Services.dialogs->Dismiss();
+            if (m_DialogOverlay) {
+                m_DialogOverlay->SetVisible(false);
+            }
+            InvalidateUI();
+            return;
+        }
+        if (m_Modal != ModalKind::None) {
+            CloseModal();
+            return;
+        }
     }
 
     if (m_Modal == ModalKind::Create) {
@@ -2506,51 +2055,44 @@ void LauncherShell::OnKeyDown(const KeyEvent& event) {
     }
 
     if (m_Page == LauncherPage::Projects && m_Modal == ModalKind::None
-        && !event.ctrlDown && !event.altDown && !m_FilteredProjects.empty()) {
-        auto mapFilteredToProject = [this](std::size_t filteredIndex) -> std::size_t {
-            if (filteredIndex >= m_FilteredProjects.size()) {
-                return 0;
-            }
-            const auto& path = m_FilteredProjects[filteredIndex].weprojPath;
-            for (std::size_t j = 0; j < m_Projects.size(); ++j) {
-                if (m_Projects[j].weprojPath == path) {
-                    return j;
+        && !event.ctrlDown && !event.altDown && m_ProjectsPage) {
+        const auto& visible = m_ProjectsPage->ViewModel().VisibleProjects.Items();
+        if (visible.empty()) {
+            // fall through to sidebar navigation
+        } else {
+            auto currentVisible = [&]() -> int {
+                const int selected = m_ProjectsPage->SelectedIndex();
+                if (selected < 0) {
+                    return -1;
                 }
-            }
-            return 0;
-        };
-        auto currentFiltered = [&]() -> int {
-            if (m_SelectedIndex < 0) {
+                for (std::size_t i = 0; i < visible.size(); ++i) {
+                    if (static_cast<int>(visible[i].sourceIndex) == selected) {
+                        return static_cast<int>(i);
+                    }
+                }
                 return -1;
-            }
-            const auto& path = m_Projects[static_cast<std::size_t>(m_SelectedIndex)].weprojPath;
-            for (std::size_t i = 0; i < m_FilteredProjects.size(); ++i) {
-                if (m_FilteredProjects[i].weprojPath == path) {
-                    return static_cast<int>(i);
-                }
-            }
-            return -1;
-        };
+            };
 
-        if (event.key == we::platform::KeyCode::Up) {
-            int idx = currentFiltered();
-            idx = idx <= 0 ? 0 : idx - 1;
-            SelectProject(mapFilteredToProject(static_cast<std::size_t>(idx)), false);
-            return;
-        }
-        if (event.key == we::platform::KeyCode::Down) {
-            int idx = currentFiltered();
-            idx = idx < 0 ? 0 : std::min(idx + 1, static_cast<int>(m_FilteredProjects.size()) - 1);
-            SelectProject(mapFilteredToProject(static_cast<std::size_t>(idx)), false);
-            return;
-        }
-        if (event.key == we::platform::KeyCode::Home) {
-            SelectProject(mapFilteredToProject(0), false);
-            return;
-        }
-        if (event.key == we::platform::KeyCode::End) {
-            SelectProject(mapFilteredToProject(m_FilteredProjects.size() - 1), false);
-            return;
+            if (event.key == we::platform::KeyCode::Up) {
+                int idx = currentVisible();
+                idx = idx <= 0 ? 0 : idx - 1;
+                SelectProject(visible[static_cast<std::size_t>(idx)].sourceIndex, false);
+                return;
+            }
+            if (event.key == we::platform::KeyCode::Down) {
+                int idx = currentVisible();
+                idx = idx < 0 ? 0 : std::min(idx + 1, static_cast<int>(visible.size()) - 1);
+                SelectProject(visible[static_cast<std::size_t>(idx)].sourceIndex, false);
+                return;
+            }
+            if (event.key == we::platform::KeyCode::Home) {
+                SelectProject(visible.front().sourceIndex, false);
+                return;
+            }
+            if (event.key == we::platform::KeyCode::End) {
+                SelectProject(visible.back().sourceIndex, false);
+                return;
+            }
         }
     }
 
