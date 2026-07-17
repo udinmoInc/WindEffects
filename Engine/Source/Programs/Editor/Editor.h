@@ -17,8 +17,8 @@
 #include "WindEffects/Editor/UI/Core/EditorApplicationContext.h"
 #include "EditorShellBuilder.h"
 
-namespace we::runtime::kindui {
-using we::editor::ui::EditorApplicationContext;
+namespace we::programs::editor {
+using ::we::editor::services::EditorApplicationContext;
 class OverlayHost;
 class IconRenderer;
 }
@@ -54,10 +54,10 @@ private:
     std::unique_ptr<we::runtime::kindui::OverlayRenderer> m_OverlayRenderer;
 
     std::shared_ptr<we::runtime::kindui::Widget> m_ViewportWidget;
-    std::shared_ptr<we::runtime::kindui::StatusBar> m_StatusBar;
-    std::shared_ptr<we::runtime::kindui::TitleBar> m_TitleBar;
-    std::unique_ptr<we::editor::ui::EditorApplicationContext> m_UIContext;
-    we::editor::mainframe::EditorWindowHitTestData m_WindowHitTestData{};
+    std::shared_ptr<::we::editor::shell::StatusBar> m_StatusBar;
+    std::shared_ptr<::we::editor::shell::TitleBar> m_TitleBar;
+    std::unique_ptr<::we::editor::services::EditorApplicationContext> m_UIContext;
+    ::we::editor::mainframe::EditorWindowHitTestData m_WindowHitTestData{};
 
     void EnsureVisibleSwapchain();
     void SyncViewportFramebufferFromLayout();

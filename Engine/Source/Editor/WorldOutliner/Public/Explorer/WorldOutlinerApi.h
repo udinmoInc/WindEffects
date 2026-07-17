@@ -5,7 +5,7 @@
 
 #include <memory>
 
-namespace we::runtime::kindui {
+namespace we::editor::outliner {
 class TreeView;
 }
 
@@ -15,6 +15,6 @@ WORLDOUTLINER_API void BindExplorerBrandLogo(
     we::rhi::RHIDescriptorSetHandle logoSet,
     float logicalSize = 16.0f);
 WORLDOUTLINER_API float GetExplorerDockTabLogoSize();
-WORLDOUTLINER_API std::shared_ptr<we::runtime::kindui::TreeView> GetExplorerTreeView();
+WORLDOUTLINER_API std::shared_ptr<::we::editor::contentbrowser::TreeView> GetExplorerTreeView();
 
 } // namespace we::programs::editor

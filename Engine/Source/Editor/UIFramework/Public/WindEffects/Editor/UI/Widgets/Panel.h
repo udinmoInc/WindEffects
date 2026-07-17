@@ -10,15 +10,15 @@
 #include <memory>
 #include <functional>
 
-namespace we::editor::ui {
-using we::runtime::kindui::Widget;
-using we::runtime::kindui::Size;
-using we::runtime::kindui::Rect;
-using we::runtime::kindui::Point;
-using we::runtime::kindui::Color;
-using we::runtime::kindui::PaintContext;
-using we::runtime::kindui::MouseEvent;
-using we::runtime::kindui::WidgetStyle;
+namespace we::editor::panels {
+using ::we::runtime::kindui::Widget;
+using ::we::runtime::kindui::Size;
+using ::we::runtime::kindui::Rect;
+using ::we::runtime::kindui::Point;
+using ::we::runtime::kindui::Color;
+using ::we::runtime::kindui::PaintContext;
+using ::we::runtime::kindui::MouseEvent;
+using ::we::runtime::kindui::WidgetStyle;
 
 // Panel widget with collapsible header and content area
 class UIFRAMEWORK_API Panel : public Widget {
@@ -120,4 +120,4 @@ private:
     float m_TabBrandLogicalSize = 0.0f;
 };
 
-} // namespace we::editor::ui
+} // namespace we::editor::panels

@@ -4,8 +4,8 @@
 #include "WindEffects/Editor/UI/Extensions/UIExtensionRegistry.h"
 #include "KindUI/Commands/LambdaCommand.h"
 
-namespace we::editor::ui {
-using we::runtime::kindui::ICommand;
+namespace we::editor::extensions {
+using ::we::runtime::kindui::ICommand;
 
 class UIFRAMEWORK_API ExtensionBootstrap {
 public:
@@ -31,11 +31,11 @@ private:
     namespace { \
         struct UiPanelBootstrap_##PanelId { \
             UiPanelBootstrap_##PanelId() { \
-                we::editor::ui::PanelRegistration _reg{}; \
+                ::we::editor::extensions::PanelRegistration _reg{}; \
                 _reg.descriptor = (DescriptorExpr); \
                 _reg.descriptor.id = #PanelId; \
                 _reg.factory = (FactoryFunc); \
-                we::editor::ui::ExtensionBootstrap::Instance().RegisterPanel(std::move(_reg)); \
+                ::we::editor::extensions::ExtensionBootstrap::Instance().RegisterPanel(std::move(_reg)); \
             } \
         }; \
         static UiPanelBootstrap_##PanelId g_UiPanelBootstrap_##PanelId; \
@@ -45,7 +45,7 @@ private:
     namespace { \
         struct UiMenuBootstrap_##MenuName { \
             UiMenuBootstrap_##MenuName() { \
-                we::editor::ui::ExtensionBootstrap::Instance().RegisterMenu( \
+                ::we::editor::extensions::ExtensionBootstrap::Instance().RegisterMenu( \
                     { #MenuName, (FactoryFunc), (SortOrder) }); \
             } \
         }; \
@@ -56,11 +56,11 @@ private:
     namespace { \
         struct UiCommandBootstrap_##__LINE__ { \
             UiCommandBootstrap_##__LINE__() { \
-                we::editor::ui::ExtensionBootstrap::Instance().RegisterCommand( \
-                    we::editor::ui::MakeCommand(CommandIdStr, DisplayName, ExecuteFunc)); \
+                ::we::editor::extensions::ExtensionBootstrap::Instance().RegisterCommand( \
+                    we::runtime::kindui::MakeCommand(CommandIdStr, DisplayName, ExecuteFunc)); \
             } \
         }; \
         static UiCommandBootstrap_##__LINE__ g_UiCommandBootstrap_##__LINE__; \
     }
 
-} // namespace we::editor::ui
+} // namespace we::editor::extensions

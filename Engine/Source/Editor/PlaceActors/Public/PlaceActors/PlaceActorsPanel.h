@@ -9,11 +9,16 @@
 #include <string>
 #include <unordered_map>
 #include <vector>
+#include "KindUI/Input/InputEvents.h"
 
-namespace we::runtime::kindui {
-class SearchBox;
-class ToolButton;
+namespace we::editor::placeactors {
+using ::we::runtime::kindui::KeyEvent;
+using ::we::runtime::kindui::ScrollViewport;
+using ::we::runtime::kindui::ScrollViewportMetrics;
 }
+
+#include "Widgets/SearchBox.h"
+#include "Widgets/ToolButton.h"
 
 namespace we::programs::editor {
 
@@ -95,8 +100,8 @@ private:
     PlaceActorsGridMetrics MakeGridMetrics() const;
     void BuildQuickAccessCategory(const std::string& query);
 
-    std::shared_ptr<we::runtime::kindui::SearchBox> m_SearchBox;
-    std::shared_ptr<we::runtime::kindui::ToolButton> m_FilterButton;
+    std::shared_ptr<::we::editor::widgets::SearchBox> m_SearchBox;
+    std::shared_ptr<::we::editor::toolbar::ToolButton> m_FilterButton;
 
     std::string m_SearchText;
     std::string m_ExternalSearchFilter;

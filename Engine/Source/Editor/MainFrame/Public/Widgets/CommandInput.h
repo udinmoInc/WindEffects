@@ -1,10 +1,21 @@
 #pragma once
 
 #include "KindUI/Core/Widget.h"
+#include "KindUI/Core/Style.h"
+#include "KindUI/Input/InputEvents.h"
 #include <functional>
 #include <string>
 
-namespace we::runtime::kindui {
+namespace we::editor::shell {
+using ::we::runtime::kindui::Widget;
+using ::we::runtime::kindui::Size;
+using ::we::runtime::kindui::Rect;
+using ::we::runtime::kindui::Point;
+using ::we::runtime::kindui::Color;
+using ::we::runtime::kindui::PaintContext;
+using ::we::runtime::kindui::MouseEvent;
+using ::we::runtime::kindui::KeyEvent;
+using ::we::runtime::kindui::WidgetStyle;
 
 // Compact command entry field for the status bar footer.
 class CommandInput : public Widget {
@@ -38,4 +49,4 @@ private:
     OnCommandSubmitted m_OnCommandSubmitted;
 };
 
-} // namespace we::runtime::kindui
+} // namespace we::editor::shell

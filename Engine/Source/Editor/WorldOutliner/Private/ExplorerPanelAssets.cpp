@@ -10,7 +10,7 @@ namespace {
 
 we::rhi::RHIDescriptorSetHandle g_LogoSet = we::rhi::RHIDescriptorSetHandle::Invalid;
 float g_LogoLogicalSize = 16.0f;
-std::weak_ptr<we::runtime::kindui::TreeView> g_ExplorerTreeView;
+std::weak_ptr<::we::editor::contentbrowser::TreeView> g_ExplorerTreeView;
 
 } // namespace
 
@@ -27,11 +27,11 @@ float GetExplorerBrandLogoLogicalSize() {
     return g_LogoLogicalSize;
 }
 
-void RegisterExplorerTreeView(const std::shared_ptr<we::runtime::kindui::TreeView>& treeView) {
+void RegisterExplorerTreeView(const std::shared_ptr<::we::editor::contentbrowser::TreeView>& treeView) {
     g_ExplorerTreeView = treeView;
 }
 
-std::shared_ptr<we::runtime::kindui::TreeView> GetExplorerTreeView() {
+std::shared_ptr<::we::editor::contentbrowser::TreeView> GetExplorerTreeView() {
     return g_ExplorerTreeView.lock();
 }
 

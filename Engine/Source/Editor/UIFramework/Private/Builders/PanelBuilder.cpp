@@ -3,14 +3,14 @@
 #include "KindUI/Tokens/DesignToken.h"
 #include "KindUI/Core/Geometry.h"
 
-using we::runtime::kindui::ColorToken;
-using we::runtime::kindui::MetricToken;
-using we::runtime::kindui::ResolveMetric;
-using we::runtime::kindui::Margin;
+using ::we::runtime::kindui::ColorToken;
+using ::we::runtime::kindui::MetricToken;
+using ::we::runtime::kindui::ResolveMetric;
+using ::we::runtime::kindui::Margin;
 using namespace we::runtime::kindui::Icons;
 
-namespace we::editor::ui {
-using we::runtime::kindui::Row;
+namespace we::editor::panels {
+using ::we::runtime::kindui::Row;
 
 PanelBuilder::PanelBuilder(std::string_view title)
     : m_Panel(std::make_shared<Panel>(std::string(title))) {
@@ -82,4 +82,4 @@ std::shared_ptr<Panel> PanelBuilder::Build() {
     return m_Panel;
 }
 
-} // namespace we::editor::ui
+} // namespace we::editor::panels

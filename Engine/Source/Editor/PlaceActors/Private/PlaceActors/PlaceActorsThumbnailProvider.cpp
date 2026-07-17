@@ -9,14 +9,13 @@
 #include <algorithm>
 
 namespace we::programs::editor {
-
-using we::runtime::kindui::Color;
-using we::runtime::kindui::PaintContext;
-using we::runtime::kindui::Rect;
-using we::runtime::kindui::ColorToken;
-using we::runtime::kindui::MetricToken;
-using we::runtime::kindui::PaddingToken;
-namespace WEIcons = we::runtime::kindui::Icons;
+using ::we::runtime::kindui::Color;
+using ::we::runtime::kindui::PaintContext;
+using ::we::runtime::kindui::Rect;
+using ::we::runtime::kindui::ColorToken;
+using ::we::runtime::kindui::MetricToken;
+using ::we::runtime::kindui::PaddingToken;
+namespace WEIcons = ::we::runtime::kindui::Icons;
 
 PlaceActorsThumbnailProvider& PlaceActorsThumbnailProvider::Get() {
     static PlaceActorsThumbnailProvider instance;

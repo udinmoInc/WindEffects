@@ -6,7 +6,9 @@
 #include <string>
 #include <string_view>
 
-namespace we::editor::ui {
+namespace we::editor::panels {
+using ::we::editor::docking::DockZone;
+using ::we::editor::docking::DockPanelDescriptor;
 
 inline std::string FormatPanelTitle(std::string_view panelId) {
     std::string title;
@@ -80,6 +82,6 @@ private:
     DockPanelDescriptor m_Descriptor;
 };
 
-#define WE_PANEL(PanelId) we::editor::ui::PanelDescriptorBuilder(#PanelId)
+#define WE_PANEL(PanelId) ::we::editor::panels::PanelDescriptorBuilder(#PanelId)
 
-} // namespace we::editor::ui
+} // namespace we::editor::panels

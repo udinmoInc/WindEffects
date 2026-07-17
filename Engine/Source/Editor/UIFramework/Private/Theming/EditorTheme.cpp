@@ -2,7 +2,7 @@
 #include "KindUI/Tokens/DesignToken.h"
 #include "KindUI/Theming/ThemeAccess.h"
 
-namespace we::editor::ui {
+namespace we::editor::services {
 namespace {
 
 we::runtime::kindui::Color EdHex(uint8_t r, uint8_t g, uint8_t b, float a = 1.0f) {
@@ -12,6 +12,7 @@ we::runtime::kindui::Color EdHex(uint8_t r, uint8_t g, uint8_t b, float a = 1.0f
 } // namespace
 
 we::runtime::kindui::Color EditorTheme::ResolveColor(we::runtime::kindui::ColorToken token) const {
+    using ::we::runtime::kindui::ColorToken;
     switch (token) {
     case ColorToken::IconAccent:
     case ColorToken::AccentPrimary:
@@ -39,4 +40,4 @@ we::runtime::kindui::Color EditorTheme::ResolveColor(we::runtime::kindui::ColorT
     }
 }
 
-} // namespace we::editor::ui
+} // namespace we::editor::services

@@ -6,6 +6,12 @@
 #include <cmath>
 
 namespace we::programs::editor {
+using ::we::runtime::kindui::MouseButton;
+using ::we::runtime::kindui::KeyEventType;
+using ::we::runtime::kindui::IconPainter;
+namespace Icons = ::we::runtime::kindui::Icons;
+namespace IconMetrics = ::we::runtime::kindui::IconMetrics;
+
 
 namespace {
 constexpr float kPopupWidth = 220.0f;
@@ -16,16 +22,16 @@ constexpr float kThumbRadius = 6.0f;
 constexpr float kSliderTop = 38.0f;
 } // namespace
 
-using we::runtime::kindui::Color;
-using we::runtime::kindui::MouseButton;
-using we::runtime::kindui::MouseEvent;
-using we::runtime::kindui::PaintContext;
-using we::runtime::kindui::Point;
-using we::runtime::kindui::Rect;
-using we::runtime::kindui::Size;
-using we::runtime::kindui::ColorToken;
-using we::runtime::kindui::MetricToken;
-using we::runtime::kindui::PaddingToken;
+using ::we::runtime::kindui::Color;
+using ::we::runtime::kindui::MouseButton;
+using ::we::runtime::kindui::MouseEvent;
+using ::we::runtime::kindui::PaintContext;
+using ::we::runtime::kindui::Point;
+using ::we::runtime::kindui::Rect;
+using ::we::runtime::kindui::Size;
+using ::we::runtime::kindui::ColorToken;
+using ::we::runtime::kindui::MetricToken;
+using ::we::runtime::kindui::PaddingToken;
 
 ViewportSliderPopup::ViewportSliderPopup(
     std::string title,

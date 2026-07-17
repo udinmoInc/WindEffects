@@ -12,13 +12,13 @@
 
 namespace we::programs::editor::ActorsPanelChrome {
 
-using we::runtime::kindui::Color;
-using we::runtime::kindui::PaintContext;
-using we::runtime::kindui::Point;
-using we::runtime::kindui::Rect;
-using we::runtime::kindui::ColorToken;
-using we::runtime::kindui::MetricToken;
-using we::runtime::kindui::PaddingToken;
+using ::we::runtime::kindui::Color;
+using ::we::runtime::kindui::PaintContext;
+using ::we::runtime::kindui::Point;
+using ::we::runtime::kindui::Rect;
+using ::we::runtime::kindui::ColorToken;
+using ::we::runtime::kindui::MetricToken;
+using ::we::runtime::kindui::PaddingToken;
 
 void PaintSearchField(PaintContext& context, const Rect& bounds, const std::string& placeholder, const std::string& text, bool focused, bool showCaret) {
     const float uiScale = std::max(1.0f, we::runtime::kindui::DPIContext::GetScale());

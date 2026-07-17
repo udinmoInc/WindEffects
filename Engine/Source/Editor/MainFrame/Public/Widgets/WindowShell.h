@@ -4,8 +4,18 @@
 
 #include "KindUI/Core/Widget.h"
 #include <memory>
+#include "KindUI/Core/Style.h"
 
-namespace we::runtime::kindui {
+namespace we::editor::shell {
+using ::we::runtime::kindui::Widget;
+using ::we::runtime::kindui::Size;
+using ::we::runtime::kindui::Rect;
+using ::we::runtime::kindui::Point;
+using ::we::runtime::kindui::Color;
+using ::we::runtime::kindui::PaintContext;
+using ::we::runtime::kindui::MouseEvent;
+using ::we::runtime::kindui::WidgetStyle;
+
 
 // Draws a square border around the full application client area.
 class MAINFRAME_API WindowShell : public Widget {
@@ -24,4 +34,4 @@ private:
     std::shared_ptr<Widget> m_Content;
 };
 
-} // namespace we::runtime::kindui
+} // namespace we::editor::shell

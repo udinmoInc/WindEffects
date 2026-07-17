@@ -13,7 +13,16 @@
 #include <memory>
 #include <vector>
 
-namespace we::runtime::kindui {
+namespace we::editor::toolbar {
+using ::we::runtime::kindui::Widget;
+using ::we::runtime::kindui::Size;
+using ::we::runtime::kindui::Rect;
+using ::we::runtime::kindui::Point;
+using ::we::runtime::kindui::Color;
+using ::we::runtime::kindui::PaintContext;
+using ::we::runtime::kindui::MouseEvent;
+using ::we::runtime::kindui::WidgetStyle;
+using ::we::runtime::kindui::IWidgetContext;
 
 enum class ToolbarAlignment {
     Left,
@@ -120,4 +129,4 @@ public:
     void Paint(PaintContext& context) override;
 };
 
-} // namespace we::runtime::kindui
+} // namespace we::editor::toolbar

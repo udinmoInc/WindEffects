@@ -1,6 +1,6 @@
 #include "WindEffects/Editor/UI/Shell/EditorPreferences.h"
 
-namespace we::programs::editor {
+namespace we::editor::services {
 
 EditorPreferences& EditorPreferences::Get() {
     static EditorPreferences instance;
@@ -11,4 +11,4 @@ void EditorPreferences::ApplyEditorViewportIfDirty(
     const std::shared_ptr<we::runtime::renderer::SceneRenderer>& /*sceneRenderer*/) {
 }
 
-} // namespace we::programs::editor
+} // namespace we::editor::services

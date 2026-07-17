@@ -10,7 +10,7 @@
 #include <string_view>
 #include <vector>
 
-namespace we::runtime::kindui {
+namespace we::editor::toolbar {
 
 struct ToolbarItemSpec {
     std::string icon;
@@ -56,4 +56,4 @@ private:
     std::vector<ToolbarItemSpec> m_Items;
 };
 
-} // namespace we::runtime::kindui
+} // namespace we::editor::toolbar

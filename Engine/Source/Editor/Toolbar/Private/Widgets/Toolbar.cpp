@@ -9,12 +9,11 @@
 #include <algorithm>
 #include <functional>
 
-using we::runtime::kindui::ColorToken;
-using we::runtime::kindui::MetricToken;
-using we::runtime::kindui::PaddingToken;
+using ::we::runtime::kindui::ColorToken;
+using ::we::runtime::kindui::MetricToken;
+using ::we::runtime::kindui::PaddingToken;
 
-namespace we::runtime::kindui {
-using we::editor::ui::Panel;
+namespace we::editor::toolbar {
 namespace {
     float ScaledMetric(MetricToken token) {
         return we::runtime::kindui::ResolveMetric(token) * (std::max)(1.0f, DPIContext::GetScale());
@@ -429,4 +428,4 @@ bool ToolbarGroup::ShowsPointerCursor(const Point& position) const {
     return false;
 }
 
-} // namespace we::runtime::kindui
+} // namespace we::editor::toolbar

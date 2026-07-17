@@ -7,7 +7,16 @@
 #include "KindUI/Core/Icon.h"
 #include <functional>
 
-namespace we::runtime::kindui {
+namespace we::editor::toolbar {
+using ::we::runtime::kindui::Widget;
+using ::we::runtime::kindui::Size;
+using ::we::runtime::kindui::Rect;
+using ::we::runtime::kindui::Point;
+using ::we::runtime::kindui::Color;
+using ::we::runtime::kindui::PaintContext;
+using ::we::runtime::kindui::MouseEvent;
+using ::we::runtime::kindui::WidgetStyle;
+
 
 enum class ToolButtonStyle {
     Normal,
@@ -88,4 +97,4 @@ public:
     static constexpr float SEPARATOR_HEIGHT = 24.0f;
 };
 
-} // namespace we::runtime::kindui
+} // namespace we::editor::toolbar

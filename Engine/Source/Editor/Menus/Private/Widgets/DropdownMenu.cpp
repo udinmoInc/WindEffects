@@ -4,11 +4,17 @@
 #include "KindUI/Theming/StyleRole.h"
 #include "KindUI/Layout/OverlayManager.h"
 
-using we::runtime::kindui::ColorToken;
-using we::runtime::kindui::MetricToken;
-using we::runtime::kindui::PaddingToken;
+using ::we::runtime::kindui::ColorToken;
+using ::we::runtime::kindui::MetricToken;
+using ::we::runtime::kindui::PaddingToken;
 
-namespace we::runtime::kindui {
+namespace we::editor::menus {
+using ::we::runtime::kindui::MouseButton;
+using ::we::runtime::kindui::KeyEventType;
+using ::we::runtime::kindui::IconPainter;
+namespace Icons = ::we::runtime::kindui::Icons;
+namespace IconMetrics = ::we::runtime::kindui::IconMetrics;
+
 
 DropdownMenu::DropdownMenu(const std::vector<std::shared_ptr<MenuItem>>& items)
     : m_Items(items)
@@ -95,4 +101,4 @@ void DropdownMenu::OnMouseDown(const MouseEvent& event) {
     }
 }
 
-} // namespace we::runtime::kindui
+} // namespace we::editor::menus

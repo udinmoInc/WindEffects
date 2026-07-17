@@ -8,9 +8,12 @@
 #include <algorithm>
 #include <cmath>
 
-using we::runtime::kindui::PaddingToken;
+using ::we::runtime::kindui::ColorToken;
+using ::we::runtime::kindui::MetricToken;
+using ::we::runtime::kindui::PaddingToken;
 
-namespace we::editor::ui {
+namespace we::editor::docking {
+namespace PanelChrome = ::we::editor::panels::PanelChrome;
 
 namespace {
 constexpr float kTabDragThreshold = 6.0f;
@@ -357,4 +360,4 @@ bool DockContainer::ShowsPointerCursor(const Point& position) const {
     return false;
 }
 
-} // namespace we::editor::ui
+} // namespace we::editor::docking

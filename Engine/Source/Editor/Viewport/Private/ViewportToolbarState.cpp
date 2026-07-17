@@ -12,10 +12,10 @@ namespace we::programs::editor {
 
 namespace {
 std::weak_ptr<we::runtime::engine::EditorCamera> g_Camera;
-std::weak_ptr<we::runtime::kindui::ToolButton> g_CameraSpeedIndicator;
+std::weak_ptr<::we::editor::toolbar::ToolButton> g_CameraSpeedIndicator;
 
 void ShowPopupBelowButton(const std::shared_ptr<we::runtime::kindui::Widget>& popup,
-                          const std::shared_ptr<we::runtime::kindui::ToolButton>& button) {
+                          const std::shared_ptr<::we::editor::toolbar::ToolButton>& button) {
     auto* overlay = GetEditorPopupHost();
     if (!overlay || !button) {
         return;
@@ -34,11 +34,11 @@ float SnapCameraSpeed(float value) {
 
 void BindViewportCamera(const std::shared_ptr<we::runtime::engine::EditorCamera>& camera) {
     g_Camera = camera;
-    we::runtime::kindui::ApplyViewportNavigationSettings(camera);
+    ::we::editor::viewport::ApplyViewportNavigationSettings(camera);
     UpdateViewportCameraSpeedIndicator();
 }
 
-void SetViewportCameraSpeedIndicator(const std::shared_ptr<we::runtime::kindui::ToolButton>& indicator) {
+void SetViewportCameraSpeedIndicator(const std::shared_ptr<::we::editor::toolbar::ToolButton>& indicator) {
     g_CameraSpeedIndicator = indicator;
     UpdateViewportCameraSpeedIndicator();
 }
@@ -62,7 +62,7 @@ void StepViewportCameraSpeed(int direction) {
 
     const float step = direction > 0 ? 1.0f : -1.0f;
     camera->SetCameraSpeed(camera->GetCameraSpeed() + step);
-    auto& store = ViewportNavigationSettingsStore::Get();
+    auto& store = ::we::editor::viewport::ViewportNavigationSettingsStore::Get();
     store.GetMutableSettings().defaultCameraSpeed = camera->GetCameraSpeed();
     store.Save();
     UpdateViewportCameraSpeedIndicator();
@@ -94,7 +94,7 @@ void ShowViewportCameraSpeedPopup() {
         [](float value) {
             if (auto cam = g_Camera.lock()) {
                 cam->SetCameraSpeed(value);
-                auto& store = ViewportNavigationSettingsStore::Get();
+                auto& store = ::we::editor::viewport::ViewportNavigationSettingsStore::Get();
                 store.GetMutableSettings().defaultCameraSpeed = value;
                 store.Save();
                 UpdateViewportCameraSpeedIndicator();
@@ -105,7 +105,7 @@ void ShowViewportCameraSpeedPopup() {
 }
 
 void ApplyLoadedViewportNavigationSettings() {
-    we::runtime::kindui::ApplyViewportNavigationSettings(g_Camera.lock());
+    ::we::editor::viewport::ApplyViewportNavigationSettings(g_Camera.lock());
 }
 
 } // namespace we::programs::editor

@@ -7,12 +7,12 @@
 #include <string>
 #include <vector>
 
-namespace we::editor::ui {
-using we::runtime::kindui::Widget;
-using we::runtime::kindui::Size;
-using we::runtime::kindui::Rect;
-using we::runtime::kindui::PaintContext;
-using we::runtime::kindui::MouseEvent;
+namespace we::editor::viewport {
+using ::we::runtime::kindui::Widget;
+using ::we::runtime::kindui::Size;
+using ::we::runtime::kindui::Rect;
+using ::we::runtime::kindui::PaintContext;
+using ::we::runtime::kindui::MouseEvent;
 
 class UIFRAMEWORK_API RenderTargetPreviewWidget : public Widget {
 public:
@@ -38,4 +38,4 @@ private:
     std::function<void()> m_OnClose;
 };
 
-} // namespace we::editor::ui
+} // namespace we::editor::viewport

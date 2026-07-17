@@ -9,7 +9,16 @@
 #include <functional>
 #include <memory>
 
-namespace we::runtime::kindui {
+namespace we::editor::menus {
+using ::we::runtime::kindui::Widget;
+using ::we::runtime::kindui::Size;
+using ::we::runtime::kindui::Rect;
+using ::we::runtime::kindui::Point;
+using ::we::runtime::kindui::Color;
+using ::we::runtime::kindui::PaintContext;
+using ::we::runtime::kindui::MouseEvent;
+using ::we::runtime::kindui::WidgetStyle;
+
 
 // Menu item structure
 struct MenuItem {
@@ -75,4 +84,4 @@ private:
     bool m_ShowsMore = false;
 };
 
-} // namespace we::editor::menus::UI
+} // namespace we::editor::menus

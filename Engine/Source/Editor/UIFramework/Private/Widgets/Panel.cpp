@@ -8,11 +8,12 @@
 #include <functional>
 #include <algorithm>
 
-using we::runtime::kindui::ColorToken;
-using we::runtime::kindui::MetricToken;
-using we::runtime::kindui::PaddingToken;
+using ::we::runtime::kindui::ColorToken;
+using ::we::runtime::kindui::MetricToken;
+using ::we::runtime::kindui::PaddingToken;
+using ::we::runtime::kindui::DPIContext;
 
-namespace we::editor::ui {
+namespace we::editor::panels {
 
 Panel::Panel(const std::string& title)
     : m_Title(title)
@@ -301,4 +302,4 @@ Panel::HeaderAction* Panel::GetActionAtPosition(const Point& pos) {
     return nullptr;
 }
 
-} // namespace we::editor::ui
+} // namespace we::editor::panels

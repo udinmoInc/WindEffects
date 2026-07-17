@@ -4,8 +4,18 @@
 #include "Widgets/MenuBar.h" // For MenuItem
 #include <vector>
 #include <memory>
+#include "KindUI/Core/Style.h"
 
-namespace we::runtime::kindui {
+namespace we::editor::menus {
+using ::we::runtime::kindui::Widget;
+using ::we::runtime::kindui::Size;
+using ::we::runtime::kindui::Rect;
+using ::we::runtime::kindui::Point;
+using ::we::runtime::kindui::Color;
+using ::we::runtime::kindui::PaintContext;
+using ::we::runtime::kindui::MouseEvent;
+using ::we::runtime::kindui::WidgetStyle;
+
 
 class DropdownMenu : public Widget {
 public:
@@ -31,4 +41,4 @@ private:
     float m_PaddingX = 6.0f;
 };
 
-} // namespace we::editor::menus::UI
+} // namespace we::editor::menus

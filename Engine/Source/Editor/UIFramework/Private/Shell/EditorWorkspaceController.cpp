@@ -36,7 +36,7 @@ we::runtime::kindui::IPopupHost* GetEditorPopupHost() {
     return EditorWorkspaceController::Get().GetPopupHost();
 }
 
-void EditorWorkspaceController::BindLayout(const we::editor::ui::DockLayoutBuildResult& layout) {
+void EditorWorkspaceController::BindLayout(const ::we::editor::shell::DockLayoutBuildResult& layout) {
     m_Layout = layout;
 }
 
@@ -50,8 +50,8 @@ we::runtime::kindui::IPopupHost* EditorWorkspaceController::GetPopupHost() const
 
 void EditorWorkspaceController::RegisterPanel(
     const std::string& panelId,
-    const std::shared_ptr<we::editor::ui::Panel>& panel,
-    we::editor::ui::DockZone zone) {
+    const std::shared_ptr<::we::editor::panels::Panel>& panel,
+    ::we::editor::docking::DockZone zone) {
     if (!panel) {
         return;
     }
@@ -63,14 +63,14 @@ void EditorWorkspaceController::RegisterPanel(
     m_Panels[panelId] = std::move(entry);
 }
 
-std::shared_ptr<we::editor::ui::DockContainer> EditorWorkspaceController::DockForZone(
-    we::editor::ui::DockZone zone) const {
+std::shared_ptr<::we::editor::docking::DockContainer> EditorWorkspaceController::DockForZone(
+    ::we::editor::docking::DockZone zone) const {
     switch (zone) {
-    case we::editor::ui::DockZone::Left:
+    case ::we::editor::docking::DockZone::Left:
         return m_Layout.toolsDock;
-    case we::editor::ui::DockZone::Center:
+    case ::we::editor::docking::DockZone::Center:
         return m_Layout.viewportDock;
-    case we::editor::ui::DockZone::Right:
+    case ::we::editor::docking::DockZone::Right:
         return m_Layout.explorerDock;
     default:
         return nullptr;
@@ -121,7 +121,7 @@ void EditorWorkspaceController::FloatPanel(const std::string& panelId) {
         dock->RemovePanel(it->second.panel);
     }
 
-    m_PopupHost->ShowPopup(it->second.panel, we::editor::ui::Point{ 120.0f, 120.0f });
+    m_PopupHost->ShowPopup(it->second.panel, we::runtime::kindui::Point{ 120.0f, 120.0f });
     it->second.visible = true;
     it->second.panel->SetVisible(true);
 }

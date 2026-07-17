@@ -7,8 +7,20 @@
 #include "KindUI/Core/Icon.h"
 #include <string>
 #include <functional>
+#include "KindUI/Input/InputEvents.h"
 
-namespace we::runtime::kindui {
+namespace we::editor::widgets {
+using ::we::runtime::kindui::KeyEvent;
+
+using ::we::runtime::kindui::Widget;
+using ::we::runtime::kindui::Size;
+using ::we::runtime::kindui::Rect;
+using ::we::runtime::kindui::Point;
+using ::we::runtime::kindui::Color;
+using ::we::runtime::kindui::PaintContext;
+using ::we::runtime::kindui::MouseEvent;
+using ::we::runtime::kindui::WidgetStyle;
+
 
 // Search box widget with icon and clear button
 class CONTENTBROWSER_API SearchBox : public Widget {
@@ -63,4 +75,4 @@ private:
     WidgetStyle m_Style;
 };
 
-} // namespace we::runtime::kindui
+} // namespace we::editor::widgets

@@ -5,9 +5,14 @@
 
 #include <algorithm>
 
-using we::runtime::kindui::PaddingToken;
+using ::we::runtime::kindui::PaddingToken;
 
-namespace we::editor::ui {
+using ::we::runtime::kindui::ColorToken;
+using ::we::runtime::kindui::MetricToken;
+using ::we::runtime::kindui::Point;
+using ::we::runtime::kindui::Color;
+
+namespace we::editor::viewport {
 
 namespace {
 constexpr float kPadding = 12.0f;
@@ -93,4 +98,4 @@ void RenderTargetPreviewWidget::OnMouseDown(const MouseEvent& event) {
     }
 }
 
-} // namespace we::editor::ui
+} // namespace we::editor::viewport

@@ -7,12 +7,17 @@
 #include "KindUI/Rendering/IconMetrics.h"
 #include <algorithm>
 
-using we::runtime::kindui::ColorToken;
-using we::runtime::kindui::MetricToken;
-using we::runtime::kindui::PaddingToken;
+using ::we::runtime::kindui::ColorToken;
+using ::we::runtime::kindui::MetricToken;
+using ::we::runtime::kindui::PaddingToken;
 
-namespace we::runtime::kindui {
-using we::editor::ui::Panel;
+namespace we::editor::viewport {
+using ::we::runtime::kindui::MouseButton;
+using ::we::runtime::kindui::KeyEventType;
+using ::we::runtime::kindui::IconPainter;
+namespace Icons = ::we::runtime::kindui::Icons;
+namespace IconMetrics = ::we::runtime::kindui::IconMetrics;
+
 
 ViewportOverlay::ViewportOverlay()
     : m_Style(WidgetStyle::Panel())
@@ -293,4 +298,4 @@ NavigationControls::NavButton* NavigationControls::GetButtonAtPosition(const Poi
     return nullptr;
 }
 
-} // namespace we::editor::viewport::UI
+} // namespace we::editor::viewport

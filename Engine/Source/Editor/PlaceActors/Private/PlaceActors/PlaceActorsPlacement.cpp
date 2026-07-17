@@ -11,6 +11,8 @@
 #include <unordered_map>
 
 namespace we::programs::editor {
+using ::we::editor::toolspanel::EditorToolsRegistry;
+using ::we::editor::toolspanel::EditorToolAction;
 
 namespace {
 
@@ -64,7 +66,7 @@ void PlaceActorsPlacement::BindScene(const std::shared_ptr<we::runtime::scene::S
     m_Scene = scene;
     m_Camera = camera;
     if (scene) {
-        we::editor::terrain::TerrainEditorService::Get().BindScene(scene.get());
+        ::we::editor::terrain::TerrainEditorService::Get().BindScene(scene.get());
     }
 }
 
@@ -91,8 +93,8 @@ bool PlaceActorsPlacement::SpawnToolAt(const std::string& toolId, const glm::vec
     }
 
     if (toolId == "TerrainGenerate") {
-        we::editor::terrain::TerrainEditorService::Get().BindScene(scene.get());
-        if (!we::editor::terrain::TerrainEditorService::Get().GenerateDefaultLandscape()) {
+        ::we::editor::terrain::TerrainEditorService::Get().BindScene(scene.get());
+        if (!::we::editor::terrain::TerrainEditorService::Get().GenerateDefaultLandscape()) {
             return false;
         }
         EditorToolsRegistry::Get().RecordToolUsage(toolId);

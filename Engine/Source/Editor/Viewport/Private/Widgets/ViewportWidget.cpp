@@ -19,7 +19,13 @@
 #define WE_DEBUG_UI 0
 #endif
 
-namespace we::runtime::kindui {
+namespace we::editor::viewport {
+using ::we::runtime::kindui::MouseButton;
+using ::we::runtime::kindui::KeyEventType;
+using ::we::runtime::kindui::IconPainter;
+namespace Icons = ::we::runtime::kindui::Icons;
+namespace IconMetrics = ::we::runtime::kindui::IconMetrics;
+
 
 ViewportWidget::ViewportWidget(::we::runtime::renderer::ISceneViewportController* viewportController,
                                we::rhi::IRHIDevice* device,
@@ -38,7 +44,7 @@ ViewportWidget::ViewportWidget(::we::runtime::renderer::ISceneViewportController
     m_Navigation.SetScene(scene);
     m_Navigation.ApplySettingsFromStore();
 
-    m_ViewportRenderTarget = std::make_unique<we::editor::viewport::ViewportRenderTarget>();
+    m_ViewportRenderTarget = std::make_unique<::we::editor::viewport::ViewportRenderTarget>();
     m_ViewportRenderTarget->Init(m_Device, m_ViewportColorFormat);
 
 #if WE_DEBUG_UI
@@ -286,4 +292,4 @@ void ViewportWidget::Tick(float deltaTime) {
     m_Navigation.Tick(deltaTime);
 }
 
-} // namespace we::runtime::kindui
+} // namespace we::editor::viewport

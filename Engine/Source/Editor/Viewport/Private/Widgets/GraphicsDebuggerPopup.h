@@ -9,7 +9,13 @@ namespace we::runtime::engine { class EditorCamera; }
 namespace we::runtime::renderer { class Renderer; }
 namespace we::runtime::scene { class Scene; }
 
-namespace we::runtime::kindui {
+namespace we::editor::viewport {
+using ::we::runtime::kindui::Widget;
+using ::we::runtime::kindui::Size;
+using ::we::runtime::kindui::Rect;
+using ::we::runtime::kindui::Point;
+using ::we::runtime::kindui::PaintContext;
+using ::we::runtime::kindui::MouseEvent;
 
 class GraphicsDebuggerPopup : public Widget {
 public:
@@ -48,4 +54,4 @@ private:
     float m_FrameTimeMs = 0.0f;
 };
 
-} // namespace we::runtime::kindui
+} // namespace we::editor::viewport

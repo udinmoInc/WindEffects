@@ -2,7 +2,7 @@
 
 #include "KindUI/Commands/ICommandRegistry.h"
 
-namespace we::editor::ui {
+namespace we::editor::extensions {
 
 void UIExtensionRegistry::RegisterExtension(std::shared_ptr<IEditorUIExtension> extension) {
     if (!extension) return;
@@ -32,7 +32,7 @@ const std::vector<MenuRegistration>& UIExtensionRegistry::GetMenus() const {
     return m_Menus;
 }
 
-void UIExtensionRegistry::PopulateDockManager(IDockManager& dockManager) const {
+void UIExtensionRegistry::PopulateDockManager(::we::editor::docking::IDockManager& dockManager) const {
     for (const auto& [id, reg] : m_Panels) {
         dockManager.RegisterPanel(reg.descriptor, [factory = reg.factory]() -> std::shared_ptr<void> {
             return factory();
@@ -46,4 +46,4 @@ void UIExtensionRegistry::PopulateCommandRegistry(ICommandRegistry& commands) co
     }
 }
 
-} // namespace we::editor::ui
+} // namespace we::editor::extensions

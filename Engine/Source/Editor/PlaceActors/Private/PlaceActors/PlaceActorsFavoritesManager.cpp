@@ -5,6 +5,8 @@
 #include "WindEffects/Editor/UI/Shell/EditorToolsRegistry.h"
 
 namespace we::programs::editor {
+using ::we::editor::toolspanel::EditorToolsRegistry;
+using ::we::editor::toolspanel::EditorToolAction;
 
 PlaceActorsFavoritesManager& PlaceActorsFavoritesManager::Get() {
     static PlaceActorsFavoritesManager instance;

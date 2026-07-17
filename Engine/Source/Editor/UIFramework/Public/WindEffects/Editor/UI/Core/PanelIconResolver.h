@@ -6,7 +6,8 @@
 #include <string_view>
 #include <unordered_map>
 
-namespace we::editor::ui {
+namespace we::editor::services {
+namespace Icons = ::we::runtime::kindui::Icons;
 
 // Canonical dock-tab and panel icon aliases — single registry for shell layout.
 inline std::string ResolvePanelTabIconName(std::string_view iconResource) {
@@ -33,4 +34,4 @@ inline std::string ResolvePanelTabIconName(std::string_view iconResource) {
     return Icons::ResolveLucideName(key);
 }
 
-} // namespace we::editor::ui
+} // namespace we::editor::services

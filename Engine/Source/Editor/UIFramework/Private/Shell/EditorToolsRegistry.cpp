@@ -3,7 +3,7 @@
 #include <algorithm>
 #include <cctype>
 
-namespace we::programs::editor {
+namespace we::editor::toolspanel {
 
 namespace {
 
@@ -174,4 +174,4 @@ std::vector<const EditorToolAction*> EditorToolsRegistry::GetFavoriteTools(std::
     return favorites;
 }
 
-} // namespace we::programs::editor
+} // namespace we::editor::toolspanel

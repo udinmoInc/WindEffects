@@ -6,7 +6,7 @@
 #include <mutex>
 #include <unordered_map>
 
-namespace we::editor::ui {
+namespace we::editor::docking {
 
 class DockManager final : public IDockManager {
 public:
@@ -45,4 +45,4 @@ public:
 
 UIFRAMEWORK_API WorkspaceLayout CreateDefaultEditorWorkspaceLayout();
 
-} // namespace we::editor::ui
+} // namespace we::editor::docking

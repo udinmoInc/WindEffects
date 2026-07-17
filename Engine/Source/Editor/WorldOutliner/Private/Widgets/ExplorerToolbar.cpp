@@ -10,11 +10,15 @@
 #include <cmath>
 #include "KindUI/Tokens/DesignToken.h"
 
-using we::runtime::kindui::ColorToken;
-using we::runtime::kindui::MetricToken;
-using we::runtime::kindui::PaddingToken;
+using ::we::runtime::kindui::ColorToken;
+using ::we::runtime::kindui::MetricToken;
+using ::we::runtime::kindui::PaddingToken;
+using ::we::runtime::kindui::MouseButton;
+namespace Icons = ::we::runtime::kindui::Icons;
+using ::we::runtime::kindui::IconPainter;
+namespace IconMetrics = ::we::runtime::kindui::IconMetrics;
 
-namespace we::runtime::kindui {
+namespace we::editor::outliner {
 
 ExplorerToolbar::ExplorerToolbar() {
 }
@@ -228,4 +232,4 @@ void ExplorerToolbar::SetSearchQuery(const std::string& query) {
     }
 }
 
-} // namespace we::runtime::kindui
+} // namespace we::editor::outliner

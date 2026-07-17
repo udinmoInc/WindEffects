@@ -4,18 +4,21 @@
 #include "KindUI/Core/Widget.h"
 #include "KindUI/Layout/Flex.h"
 #include "KindUI/Widgets/Label.h"
+#include "KindUI/Input/InputEvents.h"
 #include "WindEffects/Editor/UI/Renderer/EditorRenderDebugStub.h"
 #include <functional>
 #include <memory>
 #include <string>
 
-namespace we::editor::ui {
-using we::runtime::kindui::Widget;
-using we::runtime::kindui::Size;
-using we::runtime::kindui::Rect;
-using we::runtime::kindui::PaintContext;
-using we::runtime::kindui::MouseEvent;
-using we::runtime::kindui::Label;
+namespace we::editor::panels {
+using ::we::runtime::kindui::Widget;
+using ::we::runtime::kindui::Size;
+using ::we::runtime::kindui::Rect;
+using ::we::runtime::kindui::PaintContext;
+using ::we::runtime::kindui::MouseEvent;
+using ::we::runtime::kindui::KeyEvent;
+using ::we::runtime::kindui::Label;
+using ::we::runtime::kindui::Column;
 
 /// Foundation stub: full investigation UI is disabled under the current renderer.
 class UIFRAMEWORK_API RenderInvestigationModal : public Widget {
@@ -70,4 +73,4 @@ public:
     static void UpdateFromSnapshot(const we::runtime::renderer::RenderDebuggerFrameSnapshot& snapshot);
 };
 
-} // namespace we::editor::ui
+} // namespace we::editor::panels

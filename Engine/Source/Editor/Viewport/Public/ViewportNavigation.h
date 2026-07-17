@@ -1,16 +1,18 @@
 #pragma once
 
 #include "KindUI/Core/EventSystem.h"
+#include "KindUI/Core/Geometry.h"
+#include "KindUI/Input/InputEvents.h"
 #include "EditorCamera.h"
 #include "Scene/Scene.h"
 #include "Platform/Types.h"
 #include <memory>
 
-namespace we::programs::editor {
-class ViewportNavigationSettingsStore;
-}
-
-namespace we::runtime::kindui {
+namespace we::editor::viewport {
+using ::we::runtime::kindui::Rect;
+using ::we::runtime::kindui::Point;
+using ::we::runtime::kindui::MouseEvent;
+using ::we::runtime::kindui::KeyEvent;
 
 enum class ViewportCursorMode {
     Default,
@@ -83,4 +85,4 @@ private:
 void ApplyViewportNavigationSettings(
     const std::shared_ptr<we::runtime::engine::EditorCamera>& camera);
 
-} // namespace we::runtime::kindui
+} // namespace we::editor::viewport

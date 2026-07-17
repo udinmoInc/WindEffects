@@ -17,18 +17,27 @@
 #include <vector>
 
 namespace we::programs::editor {
+using ::we::runtime::kindui::MouseButton;
+using ::we::runtime::kindui::KeyEventType;
+using ::we::runtime::kindui::IconPainter;
+namespace Icons = ::we::runtime::kindui::Icons;
+namespace IconMetrics = ::we::runtime::kindui::IconMetrics;
 
-using we::runtime::kindui::Color;
-using we::runtime::kindui::MenuItem;
-using we::runtime::kindui::MouseButton;
-using we::runtime::kindui::MouseEvent;
-using we::runtime::kindui::PaintContext;
-using we::runtime::kindui::Point;
-using we::runtime::kindui::Rect;
-using we::runtime::kindui::Size;
-using we::runtime::kindui::ColorToken;
-using we::runtime::kindui::MetricToken;
-using we::runtime::kindui::PaddingToken;
+
+using ::we::runtime::kindui::Color;
+using ::we::editor::shell::EditorModeController;
+using ::we::editor::toolspanel::EditorToolsRegistry;
+namespace ToolbarButtonChrome = ::we::runtime::kindui::ToolbarButtonChrome;
+using ::we::editor::menus::MenuItem;
+using ::we::runtime::kindui::MouseButton;
+using ::we::runtime::kindui::MouseEvent;
+using ::we::runtime::kindui::PaintContext;
+using ::we::runtime::kindui::Point;
+using ::we::runtime::kindui::Rect;
+using ::we::runtime::kindui::Size;
+using ::we::runtime::kindui::ColorToken;
+using ::we::runtime::kindui::MetricToken;
+using ::we::runtime::kindui::PaddingToken;
 
 class EditorModeMenu : public we::runtime::kindui::Widget {
 public:
@@ -147,9 +156,9 @@ void EditorModeSelector::Refresh() {
 Size EditorModeSelector::Measure(const Size& availableSize) {
     (void)availableSize;
     const float uiScale = (std::max)(1.0f, we::runtime::kindui::DPIContext::GetScale());
-    const float padH = we::runtime::kindui::ToolbarButtonChrome::HorizontalPad(uiScale);
-    const float iconSz = we::runtime::kindui::ToolbarButtonChrome::IconSize(uiScale);
-    const float iconGap = we::runtime::kindui::ToolbarButtonChrome::IconGapPx(uiScale);
+    const float padH = ToolbarButtonChrome::HorizontalPad(uiScale);
+    const float iconSz = ToolbarButtonChrome::IconSize(uiScale);
+    const float iconGap = ToolbarButtonChrome::IconGapPx(uiScale);
     const float chevW = we::runtime::kindui::IconMetrics::CompactDisplayPx();
     const float controlH = ThemeMetric(MetricToken::IconButtonSize) * uiScale;
     m_DesiredSize = Size{
@@ -169,15 +178,15 @@ void EditorModeSelector::Paint(PaintContext& context) {
         m_HoverAnim, m_Hovered ? 1.0f : 0.0f, ThemeMetric(MetricToken::HoverAnimationDamping));
 
     const float pressStrength = m_Pressed ? 1.0f : 0.0f;
-    we::runtime::kindui::ToolbarButtonChrome::PaintIconButton(
+    ToolbarButtonChrome::PaintIconButton(
         context, m_Geometry, m_HoverAnim, pressStrength, false, 0.0f, uiScale);
 
     const float centerY = m_Geometry.y + m_Geometry.height * 0.5f;
-    const float padH = we::runtime::kindui::ToolbarButtonChrome::HorizontalPad(uiScale);
-    const float iconSize = we::runtime::kindui::ToolbarButtonChrome::IconSize(uiScale);
-    const float iconGap = we::runtime::kindui::ToolbarButtonChrome::IconGapPx(uiScale);
+    const float padH = ToolbarButtonChrome::HorizontalPad(uiScale);
+    const float iconSize = ToolbarButtonChrome::IconSize(uiScale);
+    const float iconGap = ToolbarButtonChrome::IconGapPx(uiScale);
     const float chevSize = we::runtime::kindui::IconMetrics::CompactDisplayPx();
-    Color iconColor = we::runtime::kindui::ToolbarButtonChrome::ResolveIconColor(
+    Color iconColor = ToolbarButtonChrome::ResolveIconColor(
         m_HoverAnim, pressStrength, false);
 
     const Rect iconBand{
@@ -187,7 +196,7 @@ void EditorModeSelector::Paint(PaintContext& context) {
         m_Geometry.height
     };
     we::runtime::kindui::IconPainter::DrawIcon(context, m_IconName,
-        we::runtime::kindui::ToolbarButtonChrome::PlaceIconInControl(iconBand, iconSize),
+        ToolbarButtonChrome::PlaceIconInControl(iconBand, iconSize),
         iconColor);
 
     const float chevX = m_Geometry.x + m_Geometry.width - padH - chevSize;

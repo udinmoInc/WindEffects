@@ -1,6 +1,6 @@
 #include "Widgets/ToolbarBuilder.h"
 
-namespace we::runtime::kindui {
+namespace we::editor::toolbar {
 
 ToolbarBuilder& ToolbarBuilder::Height(float height) {
     m_Height = height;
@@ -104,4 +104,4 @@ std::shared_ptr<Toolbar> ToolbarBuilder::Build() {
     return toolbar;
 }
 
-} // namespace we::runtime::kindui
+} // namespace we::editor::toolbar

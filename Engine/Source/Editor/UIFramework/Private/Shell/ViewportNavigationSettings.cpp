@@ -8,7 +8,7 @@
 #include <fstream>
 #include <sstream>
 
-namespace we::programs::editor {
+namespace we::editor::viewport {
 
 namespace {
 
@@ -205,4 +205,4 @@ void ViewportNavigationSettingsStore::Save() const {
     file << "ScrollWheelSpeedMultiplier=" << m_Settings.scrollWheelSpeedMultiplier << "\n";
 }
 
-} // namespace we::programs::editor
+} // namespace we::editor::viewport

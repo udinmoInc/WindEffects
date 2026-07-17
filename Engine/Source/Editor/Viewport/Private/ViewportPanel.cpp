@@ -6,16 +6,22 @@
 #include "KindUI/Theming/ThemeAccess.h"
 
 #include <functional>
+#include "KindUI/Rendering/IconMetrics.h"
 #include "KindUI/Tokens/DesignToken.h"
 
 namespace we::programs::editor {
-
-using we::runtime::kindui::ColorToken;
-using we::runtime::kindui::MetricToken;
-using we::runtime::kindui::PaddingToken;
-
-using namespace we::runtime::kindui;
-using namespace we::editor::ui;
+using ::we::runtime::kindui::ColorToken;
+using ::we::runtime::kindui::MetricToken;
+using ::we::runtime::kindui::PaddingToken;
+using ::we::runtime::kindui::VerticalAlignment;
+using ::we::editor::toolbar::ToolButton;
+using ::we::editor::toolbar::ToolButtonStyle;
+using ::we::editor::toolbar::Toolbar;
+using ::we::editor::toolbar::ToolbarAlignment;
+using ::we::editor::panels::Panel;
+using ::we::editor::panels::PanelBuilder;
+using ::we::editor::docking::DockZone;
+namespace Icons = ::we::runtime::kindui::Icons;
 
 namespace {
 

@@ -2,7 +2,7 @@
 
 #include "ContentBrowser/Export.h"
 
-namespace we::runtime::kindui {
+namespace we::editor::contentbrowser {
 class IconRenderer;
 }
 

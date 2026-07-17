@@ -2,7 +2,9 @@
 
 #include "WindEffects/Editor/UI/Export.h"
 #include "KindUI/Commands/ICommandRegistry.h"
+#include "KindUI/Core/Widget.h"
 #include "WindEffects/Editor/UI/Docking/IDockManager.h"
+#include "WindEffects/Editor/UI/Widgets/Panel.h"
 
 #include <functional>
 #include <memory>
@@ -11,25 +13,20 @@
 #include <unordered_map>
 #include <vector>
 
-namespace we::runtime::kindui {
-struct MenuItem;
-class Widget;
-}
-namespace we::editor::ui {
-using we::runtime::kindui::Widget;
-using we::runtime::kindui::ICommand;
-using we::runtime::kindui::ICommandRegistry;
-using we::runtime::kindui::MenuItem;
-class Panel;
+namespace we::editor::menus {
+class MenuItem;
 }
 
-namespace we::editor::ui {
+namespace we::editor::extensions {
 
-using ExtensionPanelFactory = std::function<std::shared_ptr<we::editor::ui::Panel>()>;
-using ExtensionMenuFactory = std::function<std::vector<std::shared_ptr<we::runtime::kindui::MenuItem>>()>;
+using ::we::runtime::kindui::ICommand;
+using ::we::runtime::kindui::ICommandRegistry;
+
+using ExtensionPanelFactory = std::function<std::shared_ptr<::we::editor::panels::Panel>()>;
+using ExtensionMenuFactory = std::function<std::vector<std::shared_ptr<::we::editor::menus::MenuItem>>()>;
 
 struct PanelRegistration {
-    DockPanelDescriptor descriptor;
+    ::we::editor::docking::DockPanelDescriptor descriptor;
     ExtensionPanelFactory factory;
 };
 
@@ -57,7 +54,7 @@ public:
     [[nodiscard]] const std::unordered_map<std::string, PanelRegistration>& GetPanels() const;
     [[nodiscard]] const std::vector<MenuRegistration>& GetMenus() const;
 
-    void PopulateDockManager(IDockManager& dockManager) const;
+    void PopulateDockManager(::we::editor::docking::IDockManager& dockManager) const;
     void PopulateCommandRegistry(ICommandRegistry& commands) const;
 
 private:
@@ -67,4 +64,4 @@ private:
     std::vector<std::shared_ptr<ICommand>> m_PendingCommands;
 };
 
-} // namespace we::editor::ui
+} // namespace we::editor::extensions

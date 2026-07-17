@@ -9,12 +9,17 @@
 #include "KindUI/Rendering/IconMetrics.h"
 #include <algorithm>
 
-using we::runtime::kindui::ColorToken;
-using we::runtime::kindui::MetricToken;
-using we::runtime::kindui::PaddingToken;
+using ::we::runtime::kindui::ColorToken;
+using ::we::runtime::kindui::MetricToken;
+using ::we::runtime::kindui::PaddingToken;
 
-namespace we::runtime::kindui {
-using we::editor::ui::Panel;
+namespace we::editor::widgets {
+using ::we::runtime::kindui::MouseButton;
+using ::we::runtime::kindui::KeyEventType;
+using ::we::runtime::kindui::IconPainter;
+namespace Icons = ::we::runtime::kindui::Icons;
+namespace IconMetrics = ::we::runtime::kindui::IconMetrics;
+
 
 SearchBox::SearchBox()
     : m_Style(WidgetStyle::TextBox())
@@ -177,4 +182,4 @@ void SearchBox::SetText(const std::string& text) {
     }
 }
 
-} // namespace we::runtime::kindui
+} // namespace we::editor::widgets

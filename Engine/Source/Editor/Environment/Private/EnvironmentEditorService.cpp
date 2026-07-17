@@ -31,6 +31,12 @@
 #include <vector>
 
 namespace we::editor::environment {
+using ::we::runtime::kindui::MouseButton;
+using ::we::runtime::kindui::KeyEventType;
+using ::we::runtime::kindui::IconPainter;
+namespace Icons = ::we::runtime::kindui::Icons;
+namespace IconMetrics = ::we::runtime::kindui::IconMetrics;
+
 
 namespace {
 
@@ -42,8 +48,8 @@ using we::runtime::world::environment::EnvironmentPreset;
 using we::runtime::world::environment::EnvironmentSystem;
 
 std::weak_ptr<Scene> g_Scene;
-std::weak_ptr<we::runtime::kindui::TreeView> g_Outliner;
-std::weak_ptr<we::runtime::kindui::PropertyEditor> g_Details;
+std::weak_ptr<::we::editor::contentbrowser::TreeView> g_Outliner;
+std::weak_ptr<::we::editor::property::PropertyEditor> g_Details;
 std::uint64_t g_LastSelectedEntityId = 0;
 
 std::string EntityTypeLabel(EntityType type) {
@@ -106,8 +112,8 @@ int EnvironmentActorSortKey(const Entity& entity) {
     return 100;
 }
 
-void SortTreeChildren(std::vector<std::shared_ptr<we::runtime::kindui::TreeNode>>& children, Scene& scene) {
-    std::sort(children.begin(), children.end(), [&](const std::shared_ptr<we::runtime::kindui::TreeNode>& a, const std::shared_ptr<we::runtime::kindui::TreeNode>& b) {
+void SortTreeChildren(std::vector<std::shared_ptr<::we::editor::contentbrowser::TreeNode>>& children, Scene& scene) {
+    std::sort(children.begin(), children.end(), [&](const std::shared_ptr<::we::editor::contentbrowser::TreeNode>& a, const std::shared_ptr<::we::editor::contentbrowser::TreeNode>& b) {
         const Entity* entityA = scene.FindEntityById(static_cast<std::uint64_t>(std::strtoull(a->id.c_str(), nullptr, 10)));
         const Entity* entityB = scene.FindEntityById(static_cast<std::uint64_t>(std::strtoull(b->id.c_str(), nullptr, 10)));
         if (!entityA || !entityB) {
@@ -165,15 +171,15 @@ int ParseInt(const std::string& text, int fallback) {
 }
 
 void AddBoolProperty(
-    we::runtime::kindui::PropertyEditor& editor,
+    ::we::editor::property::PropertyEditor& editor,
     const std::string& name,
     const std::string& category,
     bool value,
     std::function<void(bool)> onChanged) {
-    we::runtime::kindui::Property property;
+    ::we::editor::property::Property property;
     property.name = name;
     property.category = category;
-    property.type = we::runtime::kindui::PropertyType::Bool;
+    property.type = ::we::editor::property::PropertyType::Bool;
     property.value = value ? "true" : "false";
     property.defaultValue = property.value;
     property.onValueChanged = [onChanged](const std::string& newValue) {
@@ -185,15 +191,15 @@ void AddBoolProperty(
 }
 
 void AddFloatProperty(
-    we::runtime::kindui::PropertyEditor& editor,
+    ::we::editor::property::PropertyEditor& editor,
     const std::string& name,
     const std::string& category,
     float value,
     std::function<void(float)> onChanged) {
-    we::runtime::kindui::Property property;
+    ::we::editor::property::Property property;
     property.name = name;
     property.category = category;
-    property.type = we::runtime::kindui::PropertyType::Float;
+    property.type = ::we::editor::property::PropertyType::Float;
     property.value = FormatFloat(value);
     property.defaultValue = property.value;
     property.onValueChanged = [onChanged](const std::string& newValue) {
@@ -205,15 +211,15 @@ void AddFloatProperty(
 }
 
 void AddIntProperty(
-    we::runtime::kindui::PropertyEditor& editor,
+    ::we::editor::property::PropertyEditor& editor,
     const std::string& name,
     const std::string& category,
     int value,
     std::function<void(int)> onChanged) {
-    we::runtime::kindui::Property property;
+    ::we::editor::property::Property property;
     property.name = name;
     property.category = category;
-    property.type = we::runtime::kindui::PropertyType::Int;
+    property.type = ::we::editor::property::PropertyType::Int;
     property.value = std::to_string(value);
     property.defaultValue = property.value;
     property.onValueChanged = [onChanged](const std::string& newValue) {
@@ -225,15 +231,15 @@ void AddIntProperty(
 }
 
 void AddVec3Property(
-    we::runtime::kindui::PropertyEditor& editor,
+    ::we::editor::property::PropertyEditor& editor,
     const std::string& name,
     const std::string& category,
     const glm::vec3& value,
     std::function<void(const glm::vec3&)> onChanged) {
-    we::runtime::kindui::Property property;
+    ::we::editor::property::Property property;
     property.name = name;
     property.category = category;
-    property.type = we::runtime::kindui::PropertyType::Vector3;
+    property.type = ::we::editor::property::PropertyType::Vector3;
     property.value = FormatVec3(value);
     property.defaultValue = property.value;
     property.onValueChanged = [value, onChanged](const std::string& newValue) {
@@ -244,7 +250,7 @@ void AddVec3Property(
     editor.AddProperty(property);
 }
 
-void BindSunProperties(we::runtime::kindui::PropertyEditor& editor, EnvironmentSystem& system) {
+void BindSunProperties(::we::editor::property::PropertyEditor& editor, EnvironmentSystem& system) {
     auto& sun = system.GetSun();
     AddFloatProperty(editor, "Intensity", "Light", sun.Intensity, [&system](float value) {
         system.GetSun().Intensity = value;
@@ -271,7 +277,7 @@ void BindSunProperties(we::runtime::kindui::PropertyEditor& editor, EnvironmentS
     });
 }
 
-void BindSkyLightProperties(we::runtime::kindui::PropertyEditor& editor, EnvironmentSystem& system) {
+void BindSkyLightProperties(::we::editor::property::PropertyEditor& editor, EnvironmentSystem& system) {
     auto& sky = system.GetSkyLight();
     AddFloatProperty(editor, "Intensity", "Sky Light", sky.Intensity, [&system](float value) {
         system.GetSkyLight().Intensity = value;
@@ -284,7 +290,7 @@ void BindSkyLightProperties(we::runtime::kindui::PropertyEditor& editor, Environ
     });
 }
 
-void BindAtmosphereProperties(we::runtime::kindui::PropertyEditor& editor, EnvironmentSystem& system) {
+void BindAtmosphereProperties(::we::editor::property::PropertyEditor& editor, EnvironmentSystem& system) {
     auto& atmosphere = system.GetSkyAtmosphere();
     AddFloatProperty(editor, "Rayleigh Scattering", "Atmosphere", atmosphere.RayleighScattering, [&system](float value) {
         system.GetSkyAtmosphere().RayleighScattering = value;
@@ -301,7 +307,7 @@ void BindAtmosphereProperties(we::runtime::kindui::PropertyEditor& editor, Envir
     });
 }
 
-void BindFogProperties(we::runtime::kindui::PropertyEditor& editor, EnvironmentSystem& system) {
+void BindFogProperties(::we::editor::property::PropertyEditor& editor, EnvironmentSystem& system) {
     auto& fog = system.GetHeightFog();
     AddFloatProperty(editor, "Density", "Fog", fog.Density, [&system](float value) {
         system.GetHeightFog().Density = value;
@@ -323,15 +329,15 @@ void BindFogProperties(we::runtime::kindui::PropertyEditor& editor, EnvironmentS
 }
 
 void AddStringProperty(
-    we::runtime::kindui::PropertyEditor& editor,
+    ::we::editor::property::PropertyEditor& editor,
     const std::string& name,
     const std::string& category,
     const std::string& value,
     std::function<void(const std::string&)> onChanged) {
-    we::runtime::kindui::Property property;
+    ::we::editor::property::Property property;
     property.name = name;
     property.category = category;
-    property.type = we::runtime::kindui::PropertyType::String;
+    property.type = ::we::editor::property::PropertyType::String;
     property.value = value;
     property.defaultValue = property.value;
     property.onValueChanged = [onChanged](const std::string& newValue) {
@@ -342,7 +348,7 @@ void AddStringProperty(
     editor.AddProperty(property);
 }
 
-void BindCloudProperties(we::runtime::kindui::PropertyEditor& editor, EnvironmentSystem& system) {
+void BindCloudProperties(::we::editor::property::PropertyEditor& editor, EnvironmentSystem& system) {
     using we::runtime::world::environment::CloudPreset;
     using we::runtime::world::environment::CloudQualityPreset;
     using we::runtime::world::environment::EnvironmentVolumetricClouds;
@@ -497,7 +503,7 @@ void BindCloudProperties(we::runtime::kindui::PropertyEditor& editor, Environmen
     });
 }
 
-void BindExposureProperties(we::runtime::kindui::PropertyEditor& editor, EnvironmentSystem& system) {
+void BindExposureProperties(::we::editor::property::PropertyEditor& editor, EnvironmentSystem& system) {
     auto& exposure = system.GetExposureController();
     AddBoolProperty(editor, "Auto Exposure", "Exposure", exposure.AutoExposure, [&system](bool value) {
         system.GetExposureController().AutoExposure = value;
@@ -545,17 +551,17 @@ void RefreshDetailsPanel() {
     EnvironmentSystem& system = EnvironmentSystem::Get();
     system.SyncFromScene();
 
-    we::runtime::kindui::Property actorName;
+    ::we::editor::property::Property actorName;
     actorName.name = "Name";
     actorName.category = "Actor";
-    actorName.type = we::runtime::kindui::PropertyType::String;
+    actorName.type = ::we::editor::property::PropertyType::String;
     actorName.value = entity.Name;
     details->AddProperty(actorName);
 
-    we::runtime::kindui::Property actorType;
+    ::we::editor::property::Property actorType;
     actorType.name = "Type";
     actorType.category = "Actor";
-    actorType.type = we::runtime::kindui::PropertyType::String;
+    actorType.type = ::we::editor::property::PropertyType::String;
     actorType.value = EntityTypeLabel(entity.Type);
     details->AddProperty(actorType);
 
@@ -605,8 +611,8 @@ void RefreshDetailsPanel() {
     }
 }
 
-std::shared_ptr<we::runtime::kindui::TreeNode> BuildNodeForEntity(const Entity& entity) {
-    auto node = std::make_shared<we::runtime::kindui::TreeNode>();
+std::shared_ptr<::we::editor::contentbrowser::TreeNode> BuildNodeForEntity(const Entity& entity) {
+    auto node = std::make_shared<::we::editor::contentbrowser::TreeNode>();
     node->id = std::to_string(entity.Id);
     node->label = entity.Name;
     node->iconName = IconForEntity(entity);
@@ -624,12 +630,12 @@ void RefreshOutliner() {
         return;
     }
 
-    auto root = std::make_shared<we::runtime::kindui::TreeNode>();
+    auto root = std::make_shared<::we::editor::contentbrowser::TreeNode>();
     root->id = "root";
     root->label = "";
     root->expanded = true;
 
-    std::unordered_map<std::uint64_t, std::shared_ptr<we::runtime::kindui::TreeNode>> nodeById;
+    std::unordered_map<std::uint64_t, std::shared_ptr<::we::editor::contentbrowser::TreeNode>> nodeById;
     for (const Entity& entity : scene->GetEntities()) {
         nodeById[entity.Id] = BuildNodeForEntity(entity);
     }
@@ -655,7 +661,7 @@ void RefreshOutliner() {
 
 class EnvironmentDropdownMenu : public we::runtime::kindui::Widget {
 public:
-    explicit EnvironmentDropdownMenu(std::vector<std::shared_ptr<we::runtime::kindui::MenuItem>> items)
+    explicit EnvironmentDropdownMenu(std::vector<std::shared_ptr<::we::editor::menus::MenuItem>> items)
         : m_Items(std::move(items)) {}
 
     we::runtime::kindui::Size Measure(const we::runtime::kindui::Size& availableSize) override {
@@ -739,7 +745,7 @@ public:
     }
 
 private:
-    std::vector<std::shared_ptr<we::runtime::kindui::MenuItem>> m_Items;
+    std::vector<std::shared_ptr<::we::editor::menus::MenuItem>> m_Items;
     int m_Hovered = -1;
 };
 
@@ -817,7 +823,7 @@ public:
 private:
     void ShowMenu() {
         auto makeItem = [](const std::string& label, std::function<void()> onClick, bool checked = false, bool enabled = true) {
-            auto item = std::make_shared<we::runtime::kindui::MenuItem>();
+            auto item = std::make_shared<::we::editor::menus::MenuItem>();
             item->label = label;
             item->onClick = std::move(onClick);
             item->checked = checked;
@@ -826,7 +832,7 @@ private:
         };
 
         EnvironmentSystem& system = EnvironmentSystem::Get();
-        std::vector<std::shared_ptr<we::runtime::kindui::MenuItem>> items;
+        std::vector<std::shared_ptr<::we::editor::menus::MenuItem>> items;
         items.push_back(makeItem("Create Environment", []() { EnvironmentSystem::Get().CreateEnvironment(); }));
         items.push_back(makeItem("Reset Environment", []() { EnvironmentSystem::Get().ResetEnvironment(); }));
         items.push_back(makeItem("Remove Environment", []() { EnvironmentSystem::Get().RemoveEnvironment(); }));
@@ -879,8 +885,8 @@ private:
 
 void InitializeEditor(
     const std::shared_ptr<Scene>& scene,
-    const std::shared_ptr<we::runtime::kindui::TreeView>& outliner,
-    const std::shared_ptr<we::runtime::kindui::PropertyEditor>& details) {
+    const std::shared_ptr<::we::editor::contentbrowser::TreeView>& outliner,
+    const std::shared_ptr<::we::editor::property::PropertyEditor>& details) {
 
     g_Scene = scene;
     g_Outliner = outliner;

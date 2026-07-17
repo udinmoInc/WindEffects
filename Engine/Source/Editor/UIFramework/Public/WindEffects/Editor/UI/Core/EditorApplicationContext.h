@@ -13,15 +13,17 @@
 
 #include <memory>
 
-namespace we::editor::ui {
-using we::runtime::kindui::IApplicationContext;
-using we::runtime::kindui::IKindUITheme;
-using we::runtime::kindui::ServiceContainer;
-using we::runtime::kindui::IServiceProvider;
-using we::runtime::kindui::IStyleResolver;
-using we::runtime::kindui::IResourceRegistry;
-using we::runtime::kindui::IEventBus;
-using we::runtime::kindui::ICommandRegistry;
+namespace we::editor::services {
+using ::we::runtime::kindui::IApplicationContext;
+using ::we::runtime::kindui::IKindUITheme;
+using ::we::runtime::kindui::ServiceContainer;
+using ::we::runtime::kindui::IServiceProvider;
+using ::we::runtime::kindui::IStyleResolver;
+using ::we::runtime::kindui::IResourceRegistry;
+using ::we::runtime::kindui::IEventBus;
+using ::we::runtime::kindui::ICommandRegistry;
+using ::we::editor::docking::IDockManager;
+using ::we::editor::extensions::UIExtensionRegistry;
 
 class UIFRAMEWORK_API IEditorApplicationContext : public IApplicationContext {
 public:
@@ -35,7 +37,7 @@ class EditorApplicationContext final
     : public ServiceContainer
     , public IEditorApplicationContext {
 public:
-    // Defaults to we::editor::ui::EditorTheme (orange accent).
+    // Defaults to ::we::editor::services::EditorTheme (orange accent).
     UIFRAMEWORK_API explicit EditorApplicationContext(
         std::shared_ptr<IKindUITheme> theme = nullptr);
 
@@ -64,4 +66,4 @@ private:
     std::shared_ptr<UIExtensionRegistry> m_ExtensionRegistry;
 };
 
-} // namespace we::editor::ui
+} // namespace we::editor::services

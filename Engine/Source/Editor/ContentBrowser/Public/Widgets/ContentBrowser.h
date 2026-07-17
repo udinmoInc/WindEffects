@@ -11,8 +11,22 @@
 #include <unordered_set>
 #include "Models/ContentBrowserModel.h"
 #include "Controllers/ContentBrowserController.h"
+#include "KindUI/Input/InputEvents.h"
 
-namespace we::runtime::kindui {
+namespace we::editor::contentbrowser {
+using ::we::runtime::kindui::KeyEvent;
+using ::we::runtime::kindui::ScrollViewport;
+using ::we::runtime::kindui::ScrollViewportMetrics;
+
+using ::we::runtime::kindui::Widget;
+using ::we::runtime::kindui::Size;
+using ::we::runtime::kindui::Rect;
+using ::we::runtime::kindui::Point;
+using ::we::runtime::kindui::Color;
+using ::we::runtime::kindui::PaintContext;
+using ::we::runtime::kindui::MouseEvent;
+using ::we::runtime::kindui::WidgetStyle;
+
 
 class ContentBrowser : public Widget {
 public:
@@ -205,4 +219,4 @@ private:
     size_t m_MemoryUsage = 0;
 };
 
-} // namespace we::runtime::kindui
+} // namespace we::editor::contentbrowser

@@ -18,19 +18,24 @@
 #include <cctype>
 #include <cmath>
 
-using we::runtime::kindui::ColorToken;
-using we::runtime::kindui::MetricToken;
-using we::runtime::kindui::PaddingToken;
+using ::we::runtime::kindui::ColorToken;
+using ::we::runtime::kindui::MetricToken;
+using ::we::runtime::kindui::PaddingToken;
 
-namespace we::runtime::kindui {
-using we::editor::ui::Panel;
+namespace we::editor::contentbrowser {
+using ::we::runtime::kindui::MouseButton;
+using ::we::runtime::kindui::KeyEventType;
+using ::we::runtime::kindui::IconPainter;
+namespace Icons = ::we::runtime::kindui::Icons;
+namespace IconMetrics = ::we::runtime::kindui::IconMetrics;
+
 
 namespace {
-using we::editor::contentbrowser::ContentBrowserService;
-using we::editor::contentbrowser::FilterController;
-using we::editor::contentbrowser::SearchController;
-using we::editor::contentbrowser::ContentBrowserFolderArt;
-using we::editor::contentbrowser::ContentBrowserBlueprintArt;
+using ::we::editor::contentbrowser::ContentBrowserService;
+using ::we::editor::contentbrowser::FilterController;
+using ::we::editor::contentbrowser::SearchController;
+using ::we::editor::contentbrowser::ContentBrowserFolderArt;
+using ::we::editor::contentbrowser::ContentBrowserBlueprintArt;
 
 bool IsBlueprintItem(const ContentItem& item) {
     return item.type == "Blueprint";
@@ -895,4 +900,4 @@ Breadcrumb::CrumbInfo* Breadcrumb::GetCrumbAtPosition(const Point& pos) {
     return nullptr;
 }
 
-} // namespace we::runtime::kindui
+} // namespace we::editor::contentbrowser

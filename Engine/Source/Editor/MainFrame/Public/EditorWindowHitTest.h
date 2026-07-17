@@ -4,14 +4,14 @@
 #include "Platform/Types.h"
 #include <memory>
 
-namespace we::runtime::kindui {
+namespace we::editor::shell {
 class TitleBar;
 }
 
 namespace we::editor::mainframe {
 
 struct EditorWindowHitTestData {
-    std::weak_ptr<we::runtime::kindui::TitleBar> titleBar;
+    std::weak_ptr<::we::editor::shell::TitleBar> titleBar;
 };
 
 MAINFRAME_API we::platform::WindowHitTestResult EditorWindowHitTest(

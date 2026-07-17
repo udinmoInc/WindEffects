@@ -7,10 +7,17 @@
 #include "KindUI/Theming/ThemeAccess.h"
 #include "KindUI/Tokens/DesignToken.h"
 
-using we::runtime::kindui::PaddingToken;
-using we::runtime::kindui::Orientation;
+using ::we::runtime::kindui::PaddingToken;
+using ::we::runtime::kindui::Orientation;
 
-namespace we::editor::ui {
+using ::we::runtime::kindui::MetricToken;
+namespace we::editor::shell {
+using ::we::editor::docking::SplitOrientation;
+using ::we::editor::docking::DockPanelDescriptor;
+using ::we::editor::docking::DockLayoutNode;
+using ::we::editor::docking::DockNodeType;
+using ::we::editor::services::ResolvePanelTabIconName;
+
 namespace {
 
 Orientation ToOrientation(SplitOrientation orientation) {
@@ -121,6 +128,6 @@ DockLayoutBuildResult DockLayoutBuilder::Build(
     return result;
 }
 
-} // namespace we::editor::ui
+} // namespace we::editor::shell
 
 
