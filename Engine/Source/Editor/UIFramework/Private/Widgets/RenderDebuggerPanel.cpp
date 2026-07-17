@@ -6,9 +6,9 @@
 namespace we::runtime::kindui {
 
 RenderDebuggerPanel::RenderDebuggerPanel() {
-    m_ScrollContentBox = std::make_shared<VerticalBox>();
-    m_ControlsBox = std::make_shared<VerticalBox>();
-    m_TargetsBox = std::make_shared<VerticalBox>();
+    m_ScrollContentBox = std::make_shared<Column>();
+    m_ControlsBox = std::make_shared<Column>();
+    m_TargetsBox = std::make_shared<Column>();
     m_Scroll = std::make_shared<ScrollLayout>();
     m_ContentLabel = std::make_shared<Label>("Render debugger unavailable in foundation renderer.");
     m_Scroll->SetContent(m_ContentLabel);

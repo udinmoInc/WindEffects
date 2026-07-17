@@ -12,7 +12,7 @@ std::shared_ptr<RenderInvestigationModal> g_Modal;
 RenderInvestigationModal::RenderInvestigationModal() = default;
 
 void RenderInvestigationModal::Construct() {
-    m_Root = std::make_shared<VerticalBox>();
+    m_Root = std::make_shared<Column>();
     m_TitleLabel = std::make_shared<Label>("Render Investigation");
     m_Root->AddChild(m_TitleLabel);
     AddChild(m_Root);

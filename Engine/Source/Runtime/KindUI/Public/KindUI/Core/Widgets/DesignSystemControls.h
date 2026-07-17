@@ -16,7 +16,9 @@ public:
     DesignButton(std::string label, StyleRole role, const char* icon = nullptr);
 
     void SetOnClicked(std::function<void()> cb) { m_OnClicked = std::move(cb); }
-    void SetIcon(const char* icon) { m_Icon = icon; }
+    void SetLabel(std::string label);
+    void SetIcon(const char* icon) { m_Icon = icon; m_IconStorage.clear(); }
+    void SetIconName(std::string icon);
 
     Size Measure(const Size& availableSize) override;
     void Arrange(const Rect& allottedRect) override;
@@ -29,6 +31,7 @@ public:
 protected:
     std::string m_Label;
     StyleRole m_Role = StyleRole::ButtonSecondary;
+    std::string m_IconStorage;
     const char* m_Icon = nullptr;
     float m_HoverAnim = 0.0f;
     float m_PressAnim = 0.0f;
@@ -159,6 +162,7 @@ public:
 
     void SetActive(bool active) { m_Active = active; }
     void SetOnClicked(std::function<void()> cb) { m_OnClicked = std::move(cb); }
+    void SetLabel(std::string label) { m_Label = std::move(label); InvalidatePaint(); }
 
     Size Measure(const Size& availableSize) override;
     void Arrange(const Rect& allottedRect) override;
@@ -202,5 +206,12 @@ protected:
     bool m_Selected = false;
     float m_HoverAnim = 0.0f;
 };
+
+[[nodiscard]] KINDUI_API std::shared_ptr<PrimaryButton> MakePrimaryAction(
+    std::string label,
+    std::string icon = {});
+[[nodiscard]] KINDUI_API std::shared_ptr<SecondaryButton> MakeSecondaryAction(
+    std::string label,
+    std::string icon = {});
 
 } // namespace we::runtime::kindui

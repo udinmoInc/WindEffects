@@ -6,7 +6,7 @@
 #include "Widgets/ContentBrowserToolbar.h"
 #include "Widgets/SearchBox.h"
 #include "Widgets/TreeView.h"
-#include "KindUI/Layout/Box.h"
+#include "KindUI/Layout/Flex.h"
 #include "KindUI/Layout/Splitter.h"
 #include "KindUI/Core/Icon.h"
 #include "Localization.h"
@@ -167,8 +167,8 @@ std::shared_ptr<we::runtime::kindui::Panel> CreateContentBrowserPanel() {
     auto statusBar = std::make_shared<we::runtime::kindui::ContentBrowserStatusBar>();
 
     // Build right pane: asset toolbar + content browser + status bar
-    auto rightPane = std::make_shared<we::runtime::kindui::VerticalBox>();
-    rightPane->SetSpacing(0.0f);
+    auto rightPane = std::make_shared<we::runtime::kindui::Column>();
+    rightPane->Gap(0.0f);
     rightPane->AddChild(assetToolbar);
     rightPane->AddChild(contentBrowser);
     rightPane->AddChild(statusBar);

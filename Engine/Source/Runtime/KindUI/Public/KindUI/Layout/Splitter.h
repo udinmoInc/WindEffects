@@ -3,9 +3,13 @@
 #include "KindUI/Export.h"
 
 #include "KindUI/Core/Widget.h"
-#include "KindUI/Layout/Box.h"
 
 namespace we::runtime::kindui {
+
+enum class Orientation {
+    Horizontal,
+    Vertical
+};
 
 class KINDUI_API Splitter : public Widget {
 public:

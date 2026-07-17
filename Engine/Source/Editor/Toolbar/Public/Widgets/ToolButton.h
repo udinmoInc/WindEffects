@@ -5,7 +5,6 @@
 #include "KindUI/Core/Widget.h"
 #include "KindUI/Core/Style.h"
 #include "KindUI/Core/Icon.h"
-#include "KindUI/Core/Animation.h"
 #include <functional>
 
 namespace we::runtime::kindui {

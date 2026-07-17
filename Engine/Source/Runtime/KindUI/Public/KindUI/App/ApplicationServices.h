@@ -1,8 +1,6 @@
 #pragma once
 
 #include "KindUI/App/DialogService.h"
-#include "KindUI/App/NotificationService.h"
-#include "KindUI/App/OverlayService.h"
 #include "KindUI/App/PopupService.h"
 #include "KindUI/Export.h"
 #include "KindUI/Layout/IPopupHost.h"
@@ -18,8 +16,6 @@ struct KINDUI_API ApplicationServices {
 
     std::unique_ptr<DialogService> dialogs;
     std::unique_ptr<PopupService> popups;
-    NotificationService notifications;
-    std::unique_ptr<OverlayService> overlay;
 
     void Initialize(std::shared_ptr<IWidgetContext> widgetContext, IPopupHost* host = nullptr);
 };

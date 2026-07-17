@@ -3,6 +3,7 @@
 #include "Widgets/SearchBox.h"
 #include "Widgets/ContentBrowser.h"
 #include "KindUI/Core/PaintContext.h"
+#include "KindUI/Core/Widgets/DesignSystemControls.h"
 #include "KindUI/Core/DPIContext.h"
 #include "KindUI/Rendering/IconMetrics.h"
 #include "KindUI/Theming/ThemeAccess.h"
@@ -196,8 +197,8 @@ ContentBrowserToolbarControls::ContentBrowserToolbarControls(ToolbarMode mode)
 
 void ContentBrowserToolbarControls::InitializeChildren() {
     if (m_Mode == ToolbarMode::Full) {
-        m_CreateBtn = std::make_shared<PrimaryToolbarButton>("Add", Icons::PlusName);
-        m_ImportBtn = std::make_shared<SecondaryToolbarButton>("Import", "import");
+        m_CreateBtn = MakePrimaryAction("Add", Icons::PlusName);
+        m_ImportBtn = MakeSecondaryAction("Import", "import");
         m_SaveBtn = std::make_shared<ToolbarLabeledButton>("Save All", Icons::SaveAllName, false, ToolbarLabeledButton::Variant::Standard, ThemeMetric(ThemeToken::Space3));
 
         AddChild(m_CreateBtn);

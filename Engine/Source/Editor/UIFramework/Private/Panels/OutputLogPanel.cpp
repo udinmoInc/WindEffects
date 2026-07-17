@@ -1,7 +1,7 @@
 #include "WindEffects/Editor/EditorSDK.h"
 #include "Widgets/OutputLogWidget.h"
 #include "KindUI/Widgets/TextBox.h"
-#include "KindUI/Widgets/Button.h"
+#include "KindUI/Core/Widgets/DesignSystemControls.h"
 
 namespace we::programs::editor {
 using namespace we::runtime::kindui;
@@ -11,22 +11,23 @@ std::shared_ptr<Panel> CreateOutputLogPanel() {
 
     return PanelBuilder("Output Log")
         .TabIcon(Icons::OutputLogName)
-        .ToolbarBox([&](HorizontalBox& toolbar) {
-            toolbar.SetPadding(Margin{6.0f, 4.0f, 6.0f, 4.0f});
+        .ToolbarBox([&](Row& toolbar) {
+            toolbar.Padding(Margin{6.0f, 4.0f, 6.0f, 4.0f});
 
             auto searchBox = std::make_shared<TextBox>("", [outputWidget](const std::string& text) {
                 outputWidget->SetSearchQuery(text);
             });
 
-            auto clearButton = std::make_shared<Button>("Clear", [outputWidget]() {
+            auto clearButton = MakeSecondaryAction("Clear");
+            clearButton->SetOnClicked([outputWidget]() {
                 outputWidget->Clear();
             });
 
-            auto pauseButton = std::make_shared<Button>("Pause");
+            auto pauseButton = MakeSecondaryAction("Pause");
             pauseButton->SetOnClicked([outputWidget, pauseButton]() {
                 const bool paused = !outputWidget->IsPaused();
                 outputWidget->SetPaused(paused);
-                pauseButton->SetText(paused ? "Resume" : "Pause");
+                pauseButton->SetLabel(paused ? "Resume" : "Pause");
             });
 
             toolbar.AddChild(searchBox);

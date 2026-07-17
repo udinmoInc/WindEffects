@@ -3,7 +3,7 @@
 #include "KindUI/Core/Observable.h"
 #include "Model/WeProjectDescriptor.h"
 #include "UI/Widgets/LauncherControls.h"
-#include "UI/Widgets/ProjectViews.h"
+#include "UI/Pages/Projects/ProjectsTypes.h"
 
 #include <cstddef>
 #include <string>

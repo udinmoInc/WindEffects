@@ -1,10 +1,10 @@
 #include "CrashReporterUI.h"
 #include "Widgets/Panel.h"
-#include "KindUI/Layout/Box.h"
+#include "KindUI/Layout/Flex.h"
 #include "KindUI/Layout/ScrollLayout.h"
 #include "KindUI/Layout/Spacer.h"
 #include "KindUI/Widgets/Label.h"
-#include "KindUI/Widgets/Button.h"
+#include "KindUI/Core/Widgets/DesignSystemControls.h"
 #include "KindUI/Widgets/TextBox.h"
 #include "KindUI/Widgets/CheckBox.h"
 #include "Core/Logger.h"
@@ -102,9 +102,9 @@ void CrashReporterUI::Construct() {
     }
 
     HE_INFO("[CrashReporterUI] Building UI layout");
-    auto rootBox = std::make_shared<VerticalBox>();
-    rootBox->SetPadding(Margin{16.0f, 16.0f, 16.0f, 16.0f});
-    rootBox->SetSpacing(12.0f);
+    auto rootBox = std::make_shared<Column>();
+    rootBox->Padding(Margin{16.0f, 16.0f, 16.0f, 16.0f});
+    rootBox->Gap(12.0f);
     
     const auto& cfg = ConfigManager::Get().GetConfig();
     std::string projName = m_CrashData.value("Project", "WindEffectsProject");
@@ -123,28 +123,28 @@ void CrashReporterUI::Construct() {
     rootBox->AddChild(apologyLabel);
 
     // 3. User Input (Placeholder via Label for now)
-    auto inputPanel = std::make_shared<VerticalBox>();
-    inputPanel->SetPadding(Margin{8.0f, 8.0f, 8.0f, 8.0f});
+    auto inputPanel = std::make_shared<Column>();
+    inputPanel->Padding(Margin{8.0f, 8.0f, 8.0f, 8.0f});
     auto inputLabel = std::make_shared<Label>("Please provide detailed information about what you were doing when the crash occurred.", Color{0.5f, 0.5f, 0.5f, 1.0f}, 12.0f);
     inputLabel->SetHorizontalAlignment(HorizontalAlignment::Left);
     inputPanel->AddChild(inputLabel);
     rootBox->AddChild(inputPanel);
 
     // 4. Directory Link
-    auto dirBox = std::make_shared<HorizontalBox>();
-    dirBox->SetSpacing(4.0f);
+    auto dirBox = std::make_shared<Row>();
+    dirBox->Gap(4.0f);
     dirBox->SetHorizontalAlignment(HorizontalAlignment::Left);
     auto dirLabel1 = std::make_shared<Label>("Crash reports comprise diagnostics files (", Color{0.6f, 0.6f, 0.6f, 1.0f}, 12.0f);
     dirBox->AddChild(dirLabel1);
-    dirBox->AddChild(std::make_shared<Button>("click here to view directory", [this]{ OnOpenCrashFolder(); }));
+    dirBox->AddChild([] { auto b = MakeSecondaryAction("click here to view directory"); b->SetOnClicked([this]{ OnOpenCrashFolder(); }); return b; }());
     auto dirLabel2 = std::make_shared<Label>(") and the following summary information:", Color{0.6f, 0.6f, 0.6f, 1.0f}, 12.0f);
     dirBox->AddChild(dirLabel2);
     rootBox->AddChild(dirBox);
 
     // 5. Diagnostic Summary (Scrollable Terminal)
     auto stackScroll = std::make_shared<ScrollLayout>();
-    auto stackPanel = std::make_shared<VerticalBox>();
-    stackPanel->SetPadding(Margin{8.0f, 8.0f, 8.0f, 8.0f});
+    auto stackPanel = std::make_shared<Column>();
+    stackPanel->Padding(Margin{8.0f, 8.0f, 8.0f, 8.0f});
     
     std::string summaryStr = "LoginId: " + m_SystemData.value("LoginId", "Unknown") + "\n";
     summaryStr += "EpicAccountId: " + m_SystemData.value("EpicAccountId", "Unknown") + "\n\n";
@@ -173,15 +173,15 @@ void CrashReporterUI::Construct() {
     rootBox->AddChild(check2);
 
     // 7. Bottom Action Bar
-    auto bottomBar = std::make_shared<HorizontalBox>();
-    bottomBar->AddChild(std::make_shared<Button>("Close Without Sending", [this]{ exit(0); }));
+    auto bottomBar = std::make_shared<Row>();
+    bottomBar->AddChild([] { auto b = MakeSecondaryAction("Close Without Sending"); b->SetOnClicked([this]{ exit(0); }); return b; }());
     bottomBar->AddChild(std::make_shared<Spacer>()); // Push rest to the right
-    bottomBar->AddChild(std::make_shared<Button>("Send and Close", [this]{ OnExportZip(); exit(0); }));
+    bottomBar->AddChild([] { auto b = MakeSecondaryAction("Send and Close"); b->SetOnClicked([this]{ OnExportZip(); exit(0); }); return b; }());
     
     // Add small spacer between right buttons
     auto smallSpacer = std::make_shared<Spacer>();
     bottomBar->AddChild(smallSpacer);
-    bottomBar->AddChild(std::make_shared<Button>("Send and Restart", [this]{ OnExportZip(); OnRestartEditor(); }));
+    bottomBar->AddChild([] { auto b = MakeSecondaryAction("Send and Restart"); b->SetOnClicked([this]{ OnExportZip(); OnRestartEditor(); }); return b; }());
 
     rootBox->AddChild(bottomBar);
 

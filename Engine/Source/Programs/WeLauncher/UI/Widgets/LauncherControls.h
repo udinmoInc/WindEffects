@@ -20,11 +20,6 @@ enum class LauncherPage : int {
     Count
 };
 
-enum class ProjectViewMode : int {
-    Grid = 0,
-    List
-};
-
 enum class ProjectSortMode : int {
     Recent = 0,
     Name,
@@ -367,27 +362,6 @@ private:
     std::string m_Text;
     float m_HoverAnim = 0.0f;
     ChangedFn m_OnChanged;
-};
-
-class ModalOverlay : public we::runtime::kindui::Widget {
-public:
-    void SetDialog(const std::shared_ptr<we::runtime::kindui::Widget>& dialog);
-    void SetDialogWidth(float width) { m_DialogWidth = width; }
-    void SetDialogHeight(float height) { m_DialogHeight = height; }
-
-    we::runtime::kindui::Size Measure(const we::runtime::kindui::Size& availableSize) override;
-    void Arrange(const we::runtime::kindui::Rect& allottedRect) override;
-    void Paint(we::runtime::kindui::PaintContext& context) override;
-    void OnMouseDown(const we::runtime::kindui::MouseEvent& event) override;
-    void Tick(float deltaTime) override;
-
-    void SetOnScrimClicked(std::function<void()> cb) { m_OnScrimClicked = std::move(cb); }
-
-private:
-    std::shared_ptr<we::runtime::kindui::Widget> m_Dialog;
-    float m_DialogWidth = 520.0f;
-    float m_DialogHeight = 0.0f; // 0 = size to content
-    std::function<void()> m_OnScrimClicked;
 };
 
 } // namespace we::programs::welauncher

@@ -12,8 +12,8 @@
 #include "UI/Pages/Projects/IProjectsHostActions.h"
 #include "UI/Pages/Projects/ProjectsPage.h"
 #include "UI/PageState.h"
+#include "KindUI/Widgets/ModalHost.h"
 #include "UI/Widgets/LauncherControls.h"
-#include "UI/Widgets/ProjectViews.h"
 #include "UI/Widgets/SettingsViews.h"
 
 #include "Platform/Types.h"
@@ -103,7 +103,6 @@ private:
     void ShowSelectedInExplorer();
     void SelectProject(std::size_t index, bool additive = false);
     void OnSearchChanged(const std::string& text);
-    void OnViewModeChanged(ProjectViewMode mode);
     void CycleSortMode();
     void SetSortMode(ProjectSortMode mode);
     void ToggleCompatibleFilter();
@@ -129,12 +128,11 @@ private:
     std::shared_ptr<NavSidebar> m_Sidebar;
     std::shared_ptr<we::runtime::kindui::Widget> m_ContentHost;
     std::shared_ptr<StatusFooter> m_Footer;
-    std::shared_ptr<ModalOverlay> m_ModalHost;
+    std::shared_ptr<we::runtime::kindui::ModalHost> m_ModalHost;
 
     std::array<PageState, static_cast<std::size_t>(LauncherPage::Count)> m_Pages{};
 
     LauncherPage m_Page = LauncherPage::Projects;
-    ProjectViewMode m_ViewMode = ProjectViewMode::List;
     std::string m_SearchQuery;
     bool m_SidebarCollapsed = false;
     we::rhi::RHIDescriptorSetHandle m_LogoSet = we::rhi::RHIDescriptorSetHandle::Invalid;

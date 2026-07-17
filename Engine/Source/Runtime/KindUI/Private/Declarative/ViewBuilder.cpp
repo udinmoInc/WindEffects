@@ -5,7 +5,6 @@
 #include "KindUI/Layout/Flex.h"
 #include "KindUI/Layout/ScrollLayout.h"
 #include "KindUI/Layout/Spacer.h"
-#include "KindUI/Widgets/Button.h"
 #include "KindUI/Widgets/CheckBox.h"
 #include "KindUI/Widgets/Components.h"
 #include "KindUI/Widgets/Label.h"

@@ -20,7 +20,7 @@
 #include "Widgets/EditorModeSelector.h"
 #include "Widgets/PropertyEditor.h"
 #include "Widgets/TreeView.h"
-#include "KindUI/Layout/Box.h"
+#include "KindUI/Layout/Flex.h"
 #include "KindUI/Layout/OverlayManager.h"
 #include "Core/PanelIconResolver.h"
 #include "KindUI/Core/Widget.h"
@@ -369,15 +369,15 @@ EditorShellResult EditorShellBuilder::Build(
         context.GetCommandRegistry().Execute("build.compile", commandContext);
     });
 
-    auto rootVBox = std::make_shared<VerticalBox>();
-    rootVBox->SetSpacing(0.0f);
+    auto rootVBox = std::make_shared<Column>();
+    rootVBox->Gap(0.0f);
     rootVBox->AddChild(titleBar);
     rootVBox->AddChild(toolbar);
     if (shellResult.layout.root) {
         const float workspaceGap = ResolveThemeMetric(ThemeToken::Space2) * uiScale;
-        auto workspaceArea = std::make_shared<VerticalBox>();
-        workspaceArea->SetPadding({ workspaceGap, workspaceGap, workspaceGap, workspaceGap });
-        workspaceArea->SetBackgroundColor(ResolveThemeColor(ThemeToken::WorkspaceBackground));
+        auto workspaceArea = std::make_shared<Column>();
+        workspaceArea->Padding({ workspaceGap, workspaceGap, workspaceGap, workspaceGap });
+        workspaceArea->Background(ResolveThemeColor(ThemeToken::WorkspaceBackground));
         workspaceArea->AddChild(shellResult.layout.root);
         rootVBox->AddChild(workspaceArea);
     }

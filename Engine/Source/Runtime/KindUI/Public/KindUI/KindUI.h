@@ -36,9 +36,6 @@
 #include "KindUI/App/ApplicationServices.h"
 #include "KindUI/App/DialogService.h"
 #include "KindUI/App/PopupService.h"
-#include "KindUI/App/NotificationService.h"
-#include "KindUI/App/OverlayService.h"
-#include "KindUI/App/ViewModelBinding.h"
 
 // --- Reusable components & layouts ------------------------------------------
 
@@ -52,6 +49,5 @@
 //
 // KindUI/Core/Widget.h              — subclassing & custom widgets
 // KindUI/StylePipeline/StylePipeline.h — custom style resolution
-// KindUI/Animation/StyleAnimationEngine.h
 // KindUI/Rendering/OverlayRenderer.h — shell GPU integration
 // KindUI/Theming/ThemeToken.h       — legacy token bridge (deprecated)

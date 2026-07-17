@@ -3,7 +3,7 @@
 #include "Toolbar/Export.h"
 
 #include "KindUI/Core/Widget.h"
-#include "KindUI/Layout/Box.h"
+#include "KindUI/Layout/Flex.h"
 #include "KindUI/Layout/Spacer.h"
 #include "KindUI/Core/Style.h"
 #include "KindUI/Core/Icon.h"

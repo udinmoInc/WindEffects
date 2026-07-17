@@ -1,8 +1,8 @@
 #include "UI/Pages/LauncherPages.h"
 
 #include "KindUI/Declarative/UI.h"
+#include "KindUI/Core/Widgets/DesignSystemControls.h"
 #include "KindUI/Core/Icon.h"
-#include "KindUI/Core/Widgets/SecondaryToolbarButton.h"
 #include "UI/Widgets/LauncherControls.h"
 #include "UI/Widgets/ManagerViews.h"
 #include "UI/Widgets/SkeletonViews.h"

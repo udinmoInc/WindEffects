@@ -2,14 +2,14 @@
 
 #include "MainFrame/Export.h"
 
-#include "KindUI/Layout/Box.h"
+#include "KindUI/Layout/Flex.h"
 #include <string>
 #include <functional>
 
 namespace we::runtime::kindui {
 
 // Status bar widget for application status information
-class MAINFRAME_API StatusBar : public HorizontalBox {
+class MAINFRAME_API StatusBar : public Row {
 public:
     StatusBar();
     ~StatusBar() override = default;
@@ -38,8 +38,8 @@ private:
     std::function<void(int)> m_OnFooterTabChanged;
     std::function<void()> m_OnOutputLogClicked;
 
-    std::shared_ptr<HorizontalBox> m_LeftBox;
-    std::shared_ptr<HorizontalBox> m_RightBox;
+    std::shared_ptr<Row> m_LeftBox;
+    std::shared_ptr<Row> m_RightBox;
 
     std::shared_ptr<class ToolButton> m_AssetsPanelButton;
     std::shared_ptr<class ToolButton> m_DiagnosticsPanelButton;

@@ -17,9 +17,7 @@
 #include "KindUI/Core/Icon.h"
 #include "KindUI/Core/PaintContext.h"
 #include "KindUI/Core/Widgets/DesignSystemControls.h"
-#include "KindUI/Core/Widgets/PrimaryToolbarButton.h"
-#include "KindUI/Core/Widgets/SecondaryToolbarButton.h"
-#include "KindUI/Layout/Box.h"
+#include "KindUI/Layout/Flex.h"
 #include "KindUI/Layout/Flex.h"
 #include "KindUI/Layout/ScrollLayout.h"
 #include "KindUI/Layout/Spacer.h"
@@ -63,28 +61,15 @@ std::shared_ptr<Label> MakeLabel(const std::string& text, float size, Color colo
     return label;
 }
 
-std::shared_ptr<HorizontalBox> MakePageHeaderRow() {
-    auto row = std::make_shared<HorizontalBox>();
-    row->SetSpacing(LMetric(ThemeToken::Space2) * LScale());
-    row->SetPadding(Margin{
-        kLauncherContentPadX * LScale(),
-        LMetric(ThemeToken::Space4) * LScale(),
-        kLauncherContentPadX * LScale(),
-        LMetric(ThemeToken::Space2) * LScale()
-    });
-    row->SetVerticalAlignment(VerticalAlignment::Center);
-    return row;
-}
-
-std::shared_ptr<VerticalBox> MakePageBodyPadding() {
-    auto content = std::make_shared<VerticalBox>();
-    content->SetPadding(Margin{
+std::shared_ptr<Column> MakePageBodyPadding() {
+    auto content = std::make_shared<Column>();
+    content->Padding(Margin{
         kLauncherContentPadX * LScale(),
         LMetric(ThemeToken::Space4) * LScale(),
         kLauncherContentPadX * LScale(),
         LMetric(ThemeToken::Space4) * LScale()
     });
-    content->SetSpacing(LMetric(ThemeToken::Space4) * LScale());
+    content->Gap(LMetric(ThemeToken::Space4) * LScale());
     content->SetHorizontalAlignment(HorizontalAlignment::Fill);
     return content;
 }
@@ -93,11 +78,6 @@ std::shared_ptr<Widget> MakeSectionHeader(const std::string& title, const std::s
     auto heading = std::make_shared<SectionHeader>(title, subtitle);
     heading->SetHorizontalAlignment(HorizontalAlignment::Fill);
     return heading;
-}
-
-std::shared_ptr<Widget> MakePlaceholderCard(const std::string& title, const std::string& body, const char* icon) {
-    auto tile = std::make_shared<DashboardTile>(title, body, icon);
-    return tile;
 }
 
 std::string JoinList(const std::vector<std::string>& items, const char* sep = ", ") {
@@ -112,56 +92,6 @@ std::string JoinList(const std::vector<std::string>& items, const char* sep = ",
         out += items[i];
     }
     return out;
-}
-
-std::string SortModeLabel(ProjectSortMode mode) {
-    switch (mode) {
-    case ProjectSortMode::Name: return "Sort: Name";
-    case ProjectSortMode::Engine: return "Sort: Engine";
-    case ProjectSortMode::Recent:
-    default: return "Sort: Recent";
-    }
-}
-
-std::shared_ptr<VerticalBox> MakeSettingsRow(const std::string& caption, const std::string& value) {
-    auto row = std::make_shared<VerticalBox>();
-    row->SetSpacing(2.0f * LScale());
-    row->SetHorizontalAlignment(HorizontalAlignment::Fill);
-    row->AddChild(MakeLabel(
-        caption,
-        LMetric(ThemeToken::TextSizeCaption) * LScale(),
-        LColor(ThemeToken::TextMuted)));
-    row->AddChild(MakeLabel(
-        value.empty() ? "â€”" : value,
-        LMetric(ThemeToken::TextSizeBody) * LScale(),
-        LColor(ThemeToken::TextPrimary)));
-    return row;
-}
-
-std::shared_ptr<VerticalBox> MakeFeatureTile(
-    const std::string& title,
-    const std::string& body,
-    const char* icon) {
-    (void)icon;
-    auto tile = std::make_shared<VerticalBox>();
-    tile->SetSpacing(LMetric(ThemeToken::Space1) * LScale());
-    tile->SetPadding(Margin{
-        LMetric(ThemeToken::Space3) * LScale(),
-        LMetric(ThemeToken::Space3) * LScale(),
-        LMetric(ThemeToken::Space3) * LScale(),
-        LMetric(ThemeToken::Space3) * LScale()
-    });
-    tile->SetBackgroundColor(LColor(ThemeToken::PanelBackground));
-    tile->SetHorizontalAlignment(HorizontalAlignment::Fill);
-    tile->AddChild(MakeLabel(
-        title,
-        LMetric(ThemeToken::TextSizeBody) * LScale(),
-        LColor(ThemeToken::TextPrimary)));
-    tile->AddChild(MakeLabel(
-        body,
-        LMetric(ThemeToken::TextSizeCaption) * LScale(),
-        LColor(ThemeToken::TextMuted)));
-    return tile;
 }
 
 const ProjectTemplateInfo* FindTemplateById(
@@ -276,9 +206,9 @@ void LauncherShell::OnTextInput(char32_t codepoint) {
 void LauncherShell::RebuildChrome() {
     ClearChildren();
 
-    auto root = std::make_shared<VerticalBox>();
-    root->SetSpacing(0.0f);
-    root->SetPadding(Margin{});
+    auto root = std::make_shared<Column>();
+    root->Gap(0.0f);
+    root->Padding(Margin{});
 
     m_TitleBar = std::make_shared<LauncherTitleBar>(m_Window, "WindEffects Launcher");
     m_TitleBar->SetLogoTexture(m_LogoSet);
@@ -286,8 +216,8 @@ void LauncherShell::RebuildChrome() {
     m_TitleBar->SetOnSettings([this] { GoToPage(LauncherPage::Settings); });
     root->AddChild(m_TitleBar);
 
-    auto body = std::make_shared<HorizontalBox>();
-    body->SetSpacing(0.0f);
+    auto body = std::make_shared<Row>();
+    body->Gap(0.0f);
     body->SetVerticalAlignment(VerticalAlignment::Fill);
 
     m_Sidebar = std::make_shared<NavSidebar>();
@@ -301,15 +231,15 @@ void LauncherShell::RebuildChrome() {
     sidebarRule->SetVerticalAlignment(VerticalAlignment::Fill);
     body->AddChild(sidebarRule);
 
-    auto mainColumn = std::make_shared<VerticalBox>();
-    mainColumn->SetSpacing(0.0f);
+    auto mainColumn = std::make_shared<Column>();
+    mainColumn->Gap(0.0f);
     mainColumn->SetHorizontalAlignment(HorizontalAlignment::Fill);
     mainColumn->SetVerticalAlignment(VerticalAlignment::Fill);
 
-    auto contentHost = std::make_shared<VerticalBox>();
+    auto contentHost = std::make_shared<Column>();
     contentHost->SetHorizontalAlignment(HorizontalAlignment::Fill);
     contentHost->SetVerticalAlignment(VerticalAlignment::Fill);
-    contentHost->SetBackgroundColor(LColor(ThemeToken::PanelContentBackground));
+    contentHost->Background(LColor(ThemeToken::PanelContentBackground));
     m_ContentHost = contentHost;
     mainColumn->AddChild(m_ContentHost);
 
@@ -319,7 +249,7 @@ void LauncherShell::RebuildChrome() {
     m_Footer = std::make_shared<StatusFooter>();
     root->AddChild(m_Footer);
 
-    m_ModalHost = std::make_shared<ModalOverlay>();
+    m_ModalHost = we::runtime::kindui::MakeModalHost();
     m_ModalHost->SetVisible(false);
     m_ModalHost->SetOnScrimClicked([this] { CloseModal(); });
 
@@ -392,8 +322,8 @@ void LauncherShell::BeginPageContentLoad(float durationSeconds) {
 }
 
 std::shared_ptr<Widget> LauncherShell::BuildPageSkeleton(LauncherPage page) {
-    auto root = std::make_shared<VerticalBox>();
-    root->SetSpacing(LMetric(ThemeToken::Space4) * LScale());
+    auto root = std::make_shared<Column>();
+    root->Gap(LMetric(ThemeToken::Space4) * LScale());
     root->SetHorizontalAlignment(HorizontalAlignment::Fill);
 
     switch (page) {
@@ -500,19 +430,6 @@ void LauncherShell::OnSearchChanged(const std::string& text) {
     InvalidateUI();
 }
 
-void LauncherShell::OnViewModeChanged(ProjectViewMode mode) {
-    if (m_ViewMode == mode) {
-        return;
-    }
-    m_ViewMode = mode;
-    MarkPageDirty(LauncherPage::Projects);
-    if (m_Page == LauncherPage::Projects) {
-        EnsurePageBuilt(LauncherPage::Projects);
-        ShowPage(LauncherPage::Projects);
-    }
-    InvalidateUI();
-}
-
 void LauncherShell::CycleSortMode() {
     EnsureProjectsPage();
     switch (m_ProjectsPage->SortMode()) {
@@ -583,8 +500,8 @@ void LauncherShell::ApplyDeclarativePage(PageState& state, const Element& view, 
     if (state.root) {
         state.root->SetHorizontalAlignment(HorizontalAlignment::Fill);
         state.root->SetVerticalAlignment(VerticalAlignment::Fill);
-        if (auto box = std::dynamic_pointer_cast<VerticalBox>(state.root)) {
-            box->SetBackgroundColor(LColor(ThemeToken::PanelContentBackground));
+        if (auto box = std::dynamic_pointer_cast<Column>(state.root)) {
+            box->Background(LColor(ThemeToken::PanelContentBackground));
         }
     }
     state.scroll = scrollId ? FindScrollById(state.root, scrollId) : nullptr;
@@ -600,12 +517,12 @@ LearnPageModel LauncherShell::BuildLearnPageModel() {
     model.chrome.onSearchChanged = [this](const std::string& text) { OnSearchChanged(text); };
 
     model.chrome.toolbarActions.push_back(UI::Host([this]() {
-        auto btn = std::make_shared<SecondaryToolbarButton>("Open Docs", Icons::DocumentName);
+        auto btn = MakeSecondaryAction("Open Docs", Icons::DocumentName);
         btn->SetOnClicked([this] { SetStatus("Documentation — coming soon"); });
         return btn;
     }));
     model.chrome.toolbarActions.push_back(UI::Host([this]() {
-        auto btn = std::make_shared<SecondaryToolbarButton>("Refresh", Icons::RefreshName);
+        auto btn = MakeSecondaryAction("Refresh", Icons::RefreshName);
         btn->SetOnClicked([this] {
             BeginPageContentLoad(0.2f);
             MarkPageDirty(LauncherPage::Learn);
@@ -670,7 +587,7 @@ EnginePageModel LauncherShell::BuildEnginePageModel() {
     model.chrome.onSearchChanged = [this](const std::string& text) { OnSearchChanged(text); };
 
     model.chrome.toolbarActions.push_back(UI::Host([this]() {
-        auto btn = std::make_shared<SecondaryToolbarButton>("Refresh", Icons::RefreshName);
+        auto btn = MakeSecondaryAction("Refresh", Icons::RefreshName);
         btn->SetOnClicked([this] {
             BeginPageContentLoad(0.2f);
             UpdateFooter();
@@ -835,9 +752,9 @@ void LauncherShell::PersistLauncherSettings(const std::string& statusMessage) {
 
 namespace {
 
-std::shared_ptr<VerticalBox> MakeSettingsStack() {
-    auto stack = std::make_shared<VerticalBox>();
-    stack->SetSpacing(8.0f * LScale());
+std::shared_ptr<Column> MakeSettingsStack() {
+    auto stack = std::make_shared<Column>();
+    stack->Gap(8.0f * LScale());
     stack->SetHorizontalAlignment(HorizontalAlignment::Fill);
     return stack;
 }
@@ -852,7 +769,7 @@ bool SettingsCategoryMatchesQuery(SettingsCategory category, const std::string& 
 }
 
 void AppendSettingsRow(
-    VerticalBox& body,
+    Column& body,
     const std::string& queryLower,
     const std::string& label,
     const std::string& hint,
@@ -876,7 +793,7 @@ void AppendSettingsRow(
 std::shared_ptr<SettingsGroup> WrapSettingsGroup(
     const std::string& title,
     const std::string& description,
-    const std::shared_ptr<VerticalBox>& body,
+    const std::shared_ptr<Column>& body,
     const std::string& queryLower) {
     if (body->GetChildren().empty()) {
         return nullptr;
@@ -1009,7 +926,7 @@ std::shared_ptr<Widget> LauncherShell::BuildSettingsEngine(const std::string& qu
     });
     AppendSettingsRow(*body, queryLower, "Engine Installation Directory", "Root used when scanning for WindEffects installs", folder, "path browse");
 
-    auto scan = std::make_shared<SecondaryToolbarButton>("Scan for Installed Engines", Icons::RefreshName);
+    auto scan = MakeSecondaryAction("Scan for Installed Engines", Icons::RefreshName);
     scan->SetOnClicked([this] {
         auto& settings = m_Context->Settings().Settings();
         std::filesystem::path start = PathUtils::GetExecutableDirectory();
@@ -1026,7 +943,7 @@ std::shared_ptr<Widget> LauncherShell::BuildSettingsEngine(const std::string& qu
     });
     AppendSettingsRow(*body, queryLower, "Scan for Installed Engines", "Rediscover local engine installs", scan);
 
-    auto verify = std::make_shared<SecondaryToolbarButton>("Verify Engine Installation", Icons::CheckName);
+    auto verify = MakeSecondaryAction("Verify Engine Installation", Icons::CheckName);
     verify->SetOnClicked([this] {
         int pass = 0, warn = 0, fail = 0;
         for (const auto& check : m_Context->Sdk().RunChecks()) {
@@ -1044,7 +961,7 @@ std::shared_ptr<Widget> LauncherShell::BuildSettingsEngine(const std::string& qu
     });
     AppendSettingsRow(*body, queryLower, "Verify Engine Installation", "Run SDK and toolchain health checks", verify);
 
-    auto updates = std::make_shared<SecondaryToolbarButton>("Check for Launcher Updates", Icons::RefreshName);
+    auto updates = MakeSecondaryAction("Check for Launcher Updates", Icons::RefreshName);
     updates->SetOnClicked([this] {
         SetStatus(std::string("Launcher ") + kLauncherVersion + " — update check is not available yet");
     });
@@ -1065,7 +982,7 @@ std::shared_ptr<Widget> LauncherShell::BuildSettingsStorage(const std::string& q
     const std::string cacheSize = PathUtils::FormatByteSize(PathUtils::EstimateDirectoryBytes(cacheRoot));
     const std::string thumbSize = PathUtils::FormatByteSize(PathUtils::EstimateDirectoryBytes(thumbRoot));
 
-    auto clearCache = std::make_shared<SecondaryToolbarButton>("Clear Cache", Icons::DeleteName);
+    auto clearCache = MakeSecondaryAction("Clear Cache", Icons::DeleteName);
     clearCache->SetOnClicked([this] {
         const bool ok = PathUtils::ClearDirectoryContents(PathUtils::GetLauncherCacheRoot());
         MarkPageDirty(LauncherPage::Settings);
@@ -1081,7 +998,7 @@ std::shared_ptr<Widget> LauncherShell::BuildSettingsStorage(const std::string& q
         clearCache,
         "storage clear");
 
-    auto clearThumbs = std::make_shared<SecondaryToolbarButton>("Clear Cache", Icons::DeleteName);
+    auto clearThumbs = MakeSecondaryAction("Clear Cache", Icons::DeleteName);
     clearThumbs->SetOnClicked([this] {
         const bool ok = PathUtils::ClearDirectoryContents(PathUtils::GetThumbnailCacheRoot());
         MarkPageDirty(LauncherPage::Settings);
@@ -1107,14 +1024,14 @@ std::shared_ptr<Widget> LauncherShell::BuildSettingsFileAssociations(const std::
     auto root = MakeSettingsStack();
     auto body = MakeSettingsStack();
 
-    auto weproj = std::make_shared<SecondaryToolbarButton>("Associate .weproj", Icons::DocumentName);
+    auto weproj = MakeSecondaryAction("Associate .weproj", Icons::DocumentName);
     weproj->SetOnClicked([this] {
         const auto result = AssociateProjectExtension(".weproj");
         SetStatus(result.message);
     });
     AppendSettingsRow(*body, queryLower, "Associate .weproj files", "Open WindEffects projects with WeLauncher", weproj);
 
-    auto weproject = std::make_shared<SecondaryToolbarButton>("Associate .weproject", Icons::DocumentName);
+    auto weproject = MakeSecondaryAction("Associate .weproject", Icons::DocumentName);
     weproject->SetOnClicked([this] {
         const auto result = AssociateProjectExtension(".weproject");
         SetStatus(result.message);
@@ -1138,7 +1055,7 @@ std::shared_ptr<Widget> LauncherShell::BuildSettingsAbout(const std::string& que
         "WindEffects Launcher",
         MakeLabel(kLauncherVersion, LMetric(ThemeToken::TextSizeBody) * LScale(), LColor(ThemeToken::TextPrimary)));
 
-    auto logs = std::make_shared<SecondaryToolbarButton>("Open Logs Folder", Icons::OpenFolderName);
+    auto logs = MakeSecondaryAction("Open Logs Folder", Icons::OpenFolderName);
     logs->SetOnClicked([this] {
         const auto path = PathUtils::GetLauncherLogsRoot();
         std::error_code ec;
@@ -1151,7 +1068,7 @@ std::shared_ptr<Widget> LauncherShell::BuildSettingsAbout(const std::string& que
     });
     AppendSettingsRow(*body, queryLower, "Open Logs Folder", "Launcher diagnostic logs", logs);
 
-    auto install = std::make_shared<SecondaryToolbarButton>("Open Installation Folder", Icons::OpenFolderName);
+    auto install = MakeSecondaryAction("Open Installation Folder", Icons::OpenFolderName);
     install->SetOnClicked([this] {
         const auto path = PathUtils::ToUtf8(PathUtils::GetExecutableDirectory());
         if (OpenPathInExplorer(path) || RevealInExplorer(path)) {
@@ -1162,7 +1079,7 @@ std::shared_ptr<Widget> LauncherShell::BuildSettingsAbout(const std::string& que
     });
     AppendSettingsRow(*body, queryLower, "Open Installation Folder", "Folder containing WeLauncher.exe", install);
 
-    auto docs = std::make_shared<SecondaryToolbarButton>("Documentation", Icons::DocumentName);
+    auto docs = MakeSecondaryAction("Documentation", Icons::DocumentName);
     docs->SetOnClicked([this] {
         if (OpenUrl("https://windeffects.dev/docs")) {
             SetStatus("Opened documentation");
@@ -1172,7 +1089,7 @@ std::shared_ptr<Widget> LauncherShell::BuildSettingsAbout(const std::string& que
     });
     AppendSettingsRow(*body, queryLower, "Documentation", "Online guides and API reference", docs);
 
-    auto reset = std::make_shared<SecondaryToolbarButton>("Reset Launcher Settings", Icons::RefreshName);
+    auto reset = MakeSecondaryAction("Reset Launcher Settings", Icons::RefreshName);
     reset->SetOnClicked([this] {
         m_Context->Settings().ResetToDefaults();
         PersistLauncherSettings("Launcher settings reset to defaults");
@@ -1191,11 +1108,11 @@ std::shared_ptr<Widget> LauncherShell::BuildSettingsAbout(const std::string& que
 void LauncherShell::RebuildSettingsPage() {
     auto& state = m_Pages[static_cast<std::size_t>(LauncherPage::Settings)];
 
-    auto page = std::make_shared<VerticalBox>();
-    page->SetSpacing(0.0f);
+    auto page = std::make_shared<Column>();
+    page->Gap(0.0f);
     page->SetHorizontalAlignment(HorizontalAlignment::Fill);
     page->SetVerticalAlignment(VerticalAlignment::Fill);
-    page->SetBackgroundColor(LColor(ThemeToken::PanelContentBackground));
+    page->Background(LColor(ThemeToken::PanelContentBackground));
 
     if (IsPageContentLoading()) {
         auto scroll = std::make_shared<ScrollLayout>();
@@ -1214,9 +1131,9 @@ void LauncherShell::RebuildSettingsPage() {
     const std::string queryLower = ToLowerCopy(m_SearchQuery);
 
     auto contentScroll = std::make_shared<ScrollLayout>();
-    auto content = std::make_shared<VerticalBox>();
-    content->SetSpacing(20.0f * s);
-    content->SetPadding(Margin{
+    auto content = std::make_shared<Column>();
+    content->Gap(20.0f * s);
+    content->Padding(Margin{
         kLauncherContentPadX * s,
         kLauncherContentPadTop * s,
         kLauncherContentPadX * s,
@@ -1378,11 +1295,11 @@ void LauncherShell::RebuildCreateWizard() {
 
     auto shell = std::make_shared<WizardDialogShell>();
 
-    auto root = std::make_shared<VerticalBox>();
-    root->SetSpacing(0.0f);
+    auto root = std::make_shared<Column>();
+    root->Gap(0.0f);
     root->SetHorizontalAlignment(HorizontalAlignment::Fill);
     root->SetVerticalAlignment(VerticalAlignment::Fill);
-    root->SetPadding(Margin{ 24.0f * s, 24.0f * s, 24.0f * s, 24.0f * s });
+    root->Padding(Margin{ 24.0f * s, 24.0f * s, 24.0f * s, 24.0f * s });
 
     // Title
     auto title = MakeLabel("New project", 30.0f * s, LColor(ThemeToken::TextPrimary));
@@ -1391,8 +1308,8 @@ void LauncherShell::RebuildCreateWizard() {
     root->AddChild(std::make_shared<FixedGap>(1.0f, 12.0f * s));
 
     // Horizontal filter chips
-    auto chips = std::make_shared<HorizontalBox>();
-    chips->SetSpacing(8.0f * s);
+    auto chips = std::make_shared<Row>();
+    chips->Gap(8.0f * s);
     chips->SetVerticalAlignment(VerticalAlignment::Center);
     static const char* kFilters[] = { "All", "Games", "3D", "VR", "XR", "Samples" };
     for (const char* filter : kFilters) {
@@ -1410,14 +1327,14 @@ void LauncherShell::RebuildCreateWizard() {
     root->AddChild(std::make_shared<FixedGap>(1.0f, 16.0f * s));
 
     // Main two columns
-    auto body = std::make_shared<HorizontalBox>();
-    body->SetSpacing(0.0f);
+    auto body = std::make_shared<Row>();
+    body->Gap(0.0f);
     body->SetHorizontalAlignment(HorizontalAlignment::Fill);
     body->SetVerticalAlignment(VerticalAlignment::Fill);
 
     // LEFT — template list (~420)
-    auto left = std::make_shared<VerticalBox>();
-    left->SetSpacing(12.0f * s);
+    auto left = std::make_shared<Column>();
+    left->Gap(12.0f * s);
     left->SetHorizontalAlignment(HorizontalAlignment::Fill);
     left->SetVerticalAlignment(VerticalAlignment::Fill);
     left->AddChild(std::make_shared<FixedGap>(420.0f * s, 1.0f));
@@ -1434,8 +1351,8 @@ void LauncherShell::RebuildCreateWizard() {
     left->AddChild(search);
 
     auto listScroll = std::make_shared<ScrollLayout>();
-    auto list = std::make_shared<VerticalBox>();
-    list->SetSpacing(4.0f * s);
+    auto list = std::make_shared<Column>();
+    list->Gap(4.0f * s);
     list->SetHorizontalAlignment(HorizontalAlignment::Fill);
 
     if (visible.empty()) {
@@ -1466,19 +1383,19 @@ void LauncherShell::RebuildCreateWizard() {
     body->AddChild(left);
 
     // Vertical separator
-    auto vlineHost = std::make_shared<VerticalBox>();
-    vlineHost->SetPadding(Margin{ 16.0f * s, 0.0f, 16.0f * s, 0.0f });
+    auto vlineHost = std::make_shared<Column>();
+    vlineHost->Padding(Margin{ 16.0f * s, 0.0f, 16.0f * s, 0.0f });
     vlineHost->SetVerticalAlignment(VerticalAlignment::Fill);
-    auto vline = std::make_shared<VerticalBox>();
-    vline->SetBackgroundColor(LColor(ThemeToken::Separator));
+    auto vline = std::make_shared<Column>();
+    vline->Background(LColor(ThemeToken::Separator));
     vline->SetVerticalAlignment(VerticalAlignment::Fill);
     vline->AddChild(std::make_shared<FixedGap>(1.0f * s, 1.0f));
     vlineHost->AddChild(vline);
     body->AddChild(vlineHost);
 
     // RIGHT — details + settings (fixed, no nested scroll)
-    auto right = std::make_shared<VerticalBox>();
-    right->SetSpacing(12.0f * s);
+    auto right = std::make_shared<Column>();
+    right->Gap(12.0f * s);
     right->SetHorizontalAlignment(HorizontalAlignment::Fill);
     right->SetVerticalAlignment(VerticalAlignment::Fill);
 
@@ -1498,8 +1415,8 @@ void LauncherShell::RebuildCreateWizard() {
             LColor(ThemeToken::TextMuted)));
 
         auto addMeta = [&](const char* label, const std::string& value) {
-            auto row = std::make_shared<HorizontalBox>();
-            row->SetSpacing(8.0f * s);
+            auto row = std::make_shared<Row>();
+            row->Gap(8.0f * s);
             row->SetVerticalAlignment(VerticalAlignment::Center);
             auto l = MakeLabel(label, 13.0f * s, LColor(ThemeToken::TextSecondary));
             l->SetHorizontalAlignment(HorizontalAlignment::Left);
@@ -1606,12 +1523,12 @@ void LauncherShell::RebuildCreateWizard() {
     root->AddChild(std::make_shared<FixedGap>(1.0f, 16.0f * s));
 
     // Footer
-    auto footer = std::make_shared<HorizontalBox>();
-    footer->SetSpacing(12.0f * s);
+    auto footer = std::make_shared<Row>();
+    footer->Gap(12.0f * s);
     footer->SetVerticalAlignment(VerticalAlignment::Center);
 
-    auto footerLeft = std::make_shared<VerticalBox>();
-    footerLeft->SetSpacing(2.0f * s);
+    auto footerLeft = std::make_shared<Column>();
+    footerLeft->Gap(2.0f * s);
     footerLeft->AddChild(MakeLabel(
         "Estimated disk usage  ·  " + diskEstimate,
         12.0f * s,
@@ -1623,16 +1540,16 @@ void LauncherShell::RebuildCreateWizard() {
     footer->AddChild(footerLeft);
     footer->AddChild(std::make_shared<Spacer>());
 
-    auto cancel = std::make_shared<SecondaryToolbarButton>("Cancel", "");
+    auto cancel = MakeSecondaryAction("Cancel", "");
     cancel->SetOnClicked([this] { CloseModal(); });
     footer->AddChild(cancel);
-    auto create = std::make_shared<PrimaryToolbarButton>("Create Project", Icons::PlusName);
+    auto create = MakePrimaryAction("Create Project", Icons::PlusName);
     create->SetOnClicked([this] { CommitCreateProject(); });
     footer->AddChild(create);
     root->AddChild(footer);
 
     shell->SetContent(root);
-    m_ModalHost->SetDialog(shell);
+    m_ModalHost->SetContent(shell);
     InvalidateUI();
 }
 
@@ -1649,15 +1566,15 @@ void LauncherShell::RebuildProjectActionsDialog() {
     m_ModalHost->SetVisible(true);
     m_ModalHost->SetDialogWidth(420.0f);
 
-    auto panel = std::make_shared<VerticalBox>();
-    panel->SetPadding(Margin{
+    auto panel = std::make_shared<Column>();
+    panel->Padding(Margin{
         LMetric(ThemeToken::Space6) * LScale(),
         LMetric(ThemeToken::Space6) * LScale(),
         LMetric(ThemeToken::Space6) * LScale(),
         LMetric(ThemeToken::Space6) * LScale()
     });
-    panel->SetSpacing(LMetric(ThemeToken::Space2) * LScale());
-    panel->SetBackgroundColor(LColor(ThemeToken::DialogBackground));
+    panel->Gap(LMetric(ThemeToken::Space2) * LScale());
+    panel->Background(LColor(ThemeToken::DialogBackground));
     panel->AddChild(MakeLabel(
         project->descriptor.displayName,
         LMetric(ThemeToken::TextSizeHeader) * LScale(),
@@ -1668,7 +1585,7 @@ void LauncherShell::RebuildProjectActionsDialog() {
         LColor(ThemeToken::TextMuted)));
 
     auto addAction = [this, &panel](const char* label, const char* icon, auto fn, bool closeAfter = true) {
-        auto btn = std::make_shared<SecondaryToolbarButton>(label, icon);
+        auto btn = MakeSecondaryAction(label, icon);
         btn->SetOnClicked([this, fn = std::move(fn), closeAfter] {
             fn();
             if (closeAfter) {
@@ -1689,14 +1606,14 @@ void LauncherShell::RebuildProjectActionsDialog() {
     addAction("Regenerate Project Files", Icons::BuildName, [this] { RegenerateSelectedProjectFiles(); });
     addAction("Delete", Icons::DeleteName, [this] { DeleteSelectedProject(); });
 
-    auto closeRow = std::make_shared<HorizontalBox>();
+    auto closeRow = std::make_shared<Row>();
     closeRow->AddChild(std::make_shared<Spacer>());
-    auto close = std::make_shared<SecondaryToolbarButton>("Close", "");
+    auto close = MakeSecondaryAction("Close", "");
     close->SetOnClicked([this] { CloseModal(); });
     closeRow->AddChild(close);
     panel->AddChild(closeRow);
 
-    m_ModalHost->SetDialog(panel);
+    m_ModalHost->SetContent(panel);
     InvalidateUI();
 }
 
@@ -1813,7 +1730,7 @@ void LauncherShell::CloseModal() {
     }
     m_Modal = ModalKind::None;
     if (m_ModalHost) {
-        m_ModalHost->SetDialog(nullptr);
+        m_ModalHost->SetContent(nullptr);
         m_ModalHost->SetDialogHeight(0.0f);
         m_ModalHost->SetVisible(false);
     }
@@ -1962,8 +1879,6 @@ void LauncherShell::Paint(PaintContext& context) {
         m_DialogOverlay->Paint(context);
     }
     if (m_ModalHost && m_ModalHost->IsVisible()) {
-        Color scrim = LColor(ThemeToken::ModalScrim);
-        context.DrawRect(GetGeometry(), scrim);
         m_ModalHost->Paint(context);
     }
     if (m_PopupHost && m_PopupHost->HasOpenPopups()) {
@@ -2011,7 +1926,6 @@ void LauncherShell::Tick(float deltaTime) {
     }
 
     Widget::Tick(deltaTime);
-    m_Services.notifications.Tick(deltaTime);
 }
 
 void LauncherShell::OnKeyDown(const KeyEvent& event) {

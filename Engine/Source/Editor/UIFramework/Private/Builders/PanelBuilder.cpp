@@ -49,9 +49,10 @@ PanelBuilder& PanelBuilder::Toolbar(std::shared_ptr<Widget> toolbar) {
     return *this;
 }
 
-PanelBuilder& PanelBuilder::ToolbarBox(std::function<void(HorizontalBox&)> build) {
-    auto toolbarBox = std::make_shared<HorizontalBox>();
-    toolbarBox->SetPadding(Margin{
+PanelBuilder& PanelBuilder::ToolbarBox(std::function<void(Row&)> build) {
+    auto toolbarBox = std::make_shared<Row>();
+    toolbarBox->Gap(4.0f);
+    toolbarBox->Padding(Margin{
         ResolveThemeMetric(ThemeToken::Space3),
         ResolveThemeMetric(ThemeToken::Space1),
         ResolveThemeMetric(ThemeToken::Space3),

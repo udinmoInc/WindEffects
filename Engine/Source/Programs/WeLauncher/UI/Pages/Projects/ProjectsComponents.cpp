@@ -4,8 +4,7 @@
 #include "UI/Pages/Projects/ProjectsViewModel.h"
 
 #include "KindUI/Core/Icon.h"
-#include "KindUI/Core/Widgets/PrimaryToolbarButton.h"
-#include "KindUI/Core/Widgets/SecondaryToolbarButton.h"
+#include "KindUI/Core/Widgets/DesignSystemControls.h"
 #include "KindUI/Declarative/UI.h"
 #include "KindUI/Widgets/VirtualList.h"
 #include "UI/Pages/Projects/ProjectsResources.h"
@@ -25,7 +24,7 @@ we::runtime::kindui::Element ActionToolbar(const ProjectsViewModel& vm) {
     if (const ProjectsCommands* commands = vm.Commands()) {
         actions.push_back(UI::Style(
             UI::Host([commands]() {
-                auto btn = std::make_shared<SecondaryToolbarButton>(
+                auto btn = MakeSecondaryAction(
                     Resources::OpenProjectLabel, Icons::OpenFolderName);
                 btn->SetOnClicked([cmd = commands->BrowseProject] {
                     if (cmd && cmd->CanExecute({})) {
@@ -38,7 +37,7 @@ we::runtime::kindui::Element ActionToolbar(const ProjectsViewModel& vm) {
 
         actions.push_back(UI::Style(
             UI::Host([commands]() {
-                auto btn = std::make_shared<PrimaryToolbarButton>(
+                auto btn = MakePrimaryAction(
                     Resources::NewProjectLabel, Icons::PlusName);
                 btn->SetOnClicked([cmd = commands->NewProject] {
                     if (cmd && cmd->CanExecute({})) {
