@@ -138,6 +138,9 @@ public:
     [[nodiscard]] float GetFlexShrink() const { return m_FlexShrink; }
     [[nodiscard]] float GetFlexBasis() const { return m_FlexBasis; }
 
+    void SetId(std::string id) { m_Id = std::move(id); }
+    [[nodiscard]] const std::string& GetId() const { return m_Id; }
+
     void SetStyleClass(std::string className) { m_StyleClass = std::move(className); InvalidateStyle(); }
     [[nodiscard]] const std::string& GetStyleClass() const { return m_StyleClass; }
 
@@ -205,6 +208,7 @@ protected:
     float m_FlexBasis = -1.0f;
 #pragma warning(push)
 #pragma warning(disable: 4251)
+    std::string m_Id;
     std::string m_StyleClass;
 #pragma warning(pop)
 };

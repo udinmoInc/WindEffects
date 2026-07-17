@@ -1,8 +1,17 @@
 #pragma once
 
 #include "App/LauncherContext.h"
+#include "KindUI/App/ApplicationServices.h"
+#include "KindUI/App/ViewHost.h"
 #include "KindUI/Core/Widget.h"
+#include "KindUI/Core/WidgetContext.h"
+#include "KindUI/Layout/OverlayManager.h"
 #include "RHI/Types.h"
+#include "UI/Dialogs/RenameProject/RenameProjectDialog.h"
+#include "UI/Pages/LauncherPages.h"
+#include "UI/Pages/Projects/IProjectsHostActions.h"
+#include "UI/Pages/Projects/ProjectsPage.h"
+#include "UI/PageState.h"
 #include "UI/Widgets/LauncherControls.h"
 #include "UI/Widgets/ProjectViews.h"
 #include "UI/Widgets/SettingsViews.h"
@@ -20,15 +29,15 @@ class ScrollLayout;
 
 namespace we::programs::welauncher {
 
-class LauncherShell : public we::runtime::kindui::Widget {
+class LauncherShell : public we::runtime::kindui::Widget, public IProjectsHostActions {
 public:
     LauncherShell(std::shared_ptr<LauncherContext> context, we::platform::WindowId window);
     ~LauncherShell() override = default;
 
     void Construct(float dpiScale);
+    void SetHostContext(std::shared_ptr<we::runtime::kindui::IWidgetContext> context);
     void SetLogoTexture(we::rhi::RHIDescriptorSetHandle logoSet);
     void RefreshProjectList();
-    void SetStatus(const std::string& message);
     void OnWindowStateChanged();
     void OnTextInput(char32_t codepoint);
 
@@ -40,16 +49,21 @@ public:
     void Tick(float deltaTime) override;
     void OnKeyDown(const we::runtime::kindui::KeyEvent& event) override;
 
-private:
-    enum class ModalKind { None, Create, Rename, Actions };
+    // IProjectsHostActions
+    void ShowCreateWizard() override;
+    void BrowseForProject() override;
+    void ShowRenameDialog() override;
+    void CommitRenameProject(const std::string& newName) override;
+    void ShowProjectMoreMenu(std::size_t index) override;
+    void SetStatus(const std::string& message) override;
+    void UpdateFooter() override;
+    void BeginLoading(float durationSeconds = 0.24f) override;
 
-    struct PageState {
-        std::shared_ptr<we::runtime::kindui::Widget> root;
-        std::shared_ptr<we::runtime::kindui::ScrollLayout> scroll;
-        float scrollOffset = 0.0f;
-        bool built = false;
-        bool dirty = true;
-    };
+private:
+    enum class ModalKind { None, Create, Actions };
+
+    void EnsureProjectsPage();
+    [[nodiscard]] const ProjectSummary* SelectedProjectSummary() const;
 
     void RebuildChrome();
     void EnsurePageBuilt(LauncherPage page);
@@ -59,6 +73,9 @@ private:
     void RebuildLearnPage();
     void RebuildEnginePage();
     void RebuildSettingsPage();
+    [[nodiscard]] LearnPageModel BuildLearnPageModel();
+    [[nodiscard]] EnginePageModel BuildEnginePageModel();
+    void ApplyDeclarativePage(PageState& state, const we::runtime::kindui::Element& view, const char* scrollId);
     void PersistLauncherSettings(const std::string& statusMessage = {});
     [[nodiscard]] std::shared_ptr<we::runtime::kindui::Widget> BuildSettingsGeneral(const std::string& queryLower);
     [[nodiscard]] std::shared_ptr<we::runtime::kindui::Widget> BuildSettingsEngine(const std::string& queryLower);
@@ -68,9 +85,7 @@ private:
     void RebuildCreateWizard();
     void CommitCreateProject();
     void SelectWizardTemplateByDelta(int delta);
-    void RebuildRenameDialog();
     void RebuildProjectActionsDialog();
-    void UpdateFooter();
     void UpdateAdaptiveLayout(float width);
     void SyncHeaderFromState();
     void CapturePageScroll(LauncherPage page);
@@ -80,19 +95,13 @@ private:
     [[nodiscard]] bool IsPageContentLoading() const { return m_PageContentLoading; }
     std::shared_ptr<we::runtime::kindui::Widget> BuildPageSkeleton(LauncherPage page);
 
-    void ShowCreateWizard();
-    void ShowRenameDialog();
     void CloseModal();
-    void BrowseForProject();
     void OpenSelectedProject();
     void CloneSelectedProject();
     void RenameSelectedProject(const std::string& newName);
     void DeleteSelectedProject();
     void ShowSelectedInExplorer();
     void SelectProject(std::size_t index, bool additive = false);
-    void HandleProjectAction(std::size_t index, ProjectCardAction action);
-    void ApplySearchFilter();
-    void ApplyProjectSort();
     void OnSearchChanged(const std::string& text);
     void OnViewModeChanged(ProjectViewMode mode);
     void CycleSortMode();
@@ -101,14 +110,19 @@ private:
     void ShowHelp();
     void ToggleFavorite(const std::string& weprojPath);
     [[nodiscard]] bool IsFavorite(const std::string& weprojPath) const;
-    void ShowProjectMoreMenu(std::size_t index);
     void RegenerateSelectedProjectFiles();
 
-    std::shared_ptr<we::runtime::kindui::Widget> BuildProjectsPageHeader(bool showActions);
-    std::shared_ptr<we::runtime::kindui::Widget> BuildProjectSearchRow();
+    void InitializeApplicationServices();
 
     std::shared_ptr<LauncherContext> m_Context;
+    std::shared_ptr<we::runtime::kindui::IWidgetContext> m_HostContext;
+    we::runtime::kindui::ApplicationServices m_Services;
+    std::shared_ptr<we::runtime::kindui::OverlayHost> m_PopupHost;
+    std::shared_ptr<we::runtime::kindui::ModalHost> m_DialogOverlay;
+    std::unique_ptr<RenameProjectDialog> m_RenameDialog;
     we::platform::WindowId m_Window = we::platform::WindowId::Invalid;
+
+    std::unique_ptr<ProjectsPage> m_ProjectsPage;
 
     std::shared_ptr<we::runtime::kindui::Widget> m_Root;
     std::shared_ptr<LauncherTitleBar> m_TitleBar;
@@ -116,19 +130,11 @@ private:
     std::shared_ptr<we::runtime::kindui::Widget> m_ContentHost;
     std::shared_ptr<StatusFooter> m_Footer;
     std::shared_ptr<ModalOverlay> m_ModalHost;
-    std::shared_ptr<CompactSearchField> m_ProjectsSearch;
 
     std::array<PageState, static_cast<std::size_t>(LauncherPage::Count)> m_Pages{};
 
-    std::vector<ProjectSummary> m_Projects;
-    std::vector<ProjectSummary> m_FilteredProjects;
-    std::vector<std::string> m_FavoritePaths;
-    std::vector<std::size_t> m_MultiSelected;
-    int m_SelectedIndex = -1;
     LauncherPage m_Page = LauncherPage::Projects;
     ProjectViewMode m_ViewMode = ProjectViewMode::List;
-    ProjectSortMode m_SortMode = ProjectSortMode::Recent;
-    bool m_CompatibleOnly = false;
     std::string m_SearchQuery;
     bool m_SidebarCollapsed = false;
     we::rhi::RHIDescriptorSetHandle m_LogoSet = we::rhi::RHIDescriptorSetHandle::Invalid;
@@ -140,7 +146,6 @@ private:
     std::string m_WizardName = "MyProject";
     std::string m_WizardLocation;
     std::string m_WizardQuality = "Balanced";
-    std::string m_RenameName;
 
     bool m_PageContentLoading = false;
     float m_PageLoadTimer = 0.0f;

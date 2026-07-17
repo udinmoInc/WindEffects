@@ -86,6 +86,7 @@ WeLauncherApp::WeLauncherApp(we::platform::WindowId window)
     m_UIEventSystem = std::make_shared<we::runtime::kindui::EventSystem>();
     m_UI = std::make_shared<LauncherShell>(m_Context, m_Window);
     m_UI->SetContext(m_WidgetContext);
+    m_UI->SetHostContext(m_WidgetContext);
     m_UI->SetLogoTexture(m_LogoSet);
     m_UI->Construct(dpiScale);
     m_UIEventSystem->SetRootWidget(m_UI);

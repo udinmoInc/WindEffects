@@ -36,7 +36,7 @@ public:
             return factory(items[index], index);
         };
         SetItemCount(list.Items().size());
-        list.Subscribe([this, &list]() {
+        (void)list.Subscribe([this, &list]() {
             SetItemCount(list.Items().size());
             m_Cache.clear();
             InvalidateLayout();

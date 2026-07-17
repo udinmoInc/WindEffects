@@ -9,6 +9,7 @@
 #include "Platform/PlatformSDK.h"
 
 #include <algorithm>
+#include <cctype>
 #include <chrono>
 #include <cstdint>
 #include <cstdio>
@@ -46,6 +47,13 @@ inline constexpr float kLauncherIconPx = 16.0f;
 
 inline we::runtime::kindui::Color LColor(we::runtime::kindui::ThemeToken token) {
     return we::runtime::kindui::ResolveThemeColor(token);
+}
+
+inline std::string ToLowerCopy(std::string text) {
+    std::transform(text.begin(), text.end(), text.begin(), [](unsigned char c) {
+        return static_cast<char>(std::tolower(c));
+    });
+    return text;
 }
 
 inline float LMetric(we::runtime::kindui::ThemeToken token) {
