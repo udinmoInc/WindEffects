@@ -2,11 +2,11 @@
 
 #include "MainFrame/Export.h"
 
-#include "Layout/Box.h"
+#include "KindUI/Layout/Box.h"
 #include <string>
 #include <functional>
 
-namespace WindEffects::Editor::UI {
+namespace we::runtime::kindui {
 
 // Status bar widget for application status information
 class MAINFRAME_API StatusBar : public HorizontalBox {
@@ -50,4 +50,4 @@ private:
     std::shared_ptr<class ToolButton> m_QualityMenuButton;
 };
 
-} // namespace WindEffects::Editor::UI
+} // namespace we::runtime::kindui

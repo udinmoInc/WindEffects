@@ -1,6 +1,6 @@
-#include "WindEffects/Runtime/UI/Rendering/UICommandBuffer.h"
+#include "KindUI/Rendering/UICommandBuffer.h"
 
-namespace WindEffects::Editor::UI {
+namespace we::runtime::kindui {
 
 void UICommandBuffer::Initialize(we::rhi::IRHIDevice* device, uint32_t maxFramesInFlight) {
     m_Device = device;
@@ -24,4 +24,4 @@ void UICommandBuffer::EndRecording() {}
 
 void UICommandBuffer::Execute(we::rhi::IRHICommandList*) {}
 
-} // namespace WindEffects::Editor::UI
+} // namespace we::runtime::kindui

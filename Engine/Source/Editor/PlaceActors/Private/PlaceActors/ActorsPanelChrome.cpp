@@ -1,24 +1,24 @@
 #include "PlaceActors/ActorsPanelChrome.h"
 
 #include "PlaceActors/ActorsPanelLayout.h"
-#include "WindEffects/Editor/UI/Theming/ThemeAccess.h"
-#include "WindEffects/Editor/UI/Theming/ThemeToken.h"
-#include "Core/Icon.h"
-#include "Core/DPIContext.h"
-#include "Rendering/IconMetrics.h"
+#include "KindUI/Theming/ThemeAccess.h"
+#include "KindUI/Theming/ThemeToken.h"
+#include "KindUI/Core/Icon.h"
+#include "KindUI/Core/DPIContext.h"
+#include "KindUI/Rendering/IconMetrics.h"
 
 #include <algorithm>
 
 namespace we::programs::editor::ActorsPanelChrome {
 
-using WindEffects::Editor::UI::Color;
-using WindEffects::Editor::UI::PaintContext;
-using WindEffects::Editor::UI::Point;
-using WindEffects::Editor::UI::Rect;
-using WindEffects::Editor::UI::ThemeToken;
+using we::runtime::kindui::Color;
+using we::runtime::kindui::PaintContext;
+using we::runtime::kindui::Point;
+using we::runtime::kindui::Rect;
+using we::runtime::kindui::ThemeToken;
 
 void PaintSearchField(PaintContext& context, const Rect& bounds, const std::string& placeholder, const std::string& text, bool focused, bool showCaret) {
-    const float uiScale = std::max(1.0f, WindEffects::Editor::UI::DPIContext::GetScale());
+    const float uiScale = std::max(1.0f, we::runtime::kindui::DPIContext::GetScale());
     const float radius = ResolveThemeMetric(ThemeToken::CornerRadiusSmall) * uiScale;
     const float pad = ActorsPanelLayout::ContentPadH();
 
@@ -29,12 +29,12 @@ void PaintSearchField(PaintContext& context, const Rect& bounds, const std::stri
     context.DrawRoundedRect(bounds, bg, radius);
     context.DrawRoundedRectOutline(bounds, ResolveThemeColor(ThemeToken::BorderDefault), 1.0f, radius);
 
-    const float iconSize = static_cast<float>(WindEffects::Editor::UI::IconMetrics::GlyphTierPx(ThemeToken::IconSizeSearch));
+    const float iconSize = static_cast<float>(we::runtime::kindui::IconMetrics::GlyphTierPx(ThemeToken::IconSizeSearch));
     Rect iconBand{ bounds.x + pad, bounds.y, iconSize, bounds.height };
-    WindEffects::Editor::UI::IconPainter::DrawIcon(
+    we::runtime::kindui::IconPainter::DrawIcon(
         context,
-        WindEffects::Editor::UI::Icons::SearchName,
-        WindEffects::Editor::UI::IconMetrics::PlaceGlyphCentered(iconBand, iconSize),
+        we::runtime::kindui::Icons::SearchName,
+        we::runtime::kindui::IconMetrics::PlaceGlyphCentered(iconBand, iconSize),
         ResolveThemeColor(ThemeToken::IconPrimary));
 
     const float fontSize = ResolveThemeMetric(ThemeToken::TextSizeBody) * uiScale;
@@ -97,17 +97,17 @@ void PaintSoftSeparator(PaintContext& context, const Rect& bounds) {
 }
 
 void PaintChevron(PaintContext& context, const Rect& bounds, bool expanded, float hoverAnim) {
-    const float tier = static_cast<float>(WindEffects::Editor::UI::IconMetrics::StandardGlyphTierPx());
+    const float tier = static_cast<float>(we::runtime::kindui::IconMetrics::StandardGlyphTierPx());
     Color color = ResolveThemeColor(ThemeToken::TextSecondary);
     color = Color::Lerp(color, ResolveThemeColor(ThemeToken::TextPrimary), std::clamp(hoverAnim, 0.0f, 1.0f));
 
     const char* chevronIcon = expanded
-        ? WindEffects::Editor::UI::Icons::ChevronDownName
-        : WindEffects::Editor::UI::Icons::ChevronRightName;
-    WindEffects::Editor::UI::IconPainter::DrawIcon(
+        ? we::runtime::kindui::Icons::ChevronDownName
+        : we::runtime::kindui::Icons::ChevronRightName;
+    we::runtime::kindui::IconPainter::DrawIcon(
         context,
         chevronIcon,
-        WindEffects::Editor::UI::IconMetrics::PlaceGlyphCentered(bounds, tier),
+        we::runtime::kindui::IconMetrics::PlaceGlyphCentered(bounds, tier),
         color);
 }
 

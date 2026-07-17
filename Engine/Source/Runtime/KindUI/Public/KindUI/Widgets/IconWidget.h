@@ -1,0 +1,37 @@
+#pragma once
+
+#include "KindUI/Export.h"
+
+#include "KindUI/Core/Widget.h"
+#include "KindUI/Core/Icon.h"
+#include "KindUI/Theming/ThemeAccess.h"
+#include "KindUI/Theming/ThemeColors.h"
+#include <string>
+
+namespace we::runtime::kindui {
+
+class KINDUI_API IconWidget : public Widget {
+public:
+    IconWidget(const std::string& iconName, float size = 20.0f) : m_IconName(iconName), m_Size(size) {}
+    virtual ~IconWidget() = default;
+
+    Size Measure(const Size& availableSize) override {
+        m_DesiredSize = Size{ m_Size, m_Size };
+        return m_DesiredSize;
+    }
+
+    void Arrange(const Rect& allottedRect) override {
+        m_Geometry = allottedRect;
+    }
+
+    void Paint(PaintContext& context) override {
+        Rect iconRect = { m_Geometry.x, m_Geometry.y, m_Size, m_Size };
+        IconPainter::DrawIcon(context, m_IconName, iconRect, ThemeColor(ThemeToken::IconSecondary));
+    }
+
+private:
+    std::string m_IconName;
+    float m_Size;
+};
+
+} // namespace we::runtime::kindui

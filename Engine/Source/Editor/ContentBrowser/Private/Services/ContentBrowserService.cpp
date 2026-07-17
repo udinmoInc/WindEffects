@@ -2,9 +2,9 @@
 #include "Services/ContentBrowserFolderArt.h"
 #include "Services/ContentBrowserBlueprintArt.h"
 #include "Registry/AssetTypeResolver.h"
-#include "Rendering/IconRenderer.h"
+#include "KindUI/Rendering/IconRenderer.h"
 #include "Core/Logger.h"
-#include "Core/UIRepaintGate.h"
+#include "KindUI/Core/UIRepaintGate.h"
 #include <filesystem>
 
 namespace we::editor::contentbrowser {
@@ -14,7 +14,7 @@ ContentBrowserService& ContentBrowserService::Get() {
     return instance;
 }
 
-void ContentBrowserService::Initialize(WindEffects::Editor::UI::IconRenderer* iconRenderer, const std::string& contentRoot) {
+void ContentBrowserService::Initialize(we::runtime::kindui::IconRenderer* iconRenderer, const std::string& contentRoot) {
     if (m_Initialized) return;
 
     m_IconRenderer = iconRenderer;
@@ -54,21 +54,21 @@ void ContentBrowserService::SetCurrentFolder(const std::string& virtualPath) {
     }
 }
 
-void ContentBrowserService::RefreshBrowserModel(const std::shared_ptr<WindEffects::Editor::UI::ContentBrowserModel>& model) {
+void ContentBrowserService::RefreshBrowserModel(const std::shared_ptr<we::runtime::kindui::ContentBrowserModel>& model) {
     if (!model) return;
     m_Model = model;
     model->items.clear();
 
     const auto children = ContentAssetRegistry::Get().GetChildren(m_CurrentFolder);
     for (const auto* asset : children) {
-        WindEffects::Editor::UI::ContentItem item;
+        we::runtime::kindui::ContentItem item;
         item.id = asset->id;
         item.name = asset->name;
         item.type = AssetTypeToString(asset->type);
         item.path = asset->virtualPath;
         item.isFolder = asset->isFolder;
         item.isFavorite = asset->isFavorite;
-        item.iconName = asset->isFolder ? WindEffects::Editor::UI::Icons::FolderName : AssetTypeToKey(asset->type);
+        item.iconName = asset->isFolder ? we::runtime::kindui::Icons::FolderName : AssetTypeToKey(asset->type);
         if (!asset->isFolder) {
             item.iconTexture = m_ThumbnailManager.GetCachedTexture(asset->id);
             item.thumbnailRequested = item.iconTexture != we::rhi::RHIDescriptorSetHandle::Invalid;
@@ -124,7 +124,7 @@ void ContentBrowserService::ProcessThumbnails() {
                 }
                 model->NotifyChanged();
             }
-            WindEffects::Editor::UI::UIRepaintGate::Request();
+            we::runtime::kindui::UIRepaintGate::Request();
         });
 }
 

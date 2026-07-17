@@ -4,7 +4,7 @@
 #include "RHI/Types.h"
 
 #include "Viewport/Export.h"
-#include "Core/Widget.h"
+#include "KindUI/Core/Widget.h"
 #include "ViewportNavigation.h"
 #include "Platform/Types.h"
 
@@ -15,7 +15,7 @@ namespace we::runtime::engine { class EditorCamera; }
 namespace we::runtime::scene { class Scene; }
 namespace we::editor::viewport { class ViewportRenderTarget; }
 
-namespace WindEffects::Editor::UI {
+namespace we::runtime::kindui {
 
 class OverlayRenderer;
 class GraphicsDebuggerPopup;
@@ -86,4 +86,4 @@ private:
     std::shared_ptr<GraphicsDebuggerPopup> m_GraphicsDebugger;
 };
 
-} // namespace WindEffects::Editor::UI
+} // namespace we::runtime::kindui

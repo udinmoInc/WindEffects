@@ -9,7 +9,7 @@
 #include <unordered_map>
 #include <vector>
 
-namespace WindEffects::Editor::UI {
+namespace we::runtime::kindui {
 
 enum class DockZone {
     Left,
@@ -83,4 +83,4 @@ public:
     virtual void DockPanel(std::string_view panelId, DockZone zone) = 0;
 };
 
-} // namespace WindEffects::Editor::UI
+} // namespace we::runtime::kindui

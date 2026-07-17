@@ -1,12 +1,12 @@
-#include "WindEffects/Runtime/UI/Rendering/Icons/EngineIconBitmap.h"
+#include "KindUI/Rendering/Icons/EngineIconBitmap.h"
 
-#include "WindEffects/Runtime/UI/Theming/ThemeAccess.h"
-#include "WindEffects/Runtime/UI/Theming/ThemeToken.h"
+#include "KindUI/Theming/ThemeAccess.h"
+#include "KindUI/Theming/ThemeToken.h"
 
 #include <algorithm>
 #include <cmath>
 
-namespace WindEffects::Editor::UI {
+namespace we::runtime::kindui {
 namespace {
 
 std::array<uint8_t, 3> ToRgb(const Color& color) {
@@ -222,4 +222,4 @@ IconBitmap UpscaleBitmap(const IconBitmap& source, uint32_t targetSize) {
     return scaled;
 }
 
-} // namespace WindEffects::Editor::UI
+} // namespace we::runtime::kindui

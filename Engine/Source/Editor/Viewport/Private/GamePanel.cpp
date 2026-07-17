@@ -1,9 +1,9 @@
 #include "WindEffects/Editor/EditorSDK.h"
 #include "Widgets/ToolbarBuilder.h"
-#include "Widgets/Label.h"
+#include "KindUI/Widgets/Label.h"
 
 namespace we::programs::editor {
-using namespace WindEffects::Editor::UI;
+using namespace we::runtime::kindui;
 
 std::shared_ptr<Panel> CreateGamePanel() {
     auto toolbar = ToolbarBuilder()

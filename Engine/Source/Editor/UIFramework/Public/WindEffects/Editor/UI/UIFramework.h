@@ -1,10 +1,10 @@
 #pragma once
 
 // WindEffects Editor UI Framework — docking, panels, and editor shell services.
-// Widget/layout/theme/rendering foundation lives in Runtime UI (WEUI.dll).
+// Widget/layout/rendering foundation lives in Runtime KindUI.
 // Extension authors: prefer #include "WindEffects/Editor/EditorSDK.h"
 
-#include "WindEffects/Runtime/UISDK.h"
+#include "KindUI/KindUI.h"
 
 #include "WindEffects/Editor/UI/Core/EditorApplicationContext.h"
 #include "WindEffects/Editor/UI/Docking/IDockManager.h"

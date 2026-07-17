@@ -10,11 +10,9 @@ public class UIFramework : ModuleRules
         PublicIncludePaths.Add("Public");
         PublicIncludePaths.Add("Public/WindEffects/Editor/UI");
         PublicIncludePaths.Add("Public/WindEffects/Editor");
-        // Propagate Runtime UI headers to consumers that still include via UIFramework shims.
-        PublicIncludePaths.Add(Path.Combine(context.EngineDirectory, "Source", "Runtime", "UI", "Public"));
         PrivateIncludePaths.Add("Private");
 
-        PublicDependencies.Add("UI");
+        PublicDependencies.Add("KindUI");
         PublicDependencies.Add("Core");
         PublicDependencies.Add("CoreUObject");
         PublicDependencies.Add("Platform");

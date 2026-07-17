@@ -1,6 +1,6 @@
-#include "WindEffects/Runtime/UI/Core/ServiceContainer.h"
+#include "KindUI/Core/ServiceContainer.h"
 
-namespace WindEffects::Editor::UI {
+namespace we::runtime::kindui {
 
 std::shared_ptr<void> ServiceContainer::GetService(std::type_index type) const {
     std::lock_guard lock(m_Mutex);
@@ -13,4 +13,4 @@ void ServiceContainer::RegisterService(std::type_index type, std::shared_ptr<voi
     m_Services[type] = std::move(service);
 }
 
-} // namespace WindEffects::Editor::UI
+} // namespace we::runtime::kindui

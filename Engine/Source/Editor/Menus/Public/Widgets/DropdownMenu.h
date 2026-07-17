@@ -1,11 +1,11 @@
 #pragma once
 
-#include "Core/Widget.h"
+#include "KindUI/Core/Widget.h"
 #include "Widgets/MenuBar.h" // For MenuItem
 #include <vector>
 #include <memory>
 
-namespace WindEffects::Editor::UI {
+namespace we::runtime::kindui {
 
 class DropdownMenu : public Widget {
 public:

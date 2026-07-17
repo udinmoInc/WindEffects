@@ -2,9 +2,9 @@
 
 #include "WindEffects/Editor/UI/Export.h"
 #include "WindEffects/Editor/UI/Extensions/UIExtensionRegistry.h"
-#include "WindEffects/Editor/UI/Commands/LambdaCommand.h"
+#include "KindUI/Commands/LambdaCommand.h"
 
-namespace WindEffects::Editor::UI {
+namespace we::runtime::kindui {
 
 class UIFRAMEWORK_API ExtensionBootstrap {
 public:
@@ -30,11 +30,11 @@ private:
     namespace { \
         struct UiPanelBootstrap_##PanelId { \
             UiPanelBootstrap_##PanelId() { \
-                WindEffects::Editor::UI::PanelRegistration _reg{}; \
+                we::runtime::kindui::PanelRegistration _reg{}; \
                 _reg.descriptor = (DescriptorExpr); \
                 _reg.descriptor.id = #PanelId; \
                 _reg.factory = (FactoryFunc); \
-                WindEffects::Editor::UI::ExtensionBootstrap::Instance().RegisterPanel(std::move(_reg)); \
+                we::runtime::kindui::ExtensionBootstrap::Instance().RegisterPanel(std::move(_reg)); \
             } \
         }; \
         static UiPanelBootstrap_##PanelId g_UiPanelBootstrap_##PanelId; \
@@ -44,7 +44,7 @@ private:
     namespace { \
         struct UiMenuBootstrap_##MenuName { \
             UiMenuBootstrap_##MenuName() { \
-                WindEffects::Editor::UI::ExtensionBootstrap::Instance().RegisterMenu( \
+                we::runtime::kindui::ExtensionBootstrap::Instance().RegisterMenu( \
                     { #MenuName, (FactoryFunc), (SortOrder) }); \
             } \
         }; \
@@ -55,11 +55,11 @@ private:
     namespace { \
         struct UiCommandBootstrap_##__LINE__ { \
             UiCommandBootstrap_##__LINE__() { \
-                WindEffects::Editor::UI::ExtensionBootstrap::Instance().RegisterCommand( \
-                    WindEffects::Editor::UI::MakeCommand(CommandIdStr, DisplayName, ExecuteFunc)); \
+                we::runtime::kindui::ExtensionBootstrap::Instance().RegisterCommand( \
+                    we::runtime::kindui::MakeCommand(CommandIdStr, DisplayName, ExecuteFunc)); \
             } \
         }; \
         static UiCommandBootstrap_##__LINE__ g_UiCommandBootstrap_##__LINE__; \
     }
 
-} // namespace WindEffects::Editor::UI
+} // namespace we::runtime::kindui

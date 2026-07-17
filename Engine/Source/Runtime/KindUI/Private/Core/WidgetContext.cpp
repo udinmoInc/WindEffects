@@ -1,6 +1,6 @@
-#include "WindEffects/Runtime/UI/Core/WidgetContext.h"
+#include "KindUI/Core/WidgetContext.h"
 
-namespace WindEffects::Editor::UI {
+namespace we::runtime::kindui {
 
 WidgetContext::WidgetContext(IApplicationContext& appContext, IPopupHost* popupHost)
     : m_AppContext(appContext)
@@ -26,4 +26,4 @@ IResourceRegistry& WidgetContext::GetResourceRegistry() const {
     return m_AppContext.GetResourceRegistry();
 }
 
-} // namespace WindEffects::Editor::UI
+} // namespace we::runtime::kindui

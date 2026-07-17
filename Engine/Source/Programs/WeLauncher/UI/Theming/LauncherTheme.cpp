@@ -3,8 +3,8 @@
 namespace we::programs::welauncher {
 namespace {
 
-using WindEffects::Editor::UI::Color;
-using WindEffects::Editor::UI::ThemeToken;
+using we::runtime::kindui::Color;
+using we::runtime::kindui::ThemeToken;
 
 Color LnHex(uint8_t r, uint8_t g, uint8_t b, float a = 1.0f) {
     return Color{ r / 255.0f, g / 255.0f, b / 255.0f, a };

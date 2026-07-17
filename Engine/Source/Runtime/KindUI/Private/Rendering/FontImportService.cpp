@@ -1,9 +1,9 @@
-#include "WindEffects/Runtime/UI/Rendering/FontImportService.h"
+#include "KindUI/Rendering/FontImportService.h"
 
 #include "Core/Logger.h"
 #include "Text/Assets/FontAsset.h"
 
-namespace WindEffects::Editor::UI {
+namespace we::runtime::kindui {
 
 bool FontImportService::ImportFontFile(
     const std::filesystem::path& inputPath,
@@ -55,4 +55,4 @@ bool FontImportService::ImportFontFile(
     return true;
 }
 
-} // namespace WindEffects::Editor::UI
+} // namespace we::runtime::kindui

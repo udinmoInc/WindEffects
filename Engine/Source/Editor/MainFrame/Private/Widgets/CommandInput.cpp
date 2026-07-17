@@ -1,15 +1,15 @@
 #include "Platform/Platform.h"
 #include "Widgets/CommandInput.h"
-#include "Core/EventSystem.h"
-#include "Core/PaintContext.h"
-#include "Core/DPIContext.h"
-#include "Rendering/IconMetrics.h"
-#include "WindEffects/Editor/UI/Theming/ThemeToken.h"
-#include "WindEffects/Editor/UI/Theming/ThemeAccess.h"
-#include "Core/Icon.h"
+#include "KindUI/Core/EventSystem.h"
+#include "KindUI/Core/PaintContext.h"
+#include "KindUI/Core/DPIContext.h"
+#include "KindUI/Rendering/IconMetrics.h"
+#include "KindUI/Theming/ThemeToken.h"
+#include "KindUI/Theming/ThemeAccess.h"
+#include "KindUI/Core/Icon.h"
 #include <algorithm>
 
-namespace WindEffects::Editor::UI {
+namespace we::runtime::kindui {
 
 CommandInput::CommandInput() = default;
 
@@ -130,4 +130,4 @@ void CommandInput::OnBlur() {
     m_ShowCaret = false;
 }
 
-} // namespace WindEffects::Editor::UI
+} // namespace we::runtime::kindui

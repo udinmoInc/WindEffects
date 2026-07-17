@@ -2,16 +2,16 @@
 
 #include "ContentBrowser/Export.h"
 
-#include "Core/Widget.h"
-#include "Core/Style.h"
-#include "Core/Icon.h"
-#include "Layout/ScrollViewport.h"
+#include "KindUI/Core/Widget.h"
+#include "KindUI/Core/Style.h"
+#include "KindUI/Core/Icon.h"
+#include "KindUI/Layout/ScrollViewport.h"
 #include <functional>
 #include <string>
 #include <vector>
 #include "RHI/Types.h"
 
-namespace WindEffects::Editor::UI {
+namespace we::runtime::kindui {
 
 // Tree node data structure
 struct TreeNode {
@@ -160,4 +160,4 @@ private:
     WidgetStyle m_Style;
 };
 
-} // namespace WindEffects::Editor::UI
+} // namespace we::runtime::kindui

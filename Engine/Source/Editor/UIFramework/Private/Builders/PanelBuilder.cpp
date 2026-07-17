@@ -1,8 +1,8 @@
 #include "WindEffects/Editor/UI/Builders/PanelBuilder.h"
-#include "WindEffects/Editor/UI/Theming/ThemeAccess.h"
-#include "WindEffects/Editor/UI/Theming/ThemeToken.h"
+#include "KindUI/Theming/ThemeAccess.h"
+#include "KindUI/Theming/ThemeToken.h"
 
-namespace WindEffects::Editor::UI {
+namespace we::runtime::kindui {
 
 PanelBuilder::PanelBuilder(std::string_view title)
     : m_Panel(std::make_shared<Panel>(std::string(title))) {
@@ -73,4 +73,4 @@ std::shared_ptr<Panel> PanelBuilder::Build() {
     return m_Panel;
 }
 
-} // namespace WindEffects::Editor::UI
+} // namespace we::runtime::kindui

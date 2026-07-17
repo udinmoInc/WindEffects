@@ -1,6 +1,6 @@
-#include "WindEffects/Runtime/UI/Events/EventBus.h"
+#include "KindUI/Events/EventBus.h"
 
-namespace WindEffects::Editor::UI {
+namespace we::runtime::kindui {
 
 void EventBus::Subscribe(std::string_view eventType, EventHandler handler) {
     std::lock_guard lock(m_Mutex);
@@ -29,6 +29,6 @@ void EventBus::Publish(const EditorEvent& event) {
     }
 }
 
-} // namespace WindEffects::Editor::UI
+} // namespace we::runtime::kindui
 
 // export rebuild

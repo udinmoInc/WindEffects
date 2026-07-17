@@ -1,7 +1,7 @@
 #pragma once
 
-#include "Core/Widget.h"
-#include "Layout/ScrollViewport.h"
+#include "KindUI/Core/Widget.h"
+#include "KindUI/Layout/ScrollViewport.h"
 #include "PlaceActors/PlaceActorsTypes.h"
 #include "PlaceActors/PlaceActorsResponsiveGrid.h"
 #include <functional>
@@ -10,14 +10,14 @@
 #include <unordered_map>
 #include <vector>
 
-namespace WindEffects::Editor::UI {
+namespace we::runtime::kindui {
 class SearchBox;
 class ToolButton;
 }
 
 namespace we::programs::editor {
 
-class PlaceActorsPanel : public WindEffects::Editor::UI::Widget {
+class PlaceActorsPanel : public we::runtime::kindui::Widget {
 public:
     PlaceActorsPanel();
     ~PlaceActorsPanel() override;
@@ -29,25 +29,25 @@ public:
         }
     }
 
-    WindEffects::Editor::UI::Size Measure(const WindEffects::Editor::UI::Size& availableSize) override;
-    void Arrange(const WindEffects::Editor::UI::Rect& allottedRect) override;
-    void Paint(WindEffects::Editor::UI::PaintContext& context) override;
+    we::runtime::kindui::Size Measure(const we::runtime::kindui::Size& availableSize) override;
+    void Arrange(const we::runtime::kindui::Rect& allottedRect) override;
+    void Paint(we::runtime::kindui::PaintContext& context) override;
     void Tick(float deltaTime) override;
 
-    void OnMouseDown(const WindEffects::Editor::UI::MouseEvent& event) override;
-    void OnMouseMove(const WindEffects::Editor::UI::MouseEvent& event) override;
-    void OnMouseUp(const WindEffects::Editor::UI::MouseEvent& event) override;
-    void OnMouseWheel(const WindEffects::Editor::UI::MouseEvent& event) override;
-    void OnKeyDown(const WindEffects::Editor::UI::KeyEvent& event) override;
-    bool ShowsPointerCursor(const WindEffects::Editor::UI::Point& position) const override;
+    void OnMouseDown(const we::runtime::kindui::MouseEvent& event) override;
+    void OnMouseMove(const we::runtime::kindui::MouseEvent& event) override;
+    void OnMouseUp(const we::runtime::kindui::MouseEvent& event) override;
+    void OnMouseWheel(const we::runtime::kindui::MouseEvent& event) override;
+    void OnKeyDown(const we::runtime::kindui::KeyEvent& event) override;
+    bool ShowsPointerCursor(const we::runtime::kindui::Point& position) const override;
 
 private:
     struct LayoutEntry {
         enum class Type { CategoryHeader, Item, EmptyState } type;
         std::string categoryId;
         std::string toolId;
-        WindEffects::Editor::UI::Rect geometry;
-        WindEffects::Editor::UI::Rect previewGeometry;
+        we::runtime::kindui::Rect geometry;
+        we::runtime::kindui::Rect previewGeometry;
         float hoverAnim = 0.0f;
         float pressAnim = 0.0f;
         float revealAnim = 1.0f;
@@ -58,13 +58,13 @@ private:
 
     struct ContextMenuItem {
         std::string label;
-        WindEffects::Editor::UI::Rect geometry;
+        we::runtime::kindui::Rect geometry;
         std::function<void()> action;
     };
 
     struct FilterMenuItem {
         std::string label;
-        WindEffects::Editor::UI::Rect geometry;
+        we::runtime::kindui::Rect geometry;
         std::function<void()> action;
         bool checked = false;
     };
@@ -79,14 +79,14 @@ private:
     void SaveFavorites() const;
     void ScrollFocusedIntoView();
 
-    LayoutEntry* HitEntry(const WindEffects::Editor::UI::Point& position);
+    LayoutEntry* HitEntry(const we::runtime::kindui::Point& position);
     void SpawnItem(const std::string& toolId);
     void ToggleFavorite(const std::string& toolId);
-    void OpenContextMenu(const std::string& toolId, const WindEffects::Editor::UI::Point& position);
+    void OpenContextMenu(const std::string& toolId, const we::runtime::kindui::Point& position);
     void CloseContextMenu();
-    void ToggleFilterMenu(const WindEffects::Editor::UI::Point& anchor);
+    void ToggleFilterMenu(const we::runtime::kindui::Point& anchor);
     void CloseFilterMenu();
-    void ShowTooltip(const PlaceActorsItemData& item, const WindEffects::Editor::UI::Rect& anchor);
+    void ShowTooltip(const PlaceActorsItemData& item, const we::runtime::kindui::Rect& anchor);
     void HideTooltip();
     float CategoryExpandAnim(const std::string& categoryId) const;
     bool IsFavoritesCategory(const std::string& categoryId) const;
@@ -95,8 +95,8 @@ private:
     PlaceActorsGridMetrics MakeGridMetrics() const;
     void BuildQuickAccessCategory(const std::string& query);
 
-    std::shared_ptr<WindEffects::Editor::UI::SearchBox> m_SearchBox;
-    std::shared_ptr<WindEffects::Editor::UI::ToolButton> m_FilterButton;
+    std::shared_ptr<we::runtime::kindui::SearchBox> m_SearchBox;
+    std::shared_ptr<we::runtime::kindui::ToolButton> m_FilterButton;
 
     std::string m_SearchText;
     std::string m_ExternalSearchFilter;
@@ -105,18 +105,18 @@ private:
     PlaceActorsSortMode m_SortMode = PlaceActorsSortMode::Name;
     bool m_ShowRecentOnly = false;
 
-    WindEffects::Editor::UI::ScrollViewport m_Scroll;
-    WindEffects::Editor::UI::ScrollViewportMetrics m_ScrollMetrics{};
+    we::runtime::kindui::ScrollViewport m_Scroll;
+    we::runtime::kindui::ScrollViewportMetrics m_ScrollMetrics{};
     float m_ContentHeight = 0.0f;
     float m_LastViewportWidth = -1.0f;
 
-    WindEffects::Editor::UI::Rect m_SearchRowRect;
-    WindEffects::Editor::UI::Rect m_ContentRect;
-    WindEffects::Editor::UI::Rect m_TooltipRect;
+    we::runtime::kindui::Rect m_SearchRowRect;
+    we::runtime::kindui::Rect m_ContentRect;
+    we::runtime::kindui::Rect m_TooltipRect;
 
     std::vector<PlaceActorsCategoryData> m_DisplayCategories;
     std::vector<LayoutEntry> m_Layout;
-    std::vector<WindEffects::Editor::UI::Rect> m_SectionBackgrounds;
+    std::vector<we::runtime::kindui::Rect> m_SectionBackgrounds;
     std::unordered_map<std::string, bool> m_CategoryExpanded;
     std::unordered_map<std::string, float> m_CategoryExpandAnim;
 
@@ -124,12 +124,12 @@ private:
     int m_LastVisibleIndex = -1;
 
     bool m_ContextMenuOpen = false;
-    WindEffects::Editor::UI::Rect m_ContextMenuRect;
+    we::runtime::kindui::Rect m_ContextMenuRect;
     std::vector<ContextMenuItem> m_ContextMenuItems;
     int m_ContextMenuHovered = -1;
 
     bool m_FilterMenuOpen = false;
-    WindEffects::Editor::UI::Rect m_FilterMenuRect;
+    we::runtime::kindui::Rect m_FilterMenuRect;
     std::vector<FilterMenuItem> m_FilterMenuItems;
     int m_FilterMenuHovered = -1;
 
@@ -138,7 +138,7 @@ private:
     int m_FocusedIndex = -1;
 
     const PlaceActorsItemData* m_PendingDragItem = nullptr;
-    WindEffects::Editor::UI::Point m_DragStartPosition{};
+    we::runtime::kindui::Point m_DragStartPosition{};
     bool m_DragStarted = false;
 
     std::string m_LastClickToolId;

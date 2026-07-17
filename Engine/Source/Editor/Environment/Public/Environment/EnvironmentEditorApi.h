@@ -2,13 +2,13 @@
 
 #include "Environment/Export.h"
 
-#include "Core/Widget.h"
+#include "KindUI/Core/Widget.h"
 #include <memory>
 
 namespace we::runtime::scene {
 class Scene;
 }
-namespace WindEffects::Editor::UI {
+namespace we::runtime::kindui {
 class PropertyEditor;
 class TreeView;
 }
@@ -17,10 +17,10 @@ namespace we::editor::environment {
 
 ENVIRONMENT_API void InitializeEditor(
     const std::shared_ptr<we::runtime::scene::Scene>& scene,
-    const std::shared_ptr<WindEffects::Editor::UI::TreeView>& outliner,
-    const std::shared_ptr<WindEffects::Editor::UI::PropertyEditor>& details);
+    const std::shared_ptr<we::runtime::kindui::TreeView>& outliner,
+    const std::shared_ptr<we::runtime::kindui::PropertyEditor>& details);
 
-ENVIRONMENT_API std::shared_ptr<WindEffects::Editor::UI::Widget> CreateEnvironmentToolbarMenu();
+ENVIRONMENT_API std::shared_ptr<we::runtime::kindui::Widget> CreateEnvironmentToolbarMenu();
 ENVIRONMENT_API void TickEditor();
 
 } // namespace we::editor::environment

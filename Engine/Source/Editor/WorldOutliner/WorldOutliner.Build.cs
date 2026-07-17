@@ -15,7 +15,7 @@ public class WorldOutliner : ModuleRules
         PublicDependencies.Add("CoreUObject");
         PublicDependencies.Add("Engine");
         PublicDependencies.Add("Scene");
-        PublicDependencies.Add("UI");
+        PublicDependencies.Add("KindUI");
         PublicDependencies.Add("UIFramework");
         PublicDependencies.Add("ContentBrowser");
 

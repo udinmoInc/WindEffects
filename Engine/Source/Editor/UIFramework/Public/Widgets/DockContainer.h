@@ -2,13 +2,13 @@
 
 #include "WindEffects/Editor/UI/Export.h"
 
-#include "Core/Widget.h"
+#include "KindUI/Core/Widget.h"
 #include "Widgets/Panel.h"
 #include <functional>
 #include <memory>
 #include <vector>
 
-namespace WindEffects::Editor::UI {
+namespace we::runtime::kindui {
 
 // A container that manages multiple Panel widgets as tabs
 class UIFRAMEWORK_API DockContainer : public Widget {
@@ -73,4 +73,4 @@ private:
     OnActiveTabChanged m_OnActiveTabChanged;
 };
 
-} // namespace WindEffects::Editor::UI
+} // namespace we::runtime::kindui

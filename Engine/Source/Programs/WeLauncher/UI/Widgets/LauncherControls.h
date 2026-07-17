@@ -1,6 +1,6 @@
 #pragma once
 
-#include "WindEffects/Runtime/UI/Core/Widget.h"
+#include "KindUI/Core/Widget.h"
 #include "Model/WeProjectDescriptor.h"
 #include "RHI/Types.h"
 
@@ -31,12 +31,12 @@ enum class ProjectSortMode : int {
     Engine
 };
 
-class FixedGap : public WindEffects::Editor::UI::Widget {
+class FixedGap : public we::runtime::kindui::Widget {
 public:
     explicit FixedGap(float width, float height = 1.0f);
-    WindEffects::Editor::UI::Size Measure(const WindEffects::Editor::UI::Size& availableSize) override;
-    void Arrange(const WindEffects::Editor::UI::Rect& allottedRect) override;
-    void Paint(WindEffects::Editor::UI::PaintContext& context) override;
+    we::runtime::kindui::Size Measure(const we::runtime::kindui::Size& availableSize) override;
+    void Arrange(const we::runtime::kindui::Rect& allottedRect) override;
+    void Paint(we::runtime::kindui::PaintContext& context) override;
 
 private:
     float m_Width = 0.0f;
@@ -44,7 +44,7 @@ private:
 };
 
 // Global chrome: logo + Help / Settings + window controls (no search).
-class LauncherTitleBar : public WindEffects::Editor::UI::Widget {
+class LauncherTitleBar : public we::runtime::kindui::Widget {
 public:
     using ActionFn = std::function<void()>;
 
@@ -55,13 +55,13 @@ public:
     void SetOnSettings(ActionFn cb) { m_OnSettings = std::move(cb); }
     void UpdateMaximizeIcon();
 
-    WindEffects::Editor::UI::Size Measure(const WindEffects::Editor::UI::Size& availableSize) override;
-    void Arrange(const WindEffects::Editor::UI::Rect& allottedRect) override;
-    void Paint(WindEffects::Editor::UI::PaintContext& context) override;
-    void OnMouseDown(const WindEffects::Editor::UI::MouseEvent& event) override;
-    void OnMouseMove(const WindEffects::Editor::UI::MouseEvent& event) override;
-    void OnMouseUp(const WindEffects::Editor::UI::MouseEvent& event) override;
-    bool ShowsPointerCursor(const WindEffects::Editor::UI::Point& position) const override;
+    we::runtime::kindui::Size Measure(const we::runtime::kindui::Size& availableSize) override;
+    void Arrange(const we::runtime::kindui::Rect& allottedRect) override;
+    void Paint(we::runtime::kindui::PaintContext& context) override;
+    void OnMouseDown(const we::runtime::kindui::MouseEvent& event) override;
+    void OnMouseMove(const we::runtime::kindui::MouseEvent& event) override;
+    void OnMouseUp(const we::runtime::kindui::MouseEvent& event) override;
+    bool ShowsPointerCursor(const we::runtime::kindui::Point& position) const override;
     void Tick(float deltaTime) override;
 
     [[nodiscard]] we::platform::WindowHitTestResult WindowHitTest(we::platform::Int2 point) const;
@@ -77,11 +77,11 @@ private:
         Close
     };
 
-    HitZone HitTest(const WindEffects::Editor::UI::Point& p) const;
+    HitZone HitTest(const we::runtime::kindui::Point& p) const;
     void LayoutRects();
     void PaintIconButton(
-        WindEffects::Editor::UI::PaintContext& context,
-        const WindEffects::Editor::UI::Rect& r,
+        we::runtime::kindui::PaintContext& context,
+        const we::runtime::kindui::Rect& r,
         const char* icon,
         float hover,
         bool danger = false) const;
@@ -101,33 +101,33 @@ private:
     float m_HoverHelp = 0.0f;
     float m_HoverSettings = 0.0f;
 
-    WindEffects::Editor::UI::Rect m_BrandRect{};
-    WindEffects::Editor::UI::Rect m_HelpRect{};
-    WindEffects::Editor::UI::Rect m_SettingsRect{};
-    WindEffects::Editor::UI::Rect m_MinRect{};
-    WindEffects::Editor::UI::Rect m_MaxRect{};
-    WindEffects::Editor::UI::Rect m_CloseRect{};
+    we::runtime::kindui::Rect m_BrandRect{};
+    we::runtime::kindui::Rect m_HelpRect{};
+    we::runtime::kindui::Rect m_SettingsRect{};
+    we::runtime::kindui::Rect m_MinRect{};
+    we::runtime::kindui::Rect m_MaxRect{};
+    we::runtime::kindui::Rect m_CloseRect{};
 
     bool m_IsMaximized = false;
 };
 
 // 1px horizontal rule for Hub-style page separators.
-class ThinDivider : public WindEffects::Editor::UI::Widget {
+class ThinDivider : public we::runtime::kindui::Widget {
 public:
-    WindEffects::Editor::UI::Size Measure(const WindEffects::Editor::UI::Size& availableSize) override;
-    void Arrange(const WindEffects::Editor::UI::Rect& allottedRect) override;
-    void Paint(WindEffects::Editor::UI::PaintContext& context) override;
+    we::runtime::kindui::Size Measure(const we::runtime::kindui::Size& availableSize) override;
+    void Arrange(const we::runtime::kindui::Rect& allottedRect) override;
+    void Paint(we::runtime::kindui::PaintContext& context) override;
 };
 
 // 1px vertical rule (sidebar | content).
-class ThinVerticalDivider : public WindEffects::Editor::UI::Widget {
+class ThinVerticalDivider : public we::runtime::kindui::Widget {
 public:
-    WindEffects::Editor::UI::Size Measure(const WindEffects::Editor::UI::Size& availableSize) override;
-    void Arrange(const WindEffects::Editor::UI::Rect& allottedRect) override;
-    void Paint(WindEffects::Editor::UI::PaintContext& context) override;
+    we::runtime::kindui::Size Measure(const we::runtime::kindui::Size& availableSize) override;
+    void Arrange(const we::runtime::kindui::Rect& allottedRect) override;
+    void Paint(we::runtime::kindui::PaintContext& context) override;
 };
 
-class NavSidebar : public WindEffects::Editor::UI::Widget {
+class NavSidebar : public we::runtime::kindui::Widget {
 public:
     using PageChanged = std::function<void(LauncherPage)>;
 
@@ -142,13 +142,13 @@ public:
     bool NavigateByDelta(int delta);
     bool NavigateToIndex(int index);
 
-    WindEffects::Editor::UI::Size Measure(const WindEffects::Editor::UI::Size& availableSize) override;
-    void Arrange(const WindEffects::Editor::UI::Rect& allottedRect) override;
-    void Paint(WindEffects::Editor::UI::PaintContext& context) override;
-    void OnMouseDown(const WindEffects::Editor::UI::MouseEvent& event) override;
-    void OnMouseMove(const WindEffects::Editor::UI::MouseEvent& event) override;
-    void OnMouseUp(const WindEffects::Editor::UI::MouseEvent& event) override;
-    bool ShowsPointerCursor(const WindEffects::Editor::UI::Point& position) const override;
+    we::runtime::kindui::Size Measure(const we::runtime::kindui::Size& availableSize) override;
+    void Arrange(const we::runtime::kindui::Rect& allottedRect) override;
+    void Paint(we::runtime::kindui::PaintContext& context) override;
+    void OnMouseDown(const we::runtime::kindui::MouseEvent& event) override;
+    void OnMouseMove(const we::runtime::kindui::MouseEvent& event) override;
+    void OnMouseUp(const we::runtime::kindui::MouseEvent& event) override;
+    bool ShowsPointerCursor(const we::runtime::kindui::Point& position) const override;
     void Tick(float deltaTime) override;
 
 private:
@@ -160,8 +160,8 @@ private:
         float selectAnim = 0.0f;
     };
 
-    int HitItem(const WindEffects::Editor::UI::Point& p) const;
-    WindEffects::Editor::UI::Rect ItemRect(int index) const;
+    int HitItem(const we::runtime::kindui::Point& p) const;
+    we::runtime::kindui::Rect ItemRect(int index) const;
     int IndexOfPage(LauncherPage page) const;
 
     std::vector<Item> m_Items;
@@ -173,7 +173,7 @@ private:
     float m_WidthAnim = 200.0f;
 };
 
-class SearchField : public WindEffects::Editor::UI::Widget {
+class SearchField : public we::runtime::kindui::Widget {
 public:
     using TextChanged = std::function<void(const std::string&)>;
 
@@ -185,18 +185,18 @@ public:
     void SetOnTextChanged(TextChanged cb) { m_OnTextChanged = std::move(cb); }
     void AppendCodepoint(char32_t codepoint);
 
-    WindEffects::Editor::UI::Size Measure(const WindEffects::Editor::UI::Size& availableSize) override;
-    void Arrange(const WindEffects::Editor::UI::Rect& allottedRect) override;
-    void Paint(WindEffects::Editor::UI::PaintContext& context) override;
-    void OnMouseDown(const WindEffects::Editor::UI::MouseEvent& event) override;
-    void OnKeyDown(const WindEffects::Editor::UI::KeyEvent& event) override;
+    we::runtime::kindui::Size Measure(const we::runtime::kindui::Size& availableSize) override;
+    void Arrange(const we::runtime::kindui::Rect& allottedRect) override;
+    void Paint(we::runtime::kindui::PaintContext& context) override;
+    void OnMouseDown(const we::runtime::kindui::MouseEvent& event) override;
+    void OnKeyDown(const we::runtime::kindui::KeyEvent& event) override;
     void OnFocus() override;
     void OnBlur() override;
-    bool ShowsPointerCursor(const WindEffects::Editor::UI::Point& position) const override;
+    bool ShowsPointerCursor(const we::runtime::kindui::Point& position) const override;
     void Tick(float deltaTime) override;
 
 private:
-    WindEffects::Editor::UI::Rect ClearRect() const;
+    we::runtime::kindui::Rect ClearRect() const;
 
     std::string m_Text;
     std::string m_Placeholder = "Search...";
@@ -207,7 +207,7 @@ private:
     bool m_ShowCaret = true;
 };
 
-class SegmentedControl : public WindEffects::Editor::UI::Widget {
+class SegmentedControl : public we::runtime::kindui::Widget {
 public:
     using Changed = std::function<void(int)>;
 
@@ -217,17 +217,17 @@ public:
     [[nodiscard]] int GetSelected() const { return m_Selected; }
     void SetOnChanged(Changed cb) { m_OnChanged = std::move(cb); }
 
-    WindEffects::Editor::UI::Size Measure(const WindEffects::Editor::UI::Size& availableSize) override;
-    void Arrange(const WindEffects::Editor::UI::Rect& allottedRect) override;
-    void Paint(WindEffects::Editor::UI::PaintContext& context) override;
-    void OnMouseDown(const WindEffects::Editor::UI::MouseEvent& event) override;
-    void OnMouseMove(const WindEffects::Editor::UI::MouseEvent& event) override;
-    bool ShowsPointerCursor(const WindEffects::Editor::UI::Point& position) const override;
+    we::runtime::kindui::Size Measure(const we::runtime::kindui::Size& availableSize) override;
+    void Arrange(const we::runtime::kindui::Rect& allottedRect) override;
+    void Paint(we::runtime::kindui::PaintContext& context) override;
+    void OnMouseDown(const we::runtime::kindui::MouseEvent& event) override;
+    void OnMouseMove(const we::runtime::kindui::MouseEvent& event) override;
+    bool ShowsPointerCursor(const we::runtime::kindui::Point& position) const override;
     void Tick(float deltaTime) override;
 
 private:
-    int HitSegment(const WindEffects::Editor::UI::Point& p) const;
-    WindEffects::Editor::UI::Rect SegmentRect(int index) const;
+    int HitSegment(const we::runtime::kindui::Point& p) const;
+    we::runtime::kindui::Rect SegmentRect(int index) const;
 
     std::vector<std::string> m_Labels;
     std::vector<std::string> m_Icons;
@@ -237,15 +237,15 @@ private:
     std::vector<float> m_HoverAnims;
 };
 
-class StatusFooter : public WindEffects::Editor::UI::Widget {
+class StatusFooter : public we::runtime::kindui::Widget {
 public:
     void SetStatus(std::string status);
     void SetEngineLabel(std::string label);
     void SetSdkSummary(std::string summary);
 
-    WindEffects::Editor::UI::Size Measure(const WindEffects::Editor::UI::Size& availableSize) override;
-    void Arrange(const WindEffects::Editor::UI::Rect& allottedRect) override;
-    void Paint(WindEffects::Editor::UI::PaintContext& context) override;
+    we::runtime::kindui::Size Measure(const we::runtime::kindui::Size& availableSize) override;
+    void Arrange(const we::runtime::kindui::Rect& allottedRect) override;
+    void Paint(we::runtime::kindui::PaintContext& context) override;
 
 private:
     std::string m_Status = "Ready";
@@ -253,43 +253,43 @@ private:
     std::string m_SdkSummary;
 };
 
-class SectionCard : public WindEffects::Editor::UI::Widget {
+class SectionCard : public we::runtime::kindui::Widget {
 public:
     SectionCard();
 
     void SetTitle(std::string title) { m_Title = std::move(title); }
-    void SetContent(const std::shared_ptr<WindEffects::Editor::UI::Widget>& content);
+    void SetContent(const std::shared_ptr<we::runtime::kindui::Widget>& content);
 
-    WindEffects::Editor::UI::Size Measure(const WindEffects::Editor::UI::Size& availableSize) override;
-    void Arrange(const WindEffects::Editor::UI::Rect& allottedRect) override;
-    void Paint(WindEffects::Editor::UI::PaintContext& context) override;
+    we::runtime::kindui::Size Measure(const we::runtime::kindui::Size& availableSize) override;
+    void Arrange(const we::runtime::kindui::Rect& allottedRect) override;
+    void Paint(we::runtime::kindui::PaintContext& context) override;
     void Tick(float deltaTime) override;
 
 private:
     std::string m_Title;
-    std::shared_ptr<WindEffects::Editor::UI::Widget> m_Content;
+    std::shared_ptr<we::runtime::kindui::Widget> m_Content;
     float m_HeaderHeight = 32.0f;
 };
 
-class EmptyStatePanel : public WindEffects::Editor::UI::Widget {
+class EmptyStatePanel : public we::runtime::kindui::Widget {
 public:
     EmptyStatePanel(std::string title, std::string subtitle, const char* iconName = nullptr);
 
     void SetPrimaryAction(std::string label, const char* icon, std::function<void()> onClick);
     void SetSecondaryAction(std::string label, const char* icon, std::function<void()> onClick);
 
-    WindEffects::Editor::UI::Size Measure(const WindEffects::Editor::UI::Size& availableSize) override;
-    void Arrange(const WindEffects::Editor::UI::Rect& allottedRect) override;
-    void Paint(WindEffects::Editor::UI::PaintContext& context) override;
-    void OnMouseDown(const WindEffects::Editor::UI::MouseEvent& event) override;
-    void OnMouseMove(const WindEffects::Editor::UI::MouseEvent& event) override;
-    void OnMouseUp(const WindEffects::Editor::UI::MouseEvent& event) override;
-    bool ShowsPointerCursor(const WindEffects::Editor::UI::Point& position) const override;
+    we::runtime::kindui::Size Measure(const we::runtime::kindui::Size& availableSize) override;
+    void Arrange(const we::runtime::kindui::Rect& allottedRect) override;
+    void Paint(we::runtime::kindui::PaintContext& context) override;
+    void OnMouseDown(const we::runtime::kindui::MouseEvent& event) override;
+    void OnMouseMove(const we::runtime::kindui::MouseEvent& event) override;
+    void OnMouseUp(const we::runtime::kindui::MouseEvent& event) override;
+    bool ShowsPointerCursor(const we::runtime::kindui::Point& position) const override;
     void Tick(float deltaTime) override;
 
 private:
     enum class HitZone { None, Primary, Secondary };
-    HitZone HitTest(const WindEffects::Editor::UI::Point& p) const;
+    HitZone HitTest(const we::runtime::kindui::Point& p) const;
 
     std::string m_Title;
     std::string m_Subtitle;
@@ -300,14 +300,14 @@ private:
     const char* m_SecondaryIcon = nullptr;
     std::function<void()> m_OnPrimary;
     std::function<void()> m_OnSecondary;
-    WindEffects::Editor::UI::Rect m_PrimaryRect{};
-    WindEffects::Editor::UI::Rect m_SecondaryRect{};
+    we::runtime::kindui::Rect m_PrimaryRect{};
+    we::runtime::kindui::Rect m_SecondaryRect{};
     HitZone m_Hover = HitZone::None;
     HitZone m_Pressed = HitZone::None;
 };
 
 // Zero-project welcome surface: centered CTA + default projects folder row.
-class ProjectsEmptyState : public WindEffects::Editor::UI::Widget {
+class ProjectsEmptyState : public we::runtime::kindui::Widget {
 public:
     using ActionFn = std::function<void()>;
 
@@ -316,32 +316,32 @@ public:
     void SetOnOpenProject(ActionFn cb) { m_OnOpen = std::move(cb); }
     void SetOnChangeFolder(ActionFn cb) { m_OnChangeFolder = std::move(cb); }
 
-    WindEffects::Editor::UI::Size Measure(const WindEffects::Editor::UI::Size& availableSize) override;
-    void Arrange(const WindEffects::Editor::UI::Rect& allottedRect) override;
-    void Paint(WindEffects::Editor::UI::PaintContext& context) override;
-    void OnMouseDown(const WindEffects::Editor::UI::MouseEvent& event) override;
-    void OnMouseMove(const WindEffects::Editor::UI::MouseEvent& event) override;
-    void OnMouseUp(const WindEffects::Editor::UI::MouseEvent& event) override;
-    bool ShowsPointerCursor(const WindEffects::Editor::UI::Point& position) const override;
+    we::runtime::kindui::Size Measure(const we::runtime::kindui::Size& availableSize) override;
+    void Arrange(const we::runtime::kindui::Rect& allottedRect) override;
+    void Paint(we::runtime::kindui::PaintContext& context) override;
+    void OnMouseDown(const we::runtime::kindui::MouseEvent& event) override;
+    void OnMouseMove(const we::runtime::kindui::MouseEvent& event) override;
+    void OnMouseUp(const we::runtime::kindui::MouseEvent& event) override;
+    bool ShowsPointerCursor(const we::runtime::kindui::Point& position) const override;
 
 private:
     enum class HitZone { None, New, Open, Change };
-    HitZone HitTest(const WindEffects::Editor::UI::Point& p) const;
+    HitZone HitTest(const we::runtime::kindui::Point& p) const;
     void LayoutContent();
 
     std::string m_FolderPath;
     ActionFn m_OnNew;
     ActionFn m_OnOpen;
     ActionFn m_OnChangeFolder;
-    WindEffects::Editor::UI::Rect m_NewRect{};
-    WindEffects::Editor::UI::Rect m_OpenRect{};
-    WindEffects::Editor::UI::Rect m_ChangeRect{};
+    we::runtime::kindui::Rect m_NewRect{};
+    we::runtime::kindui::Rect m_OpenRect{};
+    we::runtime::kindui::Rect m_ChangeRect{};
     HitZone m_Hover = HitZone::None;
     HitZone m_Pressed = HitZone::None;
 };
 
 // Compact toolbar search field (Projects page).
-class CompactSearchField : public WindEffects::Editor::UI::Widget {
+class CompactSearchField : public we::runtime::kindui::Widget {
 public:
     using ChangedFn = std::function<void(const std::string&)>;
 
@@ -352,15 +352,15 @@ public:
     void SetOnChanged(ChangedFn cb) { m_OnChanged = std::move(cb); }
     void AppendCodepoint(char32_t codepoint);
 
-    WindEffects::Editor::UI::Size Measure(const WindEffects::Editor::UI::Size& availableSize) override;
-    void Arrange(const WindEffects::Editor::UI::Rect& allottedRect) override;
-    void Paint(WindEffects::Editor::UI::PaintContext& context) override;
-    void OnMouseDown(const WindEffects::Editor::UI::MouseEvent& event) override;
-    void OnKeyDown(const WindEffects::Editor::UI::KeyEvent& event) override;
+    we::runtime::kindui::Size Measure(const we::runtime::kindui::Size& availableSize) override;
+    void Arrange(const we::runtime::kindui::Rect& allottedRect) override;
+    void Paint(we::runtime::kindui::PaintContext& context) override;
+    void OnMouseDown(const we::runtime::kindui::MouseEvent& event) override;
+    void OnKeyDown(const we::runtime::kindui::KeyEvent& event) override;
     void OnFocus() override;
     void OnBlur() override;
     void Tick(float deltaTime) override;
-    bool ShowsPointerCursor(const WindEffects::Editor::UI::Point& position) const override;
+    bool ShowsPointerCursor(const we::runtime::kindui::Point& position) const override;
 
 private:
     std::string m_Placeholder;
@@ -369,22 +369,22 @@ private:
     ChangedFn m_OnChanged;
 };
 
-class ModalOverlay : public WindEffects::Editor::UI::Widget {
+class ModalOverlay : public we::runtime::kindui::Widget {
 public:
-    void SetDialog(const std::shared_ptr<WindEffects::Editor::UI::Widget>& dialog);
+    void SetDialog(const std::shared_ptr<we::runtime::kindui::Widget>& dialog);
     void SetDialogWidth(float width) { m_DialogWidth = width; }
     void SetDialogHeight(float height) { m_DialogHeight = height; }
 
-    WindEffects::Editor::UI::Size Measure(const WindEffects::Editor::UI::Size& availableSize) override;
-    void Arrange(const WindEffects::Editor::UI::Rect& allottedRect) override;
-    void Paint(WindEffects::Editor::UI::PaintContext& context) override;
-    void OnMouseDown(const WindEffects::Editor::UI::MouseEvent& event) override;
+    we::runtime::kindui::Size Measure(const we::runtime::kindui::Size& availableSize) override;
+    void Arrange(const we::runtime::kindui::Rect& allottedRect) override;
+    void Paint(we::runtime::kindui::PaintContext& context) override;
+    void OnMouseDown(const we::runtime::kindui::MouseEvent& event) override;
     void Tick(float deltaTime) override;
 
     void SetOnScrimClicked(std::function<void()> cb) { m_OnScrimClicked = std::move(cb); }
 
 private:
-    std::shared_ptr<WindEffects::Editor::UI::Widget> m_Dialog;
+    std::shared_ptr<we::runtime::kindui::Widget> m_Dialog;
     float m_DialogWidth = 520.0f;
     float m_DialogHeight = 0.0f; // 0 = size to content
     std::function<void()> m_OnScrimClicked;

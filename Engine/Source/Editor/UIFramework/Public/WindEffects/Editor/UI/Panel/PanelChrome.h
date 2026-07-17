@@ -1,13 +1,13 @@
 #pragma once
 
 #include "WindEffects/Editor/UI/Export.h"
-#include "WindEffects/Editor/UI/Core/Types.h"
-#include "Core/PaintContext.h"
+#include "KindUI/Core/Types.h"
+#include "KindUI/Core/PaintContext.h"
 #include "RHI/Types.h"
 #include <string>
 #include <vector>
 
-namespace WindEffects::Editor::UI {
+namespace we::runtime::kindui {
 
 class Widget;
 
@@ -125,4 +125,4 @@ UIFRAMEWORK_API Rect InsetSearchRect(const Rect& toolbarRect, float searchWidth)
 
 } // namespace PanelChrome
 
-} // namespace WindEffects::Editor::UI
+} // namespace we::runtime::kindui

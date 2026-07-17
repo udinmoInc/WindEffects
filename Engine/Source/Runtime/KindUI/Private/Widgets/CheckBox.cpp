@@ -1,12 +1,12 @@
-#include "WindEffects/Runtime/UI/Widgets/CheckBox.h"
-#include "WindEffects/Runtime/UI/Core/Animator.h"
-#include "WindEffects/Runtime/UI/Core/ControlChrome.h"
-#include "WindEffects/Runtime/UI/Core/PaintContext.h"
-#include "WindEffects/Runtime/UI/Theming/ThemeAccess.h"
-#include "WindEffects/Runtime/UI/Theming/ThemeManager.h"
-#include "WindEffects/Runtime/UI/Theming/ThemeToken.h"
+#include "KindUI/Widgets/CheckBox.h"
+#include "KindUI/Core/Animator.h"
+#include "KindUI/Core/ControlChrome.h"
+#include "KindUI/Core/PaintContext.h"
+#include "KindUI/Theming/ThemeAccess.h"
+#include "KindUI/Theming/ThemeManager.h"
+#include "KindUI/Theming/ThemeToken.h"
 
-namespace WindEffects::Editor::UI {
+namespace we::runtime::kindui {
 
 CheckBox::CheckBox(const std::string& label, bool initialState)
     : m_Label(label)
@@ -74,4 +74,4 @@ void CheckBox::OnMouseDown(const MouseEvent& event) {
     }
 }
 
-} // namespace WindEffects::Editor::UI
+} // namespace we::runtime::kindui

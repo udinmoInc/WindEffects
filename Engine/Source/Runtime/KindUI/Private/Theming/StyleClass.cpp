@@ -1,6 +1,6 @@
-#include "WindEffects/Runtime/UI/Theming/StyleClass.h"
+#include "KindUI/Theming/StyleClass.h"
 
-namespace WindEffects::Editor::UI {
+namespace we::runtime::kindui {
 
 StyleClassRegistry& StyleClassRegistry::Get() {
     static StyleClassRegistry instance;
@@ -121,4 +121,4 @@ void StyleClassRegistry::RegisterDefaults() {
     Register(search);
 }
 
-} // namespace WindEffects::Editor::UI
+} // namespace we::runtime::kindui

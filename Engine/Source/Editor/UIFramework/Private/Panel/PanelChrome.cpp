@@ -1,15 +1,15 @@
 #include "WindEffects/Editor/UI/Panel/PanelChrome.h"
 
-#include "WindEffects/Editor/UI/Theming/ThemeAccess.h"
-#include "WindEffects/Editor/UI/Theming/ThemeColors.h"
-#include "WindEffects/Editor/UI/Theming/ThemeToken.h"
-#include "Core/Icon.h"
-#include "Core/DPIContext.h"
-#include "Rendering/IconMetrics.h"
+#include "KindUI/Theming/ThemeAccess.h"
+#include "KindUI/Theming/ThemeColors.h"
+#include "KindUI/Theming/ThemeToken.h"
+#include "KindUI/Core/Icon.h"
+#include "KindUI/Core/DPIContext.h"
+#include "KindUI/Rendering/IconMetrics.h"
 #include <algorithm>
 #include <cmath>
 
-namespace WindEffects::Editor::UI::PanelChrome {
+namespace we::runtime::kindui::PanelChrome {
 namespace {
 
 void DrawRoundedRectTop(PaintContext& context, const Rect& rect, const Color& color, float radius) {
@@ -429,4 +429,4 @@ Rect InsetSearchRect(const Rect& toolbarRect, float searchWidth) {
     return Rect{ toolbarRect.x + padH, searchY, searchWidth, searchH };
 }
 
-} // namespace WindEffects::Editor::UI::PanelChrome
+} // namespace we::runtime::kindui::PanelChrome

@@ -6,29 +6,29 @@
 #include "PlaceActors/PlaceActorsIconProvider.h"
 #include "PlaceActors/PlaceActorsSearch.h"
 #include "PlaceActors/PlaceActorsResponsiveGrid.h"
-#include "WindEffects/Editor/UI/Theming/ThemeAccess.h"
-#include "WindEffects/Editor/UI/Theming/ThemeToken.h"
-#include "Core/Icon.h"
-#include "Core/DPIContext.h"
-#include "Rendering/IconMetrics.h"
+#include "KindUI/Theming/ThemeAccess.h"
+#include "KindUI/Theming/ThemeToken.h"
+#include "KindUI/Core/Icon.h"
+#include "KindUI/Core/DPIContext.h"
+#include "KindUI/Rendering/IconMetrics.h"
 
 #include <algorithm>
 
 namespace we::programs::editor {
 
-using WindEffects::Editor::UI::Color;
-using WindEffects::Editor::UI::PaintContext;
-using WindEffects::Editor::UI::Point;
-using WindEffects::Editor::UI::Rect;
-using WindEffects::Editor::UI::Size;
-using WindEffects::Editor::UI::ThemeToken;
+using we::runtime::kindui::Color;
+using we::runtime::kindui::PaintContext;
+using we::runtime::kindui::Point;
+using we::runtime::kindui::Rect;
+using we::runtime::kindui::Size;
+using we::runtime::kindui::ThemeToken;
 
-namespace WEIcons = WindEffects::Editor::UI::Icons;
+namespace WEIcons = we::runtime::kindui::Icons;
 
 namespace {
 
 void PaintItemIcon(PaintContext& context, const std::string& iconName, const Rect& iconRect) {
-    WindEffects::Editor::UI::IconPainter::DrawIcon(
+    we::runtime::kindui::IconPainter::DrawIcon(
         context, iconName, iconRect, ResolveThemeColor(ThemeToken::IconPrimary));
 }
 
@@ -74,9 +74,9 @@ void PlaceActorsItem::PaintList(PaintContext& context,
         return;
     }
 
-    const float uiScale = std::max(1.0f, WindEffects::Editor::UI::DPIContext::GetScale());
+    const float uiScale = std::max(1.0f, we::runtime::kindui::DPIContext::GetScale());
     const float labelFontSize = ResolveThemeMetric(ThemeToken::TextSizeBody) * uiScale;
-    const float iconSize = static_cast<float>(WindEffects::Editor::UI::IconMetrics::GlyphTierPx(ThemeToken::IconSizeTree));
+    const float iconSize = static_cast<float>(we::runtime::kindui::IconMetrics::GlyphTierPx(ThemeToken::IconSizeTree));
 
     const Rect rowRect{
         bounds.x + 2.0f,
@@ -92,7 +92,7 @@ void PlaceActorsItem::PaintList(PaintContext& context,
     PaintItemIcon(
         context,
         !chromeIcon.empty() ? chromeIcon : item.iconName,
-        WindEffects::Editor::UI::IconMetrics::PlaceGlyphCentered(iconBand, iconSize));
+        we::runtime::kindui::IconMetrics::PlaceGlyphCentered(iconBand, iconSize));
 
     const Point labelPos{
         ActorsPanelLayout::LabelX(bounds.x),
@@ -107,17 +107,17 @@ void PlaceActorsItem::PaintList(PaintContext& context,
         ResolveThemeColor(ThemeToken::TextPrimary),
         ResolveThemeColor(ThemeToken::TextPrimary));
 
-    const float starSize = static_cast<float>(WindEffects::Editor::UI::IconMetrics::StandardGlyphTierPx());
+    const float starSize = static_cast<float>(we::runtime::kindui::IconMetrics::StandardGlyphTierPx());
     const float starX = ActorsPanelLayout::StarIconX(bounds.x, bounds.width);
     Rect starBand{ starX, bounds.y, starSize, bounds.height };
     if (favorite || hoverAnim > 0.01f) {
         const Color starColor = favorite
             ? ResolveThemeColor(ThemeToken::Warning)
             : ResolveThemeColor(ThemeToken::IconPrimary);
-        WindEffects::Editor::UI::IconPainter::DrawIcon(
+        we::runtime::kindui::IconPainter::DrawIcon(
             context,
             WEIcons::StarName,
-            WindEffects::Editor::UI::IconMetrics::PlaceGlyphCentered(starBand, starSize),
+            we::runtime::kindui::IconMetrics::PlaceGlyphCentered(starBand, starSize),
             starColor);
     }
 }

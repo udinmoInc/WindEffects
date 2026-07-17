@@ -1,18 +1,18 @@
 #pragma once
 
 #include "WindEffects/Editor/UI/Export.h"
-#include "WindEffects/Runtime/UI/Core/IApplicationContext.h"
-#include "WindEffects/Runtime/UI/Core/ServiceContainer.h"
-#include "WindEffects/Runtime/UI/Theming/IThemeProvider.h"
-#include "WindEffects/Runtime/UI/Resources/IResourceRegistry.h"
-#include "WindEffects/Runtime/UI/Events/IEventBus.h"
-#include "WindEffects/Runtime/UI/Commands/ICommandRegistry.h"
+#include "KindUI/Core/IApplicationContext.h"
+#include "KindUI/Core/ServiceContainer.h"
+#include "KindUI/Theming/IThemeProvider.h"
+#include "KindUI/Resources/IResourceRegistry.h"
+#include "KindUI/Events/IEventBus.h"
+#include "KindUI/Commands/ICommandRegistry.h"
 #include "WindEffects/Editor/UI/Docking/IDockManager.h"
 #include "WindEffects/Editor/UI/Extensions/UIExtensionRegistry.h"
 
 #include <memory>
 
-namespace WindEffects::Editor::UI {
+namespace we::runtime::kindui {
 
 class UIFRAMEWORK_API IEditorApplicationContext : public IApplicationContext {
 public:
@@ -26,7 +26,7 @@ class EditorApplicationContext final
     : public ServiceContainer
     , public IEditorApplicationContext {
 public:
-    // Defaults to EditorTheme (orange). Pass LauncherTheme for WeLauncher, etc.
+    // Defaults to we::editor::ui::EditorTheme (orange accent).
     UIFRAMEWORK_API explicit EditorApplicationContext(
         std::shared_ptr<IThemeProvider> theme = nullptr);
 
@@ -55,4 +55,4 @@ private:
     std::shared_ptr<UIExtensionRegistry> m_ExtensionRegistry;
 };
 
-} // namespace WindEffects::Editor::UI
+} // namespace we::runtime::kindui

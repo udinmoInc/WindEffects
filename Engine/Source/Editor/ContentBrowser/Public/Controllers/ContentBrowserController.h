@@ -4,7 +4,7 @@
 #include <memory>
 #include <algorithm>
 
-namespace WindEffects::Editor::UI {
+namespace we::runtime::kindui {
 
 class ContentBrowserController {
 public:

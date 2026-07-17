@@ -1,6 +1,6 @@
-#include "WindEffects/Runtime/UI/Layout/Spacer.h"
+#include "KindUI/Layout/Spacer.h"
 
-namespace WindEffects::Editor::UI {
+namespace we::runtime::kindui {
 
 Spacer::Spacer() = default;
 
@@ -22,4 +22,4 @@ void Spacer::Paint(PaintContext& context) {
     (void)context;
 }
 
-} // namespace WindEffects::Editor::UI
+} // namespace we::runtime::kindui

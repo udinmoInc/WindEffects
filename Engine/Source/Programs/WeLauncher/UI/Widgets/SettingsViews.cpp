@@ -2,24 +2,24 @@
 
 #include "UI/LauncherHelpers.h"
 
-#include "WindEffects/Runtime/UI/Core/Animator.h"
-#include "WindEffects/Runtime/UI/Core/ControlChrome.h"
-#include "WindEffects/Runtime/UI/Core/EventSystem.h"
-#include "WindEffects/Runtime/UI/Core/Icon.h"
-#include "WindEffects/Runtime/UI/Core/PaintContext.h"
-#include "WindEffects/Runtime/UI/Core/Widgets/DesignSystemControls.h"
-#include "WindEffects/Runtime/UI/Core/Widgets/PrimaryToolbarButton.h"
-#include "WindEffects/Runtime/UI/Core/Widgets/SecondaryToolbarButton.h"
-#include "WindEffects/Runtime/UI/Layout/Box.h"
+#include "KindUI/Core/Animator.h"
+#include "KindUI/Core/ControlChrome.h"
+#include "KindUI/Core/EventSystem.h"
+#include "KindUI/Core/Icon.h"
+#include "KindUI/Core/PaintContext.h"
+#include "KindUI/Core/Widgets/DesignSystemControls.h"
+#include "KindUI/Core/Widgets/PrimaryToolbarButton.h"
+#include "KindUI/Core/Widgets/SecondaryToolbarButton.h"
+#include "KindUI/Layout/Box.h"
 #include "Platform/PlatformSDK.h"
-#include "WindEffects/Runtime/UI/Theming/ThemeToken.h"
+#include "KindUI/Theming/ThemeToken.h"
 
 #include <algorithm>
 #include <cmath>
 #include <cctype>
 #include <cstdio>
 
-using namespace WindEffects::Editor::UI;
+using namespace we::runtime::kindui;
 
 namespace we::programs::welauncher {
 namespace {

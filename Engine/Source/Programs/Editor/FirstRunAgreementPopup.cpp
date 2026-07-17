@@ -1,10 +1,10 @@
 #include "Platform/Platform.h"
 #include "FirstRunAgreementPopup.h"
 #include "Core/EditorConfigPaths.h"
-#include "Core/Icon.h"
-#include "Core/PaintContext.h"
-#include "WindEffects/Editor/UI/Theming/ThemeToken.h"
-#include "Core/DPIContext.h"
+#include "KindUI/Core/Icon.h"
+#include "KindUI/Core/PaintContext.h"
+#include "KindUI/Theming/ThemeToken.h"
+#include "KindUI/Core/DPIContext.h"
 #include "Core/Logger.h"
 
 #include <algorithm>
@@ -16,7 +16,7 @@
 
 namespace we::programs::editor {
 
-using WindEffects::Editor::UI::ThemeToken;
+using we::runtime::kindui::ThemeToken;
 
 namespace {
 
@@ -95,7 +95,7 @@ std::string TrimLeft(const std::string& str) {
 FirstRunAgreementPopup::FirstRunAgreementPopup(std::string markdownAndTextContent)
     : m_RawContent(std::move(markdownAndTextContent))
 {
-    m_DpiScale = WindEffects::Editor::UI::DPIContext::GetScale();
+    m_DpiScale = we::runtime::kindui::DPIContext::GetScale();
     
     if (m_RawContent.empty()) {
         m_RawContent = BuildDefaultContent();
@@ -104,32 +104,32 @@ FirstRunAgreementPopup::FirstRunAgreementPopup(std::string markdownAndTextConten
     ParseDocument();
     
     m_AgreeButton.label = "I Agree";
-    m_AgreeButton.iconName = WindEffects::Editor::UI::Icons::CheckName;
+    m_AgreeButton.iconName = we::runtime::kindui::Icons::CheckName;
     m_DeclineButton.label = "Quit";
-    m_DeclineButton.iconName = WindEffects::Editor::UI::Icons::XName;
+    m_DeclineButton.iconName = we::runtime::kindui::Icons::XName;
     m_CopyButton.label = "Copy";
-    m_CopyButton.iconName = WindEffects::Editor::UI::Icons::CopyName;
+    m_CopyButton.iconName = we::runtime::kindui::Icons::CopyName;
 }
 
 FirstRunAgreementPopup::~FirstRunAgreementPopup() = default;
 
-WindEffects::Editor::UI::Size FirstRunAgreementPopup::Measure(const WindEffects::Editor::UI::Size& availableSize) {
+we::runtime::kindui::Size FirstRunAgreementPopup::Measure(const we::runtime::kindui::Size& availableSize) {
     // Dialog should be a reasonable size but not fill the entire viewport
     const float dialogW = std::clamp(availableSize.width * 0.7f, 600.0f * m_DpiScale, 900.0f * m_DpiScale);
     const float dialogH = std::clamp(availableSize.height * 0.8f, 450.0f * m_DpiScale, 700.0f * m_DpiScale);
     
-    m_DesiredSize = WindEffects::Editor::UI::Size{ dialogW, dialogH };
+    m_DesiredSize = we::runtime::kindui::Size{ dialogW, dialogH };
     return m_DesiredSize;
 }
 
-void FirstRunAgreementPopup::Arrange(const WindEffects::Editor::UI::Rect& allottedRect) {
+void FirstRunAgreementPopup::Arrange(const we::runtime::kindui::Rect& allottedRect) {
     m_Geometry = allottedRect;
     
     // Center dialog in viewport every frame
     const float dialogW = m_DesiredSize.width;
     const float dialogH = m_DesiredSize.height;
     
-    m_DialogRect = WindEffects::Editor::UI::Rect{
+    m_DialogRect = we::runtime::kindui::Rect{
         allottedRect.x + (allottedRect.width - dialogW) * 0.5f,
         allottedRect.y + (allottedRect.height - dialogH) * 0.5f,
         dialogW,
@@ -141,7 +141,7 @@ void FirstRunAgreementPopup::Arrange(const WindEffects::Editor::UI::Rect& allott
     const float headerHeight = 50.0f * m_DpiScale;
     const float footerHeight = 60.0f * m_DpiScale;
     
-    m_ContentRect = WindEffects::Editor::UI::Rect{
+    m_ContentRect = we::runtime::kindui::Rect{
         m_DialogRect.x + margin,
         m_DialogRect.y + headerHeight,
         m_DialogRect.width - margin * 2.0f - kScrollbarWidth * m_DpiScale,
@@ -154,19 +154,19 @@ void FirstRunAgreementPopup::Arrange(const WindEffects::Editor::UI::Rect& allott
     const float scaledButtonHeight = kButtonHeight * m_DpiScale;
     const float scaledButtonGap = kButtonGap * m_DpiScale;
     
-    m_AgreeButton.rect = WindEffects::Editor::UI::Rect{
+    m_AgreeButton.rect = we::runtime::kindui::Rect{
         m_DialogRect.x + m_DialogRect.width - kDialogPadding * m_DpiScale - scaledButtonWidth,
         buttonY,
         scaledButtonWidth,
         scaledButtonHeight
     };
-    m_DeclineButton.rect = WindEffects::Editor::UI::Rect{
+    m_DeclineButton.rect = we::runtime::kindui::Rect{
         m_AgreeButton.rect.x - scaledButtonGap - scaledButtonWidth,
         buttonY,
         scaledButtonWidth,
         scaledButtonHeight
     };
-    m_CopyButton.rect = WindEffects::Editor::UI::Rect{
+    m_CopyButton.rect = we::runtime::kindui::Rect{
         m_DialogRect.x + m_DialogRect.width - kDialogPadding * m_DpiScale - kButtonWidth * m_DpiScale,
         m_DialogRect.y + kDialogPadding * m_DpiScale,
         kButtonWidth * m_DpiScale,
@@ -177,12 +177,12 @@ void FirstRunAgreementPopup::Arrange(const WindEffects::Editor::UI::Rect& allott
     m_LayoutValid = false;
 }
 
-void FirstRunAgreementPopup::Paint(WindEffects::Editor::UI::PaintContext& context) {
+void FirstRunAgreementPopup::Paint(we::runtime::kindui::PaintContext& context) {
     // Background overlay - cover entire viewport
-    context.DrawRect(m_Geometry, WindEffects::Editor::UI::Color{ 0.0f, 0.0f, 0.0f, 0.65f });
+    context.DrawRect(m_Geometry, we::runtime::kindui::Color{ 0.0f, 0.0f, 0.0f, 0.65f });
     
     // Dialog shadow and background
-    context.DrawShadow(m_DialogRect, WindEffects::Editor::UI::Color{ 0.0f, 0.0f, 0.0f, 0.40f }, 16.0f, 24.0f);
+    context.DrawShadow(m_DialogRect, we::runtime::kindui::Color{ 0.0f, 0.0f, 0.0f, 0.40f }, 16.0f, 24.0f);
     context.DrawRoundedRect(m_DialogRect, ThemeColor(ThemeToken::PanelBackground), 8.0f);
     context.DrawRoundedRectOutline(m_DialogRect, ThemeColor(ThemeToken::BorderDefault), 1.0f, 8.0f);
     
@@ -190,10 +190,10 @@ void FirstRunAgreementPopup::Paint(WindEffects::Editor::UI::PaintContext& contex
     const float titleFontSize = 17.0f * m_DpiScale;
     const float subtitleFontSize = 11.0f * m_DpiScale;
     context.DrawText(m_Title.empty() ? "License Agreement" : m_Title,
-        WindEffects::Editor::UI::Point{ m_DialogRect.x + kDialogPadding * m_DpiScale, m_DialogRect.y + kDialogPadding * m_DpiScale + 6.0f * m_DpiScale },
+        we::runtime::kindui::Point{ m_DialogRect.x + kDialogPadding * m_DpiScale, m_DialogRect.y + kDialogPadding * m_DpiScale + 6.0f * m_DpiScale },
         ThemeColor(ThemeToken::TextPrimary), titleFontSize, true);
     context.DrawText("Please review and accept before using the editor.",
-        WindEffects::Editor::UI::Point{ m_DialogRect.x + kDialogPadding * m_DpiScale, m_DialogRect.y + kDialogPadding * m_DpiScale + 28.0f * m_DpiScale },
+        we::runtime::kindui::Point{ m_DialogRect.x + kDialogPadding * m_DpiScale, m_DialogRect.y + kDialogPadding * m_DpiScale + 28.0f * m_DpiScale },
         ThemeColor(ThemeToken::TextSecondary), subtitleFontSize);
     
     // Content area background
@@ -228,21 +228,21 @@ void FirstRunAgreementPopup::Paint(WindEffects::Editor::UI::PaintContext& contex
         const float trackAlpha = m_Scrollbar.hovering ? 0.15f : 0.08f;
         const float thumbAlpha = (m_Scrollbar.hovering || m_Scrollbar.dragging) ? 0.50f : 0.30f;
         
-        context.DrawRoundedRect(m_Scrollbar.track, WindEffects::Editor::UI::Color{ 1.0f, 1.0f, 1.0f, trackAlpha }, 4.0f);
-        context.DrawRoundedRect(m_Scrollbar.thumb, WindEffects::Editor::UI::Color{ 1.0f, 1.0f, 1.0f, thumbAlpha }, 4.0f);
+        context.DrawRoundedRect(m_Scrollbar.track, we::runtime::kindui::Color{ 1.0f, 1.0f, 1.0f, trackAlpha }, 4.0f);
+        context.DrawRoundedRect(m_Scrollbar.thumb, we::runtime::kindui::Color{ 1.0f, 1.0f, 1.0f, thumbAlpha }, 4.0f);
     }
     
     // Footer hint text
     const float hintFontSize = 10.0f * m_DpiScale;
     context.DrawText("Press Ctrl+C to copy the full agreement text.",
-        WindEffects::Editor::UI::Point{ m_DialogRect.x + kDialogPadding * m_DpiScale, m_DialogRect.y + m_DialogRect.height - kDialogPadding * m_DpiScale - 14.0f * m_DpiScale },
+        we::runtime::kindui::Point{ m_DialogRect.x + kDialogPadding * m_DpiScale, m_DialogRect.y + m_DialogRect.height - kDialogPadding * m_DpiScale - 14.0f * m_DpiScale },
         ThemeColor(ThemeToken::TextSecondary), hintFontSize);
     
     // Buttons
     auto paintButton = [&](const ButtonState& button, bool primary) {
-        WindEffects::Editor::UI::Color bg = primary ? ThemeColor(ThemeToken::AccentPrimary) : ThemeColor(ThemeToken::HoverBackground);
+        we::runtime::kindui::Color bg = primary ? ThemeColor(ThemeToken::AccentPrimary) : ThemeColor(ThemeToken::HoverBackground);
         if (!button.hovered) bg.a *= 0.85f;
-        if (button.pressed) bg = WindEffects::Editor::UI::Color::Lerp(bg, ThemeColor(ThemeToken::PressedBackground), 0.45f);
+        if (button.pressed) bg = we::runtime::kindui::Color::Lerp(bg, ThemeColor(ThemeToken::PressedBackground), 0.45f);
         context.DrawRoundedRect(button.rect, bg, 4.0f);
         context.DrawRoundedRectOutline(button.rect, ThemeColor(ThemeToken::BorderDefault), 1.0f, 4.0f);
         
@@ -252,15 +252,15 @@ void FirstRunAgreementPopup::Paint(WindEffects::Editor::UI::PaintContext& contex
         const float tw = context.GetTextWidth(button.label, fontSize);
         const float contentW = tw + (button.iconName.empty() ? 0.0f : iconSize + textGap);
         float contentX = button.rect.x + (button.rect.width - contentW) * 0.5f;
-        const WindEffects::Editor::UI::Color textColor = primary ? WindEffects::Editor::UI::Color{ 0.10f, 0.10f, 0.10f, 1.0f } : ThemeColor(ThemeToken::TextPrimary);
+        const we::runtime::kindui::Color textColor = primary ? we::runtime::kindui::Color{ 0.10f, 0.10f, 0.10f, 1.0f } : ThemeColor(ThemeToken::TextPrimary);
         
         if (!button.iconName.empty()) {
-            WindEffects::Editor::UI::IconPainter::DrawIcon(context, button.iconName,
-                WindEffects::Editor::UI::Rect{ contentX, button.rect.y + (button.rect.height - iconSize) * 0.5f, iconSize, iconSize }, textColor);
+            we::runtime::kindui::IconPainter::DrawIcon(context, button.iconName,
+                we::runtime::kindui::Rect{ contentX, button.rect.y + (button.rect.height - iconSize) * 0.5f, iconSize, iconSize }, textColor);
             contentX += iconSize + textGap;
         }
         context.DrawText(button.label,
-            WindEffects::Editor::UI::Point{ contentX, button.rect.y + (button.rect.height - fontSize) * 0.5f + 1.5f * m_DpiScale },
+            we::runtime::kindui::Point{ contentX, button.rect.y + (button.rect.height - fontSize) * 0.5f + 1.5f * m_DpiScale },
             textColor, fontSize, true);
     };
     
@@ -269,8 +269,8 @@ void FirstRunAgreementPopup::Paint(WindEffects::Editor::UI::PaintContext& contex
     paintButton(m_AgreeButton, true);
 }
 
-void FirstRunAgreementPopup::OnMouseDown(const WindEffects::Editor::UI::MouseEvent& event) {
-    if (event.button != WindEffects::Editor::UI::MouseButton::Left) return;
+void FirstRunAgreementPopup::OnMouseDown(const we::runtime::kindui::MouseEvent& event) {
+    if (event.button != we::runtime::kindui::MouseButton::Left) return;
     
     m_AgreeButton.pressed = m_AgreeButton.rect.Contains(event.position);
     m_DeclineButton.pressed = m_DeclineButton.rect.Contains(event.position);
@@ -292,7 +292,7 @@ void FirstRunAgreementPopup::OnMouseDown(const WindEffects::Editor::UI::MouseEve
     }
 }
 
-void FirstRunAgreementPopup::OnMouseMove(const WindEffects::Editor::UI::MouseEvent& event) {
+void FirstRunAgreementPopup::OnMouseMove(const we::runtime::kindui::MouseEvent& event) {
     m_AgreeButton.hovered = m_AgreeButton.rect.Contains(event.position);
     m_DeclineButton.hovered = m_DeclineButton.rect.Contains(event.position);
     m_CopyButton.hovered = m_CopyButton.rect.Contains(event.position);
@@ -307,8 +307,8 @@ void FirstRunAgreementPopup::OnMouseMove(const WindEffects::Editor::UI::MouseEve
     }
 }
 
-void FirstRunAgreementPopup::OnMouseUp(const WindEffects::Editor::UI::MouseEvent& event) {
-    if (event.button != WindEffects::Editor::UI::MouseButton::Left) return;
+void FirstRunAgreementPopup::OnMouseUp(const we::runtime::kindui::MouseEvent& event) {
+    if (event.button != we::runtime::kindui::MouseButton::Left) return;
     
     const bool acceptClicked = m_AgreeButton.pressed && m_AgreeButton.rect.Contains(event.position);
     const bool declineClicked = m_DeclineButton.pressed && m_DeclineButton.rect.Contains(event.position);
@@ -346,7 +346,7 @@ void FirstRunAgreementPopup::ExecutePendingCallback() {
     }
 }
 
-void FirstRunAgreementPopup::OnMouseWheel(const WindEffects::Editor::UI::MouseEvent& event) {
+void FirstRunAgreementPopup::OnMouseWheel(const we::runtime::kindui::MouseEvent& event) {
     if (!m_DialogRect.Contains(event.position)) return;
     
     if (m_ContentRect.Contains(event.position) || IsOverScrollbar(event.position)) {
@@ -355,7 +355,7 @@ void FirstRunAgreementPopup::OnMouseWheel(const WindEffects::Editor::UI::MouseEv
     }
 }
 
-void FirstRunAgreementPopup::OnKeyDown(const WindEffects::Editor::UI::KeyEvent& event) {
+void FirstRunAgreementPopup::OnKeyDown(const we::runtime::kindui::KeyEvent& event) {
     if (event.ctrlDown && event.key == we::platform::KeyCode::C) {
         we::platform::Platform::Get().SetClipboardText(m_RawContent.c_str());
         return;
@@ -396,7 +396,7 @@ void FirstRunAgreementPopup::OnKeyDown(const WindEffects::Editor::UI::KeyEvent& 
     }
 }
 
-bool FirstRunAgreementPopup::ShowsPointerCursor(const WindEffects::Editor::UI::Point& position) const {
+bool FirstRunAgreementPopup::ShowsPointerCursor(const we::runtime::kindui::Point& position) const {
     return m_AgreeButton.rect.Contains(position) || 
            m_DeclineButton.rect.Contains(position) || 
            m_CopyButton.rect.Contains(position) ||
@@ -820,7 +820,7 @@ std::string FirstRunAgreementPopup::ExtractTitleFromMarkdown(const std::string& 
 // ============================================================================
 
 /*
-void FirstRunAgreementPopup::LayoutContent(WindEffects::Editor::UI::PaintContext& context) {
+void FirstRunAgreementPopup::LayoutContent(we::runtime::kindui::PaintContext& context) {
     const float contentWidth = m_ContentRect.width;
     
     // Skip layout if width hasn't changed
@@ -855,7 +855,7 @@ void FirstRunAgreementPopup::LayoutContent(WindEffects::Editor::UI::PaintContext
 */
 
 /*
-float FirstRunAgreementPopup::MeasureBlockHeight(WindEffects::Editor::UI::PaintContext& context, const MarkdownBlock& block, float maxWidth) {
+float FirstRunAgreementPopup::MeasureBlockHeight(we::runtime::kindui::PaintContext& context, const MarkdownBlock& block, float maxWidth) {
     const float fontSize = GetFontSizeForBlock(block.type) * m_DpiScale;
     const float lineHeight = GetLineHeightForBlock(block.type);
     
@@ -880,7 +880,7 @@ float FirstRunAgreementPopup::MeasureBlockHeight(WindEffects::Editor::UI::PaintC
     }
 }
 
-std::vector<std::string> FirstRunAgreementPopup::WrapText(WindEffects::Editor::UI::PaintContext& context, const std::string& text, float fontSize, float maxWidth) const {
+std::vector<std::string> FirstRunAgreementPopup::WrapText(we::runtime::kindui::PaintContext& context, const std::string& text, float fontSize, float maxWidth) const {
     if (text.empty() || maxWidth <= 0.0f) return {};
     
     std::vector<std::string> lines;
@@ -917,7 +917,7 @@ std::vector<std::string> FirstRunAgreementPopup::WrapText(WindEffects::Editor::U
 // ============================================================================
 
 /*
-void FirstRunAgreementPopup::PaintBlock(WindEffects::Editor::UI::PaintContext& context, const MarkdownBlock& block, float y, float viewportTop, float viewportBottom) {
+void FirstRunAgreementPopup::PaintBlock(we::runtime::kindui::PaintContext& context, const MarkdownBlock& block, float y, float viewportTop, float viewportBottom) {
 const float contentMargin = kContentMargin * m_DpiScale;
     
     switch (block.type) {
@@ -948,7 +948,7 @@ const float contentMargin = kContentMargin * m_DpiScale;
         case BlockType::HorizontalRule: {
             const float ruleY = y + 2.0f * m_DpiScale;
             const float ruleWidth = m_ContentRect.width - contentMargin * 2.0f;
-            context.DrawRect(WindEffects::Editor::UI::Rect{ m_ContentRect.x + contentMargin, ruleY, ruleWidth, 1.0f * m_DpiScale },
+            context.DrawRect(we::runtime::kindui::Rect{ m_ContentRect.x + contentMargin, ruleY, ruleWidth, 1.0f * m_DpiScale },
                 ThemeColor(ThemeToken::BorderDefault));
             break;
         }
@@ -959,7 +959,7 @@ const float contentMargin = kContentMargin * m_DpiScale;
     }
 }
 
-void FirstRunAgreementPopup::PaintSpans(WindEffects::Editor::UI::PaintContext& context, const std::vector<TextSpan>& spans, float x, float& y, float fontSize, const WindEffects::Editor::UI::Color& baseColor, float maxWidth, float viewportTop, float viewportBottom) {
+void FirstRunAgreementPopup::PaintSpans(we::runtime::kindui::PaintContext& context, const std::vector<TextSpan>& spans, float x, float& y, float fontSize, const we::runtime::kindui::Color& baseColor, float maxWidth, float viewportTop, float viewportBottom) {
 const float lineHeight = fontSize * kBaseLineHeight;
     
     // Combine all spans into a single string for wrapping, then render with formatting
@@ -986,7 +986,7 @@ const float lineHeight = fontSize * kBaseLineHeight;
         for (const auto& span : spans) {
             if (span.text.empty()) continue;
             
-            WindEffects::Editor::UI::Color color = baseColor;
+            we::runtime::kindui::Color color = baseColor;
             bool bold = false;
             
             switch (span.type) {
@@ -998,10 +998,10 @@ const float lineHeight = fontSize * kBaseLineHeight;
                     color = ThemeColor(ThemeToken::TextPrimary);
                     break;
                 case SpanType::Code:
-                    color = WindEffects::Editor::UI::Color{ 0.9f, 0.7f, 0.4f, 1.0f };
+                    color = we::runtime::kindui::Color{ 0.9f, 0.7f, 0.4f, 1.0f };
                     break;
                 case SpanType::Link:
-                    color = WindEffects::Editor::UI::Color{ 0.4f, 0.7f, 1.0f, 1.0f };
+                    color = we::runtime::kindui::Color{ 0.4f, 0.7f, 1.0f, 1.0f };
                     break;
                 default:
                     break;
@@ -1021,7 +1021,7 @@ const float lineHeight = fontSize * kBaseLineHeight;
             
             if (intersectStart < intersectEnd) {
                 std::string segment = span.text.substr(intersectStart - spanStart, intersectEnd - intersectStart);
-                context.DrawText(segment, WindEffects::Editor::UI::Point{ lineX, y }, color, fontSize, bold);
+                context.DrawText(segment, we::runtime::kindui::Point{ lineX, y }, color, fontSize, bold);
                 lineX += context.GetTextWidth(segment, fontSize, bold);
             }
             
@@ -1033,13 +1033,13 @@ const float lineHeight = fontSize * kBaseLineHeight;
     }
 }
 
-void FirstRunAgreementPopup::PaintCodeBlock(WindEffects::Editor::UI::PaintContext& context, const MarkdownBlock& block, float y, float viewportTop, float viewportBottom) {
+void FirstRunAgreementPopup::PaintCodeBlock(we::runtime::kindui::PaintContext& context, const MarkdownBlock& block, float y, float viewportTop, float viewportBottom) {
 const float padding = kCodeBlockPadding * m_DpiScale;
     const float fontSize = kCodeFontSize * m_DpiScale;
     const float lineHeight = fontSize * kCodeLineHeight;
     const float contentMargin = kContentMargin * m_DpiScale;
     
-    const WindEffects::Editor::UI::Rect bgRect{
+    const we::runtime::kindui::Rect bgRect{
         m_ContentRect.x + contentMargin,
         y,
         m_ContentRect.width - contentMargin * 2.0f,
@@ -1047,7 +1047,7 @@ const float padding = kCodeBlockPadding * m_DpiScale;
     };
     
     // Code block background
-    context.DrawRoundedRect(bgRect, WindEffects::Editor::UI::Color{ 0.15f, 0.15f, 0.18f, 1.0f }, 4.0f);
+    context.DrawRoundedRect(bgRect, we::runtime::kindui::Color{ 0.15f, 0.15f, 0.18f, 1.0f }, 4.0f);
     
     // Code text
     const auto lines = WrapText(context, block.rawText, fontSize, bgRect.width - padding * 2.0f);
@@ -1059,20 +1059,20 @@ const float padding = kCodeBlockPadding * m_DpiScale;
             continue;
         }
         
-        context.DrawText(line, WindEffects::Editor::UI::Point{ bgRect.x + padding, textY },
-            WindEffects::Editor::UI::Color{ 0.9f, 0.9f, 0.85f, 1.0f }, fontSize, false);
+        context.DrawText(line, we::runtime::kindui::Point{ bgRect.x + padding, textY },
+            we::runtime::kindui::Color{ 0.9f, 0.9f, 0.85f, 1.0f }, fontSize, false);
         textY += lineHeight;
     }
 }
 
-void FirstRunAgreementPopup::PaintBlockquote(WindEffects::Editor::UI::PaintContext& context, const MarkdownBlock& block, float y, float viewportTop, float viewportBottom) {
+void FirstRunAgreementPopup::PaintBlockquote(we::runtime::kindui::PaintContext& context, const MarkdownBlock& block, float y, float viewportTop, float viewportBottom) {
 const float padding = kBlockquotePadding * m_DpiScale;
     const float fontSize = kBlockquoteFontSize * m_DpiScale;
     const float contentMargin = kContentMargin * m_DpiScale;
     
     // Left border
     const float borderX = m_ContentRect.x + contentMargin;
-    context.DrawRect(WindEffects::Editor::UI::Rect{ borderX, y, 3.0f * m_DpiScale, MeasureBlockHeight(context, block, m_ContentRect.width - contentMargin * 2.0f) },
+    context.DrawRect(we::runtime::kindui::Rect{ borderX, y, 3.0f * m_DpiScale, MeasureBlockHeight(context, block, m_ContentRect.width - contentMargin * 2.0f) },
         ThemeColor(ThemeToken::AccentPrimary));
     
     // Quote text
@@ -1083,7 +1083,7 @@ const float padding = kBlockquotePadding * m_DpiScale;
         viewportTop, viewportBottom);
 }
 
-void FirstRunAgreementPopup::PaintList(WindEffects::Editor::UI::PaintContext& context, const MarkdownBlock& block, float y, float viewportTop, float viewportBottom) {
+void FirstRunAgreementPopup::PaintList(we::runtime::kindui::PaintContext& context, const MarkdownBlock& block, float y, float viewportTop, float viewportBottom) {
 const float fontSize = kBaseFontSize * m_DpiScale;
     const float lineHeight = fontSize * kBaseLineHeight;
     const float indent = 20.0f * m_DpiScale;
@@ -1094,10 +1094,10 @@ const float fontSize = kBaseFontSize * m_DpiScale;
     
     // Draw bullet or number
     if (block.type == BlockType::UnorderedList) {
-        context.DrawText("•", WindEffects::Editor::UI::Point{ bulletX, textY }, ThemeColor(ThemeToken::TextPrimary), fontSize, true);
+        context.DrawText("•", we::runtime::kindui::Point{ bulletX, textY }, ThemeColor(ThemeToken::TextPrimary), fontSize, true);
     } else {
         std::string numStr = std::to_string(block.listNumber) + ".";
-        context.DrawText(numStr, WindEffects::Editor::UI::Point{ bulletX, textY }, ThemeColor(ThemeToken::TextPrimary), fontSize, true);
+        context.DrawText(numStr, we::runtime::kindui::Point{ bulletX, textY }, ThemeColor(ThemeToken::TextPrimary), fontSize, true);
     }
     
     // Draw text
@@ -1106,7 +1106,7 @@ const float fontSize = kBaseFontSize * m_DpiScale;
         viewportTop, viewportBottom);
 }
 
-void FirstRunAgreementPopup::PaintSelection(WindEffects::Editor::UI::PaintContext& context) {
+void FirstRunAgreementPopup::PaintSelection(we::runtime::kindui::PaintContext& context) {
     // TODO: Implement selection highlighting
     // This would require tracking character positions and drawing selection rectangles
 }
@@ -1147,7 +1147,7 @@ void FirstRunAgreementPopup::UpdateScrollbar() {
     const float scrollbarX = m_ContentRect.x + m_ContentRect.width;
     const float scrollbarWidth = kScrollbarWidth * m_DpiScale;
     
-    m_Scrollbar.track = WindEffects::Editor::UI::Rect{
+    m_Scrollbar.track = we::runtime::kindui::Rect{
         scrollbarX,
         m_ContentRect.y,
         scrollbarWidth,
@@ -1160,7 +1160,7 @@ void FirstRunAgreementPopup::UpdateScrollbar() {
         const float scrollRange = std::max(1.0f, m_TotalContentHeight - m_ContentRect.height);
         const float thumbY = m_Scrollbar.track.y + (m_Scrollbar.track.height - thumbHeight) * (m_ScrollOffset / scrollRange);
         
-        m_Scrollbar.thumb = WindEffects::Editor::UI::Rect{
+        m_Scrollbar.thumb = we::runtime::kindui::Rect{
             scrollbarX + 2.0f * m_DpiScale,
             thumbY,
             scrollbarWidth - 4.0f * m_DpiScale,
@@ -1171,11 +1171,11 @@ void FirstRunAgreementPopup::UpdateScrollbar() {
     }
 }
 
-bool FirstRunAgreementPopup::IsPointInScrollbar(const WindEffects::Editor::UI::Point& point) const {
+bool FirstRunAgreementPopup::IsPointInScrollbar(const we::runtime::kindui::Point& point) const {
     return m_Scrollbar.track.Contains(point);
 }
 
-bool FirstRunAgreementPopup::IsPointInThumb(const WindEffects::Editor::UI::Point& point) const {
+bool FirstRunAgreementPopup::IsPointInThumb(const we::runtime::kindui::Point& point) const {
     return m_Scrollbar.thumb.Contains(point);
 }
 */
@@ -1202,7 +1202,7 @@ std::string FirstRunAgreementPopup::BuildDefaultContent() {
 // NEW LAYOUT ENGINE
 // ============================================================================
 
-void FirstRunAgreementPopup::ComputeLayout(WindEffects::Editor::UI::PaintContext& context) {
+void FirstRunAgreementPopup::ComputeLayout(we::runtime::kindui::PaintContext& context) {
     const float contentWidth = m_ContentRect.width;
     
     if (std::abs(contentWidth - m_LayoutWidth) < 1.0f && m_LayoutValid) {
@@ -1233,7 +1233,7 @@ void FirstRunAgreementPopup::ComputeLayout(WindEffects::Editor::UI::PaintContext
     m_ScrollOffset = std::clamp(m_ScrollOffset, 0.0f, maxScroll);
 }
 
-float FirstRunAgreementPopup::MeasureNode(WindEffects::Editor::UI::PaintContext& context, DocumentNode& node, float maxWidth) {
+float FirstRunAgreementPopup::MeasureNode(we::runtime::kindui::PaintContext& context, DocumentNode& node, float maxWidth) {
     const float fontSize = GetFontSize(node.type) * m_DpiScale;
     const float lineHeight = GetLineHeight(node.type);
     
@@ -1257,7 +1257,7 @@ float FirstRunAgreementPopup::MeasureNode(WindEffects::Editor::UI::PaintContext&
     }
 }
 
-std::vector<std::string> FirstRunAgreementPopup::WrapWords(WindEffects::Editor::UI::PaintContext& context, const std::string& text, float fontSize, float maxWidth) {
+std::vector<std::string> FirstRunAgreementPopup::WrapWords(we::runtime::kindui::PaintContext& context, const std::string& text, float fontSize, float maxWidth) {
     if (text.empty() || maxWidth <= 0.0f) return {};
     
     std::vector<std::string> lines;
@@ -1292,7 +1292,7 @@ std::vector<std::string> FirstRunAgreementPopup::WrapWords(WindEffects::Editor::
 // NEW RENDERING
 // ============================================================================
 
-void FirstRunAgreementPopup::RenderNode(WindEffects::Editor::UI::PaintContext& context, const DocumentNode& node, float y) {
+void FirstRunAgreementPopup::RenderNode(we::runtime::kindui::PaintContext& context, const DocumentNode& node, float y) {
 const float margin = kContentMargin * m_DpiScale;
     
     switch (node.type) {
@@ -1318,7 +1318,7 @@ const float margin = kContentMargin * m_DpiScale;
         case NodeType::HorizontalRule: {
             const float ruleY = y + 2.0f * m_DpiScale;
             const float ruleWidth = m_ContentRect.width - margin * 2.0f;
-            context.DrawRect(WindEffects::Editor::UI::Rect{ m_ContentRect.x + margin, ruleY, ruleWidth, 1.0f * m_DpiScale },
+            context.DrawRect(we::runtime::kindui::Rect{ m_ContentRect.x + margin, ruleY, ruleWidth, 1.0f * m_DpiScale },
                 ThemeColor(ThemeToken::BorderDefault));
             break;
         }
@@ -1327,7 +1327,7 @@ const float margin = kContentMargin * m_DpiScale;
     }
 }
 
-void FirstRunAgreementPopup::RenderTextRuns(WindEffects::Editor::UI::PaintContext& context, const std::vector<TextRun>& runs, float x, float& y, float fontSize, const WindEffects::Editor::UI::Color& baseColor, float maxWidth) {
+void FirstRunAgreementPopup::RenderTextRuns(we::runtime::kindui::PaintContext& context, const std::vector<TextRun>& runs, float x, float& y, float fontSize, const we::runtime::kindui::Color& baseColor, float maxWidth) {
 const float lineHeight = fontSize * kBaseLineHeight;
     
     // Combine all runs for wrapping
@@ -1347,7 +1347,7 @@ const float lineHeight = fontSize * kBaseLineHeight;
         for (const auto& run : runs) {
             if (run.text.empty()) continue;
             
-            WindEffects::Editor::UI::Color color = baseColor;
+            we::runtime::kindui::Color color = baseColor;
             bool bold = false;
             
             switch (run.style) {
@@ -1359,10 +1359,10 @@ const float lineHeight = fontSize * kBaseLineHeight;
                     color = ThemeColor(ThemeToken::TextPrimary);
                     break;
                 case TextStyle::Code:
-                    color = WindEffects::Editor::UI::Color{ 0.9f, 0.7f, 0.4f, 1.0f };
+                    color = we::runtime::kindui::Color{ 0.9f, 0.7f, 0.4f, 1.0f };
                     break;
                 case TextStyle::Link:
-                    color = WindEffects::Editor::UI::Color{ 0.4f, 0.7f, 1.0f, 1.0f };
+                    color = we::runtime::kindui::Color{ 0.4f, 0.7f, 1.0f, 1.0f };
                     break;
                 default:
                     break;
@@ -1381,7 +1381,7 @@ const float lineHeight = fontSize * kBaseLineHeight;
             
             if (intersectStart < intersectEnd) {
                 std::string segment = run.text.substr(intersectStart - runStart, intersectEnd - intersectStart);
-                context.DrawText(segment, WindEffects::Editor::UI::Point{ lineX, y }, color, fontSize, bold);
+                context.DrawText(segment, we::runtime::kindui::Point{ lineX, y }, color, fontSize, bold);
                 lineX += context.GetTextWidth(segment, fontSize, bold);
             }
             
@@ -1393,38 +1393,38 @@ const float lineHeight = fontSize * kBaseLineHeight;
     }
 }
 
-void FirstRunAgreementPopup::RenderCodeBlock(WindEffects::Editor::UI::PaintContext& context, const DocumentNode& node, float y) {
+void FirstRunAgreementPopup::RenderCodeBlock(we::runtime::kindui::PaintContext& context, const DocumentNode& node, float y) {
 const float padding = kCodeBlockPadding * m_DpiScale;
     const float fontSize = kCodeFontSize * m_DpiScale;
     const float lineHeight = fontSize * kCodeLineHeight;
     const float margin = kContentMargin * m_DpiScale;
     
-    const WindEffects::Editor::UI::Rect bgRect{
+    const we::runtime::kindui::Rect bgRect{
         m_ContentRect.x + margin,
         y,
         m_ContentRect.width - margin * 2.0f,
         node.cachedHeight
     };
     
-    context.DrawRoundedRect(bgRect, WindEffects::Editor::UI::Color{ 0.15f, 0.15f, 0.18f, 1.0f }, 4.0f);
+    context.DrawRoundedRect(bgRect, we::runtime::kindui::Color{ 0.15f, 0.15f, 0.18f, 1.0f }, 4.0f);
     
     const auto lines = node.wrappedLines;
     float textY = y + padding;
     
     for (const auto& line : lines) {
-        context.DrawText(line, WindEffects::Editor::UI::Point{ bgRect.x + padding, textY },
-            WindEffects::Editor::UI::Color{ 0.9f, 0.9f, 0.85f, 1.0f }, fontSize, false);
+        context.DrawText(line, we::runtime::kindui::Point{ bgRect.x + padding, textY },
+            we::runtime::kindui::Color{ 0.9f, 0.9f, 0.85f, 1.0f }, fontSize, false);
         textY += lineHeight;
     }
 }
 
-void FirstRunAgreementPopup::RenderBlockquote(WindEffects::Editor::UI::PaintContext& context, const DocumentNode& node, float y) {
+void FirstRunAgreementPopup::RenderBlockquote(we::runtime::kindui::PaintContext& context, const DocumentNode& node, float y) {
 const float padding = kBlockquotePadding * m_DpiScale;
     const float fontSize = kBlockquoteFontSize * m_DpiScale;
     const float margin = kContentMargin * m_DpiScale;
     
     const float borderX = m_ContentRect.x + margin;
-    context.DrawRect(WindEffects::Editor::UI::Rect{ borderX, y, 3.0f * m_DpiScale, node.cachedHeight },
+    context.DrawRect(we::runtime::kindui::Rect{ borderX, y, 3.0f * m_DpiScale, node.cachedHeight },
         ThemeColor(ThemeToken::AccentPrimary));
     
     float textY = y;
@@ -1433,7 +1433,7 @@ const float padding = kBlockquotePadding * m_DpiScale;
         m_ContentRect.width - margin * 2.0f - padding - 6.0f * m_DpiScale);
 }
 
-void FirstRunAgreementPopup::RenderList(WindEffects::Editor::UI::PaintContext& context, const DocumentNode& node, float y) {
+void FirstRunAgreementPopup::RenderList(we::runtime::kindui::PaintContext& context, const DocumentNode& node, float y) {
 const float fontSize = kBaseFontSize * m_DpiScale;
     const float lineHeight = fontSize * kBaseLineHeight;
     const float indent = 20.0f * m_DpiScale;
@@ -1443,10 +1443,10 @@ const float fontSize = kBaseFontSize * m_DpiScale;
     const float bulletX = m_ContentRect.x + margin + indent * 0.5f;
     
     if (node.type == NodeType::UnorderedList) {
-        context.DrawText("•", WindEffects::Editor::UI::Point{ bulletX, textY }, ThemeColor(ThemeToken::TextPrimary), fontSize, true);
+        context.DrawText("•", we::runtime::kindui::Point{ bulletX, textY }, ThemeColor(ThemeToken::TextPrimary), fontSize, true);
     } else {
         std::string numStr = std::to_string(node.listNumber) + ".";
-        context.DrawText(numStr, WindEffects::Editor::UI::Point{ bulletX, textY }, ThemeColor(ThemeToken::TextPrimary), fontSize, true);
+        context.DrawText(numStr, we::runtime::kindui::Point{ bulletX, textY }, ThemeColor(ThemeToken::TextPrimary), fontSize, true);
     }
     
     RenderTextRuns(context, node.runs, bulletX + indent, textY, fontSize, ThemeColor(ThemeToken::TextPrimary),
@@ -1487,7 +1487,7 @@ void FirstRunAgreementPopup::UpdateScrollbarGeometry() {
     const float scrollbarX = m_ContentRect.x + m_ContentRect.width;
     const float scrollbarWidth = kScrollbarWidth * m_DpiScale;
     
-    m_Scrollbar.track = WindEffects::Editor::UI::Rect{
+    m_Scrollbar.track = we::runtime::kindui::Rect{
         scrollbarX,
         m_ContentRect.y,
         scrollbarWidth,
@@ -1500,7 +1500,7 @@ void FirstRunAgreementPopup::UpdateScrollbarGeometry() {
         const float scrollRange = std::max(1.0f, m_TotalDocumentHeight - m_ContentRect.height);
         const float thumbY = m_Scrollbar.track.y + (m_Scrollbar.track.height - thumbHeight) * (m_ScrollOffset / scrollRange);
         
-        m_Scrollbar.thumb = WindEffects::Editor::UI::Rect{
+        m_Scrollbar.thumb = we::runtime::kindui::Rect{
             scrollbarX + 2.0f * m_DpiScale,
             thumbY,
             scrollbarWidth - 4.0f * m_DpiScale,
@@ -1511,11 +1511,11 @@ void FirstRunAgreementPopup::UpdateScrollbarGeometry() {
     }
 }
 
-bool FirstRunAgreementPopup::IsOverScrollbar(const WindEffects::Editor::UI::Point& point) const {
+bool FirstRunAgreementPopup::IsOverScrollbar(const we::runtime::kindui::Point& point) const {
     return m_Scrollbar.track.Contains(point);
 }
 
-bool FirstRunAgreementPopup::IsOverThumb(const WindEffects::Editor::UI::Point& point) const {
+bool FirstRunAgreementPopup::IsOverThumb(const we::runtime::kindui::Point& point) const {
     return m_Scrollbar.thumb.Contains(point);
 }
 
@@ -1541,14 +1541,14 @@ float FirstRunAgreementPopup::GetLineHeight(NodeType type) const {
     }
 }
 
-WindEffects::Editor::UI::Color FirstRunAgreementPopup::GetTextColor(NodeType type) const {
+we::runtime::kindui::Color FirstRunAgreementPopup::GetTextColor(NodeType type) const {
 switch (type) {
         case NodeType::Heading1:
         case NodeType::Heading2:
         case NodeType::Heading3:
             return ThemeColor(ThemeToken::TextPrimary);
         case NodeType::CodeBlock:
-            return WindEffects::Editor::UI::Color{ 0.9f, 0.9f, 0.85f, 1.0f };
+            return we::runtime::kindui::Color{ 0.9f, 0.9f, 0.85f, 1.0f };
         case NodeType::Blockquote:
             return ThemeColor(ThemeToken::TextSecondary);
         default:

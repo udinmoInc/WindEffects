@@ -3,27 +3,27 @@
 #include "PlaceActors/ActorsPanelChrome.h"
 #include "PlaceActors/ActorsPanelLayout.h"
 #include "PlaceActors/PlaceActorsThumbnailProvider.h"
-#include "WindEffects/Editor/UI/Theming/ThemeAccess.h"
-#include "WindEffects/Editor/UI/Theming/ThemeToken.h"
-#include "Core/Icon.h"
-#include "Core/DPIContext.h"
-#include "Rendering/IconMetrics.h"
+#include "KindUI/Theming/ThemeAccess.h"
+#include "KindUI/Theming/ThemeToken.h"
+#include "KindUI/Core/Icon.h"
+#include "KindUI/Core/DPIContext.h"
+#include "KindUI/Rendering/IconMetrics.h"
 
 #include <algorithm>
 
 namespace we::programs::editor {
 
-using WindEffects::Editor::UI::Color;
-using WindEffects::Editor::UI::PaintContext;
-using WindEffects::Editor::UI::Point;
-using WindEffects::Editor::UI::Rect;
-using WindEffects::Editor::UI::ThemeToken;
-namespace WEIcons = WindEffects::Editor::UI::Icons;
+using we::runtime::kindui::Color;
+using we::runtime::kindui::PaintContext;
+using we::runtime::kindui::Point;
+using we::runtime::kindui::Rect;
+using we::runtime::kindui::ThemeToken;
+namespace WEIcons = we::runtime::kindui::Icons;
 
 namespace {
 
 Rect FavoriteStarRect(const Rect& cardBounds) {
-    const float starSize = static_cast<float>(WindEffects::Editor::UI::IconMetrics::StandardGlyphTierPx());
+    const float starSize = static_cast<float>(we::runtime::kindui::IconMetrics::StandardGlyphTierPx());
     return Rect{
         cardBounds.x + cardBounds.width - starSize - 4.0f,
         cardBounds.y + 4.0f,
@@ -42,7 +42,7 @@ void PlaceActorsActorCard::Paint(PaintContext& context,
                                  float pressAnim,
                                  bool selected,
                                  bool favorite) {
-    const float uiScale = std::max(1.0f, WindEffects::Editor::UI::DPIContext::GetScale());
+    const float uiScale = std::max(1.0f, we::runtime::kindui::DPIContext::GetScale());
     const float labelFontSize = ResolveThemeMetric(ThemeToken::TextSizeSmall) * uiScale;
     const float radius = ActorsPanelLayout::RowRadius();
 
@@ -78,7 +78,7 @@ void PlaceActorsActorCard::Paint(PaintContext& context,
         const Color starColor = favorite
             ? ResolveThemeColor(ThemeToken::Warning)
             : ResolveThemeColor(ThemeToken::IconPrimary);
-        WindEffects::Editor::UI::IconPainter::DrawIcon(context, WEIcons::StarName, starRect, starColor);
+        we::runtime::kindui::IconPainter::DrawIcon(context, WEIcons::StarName, starRect, starColor);
     }
 }
 

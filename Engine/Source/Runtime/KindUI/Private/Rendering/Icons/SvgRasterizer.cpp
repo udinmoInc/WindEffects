@@ -1,4 +1,4 @@
-#include "WindEffects/Runtime/UI/Rendering/Icons/SvgRasterizer.h"
+#include "KindUI/Rendering/Icons/SvgRasterizer.h"
 #include "Core/Logger.h"
 
 #include <lunasvg.h>
@@ -9,7 +9,7 @@
 #include <sstream>
 #include <string>
 
-namespace WindEffects::Editor::UI::Icons {
+namespace we::runtime::kindui::Icons {
 
 namespace {
 
@@ -139,4 +139,4 @@ SvgRasterizeResult SvgRasterizer::Rasterize(const SvgRasterizeRequest& request) 
     return result;
 }
 
-} // namespace WindEffects::Editor::UI::Icons
+} // namespace we::runtime::kindui::Icons

@@ -7,7 +7,7 @@
 #include "Explorer/WorldOutlinerApi.h"
 #include "Environment/EnvironmentEditorApi.h"
 #include "ViewportNavigationPreferences.h"
-#include "WindEffects/Editor/UI/Theming/ThemeAccess.h"
+#include "KindUI/Theming/ThemeAccess.h"
 
 #include "Widgets/Panel.h"
 #include "Widgets/DockContainer.h"
@@ -20,21 +20,21 @@
 #include "Widgets/EditorModeSelector.h"
 #include "Widgets/PropertyEditor.h"
 #include "Widgets/TreeView.h"
-#include "Layout/Box.h"
-#include "Layout/OverlayManager.h"
+#include "KindUI/Layout/Box.h"
+#include "KindUI/Layout/OverlayManager.h"
 #include "Core/PanelIconResolver.h"
-#include "Core/Widget.h"
-#include "WindEffects/Editor/UI/Core/WidgetContext.h"
-#include "Rendering/OverlayRenderer.h"
-#include "Rendering/IconRenderer.h"
-#include "Rendering/IconMetrics.h"
+#include "KindUI/Core/Widget.h"
+#include "KindUI/Core/WidgetContext.h"
+#include "KindUI/Rendering/OverlayRenderer.h"
+#include "KindUI/Rendering/IconRenderer.h"
+#include "KindUI/Rendering/IconMetrics.h"
 #include "Renderer/Renderer.h"
 #include "Scene/Scene.h"
 
 #include <algorithm>
 #include <vector>
 
-namespace WindEffects::Editor::UI {
+namespace we::runtime::kindui {
 namespace {
 
 void PropagateWidgetContext(const std::shared_ptr<Widget>& widget, const std::shared_ptr<IWidgetContext>& context) {
@@ -165,7 +165,7 @@ EditorShellResult EditorShellBuilder::Build(
     auto compileItem = std::make_shared<MenuItem>();
     compileItem->label = "Compile";
     compileItem->onClick = [&context]() {
-        WindEffects::Editor::UI::CommandContext commandContext;
+        we::runtime::kindui::CommandContext commandContext;
         commandContext.services = &context.GetServices();
         commandContext.sourceId = "BuildMenu";
         context.GetCommandRegistry().Execute("build.compile", commandContext);
@@ -350,7 +350,7 @@ EditorShellResult EditorShellBuilder::Build(
         we::programs::editor::EditorWorkspaceController::Get().SetBottomPanelIndex(index);
     });
     statusBar->SetOnCommandSubmitted([&context](const std::string& command) {
-        WindEffects::Editor::UI::CommandContext commandContext;
+        we::runtime::kindui::CommandContext commandContext;
         commandContext.services = &context.GetServices();
         commandContext.sourceId = "StatusBar";
         if (!context.GetCommandRegistry().Execute(command, commandContext)) {
@@ -363,7 +363,7 @@ EditorShellResult EditorShellBuilder::Build(
         ws.FocusPanel("OutputLog");
     });
     statusBar->SetOnBuildMenuClicked([&context]() {
-        WindEffects::Editor::UI::CommandContext commandContext;
+        we::runtime::kindui::CommandContext commandContext;
         commandContext.services = &context.GetServices();
         commandContext.sourceId = "StatusBar";
         context.GetCommandRegistry().Execute("build.compile", commandContext);
@@ -412,4 +412,4 @@ EditorShellResult EditorShellBuilder::Build(
     return shellResult;
 }
 
-} // namespace WindEffects::Editor::UI
+} // namespace we::runtime::kindui

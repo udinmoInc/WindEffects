@@ -1,6 +1,6 @@
-#include "WindEffects/Runtime/UI/Resources/ModuleResourceRegistry.h"
+#include "KindUI/Resources/ModuleResourceRegistry.h"
 
-namespace WindEffects::Editor::UI {
+namespace we::runtime::kindui {
 
 void ModuleResourceRegistry::RegisterDescriptor(const ResourceDescriptor& descriptor) {
     std::lock_guard lock(m_Mutex);
@@ -51,6 +51,6 @@ std::vector<ResourceDescriptor> ModuleResourceRegistry::GetModuleResources(std::
     return result;
 }
 
-} // namespace WindEffects::Editor::UI
+} // namespace we::runtime::kindui
 
 // export rebuild

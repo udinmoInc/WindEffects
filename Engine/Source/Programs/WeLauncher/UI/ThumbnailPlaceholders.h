@@ -1,10 +1,10 @@
 #pragma once
 
-#include "WindEffects/Runtime/UI/Core/Icon.h"
-#include "WindEffects/Runtime/UI/Core/PaintContext.h"
+#include "KindUI/Core/Icon.h"
+#include "KindUI/Core/PaintContext.h"
 #include "UI/LauncherHelpers.h"
 #include "UI/Widgets/SkeletonViews.h"
-#include "WindEffects/Runtime/UI/Theming/ThemeToken.h"
+#include "KindUI/Theming/ThemeToken.h"
 
 #include <algorithm>
 #include <cctype>
@@ -28,8 +28,8 @@ inline uint32_t HashString(const std::string& text) {
     return h;
 }
 
-inline WindEffects::Editor::UI::Color AccentFromKey(const std::string& key) {
-    static const WindEffects::Editor::UI::Color kPalette[] = {
+inline we::runtime::kindui::Color AccentFromKey(const std::string& key) {
+    static const we::runtime::kindui::Color kPalette[] = {
         { 0.28f, 0.42f, 0.62f, 1.0f },
         { 0.32f, 0.48f, 0.44f, 1.0f },
         { 0.46f, 0.34f, 0.52f, 1.0f },
@@ -51,11 +51,11 @@ inline char ProjectInitial(const std::string& name) {
 }
 
 inline void PaintGeometricAccent(
-    WindEffects::Editor::UI::PaintContext& context,
-    const WindEffects::Editor::UI::Rect& rect,
-    const WindEffects::Editor::UI::Color& accent,
+    we::runtime::kindui::PaintContext& context,
+    const we::runtime::kindui::Rect& rect,
+    const we::runtime::kindui::Color& accent,
     uint32_t seed) {
-    using namespace WindEffects::Editor::UI;
+    using namespace we::runtime::kindui;
     const float s = LScale();
 
     Color a = accent;
@@ -97,14 +97,14 @@ inline void PaintGeometricAccent(
 }
 
 inline void PaintProjectThumbnailPlaceholder(
-    WindEffects::Editor::UI::PaintContext& context,
-    const WindEffects::Editor::UI::Rect& rect,
+    we::runtime::kindui::PaintContext& context,
+    const we::runtime::kindui::Rect& rect,
     float radius,
     const std::string& displayName,
     const std::string& templateId,
     bool compatible,
     float fade = 1.0f) {
-    using namespace WindEffects::Editor::UI;
+    using namespace we::runtime::kindui;
     const float s = LScale();
     const float a = std::clamp(fade, 0.0f, 1.0f);
 
@@ -153,14 +153,14 @@ inline void PaintProjectThumbnailPlaceholder(
 }
 
 inline void PaintTemplateThumbnailPlaceholder(
-    WindEffects::Editor::UI::PaintContext& context,
-    const WindEffects::Editor::UI::Rect& rect,
+    we::runtime::kindui::PaintContext& context,
+    const we::runtime::kindui::Rect& rect,
     float radius,
     const std::string& displayName,
     const std::string& category,
     const std::string& templateId,
     float fade = 1.0f) {
-    using namespace WindEffects::Editor::UI;
+    using namespace we::runtime::kindui;
     (void)displayName;
     const float s = LScale();
     const float a = std::clamp(fade, 0.0f, 1.0f);

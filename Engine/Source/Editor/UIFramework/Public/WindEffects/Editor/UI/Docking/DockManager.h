@@ -6,7 +6,7 @@
 #include <mutex>
 #include <unordered_map>
 
-namespace WindEffects::Editor::UI {
+namespace we::runtime::kindui {
 
 class DockManager final : public IDockManager {
 public:
@@ -45,4 +45,4 @@ public:
 
 UIFRAMEWORK_API WorkspaceLayout CreateDefaultEditorWorkspaceLayout();
 
-} // namespace WindEffects::Editor::UI
+} // namespace we::runtime::kindui

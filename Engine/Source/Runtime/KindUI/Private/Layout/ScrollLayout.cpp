@@ -1,13 +1,13 @@
-#include "WindEffects/Runtime/UI/Layout/ScrollLayout.h"
+#include "KindUI/Layout/ScrollLayout.h"
 
-#include "WindEffects/Runtime/UI/Core/PaintContext.h"
-#include "WindEffects/Runtime/UI/Core/DPIContext.h"
-#include "WindEffects/Runtime/UI/Theming/ThemeAccess.h"
-#include "WindEffects/Runtime/UI/Theming/ThemeToken.h"
+#include "KindUI/Core/PaintContext.h"
+#include "KindUI/Core/DPIContext.h"
+#include "KindUI/Theming/ThemeAccess.h"
+#include "KindUI/Theming/ThemeToken.h"
 
 #include <algorithm>
 
-namespace WindEffects::Editor::UI {
+namespace we::runtime::kindui {
 
 ScrollLayout::ScrollLayout() {}
 
@@ -152,4 +152,4 @@ bool ScrollLayout::ScrollToMakeVisible(const Rect& contentRect) {
     return changed;
 }
 
-} // namespace WindEffects::Editor::UI
+} // namespace we::runtime::kindui

@@ -6,7 +6,7 @@
 #include <filesystem>
 #include <vector>
 
-namespace WindEffects::Editor::UI {
+namespace we::runtime::kindui {
 
 bool SaveBmpRgba(const std::string& path, const std::vector<uint8_t>& rgba, uint32_t width, uint32_t height) {
     if (path.empty() || rgba.empty() || width == 0 || height == 0) {
@@ -85,4 +85,4 @@ bool SaveBmpRgba(const std::string& path, const std::vector<uint8_t>& rgba, uint
     return true;
 }
 
-} // namespace WindEffects::Editor::UI
+} // namespace we::runtime::kindui

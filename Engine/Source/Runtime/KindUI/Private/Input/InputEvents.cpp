@@ -1,6 +1,6 @@
-#include "WindEffects/Runtime/UI/Input/InputEvents.h"
+#include "KindUI/Input/InputEvents.h"
 
-namespace WindEffects::Editor::UI {
+namespace we::runtime::kindui {
 
 char KeyCodeToChar(we::platform::KeyCode key, bool shift) {
     using KC = we::platform::KeyCode;
@@ -28,4 +28,4 @@ char KeyCodeToChar(we::platform::KeyCode key, bool shift) {
     }
 }
 
-} // namespace WindEffects::Editor::UI
+} // namespace we::runtime::kindui

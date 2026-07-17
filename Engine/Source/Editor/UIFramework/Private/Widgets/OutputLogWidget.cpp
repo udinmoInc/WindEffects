@@ -1,9 +1,9 @@
 #include "Widgets/OutputLogWidget.h"
 #include "WindEffects/Editor/UI/Panel/PanelChrome.h"
-#include "Core/PaintContext.h"
-#include "WindEffects/Editor/UI/Theming/ThemeToken.h"
+#include "KindUI/Core/PaintContext.h"
+#include "KindUI/Theming/ThemeToken.h"
 
-namespace WindEffects::Editor::UI {
+namespace we::runtime::kindui {
 
 OutputLogWidget::OutputLogWidget() {
     for (const auto& record : we::Logger::GetHistory()) {
@@ -128,4 +128,4 @@ void OutputLogWidget::Paint(PaintContext& context) {
     }
 }
 
-} // namespace WindEffects::Editor::UI
+} // namespace we::runtime::kindui

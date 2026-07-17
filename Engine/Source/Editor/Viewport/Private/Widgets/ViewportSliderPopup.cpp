@@ -1,6 +1,6 @@
 #include "Widgets/ViewportSliderPopup.h"
-#include "Core/PaintContext.h"
-#include "WindEffects/Editor/UI/Theming/ThemeToken.h"
+#include "KindUI/Core/PaintContext.h"
+#include "KindUI/Theming/ThemeToken.h"
 #include <algorithm>
 #include <cmath>
 
@@ -15,14 +15,14 @@ constexpr float kThumbRadius = 6.0f;
 constexpr float kSliderTop = 38.0f;
 } // namespace
 
-using WindEffects::Editor::UI::Color;
-using WindEffects::Editor::UI::MouseButton;
-using WindEffects::Editor::UI::MouseEvent;
-using WindEffects::Editor::UI::PaintContext;
-using WindEffects::Editor::UI::Point;
-using WindEffects::Editor::UI::Rect;
-using WindEffects::Editor::UI::Size;
-using WindEffects::Editor::UI::ThemeToken;
+using we::runtime::kindui::Color;
+using we::runtime::kindui::MouseButton;
+using we::runtime::kindui::MouseEvent;
+using we::runtime::kindui::PaintContext;
+using we::runtime::kindui::Point;
+using we::runtime::kindui::Rect;
+using we::runtime::kindui::Size;
+using we::runtime::kindui::ThemeToken;
 
 ViewportSliderPopup::ViewportSliderPopup(
     std::string title,

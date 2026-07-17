@@ -2,14 +2,14 @@
 
 #include "WindEffects/Editor/UI/Export.h"
 
-#include "Core/Widget.h"
+#include "KindUI/Core/Widget.h"
 #include "Core/Logger.h"
 #include <deque>
 #include <mutex>
 #include <string>
 #include <vector>
 
-namespace WindEffects::Editor::UI {
+namespace we::runtime::kindui {
 
 class UIFRAMEWORK_API OutputLogWidget : public Widget {
 public:
@@ -30,7 +30,7 @@ public:
     void SetCategoryFilter(const std::string& category) { m_CategoryFilter = category; }
 
 private:
-    WindEffects::Editor::UI::Color LevelColor(we::Logger::Level level) const;
+    we::runtime::kindui::Color LevelColor(we::Logger::Level level) const;
     bool PassesFilter(const we::Logger::LogRecord& record) const;
     void RebuildVisibleLines();
     void RebuildVisibleLinesUnlocked();
@@ -48,4 +48,4 @@ private:
     static constexpr size_t kMaxStoredRecords = 5000;
 };
 
-} // namespace WindEffects::Editor::UI
+} // namespace we::runtime::kindui

@@ -14,7 +14,7 @@ public class CrashReporter : ModuleRules
         PublicDependencies.Add("Renderer");
         PublicDependencies.Add("Platform");
         PublicDependencies.Add("RHI");
-        PublicDependencies.Add("UI");
+        PublicDependencies.Add("KindUI");
         PublicDependencies.Add("UIFramework");
 
         AddOptionalThirdParty("nlohmann_json");

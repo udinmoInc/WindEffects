@@ -14,7 +14,7 @@ public class PropertyEditor : ModuleRules
         PublicDependencies.Add("RHI");
         PublicDependencies.Add("CoreUObject");
         PublicDependencies.Add("Engine");
-        PublicDependencies.Add("UI");
+        PublicDependencies.Add("KindUI");
         PublicDependencies.Add("UIFramework");
 
         Definitions.Add("PROPERTYEDITOR_EXPORTS");

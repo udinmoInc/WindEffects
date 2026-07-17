@@ -1,10 +1,10 @@
-#include "WindEffects/Runtime/UI/Layout/OverlayManager.h"
-#include "WindEffects/Runtime/UI/Core/PaintContext.h"
+#include "KindUI/Layout/OverlayManager.h"
+#include "KindUI/Core/PaintContext.h"
 #include "Core/Logger.h"
 
 #include <algorithm>
 
-namespace WindEffects::Editor::UI {
+namespace we::runtime::kindui {
 
 OverlayHost::OverlayHost() = default;
 OverlayHost::~OverlayHost() = default;
@@ -129,4 +129,4 @@ void OverlayHost::OnMouseDown(const MouseEvent&) {
     CloseAllPopups();
 }
 
-} // namespace WindEffects::Editor::UI
+} // namespace we::runtime::kindui

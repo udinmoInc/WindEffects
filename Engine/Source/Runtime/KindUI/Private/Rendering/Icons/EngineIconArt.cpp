@@ -1,14 +1,14 @@
-#include "WindEffects/Runtime/UI/Rendering/Icons/EngineIconArt.h"
+#include "KindUI/Rendering/Icons/EngineIconArt.h"
 
-#include "WindEffects/Runtime/UI/Rendering/Icons/EngineIconBitmap.h"
-#include "WindEffects/Runtime/UI/Rendering/IconRenderer.h"
-#include "WindEffects/Runtime/UI/Core/DPIContext.h"
+#include "KindUI/Rendering/Icons/EngineIconBitmap.h"
+#include "KindUI/Rendering/IconRenderer.h"
+#include "KindUI/Core/DPIContext.h"
 
 #include <algorithm>
 #include <cmath>
 #include <unordered_map>
 
-namespace WindEffects::Editor::UI {
+namespace we::runtime::kindui {
 namespace {
 
 using Shade = IconShadeRgb;
@@ -537,4 +537,4 @@ void EngineIconArt::Paint(
     }
 }
 
-} // namespace WindEffects::Editor::UI
+} // namespace we::runtime::kindui

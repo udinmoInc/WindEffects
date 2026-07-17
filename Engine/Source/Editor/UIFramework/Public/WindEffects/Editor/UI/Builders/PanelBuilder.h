@@ -2,15 +2,15 @@
 
 #include "WindEffects/Editor/UI/Export.h"
 #include "Widgets/Panel.h"
-#include "Layout/Box.h"
-#include "Core/Icon.h"
+#include "KindUI/Layout/Box.h"
+#include "KindUI/Core/Icon.h"
 
 #include <functional>
 #include <memory>
 #include <string>
 #include <string_view>
 
-namespace WindEffects::Editor::UI {
+namespace we::runtime::kindui {
 
 class UIFRAMEWORK_API PanelBuilder {
 public:
@@ -33,4 +33,4 @@ private:
     std::shared_ptr<Panel> m_Panel;
 };
 
-} // namespace WindEffects::Editor::UI
+} // namespace we::runtime::kindui

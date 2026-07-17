@@ -1,13 +1,13 @@
 #pragma once
 
 #include "WindEffects/Editor/UI/Export.h"
-#include "Core/Widget.h"
-#include "Layout/ScrollLayout.h"
-#include "Widgets/Label.h"
+#include "KindUI/Core/Widget.h"
+#include "KindUI/Layout/ScrollLayout.h"
+#include "KindUI/Widgets/Label.h"
 
 #include "Renderer/EditorRenderDebugStub.h"
 
-namespace WindEffects::Editor::UI {
+namespace we::runtime::kindui {
 
 class UIFRAMEWORK_API RenderDiagnosticsPanel : public Widget {
 public:
@@ -31,4 +31,4 @@ private:
     std::string m_DisplayText;
 };
 
-} // namespace WindEffects::Editor::UI
+} // namespace we::runtime::kindui

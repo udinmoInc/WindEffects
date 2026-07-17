@@ -1,6 +1,6 @@
-#include "WindEffects/Runtime/UI/Core/Widgets/SecondaryToolbarButton.h"
+#include "KindUI/Core/Widgets/SecondaryToolbarButton.h"
 
-namespace WindEffects::Editor::UI {
+namespace we::runtime::kindui {
 
 SecondaryToolbarButton::SecondaryToolbarButton(const std::string& label, const std::string& iconName)
     : SecondaryButton(label, nullptr)
@@ -12,4 +12,4 @@ SecondaryToolbarButton::SecondaryToolbarButton(const std::string& label, const s
     }
 }
 
-} // namespace WindEffects::Editor::UI
+} // namespace we::runtime::kindui

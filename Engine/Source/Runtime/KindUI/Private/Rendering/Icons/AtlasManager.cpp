@@ -1,11 +1,11 @@
-#include "WindEffects/Runtime/UI/Rendering/Icons/AtlasManager.h"
+#include "KindUI/Rendering/Icons/AtlasManager.h"
 
 #include "Icons/Assets/IconAsset.h"
-#include "WindEffects/Runtime/UI/Rendering/IconMetrics.h"
-#include "WindEffects/Runtime/UI/Rendering/OverlayRenderer.h"
+#include "KindUI/Rendering/IconMetrics.h"
+#include "KindUI/Rendering/OverlayRenderer.h"
 #include "Core/Logger.h"
 
-namespace WindEffects::Editor::UI {
+namespace we::runtime::kindui {
 
 namespace {
 
@@ -109,4 +109,4 @@ void AtlasManager::DestroyTier(AtlasGpuResource& tier) {
     tier = {};
 }
 
-} // namespace WindEffects::Editor::UI
+} // namespace we::runtime::kindui

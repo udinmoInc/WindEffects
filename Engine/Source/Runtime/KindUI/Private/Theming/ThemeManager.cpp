@@ -1,10 +1,10 @@
-#include "WindEffects/Runtime/UI/Theming/ThemeManager.h"
-#include "WindEffects/Runtime/UI/Theming/StyleClass.h"
-#include "WindEffects/Runtime/UI/Core/DPIContext.h"
+#include "KindUI/Theming/ThemeManager.h"
+#include "KindUI/Theming/StyleClass.h"
+#include "KindUI/Core/DPIContext.h"
 
 #include <stdexcept>
 
-namespace WindEffects::Editor::UI {
+namespace we::runtime::kindui {
 
 ThemeManager& ThemeManager::Get() {
     static ThemeManager instance;
@@ -123,4 +123,4 @@ void ThemeManager::NotifyChanged() {
     }
 }
 
-} // namespace WindEffects::Editor::UI
+} // namespace we::runtime::kindui

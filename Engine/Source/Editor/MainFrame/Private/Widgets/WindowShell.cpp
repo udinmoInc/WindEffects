@@ -1,8 +1,8 @@
 #include "Widgets/WindowShell.h"
-#include "Core/PaintContext.h"
-#include "WindEffects/Editor/UI/Theming/ThemeToken.h"
+#include "KindUI/Core/PaintContext.h"
+#include "KindUI/Theming/ThemeToken.h"
 
-namespace WindEffects::Editor::UI {
+namespace we::runtime::kindui {
 
 WindowShell::WindowShell() = default;
 
@@ -54,4 +54,4 @@ void WindowShell::Paint(PaintContext& context) {
     context.DrawLine(Point{ x, bottom }, Point{ right, bottom }, border, 1.0f);
 }
 
-} // namespace WindEffects::Editor::UI
+} // namespace we::runtime::kindui

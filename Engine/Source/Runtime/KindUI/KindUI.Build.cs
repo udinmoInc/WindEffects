@@ -1,15 +1,13 @@
 using IgniteBT.BuildSystem;
 using System.IO;
 
-public class UI : ModuleRules
+public class KindUI : ModuleRules
 {
-    public UI(ModuleContext context) : base(context)
+    public KindUI(ModuleContext context) : base(context)
     {
         Type = ModuleType.SharedLibrary;
 
         PublicIncludePaths.Add("Public");
-        PublicIncludePaths.Add("Public/WindEffects");
-        PublicIncludePaths.Add("Public/WindEffects/Runtime");
         PrivateIncludePaths.Add("Private");
 
         PublicDependencies.Add("Core");
@@ -30,7 +28,7 @@ public class UI : ModuleRules
         DefineIf(!HasThirdParty("nlohmann_json"), "WE_HAS_NLOHMANN_JSON=0");
 
         Definitions.Add("WE_HAS_LUNASVG=1");
-        Definitions.Add("UI_EXPORTS");
+        Definitions.Add("KINDUI_EXPORTS");
 
         PlatformSettings.Windows ??= new WindowsSettings();
 

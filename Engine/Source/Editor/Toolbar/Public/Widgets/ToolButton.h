@@ -2,13 +2,13 @@
 
 #include "Toolbar/Export.h"
 
-#include "Core/Widget.h"
-#include "Core/Style.h"
-#include "Core/Icon.h"
-#include "Core/Animation.h"
+#include "KindUI/Core/Widget.h"
+#include "KindUI/Core/Style.h"
+#include "KindUI/Core/Icon.h"
+#include "KindUI/Core/Animation.h"
 #include <functional>
 
-namespace WindEffects::Editor::UI {
+namespace we::runtime::kindui {
 
 enum class ToolButtonStyle {
     Normal,
@@ -89,4 +89,4 @@ public:
     static constexpr float SEPARATOR_HEIGHT = 24.0f;
 };
 
-} // namespace WindEffects::Editor::UI
+} // namespace we::runtime::kindui

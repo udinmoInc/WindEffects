@@ -16,7 +16,7 @@ public class PlaceActors : ModuleRules
         PublicDependencies.Add("Engine");
         PublicDependencies.Add("Scene");
         PublicDependencies.Add("Renderer");
-        PublicDependencies.Add("UI");
+        PublicDependencies.Add("KindUI");
         PublicDependencies.Add("UIFramework");
         PublicDependencies.Add("ContentBrowser");
         PublicDependencies.Add("Toolbar");

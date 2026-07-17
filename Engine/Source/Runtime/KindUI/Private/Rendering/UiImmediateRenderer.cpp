@@ -13,7 +13,7 @@
 #include <string>
 #include <vector>
 
-namespace WindEffects::Editor::UI {
+namespace we::runtime::kindui {
 namespace {
 
 struct TextPushConstants {
@@ -754,4 +754,4 @@ void UiImmediateRenderer::EndFrame() {
     m_BoundSet = we::rhi::RHIDescriptorSetHandle::Invalid;
 }
 
-} // namespace WindEffects::Editor::UI
+} // namespace we::runtime::kindui

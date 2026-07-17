@@ -1,12 +1,12 @@
 #pragma once
 
-#include "Core/Icon.h"
+#include "KindUI/Core/Icon.h"
 
 #include <string>
 #include <string_view>
 #include <unordered_map>
 
-namespace WindEffects::Editor::UI {
+namespace we::runtime::kindui {
 
 // Canonical dock-tab and panel icon aliases — single registry for shell layout.
 inline std::string ResolvePanelTabIconName(std::string_view iconResource) {
@@ -33,4 +33,4 @@ inline std::string ResolvePanelTabIconName(std::string_view iconResource) {
     return Icons::ResolveLucideName(key);
 }
 
-} // namespace WindEffects::Editor::UI
+} // namespace we::runtime::kindui

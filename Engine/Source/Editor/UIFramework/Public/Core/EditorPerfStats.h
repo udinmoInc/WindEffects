@@ -5,7 +5,7 @@
 #include <cstdint>
 #include <string>
 
-namespace WindEffects::Editor::UI {
+namespace we::runtime::kindui {
 
 // Lightweight frame instrumentation. Enable with WE_EDITOR_PERF=1 for once/sec logs.
 struct UIFRAMEWORK_API EditorPerfSample {
@@ -48,4 +48,4 @@ private:
     float m_AvgFps = 0.0f;
 };
 
-} // namespace WindEffects::Editor::UI
+} // namespace we::runtime::kindui

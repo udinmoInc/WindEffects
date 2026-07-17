@@ -1,22 +1,22 @@
 #include "Widgets/TitleBar.h"
 #include "Widgets/MenuBar.h"
-#include "Core/PaintContext.h"
-#include "WindEffects/Editor/UI/Theming/ThemeAccess.h"
-#include "WindEffects/Editor/UI/Theming/ThemeColors.h"
-#include "WindEffects/Editor/UI/Theming/ThemeToken.h"
-#include "Core/Icon.h"
-#include "Core/Animator.h"
-#include "Widgets/Label.h"
+#include "KindUI/Core/PaintContext.h"
+#include "KindUI/Theming/ThemeAccess.h"
+#include "KindUI/Theming/ThemeColors.h"
+#include "KindUI/Theming/ThemeToken.h"
+#include "KindUI/Core/Icon.h"
+#include "KindUI/Core/Animator.h"
+#include "KindUI/Widgets/Label.h"
 #include "Widgets/Panel.h"
 #include "Widgets/ToolButton.h"
-#include "Core/DPIContext.h"
-#include "Rendering/IconMetrics.h"
+#include "KindUI/Core/DPIContext.h"
+#include "KindUI/Rendering/IconMetrics.h"
 #include "Platform/Platform.h"
 #include <algorithm>
 #include <cmath>
 #include <cstring>
 
-namespace WindEffects::Editor::UI {
+namespace we::runtime::kindui {
 
 namespace {
     class FixedGap : public Widget {
@@ -317,4 +317,4 @@ we::platform::WindowHitTestResult TitleBar::HitTest(we::platform::Int2 point) {
     return we::platform::WindowHitTestResult::Client;
 }
 
-} // namespace WindEffects::Editor::UI
+} // namespace we::runtime::kindui

@@ -1,14 +1,15 @@
 #include "Platform/Platform.h"
-#include "WindEffects/Runtime/UI/Widgets/TextBox.h"
-#include "WindEffects/Runtime/UI/Core/ControlChrome.h"
-#include "WindEffects/Runtime/UI/Core/EventSystem.h"
-#include "WindEffects/Runtime/UI/Core/PaintContext.h"
-#include "WindEffects/Runtime/UI/Core/TextMetrics.h"
-#include "WindEffects/Runtime/UI/Theming/ThemeManager.h"
-#include "WindEffects/Runtime/UI/Theming/ThemeToken.h"
-#include "WindEffects/Runtime/UI/Core/Animator.h"
+#include "KindUI/Widgets/TextBox.h"
+#include "KindUI/Core/ControlChrome.h"
+#include "KindUI/Core/EventSystem.h"
+#include "KindUI/Core/PaintContext.h"
+#include "KindUI/Core/TextMetrics.h"
+#include "KindUI/Theming/ThemeAccess.h"
+#include "KindUI/Theming/ThemeManager.h"
+#include "KindUI/Theming/ThemeToken.h"
+#include "KindUI/Core/Animator.h"
 
-namespace WindEffects::Editor::UI {
+namespace we::runtime::kindui {
 
 TextBox::TextBox(const std::string& initialText, std::function<void(const std::string&)> onTextChanged)
     : m_Text(initialText)
@@ -91,4 +92,4 @@ void TextBox::OnKeyDown(const KeyEvent& event) {
     }
 }
 
-} // namespace WindEffects::Editor::UI
+} // namespace we::runtime::kindui

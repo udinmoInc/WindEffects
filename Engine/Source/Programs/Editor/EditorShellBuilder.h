@@ -8,7 +8,7 @@
 #include <functional>
 #include <memory>
 
-namespace WindEffects::Editor::UI {
+namespace we::runtime::kindui {
 class Widget;
 class OverlayHost;
 class OverlayRenderer;
@@ -30,27 +30,27 @@ namespace we::runtime::engine {
 class EditorCamera;
 }
 
-namespace WindEffects::Editor::UI {
+namespace we::runtime::kindui {
 
 struct EditorShellDependencies {
     we::platform::WindowId window = we::platform::WindowId::Invalid;
     we::runtime::renderer::Renderer* renderer = nullptr;
     std::shared_ptr<we::runtime::scene::Scene> scene;
     std::shared_ptr<we::runtime::engine::EditorCamera> camera;
-    WindEffects::Editor::UI::OverlayRenderer* overlayRenderer = nullptr;
-    std::shared_ptr<WindEffects::Editor::UI::EventSystem> eventSystem;
+    we::runtime::kindui::OverlayRenderer* overlayRenderer = nullptr;
+    std::shared_ptr<we::runtime::kindui::EventSystem> eventSystem;
     float dpiScale = 1.0f;
 
     std::function<void()> onCreateNewLevel;
-    std::function<void(std::shared_ptr<WindEffects::Editor::UI::Widget>& viewportWidget)> onViewportCreated;
+    std::function<void(std::shared_ptr<we::runtime::kindui::Widget>& viewportWidget)> onViewportCreated;
     std::function<void(const DockLayoutBuildResult& layout)> onLayoutBuilt;
 };
 
 struct EditorShellResult {
-    std::shared_ptr<WindEffects::Editor::UI::Widget> rootWidget;
-    std::shared_ptr<WindEffects::Editor::UI::OverlayHost> overlayHost;
-    std::shared_ptr<WindEffects::Editor::UI::TitleBar> titleBar;
-    std::shared_ptr<WindEffects::Editor::UI::StatusBar> statusBar;
+    std::shared_ptr<we::runtime::kindui::Widget> rootWidget;
+    std::shared_ptr<we::runtime::kindui::OverlayHost> overlayHost;
+    std::shared_ptr<we::runtime::kindui::TitleBar> titleBar;
+    std::shared_ptr<we::runtime::kindui::StatusBar> statusBar;
     DockLayoutBuildResult layout;
 };
 
@@ -59,4 +59,4 @@ public:
     static EditorShellResult Build(IEditorApplicationContext& context, const EditorShellDependencies& deps);
 };
 
-} // namespace WindEffects::Editor::UI
+} // namespace we::runtime::kindui

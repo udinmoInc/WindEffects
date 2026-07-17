@@ -1,7 +1,7 @@
 #pragma once
 
 #include "App/LauncherContext.h"
-#include "WindEffects/Runtime/UI/Core/Widget.h"
+#include "KindUI/Core/Widget.h"
 #include "RHI/Types.h"
 #include "UI/Widgets/LauncherControls.h"
 #include "UI/Widgets/ProjectViews.h"
@@ -14,13 +14,13 @@
 #include <string>
 #include <vector>
 
-namespace WindEffects::Editor::UI {
+namespace we::runtime::kindui {
 class ScrollLayout;
 }
 
 namespace we::programs::welauncher {
 
-class LauncherShell : public WindEffects::Editor::UI::Widget {
+class LauncherShell : public we::runtime::kindui::Widget {
 public:
     LauncherShell(std::shared_ptr<LauncherContext> context, we::platform::WindowId window);
     ~LauncherShell() override = default;
@@ -34,18 +34,18 @@ public:
 
     [[nodiscard]] we::platform::WindowHitTestResult WindowHitTest(we::platform::Int2 point) const;
 
-    void Paint(WindEffects::Editor::UI::PaintContext& context) override;
-    void Arrange(const WindEffects::Editor::UI::Rect& allottedRect) override;
-    WindEffects::Editor::UI::Size Measure(const WindEffects::Editor::UI::Size& availableSize) override;
+    void Paint(we::runtime::kindui::PaintContext& context) override;
+    void Arrange(const we::runtime::kindui::Rect& allottedRect) override;
+    we::runtime::kindui::Size Measure(const we::runtime::kindui::Size& availableSize) override;
     void Tick(float deltaTime) override;
-    void OnKeyDown(const WindEffects::Editor::UI::KeyEvent& event) override;
+    void OnKeyDown(const we::runtime::kindui::KeyEvent& event) override;
 
 private:
     enum class ModalKind { None, Create, Rename, Actions };
 
     struct PageState {
-        std::shared_ptr<WindEffects::Editor::UI::Widget> root;
-        std::shared_ptr<WindEffects::Editor::UI::ScrollLayout> scroll;
+        std::shared_ptr<we::runtime::kindui::Widget> root;
+        std::shared_ptr<we::runtime::kindui::ScrollLayout> scroll;
         float scrollOffset = 0.0f;
         bool built = false;
         bool dirty = true;
@@ -60,11 +60,11 @@ private:
     void RebuildEnginePage();
     void RebuildSettingsPage();
     void PersistLauncherSettings(const std::string& statusMessage = {});
-    [[nodiscard]] std::shared_ptr<WindEffects::Editor::UI::Widget> BuildSettingsGeneral(const std::string& queryLower);
-    [[nodiscard]] std::shared_ptr<WindEffects::Editor::UI::Widget> BuildSettingsEngine(const std::string& queryLower);
-    [[nodiscard]] std::shared_ptr<WindEffects::Editor::UI::Widget> BuildSettingsStorage(const std::string& queryLower);
-    [[nodiscard]] std::shared_ptr<WindEffects::Editor::UI::Widget> BuildSettingsFileAssociations(const std::string& queryLower);
-    [[nodiscard]] std::shared_ptr<WindEffects::Editor::UI::Widget> BuildSettingsAbout(const std::string& queryLower);
+    [[nodiscard]] std::shared_ptr<we::runtime::kindui::Widget> BuildSettingsGeneral(const std::string& queryLower);
+    [[nodiscard]] std::shared_ptr<we::runtime::kindui::Widget> BuildSettingsEngine(const std::string& queryLower);
+    [[nodiscard]] std::shared_ptr<we::runtime::kindui::Widget> BuildSettingsStorage(const std::string& queryLower);
+    [[nodiscard]] std::shared_ptr<we::runtime::kindui::Widget> BuildSettingsFileAssociations(const std::string& queryLower);
+    [[nodiscard]] std::shared_ptr<we::runtime::kindui::Widget> BuildSettingsAbout(const std::string& queryLower);
     void RebuildCreateWizard();
     void CommitCreateProject();
     void SelectWizardTemplateByDelta(int delta);
@@ -78,7 +78,7 @@ private:
     void GoToPage(LauncherPage page);
     void BeginPageContentLoad(float durationSeconds = 0.28f);
     [[nodiscard]] bool IsPageContentLoading() const { return m_PageContentLoading; }
-    std::shared_ptr<WindEffects::Editor::UI::Widget> BuildPageSkeleton(LauncherPage page);
+    std::shared_ptr<we::runtime::kindui::Widget> BuildPageSkeleton(LauncherPage page);
 
     void ShowCreateWizard();
     void ShowRenameDialog();
@@ -104,16 +104,16 @@ private:
     void ShowProjectMoreMenu(std::size_t index);
     void RegenerateSelectedProjectFiles();
 
-    std::shared_ptr<WindEffects::Editor::UI::Widget> BuildProjectsPageHeader(bool showActions);
-    std::shared_ptr<WindEffects::Editor::UI::Widget> BuildProjectSearchRow();
+    std::shared_ptr<we::runtime::kindui::Widget> BuildProjectsPageHeader(bool showActions);
+    std::shared_ptr<we::runtime::kindui::Widget> BuildProjectSearchRow();
 
     std::shared_ptr<LauncherContext> m_Context;
     we::platform::WindowId m_Window = we::platform::WindowId::Invalid;
 
-    std::shared_ptr<WindEffects::Editor::UI::Widget> m_Root;
+    std::shared_ptr<we::runtime::kindui::Widget> m_Root;
     std::shared_ptr<LauncherTitleBar> m_TitleBar;
     std::shared_ptr<NavSidebar> m_Sidebar;
-    std::shared_ptr<WindEffects::Editor::UI::Widget> m_ContentHost;
+    std::shared_ptr<we::runtime::kindui::Widget> m_ContentHost;
     std::shared_ptr<StatusFooter> m_Footer;
     std::shared_ptr<ModalOverlay> m_ModalHost;
     std::shared_ptr<CompactSearchField> m_ProjectsSearch;
@@ -145,7 +145,7 @@ private:
     bool m_PageContentLoading = false;
     float m_PageLoadTimer = 0.0f;
     float m_PageLoadDuration = 0.28f;
-    std::shared_ptr<WindEffects::Editor::UI::Widget> m_SettingsScrollTarget;
+    std::shared_ptr<we::runtime::kindui::Widget> m_SettingsScrollTarget;
     bool m_SettingsPendingScroll = false;
 };
 

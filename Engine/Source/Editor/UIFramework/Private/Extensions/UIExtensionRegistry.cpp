@@ -1,8 +1,8 @@
 #include "WindEffects/Editor/UI/Extensions/UIExtensionRegistry.h"
 
-#include "WindEffects/Editor/UI/Commands/ICommandRegistry.h"
+#include "KindUI/Commands/ICommandRegistry.h"
 
-namespace WindEffects::Editor::UI {
+namespace we::runtime::kindui {
 
 void UIExtensionRegistry::RegisterExtension(std::shared_ptr<IEditorUIExtension> extension) {
     if (!extension) return;
@@ -46,4 +46,4 @@ void UIExtensionRegistry::PopulateCommandRegistry(ICommandRegistry& commands) co
     }
 }
 
-} // namespace WindEffects::Editor::UI
+} // namespace we::runtime::kindui

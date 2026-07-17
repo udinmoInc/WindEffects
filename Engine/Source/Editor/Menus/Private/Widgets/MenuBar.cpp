@@ -1,13 +1,13 @@
 #include "Widgets/MenuBar.h"
 #include "Widgets/DropdownMenu.h"
-#include "Layout/OverlayManager.h"
-#include "Core/PaintContext.h"
-#include "WindEffects/Editor/UI/Theming/ThemeToken.h"
-#include "Core/Icon.h"
-#include "Core/DPIContext.h"
+#include "KindUI/Layout/OverlayManager.h"
+#include "KindUI/Core/PaintContext.h"
+#include "KindUI/Theming/ThemeToken.h"
+#include "KindUI/Core/Icon.h"
+#include "KindUI/Core/DPIContext.h"
 #include <algorithm>
 
-namespace WindEffects::Editor::UI {
+namespace we::runtime::kindui {
 
 MenuBar::MenuBar()
     : m_Style(WidgetStyle::Panel())

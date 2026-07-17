@@ -1,13 +1,13 @@
 #include "Widgets/Panel.h"
 #include "WindEffects/Editor/UI/Panel/PanelChrome.h"
-#include "Core/PaintContext.h"
-#include "Core/Icon.h"
-#include "Core/DPIContext.h"
-#include "WindEffects/Editor/UI/Theming/ThemeToken.h"
+#include "KindUI/Core/PaintContext.h"
+#include "KindUI/Core/Icon.h"
+#include "KindUI/Core/DPIContext.h"
+#include "KindUI/Theming/ThemeToken.h"
 #include <functional>
 #include <algorithm>
 
-namespace WindEffects::Editor::UI {
+namespace we::runtime::kindui {
 
 Panel::Panel(const std::string& title)
     : m_Title(title)
@@ -296,4 +296,4 @@ Panel::HeaderAction* Panel::GetActionAtPosition(const Point& pos) {
     return nullptr;
 }
 
-} // namespace WindEffects::Editor::UI
+} // namespace we::runtime::kindui

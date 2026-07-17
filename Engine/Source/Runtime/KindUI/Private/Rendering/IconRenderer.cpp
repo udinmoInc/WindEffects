@@ -1,9 +1,9 @@
-#include "WindEffects/Runtime/UI/Rendering/IconRenderer.h"
+#include "KindUI/Rendering/IconRenderer.h"
 
-#include "WindEffects/Runtime/UI/Rendering/IconMetrics.h"
+#include "KindUI/Rendering/IconMetrics.h"
 #include "Core/Logger.h"
 
-namespace WindEffects::Editor::UI {
+namespace we::runtime::kindui {
 
 IconRenderer::IconRenderer() = default;
 
@@ -82,4 +82,4 @@ bool IconRenderer::CreateTexture(
 
 void IconRenderer::DestroyTexture(IconTexture&) {}
 
-} // namespace WindEffects::Editor::UI
+} // namespace we::runtime::kindui

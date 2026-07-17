@@ -1,9 +1,9 @@
-#include "WindEffects/Runtime/UI/Core/Icon.h"
-#include "WindEffects/Runtime/UI/Core/PaintContext.h"
-#include "WindEffects/Runtime/UI/Rendering/IconMetrics.h"
+#include "KindUI/Core/Icon.h"
+#include "KindUI/Core/PaintContext.h"
+#include "KindUI/Rendering/IconMetrics.h"
 #include <algorithm>
 
-namespace WindEffects::Editor::UI {
+namespace we::runtime::kindui {
 
 IconRegistry& IconRegistry::Get() {
     static IconRegistry instance;
@@ -45,4 +45,4 @@ void IconPainter::DrawVerticalMoreMenu(PaintContext& context, const Rect& bounds
     DrawIcon(context, Icons::MoreName, bounds, color);
 }
 
-} // namespace WindEffects::Editor::UI
+} // namespace we::runtime::kindui

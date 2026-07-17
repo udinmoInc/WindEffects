@@ -1,12 +1,12 @@
-#include "WindEffects/Runtime/UI/Rendering/IconMetrics.h"
+#include "KindUI/Rendering/IconMetrics.h"
 
-#include "WindEffects/Runtime/UI/Theming/ThemeAccess.h"
+#include "KindUI/Theming/ThemeAccess.h"
 
 #include <algorithm>
 #include <cmath>
 #include <cstdlib>
 
-namespace WindEffects::Editor::UI::IconMetrics {
+namespace we::runtime::kindui::IconMetrics {
 namespace {
 
 uint32_t NearestTier(uint32_t requestedPx) {
@@ -151,4 +151,4 @@ Rect PlaceGlyphCentered(const Rect& controlBounds, float logicalTierPx) {
     return PlaceGlyphCentered(controlBounds, SnapToAtlasTier(logicalTierPx));
 }
 
-} // namespace WindEffects::Editor::UI::IconMetrics
+} // namespace we::runtime::kindui::IconMetrics

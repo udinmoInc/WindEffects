@@ -1,9 +1,9 @@
-#include "WindEffects/Runtime/UI/Rendering/UIBatchGenerator.h"
-#include "WindEffects/Runtime/UI/Rendering/OverlayRenderer.h"
+#include "KindUI/Rendering/UIBatchGenerator.h"
+#include "KindUI/Rendering/OverlayRenderer.h"
 #include <cmath>
 #include <algorithm>
 
-namespace WindEffects::Editor::UI {
+namespace we::runtime::kindui {
 
 UIBatchGenerator::UIBatchGenerator()
     : m_Width(0)
@@ -141,4 +141,4 @@ bool UIBatchGenerator::CanMergeBatches(const UIRenderBatch& a, const UIRenderBat
     return true;
 }
 
-} // namespace WindEffects::Editor::UI
+} // namespace we::runtime::kindui

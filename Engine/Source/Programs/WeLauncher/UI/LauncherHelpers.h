@@ -1,10 +1,10 @@
 #pragma once
 
-#include "WindEffects/Runtime/UI/Core/DPIContext.h"
-#include "WindEffects/Runtime/UI/Core/Geometry.h"
-#include "WindEffects/Runtime/UI/Core/UIRepaintGate.h"
-#include "WindEffects/Runtime/UI/Theming/ThemeAccess.h"
-#include "WindEffects/Runtime/UI/Theming/ThemeToken.h"
+#include "KindUI/Core/DPIContext.h"
+#include "KindUI/Core/Geometry.h"
+#include "KindUI/Core/UIRepaintGate.h"
+#include "KindUI/Theming/ThemeAccess.h"
+#include "KindUI/Theming/ThemeToken.h"
 
 #include "Platform/PlatformSDK.h"
 
@@ -44,20 +44,20 @@ inline constexpr float kLauncherSearchW = 320.0f;
 inline constexpr float kLauncherRowH = 44.0f;
 inline constexpr float kLauncherIconPx = 16.0f;
 
-inline WindEffects::Editor::UI::Color LColor(WindEffects::Editor::UI::ThemeToken token) {
-    return WindEffects::Editor::UI::ResolveThemeColor(token);
+inline we::runtime::kindui::Color LColor(we::runtime::kindui::ThemeToken token) {
+    return we::runtime::kindui::ResolveThemeColor(token);
 }
 
-inline float LMetric(WindEffects::Editor::UI::ThemeToken token) {
-    return WindEffects::Editor::UI::ResolveThemeMetric(token);
+inline float LMetric(we::runtime::kindui::ThemeToken token) {
+    return we::runtime::kindui::ResolveThemeMetric(token);
 }
 
 inline float LScale() {
-    return std::max(1.0f, WindEffects::Editor::UI::DPIContext::GetScale());
+    return std::max(1.0f, we::runtime::kindui::DPIContext::GetScale());
 }
 
 inline void InvalidateUI() {
-    WindEffects::Editor::UI::UIRepaintGate::Request();
+    we::runtime::kindui::UIRepaintGate::Request();
 }
 
 inline std::string FormatRelativeTime(const std::string& isoUtc) {
@@ -154,8 +154,8 @@ inline bool RevealInExplorer(const std::string& pathUtf8) {
     return result && result->launched;
 }
 
-inline WindEffects::Editor::UI::Size FixedSize(float w, float h) {
-    return WindEffects::Editor::UI::Size{ w, h };
+inline we::runtime::kindui::Size FixedSize(float w, float h) {
+    return we::runtime::kindui::Size{ w, h };
 }
 
 } // namespace we::programs::welauncher

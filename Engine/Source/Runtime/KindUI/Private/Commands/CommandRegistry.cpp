@@ -1,6 +1,6 @@
-#include "WindEffects/Runtime/UI/Commands/CommandRegistry.h"
+#include "KindUI/Commands/CommandRegistry.h"
 
-namespace WindEffects::Editor::UI {
+namespace we::runtime::kindui {
 
 void CommandRegistry::RegisterCommand(std::shared_ptr<ICommand> command) {
     if (!command) return;
@@ -38,6 +38,6 @@ bool CommandRegistry::Execute(std::string_view commandId, const CommandContext& 
     return true;
 }
 
-} // namespace WindEffects::Editor::UI
+} // namespace we::runtime::kindui
 
 // export rebuild

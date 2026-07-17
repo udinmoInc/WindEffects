@@ -1,16 +1,16 @@
-#include "WindEffects/Runtime/UI/Rendering/Icons/IconManager.h"
+#include "KindUI/Rendering/Icons/IconManager.h"
 
-#include "WindEffects/Runtime/UI/Core/Icon.h"
+#include "KindUI/Core/Icon.h"
 #include "Core/Logger.h"
 #include "Icons/Assets/IconAsset.h"
-#include "WindEffects/Runtime/UI/Rendering/IconMetrics.h"
+#include "KindUI/Rendering/IconMetrics.h"
 
 #include <algorithm>
 #include <cstdint>
 #include <cstdlib>
 #include <unordered_set>
 
-namespace WindEffects::Editor::UI {
+namespace we::runtime::kindui {
 
 namespace {
 
@@ -254,4 +254,4 @@ IconDrawInfo IconManager::ResolvePathIcon(
     return ResolveIcon(StemFromAssetPath(assetPath), requestedTierPx, color);
 }
 
-} // namespace WindEffects::Editor::UI
+} // namespace we::runtime::kindui

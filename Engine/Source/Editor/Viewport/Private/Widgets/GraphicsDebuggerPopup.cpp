@@ -1,14 +1,14 @@
 #include "Widgets/GraphicsDebuggerPopup.h"
 #include "EditorCamera.h"
 #include "Scene/Scene.h"
-#include "Core/PaintContext.h"
-#include "WindEffects/Editor/UI/Theming/ThemeToken.h"
+#include "KindUI/Core/PaintContext.h"
+#include "KindUI/Theming/ThemeToken.h"
 #include "Core/Logger.h"
 #include <glm/gtc/type_ptr.hpp>
 #include <iomanip>
 #include <sstream>
 
-namespace WindEffects::Editor::UI {
+namespace we::runtime::kindui {
 
 namespace {
 constexpr float kHeaderHeight = 22.0f;
@@ -160,4 +160,4 @@ bool GraphicsDebuggerPopup::ShowsPointerCursor(const Point& position) const {
     return m_HeaderRect.Contains(position);
 }
 
-} // namespace WindEffects::Editor::UI
+} // namespace we::runtime::kindui

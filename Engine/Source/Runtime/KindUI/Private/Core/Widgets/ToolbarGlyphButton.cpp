@@ -1,14 +1,14 @@
-#include "WindEffects/Runtime/UI/Core/Widgets/ToolbarGlyphButton.h"
+#include "KindUI/Core/Widgets/ToolbarGlyphButton.h"
 
-#include "WindEffects/Runtime/UI/Core/Animator.h"
-#include "WindEffects/Runtime/UI/Core/Icon.h"
-#include "WindEffects/Runtime/UI/Core/PaintContext.h"
-#include "WindEffects/Runtime/UI/Rendering/IconMetrics.h"
-#include "WindEffects/Runtime/UI/Theming/ThemeToken.h"
+#include "KindUI/Core/Animator.h"
+#include "KindUI/Core/Icon.h"
+#include "KindUI/Core/PaintContext.h"
+#include "KindUI/Rendering/IconMetrics.h"
+#include "KindUI/Theming/ThemeToken.h"
 
 #include <algorithm>
 
-namespace WindEffects::Editor::UI {
+namespace we::runtime::kindui {
 
 ToolbarGlyphButton::ToolbarGlyphButton(
     std::string iconName,
@@ -106,4 +106,4 @@ void ToolbarGlyphButton::Tick(float deltaTime) {
     Widget::Tick(deltaTime);
 }
 
-} // namespace WindEffects::Editor::UI
+} // namespace we::runtime::kindui

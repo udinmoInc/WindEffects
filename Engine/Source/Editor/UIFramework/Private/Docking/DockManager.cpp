@@ -7,7 +7,7 @@
 #include <nlohmann/json.h>
 #endif
 
-namespace WindEffects::Editor::UI {
+namespace we::runtime::kindui {
 namespace {
 
 #if WE_HAS_NLOHMANN_JSON
@@ -394,4 +394,4 @@ WorkspaceLayout CreateDefaultEditorWorkspaceLayout() {
     return layout;
 }
 
-} // namespace WindEffects::Editor::UI
+} // namespace we::runtime::kindui

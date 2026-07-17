@@ -5,9 +5,9 @@
 #include "RHI/Types.h"
 #include "EditorCamera.h"
 #include "Scene/Scene.h"
-#include "Core/PaintContext.h"
-#include "Rendering/OverlayRenderer.h"
-#include "WindEffects/Editor/UI/Theming/ThemeToken.h"
+#include "KindUI/Core/PaintContext.h"
+#include "KindUI/Rendering/OverlayRenderer.h"
+#include "KindUI/Theming/ThemeToken.h"
 #include "Rendering/ViewportRenderTarget.h"
 #include "Core/LogCategory.h"
 #include "Core/DiagnosticMacros.h"
@@ -18,7 +18,7 @@
 #define WE_DEBUG_UI 0
 #endif
 
-namespace WindEffects::Editor::UI {
+namespace we::runtime::kindui {
 
 ViewportWidget::ViewportWidget(::we::runtime::renderer::ISceneViewportController* viewportController,
                                we::rhi::IRHIDevice* device,
@@ -285,4 +285,4 @@ void ViewportWidget::Tick(float deltaTime) {
     m_Navigation.Tick(deltaTime);
 }
 
-} // namespace WindEffects::Editor::UI
+} // namespace we::runtime::kindui

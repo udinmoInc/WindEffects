@@ -2,13 +2,13 @@
 #include "ViewportToolbarState.h"
 #include "Widgets/Toolbar.h"
 #include "Widgets/ToolButton.h"
-#include "Widgets/Label.h"
-#include "WindEffects/Editor/UI/Theming/ThemeAccess.h"
+#include "KindUI/Widgets/Label.h"
+#include "KindUI/Theming/ThemeAccess.h"
 
 #include <functional>
 
 namespace we::programs::editor {
-using namespace WindEffects::Editor::UI;
+using namespace we::runtime::kindui;
 
 namespace {
 

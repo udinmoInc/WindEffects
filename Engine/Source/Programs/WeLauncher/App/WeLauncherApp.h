@@ -5,7 +5,7 @@
 
 #include <memory>
 
-namespace WindEffects::Editor::UI {
+namespace we::runtime::kindui {
 class OverlayRenderer;
 class EventSystem;
 class ApplicationContext;
@@ -44,11 +44,11 @@ private:
     bool m_Running = true;
 
     std::shared_ptr<LauncherContext> m_Context;
-    std::unique_ptr<WindEffects::Editor::UI::ApplicationContext> m_AppContext;
-    std::shared_ptr<WindEffects::Editor::UI::IWidgetContext> m_WidgetContext;
+    std::unique_ptr<we::runtime::kindui::ApplicationContext> m_AppContext;
+    std::shared_ptr<we::runtime::kindui::IWidgetContext> m_WidgetContext;
     std::shared_ptr<we::runtime::renderer::Renderer> m_Presenter;
-    std::unique_ptr<WindEffects::Editor::UI::OverlayRenderer> m_UIRenderer;
-    std::shared_ptr<WindEffects::Editor::UI::EventSystem> m_UIEventSystem;
+    std::unique_ptr<we::runtime::kindui::OverlayRenderer> m_UIRenderer;
+    std::shared_ptr<we::runtime::kindui::EventSystem> m_UIEventSystem;
     std::shared_ptr<LauncherShell> m_UI;
 
     uint32_t m_LastLayoutSwapchainW = 0;

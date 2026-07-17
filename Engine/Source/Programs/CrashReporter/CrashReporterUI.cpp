@@ -1,12 +1,12 @@
 #include "CrashReporterUI.h"
 #include "Widgets/Panel.h"
-#include "Layout/Box.h"
-#include "Layout/ScrollLayout.h"
-#include "Layout/Spacer.h"
-#include "Widgets/Label.h"
-#include "Widgets/Button.h"
-#include "Widgets/TextBox.h"
-#include "Widgets/CheckBox.h"
+#include "KindUI/Layout/Box.h"
+#include "KindUI/Layout/ScrollLayout.h"
+#include "KindUI/Layout/Spacer.h"
+#include "KindUI/Widgets/Label.h"
+#include "KindUI/Widgets/Button.h"
+#include "KindUI/Widgets/TextBox.h"
+#include "KindUI/Widgets/CheckBox.h"
 #include "Core/Logger.h"
 #include "ConfigManager.h"
 #include <fstream>
@@ -15,7 +15,7 @@
 #include <windows.h>
 #include <cstdlib>
 
-using namespace WindEffects::Editor::UI;
+using namespace we::runtime::kindui;
 
 namespace we::programs::crashreporter {
 

@@ -1,26 +1,26 @@
-#include "WindEffects/Runtime/UI/Rendering/OverlayRenderer.h"
+#include "KindUI/Rendering/OverlayRenderer.h"
 
-#include "WindEffects/Runtime/UI/Rendering/IconRenderer.h"
-#include "WindEffects/Runtime/UI/Rendering/Icons/IconManager.h"
-#include "WindEffects/Runtime/UI/Rendering/TextUIService.h"
-#include "WindEffects/Runtime/UI/Rendering/UIWidgetAdapter.h"
-#include "WindEffects/Runtime/UI/Rendering/UICompositor.h"
-#include "WindEffects/Runtime/UI/Rendering/UIStateManager.h"
-#include "WindEffects/Runtime/UI/Rendering/UiGpuUpload.h"
+#include "KindUI/Rendering/IconRenderer.h"
+#include "KindUI/Rendering/Icons/IconManager.h"
+#include "KindUI/Rendering/TextUIService.h"
+#include "KindUI/Rendering/UIWidgetAdapter.h"
+#include "KindUI/Rendering/UICompositor.h"
+#include "KindUI/Rendering/UIStateManager.h"
+#include "KindUI/Rendering/UiGpuUpload.h"
 #include "Rendering/UiImmediateRenderer.h"
 
 #include "AssetRegistry.h"
 #include "Core/FrameCounter.h"
 #include "Core/LogCategory.h"
 #include "Core/Logger.h"
-#include "WindEffects/Runtime/UI/Core/UIRepaintGate.h"
-#include "WindEffects/Runtime/UI/Core/Widget.h"
+#include "KindUI/Core/UIRepaintGate.h"
+#include "KindUI/Core/Widget.h"
 
 #include <algorithm>
 #include <cstring>
 #include <filesystem>
 
-namespace WindEffects::Editor::UI {
+namespace we::runtime::kindui {
 namespace {
 
 [[nodiscard]] we::rhi::UIDrawList BuildDrawList(
@@ -282,4 +282,4 @@ TextUIService* OverlayRenderer::GetTextUIService() const { return m_TextUIServic
 IconRenderer* OverlayRenderer::GetIconRenderer() const { return m_IconRenderer.get(); }
 IconManager* OverlayRenderer::GetIconManager() const { return m_IconManager.get(); }
 
-} // namespace WindEffects::Editor::UI
+} // namespace we::runtime::kindui

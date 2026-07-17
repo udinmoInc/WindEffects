@@ -1,7 +1,7 @@
 #include "Widgets/RenderDiagnosticsPanel.h"
-#include "WindEffects/Editor/UI/Theming/ThemeToken.h"
+#include "KindUI/Theming/ThemeToken.h"
 
-namespace WindEffects::Editor::UI {
+namespace we::runtime::kindui {
 
 RenderDiagnosticsPanel::RenderDiagnosticsPanel() {
     m_Scroll = std::make_shared<ScrollLayout>();
@@ -47,4 +47,4 @@ void RenderDiagnosticsPanel::Paint(PaintContext& context) {
     m_Scroll->Paint(context);
 }
 
-} // namespace WindEffects::Editor::UI
+} // namespace we::runtime::kindui

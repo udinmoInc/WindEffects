@@ -1,7 +1,7 @@
-#include "WindEffects/Runtime/UI/Core/PaintContext.h"
-#include "WindEffects/Runtime/UI/Rendering/TextUIService.h"
+#include "KindUI/Core/PaintContext.h"
+#include "KindUI/Rendering/TextUIService.h"
 
-namespace WindEffects::Editor::UI {
+namespace we::runtime::kindui {
 
 void PaintContext::PushClipRect(const Rect& clip) {
     if (m_ClipStack.empty()) {
@@ -151,4 +151,4 @@ void PaintContext::DrawColorTexture(const Rect& rect, we::rhi::RHIDescriptorSetH
     m_Commands.push_back(cmd);
 }
 
-} // namespace WindEffects::Editor::UI
+} // namespace we::runtime::kindui

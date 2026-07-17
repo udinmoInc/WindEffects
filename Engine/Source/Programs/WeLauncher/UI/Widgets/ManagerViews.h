@@ -1,6 +1,6 @@
 #pragma once
 
-#include "WindEffects/Runtime/UI/Core/Widget.h"
+#include "KindUI/Core/Widget.h"
 #include "Model/WeProjectDescriptor.h"
 #include "UI/Widgets/LauncherControls.h"
 #include "UI/Widgets/ProjectViews.h"
@@ -25,19 +25,19 @@ struct ProjectColumnLayout {
     static ProjectColumnLayout Compute(float totalWidth, float scale);
 };
 
-class ProjectTableHeader : public WindEffects::Editor::UI::Widget {
+class ProjectTableHeader : public we::runtime::kindui::Widget {
 public:
     using SortFn = std::function<void(ProjectSortMode)>;
 
     void SetSortMode(ProjectSortMode mode) { m_SortMode = mode; }
     void SetOnSort(SortFn fn) { m_OnSort = std::move(fn); }
 
-    WindEffects::Editor::UI::Size Measure(const WindEffects::Editor::UI::Size& availableSize) override;
-    void Arrange(const WindEffects::Editor::UI::Rect& allottedRect) override;
-    void Paint(WindEffects::Editor::UI::PaintContext& context) override;
-    void OnMouseDown(const WindEffects::Editor::UI::MouseEvent& event) override;
-    void OnMouseUp(const WindEffects::Editor::UI::MouseEvent& event) override;
-    bool ShowsPointerCursor(const WindEffects::Editor::UI::Point& position) const override;
+    we::runtime::kindui::Size Measure(const we::runtime::kindui::Size& availableSize) override;
+    void Arrange(const we::runtime::kindui::Rect& allottedRect) override;
+    void Paint(we::runtime::kindui::PaintContext& context) override;
+    void OnMouseDown(const we::runtime::kindui::MouseEvent& event) override;
+    void OnMouseUp(const we::runtime::kindui::MouseEvent& event) override;
+    bool ShowsPointerCursor(const we::runtime::kindui::Point& position) const override;
 
     static constexpr float kHeight = 32.0f;
 
@@ -48,7 +48,7 @@ private:
 };
 
 // Compact desktop table row (~52 px with 14–16 px vertical padding). Name + path; ⋮ for actions.
-class ProjectTableRow : public WindEffects::Editor::UI::Widget {
+class ProjectTableRow : public we::runtime::kindui::Widget {
 public:
     using ActionFn = std::function<void(ProjectCardAction)>;
     using SelectFn = std::function<void(bool additive)>;
@@ -60,13 +60,13 @@ public:
     void SetOnAction(ActionFn fn) { m_OnAction = std::move(fn); }
     void SetOnSelect(SelectFn fn) { m_OnSelect = std::move(fn); }
 
-    WindEffects::Editor::UI::Size Measure(const WindEffects::Editor::UI::Size& availableSize) override;
-    void Arrange(const WindEffects::Editor::UI::Rect& allottedRect) override;
-    void Paint(WindEffects::Editor::UI::PaintContext& context) override;
-    void OnMouseDown(const WindEffects::Editor::UI::MouseEvent& event) override;
-    void OnMouseMove(const WindEffects::Editor::UI::MouseEvent& event) override;
-    void OnMouseUp(const WindEffects::Editor::UI::MouseEvent& event) override;
-    bool ShowsPointerCursor(const WindEffects::Editor::UI::Point& position) const override;
+    we::runtime::kindui::Size Measure(const we::runtime::kindui::Size& availableSize) override;
+    void Arrange(const we::runtime::kindui::Rect& allottedRect) override;
+    void Paint(we::runtime::kindui::PaintContext& context) override;
+    void OnMouseDown(const we::runtime::kindui::MouseEvent& event) override;
+    void OnMouseMove(const we::runtime::kindui::MouseEvent& event) override;
+    void OnMouseUp(const we::runtime::kindui::MouseEvent& event) override;
+    bool ShowsPointerCursor(const we::runtime::kindui::Point& position) const override;
     void Tick(float deltaTime) override;
 
     // Compact desktop table row (44 px). Hover fill only — no box borders.
@@ -75,9 +75,9 @@ public:
 private:
     enum class HitZone { None, Body, Favorite, More };
 
-    [[nodiscard]] HitZone HitTest(const WindEffects::Editor::UI::Point& p) const;
-    [[nodiscard]] WindEffects::Editor::UI::Rect FavoriteRect() const;
-    [[nodiscard]] WindEffects::Editor::UI::Rect MoreRect() const;
+    [[nodiscard]] HitZone HitTest(const we::runtime::kindui::Point& p) const;
+    [[nodiscard]] we::runtime::kindui::Rect FavoriteRect() const;
+    [[nodiscard]] we::runtime::kindui::Rect MoreRect() const;
 
     ProjectSummary m_Summary;
     bool m_Selected = false;
@@ -91,7 +91,7 @@ private:
     std::chrono::steady_clock::time_point m_LastClick{};
 };
 
-class TemplateListRow : public WindEffects::Editor::UI::Widget {
+class TemplateListRow : public we::runtime::kindui::Widget {
 public:
     using SelectFn = std::function<void()>;
 
@@ -100,12 +100,12 @@ public:
     void SetSelected(bool selected) { m_Selected = selected; }
     void SetOnSelect(SelectFn fn) { m_OnSelect = std::move(fn); }
 
-    WindEffects::Editor::UI::Size Measure(const WindEffects::Editor::UI::Size& availableSize) override;
-    void Arrange(const WindEffects::Editor::UI::Rect& allottedRect) override;
-    void Paint(WindEffects::Editor::UI::PaintContext& context) override;
-    void OnMouseDown(const WindEffects::Editor::UI::MouseEvent& event) override;
-    void OnMouseUp(const WindEffects::Editor::UI::MouseEvent& event) override;
-    bool ShowsPointerCursor(const WindEffects::Editor::UI::Point& position) const override;
+    we::runtime::kindui::Size Measure(const we::runtime::kindui::Size& availableSize) override;
+    void Arrange(const we::runtime::kindui::Rect& allottedRect) override;
+    void Paint(we::runtime::kindui::PaintContext& context) override;
+    void OnMouseDown(const we::runtime::kindui::MouseEvent& event) override;
+    void OnMouseUp(const we::runtime::kindui::MouseEvent& event) override;
+    bool ShowsPointerCursor(const we::runtime::kindui::Point& position) const override;
     void Tick(float deltaTime) override;
 
     static constexpr float kRowH = 52.0f;
@@ -118,7 +118,7 @@ private:
     float m_HoverAnim = 0.0f;
 };
 
-class EngineInstallRow : public WindEffects::Editor::UI::Widget {
+class EngineInstallRow : public we::runtime::kindui::Widget {
 public:
     using ActionFn = std::function<void(const std::string& action)>;
 
@@ -128,13 +128,13 @@ public:
     void SetOnSelect(std::function<void()> fn) { m_OnSelect = std::move(fn); }
     void SetOnAction(ActionFn fn) { m_OnAction = std::move(fn); }
 
-    WindEffects::Editor::UI::Size Measure(const WindEffects::Editor::UI::Size& availableSize) override;
-    void Arrange(const WindEffects::Editor::UI::Rect& allottedRect) override;
-    void Paint(WindEffects::Editor::UI::PaintContext& context) override;
-    void OnMouseDown(const WindEffects::Editor::UI::MouseEvent& event) override;
-    void OnMouseMove(const WindEffects::Editor::UI::MouseEvent& event) override;
-    void OnMouseUp(const WindEffects::Editor::UI::MouseEvent& event) override;
-    bool ShowsPointerCursor(const WindEffects::Editor::UI::Point& position) const override;
+    we::runtime::kindui::Size Measure(const we::runtime::kindui::Size& availableSize) override;
+    void Arrange(const we::runtime::kindui::Rect& allottedRect) override;
+    void Paint(we::runtime::kindui::PaintContext& context) override;
+    void OnMouseDown(const we::runtime::kindui::MouseEvent& event) override;
+    void OnMouseMove(const we::runtime::kindui::MouseEvent& event) override;
+    void OnMouseUp(const we::runtime::kindui::MouseEvent& event) override;
+    bool ShowsPointerCursor(const we::runtime::kindui::Point& position) const override;
     void Tick(float deltaTime) override;
 
     static constexpr float kRowH = 48.0f;
@@ -142,8 +142,8 @@ public:
 private:
     enum class HitZone { None, Body, Launch, Verify, Repair, Folder, Uninstall };
 
-    [[nodiscard]] HitZone HitTest(const WindEffects::Editor::UI::Point& p) const;
-    [[nodiscard]] WindEffects::Editor::UI::Rect ActionRect(int index) const;
+    [[nodiscard]] HitZone HitTest(const we::runtime::kindui::Point& p) const;
+    [[nodiscard]] we::runtime::kindui::Rect ActionRect(int index) const;
 
     EngineInstallInfo m_Info;
     bool m_Selected = false;
@@ -155,13 +155,13 @@ private:
 };
 
 // Full-bleed table header for Learn / Engine lists (label columns, no sort).
-class SimpleColumnHeader : public WindEffects::Editor::UI::Widget {
+class SimpleColumnHeader : public we::runtime::kindui::Widget {
 public:
     explicit SimpleColumnHeader(std::vector<std::string> columns);
 
-    WindEffects::Editor::UI::Size Measure(const WindEffects::Editor::UI::Size& availableSize) override;
-    void Arrange(const WindEffects::Editor::UI::Rect& allottedRect) override;
-    void Paint(WindEffects::Editor::UI::PaintContext& context) override;
+    we::runtime::kindui::Size Measure(const we::runtime::kindui::Size& availableSize) override;
+    void Arrange(const we::runtime::kindui::Rect& allottedRect) override;
+    void Paint(we::runtime::kindui::PaintContext& context) override;
 
     static constexpr float kHeight = 32.0f;
 
@@ -169,7 +169,7 @@ private:
     std::vector<std::string> m_Columns;
 };
 
-class LibraryPackageRow : public WindEffects::Editor::UI::Widget {
+class LibraryPackageRow : public we::runtime::kindui::Widget {
 public:
     using ClickFn = std::function<void()>;
 
@@ -180,12 +180,12 @@ public:
         const char* icon,
         ClickFn onClick = {});
 
-    WindEffects::Editor::UI::Size Measure(const WindEffects::Editor::UI::Size& availableSize) override;
-    void Arrange(const WindEffects::Editor::UI::Rect& allottedRect) override;
-    void Paint(WindEffects::Editor::UI::PaintContext& context) override;
-    void OnMouseDown(const WindEffects::Editor::UI::MouseEvent& event) override;
-    void OnMouseUp(const WindEffects::Editor::UI::MouseEvent& event) override;
-    bool ShowsPointerCursor(const WindEffects::Editor::UI::Point& position) const override;
+    we::runtime::kindui::Size Measure(const we::runtime::kindui::Size& availableSize) override;
+    void Arrange(const we::runtime::kindui::Rect& allottedRect) override;
+    void Paint(we::runtime::kindui::PaintContext& context) override;
+    void OnMouseDown(const we::runtime::kindui::MouseEvent& event) override;
+    void OnMouseUp(const we::runtime::kindui::MouseEvent& event) override;
+    bool ShowsPointerCursor(const we::runtime::kindui::Point& position) const override;
     void Tick(float deltaTime) override;
 
     static constexpr float kRowH = 44.0f;
@@ -201,6 +201,6 @@ private:
 };
 
 [[nodiscard]] const char* TemplateTypeIcon(const std::string& templateId);
-[[nodiscard]] WindEffects::Editor::UI::Color TemplateBadgeColor(const std::string& templateId);
+[[nodiscard]] we::runtime::kindui::Color TemplateBadgeColor(const std::string& templateId);
 
 } // namespace we::programs::welauncher

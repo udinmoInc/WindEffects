@@ -4,13 +4,13 @@
 #include "Widgets/Panel.h"
 #include "Widgets/TreeView.h"
 #include "Widgets/ExplorerPanelHeader.h"
-#include "WindEffects/Editor/UI/Theming/ThemeAccess.h"
+#include "KindUI/Theming/ThemeAccess.h"
 #include "Widgets/ExplorerFilterMenu.h"
-#include "Core/Icon.h"
+#include "KindUI/Core/Icon.h"
 #include "EditorWorkspaceController.h"
 
 namespace we::programs::editor {
-using namespace WindEffects::Editor::UI;
+using namespace we::runtime::kindui;
 
 namespace {
 std::shared_ptr<ExplorerPanelHeader> g_ExplorerHeader;

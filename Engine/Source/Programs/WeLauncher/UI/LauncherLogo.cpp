@@ -1,7 +1,7 @@
 #include "UI/LauncherLogo.h"
 
-#include "WindEffects/Runtime/UI/Rendering/IconRenderer.h"
-#include "WindEffects/Runtime/UI/Rendering/OverlayRenderer.h"
+#include "KindUI/Rendering/IconRenderer.h"
+#include "KindUI/Rendering/OverlayRenderer.h"
 #include "Util/PathUtils.h"
 
 #include "Core/Logger.h"
@@ -150,7 +150,7 @@ std::filesystem::path ResolveLauncherLogoPath(const std::filesystem::path& engin
 }
 
 we::rhi::RHIDescriptorSetHandle LoadLauncherLogoTexture(
-    WindEffects::Editor::UI::OverlayRenderer* renderer,
+    we::runtime::kindui::OverlayRenderer* renderer,
     const std::filesystem::path& engineRoot,
     uint32_t displaySizePx) {
     if (!renderer) {

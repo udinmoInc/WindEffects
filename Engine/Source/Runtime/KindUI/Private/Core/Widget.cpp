@@ -1,14 +1,14 @@
-#include "WindEffects/Runtime/UI/Core/Widget.h"
-#include "WindEffects/Runtime/UI/Core/WidgetContext.h"
-#include "WindEffects/Runtime/UI/Layout/IPopupHost.h"
-#include "WindEffects/Runtime/UI/Theming/StyleResolve.h"
-#include "WindEffects/Runtime/UI/Theming/ThemeAccess.h"
-#include "WindEffects/Runtime/UI/Theming/StyleClass.h"
+#include "KindUI/Core/Widget.h"
+#include "KindUI/Core/WidgetContext.h"
+#include "KindUI/Layout/IPopupHost.h"
+#include "KindUI/Theming/StyleResolve.h"
+#include "KindUI/Theming/ThemeAccess.h"
+#include "KindUI/Theming/StyleClass.h"
 
 #include <algorithm>
 #include <cmath>
 #include <stdexcept>
-namespace WindEffects::Editor::UI {
+namespace we::runtime::kindui {
 
 Widget::Diagnostics* Widget::s_GlobalDiagnostics = nullptr;
 
@@ -223,5 +223,5 @@ IPopupHost* Widget::GetPopupHost() const {
     return m_Context ? m_Context->GetPopupHost() : nullptr;
 }
 
-} // namespace WindEffects::Editor::UI
+} // namespace we::runtime::kindui
 

@@ -2,8 +2,8 @@
 
 #include "PlaceActors/Export.h"
 #include "PlaceActors/PlaceActorsTypes.h"
-#include "Core/Geometry.h"
-#include "Core/PaintContext.h"
+#include "KindUI/Core/Geometry.h"
+#include "KindUI/Core/PaintContext.h"
 #include <string>
 #include <unordered_map>
 
@@ -29,8 +29,8 @@ public:
     [[nodiscard]] PlaceActorsThumbnail Resolve(const PlaceActorsItemData& item) const;
     [[nodiscard]] PlaceActorsThumbnail Resolve(const std::string& toolId) const;
 
-    void Paint(WindEffects::Editor::UI::PaintContext& context,
-               const WindEffects::Editor::UI::Rect& previewRect,
+    void Paint(we::runtime::kindui::PaintContext& context,
+               const we::runtime::kindui::Rect& previewRect,
                const PlaceActorsItemData& item,
                float hoverAnim = 0.0f) const;
 

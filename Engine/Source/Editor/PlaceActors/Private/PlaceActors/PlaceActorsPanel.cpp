@@ -19,11 +19,11 @@
 #include "Widgets/SearchBox.h"
 #include "Widgets/ToolButton.h"
 #include "WindEffects/Editor/UI/Panel/PanelChrome.h"
-#include "Core/PaintContext.h"
-#include "Core/DPIContext.h"
-#include "WindEffects/Editor/UI/Theming/ThemeToken.h"
-#include "Core/Icon.h"
-#include "Core/Animator.h"
+#include "KindUI/Core/PaintContext.h"
+#include "KindUI/Core/DPIContext.h"
+#include "KindUI/Theming/ThemeToken.h"
+#include "KindUI/Core/Icon.h"
+#include "KindUI/Core/Animator.h"
 #include "Core/EditorConfigPaths.h"
 
 #include <algorithm>
@@ -77,23 +77,23 @@ std::unordered_map<std::string, std::string> LoadIniValues(const std::string& pa
 
 } // namespace
 
-using WindEffects::Editor::UI::Color;
-using WindEffects::Editor::UI::KeyEvent;
-using WindEffects::Editor::UI::MouseButton;
-using WindEffects::Editor::UI::MouseEvent;
-using WindEffects::Editor::UI::PaintContext;
-using WindEffects::Editor::UI::Point;
-using WindEffects::Editor::UI::Rect;
-using WindEffects::Editor::UI::Size;
-using WindEffects::Editor::UI::ThemeToken;
-namespace PanelChrome = WindEffects::Editor::UI::PanelChrome;
+using we::runtime::kindui::Color;
+using we::runtime::kindui::KeyEvent;
+using we::runtime::kindui::MouseButton;
+using we::runtime::kindui::MouseEvent;
+using we::runtime::kindui::PaintContext;
+using we::runtime::kindui::Point;
+using we::runtime::kindui::Rect;
+using we::runtime::kindui::Size;
+using we::runtime::kindui::ThemeToken;
+namespace PanelChrome = we::runtime::kindui::PanelChrome;
 
 PlaceActorsPanel::PlaceActorsPanel() {
     auto& config = PlaceActorsConfig::Get();
     config.EnsureLoaded();
     m_ViewMode = config.defaultView;
 
-    m_SearchBox = std::make_shared<WindEffects::Editor::UI::SearchBox>();
+    m_SearchBox = std::make_shared<we::runtime::kindui::SearchBox>();
     m_SearchBox->SetFillWidth(true);
     m_SearchBox->SetPlaceholder("Search Assets...");
     m_SearchBox->SetOnTextChanged([this](const std::string& text) {
@@ -101,12 +101,12 @@ PlaceActorsPanel::PlaceActorsPanel() {
         RefreshFilteredContent();
     });
 
-    m_FilterButton = std::make_shared<WindEffects::Editor::UI::ToolButton>(
-        WindEffects::Editor::UI::Icons::FilterName, "", [this]() {
+    m_FilterButton = std::make_shared<we::runtime::kindui::ToolButton>(
+        we::runtime::kindui::Icons::FilterName, "", [this]() {
             const Rect btn = m_FilterButton->GetGeometry();
             ToggleFilterMenu(Point{ btn.x, btn.y + btn.height });
         }, "Filter and view options");
-    m_FilterButton->SetButtonStyle(WindEffects::Editor::UI::ToolButtonStyle::ToolbarIconOnly);
+    m_FilterButton->SetButtonStyle(we::runtime::kindui::ToolButtonStyle::ToolbarIconOnly);
 
     LoadPanelState();
     PlaceActorsCatalog::Get().Refresh();
@@ -161,7 +161,7 @@ void PlaceActorsPanel::BuildQuickAccessCategory(const std::string& query) {
     PlaceActorsCategoryData quick;
     quick.id = kQuickAccessCategoryId;
     quick.label = "Quick Access";
-    quick.iconName = WindEffects::Editor::UI::Icons::PivotName;
+    quick.iconName = we::runtime::kindui::Icons::PivotName;
     quick.defaultExpanded = true;
     quick.items = std::move(items);
     m_CategoryExpanded[quick.id] = true;
@@ -243,7 +243,7 @@ void PlaceActorsPanel::RebuildData() {
         PlaceActorsCategoryData favCategory;
         favCategory.id = kFavoritesCategoryId;
         favCategory.label = "Favorites";
-        favCategory.iconName = WindEffects::Editor::UI::Icons::StarName;
+        favCategory.iconName = we::runtime::kindui::Icons::StarName;
         favCategory.defaultExpanded = true;
         favCategory.items = std::move(favoriteItems);
         if (m_CategoryExpanded.find(favCategory.id) == m_CategoryExpanded.end()) {
@@ -258,7 +258,7 @@ void PlaceActorsPanel::RebuildData() {
             PlaceActorsCategoryData recentCategory;
             recentCategory.id = kRecentCategoryId;
             recentCategory.label = "Recently Used";
-            recentCategory.iconName = WindEffects::Editor::UI::Icons::RefreshName;
+            recentCategory.iconName = we::runtime::kindui::Icons::RefreshName;
             recentCategory.defaultExpanded = true;
             recentCategory.items = std::move(recentItems);
             if (m_CategoryExpanded.find(recentCategory.id) == m_CategoryExpanded.end()) {
@@ -306,7 +306,7 @@ void PlaceActorsPanel::RebuildData() {
 
 void PlaceActorsPanel::SyncScrollMetrics() {
     m_Scroll.Sync(m_ContentRect.height, m_ContentHeight);
-    const float uiScale = std::max(1.0f, WindEffects::Editor::UI::DPIContext::GetScale());
+    const float uiScale = std::max(1.0f, we::runtime::kindui::DPIContext::GetScale());
     m_ScrollMetrics = m_Scroll.ComputeMetrics(m_ContentRect, m_ContentHeight, uiScale);
 }
 
@@ -542,7 +542,7 @@ void PlaceActorsPanel::Arrange(const Rect& allottedRect) {
 
 void PlaceActorsPanel::Tick(float deltaTime) {
     m_SearchBox->Tick(deltaTime);
-    WindEffects::Editor::UI::Animator::Tick(deltaTime);
+    we::runtime::kindui::Animator::Tick(deltaTime);
     const float expandSpeed = PlaceActorsConfig::Get().enableAnimations ? 16.0f : 1000.0f;
     const float pressSpeed = PlaceActorsConfig::Get().enableAnimations ? 18.0f : 1000.0f;
 
@@ -556,14 +556,14 @@ void PlaceActorsPanel::Tick(float deltaTime) {
         const float target = m_CategoryExpanded[category.id] ? 1.0f : 0.0f;
         float& anim = m_CategoryExpandAnim[category.id];
         const float previous = anim;
-        anim = WindEffects::Editor::UI::Animator::Damp(anim, target, expandSpeed);
+        anim = we::runtime::kindui::Animator::Damp(anim, target, expandSpeed);
         if (std::abs(anim - previous) > 0.001f) {
             expandChanged = true;
         }
     }
 
     for (auto& entry : m_Layout) {
-        entry.pressAnim = WindEffects::Editor::UI::Animator::Damp(entry.pressAnim, 0.0f, pressSpeed);
+        entry.pressAnim = we::runtime::kindui::Animator::Damp(entry.pressAnim, 0.0f, pressSpeed);
     }
 
     if (expandChanged) {
@@ -942,7 +942,7 @@ void PlaceActorsPanel::OnMouseMove(const MouseEvent& event) {
     for (auto& entry : m_Layout) {
         const bool hovered = entry.geometry.Contains(event.position);
         if (PlaceActorsConfig::Get().enableAnimations) {
-            entry.hoverAnim = WindEffects::Editor::UI::Animator::Damp(entry.hoverAnim, hovered ? 1.0f : 0.0f, 14.0f);
+            entry.hoverAnim = we::runtime::kindui::Animator::Damp(entry.hoverAnim, hovered ? 1.0f : 0.0f, 14.0f);
         } else {
             entry.hoverAnim = hovered ? 1.0f : 0.0f;
         }

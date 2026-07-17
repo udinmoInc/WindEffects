@@ -1,13 +1,13 @@
 #pragma once
 
-#include "Core/Widget.h"
-#include "WindEffects/Editor/UI/Theming/ThemeAccess.h"
+#include "KindUI/Core/Widget.h"
+#include "KindUI/Theming/ThemeAccess.h"
 #include "Widgets/TreeView.h"
 #include <functional>
 #include <string>
 #include <vector>
 
-namespace WindEffects::Editor::UI {
+namespace we::runtime::kindui {
 
 class ExplorerPanelHeader : public Widget {
 public:
@@ -78,4 +78,4 @@ private:
     std::function<void()> m_OnRefresh;
 };
 
-} // namespace WindEffects::Editor::UI
+} // namespace we::runtime::kindui
