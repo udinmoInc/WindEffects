@@ -2,7 +2,8 @@
 #include "Widgets/CommandInput.h"
 #include "Widgets/ToolButton.h"
 #include "KindUI/Core/PaintContext.h"
-#include "KindUI/Theming/ThemeToken.h"
+#include "KindUI/Tokens/DesignToken.h"
+#include "KindUI/Theming/StyleRole.h"
 #include "KindUI/Core/Icon.h"
 #include "KindUI/Core/DPIContext.h"
 #include <algorithm>
@@ -34,7 +35,7 @@ StatusBar::StatusBar() = default;
 
 void StatusBar::Construct() {
     m_LeftBox = std::make_shared<Row>();
-    m_LeftBox->Gap(ThemeMetric(ThemeToken::Space1));
+    m_LeftBox->Gap(ThemeMetric(MetricToken::Space1));
 
     m_AssetsPanelButton = MakeFooterControl(Icons::ContentBrowserName, "Content Drawer", false, "Content Browser");
     m_DiagnosticsPanelButton = MakeFooterControl(Icons::OutputLogName, "Output Log", false, "Output Log");
@@ -52,7 +53,7 @@ void StatusBar::Construct() {
     AddChild(m_CommandInput);
 
     m_RightBox = std::make_shared<Row>();
-    m_RightBox->Gap(ThemeMetric(ThemeToken::Space1));
+    m_RightBox->Gap(ThemeMetric(MetricToken::Space1));
 
     m_OutputLogButton = MakeFooterControl(Icons::BuildName, "Source Control", false, "Source Control");
     m_BuildMenuButton = MakeFooterControl(Icons::ProfilerName, "FPS", false, "Frame Rate");
@@ -89,8 +90,8 @@ void StatusBar::SelectPanelTab(int index, bool notify) {
 
 Size StatusBar::Measure(const Size& availableSize) {
     const float uiScale = UiScale();
-    const float padH = ThemeMetric(ThemeToken::Space2) * uiScale;
-    const float sectionGap = ThemeMetric(ThemeToken::Space2) * uiScale;
+    const float padH = ThemeMetric(MetricToken::Space2) * uiScale;
+    const float sectionGap = ThemeMetric(MetricToken::Space2) * uiScale;
     const Size sectionAvailable{
         std::max(0.0f, availableSize.width - padH * 2.0f),
         m_Height
@@ -113,9 +114,9 @@ Size StatusBar::Measure(const Size& availableSize) {
 
 void StatusBar::Arrange(const Rect& allottedRect) {
     const float uiScale = UiScale();
-    const float padL = ThemeMetric(ThemeToken::Space2) * uiScale;
+    const float padL = ThemeMetric(MetricToken::Space2) * uiScale;
     const float padR = padL;
-    const float sectionGap = ThemeMetric(ThemeToken::Space2) * uiScale;
+    const float sectionGap = ThemeMetric(MetricToken::Space2) * uiScale;
     const float minCommandWidth = 120.0f * uiScale;
 
     const float barHeight = std::min(m_Height, allottedRect.height);
@@ -168,15 +169,15 @@ void StatusBar::Arrange(const Rect& allottedRect) {
 }
 
 void StatusBar::Paint(PaintContext& context) {
-    context.DrawRect(m_Geometry, ThemeColor(ThemeToken::StatusBarBackground));
+    context.DrawRect(m_Geometry, ThemeColor(ColorToken::StatusBarBackground));
 
     Rect topBorder{
         m_Geometry.x,
         m_Geometry.y,
         m_Geometry.width,
-        ThemeMetric(ThemeToken::BorderWidth)
+        ThemeMetric(MetricToken::BorderWidth)
     };
-    context.DrawRect(topBorder, ThemeColor(ThemeToken::Separator));
+    context.DrawRect(topBorder, ThemeColor(ColorToken::Separator));
 
     if (m_LeftBox && m_LeftBox->IsVisible()) {
         m_LeftBox->Paint(context);

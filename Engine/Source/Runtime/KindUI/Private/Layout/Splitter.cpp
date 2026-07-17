@@ -1,7 +1,8 @@
 #include "KindUI/Layout/Splitter.h"
 #include "KindUI/Core/PaintContext.h"
 #include "KindUI/Theming/ThemeAccess.h"
-#include "KindUI/Theming/ThemeToken.h"
+#include "KindUI/Tokens/DesignToken.h"
+#include "KindUI/Theming/StyleRole.h"
 #include <algorithm>
 #include <cmath>
 
@@ -36,7 +37,7 @@ void Splitter::SetResizeMode(ResizeMode mode) {
 
 float Splitter::GetEffectiveBarThickness() const {
     if (m_PanelGapEnabled) {
-        return ResolveThemeMetric(ThemeToken::Space2);
+        return ResolveMetric(MetricToken::Space2);
     }
     return m_BarThickness;
 }
@@ -201,7 +202,7 @@ void Splitter::Paint(PaintContext& context) {
 
     if (m_PanelGapEnabled && m_FirstChild && m_FirstChild->IsVisible()) {
         Rect barRect = GetSplitterBarRect();
-        context.DrawRect(barRect, ResolveThemeColor(ThemeToken::WorkspaceBackground));
+        context.DrawRect(barRect, ResolveColor(ColorToken::WorkspaceBackground));
     }
 
     if (m_FirstChild && m_FirstChild->IsVisible()) m_FirstChild->Paint(context);
@@ -215,11 +216,11 @@ void Splitter::Paint(PaintContext& context) {
     Rect barRect = GetSplitterBarRect();
     
     // Draw an extremely subtle 1px line to separate panels cleanly
-    Color subtleBorder = ThemeColor(ThemeToken::BorderDefault); // Use theme border color
+    Color subtleBorder = ThemeColor(ColorToken::BorderDefault); // Use theme border color
     
     if (m_Dragging || m_Hovered) {
         // Draw the soft blue highlight when hovered or dragging
-        subtleBorder = ThemeColor(ThemeToken::AccentPrimary);
+        subtleBorder = ThemeColor(ColorToken::AccentPrimary);
         if (!m_Dragging) {
             subtleBorder.a = 0.5f; 
         }

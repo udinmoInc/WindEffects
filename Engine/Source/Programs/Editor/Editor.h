@@ -19,7 +19,6 @@
 
 namespace we::runtime::kindui {
 class OverlayHost;
-class RenderDebuggerPanel;
 class IconRenderer;
 }
 
@@ -56,7 +55,6 @@ private:
     std::shared_ptr<we::runtime::kindui::Widget> m_ViewportWidget;
     std::shared_ptr<we::runtime::kindui::StatusBar> m_StatusBar;
     std::shared_ptr<we::runtime::kindui::TitleBar> m_TitleBar;
-    std::shared_ptr<we::runtime::kindui::RenderDebuggerPanel> m_RenderDebuggerPanel;
     std::unique_ptr<we::runtime::kindui::EditorApplicationContext> m_UIContext;
     we::editor::mainframe::EditorWindowHitTestData m_WindowHitTestData{};
 

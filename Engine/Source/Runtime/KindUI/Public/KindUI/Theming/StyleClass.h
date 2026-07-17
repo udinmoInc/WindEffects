@@ -2,7 +2,8 @@
 
 #include "KindUI/Export.h"
 #include "KindUI/Core/Types.h"
-#include "KindUI/Theming/ThemeToken.h"
+#include "KindUI/Tokens/DesignToken.h"
+#include "KindUI/Theming/StyleRole.h"
 
 #include <string>
 #include <string_view>
@@ -16,18 +17,18 @@ struct KINDUI_API StyleClass {
     std::string name;
     std::string parentName;
 
-    ThemeToken background = ThemeToken::PanelBackground;
-    ThemeToken foreground = ThemeToken::TextPrimary;
-    ThemeToken border = ThemeToken::BorderDefault;
-    ThemeToken hoverBackground = ThemeToken::HoverBackground;
-    ThemeToken pressedBackground = ThemeToken::PressedBackground;
-    ThemeToken disabledBackground = ThemeToken::DisabledBackground;
+    ColorToken background = ColorToken::PanelBackground;
+    ColorToken foreground = ColorToken::TextPrimary;
+    ColorToken border = ColorToken::BorderDefault;
+    ColorToken hoverBackground = ColorToken::HoverBackground;
+    ColorToken pressedBackground = ColorToken::PressedBackground;
+    ColorToken disabledBackground = ColorToken::DisabledBackground;
 
-    ThemeToken paddingToken = ThemeToken::Space3;
-    ThemeToken radiusToken = ThemeToken::CornerRadiusMedium;
-    ThemeToken fontSizeToken = ThemeToken::TextSizeBody;
-    ThemeToken heightToken = ThemeToken::ButtonHeight;
-    ThemeToken animDurationToken = ThemeToken::HoverAnimationDamping;
+    PaddingToken paddingToken = PaddingToken::Panel;
+    MetricToken radiusToken = MetricToken::CornerRadiusMedium;
+    MetricToken fontSizeToken = MetricToken::TextSizeBody;
+    MetricToken heightToken = MetricToken::ButtonHeight;
+    MetricToken animDurationToken = MetricToken::HoverAnimationDamping;
 
     float opacity = 1.0f;
     bool bold = false;

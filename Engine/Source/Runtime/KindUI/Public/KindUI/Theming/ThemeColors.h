@@ -5,7 +5,7 @@
 
 namespace we::runtime::kindui {
 
-class IThemeProvider;
+class IKindUITheme;
 
 // Semantic editor palette — single source for UI chrome and icon tinting.
 struct KINDUI_API ThemeColors {
@@ -25,7 +25,7 @@ struct KINDUI_API ThemeColors {
     Color iconAccent = Color::White();
     Color iconDisabled = Color::White();
 
-    [[nodiscard]] static ThemeColors Resolve(const IThemeProvider& theme);
+    [[nodiscard]] static ThemeColors Resolve(const IKindUITheme& theme);
     [[nodiscard]] static ThemeColors Resolve();
 };
 

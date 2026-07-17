@@ -4,7 +4,7 @@ namespace we::programs::welauncher {
 namespace {
 
 using we::runtime::kindui::Color;
-using we::runtime::kindui::ThemeToken;
+using we::runtime::kindui::ColorToken;
 
 Color LnHex(uint8_t r, uint8_t g, uint8_t b, float a = 1.0f) {
     return Color{ r / 255.0f, g / 255.0f, b / 255.0f, a };
@@ -12,86 +12,86 @@ Color LnHex(uint8_t r, uint8_t g, uint8_t b, float a = 1.0f) {
 
 } // namespace
 
-Color LauncherTheme::GetColor(ThemeToken token) const {
+Color LauncherTheme::ResolveColor(ColorToken token) const {
     switch (token) {
-    case ThemeToken::WindowBackground:        return LnHex(0x1E, 0x1E, 0x1E);
-    case ThemeToken::WorkspaceBackground:     return LnHex(0x1E, 0x1E, 0x1E);
-    case ThemeToken::PanelContentBackground:  return LnHex(0x1E, 0x1E, 0x1E);
-    case ThemeToken::PanelBackground:         return LnHex(0x20, 0x20, 0x20);
-    case ThemeToken::HeaderBackground:        return LnHex(0x25, 0x25, 0x26);
-    case ThemeToken::MenuBarBackground:       return LnHex(0x25, 0x25, 0x26);
-    case ThemeToken::PanelToolbarBackground:  return LnHex(0x25, 0x25, 0x26);
-    case ThemeToken::FooterBackground:        return LnHex(0x1A, 0x1A, 0x1A);
-    case ThemeToken::StatusBarBackground:     return LnHex(0x1A, 0x1A, 0x1A);
-    case ThemeToken::InputBackground:         return LnHex(0x25, 0x25, 0x26);
-    case ThemeToken::SearchBoxBackground:     return LnHex(0x25, 0x25, 0x26);
+    case ColorToken::WindowBackground:        return LnHex(0x1E, 0x1E, 0x1E);
+    case ColorToken::WorkspaceBackground:     return LnHex(0x1E, 0x1E, 0x1E);
+    case ColorToken::PanelContentBackground:  return LnHex(0x1E, 0x1E, 0x1E);
+    case ColorToken::PanelBackground:         return LnHex(0x20, 0x20, 0x20);
+    case ColorToken::HeaderBackground:        return LnHex(0x25, 0x25, 0x26);
+    case ColorToken::MenuBarBackground:       return LnHex(0x25, 0x25, 0x26);
+    case ColorToken::PanelToolbarBackground:  return LnHex(0x25, 0x25, 0x26);
+    case ColorToken::FooterBackground:        return LnHex(0x1A, 0x1A, 0x1A);
+    case ColorToken::StatusBarBackground:     return LnHex(0x1A, 0x1A, 0x1A);
+    case ColorToken::InputBackground:         return LnHex(0x25, 0x25, 0x26);
+    case ColorToken::SearchBoxBackground:     return LnHex(0x25, 0x25, 0x26);
 
-    case ThemeToken::Separator:               return LnHex(0x2B, 0x2B, 0x2B);
-    case ThemeToken::BorderDark:              return LnHex(0x2B, 0x2B, 0x2B);
-    case ThemeToken::BorderDefault:           return LnHex(0x2B, 0x2B, 0x2B);
-    case ThemeToken::BorderLight:             return LnHex(0x3A, 0x3A, 0x3A);
+    case ColorToken::Separator:               return LnHex(0x2B, 0x2B, 0x2B);
+    case ColorToken::BorderDark:              return LnHex(0x2B, 0x2B, 0x2B);
+    case ColorToken::BorderDefault:           return LnHex(0x2B, 0x2B, 0x2B);
+    case ColorToken::BorderLight:             return LnHex(0x3A, 0x3A, 0x3A);
 
-    case ThemeToken::AccentPrimary:           return LnHex(0x3B, 0x82, 0xF6);
-    case ThemeToken::AccentHover:             return LnHex(0x60, 0xA5, 0xFA);
-    case ThemeToken::IconAccent:              return LnHex(0x3B, 0x82, 0xF6);
-    case ThemeToken::BorderFocus:             return LnHex(0x3B, 0x82, 0xF6);
-    case ThemeToken::ActiveTabLine:           return LnHex(0x3B, 0x82, 0xF6, 0.85f);
-    case ThemeToken::LinkForeground:          return LnHex(0x60, 0xA5, 0xFA);
-    case ThemeToken::PlayForeground:          return LnHex(0x3B, 0x82, 0xF6);
+    case ColorToken::AccentPrimary:           return LnHex(0x3B, 0x82, 0xF6);
+    case ColorToken::AccentHover:             return LnHex(0x60, 0xA5, 0xFA);
+    case ColorToken::IconAccent:              return LnHex(0x3B, 0x82, 0xF6);
+    case ColorToken::BorderFocus:             return LnHex(0x3B, 0x82, 0xF6);
+    case ColorToken::ActiveTabLine:           return LnHex(0x3B, 0x82, 0xF6, 0.85f);
+    case ColorToken::LinkForeground:          return LnHex(0x60, 0xA5, 0xFA);
+    case ColorToken::PlayForeground:          return LnHex(0x3B, 0x82, 0xF6);
 
-    case ThemeToken::ButtonPrimaryBackground: return LnHex(0x3B, 0x82, 0xF6);
-    case ThemeToken::ButtonPrimaryHover:      return LnHex(0x60, 0xA5, 0xFA);
-    case ThemeToken::ButtonPrimaryPressed:    return LnHex(0x25, 0x63, 0xEB);
+    case ColorToken::ButtonPrimaryBackground: return LnHex(0x3B, 0x82, 0xF6);
+    case ColorToken::ButtonPrimaryHover:      return LnHex(0x60, 0xA5, 0xFA);
+    case ColorToken::ButtonPrimaryPressed:    return LnHex(0x25, 0x63, 0xEB);
 
-    case ThemeToken::SelectedBackground:      return LnHex(0x3B, 0x82, 0xF6, 0.28f);
-    case ThemeToken::SelectionHighlight:      return LnHex(0x3B, 0x82, 0xF6, 0.20f);
+    case ColorToken::SelectedBackground:      return LnHex(0x3B, 0x82, 0xF6, 0.28f);
+    case ColorToken::SelectionHighlight:      return LnHex(0x3B, 0x82, 0xF6, 0.20f);
 
-    case ThemeToken::DialogBackground:        return LnHex(0x17, 0x17, 0x17);
-    case ThemeToken::ModalScrim:              return LnHex(0x00, 0x00, 0x00, 0.45f);
+    case ColorToken::DialogBackground:        return LnHex(0x17, 0x17, 0x17);
+    case ColorToken::ModalScrim:              return LnHex(0x00, 0x00, 0x00, 0.45f);
 
-    case ThemeToken::HoverBackground:         return LnHex(0x2A, 0x2A, 0x2C);
-    case ThemeToken::ActiveBackground:        return LnHex(0x2A, 0x2A, 0x2E);
-    case ThemeToken::PressedBackground:       return LnHex(0x32, 0x32, 0x36);
-    case ThemeToken::DisabledBackground:      return LnHex(0x1E, 0x1E, 0x1E);
-    case ThemeToken::ContentBrowserHoverBackground: return LnHex(0x2A, 0x2A, 0x2C);
+    case ColorToken::HoverBackground:         return LnHex(0x2A, 0x2A, 0x2C);
+    case ColorToken::ActiveBackground:        return LnHex(0x2A, 0x2A, 0x2E);
+    case ColorToken::PressedBackground:       return LnHex(0x32, 0x32, 0x36);
+    case ColorToken::DisabledBackground:      return LnHex(0x1E, 0x1E, 0x1E);
+    case ColorToken::ContentBrowserHoverBackground: return LnHex(0x2A, 0x2A, 0x2C);
 
-    case ThemeToken::TextPrimary:             return LnHex(0xF3, 0xF3, 0xF3);
-    case ThemeToken::TextSecondary:           return LnHex(0xA8, 0xA8, 0xA8);
-    case ThemeToken::TextMuted:               return LnHex(0x70, 0x70, 0x70);
-    case ThemeToken::TextDisabled:            return LnHex(0x70, 0x70, 0x70);
-    case ThemeToken::TextWindowLabel:         return LnHex(0xF3, 0xF3, 0xF3);
+    case ColorToken::TextPrimary:             return LnHex(0xF3, 0xF3, 0xF3);
+    case ColorToken::TextSecondary:           return LnHex(0xA8, 0xA8, 0xA8);
+    case ColorToken::TextMuted:               return LnHex(0x70, 0x70, 0x70);
+    case ColorToken::TextDisabled:            return LnHex(0x70, 0x70, 0x70);
+    case ColorToken::TextWindowLabel:         return LnHex(0xF3, 0xF3, 0xF3);
 
-    case ThemeToken::Success:                 return LnHex(0x4C, 0xAF, 0x50);
-    case ThemeToken::IconPrimary:             return LnHex(0xF3, 0xF3, 0xF3);
-    case ThemeToken::IconSecondary:           return LnHex(0xA8, 0xA8, 0xA8);
+    case ColorToken::Success:                 return LnHex(0x4C, 0xAF, 0x50);
+    case ColorToken::IconPrimary:             return LnHex(0xF3, 0xF3, 0xF3);
+    case ColorToken::IconSecondary:           return LnHex(0xA8, 0xA8, 0xA8);
 
     default:
-        return GraphiteDarkTheme::GetColor(token);
+        return GraphiteDarkTheme::ResolveColor(token);
     }
 }
 
-float LauncherTheme::GetMetric(ThemeToken token) const {
+float LauncherTheme::ResolveMetric(MetricToken token) const {
     switch (token) {
-    case ThemeToken::ButtonHeight: return 34.0f;
-    case ThemeToken::CornerRadiusSmall: return 8.0f;
-    case ThemeToken::CornerRadiusMedium: return 8.0f;
-    case ThemeToken::ButtonPaddingHorizontal: return 12.0f;
-    case ThemeToken::ListRowHeight: return 44.0f;
-    case ThemeToken::SearchBoxHeight: return 34.0f;
-    case ThemeToken::HeaderControlHeight: return 34.0f;
-    case ThemeToken::TextSizeTitle: return 30.0f;
-    case ThemeToken::TextSizeHeader: return 18.0f;
-    case ThemeToken::TextSizeBody: return 14.0f;
-    case ThemeToken::TextSizeCaption: return 12.0f;
-    case ThemeToken::TextSizeToolbar: return 13.0f;
-    case ThemeToken::IconSizeToolbar: return 16.0f;
-    case ThemeToken::IconSizeNavigation: return 16.0f;
-    case ThemeToken::IconSizeSearch: return 16.0f;
-    case ThemeToken::HoverAnimationDamping: return 14.0f;
-    case ThemeToken::PressAnimationDamping: return 18.0f;
-    case ThemeToken::TitleBarHeight: return 36.0f;
+    case MetricToken::ButtonHeight: return 34.0f;
+    case MetricToken::CornerRadiusSmall: return 8.0f;
+    case MetricToken::CornerRadiusMedium: return 8.0f;
+    case MetricToken::ButtonPaddingHorizontal: return 12.0f;
+    case MetricToken::ListRowHeight: return 44.0f;
+    case MetricToken::SearchBoxHeight: return 34.0f;
+    case MetricToken::HeaderControlHeight: return 34.0f;
+    case MetricToken::TextSizeTitle: return 30.0f;
+    case MetricToken::TextSizeHeader: return 18.0f;
+    case MetricToken::TextSizeBody: return 14.0f;
+    case MetricToken::TextSizeCaption: return 12.0f;
+    case MetricToken::TextSizeToolbar: return 13.0f;
+    case MetricToken::IconSizeToolbar: return 16.0f;
+    case MetricToken::IconSizeNavigation: return 16.0f;
+    case MetricToken::IconSizeSearch: return 16.0f;
+    case MetricToken::HoverAnimationDamping: return 14.0f;
+    case MetricToken::PressAnimationDamping: return 18.0f;
+    case MetricToken::TitleBarHeight: return 36.0f;
     default:
-        return GraphiteDarkTheme::GetMetric(token);
+        return GraphiteDarkTheme::ResolveMetric(token);
     }
 }
 

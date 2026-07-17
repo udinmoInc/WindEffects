@@ -110,7 +110,7 @@ ButtonStyle VariantButtonStyle(WidgetVariant variant) {
 
 ButtonStyle StyleClassToButtonStyle(std::string_view /*className*/) {
     // Style class layer bridges through legacy StyleClassRegistry + StyleResolve
-    // until ThemeToken is fully migrated to ColorToken.
+    // until ColorToken is fully migrated to ColorToken.
     return {};
 }
 

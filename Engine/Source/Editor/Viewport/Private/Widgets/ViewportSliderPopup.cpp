@@ -1,6 +1,7 @@
 #include "Widgets/ViewportSliderPopup.h"
 #include "KindUI/Core/PaintContext.h"
-#include "KindUI/Theming/ThemeToken.h"
+#include "KindUI/Tokens/DesignToken.h"
+#include "KindUI/Theming/StyleRole.h"
 #include <algorithm>
 #include <cmath>
 
@@ -22,7 +23,7 @@ using we::runtime::kindui::PaintContext;
 using we::runtime::kindui::Point;
 using we::runtime::kindui::Rect;
 using we::runtime::kindui::Size;
-using we::runtime::kindui::ThemeToken;
+using we::runtime::kindui::ColorToken;
 
 ViewportSliderPopup::ViewportSliderPopup(
     std::string title,
@@ -108,20 +109,20 @@ void ViewportSliderPopup::SetValueFromMouseX(float mouseX) {
 }
 
 void ViewportSliderPopup::Paint(PaintContext& context) {
-    context.DrawShadow(m_Geometry, ThemeColor(ThemeToken::ShadowSubtle), 4.0f, 12.0f);
-    context.DrawRoundedRect(m_Geometry, ThemeColor(ThemeToken::PanelBackground), 4.0f);
-    context.DrawRoundedRectOutline(m_Geometry, ThemeColor(ThemeToken::BorderDefault), 1.0f, 4.0f);
+    context.DrawShadow(m_Geometry, ThemeColor(ColorToken::ShadowSubtle), 4.0f, 12.0f);
+    context.DrawRoundedRect(m_Geometry, ThemeColor(ColorToken::PanelBackground), 4.0f);
+    context.DrawRoundedRectOutline(m_Geometry, ThemeColor(ColorToken::BorderDefault), 1.0f, 4.0f);
 
     context.DrawText(m_Title, Point{ m_Geometry.x + kPadding, m_Geometry.y + 8.0f },
-        ThemeColor(ThemeToken::TextSecondary), 10.0f);
+        ThemeColor(ColorToken::TextSecondary), 10.0f);
 
     const std::string valueText = m_Format ? m_Format(m_Value) : std::to_string(m_Value);
     context.DrawText(valueText,
         Point{ m_Geometry.x + m_Geometry.width - kPadding - valueText.length() * 6.5f, m_Geometry.y + 8.0f },
-        ThemeColor(ThemeToken::TextPrimary), 11.0f);
+        ThemeColor(ColorToken::TextPrimary), 11.0f);
 
     const Rect track = SliderTrackRect();
-    context.DrawRoundedRect(track, ThemeColor(ThemeToken::BorderDefault), 3.0f);
+    context.DrawRoundedRect(track, ThemeColor(ColorToken::BorderDefault), 3.0f);
 
     const float thumbX = track.x + NormalizedFromValue(m_Value) * track.width;
     const Rect thumb{
@@ -130,8 +131,8 @@ void ViewportSliderPopup::Paint(PaintContext& context) {
         kThumbRadius * 2.0f,
         kThumbRadius * 2.0f
     };
-    context.DrawRoundedRect(thumb, ThemeColor(ThemeToken::AccentPrimary), kThumbRadius);
-    context.DrawRoundedRectOutline(thumb, ThemeColor(ThemeToken::BorderDefault), 1.0f, kThumbRadius);
+    context.DrawRoundedRect(thumb, ThemeColor(ColorToken::AccentPrimary), kThumbRadius);
+    context.DrawRoundedRectOutline(thumb, ThemeColor(ColorToken::BorderDefault), 1.0f, kThumbRadius);
 }
 
 void ViewportSliderPopup::OnMouseDown(const MouseEvent& event) {

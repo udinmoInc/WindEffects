@@ -13,7 +13,6 @@ public class Renderer : ModuleRules
         PrivateIncludePaths.Add("Private");
 
         PublicDependencies.Add("Core");
-        PublicDependencies.Add("CoreUObject");
         PublicDependencies.Add("Platform");
         PublicDependencies.Add("RHI");
         PublicDependencies.Add("Engine");

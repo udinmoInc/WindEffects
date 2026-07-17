@@ -4,32 +4,44 @@
 
 namespace we::runtime::kindui {
 
-IThemeProvider& ResolveDefaultThemeProvider() {
-    return ThemeManager::Get().Provider();
+IKindUITheme& ResolveDefaultTheme() {
+    return ThemeManager::Get().Theme();
 }
 
-Color ResolveThemeColor(ThemeToken token) {
-    return ThemeManager::Get().Provider().GetColor(token);
+Color ResolveColor(ColorToken token) {
+    return ThemeManager::Get().Theme().ResolveColor(token);
 }
 
-float ResolveThemeMetric(ThemeToken token) {
-    return ThemeManager::Get().Provider().GetMetric(token);
+float ResolveMetric(MetricToken token) {
+    return ThemeManager::Get().Theme().ResolveMetric(token);
 }
 
-Margin ResolveThemePadding(ThemeToken token) {
-    return ThemeManager::Get().Provider().GetPadding(token);
+Margin ResolvePadding(PaddingToken token) {
+    return ThemeManager::Get().Theme().ResolvePadding(token);
 }
 
-Color ResolveThemeInteractiveBackground(float hoverAnim, float pressAnim, bool selected) {
-    return ThemeManager::Get().Provider().InteractiveBackground(hoverAnim, pressAnim, selected);
+float ResolveSpacing(SpacingToken token) {
+    return ThemeManager::Get().Theme().ResolveSpacing(token);
 }
 
-Color ResolveThemeTextForState(bool hovered, bool active) {
-    return ThemeManager::Get().Provider().TextForState(hovered, active);
+float ResolveRadius(RadiusToken token) {
+    return ThemeManager::Get().Theme().ResolveRadius(token);
 }
 
-Color ResolveThemeIconForState(bool hovered, bool active) {
-    return ThemeManager::Get().Provider().IconForState(hovered, active);
+float ResolveFontSize(TypographyToken token) {
+    return ThemeManager::Get().Theme().ResolveFontSize(token);
+}
+
+Color ResolveInteractiveBackground(float hoverAnim, float pressAnim, bool selected) {
+    return ThemeManager::Get().Theme().InteractiveBackground(hoverAnim, pressAnim, selected);
+}
+
+Color ResolveTextForState(bool hovered, bool active) {
+    return ThemeManager::Get().Theme().TextForState(hovered, active);
+}
+
+Color ResolveIconForState(bool hovered, bool active) {
+    return ThemeManager::Get().Theme().IconForState(hovered, active);
 }
 
 } // namespace we::runtime::kindui

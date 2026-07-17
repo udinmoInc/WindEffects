@@ -4,7 +4,8 @@
 #include "PlaceActors/ActorsPanelLayout.h"
 #include "PlaceActors/PlaceActorsThumbnailProvider.h"
 #include "KindUI/Theming/ThemeAccess.h"
-#include "KindUI/Theming/ThemeToken.h"
+#include "KindUI/Tokens/DesignToken.h"
+#include "KindUI/Theming/StyleRole.h"
 #include "KindUI/Core/Icon.h"
 #include "KindUI/Core/DPIContext.h"
 #include "KindUI/Rendering/IconMetrics.h"
@@ -17,7 +18,7 @@ using we::runtime::kindui::Color;
 using we::runtime::kindui::PaintContext;
 using we::runtime::kindui::Point;
 using we::runtime::kindui::Rect;
-using we::runtime::kindui::ThemeToken;
+using we::runtime::kindui::ColorToken;
 namespace WEIcons = we::runtime::kindui::Icons;
 
 namespace {
@@ -43,14 +44,14 @@ void PlaceActorsActorCard::Paint(PaintContext& context,
                                  bool selected,
                                  bool favorite) {
     const float uiScale = std::max(1.0f, we::runtime::kindui::DPIContext::GetScale());
-    const float labelFontSize = ResolveThemeMetric(ThemeToken::TextSizeSmall) * uiScale;
+    const float labelFontSize = ResolveMetric(MetricToken::TextSizeSmall) * uiScale;
     const float radius = ActorsPanelLayout::RowRadius();
 
     if (selected) {
-        context.DrawRoundedRect(cardBounds, ResolveThemeColor(ThemeToken::SelectedBackground), radius);
-        context.DrawRoundedRectOutline(cardBounds, ResolveThemeColor(ThemeToken::BorderDefault), 1.0f, radius);
+        context.DrawRoundedRect(cardBounds, ResolveColor(ColorToken::SelectedBackground), radius);
+        context.DrawRoundedRectOutline(cardBounds, ResolveColor(ColorToken::BorderDefault), 1.0f, radius);
     } else if (hoverAnim > 0.01f || pressAnim > 0.01f) {
-        Color bg = ResolveThemeColor(ThemeToken::HoverBackground);
+        Color bg = ResolveColor(ColorToken::HoverBackground);
         bg.a *= std::clamp(std::max(hoverAnim, pressAnim * 0.85f), 0.0f, 1.0f);
         context.DrawRoundedRect(cardBounds, bg, radius);
     }
@@ -71,13 +72,13 @@ void PlaceActorsActorCard::Paint(PaintContext& context,
     const float textX = cardBounds.x + std::max(2.0f, (cardBounds.width - textWidth) * 0.5f);
     const float textY = previewBounds.y + previewBounds.height
         + std::max(2.0f, (cardBounds.y + cardBounds.height - (previewBounds.y + previewBounds.height) - labelFontSize) * 0.5f);
-    context.DrawText(label, Point{ textX, textY }, ResolveThemeColor(ThemeToken::TextPrimary), labelFontSize);
+    context.DrawText(label, Point{ textX, textY }, ResolveColor(ColorToken::TextPrimary), labelFontSize);
 
     if (favorite || hoverAnim > 0.01f) {
         const Rect starRect = FavoriteStarRect(cardBounds);
         const Color starColor = favorite
-            ? ResolveThemeColor(ThemeToken::Warning)
-            : ResolveThemeColor(ThemeToken::IconPrimary);
+            ? ResolveColor(ColorToken::Warning)
+            : ResolveColor(ColorToken::IconPrimary);
         we::runtime::kindui::IconPainter::DrawIcon(context, WEIcons::StarName, starRect, starColor);
     }
 }

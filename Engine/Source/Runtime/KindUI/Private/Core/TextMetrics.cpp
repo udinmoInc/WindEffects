@@ -1,12 +1,13 @@
 #include "KindUI/Core/TextMetrics.h"
 
 #include "KindUI/Theming/ThemeAccess.h"
-#include "KindUI/Theming/ThemeToken.h"
+#include "KindUI/Tokens/DesignToken.h"
+#include "KindUI/Theming/StyleRole.h"
 
 namespace we::runtime::kindui {
 
 float TextMetrics::CharWidth(float fontSize) {
-    const float ratio = ResolveThemeMetric(ThemeToken::TextCharWidthRatio);
+    const float ratio = ResolveMetric(MetricToken::TextCharWidthRatio);
     return fontSize * ratio;
 }
 

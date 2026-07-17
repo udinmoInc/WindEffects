@@ -8,7 +8,7 @@ namespace we::runtime::kindui::ToolbarButtonChrome {
 namespace {
 
 Color MakePressBackground(float strength) {
-    Color pressed = ResolveThemeColor(ThemeToken::PressedBackground);
+    Color pressed = ResolveColor(ColorToken::PressedBackground);
     pressed.a *= strength;
     return pressed;
 }
@@ -16,33 +16,33 @@ Color MakePressBackground(float strength) {
 } // namespace
 
 float ButtonRadius(float uiScale) {
-    return ResolveThemeMetric(ThemeToken::IconButtonRadius) * uiScale;
+    return ResolveMetric(MetricToken::IconButtonRadius) * uiScale;
 }
 
 float IconSize(float uiScale) {
     (void)uiScale;
-    return static_cast<float>(IconMetrics::GlyphTierPx(ThemeToken::IconSizeToolbar));
+    return static_cast<float>(IconMetrics::GlyphTierPx(MetricToken::IconSizeToolbar));
 }
 
 float PrimaryIconSize(float uiScale) {
     (void)uiScale;
-    return static_cast<float>(IconMetrics::GlyphTierPx(ThemeToken::IconSizePrimary));
+    return static_cast<float>(IconMetrics::GlyphTierPx(MetricToken::IconSizePrimary));
 }
 
 float HorizontalPad(float uiScale) {
-    return ResolveThemeMetric(ThemeToken::Space1) * uiScale;
+    return ResolveMetric(MetricToken::Space1) * uiScale;
 }
 
 float ChipHorizontalPad(float uiScale) {
-    return ResolveThemeMetric(ThemeToken::Space2) * uiScale;
+    return ResolveMetric(MetricToken::Space2) * uiScale;
 }
 
 float IconGapPx(float uiScale) {
-    return ResolveThemeMetric(ThemeToken::Space1) * uiScale;
+    return ResolveMetric(MetricToken::Space1) * uiScale;
 }
 
 float ChevronGapPx(float uiScale) {
-    return ResolveThemeMetric(ThemeToken::Space2) * uiScale;
+    return ResolveMetric(MetricToken::Space2) * uiScale;
 }
 
 Rect PlaceIconInControl(const Rect& controlBounds, float glyphTierPx) {
@@ -67,8 +67,8 @@ void PaintIconButton(
     float uiScale)
 {
     const float radius = ButtonRadius(uiScale);
-    const Color hoverBg = ResolveThemeColor(ThemeToken::HoverBackground);
-    const Color selectedBg = ResolveThemeColor(ThemeToken::SelectedBackground);
+    const Color hoverBg = ResolveColor(ColorToken::HoverBackground);
+    const Color selectedBg = ResolveColor(ColorToken::SelectedBackground);
     const Color selectedHoverBg = Color::Lerp(selectedBg, hoverBg, 0.55f);
 
     if (active || activeAnim > 0.01f) {
@@ -94,10 +94,10 @@ void PaintChipDropdown(
     float uiScale)
 {
     const float radius = ButtonRadius(uiScale);
-    Color idleBg = ResolveThemeColor(ThemeToken::ButtonPrimaryBackground);
+    Color idleBg = ResolveColor(ColorToken::ButtonPrimaryBackground);
     idleBg.a = 0.38f;
-    const Color hoverBg = ResolveThemeColor(ThemeToken::ButtonPrimaryHover);
-    const Color pressBg = ResolveThemeColor(ThemeToken::ButtonPrimaryPressed);
+    const Color hoverBg = ResolveColor(ColorToken::ButtonPrimaryHover);
+    const Color pressBg = ResolveColor(ColorToken::ButtonPrimaryPressed);
 
     Color bg = idleBg;
     if (pressStrength > 0.01f) {
@@ -110,7 +110,7 @@ void PaintChipDropdown(
 
     const float emphasis = std::max(hoverAnim, pressStrength);
     if (emphasis > 0.01f) {
-        Color border = ResolveThemeColor(ThemeToken::BorderLight);
+        Color border = ResolveColor(ColorToken::BorderLight);
         border.a *= emphasis * 0.65f;
         context.DrawRoundedRectOutline(rect, border, 1.0f * uiScale, radius);
     }
@@ -123,16 +123,16 @@ void PaintViewportChip(
     float pressStrength,
     float uiScale)
 {
-    const float radius = ResolveThemeMetric(ThemeToken::CornerRadiusSmall) * uiScale;
-    Color idleBg = ResolveThemeColor(ThemeToken::ViewportToolbarBackground);
-    Color hoverBg = Color::Lerp(idleBg, ResolveThemeColor(ThemeToken::ButtonPrimaryHover), 0.55f);
-    Color pressBg = ResolveThemeColor(ThemeToken::ButtonPrimaryPressed);
+    const float radius = ResolveMetric(MetricToken::CornerRadiusSmall) * uiScale;
+    Color idleBg = ResolveColor(ColorToken::ViewportToolbarBackground);
+    Color hoverBg = Color::Lerp(idleBg, ResolveColor(ColorToken::ButtonPrimaryHover), 0.55f);
+    Color pressBg = ResolveColor(ColorToken::ButtonPrimaryPressed);
 
     context.DrawShadow(
         rect,
-        ResolveThemeColor(ThemeToken::ShadowSubtle),
+        ResolveColor(ColorToken::ShadowSubtle),
         radius,
-        ResolveThemeMetric(ThemeToken::Space2) * uiScale);
+        ResolveMetric(MetricToken::Space2) * uiScale);
 
     Color bg = idleBg;
     if (pressStrength > 0.01f) {
@@ -143,13 +143,13 @@ void PaintViewportChip(
     context.DrawRoundedRect(rect, bg, radius);
     context.DrawRoundedRectOutline(
         rect,
-        ResolveThemeColor(ThemeToken::BorderDefault),
+        ResolveColor(ColorToken::BorderDefault),
         1.0f * uiScale,
         radius);
 
     const float emphasis = std::max(hoverAnim, pressStrength);
     if (emphasis > 0.01f) {
-        Color border = ResolveThemeColor(ThemeToken::BorderLight);
+        Color border = ResolveColor(ColorToken::BorderLight);
         border.a *= emphasis * 0.75f;
         context.DrawRoundedRectOutline(rect, border, 1.0f * uiScale, radius);
     }

@@ -3,7 +3,8 @@
 #include "WindEffects/Editor/UI/Export.h"
 #include "KindUI/Core/IApplicationContext.h"
 #include "KindUI/Core/ServiceContainer.h"
-#include "KindUI/Theming/IThemeProvider.h"
+#include "KindUI/Theming/IKindUITheme.h"
+#include "KindUI/Theming/ResolvedStyle.h"
 #include "KindUI/Resources/IResourceRegistry.h"
 #include "KindUI/Events/IEventBus.h"
 #include "KindUI/Commands/ICommandRegistry.h"
@@ -28,7 +29,7 @@ class EditorApplicationContext final
 public:
     // Defaults to we::editor::ui::EditorTheme (orange accent).
     UIFRAMEWORK_API explicit EditorApplicationContext(
-        std::shared_ptr<IThemeProvider> theme = nullptr);
+        std::shared_ptr<IKindUITheme> theme = nullptr);
 
     UIFRAMEWORK_API void Initialize(float dpiScale = 1.0f);
     UIFRAMEWORK_API void Shutdown();
@@ -37,7 +38,7 @@ public:
     UIFRAMEWORK_API void SyncThemeFromManager();
 
     [[nodiscard]] IServiceProvider& GetServices() const override { return *const_cast<EditorApplicationContext*>(this); }
-    [[nodiscard]] IThemeProvider& GetThemeProvider() const override { return *m_ThemeProvider; }
+    [[nodiscard]] IKindUITheme& GetTheme() const override { return *m_ThemeProvider; }
     [[nodiscard]] IStyleResolver& GetStyleResolver() const override { return *m_StyleResolver; }
     [[nodiscard]] IResourceRegistry& GetResourceRegistry() const override { return *m_ResourceRegistry; }
     [[nodiscard]] IEventBus& GetEventBus() const override { return *m_EventBus; }
@@ -46,7 +47,7 @@ public:
     [[nodiscard]] UIExtensionRegistry& GetExtensionRegistry() const override { return *m_ExtensionRegistry; }
 
 private:
-    std::shared_ptr<IThemeProvider> m_ThemeProvider;
+    std::shared_ptr<IKindUITheme> m_ThemeProvider;
     std::shared_ptr<IStyleResolver> m_StyleResolver;
     std::shared_ptr<IResourceRegistry> m_ResourceRegistry;
     std::shared_ptr<IEventBus> m_EventBus;

@@ -6,7 +6,8 @@
 #include "KindUI/Core/Animator.h"
 #include "KindUI/Core/Icon.h"
 #include "KindUI/Core/PaintContext.h"
-#include "KindUI/Theming/ThemeToken.h"
+#include "KindUI/Tokens/DesignToken.h"
+#include "KindUI/Theming/StyleRole.h"
 
 #include <algorithm>
 #include <cmath>
@@ -147,10 +148,10 @@ void WizardDialogShell::Paint(PaintContext& context) {
         radius,
         28.0f * s);
 
-    context.DrawRoundedRect(m_Geometry, LColor(ThemeToken::DialogBackground), radius);
+    context.DrawRoundedRect(m_Geometry, LColor(ColorToken::DialogBackground), radius);
     context.DrawRoundedRectOutline(
         m_Geometry,
-        LColor(ThemeToken::BorderDefault),
+        LColor(ColorToken::BorderDefault),
         1.0f * s,
         radius);
 
@@ -190,11 +191,11 @@ void FilterChip::Paint(PaintContext& context) {
     const float s = LScale();
     const float radius = 8.0f * s;
     Color bg = m_Selected
-        ? LColor(ThemeToken::SelectedBackground)
-        : Color::Lerp(LColor(ThemeToken::PanelBackground), LColor(ThemeToken::HoverBackground), m_HoverAnim);
+        ? LColor(ColorToken::SelectedBackground)
+        : Color::Lerp(LColor(ColorToken::PanelBackground), LColor(ColorToken::HoverBackground), m_HoverAnim);
     context.DrawRoundedRect(m_Geometry, bg, radius);
     if (m_Selected) {
-        context.DrawRoundedRectOutline(m_Geometry, LColor(ThemeToken::AccentPrimary), 1.0f * s, radius);
+        context.DrawRoundedRectOutline(m_Geometry, LColor(ColorToken::AccentPrimary), 1.0f * s, radius);
     }
 
     const float textSize = 13.0f * s;
@@ -204,7 +205,7 @@ void FilterChip::Paint(PaintContext& context) {
             m_Geometry.x + (m_Geometry.width - ApproxW(m_Label, textSize)) * 0.5f,
             m_Geometry.y + (m_Geometry.height - textSize) * 0.5f
         },
-        m_Selected ? LColor(ThemeToken::TextPrimary) : LColor(ThemeToken::TextSecondary),
+        m_Selected ? LColor(ColorToken::TextPrimary) : LColor(ColorToken::TextSecondary),
         textSize,
         m_Selected);
 }
@@ -228,7 +229,7 @@ bool FilterChip::ShowsPointerCursor(const Point& position) const {
 
 void FilterChip::Tick(float deltaTime) {
     (void)deltaTime;
-    const float damp = LMetric(ThemeToken::HoverAnimationDamping);
+    const float damp = LMetric(MetricToken::HoverAnimationDamping);
     m_HoverAnim = Animator::Damp(m_HoverAnim, IsHovered() && !m_Selected ? 1.0f : 0.0f, damp);
     Widget::Tick(deltaTime);
 }
@@ -258,15 +259,15 @@ void CreateTemplateRow::Paint(PaintContext& context) {
     const float radius = 8.0f * s;
 
     Color bg = m_Selected
-        ? LColor(ThemeToken::SelectedBackground)
-        : Color::Lerp(Color::Transparent(), LColor(ThemeToken::HoverBackground), m_HoverAnim);
+        ? LColor(ColorToken::SelectedBackground)
+        : Color::Lerp(Color::Transparent(), LColor(ColorToken::HoverBackground), m_HoverAnim);
     if (m_Selected || m_HoverAnim > 0.01f) {
         context.DrawRoundedRect(m_Geometry, bg, radius);
     }
     if (m_Selected) {
         context.DrawRect(
             Rect{ m_Geometry.x, m_Geometry.y + 10.0f * s, 3.0f * s, m_Geometry.height - 20.0f * s },
-            LColor(ThemeToken::AccentPrimary));
+            LColor(ColorToken::AccentPrimary));
     }
 
     const float pad = 12.0f * s;
@@ -278,7 +279,7 @@ void CreateTemplateRow::Paint(PaintContext& context) {
             iconBox,
             iconBox
         },
-        LColor(ThemeToken::PanelBackground),
+        LColor(ColorToken::PanelBackground),
         8.0f * s);
     IconPainter::DrawIcon(
         context,
@@ -289,7 +290,7 @@ void CreateTemplateRow::Paint(PaintContext& context) {
             20.0f * s,
             20.0f * s
         },
-        LColor(ThemeToken::AccentPrimary));
+        LColor(ColorToken::AccentPrimary));
 
     const float textX = m_Geometry.x + pad + iconBox + 12.0f * s;
     const float textW = std::max(40.0f, m_Geometry.width - (textX - m_Geometry.x) - pad);
@@ -299,7 +300,7 @@ void CreateTemplateRow::Paint(PaintContext& context) {
     context.DrawText(
         Ellipsize(m_Info.displayName, textW, titleSize),
         Point{ textX, m_Geometry.y + 12.0f * s },
-        LColor(ThemeToken::TextPrimary),
+        LColor(ColorToken::TextPrimary),
         titleSize,
         true);
 
@@ -307,14 +308,14 @@ void CreateTemplateRow::Paint(PaintContext& context) {
     context.DrawText(
         category,
         Point{ textX, m_Geometry.y + 12.0f * s + titleSize + 2.0f * s },
-        LColor(ThemeToken::AccentPrimary),
+        LColor(ColorToken::AccentPrimary),
         metaSize);
 
     const std::string desc = m_Info.description.empty() ? "No description" : m_Info.description;
     context.DrawText(
         Ellipsize(desc, textW, metaSize),
         Point{ textX, m_Geometry.y + m_Geometry.height - metaSize - 12.0f * s },
-        LColor(ThemeToken::TextMuted),
+        LColor(ColorToken::TextMuted),
         metaSize);
 }
 
@@ -349,7 +350,7 @@ bool CreateTemplateRow::ShowsPointerCursor(const Point& position) const {
 
 void CreateTemplateRow::Tick(float deltaTime) {
     (void)deltaTime;
-    const float damp = LMetric(ThemeToken::HoverAnimationDamping);
+    const float damp = LMetric(MetricToken::HoverAnimationDamping);
     m_HoverAnim = Animator::Damp(m_HoverAnim, IsHovered() && !m_Selected ? 1.0f : 0.0f, damp);
     Widget::Tick(deltaTime);
     InvalidateUI();
@@ -376,7 +377,7 @@ void WizardSeparator::Arrange(const Rect& allottedRect) {
 }
 
 void WizardSeparator::Paint(PaintContext& context) {
-    context.DrawRect(m_Geometry, LColor(ThemeToken::Separator));
+    context.DrawRect(m_Geometry, LColor(ColorToken::Separator));
 }
 
 } // namespace we::programs::welauncher

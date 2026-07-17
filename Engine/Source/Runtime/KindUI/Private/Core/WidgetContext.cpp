@@ -10,8 +10,8 @@ IStyleResolver& WidgetContext::GetStyleResolver() const {
     return m_AppContext.GetStyleResolver();
 }
 
-IThemeProvider& WidgetContext::GetThemeProvider() const {
-    return m_AppContext.GetThemeProvider();
+IKindUITheme& WidgetContext::GetTheme() const {
+    return m_AppContext.GetTheme();
 }
 
 IEventBus& WidgetContext::GetEventBus() const {

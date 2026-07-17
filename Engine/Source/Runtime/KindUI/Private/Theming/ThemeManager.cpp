@@ -2,6 +2,7 @@
 #include "KindUI/Theming/StyleClass.h"
 #include "KindUI/Core/DPIContext.h"
 
+#include <algorithm>
 #include <stdexcept>
 
 namespace we::runtime::kindui {
@@ -11,14 +12,14 @@ ThemeManager& ThemeManager::Get() {
     return instance;
 }
 
-void ThemeManager::Initialize(std::shared_ptr<IThemeProvider> theme, float dpiScale) {
+void ThemeManager::Initialize(std::shared_ptr<IKindUITheme> theme, float dpiScale) {
     if (!theme) {
         throw std::invalid_argument("ThemeManager::Initialize requires a non-null theme");
     }
     {
         std::lock_guard lock(m_Mutex);
-        m_Provider = std::move(theme);
-        m_Resolver = std::make_shared<StyleResolver>(m_Provider);
+        m_Theme = std::move(theme);
+        m_Resolver = std::make_shared<StyleResolver>(m_Theme);
         m_Resolver->SetDpiScale(dpiScale);
         DPIContext::SetScale(dpiScale);
     }
@@ -26,7 +27,7 @@ void ThemeManager::Initialize(std::shared_ptr<IThemeProvider> theme, float dpiSc
     NotifyChanged();
 }
 
-void ThemeManager::SetTheme(std::shared_ptr<IThemeProvider> theme) {
+void ThemeManager::SetTheme(std::shared_ptr<IKindUITheme> theme) {
     if (!theme) {
         return;
     }
@@ -34,8 +35,8 @@ void ThemeManager::SetTheme(std::shared_ptr<IThemeProvider> theme) {
     {
         std::lock_guard lock(m_Mutex);
         dpi = m_Resolver ? m_Resolver->GetDpiScale() : DPIContext::GetScale();
-        m_Provider = std::move(theme);
-        m_Resolver = std::make_shared<StyleResolver>(m_Provider);
+        m_Theme = std::move(theme);
+        m_Resolver = std::make_shared<StyleResolver>(m_Theme);
         m_Resolver->SetDpiScale(dpi);
     }
     NotifyChanged();
@@ -43,34 +44,33 @@ void ThemeManager::SetTheme(std::shared_ptr<IThemeProvider> theme) {
 
 std::string_view ThemeManager::GetThemeId() const {
     std::lock_guard lock(m_Mutex);
-    if (!m_Provider) {
+    if (!m_Theme) {
         return {};
     }
-    return m_Provider->GetThemeId();
+    return m_Theme->GetThemeId();
 }
 
-IThemeProvider& ThemeManager::Provider() {
+IKindUITheme& ThemeManager::Theme() {
     std::lock_guard lock(m_Mutex);
-    if (!m_Provider) {
-        // Lazy default so free ThemeAccess helpers work before app bootstrap.
-        m_Provider = std::make_shared<GraphiteDarkTheme>();
-        m_Resolver = std::make_shared<StyleResolver>(m_Provider);
+    if (!m_Theme) {
+        m_Theme = std::make_shared<GraphiteDarkTheme>();
+        m_Resolver = std::make_shared<StyleResolver>(m_Theme);
         m_Resolver->SetDpiScale(std::max(1.0f, DPIContext::GetScale()));
     }
-    return *m_Provider;
+    return *m_Theme;
 }
 
-const IThemeProvider& ThemeManager::Provider() const {
-    return const_cast<ThemeManager*>(this)->Provider();
+const IKindUITheme& ThemeManager::Theme() const {
+    return const_cast<ThemeManager*>(this)->Theme();
 }
 
 IStyleResolver& ThemeManager::Styles() {
     std::lock_guard lock(m_Mutex);
     if (!m_Resolver) {
-        if (!m_Provider) {
-            m_Provider = std::make_shared<GraphiteDarkTheme>();
+        if (!m_Theme) {
+            m_Theme = std::make_shared<GraphiteDarkTheme>();
         }
-        m_Resolver = std::make_shared<StyleResolver>(m_Provider);
+        m_Resolver = std::make_shared<StyleResolver>(m_Theme);
         m_Resolver->SetDpiScale(std::max(1.0f, DPIContext::GetScale()));
     }
     return *m_Resolver;

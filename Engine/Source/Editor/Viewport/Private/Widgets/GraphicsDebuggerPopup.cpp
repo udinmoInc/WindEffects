@@ -2,7 +2,8 @@
 #include "EditorCamera.h"
 #include "Scene/Scene.h"
 #include "KindUI/Core/PaintContext.h"
-#include "KindUI/Theming/ThemeToken.h"
+#include "KindUI/Tokens/DesignToken.h"
+#include "KindUI/Theming/StyleRole.h"
 #include "Core/Logger.h"
 #include <glm/gtc/type_ptr.hpp>
 #include <iomanip>
@@ -94,18 +95,18 @@ void GraphicsDebuggerPopup::Paint(PaintContext& context) {
     if (!m_Visible) {
         return;
     }
-    context.DrawShadow(m_Geometry, ThemeColor(ThemeToken::ContentBrowserFolderShadow), 6.0f, 12.0f);
-    context.DrawRoundedRect(m_Geometry, ThemeColor(ThemeToken::PopupBackground), ThemeMetric(ThemeToken::CornerRadiusSmall));
-    context.DrawRoundedRectOutline(m_Geometry, ThemeColor(ThemeToken::BorderDefault), 1.0f, ThemeMetric(ThemeToken::CornerRadiusSmall));
-    context.DrawRect(m_HeaderRect, ThemeColor(ThemeToken::HeaderBackground));
+    context.DrawShadow(m_Geometry, ThemeColor(ColorToken::ContentBrowserFolderShadow), 6.0f, 12.0f);
+    context.DrawRoundedRect(m_Geometry, ThemeColor(ColorToken::PopupBackground), ThemeMetric(MetricToken::CornerRadiusSmall));
+    context.DrawRoundedRectOutline(m_Geometry, ThemeColor(ColorToken::BorderDefault), 1.0f, ThemeMetric(MetricToken::CornerRadiusSmall));
+    context.DrawRect(m_HeaderRect, ThemeColor(ColorToken::HeaderBackground));
     context.DrawText(kTitle, Point{ m_Geometry.x + kPadding, m_Geometry.y + 5.0f },
-        ThemeColor(ThemeToken::TextPrimary), 11.0f, true);
+        ThemeColor(ColorToken::TextPrimary), 11.0f, true);
 
     std::vector<std::string> lines;
     BuildLines(lines);
     float lineY = m_Geometry.y + kHeaderHeight + kPadding;
-    const Color textColor = ThemeColor(ThemeToken::TextSecondary);
-    const Color accentColor = ThemeColor(ThemeToken::TextPrimary);
+    const Color textColor = ThemeColor(ColorToken::TextSecondary);
+    const Color accentColor = ThemeColor(ColorToken::TextPrimary);
     for (size_t i = 0; i < lines.size(); ++i) {
         const Color color = (i >= lines.size() - 2) ? accentColor : textColor;
         context.DrawText(lines[i], Point{ m_Geometry.x + kPadding, lineY }, color, 11.0f);

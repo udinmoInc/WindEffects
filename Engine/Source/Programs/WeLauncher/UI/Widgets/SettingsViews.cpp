@@ -10,7 +10,8 @@
 #include "KindUI/Core/Widgets/DesignSystemControls.h"
 #include "KindUI/Layout/Flex.h"
 #include "Platform/PlatformSDK.h"
-#include "KindUI/Theming/ThemeToken.h"
+#include "KindUI/Tokens/DesignToken.h"
+#include "KindUI/Theming/StyleRole.h"
 
 #include <algorithm>
 #include <cmath>
@@ -120,8 +121,8 @@ Size SettingsGroup::Measure(const Size& availableSize) {
     const float s = LScale();
     const float padX = 16.0f * s;
     const float padY = 16.0f * s;
-    const float titleSize = LMetric(ThemeToken::TextSizeHeader) * s;
-    const float descSize = LMetric(ThemeToken::TextSizeCaption) * s;
+    const float titleSize = LMetric(MetricToken::TextSizeHeader) * s;
+    const float descSize = LMetric(MetricToken::TextSizeCaption) * s;
     float headerH = titleSize + 4.0f * s;
     if (!m_Description.empty()) {
         headerH += descSize + 4.0f * s;
@@ -149,8 +150,8 @@ void SettingsGroup::Arrange(const Rect& allottedRect) {
     const float s = LScale();
     const float padX = 16.0f * s;
     const float padY = 16.0f * s;
-    const float titleSize = LMetric(ThemeToken::TextSizeHeader) * s;
-    const float descSize = LMetric(ThemeToken::TextSizeCaption) * s;
+    const float titleSize = LMetric(MetricToken::TextSizeHeader) * s;
+    const float descSize = LMetric(MetricToken::TextSizeCaption) * s;
     float y = allottedRect.y + padY + titleSize + 4.0f * s;
     if (!m_Description.empty()) {
         y += descSize + 4.0f * s;
@@ -172,28 +173,28 @@ void SettingsGroup::Paint(PaintContext& context) {
     const float padX = 16.0f * s;
     const float padY = 16.0f * s;
 
-    Color cardBg = LColor(ThemeToken::PanelBackground);
+    Color cardBg = LColor(ColorToken::PanelBackground);
     context.DrawRoundedRect(m_Geometry, cardBg, radius);
 
     if (m_Highlighted) {
         context.DrawRect(
             Rect{ m_Geometry.x + 4.0f * s, m_Geometry.y + 10.0f * s, 3.0f * s, m_Geometry.height - 20.0f * s },
-            LColor(ThemeToken::AccentPrimary));
+            LColor(ColorToken::AccentPrimary));
     }
 
-    const float titleSize = LMetric(ThemeToken::TextSizeHeader) * s;
-    const float descSize = LMetric(ThemeToken::TextSizeCaption) * s;
+    const float titleSize = LMetric(MetricToken::TextSizeHeader) * s;
+    const float descSize = LMetric(MetricToken::TextSizeCaption) * s;
     context.DrawText(
         m_Title,
         Point{ m_Geometry.x + padX, m_Geometry.y + padY },
-        LColor(ThemeToken::TextPrimary),
+        LColor(ColorToken::TextPrimary),
         titleSize,
         true);
     if (!m_Description.empty()) {
         context.DrawText(
             m_Description,
             Point{ m_Geometry.x + padX, m_Geometry.y + padY + titleSize + 4.0f * s },
-            LColor(ThemeToken::TextMuted),
+            LColor(ColorToken::TextMuted),
             descSize);
     }
 
@@ -267,21 +268,21 @@ void SettingsRow::Paint(PaintContext& context) {
     if (m_Highlighted) {
         context.DrawRoundedRect(
             m_Geometry,
-            Color::Lerp(Color::Transparent(), LColor(ThemeToken::SelectedBackground), 0.55f),
-            LMetric(ThemeToken::CornerRadiusSmall) * s);
+            Color::Lerp(Color::Transparent(), LColor(ColorToken::SelectedBackground), 0.55f),
+            LMetric(MetricToken::CornerRadiusSmall) * s);
     }
 
-    const float titleSize = LMetric(ThemeToken::TextSizeBody) * s;
-    const float hintSize = LMetric(ThemeToken::TextSizeCaption) * s;
+    const float titleSize = LMetric(MetricToken::TextSizeBody) * s;
+    const float hintSize = LMetric(MetricToken::TextSizeCaption) * s;
     float y = m_Geometry.y + (m_Hint.empty()
         ? (m_Geometry.height - titleSize) * 0.5f
         : 6.0f * s);
-    context.DrawText(m_Label, Point{ m_Geometry.x, y }, LColor(ThemeToken::TextPrimary), titleSize);
+    context.DrawText(m_Label, Point{ m_Geometry.x, y }, LColor(ColorToken::TextPrimary), titleSize);
     if (!m_Hint.empty()) {
         context.DrawText(
             m_Hint,
             Point{ m_Geometry.x, y + titleSize + 2.0f * s },
-            LColor(ThemeToken::TextMuted),
+            LColor(ColorToken::TextMuted),
             hintSize);
     }
 
@@ -325,11 +326,11 @@ void ToggleSwitch::Arrange(const Rect& allottedRect) {
 void ToggleSwitch::Paint(PaintContext& context) {
     const float s = LScale();
     const float radius = m_Geometry.height * 0.5f;
-    Color off = LColor(ThemeToken::InputBackground);
-    Color on = LColor(ThemeToken::AccentPrimary);
+    Color off = LColor(ColorToken::InputBackground);
+    Color on = LColor(ColorToken::AccentPrimary);
     Color track = Color::Lerp(off, on, m_Anim);
     context.DrawRoundedRect(m_Geometry, track, radius);
-    context.DrawRoundedRectOutline(m_Geometry, LColor(ThemeToken::BorderDefault), 1.0f, radius);
+    context.DrawRoundedRectOutline(m_Geometry, LColor(ColorToken::BorderDefault), 1.0f, radius);
 
     const float knob = m_Geometry.height - 4.0f * s;
     const float travel = m_Geometry.width - knob - 4.0f * s;
@@ -339,7 +340,7 @@ void ToggleSwitch::Paint(PaintContext& context) {
         knob,
         knob
     };
-    context.DrawRoundedRect(knobRect, LColor(ThemeToken::TextPrimary), knob * 0.5f);
+    context.DrawRoundedRect(knobRect, LColor(ColorToken::TextPrimary), knob * 0.5f);
 }
 
 void ToggleSwitch::OnMouseDown(const MouseEvent& event) {
@@ -403,12 +404,12 @@ void SettingsCheckBox::Arrange(const Rect& allottedRect) {
 void SettingsCheckBox::Paint(PaintContext& context) {
     const float s = LScale();
     const float radius = 4.0f * s;
-    Color bg = m_Checked ? LColor(ThemeToken::AccentPrimary) : LColor(ThemeToken::InputBackground);
+    Color bg = m_Checked ? LColor(ColorToken::AccentPrimary) : LColor(ColorToken::InputBackground);
     if (m_HoverAnim > 0.01f && !m_Checked) {
-        bg = Color::Lerp(bg, LColor(ThemeToken::HoverBackground), m_HoverAnim);
+        bg = Color::Lerp(bg, LColor(ColorToken::HoverBackground), m_HoverAnim);
     }
     context.DrawRoundedRect(m_Geometry, bg, radius);
-    context.DrawRoundedRectOutline(m_Geometry, LColor(ThemeToken::BorderDefault), 1.0f, radius);
+    context.DrawRoundedRectOutline(m_Geometry, LColor(ColorToken::BorderDefault), 1.0f, radius);
     if (m_Checked) {
         IconPainter::DrawIcon(
             context,
@@ -419,7 +420,7 @@ void SettingsCheckBox::Paint(PaintContext& context) {
                 m_Geometry.width - 4.0f * s,
                 m_Geometry.height - 4.0f * s
             },
-            LColor(ThemeToken::TextPrimary));
+            LColor(ColorToken::TextPrimary));
     }
 }
 
@@ -453,7 +454,7 @@ void SettingsCheckBox::Tick(float deltaTime) {
     m_HoverAnim = Animator::Damp(
         m_HoverAnim,
         m_Hovered ? 1.0f : 0.0f,
-        LMetric(ThemeToken::HoverAnimationDamping));
+        LMetric(MetricToken::HoverAnimationDamping));
     Widget::Tick(deltaTime);
 }
 
@@ -540,18 +541,18 @@ int SettingsDropdown::HitOption(const Point& p) const {
 
 void SettingsDropdown::Paint(PaintContext& context) {
     const float s = LScale();
-    const float radius = LMetric(ThemeToken::CornerRadiusSmall) * s;
+    const float radius = LMetric(MetricToken::CornerRadiusSmall) * s;
     const float triggerH = 34.0f * s;
     Rect trigger{ m_Geometry.x, m_Geometry.y, m_Geometry.width, triggerH };
 
-    Color bg = LColor(ThemeToken::InputBackground);
+    Color bg = LColor(ColorToken::InputBackground);
     if (m_HoverAnim > 0.01f || m_Open) {
-        bg = Color::Lerp(bg, LColor(ThemeToken::HoverBackground), std::max(m_HoverAnim, m_Open ? 1.0f : 0.0f));
+        bg = Color::Lerp(bg, LColor(ColorToken::HoverBackground), std::max(m_HoverAnim, m_Open ? 1.0f : 0.0f));
     }
     context.DrawRoundedRect(trigger, bg, radius);
     context.DrawRoundedRectOutline(
         trigger,
-        m_Open ? LColor(ThemeToken::BorderFocus) : LColor(ThemeToken::BorderDefault),
+        m_Open ? LColor(ColorToken::BorderFocus) : LColor(ColorToken::BorderDefault),
         1.0f,
         radius);
 
@@ -559,13 +560,13 @@ void SettingsDropdown::Paint(PaintContext& context) {
     context.DrawText(
         SelectedLabel(),
         Point{ trigger.x + 10.0f * s, trigger.y + (triggerH - textSize) * 0.5f },
-        LColor(ThemeToken::TextPrimary),
+        LColor(ColorToken::TextPrimary),
         textSize);
     IconPainter::DrawIcon(
         context,
         Icons::ChevronDownName,
         Rect{ trigger.x + trigger.width - 20.0f * s, trigger.y + (triggerH - 12.0f * s) * 0.5f, 12.0f * s, 12.0f * s },
-        LColor(ThemeToken::IconSecondary));
+        LColor(ColorToken::IconSecondary));
 
     if (m_Open) {
         const Rect menu = MenuRect();
@@ -573,12 +574,12 @@ void SettingsDropdown::Paint(PaintContext& context) {
         for (int i = 0; i < static_cast<int>(m_Options.size()); ++i) {
             const Rect opt = OptionRect(i);
             if (i == m_Selected || i == m_HoverOption) {
-                context.DrawRoundedRect(opt, LColor(ThemeToken::HoverBackground), radius - 1.0f);
+                context.DrawRoundedRect(opt, LColor(ColorToken::HoverBackground), radius - 1.0f);
             }
             context.DrawText(
                 m_Options[static_cast<std::size_t>(i)],
                 Point{ opt.x + 10.0f * s, opt.y + (opt.height - textSize) * 0.5f },
-                i == m_Selected ? LColor(ThemeToken::AccentPrimary) : LColor(ThemeToken::TextPrimary),
+                i == m_Selected ? LColor(ColorToken::AccentPrimary) : LColor(ColorToken::TextPrimary),
                 textSize);
         }
     }
@@ -627,7 +628,7 @@ void SettingsDropdown::Tick(float deltaTime) {
     m_HoverAnim = Animator::Damp(
         m_HoverAnim,
         m_Hovered ? 1.0f : 0.0f,
-        LMetric(ThemeToken::HoverAnimationDamping));
+        LMetric(MetricToken::HoverAnimationDamping));
     Widget::Tick(deltaTime);
 }
 
@@ -648,7 +649,7 @@ void SettingsSegmented::SetSelected(int index) {
 Size SettingsSegmented::Measure(const Size& availableSize) {
     (void)availableSize;
     const float s = LScale();
-    const float textSize = LMetric(ThemeToken::TextSizeCaption) * s;
+    const float textSize = LMetric(MetricToken::TextSizeCaption) * s;
     float w = 4.0f * s;
     for (const auto& label : m_Labels) {
         w += ApproxTextWidth(label, textSize) + 20.0f * s;
@@ -689,20 +690,20 @@ int SettingsSegmented::HitSegment(const Point& p) const {
 
 void SettingsSegmented::Paint(PaintContext& context) {
     const float s = LScale();
-    const float radius = LMetric(ThemeToken::CornerRadiusSmall) * s;
-    context.DrawRoundedRect(m_Geometry, LColor(ThemeToken::InputBackground), radius);
-    context.DrawRoundedRectOutline(m_Geometry, LColor(ThemeToken::BorderDefault), 1.0f, radius);
+    const float radius = LMetric(MetricToken::CornerRadiusSmall) * s;
+    context.DrawRoundedRect(m_Geometry, LColor(ColorToken::InputBackground), radius);
+    context.DrawRoundedRectOutline(m_Geometry, LColor(ColorToken::BorderDefault), 1.0f, radius);
 
-    const float textSize = LMetric(ThemeToken::TextSizeCaption) * s;
+    const float textSize = LMetric(MetricToken::TextSizeCaption) * s;
     for (int i = 0; i < static_cast<int>(m_Labels.size()); ++i) {
         const Rect r = SegmentRect(i);
         const bool selected = i == m_Selected;
         if (selected) {
-            context.DrawRoundedRect(r, LColor(ThemeToken::SelectedBackground), radius - 1.0f);
+            context.DrawRoundedRect(r, LColor(ColorToken::SelectedBackground), radius - 1.0f);
         } else if (m_HoverAnims[static_cast<std::size_t>(i)] > 0.01f) {
             context.DrawRoundedRect(
                 r,
-                Color::Lerp(Color::Transparent(), LColor(ThemeToken::HoverBackground), m_HoverAnims[static_cast<std::size_t>(i)]),
+                Color::Lerp(Color::Transparent(), LColor(ColorToken::HoverBackground), m_HoverAnims[static_cast<std::size_t>(i)]),
                 radius - 1.0f);
         }
         const std::string& label = m_Labels[static_cast<std::size_t>(i)];
@@ -710,7 +711,7 @@ void SettingsSegmented::Paint(PaintContext& context) {
         context.DrawText(
             label,
             Point{ r.x + (r.width - tw) * 0.5f, r.y + (r.height - textSize) * 0.5f },
-            selected ? LColor(ThemeToken::TextPrimary) : LColor(ThemeToken::TextSecondary),
+            selected ? LColor(ColorToken::TextPrimary) : LColor(ColorToken::TextSecondary),
             textSize,
             selected);
     }
@@ -740,7 +741,7 @@ bool SettingsSegmented::ShowsPointerCursor(const Point& position) const {
 
 void SettingsSegmented::Tick(float deltaTime) {
     (void)deltaTime;
-    const float damp = LMetric(ThemeToken::HoverAnimationDamping);
+    const float damp = LMetric(MetricToken::HoverAnimationDamping);
     for (int i = 0; i < static_cast<int>(m_HoverAnims.size()); ++i) {
         m_HoverAnims[static_cast<std::size_t>(i)] = Animator::Damp(
             m_HoverAnims[static_cast<std::size_t>(i)],
@@ -780,22 +781,22 @@ void SettingsTextField::Arrange(const Rect& allottedRect) {
 
 void SettingsTextField::Paint(PaintContext& context) {
     const float s = LScale();
-    const float radius = LMetric(ThemeToken::CornerRadiusSmall) * s;
-    Color bg = LColor(ThemeToken::InputBackground);
+    const float radius = LMetric(MetricToken::CornerRadiusSmall) * s;
+    Color bg = LColor(ColorToken::InputBackground);
     if (m_HoverAnim > 0.01f) {
-        bg = Color::Lerp(bg, LColor(ThemeToken::HoverBackground), m_HoverAnim * 0.5f);
+        bg = Color::Lerp(bg, LColor(ColorToken::HoverBackground), m_HoverAnim * 0.5f);
     }
     context.DrawRoundedRect(m_Geometry, bg, radius);
     context.DrawRoundedRectOutline(
         m_Geometry,
-        m_FocusAnim > 0.5f ? LColor(ThemeToken::BorderFocus) : LColor(ThemeToken::BorderDefault),
+        m_FocusAnim > 0.5f ? LColor(ColorToken::BorderFocus) : LColor(ColorToken::BorderDefault),
         1.0f,
         radius);
 
-    const float textSize = LMetric(ThemeToken::TextSizeBody) * s;
+    const float textSize = LMetric(MetricToken::TextSizeBody) * s;
     const float pad = 8.0f * s;
     const std::string& draw = m_Text.empty() ? m_Placeholder : m_Text;
-    Color textColor = m_Text.empty() ? LColor(ThemeToken::TextDisabled) : LColor(ThemeToken::TextPrimary);
+    Color textColor = m_Text.empty() ? LColor(ColorToken::TextDisabled) : LColor(ColorToken::TextPrimary);
     std::string clipped = draw;
     const float maxW = m_Geometry.width - pad * 2.0f;
     while (clipped.size() > 3 && ApproxTextWidth(clipped, textSize) > maxW) {
@@ -815,7 +816,7 @@ void SettingsTextField::Paint(PaintContext& context) {
         context.DrawLine(
             Point{ cx, m_Geometry.y + 6.0f * s },
             Point{ cx, m_Geometry.y + m_Geometry.height - 6.0f * s },
-            LColor(ThemeToken::AccentPrimary),
+            LColor(ColorToken::AccentPrimary),
             1.5f);
     }
 }
@@ -871,7 +872,7 @@ void SettingsTextField::Tick(float deltaTime) {
     m_HoverAnim = Animator::Damp(
         m_HoverAnim,
         m_Hovered ? 1.0f : 0.0f,
-        LMetric(ThemeToken::HoverAnimationDamping));
+        LMetric(MetricToken::HoverAnimationDamping));
     m_FocusAnim = Animator::Damp(m_FocusAnim, m_Focused ? 1.0f : 0.0f, 18.0f);
     m_CaretBlink += deltaTime;
     if (m_CaretBlink > 1.0f) {
@@ -924,7 +925,7 @@ Rect PathPickerField::BrowseRect() const {
 
 void PathPickerField::Paint(PaintContext& context) {
     const float s = LScale();
-    const float radius = LMetric(ThemeToken::CornerRadiusSmall) * s;
+    const float radius = LMetric(MetricToken::CornerRadiusSmall) * s;
     const Rect browse = BrowseRect();
     Rect field{
         m_Geometry.x,
@@ -933,30 +934,30 @@ void PathPickerField::Paint(PaintContext& context) {
         m_Geometry.height
     };
 
-    context.DrawRoundedRect(field, LColor(ThemeToken::InputBackground), radius);
-    context.DrawRoundedRectOutline(field, LColor(ThemeToken::BorderDefault), 1.0f, radius);
+    context.DrawRoundedRect(field, LColor(ColorToken::InputBackground), radius);
+    context.DrawRoundedRectOutline(field, LColor(ColorToken::BorderDefault), 1.0f, radius);
 
-    Color browseBg = LColor(ThemeToken::ButtonPrimaryBackground);
+    Color browseBg = LColor(ColorToken::ButtonPrimaryBackground);
     if (m_HoverBrowse) {
-        browseBg = Color::Lerp(browseBg, LColor(ThemeToken::ButtonPrimaryHover), 0.65f);
+        browseBg = Color::Lerp(browseBg, LColor(ColorToken::ButtonPrimaryHover), 0.65f);
     }
     context.DrawRoundedRect(browse, browseBg, radius);
 
-    const float textSize = LMetric(ThemeToken::TextSizeCaption) * s;
+    const float textSize = LMetric(MetricToken::TextSizeCaption) * s;
     const std::string shown = EllipsizePath(m_Path.empty() ? "No path selected" : m_Path, 42);
     context.DrawText(
         shown,
         Point{ field.x + 8.0f * s, field.y + (field.height - textSize) * 0.5f },
-        m_Path.empty() ? LColor(ThemeToken::TextDisabled) : LColor(ThemeToken::TextPrimary),
+        m_Path.empty() ? LColor(ColorToken::TextDisabled) : LColor(ColorToken::TextPrimary),
         textSize);
 
-    const float browseLabelSize = LMetric(ThemeToken::TextSizeCaption) * s;
+    const float browseLabelSize = LMetric(MetricToken::TextSizeCaption) * s;
     const std::string browseLabel = "Browse";
     const float bw = ApproxTextWidth(browseLabel, browseLabelSize);
     context.DrawText(
         browseLabel,
         Point{ browse.x + (browse.width - bw) * 0.5f, browse.y + (browse.height - browseLabelSize) * 0.5f },
-        LColor(ThemeToken::TextPrimary),
+        LColor(ColorToken::TextPrimary),
         browseLabelSize,
         true);
 }
@@ -1006,7 +1007,7 @@ void PathPickerField::Tick(float deltaTime) {
     m_HoverAnim = Animator::Damp(
         m_HoverAnim,
         m_HoverBrowse ? 1.0f : 0.0f,
-        LMetric(ThemeToken::HoverAnimationDamping));
+        LMetric(MetricToken::HoverAnimationDamping));
     Widget::Tick(deltaTime);
 }
 
@@ -1079,9 +1080,9 @@ void ColorSwatchPicker::Paint(PaintContext& context) {
         const Rect r = SwatchRect(i);
         context.DrawRoundedRect(r, ParseHexColor(kAccentPalette[i]), 6.0f * s);
         if (i == m_Selected) {
-            context.DrawRoundedRectOutline(r, LColor(ThemeToken::TextPrimary), 2.0f, 6.0f * s);
+            context.DrawRoundedRectOutline(r, LColor(ColorToken::TextPrimary), 2.0f, 6.0f * s);
         } else if (m_HoverAnims[static_cast<std::size_t>(i)] > 0.01f) {
-            context.DrawRoundedRectOutline(r, LColor(ThemeToken::BorderFocus), 1.0f, 6.0f * s);
+            context.DrawRoundedRectOutline(r, LColor(ColorToken::BorderFocus), 1.0f, 6.0f * s);
         }
     }
 }
@@ -1111,7 +1112,7 @@ bool ColorSwatchPicker::ShowsPointerCursor(const Point& position) const {
 
 void ColorSwatchPicker::Tick(float deltaTime) {
     (void)deltaTime;
-    const float damp = LMetric(ThemeToken::HoverAnimationDamping);
+    const float damp = LMetric(MetricToken::HoverAnimationDamping);
     for (int i = 0; i < static_cast<int>(m_HoverAnims.size()); ++i) {
         m_HoverAnims[static_cast<std::size_t>(i)] = Animator::Damp(
             m_HoverAnims[static_cast<std::size_t>(i)],
@@ -1174,19 +1175,19 @@ NumberStepper::Zone NumberStepper::HitTest(const Point& p) const {
 
 void NumberStepper::Paint(PaintContext& context) {
     const float s = LScale();
-    const float radius = LMetric(ThemeToken::CornerRadiusSmall) * s;
-    context.DrawRoundedRect(m_Geometry, LColor(ThemeToken::InputBackground), radius);
-    context.DrawRoundedRectOutline(m_Geometry, LColor(ThemeToken::BorderDefault), 1.0f, radius);
+    const float radius = LMetric(MetricToken::CornerRadiusSmall) * s;
+    context.DrawRoundedRect(m_Geometry, LColor(ColorToken::InputBackground), radius);
+    context.DrawRoundedRectOutline(m_Geometry, LColor(ColorToken::BorderDefault), 1.0f, radius);
 
     auto paintBtn = [&](const Rect& r, const char* icon, bool hot) {
         if (hot) {
-            context.DrawRoundedRect(r, LColor(ThemeToken::HoverBackground), radius);
+            context.DrawRoundedRect(r, LColor(ColorToken::HoverBackground), radius);
         }
         IconPainter::DrawIcon(
             context,
             icon,
             Rect{ r.x + (r.width - 12.0f * s) * 0.5f, r.y + (r.height - 12.0f * s) * 0.5f, 12.0f * s, 12.0f * s },
-            LColor(ThemeToken::IconSecondary));
+            LColor(ColorToken::IconSecondary));
     };
     paintBtn(MinusRect(), Icons::MinusName, m_Hover == Zone::Minus);
     paintBtn(PlusRect(), Icons::PlusName, m_Hover == Zone::Plus);
@@ -1199,13 +1200,13 @@ void NumberStepper::Paint(PaintContext& context) {
     } else {
         std::snprintf(buf, sizeof(buf), "%.1f", m_Value);
     }
-    const float textSize = LMetric(ThemeToken::TextSizeBody) * s;
+    const float textSize = LMetric(MetricToken::TextSizeBody) * s;
     const std::string label = buf;
     const float tw = ApproxTextWidth(label, textSize);
     context.DrawText(
         label,
         Point{ m_Geometry.x + (m_Geometry.width - tw) * 0.5f, m_Geometry.y + (m_Geometry.height - textSize) * 0.5f },
-        LColor(ThemeToken::TextPrimary),
+        LColor(ColorToken::TextPrimary),
         textSize);
 }
 
@@ -1272,8 +1273,8 @@ void CacheUsageBar::Arrange(const Rect& allottedRect) {
 
 void CacheUsageBar::Paint(PaintContext& context) {
     const float s = LScale();
-    const float textSize = LMetric(ThemeToken::TextSizeCaption) * s;
-    context.DrawText(m_Label, Point{ m_Geometry.x, m_Geometry.y }, LColor(ThemeToken::TextSecondary), textSize);
+    const float textSize = LMetric(MetricToken::TextSizeCaption) * s;
+    context.DrawText(m_Label, Point{ m_Geometry.x, m_Geometry.y }, LColor(ColorToken::TextSecondary), textSize);
 
     char buf[64];
     std::snprintf(buf, sizeof(buf), "%.0f / %.0f MB", m_UsedMb, m_CapacityMb);
@@ -1282,7 +1283,7 @@ void CacheUsageBar::Paint(PaintContext& context) {
     context.DrawText(
         usage,
         Point{ m_Geometry.x + m_Geometry.width - uw, m_Geometry.y },
-        LColor(ThemeToken::TextMuted),
+        LColor(ColorToken::TextMuted),
         textSize);
 
     Rect track{
@@ -1291,12 +1292,12 @@ void CacheUsageBar::Paint(PaintContext& context) {
         m_Geometry.width,
         8.0f * s
     };
-    context.DrawRoundedRect(track, LColor(ThemeToken::InputBackground), 4.0f * s);
+    context.DrawRoundedRect(track, LColor(ColorToken::InputBackground), 4.0f * s);
     const float ratio = std::clamp(m_UsedMb / m_CapacityMb, 0.0f, 1.0f);
     if (ratio > 0.001f) {
         context.DrawRoundedRect(
             Rect{ track.x, track.y, track.width * ratio, track.height },
-            LColor(ThemeToken::AccentPrimary),
+            LColor(ColorToken::AccentPrimary),
             4.0f * s);
     }
 }
@@ -1343,13 +1344,13 @@ void AppearancePreviewPanel::Arrange(const Rect& allottedRect) {
 
 void AppearancePreviewPanel::Paint(PaintContext& context) {
     const float s = LScale();
-    const float radius = LMetric(ThemeToken::CornerRadiusMedium) * s;
-    context.DrawRoundedRect(m_Geometry, LColor(ThemeToken::PanelContentBackground), radius);
-    context.DrawRoundedRectOutline(m_Geometry, LColor(ThemeToken::BorderDefault), 1.0f, radius);
+    const float radius = LMetric(MetricToken::CornerRadiusMedium) * s;
+    context.DrawRoundedRect(m_Geometry, LColor(ColorToken::PanelContentBackground), radius);
+    context.DrawRoundedRectOutline(m_Geometry, LColor(ColorToken::BorderDefault), 1.0f, radius);
 
     const Color accent = ParseHexColor(m_AccentHex);
     Rect chrome{ m_Geometry.x + 12.0f * s, m_Geometry.y + 12.0f * s, m_Geometry.width - 24.0f * s, 28.0f * s };
-    context.DrawRoundedRect(chrome, LColor(ThemeToken::HeaderBackground), 6.0f * s);
+    context.DrawRoundedRect(chrome, LColor(ColorToken::HeaderBackground), 6.0f * s);
     context.DrawRoundedRect(
         Rect{ chrome.x + 8.0f * s, chrome.y + 8.0f * s, 12.0f * s, 12.0f * s },
         accent,
@@ -1359,7 +1360,7 @@ void AppearancePreviewPanel::Paint(PaintContext& context) {
     context.DrawText(
         m_Theme + " preview",
         Point{ chrome.x + 28.0f * s, chrome.y + (chrome.height - titleSize) * 0.5f },
-        LColor(ThemeToken::TextPrimary),
+        LColor(ColorToken::TextPrimary),
         titleSize,
         true);
 
@@ -1369,19 +1370,19 @@ void AppearancePreviewPanel::Paint(PaintContext& context) {
         m_Geometry.width - 24.0f * s,
         m_Geometry.height - (chrome.y - m_Geometry.y) - chrome.height - 22.0f * s
     };
-    context.DrawRoundedRect(card, LColor(ThemeToken::PanelBackground), 6.0f * s);
+    context.DrawRoundedRect(card, LColor(ColorToken::PanelBackground), 6.0f * s);
 
     const float bodySize = (m_FontSize * 0.75f) * m_UiScale * s;
     context.DrawText(
         "Accent Â· " + m_AccentHex + "   Icons Â· " + m_IconStyle,
         Point{ card.x + 12.0f * s, card.y + 12.0f * s },
-        LColor(ThemeToken::TextSecondary),
+        LColor(ColorToken::TextSecondary),
         bodySize);
     context.DrawText(
         "UI Scale " + std::to_string(static_cast<int>(m_UiScale * 100.0f + 0.5f)) + "%   Font "
             + std::to_string(static_cast<int>(m_FontSize + 0.5f)) + " px",
         Point{ card.x + 12.0f * s, card.y + 12.0f * s + bodySize + 6.0f * s },
-        LColor(ThemeToken::TextMuted),
+        LColor(ColorToken::TextMuted),
         bodySize);
 
     const float icon = 16.0f * s * m_UiScale;
@@ -1394,7 +1395,7 @@ void AppearancePreviewPanel::Paint(PaintContext& context) {
         context,
         Icons::SettingsName,
         Rect{ card.x + card.width - icon * 2.0f - 24.0f * s, card.y + 14.0f * s, icon, icon },
-        LColor(ThemeToken::IconSecondary));
+        LColor(ColorToken::IconSecondary));
 }
 
 void AppearancePreviewPanel::Tick(float deltaTime) {

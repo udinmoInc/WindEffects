@@ -2,7 +2,8 @@
 
 #include "KindUI/Theming/ThemeManager.h"
 #include "KindUI/Theming/ThemeAccess.h"
-#include "KindUI/Theming/ThemeToken.h"
+#include "KindUI/Tokens/DesignToken.h"
+#include "KindUI/Theming/StyleRole.h"
 
 namespace we::runtime::kindui {
 namespace {
@@ -39,8 +40,8 @@ WidgetStyle FromRole(StyleRole role, StyleRole hoverRole, StyleRole pressRole) {
     style.backgroundHover = BackgroundStyle{ hover.background, hover.cornerRadius };
     style.backgroundPressed = BackgroundStyle{ press.background, press.cornerRadius };
     style.borderFocused = BorderStyle{
-        ResolveThemeMetric(ThemeToken::FocusRingWidth),
-        ResolveThemeColor(ThemeToken::BorderFocus),
+        ResolveMetric(MetricToken::FocusRingWidth),
+        ResolveColor(ColorToken::BorderFocus),
         base.cornerRadius,
         base.cornerRadius,
         base.cornerRadius,
@@ -72,8 +73,8 @@ BorderStyle StyleFactory::BorderThin(const IStyleResolver& styles) {
 BorderStyle StyleFactory::BorderSelected(const IStyleResolver& styles) {
     const auto resolved = styles.Resolve(StyleRole::TableRowSelected);
     return BorderStyle{
-        ResolveThemeMetric(ThemeToken::FocusRingWidth),
-        ResolveThemeColor(ThemeToken::AccentPrimary),
+        ResolveMetric(MetricToken::FocusRingWidth),
+        ResolveColor(ColorToken::AccentPrimary),
         resolved.cornerRadius,
         resolved.cornerRadius,
         resolved.cornerRadius,
@@ -154,12 +155,12 @@ WidgetStyle StyleFactory::ToolButton(const IStyleResolver& styles) {
 WidgetStyle StyleFactory::TextBox(const IStyleResolver& styles) {
     (void)styles;
     WidgetStyle style = FromRole(StyleRole::Input, StyleRole::Input, StyleRole::Input);
-    const auto pad = ThemeManager::Get().Provider().GetPadding(ThemeToken::PaddingButtonLeft);
+    const auto pad = ThemeManager::Get().Theme().ResolvePadding(PaddingToken::PaddingButtonLeft);
     style.padding = Margin{
-        ResolveThemeMetric(ThemeToken::Space2),
-        ResolveThemeMetric(ThemeToken::Space1),
-        ResolveThemeMetric(ThemeToken::Space2),
-        ResolveThemeMetric(ThemeToken::Space1)
+        ResolveMetric(MetricToken::Space2),
+        ResolveMetric(MetricToken::Space1),
+        ResolveMetric(MetricToken::Space2),
+        ResolveMetric(MetricToken::Space1)
     };
     (void)pad;
     return style;

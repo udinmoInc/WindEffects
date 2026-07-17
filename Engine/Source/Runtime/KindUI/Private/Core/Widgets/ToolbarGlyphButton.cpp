@@ -4,7 +4,8 @@
 #include "KindUI/Core/Icon.h"
 #include "KindUI/Core/PaintContext.h"
 #include "KindUI/Rendering/IconMetrics.h"
-#include "KindUI/Theming/ThemeToken.h"
+#include "KindUI/Tokens/DesignToken.h"
+#include "KindUI/Theming/StyleRole.h"
 
 #include <algorithm>
 
@@ -13,8 +14,8 @@ namespace we::runtime::kindui {
 ToolbarGlyphButton::ToolbarGlyphButton(
     std::string iconName,
     StyleRole role,
-    ThemeToken sizeToken,
-    ThemeToken iconSizeToken)
+    MetricToken sizeToken,
+    MetricToken iconSizeToken)
     : m_IconName(std::move(iconName))
     , m_Role(role)
     , m_SizeToken(sizeToken)
@@ -45,9 +46,9 @@ void ToolbarGlyphButton::Paint(PaintContext& context) {
     const auto hoverStyle = ResolveStyle(StyleRole::IconButtonHover);
     const auto pressStyle = ResolveStyle(StyleRole::IconButtonPressed);
 
-    const float hoverDamping = ThemeMetric(ThemeToken::HoverAnimationDamping);
-    const float pressDamping = ThemeMetric(ThemeToken::PressAnimationDamping);
-    const float pressOffsetTarget = ThemeMetric(ThemeToken::PressOffset);
+    const float hoverDamping = ThemeMetric(MetricToken::HoverAnimationDamping);
+    const float pressDamping = ThemeMetric(MetricToken::PressAnimationDamping);
+    const float pressOffsetTarget = ThemeMetric(MetricToken::PressOffset);
 
     m_HoverAnim = Animator::Damp(m_HoverAnim, m_Hovered && IsEnabled() ? 1.0f : 0.0f, hoverDamping);
     m_PressAnim = Animator::Damp(m_PressAnim, m_Pressed && IsEnabled() ? 1.0f : 0.0f, pressDamping);
@@ -55,11 +56,11 @@ void ToolbarGlyphButton::Paint(PaintContext& context) {
     const float targetOffset = m_Pressed && IsEnabled() ? pressOffsetTarget : 0.0f;
     m_PressOffset = Animator::Damp(m_PressOffset, targetOffset, pressDamping);
 
-    Color bgColor = IsEnabled() ? baseStyle.background : ThemeColor(ThemeToken::DisabledBackground);
-    Color borderColor = IsEnabled() ? baseStyle.border : ThemeColor(ThemeToken::BorderDark);
+    Color bgColor = IsEnabled() ? baseStyle.background : ThemeColor(ColorToken::DisabledBackground);
+    Color borderColor = IsEnabled() ? baseStyle.border : ThemeColor(ColorToken::BorderDark);
     Color iconColor = IsEnabled()
         ? (IsSelected() ? hoverStyle.icon : baseStyle.icon)
-        : ThemeColor(ThemeToken::IconDisabled);
+        : ThemeColor(ColorToken::IconDisabled);
 
     if (IsEnabled() && m_HoverAnim > 0.01f) {
         bgColor = Color::Lerp(bgColor, hoverStyle.background, m_HoverAnim);

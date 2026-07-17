@@ -34,10 +34,10 @@ void DesignButton::SetLabel(std::string label) {
 Size DesignButton::Measure(const Size& availableSize) {
     (void)availableSize;
     const ResolvedStyle style = ThemeManager::Get().Resolve(m_Role);
-    const float pad = ResolveThemeMetric(ThemeToken::ButtonPaddingHorizontal);
+    const float pad = ResolveMetric(MetricToken::ButtonPaddingHorizontal);
     const float textW = TextMetrics::EstimateWidth(m_Label, style.fontSize);
-    const float iconW = m_Icon ? (style.iconSize + ResolveThemeMetric(ThemeToken::Space1)) : 0.0f;
-    m_DesiredSize = Size{ textW + iconW + pad * 2.0f, style.height > 0.0f ? style.height : ResolveThemeMetric(ThemeToken::ButtonHeight) };
+    const float iconW = m_Icon ? (style.iconSize + ResolveMetric(MetricToken::Space1)) : 0.0f;
+    m_DesiredSize = Size{ textW + iconW + pad * 2.0f, style.height > 0.0f ? style.height : ResolveMetric(MetricToken::ButtonHeight) };
     return m_DesiredSize;
 }
 
@@ -68,9 +68,9 @@ void DesignButton::Paint(PaintContext& context) {
 
     Color fg = style.foreground;
     if (!IsEnabled()) {
-        fg = ResolveThemeColor(ThemeToken::TextDisabled);
+        fg = ResolveColor(ColorToken::TextDisabled);
     }
-    float x = m_Geometry.x + ResolveThemeMetric(ThemeToken::ButtonPaddingHorizontal);
+    float x = m_Geometry.x + ResolveMetric(MetricToken::ButtonPaddingHorizontal);
     if (m_Icon) {
         IconPainter::DrawIcon(
             context,
@@ -82,7 +82,7 @@ void DesignButton::Paint(PaintContext& context) {
                 style.iconSize
             },
             fg);
-        x += style.iconSize + ResolveThemeMetric(ThemeToken::Space1);
+        x += style.iconSize + ResolveMetric(MetricToken::Space1);
     }
     context.DrawText(
         m_Label,
@@ -136,8 +136,8 @@ void IconButton::Paint(PaintContext& context) {
         const ResolvedStyle style = ThemeManager::Get().Resolve(
             m_Active ? StyleRole::IconButtonPressed : StyleRole::IconButton);
         Color icon = m_Active
-            ? ResolveThemeColor(ThemeToken::AccentPrimary)
-            : ResolveThemeIconForState(m_HoverAnim > 0.5f, m_Active);
+            ? ResolveColor(ColorToken::AccentPrimary)
+            : ResolveIconForState(m_HoverAnim > 0.5f, m_Active);
         IconPainter::DrawIcon(
             context,
             m_Icon,
@@ -232,9 +232,9 @@ SectionHeader::SectionHeader(std::string title, std::string subtitle)
 Size SectionHeader::Measure(const Size& availableSize) {
     const ResolvedStyle header = ThemeManager::Get().Resolve(StyleRole::SectionHeader);
     const ResolvedStyle caption = ThemeManager::Get().Resolve(StyleRole::TextCaption);
-    float h = header.fontSize + ResolveThemeMetric(ThemeToken::Space2);
+    float h = header.fontSize + ResolveMetric(MetricToken::Space2);
     if (!m_Subtitle.empty()) {
-        h += caption.fontSize + ResolveThemeMetric(ThemeToken::Space1);
+        h += caption.fontSize + ResolveMetric(MetricToken::Space1);
     }
     m_DesiredSize = Size{ availableSize.width > 0.0f ? availableSize.width : 320.0f, h };
     return m_DesiredSize;
@@ -272,7 +272,7 @@ void PropertyRow::Paint(PaintContext& context) {
     context.DrawText(
         m_Label,
         Point{ m_Geometry.x, m_Geometry.y + 2.0f },
-        ResolveThemeColor(ThemeToken::TextMuted),
+        ResolveColor(ColorToken::TextMuted),
         caption);
     context.DrawText(
         m_Value.empty() ? "—" : m_Value,
@@ -298,7 +298,7 @@ Size SearchBoxControl::Measure(const Size& availableSize) {
     const ResolvedStyle style = ThemeManager::Get().Resolve(StyleRole::SearchBox);
     m_DesiredSize = Size{
         availableSize.width > 0.0f ? availableSize.width : 220.0f,
-        style.height > 0.0f ? style.height : ResolveThemeMetric(ThemeToken::SearchBoxHeight)
+        style.height > 0.0f ? style.height : ResolveMetric(MetricToken::SearchBoxHeight)
     };
     return m_DesiredSize;
 }
@@ -311,12 +311,12 @@ void SearchBoxControl::Paint(PaintContext& context) {
     ControlChrome::InteractionState state{ m_HoverAnim, 0.0f, false, m_Focused, false };
     ControlChrome::PaintInputFrame(context, m_Geometry, state);
     const ResolvedStyle style = ThemeManager::Get().Resolve(StyleRole::SearchBox);
-    const float pad = ResolveThemeMetric(ThemeToken::Space2);
+    const float pad = ResolveMetric(MetricToken::Space2);
     const bool empty = m_Text.empty();
     context.DrawText(
         empty ? m_Placeholder : m_Text,
         Point{ m_Geometry.x + pad, m_Geometry.y + (m_Geometry.height - style.fontSize) * 0.5f },
-        empty ? ResolveThemeColor(ThemeToken::SearchPlaceholder) : style.foreground,
+        empty ? ResolveColor(ColorToken::SearchPlaceholder) : style.foreground,
         style.fontSize);
 }
 
@@ -392,16 +392,16 @@ void SidebarItem::Paint(PaintContext& context) {
     if (!m_Active && m_HoverAnim > 0.01f) {
         paintStyle.background = Color::Lerp(
             Color::Transparent(),
-            ResolveThemeColor(ThemeToken::HoverBackground),
+            ResolveColor(ColorToken::HoverBackground),
             m_HoverAnim);
     }
     context.DrawRoundedRect(m_Geometry, paintStyle.background, style.cornerRadius);
     if (m_Active) {
         context.DrawRect(
             Rect{ m_Geometry.x, m_Geometry.y + 6.0f, 2.0f, m_Geometry.height - 12.0f },
-            ResolveThemeColor(ThemeToken::AccentPrimary));
+            ResolveColor(ColorToken::AccentPrimary));
     }
-    float x = m_Geometry.x + ResolveThemeMetric(ThemeToken::Space2);
+    float x = m_Geometry.x + ResolveMetric(MetricToken::Space2);
     if (m_Icon) {
         IconPainter::DrawIcon(
             context,
@@ -413,7 +413,7 @@ void SidebarItem::Paint(PaintContext& context) {
                 style.iconSize
             },
             style.icon);
-        x += style.iconSize + ResolveThemeMetric(ThemeToken::Space2);
+        x += style.iconSize + ResolveMetric(MetricToken::Space2);
     }
     context.DrawText(
         m_Label,
@@ -467,7 +467,7 @@ void WindowHeader::Paint(PaintContext& context) {
     context.DrawText(
         m_Title,
         Point{
-            m_Geometry.x + ResolveThemeMetric(ThemeToken::Space3),
+            m_Geometry.x + ResolveMetric(MetricToken::Space3),
             m_Geometry.y + (m_Geometry.height - style.fontSize) * 0.5f
         },
         style.foreground,

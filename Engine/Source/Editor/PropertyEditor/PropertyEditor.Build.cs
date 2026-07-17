@@ -12,10 +12,10 @@ public class PropertyEditor : ModuleRules
         PublicDependencies.Add("Core");
         PublicDependencies.Add("Platform");
         PublicDependencies.Add("RHI");
-        PublicDependencies.Add("CoreUObject");
         PublicDependencies.Add("Engine");
         PublicDependencies.Add("KindUI");
         PublicDependencies.Add("UIFramework");
+        PublicDependencies.Add("ContentBrowser"); // SearchBox used by Details panel
 
         Definitions.Add("PROPERTYEDITOR_EXPORTS");
     }

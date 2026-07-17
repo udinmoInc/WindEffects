@@ -6,7 +6,8 @@
 #include "KindUI/Layout/Flex.h"
 #include "KindUI/Widgets/VirtualList.h"
 #include "UI/LauncherHelpers.h"
-#include "KindUI/Theming/ThemeToken.h"
+#include "KindUI/Tokens/DesignToken.h"
+#include "KindUI/Theming/StyleRole.h"
 
 namespace we::programs::welauncher {
 
@@ -43,7 +44,7 @@ void ProjectsPage::Attach(
         state.root->SetHorizontalAlignment(we::runtime::kindui::HorizontalAlignment::Fill);
         state.root->SetVerticalAlignment(we::runtime::kindui::VerticalAlignment::Fill);
         if (auto box = std::dynamic_pointer_cast<we::runtime::kindui::Column>(state.root)) {
-            box->Background(LColor(we::runtime::kindui::ThemeToken::PanelContentBackground));
+            box->Background(LColor(we::runtime::kindui::ColorToken::PanelContentBackground));
         }
     }
     state.scroll = nullptr;

@@ -1,7 +1,8 @@
 #pragma once
 
 #include "KindUI/Export.h"
-#include "KindUI/Theming/IThemeProvider.h"
+#include "KindUI/Theming/IKindUITheme.h"
+#include "KindUI/Theming/ResolvedStyle.h"
 #include "KindUI/Core/Style.h"
 
 namespace we::runtime::kindui {

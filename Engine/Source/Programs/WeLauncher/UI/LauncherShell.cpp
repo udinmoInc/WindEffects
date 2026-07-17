@@ -24,7 +24,8 @@
 #include "Platform/PlatformSDK.h"
 #include "KindUI/Widgets/Label.h"
 #include "KindUI/Widgets/TextBox.h"
-#include "KindUI/Theming/ThemeToken.h"
+#include "KindUI/Tokens/DesignToken.h"
+#include "KindUI/Theming/StyleRole.h"
 
 #include <algorithm>
 #include <cctype>
@@ -65,11 +66,11 @@ std::shared_ptr<Column> MakePageBodyPadding() {
     auto content = std::make_shared<Column>();
     content->Padding(Margin{
         kLauncherContentPadX * LScale(),
-        LMetric(ThemeToken::Space4) * LScale(),
+        LMetric(MetricToken::Space4) * LScale(),
         kLauncherContentPadX * LScale(),
-        LMetric(ThemeToken::Space4) * LScale()
+        LMetric(MetricToken::Space4) * LScale()
     });
-    content->Gap(LMetric(ThemeToken::Space4) * LScale());
+    content->Gap(LMetric(MetricToken::Space4) * LScale());
     content->SetHorizontalAlignment(HorizontalAlignment::Fill);
     return content;
 }
@@ -239,7 +240,7 @@ void LauncherShell::RebuildChrome() {
     auto contentHost = std::make_shared<Column>();
     contentHost->SetHorizontalAlignment(HorizontalAlignment::Fill);
     contentHost->SetVerticalAlignment(VerticalAlignment::Fill);
-    contentHost->Background(LColor(ThemeToken::PanelContentBackground));
+    contentHost->Background(LColor(ColorToken::PanelContentBackground));
     m_ContentHost = contentHost;
     mainColumn->AddChild(m_ContentHost);
 
@@ -323,7 +324,7 @@ void LauncherShell::BeginPageContentLoad(float durationSeconds) {
 
 std::shared_ptr<Widget> LauncherShell::BuildPageSkeleton(LauncherPage page) {
     auto root = std::make_shared<Column>();
-    root->Gap(LMetric(ThemeToken::Space4) * LScale());
+    root->Gap(LMetric(MetricToken::Space4) * LScale());
     root->SetHorizontalAlignment(HorizontalAlignment::Fill);
 
     switch (page) {
@@ -501,7 +502,7 @@ void LauncherShell::ApplyDeclarativePage(PageState& state, const Element& view, 
         state.root->SetHorizontalAlignment(HorizontalAlignment::Fill);
         state.root->SetVerticalAlignment(VerticalAlignment::Fill);
         if (auto box = std::dynamic_pointer_cast<Column>(state.root)) {
-            box->Background(LColor(ThemeToken::PanelContentBackground));
+            box->Background(LColor(ColorToken::PanelContentBackground));
         }
     }
     state.scroll = scrollId ? FindScrollById(state.root, scrollId) : nullptr;
@@ -707,24 +708,24 @@ EnginePageModel LauncherShell::BuildEnginePageModel() {
     model.rows.push_back(UI::Host([s]() {
         auto label = std::make_shared<Label>(
             "SDK checks",
-            LColor(ThemeToken::TextPrimary),
-            LMetric(ThemeToken::TextSizeBody) * s);
+            LColor(ColorToken::TextPrimary),
+            LMetric(MetricToken::TextSizeBody) * s);
         label->SetHorizontalAlignment(HorizontalAlignment::Left);
         return label;
     }));
 
     for (const auto& check : m_Context->Sdk().RunChecks()) {
-        Color color = LColor(ThemeToken::TextMuted);
+        Color color = LColor(ColorToken::TextMuted);
         if (check.status == SdkCheckStatus::Pass) {
-            color = LColor(ThemeToken::Success);
+            color = LColor(ColorToken::Success);
         } else if (check.status == SdkCheckStatus::Warn) {
-            color = LColor(ThemeToken::Warning);
+            color = LColor(ColorToken::Warning);
         } else if (check.status == SdkCheckStatus::Fail) {
-            color = LColor(ThemeToken::ErrorForeground);
+            color = LColor(ColorToken::ErrorForeground);
         }
         const std::string line = check.name + " — " + check.detail;
         model.rows.push_back(UI::Host([s, line, color]() {
-            auto label = std::make_shared<Label>(line, color, LMetric(ThemeToken::TextSizeCaption) * s);
+            auto label = std::make_shared<Label>(line, color, LMetric(MetricToken::TextSizeCaption) * s);
             label->SetHorizontalAlignment(HorizontalAlignment::Left);
             return label;
         }));
@@ -1053,7 +1054,7 @@ std::shared_ptr<Widget> LauncherShell::BuildSettingsAbout(const std::string& que
         queryLower,
         "Launcher Version",
         "WindEffects Launcher",
-        MakeLabel(kLauncherVersion, LMetric(ThemeToken::TextSizeBody) * LScale(), LColor(ThemeToken::TextPrimary)));
+        MakeLabel(kLauncherVersion, LMetric(MetricToken::TextSizeBody) * LScale(), LColor(ColorToken::TextPrimary)));
 
     auto logs = MakeSecondaryAction("Open Logs Folder", Icons::OpenFolderName);
     logs->SetOnClicked([this] {
@@ -1112,7 +1113,7 @@ void LauncherShell::RebuildSettingsPage() {
     page->Gap(0.0f);
     page->SetHorizontalAlignment(HorizontalAlignment::Fill);
     page->SetVerticalAlignment(VerticalAlignment::Fill);
-    page->Background(LColor(ThemeToken::PanelContentBackground));
+    page->Background(LColor(ColorToken::PanelContentBackground));
 
     if (IsPageContentLoading()) {
         auto scroll = std::make_shared<ScrollLayout>();
@@ -1143,14 +1144,14 @@ void LauncherShell::RebuildSettingsPage() {
 
     content->AddChild(MakeLabel(
         "Settings",
-        LMetric(ThemeToken::TextSizeTitle) * s,
-        LColor(ThemeToken::TextPrimary)));
+        LMetric(MetricToken::TextSizeTitle) * s,
+        LColor(ColorToken::TextPrimary)));
     content->AddChild(MakeLabel(
         queryLower.empty()
             ? "Manage projects, engines, cache, and launcher maintenance"
             : ("Showing matches for \"" + m_SearchQuery + "\""),
-        LMetric(ThemeToken::TextSizeBody) * s,
-        LColor(ThemeToken::TextMuted)));
+        LMetric(MetricToken::TextSizeBody) * s,
+        LColor(ColorToken::TextMuted)));
 
     m_SettingsScrollTarget.reset();
     m_SettingsPendingScroll = false;
@@ -1181,8 +1182,8 @@ void LauncherShell::RebuildSettingsPage() {
     if (!queryLower.empty() && content->GetChildren().size() <= 2) {
         content->AddChild(MakeLabel(
             "No settings match your search.",
-            LMetric(ThemeToken::TextSizeBody) * s,
-            LColor(ThemeToken::TextMuted)));
+            LMetric(MetricToken::TextSizeBody) * s,
+            LColor(ColorToken::TextMuted)));
     }
 
     contentScroll->SetContent(content);
@@ -1302,7 +1303,7 @@ void LauncherShell::RebuildCreateWizard() {
     root->Padding(Margin{ 24.0f * s, 24.0f * s, 24.0f * s, 24.0f * s });
 
     // Title
-    auto title = MakeLabel("New project", 30.0f * s, LColor(ThemeToken::TextPrimary));
+    auto title = MakeLabel("New project", 30.0f * s, LColor(ColorToken::TextPrimary));
     title->SetHorizontalAlignment(HorizontalAlignment::Left);
     root->AddChild(title);
     root->AddChild(std::make_shared<FixedGap>(1.0f, 12.0f * s));
@@ -1359,7 +1360,7 @@ void LauncherShell::RebuildCreateWizard() {
         list->AddChild(MakeLabel(
             "No matching templates",
             13.0f * s,
-            LColor(ThemeToken::TextMuted)));
+            LColor(ColorToken::TextMuted)));
     } else {
         for (const auto* tmpl : visible) {
             const bool isSelected = selected && tmpl->id == selected->id;
@@ -1387,7 +1388,7 @@ void LauncherShell::RebuildCreateWizard() {
     vlineHost->Padding(Margin{ 16.0f * s, 0.0f, 16.0f * s, 0.0f });
     vlineHost->SetVerticalAlignment(VerticalAlignment::Fill);
     auto vline = std::make_shared<Column>();
-    vline->Background(LColor(ThemeToken::Separator));
+    vline->Background(LColor(ColorToken::Separator));
     vline->SetVerticalAlignment(VerticalAlignment::Fill);
     vline->AddChild(std::make_shared<FixedGap>(1.0f * s, 1.0f));
     vlineHost->AddChild(vline);
@@ -1402,27 +1403,27 @@ void LauncherShell::RebuildCreateWizard() {
     right->AddChild(MakeLabel(
         "Selected Template",
         16.0f * s,
-        LColor(ThemeToken::TextPrimary)));
+        LColor(ColorToken::TextPrimary)));
 
     if (selected) {
         right->AddChild(MakeLabel(
             selected->displayName,
             18.0f * s,
-            LColor(ThemeToken::TextPrimary)));
+            LColor(ColorToken::TextPrimary)));
         right->AddChild(MakeLabel(
             selected->description.empty() ? "No description." : selected->description,
             12.0f * s,
-            LColor(ThemeToken::TextMuted)));
+            LColor(ColorToken::TextMuted)));
 
         auto addMeta = [&](const char* label, const std::string& value) {
             auto row = std::make_shared<Row>();
             row->Gap(8.0f * s);
             row->SetVerticalAlignment(VerticalAlignment::Center);
-            auto l = MakeLabel(label, 13.0f * s, LColor(ThemeToken::TextSecondary));
+            auto l = MakeLabel(label, 13.0f * s, LColor(ColorToken::TextSecondary));
             l->SetHorizontalAlignment(HorizontalAlignment::Left);
             row->AddChild(l);
             row->AddChild(std::make_shared<Spacer>());
-            auto v = MakeLabel(value.empty() ? "—" : value, 13.0f * s, LColor(ThemeToken::TextPrimary));
+            auto v = MakeLabel(value.empty() ? "—" : value, 13.0f * s, LColor(ColorToken::TextPrimary));
             v->SetHorizontalAlignment(HorizontalAlignment::Right);
             row->AddChild(v);
             right->AddChild(row);
@@ -1443,7 +1444,7 @@ void LauncherShell::RebuildCreateWizard() {
         right->AddChild(MakeLabel(
             "Select a template from the list.",
             13.0f * s,
-            LColor(ThemeToken::TextMuted)));
+            LColor(ColorToken::TextMuted)));
     }
 
     right->AddChild(std::make_shared<FixedGap>(1.0f, 8.0f * s));
@@ -1451,15 +1452,15 @@ void LauncherShell::RebuildCreateWizard() {
     right->AddChild(MakeLabel(
         "Project Settings",
         16.0f * s,
-        LColor(ThemeToken::TextPrimary)));
+        LColor(ColorToken::TextPrimary)));
 
-    right->AddChild(MakeLabel("Project Name", 13.0f * s, LColor(ThemeToken::TextSecondary)));
+    right->AddChild(MakeLabel("Project Name", 13.0f * s, LColor(ColorToken::TextSecondary)));
     auto nameBox = std::make_shared<TextBox>(m_WizardName, [this](const std::string& text) {
         m_WizardName = text;
     });
     right->AddChild(nameBox);
 
-    right->AddChild(MakeLabel("Project Location", 13.0f * s, LColor(ThemeToken::TextSecondary)));
+    right->AddChild(MakeLabel("Project Location", 13.0f * s, LColor(ColorToken::TextSecondary)));
     auto location = std::make_shared<PathPickerField>(m_WizardLocation, true);
     location->SetDialogTitle("Select Project Location");
     location->SetOnChanged([this](const std::string& path) {
@@ -1468,7 +1469,7 @@ void LauncherShell::RebuildCreateWizard() {
     });
     right->AddChild(location);
 
-    right->AddChild(MakeLabel("Engine Version", 13.0f * s, LColor(ThemeToken::TextSecondary)));
+    right->AddChild(MakeLabel("Engine Version", 13.0f * s, LColor(ColorToken::TextSecondary)));
     std::vector<std::string> engineLabels{ "Auto-detect" };
     std::vector<std::string> engineRoots{ {} };
     int engineIndex = 0;
@@ -1491,7 +1492,7 @@ void LauncherShell::RebuildCreateWizard() {
     });
     right->AddChild(engineDrop);
 
-    right->AddChild(MakeLabel("Quality Preset", 13.0f * s, LColor(ThemeToken::TextSecondary)));
+    right->AddChild(MakeLabel("Quality Preset", 13.0f * s, LColor(ColorToken::TextSecondary)));
     static const char* kQuality[] = { "Performance", "Balanced", "High Quality", "Ultra" };
     int qualityIndex = 1;
     for (int i = 0; i < 4; ++i) {
@@ -1532,11 +1533,11 @@ void LauncherShell::RebuildCreateWizard() {
     footerLeft->AddChild(MakeLabel(
         "Estimated disk usage  ·  " + diskEstimate,
         12.0f * s,
-        LColor(ThemeToken::TextMuted)));
+        LColor(ColorToken::TextMuted)));
     footerLeft->AddChild(MakeLabel(
         EllipsizePath(projectPathPreview, 64),
         12.0f * s,
-        LColor(ThemeToken::TextSecondary)));
+        LColor(ColorToken::TextSecondary)));
     footer->AddChild(footerLeft);
     footer->AddChild(std::make_shared<Spacer>());
 
@@ -1568,21 +1569,21 @@ void LauncherShell::RebuildProjectActionsDialog() {
 
     auto panel = std::make_shared<Column>();
     panel->Padding(Margin{
-        LMetric(ThemeToken::Space6) * LScale(),
-        LMetric(ThemeToken::Space6) * LScale(),
-        LMetric(ThemeToken::Space6) * LScale(),
-        LMetric(ThemeToken::Space6) * LScale()
+        LMetric(MetricToken::Space6) * LScale(),
+        LMetric(MetricToken::Space6) * LScale(),
+        LMetric(MetricToken::Space6) * LScale(),
+        LMetric(MetricToken::Space6) * LScale()
     });
-    panel->Gap(LMetric(ThemeToken::Space2) * LScale());
-    panel->Background(LColor(ThemeToken::DialogBackground));
+    panel->Gap(LMetric(MetricToken::Space2) * LScale());
+    panel->Background(LColor(ColorToken::DialogBackground));
     panel->AddChild(MakeLabel(
         project->descriptor.displayName,
-        LMetric(ThemeToken::TextSizeHeader) * LScale(),
-        LColor(ThemeToken::TextPrimary)));
+        LMetric(MetricToken::TextSizeHeader) * LScale(),
+        LColor(ColorToken::TextPrimary)));
     panel->AddChild(MakeLabel(
         EllipsizePath(project->projectRoot, 52),
-        LMetric(ThemeToken::TextSizeCaption) * LScale(),
-        LColor(ThemeToken::TextMuted)));
+        LMetric(MetricToken::TextSizeCaption) * LScale(),
+        LColor(ColorToken::TextMuted)));
 
     auto addAction = [this, &panel](const char* label, const char* icon, auto fn, bool closeAfter = true) {
         auto btn = MakeSecondaryAction(label, icon);
@@ -1871,7 +1872,7 @@ void LauncherShell::Arrange(const Rect& allottedRect) {
 }
 
 void LauncherShell::Paint(PaintContext& context) {
-    context.DrawRect(GetGeometry(), LColor(ThemeToken::WorkspaceBackground));
+    context.DrawRect(GetGeometry(), LColor(ColorToken::WorkspaceBackground));
     if (m_Root) {
         m_Root->Paint(context);
     }

@@ -4,7 +4,10 @@
 
 #include "KindUI/Core/Geometry.h"
 #include "KindUI/Input/InputEvents.h"
-#include "KindUI/Theming/IThemeProvider.h"
+#include "KindUI/Tokens/DesignToken.h"
+#include "KindUI/Theming/StyleRole.h"
+#include "KindUI/Theming/IKindUITheme.h"
+#include "KindUI/Theming/ResolvedStyle.h"
 
 #include <memory>
 #include <string>
@@ -157,14 +160,14 @@ public:
     void SetContext(std::shared_ptr<IWidgetContext> context);
     [[nodiscard]] IWidgetContext* GetContext() const { return m_Context.get(); }
     [[nodiscard]] IStyleResolver& Styles() const;
-    [[nodiscard]] Color ThemeColor(ThemeToken token) const;
-    [[nodiscard]] float ThemeMetric(ThemeToken token) const;
-    [[nodiscard]] Margin ThemePadding(ThemeToken token) const;
+    [[nodiscard]] Color ThemeColor(ColorToken token) const;
+    [[nodiscard]] float ThemeMetric(MetricToken token) const;
+    [[nodiscard]] Margin ThemePadding(PaddingToken token) const;
     [[nodiscard]] ResolvedStyle ResolveStyle(StyleRole role) const;
     [[nodiscard]] ResolvedStyle ResolveStyleClass() const;
     [[nodiscard]] ResolvedStyle ResolveEffectiveStyle(StyleRole fallbackRole) const;
     [[nodiscard]] float Scaled(float logicalValue) const;
-    [[nodiscard]] IThemeProvider& Theme() const;
+    [[nodiscard]] IKindUITheme& Theme() const;
     [[nodiscard]] Color ThemeInteractiveBackground(float hoverAnim, float pressAnim, bool selected = false) const;
     [[nodiscard]] Color ThemeTextForState(bool hovered, bool active = false) const;
     [[nodiscard]] Color ThemeIconForState(bool hovered, bool active = false) const;

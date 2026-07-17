@@ -12,7 +12,8 @@
 #include "KindUI/Core/PaintContext.h"
 #include "KindUI/Core/Animator.h"
 #include "KindUI/Core/DPIContext.h"
-#include "KindUI/Theming/ThemeToken.h"
+#include "KindUI/Tokens/DesignToken.h"
+#include "KindUI/Theming/StyleRole.h"
 #include "KindUI/Core/Icon.h"
 #include "KindUI/Core/ToolbarButtonChrome.h"
 #include "KindUI/Rendering/IconMetrics.h"
@@ -658,12 +659,12 @@ public:
         : m_Items(std::move(items)) {}
 
     we::runtime::kindui::Size Measure(const we::runtime::kindui::Size& availableSize) override {
-        const float rowH = ThemeMetric(we::runtime::kindui::ThemeToken::ListRowHeight);
-        const float padY = ThemeMetric(we::runtime::kindui::ThemeToken::Space1);
-        const float textSize = ThemeMetric(we::runtime::kindui::ThemeToken::TextSizeSmall);
+        const float rowH = ThemeMetric(we::runtime::kindui::MetricToken::ListRowHeight);
+        const float padY = ThemeMetric(we::runtime::kindui::MetricToken::Space1);
+        const float textSize = ThemeMetric(we::runtime::kindui::MetricToken::TextSizeSmall);
         float maxWidth = 200.0f;
         for (const auto& item : m_Items) {
-            maxWidth = std::max(maxWidth, ThemeMetric(we::runtime::kindui::ThemeToken::Space6) + item->label.length() * textSize * 0.52f + 28.0f);
+            maxWidth = std::max(maxWidth, ThemeMetric(we::runtime::kindui::MetricToken::Space6) + item->label.length() * textSize * 0.52f + 28.0f);
         }
         m_DesiredSize = we::runtime::kindui::Size{ maxWidth, padY * 2.0f + m_Items.size() * rowH };
         return m_DesiredSize;
@@ -672,14 +673,14 @@ public:
     void Arrange(const we::runtime::kindui::Rect& allottedRect) override { m_Geometry = allottedRect; }
 
     void Paint(we::runtime::kindui::PaintContext& context) override {
-        context.DrawShadow(m_Geometry, ThemeColor(we::runtime::kindui::ThemeToken::ShadowPopup), 3.0f, 8.0f);
-        context.DrawRoundedRect(m_Geometry, ThemeColor(we::runtime::kindui::ThemeToken::PopupBackground), ThemeMetric(we::runtime::kindui::ThemeToken::CornerRadiusSmall));
+        context.DrawShadow(m_Geometry, ThemeColor(we::runtime::kindui::ColorToken::ShadowPopup), 3.0f, 8.0f);
+        context.DrawRoundedRect(m_Geometry, ThemeColor(we::runtime::kindui::ColorToken::PopupBackground), ThemeMetric(we::runtime::kindui::MetricToken::CornerRadiusSmall));
 
-        const float rowH = ThemeMetric(we::runtime::kindui::ThemeToken::ListRowHeight);
-        const float padY = ThemeMetric(we::runtime::kindui::ThemeToken::Space1);
-        const float padX = ThemeMetric(we::runtime::kindui::ThemeToken::Space2);
-        const float textSize = ThemeMetric(we::runtime::kindui::ThemeToken::TextSizeSmall);
-        const float iconSize = ThemeMetric(we::runtime::kindui::ThemeToken::IconSizeTree);
+        const float rowH = ThemeMetric(we::runtime::kindui::MetricToken::ListRowHeight);
+        const float padY = ThemeMetric(we::runtime::kindui::MetricToken::Space1);
+        const float padX = ThemeMetric(we::runtime::kindui::MetricToken::Space2);
+        const float textSize = ThemeMetric(we::runtime::kindui::MetricToken::TextSizeSmall);
+        const float iconSize = ThemeMetric(we::runtime::kindui::MetricToken::IconSizeTree);
 
         float y = m_Geometry.y + padY;
         for (size_t i = 0; i < m_Items.size(); ++i) {
@@ -690,14 +691,14 @@ public:
                 continue;
             }
             if (static_cast<int>(i) == m_Hovered) {
-                context.DrawRect(row, ThemeColor(we::runtime::kindui::ThemeToken::HoverBackground));
+                context.DrawRect(row, ThemeColor(we::runtime::kindui::ColorToken::HoverBackground));
             }
             context.DrawText(item->label, we::runtime::kindui::Point{ row.x + padX, row.y + (rowH - textSize) * 0.5f },
-                ThemeColor(we::runtime::kindui::ThemeToken::TextPrimary), textSize);
+                ThemeColor(we::runtime::kindui::ColorToken::TextPrimary), textSize);
             if (item->checked) {
                 we::runtime::kindui::IconPainter::DrawIcon(context, we::runtime::kindui::Icons::CheckName,
                     we::runtime::kindui::Rect{ row.x + row.width - padX - iconSize, row.y + (rowH - iconSize) * 0.5f, iconSize, iconSize },
-                    ThemeColor(we::runtime::kindui::ThemeToken::AccentPrimary));
+                    ThemeColor(we::runtime::kindui::ColorToken::AccentPrimary));
             }
             y += rowH;
         }
@@ -705,8 +706,8 @@ public:
 
     void OnMouseMove(const we::runtime::kindui::MouseEvent& event) override {
         m_Hovered = -1;
-        const float rowH = ThemeMetric(we::runtime::kindui::ThemeToken::ListRowHeight);
-        const float padY = ThemeMetric(we::runtime::kindui::ThemeToken::Space1);
+        const float rowH = ThemeMetric(we::runtime::kindui::MetricToken::ListRowHeight);
+        const float padY = ThemeMetric(we::runtime::kindui::MetricToken::Space1);
         float y = m_Geometry.y + padY;
         for (size_t i = 0; i < m_Items.size(); ++i) {
             we::runtime::kindui::Rect row{ m_Geometry.x + 1.0f, y, m_Geometry.width - 2.0f, rowH };
@@ -723,8 +724,8 @@ public:
             return;
         }
 
-        const float rowH = ThemeMetric(we::runtime::kindui::ThemeToken::ListRowHeight);
-        const float padY = ThemeMetric(we::runtime::kindui::ThemeToken::Space1);
+        const float rowH = ThemeMetric(we::runtime::kindui::MetricToken::ListRowHeight);
+        const float padY = ThemeMetric(we::runtime::kindui::MetricToken::Space1);
         float y = m_Geometry.y + padY;
         for (size_t i = 0; i < m_Items.size(); ++i) {
             we::runtime::kindui::Rect row{ m_Geometry.x + 1.0f, y, m_Geometry.width - 2.0f, rowH };
@@ -753,7 +754,7 @@ public:
         const float iconSz = we::runtime::kindui::ToolbarButtonChrome::IconSize(uiScale);
         const float iconGap = we::runtime::kindui::ToolbarButtonChrome::IconGapPx(uiScale);
         const float chevW = we::runtime::kindui::IconMetrics::CompactDisplayPx();
-        const float controlH = ThemeMetric(we::runtime::kindui::ThemeToken::IconButtonSize) * uiScale;
+        const float controlH = ThemeMetric(we::runtime::kindui::MetricToken::IconButtonSize) * uiScale;
         m_DesiredSize = we::runtime::kindui::Size{
             padH + iconSz + iconGap + chevW + padH,
             controlH
@@ -767,7 +768,7 @@ public:
         const float uiScale = (std::max)(1.0f, we::runtime::kindui::DPIContext::GetScale());
         m_HoverAnim = we::runtime::kindui::Animator::Damp(
             m_HoverAnim, m_Hovered ? 1.0f : 0.0f,
-            ThemeMetric(we::runtime::kindui::ThemeToken::HoverAnimationDamping));
+            ThemeMetric(we::runtime::kindui::MetricToken::HoverAnimationDamping));
 
         const float pressStrength = m_Pressed ? 1.0f : 0.0f;
         we::runtime::kindui::ToolbarButtonChrome::PaintIconButton(

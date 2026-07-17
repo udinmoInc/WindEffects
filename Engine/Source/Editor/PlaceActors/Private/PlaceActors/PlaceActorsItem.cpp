@@ -7,7 +7,8 @@
 #include "PlaceActors/PlaceActorsSearch.h"
 #include "PlaceActors/PlaceActorsResponsiveGrid.h"
 #include "KindUI/Theming/ThemeAccess.h"
-#include "KindUI/Theming/ThemeToken.h"
+#include "KindUI/Tokens/DesignToken.h"
+#include "KindUI/Theming/StyleRole.h"
 #include "KindUI/Core/Icon.h"
 #include "KindUI/Core/DPIContext.h"
 #include "KindUI/Rendering/IconMetrics.h"
@@ -21,7 +22,7 @@ using we::runtime::kindui::PaintContext;
 using we::runtime::kindui::Point;
 using we::runtime::kindui::Rect;
 using we::runtime::kindui::Size;
-using we::runtime::kindui::ThemeToken;
+using we::runtime::kindui::ColorToken;
 
 namespace WEIcons = we::runtime::kindui::Icons;
 
@@ -29,7 +30,7 @@ namespace {
 
 void PaintItemIcon(PaintContext& context, const std::string& iconName, const Rect& iconRect) {
     we::runtime::kindui::IconPainter::DrawIcon(
-        context, iconName, iconRect, ResolveThemeColor(ThemeToken::IconPrimary));
+        context, iconName, iconRect, ResolveColor(ColorToken::IconPrimary));
 }
 
 } // namespace
@@ -75,8 +76,8 @@ void PlaceActorsItem::PaintList(PaintContext& context,
     }
 
     const float uiScale = std::max(1.0f, we::runtime::kindui::DPIContext::GetScale());
-    const float labelFontSize = ResolveThemeMetric(ThemeToken::TextSizeBody) * uiScale;
-    const float iconSize = static_cast<float>(we::runtime::kindui::IconMetrics::GlyphTierPx(ThemeToken::IconSizeTree));
+    const float labelFontSize = ResolveMetric(MetricToken::TextSizeBody) * uiScale;
+    const float iconSize = static_cast<float>(we::runtime::kindui::IconMetrics::GlyphTierPx(MetricToken::IconSizeTree));
 
     const Rect rowRect{
         bounds.x + 2.0f,
@@ -104,16 +105,16 @@ void PlaceActorsItem::PaintList(PaintContext& context,
         labelPos,
         labelFontSize,
         searchQuery,
-        ResolveThemeColor(ThemeToken::TextPrimary),
-        ResolveThemeColor(ThemeToken::TextPrimary));
+        ResolveColor(ColorToken::TextPrimary),
+        ResolveColor(ColorToken::TextPrimary));
 
     const float starSize = static_cast<float>(we::runtime::kindui::IconMetrics::StandardGlyphTierPx());
     const float starX = ActorsPanelLayout::StarIconX(bounds.x, bounds.width);
     Rect starBand{ starX, bounds.y, starSize, bounds.height };
     if (favorite || hoverAnim > 0.01f) {
         const Color starColor = favorite
-            ? ResolveThemeColor(ThemeToken::Warning)
-            : ResolveThemeColor(ThemeToken::IconPrimary);
+            ? ResolveColor(ColorToken::Warning)
+            : ResolveColor(ColorToken::IconPrimary);
         we::runtime::kindui::IconPainter::DrawIcon(
             context,
             WEIcons::StarName,

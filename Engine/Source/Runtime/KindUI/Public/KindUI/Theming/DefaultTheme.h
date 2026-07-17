@@ -11,6 +11,8 @@ public:
     [[nodiscard]] std::string_view GetThemeId() const override { return "KindUI.Default"; }
 
     [[nodiscard]] Color ResolveColor(ColorToken token) const override;
+    [[nodiscard]] float ResolveMetric(MetricToken token) const override;
+    [[nodiscard]] Margin ResolvePadding(PaddingToken token) const override;
     [[nodiscard]] float ResolveSpacing(SpacingToken token) const override;
     [[nodiscard]] float ResolveRadius(RadiusToken token) const override;
     [[nodiscard]] float ResolveFontSize(TypographyToken token) const override;

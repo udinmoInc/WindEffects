@@ -111,25 +111,25 @@ IStyleResolver& Widget::Styles() const {
     return m_Context->GetStyleResolver();
 }
 
-Color Widget::ThemeColor(ThemeToken token) const {
+Color Widget::ThemeColor(ColorToken token) const {
     if (!m_Context) {
-        return ResolveThemeColor(token);
+        return ResolveColor(token);
     }
-    return m_Context->GetThemeProvider().GetColor(token);
+    return m_Context->GetTheme().ResolveColor(token);
 }
 
-float Widget::ThemeMetric(ThemeToken token) const {
+float Widget::ThemeMetric(MetricToken token) const {
     if (!m_Context) {
-        return ResolveThemeMetric(token);
+        return ResolveMetric(token);
     }
-    return m_Context->GetThemeProvider().GetMetric(token);
+    return m_Context->GetTheme().ResolveMetric(token);
 }
 
-Margin Widget::ThemePadding(ThemeToken token) const {
+Margin Widget::ThemePadding(PaddingToken token) const {
     if (!m_Context) {
-        return ResolveThemePadding(token);
+        return ResolvePadding(token);
     }
-    return m_Context->GetThemeProvider().GetPadding(token);
+    return m_Context->GetTheme().ResolvePadding(token);
 }
 
 ResolvedStyle Widget::ResolveStyle(StyleRole role) const {
@@ -191,32 +191,32 @@ float Widget::Scaled(float logicalValue) const {
     return Styles().Scaled(logicalValue);
 }
 
-IThemeProvider& Widget::Theme() const {
+IKindUITheme& Widget::Theme() const {
     if (!m_Context) {
-        return ResolveDefaultThemeProvider();
+        return ResolveDefaultTheme();
     }
-    return m_Context->GetThemeProvider();
+    return m_Context->GetTheme();
 }
 
 Color Widget::ThemeInteractiveBackground(float hoverAnim, float pressAnim, bool selected) const {
     if (!m_Context) {
-        return ResolveThemeInteractiveBackground(hoverAnim, pressAnim, selected);
+        return ResolveInteractiveBackground(hoverAnim, pressAnim, selected);
     }
-    return m_Context->GetThemeProvider().InteractiveBackground(hoverAnim, pressAnim, selected);
+    return m_Context->GetTheme().InteractiveBackground(hoverAnim, pressAnim, selected);
 }
 
 Color Widget::ThemeTextForState(bool hovered, bool active) const {
     if (!m_Context) {
-        return ResolveThemeTextForState(hovered, active);
+        return ResolveTextForState(hovered, active);
     }
-    return m_Context->GetThemeProvider().TextForState(hovered, active);
+    return m_Context->GetTheme().TextForState(hovered, active);
 }
 
 Color Widget::ThemeIconForState(bool hovered, bool active) const {
     if (!m_Context) {
-        return ResolveThemeIconForState(hovered, active);
+        return ResolveIconForState(hovered, active);
     }
-    return m_Context->GetThemeProvider().IconForState(hovered, active);
+    return m_Context->GetTheme().IconForState(hovered, active);
 }
 
 IPopupHost* Widget::GetPopupHost() const {

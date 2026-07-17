@@ -1,7 +1,8 @@
 #include "KindUI/Rendering/Icons/EngineIconBitmap.h"
 
 #include "KindUI/Theming/ThemeAccess.h"
-#include "KindUI/Theming/ThemeToken.h"
+#include "KindUI/Tokens/DesignToken.h"
+#include "KindUI/Theming/StyleRole.h"
 
 #include <algorithm>
 #include <cmath>
@@ -37,7 +38,7 @@ std::array<uint8_t, 3> AdjustBrightness(const std::array<uint8_t, 3>& rgb, float
 } // namespace
 
 IconShadeRgb BuildIconShades(float hoverT, float activeT) {
-    const Color icon = ResolveThemeColor(ThemeToken::IconPrimary);
+    const Color icon = ResolveColor(ColorToken::IconPrimary);
     const auto base = ToRgb(icon);
     const float lift = std::clamp(hoverT * 0.12f + activeT * 0.08f, 0.0f, 0.2f);
     IconShadeRgb shades{};

@@ -50,4 +50,4 @@
 // KindUI/Core/Widget.h              — subclassing & custom widgets
 // KindUI/StylePipeline/StylePipeline.h — custom style resolution
 // KindUI/Rendering/OverlayRenderer.h — shell GPU integration
-// KindUI/Theming/ThemeToken.h       — legacy token bridge (deprecated)
+// KindUI/Theming/ColorToken.h       — legacy token bridge (deprecated)

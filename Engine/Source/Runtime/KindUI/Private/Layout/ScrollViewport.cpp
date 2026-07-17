@@ -4,7 +4,8 @@
 #include "KindUI/Core/PaintContext.h"
 #include "KindUI/Theming/ThemeAccess.h"
 #include "KindUI/Theming/ThemeManager.h"
-#include "KindUI/Theming/ThemeToken.h"
+#include "KindUI/Tokens/DesignToken.h"
+#include "KindUI/Theming/StyleRole.h"
 
 #include <algorithm>
 #include <cmath>
@@ -24,7 +25,7 @@ float ThumbHeight(float trackHeight, float viewportHeight, float contentHeight) 
 } // namespace
 
 float ScrollViewport::ScrollbarWidth(float uiScale) {
-    return ResolveThemeMetric(ThemeToken::ScrollbarWidth) * uiScale;
+    return ResolveMetric(MetricToken::ScrollbarWidth) * uiScale;
 }
 
 float ScrollViewport::MaxScroll(float viewportHeight, float contentHeight) {

@@ -11,7 +11,7 @@ namespace we::runtime::kindui {
 
 class ExplorerToolbar : public Widget {
 public:
-    static float DefaultHeight() { return ResolveThemeMetric(ThemeToken::PanelHeaderHeight); }
+    static float DefaultHeight() { return ResolveMetric(MetricToken::PanelHeaderHeight); }
 
     // Use TreeView's FilterOptions for consistency
     using FilterOptions = TreeView::FilterOptions;

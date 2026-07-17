@@ -6,7 +6,8 @@
 #include "KindUI/Core/Icon.h"
 #include "KindUI/Core/Widgets/DesignSystemControls.h"
 #include "KindUI/Declarative/UI.h"
-#include "KindUI/Theming/ThemeToken.h"
+#include "KindUI/Tokens/DesignToken.h"
+#include "KindUI/Theming/StyleRole.h"
 #include "KindUI/Widgets/TextBox.h"
 
 namespace we::programs::welauncher {
@@ -18,8 +19,8 @@ we::runtime::kindui::Element BuildRenameDialogView(const RenameDialogState& stat
     auto onRename = state.onRename;
     auto onNameChanged = state.onNameChanged;
     const float s = LScale();
-    const float pad = LMetric(we::runtime::kindui::ThemeToken::Space6) * s;
-    const float gap = LMetric(we::runtime::kindui::ThemeToken::Space3) * s;
+    const float pad = LMetric(we::runtime::kindui::MetricToken::Space6) * s;
+    const float gap = LMetric(we::runtime::kindui::MetricToken::Space3) * s;
 
     return UI::Style(
         UI::Padding(

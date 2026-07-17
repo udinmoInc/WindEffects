@@ -13,7 +13,6 @@ public class ECS : ModuleRules
 
         PublicDependencies.Add("Core");
         PublicDependencies.Add("Platform");
-        PublicDependencies.Add("CoreUObject");
         PublicDependencies.Add("Engine");
 
         AddOptionalThirdParty("glm");

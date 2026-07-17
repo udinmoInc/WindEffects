@@ -1,6 +1,7 @@
 #include "Widgets/ViewportOverlay.h"
 #include "KindUI/Core/PaintContext.h"
-#include "KindUI/Theming/ThemeToken.h"
+#include "KindUI/Tokens/DesignToken.h"
+#include "KindUI/Theming/StyleRole.h"
 #include "KindUI/Core/Icon.h"
 #include "KindUI/Theming/ThemeAccess.h"
 #include "KindUI/Rendering/IconMetrics.h"
@@ -32,7 +33,7 @@ void ViewportOverlay::Arrange(const Rect& allottedRect) {
 void ViewportOverlay::Paint(PaintContext& context) {
     // Draw stats panel (top-left)
     if (m_StatsVisible) {
-        context.DrawRoundedRect(m_StatsRect, ThemeColor(ThemeToken::GizmoBackground), 4.0f);
+        context.DrawRoundedRect(m_StatsRect, ThemeColor(ColorToken::GizmoBackground), 4.0f);
         
         float y = m_StatsRect.y + m_StatsPadding;
         float lineHeight = 14.0f;
@@ -40,37 +41,37 @@ void ViewportOverlay::Paint(PaintContext& context) {
         // Draw stats text
         char fpsText[32];
         snprintf(fpsText, sizeof(fpsText), "FPS: %.1f", m_Stats.fps);
-        context.DrawText(fpsText, Point{ m_StatsRect.x + m_StatsPadding, y }, ThemeColor(ThemeToken::TextPrimary), 12.0f);
+        context.DrawText(fpsText, Point{ m_StatsRect.x + m_StatsPadding, y }, ThemeColor(ColorToken::TextPrimary), 12.0f);
         y += lineHeight;
         
         char gpuText[32];
         snprintf(gpuText, sizeof(gpuText), "GPU: %.2f ms", m_Stats.gpuTime);
-        context.DrawText(gpuText, Point{ m_StatsRect.x + m_StatsPadding, y }, ThemeColor(ThemeToken::TextSecondary), 12.0f);
+        context.DrawText(gpuText, Point{ m_StatsRect.x + m_StatsPadding, y }, ThemeColor(ColorToken::TextSecondary), 12.0f);
         y += lineHeight;
         
         char cpuText[32];
         snprintf(cpuText, sizeof(cpuText), "CPU: %.2f ms", m_Stats.cpuTime);
-        context.DrawText(cpuText, Point{ m_StatsRect.x + m_StatsPadding, y }, ThemeColor(ThemeToken::TextSecondary), 12.0f);
+        context.DrawText(cpuText, Point{ m_StatsRect.x + m_StatsPadding, y }, ThemeColor(ColorToken::TextSecondary), 12.0f);
         y += lineHeight;
         
         char triText[32];
         snprintf(triText, sizeof(triText), "Tris: %u", m_Stats.triangles);
-        context.DrawText(triText, Point{ m_StatsRect.x + m_StatsPadding, y }, ThemeColor(ThemeToken::TextSecondary), 12.0f);
+        context.DrawText(triText, Point{ m_StatsRect.x + m_StatsPadding, y }, ThemeColor(ColorToken::TextSecondary), 12.0f);
         y += lineHeight;
         
         char drawText[32];
         snprintf(drawText, sizeof(drawText), "Draws: %u", m_Stats.drawCalls);
-        context.DrawText(drawText, Point{ m_StatsRect.x + m_StatsPadding, y }, ThemeColor(ThemeToken::TextSecondary), 12.0f);
+        context.DrawText(drawText, Point{ m_StatsRect.x + m_StatsPadding, y }, ThemeColor(ColorToken::TextSecondary), 12.0f);
         y += lineHeight;
         
         char objText[32];
         snprintf(objText, sizeof(objText), "Objects: %u", m_Stats.objects);
-        context.DrawText(objText, Point{ m_StatsRect.x + m_StatsPadding, y }, ThemeColor(ThemeToken::TextSecondary), 12.0f);
+        context.DrawText(objText, Point{ m_StatsRect.x + m_StatsPadding, y }, ThemeColor(ColorToken::TextSecondary), 12.0f);
         y += lineHeight;
         
         char resText[32];
         snprintf(resText, sizeof(resText), "%ux%u", m_Stats.resolutionX, m_Stats.resolutionY);
-        context.DrawText(resText, Point{ m_StatsRect.x + m_StatsPadding, y }, ThemeColor(ThemeToken::TextSecondary), 12.0f);
+        context.DrawText(resText, Point{ m_StatsRect.x + m_StatsPadding, y }, ThemeColor(ColorToken::TextSecondary), 12.0f);
         y += lineHeight;
 
         if (!m_Stats.atmosphereStatus.empty()) {
@@ -78,8 +79,8 @@ void ViewportOverlay::Paint(PaintContext& context) {
                 m_Stats.atmosphereStatus.c_str(),
                 Point{ m_StatsRect.x + m_StatsPadding, y },
                 m_Stats.atmosphereStatus.find("MISSING") != std::string::npos
-                    ? ThemeColor(ThemeToken::ErrorForeground)
-                    : ThemeColor(ThemeToken::TextSecondary),
+                    ? ThemeColor(ColorToken::ErrorForeground)
+                    : ThemeColor(ColorToken::TextSecondary),
                 12.0f);
             y += lineHeight;
         }
@@ -87,7 +88,7 @@ void ViewportOverlay::Paint(PaintContext& context) {
     
     // Draw axis gizmo (top-right)
     if (m_GizmoVisible) {
-        context.DrawRoundedRect(m_GizmoRect, ThemeColor(ThemeToken::GizmoBackground), 4.0f);
+        context.DrawRoundedRect(m_GizmoRect, ThemeColor(ColorToken::GizmoBackground), 4.0f);
         
         // Draw simplified axis representation
         float centerX = m_GizmoRect.x + m_GizmoRect.width / 2.0f;
@@ -95,27 +96,27 @@ void ViewportOverlay::Paint(PaintContext& context) {
         float axisLength = 25.0f;
         
         // X axis (red)
-        context.DrawLine(Point{ centerX, centerY }, Point{ centerX + axisLength, centerY }, ThemeColor(ThemeToken::GizmoAxisX), 2.0f);
-        context.DrawText("X", Point{ centerX + axisLength + 2.0f, centerY - 6.0f }, ThemeColor(ThemeToken::GizmoAxisX), 10.0f);
+        context.DrawLine(Point{ centerX, centerY }, Point{ centerX + axisLength, centerY }, ThemeColor(ColorToken::GizmoAxisX), 2.0f);
+        context.DrawText("X", Point{ centerX + axisLength + 2.0f, centerY - 6.0f }, ThemeColor(ColorToken::GizmoAxisX), 10.0f);
         
         // Y axis (green)
-        context.DrawLine(Point{ centerX, centerY }, Point{ centerX, centerY - axisLength }, ThemeColor(ThemeToken::GizmoAxisY), 2.0f);
-        context.DrawText("Y", Point{ centerX - 3.0f, centerY - axisLength - 8.0f }, ThemeColor(ThemeToken::GizmoAxisY), 10.0f);
+        context.DrawLine(Point{ centerX, centerY }, Point{ centerX, centerY - axisLength }, ThemeColor(ColorToken::GizmoAxisY), 2.0f);
+        context.DrawText("Y", Point{ centerX - 3.0f, centerY - axisLength - 8.0f }, ThemeColor(ColorToken::GizmoAxisY), 10.0f);
         
         // Z axis (blue)
-        context.DrawLine(Point{ centerX, centerY }, Point{ centerX - axisLength * 0.5f, centerY + axisLength * 0.5f }, ThemeColor(ThemeToken::GizmoAxisZ), 2.0f);
-        context.DrawText("Z", Point{ centerX - axisLength * 0.5f - 8.0f, centerY + axisLength * 0.5f + 2.0f }, ThemeColor(ThemeToken::GizmoAxisZ), 10.0f);
+        context.DrawLine(Point{ centerX, centerY }, Point{ centerX - axisLength * 0.5f, centerY + axisLength * 0.5f }, ThemeColor(ColorToken::GizmoAxisZ), 2.0f);
+        context.DrawText("Z", Point{ centerX - axisLength * 0.5f - 8.0f, centerY + axisLength * 0.5f + 2.0f }, ThemeColor(ColorToken::GizmoAxisZ), 10.0f);
     }
     
     // Draw navigation controls (bottom-right)
     if (m_NavigationVisible) {
-        context.DrawRoundedRect(m_NavigationRect, ThemeColor(ThemeToken::GizmoBackground), 4.0f);
+        context.DrawRoundedRect(m_NavigationRect, ThemeColor(ColorToken::GizmoBackground), 4.0f);
         
         for (const auto& btn : m_NavButtons) {
-            const float tier = static_cast<float>(IconMetrics::GlyphTierPx(ThemeToken::IconSizeNavigation));
+            const float tier = static_cast<float>(IconMetrics::GlyphTierPx(MetricToken::IconSizeNavigation));
             IconPainter::DrawIcon(context, btn.iconName,
                 IconMetrics::PlaceGlyphCentered(btn.geometry, tier),
-                ThemeColor(ThemeToken::TextPrimary));
+                ThemeColor(ColorToken::TextPrimary));
         }
     }
 }
@@ -202,7 +203,7 @@ void AxisGizmo::Arrange(const Rect& allottedRect) {
 }
 
 void AxisGizmo::Paint(PaintContext& context) {
-    context.DrawRoundedRect(m_Geometry, ThemeColor(ThemeToken::GizmoBackground), 4.0f);
+    context.DrawRoundedRect(m_Geometry, ThemeColor(ColorToken::GizmoBackground), 4.0f);
     
     float centerX = m_Geometry.x + m_Geometry.width / 2.0f;
     float centerY = m_Geometry.y + m_Geometry.height / 2.0f;
@@ -210,13 +211,13 @@ void AxisGizmo::Paint(PaintContext& context) {
     
     // Draw axes with orientation
     // X axis (red)
-    context.DrawLine(Point{ centerX, centerY }, Point{ centerX + axisLength, centerY }, ThemeColor(ThemeToken::GizmoAxisX), 2.0f);
+    context.DrawLine(Point{ centerX, centerY }, Point{ centerX + axisLength, centerY }, ThemeColor(ColorToken::GizmoAxisX), 2.0f);
     
     // Y axis (green)
-    context.DrawLine(Point{ centerX, centerY }, Point{ centerX, centerY - axisLength }, ThemeColor(ThemeToken::GizmoAxisY), 2.0f);
+    context.DrawLine(Point{ centerX, centerY }, Point{ centerX, centerY - axisLength }, ThemeColor(ColorToken::GizmoAxisY), 2.0f);
     
     // Z axis (blue)
-    context.DrawLine(Point{ centerX, centerY }, Point{ centerX - axisLength * 0.5f, centerY + axisLength * 0.5f }, ThemeColor(ThemeToken::GizmoAxisZ), 2.0f);
+    context.DrawLine(Point{ centerX, centerY }, Point{ centerX - axisLength * 0.5f, centerY + axisLength * 0.5f }, ThemeColor(ColorToken::GizmoAxisZ), 2.0f);
 }
 
 void AxisGizmo::SetOrientation(float pitch, float yaw, float roll) {
@@ -245,11 +246,11 @@ void NavigationControls::Arrange(const Rect& allottedRect) {
 }
 
 void NavigationControls::Paint(PaintContext& context) {
-    context.DrawRoundedRect(m_Geometry, ThemeColor(ThemeToken::GizmoBackground), 4.0f);
+    context.DrawRoundedRect(m_Geometry, ThemeColor(ColorToken::GizmoBackground), 4.0f);
     
     for (const auto& btn : m_Buttons) {
-        Color iconColor = btn.hovered ? ThemeColor(ThemeToken::AccentPrimary) : ThemeColor(ThemeToken::TextPrimary);
-        const float tier = static_cast<float>(IconMetrics::GlyphTierPx(ThemeToken::IconSizeNavigation));
+        Color iconColor = btn.hovered ? ThemeColor(ColorToken::AccentPrimary) : ThemeColor(ColorToken::TextPrimary);
+        const float tier = static_cast<float>(IconMetrics::GlyphTierPx(MetricToken::IconSizeNavigation));
         IconPainter::DrawIcon(context, btn.iconName,
             IconMetrics::PlaceGlyphCentered(btn.geometry, tier), iconColor);
     }

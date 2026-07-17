@@ -54,26 +54,26 @@ StyleClass StyleClassRegistry::Resolve(std::string_view name) const {
 void StyleClassRegistry::RegisterDefaults() {
     StyleClass button;
     button.name = "Button";
-    button.background = ThemeToken::PanelBackground;
-    button.foreground = ThemeToken::TextPrimary;
-    button.border = ThemeToken::BorderDefault;
-    button.hoverBackground = ThemeToken::HoverBackground;
-    button.pressedBackground = ThemeToken::PressedBackground;
-    button.disabledBackground = ThemeToken::DisabledBackground;
-    button.heightToken = ThemeToken::ButtonHeight;
-    button.radiusToken = ThemeToken::CornerRadiusMedium;
-    button.paddingToken = ThemeToken::Space3;
-    button.fontSizeToken = ThemeToken::TextSizeBody;
-    button.animDurationToken = ThemeToken::Space1; // placeholder metric until motion tokens exist
+    button.background = ColorToken::PanelBackground;
+    button.foreground = ColorToken::TextPrimary;
+    button.border = ColorToken::BorderDefault;
+    button.hoverBackground = ColorToken::HoverBackground;
+    button.pressedBackground = ColorToken::PressedBackground;
+    button.disabledBackground = ColorToken::DisabledBackground;
+    button.heightToken = MetricToken::ButtonHeight;
+    button.radiusToken = MetricToken::CornerRadiusMedium;
+    button.paddingToken = PaddingToken::Button;
+    button.fontSizeToken = MetricToken::TextSizeBody;
+    button.animDurationToken = MetricToken::Space1; // placeholder metric until motion tokens exist
     Register(button);
 
     StyleClass primary = button;
     primary.name = "PrimaryButton";
     primary.parentName = "Button";
-    primary.background = ThemeToken::ButtonPrimaryBackground;
-    primary.hoverBackground = ThemeToken::ButtonPrimaryHover;
-    primary.pressedBackground = ThemeToken::ButtonPrimaryPressed;
-    primary.foreground = ThemeToken::TextPrimary;
+    primary.background = ColorToken::ButtonPrimaryBackground;
+    primary.hoverBackground = ColorToken::ButtonPrimaryHover;
+    primary.pressedBackground = ColorToken::ButtonPrimaryPressed;
+    primary.foreground = ColorToken::TextPrimary;
     Register(primary);
 
     StyleClass secondary = button;
@@ -84,14 +84,14 @@ void StyleClassRegistry::RegisterDefaults() {
     StyleClass toolbar = button;
     toolbar.name = "ToolbarButton";
     toolbar.parentName = "Button";
-    toolbar.heightToken = ThemeToken::ToolbarHeight;
+    toolbar.heightToken = MetricToken::ToolbarHeight;
     Register(toolbar);
 
     StyleClass iconBtn = button;
     iconBtn.name = "IconButton";
     iconBtn.parentName = "Button";
-    iconBtn.paddingToken = ThemeToken::Space2;
-    iconBtn.heightToken = ThemeToken::IconButtonSize;
+    iconBtn.paddingToken = PaddingToken::Button;
+    iconBtn.heightToken = MetricToken::IconButtonSize;
     Register(iconBtn);
 
     StyleClass launcherBtn = primary;
@@ -101,23 +101,23 @@ void StyleClassRegistry::RegisterDefaults() {
 
     StyleClass page;
     page.name = "Page";
-    page.background = ThemeToken::WindowBackground;
-    page.paddingToken = ThemeToken::Space5;
+    page.background = ColorToken::WindowBackground;
+    page.paddingToken = PaddingToken::Panel;
     Register(page);
 
     StyleClass card;
     card.name = "Card";
-    card.background = ThemeToken::PanelBackground;
-    card.border = ThemeToken::BorderDefault;
-    card.radiusToken = ThemeToken::CornerRadiusLarge;
-    card.paddingToken = ThemeToken::Space3;
+    card.background = ColorToken::PanelBackground;
+    card.border = ColorToken::BorderDefault;
+    card.radiusToken = MetricToken::CornerRadiusLarge;
+    card.paddingToken = PaddingToken::Panel;
     Register(card);
 
     StyleClass search;
     search.name = "SearchBar";
     search.parentName = "Button";
-    search.background = ThemeToken::SearchBoxBackground;
-    search.heightToken = ThemeToken::SearchBoxHeight;
+    search.background = ColorToken::SearchBoxBackground;
+    search.heightToken = MetricToken::SearchBoxHeight;
     Register(search);
 }
 
