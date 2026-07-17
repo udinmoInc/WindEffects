@@ -2,7 +2,7 @@
 
 #include "WindEffects/Editor/UI/Export.h"
 #include "Widgets/Panel.h"
-#include "KindUI/Layout/Box.h"
+#include "KindUI/Layout/Flex.h"
 #include "KindUI/Core/Icon.h"
 
 #include <functional>
@@ -24,7 +24,7 @@ public:
     PanelBuilder& WithCloseButton(std::function<void()> onClose = {});
     PanelBuilder& WithHeaderAction(std::string_view iconName, std::function<void()> onClick);
     PanelBuilder& Toolbar(std::shared_ptr<Widget> toolbar);
-    PanelBuilder& ToolbarBox(std::function<void(HorizontalBox&)> build);
+    PanelBuilder& ToolbarBox(std::function<void(Row&)> build);
 
     [[nodiscard]] std::shared_ptr<Panel> Content(std::shared_ptr<Widget> content);
     [[nodiscard]] std::shared_ptr<Panel> Build();

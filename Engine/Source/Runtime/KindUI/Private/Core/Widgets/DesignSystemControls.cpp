@@ -21,6 +21,16 @@ DesignButton::DesignButton(std::string label, StyleRole role, const char* icon)
     SetFocusable(false);
 }
 
+void DesignButton::SetIconName(std::string icon) {
+    m_IconStorage = std::move(icon);
+    m_Icon = m_IconStorage.empty() ? nullptr : m_IconStorage.c_str();
+}
+
+void DesignButton::SetLabel(std::string label) {
+    m_Label = std::move(label);
+    InvalidatePaint();
+}
+
 Size DesignButton::Measure(const Size& availableSize) {
     (void)availableSize;
     const ResolvedStyle style = ThemeManager::Get().Resolve(m_Role);
@@ -486,6 +496,22 @@ void TableRowBase::Tick(float deltaTime) {
     (void)deltaTime;
     m_HoverAnim = Animator::Damp(m_HoverAnim, m_Hovered && !m_Selected ? 1.0f : 0.0f, ControlChrome::HoverDamping());
     Widget::Tick(deltaTime);
+}
+
+std::shared_ptr<PrimaryButton> MakePrimaryAction(std::string label, std::string icon) {
+    auto btn = std::make_shared<PrimaryButton>(std::move(label));
+    if (!icon.empty()) {
+        btn->SetIconName(std::move(icon));
+    }
+    return btn;
+}
+
+std::shared_ptr<SecondaryButton> MakeSecondaryAction(std::string label, std::string icon) {
+    auto btn = std::make_shared<SecondaryButton>(std::move(label));
+    if (!icon.empty()) {
+        btn->SetIconName(std::move(icon));
+    }
+    return btn;
 }
 
 } // namespace we::runtime::kindui

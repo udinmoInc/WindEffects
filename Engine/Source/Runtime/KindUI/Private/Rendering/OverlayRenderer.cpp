@@ -4,7 +4,6 @@
 #include "KindUI/Rendering/Icons/IconManager.h"
 #include "KindUI/Rendering/TextUIService.h"
 #include "KindUI/Rendering/UIWidgetAdapter.h"
-#include "KindUI/Rendering/UICompositor.h"
 #include "KindUI/Rendering/UIStateManager.h"
 #include "KindUI/Rendering/UiGpuUpload.h"
 #include "Rendering/UiImmediateRenderer.h"
@@ -127,8 +126,6 @@ bool OverlayRenderer::Init(we::rhi::IRHIDevice* device, we::rhi::Format swapchai
 
     m_WidgetAdapter = std::make_unique<UIWidgetAdapter>();
     m_WidgetAdapter->Initialize(this);
-    m_Compositor = std::make_unique<UICompositor>();
-    (void)m_Compositor->Initialize(device, swapchainFormat);
     m_StateManager = std::make_unique<UIStateManager>();
 
     WE_LOG_INFO(we::LogCategory::Startup,
@@ -141,9 +138,6 @@ bool OverlayRenderer::Init(we::rhi::IRHIDevice* device, we::rhi::Format swapchai
 void OverlayRenderer::Shutdown() {
     if (m_WidgetAdapter) {
         m_WidgetAdapter->Shutdown();
-    }
-    if (m_Compositor) {
-        m_Compositor->Shutdown();
     }
     if (m_GpuUpload) {
         m_GpuUpload->Shutdown();

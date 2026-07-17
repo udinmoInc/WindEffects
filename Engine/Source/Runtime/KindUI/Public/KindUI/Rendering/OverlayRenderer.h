@@ -21,7 +21,6 @@ namespace we::runtime::kindui {
 
 class Widget;
 class UIWidgetAdapter;
-class UICompositor;
 class UIStateManager;
 class IconRenderer;
 class IconManager;
@@ -110,7 +109,6 @@ private:
 #pragma warning(push)
 #pragma warning(disable : 4251)
     std::unique_ptr<UIWidgetAdapter> m_WidgetAdapter;
-    std::unique_ptr<UICompositor> m_Compositor;
     std::unique_ptr<UIStateManager> m_StateManager;
     std::unique_ptr<UiGpuUpload> m_GpuUpload;
     std::unique_ptr<UiImmediateRenderer> m_UIImmediate;

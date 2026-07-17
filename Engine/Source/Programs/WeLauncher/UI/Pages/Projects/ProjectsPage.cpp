@@ -3,7 +3,7 @@
 #include "UI/Pages/Projects/ProjectsView.h"
 
 #include "KindUI/App/ViewHost.h"
-#include "KindUI/Layout/Box.h"
+#include "KindUI/Layout/Flex.h"
 #include "KindUI/Widgets/VirtualList.h"
 #include "UI/LauncherHelpers.h"
 #include "KindUI/Theming/ThemeToken.h"
@@ -42,8 +42,8 @@ void ProjectsPage::Attach(
     if (state.root) {
         state.root->SetHorizontalAlignment(we::runtime::kindui::HorizontalAlignment::Fill);
         state.root->SetVerticalAlignment(we::runtime::kindui::VerticalAlignment::Fill);
-        if (auto box = std::dynamic_pointer_cast<we::runtime::kindui::VerticalBox>(state.root)) {
-            box->SetBackgroundColor(LColor(we::runtime::kindui::ThemeToken::PanelContentBackground));
+        if (auto box = std::dynamic_pointer_cast<we::runtime::kindui::Column>(state.root)) {
+            box->Background(LColor(we::runtime::kindui::ThemeToken::PanelContentBackground));
         }
     }
     state.scroll = nullptr;
@@ -79,10 +79,6 @@ std::string ProjectsPage::SearchText() const {
 
 void ProjectsPage::SelectProject(std::size_t sourceIndex, bool additive) {
     m_ViewModel.SelectProject(sourceIndex, additive);
-}
-
-void ProjectsPage::HandleProjectAction(std::size_t sourceIndex, ProjectCardAction action) {
-    m_ViewModel.HandleRowAction(sourceIndex, action);
 }
 
 void ProjectsPage::SetSortMode(ProjectSortMode mode) {

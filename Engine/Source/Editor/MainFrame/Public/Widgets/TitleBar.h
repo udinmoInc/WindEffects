@@ -5,7 +5,7 @@
 #include "Platform/Types.h"
 #include "RHI/Types.h"
 namespace we::runtime::kindui { class MenuBar; class ToolButton; }
-#include "KindUI/Layout/Box.h"
+#include "KindUI/Layout/Flex.h"
 #include <string>
 
 namespace we::runtime::kindui {
@@ -16,7 +16,7 @@ inline constexpr float kHeaderControlHeight     = 24.0f;
 inline constexpr float kWindowControlWidth      = 40.0f;
 inline constexpr float kWindowControlCount      = 3.0f;
 
-class MAINFRAME_API TitleBar : public HorizontalBox {
+class MAINFRAME_API TitleBar : public Row {
 public:
     TitleBar(we::platform::WindowId window, const std::string& title,
              we::rhi::RHIDescriptorSetHandle logoSet = we::rhi::RHIDescriptorSetHandle::Invalid,
@@ -46,9 +46,9 @@ public:
     std::shared_ptr<Widget> m_CloseWidget;
     std::vector<std::shared_ptr<Widget>> m_InteractableWidgets;
 
-    std::shared_ptr<HorizontalBox> m_LeftContainer;
-    std::shared_ptr<HorizontalBox> m_CenterContainer;
-    std::shared_ptr<HorizontalBox> m_RightContainer;
+    std::shared_ptr<Row> m_LeftContainer;
+    std::shared_ptr<Row> m_CenterContainer;
+    std::shared_ptr<Row> m_RightContainer;
 };
 
 } // namespace we::runtime::kindui

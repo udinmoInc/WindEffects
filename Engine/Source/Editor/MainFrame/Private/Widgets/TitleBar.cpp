@@ -147,14 +147,14 @@ namespace {
 TitleBar::TitleBar(we::platform::WindowId window, const std::string& title, we::rhi::RHIDescriptorSetHandle logoSet, std::shared_ptr<MenuBar> menuBar)
     : m_Window(window), m_Title(title), m_LogoSet(logoSet), m_MenuBar(menuBar)
 {
-    SetPadding(Margin{ 0.0f, 0.0f, 0.0f, 0.0f });
-    SetSpacing(0.0f);
+    Padding(Margin{ 0.0f, 0.0f, 0.0f, 0.0f });
+    Gap(0.0f);
 }
 
 void TitleBar::Construct() {
     const float uiScale = (std::max)(1.0f, DPIContext::GetScale());
-    m_LeftContainer = std::make_shared<HorizontalBox>();
-    m_LeftContainer->SetSpacing(0.0f);
+    m_LeftContainer = std::make_shared<Row>();
+    m_LeftContainer->Gap(0.0f);
 
     m_LogoWidget = std::make_shared<LogoSlotWidget>(m_LogoSet);
     m_LeftContainer->AddChild(m_LogoWidget);
@@ -165,11 +165,11 @@ void TitleBar::Construct() {
         m_LeftContainer->AddChild(m_MenuBar);
     }
 
-    m_CenterContainer = std::make_shared<HorizontalBox>();
-    m_CenterContainer->SetSpacing(0.0f);
+    m_CenterContainer = std::make_shared<Row>();
+    m_CenterContainer->Gap(0.0f);
 
-    m_RightContainer = std::make_shared<HorizontalBox>();
-    m_RightContainer->SetSpacing(0.0f);
+    m_RightContainer = std::make_shared<Row>();
+    m_RightContainer->Gap(0.0f);
 
     auto minimizeBtn = std::make_shared<ToolButton>(Icons::MinimizeName, "", [this]() {
         if (m_Window != we::platform::WindowId::Invalid) {
@@ -277,15 +277,15 @@ void TitleBar::Paint(PaintContext& context) {
     };
     context.DrawRect(bottomEdge, ThemeColor(ThemeToken::BorderDark));
 
-    HorizontalBox::Paint(context);
+    Row::Paint(context);
 }
 
 void TitleBar::OnMouseDown(const MouseEvent& event) {
-    HorizontalBox::OnMouseDown(event);
+    Row::OnMouseDown(event);
 }
 
 void TitleBar::OnMouseMove(const MouseEvent& event) {
-    HorizontalBox::OnMouseMove(event);
+    Row::OnMouseMove(event);
 }
 
 void TitleBar::UpdateMaximizeIcon() {

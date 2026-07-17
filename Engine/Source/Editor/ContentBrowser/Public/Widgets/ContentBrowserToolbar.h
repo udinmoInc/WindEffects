@@ -1,8 +1,7 @@
 #pragma once
 
 #include "KindUI/Core/Widget.h"
-#include "KindUI/Core/Widgets/PrimaryToolbarButton.h"
-#include "KindUI/Core/Widgets/SecondaryToolbarButton.h"
+#include "KindUI/Core/Widgets/DesignSystemControls.h"
 #include "KindUI/Core/Widgets/ToolbarIconButton.h"
 #include "KindUI/Core/Widgets/ToolbarNavigationButton.h"
 #include "KindUI/Theming/ThemeToken.h"
@@ -115,8 +114,8 @@ private:
     std::shared_ptr<SearchBox> m_SearchBox;
     
     // New reusable components
-    std::shared_ptr<PrimaryToolbarButton> m_CreateBtn;
-    std::shared_ptr<SecondaryToolbarButton> m_ImportBtn;
+    std::shared_ptr<PrimaryButton> m_CreateBtn;
+    std::shared_ptr<SecondaryButton> m_ImportBtn;
     std::shared_ptr<ToolbarNavigationButton> m_BackBtn;
     std::shared_ptr<ToolbarNavigationButton> m_ForwardBtn;
     std::shared_ptr<ToolbarNavigationButton> m_FolderBtn;

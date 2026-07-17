@@ -1,6 +1,6 @@
 #pragma once
 
-#include "UI/Widgets/ProjectViews.h"
+#include "UI/Pages/Projects/ProjectsTypes.h"
 
 #include <cstddef>
 #include <string>

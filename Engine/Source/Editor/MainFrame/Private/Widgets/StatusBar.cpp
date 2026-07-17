@@ -33,8 +33,8 @@ namespace {
 StatusBar::StatusBar() = default;
 
 void StatusBar::Construct() {
-    m_LeftBox = std::make_shared<HorizontalBox>();
-    m_LeftBox->SetSpacing(ThemeMetric(ThemeToken::Space1));
+    m_LeftBox = std::make_shared<Row>();
+    m_LeftBox->Gap(ThemeMetric(ThemeToken::Space1));
 
     m_AssetsPanelButton = MakeFooterControl(Icons::ContentBrowserName, "Content Drawer", false, "Content Browser");
     m_DiagnosticsPanelButton = MakeFooterControl(Icons::OutputLogName, "Output Log", false, "Output Log");
@@ -51,8 +51,8 @@ void StatusBar::Construct() {
     m_CommandInput->SetPlaceholder("Console Commands...");
     AddChild(m_CommandInput);
 
-    m_RightBox = std::make_shared<HorizontalBox>();
-    m_RightBox->SetSpacing(ThemeMetric(ThemeToken::Space1));
+    m_RightBox = std::make_shared<Row>();
+    m_RightBox->Gap(ThemeMetric(ThemeToken::Space1));
 
     m_OutputLogButton = MakeFooterControl(Icons::BuildName, "Source Control", false, "Source Control");
     m_BuildMenuButton = MakeFooterControl(Icons::ProfilerName, "FPS", false, "Frame Rate");

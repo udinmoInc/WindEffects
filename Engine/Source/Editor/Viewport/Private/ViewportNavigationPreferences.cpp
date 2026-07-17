@@ -7,7 +7,7 @@
 
 #include "Widgets/ViewportSliderPopup.h"
 #include "Widgets/Panel.h"
-#include "KindUI/Layout/Box.h"
+#include "KindUI/Layout/Flex.h"
 #include "Widgets/ToolButton.h"
 #include "KindUI/Core/Icon.h"
 
@@ -18,10 +18,10 @@ namespace we::programs::editor {
 
 namespace {
 
-std::shared_ptr<we::runtime::kindui::VerticalBox> BuildViewportNavigationPreferencesContent() {
-    auto content = std::make_shared<we::runtime::kindui::VerticalBox>();
-    content->SetPadding(we::runtime::kindui::Margin{ 12.0f, 12.0f, 12.0f, 12.0f });
-    content->SetSpacing(6.0f);
+std::shared_ptr<we::runtime::kindui::Column> BuildViewportNavigationPreferencesContent() {
+    auto content = std::make_shared<we::runtime::kindui::Column>();
+    content->Padding(we::runtime::kindui::Margin{ 12.0f, 12.0f, 12.0f, 12.0f });
+    content->Gap(6.0f);
 
     auto& store = ViewportNavigationSettingsStore::Get();
     store.EnsureLoaded();

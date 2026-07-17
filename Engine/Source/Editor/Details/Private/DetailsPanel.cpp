@@ -14,7 +14,7 @@ std::shared_ptr<Panel> CreateDetailsPanel() {
     return PanelBuilder(title)
         .TabIcon(Icons::PropertiesName)
         .WithCloseButton()
-        .ToolbarBox([&](HorizontalBox& toolbar) {
+        .ToolbarBox([&](Row& toolbar) {
             auto searchBox = std::make_shared<SearchBox>();
             searchBox->SetFillWidth(true);
             searchBox->SetPlaceholder(std::string(placeholder));

@@ -3,9 +3,8 @@
 #include "UI/Dialogs/DialogStyles.h"
 #include "UI/LauncherHelpers.h"
 
-#include "KindUI/Core/Widgets/PrimaryToolbarButton.h"
-#include "KindUI/Core/Widgets/SecondaryToolbarButton.h"
 #include "KindUI/Core/Icon.h"
+#include "KindUI/Core/Widgets/DesignSystemControls.h"
 #include "KindUI/Declarative/UI.h"
 #include "KindUI/Theming/ThemeToken.h"
 #include "KindUI/Widgets/TextBox.h"
@@ -39,12 +38,12 @@ we::runtime::kindui::Element BuildRenameDialogView(const RenameDialogState& stat
                 UI::Row({
                     UI::Spacer(),
                     UI::Host([onCancel]() {
-                        auto btn = std::make_shared<we::runtime::kindui::SecondaryToolbarButton>("Cancel", "");
+                        auto btn = we::runtime::kindui::MakeSecondaryAction("Cancel", "");
                         btn->SetOnClicked(onCancel);
                         return btn;
                     }),
                     UI::Host([onRename]() {
-                        auto btn = std::make_shared<we::runtime::kindui::PrimaryToolbarButton>(
+                        auto btn = we::runtime::kindui::MakePrimaryAction(
                             "Rename", we::runtime::kindui::Icons::CheckName);
                         btn->SetOnClicked(onRename);
                         return btn;

@@ -32,7 +32,6 @@ public:
     [[nodiscard]] std::string SearchText() const;
 
     void SelectProject(std::size_t sourceIndex, bool additive = false);
-    void HandleProjectAction(std::size_t sourceIndex, ProjectCardAction action);
     void SetSortMode(ProjectSortMode mode);
     void ToggleCompatibleFilter();
 
