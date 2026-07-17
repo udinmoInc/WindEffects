@@ -6,7 +6,7 @@
 #include <string>
 #include <string_view>
 
-namespace we::runtime::kindui {
+namespace we::editor::ui {
 
 inline std::string FormatPanelTitle(std::string_view panelId) {
     std::string title;
@@ -80,6 +80,6 @@ private:
     DockPanelDescriptor m_Descriptor;
 };
 
-#define WE_PANEL(PanelId) we::runtime::kindui::PanelDescriptorBuilder(#PanelId)
+#define WE_PANEL(PanelId) we::editor::ui::PanelDescriptorBuilder(#PanelId)
 
-} // namespace we::runtime::kindui
+} // namespace we::editor::ui

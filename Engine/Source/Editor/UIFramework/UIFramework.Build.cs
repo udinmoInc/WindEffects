@@ -7,9 +7,8 @@ public class UIFramework : ModuleRules
     {
         Type = ModuleType.SharedLibrary;
 
+        // Canonical public root — all consumer includes use WindEffects/Editor/UI/... paths.
         PublicIncludePaths.Add("Public");
-        PublicIncludePaths.Add("Public/WindEffects/Editor/UI");
-        PublicIncludePaths.Add("Public/WindEffects/Editor");
         PrivateIncludePaths.Add("Private");
 
         PublicDependencies.Add("KindUI");

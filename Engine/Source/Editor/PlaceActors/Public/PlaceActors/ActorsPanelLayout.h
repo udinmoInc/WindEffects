@@ -9,7 +9,7 @@
 namespace we::programs::editor::ActorsPanelLayout {
 
 inline float ContentPadH() {
-    return we::runtime::kindui::PanelChrome::PanelPaddingH();
+    return we::editor::ui::PanelChrome::PanelPaddingH();
 }
 
 inline float ContentPadV() {
@@ -21,11 +21,11 @@ inline float ChevronSize() {
 }
 
 inline float ActorRowHeight() {
-    return 32.0f * we::runtime::kindui::PanelChrome::UiScale();
+    return 32.0f * we::editor::ui::PanelChrome::UiScale();
 }
 
 inline float CategoryHeight() {
-    return 28.0f * we::runtime::kindui::PanelChrome::UiScale();
+    return 28.0f * we::editor::ui::PanelChrome::UiScale();
 }
 
 inline float IconSize() {
@@ -34,11 +34,11 @@ inline float IconSize() {
 }
 
 inline float RowRadius() {
-    return 5.0f * we::runtime::kindui::PanelChrome::UiScale();
+    return 5.0f * we::editor::ui::PanelChrome::UiScale();
 }
 
 inline float SearchHeight() {
-    return 28.0f * we::runtime::kindui::PanelChrome::UiScale();
+    return 28.0f * we::editor::ui::PanelChrome::UiScale();
 }
 
 inline float SearchRowHeight() {
@@ -76,7 +76,7 @@ inline float SectionRadius() {
 
 inline float ToolbarIconSize() {
     return we::runtime::kindui::ResolveMetric(we::runtime::kindui::MetricToken::IconButtonSize)
-        * we::runtime::kindui::PanelChrome::UiScale();
+        * we::editor::ui::PanelChrome::UiScale();
 }
 
 inline float FilterButtonGap() {
@@ -84,11 +84,11 @@ inline float FilterButtonGap() {
 }
 
 inline float GridMinCardWidth() {
-    return 76.0f * we::runtime::kindui::PanelChrome::UiScale();
+    return 76.0f * we::editor::ui::PanelChrome::UiScale();
 }
 
 inline float GridMaxCardWidth() {
-    return 112.0f * we::runtime::kindui::PanelChrome::UiScale();
+    return 112.0f * we::editor::ui::PanelChrome::UiScale();
 }
 
 inline float GridCardGap() {
@@ -96,7 +96,7 @@ inline float GridCardGap() {
 }
 
 inline float GridLabelHeight() {
-    return 16.0f * we::runtime::kindui::PanelChrome::UiScale();
+    return 16.0f * we::editor::ui::PanelChrome::UiScale();
 }
 
 inline float GridLabelGap() {
@@ -106,7 +106,7 @@ inline float GridLabelGap() {
 // Always reserve scrollbar track width so the last column never sits under the thumb.
 inline float GridScrollbarReserve() {
     return we::runtime::kindui::ResolveMetric(we::runtime::kindui::MetricToken::ScrollbarWidth)
-        * we::runtime::kindui::PanelChrome::UiScale()
+        * we::editor::ui::PanelChrome::UiScale()
         + we::runtime::kindui::ResolveMetric(we::runtime::kindui::MetricToken::Space1);
 }
 

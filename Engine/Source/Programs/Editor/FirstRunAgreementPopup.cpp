@@ -18,6 +18,8 @@
 namespace we::programs::editor {
 
 using we::runtime::kindui::ColorToken;
+using we::runtime::kindui::MetricToken;
+using we::runtime::kindui::PaddingToken;
 
 namespace {
 

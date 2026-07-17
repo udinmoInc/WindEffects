@@ -5,6 +5,8 @@
 #include <algorithm>
 #include <cmath>
 #include <cstdlib>
+#include "KindUI/Tokens/DesignToken.h"
+
 
 namespace we::runtime::kindui::IconMetrics {
 namespace {

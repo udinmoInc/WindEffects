@@ -9,10 +9,15 @@
 #include <algorithm>
 #include <functional>
 
+using we::runtime::kindui::ColorToken;
+using we::runtime::kindui::MetricToken;
+using we::runtime::kindui::PaddingToken;
+
 namespace we::runtime::kindui {
+using we::editor::ui::Panel;
 namespace {
-    float ScaledMetric(ColorToken token) {
-        return ResolveMetric(token) * (std::max)(1.0f, DPIContext::GetScale());
+    float ScaledMetric(MetricToken token) {
+        return we::runtime::kindui::ResolveMetric(token) * (std::max)(1.0f, DPIContext::GetScale());
     }
 
     void VisitToolbarWidgets(const std::shared_ptr<Widget>& widget, const std::function<void(const std::shared_ptr<Widget>&)>& visitor) {

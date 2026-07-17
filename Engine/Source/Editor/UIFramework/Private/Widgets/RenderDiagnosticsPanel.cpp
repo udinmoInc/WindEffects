@@ -1,8 +1,10 @@
-#include "Widgets/RenderDiagnosticsPanel.h"
+#include "WindEffects/Editor/UI/Widgets/RenderDiagnosticsPanel.h"
 #include "KindUI/Tokens/DesignToken.h"
 #include "KindUI/Theming/StyleRole.h"
 
-namespace we::runtime::kindui {
+using we::runtime::kindui::PaddingToken;
+
+namespace we::editor::ui {
 
 RenderDiagnosticsPanel::RenderDiagnosticsPanel() {
     m_Scroll = std::make_shared<ScrollLayout>();
@@ -48,4 +50,4 @@ void RenderDiagnosticsPanel::Paint(PaintContext& context) {
     m_Scroll->Paint(context);
 }
 
-} // namespace we::runtime::kindui
+} // namespace we::editor::ui

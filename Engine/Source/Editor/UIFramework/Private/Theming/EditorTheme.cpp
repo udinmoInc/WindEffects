@@ -1,4 +1,6 @@
 #include "WindEffects/Editor/UI/Theming/EditorTheme.h"
+#include "KindUI/Tokens/DesignToken.h"
+#include "KindUI/Theming/ThemeAccess.h"
 
 namespace we::editor::ui {
 namespace {
@@ -10,7 +12,6 @@ we::runtime::kindui::Color EdHex(uint8_t r, uint8_t g, uint8_t b, float a = 1.0f
 } // namespace
 
 we::runtime::kindui::Color EditorTheme::ResolveColor(we::runtime::kindui::ColorToken token) const {
-    using we::runtime::kindui::ColorToken;
     switch (token) {
     case ColorToken::IconAccent:
     case ColorToken::AccentPrimary:

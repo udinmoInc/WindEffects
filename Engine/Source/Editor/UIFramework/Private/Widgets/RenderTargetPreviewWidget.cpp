@@ -1,11 +1,13 @@
-#include "Widgets/RenderTargetPreviewWidget.h"
+#include "WindEffects/Editor/UI/Widgets/RenderTargetPreviewWidget.h"
 #include "KindUI/Tokens/DesignToken.h"
 #include "KindUI/Theming/StyleRole.h"
 #include "KindUI/Core/PaintContext.h"
 
 #include <algorithm>
 
-namespace we::runtime::kindui {
+using we::runtime::kindui::PaddingToken;
+
+namespace we::editor::ui {
 
 namespace {
 constexpr float kPadding = 12.0f;
@@ -91,4 +93,4 @@ void RenderTargetPreviewWidget::OnMouseDown(const MouseEvent& event) {
     }
 }
 
-} // namespace we::runtime::kindui
+} // namespace we::editor::ui

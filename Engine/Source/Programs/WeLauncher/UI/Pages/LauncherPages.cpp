@@ -3,9 +3,9 @@
 #include "KindUI/Declarative/UI.h"
 #include "KindUI/Core/Widgets/DesignSystemControls.h"
 #include "KindUI/Core/Icon.h"
-#include "UI/Widgets/LauncherControls.h"
-#include "UI/Widgets/ManagerViews.h"
-#include "UI/Widgets/SkeletonViews.h"
+#include "UI/Controls/LauncherControls.h"
+#include "UI/Pages/Library/ManagerViews.h"
+#include "UI/Pages/Skeleton/SkeletonViews.h"
 
 namespace we::programs::welauncher {
 namespace UI = we::runtime::kindui::UI;

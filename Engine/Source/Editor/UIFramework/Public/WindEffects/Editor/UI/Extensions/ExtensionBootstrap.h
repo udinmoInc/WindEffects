@@ -4,7 +4,8 @@
 #include "WindEffects/Editor/UI/Extensions/UIExtensionRegistry.h"
 #include "KindUI/Commands/LambdaCommand.h"
 
-namespace we::runtime::kindui {
+namespace we::editor::ui {
+using we::runtime::kindui::ICommand;
 
 class UIFRAMEWORK_API ExtensionBootstrap {
 public:
@@ -30,11 +31,11 @@ private:
     namespace { \
         struct UiPanelBootstrap_##PanelId { \
             UiPanelBootstrap_##PanelId() { \
-                we::runtime::kindui::PanelRegistration _reg{}; \
+                we::editor::ui::PanelRegistration _reg{}; \
                 _reg.descriptor = (DescriptorExpr); \
                 _reg.descriptor.id = #PanelId; \
                 _reg.factory = (FactoryFunc); \
-                we::runtime::kindui::ExtensionBootstrap::Instance().RegisterPanel(std::move(_reg)); \
+                we::editor::ui::ExtensionBootstrap::Instance().RegisterPanel(std::move(_reg)); \
             } \
         }; \
         static UiPanelBootstrap_##PanelId g_UiPanelBootstrap_##PanelId; \
@@ -44,7 +45,7 @@ private:
     namespace { \
         struct UiMenuBootstrap_##MenuName { \
             UiMenuBootstrap_##MenuName() { \
-                we::runtime::kindui::ExtensionBootstrap::Instance().RegisterMenu( \
+                we::editor::ui::ExtensionBootstrap::Instance().RegisterMenu( \
                     { #MenuName, (FactoryFunc), (SortOrder) }); \
             } \
         }; \
@@ -55,11 +56,11 @@ private:
     namespace { \
         struct UiCommandBootstrap_##__LINE__ { \
             UiCommandBootstrap_##__LINE__() { \
-                we::runtime::kindui::ExtensionBootstrap::Instance().RegisterCommand( \
-                    we::runtime::kindui::MakeCommand(CommandIdStr, DisplayName, ExecuteFunc)); \
+                we::editor::ui::ExtensionBootstrap::Instance().RegisterCommand( \
+                    we::editor::ui::MakeCommand(CommandIdStr, DisplayName, ExecuteFunc)); \
             } \
         }; \
         static UiCommandBootstrap_##__LINE__ g_UiCommandBootstrap_##__LINE__; \
     }
 
-} // namespace we::runtime::kindui
+} // namespace we::editor::ui

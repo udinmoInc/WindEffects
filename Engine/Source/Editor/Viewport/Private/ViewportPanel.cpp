@@ -6,9 +6,16 @@
 #include "KindUI/Theming/ThemeAccess.h"
 
 #include <functional>
+#include "KindUI/Tokens/DesignToken.h"
 
 namespace we::programs::editor {
+
+using we::runtime::kindui::ColorToken;
+using we::runtime::kindui::MetricToken;
+using we::runtime::kindui::PaddingToken;
+
 using namespace we::runtime::kindui;
+using namespace we::editor::ui;
 
 namespace {
 
@@ -65,7 +72,7 @@ std::shared_ptr<Panel> CreateViewportPanel() {
 
     auto toolbar = std::make_shared<Toolbar>();
     toolbar->SetFloating(true);
-    toolbar->SetHeight(ResolveMetric(MetricToken::PanelHeaderHeight));
+    toolbar->SetHeight(we::runtime::kindui::ResolveMetric(MetricToken::PanelHeaderHeight));
 
     toolbar->AddWidget(MakeViewportDropdown(Icons::PerspectiveName, "Perspective", {}, "Viewport Type"), ToolbarAlignment::Left);
     toolbar->AddWidget(MakeViewportDropdown(Icons::LitName, "Lit", {}, "Render Mode"), ToolbarAlignment::Left);

@@ -17,7 +17,12 @@
 #include <cmath>
 #include <functional>
 
+using we::runtime::kindui::ColorToken;
+using we::runtime::kindui::MetricToken;
+using we::runtime::kindui::PaddingToken;
+
 namespace we::runtime::kindui {
+using we::editor::ui::Panel;
 
 namespace {
 
@@ -54,7 +59,7 @@ void PaintTreeNodeIcon(PaintContext& context, const TreeNode& node, const Rect& 
         return;
     }
     if (!node.iconName.empty()) {
-        IconPainter::DrawIcon(context, node.iconName, iconRect, ResolveColor(ColorToken::IconPrimary));
+        IconPainter::DrawIcon(context, node.iconName, iconRect, we::runtime::kindui::ResolveColor(ColorToken::IconPrimary));
     }
 }
 

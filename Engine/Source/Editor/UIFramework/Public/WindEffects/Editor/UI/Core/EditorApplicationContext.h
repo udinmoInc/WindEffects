@@ -13,7 +13,15 @@
 
 #include <memory>
 
-namespace we::runtime::kindui {
+namespace we::editor::ui {
+using we::runtime::kindui::IApplicationContext;
+using we::runtime::kindui::IKindUITheme;
+using we::runtime::kindui::ServiceContainer;
+using we::runtime::kindui::IServiceProvider;
+using we::runtime::kindui::IStyleResolver;
+using we::runtime::kindui::IResourceRegistry;
+using we::runtime::kindui::IEventBus;
+using we::runtime::kindui::ICommandRegistry;
 
 class UIFRAMEWORK_API IEditorApplicationContext : public IApplicationContext {
 public:
@@ -56,4 +64,4 @@ private:
     std::shared_ptr<UIExtensionRegistry> m_ExtensionRegistry;
 };
 
-} // namespace we::runtime::kindui
+} // namespace we::editor::ui

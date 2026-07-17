@@ -5,6 +5,7 @@
 
 #include <cmath>
 
+
 namespace we::runtime::kindui {
 
 EmptyState::EmptyState(std::string title, std::string subtitle) {

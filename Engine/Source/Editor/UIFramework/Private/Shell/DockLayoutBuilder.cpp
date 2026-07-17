@@ -1,12 +1,16 @@
 #include "WindEffects/Editor/UI/Shell/DockLayoutBuilder.h"
 
-#include "Widgets/Panel.h"
-#include "Widgets/DockContainer.h"
+#include "WindEffects/Editor/UI/Widgets/Panel.h"
+#include "WindEffects/Editor/UI/Widgets/DockContainer.h"
 #include "KindUI/Layout/Splitter.h"
-#include "Core/PanelIconResolver.h"
+#include "WindEffects/Editor/UI/Core/PanelIconResolver.h"
 #include "KindUI/Theming/ThemeAccess.h"
+#include "KindUI/Tokens/DesignToken.h"
 
-namespace we::runtime::kindui {
+using we::runtime::kindui::PaddingToken;
+using we::runtime::kindui::Orientation;
+
+namespace we::editor::ui {
 namespace {
 
 Orientation ToOrientation(SplitOrientation orientation) {
@@ -43,14 +47,14 @@ std::shared_ptr<Panel> DockLayoutBuilder::CreatePanel(
     const auto it = panels.find(std::string(panelId));
     if (it == panels.end()) {
         auto fallback = std::make_shared<Panel>(std::string(panelId));
-        fallback->SetHeaderHeight(ResolveMetric(MetricToken::PanelTabHeight) * dpiScale);
+        fallback->SetHeaderHeight(we::runtime::kindui::ResolveMetric(MetricToken::PanelTabHeight) * dpiScale);
         result.panels[std::string(panelId)] = fallback;
         return fallback;
     }
 
     auto panel = it->second.factory();
     if (panel) {
-        panel->SetHeaderHeight(ResolveMetric(MetricToken::PanelTabHeight) * dpiScale);
+        panel->SetHeaderHeight(we::runtime::kindui::ResolveMetric(MetricToken::PanelTabHeight) * dpiScale);
         ApplyPanelDescriptor(panel, it->second.descriptor);
     }
     result.panels[std::string(panelId)] = panel;
@@ -117,6 +121,6 @@ DockLayoutBuildResult DockLayoutBuilder::Build(
     return result;
 }
 
-} // namespace we::runtime::kindui
+} // namespace we::editor::ui
 
 

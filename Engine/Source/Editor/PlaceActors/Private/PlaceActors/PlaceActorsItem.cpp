@@ -23,6 +23,8 @@ using we::runtime::kindui::Point;
 using we::runtime::kindui::Rect;
 using we::runtime::kindui::Size;
 using we::runtime::kindui::ColorToken;
+using we::runtime::kindui::MetricToken;
+using we::runtime::kindui::PaddingToken;
 
 namespace WEIcons = we::runtime::kindui::Icons;
 
@@ -30,7 +32,7 @@ namespace {
 
 void PaintItemIcon(PaintContext& context, const std::string& iconName, const Rect& iconRect) {
     we::runtime::kindui::IconPainter::DrawIcon(
-        context, iconName, iconRect, ResolveColor(ColorToken::IconPrimary));
+        context, iconName, iconRect, we::runtime::kindui::ResolveColor(ColorToken::IconPrimary));
 }
 
 } // namespace
@@ -76,7 +78,7 @@ void PlaceActorsItem::PaintList(PaintContext& context,
     }
 
     const float uiScale = std::max(1.0f, we::runtime::kindui::DPIContext::GetScale());
-    const float labelFontSize = ResolveMetric(MetricToken::TextSizeBody) * uiScale;
+    const float labelFontSize = we::runtime::kindui::ResolveMetric(MetricToken::TextSizeBody) * uiScale;
     const float iconSize = static_cast<float>(we::runtime::kindui::IconMetrics::GlyphTierPx(MetricToken::IconSizeTree));
 
     const Rect rowRect{
@@ -105,16 +107,16 @@ void PlaceActorsItem::PaintList(PaintContext& context,
         labelPos,
         labelFontSize,
         searchQuery,
-        ResolveColor(ColorToken::TextPrimary),
-        ResolveColor(ColorToken::TextPrimary));
+        we::runtime::kindui::ResolveColor(ColorToken::TextPrimary),
+        we::runtime::kindui::ResolveColor(ColorToken::TextPrimary));
 
     const float starSize = static_cast<float>(we::runtime::kindui::IconMetrics::StandardGlyphTierPx());
     const float starX = ActorsPanelLayout::StarIconX(bounds.x, bounds.width);
     Rect starBand{ starX, bounds.y, starSize, bounds.height };
     if (favorite || hoverAnim > 0.01f) {
         const Color starColor = favorite
-            ? ResolveColor(ColorToken::Warning)
-            : ResolveColor(ColorToken::IconPrimary);
+            ? we::runtime::kindui::ResolveColor(ColorToken::Warning)
+            : we::runtime::kindui::ResolveColor(ColorToken::IconPrimary);
         we::runtime::kindui::IconPainter::DrawIcon(
             context,
             WEIcons::StarName,

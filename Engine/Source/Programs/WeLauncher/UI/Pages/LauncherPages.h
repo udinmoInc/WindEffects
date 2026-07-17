@@ -1,7 +1,7 @@
 #pragma once
 
 #include "KindUI/Declarative/Element.h"
-#include "UI/LauncherHelpers.h"
+#include "UI/Shell/LauncherHelpers.h"
 
 #include <functional>
 #include <string>

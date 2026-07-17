@@ -9,13 +9,13 @@
 
 namespace we::runtime::kindui {
 
-struct EditorEvent {
+struct UIEvent {
     std::string type;
     std::string sourceId;
     std::string payload;
 };
 
-using EventHandler = std::function<void(const EditorEvent&)>;
+using EventHandler = std::function<void(const UIEvent&)>;
 
 class KINDUI_API IEventBus {
 public:
@@ -23,7 +23,7 @@ public:
 
     virtual void Subscribe(std::string_view eventType, EventHandler handler) = 0;
     virtual void UnsubscribeAll(std::string_view eventType) = 0;
-    virtual void Publish(const EditorEvent& event) = 0;
+    virtual void Publish(const UIEvent& event) = 0;
 };
 
 } // namespace we::runtime::kindui

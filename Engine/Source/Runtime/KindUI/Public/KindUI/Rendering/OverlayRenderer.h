@@ -72,10 +72,10 @@ public:
     bool Init(we::rhi::IRHIDevice* device, we::rhi::Format swapchainFormat, uint32_t maxFramesInFlight);
     void Shutdown();
 
-    void BeginOverlayPass(const we::editor::rendering::OverlayRenderContext& context);
+    void BeginOverlayPass(const we::runtime::uigfx::OverlayRenderContext& context);
     void SetTargetExtent(uint32_t width, uint32_t height);
-    void RenderEditorUI(const std::shared_ptr<we::runtime::kindui::Widget>& root, uint32_t frameSlot);
-    void EndOverlayPass(const we::editor::rendering::OverlayRenderContext& context);
+    void RenderUI(const std::shared_ptr<we::runtime::kindui::Widget>& root, uint32_t frameSlot);
+    void EndOverlayPass(const we::runtime::uigfx::OverlayRenderContext& context);
     void SetPipelineAuditImageIndex(uint32_t imageIndex);
 
     we::rhi::RHIDescriptorSetHandle RegisterTexture(
@@ -136,7 +136,7 @@ private:
     uint64_t m_GeometryGeneration = 0;
     uint32_t m_PipelineAuditImageIndex = UINT32_MAX;
     UIFrameStats m_FrameStats;
-    we::editor::rendering::OverlayRenderContext m_PendingContext{};
+    we::runtime::uigfx::OverlayRenderContext m_PendingContext{};
     std::mutex m_Mutex;
 #pragma warning(pop)
 };

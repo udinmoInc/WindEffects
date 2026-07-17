@@ -13,7 +13,7 @@ class KINDUI_API EventBus final : public IEventBus {
 public:
     void Subscribe(std::string_view eventType, EventHandler handler) override;
     void UnsubscribeAll(std::string_view eventType) override;
-    void Publish(const EditorEvent& event) override;
+    void Publish(const UIEvent& event) override;
 
 private:
     mutable std::mutex m_Mutex;

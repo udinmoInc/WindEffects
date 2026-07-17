@@ -10,7 +10,7 @@
 
 #include "KindUI/Core/DPIContext.h"
 
-namespace we::runtime::kindui {
+namespace we::editor::ui {
 
 EditorApplicationContext::EditorApplicationContext(std::shared_ptr<IKindUITheme> theme) {
     if (!theme) {
@@ -57,6 +57,6 @@ void EditorApplicationContext::Initialize(float dpiScale) {
 void EditorApplicationContext::Shutdown() {
 }
 
-} // namespace we::runtime::kindui
+} // namespace we::editor::ui
 
 // relink

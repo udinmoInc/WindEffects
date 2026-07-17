@@ -1,11 +1,12 @@
 #include "WindEffects/Editor/EditorSDK.h"
 #include "Widgets/PropertyEditor.h"
 #include "Widgets/SearchBox.h"
-#include "Localization.h"
+#include "Core/Localization.h"
 #include "KindUI/Core/Icon.h"
 
 namespace we::programs::editor {
 using namespace we::runtime::kindui;
+using namespace we::editor::ui;
 
 std::shared_ptr<Panel> CreateDetailsPanel() {
     const auto title = we::core::Localization::Get().GetString("Panel_Details", "Details");

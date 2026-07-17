@@ -15,7 +15,7 @@
 #include "PlaceActors/PlaceActorsRecentlyUsedManager.h"
 #include "PlaceActors/PlaceActorsThumbnailProvider.h"
 
-#include "EditorToolsRegistry.h"
+#include "WindEffects/Editor/UI/Shell/EditorToolsRegistry.h"
 #include "Widgets/SearchBox.h"
 #include "Widgets/ToolButton.h"
 #include "WindEffects/Editor/UI/Panel/PanelChrome.h"
@@ -87,7 +87,9 @@ using we::runtime::kindui::Point;
 using we::runtime::kindui::Rect;
 using we::runtime::kindui::Size;
 using we::runtime::kindui::ColorToken;
-namespace PanelChrome = we::runtime::kindui::PanelChrome;
+using we::runtime::kindui::MetricToken;
+using we::runtime::kindui::PaddingToken;
+namespace PanelChrome = we::editor::ui::PanelChrome;
 
 PlaceActorsPanel::PlaceActorsPanel() {
     auto& config = PlaceActorsConfig::Get();

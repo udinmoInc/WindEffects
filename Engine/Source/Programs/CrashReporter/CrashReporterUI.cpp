@@ -1,5 +1,5 @@
 #include "CrashReporterUI.h"
-#include "Widgets/Panel.h"
+#include "WindEffects/Editor/UI/Widgets/Panel.h"
 #include "KindUI/Layout/Flex.h"
 #include "KindUI/Layout/ScrollLayout.h"
 #include "KindUI/Layout/Spacer.h"
@@ -16,6 +16,7 @@
 #include <cstdlib>
 
 using namespace we::runtime::kindui;
+using namespace we::editor::ui;
 
 namespace we::programs::crashreporter {
 

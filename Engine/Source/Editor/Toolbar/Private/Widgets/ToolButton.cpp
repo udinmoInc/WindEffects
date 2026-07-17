@@ -9,6 +9,11 @@
 #include "KindUI/Rendering/IconMetrics.h"
 #include <algorithm>
 #include <cctype>
+#include "KindUI/Tokens/DesignToken.h"
+
+using we::runtime::kindui::ColorToken;
+using we::runtime::kindui::MetricToken;
+using we::runtime::kindui::PaddingToken;
 
 namespace we::runtime::kindui {
 namespace {
@@ -19,15 +24,15 @@ namespace {
     }
 
     float HoverDamping() {
-        return ResolveMetric(MetricToken::HoverAnimationDamping);
+        return we::runtime::kindui::ResolveMetric(MetricToken::HoverAnimationDamping);
     }
 
     float PressDamping() {
-        return ResolveMetric(MetricToken::PressAnimationDamping);
+        return we::runtime::kindui::ResolveMetric(MetricToken::PressAnimationDamping);
     }
 
     Color ResolveInteractiveTextColor(float hoverAnim, float pressStrength, bool active) {
-        return ResolveTextForState(hoverAnim > 0.01f || pressStrength > 0.01f, active);
+        return we::runtime::kindui::ResolveTextForState(hoverAnim > 0.01f || pressStrength > 0.01f, active);
     }
 
     Color ResolvePlayIconColor(float hoverAnim, float pressStrength, bool active) {
@@ -367,7 +372,7 @@ void ToolButton::Paint(PaintContext& context) {
         Color bg{ 0.0f, 0.0f, 0.0f, 0.0f };
         bool drawBg = false;
         if (pressStrength > 0.01f) {
-            bg = ResolveColor(ColorToken::PressedBackground);
+            bg = we::runtime::kindui::ResolveColor(ColorToken::PressedBackground);
             bg.a *= pressStrength;
             drawBg = true;
         } else if (m_HoverAnim > 0.01f) {

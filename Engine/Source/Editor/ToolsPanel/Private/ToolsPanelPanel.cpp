@@ -1,9 +1,10 @@
 #include "WindEffects/Editor/EditorSDK.h"
-#include "EditorModeController.h"
+#include "WindEffects/Editor/UI/Shell/EditorModeController.h"
 #include "Widgets/ToolsPanel.h"
 
 namespace we::programs::editor {
 using namespace we::runtime::kindui;
+using namespace we::editor::ui;
 
 namespace {
 

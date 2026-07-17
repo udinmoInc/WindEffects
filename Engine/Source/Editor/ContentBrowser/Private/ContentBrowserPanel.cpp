@@ -1,5 +1,5 @@
 #include "WindEffects/Editor/EditorSDK.h"
-#include "EditorWorkspaceController.h"
+#include "WindEffects/Editor/UI/Shell/EditorWorkspaceController.h"
 #include "ContentBrowserApi.h"
 #include "KindUI/Rendering/FontImportService.h"
 #include "Widgets/ContentBrowser.h"
@@ -9,7 +9,7 @@
 #include "KindUI/Layout/Flex.h"
 #include "KindUI/Layout/Splitter.h"
 #include "KindUI/Core/Icon.h"
-#include "Localization.h"
+#include "Core/Localization.h"
 #include "Services/ContentBrowserService.h"
 #include "Registry/ContentAssetRegistry.h"
 #include "Controllers/FilterController.h"
@@ -20,6 +20,7 @@
 
 namespace we::programs::editor {
 using namespace we::runtime::kindui;
+using namespace we::editor::ui;
 
 namespace {
 
@@ -149,7 +150,7 @@ void ShutdownContentBrowserService() {
     ContentBrowserService::Get().Shutdown();
 }
 
-std::shared_ptr<we::runtime::kindui::Panel> CreateContentBrowserPanel() {
+std::shared_ptr<we::editor::ui::Panel> CreateContentBrowserPanel() {
     auto title = we::core::Localization::Get().GetString("Panel_ContentBrowser", "Content Browser");
 
     auto panelToolbar = we::runtime::kindui::ContentBrowserToolbarControls::Create(

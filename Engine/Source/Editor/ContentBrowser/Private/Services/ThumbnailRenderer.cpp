@@ -15,6 +15,7 @@
 #include <functional>
 #include <sstream>
 #include <vector>
+#include "KindUI/Tokens/DesignToken.h"
 
 namespace we::editor::contentbrowser {
 

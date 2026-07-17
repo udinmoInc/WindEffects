@@ -1,4 +1,4 @@
-#include "Core/EditorPerfStats.h"
+#include "WindEffects/Editor/UI/Core/EditorPerfStats.h"
 #include "KindUI/Core/UIRepaintGate.h"
 #include "Core/Logger.h"
 
@@ -6,7 +6,7 @@
 #include <cstdlib>
 #include <cstring>
 
-namespace we::runtime::kindui {
+namespace we::editor::ui {
 
 namespace {
 
@@ -107,4 +107,4 @@ void EditorPerfStats::EndFrame(uint32_t uiVertices, uint32_t uiBatches) {
     m_LastLogMs = now;
 }
 
-} // namespace we::runtime::kindui
+} // namespace we::editor::ui

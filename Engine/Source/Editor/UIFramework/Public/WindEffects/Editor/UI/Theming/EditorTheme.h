@@ -2,6 +2,8 @@
 
 #include "WindEffects/Editor/UI/Export.h"
 #include "KindUI/Theming/GraphiteDarkTheme.h"
+#include "KindUI/Tokens/DesignToken.h"
+#include "KindUI/Theming/ThemeAccess.h"
 
 namespace we::editor::ui {
 

@@ -1,7 +1,7 @@
 #pragma once
 
 #include "WindEffects/Editor/UI/Export.h"
-#include "Widgets/Panel.h"
+#include "WindEffects/Editor/UI/Widgets/Panel.h"
 #include "KindUI/Layout/Flex.h"
 #include "KindUI/Core/Icon.h"
 
@@ -10,7 +10,9 @@
 #include <string>
 #include <string_view>
 
-namespace we::runtime::kindui {
+namespace we::editor::ui {
+using we::runtime::kindui::Widget;
+using we::runtime::kindui::Row;
 
 class UIFRAMEWORK_API PanelBuilder {
 public:
@@ -33,4 +35,4 @@ private:
     std::shared_ptr<Panel> m_Panel;
 };
 
-} // namespace we::runtime::kindui
+} // namespace we::editor::ui

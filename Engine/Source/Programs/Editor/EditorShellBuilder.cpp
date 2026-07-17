@@ -2,15 +2,15 @@
 
 #include "Core/Logger.h"
 #include "Core/IgniteBTInvoker.h"
-#include "EditorModeController.h"
-#include "EditorWorkspaceController.h"
+#include "WindEffects/Editor/UI/Shell/EditorModeController.h"
+#include "WindEffects/Editor/UI/Shell/EditorWorkspaceController.h"
 #include "Explorer/WorldOutlinerApi.h"
 #include "Environment/EnvironmentEditorApi.h"
 #include "ViewportNavigationPreferences.h"
 #include "KindUI/Theming/ThemeAccess.h"
 
-#include "Widgets/Panel.h"
-#include "Widgets/DockContainer.h"
+#include "WindEffects/Editor/UI/Widgets/Panel.h"
+#include "WindEffects/Editor/UI/Widgets/DockContainer.h"
 #include "Widgets/TitleBar.h"
 #include "Widgets/WindowShell.h"
 #include "Widgets/StatusBar.h"
@@ -22,7 +22,7 @@
 #include "Widgets/TreeView.h"
 #include "KindUI/Layout/Flex.h"
 #include "KindUI/Layout/OverlayManager.h"
-#include "Core/PanelIconResolver.h"
+#include "WindEffects/Editor/UI/Core/PanelIconResolver.h"
 #include "KindUI/Core/Widget.h"
 #include "KindUI/Core/WidgetContext.h"
 #include "KindUI/Rendering/OverlayRenderer.h"
@@ -33,8 +33,19 @@
 
 #include <algorithm>
 #include <vector>
+#include "KindUI/Tokens/DesignToken.h"
+
+using we::runtime::kindui::ColorToken;
+using we::runtime::kindui::MetricToken;
+using we::runtime::kindui::PaddingToken;
 
 namespace we::runtime::kindui {
+using we::editor::ui::DockContainer;
+using we::editor::ui::DockLayoutBuilder;
+using we::editor::ui::DockPanelDescriptor;
+using we::editor::ui::DockZone;
+using we::editor::ui::IEditorApplicationContext;
+using we::editor::ui::Panel;
 namespace {
 
 void PropagateWidgetContext(const std::shared_ptr<Widget>& widget, const std::shared_ptr<IWidgetContext>& context) {
@@ -199,12 +210,12 @@ EditorShellResult EditorShellBuilder::Build(
 
     auto toolbar = std::make_shared<Toolbar>();
     toolbar->SetContext(widgetContext);
-    toolbar->SetHeight(toolbarStyle.height > 0.0f ? toolbarStyle.height : ResolveMetric(MetricToken::ToolbarHeight) * uiScale);
-    toolbar->SetLeftInset(style.Scaled(ResolveMetric(MetricToken::Space3)));
-    toolbar->SetRightInset(style.Scaled(ResolveMetric(MetricToken::WindowControlWidth) * kWindowControlCount));
-    toolbar->SetEdgePadding(style.Scaled(ResolveMetric(MetricToken::Space2)));
+    toolbar->SetHeight(toolbarStyle.height > 0.0f ? toolbarStyle.height : we::runtime::kindui::ResolveMetric(MetricToken::ToolbarHeight) * uiScale);
+    toolbar->SetLeftInset(style.Scaled(we::runtime::kindui::ResolveMetric(MetricToken::Space3)));
+    toolbar->SetRightInset(style.Scaled(we::runtime::kindui::ResolveMetric(MetricToken::WindowControlWidth) * kWindowControlCount));
+    toolbar->SetEdgePadding(style.Scaled(we::runtime::kindui::ResolveMetric(MetricToken::Space2)));
     const float toolbarIconTier = static_cast<float>(IconMetrics::NativeIconTierPx(
-        toolbarStyle.iconSize > 0.0f ? toolbarStyle.iconSize : ResolveMetric(MetricToken::IconSizeToolbar)));
+        toolbarStyle.iconSize > 0.0f ? toolbarStyle.iconSize : we::runtime::kindui::ResolveMetric(MetricToken::IconSizeToolbar)));
     toolbar->SetIconSize(toolbarIconTier);
 
     // Actor / object mode selector (pivot icon opens place-actors drawer)
@@ -374,10 +385,10 @@ EditorShellResult EditorShellBuilder::Build(
     rootVBox->AddChild(titleBar);
     rootVBox->AddChild(toolbar);
     if (shellResult.layout.root) {
-        const float workspaceGap = ResolveMetric(MetricToken::Space2) * uiScale;
+        const float workspaceGap = we::runtime::kindui::ResolveMetric(MetricToken::Space2) * uiScale;
         auto workspaceArea = std::make_shared<Column>();
         workspaceArea->Padding({ workspaceGap, workspaceGap, workspaceGap, workspaceGap });
-        workspaceArea->Background(ResolveColor(ColorToken::WorkspaceBackground));
+        workspaceArea->Background(we::runtime::kindui::ResolveColor(ColorToken::WorkspaceBackground));
         workspaceArea->AddChild(shellResult.layout.root);
         rootVBox->AddChild(workspaceArea);
     }

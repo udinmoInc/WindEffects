@@ -10,6 +10,7 @@
 #include "KindUI/Theming/StyleRole.h"
 #include "KindUI/Core/Animator.h"
 
+
 namespace we::runtime::kindui {
 
 TextBox::TextBox(const std::string& initialText, std::function<void(const std::string&)> onTextChanged)

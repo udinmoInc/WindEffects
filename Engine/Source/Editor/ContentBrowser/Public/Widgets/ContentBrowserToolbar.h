@@ -13,6 +13,7 @@
 #include <vector>
 
 namespace we::runtime::kindui {
+using we::editor::ui::Panel;
 
 class SearchBox;
 class Breadcrumb;

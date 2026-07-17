@@ -4,6 +4,8 @@
 #include "KindUI/Theming/StyleRole.h"
 #include "KindUI/Core/Style.h"
 #include <sstream>
+#include "KindUI/Theming/ThemeAccess.h"
+
 
 namespace we::runtime::kindui {
 

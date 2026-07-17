@@ -1,10 +1,14 @@
 #include "UI/Theming/LauncherTheme.h"
+#include "KindUI/Tokens/DesignToken.h"
+#include "KindUI/Theming/ThemeAccess.h"
 
 namespace we::programs::welauncher {
 namespace {
 
 using we::runtime::kindui::Color;
 using we::runtime::kindui::ColorToken;
+using we::runtime::kindui::MetricToken;
+using we::runtime::kindui::PaddingToken;
 
 Color LnHex(uint8_t r, uint8_t g, uint8_t b, float a = 1.0f) {
     return Color{ r / 255.0f, g / 255.0f, b / 255.0f, a };

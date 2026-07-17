@@ -2,7 +2,7 @@
 
 #include "PlaceActors/PlaceActorsCatalog.h"
 #include "PlaceActors/PlaceActorsSearch.h"
-#include "EditorToolsRegistry.h"
+#include "WindEffects/Editor/UI/Shell/EditorToolsRegistry.h"
 
 namespace we::programs::editor {
 

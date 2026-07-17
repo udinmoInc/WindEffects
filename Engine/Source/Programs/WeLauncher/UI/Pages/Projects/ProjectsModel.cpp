@@ -1,6 +1,6 @@
 #include "UI/Pages/Projects/ProjectsModel.h"
 
-#include "UI/LauncherHelpers.h"
+#include "UI/Shell/LauncherHelpers.h"
 #include "Util/PathUtils.h"
 
 #include <algorithm>

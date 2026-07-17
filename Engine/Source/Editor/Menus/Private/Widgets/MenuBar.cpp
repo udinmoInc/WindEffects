@@ -8,7 +8,12 @@
 #include "KindUI/Core/DPIContext.h"
 #include <algorithm>
 
+using we::runtime::kindui::ColorToken;
+using we::runtime::kindui::MetricToken;
+using we::runtime::kindui::PaddingToken;
+
 namespace we::runtime::kindui {
+using we::editor::ui::Panel;
 
 MenuBar::MenuBar()
     : m_Style(WidgetStyle::Panel())

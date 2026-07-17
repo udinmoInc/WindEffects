@@ -9,7 +9,12 @@
 #include <cmath>
 #include <algorithm>
 
+using we::runtime::kindui::ColorToken;
+using we::runtime::kindui::MetricToken;
+using we::runtime::kindui::PaddingToken;
+
 namespace we::runtime::kindui {
+using we::editor::ui::Panel;
 
 PropertyEditor::PropertyEditor()
     : m_Style(WidgetStyle::Panel())

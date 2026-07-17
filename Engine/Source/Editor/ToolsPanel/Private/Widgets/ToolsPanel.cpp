@@ -1,8 +1,8 @@
 #include "Platform/Platform.h"
 #include "Widgets/ToolsPanel.h"
 #include "WindEffects/Editor/UI/Panel/PanelChrome.h"
-#include "EditorModeController.h"
-#include "EditorToolsRegistry.h"
+#include "WindEffects/Editor/UI/Shell/EditorModeController.h"
+#include "WindEffects/Editor/UI/Shell/EditorToolsRegistry.h"
 #include "Widgets/SearchBox.h"
 #include "KindUI/Core/PaintContext.h"
 #include "KindUI/Tokens/DesignToken.h"
@@ -29,7 +29,9 @@ using we::runtime::kindui::Point;
 using we::runtime::kindui::Rect;
 using we::runtime::kindui::Size;
 using we::runtime::kindui::ColorToken;
-namespace PanelChrome = we::runtime::kindui::PanelChrome;
+using we::runtime::kindui::MetricToken;
+using we::runtime::kindui::PaddingToken;
+namespace PanelChrome = we::editor::ui::PanelChrome;
 
 namespace {
 constexpr float kDragThreshold = 6.0f;

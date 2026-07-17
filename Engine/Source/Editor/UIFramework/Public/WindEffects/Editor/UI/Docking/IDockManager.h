@@ -9,7 +9,7 @@
 #include <unordered_map>
 #include <vector>
 
-namespace we::runtime::kindui {
+namespace we::editor::ui {
 
 enum class DockZone {
     Left,
@@ -83,4 +83,4 @@ public:
     virtual void DockPanel(std::string_view panelId, DockZone zone) = 0;
 };
 
-} // namespace we::runtime::kindui
+} // namespace we::editor::ui

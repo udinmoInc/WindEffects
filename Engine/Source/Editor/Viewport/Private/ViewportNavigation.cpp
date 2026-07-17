@@ -1,5 +1,5 @@
 #include "ViewportNavigation.h"
-#include "ViewportNavigationSettings.h"
+#include "WindEffects/Editor/UI/Shell/ViewportNavigationSettings.h"
 #include "ViewportToolbarState.h"
 #include "Platform/Platform.h"
 

@@ -14,29 +14,34 @@
 #include "KindUI/Core/Animator.h"
 #include <algorithm>
 
+using we::runtime::kindui::ColorToken;
+using we::runtime::kindui::MetricToken;
+using we::runtime::kindui::PaddingToken;
+
 namespace we::runtime::kindui {
+using we::editor::ui::Panel;
 
 namespace {
 
 void PaintToolbarButtonChrome(PaintContext& context, const Rect& rect, float hoverAnim, float pressAnim,
     bool selected, bool primary)
 {
-    Color bg = ResolveInteractiveBackground(hoverAnim, pressAnim, selected);
+    Color bg = we::runtime::kindui::ResolveInteractiveBackground(hoverAnim, pressAnim, selected);
 
-    const float radius = ResolveMetric(MetricToken::CornerRadiusSmall);
+    const float radius = we::runtime::kindui::ResolveMetric(MetricToken::CornerRadiusSmall);
     if (bg.a > 0.01f) {
         context.DrawRoundedRect(rect, bg, radius);
     }
 
     if (primary) {
-        Color border = ResolveColor(ColorToken::AccentPrimary);
+        Color border = we::runtime::kindui::ResolveColor(ColorToken::AccentPrimary);
         border.a = 0.55f + hoverAnim * 0.2f;
-        context.DrawRoundedRectOutline(rect, border, ResolveMetric(MetricToken::BorderWidth), radius);
-        Color fill = ResolveColor(ColorToken::AccentPrimary);
+        context.DrawRoundedRectOutline(rect, border, we::runtime::kindui::ResolveMetric(MetricToken::BorderWidth), radius);
+        Color fill = we::runtime::kindui::ResolveColor(ColorToken::AccentPrimary);
         fill.a = 0.08f + hoverAnim * 0.06f;
         context.DrawRoundedRect(rect, fill, radius);
     } else if (selected) {
-        context.DrawRoundedRectOutline(rect, ResolveColor(ColorToken::PressedBackground), ResolveMetric(MetricToken::BorderWidth), radius);
+        context.DrawRoundedRectOutline(rect, we::runtime::kindui::ResolveColor(ColorToken::PressedBackground), we::runtime::kindui::ResolveMetric(MetricToken::BorderWidth), radius);
     }
 }
 

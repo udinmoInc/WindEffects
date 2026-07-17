@@ -7,7 +7,7 @@
 #include <nlohmann/json.h>
 #endif
 
-namespace we::runtime::kindui {
+namespace we::editor::ui {
 namespace {
 
 #if WE_HAS_NLOHMANN_JSON
@@ -394,4 +394,4 @@ WorkspaceLayout CreateDefaultEditorWorkspaceLayout() {
     return layout;
 }
 
-} // namespace we::runtime::kindui
+} // namespace we::editor::ui

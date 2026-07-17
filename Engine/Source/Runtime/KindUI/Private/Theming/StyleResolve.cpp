@@ -1,4 +1,7 @@
 #include "KindUI/Theming/StyleResolve.h"
+#include "KindUI/Tokens/DesignToken.h"
+#include "KindUI/Theming/ThemeAccess.h"
+
 
 namespace we::runtime::kindui {
 namespace {

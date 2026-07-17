@@ -10,5 +10,5 @@
 #include "WindEffects/Editor/UI/Builders/PanelDescriptorBuilder.h"
 #include "WindEffects/Editor/UI/Builders/PanelBuilder.h"
 
-#include "Widgets/Panel.h"
-#include "EditorToolsRegistry.h"
+#include "WindEffects/Editor/UI/Widgets/Panel.h"
+#include "WindEffects/Editor/UI/Shell/EditorToolsRegistry.h"

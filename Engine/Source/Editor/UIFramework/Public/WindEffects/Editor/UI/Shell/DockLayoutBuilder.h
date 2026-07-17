@@ -8,12 +8,16 @@
 
 namespace we::runtime::kindui {
 class Widget;
-class Panel;
 class Splitter;
+}
+namespace we::editor::ui {
+using we::runtime::kindui::Widget;
+using we::runtime::kindui::Splitter;
+class Panel;
 class DockContainer;
 }
 
-namespace we::runtime::kindui {
+namespace we::editor::ui {
 
 struct DockLayoutBuildResult {
     std::shared_ptr<Widget> root;
@@ -57,4 +61,4 @@ private:
         DockLayoutBuildResult& result);
 };
 
-} // namespace we::runtime::kindui
+} // namespace we::editor::ui

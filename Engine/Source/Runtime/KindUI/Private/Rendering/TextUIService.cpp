@@ -2,7 +2,7 @@
 
 #include "KindUI/Rendering/FontImportService.h"
 #include "KindUI/Rendering/OverlayRenderer.h"
-#include "AssetRegistry.h"
+#include "Core/AssetRegistry.h"
 #include "Core/Logger.h"
 
 #include <algorithm>

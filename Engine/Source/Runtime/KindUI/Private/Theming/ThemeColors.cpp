@@ -6,6 +6,7 @@
 
 #include <algorithm>
 
+
 namespace we::runtime::kindui {
 
 ThemeColors ThemeColors::Resolve(const IKindUITheme& theme) {

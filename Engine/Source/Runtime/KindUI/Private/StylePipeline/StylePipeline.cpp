@@ -1,6 +1,9 @@
 #include "KindUI/StylePipeline/StylePipeline.h"
 
 #include "KindUI/Theming/StyleClass.h"
+#include "KindUI/Tokens/DesignToken.h"
+#include "KindUI/Theming/ThemeAccess.h"
+
 
 namespace we::runtime::kindui {
 namespace {
