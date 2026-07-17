@@ -24,15 +24,25 @@ inline constexpr float kLauncherLogoDisplaySize = 18.0f;
 inline constexpr float kLauncherNavWidth = 212.0f;
 inline constexpr float kLauncherNavCollapsedWidth = 60.0f;
 inline constexpr float kLauncherNavItemH = 40.0f;
+inline constexpr float kLauncherNavPadTop = 16.0f;
+inline constexpr float kLauncherNavPadX = 16.0f;
+inline constexpr float kLauncherNavItemGap = 8.0f;
+inline constexpr float kLauncherNavIconTextGap = 12.0f;
 inline constexpr float kLauncherFooterH = 32.0f;
-inline constexpr float kLauncherSearchH = 28.0f;
+inline constexpr float kLauncherSearchH = 34.0f;
 inline constexpr float kLauncherWindowControlW = 40.0f;
 inline constexpr float kLauncherHeaderPadL = 16.0f;
-inline constexpr float kLauncherContentPadX = 24.0f;      // content L/R gutters
-inline constexpr float kLauncherTitleToToolbar = 20.0f;   // below title divider → toolbar
-inline constexpr float kLauncherToolbarToDivider = 16.0f; // toolbar → divider below
-inline constexpr float kLauncherDividerToTable = 12.0f;   // divider → table
-inline constexpr float kLauncherRowPadY = 14.0f;          // table row vertical padding
+inline constexpr float kLauncherContentPadX = 24.0f;
+inline constexpr float kLauncherContentPadTop = 24.0f;
+inline constexpr float kLauncherContentPadBottom = 24.0f;
+inline constexpr float kLauncherTitleToToolbar = 16.0f;
+inline constexpr float kLauncherToolbarToDivider = 16.0f;
+inline constexpr float kLauncherDividerToTable = 16.0f;
+inline constexpr float kLauncherToolbarControlGap = 12.0f;
+inline constexpr float kLauncherButtonGap = 8.0f;
+inline constexpr float kLauncherSearchW = 320.0f;
+inline constexpr float kLauncherRowH = 44.0f;
+inline constexpr float kLauncherIconPx = 16.0f;
 
 inline WindEffects::Editor::UI::Color LColor(WindEffects::Editor::UI::ThemeToken token) {
     return WindEffects::Editor::UI::ResolveThemeColor(token);

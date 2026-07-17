@@ -51,16 +51,10 @@ const char* kAccentPalette[] = {
 const char* SettingsCategoryTitle(SettingsCategory category) {
     switch (category) {
     case SettingsCategory::General: return "General";
-    case SettingsCategory::Projects: return "Projects";
-    case SettingsCategory::Templates: return "Templates";
     case SettingsCategory::Engine: return "Engine";
-    case SettingsCategory::Appearance: return "Appearance";
-    case SettingsCategory::Updates: return "Updates";
-    case SettingsCategory::Cache: return "Cache";
-    case SettingsCategory::Downloads: return "Downloads";
-    case SettingsCategory::Plugins: return "Plugins";
-    case SettingsCategory::Developer: return "Developer";
-    case SettingsCategory::Experimental: return "Experimental";
+    case SettingsCategory::Storage: return "Storage";
+    case SettingsCategory::FileAssociations: return "File Associations";
+    case SettingsCategory::About: return "About";
     default: return "Settings";
     }
 }
@@ -68,27 +62,15 @@ const char* SettingsCategoryTitle(SettingsCategory category) {
 const char* SettingsCategoryKeywords(SettingsCategory category) {
     switch (category) {
     case SettingsCategory::General:
-        return "general language autosave startup telemetry status";
-    case SettingsCategory::Projects:
-        return "projects folder path browse build configuration debug development release";
-    case SettingsCategory::Templates:
-        return "templates default blank starter pack";
+        return "general projects folder engine version recent limit open last start";
     case SettingsCategory::Engine:
-        return "engine version install sdk plugins disk verify repair launch editor folder";
-    case SettingsCategory::Appearance:
-        return "appearance theme accent color scale font icon graphite dark preview";
-    case SettingsCategory::Updates:
-        return "updates launcher engine sdk plugin check verify repair";
-    case SettingsCategory::Cache:
-        return "cache thumbnail shader derived temporary clear rebuild folder";
-    case SettingsCategory::Downloads:
-        return "downloads metered network packages";
-    case SettingsCategory::Plugins:
-        return "plugins extensions modules marketplace";
-    case SettingsCategory::Developer:
-        return "developer gpu validation render graph ecs rhi logging crash dumps vulkan";
-    case SettingsCategory::Experimental:
-        return "experimental features preview";
+        return "engine install directory scan verify updates launcher";
+    case SettingsCategory::Storage:
+        return "storage cache thumbnail clear size disk";
+    case SettingsCategory::FileAssociations:
+        return "file associations weproj weproject register";
+    case SettingsCategory::About:
+        return "about version logs installation documentation reset";
     default:
         return "";
     }
@@ -138,15 +120,15 @@ void SettingsGroup::SetContent(const std::shared_ptr<Widget>& content) {
 
 Size SettingsGroup::Measure(const Size& availableSize) {
     const float s = LScale();
-    const float padX = 0.0f;
-    const float padY = 8.0f * s;
+    const float padX = 16.0f * s;
+    const float padY = 16.0f * s;
     const float titleSize = LMetric(ThemeToken::TextSizeHeader) * s;
     const float descSize = LMetric(ThemeToken::TextSizeCaption) * s;
     float headerH = titleSize + 4.0f * s;
     if (!m_Description.empty()) {
         headerH += descSize + 4.0f * s;
     }
-    headerH += 8.0f * s;
+    headerH += 12.0f * s;
 
     float contentH = 0.0f;
     if (m_Content) {
@@ -159,7 +141,7 @@ Size SettingsGroup::Measure(const Size& availableSize) {
 
     m_DesiredSize = Size{
         availableSize.width > 0.0f ? availableSize.width : 480.0f * s,
-        padY + headerH + contentH + padY + 1.0f * s
+        padY + headerH + contentH + padY
     };
     return m_DesiredSize;
 }
@@ -167,75 +149,65 @@ Size SettingsGroup::Measure(const Size& availableSize) {
 void SettingsGroup::Arrange(const Rect& allottedRect) {
     m_Geometry = allottedRect;
     const float s = LScale();
-    const float padX = 0.0f;
-    const float padY = 8.0f * s;
+    const float padX = 16.0f * s;
+    const float padY = 16.0f * s;
     const float titleSize = LMetric(ThemeToken::TextSizeHeader) * s;
     const float descSize = LMetric(ThemeToken::TextSizeCaption) * s;
     float y = allottedRect.y + padY + titleSize + 4.0f * s;
     if (!m_Description.empty()) {
         y += descSize + 4.0f * s;
     }
-    y += 8.0f * s;
+    y += 12.0f * s;
     if (m_Content) {
         m_Content->Arrange(Rect{
             allottedRect.x + padX,
             y,
             allottedRect.width - padX * 2.0f,
-            std::max(0.0f, allottedRect.y + allottedRect.height - padY - 1.0f * s - y)
+            std::max(0.0f, allottedRect.y + allottedRect.height - padY - y)
         });
     }
 }
 
 void SettingsGroup::Paint(PaintContext& context) {
     const float s = LScale();
-    const float padY = 8.0f * s;
+    const float radius = 8.0f * s;
+    const float padX = 16.0f * s;
+    const float padY = 16.0f * s;
+
+    Color cardBg = LColor(ThemeToken::PanelBackground);
+    context.DrawRoundedRect(m_Geometry, cardBg, radius);
 
     if (m_Highlighted) {
-        context.DrawRoundedRect(
-            m_Geometry,
-            Color::Lerp(Color::Transparent(), LColor(ThemeToken::SelectedBackground), 0.4f),
-            LMetric(ThemeToken::CornerRadiusSmall) * s);
         context.DrawRect(
-            Rect{ m_Geometry.x, m_Geometry.y + 6.0f * s, 2.0f * s, m_Geometry.height - 12.0f * s },
+            Rect{ m_Geometry.x + 4.0f * s, m_Geometry.y + 10.0f * s, 3.0f * s, m_Geometry.height - 20.0f * s },
             LColor(ThemeToken::AccentPrimary));
     }
 
-    ControlChrome::PaintSectionHeader(
-        context,
-        Rect{ m_Geometry.x, m_Geometry.y + padY, m_Geometry.width, 48.0f * s },
-        m_Title,
-        m_Description);
-
     const float titleSize = LMetric(ThemeToken::TextSizeHeader) * s;
     const float descSize = LMetric(ThemeToken::TextSizeCaption) * s;
-    float y = m_Geometry.y + padY + titleSize + 4.0f * s;
+    context.DrawText(
+        m_Title,
+        Point{ m_Geometry.x + padX, m_Geometry.y + padY },
+        LColor(ThemeToken::TextPrimary),
+        titleSize,
+        true);
     if (!m_Description.empty()) {
-        y += descSize + 4.0f * s;
+        context.DrawText(
+            m_Description,
+            Point{ m_Geometry.x + padX, m_Geometry.y + padY + titleSize + 4.0f * s },
+            LColor(ThemeToken::TextMuted),
+            descSize);
     }
-    y += 10.0f * s;
-    context.DrawRect(
-        Rect{ m_Geometry.x, y, m_Geometry.width, 1.0f * s },
-        LColor(ThemeToken::Separator));
 
     if (m_Content && m_Content->IsVisible()) {
         m_Content->Paint(context);
     }
-
-    context.DrawRect(
-        Rect{
-            m_Geometry.x,
-            m_Geometry.y + m_Geometry.height - 1.0f * s,
-            m_Geometry.width,
-            1.0f * s
-        },
-        LColor(ThemeToken::BorderDefault));
 }
 
 void SettingsGroup::Tick(float deltaTime) {
     Widget::Tick(deltaTime);
 }
 
-// â”€â”€ SettingsRow â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 SettingsRow::SettingsRow(
     std::string label,

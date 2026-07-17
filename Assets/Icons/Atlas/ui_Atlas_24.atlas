@@ -1,6 +1,6 @@
 
 ui_Atlas_24.png
-size: 522, 54
+size: 574, 54
 format: RGBA8888
 filter: Nearest, Nearest
 repeat: none
@@ -195,6 +195,13 @@ Icons_Plus
   index: 24
 Icons_Recent
   rotate: false
+  xy: 366, 28
+  size: 24, 24
+  orig: 24, 24
+  offset: 0, 0
+  index: 24
+Icons_RecentProjects
+  rotate: false
   xy: 340, 2
   size: 24, 24
   orig: 24, 24
@@ -202,84 +209,105 @@ Icons_Recent
   index: 24
 Icons_Redo
   rotate: false
-  xy: 366, 28
+  xy: 366, 2
   size: 24, 24
   orig: 24, 24
   offset: 0, 0
   index: 24
 Icons_Rotate
   rotate: false
-  xy: 366, 2
+  xy: 392, 28
   size: 24, 24
   orig: 24, 24
   offset: 0, 0
   index: 24
 Icons_Save
   rotate: false
-  xy: 392, 2
+  xy: 418, 28
   size: 24, 24
   orig: 24, 24
   offset: 0, 0
   index: 24
 Icons_SaveAll
   rotate: false
-  xy: 392, 28
+  xy: 392, 2
   size: 24, 24
   orig: 24, 24
   offset: 0, 0
   index: 24
 Icons_Scale
   rotate: false
-  xy: 418, 28
+  xy: 418, 2
   size: 24, 24
   orig: 24, 24
   offset: 0, 0
   index: 24
 Icons_Search
   rotate: false
-  xy: 418, 2
+  xy: 444, 28
   size: 24, 24
   orig: 24, 24
   offset: 0, 0
   index: 24
 Icons_Settings
   rotate: false
-  xy: 444, 28
-  size: 24, 24
-  orig: 24, 24
-  offset: 0, 0
-  index: 24
-Icons_Stop
-  rotate: false
   xy: 444, 2
   size: 24, 24
   orig: 24, 24
   offset: 0, 0
   index: 24
-Icons_Sun
+Icons_Star
   rotate: false
   xy: 470, 28
   size: 24, 24
   orig: 24, 24
   offset: 0, 0
   index: 24
-Icons_Terminal
+Icons_Stop
   rotate: false
   xy: 470, 2
   size: 24, 24
   orig: 24, 24
   offset: 0, 0
   index: 24
-Icons_Undo
+Icons_Sun
   rotate: false
   xy: 496, 28
   size: 24, 24
   orig: 24, 24
   offset: 0, 0
   index: 24
-Icons_Wrench
+Icons_Terminal
   rotate: false
   xy: 496, 2
+  size: 24, 24
+  orig: 24, 24
+  offset: 0, 0
+  index: 24
+Icons_Trash
+  rotate: false
+  xy: 522, 28
+  size: 24, 24
+  orig: 24, 24
+  offset: 0, 0
+  index: 24
+Icons_Undo
+  rotate: false
+  xy: 522, 2
+  size: 24, 24
+  orig: 24, 24
+  offset: 0, 0
+  index: 24
+Icons_WindLogo
+  rotate: false
+  xy: 548, 28
+  size: 24, 24
+  orig: 24, 24
+  offset: 0, 0
+  index: 24
+Icons_Wrench
+  rotate: false
+  xy: 548, 2
   size: 24, 24
   orig: 24, 24
   offset: 0, 0

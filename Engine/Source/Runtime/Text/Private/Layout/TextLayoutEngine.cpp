@@ -59,7 +59,21 @@ public:
             return result;
         }
 
-        const assets::FontStack stack = m_FallbackResolver.BuildStack(style.family, shaped.value.front().script);
+        // Prefer the explicitly requested face (e.g. Inter Bold) before family/fallback
+        // lookup. BuildStack matches on family name only, so Regular and Bold both named
+        // "Inter" would otherwise resolve UVs from the first loaded face while the UI
+        // binds a different atlas — producing garbled MSDF glyphs.
+        assets::FontStack stack;
+        if (primaryFont != kInvalidFontHandle) {
+            stack.faces.push_back(primaryFont);
+        }
+        const assets::FontStack fallback =
+            m_FallbackResolver.BuildStack(style.family, shaped.value.front().script);
+        for (const FontHandle handle : fallback.faces) {
+            if (std::find(stack.faces.begin(), stack.faces.end(), handle) == stack.faces.end()) {
+                stack.faces.push_back(handle);
+            }
+        }
 
         struct LineState {
             std::vector<PositionedGlyph> glyphs;

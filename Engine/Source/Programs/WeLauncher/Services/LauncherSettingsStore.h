@@ -17,6 +17,7 @@ public:
     [[nodiscard]] const std::vector<std::string>& RecentProjects() const { return m_RecentProjects; }
     void TouchRecent(const std::string& weprojPath);
     void RemoveRecent(const std::string& weprojPath);
+    void ResetToDefaults();
 
 private:
     LauncherSettings m_Settings{};

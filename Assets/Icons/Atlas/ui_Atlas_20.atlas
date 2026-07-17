@@ -1,6 +1,6 @@
 
 ui_Atlas_20.png
-size: 442, 46
+size: 486, 46
 format: RGBA8888
 filter: Nearest, Nearest
 repeat: none
@@ -195,6 +195,13 @@ Icons_Plus
   index: 20
 Icons_Recent
   rotate: false
+  xy: 310, 24
+  size: 20, 20
+  orig: 20, 20
+  offset: 0, 0
+  index: 20
+Icons_RecentProjects
+  rotate: false
   xy: 288, 2
   size: 20, 20
   orig: 20, 20
@@ -202,84 +209,105 @@ Icons_Recent
   index: 20
 Icons_Redo
   rotate: false
-  xy: 310, 24
+  xy: 310, 2
   size: 20, 20
   orig: 20, 20
   offset: 0, 0
   index: 20
 Icons_Rotate
   rotate: false
-  xy: 310, 2
+  xy: 332, 24
   size: 20, 20
   orig: 20, 20
   offset: 0, 0
   index: 20
 Icons_Save
   rotate: false
-  xy: 332, 2
+  xy: 354, 24
   size: 20, 20
   orig: 20, 20
   offset: 0, 0
   index: 20
 Icons_SaveAll
   rotate: false
-  xy: 332, 24
+  xy: 332, 2
   size: 20, 20
   orig: 20, 20
   offset: 0, 0
   index: 20
 Icons_Scale
   rotate: false
-  xy: 354, 24
+  xy: 354, 2
   size: 20, 20
   orig: 20, 20
   offset: 0, 0
   index: 20
 Icons_Search
   rotate: false
-  xy: 354, 2
+  xy: 376, 24
   size: 20, 20
   orig: 20, 20
   offset: 0, 0
   index: 20
 Icons_Settings
   rotate: false
-  xy: 376, 24
-  size: 20, 20
-  orig: 20, 20
-  offset: 0, 0
-  index: 20
-Icons_Stop
-  rotate: false
   xy: 376, 2
   size: 20, 20
   orig: 20, 20
   offset: 0, 0
   index: 20
-Icons_Sun
+Icons_Star
   rotate: false
   xy: 398, 24
   size: 20, 20
   orig: 20, 20
   offset: 0, 0
   index: 20
-Icons_Terminal
+Icons_Stop
   rotate: false
   xy: 398, 2
   size: 20, 20
   orig: 20, 20
   offset: 0, 0
   index: 20
-Icons_Undo
+Icons_Sun
   rotate: false
   xy: 420, 24
   size: 20, 20
   orig: 20, 20
   offset: 0, 0
   index: 20
-Icons_Wrench
+Icons_Terminal
   rotate: false
   xy: 420, 2
+  size: 20, 20
+  orig: 20, 20
+  offset: 0, 0
+  index: 20
+Icons_Trash
+  rotate: false
+  xy: 442, 24
+  size: 20, 20
+  orig: 20, 20
+  offset: 0, 0
+  index: 20
+Icons_Undo
+  rotate: false
+  xy: 442, 2
+  size: 20, 20
+  orig: 20, 20
+  offset: 0, 0
+  index: 20
+Icons_WindLogo
+  rotate: false
+  xy: 464, 24
+  size: 20, 20
+  orig: 20, 20
+  offset: 0, 0
+  index: 20
+Icons_Wrench
+  rotate: false
+  xy: 464, 2
   size: 20, 20
   orig: 20, 20
   offset: 0, 0

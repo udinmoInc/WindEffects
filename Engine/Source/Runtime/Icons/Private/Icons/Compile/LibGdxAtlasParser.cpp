@@ -165,6 +165,7 @@ bool IsFullColorIcon(const std::string& runtimeName)
 {
     // Brand / shaded 3D previews keep baked RGB instead of mono tinting.
     return runtimeName == "windeffects"
+        || runtimeName == "windlogo"
         || runtimeName == "3dcube"
         || runtimeName == "3dsphere"
         || runtimeName == "3dcylinder"
@@ -198,6 +199,8 @@ std::vector<std::string> RuntimeAliasesFor(const std::string& runtimeName)
         {"newfile", {"new-file", "file-plus", "new"}},
         {"openfolder", {"open-folder", "folder-open", "open"}},
         {"addactor", {"add-actor"}},
+        {"star", {"favorites", "star-filled"}},
+        {"windlogo", {"windeffects", "wind-logo", "logo"}},
     };
 
     std::vector<std::string> names;

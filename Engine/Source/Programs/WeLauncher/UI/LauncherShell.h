@@ -56,22 +56,15 @@ private:
     void ShowPage(LauncherPage page);
     void MarkPageDirty(LauncherPage page);
     void RebuildProjectsPage();
-    void RebuildTemplatesPage();
-    void RebuildLibraryPage();
+    void RebuildLearnPage();
     void RebuildEnginePage();
     void RebuildSettingsPage();
     void PersistLauncherSettings(const std::string& statusMessage = {});
     [[nodiscard]] std::shared_ptr<WindEffects::Editor::UI::Widget> BuildSettingsGeneral(const std::string& queryLower);
-    [[nodiscard]] std::shared_ptr<WindEffects::Editor::UI::Widget> BuildSettingsProjects(const std::string& queryLower);
-    [[nodiscard]] std::shared_ptr<WindEffects::Editor::UI::Widget> BuildSettingsTemplates(const std::string& queryLower);
     [[nodiscard]] std::shared_ptr<WindEffects::Editor::UI::Widget> BuildSettingsEngine(const std::string& queryLower);
-    [[nodiscard]] std::shared_ptr<WindEffects::Editor::UI::Widget> BuildSettingsAppearance(const std::string& queryLower);
-    [[nodiscard]] std::shared_ptr<WindEffects::Editor::UI::Widget> BuildSettingsUpdates(const std::string& queryLower);
-    [[nodiscard]] std::shared_ptr<WindEffects::Editor::UI::Widget> BuildSettingsCache(const std::string& queryLower);
-    [[nodiscard]] std::shared_ptr<WindEffects::Editor::UI::Widget> BuildSettingsDownloads(const std::string& queryLower);
-    [[nodiscard]] std::shared_ptr<WindEffects::Editor::UI::Widget> BuildSettingsPlugins(const std::string& queryLower);
-    [[nodiscard]] std::shared_ptr<WindEffects::Editor::UI::Widget> BuildSettingsDeveloper(const std::string& queryLower);
-    [[nodiscard]] std::shared_ptr<WindEffects::Editor::UI::Widget> BuildSettingsExperimental(const std::string& queryLower);
+    [[nodiscard]] std::shared_ptr<WindEffects::Editor::UI::Widget> BuildSettingsStorage(const std::string& queryLower);
+    [[nodiscard]] std::shared_ptr<WindEffects::Editor::UI::Widget> BuildSettingsFileAssociations(const std::string& queryLower);
+    [[nodiscard]] std::shared_ptr<WindEffects::Editor::UI::Widget> BuildSettingsAbout(const std::string& queryLower);
     void RebuildCreateWizard();
     void RebuildRenameDialog();
     void RebuildProjectActionsDialog();
@@ -109,9 +102,8 @@ private:
     void ShowProjectMoreMenu(std::size_t index);
     void RegenerateSelectedProjectFiles();
 
-    std::shared_ptr<WindEffects::Editor::UI::Widget> BuildProjectsPageHeader();
-    std::shared_ptr<WindEffects::Editor::UI::Widget> BuildProjectToolbar();
-    std::shared_ptr<WindEffects::Editor::UI::Widget> BuildProjectsEmptyState();
+    std::shared_ptr<WindEffects::Editor::UI::Widget> BuildProjectsPageHeader(bool showActions);
+    std::shared_ptr<WindEffects::Editor::UI::Widget> BuildProjectSearchRow();
 
     std::shared_ptr<LauncherContext> m_Context;
     we::platform::WindowId m_Window = we::platform::WindowId::Invalid;
@@ -141,6 +133,8 @@ private:
 
     ModalKind m_Modal = ModalKind::None;
     std::string m_WizardTemplateId = "Blank";
+    std::string m_WizardCategory = "All";
+    std::string m_WizardTemplateQuery;
     std::string m_WizardName = "MyProject";
     std::string m_WizardLocation;
     std::string m_RenameName;

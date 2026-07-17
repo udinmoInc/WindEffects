@@ -90,6 +90,18 @@ WeLauncherApp::WeLauncherApp(we::platform::WindowId window)
     m_UI->Construct(dpiScale);
     m_UIEventSystem->SetRootWidget(m_UI);
 
+    if (m_Context->Settings().Settings().openLastProjectOnStart) {
+        const auto& recent = m_Context->Settings().RecentProjects();
+        if (!recent.empty()) {
+            const auto result = m_Context->EditorLaunch().Launch(PathUtils::FromUtf8(recent.front()));
+            if (result.success) {
+                m_UI->SetStatus("Opened last project");
+            } else if (!result.message.empty()) {
+                m_UI->SetStatus(result.message);
+            }
+        }
+    }
+
     platform.SetWindowHitTest(m_Window, &WeLauncherApp::HitTestThunk, this);
     WindEffects::Editor::UI::UIRepaintGate::Request();
     HE_INFO("[WeLauncher] Ready");

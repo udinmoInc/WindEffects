@@ -158,8 +158,9 @@ namespace Icons {
     constexpr const char* ProfilerName   = "wrench";
     constexpr const char* ListName       = "object";
     constexpr const char* RefreshName    = "redo";
-    constexpr const char* StarName       = "sun";
-    constexpr const char* StarFilledName = "lit";
+    constexpr const char* StarName       = "star";
+    constexpr const char* StarFilledName = "star";
+    constexpr const char* WindLogoName   = "windlogo";
     constexpr const char* FilterName     = "filter";
     constexpr const char* PlusName       = "plus";
     constexpr const char* MinusName      = "minus";
@@ -281,6 +282,11 @@ namespace Icons {
             {"refresh-cw", RefreshName},
             {"star", StarName},
             {"star-filled", StarFilledName},
+            {"favorites", StarName},
+            {"windlogo", WindLogoName},
+            {"wind-logo", WindLogoName},
+            {"windeffects", WindLogoName},
+            {"logo", WindLogoName},
             {"plus", PlusName},
             {"minus", MinusName},
             {"x", XName},
@@ -315,7 +321,6 @@ namespace Icons {
             {"plugin", PackageName},
             {"engine", BuildName},
             {"project", ProjectFolderName},
-            {"favorites", StarName},
             {"trash-2", DeleteName},
             {"clipboard", PasteName},
             {"alert-triangle", WarningName},

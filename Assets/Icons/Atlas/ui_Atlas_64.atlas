@@ -1,10 +1,10 @@
 
 ui_Atlas_64.png
-size: 1586, 134
+size: 1718, 134
 format: RGBA8888
 filter: Nearest, Nearest
 repeat: none
-Icons_3DPlane
+Icons3DPlane
   rotate: false
   xy: 2, 68
   size: 64, 64
@@ -30,6 +30,13 @@ Icons_3DCylinder
   xy: 68, 2
   size: 64, 64
   orig: 64, 64
+  offset: 0, 0
+  index: 64
+Icons_3DLandscape
+  rotate: false
+  xy: 1652, 34
+  size: 32, 32
+  orig: 32, 32
   offset: 0, 0
   index: 64
 Icons_3DSphere
@@ -244,6 +251,13 @@ Icons_Plus
   index: 64
 Icons_Recent
   rotate: false
+  xy: 1124, 2
+  size: 64, 64
+  orig: 64, 64
+  offset: 0, 0
+  index: 64
+Icons_RecentProjects
+  rotate: false
   xy: 1124, 68
   size: 64, 64
   orig: 64, 64
@@ -251,84 +265,105 @@ Icons_Recent
   index: 64
 Icons_Redo
   rotate: false
-  xy: 1124, 2
+  xy: 1190, 68
   size: 64, 64
   orig: 64, 64
   offset: 0, 0
   index: 64
 Icons_Rotate
   rotate: false
-  xy: 1190, 68
+  xy: 1190, 2
   size: 64, 64
   orig: 64, 64
   offset: 0, 0
   index: 64
 Icons_Save
   rotate: false
-  xy: 1256, 68
+  xy: 1256, 2
   size: 64, 64
   orig: 64, 64
   offset: 0, 0
   index: 64
 Icons_SaveAll
   rotate: false
-  xy: 1190, 2
+  xy: 1256, 68
   size: 64, 64
   orig: 64, 64
   offset: 0, 0
   index: 64
 Icons_Scale
   rotate: false
-  xy: 1256, 2
+  xy: 1322, 68
   size: 64, 64
   orig: 64, 64
   offset: 0, 0
   index: 64
 Icons_Search
   rotate: false
-  xy: 1322, 68
+  xy: 1322, 2
   size: 64, 64
   orig: 64, 64
   offset: 0, 0
   index: 64
 Icons_Settings
   rotate: false
-  xy: 1322, 2
-  size: 64, 64
-  orig: 64, 64
-  offset: 0, 0
-  index: 64
-Icons_Stop
-  rotate: false
   xy: 1388, 68
   size: 64, 64
   orig: 64, 64
   offset: 0, 0
   index: 64
-Icons_Sun
+Icons_Star
   rotate: false
   xy: 1388, 2
   size: 64, 64
   orig: 64, 64
   offset: 0, 0
   index: 64
-Icons_Terminal
+Icons_Stop
   rotate: false
   xy: 1454, 68
   size: 64, 64
   orig: 64, 64
   offset: 0, 0
   index: 64
-Icons_Undo
+Icons_Sun
   rotate: false
   xy: 1454, 2
   size: 64, 64
   orig: 64, 64
   offset: 0, 0
   index: 64
-Icons_Wrench
+Icons_Terminal
   rotate: false
   xy: 1520, 68
+  size: 64, 64
+  orig: 64, 64
+  offset: 0, 0
+  index: 64
+Icons_Trash
+  rotate: false
+  xy: 1520, 2
+  size: 64, 64
+  orig: 64, 64
+  offset: 0, 0
+  index: 64
+Icons_Undo
+  rotate: false
+  xy: 1586, 68
+  size: 64, 64
+  orig: 64, 64
+  offset: 0, 0
+  index: 64
+Icons_WindLogo
+  rotate: false
+  xy: 1586, 2
+  size: 64, 64
+  orig: 64, 64
+  offset: 0, 0
+  index: 64
+Icons_Wrench
+  rotate: false
+  xy: 1652, 68
   size: 64, 64
   orig: 64, 64
   offset: 0, 0

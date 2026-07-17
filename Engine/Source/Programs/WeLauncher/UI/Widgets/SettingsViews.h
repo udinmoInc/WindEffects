@@ -12,16 +12,10 @@ namespace we::programs::welauncher {
 
 enum class SettingsCategory : int {
     General = 0,
-    Projects,
-    Templates,
     Engine,
-    Appearance,
-    Updates,
-    Cache,
-    Downloads,
-    Plugins,
-    Developer,
-    Experimental,
+    Storage,
+    FileAssociations,
+    About,
     Count
 };
 

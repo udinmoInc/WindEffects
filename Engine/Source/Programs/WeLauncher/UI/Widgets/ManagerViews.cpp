@@ -84,8 +84,8 @@ const char* TemplateTypeIcon(const std::string& templateId) {
     if (templateId == "VR" || templateId == "AR") {
         return Icons::Cube3DName;
     }
-    if (templateId == "Blank") {
-        return Icons::DocumentName;
+    if (templateId == "Blank" || templateId == "Empty") {
+        return Icons::Cube3DName;
     }
     return Icons::LayersName;
 }
@@ -113,11 +113,20 @@ ProjectColumnLayout ProjectColumnLayout::Compute(float totalWidth, float scale) 
     layout.status *= scale;
     layout.more *= scale;
 
-    const float pad = 16.0f * scale;
+    // Columns fill the table band; page host may add outer gutters for full-bleed headers.
     const float fixed = layout.favorite + layout.lastOpened + layout.engine + layout.platform
-        + layout.status + layout.more + pad;
+        + layout.status + layout.more;
     layout.name = std::max(180.0f * scale, totalWidth - fixed);
     return layout;
+}
+
+float TableContentInset(float scale) {
+    return kLauncherContentPadX * scale;
+}
+
+ProjectColumnLayout TableColumnsForGeometry(float geometryWidth, float scale) {
+    const float inset = TableContentInset(scale);
+    return ProjectColumnLayout::Compute(std::max(0.0f, geometryWidth - inset * 2.0f), scale);
 }
 
 // ── ProjectTableHeader ───────────────────────────────────────────────────────
@@ -139,45 +148,62 @@ void ProjectTableHeader::Paint(PaintContext& context) {
     const float s = LScale();
     const auto header = ThemeManager::Get().Resolve(StyleRole::TableHeader);
     context.DrawRect(m_Geometry, header.background);
-    // Bottom rule is provided by ThinDivider in the page layout.
+    context.DrawRect(
+        Rect{ m_Geometry.x, m_Geometry.y + m_Geometry.height - 1.0f * s, m_Geometry.width, 1.0f * s },
+        LColor(ThemeToken::Separator));
 
-    const auto cols = ProjectColumnLayout::Compute(m_Geometry.width, s);
+    const float inset = TableContentInset(s);
+    const auto cols = TableColumnsForGeometry(m_Geometry.width, s);
     const float textSize = header.fontSize > 0.0f ? header.fontSize : LMetric(ThemeToken::TextSizeCaption) * s;
-    float x = m_Geometry.x + LMetric(ThemeToken::Space2) * s;
+    float x = m_Geometry.x + inset;
 
-    auto drawCol = [&](const char* label, float width, bool sorted) {
+    Color divider = LColor(ThemeToken::Separator);
+    divider.a *= 0.85f;
+    auto drawDivider = [&](float atX) {
+        context.DrawRect(
+            Rect{ std::round(atX), m_Geometry.y + 6.0f * s, 1.0f * s, m_Geometry.height - 12.0f * s },
+            divider);
+    };
+
+    auto drawCol = [&](const char* label, float width, bool sorted, bool withDivider) {
         if (width <= 1.0f) {
             return;
         }
+        if (withDivider) {
+            drawDivider(x);
+        }
+        const float textPad = withDivider ? 10.0f * s : 0.0f;
         std::string text = label;
         if (sorted && label[0] != '\0') {
             text += "  ^";
         }
         context.DrawText(
             text,
-            Point{ x, m_Geometry.y + (m_Geometry.height - textSize) * 0.5f },
+            Point{ x + textPad, m_Geometry.y + (m_Geometry.height - textSize) * 0.5f },
             sorted ? LColor(ThemeToken::TextPrimary) : header.foreground,
             textSize,
             sorted);
         x += width;
     };
 
+    // Atlas favorite glyph (Icons_Star → "star"), not the sun/light icon.
+    const float starPx = 16.0f * s;
     IconPainter::DrawIcon(
         context,
-        Icons::StarName,
+        "star",
         Rect{
-            x + (cols.favorite - 12.0f * s) * 0.5f,
-            m_Geometry.y + (m_Geometry.height - 12.0f * s) * 0.5f,
-            12.0f * s,
-            12.0f * s
+            x + (cols.favorite - starPx) * 0.5f,
+            m_Geometry.y + (m_Geometry.height - starPx) * 0.5f,
+            starPx,
+            starPx
         },
-        LColor(ThemeToken::TextMuted));
+        LColor(ThemeToken::IconSecondary));
     x += cols.favorite;
-    drawCol("PROJECT NAME", cols.name, m_SortMode == ProjectSortMode::Name);
-    drawCol("LAST OPENED", cols.lastOpened, m_SortMode == ProjectSortMode::Recent);
-    drawCol("ENGINE VERSION", cols.engine, m_SortMode == ProjectSortMode::Engine);
-    drawCol("PLATFORM", cols.platform, false);
-    drawCol("STATUS", cols.status, false);
+    drawCol("NAME", cols.name, m_SortMode == ProjectSortMode::Name, true);
+    drawCol("MODIFIED", cols.lastOpened, m_SortMode == ProjectSortMode::Recent, true);
+    drawCol("EDITOR VERSION", cols.engine, m_SortMode == ProjectSortMode::Engine, true);
+    drawCol("PLATFORM", cols.platform, false, true);
+    drawCol("STATUS", cols.status, false, true);
 }
 
 void ProjectTableHeader::OnMouseDown(const MouseEvent& event) {
@@ -196,8 +222,9 @@ void ProjectTableHeader::OnMouseUp(const MouseEvent& event) {
         return;
     }
     const float s = LScale();
-    const auto cols = ProjectColumnLayout::Compute(m_Geometry.width, s);
-    float x = m_Geometry.x + LMetric(ThemeToken::Space2) * s;
+    const float inset = TableContentInset(s);
+    const auto cols = TableColumnsForGeometry(m_Geometry.width, s);
+    float x = m_Geometry.x + inset;
     const float local = event.position.x - x;
     float cursor = cols.favorite;
     if (local < cursor + cols.name) {
@@ -243,8 +270,10 @@ void ProjectTableRow::Arrange(const Rect& allottedRect) {
 Rect ProjectTableRow::FavoriteRect() const {
     const float s = LScale();
     const float btn = 22.0f * s;
+    const float inset = TableContentInset(s);
+    const auto cols = TableColumnsForGeometry(m_Geometry.width, s);
     return Rect{
-        m_Geometry.x + LMetric(ThemeToken::Space2) * s,
+        m_Geometry.x + inset + (cols.favorite - btn) * 0.5f,
         m_Geometry.y + (m_Geometry.height - btn) * 0.5f,
         btn,
         btn
@@ -254,8 +283,11 @@ Rect ProjectTableRow::FavoriteRect() const {
 Rect ProjectTableRow::MoreRect() const {
     const float s = LScale();
     const float btn = 22.0f * s;
+    const float inset = TableContentInset(s);
+    const auto cols = TableColumnsForGeometry(m_Geometry.width, s);
     return Rect{
-        m_Geometry.x + m_Geometry.width - LMetric(ThemeToken::Space2) * s - btn,
+        m_Geometry.x + inset + cols.favorite + cols.name + cols.lastOpened + cols.engine
+            + cols.platform + cols.status + (cols.more - btn) * 0.5f,
         m_Geometry.y + (m_Geometry.height - btn) * 0.5f,
         btn,
         btn
@@ -277,15 +309,13 @@ ProjectTableRow::HitZone ProjectTableRow::HitTest(const Point& p) const {
 
 void ProjectTableRow::Paint(PaintContext& context) {
     const float s = LScale();
-    const float radius = LMetric(ThemeToken::CornerRadiusSmall) * s;
+    const float radius = 0.0f;
 
     ControlChrome::InteractionState rowState{ m_HoverAnim, 0.0f, m_Selected, m_Focused, false };
     ControlChrome::PaintListRow(context, m_Geometry, rowState);
-    context.DrawRect(
-        Rect{ m_Geometry.x, m_Geometry.y + m_Geometry.height - 1.0f * s, m_Geometry.width, 1.0f * s },
-        LColor(ThemeToken::Separator));
 
-    const auto cols = ProjectColumnLayout::Compute(m_Geometry.width, s);
+    const auto cols = TableColumnsForGeometry(m_Geometry.width, s);
+    const float inset = TableContentInset(s);
     const float textSize = LMetric(ThemeToken::TextSizeBody) * s;
     const float metaSize = LMetric(ThemeToken::TextSizeCaption) * s;
     const float metaY = m_Geometry.y + (m_Geometry.height - metaSize) * 0.5f;
@@ -296,32 +326,33 @@ void ProjectTableRow::Paint(PaintContext& context) {
     PaintIconButton(
         context,
         FavoriteRect(),
-        Icons::StarName,
+        "star",
         m_HoverZone == HitZone::Favorite,
         m_Favorite,
         radius);
 
-    float x = m_Geometry.x + LMetric(ThemeToken::Space2) * s + cols.favorite;
+    float x = m_Geometry.x + inset + cols.favorite;
+    const float colPad = 10.0f * s;
 
     const std::string displayName = m_Summary.descriptor.displayName.empty()
         ? m_Summary.descriptor.projectName
         : m_Summary.descriptor.displayName;
     context.DrawText(
-        Ellipsize(displayName, cols.name - 8.0f * s, textSize),
-        Point{ x, nameTop },
+        Ellipsize(displayName, cols.name - colPad - 8.0f * s, textSize),
+        Point{ x + colPad, nameTop },
         LColor(ThemeToken::TextPrimary),
         textSize,
         true);
     context.DrawText(
-        Ellipsize(EllipsizePath(m_Summary.projectRoot, 72), cols.name - 8.0f * s, metaSize),
-        Point{ x, nameTop + textSize + nameGap },
+        Ellipsize(EllipsizePath(m_Summary.projectRoot, 72), cols.name - colPad - 8.0f * s, metaSize),
+        Point{ x + colPad, nameTop + textSize + nameGap },
         LColor(ThemeToken::TextMuted),
         metaSize);
     x += cols.name;
 
     context.DrawText(
         FormatRelativeTime(m_Summary.descriptor.lastOpenedUtc),
-        Point{ x, metaY },
+        Point{ x + colPad, metaY },
         LColor(ThemeToken::TextSecondary),
         metaSize);
     x += cols.lastOpened;
@@ -329,16 +360,16 @@ void ProjectTableRow::Paint(PaintContext& context) {
     context.DrawText(
         Ellipsize(
             m_Summary.descriptor.engineVersion.empty() ? "—" : m_Summary.descriptor.engineVersion,
-            cols.engine - 4.0f * s,
+            cols.engine - colPad - 4.0f * s,
             metaSize),
-        Point{ x, metaY },
+        Point{ x + colPad, metaY },
         LColor(ThemeToken::TextSecondary),
         metaSize);
     x += cols.engine;
 
     context.DrawText(
-        Ellipsize(m_Summary.platforms.empty() ? "—" : m_Summary.platforms, cols.platform - 4.0f * s, metaSize),
-        Point{ x, metaY },
+        Ellipsize(m_Summary.platforms.empty() ? "—" : m_Summary.platforms, cols.platform - colPad - 4.0f * s, metaSize),
+        Point{ x + colPad, metaY },
         LColor(ThemeToken::TextSecondary),
         metaSize);
     x += cols.platform;
@@ -355,12 +386,12 @@ void ProjectTableRow::Paint(PaintContext& context) {
         }
         const float d = 6.0f * s;
         context.DrawRoundedRect(
-            Rect{ x, m_Geometry.y + (m_Geometry.height - d) * 0.5f, d, d },
+            Rect{ x + colPad, m_Geometry.y + (m_Geometry.height - d) * 0.5f, d, d },
             statusColor,
             d * 0.5f);
         context.DrawText(
-            Ellipsize(status, cols.status - 14.0f * s, metaSize),
-            Point{ x + 10.0f * s, metaY },
+            Ellipsize(status, cols.status - colPad - 14.0f * s, metaSize),
+            Point{ x + colPad + 10.0f * s, metaY },
             LColor(ThemeToken::TextSecondary),
             metaSize);
     }
@@ -703,6 +734,63 @@ void EngineInstallRow::Tick(float deltaTime) {
     m_HoverAnim = Animator::Damp(m_HoverAnim, m_HoverZone != HitZone::None && !m_Selected ? 1.0f : 0.0f, damp);
     Widget::Tick(deltaTime);
     InvalidateUI();
+}
+
+// ── SimpleColumnHeader ───────────────────────────────────────────────────────
+
+SimpleColumnHeader::SimpleColumnHeader(std::vector<std::string> columns)
+    : m_Columns(std::move(columns)) {
+}
+
+Size SimpleColumnHeader::Measure(const Size& availableSize) {
+    const float s = LScale();
+    m_DesiredSize = Size{
+        availableSize.width > 0.0f ? availableSize.width : 640.0f * s,
+        kHeight * s
+    };
+    return m_DesiredSize;
+}
+
+void SimpleColumnHeader::Arrange(const Rect& allottedRect) {
+    m_Geometry = allottedRect;
+}
+
+void SimpleColumnHeader::Paint(PaintContext& context) {
+    const float s = LScale();
+    const auto header = ThemeManager::Get().Resolve(StyleRole::TableHeader);
+    context.DrawRect(m_Geometry, header.background);
+    context.DrawRect(
+        Rect{ m_Geometry.x, m_Geometry.y + m_Geometry.height - 1.0f * s, m_Geometry.width, 1.0f * s },
+        LColor(ThemeToken::Separator));
+
+    if (m_Columns.empty()) {
+        return;
+    }
+
+    const float inset = TableContentInset(s);
+    const float textSize = header.fontSize > 0.0f ? header.fontSize : LMetric(ThemeToken::TextSizeCaption) * s;
+    const float band = std::max(0.0f, m_Geometry.width - inset * 2.0f);
+    const std::size_t count = m_Columns.size();
+    const float colW = band / static_cast<float>(count);
+    float x = m_Geometry.x + inset;
+
+    Color divider = LColor(ThemeToken::Separator);
+    divider.a *= 0.85f;
+
+    for (std::size_t i = 0; i < count; ++i) {
+        if (i > 0) {
+            context.DrawRect(
+                Rect{ std::round(x), m_Geometry.y + 6.0f * s, 1.0f * s, m_Geometry.height - 12.0f * s },
+                divider);
+        }
+        const float textPad = i > 0 ? 10.0f * s : 0.0f;
+        context.DrawText(
+            m_Columns[i],
+            Point{ x + textPad, m_Geometry.y + (m_Geometry.height - textSize) * 0.5f },
+            header.foreground,
+            textSize);
+        x += colW;
+    }
 }
 
 // ── LibraryPackageRow ────────────────────────────────────────────────────────

@@ -87,26 +87,13 @@ struct ProjectTemplateInfo {
 struct LauncherSettings {
     std::string defaultProjectsRoot;
     std::string selectedEngineRoot;
+    std::string engineInstallDirectory;
     std::string lastBuildConfig = "Development";
     std::string defaultTemplateId = "Blank";
-    std::string theme = "Graphite Dark";
-    std::string language = "English";
-    std::string accentColor = "#5B8DEF";
-    std::string iconStyle = "Outline";
-    std::string rhiBackend = "Vulkan";
-    std::string loggingLevel = "Info";
-    float uiScale = 1.0f;
-    float fontSize = 13.0f;
-    bool autoSave = true;
-    bool checkUpdatesOnStartup = true;
-    bool developerMode = false;
-    bool gpuValidation = false;
-    bool renderGraphDebug = false;
-    bool ecsDebug = false;
-    bool crashDumps = true;
-    bool showExperimental = false;
-    bool telemetry = false;
-    bool downloadOverMetered = false;
+    int recentProjectsLimit = 20; // 0 = unlimited
+    bool openLastProjectOnStart = false;
 };
+
+inline constexpr const char* kLauncherVersion = "1.0.0";
 
 } // namespace we::programs::welauncher

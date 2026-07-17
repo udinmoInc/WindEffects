@@ -1,6 +1,6 @@
 
 ui_Atlas_48.png
-size: 1202, 102
+size: 1302, 102
 format: RGBA8888
 filter: Nearest, Nearest
 repeat: none
@@ -244,6 +244,13 @@ Icons_Plus
   index: 48
 Icons_Recent
   rotate: false
+  xy: 852, 2
+  size: 48, 48
+  orig: 48, 48
+  offset: 0, 0
+  index: 48
+Icons_RecentProjects
+  rotate: false
   xy: 852, 52
   size: 48, 48
   orig: 48, 48
@@ -251,84 +258,105 @@ Icons_Recent
   index: 48
 Icons_Redo
   rotate: false
-  xy: 852, 2
+  xy: 902, 52
   size: 48, 48
   orig: 48, 48
   offset: 0, 0
   index: 48
 Icons_Rotate
   rotate: false
-  xy: 902, 52
+  xy: 902, 2
   size: 48, 48
   orig: 48, 48
   offset: 0, 0
   index: 48
 Icons_Save
   rotate: false
-  xy: 952, 52
+  xy: 952, 2
   size: 48, 48
   orig: 48, 48
   offset: 0, 0
   index: 48
 Icons_SaveAll
   rotate: false
-  xy: 902, 2
+  xy: 952, 52
   size: 48, 48
   orig: 48, 48
   offset: 0, 0
   index: 48
 Icons_Scale
   rotate: false
-  xy: 952, 2
+  xy: 1002, 52
   size: 48, 48
   orig: 48, 48
   offset: 0, 0
   index: 48
 Icons_Search
   rotate: false
-  xy: 1002, 52
+  xy: 1002, 2
   size: 48, 48
   orig: 48, 48
   offset: 0, 0
   index: 48
 Icons_Settings
   rotate: false
-  xy: 1002, 2
-  size: 48, 48
-  orig: 48, 48
-  offset: 0, 0
-  index: 48
-Icons_Stop
-  rotate: false
   xy: 1052, 52
   size: 48, 48
   orig: 48, 48
   offset: 0, 0
   index: 48
-Icons_Sun
+Icons_Star
   rotate: false
   xy: 1052, 2
   size: 48, 48
   orig: 48, 48
   offset: 0, 0
   index: 48
-Icons_Terminal
+Icons_Stop
   rotate: false
   xy: 1102, 52
   size: 48, 48
   orig: 48, 48
   offset: 0, 0
   index: 48
-Icons_Undo
+Icons_Sun
   rotate: false
   xy: 1102, 2
   size: 48, 48
   orig: 48, 48
   offset: 0, 0
   index: 48
-Icons_Wrench
+Icons_Terminal
   rotate: false
   xy: 1152, 52
+  size: 48, 48
+  orig: 48, 48
+  offset: 0, 0
+  index: 48
+Icons_Trash
+  rotate: false
+  xy: 1152, 2
+  size: 48, 48
+  orig: 48, 48
+  offset: 0, 0
+  index: 48
+Icons_Undo
+  rotate: false
+  xy: 1202, 52
+  size: 48, 48
+  orig: 48, 48
+  offset: 0, 0
+  index: 48
+Icons_WindLogo
+  rotate: false
+  xy: 1202, 2
+  size: 48, 48
+  orig: 48, 48
+  offset: 0, 0
+  index: 48
+Icons_Wrench
+  rotate: false
+  xy: 1252, 52
   size: 48, 48
   orig: 48, 48
   offset: 0, 0
