@@ -11,11 +11,17 @@
 #include <cctype>
 #include "KindUI/Tokens/DesignToken.h"
 
-using we::runtime::kindui::ColorToken;
-using we::runtime::kindui::MetricToken;
-using we::runtime::kindui::PaddingToken;
+using ::we::runtime::kindui::ColorToken;
+using ::we::runtime::kindui::MetricToken;
+using ::we::runtime::kindui::PaddingToken;
 
-namespace we::runtime::kindui {
+namespace we::editor::toolbar {
+using ::we::runtime::kindui::MouseButton;
+using ::we::runtime::kindui::KeyEventType;
+using ::we::runtime::kindui::IconPainter;
+namespace Icons = ::we::runtime::kindui::Icons;
+namespace IconMetrics = ::we::runtime::kindui::IconMetrics;
+
 namespace {
     using namespace ToolbarButtonChrome;
 
@@ -477,4 +483,4 @@ void ToolSeparator::Paint(PaintContext& context) {
     context.DrawRect(lineRect, ThemeColor(ColorToken::Separator));
 }
 
-} // namespace we::runtime::kindui
+} // namespace we::editor::toolbar

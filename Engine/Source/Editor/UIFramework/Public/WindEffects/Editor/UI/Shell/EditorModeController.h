@@ -6,7 +6,7 @@
 #include <string>
 #include <vector>
 
-namespace we::programs::editor {
+namespace we::editor::shell {
 
 #pragma warning(push)
 #pragma warning(disable: 4251)
@@ -54,4 +54,4 @@ private:
 
 #pragma warning(pop)
 
-} // namespace we::programs::editor
+} // namespace we::editor::shell

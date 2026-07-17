@@ -8,12 +8,11 @@
 #include "KindUI/Core/DPIContext.h"
 #include <algorithm>
 
-using we::runtime::kindui::ColorToken;
-using we::runtime::kindui::MetricToken;
-using we::runtime::kindui::PaddingToken;
+using ::we::runtime::kindui::ColorToken;
+using ::we::runtime::kindui::MetricToken;
+using ::we::runtime::kindui::PaddingToken;
 
-namespace we::runtime::kindui {
-using we::editor::ui::Panel;
+namespace we::editor::menus {
 
 MenuBar::MenuBar()
     : m_Style(WidgetStyle::Panel())
@@ -208,4 +207,4 @@ MenuBar::MenuInfo* MenuBar::GetMenuAtPosition(const Point& pos) {
     return nullptr;
 }
 
-} // namespace we::editor::menus::UI
+} // namespace we::editor::menus

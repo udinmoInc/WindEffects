@@ -9,7 +9,7 @@
 #include <unordered_map>
 #include <vector>
 
-namespace we::editor::ui {
+namespace we::editor::docking {
 
 enum class DockZone {
     Left,
@@ -83,4 +83,4 @@ public:
     virtual void DockPanel(std::string_view panelId, DockZone zone) = 0;
 };
 
-} // namespace we::editor::ui
+} // namespace we::editor::docking

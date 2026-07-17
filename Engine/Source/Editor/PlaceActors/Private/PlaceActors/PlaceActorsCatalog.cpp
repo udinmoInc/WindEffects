@@ -6,6 +6,9 @@
 #include <unordered_map>
 
 namespace we::programs::editor {
+using ::we::editor::toolspanel::EditorToolsRegistry;
+using ::we::editor::toolspanel::EditorToolCategory;
+using ::we::editor::toolspanel::EditorToolAction;
 
 namespace {
 

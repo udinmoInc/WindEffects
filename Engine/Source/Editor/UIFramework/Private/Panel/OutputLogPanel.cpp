@@ -4,8 +4,11 @@
 #include "KindUI/Core/Widgets/DesignSystemControls.h"
 
 namespace we::programs::editor {
-using namespace we::runtime::kindui;
-using namespace we::editor::ui;
+using namespace ::we::runtime::kindui;
+using ::we::editor::panels::Panel;
+using ::we::editor::panels::PanelBuilder;
+using ::we::editor::panels::OutputLogWidget;
+using ::we::editor::docking::DockZone;
 
 std::shared_ptr<Panel> CreateOutputLogPanel() {
     auto outputWidget = std::make_shared<OutputLogWidget>();

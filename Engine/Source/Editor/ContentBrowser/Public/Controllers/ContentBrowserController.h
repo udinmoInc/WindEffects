@@ -4,7 +4,7 @@
 #include <memory>
 #include <algorithm>
 
-namespace we::runtime::kindui {
+namespace we::editor::contentbrowser {
 
 class ContentBrowserController {
 public:
@@ -91,4 +91,4 @@ private:
     std::shared_ptr<ContentBrowserModel> m_Model;
 };
 
-} // namespace we::editor::contentbrowser::UI
+} // namespace we::editor::contentbrowser

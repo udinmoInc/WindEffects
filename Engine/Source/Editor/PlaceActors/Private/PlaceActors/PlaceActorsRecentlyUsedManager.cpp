@@ -5,6 +5,7 @@
 #include "WindEffects/Editor/UI/Shell/EditorToolsRegistry.h"
 
 namespace we::programs::editor {
+using ::we::editor::toolspanel::EditorToolsRegistry;
 
 PlaceActorsRecentlyUsedManager& PlaceActorsRecentlyUsedManager::Get() {
     static PlaceActorsRecentlyUsedManager instance;

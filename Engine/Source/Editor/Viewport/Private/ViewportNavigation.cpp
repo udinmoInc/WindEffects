@@ -5,11 +5,19 @@
 
 #include <algorithm>
 
-namespace we::runtime::kindui {
+namespace we::editor::viewport {
+using ::we::runtime::kindui::MouseButton;
+using ::we::runtime::kindui::KeyEventType;
+using ::we::runtime::kindui::IconPainter;
+namespace Icons = ::we::runtime::kindui::Icons;
+namespace IconMetrics = ::we::runtime::kindui::IconMetrics;
+
+using ::we::runtime::kindui::MouseButton;
+using ::we::runtime::kindui::KeyEventType;
 
 namespace {
 
-we::runtime::engine::EditorCameraNavigationSettings ToCameraSettings(const we::programs::editor::ViewportNavigationSettings& settings) {
+we::runtime::engine::EditorCameraNavigationSettings ToCameraSettings(const ::we::editor::viewport::ViewportNavigationSettings& settings) {
     we::runtime::engine::EditorCameraNavigationSettings result{};
     result.mouseSensitivity = settings.mouseSensitivity;
     result.cameraAcceleration = settings.cameraAcceleration;
@@ -30,7 +38,7 @@ void ApplyViewportNavigationSettings(
         return;
     }
 
-    auto& store = we::programs::editor::ViewportNavigationSettingsStore::Get();
+    auto& store = ::we::editor::viewport::ViewportNavigationSettingsStore::Get();
     store.EnsureLoaded();
     camera->SetNavigationSettings(ToCameraSettings(store.GetSettings()));
     camera->SetCameraSpeed(store.GetSettings().defaultCameraSpeed);
@@ -48,7 +56,7 @@ bool ViewportNavigationController::IsPointerInsideViewport(const Point& position
 }
 
 glm::vec3 ViewportNavigationController::ResolveOrbitPivot() const {
-    auto& store = we::programs::editor::ViewportNavigationSettingsStore::Get();
+    auto& store = ::we::editor::viewport::ViewportNavigationSettingsStore::Get();
     store.EnsureLoaded();
 
     if (store.GetSettings().orbitAroundSelection && m_Scene) {
@@ -294,7 +302,7 @@ void ViewportNavigationController::OnKeyDown(const KeyEvent& event) {
         return;
     }
 
-    auto& store = we::programs::editor::ViewportNavigationSettingsStore::Get();
+    auto& store = ::we::editor::viewport::ViewportNavigationSettingsStore::Get();
     store.EnsureLoaded();
 
     if (event.key == we::platform::KeyCode::F && store.GetSettings().focusOnSelection && m_Scene) {
@@ -331,9 +339,9 @@ void ViewportNavigationController::PersistCameraSpeed() const {
         return;
     }
 
-    auto& store = we::programs::editor::ViewportNavigationSettingsStore::Get();
+    auto& store = ::we::editor::viewport::ViewportNavigationSettingsStore::Get();
     store.GetMutableSettings().defaultCameraSpeed = m_Camera->GetCameraSpeed();
     store.Save();
 }
 
-} // namespace we::runtime::kindui
+} // namespace we::editor::viewport

@@ -56,7 +56,10 @@ namespace we::programs::editor {
 namespace UI = we::runtime::kindui;
 
 using namespace we::runtime::kindui;
-using namespace we::editor::ui;
+using namespace we::runtime::kindui;
+using ::we::editor::panels::Panel;
+using ::we::editor::panels::PanelBuilder;
+using ::we::editor::docking::DockZone;
 using namespace we::runtime::renderer;
 using namespace we::runtime::scene;
 using namespace we::runtime::engine;
@@ -127,7 +130,7 @@ Editor::Editor(we::platform::WindowId window) : m_Window(window) {
     HE_INFO("[Startup] Stage 6/6: Widget tree and layout...");
     UpdateUiScaleFromWindow();
 
-    m_UIContext = std::make_unique<we::editor::ui::EditorApplicationContext>();
+    m_UIContext = std::make_unique<::we::editor::services::EditorApplicationContext>();
     m_UIContext->Initialize(we::runtime::kindui::DPIContext::GetScale());
 
     const auto& extensionPanels = m_UIContext->GetExtensionRegistry().GetPanels();
@@ -137,7 +140,7 @@ Editor::Editor(we::platform::WindowId window) : m_Window(window) {
     }
 
     try {
-        we::runtime::kindui::EditorShellDependencies shellDeps;
+        we::programs::editor::EditorShellDependencies shellDeps;
         shellDeps.window = m_Window;
         shellDeps.renderer = m_Renderer.get();
         shellDeps.scene = m_Scene;
@@ -149,11 +152,11 @@ Editor::Editor(we::platform::WindowId window) : m_Window(window) {
         shellDeps.onViewportCreated = [this](std::shared_ptr<we::runtime::kindui::Widget>& viewportWidget) {
             m_ViewportWidget = viewportWidget;
         };
-        shellDeps.onLayoutBuilt = [this](const we::editor::ui::DockLayoutBuildResult&) {
+        shellDeps.onLayoutBuilt = [this](const ::we::editor::shell::DockLayoutBuildResult&) {
             // Title bar reference retained for window hit testing.
         };
 
-        const auto shellResult = we::runtime::kindui::EditorShellBuilder::Build(*m_UIContext, shellDeps);
+        const auto shellResult = we::programs::editor::EditorShellBuilder::Build(*m_UIContext, shellDeps);
         m_RootWidget = shellResult.rootWidget;
         m_OverlayHost = shellResult.overlayHost;
         m_TitleBar = shellResult.titleBar;
@@ -162,7 +165,7 @@ Editor::Editor(we::platform::WindowId window) : m_Window(window) {
         m_WindowHitTestData.titleBar = m_TitleBar;
         we::platform::Platform::Get().SetWindowHitTest(
             m_Window,
-            we::editor::mainframe::EditorWindowHitTest,
+            ::we::editor::mainframe::EditorWindowHitTest,
             &m_WindowHitTestData);
     } catch (const std::exception& e) {
         HE_ERROR("[Startup] Failed to build editor shell: " + std::string(e.what()));
@@ -312,7 +315,7 @@ void Editor::CreateNewLevel() {
     if (m_Scene->IsEmpty()) {
         we::runtime::world::environment::EnvironmentSystem::Get().EnsureDefaultEnvironment();
     }
-    we::editor::environment::TickEditor();
+    ::we::editor::environment::TickEditor();
 }
 
 void Editor::MaybeShowFirstRunAgreement() {
@@ -342,7 +345,7 @@ void Editor::MainLoop() {
     we::runtime::kindui::UIRepaintGate::Request();
 
     while (m_Running) {
-        we::editor::ui::EditorPerfStats::Get().BeginFrame();
+        ::we::editor::services::EditorPerfStats::Get().BeginFrame();
 
         if (!platform.PollEvents()) {
             m_Running = false;
@@ -450,7 +453,7 @@ void Editor::MainLoop() {
             } else if (const auto* key = std::get_if<we::platform::KeyEvent>(&event)) {
 #if WE_DEBUG_UI
                 if (key->pressed && key->key == we::platform::KeyCode::F9) {
-                    we::editor::ui::RenderInvestigationModalHost::Toggle();
+                    ::we::editor::panels::RenderInvestigationModalHost::Toggle();
                 }
 #endif
                 UI::KeyEvent keyEvent{};
@@ -501,12 +504,12 @@ void Editor::MainLoop() {
             env.Tick(dt);
             env.SyncFromScene(m_Camera->GetPosition());
         }
-        we::editor::environment::TickEditor();
+        ::we::editor::environment::TickEditor();
         UpdateUiScaleFromWindow();
-        we::editor::ui::EditorPerfStats::Get().Mark("tick");
+        ::we::editor::services::EditorPerfStats::Get().Mark("tick");
 
         SyncViewportFramebufferFromLayout();
-        we::editor::ui::EditorPerfStats::Get().Mark("layout");
+        ::we::editor::services::EditorPerfStats::Get().Mark("layout");
 
         we::runtime::core::FrameCounter::Advance();
 
@@ -557,7 +560,7 @@ void Editor::MainLoop() {
                 m_OverlayRenderer->SetTargetExtent(
                     m_Renderer->GetSwapchainWidth(), m_Renderer->GetSwapchainHeight());
                 m_OverlayRenderer->RenderUI(m_RootWidget, m_Renderer->GetCurrentFrameIndex());
-                we::editor::ui::EditorPerfStats::Get().Mark("ui");
+                ::we::editor::services::EditorPerfStats::Get().Mark("ui");
 
                 if (m_ViewportWidget) {
                     if (auto vp = std::dynamic_pointer_cast<ViewportWidget>(m_ViewportWidget)) {
@@ -594,17 +597,17 @@ void Editor::MainLoop() {
             }
 
             m_Renderer->RenderScene();
-            we::editor::ui::EditorPerfStats::Get().Mark("scene");
+            ::we::editor::services::EditorPerfStats::Get().Mark("scene");
 
             m_Renderer->SubmitAndPresent();
-            we::editor::ui::EditorPerfStats::Get().Mark("present");
+            ::we::editor::services::EditorPerfStats::Get().Mark("present");
             m_Renderer->ClearOverlayRecorder();
 
             {
                 const auto& stats = m_OverlayRenderer
                     ? m_OverlayRenderer->GetFrameStats()
                     : we::runtime::kindui::UIFrameStats{};
-                we::editor::ui::EditorPerfStats::Get().EndFrame(stats.vertices, stats.batches);
+                ::we::editor::services::EditorPerfStats::Get().EndFrame(stats.vertices, stats.batches);
             }
 
             if (firstFrame) {
@@ -616,9 +619,9 @@ void Editor::MainLoop() {
             }
         } else if (!m_Renderer) {
             HE_ERROR("[Render] Renderer is null in main loop.");
-            we::editor::ui::EditorPerfStats::Get().EndFrame(0, 0);
+            ::we::editor::services::EditorPerfStats::Get().EndFrame(0, 0);
         } else {
-            we::editor::ui::EditorPerfStats::Get().EndFrame(0, 0);
+            ::we::editor::services::EditorPerfStats::Get().EndFrame(0, 0);
         }
     }
 }
@@ -650,7 +653,7 @@ void Editor::Shutdown() {
 
     m_Scene.reset();
     m_Camera.reset();
-    we::editor::grid::EditorGridRenderer::Get().Shutdown();
+    ::we::editor::grid::EditorGridRenderer::Get().Shutdown();
     if (m_Renderer) {
         m_Renderer->Shutdown();
         m_Renderer.reset();

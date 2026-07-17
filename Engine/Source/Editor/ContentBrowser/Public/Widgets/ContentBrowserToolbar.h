@@ -1,6 +1,7 @@
 #pragma once
 
 #include "KindUI/Core/Widget.h"
+#include "KindUI/Core/Style.h"
 #include "KindUI/Core/Widgets/DesignSystemControls.h"
 #include "KindUI/Core/Widgets/ToolbarIconButton.h"
 #include "KindUI/Core/Widgets/ToolbarNavigationButton.h"
@@ -12,10 +13,21 @@
 #include <string>
 #include <vector>
 
-namespace we::runtime::kindui {
-using we::editor::ui::Panel;
+namespace we::editor::widgets { class SearchBox; }
 
-class SearchBox;
+namespace we::editor::contentbrowser {
+using ::we::runtime::kindui::Widget;
+using ::we::runtime::kindui::Size;
+using ::we::runtime::kindui::Rect;
+using ::we::runtime::kindui::Point;
+using ::we::runtime::kindui::Color;
+using ::we::runtime::kindui::PaintContext;
+using ::we::runtime::kindui::MouseEvent;
+using ::we::runtime::kindui::WidgetStyle;
+using ::we::runtime::kindui::PrimaryButton;
+using ::we::runtime::kindui::SecondaryButton;
+using ::we::runtime::kindui::ToolbarNavigationButton;
+
 class Breadcrumb;
 
 // Square icon toggle for view modes (legacy, kept for compatibility).
@@ -92,7 +104,7 @@ public:
     void OnMouseUp(const MouseEvent& event) override;
     void OnMouseMove(const MouseEvent& event) override;
 
-    std::shared_ptr<SearchBox> GetSearchBox() const { return m_SearchBox; }
+    std::shared_ptr<::we::editor::widgets::SearchBox> GetSearchBox() const { return m_SearchBox; }
     std::shared_ptr<Breadcrumb> GetBreadcrumb() const { return m_Breadcrumb; }
 
     void SetOnFilterClicked(std::function<void()> callback);
@@ -113,7 +125,7 @@ private:
 
     ToolbarMode m_Mode;
     std::shared_ptr<Breadcrumb> m_Breadcrumb;
-    std::shared_ptr<SearchBox> m_SearchBox;
+    std::shared_ptr<::we::editor::widgets::SearchBox> m_SearchBox;
     
     // New reusable components
     std::shared_ptr<PrimaryButton> m_CreateBtn;
@@ -132,4 +144,4 @@ private:
     std::shared_ptr<ToolbarLabeledButton> m_SaveBtn;
 };
 
-} // namespace we::runtime::kindui
+} // namespace we::editor::contentbrowser

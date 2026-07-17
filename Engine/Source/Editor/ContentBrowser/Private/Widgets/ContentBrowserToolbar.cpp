@@ -14,12 +14,23 @@
 #include "KindUI/Core/Animator.h"
 #include <algorithm>
 
-using we::runtime::kindui::ColorToken;
-using we::runtime::kindui::MetricToken;
-using we::runtime::kindui::PaddingToken;
+using ::we::runtime::kindui::ColorToken;
+using ::we::runtime::kindui::MetricToken;
+using ::we::runtime::kindui::PaddingToken;
 
-namespace we::runtime::kindui {
-using we::editor::ui::Panel;
+namespace we::editor::contentbrowser {
+using ::we::runtime::kindui::MouseButton;
+using ::we::runtime::kindui::KeyEventType;
+using ::we::runtime::kindui::IconPainter;
+namespace Icons = ::we::runtime::kindui::Icons;
+namespace IconMetrics = ::we::runtime::kindui::IconMetrics;
+
+using ::we::runtime::kindui::MakePrimaryAction;
+using ::we::runtime::kindui::MakeSecondaryAction;
+using ::we::runtime::kindui::Animator;
+using ::we::runtime::kindui::IconColorRole;
+using ::we::editor::widgets::SearchBox;
+namespace PanelChrome = ::we::editor::panels::PanelChrome;
 
 namespace {
 
@@ -391,4 +402,4 @@ void ContentBrowserToolbarControls::SetOnFolderClicked(std::function<void()> cal
     }
 }
 
-} // namespace we::runtime::kindui
+} // namespace we::editor::contentbrowser

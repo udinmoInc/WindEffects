@@ -9,12 +9,17 @@
 #include <cmath>
 #include <algorithm>
 
-using we::runtime::kindui::ColorToken;
-using we::runtime::kindui::MetricToken;
-using we::runtime::kindui::PaddingToken;
+using ::we::runtime::kindui::ColorToken;
+using ::we::runtime::kindui::MetricToken;
+using ::we::runtime::kindui::PaddingToken;
 
-namespace we::runtime::kindui {
-using we::editor::ui::Panel;
+namespace we::editor::property {
+using ::we::runtime::kindui::MouseButton;
+using ::we::runtime::kindui::KeyEventType;
+using ::we::runtime::kindui::IconPainter;
+namespace Icons = ::we::runtime::kindui::Icons;
+namespace IconMetrics = ::we::runtime::kindui::IconMetrics;
+
 
 PropertyEditor::PropertyEditor()
     : m_Style(WidgetStyle::Panel())
@@ -464,4 +469,4 @@ void ColorPropertyWidget::OnMouseDown(const MouseEvent& event) {
     // TODO: Implement color picker
 }
 
-} // namespace we::editor::propertyeditor::UI
+} // namespace we::editor::propertyeditor

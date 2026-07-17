@@ -2,6 +2,8 @@
 #include "EditorCamera.h"
 #include "Scene/Scene.h"
 #include "KindUI/Core/PaintContext.h"
+#include "KindUI/Input/InputEvents.h"
+#include "KindUI/Theming/ThemeAccess.h"
 #include "KindUI/Tokens/DesignToken.h"
 #include "KindUI/Theming/StyleRole.h"
 #include "Core/Logger.h"
@@ -9,11 +11,13 @@
 #include <iomanip>
 #include <sstream>
 
-using we::runtime::kindui::ColorToken;
-using we::runtime::kindui::MetricToken;
-using we::runtime::kindui::PaddingToken;
+using ::we::runtime::kindui::ColorToken;
+using ::we::runtime::kindui::MetricToken;
+using ::we::runtime::kindui::PaddingToken;
 
-namespace we::runtime::kindui {
+namespace we::editor::viewport {
+using ::we::runtime::kindui::Color;
+using ::we::runtime::kindui::MouseButton;
 
 namespace {
 constexpr float kHeaderHeight = 22.0f;
@@ -165,4 +169,4 @@ bool GraphicsDebuggerPopup::ShowsPointerCursor(const Point& position) const {
     return m_HeaderRect.Contains(position);
 }
 
-} // namespace we::runtime::kindui
+} // namespace we::editor::viewport

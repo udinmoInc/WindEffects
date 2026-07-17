@@ -7,7 +7,7 @@
 #include <nlohmann/json.h>
 #endif
 
-namespace we::editor::ui {
+namespace we::editor::docking {
 namespace {
 
 #if WE_HAS_NLOHMANN_JSON
@@ -394,4 +394,4 @@ WorkspaceLayout CreateDefaultEditorWorkspaceLayout() {
     return layout;
 }
 
-} // namespace we::editor::ui
+} // namespace we::editor::docking

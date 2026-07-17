@@ -8,12 +8,14 @@
 #include <memory>
 #include <vector>
 
-namespace we::editor::ui {
-using we::runtime::kindui::Widget;
-using we::runtime::kindui::Size;
-using we::runtime::kindui::Rect;
-using we::runtime::kindui::PaintContext;
-using we::runtime::kindui::MouseEvent;
+namespace we::editor::docking {
+using ::we::runtime::kindui::Widget;
+using ::we::runtime::kindui::Size;
+using ::we::runtime::kindui::Rect;
+using ::we::runtime::kindui::PaintContext;
+using ::we::runtime::kindui::MouseEvent;
+using ::we::runtime::kindui::Point;
+using ::we::editor::panels::Panel;
 
 // A container that manages multiple Panel widgets as tabs
 class UIFRAMEWORK_API DockContainer : public Widget {
@@ -78,4 +80,4 @@ private:
     OnActiveTabChanged m_OnActiveTabChanged;
 };
 
-} // namespace we::editor::ui
+} // namespace we::editor::docking

@@ -10,9 +10,11 @@
 #include <memory>
 #include <string>
 #include <vector>
+#include "KindUI/Input/InputEvents.h"
 
-namespace we::runtime::kindui {
-using we::editor::ui::Panel;
+namespace we::editor::toolspanel {
+using ::we::runtime::kindui::KeyEvent;
+
 class SearchBox;
 }
 
@@ -79,7 +81,7 @@ private:
     ToolsPanelState m_State;
 
     std::string m_SearchText;
-    std::shared_ptr<we::runtime::kindui::SearchBox> m_SearchBox;
+    std::shared_ptr<::we::editor::widgets::SearchBox> m_SearchBox;
     std::shared_ptr<we::runtime::kindui::Widget> m_ModeContentWidget;
     std::string m_ModeContentModeId;
     std::string m_ModeContentSearchText;

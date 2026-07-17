@@ -5,8 +5,18 @@
 #include <functional>
 #include <string>
 #include <vector>
+#include "KindUI/Core/Style.h"
 
-namespace we::runtime::kindui {
+namespace we::editor::outliner {
+using ::we::runtime::kindui::Widget;
+using ::we::runtime::kindui::Size;
+using ::we::runtime::kindui::Rect;
+using ::we::runtime::kindui::Point;
+using ::we::runtime::kindui::Color;
+using ::we::runtime::kindui::PaintContext;
+using ::we::runtime::kindui::MouseEvent;
+using ::we::runtime::kindui::WidgetStyle;
+
 
 class ExplorerFilterMenu : public Widget {
 public:
@@ -44,4 +54,4 @@ private:
     int m_PressedItem = -1;
 };
 
-} // namespace we::runtime::kindui
+} // namespace we::editor::outliner

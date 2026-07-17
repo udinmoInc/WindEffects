@@ -3,11 +3,11 @@
 #include "KindUI/Tokens/DesignToken.h"
 #include "KindUI/Theming/StyleRole.h"
 
-using we::runtime::kindui::ColorToken;
-using we::runtime::kindui::MetricToken;
-using we::runtime::kindui::PaddingToken;
+using ::we::runtime::kindui::ColorToken;
+using ::we::runtime::kindui::MetricToken;
+using ::we::runtime::kindui::PaddingToken;
 
-namespace we::runtime::kindui {
+namespace we::editor::shell {
 
 WindowShell::WindowShell() = default;
 
@@ -59,4 +59,4 @@ void WindowShell::Paint(PaintContext& context) {
     context.DrawLine(Point{ x, bottom }, Point{ right, bottom }, border, 1.0f);
 }
 
-} // namespace we::runtime::kindui
+} // namespace we::editor::shell

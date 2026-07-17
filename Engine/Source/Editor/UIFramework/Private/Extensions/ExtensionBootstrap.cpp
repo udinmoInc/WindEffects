@@ -1,6 +1,6 @@
 #include "WindEffects/Editor/UI/Extensions/ExtensionBootstrap.h"
 
-namespace we::editor::ui {
+namespace we::editor::extensions {
 
 ExtensionBootstrap& ExtensionBootstrap::Instance() {
     static ExtensionBootstrap bootstrap;
@@ -38,6 +38,6 @@ void ExtensionBootstrap::FlushTo(UIExtensionRegistry& registry) {
     m_PendingCommands.clear();
 }
 
-} // namespace we::editor::ui
+} // namespace we::editor::extensions
 
 

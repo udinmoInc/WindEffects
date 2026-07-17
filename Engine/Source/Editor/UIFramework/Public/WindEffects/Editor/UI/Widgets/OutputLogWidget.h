@@ -9,11 +9,11 @@
 #include <string>
 #include <vector>
 
-namespace we::editor::ui {
-using we::runtime::kindui::Widget;
-using we::runtime::kindui::Size;
-using we::runtime::kindui::Rect;
-using we::runtime::kindui::PaintContext;
+namespace we::editor::panels {
+using ::we::runtime::kindui::Widget;
+using ::we::runtime::kindui::Size;
+using ::we::runtime::kindui::Rect;
+using ::we::runtime::kindui::PaintContext;
 
 class UIFRAMEWORK_API OutputLogWidget : public Widget {
 public:
@@ -52,4 +52,4 @@ private:
     static constexpr size_t kMaxStoredRecords = 5000;
 };
 
-} // namespace we::editor::ui
+} // namespace we::editor::panels

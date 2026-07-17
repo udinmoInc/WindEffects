@@ -3,21 +3,21 @@
 #include "WindEffects/Editor/UI/Export.h"
 #include "WindEffects/Editor/UI/Docking/IDockManager.h"
 #include "WindEffects/Editor/UI/Extensions/UIExtensionRegistry.h"
+#include "KindUI/Core/Widget.h"
+#include "KindUI/Layout/Splitter.h"
+#include "WindEffects/Editor/UI/Widgets/Panel.h"
+#include "WindEffects/Editor/UI/Widgets/DockContainer.h"
 
 #include <unordered_map>
 
-namespace we::runtime::kindui {
-class Widget;
-class Splitter;
-}
-namespace we::editor::ui {
-using we::runtime::kindui::Widget;
-using we::runtime::kindui::Splitter;
-class Panel;
-class DockContainer;
-}
-
-namespace we::editor::ui {
+namespace we::editor::shell {
+using ::we::runtime::kindui::Widget;
+using ::we::runtime::kindui::Splitter;
+using ::we::editor::panels::Panel;
+using ::we::editor::docking::DockContainer;
+using ::we::editor::docking::WorkspaceLayout;
+using ::we::editor::docking::DockLayoutNode;
+using ::we::editor::extensions::UIExtensionRegistry;
 
 struct DockLayoutBuildResult {
     std::shared_ptr<Widget> root;
@@ -61,4 +61,4 @@ private:
         DockLayoutBuildResult& result);
 };
 
-} // namespace we::editor::ui
+} // namespace we::editor::shell

@@ -8,7 +8,7 @@ namespace we::runtime::renderer {
 class SceneRenderer;
 }
 
-namespace we::programs::editor {
+namespace we::editor::services {
 
 // Editor-only viewport rendering preferences.
 class UIFRAMEWORK_API EditorPreferences {
@@ -22,4 +22,4 @@ private:
     EditorPreferences() = default;
 };
 
-} // namespace we::programs::editor
+} // namespace we::editor::services

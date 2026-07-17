@@ -5,7 +5,7 @@
 #include <functional>
 #include "RHI/Types.h"
 
-namespace we::runtime::kindui {
+namespace we::editor::contentbrowser {
 
 struct ContentItem {
     std::string id;
@@ -53,4 +53,4 @@ public:
     }
 };
 
-} // namespace we::runtime::kindui
+} // namespace we::editor::contentbrowser

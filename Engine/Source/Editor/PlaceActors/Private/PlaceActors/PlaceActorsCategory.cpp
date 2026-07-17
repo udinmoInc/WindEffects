@@ -11,14 +11,20 @@
 #include <algorithm>
 
 namespace we::programs::editor {
+using ::we::runtime::kindui::MouseButton;
+using ::we::runtime::kindui::KeyEventType;
+using ::we::runtime::kindui::IconPainter;
+namespace Icons = ::we::runtime::kindui::Icons;
+namespace IconMetrics = ::we::runtime::kindui::IconMetrics;
 
-using we::runtime::kindui::Color;
-using we::runtime::kindui::PaintContext;
-using we::runtime::kindui::Point;
-using we::runtime::kindui::Rect;
-using we::runtime::kindui::ColorToken;
-using we::runtime::kindui::MetricToken;
-using we::runtime::kindui::PaddingToken;
+
+using ::we::runtime::kindui::Color;
+using ::we::runtime::kindui::PaintContext;
+using ::we::runtime::kindui::Point;
+using ::we::runtime::kindui::Rect;
+using ::we::runtime::kindui::ColorToken;
+using ::we::runtime::kindui::MetricToken;
+using ::we::runtime::kindui::PaddingToken;
 namespace WEIcons = we::runtime::kindui::Icons;
 
 float PlaceActorsCategory::MeasureHeaderHeight(float configuredHeight) {

@@ -6,7 +6,16 @@
 #include <string>
 #include <functional>
 
-namespace we::runtime::kindui {
+namespace we::editor::viewport {
+using ::we::runtime::kindui::Widget;
+using ::we::runtime::kindui::Size;
+using ::we::runtime::kindui::Rect;
+using ::we::runtime::kindui::Point;
+using ::we::runtime::kindui::Color;
+using ::we::runtime::kindui::PaintContext;
+using ::we::runtime::kindui::MouseEvent;
+using ::we::runtime::kindui::WidgetStyle;
+
 
 // Viewport statistics data structure
 struct ViewportStats {
@@ -134,4 +143,4 @@ private:
     float m_Spacing = 4.0f;
 };
 
-} // namespace we::editor::viewport::UI
+} // namespace we::editor::viewport

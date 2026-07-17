@@ -19,19 +19,30 @@
 #include <cctype>
 
 namespace we::programs::editor {
+using ::we::runtime::kindui::MouseButton;
+using ::we::runtime::kindui::KeyEventType;
+using ::we::runtime::kindui::IconPainter;
+namespace Icons = ::we::runtime::kindui::Icons;
+namespace IconMetrics = ::we::runtime::kindui::IconMetrics;
 
-using we::runtime::kindui::Color;
-using we::runtime::kindui::KeyEvent;
-using we::runtime::kindui::MouseButton;
-using we::runtime::kindui::MouseEvent;
-using we::runtime::kindui::PaintContext;
-using we::runtime::kindui::Point;
-using we::runtime::kindui::Rect;
-using we::runtime::kindui::Size;
-using we::runtime::kindui::ColorToken;
-using we::runtime::kindui::MetricToken;
-using we::runtime::kindui::PaddingToken;
-namespace PanelChrome = we::editor::ui::PanelChrome;
+
+using ::we::editor::shell::EditorModeController;
+using ::we::editor::toolspanel::EditorToolsRegistry;
+using ::we::editor::toolspanel::EditorToolMode;
+using ::we::editor::toolspanel::EditorToolCategory;
+using ::we::editor::toolspanel::EditorToolAction;
+
+using ::we::runtime::kindui::Color;
+using ::we::runtime::kindui::KeyEvent;
+using ::we::runtime::kindui::MouseButton;
+using ::we::runtime::kindui::MouseEvent;
+using ::we::runtime::kindui::PaintContext;
+using ::we::runtime::kindui::Point;
+using ::we::runtime::kindui::Rect;
+using ::we::runtime::kindui::Size;
+using ::we::runtime::kindui::ColorToken;
+using ::we::runtime::kindui::MetricToken;
+using ::we::runtime::kindui::PaddingToken;
 
 namespace {
 constexpr float kDragThreshold = 6.0f;
@@ -70,7 +81,7 @@ bool ShortcutMatches(const std::string& toolShortcut, const KeyEvent& event) {
 ToolsPanel::ToolsPanel() {
     m_State.Load();
 
-    m_SearchBox = std::make_shared<we::runtime::kindui::SearchBox>();
+    m_SearchBox = std::make_shared<::we::editor::widgets::SearchBox>();
     m_SearchBox->SetFillWidth(true);
     m_SearchBox->SetPlaceholder("Search Actors...");
     m_SearchBox->SetOnTextChanged([this](const std::string& text) {

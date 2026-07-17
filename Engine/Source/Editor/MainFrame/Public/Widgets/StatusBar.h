@@ -5,8 +5,18 @@
 #include "KindUI/Layout/Flex.h"
 #include <string>
 #include <functional>
+#include "KindUI/Core/Style.h"
 
-namespace we::runtime::kindui {
+namespace we::editor::shell {
+using ::we::runtime::kindui::Widget;
+using ::we::runtime::kindui::Size;
+using ::we::runtime::kindui::Rect;
+using ::we::runtime::kindui::Point;
+using ::we::runtime::kindui::Color;
+using ::we::runtime::kindui::PaintContext;
+using ::we::runtime::kindui::MouseEvent;
+using ::we::runtime::kindui::WidgetStyle;
+using ::we::runtime::kindui::Row;
 
 // Status bar widget for application status information
 class MAINFRAME_API StatusBar : public Row {
@@ -50,4 +60,4 @@ private:
     std::shared_ptr<class ToolButton> m_QualityMenuButton;
 };
 
-} // namespace we::runtime::kindui
+} // namespace we::editor::shell

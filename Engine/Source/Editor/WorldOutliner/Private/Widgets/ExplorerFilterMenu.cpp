@@ -9,11 +9,17 @@
 
 #include <algorithm>
 
-using we::runtime::kindui::ColorToken;
-using we::runtime::kindui::MetricToken;
-using we::runtime::kindui::PaddingToken;
+using ::we::runtime::kindui::ColorToken;
+using ::we::runtime::kindui::MetricToken;
+using ::we::runtime::kindui::PaddingToken;
 
-namespace we::runtime::kindui {
+namespace we::editor::outliner {
+using ::we::runtime::kindui::MouseButton;
+using ::we::runtime::kindui::KeyEventType;
+using ::we::runtime::kindui::IconPainter;
+namespace Icons = ::we::runtime::kindui::Icons;
+namespace IconMetrics = ::we::runtime::kindui::IconMetrics;
+
 
 namespace {
 constexpr float kMenuItemHeight = 26.0f;
@@ -209,4 +215,4 @@ bool ExplorerFilterMenu::ShowsPointerCursor(const Point& position) const {
     return HitMenuItemIndex(position) >= 0;
 }
 
-} // namespace we::runtime::kindui
+} // namespace we::editor::outliner

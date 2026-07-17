@@ -23,6 +23,7 @@
 #include "KindUI/Layout/Flex.h"
 #include "KindUI/Layout/OverlayManager.h"
 #include "WindEffects/Editor/UI/Core/PanelIconResolver.h"
+#include "WindEffects/Editor/UI/Extensions/UIExtensionRegistry.h"
 #include "KindUI/Core/Widget.h"
 #include "KindUI/Core/WidgetContext.h"
 #include "KindUI/Rendering/OverlayRenderer.h"
@@ -39,13 +40,15 @@ using we::runtime::kindui::ColorToken;
 using we::runtime::kindui::MetricToken;
 using we::runtime::kindui::PaddingToken;
 
-namespace we::runtime::kindui {
-using we::editor::ui::DockContainer;
-using we::editor::ui::DockLayoutBuilder;
-using we::editor::ui::DockPanelDescriptor;
-using we::editor::ui::DockZone;
-using we::editor::ui::IEditorApplicationContext;
-using we::editor::ui::Panel;
+namespace we::programs::editor {
+using ::we::editor::docking::DockContainer;
+using ::we::editor::shell::DockLayoutBuilder;
+using ::we::editor::docking::DockPanelDescriptor;
+using ::we::editor::docking::DockZone;
+using ::we::editor::services::IEditorApplicationContext;
+using ::we::editor::panels::Panel;
+using ::we::editor::extensions::PanelRegistration;
+using ::we::editor::services::ResolvePanelTabIconName;
 namespace {
 
 void PropagateWidgetContext(const std::shared_ptr<Widget>& widget, const std::shared_ptr<IWidgetContext>& context) {
@@ -206,7 +209,7 @@ EditorShellResult EditorShellBuilder::Build(
     titleBar->SetContext(widgetContext);
     titleBar->Construct();
 
-    we::programs::editor::EditorModeController::Get().InitializeFromRegistry();
+    ::we::editor::shell::EditorModeController::Get().InitializeFromRegistry();
 
     auto toolbar = std::make_shared<Toolbar>();
     toolbar->SetContext(widgetContext);
@@ -249,7 +252,7 @@ EditorShellResult EditorShellBuilder::Build(
     toolbar->AddTool(Icons::RedoName, "", [](){}, "Redo (Ctrl+Y)");
     toolbar->AddSeparator();
 
-    toolbar->AddWidget(we::editor::environment::CreateEnvironmentToolbarMenu());
+    toolbar->AddWidget(::we::editor::environment::CreateEnvironmentToolbarMenu());
 
     // Transport (centered)
     auto playBtn = toolbar->AddTool(Icons::MediaPlayName, "", [](){}, "Play (Alt+P)", false, ToolbarAlignment::Center);
@@ -325,7 +328,7 @@ EditorShellResult EditorShellBuilder::Build(
     }
 
     if (shellResult.layout.toolsDock) {
-        shellResult.layout.toolsDock->SetVisible(we::programs::editor::EditorModeController::Get().IsDrawerVisible());
+        shellResult.layout.toolsDock->SetVisible(::we::editor::shell::EditorModeController::Get().IsDrawerVisible());
     }
 
     std::shared_ptr<TreeView> worldOutlinerTree = we::programs::editor::GetExplorerTreeView();
@@ -333,7 +336,7 @@ EditorShellResult EditorShellBuilder::Build(
     if (auto detailsPanel = shellResult.layout.panels["Details"]) {
         detailsEditor = std::dynamic_pointer_cast<PropertyEditor>(detailsPanel->GetContent());
     }
-    we::editor::environment::InitializeEditor(
+    ::we::editor::environment::InitializeEditor(
         deps.scene,
         worldOutlinerTree,
         detailsEditor);
@@ -352,7 +355,7 @@ EditorShellResult EditorShellBuilder::Build(
         workspace.RegisterPanel("ViewportNavigation", navPanel->second.factory(), DockZone::Floating);
     }
 
-    workspace.ApplyToolsPanelVisibility(we::programs::editor::EditorModeController::Get().IsDrawerVisible());
+    workspace.ApplyToolsPanelVisibility(::we::editor::shell::EditorModeController::Get().IsDrawerVisible());
 
     auto statusBar = std::make_shared<StatusBar>();
     statusBar->Construct();
@@ -423,4 +426,4 @@ EditorShellResult EditorShellBuilder::Build(
     return shellResult;
 }
 
-} // namespace we::runtime::kindui
+} // namespace we::programs::editor

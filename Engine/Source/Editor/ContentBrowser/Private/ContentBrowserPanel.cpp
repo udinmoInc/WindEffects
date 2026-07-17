@@ -19,21 +19,30 @@
 #include <sstream>
 
 namespace we::programs::editor {
-using namespace we::runtime::kindui;
-using namespace we::editor::ui;
+using ::we::runtime::kindui::MouseButton;
+using ::we::runtime::kindui::KeyEventType;
+using ::we::runtime::kindui::IconPainter;
+namespace Icons = ::we::runtime::kindui::Icons;
+namespace IconMetrics = ::we::runtime::kindui::IconMetrics;
+
+using namespace ::we::runtime::kindui;
+using namespace ::we::runtime::kindui;
+using ::we::editor::panels::Panel;
+using ::we::editor::panels::PanelBuilder;
+using ::we::editor::docking::DockZone;
 
 namespace {
 
-using we::editor::contentbrowser::AssetRecord;
-using we::editor::contentbrowser::ContentAssetRegistry;
-using we::editor::contentbrowser::ContentBrowserService;
-using we::editor::contentbrowser::ContentFilter;
-using we::runtime::kindui::ContentViewMode;
+using ::we::editor::contentbrowser::AssetRecord;
+using ::we::editor::contentbrowser::ContentAssetRegistry;
+using ::we::editor::contentbrowser::ContentBrowserService;
+using ::we::editor::contentbrowser::ContentFilter;
+using ::we::editor::contentbrowser::ContentViewMode;
 
-std::shared_ptr<we::runtime::kindui::TreeNode> MakeSection(const std::string& id, const std::string& label,
+std::shared_ptr<::we::editor::contentbrowser::TreeNode> MakeSection(const std::string& id, const std::string& label,
     const std::string& icon, bool expanded = false)
 {
-    auto node = std::make_shared<we::runtime::kindui::TreeNode>();
+    auto node = std::make_shared<::we::editor::contentbrowser::TreeNode>();
     node->id = id;
     node->label = label;
     node->iconName = icon;
@@ -41,8 +50,8 @@ std::shared_ptr<we::runtime::kindui::TreeNode> MakeSection(const std::string& id
     return node;
 }
 
-std::shared_ptr<we::runtime::kindui::TreeNode> BuildFolderNode(const AssetRecord* folder) {
-    auto node = std::make_shared<we::runtime::kindui::TreeNode>();
+std::shared_ptr<::we::editor::contentbrowser::TreeNode> BuildFolderNode(const AssetRecord* folder) {
+    auto node = std::make_shared<::we::editor::contentbrowser::TreeNode>();
     node->id = folder->id;
     node->label = folder->name;
     node->iconName = we::runtime::kindui::Icons::FolderName;
@@ -54,8 +63,8 @@ std::shared_ptr<we::runtime::kindui::TreeNode> BuildFolderNode(const AssetRecord
     return node;
 }
 
-void RefreshFolderTree(const std::shared_ptr<we::runtime::kindui::TreeView>& tree) {
-    auto root = std::make_shared<we::runtime::kindui::TreeNode>();
+void RefreshFolderTree(const std::shared_ptr<::we::editor::contentbrowser::TreeView>& tree) {
+    auto root = std::make_shared<::we::editor::contentbrowser::TreeNode>();
     root->id = "__content_root__";
     root->label = "Content";
     root->expanded = true;
@@ -74,7 +83,7 @@ void RefreshFolderTree(const std::shared_ptr<we::runtime::kindui::TreeView>& tre
     tree->SetRoot(root);
 }
 
-void UpdateBreadcrumb(const std::shared_ptr<we::runtime::kindui::Breadcrumb>& breadcrumb, const std::string& virtualPath) {
+void UpdateBreadcrumb(const std::shared_ptr<::we::editor::contentbrowser::Breadcrumb>& breadcrumb, const std::string& virtualPath) {
     std::vector<std::string> crumbs;
     if (virtualPath.size() <= 6) {
         crumbs.push_back("All");
@@ -92,9 +101,9 @@ void UpdateBreadcrumb(const std::shared_ptr<we::runtime::kindui::Breadcrumb>& br
 }
 
 void NavigateToFolder(const std::string& virtualPath,
-    const std::shared_ptr<we::runtime::kindui::ContentBrowser>& browser,
-    const std::shared_ptr<we::runtime::kindui::Breadcrumb>& breadcrumb,
-    const std::shared_ptr<we::runtime::kindui::ContentBrowserStatusBar>& statusBar)
+    const std::shared_ptr<::we::editor::contentbrowser::ContentBrowser>& browser,
+    const std::shared_ptr<::we::editor::contentbrowser::Breadcrumb>& breadcrumb,
+    const std::shared_ptr<::we::editor::contentbrowser::ContentBrowserStatusBar>& statusBar)
 {
     ContentBrowserService::Get().SetCurrentFolder(virtualPath);
     if (breadcrumb) {
@@ -114,9 +123,9 @@ void NavigateToFolder(const std::string& virtualPath,
 }
 
 void WireContentBrowser(
-    const std::shared_ptr<we::runtime::kindui::ContentBrowser>& browser,
-    const std::shared_ptr<we::runtime::kindui::ContentBrowserStatusBar>& statusBar,
-    const std::shared_ptr<we::runtime::kindui::Breadcrumb>& breadcrumb)
+    const std::shared_ptr<::we::editor::contentbrowser::ContentBrowser>& browser,
+    const std::shared_ptr<::we::editor::contentbrowser::ContentBrowserStatusBar>& statusBar,
+    const std::shared_ptr<::we::editor::contentbrowser::Breadcrumb>& breadcrumb)
 {
     auto& service = ContentBrowserService::Get();
     service.RefreshBrowserModel(browser->GetModel());
@@ -127,10 +136,10 @@ void WireContentBrowser(
     browser->SetOnVisibleItemsChanged([&service](const std::unordered_set<std::string>& ids) {
         service.SetVisibleItemIds(ids);
     });
-    browser->SetOnItemDoubleClicked([&service, browser, statusBar, breadcrumb](const we::runtime::kindui::ContentItem& item) {
+    browser->SetOnItemDoubleClicked([&service, browser, statusBar, breadcrumb](const ::we::editor::contentbrowser::ContentItem& item) {
         if (item.isFolder) NavigateToFolder(item.path, browser, breadcrumb, statusBar);
     });
-    browser->SetOnItemSelected([browser, statusBar](const we::runtime::kindui::ContentItem&) {
+    browser->SetOnItemSelected([browser, statusBar](const ::we::editor::contentbrowser::ContentItem&) {
         if (browser->GetModel() && statusBar) {
             statusBar->SetSelectedCount(browser->GetModel()->selectedIds.size());
         }
@@ -150,22 +159,22 @@ void ShutdownContentBrowserService() {
     ContentBrowserService::Get().Shutdown();
 }
 
-std::shared_ptr<we::editor::ui::Panel> CreateContentBrowserPanel() {
+std::shared_ptr<::we::editor::panels::Panel> CreateContentBrowserPanel() {
     auto title = we::core::Localization::Get().GetString("Panel_ContentBrowser", "Content Browser");
 
-    auto panelToolbar = we::runtime::kindui::ContentBrowserToolbarControls::Create(
-        we::runtime::kindui::ContentBrowserToolbarControls::ToolbarMode::Full);
+    auto panelToolbar = ::we::editor::contentbrowser::ContentBrowserToolbarControls::Create(
+        ::we::editor::contentbrowser::ContentBrowserToolbarControls::ToolbarMode::Full);
 
-    auto folderTree = std::make_shared<we::runtime::kindui::TreeView>();
+    auto folderTree = std::make_shared<::we::editor::contentbrowser::TreeView>();
     folderTree->SetExplorerStyle(true);
     folderTree->SetItemHeight(26.0f);
     folderTree->SetIndentWidth(16.0f);
     folderTree->SetShowRowControls(false);
 
     // Right pane: asset browser with its own toolbar (AssetPane mode)
-    auto assetToolbar = we::runtime::kindui::ContentBrowserToolbarControls::Create(we::runtime::kindui::ContentBrowserToolbarControls::ToolbarMode::AssetPane);
-    auto contentBrowser = std::make_shared<we::runtime::kindui::ContentBrowser>();
-    auto statusBar = std::make_shared<we::runtime::kindui::ContentBrowserStatusBar>();
+    auto assetToolbar = ::we::editor::contentbrowser::ContentBrowserToolbarControls::Create(::we::editor::contentbrowser::ContentBrowserToolbarControls::ToolbarMode::AssetPane);
+    auto contentBrowser = std::make_shared<::we::editor::contentbrowser::ContentBrowser>();
+    auto statusBar = std::make_shared<::we::editor::contentbrowser::ContentBrowserStatusBar>();
 
     // Build right pane: asset toolbar + content browser + status bar
     auto rightPane = std::make_shared<we::runtime::kindui::Column>();

@@ -15,6 +15,12 @@
 #include <string>
 
 namespace we::programs::editor {
+using ::we::runtime::kindui::MouseButton;
+using ::we::runtime::kindui::KeyEventType;
+using ::we::runtime::kindui::IconPainter;
+namespace Icons = ::we::runtime::kindui::Icons;
+namespace IconMetrics = ::we::runtime::kindui::IconMetrics;
+
 
 namespace {
 
@@ -31,7 +37,7 @@ std::shared_ptr<we::runtime::kindui::Column> BuildViewportNavigationPreferencesC
                             float minValue,
                             float maxValue,
                             auto onChanged) {
-        auto row = std::make_shared<we::runtime::kindui::ToolButton>(
+        auto row = std::make_shared<::we::editor::toolbar::ToolButton>(
             we::runtime::kindui::Icons::SettingsName,
             label + ": " + std::to_string(value).substr(0, 5),
             [value, minValue, maxValue, onChanged, label]() {
@@ -94,7 +100,7 @@ std::shared_ptr<we::runtime::kindui::Column> BuildViewportNavigationPreferencesC
         ApplyLoadedViewportNavigationSettings();
     });
 
-    auto presetBtn = std::make_shared<we::runtime::kindui::ToolButton>(
+    auto presetBtn = std::make_shared<::we::editor::toolbar::ToolButton>(
         we::runtime::kindui::Icons::SettingsName,
         "Preset: " + ViewportNavigationSettingsStore::PresetToString(settings.preset),
         []() {
@@ -116,7 +122,7 @@ std::shared_ptr<we::runtime::kindui::Column> BuildViewportNavigationPreferencesC
         "Cycle navigation preset");
     content->AddChild(presetBtn);
 
-    auto invertX = std::make_shared<we::runtime::kindui::ToolButton>(
+    auto invertX = std::make_shared<::we::editor::toolbar::ToolButton>(
         we::runtime::kindui::Icons::SettingsName,
         std::string("Invert X: ") + (settings.invertX ? "On" : "Off"),
         []() {
@@ -129,7 +135,7 @@ std::shared_ptr<we::runtime::kindui::Column> BuildViewportNavigationPreferencesC
         "Toggle invert X");
     content->AddChild(invertX);
 
-    auto invertY = std::make_shared<we::runtime::kindui::ToolButton>(
+    auto invertY = std::make_shared<::we::editor::toolbar::ToolButton>(
         we::runtime::kindui::Icons::SettingsName,
         std::string("Invert Y: ") + (settings.invertY ? "On" : "Off"),
         []() {
@@ -142,7 +148,7 @@ std::shared_ptr<we::runtime::kindui::Column> BuildViewportNavigationPreferencesC
         "Toggle invert Y");
     content->AddChild(invertY);
 
-    auto orbitSelection = std::make_shared<we::runtime::kindui::ToolButton>(
+    auto orbitSelection = std::make_shared<::we::editor::toolbar::ToolButton>(
         we::runtime::kindui::Icons::SettingsName,
         std::string("Orbit Around Selection: ") + (settings.orbitAroundSelection ? "On" : "Off"),
         []() {
@@ -153,7 +159,7 @@ std::shared_ptr<we::runtime::kindui::Column> BuildViewportNavigationPreferencesC
         "Toggle orbit around selection");
     content->AddChild(orbitSelection);
 
-    auto focusSelection = std::make_shared<we::runtime::kindui::ToolButton>(
+    auto focusSelection = std::make_shared<::we::editor::toolbar::ToolButton>(
         we::runtime::kindui::Icons::SettingsName,
         std::string("Focus On Selection (F): ") + (settings.focusOnSelection ? "On" : "Off"),
         []() {
@@ -169,14 +175,14 @@ std::shared_ptr<we::runtime::kindui::Column> BuildViewportNavigationPreferencesC
 
 } // namespace
 
-std::shared_ptr<we::editor::ui::Panel> CreateViewportNavigationPreferencesPanel() {
-    return we::editor::ui::PanelBuilder("Viewport Navigation")
+std::shared_ptr<::we::editor::panels::Panel> CreateViewportNavigationPreferencesPanel() {
+    return ::we::editor::panels::PanelBuilder("Viewport Navigation")
         .TabIcon(we::runtime::kindui::Icons::SettingsName)
         .Content(BuildViewportNavigationPreferencesContent());
 }
 
 REGISTER_UI_PANEL(ViewportNavigation,
-    WE_PANEL(ViewportNavigation).Title("Viewport Navigation").Icon("settings").Zone(we::editor::ui::DockZone::Floating).Hidden(),
+    WE_PANEL(ViewportNavigation).Title("Viewport Navigation").Icon("settings").Zone(::we::editor::docking::DockZone::Floating).Hidden(),
     CreateViewportNavigationPreferencesPanel)
 
 void ShowViewportNavigationPreferences() {

@@ -16,7 +16,10 @@
 #include <cstdlib>
 
 using namespace we::runtime::kindui;
-using namespace we::editor::ui;
+using namespace we::runtime::kindui;
+using ::we::editor::panels::Panel;
+using ::we::editor::panels::PanelBuilder;
+using ::we::editor::docking::DockZone;
 
 namespace we::programs::crashreporter {
 

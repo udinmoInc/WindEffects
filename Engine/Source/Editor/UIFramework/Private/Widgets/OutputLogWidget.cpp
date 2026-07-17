@@ -4,11 +4,12 @@
 #include "KindUI/Tokens/DesignToken.h"
 #include "KindUI/Theming/StyleRole.h"
 
-using we::runtime::kindui::ColorToken;
-using we::runtime::kindui::MetricToken;
-using we::runtime::kindui::PaddingToken;
+using ::we::runtime::kindui::ColorToken;
+using ::we::runtime::kindui::MetricToken;
+using ::we::runtime::kindui::PaddingToken;
+using ::we::runtime::kindui::Point;
 
-namespace we::editor::ui {
+namespace we::editor::panels {
 
 OutputLogWidget::OutputLogWidget() {
     for (const auto& record : we::Logger::GetHistory()) {
@@ -133,4 +134,4 @@ void OutputLogWidget::Paint(PaintContext& context) {
     }
 }
 
-} // namespace we::editor::ui
+} // namespace we::editor::panels

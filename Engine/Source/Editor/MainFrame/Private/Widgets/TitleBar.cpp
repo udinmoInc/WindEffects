@@ -17,12 +17,18 @@
 #include <cmath>
 #include <cstring>
 
-using we::runtime::kindui::ColorToken;
-using we::runtime::kindui::MetricToken;
-using we::runtime::kindui::PaddingToken;
+using ::we::runtime::kindui::ColorToken;
+using ::we::runtime::kindui::MetricToken;
+using ::we::runtime::kindui::PaddingToken;
 
-namespace we::runtime::kindui {
-using we::editor::ui::Panel;
+namespace we::editor::shell {
+using ::we::runtime::kindui::MouseButton;
+using ::we::runtime::kindui::KeyEventType;
+using ::we::runtime::kindui::IconPainter;
+namespace Icons = ::we::runtime::kindui::Icons;
+namespace IconMetrics = ::we::runtime::kindui::IconMetrics;
+
+using ::we::editor::panels::Panel;
 
 namespace {
     class FixedGap : public Widget {
@@ -323,4 +329,4 @@ we::platform::WindowHitTestResult TitleBar::HitTest(we::platform::Int2 point) {
     return we::platform::WindowHitTestResult::Client;
 }
 
-} // namespace we::runtime::kindui
+} // namespace we::editor::shell

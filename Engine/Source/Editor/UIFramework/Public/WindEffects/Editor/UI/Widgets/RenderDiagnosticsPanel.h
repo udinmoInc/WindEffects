@@ -7,13 +7,13 @@
 
 #include "WindEffects/Editor/UI/Renderer/EditorRenderDebugStub.h"
 
-namespace we::editor::ui {
-using we::runtime::kindui::Widget;
-using we::runtime::kindui::Size;
-using we::runtime::kindui::Rect;
-using we::runtime::kindui::PaintContext;
-using we::runtime::kindui::Label;
-using we::runtime::kindui::ScrollLayout;
+namespace we::editor::panels {
+using ::we::runtime::kindui::Widget;
+using ::we::runtime::kindui::Size;
+using ::we::runtime::kindui::Rect;
+using ::we::runtime::kindui::PaintContext;
+using ::we::runtime::kindui::Label;
+using ::we::runtime::kindui::ScrollLayout;
 
 class UIFRAMEWORK_API RenderDiagnosticsPanel : public Widget {
 public:
@@ -37,4 +37,4 @@ private:
     std::string m_DisplayText;
 };
 
-} // namespace we::editor::ui
+} // namespace we::editor::panels

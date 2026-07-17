@@ -2,7 +2,7 @@
 
 #include <string>
 
-namespace we::runtime::kindui {
+namespace we::editor::contentbrowser {
 
 // Clean, 2px rounded stroke SVG icons matching standard AAA conventions.
 // The SVG definitions should use <svg width="48" height="48" viewBox="0 0 48 48">
@@ -57,4 +57,4 @@ const std::string g_SvgGeneric = R"(
 </svg>
 )";
 
-} // namespace we::editor::contentbrowser::UI
+} // namespace we::editor::contentbrowser

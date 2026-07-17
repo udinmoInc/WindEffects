@@ -8,8 +8,21 @@
 #include <string>
 #include <functional>
 #include <vector>
+#include "KindUI/Input/InputEvents.h"
 
-namespace we::runtime::kindui {
+namespace we::editor::property {
+using ::we::runtime::kindui::Widget;
+using ::we::runtime::kindui::Size;
+using ::we::runtime::kindui::Rect;
+using ::we::runtime::kindui::Point;
+using ::we::runtime::kindui::Color;
+using ::we::runtime::kindui::PaintContext;
+using ::we::runtime::kindui::MouseEvent;
+using ::we::runtime::kindui::KeyEvent;
+using ::we::runtime::kindui::WidgetStyle;
+using ::we::runtime::kindui::ScrollViewport;
+using ::we::runtime::kindui::ScrollViewportMetrics;
+
 
 // Property types
 enum class PropertyType {
@@ -141,4 +154,4 @@ private:
     bool m_Picking = false;
 };
 
-} // namespace we::editor::propertyeditor::UI
+} // namespace we::editor::propertyeditor

@@ -5,18 +5,29 @@
 
 #include "Viewport/Export.h"
 #include "KindUI/Core/Widget.h"
+#include "KindUI/Input/InputEvents.h"
 #include "ViewportNavigation.h"
 #include "Platform/Types.h"
 
 #include <memory>
+#include "KindUI/Core/Style.h"
 
 namespace we::runtime::renderer { class ISceneViewportController; }
 namespace we::runtime::engine { class EditorCamera; }
 namespace we::runtime::scene { class Scene; }
-namespace we::editor::viewport { class ViewportRenderTarget; }
 
-namespace we::runtime::kindui {
+namespace we::editor::viewport {
+using ::we::runtime::kindui::Widget;
+using ::we::runtime::kindui::Size;
+using ::we::runtime::kindui::Rect;
+using ::we::runtime::kindui::Point;
+using ::we::runtime::kindui::Color;
+using ::we::runtime::kindui::PaintContext;
+using ::we::runtime::kindui::MouseEvent;
+using ::we::runtime::kindui::KeyEvent;
+using ::we::runtime::kindui::WidgetStyle;
 
+class ViewportRenderTarget;
 class OverlayRenderer;
 class GraphicsDebuggerPopup;
 
@@ -68,7 +79,7 @@ private:
     we::rhi::RHIDescriptorSetHandle m_ViewportTextureSet = we::rhi::RHIDescriptorSetHandle::Invalid;
     we::rhi::RHITextureViewHandle m_BoundViewportView = we::rhi::RHITextureViewHandle::Invalid;
     we::rhi::RHISamplerHandle m_BoundViewportSampler = we::rhi::RHISamplerHandle::Invalid;
-    std::unique_ptr<we::editor::viewport::ViewportRenderTarget> m_ViewportRenderTarget;
+    std::unique_ptr<::we::editor::viewport::ViewportRenderTarget> m_ViewportRenderTarget;
 
     float m_FPS = 0.0f;
     float m_FrameTime = 0.0f;
@@ -86,4 +97,4 @@ private:
     std::shared_ptr<GraphicsDebuggerPopup> m_GraphicsDebugger;
 };
 
-} // namespace we::runtime::kindui
+} // namespace we::editor::viewport

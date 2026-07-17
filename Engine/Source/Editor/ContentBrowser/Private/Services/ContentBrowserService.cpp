@@ -8,6 +8,12 @@
 #include <filesystem>
 
 namespace we::editor::contentbrowser {
+using ::we::runtime::kindui::MouseButton;
+using ::we::runtime::kindui::KeyEventType;
+using ::we::runtime::kindui::IconPainter;
+namespace Icons = ::we::runtime::kindui::Icons;
+namespace IconMetrics = ::we::runtime::kindui::IconMetrics;
+
 
 ContentBrowserService& ContentBrowserService::Get() {
     static ContentBrowserService instance;
@@ -54,14 +60,14 @@ void ContentBrowserService::SetCurrentFolder(const std::string& virtualPath) {
     }
 }
 
-void ContentBrowserService::RefreshBrowserModel(const std::shared_ptr<we::runtime::kindui::ContentBrowserModel>& model) {
+void ContentBrowserService::RefreshBrowserModel(const std::shared_ptr<::we::editor::contentbrowser::ContentBrowserModel>& model) {
     if (!model) return;
     m_Model = model;
     model->items.clear();
 
     const auto children = ContentAssetRegistry::Get().GetChildren(m_CurrentFolder);
     for (const auto* asset : children) {
-        we::runtime::kindui::ContentItem item;
+        ::we::editor::contentbrowser::ContentItem item;
         item.id = asset->id;
         item.name = asset->name;
         item.type = AssetTypeToString(asset->type);

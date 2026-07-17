@@ -10,11 +10,26 @@
 
 #include "KindUI/Core/DPIContext.h"
 
-namespace we::editor::ui {
+using ::we::runtime::kindui::ThemeManager;
+using ::we::runtime::kindui::ModuleResourceRegistry;
+using ::we::runtime::kindui::EventBus;
+using ::we::runtime::kindui::CommandRegistry;
+using ::we::runtime::kindui::DPIContext;
+using ::we::runtime::kindui::IKindUITheme;
+using ::we::runtime::kindui::IStyleResolver;
+using ::we::runtime::kindui::IResourceRegistry;
+using ::we::runtime::kindui::IEventBus;
+using ::we::runtime::kindui::ICommandRegistry;
+
+namespace we::editor::services {
+using ::we::editor::docking::DockManager;
+using ::we::editor::docking::CreateDefaultEditorWorkspaceLayout;
+using ::we::editor::extensions::ExtensionBootstrap;
+using ::we::editor::extensions::UIExtensionRegistry;
 
 EditorApplicationContext::EditorApplicationContext(std::shared_ptr<IKindUITheme> theme) {
     if (!theme) {
-        theme = std::make_shared<we::editor::ui::EditorTheme>();
+        theme = std::make_shared<::we::editor::services::EditorTheme>();
     }
     ThemeManager::Get().Initialize(std::move(theme), 1.0f);
     m_ThemeProvider = ThemeManager::Get().SharedTheme();
@@ -57,6 +72,6 @@ void EditorApplicationContext::Initialize(float dpiScale) {
 void EditorApplicationContext::Shutdown() {
 }
 
-} // namespace we::editor::ui
+} // namespace we::editor::services
 
 // relink

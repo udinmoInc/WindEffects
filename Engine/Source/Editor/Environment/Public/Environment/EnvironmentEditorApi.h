@@ -8,17 +8,13 @@
 namespace we::runtime::scene {
 class Scene;
 }
-namespace we::runtime::kindui {
-class PropertyEditor;
-class TreeView;
-}
 
 namespace we::editor::environment {
 
 ENVIRONMENT_API void InitializeEditor(
     const std::shared_ptr<we::runtime::scene::Scene>& scene,
-    const std::shared_ptr<we::runtime::kindui::TreeView>& outliner,
-    const std::shared_ptr<we::runtime::kindui::PropertyEditor>& details);
+    const std::shared_ptr<::we::editor::contentbrowser::TreeView>& outliner,
+    const std::shared_ptr<::we::editor::property::PropertyEditor>& details);
 
 ENVIRONMENT_API std::shared_ptr<we::runtime::kindui::Widget> CreateEnvironmentToolbarMenu();
 ENVIRONMENT_API void TickEditor();

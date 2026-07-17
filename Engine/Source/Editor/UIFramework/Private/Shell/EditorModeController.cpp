@@ -8,7 +8,8 @@
 #include <fstream>
 #include <algorithm>
 
-namespace we::programs::editor {
+namespace we::editor::shell {
+using ::we::editor::toolspanel::EditorToolsRegistry;
 
 namespace {
 
@@ -66,7 +67,7 @@ void EditorModeController::SetActiveMode(const std::string& modeId) {
 void EditorModeController::SetDrawerVisible(bool visible) {
     if (m_DrawerVisible == visible) return;
     m_DrawerVisible = visible;
-    EditorWorkspaceController::Get().ApplyToolsPanelVisibility(visible);
+    ::we::programs::editor::EditorWorkspaceController::Get().ApplyToolsPanelVisibility(visible);
     SaveState();
     NotifyModeChanged();
 }
@@ -162,4 +163,4 @@ void EditorModeController::SaveState() const {
     file << "drawerWidth=" << m_DrawerWidth << "\n";
 }
 
-} // namespace we::programs::editor
+} // namespace we::editor::shell

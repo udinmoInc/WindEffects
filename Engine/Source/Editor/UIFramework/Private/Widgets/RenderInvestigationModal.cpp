@@ -1,7 +1,7 @@
 #include "WindEffects/Editor/UI/Widgets/RenderInvestigationModal.h"
 #include "WindEffects/Editor/UI/Shell/EditorWorkspaceController.h"
 
-namespace we::editor::ui {
+namespace we::editor::panels {
 
 namespace {
 
@@ -101,4 +101,4 @@ void RenderInvestigationModalHost::UpdateFromSnapshot(const we::runtime::rendere
     }
 }
 
-} // namespace we::editor::ui
+} // namespace we::editor::panels

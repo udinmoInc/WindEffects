@@ -17,17 +17,23 @@
 #include <cmath>
 #include <functional>
 
-using we::runtime::kindui::ColorToken;
-using we::runtime::kindui::MetricToken;
-using we::runtime::kindui::PaddingToken;
+using ::we::runtime::kindui::ColorToken;
+using ::we::runtime::kindui::MetricToken;
+using ::we::runtime::kindui::PaddingToken;
+using ::we::runtime::kindui::Point;
 
-namespace we::runtime::kindui {
-using we::editor::ui::Panel;
+namespace we::editor::contentbrowser {
+using ::we::runtime::kindui::MouseButton;
+using ::we::runtime::kindui::KeyEventType;
+using ::we::runtime::kindui::IconPainter;
+namespace Icons = ::we::runtime::kindui::Icons;
+namespace IconMetrics = ::we::runtime::kindui::IconMetrics;
+
 
 namespace {
 
-using we::editor::contentbrowser::ContentBrowserBlueprintArt;
-using we::editor::contentbrowser::ContentBrowserFolderArt;
+using ::we::editor::contentbrowser::ContentBrowserBlueprintArt;
+using ::we::editor::contentbrowser::ContentBrowserFolderArt;
 
 bool IsFolderIconName(const std::string& iconName) {
     return iconName == Icons::FolderName;
@@ -223,7 +229,7 @@ void TreeView::Tick(float deltaTime) {
 }
 
 void TreeView::Paint(PaintContext& context) {
-    PanelChrome::PaintContentRegion(context, m_Geometry);
+    ::we::editor::panels::PanelChrome::PaintContentRegion(context, m_Geometry);
 
     if (m_RenderList.empty()) {
         return;
@@ -255,7 +261,7 @@ void TreeView::Paint(PaintContext& context) {
             Rect rowRect = item.geometry;
             rowRect.x = m_ScrollMetrics.viewport.x;
             rowRect.width = m_ScrollMetrics.viewport.width;
-            PanelChrome::PaintListRowBackground(context, rowRect, hovered, selected);
+            ::we::editor::panels::PanelChrome::PaintListRowBackground(context, rowRect, hovered, selected);
         }
 
         if (node->id == m_DropTargetId && m_Dragging) {
@@ -886,4 +892,4 @@ bool TreeView::ShowsPointerCursor(const Point& position) const {
         (m_ScrollMetrics.thumb.Contains(position) || m_ScrollMetrics.track.Contains(position));
 }
 
-} // namespace we::runtime::kindui
+} // namespace we::editor::contentbrowser

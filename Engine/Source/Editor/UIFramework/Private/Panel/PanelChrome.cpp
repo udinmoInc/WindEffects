@@ -10,18 +10,23 @@
 #include <algorithm>
 #include <cmath>
 
-using we::runtime::kindui::ColorToken;
-using we::runtime::kindui::MetricToken;
-using we::runtime::kindui::PaddingToken;
-using we::runtime::kindui::IconColorRole;
-using we::runtime::kindui::ResolveIconColor;
-using we::runtime::kindui::Point;
-using we::runtime::kindui::IconPainter;
-using we::runtime::kindui::DPIContext;
-namespace Icons = we::runtime::kindui::Icons;
-namespace IconMetrics = we::runtime::kindui::IconMetrics;
+using ::we::runtime::kindui::ColorToken;
+using ::we::runtime::kindui::MetricToken;
+using ::we::runtime::kindui::PaddingToken;
+using ::we::runtime::kindui::IconColorRole;
+using ::we::runtime::kindui::ResolveIconColor;
+using ::we::runtime::kindui::Point;
+using ::we::runtime::kindui::IconPainter;
+using ::we::runtime::kindui::DPIContext;
+namespace Icons = ::we::runtime::kindui::Icons;
+namespace IconMetrics = ::we::runtime::kindui::IconMetrics;
 
-namespace we::editor::ui::PanelChrome {
+namespace we::editor::panels {
+using ::we::runtime::kindui::PaintContext;
+using ::we::runtime::kindui::Rect;
+using ::we::runtime::kindui::Color;
+using ::we::runtime::kindui::Point;
+
 namespace {
 
 void DrawRoundedRectTop(PaintContext& context, const Rect& rect, const Color& color, float radius) {
@@ -53,6 +58,8 @@ Color ResolveTabTextColor(bool isActive, float hoverAnim) {
 }
 
 } // namespace
+
+namespace PanelChrome {
 
 float UiScale() {
     return (std::max)(1.0f, DPIContext::GetScale());
@@ -441,4 +448,6 @@ Rect InsetSearchRect(const Rect& toolbarRect, float searchWidth) {
     return Rect{ toolbarRect.x + padH, searchY, searchWidth, searchH };
 }
 
-} // namespace we::editor::ui::PanelChrome
+} // namespace PanelChrome
+
+} // namespace we::editor::panels

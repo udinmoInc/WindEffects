@@ -10,9 +10,9 @@
 #include <string>
 #include <string_view>
 
-namespace we::editor::ui {
-using we::runtime::kindui::Widget;
-using we::runtime::kindui::Row;
+namespace we::editor::panels {
+using ::we::runtime::kindui::Widget;
+using ::we::runtime::kindui::Row;
 
 class UIFRAMEWORK_API PanelBuilder {
 public:
@@ -35,4 +35,4 @@ private:
     std::shared_ptr<Panel> m_Panel;
 };
 
-} // namespace we::editor::ui
+} // namespace we::editor::panels

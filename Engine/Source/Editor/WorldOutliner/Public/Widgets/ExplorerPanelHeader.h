@@ -7,8 +7,21 @@
 #include <string>
 #include <vector>
 #include "KindUI/Tokens/DesignToken.h"
+#include "KindUI/Input/InputEvents.h"
+#include "KindUI/Core/Style.h"
 
-namespace we::runtime::kindui {
+namespace we::editor::outliner {
+using ::we::runtime::kindui::Widget;
+using ::we::runtime::kindui::Size;
+using ::we::runtime::kindui::Rect;
+using ::we::runtime::kindui::Point;
+using ::we::runtime::kindui::Color;
+using ::we::runtime::kindui::PaintContext;
+using ::we::runtime::kindui::MouseEvent;
+using ::we::runtime::kindui::KeyEvent;
+using ::we::runtime::kindui::WidgetStyle;
+using ::we::runtime::kindui::MetricToken;
+
 
 class ExplorerPanelHeader : public Widget {
 public:
@@ -79,4 +92,4 @@ private:
     std::function<void()> m_OnRefresh;
 };
 
-} // namespace we::runtime::kindui
+} // namespace we::editor::outliner

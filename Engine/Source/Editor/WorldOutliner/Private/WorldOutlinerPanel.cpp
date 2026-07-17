@@ -11,13 +11,22 @@
 #include "KindUI/Tokens/DesignToken.h"
 
 namespace we::programs::editor {
+using ::we::runtime::kindui::MouseButton;
+using ::we::runtime::kindui::KeyEventType;
+using ::we::runtime::kindui::IconPainter;
+namespace Icons = ::we::runtime::kindui::Icons;
+namespace IconMetrics = ::we::runtime::kindui::IconMetrics;
 
-using we::runtime::kindui::ColorToken;
-using we::runtime::kindui::MetricToken;
-using we::runtime::kindui::PaddingToken;
 
-using namespace we::runtime::kindui;
-using namespace we::editor::ui;
+using ::we::runtime::kindui::ColorToken;
+using ::we::runtime::kindui::MetricToken;
+using ::we::runtime::kindui::PaddingToken;
+
+using namespace ::we::runtime::kindui;
+using namespace ::we::runtime::kindui;
+using ::we::editor::panels::Panel;
+using ::we::editor::panels::PanelBuilder;
+using ::we::editor::docking::DockZone;
 
 namespace {
 std::shared_ptr<ExplorerPanelHeader> g_ExplorerHeader;

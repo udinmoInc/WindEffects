@@ -6,7 +6,9 @@
 #include <cstdlib>
 #include <cstring>
 
-namespace we::editor::ui {
+using ::we::runtime::kindui::UIRepaintGate;
+
+namespace we::editor::services {
 
 namespace {
 
@@ -107,4 +109,4 @@ void EditorPerfStats::EndFrame(uint32_t uiVertices, uint32_t uiBatches) {
     m_LastLogMs = now;
 }
 
-} // namespace we::editor::ui
+} // namespace we::editor::services

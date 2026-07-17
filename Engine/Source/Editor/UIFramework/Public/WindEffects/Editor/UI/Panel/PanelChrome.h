@@ -8,11 +8,11 @@
 #include <string>
 #include <vector>
 
-namespace we::editor::ui {
-using we::runtime::kindui::Widget;
-using we::runtime::kindui::PaintContext;
-using we::runtime::kindui::Rect;
-using we::runtime::kindui::Color;
+namespace we::editor::panels {
+using ::we::runtime::kindui::Widget;
+using ::we::runtime::kindui::PaintContext;
+using ::we::runtime::kindui::Rect;
+using ::we::runtime::kindui::Color;
 
 /// Shared panel design system — dock tabs, headers, toolbars, search, and rows.
 namespace PanelChrome {
@@ -128,4 +128,4 @@ UIFRAMEWORK_API Rect InsetSearchRect(const Rect& toolbarRect, float searchWidth)
 
 } // namespace PanelChrome
 
-} // namespace we::editor::ui
+} // namespace we::editor::panels

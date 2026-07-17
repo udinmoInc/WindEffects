@@ -7,23 +7,21 @@
 #include "Services/FolderPreviewGenerator.h"
 #include "Services/ThumbnailManager.h"
 #include "Models/ContentBrowserModel.h"
+#include "KindUI/Rendering/IconRenderer.h"
 #include <functional>
 #include <memory>
 #include <string>
 #include <unordered_set>
 #include "RHI/Types.h"
 
-namespace we::runtime::kindui {
-class IconRenderer;
-}
-
 namespace we::editor::contentbrowser {
+using ::we::runtime::kindui::IconRenderer;
 
 class ContentBrowserService {
 public:
     static ContentBrowserService& Get();
 
-    void Initialize(we::runtime::kindui::IconRenderer* iconRenderer, const std::string& contentRoot);
+    void Initialize(IconRenderer* iconRenderer, const std::string& contentRoot);
     void Shutdown();
     void Tick(float deltaTime);
 
@@ -35,7 +33,7 @@ public:
     void SetCurrentFolder(const std::string& virtualPath);
     const std::string& GetCurrentFolder() const { return m_CurrentFolder; }
 
-    void RefreshBrowserModel(const std::shared_ptr<we::runtime::kindui::ContentBrowserModel>& model);
+    void RefreshBrowserModel(const std::shared_ptr<::we::editor::contentbrowser::ContentBrowserModel>& model);
     void RequestThumbnailForItem(const std::string& id);
     void SetVisibleItemIds(const std::unordered_set<std::string>& ids);
 
@@ -59,7 +57,7 @@ private:
 
     std::string m_CurrentFolder = "/Game";
     std::function<void(const std::string&, we::rhi::RHIDescriptorSetHandle)> m_OnThumbnailReady;
-    std::weak_ptr<we::runtime::kindui::ContentBrowserModel> m_Model;
+    std::weak_ptr<::we::editor::contentbrowser::ContentBrowserModel> m_Model;
     bool m_Initialized = false;
 };
 

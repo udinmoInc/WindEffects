@@ -2,13 +2,26 @@
 
 #include "MainFrame/Export.h"
 #include "KindUI/Core/Widget.h"
+#include "KindUI/Core/Style.h"
+#include "KindUI/Layout/Flex.h"
 #include "Platform/Types.h"
 #include "RHI/Types.h"
-namespace we::runtime::kindui { class MenuBar; class ToolButton; }
-#include "KindUI/Layout/Flex.h"
+
 #include <string>
 
-namespace we::runtime::kindui {
+namespace we::editor::shell {
+using ::we::runtime::kindui::Widget;
+using ::we::runtime::kindui::Size;
+using ::we::runtime::kindui::Rect;
+using ::we::runtime::kindui::Point;
+using ::we::runtime::kindui::Color;
+using ::we::runtime::kindui::PaintContext;
+using ::we::runtime::kindui::MouseEvent;
+using ::we::runtime::kindui::WidgetStyle;
+using ::we::runtime::kindui::Row;
+
+class MenuBar;
+class ToolButton;
 
 inline constexpr float kTitleBarHeight          = 34.0f;
 inline constexpr float kTitleBarLogoDisplaySize = 18.0f;
@@ -51,4 +64,4 @@ public:
     std::shared_ptr<Row> m_RightContainer;
 };
 
-} // namespace we::runtime::kindui
+} // namespace we::editor::shell

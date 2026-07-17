@@ -1,6 +1,7 @@
 #pragma once
 
 #include "WindEffects/Editor/UI/Export.h"
+#include "KindUI/Core/Widget.h"
 
 #include <functional>
 #include <memory>
@@ -9,11 +10,8 @@
 #include <unordered_map>
 #include <vector>
 
-namespace we::runtime::kindui {
-class Widget;
-}
-
-namespace we::programs::editor {
+namespace we::editor::toolspanel {
+using ::we::runtime::kindui::Widget;
 
 struct EditorToolAction {
     std::string id;
@@ -44,7 +42,7 @@ struct EditorToolMode {
     std::string keywords;
     int sortOrder = 0;
     bool opensToolDrawerByDefault = true;
-    using ContentFactory = std::function<std::shared_ptr<we::runtime::kindui::Widget>(
+    using ContentFactory = std::function<std::shared_ptr<::we::runtime::kindui::Widget>(
         const EditorToolMode& mode,
         const std::string& searchFilter)>;
     ContentFactory customContent;
@@ -99,14 +97,14 @@ private:
     namespace { \
         struct EditorToolModeRegister_##ModeId { \
             EditorToolModeRegister_##ModeId() { \
-                we::programs::editor::EditorToolMode mode; \
+                ::we::editor::toolspanel::EditorToolMode mode; \
                 mode.id = #ModeId; \
                 mode.label = Label; \
                 mode.iconName = IconName; \
                 mode.sortOrder = SortOrder; \
                 mode.keywords = Label; \
                 mode.opensToolDrawerByDefault = OpensDrawer; \
-                we::programs::editor::EditorToolsRegistry::Get().RegisterMode(std::move(mode)); \
+                ::we::editor::toolspanel::EditorToolsRegistry::Get().RegisterMode(std::move(mode)); \
             } \
         }; \
         static EditorToolModeRegister_##ModeId g_EditorToolModeRegister_##ModeId; \
@@ -122,13 +120,13 @@ private:
     namespace { \
         struct EditorToolCategoryRegister_##CategoryId { \
             EditorToolCategoryRegister_##CategoryId() { \
-                we::programs::editor::EditorToolCategory category; \
+                ::we::editor::toolspanel::EditorToolCategory category; \
                 category.id = #CategoryId; \
                 category.modeId = #ModeId; \
                 category.label = Label; \
                 category.iconName = IconName; \
                 category.sortOrder = SortOrder; \
-                we::programs::editor::EditorToolsRegistry::Get().RegisterCategory(std::move(category)); \
+                ::we::editor::toolspanel::EditorToolsRegistry::Get().RegisterCategory(std::move(category)); \
             } \
         }; \
         static EditorToolCategoryRegister_##CategoryId g_EditorToolCategoryRegister_##CategoryId; \
@@ -138,7 +136,7 @@ private:
     namespace { \
         struct EditorToolRegister_##ToolId { \
             EditorToolRegister_##ToolId() { \
-                we::programs::editor::EditorToolAction tool; \
+                ::we::editor::toolspanel::EditorToolAction tool; \
                 tool.id = #ToolId; \
                 tool.categoryId = #CategoryId; \
                 tool.label = Label; \
@@ -146,10 +144,10 @@ private:
                 tool.shortcut = Shortcut; \
                 tool.keywords = Label; \
                 tool.onExecute = ExecuteFunc; \
-                we::programs::editor::EditorToolsRegistry::Get().RegisterTool(std::move(tool)); \
+                ::we::editor::toolspanel::EditorToolsRegistry::Get().RegisterTool(std::move(tool)); \
             } \
         }; \
         static EditorToolRegister_##ToolId g_EditorToolRegister_##ToolId; \
     }
 
-} // namespace we::programs::editor
+} // namespace we::editor::toolspanel

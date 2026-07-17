@@ -4,7 +4,7 @@
 
 #include <string>
 
-namespace we::programs::editor {
+namespace we::editor::viewport {
 
 enum class NavigationPreset {
     UE5,
@@ -55,4 +55,4 @@ private:
     bool m_Loaded = false;
 };
 
-} // namespace we::programs::editor
+} // namespace we::editor::viewport

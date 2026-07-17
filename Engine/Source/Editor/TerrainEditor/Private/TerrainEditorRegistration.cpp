@@ -4,7 +4,7 @@
 
 namespace we::programs::editor {
 
-using we::editor::terrain::TerrainEditorService;
+using ::we::editor::terrain::TerrainEditorService;
 using we::runtime::terrain::TerrainBrushOp;
 
 // File-scope registrations override the empty stubs in DefaultEditorModes.
