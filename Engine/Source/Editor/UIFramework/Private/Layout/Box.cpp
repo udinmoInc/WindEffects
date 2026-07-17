@@ -115,8 +115,13 @@ void Box::Arrange(const Rect& allottedRect) {
             
             float childWidth = childDesired.width;
             if (std::abs(childDesired.width - maxChildWidth) < 0.1f) childWidth -= widthShrinkPerElement;
-            if (isLast && currentX + childWidth < allottedRect.x + allottedRect.width) {
-                childWidth = allottedRect.x + allottedRect.width - currentX; // Fill remaining if any
+            // Only stretch the last child when it opts into Fill, and never past the
+            // content edge (respect right padding).
+            const float contentRight = allottedRect.x + m_Padding.left + contentWidth;
+            if (isLast
+                && child->GetHorizontalAlignment() == HorizontalAlignment::Fill
+                && currentX + childWidth < contentRight) {
+                childWidth = contentRight - currentX;
             }
             
             float childHeight = childDesired.height;
@@ -152,8 +157,13 @@ void Box::Arrange(const Rect& allottedRect) {
             
             float childHeight = childDesired.height;
             if (std::abs(childDesired.height - maxChildHeight) < 0.1f) childHeight -= heightShrinkPerElement;
-            if (isLast && currentY + childHeight < allottedRect.y + allottedRect.height) {
-                childHeight = allottedRect.y + allottedRect.height - currentY; // Fill remaining if any
+            // Only stretch the last child when it opts into Fill, and never past the
+            // content edge (respect bottom padding).
+            const float contentBottom = allottedRect.y + m_Padding.top + contentHeight;
+            if (isLast
+                && child->GetVerticalAlignment() == VerticalAlignment::Fill
+                && currentY + childHeight < contentBottom) {
+                childHeight = contentBottom - currentY;
             }
             
             float exactChildX = currentX;

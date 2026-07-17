@@ -1,6 +1,6 @@
 
 ui_Atlas_16.png
-size: 182, 74
+size: 200, 74
 format: RGBA8888
 filter: Nearest, Nearest
 repeat: none
@@ -195,6 +195,13 @@ Icons_Plus
   index: 16
 Icons_Recent
   rotate: false
+  xy: 128, 38
+  size: 16, 16
+  orig: 16, 16
+  offset: 0, 0
+  index: 16
+Icons_RecentProjects
+  rotate: false
   xy: 110, 20
   size: 16, 16
   orig: 16, 16
@@ -202,84 +209,105 @@ Icons_Recent
   index: 16
 Icons_Redo
   rotate: false
-  xy: 128, 38
+  xy: 146, 56
   size: 16, 16
   orig: 16, 16
   offset: 0, 0
   index: 16
 Icons_Rotate
   rotate: false
-  xy: 146, 56
+  xy: 110, 2
   size: 16, 16
   orig: 16, 16
   offset: 0, 0
   index: 16
 Icons_Save
   rotate: false
-  xy: 128, 20
+  xy: 146, 38
   size: 16, 16
   orig: 16, 16
   offset: 0, 0
   index: 16
 Icons_SaveAll
   rotate: false
-  xy: 110, 2
+  xy: 128, 20
   size: 16, 16
   orig: 16, 16
   offset: 0, 0
   index: 16
 Icons_Scale
   rotate: false
-  xy: 146, 38
+  xy: 164, 56
   size: 16, 16
   orig: 16, 16
   offset: 0, 0
   index: 16
 Icons_Search
   rotate: false
-  xy: 164, 56
+  xy: 128, 2
   size: 16, 16
   orig: 16, 16
   offset: 0, 0
   index: 16
 Icons_Settings
   rotate: false
-  xy: 128, 2
-  size: 16, 16
-  orig: 16, 16
-  offset: 0, 0
-  index: 16
-Icons_Stop
-  rotate: false
   xy: 146, 20
   size: 16, 16
   orig: 16, 16
   offset: 0, 0
   index: 16
-Icons_Sun
+Icons_Star
   rotate: false
   xy: 164, 38
   size: 16, 16
   orig: 16, 16
   offset: 0, 0
   index: 16
-Icons_Terminal
+Icons_Stop
+  rotate: false
+  xy: 182, 56
+  size: 16, 16
+  orig: 16, 16
+  offset: 0, 0
+  index: 16
+Icons_Sun
   rotate: false
   xy: 146, 2
   size: 16, 16
   orig: 16, 16
   offset: 0, 0
   index: 16
-Icons_Undo
+Icons_Terminal
   rotate: false
   xy: 164, 20
   size: 16, 16
   orig: 16, 16
   offset: 0, 0
   index: 16
-Icons_Wrench
+Icons_Trash
+  rotate: false
+  xy: 182, 38
+  size: 16, 16
+  orig: 16, 16
+  offset: 0, 0
+  index: 16
+Icons_Undo
   rotate: false
   xy: 164, 2
+  size: 16, 16
+  orig: 16, 16
+  offset: 0, 0
+  index: 16
+Icons_WindLogo
+  rotate: false
+  xy: 182, 20
+  size: 16, 16
+  orig: 16, 16
+  offset: 0, 0
+  index: 16
+Icons_Wrench
+  rotate: false
+  xy: 182, 2
   size: 16, 16
   orig: 16, 16
   offset: 0, 0

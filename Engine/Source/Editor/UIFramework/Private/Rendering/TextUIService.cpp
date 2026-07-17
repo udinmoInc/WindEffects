@@ -229,26 +229,41 @@ bool TextUIService::GenerateTextGeometry(
     }
 
     we::runtime::text::FontHandle layoutFont = cmd.textBold ? m_SemiBoldFont : m_RegularFont;
+
+    we::runtime::text::layout::LayoutConstraints constraints{};
+    constraints.maxWidth = 1.0e9f;
+    constraints.dpiScale = 1.0f;
+
+    auto layout = m_TextEngine->Layout(cmd.text, BuildStyle(cmd), constraints, layoutFont);
+    if (layout.glyphs.empty()) {
+        return false;
+    }
+
+    // Bind the atlas that matches the glyphs we resolved (must stay in sync with UVs).
+    for (const auto& glyph : layout.glyphs) {
+        if (glyph.glyph.fontHandle != we::runtime::text::kInvalidFontHandle) {
+            layoutFont = glyph.glyph.fontHandle;
+            break;
+        }
+    }
+
     outTextureSet = GetDescriptorForFont(layoutFont);
     if (outTextureSet == we::rhi::RHIDescriptorSetHandle::Invalid
         || (m_Renderer && outTextureSet == m_Renderer->GetDummyDescriptorSet())) {
-        if (cmd.textBold && m_RegularFont != we::runtime::text::kInvalidFontHandle) {
+        if (cmd.textBold
+            && m_RegularFont != we::runtime::text::kInvalidFontHandle
+            && layoutFont != m_RegularFont) {
             layoutFont = m_RegularFont;
+            layout = m_TextEngine->Layout(cmd.text, BuildStyle(cmd), constraints, layoutFont);
+            if (layout.glyphs.empty()) {
+                return false;
+            }
             outTextureSet = GetDescriptorForFont(layoutFont);
         }
         if (outTextureSet == we::rhi::RHIDescriptorSetHandle::Invalid
             || (m_Renderer && outTextureSet == m_Renderer->GetDummyDescriptorSet())) {
             return false;
         }
-    }
-
-    we::runtime::text::layout::LayoutConstraints constraints{};
-    constraints.maxWidth = 1.0e9f;
-    constraints.dpiScale = 1.0f;
-
-    const auto layout = m_TextEngine->Layout(cmd.text, BuildStyle(cmd), constraints, layoutFont);
-    if (layout.glyphs.empty()) {
-        return false;
     }
 
     constexpr float type = 3.0f;

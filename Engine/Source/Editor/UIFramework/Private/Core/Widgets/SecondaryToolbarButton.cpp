@@ -27,10 +27,13 @@ Size SecondaryToolbarButton::Measure(const Size& availableSize) {
 
 void SecondaryToolbarButton::Arrange(const Rect& allottedRect) {
     const float h = std::min(ThemeMetric(ThemeToken::ButtonHeight), allottedRect.height);
+    const float w = m_DesiredSize.width > 0.0f
+        ? std::min(m_DesiredSize.width, allottedRect.width)
+        : allottedRect.width;
     m_Geometry = Rect{
         allottedRect.x,
         allottedRect.y + (allottedRect.height - h) * 0.5f,
-        allottedRect.width,
+        w,
         h
     };
 }
@@ -72,8 +75,8 @@ void SecondaryToolbarButton::Paint(PaintContext& context) {
         context.DrawRoundedRect(buttonRect, bgColor, radius);
     }
 
-    if (m_Enabled) {
-        context.DrawRoundedRectOutline(buttonRect, borderColor, baseStyle.borderWidth * 0.5f, radius);
+    if (m_Enabled && borderColor.a > 0.01f) {
+        context.DrawRoundedRectOutline(buttonRect, borderColor, 1.0f, radius);
     }
 
     const float hPad = ThemeMetric(ThemeToken::ButtonPaddingHorizontal);

@@ -14,8 +14,7 @@ namespace we::programs::welauncher {
 
 enum class LauncherPage : int {
     Projects = 0,
-    Templates,
-    Library,
+    Learn,
     Engine,
     Settings,
     Count
@@ -307,12 +306,46 @@ private:
     HitZone m_Pressed = HitZone::None;
 };
 
+// Zero-project welcome surface: centered CTA + default projects folder row.
+class ProjectsEmptyState : public WindEffects::Editor::UI::Widget {
+public:
+    using ActionFn = std::function<void()>;
+
+    void SetFolderPath(std::string path);
+    void SetOnNewProject(ActionFn cb) { m_OnNew = std::move(cb); }
+    void SetOnOpenProject(ActionFn cb) { m_OnOpen = std::move(cb); }
+    void SetOnChangeFolder(ActionFn cb) { m_OnChangeFolder = std::move(cb); }
+
+    WindEffects::Editor::UI::Size Measure(const WindEffects::Editor::UI::Size& availableSize) override;
+    void Arrange(const WindEffects::Editor::UI::Rect& allottedRect) override;
+    void Paint(WindEffects::Editor::UI::PaintContext& context) override;
+    void OnMouseDown(const WindEffects::Editor::UI::MouseEvent& event) override;
+    void OnMouseMove(const WindEffects::Editor::UI::MouseEvent& event) override;
+    void OnMouseUp(const WindEffects::Editor::UI::MouseEvent& event) override;
+    bool ShowsPointerCursor(const WindEffects::Editor::UI::Point& position) const override;
+
+private:
+    enum class HitZone { None, New, Open, Change };
+    HitZone HitTest(const WindEffects::Editor::UI::Point& p) const;
+    void LayoutContent();
+
+    std::string m_FolderPath;
+    ActionFn m_OnNew;
+    ActionFn m_OnOpen;
+    ActionFn m_OnChangeFolder;
+    WindEffects::Editor::UI::Rect m_NewRect{};
+    WindEffects::Editor::UI::Rect m_OpenRect{};
+    WindEffects::Editor::UI::Rect m_ChangeRect{};
+    HitZone m_Hover = HitZone::None;
+    HitZone m_Pressed = HitZone::None;
+};
+
 // Compact toolbar search field (Projects page).
 class CompactSearchField : public WindEffects::Editor::UI::Widget {
 public:
     using ChangedFn = std::function<void(const std::string&)>;
 
-    explicit CompactSearchField(std::string placeholder = "Search projects…");
+    explicit CompactSearchField(std::string placeholder = "Search Projects...");
 
     void SetText(std::string text);
     [[nodiscard]] const std::string& GetText() const { return m_Text; }
@@ -340,6 +373,7 @@ class ModalOverlay : public WindEffects::Editor::UI::Widget {
 public:
     void SetDialog(const std::shared_ptr<WindEffects::Editor::UI::Widget>& dialog);
     void SetDialogWidth(float width) { m_DialogWidth = width; }
+    void SetDialogHeight(float height) { m_DialogHeight = height; }
 
     WindEffects::Editor::UI::Size Measure(const WindEffects::Editor::UI::Size& availableSize) override;
     void Arrange(const WindEffects::Editor::UI::Rect& allottedRect) override;
@@ -352,6 +386,7 @@ public:
 private:
     std::shared_ptr<WindEffects::Editor::UI::Widget> m_Dialog;
     float m_DialogWidth = 520.0f;
+    float m_DialogHeight = 0.0f; // 0 = size to content
     std::function<void()> m_OnScrimClicked;
 };
 

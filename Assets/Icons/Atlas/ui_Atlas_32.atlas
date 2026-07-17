@@ -1,6 +1,6 @@
 
 ui_Atlas_32.png
-size: 206, 274
+size: 240, 274
 format: RGBA8888
 filter: Nearest, Nearest
 repeat: none
@@ -195,140 +195,168 @@ Icons_NewFile
   index: 32
 Icons_Object
   rotate: false
-  xy: 2, 2
+  xy: 206, 240
   size: 32, 32
   orig: 32, 32
   offset: 0, 0
   index: 32
 Icons_OpenFolder
   rotate: false
-  xy: 36, 36
+  xy: 2, 2
   size: 32, 32
   orig: 32, 32
   offset: 0, 0
   index: 32
 Icons_OutputLog
   rotate: false
-  xy: 70, 70
+  xy: 36, 36
   size: 32, 32
   orig: 32, 32
   offset: 0, 0
   index: 32
 Icons_Pivot
   rotate: false
-  xy: 104, 104
+  xy: 70, 70
   size: 32, 32
   orig: 32, 32
   offset: 0, 0
   index: 32
 Icons_Play
   rotate: false
-  xy: 172, 172
+  xy: 138, 138
   size: 32, 32
   orig: 32, 32
   offset: 0, 0
   index: 32
 Icons_PlaySolid
   rotate: false
-  xy: 138, 138
+  xy: 104, 104
   size: 32, 32
   orig: 32, 32
   offset: 0, 0
   index: 32
 Icons_Plus
   rotate: false
-  xy: 36, 2
+  xy: 172, 172
   size: 32, 32
   orig: 32, 32
   offset: 0, 0
   index: 32
 Icons_Recent
   rotate: false
-  xy: 70, 36
+  xy: 36, 2
+  size: 32, 32
+  orig: 32, 32
+  offset: 0, 0
+  index: 32
+Icons_RecentProjects
+  rotate: false
+  xy: 206, 206
   size: 32, 32
   orig: 32, 32
   offset: 0, 0
   index: 32
 Icons_Redo
   rotate: false
-  xy: 104, 70
+  xy: 70, 36
   size: 32, 32
   orig: 32, 32
   offset: 0, 0
   index: 32
 Icons_Rotate
   rotate: false
-  xy: 138, 104
+  xy: 104, 70
   size: 32, 32
   orig: 32, 32
   offset: 0, 0
   index: 32
 Icons_Save
   rotate: false
-  xy: 70, 2
+  xy: 172, 138
   size: 32, 32
   orig: 32, 32
   offset: 0, 0
   index: 32
 Icons_SaveAll
   rotate: false
-  xy: 172, 138
+  xy: 138, 104
   size: 32, 32
   orig: 32, 32
   offset: 0, 0
   index: 32
 Icons_Scale
   rotate: false
-  xy: 104, 36
+  xy: 206, 172
   size: 32, 32
   orig: 32, 32
   offset: 0, 0
   index: 32
 Icons_Search
   rotate: false
-  xy: 138, 70
+  xy: 70, 2
   size: 32, 32
   orig: 32, 32
   offset: 0, 0
   index: 32
 Icons_Settings
   rotate: false
-  xy: 172, 104
+  xy: 104, 36
+  size: 32, 32
+  orig: 32, 32
+  offset: 0, 0
+  index: 32
+Icons_Star
+  rotate: false
+  xy: 138, 70
   size: 32, 32
   orig: 32, 32
   offset: 0, 0
   index: 32
 Icons_Stop
   rotate: false
-  xy: 104, 2
+  xy: 172, 104
   size: 32, 32
   orig: 32, 32
   offset: 0, 0
   index: 32
 Icons_Sun
   rotate: false
-  xy: 138, 36
+  xy: 206, 138
   size: 32, 32
   orig: 32, 32
   offset: 0, 0
   index: 32
 Icons_Terminal
   rotate: false
-  xy: 172, 70
+  xy: 104, 2
+  size: 32, 32
+  orig: 32, 32
+  offset: 0, 0
+  index: 32
+Icons_Trash
+  rotate: false
+  xy: 138, 36
   size: 32, 32
   orig: 32, 32
   offset: 0, 0
   index: 32
 Icons_Undo
   rotate: false
-  xy: 138, 2
+  xy: 172, 70
+  size: 32, 32
+  orig: 32, 32
+  offset: 0, 0
+  index: 32
+Icons_WindLogo
+  rotate: false
+  xy: 206, 104
   size: 32, 32
   orig: 32, 32
   offset: 0, 0
   index: 32
 Icons_Wrench
   rotate: false
-  xy: 172, 36
+  xy: 138, 2
   size: 32, 32
   orig: 32, 32
   offset: 0, 0

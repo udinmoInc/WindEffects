@@ -81,6 +81,7 @@ IconAuditReport AuditIconAtlas(const std::filesystem::path& inputDir)
 
             if (IsFullColorIcon(runtimeName)
                 && runtimeName != "windeffects"
+                && runtimeName != "windlogo"
                 && runtimeName.rfind("3d", 0) != 0) {
                 AddFinding(
                     report,

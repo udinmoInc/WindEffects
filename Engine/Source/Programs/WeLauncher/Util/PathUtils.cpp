@@ -166,7 +166,7 @@ std::filesystem::path PathUtils::GetDefaultProjectsRoot() {
 #endif
 }
 
-std::filesystem::path PathUtils::GetLauncherSettingsPath() {
+std::filesystem::path PathUtils::GetLauncherDataRoot() {
 #if defined(_WIN32)
     wchar_t* localApp = nullptr;
     std::filesystem::path base;
@@ -176,15 +176,95 @@ std::filesystem::path PathUtils::GetLauncherSettingsPath() {
     } else {
         base = std::filesystem::path(std::getenv("LOCALAPPDATA") ? std::getenv("LOCALAPPDATA") : ".");
     }
-    return base / "WindEffects" / "launcher.json";
+    return base / "WindEffects";
 #else
     const char* config = std::getenv("XDG_CONFIG_HOME");
     if (!config) {
         const char* home = std::getenv("HOME");
-        return std::filesystem::path(home ? home : ".") / ".config" / "windeffects" / "launcher.json";
+        return std::filesystem::path(home ? home : ".") / ".config" / "windeffects";
     }
-    return std::filesystem::path(config) / "windeffects" / "launcher.json";
+    return std::filesystem::path(config) / "windeffects";
 #endif
+}
+
+std::filesystem::path PathUtils::GetLauncherSettingsPath() {
+    return GetLauncherDataRoot() / "launcher.json";
+}
+
+std::filesystem::path PathUtils::GetLauncherCacheRoot() {
+    return GetLauncherDataRoot() / "Cache";
+}
+
+std::filesystem::path PathUtils::GetThumbnailCacheRoot() {
+    return GetLauncherDataRoot() / "Thumbnails";
+}
+
+std::filesystem::path PathUtils::GetLauncherLogsRoot() {
+    return GetLauncherDataRoot() / "Logs";
+}
+
+std::uint64_t PathUtils::EstimateDirectoryBytes(const std::filesystem::path& root) {
+    std::error_code ec;
+    if (!std::filesystem::exists(root, ec) || !std::filesystem::is_directory(root, ec)) {
+        return 0;
+    }
+    std::uint64_t total = 0;
+    for (std::filesystem::recursive_directory_iterator it(
+             root,
+             std::filesystem::directory_options::skip_permission_denied,
+             ec),
+         end;
+         it != end;
+         it.increment(ec)) {
+        if (ec) {
+            ec.clear();
+            continue;
+        }
+        if (!it->is_regular_file(ec)) {
+            continue;
+        }
+        total += static_cast<std::uint64_t>(it->file_size(ec));
+        if (ec) {
+            ec.clear();
+        }
+    }
+    return total;
+}
+
+std::string PathUtils::FormatByteSize(std::uint64_t bytes) {
+    constexpr double kKb = 1024.0;
+    constexpr double kMb = kKb * 1024.0;
+    constexpr double kGb = kMb * 1024.0;
+    std::ostringstream oss;
+    oss << std::fixed << std::setprecision(1);
+    if (bytes >= static_cast<std::uint64_t>(kGb)) {
+        oss << (static_cast<double>(bytes) / kGb) << " GB";
+    } else if (bytes >= static_cast<std::uint64_t>(kMb)) {
+        oss << (static_cast<double>(bytes) / kMb) << " MB";
+    } else if (bytes >= static_cast<std::uint64_t>(kKb)) {
+        oss << (static_cast<double>(bytes) / kKb) << " KB";
+    } else {
+        oss << std::setprecision(0) << bytes << " B";
+    }
+    return oss.str();
+}
+
+bool PathUtils::ClearDirectoryContents(const std::filesystem::path& root) {
+    std::error_code ec;
+    std::filesystem::create_directories(root, ec);
+    if (ec) {
+        return false;
+    }
+    for (std::filesystem::directory_iterator it(root, ec), end; it != end; it.increment(ec)) {
+        if (ec) {
+            return false;
+        }
+        std::filesystem::remove_all(it->path(), ec);
+        if (ec) {
+            return false;
+        }
+    }
+    return true;
 }
 
 std::string PathUtils::GetUtcNowIso8601() {

@@ -326,8 +326,9 @@ ResolvedStyle StyleResolver::Resolve(StyleRole role) const {
         break;
     case StyleRole::ButtonPrimary:
         style.background = theme.GetColor(ThemeToken::ButtonPrimaryBackground);
-        style.foreground = theme.GetColor(ThemeToken::TextPrimary);
-        style.border = theme.GetColor(ThemeToken::AccentPrimary);
+        style.foreground = Color{ 1.0f, 1.0f, 1.0f, 1.0f };
+        style.border = Color::Transparent();
+        style.borderWidth = 0.0f;
         style.height = Scaled(theme.GetMetric(ThemeToken::ButtonHeight));
         style.iconSize = static_cast<float>(IconMetrics::GlyphTierPx(ThemeToken::IconSizeToolbar));
         style.cornerRadius = Scaled(theme.GetMetric(ThemeToken::CornerRadiusSmall));
@@ -336,6 +337,7 @@ ResolvedStyle StyleResolver::Resolve(StyleRole role) const {
         style.background = theme.GetColor(ThemeToken::ActiveBackground);
         style.foreground = theme.GetColor(ThemeToken::TextSecondary);
         style.border = theme.GetColor(ThemeToken::BorderDefault);
+        style.borderWidth = 1.0f;
         style.height = Scaled(theme.GetMetric(ThemeToken::ButtonHeight));
         style.iconSize = static_cast<float>(IconMetrics::GlyphTierPx(ThemeToken::IconSizeToolbar));
         style.cornerRadius = Scaled(theme.GetMetric(ThemeToken::CornerRadiusSmall));
@@ -486,19 +488,21 @@ ResolvedStyle StyleResolver::Resolve(StyleRole role) const {
         style.foreground = theme.GetColor(ThemeToken::TextPrimary);
         style.height = Scaled(theme.GetMetric(ThemeToken::ListRowHeight));
         style.fontSize = Scaled(theme.GetMetric(ThemeToken::TextSizeBody));
-        style.cornerRadius = Scaled(theme.GetMetric(ThemeToken::CornerRadiusSmall));
+        style.cornerRadius = 0.0f;
         break;
     case StyleRole::TableRowHover:
         style.background = theme.GetColor(ThemeToken::HoverBackground);
         style.foreground = theme.GetColor(ThemeToken::TextPrimary);
         style.height = Scaled(theme.GetMetric(ThemeToken::ListRowHeight));
+        style.cornerRadius = 0.0f;
         break;
     case StyleRole::TableRowSelected:
         style.background = theme.GetColor(ThemeToken::SelectedBackground);
         style.foreground = theme.GetColor(ThemeToken::TextPrimary);
-        style.border = theme.GetColor(ThemeToken::AccentPrimary);
+        style.border = Color::Transparent();
+        style.borderWidth = 0.0f;
         style.height = Scaled(theme.GetMetric(ThemeToken::ListRowHeight));
-        style.cornerRadius = Scaled(theme.GetMetric(ThemeToken::CornerRadiusSmall));
+        style.cornerRadius = 0.0f;
         break;
     case StyleRole::SectionHeader:
         style.background = Color::Transparent();

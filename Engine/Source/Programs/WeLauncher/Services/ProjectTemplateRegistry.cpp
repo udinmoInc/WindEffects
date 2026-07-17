@@ -37,10 +37,10 @@ ProjectTemplateInfo MakeTemplate(
 
 void ProjectTemplateRegistry::RegisterBuiltInFallbacks() {
     m_Templates.push_back(MakeTemplate(
-        "Blank", "Blank",
-        "Clean project structure with default config and no starter gameplay.",
-        "Foundation", "Prototyping and custom pipelines",
-        { "Windows", "Linux", "Mac" }, { "Minimal", "Starter" },
+        "Blank", "3D Blank",
+        "Clean 3D project with default config, lighting-ready scene setup, and no starter gameplay.",
+        "Core", "Prototyping and custom pipelines",
+        { "Windows", "Linux", "Mac" }, { "3D", "Minimal", "Starter" },
         { "Default config", "Module scaffolding", "Asset folders" },
         {}, { "Config", "Content/" }));
     m_Templates.push_back(MakeTemplate(
@@ -59,37 +59,30 @@ void ProjectTemplateRegistry::RegisterBuiltInFallbacks() {
         { "Input", "Gameplay" }, { "Character mesh", "Sample level" }));
     m_Templates.push_back(MakeTemplate(
         "TopDown", "Top Down",
-        "Top-down camera and click-to-move gameplay foundation.",
+        "Perspective top-down camera and click-to-move gameplay foundation.",
         "Games", "Strategy and twin-stick prototypes",
-        { "Windows", "Linux" }, { "2.5D", "Strategy" },
-        { "Ortho camera", "Click movement", "Nav helpers" },
+        { "Windows", "Linux" }, { "3D", "Strategy" },
+        { "Top-down camera", "Click movement", "Nav helpers" },
         { "AI", "Gameplay" }, { "Playable map" }));
     m_Templates.push_back(MakeTemplate(
         "Vehicle", "Vehicle",
         "Vehicle physics starter with chassis setup and camera chase.",
         "Games", "Racing and simulation",
-        { "Windows" }, { "Physics", "Vehicles" },
+        { "Windows" }, { "3D", "Physics", "Vehicles" },
         { "Vehicle physics", "Chase camera", "Input presets" },
         { "Physics", "Gameplay" }, { "Sample vehicle" }));
     m_Templates.push_back(MakeTemplate(
         "VR", "VR",
         "VR template with XR session hooks and stereo-ready viewport setup.",
         "XR", "Headsets and immersive apps",
-        { "Windows" }, { "XR", "VR" },
+        { "Windows" }, { "XR", "VR", "3D" },
         { "XR bootstrap", "Stereo rendering", "Motion controllers" },
         { "XR", "Input" }, { "VR pawn" }));
     m_Templates.push_back(MakeTemplate(
-        "TwoD", "2D",
-        "2D gameplay starter with orthographic camera and sprite-friendly content layout.",
-        "Games", "Platformers and 2D action",
-        { "Windows", "Linux", "Mac" }, { "2D", "Sprites" },
-        { "Ortho camera", "2D content layout", "Pixel-friendly defaults" },
-        { "Gameplay" }, { "Sample sprites" }));
-    m_Templates.push_back(MakeTemplate(
         "Empty", "Empty Project",
-        "Absolute minimum project for engine bring-up and tooling tests.",
-        "Foundation", "Engine validation and tooling",
-        { "Windows", "Linux", "Mac" }, { "Minimal" },
+        "Absolute minimum 3D project for engine bring-up and tooling tests.",
+        "Core", "Engine validation and tooling",
+        { "Windows", "Linux", "Mac" }, { "3D", "Minimal" },
         { "Bare project", "No starter content" }));
 }
 
@@ -116,6 +109,9 @@ void ProjectTemplateRegistry::LoadFromDisk(const std::filesystem::path& template
         info.displayName = json.value("displayName", info.id);
         info.description = json.value("description", std::string{});
         info.category = json.value("category", "Games");
+        if (info.category == "Foundation") {
+            info.category = "Core";
+        }
         info.recommendedUse = json.value("recommendedUse", std::string{});
         info.platforms = json.value("platforms", std::vector<std::string>{ "Windows" });
         info.tags = json.value("tags", std::vector<std::string>{});
@@ -123,6 +119,13 @@ void ProjectTemplateRegistry::LoadFromDisk(const std::filesystem::path& template
         info.plugins = json.value("plugins", std::vector<std::string>{});
         info.starterAssets = json.value("starterAssets", std::vector<std::string>{});
         info.templateRoot = entry.path();
+
+        // WindEffects is a 3D engine — skip 2D-only packs from disk.
+        const bool isTwoD = info.id == "TwoD" || info.id == "2D"
+            || std::find(info.tags.begin(), info.tags.end(), "2D") != info.tags.end();
+        if (isTwoD) {
+            continue;
+        }
 
         auto it = std::find_if(m_Templates.begin(), m_Templates.end(), [&](const ProjectTemplateInfo& t) {
             return t.id == info.id;

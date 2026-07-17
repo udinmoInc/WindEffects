@@ -27,10 +27,13 @@ Size PrimaryToolbarButton::Measure(const Size& availableSize) {
 
 void PrimaryToolbarButton::Arrange(const Rect& allottedRect) {
     const float h = std::min(ThemeMetric(ThemeToken::ButtonHeight), allottedRect.height);
+    const float w = m_DesiredSize.width > 0.0f
+        ? std::min(m_DesiredSize.width, allottedRect.width)
+        : allottedRect.width;
     m_Geometry = Rect{
         allottedRect.x,
         allottedRect.y + (allottedRect.height - h) * 0.5f,
-        allottedRect.width,
+        w,
         h
     };
 }
@@ -68,14 +71,10 @@ void PrimaryToolbarButton::Paint(PaintContext& context) {
 
     context.DrawRoundedRect(buttonRect, bgColor, radius);
 
-    if (m_Enabled) {
-        context.DrawRoundedRectOutline(
-            Rect{ buttonRect.x + 0.5f, buttonRect.y + 0.5f, buttonRect.width - 1.0f, buttonRect.height - 1.0f },
-            ThemeColor(ThemeToken::BorderLight), baseStyle.borderWidth * 0.5f, radius
-        );
+    // Primary: solid fill only — no outline (Win11 / VS Installer style).
+    if (m_Enabled && borderColor.a > 0.01f && baseStyle.borderWidth > 0.01f) {
+        context.DrawRoundedRectOutline(buttonRect, borderColor, baseStyle.borderWidth, radius);
     }
-
-    context.DrawRoundedRectOutline(buttonRect, borderColor, baseStyle.borderWidth * 0.5f, radius);
 
     const float hPad = ThemeMetric(ThemeToken::ButtonPaddingHorizontal);
     float x = buttonRect.x + hPad;

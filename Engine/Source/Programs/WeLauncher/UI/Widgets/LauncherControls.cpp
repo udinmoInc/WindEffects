@@ -1,4 +1,4 @@
-﻿#include "UI/Widgets/LauncherControls.h"
+#include "UI/Widgets/LauncherControls.h"
 
 #include "UI/LauncherHelpers.h"
 
@@ -209,7 +209,7 @@ void LauncherTitleBar::PaintIconButton(
         context.DrawRoundedRect(r, bg, radius);
     }
 
-    const float glyph = 14.0f * s;
+    const float glyph = kLauncherIconPx * s;
     IconPainter::DrawIcon(
         context,
         icon,
@@ -228,11 +228,7 @@ void LauncherTitleBar::Paint(PaintContext& context) {
     const float logoX = m_BrandRect.x;
     const float logoY = m_Geometry.y + (m_Geometry.height - logoSize) * 0.5f;
     Rect logoRect{ logoX, logoY, logoSize, logoSize };
-    if (m_LogoSet != we::rhi::RHIDescriptorSetHandle::Invalid) {
-        context.DrawTexture(logoRect, m_LogoSet, LColor(ThemeToken::IconPrimary));
-    } else {
-        IconPainter::DrawIcon(context, Icons::PackageName, logoRect, LColor(ThemeToken::IconPrimary));
-    }
+    IconPainter::DrawIcon(context, Icons::WindLogoName, logoRect, Color::White());
 
     const float titleSize = LMetric(ThemeToken::TextSizeToolbar) * s;
     context.DrawText(
@@ -260,7 +256,7 @@ void LauncherTitleBar::Paint(PaintContext& context) {
         if (bg.a > 0.01f) {
             context.DrawRect(r, bg);
         }
-        const float glyph = 14.0f * s;
+        const float glyph = kLauncherIconPx * s;
         IconPainter::DrawIcon(
             context,
             icons[i],
@@ -360,8 +356,7 @@ void LauncherTitleBar::Tick(float deltaTime) {
 NavSidebar::NavSidebar() {
     m_Items = {
         { LauncherPage::Projects, "Projects", Icons::OpenFolderName },
-        { LauncherPage::Templates, "Templates", Icons::LayersName },
-        { LauncherPage::Library, "Library", Icons::Cube3DName },
+        { LauncherPage::Learn, "Learn", Icons::MediaPlayName },
         { LauncherPage::Engine, "Engine", Icons::BuildName },
         { LauncherPage::Settings, "Settings", Icons::SettingsName },
     };
@@ -429,10 +424,10 @@ void NavSidebar::Arrange(const Rect& allottedRect) {
 
 Rect NavSidebar::ItemRect(int index) const {
     const float s = LScale();
-    const float padH = LMetric(ThemeToken::Space2) * s;
-    const float padTop = LMetric(ThemeToken::Space4) * s;
+    const float padH = kLauncherNavPadX * s;
+    const float padTop = kLauncherNavPadTop * s;
     const float itemH = kLauncherNavItemH * s;
-    const float gap = LMetric(ThemeToken::Space2) * s;
+    const float gap = kLauncherNavItemGap * s;
     const float top = m_Geometry.y + padTop + static_cast<float>(index) * (itemH + gap);
     return Rect{
         m_Geometry.x + padH,
@@ -454,69 +449,56 @@ int NavSidebar::HitItem(const Point& p) const {
 void NavSidebar::Paint(PaintContext& context) {
     const float s = LScale();
     context.DrawRect(m_Geometry, LColor(ThemeToken::PanelBackground));
-    // Right edge separator is drawn by ThinVerticalDivider in the shell chrome.
 
     for (int i = 0; i < static_cast<int>(m_Items.size()); ++i) {
         auto& item = m_Items[static_cast<std::size_t>(i)];
         const Rect r = ItemRect(i);
         const bool active = item.page == m_Active;
+        const float radius = 8.0f * s;
 
-        ControlChrome::InteractionState state{
-            item.hoverAnim,
-            0.0f,
-            active || item.selectAnim > 0.5f,
-            false,
-            false
-        };
-        if (active || item.selectAnim > 0.01f || item.hoverAnim > 0.01f) {
-            const ResolvedStyle style = ThemeManager::Get().Resolve(
-                active ? StyleRole::SidebarItemActive : StyleRole::SidebarItem);
-            Color bg = Color::Transparent();
-            if (item.selectAnim > 0.01f) {
-                bg = Color::Lerp(bg, style.background.a > 0.01f
-                    ? style.background
-                    : LColor(ThemeToken::SelectedBackground), item.selectAnim);
-            } else if (item.hoverAnim > 0.01f) {
-                bg = Color::Lerp(bg, LColor(ThemeToken::HoverBackground), item.hoverAnim);
-            }
-            if (bg.a > 0.01f) {
-                context.DrawRoundedRect(r, bg, style.cornerRadius);
-            }
-            if (item.selectAnim > 0.01f) {
-                Color accent = LColor(ThemeToken::AccentPrimary);
-                accent.a *= item.selectAnim;
-                context.DrawRect(
-                    Rect{ r.x, r.y + 6.0f * s, 3.0f * s, r.height - 12.0f * s },
-                    accent);
-            }
+        // Active: solid accent fill, no outline / accent bar. Inactive: transparent.
+        if (active || item.selectAnim > 0.01f) {
+            Color bg = LColor(ThemeToken::AccentPrimary);
+            bg.a *= std::max(item.selectAnim, active ? 1.0f : 0.0f);
+            context.DrawRoundedRect(r, bg, radius);
+        } else if (item.hoverAnim > 0.01f) {
+            Color bg = LColor(ThemeToken::HoverBackground);
+            bg.a *= item.hoverAnim;
+            context.DrawRoundedRect(r, bg, radius);
         }
-        (void)state;
 
-        const ResolvedStyle itemStyle = ThemeManager::Get().Resolve(
-            active ? StyleRole::SidebarItemActive : StyleRole::SidebarItem);
-        const float iconSize = itemStyle.iconSize > 0.0f
-            ? itemStyle.iconSize
-            : static_cast<float>(IconMetrics::NativeIconTierPx(LMetric(ThemeToken::IconSizeNavigation)));
-        const float iconPad = LMetric(ThemeToken::Space2) * s;
+        const Color fg = active
+            ? Color{ 1.0f, 1.0f, 1.0f, 1.0f }
+            : LColor(ThemeToken::TextSecondary);
+        const Color iconColor = active
+            ? Color{ 1.0f, 1.0f, 1.0f, 1.0f }
+            : LColor(ThemeToken::IconSecondary);
+
+        const float iconSize = kLauncherIconPx * s;
+        const float iconPad = kLauncherNavIconTextGap * s;
         const float iconX = r.x + (m_Collapsed ? (r.width - iconSize) * 0.5f : iconPad);
         IconPainter::DrawIcon(
             context,
             item.icon,
-            Rect{ iconX, r.y + (r.height - iconSize) * 0.5f, iconSize, iconSize },
-            itemStyle.icon.a > 0.01f ? itemStyle.icon : (active
-                ? LColor(ThemeToken::IconAccent)
-                : LColor(ThemeToken::IconSecondary)));
+            Rect{
+                std::round(iconX),
+                std::round(r.y + (r.height - iconSize) * 0.5f),
+                iconSize,
+                iconSize
+            },
+            iconColor);
 
         if (!m_Collapsed) {
-            const float textSize = itemStyle.fontSize > 0.0f
-                ? itemStyle.fontSize
-                : LMetric(ThemeToken::TextSizeBody) * s;
+            const float textSize = LMetric(ThemeToken::TextSizeBody) * s;
             context.DrawText(
                 item.label,
-                Point{ iconX + iconSize + LMetric(ThemeToken::Space2) * s, r.y + (r.height - textSize) * 0.5f },
-                itemStyle.foreground,
+                Point{
+                    std::round(iconX + iconSize + kLauncherNavIconTextGap * s),
+                    std::round(r.y + (r.height - textSize) * 0.5f)
+                },
+                fg,
                 textSize,
-                active || itemStyle.bold);
+                active);
         }
     }
 }
@@ -877,27 +859,47 @@ void StatusFooter::Paint(PaintContext& context) {
 
     const float textSize = LMetric(ThemeToken::TextSizeCaption) * s;
     const float pad = kLauncherContentPadX * s;
+    const float iconPx = 14.0f * s;
+    const float iconGap = 6.0f * s;
     const float textY = m_Geometry.y + (m_Geometry.height - textSize) * 0.5f;
+    const float iconY = m_Geometry.y + (m_Geometry.height - iconPx) * 0.5f;
+    const Color iconColor = LColor(ThemeToken::IconSecondary);
+    const Color textColor = LColor(ThemeToken::TextMuted);
 
-    context.DrawText(m_Status, Point{ m_Geometry.x + pad, textY }, LColor(ThemeToken::TextMuted), textSize);
+    float leftX = m_Geometry.x + pad;
+    IconPainter::DrawIcon(
+        context,
+        Icons::InfoName,
+        Rect{ leftX, iconY, iconPx, iconPx },
+        iconColor);
+    leftX += iconPx + iconGap;
+    context.DrawText(m_Status, Point{ leftX, textY }, textColor, textSize);
 
-    std::string right;
-    if (!m_EngineLabel.empty()) {
-        right = m_EngineLabel;
-    }
+    float rightX = m_Geometry.x + m_Geometry.width - pad;
     if (!m_SdkSummary.empty()) {
-        if (!right.empty()) {
-            right += "  ·  ";
-        }
-        right += m_SdkSummary;
+        const float sdkW = context.GetTextWidth(m_SdkSummary, textSize);
+        rightX -= sdkW;
+        context.DrawText(m_SdkSummary, Point{ rightX, textY }, textColor, textSize);
+        rightX -= iconGap;
+        rightX -= iconPx;
+        IconPainter::DrawIcon(
+            context,
+            Icons::PackageName,
+            Rect{ rightX, iconY, iconPx, iconPx },
+            iconColor);
+        rightX -= 14.0f * s;
     }
-    if (!right.empty()) {
-        const float rightW = ApproxTextWidth(right, textSize);
-        context.DrawText(
-            right,
-            Point{ m_Geometry.x + m_Geometry.width - pad - rightW, textY },
-            LColor(ThemeToken::TextMuted),
-            textSize);
+    if (!m_EngineLabel.empty()) {
+        const float engW = context.GetTextWidth(m_EngineLabel, textSize);
+        rightX -= engW;
+        context.DrawText(m_EngineLabel, Point{ rightX, textY }, textColor, textSize);
+        rightX -= iconGap;
+        rightX -= iconPx;
+        IconPainter::DrawIcon(
+            context,
+            Icons::BuildName,
+            Rect{ rightX, iconY, iconPx, iconPx },
+            iconColor);
     }
 }
 
@@ -1014,6 +1016,8 @@ void EmptyStatePanel::Arrange(const Rect& allottedRect) {
     const float gap = LMetric(ThemeToken::Space2) * s;
     const bool hasPrimary = !m_PrimaryLabel.empty();
     const bool hasSecondary = !m_SecondaryLabel.empty();
+    const bool hasIcon = m_Icon && m_Icon[0];
+    const bool hasSubtitle = !m_Subtitle.empty();
 
     const float primaryW = hasPrimary
         ? std::max(140.0f * s, ApproxTextWidth(m_PrimaryLabel, LMetric(ThemeToken::TextSizeToolbar) * s) + 48.0f * s)
@@ -1027,10 +1031,30 @@ void EmptyStatePanel::Arrange(const Rect& allottedRect) {
         totalW += gap;
     }
 
-    // Vertically center the action row under the illustration block.
-    const float blockH = 220.0f * s;
+    const float titleSize = LMetric(ThemeToken::TextSizeHeader) * s;
+    const float subSize = LMetric(ThemeToken::TextSizeBody) * s;
+    const float iconSize = hasIcon ? 72.0f * s : 0.0f;
+    float blockH = titleSize;
+    if (hasIcon) {
+        blockH += iconSize + LMetric(ThemeToken::Space3) * s;
+    }
+    if (hasSubtitle) {
+        blockH += LMetric(ThemeToken::Space2) * s + subSize;
+    }
+    if (hasPrimary || hasSecondary) {
+        blockH += LMetric(ThemeToken::Space4) * s + btnH;
+    }
+
     const float blockTop = m_Geometry.y + std::max(24.0f * s, (m_Geometry.height - blockH) * 0.5f);
-    const float y = blockTop + 168.0f * s;
+    float y = blockTop;
+    if (hasIcon) {
+        y += iconSize + LMetric(ThemeToken::Space3) * s;
+    }
+    y += titleSize;
+    if (hasSubtitle) {
+        y += LMetric(ThemeToken::Space2) * s + subSize;
+    }
+    y += LMetric(ThemeToken::Space4) * s;
     float x = m_Geometry.x + (m_Geometry.width - totalW) * 0.5f;
 
     m_PrimaryRect = {};
@@ -1060,47 +1084,54 @@ void EmptyStatePanel::Paint(PaintContext& context) {
     context.DrawRect(m_Geometry, LColor(ThemeToken::PanelContentBackground));
 
     const float cx = m_Geometry.x + m_Geometry.width * 0.5f;
-    const float blockH = 220.0f * s;
-    const float blockTop = m_Geometry.y + std::max(24.0f * s, (m_Geometry.height - blockH) * 0.5f);
-
-    const float circle = 72.0f * s;
-    const float circleY = blockTop;
-    const Rect circleRect{ cx - circle * 0.5f, circleY, circle, circle };
-    context.DrawRoundedRect(circleRect, LColor(ThemeToken::PanelBackground), circle * 0.5f);
-    Color ring = LColor(ThemeToken::BorderDefault);
-    ring.a *= 0.85f;
-    context.DrawRoundedRectOutline(circleRect, ring, 1.0f, circle * 0.5f);
-
-    const float iconSize = 32.0f * s;
-    IconPainter::DrawIcon(
-        context,
-        m_Icon ? m_Icon : Icons::PackageName,
-        Rect{
-            cx - iconSize * 0.5f,
-            circleY + (circle - iconSize) * 0.5f,
-            iconSize,
-            iconSize
-        },
-        LColor(ThemeToken::IconAccent));
+    const bool hasIcon = m_Icon && m_Icon[0];
+    const bool hasSubtitle = !m_Subtitle.empty();
+    const bool hasActions = !m_PrimaryLabel.empty() || !m_SecondaryLabel.empty();
 
     const float titleSize = LMetric(ThemeToken::TextSizeHeader) * s;
-    const float titleY = circleY + circle + LMetric(ThemeToken::Space3) * s;
-    const float titleW = ApproxTextWidth(m_Title, titleSize);
+    const float subSize = LMetric(ThemeToken::TextSizeBody) * s;
+    const float iconSize = hasIcon ? 72.0f * s : 0.0f;
+    float blockH = titleSize;
+    if (hasIcon) {
+        blockH += iconSize + LMetric(ThemeToken::Space3) * s;
+    }
+    if (hasSubtitle) {
+        blockH += LMetric(ThemeToken::Space2) * s + subSize;
+    }
+    if (hasActions) {
+        blockH += LMetric(ThemeToken::Space4) * s + 36.0f * s;
+    }
+    const float blockTop = m_Geometry.y + std::max(24.0f * s, (m_Geometry.height - blockH) * 0.5f);
+
+    float y = blockTop;
+    if (hasIcon) {
+        Color iconColor = LColor(ThemeToken::IconPrimary);
+        iconColor.a *= 0.45f;
+        IconPainter::DrawIcon(
+            context,
+            m_Icon,
+            Rect{ cx - iconSize * 0.5f, y, iconSize, iconSize },
+            iconColor);
+        y += iconSize + LMetric(ThemeToken::Space3) * s;
+    }
+
     context.DrawText(
         m_Title,
-        Point{ cx - titleW * 0.5f, titleY },
+        Point{ cx - context.GetTextWidth(m_Title, titleSize, true) * 0.5f, y },
         LColor(ThemeToken::TextPrimary),
         titleSize,
         true);
+    y += titleSize;
 
-    const float subSize = LMetric(ThemeToken::TextSizeBody) * s;
-    const float subY = titleY + titleSize + LMetric(ThemeToken::Space2) * s;
-    const float subW = ApproxTextWidth(m_Subtitle, subSize);
-    context.DrawText(
-        m_Subtitle,
-        Point{ cx - subW * 0.5f, subY },
-        LColor(ThemeToken::TextSecondary),
-        subSize);
+    if (hasSubtitle) {
+        y += LMetric(ThemeToken::Space2) * s;
+        context.DrawText(
+            m_Subtitle,
+            Point{ cx - context.GetTextWidth(m_Subtitle, subSize) * 0.5f, y },
+            LColor(ThemeToken::TextSecondary),
+            subSize);
+        y += subSize;
+    }
 
     auto paintButton = [&](const Rect& r, const std::string& label, const char* icon, bool primary, bool hovered, bool pressed) {
         if (r.width <= 0.0f) {
@@ -1120,20 +1151,20 @@ void EmptyStatePanel::Paint(PaintContext& context) {
             bg = Color::Lerp(bg, LColor(ThemeToken::HoverBackground), 0.75f);
         }
         context.DrawRoundedRect(r, bg, radius);
-        context.DrawRoundedRectOutline(
-            r,
-            primary ? LColor(ThemeToken::AccentPrimary) : LColor(ThemeToken::BorderDefault),
-            1.0f,
-            radius);
+        if (!primary) {
+            context.DrawRoundedRectOutline(r, LColor(ThemeToken::BorderDefault), 1.0f, radius);
+        }
 
         const float glyph = 14.0f * s;
         const float textSize = LMetric(ThemeToken::TextSizeToolbar) * s;
-        float contentW = ApproxTextWidth(label, textSize);
+        float contentW = context.GetTextWidth(label, textSize);
         if (icon && icon[0]) {
             contentW += glyph + 6.0f * s;
         }
         float x = r.x + (r.width - contentW) * 0.5f;
-        const Color fg = LColor(ThemeToken::TextPrimary);
+        const Color fg = primary
+            ? Color{ 1.0f, 1.0f, 1.0f, 1.0f }
+            : LColor(ThemeToken::TextPrimary);
         if (icon && icon[0]) {
             IconPainter::DrawIcon(
                 context,
@@ -1199,6 +1230,198 @@ void EmptyStatePanel::Tick(float deltaTime) {
     Widget::Tick(deltaTime);
 }
 
+// --- ProjectsEmptyState -------------------------------------------------------
+
+void ProjectsEmptyState::SetFolderPath(std::string path) {
+    if (m_FolderPath == path) {
+        return;
+    }
+    m_FolderPath = std::move(path);
+    InvalidateUI();
+}
+
+Size ProjectsEmptyState::Measure(const Size& availableSize) {
+    const float s = LScale();
+    m_DesiredSize = Size{
+        availableSize.width > 0.0f ? availableSize.width : 640.0f * s,
+        availableSize.height > 0.0f ? availableSize.height : 420.0f * s
+    };
+    return m_DesiredSize;
+}
+
+void ProjectsEmptyState::Arrange(const Rect& allottedRect) {
+    m_Geometry = allottedRect;
+    LayoutContent();
+}
+
+void ProjectsEmptyState::LayoutContent() {
+    const float s = LScale();
+    const float btnH = 34.0f * s;
+    const float newW = 148.0f * s;
+    const float openW = 148.0f * s;
+    const float gap = 8.0f * s;
+
+    const float iconSize = 68.0f * s;
+    const float blockH = iconSize + 16.0f * s + 28.0f * s + 8.0f * s + 40.0f * s
+        + 16.0f * s + btnH + 28.0f * s + 52.0f * s;
+    const float blockTop = m_Geometry.y + std::max(16.0f * s, (m_Geometry.height - blockH) * 0.5f);
+    const float cx = m_Geometry.x + m_Geometry.width * 0.5f;
+
+    const float btnY = blockTop + iconSize + 16.0f * s + 28.0f * s + 8.0f * s + 40.0f * s + 16.0f * s;
+    const float totalBtnW = newW + gap + openW;
+    float bx = cx - totalBtnW * 0.5f;
+    m_NewRect = Rect{ bx, btnY, newW, btnH };
+    bx += newW + gap;
+    m_OpenRect = Rect{ bx, btnY, openW, btnH };
+    // m_ChangeRect is finalized in Paint() once text widths are known.
+}
+
+ProjectsEmptyState::HitZone ProjectsEmptyState::HitTest(const Point& p) const {
+    if (m_NewRect.Contains(p)) return HitZone::New;
+    if (m_OpenRect.Contains(p)) return HitZone::Open;
+    if (m_ChangeRect.Contains(p)) return HitZone::Change;
+    return HitZone::None;
+}
+
+void ProjectsEmptyState::Paint(PaintContext& context) {
+    const float s = LScale();
+    context.DrawRect(m_Geometry, LColor(ThemeToken::PanelContentBackground));
+
+    LayoutContent();
+    const float cx = m_Geometry.x + m_Geometry.width * 0.5f;
+    const float iconSize = 68.0f * s;
+    const float blockH = iconSize + 16.0f * s + 28.0f * s + 8.0f * s + 40.0f * s
+        + 16.0f * s + 34.0f * s + 28.0f * s + 52.0f * s;
+    const float blockTop = m_Geometry.y + std::max(16.0f * s, (m_Geometry.height - blockH) * 0.5f);
+
+    IconPainter::DrawIcon(
+        context,
+        Icons::OpenFolderName,
+        Rect{ cx - iconSize * 0.5f, blockTop, iconSize, iconSize },
+        LColor(ThemeToken::IconPrimary));
+
+    float y = blockTop + iconSize + 16.0f * s;
+    const float titleSize = LMetric(ThemeToken::TextSizeHeader) * s;
+    const std::string title = "No projects yet";
+    context.DrawText(
+        title,
+        Point{ cx - context.GetTextWidth(title, titleSize, true) * 0.5f, y },
+        LColor(ThemeToken::TextPrimary),
+        titleSize,
+        true);
+
+    y += titleSize + 8.0f * s;
+    const float subSize = LMetric(ThemeToken::TextSizeBody) * s;
+    const std::string subtitle = "Create your first WindEffects project or open an existing project.";
+    context.DrawText(
+        subtitle,
+        Point{ cx - context.GetTextWidth(subtitle, subSize) * 0.5f, y },
+        LColor(ThemeToken::TextSecondary),
+        subSize);
+
+    auto paintBtn = [&](const Rect& r, const char* label, bool primary, bool hovered, bool pressed) {
+        const float radius = 8.0f * s;
+        Color bg = primary
+            ? LColor(ThemeToken::ButtonPrimaryBackground)
+            : LColor(ThemeToken::ActiveBackground);
+        if (primary) {
+            if (pressed) bg = LColor(ThemeToken::ButtonPrimaryPressed);
+            else if (hovered) bg = LColor(ThemeToken::ButtonPrimaryHover);
+        } else if (hovered) {
+            bg = Color::Lerp(bg, LColor(ThemeToken::HoverBackground), 0.7f);
+        }
+        context.DrawRoundedRect(r, bg, radius);
+        if (!primary) {
+            context.DrawRoundedRectOutline(r, LColor(ThemeToken::BorderDefault), 1.0f, radius);
+        }
+        const float textSize = LMetric(ThemeToken::TextSizeToolbar) * s;
+        const Color fg = primary ? Color{ 1.0f, 1.0f, 1.0f, 1.0f } : LColor(ThemeToken::TextPrimary);
+        const float tw = context.GetTextWidth(label, textSize);
+        context.DrawText(
+            label,
+            Point{ r.x + (r.width - tw) * 0.5f, r.y + (r.height - textSize) * 0.5f },
+            fg,
+            textSize);
+    };
+
+    paintBtn(m_NewRect, "New Project", true, m_Hover == HitZone::New, m_Pressed == HitZone::New);
+    paintBtn(m_OpenRect, "Open Project", false, m_Hover == HitZone::Open, m_Pressed == HitZone::Open);
+
+    y = m_NewRect.y + m_NewRect.height + 28.0f * s;
+    const float capSize = LMetric(ThemeToken::TextSizeCaption) * s;
+    const std::string cap = "Default Projects Folder";
+    context.DrawText(
+        cap,
+        Point{ cx - context.GetTextWidth(cap, capSize) * 0.5f, y },
+        LColor(ThemeToken::TextMuted),
+        capSize);
+
+    y += capSize + 6.0f * s;
+    const float pathSize = LMetric(ThemeToken::TextSizeBody) * s;
+    const std::string path = m_FolderPath.empty() ? "-" : EllipsizePath(m_FolderPath, 64);
+    const float pathW = context.GetTextWidth(path, pathSize);
+    const float changeGap = 12.0f * s;
+    const float changeW = 72.0f * s;
+    const float changeH = 28.0f * s;
+    const float rowW = pathW + changeGap + changeW;
+    const float rowX = cx - rowW * 0.5f;
+    const float pathY = y + (changeH - pathSize) * 0.5f;
+    context.DrawText(path, Point{ rowX, pathY }, LColor(ThemeToken::TextSecondary), pathSize);
+
+    m_ChangeRect = Rect{ rowX + pathW + changeGap, y, changeW, changeH };
+
+    const float radius = 6.0f * s;
+    Color changeBg = LColor(ThemeToken::ActiveBackground);
+    if (m_Hover == HitZone::Change) {
+        changeBg = Color::Lerp(changeBg, LColor(ThemeToken::HoverBackground), 0.75f);
+    }
+    context.DrawRoundedRect(m_ChangeRect, changeBg, radius);
+    context.DrawRoundedRectOutline(m_ChangeRect, LColor(ThemeToken::BorderDefault), 1.0f, radius);
+    const float changeTextSize = LMetric(ThemeToken::TextSizeCaption) * s;
+    const char* changeLabel = "Change";
+    context.DrawText(
+        changeLabel,
+        Point{
+            m_ChangeRect.x + (m_ChangeRect.width - context.GetTextWidth(changeLabel, changeTextSize)) * 0.5f,
+            m_ChangeRect.y + (m_ChangeRect.height - changeTextSize) * 0.5f
+        },
+        LColor(ThemeToken::TextPrimary),
+        changeTextSize);
+}
+
+void ProjectsEmptyState::OnMouseDown(const MouseEvent& event) {
+    if (event.button == MouseButton::Left) {
+        m_Pressed = HitTest(event.position);
+    }
+}
+
+void ProjectsEmptyState::OnMouseMove(const MouseEvent& event) {
+    const HitZone next = HitTest(event.position);
+    if (next != m_Hover) {
+        m_Hover = next;
+        InvalidateUI();
+    }
+    m_Hovered = m_Hover != HitZone::None;
+}
+
+void ProjectsEmptyState::OnMouseUp(const MouseEvent& event) {
+    if (event.button != MouseButton::Left) {
+        return;
+    }
+    const HitZone hit = HitTest(event.position);
+    if (hit == m_Pressed) {
+        if (hit == HitZone::New && m_OnNew) m_OnNew();
+        else if (hit == HitZone::Open && m_OnOpen) m_OnOpen();
+        else if (hit == HitZone::Change && m_OnChangeFolder) m_OnChangeFolder();
+    }
+    m_Pressed = HitZone::None;
+}
+
+bool ProjectsEmptyState::ShowsPointerCursor(const Point& position) const {
+    return HitTest(position) != HitZone::None;
+}
+
+
 // â”€â”€ CompactSearchField â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 CompactSearchField::CompactSearchField(std::string placeholder)
@@ -1226,15 +1449,21 @@ void CompactSearchField::AppendCodepoint(char32_t codepoint) {
 Size CompactSearchField::Measure(const Size& availableSize) {
     (void)availableSize;
     const float s = LScale();
-    m_DesiredSize = Size{
-        220.0f * s,
-        LMetric(ThemeToken::HeaderControlHeight) * s
-    };
+    // Fixed size — never stretch with the parent.
+    m_DesiredSize = Size{ kLauncherSearchW * s, kLauncherSearchH * s };
     return m_DesiredSize;
 }
 
 void CompactSearchField::Arrange(const Rect& allottedRect) {
-    m_Geometry = allottedRect;
+    const float s = LScale();
+    const float w = kLauncherSearchW * s;
+    const float h = kLauncherSearchH * s;
+    // Keep fixed width; right-align inside the allotted slot if the parent over-allocates.
+    const float x = allottedRect.width > w
+        ? allottedRect.x + allottedRect.width - w
+        : allottedRect.x;
+    const float y = allottedRect.y + (allottedRect.height - h) * 0.5f;
+    m_Geometry = Rect{ x, y, w, h };
 }
 
 void CompactSearchField::Paint(PaintContext& context) {
@@ -1242,27 +1471,27 @@ void CompactSearchField::Paint(PaintContext& context) {
     ControlChrome::PaintInputFrame(context, m_Geometry, state);
 
     const float s = LScale();
-    const float iconSize = 14.0f * s;
-    const float pad = 8.0f * s;
+    const float iconSize = kLauncherIconPx * s;
+    const float pad = 10.0f * s;
     IconPainter::DrawIcon(
         context,
         Icons::SearchName,
         Rect{
-            m_Geometry.x + pad,
-            m_Geometry.y + (m_Geometry.height - iconSize) * 0.5f,
+            std::round(m_Geometry.x + pad),
+            std::round(m_Geometry.y + (m_Geometry.height - iconSize) * 0.5f),
             iconSize,
             iconSize
         },
         LColor(ThemeToken::IconSecondary));
 
-    const float textSize = LMetric(ThemeToken::TextSizeCaption) * s;
+    const float textSize = LMetric(ThemeToken::TextSizeBody) * s;
     const bool empty = m_Text.empty();
     const std::string& draw = empty ? m_Placeholder : m_Text;
     context.DrawText(
         draw,
         Point{
-            m_Geometry.x + pad + iconSize + 6.0f * s,
-            m_Geometry.y + (m_Geometry.height - textSize) * 0.5f
+            std::round(m_Geometry.x + pad + iconSize + kLauncherNavIconTextGap * s),
+            std::round(m_Geometry.y + (m_Geometry.height - textSize) * 0.5f)
         },
         empty ? LColor(ThemeToken::SearchPlaceholder) : LColor(ThemeToken::TextPrimary),
         textSize);
@@ -1332,7 +1561,10 @@ void ModalOverlay::SetDialog(const std::shared_ptr<Widget>& dialog) {
 Size ModalOverlay::Measure(const Size& availableSize) {
     if (m_Dialog) {
         const float s = LScale();
-        m_Dialog->Measure(Size{ m_DialogWidth * s, availableSize.height * 0.85f });
+        const float measureH = m_DialogHeight > 0.0f
+            ? m_DialogHeight * s
+            : availableSize.height * 0.85f;
+        m_Dialog->Measure(Size{ m_DialogWidth * s, measureH });
     }
     m_DesiredSize = availableSize;
     return m_DesiredSize;
@@ -1344,10 +1576,14 @@ void ModalOverlay::Arrange(const Rect& allottedRect) {
         return;
     }
     const float s = LScale();
-    const float maxW = std::min(m_DialogWidth * s, allottedRect.width * 0.92f);
+    const float maxW = std::min(m_DialogWidth * s, allottedRect.width * 0.94f);
     Size desired = m_Dialog->GetDesiredSize();
     const float w = maxW;
-    const float h = std::min(std::max(desired.height, 200.0f * s), allottedRect.height * 0.88f);
+    float h = desired.height;
+    if (m_DialogHeight > 0.0f) {
+        h = m_DialogHeight * s;
+    }
+    h = std::min(std::max(h, 200.0f * s), allottedRect.height * 0.90f);
     m_Dialog->Arrange(Rect{
         allottedRect.x + (allottedRect.width - w) * 0.5f,
         allottedRect.y + (allottedRect.height - h) * 0.5f,

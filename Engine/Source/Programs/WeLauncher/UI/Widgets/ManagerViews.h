@@ -69,8 +69,8 @@ public:
     bool ShowsPointerCursor(const WindEffects::Editor::UI::Point& position) const override;
     void Tick(float deltaTime) override;
 
-    // ~14–16 px vertical padding around two-line name/path cells.
-    static constexpr float kRowH = 52.0f;
+    // Compact desktop table row (44 px). Hover fill only — no box borders.
+    static constexpr float kRowH = 44.0f;
 
 private:
     enum class HitZone { None, Body, Favorite, More };
@@ -152,6 +152,21 @@ private:
     HitZone m_Pressed = HitZone::None;
     HitZone m_HoverZone = HitZone::None;
     float m_HoverAnim = 0.0f;
+};
+
+// Full-bleed table header for Learn / Engine lists (label columns, no sort).
+class SimpleColumnHeader : public WindEffects::Editor::UI::Widget {
+public:
+    explicit SimpleColumnHeader(std::vector<std::string> columns);
+
+    WindEffects::Editor::UI::Size Measure(const WindEffects::Editor::UI::Size& availableSize) override;
+    void Arrange(const WindEffects::Editor::UI::Rect& allottedRect) override;
+    void Paint(WindEffects::Editor::UI::PaintContext& context) override;
+
+    static constexpr float kHeight = 32.0f;
+
+private:
+    std::vector<std::string> m_Columns;
 };
 
 class LibraryPackageRow : public WindEffects::Editor::UI::Widget {
