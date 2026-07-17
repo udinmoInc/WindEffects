@@ -30,19 +30,19 @@ uint32_t NearestTier(uint32_t requestedPx) {
     return bestTier;
 }
 
-uint32_t TierForThemeToken(ThemeToken role) {
+uint32_t TierForMetricToken(MetricToken role) {
     switch (role) {
-    case ThemeToken::IconSizeSearch:
-        return NativeIconTierPx(ResolveThemeMetric(ThemeToken::IconSizeSearch));
-    case ThemeToken::IconSizePrimary:
-        return NativeIconTierPx(ResolveThemeMetric(ThemeToken::IconSizePrimary));
-    case ThemeToken::IconSizeTree:
-        return NativeIconTierPx(ResolveThemeMetric(ThemeToken::IconSizeTree));
-    case ThemeToken::IconSizeNavigation:
-        return NativeIconTierPx(ResolveThemeMetric(ThemeToken::IconSizeNavigation));
-    case ThemeToken::IconSizeToolbar:
+    case MetricToken::IconSizeSearch:
+        return NativeIconTierPx(ResolveMetric(MetricToken::IconSizeSearch));
+    case MetricToken::IconSizePrimary:
+        return NativeIconTierPx(ResolveMetric(MetricToken::IconSizePrimary));
+    case MetricToken::IconSizeTree:
+        return NativeIconTierPx(ResolveMetric(MetricToken::IconSizeTree));
+    case MetricToken::IconSizeNavigation:
+        return NativeIconTierPx(ResolveMetric(MetricToken::IconSizeNavigation));
+    case MetricToken::IconSizeToolbar:
     default:
-        return NativeIconTierPx(ResolveThemeMetric(ThemeToken::IconSizeToolbar));
+        return NativeIconTierPx(ResolveMetric(MetricToken::IconSizeToolbar));
     }
 }
 
@@ -95,11 +95,11 @@ float SnapPx(float value) {
 }
 
 uint32_t StandardGlyphTierPx() {
-    return GlyphTierPx(ThemeToken::IconSizeToolbar);
+    return GlyphTierPx(MetricToken::IconSizeToolbar);
 }
 
-uint32_t GlyphTierPx(ThemeToken role) {
-    return TierForThemeToken(role);
+uint32_t GlyphTierPx(MetricToken role) {
+    return TierForMetricToken(role);
 }
 
 uint32_t CompactGlyphTierPx() {
@@ -127,7 +127,7 @@ uint32_t TierPxForIcon(const std::string_view resolvedIconName, const float requ
 }
 
 float IconButtonHitPx(float uiScale) {
-    return ResolveThemeMetric(ThemeToken::IconButtonSize) * std::max(1.0f, uiScale);
+    return ResolveMetric(MetricToken::IconButtonSize) * std::max(1.0f, uiScale);
 }
 
 float IconContentPaddingPx(float uiScale) {

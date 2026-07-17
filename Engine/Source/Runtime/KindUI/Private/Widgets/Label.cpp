@@ -1,6 +1,7 @@
 #include "KindUI/Widgets/Label.h"
 #include "KindUI/Core/PaintContext.h"
-#include "KindUI/Theming/ThemeToken.h"
+#include "KindUI/Tokens/DesignToken.h"
+#include "KindUI/Theming/StyleRole.h"
 #include "KindUI/Core/Style.h"
 #include <sstream>
 
@@ -65,7 +66,7 @@ Size Label::Measure(const Size& availableSize) {
         }
     }
 
-    const float lineGap = ResolveThemeMetric(ThemeToken::Space1);
+    const float lineGap = ResolveMetric(MetricToken::Space1);
     float height = static_cast<float>(m_WrappedLines.size()) * (m_Style.size + lineGap);
     m_DesiredSize = Size{ maxWidth, height };
     return m_DesiredSize;
@@ -79,7 +80,7 @@ void Label::Paint(PaintContext& context) {
     if (!m_Visible) {
         return;
     }
-    const float lineGap = ResolveThemeMetric(ThemeToken::Space1);
+    const float lineGap = ResolveMetric(MetricToken::Space1);
     float currentY = m_Geometry.y;
     for (const auto& line : m_WrappedLines) {
         context.DrawText(line, Point{ m_Geometry.x, currentY }, m_Style.color, m_Style.size, m_Style.bold, m_Style.italic);

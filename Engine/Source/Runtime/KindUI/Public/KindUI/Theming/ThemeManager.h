@@ -1,8 +1,10 @@
 #pragma once
 
 #include "KindUI/Export.h"
-#include "KindUI/Theming/IThemeProvider.h"
+#include "KindUI/Theming/IKindUITheme.h"
 #include "KindUI/Theming/GraphiteDarkTheme.h"
+#include "KindUI/Theming/ResolvedStyle.h"
+#include "KindUI/Theming/StyleRole.h"
 
 #include <functional>
 #include <memory>
@@ -19,21 +21,21 @@ public:
 
     static ThemeManager& Get();
 
-    // Creates StyleResolver from provider. Safe to call multiple times (replaces theme).
-    void Initialize(std::shared_ptr<IThemeProvider> theme, float dpiScale = 1.0f);
+    // Creates StyleResolver from theme. Safe to call multiple times (replaces theme).
+    void Initialize(std::shared_ptr<IKindUITheme> theme, float dpiScale = 1.0f);
 
     // Swap theme pack at runtime (notifies listeners).
-    void SetTheme(std::shared_ptr<IThemeProvider> theme);
+    void SetTheme(std::shared_ptr<IKindUITheme> theme);
 
-    [[nodiscard]] bool IsInitialized() const { return m_Provider != nullptr; }
+    [[nodiscard]] bool IsInitialized() const { return m_Theme != nullptr; }
     [[nodiscard]] std::string_view GetThemeId() const;
 
-    [[nodiscard]] IThemeProvider& Provider();
-    [[nodiscard]] const IThemeProvider& Provider() const;
+    [[nodiscard]] IKindUITheme& Theme();
+    [[nodiscard]] const IKindUITheme& Theme() const;
     [[nodiscard]] IStyleResolver& Styles();
     [[nodiscard]] const IStyleResolver& Styles() const;
 
-    [[nodiscard]] std::shared_ptr<IThemeProvider> SharedProvider() const { return m_Provider; }
+    [[nodiscard]] std::shared_ptr<IKindUITheme> SharedTheme() const { return m_Theme; }
     [[nodiscard]] std::shared_ptr<IStyleResolver> SharedResolver() const { return m_Resolver; }
 
     void SetDpiScale(float scale);
@@ -49,7 +51,7 @@ private:
     ThemeManager() = default;
     void NotifyChanged();
 
-    std::shared_ptr<IThemeProvider> m_Provider;
+    std::shared_ptr<IKindUITheme> m_Theme;
     std::shared_ptr<StyleResolver> m_Resolver;
     std::vector<ChangeListener> m_Listeners;
     mutable std::mutex m_Mutex;

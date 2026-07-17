@@ -2,7 +2,8 @@
 
 #include "KindUI/Export.h"
 #include "KindUI/Core/Geometry.h"
-#include "KindUI/Theming/ThemeToken.h"
+#include "KindUI/Tokens/DesignToken.h"
+#include "KindUI/Theming/StyleRole.h"
 
 #include <cstdint>
 #include <string_view>
@@ -47,7 +48,7 @@ KINDUI_API float SnapPx(float value);
 
 // Standard toolbar / panel glyph tier (never DPI-scaled).
 KINDUI_API uint32_t StandardGlyphTierPx();
-KINDUI_API uint32_t GlyphTierPx(ThemeToken role);
+KINDUI_API uint32_t GlyphTierPx(MetricToken role);
 
 // Compact layout (12px) — dock-tab close and dropdown chevrons only.
 KINDUI_API uint32_t CompactGlyphTierPx();

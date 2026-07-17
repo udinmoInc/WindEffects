@@ -4,7 +4,8 @@
 #include "KindUI/Core/Widgets/DesignSystemControls.h"
 #include "KindUI/Core/Widgets/ToolbarIconButton.h"
 #include "KindUI/Core/Widgets/ToolbarNavigationButton.h"
-#include "KindUI/Theming/ThemeToken.h"
+#include "KindUI/Tokens/DesignToken.h"
+#include "KindUI/Theming/StyleRole.h"
 #include "Models/ContentBrowserModel.h"
 #include <functional>
 #include <memory>

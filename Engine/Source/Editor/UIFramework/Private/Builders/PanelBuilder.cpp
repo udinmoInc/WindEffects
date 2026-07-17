@@ -1,12 +1,13 @@
 #include "WindEffects/Editor/UI/Builders/PanelBuilder.h"
 #include "KindUI/Theming/ThemeAccess.h"
-#include "KindUI/Theming/ThemeToken.h"
+#include "KindUI/Tokens/DesignToken.h"
+#include "KindUI/Theming/StyleRole.h"
 
 namespace we::runtime::kindui {
 
 PanelBuilder::PanelBuilder(std::string_view title)
     : m_Panel(std::make_shared<Panel>(std::string(title))) {
-    m_Panel->SetHeaderHeight(ResolveThemeMetric(ThemeToken::PanelTabHeight));
+    m_Panel->SetHeaderHeight(ResolveMetric(MetricToken::PanelTabHeight));
 }
 
 PanelBuilder& PanelBuilder::TabIcon(std::string_view iconName) {
@@ -53,10 +54,10 @@ PanelBuilder& PanelBuilder::ToolbarBox(std::function<void(Row&)> build) {
     auto toolbarBox = std::make_shared<Row>();
     toolbarBox->Gap(4.0f);
     toolbarBox->Padding(Margin{
-        ResolveThemeMetric(ThemeToken::Space3),
-        ResolveThemeMetric(ThemeToken::Space1),
-        ResolveThemeMetric(ThemeToken::Space3),
-        ResolveThemeMetric(ThemeToken::Space1)
+        ResolveMetric(MetricToken::Space3),
+        ResolveMetric(MetricToken::Space1),
+        ResolveMetric(MetricToken::Space3),
+        ResolveMetric(MetricToken::Space1)
     });
     if (build) {
         build(*toolbarBox);

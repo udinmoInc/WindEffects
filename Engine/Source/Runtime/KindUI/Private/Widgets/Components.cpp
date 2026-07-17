@@ -1,6 +1,7 @@
 #include "KindUI/Widgets/Components.h"
 #include "KindUI/Core/PaintContext.h"
-#include "KindUI/Theming/ThemeToken.h"
+#include "KindUI/Tokens/DesignToken.h"
+#include "KindUI/Theming/StyleRole.h"
 
 #include <cmath>
 
@@ -46,16 +47,16 @@ void StatusBadge::Arrange(const Rect& allottedRect) {
 
 void StatusBadge::Paint(PaintContext& context) {
     ClearPaintDirty();
-    const Color bg = ThemeColor(ThemeToken::AccentPrimary);
-    const float radius = ThemeMetric(ThemeToken::CornerRadiusSmall);
+    const Color bg = ThemeColor(ColorToken::AccentPrimary);
+    const float radius = ThemeMetric(MetricToken::CornerRadiusSmall);
     context.DrawRoundedRect(m_Geometry, bg, radius);
-    const float fontSize = ThemeMetric(ThemeToken::TextSizeSmall);
+    const float fontSize = ThemeMetric(MetricToken::TextSizeSmall);
     const float textW = context.GetTextWidth(m_Text, fontSize);
     const Point textPos{
         m_Geometry.x + (m_Geometry.width - textW) * 0.5f,
         m_Geometry.y + (m_Geometry.height - fontSize) * 0.5f
     };
-    context.DrawText(m_Text, textPos, ThemeColor(ThemeToken::TextPrimary), fontSize);
+    context.DrawText(m_Text, textPos, ThemeColor(ColorToken::TextPrimary), fontSize);
 }
 
 DialogChrome::DialogChrome(std::string title, const std::shared_ptr<Widget>& body) {
@@ -102,10 +103,10 @@ void SkeletonBlock::Tick(float deltaTime) {
 
 void SkeletonBlock::Paint(PaintContext& context) {
     ClearPaintDirty();
-    Color c = ThemeColor(ThemeToken::HoverBackground);
+    Color c = ThemeColor(ColorToken::HoverBackground);
     const float wave = 0.55f + 0.25f * std::sin(m_Pulse);
     c.a *= wave;
-    context.DrawRoundedRect(m_Geometry, c, ThemeMetric(ThemeToken::CornerRadiusSmall));
+    context.DrawRoundedRect(m_Geometry, c, ThemeMetric(MetricToken::CornerRadiusSmall));
 }
 
 std::shared_ptr<SearchBoxControl> MakeSearchBar(std::string placeholder) {

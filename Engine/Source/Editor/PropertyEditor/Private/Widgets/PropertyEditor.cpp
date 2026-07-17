@@ -3,7 +3,8 @@
 #include "KindUI/Core/PaintContext.h"
 #include "KindUI/Core/DPIContext.h"
 #include "KindUI/Rendering/IconMetrics.h"
-#include "KindUI/Theming/ThemeToken.h"
+#include "KindUI/Tokens/DesignToken.h"
+#include "KindUI/Theming/StyleRole.h"
 #include "KindUI/Core/Icon.h"
 #include <cmath>
 #include <algorithm>
@@ -83,12 +84,12 @@ void PropertyEditor::Paint(PaintContext& context) {
                 }
 
                 const float labelX = propRect.x + PanelChrome::PanelPaddingH();
-                const float labelY = propRect.y + (m_PropertyHeight - ThemeMetric(ThemeToken::TextSizeBody)) * 0.5f;
-                Color labelColor = prop.hasOverride ? ThemeColor(ThemeToken::AccentPrimary) : ThemeColor(ThemeToken::TextSecondary);
-                context.DrawText(prop.name, Point{ labelX, labelY }, labelColor, ThemeMetric(ThemeToken::TextSizeBody));
+                const float labelY = propRect.y + (m_PropertyHeight - ThemeMetric(MetricToken::TextSizeBody)) * 0.5f;
+                Color labelColor = prop.hasOverride ? ThemeColor(ColorToken::AccentPrimary) : ThemeColor(ColorToken::TextSecondary);
+                context.DrawText(prop.name, Point{ labelX, labelY }, labelColor, ThemeMetric(MetricToken::TextSizeBody));
 
                 float valueWidth = propRect.width - m_LabelWidth - PanelChrome::PanelPaddingH() * 2.0f;
-                const float inputHeight = ThemeMetric(ThemeToken::SearchBoxHeight) - ThemeMetric(ThemeToken::Space2);
+                const float inputHeight = ThemeMetric(MetricToken::SearchBoxHeight) - ThemeMetric(MetricToken::Space2);
                 Rect valueRect{
                     propRect.x + m_LabelWidth,
                     propRect.y + (m_PropertyHeight - inputHeight) * 0.5f,
@@ -96,17 +97,17 @@ void PropertyEditor::Paint(PaintContext& context) {
                     inputHeight
                 };
 
-                context.DrawRoundedRect(valueRect, ThemeColor(ThemeToken::InputBackground), ThemeMetric(ThemeToken::CornerRadiusSmall));
+                context.DrawRoundedRect(valueRect, ThemeColor(ColorToken::InputBackground), ThemeMetric(MetricToken::CornerRadiusSmall));
 
-                const float valueX = valueRect.x + ThemeMetric(ThemeToken::Space2);
-                const float valueY = valueRect.y + (inputHeight - ThemeMetric(ThemeToken::TextSizeBody)) * 0.5f;
-                context.DrawText(prop.value, Point{ valueX, valueY }, ThemeColor(ThemeToken::TextPrimary), ThemeMetric(ThemeToken::TextSizeBody));
+                const float valueX = valueRect.x + ThemeMetric(MetricToken::Space2);
+                const float valueY = valueRect.y + (inputHeight - ThemeMetric(MetricToken::TextSizeBody)) * 0.5f;
+                context.DrawText(prop.value, Point{ valueX, valueY }, ThemeColor(ColorToken::TextPrimary), ThemeMetric(MetricToken::TextSizeBody));
 
                 if (prop.hasOverride) {
-                    const float resetSize = static_cast<float>(IconMetrics::NativeIconTierPx(ThemeMetric(ThemeToken::IconSizeTree)));
+                    const float resetSize = static_cast<float>(IconMetrics::NativeIconTierPx(ThemeMetric(MetricToken::IconSizeTree)));
                     const float resetX = propRect.x + propRect.width - resetSize - PanelChrome::PanelPaddingH();
                     const float resetY = propRect.y + (m_PropertyHeight - resetSize) * 0.5f;
-                    IconPainter::DrawIcon(context, Icons::XName, Rect{ resetX, resetY, resetSize, resetSize }, ThemeColor(ThemeToken::TextSecondary));
+                    IconPainter::DrawIcon(context, Icons::XName, Rect{ resetX, resetY, resetSize, resetSize }, ThemeColor(ColorToken::TextSecondary));
                 }
 
                 y += m_PropertyHeight;
@@ -326,9 +327,9 @@ Property* PropertyEditor::GetPropertyAtPosition(const Point& pos) {
         if (cat.expanded) {
             for (size_t propIdx : cat.propertyIndices) {
                 Rect propRect{
-                    m_ScrollMetrics.viewport.x + ThemeMetric(ThemeToken::Space2),
+                    m_ScrollMetrics.viewport.x + ThemeMetric(MetricToken::Space2),
                     y,
-                    m_ScrollMetrics.viewport.width - ThemeMetric(ThemeToken::Space4),
+                    m_ScrollMetrics.viewport.width - ThemeMetric(MetricToken::Space4),
                     m_PropertyHeight
                 };
 
@@ -391,12 +392,12 @@ void BoolPropertyWidget::Paint(PaintContext& context) {
     
     Rect checkRect{ checkX, checkY, checkSize, checkSize };
     
-    Color bgColor = ThemeColor(ThemeToken::InputBackground);
-    Color borderColor = ThemeColor(ThemeToken::BorderDefault);
+    Color bgColor = ThemeColor(ColorToken::InputBackground);
+    Color borderColor = ThemeColor(ColorToken::BorderDefault);
     
     if (*m_Value) {
-        bgColor = ThemeColor(ThemeToken::AccentPrimary);
-        borderColor = ThemeColor(ThemeToken::AccentPrimary);
+        bgColor = ThemeColor(ColorToken::AccentPrimary);
+        borderColor = ThemeColor(ColorToken::AccentPrimary);
     }
     
     context.DrawRoundedRect(checkRect, bgColor, 3.0f);
@@ -405,7 +406,7 @@ void BoolPropertyWidget::Paint(PaintContext& context) {
     // Draw checkmark if checked
     if (*m_Value) {
         Rect iconRect{ checkX + 2.0f, checkY + 2.0f, checkSize - 4.0f, checkSize - 4.0f };
-        IconPainter::DrawIcon(context, Icons::CheckName, iconRect, ThemeColor(ThemeToken::TextPrimary));
+        IconPainter::DrawIcon(context, Icons::CheckName, iconRect, ThemeColor(ColorToken::TextPrimary));
     }
 }
 
@@ -440,7 +441,7 @@ void ColorPropertyWidget::Paint(PaintContext& context) {
     
     Rect colorRect{ colorX, colorY, colorSize, colorSize };
     context.DrawRoundedRect(colorRect, *m_Value, 3.0f);
-    context.DrawRoundedRectOutline(colorRect, ThemeColor(ThemeToken::BorderDefault), 1.0f, 3.0f);
+    context.DrawRoundedRectOutline(colorRect, ThemeColor(ColorToken::BorderDefault), 1.0f, 3.0f);
     
     // Draw hex value
     char hex[16];
@@ -451,7 +452,7 @@ void ColorPropertyWidget::Paint(PaintContext& context) {
     
     float textX = colorX + colorSize + 8.0f;
     float textY = m_Geometry.y + (m_Geometry.height - 12.0f) / 2.0f;
-    context.DrawText(hex, Point{ textX, textY }, ThemeColor(ThemeToken::TextPrimary), 12.0f);
+    context.DrawText(hex, Point{ textX, textY }, ThemeColor(ColorToken::TextPrimary), 12.0f);
 }
 
 void ColorPropertyWidget::OnMouseDown(const MouseEvent& event) {

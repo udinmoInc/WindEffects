@@ -65,7 +65,7 @@ std::shared_ptr<Panel> CreateViewportPanel() {
 
     auto toolbar = std::make_shared<Toolbar>();
     toolbar->SetFloating(true);
-    toolbar->SetHeight(ResolveThemeMetric(ThemeToken::PanelHeaderHeight));
+    toolbar->SetHeight(ResolveMetric(MetricToken::PanelHeaderHeight));
 
     toolbar->AddWidget(MakeViewportDropdown(Icons::PerspectiveName, "Perspective", {}, "Viewport Type"), ToolbarAlignment::Left);
     toolbar->AddWidget(MakeViewportDropdown(Icons::LitName, "Lit", {}, "Render Mode"), ToolbarAlignment::Left);

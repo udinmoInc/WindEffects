@@ -7,9 +7,10 @@
 namespace we::runtime::kindui {
 
 // Platform-neutral semantic design tokens.
-// Applications supply concrete values through themes; KindUI never hardcodes branding.
+// Applications supply concrete values through IKindUITheme; KindUI never hardcodes branding.
 
 enum class ColorToken : uint32_t {
+    // Framework surfaces (StylePipeline / DefaultTheme)
     PrimarySurface,
     SecondarySurface,
     TertiarySurface,
@@ -20,24 +21,120 @@ enum class ColorToken : uint32_t {
     ControlBackgroundPressed,
     ControlBackgroundDisabled,
     ControlBackgroundSelected,
+
+    // App chrome surfaces
+    WorkspaceBackground,
+    ToolbarBackground,
+    PanelBackground,
+    HeaderBackground,
+    ViewportBackground,
+    FooterBackground,
+    MenuBarBackground,
+    TabBackground,
+    PopupBackground,
+    ContentBrowserBackground,
+    PanelContentBackground,
+    PanelToolbarBackground,
+    PanelTabActiveBackground,
+    PanelTabInactiveBackground,
+    DockAreaBackground,
+    StatusBarBackground,
+    ViewportToolbarBackground,
+    DialogBackground,
+    TooltipBackground,
+    InputBackground,
+    SearchBoxBackground,
+
+    // Borders
     BorderDefault,
     BorderSubtle,
     BorderFocused,
     BorderError,
+    BorderLight,
+    BorderDark,
+    BorderFocus, // alias of BorderFocused for product themes
+    Separator,
+
+    // Interaction
+    HoverBackground,
+    ActiveBackground,
+    SelectedBackground,
+    DisabledBackground,
+    PressedBackground,
+    ContentBrowserHoverBackground,
+
+    // Text
     TextPrimary,
     TextSecondary,
     TextDisabled,
     TextOnAccent,
     TextLink,
+    TextMuted,
+    TextWindowLabel,
+    SearchPlaceholder,
+    CodeForeground,
+    LinkForeground,
+
+    // Icons
     IconPrimary,
     IconSecondary,
     IconDisabled,
+    IconAccent,
+    IconDefault,
+    IconHover,
+    IconActive,
+
+    // Accent / semantic
+    AccentPrimary,
+    AccentHover,
+    ActiveTabLine,
+    SelectionHighlight,
     SuccessColor,
     WarningColor,
     ErrorColor,
     InfoColor,
-    ScrimOverlay,
+    Success,
+    Warning,
+    ErrorForeground,
+    PlayForeground,
+    CloseButtonHover,
+
+    // Buttons
+    ButtonPrimaryBackground,
+    ButtonPrimaryHover,
+    ButtonPrimaryPressed,
+    ButtonDangerBackground,
+    ButtonDangerHover,
+    ButtonDangerPressed,
+
+    // Gizmo
+    GizmoBackground,
+    GizmoAxisX,
+    GizmoAxisY,
+    GizmoAxisZ,
+
+    // Depth
+    HighlightSubtle,
+    ShadowSubtle,
+    ShadowOverlay,
+    ShadowPopup,
     ShadowColor,
+    ScrimOverlay,
+    ModalScrim,
+    DragGhostBackground,
+
+    // Content Browser folder art
+    ContentBrowserFolderShadow,
+    ContentBrowserFolderEdge,
+    ContentBrowserFolderHighlight,
+    ContentBrowserFolderTab,
+    ContentBrowserFolderPrimary,
+    ContentBrowserFolderBody,
+
+    // Scrollbar
+    ScrollbarTrack,
+    ScrollbarThumb,
+    ScrollbarThumbHover,
 };
 
 enum class SpacingToken : uint32_t {
@@ -81,6 +178,83 @@ enum class AnimationToken : uint32_t {
     Fast,
     Normal,
     Slow,
+};
+
+// Layout / chrome metrics not covered by Spacing/Radius/Typography.
+enum class MetricToken : uint32_t {
+    CornerRadiusSmall,
+    CornerRadiusMedium,
+    CornerRadiusLarge,
+    WindowCornerRadius,
+
+    TextSizeMenu,
+    TextSizeToolbar,
+    TextSizeTabs,
+    TextSizeNormal,
+    TextSizeProperty,
+    TextSizeCaption,
+    TextSizeWindow,
+    TextSizeHeader,
+    TextSizeBody,
+    TextSizeSmall,
+    TextSizeCategory,
+    TextSizeTitle,
+    TextCharWidthRatio,
+
+    BorderWidth,
+    FocusRingWidth,
+
+    PanelHeaderHeight,
+    PanelTabHeight,
+    PanelToolbarHeight,
+    ListRowHeight,
+    CategoryHeaderHeight,
+    TitleBarHeight,
+    HeaderControlHeight,
+    WindowControlWidth,
+    ToolbarHeight,
+    SearchBoxHeight,
+    IconButtonSize,
+    ButtonHeight,
+    NavigationButtonSize,
+    IconSizeSearch,
+    IconSizeToolbar,
+    IconSizePrimary,
+    IconSizeTree,
+    IconSizeNavigation,
+    IconButtonRadius,
+    ButtonPaddingHorizontal,
+    ButtonSpacing,
+    ButtonGroupSpacing,
+    ScrollbarWidth,
+
+    Space1,
+    Space2,
+    Space3,
+    Space4,
+    Space5,
+    Space6,
+
+    HoverAnimationDamping,
+    PressAnimationDamping,
+    PressOffset,
+
+    ShadowBlurSmall,
+    ShadowBlurMedium,
+    ShadowSpreadMedium,
+};
+
+enum class PaddingToken : uint32_t {
+    Panel,
+    Button,
+    PaddingPanelLeft,
+    PaddingPanelTop,
+    PaddingPanelRight,
+    PaddingPanelBottom,
+    PaddingButtonLeft,
+    PaddingButtonTop,
+    PaddingButtonRight,
+    PaddingButtonBottom,
 };
 
 } // namespace we::runtime::kindui

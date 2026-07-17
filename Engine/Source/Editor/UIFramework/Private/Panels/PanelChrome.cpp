@@ -2,7 +2,8 @@
 
 #include "KindUI/Theming/ThemeAccess.h"
 #include "KindUI/Theming/ThemeColors.h"
-#include "KindUI/Theming/ThemeToken.h"
+#include "KindUI/Tokens/DesignToken.h"
+#include "KindUI/Theming/StyleRole.h"
 #include "KindUI/Core/Icon.h"
 #include "KindUI/Core/DPIContext.h"
 #include "KindUI/Rendering/IconMetrics.h"
@@ -24,18 +25,18 @@ void DrawRoundedRectTop(PaintContext& context, const Rect& rect, const Color& co
 
 Color ResolveTabIconColor(bool isActive, float hoverAnim) {
     if (isActive) {
-        return ResolveThemeColor(ThemeToken::IconAccent);
+        return ResolveColor(ColorToken::IconAccent);
     }
     return ResolveIconColor(IconColorRole::Secondary, hoverAnim);
 }
 
 Color ResolveTabTextColor(bool isActive, float hoverAnim) {
     if (isActive) {
-        return ResolveThemeColor(ThemeToken::TextPrimary);
+        return ResolveColor(ColorToken::TextPrimary);
     }
-    Color text = ResolveThemeColor(ThemeToken::TextSecondary);
+    Color text = ResolveColor(ColorToken::TextSecondary);
     if (hoverAnim > 0.01f) {
-        text = Color::Lerp(text, ResolveThemeColor(ThemeToken::TextPrimary), hoverAnim * 0.55f);
+        text = Color::Lerp(text, ResolveColor(ColorToken::TextPrimary), hoverAnim * 0.55f);
     }
     return text;
 }
@@ -47,35 +48,35 @@ float UiScale() {
 }
 
 float TabHeight() {
-    return ResolveThemeMetric(ThemeToken::PanelTabHeight) * UiScale();
+    return ResolveMetric(MetricToken::PanelTabHeight) * UiScale();
 }
 
 float ToolbarHeight() {
-    return ResolveThemeMetric(ThemeToken::PanelToolbarHeight) * UiScale();
+    return ResolveMetric(MetricToken::PanelToolbarHeight) * UiScale();
 }
 
 float SearchHeight() {
-    return ResolveThemeMetric(ThemeToken::SearchBoxHeight) * UiScale();
+    return ResolveMetric(MetricToken::SearchBoxHeight) * UiScale();
 }
 
 float ListRowHeight() {
-    return ResolveThemeMetric(ThemeToken::ListRowHeight) * UiScale();
+    return ResolveMetric(MetricToken::ListRowHeight) * UiScale();
 }
 
 float PanelPaddingH() {
-    return ResolveThemeMetric(ThemeToken::Space2) * UiScale();
+    return ResolveMetric(MetricToken::Space2) * UiScale();
 }
 
 float CategoryHeaderHeight() {
-    return ResolveThemeMetric(ThemeToken::CategoryHeaderHeight) * UiScale();
+    return ResolveMetric(MetricToken::CategoryHeaderHeight) * UiScale();
 }
 
 float TabPadH() {
-    return ResolveThemeMetric(ThemeToken::Space2) * UiScale();
+    return ResolveMetric(MetricToken::Space2) * UiScale();
 }
 
 float TabIconSize() {
-    return static_cast<float>(IconMetrics::GlyphTierPx(ThemeToken::IconSizeToolbar)) * UiScale();
+    return static_cast<float>(IconMetrics::GlyphTierPx(MetricToken::IconSizeToolbar)) * UiScale();
 }
 
 float TabGap() {
@@ -87,15 +88,15 @@ float TabTopRadius() {
 }
 
 float HeaderButtonSize() {
-    return ResolveThemeMetric(ThemeToken::IconButtonSize) * UiScale();
+    return ResolveMetric(MetricToken::IconButtonSize) * UiScale();
 }
 
 void PaintPanelSurface(PaintContext& context, const Rect& rect) {
-    context.DrawRect(rect, ResolveThemeColor(ThemeToken::PanelBackground));
+    context.DrawRect(rect, ResolveColor(ColorToken::PanelBackground));
 }
 
 void PaintToolbarRegion(PaintContext& context, const Rect& rect) {
-    context.DrawRect(rect, ResolveThemeColor(ThemeToken::PanelToolbarBackground));
+    context.DrawRect(rect, ResolveColor(ColorToken::PanelToolbarBackground));
 
     const float scale = UiScale();
     Rect separator{
@@ -104,11 +105,11 @@ void PaintToolbarRegion(PaintContext& context, const Rect& rect) {
         rect.width,
         1.0f * scale
     };
-    context.DrawRect(separator, ResolveThemeColor(ThemeToken::Separator));
+    context.DrawRect(separator, ResolveColor(ColorToken::Separator));
 }
 
 void PaintContentRegion(PaintContext& context, const Rect& rect) {
-    context.DrawRect(rect, ResolveThemeColor(ThemeToken::PanelBackground));
+    context.DrawRect(rect, ResolveColor(ColorToken::PanelBackground));
 }
 
 void PaintDockHeaderBand(PaintContext& context, const Rect& headerRect) {
@@ -125,11 +126,11 @@ float MeasureDockTabWidth(
 {
     (void)flushLeft;
     const float scale = UiScale();
-    const float fontSize = ResolveThemeMetric(ThemeToken::TextSizeTabs) * scale;
+    const float fontSize = ResolveMetric(MetricToken::TextSizeTabs) * scale;
     const float iconSize = TabIconSize();
     const float padH = TabPadH();
-    const float iconGap = ResolveThemeMetric(ThemeToken::Space1) * scale;
-    const float closeGap = ResolveThemeMetric(ThemeToken::Space1) * scale;
+    const float iconGap = ResolveMetric(MetricToken::Space1) * scale;
+    const float closeGap = ResolveMetric(MetricToken::Space1) * scale;
     const float buttonSize = HeaderButtonSize();
 
     float leadingWidth = 0.0f;
@@ -158,10 +159,10 @@ DockTabLayout PaintDockTab(
     DockTabLayout layout{};
     (void)flushLeft;
     const float scale = UiScale();
-    const float fontSize = ResolveThemeMetric(ThemeToken::TextSizeTabs) * scale;
+    const float fontSize = ResolveMetric(MetricToken::TextSizeTabs) * scale;
     const float iconSize = TabIconSize();
     const float padH = TabPadH();
-    const float iconGap = ResolveThemeMetric(ThemeToken::Space1) * scale;
+    const float iconGap = ResolveMetric(MetricToken::Space1) * scale;
     const float radius = TabTopRadius();
     const float buttonSize = HeaderButtonSize();
 
@@ -169,11 +170,11 @@ DockTabLayout PaintDockTab(
     layout.tabRect = Rect{ x, headerRect.y, tabWidth, headerRect.height };
 
     if (isActive) {
-        DrawRoundedRectTop(context, layout.tabRect, ResolveThemeColor(ThemeToken::PanelBackground), radius);
+        DrawRoundedRectTop(context, layout.tabRect, ResolveColor(ColorToken::PanelBackground), radius);
     } else if (hoverAnim > 0.01f) {
         Color hoverBg = Color::Lerp(
             Color{0.0f, 0.0f, 0.0f, 0.0f},
-            ResolveThemeColor(ThemeToken::HoverBackground),
+            ResolveColor(ColorToken::HoverBackground),
             hoverAnim * 0.85f);
         DrawRoundedRectTop(context, layout.tabRect, hoverBg, radius);
     }
@@ -189,7 +190,7 @@ DockTabLayout PaintDockTab(
             context.DrawTexture(
                 Rect{ snap(itemX), snap(logoY), brandSize, brandSize },
                 tab.brandDescriptor,
-                ResolveThemeColor(ThemeToken::TextPrimary));
+                ResolveColor(ColorToken::TextPrimary));
         }
         itemX += brandSize + iconGap;
     } else if (!tab.iconName.empty()) {
@@ -233,18 +234,18 @@ void PaintFloatingPanelHeader(
     Rect& outOptionsMenuRect)
 {
     const float scale = UiScale();
-    const float fontSize = ResolveThemeMetric(ThemeToken::TextSizeTabs) * scale;
+    const float fontSize = ResolveMetric(MetricToken::TextSizeTabs) * scale;
     const float iconSize = TabIconSize();
     const float padH = TabPadH();
-    const float iconGap = ResolveThemeMetric(ThemeToken::Space1) * scale;
+    const float iconGap = ResolveMetric(MetricToken::Space1) * scale;
     const float radius = TabTopRadius();
     const float buttonSize = HeaderButtonSize();
 
-    Color headerBg = ResolveThemeColor(ThemeToken::PanelContentBackground);
+    Color headerBg = ResolveColor(ColorToken::PanelContentBackground);
     DrawRoundedRectTop(context, headerRect, headerBg, radius);
 
     Rect topSheen{ headerRect.x, headerRect.y, headerRect.width, 1.0f * scale };
-    context.DrawRect(topSheen, ResolveThemeColor(ThemeToken::HighlightSubtle));
+    context.DrawRect(topSheen, ResolveColor(ColorToken::HighlightSubtle));
 
     Rect separator{
         headerRect.x,
@@ -252,7 +253,7 @@ void PaintFloatingPanelHeader(
         headerRect.width,
         1.0f * scale
     };
-    context.DrawRect(separator, ResolveThemeColor(ThemeToken::Separator));
+    context.DrawRect(separator, ResolveColor(ColorToken::Separator));
 
     const float centerY = headerRect.y + headerRect.height * 0.5f;
     float itemX = headerRect.x + padH;
@@ -263,7 +264,7 @@ void PaintFloatingPanelHeader(
             context.DrawTexture(
                 Rect{ itemX, centerY - brandSize * 0.5f, brandSize, brandSize },
                 brandDescriptor,
-                ResolveThemeColor(ThemeToken::TextPrimary));
+                ResolveColor(ColorToken::TextPrimary));
         }
         itemX += brandSize + iconGap;
     } else if (!iconName.empty()) {
@@ -271,14 +272,14 @@ void PaintFloatingPanelHeader(
             context,
             iconName,
             Rect{ itemX, centerY - iconSize * 0.5f, iconSize, iconSize },
-            ResolveThemeColor(ThemeToken::IconActive));
+            ResolveColor(ColorToken::IconActive));
         itemX += iconSize + iconGap;
     }
 
     context.DrawText(
         title,
         Point{ itemX, centerY - fontSize * 0.5f },
-        ResolveThemeColor(ThemeToken::TextPrimary),
+        ResolveColor(ColorToken::TextPrimary),
         fontSize,
         true);
 
@@ -288,14 +289,14 @@ void PaintFloatingPanelHeader(
     if (showOptionsMenu) {
         outOptionsMenuRect = Rect{ optionsX, centerY - buttonSize * 0.5f, buttonSize, buttonSize };
         PaintHeaderIconButton(context, outOptionsMenuRect, Icons::MoreName, optionsMenuHovered, false);
-        actionX = optionsX - ResolveThemeMetric(ThemeToken::Space1) * scale - buttonSize;
+        actionX = optionsX - ResolveMetric(MetricToken::Space1) * scale - buttonSize;
     }
 
     for (auto it = actions.rbegin(); it != actions.rend(); ++it) {
         const auto& action = *it;
         Rect actionRect{ actionX, centerY - buttonSize * 0.5f, buttonSize, buttonSize };
         PaintHeaderIconButton(context, actionRect, action.iconName, action.hovered, action.pressed, false);
-        actionX -= buttonSize + ResolveThemeMetric(ThemeToken::Space1) * scale;
+        actionX -= buttonSize + ResolveMetric(MetricToken::Space1) * scale;
     }
 }
 
@@ -308,14 +309,14 @@ void PaintSearchField(
     bool showCaret)
 {
     const float scale = UiScale();
-    const float radius = ResolveThemeMetric(ThemeToken::CornerRadiusSmall) * scale;
-    const float fontSize = ResolveThemeMetric(ThemeToken::TextSizeBody) * scale;
-    const float iconSize = static_cast<float>(IconMetrics::NativeIconTierPx(ResolveThemeMetric(ThemeToken::IconSizeSearch)));
+    const float radius = ResolveMetric(MetricToken::CornerRadiusSmall) * scale;
+    const float fontSize = ResolveMetric(MetricToken::TextSizeBody) * scale;
+    const float iconSize = static_cast<float>(IconMetrics::NativeIconTierPx(ResolveMetric(MetricToken::IconSizeSearch)));
     const float padH = TabPadH();
 
-    Color bg = ResolveThemeColor(ThemeToken::SearchBoxBackground);
+    Color bg = ResolveColor(ColorToken::SearchBoxBackground);
     if (focused) {
-        bg = Color::Lerp(bg, ResolveThemeColor(ThemeToken::HoverBackground), 0.35f);
+        bg = Color::Lerp(bg, ResolveColor(ColorToken::HoverBackground), 0.35f);
     }
     context.DrawRoundedRect(rect, bg, radius);
 
@@ -325,20 +326,20 @@ void PaintSearchField(
         context,
         Icons::SearchName,
         IconMetrics::PlaceGlyphCentered(iconBand, iconSize),
-        ResolveThemeColor(ThemeToken::IconSecondary));
+        ResolveColor(ColorToken::IconSecondary));
 
-    const float textX = iconX + iconSize + ResolveThemeMetric(ThemeToken::Space1) * scale;
+    const float textX = iconX + iconSize + ResolveMetric(MetricToken::Space1) * scale;
     const float textY = rect.y + (rect.height - fontSize) * 0.5f;
 
     if (text.empty()) {
-        context.DrawText(placeholder, Point{ textX, textY }, ResolveThemeColor(ThemeToken::SearchPlaceholder), fontSize);
+        context.DrawText(placeholder, Point{ textX, textY }, ResolveColor(ColorToken::SearchPlaceholder), fontSize);
     } else {
-        context.DrawText(text, Point{ textX, textY }, ResolveThemeColor(ThemeToken::TextPrimary), fontSize);
+        context.DrawText(text, Point{ textX, textY }, ResolveColor(ColorToken::TextPrimary), fontSize);
         if (focused && showCaret) {
             const float caretX = textX + context.GetTextWidth(text, fontSize);
             context.DrawRect(
-                Rect{ caretX, textY, ResolveThemeMetric(ThemeToken::BorderWidth), fontSize },
-                ResolveThemeColor(ThemeToken::TextPrimary));
+                Rect{ caretX, textY, ResolveMetric(MetricToken::BorderWidth), fontSize },
+                ResolveColor(ColorToken::TextPrimary));
         }
 
         const float clearSize = iconSize;
@@ -351,9 +352,9 @@ void PaintSearchField(
 void PaintListRowBackground(PaintContext& context, const Rect& rowRect, bool hovered, bool selected) {
     Color bg{ 0.0f, 0.0f, 0.0f, 0.0f };
     if (selected) {
-        bg = ResolveThemeColor(ThemeToken::SelectionHighlight);
+        bg = ResolveColor(ColorToken::SelectionHighlight);
     } else if (hovered) {
-        bg = ResolveThemeColor(ThemeToken::HoverBackground);
+        bg = ResolveColor(ColorToken::HoverBackground);
     }
     if (bg.a > 0.001f) {
         context.DrawRect(rowRect, bg);
@@ -371,11 +372,11 @@ void PaintCategoryHeader(
     const float scale = UiScale();
     const float padH = PanelPaddingH() + indent;
     const float chevronSize = static_cast<float>(IconMetrics::StandardGlyphTierPx());
-    const float fontSize = ResolveThemeMetric(ThemeToken::TextSizeCategory) * scale;
+    const float fontSize = ResolveMetric(MetricToken::TextSizeCategory) * scale;
     const float centerY = rect.y + rect.height * 0.5f;
 
     if (hovered) {
-        context.DrawRect(rect, ResolveThemeColor(ThemeToken::HoverBackground));
+        context.DrawRect(rect, ResolveColor(ColorToken::HoverBackground));
     }
 
     const char* chevronIcon = expanded ? Icons::ChevronDownName : Icons::ChevronRightName;
@@ -383,10 +384,10 @@ void PaintCategoryHeader(
         context,
         chevronIcon,
         Rect{ rect.x + padH, centerY - chevronSize * 0.5f, chevronSize, chevronSize },
-        ResolveThemeColor(ThemeToken::TextSecondary));
+        ResolveColor(ColorToken::TextSecondary));
 
-    const float textX = rect.x + padH + chevronSize + ResolveThemeMetric(ThemeToken::Space1) * scale;
-    context.DrawText(title, Point{ textX, centerY - fontSize * 0.5f }, ResolveThemeColor(ThemeToken::TextSecondary), fontSize, true);
+    const float textX = rect.x + padH + chevronSize + ResolveMetric(MetricToken::Space1) * scale;
+    context.DrawText(title, Point{ textX, centerY - fontSize * 0.5f }, ResolveColor(ColorToken::TextSecondary), fontSize, true);
 }
 
 void PaintHeaderIconButton(
@@ -398,12 +399,12 @@ void PaintHeaderIconButton(
     bool compactGlyph)
 {
     const float scale = UiScale();
-    const float radius = ResolveThemeMetric(ThemeToken::IconButtonRadius) * scale;
+    const float radius = ResolveMetric(MetricToken::IconButtonRadius) * scale;
 
     if (pressed) {
-        context.DrawRoundedRect(rect, ResolveThemeColor(ThemeToken::PressedBackground), radius);
+        context.DrawRoundedRect(rect, ResolveColor(ColorToken::PressedBackground), radius);
     } else if (hovered) {
-        context.DrawRoundedRect(rect, ResolveThemeColor(ThemeToken::HoverBackground), radius);
+        context.DrawRoundedRect(rect, ResolveColor(ColorToken::HoverBackground), radius);
     }
 
     const float emphasis = (hovered || pressed) ? 1.0f : 0.0f;
@@ -423,8 +424,8 @@ void PaintToolbarIconButton(PaintContext& context, const Rect& rect, const std::
 }
 
 Rect InsetSearchRect(const Rect& toolbarRect, float searchWidth) {
-    const float padH = ResolveThemeMetric(ThemeToken::Space2);
-    const float searchH = ResolveThemeMetric(ThemeToken::SearchBoxHeight);
+    const float padH = ResolveMetric(MetricToken::Space2);
+    const float searchH = ResolveMetric(MetricToken::SearchBoxHeight);
     const float searchY = toolbarRect.y + (toolbarRect.height - searchH) * 0.5f;
     return Rect{ toolbarRect.x + padH, searchY, searchWidth, searchH };
 }

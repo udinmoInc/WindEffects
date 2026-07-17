@@ -1,5 +1,7 @@
 #include "RHI/UnsupportedRHI.h"
 
+#include "RHI/RHIFactory.h"
+
 #include "Core/LogCategory.h"
 #include "Core/Logger.h"
 
@@ -48,5 +50,27 @@ private:
 std::unique_ptr<IRHI> CreateUnsupportedRHI(RHIBackend backend, const char* name) {
     return std::make_unique<UnsupportedRHI>(backend, name);
 }
+
+namespace {
+
+std::unique_ptr<IRHI> CreateUnsupportedDirectX11() {
+    return CreateUnsupportedRHI(RHIBackend::DirectX11, "DirectX11");
+}
+std::unique_ptr<IRHI> CreateUnsupportedMetal() {
+    return CreateUnsupportedRHI(RHIBackend::Metal, "Metal");
+}
+std::unique_ptr<IRHI> CreateUnsupportedOpenGL() {
+    return CreateUnsupportedRHI(RHIBackend::OpenGL, "OpenGL");
+}
+std::unique_ptr<IRHI> CreateUnsupportedOpenGLES() {
+    return CreateUnsupportedRHI(RHIBackend::OpenGLES, "OpenGLES");
+}
+
+RHIBackendRegistrar g_UnsupportedDirectX11(RHIBackend::DirectX11, &CreateUnsupportedDirectX11, "DirectX11");
+RHIBackendRegistrar g_UnsupportedMetal(RHIBackend::Metal, &CreateUnsupportedMetal, "Metal");
+RHIBackendRegistrar g_UnsupportedOpenGL(RHIBackend::OpenGL, &CreateUnsupportedOpenGL, "OpenGL");
+RHIBackendRegistrar g_UnsupportedOpenGLES(RHIBackend::OpenGLES, &CreateUnsupportedOpenGLES, "OpenGLES");
+
+} // namespace
 
 } // namespace we::rhi

@@ -10,7 +10,7 @@ class UIFRAMEWORK_API EditorTheme final : public we::runtime::kindui::GraphiteDa
 public:
     [[nodiscard]] std::string_view GetThemeId() const override { return "Editor"; }
 
-    [[nodiscard]] we::runtime::kindui::Color GetColor(we::runtime::kindui::ThemeToken token) const override;
+    [[nodiscard]] we::runtime::kindui::Color ResolveColor(we::runtime::kindui::ColorToken token) const override;
 };
 
 } // namespace we::editor::ui

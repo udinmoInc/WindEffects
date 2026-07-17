@@ -8,7 +8,8 @@
 #include "KindUI/Core/PaintContext.h"
 #include "WindEffects/Editor/UI/Panel/PanelChrome.h"
 #include "KindUI/Theming/ThemeAccess.h"
-#include "KindUI/Theming/ThemeToken.h"
+#include "KindUI/Tokens/DesignToken.h"
+#include "KindUI/Theming/StyleRole.h"
 #include "KindUI/Core/Icon.h"
 #include "KindUI/Core/DPIContext.h"
 #include "KindUI/Rendering/IconMetrics.h"
@@ -53,7 +54,7 @@ void PaintTreeNodeIcon(PaintContext& context, const TreeNode& node, const Rect& 
         return;
     }
     if (!node.iconName.empty()) {
-        IconPainter::DrawIcon(context, node.iconName, iconRect, ResolveThemeColor(ThemeToken::IconPrimary));
+        IconPainter::DrawIcon(context, node.iconName, iconRect, ResolveColor(ColorToken::IconPrimary));
     }
 }
 
@@ -81,9 +82,9 @@ public:
     void Arrange(const Rect& allottedRect) override { m_Geometry = allottedRect; }
 
     void Paint(PaintContext& context) override {
-        context.DrawShadow(m_Geometry, ThemeColor(ThemeToken::ShadowSubtle), 4.0f, 10.0f);
-        context.DrawRoundedRect(m_Geometry, ThemeColor(ThemeToken::PopupBackground), ThemeMetric(ThemeToken::CornerRadiusSmall));
-        context.DrawRoundedRectOutline(m_Geometry, ThemeColor(ThemeToken::BorderDefault), 1.0f, ThemeMetric(ThemeToken::CornerRadiusSmall));
+        context.DrawShadow(m_Geometry, ThemeColor(ColorToken::ShadowSubtle), 4.0f, 10.0f);
+        context.DrawRoundedRect(m_Geometry, ThemeColor(ColorToken::PopupBackground), ThemeMetric(MetricToken::CornerRadiusSmall));
+        context.DrawRoundedRectOutline(m_Geometry, ThemeColor(ColorToken::BorderDefault), 1.0f, ThemeMetric(MetricToken::CornerRadiusSmall));
 
         float y = m_Geometry.y + 3.0f;
         for (size_t i = 0; i < m_Items.size(); ++i) {
@@ -94,9 +95,9 @@ public:
                 continue;
             }
             if (static_cast<int>(i) == m_Hovered) {
-                context.DrawRoundedRect(row, ThemeColor(ThemeToken::HoverBackground), 3.0f);
+                context.DrawRoundedRect(row, ThemeColor(ColorToken::HoverBackground), 3.0f);
             }
-            context.DrawText(item.label, Point{ row.x + 10.0f, row.y + 5.0f }, ThemeColor(ThemeToken::TextPrimary), 11.0f);
+            context.DrawText(item.label, Point{ row.x + 10.0f, row.y + 5.0f }, ThemeColor(ColorToken::TextPrimary), 11.0f);
             y += 26.0f;
         }
     }
@@ -259,45 +260,45 @@ void TreeView::Paint(PaintContext& context) {
                 m_ScrollMetrics.viewport.width - 8.0f,
                 2.0f
             };
-            context.DrawRect(dropLine, ThemeColor(ThemeToken::AccentPrimary));
+            context.DrawRect(dropLine, ThemeColor(ColorToken::AccentPrimary));
         }
 
         if (!node->children.empty()) {
             const float tier = static_cast<float>(IconMetrics::StandardGlyphTierPx());
-            const float chevronX = item.geometry.x + ThemeMetric(ThemeToken::Space1) * TreeUiScale();
+            const float chevronX = item.geometry.x + ThemeMetric(MetricToken::Space1) * TreeUiScale();
             const float centerY = item.geometry.y + rowHeight * 0.5f;
             const char* chevronIcon = node->expanded ? Icons::ChevronDownName : Icons::ChevronRightName;
             Rect chevronControl{ chevronX, centerY - tier * 0.5f, tier, tier };
             IconPainter::DrawIcon(context, chevronIcon,
                 IconMetrics::PlaceGlyphCentered(chevronControl, tier),
-                ThemeColor(ThemeToken::TextSecondary));
+                ThemeColor(ColorToken::TextSecondary));
         }
 
-        const float iconSize = static_cast<float>(IconMetrics::GlyphTierPx(ThemeToken::IconSizeTree));
-        const float iconX = item.geometry.x + ThemeMetric(ThemeToken::Space2)
+        const float iconSize = static_cast<float>(IconMetrics::GlyphTierPx(MetricToken::IconSizeTree));
+        const float iconX = item.geometry.x + ThemeMetric(MetricToken::Space2)
             + static_cast<float>(IconMetrics::StandardGlyphTierPx())
-            + ThemeMetric(ThemeToken::Space1) * TreeUiScale();
+            + ThemeMetric(MetricToken::Space1) * TreeUiScale();
         if (!node->iconName.empty() || node->iconTexture != we::rhi::RHIDescriptorSetHandle::Invalid) {
             Rect iconBand{ iconX, item.geometry.y, iconSize, rowHeight };
             Rect iconRect = IconMetrics::PlaceGlyphCentered(iconBand, iconSize);
             PaintTreeNodeIcon(context, *node, iconRect, node->id == m_HoveredId);
         }
 
-        const float textX = iconX + iconSize + ThemeMetric(ThemeToken::Space2) * TreeUiScale();
+        const float textX = iconX + iconSize + ThemeMetric(MetricToken::Space2) * TreeUiScale();
         const float textY = item.geometry.y + (rowHeight - fontSize) * 0.5f;
-        Color textColor = node->locked ? ThemeColor(ThemeToken::TextSecondary) * 0.6f : ThemeColor(ThemeToken::TextPrimary);
+        Color textColor = node->locked ? ThemeColor(ColorToken::TextSecondary) * 0.6f : ThemeColor(ColorToken::TextPrimary);
         if (!node->visible) {
-            textColor = ThemeColor(ThemeToken::TextSecondary) * 0.45f;
+            textColor = ThemeColor(ColorToken::TextSecondary) * 0.45f;
         }
 
         if (node->id == m_RenamingId) {
             Rect editBg{ textX - 4.0f, item.geometry.y + 2.0f, item.geometry.width - 80.0f, rowHeight - 4.0f };
-            context.DrawRoundedRect(editBg, ThemeColor(ThemeToken::InputBackground), 3.0f);
-            context.DrawRoundedRectOutline(editBg, ThemeColor(ThemeToken::AccentPrimary), 1.0f, 3.0f);
-            context.DrawText(m_RenameBuffer, Point{ textX, textY }, ThemeColor(ThemeToken::TextPrimary), fontSize);
+            context.DrawRoundedRect(editBg, ThemeColor(ColorToken::InputBackground), 3.0f);
+            context.DrawRoundedRectOutline(editBg, ThemeColor(ColorToken::AccentPrimary), 1.0f, 3.0f);
+            context.DrawText(m_RenameBuffer, Point{ textX, textY }, ThemeColor(ColorToken::TextPrimary), fontSize);
             if (static_cast<int>(m_RenameCursorBlink * 2.0f) % 2 == 0) {
                 const float cursorX = textX + context.GetTextWidth(m_RenameBuffer, fontSize) + 1.0f;
-                context.DrawRect(Rect{ cursorX, textY, 1.0f, fontSize }, ThemeColor(ThemeToken::TextPrimary));
+                context.DrawRect(Rect{ cursorX, textY, 1.0f, fontSize }, ThemeColor(ColorToken::TextPrimary));
             }
         } else {
             // Draw text with search highlighting
@@ -339,8 +340,8 @@ void TreeView::Paint(PaintContext& context) {
                     const std::string matchText = label.substr(matchStart, matchEnd - matchStart);
                     const float matchWidth = context.GetTextWidth(matchText, fontSize);
                     Rect highlightRect{ currentX, textY, matchWidth, fontSize };
-                    context.DrawRoundedRect(highlightRect, ThemeColor(ThemeToken::AccentPrimary) * 0.3f, 2.0f);
-                    context.DrawText(matchText, Point{ currentX, textY }, ThemeColor(ThemeToken::AccentPrimary), fontSize);
+                    context.DrawRoundedRect(highlightRect, ThemeColor(ColorToken::AccentPrimary) * 0.3f, 2.0f);
+                    context.DrawText(matchText, Point{ currentX, textY }, ThemeColor(ColorToken::AccentPrimary), fontSize);
                     currentX += matchWidth;
                     
                     // Draw text after match
@@ -357,19 +358,19 @@ void TreeView::Paint(PaintContext& context) {
         }
 
         if (m_ShowRowControls) {
-        const float accessorySize = static_cast<float>(IconMetrics::GlyphTierPx(ThemeToken::IconSizeTree));
-        const float accessoryGap = ThemeMetric(ThemeToken::Space1) * TreeUiScale();
-        const float rowPad = ThemeMetric(ThemeToken::Space2) * TreeUiScale();
+        const float accessorySize = static_cast<float>(IconMetrics::GlyphTierPx(MetricToken::IconSizeTree));
+        const float accessoryGap = ThemeMetric(MetricToken::Space1) * TreeUiScale();
+        const float rowPad = ThemeMetric(MetricToken::Space2) * TreeUiScale();
         const float eyeX = item.geometry.x + item.geometry.width - accessorySize - rowPad;
         const float centerY = item.geometry.y + rowHeight * 0.5f;
-        const Color eyeColor = node->visible ? ThemeColor(ThemeToken::TextSecondary) : ThemeColor(ThemeToken::TextSecondary) * 0.45f;
+        const Color eyeColor = node->visible ? ThemeColor(ColorToken::TextSecondary) : ThemeColor(ColorToken::TextSecondary) * 0.45f;
         const char* eyeIcon = node->visible ? Icons::EyeName : Icons::EyeOffName;
         Rect eyeControl{ eyeX, centerY - accessorySize * 0.5f, accessorySize, accessorySize };
         IconPainter::DrawIcon(context, eyeIcon,
             IconMetrics::PlaceGlyphCentered(eyeControl, accessorySize), eyeColor);
 
         const float lockX = eyeX - accessorySize - accessoryGap;
-        const Color lockColor = node->locked ? ThemeColor(ThemeToken::Warning) : ThemeColor(ThemeToken::TextSecondary) * 0.55f;
+        const Color lockColor = node->locked ? ThemeColor(ColorToken::Warning) : ThemeColor(ColorToken::TextSecondary) * 0.55f;
         const char* lockIcon = node->locked ? Icons::LockName : Icons::UnlockName;
         Rect lockControl{ lockX, centerY - accessorySize * 0.5f, accessorySize, accessorySize };
         IconPainter::DrawIcon(context, lockIcon,
@@ -411,7 +412,7 @@ void TreeView::OnMouseDown(const MouseEvent& event) {
 
     if (!node->children.empty()) {
         const float tier = static_cast<float>(IconMetrics::StandardGlyphTierPx());
-        const float chevronX = item->geometry.x + ThemeMetric(ThemeToken::Space1) * TreeUiScale();
+        const float chevronX = item->geometry.x + ThemeMetric(MetricToken::Space1) * TreeUiScale();
         Rect chevronRect{ chevronX, item->geometry.y + (rowHeight - tier) * 0.5f, tier, tier };
         if (chevronRect.Contains(event.position)) {
             ToggleExpand(node->id);
@@ -419,9 +420,9 @@ void TreeView::OnMouseDown(const MouseEvent& event) {
         }
     }
 
-    const float accessorySize = static_cast<float>(IconMetrics::GlyphTierPx(ThemeToken::IconSizeTree));
-    const float accessoryGap = ThemeMetric(ThemeToken::Space1) * TreeUiScale();
-    const float rowPad = ThemeMetric(ThemeToken::Space2) * TreeUiScale();
+    const float accessorySize = static_cast<float>(IconMetrics::GlyphTierPx(MetricToken::IconSizeTree));
+    const float accessoryGap = ThemeMetric(MetricToken::Space1) * TreeUiScale();
+    const float rowPad = ThemeMetric(MetricToken::Space2) * TreeUiScale();
     const float eyeX = item->geometry.x + item->geometry.width - accessorySize - rowPad;
     const float lockX = eyeX - accessorySize - accessoryGap;
     Rect lockRect{ lockX, item->geometry.y + (rowHeight - accessorySize) * 0.5f, accessorySize, accessorySize };

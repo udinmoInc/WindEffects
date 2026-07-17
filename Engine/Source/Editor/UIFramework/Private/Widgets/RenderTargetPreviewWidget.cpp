@@ -1,5 +1,6 @@
 #include "Widgets/RenderTargetPreviewWidget.h"
-#include "KindUI/Theming/ThemeToken.h"
+#include "KindUI/Tokens/DesignToken.h"
+#include "KindUI/Theming/StyleRole.h"
 #include "KindUI/Core/PaintContext.h"
 
 #include <algorithm>
@@ -53,13 +54,13 @@ void RenderTargetPreviewWidget::Arrange(const Rect& allottedRect) {
 }
 
 void RenderTargetPreviewWidget::Paint(PaintContext& context) {
-    context.DrawRect(m_Geometry, ThemeColor(ThemeToken::PanelBackground), 4.0f);
-    context.DrawText(m_Title, Point{ m_Geometry.x + kPadding, m_Geometry.y + 6.0f }, ThemeColor(ThemeToken::TextPrimary), ThemeMetric(ThemeToken::TextSizeProperty));
-    context.DrawRect(m_CloseRect, ThemeColor(ThemeToken::AccentPrimary), 2.0f);
+    context.DrawRect(m_Geometry, ThemeColor(ColorToken::PanelBackground), 4.0f);
+    context.DrawText(m_Title, Point{ m_Geometry.x + kPadding, m_Geometry.y + 6.0f }, ThemeColor(ColorToken::TextPrimary), ThemeMetric(MetricToken::TextSizeProperty));
+    context.DrawRect(m_CloseRect, ThemeColor(ColorToken::AccentPrimary), 2.0f);
 
     if (m_Rgba.empty() || m_Width == 0 || m_Height == 0) {
         context.DrawText("No preview data (enable GPU readback)", Point{ m_PreviewRect.x, m_PreviewRect.y },
-            ThemeColor(ThemeToken::TextSecondary), ThemeMetric(ThemeToken::TextSizeProperty) - 1.0f);
+            ThemeColor(ColorToken::TextSecondary), ThemeMetric(MetricToken::TextSizeProperty) - 1.0f);
         return;
     }
 

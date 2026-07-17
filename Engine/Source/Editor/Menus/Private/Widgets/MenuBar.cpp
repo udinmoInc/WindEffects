@@ -2,7 +2,8 @@
 #include "Widgets/DropdownMenu.h"
 #include "KindUI/Layout/OverlayManager.h"
 #include "KindUI/Core/PaintContext.h"
-#include "KindUI/Theming/ThemeToken.h"
+#include "KindUI/Tokens/DesignToken.h"
+#include "KindUI/Theming/StyleRole.h"
 #include "KindUI/Core/Icon.h"
 #include "KindUI/Core/DPIContext.h"
 #include <algorithm>
@@ -15,7 +16,7 @@ MenuBar::MenuBar()
 
 Size MenuBar::Measure(const Size& availableSize) {
     const float uiScale = (std::max)(1.0f, DPIContext::GetScale());
-    const float textSize = ThemeMetric(ThemeToken::TextSizeMenu) * uiScale;
+    const float textSize = ThemeMetric(MetricToken::TextSizeMenu) * uiScale;
     auto getApproxTextWidth = [textSize](const std::string& str) {
         float w = 0.0f;
         for (char c : str) {
@@ -45,17 +46,17 @@ void MenuBar::Arrange(const Rect& allottedRect) {
 
 void MenuBar::Paint(PaintContext& context) {
     const float uiScale = (std::max)(1.0f, DPIContext::GetScale());
-    const float textSize = ThemeMetric(ThemeToken::TextSizeMenu) * uiScale;
+    const float textSize = ThemeMetric(MetricToken::TextSizeMenu) * uiScale;
 
     auto drawMenu = [&](const MenuInfo& menu, int index) {
         bool isActive = m_MenuOpen && index == m_HoveredMenu;
         const bool isHighlighted = menu.hovered || isActive;
-        const float radius = ThemeMetric(ThemeToken::CornerRadiusMedium) * uiScale;
+        const float radius = ThemeMetric(MetricToken::CornerRadiusMedium) * uiScale;
 
         if (isHighlighted) {
-            Color hoverBg = ThemeColor(ThemeToken::HoverBackground);
+            Color hoverBg = ThemeColor(ColorToken::HoverBackground);
             if (isActive) {
-                hoverBg = Color::Lerp(hoverBg, ThemeColor(ThemeToken::SelectedBackground), 0.35f);
+                hoverBg = Color::Lerp(hoverBg, ThemeColor(ColorToken::SelectedBackground), 0.35f);
             }
             context.DrawRoundedRect(menu.geometry, hoverBg, radius);
         }
@@ -136,7 +137,7 @@ void MenuBar::CalculateMenuGeometries() {
     const float uiScale = (std::max)(1.0f, DPIContext::GetScale());
     float x = m_Geometry.x;
     float availableWidth = m_Geometry.width;
-    const float textSize = ThemeMetric(ThemeToken::TextSizeMenu) * uiScale;
+    const float textSize = ThemeMetric(MetricToken::TextSizeMenu) * uiScale;
 
     m_VisibleMenus.clear();
     m_HiddenMenus.clear();

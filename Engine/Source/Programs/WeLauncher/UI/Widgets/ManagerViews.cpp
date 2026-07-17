@@ -7,7 +7,8 @@
 #include "KindUI/Core/Icon.h"
 #include "KindUI/Core/PaintContext.h"
 #include "KindUI/Theming/ThemeManager.h"
-#include "KindUI/Theming/ThemeToken.h"
+#include "KindUI/Tokens/DesignToken.h"
+#include "KindUI/Theming/StyleRole.h"
 
 #include <algorithm>
 #include <cmath>
@@ -30,7 +31,7 @@ void PaintIconButton(
     float radius) {
     const float s = LScale();
     if (hovered || accent) {
-        Color bg = accent ? LColor(ThemeToken::SelectedBackground) : LColor(ThemeToken::HoverBackground);
+        Color bg = accent ? LColor(ColorToken::SelectedBackground) : LColor(ColorToken::HoverBackground);
         context.DrawRoundedRect(rect, bg, radius);
     }
     const float iconSize = 14.0f * s;
@@ -43,18 +44,18 @@ void PaintIconButton(
             iconSize,
             iconSize
         },
-        accent ? LColor(ThemeToken::AccentPrimary)
-               : (hovered ? LColor(ThemeToken::TextPrimary) : LColor(ThemeToken::IconSecondary)));
+        accent ? LColor(ColorToken::AccentPrimary)
+               : (hovered ? LColor(ColorToken::TextPrimary) : LColor(ColorToken::IconSecondary)));
 }
 
 void PaintStatusDot(PaintContext& context, const Rect& row, const std::string& status, float s) {
-    Color c = LColor(ThemeToken::TextMuted);
+    Color c = LColor(ColorToken::TextMuted);
     if (status == "Compatible") {
-        c = LColor(ThemeToken::Success);
+        c = LColor(ColorToken::Success);
     } else if (status == "Warning") {
-        c = LColor(ThemeToken::Warning);
+        c = LColor(ColorToken::Warning);
     } else if (status == "Incompatible") {
-        c = LColor(ThemeToken::ErrorForeground);
+        c = LColor(ColorToken::ErrorForeground);
     }
     const float d = 6.0f * s;
     context.DrawRoundedRect(
@@ -150,14 +151,14 @@ void ProjectTableHeader::Paint(PaintContext& context) {
     context.DrawRect(m_Geometry, header.background);
     context.DrawRect(
         Rect{ m_Geometry.x, m_Geometry.y + m_Geometry.height - 1.0f * s, m_Geometry.width, 1.0f * s },
-        LColor(ThemeToken::Separator));
+        LColor(ColorToken::Separator));
 
     const float inset = TableContentInset(s);
     const auto cols = TableColumnsForGeometry(m_Geometry.width, s);
-    const float textSize = header.fontSize > 0.0f ? header.fontSize : LMetric(ThemeToken::TextSizeCaption) * s;
+    const float textSize = header.fontSize > 0.0f ? header.fontSize : LMetric(MetricToken::TextSizeCaption) * s;
     float x = m_Geometry.x + inset;
 
-    Color divider = LColor(ThemeToken::Separator);
+    Color divider = LColor(ColorToken::Separator);
     divider.a *= 0.85f;
     auto drawDivider = [&](float atX) {
         context.DrawRect(
@@ -180,7 +181,7 @@ void ProjectTableHeader::Paint(PaintContext& context) {
         context.DrawText(
             text,
             Point{ x + textPad, m_Geometry.y + (m_Geometry.height - textSize) * 0.5f },
-            sorted ? LColor(ThemeToken::TextPrimary) : header.foreground,
+            sorted ? LColor(ColorToken::TextPrimary) : header.foreground,
             textSize,
             sorted);
         x += width;
@@ -197,7 +198,7 @@ void ProjectTableHeader::Paint(PaintContext& context) {
             starPx,
             starPx
         },
-        LColor(ThemeToken::IconSecondary));
+        LColor(ColorToken::IconSecondary));
     x += cols.favorite;
     drawCol("NAME", cols.name, m_SortMode == ProjectSortMode::Name, true);
     drawCol("MODIFIED", cols.lastOpened, m_SortMode == ProjectSortMode::Recent, true);
@@ -316,8 +317,8 @@ void ProjectTableRow::Paint(PaintContext& context) {
 
     const auto cols = TableColumnsForGeometry(m_Geometry.width, s);
     const float inset = TableContentInset(s);
-    const float textSize = LMetric(ThemeToken::TextSizeBody) * s;
-    const float metaSize = LMetric(ThemeToken::TextSizeCaption) * s;
+    const float textSize = LMetric(MetricToken::TextSizeBody) * s;
+    const float metaSize = LMetric(MetricToken::TextSizeCaption) * s;
     const float metaY = m_Geometry.y + (m_Geometry.height - metaSize) * 0.5f;
     const float nameGap = 2.0f * s;
     const float nameBlockH = textSize + nameGap + metaSize;
@@ -340,20 +341,20 @@ void ProjectTableRow::Paint(PaintContext& context) {
     context.DrawText(
         Ellipsize(displayName, cols.name - colPad - 8.0f * s, textSize),
         Point{ x + colPad, nameTop },
-        LColor(ThemeToken::TextPrimary),
+        LColor(ColorToken::TextPrimary),
         textSize,
         true);
     context.DrawText(
         Ellipsize(EllipsizePath(m_Summary.projectRoot, 72), cols.name - colPad - 8.0f * s, metaSize),
         Point{ x + colPad, nameTop + textSize + nameGap },
-        LColor(ThemeToken::TextMuted),
+        LColor(ColorToken::TextMuted),
         metaSize);
     x += cols.name;
 
     context.DrawText(
         FormatRelativeTime(m_Summary.descriptor.lastOpenedUtc),
         Point{ x + colPad, metaY },
-        LColor(ThemeToken::TextSecondary),
+        LColor(ColorToken::TextSecondary),
         metaSize);
     x += cols.lastOpened;
 
@@ -363,26 +364,26 @@ void ProjectTableRow::Paint(PaintContext& context) {
             cols.engine - colPad - 4.0f * s,
             metaSize),
         Point{ x + colPad, metaY },
-        LColor(ThemeToken::TextSecondary),
+        LColor(ColorToken::TextSecondary),
         metaSize);
     x += cols.engine;
 
     context.DrawText(
         Ellipsize(m_Summary.platforms.empty() ? "—" : m_Summary.platforms, cols.platform - colPad - 4.0f * s, metaSize),
         Point{ x + colPad, metaY },
-        LColor(ThemeToken::TextSecondary),
+        LColor(ColorToken::TextSecondary),
         metaSize);
     x += cols.platform;
 
     {
         const std::string& status = m_Summary.statusLabel.empty() ? "Unknown" : m_Summary.statusLabel;
-        Color statusColor = LColor(ThemeToken::TextMuted);
+        Color statusColor = LColor(ColorToken::TextMuted);
         if (status == "Compatible") {
-            statusColor = LColor(ThemeToken::Success);
+            statusColor = LColor(ColorToken::Success);
         } else if (status == "Warning") {
-            statusColor = LColor(ThemeToken::Warning);
+            statusColor = LColor(ColorToken::Warning);
         } else if (status == "Incompatible") {
-            statusColor = LColor(ThemeToken::ErrorForeground);
+            statusColor = LColor(ColorToken::ErrorForeground);
         }
         const float d = 6.0f * s;
         context.DrawRoundedRect(
@@ -392,7 +393,7 @@ void ProjectTableRow::Paint(PaintContext& context) {
         context.DrawText(
             Ellipsize(status, cols.status - colPad - 14.0f * s, metaSize),
             Point{ x + colPad + 10.0f * s, metaY },
-            LColor(ThemeToken::TextSecondary),
+            LColor(ColorToken::TextSecondary),
             metaSize);
     }
 
@@ -477,7 +478,7 @@ bool ProjectTableRow::ShowsPointerCursor(const Point& position) const {
 
 void ProjectTableRow::Tick(float deltaTime) {
     (void)deltaTime;
-    const float damp = LMetric(ThemeToken::HoverAnimationDamping);
+    const float damp = LMetric(MetricToken::HoverAnimationDamping);
     const bool hovered = m_HoverZone != HitZone::None && !m_Selected;
     m_HoverAnim = Animator::Damp(m_HoverAnim, hovered ? 1.0f : 0.0f, damp);
     Widget::Tick(deltaTime);
@@ -506,14 +507,14 @@ void TemplateListRow::Arrange(const Rect& allottedRect) {
 
 void TemplateListRow::Paint(PaintContext& context) {
     const float s = LScale();
-    const float radius = LMetric(ThemeToken::CornerRadiusSmall) * s;
+    const float radius = LMetric(MetricToken::CornerRadiusSmall) * s;
 
     ControlChrome::InteractionState rowState{ m_HoverAnim, 0.0f, m_Selected, false, false };
     ControlChrome::PaintListRow(context, m_Geometry, rowState);
     if (m_Selected) {
         context.DrawRect(
             Rect{ m_Geometry.x, m_Geometry.y + 6.0f * s, 2.0f * s, m_Geometry.height - 12.0f * s },
-            LColor(ThemeToken::AccentPrimary));
+            LColor(ColorToken::AccentPrimary));
     }
 
     const float iconBox = 28.0f * s;
@@ -521,7 +522,7 @@ void TemplateListRow::Paint(PaintContext& context) {
     const float pad = 10.0f * s;
     context.DrawRoundedRect(
         Rect{ m_Geometry.x + pad, m_Geometry.y + (m_Geometry.height - iconBox) * 0.5f, iconBox, iconBox },
-        Color::Lerp(badge, LColor(ThemeToken::PanelBackground), 0.5f),
+        Color::Lerp(badge, LColor(ColorToken::PanelBackground), 0.5f),
         6.0f * s);
     IconPainter::DrawIcon(
         context,
@@ -535,12 +536,12 @@ void TemplateListRow::Paint(PaintContext& context) {
         badge);
 
     const float textX = m_Geometry.x + pad + iconBox + 10.0f * s;
-    const float titleSize = LMetric(ThemeToken::TextSizeBody) * s;
-    const float metaSize = LMetric(ThemeToken::TextSizeCaption) * s;
+    const float titleSize = LMetric(MetricToken::TextSizeBody) * s;
+    const float metaSize = LMetric(MetricToken::TextSizeCaption) * s;
     context.DrawText(
         m_Info.displayName,
         Point{ textX, m_Geometry.y + 8.0f * s },
-        LColor(ThemeToken::TextPrimary),
+        LColor(ColorToken::TextPrimary),
         titleSize,
         true);
 
@@ -558,7 +559,7 @@ void TemplateListRow::Paint(PaintContext& context) {
     context.DrawText(
         meta,
         Point{ textX, m_Geometry.y + 8.0f * s + titleSize + 2.0f * s },
-        LColor(ThemeToken::TextMuted),
+        LColor(ColorToken::TextMuted),
         metaSize);
 }
 
@@ -581,7 +582,7 @@ bool TemplateListRow::ShowsPointerCursor(const Point& position) const {
 
 void TemplateListRow::Tick(float deltaTime) {
     (void)deltaTime;
-    const float damp = LMetric(ThemeToken::HoverAnimationDamping);
+    const float damp = LMetric(MetricToken::HoverAnimationDamping);
     m_HoverAnim = Animator::Damp(m_HoverAnim, m_Hovered && !m_Selected ? 1.0f : 0.0f, damp);
     Widget::Tick(deltaTime);
     InvalidateUI();
@@ -638,19 +639,19 @@ EngineInstallRow::HitZone EngineInstallRow::HitTest(const Point& p) const {
 
 void EngineInstallRow::Paint(PaintContext& context) {
     const float s = LScale();
-    const float radius = LMetric(ThemeToken::CornerRadiusSmall) * s;
+    const float radius = LMetric(MetricToken::CornerRadiusSmall) * s;
 
     ControlChrome::InteractionState rowState{ m_HoverAnim, 0.0f, m_Selected, false, false };
     ControlChrome::PaintListRow(context, m_Geometry, rowState);
 
-    const float textSize = LMetric(ThemeToken::TextSizeBody) * s;
-    const float metaSize = LMetric(ThemeToken::TextSizeCaption) * s;
+    const float textSize = LMetric(MetricToken::TextSizeBody) * s;
+    const float metaSize = LMetric(MetricToken::TextSizeCaption) * s;
     float x = m_Geometry.x + 12.0f * s;
 
     context.DrawText(
         m_Info.engineVersion.empty() ? "Unknown" : m_Info.engineVersion,
         Point{ x, m_Geometry.y + 8.0f * s },
-        LColor(ThemeToken::TextPrimary),
+        LColor(ColorToken::TextPrimary),
         textSize,
         true);
     context.DrawText(
@@ -659,7 +660,7 @@ void EngineInstallRow::Paint(PaintContext& context) {
             + "  ·  " + std::to_string(m_Info.pluginCount) + " plugins"
             + "  ·  " + m_Info.updateStatus,
         Point{ x, m_Geometry.y + 8.0f * s + textSize + 2.0f * s },
-        LColor(ThemeToken::TextMuted),
+        LColor(ColorToken::TextMuted),
         metaSize);
 
     static const char* kIcons[] = {
@@ -730,7 +731,7 @@ bool EngineInstallRow::ShowsPointerCursor(const Point& position) const {
 
 void EngineInstallRow::Tick(float deltaTime) {
     (void)deltaTime;
-    const float damp = LMetric(ThemeToken::HoverAnimationDamping);
+    const float damp = LMetric(MetricToken::HoverAnimationDamping);
     m_HoverAnim = Animator::Damp(m_HoverAnim, m_HoverZone != HitZone::None && !m_Selected ? 1.0f : 0.0f, damp);
     Widget::Tick(deltaTime);
     InvalidateUI();
@@ -761,20 +762,20 @@ void SimpleColumnHeader::Paint(PaintContext& context) {
     context.DrawRect(m_Geometry, header.background);
     context.DrawRect(
         Rect{ m_Geometry.x, m_Geometry.y + m_Geometry.height - 1.0f * s, m_Geometry.width, 1.0f * s },
-        LColor(ThemeToken::Separator));
+        LColor(ColorToken::Separator));
 
     if (m_Columns.empty()) {
         return;
     }
 
     const float inset = TableContentInset(s);
-    const float textSize = header.fontSize > 0.0f ? header.fontSize : LMetric(ThemeToken::TextSizeCaption) * s;
+    const float textSize = header.fontSize > 0.0f ? header.fontSize : LMetric(MetricToken::TextSizeCaption) * s;
     const float band = std::max(0.0f, m_Geometry.width - inset * 2.0f);
     const std::size_t count = m_Columns.size();
     const float colW = band / static_cast<float>(count);
     float x = m_Geometry.x + inset;
 
-    Color divider = LColor(ThemeToken::Separator);
+    Color divider = LColor(ColorToken::Separator);
     divider.a *= 0.85f;
 
     for (std::size_t i = 0; i < count; ++i) {
@@ -838,23 +839,23 @@ void LibraryPackageRow::Paint(PaintContext& context) {
                 iconSize,
                 iconSize
             },
-            LColor(ThemeToken::IconSecondary));
+            LColor(ColorToken::IconSecondary));
     }
 
     const float textX = m_Geometry.x + pad + iconSize + 10.0f * s;
-    const float titleSize = LMetric(ThemeToken::TextSizeBody) * s;
-    const float metaSize = LMetric(ThemeToken::TextSizeCaption) * s;
+    const float titleSize = LMetric(MetricToken::TextSizeBody) * s;
+    const float metaSize = LMetric(MetricToken::TextSizeCaption) * s;
     context.DrawText(
         m_Name,
         Point{ textX, m_Geometry.y + (m_Geometry.height - titleSize) * 0.5f - (m_Detail.empty() ? 0.0f : 6.0f * s) },
-        LColor(ThemeToken::TextPrimary),
+        LColor(ColorToken::TextPrimary),
         titleSize,
         true);
     if (!m_Detail.empty()) {
         context.DrawText(
             m_Kind + "  ·  " + m_Detail,
             Point{ textX, m_Geometry.y + m_Geometry.height * 0.5f + 2.0f * s },
-            LColor(ThemeToken::TextMuted),
+            LColor(ColorToken::TextMuted),
             metaSize);
     }
 }
@@ -878,7 +879,7 @@ bool LibraryPackageRow::ShowsPointerCursor(const Point& position) const {
 
 void LibraryPackageRow::Tick(float deltaTime) {
     (void)deltaTime;
-    const float damp = LMetric(ThemeToken::HoverAnimationDamping);
+    const float damp = LMetric(MetricToken::HoverAnimationDamping);
     m_HoverAnim = Animator::Damp(m_HoverAnim, m_Hovered ? 1.0f : 0.0f, damp);
     Widget::Tick(deltaTime);
     InvalidateUI();

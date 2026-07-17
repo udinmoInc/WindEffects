@@ -16,15 +16,15 @@ Margin ScalePadding(const Margin& padding, float dpiScale) {
     };
 }
 
-ResolvedStyle BuildFromClass(const StyleClass& cls, const IThemeProvider& theme, float dpiScale) {
+ResolvedStyle BuildFromClass(const StyleClass& cls, const IKindUITheme& theme, float dpiScale) {
     ResolvedStyle style{};
-    style.background = theme.GetColor(cls.background);
-    style.foreground = theme.GetColor(cls.foreground);
-    style.border = theme.GetColor(cls.border);
-    style.cornerRadius = ScaleMetric(theme.GetMetric(cls.radiusToken), dpiScale);
-    style.fontSize = ScaleMetric(theme.GetMetric(cls.fontSizeToken), dpiScale);
-    style.height = ScaleMetric(theme.GetMetric(cls.heightToken), dpiScale);
-    style.padding = ScalePadding(theme.GetPadding(cls.paddingToken), dpiScale);
+    style.background = theme.ResolveColor(cls.background);
+    style.foreground = theme.ResolveColor(cls.foreground);
+    style.border = theme.ResolveColor(cls.border);
+    style.cornerRadius = ScaleMetric(theme.ResolveMetric(cls.radiusToken), dpiScale);
+    style.fontSize = ScaleMetric(theme.ResolveMetric(cls.fontSizeToken), dpiScale);
+    style.height = ScaleMetric(theme.ResolveMetric(cls.heightToken), dpiScale);
+    style.padding = ScalePadding(theme.ResolvePadding(cls.paddingToken), dpiScale);
     style.bold = cls.bold;
     style.foreground.a *= cls.opacity;
     style.background.a *= cls.opacity;
@@ -35,7 +35,7 @@ ResolvedStyle BuildFromClass(const StyleClass& cls, const IThemeProvider& theme,
 
 ResolvedStyle StyleResolve::FromClass(
     std::string_view className,
-    const IThemeProvider& theme,
+    const IKindUITheme& theme,
     float dpiScale)
 {
     if (className.empty()) {
@@ -48,7 +48,7 @@ ResolvedStyle StyleResolve::FromClass(
 ResolvedStyle StyleResolve::ApplyState(
     const ResolvedStyle& base,
     const StyleClass& cls,
-    const IThemeProvider& theme,
+    const IKindUITheme& theme,
     float dpiScale,
     bool hovered,
     bool pressed,
@@ -58,17 +58,17 @@ ResolvedStyle StyleResolve::ApplyState(
     (void)selected;
     ResolvedStyle style = base;
     if (disabled) {
-        style.background = theme.GetColor(cls.disabledBackground);
-        style.foreground = theme.GetColor(ThemeToken::TextDisabled);
-        style.border = theme.GetColor(ThemeToken::BorderDark);
+        style.background = theme.ResolveColor(cls.disabledBackground);
+        style.foreground = theme.ResolveColor(ColorToken::TextDisabled);
+        style.border = theme.ResolveColor(ColorToken::BorderDark);
         return style;
     }
     if (pressed) {
-        style.background = theme.GetColor(cls.pressedBackground);
+        style.background = theme.ResolveColor(cls.pressedBackground);
     } else if (hovered) {
-        style.background = theme.GetColor(cls.hoverBackground);
+        style.background = theme.ResolveColor(cls.hoverBackground);
     }
-    style.cornerRadius = ScaleMetric(theme.GetMetric(cls.radiusToken), dpiScale);
+    style.cornerRadius = ScaleMetric(theme.ResolveMetric(cls.radiusToken), dpiScale);
     return style;
 }
 

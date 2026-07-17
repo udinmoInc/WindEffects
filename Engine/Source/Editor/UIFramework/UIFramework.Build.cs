@@ -14,7 +14,6 @@ public class UIFramework : ModuleRules
 
         PublicDependencies.Add("KindUI");
         PublicDependencies.Add("Core");
-        PublicDependencies.Add("CoreUObject");
         PublicDependencies.Add("Platform");
         PublicDependencies.Add("RHI");
         PublicDependencies.Add("Renderer");

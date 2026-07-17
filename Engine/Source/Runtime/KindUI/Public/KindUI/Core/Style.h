@@ -40,8 +40,8 @@ struct TextStyle {
 
     static TextStyle Body() {
         return TextStyle{
-            ResolveThemeColor(ThemeToken::TextPrimary),
-            ResolveThemeMetric(ThemeToken::TextSizeBody),
+            ResolveColor(ColorToken::TextPrimary),
+            ResolveMetric(MetricToken::TextSizeBody),
             false,
             false
         };
@@ -49,16 +49,16 @@ struct TextStyle {
 };
 
 struct ShadowStyle {
-    Color color = ResolveThemeColor(ThemeToken::ShadowSubtle);
+    Color color = ResolveColor(ColorToken::ShadowSubtle);
     float offsetX = 0.0f;
     float offsetY = 2.0f;
     float blur = 4.0f;
     float spread = 0.0f;
 
     static ShadowStyle None() { return ShadowStyle{Color::Transparent(), 0, 0, 0, 0}; }
-    static ShadowStyle Small() { return ShadowStyle{ResolveThemeColor(ThemeToken::ShadowPopup), 0, 1, 2, 0}; }
-    static ShadowStyle Medium() { return ShadowStyle{ResolveThemeColor(ThemeToken::ShadowSubtle), 0, 2, 4, 0}; }
-    static ShadowStyle Large() { return ShadowStyle{ResolveThemeColor(ThemeToken::ShadowOverlay), 0, 4, 8, 0}; }
+    static ShadowStyle Small() { return ShadowStyle{ResolveColor(ColorToken::ShadowPopup), 0, 1, 2, 0}; }
+    static ShadowStyle Medium() { return ShadowStyle{ResolveColor(ColorToken::ShadowSubtle), 0, 2, 4, 0}; }
+    static ShadowStyle Large() { return ShadowStyle{ResolveColor(ColorToken::ShadowOverlay), 0, 4, 8, 0}; }
 };
 
 struct KINDUI_API WidgetStyle {

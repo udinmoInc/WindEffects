@@ -1,6 +1,7 @@
 #include "Widgets/Toolbar.h"
 #include "KindUI/Core/PaintContext.h"
-#include "KindUI/Theming/ThemeToken.h"
+#include "KindUI/Tokens/DesignToken.h"
+#include "KindUI/Theming/StyleRole.h"
 #include "KindUI/Core/Icon.h"
 #include "KindUI/Theming/ThemeAccess.h"
 #include "KindUI/Core/DPIContext.h"
@@ -10,8 +11,8 @@
 
 namespace we::runtime::kindui {
 namespace {
-    float ScaledMetric(ThemeToken token) {
-        return ResolveThemeMetric(token) * (std::max)(1.0f, DPIContext::GetScale());
+    float ScaledMetric(ColorToken token) {
+        return ResolveMetric(token) * (std::max)(1.0f, DPIContext::GetScale());
     }
 
     void VisitToolbarWidgets(const std::shared_ptr<Widget>& widget, const std::function<void(const std::shared_ptr<Widget>&)>& visitor) {
@@ -58,9 +59,9 @@ Size Toolbar::Measure(const Size& availableSize) {
 void Toolbar::Arrange(const Rect& allottedRect) {
     m_Geometry = allottedRect;
     const float itemSpacing = m_IsFloating
-        ? ScaledMetric(ThemeToken::ButtonGroupSpacing)
-        : ScaledMetric(ThemeToken::Space2);
-    const float groupSpacing = ScaledMetric(ThemeToken::ButtonGroupSpacing);
+        ? ScaledMetric(MetricToken::ButtonGroupSpacing)
+        : ScaledMetric(MetricToken::Space2);
+    const float groupSpacing = ScaledMetric(MetricToken::ButtonGroupSpacing);
 
     std::vector<ToolInfo*> leftTools, centerTools, rightTools;
     for (auto& tool : m_Tools) {
@@ -153,7 +154,7 @@ void Toolbar::Paint(PaintContext& context) {
     if (!m_IsFloating) {
         const float uiScale = (std::max)(1.0f, DPIContext::GetScale());
 
-        context.DrawRect(m_Geometry, ThemeColor(ThemeToken::ToolbarBackground));
+        context.DrawRect(m_Geometry, ThemeColor(ColorToken::ToolbarBackground));
 
         Rect bottomEdge{
             m_Geometry.x,
@@ -161,7 +162,7 @@ void Toolbar::Paint(PaintContext& context) {
             m_Geometry.width,
             1.0f * uiScale
         };
-        context.DrawRect(bottomEdge, ThemeColor(ThemeToken::BorderDark));
+        context.DrawRect(bottomEdge, ThemeColor(ColorToken::BorderDark));
     }
 
     for (auto& tool : m_Tools) {
@@ -293,7 +294,7 @@ ToolbarSeparator::ToolbarSeparator() {}
 Size ToolbarSeparator::Measure(const Size& availableSize) {
     (void)availableSize;
     const float uiScale = (std::max)(1.0f, DPIContext::GetScale());
-    return Size{ 1.0f * uiScale, ThemeMetric(ThemeToken::IconButtonSize) * uiScale };
+    return Size{ 1.0f * uiScale, ThemeMetric(MetricToken::IconButtonSize) * uiScale };
 }
 
 void ToolbarSeparator::Arrange(const Rect& allottedRect) {
@@ -312,7 +313,7 @@ void ToolbarSeparator::Paint(PaintContext& context) {
         1.0f * uiScale,
         lineHeight
     };
-    context.DrawRect(lineRect, ThemeColor(ThemeToken::Separator));
+    context.DrawRect(lineRect, ThemeColor(ColorToken::Separator));
 }
 
 ToolbarGroup::ToolbarGroup() = default;
@@ -330,9 +331,9 @@ void ToolbarGroup::AddChildWidget(const std::shared_ptr<Widget>& child) {
 Size ToolbarGroup::Measure(const Size& availableSize) {
     (void)availableSize;
     const float uiScale = (std::max)(1.0f, DPIContext::GetScale());
-    const float padH = ThemeMetric(ThemeToken::Space1) * uiScale;
-    const float itemGap = ThemeMetric(ThemeToken::ButtonSpacing) * uiScale;
-    float maxHeight = ThemeMetric(ThemeToken::IconButtonSize) * uiScale;
+    const float padH = ThemeMetric(MetricToken::Space1) * uiScale;
+    const float itemGap = ThemeMetric(MetricToken::ButtonSpacing) * uiScale;
+    float maxHeight = ThemeMetric(MetricToken::IconButtonSize) * uiScale;
     float width = padH * 2.0f;
 
     for (size_t i = 0; i < m_Items.size(); ++i) {
@@ -349,8 +350,8 @@ Size ToolbarGroup::Measure(const Size& availableSize) {
 void ToolbarGroup::Arrange(const Rect& allottedRect) {
     m_Geometry = allottedRect;
     const float uiScale = (std::max)(1.0f, DPIContext::GetScale());
-    const float padH = ThemeMetric(ThemeToken::Space1) * uiScale;
-    const float itemGap = ThemeMetric(ThemeToken::ButtonSpacing) * uiScale;
+    const float padH = ThemeMetric(MetricToken::Space1) * uiScale;
+    const float itemGap = ThemeMetric(MetricToken::ButtonSpacing) * uiScale;
 
     float currentX = allottedRect.x + padH;
     for (const auto& item : m_Items) {
@@ -363,23 +364,23 @@ void ToolbarGroup::Arrange(const Rect& allottedRect) {
 
 void ToolbarGroup::Paint(PaintContext& context) {
     const float uiScale = (std::max)(1.0f, DPIContext::GetScale());
-    const float radius = ThemeMetric(ThemeToken::CornerRadiusSmall) * uiScale;
+    const float radius = ThemeMetric(MetricToken::CornerRadiusSmall) * uiScale;
     Color groupBg = m_Elevated
-        ? ThemeColor(ThemeToken::ViewportToolbarBackground)
-        : ThemeColor(ThemeToken::ButtonPrimaryBackground);
+        ? ThemeColor(ColorToken::ViewportToolbarBackground)
+        : ThemeColor(ColorToken::ButtonPrimaryBackground);
     if (m_Elevated) {
         context.DrawShadow(
             m_Geometry,
-            ThemeColor(ThemeToken::ShadowSubtle),
+            ThemeColor(ColorToken::ShadowSubtle),
             radius,
-            ThemeMetric(ThemeToken::Space2) * uiScale);
+            ThemeMetric(MetricToken::Space2) * uiScale);
     }
     context.DrawRoundedRect(m_Geometry, groupBg, radius);
 
     if (m_Elevated) {
         context.DrawRoundedRectOutline(
             m_Geometry,
-            ThemeColor(ThemeToken::BorderDefault),
+            ThemeColor(ColorToken::BorderDefault),
             1.0f * uiScale,
             radius);
     }

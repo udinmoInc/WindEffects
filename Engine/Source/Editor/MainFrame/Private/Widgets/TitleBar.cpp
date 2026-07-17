@@ -3,7 +3,8 @@
 #include "KindUI/Core/PaintContext.h"
 #include "KindUI/Theming/ThemeAccess.h"
 #include "KindUI/Theming/ThemeColors.h"
-#include "KindUI/Theming/ThemeToken.h"
+#include "KindUI/Tokens/DesignToken.h"
+#include "KindUI/Theming/StyleRole.h"
 #include "KindUI/Core/Icon.h"
 #include "KindUI/Core/Animator.h"
 #include "KindUI/Widgets/Label.h"
@@ -64,9 +65,9 @@ namespace {
             };
 
             if ((m_LogoSet != we::rhi::RHIDescriptorSetHandle::Invalid)) {
-                context.DrawTexture(logoRect, m_LogoSet, ThemeColor(ThemeToken::IconPrimary));
+                context.DrawTexture(logoRect, m_LogoSet, ThemeColor(ColorToken::IconPrimary));
             } else {
-                IconPainter::DrawIcon(context, Icons::CameraName, logoRect, ThemeColor(ThemeToken::IconPrimary));
+                IconPainter::DrawIcon(context, Icons::CameraName, logoRect, ThemeColor(ColorToken::IconPrimary));
             }
         }
     private:
@@ -100,17 +101,17 @@ namespace {
         }
         void Paint(PaintContext& context) override {
             const float uiScale = (std::max)(1.0f, DPIContext::GetScale());
-            m_HoverAnim = Animator::Damp(m_HoverAnim, m_Hovered ? 1.0f : 0.0f, ThemeMetric(ThemeToken::HoverAnimationDamping));
+            m_HoverAnim = Animator::Damp(m_HoverAnim, m_Hovered ? 1.0f : 0.0f, ThemeMetric(MetricToken::HoverAnimationDamping));
 
-            const float radius = ThemeMetric(ThemeToken::CornerRadiusMedium) * uiScale;
+            const float radius = ThemeMetric(MetricToken::CornerRadiusMedium) * uiScale;
             if (m_HoverAnim > 0.01f) {
                 Color hoverBg = Color::Lerp(
-                    ThemeColor(ThemeToken::ButtonPrimaryBackground),
-                    ThemeColor(ThemeToken::HoverBackground),
+                    ThemeColor(ColorToken::ButtonPrimaryBackground),
+                    ThemeColor(ColorToken::HoverBackground),
                     m_HoverAnim);
                 context.DrawRoundedRect(m_Geometry, hoverBg, radius);
             } else {
-                Color idleBg = ThemeColor(ThemeToken::ButtonPrimaryBackground);
+                Color idleBg = ThemeColor(ColorToken::ButtonPrimaryBackground);
                 idleBg.a = 0.65f;
                 context.DrawRoundedRect(m_Geometry, idleBg, radius);
             }
@@ -128,7 +129,7 @@ namespace {
             const float textX = m_Geometry.x + (kPadH + iconSize + kIconGap) * uiScale;
             context.DrawText(kProjectName,
                 Point{ textX, centerY - textSize * 0.5f },
-                ThemeColor(ThemeToken::TextPrimary), textSize);
+                ThemeColor(ColorToken::TextPrimary), textSize);
 
             const float display = IconMetrics::CompactDisplayPx();
             const float chevronX = m_Geometry.x + m_Geometry.width - (kPadH + display) * uiScale;
@@ -267,7 +268,7 @@ void TitleBar::Arrange(const Rect& allottedRect) {
 void TitleBar::Paint(PaintContext& context) {
     const float uiScale = (std::max)(1.0f, DPIContext::GetScale());
 
-    context.DrawRect(m_Geometry, ThemeColor(ThemeToken::WindowBackground));
+    context.DrawRect(m_Geometry, ThemeColor(ColorToken::WindowBackground));
 
     Rect bottomEdge{
         m_Geometry.x,
@@ -275,7 +276,7 @@ void TitleBar::Paint(PaintContext& context) {
         m_Geometry.width,
         1.0f * uiScale
     };
-    context.DrawRect(bottomEdge, ThemeColor(ThemeToken::BorderDark));
+    context.DrawRect(bottomEdge, ThemeColor(ColorToken::BorderDark));
 
     Row::Paint(context);
 }

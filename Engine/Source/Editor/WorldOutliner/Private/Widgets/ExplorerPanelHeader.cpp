@@ -25,20 +25,20 @@ void ExplorerPanelHeader::Arrange(const Rect& allottedRect) {
     m_Geometry = allottedRect;
 
     const float searchBoxWidth = std::min(
-        ThemeMetric(ThemeToken::Space6) * 11.67f,
-        std::max(ThemeMetric(ThemeToken::Space6) * 5.83f, allottedRect.width - 200.0f));
+        ThemeMetric(MetricToken::Space6) * 11.67f,
+        std::max(ThemeMetric(MetricToken::Space6) * 5.83f, allottedRect.width - 200.0f));
     m_SearchBoxGeometry = PanelChrome::InsetSearchRect(allottedRect, searchBoxWidth);
 
-    float x = allottedRect.x + allottedRect.width - ThemeMetric(ThemeToken::Space2);
+    float x = allottedRect.x + allottedRect.width - ThemeMetric(MetricToken::Space2);
 
     x -= PanelChrome::HeaderButtonSize();
     const float buttonY = allottedRect.y + (DefaultHeight() - PanelChrome::HeaderButtonSize()) * 0.5f;
     m_RefreshButtonGeometry = Rect{ x, buttonY, PanelChrome::HeaderButtonSize(), PanelChrome::HeaderButtonSize() };
-    x -= ThemeMetric(ThemeToken::Space1);
+    x -= ThemeMetric(MetricToken::Space1);
 
     x -= PanelChrome::HeaderButtonSize();
     m_NewFolderButtonGeometry = Rect{ x, buttonY, PanelChrome::HeaderButtonSize(), PanelChrome::HeaderButtonSize() };
-    x -= ThemeMetric(ThemeToken::Space1);
+    x -= ThemeMetric(MetricToken::Space1);
 
     x -= PanelChrome::HeaderButtonSize();
     m_FilterButtonGeometry = Rect{ x, buttonY, PanelChrome::HeaderButtonSize(), PanelChrome::HeaderButtonSize() };
@@ -86,13 +86,13 @@ void ExplorerPanelHeader::OnMouseDown(const MouseEvent& event) {
     if (event.button != MouseButton::Left) {
         return;
     }
-    const float iconSize = static_cast<float>(IconMetrics::NativeIconTierPx(ThemeMetric(ThemeToken::IconSizeSearch)));
+    const float iconSize = static_cast<float>(IconMetrics::NativeIconTierPx(ThemeMetric(MetricToken::IconSizeSearch)));
 
     if (m_SearchBoxGeometry.Contains(event.position)) {
         m_SearchFocused = true;
 
         if (!m_SearchQuery.empty()) {
-            const float clearX = m_SearchBoxGeometry.x + m_SearchBoxGeometry.width - iconSize - ThemeMetric(ThemeToken::Space2);
+            const float clearX = m_SearchBoxGeometry.x + m_SearchBoxGeometry.width - iconSize - ThemeMetric(MetricToken::Space2);
             const float clearY = m_SearchBoxGeometry.y + (m_SearchBoxGeometry.height - iconSize) * 0.5f;
             Rect clearRect{ clearX, clearY, iconSize, iconSize };
             if (clearRect.Contains(event.position)) {

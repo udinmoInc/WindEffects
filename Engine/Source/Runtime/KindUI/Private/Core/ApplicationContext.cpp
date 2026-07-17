@@ -9,18 +9,18 @@
 
 namespace we::runtime::kindui {
 
-ApplicationContext::ApplicationContext(std::shared_ptr<IThemeProvider> theme) {
+ApplicationContext::ApplicationContext(std::shared_ptr<IKindUITheme> theme) {
     if (!theme) {
         theme = std::make_shared<GraphiteDarkTheme>();
     }
     ThemeManager::Get().Initialize(std::move(theme), 1.0f);
-    m_ThemeProvider = ThemeManager::Get().SharedProvider();
+    m_ThemeProvider = ThemeManager::Get().SharedTheme();
     m_StyleResolver = ThemeManager::Get().SharedResolver();
     m_ResourceRegistry = std::make_shared<ModuleResourceRegistry>();
     m_EventBus = std::make_shared<EventBus>();
     m_CommandRegistry = std::make_shared<CommandRegistry>();
 
-    RegisterService(typeid(IThemeProvider), m_ThemeProvider);
+    RegisterService(typeid(IKindUITheme), m_ThemeProvider);
     RegisterService(typeid(IStyleResolver), m_StyleResolver);
     RegisterService(typeid(IResourceRegistry), m_ResourceRegistry);
     RegisterService(typeid(IEventBus), m_EventBus);
@@ -28,9 +28,9 @@ ApplicationContext::ApplicationContext(std::shared_ptr<IThemeProvider> theme) {
 }
 
 void ApplicationContext::SyncThemeFromManager() {
-    m_ThemeProvider = ThemeManager::Get().SharedProvider();
+    m_ThemeProvider = ThemeManager::Get().SharedTheme();
     m_StyleResolver = ThemeManager::Get().SharedResolver();
-    RegisterService(typeid(IThemeProvider), m_ThemeProvider);
+    RegisterService(typeid(IKindUITheme), m_ThemeProvider);
     RegisterService(typeid(IStyleResolver), m_StyleResolver);
 }
 

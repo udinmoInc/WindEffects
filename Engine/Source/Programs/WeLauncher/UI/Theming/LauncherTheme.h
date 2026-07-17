@@ -9,8 +9,8 @@ class LauncherTheme final : public we::runtime::kindui::GraphiteDarkTheme {
 public:
     [[nodiscard]] std::string_view GetThemeId() const override { return "Launcher"; }
 
-    [[nodiscard]] we::runtime::kindui::Color GetColor(we::runtime::kindui::ThemeToken token) const override;
-    [[nodiscard]] float GetMetric(we::runtime::kindui::ThemeToken token) const override;
+    [[nodiscard]] we::runtime::kindui::Color ResolveColor(we::runtime::kindui::ColorToken token) const override;
+    [[nodiscard]] float ResolveMetric(we::runtime::kindui::MetricToken token) const override;
 };
 
 } // namespace we::programs::welauncher

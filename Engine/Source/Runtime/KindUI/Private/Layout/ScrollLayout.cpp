@@ -3,7 +3,8 @@
 #include "KindUI/Core/PaintContext.h"
 #include "KindUI/Core/DPIContext.h"
 #include "KindUI/Theming/ThemeAccess.h"
-#include "KindUI/Theming/ThemeToken.h"
+#include "KindUI/Tokens/DesignToken.h"
+#include "KindUI/Theming/StyleRole.h"
 
 #include <algorithm>
 
@@ -27,7 +28,7 @@ float ScrollLayout::ContentHeight() const {
 
 float ScrollLayout::WheelStep() const {
     const float uiScale = std::max(1.0f, DPIContext::GetScale());
-    return ResolveThemeMetric(ThemeToken::ListRowHeight) * uiScale;
+    return ResolveMetric(MetricToken::ListRowHeight) * uiScale;
 }
 
 void ScrollLayout::SyncScrollMetrics() {

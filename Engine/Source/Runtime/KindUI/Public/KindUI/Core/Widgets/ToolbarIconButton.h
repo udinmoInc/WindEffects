@@ -14,8 +14,8 @@ public:
         : ToolbarGlyphButton(
             iconName,
             StyleRole::IconButton,
-            ThemeToken::IconButtonSize,
-            ThemeToken::IconSizeToolbar)
+            MetricToken::IconButtonSize,
+            MetricToken::IconSizeToolbar)
     {
         (void)tooltip;
     }

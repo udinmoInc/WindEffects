@@ -9,32 +9,32 @@ we::runtime::kindui::Color EdHex(uint8_t r, uint8_t g, uint8_t b, float a = 1.0f
 
 } // namespace
 
-we::runtime::kindui::Color EditorTheme::GetColor(we::runtime::kindui::ThemeToken token) const {
-    using we::runtime::kindui::ThemeToken;
+we::runtime::kindui::Color EditorTheme::ResolveColor(we::runtime::kindui::ColorToken token) const {
+    using we::runtime::kindui::ColorToken;
     switch (token) {
-    case ThemeToken::IconAccent:
-    case ThemeToken::AccentPrimary:
+    case ColorToken::IconAccent:
+    case ColorToken::AccentPrimary:
         return EdHex(0xF0, 0xA4, 0x2A);
-    case ThemeToken::AccentHover:
+    case ColorToken::AccentHover:
         return EdHex(0xF5, 0xB8, 0x45);
-    case ThemeToken::BorderFocus:
-    case ThemeToken::LinkForeground:
-    case ThemeToken::PlayForeground:
+    case ColorToken::BorderFocus:
+    case ColorToken::LinkForeground:
+    case ColorToken::PlayForeground:
         return EdHex(0xF0, 0xA4, 0x2A);
-    case ThemeToken::ActiveTabLine:
+    case ColorToken::ActiveTabLine:
         return EdHex(0xF0, 0xA4, 0x2A, 0.80f);
-    case ThemeToken::ButtonPrimaryBackground:
+    case ColorToken::ButtonPrimaryBackground:
         return EdHex(0xC4, 0x7E, 0x18);
-    case ThemeToken::ButtonPrimaryHover:
+    case ColorToken::ButtonPrimaryHover:
         return EdHex(0xD9, 0x92, 0x28);
-    case ThemeToken::ButtonPrimaryPressed:
+    case ColorToken::ButtonPrimaryPressed:
         return EdHex(0xA3, 0x68, 0x12);
-    case ThemeToken::SelectedBackground:
+    case ColorToken::SelectedBackground:
         return EdHex(0x3A, 0x32, 0x24);
-    case ThemeToken::SelectionHighlight:
+    case ColorToken::SelectionHighlight:
         return EdHex(0xF0, 0xA4, 0x2A, 0.22f);
     default:
-        return GraphiteDarkTheme::GetColor(token);
+        return GraphiteDarkTheme::ResolveColor(token);
     }
 }
 

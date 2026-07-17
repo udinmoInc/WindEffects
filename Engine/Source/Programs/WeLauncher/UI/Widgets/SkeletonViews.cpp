@@ -3,7 +3,8 @@
 #include "UI/LauncherHelpers.h"
 
 #include "KindUI/Core/PaintContext.h"
-#include "KindUI/Theming/ThemeToken.h"
+#include "KindUI/Tokens/DesignToken.h"
+#include "KindUI/Theming/StyleRole.h"
 
 #include <algorithm>
 #include <cmath>
@@ -52,8 +53,8 @@ void PaintSkeletonBone(PaintContext& context, const Rect& rect, float radius, fl
         return;
     }
 
-    Color base = LColor(ThemeToken::PanelContentBackground);
-    Color peak = LColor(ThemeToken::HoverBackground);
+    Color base = LColor(ColorToken::PanelContentBackground);
+    Color peak = LColor(ColorToken::HoverBackground);
     peak = Color::Lerp(base, peak, 0.55f);
 
     context.DrawRoundedRect(rect, base, radius);
@@ -96,13 +97,13 @@ void SkeletonCard::Arrange(const Rect& allottedRect) {
 
 void SkeletonCard::Paint(PaintContext& context) {
     const float s = LScale();
-    const float radius = LMetric(ThemeToken::CornerRadiusMedium) * s;
-    const float pad = LMetric(ThemeToken::Space3) * s;
-    const float boneR = LMetric(ThemeToken::CornerRadiusSmall) * s;
+    const float radius = LMetric(MetricToken::CornerRadiusMedium) * s;
+    const float pad = LMetric(MetricToken::Space3) * s;
+    const float boneR = LMetric(MetricToken::CornerRadiusSmall) * s;
 
-    Color cardBg = LColor(ThemeToken::PanelBackground);
+    Color cardBg = LColor(ColorToken::PanelBackground);
     context.DrawRoundedRect(m_Geometry, cardBg, radius);
-    context.DrawRoundedRectOutline(m_Geometry, LColor(ThemeToken::BorderDefault), 1.0f, radius);
+    context.DrawRoundedRectOutline(m_Geometry, LColor(ColorToken::BorderDefault), 1.0f, radius);
 
     const float phase = static_cast<float>(reinterpret_cast<uintptr_t>(this) % 97) * 0.07f;
 

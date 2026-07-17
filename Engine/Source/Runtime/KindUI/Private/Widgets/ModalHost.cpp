@@ -3,7 +3,8 @@
 #include "KindUI/Core/DPIContext.h"
 #include "KindUI/Core/PaintContext.h"
 #include "KindUI/Theming/ThemeAccess.h"
-#include "KindUI/Theming/ThemeToken.h"
+#include "KindUI/Tokens/DesignToken.h"
+#include "KindUI/Theming/StyleRole.h"
 
 #include <algorithm>
 
@@ -59,7 +60,7 @@ void ModalHost::Arrange(const Rect& allottedRect) {
 }
 
 void ModalHost::Paint(PaintContext& context) {
-    Color scrim = ResolveThemeColor(ThemeToken::ModalScrim);
+    Color scrim = ResolveColor(ColorToken::ModalScrim);
     if (scrim.a < 0.40f || scrim.a > 0.50f) {
         scrim = Color{ 0.0f, 0.0f, 0.0f, 0.45f };
     }

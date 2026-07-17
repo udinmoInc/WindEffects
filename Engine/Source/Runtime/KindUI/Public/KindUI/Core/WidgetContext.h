@@ -2,7 +2,8 @@
 
 #include "KindUI/Export.h"
 #include "KindUI/Core/IApplicationContext.h"
-#include "KindUI/Theming/IThemeProvider.h"
+#include "KindUI/Theming/IKindUITheme.h"
+#include "KindUI/Theming/ResolvedStyle.h"
 #include "KindUI/Events/IEventBus.h"
 #include "KindUI/Commands/ICommandRegistry.h"
 #include "KindUI/Resources/IResourceRegistry.h"
@@ -18,7 +19,7 @@ public:
 
     [[nodiscard]] virtual IApplicationContext& GetApplicationContext() const = 0;
     [[nodiscard]] virtual IStyleResolver& GetStyleResolver() const = 0;
-    [[nodiscard]] virtual IThemeProvider& GetThemeProvider() const = 0;
+    [[nodiscard]] virtual IKindUITheme& GetTheme() const = 0;
     [[nodiscard]] virtual IEventBus& GetEventBus() const = 0;
     [[nodiscard]] virtual ICommandRegistry& GetCommandRegistry() const = 0;
     [[nodiscard]] virtual IResourceRegistry& GetResourceRegistry() const = 0;
@@ -31,7 +32,7 @@ public:
 
     [[nodiscard]] IApplicationContext& GetApplicationContext() const override { return m_AppContext; }
     [[nodiscard]] IStyleResolver& GetStyleResolver() const override;
-    [[nodiscard]] IThemeProvider& GetThemeProvider() const override;
+    [[nodiscard]] IKindUITheme& GetTheme() const override;
     [[nodiscard]] IEventBus& GetEventBus() const override;
     [[nodiscard]] ICommandRegistry& GetCommandRegistry() const override;
     [[nodiscard]] IResourceRegistry& GetResourceRegistry() const override;

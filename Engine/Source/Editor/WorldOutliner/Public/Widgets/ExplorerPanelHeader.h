@@ -11,8 +11,8 @@ namespace we::runtime::kindui {
 
 class ExplorerPanelHeader : public Widget {
 public:
-    static float DefaultHeight() { return ResolveThemeMetric(ThemeToken::PanelToolbarHeight); }
-    static float LogoLogicalSize() { return ResolveThemeMetric(ThemeToken::IconSizeToolbar); }
+    static float DefaultHeight() { return ResolveMetric(MetricToken::PanelToolbarHeight); }
+    static float LogoLogicalSize() { return ResolveMetric(MetricToken::IconSizeToolbar); }
 
     using FilterOptions = TreeView::FilterOptions;
 

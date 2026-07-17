@@ -2,7 +2,8 @@
 
 #include "KindUI/Export.h"
 #include "KindUI/Core/Widget.h"
-#include "KindUI/Theming/ThemeToken.h"
+#include "KindUI/Tokens/DesignToken.h"
+#include "KindUI/Theming/StyleRole.h"
 
 #include <functional>
 #include <string>

@@ -2,7 +2,8 @@
 
 #include "KindUI/Export.h"
 #include "KindUI/Core/IServiceProvider.h"
-#include "KindUI/Theming/IThemeProvider.h"
+#include "KindUI/Theming/IKindUITheme.h"
+#include "KindUI/Theming/ResolvedStyle.h"
 #include "KindUI/Resources/IResourceRegistry.h"
 #include "KindUI/Events/IEventBus.h"
 #include "KindUI/Commands/ICommandRegistry.h"
@@ -16,7 +17,7 @@ public:
     virtual ~IApplicationContext() = default;
 
     [[nodiscard]] virtual IServiceProvider& GetServices() const = 0;
-    [[nodiscard]] virtual IThemeProvider& GetThemeProvider() const = 0;
+    [[nodiscard]] virtual IKindUITheme& GetTheme() const = 0;
     [[nodiscard]] virtual IStyleResolver& GetStyleResolver() const = 0;
     [[nodiscard]] virtual IResourceRegistry& GetResourceRegistry() const = 0;
     [[nodiscard]] virtual IEventBus& GetEventBus() const = 0;

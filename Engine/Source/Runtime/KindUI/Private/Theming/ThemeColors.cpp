@@ -1,34 +1,35 @@
 #include "KindUI/Theming/ThemeColors.h"
 
 #include "KindUI/Theming/ThemeAccess.h"
-#include "KindUI/Theming/ThemeToken.h"
+#include "KindUI/Tokens/DesignToken.h"
+#include "KindUI/Theming/StyleRole.h"
 
 #include <algorithm>
 
 namespace we::runtime::kindui {
 
-ThemeColors ThemeColors::Resolve(const IThemeProvider& theme) {
+ThemeColors ThemeColors::Resolve(const IKindUITheme& theme) {
     ThemeColors colors{};
-    colors.background = theme.GetColor(ThemeToken::WorkspaceBackground);
-    colors.panel = theme.GetColor(ThemeToken::PanelBackground);
-    colors.border = theme.GetColor(ThemeToken::BorderDefault);
-    colors.hover = theme.GetColor(ThemeToken::HoverBackground);
-    colors.pressed = theme.GetColor(ThemeToken::PressedBackground);
-    colors.selection = theme.GetColor(ThemeToken::SelectedBackground);
+    colors.background = theme.ResolveColor(ColorToken::WorkspaceBackground);
+    colors.panel = theme.ResolveColor(ColorToken::PanelBackground);
+    colors.border = theme.ResolveColor(ColorToken::BorderDefault);
+    colors.hover = theme.ResolveColor(ColorToken::HoverBackground);
+    colors.pressed = theme.ResolveColor(ColorToken::PressedBackground);
+    colors.selection = theme.ResolveColor(ColorToken::SelectedBackground);
 
-    colors.textPrimary = theme.GetColor(ThemeToken::TextPrimary);
-    colors.textSecondary = theme.GetColor(ThemeToken::TextSecondary);
-    colors.textDisabled = theme.GetColor(ThemeToken::TextDisabled);
+    colors.textPrimary = theme.ResolveColor(ColorToken::TextPrimary);
+    colors.textSecondary = theme.ResolveColor(ColorToken::TextSecondary);
+    colors.textDisabled = theme.ResolveColor(ColorToken::TextDisabled);
 
-    colors.iconPrimary = theme.GetColor(ThemeToken::IconPrimary);
-    colors.iconSecondary = theme.GetColor(ThemeToken::IconSecondary);
-    colors.iconAccent = theme.GetColor(ThemeToken::IconAccent);
-    colors.iconDisabled = theme.GetColor(ThemeToken::IconDisabled);
+    colors.iconPrimary = theme.ResolveColor(ColorToken::IconPrimary);
+    colors.iconSecondary = theme.ResolveColor(ColorToken::IconSecondary);
+    colors.iconAccent = theme.ResolveColor(ColorToken::IconAccent);
+    colors.iconDisabled = theme.ResolveColor(ColorToken::IconDisabled);
     return colors;
 }
 
 ThemeColors ThemeColors::Resolve() {
-    return Resolve(ResolveDefaultThemeProvider());
+    return Resolve(ResolveDefaultTheme());
 }
 
 Color ResolveIconColor(
@@ -38,23 +39,23 @@ Color ResolveIconColor(
     bool accent)
 {
     if (accent || role == IconColorRole::Accent) {
-        Color accentColor = ResolveThemeColor(ThemeToken::IconAccent);
+        Color accentColor = ResolveColor(ColorToken::IconAccent);
         if (hoverAnim > 0.01f || pressStrength > 0.01f) {
-            const Color hover = ResolveThemeColor(ThemeToken::AccentHover);
+            const Color hover = ResolveColor(ColorToken::AccentHover);
             accentColor = Color::Lerp(accentColor, hover, std::max(hoverAnim, pressStrength));
         }
         return accentColor;
     }
 
     if (role == IconColorRole::Disabled) {
-        return ResolveThemeColor(ThemeToken::IconDisabled);
+        return ResolveColor(ColorToken::IconDisabled);
     }
 
-    Color base = ResolveThemeColor(ThemeToken::IconSecondary);
+    Color base = ResolveColor(ColorToken::IconSecondary);
     const float emphasis = std::max(hoverAnim, pressStrength);
     if (emphasis > 0.01f) {
-        Color bright = ResolveThemeColor(ThemeToken::IconPrimary);
-        bright = Color::Lerp(bright, ResolveThemeColor(ThemeToken::IconHover), emphasis);
+        Color bright = ResolveColor(ColorToken::IconPrimary);
+        bright = Color::Lerp(bright, ResolveColor(ColorToken::IconHover), emphasis);
         base = Color::Lerp(base, bright, emphasis);
     }
     return base;

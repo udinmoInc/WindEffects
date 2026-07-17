@@ -21,7 +21,8 @@
 #include "WindEffects/Editor/UI/Panel/PanelChrome.h"
 #include "KindUI/Core/PaintContext.h"
 #include "KindUI/Core/DPIContext.h"
-#include "KindUI/Theming/ThemeToken.h"
+#include "KindUI/Tokens/DesignToken.h"
+#include "KindUI/Theming/StyleRole.h"
 #include "KindUI/Core/Icon.h"
 #include "KindUI/Core/Animator.h"
 #include "Core/EditorConfigPaths.h"
@@ -85,7 +86,7 @@ using we::runtime::kindui::PaintContext;
 using we::runtime::kindui::Point;
 using we::runtime::kindui::Rect;
 using we::runtime::kindui::Size;
-using we::runtime::kindui::ThemeToken;
+using we::runtime::kindui::ColorToken;
 namespace PanelChrome = we::runtime::kindui::PanelChrome;
 
 PlaceActorsPanel::PlaceActorsPanel() {
@@ -349,7 +350,7 @@ void PlaceActorsPanel::RebuildLayout() {
     metrics.iconSize = ActorsPanelLayout::IconSize();
     metrics.cardSize = config.cardSize;
     metrics.listRowHeight = ActorsPanelLayout::ActorRowHeight();
-    metrics.cornerRadius = ThemeMetric(ThemeToken::CornerRadiusSmall);
+    metrics.cornerRadius = ThemeMetric(MetricToken::CornerRadiusSmall);
 
     const float viewportX = m_ScrollMetrics.viewport.x;
     const float viewportWidth = m_ScrollMetrics.viewport.width;
@@ -589,7 +590,7 @@ void PlaceActorsPanel::Paint(PaintContext& context) {
     metrics.iconSize = ActorsPanelLayout::IconSize();
     metrics.cardSize = PlaceActorsConfig::Get().cardSize;
     metrics.listRowHeight = ActorsPanelLayout::ActorRowHeight();
-    metrics.cornerRadius = ThemeMetric(ThemeToken::CornerRadiusSmall);
+    metrics.cornerRadius = ThemeMetric(MetricToken::CornerRadiusSmall);
 
     // Warm thumbnail cache lazily for visible grid items.
     (void)PlaceActorsThumbnailProvider::Get();
@@ -597,7 +598,7 @@ void PlaceActorsPanel::Paint(PaintContext& context) {
     SyncScrollMetrics();
     UpdateVisibleRange();
     const std::string query = !m_ExternalSearchFilter.empty() ? m_ExternalSearchFilter : m_SearchText;
-    const float textSize = ThemeMetric(ThemeToken::TextSizeSmall);
+    const float textSize = ThemeMetric(MetricToken::TextSizeSmall);
     const Rect clip = m_ScrollMetrics.viewport;
 
     context.PushClipRect(clip);
@@ -666,23 +667,23 @@ void PlaceActorsPanel::Paint(PaintContext& context) {
     m_Scroll.Paint(context, m_ScrollMetrics, m_Scroll.IsThumbHovered());
 
     if (!m_TooltipText.empty() && m_TooltipRect.width > 0.0f) {
-        context.DrawShadow(m_TooltipRect, ThemeColor(ThemeToken::ShadowPopup), 3.0f, 6.0f);
-        context.DrawRoundedRect(m_TooltipRect, ThemeColor(ThemeToken::PopupBackground), ThemeMetric(ThemeToken::CornerRadiusSmall));
+        context.DrawShadow(m_TooltipRect, ThemeColor(ColorToken::ShadowPopup), 3.0f, 6.0f);
+        context.DrawRoundedRect(m_TooltipRect, ThemeColor(ColorToken::PopupBackground), ThemeMetric(MetricToken::CornerRadiusSmall));
         context.DrawText(m_TooltipText,
             Point{ m_TooltipRect.x + ActorsPanelLayout::ContentPadH(), m_TooltipRect.y + (m_TooltipRect.height - textSize) * 0.5f },
-            ThemeColor(ThemeToken::TextSecondary), textSize);
+            ThemeColor(ColorToken::TextSecondary), textSize);
     }
 
     if (m_FilterMenuOpen) {
-        context.DrawShadow(m_FilterMenuRect, ThemeColor(ThemeToken::ShadowPopup), 3.0f, 8.0f);
-        context.DrawRoundedRect(m_FilterMenuRect, ThemeColor(ThemeToken::PopupBackground), ThemeMetric(ThemeToken::CornerRadiusSmall));
+        context.DrawShadow(m_FilterMenuRect, ThemeColor(ColorToken::ShadowPopup), 3.0f, 8.0f);
+        context.DrawRoundedRect(m_FilterMenuRect, ThemeColor(ColorToken::PopupBackground), ThemeMetric(MetricToken::CornerRadiusSmall));
         for (size_t i = 0; i < m_FilterMenuItems.size(); ++i) {
             if (static_cast<int>(i) == m_FilterMenuHovered) {
-                context.DrawRect(m_FilterMenuItems[i].geometry, ThemeColor(ThemeToken::HoverBackground));
+                context.DrawRect(m_FilterMenuItems[i].geometry, ThemeColor(ColorToken::HoverBackground));
             }
             const Color textColor = m_FilterMenuItems[i].checked
-                ? ThemeColor(ThemeToken::AccentPrimary)
-                : ThemeColor(ThemeToken::TextPrimary);
+                ? ThemeColor(ColorToken::AccentPrimary)
+                : ThemeColor(ColorToken::TextPrimary);
             context.DrawText(m_FilterMenuItems[i].label,
                 Point{ m_FilterMenuItems[i].geometry.x + ActorsPanelLayout::ContentPadH(), m_FilterMenuItems[i].geometry.y + (m_FilterMenuItems[i].geometry.height - textSize) * 0.5f },
                 textColor, textSize);
@@ -690,16 +691,16 @@ void PlaceActorsPanel::Paint(PaintContext& context) {
     }
 
     if (m_ContextMenuOpen) {
-        context.DrawShadow(m_ContextMenuRect, ThemeColor(ThemeToken::ShadowPopup), 3.0f, 8.0f);
-        context.DrawRoundedRect(m_ContextMenuRect, ThemeColor(ThemeToken::PopupBackground), ThemeMetric(ThemeToken::CornerRadiusSmall));
+        context.DrawShadow(m_ContextMenuRect, ThemeColor(ColorToken::ShadowPopup), 3.0f, 8.0f);
+        context.DrawRoundedRect(m_ContextMenuRect, ThemeColor(ColorToken::PopupBackground), ThemeMetric(MetricToken::CornerRadiusSmall));
         const float rowH = ActorsPanelLayout::ActorRowHeight();
         for (size_t i = 0; i < m_ContextMenuItems.size(); ++i) {
             if (static_cast<int>(i) == m_ContextMenuHovered) {
-                context.DrawRect(m_ContextMenuItems[i].geometry, ThemeColor(ThemeToken::HoverBackground));
+                context.DrawRect(m_ContextMenuItems[i].geometry, ThemeColor(ColorToken::HoverBackground));
             }
             context.DrawText(m_ContextMenuItems[i].label,
                 Point{ m_ContextMenuItems[i].geometry.x + ActorsPanelLayout::ContentPadH(), m_ContextMenuItems[i].geometry.y + (rowH - textSize) * 0.5f },
-                ThemeColor(ThemeToken::TextPrimary), textSize);
+                ThemeColor(ColorToken::TextPrimary), textSize);
         }
     }
 }

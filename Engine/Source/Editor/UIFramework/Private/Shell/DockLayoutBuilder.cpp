@@ -43,14 +43,14 @@ std::shared_ptr<Panel> DockLayoutBuilder::CreatePanel(
     const auto it = panels.find(std::string(panelId));
     if (it == panels.end()) {
         auto fallback = std::make_shared<Panel>(std::string(panelId));
-        fallback->SetHeaderHeight(ResolveThemeMetric(ThemeToken::PanelTabHeight) * dpiScale);
+        fallback->SetHeaderHeight(ResolveMetric(MetricToken::PanelTabHeight) * dpiScale);
         result.panels[std::string(panelId)] = fallback;
         return fallback;
     }
 
     auto panel = it->second.factory();
     if (panel) {
-        panel->SetHeaderHeight(ResolveThemeMetric(ThemeToken::PanelTabHeight) * dpiScale);
+        panel->SetHeaderHeight(ResolveMetric(MetricToken::PanelTabHeight) * dpiScale);
         ApplyPanelDescriptor(panel, it->second.descriptor);
     }
     result.panels[std::string(panelId)] = panel;

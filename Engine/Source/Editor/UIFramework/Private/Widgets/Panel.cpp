@@ -3,7 +3,8 @@
 #include "KindUI/Core/PaintContext.h"
 #include "KindUI/Core/Icon.h"
 #include "KindUI/Core/DPIContext.h"
-#include "KindUI/Theming/ThemeToken.h"
+#include "KindUI/Tokens/DesignToken.h"
+#include "KindUI/Theming/StyleRole.h"
 #include <functional>
 #include <algorithm>
 
@@ -12,7 +13,7 @@ namespace we::runtime::kindui {
 Panel::Panel(const std::string& title)
     : m_Title(title)
 {
-    m_HeaderHeight = ThemeMetric(ThemeToken::PanelTabHeight);
+    m_HeaderHeight = ThemeMetric(MetricToken::PanelTabHeight);
 }
 
 void Panel::SetTabBrand(we::rhi::RHIDescriptorSetHandle descriptor, float logicalSize) {
@@ -83,7 +84,7 @@ void Panel::Arrange(const Rect& allottedRect) {
     // Floating toolbar overlays the top of the content region.
     if (m_Toolbar && m_FloatingToolbar) {
         const float uiScale = std::max(1.0f, DPIContext::GetScale());
-        const float inset = ThemeMetric(ThemeToken::Space2) * uiScale;
+        const float inset = ThemeMetric(MetricToken::Space2) * uiScale;
         m_Toolbar->Measure(m_ContentRect.width > 0.0f
             ? Size{ m_ContentRect.width, m_ContentRect.height }
             : Size{ allottedRect.width, allottedRect.height });
@@ -133,7 +134,7 @@ void Panel::Paint(PaintContext& context) {
 
         const float buttonSize = PanelChrome::HeaderButtonSize();
         const float padH = PanelChrome::TabPadH();
-        const float gap = ThemeMetric(ThemeToken::Space1) * PanelChrome::UiScale();
+        const float gap = ThemeMetric(MetricToken::Space1) * PanelChrome::UiScale();
         const float centerY = m_HeaderRect.y + m_HeaderRect.height * 0.5f;
         float actionX = m_HeaderRect.x + m_HeaderRect.width - padH - buttonSize;
 

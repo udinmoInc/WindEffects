@@ -18,7 +18,7 @@ std::shared_ptr<ExplorerPanelHeader> g_ExplorerHeader;
 
 std::shared_ptr<Panel> CreateWorldOutlinerPanel() {
     auto panel = std::make_shared<Panel>("Explorer");
-    panel->SetHeaderHeight(ResolveThemeMetric(ThemeToken::PanelHeaderHeight));
+    panel->SetHeaderHeight(ResolveMetric(MetricToken::PanelHeaderHeight));
     panel->SetCollapsible(false);
     panel->SetTabIcon(Icons::HierarchyName);
 

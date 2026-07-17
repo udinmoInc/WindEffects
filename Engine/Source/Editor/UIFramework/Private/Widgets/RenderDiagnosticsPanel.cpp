@@ -1,5 +1,6 @@
 #include "Widgets/RenderDiagnosticsPanel.h"
-#include "KindUI/Theming/ThemeToken.h"
+#include "KindUI/Tokens/DesignToken.h"
+#include "KindUI/Theming/StyleRole.h"
 
 namespace we::runtime::kindui {
 
@@ -7,8 +8,8 @@ RenderDiagnosticsPanel::RenderDiagnosticsPanel() {
     m_Scroll = std::make_shared<ScrollLayout>();
     m_ContentLabel = std::make_shared<Label>("Render forensic diagnostics unavailable in foundation renderer.");
     TextStyle style;
-    style.size = ThemeMetric(ThemeToken::TextSizeProperty) - 1.0f;
-    style.color = ThemeColor(ThemeToken::TextSecondary);
+    style.size = ThemeMetric(MetricToken::TextSizeProperty) - 1.0f;
+    style.color = ThemeColor(ColorToken::TextSecondary);
     m_ContentLabel->SetStyle(style);
     m_Scroll->SetContent(m_ContentLabel);
 }

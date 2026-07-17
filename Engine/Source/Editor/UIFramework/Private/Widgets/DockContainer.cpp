@@ -3,7 +3,8 @@
 #include "KindUI/Core/PaintContext.h"
 #include "KindUI/Core/Icon.h"
 #include "KindUI/Core/DPIContext.h"
-#include "KindUI/Theming/ThemeToken.h"
+#include "KindUI/Tokens/DesignToken.h"
+#include "KindUI/Theming/StyleRole.h"
 #include <algorithm>
 #include <cmath>
 
@@ -14,7 +15,7 @@ constexpr float kTabDragThreshold = 6.0f;
 }
 
 DockContainer::DockContainer() {
-    m_HeaderHeight = ThemeMetric(ThemeToken::PanelTabHeight);
+    m_HeaderHeight = ThemeMetric(MetricToken::PanelTabHeight);
 }
 
 void DockContainer::AddPanel(const std::shared_ptr<Panel>& panel) {
@@ -177,7 +178,7 @@ void DockContainer::PaintTab(PaintContext& context, TabInfo& tabInfo, int index,
 }
 
 void DockContainer::Paint(PaintContext& context) {
-    context.DrawRect(m_HeaderRect, ThemeColor(ThemeToken::WorkspaceBackground));
+    context.DrawRect(m_HeaderRect, ThemeColor(ColorToken::WorkspaceBackground));
 
     float currentX = m_HeaderRect.x;
     for (int i = 0; i < static_cast<int>(m_Tabs.size()); ++i) {

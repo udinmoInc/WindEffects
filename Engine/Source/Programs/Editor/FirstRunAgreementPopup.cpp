@@ -3,7 +3,8 @@
 #include "Core/EditorConfigPaths.h"
 #include "KindUI/Core/Icon.h"
 #include "KindUI/Core/PaintContext.h"
-#include "KindUI/Theming/ThemeToken.h"
+#include "KindUI/Tokens/DesignToken.h"
+#include "KindUI/Theming/StyleRole.h"
 #include "KindUI/Core/DPIContext.h"
 #include "Core/Logger.h"
 
@@ -16,7 +17,7 @@
 
 namespace we::programs::editor {
 
-using we::runtime::kindui::ThemeToken;
+using we::runtime::kindui::ColorToken;
 
 namespace {
 
@@ -183,22 +184,22 @@ void FirstRunAgreementPopup::Paint(we::runtime::kindui::PaintContext& context) {
     
     // Dialog shadow and background
     context.DrawShadow(m_DialogRect, we::runtime::kindui::Color{ 0.0f, 0.0f, 0.0f, 0.40f }, 16.0f, 24.0f);
-    context.DrawRoundedRect(m_DialogRect, ThemeColor(ThemeToken::PanelBackground), 8.0f);
-    context.DrawRoundedRectOutline(m_DialogRect, ThemeColor(ThemeToken::BorderDefault), 1.0f, 8.0f);
+    context.DrawRoundedRect(m_DialogRect, ThemeColor(ColorToken::PanelBackground), 8.0f);
+    context.DrawRoundedRectOutline(m_DialogRect, ThemeColor(ColorToken::BorderDefault), 1.0f, 8.0f);
     
     // Header
     const float titleFontSize = 17.0f * m_DpiScale;
     const float subtitleFontSize = 11.0f * m_DpiScale;
     context.DrawText(m_Title.empty() ? "License Agreement" : m_Title,
         we::runtime::kindui::Point{ m_DialogRect.x + kDialogPadding * m_DpiScale, m_DialogRect.y + kDialogPadding * m_DpiScale + 6.0f * m_DpiScale },
-        ThemeColor(ThemeToken::TextPrimary), titleFontSize, true);
+        ThemeColor(ColorToken::TextPrimary), titleFontSize, true);
     context.DrawText("Please review and accept before using the editor.",
         we::runtime::kindui::Point{ m_DialogRect.x + kDialogPadding * m_DpiScale, m_DialogRect.y + kDialogPadding * m_DpiScale + 28.0f * m_DpiScale },
-        ThemeColor(ThemeToken::TextSecondary), subtitleFontSize);
+        ThemeColor(ColorToken::TextSecondary), subtitleFontSize);
     
     // Content area background
-    context.DrawRoundedRect(m_ContentRect, ThemeColor(ThemeToken::WorkspaceBackground), 6.0f);
-    context.DrawRoundedRectOutline(m_ContentRect, ThemeColor(ThemeToken::BorderDefault), 1.0f, 6.0f);
+    context.DrawRoundedRect(m_ContentRect, ThemeColor(ColorToken::WorkspaceBackground), 6.0f);
+    context.DrawRoundedRectOutline(m_ContentRect, ThemeColor(ColorToken::BorderDefault), 1.0f, 6.0f);
     context.PushClipRect(m_ContentRect);
     
     // Compute layout if invalid
@@ -236,15 +237,15 @@ void FirstRunAgreementPopup::Paint(we::runtime::kindui::PaintContext& context) {
     const float hintFontSize = 10.0f * m_DpiScale;
     context.DrawText("Press Ctrl+C to copy the full agreement text.",
         we::runtime::kindui::Point{ m_DialogRect.x + kDialogPadding * m_DpiScale, m_DialogRect.y + m_DialogRect.height - kDialogPadding * m_DpiScale - 14.0f * m_DpiScale },
-        ThemeColor(ThemeToken::TextSecondary), hintFontSize);
+        ThemeColor(ColorToken::TextSecondary), hintFontSize);
     
     // Buttons
     auto paintButton = [&](const ButtonState& button, bool primary) {
-        we::runtime::kindui::Color bg = primary ? ThemeColor(ThemeToken::AccentPrimary) : ThemeColor(ThemeToken::HoverBackground);
+        we::runtime::kindui::Color bg = primary ? ThemeColor(ColorToken::AccentPrimary) : ThemeColor(ColorToken::HoverBackground);
         if (!button.hovered) bg.a *= 0.85f;
-        if (button.pressed) bg = we::runtime::kindui::Color::Lerp(bg, ThemeColor(ThemeToken::PressedBackground), 0.45f);
+        if (button.pressed) bg = we::runtime::kindui::Color::Lerp(bg, ThemeColor(ColorToken::PressedBackground), 0.45f);
         context.DrawRoundedRect(button.rect, bg, 4.0f);
-        context.DrawRoundedRectOutline(button.rect, ThemeColor(ThemeToken::BorderDefault), 1.0f, 4.0f);
+        context.DrawRoundedRectOutline(button.rect, ThemeColor(ColorToken::BorderDefault), 1.0f, 4.0f);
         
         const float iconSize = 13.0f * m_DpiScale;
         const float textGap = button.iconName.empty() ? 0.0f : 6.0f * m_DpiScale;
@@ -252,7 +253,7 @@ void FirstRunAgreementPopup::Paint(we::runtime::kindui::PaintContext& context) {
         const float tw = context.GetTextWidth(button.label, fontSize);
         const float contentW = tw + (button.iconName.empty() ? 0.0f : iconSize + textGap);
         float contentX = button.rect.x + (button.rect.width - contentW) * 0.5f;
-        const we::runtime::kindui::Color textColor = primary ? we::runtime::kindui::Color{ 0.10f, 0.10f, 0.10f, 1.0f } : ThemeColor(ThemeToken::TextPrimary);
+        const we::runtime::kindui::Color textColor = primary ? we::runtime::kindui::Color{ 0.10f, 0.10f, 0.10f, 1.0f } : ThemeColor(ColorToken::TextPrimary);
         
         if (!button.iconName.empty()) {
             we::runtime::kindui::IconPainter::DrawIcon(context, button.iconName,
@@ -949,7 +950,7 @@ const float contentMargin = kContentMargin * m_DpiScale;
             const float ruleY = y + 2.0f * m_DpiScale;
             const float ruleWidth = m_ContentRect.width - contentMargin * 2.0f;
             context.DrawRect(we::runtime::kindui::Rect{ m_ContentRect.x + contentMargin, ruleY, ruleWidth, 1.0f * m_DpiScale },
-                ThemeColor(ThemeToken::BorderDefault));
+                ThemeColor(ColorToken::BorderDefault));
             break;
         }
             
@@ -991,11 +992,11 @@ const float lineHeight = fontSize * kBaseLineHeight;
             
             switch (span.type) {
                 case SpanType::Bold:
-                    color = ThemeColor(ThemeToken::TextPrimary);
+                    color = ThemeColor(ColorToken::TextPrimary);
                     bold = true;
                     break;
                 case SpanType::Italic:
-                    color = ThemeColor(ThemeToken::TextPrimary);
+                    color = ThemeColor(ColorToken::TextPrimary);
                     break;
                 case SpanType::Code:
                     color = we::runtime::kindui::Color{ 0.9f, 0.7f, 0.4f, 1.0f };
@@ -1073,12 +1074,12 @@ const float padding = kBlockquotePadding * m_DpiScale;
     // Left border
     const float borderX = m_ContentRect.x + contentMargin;
     context.DrawRect(we::runtime::kindui::Rect{ borderX, y, 3.0f * m_DpiScale, MeasureBlockHeight(context, block, m_ContentRect.width - contentMargin * 2.0f) },
-        ThemeColor(ThemeToken::AccentPrimary));
+        ThemeColor(ColorToken::AccentPrimary));
     
     // Quote text
     float textY = y;
     PaintSpans(context, block.spans, borderX + padding + 3.0f * m_DpiScale, textY,
-        fontSize, ThemeColor(ThemeToken::TextSecondary),
+        fontSize, ThemeColor(ColorToken::TextSecondary),
         m_ContentRect.width - contentMargin * 2.0f - padding - 6.0f * m_DpiScale,
         viewportTop, viewportBottom);
 }
@@ -1094,14 +1095,14 @@ const float fontSize = kBaseFontSize * m_DpiScale;
     
     // Draw bullet or number
     if (block.type == BlockType::UnorderedList) {
-        context.DrawText("•", we::runtime::kindui::Point{ bulletX, textY }, ThemeColor(ThemeToken::TextPrimary), fontSize, true);
+        context.DrawText("•", we::runtime::kindui::Point{ bulletX, textY }, ThemeColor(ColorToken::TextPrimary), fontSize, true);
     } else {
         std::string numStr = std::to_string(block.listNumber) + ".";
-        context.DrawText(numStr, we::runtime::kindui::Point{ bulletX, textY }, ThemeColor(ThemeToken::TextPrimary), fontSize, true);
+        context.DrawText(numStr, we::runtime::kindui::Point{ bulletX, textY }, ThemeColor(ColorToken::TextPrimary), fontSize, true);
     }
     
     // Draw text
-    PaintSpans(context, block.spans, bulletX + indent, textY, fontSize, ThemeColor(ThemeToken::TextPrimary),
+    PaintSpans(context, block.spans, bulletX + indent, textY, fontSize, ThemeColor(ColorToken::TextPrimary),
         m_ContentRect.width - contentMargin * 2.0f - indent * 1.5f,
         viewportTop, viewportBottom);
 }
@@ -1319,7 +1320,7 @@ const float margin = kContentMargin * m_DpiScale;
             const float ruleY = y + 2.0f * m_DpiScale;
             const float ruleWidth = m_ContentRect.width - margin * 2.0f;
             context.DrawRect(we::runtime::kindui::Rect{ m_ContentRect.x + margin, ruleY, ruleWidth, 1.0f * m_DpiScale },
-                ThemeColor(ThemeToken::BorderDefault));
+                ThemeColor(ColorToken::BorderDefault));
             break;
         }
         case NodeType::Spacer:
@@ -1352,11 +1353,11 @@ const float lineHeight = fontSize * kBaseLineHeight;
             
             switch (run.style) {
                 case TextStyle::Bold:
-                    color = ThemeColor(ThemeToken::TextPrimary);
+                    color = ThemeColor(ColorToken::TextPrimary);
                     bold = true;
                     break;
                 case TextStyle::Italic:
-                    color = ThemeColor(ThemeToken::TextPrimary);
+                    color = ThemeColor(ColorToken::TextPrimary);
                     break;
                 case TextStyle::Code:
                     color = we::runtime::kindui::Color{ 0.9f, 0.7f, 0.4f, 1.0f };
@@ -1425,11 +1426,11 @@ const float padding = kBlockquotePadding * m_DpiScale;
     
     const float borderX = m_ContentRect.x + margin;
     context.DrawRect(we::runtime::kindui::Rect{ borderX, y, 3.0f * m_DpiScale, node.cachedHeight },
-        ThemeColor(ThemeToken::AccentPrimary));
+        ThemeColor(ColorToken::AccentPrimary));
     
     float textY = y;
     RenderTextRuns(context, node.runs, borderX + padding + 3.0f * m_DpiScale, textY,
-        fontSize, ThemeColor(ThemeToken::TextSecondary),
+        fontSize, ThemeColor(ColorToken::TextSecondary),
         m_ContentRect.width - margin * 2.0f - padding - 6.0f * m_DpiScale);
 }
 
@@ -1443,13 +1444,13 @@ const float fontSize = kBaseFontSize * m_DpiScale;
     const float bulletX = m_ContentRect.x + margin + indent * 0.5f;
     
     if (node.type == NodeType::UnorderedList) {
-        context.DrawText("•", we::runtime::kindui::Point{ bulletX, textY }, ThemeColor(ThemeToken::TextPrimary), fontSize, true);
+        context.DrawText("•", we::runtime::kindui::Point{ bulletX, textY }, ThemeColor(ColorToken::TextPrimary), fontSize, true);
     } else {
         std::string numStr = std::to_string(node.listNumber) + ".";
-        context.DrawText(numStr, we::runtime::kindui::Point{ bulletX, textY }, ThemeColor(ThemeToken::TextPrimary), fontSize, true);
+        context.DrawText(numStr, we::runtime::kindui::Point{ bulletX, textY }, ThemeColor(ColorToken::TextPrimary), fontSize, true);
     }
     
-    RenderTextRuns(context, node.runs, bulletX + indent, textY, fontSize, ThemeColor(ThemeToken::TextPrimary),
+    RenderTextRuns(context, node.runs, bulletX + indent, textY, fontSize, ThemeColor(ColorToken::TextPrimary),
         m_ContentRect.width - margin * 2.0f - indent * 1.5f);
 }
 
@@ -1546,13 +1547,13 @@ switch (type) {
         case NodeType::Heading1:
         case NodeType::Heading2:
         case NodeType::Heading3:
-            return ThemeColor(ThemeToken::TextPrimary);
+            return ThemeColor(ColorToken::TextPrimary);
         case NodeType::CodeBlock:
             return we::runtime::kindui::Color{ 0.9f, 0.9f, 0.85f, 1.0f };
         case NodeType::Blockquote:
-            return ThemeColor(ThemeToken::TextSecondary);
+            return ThemeColor(ColorToken::TextSecondary);
         default:
-            return ThemeColor(ThemeToken::TextPrimary);
+            return ThemeColor(ColorToken::TextPrimary);
     }
 }
 

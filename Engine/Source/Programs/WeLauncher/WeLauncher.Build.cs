@@ -12,7 +12,6 @@ public class WeLauncher : ModuleRules
         PublicIncludePaths.Add(".");
 
         PublicDependencies.Add("Core");
-        PublicDependencies.Add("CoreUObject");
         PublicDependencies.Add("Engine");
         PublicDependencies.Add("Platform");
         PublicDependencies.Add("RHI");

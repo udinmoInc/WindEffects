@@ -12,12 +12,12 @@
 
 namespace we::runtime::kindui {
 
-EditorApplicationContext::EditorApplicationContext(std::shared_ptr<IThemeProvider> theme) {
+EditorApplicationContext::EditorApplicationContext(std::shared_ptr<IKindUITheme> theme) {
     if (!theme) {
         theme = std::make_shared<we::editor::ui::EditorTheme>();
     }
     ThemeManager::Get().Initialize(std::move(theme), 1.0f);
-    m_ThemeProvider = ThemeManager::Get().SharedProvider();
+    m_ThemeProvider = ThemeManager::Get().SharedTheme();
     m_StyleResolver = ThemeManager::Get().SharedResolver();
     m_ResourceRegistry = std::make_shared<ModuleResourceRegistry>();
     m_EventBus = std::make_shared<EventBus>();
@@ -25,7 +25,7 @@ EditorApplicationContext::EditorApplicationContext(std::shared_ptr<IThemeProvide
     m_DockManager = std::make_shared<DockManager>();
     m_ExtensionRegistry = std::make_shared<UIExtensionRegistry>();
 
-    RegisterService(typeid(IThemeProvider), m_ThemeProvider);
+    RegisterService(typeid(IKindUITheme), m_ThemeProvider);
     RegisterService(typeid(IStyleResolver), m_StyleResolver);
     RegisterService(typeid(IResourceRegistry), m_ResourceRegistry);
     RegisterService(typeid(IEventBus), m_EventBus);
@@ -35,9 +35,9 @@ EditorApplicationContext::EditorApplicationContext(std::shared_ptr<IThemeProvide
 }
 
 void EditorApplicationContext::SyncThemeFromManager() {
-    m_ThemeProvider = ThemeManager::Get().SharedProvider();
+    m_ThemeProvider = ThemeManager::Get().SharedTheme();
     m_StyleResolver = ThemeManager::Get().SharedResolver();
-    RegisterService(typeid(IThemeProvider), m_ThemeProvider);
+    RegisterService(typeid(IKindUITheme), m_ThemeProvider);
     RegisterService(typeid(IStyleResolver), m_StyleResolver);
 }
 

@@ -6,7 +6,8 @@
 #include "KindUI/Core/TextMetrics.h"
 #include "KindUI/Theming/ThemeAccess.h"
 #include "KindUI/Theming/ThemeManager.h"
-#include "KindUI/Theming/ThemeToken.h"
+#include "KindUI/Tokens/DesignToken.h"
+#include "KindUI/Theming/StyleRole.h"
 #include "KindUI/Core/Animator.h"
 
 namespace we::runtime::kindui {
@@ -21,8 +22,8 @@ Size TextBox::Measure(const Size& availableSize) {
     (void)availableSize;
     const ResolvedStyle role = ThemeManager::Get().Resolve(StyleRole::Input);
     m_DesiredSize = Size{
-        ResolveThemeMetric(ThemeToken::Space6) * 5.0f,
-        role.height > 0.0f ? role.height : ResolveThemeMetric(ThemeToken::SearchBoxHeight)
+        ResolveMetric(MetricToken::Space6) * 5.0f,
+        role.height > 0.0f ? role.height : ResolveMetric(MetricToken::SearchBoxHeight)
     };
     return m_DesiredSize;
 }
@@ -43,7 +44,7 @@ void TextBox::Paint(PaintContext& context) {
     ControlChrome::PaintInputFrame(context, m_Geometry, state);
 
     const ResolvedStyle style = ThemeManager::Get().Resolve(StyleRole::Input);
-    const float pad = ResolveThemeMetric(ThemeToken::Space2);
+    const float pad = ResolveMetric(MetricToken::Space2);
     const float textX = m_Geometry.x + pad;
     const float textY = m_Geometry.y + (m_Geometry.height - style.fontSize) * 0.5f;
     context.DrawText(m_Text, Point{ textX, textY }, style.foreground, style.fontSize);
@@ -53,7 +54,7 @@ void TextBox::Paint(PaintContext& context) {
         context.DrawLine(
             Point{ cursorX, textY },
             Point{ cursorX, textY + style.fontSize },
-            ResolveThemeColor(ThemeToken::AccentPrimary),
+            ResolveColor(ColorToken::AccentPrimary),
             1.5f);
     }
 }

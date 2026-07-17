@@ -5,7 +5,8 @@
 #include "EditorToolsRegistry.h"
 #include "Widgets/SearchBox.h"
 #include "KindUI/Core/PaintContext.h"
-#include "KindUI/Theming/ThemeToken.h"
+#include "KindUI/Tokens/DesignToken.h"
+#include "KindUI/Theming/StyleRole.h"
 #include "KindUI/Core/Icon.h"
 #include "KindUI/Core/DPIContext.h"
 #include "KindUI/Rendering/IconMetrics.h"
@@ -27,7 +28,7 @@ using we::runtime::kindui::PaintContext;
 using we::runtime::kindui::Point;
 using we::runtime::kindui::Rect;
 using we::runtime::kindui::Size;
-using we::runtime::kindui::ThemeToken;
+using we::runtime::kindui::ColorToken;
 namespace PanelChrome = we::runtime::kindui::PanelChrome;
 
 namespace {
@@ -174,7 +175,7 @@ void ToolsPanel::ShowToolContextMenu(const EditorToolAction* tool, const Point& 
     m_ContextMenuOpen = true;
 
     const float menuWidth = 168.0f;
-    float menuHeight = PanelChrome::ListRowHeight() * 2.0f + ThemeMetric(ThemeToken::Space1) * 2.0f;
+    float menuHeight = PanelChrome::ListRowHeight() * 2.0f + ThemeMetric(MetricToken::Space1) * 2.0f;
     if (tool->onDragStart) menuHeight += PanelChrome::ListRowHeight();
     if (tool->favoritable) menuHeight += PanelChrome::ListRowHeight();
 
@@ -188,7 +189,7 @@ void ToolsPanel::ShowToolContextMenu(const EditorToolAction* tool, const Point& 
     }
 
     m_ContextMenuRect = Rect{ menuX, menuY, menuWidth, menuHeight };
-    float itemY = menuY + ThemeMetric(ThemeToken::Space1);
+    float itemY = menuY + ThemeMetric(MetricToken::Space1);
 
     auto addItem = [&](const std::string& label, std::function<void()> action) {
         ContextMenuItem item;
@@ -268,11 +269,11 @@ void ToolsPanel::RebuildLayout() {
 
     const float padH = PanelChrome::PanelPaddingH();
     const float searchH = PanelChrome::SearchHeight();
-    const float searchRowH = searchH + ThemeMetric(ThemeToken::Space1);
+    const float searchRowH = searchH + ThemeMetric(MetricToken::Space1);
     const float rowH = PanelChrome::ListRowHeight();
     const float sectionH = PanelChrome::CategoryHeaderHeight();
-    const float iconSize = ThemeMetric(ThemeToken::IconSizeTree);
-    const float sectionGap = ThemeMetric(ThemeToken::Space2);
+    const float iconSize = ThemeMetric(MetricToken::IconSizeTree);
+    const float sectionGap = ThemeMetric(MetricToken::Space2);
 
     float y = m_PanelRect.y + padH;
     if (!useCustomContent) {
@@ -385,11 +386,11 @@ void ToolsPanel::Paint(PaintContext& context) {
         m_ModeContentWidget->Paint(context);
     } else {
         const float uiScale = (std::max)(1.0f, we::runtime::kindui::DPIContext::GetScale());
-        const float labelFontSize = ThemeMetric(ThemeToken::TextSizeBody) * uiScale;
-        const float shortcutFontSize = ThemeMetric(ThemeToken::TextSizeCaption) * uiScale;
-        const float iconSize = static_cast<float>(we::runtime::kindui::IconMetrics::NativeIconTierPx(ThemeMetric(ThemeToken::IconSizeTree)));
+        const float labelFontSize = ThemeMetric(MetricToken::TextSizeBody) * uiScale;
+        const float shortcutFontSize = ThemeMetric(MetricToken::TextSizeCaption) * uiScale;
+        const float iconSize = static_cast<float>(we::runtime::kindui::IconMetrics::NativeIconTierPx(ThemeMetric(MetricToken::IconSizeTree)));
         const float padH = PanelChrome::PanelPaddingH();
-        const float chevronGap = ThemeMetric(ThemeToken::Space2) * uiScale;
+        const float chevronGap = ThemeMetric(MetricToken::Space2) * uiScale;
 
         PanelChrome::PaintContentRegion(context, m_PanelRect);
 
@@ -418,23 +419,23 @@ void ToolsPanel::Paint(PaintContext& context) {
             const float rowIconX = toolHit.geometry.x + padH + iconSize + chevronGap;
             const float iconY = toolHit.geometry.y + (toolHit.geometry.height - iconSize) * 0.5f;
             we::runtime::kindui::IconPainter::DrawIcon(context, toolHit.tool->iconName,
-                Rect{ rowIconX, iconY, iconSize, iconSize }, ThemeColor(ThemeToken::IconPrimary));
+                Rect{ rowIconX, iconY, iconSize, iconSize }, ThemeColor(ColorToken::IconPrimary));
 
             context.DrawText(toolHit.tool->label,
                 Point{ rowIconX + iconSize + chevronGap, toolHit.geometry.y + (toolHit.geometry.height - labelFontSize) * 0.5f },
-                ThemeColor(ThemeToken::TextPrimary), labelFontSize);
+                ThemeColor(ColorToken::TextPrimary), labelFontSize);
 
             if (!toolHit.tool->shortcut.empty()) {
                 const float shortcutWidth = context.GetTextWidth(toolHit.tool->shortcut, shortcutFontSize);
                 const float starReserve = iconSize + padH * 2.0f;
                 context.DrawText(toolHit.tool->shortcut,
                     Point{ toolHit.geometry.x + toolHit.geometry.width - starReserve - shortcutWidth, toolHit.geometry.y + (toolHit.geometry.height - shortcutFontSize) * 0.5f },
-                    ThemeColor(ThemeToken::TextDisabled), shortcutFontSize);
+                    ThemeColor(ColorToken::TextDisabled), shortcutFontSize);
             }
 
             const float starX = toolHit.geometry.x + toolHit.geometry.width - padH - iconSize;
             const char* starIcon = toolHit.favorite ? we::runtime::kindui::Icons::StarFilledName : we::runtime::kindui::Icons::StarName;
-            Color starColor = toolHit.favorite ? ThemeColor(ThemeToken::IconAccent) : ThemeColor(ThemeToken::IconSecondary);
+            Color starColor = toolHit.favorite ? ThemeColor(ColorToken::IconAccent) : ThemeColor(ColorToken::IconSecondary);
             we::runtime::kindui::IconPainter::DrawIcon(context, starIcon,
                 Rect{ starX, iconY, iconSize, iconSize }, starColor);
         }
@@ -442,18 +443,18 @@ void ToolsPanel::Paint(PaintContext& context) {
 
     if (m_ContextMenuOpen) {
         const float uiScale = (std::max)(1.0f, we::runtime::kindui::DPIContext::GetScale());
-        const float labelFontSize = ThemeMetric(ThemeToken::TextSizeBody) * uiScale;
+        const float labelFontSize = ThemeMetric(MetricToken::TextSizeBody) * uiScale;
         const float rowH = PanelChrome::ListRowHeight();
-        context.DrawShadow(m_ContextMenuRect, ThemeColor(ThemeToken::ShadowPopup), 3.0f, 8.0f);
-        context.DrawRoundedRect(m_ContextMenuRect, ThemeColor(ThemeToken::PopupBackground), ThemeMetric(ThemeToken::CornerRadiusSmall));
+        context.DrawShadow(m_ContextMenuRect, ThemeColor(ColorToken::ShadowPopup), 3.0f, 8.0f);
+        context.DrawRoundedRect(m_ContextMenuRect, ThemeColor(ColorToken::PopupBackground), ThemeMetric(MetricToken::CornerRadiusSmall));
         for (size_t i = 0; i < m_ContextMenuItems.size(); ++i) {
             const auto& item = m_ContextMenuItems[i];
             if (static_cast<int>(i) == m_ContextMenuHovered) {
-                context.DrawRect(item.geometry, ThemeColor(ThemeToken::HoverBackground));
+                context.DrawRect(item.geometry, ThemeColor(ColorToken::HoverBackground));
             }
             context.DrawText(item.label,
                 Point{ item.geometry.x + PanelChrome::PanelPaddingH(), item.geometry.y + (rowH - labelFontSize) * 0.5f },
-                ThemeColor(ThemeToken::TextPrimary), labelFontSize);
+                ThemeColor(ColorToken::TextPrimary), labelFontSize);
         }
     }
 }
@@ -516,7 +517,7 @@ void ToolsPanel::OnMouseDown(const MouseEvent& event) {
     }
 
     if (auto* toolHit = HitTool(event.position)) {
-        const float iconSize = ThemeMetric(ThemeToken::IconSizeTree);
+        const float iconSize = ThemeMetric(MetricToken::IconSizeTree);
         const float starX = toolHit->geometry.x + toolHit->geometry.width - PanelChrome::PanelPaddingH() - iconSize;
         if (event.position.x >= starX && toolHit->tool && toolHit->tool->favoritable) {
             EditorToolsRegistry::Get().ToggleFavorite(toolHit->tool->id);

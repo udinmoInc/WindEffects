@@ -10,7 +10,6 @@ public class Editor : ModuleRules
         PublishAtConfigurationRoot();
 
         PublicDependencies.Add("Core");
-        PublicDependencies.Add("CoreUObject");
         PublicDependencies.Add("Engine");
         PublicDependencies.Add("Platform");
         PublicDependencies.Add("RHI");
@@ -25,7 +24,6 @@ public class Editor : ModuleRules
         PublicDependencies.Add("ContentBrowser");
         PublicDependencies.Add("WorldOutliner");
         PublicDependencies.Add("PropertyEditor");
-        PublicDependencies.Add("Details");
         PublicDependencies.Add("Toolbar");
         PublicDependencies.Add("Menus");
         PublicDependencies.Add("ToolsPanel");
@@ -36,13 +34,10 @@ public class Editor : ModuleRules
         PublicDependencies.Add("TerrainEditor");
 
         // RHI backends — load-order DLLs via ModuleBootstrap; ensure they are built/staged with Editor.
+        // Unsupported backends (DX11/Metal/GL/GLES) register from WERHI.dll itself.
         PrivateDependencies.Add("NullRHI");
         PrivateDependencies.Add("VulkanRHI");
         PrivateDependencies.Add("DirectX12RHI");
-        PrivateDependencies.Add("DirectX11RHI");
-        PrivateDependencies.Add("MetalRHI");
-        PrivateDependencies.Add("OpenGLRHI");
-        PrivateDependencies.Add("OpenGLESRHI");
 
         PlatformSettings.Windows ??= new WindowsSettings();
         PlatformSettings.Windows.Subsystem = "Console";

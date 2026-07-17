@@ -15,7 +15,6 @@ public class Terrain : ModuleRules
 
         PublicDependencies.Add("Core");
         PublicDependencies.Add("Platform");
-        PublicDependencies.Add("CoreUObject");
         PublicDependencies.Add("Engine");
         PublicDependencies.Add("Scene");
         PublicDependencies.Add("Renderer");

@@ -1,6 +1,7 @@
 #include "Widgets/WindowShell.h"
 #include "KindUI/Core/PaintContext.h"
-#include "KindUI/Theming/ThemeToken.h"
+#include "KindUI/Tokens/DesignToken.h"
+#include "KindUI/Theming/StyleRole.h"
 
 namespace we::runtime::kindui {
 
@@ -33,14 +34,14 @@ void WindowShell::Arrange(const Rect& allottedRect) {
 }
 
 void WindowShell::Paint(PaintContext& context) {
-    context.DrawRect(m_Geometry, ThemeColor(ThemeToken::WindowBackground));
+    context.DrawRect(m_Geometry, ThemeColor(ColorToken::WindowBackground));
 
     if (m_Content) {
         m_Content->Paint(context);
     }
 
     // Square frame — bottom edge stays flush with the system edge (no rounded cutout).
-    const Color border = ThemeColor(ThemeToken::BorderDefault);
+    const Color border = ThemeColor(ColorToken::BorderDefault);
     const float x = m_Geometry.x;
     const float y = m_Geometry.y;
     const float w = m_Geometry.width;

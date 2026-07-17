@@ -4,7 +4,8 @@
 #include "KindUI/Core/Geometry.h"
 #include "KindUI/Core/UIRepaintGate.h"
 #include "KindUI/Theming/ThemeAccess.h"
-#include "KindUI/Theming/ThemeToken.h"
+#include "KindUI/Tokens/DesignToken.h"
+#include "KindUI/Theming/StyleRole.h"
 
 #include "Platform/PlatformSDK.h"
 
@@ -45,8 +46,8 @@ inline constexpr float kLauncherSearchW = 320.0f;
 inline constexpr float kLauncherRowH = 44.0f;
 inline constexpr float kLauncherIconPx = 16.0f;
 
-inline we::runtime::kindui::Color LColor(we::runtime::kindui::ThemeToken token) {
-    return we::runtime::kindui::ResolveThemeColor(token);
+inline we::runtime::kindui::Color LColor(we::runtime::kindui::ColorToken token) {
+    return we::runtime::kindui::ResolveColor(token);
 }
 
 inline std::string ToLowerCopy(std::string text) {
@@ -56,8 +57,8 @@ inline std::string ToLowerCopy(std::string text) {
     return text;
 }
 
-inline float LMetric(we::runtime::kindui::ThemeToken token) {
-    return we::runtime::kindui::ResolveThemeMetric(token);
+inline float LMetric(we::runtime::kindui::MetricToken token) {
+    return we::runtime::kindui::ResolveMetric(token);
 }
 
 inline float LScale() {

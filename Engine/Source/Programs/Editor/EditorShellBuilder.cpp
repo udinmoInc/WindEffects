@@ -199,12 +199,12 @@ EditorShellResult EditorShellBuilder::Build(
 
     auto toolbar = std::make_shared<Toolbar>();
     toolbar->SetContext(widgetContext);
-    toolbar->SetHeight(toolbarStyle.height > 0.0f ? toolbarStyle.height : ResolveThemeMetric(ThemeToken::ToolbarHeight) * uiScale);
-    toolbar->SetLeftInset(style.Scaled(ResolveThemeMetric(ThemeToken::Space3)));
-    toolbar->SetRightInset(style.Scaled(ResolveThemeMetric(ThemeToken::WindowControlWidth) * kWindowControlCount));
-    toolbar->SetEdgePadding(style.Scaled(ResolveThemeMetric(ThemeToken::Space2)));
+    toolbar->SetHeight(toolbarStyle.height > 0.0f ? toolbarStyle.height : ResolveMetric(MetricToken::ToolbarHeight) * uiScale);
+    toolbar->SetLeftInset(style.Scaled(ResolveMetric(MetricToken::Space3)));
+    toolbar->SetRightInset(style.Scaled(ResolveMetric(MetricToken::WindowControlWidth) * kWindowControlCount));
+    toolbar->SetEdgePadding(style.Scaled(ResolveMetric(MetricToken::Space2)));
     const float toolbarIconTier = static_cast<float>(IconMetrics::NativeIconTierPx(
-        toolbarStyle.iconSize > 0.0f ? toolbarStyle.iconSize : ResolveThemeMetric(ThemeToken::IconSizeToolbar)));
+        toolbarStyle.iconSize > 0.0f ? toolbarStyle.iconSize : ResolveMetric(MetricToken::IconSizeToolbar)));
     toolbar->SetIconSize(toolbarIconTier);
 
     // Actor / object mode selector (pivot icon opens place-actors drawer)
@@ -374,10 +374,10 @@ EditorShellResult EditorShellBuilder::Build(
     rootVBox->AddChild(titleBar);
     rootVBox->AddChild(toolbar);
     if (shellResult.layout.root) {
-        const float workspaceGap = ResolveThemeMetric(ThemeToken::Space2) * uiScale;
+        const float workspaceGap = ResolveMetric(MetricToken::Space2) * uiScale;
         auto workspaceArea = std::make_shared<Column>();
         workspaceArea->Padding({ workspaceGap, workspaceGap, workspaceGap, workspaceGap });
-        workspaceArea->Background(ResolveThemeColor(ThemeToken::WorkspaceBackground));
+        workspaceArea->Background(ResolveColor(ColorToken::WorkspaceBackground));
         workspaceArea->AddChild(shellResult.layout.root);
         rootVBox->AddChild(workspaceArea);
     }

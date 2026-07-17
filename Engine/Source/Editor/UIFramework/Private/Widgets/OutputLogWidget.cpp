@@ -1,7 +1,8 @@
 #include "Widgets/OutputLogWidget.h"
 #include "WindEffects/Editor/UI/Panel/PanelChrome.h"
 #include "KindUI/Core/PaintContext.h"
-#include "KindUI/Theming/ThemeToken.h"
+#include "KindUI/Tokens/DesignToken.h"
+#include "KindUI/Theming/StyleRole.h"
 
 namespace we::runtime::kindui {
 
@@ -56,14 +57,14 @@ void OutputLogWidget::SetSearchQuery(const std::string& query) {
 
 Color OutputLogWidget::LevelColor(we::Logger::Level level) const {
     switch (level) {
-        case we::Logger::Level::Trace: return ThemeColor(ThemeToken::TextMuted);
-        case we::Logger::Level::Debug: return ThemeColor(ThemeToken::TextSecondary);
-        case we::Logger::Level::Info: return ThemeColor(ThemeToken::TextSecondary);
-        case we::Logger::Level::Warning: return ThemeColor(ThemeToken::Warning);
-        case we::Logger::Level::Error: return ThemeColor(ThemeToken::ErrorForeground);
-        case we::Logger::Level::Critical: return ThemeColor(ThemeToken::ErrorForeground);
+        case we::Logger::Level::Trace: return ThemeColor(ColorToken::TextMuted);
+        case we::Logger::Level::Debug: return ThemeColor(ColorToken::TextSecondary);
+        case we::Logger::Level::Info: return ThemeColor(ColorToken::TextSecondary);
+        case we::Logger::Level::Warning: return ThemeColor(ColorToken::Warning);
+        case we::Logger::Level::Error: return ThemeColor(ColorToken::ErrorForeground);
+        case we::Logger::Level::Critical: return ThemeColor(ColorToken::ErrorForeground);
     }
-    return ThemeColor(ThemeToken::TextPrimary);
+    return ThemeColor(ColorToken::TextPrimary);
 }
 
 bool OutputLogWidget::PassesFilter(const we::Logger::LogRecord& record) const {
@@ -121,9 +122,9 @@ void OutputLogWidget::Paint(PaintContext& context) {
         if (y > maxY) break;
         context.DrawText(
             visibleLines[i],
-            Point{ geometry.x + PanelChrome::PanelPaddingH(), y + (lineHeight - ThemeMetric(ThemeToken::TextSizeCaption)) * 0.5f },
+            Point{ geometry.x + PanelChrome::PanelPaddingH(), y + (lineHeight - ThemeMetric(MetricToken::TextSizeCaption)) * 0.5f },
             LevelColor(visibleLevels[i]),
-            ThemeMetric(ThemeToken::TextSizeCaption));
+            ThemeMetric(MetricToken::TextSizeCaption));
         y += lineHeight;
     }
 }
