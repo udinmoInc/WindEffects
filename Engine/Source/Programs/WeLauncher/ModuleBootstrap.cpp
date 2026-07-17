@@ -16,7 +16,7 @@ constexpr const char* kLauncherModuleDlls[] = {
     "WEScene.dll",
     "WEText.dll",
     "WEWorld.dll",
-    "WEUIFramework.dll",
+    "WEUI.dll",
     "WEIcons.dll",
     "WEECS.dll",
 };

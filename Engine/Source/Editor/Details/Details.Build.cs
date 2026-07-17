@@ -14,6 +14,7 @@ public class Details : ModuleRules
         PublicDependencies.Add("RHI");
         PublicDependencies.Add("CoreUObject");
         PublicDependencies.Add("Engine");
+        PublicDependencies.Add("UI");
         PublicDependencies.Add("UIFramework");
         PublicDependencies.Add("PropertyEditor");
         PublicDependencies.Add("ContentBrowser");

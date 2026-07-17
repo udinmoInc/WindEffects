@@ -17,6 +17,7 @@ constexpr const char* kFeatureModuleDlls[] = {
     "WEMetalRHI.dll",
     "WEOpenGLRHI.dll",
     "WEOpenGLESRHI.dll",
+    "WEUI.dll",
     "WEUIFramework.dll",
     "WEMainFrame.dll",
     "WEViewport.dll",

@@ -1,10 +1,10 @@
 #pragma once
 
-#include "Core/DPIContext.h"
-#include "Core/Geometry.h"
-#include "Core/UIRepaintGate.h"
-#include "WindEffects/Editor/UI/Theming/ThemeAccess.h"
-#include "WindEffects/Editor/UI/Theming/ThemeToken.h"
+#include "WindEffects/Runtime/UI/Core/DPIContext.h"
+#include "WindEffects/Runtime/UI/Core/Geometry.h"
+#include "WindEffects/Runtime/UI/Core/UIRepaintGate.h"
+#include "WindEffects/Runtime/UI/Theming/ThemeAccess.h"
+#include "WindEffects/Runtime/UI/Theming/ThemeToken.h"
 
 #include "Platform/PlatformSDK.h"
 

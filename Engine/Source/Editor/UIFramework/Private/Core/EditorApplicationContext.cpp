@@ -1,14 +1,14 @@
 #include "WindEffects/Editor/UI/Core/EditorApplicationContext.h"
 
-#include "WindEffects/Editor/UI/Theming/EditorTheme.h"
-#include "WindEffects/Editor/UI/Theming/ThemeManager.h"
-#include "WindEffects/Editor/UI/Resources/ModuleResourceRegistry.h"
-#include "WindEffects/Editor/UI/Events/EventBus.h"
-#include "WindEffects/Editor/UI/Commands/CommandRegistry.h"
+#include "WindEffects/Runtime/UI/Theming/EditorTheme.h"
+#include "WindEffects/Runtime/UI/Theming/ThemeManager.h"
+#include "WindEffects/Runtime/UI/Resources/ModuleResourceRegistry.h"
+#include "WindEffects/Runtime/UI/Events/EventBus.h"
+#include "WindEffects/Runtime/UI/Commands/CommandRegistry.h"
 #include "WindEffects/Editor/UI/Docking/DockManager.h"
 #include "WindEffects/Editor/UI/Extensions/ExtensionBootstrap.h"
 
-#include "Core/DPIContext.h"
+#include "WindEffects/Runtime/UI/Core/DPIContext.h"
 
 namespace WindEffects::Editor::UI {
 
@@ -58,3 +58,5 @@ void EditorApplicationContext::Shutdown() {
 }
 
 } // namespace WindEffects::Editor::UI
+
+// relink

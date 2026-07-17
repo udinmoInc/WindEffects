@@ -1,12 +1,12 @@
 #pragma once
 
 #include "WindEffects/Editor/UI/Export.h"
-#include "WindEffects/Editor/UI/Core/IServiceProvider.h"
-#include "WindEffects/Editor/UI/Core/ServiceContainer.h"
-#include "WindEffects/Editor/UI/Theming/IThemeProvider.h"
-#include "WindEffects/Editor/UI/Resources/IResourceRegistry.h"
-#include "WindEffects/Editor/UI/Events/IEventBus.h"
-#include "WindEffects/Editor/UI/Commands/ICommandRegistry.h"
+#include "WindEffects/Runtime/UI/Core/IApplicationContext.h"
+#include "WindEffects/Runtime/UI/Core/ServiceContainer.h"
+#include "WindEffects/Runtime/UI/Theming/IThemeProvider.h"
+#include "WindEffects/Runtime/UI/Resources/IResourceRegistry.h"
+#include "WindEffects/Runtime/UI/Events/IEventBus.h"
+#include "WindEffects/Runtime/UI/Commands/ICommandRegistry.h"
 #include "WindEffects/Editor/UI/Docking/IDockManager.h"
 #include "WindEffects/Editor/UI/Extensions/UIExtensionRegistry.h"
 
@@ -14,16 +14,10 @@
 
 namespace WindEffects::Editor::UI {
 
-class UIFRAMEWORK_API IEditorApplicationContext {
+class UIFRAMEWORK_API IEditorApplicationContext : public IApplicationContext {
 public:
-    virtual ~IEditorApplicationContext() = default;
+    ~IEditorApplicationContext() override = default;
 
-    [[nodiscard]] virtual IServiceProvider& GetServices() const = 0;
-    [[nodiscard]] virtual IThemeProvider& GetThemeProvider() const = 0;
-    [[nodiscard]] virtual IStyleResolver& GetStyleResolver() const = 0;
-    [[nodiscard]] virtual IResourceRegistry& GetResourceRegistry() const = 0;
-    [[nodiscard]] virtual IEventBus& GetEventBus() const = 0;
-    [[nodiscard]] virtual ICommandRegistry& GetCommandRegistry() const = 0;
     [[nodiscard]] virtual IDockManager& GetDockManager() const = 0;
     [[nodiscard]] virtual UIExtensionRegistry& GetExtensionRegistry() const = 0;
 };

@@ -1,24 +1,15 @@
 #pragma once
 
-// WindEffects Editor UI Framework — core services and docking.
+// WindEffects Editor UI Framework — docking, panels, and editor shell services.
+// Widget/layout/theme/rendering foundation lives in Runtime UI (WEUI.dll).
 // Extension authors: prefer #include "WindEffects/Editor/EditorSDK.h"
 
+#include "WindEffects/Runtime/UISDK.h"
+
 #include "WindEffects/Editor/UI/Core/EditorApplicationContext.h"
-#include "WindEffects/Editor/UI/Core/IServiceProvider.h"
-#include "WindEffects/Editor/UI/Core/ServiceContainer.h"
-#include "WindEffects/Editor/UI/Core/Types.h"
-#include "WindEffects/Editor/UI/Theming/IThemeProvider.h"
-#include "WindEffects/Editor/UI/Theming/GraphiteDarkTheme.h"
-#include "WindEffects/Editor/UI/Theming/EditorTheme.h"
-#include "WindEffects/Editor/UI/Theming/LauncherTheme.h"
-#include "WindEffects/Editor/UI/Theming/ThemeManager.h"
-#include "WindEffects/Editor/UI/Theming/ThemeToken.h"
-#include "Core/ControlChrome.h"
-#include "Core/Widgets/DesignSystemControls.h"
-#include "WindEffects/Editor/UI/Resources/IResourceRegistry.h"
-#include "WindEffects/Editor/UI/Events/IEventBus.h"
-#include "WindEffects/Editor/UI/Commands/ICommandRegistry.h"
 #include "WindEffects/Editor/UI/Docking/IDockManager.h"
 #include "WindEffects/Editor/UI/Docking/DockManager.h"
 #include "WindEffects/Editor/UI/Extensions/UIExtensionRegistry.h"
 #include "WindEffects/Editor/UI/Shell/DockLayoutBuilder.h"
+#include "WindEffects/Editor/UI/Theming/EditorTheme.h"
+

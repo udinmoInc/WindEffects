@@ -1,7 +1,7 @@
 #pragma once
 
-#include "Core/Widget.h"
-#include "WindEffects/Editor/UI/Theming/ThemeToken.h"
+#include "WindEffects/Runtime/UI/Core/Widget.h"
+#include "WindEffects/Runtime/UI/Theming/ThemeToken.h"
 
 #include <cstdint>
 #include <functional>

@@ -2,8 +2,8 @@
 
 #include "UI/LauncherHelpers.h"
 
-#include "Core/PaintContext.h"
-#include "WindEffects/Editor/UI/Theming/ThemeToken.h"
+#include "WindEffects/Runtime/UI/Core/PaintContext.h"
+#include "WindEffects/Runtime/UI/Theming/ThemeToken.h"
 
 #include <algorithm>
 #include <cmath>
