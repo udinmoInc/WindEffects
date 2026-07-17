@@ -30,6 +30,7 @@ private:
     void ApplyLayoutIntent(Widget& widget, const LayoutIntent& intent);
     void ReconcileElement(Widget& existing, const Element& updated);
     void ReconcileChildren(Widget& container, const std::vector<Element>& children);
+    void ReconcileScrollView(Widget& existing, const Element& expanded);
 
     [[nodiscard]] Widget* FindDirectChildById(Widget& parent, std::string_view id) const;
     [[nodiscard]] bool ElementsMatchForReuse(const Widget& widget, const Element& element) const;

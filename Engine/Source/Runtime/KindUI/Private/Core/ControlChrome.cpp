@@ -182,7 +182,7 @@ void PaintCenteredLabel(
     const Color& color,
     float fontSize,
     bool bold) {
-    const float textW = static_cast<float>(text.size()) * fontSize * 0.55f;
+    const float textW = context.GetTextWidth(text, fontSize, bold);
     context.DrawText(
         text,
         Point{

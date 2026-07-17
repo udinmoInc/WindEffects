@@ -66,10 +66,6 @@ void ProjectsPage::Reload() {
     m_ViewModel.ReloadFromModel();
 }
 
-void ProjectsPage::SetLoading(bool loading) {
-    m_ViewModel.SetLoading(loading);
-}
-
 void ProjectsPage::SetSearchText(std::string text) {
     m_ViewModel.SetSearchText(std::move(text));
 }

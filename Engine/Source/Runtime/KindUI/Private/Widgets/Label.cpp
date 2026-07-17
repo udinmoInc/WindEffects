@@ -1,5 +1,6 @@
 #include "KindUI/Widgets/Label.h"
 #include "KindUI/Core/PaintContext.h"
+#include "KindUI/Core/TextMetrics.h"
 #include "KindUI/Tokens/DesignToken.h"
 #include "KindUI/Theming/StyleRole.h"
 #include "KindUI/Core/Style.h"
@@ -27,23 +28,17 @@ Label::Label(const std::string& text, const Color& color, float fontSize)
 
 Size Label::Measure(const Size& availableSize) {
     m_WrappedLines.clear();
-    float charWidth = m_Style.size * 0.55f;
 
     if (m_WrapText && availableSize.width > 0.0f) {
-        int charsPerLine = static_cast<int>(availableSize.width / charWidth);
-        if (charsPerLine < 1) {
-            charsPerLine = 1;
-        }
-
         std::istringstream words(m_Text);
         std::string word;
         std::string currentLine;
 
         while (words >> word) {
-            if (currentLine.empty()) {
-                currentLine = word;
-            } else if ((currentLine.length() + 1 + word.length()) * charWidth <= availableSize.width) {
-                currentLine += " " + word;
+            const std::string candidate = currentLine.empty() ? word : currentLine + " " + word;
+            if (currentLine.empty()
+                || TextMetrics::MeasureWidth(candidate, m_Style.size, m_Style.bold) <= availableSize.width) {
+                currentLine = candidate;
             } else {
                 m_WrappedLines.push_back(currentLine);
                 currentLine = word;
@@ -62,7 +57,7 @@ Size Label::Measure(const Size& availableSize) {
 
     float maxWidth = 0.0f;
     for (const auto& line : m_WrappedLines) {
-        float lineWidth = static_cast<float>(line.length()) * charWidth;
+        const float lineWidth = TextMetrics::MeasureWidth(line, m_Style.size, m_Style.bold);
         if (lineWidth > maxWidth) {
             maxWidth = lineWidth;
         }

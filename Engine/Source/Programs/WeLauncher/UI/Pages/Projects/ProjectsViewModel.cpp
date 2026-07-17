@@ -15,7 +15,6 @@ ProjectsViewModel::ProjectsViewModel(ProjectsModel& model, IProjectsHostActions&
     , SearchText("")
     , SortMode(ProjectSortMode::Recent)
     , CompatibleOnly(false)
-    , Loading(false)
     , SelectedIndex(-1)
     , EmptyKind(ProjectsEmptyKind::None) {}
 
@@ -29,7 +28,6 @@ void ProjectsViewModel::BindViewHost(we::runtime::kindui::ViewHost& host) {
     host.Observe(SearchText);
     host.Observe(SortMode);
     host.Observe(CompatibleOnly);
-    host.Observe(Loading);
     host.Observe(SelectedIndex);
     host.Observe(EmptyKind);
     host.ObserveList(VisibleProjects);
@@ -117,10 +115,6 @@ void ProjectsViewModel::SetSortMode(ProjectSortMode mode) {
 void ProjectsViewModel::SetCompatibleOnly(bool enabled) {
     CompatibleOnly = enabled;
     RecomputeVisibleProjects();
-}
-
-void ProjectsViewModel::SetLoading(bool loading) {
-    Loading = loading;
 }
 
 void ProjectsViewModel::SelectProject(std::size_t sourceIndex, bool additive) {

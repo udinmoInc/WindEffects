@@ -1,8 +1,19 @@
 #include "KindUI/App/ViewHost.h"
 
+#include "KindUI/Core/UIRepaintGate.h"
 #include "KindUI/Declarative/ViewBuilder.h"
 
 namespace we::runtime::kindui {
+namespace {
+
+void MarkViewDirty(const std::shared_ptr<Widget>& root) {
+    UIRepaintGate::Request();
+    if (root) {
+        root->InvalidateLayout();
+    }
+}
+
+} // namespace
 
 ViewHost::ViewHost(IApplicationContext& app, IPopupHost* popupHost)
     : m_Context(std::make_shared<WidgetContext>(app, popupHost))
@@ -18,20 +29,24 @@ ViewHost::~ViewHost() = default;
 void ViewHost::SetView(const Element& view) {
     m_Description = view;
     m_Root = m_Builder->Build(view);
+    MarkViewDirty(m_Root);
 }
 
 void ViewHost::Reconcile(const Element& view) {
     m_Description = view;
     if (!m_Root) {
         m_Root = m_Builder->Build(view);
+        MarkViewDirty(m_Root);
         return;
     }
     m_Builder->Reconcile(*m_Root, view);
+    MarkViewDirty(m_Root);
 }
 
 void ViewHost::Clear() {
     m_Root.reset();
     m_Description.reset();
+    UIRepaintGate::Request();
 }
 
 void ViewHost::SetViewFactory(std::function<Element()> factory) {

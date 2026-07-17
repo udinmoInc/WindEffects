@@ -8,9 +8,10 @@ Spacer::~Spacer() = default;
 
 Size Spacer::Measure(const Size& availableSize) {
     (void)availableSize;
-    // Spacer should stretch along the box axis without forcing the cross-axis
-    // to become enormous, otherwise parent boxes center their real children.
-    m_DesiredSize = Size{ 10000.0f, 0.0f };
+    // Desired size is zero on both axes. Flex grow/shrink (set by UI::Spacer)
+    // absorbs free space along the main axis without inflating the cross axis
+    // (a large desired width would force Column parents to become enormous).
+    m_DesiredSize = Size{ 0.0f, 0.0f };
     return m_DesiredSize;
 }
 

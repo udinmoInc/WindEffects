@@ -155,14 +155,53 @@ enum class RadiusToken : uint32_t {
 };
 
 enum class TypographyToken : uint32_t {
+    // Window / page chrome
+    WindowTitle,
+    PageTitle,
+    SectionTitle,
+    CardTitle,
+    DialogTitle,
+
+    // Headings
     Display,
-    Heading,
+    Heading1,
+    Heading2,
+    Heading3,
+    Heading4,
+    Heading5,
+    Heading6,
+    Heading, // maps to Heading2 in themes
+
+    // Body
     Title,
     Subtitle,
     Body,
+    BodyStrong,
     Caption,
+    CaptionSmall,
+
+    // Controls
+    Label,
     Button,
+    Toolbar,
+    Menu,
+    Tooltip,
+    TableHeader,
+    Status,
+    StatusBar,
+    Navigation,
+    PropertyLabel,
+    PropertyValue,
+
+    // Specialized
+    Code,
+    Console,
     Monospace,
+    Link,
+    Error,
+    Warning,
+    Success,
+    Disabled,
 };
 
 enum class ElevationToken : uint32_t {

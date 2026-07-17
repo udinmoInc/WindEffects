@@ -11,18 +11,18 @@
 #include "UI/Pages/Projects/ProjectsStyles.h"
 #include "UI/Controls/LauncherControls.h"
 #include "UI/Pages/Library/ManagerViews.h"
-#include "UI/Pages/Skeleton/SkeletonViews.h"
+#include "UI/Shell/LauncherHelpers.h"
 
 namespace we::programs::welauncher::projects {
 namespace UI = we::runtime::kindui::UI;
 using namespace we::runtime::kindui;
 
-we::runtime::kindui::Element ActionToolbar(const ProjectsViewModel& vm) {
-    std::vector<Element> actions;
-    actions.push_back(UI::Spacer());
+namespace {
 
+Element LeftActions(const ProjectsViewModel& vm) {
+    std::vector<Element> actions;
     if (const ProjectsCommands* commands = vm.Commands()) {
-        actions.push_back(UI::Style(
+        actions.push_back(UI::AlignStart(UI::Style(
             UI::Host([commands]() {
                 auto btn = MakeSecondaryAction(
                     Resources::OpenProjectLabel, Icons::OpenFolderName);
@@ -33,9 +33,9 @@ we::runtime::kindui::Element ActionToolbar(const ProjectsViewModel& vm) {
                 });
                 return btn;
             }),
-            Styles::Toolbar));
+            Styles::Toolbar)));
 
-        actions.push_back(UI::Style(
+        actions.push_back(UI::AlignStart(UI::Style(
             UI::Host([commands]() {
                 auto btn = MakePrimaryAction(
                     Resources::NewProjectLabel, Icons::PlusName);
@@ -46,19 +46,20 @@ we::runtime::kindui::Element ActionToolbar(const ProjectsViewModel& vm) {
                 });
                 return btn;
             }),
-            Styles::Toolbar));
+            Styles::Toolbar)));
     }
-
-    return UI::Style(UI::Row(std::move(actions)), Styles::Toolbar);
+    return UI::Gap(
+        UI::AlignStart(UI::Row(std::move(actions))),
+        kLauncherButtonGap * LScale());
 }
 
-we::runtime::kindui::Element SearchToolbar(const ProjectsViewModel& vm) {
+Element SearchField(const ProjectsViewModel& vm) {
     const std::string query = vm.SearchText.Get();
     ProjectsViewModel* mutableVm = const_cast<ProjectsViewModel*>(&vm);
+    const float s = LScale();
 
-    return UI::Style(
-        UI::Row({
-            UI::Spacer(),
+    return UI::AlignEnd(UI::Width(
+        UI::Style(
             UI::Host([mutableVm, query]() {
                 auto search = std::make_shared<CompactSearchField>(Resources::SearchPlaceholder);
                 search->SetText(query);
@@ -67,11 +68,39 @@ we::runtime::kindui::Element SearchToolbar(const ProjectsViewModel& vm) {
                 });
                 return search;
             }),
-        }),
-        Styles::SearchRow);
+            Styles::SearchRow),
+        kLauncherSearchW * s));
 }
 
-we::runtime::kindui::Element ProjectTableHeader(const ProjectsViewModel& vm) {
+} // namespace
+
+Element PageHeader() {
+    return UI::Style(
+        UI::AlignStart(UI::Section(Resources::PageTitle, Resources::PageSubtitle)),
+        Styles::Header);
+}
+
+Element PageToolbar(const ProjectsViewModel& vm) {
+    // Single horizontal toolbar: left actions | flexible spacer | right-aligned search.
+    // Title never lives here.
+    return UI::Style(
+        UI::Gap(
+            UI::Row({
+                LeftActions(vm),
+                UI::Spacer(),
+                SearchField(vm),
+            }),
+            kLauncherToolbarControlGap * LScale()),
+        Styles::Toolbar);
+}
+
+Element PageDivider() {
+    return UI::Style(
+        UI::Host([]() { return std::make_shared<ThinDivider>(); }),
+        Styles::Divider);
+}
+
+Element ProjectTableHeader(const ProjectsViewModel& vm) {
     const ProjectSortMode sortMode = vm.SortMode.Get();
     ProjectsViewModel* mutableVm = const_cast<ProjectsViewModel*>(&vm);
 
@@ -89,7 +118,7 @@ we::runtime::kindui::Element ProjectTableHeader(const ProjectsViewModel& vm) {
         "projects-table-header");
 }
 
-we::runtime::kindui::Element ProjectTableBody(const ProjectsViewModel& vm) {
+Element ProjectTableBody(const ProjectsViewModel& vm) {
     ProjectsViewModel* mutableVm = const_cast<ProjectsViewModel*>(&vm);
 
     return UI::Id(
@@ -97,6 +126,8 @@ we::runtime::kindui::Element ProjectTableBody(const ProjectsViewModel& vm) {
             UI::Host([mutableVm]() {
                 auto list = MakeVirtualList();
                 list->SetItemHeight(ProjectTableRow::kRowH);
+                list->SetFlexGrow(1.0f);
+                list->SetFlexBasis(0.0f);
                 list->BindItems(
                     mutableVm->VisibleProjects,
                     std::function<std::shared_ptr<Widget>(const ProjectItemViewState&, size_t)>(
@@ -117,18 +148,17 @@ we::runtime::kindui::Element ProjectTableBody(const ProjectsViewModel& vm) {
         "projects-virtual-list");
 }
 
-we::runtime::kindui::Element ProjectsEmptyState(const ProjectsViewModel& vm) {
+Element ProjectsEmptyState(const ProjectsViewModel& vm) {
     const ProjectsEmptyKind kind = vm.EmptyKind.Get();
     const ProjectsCommands* commands = vm.Commands();
 
     if (kind == ProjectsEmptyKind::NoProjects) {
         return UI::Style(
             UI::Fill(UI::Host([]() {
-                auto empty = std::make_shared<EmptyStatePanel>(
+                return std::make_shared<EmptyStatePanel>(
                     Resources::EmptyNoProjectsTitle,
                     Resources::EmptyNoProjectsSubtitle,
                     Icons::Cube3DName);
-                return empty;
             })),
             Styles::EmptyState);
     }
@@ -154,16 +184,20 @@ we::runtime::kindui::Element ProjectsEmptyState(const ProjectsViewModel& vm) {
         Styles::EmptyState);
 }
 
-we::runtime::kindui::Element LoadingSkeleton(int rowCount) {
-    std::vector<Element> rows;
-    rows.reserve(static_cast<size_t>(rowCount) + 1);
-    for (int i = 0; i < rowCount; ++i) {
-        rows.push_back(UI::Host([] {
-            return std::make_shared<SkeletonCard>(SkeletonKind::ListRow);
-        }));
+Element PageContent(const ProjectsViewModel& vm) {
+    // Content owns list / empty only — never toolbar or title.
+    std::vector<Element> children;
+    children.push_back(ProjectTableHeader(vm));
+
+    if (vm.EmptyKind.Get() != ProjectsEmptyKind::None) {
+        children.push_back(ProjectsEmptyState(vm));
+    } else {
+        children.push_back(UI::Fill(ProjectTableBody(vm)));
     }
-    rows.push_back(UI::Spacer());
-    return UI::Style(UI::Column(std::move(rows)), Styles::TableBody);
+
+    return UI::Fill(UI::Style(
+        UI::Column(std::move(children)),
+        Styles::Content));
 }
 
 } // namespace we::programs::welauncher::projects

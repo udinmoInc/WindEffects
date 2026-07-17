@@ -40,7 +40,14 @@ void ScrollLayout::SyncScrollMetrics() {
 }
 
 Size ScrollLayout::Measure(const Size& availableSize) {
-    m_DesiredSize = availableSize;
+    // Prefer intrinsic/min main size. Scroll views are almost always flex-grow
+    // children; claiming availableSize as desired caused parent Columns/Rows to
+    // overflow and flex-shrink every sibling to an empty rect.
+    const float minH = GetMinSize().height;
+    m_DesiredSize = Size{
+        availableSize.width > 0.0f ? availableSize.width : GetMinSize().width,
+        minH
+    };
 
     if (m_Content && m_Content->IsVisible()) {
         const float uiScale = std::max(1.0f, DPIContext::GetScale());

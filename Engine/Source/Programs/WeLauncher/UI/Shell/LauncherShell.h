@@ -57,7 +57,6 @@ public:
     void ShowProjectMoreMenu(std::size_t index) override;
     void SetStatus(const std::string& message) override;
     void UpdateFooter() override;
-    void BeginLoading(float durationSeconds = 0.24f) override;
 
 private:
     enum class ModalKind { None, Create, Actions };
@@ -91,9 +90,6 @@ private:
     void CapturePageScroll(LauncherPage page);
     void RestorePageScroll(LauncherPage page);
     void GoToPage(LauncherPage page);
-    void BeginPageContentLoad(float durationSeconds = 0.28f);
-    [[nodiscard]] bool IsPageContentLoading() const { return m_PageContentLoading; }
-    std::shared_ptr<we::runtime::kindui::Widget> BuildPageSkeleton(LauncherPage page);
 
     void CloseModal();
     void OpenSelectedProject();
@@ -145,9 +141,6 @@ private:
     std::string m_WizardLocation;
     std::string m_WizardQuality = "Balanced";
 
-    bool m_PageContentLoading = false;
-    float m_PageLoadTimer = 0.0f;
-    float m_PageLoadDuration = 0.28f;
     std::shared_ptr<we::runtime::kindui::Widget> m_SettingsScrollTarget;
     bool m_SettingsPendingScroll = false;
 };

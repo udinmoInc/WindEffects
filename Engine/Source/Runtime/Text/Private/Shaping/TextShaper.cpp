@@ -14,6 +14,7 @@
 #include <cmath>
 #include <filesystem>
 #include <string>
+#include <string_view>
 
 namespace we::runtime::text::shaping {
 
@@ -47,9 +48,9 @@ TextResult<std::vector<ShapedRun>> ShapeBasic(
         glyph.fontHandle = primaryFont;
         if (asset) {
             if (const GlyphMetrics* metrics = asset->FindGlyph(codepoint)) {
-                const float geometryScale = asset->metrics.geometryScale > 0.0f
+                const float geometryScale = asset->metrics.geometryScale > 1.5f
                     ? asset->metrics.geometryScale
-                    : 1.0f;
+                    : std::max(asset->metrics.bakeSizePx, 1.0f);
                 glyph.xAdvance = metrics->advance * (options.fontSize / geometryScale);
             }
         }
@@ -193,9 +194,9 @@ public:
             glyph.fontHandle = primaryFont;
             if (asset) {
                 if (const GlyphMetrics* metrics = asset->FindGlyph(codepoint)) {
-                    const float geometryScale = asset->metrics.geometryScale > 0.0f
+                    const float geometryScale = asset->metrics.geometryScale > 1.5f
                         ? asset->metrics.geometryScale
-                        : 1.0f;
+                        : std::max(asset->metrics.bakeSizePx, 1.0f);
                     glyph.xAdvance = metrics->advance * (options.fontSize / geometryScale);
                 }
             }
@@ -246,6 +247,21 @@ Script DetectScript(const Codepoint codepoint)
         return Script::Latin;
     }
     return Script::Common;
+}
+
+Script DetectScriptFromName(const std::string_view name)
+{
+    if (name == "Latin" || name == "latin") return Script::Latin;
+    if (name == "Cyrillic" || name == "cyrillic") return Script::Cyrillic;
+    if (name == "Greek" || name == "greek") return Script::Greek;
+    if (name == "Arabic" || name == "arabic") return Script::Arabic;
+    if (name == "Devanagari" || name == "devanagari") return Script::Devanagari;
+    if (name == "Han" || name == "han" || name == "CJK") return Script::Han;
+    if (name == "Hiragana" || name == "hiragana") return Script::Hiragana;
+    if (name == "Katakana" || name == "katakana") return Script::Katakana;
+    if (name == "Hangul" || name == "hangul") return Script::Hangul;
+    if (name == "Emoji" || name == "emoji") return Script::Emoji;
+    return Script::Unknown;
 }
 
 std::unique_ptr<ITextShaper> CreateTextShaper(assets::IFontAssetManager& assetManager)

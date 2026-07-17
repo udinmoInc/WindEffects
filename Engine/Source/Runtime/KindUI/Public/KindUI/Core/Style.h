@@ -3,6 +3,7 @@
 #include "KindUI/Export.h"
 #include "KindUI/Core/Geometry.h"
 #include "KindUI/Theming/ThemeAccess.h"
+#include "KindUI/Tokens/TypographySpec.h"
 #include <string>
 #include <memory>
 
@@ -37,15 +38,20 @@ struct TextStyle {
     float size = 13.0f;
     bool bold = false;
     bool italic = false;
+    TypographyToken role = TypographyToken::Body;
 
-    static TextStyle Body() {
-        return TextStyle{
-            ResolveColor(ColorToken::TextPrimary),
-            ResolveMetric(MetricToken::TextSizeBody),
-            false,
-            false
-        };
+    static TextStyle FromRole(TypographyToken token) {
+        const TypographySpec spec = ResolveTypography(token);
+        TextStyle style;
+        style.role = token;
+        style.size = spec.sizePx;
+        style.color = spec.color;
+        style.bold = spec.bold;
+        style.italic = spec.italic;
+        return style;
     }
+
+    static TextStyle Body() { return FromRole(TypographyToken::Body); }
 };
 
 struct ShadowStyle {

@@ -8,6 +8,7 @@
 #include "KindUI/Core/EventSystem.h"
 #include "KindUI/Core/Icon.h"
 #include "KindUI/Core/PaintContext.h"
+#include "KindUI/Core/TextMetrics.h"
 #include "KindUI/Rendering/IconMetrics.h"
 #include "Platform/Events.h"
 #include "Platform/PlatformSDK.h"
@@ -56,7 +57,7 @@ bool AppendUtf8(std::string& out, char32_t cp) {
 }
 
 float ApproxTextWidth(const std::string& text, float textSize) {
-    return static_cast<float>(text.size()) * textSize * 0.55f;
+    return TextMetrics::MeasureWidth(text, textSize);
 }
 
 void EraseLastUtf8Codepoint(std::string& text) {
@@ -367,6 +368,7 @@ NavSidebar::NavSidebar() {
         { LauncherPage::Settings, "Settings", Icons::SettingsName },
     };
     m_WidthAnim = kLauncherNavWidth;
+    SetFlexShrink(0.0f);
 }
 
 float NavSidebar::PreferredWidth() const {

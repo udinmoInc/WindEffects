@@ -274,15 +274,61 @@ float GraphiteDarkTheme::ResolveRadius(RadiusToken token) const {
 
 float GraphiteDarkTheme::ResolveFontSize(TypographyToken token) const {
     switch (token) {
-    case TypographyToken::Display: return ResolveMetric(MetricToken::TextSizeTitle) + 6.0f;
-    case TypographyToken::Heading: return ResolveMetric(MetricToken::TextSizeHeader);
-    case TypographyToken::Title: return ResolveMetric(MetricToken::TextSizeTitle) - 6.0f;
-    case TypographyToken::Subtitle: return ResolveMetric(MetricToken::TextSizeWindow);
-    case TypographyToken::Body: return ResolveMetric(MetricToken::TextSizeBody);
-    case TypographyToken::Caption: return ResolveMetric(MetricToken::TextSizeCaption);
-    case TypographyToken::Button: return ResolveMetric(MetricToken::TextSizeNormal);
-    case TypographyToken::Monospace: return ResolveMetric(MetricToken::TextSizeProperty);
-    default: return ResolveMetric(MetricToken::TextSizeBody);
+    case TypographyToken::WindowTitle:
+    case TypographyToken::Display:
+        return ResolveMetric(MetricToken::TextSizeTitle) + 6.0f;
+    case TypographyToken::PageTitle:
+    case TypographyToken::Heading1:
+        return ResolveMetric(MetricToken::TextSizeTitle);
+    case TypographyToken::SectionTitle:
+    case TypographyToken::DialogTitle:
+    case TypographyToken::Heading:
+    case TypographyToken::Heading2:
+        return ResolveMetric(MetricToken::TextSizeHeader);
+    case TypographyToken::CardTitle:
+    case TypographyToken::Heading3:
+        return ResolveMetric(MetricToken::TextSizeHeader) - 2.0f;
+    case TypographyToken::Heading4:
+    case TypographyToken::Title:
+        return ResolveMetric(MetricToken::TextSizeTitle) - 6.0f;
+    case TypographyToken::Heading5:
+    case TypographyToken::Subtitle:
+        return ResolveMetric(MetricToken::TextSizeWindow);
+    case TypographyToken::Heading6:
+    case TypographyToken::Body:
+    case TypographyToken::BodyStrong:
+    case TypographyToken::Link:
+        return ResolveMetric(MetricToken::TextSizeBody);
+    case TypographyToken::Button:
+        return ResolveMetric(MetricToken::TextSizeNormal);
+    case TypographyToken::Label:
+        return ResolveMetric(MetricToken::TextSizeSmall);
+    case TypographyToken::Menu:
+        return ResolveMetric(MetricToken::TextSizeMenu);
+    case TypographyToken::Toolbar:
+    case TypographyToken::Navigation:
+        return ResolveMetric(MetricToken::TextSizeToolbar);
+    case TypographyToken::Tooltip:
+    case TypographyToken::Status:
+    case TypographyToken::StatusBar:
+    case TypographyToken::Caption:
+    case TypographyToken::Error:
+    case TypographyToken::Warning:
+    case TypographyToken::Success:
+    case TypographyToken::Disabled:
+        return ResolveMetric(MetricToken::TextSizeSmall);
+    case TypographyToken::CaptionSmall:
+        return ResolveMetric(MetricToken::TextSizeCaption);
+    case TypographyToken::Code:
+    case TypographyToken::Console:
+    case TypographyToken::Monospace:
+    case TypographyToken::PropertyValue:
+    case TypographyToken::TableHeader:
+        return ResolveMetric(MetricToken::TextSizeProperty);
+    case TypographyToken::PropertyLabel:
+        return ResolveMetric(MetricToken::TextSizeCaption);
+    default:
+        return ResolveMetric(MetricToken::TextSizeBody);
     }
 }
 

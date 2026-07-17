@@ -46,7 +46,6 @@ public:
     void SetSearchText(std::string text);
     void SetSortMode(ProjectSortMode mode);
     void SetCompatibleOnly(bool enabled);
-    void SetLoading(bool loading);
 
     void SelectProject(std::size_t sourceIndex, bool additive);
     void HandleRowAction(std::size_t sourceIndex, ProjectCardAction action);
@@ -59,7 +58,6 @@ public:
     we::runtime::kindui::Observable<std::string> SearchText;
     we::runtime::kindui::Observable<ProjectSortMode> SortMode;
     we::runtime::kindui::Observable<bool> CompatibleOnly;
-    we::runtime::kindui::Observable<bool> Loading;
     we::runtime::kindui::Observable<int> SelectedIndex;
     we::runtime::kindui::Observable<ProjectsEmptyKind> EmptyKind;
     we::runtime::kindui::ObservableList<ProjectItemViewState> VisibleProjects;

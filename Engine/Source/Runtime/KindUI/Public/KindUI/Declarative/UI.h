@@ -19,6 +19,7 @@
 #include "KindUI/Core/IApplicationContext.h"
 #include "KindUI/Core/WidgetContext.h"
 #include "KindUI/Layout/IPopupHost.h"
+#include "KindUI/Widgets/RichTextView.h"
 
 #include <initializer_list>
 #include <memory>
@@ -95,6 +96,20 @@ namespace we::runtime::kindui::UI {
     e.type = ElementType::Label;
     e.text = std::move(text);
     return e;
+}
+
+[[nodiscard]] inline Element Heading(std::string text) {
+    return Label(std::move(text));
+}
+
+[[nodiscard]] inline Element Paragraph(std::string text) {
+    return Label(std::move(text));
+}
+
+[[nodiscard]] inline Element RichText(std::string markdown) {
+    return Host([text = std::move(markdown)]() {
+        return std::make_shared<RichTextView>(text);
+    });
 }
 
 [[nodiscard]] inline Element Section(std::string title, std::string subtitle = {}) {

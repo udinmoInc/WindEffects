@@ -9,6 +9,7 @@
 #include <cstring>
 #include <cstdlib>
 #include <functional>
+#include <sstream>
 
 namespace we::runtime::kindui {
 
@@ -21,6 +22,30 @@ inline float SnapPx(float v) {
 bool IsEnvEnabled(const char* name) {
     const char* v = std::getenv(name);
     return v != nullptr && v[0] != '\0' && v[0] != '0';
+}
+
+void DumpWidgetLayoutTree(const std::shared_ptr<Widget>& widget, int depth, int& count) {
+    if (!widget || count > 200) {
+        return;
+    }
+    ++count;
+    const Rect& g = widget->GetGeometry();
+    const Size& d = widget->GetDesiredSize();
+    std::ostringstream line;
+    line << "[KindUI Layout] ";
+    for (int i = 0; i < depth; ++i) {
+        line << "  ";
+    }
+    line << (widget->GetId().empty() ? "?" : widget->GetId())
+         << " desired=(" << d.width << "x" << d.height << ")"
+         << " final=(" << g.x << "," << g.y << " " << g.width << "x" << g.height << ")"
+         << " grow=" << widget->GetFlexGrow()
+         << " visible=" << (widget->IsVisible() ? 1 : 0)
+         << " children=" << widget->GetChildren().size();
+    HE_INFO(line.str());
+    for (const auto& child : widget->GetChildren()) {
+        DumpWidgetLayoutTree(child, depth + 1, count);
+    }
 }
 } // namespace
 
@@ -81,16 +106,33 @@ void UIWidgetAdapter::ProcessWidget(const std::shared_ptr<Widget>& root,
         Widget::s_GlobalDiagnostics->layoutPassCount++;
     }
 
-    // Skip Measure/Arrange when the editor main loop already laid out this frame
-    // (same swapchain size) to avoid a second full-tree layout pass.
+    // Skip Measure/Arrange only when this root was already laid out for this size
+    // AND the tree is not dirty. After ViewBuilder::Reconcile, children often have
+    // zero/stale geometry while the root still reports the full viewport — skipping
+    // layout in that case paints everything at the origin.
     const Rect& existing = root->GetGeometry();
-    const bool alreadyLaidOut =
+    const bool sizeMatches =
         existing.x == 0.0f && existing.y == 0.0f &&
         std::abs(existing.width - static_cast<float>(width)) < 0.5f &&
         std::abs(existing.height - static_cast<float>(height)) < 0.5f;
+    const bool alreadyLaidOut = sizeMatches && !root->NeedsLayout();
     if (!alreadyLaidOut) {
         root->Measure(Size{static_cast<float>(width), static_cast<float>(height)});
         root->Arrange(Rect{0.0f, 0.0f, static_cast<float>(width), static_cast<float>(height)});
+        root->ClearLayoutDirty();
+    }
+
+    if (IsEnvEnabled("WE_KINDUI_DUMP_LAYOUT")) {
+        static uint64_t s_LastDumpFrame = 0;
+        const uint64_t frame = we::runtime::core::FrameCounter::GetFrameNumber();
+        if (frame != s_LastDumpFrame && (frame < 5 || (frame % 120) == 0)) {
+            s_LastDumpFrame = frame;
+            int count = 0;
+            HE_INFO("[KindUI Layout] --- frame " + std::to_string(frame)
+                + " viewport " + std::to_string(width) + "x" + std::to_string(height)
+                + (alreadyLaidOut ? " (layout skipped)" : " (layout run)") + " ---");
+            DumpWidgetLayoutTree(root, 0, count);
+        }
     }
     
     PaintContext paintCtx;

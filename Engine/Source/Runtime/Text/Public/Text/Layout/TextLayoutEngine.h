@@ -4,6 +4,7 @@
 #include "Text/Core/Types.h"
 #include "Text/Export.h"
 #include "Text/Layout/TextStyle.h"
+#include "Text/Shaping/BidiProcessor.h"
 #include "Text/Shaping/TextShaper.h"
 
 #include <cstdint>
@@ -75,6 +76,7 @@ public:
 [[nodiscard]] TEXT_API std::unique_ptr<ITextLayoutEngine> CreateTextLayoutEngine(
     shaping::ITextShaper& shaper,
     assets::IGlyphResolver& glyphResolver,
-    assets::IFallbackResolver& fallbackResolver);
+    assets::IFallbackResolver& fallbackResolver,
+    shaping::IBidiProcessor* bidiProcessor = nullptr);
 
 } // namespace we::runtime::text::layout

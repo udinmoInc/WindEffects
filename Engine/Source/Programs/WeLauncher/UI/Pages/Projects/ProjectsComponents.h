@@ -5,11 +5,14 @@
 
 namespace we::programs::welauncher::projects {
 
-[[nodiscard]] we::runtime::kindui::Element ActionToolbar(const ProjectsViewModel& vm);
-[[nodiscard]] we::runtime::kindui::Element SearchToolbar(const ProjectsViewModel& vm);
+/// Semantic page sections — each owns its own container; never mix title/toolbar/search.
+
+[[nodiscard]] we::runtime::kindui::Element PageHeader();
+[[nodiscard]] we::runtime::kindui::Element PageToolbar(const ProjectsViewModel& vm);
+[[nodiscard]] we::runtime::kindui::Element PageDivider();
 [[nodiscard]] we::runtime::kindui::Element ProjectTableHeader(const ProjectsViewModel& vm);
 [[nodiscard]] we::runtime::kindui::Element ProjectTableBody(const ProjectsViewModel& vm);
 [[nodiscard]] we::runtime::kindui::Element ProjectsEmptyState(const ProjectsViewModel& vm);
-[[nodiscard]] we::runtime::kindui::Element LoadingSkeleton(int rowCount);
+[[nodiscard]] we::runtime::kindui::Element PageContent(const ProjectsViewModel& vm);
 
 } // namespace we::programs::welauncher::projects
