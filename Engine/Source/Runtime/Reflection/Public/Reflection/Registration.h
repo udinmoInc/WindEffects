@@ -3,6 +3,7 @@
 #include "Reflection/AttributeInfo.h"
 #include "Reflection/Export.h"
 #include "Reflection/ITypeRegistry.h"
+#include "Reflection/NameId.h"
 #include "Reflection/PropertyInfo.h"
 #include "Reflection/TypeId.h"
 #include "Reflection/TypeInfo.h"
@@ -31,6 +32,10 @@ public:
     TypeBuilder& Size(std::uint32_t size);
     TypeBuilder& Alignment(std::uint32_t alignment);
     TypeBuilder& SchemaVersion(std::uint32_t version);
+    TypeBuilder& TypeVersion(std::uint32_t version);
+    TypeBuilder& MigrationVersion(std::uint32_t version);
+    TypeBuilder& BinaryCompatibilityVersion(std::uint32_t version);
+    TypeBuilder& Versions(TypeVersionInfo versions);
     TypeBuilder& Flags(TypeFlags flags);
     TypeBuilder& AddFlags(TypeFlags flags);
     TypeBuilder& AliasOf(TypeId other);
@@ -57,12 +62,32 @@ public:
 
     [[nodiscard]] TypeInfo Build() const;
     bool Register(ITypeRegistry& registry) const;
+    bool Register(ITypeRegistry& registry, RegisterMode mode) const;
 
 private:
     TypeInfo m_Info;
 };
 
-/// Generate TypeOps for a concrete C++ type via placement new / delete.
+[[nodiscard]] inline PropertyInfo MakeOffsetProperty(
+    std::string_view name,
+    TypeId propertyTypeId,
+    std::uint32_t offset,
+    std::uint32_t size,
+    std::uint16_t alignment,
+    PropertyFlags flags = PropertyFlags::Serialize | PropertyFlags::Editable,
+    PrimitiveKind primitive = PrimitiveKind::None)
+{
+    PropertyInfo property;
+    property.name = std::string(name);
+    property.typeId = propertyTypeId;
+    property.offset = offset;
+    property.size = size;
+    property.alignment = alignment == 0 ? std::uint16_t{1} : alignment;
+    property.flags = flags;
+    property.primitive = primitive;
+    return property;
+}
+
 template <typename T>
 [[nodiscard]] TypeOps MakeTypeOpsFor() {
     TypeOps ops{};
@@ -93,7 +118,6 @@ template <typename T>
     return ops;
 }
 
-/// Map a C++ type to PrimitiveKind when possible.
 template <typename T>
 [[nodiscard]] constexpr PrimitiveKind PrimitiveKindOf() noexcept {
     if constexpr (std::is_same_v<T, bool>) return PrimitiveKind::Bool;
@@ -114,47 +138,35 @@ template <typename T>
 
 } // namespace we::runtime::reflection
 
-// ---------------------------------------------------------------------------
-// Registration macros — offsetof-based, no RTTI, DLL-safe when used per-module.
-// ---------------------------------------------------------------------------
-
 #define WE_REFLECT_TYPE_ID(QualifiedNameLiteral) \
     (::we::runtime::reflection::MakeTypeId(QualifiedNameLiteral))
 
 #define WE_REFLECT_PROPERTY(OwnerType, FieldName, PropertyTypeId) \
-    ::we::runtime::reflection::PropertyInfo{ \
+    (::we::runtime::reflection::MakeOffsetProperty( \
         #FieldName, \
         (PropertyTypeId), \
-        ::we::runtime::reflection::kInvalidTypeId, \
         static_cast<std::uint32_t>(offsetof(OwnerType, FieldName)), \
         static_cast<std::uint32_t>(sizeof(((OwnerType*)nullptr)->FieldName)), \
-        static_cast<std::uint16_t>(alignof(decltype(((OwnerType*)nullptr)->FieldName))), \
-        ::we::runtime::reflection::PropertyFlags::Serialize \
-            | ::we::runtime::reflection::PropertyFlags::Editable, \
-        ::we::runtime::reflection::PrimitiveKind::None, \
-        nullptr, \
-        nullptr, \
-        {}, \
-        0u, \
-        0u \
-    }
+        static_cast<std::uint16_t>(alignof(decltype(((OwnerType*)nullptr)->FieldName)))))
 
 #define WE_REFLECT_PROPERTY_FLAGS(OwnerType, FieldName, PropertyTypeId, Flags) \
-    ::we::runtime::reflection::PropertyInfo{ \
+    (::we::runtime::reflection::MakeOffsetProperty( \
         #FieldName, \
         (PropertyTypeId), \
-        ::we::runtime::reflection::kInvalidTypeId, \
         static_cast<std::uint32_t>(offsetof(OwnerType, FieldName)), \
         static_cast<std::uint32_t>(sizeof(((OwnerType*)nullptr)->FieldName)), \
         static_cast<std::uint16_t>(alignof(decltype(((OwnerType*)nullptr)->FieldName))), \
-        (Flags), \
-        ::we::runtime::reflection::PrimitiveKind::None, \
-        nullptr, \
-        nullptr, \
-        {}, \
-        0u, \
-        0u \
-    }
+        (Flags)))
 
 #define WE_REFLECT_ENUM_VALUE(Name) \
     { #Name, static_cast<std::int64_t>(Name), {} }
+
+/// Static auto-registration — runs when ApplyStaticTypeInitializers / CreateTypeRegistry is invoked.
+#define WE_REFLECT_AUTO_REGISTER(UniqueName, ...) \
+    static void WE_Reflect_Init_##UniqueName(::we::runtime::reflection::ITypeRegistry& registry) { \
+        __VA_ARGS__ \
+    } \
+    static const bool WE_Reflect_Auto_##UniqueName = []() { \
+        ::we::runtime::reflection::RegisterStaticTypeInitializer(&WE_Reflect_Init_##UniqueName); \
+        return true; \
+    }()

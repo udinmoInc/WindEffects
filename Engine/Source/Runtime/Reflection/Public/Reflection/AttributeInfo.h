@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Reflection/Export.h"
+#include "Reflection/NameId.h"
 #include "Reflection/TypeId.h"
 
 #include <cstdint>
@@ -10,7 +11,6 @@
 
 namespace we::runtime::reflection {
 
-/// Attribute value kinds stored as native binary-friendly payloads.
 enum class AttributeValueKind : std::uint8_t {
     None = 0,
     Bool,
@@ -19,21 +19,19 @@ enum class AttributeValueKind : std::uint8_t {
     Double,
     String,
     TypeId,
-    Bytes, // opaque blob (e.g. color, custom binary tag)
+    Bytes,
 };
 
-/// Single named attribute attached to a type, property, or function.
-/// Attributes are the engine-native replacement for annotation metadata —
-/// no text formats involved.
 struct REFLECTION_API AttributeInfo {
-    std::string name;
+    NameId nameId = kInvalidNameId;
     AttributeValueKind kind = AttributeValueKind::None;
-
     bool boolValue = false;
     std::int64_t intValue = 0;
     double floatValue = 0.0;
-    std::string stringValue;
     TypeId typeIdValue = kInvalidTypeId;
+    NameId stringValueId = kInvalidNameId; // interned when kind == String
+    std::string name;                      // cold / display
+    std::string stringValue;               // cold; prefer stringValueId when set
     std::vector<std::uint8_t> bytesValue;
 
     [[nodiscard]] static AttributeInfo MakeBool(std::string_view name, bool value);
@@ -44,15 +42,32 @@ struct REFLECTION_API AttributeInfo {
     [[nodiscard]] static AttributeInfo MakeBytes(std::string_view name, const std::uint8_t* data, std::size_t size);
 };
 
-/// Contiguous attribute bag with O(n) lookup by name (n is typically tiny).
+struct AttributeBag;
+
+using AttributeLazyLoadFn = void (*)(AttributeBag& bag);
+
+/// Contiguous attribute bag. Supports optional lazy population via loader callback.
 struct REFLECTION_API AttributeBag {
     std::vector<AttributeInfo> entries;
+    AttributeLazyLoadFn lazyLoader = nullptr;
+    mutable bool loaded = true;
 
     void Add(AttributeInfo attr);
+    void SetLazyLoader(AttributeLazyLoadFn loader);
+    void EnsureLoaded() const;
+
     [[nodiscard]] const AttributeInfo* Find(std::string_view name) const noexcept;
+    [[nodiscard]] const AttributeInfo* Find(NameId nameId) const noexcept;
     [[nodiscard]] bool Has(std::string_view name) const noexcept { return Find(name) != nullptr; }
-    [[nodiscard]] bool Empty() const noexcept { return entries.empty(); }
-    [[nodiscard]] std::size_t Size() const noexcept { return entries.size(); }
+    [[nodiscard]] bool Has(NameId nameId) const noexcept { return Find(nameId) != nullptr; }
+    [[nodiscard]] bool Empty() const noexcept {
+        EnsureLoaded();
+        return entries.empty();
+    }
+    [[nodiscard]] std::size_t Size() const noexcept {
+        EnsureLoaded();
+        return entries.size();
+    }
 };
 
 } // namespace we::runtime::reflection

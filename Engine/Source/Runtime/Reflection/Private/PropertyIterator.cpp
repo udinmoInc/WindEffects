@@ -1,5 +1,6 @@
 #include "Reflection/PropertyIterator.h"
 #include "Reflection/ITypeRegistry.h"
+#include "Reflection/NameId.h"
 
 #include <unordered_set>
 
@@ -22,40 +23,6 @@ bool PassesFilter(const PropertyInfo& property, const PropertyIterateOptions& op
     return true;
 }
 
-void CollectRecursive(
-    const ITypeRegistry& registry,
-    TypeId typeId,
-    const PropertyIterateOptions& options,
-    std::unordered_set<TypeId, TypeIdHash>& visited,
-    std::vector<PropertyVisit>& out)
-{
-    if (typeId == kInvalidTypeId || !visited.insert(typeId).second) {
-        return;
-    }
-    const TypeInfo* info = registry.Resolve(typeId);
-    if (!info) {
-        return;
-    }
-
-    if (options.includeBases) {
-        // Bases first so derived properties can override by name at the end.
-        for (TypeId baseId : info->baseTypes) {
-            CollectRecursive(registry, baseId, options, visited, out);
-        }
-    }
-
-    for (const PropertyInfo& property : info->properties) {
-        if (!PassesFilter(property, options)) {
-            continue;
-        }
-        PropertyVisit visit;
-        visit.declaringType = info;
-        visit.property = &property;
-        visit.instanceOffset = property.offset;
-        out.push_back(visit);
-    }
-}
-
 } // namespace
 
 std::vector<PropertyVisit> CollectProperties(
@@ -64,8 +31,44 @@ std::vector<PropertyVisit> CollectProperties(
     const PropertyIterateOptions& options)
 {
     std::vector<PropertyVisit> out;
-    std::unordered_set<TypeId, TypeIdHash> visited;
-    CollectRecursive(registry, typeId, options, visited, out);
+
+    // Prefer ancestor chain cache — no recursive allocations.
+    std::size_t ancestorCount = 0;
+    const TypeId* ancestors = nullptr;
+    if (options.includeBases) {
+        ancestors = registry.GetAncestorChain(typeId, ancestorCount);
+    }
+
+    std::unordered_set<NameId> seen;
+    auto appendFromType = [&](TypeId ownerId) {
+        const TypeInfo* info = registry.Find(ownerId);
+        if (!info) {
+            return;
+        }
+        for (const PropertyInfo& property : info->properties) {
+            if (!PassesFilter(property, options)) {
+                continue;
+            }
+            if (property.nameId != kInvalidNameId && !seen.insert(property.nameId).second) {
+                // Keep first (most-derived is first in ancestor chain).
+                continue;
+            }
+            PropertyVisit visit;
+            visit.declaringType = info;
+            visit.property = &property;
+            visit.instanceOffset = property.offset;
+            out.push_back(visit);
+        }
+    };
+
+    if (ancestors && ancestorCount > 0) {
+        // ancestors[0] is self — emit self first then bases for override semantics via seen set.
+        for (std::size_t i = 0; i < ancestorCount; ++i) {
+            appendFromType(ancestors[i]);
+        }
+    } else {
+        appendFromType(typeId);
+    }
     return out;
 }
 
