@@ -18,6 +18,11 @@
 
 namespace we::programs::editor {
 using namespace first_run_detail;
+using ::we::runtime::kindui::ColorToken;
+using ::we::runtime::kindui::MetricToken;
+using ::we::runtime::kindui::PaintContext;
+using ::we::runtime::kindui::Rect;
+using ::we::runtime::kindui::Color;
 void FirstRunAgreementPopup::ComputeLayout(we::runtime::kindui::PaintContext& context) {
     const float contentWidth = m_ContentRect.width;
     

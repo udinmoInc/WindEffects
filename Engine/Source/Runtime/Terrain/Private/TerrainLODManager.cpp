@@ -109,7 +109,7 @@ bool TerrainLODManager::BuildChunkMesh(const TerrainHeightmap& heightmap, const 
             const float localX = static_cast<float>(sx) * dx;
             const float localZ = static_cast<float>(sz) * dz;
             const float y = SampleHeightMeters(heightmap, info, sx, sz);
-            const we::math::Vec3 pos = info.worldOrigin + glm::vec3(localX, y, localZ);
+            const we::math::Vec3 pos = info.worldOrigin + we::math::Vec3(localX, y, localZ);
             outMesh.positions.push_back(pos);
             outMesh.normals.push_back(ComputeNormal(heightmap, info, sx, sz));
             outMesh.uvs.emplace_back(

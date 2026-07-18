@@ -35,6 +35,13 @@
 
 namespace we::programs::editor {
 namespace PanelChrome = ::we::editor::panels::PanelChrome;
+using ::we::runtime::kindui::ColorToken;
+using ::we::runtime::kindui::MetricToken;
+using ::we::runtime::kindui::PaintContext;
+using ::we::runtime::kindui::Point;
+using ::we::runtime::kindui::Rect;
+using ::we::runtime::kindui::DPIContext;
+namespace Icons = ::we::runtime::kindui::Icons;
 void PlaceActorsPanel::Paint(we::runtime::kindui::PaintContext& context) {
     PanelChrome::PaintContentRegion(context, m_Geometry);
 

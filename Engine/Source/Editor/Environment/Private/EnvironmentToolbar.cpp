@@ -32,6 +32,7 @@
 
 namespace we::editor::environment {
 using ::we::runtime::world::environment::EnvironmentSystem;
+using ::we::runtime::world::environment::EnvironmentPreset;
 
 using ::we::runtime::kindui::IconPainter;
 using ::we::runtime::kindui::MouseButton;
