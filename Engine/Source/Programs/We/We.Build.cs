@@ -1,12 +1,12 @@
 using IgniteBT.BuildSystem;
 
-public class AssetImport : ModuleRules
+public class We : ModuleRules
 {
-    public AssetImport(ModuleContext context) : base(context)
+    public We(ModuleContext context) : base(context)
     {
         Type = ModuleType.Executable;
 
-        SetBinaryName("we-asset-import.exe");
+        SetBinaryName("we.exe");
         PublishAtConfigurationRoot();
 
         PublicIncludePaths.Add("Public");
@@ -14,9 +14,12 @@ public class AssetImport : ModuleRules
 
         PublicDependencies.Add("Core");
         PublicDependencies.Add("Platform");
+        PublicDependencies.Add("AssetTools");
+        // WeMain formats results / parses CLI flags using public types from these modules.
         PublicDependencies.Add("AssetImporter");
-        PublicDependencies.Add("Text");
-        PublicDependencies.Add("Icons");
+        PublicDependencies.Add("AssetProcessors");
+        PublicDependencies.Add("AssetPipeline");
+        PublicDependencies.Add("AssetCooker");
 
         PlatformSettings.Windows ??= new WindowsSettings();
         PlatformSettings.Windows.Subsystem = "Console";

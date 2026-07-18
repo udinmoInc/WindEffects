@@ -17,10 +17,9 @@ public class ContentBrowser : ModuleRules
         PublicDependencies.Add("UIFramework");
         PublicDependencies.Add("Renderer");
         PublicDependencies.Add("Text");
+        PublicDependencies.Add("AssetTools");
         PublicDependencies.Add("AssetImporter");
-        PublicDependencies.Add("AssetProcessors");
         PublicDependencies.Add("AssetPipeline");
-        PublicDependencies.Add("AssetCooker");
 
         Definitions.Add("CONTENTBROWSER_EXPORTS");
     }

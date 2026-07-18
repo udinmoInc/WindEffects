@@ -19,6 +19,7 @@ constexpr const char* kFeatureModuleDlls[] = {
     "WEAssetProcessors.dll",
     "WEAssetPipeline.dll",
     "WEAssetCooker.dll",
+    "WEAssetTools.dll",
     "WEAssetRuntime.dll",
     "WEUIFramework.dll",
     "WEMainFrame.dll",

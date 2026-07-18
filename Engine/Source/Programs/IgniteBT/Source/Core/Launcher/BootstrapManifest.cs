@@ -205,11 +205,21 @@ public static class BootstrapManifest
                 continue;
             }
 
-            document.Sections[module.ModuleName] = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+            var entry = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
             {
                 [KindKey] = "native",
                 [ExecutableKey] = Path.GetFullPath(executablePath)
             };
+
+            document.Sections[module.ModuleName] = entry;
+
+            // `we.exe` is the single native CLI frontend. Register common launcher aliases so
+            // `we asset ...` (and bare `we.exe` via section `we`) dispatch to the same binary.
+            if (string.Equals(module.ModuleName, "We", StringComparison.OrdinalIgnoreCase))
+            {
+                document.Sections["asset"] = new Dictionary<string, string>(entry, StringComparer.OrdinalIgnoreCase);
+                document.Sections["we"] = new Dictionary<string, string>(entry, StringComparer.OrdinalIgnoreCase);
+            }
         }
     }
 

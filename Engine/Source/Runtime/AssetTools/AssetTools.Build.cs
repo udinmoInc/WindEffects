@@ -1,13 +1,10 @@
 using IgniteBT.BuildSystem;
 
-public class AssetBuild : ModuleRules
+public class AssetTools : ModuleRules
 {
-    public AssetBuild(ModuleContext context) : base(context)
+    public AssetTools(ModuleContext context) : base(context)
     {
-        Type = ModuleType.Executable;
-
-        SetBinaryName("we-asset-build.exe");
-        PublishAtConfigurationRoot();
+        Type = ModuleType.SharedLibrary;
 
         PublicIncludePaths.Add("Public");
         PrivateIncludePaths.Add("Private");
@@ -18,9 +15,8 @@ public class AssetBuild : ModuleRules
         PublicDependencies.Add("AssetProcessors");
         PublicDependencies.Add("AssetPipeline");
         PublicDependencies.Add("AssetCooker");
-        PublicDependencies.Add("AssetRuntime");
+        PublicDependencies.Add("Icons");
 
-        PlatformSettings.Windows ??= new WindowsSettings();
-        PlatformSettings.Windows.Subsystem = "Console";
+        Definitions.Add("ASSETTOOLS_EXPORTS");
     }
 }

@@ -36,10 +36,10 @@ public static class IconAtlasCompiler
         }
 
         var outputDir = inputDir;
-        var compilerExe = ResolveCompilerExecutable(configurationRoot, engineRoot);
+        var compilerExe = ResolveWeCliExecutable(configurationRoot, engineRoot);
         if (string.IsNullOrEmpty(compilerExe))
         {
-            Log.Warning("we-icon-compile not found; icon atlas assets will not be refreshed.");
+            Log.Warning("we.exe not found; icon atlas assets will not be refreshed.");
             return stats;
         }
 
@@ -104,12 +104,12 @@ public static class IconAtlasCompiler
         return FastHash.CombineHashes(hashes);
     }
 
-    private static bool RunCompiler(string compilerExe, string inputDir, string outputDir)
+    private static bool RunCompiler(string weCliExe, string inputDir, string outputDir)
     {
-        var arguments = $"--input \"{inputDir}\" --output \"{outputDir}\"";
+        var arguments = $"asset icons --input \"{inputDir}\" --output \"{outputDir}\"";
         var startInfo = new ProcessStartInfo
         {
-            FileName = compilerExe,
+            FileName = weCliExe,
             Arguments = arguments,
             RedirectStandardOutput = true,
             RedirectStandardError = true,
@@ -120,7 +120,7 @@ public static class IconAtlasCompiler
         using var process = Process.Start(startInfo);
         if (process == null)
         {
-            Log.Error("Failed to start icon compiler: {Exe}", compilerExe);
+            Log.Error("Failed to start we.exe icon compile: {Exe}", weCliExe);
             return false;
         }
 
@@ -131,7 +131,7 @@ public static class IconAtlasCompiler
         if (process.ExitCode != 0)
         {
             Log.Error(
-                "Icon compiler failed (exit {ExitCode}): {Error}",
+                "we asset icons failed (exit {ExitCode}): {Error}",
                 process.ExitCode,
                 string.IsNullOrWhiteSpace(stderr) ? stdout : stderr);
             return false;
@@ -143,14 +143,13 @@ public static class IconAtlasCompiler
         return true;
     }
 
-    private static string? ResolveCompilerExecutable(string configurationRoot, string engineRoot)
+    private static string? ResolveWeCliExecutable(string configurationRoot, string engineRoot)
     {
         var candidates = new[]
         {
-            Path.Combine(configurationRoot, "we-icon-compile.exe"),
-            Path.Combine(configurationRoot, "we-icon-import.exe"),
-            Path.Combine(engineRoot, "..", "Build", "Output", "Win64", "Shipping", "we-icon-compile.exe"),
-            Path.Combine(engineRoot, "..", "Build", "Output", "Win64", "Shipping", "we-icon-import.exe"),
+            Path.Combine(configurationRoot, "we.exe"),
+            Path.Combine(engineRoot, "..", "Build", "Output", "Win64", "Development", "we.exe"),
+            Path.Combine(engineRoot, "..", "Build", "Output", "Win64", "Shipping", "we.exe"),
         };
 
         foreach (var candidate in candidates)
