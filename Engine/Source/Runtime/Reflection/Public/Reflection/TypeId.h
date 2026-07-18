@@ -18,6 +18,13 @@ inline constexpr TypeId kInvalidTypeId = 0;
 /// Schema / metadata format version for binary consumers.
 inline constexpr std::uint32_t kReflectionSchemaVersion = 1;
 
+/// Public ABI epoch for Reflection Runtime consumers (Serialization, Editor, Networking).
+/// Bump only on breaking public-header / binary layout changes.
+inline constexpr std::uint32_t kReflectionAbiVersion = 1;
+
+/// Stable serialization identifier seed mixed into per-type stable IDs.
+inline constexpr std::uint64_t kReflectionSerializationEpoch = 1;
+
 /// Deterministic FNV-1a 64-bit hash used for TypeId generation.
 [[nodiscard]] REFLECTION_API TypeId HashTypeName(std::string_view qualifiedName) noexcept;
 

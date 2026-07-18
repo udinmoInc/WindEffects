@@ -1,5 +1,6 @@
 #include "Reflection/IBinaryArchive.h"
 #include "Reflection/ITypeRegistry.h"
+#include "Reflection/ReflectionMigration.h"
 #include "Reflection/SerializePlan.h"
 
 #include <cstddef>
@@ -223,6 +224,7 @@ bool SerializeObjectBinary(
         return false;
     }
 
+    std::uint32_t archivedSchemaVersion = info->versions.schemaVersion;
     if (options.writeTypeIdHeader) {
         TypeId headerType = info->typeId;
         std::uint32_t schemaVersion = info->versions.schemaVersion;
@@ -232,12 +234,20 @@ bool SerializeObjectBinary(
         if (!archive.SerializeUInt32(schemaVersion)) {
             return false;
         }
-        if (archive.IsLoading() && headerType != info->typeId) {
-            return false;
+        if (archive.IsLoading()) {
+            headerType = RemapTypeId(headerType);
+            if (headerType != info->typeId) {
+                return false;
+            }
+            archivedSchemaVersion = schemaVersion;
+            if (archivedSchemaVersion != info->versions.schemaVersion) {
+                NotifySchemaMismatch(info->typeId, archivedSchemaVersion, info->versions.schemaVersion);
+            }
         }
     }
 
     // Prefer cached serialize plan — zero discovery in the hot path.
+    bool ok = false;
     if (options.requireSerializeFlag && options.skipTransient && options.includeBases) {
         if (const SerializePlan* plan = registry.GetSerializePlan(typeId)) {
             for (const SerializeStep& step : plan->steps) {
@@ -245,32 +255,42 @@ bool SerializeObjectBinary(
                     return false;
                 }
             }
-            return true;
+            ok = true;
         }
     }
 
-    // Fallback for uncommon option combinations.
-    const TypeInfo* resolved = info;
-    for (const PropertyInfo& property : resolved->properties) {
-        if (options.requireSerializeFlag && !property.IsSerialized()) {
-            continue;
+    if (!ok) {
+        // Fallback for uncommon option combinations.
+        const TypeInfo* resolved = info;
+        for (const PropertyInfo& property : resolved->properties) {
+            if (options.requireSerializeFlag && !property.IsSerialized()) {
+                continue;
+            }
+            if (options.skipTransient && HasFlag(property.flags, PropertyFlags::Transient)) {
+                continue;
+            }
+            SerializeStep step;
+            step.property = &property;
+            step.propertyTypeId = property.typeId;
+            step.primitive = property.primitive;
+            step.offset = property.offset;
+            step.size = property.size;
+            step.schemaTag = property.schemaTag;
+            step.isString = property.primitive == PrimitiveKind::String;
+            if (!SerializeStepValue(archive, registry, step, instance)) {
+                return false;
+            }
         }
-        if (options.skipTransient && HasFlag(property.flags, PropertyFlags::Transient)) {
-            continue;
-        }
-        SerializeStep step;
-        step.property = &property;
-        step.propertyTypeId = property.typeId;
-        step.primitive = property.primitive;
-        step.offset = property.offset;
-        step.size = property.size;
-        step.schemaTag = property.schemaTag;
-        step.isString = property.primitive == PrimitiveKind::String;
-        if (!SerializeStepValue(archive, registry, step, instance)) {
+        ok = true;
+    }
+
+    if (archive.IsLoading() && archivedSchemaVersion != info->versions.schemaVersion) {
+        if (!MigrateInstance(
+                info->typeId, instance, archivedSchemaVersion, info->versions.schemaVersion)) {
             return false;
         }
     }
-    return true;
+    return ok;
 }
 
 std::vector<std::uint8_t> SerializeObjectToBytes(

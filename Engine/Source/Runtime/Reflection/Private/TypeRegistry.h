@@ -24,8 +24,12 @@ struct TypeRecord {
     SerializePlan serializePlan;
     TypeId resolvedId = kInvalidTypeId;
     std::uint64_t pluginToken = 0;
-    bool used = false;
     bool cachesDirty = true;
+};
+
+struct PluginScope {
+    std::uint64_t token = 0;
+    std::string pluginId;
 };
 
 struct RegistrySnapshot {
@@ -78,8 +82,12 @@ public:
     [[nodiscard]] std::uint64_t BeginPluginRegistration(std::string_view pluginId) override;
     void EndPluginRegistration() override;
     [[nodiscard]] bool UnregisterByPluginToken(std::uint64_t token) override;
+    [[nodiscard]] std::string GetPluginId(std::uint64_t token) const override;
+    [[nodiscard]] std::vector<TypeId> GetTypesByPluginToken(std::uint64_t token) const override;
+    [[nodiscard]] std::uint64_t GetOwningPluginToken(TypeId typeId) const override;
 
     [[nodiscard]] std::shared_ptr<const RegistrySnapshot> GetSnapshot() const;
+    [[nodiscard]] bool IsTypeMarkedUsed(TypeId typeId) const;
     [[nodiscard]] double GetTotalRegistrationMs() const { return m_TotalRegistrationMs; }
     [[nodiscard]] double GetLastRegistrationMs() const { return m_LastRegistrationMs; }
     [[nodiscard]] double GetLastSealMs() const { return m_LastSealMs; }
@@ -110,6 +118,12 @@ private:
     std::uint32_t m_NextRegistrationIndex = 0;
     std::uint64_t m_ActivePluginToken = 0;
     mutable bool m_GlobalCachesDirty = true;
+
+    /// Plugin token → plugin id (survives across seal; not part of frozen TypeRecord).
+    std::unordered_map<std::uint64_t, std::string> m_PluginIds;
+    /// Types marked used — separate from frozen snapshot so Seal remains immutable.
+    mutable std::mutex m_UsedMutex;
+    mutable std::unordered_set<TypeId, TypeIdHash> m_UsedTypes;
 
     double m_TotalRegistrationMs = 0.0;
     double m_LastRegistrationMs = 0.0;
