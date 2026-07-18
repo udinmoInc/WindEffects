@@ -6,6 +6,7 @@
 #include "WindEffects/Editor/UI/Widgets/DockContainer.h"
 #include "KindUI/Layout/Splitter.h"
 #include "KindUI/Layout/OverlayManager.h"
+#include "KindUI/Core/UIRepaintGate.h"
 
 #include <filesystem>
 #include <fstream>
@@ -100,6 +101,8 @@ void EditorWorkspaceController::SetPanelVisible(const std::string& panelId, bool
     if (m_OnPanelVisibilityChanged) {
         m_OnPanelVisibilityChanged();
     }
+
+    we::runtime::kindui::UIRepaintGate::Request();
 }
 
 void EditorWorkspaceController::TogglePanelVisibility(const std::string& panelId) {
@@ -155,6 +158,8 @@ void EditorWorkspaceController::ApplyToolsPanelVisibility(bool visible) {
         toolsIt->second.panel->SetVisible(visible);
         toolsIt->second.visible = visible;
     }
+
+    we::runtime::kindui::UIRepaintGate::Request();
 }
 
 void EditorWorkspaceController::SetBottomPanelIndex(int index) {

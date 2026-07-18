@@ -1,5 +1,6 @@
 #include "WindEffects/Editor/UI/Docking/DockManager.h"
 
+#include <algorithm>
 #include <fstream>
 #include <sstream>
 
@@ -65,8 +66,13 @@ nlohmann::json SerializeNode(const DockLayoutNode& node) {
     json["type"] = ToString(node.type);
     json["orientation"] = ToString(node.orientation);
     json["splitRatio"] = node.splitRatio;
+    json["minFirstLogical"] = node.minFirstLogical;
+    json["minSecondLogical"] = node.minSecondLogical;
     if (!node.panelId.empty()) {
         json["panelId"] = node.panelId;
+    }
+    if (!node.slotId.empty()) {
+        json["slotId"] = node.slotId;
     }
     if (!node.children.empty()) {
         json["children"] = nlohmann::json::array();
@@ -99,11 +105,21 @@ bool DeserializeNode(const nlohmann::json& json, DockLayoutNode& node) {
     }
 
     if (json.contains("splitRatio")) {
-        node.splitRatio = json["splitRatio"].get<float>();
+        node.splitRatio = std::clamp(json["splitRatio"].get<float>(), 0.0f, 1.0f);
+    }
+
+    if (json.contains("minFirstLogical")) {
+        node.minFirstLogical = std::max(0.0f, json["minFirstLogical"].get<float>());
+    }
+    if (json.contains("minSecondLogical")) {
+        node.minSecondLogical = std::max(0.0f, json["minSecondLogical"].get<float>());
     }
 
     if (json.contains("panelId")) {
         node.panelId = json["panelId"].get<std::string>();
+    }
+    if (json.contains("slotId")) {
+        node.slotId = json["slotId"].get<std::string>();
     }
 
     node.children.clear();
@@ -300,96 +316,105 @@ bool DockLayoutSerializer::Load(WorkspaceLayout& layout, std::string_view path) 
 #endif
 }
 
+namespace {
+
+DockPanelDescriptor MakePanelDesc(
+    std::string id,
+    std::string title,
+    std::string icon,
+    DockZone zone,
+    bool visible,
+    int sortOrder) {
+    DockPanelDescriptor desc;
+    desc.id = std::move(id);
+    desc.title = std::move(title);
+    desc.iconResource = std::move(icon);
+    desc.defaultZone = zone;
+    desc.defaultVisible = visible;
+    desc.sortOrder = sortOrder;
+    return desc;
+}
+
+DockLayoutNode MakeTabGroup(std::string panelId) {
+    DockLayoutNode node;
+    node.type = DockNodeType::TabGroup;
+    node.panelId = std::move(panelId);
+    return node;
+}
+
+DockLayoutNode MakeSplit(
+    SplitOrientation orientation,
+    float splitRatio,
+    std::string slotId,
+    float minFirstLogical,
+    float minSecondLogical,
+    DockLayoutNode first,
+    DockLayoutNode second) {
+    DockLayoutNode node;
+    node.type = DockNodeType::Split;
+    node.orientation = orientation;
+    node.splitRatio = splitRatio;
+    node.slotId = std::move(slotId);
+    node.minFirstLogical = minFirstLogical;
+    node.minSecondLogical = minSecondLogical;
+    node.children.push_back(std::move(first));
+    node.children.push_back(std::move(second));
+    return node;
+}
+
+} // namespace
+
 WorkspaceLayout CreateDefaultEditorWorkspaceLayout() {
     WorkspaceLayout layout;
     layout.workspaceId = "Default";
 
-    layout.panels["Tools"] = {
-        .id = "Tools",
-        .title = "Actors",
-        .iconResource = "tools-panel",
-        .defaultZone = DockZone::Left,
-        .defaultVisible = true,
-        .sortOrder = 0
-    };
-    layout.panels["Viewport"] = {
-        .id = "Viewport",
-        .title = "Viewport",
-        .iconResource = "viewport",
-        .defaultZone = DockZone::Center,
-        .defaultVisible = true,
-        .sortOrder = 1
-    };
-    layout.panels["WorldOutliner"] = {
-        .id = "WorldOutliner",
-        .title = "Explorer",
-        .iconResource = "outliner",
-        .defaultZone = DockZone::Right,
-        .defaultVisible = true,
-        .sortOrder = 2
-    };
-    layout.panels["Details"] = {
-        .id = "Details",
-        .title = "Details",
-        .iconResource = "details",
-        .defaultZone = DockZone::Right,
-        .defaultVisible = true,
-        .sortOrder = 3
-    };
-    layout.panels["ContentBrowser"] = {
-        .id = "ContentBrowser",
-        .title = "Content Browser",
-        .iconResource = "content-browser",
-        .defaultZone = DockZone::Bottom,
-        .defaultVisible = true,
-        .sortOrder = 4
-    };
-    layout.panels["OutputLog"] = {
-        .id = "OutputLog",
-        .title = "Output Log",
-        .iconResource = "output-log",
-        .defaultZone = DockZone::Floating,
-        .defaultVisible = false,
-        .sortOrder = 5
-    };
+    layout.panels.emplace("Tools", MakePanelDesc("Tools", "Actors", "tools-panel", DockZone::Left, true, 0));
+    layout.panels.emplace("Viewport", MakePanelDesc("Viewport", "Viewport", "viewport", DockZone::Center, true, 1));
+    layout.panels.emplace("WorldOutliner", MakePanelDesc("WorldOutliner", "Explorer", "outliner", DockZone::Right, true, 2));
+    layout.panels.emplace("Details", MakePanelDesc("Details", "Details", "details", DockZone::Right, true, 3));
+    layout.panels.emplace(
+        "ContentBrowser",
+        MakePanelDesc("ContentBrowser", "Content Browser", "content-browser", DockZone::Bottom, true, 4));
+    layout.panels.emplace(
+        "OutputLog",
+        MakePanelDesc("OutputLog", "Output Log", "output-log", DockZone::Floating, false, 5));
 
     // Root split: main body (78%) | right sidebar (22%)
-    DockLayoutNode rightSidebar{
-        .type = DockNodeType::Split,
-        .orientation = SplitOrientation::Vertical,
-        .splitRatio = 0.40f,
-        .children = {
-            {.type = DockNodeType::TabGroup, .panelId = "WorldOutliner"},
-            {.type = DockNodeType::TabGroup, .panelId = "Details"}
-        }
-    };
+    DockLayoutNode rightSidebar = MakeSplit(
+        SplitOrientation::Vertical,
+        0.40f,
+        "rightVertical",
+        140.0f,
+        160.0f,
+        MakeTabGroup("WorldOutliner"),
+        MakeTabGroup("Details"));
 
-    DockLayoutNode toolsViewport{
-        .type = DockNodeType::Split,
-        .orientation = SplitOrientation::Horizontal,
-        .splitRatio = 0.18f,
-        .children = {
-            {.type = DockNodeType::TabGroup, .panelId = "Tools"},
-            {.type = DockNodeType::TabGroup, .panelId = "Viewport"}
-        }
-    };
+    DockLayoutNode toolsViewport = MakeSplit(
+        SplitOrientation::Horizontal,
+        0.18f,
+        "toolsViewport",
+        160.0f,
+        240.0f,
+        MakeTabGroup("Tools"),
+        MakeTabGroup("Viewport"));
 
-    DockLayoutNode leftCenter{
-        .type = DockNodeType::Split,
-        .orientation = SplitOrientation::Vertical,
-        .splitRatio = 0.70f,
-        .children = {
-            toolsViewport,
-            {.type = DockNodeType::TabGroup, .panelId = "ContentBrowser"}
-        }
-    };
+    DockLayoutNode leftCenter = MakeSplit(
+        SplitOrientation::Vertical,
+        0.70f,
+        "leftCenter",
+        200.0f,
+        140.0f,
+        std::move(toolsViewport),
+        MakeTabGroup("ContentBrowser"));
 
-    layout.root = {
-        .type = DockNodeType::Split,
-        .orientation = SplitOrientation::Horizontal,
-        .splitRatio = 0.78f,
-        .children = {leftCenter, rightSidebar}
-    };
+    layout.root = MakeSplit(
+        SplitOrientation::Horizontal,
+        0.78f,
+        "mainHorizontal",
+        320.0f,
+        200.0f,
+        std::move(leftCenter),
+        std::move(rightSidebar));
 
     return layout;
 }

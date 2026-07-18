@@ -24,6 +24,7 @@
 #include "EditorGridRenderer.h"
 #include "KindUI/Core/DPIContext.h"
 #include "KindUI/Core/UIRepaintGate.h"
+#include "KindUI/Theming/ThemeManager.h"
 #include "WindEffects/Editor/UI/Core/EditorPerfStats.h"
 #include "Debug/FoundationRenderDebug.h"
 #include "DefaultScene/DefaultSceneBuilder.h"
@@ -134,10 +135,13 @@ Editor::Editor(we::platform::WindowId window) : m_Window(window) {
     }
 
     HE_INFO("[Startup] Stage 6/6: Widget tree and layout...");
+    // DPIContext only here — ThemeManager is not live until EditorApplicationContext constructs.
     UpdateUiScaleFromWindow();
 
     m_UIContext = std::make_unique<::we::editor::services::EditorApplicationContext>();
     m_UIContext->Initialize(we::runtime::kindui::DPIContext::GetScale());
+    // Sync theme DPI now that ThemeManager::Initialize has run.
+    UpdateUiScaleFromWindow();
 
     const auto& extensionPanels = m_UIContext->GetExtensionRegistry().GetPanels();
     HE_INFO("[Startup] UI extension panels registered: " + std::to_string(extensionPanels.size()));
@@ -207,19 +211,21 @@ void Editor::UpdateUiScaleFromWindow() {
     float scale = 1.0f;
     if (m_Window != we::platform::WindowId::Invalid) {
         auto& platform = we::platform::Platform::Get();
-        const auto logical = platform.GetWindowSize(m_Window);
-        const auto pixels = platform.GetWindowPixelSize(m_Window);
-        if (logical.x > 0 && pixels.x > 0) {
-            scale = static_cast<float>(pixels.x) / static_cast<float>(logical.x);
-        } else {
-            scale = platform.GetWindowDpiScale(m_Window);
+        // Layout uses client-area pixels (GetClientRect). DPI scale is independent of
+        // outer vs client size — never derive scale from pixel/logical size ratios on Windows
+        // where both APIs return the client rect.
+        scale = platform.GetWindowDpiScale(m_Window);
+        if (scale <= 0.0f) {
+            scale = 1.0f;
         }
     }
 
-    // Keep one canonical, bounded UI scale.
     const float clamped = std::clamp(scale, 1.0f, 3.0f);
     const float previous = we::runtime::kindui::DPIContext::GetScale();
     we::runtime::kindui::DPIContext::SetScale(clamped);
+    if (we::runtime::kindui::ThemeManager::Get().IsInitialized()) {
+        we::runtime::kindui::ThemeManager::Get().SetDpiScale(clamped);
+    }
     if (std::abs(clamped - previous) > 0.001f) {
         we::runtime::kindui::UIRepaintGate::Request();
     }
@@ -263,11 +269,12 @@ void Editor::SyncViewportFramebufferFromLayout() {
     const bool needsLayout = sizeChanged || we::runtime::kindui::UIRepaintGate::PeekNeedsRebuild();
 
     if (needsLayout) {
-        // Layout the full editor chrome, then let the viewport panel own offscreen size.
-        // Do not resize the offscreen framebuffer to the full window  that breaks aspect
-        // ratio and can clip the 3D view inside the docked viewport widget.
-        m_RootWidget->Measure(UI::Size{ static_cast<float>(w), static_cast<float>(h) });
-        m_RootWidget->Arrange(UI::Rect{ 0.0f, 0.0f, static_cast<float>(w), static_cast<float>(h) });
+        // Root Measure/Arrange uses the swapchain = Windows CLIENT RECT only
+        // (GetClientRect). Title/menu/toolbar/status are flex chrome rows; the
+        // workspace Column FlexGrow(1) receives the remaining client area.
+        const UI::Rect clientRect{ 0.0f, 0.0f, static_cast<float>(w), static_cast<float>(h) };
+        m_RootWidget->Measure(UI::Size{ clientRect.width, clientRect.height });
+        m_RootWidget->Arrange(clientRect);
         m_LastLayoutSwapchainW = w;
         m_LastLayoutSwapchainH = h;
     }

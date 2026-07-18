@@ -3,6 +3,7 @@
 #include "KindUI/Core/PaintContext.h"
 #include "KindUI/Core/Icon.h"
 #include "KindUI/Core/DPIContext.h"
+#include "KindUI/Layout/LayoutAssert.h"
 #include "KindUI/Tokens/DesignToken.h"
 #include "KindUI/Theming/StyleRole.h"
 #include <algorithm>
@@ -11,6 +12,9 @@
 using ::we::runtime::kindui::ColorToken;
 using ::we::runtime::kindui::MetricToken;
 using ::we::runtime::kindui::PaddingToken;
+using ::we::runtime::kindui::DPIContext;
+using ::we::runtime::kindui::AssertLayoutRectValid;
+using ::we::runtime::kindui::ClampRectToParent;
 
 namespace we::editor::docking {
 namespace PanelChrome = ::we::editor::panels::PanelChrome;
@@ -20,7 +24,11 @@ constexpr float kTabDragThreshold = 6.0f;
 }
 
 DockContainer::DockContainer() {
-    m_HeaderHeight = ThemeMetric(MetricToken::PanelTabHeight);
+    m_HeaderHeightLogical = ThemeMetric(MetricToken::PanelTabHeight);
+}
+
+float DockContainer::GetHeaderHeightDevice() const {
+    return DPIContext::Snap(m_HeaderHeightLogical * DPIContext::GetScale());
 }
 
 void DockContainer::AddPanel(const std::shared_ptr<Panel>& panel) {
@@ -88,19 +96,20 @@ void DockContainer::Tick(float deltaTime) {
 
 Size DockContainer::Measure(const Size& availableSize) {
     m_DesiredSize = availableSize;
+    const float headerHeight = GetHeaderHeightDevice();
 
     if (m_ActiveTabIndex >= 0 && m_ActiveTabIndex < static_cast<int>(m_Tabs.size())) {
         auto activePanel = m_Tabs[static_cast<size_t>(m_ActiveTabIndex)].panel;
 
         Size contentAvailable = availableSize;
-        contentAvailable.height -= m_HeaderHeight;
+        contentAvailable.height = std::max(0.0f, contentAvailable.height - headerHeight);
 
-        float usedHeight = m_HeaderHeight;
+        float usedHeight = headerHeight;
 
         if (auto toolbar = activePanel->GetToolbar()) {
             if (!activePanel->IsFloatingToolbar()) {
                 Size tbSize = toolbar->Measure(contentAvailable);
-                contentAvailable.height -= tbSize.height;
+                contentAvailable.height = std::max(0.0f, contentAvailable.height - tbSize.height);
                 usedHeight += tbSize.height;
             }
         }
@@ -118,20 +127,23 @@ Size DockContainer::Measure(const Size& availableSize) {
 
 void DockContainer::Arrange(const Rect& allottedRect) {
     m_Geometry = allottedRect;
+    const float headerHeight = GetHeaderHeightDevice();
 
-    m_HeaderRect = Rect{
-        allottedRect.x,
-        allottedRect.y,
-        allottedRect.width,
-        m_HeaderHeight
-    };
+    m_HeaderRect = ClampRectToParent(
+        Rect{ allottedRect.x, allottedRect.y, allottedRect.width, headerHeight },
+        allottedRect);
 
-    m_ContentRect = Rect{
-        allottedRect.x,
-        allottedRect.y + m_HeaderHeight,
-        allottedRect.width,
-        allottedRect.height - m_HeaderHeight
-    };
+    m_ContentRect = ClampRectToParent(
+        Rect{
+            allottedRect.x,
+            allottedRect.y + headerHeight,
+            allottedRect.width,
+            std::max(0.0f, allottedRect.height - headerHeight)
+        },
+        allottedRect);
+
+    AssertLayoutRectValid("DockContainer.header", m_HeaderRect, allottedRect);
+    AssertLayoutRectValid("DockContainer.content", m_ContentRect, allottedRect);
 
     for (int i = 0; i < static_cast<int>(m_Tabs.size()); ++i) {
         auto panel = m_Tabs[static_cast<size_t>(i)].panel;
@@ -194,7 +206,7 @@ void DockContainer::Paint(PaintContext& context) {
         m_Geometry.x,
         m_ContentRect.y,
         m_Geometry.width,
-        m_Geometry.height - m_HeaderHeight
+        std::max(0.0f, m_Geometry.height - GetHeaderHeightDevice())
     };
 
     if (m_ActiveTabIndex >= 0 && m_ActiveTabIndex < static_cast<int>(m_Tabs.size())) {
