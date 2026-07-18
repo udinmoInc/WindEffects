@@ -112,7 +112,7 @@ void TestHierarchyTransform() {
     scheduler.Update(registry, 0.016f);
 
     const TransformComponent& childAfter = registry.Get<TransformComponent>(child);
-    CHECK(std::fabs(childAfter.worldMatrix[3][0] - 15.0f) < 0.01f, "child world x = 15");
+    CHECK(std::fabs(childAfter.worldMatrix.m[12] - 15.0f) < 0.01f, "child world x = 15");
     CHECK(registry.Get<HierarchyComponent>(child).depth == 1, "child depth 1");
     scheduler.OnDestroy(registry);
 }

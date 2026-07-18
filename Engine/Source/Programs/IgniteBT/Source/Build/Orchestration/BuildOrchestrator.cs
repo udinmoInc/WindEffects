@@ -104,7 +104,10 @@ public sealed class BuildOrchestrator : IDisposable
             return new BuildOrchestratorResult { Success = true, Modules = modules };
 
         var configHash = GraphSerializer.ComputeConfigHash(
-            _ctx.Config.ToString(), _ctx.Platform, _ctx.CompilerVersion, featureFlagsHash);
+            _ctx.Config.ToString(), _ctx.Platform, _ctx.CompilerVersion, featureFlagsHash,
+            BuildFlagsHasher.Compute(
+                _ctx.TargetName, _ctx.EnableUnityBuild, _ctx.UnitySize,
+                _ctx.UnityDisabledModules ?? [], _ctx.Jobs));
 
         var graph = new DependencyGraph();
         using (_profiler.Scope(BuildStages.DependencyGraph))

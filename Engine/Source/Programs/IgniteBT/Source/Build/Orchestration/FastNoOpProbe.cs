@@ -76,7 +76,7 @@ public static class FastNoOpProbe
         manifestSw.Stop();
 
         if (manifest.ConfigHash != GraphSerializer.ComputeConfigHash(
-                configName, platform, snapshot.CompilerVersion, snapshot.FeatureFlagsHash)
+                configName, platform, snapshot.CompilerVersion, snapshot.FeatureFlagsHash, snapshot.BuildFlagsHash)
             || manifest.ToolchainHash != IgniteBT.Core.Hashing.FastHash.HashString(snapshot.CompilerVersion))
         {
             return Fail(total, manifestSw.ElapsedMilliseconds, snapshotSw.ElapsedMilliseconds, validateSw.ElapsedMilliseconds, "manifest mismatch");

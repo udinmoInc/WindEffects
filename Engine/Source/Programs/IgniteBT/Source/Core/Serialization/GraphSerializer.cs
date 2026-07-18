@@ -60,6 +60,11 @@ public static class GraphSerializer
         }
     }
 
-    public static string ComputeConfigHash(string config, string platform, string compilerVersion, string featureFlagsHash)
-        => FastHash.CombineHashes(config, platform, compilerVersion, featureFlagsHash);
+    public static string ComputeConfigHash(
+        string config,
+        string platform,
+        string compilerVersion,
+        string featureFlagsHash,
+        string buildFlagsHash = "")
+        => FastHash.CombineHashes(config, platform, compilerVersion, featureFlagsHash, buildFlagsHash ?? "");
 }
