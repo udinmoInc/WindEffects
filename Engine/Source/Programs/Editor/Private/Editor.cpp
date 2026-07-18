@@ -33,10 +33,16 @@
 #include "WindEffects/Editor/UI/Widgets/RenderInvestigationModal.h"
 #include "WindEffects/Editor/UI/Builders/PanelBuilder.h"
 
+#include "Projects/EngineContext.h"
+#include "Projects/ProjectContext.h"
+#include "Projects/ProjectLifecycle.h"
+#include "Projects/RecentProjectsStore.h"
+
 #include "Platform/PlatformSDK.h"
 #include <algorithm>
 #include <cstdlib>
 #include <filesystem>
+#include <stdexcept>
 #include <variant>
 
 #ifndef WE_DEBUG_UI
@@ -72,21 +78,75 @@ using namespace we::runtime::scene;
 using namespace we::runtime::engine;
 using namespace we::runtime::world;
 
-Editor::Editor(we::platform::WindowId window) : m_Window(window) {
+Editor::Editor(we::platform::WindowId window, const we::projects::EditorCommandLine& commandLine)
+    : m_Window(window)
+    , m_CommandLine(commandLine) {
     HE_INFO("[Startup] === Editor construction begin ===");
+    InitializeEngine();
 
+    we::projects::RecentProjectsStore::Get().Load();
+
+    if (!m_CommandLine.projectPath) {
+        throw std::runtime_error("Editor requires a .weproj path. Launch WeLauncher to select a project.");
+    }
+    EnterProjectWorkspace(*m_CommandLine.projectPath);
+
+    HE_INFO("[Startup] Swapchain: " + std::to_string(m_Renderer->GetSwapchainWidth())
+        + "x" + std::to_string(m_Renderer->GetSwapchainHeight()));
+    HE_INFO("[Startup] === WindEffects Engine Editor successfully bootstrapped ===");
+}
+
+bool Editor::LaunchWeLauncher(const std::vector<std::string>& extraArgs) {
+    auto& platform = we::platform::Platform::Get();
+    const std::filesystem::path exeDir = platform.GetExecutableDirectory();
+    const std::filesystem::path candidates[] = {
+        exeDir / "WeLauncher.exe",
+        exeDir / "WELauncher.exe",
+    };
+
+    std::filesystem::path launcher;
+    for (const auto& candidate : candidates) {
+        if (std::filesystem::exists(candidate)) {
+            launcher = candidate;
+            break;
+        }
+    }
+    if (launcher.empty()) {
+        HE_ERROR("[Startup] WeLauncher.exe not found in: " + exeDir.string());
+        return false;
+    }
+
+    std::string exeUtf8 = launcher.string();
+    const std::string workDir = exeDir.string();
+    we::platform::ProcessLaunchDesc desc{};
+    desc.executable = exeUtf8.c_str();
+    desc.arguments = extraArgs;
+    desc.workingDirectory = workDir.c_str();
+    desc.waitForExit = false;
+    desc.detach = true;
+
+    const auto result = platform.LaunchProcess(desc);
+    if (!result.Ok()) {
+        HE_ERROR("[Startup] Failed to launch WeLauncher: "
+            + (result.error.message.empty() ? "unknown error" : result.error.message));
+        return false;
+    }
+
+    HE_INFO("[Startup] Launched WeLauncher: " + exeUtf8);
+    return true;
+}
+
+void Editor::InitializeEngine() {
     HE_INFO("[Startup] Stage 1/6: Renderer...");
     m_Renderer = std::make_unique<Renderer>();
     m_Renderer->Init(m_Window);
 
-    HE_INFO("[Startup] Stage 2/6: Scene and camera...");
+    HE_INFO("[Startup] Stage 2/6: Scene and camera (engine-owned, empty until project loads)...");
     m_Camera = std::make_shared<EditorCamera>();
     BindViewportCamera(m_Camera);
     m_Scene = std::make_shared<Scene>();
     we::runtime::world::environment::EnvironmentSystem::Get().BindScene(m_Scene);
     PlaceActorsPlacement::Get().BindScene(m_Scene, m_Camera);
-    DefaultSceneBuilder::CreateDefaultScene(*m_Scene);
-    we::runtime::world::environment::EnvironmentSystem::Get().UpdateRendering(m_Camera->GetPosition());
 
     {
         auto& startup = we::runtime::core::StartupValidator::Get();
@@ -100,55 +160,167 @@ Editor::Editor(we::platform::WindowId window) : m_Window(window) {
         }
     }
 
-    HE_INFO("[Startup] Stage 3/6: Default assets (fonts, shaders, icons, theme)...");
+    HE_INFO("[Startup] Stage 3/6: Engine default assets (fonts, shaders, icons, theme)...");
     if (!we::core::AssetRegistry::Get().LoadDefaultEditorAssets()) {
         HE_ERROR("[Startup] Required default assets missing - UI rendering may fail.");
     }
 
     HE_INFO("[Startup] Stage 4/6: OverlayRenderer init...");
-    try {
-        m_OverlayRenderer = std::make_unique<we::runtime::kindui::OverlayRenderer>();
-        if (!m_OverlayRenderer->Init(m_Renderer->GetRHIDevice(), m_Renderer->GetSwapchainFormat(), 2)) {
-            throw std::runtime_error("Failed to initialize OverlayRenderer!");
-        }
-    } catch (const std::exception& e) {
-        HE_ERROR("[Startup] Failed to initialize OverlayRenderer: " + std::string(e.what()));
-        throw;
+    m_OverlayRenderer = std::make_unique<we::runtime::kindui::OverlayRenderer>();
+    if (!m_OverlayRenderer->Init(m_Renderer->GetRHIDevice(), m_Renderer->GetSwapchainFormat(), 2)) {
+        throw std::runtime_error("Failed to initialize OverlayRenderer!");
     }
 
-    // EditorCompositor no longer needed - scene renders directly to swapchain
-
-    try {
-        InitializeContentBrowserService(m_OverlayRenderer->GetIconRenderer());
-    } catch (const std::exception& e) {
-        HE_ERROR("[Startup] Failed to initialize content browser service: " + std::string(e.what()));
-        throw;
-    }
     m_UIEventSystem = std::make_shared<UI::EventSystem>();
 
-    HE_INFO("[Startup] Stage 5/6: Plugins...");
-    try {
-        we::core::PluginManager::Get().ScanAndLoadPlugins("Plugins");
-    } catch (const std::exception& e) {
-        HE_ERROR("[Startup] Failed to load plugins: " + std::string(e.what()));
-        throw;
-    }
-
-    HE_INFO("[Startup] Stage 6/6: Widget tree and layout...");
-    // DPIContext only here — ThemeManager is not live until EditorApplicationContext constructs.
     UpdateUiScaleFromWindow();
-
     m_UIContext = std::make_unique<::we::editor::services::EditorApplicationContext>();
     m_UIContext->Initialize(we::runtime::kindui::DPIContext::GetScale());
-    // Sync theme DPI now that ThemeManager::Initialize has run.
     UpdateUiScaleFromWindow();
 
-    const auto& extensionPanels = m_UIContext->GetExtensionRegistry().GetPanels();
-    HE_INFO("[Startup] UI extension panels registered: " + std::to_string(extensionPanels.size()));
-    for (const auto& [name, _] : extensionPanels) {
-        HE_INFO("[Startup]   - Panel factory: " + name);
+    m_FirstRunAgreementPending = !HasAcceptedFirstRunAgreement();
+    HE_INFO("[Startup] Engine context ready (project not loaded yet).");
+}
+
+void Editor::SetRootWidget(const std::shared_ptr<we::runtime::kindui::Widget>& root) {
+    m_RootWidget = root;
+    if (m_UIEventSystem) {
+        m_UIEventSystem->SetRootWidget(m_RootWidget);
+    }
+    m_LastLayoutSwapchainW = 0;
+    m_LastLayoutSwapchainH = 0;
+    EnsureVisibleSwapchain();
+    SyncViewportFramebufferFromLayout();
+    we::runtime::kindui::UIRepaintGate::Request();
+}
+
+void Editor::UpdateWindowTitle() {
+    auto& platform = we::platform::Platform::Get();
+    if (we::projects::ProjectContext::Get().IsLoaded()) {
+        const auto& desc = we::projects::ProjectContext::Get().Descriptor();
+        const std::string name = desc.displayName.empty() ? desc.projectName : desc.displayName;
+        platform.SetWindowTitle(m_Window, name + " - WindEffects Editor");
+    } else {
+        platform.SetWindowTitle(m_Window, "WindEffects Editor");
+    }
+}
+
+void Editor::OpenWeLauncher() {
+    if (!LaunchWeLauncher()) {
+        m_StatusMessage = "WeLauncher.exe not found. Build the WeLauncher target.";
+        HE_ERROR("[Startup] " + m_StatusMessage);
+    }
+}
+
+void Editor::UnloadProjectWorkspace() {
+    HE_INFO("[Startup] Unloading current project workspace...");
+
+    if (m_OverlayHost) {
+        m_OverlayHost->CloseAllPopups();
+    }
+    EditorWorkspaceController::Get().SaveLayout();
+
+    we::core::PluginManager::Get().UnloadAllPlugins();
+    ShutdownContentBrowserService();
+
+    if (m_Scene) {
+        m_Scene->Clear();
     }
 
+    m_ViewportWidget.reset();
+    m_OverlayHost.reset();
+    m_StatusBar.reset();
+    m_TitleBar.reset();
+
+    if (we::projects::ProjectContext::Get().IsLoaded()) {
+        we::projects::ProjectContext::Get().Unload();
+    }
+}
+
+void Editor::EnterProjectWorkspace(const std::filesystem::path& weprojPath) {
+    HE_INFO("[Startup] Loading project: " + weprojPath.string());
+
+    if (we::projects::ProjectContext::Get().IsLoaded()
+        || m_ViewportWidget
+        || m_StatusBar) {
+        UnloadProjectWorkspace();
+    }
+
+    auto validation = we::projects::ProjectLifecycle::ValidateProjectPath(
+        weprojPath,
+        we::projects::EngineContext::Get().EngineVersion());
+    if (validation.needsUpgrade) {
+        const auto upgrade = we::projects::ProjectLifecycle::UpgradeProject(
+            weprojPath,
+            we::projects::EngineContext::Get().EngineVersion(),
+            we::projects::EngineContext::Get().EngineRoot().string());
+        HE_INFO("[Startup] Project upgrade: " + upgrade.message);
+        m_StatusMessage = upgrade.message;
+        validation = we::projects::ProjectLifecycle::ValidateProjectPath(
+            weprojPath,
+            we::projects::EngineContext::Get().EngineVersion());
+    }
+
+    if (!validation.ok) {
+        HE_ERROR("[Startup] Project validation failed: " + validation.message);
+        m_StatusMessage = validation.message;
+        OpenWeLauncher();
+        m_Running = false;
+        return;
+    }
+    if (validation.missingSdk) {
+        HE_WARN("[Startup] Missing SDK / config warning: " + validation.message);
+        m_StatusMessage = validation.message;
+    }
+
+    const auto loadResult = we::projects::ProjectContext::Get().Load(weprojPath);
+    if (!loadResult.ok) {
+        HE_ERROR("[Startup] Failed to load ProjectContext: " + loadResult.message);
+        m_StatusMessage = loadResult.message;
+        OpenWeLauncher();
+        m_Running = false;
+        return;
+    }
+
+    auto& project = we::projects::ProjectContext::Get();
+
+    // Content / asset registry from ProjectContext only.
+    try {
+        InitializeContentBrowserService(
+            m_OverlayRenderer->GetIconRenderer(),
+            project.ContentRoot().string());
+    } catch (const std::exception& e) {
+        HE_ERROR("[Startup] Failed to initialize content browser: " + std::string(e.what()));
+        project.Unload();
+        OpenWeLauncher();
+        m_Running = false;
+        return;
+    }
+
+    // Project plugins (never a hardcoded path).
+    if (!m_CommandLine.safeMode) {
+        try {
+            we::core::PluginManager::Get().ScanAndLoadPlugins(project.PluginsRoot().string());
+        } catch (const std::exception& e) {
+            HE_ERROR("[Startup] Failed to load project plugins: " + std::string(e.what()));
+        }
+    } else {
+        HE_INFO("[Startup] Safe mode: skipping project plugins.");
+    }
+
+    // Editor world — empty default environment; startup map path recorded on context.
+    if (m_Scene) {
+        m_Scene->Clear();
+    }
+    DefaultSceneBuilder::CreateDefaultScene(*m_Scene);
+    if (!project.Descriptor().startupMap.empty()) {
+        project.SetCurrentMap(project.Descriptor().startupMap);
+        HE_INFO("[Startup] Startup map from .weproj: " + project.Descriptor().startupMap
+            + " (scene file load pipeline reserved)");
+    }
+    we::runtime::world::environment::EnvironmentSystem::Get().UpdateRendering(m_Camera->GetPosition());
+
+    HE_INFO("[Startup] Building editor shell for project...");
     try {
         we::programs::editor::EditorShellDependencies shellDeps;
         shellDeps.window = m_Window;
@@ -159,15 +331,14 @@ Editor::Editor(we::platform::WindowId window) : m_Window(window) {
         shellDeps.eventSystem = m_UIEventSystem;
         shellDeps.dpiScale = we::runtime::kindui::DPIContext::GetScale();
         shellDeps.onCreateNewLevel = [this]() { CreateNewLevel(); };
+        shellDeps.onOpenProject = [this]() { OpenProjectDialog(); };
+        shellDeps.onOpenProjectManager = [this]() { OpenWeLauncher(); };
         shellDeps.onViewportCreated = [this](std::shared_ptr<we::runtime::kindui::Widget>& viewportWidget) {
             m_ViewportWidget = viewportWidget;
         };
-        shellDeps.onLayoutBuilt = [this](const ::we::editor::shell::DockLayoutBuildResult&) {
-            // Title bar reference retained for window hit testing.
-        };
+        shellDeps.onLayoutBuilt = [this](const ::we::editor::shell::DockLayoutBuildResult&) {};
 
         const auto shellResult = we::programs::editor::EditorShellBuilder::Build(*m_UIContext, shellDeps);
-        m_RootWidget = shellResult.rootWidget;
         m_OverlayHost = shellResult.overlayHost;
         m_TitleBar = shellResult.titleBar;
         m_StatusBar = shellResult.statusBar;
@@ -177,30 +348,36 @@ Editor::Editor(we::platform::WindowId window) : m_Window(window) {
             m_Window,
             ::we::editor::mainframe::EditorWindowHitTest,
             &m_WindowHitTestData);
+
+        SetRootWidget(shellResult.rootWidget);
     } catch (const std::exception& e) {
         HE_ERROR("[Startup] Failed to build editor shell: " + std::string(e.what()));
-        throw;
+        UnloadProjectWorkspace();
+        OpenWeLauncher();
+        m_Running = false;
+        return;
     }
 
+    UpdateWindowTitle();
     try {
-        m_UIEventSystem->SetRootWidget(m_RootWidget);
-    } catch (const std::exception& e) {
-        HE_ERROR("[Startup] Failed to set root widget: " + std::string(e.what()));
-        throw;
-    }
-
-    EnsureVisibleSwapchain();
-    SyncViewportFramebufferFromLayout();
-    try {
-        LogWidgetTreeLayout(m_RootWidget, "OverlayHost");
+        LogWidgetTreeLayout(m_RootWidget, "EditorShell");
     } catch (const std::exception& e) {
         HE_ERROR("[Startup] Failed to log widget tree: " + std::string(e.what()));
     }
-    m_FirstRunAgreementPending = !HasAcceptedFirstRunAgreement();
+}
 
-    HE_INFO("[Startup] Swapchain: " + std::to_string(m_Renderer->GetSwapchainWidth())
-        + "x" + std::to_string(m_Renderer->GetSwapchainHeight()));
-    HE_INFO("[Startup] === WindEffects Engine Editor successfully bootstrapped ===");
+void Editor::OpenProjectDialog() {
+    we::platform::FileDialogDesc desc{};
+    desc.mode = we::platform::FileDialogMode::OpenFile;
+    desc.title = "Open Project";
+    desc.filters = {
+        { "WindEffects Project", "*.weproj" },
+        { "All Files", "*.*" },
+    };
+    const auto files = we::platform::Platform::Get().ShowFileDialog(desc);
+    if (!files.empty()) {
+        EnterProjectWorkspace(files.front());
+    }
 }
 
 Editor::~Editor() {
@@ -656,6 +833,9 @@ void Editor::Shutdown() {
     m_OverlayHost.reset();
     m_RootWidget.reset();
     ShutdownContentBrowserService();
+    if (we::projects::ProjectContext::Get().IsLoaded()) {
+        we::projects::ProjectContext::Get().Unload();
+    }
     if (m_OverlayRenderer) {
         m_OverlayRenderer->Shutdown();
         m_OverlayRenderer.reset();

@@ -147,8 +147,10 @@ void WireContentBrowser(
 
 } // namespace
 
-void InitializeContentBrowserService(we::runtime::kindui::IconRenderer* iconRenderer) {
-    ContentBrowserService::Get().Initialize(iconRenderer, "Content");
+void InitializeContentBrowserService(
+    we::runtime::kindui::IconRenderer* iconRenderer,
+    const std::string& contentRoot) {
+    ContentBrowserService::Get().Initialize(iconRenderer, contentRoot);
 }
 
 void ShutdownContentBrowserService() {

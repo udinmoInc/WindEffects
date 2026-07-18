@@ -136,6 +136,22 @@ EditorShellResult EditorShellBuilder::Build(
         newItem->onClick = deps.onCreateNewLevel;
     }
     fileItems.push_back(newItem);
+
+    auto openProjectItem = std::make_shared<MenuItem>();
+    openProjectItem->label = "Open Project...";
+    openProjectItem->shortcut = "Ctrl+Shift+O";
+    if (deps.onOpenProject) {
+        openProjectItem->onClick = deps.onOpenProject;
+    }
+    fileItems.push_back(openProjectItem);
+
+    auto projectManagerItem = std::make_shared<MenuItem>();
+    projectManagerItem->label = "Open Launcher...";
+    if (deps.onOpenProjectManager) {
+        projectManagerItem->onClick = deps.onOpenProjectManager;
+    }
+    fileItems.push_back(projectManagerItem);
+
     fileItems.push_back([] { auto i = std::make_shared<MenuItem>(); i->label = "Open Scene"; i->shortcut = "Ctrl+O"; return i; }());
     fileItems.push_back([] { auto i = std::make_shared<MenuItem>(); i->label = "Save"; i->shortcut = "Ctrl+S"; return i; }());
     fileItems.push_back([] { auto i = std::make_shared<MenuItem>(); i->label = "Save As..."; i->shortcut = "Ctrl+Shift+S"; return i; }());

@@ -75,10 +75,15 @@ AssociationResult AssociateProjectExtension(const std::string& extensionWithDot)
     }
 
 #if defined(_WIN32)
-    const auto exePath = PathUtils::GetExecutableDirectory() / "WeLauncher.exe";
+    // Double-click opens the Editor with the project path (Unreal-style).
+    const auto exeDir = PathUtils::GetExecutableDirectory();
+    std::filesystem::path exePath = exeDir / "WindeffectsEditor.exe";
     std::error_code ec;
     if (!std::filesystem::exists(exePath, ec)) {
-        result.message = "WeLauncher.exe not found next to the running process";
+        exePath = exeDir / "WEEditor.exe";
+    }
+    if (!std::filesystem::exists(exePath, ec)) {
+        result.message = "WindeffectsEditor.exe not found next to the running process";
         return result;
     }
 
@@ -106,7 +111,7 @@ AssociationResult AssociateProjectExtension(const std::string& extensionWithDot)
     }
 
     result.ok = true;
-    result.message = "Associated " + extensionWithDot + " with WeLauncher";
+    result.message = "Associated " + extensionWithDot + " with WindeffectsEditor";
     return result;
 #else
     result.message = "File associations are only supported on Windows";

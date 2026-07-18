@@ -1,6 +1,7 @@
 #include "UI/Shell/LauncherShell.h"
 
 #include "UI/Shell/LauncherHelpers.h"
+#include "UI/Shell/LauncherShellShared.h"
 #include "UI/Pages/LauncherPages.h"
 #include "UI/Pages/Projects/ProjectsPage.h"
 
@@ -9,6 +10,7 @@
 #include "UI/Pages/CreateProject/CreateProjectViews.h"
 #include "UI/Pages/Library/ManagerViews.h"
 #include "UI/Pages/Settings/SettingsViews.h"
+#include "UI/Pages/Settings/SettingsViewsHelpers.h"
 #include "Util/LauncherMaintenance.h"
 #include "Util/PathUtils.h"
 
@@ -38,6 +40,7 @@ using namespace we::runtime::kindui;
 namespace we::programs::welauncher {
 
 using we::runtime::kindui::ColorToken;
+
 namespace {
 
 std::shared_ptr<Column> MakeSettingsStack() {
@@ -317,7 +320,7 @@ std::shared_ptr<Widget> LauncherShell::BuildSettingsFileAssociations(const std::
         const auto result = AssociateProjectExtension(".weproj");
         SetStatus(result.message);
     });
-    AppendSettingsRow(*body, queryLower, "Associate .weproj files", "Open WindEffects projects with WeLauncher", weproj);
+    AppendSettingsRow(*body, queryLower, "Associate .weproj files", "Open .weproj with WindeffectsEditor", weproj);
 
     auto weproject = MakeSecondaryAction("Associate .weproject", Icons::DocumentName);
     weproject->SetOnClicked([this] {

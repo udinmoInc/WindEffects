@@ -45,6 +45,8 @@ struct EditorShellDependencies {
     float dpiScale = 1.0f;
 
     std::function<void()> onCreateNewLevel;
+    std::function<void()> onOpenProject;
+    std::function<void()> onOpenProjectManager;
     std::function<void(std::shared_ptr<::we::runtime::kindui::Widget>& viewportWidget)> onViewportCreated;
     std::function<void(const DockLayoutBuildResult& layout)> onLayoutBuilt;
 };

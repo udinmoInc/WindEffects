@@ -2,6 +2,8 @@
 
 #include <memory>
 #include <string>
+#include <vector>
+#include <filesystem>
 
 #include "Platform/Types.h"
 #include "Renderer/Renderer.h"
@@ -17,6 +19,8 @@
 #include "WindEffects/Editor/UI/Core/EditorApplicationContext.h"
 #include "EditorShellBuilder.h"
 
+#include "Projects/EditorCommandLine.h"
+
 namespace we::programs::editor {
 using ::we::editor::services::EditorApplicationContext;
 }
@@ -24,7 +28,7 @@ using ::we::editor::services::EditorApplicationContext;
 namespace we::programs::editor {
 class Editor {
 public:
-    explicit Editor(we::platform::WindowId window);
+    Editor(we::platform::WindowId window, const we::projects::EditorCommandLine& commandLine);
     ~Editor();
 
     Editor(const Editor&) = delete;
@@ -32,15 +36,32 @@ public:
 
     void Run();
 
+    /// Launch WeLauncher.exe (Project Manager). Returns false if the executable was not found.
+    static bool LaunchWeLauncher(const std::vector<std::string>& extraArgs = {});
+
 private:
+    void InitializeEngine();
+    void EnterProjectWorkspace(const std::filesystem::path& weprojPath);
+    void UnloadProjectWorkspace();
+    void CreateNewLevel();
+    void OpenProjectDialog();
+    void OpenWeLauncher();
+    void MaybeShowFirstRunAgreement();
     void MainLoop();
     void Shutdown();
-    void CreateNewLevel();
-    void MaybeShowFirstRunAgreement();
+
+    void EnsureVisibleSwapchain();
+    void SyncViewportFramebufferFromLayout();
+    void UpdateUiScaleFromWindow();
+    void LogWidgetTreeLayout(const std::shared_ptr<we::runtime::kindui::Widget>& widget, const std::string& name, int depth = 0);
+    void SetRootWidget(const std::shared_ptr<we::runtime::kindui::Widget>& root);
+    void UpdateWindowTitle();
 
     we::platform::WindowId m_Window = we::platform::WindowId::Invalid;
+    we::projects::EditorCommandLine m_CommandLine{};
     bool m_Running = true;
     bool m_FirstRunAgreementPending = false;
+    std::string m_StatusMessage;
 
     std::unique_ptr<we::runtime::renderer::Renderer> m_Renderer;
     std::shared_ptr<we::runtime::engine::EditorCamera> m_Camera;
@@ -56,11 +77,6 @@ private:
     std::shared_ptr<::we::editor::shell::TitleBar> m_TitleBar;
     std::unique_ptr<::we::editor::services::EditorApplicationContext> m_UIContext;
     ::we::editor::mainframe::EditorWindowHitTestData m_WindowHitTestData{};
-
-    void EnsureVisibleSwapchain();
-    void SyncViewportFramebufferFromLayout();
-    void UpdateUiScaleFromWindow();
-    void LogWidgetTreeLayout(const std::shared_ptr<we::runtime::kindui::Widget>& widget, const std::string& name, int depth = 0);
 
     uint32_t m_LastLayoutSwapchainW = 0;
     uint32_t m_LastLayoutSwapchainH = 0;

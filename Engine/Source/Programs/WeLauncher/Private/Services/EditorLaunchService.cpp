@@ -31,7 +31,8 @@ EditorLaunchResult EditorLaunchService::Launch(const std::filesystem::path& wepr
     auto& platform = we::platform::Platform::Get();
     const std::string exeUtf8 = PathUtils::ToUtf8(editorExe);
     const std::string projectArg = PathUtils::ToUtf8(weprojPath);
-    const std::string workDir = PathUtils::ToUtf8(weprojPath.parent_path());
+    // Working directory stays at the editor/engine install — never the project root.
+    const std::string workDir = PathUtils::ToUtf8(editorExe.parent_path());
 
     const auto launchResult = platform.LaunchProcess({
         .executable = exeUtf8.c_str(),

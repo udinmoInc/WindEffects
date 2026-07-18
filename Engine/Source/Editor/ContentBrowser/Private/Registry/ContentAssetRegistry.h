@@ -42,7 +42,6 @@ public:
 
 private:
     void ScanDirectory(const std::string& diskPath, const std::string& virtualPath);
-    void EnsureDemoContent();
     std::string MakeId(const std::string& virtualPath) const;
     void NotifyRegistryRefreshed();
 

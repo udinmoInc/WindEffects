@@ -13,6 +13,7 @@ std::vector<std::string> RequiredProjectFolders() {
     return {
         "Config",
         "Content",
+        "Content/Maps",
         "Source",
         "Plugins",
         "ProjectSettings",
@@ -65,7 +66,9 @@ void FillDerivedFields(ProjectSummary& summary, const ProjectTemplateRegistry& t
     }
 
     summary.projectType = summary.descriptor.templateId.empty() ? "Project" : summary.descriptor.templateId;
-    summary.platforms = "Windows";
+    summary.platforms = summary.descriptor.targetPlatforms.empty()
+        ? "Windows"
+        : JoinPlatforms(summary.descriptor.targetPlatforms);
     summary.description.clear();
 
     if (const auto* tmpl = templates.Find(summary.descriptor.templateId)) {
@@ -215,10 +218,21 @@ bool ProjectService::EnsureProjectLayout(const std::filesystem::path& projectRoo
     if (!std::filesystem::exists(projectSettings)) {
         nlohmann::json settings = {
             { "projectName", projectName },
-            { "startupMap", "" },
+            { "startupMap", "Content/Maps/Startup.scene" },
+            { "defaultGameMode", "" },
             { "targetPlatform", "Windows" },
         };
         (void)JsonFile::Save(projectSettings, settings);
+    }
+
+    const auto startupMap = projectRoot / "Content" / "Maps" / "Startup.scene";
+    if (!std::filesystem::exists(startupMap)) {
+        std::ofstream file(startupMap);
+        file << "{\n"
+             << "  \"type\": \"Scene\",\n"
+             << "  \"name\": \"Startup\",\n"
+             << "  \"project\": \"" << projectName << "\"\n"
+             << "}\n";
     }
 
     const auto keepContent = projectRoot / "Content" / ".keep";
@@ -331,9 +345,18 @@ ProjectOperationResult ProjectService::CreateProject(
     descriptor.templateId = templateId;
     descriptor.engineVersion = m_Engines.Current().engineVersion;
     descriptor.engineRoot = PathUtils::ToUtf8(m_Engines.Current().engineRoot);
+    descriptor.contentDirectory = "Content";
+    descriptor.startupMap = "Content/Maps/Startup.scene";
+    descriptor.defaultGameMode.clear();
+    descriptor.modules = { projectName };
+    descriptor.plugins = {};
+    descriptor.targetPlatforms = tmpl->platforms.empty() ? std::vector<std::string>{ "Windows" } : tmpl->platforms;
+    descriptor.settings = {
+        { "startupMap", descriptor.startupMap },
+        { "defaultGameMode", "" },
+    };
     descriptor.createdUtc = PathUtils::GetUtcNowIso8601();
     descriptor.lastOpenedUtc = descriptor.createdUtc;
-    descriptor.modules = { projectName };
 
     const auto weprojPath = projectRoot / (projectName + ".weproj");
     if (!WriteDescriptor(weprojPath, descriptor)) {
