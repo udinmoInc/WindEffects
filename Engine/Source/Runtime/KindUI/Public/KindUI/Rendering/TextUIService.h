@@ -43,6 +43,10 @@ public:
     void DumpAtlasPagesToDisk();
 
     [[nodiscard]] float MeasureText(const std::string& text, float fontSize, bool bold) const;
+    [[nodiscard]] float MeasureText(
+        const std::string& text,
+        float fontSize,
+        we::runtime::text::layout::FontWeight weight) const;
     bool GenerateTextGeometry(
         const DrawCommand& cmd,
         std::vector<UIVertex2>& vertices,
@@ -70,6 +74,7 @@ private:
     std::unordered_map<uint32_t, GpuAtlasPage> m_DynamicPages;
     std::unordered_map<we::runtime::text::FontHandle, GpuAtlasPage> m_FontAtlases;
     we::runtime::text::FontHandle m_RegularFont = we::runtime::text::kInvalidFontHandle;
+    we::runtime::text::FontHandle m_MediumFont = we::runtime::text::kInvalidFontHandle;
     we::runtime::text::FontHandle m_SemiBoldFont = we::runtime::text::kInvalidFontHandle;
 
     bool m_DebugEnabled = false;

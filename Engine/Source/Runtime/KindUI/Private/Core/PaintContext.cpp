@@ -82,6 +82,23 @@ void PaintContext::DrawRoundedRectOutline(const Rect& rect, const Color& color, 
 }
 
 void PaintContext::DrawText(const std::string& text, const Point& pos, const Color& color, float fontSize, bool bold, bool italic) {
+    DrawText(
+        text,
+        pos,
+        color,
+        fontSize,
+        bold ? we::runtime::text::layout::FontWeight::SemiBold
+             : we::runtime::text::layout::FontWeight::Regular,
+        italic);
+}
+
+void PaintContext::DrawText(
+    const std::string& text,
+    const Point& pos,
+    const Color& color,
+    float fontSize,
+    we::runtime::text::layout::FontWeight weight,
+    bool italic) {
     DrawCommand cmd{};
     cmd.type = DrawCommandType::Text;
     // Store position in rect.x, rect.y
@@ -90,7 +107,8 @@ void PaintContext::DrawText(const std::string& text, const Point& pos, const Col
     cmd.clipRect = GetCurrentClipRect();
     cmd.text = text;
     cmd.fontSize = fontSize;
-    cmd.textBold = bold;
+    cmd.textWeight = static_cast<uint16_t>(weight);
+    cmd.textBold = weight >= we::runtime::text::layout::FontWeight::SemiBold;
     cmd.textItalic = italic;
     m_Commands.push_back(cmd);
 }

@@ -79,6 +79,26 @@ std::filesystem::path ResolveSemiBoldWeFontPath() {
     return {};
 }
 
+std::filesystem::path ResolveMediumWeFontPath() {
+    const std::string names[] = {"Inter-Medium", "Inter-SemiBold", "Inter-Bold"};
+    for (const auto& name : names) {
+        if (const auto path = EnsureWeFontAsset(name); !path.empty()) {
+            return path;
+        }
+    }
+    return {};
+}
+
+we::runtime::text::layout::FontWeight EffectiveWeight(const DrawCommand& cmd) {
+    if (cmd.textBold || cmd.textWeight >= static_cast<uint16_t>(we::runtime::text::layout::FontWeight::SemiBold)) {
+        return we::runtime::text::layout::FontWeight::SemiBold;
+    }
+    if (cmd.textWeight >= static_cast<uint16_t>(we::runtime::text::layout::FontWeight::Medium)) {
+        return we::runtime::text::layout::FontWeight::Medium;
+    }
+    return we::runtime::text::layout::FontWeight::Regular;
+}
+
 } // namespace
 
 TextUIService::TextUIService() = default;
@@ -99,11 +119,18 @@ bool TextUIService::Initialize(OverlayRenderer* renderer) {
 #endif
 
     const auto regularPath = EnsureWeFontAsset("Inter-Regular");
+    const auto mediumPath = ResolveMediumWeFontPath();
     const auto semiBoldPath = ResolveSemiBoldWeFontPath();
     if (!regularPath.empty()) {
         const auto loaded = m_TextEngine->LoadFont(regularPath);
         if (loaded.ok) {
             m_RegularFont = loaded.value;
+        }
+    }
+    if (!mediumPath.empty()) {
+        const auto loaded = m_TextEngine->LoadFont(mediumPath);
+        if (loaded.ok) {
+            m_MediumFont = loaded.value;
         }
     }
     if (!semiBoldPath.empty()) {
@@ -119,8 +146,11 @@ bool TextUIService::Initialize(OverlayRenderer* renderer) {
         return false;
     }
 
+    if (m_MediumFont == we::runtime::text::kInvalidFontHandle) {
+        m_MediumFont = m_RegularFont;
+    }
     if (m_SemiBoldFont == we::runtime::text::kInvalidFontHandle) {
-        m_SemiBoldFont = m_RegularFont;
+        m_SemiBoldFont = m_MediumFont != we::runtime::text::kInvalidFontHandle ? m_MediumFont : m_RegularFont;
     }
 
     SyncDirtyAtlasPages();
@@ -132,7 +162,11 @@ bool TextUIService::Initialize(OverlayRenderer* renderer) {
     }
 
     TextMetrics::SetMeasureProvider([this](const std::string_view text, const float fontSize, const bool bold) {
-        return MeasureText(std::string(text), fontSize, bold);
+        return MeasureText(
+            std::string(text),
+            fontSize,
+            bold ? we::runtime::text::layout::FontWeight::SemiBold
+                 : we::runtime::text::layout::FontWeight::Regular);
     });
 
     if (m_DebugEnabled) {
@@ -307,28 +341,42 @@ bool TextUIService::UploadFontAtlasFallback(
 we::runtime::text::layout::TextStyle TextUIService::BuildStyle(const DrawCommand& cmd) const {
     we::runtime::text::layout::TextStyle style{};
     style.sizePx = cmd.fontSize;
-    style.weight = cmd.textBold ? we::runtime::text::layout::FontWeight::SemiBold
-                                : we::runtime::text::layout::FontWeight::Regular;
+    style.weight = EffectiveWeight(cmd);
     style.italic = cmd.textItalic;
     style.color = {cmd.color.r, cmd.color.g, cmd.color.b, cmd.color.a};
     return style;
 }
 
 float TextUIService::MeasureText(const std::string& text, float fontSize, bool bold) const {
+    return MeasureText(
+        text,
+        fontSize,
+        bold ? we::runtime::text::layout::FontWeight::SemiBold
+             : we::runtime::text::layout::FontWeight::Regular);
+}
+
+float TextUIService::MeasureText(
+    const std::string& text,
+    float fontSize,
+    we::runtime::text::layout::FontWeight weight) const {
     if (!m_TextEngine) {
         return 0.0f;
     }
     we::runtime::text::layout::TextStyle style{};
     // fontSize is in final layout pixels (themes/StylePipeline apply DPI before draw/measure).
     style.sizePx = fontSize;
-    style.weight = bold ? we::runtime::text::layout::FontWeight::SemiBold
-                        : we::runtime::text::layout::FontWeight::Regular;
+    style.weight = weight;
 
     we::runtime::text::layout::LayoutConstraints constraints{};
     constraints.maxWidth = 1.0e9f;
     constraints.wordWrap = false;
     constraints.dpiScale = 1.0f;
-    const we::runtime::text::FontHandle fontHandle = bold ? m_SemiBoldFont : m_RegularFont;
+    we::runtime::text::FontHandle fontHandle = m_RegularFont;
+    if (weight >= we::runtime::text::layout::FontWeight::SemiBold) {
+        fontHandle = m_SemiBoldFont;
+    } else if (weight >= we::runtime::text::layout::FontWeight::Medium) {
+        fontHandle = m_MediumFont;
+    }
     return m_TextEngine->Measure(text, style, constraints, fontHandle).width;
 }
 
@@ -366,7 +414,13 @@ bool TextUIService::GenerateTextGeometry(
 
     SyncDirtyAtlasPages();
 
-    we::runtime::text::FontHandle layoutFont = cmd.textBold ? m_SemiBoldFont : m_RegularFont;
+    we::runtime::text::FontHandle layoutFont = m_RegularFont;
+    const auto weight = EffectiveWeight(cmd);
+    if (weight >= we::runtime::text::layout::FontWeight::SemiBold) {
+        layoutFont = m_SemiBoldFont;
+    } else if (weight >= we::runtime::text::layout::FontWeight::Medium) {
+        layoutFont = m_MediumFont;
+    }
 
     we::runtime::text::layout::LayoutConstraints constraints{};
     constraints.maxWidth = 1.0e9f;

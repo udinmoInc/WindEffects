@@ -16,6 +16,8 @@
 #include "KindUI/Theming/StyleRole.h"
 #include "KindUI/Theming/ThemeAccess.h"
 
+#include "Text/Layout/TextStyle.h"
+
 #include <algorithm>
 #include <cmath>
 #include <cctype>
@@ -30,6 +32,11 @@ using we::runtime::kindui::MetricToken;
 using we::runtime::kindui::PaddingToken;
 
 namespace {
+
+// Input/dropdown value text — slightly brighter than primary for long paths.
+Color InputValueTextColor() {
+    return Color::Lerp(LColor(ColorToken::TextPrimary), Color{ 1.0f, 1.0f, 1.0f, 1.0f }, 0.28f);
+}
 
 float ApproxTextWidth(const std::string& text, float textSize) {
     return TextMetrics::MeasureWidth(text, textSize);
@@ -129,11 +136,11 @@ Size SettingsGroup::Measure(const Size& availableSize) {
     const float s = LScale();
     const float padX = 16.0f * s;
     const float padY = 16.0f * s;
-    const float titleSize = LMetric(MetricToken::TextSizeHeader) * s;
-    const float descSize = LMetric(MetricToken::TextSizeCaption) * s;
-    float headerH = titleSize + 4.0f * s;
+    const TypographySpec titleSpec = ResolveTypography(TypographyToken::SectionTitle);
+    const TypographySpec descSpec = ResolveTypography(TypographyToken::Hint);
+    float headerH = titleSpec.lineHeightPx * s;
     if (!m_Description.empty()) {
-        headerH += descSize + 4.0f * s;
+        headerH += descSpec.lineHeightPx * s + LMetric(MetricToken::LabelHintGap) * s;
     }
     headerH += 12.0f * s;
 
@@ -158,11 +165,11 @@ void SettingsGroup::Arrange(const Rect& allottedRect) {
     const float s = LScale();
     const float padX = 16.0f * s;
     const float padY = 16.0f * s;
-    const float titleSize = LMetric(MetricToken::TextSizeHeader) * s;
-    const float descSize = LMetric(MetricToken::TextSizeCaption) * s;
-    float y = allottedRect.y + padY + titleSize + 4.0f * s;
+    const TypographySpec titleSpec = ResolveTypography(TypographyToken::SectionTitle);
+    const TypographySpec descSpec = ResolveTypography(TypographyToken::Hint);
+    float y = allottedRect.y + padY + titleSpec.lineHeightPx * s;
     if (!m_Description.empty()) {
-        y += descSize + 4.0f * s;
+        y += descSpec.lineHeightPx * s + LMetric(MetricToken::LabelHintGap) * s;
     }
     y += 12.0f * s;
     if (m_Content) {
@@ -191,20 +198,24 @@ void SettingsGroup::Paint(PaintContext& context) {
             LColor(ColorToken::AccentPrimary));
     }
 
-    const float titleSize = LMetric(MetricToken::TextSizeHeader) * s;
-    const float descSize = LMetric(MetricToken::TextSizeSmall) * s;
+    const TypographySpec titleSpec = ResolveTypography(TypographyToken::SectionTitle);
+    const TypographySpec descSpec = ResolveTypography(TypographyToken::Hint);
     context.DrawText(
         m_Title,
         Point{ m_Geometry.x + padX, m_Geometry.y + padY },
-        LColor(ColorToken::TextPrimary),
-        titleSize,
-        true);
+        titleSpec.color,
+        titleSpec.sizePx * s,
+        static_cast<we::runtime::text::layout::FontWeight>(titleSpec.weight));
     if (!m_Description.empty()) {
         context.DrawText(
             m_Description,
-            Point{ m_Geometry.x + padX, m_Geometry.y + padY + titleSize + 4.0f * s },
-            LColor(ColorToken::TextSecondary),
-            descSize);
+            Point{
+                m_Geometry.x + padX,
+                m_Geometry.y + padY + titleSpec.lineHeightPx * s + LMetric(MetricToken::LabelHintGap) * s
+            },
+            descSpec.color,
+            descSpec.sizePx * s,
+            static_cast<we::runtime::text::layout::FontWeight>(descSpec.weight));
     }
 
     if (m_Content && m_Content->IsVisible()) {
@@ -285,18 +296,27 @@ void SettingsRow::Paint(PaintContext& context) {
             LMetric(MetricToken::CornerRadiusSmall) * s);
     }
 
-    const float titleSize = LMetric(MetricToken::TextSizeBody) * s;
-    const float hintSize = LMetric(MetricToken::TextSizeCaption) * s;
+    const TypographySpec labelSpec = ResolveTypography(TypographyToken::Label);
+    const TypographySpec hintSpec = ResolveTypography(TypographyToken::Hint);
+    const float labelSize = labelSpec.sizePx * s;
+    const float hintSize = hintSpec.sizePx * s;
+    const float labelHintGap = LMetric(MetricToken::LabelHintGap) * s;
     float y = m_Geometry.y + (m_Hint.empty()
-        ? (m_Geometry.height - titleSize) * 0.5f
+        ? (m_Geometry.height - labelSpec.lineHeightPx * s) * 0.5f
         : 6.0f * s);
-    context.DrawText(m_Label, Point{ m_Geometry.x, y }, LColor(ColorToken::TextPrimary), titleSize);
+    context.DrawText(
+        m_Label,
+        Point{ m_Geometry.x, y },
+        labelSpec.color,
+        labelSize,
+        static_cast<we::runtime::text::layout::FontWeight>(labelSpec.weight));
     if (!m_Hint.empty()) {
         context.DrawText(
             m_Hint,
-            Point{ m_Geometry.x, y + titleSize + 2.0f * s },
-            LColor(ColorToken::TextHint),
-            hintSize);
+            Point{ m_Geometry.x, y + labelSpec.lineHeightPx * s + labelHintGap },
+            hintSpec.color,
+            hintSize,
+            static_cast<we::runtime::text::layout::FontWeight>(hintSpec.weight));
     }
 
     if (m_Control && m_Control->IsVisible()) {
@@ -577,7 +597,7 @@ void SettingsDropdown::Paint(PaintContext& context) {
     context.DrawText(
         SelectedLabel(),
         Point{ trigger.x + 10.0f * s, trigger.y + (triggerH - textSize) * 0.5f },
-        LColor(ColorToken::TextPrimary),
+        InputValueTextColor(),
         textSize);
     IconPainter::DrawIcon(
         context,
@@ -596,7 +616,7 @@ void SettingsDropdown::Paint(PaintContext& context) {
             context.DrawText(
                 m_Options[static_cast<std::size_t>(i)],
                 Point{ opt.x + 10.0f * s, opt.y + (opt.height - textSize) * 0.5f },
-                i == m_Selected ? LColor(ColorToken::AccentPrimary) : LColor(ColorToken::TextPrimary),
+                i == m_Selected ? LColor(ColorToken::AccentPrimary) : InputValueTextColor(),
                 textSize);
         }
     }
@@ -813,7 +833,7 @@ void SettingsTextField::Paint(PaintContext& context) {
     const float textSize = LMetric(MetricToken::TextSizeBody) * s;
     const float pad = 8.0f * s;
     const std::string& draw = m_Text.empty() ? m_Placeholder : m_Text;
-    Color textColor = m_Text.empty() ? LColor(ColorToken::TextDisabled) : LColor(ColorToken::TextPrimary);
+    Color textColor = m_Text.empty() ? LColor(ColorToken::TextDisabled) : InputValueTextColor();
     std::string clipped = draw;
     const float maxW = m_Geometry.width - pad * 2.0f;
     while (clipped.size() > 3 && ApproxTextWidth(clipped, textSize) > maxW) {
@@ -960,12 +980,12 @@ void PathPickerField::Paint(PaintContext& context) {
     }
     context.DrawRoundedRect(browse, browseBg, radius);
 
-    const float textSize = LMetric(MetricToken::TextSizeCaption) * s;
+    const float textSize = LMetric(MetricToken::TextSizeBody) * s;
     const std::string shown = EllipsizePath(m_Path.empty() ? "No path selected" : m_Path, 42);
     context.DrawText(
         shown,
         Point{ field.x + 8.0f * s, field.y + (field.height - textSize) * 0.5f },
-        m_Path.empty() ? LColor(ColorToken::TextDisabled) : LColor(ColorToken::TextPrimary),
+        m_Path.empty() ? LColor(ColorToken::TextDisabled) : InputValueTextColor(),
         textSize);
 
     const float browseLabelSize = LMetric(MetricToken::TextSizeCaption) * s;
@@ -1452,13 +1472,13 @@ void SettingsActionBar::AddAction(
 Size SettingsActionBar::Measure(const Size& availableSize) {
     const float s = LScale();
     float w = 0.0f;
-    float h = 28.0f * s;
+    float h = LControlH(ControlSize::Compact) * s;
     for (auto& btn : m_Buttons) {
         if (!btn) {
             continue;
         }
-        const Size cs = btn->Measure(Size{ 200.0f * s, 36.0f * s });
-        w += cs.width + 8.0f * s;
+        const Size cs = btn->Measure(Size{ 200.0f * s, LControlH(ControlSize::Large) * s });
+        w += cs.width + LMetric(MetricToken::ButtonSpacing) * 2.0f * s;
         h = std::max(h, cs.height);
     }
     m_DesiredSize = Size{
@@ -1478,11 +1498,20 @@ void SettingsActionBar::Arrange(const Rect& allottedRect) {
         }
         const Size cs = btn->Measure(Size{ 200.0f * s, allottedRect.height });
         btn->Arrange(Rect{ x, allottedRect.y, cs.width, cs.height });
-        x += cs.width + 8.0f * s;
+        x += cs.width + LMetric(MetricToken::ButtonSpacing) * 2.0f * s;
     }
 }
 
 void SettingsActionBar::Paint(PaintContext& context) {
     for (auto& btn : m_Buttons) {
         if (btn && btn->IsVisible()) {
-            btn->Pa
+            btn->Paint(context);
+        }
+    }
+}
+
+void SettingsActionBar::Tick(float deltaTime) {
+    Widget::Tick(deltaTime);
+}
+
+} // namespace we::programs::welauncher

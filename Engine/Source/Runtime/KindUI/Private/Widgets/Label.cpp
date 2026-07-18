@@ -5,6 +5,7 @@
 #include "KindUI/Tokens/TypographySpec.h"
 #include "KindUI/Core/Style.h"
 #include "KindUI/Theming/ThemeAccess.h"
+#include "Text/Layout/TextStyle.h"
 
 #include <algorithm>
 #include <cmath>
@@ -100,7 +101,13 @@ void Label::Paint(PaintContext& context) {
     const float lineHeight = LineHeight();
     float currentY = m_Geometry.y;
     for (const auto& line : m_WrappedLines) {
-        context.DrawText(line, Point{ m_Geometry.x, currentY }, m_Style.color, m_Style.size, m_Style.bold, m_Style.italic);
+        context.DrawText(
+            line,
+            Point{ m_Geometry.x, currentY },
+            m_Style.color,
+            m_Style.size,
+            static_cast<we::runtime::text::layout::FontWeight>(m_Style.weight > 0 ? m_Style.weight : (m_Style.bold ? 600 : 400)),
+            m_Style.italic);
         currentY += lineHeight;
     }
 }

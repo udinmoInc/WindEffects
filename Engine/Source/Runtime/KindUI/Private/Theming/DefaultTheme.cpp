@@ -69,13 +69,13 @@ Color DefaultTheme::ResolveColor(ColorToken token) const {
 
     case ColorToken::TextPrimary:
     case ColorToken::TextWindowLabel:
-    case ColorToken::CodeForeground:     return {0.925f, 0.925f, 0.925f, 1.0f}; // #ECECEC
-    case ColorToken::TextSecondary:      return {0.706f, 0.706f, 0.706f, 1.0f}; // #B4B4B4
-    case ColorToken::TextCaption:        return {0.604f, 0.604f, 0.604f, 1.0f}; // #9A9A9A
+    case ColorToken::CodeForeground:     return {0.902f, 0.902f, 0.902f, 1.0f}; // #E6E6E6
+    case ColorToken::TextSecondary:      return {0.647f, 0.647f, 0.647f, 1.0f}; // #A5A5A5
+    case ColorToken::TextCaption:        return {0.647f, 0.647f, 0.647f, 1.0f}; // #A5A5A5
     case ColorToken::TextMuted:
     case ColorToken::TextHint:
-    case ColorToken::SearchPlaceholder:  return {0.522f, 0.522f, 0.522f, 1.0f}; // #858585
-    case ColorToken::TextDisabled:       return {0.361f, 0.361f, 0.361f, 1.0f}; // #5C5C5C
+    case ColorToken::SearchPlaceholder:  return {0.647f, 0.647f, 0.647f, 1.0f}; // #A5A5A5
+    case ColorToken::TextDisabled:       return {0.439f, 0.439f, 0.439f, 1.0f}; // #707070
     case ColorToken::TextOnAccent:       return {1.0f, 1.0f, 1.0f, 1.0f};
     case ColorToken::TextLink:
     case ColorToken::LinkForeground:
@@ -118,11 +118,11 @@ float DefaultTheme::ResolveMetric(MetricToken token) const {
     case MetricToken::TextSizeCategory: return 12.0f;
     case MetricToken::TextSizeNormal:
     case MetricToken::TextSizeWindow:
-    case MetricToken::TextSizeBody: return 13.0f;
-    case MetricToken::TextSizeCaption: return 11.0f;
+    case MetricToken::TextSizeBody: return 14.0f;
+    case MetricToken::TextSizeCaption: return 12.0f;
     case MetricToken::TextSizeSmall: return 12.0f;
-    case MetricToken::TextSizeHeader: return 15.0f;
-    case MetricToken::TextSizeTitle: return 20.0f;
+    case MetricToken::TextSizeHeader: return 16.5f;
+    case MetricToken::TextSizeTitle: return 33.0f;
     case MetricToken::TextCharWidthRatio: return 0.55f;
     case MetricToken::BorderWidth: return 1.0f;
     case MetricToken::FocusRingWidth: return 2.0f;
@@ -135,14 +135,14 @@ float DefaultTheme::ResolveMetric(MetricToken token) const {
     case MetricToken::NavigationButtonSize: return 32.0f;
     case MetricToken::ControlHeightCompact: return 28.0f;
     case MetricToken::ControlHeightLarge: return 40.0f;
-    case MetricToken::FormRowHeight: return 40.0f;
+    case MetricToken::FormRowHeight: return 44.0f;
     case MetricToken::MenuItemHeight: return 28.0f;
     case MetricToken::PageMargin: return 16.0f;
     case MetricToken::SectionGap: return 24.0f;
     case MetricToken::CardPadding: return 12.0f;
     case MetricToken::ContentGap: return 12.0f;
-    case MetricToken::FormRowGap: return 8.0f;
-    case MetricToken::LabelHintGap: return 2.0f;
+    case MetricToken::FormRowGap: return 13.0f;
+    case MetricToken::LabelHintGap: return 5.0f;
     case MetricToken::ListRowHeight: return 48.0f;
     case MetricToken::CategoryHeaderHeight: return 28.0f;
     case MetricToken::TitleBarHeight: return 34.0f;
@@ -239,21 +239,21 @@ float DefaultTheme::ResolveFontSize(TypographyToken token) const {
     switch (token) {
     case TypographyToken::WindowTitle:
     case TypographyToken::Display:
-        return 24.0f;
+        return ResolveMetric(MetricToken::TextSizeTitle) + 1.0f;
     case TypographyToken::PageTitle:
     case TypographyToken::Heading1:
-        return 20.0f;
+        return ResolveMetric(MetricToken::TextSizeTitle);
     case TypographyToken::SectionTitle:
     case TypographyToken::DialogTitle:
     case TypographyToken::Heading2:
     case TypographyToken::Heading:
-        return 15.0f;
+        return ResolveMetric(MetricToken::TextSizeHeader);
     case TypographyToken::CardTitle:
     case TypographyToken::Heading3:
-        return 14.0f;
+        return ResolveMetric(MetricToken::TextSizeHeader) - 1.0f;
     case TypographyToken::Heading4:
     case TypographyToken::Title:
-        return 14.0f;
+        return ResolveMetric(MetricToken::TextSizeBody) + 1.0f;
     case TypographyToken::Heading5:
     case TypographyToken::Subtitle:
     case TypographyToken::Heading6:
@@ -261,8 +261,8 @@ float DefaultTheme::ResolveFontSize(TypographyToken token) const {
     case TypographyToken::BodyStrong:
     case TypographyToken::Button:
     case TypographyToken::Link:
-        return 13.0f;
     case TypographyToken::Label:
+        return ResolveMetric(MetricToken::TextSizeBody);
     case TypographyToken::Menu:
     case TypographyToken::Toolbar:
     case TypographyToken::Navigation:
@@ -272,21 +272,20 @@ float DefaultTheme::ResolveFontSize(TypographyToken token) const {
     case TypographyToken::Code:
     case TypographyToken::Console:
     case TypographyToken::Monospace:
-        return 12.0f;
+        return ResolveMetric(MetricToken::TextSizeSmall);
     case TypographyToken::Status:
     case TypographyToken::StatusBar:
     case TypographyToken::PropertyLabel:
     case TypographyToken::Error:
     case TypographyToken::Warning:
     case TypographyToken::Success:
-        return 12.0f;
     case TypographyToken::Hint:
     case TypographyToken::Tooltip:
     case TypographyToken::Disabled:
     case TypographyToken::CaptionSmall:
-        return 11.0f;
+        return ResolveMetric(MetricToken::TextSizeCaption);
     default:
-        return 13.0f;
+        return ResolveMetric(MetricToken::TextSizeBody);
     }
 }
 

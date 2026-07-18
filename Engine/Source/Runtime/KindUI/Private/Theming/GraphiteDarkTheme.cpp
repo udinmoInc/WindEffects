@@ -109,19 +109,17 @@ Color GraphiteDarkTheme::ResolveColor(ColorToken token) const {
     case ColorToken::ControlBackgroundSelected:     return Hex(0x32,0x32,0x36);
 
     // ── Typography hierarchy (WCAG-friendly on #141416 / #1A1A1C / #222224) ──
-    // Primary  ~#ECECEC  ≥12:1  | Secondary ~#B4B4B4 ≥7:1
-    // Caption  ~#9A9A9A  ≥5:1   | Hint      ~#858585 ≥4.5:1
-    // Disabled ~#5C5C5C  intentionally softer
-    case ColorToken::TextPrimary:                   return Hex(0xEC,0xEC,0xEC);
-    case ColorToken::TextWindowLabel:               return Hex(0xEC,0xEC,0xEC);
-    case ColorToken::CodeForeground:                return Hex(0xEC,0xEC,0xEC);
+    // Primary  #E6E6E6  | Secondary/help #A5A5A5  | Disabled #707070
+    case ColorToken::TextPrimary:                   return Hex(0xE6,0xE6,0xE6);
+    case ColorToken::TextWindowLabel:               return Hex(0xE6,0xE6,0xE6);
+    case ColorToken::CodeForeground:                return Hex(0xE6,0xE6,0xE6);
 
-    case ColorToken::TextSecondary:                 return Hex(0xB4,0xB4,0xB4);
-    case ColorToken::TextCaption:                   return Hex(0x9A,0x9A,0x9A);
-    case ColorToken::TextMuted:                     return Hex(0x85,0x85,0x85);
-    case ColorToken::TextHint:                      return Hex(0x85,0x85,0x85);
-    case ColorToken::SearchPlaceholder:             return Hex(0x85,0x85,0x85);
-    case ColorToken::TextDisabled:                  return Hex(0x5C,0x5C,0x5C);
+    case ColorToken::TextSecondary:                 return Hex(0xA5,0xA5,0xA5);
+    case ColorToken::TextCaption:                   return Hex(0xA5,0xA5,0xA5);
+    case ColorToken::TextMuted:                     return Hex(0xA5,0xA5,0xA5);
+    case ColorToken::TextHint:                      return Hex(0xA5,0xA5,0xA5);
+    case ColorToken::SearchPlaceholder:             return Hex(0xA5,0xA5,0xA5);
+    case ColorToken::TextDisabled:                  return Hex(0x70,0x70,0x70);
 
     // ── Icons ──────────────────────────────────────────────────────────────
     case ColorToken::IconPrimary:                   return Hex(0xD4,0xD4,0xD4);
@@ -187,13 +185,13 @@ float GraphiteDarkTheme::ResolveMetric(MetricToken token) const {
     case MetricToken::TextSizeTabs: return 12.0f;
     case MetricToken::TextSizeNormal: return 13.0f;
     case MetricToken::TextSizeProperty: return 12.0f;
-    case MetricToken::TextSizeCaption: return 11.0f;
+    case MetricToken::TextSizeCaption: return 12.0f;
     case MetricToken::TextSizeWindow: return 13.0f;
-    case MetricToken::TextSizeHeader: return 15.0f;  // SectionTitle
-    case MetricToken::TextSizeBody: return 13.0f;    // PrimaryText
+    case MetricToken::TextSizeHeader: return 16.5f;  // SectionTitle SemiBold
+    case MetricToken::TextSizeBody: return 14.0f;    // PrimaryText / Label Medium
     case MetricToken::TextSizeSmall: return 12.0f;   // Caption
     case MetricToken::TextSizeCategory: return 12.0f;
-    case MetricToken::TextSizeTitle: return 20.0f;   // PageTitle
+    case MetricToken::TextSizeTitle: return 33.0f;   // PageTitle SemiBold
     case MetricToken::TextCharWidthRatio: return 0.55f;
     case MetricToken::BorderWidth: return 1.0f;
     case MetricToken::FocusRingWidth: return 2.0f;
@@ -211,14 +209,14 @@ float GraphiteDarkTheme::ResolveMetric(MetricToken token) const {
     case MetricToken::ButtonHeight: return 32.0f;
     case MetricToken::ControlHeightCompact: return 28.0f;
     case MetricToken::ControlHeightLarge: return 40.0f;
-    case MetricToken::FormRowHeight: return 40.0f;
+    case MetricToken::FormRowHeight: return 44.0f;
     case MetricToken::MenuItemHeight: return 28.0f;
     case MetricToken::PageMargin: return 16.0f;
     case MetricToken::SectionGap: return 24.0f;
     case MetricToken::CardPadding: return 12.0f;
     case MetricToken::ContentGap: return 12.0f;
-    case MetricToken::FormRowGap: return 8.0f;
-    case MetricToken::LabelHintGap: return 2.0f;
+    case MetricToken::FormRowGap: return 13.0f;
+    case MetricToken::LabelHintGap: return 5.0f;
     case MetricToken::NavigationButtonSize: return 32.0f;
     case MetricToken::IconSizeSearch: return 16.0f;
     case MetricToken::IconSizeToolbar: return 16.0f;
@@ -337,7 +335,7 @@ float GraphiteDarkTheme::ResolveFontSize(TypographyToken token) const {
     case TypographyToken::Button:
         return ResolveMetric(MetricToken::TextSizeNormal);
     case TypographyToken::Label:
-        return ResolveMetric(MetricToken::TextSizeSmall);
+        return ResolveMetric(MetricToken::TextSizeBody);
     case TypographyToken::Menu:
         return ResolveMetric(MetricToken::TextSizeMenu);
     case TypographyToken::Toolbar:
@@ -656,7 +654,10 @@ ResolvedStyle StyleResolver::Resolve(StyleRole role) const {
         style.foreground = theme.ResolveColor(ColorToken::TextPrimary);
         style.border = theme.ResolveColor(ColorToken::BorderSubtle);
         style.cornerRadius = Scaled(theme.ResolveMetric(MetricToken::CornerRadiusMedium));
-        style.padding = { Scaled(12.0f), Scaled(12.0f), Scaled(12.0f), Scaled(12.0f) };
+        {
+            const float pad = Scaled(theme.ResolveMetric(MetricToken::CardPadding));
+            style.padding = { pad, pad, pad, pad };
+        }
         style.elevation = theme.ResolveElevation(ElevationToken::Card);
         break;
     case StyleRole::CardHover:
@@ -669,7 +670,7 @@ ResolvedStyle StyleResolver::Resolve(StyleRole role) const {
     case StyleRole::TableHeader:
         style.background = theme.ResolveColor(ColorToken::PanelToolbarBackground);
         style.foreground = theme.ResolveColor(ColorToken::TextCaption);
-        style.height = Scaled(28.0f);
+        style.height = Scaled(theme.ResolveMetric(MetricToken::MenuItemHeight));
         style.fontSize = Scaled(theme.ResolveMetric(MetricToken::TextSizeCaption));
         break;
     case StyleRole::TableRow:
@@ -703,14 +704,14 @@ ResolvedStyle StyleResolver::Resolve(StyleRole role) const {
     case StyleRole::PropertyRow:
         style.background = Color::Transparent();
         style.foreground = theme.ResolveColor(ColorToken::TextSecondary);
-        style.height = Scaled(theme.ResolveMetric(MetricToken::ListRowHeight) * 0.75f);
+        style.height = Scaled(theme.ResolveMetric(MetricToken::FormRowHeight));
         style.fontSize = Scaled(theme.ResolveMetric(MetricToken::TextSizeProperty));
         break;
     case StyleRole::SidebarItem:
         style.background = Color::Transparent();
         style.foreground = theme.ResolveColor(ColorToken::TextSecondary);
         style.icon = theme.ResolveColor(ColorToken::IconSecondary);
-        style.height = Scaled(40.0f);
+        style.height = Scaled(theme.ResolveMetric(MetricToken::FormRowHeight));
         style.fontSize = Scaled(theme.ResolveMetric(MetricToken::TextSizeBody));
         style.iconSize = static_cast<float>(IconMetrics::GlyphTierPx(MetricToken::IconSizeNavigation));
         style.cornerRadius = Scaled(theme.ResolveMetric(MetricToken::CornerRadiusSmall));
@@ -720,7 +721,7 @@ ResolvedStyle StyleResolver::Resolve(StyleRole role) const {
         style.foreground = theme.ResolveColor(ColorToken::TextPrimary);
         style.icon = theme.ResolveColor(ColorToken::AccentPrimary);
         style.border = theme.ResolveColor(ColorToken::AccentPrimary);
-        style.height = Scaled(40.0f);
+        style.height = Scaled(theme.ResolveMetric(MetricToken::FormRowHeight));
         style.fontSize = Scaled(theme.ResolveMetric(MetricToken::TextSizeBody));
         style.iconSize = static_cast<float>(IconMetrics::GlyphTierPx(MetricToken::IconSizeNavigation));
         style.cornerRadius = Scaled(theme.ResolveMetric(MetricToken::CornerRadiusSmall));
