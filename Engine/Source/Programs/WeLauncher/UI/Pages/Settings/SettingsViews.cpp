@@ -12,7 +12,9 @@
 #include "KindUI/Layout/Flex.h"
 #include "Platform/PlatformSDK.h"
 #include "KindUI/Tokens/DesignToken.h"
+#include "KindUI/Tokens/TypographySpec.h"
 #include "KindUI/Theming/StyleRole.h"
+#include "KindUI/Theming/ThemeAccess.h"
 
 #include <algorithm>
 #include <cmath>
@@ -238,17 +240,21 @@ bool SettingsRow::MatchesQuery(const std::string& queryLower) const {
 
 Size SettingsRow::Measure(const Size& availableSize) {
     const float s = LScale();
-    float controlH = 28.0f * s;
+    float controlH = LControlH(ControlSize::Compact) * s;
     float controlW = 160.0f * s;
     if (m_Control) {
-        const Size cs = m_Control->Measure(Size{ availableSize.width * 0.5f, 40.0f * s });
+        const Size cs = m_Control->Measure(Size{ availableSize.width * 0.5f, LMetric(MetricToken::FormRowHeight) * s });
         controlH = std::max(controlH, cs.height);
         controlW = cs.width;
     }
-    const float labelBlock = m_Hint.empty() ? 18.0f * s : 32.0f * s;
+    const TypographySpec labelSpec = ResolveTypography(TypographyToken::Label);
+    const TypographySpec hintSpec = ResolveTypography(TypographyToken::Hint);
+    const float labelBlock = m_Hint.empty()
+        ? labelSpec.lineHeightPx * s
+        : (labelSpec.lineHeightPx + hintSpec.lineHeightPx + LMetric(MetricToken::LabelHintGap)) * s;
     m_DesiredSize = Size{
         availableSize.width > 0.0f ? availableSize.width : 440.0f * s,
-        std::max(kRowH * s, std::max(labelBlock, controlH) + 8.0f * s)
+        std::max(LMetric(MetricToken::FormRowHeight) * s, std::max(labelBlock, controlH) + LMetric(MetricToken::FormRowGap) * s)
     };
     (void)controlW;
     return m_DesiredSize;
@@ -490,16 +496,18 @@ const std::string& SettingsDropdown::SelectedLabel() const {
 Size SettingsDropdown::Measure(const Size& availableSize) {
     const float s = LScale();
     float maxW = 80.0f * s;
-    const float textSize = 13.0f * s;
+    const float textSize = LMetric(MetricToken::TextSizeBody) * s;
+    const float triggerH = LControlH() * s;
+    const float itemH = LMetric(MetricToken::MenuItemHeight) * s;
     for (const auto& opt : m_Options) {
         maxW = std::max(maxW, ApproxTextWidth(opt, textSize) + 36.0f * s);
     }
     if (availableSize.width > maxW) {
         maxW = availableSize.width;
     }
-    float h = 34.0f * s;
+    float h = triggerH;
     if (m_Open) {
-        h += 4.0f * s + static_cast<float>(m_Options.size()) * 28.0f * s;
+        h += LMetric(MetricToken::Space1) * s + static_cast<float>(m_Options.size()) * itemH;
     }
     m_DesiredSize = Size{ maxW, h };
     return m_DesiredSize;
@@ -507,7 +515,7 @@ Size SettingsDropdown::Measure(const Size& availableSize) {
 
 void SettingsDropdown::Arrange(const Rect& allottedRect) {
     const float s = LScale();
-    const float triggerH = 34.0f * s;
+    const float triggerH = LControlH() * s;
     const float w = allottedRect.width > 0.0f ? allottedRect.width : m_DesiredSize.width;
     m_Geometry = Rect{
         allottedRect.x,
@@ -519,19 +527,21 @@ void SettingsDropdown::Arrange(const Rect& allottedRect) {
 
 Rect SettingsDropdown::MenuRect() const {
     const float s = LScale();
-    const float triggerH = 34.0f * s;
+    const float triggerH = LControlH() * s;
+    const float itemH = LMetric(MetricToken::MenuItemHeight) * s;
     return Rect{
         m_Geometry.x,
-        m_Geometry.y + triggerH + 2.0f * s,
+        m_Geometry.y + triggerH + LMetric(MetricToken::Space1) * 0.5f * s,
         m_Geometry.width,
-        static_cast<float>(m_Options.size()) * 28.0f * s
+        static_cast<float>(m_Options.size()) * itemH
     };
 }
 
 Rect SettingsDropdown::OptionRect(int index) const {
     const float s = LScale();
+    const float itemH = LMetric(MetricToken::MenuItemHeight) * s;
     const Rect menu = MenuRect();
-    return Rect{ menu.x, menu.y + static_cast<float>(index) * 28.0f * s, menu.width, 28.0f * s };
+    return Rect{ menu.x, menu.y + static_cast<float>(index) * itemH, menu.width, itemH };
 }
 
 int SettingsDropdown::HitOption(const Point& p) const {
@@ -549,7 +559,7 @@ int SettingsDropdown::HitOption(const Point& p) const {
 void SettingsDropdown::Paint(PaintContext& context) {
     const float s = LScale();
     const float radius = LMetric(MetricToken::CornerRadiusSmall) * s;
-    const float triggerH = 34.0f * s;
+    const float triggerH = LControlH() * s;
     Rect trigger{ m_Geometry.x, m_Geometry.y, m_Geometry.width, triggerH };
 
     Color bg = LColor(ColorToken::InputBackground);
@@ -563,7 +573,7 @@ void SettingsDropdown::Paint(PaintContext& context) {
         1.0f,
         radius);
 
-    const float textSize = 13.0f * s;
+    const float textSize = LMetric(MetricToken::TextSizeBody) * s;
     context.DrawText(
         SelectedLabel(),
         Point{ trigger.x + 10.0f * s, trigger.y + (triggerH - textSize) * 0.5f },
@@ -597,7 +607,7 @@ void SettingsDropdown::OnMouseDown(const MouseEvent& event) {
         return;
     }
     const float s = LScale();
-    Rect trigger{ m_Geometry.x, m_Geometry.y, m_Geometry.width, 34.0f * s };
+    Rect trigger{ m_Geometry.x, m_Geometry.y, m_Geometry.width, LControlH() * s };
     if (trigger.Contains(event.position)) {
         m_Open = !m_Open;
         InvalidateUI();
@@ -661,7 +671,7 @@ Size SettingsSegmented::Measure(const Size& availableSize) {
     for (const auto& label : m_Labels) {
         w += ApproxTextWidth(label, textSize) + 20.0f * s;
     }
-    m_DesiredSize = Size{ std::max(120.0f * s, w), 28.0f * s };
+    m_DesiredSize = Size{ std::max(120.0f * s, w), LControlH(ControlSize::Compact) * s };
     return m_DesiredSize;
 }
 
@@ -773,7 +783,7 @@ void SettingsTextField::SetText(std::string text) {
 Size SettingsTextField::Measure(const Size& availableSize) {
     (void)availableSize;
     const float s = LScale();
-    m_DesiredSize = Size{ m_PreferredWidth * s, 28.0f * s };
+    m_DesiredSize = Size{ m_PreferredWidth * s, LControlH(ControlSize::Compact) * s };
     return m_DesiredSize;
 }
 
@@ -906,7 +916,7 @@ void PathPickerField::SetPath(std::string path) {
 Size PathPickerField::Measure(const Size& availableSize) {
     const float s = LScale();
     const float w = availableSize.width > 80.0f * s ? availableSize.width : 320.0f * s;
-    m_DesiredSize = Size{ w, 34.0f * s };
+    m_DesiredSize = Size{ w, LControlH() * s };
     return m_DesiredSize;
 }
 
@@ -1147,7 +1157,7 @@ void NumberStepper::SetValue(float value) {
 Size NumberStepper::Measure(const Size& availableSize) {
     (void)availableSize;
     const float s = LScale();
-    m_DesiredSize = Size{ 110.0f * s, 28.0f * s };
+    m_DesiredSize = Size{ 110.0f * s, LControlH(ControlSize::Compact) * s };
     return m_DesiredSize;
 }
 
@@ -1162,12 +1172,14 @@ void NumberStepper::Arrange(const Rect& allottedRect) {
 
 Rect NumberStepper::MinusRect() const {
     const float s = LScale();
-    return Rect{ m_Geometry.x, m_Geometry.y, 28.0f * s, m_Geometry.height };
+    const float btn = LControlH(ControlSize::Compact) * s;
+    return Rect{ m_Geometry.x, m_Geometry.y, btn, m_Geometry.height };
 }
 
 Rect NumberStepper::PlusRect() const {
     const float s = LScale();
-    return Rect{ m_Geometry.x + m_Geometry.width - 28.0f * s, m_Geometry.y, 28.0f * s, m_Geometry.height };
+    const float btn = LControlH(ControlSize::Compact) * s;
+    return Rect{ m_Geometry.x + m_Geometry.width - btn, m_Geometry.y, btn, m_Geometry.height };
 }
 
 NumberStepper::Zone NumberStepper::HitTest(const Point& p) const {
@@ -1356,7 +1368,12 @@ void AppearancePreviewPanel::Paint(PaintContext& context) {
     context.DrawRoundedRectOutline(m_Geometry, LColor(ColorToken::BorderSubtle), 1.0f, radius);
 
     const Color accent = ParseHexColor(m_AccentHex);
-    Rect chrome{ m_Geometry.x + 12.0f * s, m_Geometry.y + 12.0f * s, m_Geometry.width - 24.0f * s, 28.0f * s };
+    Rect chrome{
+        m_Geometry.x + LMetric(MetricToken::CardPadding) * s,
+        m_Geometry.y + LMetric(MetricToken::CardPadding) * s,
+        m_Geometry.width - LMetric(MetricToken::CardPadding) * 2.0f * s,
+        LControlH(ControlSize::Compact) * s
+    };
     context.DrawRoundedRect(chrome, LColor(ColorToken::HeaderBackground), 6.0f * s);
     context.DrawRoundedRect(
         Rect{ chrome.x + 8.0f * s, chrome.y + 8.0f * s, 12.0f * s, 12.0f * s },
@@ -1468,13 +1485,4 @@ void SettingsActionBar::Arrange(const Rect& allottedRect) {
 void SettingsActionBar::Paint(PaintContext& context) {
     for (auto& btn : m_Buttons) {
         if (btn && btn->IsVisible()) {
-            btn->Paint(context);
-        }
-    }
-}
-
-void SettingsActionBar::Tick(float deltaTime) {
-    Widget::Tick(deltaTime);
-}
-
-} // namespace we::programs::welauncher
+            btn->Pa

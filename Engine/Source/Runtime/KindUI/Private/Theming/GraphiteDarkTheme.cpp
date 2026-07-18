@@ -209,6 +209,16 @@ float GraphiteDarkTheme::ResolveMetric(MetricToken token) const {
     case MetricToken::SearchBoxHeight: return 28.0f;
     case MetricToken::IconButtonSize: return 32.0f;
     case MetricToken::ButtonHeight: return 32.0f;
+    case MetricToken::ControlHeightCompact: return 28.0f;
+    case MetricToken::ControlHeightLarge: return 40.0f;
+    case MetricToken::FormRowHeight: return 40.0f;
+    case MetricToken::MenuItemHeight: return 28.0f;
+    case MetricToken::PageMargin: return 16.0f;
+    case MetricToken::SectionGap: return 24.0f;
+    case MetricToken::CardPadding: return 12.0f;
+    case MetricToken::ContentGap: return 12.0f;
+    case MetricToken::FormRowGap: return 8.0f;
+    case MetricToken::LabelHintGap: return 2.0f;
     case MetricToken::NavigationButtonSize: return 32.0f;
     case MetricToken::IconSizeSearch: return 16.0f;
     case MetricToken::IconSizeToolbar: return 16.0f;
@@ -244,6 +254,23 @@ Margin GraphiteDarkTheme::ResolvePadding(PaddingToken token) const {
     case PaddingToken::PaddingPanelRight:
     case PaddingToken::PaddingPanelBottom:
         return {12.0f, 12.0f, 12.0f, 12.0f};
+    case PaddingToken::Card: {
+        const float p = ResolveMetric(MetricToken::CardPadding);
+        return {p, p, p, p};
+    }
+    case PaddingToken::Page: {
+        const float p = ResolveMetric(MetricToken::PageMargin);
+        return {p, p, p, p};
+    }
+    case PaddingToken::Input: {
+        const float h = ResolveMetric(MetricToken::Space2);
+        const float v = ResolveMetric(MetricToken::Space1);
+        return {h, v, h, v};
+    }
+    case PaddingToken::FormRow: {
+        const float g = ResolveMetric(MetricToken::FormRowGap);
+        return {0.0f, g * 0.5f, 0.0f, g * 0.5f};
+    }
     case PaddingToken::Button:
     case PaddingToken::PaddingButtonLeft:
     case PaddingToken::PaddingButtonTop:
@@ -264,6 +291,7 @@ float GraphiteDarkTheme::ResolveSpacing(SpacingToken token) const {
     case SpacingToken::Medium: return ResolveMetric(MetricToken::Space2);
     case SpacingToken::Large: return ResolveMetric(MetricToken::Space4);
     case SpacingToken::ExtraLarge: return ResolveMetric(MetricToken::Space6);
+    case SpacingToken::Huge: return ResolveMetric(MetricToken::Space6) + ResolveMetric(MetricToken::Space2);
     default: return ResolveMetric(MetricToken::Space2);
     }
 }

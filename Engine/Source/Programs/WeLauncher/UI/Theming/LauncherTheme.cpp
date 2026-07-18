@@ -90,6 +90,16 @@ Color LauncherTheme::ResolveColor(ColorToken token) const {
 float LauncherTheme::ResolveMetric(MetricToken token) const {
     switch (token) {
     case MetricToken::ButtonHeight: return 34.0f;
+    case MetricToken::ControlHeightCompact: return 28.0f;
+    case MetricToken::ControlHeightLarge: return 40.0f;
+    case MetricToken::FormRowHeight: return 40.0f;
+    case MetricToken::MenuItemHeight: return 28.0f;
+    case MetricToken::PageMargin: return 16.0f;
+    case MetricToken::SectionGap: return 24.0f;
+    case MetricToken::CardPadding: return 12.0f;
+    case MetricToken::ContentGap: return 12.0f;
+    case MetricToken::FormRowGap: return 8.0f;
+    case MetricToken::LabelHintGap: return 2.0f;
     case MetricToken::CornerRadiusSmall: return 8.0f;
     case MetricToken::CornerRadiusMedium: return 8.0f;
     case MetricToken::ButtonPaddingHorizontal: return 12.0f;

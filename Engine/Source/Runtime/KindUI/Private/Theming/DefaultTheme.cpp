@@ -133,6 +133,16 @@ float DefaultTheme::ResolveMetric(MetricToken token) const {
     case MetricToken::IconButtonSize:
     case MetricToken::ButtonHeight:
     case MetricToken::NavigationButtonSize: return 32.0f;
+    case MetricToken::ControlHeightCompact: return 28.0f;
+    case MetricToken::ControlHeightLarge: return 40.0f;
+    case MetricToken::FormRowHeight: return 40.0f;
+    case MetricToken::MenuItemHeight: return 28.0f;
+    case MetricToken::PageMargin: return 16.0f;
+    case MetricToken::SectionGap: return 24.0f;
+    case MetricToken::CardPadding: return 12.0f;
+    case MetricToken::ContentGap: return 12.0f;
+    case MetricToken::FormRowGap: return 8.0f;
+    case MetricToken::LabelHintGap: return 2.0f;
     case MetricToken::ListRowHeight: return 48.0f;
     case MetricToken::CategoryHeaderHeight: return 28.0f;
     case MetricToken::TitleBarHeight: return 34.0f;
@@ -173,6 +183,23 @@ Margin DefaultTheme::ResolvePadding(PaddingToken token) const {
     case PaddingToken::PaddingPanelRight:
     case PaddingToken::PaddingPanelBottom:
         return {12.0f, 12.0f, 12.0f, 12.0f};
+    case PaddingToken::Card: {
+        const float p = ResolveMetric(MetricToken::CardPadding);
+        return {p, p, p, p};
+    }
+    case PaddingToken::Page: {
+        const float p = ResolveMetric(MetricToken::PageMargin);
+        return {p, p, p, p};
+    }
+    case PaddingToken::Input: {
+        const float h = ResolveMetric(MetricToken::Space2);
+        const float v = ResolveMetric(MetricToken::Space1);
+        return {h, v, h, v};
+    }
+    case PaddingToken::FormRow: {
+        const float g = ResolveMetric(MetricToken::FormRowGap);
+        return {0.0f, g * 0.5f, 0.0f, g * 0.5f};
+    }
     case PaddingToken::Button:
     case PaddingToken::PaddingButtonLeft:
     case PaddingToken::PaddingButtonTop:
@@ -192,6 +219,7 @@ float DefaultTheme::ResolveSpacing(SpacingToken token) const {
     case SpacingToken::Medium:     return 8.0f;
     case SpacingToken::Large:      return 16.0f;
     case SpacingToken::ExtraLarge: return 24.0f;
+    case SpacingToken::Huge:       return 32.0f;
     default:                       return 8.0f;
     }
 }

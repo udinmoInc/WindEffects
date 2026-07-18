@@ -63,8 +63,6 @@ public:
     void Paint(we::runtime::kindui::PaintContext& context) override;
     void Tick(float deltaTime) override;
 
-    static constexpr float kRowH = 40.0f;
-
 private:
     std::string m_Label;
     std::string m_Hint;

@@ -16,6 +16,8 @@ KINDUI_API float ResolveSpacing(SpacingToken token);
 KINDUI_API float ResolveRadius(RadiusToken token);
 KINDUI_API float ResolveFontSize(TypographyToken token);
 KINDUI_API TypographySpec ResolveTypography(TypographyToken token);
+/// Maps ControlSize → theme metric height (logical px, before DPI).
+KINDUI_API float ResolveControlHeight(ControlSize size);
 KINDUI_API Color ResolveInteractiveBackground(float hoverAnim, float pressAnim, bool selected = false);
 KINDUI_API Color ResolveTextForState(bool hovered, bool active = false);
 KINDUI_API Color ResolveIconForState(bool hovered, bool active = false);
