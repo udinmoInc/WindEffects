@@ -4,6 +4,7 @@
 #include "Registry/AssetTypeResolver.h"
 #include "KindUI/Rendering/IconRenderer.h"
 #include "Core/Logger.h"
+#include "Core/Paths.h"
 #include "KindUI/Core/UIRepaintGate.h"
 #include <filesystem>
 
@@ -23,7 +24,7 @@ void ContentBrowserService::Initialize(we::runtime::kindui::IconRenderer* iconRe
     m_IconRenderer = iconRenderer;
     ContentBrowserFolderArt::Get().Initialize(iconRenderer);
     ContentBrowserBlueprintArt::Get().Initialize(iconRenderer);
-    m_DiskCache.SetCacheDirectory(std::filesystem::path("Saved/Cache/Thumbnails"));
+    m_DiskCache.SetCacheDirectory(we::core::PathService::Get().ThumbnailCacheRoot());
     m_ThumbnailManager.SetDiskCache(&m_DiskCache);
     m_ThumbnailManager.SetFolderPreviewGenerator(&m_FolderPreview);
 

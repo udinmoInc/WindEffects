@@ -2,6 +2,7 @@
 
 #include "Util/JsonFile.h"
 #include "Util/PathUtils.h"
+#include "Core/Paths.h"
 
 #include <fstream>
 #include <sstream>
@@ -11,15 +12,15 @@ namespace {
 
 std::vector<std::string> RequiredProjectFolders() {
     return {
-        "Config",
-        "Content",
-        "Content/Maps",
-        "Source",
-        "Plugins",
+        we::core::layout::kConfig,
+        we::core::layout::kContent,
+        std::string(we::core::layout::kContent) + "/Maps",
+        we::core::layout::kSource,
+        we::core::layout::kPlugins,
         "ProjectSettings",
-        "Saved",
-        "Intermediate",
-        "Binaries",
+        we::core::layout::kSaved,
+        we::core::layout::kIntermediate,
+        we::core::layout::kBinaries,
     };
 }
 
@@ -200,14 +201,14 @@ bool ProjectService::EnsureProjectLayout(const std::filesystem::path& projectRoo
              << "}\n";
     }
 
-    const auto defaultEngine = projectRoot / "Config" / "DefaultEngine.ini";
+    const auto defaultEngine = projectRoot / we::core::layout::kConfig / "DefaultEngine.ini";
     if (!std::filesystem::exists(defaultEngine)) {
         std::ofstream file(defaultEngine);
         file << "[/Script/EngineSettings]\n"
              << "GameName=" << projectName << "\n";
     }
 
-    const auto defaultGame = projectRoot / "Config" / "DefaultGame.ini";
+    const auto defaultGame = projectRoot / we::core::layout::kConfig / "DefaultGame.ini";
     if (!std::filesystem::exists(defaultGame)) {
         std::ofstream file(defaultGame);
         file << "[/Script/EngineSettings]\n"
@@ -218,14 +219,14 @@ bool ProjectService::EnsureProjectLayout(const std::filesystem::path& projectRoo
     if (!std::filesystem::exists(projectSettings)) {
         nlohmann::json settings = {
             { "projectName", projectName },
-            { "startupMap", "Content/Maps/Startup.scene" },
+            { "startupMap", std::string(we::core::layout::kContent) + "/Maps/Startup.scene" },
             { "defaultGameMode", "" },
             { "targetPlatform", "Windows" },
         };
         (void)JsonFile::Save(projectSettings, settings);
     }
 
-    const auto startupMap = projectRoot / "Content" / "Maps" / "Startup.scene";
+    const auto startupMap = projectRoot / we::core::layout::kContent / "Maps" / "Startup.scene";
     if (!std::filesystem::exists(startupMap)) {
         std::ofstream file(startupMap);
         file << "{\n"
@@ -235,7 +236,7 @@ bool ProjectService::EnsureProjectLayout(const std::filesystem::path& projectRoo
              << "}\n";
     }
 
-    const auto keepContent = projectRoot / "Content" / ".keep";
+    const auto keepContent = projectRoot / we::core::layout::kContent / ".keep";
     if (!std::filesystem::exists(keepContent)) {
         std::ofstream(keepContent) << "";
     }
@@ -345,8 +346,8 @@ ProjectOperationResult ProjectService::CreateProject(
     descriptor.templateId = templateId;
     descriptor.engineVersion = m_Engines.Current().engineVersion;
     descriptor.engineRoot = PathUtils::ToUtf8(m_Engines.Current().engineRoot);
-    descriptor.contentDirectory = "Content";
-    descriptor.startupMap = "Content/Maps/Startup.scene";
+    descriptor.contentDirectory = we::core::layout::kContent;
+    descriptor.startupMap = std::string(we::core::layout::kContent) + "/Maps/Startup.scene";
     descriptor.defaultGameMode.clear();
     descriptor.modules = { projectName };
     descriptor.plugins = {};

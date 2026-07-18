@@ -11,6 +11,7 @@
 namespace we::projects {
 
 /// Owns everything project-specific. Nothing project-related lives globally outside this.
+/// Disk locations are published to we::core::PathService on Load.
 class PROJECTS_API ProjectContext {
 public:
     static ProjectContext& Get();
@@ -24,6 +25,10 @@ public:
     [[nodiscard]] const std::filesystem::path& ConfigRoot() const { return m_ConfigRoot; }
     [[nodiscard]] const std::filesystem::path& SavedRoot() const { return m_SavedRoot; }
     [[nodiscard]] const std::filesystem::path& IntermediateRoot() const { return m_IntermediateRoot; }
+    [[nodiscard]] const std::filesystem::path& CookedRoot() const { return m_CookedRoot; }
+    [[nodiscard]] const std::filesystem::path& CacheRoot() const { return m_CacheRoot; }
+    [[nodiscard]] const std::filesystem::path& LogsRoot() const { return m_LogsRoot; }
+    [[nodiscard]] const std::filesystem::path& AssetPipelineRoot() const { return m_AssetPipelineRoot; }
     [[nodiscard]] const std::string& CurrentMap() const { return m_CurrentMap; }
     [[nodiscard]] const std::vector<std::string>& ModuleList() const { return m_Descriptor.modules; }
     [[nodiscard]] const std::vector<std::string>& PluginList() const { return m_Descriptor.plugins; }
@@ -55,6 +60,10 @@ private:
     std::filesystem::path m_ConfigRoot;
     std::filesystem::path m_SavedRoot;
     std::filesystem::path m_IntermediateRoot;
+    std::filesystem::path m_CookedRoot;
+    std::filesystem::path m_CacheRoot;
+    std::filesystem::path m_LogsRoot;
+    std::filesystem::path m_AssetPipelineRoot;
     std::string m_CurrentMap;
     ChangeCallback m_OnLoaded;
     ChangeCallback m_OnUnloaded;

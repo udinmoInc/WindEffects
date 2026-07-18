@@ -1,5 +1,6 @@
 #include "KindUI/Rendering/Icons/SvgRasterizer.h"
 #include "Core/Logger.h"
+#include "Core/Paths.h"
 
 #include <lunasvg.h>
 
@@ -46,21 +47,27 @@ std::string SvgRasterizer::ResolveAssetPath(const std::string& relativePath) {
     if (relativePath.empty()) {
         return {};
     }
-    if (std::filesystem::exists(relativePath)) {
+
+    const auto relative = we::core::PathService::FromUtf8(relativePath);
+    if (relative.is_absolute()) {
+        std::error_code ec;
+        if (std::filesystem::exists(relative, ec)) {
+            return we::core::PathService::ToUtf8(relative);
+        }
         return relativePath;
     }
 
-    const std::string candidates[] = {
-        "../" + relativePath,
-        "../../" + relativePath,
-        "../../../" + relativePath,
-        "Engine/Content/" + relativePath,
-        "../Engine/Content/" + relativePath,
-    };
-    for (const auto& candidate : candidates) {
-        if (std::filesystem::exists(candidate)) {
-            return candidate;
-        }
+    auto& paths = we::core::PathService::Get();
+    auto candidates = paths.ResourceCandidates(relative);
+    // Also try as icon-relative and staged Assets/Editor content.
+    for (auto& extra : paths.IconCandidates(relative)) {
+        candidates.push_back(std::move(extra));
+    }
+    candidates.push_back(paths.StagedAssetsRoot() / relative);
+    candidates.push_back(paths.ExecutableDirectory() / relative);
+
+    if (const auto found = we::core::PathService::FindExisting(candidates)) {
+        return we::core::PathService::ToUtf8(*found);
     }
     return relativePath;
 }

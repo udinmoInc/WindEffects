@@ -4,6 +4,7 @@
 #include "AssetImporter/IAssetImporter.h"
 #include "AssetProcessors/ProcessTypes.h"
 #include "Core/Logger.h"
+#include "Core/Paths.h"
 
 #include <algorithm>
 #include <atomic>
@@ -74,7 +75,7 @@ public:
     explicit AssetPipelineService(AssetPipelineDependencies deps)
         : m_Deps(std::move(deps))
         , m_Cache(m_Deps.cacheRoot.empty()
-              ? std::filesystem::path("Intermediate") / "AssetPipeline"
+              ? we::core::PathService::Get().AssetPipelineRoot()
               : m_Deps.cacheRoot)
         , m_Watcher(m_Deps.platform) {
         if (!m_Deps.importService || !m_Deps.processorService) {
@@ -379,7 +380,7 @@ private:
         we::runtime::assetprocessors::ProcessContext processCtx{};
         processCtx.imported = importResult.asset;
         processCtx.intermediateRoot = request.intermediateRoot.empty()
-            ? m_Cache.GetRoot() / "Intermediate"
+            ? m_Cache.GetRoot() / we::core::layout::kIntermediate
             : request.intermediateRoot;
         processCtx.processedRoot = request.processedRoot.empty()
             ? m_Cache.GetRoot() / "Processed"
@@ -452,7 +453,7 @@ private:
             PipelineRequest req{};
             req.import.sourcePath = path;
             req.import.outputDirectory = m_WatchOutput.empty()
-                ? (m_WatchRoot / "Cooked")
+                ? (m_WatchRoot / we::core::layout::kCooked)
                 : m_WatchOutput;
             req.forceRebuild = true;
             auto result = ExecuteBuild(req, {});

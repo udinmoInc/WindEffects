@@ -4,6 +4,7 @@
 #include "AssetImporter/AssetMetadata.h"
 #include "AssetImporter/AssetPackage.h"
 #include "Core/Logger.h"
+#include "Core/Paths.h"
 
 #include <algorithm>
 #include <fstream>
@@ -63,7 +64,7 @@ public:
             : std::string(CookPlatformToString(request.platform));
 
         result.cookedRoot = request.outputDirectory.empty()
-            ? (std::filesystem::path("Cooked") / platformName)
+            ? we::core::PathService::Get().CookedRootForPlatform(platformName)
             : request.outputDirectory;
 
         std::error_code ec;

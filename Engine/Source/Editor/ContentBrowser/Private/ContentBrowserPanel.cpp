@@ -10,6 +10,7 @@
 #include "KindUI/Layout/Splitter.h"
 #include "KindUI/Core/Icon.h"
 #include "Core/Localization.h"
+#include "Core/Paths.h"
 #include "Services/ContentBrowserService.h"
 #include "Registry/ContentAssetRegistry.h"
 #include "Controllers/FilterController.h"
@@ -226,11 +227,14 @@ std::shared_ptr<::we::editor::panels::Panel> CreateContentBrowserPanel() {
     });
 
     panelToolbar->SetOnImportClicked([]() {
-        const std::filesystem::path inputFont = "Assets/Fonts/Inter-Regular.ttf";
-        const std::filesystem::path outputDir = "Assets/Fonts";
-        if (std::filesystem::exists(inputFont)) {
-            (void)we::runtime::kindui::FontImportService::ImportFontFile(inputFont, outputDir, 18.0f);
+        auto& paths = we::core::PathService::Get();
+        const auto inputCandidates = paths.FontCandidates("Inter-Regular.ttf");
+        const auto inputFont = we::core::PathService::FindExisting(inputCandidates);
+        if (!inputFont) {
+            return;
         }
+        const auto outputDir = inputFont->parent_path();
+        (void)we::runtime::kindui::FontImportService::ImportFontFile(*inputFont, outputDir, 18.0f);
     });
 
     folderTree->SetOnSelectionChanged([contentBrowser, statusBar](const std::vector<std::string>& ids) {

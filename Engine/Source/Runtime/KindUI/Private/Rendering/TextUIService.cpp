@@ -6,6 +6,7 @@
 #include "Rendering/UiDebugImageWriter.h"
 #include "Core/AssetRegistry.h"
 #include "Core/Logger.h"
+#include "Core/Paths.h"
 
 #include <algorithm>
 #include <cmath>
@@ -23,26 +24,19 @@ inline float SnapPx(const float v) {
 }
 
 std::filesystem::path ResolveWeFontPath(const std::string& baseName) {
-    const std::vector<std::string> candidates = {
-        "Assets/Fonts/" + baseName + ".wefont",
-        "Fonts/" + baseName + ".wefont",
-        "../Assets/Fonts/" + baseName + ".wefont",
-        "../Fonts/" + baseName + ".wefont",
-    };
-    const auto resolved = we::core::AssetRegistry::ResolveAssetPath(candidates);
-    return resolved.empty() ? std::filesystem::path{} : std::filesystem::path(resolved);
+    const auto candidates = we::core::PathService::Get().FontCandidates(baseName + ".wefont");
+    if (const auto found = we::core::PathService::FindExisting(candidates)) {
+        return *found;
+    }
+    return {};
 }
 
 std::filesystem::path ResolveTtfPath(const std::string& baseName) {
-    const std::vector<std::string> candidates = {
-        "Assets/Fonts/" + baseName + ".ttf",
-        "Fonts/" + baseName + ".ttf",
-        "../Assets/Fonts/" + baseName + ".ttf",
-        "../Fonts/" + baseName + ".ttf",
-        "Engine/Content/Fonts/" + baseName + ".ttf",
-    };
-    const auto resolved = we::core::AssetRegistry::ResolveAssetPath(candidates);
-    return resolved.empty() ? std::filesystem::path{} : std::filesystem::path(resolved);
+    const auto candidates = we::core::PathService::Get().FontCandidates(baseName + ".ttf");
+    if (const auto found = we::core::PathService::FindExisting(candidates)) {
+        return *found;
+    }
+    return {};
 }
 
 std::filesystem::path EnsureWeFontAsset(const std::string& baseName) {
@@ -194,8 +188,9 @@ void TextUIService::DumpAtlasPagesToDisk() {
         if (!page || page->page.rgba.empty()) {
             continue;
         }
-        const std::string path =
-            "Saved/Logs/TextAtlas_page" + std::to_string(i) + "_v" + std::to_string(page->version) + ".bmp";
+        const auto path = we::core::PathService::ToUtf8(
+            we::core::PathService::Get().LogsRoot()
+                / ("TextAtlas_page" + std::to_string(i) + "_v" + std::to_string(page->version) + ".bmp"));
         if (SaveBmpRgba(path, page->page.rgba, page->page.width, page->page.height)) {
             WE_LOG_INFO("TextUIService",
                 "Dumped atlas page " + std::to_string(i) + " " + std::to_string(page->page.width) + "x"

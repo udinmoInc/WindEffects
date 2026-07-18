@@ -1,6 +1,7 @@
 #include "Projects/EngineContext.h"
 
 #include "Core/Logger.h"
+#include "Core/Paths.h"
 
 #include <cctype>
 #include <fstream>
@@ -46,59 +47,68 @@ EngineContext& EngineContext::Get() {
 
 std::optional<std::filesystem::path> EngineContext::FindEngineRoot(
     const std::filesystem::path& startDirectory) {
-    std::error_code ec;
-    auto current = std::filesystem::absolute(startDirectory, ec);
-    if (ec) {
-        current = startDirectory;
-    }
-
-    for (int i = 0; i < 12; ++i) {
-        if (std::filesystem::exists(current / "WindEffects.engine", ec)) {
-            return current;
-        }
-        if (!current.has_parent_path() || current.parent_path() == current) {
-            break;
-        }
-        current = current.parent_path();
-    }
-    return std::nullopt;
+    return we::core::PathService::FindEngineRoot(startDirectory);
 }
 
 void EngineContext::Initialize(const std::filesystem::path& executableDirectory) {
-    m_ExecutableDirectory = executableDirectory;
+    m_ExecutableDirectory = we::core::PathService::Absolute(executableDirectory);
     m_EngineRoot.clear();
     m_EngineContentRoot.clear();
+    m_EngineConfigRoot.clear();
+    m_EngineShadersRoot.clear();
+    m_EngineBinariesRoot.clear();
     m_TemplatesRoot.clear();
     m_EngineVersion = "0.0.0";
 
-    if (const auto root = FindEngineRoot(executableDirectory)) {
+    auto& paths = we::core::PathService::Get();
+
+    if (const auto root = FindEngineRoot(m_ExecutableDirectory)) {
         m_EngineRoot = *root;
-    } else if (const auto fromCwd = FindEngineRoot(std::filesystem::current_path())) {
-        m_EngineRoot = *fromCwd;
     } else {
-        // Development layouts often place the editor under Build/Output/<plat>/<cfg>.
-        m_EngineRoot = executableDirectory;
+        m_EngineRoot = m_ExecutableDirectory;
         HE_WARN("[EngineContext] WindEffects.engine not found; using executable directory as engine root.");
     }
 
-    const auto descriptorPath = m_EngineRoot / "WindEffects.engine";
+    const auto descriptorPath = m_EngineRoot / we::core::layout::kEngineMarker;
     if (std::filesystem::exists(descriptorPath)) {
         const auto values = ParseIni(descriptorPath);
         if (values.count("engine.version")) {
             m_EngineVersion = values.at("engine.version");
         }
-        const std::string templatesRel = values.count("TemplatesRoot")
-            ? values.at("TemplatesRoot")
-            : "Engine/Templates/Projects";
-        m_TemplatesRoot = m_EngineRoot / templatesRel;
+        if (values.count("TemplatesRoot")) {
+            m_TemplatesRoot = we::core::PathService::ResolveRelative(
+                m_EngineRoot,
+                values.at("TemplatesRoot"));
+        } else {
+            m_TemplatesRoot = m_EngineRoot / we::core::layout::kEngine
+                / we::core::layout::kTemplates / we::core::layout::kProjects;
+        }
     } else {
-        m_TemplatesRoot = m_EngineRoot / "Engine" / "Templates" / "Projects";
+        m_TemplatesRoot = m_EngineRoot / we::core::layout::kEngine
+            / we::core::layout::kTemplates / we::core::layout::kProjects;
     }
 
-    m_EngineContentRoot = m_EngineRoot / "Engine" / "Content";
+    m_EngineContentRoot = m_EngineRoot / we::core::layout::kEngine / we::core::layout::kContent;
+    m_EngineConfigRoot = m_EngineRoot / we::core::layout::kEngine / we::core::layout::kConfig;
+    m_EngineShadersRoot = m_EngineRoot / we::core::layout::kEngine / we::core::layout::kShaders;
+    m_EngineBinariesRoot = m_EngineRoot / we::core::layout::kEngine / we::core::layout::kBinaries;
     m_Initialized = true;
 
-    HE_INFO("[EngineContext] Engine root: " + m_EngineRoot.string());
+    we::core::PathService::Configuration config;
+    config.executableDirectory = m_ExecutableDirectory;
+    config.engineRoot = m_EngineRoot;
+    paths.Configure(config);
+
+    const auto engineRootValidation = we::core::PathService::ValidateDirectory(m_EngineRoot);
+    if (!engineRootValidation.ok) {
+        HE_WARN("[EngineContext] Engine root validation: " + engineRootValidation.message);
+    }
+    const auto contentValidation = we::core::PathService::ValidateDirectory(m_EngineContentRoot);
+    if (!contentValidation.ok) {
+        HE_WARN("[EngineContext] Engine content root: " + contentValidation.message);
+    }
+
+    HE_INFO("[EngineContext] Engine root: " + we::core::PathService::ToGeneric(m_EngineRoot));
     HE_INFO("[EngineContext] Engine version: " + m_EngineVersion);
 }
 
@@ -107,8 +117,12 @@ void EngineContext::Shutdown() {
     m_ExecutableDirectory.clear();
     m_EngineRoot.clear();
     m_EngineContentRoot.clear();
+    m_EngineConfigRoot.clear();
+    m_EngineShadersRoot.clear();
+    m_EngineBinariesRoot.clear();
     m_TemplatesRoot.clear();
     m_EngineVersion = "0.0.0";
+    we::core::PathService::Get().Shutdown();
 }
 
 } // namespace we::projects

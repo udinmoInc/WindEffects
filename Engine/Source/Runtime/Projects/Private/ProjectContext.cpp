@@ -6,6 +6,7 @@
 #include "Projects/RecentProjectsStore.h"
 
 #include "Core/Logger.h"
+#include "Core/Paths.h"
 
 namespace we::projects {
 
@@ -33,20 +34,45 @@ ProjectValidationResult ProjectContext::Load(const std::filesystem::path& weproj
         return validation;
     }
 
-    m_WeprojPath = std::filesystem::absolute(weprojPath).lexically_normal();
+    m_WeprojPath = we::core::PathService::Absolute(weprojPath);
     m_ProjectRoot = m_WeprojPath.parent_path();
     m_Descriptor = std::move(*descriptor);
 
     const std::string contentRel = m_Descriptor.contentDirectory.empty()
-        ? "Content"
+        ? we::core::layout::kContent
         : m_Descriptor.contentDirectory;
-    m_ContentRoot = m_ProjectRoot / contentRel;
-    m_PluginsRoot = m_ProjectRoot / "Plugins";
-    m_ConfigRoot = m_ProjectRoot / "Config";
-    m_SavedRoot = m_ProjectRoot / "Saved";
-    m_IntermediateRoot = m_ProjectRoot / "Intermediate";
+    m_ContentRoot = we::core::PathService::ResolveRelative(m_ProjectRoot, contentRel);
+    m_PluginsRoot = m_ProjectRoot / we::core::layout::kPlugins;
+    m_ConfigRoot = m_ProjectRoot / we::core::layout::kConfig;
+    m_SavedRoot = m_ProjectRoot / we::core::layout::kSaved;
+    m_IntermediateRoot = m_ProjectRoot / we::core::layout::kIntermediate;
+    m_CookedRoot = m_IntermediateRoot / we::core::layout::kCooked;
+    m_CacheRoot = m_SavedRoot / we::core::layout::kCache;
+    m_LogsRoot = m_SavedRoot / we::core::layout::kLogs;
+    m_AssetPipelineRoot = m_IntermediateRoot / we::core::layout::kAssetPipeline;
     m_CurrentMap = m_Descriptor.startupMap;
     m_Loaded = true;
+
+    we::core::PathService::Configuration config;
+    config.projectRoot = m_ProjectRoot;
+    config.contentRoot = m_ContentRoot;
+    config.pluginsRoot = m_PluginsRoot;
+    config.configRoot = m_ConfigRoot;
+    config.savedRoot = m_SavedRoot;
+    config.intermediateRoot = m_IntermediateRoot;
+    config.cookedRoot = m_CookedRoot;
+    config.cacheRoot = m_CacheRoot;
+    config.logsRoot = m_LogsRoot;
+    we::core::PathService::Get().Configure(config);
+
+    const auto contentValidation = we::core::PathService::ValidateDirectory(m_ContentRoot);
+    if (!contentValidation.ok) {
+        HE_WARN("[ProjectContext] Content root: " + contentValidation.message);
+    }
+    const auto savedEnsure = we::core::PathService::EnsureDirectory(m_SavedRoot);
+    if (!savedEnsure.ok) {
+        HE_WARN("[ProjectContext] Saved root: " + savedEnsure.message);
+    }
 
     m_Descriptor.lastOpenedUtc = ProjectLifecycle::NowUtc();
     (void)SaveDescriptor();
@@ -54,7 +80,7 @@ ProjectValidationResult ProjectContext::Load(const std::filesystem::path& weproj
     RecentProjectsStore::Get().Touch(m_WeprojPath, m_Descriptor);
 
     HE_INFO("[ProjectContext] Loaded project: " + m_Descriptor.displayName
-        + " (" + m_WeprojPath.string() + ")");
+        + " (" + we::core::PathService::ToGeneric(m_WeprojPath) + ")");
 
     if (m_OnLoaded) {
         m_OnLoaded();
@@ -94,7 +120,13 @@ void ProjectContext::Unload() {
     m_ConfigRoot.clear();
     m_SavedRoot.clear();
     m_IntermediateRoot.clear();
+    m_CookedRoot.clear();
+    m_CacheRoot.clear();
+    m_LogsRoot.clear();
+    m_AssetPipelineRoot.clear();
     m_CurrentMap.clear();
+
+    we::core::PathService::Get().ClearProjectRoots();
 }
 
 } // namespace we::projects

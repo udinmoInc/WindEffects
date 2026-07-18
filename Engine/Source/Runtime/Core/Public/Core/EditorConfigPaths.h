@@ -1,15 +1,17 @@
 #pragma once
 
+#include "Core/Paths.h"
+
 #include <filesystem>
 
 namespace we::core {
 
 inline std::filesystem::path GetEngineConfigDirectory() {
-    return std::filesystem::path("Engine") / "Config";
+    return PathService::Get().EngineConfigRoot();
 }
 
 inline std::filesystem::path GetEditorConfigDirectory() {
-    return GetEngineConfigDirectory() / "Editor";
+    return GetEngineConfigDirectory() / layout::kEditor;
 }
 
 inline std::filesystem::path GetEditorConfigPath(const char* fileName) {
@@ -18,10 +20,15 @@ inline std::filesystem::path GetEditorConfigPath(const char* fileName) {
 
 inline void MigrateLegacyEditorConfigFile(const std::filesystem::path& configPath) {
     const auto fileName = configPath.filename();
-    const std::filesystem::path legacyRootConfigPath = std::filesystem::path("Config") / "Editor" / fileName;
-    const std::filesystem::path legacySettingsPath = std::filesystem::path("Settings") / "Editor" / fileName;
-    const std::filesystem::path legacySavedPath = std::filesystem::path("Saved") / "Config" / fileName;
-    const std::filesystem::path legacyLowerPath = std::filesystem::path("config") / "editor" / fileName;
+    const auto& paths = PathService::Get();
+    const std::filesystem::path exe = paths.ExecutableDirectory();
+
+    const std::filesystem::path legacyCandidates[] = {
+        exe / layout::kConfig / layout::kEditor / fileName,
+        exe / "Settings" / layout::kEditor / fileName,
+        exe / layout::kSaved / layout::kConfig / fileName,
+        paths.SavedRoot() / layout::kConfig / fileName,
+    };
 
     std::error_code ec;
     std::filesystem::create_directories(configPath.parent_path(), ec);
@@ -51,23 +58,15 @@ inline void MigrateLegacyEditorConfigFile(const std::filesystem::path& configPat
         }
     };
 
-    migrateFrom(legacyRootConfigPath);
-    migrateFrom(legacySettingsPath);
-    migrateFrom(legacySavedPath);
-    migrateFrom(legacyLowerPath);
+    for (const auto& legacyPath : legacyCandidates) {
+        migrateFrom(legacyPath);
+    }
 
     if (std::filesystem::exists(configPath, ec)) {
-        if (std::filesystem::exists(legacyRootConfigPath, ec)) {
-            std::filesystem::remove(legacyRootConfigPath, ec);
-        }
-        if (std::filesystem::exists(legacySettingsPath, ec)) {
-            std::filesystem::remove(legacySettingsPath, ec);
-        }
-        if (std::filesystem::exists(legacySavedPath, ec)) {
-            std::filesystem::remove(legacySavedPath, ec);
-        }
-        if (std::filesystem::exists(legacyLowerPath, ec)) {
-            std::filesystem::remove(legacyLowerPath, ec);
+        for (const auto& legacyPath : legacyCandidates) {
+            if (std::filesystem::exists(legacyPath, ec)) {
+                std::filesystem::remove(legacyPath, ec);
+            }
         }
     }
 }

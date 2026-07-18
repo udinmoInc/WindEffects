@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Core/Paths.h"
+
 #include <array>
 #include <filesystem>
 #include <optional>
@@ -14,6 +16,7 @@
 
 namespace we::core {
 
+/// Low-level executable directory probe (used during PathService bootstrap).
 inline std::filesystem::path GetExecutableDirectory() {
 #if defined(_WIN32)
     wchar_t exePath[MAX_PATH]{};
@@ -27,7 +30,7 @@ inline std::filesystem::path GetExecutableDirectory() {
 }
 
 inline std::filesystem::path GetConfigurationRoot() {
-    return GetExecutableDirectory();
+    return PathService::Get().ExecutableDirectory();
 }
 
 inline std::string StripLegacyModulePrefix(std::string_view logicalName) {
@@ -64,7 +67,8 @@ inline std::optional<std::filesystem::path> FindExistingBinary(
 }
 
 inline std::optional<std::filesystem::path> ResolveModuleLibraryPath(std::string_view logicalName) {
-    const auto root = GetConfigurationRoot();
+    const auto& paths = PathService::Get();
+    const auto root = paths.ExecutableDirectory();
     if (root.empty()) {
         return std::nullopt;
     }
@@ -75,11 +79,18 @@ inline std::optional<std::filesystem::path> ResolveModuleLibraryPath(std::string
         return bootstrapPath;
     }
 
-    if (const auto enginePath = FindExistingBinary(root / "Engine" / "Binaries", candidates)) {
+    if (const auto enginePath = FindExistingBinary(paths.EngineBinariesRoot(), candidates)) {
         return enginePath;
     }
 
-    const auto pluginsRoot = root / "Plugins";
+    // Staged layout may also place Engine/Binaries next to the exe.
+    if (const auto stagedEngine = FindExistingBinary(
+            root / layout::kEngine / layout::kBinaries,
+            candidates)) {
+        return stagedEngine;
+    }
+
+    const auto pluginsRoot = root / layout::kPlugins;
     if (std::filesystem::exists(pluginsRoot)) {
         for (const auto& entry : std::filesystem::directory_iterator(pluginsRoot)) {
             if (!entry.is_directory()) {
@@ -92,7 +103,23 @@ inline std::optional<std::filesystem::path> ResolveModuleLibraryPath(std::string
         }
     }
 
-    if (const auto thirdPartyPath = FindExistingBinary(root / "ThirdParty", candidates)) {
+    if (!paths.PluginsRoot().empty()) {
+        if (const auto projectPlugin = FindExistingBinary(paths.PluginsRoot(), candidates)) {
+            return projectPlugin;
+        }
+        if (std::filesystem::exists(paths.PluginsRoot())) {
+            for (const auto& entry : std::filesystem::directory_iterator(paths.PluginsRoot())) {
+                if (!entry.is_directory()) {
+                    continue;
+                }
+                if (const auto pluginPath = FindExistingBinary(entry.path(), candidates)) {
+                    return pluginPath;
+                }
+            }
+        }
+    }
+
+    if (const auto thirdPartyPath = FindExistingBinary(paths.ThirdPartyRoot(), candidates)) {
         return thirdPartyPath;
     }
 
@@ -119,20 +146,22 @@ inline std::optional<std::filesystem::path> ResolveDelayLoadLibraryPath(std::str
         return ResolveModuleLibraryPath(fileName);
     }
 
-    const auto root = GetConfigurationRoot();
+    const auto& paths = PathService::Get();
+    const auto root = paths.ExecutableDirectory();
     if (root.empty()) {
         return std::nullopt;
     }
 
     const std::string dllName(dllFileName);
     const std::array searchRoots = {
-        root / "ThirdParty",
-        root / "Engine" / "Binaries",
+        paths.ThirdPartyRoot(),
+        paths.EngineBinariesRoot(),
+        root / layout::kEngine / layout::kBinaries,
         root
     };
 
     for (const auto& searchRoot : searchRoots) {
-        if (!std::filesystem::exists(searchRoot)) {
+        if (searchRoot.empty() || !std::filesystem::exists(searchRoot)) {
             continue;
         }
 
@@ -147,7 +176,8 @@ inline std::optional<std::filesystem::path> ResolveDelayLoadLibraryPath(std::str
 
 inline void ConfigureModuleSearchPaths() {
 #if defined(_WIN32)
-    const auto root = GetConfigurationRoot();
+    const auto& paths = PathService::Get();
+    const auto root = paths.ExecutableDirectory();
     if (root.empty()) {
         return;
     }
@@ -157,17 +187,19 @@ inline void ConfigureModuleSearchPaths() {
     AddDllDirectory(root.wstring().c_str());
 
     const std::array searchRoots = {
-        root / "Engine" / "Binaries",
-        root / "ThirdParty",
-        root / "Plugins"
+        paths.EngineBinariesRoot(),
+        root / layout::kEngine / layout::kBinaries,
+        paths.ThirdPartyRoot(),
+        root / layout::kPlugins,
+        paths.PluginsRoot()
     };
 
     for (const auto& searchRoot : searchRoots) {
-        if (!std::filesystem::exists(searchRoot)) {
+        if (searchRoot.empty() || !std::filesystem::exists(searchRoot)) {
             continue;
         }
 
-        if (searchRoot.filename() == "Plugins") {
+        if (searchRoot.filename() == layout::kPlugins) {
             for (const auto& entry : std::filesystem::directory_iterator(searchRoot)) {
                 if (entry.is_directory()) {
                     AddDllDirectory(entry.path().wstring().c_str());

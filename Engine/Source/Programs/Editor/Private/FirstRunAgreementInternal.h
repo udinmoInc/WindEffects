@@ -49,14 +49,20 @@ inline std::string ReadTextFile(const std::filesystem::path& path) {
 }
 
 inline std::filesystem::path ResolveRuntimeFile(const std::string& relativePath) {
-    const std::filesystem::path p(relativePath);
-    if (std::filesystem::exists(p)) return p;
-    const std::filesystem::path candidates[] = {
-        std::filesystem::path("..") / relativePath,
-        std::filesystem::path("../..") / relativePath
-    };
-    for (const auto& candidate : candidates) {
-        if (std::filesystem::exists(candidate)) return candidate;
+    const auto relative = we::core::PathService::FromUtf8(relativePath);
+    if (relative.is_absolute()) {
+        std::error_code ec;
+        if (std::filesystem::exists(relative, ec)) {
+            return relative;
+        }
+        return {};
+    }
+
+    auto candidates = we::core::PathService::Get().ResourceCandidates(relative);
+    candidates.push_back(we::core::PathService::Get().StagedAssetsRoot() / relative);
+    candidates.push_back(we::core::PathService::Get().ExecutableDirectory() / relative);
+    if (const auto found = we::core::PathService::FindExisting(candidates)) {
+        return *found;
     }
     return {};
 }

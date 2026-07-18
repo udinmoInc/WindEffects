@@ -1,6 +1,7 @@
-#include "AssetTools/AssetTools.h"
+﻿#include "AssetTools/AssetTools.h"
 #include "Core/BuildPaths.h"
 #include "Core/Logger.h"
+#include "Core/Paths.h"
 #include "Platform/Capabilities.h"
 #include "Platform/Platform.h"
 #include "WindEffects/Platform.h"
@@ -175,7 +176,8 @@ int CmdCookOrPackage(
         return 1;
     }
     if (outDir.empty()) {
-        outDir = (std::filesystem::path("Cooked") / platformName).string();
+        outDir = we::core::PathService::ToUtf8(
+            we::core::PathService::Get().CookedRootForPlatform(platformName));
     }
 
     we::runtime::assetcooker::CookRequest cook{};
@@ -360,7 +362,7 @@ int CmdWatch(we::runtime::assettools::AssetOperations& ops, const std::vector<st
     }
     auto outDir = Opt(args, 0, {"-out", "--out"});
     if (outDir.empty()) {
-        outDir = (input / "Cooked").string();
+        outDir = (input / we::core::layout::kCooked).string();
     }
     OutBuffer{} << "Watching " << input.string() << " -> " << outDir << " (Ctrl+C to stop)\n";
     return ops.Watch(input, outDir);

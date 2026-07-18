@@ -4,6 +4,7 @@
 #include "JsonIO.h"
 
 #include "Core/Logger.h"
+#include "Core/Paths.h"
 
 #include <chrono>
 #include <cctype>
@@ -48,7 +49,7 @@ void CopyTree(
 }
 
 std::string WriteStartupMapStub(const std::filesystem::path& projectRoot, const std::string& projectName) {
-    const auto mapsDir = projectRoot / "Content" / "Maps";
+    const auto mapsDir = projectRoot / we::core::layout::kContent / "Maps";
     std::error_code ec;
     std::filesystem::create_directories(mapsDir, ec);
     const auto mapPath = mapsDir / "Startup.scene";
@@ -60,7 +61,7 @@ std::string WriteStartupMapStub(const std::filesystem::path& projectRoot, const 
             << "  \"project\": \"" << projectName << "\"\n"
             << "}\n";
     }
-    return "Content/Maps/Startup.scene";
+    return std::string(we::core::layout::kContent) + "/Maps/Startup.scene";
 }
 
 } // namespace
@@ -193,7 +194,7 @@ ProjectValidationResult ProjectLifecycle::ValidateProjectPath(
 
     const auto projectRoot = weprojPath.parent_path();
     const std::string contentRel = descriptor->contentDirectory.empty()
-        ? "Content"
+        ? we::core::layout::kContent
         : descriptor->contentDirectory;
     if (!std::filesystem::exists(projectRoot / contentRel)) {
         result.ok = false;
@@ -202,7 +203,7 @@ ProjectValidationResult ProjectLifecycle::ValidateProjectPath(
     }
 
     // Soft SDK warning — editor can still open.
-    if (!std::filesystem::exists(projectRoot / "Config")) {
+    if (!std::filesystem::exists(projectRoot / we::core::layout::kConfig)) {
         result.missingSdk = true;
         if (result.message.find("Compatible") != std::string::npos) {
             result.message = "Project Config folder missing — some settings may be unavailable.";
@@ -215,24 +216,24 @@ ProjectValidationResult ProjectLifecycle::ValidateProjectPath(
 bool ProjectLifecycle::EnsureProjectLayout(
     const std::filesystem::path& projectRoot,
     const std::string& projectName) {
-    const char* folders[] = {
-        "Config",
-        "Content",
-        "Content/Maps",
-        "Source",
-        "Plugins",
+    const std::filesystem::path folders[] = {
+        we::core::layout::kConfig,
+        we::core::layout::kContent,
+        std::filesystem::path(we::core::layout::kContent) / "Maps",
+        we::core::layout::kSource,
+        we::core::layout::kPlugins,
         "ProjectSettings",
-        "Saved",
-        "Intermediate",
-        "Binaries",
+        we::core::layout::kSaved,
+        we::core::layout::kIntermediate,
+        we::core::layout::kBinaries,
     };
 
     std::error_code ec;
-    for (const char* folder : folders) {
+    for (const auto& folder : folders) {
         std::filesystem::create_directories(projectRoot / folder, ec);
     }
 
-    const auto sourceModule = projectRoot / "Source" / projectName;
+    const auto sourceModule = projectRoot / we::core::layout::kSource / projectName;
     std::filesystem::create_directories(sourceModule, ec);
 
     const auto buildCs = sourceModule / (projectName + ".Build.cs");
@@ -260,14 +261,14 @@ bool ProjectLifecycle::EnsureProjectLayout(
              << "}\n";
     }
 
-    const auto defaultEngine = projectRoot / "Config" / "DefaultEngine.ini";
+    const auto defaultEngine = projectRoot / we::core::layout::kConfig / "DefaultEngine.ini";
     if (!std::filesystem::exists(defaultEngine)) {
         std::ofstream file(defaultEngine);
         file << "[/Script/EngineSettings]\n"
              << "GameName=" << projectName << "\n";
     }
 
-    const auto defaultGame = projectRoot / "Config" / "DefaultGame.ini";
+    const auto defaultGame = projectRoot / we::core::layout::kConfig / "DefaultGame.ini";
     if (!std::filesystem::exists(defaultGame)) {
         std::ofstream file(defaultGame);
         file << "[/Script/EngineSettings]\n"
@@ -278,14 +279,14 @@ bool ProjectLifecycle::EnsureProjectLayout(
     if (!std::filesystem::exists(projectSettings)) {
         nlohmann::json settings = {
             { "projectName", projectName },
-            { "startupMap", "Content/Maps/Startup.scene" },
+            { "startupMap", std::string(we::core::layout::kContent) + "/Maps/Startup.scene" },
             { "defaultGameMode", "" },
             { "targetPlatform", "Windows" },
         };
         (void)JsonIO::Save(projectSettings, settings);
     }
 
-    const auto keepContent = projectRoot / "Content" / ".keep";
+    const auto keepContent = projectRoot / we::core::layout::kContent / ".keep";
     if (!std::filesystem::exists(keepContent)) {
         std::ofstream(keepContent) << "";
     }
@@ -330,7 +331,7 @@ ProjectOperationResult ProjectLifecycle::CreateNewProject(const ProjectCreateReq
     descriptor.engineRoot = request.engineRoot.empty()
         ? EngineContext::Get().EngineRoot().string()
         : request.engineRoot;
-    descriptor.contentDirectory = "Content";
+    descriptor.contentDirectory = we::core::layout::kContent;
     descriptor.startupMap = startupMap;
     descriptor.defaultGameMode.clear();
     descriptor.modules = { projectName };
@@ -352,8 +353,8 @@ ProjectOperationResult ProjectLifecycle::CreateNewProject(const ProjectCreateReq
     // Optional template content copy.
     const auto templatesRoot = EngineContext::Get().TemplatesRoot();
     const auto templateRoot = templatesRoot / descriptor.templateId;
-    if (std::filesystem::exists(templateRoot / "Content")) {
-        CopyTree(templateRoot / "Content", projectRoot / "Content");
+    if (std::filesystem::exists(templateRoot / we::core::layout::kContent)) {
+        CopyTree(templateRoot / we::core::layout::kContent, projectRoot / we::core::layout::kContent);
         // Re-ensure startup map after template copy.
         (void)WriteStartupMapStub(projectRoot, projectName);
     }
@@ -427,7 +428,7 @@ ProjectOperationResult ProjectLifecycle::UpgradeProject(
     descriptor->lastOpenedUtc = NowUtc();
 
     if (descriptor->contentDirectory.empty()) {
-        descriptor->contentDirectory = "Content";
+        descriptor->contentDirectory = we::core::layout::kContent;
     }
     if (descriptor->targetPlatforms.empty()) {
         descriptor->targetPlatforms = { "Windows" };
