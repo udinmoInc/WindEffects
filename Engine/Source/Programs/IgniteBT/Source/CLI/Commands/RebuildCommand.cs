@@ -19,7 +19,27 @@ public static class RebuildCommand
         Log.Information("Rebuild is equivalent to Clean followed by Build");
         
         Log.Information("Step 1: Cleaning...");
-        var cleanResult = await CleanCommand.Execute(args);
+        var cleanArgs = new List<string>();
+        var config = parsed.GetOption("config", string.Empty);
+        var platform = parsed.GetOption("platform", string.Empty);
+        if (!string.IsNullOrWhiteSpace(target) &&
+            !string.Equals(target, "Default", StringComparison.OrdinalIgnoreCase))
+        {
+            cleanArgs.Add("--target");
+            cleanArgs.Add(target);
+        }
+        if (!string.IsNullOrWhiteSpace(config))
+        {
+            cleanArgs.Add("--config");
+            cleanArgs.Add(config);
+        }
+        if (!string.IsNullOrWhiteSpace(platform))
+        {
+            cleanArgs.Add("--platform");
+            cleanArgs.Add(platform);
+        }
+
+        var cleanResult = await CleanCommand.Execute(cleanArgs.ToArray());
         
         if (cleanResult != 0)
         {

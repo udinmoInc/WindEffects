@@ -282,8 +282,7 @@ public sealed class OutputLayout
     };
 
     private static bool IsLinkerSidecar(string fileName) =>
-        fileName.EndsWith(".dll", StringComparison.OrdinalIgnoreCase)
-        || fileName.EndsWith(".lib", StringComparison.OrdinalIgnoreCase)
+        fileName.EndsWith(".lib", StringComparison.OrdinalIgnoreCase)
         || fileName.EndsWith(".exp", StringComparison.OrdinalIgnoreCase)
         || fileName.EndsWith(".ilk", StringComparison.OrdinalIgnoreCase)
         || fileName.EndsWith(".pdb", StringComparison.OrdinalIgnoreCase);

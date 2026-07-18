@@ -82,7 +82,8 @@ public static class BuildCommand
         if (parsed.HasFlag("clean"))
         {
             Log.Information("Clean flag set — cleaning before build");
-            var cleanResult = await CleanCommand.Execute(args);
+            var cleanArgs = BuildCleanArgs(parsed);
+            var cleanResult = await CleanCommand.Execute(cleanArgs);
             if (cleanResult != 0)
             {
                 Log.Error("Clean failed, aborting build");
@@ -248,5 +249,33 @@ public static class BuildCommand
             Log.Error(ex, "Build failed");
             return 1;
         }
+    }
+
+    private static string[] BuildCleanArgs(ParsedCommand parsed)
+    {
+        var cleanArgs = new List<string>();
+        var target = parsed.ResolveTarget();
+        if (!string.IsNullOrWhiteSpace(target) &&
+            !string.Equals(target, "Default", StringComparison.OrdinalIgnoreCase))
+        {
+            cleanArgs.Add("--target");
+            cleanArgs.Add(target);
+        }
+
+        var config = parsed.GetOption("config", string.Empty);
+        if (!string.IsNullOrWhiteSpace(config))
+        {
+            cleanArgs.Add("--config");
+            cleanArgs.Add(config);
+        }
+
+        var platform = parsed.GetOption("platform", string.Empty);
+        if (!string.IsNullOrWhiteSpace(platform))
+        {
+            cleanArgs.Add("--platform");
+            cleanArgs.Add(platform);
+        }
+
+        return cleanArgs.ToArray();
     }
 }
