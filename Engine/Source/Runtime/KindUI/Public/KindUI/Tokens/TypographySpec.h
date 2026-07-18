@@ -18,7 +18,9 @@ struct KINDUI_API TypographySpec {
     float sizePx = 13.0f;
     float lineHeightPx = 18.0f;
     float letterSpacing = 0.0f;
-    bool bold = false;
+    /// Inter weight ladder: 400 Regular / 500 Medium / 600 SemiBold.
+    uint16_t weight = 400;
+    bool bold = false; // true when weight >= SemiBold (legacy DrawText flag)
     bool italic = false;
     Color color{};
 };

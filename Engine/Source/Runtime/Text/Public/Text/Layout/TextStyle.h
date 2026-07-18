@@ -12,6 +12,7 @@ namespace we::runtime::text::layout {
 enum class FontWeight : uint16_t {
     Thin = 100,
     Regular = 400,
+    Medium = 500,
     SemiBold = 600,
     Bold = 700,
     Black = 900,

@@ -2,6 +2,7 @@
 
 #include "KindUI/Export.h"
 #include "RHI/Types.h"
+#include "Text/Layout/TextStyle.h"
 
 #include <vector>
 #include <string>
@@ -32,7 +33,8 @@ struct DrawCommand {
     we::rhi::RHIDescriptorSetHandle textureId = we::rhi::RHIDescriptorSetHandle::Invalid;
     std::string text;
     float fontSize = 14.0f;
-    bool textBold = false;
+    uint16_t textWeight = 400; // FontWeight: 400 Regular / 500 Medium / 600 SemiBold
+    bool textBold = false;     // legacy; when true, treated as SemiBold (600)
     bool textItalic = false;
     float borderRadius = 0.0f;
     float thickness = 1.0f;
@@ -56,6 +58,13 @@ public:
     void DrawShadow(const Rect& rect, const Color& color, float radius, float blur);
 
     void DrawText(const std::string& text, const Point& pos, const Color& color, float fontSize = 14.0f, bool bold = false, bool italic = false);
+    void DrawText(
+        const std::string& text,
+        const Point& pos,
+        const Color& color,
+        float fontSize,
+        we::runtime::text::layout::FontWeight weight,
+        bool italic = false);
     void DrawIcon(const std::string& iconName, const Point& pos, const Color& color, float size = 16.0f);
     void DrawIcon(const std::string& iconName, const Rect& rect, const Color& color, float atlasTierPx);
     void DrawLine(const Point& start, const Point& end, const Color& color, float thickness = 1.0f);

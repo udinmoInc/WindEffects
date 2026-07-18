@@ -36,6 +36,7 @@ struct BackgroundStyle {
 struct TextStyle {
     Color color = Color::White();
     float size = 13.0f;
+    uint16_t weight = 400;
     bool bold = false;
     bool italic = false;
     TypographyToken role = TypographyToken::Body;
@@ -46,6 +47,7 @@ struct TextStyle {
         style.role = token;
         style.size = spec.sizePx;
         style.color = spec.color;
+        style.weight = spec.weight;
         style.bold = spec.bold;
         style.italic = spec.italic;
         return style;

@@ -28,9 +28,18 @@ bool IsStrongRole(const TypographyToken token) {
         return true;
     }
     switch (token) {
-    case TypographyToken::BodyStrong:
     case TypographyToken::Button:
     case TypographyToken::TableHeader:
+        return true;
+    default:
+        return false;
+    }
+}
+
+bool IsMediumRole(const TypographyToken token) {
+    switch (token) {
+    case TypographyToken::Label:
+    case TypographyToken::BodyStrong:
         return true;
     default:
         return false;
@@ -51,7 +60,7 @@ ColorToken ColorForRole(const TypographyToken token) {
     case TypographyToken::Disabled:
         return ColorToken::TextDisabled;
 
-    // SecondaryText — supporting descriptions at readable contrast
+    // Secondary / help copy — descriptions, captions, hints
     case TypographyToken::Subtitle:
     case TypographyToken::Status:
     case TypographyToken::StatusBar:
@@ -59,21 +68,15 @@ ColorToken ColorForRole(const TypographyToken token) {
     case TypographyToken::Toolbar:
     case TypographyToken::Menu:
     case TypographyToken::Navigation:
-        return ColorToken::TextSecondary;
-
-    // Caption — meta / secondary labels, still clearly readable
     case TypographyToken::Caption:
-        return ColorToken::TextCaption;
-
-    // Control labels sit with SecondaryText for scanability
-    case TypographyToken::Label:
-        return ColorToken::TextSecondary;
-
-    // Hint — placeholders and helper copy (lowest readable rung)
     case TypographyToken::Hint:
     case TypographyToken::CaptionSmall:
     case TypographyToken::Tooltip:
-        return ColorToken::TextHint;
+        return ColorToken::TextSecondary;
+
+    // Control labels — primary scan weight
+    case TypographyToken::Label:
+        return ColorToken::TextPrimary;
 
     // PrimaryText — titles, body, interactive labels
     default:
@@ -88,16 +91,17 @@ TypographySpec IKindUITheme::ResolveTypography(const TypographyToken token) cons
     spec.role = token;
     spec.sizePx = ResolveFontSize(token);
 
-    // Vertical rhythm: body ~1.4×; titles tighter; captions slightly open.
+    // Vertical rhythm: body/hints ~1.4×; titles tighter; captions open.
     float lhMul = 1.35f;
-    if (token == TypographyToken::Body || token == TypographyToken::BodyStrong) {
+    if (token == TypographyToken::Body
+        || token == TypographyToken::BodyStrong
+        || token == TypographyToken::Hint
+        || token == TypographyToken::Caption
+        || token == TypographyToken::CaptionSmall
+        || token == TypographyToken::Subtitle) {
         lhMul = 1.40f;
     } else if (IsTitleRole(token)) {
         lhMul = 1.25f;
-    } else if (token == TypographyToken::Caption
-        || token == TypographyToken::CaptionSmall
-        || token == TypographyToken::Hint) {
-        lhMul = 1.35f;
     }
     spec.lineHeightPx = spec.sizePx * lhMul;
 
@@ -110,7 +114,14 @@ TypographySpec IKindUITheme::ResolveTypography(const TypographyToken token) cons
         spec.letterSpacing = 0.0f;
     }
 
-    spec.bold = IsStrongRole(token);
+    if (IsStrongRole(token)) {
+        spec.weight = 600; // SemiBold
+    } else if (IsMediumRole(token)) {
+        spec.weight = 500; // Medium
+    } else {
+        spec.weight = 400; // Regular
+    }
+    spec.bold = spec.weight >= 600;
     spec.italic = false;
     spec.color = ResolveColor(ColorForRole(token));
     return spec;

@@ -699,7 +699,7 @@ namespace {
 
 std::shared_ptr<Column> MakeSettingsStack() {
     auto stack = std::make_shared<Column>();
-    stack->Gap(8.0f * LScale());
+    stack->Gap(LMetric(MetricToken::FormRowGap) * LScale());
     stack->SetHorizontalAlignment(HorizontalAlignment::Fill);
     return stack;
 }
@@ -1073,16 +1073,16 @@ void LauncherShell::RebuildSettingsPage() {
     });
     content->SetHorizontalAlignment(HorizontalAlignment::Fill);
 
-    content->AddChild(MakeLabel(
-        "Settings",
-        LMetric(MetricToken::TextSizeTitle) * s,
-        LColor(ColorToken::TextPrimary)));
-    content->AddChild(MakeLabel(
+    auto pageTitle = std::make_shared<Label>("Settings", TypographyToken::PageTitle);
+    pageTitle->SetHorizontalAlignment(HorizontalAlignment::Left);
+    content->AddChild(pageTitle);
+    auto pageSubtitle = std::make_shared<Label>(
         queryLower.empty()
             ? "Manage projects, engines, cache, and launcher maintenance"
             : ("Showing matches for \"" + m_SearchQuery + "\""),
-        LMetric(MetricToken::TextSizeBody) * s,
-        LColor(ColorToken::TextMuted)));
+        TypographyToken::Subtitle);
+    pageSubtitle->SetHorizontalAlignment(HorizontalAlignment::Left);
+    content->AddChild(pageSubtitle);
 
     m_SettingsScrollTarget.reset();
     m_SettingsPendingScroll = false;
