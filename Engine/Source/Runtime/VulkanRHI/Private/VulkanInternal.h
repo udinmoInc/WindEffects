@@ -3,6 +3,9 @@
 #include "VulkanDevice.h"
 #include "VulkanFormats.h"
 
+#include "Core/DiagnosticMacros.h"
+#include "Core/LogCategory.h"
+
 #include <cstring>
 #include <string>
 #include <vector>

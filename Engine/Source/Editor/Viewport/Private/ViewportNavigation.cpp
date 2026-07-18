@@ -5,6 +5,8 @@
 
 #include <algorithm>
 
+#include "Core/Math/GlmInterop.h"
+
 #include "KindUI/Input/InputEvents.h"
 #include "Platform/Platform.h"
 
@@ -52,7 +54,7 @@ bool ViewportNavigationController::IsPointerInsideViewport(const Point& position
         && m_ViewportRect.Contains(position);
 }
 
-glm::vec3 ViewportNavigationController::ResolveOrbitPivot() const {
+we::math::Vec3 ViewportNavigationController::ResolveOrbitPivot() const {
     auto& store = ::we::editor::viewport::ViewportNavigationSettingsStore::Get();
     store.EnsureLoaded();
 
@@ -66,7 +68,7 @@ glm::vec3 ViewportNavigationController::ResolveOrbitPivot() const {
     if (m_Camera) {
         return m_Camera->GetOrbitPivot();
     }
-    return glm::vec3(0.0f);
+    return we::math::Vec3(0.0f);
 }
 
 void ViewportNavigationController::SaveCursorPosition(const Point& position) {
@@ -305,7 +307,7 @@ void ViewportNavigationController::OnKeyDown(const KeyEvent& event) {
     if (event.key == we::platform::KeyCode::F && store.GetSettings().focusOnSelection && m_Scene) {
         const int selectedIndex = m_Scene->GetSelectedEntityIndex();
         if (selectedIndex >= 0 && selectedIndex < static_cast<int>(m_Scene->GetEntities().size())) {
-            const glm::vec3 target = m_Scene->GetEntities()[static_cast<size_t>(selectedIndex)].Position;
+            const we::math::Vec3 target = m_Scene->GetEntities()[static_cast<size_t>(selectedIndex)].Position;
             m_Camera->Focus(target);
             m_Camera->SetOrbitPivot(target);
         }

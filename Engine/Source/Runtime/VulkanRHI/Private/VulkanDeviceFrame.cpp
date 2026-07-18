@@ -652,4 +652,3 @@ std::unique_ptr<IRHIDevice> CreateVulkanDevice(const DeviceDesc& desc) {
 }
 
 } // namespace we::rhi::vulkan
-} // namespace we::rhi::vulkan

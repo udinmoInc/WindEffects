@@ -1,5 +1,7 @@
 #include "EditorFunctionConfig.h"
 
+#include "Core/Math/Types.h"
+
 #include "Core/EditorConfigPaths.h"
 
 #include <algorithm>
@@ -42,15 +44,15 @@ float ParseFloat(const std::string& value, float fallback) {
     }
 }
 
-glm::vec3 ParseColor(const std::string& value, const glm::vec3& fallback) {
+we::math::Vec3 ParseColor(const std::string& value, const we::math::Vec3& fallback) {
     std::stringstream stream(Trim(value));
     std::string component;
-    glm::vec3 color = fallback;
+    we::math::Vec3 color = fallback;
     int index = 0;
     while (std::getline(stream, component, ',') && index < 3) {
         color[index++] = ParseFloat(component, color[index]);
     }
-    return glm::clamp(color, glm::vec3(0.0f), glm::vec3(1.0f));
+    return we::math::Vec3(std::clamp(color.x, 0.0f, 1.0f), std::clamp(color.y, 0.0f, 1.0f), std::clamp(color.z, 0.0f, 1.0f));
 }
 
 std::string BoolToString(bool value) { return value ? "1" : "0"; }
@@ -62,45 +64,45 @@ std::string FloatToString(float value) {
     return stream.str();
 }
 
-glm::vec4 ParseColorRGBA(const std::string& value, const glm::vec4& fallback) {
+we::math::Vec4 ParseColorRGBA(const std::string& value, const we::math::Vec4& fallback) {
     std::stringstream stream(Trim(value));
     std::string component;
-    glm::vec4 color = fallback;
+    we::math::Vec4 color = fallback;
     int index = 0;
     while (std::getline(stream, component, ',') && index < 4) {
         color[index++] = ParseFloat(component, color[index]);
     }
-    color.r = std::clamp(color.r, 0.0f, 1.0f);
-    color.g = std::clamp(color.g, 0.0f, 1.0f);
-    color.b = std::clamp(color.b, 0.0f, 1.0f);
-    color.a = std::clamp(color.a, 0.0f, 1.0f);
+    color.x = std::clamp(color.x, 0.0f, 1.0f);
+    color.y = std::clamp(color.y, 0.0f, 1.0f);
+    color.z = std::clamp(color.z, 0.0f, 1.0f);
+    color.w = std::clamp(color.w, 0.0f, 1.0f);
     return color;
 }
 
-std::string ColorToString(const glm::vec3& color) {
-    return FloatToString(color.r) + "," + FloatToString(color.g) + "," + FloatToString(color.b);
+std::string ColorToString(const we::math::Vec3& color) {
+    return FloatToString(color.x) + "," + FloatToString(color.y) + "," + FloatToString(color.z);
 }
 
-std::string ColorRGBAToString(const glm::vec4& color) {
-    return FloatToString(color.r) + "," + FloatToString(color.g) + ","
-        + FloatToString(color.b) + "," + FloatToString(color.a);
+std::string ColorRGBAToString(const we::math::Vec4& color) {
+    return FloatToString(color.x) + "," + FloatToString(color.y) + ","
+        + FloatToString(color.z) + "," + FloatToString(color.w);
 }
 
-glm::vec4 ResolveGridColorRGBA(
+we::math::Vec4 ResolveGridColorRGBA(
     const std::unordered_map<std::string, std::string>& values,
     const char* rgbaKey,
     const char* legacyRgbKey,
     const char* legacyOpacityKey,
-    const glm::vec4& fallback) {
+    const we::math::Vec4& fallback) {
     if (values.contains(rgbaKey)) {
         return ParseColorRGBA(values.at(rgbaKey), fallback);
     }
     if (legacyRgbKey != nullptr && legacyRgbKey[0] != '\0' && values.contains(legacyRgbKey)) {
-        const glm::vec3 rgb = ParseColor(values.at(legacyRgbKey), glm::vec3(fallback));
+        const we::math::Vec3 rgb = ParseColor(values.at(legacyRgbKey), we::math::Vec3(fallback.x, fallback.y, fallback.z));
         const float opacity = values.contains(legacyOpacityKey)
-            ? std::clamp(ParseFloat(values.at(legacyOpacityKey), fallback.a), 0.0f, 1.0f)
-            : fallback.a;
-        return glm::vec4(rgb, opacity);
+            ? std::clamp(ParseFloat(values.at(legacyOpacityKey), fallback.w), 0.0f, 1.0f)
+            : fallback.w;
+        return we::math::Vec4(rgb, opacity);
     }
     return fallback;
 }
@@ -307,7 +309,7 @@ void EditorFunctionConfig::ApplyValues(const std::unordered_map<std::string, std
     config.majorGridColor = ResolveGridColorRGBA(
         values, "EditorGrid.MajorGridColor", "EditorGrid.MajorLineColor", "EditorGrid.MajorLineOpacity", config.majorGridColor);
 
-    auto loadAxisColor = [&](const char* key, const glm::vec4& fallback) -> glm::vec4 {
+    auto loadAxisColor = [&](const char* key, const we::math::Vec4& fallback) -> we::math::Vec4 {
         if (!values.contains(key)) {
             return fallback;
         }
@@ -315,7 +317,7 @@ void EditorFunctionConfig::ApplyValues(const std::unordered_map<std::string, std
         if (std::count(raw.begin(), raw.end(), ',') >= 3) {
             return ParseColorRGBA(raw, fallback);
         }
-        return glm::vec4(ParseColor(raw, glm::vec3(fallback)), fallback.a);
+        return we::math::Vec4(ParseColor(raw, we::math::Vec3(fallback.x, fallback.y, fallback.z)), fallback.w);
     };
     config.axisXColor = loadAxisColor("EditorGrid.AxisXColor", config.axisXColor);
     config.axisZColor = loadAxisColor("EditorGrid.AxisZColor", config.axisZColor);

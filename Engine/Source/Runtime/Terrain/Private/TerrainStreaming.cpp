@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <cmath>
 
+#include "Core/Math/GlmInterop.h"
 namespace we::runtime::terrain {
 
 void TerrainStreaming::RequestLoad(TerrainChunkId id) {
@@ -15,7 +16,7 @@ void TerrainStreaming::RequestUnload(TerrainChunkId id) {
     m_PendingUnload.insert(id);
 }
 
-void TerrainStreaming::Update(TerrainChunkManager& chunks, const glm::vec3& cameraWorldPos,
+void TerrainStreaming::Update(TerrainChunkManager& chunks, const we::math::Vec3& cameraWorldPos,
     const TerrainCreateInfo& info, const TerrainFrustump* frustum) {
     if (chunks.Chunks().empty()) {
         return;

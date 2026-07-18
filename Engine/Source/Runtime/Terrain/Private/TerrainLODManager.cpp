@@ -4,6 +4,7 @@
 #include <algorithm>
 #include <cmath>
 
+#include "Core/Math/GlmInterop.h"
 namespace we::runtime::terrain {
 
 namespace {
@@ -13,7 +14,7 @@ float SampleHeightMeters(const TerrainHeightmap& map, const TerrainCreateInfo& i
     return info.heightOffset + n * info.heightScale;
 }
 
-glm::vec3 ComputeNormal(const TerrainHeightmap& map, const TerrainCreateInfo& info, int x, int z) {
+we::math::Vec3 ComputeNormal(const TerrainHeightmap& map, const TerrainCreateInfo& info, int x, int z) {
     const int x0 = std::max(0, x - 1);
     const int x1 = std::min(map.Width() - 1, x + 1);
     const int z0 = std::max(0, z - 1);
@@ -24,21 +25,21 @@ glm::vec3 ComputeNormal(const TerrainHeightmap& map, const TerrainCreateInfo& in
     const float hU = SampleHeightMeters(map, info, x, z1);
     const float dx = info.worldSizeX / static_cast<float>(std::max(1, map.Width() - 1));
     const float dz = info.worldSizeY / static_cast<float>(std::max(1, map.Height() - 1));
-    glm::vec3 n(-(hR - hL) / (dx * static_cast<float>(x1 - x0 == 0 ? 1 : (x1 - x0))),
+    we::math::Vec3 n(-(hR - hL) / (dx * static_cast<float>(x1 - x0 == 0 ? 1 : (x1 - x0))),
         2.0f,
         -(hU - hD) / (dz * static_cast<float>(z1 - z0 == 0 ? 1 : (z1 - z0))));
-    const float len = glm::length(n);
-    return (len > 1e-6f) ? (n / len) : glm::vec3(0.0f, 1.0f, 0.0f);
+    const float len = we::math::Length(n);
+    return (len > 1e-6f) ? (n / len) : we::math::Vec3(0.0f, 1.0f, 0.0f);
 }
 
 } // namespace
 
-int TerrainLODManager::SelectLod(const TerrainChunk& chunk, const glm::vec3& cameraWorldPos,
+int TerrainLODManager::SelectLod(const TerrainChunk& chunk, const we::math::Vec3& cameraWorldPos,
     float worldSizeX, float worldSizeY, int heightmapWidth) const {
     (void)worldSizeY;
     (void)heightmapWidth;
-    const glm::vec3 center = (chunk.bounds.min + chunk.bounds.max) * 0.5f;
-    const float dist = glm::length(cameraWorldPos - center);
+    const we::math::Vec3 center = (chunk.bounds.min + chunk.bounds.max) * 0.5f;
+    const float dist = we::math::Length(cameraWorldPos - center);
     const float chunkWorld = worldSizeX / static_cast<float>(std::max(1, chunk.quads > 0 ? 8 : 1));
     const float relative = dist / std::max(1.0f, chunkWorld);
     int lod = 0;
@@ -49,7 +50,7 @@ int TerrainLODManager::SelectLod(const TerrainChunk& chunk, const glm::vec3& cam
     return std::min(lod, m_MaxLod);
 }
 
-void TerrainLODManager::UpdateChunkLods(TerrainChunkManager& chunks, const glm::vec3& cameraWorldPos,
+void TerrainLODManager::UpdateChunkLods(TerrainChunkManager& chunks, const we::math::Vec3& cameraWorldPos,
     const TerrainCreateInfo& info, int heightmapWidth) {
     for (TerrainChunk& chunk : chunks.Chunks()) {
         const int newLod = SelectLod(chunk, cameraWorldPos, info.worldSizeX, info.worldSizeY, heightmapWidth);
@@ -98,8 +99,8 @@ bool TerrainLODManager::BuildChunkMesh(const TerrainHeightmap& heightmap, const 
     const float dx = info.worldSizeX / static_cast<float>(std::max(1, heightmap.Width() - 1));
     const float dz = info.worldSizeY / static_cast<float>(std::max(1, heightmap.Height() - 1));
 
-    glm::vec3 bmin(1e30f);
-    glm::vec3 bmax(-1e30f);
+    we::math::Vec3 bmin(1e30f);
+    we::math::Vec3 bmax(-1e30f);
 
     for (int gz = 0; gz < grid; ++gz) {
         for (int gx = 0; gx < grid; ++gx) {
@@ -108,14 +109,14 @@ bool TerrainLODManager::BuildChunkMesh(const TerrainHeightmap& heightmap, const 
             const float localX = static_cast<float>(sx) * dx;
             const float localZ = static_cast<float>(sz) * dz;
             const float y = SampleHeightMeters(heightmap, info, sx, sz);
-            const glm::vec3 pos = info.worldOrigin + glm::vec3(localX, y, localZ);
+            const we::math::Vec3 pos = info.worldOrigin + glm::vec3(localX, y, localZ);
             outMesh.positions.push_back(pos);
             outMesh.normals.push_back(ComputeNormal(heightmap, info, sx, sz));
             outMesh.uvs.emplace_back(
                 static_cast<float>(sx) / static_cast<float>(std::max(1, heightmap.Width() - 1)),
                 static_cast<float>(sz) / static_cast<float>(std::max(1, heightmap.Height() - 1)));
-            bmin = glm::min(bmin, pos);
-            bmax = glm::max(bmax, pos);
+            bmin = we::math::Vec3(std::min(bmin.x, pos.x), std::min(bmin.y, pos.y), std::min(bmin.z, pos.z));
+            bmax = we::math::Vec3(std::max(bmax.x, pos.x), std::max(bmax.y, pos.y), std::max(bmax.z, pos.z));
         }
     }
 

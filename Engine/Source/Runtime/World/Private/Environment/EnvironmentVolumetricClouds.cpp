@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include "Core/Math/GlmInterop.h"
 
 namespace we::runtime::world::environment {
 
@@ -31,7 +32,7 @@ void EnvironmentVolumetricClouds::ApplyDefaults() {
     CloudHeight = 1250.0f;
     Altitude = 1250.0f;
     Extinction = 0.55f;
-    WindDirection = glm::vec3(1.0f, 0.0f, 0.25f);
+    WindDirection = we::math::Vec3(1.0f, 0.0f, 0.25f);
     WindSpeed = 18.0f;
     AnimationSpeed = 1.0f;
     NoiseScale = 1.15f;
@@ -49,8 +50,8 @@ void EnvironmentVolumetricClouds::ApplyDefaults() {
     ShadowStrength = 0.65f;
     ShadowDistance = 4000.0f;
     ShadowResolution = 512;
-    CloudColor = glm::vec3(0.95f, 0.96f, 0.98f);
-    CloudColorTint = glm::vec3(1.0f, 1.0f, 1.0f);
+    CloudColor = we::math::Vec3(0.95f, 0.96f, 0.98f);
+    CloudColorTint = we::math::Vec3(1.0f, 1.0f, 1.0f);
     Quality = CloudQualityPreset::Medium;
     ActivePreset = CloudPreset::ScatteredClouds;
     AnimationTime = 0.0f;
@@ -142,7 +143,7 @@ void EnvironmentVolumetricClouds::ApplyPreset(CloudPreset preset) {
         Coverage = 0.82f;
         Density = 1.5f;
         Extinction = 0.8f;
-        CloudColor = glm::vec3(0.72f, 0.74f, 0.78f);
+        CloudColor = we::math::Vec3(0.72f, 0.74f, 0.78f);
         WindSpeed = 35.0f;
         ShadowStrength = 0.85f;
         SetLayer(*this, 500.0f, 2000.0f);
@@ -151,7 +152,7 @@ void EnvironmentVolumetricClouds::ApplyPreset(CloudPreset preset) {
         Coverage = 0.94f;
         Density = 1.75f;
         Extinction = 0.95f;
-        CloudColor = glm::vec3(0.55f, 0.57f, 0.62f);
+        CloudColor = we::math::Vec3(0.55f, 0.57f, 0.62f);
         WindSpeed = 48.0f;
         AnimationSpeed = 1.35f;
         ShadowStrength = 0.95f;
@@ -161,7 +162,7 @@ void EnvironmentVolumetricClouds::ApplyPreset(CloudPreset preset) {
     case CloudPreset::SunsetClouds:
         Coverage = 0.55f;
         Density = 1.1f;
-        CloudColorTint = glm::vec3(1.15f, 0.75f, 0.55f);
+        CloudColorTint = we::math::Vec3(1.15f, 0.75f, 0.55f);
         SilverLiningIntensity = 1.25f;
         LightingIntensity = 1.1f;
         SetLayer(*this, 950.0f, 1650.0f);
@@ -169,7 +170,7 @@ void EnvironmentVolumetricClouds::ApplyPreset(CloudPreset preset) {
     case CloudPreset::SunriseClouds:
         Coverage = 0.52f;
         Density = 1.05f;
-        CloudColorTint = glm::vec3(1.05f, 0.82f, 0.7f);
+        CloudColorTint = we::math::Vec3(1.05f, 0.82f, 0.7f);
         SilverLiningIntensity = 1.15f;
         SetLayer(*this, 950.0f, 1600.0f);
         break;

@@ -31,6 +31,8 @@
 #include <vector>
 
 namespace we::editor::environment {
+using ::we::runtime::world::environment::EnvironmentSystem;
+
 using ::we::runtime::kindui::IconPainter;
 using ::we::runtime::kindui::MouseButton;
 using ::we::runtime::kindui::Animator;

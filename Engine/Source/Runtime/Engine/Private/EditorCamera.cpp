@@ -9,6 +9,7 @@
 #include <algorithm>
 #include <cmath>
 
+#include "Core/Math/GlmInterop.h"
 namespace we::runtime::engine {
 
 #if WE_HAS_GLM
@@ -35,7 +36,7 @@ void EditorCamera::SetCameraSpeed(float speed) {
 void EditorCamera::Reset() {
     m_FlyMode = false;
     m_FreeLook = false;
-    m_SavedOrbitPivot = glm::vec3(0.0f);
+    m_SavedOrbitPivot = we::math::Vec3(0.0f);
     m_MoveSpeed = kEditorCameraDefaultSpeed;
     m_Sensitivity = 0.15f;
     m_LerpSpeed = 12.0f;
@@ -45,13 +46,13 @@ void EditorCamera::Reset() {
     m_ScrollWheelSpeedMultiplier = 1.0f;
     m_InvertX = false;
     m_InvertY = false;
-    m_Position = glm::vec3(0.0f, 6.0f, 15.0f);
-    m_LookAt = glm::vec3(0.0f, 0.0f, 0.0f);
+    m_Position = we::math::Vec3(0.0f, 6.0f, 15.0f);
+    m_LookAt = we::math::Vec3(0.0f, 0.0f, 0.0f);
     m_Pitch = -15.0f;
     m_Yaw = -90.0f;
     m_Distance = 15.0f;
-    m_TargetPosition = glm::vec3(0.0f, 6.0f, 15.0f);
-    m_TargetLookAt = glm::vec3(0.0f, 0.0f, 0.0f);
+    m_TargetPosition = we::math::Vec3(0.0f, 6.0f, 15.0f);
+    m_TargetLookAt = we::math::Vec3(0.0f, 0.0f, 0.0f);
     m_TargetPitch = -15.0f;
     m_TargetYaw = -90.0f;
     m_TargetDistance = 15.0f;
@@ -65,21 +66,21 @@ void EditorCamera::Reset() {
     m_LastDeltaTime = 0.0f;
 }
 
-void EditorCamera::SetOrbitPivot(const glm::vec3& pivot) {
+void EditorCamera::SetOrbitPivot(const we::math::Vec3& pivot) {
     m_TargetLookAt = pivot;
     if (!m_FlyMode && !m_FreeLook) {
         UpdateOrbitPositionFromAngles();
     }
 }
 
-void EditorCamera::Focus(const glm::vec3& target) {
+void EditorCamera::Focus(const we::math::Vec3& target) {
     m_TargetLookAt = target;
     m_SavedOrbitPivot = target;
     m_TargetDistance = 8.0f;
     m_FreeLook = false;
     if (m_FlyMode) {
         EnterFlyMode();
-        m_TargetPosition = target - ComputeForwardFromAngles() * m_TargetDistance;
+        m_TargetPosition = we::math::FromGlm(we::math::ToGlm(target) - we::math::ToGlm(ComputeForwardFromAngles()) * m_TargetDistance);
     } else {
         UpdateOrbitPositionFromAngles();
     }
@@ -91,7 +92,7 @@ void EditorCamera::SetViewportSize(float width, float height) {
     }
 }
 
-glm::vec3 EditorCamera::ComputeForwardFromAngles() const {
+we::math::Vec3 EditorCamera::ComputeForwardFromAngles() const {
     const float theta = glm::radians(m_TargetYaw);
     const float phi = glm::radians(m_TargetPitch);
 
@@ -101,19 +102,19 @@ glm::vec3 EditorCamera::ComputeForwardFromAngles() const {
     forward.z = cos(phi) * sin(theta);
     const float lenSq = glm::dot(forward, forward);
     if (lenSq < 1e-12f) {
-        return glm::vec3(0.0f, 0.0f, -1.0f);
+        return we::math::Vec3(0.0f, 0.0f, -1.0f);
     }
-    return forward * (1.0f / std::sqrt(lenSq));
+    return we::math::FromGlm(forward * (1.0f / std::sqrt(lenSq)));
 }
 
-glm::vec3 EditorCamera::ComputeRightFromYaw(float yawDegrees) const {
+we::math::Vec3 EditorCamera::ComputeRightFromYaw(float yawDegrees) const {
     // Yaw-derived lateral axis stays valid at extreme pitch (avoids normalize(0)).
     const float yaw = glm::radians(yawDegrees);
-    return glm::vec3(-std::sin(yaw), 0.0f, std::cos(yaw));
+    return we::math::Vec3(-std::sin(yaw), 0.0f, std::cos(yaw));
 }
 
 void EditorCamera::SyncOrientationFromView() {
-    const glm::vec3 forward = glm::normalize(m_LookAt - m_Position);
+    const glm::vec3 forward = glm::normalize(we::math::ToGlm(m_LookAt) - we::math::ToGlm(m_Position));
     m_TargetPitch = glm::degrees(std::asin(std::clamp(forward.y, -1.0f, 1.0f)));
     m_TargetYaw = glm::degrees(std::atan2(forward.z, forward.x));
     m_Pitch = m_TargetPitch;
@@ -129,15 +130,15 @@ void EditorCamera::UpdateOrbitPositionFromAngles() {
     offset.y = m_TargetDistance * sin(phi);
     offset.z = m_TargetDistance * cos(phi) * sin(theta);
 
-    m_TargetPosition = m_TargetLookAt + offset;
+    m_TargetPosition = we::math::FromGlm(we::math::ToGlm(m_TargetLookAt) + offset);
 }
 
 void EditorCamera::SyncOrbitStateFromCameraPosition() {
-    glm::vec3 offset = m_Position - m_TargetLookAt;
+    glm::vec3 offset = we::math::ToGlm(m_Position) - we::math::ToGlm(m_TargetLookAt);
     float distance = glm::length(offset);
     if (distance < 0.5f) {
         distance = 0.5f;
-        offset = glm::normalize(ComputeForwardFromAngles()) * -distance;
+        offset = glm::normalize(we::math::ToGlm(ComputeForwardFromAngles())) * -distance;
     }
 
     m_TargetDistance = distance;
@@ -154,7 +155,7 @@ void EditorCamera::SyncOrbitStateFromCameraPosition() {
 }
 
 void EditorCamera::UpdateLookAtFromFlyOrientation() {
-    m_TargetLookAt = m_TargetPosition + ComputeForwardFromAngles() * std::max(1.0f, m_TargetDistance);
+    m_TargetLookAt = we::math::FromGlm(we::math::ToGlm(m_TargetPosition) + we::math::ToGlm(ComputeForwardFromAngles()) * std::max(1.0f, m_TargetDistance));
 }
 
 void EditorCamera::EnterFlyMode() {
@@ -163,7 +164,7 @@ void EditorCamera::EnterFlyMode() {
     m_FreeLook = false;
     m_TargetPosition = m_Position;
     m_TargetLookAt = m_LookAt;
-    m_TargetDistance = std::max(1.0f, glm::distance(m_Position, m_LookAt));
+    m_TargetDistance = std::max(1.0f, glm::distance(we::math::ToGlm(m_Position), we::math::ToGlm(m_LookAt)));
     SyncOrientationFromView();
     UpdateLookAtFromFlyOrientation();
 }
@@ -179,7 +180,7 @@ void EditorCamera::ExitFlyMode() {
     m_TargetLookAt = m_LookAt;
     m_TargetPitch = m_Pitch;
     m_TargetYaw = m_Yaw;
-    m_TargetDistance = std::max(1.0f, glm::distance(m_Position, m_LookAt));
+    m_TargetDistance = std::max(1.0f, glm::distance(we::math::ToGlm(m_Position), we::math::ToGlm(m_LookAt)));
 }
 
 void EditorCamera::ResumeOrbitNavigation() {
@@ -223,8 +224,8 @@ void EditorCamera::Update(float dt) {
     m_Pitch = glm::mix(m_Pitch, m_TargetPitch, t);
     m_Yaw = glm::mix(m_Yaw, m_TargetYaw, t);
     m_Distance = glm::mix(m_Distance, m_TargetDistance, t);
-    m_LookAt = glm::mix(m_LookAt, m_TargetLookAt, t);
-    m_Position = glm::mix(m_Position, m_TargetPosition, t);
+    m_LookAt = we::math::FromGlm(glm::mix(we::math::ToGlm(m_LookAt), we::math::ToGlm(m_TargetLookAt), t));
+    m_Position = we::math::FromGlm(glm::mix(we::math::ToGlm(m_Position), we::math::ToGlm(m_TargetPosition), t));
 }
 
 void EditorCamera::ProcessFlyLook(float dx, float dy) {
@@ -263,12 +264,12 @@ void EditorCamera::ProcessMousePan(float dx, float dy) {
     const float speedScale = m_MoveSpeed / kEditorCameraDefaultSpeed;
     const float panSpeed = std::max(0.01f, m_TargetDistance * 0.0015f) * speedScale;
 
-    const glm::vec3 forward = ComputeForwardFromAngles();
-    const glm::vec3 right = ComputeRightFromYaw(m_TargetYaw);
+    const glm::vec3 forward = we::math::ToGlm(ComputeForwardFromAngles());
+    const glm::vec3 right = we::math::ToGlm(ComputeRightFromYaw(m_TargetYaw));
     const glm::vec3 up = glm::normalize(glm::cross(right, forward));
 
-    m_TargetLookAt -= right * dx * panSpeed;
-    m_TargetLookAt += up * dy * panSpeed;
+    m_TargetLookAt = we::math::FromGlm(we::math::ToGlm(m_TargetLookAt) - right * dx * panSpeed);
+    m_TargetLookAt = we::math::FromGlm(we::math::ToGlm(m_TargetLookAt) + up * dy * panSpeed);
 }
 
 void EditorCamera::ProcessMouseDolly(float delta) {
@@ -304,27 +305,27 @@ void EditorCamera::ProcessFlyMovement(const EditorCameraFlyKeys& keys, float dt)
     }
 
     const float distance = speed * dt;
-    const glm::vec3 forward = ComputeForwardFromAngles();
-    const glm::vec3 right = ComputeRightFromYaw(m_TargetYaw);
+    const glm::vec3 forward = we::math::ToGlm(ComputeForwardFromAngles());
+    const glm::vec3 right = we::math::ToGlm(ComputeRightFromYaw(m_TargetYaw));
     const glm::vec3 up = glm::vec3(0.0f, 1.0f, 0.0f);
 
     if (keys.forward) {
-        m_TargetPosition += forward * distance;
+        m_TargetPosition = we::math::FromGlm(we::math::ToGlm(m_TargetPosition) + forward * distance);
     }
     if (keys.back) {
-        m_TargetPosition -= forward * distance;
+        m_TargetPosition = we::math::FromGlm(we::math::ToGlm(m_TargetPosition) - forward * distance);
     }
     if (keys.left) {
-        m_TargetPosition -= right * distance;
+        m_TargetPosition = we::math::FromGlm(we::math::ToGlm(m_TargetPosition) - right * distance);
     }
     if (keys.right) {
-        m_TargetPosition += right * distance;
+        m_TargetPosition = we::math::FromGlm(we::math::ToGlm(m_TargetPosition) + right * distance);
     }
     if (keys.up) {
-        m_TargetPosition += up * distance;
+        m_TargetPosition = we::math::FromGlm(we::math::ToGlm(m_TargetPosition) + up * distance);
     }
     if (keys.down) {
-        m_TargetPosition -= up * distance;
+        m_TargetPosition = we::math::FromGlm(we::math::ToGlm(m_TargetPosition) - up * distance);
     }
 }
 
@@ -336,7 +337,7 @@ void EditorCamera::AdjustFlySpeed(float wheelDeltaY) {
     SetCameraSpeed(m_MoveSpeed + direction * m_ScrollWheelSpeedMultiplier);
 }
 
-glm::mat4 EditorCamera::GetViewMatrix() const {
+we::math::Mat4 EditorCamera::GetViewMatrix() const {
     // Build an orthonormal basis from yaw/pitch so look-at never collapses when
     // pitched near ±90° (world-up lookAt produces NaNs and hard GPU/device faults).
     const float yaw = glm::radians(m_Yaw);
@@ -353,7 +354,7 @@ glm::mat4 EditorCamera::GetViewMatrix() const {
         forward *= 1.0f / std::sqrt(fLenSq);
     }
 
-    const glm::vec3 right = ComputeRightFromYaw(m_Yaw);
+    const glm::vec3 right = we::math::ToGlm(ComputeRightFromYaw(m_Yaw));
     glm::vec3 up = glm::cross(right, forward);
     const float uLenSq = glm::dot(up, up);
     if (uLenSq < 1e-12f) {
@@ -362,17 +363,17 @@ glm::mat4 EditorCamera::GetViewMatrix() const {
         up *= 1.0f / std::sqrt(uLenSq);
     }
 
-    return glm::lookAt(m_Position, m_Position + forward, up);
+    return we::math::FromGlm(glm::lookAt(we::math::ToGlm(m_Position), we::math::ToGlm(m_Position) + forward, up));
 }
 
-glm::mat4 EditorCamera::GetProjectionMatrix() const {
+we::math::Mat4 EditorCamera::GetProjectionMatrix() const {
     const float aspect = std::max(m_AspectRatio, 0.01f);
     glm::mat4 proj = glm::perspectiveRH_ZO(glm::radians(m_Fov), aspect, m_Near, m_Far);
     proj[1][1] *= -1.0f;
-    return proj;
+    return we::math::FromGlm(proj);
 }
 
-glm::vec3 EditorCamera::GetForward() const {
+we::math::Vec3 EditorCamera::GetForward() const {
     const float yaw = glm::radians(m_Yaw);
     const float pitch = glm::radians(m_Pitch);
     glm::vec3 forward;
@@ -381,24 +382,24 @@ glm::vec3 EditorCamera::GetForward() const {
     forward.z = std::cos(pitch) * std::sin(yaw);
     const float lenSq = glm::dot(forward, forward);
     if (lenSq < 1e-12f) {
-        return glm::vec3(0.0f, 0.0f, -1.0f);
+        return we::math::Vec3(0.0f, 0.0f, -1.0f);
     }
-    return forward * (1.0f / std::sqrt(lenSq));
+    return we::math::FromGlm(forward * (1.0f / std::sqrt(lenSq)));
 }
 
-glm::vec3 EditorCamera::GetRight() const {
+we::math::Vec3 EditorCamera::GetRight() const {
     return ComputeRightFromYaw(m_Yaw);
 }
 
-glm::vec3 EditorCamera::GetUp() const {
-    const glm::vec3 forward = GetForward();
-    const glm::vec3 right = GetRight();
+we::math::Vec3 EditorCamera::GetUp() const {
+    const glm::vec3 forward = we::math::ToGlm(GetForward());
+    const glm::vec3 right = we::math::ToGlm(GetRight());
     glm::vec3 up = glm::cross(right, forward);
     const float lenSq = glm::dot(up, up);
     if (lenSq < 1e-12f) {
-        return glm::vec3(0.0f, 1.0f, 0.0f);
+        return we::math::Vec3(0.0f, 1.0f, 0.0f);
     }
-    return up * (1.0f / std::sqrt(lenSq));
+    return we::math::FromGlm(up * (1.0f / std::sqrt(lenSq)));
 }
 
 float EditorCamera::GetGridLodDistance() const {
@@ -412,11 +413,11 @@ bool EditorCamera::IsFlyMode() const {
     return m_FlyMode;
 }
 
-glm::vec3 EditorCamera::GetPosition() const {
+we::math::Vec3 EditorCamera::GetPosition() const {
     return m_Position;
 }
 
-glm::vec3 EditorCamera::GetLookAt() const {
+we::math::Vec3 EditorCamera::GetLookAt() const {
     return m_LookAt;
 }
 
@@ -436,7 +437,7 @@ float EditorCamera::GetYaw() const {
     return m_Yaw;
 }
 
-glm::vec3 EditorCamera::GetPreviousPosition() const {
+we::math::Vec3 EditorCamera::GetPreviousPosition() const {
     return m_PrevPosition;
 }
 
@@ -456,7 +457,7 @@ float EditorCamera::GetCameraSpeed() const {
     return m_MoveSpeed;
 }
 
-glm::vec3 EditorCamera::GetOrbitPivot() const {
+we::math::Vec3 EditorCamera::GetOrbitPivot() const {
     return m_TargetLookAt;
 }
 
@@ -465,8 +466,8 @@ glm::vec3 EditorCamera::GetOrbitPivot() const {
 // Stub implementations when GLM is not available
 EditorCamera::EditorCamera() {
     // Initialize with default values
-    m_Position = glm::vec3{0.0f, 6.0f, 15.0f};
-    m_LookAt = glm::vec3{0.0f, 0.0f, 0.0f};
+    m_Position = we::math::Vec3{0.0f, 6.0f, 15.0f};
+    m_LookAt = we::math::Vec3{0.0f, 0.0f, 0.0f};
     m_Pitch = -15.0f;
     m_Yaw = -90.0f;
     m_Distance = 15.0f;
@@ -489,11 +490,11 @@ void EditorCamera::Reset() {
     // Stub
 }
 
-void EditorCamera::SetOrbitPivot(const glm::vec3& pivot) {
+void EditorCamera::SetOrbitPivot(const we::math::Vec3& pivot) {
     (void)pivot; // Suppress unused parameter warning
 }
 
-void EditorCamera::Focus(const glm::vec3& target) {
+void EditorCamera::Focus(const we::math::Vec3& target) {
     (void)target; // Suppress unused parameter warning
 }
 
@@ -551,7 +552,7 @@ void EditorCamera::AdjustFlySpeed(float wheelDeltaY) {
     (void)wheelDeltaY; // Suppress unused parameter warning
 }
 
-glm::mat4 EditorCamera::GetViewMatrix() const {
+we::math::Mat4 EditorCamera::GetViewMatrix() const {
     glm::mat4 result{};
     // Identity matrix stub
     result.data[0] = 1.0f;
@@ -561,7 +562,7 @@ glm::mat4 EditorCamera::GetViewMatrix() const {
     return result;
 }
 
-glm::mat4 EditorCamera::GetProjectionMatrix() const {
+we::math::Mat4 EditorCamera::GetProjectionMatrix() const {
     glm::mat4 result{};
     // Identity matrix stub
     result.data[0] = 1.0f;
@@ -571,17 +572,17 @@ glm::mat4 EditorCamera::GetProjectionMatrix() const {
     return result;
 }
 
-glm::vec3 EditorCamera::GetForward() const {
+we::math::Vec3 EditorCamera::GetForward() const {
     glm::vec3 result{0.0f, 0.0f, -1.0f};
     return result;
 }
 
-glm::vec3 EditorCamera::GetRight() const {
+we::math::Vec3 EditorCamera::GetRight() const {
     glm::vec3 result{1.0f, 0.0f, 0.0f};
     return result;
 }
 
-glm::vec3 EditorCamera::GetUp() const {
+we::math::Vec3 EditorCamera::GetUp() const {
     glm::vec3 result{0.0f, 1.0f, 0.0f};
     return result;
 }
@@ -594,11 +595,11 @@ bool EditorCamera::IsFlyMode() const {
     return m_FlyMode;
 }
 
-glm::vec3 EditorCamera::GetPosition() const {
+we::math::Vec3 EditorCamera::GetPosition() const {
     return m_Position;
 }
 
-glm::vec3 EditorCamera::GetLookAt() const {
+we::math::Vec3 EditorCamera::GetLookAt() const {
     return m_LookAt;
 }
 
@@ -618,7 +619,7 @@ float EditorCamera::GetYaw() const {
     return m_Yaw;
 }
 
-glm::vec3 EditorCamera::GetPreviousPosition() const {
+we::math::Vec3 EditorCamera::GetPreviousPosition() const {
     return m_PrevPosition;
 }
 
@@ -638,7 +639,7 @@ float EditorCamera::GetCameraSpeed() const {
     return m_MoveSpeed;
 }
 
-glm::vec3 EditorCamera::GetOrbitPivot() const {
+we::math::Vec3 EditorCamera::GetOrbitPivot() const {
     return m_TargetLookAt;
 }
 

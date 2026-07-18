@@ -16,11 +16,16 @@ public class PlaceActors : ModuleRules
         PublicDependencies.Add("Scene");
         PublicDependencies.Add("Renderer");
         PublicDependencies.Add("KindUI");
+        PublicDependencies.Add("Text");
         PublicDependencies.Add("UIFramework");
         PublicDependencies.Add("ContentBrowser");
         PublicDependencies.Add("Toolbar");
         PublicDependencies.Add("Terrain");
         PrivateDependencies.Add("TerrainEditor");
+
+        AddOptionalThirdParty("glm");
+        DefineIf(HasThirdParty("glm"), "WE_HAS_GLM=1");
+        DefineIf(!HasThirdParty("glm"), "WE_HAS_GLM=0");
 
         Definitions.Add("PLACEACTORS_EXPORTS");
     }

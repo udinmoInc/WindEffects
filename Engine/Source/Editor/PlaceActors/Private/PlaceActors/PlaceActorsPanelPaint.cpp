@@ -34,7 +34,8 @@
 
 
 namespace we::programs::editor {
-void PlaceActorsPanel::Paint(PaintContext& context) {
+namespace PanelChrome = ::we::editor::panels::PanelChrome;
+void PlaceActorsPanel::Paint(we::runtime::kindui::PaintContext& context) {
     PanelChrome::PaintContentRegion(context, m_Geometry);
 
     ActorsPanelChrome::PaintSearchField(

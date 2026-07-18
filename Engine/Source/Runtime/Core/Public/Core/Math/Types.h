@@ -84,17 +84,44 @@ inline constexpr Vec2 operator+(const Vec2& a, const Vec2& b) { return {a.x + b.
 inline constexpr Vec2 operator-(const Vec2& a, const Vec2& b) { return {a.x - b.x, a.y - b.y}; }
 inline constexpr Vec2 operator*(const Vec2& a, float s) { return {a.x * s, a.y * s}; }
 inline constexpr Vec2 operator*(float s, const Vec2& a) { return a * s; }
+inline constexpr bool operator==(const Vec2& a, const Vec2& b) { return a.x == b.x && a.y == b.y; }
+inline constexpr bool operator!=(const Vec2& a, const Vec2& b) { return !(a == b); }
 
 inline constexpr Vec3 operator+(const Vec3& a, const Vec3& b) { return {a.x + b.x, a.y + b.y, a.z + b.z}; }
 inline constexpr Vec3 operator-(const Vec3& a, const Vec3& b) { return {a.x - b.x, a.y - b.y, a.z - b.z}; }
 inline constexpr Vec3 operator-(const Vec3& a) { return {-a.x, -a.y, -a.z}; }
 inline constexpr Vec3 operator*(const Vec3& a, float s) { return {a.x * s, a.y * s, a.z * s}; }
 inline constexpr Vec3 operator*(float s, const Vec3& a) { return a * s; }
+inline constexpr Vec3 operator*(const Vec3& a, const Vec3& b) { return {a.x * b.x, a.y * b.y, a.z * b.z}; }
 inline constexpr Vec3 operator/(const Vec3& a, float s) { return {a.x / s, a.y / s, a.z / s}; }
+inline constexpr bool operator==(const Vec3& a, const Vec3& b) {
+    return a.x == b.x && a.y == b.y && a.z == b.z;
+}
+inline constexpr bool operator!=(const Vec3& a, const Vec3& b) { return !(a == b); }
+inline Vec3& operator+=(Vec3& a, const Vec3& b) { a.x += b.x; a.y += b.y; a.z += b.z; return a; }
+inline Vec3& operator-=(Vec3& a, const Vec3& b) { a.x -= b.x; a.y -= b.y; a.z -= b.z; return a; }
 
 inline constexpr Vec4 operator+(const Vec4& a, const Vec4& b) { return {a.x + b.x, a.y + b.y, a.z + b.z, a.w + b.w}; }
 inline constexpr Vec4 operator-(const Vec4& a, const Vec4& b) { return {a.x - b.x, a.y - b.y, a.z - b.z, a.w - b.w}; }
 inline constexpr Vec4 operator*(const Vec4& a, float s) { return {a.x * s, a.y * s, a.z * s, a.w * s}; }
+inline constexpr bool operator==(const Vec4& a, const Vec4& b) {
+    return a.x == b.x && a.y == b.y && a.z == b.z && a.w == b.w;
+}
+inline constexpr bool operator!=(const Vec4& a, const Vec4& b) { return !(a == b); }
+
+inline Mat4 operator*(const Mat4& a, const Mat4& b) {
+    Mat4 out(0.0f);
+    for (int col = 0; col < 4; ++col) {
+        for (int row = 0; row < 4; ++row) {
+            float sum = 0.0f;
+            for (int k = 0; k < 4; ++k) {
+                sum += a.m[k * 4 + row] * b.m[col * 4 + k];
+            }
+            out.m[col * 4 + row] = sum;
+        }
+    }
+    return out;
+}
 
 inline float Length(const Vec3& v) {
     return std::sqrt(v.x * v.x + v.y * v.y + v.z * v.z);

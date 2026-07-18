@@ -19,6 +19,8 @@ public class Terrain : ModuleRules
         PrivateDependencies.Add("Renderer");
 
         AddOptionalThirdParty("glm");
+        DefineIf(HasThirdParty("glm"), "WE_HAS_GLM=1");
+        DefineIf(!HasThirdParty("glm"), "WE_HAS_GLM=0");
 
         Definitions.Add("TERRAIN_EXPORTS");
     }

@@ -14,6 +14,7 @@ public class Toolbar : ModuleRules
         PublicDependencies.Add("RHI");
         PublicDependencies.Add("Menus");
         PublicDependencies.Add("KindUI");
+        PublicDependencies.Add("Text");
         PublicDependencies.Add("UIFramework");
 
         Definitions.Add("TOOLBAR_EXPORTS");

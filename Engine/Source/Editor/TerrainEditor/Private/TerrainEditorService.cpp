@@ -2,12 +2,9 @@
 
 #include "Terrain/TerrainSystem.h"
 #include "Terrain/TerrainTypes.h"
+#include "Core/Math/Types.h"
 #include "Core/Logger.h"
 #include "Scene/Scene.h"
-
-#if WE_HAS_GLM
-#include <glm/glm.hpp>
-#endif
 
 namespace we::editor::terrain {
 
@@ -104,7 +101,7 @@ int TerrainEditorService::SpawnFoliageInDefaultRegion() {
     params.maxSlopeDegrees = 30.0f;
     const float half = terrain.Info().worldSizeX * 0.35f;
     return terrain.Foliage().Spawn(terrain.Collision(), terrain.Info(), &terrain.Materials(),
-        params, glm::vec2(-half, -half), glm::vec2(half, half));
+        params, we::math::Vec2(-half, -half), we::math::Vec2(half, half));
 }
 
 void TerrainEditorService::Tick(float deltaSeconds, float cameraX, float cameraY, float cameraZ) {
@@ -112,7 +109,7 @@ void TerrainEditorService::Tick(float deltaSeconds, float cameraX, float cameraY
     if (!terrain.IsCreated()) {
         return;
     }
-    terrain.Tick(deltaSeconds, glm::vec3(cameraX, cameraY, cameraZ), nullptr);
+    terrain.Tick(deltaSeconds, we::math::Vec3(cameraX, cameraY, cameraZ), nullptr);
 }
 
 } // namespace we::editor::terrain

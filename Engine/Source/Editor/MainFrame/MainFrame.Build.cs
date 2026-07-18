@@ -13,6 +13,7 @@ public class MainFrame : ModuleRules
         PublicDependencies.Add("Platform");
         PublicDependencies.Add("RHI");
         PublicDependencies.Add("KindUI");
+        PublicDependencies.Add("Text");
         PublicDependencies.Add("UIFramework");
         PublicDependencies.Add("Toolbar");
         PublicDependencies.Add("Menus");

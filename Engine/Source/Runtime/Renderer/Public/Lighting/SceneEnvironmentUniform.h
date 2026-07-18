@@ -4,17 +4,15 @@
 #pragma warning(disable: 4251)
 
 #include "Renderer/Export.h"
+#include "Core/Math/Types.h"
+
 #include <cstdint>
 #include <cstddef>
-#if WE_HAS_GLM
-#include "Core/Math/Types.h"
-#endif
 
 namespace we::runtime::renderer {
 
 // Must match EnvironmentBuffer.hlsli (std140-compatible packing).
 struct RENDERER_API SceneEnvironmentUniform {
-#if WE_HAS_GLM
     we::math::Vec3 sunDirection{0.3f, -0.8f, 0.2f};
     float sunIntensity = 1.2f;
     we::math::Vec3 sunColor{1.0f, 0.98f, 0.95f};
@@ -78,23 +76,17 @@ struct RENDERER_API SceneEnvironmentUniform {
     int cloudQualitySteps = 32;
     float cloudShapeNoise = 0.8f;
     float cloudErosionNoise = 0.28f;
-#else
-    float sunDirection[3]{};
-    float sunIntensity = 1.2f;
-#endif
 };
 
-#if WE_HAS_GLM
 constexpr std::size_t kSceneEnvironmentUniformSize = 328;
 static_assert(sizeof(SceneEnvironmentUniform) == kSceneEnvironmentUniformSize,
-    "Environment UBO size drift â€” rebuild ALL Renderer/World translation units that include this header.");
+    "Environment UBO size drift — rebuild ALL Renderer/World translation units that include this header.");
 static_assert(offsetof(SceneEnvironmentUniform, enableClouds) == 156, "Environment UBO packing drift (enableClouds).");
 static_assert(offsetof(SceneEnvironmentUniform, cloudDensityMult) == 232, "Environment UBO packing drift (cloudDensityMult).");
 static_assert(offsetof(SceneEnvironmentUniform, cloudWindDir) == 256, "Environment UBO packing drift (cloudWindDir pad).");
 static_assert(offsetof(SceneEnvironmentUniform, cloudQualitySteps) == 316, "Environment UBO packing drift (cloudQualitySteps).");
 static_assert(offsetof(SceneEnvironmentUniform, cloudShapeNoise) == 320, "Environment UBO packing drift (cloudShapeNoise).");
 static_assert(offsetof(SceneEnvironmentUniform, cloudErosionNoise) == 324, "Environment UBO packing drift (cloudErosionNoise).");
-#endif
 
 } // namespace we::runtime::renderer
 
