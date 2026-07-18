@@ -7,18 +7,13 @@ public class World : ModuleRules
         Type = ModuleType.SharedLibrary;
 
         PublicIncludePaths.Add("Public");
-        PublicIncludePaths.Add("Public/WindEffects");
-        PublicIncludePaths.Add("Public/WindEffects/Runtime");
-        PublicIncludePaths.Add(".");
-        PrivateIncludePaths.Add(".");
-        PrivateIncludePaths.Add("DefaultScene");
-        PrivateIncludePaths.Add("Environment");
+        PrivateIncludePaths.Add("Private");
 
         PublicDependencies.Add("Core");
         PublicDependencies.Add("Platform");
         PublicDependencies.Add("Engine");
         PublicDependencies.Add("Scene");
-        PublicDependencies.Add("Renderer");
+        PrivateDependencies.Add("Renderer");
 
         AddOptionalThirdParty("glm");
 

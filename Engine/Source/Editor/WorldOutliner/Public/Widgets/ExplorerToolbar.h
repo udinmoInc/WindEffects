@@ -2,7 +2,7 @@
 
 #include "KindUI/Core/Widget.h"
 #include "KindUI/Theming/ThemeAccess.h"
-#include "Widgets/TreeView.h"
+#include "ContentBrowser/Widgets/TreeView.h"
 #include <functional>
 #include <string>
 #include <vector>

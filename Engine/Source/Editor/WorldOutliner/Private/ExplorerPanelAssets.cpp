@@ -1,6 +1,6 @@
 #include "Explorer/ExplorerPanelAssets.h"
 #include "Explorer/WorldOutlinerApi.h"
-#include "Widgets/TreeView.h"
+#include "ContentBrowser/Widgets/TreeView.h"
 
 #include <memory>
 

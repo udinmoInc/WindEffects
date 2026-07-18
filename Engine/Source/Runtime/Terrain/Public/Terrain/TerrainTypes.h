@@ -10,12 +10,12 @@
 #include <vector>
 
 #if WE_HAS_GLM
-#include <glm/glm.hpp>
+#include "Core/Math/Types.h"
 #endif
 
 namespace we::runtime::terrain {
 
-// Landscape-style defaults (UE-inspired): 127 quads → 128 verts per axis per chunk.
+// Landscape-style defaults (UE-inspired): 127 quads â†’ 128 verts per axis per chunk.
 inline constexpr int kDefaultChunkQuads = 127;
 inline constexpr int kDefaultChunkVerts = kDefaultChunkQuads + 1; // 128
 inline constexpr int kMaxLodLevels = 5;
@@ -39,14 +39,14 @@ enum class HeightmapFormat {
 };
 
 struct TerrainCreateInfo {
-    int resolutionX = 1009; // (7 * 127) + 1 → 8x8 chunks of 127 quads
+    int resolutionX = 1009; // (7 * 127) + 1 â†’ 8x8 chunks of 127 quads
     int resolutionY = 1009;
     float worldSizeX = 1009.0f; // meters
     float worldSizeY = 1009.0f;
     float heightScale = 256.0f; // meters at max uint16
     float heightOffset = 0.0f;
     int chunkQuads = kDefaultChunkQuads;
-    glm::vec3 worldOrigin{ 0.0f, 0.0f, 0.0f };
+    we::math::Vec3 worldOrigin{ 0.0f, 0.0f, 0.0f };
 };
 
 struct TerrainChunkId {
@@ -64,28 +64,28 @@ struct TerrainChunkIdHash {
 };
 
 struct TerrainAABB {
-    glm::vec3 min{ 0.0f };
-    glm::vec3 max{ 0.0f };
+    we::math::Vec3 min{ 0.0f };
+    we::math::Vec3 max{ 0.0f };
 
-    bool IntersectsFrustumPlanes(const glm::vec4 planes[6]) const;
-    bool ContainsPoint(const glm::vec3& p) const;
+    bool IntersectsFrustumPlanes(const we::math::Vec4 planes[6]) const;
+    bool ContainsPoint(const we::math::Vec3& p) const;
 };
 
 struct TerrainFrustump {
-    glm::vec4 planes[6]{};
-    static TerrainFrustump FromViewProj(const glm::mat4& viewProj);
+    we::math::Vec4 planes[6]{};
+    static TerrainFrustump FromViewProj(const we::math::Mat4& viewProj);
 };
 
 struct TerrainMeshCPU {
-    std::vector<glm::vec3> positions;
-    std::vector<glm::vec3> normals;
-    std::vector<glm::vec2> uvs;
+    std::vector<we::math::Vec3> positions;
+    std::vector<we::math::Vec3> normals;
+    std::vector<we::math::Vec2> uvs;
     std::vector<std::uint32_t> indices;
 };
 
 struct FoliageInstance {
-    glm::vec3 position{ 0.0f };
-    glm::vec3 normal{ 0.0f, 1.0f, 0.0f };
+    we::math::Vec3 position{ 0.0f };
+    we::math::Vec3 normal{ 0.0f, 1.0f, 0.0f };
     float yawDegrees = 0.0f;
     float scale = 1.0f;
     int layerIndex = 0;

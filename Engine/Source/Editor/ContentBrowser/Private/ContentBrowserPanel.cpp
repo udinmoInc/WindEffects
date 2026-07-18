@@ -1,11 +1,11 @@
 #include "WindEffects/Editor/EditorSDK.h"
 #include "WindEffects/Editor/UI/Shell/EditorWorkspaceController.h"
-#include "ContentBrowserApi.h"
+#include "ContentBrowser/ContentBrowserApi.h"
 #include "KindUI/Rendering/FontImportService.h"
-#include "Widgets/ContentBrowser.h"
-#include "Widgets/ContentBrowserToolbar.h"
-#include "Widgets/SearchBox.h"
-#include "Widgets/TreeView.h"
+#include "ContentBrowser/Widgets/ContentBrowser.h"
+#include "ContentBrowser/Widgets/ContentBrowserToolbar.h"
+#include "ContentBrowser/Widgets/SearchBox.h"
+#include "ContentBrowser/Widgets/TreeView.h"
 #include "KindUI/Layout/Flex.h"
 #include "KindUI/Layout/Splitter.h"
 #include "KindUI/Core/Icon.h"
@@ -13,7 +13,7 @@
 #include "Services/ContentBrowserService.h"
 #include "Registry/ContentAssetRegistry.h"
 #include "Controllers/FilterController.h"
-#include "Models/ContentBrowserModel.h"
+#include "ContentBrowser/Models/ContentBrowserModel.h"
 #include <filesystem>
 #include <memory>
 #include <sstream>

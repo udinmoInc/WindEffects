@@ -3,7 +3,7 @@
 #include "WindEffects/Editor/UI/Panel/PanelChrome.h"
 #include "WindEffects/Editor/UI/Shell/EditorModeController.h"
 #include "WindEffects/Editor/UI/Shell/EditorToolsRegistry.h"
-#include "Widgets/SearchBox.h"
+#include "ContentBrowser/Widgets/SearchBox.h"
 #include "KindUI/Core/PaintContext.h"
 #include "KindUI/Tokens/DesignToken.h"
 #include "KindUI/Theming/StyleRole.h"

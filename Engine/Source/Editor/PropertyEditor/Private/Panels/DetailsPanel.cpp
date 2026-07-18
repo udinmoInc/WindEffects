@@ -1,6 +1,6 @@
 #include "WindEffects/Editor/EditorSDK.h"
 #include "Widgets/PropertyEditor.h"
-#include "Widgets/SearchBox.h"
+#include "ContentBrowser/Widgets/SearchBox.h"
 #include "Core/Localization.h"
 #include "KindUI/Core/Icon.h"
 

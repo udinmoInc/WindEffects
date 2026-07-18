@@ -2,7 +2,7 @@
 
 #include <cstdint>
 #include <filesystem>
-#include <glm/glm.hpp>
+#include "Core/Math/Types.h"
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -42,12 +42,12 @@ struct EditorGridConfig {
     float antiAliasScale = 1.0f;
     float baseOpacity = 1.0f;
 
-    glm::vec4 minorGridColor{ 0.27f, 0.27f, 0.27f, 0.30f };
-    glm::vec4 mediumGridColor{ 0.31f, 0.31f, 0.31f, 0.36f };
-    glm::vec4 largeGridColor{ 0.34f, 0.34f, 0.34f, 0.40f };
-    glm::vec4 majorGridColor{ 0.37f, 0.37f, 0.37f, 0.45f };
-    glm::vec4 axisXColor{ 0.57f, 0.29f, 0.29f, 0.55f };
-    glm::vec4 axisZColor{ 0.29f, 0.57f, 0.29f, 0.55f };
+    we::math::Vec4 minorGridColor{ 0.27f, 0.27f, 0.27f, 0.30f };
+    we::math::Vec4 mediumGridColor{ 0.31f, 0.31f, 0.31f, 0.36f };
+    we::math::Vec4 largeGridColor{ 0.34f, 0.34f, 0.34f, 0.40f };
+    we::math::Vec4 majorGridColor{ 0.37f, 0.37f, 0.37f, 0.45f };
+    we::math::Vec4 axisXColor{ 0.57f, 0.29f, 0.29f, 0.55f };
+    we::math::Vec4 axisZColor{ 0.29f, 0.57f, 0.29f, 0.55f };
 
     bool axisBloom = false;
     float axisGlow = 0.0f;

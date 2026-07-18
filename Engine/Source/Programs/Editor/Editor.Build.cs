@@ -9,6 +9,9 @@ public class Editor : ModuleRules
         SetBinaryName("WindeffectsEditor.exe");
         PublishAtConfigurationRoot();
 
+        PublicIncludePaths.Add("Public");
+        PrivateIncludePaths.Add("Private");
+
         PublicDependencies.Add("Core");
         PublicDependencies.Add("Engine");
         PublicDependencies.Add("Platform");

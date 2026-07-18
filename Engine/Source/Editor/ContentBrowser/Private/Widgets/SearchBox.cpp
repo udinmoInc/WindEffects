@@ -1,5 +1,5 @@
 #include "Platform/Platform.h"
-#include "Widgets/SearchBox.h"
+#include "ContentBrowser/Widgets/SearchBox.h"
 #include "KindUI/Core/EventSystem.h"
 #include "KindUI/Core/PaintContext.h"
 #include "WindEffects/Editor/UI/Panel/PanelChrome.h"

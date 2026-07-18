@@ -18,7 +18,7 @@ public class KindUI : ModuleRules
         PublicDependencies.Add("Icons");
 
         var thirdPartyRoot = Path.Combine(context.EngineDirectory, "ThirdParty");
-        PublicIncludePaths.Add(Path.Combine(thirdPartyRoot, "lunasvg", "include"));
+        PrivateIncludePaths.Add(Path.Combine(thirdPartyRoot, "lunasvg", "include"));
 
         RequiredThirdParty.Add("lunasvg");
 

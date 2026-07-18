@@ -20,7 +20,7 @@ public class PlaceActors : ModuleRules
         PublicDependencies.Add("ContentBrowser");
         PublicDependencies.Add("Toolbar");
         PublicDependencies.Add("Terrain");
-        PublicDependencies.Add("TerrainEditor");
+        PrivateDependencies.Add("TerrainEditor");
 
         Definitions.Add("PLACEACTORS_EXPORTS");
     }

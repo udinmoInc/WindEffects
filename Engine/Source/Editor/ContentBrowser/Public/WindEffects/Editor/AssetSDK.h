@@ -1,9 +1,9 @@
 #pragma once
 
-// WindEffects Asset SDK — content browser services and asset registry.
+// WindEffects Asset SDK — content browser public API surface.
 
 #include "WindEffects/Platform.h"
 
-#include "ContentBrowserApi.h"
-#include "Registry/ContentAssetRegistry.h"
-#include "Services/ContentBrowserService.h"
+#include "ContentBrowser/ContentBrowserApi.h"
+#include "ContentBrowser/Widgets/ContentBrowser.h"
+#include "ContentBrowser/Widgets/TreeView.h"

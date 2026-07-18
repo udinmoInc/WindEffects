@@ -9,6 +9,9 @@ public class ECSTests : ModuleRules
         SetBinaryName("ECSTests.exe");
         PublishAtConfigurationRoot();
 
+        PublicIncludePaths.Add("Public");
+        PrivateIncludePaths.Add("Private");
+
         PublicDependencies.Add("Core");
         PublicDependencies.Add("Platform");
         PublicDependencies.Add("ECS");

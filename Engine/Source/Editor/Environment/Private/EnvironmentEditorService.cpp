@@ -1,12 +1,12 @@
 #include "Environment/EnvironmentEditorApi.h"
+#include "Core/Math/Types.h"
 
 #include "Environment/EnvironmentSystem.h"
-#include "Environment/EnvironmentTypes.h"
 #include "Environment/EnvironmentTypes.h"
 #include "Scene/Entity.h"
 #include "Scene/Scene.h"
 #include "Widgets/PropertyEditor.h"
-#include "Widgets/TreeView.h"
+#include "ContentBrowser/Widgets/TreeView.h"
 #include "Widgets/MenuBar.h"
 #include "WindEffects/Editor/UI/Shell/EditorWorkspaceController.h"
 #include "KindUI/Core/PaintContext.h"
@@ -143,12 +143,12 @@ std::string FormatFloat(float value) {
     return buffer;
 }
 
-std::string FormatVec3(const glm::vec3& value) {
+std::string FormatVec3(const we::math::Vec3& value) {
     return FormatFloat(value.x) + "," + FormatFloat(value.y) + "," + FormatFloat(value.z);
 }
 
-glm::vec3 ParseVec3(const std::string& text, const glm::vec3& fallback) {
-    glm::vec3 result = fallback;
+we::math::Vec3 ParseVec3(const std::string& text, const we::math::Vec3& fallback) {
+    we::math::Vec3 result = fallback;
     char comma = 0;
     if (std::sscanf(text.c_str(), "%f%c%f%c%f", &result.x, &comma, &result.y, &comma, &result.z) >= 1) {
         return result;
@@ -236,8 +236,8 @@ void AddVec3Property(
     ::we::editor::property::PropertyEditor& editor,
     const std::string& name,
     const std::string& category,
-    const glm::vec3& value,
-    std::function<void(const glm::vec3&)> onChanged) {
+    const we::math::Vec3& value,
+    std::function<void(const we::math::Vec3&)> onChanged) {
     ::we::editor::property::Property property;
     property.name = name;
     property.category = category;
@@ -272,7 +272,7 @@ void BindSunProperties(::we::editor::property::PropertyEditor& editor, Environme
         system.GetSun().AtmosphereSun = value;
         system.UpdateRendering();
     });
-    AddVec3Property(editor, "Rotation", "Transform", sun.Rotation, [&system](const glm::vec3& value) {
+    AddVec3Property(editor, "Rotation", "Transform", sun.Rotation, [&system](const we::math::Vec3& value) {
         system.GetSun().Rotation = value;
         system.SyncToScene();
         system.UpdateRendering();
@@ -323,7 +323,7 @@ void BindFogProperties(::we::editor::property::PropertyEditor& editor, Environme
     AddBoolProperty(editor, "Volumetric Fog", "Fog", fog.VolumetricFog, [&system](bool value) {
         system.SetVolumetricFogEnabled(value);
     });
-    AddVec3Property(editor, "Fog Color", "Fog", fog.FogColor, [&system](const glm::vec3& value) {
+    AddVec3Property(editor, "Fog Color", "Fog", fog.FogColor, [&system](const we::math::Vec3& value) {
         system.GetHeightFog().FogColor = value;
         system.SyncToScene();
         system.UpdateRendering();
@@ -423,7 +423,7 @@ void BindCloudProperties(::we::editor::property::PropertyEditor& editor, Environ
         system.GetVolumetricClouds().TopAltitude = value;
         refresh();
     });
-    AddVec3Property(editor, "Wind Direction", "Clouds", clouds.WindDirection, [&system, refresh](const glm::vec3& value) {
+    AddVec3Property(editor, "Wind Direction", "Clouds", clouds.WindDirection, [&system, refresh](const we::math::Vec3& value) {
         system.GetVolumetricClouds().WindDirection = value;
         refresh();
     });
@@ -491,11 +491,11 @@ void BindCloudProperties(::we::editor::property::PropertyEditor& editor, Environ
         system.GetVolumetricClouds().ShadowResolution = std::clamp(value, 64, 2048);
         refresh();
     });
-    AddVec3Property(editor, "Cloud Color Tint", "Appearance", clouds.CloudColorTint, [&system, refresh](const glm::vec3& value) {
+    AddVec3Property(editor, "Cloud Color Tint", "Appearance", clouds.CloudColorTint, [&system, refresh](const we::math::Vec3& value) {
         system.GetVolumetricClouds().CloudColorTint = value;
         refresh();
     });
-    AddVec3Property(editor, "Cloud Color", "Appearance", clouds.CloudColor, [&system, refresh](const glm::vec3& value) {
+    AddVec3Property(editor, "Cloud Color", "Appearance", clouds.CloudColor, [&system, refresh](const we::math::Vec3& value) {
         system.GetVolumetricClouds().CloudColor = value;
         refresh();
     });
@@ -567,21 +567,21 @@ void RefreshDetailsPanel() {
     actorType.value = EntityTypeLabel(entity.Type);
     details->AddProperty(actorType);
 
-    AddVec3Property(*details, "Position", "Transform", entity.Position, [scene, entityId = entity.Id](const glm::vec3& value) {
+    AddVec3Property(*details, "Position", "Transform", entity.Position, [scene, entityId = entity.Id](const we::math::Vec3& value) {
         if (Entity* target = scene->FindEntityById(entityId)) {
             target->Position = value;
             EnvironmentSystem::Get().SyncFromScene();
             EnvironmentSystem::Get().UpdateRendering();
         }
     });
-    AddVec3Property(*details, "Rotation", "Transform", entity.Rotation, [scene, entityId = entity.Id](const glm::vec3& value) {
+    AddVec3Property(*details, "Rotation", "Transform", entity.Rotation, [scene, entityId = entity.Id](const we::math::Vec3& value) {
         if (Entity* target = scene->FindEntityById(entityId)) {
             target->Rotation = value;
             EnvironmentSystem::Get().SyncFromScene();
             EnvironmentSystem::Get().UpdateRendering();
         }
     });
-    AddVec3Property(*details, "Scale", "Transform", entity.Scale, [scene, entityId = entity.Id](const glm::vec3& value) {
+    AddVec3Property(*details, "Scale", "Transform", entity.Scale, [scene, entityId = entity.Id](const we::math::Vec3& value) {
         if (Entity* target = scene->FindEntityById(entityId)) {
             target->Scale = value;
             EnvironmentSystem::Get().SyncFromScene();
@@ -661,227 +661,6 @@ void RefreshOutliner() {
     }
 }
 
-class EnvironmentDropdownMenu : public we::runtime::kindui::Widget {
-public:
-    explicit EnvironmentDropdownMenu(std::vector<std::shared_ptr<::we::editor::menus::MenuItem>> items)
-        : m_Items(std::move(items)) {}
-
-    we::runtime::kindui::Size Measure(const we::runtime::kindui::Size& availableSize) override {
-        const float rowH = ThemeMetric(we::runtime::kindui::MetricToken::ListRowHeight);
-        const float padY = ThemeMetric(we::runtime::kindui::MetricToken::Space1);
-        const float textSize = ThemeMetric(we::runtime::kindui::MetricToken::TextSizeSmall);
-        float maxWidth = 200.0f;
-        for (const auto& item : m_Items) {
-            maxWidth = std::max(maxWidth, ThemeMetric(we::runtime::kindui::MetricToken::Space6) + item->label.length() * textSize * 0.52f + 28.0f);
-        }
-        m_DesiredSize = we::runtime::kindui::Size{ maxWidth, padY * 2.0f + m_Items.size() * rowH };
-        return m_DesiredSize;
-    }
-
-    void Arrange(const we::runtime::kindui::Rect& allottedRect) override { m_Geometry = allottedRect; }
-
-    void Paint(we::runtime::kindui::PaintContext& context) override {
-        context.DrawShadow(m_Geometry, ThemeColor(we::runtime::kindui::ColorToken::ShadowPopup), 3.0f, 8.0f);
-        context.DrawRoundedRect(m_Geometry, ThemeColor(we::runtime::kindui::ColorToken::PopupBackground), ThemeMetric(we::runtime::kindui::MetricToken::CornerRadiusSmall));
-
-        const float rowH = ThemeMetric(we::runtime::kindui::MetricToken::ListRowHeight);
-        const float padY = ThemeMetric(we::runtime::kindui::MetricToken::Space1);
-        const float padX = ThemeMetric(we::runtime::kindui::MetricToken::Space2);
-        const float textSize = ThemeMetric(we::runtime::kindui::MetricToken::TextSizeSmall);
-        const float iconSize = ThemeMetric(we::runtime::kindui::MetricToken::IconSizeTree);
-
-        float y = m_Geometry.y + padY;
-        for (size_t i = 0; i < m_Items.size(); ++i) {
-            const auto& item = m_Items[i];
-            we::runtime::kindui::Rect row{ m_Geometry.x + 1.0f, y, m_Geometry.width - 2.0f, rowH };
-            if (!item->enabled) {
-                y += rowH;
-                continue;
-            }
-            if (static_cast<int>(i) == m_Hovered) {
-                context.DrawRect(row, ThemeColor(we::runtime::kindui::ColorToken::HoverBackground));
-            }
-            context.DrawText(item->label, we::runtime::kindui::Point{ row.x + padX, row.y + (rowH - textSize) * 0.5f },
-                ThemeColor(we::runtime::kindui::ColorToken::TextPrimary), textSize);
-            if (item->checked) {
-                we::runtime::kindui::IconPainter::DrawIcon(context, we::runtime::kindui::Icons::CheckName,
-                    we::runtime::kindui::Rect{ row.x + row.width - padX - iconSize, row.y + (rowH - iconSize) * 0.5f, iconSize, iconSize },
-                    ThemeColor(we::runtime::kindui::ColorToken::AccentPrimary));
-            }
-            y += rowH;
-        }
-    }
-
-    void OnMouseMove(const we::runtime::kindui::MouseEvent& event) override {
-        m_Hovered = -1;
-        const float rowH = ThemeMetric(we::runtime::kindui::MetricToken::ListRowHeight);
-        const float padY = ThemeMetric(we::runtime::kindui::MetricToken::Space1);
-        float y = m_Geometry.y + padY;
-        for (size_t i = 0; i < m_Items.size(); ++i) {
-            we::runtime::kindui::Rect row{ m_Geometry.x + 1.0f, y, m_Geometry.width - 2.0f, rowH };
-            if (row.Contains(event.position)) {
-                m_Hovered = static_cast<int>(i);
-                break;
-            }
-            y += rowH;
-        }
-    }
-
-    void OnMouseDown(const we::runtime::kindui::MouseEvent& event) override {
-        if (event.button != we::runtime::kindui::MouseButton::Left) {
-            return;
-        }
-
-        const float rowH = ThemeMetric(we::runtime::kindui::MetricToken::ListRowHeight);
-        const float padY = ThemeMetric(we::runtime::kindui::MetricToken::Space1);
-        float y = m_Geometry.y + padY;
-        for (size_t i = 0; i < m_Items.size(); ++i) {
-            we::runtime::kindui::Rect row{ m_Geometry.x + 1.0f, y, m_Geometry.width - 2.0f, rowH };
-            if (row.Contains(event.position) && m_Items[i]->enabled && m_Items[i]->onClick) {
-                m_Items[i]->onClick();
-                we::programs::editor::GetEditorPopupHost()->CloseAllPopups();
-                return;
-            }
-            y += rowH;
-        }
-    }
-
-private:
-    std::vector<std::shared_ptr<::we::editor::menus::MenuItem>> m_Items;
-    int m_Hovered = -1;
-};
-
-class EnvironmentToolbarButton : public we::runtime::kindui::Widget {
-public:
-    EnvironmentToolbarButton() = default;
-
-    we::runtime::kindui::Size Measure(const we::runtime::kindui::Size& availableSize) override {
-        (void)availableSize;
-        const float uiScale = (std::max)(1.0f, we::runtime::kindui::DPIContext::GetScale());
-        const float padH = we::runtime::kindui::ToolbarButtonChrome::HorizontalPad(uiScale);
-        const float iconSz = we::runtime::kindui::ToolbarButtonChrome::IconSize(uiScale);
-        const float iconGap = we::runtime::kindui::ToolbarButtonChrome::IconGapPx(uiScale);
-        const float chevW = we::runtime::kindui::IconMetrics::CompactDisplayPx();
-        const float controlH = ThemeMetric(we::runtime::kindui::MetricToken::IconButtonSize) * uiScale;
-        m_DesiredSize = we::runtime::kindui::Size{
-            padH + iconSz + iconGap + chevW + padH,
-            controlH
-        };
-        return m_DesiredSize;
-    }
-
-    void Arrange(const we::runtime::kindui::Rect& allottedRect) override { m_Geometry = allottedRect; }
-
-    void Paint(we::runtime::kindui::PaintContext& context) override {
-        const float uiScale = (std::max)(1.0f, we::runtime::kindui::DPIContext::GetScale());
-        m_HoverAnim = we::runtime::kindui::Animator::Damp(
-            m_HoverAnim, m_Hovered ? 1.0f : 0.0f,
-            ThemeMetric(we::runtime::kindui::MetricToken::HoverAnimationDamping));
-
-        const float pressStrength = m_Pressed ? 1.0f : 0.0f;
-        we::runtime::kindui::ToolbarButtonChrome::PaintIconButton(
-            context, m_Geometry, m_HoverAnim, pressStrength, false, 0.0f, uiScale);
-
-        const float centerY = m_Geometry.y + m_Geometry.height * 0.5f;
-        const float padH = we::runtime::kindui::ToolbarButtonChrome::HorizontalPad(uiScale);
-        const float iconSize = we::runtime::kindui::ToolbarButtonChrome::IconSize(uiScale);
-        we::runtime::kindui::Color iconColor = we::runtime::kindui::ToolbarButtonChrome::ResolveIconColor(
-            m_HoverAnim, pressStrength, false);
-
-        we::runtime::kindui::IconPainter::DrawIcon(context, we::runtime::kindui::Icons::ToolbarEnvironmentName,
-            we::runtime::kindui::ToolbarButtonChrome::PlaceIconInControl(
-                we::runtime::kindui::Rect{ m_Geometry.x + padH, centerY - iconSize * 0.5f, iconSize, iconSize },
-                iconSize),
-            iconColor);
-
-        const float display = we::runtime::kindui::IconMetrics::CompactDisplayPx();
-        const float chevronX = m_Geometry.x + m_Geometry.width - padH - display;
-        we::runtime::kindui::Rect chevronControl{ chevronX, centerY - display * 0.5f, display, display };
-        we::runtime::kindui::IconPainter::DrawCompactIcon(context, we::runtime::kindui::Icons::ChevronDownName,
-            chevronControl, iconColor);
-    }
-
-    void OnMouseMove(const we::runtime::kindui::MouseEvent& event) override {
-        m_Hovered = m_Geometry.Contains(event.position);
-    }
-
-    void OnMouseDown(const we::runtime::kindui::MouseEvent& event) override {
-        if (event.button != we::runtime::kindui::MouseButton::Left) {
-            return;
-        }
-        m_Pressed = true;
-        ShowMenu();
-    }
-
-    void OnMouseUp(const we::runtime::kindui::MouseEvent& event) override {
-        (void)event;
-        m_Pressed = false;
-    }
-
-    bool ShowsPointerCursor(const we::runtime::kindui::Point& position) const override {
-        return m_Geometry.Contains(position);
-    }
-
-private:
-    void ShowMenu() {
-        auto makeItem = [](const std::string& label, std::function<void()> onClick, bool checked = false, bool enabled = true) {
-            auto item = std::make_shared<::we::editor::menus::MenuItem>();
-            item->label = label;
-            item->onClick = std::move(onClick);
-            item->checked = checked;
-            item->enabled = enabled;
-            return item;
-        };
-
-        EnvironmentSystem& system = EnvironmentSystem::Get();
-        std::vector<std::shared_ptr<::we::editor::menus::MenuItem>> items;
-        items.push_back(makeItem("Create Environment", []() { EnvironmentSystem::Get().CreateEnvironment(); }));
-        items.push_back(makeItem("Reset Environment", []() { EnvironmentSystem::Get().ResetEnvironment(); }));
-        items.push_back(makeItem("Remove Environment", []() { EnvironmentSystem::Get().RemoveEnvironment(); }));
-        items.push_back(makeItem("Rebuild Environment", []() { EnvironmentSystem::Get().RebuildEnvironment(); }));
-        items.push_back(makeItem("", []() {}, false, false));
-        items.push_back(makeItem("Volumetric Fog", []() {
-            EnvironmentSystem& env = EnvironmentSystem::Get();
-            env.SetVolumetricFogEnabled(!env.IsVolumetricFogEnabled());
-        }, system.IsVolumetricFogEnabled()));
-        items.push_back(makeItem("Volumetric Clouds", []() {
-            EnvironmentSystem& env = EnvironmentSystem::Get();
-            env.SetVolumetricCloudsEnabled(!env.IsVolumetricCloudsEnabled());
-        }, system.IsVolumetricCloudsEnabled()));
-        items.push_back(makeItem("", []() {}, false, false));
-        items.push_back(makeItem("Cloud: Clear Sky", []() { EnvironmentSystem::Get().ApplyCloudPreset(we::runtime::world::environment::CloudPreset::ClearSky); }));
-        items.push_back(makeItem("Cloud: Few Clouds", []() { EnvironmentSystem::Get().ApplyCloudPreset(we::runtime::world::environment::CloudPreset::FewClouds); }));
-        items.push_back(makeItem("Cloud: Scattered", []() { EnvironmentSystem::Get().ApplyCloudPreset(we::runtime::world::environment::CloudPreset::ScatteredClouds); }));
-        items.push_back(makeItem("Cloud: Broken", []() { EnvironmentSystem::Get().ApplyCloudPreset(we::runtime::world::environment::CloudPreset::BrokenClouds); }));
-        items.push_back(makeItem("Cloud: Overcast", []() { EnvironmentSystem::Get().ApplyCloudPreset(we::runtime::world::environment::CloudPreset::Overcast); }));
-        items.push_back(makeItem("Cloud: Storm", []() { EnvironmentSystem::Get().ApplyCloudPreset(we::runtime::world::environment::CloudPreset::Storm); }));
-        items.push_back(makeItem("Cloud: Heavy Storm", []() { EnvironmentSystem::Get().ApplyCloudPreset(we::runtime::world::environment::CloudPreset::HeavyStorm); }));
-        items.push_back(makeItem("Cloud: Sunset", []() { EnvironmentSystem::Get().ApplyCloudPreset(we::runtime::world::environment::CloudPreset::SunsetClouds); }));
-        items.push_back(makeItem("Cloud: Sunrise", []() { EnvironmentSystem::Get().ApplyCloudPreset(we::runtime::world::environment::CloudPreset::SunriseClouds); }));
-        items.push_back(makeItem("Cloud: High Cirrus", []() { EnvironmentSystem::Get().ApplyCloudPreset(we::runtime::world::environment::CloudPreset::HighCirrus); }));
-        items.push_back(makeItem("Cloud: Cumulus", []() { EnvironmentSystem::Get().ApplyCloudPreset(we::runtime::world::environment::CloudPreset::Cumulus); }));
-        items.push_back(makeItem("Cloud: Stratocumulus", []() { EnvironmentSystem::Get().ApplyCloudPreset(we::runtime::world::environment::CloudPreset::Stratocumulus); }));
-        items.push_back(makeItem("", []() {}, false, false));
-        items.push_back(makeItem("Preset: Sunny", []() { EnvironmentSystem::Get().ApplyPreset(EnvironmentPreset::Sunny); }));
-        items.push_back(makeItem("Preset: Sunset", []() { EnvironmentSystem::Get().ApplyPreset(EnvironmentPreset::Sunset); }));
-        items.push_back(makeItem("Preset: Night", []() { EnvironmentSystem::Get().ApplyPreset(EnvironmentPreset::Night); }));
-        items.push_back(makeItem("Preset: Overcast", []() { EnvironmentSystem::Get().ApplyPreset(EnvironmentPreset::Overcast); }));
-        items.push_back(makeItem("Preset: Foggy", []() { EnvironmentSystem::Get().ApplyPreset(EnvironmentPreset::Foggy); }));
-        items.push_back(makeItem("Preset: Studio", []() { EnvironmentSystem::Get().ApplyPreset(EnvironmentPreset::Studio); }));
-
-        auto menu = std::make_shared<EnvironmentDropdownMenu>(items);
-        auto* overlay = we::programs::editor::GetEditorPopupHost();
-        if (!overlay) {
-            return;
-        }
-        overlay->CloseAllPopups();
-        overlay->ShowPopup(menu, we::runtime::kindui::Point{ m_Geometry.x, m_Geometry.y + m_Geometry.height + 2.0f });
-    }
-
-    bool m_Hovered = false;
-    bool m_Pressed = false;
-    float m_HoverAnim = 0.0f;
-};
 
 } // namespace
 
@@ -943,10 +722,6 @@ void InitializeEditor(
 
     RefreshOutliner();
     RefreshDetailsPanel();
-}
-
-std::shared_ptr<we::runtime::kindui::Widget> CreateEnvironmentToolbarMenu() {
-    return std::make_shared<EnvironmentToolbarButton>();
 }
 
 void TickEditor() {

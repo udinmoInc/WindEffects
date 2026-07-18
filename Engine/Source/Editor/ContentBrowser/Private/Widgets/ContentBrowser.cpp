@@ -1,5 +1,5 @@
 #include "Platform/Platform.h"
-#include "Widgets/ContentBrowser.h"
+#include "ContentBrowser/Widgets/ContentBrowser.h"
 #include "KindUI/Layout/ScrollViewport.h"
 #include "Controllers/FilterController.h"
 #include "Controllers/SearchController.h"

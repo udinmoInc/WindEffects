@@ -27,7 +27,7 @@ struct World::Impl {
 };
 
 World::World()
-    : m_Impl(new Impl())
+    : m_Impl(std::make_unique<Impl>())
 {
     ComponentTypeRegistry::Get().EnsureCoreTypesRegistered();
     m_Impl->archetypes.Init(&m_Impl->chunkAllocator, &ComponentTypeRegistry::Get());
@@ -41,8 +41,7 @@ World::World()
 
 World::~World() {
     Clear();
-    delete m_Impl;
-    m_Impl = nullptr;
+    m_Impl.reset();
 }
 
 EntityManager& World::Entities() { return m_Impl->entities; }

@@ -2,7 +2,7 @@
 
 #include "PlaceActors/Export.h"
 
-#include <glm/glm.hpp>
+#include "Core/Math/Types.h"
 #include <memory>
 #include <string>
 
@@ -19,7 +19,7 @@ public:
                    const std::shared_ptr<we::runtime::engine::EditorCamera>& camera);
 
     bool SpawnTool(const std::string& toolId);
-    bool SpawnToolAt(const std::string& toolId, const glm::vec3& worldPosition);
+    bool SpawnToolAt(const std::string& toolId, const we::math::Vec3& worldPosition);
 
     void BeginDragPlacement(const std::string& toolId);
     void CancelDragPlacement();
@@ -30,7 +30,7 @@ public:
 private:
     PlaceActorsPlacement() = default;
 
-    glm::vec3 ComputeSpawnPosition() const;
+    we::math::Vec3 ComputeSpawnPosition() const;
 
     std::weak_ptr<we::runtime::scene::Scene> m_Scene;
     std::weak_ptr<we::runtime::engine::EditorCamera> m_Camera;

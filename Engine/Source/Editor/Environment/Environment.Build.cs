@@ -18,9 +18,9 @@ public class Environment : ModuleRules
         PublicDependencies.Add("KindUI");
         PublicDependencies.Add("UIFramework");
         PublicDependencies.Add("World");
-        PublicDependencies.Add("PropertyEditor");
-        PublicDependencies.Add("ContentBrowser");
-        PublicDependencies.Add("Menus");
+        PrivateDependencies.Add("PropertyEditor");
+        PrivateDependencies.Add("ContentBrowser");
+        PrivateDependencies.Add("Menus");
 
         Definitions.Add("ENVIRONMENT_EXPORTS");
     }

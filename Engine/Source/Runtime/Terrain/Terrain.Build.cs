@@ -8,8 +8,6 @@ public class Terrain : ModuleRules
         Type = ModuleType.SharedLibrary;
 
         PublicIncludePaths.Add("Public");
-        PublicIncludePaths.Add("Public/WindEffects");
-        PublicIncludePaths.Add("Public/WindEffects/Runtime");
         PrivateIncludePaths.Add("Private");
         PrivateIncludePaths.Add(Path.Combine(context.EngineDirectory, "ThirdParty", "stb"));
 
@@ -17,8 +15,8 @@ public class Terrain : ModuleRules
         PublicDependencies.Add("Platform");
         PublicDependencies.Add("Engine");
         PublicDependencies.Add("Scene");
-        PublicDependencies.Add("Renderer");
         PublicDependencies.Add("RHI");
+        PrivateDependencies.Add("Renderer");
 
         AddOptionalThirdParty("glm");
 

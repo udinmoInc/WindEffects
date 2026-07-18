@@ -9,6 +9,9 @@ public class IconImport : ModuleRules
         SetBinaryName("we-icon-compile.exe");
         PublishAtConfigurationRoot();
 
+        PublicIncludePaths.Add("Public");
+        PrivateIncludePaths.Add("Private");
+
         PublicDependencies.Add("Core");
         PublicDependencies.Add("Icons");
 
