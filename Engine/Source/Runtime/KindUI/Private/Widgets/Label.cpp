@@ -2,13 +2,21 @@
 #include "KindUI/Core/PaintContext.h"
 #include "KindUI/Core/TextMetrics.h"
 #include "KindUI/Tokens/DesignToken.h"
-#include "KindUI/Theming/StyleRole.h"
+#include "KindUI/Tokens/TypographySpec.h"
 #include "KindUI/Core/Style.h"
-#include <sstream>
 #include "KindUI/Theming/ThemeAccess.h"
 
+#include <algorithm>
+#include <cmath>
+#include <sstream>
 
 namespace we::runtime::kindui {
+
+Label::Label(const std::string& text, TypographyToken role)
+    : m_Text(text)
+    , m_Style(TextStyle::FromRole(role))
+{
+}
 
 Label::Label(const std::string& text, const Color& color, float fontSize)
     : m_Text(text)
@@ -24,6 +32,18 @@ Label::Label(const std::string& text, const Color& color, float fontSize)
     if (!useThemeSize) {
         m_Style.size = fontSize;
     }
+}
+
+float Label::LineHeight() const
+{
+    const TypographySpec spec = ResolveTypography(m_Style.role);
+    if (spec.lineHeightPx > 0.0f && spec.sizePx > 0.0f) {
+        if (std::abs(m_Style.size - spec.sizePx) < 0.01f) {
+            return spec.lineHeightPx;
+        }
+        return m_Style.size * (spec.lineHeightPx / spec.sizePx);
+    }
+    return m_Style.size * 1.4f;
 }
 
 Size Label::Measure(const Size& availableSize) {
@@ -63,8 +83,8 @@ Size Label::Measure(const Size& availableSize) {
         }
     }
 
-    const float lineGap = ResolveMetric(MetricToken::Space1);
-    float height = static_cast<float>(m_WrappedLines.size()) * (m_Style.size + lineGap);
+    const float lineHeight = LineHeight();
+    const float height = static_cast<float>(std::max<size_t>(m_WrappedLines.size(), 1)) * lineHeight;
     m_DesiredSize = Size{ maxWidth, height };
     return m_DesiredSize;
 }
@@ -77,11 +97,11 @@ void Label::Paint(PaintContext& context) {
     if (!m_Visible) {
         return;
     }
-    const float lineGap = ResolveMetric(MetricToken::Space1);
+    const float lineHeight = LineHeight();
     float currentY = m_Geometry.y;
     for (const auto& line : m_WrappedLines) {
         context.DrawText(line, Point{ m_Geometry.x, currentY }, m_Style.color, m_Style.size, m_Style.bold, m_Style.italic);
-        currentY += (m_Style.size + lineGap);
+        currentY += lineHeight;
     }
 }
 

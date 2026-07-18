@@ -285,7 +285,7 @@ void CreateTemplateRow::Paint(PaintContext& context) {
             iconBox,
             iconBox
         },
-        LColor(ColorToken::PanelBackground),
+        LColor(ColorToken::CardBackground),
         8.0f * s);
     IconPainter::DrawIcon(
         context,

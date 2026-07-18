@@ -4,6 +4,7 @@
 #include "KindUI/Theming/ThemeManager.h"
 #include "KindUI/Theming/ThemeAccess.h"
 #include "KindUI/Tokens/DesignToken.h"
+#include "KindUI/Tokens/TypographySpec.h"
 #include "KindUI/Theming/StyleRole.h"
 
 #include <algorithm>
@@ -29,7 +30,9 @@ void PaintElevation(PaintContext& context, const Rect& rect, int elevation, floa
     if (elevation <= 0) {
         return;
     }
+    // Prefer luminance steps + 1 px borders; keep shadows soft for floating layers only.
     Color shadow = ResolveColor(ColorToken::ShadowSubtle);
+    shadow.a *= 0.65f;
     if (elevation >= 2) {
         shadow = ResolveColor(ColorToken::ShadowPopup);
     }
@@ -169,10 +172,22 @@ void PaintCard(
             Role(StyleRole::Card).background,
             Role(StyleRole::CardHover).background,
             state.hoverAnim);
+        base.border = Color::Lerp(
+            Role(StyleRole::Card).border,
+            Role(StyleRole::CardHover).border,
+            state.hoverAnim);
     }
-    PaintElevation(context, rect, base.elevation, base.cornerRadius);
+    // Cards elevate via surface luminance; shadow only on stronger hover.
+    const int elevation = state.hoverAnim > 0.35f ? base.elevation : 0;
+    PaintElevation(context, rect, elevation, base.cornerRadius);
     context.DrawRoundedRect(rect, base.background, base.cornerRadius);
-    context.DrawRoundedRectOutline(rect, base.border, base.borderWidth, base.cornerRadius);
+    const Color border = base.border.a > 0.01f
+        ? base.border
+        : ResolveColor(ColorToken::BorderSubtle);
+    const float borderWidth = base.borderWidth > 0.0f
+        ? base.borderWidth
+        : ResolveMetric(MetricToken::BorderWidth);
+    context.DrawRoundedRectOutline(rect, border, borderWidth, base.cornerRadius);
 }
 
 void PaintCenteredLabel(
@@ -199,13 +214,23 @@ void PaintSectionHeader(
     const Rect& rect,
     const std::string& title,
     const std::string& subtitle) {
-    const ResolvedStyle header = Role(StyleRole::SectionHeader);
-    const ResolvedStyle caption = Role(StyleRole::TextCaption);
-    float y = rect.y + 4.0f;
-    context.DrawText(title, Point{ rect.x, y }, header.foreground, header.fontSize, true);
+    const TypographySpec titleSpec = ResolveTypography(TypographyToken::SectionTitle);
+    const TypographySpec subtitleSpec = ResolveTypography(TypographyToken::Subtitle);
+    float y = rect.y;
+    context.DrawText(
+        title,
+        Point{ rect.x, y },
+        titleSpec.color,
+        titleSpec.sizePx,
+        titleSpec.bold);
     if (!subtitle.empty()) {
-        y += header.fontSize + 4.0f;
-        context.DrawText(subtitle, Point{ rect.x, y }, caption.foreground, caption.fontSize);
+        y += titleSpec.lineHeightPx;
+        context.DrawText(
+            subtitle,
+            Point{ rect.x, y },
+            subtitleSpec.color,
+            subtitleSpec.sizePx,
+            subtitleSpec.bold);
     }
 }
 

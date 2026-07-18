@@ -29,13 +29,26 @@ struct ResolvedGlyph {
     float lineHeight = 0.0f;
     uint64_t atlasPageVersion = 0;
 
-    /// Bake-pixel geometry scale used by MSDF plane bounds / advances.
+    /// Scale that converts stored plane bounds / advances into layout pixels.
+    /// Detects em-normalized vs bake-pixel assets so mis-tagged geometryScale cannot
+    /// collapse glyph quads to sub-pixel "dots" while HarfBuzz advances stay correct.
     [[nodiscard]] float EffectiveGeometryScale() const {
+        const float sample = std::max(
+            std::abs(metrics.advance),
+            std::max(std::abs(metrics.bounds.width), std::abs(metrics.bounds.height)));
+        const bool looksLikeEm = sample > 0.0f && sample < 2.0f;
+        const bool looksLikeBakePx = sample >= 2.0f;
+
+        if (looksLikeEm) {
+            return 1.0f;
+        }
         if (geometryScale > 1.5f) {
             return geometryScale;
         }
-        // Legacy .wefont assets stored geometryScale=1 while plane bounds are bake-pixel sized.
-        return std::max(bakeSizePx, 1.0f);
+        if (looksLikeBakePx) {
+            return std::max(bakeSizePx, 1.0f);
+        }
+        return geometryScale > 0.0f ? geometryScale : std::max(bakeSizePx, 1.0f);
     }
 };
 

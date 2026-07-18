@@ -18,6 +18,8 @@ struct KINDUI_API ThemeColors {
 
     Color textPrimary = Color::White();
     Color textSecondary = Color::White();
+    Color textCaption = Color::White();
+    Color textHint = Color::White();
     Color textDisabled = Color::White();
 
     Color iconPrimary = Color::White();

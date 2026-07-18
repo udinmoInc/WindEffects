@@ -48,9 +48,14 @@ TextResult<std::vector<ShapedRun>> ShapeBasic(
         glyph.fontHandle = primaryFont;
         if (asset) {
             if (const GlyphMetrics* metrics = asset->FindGlyph(codepoint)) {
-                const float geometryScale = asset->metrics.geometryScale > 1.5f
-                    ? asset->metrics.geometryScale
-                    : std::max(asset->metrics.bakeSizePx, 1.0f);
+                const float sample = std::max(
+                    std::abs(metrics->advance),
+                    std::max(std::abs(metrics->bounds.width), std::abs(metrics->bounds.height)));
+                const float geometryScale = (sample > 0.0f && sample < 2.0f)
+                    ? 1.0f
+                    : (asset->metrics.geometryScale > 1.5f
+                        ? asset->metrics.geometryScale
+                        : std::max(asset->metrics.bakeSizePx, 1.0f));
                 glyph.xAdvance = metrics->advance * (options.fontSize / geometryScale);
             }
         }
@@ -183,9 +188,14 @@ public:
             glyph.fontHandle = primaryFont;
             if (asset) {
                 if (const GlyphMetrics* metrics = asset->FindGlyph(codepoint)) {
-                    const float geometryScale = asset->metrics.geometryScale > 1.5f
-                        ? asset->metrics.geometryScale
-                        : std::max(asset->metrics.bakeSizePx, 1.0f);
+                    const float sample = std::max(
+                        std::abs(metrics->advance),
+                        std::max(std::abs(metrics->bounds.width), std::abs(metrics->bounds.height)));
+                    const float geometryScale = (sample > 0.0f && sample < 2.0f)
+                        ? 1.0f
+                        : (asset->metrics.geometryScale > 1.5f
+                            ? asset->metrics.geometryScale
+                            : std::max(asset->metrics.bakeSizePx, 1.0f));
                     glyph.xAdvance = metrics->advance * (options.fontSize / geometryScale);
                 }
             }

@@ -331,6 +331,49 @@ void UIWidgetAdapter::GenerateTextGeometry(const DrawCommand& cmd) {
     
     m_Batches.push_back(batch);
     ++m_Diagnostics.textBatchesCreated;
+
+    if (textService->IsDebugEnabled()) {
+        const auto& debugGlyphs = textService->LastDebugGlyphs();
+        if (!debugGlyphs.empty()) {
+            const uint32_t debugStart = static_cast<uint32_t>(m_Indices.size());
+            constexpr float outlineType = 1.0f;
+            constexpr float outlineRadius = 0.0f;
+            for (const auto& g : debugGlyphs) {
+                const float x = g.bounds.x;
+                const float y = g.bounds.y;
+                const float w = std::max(g.bounds.width, 1.0f);
+                const float h = std::max(g.bounds.height, 1.0f);
+                // Magenta wireframe-ish fill at low alpha so bounds are visible over missing glyphs.
+                const Color c{1.0f, 0.2f, 0.8f, 0.35f};
+                UIVertex2 v0{{x, y}, {0.5f, 0.5f}, {c.r, c.g, c.b, c.a}, {x, y, w, h}, {outlineRadius, outlineType, 0.0f, 0.0f}};
+                UIVertex2 v1{{x + w, y}, {0.5f, 0.5f}, {c.r, c.g, c.b, c.a}, {x, y, w, h}, {outlineRadius, outlineType, 0.0f, 0.0f}};
+                UIVertex2 v2{{x + w, y + h}, {0.5f, 0.5f}, {c.r, c.g, c.b, c.a}, {x, y, w, h}, {outlineRadius, outlineType, 0.0f, 0.0f}};
+                UIVertex2 v3{{x, y + h}, {0.5f, 0.5f}, {c.r, c.g, c.b, c.a}, {x, y, w, h}, {outlineRadius, outlineType, 0.0f, 0.0f}};
+                const uint32_t base = static_cast<uint32_t>(m_Vertices.size());
+                m_Vertices.push_back(v0);
+                m_Vertices.push_back(v1);
+                m_Vertices.push_back(v2);
+                m_Vertices.push_back(v3);
+                m_Indices.push_back(base + 0);
+                m_Indices.push_back(base + 1);
+                m_Indices.push_back(base + 2);
+                m_Indices.push_back(base + 2);
+                m_Indices.push_back(base + 3);
+                m_Indices.push_back(base + 0);
+            }
+            UIRenderBatch debugBatch;
+            debugBatch.textureSet = m_Renderer->GetDummyDescriptorSet();
+            debugBatch.indexCount = static_cast<uint32_t>(m_Indices.size()) - debugStart;
+            debugBatch.firstIndex = debugStart;
+            debugBatch.vertexOffset = 0;
+            debugBatch.scissor[0] = static_cast<float>(m_CurrentScissor.x);
+            debugBatch.scissor[1] = static_cast<float>(m_CurrentScissor.y);
+            debugBatch.scissor[2] = static_cast<float>(m_CurrentScissor.width);
+            debugBatch.scissor[3] = static_cast<float>(m_CurrentScissor.height);
+            debugBatch.isText = false;
+            m_Batches.push_back(debugBatch);
+        }
+    }
 }
 
 void UIWidgetAdapter::GenerateTextureGeometry(const DrawCommand& cmd) {

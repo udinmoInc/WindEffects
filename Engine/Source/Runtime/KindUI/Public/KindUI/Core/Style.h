@@ -51,6 +51,14 @@ struct TextStyle {
         return style;
     }
 
+    static TextStyle PageTitle() { return FromRole(TypographyToken::PageTitle); }
+    static TextStyle SectionTitle() { return FromRole(TypographyToken::SectionTitle); }
+    static TextStyle CardTitle() { return FromRole(TypographyToken::CardTitle); }
+    static TextStyle Primary() { return FromRole(TypographyToken::Body); }
+    static TextStyle Secondary() { return FromRole(TypographyToken::Subtitle); }
+    static TextStyle Caption() { return FromRole(TypographyToken::Caption); }
+    static TextStyle Hint() { return FromRole(TypographyToken::Hint); }
+    static TextStyle Disabled() { return FromRole(TypographyToken::Disabled); }
     static TextStyle Body() { return FromRole(TypographyToken::Body); }
 };
 

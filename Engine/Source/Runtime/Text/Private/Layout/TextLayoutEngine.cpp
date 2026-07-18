@@ -8,6 +8,9 @@ namespace we::runtime::text::layout {
 
 namespace {
 
+// Forces ABI-safe PositionedGlyph (no TextStyle) into linked WEText.dll.
+constexpr int kLayoutEngineAbiTag = 2;
+
 bool IsWhitespace(const Codepoint codepoint)
 {
     return codepoint == ' ' || codepoint == '\t' || codepoint == '\n' || codepoint == '\r';
@@ -128,13 +131,14 @@ public:
                     const float geometryScale = resolved.EffectiveGeometryScale();
                     const float quadScale = displaySize / geometryScale;
 
-                    // Face metrics are stored in bake-pixel units (same as geometryScale).
-                    const float ascent = (resolved.ascender > 0.0f ? resolved.ascender : geometryScale * 0.8f)
-                        * quadScale;
-                    const float descent = (resolved.descender < 0.0f
-                            ? -resolved.descender
-                            : std::abs(resolved.descender))
-                        * quadScale;
+                    // Face metrics come from FreeType at bake size; scale to display size.
+                    // Never invent ascent/descent — fall back only to measured glyph bounds.
+                    const float ascent = resolved.ascender > 0.0f
+                        ? resolved.ascender * quadScale
+                        : std::max(0.0f, -resolved.metrics.bounds.y * quadScale);
+                    const float descent = resolved.descender != 0.0f
+                        ? std::abs(resolved.descender) * quadScale
+                        : std::max(0.0f, (resolved.metrics.bounds.y + resolved.metrics.bounds.height) * quadScale);
                     const float faceLineHeight = resolved.lineHeight > 0.0f
                         ? resolved.lineHeight * quadScale
                         : (ascent + descent);
@@ -194,8 +198,8 @@ public:
             LineState& line = lineStates[lineIndex];
             const float lineHeight = line.lineHeight > 0.0f
                 ? line.lineHeight
-                : displaySize * constraints.lineSpacing;
-            const float ascent = line.maxAscent > 0.0f ? line.maxAscent : displaySize * 0.8f;
+                : std::max(line.maxAscent + line.maxDescent, displaySize) * constraints.lineSpacing;
+            const float ascent = line.maxAscent > 0.0f ? line.maxAscent : displaySize;
 
             float alignOffset = 0.0f;
             if (constraints.horizontalAlign == TextAlign::Center) {
@@ -204,7 +208,8 @@ public:
                 alignOffset = std::max(constraints.maxWidth - line.width, 0.0f);
             }
 
-            // Snap baseline to physical pixels after DPI scaling for stable edges.
+            // Snap only the line origin / baseline. Preserve fractional HarfBuzz advances
+            // so per-glyph SnapPixel does not introduce uneven spacing or soft edges.
             const float baselineY = SnapPixel(y + ascent);
             const float snappedAlign = SnapPixel(alignOffset);
 
@@ -225,9 +230,8 @@ public:
             result.caretMap.push_back(startCaret);
 
             for (PositionedGlyph& glyph : line.glyphs) {
-                glyph.x = SnapPixel(glyph.x + snappedAlign);
-                glyph.y = SnapPixel(glyph.y + baselineY);
-                // Keep intrinsic size (do not independently snap far corner — avoids thickness jitter).
+                glyph.x = glyph.x + snappedAlign;
+                glyph.y = glyph.y + baselineY;
                 if (!(constraints.clip && constraints.maxWidth > 0.0f
                         && (glyph.x > constraints.maxWidth || glyph.y > constraints.maxHeight))) {
                     result.glyphs.push_back(glyph);
@@ -236,7 +240,7 @@ public:
 
             CaretPosition caret;
             caret.codepointIndex = line.endIndex + 1;
-            caret.x = SnapPixel(line.width + snappedAlign);
+            caret.x = line.width + snappedAlign;
             caret.y = y;
             caret.lineIndex = lineIndex;
             result.caretMap.push_back(caret);
