@@ -872,7 +872,7 @@ void StatusFooter::Paint(PaintContext& context) {
     const float textY = m_Geometry.y + (m_Geometry.height - textSize) * 0.5f;
     const float iconY = m_Geometry.y + (m_Geometry.height - iconPx) * 0.5f;
     const Color iconColor = LColor(ColorToken::IconSecondary);
-    const Color textColor = LColor(ColorToken::TextMuted);
+    const Color textColor = LColor(ColorToken::TextCaption);
 
     float leftX = m_Geometry.x + pad;
     IconPainter::DrawIcon(
@@ -962,11 +962,11 @@ void SectionCard::Arrange(const Rect& allottedRect) {
 void SectionCard::Paint(PaintContext& context) {
     const float s = LScale();
     const float radius = LMetric(MetricToken::CornerRadiusMedium) * s;
-    context.DrawRoundedRect(m_Geometry, LColor(ColorToken::PanelBackground), radius);
-    context.DrawRoundedRectOutline(m_Geometry, LColor(ColorToken::BorderDefault), 1.0f, radius);
+    context.DrawRoundedRect(m_Geometry, LColor(ColorToken::CardBackground), radius);
+    context.DrawRoundedRectOutline(m_Geometry, LColor(ColorToken::BorderSubtle), 1.0f, radius);
 
     const float pad = LMetric(MetricToken::Space3) * s;
-    const float titleSize = LMetric(MetricToken::TextSizeTabs) * s;
+    const float titleSize = LMetric(MetricToken::TextSizeHeader) * s;
     context.DrawText(
         m_Title,
         Point{ m_Geometry.x + pad, m_Geometry.y + (m_HeaderHeight * s - titleSize) * 0.5f },
@@ -1361,7 +1361,7 @@ void ProjectsEmptyState::Paint(PaintContext& context) {
     context.DrawText(
         cap,
         Point{ cx - context.GetTextWidth(cap, capSize) * 0.5f, y },
-        LColor(ColorToken::TextMuted),
+        LColor(ColorToken::TextCaption),
         capSize);
 
     y += capSize + 6.0f * s;

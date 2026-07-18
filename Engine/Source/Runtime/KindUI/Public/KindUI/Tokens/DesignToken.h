@@ -10,10 +10,11 @@ namespace we::runtime::kindui {
 // Applications supply concrete values through IKindUITheme; KindUI never hardcodes branding.
 
 enum class ColorToken : uint32_t {
-    // Framework surfaces (StylePipeline / DefaultTheme)
-    PrimarySurface,
-    SecondarySurface,
-    TertiarySurface,
+    // Semantic elevation surfaces (darkest → lightest for dark themes)
+    // Window → Panel → Card → Control → Overlay → Popup
+    PrimarySurface,   // Panel-level content surface
+    SecondarySurface, // Card / raised content surface
+    TertiarySurface,  // Elevated chrome / nested wells
     AccentSurface,
     WindowBackground,
     ControlBackground,
@@ -21,6 +22,7 @@ enum class ColorToken : uint32_t {
     ControlBackgroundPressed,
     ControlBackgroundDisabled,
     ControlBackgroundSelected,
+    CardBackground, // Explicit card fill (aliases SecondarySurface in themes)
 
     // App chrome surfaces
     WorkspaceBackground,
@@ -32,6 +34,7 @@ enum class ColorToken : uint32_t {
     MenuBarBackground,
     TabBackground,
     PopupBackground,
+    OverlayBackground, // Modal/dialog elevation fill
     ContentBrowserBackground,
     PanelContentBackground,
     PanelToolbarBackground,
@@ -63,13 +66,15 @@ enum class ColorToken : uint32_t {
     PressedBackground,
     ContentBrowserHoverBackground,
 
-    // Text
-    TextPrimary,
-    TextSecondary,
+    // Text — semantic hierarchy (Primary > Secondary > Caption/Muted > Hint > Disabled)
+    TextPrimary,   // PageTitle, SectionTitle, Body, labels
+    TextSecondary, // Descriptions, supporting copy
+    TextCaption,   // Captions / meta (between Secondary and Hint)
     TextDisabled,
     TextOnAccent,
     TextLink,
-    TextMuted,
+    TextMuted,     // Hint / placeholder (aliases TextHint in themes)
+    TextHint,      // Explicit hint/placeholder role
     TextWindowLabel,
     SearchPlaceholder,
     CodeForeground,
@@ -172,13 +177,14 @@ enum class TypographyToken : uint32_t {
     Heading6,
     Heading, // maps to Heading2 in themes
 
-    // Body
+    // Body — PrimaryText / SecondaryText / Caption / Hint
     Title,
-    Subtitle,
-    Body,
+    Subtitle,    // Secondary supporting text at body size
+    Body,        // PrimaryText
     BodyStrong,
     Caption,
     CaptionSmall,
+    Hint,        // Placeholders, helper text (lowest readable emphasis)
 
     // Controls
     Label,
@@ -204,12 +210,16 @@ enum class TypographyToken : uint32_t {
     Disabled,
 };
 
+// Semantic elevation: Window < Panel < Card < Control < Overlay < Popup (visual brightness).
+// ResolveElevation returns shadow intensity (0 = flat), not brightness order.
 enum class ElevationToken : uint32_t {
     None,
-    Card,
-    Popup,
     Window,
+    Panel,
+    Card,
+    Control,
     Overlay,
+    Popup,
 };
 
 enum class AnimationToken : uint32_t {

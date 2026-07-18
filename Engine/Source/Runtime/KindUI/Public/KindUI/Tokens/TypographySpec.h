@@ -7,6 +7,12 @@
 namespace we::runtime::kindui {
 
 /// Concrete typography values resolved from a semantic role + theme.
+/// Role → color mapping (IKindUITheme::ResolveTypography):
+///   PageTitle / SectionTitle / Body → TextPrimary
+///   Subtitle                        → TextSecondary
+///   Caption / Label                 → TextCaption / TextSecondary
+///   Hint / CaptionSmall             → TextHint
+///   Disabled                        → TextDisabled
 struct KINDUI_API TypographySpec {
     TypographyToken role = TypographyToken::Body;
     float sizePx = 13.0f;

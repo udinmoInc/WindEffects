@@ -204,8 +204,10 @@ TextResult<FontAsset> ImportMsdfFont(
         charset.add(static_cast<uint32_t>(codepoint));
     }
 
-    const double geometryLoadScale = 1.0;
-    const double packerScale = static_cast<double>(bakeSizePx);
+    // Load geometry in bake-pixel units so plane bounds / advances match FreeType metrics
+    // sampled at bakeSizePx. Packer scale stays 1 (already in pixels).
+    const double geometryLoadScale = static_cast<double>(bakeSizePx);
+    const double packerScale = 1.0;
     if (fontGeometry.loadCharset(primaryFont, geometryLoadScale, charset) <= 0) {
         msdfgen::destroyFont(primaryFont);
         if (fallbackFont) {
@@ -322,7 +324,7 @@ TextResult<FontAsset> ImportMsdfFont(
 
     asset.metrics.bakeSizePx = bakeSizePx;
     asset.metrics.msdfPixelRange = msdfPixelRange;
-    // Plane bounds / advances from msdf-atlas-gen are in bake-pixel units when scale=bakeSizePx.
+    // Must equal geometryLoadScale: plane bounds and advances are in bake-pixel units.
     asset.metrics.geometryScale = bakeSizePx;
 
     FT_Library freeTypeLibrary = nullptr;

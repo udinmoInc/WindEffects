@@ -262,6 +262,9 @@ layout::CaretPosition TextEngine::CaretFromOffset(
 void TextEngine::InvalidateLayoutCache()
 {
     m_LayoutCache.clear();
+    if (m_GlyphResolver) {
+        m_GlyphResolver->ClearCache();
+    }
 }
 
 uint64_t TextEngine::AtlasGeneration() const

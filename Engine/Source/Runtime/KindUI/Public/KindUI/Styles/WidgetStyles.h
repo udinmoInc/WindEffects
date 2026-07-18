@@ -63,12 +63,12 @@ struct WindowStyle {
 };
 
 struct MenuStyle {
-    ColorProperty background{ColorToken::SecondarySurface};
+    ColorProperty background{ColorToken::PopupBackground};
     ColorProperty itemBackground{ColorToken::ControlBackground};
     ColorProperty itemBackgroundHover{ColorToken::ControlBackgroundHover};
     ColorProperty itemBackgroundSelected{ColorToken::ControlBackgroundSelected};
     ColorProperty foreground{ColorToken::TextPrimary};
-    BorderStyleTokens border{};
+    BorderStyleTokens border{ColorProperty{ColorToken::BorderSubtle}};
     RadiusProperty cornerRadius{RadiusToken::Medium};
     ElevationProperty elevation{ElevationToken::Popup};
     PaddingStyle padding{};
@@ -122,9 +122,9 @@ struct SearchBoxStyle {
     ColorProperty background{ColorToken::ControlBackground};
     ColorProperty backgroundFocused{ColorToken::ControlBackgroundSelected};
     ColorProperty foreground{ColorToken::TextPrimary};
-    ColorProperty placeholder{ColorToken::TextSecondary};
-    BorderStyleTokens border{};
-    BorderStyleTokens borderFocused{};
+    ColorProperty placeholder{ColorToken::TextHint};
+    BorderStyleTokens border{ColorProperty{ColorToken::BorderSubtle}};
+    BorderStyleTokens borderFocused{ColorProperty{ColorToken::BorderFocused}};
     RadiusProperty cornerRadius{RadiusToken::Small};
     PaddingStyle padding{};
     TypographyStyle typography{};
@@ -185,22 +185,22 @@ struct ComboBoxStyle {
 };
 
 struct DialogStyle {
-    ColorProperty background{ColorToken::SecondarySurface};
+    ColorProperty background{ColorToken::DialogBackground};
     ColorProperty scrim{ColorToken::ScrimOverlay};
     ColorProperty foreground{ColorToken::TextPrimary};
-    BorderStyleTokens border{};
+    BorderStyleTokens border{ColorProperty{ColorToken::BorderSubtle}};
     RadiusProperty cornerRadius{RadiusToken::Large};
     ElevationProperty elevation{ElevationToken::Overlay};
     PaddingStyle padding{};
-    TypographyStyle titleTypography{TypographyToken::Title};
+    TypographyStyle titleTypography{TypographyToken::DialogTitle};
     TypographyStyle bodyTypography{TypographyToken::Body};
     AnimationProperty transition{AnimationToken::Normal};
 };
 
 struct TooltipStyle {
-    ColorProperty background{ColorToken::SecondarySurface};
+    ColorProperty background{ColorToken::TooltipBackground};
     ColorProperty foreground{ColorToken::TextPrimary};
-    BorderStyleTokens border{};
+    BorderStyleTokens border{ColorProperty{ColorToken::BorderSubtle}};
     RadiusProperty cornerRadius{RadiusToken::Small};
     ElevationProperty elevation{ElevationToken::Popup};
     PaddingStyle padding{};
@@ -233,13 +233,13 @@ struct PropertyGridStyle {
     ColorProperty rowBackground{ColorToken::ControlBackground};
     ColorProperty rowBackgroundHover{ColorToken::ControlBackgroundHover};
     ColorProperty rowBackgroundSelected{ColorToken::ControlBackgroundSelected};
-    ColorProperty labelForeground{ColorToken::TextSecondary};
+    ColorProperty labelForeground{ColorToken::TextCaption};
     ColorProperty valueForeground{ColorToken::TextPrimary};
-    BorderStyleTokens border{};
+    BorderStyleTokens border{ColorProperty{ColorToken::BorderSubtle}};
     PaddingStyle padding{};
     SpacingProperty rowHeight{SpacingToken::Large};
-    TypographyStyle labelTypography{TypographyToken::Caption};
-    TypographyStyle valueTypography{TypographyToken::Body};
+    TypographyStyle labelTypography{TypographyToken::PropertyLabel};
+    TypographyStyle valueTypography{TypographyToken::PropertyValue};
 };
 
 } // namespace we::runtime::kindui

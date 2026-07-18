@@ -21,149 +21,156 @@ Color Hex(uint8_t r, uint8_t g, uint8_t b, float a = 1.0f) {
 
 Color GraphiteDarkTheme::ResolveColor(ColorToken token) const {
     switch (token) {
-    // ── Material stack (darkest → lightest) ──────────────────────────────────
-    case ColorToken::WindowBackground:              return Hex(0x16,0x16,0x16);
-    case ColorToken::ViewportBackground:            return Hex(0x16,0x16,0x16);
-    case ColorToken::DockAreaBackground:            return Hex(0x16,0x16,0x16);
-    case ColorToken::WorkspaceBackground:           return Hex(0x16,0x16,0x16);
-    case ColorToken::DisabledBackground:            return Hex(0x16,0x16,0x16);
+    // ── Elevation ladder (Window → Panel → Card → Control → Overlay → Popup) ─
+    // Subtle brightness steps (~4–6%) so surfaces read as nested layers, not
+    // identical charcoal slabs. Inspired by VS / Unreal / Unity Hub / Figma.
+    case ColorToken::WindowBackground:              return Hex(0x14,0x14,0x16);
+    case ColorToken::ViewportBackground:            return Hex(0x12,0x12,0x14);
+    case ColorToken::DockAreaBackground:            return Hex(0x14,0x14,0x16);
+    case ColorToken::WorkspaceBackground:           return Hex(0x14,0x14,0x16);
+    case ColorToken::DisabledBackground:            return Hex(0x14,0x14,0x16);
+    case ColorToken::ScrollbarTrack:                return Hex(0x14,0x14,0x16);
 
-    case ColorToken::SearchBoxBackground:           return Hex(0x1A,0x1A,0x1A);
-    case ColorToken::InputBackground:               return Hex(0x1A,0x1A,0x1A);
-    case ColorToken::ScrollbarTrack:                return Hex(0x16,0x16,0x16);
+    // Panel — one step above window
+    case ColorToken::PanelBackground:               return Hex(0x1A,0x1A,0x1C);
+    case ColorToken::PanelContentBackground:        return Hex(0x1A,0x1A,0x1C);
+    case ColorToken::ContentBrowserBackground:      return Hex(0x1A,0x1A,0x1C);
+    case ColorToken::PrimarySurface:                return Hex(0x1A,0x1A,0x1C);
 
-    case ColorToken::PanelBackground:               return Hex(0x1D,0x1D,0x1D);
-    case ColorToken::PanelContentBackground:        return Hex(0x1D,0x1D,0x1D);
-    case ColorToken::ContentBrowserBackground:      return Hex(0x1D,0x1D,0x1D);
+    // Card — clearly lighter than window/panel + paired with BorderSubtle
+    case ColorToken::CardBackground:                return Hex(0x22,0x22,0x24);
+    case ColorToken::SecondarySurface:              return Hex(0x22,0x22,0x24);
+
+    // Control / input — slightly recessed vs card, still above panel
+    case ColorToken::ControlBackground:             return Hex(0x1E,0x1E,0x20);
+    case ColorToken::InputBackground:               return Hex(0x1E,0x1E,0x20);
+    case ColorToken::SearchBoxBackground:           return Hex(0x1E,0x1E,0x20);
+    case ColorToken::TertiarySurface:               return Hex(0x28,0x28,0x2A);
+
+    // Overlay / dialog
+    case ColorToken::OverlayBackground:             return Hex(0x2A,0x2A,0x2C);
+    case ColorToken::DialogBackground:              return Hex(0x2A,0x2A,0x2C);
+
+    // Popup / tooltip — highest solid surface
+    case ColorToken::PopupBackground:               return Hex(0x2E,0x2E,0x30);
+    case ColorToken::TooltipBackground:             return Hex(0x2E,0x2E,0x30,0.97f);
+    case ColorToken::DragGhostBackground:           return Hex(0x2E,0x2E,0x30,0.90f);
+    case ColorToken::GizmoBackground:               return Hex(0x2E,0x2E,0x30,0.90f);
+
     case ColorToken::ContentBrowserFolderBody:      return Hex(0xB8,0x95,0x48);
 
-    // Floating surfaces — elevation via luminance + shadow tokens
-    case ColorToken::PopupBackground:               return Hex(0x3A,0x3A,0x3A);
-    case ColorToken::TooltipBackground:             return Hex(0x3A,0x3A,0x3A,0.96f);
-    case ColorToken::DragGhostBackground:           return Hex(0x3A,0x3A,0x3A,0.90f);
-    case ColorToken::GizmoBackground:               return Hex(0x3A,0x3A,0x3A,0.90f);
-    case ColorToken::DialogBackground:              return Hex(0x3D,0x3D,0x3D);
-        
-
-    // Panel chrome — header strips inside dock panels (not top window chrome)
-    case ColorToken::HeaderBackground:              return Hex(0x1A,0x1A,0x1A);
+    // Panel chrome — header strips inside dock panels
+    case ColorToken::HeaderBackground:              return Hex(0x18,0x18,0x1A);
     case ColorToken::ContentBrowserFolderPrimary:   return Hex(0xC9,0xA9,0x62);
-    
 
-    // Tabs share the same surface as dock panel body
-    case ColorToken::TabBackground:                 return Hex(0x20,0x21,0x24);
-    case ColorToken::PanelTabInactiveBackground:    return Hex(0x20,0x21,0x24);
-    case ColorToken::PanelTabActiveBackground:      return Hex(0x20,0x21,0x24);
+    // Tabs — sit between panel and card
+    case ColorToken::TabBackground:                 return Hex(0x1E,0x1E,0x20);
+    case ColorToken::PanelTabInactiveBackground:    return Hex(0x1C,0x1C,0x1E);
+    case ColorToken::PanelTabActiveBackground:      return Hex(0x22,0x22,0x24);
 
-    // Top chrome — title bar and menu bar share main background
-    case ColorToken::MenuBarBackground:             return Hex(0x16,0x17,0x18);
-    case ColorToken::StatusBarBackground:           return Hex(0x18,0x18,0x1C);
-    case ColorToken::FooterBackground:              return Hex(0x18,0x18,0x1C);    
+    // Top chrome
+    case ColorToken::MenuBarBackground:             return Hex(0x16,0x16,0x18);
+    case ColorToken::StatusBarBackground:           return Hex(0x16,0x16,0x18);
+    case ColorToken::FooterBackground:              return Hex(0x16,0x16,0x18);
 
-    // Main editor toolbar only
-    case ColorToken::ToolbarBackground:             return Hex(0x1F,0x1F,0x20);
-    case ColorToken::PanelToolbarBackground:        return Hex(0x1A,0x1B,0x1E);
-    case ColorToken::ViewportToolbarBackground:     return Hex(0x1A,0x1B,0x1E,0.96f);
+    case ColorToken::ToolbarBackground:             return Hex(0x1C,0x1C,0x1E);
+    case ColorToken::PanelToolbarBackground:        return Hex(0x18,0x18,0x1A);
+    case ColorToken::ViewportToolbarBackground:     return Hex(0x18,0x18,0x1A,0.96f);
 
-    // ── Borders (minimal — soft luminance separators) ────────────────────────
+    // ── Borders — 1 px semantic edges (visible without heavy outlines) ───────
     case ColorToken::Separator:                     return Hex(0xFF,0xFF,0xFF,0.08f);
-    case ColorToken::BorderDark:                    return Hex(0xFF,0xFF,0xFF,0.04f);
-    case ColorToken::BorderDefault:                 return Hex(0x30,0x30,0x30);
-    case ColorToken::BorderLight:                   return Hex(0xFF,0xFF,0xFF,0.16f);
-    
+    case ColorToken::BorderSubtle:                  return Hex(0xFF,0xFF,0xFF,0.07f);
+    case ColorToken::BorderDark:                    return Hex(0xFF,0xFF,0xFF,0.05f);
+    case ColorToken::BorderDefault:                 return Hex(0x36,0x36,0x3A);
+    case ColorToken::BorderLight:                   return Hex(0xFF,0xFF,0xFF,0.14f);
+
     case ColorToken::ContentBrowserFolderEdge:      return Hex(0x7A,0x65,0x32);
     case ColorToken::ContentBrowserFolderHighlight: return Hex(0xEB,0xD8,0x9A);
 
     // ── Interactive material states ────────────────────────────────────────
-    case ColorToken::HoverBackground:               return Hex(0x2B,0x2B,0x2B);
-    case ColorToken::ContentBrowserHoverBackground: return Hex(0x2B,0x2B,0x2B);
-    case ColorToken::ButtonPrimaryBackground:       return Hex(0x23,0x23,0x26);
-    
-    case ColorToken::PressedBackground:             return Hex(0x34,0x36,0x3B);
-    case ColorToken::ButtonPrimaryPressed:          return Hex(0x34,0x36,0x3B);
+    case ColorToken::HoverBackground:               return Hex(0x2C,0x2C,0x2E);
+    case ColorToken::ContentBrowserHoverBackground: return Hex(0x2C,0x2C,0x2E);
+    case ColorToken::ButtonPrimaryBackground:       return Hex(0x2A,0x2A,0x2C);
+
+    case ColorToken::PressedBackground:             return Hex(0x34,0x34,0x38);
+    case ColorToken::ButtonPrimaryPressed:          return Hex(0x34,0x34,0x38);
     case ColorToken::ButtonDangerBackground:        return Hex(0x8B,0x2E,0x2E);
     case ColorToken::ButtonDangerHover:             return Hex(0xA3,0x3A,0x3A);
     case ColorToken::ButtonDangerPressed:           return Hex(0x6E,0x22,0x22);
-    
-    case ColorToken::SelectedBackground:            return Hex(0x34,0x34,0x34);
-    case ColorToken::ActiveBackground:              return Hex(0x23,0x23,0x23);
-    case ColorToken::ButtonPrimaryHover:            return Hex(0x2E,0x2F,0x33);
+
+    case ColorToken::SelectedBackground:            return Hex(0x32,0x32,0x36);
+    case ColorToken::ActiveBackground:              return Hex(0x26,0x26,0x28);
+    case ColorToken::ButtonPrimaryHover:            return Hex(0x32,0x32,0x36);
     case ColorToken::ContentBrowserFolderTab:       return Hex(0xD4,0xBC,0x78);
 
-    // ── Typography ─────────────────────────────────────────────────────────
-    case ColorToken::TextPrimary:                   return Hex(0xF0,0xF0,0xF0);
-    case ColorToken::TextWindowLabel:               return Hex(0xF0,0xF0,0xF0);
-    case ColorToken::CodeForeground:                return Hex(0xF0,0xF0,0xF0);
+    case ColorToken::ControlBackgroundHover:        return Hex(0x2C,0x2C,0x2E);
+    case ColorToken::ControlBackgroundPressed:      return Hex(0x34,0x34,0x38);
+    case ColorToken::ControlBackgroundDisabled:     return Hex(0x18,0x18,0x1A);
+    case ColorToken::ControlBackgroundSelected:     return Hex(0x32,0x32,0x36);
 
-    case ColorToken::TextSecondary:                 return Hex(0xA8,0xA8,0xA8);
-    case ColorToken::TextMuted:                     return Hex(0x70,0x70,0x78);
-    case ColorToken::SearchPlaceholder:             return Hex(0x70,0x70,0x78);
-    case ColorToken::TextDisabled:                  return Hex(0x58,0x58,0x60);
+    // ── Typography hierarchy (WCAG-friendly on #141416 / #1A1A1C / #222224) ──
+    // Primary  ~#ECECEC  ≥12:1  | Secondary ~#B4B4B4 ≥7:1
+    // Caption  ~#9A9A9A  ≥5:1   | Hint      ~#858585 ≥4.5:1
+    // Disabled ~#5C5C5C  intentionally softer
+    case ColorToken::TextPrimary:                   return Hex(0xEC,0xEC,0xEC);
+    case ColorToken::TextWindowLabel:               return Hex(0xEC,0xEC,0xEC);
+    case ColorToken::CodeForeground:                return Hex(0xEC,0xEC,0xEC);
 
-    // ── Icons (Primary / Secondary / Accent semantic roles) ─────────────────
-    // Base Graphite uses a muted cool-gray accent. EditorTheme / LauncherTheme
-    // override Accent* / IconAccent / BorderFocus for product identity.
-    case ColorToken::IconPrimary:                   return Hex(0xCF,0xCF,0xCF);
+    case ColorToken::TextSecondary:                 return Hex(0xB4,0xB4,0xB4);
+    case ColorToken::TextCaption:                   return Hex(0x9A,0x9A,0x9A);
+    case ColorToken::TextMuted:                     return Hex(0x85,0x85,0x85);
+    case ColorToken::TextHint:                      return Hex(0x85,0x85,0x85);
+    case ColorToken::SearchPlaceholder:             return Hex(0x85,0x85,0x85);
+    case ColorToken::TextDisabled:                  return Hex(0x5C,0x5C,0x5C);
+
+    // ── Icons ──────────────────────────────────────────────────────────────
+    case ColorToken::IconPrimary:                   return Hex(0xD4,0xD4,0xD4);
     case ColorToken::IconSecondary:                 return Hex(0xA8,0xA8,0xA8);
     case ColorToken::IconAccent:                    return Hex(0x8A,0x96,0xA8);
-    case ColorToken::IconDefault:                   return Hex(0xCF,0xCF,0xCF);
-    case ColorToken::IconHover:                     return Hex(0xE8,0xE8,0xE8);
-    case ColorToken::IconActive:                    return Hex(0xF0,0xF0,0xF0);
-    case ColorToken::IconDisabled:                  return Hex(0x58,0x58,0x60);
-    // ── Accent & semantic (neutral base — specialized by Editor/Launcher) ──
+    case ColorToken::IconDefault:                   return Hex(0xD4,0xD4,0xD4);
+    case ColorToken::IconHover:                     return Hex(0xEC,0xEC,0xEC);
+    case ColorToken::IconActive:                    return Hex(0xF2,0xF2,0xF2);
+    case ColorToken::IconDisabled:                  return Hex(0x5C,0x5C,0x5C);
+
     case ColorToken::AccentPrimary:                 return Hex(0x8A,0x96,0xA8);
     case ColorToken::AccentHover:                   return Hex(0xA0,0xAA,0xB8);
-    
+    case ColorToken::AccentSurface:                 return Hex(0x8A,0x96,0xA8);
+
     case ColorToken::BorderFocus:                   return Hex(0x8A,0x96,0xA8);
+    case ColorToken::BorderFocused:                 return Hex(0x8A,0x96,0xA8);
+    case ColorToken::BorderError:                   return Hex(0xDD,0x5A,0x5A);
     case ColorToken::ActiveTabLine:                 return Hex(0x8A,0x96,0xA8,0.80f);
-    case ColorToken::SelectionHighlight:            return Hex(0x34,0x34,0x34,0.85f);
+    case ColorToken::SelectionHighlight:            return Hex(0x32,0x32,0x36,0.90f);
     case ColorToken::LinkForeground:                return Hex(0x8A,0x96,0xA8);
+    case ColorToken::TextLink:                      return Hex(0x8A,0x96,0xA8);
+    case ColorToken::TextOnAccent:                  return Color{1.0f, 1.0f, 1.0f, 1.0f};
 
     case ColorToken::PlayForeground:                return Hex(0x8A,0x96,0xA8);
     case ColorToken::Success:                       return Hex(0x5E,0xAD,0x6E);
     case ColorToken::Warning:                       return Hex(0xE0,0xA2,0x3A);
     case ColorToken::ErrorForeground:               return Hex(0xDD,0x5A,0x5A);
     case ColorToken::CloseButtonHover:              return Hex(0xDD,0x5A,0x5A);
+    case ColorToken::SuccessColor:                  return Hex(0x5E,0xAD,0x6E);
+    case ColorToken::WarningColor:                  return Hex(0xE0,0xA2,0x3A);
+    case ColorToken::ErrorColor:                    return Hex(0xDD,0x5A,0x5A);
+    case ColorToken::InfoColor:                     return Hex(0x8A,0x96,0xA8);
 
-    // ── Scrollbars ─────────────────────────────────────────────────────────
-    case ColorToken::ScrollbarThumb:                return Hex(0x55,0x55,0x55);
-    case ColorToken::ScrollbarThumbHover:           return Hex(0x66,0x66,0x66);
+    case ColorToken::ScrollbarThumb:                return Hex(0x4E,0x4E,0x52);
+    case ColorToken::ScrollbarThumbHover:           return Hex(0x62,0x62,0x66);
 
-    // Viewport gizmo axes (functional orientation colors)
     case ColorToken::GizmoAxisX: return MakeColor(0.90f, 0.25f, 0.25f, 1.0f);
     case ColorToken::GizmoAxisY: return MakeColor(0.30f, 0.85f, 0.35f, 1.0f);
     case ColorToken::GizmoAxisZ: return MakeColor(0.30f, 0.50f, 0.95f, 1.0f);
 
-    // ── Depth & elevation (shadows replace heavy borders on floating UI) ─────
-    case ColorToken::HighlightSubtle: return MakeColor(1.0f, 1.0f, 1.0f, 0.06f);
-    case ColorToken::ShadowPopup: return MakeColor(0.0f, 0.0f, 0.0f, 0.28f);
-    case ColorToken::ShadowSubtle: return MakeColor(0.0f, 0.0f, 0.0f, 0.40f);
-    case ColorToken::ShadowOverlay: return MakeColor(0.0f, 0.0f, 0.0f, 0.48f);
-    case ColorToken::ModalScrim: return MakeColor(0.0f, 0.0f, 0.0f, 0.62f);
+    // Soft depth — prefer luminance + 1 px borders over heavy shadows
+    case ColorToken::HighlightSubtle: return MakeColor(1.0f, 1.0f, 1.0f, 0.05f);
+    case ColorToken::ShadowPopup: return MakeColor(0.0f, 0.0f, 0.0f, 0.32f);
+    case ColorToken::ShadowSubtle: return MakeColor(0.0f, 0.0f, 0.0f, 0.22f);
+    case ColorToken::ShadowOverlay: return MakeColor(0.0f, 0.0f, 0.0f, 0.42f);
+    case ColorToken::ShadowColor: return MakeColor(0.0f, 0.0f, 0.0f, 0.28f);
+    case ColorToken::ModalScrim: return MakeColor(0.0f, 0.0f, 0.0f, 0.55f);
+    case ColorToken::ScrimOverlay: return MakeColor(0.0f, 0.0f, 0.0f, 0.55f);
     case ColorToken::ContentBrowserFolderShadow: return MakeColor(0.0f, 0.0f, 0.0f, 0.38f);
-
-
-    // DesignToken aliases used by StylePipeline / DefaultTheme
-    case ColorToken::PrimarySurface: return Hex(0x1D,0x1D,0x1D);
-    case ColorToken::SecondarySurface: return Hex(0x1D,0x1D,0x1D);
-    case ColorToken::TertiarySurface: return Hex(0x23,0x23,0x23);
-    case ColorToken::AccentSurface: return Hex(0x8A,0x96,0xA8);
-    case ColorToken::ControlBackground: return Hex(0x1A,0x1A,0x1A);
-    case ColorToken::ControlBackgroundHover: return Hex(0x2B,0x2B,0x2B);
-    case ColorToken::ControlBackgroundPressed: return Hex(0x34,0x36,0x3B);
-    case ColorToken::ControlBackgroundDisabled: return Hex(0x16,0x16,0x16);
-    case ColorToken::ControlBackgroundSelected: return Hex(0x34,0x34,0x34);
-    case ColorToken::BorderSubtle: return Hex(0xFF,0xFF,0xFF,0.04f);
-    case ColorToken::BorderFocused: return Hex(0x8A,0x96,0xA8);
-    case ColorToken::BorderError: return Hex(0xDD,0x5A,0x5A);
-    case ColorToken::TextOnAccent: return Color{1.0f, 1.0f, 1.0f, 1.0f};
-    case ColorToken::TextLink: return Hex(0x8A,0x96,0xA8);
-    case ColorToken::SuccessColor: return Hex(0x5E,0xAD,0x6E);
-    case ColorToken::WarningColor: return Hex(0xE0,0xA2,0x3A);
-    case ColorToken::ErrorColor: return Hex(0xDD,0x5A,0x5A);
-    case ColorToken::InfoColor: return Hex(0x8A,0x96,0xA8);
-    case ColorToken::ScrimOverlay: return MakeColor(0.0f, 0.0f, 0.0f, 0.62f);
-    case ColorToken::ShadowColor: return MakeColor(0.0f, 0.0f, 0.0f, 0.40f);
 
     default: return Color::Transparent();
     }
@@ -178,15 +185,15 @@ float GraphiteDarkTheme::ResolveMetric(MetricToken token) const {
     case MetricToken::TextSizeMenu: return 12.0f;
     case MetricToken::TextSizeToolbar: return 12.0f;
     case MetricToken::TextSizeTabs: return 12.0f;
-    case MetricToken::TextSizeNormal: return 12.0f;
+    case MetricToken::TextSizeNormal: return 13.0f;
     case MetricToken::TextSizeProperty: return 12.0f;
     case MetricToken::TextSizeCaption: return 11.0f;
     case MetricToken::TextSizeWindow: return 13.0f;
-    case MetricToken::TextSizeHeader: return 18.0f;
-    case MetricToken::TextSizeBody: return 13.0f;
-    case MetricToken::TextSizeSmall: return 11.0f;
+    case MetricToken::TextSizeHeader: return 15.0f;  // SectionTitle
+    case MetricToken::TextSizeBody: return 13.0f;    // PrimaryText
+    case MetricToken::TextSizeSmall: return 12.0f;   // Caption
     case MetricToken::TextSizeCategory: return 12.0f;
-    case MetricToken::TextSizeTitle: return 22.0f;
+    case MetricToken::TextSizeTitle: return 20.0f;   // PageTitle
     case MetricToken::TextCharWidthRatio: return 0.55f;
     case MetricToken::BorderWidth: return 1.0f;
     case MetricToken::FocusRingWidth: return 2.0f;
@@ -236,7 +243,7 @@ Margin GraphiteDarkTheme::ResolvePadding(PaddingToken token) const {
     case PaddingToken::PaddingPanelTop:
     case PaddingToken::PaddingPanelRight:
     case PaddingToken::PaddingPanelBottom:
-        return {8.0f, 8.0f, 8.0f, 8.0f};
+        return {12.0f, 12.0f, 12.0f, 12.0f};
     case PaddingToken::Button:
     case PaddingToken::PaddingButtonLeft:
     case PaddingToken::PaddingButtonTop:
@@ -276,7 +283,7 @@ float GraphiteDarkTheme::ResolveFontSize(TypographyToken token) const {
     switch (token) {
     case TypographyToken::WindowTitle:
     case TypographyToken::Display:
-        return ResolveMetric(MetricToken::TextSizeTitle) + 6.0f;
+        return ResolveMetric(MetricToken::TextSizeTitle) + 4.0f;
     case TypographyToken::PageTitle:
     case TypographyToken::Heading1:
         return ResolveMetric(MetricToken::TextSizeTitle);
@@ -287,13 +294,13 @@ float GraphiteDarkTheme::ResolveFontSize(TypographyToken token) const {
         return ResolveMetric(MetricToken::TextSizeHeader);
     case TypographyToken::CardTitle:
     case TypographyToken::Heading3:
-        return ResolveMetric(MetricToken::TextSizeHeader) - 2.0f;
+        return ResolveMetric(MetricToken::TextSizeHeader) - 1.0f;
     case TypographyToken::Heading4:
     case TypographyToken::Title:
-        return ResolveMetric(MetricToken::TextSizeTitle) - 6.0f;
+        return ResolveMetric(MetricToken::TextSizeBody) + 1.0f;
     case TypographyToken::Heading5:
     case TypographyToken::Subtitle:
-        return ResolveMetric(MetricToken::TextSizeWindow);
+        return ResolveMetric(MetricToken::TextSizeBody);
     case TypographyToken::Heading6:
     case TypographyToken::Body:
     case TypographyToken::BodyStrong:
@@ -308,15 +315,16 @@ float GraphiteDarkTheme::ResolveFontSize(TypographyToken token) const {
     case TypographyToken::Toolbar:
     case TypographyToken::Navigation:
         return ResolveMetric(MetricToken::TextSizeToolbar);
-    case TypographyToken::Tooltip:
+    case TypographyToken::Caption:
     case TypographyToken::Status:
     case TypographyToken::StatusBar:
-    case TypographyToken::Caption:
     case TypographyToken::Error:
     case TypographyToken::Warning:
     case TypographyToken::Success:
-    case TypographyToken::Disabled:
         return ResolveMetric(MetricToken::TextSizeSmall);
+    case TypographyToken::Hint:
+    case TypographyToken::Tooltip:
+    case TypographyToken::Disabled:
     case TypographyToken::CaptionSmall:
         return ResolveMetric(MetricToken::TextSizeCaption);
     case TypographyToken::Code:
@@ -333,13 +341,21 @@ float GraphiteDarkTheme::ResolveFontSize(TypographyToken token) const {
 }
 
 int GraphiteDarkTheme::ResolveElevation(ElevationToken token) const {
+    // Shadow intensity only — surface brightness comes from ColorToken ladder.
     switch (token) {
-    case ElevationToken::None: return 0;
-    case ElevationToken::Card: return 1;
-    case ElevationToken::Popup: return 2;
-    case ElevationToken::Window: return 3;
-    case ElevationToken::Overlay: return 4;
-    default: return 0;
+    case ElevationToken::None:
+    case ElevationToken::Window:
+    case ElevationToken::Panel:
+    case ElevationToken::Control:
+        return 0;
+    case ElevationToken::Card:
+        return 1;
+    case ElevationToken::Popup:
+        return 2;
+    case ElevationToken::Overlay:
+        return 3;
+    default:
+        return 0;
     }
 }
 
@@ -417,7 +433,7 @@ ResolvedStyle StyleResolver::Resolve(StyleRole role) const {
         break;
     case StyleRole::Panel:
         style.background = theme.ResolveColor(ColorToken::PanelBackground);
-        style.border = theme.ResolveColor(ColorToken::BorderDefault);
+        style.border = theme.ResolveColor(ColorToken::BorderSubtle);
         style.cornerRadius = Scaled(theme.ResolveMetric(MetricToken::CornerRadiusMedium));
         style.padding = theme.ResolvePadding(PaddingToken::PaddingPanelLeft);
         for (auto& v : {&style.padding.left, &style.padding.top, &style.padding.right, &style.padding.bottom}) {
@@ -529,22 +545,23 @@ ResolvedStyle StyleResolver::Resolve(StyleRole role) const {
     case StyleRole::Popup:
         style.background = theme.ResolveColor(ColorToken::PopupBackground);
         style.foreground = theme.ResolveColor(ColorToken::TextPrimary);
-        style.border = theme.ResolveColor(ColorToken::BorderDefault);
+        style.border = theme.ResolveColor(ColorToken::BorderSubtle);
         style.cornerRadius = Scaled(theme.ResolveMetric(MetricToken::CornerRadiusMedium));
-        style.elevation = 2;
+        style.elevation = theme.ResolveElevation(ElevationToken::Popup);
         break;
     case StyleRole::Tooltip:
         style.background = theme.ResolveColor(ColorToken::TooltipBackground);
         style.foreground = theme.ResolveColor(ColorToken::TextPrimary);
-        style.fontSize = Scaled(theme.ResolveMetric(MetricToken::TextSizeSmall));
+        style.fontSize = Scaled(theme.ResolveMetric(MetricToken::TextSizeCaption));
         style.cornerRadius = Scaled(theme.ResolveMetric(MetricToken::CornerRadiusSmall));
-        style.elevation = 2;
+        style.elevation = theme.ResolveElevation(ElevationToken::Popup);
         break;
     case StyleRole::Modal:
         style.background = theme.ResolveColor(ColorToken::DialogBackground);
         style.foreground = theme.ResolveColor(ColorToken::TextPrimary);
-        style.border = theme.ResolveColor(ColorToken::BorderDefault);
+        style.border = theme.ResolveColor(ColorToken::BorderSubtle);
         style.cornerRadius = Scaled(theme.ResolveMetric(MetricToken::WindowCornerRadius));
+        style.elevation = theme.ResolveElevation(ElevationToken::Overlay);
         break;
     case StyleRole::Gizmo:
         style.background = theme.ResolveColor(ColorToken::GizmoBackground);
@@ -570,8 +587,16 @@ ResolvedStyle StyleResolver::Resolve(StyleRole role) const {
         style.fontSize = Scaled(theme.ResolveMetric(MetricToken::TextSizeBody));
         break;
     case StyleRole::TextCaption:
-        style.foreground = theme.ResolveColor(ColorToken::TextMuted);
+        style.foreground = theme.ResolveColor(ColorToken::TextCaption);
+        style.fontSize = Scaled(theme.ResolveMetric(MetricToken::TextSizeSmall));
+        break;
+    case StyleRole::TextHint:
+        style.foreground = theme.ResolveColor(ColorToken::TextHint);
         style.fontSize = Scaled(theme.ResolveMetric(MetricToken::TextSizeCaption));
+        break;
+    case StyleRole::TextDisabled:
+        style.foreground = theme.ResolveColor(ColorToken::TextDisabled);
+        style.fontSize = Scaled(theme.ResolveMetric(MetricToken::TextSizeBody));
         break;
     case StyleRole::ButtonGhost:
         style.background = Color::Transparent();
@@ -599,23 +624,23 @@ ResolvedStyle StyleResolver::Resolve(StyleRole role) const {
         style.fontSize = Scaled(theme.ResolveMetric(MetricToken::TextSizeToolbar));
         break;
     case StyleRole::Card:
-        style.background = theme.ResolveColor(ColorToken::PanelBackground);
+        style.background = theme.ResolveColor(ColorToken::CardBackground);
         style.foreground = theme.ResolveColor(ColorToken::TextPrimary);
-        style.border = theme.ResolveColor(ColorToken::BorderDefault);
+        style.border = theme.ResolveColor(ColorToken::BorderSubtle);
         style.cornerRadius = Scaled(theme.ResolveMetric(MetricToken::CornerRadiusMedium));
         style.padding = { Scaled(12.0f), Scaled(12.0f), Scaled(12.0f), Scaled(12.0f) };
-        style.elevation = 1;
+        style.elevation = theme.ResolveElevation(ElevationToken::Card);
         break;
     case StyleRole::CardHover:
         style.background = theme.ResolveColor(ColorToken::HoverBackground);
         style.foreground = theme.ResolveColor(ColorToken::TextPrimary);
         style.border = theme.ResolveColor(ColorToken::BorderLight);
         style.cornerRadius = Scaled(theme.ResolveMetric(MetricToken::CornerRadiusMedium));
-        style.elevation = 2;
+        style.elevation = theme.ResolveElevation(ElevationToken::Card);
         break;
     case StyleRole::TableHeader:
         style.background = theme.ResolveColor(ColorToken::PanelToolbarBackground);
-        style.foreground = theme.ResolveColor(ColorToken::TextMuted);
+        style.foreground = theme.ResolveColor(ColorToken::TextCaption);
         style.height = Scaled(28.0f);
         style.fontSize = Scaled(theme.ResolveMetric(MetricToken::TextSizeCaption));
         break;

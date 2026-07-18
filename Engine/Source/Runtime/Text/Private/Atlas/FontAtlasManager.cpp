@@ -58,9 +58,17 @@ public:
             entry.msdfPixelRange = asset.metrics.msdfPixelRange > 0.0f
                 ? asset.metrics.msdfPixelRange
                 : 4.0f;
-            entry.geometryScale = asset.metrics.geometryScale > 1.5f
-                ? asset.metrics.geometryScale
-                : entry.bakeSizePx;
+            // Infer units from glyph magnitude (em vs bake-px) so mis-tagged assets still scale.
+            const float sample = std::max(
+                std::abs(glyph.advance),
+                std::max(std::abs(glyph.bounds.width), std::abs(glyph.bounds.height)));
+            if (sample > 0.0f && sample < 2.0f) {
+                entry.geometryScale = 1.0f;
+            } else if (asset.metrics.geometryScale > 1.5f) {
+                entry.geometryScale = asset.metrics.geometryScale;
+            } else {
+                entry.geometryScale = entry.bakeSizePx;
+            }
             entry.pageIndex = pageIndex;
             entry.pageVersion = m_Pages[pageIndex].version;
             m_Cache[key] = entry;

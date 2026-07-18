@@ -179,8 +179,9 @@ void SettingsGroup::Paint(PaintContext& context) {
     const float padX = 16.0f * s;
     const float padY = 16.0f * s;
 
-    Color cardBg = LColor(ColorToken::PanelBackground);
+    Color cardBg = LColor(ColorToken::CardBackground);
     context.DrawRoundedRect(m_Geometry, cardBg, radius);
+    context.DrawRoundedRectOutline(m_Geometry, LColor(ColorToken::BorderSubtle), 1.0f, radius);
 
     if (m_Highlighted) {
         context.DrawRect(
@@ -189,7 +190,7 @@ void SettingsGroup::Paint(PaintContext& context) {
     }
 
     const float titleSize = LMetric(MetricToken::TextSizeHeader) * s;
-    const float descSize = LMetric(MetricToken::TextSizeCaption) * s;
+    const float descSize = LMetric(MetricToken::TextSizeSmall) * s;
     context.DrawText(
         m_Title,
         Point{ m_Geometry.x + padX, m_Geometry.y + padY },
@@ -200,7 +201,7 @@ void SettingsGroup::Paint(PaintContext& context) {
         context.DrawText(
             m_Description,
             Point{ m_Geometry.x + padX, m_Geometry.y + padY + titleSize + 4.0f * s },
-            LColor(ColorToken::TextMuted),
+            LColor(ColorToken::TextSecondary),
             descSize);
     }
 
@@ -288,7 +289,7 @@ void SettingsRow::Paint(PaintContext& context) {
         context.DrawText(
             m_Hint,
             Point{ m_Geometry.x, y + titleSize + 2.0f * s },
-            LColor(ColorToken::TextMuted),
+            LColor(ColorToken::TextHint),
             hintSize);
     }
 
@@ -1352,7 +1353,7 @@ void AppearancePreviewPanel::Paint(PaintContext& context) {
     const float s = LScale();
     const float radius = LMetric(MetricToken::CornerRadiusMedium) * s;
     context.DrawRoundedRect(m_Geometry, LColor(ColorToken::PanelContentBackground), radius);
-    context.DrawRoundedRectOutline(m_Geometry, LColor(ColorToken::BorderDefault), 1.0f, radius);
+    context.DrawRoundedRectOutline(m_Geometry, LColor(ColorToken::BorderSubtle), 1.0f, radius);
 
     const Color accent = ParseHexColor(m_AccentHex);
     Rect chrome{ m_Geometry.x + 12.0f * s, m_Geometry.y + 12.0f * s, m_Geometry.width - 24.0f * s, 28.0f * s };
@@ -1376,7 +1377,8 @@ void AppearancePreviewPanel::Paint(PaintContext& context) {
         m_Geometry.width - 24.0f * s,
         m_Geometry.height - (chrome.y - m_Geometry.y) - chrome.height - 22.0f * s
     };
-    context.DrawRoundedRect(card, LColor(ColorToken::PanelBackground), 6.0f * s);
+    context.DrawRoundedRect(card, LColor(ColorToken::CardBackground), 6.0f * s);
+    context.DrawRoundedRectOutline(card, LColor(ColorToken::BorderSubtle), 1.0f, 6.0f * s);
 
     const float bodySize = (m_FontSize * 0.75f) * m_UiScale * s;
     context.DrawText(
@@ -1388,7 +1390,7 @@ void AppearancePreviewPanel::Paint(PaintContext& context) {
         "UI Scale " + std::to_string(static_cast<int>(m_UiScale * 100.0f + 0.5f)) + "%   Font "
             + std::to_string(static_cast<int>(m_FontSize + 0.5f)) + " px",
         Point{ card.x + 12.0f * s, card.y + 12.0f * s + bodySize + 6.0f * s },
-        LColor(ColorToken::TextMuted),
+        LColor(ColorToken::TextHint),
         bodySize);
 
     const float icon = 16.0f * s * m_UiScale;

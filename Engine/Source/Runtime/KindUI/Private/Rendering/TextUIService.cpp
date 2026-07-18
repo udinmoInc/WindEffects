@@ -3,11 +3,13 @@
 #include "KindUI/Core/TextMetrics.h"
 #include "KindUI/Rendering/FontImportService.h"
 #include "KindUI/Rendering/OverlayRenderer.h"
+#include "Rendering/UiDebugImageWriter.h"
 #include "Core/AssetRegistry.h"
 #include "Core/Logger.h"
 
 #include <algorithm>
 #include <cmath>
+#include <cstdlib>
 #include <filesystem>
 
 namespace we::runtime::kindui {
@@ -90,6 +92,12 @@ bool TextUIService::Initialize(OverlayRenderer* renderer) {
         return false;
     }
 
+#if !defined(NDEBUG) || defined(WE_DEVELOPMENT)
+    if (const char* env = std::getenv("WE_TEXT_DEBUG")) {
+        m_DebugEnabled = env[0] != '\0' && env[0] != '0';
+    }
+#endif
+
     const auto regularPath = EnsureWeFontAsset("Inter-Regular");
     const auto semiBoldPath = ResolveSemiBoldWeFontPath();
     if (!regularPath.empty()) {
@@ -127,7 +135,66 @@ bool TextUIService::Initialize(OverlayRenderer* renderer) {
         return MeasureText(std::string(text), fontSize, bold);
     });
 
+    if (m_DebugEnabled) {
+        DumpAtlasPagesToDisk();
+        WE_LOG_WARN("TextUIService", "WE_TEXT_DEBUG enabled — atlas dumps + glyph bound overlays active");
+    }
+
     return true;
+}
+
+void TextUIService::SetDebugEnabled(const bool enabled) {
+    m_DebugEnabled = enabled;
+    if (enabled && !m_DumpedAtlas) {
+        DumpAtlasPagesToDisk();
+    }
+}
+
+void TextUIService::DumpAtlasPagesToDisk() {
+    auto* atlas = m_TextEngine ? m_TextEngine->AtlasManager() : nullptr;
+    if (!atlas) {
+        return;
+    }
+    for (uint32_t i = 0; i < atlas->PageCount(); ++i) {
+        const auto page = atlas->CopyPage(i);
+        if (!page || page->page.rgba.empty()) {
+            continue;
+        }
+        const std::string path =
+            "Saved/Logs/TextAtlas_page" + std::to_string(i) + "_v" + std::to_string(page->version) + ".bmp";
+        if (SaveBmpRgba(path, page->page.rgba, page->page.width, page->page.height)) {
+            WE_LOG_INFO("TextUIService",
+                "Dumped atlas page " + std::to_string(i) + " " + std::to_string(page->page.width) + "x"
+                    + std::to_string(page->page.height) + " -> " + path);
+        }
+    }
+    m_DumpedAtlas = true;
+}
+
+void TextUIService::MaybeLogScaleDiagnostics(const we::runtime::text::layout::LayoutResult& layout) {
+    if (m_LoggedScaleDiagnostics) {
+        return;
+    }
+    for (const auto& glyph : layout.glyphs) {
+        if (!glyph.glyph.metrics.hasDrawableQuad) {
+            continue;
+        }
+        const float eff = glyph.glyph.EffectiveGeometryScale();
+        WE_LOG_INFO(
+            "TextUIService",
+            "GlyphScaleDiag cp=" + std::to_string(glyph.glyph.metrics.codepoint)
+                + " plane=" + std::to_string(glyph.glyph.metrics.bounds.width) + "x"
+                + std::to_string(glyph.glyph.metrics.bounds.height)
+                + " adv=" + std::to_string(glyph.glyph.metrics.advance)
+                + " geomScale=" + std::to_string(glyph.glyph.geometryScale)
+                + " effective=" + std::to_string(eff)
+                + " quad=" + std::to_string(glyph.width) + "x" + std::to_string(glyph.height)
+                + " msdf=" + std::to_string(glyph.msdfPixelRange)
+                + " page=" + std::to_string(glyph.glyph.metrics.atlasPage)
+                + " atlasGen=" + std::to_string(m_TextEngine ? m_TextEngine->AtlasGeneration() : 0));
+        m_LoggedScaleDiagnostics = true;
+        break;
+    }
 }
 
 void TextUIService::Shutdown() {
@@ -155,10 +222,17 @@ void TextUIService::SyncDirtyAtlasPages() {
     if (!atlas || !m_Renderer) {
         return;
     }
+    const uint64_t gen = atlas->Generation();
+    if (gen != m_LastSeenAtlasGeneration) {
+        m_LastSeenAtlasGeneration = gen;
+        m_TextEngine->InvalidateLayoutCache();
+        if (m_DebugEnabled && !m_DumpedAtlas) {
+            DumpAtlasPagesToDisk();
+        }
+    }
     for (const uint32_t pageIndex : atlas->TakeDirtyPages()) {
         (void)EnsureAtlasPageUploaded(pageIndex);
     }
-    // Ensure all existing pages are uploaded at least once.
     for (uint32_t i = 0; i < atlas->PageCount(); ++i) {
         (void)EnsureAtlasPageUploaded(i);
     }
@@ -304,6 +378,13 @@ bool TextUIService::GenerateTextGeometry(
         return false;
     }
 
+    MaybeLogScaleDiagnostics(layout);
+
+    m_LastDebugGlyphs.clear();
+    if (m_DebugEnabled) {
+        m_LastDebugGlyphs.reserve(layout.glyphs.size());
+    }
+
     uint32_t atlasPageIndex = 0;
     bool useDynamic = false;
     for (const auto& glyph : layout.glyphs) {
@@ -346,17 +427,34 @@ bool TextUIService::GenerateTextGeometry(
         atlasHeight = it->second.height;
     }
 
+    // Snap the draw origin once; keep layout-relative glyph positions (and advances) intact.
+    const float originX = SnapPx(cmd.rect.x);
+    const float originY = SnapPx(cmd.rect.y);
+    const uint64_t atlasGen = m_TextEngine->AtlasGeneration();
+
     const uint32_t startVertex = static_cast<uint32_t>(vertices.size());
     for (const auto& glyph : layout.glyphs) {
         if (!glyph.glyph.metrics.hasDrawableQuad) {
             continue;
         }
 
-        // Snap glyph origin only; preserve measured width/height for consistent spacing.
-        const float x0 = SnapPx(cmd.rect.x + glyph.x);
-        const float y0 = SnapPx(cmd.rect.y + glyph.y);
+        const float x0 = originX + glyph.x;
+        const float y0 = originY + glyph.y;
         const float x1 = x0 + std::max(glyph.width, 1.0f);
         const float y1 = y0 + std::max(glyph.height, 1.0f);
+
+        if (m_DebugEnabled) {
+            TextDebugGlyphInfo info;
+            info.bounds = Rect{x0, y0, x1 - x0, y1 - y0};
+            info.atlasPage = glyph.glyph.metrics.atlasPage;
+            info.geometryScale = glyph.glyph.geometryScale;
+            info.effectiveScale = glyph.glyph.EffectiveGeometryScale();
+            info.msdfRange = glyph.msdfPixelRange;
+            info.planeW = glyph.glyph.metrics.bounds.width;
+            info.planeH = glyph.glyph.metrics.bounds.height;
+            info.atlasGeneration = atlasGen;
+            m_LastDebugGlyphs.push_back(info);
+        }
 
         // Atlas texel distance range (not scaled by font size — fwidth handles scale).
         const float msdfRange = std::max(glyph.msdfPixelRange, 1.0f);

@@ -234,12 +234,12 @@ SectionHeader::SectionHeader(std::string title, std::string subtitle)
 Size SectionHeader::Measure(const Size& availableSize) {
     (void)availableSize;
     const ResolvedStyle header = ThemeManager::Get().Resolve(StyleRole::SectionHeader);
-    const ResolvedStyle caption = ThemeManager::Get().Resolve(StyleRole::TextCaption);
+    const ResolvedStyle secondary = ThemeManager::Get().Resolve(StyleRole::TextSecondary);
     float h = header.fontSize + ResolveMetric(MetricToken::Space2);
     float w = TextMetrics::MeasureWidth(m_Title, header.fontSize, header.bold);
     if (!m_Subtitle.empty()) {
-        h += caption.fontSize + ResolveMetric(MetricToken::Space1);
-        w = std::max(w, TextMetrics::MeasureWidth(m_Subtitle, caption.fontSize, caption.bold));
+        h += secondary.fontSize + ResolveMetric(MetricToken::Space1);
+        w = std::max(w, TextMetrics::MeasureWidth(m_Subtitle, secondary.fontSize, secondary.bold));
     }
     // Report content-intrinsic width. Parent Flex Stretch expands on the cross axis;
     // claiming availableSize.width made every Column inside a Row overflow and shrink
@@ -280,7 +280,7 @@ void PropertyRow::Paint(PaintContext& context) {
     context.DrawText(
         m_Label,
         Point{ m_Geometry.x, m_Geometry.y + 2.0f },
-        ResolveColor(ColorToken::TextMuted),
+        ResolveColor(ColorToken::TextCaption),
         caption);
     context.DrawText(
         m_Value.empty() ? "—" : m_Value,

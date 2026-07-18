@@ -9,10 +9,22 @@
 #include <memory>
 #include <string>
 #include <unordered_map>
+#include <vector>
 
 namespace we::runtime::kindui {
 
 class OverlayRenderer;
+
+struct TextDebugGlyphInfo {
+    Rect bounds{};
+    uint32_t atlasPage = 0;
+    float geometryScale = 0.0f;
+    float effectiveScale = 0.0f;
+    float msdfRange = 0.0f;
+    float planeW = 0.0f;
+    float planeH = 0.0f;
+    uint64_t atlasGeneration = 0;
+};
 
 class KINDUI_API TextUIService {
 public:
@@ -23,6 +35,12 @@ public:
     void Shutdown();
 
     [[nodiscard]] we::runtime::text::ITextEngine* GetEngine() const { return m_TextEngine.get(); }
+
+    /// Enable with env WE_TEXT_DEBUG=1 (Development builds). Draws glyph bounds and dumps atlases.
+    void SetDebugEnabled(bool enabled);
+    [[nodiscard]] bool IsDebugEnabled() const { return m_DebugEnabled; }
+    [[nodiscard]] const std::vector<TextDebugGlyphInfo>& LastDebugGlyphs() const { return m_LastDebugGlyphs; }
+    void DumpAtlasPagesToDisk();
 
     [[nodiscard]] float MeasureText(const std::string& text, float fontSize, bool bold) const;
     bool GenerateTextGeometry(
@@ -45,6 +63,7 @@ private:
     [[nodiscard]] we::rhi::RHIDescriptorSetHandle GetDescriptorForFont(we::runtime::text::FontHandle handle);
     bool UploadFontAtlasFallback(we::runtime::text::FontHandle handle, GpuAtlasPage& gpuAtlas);
     void SyncDirtyAtlasPages();
+    void MaybeLogScaleDiagnostics(const we::runtime::text::layout::LayoutResult& layout);
 
     OverlayRenderer* m_Renderer = nullptr;
     std::unique_ptr<we::runtime::text::ITextEngine> m_TextEngine;
@@ -52,6 +71,12 @@ private:
     std::unordered_map<we::runtime::text::FontHandle, GpuAtlasPage> m_FontAtlases;
     we::runtime::text::FontHandle m_RegularFont = we::runtime::text::kInvalidFontHandle;
     we::runtime::text::FontHandle m_SemiBoldFont = we::runtime::text::kInvalidFontHandle;
+
+    bool m_DebugEnabled = false;
+    bool m_LoggedScaleDiagnostics = false;
+    bool m_DumpedAtlas = false;
+    uint64_t m_LastSeenAtlasGeneration = 0;
+    std::vector<TextDebugGlyphInfo> m_LastDebugGlyphs;
 };
 
 } // namespace we::runtime::kindui

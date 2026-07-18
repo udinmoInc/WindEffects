@@ -41,6 +41,8 @@ enum class StyleRole {
     TextPrimary,
     TextSecondary,
     TextCaption,
+    TextHint,
+    TextDisabled,
     Card,
     CardHover,
     TableHeader,

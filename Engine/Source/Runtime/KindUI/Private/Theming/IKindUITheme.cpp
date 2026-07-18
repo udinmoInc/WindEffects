@@ -3,7 +3,7 @@
 namespace we::runtime::kindui {
 namespace {
 
-bool IsStrongRole(const TypographyToken token) {
+bool IsTitleRole(const TypographyToken token) {
     switch (token) {
     case TypographyToken::WindowTitle:
     case TypographyToken::PageTitle:
@@ -17,6 +17,17 @@ bool IsStrongRole(const TypographyToken token) {
     case TypographyToken::Heading4:
     case TypographyToken::Heading:
     case TypographyToken::Title:
+        return true;
+    default:
+        return false;
+    }
+}
+
+bool IsStrongRole(const TypographyToken token) {
+    if (IsTitleRole(token)) {
+        return true;
+    }
+    switch (token) {
     case TypographyToken::BodyStrong:
     case TypographyToken::Button:
     case TypographyToken::TableHeader:
@@ -26,6 +37,7 @@ bool IsStrongRole(const TypographyToken token) {
     }
 }
 
+// Semantic text roles → color tokens (hierarchy, not arbitrary hex).
 ColorToken ColorForRole(const TypographyToken token) {
     switch (token) {
     case TypographyToken::Link:
@@ -38,13 +50,32 @@ ColorToken ColorForRole(const TypographyToken token) {
         return ColorToken::Success;
     case TypographyToken::Disabled:
         return ColorToken::TextDisabled;
-    case TypographyToken::Caption:
-    case TypographyToken::CaptionSmall:
+
+    // SecondaryText — supporting descriptions at readable contrast
+    case TypographyToken::Subtitle:
     case TypographyToken::Status:
     case TypographyToken::StatusBar:
-    case TypographyToken::Tooltip:
     case TypographyToken::PropertyLabel:
+    case TypographyToken::Toolbar:
+    case TypographyToken::Menu:
+    case TypographyToken::Navigation:
         return ColorToken::TextSecondary;
+
+    // Caption — meta / secondary labels, still clearly readable
+    case TypographyToken::Caption:
+        return ColorToken::TextCaption;
+
+    // Control labels sit with SecondaryText for scanability
+    case TypographyToken::Label:
+        return ColorToken::TextSecondary;
+
+    // Hint — placeholders and helper copy (lowest readable rung)
+    case TypographyToken::Hint:
+    case TypographyToken::CaptionSmall:
+    case TypographyToken::Tooltip:
+        return ColorToken::TextHint;
+
+    // PrimaryText — titles, body, interactive labels
     default:
         return ColorToken::TextPrimary;
     }
@@ -56,12 +87,29 @@ TypographySpec IKindUITheme::ResolveTypography(const TypographyToken token) cons
     TypographySpec spec;
     spec.role = token;
     spec.sizePx = ResolveFontSize(token);
-    // Professional body rhythm: ~1.35–1.45× size; headings slightly tighter.
-    const float lhMul = (token == TypographyToken::Body || token == TypographyToken::BodyStrong)
-        ? 1.40f
-        : (IsStrongRole(token) ? 1.25f : 1.35f);
+
+    // Vertical rhythm: body ~1.4×; titles tighter; captions slightly open.
+    float lhMul = 1.35f;
+    if (token == TypographyToken::Body || token == TypographyToken::BodyStrong) {
+        lhMul = 1.40f;
+    } else if (IsTitleRole(token)) {
+        lhMul = 1.25f;
+    } else if (token == TypographyToken::Caption
+        || token == TypographyToken::CaptionSmall
+        || token == TypographyToken::Hint) {
+        lhMul = 1.35f;
+    }
     spec.lineHeightPx = spec.sizePx * lhMul;
-    spec.letterSpacing = 0.0f;
+
+    // Optical tracking: titles slightly tight; hints slightly open.
+    if (IsTitleRole(token) && token != TypographyToken::Title) {
+        spec.letterSpacing = -0.2f;
+    } else if (token == TypographyToken::Hint || token == TypographyToken::CaptionSmall) {
+        spec.letterSpacing = 0.15f;
+    } else {
+        spec.letterSpacing = 0.0f;
+    }
+
     spec.bold = IsStrongRole(token);
     spec.italic = false;
     spec.color = ResolveColor(ColorForRole(token));
