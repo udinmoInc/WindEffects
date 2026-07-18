@@ -61,8 +61,20 @@ inline float LMetric(we::runtime::kindui::MetricToken token) {
     return we::runtime::kindui::ResolveMetric(token);
 }
 
+inline float LSpace(we::runtime::kindui::SpacingToken token) {
+    return we::runtime::kindui::ResolveSpacing(token);
+}
+
+inline float LControlH(we::runtime::kindui::ControlSize size = we::runtime::kindui::ControlSize::Default) {
+    return we::runtime::kindui::ResolveControlHeight(size);
+}
+
 inline float LScale() {
     return std::max(1.0f, we::runtime::kindui::DPIContext::GetScale());
+}
+
+inline float LScaleSnap(float logicalPx) {
+    return we::runtime::kindui::DPIContext::ScaleSnap(logicalPx);
 }
 
 inline void InvalidateUI() {

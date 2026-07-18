@@ -8,10 +8,11 @@
 #include "KindUI/Input/InputEvents.h"
 #include "KindUI/Theming/ThemeAccess.h"
 #include "KindUI/Theming/ThemeManager.h"
+#include "KindUI/Tokens/DesignToken.h"
+#include "KindUI/Tokens/TypographySpec.h"
 #include "Platform/Platform.h"
 
 #include <algorithm>
-#include "KindUI/Tokens/DesignToken.h"
 
 
 namespace we::runtime::kindui {
@@ -233,13 +234,15 @@ SectionHeader::SectionHeader(std::string title, std::string subtitle)
 
 Size SectionHeader::Measure(const Size& availableSize) {
     (void)availableSize;
-    const ResolvedStyle header = ThemeManager::Get().Resolve(StyleRole::SectionHeader);
-    const ResolvedStyle secondary = ThemeManager::Get().Resolve(StyleRole::TextSecondary);
-    float h = header.fontSize + ResolveMetric(MetricToken::Space2);
-    float w = TextMetrics::MeasureWidth(m_Title, header.fontSize, header.bold);
+    const TypographySpec titleSpec = ResolveTypography(TypographyToken::SectionTitle);
+    const TypographySpec subtitleSpec = ResolveTypography(TypographyToken::Subtitle);
+    float h = titleSpec.lineHeightPx;
+    float w = TextMetrics::MeasureWidth(m_Title, titleSpec.sizePx, titleSpec.bold);
     if (!m_Subtitle.empty()) {
-        h += secondary.fontSize + ResolveMetric(MetricToken::Space1);
-        w = std::max(w, TextMetrics::MeasureWidth(m_Subtitle, secondary.fontSize, secondary.bold));
+        h += subtitleSpec.lineHeightPx + ResolveMetric(MetricToken::LabelHintGap);
+        w = std::max(w, TextMetrics::MeasureWidth(m_Subtitle, subtitleSpec.sizePx, subtitleSpec.bold));
+    } else {
+        h += ResolveMetric(MetricToken::Space2);
     }
     // Report content-intrinsic width. Parent Flex Stretch expands on the cross axis;
     // claiming availableSize.width made every Column inside a Row overflow and shrink
@@ -265,7 +268,7 @@ Size PropertyRow::Measure(const Size& availableSize) {
     const ResolvedStyle style = ThemeManager::Get().Resolve(StyleRole::PropertyRow);
     m_DesiredSize = Size{
         availableSize.width > 0.0f ? availableSize.width : 320.0f,
-        style.height > 0.0f ? style.height : 28.0f
+        style.height > 0.0f ? style.height : ResolveMetric(MetricToken::FormRowHeight)
     };
     return m_DesiredSize;
 }
@@ -275,18 +278,21 @@ void PropertyRow::Arrange(const Rect& allottedRect) {
 }
 
 void PropertyRow::Paint(PaintContext& context) {
-    const ResolvedStyle style = ThemeManager::Get().Resolve(StyleRole::PropertyRow);
-    const float caption = ThemeManager::Get().Resolve(StyleRole::TextCaption).fontSize;
+    const TypographySpec labelSpec = ResolveTypography(TypographyToken::PropertyLabel);
+    const TypographySpec valueSpec = ResolveTypography(TypographyToken::PropertyValue);
+    const float gap = ResolveMetric(MetricToken::LabelHintGap);
     context.DrawText(
         m_Label,
-        Point{ m_Geometry.x, m_Geometry.y + 2.0f },
-        ResolveColor(ColorToken::TextCaption),
-        caption);
+        Point{ m_Geometry.x, m_Geometry.y + gap },
+        labelSpec.color,
+        labelSpec.sizePx,
+        labelSpec.bold);
     context.DrawText(
         m_Value.empty() ? "—" : m_Value,
-        Point{ m_Geometry.x, m_Geometry.y + caption + 4.0f },
-        style.foreground,
-        style.fontSize);
+        Point{ m_Geometry.x, m_Geometry.y + labelSpec.lineHeightPx + gap },
+        valueSpec.color,
+        valueSpec.sizePx,
+        valueSpec.bold);
 }
 
 SearchBoxControl::SearchBoxControl(std::string placeholder)

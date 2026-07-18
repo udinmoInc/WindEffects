@@ -38,6 +38,18 @@ TypographySpec ResolveTypography(TypographyToken token) {
     return ThemeManager::Get().Theme().ResolveTypography(token);
 }
 
+float ResolveControlHeight(ControlSize size) {
+    switch (size) {
+    case ControlSize::Compact:
+        return ResolveMetric(MetricToken::ControlHeightCompact);
+    case ControlSize::Large:
+        return ResolveMetric(MetricToken::ControlHeightLarge);
+    case ControlSize::Default:
+    default:
+        return ResolveMetric(MetricToken::ButtonHeight);
+    }
+}
+
 Color ResolveInteractiveBackground(float hoverAnim, float pressAnim, bool selected) {
     return ThemeManager::Get().Theme().InteractiveBackground(hoverAnim, pressAnim, selected);
 }
