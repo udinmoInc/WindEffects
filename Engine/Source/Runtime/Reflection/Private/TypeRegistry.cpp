@@ -3,6 +3,7 @@
 #include "HashUtils.h"
 #include "Reflection/BuiltinTypes.h"
 #include "Reflection/NameId.h"
+#include "Reflection/PropertyPath.h"
 
 #include <algorithm>
 #include <atomic>
@@ -446,7 +447,12 @@ bool TypeRegistry::UnregisterType(TypeId typeId) {
     m_Working->allIdsSorted.erase(
         std::remove(m_Working->allIdsSorted.begin(), m_Working->allIdsSorted.end(), typeId),
         m_Working->allIdsSorted.end());
+    {
+        std::lock_guard usedLock(m_UsedMutex);
+        m_UsedTypes.erase(typeId);
+    }
     m_GlobalCachesDirty = true;
+    ClearPropertyPathCache();
     return true;
 }
 
@@ -496,6 +502,7 @@ void TypeRegistry::Seal() {
 void TypeRegistry::Unseal() {
     std::unique_lock lock(m_Mutex);
     m_Sealed.store(false, std::memory_order_release);
+    ClearPropertyPathCache();
 }
 
 bool TypeRegistry::IsSealed() const {
@@ -868,27 +875,25 @@ std::uint32_t TypeRegistry::GetSchemaVersion() const {
 }
 
 void TypeRegistry::MarkTypeUsed(TypeId typeId) {
-    if (m_Sealed.load(std::memory_order_acquire)) {
-        auto snap = LoadFrozenSnapshot();
-        if (!snap) {
-            return;
-        }
-        const auto it = snap->byId.find(typeId);
-        if (it != snap->byId.end() && it->second) {
-            it->second->used = true;
-        }
+    if (typeId == kInvalidTypeId) {
         return;
     }
-    std::unique_lock lock(m_Mutex);
-    if (auto it = m_Working->byId.find(typeId); it != m_Working->byId.end() && it->second) {
-        it->second->used = true;
-    }
+    std::lock_guard lock(m_UsedMutex);
+    m_UsedTypes.insert(typeId);
+}
+
+bool TypeRegistry::IsTypeMarkedUsed(TypeId typeId) const {
+    std::lock_guard lock(m_UsedMutex);
+    return m_UsedTypes.count(typeId) != 0;
 }
 
 std::uint64_t TypeRegistry::BeginPluginRegistration(std::string_view pluginId) {
-    (void)pluginId;
     const std::uint64_t token = PluginTokenCounter().fetch_add(1, std::memory_order_relaxed);
-    m_ActivePluginToken = token;
+    {
+        std::unique_lock lock(m_Mutex);
+        m_ActivePluginToken = token;
+        m_PluginIds[token] = std::string(pluginId);
+    }
     return token;
 }
 
@@ -918,6 +923,10 @@ bool TypeRegistry::UnregisterByPluginToken(std::uint64_t token) {
         m_Working->byQualifiedNameId.erase(it->second->info.qualifiedNameId);
         m_Working->byShortNameId.erase(it->second->info.nameId);
         m_Working->byId.erase(it);
+        {
+            std::lock_guard usedLock(m_UsedMutex);
+            m_UsedTypes.erase(id);
+        }
     }
     m_Working->allIdsSorted.erase(
         std::remove_if(
@@ -925,8 +934,51 @@ bool TypeRegistry::UnregisterByPluginToken(std::uint64_t token) {
             m_Working->allIdsSorted.end(),
             [&](TypeId id) { return m_Working->byId.find(id) == m_Working->byId.end(); }),
         m_Working->allIdsSorted.end());
+    m_PluginIds.erase(token);
     m_GlobalCachesDirty = true;
+    ClearPropertyPathCache();
     return true;
+}
+
+std::string TypeRegistry::GetPluginId(std::uint64_t token) const {
+    std::shared_lock lock(m_Mutex);
+    const auto it = m_PluginIds.find(token);
+    return it == m_PluginIds.end() ? std::string{} : it->second;
+}
+
+std::vector<TypeId> TypeRegistry::GetTypesByPluginToken(std::uint64_t token) const {
+    std::vector<TypeId> result;
+    auto collect = [&](const RegistrySnapshot& snap) {
+        for (TypeId id : snap.allIdsSorted) {
+            const TypeRecord* record = FindRecord(snap, id);
+            if (record && record->pluginToken == token) {
+                result.push_back(id);
+            }
+        }
+    };
+    if (m_Sealed.load(std::memory_order_acquire)) {
+        auto snap = LoadFrozenSnapshot();
+        if (snap) {
+            collect(*snap);
+        }
+        return result;
+    }
+    std::shared_lock lock(m_Mutex);
+    collect(*m_Working);
+    return result;
+}
+
+std::uint64_t TypeRegistry::GetOwningPluginToken(TypeId typeId) const {
+    auto lookup = [&](const RegistrySnapshot& snap) -> std::uint64_t {
+        const TypeRecord* record = FindRecord(snap, typeId);
+        return record ? record->pluginToken : 0;
+    };
+    if (m_Sealed.load(std::memory_order_acquire)) {
+        auto snap = LoadFrozenSnapshot();
+        return snap ? lookup(*snap) : 0;
+    }
+    std::shared_lock lock(m_Mutex);
+    return lookup(*m_Working);
 }
 
 std::unique_ptr<ITypeRegistry> CreateTypeRegistry(TypeRegistryDependencies deps) {

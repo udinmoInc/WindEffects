@@ -7,10 +7,12 @@
 #include "Reflection/Registration.h"
 
 #include <algorithm>
+#include <atomic>
 #include <chrono>
 #include <cstdio>
 #include <sstream>
 #include <string>
+#include <thread>
 #include <vector>
 
 namespace we::runtime::reflection {
@@ -176,27 +178,55 @@ BenchmarkReport RunReflectionBenchmarks(const BenchmarkConfig& configIn) {
     });
     report.samples.push_back(MakeSample("function_lookup", fnMs, typeIds.size()));
 
-    // --- Object construction ---
+    // --- Object construction (streaming destroy to support 1M target without huge residency) ---
     ObjectFactoryDependencies factoryDeps;
     factoryDeps.registry = registry.get();
     auto factory = CreateObjectFactory(factoryDeps);
     const TypeId firstType = typeIds.empty() ? kInvalidTypeId : typeIds.front();
     const std::uint64_t objectCount =
         static_cast<std::uint64_t>(config.typeCount) * static_cast<std::uint64_t>(config.objectsPerType);
-    std::vector<void*> objects;
-    objects.reserve(static_cast<std::size_t>(std::min<std::uint64_t>(objectCount, 100000)));
 
+    std::uint64_t constructed = 0;
     const double ctorMs = TimeMs([&] {
-        const std::uint64_t limit = std::min<std::uint64_t>(objectCount, 100000);
-        for (std::uint64_t i = 0; i < limit; ++i) {
+        for (std::uint64_t i = 0; i < objectCount; ++i) {
             const TypeId id = typeIds[static_cast<std::size_t>(i % typeIds.size())];
             void* obj = factory->Create(id);
             if (obj) {
-                objects.push_back(obj);
+                ++constructed;
+                factory->Destroy(id, obj);
             }
         }
     });
-    report.samples.push_back(MakeSample("object_construction", ctorMs, objects.size()));
+    report.samples.push_back(MakeSample("object_construction", ctorMs, constructed));
+
+    // --- Concurrent sealed lookups ---
+    std::atomic<std::uint64_t> concurrentHits{0};
+    const double concurrentMs = TimeMs([&] {
+        constexpr int kThreads = 8;
+        std::vector<std::thread> threads;
+        threads.reserve(kThreads);
+        for (int t = 0; t < kThreads; ++t) {
+            threads.emplace_back([&, t] {
+                std::uint64_t local = 0;
+                for (std::uint32_t round = 0; round < 3; ++round) {
+                    for (std::size_t i = 0; i < typeIds.size(); ++i) {
+                        const TypeId id = typeIds[(i + static_cast<std::size_t>(t)) % typeIds.size()];
+                        if (registry->Find(id) && registry->FindProperty(id, nameA)) {
+                            ++local;
+                        }
+                    }
+                }
+                concurrentHits.fetch_add(local, std::memory_order_relaxed);
+            });
+        }
+        for (auto& thread : threads) {
+            thread.join();
+        }
+    });
+    report.samples.push_back(MakeSample(
+        "concurrent_lookup",
+        concurrentMs,
+        concurrentHits.load(std::memory_order_relaxed)));
 
     // --- Serialization traversal ---
     BenchObject local{};
@@ -210,18 +240,15 @@ BenchmarkReport RunReflectionBenchmarks(const BenchmarkConfig& configIn) {
     });
     report.samples.push_back(MakeSample("serialization_traversal", serMs, 10000));
 
-    for (void* obj : objects) {
-        factory->Destroy(firstType, obj);
-    }
-    objects.clear();
-
     report.diagnostics = CaptureDiagnostics(*registry);
-    report.success = true;
+    report.success = constructed == objectCount && concurrentHits.load() > 0;
 
     std::ostringstream oss;
     oss << "Reflection benchmarks: types=" << config.typeCount
-        << " objects_target=" << objectCount
+        << " objects=" << objectCount
         << " plugins=" << config.pluginCount
+        << " constructed=" << constructed
+        << " concurrent_hits=" << concurrentHits.load()
         << " sink=" << sink;
     report.summary = oss.str();
     return report;

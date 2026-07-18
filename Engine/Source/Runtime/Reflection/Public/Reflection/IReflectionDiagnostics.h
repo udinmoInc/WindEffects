@@ -57,8 +57,39 @@ class ITypeRegistry;
     const ITypeRegistry& registry);
 
 /// Validate registry contents and append issues (does not throw).
+/// Performs Full-level checks (inheritance, offsets, metadata, plans).
 REFLECTION_API void ValidateRegistry(
     const ITypeRegistry& registry,
     std::vector<DiagnosticIssue>& outIssues);
+
+/// Stable machine codes emitted by ValidateRegistry / ValidateRegistryEx.
+namespace DiagnosticCode {
+inline constexpr const char* MissingType = "missing_type";
+inline constexpr const char* DuplicateType = "duplicate_type";
+inline constexpr const char* DuplicateQualifiedName = "duplicate_qualified_name";
+inline constexpr const char* ZeroSizeType = "zero_size_type";
+inline constexpr const char* InvalidVersion = "invalid_version";
+inline constexpr const char* InvalidProperty = "invalid_property";
+inline constexpr const char* DuplicateProperty = "duplicate_property";
+inline constexpr const char* ZeroSizeProperty = "zero_size_property";
+inline constexpr const char* MissingBase = "missing_base";
+inline constexpr const char* UnusedType = "unused_type";
+inline constexpr const char* InheritanceCycle = "inheritance_cycle";
+inline constexpr const char* SelfBase = "self_base";
+inline constexpr const char* InvalidPropertyOffset = "invalid_property_offset";
+inline constexpr const char* MisalignedProperty = "misaligned_property";
+inline constexpr const char* PropertyOverlap = "property_overlap";
+inline constexpr const char* MissingPropertyType = "missing_property_type";
+inline constexpr const char* InvalidEnum = "invalid_enum";
+inline constexpr const char* DuplicateEnumValue = "duplicate_enum_value";
+inline constexpr const char* DuplicateFunction = "duplicate_function";
+inline constexpr const char* InvalidAttribute = "invalid_attribute";
+inline constexpr const char* AliasCycle = "alias_cycle";
+inline constexpr const char* InvalidSerializePlan = "invalid_serialize_plan";
+inline constexpr const char* CacheMismatch = "cache_mismatch";
+inline constexpr const char* BinaryIncompatible = "binary_incompatible";
+inline constexpr const char* InvalidAlignment = "invalid_alignment";
+inline constexpr const char* MissingInterface = "missing_interface";
+} // namespace DiagnosticCode
 
 } // namespace we::runtime::reflection

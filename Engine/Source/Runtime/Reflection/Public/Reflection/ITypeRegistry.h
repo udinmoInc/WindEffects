@@ -78,6 +78,13 @@ public:
     [[nodiscard]] virtual std::uint64_t BeginPluginRegistration(std::string_view pluginId) = 0;
     virtual void EndPluginRegistration() = 0;
     [[nodiscard]] virtual bool UnregisterByPluginToken(std::uint64_t token) = 0;
+
+    /// Stable plugin id string recorded for a registration token (empty if unknown).
+    [[nodiscard]] virtual std::string GetPluginId(std::uint64_t token) const = 0;
+    /// TypeIds registered under the given plugin token (deterministic sorted order).
+    [[nodiscard]] virtual std::vector<TypeId> GetTypesByPluginToken(std::uint64_t token) const = 0;
+    /// Plugin token that owns a type (0 if builtin / unscoped).
+    [[nodiscard]] virtual std::uint64_t GetOwningPluginToken(TypeId typeId) const = 0;
 };
 
 struct REFLECTION_API TypeRegistryDependencies {
