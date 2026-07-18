@@ -65,13 +65,29 @@ ProjectValidationResult ProjectContext::Load(const std::filesystem::path& weproj
     config.logsRoot = m_LogsRoot;
     we::core::PathService::Get().Configure(config);
 
-    const auto contentValidation = we::core::PathService::ValidateDirectory(m_ContentRoot);
-    if (!contentValidation.ok) {
-        HE_WARN("[ProjectContext] Content root: " + contentValidation.message);
+    const auto layout = we::core::PathService::Get().ValidateLayout(true);
+    if (!layout.ok) {
+        HE_WARN("[ProjectContext] Layout validation failed: " + layout.summary);
+        for (const auto& check : layout.checks) {
+            if (check.required && !check.result.ok) {
+                HE_WARN("[ProjectContext]   " + check.name + ": " + check.result.message);
+            }
+        }
     }
-    const auto savedEnsure = we::core::PathService::EnsureDirectory(m_SavedRoot);
-    if (!savedEnsure.ok) {
-        HE_WARN("[ProjectContext] Saved root: " + savedEnsure.message);
+
+    // Ensure writable project scratch dirs exist (Saved/Intermediate/Cache/Logs).
+    const std::filesystem::path ensureRoots[] = {
+        m_SavedRoot,
+        m_IntermediateRoot,
+        m_CacheRoot,
+        m_LogsRoot,
+    };
+    for (const auto& root : ensureRoots) {
+        const auto ensured = we::core::PathService::EnsureDirectory(root);
+        if (!ensured.ok) {
+            HE_WARN("[ProjectContext] Failed to ensure " + we::core::PathService::ToGeneric(root)
+                + ": " + ensured.message);
+        }
     }
 
     m_Descriptor.lastOpenedUtc = ProjectLifecycle::NowUtc();

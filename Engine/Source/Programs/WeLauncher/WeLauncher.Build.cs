@@ -17,6 +17,7 @@ public class WeLauncher : ModuleRules
         PublicDependencies.Add("KindUI");
         PublicDependencies.Add("Text");
         PublicDependencies.Add("Icons");
+        PublicDependencies.Add("Projects");
         PrivateDependencies.Add("Engine");
         PrivateDependencies.Add("RHI");
         PrivateDependencies.Add("Renderer");

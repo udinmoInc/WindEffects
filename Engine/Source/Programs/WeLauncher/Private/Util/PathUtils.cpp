@@ -22,6 +22,7 @@
 
 #include "Core/BuildPaths.h"
 #include "Core/Paths.h"
+#include "Projects/ProjectLifecycle.h"
 
 namespace we::programs::welauncher {
 
@@ -134,33 +135,11 @@ bool PathUtils::ClearDirectoryContents(const std::filesystem::path& root) {
 }
 
 std::string PathUtils::GetUtcNowIso8601() {
-    const auto now = std::chrono::system_clock::now();
-    const auto time = std::chrono::system_clock::to_time_t(now);
-    std::tm tm{};
-#if defined(_WIN32)
-    gmtime_s(&tm, &time);
-#else
-    gmtime_r(&time, &tm);
-#endif
-    std::ostringstream oss;
-    oss << std::put_time(&tm, "%Y-%m-%dT%H:%M:%SZ");
-    return oss.str();
+    return we::projects::ProjectLifecycle::NowUtc();
 }
 
 std::string PathUtils::SanitizeProjectName(const std::string& name) {
-    std::string out;
-    out.reserve(name.size());
-    for (char c : name) {
-        if (std::isalnum(static_cast<unsigned char>(c)) || c == '_' || c == '-') {
-            out.push_back(c);
-        } else if (std::isspace(static_cast<unsigned char>(c))) {
-            out.push_back('_');
-        }
-    }
-    if (out.empty()) {
-        out = "Project";
-    }
-    return out;
+    return we::projects::ProjectLifecycle::SanitizeProjectName(name);
 }
 
 bool PathUtils::IsPathInsideEngineInstall(const std::filesystem::path& path, const std::filesystem::path& engineRoot) {

@@ -157,8 +157,8 @@ public static class PackageCommand
         {
             "editor" => "Editor",
             "welauncher" or "launcher" => "WeLauncher",
-            "ecstests" => "ECSTests",
-            "textrendertest" => "TextRenderTest",
+            "we" or "cli" => "We",
+            "crashreporter" or "crash" => "CrashReporter",
             _ => target
         };
 

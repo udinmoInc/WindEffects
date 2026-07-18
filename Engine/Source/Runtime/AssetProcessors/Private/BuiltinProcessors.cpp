@@ -3,6 +3,7 @@
 #include "AssetImporter/AssetMetadata.h"
 #include "AssetImporter/AssetPackage.h"
 #include "AssetProcessors/IAssetProcessor.h"
+#include "Core/Paths.h"
 
 #include <fstream>
 
@@ -215,8 +216,8 @@ public:
         }
 
         std::filesystem::path thumbDir = context.processedRoot.empty()
-            ? context.imported.cookedPath.parent_path() / "Thumbnails"
-            : context.processedRoot / "Thumbnails";
+            ? context.imported.cookedPath.parent_path() / we::core::layout::kThumbnails
+            : context.processedRoot / we::core::layout::kThumbnails;
         std::error_code ec;
         std::filesystem::create_directories(thumbDir, ec);
         const auto thumbPath = thumbDir / (context.imported.metadata.guid.ToString() + ".thumb");

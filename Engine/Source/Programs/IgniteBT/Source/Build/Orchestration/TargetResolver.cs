@@ -13,7 +13,7 @@ public static class TargetResolver
     {
         ["Editor"] = new TargetSpec
         {
-            RootModules = ["WindeffectsEditor", "Application", "Editor"],
+            RootModules = ["WindeffectsEditor", "Editor"],
             IncludeDependents = false
         },
         ["Engine"] = new TargetSpec
@@ -26,14 +26,19 @@ public static class TargetResolver
             RootModules = ["Renderer", "RHI", "VulkanRHI"],
             IncludeDependents = false
         },
-        ["Game"] = new TargetSpec
-        {
-            RootModules = ["WindeffectsGame", "Game"],
-            IncludeDependents = false
-        },
         ["WeLauncher"] = new TargetSpec
         {
             RootModules = ["WeLauncher"],
+            IncludeDependents = false
+        },
+        ["We"] = new TargetSpec
+        {
+            RootModules = ["We"],
+            IncludeDependents = false
+        },
+        ["CrashReporter"] = new TargetSpec
+        {
+            RootModules = ["CrashReporter"],
             IncludeDependents = false
         }
     };

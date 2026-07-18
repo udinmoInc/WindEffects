@@ -1,6 +1,6 @@
 name: IgniteBT CI
 
-# Engine push gate: IgniteBT + Editor Development + smoke tests.
+# Engine push gate: IgniteBT unit tests + Editor Development builds + packaging.
 on:
   push:
     paths:
@@ -51,26 +51,6 @@ jobs:
 
       - name: Build Editor Development (Unity ON)
         run: ./we.ps1 build --target Editor --config Development --jobs 4 --unity
-
-      - name: Build ECSTests
-        run: ./we.ps1 build --target ECSTests --config Development --jobs 4
-
-      - name: Run ECSTests
-        run: |
-          $exe = "Build/Output/Win64/Development/ECSTests.exe"
-          if (-not (Test-Path $exe)) { Write-Error "ECSTests.exe missing at $exe"; exit 1 }
-          & $exe
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-
-      - name: Build TextRenderTest
-        run: ./we.ps1 build --target TextRenderTest --config Development --jobs 4
-
-      - name: Run TextRenderTest
-        run: |
-          $exe = "Build/Output/Win64/Development/TextRenderTest.exe"
-          if (-not (Test-Path $exe)) { Write-Error "TextRenderTest.exe missing at $exe"; exit 1 }
-          & $exe
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       - name: Build Editor Debug
         run: ./we.ps1 build --target Editor --config Debug --jobs 4

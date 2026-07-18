@@ -108,6 +108,8 @@ public static class RunCommand
         {
             "editor" => "Editor",
             "welauncher" or "launcher" => "WeLauncher",
+            "we" or "cli" => "We",
+            "crashreporter" or "crash" => "CrashReporter",
             _ => target
         };
 

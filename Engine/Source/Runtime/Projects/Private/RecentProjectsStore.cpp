@@ -4,9 +4,9 @@
 #include "Projects/ProjectLifecycle.h"
 
 #include "Core/Logger.h"
+#include "Core/Paths.h"
 
 #include <algorithm>
-#include <cstdlib>
 
 namespace we::projects {
 
@@ -16,18 +16,9 @@ RecentProjectsStore& RecentProjectsStore::Get() {
 }
 
 std::filesystem::path RecentProjectsStore::StorePath() {
-#if defined(_WIN32)
-    const char* localApp = std::getenv("LOCALAPPDATA");
-    std::filesystem::path base = localApp && localApp[0] != '\0'
-        ? std::filesystem::path(localApp)
-        : std::filesystem::path(".");
-#else
-    const char* home = std::getenv("HOME");
-    std::filesystem::path base = home && home[0] != '\0'
-        ? std::filesystem::path(home) / ".local" / "share"
-        : std::filesystem::path(".");
-#endif
-    return base / "WindEffects" / "Editor" / "RecentProjects.json";
+    return we::core::PathService::Get().UserDataRoot()
+        / we::core::layout::kEditor
+        / "RecentProjects.json";
 }
 
 void RecentProjectsStore::Load() {

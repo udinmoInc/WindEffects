@@ -349,30 +349,10 @@ public class ThirdPartyManager
         return _libraries.ContainsKey(name);
     }
     
-    /// <summary>
-    /// Finds the engine root directory.
-    /// </summary>
     private string FindEngineRoot()
     {
-        var currentDir = Directory.GetCurrentDirectory();
-        
-        var dir = new DirectoryInfo(currentDir);
-        while (dir != null)
-        {
-            if (dir.Name.Equals("Engine", StringComparison.OrdinalIgnoreCase))
-            {
-                return dir.FullName;
-            }
-            
-            var engineDir = Path.Combine(dir.FullName, "Engine");
-            if (Directory.Exists(engineDir))
-            {
-                return engineDir;
-            }
-            
-            dir = dir.Parent;
-        }
-        
-        return currentDir;
+        // BuildLayout.FindEngineRoot returns {repo}/Engine — the build-system engine directory.
+        return IgniteBT.Build.Layout.BuildLayout.FindEngineRoot(Directory.GetCurrentDirectory())
+            ?? Directory.GetCurrentDirectory();
     }
 }
