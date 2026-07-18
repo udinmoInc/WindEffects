@@ -51,9 +51,12 @@ struct PositionedGlyph {
     float width = 0.0f;
     float height = 0.0f;
     uint32_t lineIndex = 0;
-    TextStyle style{};
     ColorRGBA color{};
     float msdfPixelRange = 4.0f;
+    // POD paint flags only — do not embed TextStyle (std::string/optional) on every glyph;
+    // full-struct copies across DLL boundaries have caused heap corruption on teardown.
+    bool hasOutline = false;
+    bool hasShadow = false;
 };
 
 struct LayoutResult {

@@ -164,11 +164,12 @@ public:
                     positioned.width = resolved.metrics.bounds.width * quadScale;
                     positioned.height = resolved.metrics.bounds.height * quadScale;
                     positioned.lineIndex = static_cast<uint32_t>(lineStates.size() - 1);
-                    positioned.style = style;
                     positioned.color = style.color;
                     positioned.color.a *= style.opacity;
                     // Atlas distance range in texels — screenPxRange uses fwidth for scale.
                     positioned.msdfPixelRange = resolved.msdfPixelRange;
+                    // Outline/shadow are not used by KindUI measure/draw today; keep POD defaults
+                    // to avoid reading std::optional across the Text DLL boundary.
 
                     lineStates.back().glyphs.push_back(positioned);
                     lineStates.back().width = penX + advance;

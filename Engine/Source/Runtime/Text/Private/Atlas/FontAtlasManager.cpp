@@ -46,17 +46,23 @@ public:
         }
 
         for (const GlyphMetrics& glyph : asset.glyphs) {
+            const uint32_t pageIndex = basePage + static_cast<uint32_t>(glyph.atlasPage);
+            if (pageIndex >= m_Pages.size()) {
+                continue;
+            }
             GlyphAtlasKey key{fontHandle, glyph.codepoint, 0};
             AtlasGlyphEntry entry;
             entry.metrics = glyph;
-            entry.metrics.atlasPage = static_cast<uint16_t>(basePage + glyph.atlasPage);
-            entry.bakeSizePx = asset.metrics.bakeSizePx;
-            entry.msdfPixelRange = asset.metrics.msdfPixelRange;
-            entry.geometryScale = asset.metrics.geometryScale > 0.0f
+            entry.metrics.atlasPage = static_cast<uint16_t>(pageIndex);
+            entry.bakeSizePx = asset.metrics.bakeSizePx > 0.0f ? asset.metrics.bakeSizePx : 18.0f;
+            entry.msdfPixelRange = asset.metrics.msdfPixelRange > 0.0f
+                ? asset.metrics.msdfPixelRange
+                : 4.0f;
+            entry.geometryScale = asset.metrics.geometryScale > 1.5f
                 ? asset.metrics.geometryScale
-                : 1.0f;
-            entry.pageIndex = entry.metrics.atlasPage;
-            entry.pageVersion = m_Pages[entry.pageIndex].version;
+                : entry.bakeSizePx;
+            entry.pageIndex = pageIndex;
+            entry.pageVersion = m_Pages[pageIndex].version;
             m_Cache[key] = entry;
         }
         ++m_Generation;

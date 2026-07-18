@@ -103,30 +103,19 @@ public:
         const FT_UInt pixelHeight = static_cast<FT_UInt>(std::clamp(std::lround(options.fontSize), 10L, 96L));
         FT_Set_Pixel_Sizes(face, 0, pixelHeight);
 
-        hb_font_t* hbFont = hb_ft_font_create_referenced(face);
+        // Non-referenced create: we own the FT_Face and must FT_Done_Face after hb_font_destroy.
+        // hb_ft_font_create_referenced would also FT_Done_Face on destroy → double-free / heap corruption.
+        hb_font_t* hbFont = hb_ft_font_create(face, nullptr);
         hb_buffer_t* buffer = hb_buffer_create();
 
-        std::string utf8;
-        utf8.reserve(codepoints.size() * 4);
-        for (const Codepoint codepoint : codepoints) {
-            if (codepoint <= 0x7F) {
-                utf8.push_back(static_cast<char>(codepoint));
-            } else if (codepoint <= 0x7FF) {
-                utf8.push_back(static_cast<char>(0xC0 | ((codepoint >> 6) & 0x1F)));
-                utf8.push_back(static_cast<char>(0x80 | (codepoint & 0x3F)));
-            } else if (codepoint <= 0xFFFF) {
-                utf8.push_back(static_cast<char>(0xE0 | ((codepoint >> 12) & 0x0F)));
-                utf8.push_back(static_cast<char>(0x80 | ((codepoint >> 6) & 0x3F)));
-                utf8.push_back(static_cast<char>(0x80 | (codepoint & 0x3F)));
-            } else {
-                utf8.push_back(static_cast<char>(0xF0 | ((codepoint >> 18) & 0x07)));
-                utf8.push_back(static_cast<char>(0x80 | ((codepoint >> 12) & 0x3F)));
-                utf8.push_back(static_cast<char>(0x80 | ((codepoint >> 6) & 0x3F)));
-                utf8.push_back(static_cast<char>(0x80 | (codepoint & 0x3F)));
-            }
-        }
-
-        hb_buffer_add_utf8(buffer, utf8.data(), static_cast<int>(utf8.size()), 0, static_cast<int>(utf8.size()));
+        // Feed codepoints directly so HarfBuzz clusters are codepoint indices (not UTF-8 byte offsets).
+        static_assert(sizeof(hb_codepoint_t) == sizeof(Codepoint), "hb_codepoint_t/Codepoint size mismatch");
+        hb_buffer_add_codepoints(
+            buffer,
+            reinterpret_cast<const hb_codepoint_t*>(codepoints.data()),
+            static_cast<unsigned int>(codepoints.size()),
+            0,
+            static_cast<int>(codepoints.size()));
         hb_buffer_guess_segment_properties(buffer);
         hb_buffer_set_direction(
             buffer,
