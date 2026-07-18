@@ -15,9 +15,8 @@
 #include <cstdlib>
 #include <cstring>
 #include <memory>
-#if WE_HAS_GLM
+#include "Core/Math/GlmInterop.h"
 #include <glm/gtc/matrix_inverse.hpp>
-#endif
 
 namespace we::runtime::renderer {
 namespace {
@@ -399,10 +398,8 @@ void Renderer::RenderFrame() {
 
 void Renderer::UploadCameraUniform(const CameraUniform& uniform) {
     m_LastCamera = uniform;
-#if WE_HAS_GLM
-    const glm::mat4 viewProj = uniform.proj * uniform.view;
-    m_LastCamera.invViewProj = glm::inverse(viewProj);
-#endif
+    const glm::mat4 viewProj = we::math::AsGlm(uniform.proj) * we::math::AsGlm(uniform.view);
+    m_LastCamera.invViewProj = we::math::FromGlm(glm::inverse(viewProj));
 }
 
 void Renderer::UploadEnvironmentUniform(const SceneEnvironmentUniform& uniform) {

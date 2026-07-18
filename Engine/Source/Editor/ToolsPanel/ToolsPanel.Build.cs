@@ -14,6 +14,7 @@ public class ToolsPanel : ModuleRules
         PublicDependencies.Add("RHI");
         PublicDependencies.Add("Engine");
         PublicDependencies.Add("KindUI");
+        PublicDependencies.Add("Text");
         PublicDependencies.Add("UIFramework");
         PrivateDependencies.Add("Menus");
         PrivateDependencies.Add("ContentBrowser");

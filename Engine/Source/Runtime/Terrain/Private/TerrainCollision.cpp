@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <cmath>
 
+#include "Core/Math/GlmInterop.h"
 namespace we::runtime::terrain {
 
 void TerrainCollision::Bind(const TerrainHeightmap* heightmap, const TerrainCreateInfo* info) {
@@ -40,7 +41,7 @@ void TerrainCollision::RebuildDirty(TerrainChunkManager& chunks) {
 }
 
 bool TerrainCollision::SampleHeightNormal(float worldX, float worldZ, float& outHeight,
-    glm::vec3& outNormal) const {
+    we::math::Vec3& outNormal) const {
     if (!m_Heightmap || !m_Info || m_Heightmap->Empty()) {
         return false;
     }
@@ -60,29 +61,29 @@ bool TerrainCollision::SampleHeightNormal(float worldX, float worldZ, float& out
     const float hU = m_Heightmap->SampleWorldHeight(localX, localZ + eps, m_Info->worldSizeX,
         m_Info->worldSizeY, m_Info->heightScale, m_Info->heightOffset);
 
-    outNormal = glm::normalize(glm::vec3(hL - hR, 2.0f * eps, hD - hU));
+    outNormal = we::math::FromGlm(glm::normalize(glm::vec3(hL - hR, 2.0f * eps, hD - hU)));
     return true;
 }
 
-bool TerrainCollision::Raycast(const glm::vec3& origin, const glm::vec3& direction, float maxDistance,
-    glm::vec3& outHit, glm::vec3& outNormal) const {
+bool TerrainCollision::Raycast(const we::math::Vec3& origin, const we::math::Vec3& direction, float maxDistance,
+    we::math::Vec3& outHit, we::math::Vec3& outNormal) const {
     if (!m_Heightmap || !m_Info || m_Heightmap->Empty()) {
         return false;
     }
 
-    const glm::vec3 dir = glm::normalize(direction);
+    const glm::vec3 dir = glm::normalize(we::math::ToGlm(direction));
     const float step = std::max(0.25f,
         m_Info->worldSizeX / static_cast<float>(std::max(1, m_Heightmap->Width() - 1)));
     float t = 0.0f;
     float prevY = origin.y;
     float prevTerrain = 0.0f;
-    glm::vec3 prevN(0.0f, 1.0f, 0.0f);
+    we::math::Vec3 prevN(0.0f, 1.0f, 0.0f);
     bool havePrev = false;
 
     while (t <= maxDistance) {
-        const glm::vec3 p = origin + dir * t;
+        const glm::vec3 p = we::math::ToGlm(origin) + dir * t;
         float terrainY = 0.0f;
-        glm::vec3 n(0.0f, 1.0f, 0.0f);
+        we::math::Vec3 n(0.0f, 1.0f, 0.0f);
         if (!SampleHeightNormal(p.x, p.z, terrainY, n)) {
             return false;
         }
@@ -93,8 +94,8 @@ bool TerrainCollision::Raycast(const glm::vec3& origin, const glm::vec3& directi
             if (d0 >= 0.0f && d1 <= 0.0f) {
                 const float denom = (d0 - d1);
                 const float alpha = (std::abs(denom) > 1e-6f) ? (d0 / denom) : 0.0f;
-                outHit = glm::mix(origin + dir * (t - step), p, std::clamp(alpha, 0.0f, 1.0f));
-                outNormal = glm::normalize(glm::mix(prevN, n, std::clamp(alpha, 0.0f, 1.0f)));
+                outHit = we::math::FromGlm(glm::mix(we::math::ToGlm(origin) + dir * (t - step), p, std::clamp(alpha, 0.0f, 1.0f)));
+                outNormal = we::math::FromGlm(glm::normalize(glm::mix(we::math::ToGlm(prevN), we::math::ToGlm(n), std::clamp(alpha, 0.0f, 1.0f))));
                 return true;
             }
         }

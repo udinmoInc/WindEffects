@@ -7,6 +7,7 @@
 
 #include <algorithm>
 
+#include "Core/Math/GlmInterop.h"
 namespace we::runtime::world::environment {
 
 namespace {
@@ -83,7 +84,7 @@ void EnvironmentSystem::ApplySettingsToComponents(const EnvironmentSettings& set
     m_Sun.ApplyDefaults();
     m_Sun.Intensity = settings.sunIntensity;
     m_Sun.TemperatureKelvin = settings.sunTemperature;
-    m_Sun.Rotation = glm::vec3(settings.sunRotationPitch, settings.sunRotationYaw, 0.0f);
+    m_Sun.Rotation = we::math::Vec3(settings.sunRotationPitch, settings.sunRotationYaw, 0.0f);
     m_Sun.Color = m_Sun.GetColorFromTemperature();
     m_Sun.CastDynamicShadows = true;
 
@@ -127,14 +128,14 @@ void EnvironmentSystem::ApplyComponentsToActors() {
         m_SkyLight.ApplyToEntity(sky->Color);
     }
     if (Entity* atmosphere = scene->FindEntityById(m_SkyAtmosphere.EntityId)) {
-        atmosphere->Color = glm::vec4(m_SkyAtmosphere.GetRayleighColor(), 1.0f);
+        atmosphere->Color = we::math::Vec4(m_SkyAtmosphere.GetRayleighColor(), 1.0f);
     }
     if (Entity* fog = scene->FindEntityById(m_HeightFog.EntityId)) {
         m_HeightFog.ApplyToEntity(fog->Color, fog->Scale);
     }
     if (Entity* clouds = scene->FindEntityById(m_VolumetricClouds.EntityId)) {
-        clouds->Color = glm::vec4(m_VolumetricClouds.CloudColor, 1.0f);
-        clouds->Scale = glm::vec3(0.5f + m_VolumetricClouds.Coverage);
+        clouds->Color = we::math::Vec4(m_VolumetricClouds.CloudColor, 1.0f);
+        clouds->Scale = we::math::Vec3(0.5f + m_VolumetricClouds.Coverage);
     }
 }
 
@@ -362,36 +363,36 @@ void EnvironmentSystem::CreateEnvironment() {
 
     if (m_EnvironmentManagerEntityId == 0) {
         m_EnvironmentManagerEntityId = SpawnActor(kEnvironmentManagerActorName, EntityType::EmptyActor, folderId, [&](Entity& entity) {
-            entity.Position = glm::vec3(0.0f);
-            entity.Scale = glm::vec3(0.35f);
+            entity.Position = we::math::Vec3(0.0f);
+            entity.Scale = we::math::Vec3(0.35f);
         });
     }
 
     if (settings.createDirectionalLight && m_Sun.EntityId == 0) {
         m_Sun.EntityId = SpawnActor(kSunActorName, EntityType::DirectionalLight, folderId, [&](Entity& entity) {
             m_Sun.ApplyToEntity(entity.Position, entity.Rotation, entity.Color);
-            entity.Scale = glm::vec3(0.45f);
+            entity.Scale = we::math::Vec3(0.45f);
         });
     }
 
     if (settings.createSkyLight && m_SkyLight.EntityId == 0) {
         m_SkyLight.EntityId = SpawnActor(kSkyLightActorName, EntityType::SkyLight, folderId, [&](Entity& entity) {
-            entity.Position = glm::vec3(-4.0f, 12.0f, 2.0f);
-            entity.Scale = glm::vec3(0.4f);
+            entity.Position = we::math::Vec3(-4.0f, 12.0f, 2.0f);
+            entity.Scale = we::math::Vec3(0.4f);
             m_SkyLight.ApplyToEntity(entity.Color);
         });
     }
 
     if (settings.createSkyAtmosphere && m_SkyAtmosphere.EntityId == 0) {
         m_SkyAtmosphere.EntityId = SpawnActor(kSkyAtmosphereActorName, EntityType::SkyAtmosphere, folderId, [&](Entity& entity) {
-            entity.Scale = glm::vec3(2.0f);
-            entity.Color = glm::vec4(m_SkyAtmosphere.GetRayleighColor(), 1.0f);
+            entity.Scale = we::math::Vec3(2.0f);
+            entity.Color = we::math::Vec4(m_SkyAtmosphere.GetRayleighColor(), 1.0f);
         });
     }
 
     if (settings.createHeightFog && m_HeightFog.EntityId == 0) {
         m_HeightFog.EntityId = SpawnActor(kHeightFogActorName, EntityType::HeightFog, folderId, [&](Entity& entity) {
-            entity.Position = glm::vec3(0.0f, 0.5f, 0.0f);
+            entity.Position = we::math::Vec3(0.0f, 0.5f, 0.0f);
             m_HeightFog.ApplyToEntity(entity.Color, entity.Scale);
         });
     }
@@ -400,17 +401,17 @@ void EnvironmentSystem::CreateEnvironment() {
         m_VolumetricClouds.Enabled = settings.createVolumetricClouds;
         if (m_VolumetricClouds.Enabled) {
             m_VolumetricClouds.EntityId = SpawnActor(kVolumetricCloudsActorName, EntityType::VolumetricClouds, folderId, [&](Entity& entity) {
-                entity.Position = glm::vec3(0.0f, m_VolumetricClouds.Altitude * 0.001f, 0.0f);
-                entity.Color = glm::vec4(m_VolumetricClouds.CloudColor, 1.0f);
-                entity.Scale = glm::vec3(0.5f + m_VolumetricClouds.Coverage);
+                entity.Position = we::math::Vec3(0.0f, m_VolumetricClouds.Altitude * 0.001f, 0.0f);
+                entity.Color = we::math::Vec4(m_VolumetricClouds.CloudColor, 1.0f);
+                entity.Scale = we::math::Vec3(0.5f + m_VolumetricClouds.Coverage);
             });
         }
     }
 
     if (m_ExposureController.EntityId == 0) {
         m_ExposureController.EntityId = SpawnActor(kExposureControllerActorName, EntityType::EmptyActor, folderId, [&](Entity& entity) {
-            entity.Position = glm::vec3(0.0f);
-            entity.Scale = glm::vec3(0.3f);
+            entity.Position = we::math::Vec3(0.0f);
+            entity.Scale = we::math::Vec3(0.3f);
         });
     }
 
@@ -480,9 +481,9 @@ void EnvironmentSystem::SetVolumetricCloudsEnabled(bool enabled) {
     if (enabled && m_VolumetricClouds.EntityId == 0) {
         const std::uint64_t folderId = EnsureFolder();
         m_VolumetricClouds.EntityId = SpawnActor(kVolumetricCloudsActorName, EntityType::VolumetricClouds, folderId, [&](Entity& entity) {
-            entity.Position = glm::vec3(0.0f, m_VolumetricClouds.Altitude * 0.001f, 0.0f);
-            entity.Color = glm::vec4(m_VolumetricClouds.CloudColor, 1.0f);
-            entity.Scale = glm::vec3(0.5f + m_VolumetricClouds.Coverage);
+            entity.Position = we::math::Vec3(0.0f, m_VolumetricClouds.Altitude * 0.001f, 0.0f);
+            entity.Color = we::math::Vec4(m_VolumetricClouds.CloudColor, 1.0f);
+            entity.Scale = we::math::Vec3(0.5f + m_VolumetricClouds.Coverage);
         });
     } else if (!enabled && m_VolumetricClouds.EntityId != 0) {
         DestroyActor(m_VolumetricClouds.EntityId);
@@ -509,7 +510,7 @@ void EnvironmentSystem::ApplyPreset(EnvironmentPreset preset) {
     case EnvironmentPreset::Sunny:
         m_Sun.Intensity = 10.0f;
         m_Sun.TemperatureKelvin = 6500;
-        m_Sun.Rotation = glm::vec3(-45.0f, 35.0f, 0.0f);
+        m_Sun.Rotation = we::math::Vec3(-45.0f, 35.0f, 0.0f);
         m_SkyLight.Intensity = 1.0f;
         m_HeightFog.Density = 0.01f;
         m_HeightFog.VolumetricFog = true;
@@ -518,7 +519,7 @@ void EnvironmentSystem::ApplyPreset(EnvironmentPreset preset) {
     case EnvironmentPreset::Sunset:
         m_Sun.Intensity = 6.0f;
         m_Sun.TemperatureKelvin = 3200;
-        m_Sun.Rotation = glm::vec3(-8.0f, 280.0f, 0.0f);
+        m_Sun.Rotation = we::math::Vec3(-8.0f, 280.0f, 0.0f);
         m_SkyLight.Intensity = 0.7f;
         m_HeightFog.Density = 0.015f;
         ApplyCloudPreset(CloudPreset::SunsetClouds);
@@ -526,7 +527,7 @@ void EnvironmentSystem::ApplyPreset(EnvironmentPreset preset) {
     case EnvironmentPreset::Night:
         m_Sun.Intensity = 0.15f;
         m_Sun.TemperatureKelvin = 9000;
-        m_Sun.Rotation = glm::vec3(-75.0f, 120.0f, 0.0f);
+        m_Sun.Rotation = we::math::Vec3(-75.0f, 120.0f, 0.0f);
         m_SkyLight.Intensity = 0.2f;
         m_HeightFog.Density = 0.005f;
         m_HeightFog.VolumetricFog = false;
@@ -535,7 +536,7 @@ void EnvironmentSystem::ApplyPreset(EnvironmentPreset preset) {
     case EnvironmentPreset::Overcast:
         m_Sun.Intensity = 3.0f;
         m_Sun.TemperatureKelvin = 7000;
-        m_Sun.Rotation = glm::vec3(-55.0f, 60.0f, 0.0f);
+        m_Sun.Rotation = we::math::Vec3(-55.0f, 60.0f, 0.0f);
         m_SkyLight.Intensity = 1.4f;
         m_HeightFog.Density = 0.02f;
         ApplyCloudPreset(CloudPreset::Overcast);
@@ -543,7 +544,7 @@ void EnvironmentSystem::ApplyPreset(EnvironmentPreset preset) {
     case EnvironmentPreset::Foggy:
         m_Sun.Intensity = 4.0f;
         m_Sun.TemperatureKelvin = 6000;
-        m_Sun.Rotation = glm::vec3(-25.0f, 45.0f, 0.0f);
+        m_Sun.Rotation = we::math::Vec3(-25.0f, 45.0f, 0.0f);
         m_SkyLight.Intensity = 0.9f;
         m_HeightFog.Density = 0.06f;
         m_HeightFog.VolumetricFog = true;
@@ -552,7 +553,7 @@ void EnvironmentSystem::ApplyPreset(EnvironmentPreset preset) {
     case EnvironmentPreset::Studio:
         m_Sun.Intensity = 8.0f;
         m_Sun.TemperatureKelvin = 5500;
-        m_Sun.Rotation = glm::vec3(-35.0f, 25.0f, 0.0f);
+        m_Sun.Rotation = we::math::Vec3(-35.0f, 25.0f, 0.0f);
         m_SkyLight.Intensity = 0.6f;
         m_HeightFog.Density = 0.0f;
         m_HeightFog.VolumetricFog = false;
@@ -585,7 +586,7 @@ void EnvironmentSystem::Tick(float deltaTime) {
     m_VolumetricClouds.Tick(deltaTime);
 }
 
-void EnvironmentSystem::SyncFromScene(const glm::vec3& cameraPosition) {
+void EnvironmentSystem::SyncFromScene(const we::math::Vec3& cameraPosition) {
     Scene* scene = GetScene();
     if (!scene) {
         return;
@@ -614,7 +615,7 @@ void EnvironmentSystem::SyncToScene() {
     NotifyChanged();
 }
 
-void EnvironmentSystem::UpdateRendering(const glm::vec3& cameraPosition) {
+void EnvironmentSystem::UpdateRendering(const we::math::Vec3& cameraPosition) {
     m_Manager.UpdateDerivedState(m_Sun, m_SkyLight, m_HeightFog, m_SkyAtmosphere, cameraPosition);
     (void)cameraPosition;
 }

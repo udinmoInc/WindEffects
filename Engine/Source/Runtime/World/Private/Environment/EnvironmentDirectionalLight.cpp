@@ -1,6 +1,8 @@
 #include "Environment/EnvironmentDirectionalLight.h"
 #include "Environment/EnvironmentLighting.h"
 
+#include "Core/Math/GlmInterop.h"
+
 #include <algorithm>
 #include <cmath>
 
@@ -11,31 +13,32 @@ void EnvironmentDirectionalLight::ApplyDefaults() {
     TemperatureKelvin = 6500;
     CastDynamicShadows = true;
     AtmosphereSun = true;
-    Rotation = glm::vec3(-45.0f, 35.0f, 0.0f);
+    Rotation = we::math::Vec3(-45.0f, 35.0f, 0.0f);
     Color = TemperatureKelvinToRgb(TemperatureKelvin);
 }
 
-glm::vec3 EnvironmentDirectionalLight::GetLightDirection() const {
+we::math::Vec3 EnvironmentDirectionalLight::GetLightDirection() const {
     return EulerDegreesToLightDirection(Rotation);
 }
 
-glm::vec3 EnvironmentDirectionalLight::GetColorFromTemperature() const {
+we::math::Vec3 EnvironmentDirectionalLight::GetColorFromTemperature() const {
     return TemperatureKelvinToRgb(TemperatureKelvin);
 }
 
 void EnvironmentDirectionalLight::SyncFromEntityTransform(
-    const glm::vec3& position,
-    const glm::vec3& rotation,
-    const glm::vec4& color) {
+    const we::math::Vec3& position,
+    const we::math::Vec3& rotation,
+    const we::math::Vec4& color) {
     (void)position;
     Rotation = rotation;
-    Color = glm::vec3(color);
+    Color = we::math::Vec3(color.x, color.y, color.z);
 }
 
-void EnvironmentDirectionalLight::ApplyToEntity(glm::vec3& position, glm::vec3& rotation, glm::vec4& color) const {
-    position = glm::vec3(0.0f, 24.0f, 0.0f);
+void EnvironmentDirectionalLight::ApplyToEntity(we::math::Vec3& position, we::math::Vec3& rotation, we::math::Vec4& color) const {
+    position = we::math::Vec3(0.0f, 24.0f, 0.0f);
     rotation = Rotation;
-    color = glm::vec4(GetColorFromTemperature(), 1.0f);
+    const we::math::Vec3 c = GetColorFromTemperature();
+    color = we::math::Vec4(c.x, c.y, c.z, 1.0f);
 }
 
 } // namespace we::runtime::world::environment

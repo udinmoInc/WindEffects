@@ -307,22 +307,11 @@ bool ViewportGridRenderer::EnsurePipeline(
 
 void ViewportGridRenderer::UploadGridSettings(const CameraUniform& camera) {
     GridSettingsUBO settings{};
-#if WE_HAS_GLM
-    const float camDist = std::max(glm::length(camera.position), 1.0f);
+    const float camDist = std::max(we::math::Length(camera.position), 1.0f);
     settings.renderParams2[2] = camDist;
     settings.snappedOrigin[0] = camera.position.x;
     settings.snappedOrigin[1] = 0.0f;
     settings.snappedOrigin[2] = camera.position.z;
-#else
-    const float camDist = std::max(
-        std::sqrt(camera.position[0] * camera.position[0]
-            + camera.position[1] * camera.position[1]
-            + camera.position[2] * camera.position[2]),
-        1.0f);
-    settings.renderParams2[2] = camDist;
-    settings.snappedOrigin[0] = camera.position[0];
-    settings.snappedOrigin[2] = camera.position[2];
-#endif
     (void)m_Device->UpdateBuffer(
         m_GridBuffer,
         std::span(reinterpret_cast<const uint8_t*>(&settings), sizeof(settings)));

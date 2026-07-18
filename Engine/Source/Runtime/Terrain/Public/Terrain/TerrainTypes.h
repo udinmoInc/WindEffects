@@ -4,14 +4,11 @@
 #pragma warning(disable: 4251)
 
 #include "Terrain/Export.h"
+#include "Core/Math/Types.h"
 
 #include <cstdint>
 #include <string>
 #include <vector>
-
-#if WE_HAS_GLM
-#include "Core/Math/Types.h"
-#endif
 
 namespace we::runtime::terrain {
 

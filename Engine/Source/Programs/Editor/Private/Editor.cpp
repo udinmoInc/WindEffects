@@ -26,9 +26,9 @@
 #include "KindUI/Core/UIRepaintGate.h"
 #include "WindEffects/Editor/UI/Core/EditorPerfStats.h"
 #include "Debug/FoundationRenderDebug.h"
-#include "Runtime/World/DefaultScene/DefaultSceneBuilder.h"
-#include "Runtime/World/Environment/EnvironmentSystem.h"
-#include "Runtime/World/Environment/EnvironmentLighting.h"
+#include "DefaultScene/DefaultSceneBuilder.h"
+#include "Environment/EnvironmentSystem.h"
+#include "Environment/EnvironmentLighting.h"
 #include "WindEffects/Editor/UI/Widgets/RenderInvestigationModal.h"
 #include "WindEffects/Editor/UI/Builders/PanelBuilder.h"
 

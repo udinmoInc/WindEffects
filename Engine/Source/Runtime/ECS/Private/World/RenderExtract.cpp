@@ -5,21 +5,23 @@
 
 #include <cstring>
 
+#include "Core/Math/GlmInterop.h"
+
 namespace we::runtime::ecs {
 
 namespace {
 
-void CopyMatrix(float dst[16], const glm::mat4& m) {
-    std::memcpy(dst, &m[0][0], sizeof(float) * 16);
+void CopyMatrix(float dst[16], const we::math::Mat4& m) {
+    std::memcpy(dst, m.data(), sizeof(float) * 16);
 }
 
-void CopyVec3(float dst[3], const glm::vec3& v) {
+void CopyVec3(float dst[3], const we::math::Vec3& v) {
     dst[0] = v.x;
     dst[1] = v.y;
     dst[2] = v.z;
 }
 
-void CopyVec4(float dst[4], const glm::vec4& v) {
+void CopyVec4(float dst[4], const we::math::Vec4& v) {
     dst[0] = v.x;
     dst[1] = v.y;
     dst[2] = v.z;
@@ -77,9 +79,9 @@ void ExtractRenderFrame(const World& world, ExtractedFrameData& out) {
             item.entityId = e.id;
             CopyVec3(item.position, t.localPosition);
             // Prefer world translation when available.
-            item.position[0] = t.worldMatrix[3][0];
-            item.position[1] = t.worldMatrix[3][1];
-            item.position[2] = t.worldMatrix[3][2];
+            item.position[0] = t.worldMatrix.m[12];
+            item.position[1] = t.worldMatrix.m[13];
+            item.position[2] = t.worldMatrix.m[14];
             CopyVec3(item.color, light.color);
             item.intensity = light.intensity;
             item.range = light.range;
@@ -94,9 +96,9 @@ void ExtractRenderFrame(const World& world, ExtractedFrameData& out) {
             }
             ExtractedSpotLight item{};
             item.entityId = e.id;
-            item.position[0] = t.worldMatrix[3][0];
-            item.position[1] = t.worldMatrix[3][1];
-            item.position[2] = t.worldMatrix[3][2];
+            item.position[0] = t.worldMatrix.m[12];
+            item.position[1] = t.worldMatrix.m[13];
+            item.position[2] = t.worldMatrix.m[14];
             CopyVec3(item.direction, light.direction);
             CopyVec3(item.color, light.color);
             item.intensity = light.intensity;

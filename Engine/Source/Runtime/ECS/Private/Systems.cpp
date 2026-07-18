@@ -7,6 +7,8 @@
 #include <queue>
 #include <unordered_set>
 
+#include "Core/Math/GlmInterop.h"
+
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/quaternion.hpp>
 
@@ -14,13 +16,13 @@ namespace we::runtime::ecs {
 
 namespace {
 
-glm::mat4 ComposeLocal(const TransformComponent& t) {
-    const glm::mat4 T = glm::translate(glm::mat4(1.0f), t.localPosition);
+we::math::Mat4 ComposeLocal(const TransformComponent& t) {
+    const glm::mat4 T = glm::translate(glm::mat4(1.0f), we::math::ToGlm(t.localPosition));
     const glm::mat4 Rx = glm::rotate(glm::mat4(1.0f), glm::radians(t.localRotation.x), glm::vec3(1.0f, 0.0f, 0.0f));
     const glm::mat4 Ry = glm::rotate(glm::mat4(1.0f), glm::radians(t.localRotation.y), glm::vec3(0.0f, 1.0f, 0.0f));
     const glm::mat4 Rz = glm::rotate(glm::mat4(1.0f), glm::radians(t.localRotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
-    const glm::mat4 S = glm::scale(glm::mat4(1.0f), t.localScale);
-    return T * Ry * Rx * Rz * S;
+    const glm::mat4 S = glm::scale(glm::mat4(1.0f), we::math::ToGlm(t.localScale));
+    return we::math::FromGlm(T * Ry * Rx * Rz * S);
 }
 
 } // namespace
@@ -303,7 +305,7 @@ void TransformSystem::Update(Registry& registry, float /*deltaSeconds*/) {
                 return;
             }
 
-            const glm::mat4 local = ComposeLocal(*t);
+            const we::math::Mat4 local = ComposeLocal(*t);
             if (h->parent) {
                 if (const TransformComponent* pt = registry.TryGet<TransformComponent>(h->parent)) {
                     t->worldMatrix = pt->worldMatrix * local;

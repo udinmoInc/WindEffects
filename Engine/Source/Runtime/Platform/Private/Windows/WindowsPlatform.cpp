@@ -295,3 +295,6 @@ KeyCode WindowsPlatform::TranslateVirtKey(WPARAM vkey, LPARAM lParam) const {
 }
 
 } // namespace we::platform
+
+#endif // WE_PLATFORM_WINDOWS
+

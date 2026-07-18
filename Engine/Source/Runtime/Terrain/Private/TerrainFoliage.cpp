@@ -5,6 +5,7 @@
 #include <cmath>
 #include <cstdint>
 
+#include "Core/Math/GlmInterop.h"
 namespace we::runtime::terrain {
 
 namespace {
@@ -26,7 +27,7 @@ void TerrainFoliageSystem::Clear() {
 
 int TerrainFoliageSystem::Spawn(const TerrainCollision& collision, const TerrainCreateInfo& info,
     const TerrainMaterialSystem* materials, const FoliageSpawnParams& params,
-    const glm::vec2& regionMinLocal, const glm::vec2& regionMaxLocal) {
+    const we::math::Vec2& regionMinLocal, const we::math::Vec2& regionMaxLocal) {
     const float minX = std::min(regionMinLocal.x, regionMaxLocal.x);
     const float maxX = std::max(regionMinLocal.x, regionMaxLocal.x);
     const float minZ = std::min(regionMinLocal.y, regionMaxLocal.y);
@@ -52,7 +53,7 @@ int TerrainFoliageSystem::Spawn(const TerrainCollision& collision, const Terrain
         const float worldZ = info.worldOrigin.z + localZ;
 
         float height = 0.0f;
-        glm::vec3 normal(0.0f, 1.0f, 0.0f);
+        we::math::Vec3 normal(0.0f, 1.0f, 0.0f);
         if (!collision.SampleHeightNormal(worldX, worldZ, height, normal)) {
             continue;
         }
@@ -87,7 +88,7 @@ int TerrainFoliageSystem::Spawn(const TerrainCollision& collision, const Terrain
         const float yawT = Hash01(seed);
 
         FoliageInstance inst{};
-        inst.position = glm::vec3(worldX, height, worldZ);
+        inst.position = we::math::Vec3(worldX, height, worldZ);
         inst.normal = normal;
         inst.yawDegrees = yawT * 360.0f;
         inst.scale = params.minScale + scaleT * (params.maxScale - params.minScale);

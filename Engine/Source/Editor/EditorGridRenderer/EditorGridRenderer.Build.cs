@@ -17,6 +17,10 @@ public class EditorGridRenderer : ModuleRules
         PublicDependencies.Add("KindUI");
         PublicDependencies.Add("UIFramework");
 
+        AddOptionalThirdParty("glm");
+        DefineIf(HasThirdParty("glm"), "WE_HAS_GLM=1");
+        DefineIf(!HasThirdParty("glm"), "WE_HAS_GLM=0");
+
         Definitions.Add("EDITORGRIDRENDERER_EXPORTS");
     }
 }

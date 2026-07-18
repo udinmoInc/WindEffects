@@ -7,6 +7,7 @@
 #include <algorithm>
 #include <cmath>
 
+#include "Core/Math/GlmInterop.h"
 namespace we::runtime::terrain {
 
 TerrainSystem& TerrainSystem::Get() {
@@ -90,7 +91,7 @@ std::uint64_t TerrainSystem::SpawnLandscapeActor(const char* name) {
     if (!entities.empty()) {
         we::runtime::scene::Entity& e = entities.back();
         e.Position = m_Info.worldOrigin;
-        e.Scale = glm::vec3(m_Info.worldSizeX, m_Info.heightScale, m_Info.worldSizeY);
+        e.Scale = we::math::Vec3(m_Info.worldSizeX, m_Info.heightScale, m_Info.worldSizeY);
         m_LandscapeEntityId = e.Id;
         m_Scene->SetSelectedEntityIndex(static_cast<int>(entities.size()) - 1);
     }
@@ -176,11 +177,11 @@ void TerrainSystem::RebuildDirty() {
         if (TerrainLODManager::BuildChunkMesh(m_Heightmap, m_Info, chunk, chunk.lod, mesh)) {
             chunk.mesh = std::move(mesh);
             if (!chunk.mesh.positions.empty()) {
-                glm::vec3 bmin = chunk.mesh.positions.front();
-                glm::vec3 bmax = bmin;
-                for (const glm::vec3& p : chunk.mesh.positions) {
-                    bmin = glm::min(bmin, p);
-                    bmax = glm::max(bmax, p);
+                we::math::Vec3 bmin = chunk.mesh.positions.front();
+                we::math::Vec3 bmax = bmin;
+                for (const we::math::Vec3& p : chunk.mesh.positions) {
+                    bmin = we::math::Vec3(std::min(bmin.x, p.x), std::min(bmin.y, p.y), std::min(bmin.z, p.z));
+                    bmax = we::math::Vec3(std::max(bmax.x, p.x), std::max(bmax.y, p.y), std::max(bmax.z, p.z));
                 }
                 chunk.bounds.min = bmin;
                 chunk.bounds.max = bmax;
@@ -192,8 +193,8 @@ void TerrainSystem::RebuildDirty() {
     m_Renderer.SyncChunks(m_Chunks);
 }
 
-void TerrainSystem::Tick(float /*deltaSeconds*/, const glm::vec3& cameraWorldPos,
-    const glm::mat4* viewProj) {
+void TerrainSystem::Tick(float /*deltaSeconds*/, const we::math::Vec3& cameraWorldPos,
+    const we::math::Mat4* viewProj) {
     if (!m_Created) {
         return;
     }

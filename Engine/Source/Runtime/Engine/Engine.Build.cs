@@ -16,6 +16,8 @@ public class Engine : ModuleRules
         PublicDependencies.Add("Platform");
 
         AddOptionalThirdParty("glm");
+        DefineIf(HasThirdParty("glm"), "WE_HAS_GLM=1");
+        DefineIf(!HasThirdParty("glm"), "WE_HAS_GLM=0");
 
         Definitions.Add("ENGINE_EXPORTS");
     }

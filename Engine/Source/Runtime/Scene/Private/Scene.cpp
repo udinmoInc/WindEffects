@@ -9,9 +9,6 @@
 
 #include <cstring>
 
-#if WE_HAS_GLM
-#include <glm/glm.hpp>
-#endif
 
 namespace we::runtime::scene {
 
@@ -38,21 +35,21 @@ void ApplyDefaultEntityProperties(Entity& entity, EntityType type) {
 
     switch (type) {
     case EntityType::Cube:
-        entity.Color = glm::vec4(0.35f, 0.55f, 0.95f, 0.85f);
-        entity.Position = glm::vec3(0.0f, 0.5f, 0.0f);
+        entity.Color = we::math::Vec4(0.35f, 0.55f, 0.95f, 0.85f);
+        entity.Position = we::math::Vec3(0.0f, 0.5f, 0.0f);
         break;
     case EntityType::Sphere:
-        entity.Color = glm::vec4(0.45f, 0.75f, 0.55f, 0.85f);
-        entity.Position = glm::vec3(0.0f, 0.5f, 0.0f);
-        entity.Scale = glm::vec3(1.0f);
+        entity.Color = we::math::Vec4(0.45f, 0.75f, 0.55f, 0.85f);
+        entity.Position = we::math::Vec3(0.0f, 0.5f, 0.0f);
+        entity.Scale = we::math::Vec3(1.0f);
         break;
     case EntityType::Cylinder:
-        entity.Color = glm::vec4(0.85f, 0.55f, 0.35f, 0.85f);
-        entity.Position = glm::vec3(0.0f, 0.5f, 0.0f);
+        entity.Color = we::math::Vec4(0.85f, 0.55f, 0.35f, 0.85f);
+        entity.Position = we::math::Vec3(0.0f, 0.5f, 0.0f);
         break;
     case EntityType::Plane:
-        entity.Color = glm::vec4(0.5f, 0.5f, 0.5f, 1.0f);
-        entity.Scale = glm::vec3(4.0f, 1.0f, 4.0f);
+        entity.Color = we::math::Vec4(0.5f, 0.5f, 0.5f, 1.0f);
+        entity.Scale = we::math::Vec3(4.0f, 1.0f, 4.0f);
         break;
     case EntityType::DirectionalLight:
     case EntityType::PointLight:
@@ -65,8 +62,8 @@ void ApplyDefaultEntityProperties(Entity& entity, EntityType type) {
         entity.Mode = 1;
         break;
     case EntityType::Landscape:
-        entity.Color = glm::vec4(0.35f, 0.55f, 0.28f, 1.0f);
-        entity.Position = glm::vec3(0.0f, 0.0f, 0.0f);
+        entity.Color = we::math::Vec4(0.35f, 0.55f, 0.28f, 1.0f);
+        entity.Position = we::math::Vec3(0.0f, 0.0f, 0.0f);
         break;
     case EntityType::CameraIcon:
     case EntityType::EmptyActor:

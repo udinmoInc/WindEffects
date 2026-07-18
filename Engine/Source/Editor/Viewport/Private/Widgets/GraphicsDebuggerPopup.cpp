@@ -7,7 +7,7 @@
 #include "KindUI/Tokens/DesignToken.h"
 #include "KindUI/Theming/StyleRole.h"
 #include "Core/Logger.h"
-#include <glm/gtc/type_ptr.hpp>
+#include "Core/Math/Types.h"
 #include <iomanip>
 #include <sstream>
 
@@ -86,13 +86,13 @@ void GraphicsDebuggerPopup::BuildLines(std::vector<std::string>& outLines) const
         return;
     }
 
-    auto formatVec3 = [](const glm::vec3& v) {
+    auto formatVec3 = [](const we::math::Vec3& v) {
         std::ostringstream ss;
         ss << std::fixed << std::setprecision(3) << v.x << ", " << v.y << ", " << v.z;
         return ss.str();
     };
 
-    const glm::vec3 camPos = m_Camera->GetPosition();
+    const we::math::Vec3 camPos = m_Camera->GetPosition();
     outLines.push_back("Cam Pos: " + formatVec3(camPos));
     outLines.push_back("Cam Rot: pitch " + std::to_string(m_Camera->GetPitch()).substr(0, 6)
         + " yaw " + std::to_string(m_Camera->GetYaw()).substr(0, 6));

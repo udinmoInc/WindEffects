@@ -16,11 +16,16 @@ public class Environment : ModuleRules
         PublicDependencies.Add("Scene");
         PublicDependencies.Add("Renderer");
         PublicDependencies.Add("KindUI");
+        PublicDependencies.Add("Text");
         PublicDependencies.Add("UIFramework");
         PublicDependencies.Add("World");
         PrivateDependencies.Add("PropertyEditor");
         PrivateDependencies.Add("ContentBrowser");
         PrivateDependencies.Add("Menus");
+
+        AddOptionalThirdParty("glm");
+        DefineIf(HasThirdParty("glm"), "WE_HAS_GLM=1");
+        DefineIf(!HasThirdParty("glm"), "WE_HAS_GLM=0");
 
         Definitions.Add("ENVIRONMENT_EXPORTS");
     }

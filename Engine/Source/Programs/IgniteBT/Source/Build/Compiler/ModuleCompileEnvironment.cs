@@ -69,12 +69,20 @@ public static class ModuleCompileEnvironment
             }
         }
 
-        foreach (var depName in node.Module.PublicDependencies.Concat(node.Module.PrivateDependencies))
+        // Walk PublicDependencies transitively so Public headers of A that include B's
+        // Public headers compile in consumers of A (e.g. KindUI -> Text).
+        var visited = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        void AddPublicDependencyIncludes(string depName)
         {
+            if (!visited.Add(depName))
+            {
+                return;
+            }
+
             var depNode = buildGraph.GetNode(depName);
             if (depNode == null)
             {
-                continue;
+                return;
             }
 
             var depModuleDir = depNode.Module.ModuleDirectory;
@@ -84,6 +92,16 @@ public static class ModuleCompileEnvironment
             }
 
             AddIncludeDirectory(includeDirectories, Path.Combine(depModuleDir, "Public"));
+
+            foreach (var nested in depNode.Module.PublicDependencies)
+            {
+                AddPublicDependencyIncludes(nested);
+            }
+        }
+
+        foreach (var depName in node.Module.PublicDependencies.Concat(node.Module.PrivateDependencies))
+        {
+            AddPublicDependencyIncludes(depName);
         }
 
         return includeDirectories;

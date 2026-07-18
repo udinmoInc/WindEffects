@@ -7,7 +7,7 @@
 #include "TerrainEditor/TerrainEditorService.h"
 #include "Core/Logger.h"
 
-#include <glm/gtc/constants.hpp>
+#include "Core/Math/GlmInterop.h"
 #include <unordered_map>
 
 namespace we::programs::editor {
@@ -70,22 +70,22 @@ void PlaceActorsPlacement::BindScene(const std::shared_ptr<we::runtime::scene::S
     }
 }
 
-glm::vec3 PlaceActorsPlacement::ComputeSpawnPosition() const {
+we::math::Vec3 PlaceActorsPlacement::ComputeSpawnPosition() const {
     auto camera = m_Camera.lock();
     if (!camera) {
-        return glm::vec3(0.0f, 1.0f, 0.0f);
+        return we::math::Vec3(0.0f, 1.0f, 0.0f);
     }
 
-    const glm::vec3 forward = camera->GetForward();
-    const glm::vec3 position = camera->GetPosition() + forward * 4.0f;
-    return glm::vec3(position.x, std::max(0.0f, position.y), position.z);
+    const we::math::Vec3 forward = camera->GetForward();
+    const we::math::Vec3 position = camera->GetPosition() + forward * 4.0f;
+    return we::math::Vec3(position.x, std::max(0.0f, position.y), position.z);
 }
 
 bool PlaceActorsPlacement::SpawnTool(const std::string& toolId) {
     return SpawnToolAt(toolId, ComputeSpawnPosition());
 }
 
-bool PlaceActorsPlacement::SpawnToolAt(const std::string& toolId, const glm::vec3& worldPosition) {
+bool PlaceActorsPlacement::SpawnToolAt(const std::string& toolId, const we::math::Vec3& worldPosition) {
     auto scene = m_Scene.lock();
     if (!scene) {
         HE_ERROR("[PlaceActors] Scene is not bound.");

@@ -14,6 +14,7 @@ public class PropertyEditor : ModuleRules
         PublicDependencies.Add("RHI");
         PublicDependencies.Add("Engine");
         PublicDependencies.Add("KindUI");
+        PublicDependencies.Add("Text");
         PublicDependencies.Add("UIFramework");
         PrivateDependencies.Add("ContentBrowser"); // SearchBox used by Details panel
 

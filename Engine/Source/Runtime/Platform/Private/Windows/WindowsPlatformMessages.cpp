@@ -523,3 +523,6 @@ Result<void> WindowsPlatform::SetWindowIcon(WindowId id, int32_t resourceId, con
 }
 
 } // namespace we::platform
+
+#endif // WE_PLATFORM_WINDOWS
+

@@ -433,9 +433,4 @@ std::string FirstRunAgreementPopup::ExtractTitleFromMarkdown(const std::string& 
 }
 */
 
-// ============================================================================
-// OLD LAYOUT (REMOVED - replaced by ComputeLayout)
-// ============================================================================
-
-/*
 } // namespace we::programs::editor
