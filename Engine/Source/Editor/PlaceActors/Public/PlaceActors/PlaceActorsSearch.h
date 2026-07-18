@@ -1,5 +1,7 @@
 #pragma once
 
+#include "PlaceActors/Export.h"
+
 #include "PlaceActors/PlaceActorsTypes.h"
 #include "KindUI/Core/PaintContext.h"
 #include "KindUI/Core/Geometry.h"
@@ -14,7 +16,7 @@ struct PlaceActorsSearchMatch {
     size_t length = 0;
 };
 
-class PlaceActorsSearch {
+class PLACEACTORS_API PlaceActorsSearch {
 public:
     static std::vector<PlaceActorsItemData> FilterItems(
         const std::vector<PlaceActorsItemData>& items,

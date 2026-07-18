@@ -5,7 +5,6 @@
 #include "KindUI/Core/Widget.h"
 
 #include <memory>
-#include <unordered_map>
 #include <vector>
 
 namespace we::runtime::kindui {

@@ -3,6 +3,8 @@
 #include "Core/Export.h"
 
 #include <cstdint>
+#include <mutex>
+#include <shared_mutex>
 #include <string>
 #include <string_view>
 #include <unordered_map>
@@ -28,12 +30,16 @@ struct AssetLoadResult {
 #pragma warning(disable : 4251)
 #endif
 
+/// Process-wide asset path/texture registry.
+/// Thread-safe: all public methods take an internal shared_mutex.
+/// Lock order: AssetRegistry only (do not call while holding other engine locks).
+/// Lifetime: Meyer's singleton — alive for process duration after first Get().
 class CORE_API AssetRegistry {
 public:
     static AssetRegistry& Get();
 
     void RegisterTexture(std::string_view name, uint64_t view, uint64_t sampler);
-    AssetTexture GetTexture(std::string_view name) const;
+    [[nodiscard]] AssetTexture GetTexture(std::string_view name) const;
 
     void RegisterFontPath(std::string_view name, std::string_view resolvedPath);
     void RegisterShaderPath(std::string_view name, std::string_view resolvedPath);
@@ -41,19 +47,20 @@ public:
     void RegisterIconAtlasRoot(std::string_view resolvedPath);
     void RegisterIconMetaPath(std::string_view resolvedPath);
 
-    std::string GetFontPath(std::string_view name) const;
-    std::string GetShaderPath(std::string_view name) const;
-    std::string GetIconPath(std::string_view name) const;
-    std::string GetIconAtlasRoot() const;
-    std::string GetIconMetaPath() const;
+    [[nodiscard]] std::string GetFontPath(std::string_view name) const;
+    [[nodiscard]] std::string GetShaderPath(std::string_view name) const;
+    [[nodiscard]] std::string GetIconPath(std::string_view name) const;
+    [[nodiscard]] std::string GetIconAtlasRoot() const;
+    [[nodiscard]] std::string GetIconMetaPath() const;
 
     bool LoadDefaultEditorAssets();
 
-    const std::vector<AssetLoadResult>& GetLastLoadResults() const { return m_LastLoadResults; }
+    /// Snapshot of the last LoadDefaultEditorAssets results (by value for thread safety).
+    [[nodiscard]] std::vector<AssetLoadResult> GetLastLoadResults() const;
 
     void Clear();
 
-    static std::string ResolveAssetPath(const std::vector<std::string>& candidates);
+    [[nodiscard]] static std::string ResolveAssetPath(const std::vector<std::string>& candidates);
 
 private:
     AssetRegistry() = default;
@@ -61,6 +68,7 @@ private:
 
     AssetLoadResult TryLoadAsset(std::string_view name, const std::vector<std::string>& candidates);
 
+    mutable std::shared_mutex m_Mutex;
     std::unordered_map<std::string, AssetTexture> m_Textures;
     std::unordered_map<std::string, std::string> m_FontPaths;
     std::unordered_map<std::string, std::string> m_ShaderPaths;

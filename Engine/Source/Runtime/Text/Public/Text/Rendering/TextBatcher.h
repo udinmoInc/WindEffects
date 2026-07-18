@@ -7,7 +7,6 @@
 
 #include <cstdint>
 #include <span>
-#include <unordered_map>
 #include <vector>
 
 namespace we::runtime::text::rendering {

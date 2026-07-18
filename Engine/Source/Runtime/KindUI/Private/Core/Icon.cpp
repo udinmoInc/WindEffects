@@ -10,6 +10,26 @@ IconRegistry& IconRegistry::Get() {
     return instance;
 }
 
+void IconRegistry::RegisterIcon(const std::string& name, const std::string& svgPath) {
+    std::scoped_lock lock(m_Mutex);
+    m_Icons[name] = svgPath;
+}
+
+std::string IconRegistry::GetIconPath(const std::string& name) const {
+    std::scoped_lock lock(m_Mutex);
+    auto it = m_Icons.find(name);
+    return it != m_Icons.end() ? it->second : "";
+}
+
+bool IconRegistry::HasIcon(const std::string& name) const {
+    std::scoped_lock lock(m_Mutex);
+    return m_Icons.find(name) != m_Icons.end();
+}
+
+bool IconRegistry::IsEditorSvgIcon(const std::string& name) const {
+    return HasIcon(name);
+}
+
 void IconRegistry::InitializeDefaultIcons() {
     // Icon overrides are baked into icons.weiconmeta by we-icon-compile.
 }

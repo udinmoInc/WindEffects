@@ -3,6 +3,7 @@
 #include "KindUI/Export.h"
 
 #include "KindUI/Core/Geometry.h"
+#include <mutex>
 #include <string>
 #include <unordered_map>
 
@@ -17,26 +18,18 @@ class KINDUI_API IconRegistry {
 public:
     static IconRegistry& Get();
 
-    void RegisterIcon(const std::string& name, const std::string& svgPath) {
-        m_Icons[name] = svgPath;
-    }
-
-    std::string GetIconPath(const std::string& name) const {
-        auto it = m_Icons.find(name);
-        return it != m_Icons.end() ? it->second : "";
-    }
-
-    bool HasIcon(const std::string& name) const {
-        return m_Icons.find(name) != m_Icons.end();
-    }
+    void RegisterIcon(const std::string& name, const std::string& svgPath);
+    [[nodiscard]] std::string GetIconPath(const std::string& name) const;
+    [[nodiscard]] bool HasIcon(const std::string& name) const;
 
     // Registered editor SVGs carry their own fill colors and need full-color compositing.
-    bool IsEditorSvgIcon(const std::string& name) const { return HasIcon(name); }
+    [[nodiscard]] bool IsEditorSvgIcon(const std::string& name) const;
 
     void InitializeDefaultIcons();
 
 private:
     IconRegistry() = default;
+    mutable std::mutex m_Mutex;
     std::unordered_map<std::string, std::string> m_Icons;
 };
 

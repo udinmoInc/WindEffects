@@ -10,7 +10,6 @@
 #include <mutex>
 #include <optional>
 #include <span>
-#include <unordered_map>
 #include <vector>
 
 namespace we::runtime::text::atlas {

@@ -1,12 +1,14 @@
 #pragma once
 
+#include "PlaceActors/Export.h"
+
 #include "PlaceActors/PlaceActorsTypes.h"
 #include <string>
 #include <vector>
 
 namespace we::programs::editor {
 
-class PlaceActorsCatalog {
+class PLACEACTORS_API PlaceActorsCatalog {
 public:
     static PlaceActorsCatalog& Get();
 

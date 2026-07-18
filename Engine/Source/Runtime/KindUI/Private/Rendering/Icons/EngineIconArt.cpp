@@ -6,6 +6,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <mutex>
 #include <unordered_map>
 
 namespace we::runtime::kindui {
@@ -490,6 +491,7 @@ void EngineIconArt::Initialize(IconRenderer* renderer) {
 }
 
 void EngineIconArt::InvalidateCache() {
+    std::scoped_lock lock(m_CacheMutex);
     m_Cache.clear();
 }
 
@@ -507,15 +509,19 @@ we::rhi::RHIDescriptorSetHandle EngineIconArt::GetTexture(std::string_view iconN
     const int activeBucket = static_cast<int>(std::round(activeAnim * 4.0f));
     const std::string key = std::string(iconName) + "_" + std::to_string(rasterSize) + "_h" + std::to_string(hoverBucket) + "_a" + std::to_string(activeBucket);
 
-    if (const auto it = m_Cache.find(key); it != m_Cache.end()) {
-        return it->second;
+    {
+        std::scoped_lock lock(m_CacheMutex);
+        if (const auto it = m_Cache.find(key); it != m_Cache.end()) {
+            return it->second;
+        }
     }
 
     const IconBitmap bitmap = RenderIconBitmap(iconName, rasterSize, hoverAnim, activeAnim);
     if (bitmap.pixels.empty()) return we::rhi::RHIDescriptorSetHandle::Invalid;
 
     const we::rhi::RHIDescriptorSetHandle texture = m_Renderer->CreateTextureFromBitmap(bitmap.pixels, bitmap.width, bitmap.height);
-    if ((texture != we::rhi::RHIDescriptorSetHandle::Invalid)) {
+    if (texture != we::rhi::RHIDescriptorSetHandle::Invalid) {
+        std::scoped_lock lock(m_CacheMutex);
         m_Cache[key] = texture;
     }
     return texture;

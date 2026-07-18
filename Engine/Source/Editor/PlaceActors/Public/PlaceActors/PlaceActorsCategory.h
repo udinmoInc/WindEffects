@@ -1,12 +1,14 @@
 #pragma once
 
+#include "PlaceActors/Export.h"
+
 #include "KindUI/Core/PaintContext.h"
 #include "KindUI/Core/Geometry.h"
 #include <string>
 
 namespace we::programs::editor {
 
-class PlaceActorsCategory {
+class PLACEACTORS_API PlaceActorsCategory {
 public:
     static float MeasureHeaderHeight(float configuredHeight);
 
