@@ -92,6 +92,13 @@ public static class UnityBuildPlanner
         foreach (var f in sourceFiles.Where(f => excluded.Contains(f)))
             blobs.Add(new UnityBlob { OutputPath = f, SourceFiles = new List<string> { f } });
 
+        // Small files filtered by MinLinesForUnity must still compile individually.
+        var planned = new HashSet<string>(
+            blobs.SelectMany(b => b.SourceFiles),
+            StringComparer.OrdinalIgnoreCase);
+        foreach (var f in sourceFiles.Where(f => !planned.Contains(f)))
+            blobs.Add(new UnityBlob { OutputPath = f, SourceFiles = new List<string> { f } });
+
         return blobs;
     }
 

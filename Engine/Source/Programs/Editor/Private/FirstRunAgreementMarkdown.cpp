@@ -284,153 +284,17 @@ std::string FirstRunAgreementPopup::ExtractTitle(const std::string& content) {
     return "License Agreement";
 }
 
-// ============================================================================
-// OLD PARSING (REMOVED - replaced by ParseInlineText)
-// ============================================================================
 
-/*
-std::vector<FirstRunAgreementPopup::TextSpan> FirstRunAgreementPopup::ParseInlineFormatting(const std::string& text) {
-    std::vector<TextSpan> spans;
-    std::string current;
-    bool inBold = false;
-    bool inItalic = false;
-    bool inCode = false;
-    bool inLink = false;
-    std::string linkUrl;
-    
-    for (size_t i = 0; i < text.length(); ++i) {
-        // Bold: **text**
-        if (i + 1 < text.length() && text[i] == '*' && text[i + 1] == '*') {
-            if (!current.empty()) {
-                TextSpan span;
-                span.text = current;
-                span.type = inCode ? SpanType::Code : (inBold ? SpanType::Bold : (inItalic ? SpanType::Italic : SpanType::Normal));
-                span.linkUrl = inLink ? linkUrl : "";
-                spans.push_back(span);
-                current.clear();
-            }
-            inBold = !inBold;
-            i += 1;
-            continue;
-        }
-        
-        // Italic: *text* or _text_
-        if ((text[i] == '*' || text[i] == '_') && !inBold) {
-            if (!current.empty()) {
-                TextSpan span;
-                span.text = current;
-                span.type = inCode ? SpanType::Code : (inItalic ? SpanType::Italic : SpanType::Normal);
-                span.linkUrl = inLink ? linkUrl : "";
-                spans.push_back(span);
-                current.clear();
-            }
-            inItalic = !inItalic;
-            continue;
-        }
-        
-        // Code: `text`
-        if (text[i] == '`') {
-            if (!current.empty()) {
-                TextSpan span;
-                span.text = current;
-                span.type = inCode ? SpanType::Code : (inBold ? SpanType::Bold : (inItalic ? SpanType::Italic : SpanType::Normal));
-                span.linkUrl = inLink ? linkUrl : "";
-                spans.push_back(span);
-                current.clear();
-            }
-            inCode = !inCode;
-            continue;
-        }
-        
-        // Links: [text](url)
-        if (text[i] == '[' && !inCode) {
-            size_t linkEnd = text.find(']', i);
-            size_t urlStart = text.find('(', linkEnd);
-            size_t urlEnd = text.find(')', urlStart);
-            
-            if (linkEnd != std::string::npos && urlStart != std::string::npos && urlEnd != std::string::npos) {
-                if (!current.empty()) {
-                    TextSpan span;
-                    span.text = current;
-                    span.type = SpanType::Normal;
-                    spans.push_back(span);
-                    current.clear();
-                }
-                
-                TextSpan linkSpan;
-                linkSpan.text = text.substr(linkEnd + 1, urlStart - linkEnd - 1);
-                linkSpan.type = SpanType::Link;
-                linkSpan.linkUrl = text.substr(urlStart + 1, urlEnd - urlStart - 1);
-                spans.push_back(linkSpan);
-                
-                i = urlEnd;
-                continue;
-            }
-        }
-        
-        current += text[i];
-    }
-    
-    if (!current.empty()) {
-        TextSpan span;
-        span.text = current;
-        span.type = inCode ? SpanType::Code : (inBold ? SpanType::Bold : (inItalic ? SpanType::Italic : SpanType::Normal));
-        span.linkUrl = inLink ? linkUrl : "";
-        spans.push_back(span);
-    }
-    
-    return spans;
+std::string FirstRunAgreementPopup::BuildDefaultContent() {
+    return
+        "# WindEffects Editor Terms\n"
+        "\n"
+        "By using this editor, you agree to the license and third-party notices.\n"
+        "\n"
+        "## Summary\n"
+        "- Use this software according to the project license.\n"
+        "- Review third-party notices and obligations.\n"
+        "- If you do not agree, choose Quit.\n";
 }
-
-std::string FirstRunAgreementPopup::StripMarkdownFormatting(const std::string& text) {
-    std::string result = text;
-    
-    // Remove bold
-    size_t pos = 0;
-    while ((pos = result.find("**", pos)) != std::string::npos) {
-        result.replace(pos, 2, "");
-    }
-    
-    // Remove italic
-    pos = 0;
-    while ((pos = result.find("*", pos)) != std::string::npos) {
-        result.replace(pos, 1, "");
-    }
-    pos = 0;
-    while ((pos = result.find("_", pos)) != std::string::npos) {
-        result.replace(pos, 1, "");
-    }
-    
-    // Remove code
-    pos = 0;
-    while ((pos = result.find("`", pos)) != std::string::npos) {
-        result.replace(pos, 1, "");
-    }
-    
-    // Remove links [text](url) -> text
-    std::regex linkRegex(R"(\[([^\]]+)\]\([^\)]+\))");
-    result = std::regex_replace(result, linkRegex, "$1");
-    
-    return result;
-}
-
-std::string FirstRunAgreementPopup::ExtractTitleFromMarkdown(const std::string& content) {
-    std::istringstream input(content);
-    std::string line;
-    while (std::getline(input, line)) {
-        const std::string trimmed = Trim(line);
-        if (StartsWith(trimmed, "# ")) {
-            return StripMarkdownFormatting(trimmed.substr(2));
-        }
-        if (StartsWith(trimmed, "## ")) {
-            return StripMarkdownFormatting(trimmed.substr(3));
-        }
-        if (StartsWith(trimmed, "### ")) {
-            return StripMarkdownFormatting(trimmed.substr(4));
-        }
-    }
-    return "License Agreement";
-}
-*/
 
 } // namespace we::programs::editor

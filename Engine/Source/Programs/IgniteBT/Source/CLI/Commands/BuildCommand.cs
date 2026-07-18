@@ -79,6 +79,17 @@ public static class BuildCommand
         var parsed = CommandSchemas.Build.Parse(args);
         if (!CommandLineHelpers.TryReportErrors(parsed)) return 1;
 
+        if (parsed.HasFlag("clean"))
+        {
+            Log.Information("Clean flag set — cleaning before build");
+            var cleanResult = await CleanCommand.Execute(args);
+            if (cleanResult != 0)
+            {
+                Log.Error("Clean failed, aborting build");
+                return cleanResult;
+            }
+        }
+
         var target = parsed.ResolveTarget();
         var buildTarget = parsed.GetOption("target", target);
         var config = parsed.GetOption("config", "Release");

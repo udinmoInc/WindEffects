@@ -106,9 +106,10 @@ class Program
         Console.WriteLine("WindEffects CLI (we) / IgniteBT v1.0.0");
         Console.WriteLine();
         Console.WriteLine("Usage:");
-        Console.WriteLine("  we build [target] [--target NAME] [--config Debug|Development|Shipping] [--platform Win64|Windows|Linux|Mac] [--jobs N] [--clean]");
+        Console.WriteLine("  we build [target] [--target NAME] [--config Debug|Development|Shipping] [--platform Win64|Windows|Linux|Mac] [--jobs N] [--clean] [--unity]");
         Console.WriteLine("  we clean [target] [--target NAME] [--config Debug|Development|Shipping] [--platform Win64|Windows|Linux|Mac]");
-        Console.WriteLine("  we rebuild [target] [--target NAME] [--config Debug|Development|Shipping] [--platform Win64|Windows|Linux|Mac] [--jobs N]");
+        Console.WriteLine("  we rebuild [target] [--target NAME] [--config Debug|Development|Shipping] [--platform Win64|Windows|Linux|Mac] [--jobs N] [--unity]");
+        Console.WriteLine("  we package [--target Editor] [--config Shipping] [--platform Win64] [--skip-build]");
         Console.WriteLine("  we run [--target Editor] [--config Debug]");
         Console.WriteLine("  we sdk list|detect|validate");
         Console.WriteLine("  we setup");

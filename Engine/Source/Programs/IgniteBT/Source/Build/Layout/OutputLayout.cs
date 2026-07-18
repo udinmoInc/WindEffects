@@ -136,33 +136,31 @@ public sealed class OutputLayout
             }
         }
 
-        var rootBinaries = new HashSet<string>(
-            modules
-                .Where(m => ModuleOutputResolver.PublishesToConfigurationRoot(m, _engineRoot))
-                .Select(m => ModuleOutputResolver.ResolveBinaryFileName(m)),
-            StringComparer.OrdinalIgnoreCase);
-
-        foreach (var file in Directory.GetFiles(ConfigurationRoot))
+        // Only remove root-placed binaries for modules in this build that publish elsewhere.
+        // Never delete unrelated product DLLs (e.g. RHI when building ECSTests only).
+        foreach (var module in modules)
         {
-            var fileName = Path.GetFileName(file);
-            if (rootBinaries.Contains(fileName))
+            if (ModuleOutputResolver.PublishesToConfigurationRoot(module, _engineRoot))
             {
                 continue;
             }
 
-            if (fileName.EndsWith(".dll", StringComparison.OrdinalIgnoreCase)
-                || fileName.EndsWith(".lib", StringComparison.OrdinalIgnoreCase)
-                || fileName.EndsWith(".exp", StringComparison.OrdinalIgnoreCase))
+            var misplaced = Path.Combine(
+                ConfigurationRoot,
+                ModuleOutputResolver.ResolveBinaryFileName(module));
+            if (!File.Exists(misplaced))
             {
-                try
-                {
-                    File.Delete(file);
-                    Log.Information("Removed legacy root binary: {File}", file);
-                }
-                catch (Exception ex)
-                {
-                    Log.Warning(ex, "Could not remove legacy root binary: {File}", file);
-                }
+                continue;
+            }
+
+            try
+            {
+                File.Delete(misplaced);
+                Log.Information("Removed legacy root binary: {File}", misplaced);
+            }
+            catch (Exception ex)
+            {
+                Log.Warning(ex, "Could not remove legacy root binary: {File}", misplaced);
             }
         }
 

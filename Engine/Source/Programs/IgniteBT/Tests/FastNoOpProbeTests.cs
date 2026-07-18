@@ -27,10 +27,11 @@ public class FastNoOpProbeTests : IDisposable
         Directory.CreateDirectory(layout.ManifestDirectory);
         Directory.CreateDirectory(layout.DatabaseDirectory);
 
+        var buildFlagsHash = BuildFlagsHasher.Compute(null, false, 0, [], Environment.ProcessorCount);
         var manifest = new IgniteBT.Core.Serialization.BuildManifest
         {
             ConfigHash = IgniteBT.Core.Serialization.GraphSerializer.ComputeConfigHash(
-                "Development", "Win64", "14.0", "flags"),
+                "Development", "Win64", "14.0", "flags", buildFlagsHash),
             ToolchainHash = IgniteBT.Core.Hashing.FastHash.HashString("14.0"),
             GraphHash = "graph",
             ModuleOutputHashes = new Dictionary<string, string> { ["Test"] = "mod" }
@@ -41,7 +42,7 @@ public class FastNoOpProbeTests : IDisposable
             "Development",
             "Win64",
             null,
-            BuildFlagsHasher.Compute(null, false, 0, [], Environment.ProcessorCount),
+            buildFlagsHash,
             "flags",
             manifest.ConfigHash,
             manifest.ToolchainHash,

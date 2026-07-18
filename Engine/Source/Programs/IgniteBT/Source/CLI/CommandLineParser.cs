@@ -322,4 +322,12 @@ public static class CommandSchemas
         .WithPositional("target")
         .WithOption("config", 'c', defaultValue: "Debug", description: "Build configuration")
         .WithOption("target", 't', defaultValue: "Editor", description: "Executable target to run");
+
+    public static readonly CommandSchema Package = new CommandSchema("package")
+        .WithPositional("target")
+        .WithOption("config", 'c', defaultValue: "Shipping", description: "Build configuration to package")
+        .WithOption("platform", 'p', description: "Target platform")
+        .WithOption("target", 't', defaultValue: "Editor", description: "Executable target to package")
+        .WithOption("jobs", 'j', description: "Parallel compile jobs when building before package")
+        .WithFlag("skip-build", description: "Package existing output without rebuilding");
 }
