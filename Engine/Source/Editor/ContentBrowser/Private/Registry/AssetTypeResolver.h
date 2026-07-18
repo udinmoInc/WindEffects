@@ -29,9 +29,21 @@ public:
         if (lower == ".scene" || lower == ".level" || lower == ".umap") return AssetType::Scene;
         if (lower == ".prefab") return AssetType::Prefab;
         if (lower == ".wav" || lower == ".mp3" || lower == ".ogg" || lower == ".flac") return AssetType::Audio;
-        if (lower == ".ttf" || lower == ".otf" || lower == ".woff" || lower == ".woff2") return AssetType::Font;
+        if (lower == ".ttf" || lower == ".otf" || lower == ".woff" || lower == ".woff2"
+            || lower == ".wefont") return AssetType::Font;
         if (lower == ".lua" || lower == ".cs" || lower == ".py" || lower == ".js" || lower == ".ts") return AssetType::Script;
         if (lower == ".mp4" || lower == ".avi" || lower == ".mov" || lower == ".webm") return AssetType::Video;
+        if (lower == ".wetex" || lower == ".weasset") {
+            // Cooked packages — treat generic .weasset as Unknown until metadata is read.
+            if (lower == ".wetex") return AssetType::Texture;
+            return AssetType::Unknown;
+        }
+        if (lower == ".wemesh") return AssetType::StaticMesh;
+        if (lower == ".weanim") return AssetType::Animation;
+        if (lower == ".weaudio") return AssetType::Audio;
+        if (lower == ".wemat") return AssetType::Material;
+        if (lower == ".wescene") return AssetType::Scene;
+        if (lower == ".weiconatlas" || lower == ".weiconmeta") return AssetType::Texture;
         return AssetType::Unknown;
     }
 
