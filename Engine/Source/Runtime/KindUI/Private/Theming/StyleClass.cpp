@@ -8,25 +8,33 @@ StyleClassRegistry& StyleClassRegistry::Get() {
 }
 
 void StyleClassRegistry::Register(StyleClass styleClass) {
+    std::scoped_lock lock(m_Mutex);
     m_Classes[styleClass.name] = std::move(styleClass);
 }
 
 const StyleClass* StyleClassRegistry::Find(std::string_view name) const {
+    // Returns a pointer into the registry map. Callers must not retain it across
+    // Register/RegisterDefaults. Prefer Resolve() for thread-safe copies.
+    std::scoped_lock lock(m_Mutex);
     auto it = m_Classes.find(std::string(name));
     return it != m_Classes.end() ? &it->second : nullptr;
 }
 
 StyleClass StyleClassRegistry::Resolve(std::string_view name) const {
+    std::scoped_lock lock(m_Mutex);
+
     StyleClass resolved;
     resolved.name = std::string(name);
 
     std::vector<const StyleClass*> chain;
     std::string current(name);
     for (int guard = 0; guard < 16 && !current.empty(); ++guard) {
-        const StyleClass* found = Find(current);
-        if (!found) break;
-        chain.push_back(found);
-        current = found->parentName;
+        auto it = m_Classes.find(current);
+        if (it == m_Classes.end()) {
+            break;
+        }
+        chain.push_back(&it->second);
+        current = it->second.parentName;
     }
 
     for (auto it = chain.rbegin(); it != chain.rend(); ++it) {

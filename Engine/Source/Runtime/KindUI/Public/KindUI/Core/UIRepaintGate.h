@@ -2,12 +2,17 @@
 
 #include "KindUI/Export.h"
 
+#include <atomic>
 #include <cstdint>
 
 namespace we::runtime::kindui {
 
-// Dirty-state gate for editor chrome. Request on input/size/data changes;
-// MarkAnimating while hover/press damps so idle frames can skip UI rebuild.
+/// Dirty-state gate for editor chrome. Request on input/size/data changes;
+/// MarkAnimating while hover/press damps so idle frames can skip UI rebuild.
+///
+/// Thread model: all members are atomics. Request/Mark* may be called from any
+/// thread that posts UI work; ConsumeNeedsRebuild is intended for the UI/render
+/// thread that owns layout. Counters are approximate under contention (relaxed).
 class KINDUI_API UIRepaintGate {
 public:
     static void Request();
@@ -22,10 +27,10 @@ public:
     [[nodiscard]] static uint64_t SkipCount();
 
 private:
-    static bool s_NeedsRebuild;
-    static bool s_Animating;
-    static uint64_t s_RebuildCount;
-    static uint64_t s_SkipCount;
+    static std::atomic<bool> s_NeedsRebuild;
+    static std::atomic<bool> s_Animating;
+    static std::atomic<uint64_t> s_RebuildCount;
+    static std::atomic<uint64_t> s_SkipCount;
 };
 
 } // namespace we::runtime::kindui

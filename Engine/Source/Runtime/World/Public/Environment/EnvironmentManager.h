@@ -1,5 +1,7 @@
 #pragma once
 
+#include "World/Export.h"
+
 #include "Environment/EnvironmentDirectionalLight.h"
 #include "Environment/EnvironmentHeightFog.h"
 #include "Environment/EnvironmentSkyAtmosphere.h"
@@ -9,7 +11,7 @@
 namespace we::runtime::world::environment {
 
 // Orchestrates time-of-day driven updates across Sun, SkyLight, Fog, and Atmosphere.
-class EnvironmentManager {
+class WORLD_API EnvironmentManager {
 public:
     void UpdateDerivedState(
         EnvironmentDirectionalLight& sun,

@@ -1,11 +1,13 @@
 #pragma once
 
+#include "World/Export.h"
+
 #include <cstdint>
 #include "Core/Math/Types.h"
 
 namespace we::runtime::world::environment {
 
-class EnvironmentHeightFog {
+class WORLD_API EnvironmentHeightFog {
 public:
     std::uint64_t EntityId = 0;
 

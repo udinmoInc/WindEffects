@@ -1,5 +1,7 @@
 #pragma once
 
+#include "PlaceActors/Export.h"
+
 #include "PlaceActors/PlaceActorsTypes.h"
 #include "KindUI/Core/PaintContext.h"
 #include "KindUI/Core/Geometry.h"
@@ -16,7 +18,7 @@ struct PlaceActorsItemMetrics {
     float cornerRadius = 7.0f;
 };
 
-class PlaceActorsItem {
+class PLACEACTORS_API PlaceActorsItem {
 public:
     static we::runtime::kindui::Size MeasureGrid(const PlaceActorsItemMetrics& metrics);
     static we::runtime::kindui::Size MeasureList(const PlaceActorsItemMetrics& metrics);

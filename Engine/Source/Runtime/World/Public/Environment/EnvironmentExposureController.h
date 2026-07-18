@@ -1,11 +1,13 @@
 #pragma once
 
+#include "World/Export.h"
+
 #include <cstdint>
 #include "Core/Math/Types.h"
 
 namespace we::runtime::world::environment {
 
-class EnvironmentExposureController {
+class WORLD_API EnvironmentExposureController {
 public:
     static constexpr int kDefaultsVersion = 1;
 

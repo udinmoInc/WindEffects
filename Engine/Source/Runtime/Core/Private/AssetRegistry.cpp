@@ -1,8 +1,8 @@
 #include "Core/AssetRegistry.h"
 #include "Core/Logger.h"
 
-#include <fstream>
 #include <filesystem>
+#include <fstream>
 
 namespace we::core {
 
@@ -12,10 +12,12 @@ AssetRegistry& AssetRegistry::Get() {
 }
 
 void AssetRegistry::RegisterTexture(std::string_view name, uint64_t view, uint64_t sampler) {
+    std::unique_lock lock(m_Mutex);
     m_Textures[std::string(name)] = AssetTexture{view, sampler};
 }
 
 AssetTexture AssetRegistry::GetTexture(std::string_view name) const {
+    std::shared_lock lock(m_Mutex);
     auto it = m_Textures.find(std::string(name));
     if (it != m_Textures.end()) {
         return it->second;
@@ -24,46 +26,61 @@ AssetTexture AssetRegistry::GetTexture(std::string_view name) const {
 }
 
 void AssetRegistry::RegisterFontPath(std::string_view name, std::string_view resolvedPath) {
+    std::unique_lock lock(m_Mutex);
     m_FontPaths[std::string(name)] = std::string(resolvedPath);
 }
 
 void AssetRegistry::RegisterShaderPath(std::string_view name, std::string_view resolvedPath) {
+    std::unique_lock lock(m_Mutex);
     m_ShaderPaths[std::string(name)] = std::string(resolvedPath);
 }
 
 void AssetRegistry::RegisterIconPath(std::string_view name, std::string_view resolvedPath) {
+    std::unique_lock lock(m_Mutex);
     m_IconPaths[std::string(name)] = std::string(resolvedPath);
 }
 
 void AssetRegistry::RegisterIconAtlasRoot(std::string_view resolvedPath) {
+    std::unique_lock lock(m_Mutex);
     m_IconAtlasRoot = std::string(resolvedPath);
 }
 
 void AssetRegistry::RegisterIconMetaPath(std::string_view resolvedPath) {
+    std::unique_lock lock(m_Mutex);
     m_IconMetaPath = std::string(resolvedPath);
 }
 
 std::string AssetRegistry::GetFontPath(std::string_view name) const {
+    std::shared_lock lock(m_Mutex);
     auto it = m_FontPaths.find(std::string(name));
     return it != m_FontPaths.end() ? it->second : std::string{};
 }
 
 std::string AssetRegistry::GetShaderPath(std::string_view name) const {
+    std::shared_lock lock(m_Mutex);
     auto it = m_ShaderPaths.find(std::string(name));
     return it != m_ShaderPaths.end() ? it->second : std::string{};
 }
 
 std::string AssetRegistry::GetIconPath(std::string_view name) const {
+    std::shared_lock lock(m_Mutex);
     auto it = m_IconPaths.find(std::string(name));
     return it != m_IconPaths.end() ? it->second : std::string{};
 }
 
 std::string AssetRegistry::GetIconAtlasRoot() const {
+    std::shared_lock lock(m_Mutex);
     return m_IconAtlasRoot;
 }
 
 std::string AssetRegistry::GetIconMetaPath() const {
+    std::shared_lock lock(m_Mutex);
     return m_IconMetaPath;
+}
+
+std::vector<AssetLoadResult> AssetRegistry::GetLastLoadResults() const {
+    std::shared_lock lock(m_Mutex);
+    return m_LastLoadResults;
 }
 
 std::string AssetRegistry::ResolveAssetPath(const std::vector<std::string>& candidates) {
@@ -77,6 +94,7 @@ std::string AssetRegistry::ResolveAssetPath(const std::vector<std::string>& cand
 }
 
 AssetLoadResult AssetRegistry::TryLoadAsset(std::string_view name, const std::vector<std::string>& candidates) {
+    // Caller must hold unique lock (LoadDefaultEditorAssets).
     AssetLoadResult result;
     result.name = std::string(name);
     result.resolvedPath = ResolveAssetPath(candidates);
@@ -86,6 +104,7 @@ AssetLoadResult AssetRegistry::TryLoadAsset(std::string_view name, const std::ve
 }
 
 bool AssetRegistry::LoadDefaultEditorAssets() {
+    std::unique_lock lock(m_Mutex);
     m_LastLoadResults.clear();
 
     HE_INFO("[Assets] Loading default editor assets...");
@@ -181,7 +200,7 @@ bool AssetRegistry::LoadDefaultEditorAssets() {
     for (const auto& [name, paths] : fonts) {
         auto result = TryLoadAsset(name, paths);
         if (result.found) {
-            RegisterFontPath(name, result.resolvedPath);
+            m_FontPaths[name] = result.resolvedPath;
             HE_INFO("[Assets]   Font '" + name + "' -> " + result.resolvedPath);
         } else {
             HE_ERROR("[Assets]   MISSING font '" + name + "'");
@@ -192,7 +211,7 @@ bool AssetRegistry::LoadDefaultEditorAssets() {
     for (const auto& [name, paths] : shaders) {
         auto result = TryLoadAsset(name, paths);
         if (result.found) {
-            RegisterShaderPath(name, result.resolvedPath);
+            m_ShaderPaths[name] = result.resolvedPath;
             HE_INFO("[Assets]   Shader '" + name + "' -> " + result.resolvedPath);
         } else {
             const bool required = (name == "UI");
@@ -208,7 +227,7 @@ bool AssetRegistry::LoadDefaultEditorAssets() {
     for (const auto& [name, paths] : icons) {
         auto result = TryLoadAsset(name, paths);
         if (result.found) {
-            RegisterIconPath(name, result.resolvedPath);
+            m_IconPaths[name] = result.resolvedPath;
             HE_INFO("[Assets]   Icon source '" + name + "' -> " + result.resolvedPath);
         } else {
             HE_INFO("[Assets]   Optional icon source '" + name + "' not found (offline import only)");
@@ -218,7 +237,7 @@ bool AssetRegistry::LoadDefaultEditorAssets() {
     for (const auto& [name, paths] : iconAtlases) {
         auto result = TryLoadAsset(name, paths);
         if (result.found) {
-            RegisterIconAtlasRoot(result.resolvedPath);
+            m_IconAtlasRoot = result.resolvedPath;
             HE_INFO("[Assets]   Icon atlas root '" + name + "' -> " + result.resolvedPath);
         } else {
             HE_ERROR("[Assets]   MISSING icon atlas root '" + name + "'");
@@ -229,7 +248,7 @@ bool AssetRegistry::LoadDefaultEditorAssets() {
     for (const auto& [name, paths] : iconMeta) {
         auto result = TryLoadAsset(name, paths);
         if (result.found) {
-            RegisterIconMetaPath(result.resolvedPath);
+            m_IconMetaPath = result.resolvedPath;
             HE_INFO("[Assets]   Icon meta '" + name + "' -> " + result.resolvedPath);
         } else {
             HE_ERROR("[Assets]   MISSING icon meta '" + name + "'");
@@ -243,6 +262,7 @@ bool AssetRegistry::LoadDefaultEditorAssets() {
 }
 
 void AssetRegistry::Clear() {
+    std::unique_lock lock(m_Mutex);
     m_Textures.clear();
     m_FontPaths.clear();
     m_ShaderPaths.clear();

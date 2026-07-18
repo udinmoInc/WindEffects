@@ -1,5 +1,7 @@
 #pragma once
 
+#include "PlaceActors/Export.h"
+
 #include "KindUI/Core/Widget.h"
 #include "KindUI/Layout/ScrollViewport.h"
 #include "PlaceActors/PlaceActorsTypes.h"
@@ -22,7 +24,7 @@ using ::we::runtime::kindui::ScrollViewportMetrics;
 
 namespace we::programs::editor {
 
-class PlaceActorsPanel : public we::runtime::kindui::Widget {
+class PLACEACTORS_API PlaceActorsPanel : public we::runtime::kindui::Widget {
 public:
     PlaceActorsPanel();
     ~PlaceActorsPanel() override;

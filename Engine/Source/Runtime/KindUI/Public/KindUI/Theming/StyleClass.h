@@ -5,6 +5,7 @@
 #include "KindUI/Tokens/DesignToken.h"
 #include "KindUI/Theming/StyleRole.h"
 
+#include <mutex>
 #include <string>
 #include <string_view>
 #include <unordered_map>
@@ -45,6 +46,7 @@ public:
 
 private:
     StyleClassRegistry() = default;
+    mutable std::mutex m_Mutex;
     std::unordered_map<std::string, StyleClass> m_Classes;
 };
 

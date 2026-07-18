@@ -4,6 +4,7 @@
 #include "KindUI/Core/Geometry.h"
 #include "KindUI/Core/PaintContext.h"
 
+#include <mutex>
 #include <string>
 #include <string_view>
 #include <unordered_map>
@@ -131,7 +132,8 @@ public:
         float activeAnim = 0.0f) const;
 
 private:
-    IconRenderer* m_Renderer = nullptr;
+    IconRenderer* m_Renderer = nullptr; // non-owning; UI thread sets via Initialize
+    mutable std::mutex m_CacheMutex;
     mutable std::unordered_map<std::string, we::rhi::RHIDescriptorSetHandle> m_Cache;
 };
 

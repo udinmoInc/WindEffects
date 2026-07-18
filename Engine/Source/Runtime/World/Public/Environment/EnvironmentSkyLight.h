@@ -1,11 +1,13 @@
 #pragma once
 
+#include "World/Export.h"
+
 #include <cstdint>
 #include "Core/Math/Types.h"
 
 namespace we::runtime::world::environment {
 
-class EnvironmentSkyLight {
+class WORLD_API EnvironmentSkyLight {
 public:
     std::uint64_t EntityId = 0;
 

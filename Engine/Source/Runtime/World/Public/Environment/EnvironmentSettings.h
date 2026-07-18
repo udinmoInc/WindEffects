@@ -1,5 +1,7 @@
 #pragma once
 
+#include "World/Export.h"
+
 #include "Environment/EnvironmentTypes.h"
 #include <filesystem>
 
@@ -34,7 +36,7 @@ struct EnvironmentSettings {
     float cloudAltitude = 1250.0f;
 };
 
-class EnvironmentSettingsLoader {
+class WORLD_API EnvironmentSettingsLoader {
 public:
     static EnvironmentSettingsLoader& Get();
 
