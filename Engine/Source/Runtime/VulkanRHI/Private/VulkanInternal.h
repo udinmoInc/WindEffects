@@ -13,7 +13,7 @@
 
 namespace we::rhi::vulkan {
 
-bool AreValidationLayersAvailable() {
+inline bool AreValidationLayersAvailable() {
     uint32_t layerCount = 0;
     vkEnumerateInstanceLayerProperties(&layerCount, nullptr);
     if (layerCount == 0) {
@@ -29,21 +29,21 @@ bool AreValidationLayersAvailable() {
     return false;
 }
 
-bool ValidationRequestedFromEnvironment() {
+inline bool ValidationRequestedFromEnvironment() {
     if (const char* env = std::getenv("WE_VULKAN_VALIDATION")) {
         return env[0] == '1' || std::strcmp(env, "true") == 0;
     }
     return false;
 }
 
-bool ValidationDisabledFromEnvironment() {
+inline bool ValidationDisabledFromEnvironment() {
     if (const char* env = std::getenv("WE_VULKAN_VALIDATION")) {
         return env[0] == '0' || std::strcmp(env, "false") == 0;
     }
     return false;
 }
 
-uint32_t SelectInstanceApiVersion() {
+inline uint32_t SelectInstanceApiVersion() {
     uint32_t requested = VK_API_VERSION_1_3;
     const auto enumerateInstanceVersion = reinterpret_cast<PFN_vkEnumerateInstanceVersion>(
         vkGetInstanceProcAddr(nullptr, "vkEnumerateInstanceVersion"));
@@ -57,7 +57,7 @@ uint32_t SelectInstanceApiVersion() {
     return std::min(requested, supported);
 }
 
-VKAPI_ATTR VkBool32 VKAPI_CALL DebugCallback(
+inline VKAPI_ATTR VkBool32 VKAPI_CALL DebugCallback(
     VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
     VkDebugUtilsMessageTypeFlagsEXT,
     const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,

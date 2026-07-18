@@ -25,6 +25,7 @@
 #include "KindUI/Theming/StyleRole.h"
 #include "KindUI/Core/Icon.h"
 #include "KindUI/Core/Animator.h"
+#include "KindUI/Input/InputEvents.h"
 #include "Core/EditorConfigPaths.h"
 
 #include <algorithm>
@@ -37,11 +38,22 @@ namespace we::programs::editor {
 namespace PanelChrome = ::we::editor::panels::PanelChrome;
 using ::we::runtime::kindui::ColorToken;
 using ::we::runtime::kindui::MetricToken;
+using ::we::runtime::kindui::PaddingToken;
 using ::we::runtime::kindui::PaintContext;
 using ::we::runtime::kindui::Point;
 using ::we::runtime::kindui::Rect;
+using ::we::runtime::kindui::Size;
+using ::we::runtime::kindui::Color;
 using ::we::runtime::kindui::DPIContext;
+using ::we::runtime::kindui::MouseEvent;
+using ::we::runtime::kindui::MouseButton;
+using ::we::runtime::kindui::KeyEvent;
 namespace Icons = ::we::runtime::kindui::Icons;
+
+namespace {
+constexpr float kDragThreshold = 6.0f;
+}
+
 void PlaceActorsPanel::Paint(we::runtime::kindui::PaintContext& context) {
     PanelChrome::PaintContentRegion(context, m_Geometry);
 
