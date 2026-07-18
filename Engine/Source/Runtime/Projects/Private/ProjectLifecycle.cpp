@@ -326,10 +326,10 @@ ProjectOperationResult ProjectLifecycle::CreateNewProject(const ProjectCreateReq
     descriptor.displayName = request.displayName;
     descriptor.templateId = request.templateId.empty() ? "Blank" : request.templateId;
     descriptor.engineVersion = request.engineVersion.empty()
-        ? EngineContext::Get().EngineVersion()
+        ? (EngineContext::Get().IsInitialized() ? EngineContext::Get().EngineVersion() : std::string{})
         : request.engineVersion;
     descriptor.engineRoot = request.engineRoot.empty()
-        ? EngineContext::Get().EngineRoot().string()
+        ? (EngineContext::Get().IsInitialized() ? EngineContext::Get().EngineRoot().string() : std::string{})
         : request.engineRoot;
     descriptor.contentDirectory = we::core::layout::kContent;
     descriptor.startupMap = startupMap;
@@ -350,13 +350,20 @@ ProjectOperationResult ProjectLifecycle::CreateNewProject(const ProjectCreateReq
         return result;
     }
 
-    // Optional template content copy.
-    const auto templatesRoot = EngineContext::Get().TemplatesRoot();
-    const auto templateRoot = templatesRoot / descriptor.templateId;
-    if (std::filesystem::exists(templateRoot / we::core::layout::kContent)) {
-        CopyTree(templateRoot / we::core::layout::kContent, projectRoot / we::core::layout::kContent);
-        // Re-ensure startup map after template copy.
-        (void)WriteStartupMapStub(projectRoot, projectName);
+    // Optional template content copy (Editor EngineContext, or engineRoot from request).
+    std::filesystem::path templatesRoot;
+    if (EngineContext::Get().IsInitialized()) {
+        templatesRoot = EngineContext::Get().TemplatesRoot();
+    } else if (!request.engineRoot.empty()) {
+        templatesRoot = std::filesystem::path(request.engineRoot) / we::core::layout::kEngine
+            / we::core::layout::kTemplates / we::core::layout::kProjects;
+    }
+    if (!templatesRoot.empty()) {
+        const auto templateRoot = templatesRoot / descriptor.templateId;
+        if (std::filesystem::exists(templateRoot / we::core::layout::kContent)) {
+            CopyTree(templateRoot / we::core::layout::kContent, projectRoot / we::core::layout::kContent);
+            (void)WriteStartupMapStub(projectRoot, projectName);
+        }
     }
 
     result.success = true;

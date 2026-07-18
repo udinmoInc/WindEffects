@@ -1,4 +1,6 @@
 using System.Text.Json;
+using IgniteBT.Build.Layout;
+using IgniteBT.Core.Launcher;
 using Serilog;
 
 namespace IgniteBT.Workspace.SDK;
@@ -16,9 +18,9 @@ public class SDKConfiguration
     
     public SDKConfiguration()
     {
-        var projectPaths = new List<string> { ".", "..", "../.." };
-        var projectRoot = IgniteBT.Core.Launcher.BuildEnvironment.ProjectRoot
-            ?? IgniteBT.Build.Layout.BuildLayout.FindProjectRoot(Directory.GetCurrentDirectory());
+        var projectPaths = new List<string>();
+        var projectRoot = BuildEnvironment.ProjectRoot
+            ?? BuildLayout.FindProjectRoot(Directory.GetCurrentDirectory());
         if (!string.IsNullOrWhiteSpace(projectRoot))
         {
             projectPaths.Add(projectRoot);

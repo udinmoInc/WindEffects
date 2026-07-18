@@ -1,68 +1,16 @@
 #pragma once
 
+#include "Projects/WeProjectDescriptor.h"
+
+#include <cstdint>
 #include <filesystem>
-#include <nlohmann/json.h>
 #include <string>
 #include <vector>
 
 namespace we::programs::welauncher {
 
-/// Launcher-side .weproj schema — kept in sync with we::projects::WeProjectDescriptor.
-struct WeProjectDescriptor {
-    int schemaVersion = 1;
-    std::string projectName;
-    std::string displayName;
-    std::string templateId;
-    std::string engineVersion;
-    std::string engineRoot;
-    std::string contentDirectory = "Content";
-    std::string startupMap;
-    std::string defaultGameMode;
-    std::vector<std::string> modules;
-    std::vector<std::string> plugins;
-    std::vector<std::string> targetPlatforms{ "Windows" };
-    nlohmann::json settings = nlohmann::json::object();
-    std::string createdUtc;
-    std::string lastOpenedUtc;
-};
-
-inline void to_json(nlohmann::json& j, const WeProjectDescriptor& d) {
-    j = nlohmann::json{
-        { "schemaVersion", d.schemaVersion },
-        { "projectName", d.projectName },
-        { "displayName", d.displayName },
-        { "templateId", d.templateId },
-        { "engineVersion", d.engineVersion },
-        { "engineRoot", d.engineRoot },
-        { "contentDirectory", d.contentDirectory },
-        { "startupMap", d.startupMap },
-        { "defaultGameMode", d.defaultGameMode },
-        { "modules", d.modules },
-        { "plugins", d.plugins },
-        { "targetPlatforms", d.targetPlatforms },
-        { "settings", d.settings },
-        { "createdUtc", d.createdUtc },
-        { "lastOpenedUtc", d.lastOpenedUtc },
-    };
-}
-
-inline void from_json(const nlohmann::json& j, WeProjectDescriptor& d) {
-    d.schemaVersion = j.value("schemaVersion", 1);
-    d.projectName = j.value("projectName", std::string{});
-    d.displayName = j.value("displayName", d.projectName);
-    d.templateId = j.value("templateId", "Blank");
-    d.engineVersion = j.value("engineVersion", std::string{});
-    d.engineRoot = j.value("engineRoot", std::string{});
-    d.contentDirectory = j.value("contentDirectory", std::string{ "Content" });
-    d.startupMap = j.value("startupMap", std::string{});
-    d.defaultGameMode = j.value("defaultGameMode", std::string{});
-    d.modules = j.value("modules", std::vector<std::string>{});
-    d.plugins = j.value("plugins", std::vector<std::string>{});
-    d.targetPlatforms = j.value("targetPlatforms", std::vector<std::string>{ "Windows" });
-    d.settings = j.value("settings", nlohmann::json::object());
-    d.createdUtc = j.value("createdUtc", std::string{});
-    d.lastOpenedUtc = j.value("lastOpenedUtc", std::string{});
-}
+/// Canonical .weproj schema — single type shared with Runtime/Projects.
+using WeProjectDescriptor = we::projects::WeProjectDescriptor;
 
 struct ProjectSummary {
     std::string weprojPath;
