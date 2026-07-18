@@ -19,13 +19,7 @@ public class SDKDatabase
     {
         var projectDatabase = BuildEnvironment.ResolveProjectDatabaseDirectory();
         _writePath = Path.Combine(projectDatabase, CacheFileName);
-        _searchPaths =
-        [
-            projectDatabase,
-            ".",
-            "..",
-            "../.."
-        ];
+        _searchPaths = [projectDatabase];
     }
 
     public void LoadCache(ConcurrentDictionary<string, SDKInfo> cache)

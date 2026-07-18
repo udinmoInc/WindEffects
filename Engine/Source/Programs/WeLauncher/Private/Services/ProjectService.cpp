@@ -1,6 +1,5 @@
 #include "Services/ProjectService.h"
 
-#include "Util/JsonFile.h"
 #include "Util/PathUtils.h"
 #include "Core/Paths.h"
 #include "Projects/ProjectLifecycle.h"
@@ -81,19 +80,15 @@ ProjectService::ProjectService(
 }
 
 std::optional<ProjectSummary> ProjectService::LoadSummary(const std::filesystem::path& weprojPath) const {
-    if (!std::filesystem::exists(weprojPath)) {
-        return std::nullopt;
-    }
-
-    nlohmann::json json;
-    if (!JsonFile::Load(weprojPath, json)) {
+    auto descriptor = we::projects::ProjectLifecycle::ReadDescriptor(weprojPath);
+    if (!descriptor) {
         return std::nullopt;
     }
 
     ProjectSummary summary{};
     summary.weprojPath = PathUtils::ToUtf8(weprojPath);
     summary.projectRoot = PathUtils::ToUtf8(weprojPath.parent_path());
-    summary.descriptor = json.get<WeProjectDescriptor>();
+    summary.descriptor = std::move(*descriptor);
     summary.compatible = ValidateCompatibility(summary.descriptor, summary.compatibilityMessage);
     FillDerivedFields(summary, m_Templates);
     return summary;
@@ -151,8 +146,7 @@ bool ProjectService::ValidateCompatibility(const WeProjectDescriptor& descriptor
 }
 
 bool ProjectService::WriteDescriptor(const std::filesystem::path& weprojPath, const WeProjectDescriptor& descriptor) const {
-    nlohmann::json json = descriptor;
-    return JsonFile::Save(weprojPath, json);
+    return we::projects::ProjectLifecycle::WriteDescriptor(weprojPath, descriptor);
 }
 
 bool ProjectService::EnsureProjectLayout(const std::filesystem::path& projectRoot, const std::string& projectName) const {
@@ -242,6 +236,41 @@ ProjectOperationResult ProjectService::CreateProject(
         return result;
     }
 
+    const bool hasTemplateTree =
+        !tmpl->templateRoot.empty() && std::filesystem::exists(tmpl->templateRoot);
+
+    // Blank / metadata-only templates: ProjectLifecycle owns scaffolding + .weproj write.
+    if (!hasTemplateTree) {
+        we::projects::ProjectCreateRequest request{};
+        request.displayName = displayName.empty() ? projectName : displayName;
+        request.templateId = templateId;
+        request.parentDirectory = parentDirectory;
+        request.engineVersion = m_Engines.Current().engineVersion;
+        request.engineRoot = PathUtils::ToUtf8(m_Engines.Current().engineRoot);
+
+        const auto created = we::projects::ProjectLifecycle::CreateNewProject(request);
+        if (!created.success) {
+            result.message = created.message;
+            return result;
+        }
+
+        if (!tmpl->platforms.empty()) {
+            if (auto descriptor = we::projects::ProjectLifecycle::ReadDescriptor(created.weprojPath)) {
+                descriptor->targetPlatforms = tmpl->platforms;
+                (void)we::projects::ProjectLifecycle::WriteDescriptor(created.weprojPath, *descriptor);
+            }
+        }
+
+        m_Settings.TouchRecent(PathUtils::ToUtf8(created.weprojPath));
+        m_Settings.Save();
+
+        result.success = true;
+        result.weprojPath = PathUtils::ToUtf8(created.weprojPath);
+        result.message = created.message;
+        return result;
+    }
+
+    // File-backed templates: materialize tree, then write canonical descriptor.
     std::error_code ec;
     std::filesystem::create_directories(projectRoot, ec);
     if (ec) {
@@ -322,47 +351,20 @@ ProjectOperationResult ProjectService::CloneProject(const std::filesystem::path&
         return result;
     }
 
-    const std::string newName = we::projects::ProjectLifecycle::SanitizeProjectName(newDisplayName);
-    const auto destRoot = PathUtils::FromUtf8(summary->projectRoot).parent_path() / newName;
-    if (std::filesystem::exists(destRoot)) {
-        result.message = "Destination already exists.";
+    const auto parentDirectory = PathUtils::FromUtf8(summary->projectRoot).parent_path();
+    const auto cloned = we::projects::ProjectLifecycle::CloneProject(
+        sourceWeproj, newDisplayName, parentDirectory);
+    if (!cloned.success) {
+        result.message = cloned.message;
         return result;
     }
 
-    std::error_code ec;
-    std::filesystem::copy(
-        PathUtils::FromUtf8(summary->projectRoot),
-        destRoot,
-        std::filesystem::copy_options::recursive,
-        ec);
-    if (ec) {
-        result.message = "Clone failed: " + ec.message();
-        return result;
-    }
-
-    const auto oldWeproj = destRoot / (summary->descriptor.projectName + ".weproj");
-    if (std::filesystem::exists(oldWeproj)) {
-        std::filesystem::remove(oldWeproj, ec);
-    }
-
-    WeProjectDescriptor descriptor = summary->descriptor;
-    descriptor.projectName = newName;
-    descriptor.displayName = newDisplayName;
-    descriptor.createdUtc = we::projects::ProjectLifecycle::NowUtc();
-    descriptor.lastOpenedUtc = descriptor.createdUtc;
-
-    const auto newWeproj = destRoot / (newName + ".weproj");
-    if (!WriteDescriptor(newWeproj, descriptor)) {
-        result.message = "Failed to write cloned descriptor.";
-        return result;
-    }
-
-    m_Settings.TouchRecent(PathUtils::ToUtf8(newWeproj));
+    m_Settings.TouchRecent(PathUtils::ToUtf8(cloned.weprojPath));
     m_Settings.Save();
 
     result.success = true;
-    result.weprojPath = PathUtils::ToUtf8(newWeproj);
-    result.message = "Project cloned.";
+    result.weprojPath = PathUtils::ToUtf8(cloned.weprojPath);
+    result.message = cloned.message;
     return result;
 }
 

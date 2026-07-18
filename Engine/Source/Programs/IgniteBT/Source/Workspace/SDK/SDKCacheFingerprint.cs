@@ -1,5 +1,7 @@
 using System.Text;
+using IgniteBT.Build.Layout;
 using IgniteBT.Core.Hashing;
+using IgniteBT.Core.Launcher;
 using Microsoft.Win32;
 using Serilog;
 
@@ -62,33 +64,20 @@ public static class SDKCacheFingerprint
 
     private static string GetFingerprintPath()
     {
-        var databaseDir = FindProjectDatabaseDirectory();
+        var databaseDir = BuildEnvironment.ResolveProjectDatabaseDirectory();
         Directory.CreateDirectory(databaseDir);
         return Path.Combine(databaseDir, FingerprintFileName);
     }
 
-    private static string FindProjectDatabaseDirectory()
-    {
-        var dir = Directory.GetCurrentDirectory();
-        for (var i = 0; i < 8; i++)
-        {
-            var candidate = Path.Combine(dir, "Build", "Database");
-            if (Directory.Exists(candidate) || File.Exists(Path.Combine(dir, "WindEffects.engine")))
-                return candidate;
-
-            var parent = Directory.GetParent(dir)?.FullName;
-            if (string.IsNullOrEmpty(parent) || parent == dir) break;
-            dir = parent;
-        }
-
-        return Path.Combine(Directory.GetCurrentDirectory(), "Build", "Database");
-    }
-
     private static IEnumerable<string> FindConfigPaths()
     {
-        yield return Path.Combine(".", "IgniteBT.SDKs.json");
-        yield return Path.Combine("..", "IgniteBT.SDKs.json");
-        yield return Path.Combine("../..", "IgniteBT.SDKs.json");
+        var projectRoot = BuildEnvironment.ProjectRoot
+            ?? BuildLayout.FindProjectRoot(Directory.GetCurrentDirectory());
+        if (!string.IsNullOrWhiteSpace(projectRoot))
+        {
+            yield return Path.Combine(projectRoot, "IgniteBT.SDKs.json");
+            yield return Path.Combine(projectRoot, "Build", "Database", "IgniteBT.SDKs.json");
+        }
     }
 
     private static string ReadRegistryFingerprint()
