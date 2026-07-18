@@ -3,14 +3,16 @@
 #include "WindEffects/Editor/UI/Widgets/Panel.h"
 #include "WindEffects/Editor/UI/Widgets/DockContainer.h"
 #include "KindUI/Layout/Splitter.h"
+#include "KindUI/Core/DPIContext.h"
 #include "WindEffects/Editor/UI/Core/PanelIconResolver.h"
 #include "KindUI/Theming/ThemeAccess.h"
 #include "KindUI/Tokens/DesignToken.h"
 
 using ::we::runtime::kindui::PaddingToken;
 using ::we::runtime::kindui::Orientation;
-
 using ::we::runtime::kindui::MetricToken;
+using ::we::runtime::kindui::DPIContext;
+
 namespace we::editor::shell {
 using ::we::editor::docking::SplitOrientation;
 using ::we::editor::docking::DockPanelDescriptor;
@@ -43,6 +45,23 @@ void ApplyPanelDescriptor(const std::shared_ptr<Panel>& panel, const DockPanelDe
     }
 }
 
+void WireSplitterSlot(const std::shared_ptr<Splitter>& splitter, const DockLayoutNode& node, DockLayoutBuildResult& result) {
+    if (!splitter) {
+        return;
+    }
+
+    const std::string& slot = node.slotId;
+    if (slot == "mainHorizontal") {
+        result.mainHorizontalSplitter = splitter;
+    } else if (slot == "leftCenter") {
+        result.leftCenterSplitter = splitter;
+    } else if (slot == "toolsViewport") {
+        result.toolsViewportSplitter = splitter;
+    } else if (slot == "rightVertical") {
+        result.rightVerticalSplitter = splitter;
+    }
+}
+
 } // namespace
 
 std::shared_ptr<Panel> DockLayoutBuilder::CreatePanel(
@@ -50,18 +69,21 @@ std::shared_ptr<Panel> DockLayoutBuilder::CreatePanel(
     const UIExtensionRegistry& extensions,
     float dpiScale,
     DockLayoutBuildResult& result) {
+    // ResolveMetric is logical; scale once. DockContainer owns the tab strip height.
+    const float tabHeight = ResolveMetric(MetricToken::PanelTabHeight) * dpiScale;
+
     const auto& panels = extensions.GetPanels();
     const auto it = panels.find(std::string(panelId));
     if (it == panels.end()) {
         auto fallback = std::make_shared<Panel>(std::string(panelId));
-        fallback->SetHeaderHeight(we::runtime::kindui::ResolveMetric(MetricToken::PanelTabHeight) * dpiScale);
+        fallback->SetHeaderHeight(tabHeight);
         result.panels[std::string(panelId)] = fallback;
         return fallback;
     }
 
     auto panel = it->second.factory();
     if (panel) {
-        panel->SetHeaderHeight(we::runtime::kindui::ResolveMetric(MetricToken::PanelTabHeight) * dpiScale);
+        panel->SetHeaderHeight(tabHeight);
         ApplyPanelDescriptor(panel, it->second.descriptor);
     }
     result.panels[std::string(panelId)] = panel;
@@ -78,6 +100,7 @@ std::shared_ptr<Widget> DockLayoutBuilder::BuildNode(
         return CreatePanel(node.panelId, extensions, dpiScale, result);
     case DockNodeType::TabGroup: {
         auto dock = std::make_shared<DockContainer>();
+        dock->SetHeaderHeightLogical(ResolveMetric(MetricToken::PanelTabHeight));
         if (auto panel = CreatePanel(node.panelId, extensions, dpiScale, result)) {
             dock->AddPanel(panel);
         }
@@ -93,21 +116,17 @@ std::shared_ptr<Widget> DockLayoutBuilder::BuildNode(
     case DockNodeType::Split: {
         auto splitter = std::make_shared<Splitter>(ToOrientation(node.orientation), node.splitRatio);
         splitter->SetPanelGapEnabled(true);
+        splitter->SetSlotId(node.slotId);
+        splitter->SetMinPaneSizes(
+            node.minFirstLogical * dpiScale,
+            node.minSecondLogical * dpiScale);
         if (node.children.size() >= 1) {
             splitter->SetFirstChild(BuildNode(node.children[0], extensions, dpiScale, result));
         }
         if (node.children.size() >= 2) {
             splitter->SetSecondChild(BuildNode(node.children[1], extensions, dpiScale, result));
         }
-        if (node.orientation == SplitOrientation::Horizontal && node.splitRatio > 0.7f) {
-            result.mainHorizontalSplitter = splitter;
-        } else if (node.orientation == SplitOrientation::Vertical && node.splitRatio > 0.6f) {
-            result.leftCenterSplitter = splitter;
-        } else if (node.orientation == SplitOrientation::Horizontal && node.splitRatio < 0.25f) {
-            result.toolsViewportSplitter = splitter;
-        } else if (node.orientation == SplitOrientation::Vertical && node.splitRatio < 0.5f) {
-            result.rightVerticalSplitter = splitter;
-        }
+        WireSplitterSlot(splitter, node, result);
         return splitter;
     }
     case DockNodeType::Root:
@@ -124,10 +143,9 @@ DockLayoutBuildResult DockLayoutBuilder::Build(
     const UIExtensionRegistry& extensions,
     float dpiScale) {
     DockLayoutBuildResult result;
-    result.root = BuildNode(layout.root, extensions, dpiScale, result);
+    const float scale = dpiScale > 0.0f ? dpiScale : DPIContext::GetScale();
+    result.root = BuildNode(layout.root, extensions, scale, result);
     return result;
 }
 
 } // namespace we::editor::shell
-
-

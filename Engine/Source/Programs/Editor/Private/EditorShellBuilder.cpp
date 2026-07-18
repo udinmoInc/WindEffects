@@ -42,6 +42,9 @@ using we::runtime::kindui::PaddingToken;
 
 namespace we::programs::editor {
 using ::we::runtime::kindui::Widget;
+using ::we::runtime::kindui::Size;
+using ::we::runtime::kindui::VerticalAlignment;
+using ::we::runtime::kindui::HorizontalAlignment;
 using ::we::runtime::kindui::IWidgetContext;
 using ::we::runtime::kindui::WidgetContext;
 using ::we::runtime::kindui::StyleRole;
@@ -120,6 +123,7 @@ EditorShellResult EditorShellBuilder::Build(
     auto& style = context.GetStyleResolver();
     const auto toolbarStyle = style.Resolve(StyleRole::Toolbar);
     const auto statusStyle = style.Resolve(StyleRole::StatusBar);
+    const auto titleStyle = style.Resolve(StyleRole::WindowHeader);
 
     auto menuBar = std::make_shared<MenuBar>();
     menuBar->SetContext(widgetContext);
@@ -407,13 +411,40 @@ EditorShellResult EditorShellBuilder::Build(
 
     auto rootVBox = std::make_shared<Column>();
     rootVBox->Gap(0.0f);
+    rootVBox->SetVerticalAlignment(VerticalAlignment::Fill);
+
+    titleBar->SetFlexShrink(0.0f);
+    const float titleHeight = titleStyle.height > 0.0f
+        ? titleStyle.height
+        : we::runtime::kindui::ResolveMetric(MetricToken::TitleBarHeight) * uiScale;
+    titleBar->SetMinSize(Size{ 0.0f, titleHeight });
+    titleBar->SetMaxSize(Size{ 1.0e9f, titleHeight });
+    toolbar->SetFlexShrink(0.0f);
+    const float toolbarHeight = toolbarStyle.height > 0.0f
+        ? toolbarStyle.height
+        : we::runtime::kindui::ResolveMetric(MetricToken::ToolbarHeight) * uiScale;
+    toolbar->SetMinSize(Size{ 0.0f, toolbarHeight });
+    toolbar->SetMaxSize(Size{ 1.0e9f, toolbarHeight });
+    statusBar->SetFlexShrink(0.0f);
+    const float statusHeight = statusStyle.height > 0.0f ? statusStyle.height : 28.0f * uiScale;
+    statusBar->SetMinSize(Size{ 0.0f, statusHeight });
+    statusBar->SetMaxSize(Size{ 1.0e9f, statusHeight });
+
     rootVBox->AddChild(titleBar);
     rootVBox->AddChild(toolbar);
     if (shellResult.layout.root) {
         const float workspaceGap = we::runtime::kindui::ResolveMetric(MetricToken::Space2) * uiScale;
         auto workspaceArea = std::make_shared<Column>();
+        workspaceArea->Gap(0.0f);
         workspaceArea->Padding({ workspaceGap, workspaceGap, workspaceGap, workspaceGap });
         workspaceArea->Background(we::runtime::kindui::ResolveColor(ColorToken::WorkspaceBackground));
+        workspaceArea->SetFlexGrow(1.0f);
+        workspaceArea->SetFlexShrink(0.0f);
+        workspaceArea->SetVerticalAlignment(VerticalAlignment::Fill);
+        workspaceArea->SetHorizontalAlignment(HorizontalAlignment::Fill);
+        shellResult.layout.root->SetFlexGrow(1.0f);
+        shellResult.layout.root->SetVerticalAlignment(VerticalAlignment::Fill);
+        shellResult.layout.root->SetHorizontalAlignment(HorizontalAlignment::Fill);
         workspaceArea->AddChild(shellResult.layout.root);
         rootVBox->AddChild(workspaceArea);
     }

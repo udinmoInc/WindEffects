@@ -1,4 +1,5 @@
 #include "KindUI/Layout/Flex.h"
+#include "KindUI/Layout/LayoutAssert.h"
 
 #include <algorithm>
 #include <cmath>
@@ -164,9 +165,14 @@ void Flex::Arrange(const Rect& allottedRect) {
         const float deficit = -freeSpace;
         for (auto& item : items) {
             const float shrink = item.widget->GetFlexShrink();
-            if (shrink > 0.0f) {
-                item.mainSize = std::max(0.0f, item.mainSize - deficit * (shrink / totalShrink));
+            if (shrink <= 0.0f) {
+                continue;
             }
+            const float minMain = row
+                ? item.widget->GetMinSize().width
+                : item.widget->GetMinSize().height;
+            const float reduced = item.mainSize - deficit * (shrink / totalShrink);
+            item.mainSize = std::max(minMain, reduced);
         }
         freeSpace = 0.0f;
     }
@@ -263,6 +269,7 @@ void Flex::Arrange(const Rect& allottedRect) {
         }
 
         item.widget->Arrange(childRect);
+        AssertLayoutRectValid("Flex.child", childRect, allottedRect);
         mainCursor += item.mainSize + item.marginMainEnd;
     }
 }

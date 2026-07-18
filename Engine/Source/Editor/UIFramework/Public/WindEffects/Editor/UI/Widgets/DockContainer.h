@@ -47,6 +47,13 @@ public:
     int GetActiveTab() const { return m_ActiveTabIndex; }
     int GetTabCount() const { return static_cast<int>(m_Tabs.size()); }
 
+    /// Logical (pre-DPI) tab strip height. Device height = logical * DPIContext::GetScale().
+    void SetHeaderHeightLogical(float logicalPx) {
+        m_HeaderHeightLogical = logicalPx < 0.0f ? 0.0f : logicalPx;
+    }
+    [[nodiscard]] float GetHeaderHeightLogical() const { return m_HeaderHeightLogical; }
+    [[nodiscard]] float GetHeaderHeightDevice() const;
+
     void SetOnTabClosed(OnTabClosed callback) { m_OnTabClosed = std::move(callback); }
     void SetOnTabDragStarted(OnTabDragStarted callback) { m_OnTabDragStarted = std::move(callback); }
     void SetOnActiveTabChanged(OnActiveTabChanged callback) { m_OnActiveTabChanged = std::move(callback); }
@@ -67,7 +74,7 @@ private:
     std::vector<TabInfo> m_Tabs;
     int m_ActiveTabIndex = -1;
 
-    float m_HeaderHeight = 26.0f;
+    float m_HeaderHeightLogical = 26.0f;
     Rect m_HeaderRect;
     Rect m_ContentRect;
 

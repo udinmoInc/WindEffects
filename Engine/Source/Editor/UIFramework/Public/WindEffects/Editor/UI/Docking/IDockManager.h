@@ -46,9 +46,16 @@ enum class SplitOrientation { Horizontal, Vertical };
 struct DockLayoutNode {
     DockNodeType type = DockNodeType::Root;
     SplitOrientation orientation = SplitOrientation::Horizontal;
+    /// Normalized first-pane share in [0,1]. Never store pixel positions here.
     float splitRatio = 0.5f;
     std::string panelId;
     std::vector<DockLayoutNode> children;
+    /// Stable splitter identity for workspace wiring (not derived from ratios).
+    /// Kept after `children` so the recursive prefix matches older layouts.
+    std::string slotId;
+    /// Logical minimum sizes (DPI-scaled at layout time) for first/second panes.
+    float minFirstLogical = 120.0f;
+    float minSecondLogical = 120.0f;
 };
 
 struct WorkspaceLayout {
