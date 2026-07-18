@@ -8,8 +8,17 @@
 
 namespace {
 
-HMODULE LoadResolvedDelayLoadDll(const char* dllName)
-{
+constexpr const char* kFeatureModuleDlls[] = {
+    "WEAssetImporter.dll",
+    "WEAssetProcessors.dll",
+    "WEAssetPipeline.dll",
+    "WEAssetCooker.dll",
+    "WEAssetTools.dll",
+    "WEText.dll",
+    "WEIcons.dll",
+};
+
+HMODULE LoadResolvedDelayLoadDll(const char* dllName) {
     if (dllName == nullptr || dllName[0] == '\0') {
         return nullptr;
     }
@@ -27,22 +36,27 @@ HMODULE LoadResolvedDelayLoadDll(const char* dllName)
         LOAD_WITH_ALTERED_SEARCH_PATH);
 }
 
-struct IconImportModuleBootstrap {
-    IconImportModuleBootstrap()
-    {
-        we::core::ConfigureModuleSearchPaths();
+void PreloadFeatureModules() {
+    we::core::ConfigureModuleSearchPaths();
+    for (const char* dllName : kFeatureModuleDlls) {
+        LoadResolvedDelayLoadDll(dllName);
+    }
+}
+
+struct WeModuleBootstrap {
+    WeModuleBootstrap() {
+        PreloadFeatureModules();
     }
 };
 
 #pragma init_seg(lib)
-IconImportModuleBootstrap g_IconImportModuleBootstrap;
+WeModuleBootstrap g_WeModuleBootstrap;
 
 } // namespace
 
 extern "C" {
 
-FARPROC WINAPI DelayLoadNotify(unsigned reason, DelayLoadInfo* info)
-{
+FARPROC WINAPI DelayLoadNotify(unsigned reason, DelayLoadInfo* info) {
     if (reason != dliNotePreLoadLibrary || info == nullptr || info->szDll == nullptr) {
         return 0;
     }
@@ -55,8 +69,7 @@ FARPROC WINAPI DelayLoadNotify(unsigned reason, DelayLoadInfo* info)
     return 0;
 }
 
-FARPROC WINAPI DelayLoadFailureHook(unsigned reason, DelayLoadInfo* info)
-{
+FARPROC WINAPI DelayLoadFailureHook(unsigned reason, DelayLoadInfo* info) {
     if (reason != dliFailLoadLib || info == nullptr || info->szDll == nullptr) {
         return 0;
     }

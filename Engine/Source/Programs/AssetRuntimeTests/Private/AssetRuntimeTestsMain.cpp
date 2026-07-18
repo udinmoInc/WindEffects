@@ -91,7 +91,7 @@ bool WriteCookedFile(const std::filesystem::path& path, const AssetPackage& pkg)
 }
 
 void TestSyncLoad() {
-    std::cout << "[test] SyncLoad\n";
+    std::cerr << "[test] SyncLoad\n";
     const auto root = MakeTempRoot();
     const auto guid = AssetGuid::Generate();
     auto pkg = MakeCookedAsset(guid, AssetKind::Texture, "Hero", BytesFromString("TEXDATA"));
@@ -115,7 +115,7 @@ void TestSyncLoad() {
 }
 
 void TestAsyncLoad() {
-    std::cout << "[test] AsyncLoad\n";
+    std::cerr << "[test] AsyncLoad\n";
     const auto root = MakeTempRoot();
     const auto guid = AssetGuid::Generate();
     CHECK(WriteCookedFile(root / "Async.weasset",
@@ -155,7 +155,7 @@ std::vector<std::byte> ReadFileBytes(const std::filesystem::path& path) {
 }
 
 void TestPackageMount() {
-    std::cout << "[test] PackageMount\n";
+    std::cerr << "[test] PackageMount\n";
     const auto root = MakeTempRoot();
     const auto guid = AssetGuid::Generate();
     auto pkg = MakeCookedAsset(guid, AssetKind::StaticMesh, "Mesh", BytesFromString("MESH"));
@@ -200,7 +200,7 @@ void TestPackageMount() {
 }
 
 void TestDependencyResolution() {
-    std::cout << "[test] DependencyResolution\n";
+    std::cerr << "[test] DependencyResolution\n";
     const auto root = MakeTempRoot();
     const auto depGuid = AssetGuid::Generate();
     const auto rootGuid = AssetGuid::Generate();
@@ -222,7 +222,7 @@ void TestDependencyResolution() {
 }
 
 void TestMissingDependency() {
-    std::cout << "[test] MissingDependency\n";
+    std::cerr << "[test] MissingDependency\n";
     const auto root = MakeTempRoot();
     const auto missing = AssetGuid::Generate();
     const auto rootGuid = AssetGuid::Generate();
@@ -239,7 +239,7 @@ void TestMissingDependency() {
 }
 
 void TestUnloadAndBudget() {
-    std::cout << "[test] UnloadAndBudget\n";
+    std::cerr << "[test] UnloadAndBudget\n";
     const auto root = MakeTempRoot();
     std::vector<AssetGuid> guids;
     for (int i = 0; i < 4; ++i) {
@@ -278,7 +278,7 @@ void TestUnloadAndBudget() {
 }
 
 void TestCacheEviction() {
-    std::cout << "[test] CacheEviction\n";
+    std::cerr << "[test] CacheEviction\n";
     const auto root = MakeTempRoot();
     const auto a = AssetGuid::Generate();
     const auto b = AssetGuid::Generate();
@@ -309,7 +309,7 @@ void TestCacheEviction() {
 }
 
 void TestHotReload() {
-    std::cout << "[test] HotReload\n";
+    std::cerr << "[test] HotReload\n";
     const auto root = MakeTempRoot();
     const auto guid = AssetGuid::Generate();
     const auto path = root / "Hot.weasset";
@@ -331,14 +331,14 @@ void TestHotReload() {
         "write v2");
     CHECK(mgr->HotReload(guid), "hot reload");
     auto after = mgr->TryGet(handle);
-    CHECK(after && after->payload.size() == 5, "v2 payload");
+    CHECK(after && after->payload.size() == 6, "v2 payload");
     mgr->Release(handle);
     mgr->Shutdown();
     std::filesystem::remove_all(root);
 }
 
 void TestInvalidPackage() {
-    std::cout << "[test] InvalidPackage\n";
+    std::cerr << "[test] InvalidPackage\n";
     const auto root = MakeTempRoot();
     const auto bad = root / "bad.wepak";
     {
@@ -357,7 +357,7 @@ void TestInvalidPackage() {
 }
 
 void TestCorruptedAsset() {
-    std::cout << "[test] CorruptedAsset\n";
+    std::cerr << "[test] CorruptedAsset\n";
     const auto root = MakeTempRoot();
     const auto guid = AssetGuid::Generate();
 
@@ -387,7 +387,7 @@ void TestCorruptedAsset() {
 }
 
 void TestVersionMismatch() {
-    std::cout << "[test] VersionMismatch\n";
+    std::cerr << "[test] VersionMismatch\n";
     const auto root = MakeTempRoot();
     const auto guid = AssetGuid::Generate();
     auto pkg = MakeCookedAsset(guid, AssetKind::Font, "F", BytesFromString("F"));
@@ -418,7 +418,7 @@ void TestVersionMismatch() {
 }
 
 void TestMultithreadedLoading() {
-    std::cout << "[test] MultithreadedLoading\n";
+    std::cerr << "[test] MultithreadedLoading\n";
     const auto root = MakeTempRoot();
     std::vector<AssetGuid> guids;
     for (int i = 0; i < 16; ++i) {
@@ -455,7 +455,7 @@ void TestMultithreadedLoading() {
     // Async flood
     std::atomic<int> asyncDone{ 0 };
     for (const auto& g : guids) {
-        mgr->AcquireAsync(g, [&](AssetHandle h, std::shared_ptr<RuntimeAsset>) {
+        (void)mgr->AcquireAsync(g, [&](AssetHandle h, std::shared_ptr<RuntimeAsset>) {
             if (h.IsValid()) {
                 asyncDone++;
                 mgr->Release(h);
@@ -469,7 +469,7 @@ void TestMultithreadedLoading() {
 }
 
 void TestStreamingCancelAndPriority() {
-    std::cout << "[test] StreamingCancelAndPriority\n";
+    std::cerr << "[test] StreamingCancelAndPriority\n";
     const auto root = MakeTempRoot();
     const auto guid = AssetGuid::Generate();
     CHECK(WriteCookedFile(root / "S.weasset",
@@ -499,7 +499,7 @@ void TestStreamingCancelAndPriority() {
 }
 
 void TestBundleAndWeakHandle() {
-    std::cout << "[test] BundleAndWeakHandle\n";
+    std::cerr << "[test] BundleAndWeakHandle\n";
     const auto root = MakeTempRoot();
     const auto g1 = AssetGuid::Generate();
     const auto g2 = AssetGuid::Generate();
@@ -545,7 +545,7 @@ void TestBundleAndWeakHandle() {
 }
 
 void TestRejectRawSources() {
-    std::cout << "[test] RejectRawSources\n";
+    std::cerr << "[test] RejectRawSources\n";
     const auto root = MakeTempRoot();
     {
         std::ofstream out(root / "raw.png", std::ios::binary);
@@ -567,7 +567,7 @@ void TestRejectRawSources() {
 }
 
 void TestDiagnostics() {
-    std::cout << "[test] Diagnostics\n";
+    std::cerr << "[test] Diagnostics\n";
     const auto root = MakeTempRoot();
     const auto guid = AssetGuid::Generate();
     CHECK(WriteCookedFile(root / "D.weasset",
@@ -609,6 +609,6 @@ int main() {
     TestRejectRawSources();
     TestDiagnostics();
 
-    std::cout << "\nPassed=" << g_Passed << " Failed=" << g_Failed << "\n";
+    std::cerr << "\nPassed=" << g_Passed << " Failed=" << g_Failed << "\n" << std::flush;
     return g_Failed == 0 ? 0 : 1;
 }

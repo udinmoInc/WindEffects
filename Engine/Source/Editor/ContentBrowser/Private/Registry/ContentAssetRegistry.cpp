@@ -149,13 +149,13 @@ void ContentAssetRegistry::Tick(float deltaTime) {
     if (m_WatchTimer < m_WatchInterval) return;
     m_WatchTimer = 0.0f;
 
-    const fs::path contentRoot = fs::path(m_ContentRoot);
-    if (!fs::exists(contentRoot)) return;
+    const fs::path gameRoot = fs::path(m_ContentRoot) / "Game";
+    if (!fs::exists(gameRoot)) return;
 
     static uint64_t lastScanSignature = 0;
     uint64_t signature = 0;
     std::error_code ec;
-    for (const auto& entry : fs::recursive_directory_iterator(contentRoot, ec)) {
+    for (const auto& entry : fs::recursive_directory_iterator(gameRoot, ec)) {
         signature += static_cast<uint64_t>(entry.file_size(ec));
         auto ftime = fs::last_write_time(entry, ec);
         signature ^= static_cast<uint64_t>(ftime.time_since_epoch().count());
