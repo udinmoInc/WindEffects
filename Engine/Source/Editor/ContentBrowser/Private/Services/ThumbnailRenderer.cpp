@@ -3,6 +3,7 @@
 #include "KindUI/Rendering/Icons/SvgRasterizer.h"
 #include "KindUI/Theming/ThemeAccess.h"
 #include "Core/Logger.h"
+#include "Core/Paths.h"
 
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
@@ -28,53 +29,60 @@ we::runtime::kindui::Color ThumbnailThemeColor(we::runtime::kindui::ColorToken t
 }
 
 std::string ResolvePath(const std::string& path) {
-    if (std::filesystem::exists(path)) return path;
-    const std::string candidates[] = { "../" + path, "../../" + path, "../../../" + path };
-    for (const auto& c : candidates) {
-        if (std::filesystem::exists(c)) return c;
+    const auto relative = we::core::PathService::FromUtf8(path);
+    if (relative.is_absolute()) {
+        std::error_code ec;
+        if (std::filesystem::exists(relative, ec)) {
+            return we::core::PathService::ToUtf8(relative);
+        }
+        return path;
+    }
+
+    auto candidates = we::core::PathService::Get().ResourceCandidates(relative);
+    candidates.push_back(we::core::PathService::Get().StagedAssetsRoot() / relative);
+    candidates.push_back(we::core::PathService::Get().ExecutableDirectory() / relative);
+    if (const auto found = we::core::PathService::FindExisting(candidates)) {
+        return we::core::PathService::ToUtf8(*found);
     }
     return path;
 }
 
-std::string ResolveFolderSvgPath() {
-    const char* candidates[] = {
-        "Assets/Editor/Folder.svg",
-        "../Assets/Editor/Folder.svg",
-        "../../Assets/Editor/Folder.svg",
-        "Assets/Icons/content-browser-folder.svg",
-        "../Assets/Icons/content-browser-folder.svg",
-        "../../Assets/Icons/content-browser-folder.svg",
-        "Engine/Content/Icons/content-browser-folder.svg",
-        "../Engine/Content/Icons/content-browser-folder.svg",
-    };
-    for (const char* path : candidates) {
-        if (std::filesystem::exists(path)) return path;
+std::string ResolveFirstExisting(std::initializer_list<std::filesystem::path> relatives) {
+    auto& paths = we::core::PathService::Get();
+    std::vector<std::filesystem::path> candidates;
+    for (const auto& relative : relatives) {
+        for (auto& c : paths.ResourceCandidates(relative)) {
+            candidates.push_back(std::move(c));
+        }
+        for (auto& c : paths.IconCandidates(relative)) {
+            candidates.push_back(std::move(c));
+        }
+        candidates.push_back(paths.StagedAssetsRoot() / relative);
+        candidates.push_back(paths.ExecutableDirectory() / relative);
+    }
+    if (const auto found = we::core::PathService::FindExisting(candidates)) {
+        return we::core::PathService::ToUtf8(*found);
     }
     return {};
+}
+
+std::string ResolveFolderSvgPath() {
+    return ResolveFirstExisting({
+        std::filesystem::path(we::core::layout::kEditor) / "Folder.svg",
+        std::filesystem::path(we::core::layout::kIcons) / "content-browser-folder.svg",
+    });
 }
 
 std::string ResolveFolderOpenSvgPath() {
-    const char* candidates[] = {
-        "Assets/Editor/Folder_Open.svg",
-        "../Assets/Editor/Folder_Open.svg",
-        "../../Assets/Editor/Folder_Open.svg",
-    };
-    for (const char* path : candidates) {
-        if (std::filesystem::exists(path)) return path;
-    }
-    return {};
+    return ResolveFirstExisting({
+        std::filesystem::path(we::core::layout::kEditor) / "Folder_Open.svg",
+    });
 }
 
 std::string ResolveBlueprintSvgPath() {
-    const char* candidates[] = {
-        "Assets/Editor/Visual_Graph.svg",
-        "../Assets/Editor/Visual_Graph.svg",
-        "../../Assets/Editor/Visual_Graph.svg",
-    };
-    for (const char* path : candidates) {
-        if (std::filesystem::exists(path)) return path;
-    }
-    return {};
+    return ResolveFirstExisting({
+        std::filesystem::path(we::core::layout::kEditor) / "Visual_Graph.svg",
+    });
 }
 
 std::array<uint8_t, 3> LerpRgb(const std::array<uint8_t, 3>& a, const std::array<uint8_t, 3>& b, float t) {

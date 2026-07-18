@@ -5,6 +5,7 @@
 #include <condition_variable>
 #include <cstdint>
 #include <deque>
+#include <filesystem>
 #include <functional>
 #include <fstream>
 #include <mutex>
@@ -42,8 +43,14 @@ public:
 
     using LogListener = std::function<void(const LogRecord&)>;
 
+    /// Initialize logging under PathService::LogsRoot() (or an explicit override).
     CORE_API static void Init();
+    CORE_API static void Init(const std::filesystem::path& logsRoot);
     CORE_API static void Shutdown();
+
+    /// Active logs / crashes roots (absolute). Empty before Init.
+    CORE_API static const std::string& GetLogsRoot();
+    CORE_API static const std::string& GetCrashesRoot();
 
     CORE_API static void Log(
         Level level,
@@ -101,6 +108,8 @@ private:
     static std::ofstream s_LogFile;
     static std::string s_LogFilePath;
     static std::string s_SessionDirectory;
+    static std::string s_LogsRoot;
+    static std::string s_CrashesRoot;
     static ErrorDialogHandler s_ErrorDialogHandler;
     static void* s_ErrorDialogUserData;
     static constexpr size_t kMaxHistoryEntries = 10000;

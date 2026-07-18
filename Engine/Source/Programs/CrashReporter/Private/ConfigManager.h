@@ -4,6 +4,7 @@
 #include <filesystem>
 #include <fstream>
 #include "Core/Logger.h"
+#include "Core/Paths.h"
 
 namespace we::programs::crashreporter {
 
@@ -36,14 +37,18 @@ public:
         return instance;
     }
 
-    void Load(const std::string& configPath = "Engine/Config/CrashReporter/config.json") {
-        if (!std::filesystem::exists(configPath)) {
-            HE_WARN("CrashReporter config not found at " + configPath);
+    void Load(const std::string& configPath = {}) {
+        std::filesystem::path resolved = configPath.empty()
+            ? we::core::PathService::Get().EngineConfigRoot() / "CrashReporter" / "config.json"
+            : we::core::PathService::FromUtf8(configPath);
+        const std::string pathStr = we::core::PathService::ToUtf8(resolved);
+        if (!std::filesystem::exists(resolved)) {
+            HE_WARN("CrashReporter config not found at " + pathStr);
             return;
         }
 
         try {
-            std::ifstream f(configPath, std::ios::binary);
+            std::ifstream f(resolved, std::ios::binary);
             std::string content((std::istreambuf_iterator<char>(f)), std::istreambuf_iterator<char>());
 
             auto decodeUtf16Le = [](const std::string& raw, size_t startOffset) {
@@ -119,7 +124,7 @@ public:
 
                 assign_int("maxRecentLogs", m_Config.maxRecentLogs);
                 
-                HE_INFO("Loaded CrashReporter config from " + configPath);
+                HE_INFO("Loaded CrashReporter config from " + pathStr);
             } catch (const std::exception& e) {
                 HE_ERROR("Failed to parse CrashReporter config: " + std::string(e.what()));
             }

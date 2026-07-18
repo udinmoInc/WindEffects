@@ -21,170 +21,36 @@
 #endif
 
 #include "Core/BuildPaths.h"
+#include "Core/Paths.h"
 
 namespace we::programs::welauncher {
 
 std::filesystem::path PathUtils::GetExecutableDirectory() {
-    return we::core::GetExecutableDirectory();
+    return we::core::PathService::Get().ExecutableDirectory();
 }
 
 std::optional<std::filesystem::path> PathUtils::FindEngineRoot(const std::filesystem::path& start) {
-    auto tryFrom = [](const std::filesystem::path& dir) -> std::optional<std::filesystem::path> {
-        if (dir.empty()) {
-            return std::nullopt;
-        }
-        std::error_code ec;
-        std::filesystem::path current = std::filesystem::weakly_canonical(dir, ec);
-        if (ec) {
-            current = dir;
-        }
-        while (!current.empty()) {
-            const auto descriptor = current / "WindEffects.engine";
-            if (std::filesystem::exists(descriptor)) {
-                return current;
-            }
-            const auto parent = current.parent_path();
-            if (parent == current) {
-                break;
-            }
-            current = parent;
-        }
-        return std::nullopt;
-    };
-
-    if (const char* envRoot = std::getenv("WE_ENGINE_ROOT")) {
-        if (auto found = tryFrom(FromUtf8(envRoot))) {
-            return found;
-        }
-    }
-    if (const char* envRoot = std::getenv("WE_PROJECT_ROOT")) {
-        if (auto found = tryFrom(FromUtf8(envRoot))) {
-            return found;
-        }
-    }
-
-    if (auto found = tryFrom(start)) {
-        return found;
-    }
-    return tryFrom(std::filesystem::current_path());
+    return we::core::PathService::FindEngineRoot(start);
 }
 
 std::filesystem::path PathUtils::ResolveRelative(const std::filesystem::path& root, const std::string& relative) {
-    std::string normalized = relative;
-    std::replace(normalized.begin(), normalized.end(), '\\', '/');
-    std::error_code ec;
-    const auto combined = root / FromUtf8(normalized);
-    auto canonical = std::filesystem::weakly_canonical(combined, ec);
-    if (ec) {
-        return combined;
-    }
-    return canonical;
+    return we::core::PathService::ResolveRelative(root, we::core::PathService::FromUtf8(relative));
 }
 
 std::string PathUtils::ToUtf8(const std::filesystem::path& path) {
-#if defined(_WIN32)
-    const std::wstring wide = path.native();
-    if (wide.empty()) {
-        return {};
-    }
-    const int size = WideCharToMultiByte(
-        CP_UTF8,
-        0,
-        wide.c_str(),
-        static_cast<int>(wide.size()),
-        nullptr,
-        0,
-        nullptr,
-        nullptr);
-    if (size <= 0) {
-        return {};
-    }
-    std::string out(static_cast<size_t>(size), '\0');
-    WideCharToMultiByte(
-        CP_UTF8,
-        0,
-        wide.c_str(),
-        static_cast<int>(wide.size()),
-        out.data(),
-        size,
-        nullptr,
-        nullptr);
-    return out;
-#else
-    return path.string();
-#endif
+    return we::core::PathService::ToUtf8(path);
 }
 
 std::filesystem::path PathUtils::FromUtf8(const std::string& path) {
-#if defined(_WIN32)
-    if (path.empty()) {
-        return {};
-    }
-    const int size = MultiByteToWideChar(
-        CP_UTF8,
-        0,
-        path.data(),
-        static_cast<int>(path.size()),
-        nullptr,
-        0);
-    if (size <= 0) {
-        return std::filesystem::path(path);
-    }
-    std::wstring wide(static_cast<size_t>(size), L'\0');
-    MultiByteToWideChar(
-        CP_UTF8,
-        0,
-        path.data(),
-        static_cast<int>(path.size()),
-        wide.data(),
-        size);
-    return std::filesystem::path(wide);
-#else
-    return std::filesystem::u8path(path);
-#endif
+    return we::core::PathService::FromUtf8(path);
 }
 
 std::filesystem::path PathUtils::GetDefaultProjectsRoot() {
-#if defined(_WIN32)
-    // Prefer a stable ASCII path under the user profile to avoid OneDrive / locale
-    // path encoding issues that previously corrupted launcher.json and crashed init.
-    const char* profile = std::getenv("USERPROFILE");
-    if (profile && profile[0] != '\0') {
-        return std::filesystem::path(profile) / "WindEffects" / "Projects";
-    }
-    wchar_t* docs = nullptr;
-    std::filesystem::path base;
-    if (SUCCEEDED(SHGetKnownFolderPath(FOLDERID_Documents, 0, nullptr, &docs)) && docs) {
-        base = docs;
-        CoTaskMemFree(docs);
-        return base / "WindEffects" / "Projects";
-    }
-    return std::filesystem::path(".") / "WindEffects" / "Projects";
-#else
-    const char* home = std::getenv("HOME");
-    return std::filesystem::path(home ? home : ".") / "WindEffects" / "Projects";
-#endif
+    return we::core::PathService::Get().DefaultProjectsRoot();
 }
 
 std::filesystem::path PathUtils::GetLauncherDataRoot() {
-#if defined(_WIN32)
-    wchar_t* localApp = nullptr;
-    std::filesystem::path base;
-    if (SUCCEEDED(SHGetKnownFolderPath(FOLDERID_LocalAppData, 0, nullptr, &localApp)) && localApp) {
-        base = localApp;
-        CoTaskMemFree(localApp);
-    } else {
-        base = std::filesystem::path(std::getenv("LOCALAPPDATA") ? std::getenv("LOCALAPPDATA") : ".");
-    }
-    return base / "WindEffects";
-#else
-    const char* config = std::getenv("XDG_CONFIG_HOME");
-    if (!config) {
-        const char* home = std::getenv("HOME");
-        return std::filesystem::path(home ? home : ".") / ".config" / "windeffects";
-    }
-    return std::filesystem::path(config) / "windeffects";
-#endif
+    return we::core::PathService::Get().UserDataRoot();
 }
 
 std::filesystem::path PathUtils::GetLauncherSettingsPath() {
@@ -192,15 +58,15 @@ std::filesystem::path PathUtils::GetLauncherSettingsPath() {
 }
 
 std::filesystem::path PathUtils::GetLauncherCacheRoot() {
-    return GetLauncherDataRoot() / "Cache";
+    return we::core::PathService::Get().UserCacheRoot();
 }
 
 std::filesystem::path PathUtils::GetThumbnailCacheRoot() {
-    return GetLauncherDataRoot() / "Thumbnails";
+    return GetLauncherDataRoot() / we::core::layout::kThumbnails;
 }
 
 std::filesystem::path PathUtils::GetLauncherLogsRoot() {
-    return GetLauncherDataRoot() / "Logs";
+    return we::core::PathService::Get().UserLogsRoot();
 }
 
 std::uint64_t PathUtils::EstimateDirectoryBytes(const std::filesystem::path& root) {

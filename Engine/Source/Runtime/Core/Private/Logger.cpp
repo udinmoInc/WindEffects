@@ -1,6 +1,7 @@
 #include "Core/Logger.h"
 #include "Core/FrameCounter.h"
 #include "Core/LogCategory.h"
+#include "Core/Paths.h"
 
 #if WE_HAS_NLOHMANN_JSON
 #include <nlohmann/json.h>
@@ -34,28 +35,51 @@ std::atomic<Logger::Level> Logger::s_MinimumLevel{ Logger::Level::Trace };
 std::ofstream Logger::s_LogFile;
 std::string Logger::s_LogFilePath;
 std::string Logger::s_SessionDirectory;
+std::string Logger::s_LogsRoot;
+std::string Logger::s_CrashesRoot;
 Logger::ErrorDialogHandler Logger::s_ErrorDialogHandler = nullptr;
 void* Logger::s_ErrorDialogUserData = nullptr;
 
 void Logger::Init() {
+    Init(we::core::PathService::Get().LogsRoot());
+}
+
+void Logger::Init(const std::filesystem::path& logsRoot) {
     LogRecord startup{};
     {
         std::lock_guard<std::recursive_mutex> lock(s_Mutex);
         if (s_Initialized.load()) return;
 
+        auto& paths = we::core::PathService::Get();
+        const auto resolvedLogs = logsRoot.empty() ? paths.LogsRoot() : we::core::PathService::Absolute(logsRoot);
+        const auto crashesRoot = paths.HasProject()
+            ? (paths.SavedRoot() / we::core::layout::kCrashes)
+            : paths.CrashesRoot();
+
+        const auto logsEnsure = we::core::PathService::EnsureDirectory(resolvedLogs);
+        const auto crashesEnsure = we::core::PathService::EnsureDirectory(crashesRoot);
+        if (!logsEnsure.ok) {
+            // Fall through — open may still fail and we report below.
+        }
+        (void)crashesEnsure;
+
+        s_LogsRoot = we::core::PathService::ToGeneric(resolvedLogs);
+        s_CrashesRoot = we::core::PathService::ToGeneric(crashesRoot);
+
         const auto now = std::chrono::system_clock::now();
         const auto epoch = std::chrono::duration_cast<std::chrono::seconds>(now.time_since_epoch()).count();
-        s_SessionDirectory = "Saved/Logs/Sessions/Session_" + std::to_string(epoch);
-        std::error_code ec;
-        std::filesystem::create_directories(s_SessionDirectory, ec);
-        std::filesystem::create_directories("Saved/Logs", ec);
-        std::filesystem::create_directories("Saved/Crashes", ec);
+        const auto sessionDir = resolvedLogs / we::core::layout::kSessions
+            / ("Session_" + std::to_string(epoch));
+        (void)we::core::PathService::EnsureDirectory(sessionDir);
 
-        s_LogFilePath = s_SessionDirectory + "/WindEffects.log";
-        s_LogFile.open(s_LogFilePath, std::ios::out | std::ios::trunc);
+        s_SessionDirectory = we::core::PathService::ToGeneric(sessionDir);
+        const auto sessionLog = sessionDir / "WindEffects.log";
+        s_LogFilePath = we::core::PathService::ToGeneric(sessionLog);
+        s_LogFile.open(sessionLog, std::ios::out | std::ios::trunc);
         if (!s_LogFile.is_open()) {
-            s_LogFilePath = "Saved/Logs/WindEffects.log";
-            s_LogFile.open(s_LogFilePath, std::ios::out | std::ios::trunc);
+            const auto fallbackLog = resolvedLogs / "WindEffects.log";
+            s_LogFilePath = we::core::PathService::ToGeneric(fallbackLog);
+            s_LogFile.open(fallbackLog, std::ios::out | std::ios::trunc);
         }
 
         s_Running.store(true);
@@ -65,6 +89,9 @@ void Logger::Init() {
         startup.level = Level::Info;
         startup.category = "Startup";
         startup.message = "WindEffects logger initialized. Session log: " + s_LogFilePath;
+        if (!logsEnsure.ok) {
+            startup.message += " | logs root warning: " + logsEnsure.message;
+        }
         startup.timestamp = GetCurrentTimestamp();
         startup.frameNumber = FrameCounter::GetFrameNumber();
 #if defined(_WIN32)
@@ -75,6 +102,14 @@ void Logger::Init() {
 
     EnqueueRecord(std::move(startup), true);
     SetupCrashHandler();
+}
+
+const std::string& Logger::GetLogsRoot() {
+    return s_LogsRoot;
+}
+
+const std::string& Logger::GetCrashesRoot() {
+    return s_CrashesRoot;
 }
 
 void Logger::Shutdown() {
@@ -198,7 +233,9 @@ void Logger::RotateLogFilesIfNeeded() {
     if (ec || size < kMaxLogFileBytes) return;
 
     s_LogFile.close();
-    const std::string rotated = s_SessionDirectory + "/WindEffects_" + std::to_string(size) + ".log";
+    const auto rotatedPath = we::core::PathService::FromUtf8(s_SessionDirectory)
+        / ("WindEffects_" + std::to_string(size) + ".log");
+    const std::string rotated = we::core::PathService::ToGeneric(rotatedPath);
     std::filesystem::rename(s_LogFilePath, rotated, ec);
     s_LogFile.open(s_LogFilePath, std::ios::out | std::ios::app);
 }
@@ -353,15 +390,21 @@ long __stdcall Logger::EngineCrashHandler(struct _EXCEPTION_POINTERS* exceptionI
     addressStream << "0x" << std::hex << exceptionInfo->ExceptionRecord->ExceptionAddress;
     Log(Level::Critical, "Crash", "Fatal exception: " + exceptionName + " at " + addressStream.str());
 
-    const std::string crashDir = "Saved/Crashes/Latest";
+    const auto crashesRoot = s_CrashesRoot.empty()
+        ? we::core::PathService::Get().CrashesRoot()
+        : we::core::PathService::FromUtf8(s_CrashesRoot);
+    const auto crashDirPath = crashesRoot / "Latest";
+    const std::string crashDir = we::core::PathService::ToGeneric(crashDirPath);
     std::error_code ec;
-    if (std::filesystem::exists(crashDir)) {
-        const std::string backupDir = "Saved/Crashes/Crash_" + std::to_string(std::chrono::system_clock::now().time_since_epoch().count());
-        std::filesystem::rename(crashDir, backupDir, ec);
+    if (std::filesystem::exists(crashDirPath, ec)) {
+        const auto backupDir = crashesRoot
+            / ("Crash_" + std::to_string(std::chrono::system_clock::now().time_since_epoch().count()));
+        std::filesystem::rename(crashDirPath, backupDir, ec);
     }
-    std::filesystem::create_directories(crashDir, ec);
+    (void)we::core::PathService::EnsureDirectory(crashDirPath);
 
-    HANDLE hFile = CreateFileA((crashDir + "/WindEffects.dmp").c_str(), GENERIC_READ | GENERIC_WRITE, 0, nullptr, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr);
+    const auto dumpPath = crashDirPath / "WindEffects.dmp";
+    HANDLE hFile = CreateFileW(dumpPath.wstring().c_str(), GENERIC_READ | GENERIC_WRITE, 0, nullptr, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr);
     if (hFile != INVALID_HANDLE_VALUE) {
         MINIDUMP_EXCEPTION_INFORMATION mdei{};
         mdei.ThreadId = GetCurrentThreadId();
@@ -379,10 +422,10 @@ long __stdcall Logger::EngineCrashHandler(struct _EXCEPTION_POINTERS* exceptionI
     crashJson["EngineVersion"] = "1.0.0";
     crashJson["ExceptionName"] = exceptionName;
     crashJson["LogFile"] = s_LogFilePath;
-    std::ofstream(crashDir + "/Crash.json") << crashJson.dump(4);
+    std::ofstream(crashDirPath / "Crash.json") << crashJson.dump(4);
 #endif
 
-    std::ofstream stackFile(crashDir + "/StackTrace.txt");
+    std::ofstream stackFile(crashDirPath / "StackTrace.txt");
     HANDLE process = GetCurrentProcess();
     HANDLE thread = GetCurrentThread();
     SymInitialize(process, NULL, TRUE);
@@ -415,14 +458,19 @@ long __stdcall Logger::EngineCrashHandler(struct _EXCEPTION_POINTERS* exceptionI
 
     Flush();
     if (!s_LogFilePath.empty()) {
-        std::filesystem::copy_file(s_LogFilePath, crashDir + "/Engine.log", std::filesystem::copy_options::overwrite_existing, ec);
+        std::filesystem::copy_file(
+            we::core::PathService::FromUtf8(s_LogFilePath),
+            crashDirPath / "Engine.log",
+            std::filesystem::copy_options::overwrite_existing,
+            ec);
     }
 
     STARTUPINFOA si{};
     si.cb = sizeof(si);
     PROCESS_INFORMATION pi{};
-    std::string reporterPath = "WECrashReporter.exe";
-    CreateProcessA(nullptr, reporterPath.data(), nullptr, nullptr, FALSE, DETACHED_PROCESS, nullptr, nullptr, &si, &pi);
+    const auto reporterPath = we::core::PathService::Get().ResolveSiblingExecutable("WECrashReporter.exe");
+    std::string reporterCmd = we::core::PathService::ToUtf8(reporterPath);
+    CreateProcessA(nullptr, reporterCmd.data(), nullptr, nullptr, FALSE, DETACHED_PROCESS, nullptr, nullptr, &si, &pi);
     if (pi.hProcess) {
         CloseHandle(pi.hProcess);
         CloseHandle(pi.hThread);

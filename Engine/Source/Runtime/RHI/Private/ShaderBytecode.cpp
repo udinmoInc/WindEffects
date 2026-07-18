@@ -1,12 +1,15 @@
 #include "RHI/ShaderBytecode.h"
 
+#include "Core/Paths.h"
+
+#include <filesystem>
 #include <fstream>
 #include <string>
 
 namespace we::rhi {
 namespace {
 
-std::vector<uint8_t> ReadFile(const std::string& path) {
+std::vector<uint8_t> ReadFile(const std::filesystem::path& path) {
     std::ifstream file(path, std::ios::binary | std::ios::ate);
     if (!file) {
         return {};
@@ -66,14 +69,8 @@ std::vector<uint8_t> ShaderBytecodeLoader::Load(
     }
 
     const std::string fileName = std::string(shaderName) + "_" + std::string(stageToken) + ext;
-    const char* roots[] = {
-        "Engine/Shaders/Bytecodes/",
-        "Assets/Shaders/",
-        "../Engine/Shaders/Bytecodes/",
-        "../Assets/Shaders/",
-    };
-    for (const char* root : roots) {
-        auto data = ReadFile(std::string(root) + fileName);
+    for (const auto& candidate : we::core::PathService::Get().ShaderBytecodeCandidates(fileName)) {
+        auto data = ReadFile(candidate);
         if (!data.empty()) {
             return data;
         }

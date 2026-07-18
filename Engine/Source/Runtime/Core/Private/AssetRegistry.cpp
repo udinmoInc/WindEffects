@@ -1,10 +1,23 @@
 #include "Core/AssetRegistry.h"
 #include "Core/Logger.h"
+#include "Core/Paths.h"
 
 #include <filesystem>
 #include <fstream>
 
 namespace we::core {
+namespace {
+
+std::vector<std::string> PathsToStrings(const std::vector<std::filesystem::path>& paths) {
+    std::vector<std::string> out;
+    out.reserve(paths.size());
+    for (const auto& path : paths) {
+        out.push_back(PathService::ToUtf8(path));
+    }
+    return out;
+}
+
+} // namespace
 
 AssetRegistry& AssetRegistry::Get() {
     static AssetRegistry instance;
@@ -84,11 +97,13 @@ std::vector<AssetLoadResult> AssetRegistry::GetLastLoadResults() const {
 }
 
 std::string AssetRegistry::ResolveAssetPath(const std::vector<std::string>& candidates) {
-    for (const auto& path : candidates) {
-        std::error_code ec;
-        if (std::filesystem::exists(path, ec)) {
-            return path;
-        }
+    std::vector<std::filesystem::path> paths;
+    paths.reserve(candidates.size());
+    for (const auto& candidate : candidates) {
+        paths.push_back(PathService::FromUtf8(candidate));
+    }
+    if (const auto found = PathService::FindExisting(paths)) {
+        return PathService::ToUtf8(*found);
     }
     return {};
 }
@@ -109,96 +124,45 @@ bool AssetRegistry::LoadDefaultEditorAssets() {
 
     HE_INFO("[Assets] Loading default editor assets...");
 
+    const auto& paths = PathService::Get();
+
     const std::vector<std::pair<std::string, std::vector<std::string>>> fonts = {
-        {"Font_UI", {
-            "Assets/Fonts/Inter-Regular.wefont",
-            "Fonts/Inter-Regular.wefont",
-            "../Assets/Fonts/Inter-Regular.wefont",
-            "bin/Fonts/Inter-Regular.wefont",
-            "../../bin/Fonts/Inter-Regular.wefont"
-        }},
+        {"Font_UI", PathsToStrings(paths.FontCandidates("Inter-Regular.wefont"))},
     };
 
-    const std::vector<std::pair<std::string, std::vector<std::string>>> shaders = {
-        {"UI", {
-            "Engine/Shaders/Bytecodes/UI_VS.spv",
-            "Assets/Shaders/UI_VS.spv",
-            "Shaders/UI_VS.spv",
-            "../Assets/Shaders/UI_VS.spv"
-        }},
-        {"AtmospherePass", {
-            "Engine/Shaders/Bytecodes/AtmospherePass_VS.spv",
-            "Assets/Shaders/AtmospherePass_VS.spv",
-            "Shaders/AtmospherePass_VS.spv"
-        }},
-        {"VolumetricCloudsPass", {
-            "Engine/Shaders/Bytecodes/VolumetricCloudsPass_VS.spv",
-            "Assets/Shaders/VolumetricCloudsPass_VS.spv",
-            "Shaders/VolumetricCloudsPass_VS.spv"
-        }},
-        {"CloudTemporalResolve", {
-            "Engine/Shaders/Bytecodes/CloudTemporalResolve_VS.spv",
-            "Assets/Shaders/CloudTemporalResolve_VS.spv",
-            "Shaders/CloudTemporalResolve_VS.spv"
-        }},
-        {"CloudCompositePass", {
-            "Engine/Shaders/Bytecodes/CloudCompositePass_VS.spv",
-            "Assets/Shaders/CloudCompositePass_VS.spv",
-            "Shaders/CloudCompositePass_VS.spv"
-        }},
-        {"FogCompositePass", {
-            "Engine/Shaders/Bytecodes/FogCompositePass_VS.spv",
-            "Assets/Shaders/FogCompositePass_VS.spv",
-            "Shaders/FogCompositePass_VS.spv"
-        }},
-        {"AtmospherePass", {
-            "Assets/Shaders/AtmospherePass_VS.spv",
-            "Shaders/AtmospherePass_VS.spv"
-        }},
-        {"EditorGrid", {
-            "Engine/Shaders/Bytecodes/EditorGrid_VS.spv",
-            "Assets/Shaders/EditorGrid_VS.spv",
-            "Shaders/EditorGrid_VS.spv"
-        }},
-        {"SceneObject", {
-            "Engine/Shaders/Bytecodes/SceneObject_VS.spv",
-            "Assets/Shaders/SceneObject_VS.spv",
-            "Shaders/SceneObject_VS.spv"
-        }},
+    const std::vector<std::pair<std::string, std::string>> shaderNames = {
+        {"UI", "UI_VS.spv"},
+        {"AtmospherePass", "AtmospherePass_VS.spv"},
+        {"VolumetricCloudsPass", "VolumetricCloudsPass_VS.spv"},
+        {"CloudTemporalResolve", "CloudTemporalResolve_VS.spv"},
+        {"CloudCompositePass", "CloudCompositePass_VS.spv"},
+        {"FogCompositePass", "FogCompositePass_VS.spv"},
+        {"EditorGrid", "EditorGrid_VS.spv"},
+        {"SceneObject", "SceneObject_VS.spv"},
     };
+
+    std::vector<std::pair<std::string, std::vector<std::string>>> shaders;
+    shaders.reserve(shaderNames.size());
+    for (const auto& [name, fileName] : shaderNames) {
+        shaders.emplace_back(name, PathsToStrings(paths.ShaderBytecodeCandidates(fileName)));
+    }
 
     const std::vector<std::pair<std::string, std::vector<std::string>>> icons = {
-        {"Icon_Lucide", {
-            "Engine/Content/Icons/icons",
-            "Assets/Icons/icons",
-            "Icons/icons",
-            "../Assets/Icons/icons",
-            "../Engine/Content/Icons/icons"
-        }},
+        {"Icon_Lucide", PathsToStrings(paths.IconCandidates("icons"))},
     };
 
     const std::vector<std::pair<std::string, std::vector<std::string>>> iconAtlases = {
-        {"Icon_AtlasRoot", {
-            "Assets/Icons/Atlas",
-            "Icons/Atlas",
-            "../Assets/Icons/Atlas",
-            "Build/Output/Win64/Shipping/Assets/Icons/Atlas"
-        }},
+        {"Icon_AtlasRoot", PathsToStrings(paths.IconCandidates("Atlas"))},
     };
 
     const std::vector<std::pair<std::string, std::vector<std::string>>> iconMeta = {
-        {"Icon_Meta", {
-            "Assets/Icons/Atlas/icons.weiconmeta",
-            "Icons/Atlas/icons.weiconmeta",
-            "../Assets/Icons/Atlas/icons.weiconmeta",
-            "Build/Output/Win64/Shipping/Assets/Icons/Atlas/icons.weiconmeta"
-        }},
+        {"Icon_Meta", PathsToStrings(paths.IconCandidates(std::filesystem::path("Atlas") / "icons.weiconmeta"))},
     };
 
     bool allRequiredFound = true;
 
-    for (const auto& [name, paths] : fonts) {
-        auto result = TryLoadAsset(name, paths);
+    for (const auto& [name, candidatePaths] : fonts) {
+        auto result = TryLoadAsset(name, candidatePaths);
         if (result.found) {
             m_FontPaths[name] = result.resolvedPath;
             HE_INFO("[Assets]   Font '" + name + "' -> " + result.resolvedPath);
@@ -208,8 +172,8 @@ bool AssetRegistry::LoadDefaultEditorAssets() {
         }
     }
 
-    for (const auto& [name, paths] : shaders) {
-        auto result = TryLoadAsset(name, paths);
+    for (const auto& [name, candidatePaths] : shaders) {
+        auto result = TryLoadAsset(name, candidatePaths);
         if (result.found) {
             m_ShaderPaths[name] = result.resolvedPath;
             HE_INFO("[Assets]   Shader '" + name + "' -> " + result.resolvedPath);
@@ -224,8 +188,8 @@ bool AssetRegistry::LoadDefaultEditorAssets() {
         }
     }
 
-    for (const auto& [name, paths] : icons) {
-        auto result = TryLoadAsset(name, paths);
+    for (const auto& [name, candidatePaths] : icons) {
+        auto result = TryLoadAsset(name, candidatePaths);
         if (result.found) {
             m_IconPaths[name] = result.resolvedPath;
             HE_INFO("[Assets]   Icon source '" + name + "' -> " + result.resolvedPath);
@@ -234,8 +198,8 @@ bool AssetRegistry::LoadDefaultEditorAssets() {
         }
     }
 
-    for (const auto& [name, paths] : iconAtlases) {
-        auto result = TryLoadAsset(name, paths);
+    for (const auto& [name, candidatePaths] : iconAtlases) {
+        auto result = TryLoadAsset(name, candidatePaths);
         if (result.found) {
             m_IconAtlasRoot = result.resolvedPath;
             HE_INFO("[Assets]   Icon atlas root '" + name + "' -> " + result.resolvedPath);
@@ -245,8 +209,8 @@ bool AssetRegistry::LoadDefaultEditorAssets() {
         }
     }
 
-    for (const auto& [name, paths] : iconMeta) {
-        auto result = TryLoadAsset(name, paths);
+    for (const auto& [name, candidatePaths] : iconMeta) {
+        auto result = TryLoadAsset(name, candidatePaths);
         if (result.found) {
             m_IconMetaPath = result.resolvedPath;
             HE_INFO("[Assets]   Icon meta '" + name + "' -> " + result.resolvedPath);

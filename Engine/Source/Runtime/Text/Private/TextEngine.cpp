@@ -1,6 +1,7 @@
 #include "Text/TextEngine.h"
 
 #include "Core/AssetRegistry.h"
+#include "Core/Paths.h"
 
 #include <cmath>
 #include <filesystem>
@@ -51,16 +52,15 @@ TextEngine::TextEngine(const TextEngineConfig& config)
     m_Batcher = rendering::CreateTextBatcher();
 
     if (!config.fontStackConfig.empty()) {
-        const std::vector<std::string> configCandidates = {
-            config.fontStackConfig.string(),
-            "Engine/Config/Fonts/DefaultFontStack.json",
-            "Config/Fonts/DefaultFontStack.json",
-            "../Engine/Config/Fonts/DefaultFontStack.json",
-            "../Config/Fonts/DefaultFontStack.json",
+        auto& paths = we::core::PathService::Get();
+        std::vector<std::filesystem::path> configCandidates = {
+            config.fontStackConfig,
+            paths.EngineConfigRoot() / we::core::layout::kFonts / "DefaultFontStack.json",
+            paths.ExecutableDirectory() / we::core::layout::kConfig / we::core::layout::kFonts
+                / "DefaultFontStack.json",
         };
-        const auto resolvedConfig = we::core::AssetRegistry::ResolveAssetPath(configCandidates);
-        if (!resolvedConfig.empty()) {
-            (void)m_AssetManager->LoadFontStackConfig(resolvedConfig);
+        if (const auto resolvedConfig = we::core::PathService::FindExisting(configCandidates)) {
+            (void)m_AssetManager->LoadFontStackConfig(*resolvedConfig);
         }
     }
 }

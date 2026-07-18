@@ -12,6 +12,7 @@
 #include "Core/FrameCounter.h"
 #include "Core/LogCategory.h"
 #include "Core/Logger.h"
+#include "Core/Paths.h"
 #include "KindUI/Core/UIRepaintGate.h"
 #include "KindUI/Core/Widget.h"
 
@@ -99,20 +100,20 @@ bool OverlayRenderer::Init(we::rhi::IRHIDevice* device, we::rhi::Format swapchai
     m_IconRenderer = std::make_unique<IconRenderer>();
     m_IconManager = std::make_unique<IconManager>();
 
-    const auto metaPath = we::core::AssetRegistry::ResolveAssetPath({
-        "Assets/Icons/Atlas/icons.weiconmeta",
-        "Icons/Atlas/icons.weiconmeta",
-        "../Assets/Icons/Atlas/icons.weiconmeta",
-    });
+    const auto metaCandidates = we::core::PathService::Get().IconCandidates(
+        std::filesystem::path("Atlas") / "icons.weiconmeta");
+    const auto metaFound = we::core::PathService::FindExisting(metaCandidates);
+    const std::string metaPath = metaFound ? we::core::PathService::ToUtf8(*metaFound) : std::string{};
     const auto atlasRoot = [&]() -> std::filesystem::path {
-        if (!metaPath.empty()) {
-            return std::filesystem::path(metaPath).parent_path();
+        if (metaFound) {
+            return metaFound->parent_path();
         }
-        const auto probe = we::core::AssetRegistry::ResolveAssetPath({
-            "Assets/Icons/Atlas/ui_Atlas_16.weiconatlas",
-            "Icons/Atlas/ui_Atlas_16.weiconatlas",
-        });
-        return probe.empty() ? std::filesystem::path{} : std::filesystem::path(probe).parent_path();
+        const auto probeCandidates = we::core::PathService::Get().IconCandidates(
+            std::filesystem::path("Atlas") / "ui_Atlas_16.weiconatlas");
+        if (const auto probe = we::core::PathService::FindExisting(probeCandidates)) {
+            return probe->parent_path();
+        }
+        return {};
     }();
     if (!metaPath.empty() && !atlasRoot.empty()) {
         if (m_IconManager->Init(this, metaPath, atlasRoot)) {

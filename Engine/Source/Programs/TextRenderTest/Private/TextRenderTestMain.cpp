@@ -2,6 +2,7 @@
 #include "Text/TextEngine.h"
 
 #include "Core/BuildPaths.h"
+#include "Core/Paths.h"
 
 #include <iostream>
 
@@ -20,7 +21,13 @@ int main()
     using namespace we::runtime::text;
 
     auto engine = CreateTextEngine();
-    const auto loaded = engine->LoadFont("Assets/Fonts/Inter-Regular.wefont");
+    const auto fontPath = we::core::PathService::FindExisting(
+        we::core::PathService::Get().FontCandidates("Inter-Regular.wefont"));
+    if (!fontPath) {
+        std::cerr << "Font not found\n";
+        return 1;
+    }
+    const auto loaded = engine->LoadFont(*fontPath);
     if (!loaded.ok) {
         std::cerr << "LoadFont failed\n";
         return 1;

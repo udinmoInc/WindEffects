@@ -8,6 +8,7 @@
 #include "KindUI/Widgets/TextBox.h"
 #include "KindUI/Widgets/CheckBox.h"
 #include "Core/Logger.h"
+#include "Core/Paths.h"
 #include "ConfigManager.h"
 #include <fstream>
 #include <filesystem>
@@ -24,7 +25,7 @@ using ::we::editor::docking::DockZone;
 namespace we::programs::crashreporter {
 
 CrashReporterUI::CrashReporterUI() {
-    m_CrashDir = "Saved/Logs/Crashes/Latest";
+    m_CrashDir = we::core::PathService::ToUtf8(we::core::PathService::Get().CrashLatestRoot());
 }
 
 void CrashReporterUI::LoadCrashData() {
