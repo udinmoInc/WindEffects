@@ -1,6 +1,5 @@
 #include "KindUI/Rendering/TextUIService.h"
 
-#include "KindUI/Core/DPIContext.h"
 #include "KindUI/Core/TextMetrics.h"
 #include "KindUI/Rendering/FontImportService.h"
 #include "KindUI/Rendering/OverlayRenderer.h"
@@ -246,7 +245,7 @@ float TextUIService::MeasureText(const std::string& text, float fontSize, bool b
         return 0.0f;
     }
     we::runtime::text::layout::TextStyle style{};
-    // fontSize is logical (CSS-like) px; DPI is applied via constraints.
+    // fontSize is in final layout pixels (themes/StylePipeline apply DPI before draw/measure).
     style.sizePx = fontSize;
     style.weight = bold ? we::runtime::text::layout::FontWeight::SemiBold
                         : we::runtime::text::layout::FontWeight::Regular;

@@ -33,8 +33,8 @@ public:
 
             PipelineStateKey key;
             key.format = AtlasFormat::Msdf;
-            key.outline = glyph.style.outline.has_value();
-            key.shadow = glyph.style.shadow.has_value();
+            key.outline = glyph.hasOutline;
+            key.shadow = glyph.hasShadow;
 
             BatchBuilder* builder = FindOrCreateBuilder(key, glyph.glyph.metrics.atlasPage, glyph.msdfPixelRange);
             const uint32_t base = static_cast<uint32_t>(builder->vertices.size());
