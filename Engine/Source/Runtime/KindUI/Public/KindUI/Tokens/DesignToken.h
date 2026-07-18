@@ -144,11 +144,19 @@ enum class ColorToken : uint32_t {
 
 enum class SpacingToken : uint32_t {
     None,
-    ExtraSmall,
-    Small,
-    Medium,
-    Large,
-    ExtraLarge,
+    ExtraSmall, // 2
+    Small,      // 4
+    Medium,     // 8
+    Large,      // 16
+    ExtraLarge, // 24
+    Huge,       // 32 — page / section breathing room
+};
+
+// Semantic control height roles (maps to MetricToken heights).
+enum class ControlSize : uint32_t {
+    Compact, // denser inputs / toggles / menu items
+    Default, // buttons, search, header controls
+    Large,   // prominent CTAs / list rows
 };
 
 enum class RadiusToken : uint32_t {
@@ -265,6 +273,16 @@ enum class MetricToken : uint32_t {
     SearchBoxHeight,
     IconButtonSize,
     ButtonHeight,
+    ControlHeightCompact, // denser form controls (toggle, spin, compact input)
+    ControlHeightLarge,   // prominent CTAs
+    FormRowHeight,        // label + control settings/property row
+    MenuItemHeight,       // popup / dropdown option row
+    PageMargin,           // page content inset
+    SectionGap,           // gap between titled sections
+    CardPadding,          // inner card / group padding
+    ContentGap,           // default stack gap between content blocks
+    FormRowGap,           // vertical padding around form rows
+    LabelHintGap,         // gap between label and hint in a form row
     NavigationButtonSize,
     IconSizeSearch,
     IconSizeToolbar,
@@ -296,6 +314,10 @@ enum class MetricToken : uint32_t {
 enum class PaddingToken : uint32_t {
     Panel,
     Button,
+    Card,
+    Page,
+    Input,
+    FormRow,
     PaddingPanelLeft,
     PaddingPanelTop,
     PaddingPanelRight,
