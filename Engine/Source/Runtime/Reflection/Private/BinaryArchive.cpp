@@ -1,8 +1,8 @@
 #include "Reflection/IBinaryArchive.h"
 #include "Reflection/ITypeRegistry.h"
-#include "Reflection/PropertyIterator.h"
-#include "Reflection/BuiltinTypes.h"
+#include "Reflection/SerializePlan.h"
 
+#include <cstddef>
 #include <cstring>
 
 namespace we::runtime::reflection {
@@ -63,41 +63,45 @@ bool SerializePrimitiveValue(
     }
 }
 
-bool SerializePropertyValue(
+bool SerializeStepValue(
     IBinaryArchive& archive,
     const ITypeRegistry& registry,
-    const PropertyInfo& property,
+    const SerializeStep& step,
     void* instance)
 {
-    void* field = property.MutablePtr(instance);
-    if (!field && property.size > 0) {
+    if (!step.property) {
+        return false;
+    }
+    const PropertyInfo& property = *step.property;
+    void* field = nullptr;
+    if (property.getter || property.setter) {
+        // Accessor path — use temporary buffer for non-direct storage.
+        if (step.size == 0) {
+            return false;
+        }
+    }
+    field = property.MutablePtr(instance);
+    if (!field && step.size > 0) {
         return false;
     }
 
-    if (property.primitive != PrimitiveKind::None) {
-        return SerializePrimitiveValue(archive, property.primitive, field, property.size);
+    if (step.isString) {
+        return archive.SerializeString(*static_cast<std::string*>(field));
     }
-
-    const TypeInfo* propertyType = registry.Resolve(property.typeId);
-    if (propertyType && propertyType->IsPrimitive()) {
-        return SerializePrimitiveValue(archive, propertyType->primitive, field, property.size);
+    if (step.primitive != PrimitiveKind::None) {
+        return SerializePrimitiveValue(archive, step.primitive, field, step.size);
     }
-
-    if (propertyType && propertyType->IsEnum()) {
-        // Enums serialize as their underlying integer width.
-        return archive.SerializeBytes(field, property.size);
+    if (step.isEnum) {
+        return archive.SerializeBytes(field, step.size);
     }
-
-    // Nested reflected object: recurse using property's type.
-    if (propertyType && propertyType->IsClassOrStruct() && field) {
-        BinarySerializeOptions nestedOptions;
-        nestedOptions.writeTypeIdHeader = false;
-        nestedOptions.includeBases = true;
-        return SerializeObjectBinary(archive, registry, property.typeId, field, nestedOptions);
+    if (step.isNestedObject && field) {
+        BinarySerializeOptions nested;
+        nested.writeTypeIdHeader = false;
+        nested.includeBases = true;
+        return SerializeObjectBinary(archive, registry, step.propertyTypeId, field, nested);
     }
-
-    if (property.size > 0 && field) {
-        return archive.SerializeBytes(field, property.size);
+    if (step.size > 0 && field) {
+        return archive.SerializeBytes(field, step.size);
     }
     return false;
 }
@@ -221,7 +225,7 @@ bool SerializeObjectBinary(
 
     if (options.writeTypeIdHeader) {
         TypeId headerType = info->typeId;
-        std::uint32_t schemaVersion = info->schemaVersion;
+        std::uint32_t schemaVersion = info->versions.schemaVersion;
         if (!archive.SerializeTypeId(headerType)) {
             return false;
         }
@@ -229,23 +233,40 @@ bool SerializeObjectBinary(
             return false;
         }
         if (archive.IsLoading() && headerType != info->typeId) {
-            // Strict match for now; future adapters may remap schema versions.
             return false;
         }
     }
 
-    PropertyIterateOptions iterateOptions;
-    iterateOptions.includeBases = options.includeBases;
-    iterateOptions.serializedOnly = options.requireSerializeFlag;
-    iterateOptions.skipTransient = options.skipTransient;
-    iterateOptions.skipHidden = false;
-
-    const std::vector<PropertyVisit> properties = CollectProperties(registry, typeId, iterateOptions);
-    for (const PropertyVisit& visit : properties) {
-        if (!visit.property) {
-            return false;
+    // Prefer cached serialize plan — zero discovery in the hot path.
+    if (options.requireSerializeFlag && options.skipTransient && options.includeBases) {
+        if (const SerializePlan* plan = registry.GetSerializePlan(typeId)) {
+            for (const SerializeStep& step : plan->steps) {
+                if (!SerializeStepValue(archive, registry, step, instance)) {
+                    return false;
+                }
+            }
+            return true;
         }
-        if (!SerializePropertyValue(archive, registry, *visit.property, instance)) {
+    }
+
+    // Fallback for uncommon option combinations.
+    const TypeInfo* resolved = info;
+    for (const PropertyInfo& property : resolved->properties) {
+        if (options.requireSerializeFlag && !property.IsSerialized()) {
+            continue;
+        }
+        if (options.skipTransient && HasFlag(property.flags, PropertyFlags::Transient)) {
+            continue;
+        }
+        SerializeStep step;
+        step.property = &property;
+        step.propertyTypeId = property.typeId;
+        step.primitive = property.primitive;
+        step.offset = property.offset;
+        step.size = property.size;
+        step.schemaTag = property.schemaTag;
+        step.isString = property.primitive == PrimitiveKind::String;
+        if (!SerializeStepValue(archive, registry, step, instance)) {
             return false;
         }
     }

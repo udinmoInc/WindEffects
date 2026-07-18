@@ -45,7 +45,33 @@ TypeBuilder& TypeBuilder::Alignment(std::uint32_t alignment) {
 }
 
 TypeBuilder& TypeBuilder::SchemaVersion(std::uint32_t version) {
-    m_Info.schemaVersion = version == 0 ? 1u : version;
+    const std::uint32_t v = version == 0 ? 1u : version;
+    m_Info.schemaVersion = v;
+    m_Info.versions.schemaVersion = v;
+    return *this;
+}
+
+TypeBuilder& TypeBuilder::TypeVersion(std::uint32_t version) {
+    m_Info.versions.typeVersion = version == 0 ? 1u : version;
+    return *this;
+}
+
+TypeBuilder& TypeBuilder::MigrationVersion(std::uint32_t version) {
+    m_Info.versions.migrationVersion = version == 0 ? 1u : version;
+    return *this;
+}
+
+TypeBuilder& TypeBuilder::BinaryCompatibilityVersion(std::uint32_t version) {
+    m_Info.versions.binaryCompatibilityVersion = version == 0 ? 1u : version;
+    return *this;
+}
+
+TypeBuilder& TypeBuilder::Versions(TypeVersionInfo versions) {
+    m_Info.versions = versions;
+    if (m_Info.versions.schemaVersion == 0) {
+        m_Info.versions.schemaVersion = 1;
+    }
+    m_Info.schemaVersion = m_Info.versions.schemaVersion;
     return *this;
 }
 
@@ -113,14 +139,8 @@ TypeBuilder& TypeBuilder::Property(
     PropertyFlags flags,
     PrimitiveKind primitive)
 {
-    PropertyInfo property;
-    property.name = std::string(name);
-    property.typeId = propertyTypeId;
-    property.offset = offset;
-    property.size = size;
-    property.flags = flags;
-    property.primitive = primitive;
-    m_Info.properties.push_back(std::move(property));
+    m_Info.properties.push_back(
+        MakeOffsetProperty(name, propertyTypeId, offset, size, 1, flags, primitive));
     return *this;
 }
 
@@ -150,6 +170,10 @@ TypeInfo TypeBuilder::Build() const {
 
 bool TypeBuilder::Register(ITypeRegistry& registry) const {
     return registry.RegisterType(m_Info);
+}
+
+bool TypeBuilder::Register(ITypeRegistry& registry, RegisterMode mode) const {
+    return registry.RegisterType(m_Info, mode);
 }
 
 } // namespace we::runtime::reflection

@@ -2,6 +2,7 @@
 
 #include "Reflection/AttributeInfo.h"
 #include "Reflection/Export.h"
+#include "Reflection/NameId.h"
 #include "Reflection/TypeId.h"
 #include "Reflection/TypeKinds.h"
 
@@ -11,26 +12,30 @@
 
 namespace we::runtime::reflection {
 
-/// Optional typed accessors for non-POD / computed properties.
-/// Signatures are C-callable across DLL boundaries (no exceptions required).
 using PropertyGetterFn = bool (*)(const void* instance, void* outValue, std::size_t outSize);
 using PropertySetterFn = bool (*)(void* instance, const void* value, std::size_t valueSize);
 
 /// Reflected field / property. Layout-oriented for binary serialization and editors.
+/// Hot-path fields are grouped first for cache locality; nameId enables O(1) registry lookup.
 struct REFLECTION_API PropertyInfo {
-    std::string name;
-    TypeId typeId = kInvalidTypeId;       // type of the property value
-    TypeId ownerTypeId = kInvalidTypeId;  // declaring type
-    std::uint32_t offset = 0;             // byte offset within owner (0 if getter-only)
-    std::uint32_t size = 0;               // byte size of the value storage
-    std::uint16_t alignment = 1;
+    // --- Hot path (frequently read during serialize / iterate) ---
+    TypeId typeId = kInvalidTypeId;
+    TypeId ownerTypeId = kInvalidTypeId;
+    std::uint32_t offset = 0;
+    std::uint32_t size = 0;
     PropertyFlags flags = PropertyFlags::Serialize | PropertyFlags::Editable;
-    PrimitiveKind primitive = PrimitiveKind::None; // fast-path when value is primitive
+    PrimitiveKind primitive = PrimitiveKind::None;
+    std::uint16_t alignment = 1;
+    std::uint16_t reserved = 0;
+    NameId nameId = kInvalidNameId;
+    std::uint32_t index = 0;
+    std::uint32_t schemaTag = 0;
     PropertyGetterFn getter = nullptr;
     PropertySetterFn setter = nullptr;
+
+    // --- Cold path ---
+    std::string name;
     AttributeBag attributes;
-    std::uint32_t index = 0;              // stable index within declaring type
-    std::uint32_t schemaTag = 0;          // optional field tag for versioned binary formats
 
     [[nodiscard]] bool IsSerialized() const noexcept {
         return HasFlag(flags, PropertyFlags::Serialize) && !HasFlag(flags, PropertyFlags::Transient);

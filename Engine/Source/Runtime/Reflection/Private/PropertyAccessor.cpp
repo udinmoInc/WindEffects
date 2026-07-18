@@ -181,20 +181,7 @@ private:
         if (!m_Registry) {
             return nullptr;
         }
-        const TypeInfo* info = m_Registry->Resolve(ownerTypeId);
-        if (!info) {
-            return nullptr;
-        }
-        if (const PropertyInfo* direct = info->FindProperty(name)) {
-            return direct;
-        }
-        // Search bases.
-        for (TypeId baseId : info->baseTypes) {
-            if (const PropertyInfo* found = FindProperty(baseId, name)) {
-                return found;
-            }
-        }
-        return nullptr;
+        return m_Registry->FindProperty(ownerTypeId, name);
     }
 
     ITypeRegistry* m_Registry = nullptr;

@@ -6,8 +6,12 @@
 class ReflectionModule : public we::core::IModuleInterface {
 public:
     void StartupModule() override {
-        // Ensure the process-wide registry (and builtins) are initialized on module load.
-        (void)we::runtime::reflection::GetTypeRegistry();
+        we::runtime::reflection::ITypeRegistry& registry =
+            we::runtime::reflection::GetTypeRegistry();
+        // Freeze builtins + any static initializers for lock-free concurrent reads.
+        if (!registry.IsSealed()) {
+            registry.Seal();
+        }
         WE_LOG_TRACE(we::LogCategory::Plugin.data(), "ReflectionModule started");
     }
 

@@ -2,6 +2,7 @@
 
 #include "Reflection/AttributeInfo.h"
 #include "Reflection/Export.h"
+#include "Reflection/NameId.h"
 #include "Reflection/TypeId.h"
 #include "Reflection/TypeKinds.h"
 
@@ -12,9 +13,9 @@
 
 namespace we::runtime::reflection {
 
-/// Parameter metadata for reflected functions.
 struct REFLECTION_API ParameterInfo {
     std::string name;
+    NameId nameId = kInvalidNameId;
     TypeId typeId = kInvalidTypeId;
     std::uint32_t index = 0;
     bool isConst = false;
@@ -22,9 +23,6 @@ struct REFLECTION_API ParameterInfo {
     bool isOut = false;
 };
 
-/// Opaque invoke signature: (instance, argsBlob, argsSize, returnBlob, returnSize) -> success.
-/// Callers pack arguments according to ParameterInfo layout. Designed for scripting /
-/// editor call bridges without C++ RTTI.
 using FunctionInvokeFn = bool (*)(
     void* instance,
     const void* args,
@@ -33,14 +31,15 @@ using FunctionInvokeFn = bool (*)(
     std::size_t returnBufferSize);
 
 struct REFLECTION_API FunctionInfo {
-    std::string name;
+    NameId nameId = kInvalidNameId;
     TypeId ownerTypeId = kInvalidTypeId;
     TypeId returnTypeId = kInvalidTypeId;
-    std::vector<ParameterInfo> parameters;
     FunctionFlags flags = FunctionFlags::None;
     FunctionInvokeFn invoke = nullptr;
-    AttributeBag attributes;
     std::uint32_t index = 0;
+    std::string name;
+    std::vector<ParameterInfo> parameters;
+    AttributeBag attributes;
 
     [[nodiscard]] bool IsCallable() const noexcept { return invoke != nullptr; }
     [[nodiscard]] bool IsStatic() const noexcept { return HasFlag(flags, FunctionFlags::Static); }
