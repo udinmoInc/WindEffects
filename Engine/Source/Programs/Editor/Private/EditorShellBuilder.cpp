@@ -1,7 +1,9 @@
 #include "EditorShellBuilder.h"
 
+#include "ContentBrowser/AssetImportBridge.h"
 #include "Core/Logger.h"
 #include "Core/IgniteBTInvoker.h"
+#include "Projects/ProjectContext.h"
 #include "WindEffects/Editor/UI/Shell/EditorModeController.h"
 #include "WindEffects/Editor/UI/Shell/EditorWorkspaceController.h"
 #include "Explorer/WorldOutlinerApi.h"
@@ -227,9 +229,77 @@ EditorShellResult EditorShellBuilder::Build(
         context.GetCommandRegistry().Execute("build.compile", commandContext);
     };
     buildItems.push_back(compileItem);
-    buildItems.push_back([] { auto i = std::make_shared<MenuItem>(); i->label = "Build"; return i; }());
-    buildItems.push_back([] { auto i = std::make_shared<MenuItem>(); i->label = "Package"; return i; }());
-    buildItems.push_back([] { auto i = std::make_shared<MenuItem>(); i->label = "Cook Content"; return i; }());
+    buildItems.push_back([] {
+        auto i = std::make_shared<MenuItem>();
+        i->label = "Build";
+        i->onClick = []() {
+            auto& project = we::projects::ProjectContext::Get();
+            if (!project.IsLoaded()) {
+                HE_WARN("[Build] No project loaded.");
+                return;
+            }
+            const auto result = we::programs::editor::BuildContentDirectory(
+                project.ContentRoot(),
+                project.ContentRoot());
+            if (!result.success) {
+                HE_ERROR("[Build] Asset pipeline failed: " + result.message);
+                return;
+            }
+            HE_INFO("[Build] Assets rebuilt=" + std::to_string(result.rebuiltCount)
+                + " skipped=" + std::to_string(result.skippedCount)
+                + " failed=" + std::to_string(result.failedCount));
+        };
+        return i;
+    }());
+    buildItems.push_back([] {
+        auto i = std::make_shared<MenuItem>();
+        i->label = "Package";
+        i->onClick = []() {
+            auto& project = we::projects::ProjectContext::Get();
+            if (!project.IsLoaded()) {
+                HE_WARN("[Package] No project loaded.");
+                return;
+            }
+            const auto cookedDir = project.SavedRoot() / "Cooked" / "Windows";
+            const auto pakPath = project.SavedRoot() / "Packages" / "Content.wepak";
+            const auto result = we::programs::editor::CookOrPackageContent(
+                project.ContentRoot(),
+                cookedDir,
+                pakPath,
+                "Windows");
+            if (!result.success) {
+                HE_ERROR("[Package] Cook/package failed: " + result.message);
+                return;
+            }
+            HE_INFO("[Package] Cooked " + std::to_string(result.assetCount)
+                + " assets -> " + result.outputPath.string());
+        };
+        return i;
+    }());
+    buildItems.push_back([] {
+        auto i = std::make_shared<MenuItem>();
+        i->label = "Cook Content";
+        i->onClick = []() {
+            auto& project = we::projects::ProjectContext::Get();
+            if (!project.IsLoaded()) {
+                HE_WARN("[Cook] No project loaded.");
+                return;
+            }
+            const auto cookedDir = project.SavedRoot() / "Cooked" / "Windows";
+            const auto result = we::programs::editor::CookOrPackageContent(
+                project.ContentRoot(),
+                cookedDir,
+                {},
+                "Windows");
+            if (!result.success) {
+                HE_ERROR("[Cook] Failed: " + result.message);
+                return;
+            }
+            HE_INFO("[Cook] Cooked " + std::to_string(result.assetCount)
+                + " assets -> " + result.outputPath.string());
+        };
+        return i;
+    }());
     menuBar->AddMenu("Build", buildItems);
     menuBar->AddMenu("Select", {
         [] { auto i = std::make_shared<MenuItem>(); i->label = "Select All"; return i; }(),

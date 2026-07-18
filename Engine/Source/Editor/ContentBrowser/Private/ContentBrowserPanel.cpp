@@ -1,7 +1,7 @@
 #include "WindEffects/Editor/EditorSDK.h"
 #include "WindEffects/Editor/UI/Shell/EditorWorkspaceController.h"
+#include "ContentBrowser/AssetImportBridge.h"
 #include "ContentBrowser/ContentBrowserApi.h"
-#include "KindUI/Rendering/FontImportService.h"
 #include "ContentBrowser/Widgets/ContentBrowser.h"
 #include "ContentBrowser/Widgets/ContentBrowserToolbar.h"
 #include "ContentBrowser/Widgets/SearchBox.h"
@@ -10,6 +10,8 @@
 #include "KindUI/Layout/Splitter.h"
 #include "KindUI/Core/Icon.h"
 #include "Core/Localization.h"
+#include "Core/Logger.h"
+#include "Platform/Platform.h"
 #include "Services/ContentBrowserService.h"
 #include "Registry/ContentAssetRegistry.h"
 #include "Controllers/FilterController.h"
@@ -226,11 +228,44 @@ std::shared_ptr<::we::editor::panels::Panel> CreateContentBrowserPanel() {
     });
 
     panelToolbar->SetOnImportClicked([]() {
-        const std::filesystem::path inputFont = "Assets/Fonts/Inter-Regular.ttf";
-        const std::filesystem::path outputDir = "Assets/Fonts";
-        if (std::filesystem::exists(inputFont)) {
-            (void)we::runtime::kindui::FontImportService::ImportFontFile(inputFont, outputDir, 18.0f);
+        we::platform::FileDialogDesc desc{};
+        desc.mode = we::platform::FileDialogMode::OpenFiles;
+        desc.title = "Import Assets";
+        desc.filters = {
+            { "Importable Assets", "*.ttf;*.otf;*.ttc;*.png;*.jpg;*.jpeg;*.bmp;*.tga;*.hdr;*.atlas" },
+            { "Fonts", "*.ttf;*.otf;*.ttc" },
+            { "Textures / Icons", "*.png;*.jpg;*.jpeg;*.bmp;*.tga;*.hdr;*.atlas" },
+            { "All Files", "*.*" },
+        };
+
+        const auto files = we::platform::Platform::Get().ShowFileDialog(desc);
+        if (files.empty()) {
+            return;
         }
+
+        std::filesystem::path outputDir = ContentAssetRegistry::Get().GetContentRoot();
+        const auto& folder = ContentBrowserService::Get().GetCurrentFolder();
+        if (const auto* folderAsset = ContentAssetRegistry::Get().FindByVirtualPath(folder)) {
+            if (!folderAsset->diskPath.empty()) {
+                outputDir = folderAsset->diskPath;
+            }
+        }
+
+        uint32_t ok = 0;
+        uint32_t failed = 0;
+        for (const auto& file : files) {
+            const auto result = BuildAssetToContent(file, outputDir);
+            if (result.success) {
+                ++ok;
+            } else {
+                ++failed;
+                HE_ERROR("[ContentBrowser] Import failed: " + result.PrimaryErrorMessage());
+            }
+        }
+
+        ContentAssetRegistry::Get().Refresh();
+        HE_INFO("[ContentBrowser] Import finished: succeeded=" + std::to_string(ok)
+            + " failed=" + std::to_string(failed));
     });
 
     folderTree->SetOnSelectionChanged([contentBrowser, statusBar](const std::vector<std::string>& ids) {
