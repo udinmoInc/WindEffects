@@ -1,12 +1,13 @@
 #pragma once
 #include "UI/Controls/LauncherControls.h"
+#include "KindUI/Core/TextMetrics.h"
 #include <string>
 namespace we::programs::welauncher {
 namespace launcher_controls_detail {
 
 constexpr float kSegmentH = 28.0f;
 
-bool AppendUtf8(std::string& out, char32_t cp) {
+inline bool AppendUtf8(std::string& out, char32_t cp) {
     if (cp < 32 && cp != '\t') {
         return false;
     }
@@ -30,11 +31,11 @@ bool AppendUtf8(std::string& out, char32_t cp) {
     return true;
 }
 
-float ApproxTextWidth(const std::string& text, float textSize) {
-    return TextMetrics::MeasureWidth(text, textSize);
+inline float ApproxTextWidth(const std::string& text, float textSize) {
+    return we::runtime::kindui::TextMetrics::MeasureWidth(text, textSize);
 }
 
-void EraseLastUtf8Codepoint(std::string& text) {
+inline void EraseLastUtf8Codepoint(std::string& text) {
     if (text.empty()) {
         return;
     }

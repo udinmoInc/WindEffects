@@ -15,6 +15,7 @@ public class Editor : ModuleRules
         PublicDependencies.Add("Core");
         PublicDependencies.Add("Engine");
         PublicDependencies.Add("Platform");
+        PublicDependencies.Add("Projects");
         PublicDependencies.Add("RHI");
         PublicDependencies.Add("Renderer");
         PublicDependencies.Add("Scene");

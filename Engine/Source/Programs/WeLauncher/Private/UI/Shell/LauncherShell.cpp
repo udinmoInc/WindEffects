@@ -1,6 +1,7 @@
 #include "UI/Shell/LauncherShell.h"
 
 #include "UI/Shell/LauncherHelpers.h"
+#include "UI/Shell/LauncherShellShared.h"
 #include "UI/Pages/LauncherPages.h"
 #include "UI/Pages/Projects/ProjectsPage.h"
 
@@ -44,72 +45,6 @@ using we::runtime::kindui::PaddingToken;
 
 namespace {
 namespace UI = we::runtime::kindui::UI;
-
-std::shared_ptr<ScrollLayout> FindScrollById(const std::shared_ptr<Widget>& root, std::string_view id) {
-    if (!root) {
-        return nullptr;
-    }
-    if (root->GetId() == id) {
-        return std::dynamic_pointer_cast<ScrollLayout>(root);
-    }
-    for (const auto& child : root->GetChildren()) {
-        if (auto found = FindScrollById(child, id)) {
-            return found;
-        }
-    }
-    return nullptr;
-}
-
-std::shared_ptr<Label> MakeLabel(const std::string& text, float size, Color color) {
-    auto label = std::make_shared<Label>(text, color, size);
-    label->SetHorizontalAlignment(HorizontalAlignment::Left);
-    return label;
-}
-
-std::shared_ptr<Column> MakePageBodyPadding() {
-    auto content = std::make_shared<Column>();
-    content->Padding(Margin{
-        kLauncherContentPadX * LScale(),
-        LMetric(MetricToken::Space4) * LScale(),
-        kLauncherContentPadX * LScale(),
-        LMetric(MetricToken::Space4) * LScale()
-    });
-    content->Gap(LMetric(MetricToken::Space4) * LScale());
-    content->SetHorizontalAlignment(HorizontalAlignment::Fill);
-    return content;
-}
-
-std::shared_ptr<Widget> MakeSectionHeader(const std::string& title, const std::string& subtitle = {}) {
-    auto heading = std::make_shared<SectionHeader>(title, subtitle);
-    heading->SetHorizontalAlignment(HorizontalAlignment::Fill);
-    return heading;
-}
-
-std::string JoinList(const std::vector<std::string>& items, const char* sep = ", ") {
-    if (items.empty()) {
-        return "ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â";
-    }
-    std::string out;
-    for (std::size_t i = 0; i < items.size(); ++i) {
-        if (i > 0) {
-            out += sep;
-        }
-        out += items[i];
-    }
-    return out;
-}
-
-const ProjectTemplateInfo* FindTemplateById(
-    const std::vector<ProjectTemplateInfo>& templates,
-    const std::string& id) {
-    for (const auto& tmpl : templates) {
-        if (tmpl.id == id) {
-            return &tmpl;
-        }
-    }
-    return templates.empty() ? nullptr : &templates.front();
-}
-
 } // namespace
 
 LauncherShell::LauncherShell(std::shared_ptr<LauncherContext> context, we::platform::WindowId window)

@@ -1,10 +1,11 @@
 #include "WindEffects/Platform.h"
 #include "WindEffects/Runtime/CoreSDK.h"
 #include "Platform/PlatformSDK.h"
+#include "Projects/EditorCommandLine.h"
+#include "Projects/EngineContext.h"
 #include "Editor.h"
 
 #include <filesystem>
-#include <optional>
 #include <stdexcept>
 #include <string>
 
@@ -18,7 +19,7 @@ void SetWorkingDirectoryToExecutable() {
     auto& platform = we::platform::Platform::Get();
     const std::string exeDir = platform.GetExecutableDirectory();
     if (!exeDir.empty() && platform.SetCurrentWorkingDirectory(exeDir)) {
-        HE_INFO("[Startup] Working directory set to executable folder.");
+        HE_INFO("[Startup] Working directory set to executable folder (engine install).");
     } else {
         HE_INFO("[Startup] Could not resolve executable path; asset loading uses process CWD.");
     }
@@ -28,14 +29,10 @@ void ConfigureModuleSearchPath() {
     we::core::ConfigureModuleSearchPaths();
 }
 
-std::optional<std::filesystem::path> ParseProjectArgument(int argc, char* argv[]) {
-    for (int i = 1; i < argc; ++i) {
-        const std::string arg = argv[i];
-        if ((arg == "-project" || arg == "--project") && i + 1 < argc) {
-            return std::filesystem::path(argv[i + 1]);
-        }
-    }
-    return std::nullopt;
+[[nodiscard]] bool NeedsWeLauncher(const we::projects::EditorCommandLine& commandLine) {
+    return commandLine.forceProjectManager
+        || commandLine.newProject
+        || !commandLine.projectPath.has_value();
 }
 
 } // namespace
@@ -51,24 +48,45 @@ int main(int argc, char* argv[]) {
             .enableGamepad = true,
             .enableDiagnostics = true,
         });
-        const auto projectPath = ParseProjectArgument(argc, argv);
-        if (projectPath) {
-            const auto projectRoot = projectPath->parent_path();
-            if (!projectRoot.empty() && platform.SetCurrentWorkingDirectory(projectRoot.string())) {
-                HE_INFO("[Startup] Working directory set to project root: " + projectRoot.string());
-            } else {
-                SetWorkingDirectoryToExecutable();
-            }
-            HE_INFO("[Startup] Opening project: " + projectPath->string());
-        } else {
-            SetWorkingDirectoryToExecutable();
-        }
+
+        // Engine CWD stays at the executable — never chdir into a project.
+        SetWorkingDirectoryToExecutable();
         ConfigureModuleSearchPath();
+
+        const auto commandLine = we::projects::ParseEditorCommandLine(argc, argv);
+        we::projects::EngineContext::Get().Initialize(
+            std::filesystem::path(platform.GetExecutableDirectory()));
 
         HE_INFO("[Startup] === WindEffects Editor bootstrap begin ===");
         HE_INFO(std::string("[Startup] Platform backend: ") + platform.GetName());
-        if (platform.GetCapabilities().SupportsHighDPI()) {
-            HE_INFO("[Startup] Platform capabilities: HighDPI enabled.");
+
+        // No project → hand off to WeLauncher.exe (never show an in-editor project UI).
+        if (NeedsWeLauncher(commandLine)) {
+            HE_INFO("[Startup] No project selected — launching WeLauncher.exe.");
+            std::vector<std::string> launcherArgs;
+            if (commandLine.newProject) {
+                launcherArgs.push_back("-newproject");
+            }
+            const bool launched = we::programs::editor::Editor::LaunchWeLauncher(launcherArgs);
+            we::projects::EngineContext::Get().Shutdown();
+            we::platform::Platform::Shutdown();
+            if (!launched) {
+                HE_ERROR("[Startup] WeLauncher.exe not found next to the Editor.");
+                we::runtime::core::Logger::ReportError(
+                    "WeLauncher Missing",
+                    "WeLauncher.exe was not found. Build the WeLauncher target or open a .weproj file.",
+                    true);
+                return 1;
+            }
+            return 0;
+        }
+
+        HE_INFO("[Startup] Project argument: " + commandLine.projectPath->string());
+        if (commandLine.safeMode) {
+            HE_INFO("[Startup] Safe mode enabled.");
+        }
+        if (commandLine.recoveryMode) {
+            HE_INFO("[Startup] Recovery mode enabled.");
         }
 
         auto& moduleManager = we::core::ModuleManager::Get();
@@ -125,9 +143,10 @@ int main(int argc, char* argv[]) {
         (void)platform.SetWindowIcon(window, IDI_ICON1);
 #endif
 
-        we::programs::editor::Editor editor(window);
+        we::programs::editor::Editor editor(window, commandLine);
         editor.Run();
 
+        we::projects::EngineContext::Get().Shutdown();
         (void)platform.DestroyWindow(window);
         we::platform::Platform::Shutdown();
         HE_INFO("[Startup] === WindEffects Editor shutdown complete ===");

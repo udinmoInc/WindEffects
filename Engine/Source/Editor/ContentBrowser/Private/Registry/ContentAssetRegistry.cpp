@@ -2,7 +2,6 @@
 #include "Registry/AssetTypeResolver.h"
 #include "Core/Logger.h"
 #include <filesystem>
-#include <fstream>
 
 namespace fs = std::filesystem;
 
@@ -19,7 +18,7 @@ void ContentAssetRegistry::Initialize(const std::string& contentRoot) {
         m_ContentRoot = contentRoot;
     }
 
-    EnsureDemoContent();
+    // Never seed demo/sample content. Empty projects stay empty until the user adds assets.
 
     // Refresh acquires m_Mutex internally; do not hold the lock here (std::mutex is not recursive).
     Refresh();
@@ -41,97 +40,6 @@ void ContentAssetRegistry::Shutdown() {
     m_Initialized = false;
 }
 
-void ContentAssetRegistry::EnsureDemoContent() {
-    const fs::path gameRoot = fs::path(m_ContentRoot) / "Game";
-    if (fs::exists(gameRoot) && !fs::is_empty(gameRoot)) {
-        return;
-    }
-
-    HE_INFO("[ContentAssetRegistry] Seeding demo content at: " + gameRoot.string());
-    const auto makeDir = [&](const std::string& rel) {
-        fs::create_directories(gameRoot / rel);
-    };
-
-    makeDir("Textures");
-    makeDir("Materials");
-    makeDir("Meshes");
-    makeDir("Blueprints");
-    makeDir("Audio");
-    makeDir("Fonts");
-    makeDir("Scripts");
-    makeDir("Animations");
-    makeDir("Maps");
-
-    const fs::path iconRoot = "Engine/Content/Icons/icons";
-    const auto copyIcon = [&](const std::string& iconName, const std::string& destRel) {
-        const fs::path src = iconRoot / (iconName + ".svg");
-        const fs::path dst = gameRoot / destRel;
-        if (fs::exists(src)) {
-            std::error_code ec;
-            fs::create_directories(dst.parent_path(), ec);
-            fs::copy_file(src, dst, fs::copy_options::overwrite_existing, ec);
-        }
-    };
-
-    copyIcon("layers", "Textures/T_Brick_D.svg");
-    copyIcon("image", "Textures/T_Grass_D.svg");
-    copyIcon("palette", "Textures/T_Noise.svg");
-    copyIcon("sparkles", "Textures/T_Sparkle.svg");
-
-    copyIcon("cube", "Meshes/SM_Crate.obj");
-    copyIcon("box", "Meshes/SM_Barrel.obj");
-    copyIcon("cylinder", "Meshes/SM_Pillar.obj");
-
-    copyIcon("workflow", "Blueprints/BP_Player.bp");
-    copyIcon("component", "Blueprints/BP_GameMode.bp");
-
-    copyIcon("music", "Audio/SFX_Click.wav");
-    copyIcon("volume-2", "Audio/Music_MainTheme.mp3");
-
-    copyIcon("type", "Fonts/UI_Font.ttf");
-
-    copyIcon("file-code", "Scripts/GameMode.lua");
-    copyIcon("terminal", "Scripts/PlayerController.cs");
-
-    copyIcon("play", "Animations/Anim_Idle.anim");
-    copyIcon("person-standing", "Animations/Anim_Walk.anim");
-
-    copyIcon("map", "Maps/Level_01.scene");
-    copyIcon("map-pin", "Maps/Level_02.scene");
-
-    auto writeText = [&](const std::string& rel, const std::string& text) {
-        const fs::path dst = gameRoot / rel;
-        std::error_code ec;
-        fs::create_directories(dst.parent_path(), ec);
-        std::ofstream out(dst);
-        out << text;
-    };
-
-    writeText("Materials/M_Concrete.mat", R"({"type":"Material","baseColor":[0.55,0.55,0.55,1.0],"roughness":0.8})");
-    writeText("Materials/M_Metal.mat", R"({"type":"Material","baseColor":[0.7,0.72,0.78,1.0],"metallic":1.0,"roughness":0.3})");
-    writeText("Materials/M_Glass.mat", R"({"type":"Material","baseColor":[0.9,0.95,1.0,0.3],"roughness":0.05})");
-    writeText("Materials/MI_Concrete_Wet.matinst", R"({"type":"MaterialInstance","parent":"M_Concrete","roughness":0.2})");
-
-    writeText("Meshes/SM_Crate.obj", "# Simple crate placeholder\nv -0.5 -0.5 -0.5\nv 0.5 0.5 0.5\nf 1 1 1\n");
-    writeText("Meshes/SM_Barrel.obj", "# Barrel placeholder\nv 0 0 0\nv 0 1 0\nf 1 2 1\n");
-    writeText("Meshes/SM_Pillar.obj", "# Pillar placeholder\nv 0 0 0\nv 0 2 0\nf 1 2 1\n");
-
-    writeText("Blueprints/BP_Player.bp", R"({"type":"Blueprint","class":"Character"})");
-    writeText("Blueprints/BP_GameMode.bp", R"({"type":"Blueprint","class":"GameMode"})");
-
-    writeText("Audio/SFX_Click.wav", "RIFF....WAVEfmt ");
-    writeText("Audio/Music_MainTheme.mp3", "ID3");
-
-    writeText("Scripts/GameMode.lua", "function BeginPlay() end\n");
-    writeText("Scripts/PlayerController.cs", "public class PlayerController {}\n");
-
-    writeText("Animations/Anim_Idle.anim", R"({"type":"Animation","duration":2.0})");
-    writeText("Animations/Anim_Walk.anim", R"({"type":"Animation","duration":1.2})");
-
-    writeText("Maps/Level_01.scene", R"({"type":"Scene","name":"Level_01"})");
-    writeText("Maps/Level_02.scene", R"({"type":"Scene","name":"Level_02"})");
-}
-
 std::string ContentAssetRegistry::MakeId(const std::string& virtualPath) const {
     return virtualPath;
 }
@@ -145,11 +53,12 @@ void ContentAssetRegistry::Refresh() {
         m_PathIndex.clear();
         m_FolderVersions.clear();
 
-        const fs::path gameRoot = fs::path(m_ContentRoot) / "Game";
-        if (!fs::exists(gameRoot)) {
+        // Project Content/ mounts as virtual /Game (Unreal-style). Never hardcode a project path.
+        const fs::path contentRoot = fs::path(m_ContentRoot);
+        if (!fs::exists(contentRoot)) {
             refreshedCallback = m_OnRegistryRefreshed;
         } else {
-            ScanDirectory(gameRoot.string(), "/Game");
+            ScanDirectory(contentRoot.string(), "/Game");
 
             for (auto& asset : m_Assets) {
                 if (asset.isFolder) {

@@ -1,6 +1,7 @@
 #include "UI/Shell/LauncherShell.h"
 
 #include "UI/Shell/LauncherHelpers.h"
+#include "UI/Shell/LauncherShellShared.h"
 #include "UI/Pages/LauncherPages.h"
 #include "UI/Pages/Projects/ProjectsPage.h"
 
