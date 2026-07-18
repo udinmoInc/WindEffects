@@ -268,13 +268,16 @@ WindEffects/
 │   ├── Source/              # All engine source code
 │   │   ├── Runtime/         # Runtime engine systems
 │   │   ├── Editor/          # Editor-specific code
-│   │   └── Programs/        # Standalone tools
+│   │   └── Programs/        # Production apps + IgniteBT
+│   │       ├── Editor/      # WindeffectsEditor.exe
+│   │       ├── WeLauncher/  # WeLauncher.exe
+│   │       ├── We/          # we.exe (native CLI)
+│   │       ├── CrashReporter/
 │   │       └── IgniteBT/    # Build system (Source, Launcher, Tests, Docs)
 │   ├── ThirdParty/          # Third-party library sources
 │   ├── Content/             # Engine assets and resources
 │   ├── Config/              # Configuration files
-│   ├── Shaders/             # Shader source files
-│   └── Tools/               # Build and development tools
+│   └── Shaders/             # Shader source files
 ├── Build/                   # Generated build artifacts (gitignored)
 │   ├── Output/              # Final compiled binaries
 │   ├── Intermediate/        # Object files and incremental data
@@ -298,7 +301,7 @@ The `Engine/Source` directory is the heart of the codebase:
 
 - **Runtime**: Contains all engine systems that run in both editor and shipped games. This includes the core systems, renderer, physics, audio, and game framework code.
 - **Editor**: Contains editor-specific functionality including UI, tools, and editor-only systems. This code is not included in shipped games.
-- **Programs**: Contains standalone tools and utilities. IgniteBT (the build system) lives under `Programs/IgniteBT/` with its source, launcher, tests, and documentation colocated.
+- **Programs**: Production executables (`Editor`, `WeLauncher`, `We`, `CrashReporter`) plus IgniteBT (the build system) under `Programs/IgniteBT/` with its source, launcher, unit tests, and documentation colocated.
 
 ### Build Artifacts
 

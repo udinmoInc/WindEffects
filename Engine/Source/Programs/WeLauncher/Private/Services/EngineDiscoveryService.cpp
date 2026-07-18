@@ -123,7 +123,6 @@ std::filesystem::path EngineDiscoveryService::ResolveEditorExecutable(const std:
     const auto outputRoot = m_Current.buildRoot / "Output" / platformFolder / buildConfig;
     const std::vector<std::string> candidates = {
         "WindeffectsEditor.exe",
-        "WEEditor.exe",
     };
 
     for (const auto& name : candidates) {

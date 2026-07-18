@@ -137,7 +137,7 @@ public sealed class OutputLayout
         }
 
         // Only remove root-placed binaries for modules in this build that publish elsewhere.
-        // Never delete unrelated product DLLs (e.g. RHI when building ECSTests only).
+        // Never delete unrelated product DLLs (e.g. RHI when building a single target).
         foreach (var module in modules)
         {
             if (ModuleOutputResolver.PublishesToConfigurationRoot(module, _engineRoot))

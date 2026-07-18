@@ -56,6 +56,29 @@ struct PathValidationResult {
     std::filesystem::path path;
 };
 
+/// Named layout slot checked by ValidateLayout().
+struct LayoutCheck {
+    std::string name;
+    PathValidationResult result;
+    bool required = true;
+};
+
+/// Aggregate validation of engine / project layout roots.
+struct LayoutValidationReport {
+    bool ok = false;
+    std::vector<LayoutCheck> checks;
+    std::string summary;
+
+    [[nodiscard]] const LayoutCheck* Find(std::string_view name) const {
+        for (const auto& check : checks) {
+            if (check.name == name) {
+                return &check;
+            }
+        }
+        return nullptr;
+    }
+};
+
 /// Central path resolution service. All subsystems should obtain disk locations here
 /// rather than embedding string literals or walking "../" candidates.
 ///
@@ -179,13 +202,25 @@ public:
     /// Ensure directory exists; returns validation with diagnostics on failure.
     [[nodiscard]] static PathValidationResult EnsureDirectory(const std::filesystem::path& path);
 
-    /// Discover engine root by walking parents for WindEffects.engine.
+    /// Validate configured engine/project layout roots with precise diagnostics.
+    /// Does not silently probe alternate locations — reports each slot independently.
+    [[nodiscard]] LayoutValidationReport ValidateLayout(bool requireProject = false) const;
+
+    /// Discover engine/install root by walking parents for WindEffects.engine.
     /// Honors WE_ENGINE_ROOT then WE_PROJECT_ROOT env overrides.
     [[nodiscard]] static std::optional<std::filesystem::path> FindEngineRoot(
         const std::filesystem::path& startDirectory);
 
+    /// Repository / checkout root: WindEffects.engine, else directory containing Engine/Source.
+    /// Used by build-tool launchers that need the source tree, not only the marker.
+    [[nodiscard]] static std::optional<std::filesystem::path> FindRepositoryRoot(
+        const std::filesystem::path& startDirectory);
+
     /// Program binary next to the executable (e.g. WECrashReporter.exe).
     [[nodiscard]] std::filesystem::path ResolveSiblingExecutable(std::string_view fileName) const;
+
+    /// IgniteBT binary under Build/Intermediate (build-tool bridge only).
+    [[nodiscard]] std::optional<std::filesystem::path> FindIgniteBTExecutable() const;
 
 private:
     PathService() = default;

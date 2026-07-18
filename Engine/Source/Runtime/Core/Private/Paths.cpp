@@ -3,6 +3,7 @@
 
 #include <cstdlib>
 #include <fstream>
+#include <sstream>
 #include <system_error>
 
 #if defined(_WIN32)
@@ -88,6 +89,29 @@ std::filesystem::path ResolveDefaultProjectsRoot() {
     const char* home = std::getenv("HOME");
     return std::filesystem::path(home && home[0] != '\0' ? home : ".") / layout::kUserProduct / layout::kProjects;
 #endif
+}
+
+std::optional<std::filesystem::path> TryFindEngineSource(const std::filesystem::path& start) {
+    if (start.empty()) {
+        return std::nullopt;
+    }
+    std::error_code ec;
+    auto current = std::filesystem::absolute(start, ec);
+    if (ec) {
+        current = start;
+    }
+    current = WeakCanonical(current);
+
+    for (int i = 0; i < 16; ++i) {
+        if (std::filesystem::exists(current / layout::kEngine / layout::kSource, ec)) {
+            return current;
+        }
+        if (!current.has_parent_path() || current.parent_path() == current) {
+            break;
+        }
+        current = current.parent_path();
+    }
+    return std::nullopt;
 }
 
 } // namespace
@@ -674,6 +698,120 @@ std::optional<std::filesystem::path> PathService::FindEngineRoot(
     }
     std::error_code ec;
     return TryFindMarker(std::filesystem::current_path(ec));
+}
+
+std::optional<std::filesystem::path> PathService::FindRepositoryRoot(
+    const std::filesystem::path& startDirectory) {
+    // Prefer the nearest Engine/Source tree before WindEffects.engine. Temp/test trees
+    // often live under the real checkout (e.g. Build/Temp/...), and a marker walk would
+    // otherwise escape to the developer install root.
+    if (auto source = TryFindEngineSource(startDirectory)) {
+        return source;
+    }
+    if (auto marker = TryFindMarker(startDirectory)) {
+        return marker;
+    }
+
+    if (const char* envRoot = std::getenv("WE_ENGINE_ROOT"); envRoot && envRoot[0] != '\0') {
+        if (auto found = TryFindEngineSource(FromUtf8(envRoot))) {
+            return found;
+        }
+        if (auto found = TryFindMarker(FromUtf8(envRoot))) {
+            return found;
+        }
+    }
+    if (const char* envRoot = std::getenv("WE_PROJECT_ROOT"); envRoot && envRoot[0] != '\0') {
+        if (auto found = TryFindEngineSource(FromUtf8(envRoot))) {
+            return found;
+        }
+        if (auto found = TryFindMarker(FromUtf8(envRoot))) {
+            return found;
+        }
+    }
+
+    std::error_code ec;
+    const auto cwd = std::filesystem::current_path(ec);
+    if (auto source = TryFindEngineSource(cwd)) {
+        return source;
+    }
+    return TryFindMarker(cwd);
+}
+
+LayoutValidationReport PathService::ValidateLayout(bool requireProject) const {
+    EnsureBootstrapped();
+    LayoutValidationReport report;
+
+    const auto add = [&](std::string name, const std::filesystem::path& path, bool required, bool writable = false) {
+        LayoutCheck check;
+        check.name = std::move(name);
+        check.required = required;
+        if (path.empty()) {
+            check.result.message = "Path is empty.";
+            check.result.path.clear();
+        } else {
+            check.result = ValidateDirectory(path, writable);
+        }
+        report.checks.push_back(std::move(check));
+    };
+
+    add("EngineRoot", EngineRoot(), true);
+    add("EngineContent", EngineContentRoot(), true);
+    add("EngineConfig", EngineConfigRoot(), true);
+    add("ExecutableDirectory", ExecutableDirectory(), true);
+    add("Build", Join(EngineRoot(), layout::kBuild), false);
+    add("Cache", UserCacheRoot(), false);
+
+    if (requireProject || HasProject()) {
+        add("ProjectRoot", ProjectRoot(), true);
+        add("Content", ContentRoot(), true);
+        add("Config", ConfigRoot(), true);
+        add("Plugins", PluginsRoot(), false);
+        add("Saved", SavedRoot(), true, true);
+        add("Intermediate", IntermediateRoot(), false);
+        add("Cooked", CookedRoot(), false);
+        add("ProjectCache", ProjectCacheRoot(), false);
+        add("Logs", LogsRoot(), false);
+    } else {
+        add("RuntimeSaved", RuntimeSavedRoot(), false);
+        add("Logs", LogsRoot(), false);
+    }
+
+    report.ok = true;
+    std::ostringstream summary;
+    for (const auto& check : report.checks) {
+        if (check.required && !check.result.ok) {
+            report.ok = false;
+            summary << check.name << ": " << check.result.message << "; ";
+        }
+    }
+    if (report.ok) {
+        report.summary = "Layout validation passed.";
+    } else {
+        report.summary = summary.str();
+        if (report.summary.empty()) {
+            report.summary = "Layout validation failed.";
+        }
+    }
+    return report;
+}
+
+std::optional<std::filesystem::path> PathService::FindIgniteBTExecutable() const {
+    const auto repo = FindRepositoryRoot(ExecutableDirectory());
+    if (!repo) {
+        return std::nullopt;
+    }
+#if defined(_WIN32)
+    const char* binaryName = "IgniteBT.exe";
+#else
+    const char* binaryName = "IgniteBT";
+#endif
+    const char* configurations[] = { "Debug", "Release", "Development", "Shipping" };
+    std::vector<std::filesystem::path> candidates;
+    for (const char* config : configurations) {
+        candidates.push_back(
+            *repo / layout::kBuild / layout::kIntermediate / "IgniteBT" / config / "net8.0" / binaryName);
+    }
+    return FindExisting(candidates);
 }
 
 std::filesystem::path PathService::ResolveSiblingExecutable(std::string_view fileName) const {

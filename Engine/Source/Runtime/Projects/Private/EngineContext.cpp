@@ -99,13 +99,16 @@ void EngineContext::Initialize(const std::filesystem::path& executableDirectory)
     config.engineRoot = m_EngineRoot;
     paths.Configure(config);
 
-    const auto engineRootValidation = we::core::PathService::ValidateDirectory(m_EngineRoot);
-    if (!engineRootValidation.ok) {
-        HE_WARN("[EngineContext] Engine root validation: " + engineRootValidation.message);
-    }
-    const auto contentValidation = we::core::PathService::ValidateDirectory(m_EngineContentRoot);
-    if (!contentValidation.ok) {
-        HE_WARN("[EngineContext] Engine content root: " + contentValidation.message);
+    const auto layout = paths.ValidateLayout(false);
+    if (!layout.ok) {
+        HE_WARN("[EngineContext] Layout validation failed: " + layout.summary);
+        for (const auto& check : layout.checks) {
+            if (check.required && !check.result.ok) {
+                HE_WARN("[EngineContext]   " + check.name + ": " + check.result.message);
+            }
+        }
+    } else {
+        HE_INFO("[EngineContext] Layout validation passed.");
     }
 
     HE_INFO("[EngineContext] Engine root: " + we::core::PathService::ToGeneric(m_EngineRoot));

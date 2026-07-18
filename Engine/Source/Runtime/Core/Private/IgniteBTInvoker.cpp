@@ -1,10 +1,12 @@
 #include "Core/IgniteBTInvoker.h"
 #include "Core/BuildPaths.h"
 #include "Core/Environment.h"
+#include "Core/Paths.h"
 
 #include <filesystem>
 #include <fstream>
 #include <sstream>
+#include <vector>
 
 #if defined(_WIN32)
 #define WIN32_LEAN_AND_MEAN
@@ -43,22 +45,7 @@ std::string JsonReadString(const std::string& json, const char* key) {
 }
 
 std::filesystem::path GetInstallManifestPath() {
-#if defined(_WIN32)
-    if (auto localAppData = GetEnvVar("LOCALAPPDATA")) {
-        return std::filesystem::path(*localAppData) / "WindEffects" / "engine.json";
-    }
-    return {};
-#else
-    if (auto configHome = GetEnvVar("XDG_CONFIG_HOME")) {
-        return std::filesystem::path(*configHome) / "windeffects" / "engine.json";
-    }
-
-    if (auto home = GetEnvVar("HOME")) {
-        return std::filesystem::path(*home) / ".config" / "windeffects" / "engine.json";
-    }
-
-    return {};
-#endif
+    return PathService::Get().UserDataRoot() / "engine.json";
 }
 
 bool TryReadInstallManifest(std::filesystem::path& outProjectRoot) {
@@ -79,14 +66,21 @@ bool TryReadInstallManifest(std::filesystem::path& outProjectRoot) {
         return false;
     }
 
-    outProjectRoot = projectRoot;
-    return std::filesystem::exists(outProjectRoot / "Engine" / "Source");
+    outProjectRoot = PathService::FromUtf8(projectRoot);
+    std::error_code ec;
+    return std::filesystem::exists(outProjectRoot / layout::kEngine / layout::kSource, ec);
 }
 
 bool TryResolveProjectRoot(std::filesystem::path& outProjectRoot) {
     if (auto envRoot = GetEnvVar("WE_PROJECT_ROOT")) {
-        outProjectRoot = *envRoot;
-        if (std::filesystem::exists(outProjectRoot / "Engine" / "Source")) {
+        if (auto found = PathService::FindRepositoryRoot(PathService::FromUtf8(*envRoot))) {
+            outProjectRoot = *found;
+            return true;
+        }
+    }
+    if (auto envRoot = GetEnvVar("WE_ENGINE_ROOT")) {
+        if (auto found = PathService::FindRepositoryRoot(PathService::FromUtf8(*envRoot))) {
+            outProjectRoot = *found;
             return true;
         }
     }
@@ -95,29 +89,28 @@ bool TryResolveProjectRoot(std::filesystem::path& outProjectRoot) {
         return true;
     }
 
-    auto dir = GetExecutableDirectory();
-    while (!dir.empty()) {
-        if (std::filesystem::exists(dir / "Engine" / "Source")) {
-            outProjectRoot = dir;
-            return true;
-        }
-
-        if (!dir.has_parent_path() || dir.parent_path() == dir) {
-            break;
-        }
-
-        dir = dir.parent_path();
+    if (auto found = PathService::FindRepositoryRoot(PathService::Get().ExecutableDirectory())) {
+        outProjectRoot = *found;
+        return true;
     }
 
     return false;
 }
 
-std::string GetIgniteBTBinaryName() {
+std::optional<std::filesystem::path> FindIgniteBTUnderRoot(const std::filesystem::path& projectRoot) {
 #if defined(_WIN32)
-    return "IgniteBT.exe";
+    const char* binaryName = "IgniteBT.exe";
 #else
-    return "IgniteBT";
+    const char* binaryName = "IgniteBT";
 #endif
+    const char* configurations[] = { "Debug", "Release", "Development", "Shipping" };
+    std::vector<std::filesystem::path> candidates;
+    candidates.reserve(4);
+    for (const char* config : configurations) {
+        candidates.push_back(
+            projectRoot / layout::kBuild / layout::kIntermediate / "IgniteBT" / config / "net8.0" / binaryName);
+    }
+    return PathService::FindExisting(candidates);
 }
 
 } // namespace
@@ -128,18 +121,14 @@ bool TryResolveIgniteBTExecutable(std::string& outExecutablePath, std::string& o
         return false;
     }
 
-    outWorkingDirectory = projectRoot.string();
-    const char* configurations[] = { "Debug", "Release", "Development", "Shipping" };
-    for (const char* config : configurations) {
-        const auto candidate = projectRoot
-            / "Build" / "Intermediate" / "IgniteBT" / config / "net8.0" / GetIgniteBTBinaryName();
-        if (std::filesystem::exists(candidate)) {
-            outExecutablePath = candidate.string();
-            return true;
-        }
+    const auto candidate = FindIgniteBTUnderRoot(projectRoot);
+    if (!candidate) {
+        return false;
     }
 
-    return false;
+    outWorkingDirectory = PathService::ToUtf8(projectRoot);
+    outExecutablePath = PathService::ToUtf8(*candidate);
+    return true;
 }
 
 IgniteBTInvokeResult InvokeIgniteBT(const std::vector<std::string>& args) {
@@ -201,7 +190,7 @@ IgniteBTInvokeResult InvokeIgniteBT(const std::vector<std::string>& args) {
     return result;
 #else
     std::vector<char*> argv;
-    argv.push_back(const_cast<char*>(executable.c_str()));
+    argv.push_back(executable.data());
     for (const auto& arg : args) {
         argv.push_back(const_cast<char*>(arg.c_str()));
     }

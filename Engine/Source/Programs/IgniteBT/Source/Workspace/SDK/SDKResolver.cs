@@ -174,31 +174,11 @@ public class SDKResolver
     }
     
     /// <summary>
-    /// Attempts to find the engine root directory.
+    /// Attempts to find the engine root directory ({repo}/Engine).
     /// </summary>
     private string? FindEngineRoot()
     {
-        var currentDir = Directory.GetCurrentDirectory();
-        
-        // Search upward for Engine directory
-        var dir = new DirectoryInfo(currentDir);
-        while (dir != null)
-        {
-            if (dir.Name.Equals("Engine", StringComparison.OrdinalIgnoreCase))
-            {
-                return dir.FullName;
-            }
-            
-            var engineDir = Path.Combine(dir.FullName, "Engine");
-            if (Directory.Exists(engineDir))
-            {
-                return engineDir;
-            }
-            
-            dir = dir.Parent;
-        }
-        
-        return null;
+        return IgniteBT.Build.Layout.BuildLayout.FindEngineRoot(Directory.GetCurrentDirectory());
     }
 }
 

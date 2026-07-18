@@ -95,14 +95,43 @@ public sealed class BuildLayout
         Directory.CreateDirectory(ImportLibraryRoot);
     }
 
+    /// <summary>
+    /// Authoritative build-system repository root discovery.
+    /// Walks parents for <c>Engine/Source</c>. Runtime code must use PathService instead.
+    /// Honors <c>WE_PROJECT_ROOT</c> / <c>WE_ENGINE_ROOT</c> when set.
+    /// </summary>
     public static string? FindProjectRoot(string startDir)
     {
+        static string? TryEnv(string name)
+        {
+            var value = Environment.GetEnvironmentVariable(name);
+            if (string.IsNullOrWhiteSpace(value))
+            {
+                return null;
+            }
+
+            var candidate = Path.GetFullPath(value);
+            if (Directory.Exists(Path.Combine(candidate, "Engine", "Source")))
+            {
+                return candidate;
+            }
+
+            return null;
+        }
+
+        var fromEnv = TryEnv("WE_PROJECT_ROOT") ?? TryEnv("WE_ENGINE_ROOT");
+        if (fromEnv != null)
+        {
+            return fromEnv;
+        }
+
         var dir = new DirectoryInfo(startDir);
 
         while (dir != null)
         {
             var engineSource = Path.Combine(dir.FullName, "Engine", "Source");
-            if (Directory.Exists(engineSource))
+            var engineMarker = Path.Combine(dir.FullName, "WindEffects.engine");
+            if (Directory.Exists(engineSource) || File.Exists(engineMarker))
             {
                 return dir.FullName;
             }
@@ -113,6 +142,10 @@ public sealed class BuildLayout
         return null;
     }
 
+    /// <summary>
+    /// Authoritative build-system engine directory ({projectRoot}/Engine).
+    /// Distinct from PathService / EngineDescriptor install root (marker-based).
+    /// </summary>
     public static string? FindEngineRoot(string startDir)
     {
         var projectRoot = FindProjectRoot(startDir);

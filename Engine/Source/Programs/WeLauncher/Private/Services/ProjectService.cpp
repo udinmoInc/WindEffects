@@ -3,6 +3,7 @@
 #include "Util/JsonFile.h"
 #include "Util/PathUtils.h"
 #include "Core/Paths.h"
+#include "Projects/ProjectLifecycle.h"
 
 #include <fstream>
 #include <sstream>
@@ -10,19 +11,6 @@
 namespace we::programs::welauncher {
 namespace {
 
-std::vector<std::string> RequiredProjectFolders() {
-    return {
-        we::core::layout::kConfig,
-        we::core::layout::kContent,
-        std::string(we::core::layout::kContent) + "/Maps",
-        we::core::layout::kSource,
-        we::core::layout::kPlugins,
-        "ProjectSettings",
-        we::core::layout::kSaved,
-        we::core::layout::kIntermediate,
-        we::core::layout::kBinaries,
-    };
-}
 
 std::uint64_t EstimateDirectoryBytes(const std::filesystem::path& root, std::size_t maxEntries = 400) {
     std::uint64_t total = 0;
@@ -168,80 +156,7 @@ bool ProjectService::WriteDescriptor(const std::filesystem::path& weprojPath, co
 }
 
 bool ProjectService::EnsureProjectLayout(const std::filesystem::path& projectRoot, const std::string& projectName) const {
-    std::error_code ec;
-    for (const auto& folder : RequiredProjectFolders()) {
-        std::filesystem::create_directories(projectRoot / folder, ec);
-    }
-
-    const auto sourceModule = projectRoot / "Source" / projectName;
-    std::filesystem::create_directories(sourceModule, ec);
-
-    const auto buildCs = sourceModule / (projectName + ".Build.cs");
-    if (!std::filesystem::exists(buildCs)) {
-        std::ofstream file(buildCs);
-        file << "using IgniteBT.BuildSystem;\n\n"
-             << "public class " << projectName << " : ModuleRules\n"
-             << "{\n"
-             << "    public " << projectName << "(ModuleContext context) : base(context)\n"
-             << "    {\n"
-             << "        Type = ModuleType.GameModule;\n"
-             << "        PublicDependencies.Add(\"Core\");\n"
-             << "        PublicDependencies.Add(\"Engine\");\n"
-             << "    }\n"
-             << "}\n";
-    }
-
-    const auto cpp = sourceModule / (projectName + ".cpp");
-    if (!std::filesystem::exists(cpp)) {
-        std::ofstream file(cpp);
-        file << "#include \"Core/Logger.h\"\n\n"
-             << "void WE_GameModule_" << projectName << "_Startup()\n"
-             << "{\n"
-             << "    HE_INFO(\"[" << projectName << "] game module loaded\");\n"
-             << "}\n";
-    }
-
-    const auto defaultEngine = projectRoot / we::core::layout::kConfig / "DefaultEngine.ini";
-    if (!std::filesystem::exists(defaultEngine)) {
-        std::ofstream file(defaultEngine);
-        file << "[/Script/EngineSettings]\n"
-             << "GameName=" << projectName << "\n";
-    }
-
-    const auto defaultGame = projectRoot / we::core::layout::kConfig / "DefaultGame.ini";
-    if (!std::filesystem::exists(defaultGame)) {
-        std::ofstream file(defaultGame);
-        file << "[/Script/EngineSettings]\n"
-             << "ProjectID=" << projectName << "\n";
-    }
-
-    const auto projectSettings = projectRoot / "ProjectSettings" / "ProjectSettings.json";
-    if (!std::filesystem::exists(projectSettings)) {
-        nlohmann::json settings = {
-            { "projectName", projectName },
-            { "startupMap", std::string(we::core::layout::kContent) + "/Maps/Startup.scene" },
-            { "defaultGameMode", "" },
-            { "targetPlatform", "Windows" },
-        };
-        (void)JsonFile::Save(projectSettings, settings);
-    }
-
-    const auto startupMap = projectRoot / we::core::layout::kContent / "Maps" / "Startup.scene";
-    if (!std::filesystem::exists(startupMap)) {
-        std::ofstream file(startupMap);
-        file << "{\n"
-             << "  \"type\": \"Scene\",\n"
-             << "  \"name\": \"Startup\",\n"
-             << "  \"project\": \"" << projectName << "\"\n"
-             << "}\n";
-    }
-
-    const auto keepContent = projectRoot / we::core::layout::kContent / ".keep";
-    if (!std::filesystem::exists(keepContent)) {
-        std::ofstream(keepContent) << "";
-    }
-
-    return true;
+    return we::projects::ProjectLifecycle::EnsureProjectLayout(projectRoot, projectName);
 }
 
 void ProjectService::CopyTemplateTree(
@@ -310,7 +225,7 @@ ProjectOperationResult ProjectService::CreateProject(
         return result;
     }
 
-    const std::string projectName = PathUtils::SanitizeProjectName(displayName);
+    const std::string projectName = we::projects::ProjectLifecycle::SanitizeProjectName(displayName);
     const auto projectRoot = parentDirectory / projectName;
     if (std::filesystem::exists(projectRoot)) {
         result.message = "Project directory already exists.";
@@ -356,7 +271,7 @@ ProjectOperationResult ProjectService::CreateProject(
         { "startupMap", descriptor.startupMap },
         { "defaultGameMode", "" },
     };
-    descriptor.createdUtc = PathUtils::GetUtcNowIso8601();
+    descriptor.createdUtc = we::projects::ProjectLifecycle::NowUtc();
     descriptor.lastOpenedUtc = descriptor.createdUtc;
 
     const auto weprojPath = projectRoot / (projectName + ".weproj");
@@ -387,7 +302,7 @@ ProjectOperationResult ProjectService::OpenProject(const std::filesystem::path& 
     }
 
     WeProjectDescriptor descriptor = summary->descriptor;
-    descriptor.lastOpenedUtc = PathUtils::GetUtcNowIso8601();
+    descriptor.lastOpenedUtc = we::projects::ProjectLifecycle::NowUtc();
     (void)WriteDescriptor(weprojPath, descriptor);
 
     m_Settings.TouchRecent(PathUtils::ToUtf8(weprojPath));
@@ -407,7 +322,7 @@ ProjectOperationResult ProjectService::CloneProject(const std::filesystem::path&
         return result;
     }
 
-    const std::string newName = PathUtils::SanitizeProjectName(newDisplayName);
+    const std::string newName = we::projects::ProjectLifecycle::SanitizeProjectName(newDisplayName);
     const auto destRoot = PathUtils::FromUtf8(summary->projectRoot).parent_path() / newName;
     if (std::filesystem::exists(destRoot)) {
         result.message = "Destination already exists.";
@@ -433,7 +348,7 @@ ProjectOperationResult ProjectService::CloneProject(const std::filesystem::path&
     WeProjectDescriptor descriptor = summary->descriptor;
     descriptor.projectName = newName;
     descriptor.displayName = newDisplayName;
-    descriptor.createdUtc = PathUtils::GetUtcNowIso8601();
+    descriptor.createdUtc = we::projects::ProjectLifecycle::NowUtc();
     descriptor.lastOpenedUtc = descriptor.createdUtc;
 
     const auto newWeproj = destRoot / (newName + ".weproj");
@@ -459,7 +374,7 @@ ProjectOperationResult ProjectService::RenameProject(const std::filesystem::path
         return result;
     }
 
-    const std::string newName = PathUtils::SanitizeProjectName(newDisplayName);
+    const std::string newName = we::projects::ProjectLifecycle::SanitizeProjectName(newDisplayName);
     const auto oldRoot = PathUtils::FromUtf8(summary->projectRoot);
     const auto newRoot = oldRoot.parent_path() / newName;
     if (newRoot != oldRoot && std::filesystem::exists(newRoot)) {

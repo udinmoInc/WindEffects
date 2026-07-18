@@ -15,8 +15,7 @@
 #include "Platform/PlatformSDK.h"
 
 #include "Core/Logger.h"
-
-#include <cstdlib>
+#include "Core/Paths.h"
 
 namespace we::editor::projectmanager {
 namespace {
@@ -28,14 +27,7 @@ using we::projects::ProjectCreateRequest;
 using we::projects::RecentProjectsStore;
 
 std::filesystem::path DefaultProjectsRoot() {
-#if defined(_WIN32)
-    const char* profile = std::getenv("USERPROFILE");
-    if (profile && profile[0] != '\0') {
-        return std::filesystem::path(profile) / "WindEffects" / "Projects";
-    }
-#endif
-    const char* home = std::getenv("HOME");
-    return std::filesystem::path(home ? home : ".") / "WindEffects" / "Projects";
+    return we::core::PathService::Get().DefaultProjectsRoot();
 }
 
 std::shared_ptr<Label> MakeMuted(const std::string& text) {
