@@ -10,7 +10,7 @@ namespace we::rhi::dx12 {
     return mip + arraySlice * mipLevels;
 }
 
-[[nodiscard]] DXGI_FORMAT ToDxgiFormat(Format format) noexcept {
+inline [[nodiscard]] DXGI_FORMAT ToDxgiFormat(Format format) noexcept {
     switch (format) {
     case Format::R8_UNORM: return DXGI_FORMAT_R8_UNORM;
     case Format::R8G8B8A8_UNORM: return DXGI_FORMAT_R8G8B8A8_UNORM;
@@ -29,13 +29,13 @@ namespace we::rhi::dx12 {
     }
 }
 
-[[nodiscard]] bool IsDepthFormat(Format format) noexcept {
+inline [[nodiscard]] bool IsDepthFormat(Format format) noexcept {
     return format == Format::D32_SFLOAT
         || format == Format::D24_UNORM_S8_UINT
         || format == Format::D32_SFLOAT_S8_UINT;
 }
 
-[[nodiscard]] D3D12_RESOURCE_STATES ToD3DState(ResourceState state) noexcept {
+inline [[nodiscard]] D3D12_RESOURCE_STATES ToD3DState(ResourceState state) noexcept {
     switch (state) {
     case ResourceState::Undefined: return D3D12_RESOURCE_STATE_COMMON;
     case ResourceState::General: return D3D12_RESOURCE_STATE_COMMON;
@@ -55,7 +55,7 @@ namespace we::rhi::dx12 {
     }
 }
 
-[[nodiscard]] D3D12_PRIMITIVE_TOPOLOGY_TYPE ToTopologyType(PrimitiveTopology topology) noexcept {
+inline [[nodiscard]] D3D12_PRIMITIVE_TOPOLOGY_TYPE ToTopologyType(PrimitiveTopology topology) noexcept {
     switch (topology) {
     case PrimitiveTopology::PointList: return D3D12_PRIMITIVE_TOPOLOGY_TYPE_POINT;
     case PrimitiveTopology::LineList: return D3D12_PRIMITIVE_TOPOLOGY_TYPE_LINE;
@@ -65,7 +65,7 @@ namespace we::rhi::dx12 {
     }
 }
 
-[[nodiscard]] D3D12_PRIMITIVE_TOPOLOGY ToTopology(PrimitiveTopology topology) noexcept {
+inline [[nodiscard]] D3D12_PRIMITIVE_TOPOLOGY ToTopology(PrimitiveTopology topology) noexcept {
     switch (topology) {
     case PrimitiveTopology::PointList: return D3D_PRIMITIVE_TOPOLOGY_POINTLIST;
     case PrimitiveTopology::LineList: return D3D_PRIMITIVE_TOPOLOGY_LINELIST;
@@ -75,7 +75,7 @@ namespace we::rhi::dx12 {
     }
 }
 
-[[nodiscard]] D3D12_COMPARISON_FUNC ToCompare(CompareOp op) noexcept {
+inline [[nodiscard]] D3D12_COMPARISON_FUNC ToCompare(CompareOp op) noexcept {
     switch (op) {
     case CompareOp::Never: return D3D12_COMPARISON_FUNC_NEVER;
     case CompareOp::Less: return D3D12_COMPARISON_FUNC_LESS;
@@ -89,7 +89,7 @@ namespace we::rhi::dx12 {
     }
 }
 
-[[nodiscard]] D3D12_STENCIL_OP ToStencilOp(StencilOp op) noexcept {
+inline [[nodiscard]] D3D12_STENCIL_OP ToStencilOp(StencilOp op) noexcept {
     switch (op) {
     case StencilOp::Zero: return D3D12_STENCIL_OP_ZERO;
     case StencilOp::Replace: return D3D12_STENCIL_OP_REPLACE;
@@ -103,7 +103,7 @@ namespace we::rhi::dx12 {
     }
 }
 
-[[nodiscard]] D3D12_TEXTURE_ADDRESS_MODE ToAddressMode(AddressMode mode) noexcept {
+inline [[nodiscard]] D3D12_TEXTURE_ADDRESS_MODE ToAddressMode(AddressMode mode) noexcept {
     switch (mode) {
     case AddressMode::MirroredRepeat: return D3D12_TEXTURE_ADDRESS_MODE_MIRROR;
     case AddressMode::ClampToEdge: return D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
@@ -113,7 +113,7 @@ namespace we::rhi::dx12 {
     }
 }
 
-[[nodiscard]] D3D12_FILTER ToSamplerFilter(const SamplerDesc& desc) noexcept {
+inline [[nodiscard]] D3D12_FILTER ToSamplerFilter(const SamplerDesc& desc) noexcept {
     const bool linearMag = desc.magFilter == Filter::Linear;
     const bool linearMin = desc.minFilter == Filter::Linear;
     const bool linearMip = desc.mipFilter == Filter::Linear;
@@ -135,7 +135,7 @@ namespace we::rhi::dx12 {
     return D3D12_FILTER_MIN_MAG_MIP_POINT;
 }
 
-[[nodiscard]] bool BindingUsesSrvHeap(DescriptorType type) noexcept {
+inline [[nodiscard]] bool BindingUsesSrvHeap(DescriptorType type) noexcept {
     switch (type) {
     case DescriptorType::UniformBuffer:
     case DescriptorType::StorageBuffer:
@@ -150,11 +150,11 @@ namespace we::rhi::dx12 {
     }
 }
 
-[[nodiscard]] bool BindingUsesSamplerHeap(DescriptorType type) noexcept {
+inline [[nodiscard]] bool BindingUsesSamplerHeap(DescriptorType type) noexcept {
     return type == DescriptorType::Sampler || type == DescriptorType::CombinedImageSampler;
 }
 
-[[nodiscard]] D3D12_DESCRIPTOR_RANGE_TYPE ToSrvHeapRangeType(DescriptorType type) noexcept {
+inline [[nodiscard]] D3D12_DESCRIPTOR_RANGE_TYPE ToSrvHeapRangeType(DescriptorType type) noexcept {
     switch (type) {
     case DescriptorType::UniformBuffer:
     case DescriptorType::UniformBufferDynamic:
@@ -170,7 +170,7 @@ namespace we::rhi::dx12 {
     }
 }
 
-[[nodiscard]] D3D12_BLEND ToBlend(BlendFactor factor) noexcept {
+inline [[nodiscard]] D3D12_BLEND ToBlend(BlendFactor factor) noexcept {
     switch (factor) {
     case BlendFactor::Zero: return D3D12_BLEND_ZERO;
     case BlendFactor::One: return D3D12_BLEND_ONE;
@@ -184,7 +184,7 @@ namespace we::rhi::dx12 {
     }
 }
 
-[[nodiscard]] D3D12_BLEND_OP ToBlendOp(BlendOp op) noexcept {
+inline [[nodiscard]] D3D12_BLEND_OP ToBlendOp(BlendOp op) noexcept {
     switch (op) {
     case BlendOp::Subtract: return D3D12_BLEND_OP_SUBTRACT;
     case BlendOp::ReverseSubtract: return D3D12_BLEND_OP_REV_SUBTRACT;
@@ -195,7 +195,7 @@ namespace we::rhi::dx12 {
     }
 }
 
-void ApplyBlendTarget(D3D12_RENDER_TARGET_BLEND_DESC& rt, const BlendStateDesc& blend) noexcept {
+inline void ApplyBlendTarget(D3D12_RENDER_TARGET_BLEND_DESC& rt, const BlendStateDesc& blend) noexcept {
     rt.RenderTargetWriteMask = blend.writeMask & 0xF;
     if (!rt.RenderTargetWriteMask) {
         rt.RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL;
