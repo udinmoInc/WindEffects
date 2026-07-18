@@ -8,8 +8,6 @@ public class Text : ModuleRules
         Type = ModuleType.SharedLibrary;
 
         PublicIncludePaths.Add("Public");
-        PublicIncludePaths.Add("Public/WindEffects");
-        PublicIncludePaths.Add("Public/WindEffects/Runtime");
         PrivateIncludePaths.Add("Private");
 
         PublicDependencies.Add("Core");

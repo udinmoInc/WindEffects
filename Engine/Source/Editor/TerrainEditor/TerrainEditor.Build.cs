@@ -17,8 +17,8 @@ public class TerrainEditor : ModuleRules
         PublicDependencies.Add("Renderer");
         PublicDependencies.Add("KindUI");
         PublicDependencies.Add("UIFramework");
-        PublicDependencies.Add("ToolsPanel");
         PublicDependencies.Add("Terrain");
+        // ToolsPanel was unused — removed.
 
         AddOptionalThirdParty("glm");
 

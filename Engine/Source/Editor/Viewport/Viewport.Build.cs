@@ -17,8 +17,8 @@ public class Viewport : ModuleRules
         PublicDependencies.Add("Scene");
         PublicDependencies.Add("KindUI");
         PublicDependencies.Add("UIFramework");
-        PublicDependencies.Add("Toolbar");
-        PublicDependencies.Add("PlaceActors");
+        PrivateDependencies.Add("Toolbar");
+        PrivateDependencies.Add("PlaceActors");
 
         Definitions.Add("VIEWPORT_EXPORTS");
     }

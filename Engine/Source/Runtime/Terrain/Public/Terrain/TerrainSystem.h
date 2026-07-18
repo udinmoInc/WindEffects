@@ -63,7 +63,7 @@ public:
     // Sculpt at world XZ; marks dirty chunks and rebuilds meshes/collision for those only.
     bool ApplyBrushWorld(float worldX, float worldZ);
 
-    void Tick(float deltaSeconds, const glm::vec3& cameraWorldPos, const glm::mat4* viewProj);
+    void Tick(float deltaSeconds, const we::math::Vec3& cameraWorldPos, const we::math::Mat4* viewProj);
 
     std::uint64_t LandscapeEntityId() const { return m_LandscapeEntityId; }
 

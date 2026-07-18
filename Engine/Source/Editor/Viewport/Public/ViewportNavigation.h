@@ -55,7 +55,7 @@ private:
     };
 
     bool IsPointerInsideViewport(const Point& position) const;
-    glm::vec3 ResolveOrbitPivot() const;
+    we::math::Vec3 ResolveOrbitPivot() const;
     void BeginFlyLook(const Point& cursorPosition);
     void EndFlyLook();
     void UpdateCursorMode(bool altDown);

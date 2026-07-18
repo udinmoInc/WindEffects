@@ -9,6 +9,9 @@ public class FontImport : ModuleRules
         SetBinaryName("we-font-import.exe");
         PublishAtConfigurationRoot();
 
+        PublicIncludePaths.Add("Public");
+        PrivateIncludePaths.Add("Private");
+
         PublicDependencies.Add("Core");
         PublicDependencies.Add("Text");
 

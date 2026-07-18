@@ -17,7 +17,7 @@ using ::we::runtime::kindui::ScrollViewport;
 using ::we::runtime::kindui::ScrollViewportMetrics;
 }
 
-#include "Widgets/SearchBox.h"
+#include "ContentBrowser/Widgets/SearchBox.h"
 #include "Widgets/ToolButton.h"
 
 namespace we::programs::editor {

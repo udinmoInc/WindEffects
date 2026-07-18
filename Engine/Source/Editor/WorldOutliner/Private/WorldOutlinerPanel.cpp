@@ -2,7 +2,7 @@
 #include "Explorer/ExplorerPanelAssets.h"
 #include "WindEffects/Editor/EditorSDK.h"
 #include "WindEffects/Editor/UI/Widgets/Panel.h"
-#include "Widgets/TreeView.h"
+#include "ContentBrowser/Widgets/TreeView.h"
 #include "Widgets/ExplorerPanelHeader.h"
 #include "KindUI/Theming/ThemeAccess.h"
 #include "Widgets/ExplorerFilterMenu.h"

@@ -21,10 +21,10 @@ public:
     void InvalidateChunk(TerrainChunkId id);
     void RebuildDirty(TerrainChunkManager& chunks);
 
-    bool Raycast(const glm::vec3& origin, const glm::vec3& direction, float maxDistance,
-        glm::vec3& outHit, glm::vec3& outNormal) const;
+    bool Raycast(const we::math::Vec3& origin, const we::math::Vec3& direction, float maxDistance,
+        we::math::Vec3& outHit, we::math::Vec3& outNormal) const;
 
-    bool SampleHeightNormal(float worldX, float worldZ, float& outHeight, glm::vec3& outNormal) const;
+    bool SampleHeightNormal(float worldX, float worldZ, float& outHeight, we::math::Vec3& outNormal) const;
 
     // Future: streamed physx actor handles per chunk.
     struct ChunkColliderHandle {

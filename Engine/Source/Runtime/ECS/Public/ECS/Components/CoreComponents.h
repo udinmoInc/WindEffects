@@ -11,7 +11,7 @@
 #include <cstdint>
 #include <string>
 
-#include <glm/glm.hpp>
+#include "Core/Math/Types.h"
 
 namespace we::runtime::ecs {
 
@@ -25,7 +25,7 @@ struct Uuid {
     bool operator==(const Uuid& o) const { return bytes == o.bytes; }
 };
 
-// ---- Core components (POD, no virtuals). Always GLM for stable cross-DLL ABI. ----
+// ---- Core components (POD, no virtuals). Use we::math for stable cross-DLL ABI. ----
 
 struct NameComponent {
     char value[32]{};
@@ -41,10 +41,10 @@ struct UuidComponent {
 };
 
 struct TransformComponent {
-    glm::vec3 localPosition{ 0.0f };
-    glm::vec3 localRotation{ 0.0f }; // euler degrees
-    glm::vec3 localScale{ 1.0f };
-    glm::mat4 worldMatrix{ 1.0f };
+    we::math::Vec3 localPosition{ 0.0f };
+    we::math::Vec3 localRotation{ 0.0f }; // euler degrees
+    we::math::Vec3 localScale{ 1.0f };
+    we::math::Mat4 worldMatrix{ 1.0f };
     bool dirty = true;
 };
 
@@ -70,21 +70,21 @@ struct CameraComponent {
 };
 
 struct DirectionalLightComponent {
-    glm::vec3 color{ 1.0f };
-    glm::vec3 direction{ 0.0f, -1.0f, 0.0f };
+    we::math::Vec3 color{ 1.0f };
+    we::math::Vec3 direction{ 0.0f, -1.0f, 0.0f };
     float intensity = 1.0f;
     bool castShadows = true;
 };
 
 struct PointLightComponent {
-    glm::vec3 color{ 1.0f };
+    we::math::Vec3 color{ 1.0f };
     float intensity = 1.0f;
     float range = 10.0f;
 };
 
 struct SpotLightComponent {
-    glm::vec3 color{ 1.0f };
-    glm::vec3 direction{ 0.0f, -1.0f, 0.0f };
+    we::math::Vec3 color{ 1.0f };
+    we::math::Vec3 direction{ 0.0f, -1.0f, 0.0f };
     float intensity = 1.0f;
     float range = 10.0f;
     float innerConeDegrees = 20.0f;
@@ -99,7 +99,7 @@ struct StaticMeshComponent {
 struct MaterialComponent {
     std::uint64_t materialAssetId = 0;
     char materialPath[96]{};
-    glm::vec4 color{ 1.0f };
+    we::math::Vec4 color{ 1.0f };
 };
 
 struct SkyAtmosphereComponent {
@@ -131,7 +131,7 @@ struct WaterComponent {
 struct ColliderComponent {
     enum class Shape : std::uint8_t { Box, Sphere, Capsule, Mesh };
     Shape shape = Shape::Box;
-    glm::vec3 size{ 1.0f };
+    we::math::Vec3 size{ 1.0f };
     bool isTrigger = false;
 };
 

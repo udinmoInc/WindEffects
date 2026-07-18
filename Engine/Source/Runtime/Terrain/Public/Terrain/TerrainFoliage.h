@@ -22,7 +22,7 @@ public:
     // Procedural placement filtered by slope/height and optional layer weight.
     int Spawn(const TerrainCollision& collision, const TerrainCreateInfo& info,
         const TerrainMaterialSystem* materials, const FoliageSpawnParams& params,
-        const glm::vec2& regionMinLocal, const glm::vec2& regionMaxLocal);
+        const we::math::Vec2& regionMinLocal, const we::math::Vec2& regionMaxLocal);
 
 private:
     std::vector<FoliageInstance> m_Instances;

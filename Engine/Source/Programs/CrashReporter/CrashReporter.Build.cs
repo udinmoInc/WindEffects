@@ -9,13 +9,16 @@ public class CrashReporter : ModuleRules
         SetBinaryName("WECrashReporter.exe");
         PublishAtConfigurationRoot();
 
+        PublicIncludePaths.Add("Public");
+        PrivateIncludePaths.Add("Private");
+
         PublicDependencies.Add("Core");
-        PublicDependencies.Add("Engine");
-        PublicDependencies.Add("Renderer");
         PublicDependencies.Add("Platform");
-        PublicDependencies.Add("RHI");
-        PublicDependencies.Add("KindUI");
-        PublicDependencies.Add("UIFramework");
+        PrivateDependencies.Add("Engine");
+        PrivateDependencies.Add("Renderer");
+        PrivateDependencies.Add("RHI");
+        PrivateDependencies.Add("KindUI");
+        PrivateDependencies.Add("UIFramework");
 
         AddOptionalThirdParty("nlohmann_json");
 

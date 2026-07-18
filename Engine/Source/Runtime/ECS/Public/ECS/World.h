@@ -13,6 +13,7 @@
 #include "ECS/JobPool.h"
 
 #include <cstdint>
+#include <memory>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -113,7 +114,7 @@ private:
     [[nodiscard]] std::unordered_map<ComponentTypeId, std::vector<std::uint8_t>>& Singletons();
     [[nodiscard]] const std::unordered_map<ComponentTypeId, std::vector<std::uint8_t>>& Singletons() const;
 
-    Impl* m_Impl = nullptr;
+    std::unique_ptr<Impl> m_Impl;
 };
 
 } // namespace we::runtime::ecs

@@ -18,11 +18,9 @@ public class UIFramework : ModuleRules
         PublicDependencies.Add("Renderer");
         PublicDependencies.Add("Text");
         PublicDependencies.Add("Icons");
-
-        // Editor shell still needs engine world/scene for some panel integrations.
-        PublicDependencies.Add("Engine");
-        PublicDependencies.Add("Scene");
-        PublicDependencies.Add("World");
+        PrivateDependencies.Add("Engine");
+        PrivateDependencies.Add("Scene");
+        PrivateDependencies.Add("World");
 
         AddOptionalThirdParty("nlohmann_json");
         DefineIf(HasThirdParty("nlohmann_json"), "WE_HAS_NLOHMANN_JSON=1");

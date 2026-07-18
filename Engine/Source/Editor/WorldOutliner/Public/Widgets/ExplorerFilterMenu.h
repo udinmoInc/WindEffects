@@ -1,7 +1,7 @@
 #pragma once
 
 #include "KindUI/Core/Widget.h"
-#include "Widgets/TreeView.h"
+#include "ContentBrowser/Widgets/TreeView.h"
 #include <functional>
 #include <string>
 #include <vector>

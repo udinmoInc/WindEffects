@@ -1,5 +1,5 @@
 #include "Platform/Platform.h"
-#include "Widgets/TreeView.h"
+#include "ContentBrowser/Widgets/TreeView.h"
 #include "KindUI/Core/EventSystem.h"
 #include "KindUI/Layout/OverlayManager.h"
 #include "KindUI/Layout/ScrollViewport.h"

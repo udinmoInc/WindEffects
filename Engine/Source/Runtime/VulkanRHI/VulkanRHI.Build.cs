@@ -16,7 +16,6 @@ public class VulkanRHI : ModuleRules
         PublicDependencies.Add("Core");
         PublicDependencies.Add("Platform");
         PublicDependencies.Add("RHI");
-        PrivateDependencies.Add("Engine");
 
         var thirdPartyRoot = Path.Combine(context.EngineDirectory, "ThirdParty");
         PrivateIncludePaths.Add(Path.Combine(thirdPartyRoot, "volk"));

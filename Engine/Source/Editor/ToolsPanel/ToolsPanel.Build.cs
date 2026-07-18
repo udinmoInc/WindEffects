@@ -15,8 +15,8 @@ public class ToolsPanel : ModuleRules
         PublicDependencies.Add("Engine");
         PublicDependencies.Add("KindUI");
         PublicDependencies.Add("UIFramework");
-        PublicDependencies.Add("Menus");
-        PublicDependencies.Add("ContentBrowser");
+        PrivateDependencies.Add("Menus");
+        PrivateDependencies.Add("ContentBrowser");
 
         Definitions.Add("TOOLSPANEL_EXPORTS");
     }

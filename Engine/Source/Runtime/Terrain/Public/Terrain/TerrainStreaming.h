@@ -18,7 +18,7 @@ public:
     void SetLoadRadiusChunks(int radius) { m_LoadRadius = std::max(0, radius); }
     int LoadRadiusChunks() const { return m_LoadRadius; }
 
-    void Update(TerrainChunkManager& chunks, const glm::vec3& cameraWorldPos,
+    void Update(TerrainChunkManager& chunks, const we::math::Vec3& cameraWorldPos,
         const TerrainCreateInfo& info, const TerrainFrustump* frustum);
 
     const std::unordered_set<TerrainChunkId, TerrainChunkIdHash>& ActiveChunks() const {

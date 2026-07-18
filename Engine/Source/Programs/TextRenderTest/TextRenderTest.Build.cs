@@ -9,6 +9,9 @@ public class TextRenderTest : ModuleRules
         SetBinaryName("TextRenderTest.exe");
         PublishAtConfigurationRoot();
 
+        PublicIncludePaths.Add("Public");
+        PrivateIncludePaths.Add("Private");
+
         PublicDependencies.Add("Core");
         PublicDependencies.Add("Text");
 

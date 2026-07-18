@@ -9,17 +9,18 @@ public class WeLauncher : ModuleRules
         SetBinaryName("WeLauncher.exe");
         PublishAtConfigurationRoot();
 
-        PublicIncludePaths.Add(".");
+        PublicIncludePaths.Add("Public");
+        PrivateIncludePaths.Add("Private");
 
         PublicDependencies.Add("Core");
-        PublicDependencies.Add("Engine");
         PublicDependencies.Add("Platform");
-        PublicDependencies.Add("RHI");
-        PublicDependencies.Add("Renderer");
-        PublicDependencies.Add("ECS");
         PublicDependencies.Add("KindUI");
         PublicDependencies.Add("Text");
         PublicDependencies.Add("Icons");
+        PrivateDependencies.Add("Engine");
+        PrivateDependencies.Add("RHI");
+        PrivateDependencies.Add("Renderer");
+        PrivateDependencies.Add("ECS");
 
         PrivateDependencies.Add("VulkanRHI");
         PrivateDependencies.Add("NullRHI");
