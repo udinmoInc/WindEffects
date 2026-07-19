@@ -259,6 +259,15 @@ public:
         m_Widget->InvalidateEditors();
     }
 
+    void SetBindings(const std::vector<ObjectBinding>& bindings) override {
+        m_Tree->BuildBindings(bindings);
+        if (!bindings.empty()) {
+            ApplyCustomizations(bindings.front().typeId);
+        }
+        WireHandleListeners();
+        m_Widget->InvalidateEditors();
+    }
+
     void Clear() override {
         m_Tree->Clear();
         m_Widget->InvalidateEditors();

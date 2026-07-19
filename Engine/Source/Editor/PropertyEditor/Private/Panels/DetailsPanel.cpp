@@ -1,5 +1,6 @@
 #include "WindEffects/Editor/EditorSDK.h"
-#include "Widgets/PropertyEditor.h"
+#include "PropertyEditor/PropertyEditorSession.h"
+#include "PropertyEditor/IDetailsView.h"
 #include "ContentBrowser/Widgets/SearchBox.h"
 #include "Core/Localization.h"
 #include "KindUI/Core/Icon.h"
@@ -12,21 +13,23 @@ using ::we::editor::panels::Panel;
 using ::we::editor::panels::PanelBuilder;
 using ::we::editor::docking::DockZone;
 using ::we::editor::widgets::SearchBox;
-using ::we::editor::property::PropertyEditor;
+using ::we::editor::property::PropertyEditorSession;
 
 std::shared_ptr<Panel> CreateDetailsPanel() {
     const auto title = we::core::Localization::Get().GetString("Panel_Details", "Details");
     const auto placeholder = we::core::Localization::Get().GetString("UI_SearchPlaceholder", "Search...");
 
-    // Content remains legacy PropertyEditor so Environment InitializeEditor keeps working.
-    // Reflection IDetailsView is available via CreatePropertyEditorRuntime for new callers;
-    // search wiring for the reflection tree lands when Environment migrates off the shim.
-    auto propertyEditor = std::make_shared<PropertyEditor>();
+    auto details = PropertyEditorSession::DetailsShared();
+    std::shared_ptr<Widget> content =
+        details ? details->GetWidget() : std::shared_ptr<Widget>{};
+
     auto searchBox = std::make_shared<SearchBox>();
     searchBox->SetFillWidth(true);
     searchBox->SetPlaceholder(std::string(placeholder));
-    searchBox->SetOnTextChanged([](const std::string&) {
-        // Shim rows are manually bound; filter applies once Details hosts IDetailsView.
+    searchBox->SetOnTextChanged([](const std::string& text) {
+        if (auto* view = PropertyEditorSession::Details()) {
+            view->SetSearchText(text);
+        }
     });
 
     return PanelBuilder(title)
@@ -35,7 +38,7 @@ std::shared_ptr<Panel> CreateDetailsPanel() {
         .ToolbarBox([searchBox](Row& toolbar) {
             toolbar.AddChild(searchBox);
         })
-        .Content(propertyEditor);
+        .Content(content);
 }
 
 REGISTER_UI_PANEL(Details,

@@ -5,7 +5,6 @@
 #include "Environment/EnvironmentTypes.h"
 #include "Scene/Entity.h"
 #include "Scene/Scene.h"
-#include "Widgets/PropertyEditor.h"
 #include "ContentBrowser/Widgets/TreeView.h"
 #include "Widgets/MenuBar.h"
 #include "WindEffects/Editor/UI/Shell/EditorWorkspaceController.h"

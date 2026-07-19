@@ -258,14 +258,50 @@ public:
     }
 
     void Build(TypeId typeId, const std::vector<void*>& instances) override {
-        m_TypeId = typeId;
-        m_Instances = instances;
+        m_Bindings.clear();
+        if (typeId != reflection::kInvalidTypeId && !instances.empty()) {
+            ObjectBinding binding;
+            binding.typeId = typeId;
+            // Multi-object same type: store all instances on one binding via first + parallel list
+            m_TypeId = typeId;
+            m_Instances = instances;
+            for (void* instance : instances) {
+                ObjectBinding b;
+                b.typeId = typeId;
+                b.instance = instance;
+                m_Bindings.push_back(b);
+            }
+            // Same-type multi-object uses shared instance list on handles — collapse to one logical binding
+            if (instances.size() > 1) {
+                m_Bindings.clear();
+                ObjectBinding b;
+                b.typeId = typeId;
+                b.instance = instances.front();
+                m_Bindings.push_back(b);
+            }
+        } else {
+            m_TypeId = reflection::kInvalidTypeId;
+            m_Instances.clear();
+        }
+        Rebuild();
+    }
+
+    void BuildBindings(const std::vector<ObjectBinding>& bindings) override {
+        m_Bindings = bindings;
+        m_TypeId = bindings.empty() ? reflection::kInvalidTypeId : bindings.front().typeId;
+        m_Instances.clear();
+        for (const auto& b : m_Bindings) {
+            if (b.instance) {
+                m_Instances.push_back(b.instance);
+            }
+        }
         Rebuild();
     }
 
     void Clear() override {
         m_TypeId = reflection::kInvalidTypeId;
         m_Instances.clear();
+        m_Bindings.clear();
         m_Roots.clear();
         m_FilteredRoots.clear();
         m_PathIndex.clear();
@@ -274,53 +310,26 @@ public:
     void Rebuild() override {
         m_Roots.clear();
         m_PathIndex.clear();
-        if (!m_Services.registry || m_TypeId == reflection::kInvalidTypeId || m_Instances.empty()) {
+        if (!m_Services.registry || m_Bindings.empty()) {
             ApplyFilter(m_Filter);
             return;
         }
 
-        PropertyIterateOptions iterate{};
-        iterate.editableOnly = m_Filter.editableOnly;
-        iterate.skipHidden = m_Filter.skipHidden;
-        iterate.skipTransient = m_Filter.skipTransient;
-        iterate.includeBases = true;
-
-        const auto visits = reflection::CollectProperties(*m_Services.registry, m_TypeId, iterate);
-        std::unordered_map<std::string, std::shared_ptr<PropertyNodeImpl>> categories;
-
-        for (const auto& visit : visits) {
-            if (!visit.property) {
-                continue;
-            }
-            const PropertyInfo& property = *visit.property;
-            if (!m_Filter.showAdvanced && HasFlag(property.flags, PropertyFlags::Advanced)) {
-                continue;
-            }
-
-            const std::string categoryName = CategoryFromProperty(property);
-            if (!CategoryAllowed(m_Filter, categoryName)) {
-                continue;
-            }
-
-            auto catIt = categories.find(categoryName);
-            if (catIt == categories.end()) {
-                auto cat = std::make_shared<PropertyNodeImpl>();
-                cat->displayName = categoryName;
-                cat->category = categoryName;
-                cat->categoryNode = true;
-                cat->depth = 0;
-                cat->expanded = true;
-                categories.emplace(categoryName, cat);
-                m_Roots.push_back(cat);
-                catIt = categories.find(categoryName);
-            }
-
-            auto node = BuildPropertyNode(property, property.name, 1, categoryName);
-            if (node) {
-                catIt->second->children.push_back(node);
-            }
+        // Same-type multi-object edit (SetObjects): one binding type, many instances
+        if (m_Bindings.size() == 1 && m_Instances.size() > 1 &&
+            m_Bindings.front().typeId == m_TypeId) {
+            BuildTypeNodes(m_TypeId, m_Instances);
+            ApplyFilter(m_Filter);
+            return;
         }
 
+        for (const auto& binding : m_Bindings) {
+            if (binding.typeId == reflection::kInvalidTypeId || !binding.instance) {
+                continue;
+            }
+            std::vector<void*> instances{binding.instance};
+            BuildTypeNodes(binding.typeId, instances);
+        }
         ApplyFilter(m_Filter);
     }
 
@@ -350,6 +359,61 @@ public:
     [[nodiscard]] const std::vector<void*>& GetInstances() const noexcept override { return m_Instances; }
 
 private:
+    void BuildTypeNodes(TypeId typeId, const std::vector<void*>& instances) {
+        PropertyIterateOptions iterate{};
+        iterate.editableOnly = m_Filter.editableOnly;
+        iterate.skipHidden = m_Filter.skipHidden;
+        iterate.skipTransient = m_Filter.skipTransient;
+        iterate.includeBases = true;
+
+        const auto visits = reflection::CollectProperties(*m_Services.registry, typeId, iterate);
+        std::unordered_map<std::string, std::shared_ptr<PropertyNodeImpl>> categories;
+
+        for (const auto& visit : visits) {
+            if (!visit.property) {
+                continue;
+            }
+            const PropertyInfo& property = *visit.property;
+            if (!m_Filter.showAdvanced && HasFlag(property.flags, PropertyFlags::Advanced)) {
+                continue;
+            }
+
+            const std::string categoryName = CategoryFromProperty(property);
+            if (!CategoryAllowed(m_Filter, categoryName)) {
+                continue;
+            }
+
+            auto catIt = categories.find(categoryName);
+            if (catIt == categories.end()) {
+                auto cat = std::make_shared<PropertyNodeImpl>();
+                cat->displayName = categoryName;
+                cat->category = categoryName;
+                cat->categoryNode = true;
+                cat->depth = 0;
+                cat->expanded = true;
+                // Reuse existing category root if already present from another binding
+                bool found = false;
+                for (const auto& root : m_Roots) {
+                    if (root && root->IsCategoryNode() && root->GetDisplayName() == categoryName) {
+                        cat = std::static_pointer_cast<PropertyNodeImpl>(root);
+                        found = true;
+                        break;
+                    }
+                }
+                if (!found) {
+                    m_Roots.push_back(cat);
+                }
+                categories.emplace(categoryName, cat);
+                catIt = categories.find(categoryName);
+            }
+
+            auto node = BuildPropertyNode(typeId, instances, property, property.name, 1, categoryName);
+            if (node) {
+                catIt->second->children.push_back(node);
+            }
+        }
+    }
+
     PropertyNodePtr FilterNode(const PropertyNodePtr& node) const {
         if (!node) {
             return nullptr;
@@ -390,11 +454,16 @@ private:
         return copy;
     }
 
-    PropertyValueState ComputeValueState(const std::string& path, const PropertyInfo& property) const {
-        if (m_Instances.empty()) {
+    PropertyValueState ComputeValueState(
+        TypeId typeId,
+        const std::vector<void*>& instances,
+        const std::string& path,
+        const PropertyInfo& property) const
+    {
+        if (instances.empty()) {
             return PropertyValueState::Unavailable;
         }
-        if (m_Instances.size() == 1) {
+        if (instances.size() == 1) {
             return PropertyValueState::Identical;
         }
         if (property.size == 0) {
@@ -403,13 +472,13 @@ private:
 
         std::vector<std::uint8_t> first(property.size);
         if (!reflection::GetPropertyPathRaw(
-                *m_Services.registry, m_TypeId, m_Instances.front(), path, first.data(), first.size())) {
+                *m_Services.registry, typeId, instances.front(), path, first.data(), first.size())) {
             return PropertyValueState::Unavailable;
         }
         std::vector<std::uint8_t> other(property.size);
-        for (std::size_t i = 1; i < m_Instances.size(); ++i) {
+        for (std::size_t i = 1; i < instances.size(); ++i) {
             if (!reflection::GetPropertyPathRaw(
-                    *m_Services.registry, m_TypeId, m_Instances[i], path, other.data(), other.size())) {
+                    *m_Services.registry, typeId, instances[i], path, other.data(), other.size())) {
                 return PropertyValueState::Unavailable;
             }
             if (std::memcmp(first.data(), other.data(), property.size) != 0) {
@@ -420,6 +489,8 @@ private:
     }
 
     std::shared_ptr<PropertyNodeImpl> BuildPropertyNode(
+        TypeId typeId,
+        const std::vector<void*>& instances,
         const PropertyInfo& property,
         const std::string& path,
         int depth,
@@ -431,15 +502,19 @@ private:
         node->category = category;
         node->property = &property;
         node->depth = depth;
-        node->valueState = ComputeValueState(path, property);
+        node->valueState = ComputeValueState(typeId, instances, path, property);
         node->expanded = depth < 2;
 
         node->handle = std::make_shared<PropertyHandleImpl>(
-            m_Services, m_TypeId, path, &property, m_Instances, node->valueState);
+            m_Services, typeId, path, &property, instances, node->valueState);
 
-        m_PathIndex[path] = node;
+        // Path index: disambiguate across multi-type bindings
+        const std::string indexKey = std::to_string(static_cast<unsigned long long>(typeId)) + "|" + path;
+        m_PathIndex[indexKey] = node;
+        if (m_PathIndex.find(path) == m_PathIndex.end()) {
+            m_PathIndex[path] = node;
+        }
 
-        // Nested struct expansion
         if (m_Services.registry) {
             if (const TypeInfo* childType = m_Services.registry->Find(property.typeId)) {
                 if (childType->IsClassOrStruct()) {
@@ -458,12 +533,12 @@ private:
                             continue;
                         }
                         const std::string childPath = path + "." + visit.property->name;
-                        if (auto child = BuildPropertyNode(*visit.property, childPath, depth + 1, category)) {
+                        if (auto child = BuildPropertyNode(
+                                typeId, instances, *visit.property, childPath, depth + 1, category)) {
                             node->children.push_back(child);
                         }
                     }
                 } else if (childType->kind == TypeKind::Array || childType->kind == TypeKind::Map) {
-                    // Stub expandable placeholder — no element expansion until container backend exists.
                     node->expanded = false;
                 }
             }
@@ -475,6 +550,7 @@ private:
     RuntimeServices m_Services;
     TypeId m_TypeId = reflection::kInvalidTypeId;
     std::vector<void*> m_Instances;
+    std::vector<ObjectBinding> m_Bindings;
     PropertyFilterOptions m_Filter{};
     std::vector<PropertyNodePtr> m_Roots;
     std::vector<PropertyNodePtr> m_FilteredRoots;

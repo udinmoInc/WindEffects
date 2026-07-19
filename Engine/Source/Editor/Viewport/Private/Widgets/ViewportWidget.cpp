@@ -223,11 +223,23 @@ void ViewportWidget::OnMouseDown(const MouseEvent& event) {
         return;
     }
 
+    if (m_Geometry.Contains(event.position)
+        && we::programs::editor::PlaceActorsPlacement::Get().HasActivePlacement()) {
+        const float localX = event.position.x - m_Geometry.x;
+        const float localY = event.position.y - m_Geometry.y;
+        if (we::programs::editor::PlaceActorsPlacement::Get().TryPlaceAtViewportPoint(localX, localY)) {
+            return;
+        }
+    }
+
     if (event.type == MouseEventType::MouseDown
         && event.button == MouseButton::Left
-        && event.ctrlDown
         && m_Geometry.Contains(event.position)) {
-        return;
+        const float localX = event.position.x - m_Geometry.x;
+        const float localY = event.position.y - m_Geometry.y;
+        if (m_EditInputHandler && m_EditInputHandler(event, localX, localY)) {
+            return;
+        }
     }
 
     for (auto it = m_Children.rbegin(); it != m_Children.rend(); ++it) {
@@ -241,19 +253,17 @@ void ViewportWidget::OnMouseDown(const MouseEvent& event) {
         }
     }
 
-    if (m_Geometry.Contains(event.position)
-        && we::programs::editor::PlaceActorsPlacement::Get().HasActivePlacement()) {
-        const float localX = event.position.x - m_Geometry.x;
-        const float localY = event.position.y - m_Geometry.y;
-        if (we::programs::editor::PlaceActorsPlacement::Get().TryPlaceAtViewportPoint(localX, localY)) {
-            return;
-        }
-    }
-
     m_Navigation.OnMouseDown(event);
 }
 
 void ViewportWidget::OnMouseMove(const MouseEvent& event) {
+    if (m_EditInputHandler && m_Geometry.Contains(event.position)) {
+        const float localX = event.position.x - m_Geometry.x;
+        const float localY = event.position.y - m_Geometry.y;
+        if (m_EditInputHandler(event, localX, localY)) {
+            return;
+        }
+    }
     m_Navigation.OnMouseMove(event);
     for (auto& child : m_Children) {
         child->OnMouseMove(event);
@@ -261,6 +271,13 @@ void ViewportWidget::OnMouseMove(const MouseEvent& event) {
 }
 
 void ViewportWidget::OnMouseUp(const MouseEvent& event) {
+    if (m_EditInputHandler) {
+        const float localX = event.position.x - m_Geometry.x;
+        const float localY = event.position.y - m_Geometry.y;
+        if (m_EditInputHandler(event, localX, localY)) {
+            return;
+        }
+    }
     m_Navigation.OnMouseUp(event);
     for (auto& child : m_Children) {
         child->OnMouseUp(event);

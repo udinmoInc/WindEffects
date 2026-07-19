@@ -5,7 +5,10 @@
 #include "Environment/EnvironmentTypes.h"
 #include "Scene/Entity.h"
 #include "Scene/Scene.h"
-#include "Widgets/PropertyEditor.h"
+#include "PropertyEditor/IDetailsView.h"
+#include "PropertyEditor/PropertyChangeEvent.h"
+#include "PropertyEditor/PropertyEditorTypes.h"
+#include "Reflection/TypeId.h"
 #include "ContentBrowser/Widgets/TreeView.h"
 #include "Widgets/MenuBar.h"
 #include "WindEffects/Editor/UI/Shell/EditorWorkspaceController.h"
@@ -51,7 +54,8 @@ using we::runtime::world::environment::EnvironmentSystem;
 
 std::weak_ptr<Scene> g_Scene;
 std::weak_ptr<::we::editor::contentbrowser::TreeView> g_Outliner;
-std::weak_ptr<::we::editor::property::PropertyEditor> g_Details;
+std::weak_ptr<::we::editor::property::IDetailsView> g_Details;
+bool g_DetailsListenerWired = false;
 std::uint64_t g_LastSelectedEntityId = 0;
 
 std::string EntityTypeLabel(EntityType type) {
@@ -137,396 +141,14 @@ void SortTreeChildren(std::vector<std::shared_ptr<::we::editor::contentbrowser::
     }
 }
 
-std::string FormatFloat(float value) {
-    char buffer[32];
-    std::snprintf(buffer, sizeof(buffer), "%.3f", value);
-    return buffer;
-}
+void RefreshOutliner();
 
-std::string FormatVec3(const we::math::Vec3& value) {
-    return FormatFloat(value.x) + "," + FormatFloat(value.y) + "," + FormatFloat(value.z);
-}
-
-we::math::Vec3 ParseVec3(const std::string& text, const we::math::Vec3& fallback) {
-    we::math::Vec3 result = fallback;
-    char comma = 0;
-    if (std::sscanf(text.c_str(), "%f%c%f%c%f", &result.x, &comma, &result.y, &comma, &result.z) >= 1) {
-        return result;
-    }
-    return fallback;
-}
-
-float ParseFloat(const std::string& text, float fallback) {
-    try {
-        return std::stof(text);
-    } catch (...) {
-        return fallback;
-    }
-}
-
-int ParseInt(const std::string& text, int fallback) {
-    try {
-        return std::stoi(text);
-    } catch (...) {
-        return fallback;
-    }
-}
-
-void AddBoolProperty(
-    ::we::editor::property::PropertyEditor& editor,
-    const std::string& name,
-    const std::string& category,
-    bool value,
-    std::function<void(bool)> onChanged) {
-    ::we::editor::property::Property property;
-    property.name = name;
-    property.category = category;
-    property.type = ::we::editor::property::PropertyType::Bool;
-    property.value = value ? "true" : "false";
-    property.defaultValue = property.value;
-    property.onValueChanged = [onChanged](const std::string& newValue) {
-        if (onChanged) {
-            onChanged(newValue == "true" || newValue == "1");
-        }
-    };
-    editor.AddProperty(property);
-}
-
-void AddFloatProperty(
-    ::we::editor::property::PropertyEditor& editor,
-    const std::string& name,
-    const std::string& category,
-    float value,
-    std::function<void(float)> onChanged) {
-    ::we::editor::property::Property property;
-    property.name = name;
-    property.category = category;
-    property.type = ::we::editor::property::PropertyType::Float;
-    property.value = FormatFloat(value);
-    property.defaultValue = property.value;
-    property.onValueChanged = [onChanged](const std::string& newValue) {
-        if (onChanged) {
-            onChanged(ParseFloat(newValue, 0.0f));
-        }
-    };
-    editor.AddProperty(property);
-}
-
-void AddIntProperty(
-    ::we::editor::property::PropertyEditor& editor,
-    const std::string& name,
-    const std::string& category,
-    int value,
-    std::function<void(int)> onChanged) {
-    ::we::editor::property::Property property;
-    property.name = name;
-    property.category = category;
-    property.type = ::we::editor::property::PropertyType::Int;
-    property.value = std::to_string(value);
-    property.defaultValue = property.value;
-    property.onValueChanged = [onChanged](const std::string& newValue) {
-        if (onChanged) {
-            onChanged(ParseInt(newValue, 0));
-        }
-    };
-    editor.AddProperty(property);
-}
-
-void AddVec3Property(
-    ::we::editor::property::PropertyEditor& editor,
-    const std::string& name,
-    const std::string& category,
-    const we::math::Vec3& value,
-    std::function<void(const we::math::Vec3&)> onChanged) {
-    ::we::editor::property::Property property;
-    property.name = name;
-    property.category = category;
-    property.type = ::we::editor::property::PropertyType::Vector3;
-    property.value = FormatVec3(value);
-    property.defaultValue = property.value;
-    property.onValueChanged = [value, onChanged](const std::string& newValue) {
-        if (onChanged) {
-            onChanged(ParseVec3(newValue, value));
-        }
-    };
-    editor.AddProperty(property);
-}
-
-void BindSunProperties(::we::editor::property::PropertyEditor& editor, EnvironmentSystem& system) {
-    auto& sun = system.GetSun();
-    AddFloatProperty(editor, "Intensity", "Light", sun.Intensity, [&system](float value) {
-        system.GetSun().Intensity = value;
-        system.SyncToScene();
-        system.UpdateRendering();
-    });
-    AddIntProperty(editor, "Temperature", "Light", sun.TemperatureKelvin, [&system](int value) {
-        system.GetSun().TemperatureKelvin = std::max(1000, value);
-        system.SyncToScene();
-        system.UpdateRendering();
-    });
-    AddBoolProperty(editor, "Cast Dynamic Shadows", "Light", sun.CastDynamicShadows, [&system](bool value) {
-        system.GetSun().CastDynamicShadows = value;
-        system.UpdateRendering();
-    });
-    AddBoolProperty(editor, "Atmosphere Sun", "Light", sun.AtmosphereSun, [&system](bool value) {
-        system.GetSun().AtmosphereSun = value;
-        system.UpdateRendering();
-    });
-    AddVec3Property(editor, "Rotation", "Transform", sun.Rotation, [&system](const we::math::Vec3& value) {
-        system.GetSun().Rotation = value;
-        system.SyncToScene();
-        system.UpdateRendering();
-    });
-}
-
-void BindSkyLightProperties(::we::editor::property::PropertyEditor& editor, EnvironmentSystem& system) {
-    auto& sky = system.GetSkyLight();
-    AddFloatProperty(editor, "Intensity", "Sky Light", sky.Intensity, [&system](float value) {
-        system.GetSkyLight().Intensity = value;
-        system.SyncToScene();
-        system.UpdateRendering();
-    });
-    AddBoolProperty(editor, "Real Time Capture", "Sky Light", sky.RealTimeCapture, [&system](bool value) {
-        system.GetSkyLight().RealTimeCapture = value;
-        system.UpdateRendering();
-    });
-}
-
-void BindAtmosphereProperties(::we::editor::property::PropertyEditor& editor, EnvironmentSystem& system) {
-    auto& atmosphere = system.GetSkyAtmosphere();
-    AddFloatProperty(editor, "Rayleigh Scattering", "Atmosphere", atmosphere.RayleighScattering, [&system](float value) {
-        system.GetSkyAtmosphere().RayleighScattering = value;
-        system.SyncToScene();
-        system.UpdateRendering();
-    });
-    AddFloatProperty(editor, "Mie Scattering", "Atmosphere", atmosphere.MieScattering, [&system](float value) {
-        system.GetSkyAtmosphere().MieScattering = value;
-        system.UpdateRendering();
-    });
-    AddFloatProperty(editor, "Mie Anisotropy", "Atmosphere", atmosphere.MieAnisotropy, [&system](float value) {
-        system.GetSkyAtmosphere().MieAnisotropy = value;
-        system.UpdateRendering();
-    });
-}
-
-void BindFogProperties(::we::editor::property::PropertyEditor& editor, EnvironmentSystem& system) {
-    auto& fog = system.GetHeightFog();
-    AddFloatProperty(editor, "Density", "Fog", fog.Density, [&system](float value) {
-        system.GetHeightFog().Density = value;
-        system.SyncToScene();
-        system.UpdateRendering();
-    });
-    AddFloatProperty(editor, "Height Falloff", "Fog", fog.HeightFalloff, [&system](float value) {
-        system.GetHeightFog().HeightFalloff = value;
-        system.UpdateRendering();
-    });
-    AddBoolProperty(editor, "Volumetric Fog", "Fog", fog.VolumetricFog, [&system](bool value) {
-        system.SetVolumetricFogEnabled(value);
-    });
-    AddVec3Property(editor, "Fog Color", "Fog", fog.FogColor, [&system](const we::math::Vec3& value) {
-        system.GetHeightFog().FogColor = value;
-        system.SyncToScene();
-        system.UpdateRendering();
-    });
-}
-
-void AddStringProperty(
-    ::we::editor::property::PropertyEditor& editor,
-    const std::string& name,
-    const std::string& category,
-    const std::string& value,
-    std::function<void(const std::string&)> onChanged) {
-    ::we::editor::property::Property property;
-    property.name = name;
-    property.category = category;
-    property.type = ::we::editor::property::PropertyType::String;
-    property.value = value;
-    property.defaultValue = property.value;
-    property.onValueChanged = [onChanged](const std::string& newValue) {
-        if (onChanged) {
-            onChanged(newValue);
-        }
-    };
-    editor.AddProperty(property);
-}
-
-void BindCloudProperties(::we::editor::property::PropertyEditor& editor, EnvironmentSystem& system) {
-    using we::runtime::world::environment::CloudPreset;
-    using we::runtime::world::environment::CloudQualityPreset;
-    using we::runtime::world::environment::EnvironmentVolumetricClouds;
-
-    auto& clouds = system.GetVolumetricClouds();
-    auto refresh = [&system]() {
-        system.GetVolumetricClouds().SyncAltitudeFromBounds();
-        system.SyncToScene();
-        system.UpdateRendering();
-    };
-
-    AddBoolProperty(editor, "Enabled", "Clouds", clouds.Enabled, [&system](bool value) {
-        system.SetVolumetricCloudsEnabled(value);
-    });
-    AddStringProperty(editor, "Preset", "Clouds", EnvironmentVolumetricClouds::PresetName(clouds.ActivePreset),
-        [&system](const std::string& value) {
-            for (int i = 0; i <= static_cast<int>(CloudPreset::Stratocumulus); ++i) {
-                const auto preset = static_cast<CloudPreset>(i);
-                if (value == EnvironmentVolumetricClouds::PresetName(preset)) {
-                    system.ApplyCloudPreset(preset);
-                    return;
-                }
-            }
-        });
-    AddStringProperty(editor, "Quality Preset", "Clouds",
-        clouds.Quality == CloudQualityPreset::Low ? "Low"
-            : clouds.Quality == CloudQualityPreset::High ? "High"
-            : clouds.Quality == CloudQualityPreset::Epic ? "Epic" : "Medium",
-        [&system, refresh](const std::string& value) {
-            auto& c = system.GetVolumetricClouds();
-            if (value == "Low") c.Quality = CloudQualityPreset::Low;
-            else if (value == "High") c.Quality = CloudQualityPreset::High;
-            else if (value == "Epic") c.Quality = CloudQualityPreset::Epic;
-            else c.Quality = CloudQualityPreset::Medium;
-            refresh();
-        });
-
-    AddFloatProperty(editor, "Coverage", "Clouds", clouds.Coverage, [&system, refresh](float value) {
-        system.GetVolumetricClouds().Coverage = std::clamp(value, 0.0f, 1.0f);
-        refresh();
-    });
-    AddFloatProperty(editor, "Density", "Clouds", clouds.Density, [&system, refresh](float value) {
-        system.GetVolumetricClouds().Density = std::max(0.0f, value);
-        refresh();
-    });
-    AddFloatProperty(editor, "Density Multiplier", "Clouds", clouds.DensityMultiplier, [&system, refresh](float value) {
-        system.GetVolumetricClouds().DensityMultiplier = std::max(0.0f, value);
-        refresh();
-    });
-    AddFloatProperty(editor, "Cloud Height", "Clouds", clouds.CloudHeight, [&system, refresh](float value) {
-        auto& c = system.GetVolumetricClouds();
-        const float half = c.CloudThickness * 0.5f;
-        c.CloudHeight = std::max(0.0f, value);
-        c.BottomAltitude = c.CloudHeight - half;
-        c.TopAltitude = c.CloudHeight + half;
-        refresh();
-    });
-    AddFloatProperty(editor, "Cloud Thickness", "Clouds", clouds.CloudThickness, [&system, refresh](float value) {
-        auto& c = system.GetVolumetricClouds();
-        c.CloudThickness = std::max(50.0f, value);
-        c.BottomAltitude = c.CloudHeight - c.CloudThickness * 0.5f;
-        c.TopAltitude = c.CloudHeight + c.CloudThickness * 0.5f;
-        refresh();
-    });
-    AddFloatProperty(editor, "Bottom Altitude", "Clouds", clouds.BottomAltitude, [&system, refresh](float value) {
-        system.GetVolumetricClouds().BottomAltitude = value;
-        refresh();
-    });
-    AddFloatProperty(editor, "Top Altitude", "Clouds", clouds.TopAltitude, [&system, refresh](float value) {
-        system.GetVolumetricClouds().TopAltitude = value;
-        refresh();
-    });
-    AddVec3Property(editor, "Wind Direction", "Clouds", clouds.WindDirection, [&system, refresh](const we::math::Vec3& value) {
-        system.GetVolumetricClouds().WindDirection = value;
-        refresh();
-    });
-    AddFloatProperty(editor, "Wind Speed", "Clouds", clouds.WindSpeed, [&system, refresh](float value) {
-        system.GetVolumetricClouds().WindSpeed = std::max(0.0f, value);
-        refresh();
-    });
-    AddFloatProperty(editor, "Animation Speed", "Clouds", clouds.AnimationSpeed, [&system, refresh](float value) {
-        system.GetVolumetricClouds().AnimationSpeed = std::max(0.0f, value);
-        refresh();
-    });
-    AddFloatProperty(editor, "Noise Scale", "Clouds", clouds.NoiseScale, [&system, refresh](float value) {
-        system.GetVolumetricClouds().NoiseScale = std::max(0.05f, value);
-        refresh();
-    });
-    AddFloatProperty(editor, "Detail Noise Scale", "Clouds", clouds.DetailNoiseScale, [&system, refresh](float value) {
-        system.GetVolumetricClouds().DetailNoiseScale = std::max(0.5f, value);
-        refresh();
-    });
-    AddFloatProperty(editor, "Shape Noise", "Clouds", clouds.ShapeNoise, [&system, refresh](float value) {
-        system.GetVolumetricClouds().ShapeNoise = std::clamp(value, 0.0f, 1.0f);
-        refresh();
-    });
-    AddFloatProperty(editor, "Erosion Noise", "Clouds", clouds.ErosionNoise, [&system, refresh](float value) {
-        system.GetVolumetricClouds().ErosionNoise = std::clamp(value, 0.0f, 1.0f);
-        refresh();
-    });
-    AddFloatProperty(editor, "Seed", "Clouds", clouds.Seed, [&system, refresh](float value) {
-        system.GetVolumetricClouds().Seed = value;
-        refresh();
-    });
-    AddFloatProperty(editor, "Lighting Intensity", "Lighting", clouds.LightingIntensity, [&system, refresh](float value) {
-        system.GetVolumetricClouds().LightingIntensity = std::max(0.0f, value);
-        refresh();
-    });
-    AddFloatProperty(editor, "Silver Lining Intensity", "Lighting", clouds.SilverLiningIntensity, [&system, refresh](float value) {
-        system.GetVolumetricClouds().SilverLiningIntensity = std::max(0.0f, value);
-        refresh();
-    });
-    AddFloatProperty(editor, "Ambient Contribution", "Lighting", clouds.AmbientContribution, [&system, refresh](float value) {
-        system.GetVolumetricClouds().AmbientContribution = std::max(0.0f, value);
-        refresh();
-    });
-    AddFloatProperty(editor, "Multi-Scattering Strength", "Lighting", clouds.MultiScatteringStrength, [&system, refresh](float value) {
-        system.GetVolumetricClouds().MultiScatteringStrength = std::clamp(value, 0.0f, 2.0f);
-        refresh();
-    });
-    AddFloatProperty(editor, "Phase Function (Forward Scattering)", "Lighting", clouds.PhaseG, [&system, refresh](float value) {
-        system.GetVolumetricClouds().PhaseG = std::clamp(value, 0.0f, 0.95f);
-        refresh();
-    });
-    AddFloatProperty(editor, "Powder Effect", "Lighting", clouds.PowderEffect, [&system, refresh](float value) {
-        system.GetVolumetricClouds().PowderEffect = std::clamp(value, 0.0f, 1.0f);
-        refresh();
-    });
-    AddFloatProperty(editor, "Shadow Strength", "Shadows", clouds.ShadowStrength, [&system, refresh](float value) {
-        system.GetVolumetricClouds().ShadowStrength = std::clamp(value, 0.0f, 1.0f);
-        refresh();
-    });
-    AddFloatProperty(editor, "Shadow Distance", "Shadows", clouds.ShadowDistance, [&system, refresh](float value) {
-        system.GetVolumetricClouds().ShadowDistance = std::max(100.0f, value);
-        refresh();
-    });
-    AddIntProperty(editor, "Shadow Resolution", "Shadows", clouds.ShadowResolution, [&system, refresh](int value) {
-        system.GetVolumetricClouds().ShadowResolution = std::clamp(value, 64, 2048);
-        refresh();
-    });
-    AddVec3Property(editor, "Cloud Color Tint", "Appearance", clouds.CloudColorTint, [&system, refresh](const we::math::Vec3& value) {
-        system.GetVolumetricClouds().CloudColorTint = value;
-        refresh();
-    });
-    AddVec3Property(editor, "Cloud Color", "Appearance", clouds.CloudColor, [&system, refresh](const we::math::Vec3& value) {
-        system.GetVolumetricClouds().CloudColor = value;
-        refresh();
-    });
-    AddFloatProperty(editor, "Weather Map Influence", "Weather", clouds.WeatherMapInfluence, [&system, refresh](float value) {
-        system.GetVolumetricClouds().WeatherMapInfluence = std::clamp(value, 0.0f, 1.0f);
-        refresh();
-    });
-}
-
-void BindExposureProperties(::we::editor::property::PropertyEditor& editor, EnvironmentSystem& system) {
-    auto& exposure = system.GetExposureController();
-    AddBoolProperty(editor, "Auto Exposure", "Exposure", exposure.AutoExposure, [&system](bool value) {
-        system.GetExposureController().AutoExposure = value;
-        system.UpdateRendering();
-    });
-    AddFloatProperty(editor, "Exposure EV", "Exposure", exposure.ExposureEV, [&system](float value) {
-        system.GetExposureController().ExposureEV = value;
-        system.UpdateRendering();
-    });
-    AddFloatProperty(editor, "Exposure Compensation", "Exposure", exposure.ExposureCompensation, [&system](float value) {
-        system.GetExposureController().ExposureCompensation = value;
-        system.UpdateRendering();
-    });
-    AddFloatProperty(editor, "Min EV", "Exposure", exposure.MinEV, [&system](float value) {
-        system.GetExposureController().MinEV = value;
-        system.UpdateRendering();
-    });
-    AddFloatProperty(editor, "Max EV", "Exposure", exposure.MaxEV, [&system](float value) {
-        system.GetExposureController().MaxEV = value;
-        system.UpdateRendering();
-    });
+void OnDetailsPropertyChanged() {
+    EnvironmentSystem& system = EnvironmentSystem::Get();
+    system.SyncFromScene();
+    system.SyncToScene();
+    system.UpdateRendering();
+    RefreshOutliner();
 }
 
 void RefreshDetailsPanel() {
@@ -543,74 +165,63 @@ void RefreshDetailsPanel() {
         return;
     }
 
-    const Entity& entity = scene->GetEntities()[static_cast<size_t>(selectedIndex)];
-    if (entity.Id == g_LastSelectedEntityId) {
+    Entity* entity = scene->FindEntityById(scene->GetEntities()[static_cast<size_t>(selectedIndex)].Id);
+    if (!entity) {
+        details->Clear();
+        g_LastSelectedEntityId = 0;
         return;
     }
-    g_LastSelectedEntityId = entity.Id;
 
-    details->Clear();
+    if (entity->Id == g_LastSelectedEntityId) {
+        return;
+    }
+    g_LastSelectedEntityId = entity->Id;
+
     EnvironmentSystem& system = EnvironmentSystem::Get();
     system.SyncFromScene();
 
-    ::we::editor::property::Property actorName;
-    actorName.name = "Name";
-    actorName.category = "Actor";
-    actorName.type = ::we::editor::property::PropertyType::String;
-    actorName.value = entity.Name;
-    details->AddProperty(actorName);
+    std::vector<::we::editor::property::ObjectBinding> bindings;
+    ::we::editor::property::ObjectBinding entityBinding;
+    entityBinding.typeId = we::runtime::reflection::MakeTypeId("we::runtime::scene::Entity");
+    entityBinding.instance = entity;
+    bindings.push_back(entityBinding);
 
-    ::we::editor::property::Property actorType;
-    actorType.name = "Type";
-    actorType.category = "Actor";
-    actorType.type = ::we::editor::property::PropertyType::String;
-    actorType.value = EntityTypeLabel(entity.Type);
-    details->AddProperty(actorType);
-
-    AddVec3Property(*details, "Position", "Transform", entity.Position, [scene, entityId = entity.Id](const we::math::Vec3& value) {
-        if (Entity* target = scene->FindEntityById(entityId)) {
-            target->Position = value;
-            EnvironmentSystem::Get().SyncFromScene();
-            EnvironmentSystem::Get().UpdateRendering();
-        }
-    });
-    AddVec3Property(*details, "Rotation", "Transform", entity.Rotation, [scene, entityId = entity.Id](const we::math::Vec3& value) {
-        if (Entity* target = scene->FindEntityById(entityId)) {
-            target->Rotation = value;
-            EnvironmentSystem::Get().SyncFromScene();
-            EnvironmentSystem::Get().UpdateRendering();
-        }
-    });
-    AddVec3Property(*details, "Scale", "Transform", entity.Scale, [scene, entityId = entity.Id](const we::math::Vec3& value) {
-        if (Entity* target = scene->FindEntityById(entityId)) {
-            target->Scale = value;
-            EnvironmentSystem::Get().SyncFromScene();
-            EnvironmentSystem::Get().UpdateRendering();
-        }
-    });
-
-    switch (system.GetActorKind(entity.Id)) {
+    switch (system.GetActorKind(entity->Id)) {
     case EnvironmentActorKind::DirectionalLight:
-        BindSunProperties(*details, system);
+        bindings.push_back({
+            we::runtime::reflection::MakeTypeId("we::runtime::world::environment::EnvironmentDirectionalLight"),
+            &system.GetSun()});
         break;
     case EnvironmentActorKind::SkyLight:
-        BindSkyLightProperties(*details, system);
+        bindings.push_back({
+            we::runtime::reflection::MakeTypeId("we::runtime::world::environment::EnvironmentSkyLight"),
+            &system.GetSkyLight()});
         break;
     case EnvironmentActorKind::SkyAtmosphere:
-        BindAtmosphereProperties(*details, system);
+        bindings.push_back({
+            we::runtime::reflection::MakeTypeId("we::runtime::world::environment::EnvironmentSkyAtmosphere"),
+            &system.GetSkyAtmosphere()});
         break;
     case EnvironmentActorKind::HeightFog:
-        BindFogProperties(*details, system);
+        bindings.push_back({
+            we::runtime::reflection::MakeTypeId("we::runtime::world::environment::EnvironmentHeightFog"),
+            &system.GetHeightFog()});
         break;
     case EnvironmentActorKind::VolumetricClouds:
-        BindCloudProperties(*details, system);
+        bindings.push_back({
+            we::runtime::reflection::MakeTypeId("we::runtime::world::environment::EnvironmentVolumetricClouds"),
+            &system.GetVolumetricClouds()});
         break;
     case EnvironmentActorKind::ExposureController:
-        BindExposureProperties(*details, system);
+        bindings.push_back({
+            we::runtime::reflection::MakeTypeId("we::runtime::world::environment::EnvironmentExposureController"),
+            &system.GetExposureController()});
         break;
     default:
         break;
     }
+
+    details->SetBindings(bindings);
 }
 
 std::shared_ptr<::we::editor::contentbrowser::TreeNode> BuildNodeForEntity(const Entity& entity) {
@@ -667,14 +278,23 @@ void RefreshOutliner() {
 void InitializeEditor(
     const std::shared_ptr<Scene>& scene,
     const std::shared_ptr<::we::editor::contentbrowser::TreeView>& outliner,
-    const std::shared_ptr<::we::editor::property::PropertyEditor>& details) {
+    const std::shared_ptr<::we::editor::property::IDetailsView>& details) {
 
     g_Scene = scene;
     g_Outliner = outliner;
     g_Details = details;
+    g_LastSelectedEntityId = 0;
+
+    if (details && !g_DetailsListenerWired) {
+        details->AddChangeListener([](const ::we::editor::property::PropertyChangeEvent&) {
+            OnDetailsPropertyChanged();
+        });
+        g_DetailsListenerWired = true;
+    }
 
     EnvironmentSystem::Get().BindScene(scene);
     EnvironmentSystem::Get().AddChangeListener([]() {
+        g_LastSelectedEntityId = 0;
         RefreshOutliner();
         RefreshDetailsPanel();
     });

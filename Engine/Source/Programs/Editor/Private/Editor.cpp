@@ -16,6 +16,12 @@
 
 #include "EditorWindowHitTest.h"
 #include "EditorShellBuilder.h"
+#include "Undo/Undo.h"
+#include "PropertyEditor/IPropertyEditorRuntime.h"
+#include "PropertyEditor/PropertyEditorSession.h"
+#include "ViewportEdit/ViewportEdit.h"
+#include "Serialization/ISerializer.h"
+#include "Reflection/ITypeRegistry.h"
 #include "Widgets/ViewportWidget.h"
 #include "ViewportToolbarState.h"
 #include "PlaceActors/PlaceActorsPlacement.h"
@@ -232,6 +238,15 @@ void Editor::UnloadProjectWorkspace() {
     m_StatusBar.reset();
     m_TitleBar.reset();
 
+    if (m_UndoRuntime) {
+        m_UndoRuntime->Shutdown();
+        m_UndoRuntime.reset();
+    }
+    m_ViewportEdit.reset();
+    ::we::editor::viewportedit::ViewportEditSession::Clear();
+    ::we::editor::property::PropertyEditorSession::Clear();
+    m_Serializer.reset();
+
     if (we::projects::ProjectContext::Get().IsLoaded()) {
         we::projects::ProjectContext::Get().Unload();
     }
@@ -322,6 +337,37 @@ void Editor::EnterProjectWorkspace(const std::filesystem::path& weprojPath) {
 
     HE_INFO("[Startup] Building editor shell for project...");
     try {
+        we::editor::undo::UndoDependencies undoDeps;
+        undoDeps.onLog = [](std::string_view msg) {
+            HE_INFO(std::string(msg));
+        };
+        m_UndoRuntime = we::editor::undo::CreateUndoRuntime(std::move(undoDeps));
+
+        m_Serializer = we::runtime::serialization::CreateSerializer({});
+
+        we::editor::property::PropertyEditorDependencies peDeps;
+        peDeps.typeRegistry = &we::runtime::reflection::GetTypeRegistry();
+        peDeps.serializer = m_Serializer.get();
+        if (m_UndoRuntime) {
+            peDeps.transactionHook = m_UndoRuntime->MakePropertyTransactionHook();
+        }
+        peDeps.onLog = [](std::string_view msg) {
+            HE_INFO(std::string(msg));
+        };
+        auto peRuntime = we::editor::property::CreatePropertyEditorRuntime(std::move(peDeps));
+        auto detailsView = peRuntime ? peRuntime->MakeDetailsView() : nullptr;
+        we::editor::property::PropertyEditorSession::Install(
+            std::shared_ptr<we::editor::property::IPropertyEditorRuntime>(std::move(peRuntime)),
+            std::shared_ptr<we::editor::property::IDetailsView>(std::move(detailsView)));
+
+        we::editor::viewportedit::ViewportEditDependencies veDeps;
+        veDeps.undo = m_UndoRuntime.get();
+        veDeps.propertyEditor = we::editor::property::PropertyEditorSession::Runtime();
+        veDeps.scene = m_Scene.get();
+        veDeps.editorCamera = m_Camera.get();
+        m_ViewportEdit = we::editor::viewportedit::CreateViewportEditRuntime(veDeps);
+        we::editor::viewportedit::ViewportEditSession::Install(m_ViewportEdit);
+
         we::programs::editor::EditorShellDependencies shellDeps;
         shellDeps.window = m_Window;
         shellDeps.renderer = m_Renderer.get();
@@ -333,8 +379,64 @@ void Editor::EnterProjectWorkspace(const std::filesystem::path& weprojPath) {
         shellDeps.onCreateNewLevel = [this]() { CreateNewLevel(); };
         shellDeps.onOpenProject = [this]() { OpenProjectDialog(); };
         shellDeps.onOpenProjectManager = [this]() { OpenWeLauncher(); };
+        shellDeps.onUndo = [this]() {
+            if (m_UndoRuntime) {
+                (void)m_UndoRuntime->Manager().Undo();
+            }
+        };
+        shellDeps.onRedo = [this]() {
+            if (m_UndoRuntime) {
+                (void)m_UndoRuntime->Manager().Redo();
+            }
+        };
         shellDeps.onViewportCreated = [this](std::shared_ptr<we::runtime::kindui::Widget>& viewportWidget) {
             m_ViewportWidget = viewportWidget;
+            if (auto vp = std::dynamic_pointer_cast<ViewportWidget>(viewportWidget)) {
+                vp->SetEditInputHandler([this, vp](const we::runtime::kindui::MouseEvent& event, float localX, float localY) {
+                    if (!m_ViewportEdit) {
+                        return false;
+                    }
+                    const auto geom = vp->GetGeometry();
+                    m_ViewportEdit->SetViewportSize(std::max(1.f, geom.width), std::max(1.f, geom.height));
+
+                    we::editor::viewportedit::ViewportInputEvent ve;
+                    ve.x = localX;
+                    ve.y = localY;
+                    ve.deltaX = event.deltaX;
+                    ve.deltaY = event.deltaY;
+                    ve.scroll = event.wheelDeltaY;
+                    ve.shift = event.shiftDown;
+                    ve.ctrl = event.ctrlDown;
+                    ve.alt = event.altDown;
+                    switch (event.button) {
+                    case we::runtime::kindui::MouseButton::Left:
+                        ve.button = we::editor::viewportedit::ViewportMouseButton::Left;
+                        break;
+                    case we::runtime::kindui::MouseButton::Right:
+                        ve.button = we::editor::viewportedit::ViewportMouseButton::Right;
+                        break;
+                    case we::runtime::kindui::MouseButton::Middle:
+                        ve.button = we::editor::viewportedit::ViewportMouseButton::Middle;
+                        break;
+                    default:
+                        ve.button = we::editor::viewportedit::ViewportMouseButton::None;
+                        break;
+                    }
+
+                    auto& interaction = m_ViewportEdit->Interaction();
+                    switch (event.type) {
+                    case we::runtime::kindui::MouseEventType::MouseDown:
+                        return interaction.HandleMouseDown(ve);
+                    case we::runtime::kindui::MouseEventType::MouseUp:
+                        return interaction.HandleMouseUp(ve);
+                    case we::runtime::kindui::MouseEventType::MouseMove:
+                        return interaction.HandleMouseMove(ve);
+                    case we::runtime::kindui::MouseEventType::MouseWheel:
+                        return interaction.HandleScroll(ve);
+                    }
+                    return false;
+                });
+            }
         };
         shellDeps.onLayoutBuilt = [this](const ::we::editor::shell::DockLayoutBuildResult&) {};
 
@@ -695,6 +797,10 @@ void Editor::MainLoop() {
             env.SyncFromScene(m_Camera->GetPosition());
         }
         ::we::editor::environment::TickEditor();
+        if (m_ViewportEdit) {
+            m_ViewportEdit->SyncSelectionFromScene();
+            m_ViewportEdit->Tick(dt);
+        }
         UpdateUiScaleFromWindow();
         ::we::editor::services::EditorPerfStats::Get().Mark("tick");
 

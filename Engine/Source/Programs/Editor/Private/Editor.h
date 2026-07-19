@@ -18,6 +18,9 @@
 #include "EditorWindowHitTest.h"
 #include "WindEffects/Editor/UI/Core/EditorApplicationContext.h"
 #include "EditorShellBuilder.h"
+#include "Undo/IUndoRuntime.h"
+#include "ViewportEdit/IViewportEditor.h"
+#include "Serialization/ISerializer.h"
 
 #include "Projects/EditorCommandLine.h"
 
@@ -76,6 +79,9 @@ private:
     std::shared_ptr<::we::editor::shell::StatusBar> m_StatusBar;
     std::shared_ptr<::we::editor::shell::TitleBar> m_TitleBar;
     std::unique_ptr<::we::editor::services::EditorApplicationContext> m_UIContext;
+    std::unique_ptr<::we::editor::undo::IUndoRuntime> m_UndoRuntime;
+    std::shared_ptr<::we::editor::viewportedit::IViewportEditor> m_ViewportEdit;
+    std::unique_ptr<::we::runtime::serialization::ISerializer> m_Serializer;
     ::we::editor::mainframe::EditorWindowHitTestData m_WindowHitTestData{};
 
     uint32_t m_LastLayoutSwapchainW = 0;
