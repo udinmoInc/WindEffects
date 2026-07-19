@@ -1,0 +1,15 @@
+{
+  "assetType": "Material",
+  "name": "M_DefaultLandscape",
+  "displayName": "Default Landscape",
+  "engineBuiltin": true,
+  "shader": "Terrain",
+  "baseColor": [0.165, 0.165, 0.175],
+  "metallic": 0.0,
+  "roughness": 0.92,
+  "specular": 0.04,
+  "opacity": 1.0,
+  "emissive": [0.0, 0.0, 0.0],
+  "twoSided": false,
+  "description": "Built-in matte charcoal landscape material (UE5-editor style). Ships with the engine; project materials override when assigned."
+}

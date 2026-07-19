@@ -42,6 +42,7 @@ ContentAssetKind KindFromAssetType(AssetType type) {
     case AssetType::Blueprint: return ContentAssetKind::Blueprint;
     case AssetType::Scene: return ContentAssetKind::Scene;
     case AssetType::Prefab: return ContentAssetKind::Prefab;
+    case AssetType::Terrain: return ContentAssetKind::Terrain;
     case AssetType::Audio: return ContentAssetKind::Audio;
     case AssetType::Font: return ContentAssetKind::Font;
     case AssetType::Script: return ContentAssetKind::Script;

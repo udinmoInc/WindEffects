@@ -85,6 +85,32 @@ private:
     const CameraUniform* m_Camera = nullptr;
 };
 
+using TerrainDrawFn = std::function<void(
+    we::rhi::IRHICommandList& cmd,
+    we::rhi::RHITextureHandle color,
+    we::rhi::RHITextureHandle depth,
+    we::rhi::Extent2D extent,
+    const CameraUniform& camera)>;
+
+class RENDERER_API TerrainPass final : public RenderPass {
+public:
+    TerrainPass(
+        TerrainDrawFn drawer,
+        we::rhi::RHITextureHandle color,
+        we::rhi::RHITextureHandle depth,
+        we::rhi::Extent2D extent,
+        const CameraUniform* camera);
+    void Setup(std::vector<GraphTextureRef>& textures, std::vector<GraphBufferRef>& buffers) override;
+    void Execute(const GraphPassContext& ctx) override;
+
+private:
+    TerrainDrawFn m_Drawer;
+    we::rhi::RHITextureHandle m_Color = we::rhi::RHITextureHandle::Invalid;
+    we::rhi::RHITextureHandle m_Depth = we::rhi::RHITextureHandle::Invalid;
+    we::rhi::Extent2D m_Extent{};
+    const CameraUniform* m_Camera = nullptr;
+};
+
 class RENDERER_API TonemapPass final : public RenderPass {
 public:
     TonemapPass(we::rhi::RHITextureHandle hdrColor, we::rhi::RHITextureHandle swapchainImage);

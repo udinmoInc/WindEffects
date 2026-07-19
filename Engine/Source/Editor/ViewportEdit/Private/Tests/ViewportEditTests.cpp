@@ -92,6 +92,22 @@ ViewportEditTestReport RunViewportEditRuntimeTests() {
     const auto hit = editor->HitTester().Pick(400.f, 300.f, 800.f, 600.f);
     AddCase(report, "Pick smoke", true, hit.valid ? "hit" : "miss");
 
+    // Mode-driven workspace
+    AddCase(report, "Mode registry has Select", editor->Modes().Registry().Contains("Select"), "select");
+    AddCase(report, "Mode registry has Landscape", editor->Modes().Registry().Contains("Landscape"), "landscape");
+    AddCase(report, "Load Landscape mode", editor->Modes().LoadMode("Landscape"), "load");
+    AddCase(report, "Activate Landscape", editor->Modes().SetActiveMode("Landscape"), "activate");
+    AddCase(report, "Active mode key", editor->GetActiveModeKey() == "Landscape", "key");
+    AddCase(report, "Unload back to Select", editor->Modes().SetActiveMode("Select"), "select");
+    AddCase(
+        report,
+        "Command router RecordCustom",
+        editor->Commands().RecordCustom(
+            "TestOp",
+            []() { return true; },
+            []() { return true; }),
+        "cmd");
+
     report.success = report.failed == 0;
     std::ostringstream oss;
     oss << "ViewportEdit tests: " << report.passed << " passed, " << report.failed << " failed";

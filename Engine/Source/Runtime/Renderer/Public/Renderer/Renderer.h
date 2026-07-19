@@ -55,6 +55,9 @@ public:
     void SetOverlayRecorder(OverlayRecordFn recorder);
     void ClearOverlayRecorder();
 
+    void SetTerrainDrawer(TerrainDrawFn drawer);
+    void ClearTerrainDrawer();
+
     void RecordUiPresentPath(uint32_t imageIndex);
     void MarkOverlayPassEnded();
 
@@ -122,6 +125,7 @@ private:
     SceneEnvironmentUniform m_LastEnvironment{};
     const we::runtime::ecs::ExtractedFrameData* m_ExtractedFrame = nullptr;
     OverlayRecordFn m_OverlayRecorder;
+    TerrainDrawFn m_TerrainDrawer;
 
     uint64_t m_PresentAuditFrameNumber = 0;
     uint32_t m_AcquiredImageIndex = UINT32_MAX;

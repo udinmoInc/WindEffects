@@ -287,9 +287,6 @@ void Renderer::RenderScene() {
     stubTex.usage = we::rhi::TextureUsage::ColorAttachment | we::rhi::TextureUsage::Sampled;
     const uint32_t gbufferId = m_RenderGraph->CreateTexture(stubTex);
 
-    stubTex.debugName = "RG.TerrainColor";
-    const uint32_t terrainId = m_RenderGraph->CreateTexture(stubTex);
-
     stubTex.debugName = "RG.Clouds";
     stubTex.usage = we::rhi::TextureUsage::Storage | we::rhi::TextureUsage::Sampled;
     const uint32_t cloudsId = m_RenderGraph->CreateTexture(stubTex);
@@ -329,8 +326,12 @@ void Renderer::RenderScene() {
         m_ViewportDepthTexture,
         viewportExtent,
         &m_LastCamera));
-    m_RenderGraph->AddPass(std::make_unique<StubGraphicsPass>(
-        "TerrainPass", terrainId, we::rhi::ResourceState::RenderTarget, depthId, we::rhi::ResourceState::DepthRead));
+    m_RenderGraph->AddPass(std::make_unique<TerrainPass>(
+        m_TerrainDrawer,
+        m_ViewportColorTexture,
+        m_ViewportDepthTexture,
+        viewportExtent,
+        &m_LastCamera));
     m_RenderGraph->AddPass(std::make_unique<PbrOpaquePass>(
         gbufferId,
         shadowId,
@@ -365,6 +366,14 @@ void Renderer::SetExtractedFrame(const we::runtime::ecs::ExtractedFrameData* fra
 
 void Renderer::ClearOverlayRecorder() {
     m_OverlayRecorder = {};
+}
+
+void Renderer::SetTerrainDrawer(TerrainDrawFn drawer) {
+    m_TerrainDrawer = std::move(drawer);
+}
+
+void Renderer::ClearTerrainDrawer() {
+    m_TerrainDrawer = {};
 }
 
 std::string Renderer::DumpRenderGraph() const {

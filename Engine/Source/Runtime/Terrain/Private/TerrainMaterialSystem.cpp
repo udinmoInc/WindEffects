@@ -1,9 +1,65 @@
 #include "Terrain/TerrainMaterialSystem.h"
 
+#include "Core/Logger.h"
+#include "Core/Paths.h"
+
 #include <algorithm>
 #include <cmath>
+#include <fstream>
+#include <sstream>
 
 namespace we::runtime::terrain {
+namespace {
+
+float ParseFloatAfterKey(const std::string& content, const char* key, float fallback) {
+    const auto pos = content.find(key);
+    if (pos == std::string::npos) {
+        return fallback;
+    }
+    const auto colon = content.find(':', pos);
+    if (colon == std::string::npos) {
+        return fallback;
+    }
+    try {
+        return std::stof(content.substr(colon + 1));
+    } catch (...) {
+        return fallback;
+    }
+}
+
+bool ParseVec3AfterKey(
+    const std::string& content,
+    const char* key,
+    float& r,
+    float& g,
+    float& b)
+{
+    const auto pos = content.find(key);
+    if (pos == std::string::npos) {
+        return false;
+    }
+    const auto start = content.find('[', pos);
+    const auto end = content.find(']', start);
+    if (start == std::string::npos || end == std::string::npos || end <= start) {
+        return false;
+    }
+    std::stringstream parser(content.substr(start + 1, end - start - 1));
+    char comma = 0;
+    if (!(parser >> r)) {
+        return false;
+    }
+    parser >> comma;
+    if (!(parser >> g)) {
+        return false;
+    }
+    parser >> comma;
+    if (!(parser >> b)) {
+        return false;
+    }
+    return true;
+}
+
+} // namespace
 
 void TerrainMaterialSystem::Initialize(int width, int height) {
     m_Width = std::max(1, width);
@@ -17,6 +73,7 @@ void TerrainMaterialSystem::Initialize(int width, int height) {
     m_Layers[1].name = "Rock";
     m_Layers[2].name = "Sand";
     m_Layers[3].name = "Snow";
+    m_ActiveParams = TerrainMaterialParams{};
 }
 
 void TerrainMaterialSystem::Shutdown() {
@@ -83,6 +140,105 @@ void TerrainMaterialSystem::PaintWeight(int x, int z, int layerIndex, float stre
     }
 
     NotifyVirtualTexturePagesDirty(minX, minZ, maxX, maxZ);
+}
+
+void TerrainMaterialSystem::EnsureDefaultLandscapeMaterial(TerrainCreateInfo& createInfo) {
+    if (createInfo.materialSlot0.empty()) {
+        createInfo.materialSlot0 = kDefaultLandscapeMaterialPath;
+    }
+    m_Layers[0].albedoPath = createInfo.materialSlot0;
+    m_ActiveParams = ResolveShadingParams(createInfo);
+    m_Layers[0].baseColor = m_ActiveParams.albedo;
+    m_Layers[0].roughness = m_ActiveParams.roughness;
+    m_Layers[0].metallic = m_ActiveParams.metallic;
+}
+
+bool TerrainMaterialSystem::TryLoadWemat(
+    const std::filesystem::path& path,
+    TerrainMaterialParams& outParams)
+{
+    std::ifstream in(path);
+    if (!in) {
+        return false;
+    }
+    std::stringstream ss;
+    ss << in.rdbuf();
+    const std::string content = ss.str();
+    if (content.empty()) {
+        return false;
+    }
+
+    float r = kDefaultLandscapeAlbedoR;
+    float g = kDefaultLandscapeAlbedoG;
+    float b = kDefaultLandscapeAlbedoB;
+    if (ParseVec3AfterKey(content, "baseColor", r, g, b)) {
+        outParams.albedo = we::math::Vec4(r, g, b, 1.0f);
+    }
+    outParams.roughness = std::clamp(
+        ParseFloatAfterKey(content, "roughness", kDefaultLandscapeRoughness), 0.04f, 1.0f);
+    outParams.metallic = std::clamp(
+        ParseFloatAfterKey(content, "metallic", kDefaultLandscapeMetallic), 0.0f, 1.0f);
+    const float opacity = std::clamp(ParseFloatAfterKey(content, "opacity", 1.0f), 0.0f, 1.0f);
+    outParams.albedo.w = opacity;
+    outParams.materialPath = we::core::PathService::ToGeneric(path);
+    outParams.loadedFromEngineContent = true;
+    return true;
+}
+
+TerrainMaterialParams TerrainMaterialSystem::ResolveShadingParams(
+    const TerrainCreateInfo& createInfo) const
+{
+    TerrainMaterialParams params{};
+    params.materialPath = createInfo.materialSlot0.empty()
+        ? kDefaultLandscapeMaterialPath
+        : createInfo.materialSlot0;
+
+    // Project materials always win when the assigned path exists.
+    const auto tryPath = [&](const std::filesystem::path& candidate) -> bool {
+        if (candidate.empty()) {
+            return false;
+        }
+        return TryLoadWemat(candidate, params);
+    };
+
+    // Absolute / project-relative first.
+    if (tryPath(params.materialPath)) {
+        return params;
+    }
+
+    // Engine Content resolution for built-in default (and engine-relative slots).
+    auto& paths = we::core::PathService::Get();
+    const auto relative = (params.materialPath.find("Materials/") != std::string::npos)
+        ? std::filesystem::path(params.materialPath.substr(params.materialPath.find("Materials/")))
+        : std::filesystem::path(kDefaultLandscapeMaterialRelative);
+    const auto candidates = paths.ResourceCandidates(relative);
+    if (const auto found = we::core::PathService::FindExisting(candidates)) {
+        if (tryPath(*found)) {
+            return params;
+        }
+    }
+
+    // Last resort: EngineRoot/Content and EngineRoot/Engine/Content.
+    const auto engineRoot = paths.EngineRoot();
+    if (tryPath(engineRoot / "Content" / kDefaultLandscapeMaterialRelative)
+        || tryPath(paths.EngineContentRoot() / kDefaultLandscapeMaterialRelative))
+    {
+        return params;
+    }
+
+    // Embedded charcoal defaults — never fall back to debug green.
+    params.albedo = we::math::Vec4(
+        kDefaultLandscapeAlbedoR,
+        kDefaultLandscapeAlbedoG,
+        kDefaultLandscapeAlbedoB,
+        1.0f);
+    params.roughness = kDefaultLandscapeRoughness;
+    params.metallic = kDefaultLandscapeMetallic;
+    params.materialPath = kDefaultLandscapeMaterialPath;
+    params.loadedFromEngineContent = false;
+    HE_WARN(
+        "[Terrain] M_DefaultLandscape.wemat not found; using embedded charcoal defaults.");
+    return params;
 }
 
 } // namespace we::runtime::terrain

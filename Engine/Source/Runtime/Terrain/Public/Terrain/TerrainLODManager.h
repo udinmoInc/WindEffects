@@ -1,8 +1,5 @@
 #pragma once
 
-#pragma warning(push)
-#pragma warning(disable: 4251)
-
 #include "Terrain/Export.h"
 #include "Terrain/TerrainTypes.h"
 #include "Terrain/TerrainChunkManager.h"
@@ -17,7 +14,7 @@ class TerrainHeightmap;
 // Selects per-chunk LOD from camera distance / screen size heuristics.
 class TERRAIN_API TerrainLODManager {
 public:
-    void SetMaxLod(int maxLod) { m_MaxLod = std::max(0, std::min(maxLod, kMaxLodLevels - 1)); }
+    void SetMaxLod(int maxLod) { m_MaxLod = (std::max)(0, (std::min)(maxLod, kMaxLodLevels - 1)); }
     int MaxLod() const { return m_MaxLod; }
 
     // LOD 0 = full resolution. Each step halves quads (requires even subdivision).
@@ -37,4 +34,3 @@ private:
 
 } // namespace we::runtime::terrain
 
-#pragma warning(pop)

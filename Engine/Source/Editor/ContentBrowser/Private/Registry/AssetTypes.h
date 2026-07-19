@@ -17,6 +17,7 @@ enum class AssetType {
     Blueprint,
     Scene,
     Prefab,
+    Terrain,
     Audio,
     Font,
     Script,
@@ -35,6 +36,7 @@ inline std::string AssetTypeToString(AssetType type) {
         case AssetType::Blueprint: return "Blueprint";
         case AssetType::Scene: return "Scene";
         case AssetType::Prefab: return "Prefab";
+        case AssetType::Terrain: return "Terrain";
         case AssetType::Audio: return "Audio";
         case AssetType::Font: return "Font";
         case AssetType::Script: return "Script";
@@ -55,6 +57,7 @@ inline std::string AssetTypeToKey(AssetType type) {
         case AssetType::Blueprint: return "blueprint";
         case AssetType::Scene: return "scene";
         case AssetType::Prefab: return "prefab";
+        case AssetType::Terrain: return "terrain";
         case AssetType::Audio: return "audio";
         case AssetType::Font: return "font";
         case AssetType::Script: return "script";

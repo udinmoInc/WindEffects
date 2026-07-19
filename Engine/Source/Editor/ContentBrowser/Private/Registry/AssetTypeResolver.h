@@ -27,7 +27,10 @@ public:
         if (lower == ".anim" || lower == ".animation") return AssetType::Animation;
         if (lower == ".bp" || lower == ".blueprint") return AssetType::Blueprint;
         if (lower == ".scene" || lower == ".level" || lower == ".umap") return AssetType::Scene;
-        if (lower == ".prefab") return AssetType::Prefab;
+        if (lower == ".prefab" || lower == ".weprefab") return AssetType::Prefab;
+        if (lower == ".weterrain" || lower == ".terrain" || lower == ".landscape") {
+            return AssetType::Terrain;
+        }
         if (lower == ".wav" || lower == ".mp3" || lower == ".ogg" || lower == ".flac") return AssetType::Audio;
         if (lower == ".ttf" || lower == ".otf" || lower == ".woff" || lower == ".woff2"
             || lower == ".wefont") return AssetType::Font;

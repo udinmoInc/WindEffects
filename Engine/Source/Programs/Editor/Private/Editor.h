@@ -22,6 +22,9 @@
 #include "ViewportEdit/IViewportEditor.h"
 #include "WorldOutliner/IWorldOutliner.h"
 #include "ContentBrowser/IContentBrowser.h"
+#include "Terrain/ITerrainRuntime.h"
+#include "PrefabEditor/PrefabEditor.h"
+#include "Compilation/Compilation.h"
 #include "Serialization/ISerializer.h"
 
 #include "Projects/EditorCommandLine.h"
@@ -85,6 +88,10 @@ private:
     std::shared_ptr<::we::editor::viewportedit::IViewportEditor> m_ViewportEdit;
     std::shared_ptr<::we::editor::outliner::IWorldOutlinerRuntime> m_WorldOutliner;
     std::shared_ptr<::we::editor::contentbrowser::IContentBrowserRuntime> m_ContentBrowser;
+    std::shared_ptr<::we::runtime::terrain::ITerrainRuntime> m_TerrainRuntime;
+    std::shared_ptr<::we::runtime::prefab::IPrefabRuntime> m_PrefabRuntime;
+    std::shared_ptr<::we::editor::prefab::IPrefabEditor> m_PrefabEditor;
+    std::shared_ptr<::we::runtime::compilation::ICompilationRuntime> m_CompilationRuntime;
     std::unique_ptr<::we::runtime::serialization::ISerializer> m_Serializer;
     ::we::editor::mainframe::EditorWindowHitTestData m_WindowHitTestData{};
 

@@ -1,6 +1,8 @@
 # Viewport Editing Framework Architecture
 
-> ViewportEdit is the editor interaction layer for 3D viewport picking, selection, transform tools, snap/grid, and camera framing. It does **not** own gameplay data, renderer pixels, or the undo stack.
+> ViewportEdit is the permanent mode-driven editing workspace for the WindEffects Editor.
+> It hosts Select, Landscape, Foliage, Mesh Paint, Modeling, Animation, Physics, Navigation,
+> Water, and plugin-defined modes without changing core viewport code.
 
 ---
 
@@ -10,24 +12,50 @@
 ToolsPanel / ViewportWidget / Editor
               │
               ▼
-IViewportEditor  →  IViewportContext
-       │                 ├─ IViewportSelection
-       │                 ├─ IViewportHitTester
-       │                 ├─ IViewportCameraController  → EditorCamera
-       │                 ├─ IViewportManipulator
-       │                 ├─ IViewportSnapProvider / IViewportGridProvider
-       │                 └─ Undo / Scene / PropertyEditor (DI pointers)
+IViewportEditor ──► IViewportWorkspace
+       │                 ├─ IViewportModeManager ──► IViewportModeRegistry / IViewportModeFactory
+       │                 ├─ IViewportCommandRouter  (Undo-backed)
+       │                 ├─ IViewportSelectionContext
+       │                 ├─ IViewportOverlay[]
+       │                 ├─ IViewportRenderExtension[]
+       │                 └─ IViewportInteractionLayer[]
+       │
        ▼
-IViewportInteraction → active IViewportTool / IViewportMode
+IViewportContext ── tools / modes / manipulators (never owns gameplay data)
+       │
+       ▼
+IViewportInteraction ── active IViewportTool + prioritized layers
 ```
 
 | Layer | Owns | Does not own |
 |-------|------|--------------|
-| **ViewportEdit** | Tools, modes, selection set, hit-test policy, snap, gizmo drag state, overlays hooks | Entity/actor data, GPU resources, undo history |
-| **Scene / World** | Objects & transforms | Input routing |
-| **Undo** | Transaction history via `RecordCustom` / property hooks | Viewport UI |
-| **Viewport (widget)** | Display surface + camera navigation | Editing semantics |
-| **PropertyEditor / Outliner** | Details / hierarchy UI | Picking |
+| **ViewportEdit** | Mode load/unload, tool routing, selection set, hit-test policy, snap, overlays, command routing | Entity/actor data, GPU resources, undo history |
+| **Mode plugins** (TerrainEditor, …) | Mode-specific tools, overlays, wizards | Core viewport / mode manager |
+| **Scene / World** | Actors & transforms | Input routing |
+| **Undo** | Transaction history | Viewport UI |
+| **Renderer** | Pixels / GPU brush hooks via extensions | Editing semantics |
+
+---
+
+## Interface Contract (mode framework)
+
+| Interface | Role |
+|-----------|------|
+| `IViewportModeManager` | Load / unload / activate modes dynamically |
+| `IViewportMode` | Enter/exit/tick + preferred tools |
+| `IViewportTool` | Interaction tool (stateless services preferred) |
+| `IViewportToolContext` | Narrow DI surface for tools |
+| `IViewportWorkspace` | Permanent host for modes, overlays, extensions |
+| `IViewportOverlay` | Screen / brush-preview overlays |
+| `IViewportManipulator` | Transform gizmos |
+| `IViewportInteractionLayer` | Prioritized input stack |
+| `IViewportCommandRouter` | Named commands → Undo |
+| `IViewportSelectionContext` | Mode-filtered selection + terrain primary |
+| `IViewportRenderExtension` | GPU/CPU draw hooks (brush preview, etc.) |
+| `IViewportModeFactory` | Creates mode instances |
+| `IViewportModeRegistry` | Thread-safe factory registry (plugin extensible) |
+
+Modes register factories with `GetViewportModeRegistry()`. Core never hardcodes Landscape/Foliage/Water implementations.
 
 ---
 
@@ -35,28 +63,20 @@ IViewportInteraction → active IViewportTool / IViewportMode
 
 1. Editor constructs `CreateViewportEditRuntime(ViewportEditDependencies)`.
 2. `ViewportEditSession::Install(editor)` binds ToolsPanel / ViewportWidget consumers.
-3. Selection sync: ViewportEdit → `Scene::SetSelectedEntityId` → Environment `TickEditor` refreshes Details.
-4. Outliner → Scene selection → `SyncSelectionFromScene()` on tick (host).
-5. Transforms record Undo with before/after transform snapshots; Reflection/Serialization remain owners of typed property diffs.
+3. TerrainEditor (and future plugins) call `Modes().Registry().RegisterFactory(...)` then `LoadMode`.
+4. Selection sync: ViewportEdit → Scene → Outliner / PropertyEditor.
+5. Every committed edit goes through `IViewportCommandRouter` / `ITransactionManager`.
 
 ---
 
-## Tools & Modes
+## Built-in Modes
 
-| Tool | Shortcut (ToolsPanel) | Behavior |
-|------|-----------------------|----------|
-| Select | Q | Click pick, Ctrl/Shift toggle, Alt marquee |
-| Move | W | Drag / `ApplyTranslation` → Undo |
-| Rotate | E | Drag / `ApplyRotationDegrees` → Undo |
-| Scale | R | Drag / `ApplyScale` → Undo |
-
-Modes (`Default`, Landscape, Foliage, …) gate specialized tools; Default ships with the runtime.
-
----
-
-## Hit Testing
-
-Near-term: ray vs entity sphere proxies (radius by type/scale) using `EditorCamera` view/projection. Marquee uses screen-space projection of entity pivots. Future: mesh/BVH / World actor handles without changing public interfaces.
+| Mode | Module | Status |
+|------|--------|--------|
+| Select | ViewportEdit | Shipping |
+| Landscape | TerrainEditor | Shipping (first advanced mode) |
+| Foliage / MeshPaint / Modeling / Animation / Physics / Navigation / Water | Registry stubs | Ready for plugins |
+| Plugin-defined | External DLLs | Register factory at startup |
 
 ---
 
@@ -64,16 +84,26 @@ Near-term: ray vs entity sphere proxies (radius by type/scale) using `EditorCame
 
 | Extension | Mechanism |
 |-----------|-----------|
-| Tools | `IViewportEditor::RegisterTool` |
-| Modes | `RegisterMode` |
-| Overlays | `RegisterOverlay` |
+| Modes | `IViewportModeRegistry::RegisterFactory` |
+| Tools | `IViewportEditor::RegisterTool` / workspace |
+| Overlays | `IViewportWorkspace::RegisterOverlay` |
+| Render | `IViewportWorkspace::RegisterRenderExtension` |
+| Input | `PushInteractionLayer` |
+| Commands | `IViewportCommandRouter::Register` |
 | Drag-drop | `IViewportDragDrop` |
-| Renderer hooks | `IViewportRenderer` (outlines/gizmo draw) |
 
 ---
 
 ## Constraints
 
-- ViewportEdit never stores authoritative transforms — Scene/World do.
-- Every committed transform goes through Undo (`ITransactionManager::RecordCustom` or property path).
+- ViewportEdit never stores authoritative transforms or heightfields — Scene/World/Terrain do.
+- Landscape is a normal world actor + `TerrainAsset`, not viewport state.
+- Modes load/unload without modifying `ViewportEditorImpl` interaction core.
 - Public headers stay interface-first; glm only in Private TUs.
+- Diagnostics, tests, and benchmarks live beside the runtime (`ViewportEditDiagnostics`, `RunViewportEditRuntimeTests`, `RunViewportEditBenchmarks`).
+
+---
+
+## Future Systems (no viewport redesign)
+
+Foliage, water, roads, splines, erosion graphs, procedural generation, world partition, and large-world streaming plug in as additional modes / render extensions / interaction layers on this workspace.

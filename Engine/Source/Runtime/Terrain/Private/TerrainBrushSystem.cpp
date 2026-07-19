@@ -40,10 +40,139 @@ bool TerrainBrushSystem::Apply(TerrainHeightmap& heightmap, float centerX, float
     case TerrainBrushOp::Smooth: return Smooth(heightmap, centerX, centerZ);
     case TerrainBrushOp::Flatten: return Flatten(heightmap, centerX, centerZ);
     case TerrainBrushOp::Noise: return Noise(heightmap, centerX, centerZ);
+    case TerrainBrushOp::Paint: return false; // paint uses material weights via ITerrainMaterial
+    case TerrainBrushOp::Ramp: return Ramp(heightmap, centerX, centerZ);
+    case TerrainBrushOp::Terrace: return Terrace(heightmap, centerX, centerZ);
+    case TerrainBrushOp::CustomAlpha: return CustomAlpha(heightmap, centerX, centerZ);
     case TerrainBrushOp::HydraulicErosion: return HydraulicErosion(heightmap, centerX, centerZ);
     case TerrainBrushOp::ThermalErosion: return ThermalErosion(heightmap, centerX, centerZ);
     }
     return false;
+}
+
+void TerrainBrushSystem::SetCustomAlpha(const std::uint8_t* mask, int width, int height) {
+    m_Settings.alphaWidth = std::max(0, width);
+    m_Settings.alphaHeight = std::max(0, height);
+    m_Settings.alphaMask.clear();
+    if (mask && width > 0 && height > 0) {
+        const std::size_t count = static_cast<std::size_t>(width) * static_cast<std::size_t>(height);
+        m_Settings.alphaMask.assign(mask, mask + count);
+    }
+}
+
+float TerrainBrushSystem::AlphaWeight(float localX, float localZ, float radius) const {
+    if (m_Settings.alphaMask.empty() || m_Settings.alphaWidth <= 0 || m_Settings.alphaHeight <= 0
+        || radius <= 1e-6f)
+    {
+        const float dist = std::sqrt(localX * localX + localZ * localZ);
+        return FalloffWeight(dist, radius);
+    }
+    const float u = (localX / radius) * 0.5f + 0.5f;
+    const float v = (localZ / radius) * 0.5f + 0.5f;
+    if (u < 0.f || v < 0.f || u > 1.f || v > 1.f) {
+        return 0.f;
+    }
+    const int ax = std::clamp(
+        static_cast<int>(u * static_cast<float>(m_Settings.alphaWidth - 1)),
+        0,
+        m_Settings.alphaWidth - 1);
+    const int az = std::clamp(
+        static_cast<int>(v * static_cast<float>(m_Settings.alphaHeight - 1)),
+        0,
+        m_Settings.alphaHeight - 1);
+    const std::uint8_t a = m_Settings.alphaMask[static_cast<std::size_t>(az)
+        * static_cast<std::size_t>(m_Settings.alphaWidth)
+        + static_cast<std::size_t>(ax)];
+    return (static_cast<float>(a) / 255.f) * FalloffWeight(std::sqrt(localX * localX + localZ * localZ), radius);
+}
+
+bool TerrainBrushSystem::Ramp(TerrainHeightmap& map, float cx, float cz) {
+    if (map.Empty()) {
+        return false;
+    }
+    const int icx = static_cast<int>(std::lround(cx));
+    const int icz = static_cast<int>(std::lround(cz));
+    const int r = static_cast<int>(std::ceil(m_Settings.radius));
+    const float ramp = m_Settings.rampHeight * m_Settings.strength * 65535.f;
+    bool changed = false;
+    for (int z = icz - r; z <= icz + r; ++z) {
+        for (int x = icx - r; x <= icx + r; ++x) {
+            if (x < 0 || z < 0 || x >= map.Width() || z >= map.Height()) {
+                continue;
+            }
+            const float lx = static_cast<float>(x - icx);
+            const float lz = static_cast<float>(z - icz);
+            const float w = AlphaWeight(lx, lz, m_Settings.radius);
+            if (w <= 0.f) {
+                continue;
+            }
+            const float along = (lx / std::max(1.f, m_Settings.radius)) * 0.5f + 0.5f;
+            const int value = static_cast<int>(map.Get(x, z))
+                + static_cast<int>(std::lround(ramp * along * w));
+            map.Set(x, z, ClampU16(value));
+            changed = true;
+        }
+    }
+    return changed;
+}
+
+bool TerrainBrushSystem::Terrace(TerrainHeightmap& map, float cx, float cz) {
+    if (map.Empty()) {
+        return false;
+    }
+    const int icx = static_cast<int>(std::lround(cx));
+    const int icz = static_cast<int>(std::lround(cz));
+    const int r = static_cast<int>(std::ceil(m_Settings.radius));
+    const float step = std::max(0.001f, m_Settings.terraceStep);
+    bool changed = false;
+    for (int z = icz - r; z <= icz + r; ++z) {
+        for (int x = icx - r; x <= icx + r; ++x) {
+            if (x < 0 || z < 0 || x >= map.Width() || z >= map.Height()) {
+                continue;
+            }
+            const float lx = static_cast<float>(x - icx);
+            const float lz = static_cast<float>(z - icz);
+            const float w = AlphaWeight(lx, lz, m_Settings.radius) * m_Settings.strength;
+            if (w <= 0.f) {
+                continue;
+            }
+            const float cur = static_cast<float>(map.Get(x, z)) / 65535.f;
+            const float terraced = std::round(cur / step) * step;
+            const float blended = cur * (1.f - w) + terraced * w;
+            map.Set(x, z, ClampU16(static_cast<int>(std::lround(blended * 65535.f))));
+            changed = true;
+        }
+    }
+    return changed;
+}
+
+bool TerrainBrushSystem::CustomAlpha(TerrainHeightmap& map, float cx, float cz) {
+    if (map.Empty()) {
+        return false;
+    }
+    const int icx = static_cast<int>(std::lround(cx));
+    const int icz = static_cast<int>(std::lround(cz));
+    const int r = static_cast<int>(std::ceil(m_Settings.radius));
+    const int delta = static_cast<int>(std::lround(m_Settings.strength * 2000.0f));
+    bool changed = false;
+    for (int z = icz - r; z <= icz + r; ++z) {
+        for (int x = icx - r; x <= icx + r; ++x) {
+            if (x < 0 || z < 0 || x >= map.Width() || z >= map.Height()) {
+                continue;
+            }
+            const float lx = static_cast<float>(x - icx);
+            const float lz = static_cast<float>(z - icz);
+            const float w = AlphaWeight(lx, lz, m_Settings.radius);
+            if (w <= 0.f) {
+                continue;
+            }
+            const int value = static_cast<int>(map.Get(x, z))
+                + static_cast<int>(std::lround(static_cast<float>(delta) * w));
+            map.Set(x, z, ClampU16(value));
+            changed = true;
+        }
+    }
+    return changed;
 }
 
 bool TerrainBrushSystem::RaiseLower(TerrainHeightmap& map, float cx, float cz, bool raise) {

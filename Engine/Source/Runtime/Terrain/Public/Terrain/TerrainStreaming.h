@@ -1,12 +1,10 @@
 #pragma once
 
-#pragma warning(push)
-#pragma warning(disable: 4251)
-
 #include "Terrain/Export.h"
 #include "Terrain/TerrainTypes.h"
 #include "Terrain/TerrainChunkManager.h"
 
+#include <algorithm>
 #include <unordered_set>
 
 namespace we::runtime::terrain {
@@ -15,8 +13,10 @@ namespace we::runtime::terrain {
 // Today: frustum culling + active set. Future: streamed height/weight pages + VT.
 class TERRAIN_API TerrainStreaming {
 public:
-    void SetLoadRadiusChunks(int radius) { m_LoadRadius = std::max(0, radius); }
+    void SetLoadRadiusChunks(int radius) { m_LoadRadius = (std::max)(0, radius); }
     int LoadRadiusChunks() const { return m_LoadRadius; }
+    void SetEnabled(bool enabled) { m_Enabled = enabled; }
+    bool IsEnabled() const { return m_Enabled; }
 
     void Update(TerrainChunkManager& chunks, const we::math::Vec3& cameraWorldPos,
         const TerrainCreateInfo& info, const TerrainFrustump* frustum);
@@ -31,6 +31,7 @@ public:
 
 private:
     int m_LoadRadius = 8;
+    bool m_Enabled = true;
     std::unordered_set<TerrainChunkId, TerrainChunkIdHash> m_Active;
     std::unordered_set<TerrainChunkId, TerrainChunkIdHash> m_PendingLoad;
     std::unordered_set<TerrainChunkId, TerrainChunkIdHash> m_PendingUnload;
@@ -38,4 +39,3 @@ private:
 
 } // namespace we::runtime::terrain
 
-#pragma warning(pop)

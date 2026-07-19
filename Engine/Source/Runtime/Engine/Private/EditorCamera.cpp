@@ -74,9 +74,13 @@ void EditorCamera::SetOrbitPivot(const we::math::Vec3& pivot) {
 }
 
 void EditorCamera::Focus(const we::math::Vec3& target) {
+    Focus(target, 8.0f);
+}
+
+void EditorCamera::Focus(const we::math::Vec3& target, float distance) {
     m_TargetLookAt = target;
     m_SavedOrbitPivot = target;
-    m_TargetDistance = 8.0f;
+    m_TargetDistance = std::max(1.0f, distance);
     m_FreeLook = false;
     if (m_FlyMode) {
         EnterFlyMode();
@@ -495,7 +499,12 @@ void EditorCamera::SetOrbitPivot(const we::math::Vec3& pivot) {
 }
 
 void EditorCamera::Focus(const we::math::Vec3& target) {
-    (void)target; // Suppress unused parameter warning
+    Focus(target, 8.0f);
+}
+
+void EditorCamera::Focus(const we::math::Vec3& target, float distance) {
+    (void)target;
+    (void)distance;
 }
 
 void EditorCamera::SetViewportSize(float width, float height) {

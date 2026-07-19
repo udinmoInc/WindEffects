@@ -17,10 +17,7 @@
 #include <cstdlib>
 
 using namespace we::runtime::kindui;
-using namespace we::runtime::kindui;
 using ::we::editor::panels::Panel;
-using ::we::editor::panels::PanelBuilder;
-using ::we::editor::docking::DockZone;
 
 namespace we::programs::crashreporter {
 
@@ -141,7 +138,11 @@ void CrashReporterUI::Construct() {
     dirBox->SetHorizontalAlignment(HorizontalAlignment::Left);
     auto dirLabel1 = std::make_shared<Label>("Crash reports comprise diagnostics files (", Color{0.6f, 0.6f, 0.6f, 1.0f}, 12.0f);
     dirBox->AddChild(dirLabel1);
-    dirBox->AddChild([] { auto b = MakeSecondaryAction("click here to view directory"); b->SetOnClicked([this]{ OnOpenCrashFolder(); }); return b; }());
+    dirBox->AddChild([this] {
+        auto b = MakeSecondaryAction("click here to view directory");
+        b->SetOnClicked([this] { OnOpenCrashFolder(); });
+        return b;
+    }());
     auto dirLabel2 = std::make_shared<Label>(") and the following summary information:", Color{0.6f, 0.6f, 0.6f, 1.0f}, 12.0f);
     dirBox->AddChild(dirLabel2);
     rootBox->AddChild(dirBox);
@@ -179,14 +180,26 @@ void CrashReporterUI::Construct() {
 
     // 7. Bottom Action Bar
     auto bottomBar = std::make_shared<Row>();
-    bottomBar->AddChild([] { auto b = MakeSecondaryAction("Close Without Sending"); b->SetOnClicked([this]{ exit(0); }); return b; }());
+    bottomBar->AddChild([this] {
+        auto b = MakeSecondaryAction("Close Without Sending");
+        b->SetOnClicked([this] { exit(0); });
+        return b;
+    }());
     bottomBar->AddChild(std::make_shared<Spacer>()); // Push rest to the right
-    bottomBar->AddChild([] { auto b = MakeSecondaryAction("Send and Close"); b->SetOnClicked([this]{ OnExportZip(); exit(0); }); return b; }());
+    bottomBar->AddChild([this] {
+        auto b = MakeSecondaryAction("Send and Close");
+        b->SetOnClicked([this] { OnExportZip(); exit(0); });
+        return b;
+    }());
     
     // Add small spacer between right buttons
     auto smallSpacer = std::make_shared<Spacer>();
     bottomBar->AddChild(smallSpacer);
-    bottomBar->AddChild([] { auto b = MakeSecondaryAction("Send and Restart"); b->SetOnClicked([this]{ OnExportZip(); OnRestartEditor(); }); return b; }());
+    bottomBar->AddChild([this] {
+        auto b = MakeSecondaryAction("Send and Restart");
+        b->SetOnClicked([this] { OnExportZip(); OnRestartEditor(); });
+        return b;
+    }());
 
     rootBox->AddChild(bottomBar);
 

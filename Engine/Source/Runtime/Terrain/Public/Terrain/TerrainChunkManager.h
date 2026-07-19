@@ -1,8 +1,5 @@
 #pragma once
 
-#pragma warning(push)
-#pragma warning(disable: 4251)
-
 #include "Terrain/Export.h"
 #include "Terrain/TerrainTypes.h"
 
@@ -20,6 +17,7 @@ struct TerrainChunk {
     int lod = 0;
     bool visible = true;
     bool meshDirty = true;
+    bool gpuDirty = true;
     bool collisionDirty = true;
     TerrainAABB bounds{};
     TerrainMeshCPU mesh{};
@@ -62,4 +60,3 @@ private:
 
 } // namespace we::runtime::terrain
 
-#pragma warning(pop)

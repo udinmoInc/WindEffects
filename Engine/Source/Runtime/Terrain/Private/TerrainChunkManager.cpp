@@ -26,6 +26,7 @@ void TerrainChunkManager::Initialize(const TerrainCreateInfo& info) {
             chunk.lod = 0;
             chunk.visible = true;
             chunk.meshDirty = true;
+            chunk.gpuDirty = true;
             chunk.collisionDirty = true;
         }
     }
@@ -75,6 +76,11 @@ void TerrainChunkManager::MarkDirtyRect(int minX, int minZ, int maxX, int maxZ) 
     if (m_Chunks.empty()) {
         return;
     }
+    // Expand by one sample so shared edges / normals of neighboring chunks update.
+    minX = std::max(0, minX - 1);
+    minZ = std::max(0, minZ - 1);
+    maxX = maxX + 1;
+    maxZ = maxZ + 1;
     const int cMinX = std::clamp(minX / m_ChunkQuads, 0, m_ChunksX - 1);
     const int cMaxX = std::clamp(maxX / m_ChunkQuads, 0, m_ChunksX - 1);
     const int cMinZ = std::clamp(minZ / m_ChunkQuads, 0, m_ChunksZ - 1);
@@ -92,6 +98,7 @@ void TerrainChunkManager::MarkDirtyRect(int minX, int minZ, int maxX, int maxZ) 
 void TerrainChunkManager::MarkAllDirty() {
     for (TerrainChunk& chunk : m_Chunks) {
         chunk.meshDirty = true;
+        chunk.gpuDirty = true;
         chunk.collisionDirty = true;
     }
 }
@@ -105,6 +112,7 @@ int TerrainChunkManager::RebuildDirtyMeshes(const TerrainHeightmap& heightmap,
         }
         if (TerrainLODManager::BuildChunkMesh(heightmap, info, chunk, chunk.lod, chunk.mesh)) {
             chunk.meshDirty = false;
+            chunk.gpuDirty = true;
             ++rebuilt;
         }
     }
