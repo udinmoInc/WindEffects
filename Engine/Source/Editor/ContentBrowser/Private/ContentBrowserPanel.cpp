@@ -1,6 +1,8 @@
 #include "WindEffects/Editor/EditorSDK.h"
 #include "WindEffects/Editor/UI/Shell/EditorWorkspaceController.h"
 #include "ContentBrowser/ContentBrowserApi.h"
+#include "ContentBrowser/ContentBrowserRuntime.h"
+#include "ContentBrowser/ContentBrowserSession.h"
 #include "KindUI/Rendering/FontImportService.h"
 #include "ContentBrowser/Widgets/ContentBrowser.h"
 #include "ContentBrowser/Widgets/ContentBrowserToolbar.h"
@@ -151,10 +153,23 @@ void WireContentBrowser(
 void InitializeContentBrowserService(
     we::runtime::kindui::IconRenderer* iconRenderer,
     const std::string& contentRoot) {
-    ContentBrowserService::Get().Initialize(iconRenderer, contentRoot);
+    // Compatibility entry — prefer CreateContentBrowserRuntime + ContentBrowserSession.
+    if (::we::editor::contentbrowser::ContentBrowserSession::IsInstalled()) {
+        return;
+    }
+    ::we::editor::contentbrowser::ContentBrowserDependencies deps;
+    deps.iconRenderer = iconRenderer;
+    deps.contentRoot = contentRoot;
+    auto runtime = ::we::editor::contentbrowser::CreateContentBrowserRuntime(deps);
+    ::we::editor::contentbrowser::ContentBrowserSession::Install(
+        std::shared_ptr<::we::editor::contentbrowser::IContentBrowserRuntime>(std::move(runtime)));
 }
 
 void ShutdownContentBrowserService() {
+    if (auto* runtime = ::we::editor::contentbrowser::ContentBrowserSession::Runtime()) {
+        runtime->Shutdown();
+    }
+    ::we::editor::contentbrowser::ContentBrowserSession::Clear();
     ContentBrowserService::Get().Shutdown();
 }
 

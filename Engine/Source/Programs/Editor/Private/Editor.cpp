@@ -21,6 +21,8 @@
 #include "PropertyEditor/PropertyEditorSession.h"
 #include "ViewportEdit/ViewportEdit.h"
 #include "WorldOutliner/WorldOutliner.h"
+#include "ContentBrowser/ContentBrowserRuntime.h"
+#include "Explorer/WorldOutlinerApi.h"
 #include "Serialization/ISerializer.h"
 #include "Reflection/ITypeRegistry.h"
 #include "Widgets/ViewportWidget.h"
@@ -229,6 +231,7 @@ void Editor::UnloadProjectWorkspace() {
 
     we::core::PluginManager::Get().UnloadAllPlugins();
     ShutdownContentBrowserService();
+    m_ContentBrowser.reset();
 
     if (m_Scene) {
         m_Scene->Clear();
@@ -245,6 +248,13 @@ void Editor::UnloadProjectWorkspace() {
     }
     m_ViewportEdit.reset();
     ::we::editor::viewportedit::ViewportEditSession::Clear();
+    if (m_WorldOutliner) {
+        m_WorldOutliner->Shutdown();
+        m_WorldOutliner.reset();
+    }
+    ::we::editor::outliner::WorldOutlinerSession::Clear();
+    m_ContentBrowser.reset();
+    ::we::editor::contentbrowser::ContentBrowserSession::Clear();
     ::we::editor::property::PropertyEditorSession::Clear();
     m_Serializer.reset();
 
@@ -299,19 +309,6 @@ void Editor::EnterProjectWorkspace(const std::filesystem::path& weprojPath) {
     }
 
     auto& project = we::projects::ProjectContext::Get();
-
-    // Content / asset registry from ProjectContext only.
-    try {
-        InitializeContentBrowserService(
-            m_OverlayRenderer->GetIconRenderer(),
-            project.ContentRoot().string());
-    } catch (const std::exception& e) {
-        HE_ERROR("[Startup] Failed to initialize content browser: " + std::string(e.what()));
-        project.Unload();
-        OpenWeLauncher();
-        m_Running = false;
-        return;
-    }
 
     // Project plugins (never a hardcoded path).
     if (!m_CommandLine.safeMode) {
@@ -368,6 +365,42 @@ void Editor::EnterProjectWorkspace(const std::filesystem::path& weprojPath) {
         veDeps.editorCamera = m_Camera.get();
         m_ViewportEdit = we::editor::viewportedit::CreateViewportEditRuntime(veDeps);
         we::editor::viewportedit::ViewportEditSession::Install(m_ViewportEdit);
+
+        we::editor::outliner::WorldOutlinerDependencies woDeps;
+        woDeps.undo = m_UndoRuntime.get();
+        woDeps.propertyEditor = we::editor::property::PropertyEditorSession::Runtime();
+        woDeps.detailsView = we::editor::property::PropertyEditorSession::Details();
+        woDeps.viewportEdit = m_ViewportEdit.get();
+        woDeps.scene = m_Scene.get();
+        woDeps.onLog = [](std::string_view msg) {
+            HE_INFO(std::string(msg));
+        };
+        m_WorldOutliner = std::shared_ptr<we::editor::outliner::IWorldOutlinerRuntime>(
+            we::editor::outliner::CreateWorldOutlinerRuntime(woDeps));
+        we::editor::outliner::WorldOutlinerSession::Install(m_WorldOutliner);
+
+        we::editor::contentbrowser::ContentBrowserDependencies cbDeps;
+        cbDeps.iconRenderer = m_OverlayRenderer->GetIconRenderer();
+        cbDeps.contentRoot = project.ContentRoot();
+        if (m_UndoRuntime) {
+            cbDeps.recordTransaction = [this](
+                std::string_view label,
+                std::function<bool()> undoFn,
+                std::function<bool()> redoFn) {
+                return m_UndoRuntime->Manager().RecordCustom(
+                    label,
+                    we::editor::undo::TransactionKind::Generic,
+                    std::string(label),
+                    std::move(undoFn),
+                    std::move(redoFn));
+            };
+        }
+        cbDeps.onLog = [](std::string_view msg) {
+            HE_INFO(std::string(msg));
+        };
+        m_ContentBrowser = std::shared_ptr<we::editor::contentbrowser::IContentBrowserRuntime>(
+            we::editor::contentbrowser::CreateContentBrowserRuntime(cbDeps));
+        we::editor::contentbrowser::ContentBrowserSession::Install(m_ContentBrowser);
 
         we::programs::editor::EditorShellDependencies shellDeps;
         shellDeps.window = m_Window;
@@ -453,6 +486,15 @@ void Editor::EnterProjectWorkspace(const std::filesystem::path& weprojPath) {
             &m_WindowHitTestData);
 
         SetRootWidget(shellResult.rootWidget);
+
+        // Ensure Explorer TreeView is bound after panel construction.
+        if (m_WorldOutliner) {
+            if (auto tree = we::programs::editor::GetExplorerTreeView()) {
+                m_WorldOutliner->Outliner().BindTreeView(tree);
+                m_WorldOutliner->Outliner().RequestRebuild();
+                m_WorldOutliner->Outliner().Tick(0.f);
+            }
+        }
     } catch (const std::exception& e) {
         HE_ERROR("[Startup] Failed to build editor shell: " + std::string(e.what()));
         UnloadProjectWorkspace();
@@ -798,6 +840,12 @@ void Editor::MainLoop() {
             env.SyncFromScene(m_Camera->GetPosition());
         }
         ::we::editor::environment::TickEditor();
+        if (m_WorldOutliner) {
+            m_WorldOutliner->Outliner().Tick(dt);
+        }
+        if (m_ContentBrowser) {
+            m_ContentBrowser->Browser().Tick(dt);
+        }
         if (m_ViewportEdit) {
             m_ViewportEdit->SyncSelectionFromScene();
             m_ViewportEdit->Tick(dt);
