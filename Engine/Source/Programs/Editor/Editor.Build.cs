@@ -28,6 +28,10 @@ public class Editor : ModuleRules
         PublicDependencies.Add("ContentBrowser");
         PublicDependencies.Add("WorldOutliner");
         PublicDependencies.Add("PropertyEditor");
+        PublicDependencies.Add("Undo");
+        PublicDependencies.Add("ViewportEdit");
+        PublicDependencies.Add("Serialization");
+        PublicDependencies.Add("Reflection");
         PublicDependencies.Add("Toolbar");
         PublicDependencies.Add("Menus");
         PublicDependencies.Add("ToolsPanel");

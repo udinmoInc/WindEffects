@@ -18,7 +18,6 @@
 #include "Widgets/MenuBar.h"
 #include "Widgets/ViewportWidget.h"
 #include "Widgets/EditorModeSelector.h"
-#include "Widgets/PropertyEditor.h"
 #include "ContentBrowser/Widgets/TreeView.h"
 #include "KindUI/Layout/Flex.h"
 #include "KindUI/Layout/OverlayManager.h"
@@ -31,6 +30,8 @@
 #include "KindUI/Rendering/IconMetrics.h"
 #include "Renderer/Renderer.h"
 #include "Scene/Scene.h"
+#include "PropertyEditor/PropertyEditorSession.h"
+#include "Environment/EnvironmentEditorApi.h"
 
 #include <algorithm>
 #include <vector>
@@ -53,7 +54,6 @@ using ::we::runtime::kindui::Column;
 using ::we::runtime::kindui::OverlayHost;
 using ::we::editor::viewport::ViewportWidget;
 using ::we::editor::contentbrowser::TreeView;
-using ::we::editor::property::PropertyEditor;
 using ::we::editor::docking::DockContainer;
 using ::we::editor::shell::DockLayoutBuilder;
 using ::we::editor::docking::DockPanelDescriptor;
@@ -159,8 +159,23 @@ EditorShellResult EditorShellBuilder::Build(
     menuBar->AddMenu("File", fileItems);
 
     std::vector<std::shared_ptr<MenuItem>> editItems;
-    editItems.push_back([] { auto i = std::make_shared<MenuItem>(); i->label = "Undo"; i->shortcut = "Ctrl+Z"; return i; }());
-    editItems.push_back([] { auto i = std::make_shared<MenuItem>(); i->label = "Redo"; i->shortcut = "Ctrl+Y"; return i; }());
+    {
+        auto undoItem = std::make_shared<MenuItem>();
+        undoItem->label = "Undo";
+        undoItem->shortcut = "Ctrl+Z";
+        if (deps.onUndo) {
+            undoItem->onClick = deps.onUndo;
+        }
+        editItems.push_back(undoItem);
+
+        auto redoItem = std::make_shared<MenuItem>();
+        redoItem->label = "Redo";
+        redoItem->shortcut = "Ctrl+Y";
+        if (deps.onRedo) {
+            redoItem->onClick = deps.onRedo;
+        }
+        editItems.push_back(redoItem);
+    }
     editItems.push_back([] { auto i = std::make_shared<MenuItem>(); i->label = "Cut"; i->shortcut = "Ctrl+X"; return i; }());
     editItems.push_back([] { auto i = std::make_shared<MenuItem>(); i->label = "Copy"; i->shortcut = "Ctrl+C"; return i; }());
     editItems.push_back([] { auto i = std::make_shared<MenuItem>(); i->label = "Paste"; i->shortcut = "Ctrl+V"; return i; }());
@@ -290,8 +305,8 @@ EditorShellResult EditorShellBuilder::Build(
     toolbar->AddSeparator();
 
     // History
-    toolbar->AddTool(Icons::UndoName, "", [](){}, "Undo (Ctrl+Z)");
-    toolbar->AddTool(Icons::RedoName, "", [](){}, "Redo (Ctrl+Y)");
+    toolbar->AddTool(Icons::UndoName, "", deps.onUndo ? deps.onUndo : std::function<void()>{}, "Undo (Ctrl+Z)");
+    toolbar->AddTool(Icons::RedoName, "", deps.onRedo ? deps.onRedo : std::function<void()>{}, "Redo (Ctrl+Y)");
     toolbar->AddSeparator();
 
     toolbar->AddWidget(::we::editor::environment::CreateEnvironmentToolbarMenu());
@@ -374,14 +389,10 @@ EditorShellResult EditorShellBuilder::Build(
     }
 
     std::shared_ptr<TreeView> worldOutlinerTree = we::programs::editor::GetExplorerTreeView();
-    std::shared_ptr<PropertyEditor> detailsEditor;
-    if (auto detailsPanel = shellResult.layout.panels["Details"]) {
-        detailsEditor = std::dynamic_pointer_cast<PropertyEditor>(detailsPanel->GetContent());
-    }
     ::we::editor::environment::InitializeEditor(
         deps.scene,
         worldOutlinerTree,
-        detailsEditor);
+        ::we::editor::property::PropertyEditorSession::DetailsShared());
 
     workspace.BindLayout(shellResult.layout);
 

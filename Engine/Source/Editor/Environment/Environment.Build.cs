@@ -19,6 +19,7 @@ public class Environment : ModuleRules
         PublicDependencies.Add("Text");
         PublicDependencies.Add("UIFramework");
         PublicDependencies.Add("World");
+        PublicDependencies.Add("Reflection");
         PrivateDependencies.Add("PropertyEditor");
         PrivateDependencies.Add("ContentBrowser");
         PrivateDependencies.Add("Menus");

@@ -18,6 +18,7 @@ public:
 
     virtual void Build(reflection::TypeId typeId, void* instance) = 0;
     virtual void Build(reflection::TypeId typeId, const std::vector<void*>& instances) = 0;
+    virtual void BuildBindings(const std::vector<ObjectBinding>& bindings) = 0;
     virtual void Rebuild() = 0;
     virtual void Clear() = 0;
 

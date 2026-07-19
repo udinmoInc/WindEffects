@@ -22,6 +22,8 @@ public:
 
     virtual void SetObject(reflection::TypeId typeId, void* instance) = 0;
     virtual void SetObjects(reflection::TypeId typeId, const std::vector<void*>& instances) = 0;
+    /// Bind one or more live objects of possibly different reflected types (e.g. Entity + component).
+    virtual void SetBindings(const std::vector<ObjectBinding>& bindings) = 0;
     virtual void Clear() = 0;
 
     virtual void SetFilter(const PropertyFilterOptions& filter) = 0;

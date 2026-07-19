@@ -1,5 +1,4 @@
 #include "PropertyEditor/PropertyEditorTests.h"
-#include "PropertyEditor/Compat/LegacyPropertyEditor.h"
 #include "PropertyEditor/IPropertyEditorRuntime.h"
 #include "PropertyEditor/IPropertyTransactionHook.h"
 #include "PropertyEditor/MultiObjectEdit.h"
@@ -296,22 +295,16 @@ PropertyEditorTestReport RunPropertyEditorTests() {
     details->SetObject(actorId, &actor);
     AddCase(report, "DetailCustomization", customized, "invoked");
 
-    // Shim AddProperty still works
-    PropertyEditor shim;
-    Property prop;
-    prop.name = "ShimFloat";
-    prop.category = "Test";
-    prop.type = PropertyType::Float;
-    prop.value = "1.25";
-    bool shimChanged = false;
-    prop.onValueChanged = [&](const std::string&) { shimChanged = true; };
-    shim.AddProperty(prop);
-    shim.SetPropertyValue("ShimFloat", "2.5");
-    AddCase(
-        report,
-        "ShimAddProperty",
-        shim.GetPropertyValue("ShimFloat") == "2.5" && shimChanged,
-        "compat");
+    // Multi-type bindings (Entity-style + component)
+    {
+        std::vector<ObjectBinding> bindings;
+        ObjectBinding multiBinding;
+        multiBinding.typeId = actorId;
+        multiBinding.instance = &actor;
+        bindings.push_back(multiBinding);
+        details->SetBindings(bindings);
+        AddCase(report, "SetBindings", details->GetTree().FindByPath("health") != nullptr, "bound");
+    }
 
     runtime->Shutdown();
     AddCase(report, "Shutdown", true, "ok");

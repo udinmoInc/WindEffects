@@ -9,6 +9,7 @@
 #include "ViewportNavigation.h"
 #include "Platform/Types.h"
 
+#include <functional>
 #include <memory>
 #include "KindUI/Core/Style.h"
 
@@ -60,6 +61,10 @@ public:
     void FlushPendingResize();
     void SyncRendererViewport();
 
+    /// Optional editing interaction (Ctrl+LMB pick, transform tools). Installed by Editor host.
+    using EditInputHandler = std::function<bool(const MouseEvent& event, float localX, float localY)>;
+    void SetEditInputHandler(EditInputHandler handler) { m_EditInputHandler = std::move(handler); }
+
     bool IsFlyLookActive() const { return m_Navigation.IsFlyLookActive(); }
     bool IsViewportNavigating() const { return m_Navigation.IsViewportNavigating(); }
 
@@ -75,6 +80,7 @@ private:
     std::shared_ptr<::we::runtime::scene::Scene> m_Scene;
     ::we::runtime::kindui::OverlayRenderer* m_uiRenderer = nullptr;
     ViewportNavigationController m_Navigation;
+    EditInputHandler m_EditInputHandler;
 
     we::rhi::RHIDescriptorSetHandle m_ViewportTextureSet = we::rhi::RHIDescriptorSetHandle::Invalid;
     we::rhi::RHITextureViewHandle m_BoundViewportView = we::rhi::RHITextureViewHandle::Invalid;
