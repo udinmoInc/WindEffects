@@ -10,6 +10,7 @@
 #include "PropertyEditor/PropertyEditorTypes.h"
 #include "Reflection/TypeId.h"
 #include "ContentBrowser/Widgets/TreeView.h"
+#include "WorldOutliner/WorldOutlinerSession.h"
 #include "Widgets/MenuBar.h"
 #include "WindEffects/Editor/UI/Shell/EditorWorkspaceController.h"
 #include "KindUI/Core/PaintContext.h"
@@ -237,6 +238,13 @@ std::shared_ptr<::we::editor::contentbrowser::TreeNode> BuildNodeForEntity(const
 }
 
 void RefreshOutliner() {
+    if (::we::editor::outliner::WorldOutlinerSession::IsInstalled()) {
+        if (auto* outliner = ::we::editor::outliner::WorldOutlinerSession::Outliner()) {
+            outliner->RequestRebuild();
+        }
+        return;
+    }
+
     auto scene = g_Scene.lock();
     auto outliner = g_Outliner.lock();
     if (!scene || !outliner) {
@@ -299,7 +307,7 @@ void InitializeEditor(
         RefreshDetailsPanel();
     });
 
-    if (outliner) {
+    if (outliner && !::we::editor::outliner::WorldOutlinerSession::IsInstalled()) {
         outliner->SetOnSelectionChanged([scene](const std::vector<std::string>& ids) {
             if (ids.empty()) {
                 return;
@@ -357,7 +365,8 @@ void TickEditor() {
         selectedId = scene->GetEntities()[static_cast<size_t>(selectedIndex)].Id;
     }
 
-    if (outliner && selectedId != 0) {
+    if (!::we::editor::outliner::WorldOutlinerSession::IsInstalled()
+        && outliner && selectedId != 0) {
         const std::string selectedNodeId = std::to_string(selectedId);
         if (outliner->GetSelectedId() != selectedNodeId) {
             outliner->SetSelectedId(selectedNodeId);
