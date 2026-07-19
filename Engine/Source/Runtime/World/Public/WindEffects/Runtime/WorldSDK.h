@@ -1,9 +1,10 @@
 #pragma once
 
-// WindEffects World SDK — environment, lighting, and default scene setup.
+// WindEffects World SDK — World Runtime + environment + default scene setup.
 
 #include "WindEffects/Platform.h"
 
+#include "World/World.h"
 #include "Environment/EnvironmentSystem.h"
 #include "Environment/EnvironmentSettings.h"
 #include "DefaultScene/DefaultSceneBuilder.h"

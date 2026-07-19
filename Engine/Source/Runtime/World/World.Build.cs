@@ -9,10 +9,18 @@ public class World : ModuleRules
         PublicIncludePaths.Add("Public");
         PrivateIncludePaths.Add("Private");
 
+        // Orchestration layer over Scene/ECS; Reflection + Serialization for metadata persistence.
         PublicDependencies.Add("Core");
         PublicDependencies.Add("Platform");
         PublicDependencies.Add("Engine");
+        PublicDependencies.Add("ECS");
         PublicDependencies.Add("Scene");
+        PublicDependencies.Add("Reflection");
+        PublicDependencies.Add("Serialization");
+
+        // Streaming uses AssetRuntime; Renderer sync remains environment-private.
+        PrivateDependencies.Add("AssetRuntime");
+        PrivateDependencies.Add("AssetImporter");
         PrivateDependencies.Add("Renderer");
 
         AddOptionalThirdParty("glm");

@@ -6,11 +6,11 @@
 
 namespace we::runtime::world {
 
-using World = we::runtime::scene::Scene;
-
+/// Builds a default editor/gameplay starter scene on an existing Scene container.
+/// Scene remains the ECS-backed container; World Runtime orchestrates higher-level lifetime.
 class WORLD_API DefaultSceneBuilder {
 public:
-    static void CreateDefaultScene(World& world);
+    static void CreateDefaultScene(scene::Scene& scene);
 };
 
 } // namespace we::runtime::world
