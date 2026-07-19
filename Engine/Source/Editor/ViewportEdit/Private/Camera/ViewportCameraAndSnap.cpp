@@ -1,4 +1,5 @@
 #include "ViewportEditInternal.h"
+#include "Scene/Entity.h"
 
 #include <algorithm>
 
@@ -33,7 +34,16 @@ public:
             }
         }
         if (count > 0) {
-            camera->Focus(we::math::Vec3{sum.x / count, sum.y / count, sum.z / count});
+            const we::math::Vec3 center{sum.x / count, sum.y / count, sum.z / count};
+            float distance = 8.0f;
+            for (const auto id : ids) {
+                if (const auto* entity = scene->FindEntityById(id.value)) {
+                    if (entity->Type == we::runtime::scene::EntityType::Landscape) {
+                        distance = std::max(distance, 600.0f);
+                    }
+                }
+            }
+            camera->Focus(center, distance);
         }
     }
 

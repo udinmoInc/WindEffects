@@ -28,6 +28,7 @@ enum class ContentAssetKind : std::uint8_t {
     Blueprint,
     Scene,
     Prefab,
+    Terrain,
     Audio,
     Font,
     Script,

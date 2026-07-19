@@ -19,17 +19,24 @@ public:
         m_Renderer = CreateRenderer();
         m_DragDrop = CreateDragDrop(*this);
         m_Interaction = CreateInteraction(*this);
+        m_SelectionContext = CreateSelectionContext(*m_Selection);
+        m_ToolContext = CreateToolContext(*this);
+        m_Commands = CreateCommandRouter(*this);
+        m_Modes = CreateModeManager(*this);
+        m_Workspace = CreateWorkspace(*this, *this, *m_Modes, *m_Commands, *m_SelectionContext);
 
         RegisterTool(CreateSelectTool());
         RegisterTool(CreateMoveTool());
         RegisterTool(CreateRotateTool());
         RegisterTool(CreateScaleTool());
-        RegisterMode(CreateDefaultMode());
+        m_Modes->RegisterModeInstance(CreateDefaultMode());
 
         m_Selection->AddListener([this]() { SyncSelectionToScene(); });
 
         SetActiveTool(ViewportToolId::Select);
-        SetActiveMode(ViewportModeId::Default);
+        (void)m_Modes->SetActiveMode(ViewportModeId::Select);
+        m_ActiveModeKey = std::string(m_Modes->ActiveModeKey());
+        m_ActiveModeId = m_Modes->ActiveModeId();
     }
 
     [[nodiscard]] IViewportSelection& Selection() noexcept override { return *m_Selection; }
@@ -54,6 +61,10 @@ public:
 
     [[nodiscard]] ViewportToolId ActiveTool() const noexcept override { return m_ActiveToolId; }
     [[nodiscard]] ViewportModeId ActiveMode() const noexcept override { return m_ActiveModeId; }
+    [[nodiscard]] std::string_view ActiveModeKey() const noexcept override { return m_ActiveModeKey; }
+    [[nodiscard]] IViewportSelectionContext* SelectionContextPtr() noexcept override {
+        return m_SelectionContext.get();
+    }
     [[nodiscard]] float ViewportWidth() const noexcept override { return m_Width; }
     [[nodiscard]] float ViewportHeight() const noexcept override { return m_Height; }
 
@@ -71,9 +82,16 @@ public:
     [[nodiscard]] IViewportInteraction& Interaction() noexcept override { return *m_Interaction; }
     [[nodiscard]] IViewportRenderer& Renderer() noexcept override { return *m_Renderer; }
     [[nodiscard]] IViewportDragDrop& DragDrop() noexcept override { return *m_DragDrop; }
+    [[nodiscard]] IViewportWorkspace& Workspace() noexcept override { return *m_Workspace; }
+    [[nodiscard]] IViewportModeManager& Modes() noexcept override { return *m_Modes; }
+    [[nodiscard]] IViewportCommandRouter& Commands() noexcept override { return *m_Commands; }
+    [[nodiscard]] IViewportSelectionContext& SelectionContext() noexcept override {
+        return *m_SelectionContext;
+    }
+    [[nodiscard]] IViewportToolContext& ToolContext() noexcept override { return *m_ToolContext; }
 
     void SetActiveTool(ViewportToolId tool) override {
-        if (m_ActiveTool && m_ActiveTool->GetId() == tool) {
+        if (m_ActiveTool && m_ActiveTool->GetId() == tool && tool != ViewportToolId::Custom) {
             return;
         }
         if (m_ActiveTool) {
@@ -88,49 +106,71 @@ public:
         m_Manipulator->SetTool(tool);
     }
 
+    void SetActiveTool(std::string_view toolId) override {
+        if (auto* tool = FindToolByStableId(toolId)) {
+            SetActiveTool(tool->GetId());
+            m_ActiveTool = tool;
+            BindInteractionTool(*m_Interaction, m_ActiveTool);
+            return;
+        }
+        // Fall back to builtin name match.
+        for (std::uint8_t i = 0; i <= static_cast<std::uint8_t>(ViewportToolId::Custom); ++i) {
+            const auto id = static_cast<ViewportToolId>(i);
+            if (BuiltinToolName(id) == toolId) {
+                SetActiveTool(id);
+                return;
+            }
+        }
+    }
+
     [[nodiscard]] ViewportToolId GetActiveTool() const noexcept override { return m_ActiveToolId; }
 
     void SetActiveMode(ViewportModeId mode) override {
-        if (m_ActiveMode && m_ActiveMode->GetId() == mode) {
-            return;
+        if (m_Modes->SetActiveMode(mode)) {
+            m_ActiveModeId = m_Modes->ActiveModeId();
+            m_ActiveModeKey = std::string(m_Modes->ActiveModeKey());
+            if (auto* active = m_Modes->ActiveMode()) {
+                SetActiveTool(active->PreferredTool());
+            }
         }
-        if (m_ActiveMode) {
-            m_ActiveMode->OnExit(*this);
-        }
-        m_ActiveMode = FindMode(mode);
-        m_ActiveModeId = mode;
-        if (m_ActiveMode) {
-            m_ActiveMode->OnEnter(*this);
+    }
+
+    void SetActiveMode(std::string_view modeId) override {
+        if (m_Modes->SetActiveMode(modeId)) {
+            m_ActiveModeId = m_Modes->ActiveModeId();
+            m_ActiveModeKey = std::string(m_Modes->ActiveModeKey());
+            if (auto* active = m_Modes->ActiveMode()) {
+                SetActiveTool(active->PreferredTool());
+            }
         }
     }
 
     [[nodiscard]] ViewportModeId GetActiveMode() const noexcept override { return m_ActiveModeId; }
+    [[nodiscard]] std::string_view GetActiveModeKey() const noexcept override {
+        return m_ActiveModeKey;
+    }
 
     void RegisterTool(std::unique_ptr<IViewportTool> tool) override {
         if (!tool) {
             return;
         }
         const auto id = tool->GetId();
+        const std::string stable(tool->GetStableId());
+        m_ToolsByStable[stable] = tool.get();
         m_Tools[id] = std::move(tool);
     }
 
     void RegisterMode(std::unique_ptr<IViewportMode> mode) override {
-        if (!mode) {
-            return;
-        }
-        const auto id = mode->GetId();
-        m_Modes[id] = std::move(mode);
+        m_Modes->RegisterModeInstance(std::move(mode));
     }
 
     void RegisterOverlay(std::unique_ptr<IViewportOverlay> overlay) override {
-        if (overlay) {
-            m_Overlays.push_back(std::move(overlay));
-        }
+        m_Workspace->RegisterOverlay(std::move(overlay));
     }
 
     void Tick(float deltaSeconds) override {
-        if (m_ActiveMode) {
-            m_ActiveMode->Tick(*this, deltaSeconds);
+        if (auto* mode = m_Modes->ActiveMode()) {
+            mode->Tick(*this, deltaSeconds);
         }
         m_Interaction->Tick(deltaSeconds);
         m_Renderer->BeginFrame();
@@ -138,9 +178,7 @@ public:
         m_Renderer->DrawSelection(m_Selection->GetSelected());
         m_Renderer->DrawHover(m_Selection->GetHovered());
         m_Renderer->EndFrame();
-        for (auto& overlay : m_Overlays) {
-            overlay->Draw(m_Width, m_Height);
-        }
+        m_Workspace->Tick(deltaSeconds);
     }
 
     void SyncSelectionToScene() override {
@@ -180,9 +218,9 @@ private:
         return it != m_Tools.end() ? it->second.get() : nullptr;
     }
 
-    IViewportMode* FindMode(ViewportModeId id) const {
-        auto it = m_Modes.find(id);
-        return it != m_Modes.end() ? it->second.get() : nullptr;
+    IViewportTool* FindToolByStableId(std::string_view id) const {
+        auto it = m_ToolsByStable.find(std::string(id));
+        return it != m_ToolsByStable.end() ? it->second : nullptr;
     }
 
     ViewportEditDependencies m_Deps;
@@ -195,15 +233,19 @@ private:
     std::unique_ptr<IViewportRenderer> m_Renderer;
     std::unique_ptr<IViewportDragDrop> m_DragDrop;
     std::unique_ptr<IViewportInteraction> m_Interaction;
+    std::unique_ptr<IViewportModeManager> m_Modes;
+    std::unique_ptr<IViewportCommandRouter> m_Commands;
+    std::unique_ptr<IViewportSelectionContext> m_SelectionContext;
+    std::unique_ptr<IViewportToolContext> m_ToolContext;
+    std::unique_ptr<IViewportWorkspace> m_Workspace;
 
     std::unordered_map<ViewportToolId, std::unique_ptr<IViewportTool>> m_Tools;
-    std::unordered_map<ViewportModeId, std::unique_ptr<IViewportMode>> m_Modes;
-    std::vector<std::unique_ptr<IViewportOverlay>> m_Overlays;
+    std::unordered_map<std::string, IViewportTool*> m_ToolsByStable;
 
     IViewportTool* m_ActiveTool = nullptr;
-    IViewportMode* m_ActiveMode = nullptr;
     ViewportToolId m_ActiveToolId = ViewportToolId::Select;
-    ViewportModeId m_ActiveModeId = ViewportModeId::Default;
+    ViewportModeId m_ActiveModeId = ViewportModeId::Select;
+    std::string m_ActiveModeKey = "Select";
     float m_Width = 1.f;
     float m_Height = 1.f;
 };

@@ -100,7 +100,7 @@ AssetKind AssetKindFromSourceExtension(std::string_view extension) {
     if (ext == ".matinst" || ext == ".mi") return AssetKind::MaterialInstance;
     if (ext == ".scene" || ext == ".level" || ext == ".umap") return AssetKind::Scene;
     if (ext == ".bp" || ext == ".blueprint") return AssetKind::Blueprint;
-    if (ext == ".prefab") return AssetKind::Prefab;
+    if (ext == ".prefab" || ext == ".weprefab") return AssetKind::Prefab;
     if (ext == ".lua" || ext == ".cs" || ext == ".py" || ext == ".js" || ext == ".ts") return AssetKind::Script;
     if (ext == ".mp4" || ext == ".avi" || ext == ".mov" || ext == ".webm") return AssetKind::Video;
     if (ext == ".atlas") return AssetKind::IconAtlas;

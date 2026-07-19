@@ -175,11 +175,14 @@ private:
 
 class DefaultMode final : public IViewportMode {
 public:
-    [[nodiscard]] ViewportModeId GetId() const noexcept override { return ViewportModeId::Default; }
-    [[nodiscard]] std::string_view GetDisplayName() const noexcept override { return "Default"; }
+    [[nodiscard]] ViewportModeId GetId() const noexcept override { return ViewportModeId::Select; }
+    [[nodiscard]] std::string_view GetDisplayName() const noexcept override { return "Select"; }
     void OnEnter(IViewportContext&) override {}
     void OnExit(IViewportContext&) override {}
     void Tick(IViewportContext&, float) override {}
+    [[nodiscard]] ViewportToolId PreferredTool() const noexcept override {
+        return ViewportToolId::Select;
+    }
 };
 
 } // namespace

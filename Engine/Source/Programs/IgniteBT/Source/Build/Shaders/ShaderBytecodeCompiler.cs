@@ -19,6 +19,7 @@ public static class ShaderBytecodeCompiler
         ("Foundation/ProceduralSky.hlsl", "ProceduralSky"),
         ("Rendering/AtmospherePass.hlsl", "AtmospherePass"),
         ("Rendering/SceneObject.hlsl", "SceneObject"),
+        ("Rendering/Terrain.hlsl", "Terrain"),
         ("Rendering/TextMSDF.hlsl", "TextMSDF"),
         ("Rendering/UI.hlsl", "UI"),
     };

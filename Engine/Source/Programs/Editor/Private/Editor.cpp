@@ -20,8 +20,13 @@
 #include "PropertyEditor/IPropertyEditorRuntime.h"
 #include "PropertyEditor/PropertyEditorSession.h"
 #include "ViewportEdit/ViewportEdit.h"
+#include "Terrain/Terrain.h"
+#include "TerrainEditor/TerrainEditor.h"
 #include "WorldOutliner/WorldOutliner.h"
 #include "ContentBrowser/ContentBrowserRuntime.h"
+#include "Prefab/Prefab.h"
+#include "PrefabEditor/PrefabEditor.h"
+#include "Compilation/Compilation.h"
 #include "Explorer/WorldOutlinerApi.h"
 #include "Serialization/ISerializer.h"
 #include "Reflection/ITypeRegistry.h"
@@ -255,6 +260,28 @@ void Editor::UnloadProjectWorkspace() {
     ::we::editor::outliner::WorldOutlinerSession::Clear();
     m_ContentBrowser.reset();
     ::we::editor::contentbrowser::ContentBrowserSession::Clear();
+    if (m_PrefabEditor) {
+        m_PrefabEditor->Shutdown();
+        m_PrefabEditor.reset();
+    }
+    ::we::editor::prefab::PrefabSession::Clear();
+    if (m_PrefabRuntime) {
+        m_PrefabRuntime->Shutdown();
+        m_PrefabRuntime.reset();
+    }
+    if (m_Renderer) {
+        m_Renderer->ClearTerrainDrawer();
+    }
+    if (m_TerrainRuntime) {
+        m_TerrainRuntime->Shutdown();
+        m_TerrainRuntime.reset();
+        we::runtime::terrain::SetDefaultTerrainRuntime(nullptr);
+    }
+    if (m_CompilationRuntime) {
+        m_CompilationRuntime->Shutdown();
+        m_CompilationRuntime.reset();
+    }
+    ::we::runtime::compilation::CompilationSession::Clear();
     ::we::editor::property::PropertyEditorSession::Clear();
     m_Serializer.reset();
 
@@ -366,6 +393,58 @@ void Editor::EnterProjectWorkspace(const std::filesystem::path& weprojPath) {
         m_ViewportEdit = we::editor::viewportedit::CreateViewportEditRuntime(veDeps);
         we::editor::viewportedit::ViewportEditSession::Install(m_ViewportEdit);
 
+        {
+            we::runtime::terrain::TerrainDependencies terrainDeps;
+            terrainDeps.typeRegistry = &we::runtime::reflection::GetTypeRegistry();
+            terrainDeps.serializer = m_Serializer.get();
+            terrainDeps.scene = m_Scene.get();
+            if (m_Renderer) {
+                terrainDeps.device = m_Renderer->GetRHIDevice();
+            }
+            terrainDeps.onLog = [](std::string_view msg) {
+                HE_INFO(std::string(msg));
+            };
+            auto terrainRuntime = we::runtime::terrain::CreateTerrainRuntime(terrainDeps);
+            we::runtime::terrain::SetDefaultTerrainRuntime(
+                std::unique_ptr<we::runtime::terrain::ITerrainRuntime>(
+                    terrainRuntime.release()));
+            m_TerrainRuntime = std::shared_ptr<we::runtime::terrain::ITerrainRuntime>(
+                &we::runtime::terrain::GetDefaultTerrainRuntime(),
+                [](we::runtime::terrain::ITerrainRuntime*) {});
+
+            auto& landscape = we::editor::terrain::GetLandscapeEditor();
+            landscape.BindTerrainRuntime(m_TerrainRuntime.get());
+            landscape.BindScene(m_Scene.get());
+            landscape.BindUndo(m_UndoRuntime.get());
+            landscape.BindViewport(m_ViewportEdit.get());
+            landscape.InstallViewportMode();
+
+            if (m_Renderer) {
+                we::runtime::terrain::TerrainSystem::Get().BindRenderer(m_Renderer->GetRHIDevice());
+                m_Renderer->SetTerrainDrawer(
+                    [](we::rhi::IRHICommandList& cmd,
+                        we::rhi::RHITextureHandle color,
+                        we::rhi::RHITextureHandle depth,
+                        we::rhi::Extent2D extent,
+                        const we::runtime::renderer::CameraUniform& camera) {
+                        auto& runtime = we::runtime::terrain::GetDefaultTerrainRuntime();
+                        for (const auto id : runtime.Manager().ListAll()) {
+                            if (auto* terrain = runtime.Manager().Find(id)) {
+                                terrain->Renderer().SyncChunks();
+                                terrain->Renderer().DrawViewport(
+                                    cmd,
+                                    color,
+                                    depth,
+                                    extent,
+                                    camera.view,
+                                    camera.proj,
+                                    camera.position);
+                            }
+                        }
+                    });
+            }
+        }
+
         we::editor::outliner::WorldOutlinerDependencies woDeps;
         woDeps.undo = m_UndoRuntime.get();
         woDeps.propertyEditor = we::editor::property::PropertyEditorSession::Runtime();
@@ -401,6 +480,78 @@ void Editor::EnterProjectWorkspace(const std::filesystem::path& weprojPath) {
         m_ContentBrowser = std::shared_ptr<we::editor::contentbrowser::IContentBrowserRuntime>(
             we::editor::contentbrowser::CreateContentBrowserRuntime(cbDeps));
         we::editor::contentbrowser::ContentBrowserSession::Install(m_ContentBrowser);
+
+        we::runtime::prefab::PrefabDependencies prefabDeps;
+        prefabDeps.scene = m_Scene.get();
+        prefabDeps.serializer = m_Serializer.get();
+        prefabDeps.onLog = [](std::string_view msg) {
+            HE_INFO(std::string(msg));
+        };
+        m_PrefabRuntime = std::shared_ptr<we::runtime::prefab::IPrefabRuntime>(
+            we::runtime::prefab::CreatePrefabRuntime(prefabDeps));
+
+        we::editor::prefab::PrefabEditorDependencies prefabEditorDeps;
+        prefabEditorDeps.prefabRuntime = m_PrefabRuntime.get();
+        prefabEditorDeps.scene = m_Scene.get();
+        prefabEditorDeps.viewportEdit = m_ViewportEdit.get();
+        prefabEditorDeps.worldOutliner = m_WorldOutliner.get();
+        prefabEditorDeps.contentBrowser = m_ContentBrowser.get();
+        if (m_UndoRuntime) {
+            prefabEditorDeps.recordTransaction = [this](
+                std::string_view label,
+                std::function<bool()> undoFn,
+                std::function<bool()> redoFn) {
+                return m_UndoRuntime->Manager().RecordCustom(
+                    label,
+                    we::editor::undo::TransactionKind::Prefab,
+                    std::string(label),
+                    std::move(undoFn),
+                    std::move(redoFn));
+            };
+        }
+        prefabEditorDeps.onLog = [](std::string_view msg) {
+            HE_INFO(std::string(msg));
+        };
+        m_PrefabEditor = std::shared_ptr<we::editor::prefab::IPrefabEditor>(
+            we::editor::prefab::CreatePrefabEditor(prefabEditorDeps));
+        we::editor::prefab::PrefabSession::Install(m_PrefabEditor);
+
+        {
+            we::runtime::compilation::CompilationDependencies compileDeps;
+            compileDeps.config.enableBackgroundCompilation = true;
+            compileDeps.config.workerCount = 0;
+            const auto ddcDir = project.ContentRoot() / "DerivedData" / "Compilation";
+            std::error_code ec;
+            std::filesystem::create_directories(ddcDir, ec);
+            compileDeps.config.databasePath = (ddcDir / "wecomp.db").string();
+            compileDeps.config.cacheDirectory = ddcDir.string();
+            compileDeps.onLog = [](std::string_view msg) {
+                HE_INFO(std::string(msg));
+            };
+            m_CompilationRuntime = std::shared_ptr<we::runtime::compilation::ICompilationRuntime>(
+                we::runtime::compilation::CreateCompilationRuntime(compileDeps));
+            m_CompilationRuntime->RegisterBuiltinCompilers();
+            we::runtime::compilation::CompilationSession::Install(m_CompilationRuntime);
+        }
+
+        if (m_ViewportEdit && m_PrefabEditor) {
+            m_ViewportEdit->DragDrop().SetExternalDropHandler(
+                [this](
+                    float,
+                    float,
+                    std::string_view payloadType,
+                    std::string_view payloadData,
+                    const we::editor::viewportedit::ViewportHit& hit) {
+                    if (!m_PrefabEditor) {
+                        return false;
+                    }
+                    if (payloadType != "prefab" && payloadType != "prefab-guid" && payloadType != "asset") {
+                        return false;
+                    }
+                    const we::math::Vec3 pos = hit.valid ? hit.worldPoint : we::math::Vec3{};
+                    return m_PrefabEditor->SpawnFromPayload(payloadType, payloadData, pos).IsValid();
+                });
+        }
 
         we::programs::editor::EditorShellDependencies shellDeps;
         shellDeps.window = m_Window;
@@ -846,9 +997,19 @@ void Editor::MainLoop() {
         if (m_ContentBrowser) {
             m_ContentBrowser->Browser().Tick(dt);
         }
+        if (m_PrefabEditor) {
+            m_PrefabEditor->Tick(dt);
+        }
+        if (m_CompilationRuntime) {
+            m_CompilationRuntime->Manager().Tick(dt);
+        }
         if (m_ViewportEdit) {
             m_ViewportEdit->SyncSelectionFromScene();
             m_ViewportEdit->Tick(dt);
+        }
+        if (m_Camera) {
+            const auto pos = m_Camera->GetPosition();
+            we::editor::terrain::GetLandscapeEditor().Tick(dt, pos.x, pos.y, pos.z);
         }
         UpdateUiScaleFromWindow();
         ::we::editor::services::EditorPerfStats::Get().Mark("tick");

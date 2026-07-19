@@ -10,6 +10,8 @@ public class ViewportEdit : ModuleRules
         PrivateIncludePaths.Add("Private");
 
         // Interaction layer only — World/Scene own objects; Undo owns history; Renderer owns pixels.
+        // Intentionally does NOT depend on Viewport widget (Viewport→PlaceActors→TerrainEditor
+        // would cycle once TerrainEditor hosts Landscape mode on ViewportEdit).
         PublicDependencies.Add("Core");
         PublicDependencies.Add("Platform");
         PublicDependencies.Add("Engine");
@@ -19,13 +21,11 @@ public class ViewportEdit : ModuleRules
         PublicDependencies.Add("Serialization");
         PublicDependencies.Add("Undo");
         PublicDependencies.Add("PropertyEditor");
-        PublicDependencies.Add("Viewport");
         PublicDependencies.Add("KindUI");
         PublicDependencies.Add("UIFramework");
 
         PrivateDependencies.Add("RHI");
         PrivateDependencies.Add("Renderer");
-        PrivateDependencies.Add("ToolsPanel");
 
         AddOptionalThirdParty("glm");
         DefineIf(HasThirdParty("glm"), "WE_HAS_GLM=1");

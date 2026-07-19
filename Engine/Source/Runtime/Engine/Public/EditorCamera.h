@@ -83,6 +83,7 @@ public:
     void SetOrbitPivot(const we::math::Vec3& pivot);
 
     void Focus(const we::math::Vec3& target);
+    void Focus(const we::math::Vec3& target, float distance);
     void Reset();
     void ResumeOrbitNavigation();
 

@@ -30,6 +30,9 @@ public class Editor : ModuleRules
         PublicDependencies.Add("PropertyEditor");
         PublicDependencies.Add("Undo");
         PublicDependencies.Add("ViewportEdit");
+        PublicDependencies.Add("Prefab");
+        PublicDependencies.Add("PrefabEditor");
+        PublicDependencies.Add("Compilation");
         PublicDependencies.Add("Serialization");
         PublicDependencies.Add("Reflection");
         PublicDependencies.Add("Toolbar");

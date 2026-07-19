@@ -232,6 +232,13 @@ bool HeightmapIO::ExportPng8(const std::filesystem::path& path, const TerrainHei
     return true;
 }
 
+bool HeightmapIO::ExportPng16(const std::filesystem::path& path, const TerrainHeightmap& map) {
+    // stb_image_write has no 16-bit PNG path; export high byte as 8-bit PNG for interchange.
+    // Prefer Raw16Le / R16 for lossless 16-bit elevation export.
+    HE_WARN("[Terrain] ExportPng16 writes 8-bit high-byte PNG; use Raw16 for full precision.");
+    return ExportPng8(path, map);
+}
+
 bool HeightmapIO::Import(const std::filesystem::path& path, TerrainHeightmap& outMap,
     HeightmapFormat* detected) {
     const std::string ext = path.extension().string();
@@ -281,9 +288,7 @@ bool HeightmapIO::Export(const std::filesystem::path& path, const TerrainHeightm
     case HeightmapFormat::Png8:
         return ExportPng8(path, map);
     case HeightmapFormat::Png16:
-        // stb_image_write has no 16-bit PNG; export 8-bit preview + note.
-        HE_WARN("[Terrain] Png16 export falls back to 8-bit PNG (high byte).");
-        return ExportPng8(path, map);
+        return ExportPng16(path, map);
     case HeightmapFormat::Raw16Le:
     case HeightmapFormat::R16:
         return ExportRaw16(path, map, true);

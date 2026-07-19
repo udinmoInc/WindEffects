@@ -15,6 +15,10 @@ void ViewportEditDiagnostics::Reset() noexcept {
     m_Transforms.store(0);
     m_Transactions.store(0);
     m_ToolActivations.store(0);
+    m_ModeActivations.store(0);
+    m_ModesLoaded.store(0);
+    m_ModesUnloaded.store(0);
+    m_Commands.store(0);
     m_HitMicros.store(0);
     m_SelectionCount.store(0);
 }
@@ -26,6 +30,10 @@ ViewportEditDiagnosticsSnapshot ViewportEditDiagnostics::Snapshot() const noexce
     snap.transformOps = m_Transforms.load();
     snap.transactionsRecorded = m_Transactions.load();
     snap.toolActivations = m_ToolActivations.load();
+    snap.modeActivations = m_ModeActivations.load();
+    snap.modesLoaded = m_ModesLoaded.load();
+    snap.modesUnloaded = m_ModesUnloaded.load();
+    snap.commandExecutions = m_Commands.load();
     snap.hitTestMicros = m_HitMicros.load();
     snap.selectionCount = m_SelectionCount.load();
     return snap;
@@ -35,12 +43,13 @@ std::string ViewportEditDiagnostics::FormatSummary() const {
     const auto s = Snapshot();
     std::ostringstream oss;
     oss << "ViewportEdit picks=" << s.pickCount
-        << " selectionChanges=" << s.selectionChanges
-        << " transforms=" << s.transformOps
-        << " txns=" << s.transactionsRecorded
+        << " sel=" << s.selectionChanges
+        << " xform=" << s.transformOps
+        << " txn=" << s.transactionsRecorded
         << " tools=" << s.toolActivations
-        << " hitUs=" << s.hitTestMicros
-        << " selCount=" << s.selectionCount;
+        << " modes=" << s.modeActivations
+        << " loaded=" << s.modesLoaded
+        << " cmds=" << s.commandExecutions;
     return oss.str();
 }
 
@@ -57,5 +66,9 @@ void ViewportEditDiagnostics::OnSelectionChanged(std::uint64_t count) noexcept {
 void ViewportEditDiagnostics::OnTransform() noexcept { m_Transforms.fetch_add(1); }
 void ViewportEditDiagnostics::OnTransaction() noexcept { m_Transactions.fetch_add(1); }
 void ViewportEditDiagnostics::OnToolActivated() noexcept { m_ToolActivations.fetch_add(1); }
+void ViewportEditDiagnostics::OnModeActivated() noexcept { m_ModeActivations.fetch_add(1); }
+void ViewportEditDiagnostics::OnModeLoaded() noexcept { m_ModesLoaded.fetch_add(1); }
+void ViewportEditDiagnostics::OnModeUnloaded() noexcept { m_ModesUnloaded.fetch_add(1); }
+void ViewportEditDiagnostics::OnCommandExecuted() noexcept { m_Commands.fetch_add(1); }
 
 } // namespace we::editor::viewportedit

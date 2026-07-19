@@ -9,6 +9,7 @@
 
 #include <chrono>
 #include <memory>
+#include <mutex>
 #include <string>
 #include <unordered_map>
 #include <unordered_set>
@@ -39,7 +40,23 @@ namespace detail {
 [[nodiscard]] std::unique_ptr<IViewportTool> CreateScaleTool();
 [[nodiscard]] std::unique_ptr<IViewportMode> CreateDefaultMode();
 
+[[nodiscard]] std::unique_ptr<IViewportModeManager> CreateModeManager(IViewportContext& context);
+[[nodiscard]] std::unique_ptr<IViewportCommandRouter> CreateCommandRouter(IViewportContext& context);
+[[nodiscard]] std::unique_ptr<IViewportSelectionContext> CreateSelectionContext(IViewportSelection& selection);
+[[nodiscard]] std::unique_ptr<IViewportToolContext> CreateToolContext(IViewportContext& context);
+[[nodiscard]] std::unique_ptr<IViewportWorkspace> CreateWorkspace(
+    IViewportEditor& editor,
+    IViewportContext& context,
+    IViewportModeManager& modes,
+    IViewportCommandRouter& commands,
+    IViewportSelectionContext& selectionContext);
+
 void BindInteractionTool(IViewportInteraction& interaction, IViewportTool* tool);
+void BindInteractionLayers(
+    IViewportInteraction& interaction,
+    std::vector<IViewportInteractionLayer*>* layers);
+
+void RegisterBuiltinModes(IViewportModeRegistry& registry);
 
 } // namespace detail
 } // namespace we::editor::viewportedit

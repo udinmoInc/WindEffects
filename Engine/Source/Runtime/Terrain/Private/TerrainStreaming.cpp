@@ -18,7 +18,7 @@ void TerrainStreaming::RequestUnload(TerrainChunkId id) {
 
 void TerrainStreaming::Update(TerrainChunkManager& chunks, const we::math::Vec3& cameraWorldPos,
     const TerrainCreateInfo& info, const TerrainFrustump* frustum) {
-    if (chunks.Chunks().empty()) {
+    if (!m_Enabled || chunks.Chunks().empty()) {
         return;
     }
 

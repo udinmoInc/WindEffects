@@ -14,11 +14,16 @@ public class TerrainEditor : ModuleRules
         PublicDependencies.Add("RHI");
         PublicDependencies.Add("Engine");
         PublicDependencies.Add("Scene");
+        PublicDependencies.Add("World");
         PublicDependencies.Add("Renderer");
         PublicDependencies.Add("KindUI");
         PublicDependencies.Add("UIFramework");
         PublicDependencies.Add("Terrain");
-        // ToolsPanel was unused — removed.
+        PublicDependencies.Add("ViewportEdit");
+        PublicDependencies.Add("Undo");
+        PublicDependencies.Add("Reflection");
+        PublicDependencies.Add("Serialization");
+        PublicDependencies.Add("PropertyEditor");
 
         AddOptionalThirdParty("glm");
 

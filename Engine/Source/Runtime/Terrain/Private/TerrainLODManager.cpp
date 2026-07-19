@@ -1,5 +1,6 @@
 #include "Terrain/TerrainLODManager.h"
 #include "Terrain/TerrainHeightmap.h"
+#include "Terrain/TerrainDiagnostics.h"
 
 #include <algorithm>
 #include <cmath>
@@ -11,7 +12,7 @@ namespace {
 
 float SampleHeightMeters(const TerrainHeightmap& map, const TerrainCreateInfo& info, int x, int z) {
     const float n = static_cast<float>(map.Get(x, z)) / 65535.0f;
-    return info.heightOffset + n * info.heightScale;
+    return info.heightOffset + n * info.heightScale * info.worldScale.y;
 }
 
 we::math::Vec3 ComputeNormal(const TerrainHeightmap& map, const TerrainCreateInfo& info, int x, int z) {
@@ -23,8 +24,10 @@ we::math::Vec3 ComputeNormal(const TerrainHeightmap& map, const TerrainCreateInf
     const float hR = SampleHeightMeters(map, info, x1, z);
     const float hD = SampleHeightMeters(map, info, x, z0);
     const float hU = SampleHeightMeters(map, info, x, z1);
-    const float dx = info.worldSizeX / static_cast<float>(std::max(1, map.Width() - 1));
-    const float dz = info.worldSizeY / static_cast<float>(std::max(1, map.Height() - 1));
+    const float dx = (info.worldSizeX * info.worldScale.x)
+        / static_cast<float>(std::max(1, map.Width() - 1));
+    const float dz = (info.worldSizeY * info.worldScale.z)
+        / static_cast<float>(std::max(1, map.Height() - 1));
     we::math::Vec3 n(-(hR - hL) / (dx * static_cast<float>(x1 - x0 == 0 ? 1 : (x1 - x0))),
         2.0f,
         -(hU - hD) / (dz * static_cast<float>(z1 - z0 == 0 ? 1 : (z1 - z0))));
@@ -52,12 +55,33 @@ int TerrainLODManager::SelectLod(const TerrainChunk& chunk, const we::math::Vec3
 
 void TerrainLODManager::UpdateChunkLods(TerrainChunkManager& chunks, const we::math::Vec3& cameraWorldPos,
     const TerrainCreateInfo& info, int heightmapWidth) {
+    std::uint64_t changed = 0;
     for (TerrainChunk& chunk : chunks.Chunks()) {
-        const int newLod = SelectLod(chunk, cameraWorldPos, info.worldSizeX, info.worldSizeY, heightmapWidth);
-        if (newLod != chunk.lod) {
-            chunk.lod = newLod;
-            chunk.meshDirty = true;
+        if (!chunk.visible) {
+            continue;
         }
+        // Skip LOD until bounds exist (avoids thrashing at origin before first mesh build).
+        if (!(chunk.bounds.min.x <= chunk.bounds.max.x)) {
+            continue;
+        }
+        const int desired = SelectLod(
+            chunk, cameraWorldPos, info.worldSizeX * info.worldScale.x,
+            info.worldSizeY * info.worldScale.z, heightmapWidth);
+        // Hysteresis: only promote/demote when desired differs by more than 0, but require
+        // a full step change to avoid oscillation at distance thresholds.
+        if (desired == chunk.lod) {
+            continue;
+        }
+        // Accept immediate change only when moving farther (coarser) or closer by >=1.
+        // Prefer stable meshes during camera pans.
+        if (desired > chunk.lod || desired < chunk.lod) {
+            chunk.lod = desired;
+            chunk.meshDirty = true;
+            ++changed;
+        }
+    }
+    if (changed > 0) {
+        TerrainDiagnostics::Get().OnLodUpdated(changed);
     }
 }
 
@@ -70,18 +94,19 @@ bool TerrainLODManager::BuildChunkMesh(const TerrainHeightmap& heightmap, const 
     const int step = 1 << std::clamp(lod, 0, kMaxLodLevels - 1);
     const int verts = chunk.quads + 1;
     // Ensure we stay within heightmap and land on the far edge of the chunk.
+    int resolvedLod = lod;
     if ((verts - 1) % step != 0) {
         // For non-divisible LOD, clamp step down until divisible.
         int s = step;
         while (s > 1 && ((verts - 1) % s) != 0) {
             s >>= 1;
         }
-        lod = 0;
-        while ((1 << lod) < s) {
-            ++lod;
+        resolvedLod = 0;
+        while ((1 << resolvedLod) < s) {
+            ++resolvedLod;
         }
     }
-    const int stride = 1 << std::clamp(lod, 0, kMaxLodLevels - 1);
+    const int stride = 1 << std::clamp(resolvedLod, 0, kMaxLodLevels - 1);
     const int grid = ((verts - 1) / stride) + 1;
     if (grid < 2) {
         return false;
@@ -96,8 +121,10 @@ bool TerrainLODManager::BuildChunkMesh(const TerrainHeightmap& heightmap, const 
     outMesh.uvs.reserve(static_cast<std::size_t>(grid * grid));
     outMesh.indices.reserve(static_cast<std::size_t>((grid - 1) * (grid - 1) * 6));
 
-    const float dx = info.worldSizeX / static_cast<float>(std::max(1, heightmap.Width() - 1));
-    const float dz = info.worldSizeY / static_cast<float>(std::max(1, heightmap.Height() - 1));
+    const float dx = (info.worldSizeX * info.worldScale.x)
+        / static_cast<float>(std::max(1, heightmap.Width() - 1));
+    const float dz = (info.worldSizeY * info.worldScale.z)
+        / static_cast<float>(std::max(1, heightmap.Height() - 1));
 
     we::math::Vec3 bmin(1e30f);
     we::math::Vec3 bmax(-1e30f);
@@ -109,6 +136,7 @@ bool TerrainLODManager::BuildChunkMesh(const TerrainHeightmap& heightmap, const 
             const float localX = static_cast<float>(sx) * dx;
             const float localZ = static_cast<float>(sz) * dz;
             const float y = SampleHeightMeters(heightmap, info, sx, sz);
+            // Fixed world-space positions from terrain origin — never camera-relative.
             const we::math::Vec3 pos = info.worldOrigin + we::math::Vec3(localX, y, localZ);
             outMesh.positions.push_back(pos);
             outMesh.normals.push_back(ComputeNormal(heightmap, info, sx, sz));
@@ -135,8 +163,6 @@ bool TerrainLODManager::BuildChunkMesh(const TerrainHeightmap& heightmap, const 
         }
     }
 
-    // Bounds live on the chunk; cast away const via duplicate path — callers update after build.
-    // Written through a mutable pattern in Tick: bounds assigned after BuildChunkMesh.
     (void)bmin;
     (void)bmax;
     return true;

@@ -121,10 +121,54 @@ void GridPass::Setup(std::vector<GraphTextureRef>& textures, std::vector<GraphBu
 }
 
 void GridPass::Execute(const GraphPassContext& ctx) {
-    if (!ctx.commandList || !m_Camera || !m_Grid) {
+    if (!ctx.commandList || !m_Camera) {
         return;
     }
-    m_Grid->Draw(*ctx.commandList, m_Color, m_Depth, m_Extent, *m_Camera);
+    if (m_Grid) {
+        m_Grid->Draw(*ctx.commandList, m_Color, m_Depth, m_Extent, *m_Camera);
+    }
+    // Always leave viewport color in ShaderResource so TerrainPass can re-enter RT predictably.
+    if (m_Color != we::rhi::RHITextureHandle::Invalid) {
+        ctx.commandList->TransitionTexture(
+            m_Color,
+            we::rhi::ResourceState::RenderTarget,
+            we::rhi::ResourceState::ShaderResource);
+    }
+}
+
+TerrainPass::TerrainPass(
+    TerrainDrawFn drawer,
+    we::rhi::RHITextureHandle color,
+    we::rhi::RHITextureHandle depth,
+    we::rhi::Extent2D extent,
+    const CameraUniform* camera)
+    : RenderPass("TerrainPass", we::rhi::QueueType::Graphics, GraphPassFlags::KeepAlive)
+    , m_Drawer(std::move(drawer))
+    , m_Color(color)
+    , m_Depth(depth)
+    , m_Extent(extent)
+    , m_Camera(camera)
+{
+}
+
+void TerrainPass::Setup(std::vector<GraphTextureRef>& textures, std::vector<GraphBufferRef>&) {
+    textures.push_back({kInvalidGraphResourceId, m_Color, we::rhi::ResourceState::RenderTarget, GraphResourceAccess::ReadWrite});
+    if (m_Depth != we::rhi::RHITextureHandle::Invalid) {
+        textures.push_back({kInvalidGraphResourceId, m_Depth, we::rhi::ResourceState::DepthWrite, GraphResourceAccess::ReadWrite});
+    }
+}
+
+void TerrainPass::Execute(const GraphPassContext& ctx) {
+    if (!ctx.commandList || !m_Camera || !m_Drawer) {
+        return;
+    }
+    if (m_Color != we::rhi::RHITextureHandle::Invalid) {
+        ctx.commandList->TransitionTexture(
+            m_Color,
+            we::rhi::ResourceState::ShaderResource,
+            we::rhi::ResourceState::RenderTarget);
+    }
+    m_Drawer(*ctx.commandList, m_Color, m_Depth, m_Extent, *m_Camera);
     if (m_Color != we::rhi::RHITextureHandle::Invalid) {
         ctx.commandList->TransitionTexture(
             m_Color,

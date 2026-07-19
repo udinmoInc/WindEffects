@@ -5,6 +5,7 @@
 #include "ViewportEdit/IViewportTool.h"
 
 #include <memory>
+#include <string_view>
 
 namespace we::editor::undo {
 class IUndoRuntime;
@@ -38,6 +39,11 @@ class IViewportGridProvider;
 class IViewportOverlay;
 class IViewportRenderer;
 class IViewportDragDrop;
+class IViewportModeManager;
+class IViewportWorkspace;
+class IViewportCommandRouter;
+class IViewportSelectionContext;
+class IViewportToolContext;
 
 /// Shared mutable editing context — tools/modes/manipulators consume this; never owns gameplay data.
 class VIEWPORTEDIT_API IViewportContext {
@@ -60,6 +66,8 @@ public:
 
     [[nodiscard]] virtual ViewportToolId ActiveTool() const noexcept = 0;
     [[nodiscard]] virtual ViewportModeId ActiveMode() const noexcept = 0;
+    [[nodiscard]] virtual std::string_view ActiveModeKey() const noexcept = 0;
+    [[nodiscard]] virtual IViewportSelectionContext* SelectionContextPtr() noexcept { return nullptr; }
     [[nodiscard]] virtual float ViewportWidth() const noexcept = 0;
     [[nodiscard]] virtual float ViewportHeight() const noexcept = 0;
 
@@ -96,10 +104,19 @@ public:
     [[nodiscard]] virtual IViewportRenderer& Renderer() noexcept = 0;
     [[nodiscard]] virtual IViewportDragDrop& DragDrop() noexcept = 0;
 
+    [[nodiscard]] virtual IViewportWorkspace& Workspace() noexcept = 0;
+    [[nodiscard]] virtual IViewportModeManager& Modes() noexcept = 0;
+    [[nodiscard]] virtual IViewportCommandRouter& Commands() noexcept = 0;
+    [[nodiscard]] virtual IViewportSelectionContext& SelectionContext() noexcept = 0;
+    [[nodiscard]] virtual IViewportToolContext& ToolContext() noexcept = 0;
+
     virtual void SetActiveTool(ViewportToolId tool) = 0;
+    virtual void SetActiveTool(std::string_view toolId) = 0;
     [[nodiscard]] virtual ViewportToolId GetActiveTool() const noexcept = 0;
     virtual void SetActiveMode(ViewportModeId mode) = 0;
+    virtual void SetActiveMode(std::string_view modeId) = 0;
     [[nodiscard]] virtual ViewportModeId GetActiveMode() const noexcept = 0;
+    [[nodiscard]] virtual std::string_view GetActiveModeKey() const noexcept = 0;
 
     virtual void RegisterTool(std::unique_ptr<IViewportTool> tool) = 0;
     virtual void RegisterMode(std::unique_ptr<IViewportMode> mode) = 0;

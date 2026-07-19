@@ -1,8 +1,5 @@
 #pragma once
 
-#pragma warning(push)
-#pragma warning(disable: 4251)
-
 #include "Terrain/Export.h"
 #include "Terrain/TerrainTypes.h"
 #include "Terrain/TerrainCollision.h"
@@ -30,4 +27,3 @@ private:
 
 } // namespace we::runtime::terrain
 
-#pragma warning(pop)
