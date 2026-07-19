@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <cstring>
+#include <cstdlib>
 #include <fstream>
 
 namespace we::runtime::icons::assets {
@@ -201,6 +202,83 @@ IconResult<IconAtlasAsset> IconAtlasReader::LoadFromFile(const std::filesystem::
     return LoadFromMemory(bytes);
 }
 
+bool LoadAtlasPixels(
+    const char* pathUtf8,
+    uint32_t* outWidth,
+    uint32_t* outHeight,
+    uint32_t* outTierPx,
+    uint8_t** outRgba,
+    uint32_t* outRgbaSize,
+    char* errorBuf,
+    size_t errorBufSize)
+{
+    if (outWidth) {
+        *outWidth = 0;
+    }
+    if (outHeight) {
+        *outHeight = 0;
+    }
+    if (outTierPx) {
+        *outTierPx = 0;
+    }
+    if (outRgba) {
+        *outRgba = nullptr;
+    }
+    if (outRgbaSize) {
+        *outRgbaSize = 0;
+    }
+
+    const auto writeError = [&](const std::string& message) {
+        if (errorBuf && errorBufSize > 0) {
+            const size_t n = std::min(message.size(), errorBufSize - 1u);
+            if (n > 0) {
+                std::memcpy(errorBuf, message.data(), n);
+            }
+            errorBuf[n] = '\0';
+        }
+    };
+
+    if (!pathUtf8 || pathUtf8[0] == '\0' || !outWidth || !outHeight || !outRgba || !outRgbaSize) {
+        writeError("Invalid LoadAtlasPixels arguments");
+        return false;
+    }
+
+    const auto loaded = IconAtlasReader::LoadFromFile(std::filesystem::path(pathUtf8));
+    if (!loaded.ok) {
+        writeError(loaded.error.message.empty() ? "Failed to load icon atlas" : loaded.error.message);
+        return false;
+    }
+
+    const auto& page = loaded.value.page;
+    if (page.width == 0 || page.height == 0 || page.rgba.empty()) {
+        writeError("Atlas page is empty");
+        return false;
+    }
+
+    auto* rgba = static_cast<uint8_t*>(std::malloc(page.rgba.size()));
+    if (!rgba) {
+        writeError("Out of memory loading icon atlas");
+        return false;
+    }
+    std::memcpy(rgba, page.rgba.data(), page.rgba.size());
+    *outWidth = page.width;
+    *outHeight = page.height;
+    if (outTierPx) {
+        *outTierPx = page.tierPx;
+    }
+    *outRgba = rgba;
+    *outRgbaSize = static_cast<uint32_t>(page.rgba.size());
+    if (errorBuf && errorBufSize > 0) {
+        errorBuf[0] = '\0';
+    }
+    return true;
+}
+
+void FreeAtlasPixels(uint8_t* rgba)
+{
+    std::free(rgba);
+}
+
 IconResult<void> IconAtlasWriter::WriteToFile(const IconAtlasAsset& asset, const std::filesystem::path& path)
 {
     std::vector<std::byte> output;
@@ -274,6 +352,83 @@ IconResult<IconMetaAsset> IconMetaReader::LoadFromFile(const std::filesystem::pa
         return IconResult<IconMetaAsset>::Failure("Failed to read .weiconmeta file", path.string());
     }
     return LoadFromMemory(bytes);
+}
+
+bool LoadFlatList(
+    const char* pathUtf8,
+    IconMetaFlatList& outList,
+    char* errorBuf,
+    size_t errorBufSize)
+{
+    FreeFlatList(outList);
+    const auto writeError = [&](const std::string& message) {
+        if (errorBuf && errorBufSize > 0) {
+            const size_t n = std::min(message.size(), errorBufSize - 1u);
+            if (n > 0) {
+                std::memcpy(errorBuf, message.data(), n);
+            }
+            errorBuf[n] = '\0';
+        }
+    };
+
+    if (!pathUtf8 || pathUtf8[0] == '\0') {
+        writeError("Empty icon meta path");
+        return false;
+    }
+
+    const auto loaded = IconMetaReader::LoadFromFile(std::filesystem::path(pathUtf8));
+    if (!loaded.ok) {
+        writeError(loaded.error.message.empty() ? "Failed to load icon meta" : loaded.error.message);
+        return false;
+    }
+
+    const uint32_t count = static_cast<uint32_t>(loaded.value.entries.size());
+    if (count == 0) {
+        if (errorBuf && errorBufSize > 0) {
+            errorBuf[0] = '\0';
+        }
+        return true;
+    }
+
+    auto* entries = static_cast<IconMetaFlatEntry*>(std::malloc(sizeof(IconMetaFlatEntry) * count));
+    if (!entries) {
+        writeError("Out of memory loading icon meta");
+        return false;
+    }
+
+    for (uint32_t i = 0; i < count; ++i) {
+        const auto& src = loaded.value.entries[i];
+        IconMetaFlatEntry& dst = entries[i];
+        dst = {};
+        dst.nameHash = src.nameHash;
+        dst.tierPx = src.tierPx;
+        dst.u0 = src.uv.u0;
+        dst.v0 = src.uv.v0;
+        dst.u1 = src.uv.u1;
+        dst.v1 = src.uv.v1;
+        dst.flags = static_cast<uint8_t>(src.flags);
+        const size_t copyLen = std::min(src.name.size(), sizeof(dst.name) - 1u);
+        if (copyLen > 0) {
+            std::memcpy(dst.name, src.name.data(), copyLen);
+        }
+        dst.name[copyLen] = '\0';
+    }
+
+    outList.entries = entries;
+    outList.count = count;
+    if (errorBuf && errorBufSize > 0) {
+        errorBuf[0] = '\0';
+    }
+    return true;
+}
+
+void FreeFlatList(IconMetaFlatList& list)
+{
+    if (list.entries) {
+        std::free(list.entries);
+        list.entries = nullptr;
+    }
+    list.count = 0;
 }
 
 IconResult<void> IconMetaWriter::WriteToFile(const IconMetaAsset& asset, const std::filesystem::path& path)

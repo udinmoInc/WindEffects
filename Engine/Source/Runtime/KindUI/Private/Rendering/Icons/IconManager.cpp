@@ -3,12 +3,17 @@
 #include "KindUI/Core/Icon.h"
 #include "Core/Logger.h"
 #include "Icons/Assets/IconAsset.h"
+#include "Icons/Core/IconTypes.h"
 #include "KindUI/Rendering/IconMetrics.h"
 
 #include <algorithm>
 #include <cstdint>
 #include <cstdlib>
+#include <span>
+#include <string>
+#include <unordered_map>
 #include <unordered_set>
+#include <vector>
 
 namespace we::runtime::kindui {
 
@@ -85,32 +90,79 @@ void IconManager::Shutdown()
 
 void IconManager::LoadMeta(const std::filesystem::path& metaPath)
 {
-    const auto loaded = we::runtime::icons::assets::IconMetaReader::LoadFromFile(metaPath);
-    if (!loaded.ok) {
-        HE_ERROR("[Icons] Failed to load icon meta: " + metaPath.string() + " (" + loaded.error.message + ")");
+    we::runtime::icons::assets::IconMetaFlatList flat{};
+    char errorBuf[256] = {};
+    if (!we::runtime::icons::assets::LoadFlatList(metaPath.string().c_str(), flat, errorBuf, sizeof(errorBuf))) {
+        HE_ERROR(
+            "[Icons] Failed to load icon meta: " + metaPath.string()
+            + (errorBuf[0] != '\0' ? std::string(" (") + errorBuf + ")" : std::string{}));
+        we::runtime::icons::assets::FreeFlatList(flat);
         return;
     }
+
     std::vector<IconMetaEntryInput> inputs;
-    inputs.reserve(loaded.value.entries.size());
-    for (const auto& entry : loaded.value.entries) {
+    inputs.reserve(flat.count);
+    std::vector<uint32_t> tiers;
+    tiers.reserve(flat.count);
+    std::unordered_map<std::string, std::vector<uint32_t>> iconTiers;
+    iconTiers.reserve(static_cast<size_t>(flat.count));
+    for (uint32_t i = 0; i < flat.count; ++i) {
+        const auto& entry = flat.entries[i];
         IconMetaEntryInput input;
         input.nameHash = entry.nameHash;
         input.name = entry.name;
         input.tierPx = entry.tierPx;
-        input.uv = {entry.uv.u0, entry.uv.v0, entry.uv.u1, entry.uv.v1};
-        input.flags = we::runtime::icons::HasFlag(entry.flags, we::runtime::icons::IconEntryFlags::FullColor)
+        input.uv = {entry.u0, entry.v0, entry.u1, entry.v1};
+        input.flags = (entry.flags & static_cast<uint8_t>(we::runtime::icons::IconEntryFlags::FullColor)) != 0
             ? IconEntryFlags::FullColor
             : IconEntryFlags::None;
+        if (entry.tierPx != 0) {
+            tiers.push_back(entry.tierPx);
+            if (entry.name[0] != '\0') {
+                iconTiers[entry.name].push_back(entry.tierPx);
+            }
+        }
         inputs.push_back(std::move(input));
     }
+    we::runtime::icons::assets::FreeFlatList(flat);
+
+    // Prefer filesystem discovery (includes folder-only packs like 13/19/101/202).
+    std::uint32_t* discovered = nullptr;
+    std::uint32_t discoveredCount = 0;
+    if (!we::runtime::icons::DiscoverAtlasTiersFlat(m_AtlasRoot.string().c_str(), discovered, discoveredCount)
+        || discoveredCount == 0) {
+        we::runtime::icons::FreeAtlasTiers(discovered);
+        discovered = nullptr;
+        discoveredCount = 0;
+        (void)we::runtime::icons::DiscoverAtlasTiersFlat(
+            metaPath.parent_path().string().c_str(), discovered, discoveredCount);
+    }
+    for (std::uint32_t i = 0; i < discoveredCount; ++i) {
+        tiers.push_back(discovered[i]);
+    }
+    we::runtime::icons::FreeAtlasTiers(discovered);
+    IconMetrics::SetRegisteredAtlasTiers(tiers);
+
+    // Per-icon tables so folder-only packs cannot steal snaps for square UI glyphs.
+    IconMetrics::ClearIconAtlasTiers();
+    for (const auto& [name, nameTiers] : iconTiers) {
+        IconMetrics::SetIconAtlasTiers(name, nameTiers);
+    }
+
     m_Cache->LoadMeta(inputs);
-    HE_INFO("[Icons] Loaded " + std::to_string(loaded.value.entries.size()) + " icon atlas entries");
+    HE_INFO(
+        "[Icons] Loaded " + std::to_string(inputs.size())
+        + " icon atlas entries across " + std::to_string(IconMetrics::GetRegisteredAtlasTiers().size())
+        + " tiers");
 }
 
 void IconManager::PreloadAtlases()
 {
-    for (const uint32_t tierPx : IconMetrics::kAtlasTiers) {
-        if (tierPx == IconMetrics::kCompactTierPx || tierPx >= 48) {
+    const auto tiers = IconMetrics::GetRegisteredAtlasTiers();
+    // Startup: load the primary UI atlas only. Other tiers (incl. folder packs) load on demand
+    // so we don't flood the Vulkan queue with sync uploads before the first swapchain frame.
+    for (const uint32_t tierPx : tiers) {
+        if (tierPx != 16) {
             continue;
         }
         HE_INFO("[Icons] Preloading atlas tier " + std::to_string(tierPx));

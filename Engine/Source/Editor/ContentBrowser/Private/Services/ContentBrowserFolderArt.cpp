@@ -1,13 +1,16 @@
 #include "Services/ContentBrowserFolderArt.h"
-#include "Services/ThumbnailRenderer.h"
-#include "KindUI/Core/DPIContext.h"
+
+#include "KindUI/Core/Icon.h"
 #include "KindUI/Core/PaintContext.h"
-#include "KindUI/Rendering/IconRenderer.h"
+#include "KindUI/Rendering/IconMetrics.h"
+#include "KindUI/Theming/ThemeAccess.h"
+#include "KindUI/Tokens/DesignToken.h"
+
 #include <algorithm>
 #include <cmath>
 
 namespace we::editor::contentbrowser {
-using ::we::runtime::kindui::DPIContext;
+namespace kindui = ::we::runtime::kindui;
 
 ContentBrowserFolderArt& ContentBrowserFolderArt::Get() {
     static ContentBrowserFolderArt instance;
@@ -19,13 +22,13 @@ void ContentBrowserFolderArt::Initialize(we::runtime::kindui::IconRenderer* icon
 }
 
 void ContentBrowserFolderArt::InvalidateCache() {
-    m_Cache.clear();
+    // Atlas icons are resolved live — nothing to clear.
 }
 
 we::runtime::kindui::Rect ContentBrowserFolderArt::ComputeFolderRect(
     const we::runtime::kindui::Rect& bounds, float widthFill, float heightFill, bool alignBottom, float aspectRatio) {
-    const float maxW = bounds.width * std::clamp(widthFill, 0.5f, 0.95f);
-    const float maxH = bounds.height * std::clamp(heightFill, 0.5f, 0.95f);
+    const float maxW = bounds.width * std::clamp(widthFill, 0.5f, 0.98f);
+    const float maxH = bounds.height * std::clamp(heightFill, 0.5f, 0.98f);
     float width = maxW;
     float height = width / aspectRatio;
     if (height > maxH) {
@@ -39,42 +42,64 @@ we::runtime::kindui::Rect ContentBrowserFolderArt::ComputeFolderRect(
     return we::runtime::kindui::Rect{ x, y, width, height };
 }
 
-we::rhi::RHIDescriptorSetHandle ContentBrowserFolderArt::GetTexture(
-    uint32_t widthPx, uint32_t heightPx, bool hovered, bool opened) const {
-    if (!m_Renderer || heightPx == 0 || widthPx == 0) return we::rhi::RHIDescriptorSetHandle::Invalid;
-
-    const float dpi = std::max(1.0f, we::runtime::kindui::DPIContext::GetScale());
-    const uint32_t rasterHeight = std::max(16u, static_cast<uint32_t>(std::ceil(static_cast<float>(heightPx) * dpi)));
-
-    const BitmapRGBA bitmap = ThumbnailRenderer::RenderContentBrowserFolder(
-        rasterHeight, hovered ? 1.0f : 0.0f, opened);
-    if (bitmap.pixels.empty()) return we::rhi::RHIDescriptorSetHandle::Invalid;
-
-    const std::string key = "cb_folder_v17_" + std::to_string(bitmap.width) + "x" + std::to_string(bitmap.height)
-        + (hovered ? "_h" : "_n") + (opened ? "_o" : "_c");
-
-    auto it = m_Cache.find(key);
-    if (it != m_Cache.end()) return it->second;
-
-    const we::rhi::RHIDescriptorSetHandle texture = m_Renderer->CreateTextureFromBitmap(bitmap.pixels, bitmap.width, bitmap.height);
-    if ((texture != we::rhi::RHIDescriptorSetHandle::Invalid)) {
-        m_Cache[key] = texture;
+void ContentBrowserFolderArt::PaintFolderIcon(
+    we::runtime::kindui::PaintContext& context,
+    const we::runtime::kindui::Rect& folderRect,
+    bool hovered,
+    bool opened) const
+{
+    if (folderRect.width < 1.0f || folderRect.height < 1.0f) {
+        return;
     }
-    return texture;
+
+    // Atlas folders are near-white with prebaked lighting — tint must stay dark so
+    // highlights don't blow out to neon orange-yellow.
+    kindui::Color tint = kindui::ResolveColor(
+        hovered ? kindui::ColorToken::ContentBrowserFolderHighlight
+                : kindui::ColorToken::ContentBrowserFolderPrimary);
+    const kindui::Color body = kindui::ResolveColor(kindui::ColorToken::ContentBrowserFolderBody);
+    const kindui::Color edge = kindui::ResolveColor(kindui::ColorToken::ContentBrowserFolderEdge);
+    if (hovered) {
+        tint = kindui::Color{
+            (tint.r * 0.70f) + (body.r * 0.30f),
+            (tint.g * 0.70f) + (body.g * 0.30f),
+            (tint.b * 0.70f) + (body.b * 0.30f),
+            1.0f};
+    } else {
+        tint = kindui::Color{
+            (body.r * 0.45f) + (edge.r * 0.55f),
+            (body.g * 0.45f) + (edge.g * 0.55f),
+            (body.b * 0.45f) + (edge.b * 0.55f),
+            1.0f};
+    }
+    // Crush residual prebaked highlight energy from the atlas glyphs.
+    constexpr float kPrebakedLightCrush = 0.72f;
+    tint.r *= kPrebakedLightCrush;
+    tint.g *= kPrebakedLightCrush;
+    tint.b *= kPrebakedLightCrush;
+
+    const char* iconName = opened ? kindui::Icons::OpenFolderName : kindui::Icons::FolderName;
+    const float requestedPx = std::max(folderRect.width, folderRect.height);
+    const uint32_t atlasTier = kindui::IconMetrics::SnapToAtlasTier(requestedPx);
+
+    context.DrawIcon(iconName, folderRect, tint, static_cast<float>(atlasTier));
 }
 
-void ContentBrowserFolderArt::PaintThumbnail(we::runtime::kindui::PaintContext& context, const we::runtime::kindui::Rect& thumbRect, bool hovered) const {
+void ContentBrowserFolderArt::PaintThumbnail(
+    we::runtime::kindui::PaintContext& context,
+    const we::runtime::kindui::Rect& thumbRect,
+    bool hovered) const
+{
     const we::runtime::kindui::Rect folderRect = ComputeFolderRect(thumbRect);
-    const uint32_t heightPx = static_cast<uint32_t>(std::ceil(folderRect.height));
-    const uint32_t widthPx = static_cast<uint32_t>(std::ceil(folderRect.width));
-    const we::rhi::RHIDescriptorSetHandle texture = GetTexture(widthPx, heightPx, hovered, false);
-    if ((texture != we::rhi::RHIDescriptorSetHandle::Invalid)) {
-        context.DrawColorTexture(folderRect, texture);
-    }
+    PaintFolderIcon(context, folderRect, hovered, false);
 }
 
 void ContentBrowserFolderArt::PaintSmallIcon(
-    we::runtime::kindui::PaintContext& context, const we::runtime::kindui::Rect& iconRect, bool hovered, bool opened) const {
+    we::runtime::kindui::PaintContext& context,
+    const we::runtime::kindui::Rect& iconRect,
+    bool hovered,
+    bool opened) const
+{
     const float aspectRatio = opened ? kFolderOpenAspectRatio : kFolderAspectRatio;
     we::runtime::kindui::Rect folderRect = ComputeFolderRect(
         iconRect, kSmallIconWidthFill, kSmallIconHeightFill, false, aspectRatio);
@@ -82,13 +107,7 @@ void ContentBrowserFolderArt::PaintSmallIcon(
     folderRect.height = std::max(1.0f, std::round(folderRect.height));
     folderRect.x = std::round(folderRect.x);
     folderRect.y = std::round(folderRect.y);
-
-    const uint32_t widthPx = static_cast<uint32_t>(folderRect.width);
-    const uint32_t heightPx = static_cast<uint32_t>(folderRect.height);
-    const we::rhi::RHIDescriptorSetHandle texture = GetTexture(widthPx, heightPx, hovered, opened);
-    if ((texture != we::rhi::RHIDescriptorSetHandle::Invalid)) {
-        context.DrawColorTexture(folderRect, texture);
-    }
+    PaintFolderIcon(context, folderRect, hovered, opened);
 }
 
 } // namespace we::editor::contentbrowser

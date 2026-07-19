@@ -1,0 +1,20 @@
+
+ui_Atlas_202.png
+size: 518, 206
+format: RGBA8888
+filter: Nearest, Nearest
+repeat: none
+Icons_Folder_256
+  rotate: false
+  xy: 2, 2
+  size: 256, 202
+  orig: 256, 202
+  offset: 0, 0
+  index: 202
+Icons_OpenFolder_256
+  rotate: false
+  xy: 260, 2
+  size: 256, 202
+  orig: 256, 202
+  offset: 0, 0
+  index: 202

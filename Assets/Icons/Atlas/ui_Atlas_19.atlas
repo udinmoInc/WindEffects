@@ -1,0 +1,20 @@
+
+ui_Atlas_19.png
+size: 54, 23
+format: RGBA8888
+filter: Nearest, Nearest
+repeat: none
+Icons_Folder_24
+  rotate: false
+  xy: 2, 2
+  size: 24, 19
+  orig: 24, 19
+  offset: 0, 0
+  index: 19
+Icons_OpenFolder_24
+  rotate: false
+  xy: 28, 2
+  size: 24, 19
+  orig: 24, 19
+  offset: 0, 0
+  index: 19

@@ -3,13 +3,29 @@
 #include "Icons/Export.h"
 
 #include <cstdint>
+#include <filesystem>
 #include <string>
 #include <vector>
 
 namespace we::runtime::icons {
 
-constexpr uint32_t kIconAtlasTiers[] = {12, 16, 20, 24, 32, 48, 64};
-constexpr uint32_t kIconAtlasTierCount = 7;
+/// Discover atlas tier sizes from `ui_Atlas_<N>.atlas` and/or `ui_Atlas_<N>.weiconatlas`
+/// files in a directory. No hardcoded tier list.
+///
+/// Cross-DLL safe: allocates with malloc inside Icons.dll. Pair with FreeAtlasTiers.
+[[nodiscard]] ICONS_API bool DiscoverAtlasTiersFlat(
+    const char* directoryUtf8,
+    std::uint32_t*& outTiers,
+    std::uint32_t& outCount);
+ICONS_API void FreeAtlasTiers(std::uint32_t* tiers);
+
+/// Same-module convenience (Icons.dll only). Do not call across DLL boundaries.
+[[nodiscard]] ICONS_API std::vector<std::uint32_t> DiscoverAtlasTiers(
+    const std::filesystem::path& directory);
+
+/// Parse `ui_Atlas_24` / `ui_Atlas_24.atlas` / `ui_Atlas_101.weiconatlas` → 24 / 101.
+/// Returns 0 when the name is not a recognized atlas stem.
+[[nodiscard]] ICONS_API std::uint32_t ParseAtlasTierFromStem(std::string_view stem);
 
 enum class IconAtlasFormat : uint8_t {
     Rgba8 = 0,

@@ -2,7 +2,6 @@
 
 #include "KindUI/Export.h"
 
-#include "KindUI/Rendering/IconMetrics.h"
 #include "RHI/Types.h"
 
 #include <cstdint>
@@ -22,6 +21,7 @@ struct AtlasGpuResource {
     bool ready = false;
 };
 
+/// GPU atlas pages for discovered tier sizes (no fixed compile-time tier list).
 class KINDUI_API AtlasManager {
 public:
     AtlasManager() = default;
@@ -38,12 +38,13 @@ public:
     void WaitDeviceIdle() const;
 
 private:
+    [[nodiscard]] int FindTierIndex(uint32_t tierPx) const;
     bool UploadAtlasPage(AtlasGpuResource& tier, const std::vector<uint8_t>& rgba, uint32_t width, uint32_t height);
     void DestroyTier(AtlasGpuResource& tier);
 
     OverlayRenderer* m_Renderer = nullptr;
-    AtlasGpuResource m_Tiers[IconMetrics::kAtlasTierCount]{};
-    std::filesystem::path m_TierPaths[IconMetrics::kAtlasTierCount]{};
+    std::vector<AtlasGpuResource> m_Tiers;
+    std::vector<std::filesystem::path> m_TierPaths;
     mutable std::mutex m_Mutex;
 };
 

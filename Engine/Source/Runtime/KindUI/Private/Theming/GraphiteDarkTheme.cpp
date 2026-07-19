@@ -57,11 +57,11 @@ Color GraphiteDarkTheme::ResolveColor(ColorToken token) const {
     case ColorToken::DragGhostBackground:           return Hex(0x2E,0x2E,0x30,0.90f);
     case ColorToken::GizmoBackground:               return Hex(0x2E,0x2E,0x30,0.90f);
 
-    case ColorToken::ContentBrowserFolderBody:      return Hex(0xB8,0x95,0x48);
+    case ColorToken::ContentBrowserFolderBody:      return Hex(0x6B,0x3F,0x10);
 
     // Panel chrome — header strips inside dock panels
     case ColorToken::HeaderBackground:              return Hex(0x18,0x18,0x1A);
-    case ColorToken::ContentBrowserFolderPrimary:   return Hex(0xC9,0xA9,0x62);
+    case ColorToken::ContentBrowserFolderPrimary:   return Hex(0x7A,0x48,0x12);
 
     // Tabs — sit between panel and card
     case ColorToken::TabBackground:                 return Hex(0x1E,0x1E,0x20);
@@ -84,8 +84,8 @@ Color GraphiteDarkTheme::ResolveColor(ColorToken token) const {
     case ColorToken::BorderDefault:                 return Hex(0x36,0x36,0x3A);
     case ColorToken::BorderLight:                   return Hex(0xFF,0xFF,0xFF,0.14f);
 
-    case ColorToken::ContentBrowserFolderEdge:      return Hex(0x7A,0x65,0x32);
-    case ColorToken::ContentBrowserFolderHighlight: return Hex(0xEB,0xD8,0x9A);
+    case ColorToken::ContentBrowserFolderEdge:      return Hex(0x4A,0x2C,0x0A);
+    case ColorToken::ContentBrowserFolderHighlight: return Hex(0x9A,0x5E,0x18);
 
     // ── Interactive material states ────────────────────────────────────────
     case ColorToken::HoverBackground:               return Hex(0x2C,0x2C,0x2E);
@@ -101,7 +101,7 @@ Color GraphiteDarkTheme::ResolveColor(ColorToken token) const {
     case ColorToken::SelectedBackground:            return Hex(0x32,0x32,0x36);
     case ColorToken::ActiveBackground:              return Hex(0x26,0x26,0x28);
     case ColorToken::ButtonPrimaryHover:            return Hex(0x32,0x32,0x36);
-    case ColorToken::ContentBrowserFolderTab:       return Hex(0xD4,0xBC,0x78);
+    case ColorToken::ContentBrowserFolderTab:       return Hex(0x6B,0x3F,0x10);
 
     case ColorToken::ControlBackgroundHover:        return Hex(0x2C,0x2C,0x2E);
     case ColorToken::ControlBackgroundPressed:      return Hex(0x34,0x34,0x38);

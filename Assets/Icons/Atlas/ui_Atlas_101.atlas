@@ -1,0 +1,20 @@
+
+ui_Atlas_101.png
+size: 262, 105
+format: RGBA8888
+filter: Nearest, Nearest
+repeat: none
+Icons_Folder_128
+  rotate: false
+  xy: 2, 2
+  size: 128, 101
+  orig: 128, 101
+  offset: 0, 0
+  index: 101
+Icons_OpenFolder_128
+  rotate: false
+  xy: 132, 2
+  size: 128, 101
+  orig: 128, 101
+  offset: 0, 0
+  index: 101

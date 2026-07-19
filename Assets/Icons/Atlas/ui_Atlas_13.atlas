@@ -1,0 +1,20 @@
+
+ui_Atlas_13.png
+size: 38, 17
+format: RGBA8888
+filter: Nearest, Nearest
+repeat: none
+Icons_Folder_16
+  rotate: false
+  xy: 2, 2
+  size: 16, 13
+  orig: 16, 13
+  offset: 0, 0
+  index: 13
+Icons_OpenFolder_16
+  rotate: false
+  xy: 20, 2
+  size: 16, 13
+  orig: 16, 13
+  offset: 0, 0
+  index: 13
