@@ -1,5 +1,9 @@
 #include "OutlinerInternal.h"
 
+#include "ViewportEdit/IViewportEditor.h"
+#include "ViewportEdit/IViewportSelection.h"
+#include "ViewportEdit/ViewportEditSession.h"
+
 #include <utility>
 
 namespace we::editor::outliner {

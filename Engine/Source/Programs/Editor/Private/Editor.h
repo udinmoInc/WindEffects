@@ -21,6 +21,7 @@
 #include "Undo/IUndoRuntime.h"
 #include "ViewportEdit/IViewportEditor.h"
 #include "WorldOutliner/IWorldOutliner.h"
+#include "ContentBrowser/IContentBrowser.h"
 #include "Serialization/ISerializer.h"
 
 #include "Projects/EditorCommandLine.h"
@@ -82,6 +83,8 @@ private:
     std::unique_ptr<::we::editor::services::EditorApplicationContext> m_UIContext;
     std::unique_ptr<::we::editor::undo::IUndoRuntime> m_UndoRuntime;
     std::shared_ptr<::we::editor::viewportedit::IViewportEditor> m_ViewportEdit;
+    std::shared_ptr<::we::editor::outliner::IWorldOutlinerRuntime> m_WorldOutliner;
+    std::shared_ptr<::we::editor::contentbrowser::IContentBrowserRuntime> m_ContentBrowser;
     std::unique_ptr<::we::runtime::serialization::ISerializer> m_Serializer;
     ::we::editor::mainframe::EditorWindowHitTestData m_WindowHitTestData{};
 

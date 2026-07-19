@@ -6,6 +6,8 @@
 #include "PropertyEditor/IPropertyEditorRuntime.h"
 #include "PropertyEditor/IDetailsView.h"
 #include "ViewportEdit/IViewportEditor.h"
+#include "ViewportEdit/IViewportSelection.h"
+#include "ViewportEdit/IViewportCameraController.h"
 #include "ViewportEdit/ViewportEditSession.h"
 #include "Scene/Scene.h"
 #include "Scene/Entity.h"
@@ -41,9 +43,6 @@ namespace detail {
 [[nodiscard]] std::unique_ptr<IOutlinerColumnProvider> CreateTagColumn();
 [[nodiscard]] std::unique_ptr<IOutlinerColumnProvider> CreateVisibilityColumn();
 [[nodiscard]] std::unique_ptr<IOutlinerColumnProvider> CreateLockColumn();
-
-class SelectionImpl;
-SelectionImpl* AsSelectionImpl(IOutlinerSelection& sel);
 
 [[nodiscard]] std::unique_ptr<IOutlinerTreeModel> CreateTreeModel();
 [[nodiscard]] std::unique_ptr<IOutlinerFolderProvider> CreateFolderProvider(

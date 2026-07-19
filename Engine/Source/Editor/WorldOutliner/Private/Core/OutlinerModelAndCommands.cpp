@@ -1,5 +1,8 @@
 #include "OutlinerInternal.h"
 
+#include "ContentBrowser/ContentBrowserSession.h"
+#include "Undo/UndoTypes.h"
+
 #include <algorithm>
 #include <utility>
 
@@ -571,7 +574,9 @@ public:
 
     [[nodiscard]] bool RevealInContentBrowser() override {
         WorldOutlinerDiagnostics::Get().OnCommand();
-        // AssetRuntime / ContentBrowser reveal hook reserved.
+        if (auto* browser = ::we::editor::contentbrowser::ContentBrowserSession::Browser()) {
+            return browser->RevealPath("/Game");
+        }
         return false;
     }
 

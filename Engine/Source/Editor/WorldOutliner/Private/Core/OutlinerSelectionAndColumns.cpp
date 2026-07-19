@@ -8,7 +8,6 @@
 
 namespace we::editor::outliner {
 namespace detail {
-namespace {
 
 std::string ToLower(std::string_view in) {
     std::string out(in);
@@ -317,9 +316,6 @@ public:
     [[nodiscard]] float GetPreferredWidth() const noexcept override { return 56.f; }
 };
 
-} // namespace
-
-// Forward decl helpers used by OutlinerImpl in Runtime TU
 std::unique_ptr<IOutlinerEventRouter> CreateEventRouter() {
     return std::make_unique<EventRouterImpl>();
 }
@@ -338,10 +334,6 @@ std::unique_ptr<IOutlinerColumnProvider> CreateLayerColumn() { return std::make_
 std::unique_ptr<IOutlinerColumnProvider> CreateTagColumn() { return std::make_unique<TagColumn>(); }
 std::unique_ptr<IOutlinerColumnProvider> CreateVisibilityColumn() { return std::make_unique<VisibilityColumn>(); }
 std::unique_ptr<IOutlinerColumnProvider> CreateLockColumn() { return std::make_unique<LockColumn>(); }
-
-SelectionImpl* AsSelectionImpl(IOutlinerSelection& sel) {
-    return dynamic_cast<SelectionImpl*>(&sel);
-}
 
 } // namespace detail
 } // namespace we::editor::outliner
