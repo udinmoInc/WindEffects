@@ -20,6 +20,7 @@
 #include "PropertyEditor/IPropertyEditorRuntime.h"
 #include "PropertyEditor/PropertyEditorSession.h"
 #include "ViewportEdit/ViewportEdit.h"
+#include "WorldOutliner/WorldOutliner.h"
 #include "Serialization/ISerializer.h"
 #include "Reflection/ITypeRegistry.h"
 #include "Widgets/ViewportWidget.h"

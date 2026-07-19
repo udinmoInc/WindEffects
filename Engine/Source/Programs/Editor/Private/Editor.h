@@ -20,6 +20,7 @@
 #include "EditorShellBuilder.h"
 #include "Undo/IUndoRuntime.h"
 #include "ViewportEdit/IViewportEditor.h"
+#include "WorldOutliner/IWorldOutliner.h"
 #include "Serialization/ISerializer.h"
 
 #include "Projects/EditorCommandLine.h"

@@ -22,6 +22,7 @@ public class Environment : ModuleRules
         PublicDependencies.Add("Reflection");
         PrivateDependencies.Add("PropertyEditor");
         PrivateDependencies.Add("ContentBrowser");
+        PrivateDependencies.Add("WorldOutliner");
         PrivateDependencies.Add("Menus");
 
         AddOptionalThirdParty("glm");

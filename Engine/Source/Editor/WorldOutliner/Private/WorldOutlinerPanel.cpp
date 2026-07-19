@@ -1,5 +1,7 @@
 #include "Explorer/WorldOutlinerApi.h"
 #include "Explorer/ExplorerPanelAssets.h"
+#include "WorldOutliner/WorldOutlinerSession.h"
+#include "WorldOutliner/OutlinerTypes.h"
 #include "WindEffects/Editor/EditorSDK.h"
 #include "WindEffects/Editor/UI/Widgets/Panel.h"
 #include "ContentBrowser/Widgets/TreeView.h"
@@ -43,10 +45,19 @@ std::shared_ptr<Panel> CreateWorldOutlinerPanel() {
     treeView->SetIndentWidth(16.0f);
     RegisterExplorerTreeView(treeView);
 
+    if (auto* outliner = ::we::editor::outliner::WorldOutlinerSession::Outliner()) {
+        outliner->BindTreeView(treeView);
+    }
+
     g_ExplorerHeader = std::make_shared<ExplorerPanelHeader>();
 
     g_ExplorerHeader->SetOnSearchChanged([treeView](const std::string& query) {
         treeView->SetSearchQuery(query);
+        if (auto* outliner = ::we::editor::outliner::WorldOutlinerSession::Outliner()) {
+            auto state = outliner->GetFilterState();
+            state.searchQuery = query;
+            outliner->SetFilterState(state);
+        }
     });
 
     g_ExplorerHeader->SetOnFilterClicked([treeView]() {
@@ -61,6 +72,18 @@ std::shared_ptr<Panel> CreateWorldOutlinerPanel() {
             [treeView](const TreeView::FilterOptions& options) {
                 g_ExplorerHeader->SetFilterOptions(options);
                 treeView->SetFilterOptions(options);
+                if (auto* outliner = ::we::editor::outliner::WorldOutlinerSession::Outliner()) {
+                    ::we::editor::outliner::OutlinerFilterState state = outliner->GetFilterState();
+                    state.showFolders = options.showFolders;
+                    state.showActors = options.showActors;
+                    state.showComponents = options.showComponents;
+                    state.showHidden = options.showHidden;
+                    state.showLocked = options.showLocked;
+                    state.showEmptyFolders = options.showEmptyFolders;
+                    state.favoritesOnly = options.showFavorites;
+                    state.sortMode = static_cast<::we::editor::outliner::OutlinerSortMode>(options.sortOrder);
+                    outliner->SetFilterState(state);
+                }
             }
         );
 
@@ -72,6 +95,18 @@ std::shared_ptr<Panel> CreateWorldOutlinerPanel() {
 
     g_ExplorerHeader->SetOnRefresh([treeView]() {
         treeView->SetSearchQuery(treeView->GetSearchQuery());
+        if (auto* outliner = ::we::editor::outliner::WorldOutlinerSession::Outliner()) {
+            outliner->RequestRebuild();
+            outliner->Tick(0.f);
+        }
+    });
+
+    g_ExplorerHeader->SetOnNewFolder([]() {
+        if (auto* outliner = ::we::editor::outliner::WorldOutlinerSession::Outliner()) {
+            (void)outliner->Commands().CreateFolder("New Folder");
+            outliner->RequestRebuild();
+            outliner->Tick(0.f);
+        }
     });
 
     panel->SetToolbar(g_ExplorerHeader);
