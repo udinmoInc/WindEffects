@@ -16,6 +16,8 @@ public class PropertyEditor : ModuleRules
         PublicDependencies.Add("KindUI");
         PublicDependencies.Add("Text");
         PublicDependencies.Add("UIFramework");
+        PublicDependencies.Add("Reflection");
+        PublicDependencies.Add("Serialization");
         PrivateDependencies.Add("ContentBrowser"); // SearchBox used by Details panel
 
         Definitions.Add("PROPERTYEDITOR_EXPORTS");
