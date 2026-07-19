@@ -64,7 +64,8 @@ public:
         IconMetaAsset metaAsset;
         metaAsset.version = assets::kWeIconMetaVersion;
 
-        for (const uint32_t tierPx : kIconAtlasTiers) {
+        const std::vector<std::uint32_t> tiers = DiscoverAtlasTiers(options.inputDir);
+        for (const uint32_t tierPx : tiers) {
             const auto atlasPath = options.inputDir / ("ui_Atlas_" + std::to_string(tierPx) + ".atlas");
             if (!std::filesystem::exists(atlasPath)) {
                 continue;

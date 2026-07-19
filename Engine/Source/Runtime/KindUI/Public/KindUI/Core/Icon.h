@@ -93,10 +93,10 @@ namespace Icons {
     constexpr const char* NewFileName    = "newfile";
     constexpr const char* OpenName       = OpenFolderName;
     constexpr const char* NewName        = NewFileName;
-    constexpr const char* FolderName     = "openfolder";
+    constexpr const char* FolderName     = "folder";
     constexpr const char* ContentBrowserName = "contentbrowser";
     constexpr const char* RecentName     = "recent";
-    constexpr const char* ProjectFolderName = "openfolder";
+    constexpr const char* ProjectFolderName = "folder";
     constexpr const char* ToolbarObjectName = "object";
     constexpr const char* ToolbarEnvironmentName = "sun";
     constexpr const char* GlobeName      = "globe";

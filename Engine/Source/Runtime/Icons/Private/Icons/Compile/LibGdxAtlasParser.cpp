@@ -158,12 +158,29 @@ std::string ResolveRuntimeIconName(const std::string& atlasRegionName)
         return "3dplane";
     }
 
+    // TexturePacker size suffixes: Folder_16 / OpenFolder_24 / Folder_128 → canonical names.
+    auto stripTrailingSize = [](std::string value) {
+        const auto underscore = value.find_last_of('_');
+        if (underscore == std::string::npos || underscore + 1 >= value.size()) {
+            return value;
+        }
+        const std::string suffix = value.substr(underscore + 1);
+        if (suffix.empty() || !std::all_of(suffix.begin(), suffix.end(), [](unsigned char c) {
+                return std::isdigit(c) != 0;
+            })) {
+            return value;
+        }
+        return value.substr(0, underscore);
+    };
+
+    stem = stripTrailingSize(std::move(stem));
     return stem;
 }
 
 bool IsFullColorIcon(const std::string& runtimeName)
 {
     // Brand / shaded 3D previews keep baked RGB instead of mono tinting.
+    // Folder glyphs are mono-tinted (Content Browser applies dark orange-yellow).
     return runtimeName == "windeffects"
         || runtimeName == "windlogo"
         || runtimeName == "3dcube"
@@ -198,6 +215,7 @@ std::vector<std::string> RuntimeAliasesFor(const std::string& runtimeName)
         {"contentbrowser", {"content-browser"}},
         {"newfile", {"new-file", "file-plus", "new"}},
         {"openfolder", {"open-folder", "folder-open", "open"}},
+        {"folder", {"folder-closed", "we/folder"}},
         {"addactor", {"add-actor"}},
         {"star", {"favorites", "star-filled"}},
         {"windlogo", {"windeffects", "wind-logo", "logo"}},

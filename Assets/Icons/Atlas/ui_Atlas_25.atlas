@@ -1,0 +1,20 @@
+
+ui_Atlas_25.png
+size: 70, 29
+format: RGBA8888
+filter: Nearest, Nearest
+repeat: none
+Icons_Folder_32
+  rotate: false
+  xy: 2, 2
+  size: 32, 25
+  orig: 32, 25
+  offset: 0, 0
+  index: 25
+Icons_OpenFolder_32
+  rotate: false
+  xy: 36, 2
+  size: 32, 25
+  orig: 32, 25
+  offset: 0, 0
+  index: 25

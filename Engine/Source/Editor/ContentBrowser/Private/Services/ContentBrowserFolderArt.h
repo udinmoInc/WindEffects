@@ -4,16 +4,14 @@
 #include "KindUI/Core/PaintContext.h"
 #include "KindUI/Rendering/IconRenderer.h"
 #include <cstdint>
-#include <string>
-#include <unordered_map>
-#include "RHI/Types.h"
 
 namespace we::editor::contentbrowser {
 using ::we::runtime::kindui::IconRenderer;
 using ::we::runtime::kindui::PaintContext;
 using ::we::runtime::kindui::Rect;
 
-// Dedicated UE5-style filled folder artwork for Content Browser (not Lucide).
+/// Content Browser folder glyphs from the icon atlas (folder / openfolder tiers),
+/// tinted with the dark orange–yellow Content Browser folder theme colors.
 class ContentBrowserFolderArt {
 public:
     static ContentBrowserFolderArt& Get();
@@ -25,8 +23,9 @@ public:
     static constexpr float kThumbnailHeightFill = 0.725f;
     static constexpr float kSmallIconWidthFill = 0.98f;
     static constexpr float kSmallIconHeightFill = 0.98f;
-    static constexpr float kFolderAspectRatio = 231.0f / 203.0f; // Assets/Editor/Folder.svg
-    static constexpr float kFolderOpenAspectRatio = 224.22424f / 182.99149f; // Assets/Editor/Folder_Open.svg
+    // New atlas folder art aspect (e.g. 128x101, 16x13).
+    static constexpr float kFolderAspectRatio = 128.0f / 101.0f;
+    static constexpr float kFolderOpenAspectRatio = 128.0f / 101.0f;
 
     void PaintThumbnail(PaintContext& context, const Rect& thumbRect, bool hovered) const;
     void PaintSmallIcon(PaintContext& context, const Rect& iconRect, bool hovered, bool opened = false) const;
@@ -36,10 +35,9 @@ public:
         bool alignBottom = true, float aspectRatio = kFolderAspectRatio);
 
 private:
-    we::rhi::RHIDescriptorSetHandle GetTexture(uint32_t widthPx, uint32_t heightPx, bool hovered, bool opened = false) const;
+    void PaintFolderIcon(PaintContext& context, const Rect& folderRect, bool hovered, bool opened) const;
 
     IconRenderer* m_Renderer = nullptr;
-    mutable std::unordered_map<std::string, we::rhi::RHIDescriptorSetHandle> m_Cache;
 };
 
 } // namespace we::editor::contentbrowser

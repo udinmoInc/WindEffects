@@ -1,28 +1,61 @@
 #include "KindUI/Rendering/IconMetrics.h"
 
 #include "KindUI/Theming/ThemeAccess.h"
+#include "KindUI/Tokens/DesignToken.h"
 
 #include <algorithm>
 #include <cmath>
 #include <cstdlib>
-#include "KindUI/Tokens/DesignToken.h"
-
+#include <mutex>
+#include <span>
+#include <string>
+#include <unordered_map>
+#include <vector>
 
 namespace we::runtime::kindui::IconMetrics {
 namespace {
 
-uint32_t NearestTier(uint32_t requestedPx) {
-    const uint32_t clamped = std::max(requestedPx, kMinTierPx);
-    if (clamped >= kAtlasTiers[kAtlasTierCount - 1]) {
-        return kAtlasTiers[kAtlasTierCount - 1];
+std::mutex& TierMutex() {
+    static std::mutex mutex;
+    return mutex;
+}
+
+std::vector<uint32_t>& TierTable() {
+    static std::vector<uint32_t> tiers;
+    return tiers;
+}
+
+std::unordered_map<std::string, std::vector<uint32_t>>& IconTierTable() {
+    static std::unordered_map<std::string, std::vector<uint32_t>> tiers;
+    return tiers;
+}
+
+std::vector<uint32_t> CopyTiers() {
+    std::lock_guard lock(TierMutex());
+    return TierTable();
+}
+
+std::vector<uint32_t> CopyIconTiers(const std::string_view iconName) {
+    std::lock_guard lock(TierMutex());
+    const auto it = IconTierTable().find(std::string(iconName));
+    if (it == IconTierTable().end()) {
+        return {};
+    }
+    return it->second;
+}
+
+uint32_t NearestInList(uint32_t requestedPx, const std::span<const uint32_t> tiers) {
+    if (tiers.empty()) {
+        return std::max(1u, requestedPx);
     }
 
-    uint32_t bestTier = kMinTierPx;
+    const uint32_t minTier = tiers.front();
+    const uint32_t maxTier = tiers.back();
+    const uint32_t clamped = std::clamp(requestedPx, minTier, maxTier);
+
+    uint32_t bestTier = minTier;
     uint32_t bestDistance = UINT32_MAX;
-    for (const uint32_t tier : kAtlasTiers) {
-        if (tier < kMinTierPx) {
-            continue;
-        }
+    for (const uint32_t tier : tiers) {
         const uint32_t distance = tier >= clamped ? tier - clamped : clamped - tier;
         if (distance < bestDistance || (distance == bestDistance && tier < bestTier)) {
             bestDistance = distance;
@@ -30,6 +63,10 @@ uint32_t NearestTier(uint32_t requestedPx) {
         }
     }
     return bestTier;
+}
+
+uint32_t NearestTier(uint32_t requestedPx) {
+    return NearestInList(requestedPx, CopyTiers());
 }
 
 uint32_t TierForMetricToken(MetricToken role) {
@@ -50,6 +87,69 @@ uint32_t TierForMetricToken(MetricToken role) {
 
 } // namespace
 
+void SetRegisteredAtlasTiers(std::span<const uint32_t> tiers) {
+    std::vector<uint32_t> unique;
+    unique.reserve(tiers.size());
+    for (uint32_t tier : tiers) {
+        if (tier == 0) {
+            continue;
+        }
+        unique.push_back(tier);
+    }
+    std::sort(unique.begin(), unique.end());
+    unique.erase(std::unique(unique.begin(), unique.end()), unique.end());
+
+    std::lock_guard lock(TierMutex());
+    TierTable() = std::move(unique);
+}
+
+std::vector<uint32_t> GetRegisteredAtlasTiers() {
+    return CopyTiers();
+}
+
+void ClearIconAtlasTiers() {
+    std::lock_guard lock(TierMutex());
+    IconTierTable().clear();
+}
+
+void SetIconAtlasTiers(const std::string_view resolvedIconName, const std::span<const uint32_t> tiers) {
+    if (resolvedIconName.empty()) {
+        return;
+    }
+
+    std::vector<uint32_t> unique;
+    unique.reserve(tiers.size());
+    for (uint32_t tier : tiers) {
+        if (tier == 0) {
+            continue;
+        }
+        unique.push_back(tier);
+    }
+    std::sort(unique.begin(), unique.end());
+    unique.erase(std::unique(unique.begin(), unique.end()), unique.end());
+
+    std::lock_guard lock(TierMutex());
+    if (unique.empty()) {
+        IconTierTable().erase(std::string(resolvedIconName));
+        return;
+    }
+    IconTierTable()[std::string(resolvedIconName)] = std::move(unique);
+}
+
+uint32_t MinRegisteredTierPx() {
+    const auto tiers = CopyTiers();
+    return tiers.empty() ? kDefaultMinTierPx : tiers.front();
+}
+
+uint32_t MaxRegisteredTierPx() {
+    const auto tiers = CopyTiers();
+    return tiers.empty() ? kDefaultMaxTierPx : tiers.back();
+}
+
+uint32_t SnapToTierList(uint32_t requestedPx, const std::span<const uint32_t> tiers) {
+    return NearestInList(std::max(1u, requestedPx), tiers);
+}
+
 uint32_t SnapToAtlasTier(uint32_t requestedPx) {
     return NearestTier(std::max(1u, requestedPx));
 }
@@ -59,12 +159,8 @@ uint32_t SnapToAtlasTier(float requestedPx) {
 }
 
 bool IsAtlasTier(uint32_t px) {
-    for (const uint32_t tier : kAtlasTiers) {
-        if (tier == px) {
-            return true;
-        }
-    }
-    return false;
+    const auto tiers = CopyTiers();
+    return std::binary_search(tiers.begin(), tiers.end(), px);
 }
 
 uint32_t NativeIconTierPx(float requestedPx) {
@@ -105,15 +201,23 @@ uint32_t GlyphTierPx(MetricToken role) {
 }
 
 uint32_t CompactGlyphTierPx() {
-    return kCompactTierPx;
+    const auto tiers = CopyTiers();
+    if (std::binary_search(tiers.begin(), tiers.end(), kCompactTierPx)) {
+        return kCompactTierPx;
+    }
+    return tiers.empty() ? kCompactTierPx : SnapToAtlasTier(kCompactTierPx);
 }
 
 float CompactDisplayPx() {
-    return static_cast<float>(kCompactTierPx);
+    return static_cast<float>(CompactGlyphTierPx());
 }
 
 uint32_t CompactSourceTierPx() {
-    return kCompactSourceTierPx;
+    const auto tiers = CopyTiers();
+    if (std::binary_search(tiers.begin(), tiers.end(), kCompactSourceTierPx)) {
+        return kCompactSourceTierPx;
+    }
+    return CompactGlyphTierPx();
 }
 
 bool IsChevronIcon(const std::string_view resolvedIconName) {
@@ -124,8 +228,14 @@ bool IsChevronIcon(const std::string_view resolvedIconName) {
 }
 
 uint32_t TierPxForIcon(const std::string_view resolvedIconName, const float requestedPx) {
-    (void)resolvedIconName;
-    return SnapToAtlasTier(std::max(requestedPx, static_cast<float>(kMinTierPx)));
+    const uint32_t floored = static_cast<uint32_t>(std::lround(std::max(0.0f, requestedPx)));
+    const uint32_t requested = std::max(1u, floored);
+
+    const auto iconTiers = CopyIconTiers(resolvedIconName);
+    if (!iconTiers.empty()) {
+        return SnapToTierList(requested, iconTiers);
+    }
+    return SnapToAtlasTier(std::max(requested, MinRegisteredTierPx()));
 }
 
 float IconButtonHitPx(float uiScale) {
@@ -148,7 +258,7 @@ Rect PlaceGlyphCentered(const Rect& controlBounds, uint32_t tierPx) {
 Rect PlaceGlyphCentered(const Rect& controlBounds, float logicalTierPx) {
     const uint32_t rounded = static_cast<uint32_t>(std::lround(std::max(0.0f, logicalTierPx)));
     if (rounded == kCompactTierPx) {
-        return PlaceGlyphCentered(controlBounds, kCompactTierPx);
+        return PlaceGlyphCentered(controlBounds, CompactGlyphTierPx());
     }
     return PlaceGlyphCentered(controlBounds, SnapToAtlasTier(logicalTierPx));
 }

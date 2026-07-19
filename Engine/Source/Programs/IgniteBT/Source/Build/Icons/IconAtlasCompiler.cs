@@ -1,5 +1,7 @@
 using System.Diagnostics;
+using System.Globalization;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using IgniteBT.Core.Hashing;
 using Serilog;
 
@@ -7,10 +9,13 @@ namespace IgniteBT.Build.Icons;
 
 /// <summary>
 /// Compiles LibGDX atlas PNG/.atlas source pairs into WindEffects .weiconatlas and icons.weiconmeta assets.
+/// Atlas tiers are discovered from ui_Atlas_&lt;N&gt;.* files — never hardcoded.
 /// </summary>
 public static class IconAtlasCompiler
 {
-    private static readonly uint[] AtlasTiers = { 16, 20, 24, 32, 48, 64 };
+    private static readonly Regex AtlasTierRegex = new(
+        @"^ui_Atlas_(\d+)\.(atlas|png|weiconatlas)$",
+        RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
     public sealed class IconCompileStats
     {
@@ -36,6 +41,13 @@ public static class IconAtlasCompiler
         }
 
         var outputDir = inputDir;
+        var tiers = DiscoverAtlasTiers(inputDir);
+        if (tiers.Count == 0)
+        {
+            Log.Debug("No ui_Atlas_<N> sources discovered in {Path}", inputDir);
+            return stats;
+        }
+
         var compilerExe = ResolveWeCliExecutable(configurationRoot, engineRoot);
         if (string.IsNullOrEmpty(compilerExe))
         {
@@ -44,16 +56,16 @@ public static class IconAtlasCompiler
         }
 
         var cache = new IconAtlasCompileCache(cacheDirectory ?? Path.Combine(configurationRoot, "..", "Cache"));
-        var sourceHash = ComputeSourceTreeHash(inputDir);
+        var sourceHash = ComputeSourceTreeHash(inputDir, tiers);
         var outputMeta = Path.Combine(outputDir, "icons.weiconmeta");
         var cacheKey = FastHash.CombineHashes(sourceHash, compilerExe, outputDir);
 
-        if (cache.TryGetHit(cacheKey, outputMeta) && AllOutputsExist(outputDir))
+        if (cache.TryGetHit(cacheKey, outputMeta) && AllOutputsExist(outputDir, tiers))
         {
-            stats.Skipped = AtlasTiers.Length + 1;
+            stats.Skipped = tiers.Count + 1;
             sw.Stop();
             stats.ElapsedMs = sw.ElapsedMilliseconds;
-            Log.Debug("Icon atlas assets up to date ({Ms}ms)", stats.ElapsedMs);
+            Log.Debug("Icon atlas assets up to date ({Ms}ms, {Tiers} tiers)", stats.ElapsedMs, tiers.Count);
             return stats;
         }
 
@@ -65,37 +77,59 @@ public static class IconAtlasCompiler
         cache.Store(cacheKey, outputMeta, sourceHash, compilerExe, outputDir);
         cache.Save();
 
-        stats.Compiled = AtlasTiers.Length + 1;
+        stats.Compiled = tiers.Count + 1;
         sw.Stop();
         stats.ElapsedMs = sw.ElapsedMilliseconds;
         Log.Information(
             "Compiled icon atlas assets ({Tiers} tiers + meta) in {Ms}ms",
-            AtlasTiers.Length,
+            tiers.Count,
             stats.ElapsedMs);
         return stats;
     }
 
-    private static bool AllOutputsExist(string outputDir)
+    public static List<uint> DiscoverAtlasTiers(string inputDir)
+    {
+        var tiers = new SortedSet<uint>();
+        foreach (var file in Directory.EnumerateFiles(inputDir))
+        {
+            var name = Path.GetFileName(file);
+            var match = AtlasTierRegex.Match(name);
+            if (!match.Success)
+                continue;
+            if (uint.TryParse(match.Groups[1].Value, NumberStyles.Integer, CultureInfo.InvariantCulture, out var tier)
+                && tier > 0)
+            {
+                tiers.Add(tier);
+            }
+        }
+        return tiers.ToList();
+    }
+
+    private static bool AllOutputsExist(string outputDir, IReadOnlyList<uint> tiers)
     {
         if (!File.Exists(Path.Combine(outputDir, "icons.weiconmeta")))
             return false;
 
-        foreach (var tier in AtlasTiers)
+        foreach (var tier in tiers)
         {
-            if (!File.Exists(Path.Combine(outputDir, $"atlas_{tier}.weiconatlas")))
+            // Only require compiled output for tiers that have a source .atlas.
+            var atlasSource = Path.Combine(outputDir, $"ui_Atlas_{tier}.atlas");
+            if (!File.Exists(atlasSource))
+                continue;
+            if (!File.Exists(Path.Combine(outputDir, $"ui_Atlas_{tier}.weiconatlas")))
                 return false;
         }
 
         return true;
     }
 
-    private static string ComputeSourceTreeHash(string inputDir)
+    private static string ComputeSourceTreeHash(string inputDir, IReadOnlyList<uint> tiers)
     {
-        var hashes = AtlasTiers
+        var hashes = tiers
             .SelectMany(tier => new[]
             {
-                Path.Combine(inputDir, $"atlas_{tier}.png"),
-                Path.Combine(inputDir, $"atlas_{tier}.atlas"),
+                Path.Combine(inputDir, $"ui_Atlas_{tier}.png"),
+                Path.Combine(inputDir, $"ui_Atlas_{tier}.atlas"),
             })
             .Where(File.Exists)
             .Select(FastHash.HashFile)

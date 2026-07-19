@@ -1,0 +1,20 @@
+
+ui_Atlas_38.png
+size: 102, 42
+format: RGBA8888
+filter: Nearest, Nearest
+repeat: none
+Icons_Folder_48
+  rotate: false
+  xy: 2, 2
+  size: 48, 38
+  orig: 48, 38
+  offset: 0, 0
+  index: 38
+Icons_OpenFolder_48
+  rotate: false
+  xy: 52, 2
+  size: 48, 38
+  orig: 48, 38
+  offset: 0, 0
+  index: 38

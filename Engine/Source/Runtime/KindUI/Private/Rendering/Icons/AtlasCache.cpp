@@ -3,6 +3,8 @@
 #include "Icons/Core/IconHash.h"
 #include "KindUI/Rendering/IconMetrics.h"
 
+#include <algorithm>
+
 namespace we::runtime::kindui {
 
 void AtlasCache::LoadMeta(const std::vector<IconMetaEntryInput>& entries)
@@ -49,23 +51,44 @@ const CachedIconEntry* AtlasCache::FindWithTierFallback(const std::string_view i
 {
     const uint64_t nameHash = we::runtime::icons::Fnv1a64(iconName);
 
-    uint32_t startIndex = 0;
-    for (uint32_t i = 0; i < IconMetrics::kAtlasTierCount; ++i) {
-        if (IconMetrics::kAtlasTiers[i] >= tierPx) {
-            startIndex = i;
-            break;
-        }
-        startIndex = i;
+    if (const CachedIconEntry* exact = FindByHash(nameHash, tierPx)) {
+        return exact;
     }
 
-    // Prefer exact-or-higher tiers first, then fall back to smaller atlases.
-    for (uint32_t i = startIndex; i < IconMetrics::kAtlasTierCount; ++i) {
-        if (const CachedIconEntry* entry = FindByHash(nameHash, IconMetrics::kAtlasTiers[i])) {
+    // Walk only tiers that actually pack this icon — never global folder-only sizes.
+    std::vector<uint32_t> tiers;
+    {
+        std::scoped_lock lock(m_Mutex);
+        tiers.reserve(8);
+        for (const CachedIconEntry& entry : m_Entries) {
+            if (entry.nameHash == nameHash && entry.tierPx != 0) {
+                tiers.push_back(entry.tierPx);
+            }
+        }
+    }
+    std::sort(tiers.begin(), tiers.end());
+    tiers.erase(std::unique(tiers.begin(), tiers.end()), tiers.end());
+    if (tiers.empty()) {
+        return nullptr;
+    }
+
+    const uint32_t snapped = IconMetrics::SnapToTierList(tierPx, tiers);
+    if (const CachedIconEntry* entry = FindByHash(nameHash, snapped)) {
+        return entry;
+    }
+
+    auto startIt = std::lower_bound(tiers.begin(), tiers.end(), tierPx);
+    const std::size_t startIndex = static_cast<std::size_t>(
+        startIt == tiers.end() ? tiers.size() - 1
+                               : static_cast<std::size_t>(startIt - tiers.begin()));
+
+    for (std::size_t i = startIndex; i < tiers.size(); ++i) {
+        if (const CachedIconEntry* entry = FindByHash(nameHash, tiers[i])) {
             return entry;
         }
     }
-    for (int i = static_cast<int>(startIndex) - 1; i >= 0; --i) {
-        if (const CachedIconEntry* entry = FindByHash(nameHash, IconMetrics::kAtlasTiers[static_cast<uint32_t>(i)])) {
+    for (std::size_t i = startIndex; i > 0; --i) {
+        if (const CachedIconEntry* entry = FindByHash(nameHash, tiers[i - 1])) {
             return entry;
         }
     }

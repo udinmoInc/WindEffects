@@ -57,7 +57,8 @@ IconAuditReport AuditIconAtlas(const std::filesystem::path& inputDir)
     std::unordered_map<uint32_t, std::unordered_set<std::string>> tierRuntimeNames;
     std::unordered_set<std::string> allRuntimeNames;
 
-    for (const uint32_t tierPx : kIconAtlasTiers) {
+    const std::vector<std::uint32_t> tiers = DiscoverAtlasTiers(inputDir);
+    for (const uint32_t tierPx : tiers) {
         const auto atlasPath = inputDir / ("ui_Atlas_" + std::to_string(tierPx) + ".atlas");
         if (!std::filesystem::exists(atlasPath)) {
             continue;
