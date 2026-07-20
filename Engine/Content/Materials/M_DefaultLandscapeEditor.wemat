@@ -1,0 +1,19 @@
+{
+  "assetType": "Material",
+  "name": "M_DefaultLandscapeEditor",
+  "displayName": "Default Landscape Editor",
+  "engineBuiltin": true,
+  "shader": "Terrain",
+  "baseColor": [0.165, 0.165, 0.165],
+  "metallic": 0.0,
+  "roughness": 0.92,
+  "specular": 0.04,
+  "opacity": 1.0,
+  "emissive": [0.0, 0.0, 0.0],
+  "twoSided": false,
+  "gridSpacing": 10.0,
+  "gridLineWidth": 1.25,
+  "gridColor": [0.42, 0.42, 0.42],
+  "gridOpacity": 0.22,
+  "description": "Built-in editor landscape material: dark charcoal base with a thin anti-aliased world-space grid that fades with distance. Used automatically when a Landscape has no assigned user material."
+}

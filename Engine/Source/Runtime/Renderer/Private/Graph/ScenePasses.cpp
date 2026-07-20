@@ -141,13 +141,15 @@ TerrainPass::TerrainPass(
     we::rhi::RHITextureHandle color,
     we::rhi::RHITextureHandle depth,
     we::rhi::Extent2D extent,
-    const CameraUniform* camera)
+    const CameraUniform* camera,
+    const SceneEnvironmentUniform* environment)
     : RenderPass("TerrainPass", we::rhi::QueueType::Graphics, GraphPassFlags::KeepAlive)
     , m_Drawer(std::move(drawer))
     , m_Color(color)
     , m_Depth(depth)
     , m_Extent(extent)
     , m_Camera(camera)
+    , m_Environment(environment)
 {
 }
 
@@ -168,7 +170,9 @@ void TerrainPass::Execute(const GraphPassContext& ctx) {
             we::rhi::ResourceState::ShaderResource,
             we::rhi::ResourceState::RenderTarget);
     }
-    m_Drawer(*ctx.commandList, m_Color, m_Depth, m_Extent, *m_Camera);
+    static const SceneEnvironmentUniform kFallbackEnv{};
+    const SceneEnvironmentUniform& env = m_Environment ? *m_Environment : kFallbackEnv;
+    m_Drawer(*ctx.commandList, m_Color, m_Depth, m_Extent, *m_Camera, env);
     if (m_Color != we::rhi::RHITextureHandle::Invalid) {
         ctx.commandList->TransitionTexture(
             m_Color,

@@ -21,6 +21,7 @@
 #include "PropertyEditor/PropertyEditorSession.h"
 #include "ViewportEdit/ViewportEdit.h"
 #include "Terrain/Terrain.h"
+#include "Terrain/TerrainDiagnostics.h"
 #include "TerrainEditor/TerrainEditor.h"
 #include "WorldOutliner/WorldOutliner.h"
 #include "ContentBrowser/ContentBrowserRuntime.h"
@@ -54,6 +55,7 @@
 
 #include "Platform/PlatformSDK.h"
 #include <algorithm>
+#include <chrono>
 #include <cstdlib>
 #include <filesystem>
 #include <stdexcept>
@@ -426,11 +428,21 @@ void Editor::EnterProjectWorkspace(const std::filesystem::path& weprojPath) {
                         we::rhi::RHITextureHandle color,
                         we::rhi::RHITextureHandle depth,
                         we::rhi::Extent2D extent,
-                        const we::runtime::renderer::CameraUniform& camera) {
+                        const we::runtime::renderer::CameraUniform& camera,
+                        const we::runtime::renderer::SceneEnvironmentUniform& environment) {
+                        we::runtime::terrain::TerrainSceneLighting lighting{};
+                        lighting.sunDirection = environment.sunDirection;
+                        lighting.sunIntensity = environment.sunIntensity;
+                        lighting.sunColor = environment.sunColor;
+                        lighting.skyLightIntensity = environment.skyLightIntensity;
+                        lighting.skyAmbientColor = environment.skyAmbientColor;
+                        lighting.skyLightLowerColor = environment.skyLightLowerColor;
+                        lighting.valid = true;
+
                         auto& runtime = we::runtime::terrain::GetDefaultTerrainRuntime();
                         for (const auto id : runtime.Manager().ListAll()) {
                             if (auto* terrain = runtime.Manager().Find(id)) {
-                                terrain->Renderer().SyncChunks();
+                                // Tick owns remesh/upload; draw path only submits GPU.
                                 terrain->Renderer().DrawViewport(
                                     cmd,
                                     color,
@@ -438,7 +450,8 @@ void Editor::EnterProjectWorkspace(const std::filesystem::path& weprojPath) {
                                     extent,
                                     camera.view,
                                     camera.proj,
-                                    camera.position);
+                                    camera.position,
+                                    &lighting);
                             }
                         }
                     });
@@ -1009,7 +1022,23 @@ void Editor::MainLoop() {
         }
         if (m_Camera) {
             const auto pos = m_Camera->GetPosition();
-            we::editor::terrain::GetLandscapeEditor().Tick(dt, pos.x, pos.y, pos.z);
+            const we::math::Mat4 viewProj =
+                m_Camera->GetProjectionMatrix() * m_Camera->GetViewMatrix();
+            we::editor::terrain::GetLandscapeEditor().Tick(
+                dt, pos.x, pos.y, pos.z, &viewProj);
+        }
+        if (::we::editor::services::EditorPerfStats::IsPerfLoggingEnabled()
+            && we::runtime::terrain::TerrainSystem::Get().IsCreated())
+        {
+            static double s_LastTerrainLogMs = 0.0;
+            using clock = std::chrono::steady_clock;
+            const double nowMs = std::chrono::duration<double, std::milli>(
+                clock::now().time_since_epoch())
+                                    .count();
+            if (nowMs - s_LastTerrainLogMs >= 1000.0) {
+                HE_INFO(we::runtime::terrain::TerrainDiagnostics::Get().FormatSummary());
+                s_LastTerrainLogMs = nowMs;
+            }
         }
         UpdateUiScaleFromWindow();
         ::we::editor::services::EditorPerfStats::Get().Mark("tick");
@@ -1149,6 +1178,17 @@ void Editor::Shutdown() {
     m_OverlayHost.reset();
     m_RootWidget.reset();
     ShutdownContentBrowserService();
+
+    // Tear down terrain GPU resources before destroying the RHI device.
+    if (m_Renderer) {
+        m_Renderer->ClearTerrainDrawer();
+    }
+    if (m_TerrainRuntime) {
+        m_TerrainRuntime->Shutdown();
+        m_TerrainRuntime.reset();
+        we::runtime::terrain::SetDefaultTerrainRuntime(nullptr);
+    }
+
     if (we::projects::ProjectContext::Get().IsLoaded()) {
         we::projects::ProjectContext::Get().Unload();
     }

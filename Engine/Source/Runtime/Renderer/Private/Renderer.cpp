@@ -331,7 +331,8 @@ void Renderer::RenderScene() {
         m_ViewportColorTexture,
         m_ViewportDepthTexture,
         viewportExtent,
-        &m_LastCamera));
+        &m_LastCamera,
+        &m_LastEnvironment));
     m_RenderGraph->AddPass(std::make_unique<PbrOpaquePass>(
         gbufferId,
         shadowId,

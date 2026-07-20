@@ -32,7 +32,8 @@ public:
     [[nodiscard]] const EditorPerfSample& Last() const { return m_Last; }
     [[nodiscard]] float AverageFps() const { return m_AvgFps; }
 
-    [[nodiscard]] static bool IsLoggingEnabled();
+    // Named to avoid urlmon.h IsLoggingEnabledA/W macro collision on Windows.
+    [[nodiscard]] static bool IsPerfLoggingEnabled();
 
 private:
     EditorPerfStats() = default;

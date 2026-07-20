@@ -216,6 +216,11 @@ public:
     std::vector<std::unique_ptr<TerrainChunkProxy>> chunkProxies;
     std::vector<std::unique_ptr<TerrainLayerProxy>> layerProxies;
 
+    ~TerrainInstanceImpl() override {
+        // Release GPU resources while the RHI device is still valid.
+        renderer.Shutdown();
+    }
+
     class LodFacade final : public ITerrainLOD {
     public:
         explicit LodFacade(TerrainInstanceImpl& owner)
@@ -224,6 +229,7 @@ public:
         void SetSettings(const TerrainLODSettings& settings) override {
             m_Owner.lodSettings = settings;
             m_Owner.lodManager.SetMaxLod(settings.maxLod);
+            m_Owner.lodManager.SetLodBias(settings.lodBias);
         }
         [[nodiscard]] TerrainLODSettings GetSettings() const noexcept override {
             return m_Owner.lodSettings;
@@ -319,6 +325,7 @@ public:
             m_Owner.streamingOptions = options;
             m_Owner.streaming.SetEnabled(options.enabled);
             m_Owner.streaming.SetLoadRadiusChunks(options.loadRadiusChunks);
+            m_Owner.streaming.SetMaxResidentChunks(options.maxResidentChunks);
         }
         [[nodiscard]] TerrainStreamingOptions GetOptions() const noexcept override {
             return m_Owner.streamingOptions;
@@ -349,9 +356,10 @@ public:
             rhi::Extent2D extent,
             const we::math::Mat4& view,
             const we::math::Mat4& proj,
-            const we::math::Vec3& cameraPos) override
+            const we::math::Vec3& cameraPos,
+            const TerrainSceneLighting* lighting) override
         {
-            m_Owner.renderer.Draw(cmd, color, depth, extent, view, proj, cameraPos);
+            m_Owner.renderer.Draw(cmd, color, depth, extent, view, proj, cameraPos, lighting);
         }
         void SetClipmapsEnabled(bool enabled) override { m_Owner.renderer.SetClipmapsEnabled(enabled); }
         [[nodiscard]] std::uint32_t UploadedChunkCount() const noexcept override {
@@ -388,6 +396,8 @@ public:
         }
         void EndStroke() override {
             m_Owner.editStrokeActive = false;
+            // Flush any remaining dirty remesh/upload before collision finalize.
+            m_Owner.RebuildDirtyMeshesAndGpu();
             if (m_Owner.collisionPending || m_Owner.collisionOptions.rebuildOnEdit) {
                 m_Owner.RebuildDirtyCollision();
                 m_Owner.collisionPending = false;
@@ -406,12 +416,20 @@ public:
                 m_Owner.chunks.MarkDirtyRect(minX, minZ, maxX, maxZ);
                 m_Owner.materials.NotifyVirtualTexturePagesDirty(minX, minZ, maxX, maxZ);
             }
-            // During stroke: dirty mesh + GPU only. Collision waits for EndStroke.
-            m_Owner.RebuildDirtyMeshesAndGpu();
+            // Mark dirty only — remesh + GPU upload coalesce once per Tick.
+            // Collision waits for EndStroke when a stroke is active.
             if (!m_Owner.editStrokeActive) {
+                m_Owner.RebuildDirtyMeshesAndGpu();
                 m_Owner.RebuildDirtyCollision();
             } else {
                 m_Owner.collisionPending = true;
+                std::uint64_t dirty = 0;
+                for (const TerrainChunk& chunk : m_Owner.chunks.Chunks()) {
+                    if (chunk.meshDirty) {
+                        ++dirty;
+                    }
+                }
+                TerrainDiagnostics::Get().OnDirtyChunks(dirty);
             }
             const auto micros = static_cast<std::uint64_t>(
                 std::chrono::duration_cast<std::chrono::microseconds>(
@@ -468,8 +486,10 @@ public:
         streamingOptions = info.streaming;
         collisionOptions = info.collision;
         lodManager.SetMaxLod(lodSettings.maxLod);
+        lodManager.SetLodBias(lodSettings.lodBias);
         streaming.SetEnabled(streamingOptions.enabled);
         streaming.SetLoadRadiusChunks(streamingOptions.loadRadiusChunks);
+        streaming.SetMaxResidentChunks(streamingOptions.maxResidentChunks);
 
         const float elev = std::clamp(info.initialElevation, 0.f, 1.f);
         const auto fill = static_cast<std::uint16_t>(elev * 65535.f + 0.5f);
@@ -477,6 +497,9 @@ public:
         chunks.Initialize(info);
         materials.Initialize(info.resolutionX, info.resolutionY);
         collision.Bind(&heightfield, &info);
+
+        // Always bind Engine/Content M_DefaultLandscapeEditor when no project material is assigned.
+        materials.EnsureDefaultLandscapeMaterial(info);
 
         if (!info.materialSlot0.empty()) {
             materials.Layer(0).albedoPath = info.materialSlot0;
@@ -490,6 +513,7 @@ public:
         if (!info.materialSlot3.empty()) {
             materials.Layer(3).albedoPath = info.materialSlot3;
         }
+        BindShadingFromMaterials();
 
         TerrainGeneratorParams gen = info.generator;
         switch (info.creationMethod) {
@@ -524,26 +548,45 @@ public:
             info.worldSizeX * info.worldScale.x,
             info.heightScale * info.worldScale.y,
             info.worldSizeY * info.worldScale.z);
+        component.owner = this;
 
         created = true;
+        // Seed LOD as if the camera is framed above the landscape (matches FrameLandscape).
+        // Without this, create builds 64× LOD0 meshes (~1M tris) and editor starts at ~10 FPS.
+        {
+            const float worldW = info.worldSizeX * info.worldScale.x;
+            const float worldD = info.worldSizeY * info.worldScale.z;
+            const float midY = info.heightOffset + info.heightScale * info.worldScale.y * 0.5f;
+            const we::math::Vec3 center =
+                info.worldOrigin + we::math::Vec3(worldW * 0.5f, midY, worldD * 0.5f);
+            const float distance = std::max(worldW, worldD) * 0.85f;
+            const we::math::Vec3 seedCam =
+                center + we::math::Vec3(distance * 0.55f, distance * 0.65f, distance * 0.55f);
+            lodManager.SeedChunkLods(chunks, seedCam, info, heightfield.Width());
+        }
         RebuildDirty();
         RebuildChunkProxies();
         return true;
     }
 
-    void RebuildChunkProxies() {
-        chunkProxies.clear();
-        chunkProxies.reserve(chunks.Chunks().size());
-        for (TerrainChunk& chunk : chunks.Chunks()) {
-            chunkProxies.push_back(std::make_unique<TerrainChunkProxy>(chunk));
-        }
+    void BindShadingFromMaterials() {
+        const auto params = materials.ResolveShadingParams(info);
+        materials.SetActiveParams(params);
+        renderer.SetMaterialParams(params);
     }
 
-    void RebuildDirty() {
+    void RebuildDirtyMeshesAndGpu(int maxChunks = -1) {
+        const auto t0 = std::chrono::steady_clock::now();
         std::uint64_t rebuilt = 0;
+        std::uint64_t dirty = 0;
+        const int budget = maxChunks < 0 ? 1000000 : maxChunks;
         for (TerrainChunk& chunk : chunks.Chunks()) {
             if (!chunk.meshDirty) {
                 continue;
+            }
+            ++dirty;
+            if (static_cast<int>(rebuilt) >= budget) {
+                break;
             }
             TerrainMeshCPU mesh;
             if (TerrainLODManager::BuildChunkMesh(heightfield, info, chunk, chunk.lod, mesh)) {
@@ -565,12 +608,49 @@ public:
                 ++rebuilt;
             }
         }
-        if (collisionOptions.enabled) {
-            collision.RebuildDirty(chunks);
-        }
         renderer.SyncChunks(chunks);
+        const auto micros = static_cast<std::uint64_t>(
+            std::chrono::duration_cast<std::chrono::microseconds>(
+                std::chrono::steady_clock::now() - t0)
+                .count());
+        TerrainDiagnostics::Get().OnMeshRebuild(micros, dirty);
         if (rebuilt > 0) {
             TerrainDiagnostics::Get().OnChunksRebuilt(rebuilt);
+        }
+    }
+
+    void RebuildDirtyCollision() {
+        if (!collisionOptions.enabled) {
+            return;
+        }
+        const auto t0 = std::chrono::steady_clock::now();
+        std::uint64_t count = 0;
+        for (const TerrainChunk& chunk : chunks.Chunks()) {
+            if (chunk.collisionDirty) {
+                ++count;
+            }
+        }
+        collision.RebuildDirty(chunks);
+        const auto micros = static_cast<std::uint64_t>(
+            std::chrono::duration_cast<std::chrono::microseconds>(
+                std::chrono::steady_clock::now() - t0)
+                .count());
+        TerrainDiagnostics::Get().OnCollisionTiming(micros);
+        if (count > 0) {
+            TerrainDiagnostics::Get().OnCollisionRebuilt(count);
+        }
+    }
+
+    void RebuildDirty() {
+        RebuildDirtyMeshesAndGpu();
+        RebuildDirtyCollision();
+    }
+
+    void RebuildChunkProxies() {
+        chunkProxies.clear();
+        chunkProxies.reserve(chunks.Chunks().size());
+        for (TerrainChunk& chunk : chunks.Chunks()) {
+            chunkProxies.push_back(std::make_unique<TerrainChunkProxy>(chunk));
         }
     }
 
@@ -646,6 +726,8 @@ public:
         chunks.Initialize(info);
         materials.Initialize(info.resolutionX, info.resolutionY);
         collision.Bind(&heightfield, &info);
+        materials.EnsureDefaultLandscapeMaterial(info);
+        BindShadingFromMaterials();
         const auto samples = asset.GetElevationSamples();
         if (samples.size() == heightfield.SampleCount()) {
             std::copy(samples.begin(), samples.end(), heightfield.Data());
@@ -686,28 +768,60 @@ public:
         if (!created) {
             return;
         }
+        const auto t0 = std::chrono::steady_clock::now();
         TerrainFrustump frustum{};
         const TerrainFrustump* frustumPtr = nullptr;
         if (viewProj) {
             frustum = TerrainFrustump::FromViewProj(*viewProj);
             frustumPtr = &frustum;
         }
-        lodFacade.Update(cameraWorldPos, info, heightfield.Width());
+        if (!editStrokeActive) {
+            lodFacade.Update(cameraWorldPos, info, heightfield.Width());
+        }
         streamingFacade.Update(cameraWorldPos, frustumPtr);
+
+        // Always push visibility to GPU so frustum culls apply without remesh.
+        renderer.SyncVisibility(chunks);
+
         bool anyDirty = false;
+        std::uint64_t dirtyCount = 0;
         for (const TerrainChunk& chunk : chunks.Chunks()) {
-            if (chunk.meshDirty) {
+            if (chunk.meshDirty || chunk.gpuDirty) {
                 anyDirty = true;
-                break;
+                if (chunk.meshDirty) {
+                    ++dirtyCount;
+                }
             }
         }
+        TerrainDiagnostics::Get().OnDirtyChunks(dirtyCount);
         if (anyDirty) {
-            RebuildDirty();
-        } else {
-            renderer.SyncChunks(chunks);
+            // Budget remesh/upload so sculpt + LOD waves never hitch a full frame.
+            // Stroke: few nearby chunks. Idle LOD: stagger across frames.
+            const int budget = editStrokeActive ? 8 : 6;
+            RebuildDirtyMeshesAndGpu(budget);
         }
+        const auto micros = static_cast<std::uint64_t>(
+            std::chrono::duration_cast<std::chrono::microseconds>(
+                std::chrono::steady_clock::now() - t0)
+                .count());
+        TerrainDiagnostics::Get().OnUpdate(micros);
     }
 };
+
+void TerrainComponentImpl::SetWorldTransform(const we::math::Vec3& o, const we::math::Vec3& s) {
+    origin = o;
+    scale = s;
+    if (!owner) {
+        return;
+    }
+    // Actor transform is authoritative world placement — never camera-relative.
+    owner->info.worldOrigin = o;
+    owner->info.worldScale = s;
+    owner->component.origin = o;
+    owner->component.scale = s;
+    owner->chunks.MarkAllDirty();
+    owner->RebuildDirty();
+}
 
 class SessionImpl final : public ITerrainSession {
 public:
@@ -827,6 +941,8 @@ public:
         }
         if (m_Device) {
             instance->renderer.Init(m_Device);
+            instance->BindShadingFromMaterials();
+            instance->RebuildDirtyMeshesAndGpu();
         }
 
         const TerrainId id = instance->id;
@@ -925,6 +1041,7 @@ public:
     }
 
     void BindLandscapeEntity(TerrainInstanceImpl& impl, we::runtime::scene::Entity& e) {
+        HE_INFO("[Terrain] BindLandscapeEntity begin entity=" + std::to_string(e.Id));
         // Mesh vertices are already world-space; keep actor transform as identity scale
         // centered on the terrain surface so Focus/FrameSelected lands on visible geometry.
         const float midY = impl.info.heightOffset
@@ -935,17 +1052,28 @@ public:
                 midY,
                 impl.info.worldSizeY * 0.5f);
         e.Scale = we::math::Vec3(1.0f, 1.0f, 1.0f);
-        e.Color = we::math::Vec4(0.35f, 0.55f, 0.28f, 1.0f);
+        // Charcoal outliner tint — never debug green. Actual shading uses M_DefaultLandscapeEditor.
+        e.Color = we::math::Vec4(
+            kDefaultLandscapeAlbedoR,
+            kDefaultLandscapeAlbedoG,
+            kDefaultLandscapeAlbedoB,
+            1.0f);
         impl.component.entityId = e.Id;
         impl.component.origin = impl.info.worldOrigin;
-        impl.component.scale = we::math::Vec3(1.0f, 1.0f, 1.0f);
+        // Keep logical landscape extent for framing helpers; actor Scale stays identity.
+        impl.component.scale = we::math::Vec3(
+            impl.info.worldSizeX * impl.info.worldScale.x,
+            impl.info.heightScale * impl.info.worldScale.y,
+            impl.info.worldSizeY * impl.info.worldScale.z);
 
         // Keep every chunk resident/visible immediately after create.
         for (TerrainChunk& chunk : impl.chunks.Chunks()) {
             chunk.visible = true;
             impl.streaming.RequestLoad(chunk.id);
         }
-        impl.RebuildDirty();
+        // Shading only — CreateLandscape already remeshed + uploaded GPU buffers.
+        // Re-running RebuildDirty here duplicated work and amplified any allocator stress.
+        impl.BindShadingFromMaterials();
 
         we::runtime::ecs::TerrainComponent terrainComp{};
         terrainComp.enabled = true;
@@ -962,6 +1090,7 @@ public:
         transform.localScale = e.Scale;
         transform.dirty = true;
         m_Scene->Registry().Replace(we::runtime::ecs::Entity{e.Id}, transform);
+        HE_INFO("[Terrain] BindLandscapeEntity complete");
     }
 
     void BindScene(scene::Scene* scene) override { m_Scene = scene; }
@@ -971,6 +1100,8 @@ public:
         std::lock_guard lock(m_Mutex);
         for (auto& [_, terrain] : m_Terrains) {
             terrain->renderer.Init(device);
+            terrain->BindShadingFromMaterials();
+            terrain->RebuildDirtyMeshesAndGpu();
         }
     }
 

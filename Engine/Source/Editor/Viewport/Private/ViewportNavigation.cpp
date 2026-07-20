@@ -2,8 +2,12 @@
 #include "WindEffects/Editor/UI/Shell/ViewportNavigationSettings.h"
 #include "ViewportToolbarState.h"
 #include "Platform/Platform.h"
+#include "EditorCamera.h"
+#include "Scene/Entity.h"
+#include "Terrain/TerrainSystem.h"
 
 #include <algorithm>
+#include <cmath>
 
 #include "Core/Math/GlmInterop.h"
 
@@ -307,8 +311,30 @@ void ViewportNavigationController::OnKeyDown(const KeyEvent& event) {
     if (event.key == we::platform::KeyCode::F && store.GetSettings().focusOnSelection && m_Scene) {
         const int selectedIndex = m_Scene->GetSelectedEntityIndex();
         if (selectedIndex >= 0 && selectedIndex < static_cast<int>(m_Scene->GetEntities().size())) {
-            const we::math::Vec3 target = m_Scene->GetEntities()[static_cast<size_t>(selectedIndex)].Position;
-            m_Camera->Focus(target);
+            const auto& entity = m_Scene->GetEntities()[static_cast<size_t>(selectedIndex)];
+            we::math::Vec3 target = entity.Position;
+            float distance = 8.0f;
+            if (entity.Type == we::runtime::scene::EntityType::Landscape) {
+                // Actor Scale is identity (world-space meshes); use Info extent when available.
+                float extent = std::max(std::abs(entity.Scale.x), std::abs(entity.Scale.z));
+                if (we::runtime::terrain::TerrainSystem::Get().IsCreated()) {
+                    const auto& info = we::runtime::terrain::TerrainSystem::Get().Info();
+                    extent = std::max(
+                        info.worldSizeX * info.worldScale.x,
+                        info.worldSizeY * info.worldScale.z);
+                }
+                if (extent > 1.0f) {
+                    distance = extent * 0.85f;
+                    const float landscapeSpeed = std::clamp(
+                        extent * 0.08f,
+                        we::runtime::engine::kEditorCameraLandscapeDefaultSpeed,
+                        we::runtime::engine::kEditorCameraMaxSpeed);
+                    if (m_Camera->GetCameraSpeed() < landscapeSpeed * 0.5f) {
+                        m_Camera->SetCameraSpeed(landscapeSpeed);
+                    }
+                }
+            }
+            m_Camera->Focus(target, distance);
             m_Camera->SetOrbitPivot(target);
         }
     }

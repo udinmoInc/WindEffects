@@ -20,6 +20,7 @@ public class Viewport : ModuleRules
         PublicDependencies.Add("UIFramework");
         PrivateDependencies.Add("Toolbar");
         PrivateDependencies.Add("PlaceActors");
+        PrivateDependencies.Add("Terrain");
 
         AddOptionalThirdParty("glm");
         DefineIf(HasThirdParty("glm"), "WE_HAS_GLM=1");

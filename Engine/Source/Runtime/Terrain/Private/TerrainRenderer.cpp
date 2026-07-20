@@ -8,6 +8,7 @@
 
 #include <algorithm>
 #include <chrono>
+#include <cstdio>
 #include <cstring>
 #include <span>
 namespace we::runtime::terrain {
@@ -18,6 +19,11 @@ we::math::Mat4 InvertViewProj(const we::math::Mat4& view, const we::math::Mat4& 
     (void)view;
     (void)proj;
     return we::math::Mat4{};
+}
+
+void CopyMaterialPath(char (&dst)[160], const std::string& path) {
+    const char* src = path.empty() ? kDefaultLandscapeMaterialPath : path.c_str();
+    std::snprintf(dst, sizeof(dst), "%s", src);
 }
 
 } // namespace
@@ -309,7 +315,7 @@ bool TerrainRenderer::UploadChunk(const TerrainChunk& chunk, ChunkGpu& gpu) {
         return false;
     }
     const std::size_t vertCount = chunk.mesh.positions.size();
-    std::vector<TerrainVertex> verts(vertCount);
+    m_UploadScratch.resize(vertCount);
     for (std::size_t i = 0; i < vertCount; ++i) {
         const we::math::Vec3& p = chunk.mesh.positions[i];
         const we::math::Vec3& n = (i < chunk.mesh.normals.size())
@@ -318,11 +324,14 @@ bool TerrainRenderer::UploadChunk(const TerrainChunk& chunk, ChunkGpu& gpu) {
         const we::math::Vec2 uv = (i < chunk.mesh.uvs.size())
             ? chunk.mesh.uvs[i]
             : we::math::Vec2(0.f, 0.f);
-        verts[i] = {p.x, p.y, p.z, n.x, n.y, n.z, uv.x, uv.y};
+        m_UploadScratch[i] = {p.x, p.y, p.z, n.x, n.y, n.z, uv.x, uv.y};
     }
 
-    const std::uint64_t vertexBytes = verts.size() * sizeof(TerrainVertex);
-    const std::uint64_t indexBytes = chunk.mesh.indices.size() * sizeof(std::uint32_t);
+    const bool use16 = vertCount <= 65535u;
+    const std::uint64_t vertexBytes = m_UploadScratch.size() * sizeof(TerrainVertex);
+    const std::uint64_t indexBytes = use16
+        ? chunk.mesh.indices.size() * sizeof(std::uint16_t)
+        : chunk.mesh.indices.size() * sizeof(std::uint32_t);
 
     if (gpu.vertex == we::rhi::RHIBufferHandle::Invalid || gpu.vertexBytes < vertexBytes) {
         if (gpu.vertex != we::rhi::RHIBufferHandle::Invalid) {
@@ -342,13 +351,17 @@ bool TerrainRenderer::UploadChunk(const TerrainChunk& chunk, ChunkGpu& gpu) {
         gpu.vertexBytes = desc.size;
     }
 
-    if (gpu.index == we::rhi::RHIBufferHandle::Invalid || gpu.indexBytes < indexBytes) {
+    if (gpu.index == we::rhi::RHIBufferHandle::Invalid
+        || gpu.indexBytes < indexBytes
+        || (use16 && gpu.indexType != we::rhi::IndexType::UInt16)
+        || (!use16 && gpu.indexType != we::rhi::IndexType::UInt32)) {
         if (gpu.index != we::rhi::RHIBufferHandle::Invalid) {
             (void)m_Device->DestroyBuffer(gpu.index);
             gpu.index = we::rhi::RHIBufferHandle::Invalid;
         }
         we::rhi::BufferDesc desc{};
-        desc.size = std::max<std::uint64_t>(indexBytes, sizeof(std::uint32_t));
+        desc.size = std::max<std::uint64_t>(
+            indexBytes, use16 ? sizeof(std::uint16_t) : sizeof(std::uint32_t));
         desc.usage = we::rhi::BufferUsage::Index;
         desc.memory = we::rhi::MemoryUsage::HostVisible;
         desc.debugName = "Terrain.ChunkIB";
@@ -358,18 +371,34 @@ bool TerrainRenderer::UploadChunk(const TerrainChunk& chunk, ChunkGpu& gpu) {
         }
         gpu.index = *buf;
         gpu.indexBytes = desc.size;
+        gpu.indexType = use16 ? we::rhi::IndexType::UInt16 : we::rhi::IndexType::UInt32;
     }
 
     if (!m_Device->UpdateBuffer(
             gpu.vertex,
-            std::span(reinterpret_cast<const std::uint8_t*>(verts.data()), vertexBytes))) {
+            std::span(
+                reinterpret_cast<const std::uint8_t*>(m_UploadScratch.data()),
+                vertexBytes))) {
         return false;
     }
-    if (!m_Device->UpdateBuffer(
-            gpu.index,
-            std::span(
-                reinterpret_cast<const std::uint8_t*>(chunk.mesh.indices.data()),
-                indexBytes))) {
+
+    if (use16) {
+        m_IndexScratch16.resize(chunk.mesh.indices.size());
+        for (std::size_t i = 0; i < chunk.mesh.indices.size(); ++i) {
+            m_IndexScratch16[i] = static_cast<std::uint16_t>(chunk.mesh.indices[i]);
+        }
+        if (!m_Device->UpdateBuffer(
+                gpu.index,
+                std::span(
+                    reinterpret_cast<const std::uint8_t*>(m_IndexScratch16.data()),
+                    indexBytes))) {
+            return false;
+        }
+    } else if (!m_Device->UpdateBuffer(
+                   gpu.index,
+                   std::span(
+                       reinterpret_cast<const std::uint8_t*>(chunk.mesh.indices.data()),
+                       indexBytes))) {
         return false;
     }
 
@@ -378,15 +407,23 @@ bool TerrainRenderer::UploadChunk(const TerrainChunk& chunk, ChunkGpu& gpu) {
     return true;
 }
 
+void TerrainRenderer::SyncVisibility(const TerrainChunkManager& chunks) {
+    for (auto& [id, gpu] : m_GpuChunks) {
+        if (const TerrainChunk* chunk = chunks.Find(id)) {
+            gpu.visible = chunk->visible;
+        } else {
+            gpu.visible = false;
+        }
+    }
+}
+
 void TerrainRenderer::SyncChunks(TerrainChunkManager& chunks) {
     const auto t0 = std::chrono::steady_clock::now();
     m_Stats = {};
     m_Stats.chunksCreated = static_cast<std::uint32_t>(chunks.Chunks().size());
-    m_Stats.materialAssigned = m_MaterialPath.empty()
-        ? kDefaultLandscapeMaterialPath
-        : m_MaterialPath;
-    m_Stats.pipelineReady = m_Ready;
-    m_Stats.renderProxyReady = m_Ready;
+    CopyMaterialPath(m_Stats.materialAssigned, m_MaterialPath);
+    m_Stats.pipelineReady = m_Ready ? 1u : 0u;
+    m_Stats.renderProxyReady = m_Ready ? 1u : 0u;
 
     if (!m_Initialized) {
         return;
@@ -395,8 +432,8 @@ void TerrainRenderer::SyncChunks(TerrainChunkManager& chunks) {
         // Retry shader/GPU init (e.g. bytecode staged after first Create).
         if (LoadShaders() && EnsureGpuResources()) {
             m_Ready = true;
-            m_Stats.pipelineReady = true;
-            m_Stats.renderProxyReady = true;
+            m_Stats.pipelineReady = 1u;
+            m_Stats.renderProxyReady = 1u;
             HE_INFO("[Terrain] TerrainRenderer GPU path recovered.");
         }
     }
@@ -474,6 +511,7 @@ void TerrainRenderer::SyncChunks(TerrainChunkManager& chunks) {
 
     m_Uploaded = uploaded;
     m_Stats.chunksUploaded = uploadedDirty;
+    m_Stats.chunksStreamed = static_cast<std::uint32_t>(m_GpuChunks.size());
     m_Stats.gpuBuffers = 0;
     for (const auto& [_, gpu] : m_GpuChunks) {
         if (gpu.vertex != we::rhi::RHIBufferHandle::Invalid
@@ -519,9 +557,12 @@ void TerrainRenderer::Draw(
     we::rhi::Extent2D extent,
     const we::math::Mat4& view,
     const we::math::Mat4& proj,
-    const we::math::Vec3& cameraPos)
+    const we::math::Vec3& cameraPos,
+    const TerrainSceneLighting* lighting)
 {
+    const auto renderT0 = std::chrono::steady_clock::now();
     m_Stats.drawCalls = 0;
+    m_LastLightingValid = lighting && lighting->valid;
     if (!m_Ready || !m_Device || color == we::rhi::RHITextureHandle::Invalid
         || extent.width == 0 || extent.height == 0 || m_GpuChunks.empty()) {
         return;
@@ -544,16 +585,43 @@ void TerrainRenderer::Draw(
         m_CameraBuffer,
         std::span(reinterpret_cast<const std::uint8_t*>(&camera), sizeof(camera)));
 
+    TerrainSceneLighting lit{};
+    if (lighting && lighting->valid) {
+        lit = *lighting;
+    } else {
+        lit.valid = true;
+    }
+
     MaterialUBO material{};
     material.albedo[0] = m_Albedo.x;
     material.albedo[1] = m_Albedo.y;
     material.albedo[2] = m_Albedo.z;
     material.albedo[3] = m_Albedo.w;
-    material.lightDir[0] = 0.45f;
-    material.lightDir[1] = 0.85f;
-    material.lightDir[2] = 0.25f;
     material.lightDir[3] = m_Roughness;
     material.material[0] = m_Metallic;
+    material.material[1] = lit.valid ? 1.0f : 0.0f;
+    material.gridParams[0] = m_GridSpacing;
+    material.gridParams[1] = m_GridLineWidth;
+    material.gridParams[2] = m_GridOpacity;
+    material.gridColor[0] = m_GridColor.x;
+    material.gridColor[1] = m_GridColor.y;
+    material.gridColor[2] = m_GridColor.z;
+    material.gridFade[0] = m_GridFadeStart;
+    material.gridFade[1] = m_GridFadeEnd;
+    material.sunTravel[0] = lit.sunDirection.x;
+    material.sunTravel[1] = lit.sunDirection.y;
+    material.sunTravel[2] = lit.sunDirection.z;
+    material.sunTravel[3] = lit.sunIntensity;
+    material.sunColor[0] = lit.sunColor.x;
+    material.sunColor[1] = lit.sunColor.y;
+    material.sunColor[2] = lit.sunColor.z;
+    material.skyAmbient[0] = lit.skyAmbientColor.x;
+    material.skyAmbient[1] = lit.skyAmbientColor.y;
+    material.skyAmbient[2] = lit.skyAmbientColor.z;
+    material.skyAmbient[3] = lit.skyLightIntensity;
+    material.skyLower[0] = lit.skyLightLowerColor.x;
+    material.skyLower[1] = lit.skyLightLowerColor.y;
+    material.skyLower[2] = lit.skyLightLowerColor.z;
     (void)m_Device->UpdateBuffer(
         m_MaterialBuffer,
         std::span(reinterpret_cast<const std::uint8_t*>(&material), sizeof(material)));
@@ -595,7 +663,7 @@ void TerrainRenderer::Draw(
             continue;
         }
         cmd.BindVertexBuffer(0, gpu.vertex);
-        cmd.BindIndexBuffer(gpu.index, 0, we::rhi::IndexType::UInt32);
+        cmd.BindIndexBuffer(gpu.index, 0, gpu.indexType);
         cmd.DrawIndexed(gpu.indexCount);
         ++m_Stats.drawCalls;
         ++rendered;
@@ -608,6 +676,11 @@ void TerrainRenderer::Draw(
         rendered,
         m_Stats.drawCalls,
         m_Stats.memoryBytes);
+    const auto renderMicros = static_cast<std::uint64_t>(
+        std::chrono::duration_cast<std::chrono::microseconds>(
+            std::chrono::steady_clock::now() - renderT0)
+            .count());
+    TerrainDiagnostics::Get().OnRender(renderMicros, m_LastLightingValid);
 }
 
 } // namespace we::runtime::terrain

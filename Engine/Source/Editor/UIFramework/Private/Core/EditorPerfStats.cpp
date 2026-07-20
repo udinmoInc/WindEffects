@@ -24,7 +24,7 @@ EditorPerfStats& EditorPerfStats::Get() {
     return instance;
 }
 
-bool EditorPerfStats::IsLoggingEnabled() {
+bool EditorPerfStats::IsPerfLoggingEnabled() {
     return EnvEnabled("WE_EDITOR_PERF");
 }
 
@@ -82,7 +82,7 @@ void EditorPerfStats::EndFrame(uint32_t uiVertices, uint32_t uiBatches) {
         m_AvgFps = m_AvgFps > 0.0f ? (m_AvgFps * 0.9f + fps * 0.1f) : fps;
     }
 
-    if (!IsLoggingEnabled() || m_AccumFrames == 0) {
+    if (!IsPerfLoggingEnabled() || m_AccumFrames == 0) {
         return;
     }
 

@@ -77,7 +77,7 @@ std::shared_ptr<we::runtime::kindui::Column> BuildViewportNavigationPreferencesC
         store.Save();
         ApplyLoadedViewportNavigationSettings();
     });
-    addSliderRow("Default Camera Speed", settings.defaultCameraSpeed, 1.0f, 50.0f, [&](float v) {
+    addSliderRow("Default Camera Speed", settings.defaultCameraSpeed, 1.0f, 2000.0f, [&](float v) {
         store.GetMutableSettings().defaultCameraSpeed = v;
         store.GetMutableSettings().preset = NavigationPreset::Custom;
         store.Save();

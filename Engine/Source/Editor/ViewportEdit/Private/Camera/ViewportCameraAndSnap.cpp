@@ -1,7 +1,10 @@
 #include "ViewportEditInternal.h"
 #include "Scene/Entity.h"
+#include "EditorCamera.h"
+#include "Terrain/TerrainSystem.h"
 
 #include <algorithm>
+#include <cmath>
 
 namespace we::editor::viewportedit {
 namespace detail {
@@ -25,26 +28,39 @@ public:
         }
         we::math::Vec3 sum{};
         int count = 0;
+        float landscapeExtent = 0.0f;
         for (const auto id : ids) {
             if (const auto* entity = scene->FindEntityById(id.value)) {
                 sum.x += entity->Position.x;
                 sum.y += entity->Position.y;
                 sum.z += entity->Position.z;
                 ++count;
-            }
-        }
-        if (count > 0) {
-            const we::math::Vec3 center{sum.x / count, sum.y / count, sum.z / count};
-            float distance = 8.0f;
-            for (const auto id : ids) {
-                if (const auto* entity = scene->FindEntityById(id.value)) {
-                    if (entity->Type == we::runtime::scene::EntityType::Landscape) {
-                        distance = std::max(distance, 600.0f);
-                    }
+                if (entity->Type == we::runtime::scene::EntityType::Landscape) {
+                    // Actor Scale is identity (meshes are world-space); use terrain Info extent.
+                    const auto& info = we::runtime::terrain::TerrainSystem::Get().Info();
+                    landscapeExtent = std::max(
+                        landscapeExtent,
+                        std::max(info.worldSizeX * info.worldScale.x, info.worldSizeY * info.worldScale.z));
                 }
             }
-            camera->Focus(center, distance);
         }
+        if (count <= 0) {
+            return;
+        }
+        const we::math::Vec3 center{sum.x / count, sum.y / count, sum.z / count};
+        float distance = 8.0f;
+        if (landscapeExtent > 1.0f) {
+            distance = landscapeExtent * 0.85f;
+            const float landscapeSpeed = std::clamp(
+                landscapeExtent * 0.08f,
+                we::runtime::engine::kEditorCameraLandscapeDefaultSpeed,
+                we::runtime::engine::kEditorCameraMaxSpeed);
+            if (camera->GetCameraSpeed() < landscapeSpeed * 0.5f) {
+                camera->SetCameraSpeed(landscapeSpeed);
+            }
+        }
+        camera->Focus(center, distance);
+        camera->SetOrbitPivot(center);
     }
 
     void Orbit(float dx, float dy) override {

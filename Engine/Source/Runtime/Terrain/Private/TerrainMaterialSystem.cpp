@@ -12,11 +12,12 @@ namespace we::runtime::terrain {
 namespace {
 
 float ParseFloatAfterKey(const std::string& content, const char* key, float fallback) {
-    const auto pos = content.find(key);
+    const std::string needle = std::string("\"") + key + "\"";
+    const auto pos = content.find(needle);
     if (pos == std::string::npos) {
         return fallback;
     }
-    const auto colon = content.find(':', pos);
+    const auto colon = content.find(':', pos + needle.size());
     if (colon == std::string::npos) {
         return fallback;
     }
@@ -34,11 +35,12 @@ bool ParseVec3AfterKey(
     float& g,
     float& b)
 {
-    const auto pos = content.find(key);
+    const std::string needle = std::string("\"") + key + "\"";
+    const auto pos = content.find(needle);
     if (pos == std::string::npos) {
         return false;
     }
-    const auto start = content.find('[', pos);
+    const auto start = content.find('[', pos + needle.size());
     const auto end = content.find(']', start);
     if (start == std::string::npos || end == std::string::npos || end <= start) {
         return false;
@@ -57,6 +59,10 @@ bool ParseVec3AfterKey(
         return false;
     }
     return true;
+}
+
+bool IsEditorLandscapeMaterialPath(const std::string& path) {
+    return path.find("M_DefaultLandscapeEditor") != std::string::npos;
 }
 
 } // namespace
@@ -180,6 +186,31 @@ bool TerrainMaterialSystem::TryLoadWemat(
         ParseFloatAfterKey(content, "metallic", kDefaultLandscapeMetallic), 0.0f, 1.0f);
     const float opacity = std::clamp(ParseFloatAfterKey(content, "opacity", 1.0f), 0.0f, 1.0f);
     outParams.albedo.w = opacity;
+
+    // Grid: editor default enables it; project materials stay grid-free unless specified.
+    const bool editorDefault = IsEditorLandscapeMaterialPath(we::core::PathService::ToGeneric(path));
+    const float defaultGridOpacity = editorDefault ? kDefaultLandscapeGridOpacity : 0.0f;
+    outParams.gridSpacing = std::max(
+        ParseFloatAfterKey(content, "gridSpacing", kDefaultLandscapeGridSpacing), 0.01f);
+    outParams.gridLineWidth = std::max(
+        ParseFloatAfterKey(content, "gridLineWidth", kDefaultLandscapeGridLineWidth), 0.01f);
+    outParams.gridOpacity = std::clamp(
+        ParseFloatAfterKey(content, "gridOpacity", defaultGridOpacity), 0.0f, 1.0f);
+
+    float gr = kDefaultLandscapeGridColorR;
+    float gg = kDefaultLandscapeGridColorG;
+    float gb = kDefaultLandscapeGridColorB;
+    if (ParseVec3AfterKey(content, "gridColor", gr, gg, gb)) {
+        outParams.gridColor = we::math::Vec3(gr, gg, gb);
+    } else {
+        outParams.gridColor = we::math::Vec3(
+            kDefaultLandscapeGridColorR,
+            kDefaultLandscapeGridColorG,
+            kDefaultLandscapeGridColorB);
+    }
+    outParams.gridFadeStart = kDefaultLandscapeGridFadeStart;
+    outParams.gridFadeEnd = kDefaultLandscapeGridFadeEnd;
+
     outParams.materialPath = we::core::PathService::ToGeneric(path);
     outParams.loadedFromEngineContent = true;
     return true;
@@ -226,7 +257,7 @@ TerrainMaterialParams TerrainMaterialSystem::ResolveShadingParams(
         return params;
     }
 
-    // Embedded charcoal defaults — never fall back to debug green.
+    // Embedded editor defaults — charcoal + world grid (never debug green).
     params.albedo = we::math::Vec4(
         kDefaultLandscapeAlbedoR,
         kDefaultLandscapeAlbedoG,
@@ -234,10 +265,19 @@ TerrainMaterialParams TerrainMaterialSystem::ResolveShadingParams(
         1.0f);
     params.roughness = kDefaultLandscapeRoughness;
     params.metallic = kDefaultLandscapeMetallic;
+    params.gridSpacing = kDefaultLandscapeGridSpacing;
+    params.gridLineWidth = kDefaultLandscapeGridLineWidth;
+    params.gridColor = we::math::Vec3(
+        kDefaultLandscapeGridColorR,
+        kDefaultLandscapeGridColorG,
+        kDefaultLandscapeGridColorB);
+    params.gridOpacity = kDefaultLandscapeGridOpacity;
+    params.gridFadeStart = kDefaultLandscapeGridFadeStart;
+    params.gridFadeEnd = kDefaultLandscapeGridFadeEnd;
     params.materialPath = kDefaultLandscapeMaterialPath;
     params.loadedFromEngineContent = false;
     HE_WARN(
-        "[Terrain] M_DefaultLandscape.wemat not found; using embedded charcoal defaults.");
+        "[Terrain] M_DefaultLandscapeEditor.wemat not found; using embedded editor defaults.");
     return params;
 }
 
