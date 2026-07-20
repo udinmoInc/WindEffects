@@ -90,7 +90,8 @@ using TerrainDrawFn = std::function<void(
     we::rhi::RHITextureHandle color,
     we::rhi::RHITextureHandle depth,
     we::rhi::Extent2D extent,
-    const CameraUniform& camera)>;
+    const CameraUniform& camera,
+    const SceneEnvironmentUniform& environment)>;
 
 class RENDERER_API TerrainPass final : public RenderPass {
 public:
@@ -99,7 +100,8 @@ public:
         we::rhi::RHITextureHandle color,
         we::rhi::RHITextureHandle depth,
         we::rhi::Extent2D extent,
-        const CameraUniform* camera);
+        const CameraUniform* camera,
+        const SceneEnvironmentUniform* environment);
     void Setup(std::vector<GraphTextureRef>& textures, std::vector<GraphBufferRef>& buffers) override;
     void Execute(const GraphPassContext& ctx) override;
 
@@ -109,6 +111,7 @@ private:
     we::rhi::RHITextureHandle m_Depth = we::rhi::RHITextureHandle::Invalid;
     we::rhi::Extent2D m_Extent{};
     const CameraUniform* m_Camera = nullptr;
+    const SceneEnvironmentUniform* m_Environment = nullptr;
 };
 
 class RENDERER_API TonemapPass final : public RenderPass {

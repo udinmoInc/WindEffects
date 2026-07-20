@@ -193,12 +193,19 @@ public:
     [[nodiscard]] virtual bool PaintLayerAtWorld(float worldX, float worldZ) = 0;
 
     virtual void SelectTerrainActor() = 0;
+    /// Frame the active landscape in the viewport (size-aware distance + nav speed).
+    virtual void FrameLandscape() = 0;
     [[nodiscard]] virtual std::uint64_t LandscapeEntityId() const noexcept = 0;
 
     [[nodiscard]] virtual LandscapeBrushPreview& BrushPreview() noexcept = 0;
     virtual void UpdateBrushPreview(float worldX, float worldY, float worldZ) = 0;
 
-    virtual void Tick(float deltaSeconds, float cameraX, float cameraY, float cameraZ) = 0;
+    virtual void Tick(
+        float deltaSeconds,
+        float cameraX,
+        float cameraY,
+        float cameraZ,
+        const we::math::Mat4* viewProj = nullptr) = 0;
 
     virtual void InstallViewportMode() = 0;
 };
@@ -226,7 +233,19 @@ public:
     bool ApplyBrushAtWorld(float worldX, float worldZ);
     int SpawnFoliageInDefaultRegion();
 
-    void Tick(float deltaSeconds, float cameraX, float cameraY, float cameraZ);
+    void Tick(float deltaSeconds, float cameraX, float cameraY, float cameraZ) {
+        GetLandscapeEditor().Tick(deltaSeconds, cameraX, cameraY, cameraZ, nullptr);
+    }
+
+    void Tick(
+        float deltaSeconds,
+        float cameraX,
+        float cameraY,
+        float cameraZ,
+        const we::math::Mat4* viewProj)
+    {
+        GetLandscapeEditor().Tick(deltaSeconds, cameraX, cameraY, cameraZ, viewProj);
+    }
     void InstallViewportMode();
 
     [[nodiscard]] ILandscapeEditor& Landscape() noexcept;

@@ -33,6 +33,16 @@ struct TerrainMaterialParams {
         1.0f};
     float roughness = kDefaultLandscapeRoughness;
     float metallic = kDefaultLandscapeMetallic;
+    /// World-space grid (meters). Zero opacity disables the grid (project materials).
+    float gridSpacing = kDefaultLandscapeGridSpacing;
+    float gridLineWidth = kDefaultLandscapeGridLineWidth;
+    we::math::Vec3 gridColor{
+        kDefaultLandscapeGridColorR,
+        kDefaultLandscapeGridColorG,
+        kDefaultLandscapeGridColorB};
+    float gridOpacity = kDefaultLandscapeGridOpacity;
+    float gridFadeStart = kDefaultLandscapeGridFadeStart;
+    float gridFadeEnd = kDefaultLandscapeGridFadeEnd;
     std::string materialPath = kDefaultLandscapeMaterialPath;
     bool loadedFromEngineContent = false;
 };
@@ -55,7 +65,7 @@ public:
 
     void PaintWeight(int x, int z, int layerIndex, float strength, float radius);
 
-    /// Bind Engine/Content M_DefaultLandscape when no project material is assigned.
+    /// Bind Engine/Content M_DefaultLandscapeEditor when no project material is assigned.
     void EnsureDefaultLandscapeMaterial(TerrainCreateInfo& createInfo);
     /// Resolve materialSlot0 (engine or project) into GPU-ready shading params.
     [[nodiscard]] TerrainMaterialParams ResolveShadingParams(

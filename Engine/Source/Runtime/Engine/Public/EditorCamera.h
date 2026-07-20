@@ -7,8 +7,10 @@
 namespace we::runtime::engine {
 
 inline constexpr float kEditorCameraMinSpeed = 1.0f;
-inline constexpr float kEditorCameraMaxSpeed = 50.0f;
+inline constexpr float kEditorCameraMaxSpeed = 2000.0f;
 inline constexpr float kEditorCameraDefaultSpeed = 4.0f;
+/// Suggested fly speed when framing / editing large landscapes.
+inline constexpr float kEditorCameraLandscapeDefaultSpeed = 120.0f;
 
 struct EditorCameraNavigationSettings {
     float mouseSensitivity = 0.15f;

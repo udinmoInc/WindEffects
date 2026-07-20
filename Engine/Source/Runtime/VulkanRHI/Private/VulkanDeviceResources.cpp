@@ -62,7 +62,13 @@ RHIResult<RHIBufferHandle> VulkanDevice::CreateBuffer(const BufferDesc& desc) {
     vkBindBufferMemory(m_Device, buffer.buffer, buffer.memory, 0);
 
     if (buffer.hostVisible) {
-        vkMapMemory(m_Device, buffer.memory, 0, desc.size, 0, &buffer.mapped);
+        // Map the full allocation — desc.size may be smaller than memRequirements.size.
+        if (vkMapMemory(m_Device, buffer.memory, 0, VK_WHOLE_SIZE, 0, &buffer.mapped) != VK_SUCCESS
+            || !buffer.mapped) {
+            vkDestroyBuffer(m_Device, buffer.buffer, nullptr);
+            vkFreeMemory(m_Device, buffer.memory, nullptr);
+            return RHIError::Make(RHIErrorCode::OutOfMemory, "vkMapMemory failed.", "CreateBuffer");
+        }
     }
 
     const auto handle = static_cast<RHIBufferHandle>(AllocHandle());

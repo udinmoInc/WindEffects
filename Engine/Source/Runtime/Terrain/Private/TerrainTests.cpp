@@ -85,6 +85,28 @@ TerrainTestReport RunTerrainRuntimeTests() {
     (void)runtime->Session().EndEditStroke(flatId);
     AddCase(report, "BrushStroke", brushed || true, "brush");
 
+    bool defaultMaterial = false;
+    if (terrain) {
+        const auto& slot = terrain->GetInfo().materialSlot0;
+        defaultMaterial = slot.find("M_DefaultLandscapeEditor") != std::string::npos;
+    }
+    AddCase(report, "DefaultLandscapeMaterialBound", defaultMaterial, "M_DefaultLandscapeEditor");
+
+    // Streaming must keep the whole small landscape resident (no camera-follow plane).
+    bool allResident = false;
+    if (terrain) {
+        const we::math::Vec3 cam(0.f, 100.f, 0.f);
+        terrain->Tick(0.016f, cam, nullptr);
+        allResident = terrain->GetChunkCount() > 0;
+        for (int i = 0; i < terrain->GetChunkCount(); ++i) {
+            if (const ITerrainChunk* c = terrain->GetChunk(i); !c || !c->IsVisible()) {
+                allResident = false;
+                break;
+            }
+        }
+    }
+    AddCase(report, "StreamingKeepsAllResident", allResident, "resident");
+
     auto asset = terrain ? terrain->CaptureAsset("Captured") : nullptr;
     AddCase(report, "CaptureAsset", asset && asset->IsValid(), "asset");
     AddCase(

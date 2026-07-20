@@ -26,6 +26,7 @@ public class ViewportEdit : ModuleRules
 
         PrivateDependencies.Add("RHI");
         PrivateDependencies.Add("Renderer");
+        PrivateDependencies.Add("Terrain");
 
         AddOptionalThirdParty("glm");
         DefineIf(HasThirdParty("glm"), "WE_HAS_GLM=1");

@@ -62,7 +62,7 @@ void ApplyDefaultEntityProperties(Entity& entity, EntityType type) {
         entity.Mode = 1;
         break;
     case EntityType::Landscape:
-        entity.Color = we::math::Vec4(0.35f, 0.55f, 0.28f, 1.0f);
+        entity.Color = we::math::Vec4(0.165f, 0.165f, 0.165f, 1.0f);
         entity.Position = we::math::Vec3(0.0f, 0.0f, 0.0f);
         break;
     case EntityType::CameraIcon:

@@ -132,6 +132,7 @@ void BuildManageTab(
     AddButton(layout, "Resize", [&]() {
         (void)editor.ResizeLandscape(resizeX, resizeY);
     });
+    AddButton(layout, "Frame Landscape", [&]() { editor.FrameLandscape(); });
     AddButton(layout, "Rebuild", [&]() { (void)editor.RebuildMeshes(); });
     AddButton(layout, "Generate Collision", [&]() { (void)editor.RebuildCollision(); });
     AddButton(layout, "Rebuild LOD", [&]() { (void)editor.RebuildLOD(); });

@@ -119,8 +119,8 @@ struct VolumetricCloudComponent {
 struct TerrainComponent {
     bool enabled = true;
     std::uint64_t landscapeId = 0;
-    int resolutionX = 1009;
-    int resolutionY = 1009;
+    int resolutionX = 1017;
+    int resolutionY = 1017;
 };
 
 struct WaterComponent {

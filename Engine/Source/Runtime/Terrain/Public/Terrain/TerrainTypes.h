@@ -4,6 +4,7 @@
 #include "Core/Math/Types.h"
 
 #include <cstdint>
+#include <cstdio>
 #include <string>
 #include <vector>
 
@@ -18,18 +19,41 @@ inline constexpr int kDefaultTileSize = 1;
 inline constexpr float kMidHeightNormalized = 0.5f;
 inline constexpr std::uint16_t kMidHeightSample = 32768;
 
-/// Built-in engine landscape material (Engine Content — never project Content).
+/// Built-in editor landscape material (Engine Content — never project Content).
+/// Applied automatically when a Landscape has no assigned user material.
 inline constexpr const char* kDefaultLandscapeMaterialPath =
-    "Engine/Content/Materials/M_DefaultLandscape.wemat";
+    "Engine/Content/Materials/M_DefaultLandscapeEditor.wemat";
 inline constexpr const char* kDefaultLandscapeMaterialRelative =
-    "Materials/M_DefaultLandscape.wemat";
+    "Materials/M_DefaultLandscapeEditor.wemat";
 
-/// Matte charcoal (UE5-editor style) — replaces legacy green debug albedo.
-inline constexpr float kDefaultLandscapeAlbedoR = 0.165f;
+/// Dark charcoal base (#2A2A2A) — professional editor terrain, not debug.
+inline constexpr float kDefaultLandscapeAlbedoR = 0.165f; // ~42/255
 inline constexpr float kDefaultLandscapeAlbedoG = 0.165f;
-inline constexpr float kDefaultLandscapeAlbedoB = 0.175f;
+inline constexpr float kDefaultLandscapeAlbedoB = 0.165f;
 inline constexpr float kDefaultLandscapeRoughness = 0.92f;
 inline constexpr float kDefaultLandscapeMetallic = 0.0f;
+
+/// Procedural world-space grid defaults (editor material only).
+inline constexpr float kDefaultLandscapeGridSpacing = 10.0f;
+inline constexpr float kDefaultLandscapeGridLineWidth = 1.25f;
+inline constexpr float kDefaultLandscapeGridColorR = 0.42f;
+inline constexpr float kDefaultLandscapeGridColorG = 0.42f;
+inline constexpr float kDefaultLandscapeGridColorB = 0.42f;
+inline constexpr float kDefaultLandscapeGridOpacity = 0.22f;
+inline constexpr float kDefaultLandscapeGridFadeStart = 80.0f;
+inline constexpr float kDefaultLandscapeGridFadeEnd = 320.0f;
+
+/// Scene lighting snapshot for terrain (matches EnvironmentBuffer sun/sky terms).
+/// Populated from SceneEnvironmentUniform so terrain uses the same light model as world geometry.
+struct TERRAIN_API TerrainSceneLighting {
+    we::math::Vec3 sunDirection{0.3f, -0.8f, 0.2f}; // travel direction (sun → ground)
+    float sunIntensity = 1.2f;
+    we::math::Vec3 sunColor{1.0f, 0.98f, 0.95f};
+    float skyLightIntensity = 1.0f;
+    we::math::Vec3 skyAmbientColor{0.35f, 0.42f, 0.55f};
+    we::math::Vec3 skyLightLowerColor{0.15f, 0.16f, 0.18f};
+    bool valid = false;
+};
 
 /// Stable terrain asset identity (maps to AssetGuid / WorldGuid bytes).
 struct TERRAIN_API TerrainGuid {
@@ -132,8 +156,9 @@ enum class TerrainValidationSeverity : std::uint8_t {
 };
 
 struct TERRAIN_API TerrainLODSettings {
-    int maxLod = 3;
-    float lodBias = 1.0f;
+    int maxLod = 4;
+    /// Higher = more aggressive coarsening (AAA editor default biases toward FPS).
+    float lodBias = 1.75f;
     bool enabled = true;
 };
 
@@ -172,10 +197,12 @@ using ProceduralHeightmapParams = TerrainGeneratorParams;
 
 /// Full New Landscape / Create Landscape description. Heightmap path is optional.
 struct TERRAIN_API TerrainCreateInfo {
-    int resolutionX = 1009; // (7 * 127) + 1 → 8x8 chunks of 127 quads
-    int resolutionY = 1009;
-    float worldSizeX = 1009.0f; // meters (width)
-    float worldSizeY = 1009.0f; // meters (depth / "height" in plan)
+    // AAA editor default: true 8×8 chunks of 127 quads on a ~2 km landscape.
+    // Performance comes from aggressive LOD + frustum cull, not a tiny heightfield.
+    int resolutionX = 1017; // (8 * 127) + 1
+    int resolutionY = 1017;
+    float worldSizeX = 2048.0f; // meters (width)
+    float worldSizeY = 2048.0f; // meters (depth / "height" in plan)
     float heightScale = 256.0f; // meters at max uint16
     float heightOffset = 0.0f;
     float initialElevation = 0.5f; // normalized fill for Flat
@@ -229,7 +256,7 @@ struct TERRAIN_API TerrainMeshCPU {
     std::vector<std::uint32_t> indices;
 };
 
-struct TERRAIN_API TerrainRenderStats {
+struct TerrainRenderStats {
     std::uint32_t chunksCreated = 0;
     std::uint32_t chunksVisible = 0;
     std::uint32_t chunksLoaded = 0;
@@ -242,20 +269,32 @@ struct TERRAIN_API TerrainRenderStats {
     std::uint32_t drawCalls = 0;
     std::uint64_t gpuUploadMicros = 0;
     std::uint64_t memoryBytes = 0;
-    bool renderProxyReady = false;
-    bool pipelineReady = false;
+    std::uint32_t renderProxyReady = 0;
+    std::uint32_t pipelineReady = 0;
     TerrainAABB bounds{};
-    std::string materialAssigned = kDefaultLandscapeMaterialPath;
+    char materialAssigned[160]{};
 };
 
-struct TERRAIN_API TerrainCreationReport {
-    bool success = false;
-    std::string failedStage;
-    std::string reason;
+/// POD across DLL boundaries — never put std::string here (MSVC heap/ABI crash).
+struct TerrainCreationReport {
+    std::uint32_t success = 0;
+    char failedStage[64]{};
+    char reason[96]{};
     TerrainRenderStats render{};
     std::uint64_t entityId = 0;
     TerrainId terrainId{};
 };
+
+inline void TerrainCopyCStr(char* dst, std::size_t dstSize, const char* src) {
+    if (!dst || dstSize == 0) {
+        return;
+    }
+    if (!src) {
+        dst[0] = '\0';
+        return;
+    }
+    std::snprintf(dst, dstSize, "%s", src);
+}
 
 struct TERRAIN_API TerrainBrushSettings {
     TerrainBrushOp op = TerrainBrushOp::Raise;

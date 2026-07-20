@@ -144,7 +144,8 @@ public:
         rhi::Extent2D extent,
         const we::math::Mat4& view,
         const we::math::Mat4& proj,
-        const we::math::Vec3& cameraPos) = 0;
+        const we::math::Vec3& cameraPos,
+        const TerrainSceneLighting* lighting = nullptr) = 0;
     virtual void SetClipmapsEnabled(bool enabled) = 0;
     [[nodiscard]] virtual std::uint32_t UploadedChunkCount() const noexcept = 0;
     [[nodiscard]] virtual const TerrainRenderStats& LastStats() const noexcept = 0;

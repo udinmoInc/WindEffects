@@ -16,6 +16,13 @@ void TerrainChunkManager::Initialize(const TerrainCreateInfo& info) {
     m_Chunks.clear();
     m_Chunks.resize(static_cast<std::size_t>(m_ChunksX * m_ChunksZ));
 
+    const float dx = (info.worldSizeX * info.worldScale.x)
+        / static_cast<float>(std::max(1, samplesX - 1));
+    const float dz = (info.worldSizeY * info.worldScale.z)
+        / static_cast<float>(std::max(1, samplesZ - 1));
+    const float y0 = info.heightOffset;
+    const float y1 = info.heightOffset + info.heightScale * info.worldScale.y;
+
     for (int cz = 0; cz < m_ChunksZ; ++cz) {
         for (int cx = 0; cx < m_ChunksX; ++cx) {
             TerrainChunk& chunk = m_Chunks[static_cast<std::size_t>(IndexOf(cx, cz))];
@@ -28,6 +35,15 @@ void TerrainChunkManager::Initialize(const TerrainCreateInfo& info) {
             chunk.meshDirty = true;
             chunk.gpuDirty = true;
             chunk.collisionDirty = true;
+            // Approximate world AABB so LOD/frustum work before the first remesh.
+            const float x0 = info.worldOrigin.x + static_cast<float>(chunk.vertexOriginX) * dx;
+            const float z0 = info.worldOrigin.z + static_cast<float>(chunk.vertexOriginZ) * dz;
+            const float x1 = info.worldOrigin.x
+                + static_cast<float>(std::min(chunk.vertexOriginX + chunk.quads, samplesX - 1)) * dx;
+            const float z1 = info.worldOrigin.z
+                + static_cast<float>(std::min(chunk.vertexOriginZ + chunk.quads, samplesZ - 1)) * dz;
+            chunk.bounds.min = we::math::Vec3(x0, y0, z0);
+            chunk.bounds.max = we::math::Vec3(x1, y1, z1);
         }
     }
 }

@@ -4,6 +4,8 @@
 #include "Terrain/TerrainSystem.h"
 #include "Terrain/TerrainTypes.h"
 #include "Terrain/TerrainReflection.h"
+#include "Terrain/TerrainDiagnostics.h"
+#include "Terrain/ITerrainRuntime.h"
 #include "ViewportEdit/ViewportEdit.h"
 #include "Undo/IUndoRuntime.h"
 #include "Undo/ITransactionManager.h"
@@ -19,9 +21,11 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstdio>
 #include <functional>
 #include <memory>
 #include <mutex>
+#include <new>
 #include <vector>
 
 namespace we::editor::terrain {
@@ -247,6 +251,7 @@ public:
                 selCtx->SetPrimaryTerrain(ViewportObjectId{m_Editor.LandscapeEntityId()});
             }
             m_Editor.SelectTerrainActor();
+            m_Editor.FrameLandscape();
         }
         (void)context;
     }
@@ -310,6 +315,17 @@ public:
     [[nodiscard]] NewLandscapeDialogState& Dialog() noexcept override { return m_Dialog; }
 
     [[nodiscard]] bool CreateFromDialog() override {
+        if (m_CreatingLandscape) {
+            HE_ERROR("[TerrainEditor] CreateFromDialog re-entered — ignored.");
+            return false;
+        }
+        m_CreatingLandscape = true;
+        struct CreatingGuard {
+            bool& flag;
+            ~CreatingGuard() { flag = false; }
+        } guard{m_CreatingLandscape};
+
+        try {
         if (!m_Wizard.CanFinish() && !m_Dialog.name.empty()) {
             m_Wizard.State() = m_Dialog;
         }
@@ -382,7 +398,7 @@ public:
         LogCreationReport(report);
         if (!report.success) {
             HE_ERROR("[TerrainEditor] Create Landscape aborted — not renderable: stage="
-                + report.failedStage + " reason=" + report.reason);
+                + std::string(report.failedStage) + " reason=" + std::string(report.reason));
             terrain.Destroy();
             return false;
         }
@@ -394,9 +410,21 @@ public:
         HE_INFO("[TerrainEditor] Created Landscape '" + state.name
             + "' with visible terrain geometry.");
         return true;
+        } catch (const std::bad_alloc&) {
+            HE_ERROR("[TerrainEditor] CreateFromDialog bad_alloc — destroying terrain.");
+            runtime_terrain::TerrainSystem::Get().Destroy();
+            return false;
+        } catch (const std::exception& ex) {
+            HE_ERROR(std::string("[TerrainEditor] CreateFromDialog exception: ") + ex.what());
+            runtime_terrain::TerrainSystem::Get().Destroy();
+            return false;
+        }
     }
 
     [[nodiscard]] bool EnsureLandscape() override {
+        if (m_CreatingLandscape) {
+            return runtime_terrain::TerrainSystem::Get().IsCreated();
+        }
         auto& terrain = runtime_terrain::TerrainSystem::Get();
         if (m_Scene) {
             terrain.BindScene(m_Scene);
@@ -411,39 +439,63 @@ public:
     }
 
     [[nodiscard]] bool GenerateDefaultLandscape() override {
-        auto& terrain = runtime_terrain::TerrainSystem::Get();
-        if (m_Scene) {
-            terrain.BindScene(m_Scene);
-        }
-        runtime_terrain::TerrainCreateInfo info{};
-        info.creationMethod = runtime_terrain::TerrainCreationMethod::Flat;
-        info.generator.generator = runtime_terrain::TerrainGeneratorId::Flat;
-        info.initialElevation = 0.5f;
-        info.displayName = "Landscape";
-        if (!terrain.Create(info)) {
+        if (m_CreatingLandscape) {
+            HE_ERROR("[TerrainEditor] GenerateDefaultLandscape re-entered — ignored.");
             return false;
         }
-        for (auto& chunk : terrain.Chunks().Chunks()) {
-            chunk.visible = true;
-        }
-        if (terrain.SpawnLandscapeActor("Landscape") == 0) {
-            HE_ERROR("[TerrainEditor] GenerateDefaultLandscape failed: spawn");
-            terrain.Destroy();
+        m_CreatingLandscape = true;
+        struct CreatingGuard {
+            bool& flag;
+            ~CreatingGuard() { flag = false; }
+        } guard{m_CreatingLandscape};
+
+        try {
+            auto& terrain = runtime_terrain::TerrainSystem::Get();
+            if (m_Scene) {
+                terrain.BindScene(m_Scene);
+            }
+            runtime_terrain::TerrainCreateInfo info{};
+            info.creationMethod = runtime_terrain::TerrainCreationMethod::Flat;
+            info.generator.generator = runtime_terrain::TerrainGeneratorId::Flat;
+            info.initialElevation = 0.5f;
+            info.displayName = "Landscape";
+            HE_INFO("[TerrainEditor] GenerateDefaultLandscape stage=Create");
+            if (!terrain.Create(info)) {
+                return false;
+            }
+            for (auto& chunk : terrain.Chunks().Chunks()) {
+                chunk.visible = true;
+            }
+            HE_INFO("[TerrainEditor] GenerateDefaultLandscape stage=Spawn");
+            if (terrain.SpawnLandscapeActor("Landscape") == 0) {
+                HE_ERROR("[TerrainEditor] GenerateDefaultLandscape failed: spawn");
+                terrain.Destroy();
+                return false;
+            }
+            HE_INFO("[TerrainEditor] GenerateDefaultLandscape stage=Verify");
+            const auto report = VerifyRenderableLandscape("GenerateDefaultLandscape");
+            LogCreationReport(report);
+            if (!report.success) {
+                HE_ERROR("[TerrainEditor] GenerateDefaultLandscape not renderable: "
+                    + std::string(report.failedStage) + " / " + std::string(report.reason));
+                terrain.Destroy();
+                return false;
+            }
+            HE_INFO("[TerrainEditor] GenerateDefaultLandscape stage=SelectFrame");
+            SelectTerrainActor();
+            FrameLandscapeInViewport();
+            TerrainEditorDiagnostics::Get().OnLandscapeCreated();
+            HE_INFO("[TerrainEditor] Generated default Flat Landscape (no heightmap required).");
+            return true;
+        } catch (const std::bad_alloc&) {
+            HE_ERROR("[TerrainEditor] GenerateDefaultLandscape bad_alloc — destroying terrain.");
+            runtime_terrain::TerrainSystem::Get().Destroy();
+            return false;
+        } catch (const std::exception& ex) {
+            HE_ERROR(std::string("[TerrainEditor] GenerateDefaultLandscape exception: ") + ex.what());
+            runtime_terrain::TerrainSystem::Get().Destroy();
             return false;
         }
-        const auto report = VerifyRenderableLandscape("GenerateDefaultLandscape");
-        LogCreationReport(report);
-        if (!report.success) {
-            HE_ERROR("[TerrainEditor] GenerateDefaultLandscape not renderable: "
-                + report.failedStage + " / " + report.reason);
-            terrain.Destroy();
-            return false;
-        }
-        SelectTerrainActor();
-        FrameLandscapeInViewport();
-        TerrainEditorDiagnostics::Get().OnLandscapeCreated();
-        HE_INFO("[TerrainEditor] Generated default Flat Landscape (no heightmap required).");
-        return true;
     }
 
     [[nodiscard]] bool GenerateProcedural(
@@ -539,6 +591,12 @@ public:
     [[nodiscard]] bool BeginBrushStroke() override {
         m_StrokeBefore = runtime_terrain::TerrainSystem::Get().CaptureHeightSamples();
         m_StrokeActive = !m_StrokeBefore.empty();
+        if (m_StrokeActive) {
+            // Defer collision + coalesce remesh until EndStroke / Tick.
+            if (auto* terrain = runtime_terrain::GetDefaultTerrainRuntime().Manager().GetActive()) {
+                terrain->Brush().BeginStroke();
+            }
+        }
         return m_StrokeActive;
     }
 
@@ -547,6 +605,9 @@ public:
             return false;
         }
         m_StrokeActive = false;
+        if (auto* terrain = runtime_terrain::GetDefaultTerrainRuntime().Manager().GetActive()) {
+            terrain->Brush().EndStroke();
+        }
         auto after = runtime_terrain::TerrainSystem::Get().CaptureHeightSamples();
         if (after == m_StrokeBefore) {
             m_StrokeBefore.clear();
@@ -870,33 +931,48 @@ public:
 
     [[nodiscard]] LandscapeBrushPreview& BrushPreview() noexcept override { return m_BrushPreview; }
 
-    void Tick(float deltaSeconds, float cameraX, float cameraY, float cameraZ) override {
+    void Tick(
+        float deltaSeconds,
+        float cameraX,
+        float cameraY,
+        float cameraZ,
+        const we::math::Mat4* viewProj) override
+    {
         auto& terrain = runtime_terrain::TerrainSystem::Get();
         if (!terrain.IsCreated()) {
             return;
         }
-        terrain.Tick(deltaSeconds, we::math::Vec3(cameraX, cameraY, cameraZ), nullptr);
-        terrain.Renderer().SyncChunks(terrain.Chunks());
+        // Coalesced remesh/GPU upload of dirty chunks; LOD frozen during stroke.
+        // viewProj enables frustum cull so off-screen chunks are not drawn.
+        terrain.Tick(deltaSeconds, we::math::Vec3(cameraX, cameraY, cameraZ), viewProj);
+        if (m_Viewport) {
+            if (auto* cam = m_Viewport->Context().EditorCamera()) {
+                runtime_terrain::TerrainDiagnostics::Get().SetCameraSpeed(cam->GetCameraSpeed());
+            }
+        }
     }
 
     [[nodiscard]] runtime_terrain::TerrainCreationReport VerifyRenderableLandscape(
         const char* stage) const
     {
         runtime_terrain::TerrainCreationReport report{};
+        auto setFail = [&](const char* failStage, const char* reason) {
+            runtime_terrain::TerrainCopyCStr(
+                report.failedStage, sizeof(report.failedStage), failStage);
+            runtime_terrain::TerrainCopyCStr(report.reason, sizeof(report.reason), reason);
+        };
+
         auto& terrain = runtime_terrain::TerrainSystem::Get();
         if (!terrain.IsCreated()) {
-            report.failedStage = stage ? stage : "Verify";
-            report.reason = "terrain_not_created";
+            setFail(stage ? stage : "Verify", "terrain_not_created");
             return report;
         }
         if (terrain.Heightmap().Empty()) {
-            report.failedStage = "GenerateInitialTerrainData";
-            report.reason = "heightfield_empty";
+            setFail("GenerateInitialTerrainData", "heightfield_empty");
             return report;
         }
         if (terrain.Chunks().Chunks().empty()) {
-            report.failedStage = "BuildTerrainChunks";
-            report.reason = "no_chunks";
+            setFail("BuildTerrainChunks", "no_chunks");
             return report;
         }
         std::uint32_t verts = 0;
@@ -909,14 +985,12 @@ public:
             verts += static_cast<std::uint32_t>(chunk.mesh.positions.size());
             tris += static_cast<std::uint32_t>(chunk.mesh.indices.size() / 3);
             if (chunk.mesh.positions.empty() || chunk.mesh.indices.empty()) {
-                report.failedStage = "GenerateMeshGeometry";
-                report.reason = "chunk_mesh_empty";
+                setFail("GenerateMeshGeometry", "chunk_mesh_empty");
                 return report;
             }
             const auto& b = chunk.bounds;
             if (!(b.min.x <= b.max.x && b.min.y <= b.max.y && b.min.z <= b.max.z)) {
-                report.failedStage = "GenerateMeshGeometry";
-                report.reason = "invalid_bounds";
+                setFail("GenerateMeshGeometry", "invalid_bounds");
                 return report;
             }
         }
@@ -927,42 +1001,47 @@ public:
         report.render.chunksLoaded = visible;
         report.render.vertices = verts;
         report.render.triangles = tris;
-        report.render.materialAssigned =
-            terrain.Info().materialSlot0.empty() ? "DefaultTerrain" : terrain.Info().materialSlot0;
+        {
+            const std::string& slot = terrain.Info().materialSlot0;
+            const char* path = slot.empty()
+                ? runtime_terrain::kDefaultLandscapeMaterialPath
+                : slot.c_str();
+            runtime_terrain::TerrainCopyCStr(
+                report.render.materialAssigned,
+                sizeof(report.render.materialAssigned),
+                path);
+        }
         if (verts == 0 || tris == 0) {
-            report.failedStage = "GenerateMeshGeometry";
-            report.reason = "zero_geometry";
+            setFail("GenerateMeshGeometry", "zero_geometry");
             return report;
         }
         if (terrain.Renderer().HasDevice()) {
             if (!terrain.Renderer().IsReady()) {
-                report.failedStage = "CreateRenderProxy";
-                report.reason = "terrain_renderer_not_ready";
+                setFail("CreateRenderProxy", "terrain_renderer_not_ready");
                 return report;
             }
             if (report.render.gpuBuffers == 0) {
-                report.failedStage = "CreateGpuBuffers";
-                report.reason = "no_gpu_buffers";
+                setFail("CreateGpuBuffers", "no_gpu_buffers");
                 return report;
             }
-            report.render.renderProxyReady = true;
+            report.render.renderProxyReady = 1u;
         }
-        report.success = true;
+        report.success = 1u;
         return report;
     }
 
     void LogCreationReport(const runtime_terrain::TerrainCreationReport& report) const {
         std::ostringstream oss;
         oss << "[TerrainEditor] Landscape pipeline diagnostics:"
-            << " success=" << (report.success ? 1 : 0)
+            << " success=" << report.success
             << " chunks=" << report.render.chunksCreated
             << " visible=" << report.render.chunksVisible
             << " loaded=" << report.render.chunksLoaded
             << " verts=" << report.render.vertices
             << " tris=" << report.render.triangles
             << " gpuBuffers=" << report.render.gpuBuffers
-            << " proxy=" << (report.render.renderProxyReady ? 1 : 0)
-            << " pipeline=" << (report.render.pipelineReady ? 1 : 0)
+            << " proxy=" << report.render.renderProxyReady
+            << " pipeline=" << report.render.pipelineReady
             << " material=" << report.render.materialAssigned
             << " draws=" << report.render.drawCalls
             << " bounds=(" << report.render.bounds.min.x << "," << report.render.bounds.min.y
@@ -991,14 +1070,25 @@ public:
         const we::math::Vec3 center = info.worldOrigin
             + we::math::Vec3(info.worldSizeX * 0.5f, midY, info.worldSizeY * 0.5f);
         const float distance = std::max(info.worldSizeX, info.worldSizeY) * 0.85f;
+        const float landscapeSpeed = std::clamp(
+            std::max(info.worldSizeX, info.worldSizeY) * 0.08f,
+            we::runtime::engine::kEditorCameraLandscapeDefaultSpeed,
+            we::runtime::engine::kEditorCameraMaxSpeed);
+        cam->SetCameraSpeed(landscapeSpeed);
         cam->Focus(center, distance);
+        cam->SetOrbitPivot(center);
+        runtime_terrain::TerrainDiagnostics::Get().SetCameraSpeed(cam->GetCameraSpeed());
         const ViewportObjectId id{LandscapeEntityId()};
         if (id.value != 0) {
             m_Viewport->Camera().FrameSelection(std::span<const ViewportObjectId>(&id, 1));
-            // Re-apply distance after FrameSelection (which uses Focus@8m).
+            // Re-apply size-aware framing after FrameSelection.
+            cam->SetCameraSpeed(landscapeSpeed);
             cam->Focus(center, distance);
+            cam->SetOrbitPivot(center);
         }
     }
+
+    void FrameLandscape() override { FrameLandscapeInViewport(); }
 
     void InstallViewportMode() override {
         std::lock_guard lock(m_InstallMutex);
@@ -1079,6 +1169,7 @@ private:
     int m_PaintLayer = 0;
     int m_LayerCount = 1;
     bool m_Installed = false;
+    bool m_CreatingLandscape = false;
     std::mutex m_InstallMutex;
 };
 
@@ -1153,10 +1244,6 @@ int TerrainEditorService::SpawnFoliageInDefaultRegion() {
         params,
         we::math::Vec2(-half, -half),
         we::math::Vec2(half, half));
-}
-
-void TerrainEditorService::Tick(float deltaSeconds, float cameraX, float cameraY, float cameraZ) {
-    GetLandscapeEditor().Tick(deltaSeconds, cameraX, cameraY, cameraZ);
 }
 
 void TerrainEditorService::InstallViewportMode() {
