@@ -2,15 +2,15 @@
 #include "../Common/CameraBuffer.hlsli"
 #include "../Common/Color.hlsli"
 
-// Lightweight editor landscape shading — same sun/sky terms as EnvironmentBuffer / BasicMesh.
+// Landscape PBR shading — checker placeholder comes from material params, never editor grid.
 cbuffer TerrainMaterial : register(b0, space1)
 {
     float4 albedoColor;        // base RGB (sRGB authoring) + opacity
-    float4 lightDirPad;        // xyz unused (kept for layout), w = roughness
-    float4 materialPad;        // x = metallic, y = lightingValid, zw unused
-    float4 gridParams;         // x = spacing (m), y = line width, z = opacity, w unused
-    float4 gridColorPad;       // rgb = grid color, w unused
-    float4 gridFadePad;        // x = fade start (m), y = fade end (m)
+    float4 lightDirPad;        // xyz unused (layout), w = roughness
+    float4 materialPad;        // x = metallic, y = lightingValid, z = specular
+    float4 checkerParams;      // x = cell size (m), y = useChecker (0/1)
+    float4 checkerColorA;      // rgb = light checker square
+    float4 checkerColorB;      // rgb = dark checker square
     float4 sunTravelPad;       // xyz = sun travel direction, w = sunIntensity
     float4 sunColorPad;        // rgb = sunColor
     float4 skyAmbientPad;      // rgb = skyAmbientColor, w = skyLightIntensity
@@ -40,44 +40,30 @@ VSOutput VSMain(VSInput input)
     return o;
 }
 
-float WorldGridMask(float2 worldXZ, float spacing, float lineWidth)
+float3 WorldCheckerAlbedo(float2 worldXZ, float cellSize, float3 colorA, float3 colorB)
 {
-    const float cell = max(spacing, 1e-3);
+    const float cell = max(cellSize, 1e-3);
     const float2 uv = worldXZ / cell;
-    const float2 grid = abs(frac(uv - 0.5) - 0.5);
-    const float px = clamp(lineWidth, 0.35, 4.0);
-    const float2 derivative = max(fwidth(uv) * px, float2(1e-4, 1e-4));
-    const float lineX = 1.0 - smoothstep(0.0, derivative.x, grid.x);
-    const float lineY = 1.0 - smoothstep(0.0, derivative.y, grid.y);
-    return saturate(max(lineX, lineY));
+    const int2 cellId = int2(floor(uv));
+    const float checker = ((cellId.x + cellId.y) & 1) ? 1.0 : 0.0;
+    return lerp(colorA, colorB, checker);
 }
 
 float4 PSMain(VSOutput input) : SV_Target
 {
     float3 albedo = WE_sRGBToLinear(saturate(albedoColor.rgb));
-    const float3 normal = normalize(input.worldNormal);
-    const float metallic = saturate(materialPad.x);
-    const bool lightingValid = materialPad.y > 0.5;
-
-    // Grid is expensive (fwidth) — skip entirely when opacity is off / tiny.
-    const float gridOpacity = saturate(gridParams.z);
-    if (gridOpacity > 0.02)
+    if (checkerParams.y > 0.5)
     {
-        const float dist = length(cameraPos - input.worldPos);
-        const float fadeEnd = max(gridFadePad.y, gridFadePad.x + 1.0);
-        if (dist < fadeEnd)
-        {
-            const float lineMask = WorldGridMask(
-                input.worldPos.xz, max(gridParams.x, 0.01), max(gridParams.y, 0.01));
-            if (lineMask > 1e-3)
-            {
-                const float fadeStart = max(gridFadePad.x, 0.0);
-                const float distanceFade = 1.0 - smoothstep(fadeStart, fadeEnd, dist);
-                const float3 gridRgb = WE_sRGBToLinear(saturate(gridColorPad.rgb));
-                albedo = lerp(albedo, gridRgb, saturate(lineMask * gridOpacity * distanceFade));
-            }
-        }
+        const float3 colorA = WE_sRGBToLinear(saturate(checkerColorA.rgb));
+        const float3 colorB = WE_sRGBToLinear(saturate(checkerColorB.rgb));
+        albedo = WorldCheckerAlbedo(input.worldPos.xz, max(checkerParams.x, 0.01), colorA, colorB);
     }
+
+    const float3 normal = normalize(input.worldNormal);
+    const float roughness = saturate(max(lightDirPad.w, 0.04));
+    const float metallic = saturate(materialPad.x);
+    const float specularScale = saturate(materialPad.z);
+    const bool lightingValid = materialPad.y > 0.5;
 
     float3 sunTravel = lightingValid ? sunTravelPad.xyz : float3(0.3, -0.8, 0.2);
     float sunIntensity = lightingValid ? max(sunTravelPad.w, 0.0) : 1.2;
@@ -92,10 +78,10 @@ float4 PSMain(VSOutput input) : SV_Target
     const float3 ambient = albedo * lerp(skyLower, skyUpper, hemi) * skyIntensity;
     const float3 diffuse = albedo * sunColor * sunIntensity * ndotl * (1.0 - metallic);
 
-    // Cheap specular (no fresnel / high pow).
     const float3 viewDir = normalize(cameraPos - input.worldPos);
     const float3 halfV = normalize(L + viewDir);
-    const float spec = pow(saturate(dot(normal, halfV)), 32.0) * 0.04;
+    const float specPower = lerp(8.0, 128.0, 1.0 - roughness);
+    const float spec = pow(saturate(dot(normal, halfV)), specPower) * specularScale * (1.0 - metallic);
     const float3 specular = sunColor * sunIntensity * spec;
 
     float3 lit = ambient + diffuse + specular;

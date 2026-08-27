@@ -14,8 +14,12 @@ bool TerrainAABB::ContainsPoint(const we::math::Vec3& p) const {
 }
 
 bool TerrainAABB::IntersectsFrustumPlanes(const we::math::Vec4 planes[6]) const {
-    const we::math::Vec3 center = (min + max) * 0.5f;
-    const we::math::Vec3 extents = (max - min) * 0.5f;
+    we::math::Vec3 center = (min + max) * 0.5f;
+    we::math::Vec3 extents = (max - min) * 0.5f;
+    // Flat landscapes collapse Y after mesh build — pad so chunks never flicker off at edges.
+    extents.x = std::max(extents.x, kTerrainCullMinExtent);
+    extents.y = std::max(extents.y, kTerrainCullMinExtent);
+    extents.z = std::max(extents.z, kTerrainCullMinExtent);
     for (int i = 0; i < 6; ++i) {
         const we::math::Vec3 n(planes[i].x, planes[i].y, planes[i].z);
         const float r = extents.x * std::abs(n.x) + extents.y * std::abs(n.y) + extents.z * std::abs(n.z);

@@ -24,6 +24,11 @@ void ModalHost::SetContent(const std::shared_ptr<Widget>& content) {
     InvalidateLayout();
 }
 
+bool ModalHost::IsPointerTransparent() const {
+    // Empty or hidden modals must not sit on top of the shell and eat clicks.
+    return !IsVisible() || !m_Content;
+}
+
 Size ModalHost::Measure(const Size& availableSize) {
     if (m_Content) {
         const float scale = DPIContext::GetScale();

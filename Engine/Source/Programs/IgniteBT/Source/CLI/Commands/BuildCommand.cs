@@ -1,4 +1,4 @@
-﻿using Serilog;
+using Serilog;
 using IgniteBT.Workspace.Modules;
 using IgniteBT.Build.Layout;
 using IgniteBT.Build.Dependencies;
@@ -150,6 +150,11 @@ public static class BuildCommand
             using (profiler.Scope(BuildStages.ShaderCompilation))
             {
                 var shaderStats = ShaderBytecodeCompiler.CompileAndStage(engineDir, outputLayout.ConfigurationRoot, layout.CacheDirectory);
+                if (!shaderStats.Success)
+                {
+                    Log.Error("Build aborted due to shader compilation failures.");
+                    return 1;
+                }
                 if (shaderStats.Skipped > 0)
                     profiler.RecordShaderCacheHit(shaderStats.Skipped);
             }

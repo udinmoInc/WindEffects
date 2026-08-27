@@ -1,7 +1,7 @@
 {
   "assetType": "Material",
-  "name": "M_DefaultLandscape",
-  "displayName": "Default Landscape (Legacy Alias)",
+  "name": "DefaultLandscapeMaterial",
+  "displayName": "Default Landscape Material",
   "engineBuiltin": true,
   "shader": "Terrain",
   "baseColor": [0.5, 0.5, 0.5],
@@ -15,5 +15,5 @@
   "checkerCellSize": 100.0,
   "checkerColorA": [0.5, 0.5, 0.5],
   "checkerColorB": [0.35, 0.35, 0.35],
-  "description": "Legacy alias for DefaultLandscapeMaterial. Prefer M_DefaultLandscapeMaterial.wemat."
+  "description": "Built-in engine default landscape material: neutral gray world-space checker placeholder (Unreal-style). Assigned automatically when a Landscape has no user-defined material."
 }

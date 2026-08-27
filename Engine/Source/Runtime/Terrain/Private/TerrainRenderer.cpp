@@ -280,15 +280,18 @@ bool TerrainRenderer::EnsurePipeline(
     pso.fragmentShader = m_Ps;
     pso.layout = m_PipelineLayout;
     pso.topology = we::rhi::PrimitiveTopology::TriangleList;
-    pso.cullMode = we::rhi::CullMode::None;
+    pso.cullMode = we::rhi::CullMode::Back;
     pso.depthTest = true;
     pso.depthWrite = true;
     pso.depthCompare = we::rhi::CompareOp::LessOrEqual;
+    pso.rasterizer.depthBiasEnable = true;
+    pso.rasterizer.depthBiasConstant = 1;
+    pso.rasterizer.depthBiasSlope = 1.0f;
     pso.blend.enable = false;
     pso.colorFormat = colorFormat;
     pso.depthFormat = depthFormat;
     pso.depthAttachment = hasDepth;
-    pso.debugName = "Terrain.PSO";
+    pso.debugName = "Terrain.PSO.SingleSided";
 
     pso.vertexBindings.push_back({0, static_cast<uint32_t>(sizeof(TerrainVertex)), false});
     pso.vertexAttributes.push_back(
@@ -334,10 +337,6 @@ bool TerrainRenderer::UploadChunk(const TerrainChunk& chunk, ChunkGpu& gpu) {
         : chunk.mesh.indices.size() * sizeof(std::uint32_t);
 
     if (gpu.vertex == we::rhi::RHIBufferHandle::Invalid || gpu.vertexBytes < vertexBytes) {
-        if (gpu.vertex != we::rhi::RHIBufferHandle::Invalid) {
-            (void)m_Device->DestroyBuffer(gpu.vertex);
-            gpu.vertex = we::rhi::RHIBufferHandle::Invalid;
-        }
         we::rhi::BufferDesc desc{};
         desc.size = std::max<std::uint64_t>(vertexBytes, sizeof(TerrainVertex));
         desc.usage = we::rhi::BufferUsage::Vertex;
@@ -347,18 +346,35 @@ bool TerrainRenderer::UploadChunk(const TerrainChunk& chunk, ChunkGpu& gpu) {
         if (!buf) {
             return false;
         }
+        we::rhi::RHIBufferHandle oldVertex = gpu.vertex;
         gpu.vertex = *buf;
         gpu.vertexBytes = desc.size;
+        if (!m_Device->UpdateBuffer(
+                gpu.vertex,
+                std::span(
+                    reinterpret_cast<const std::uint8_t*>(m_UploadScratch.data()),
+                    vertexBytes))) {
+            (void)m_Device->DestroyBuffer(gpu.vertex);
+            gpu.vertex = oldVertex;
+            return false;
+        }
+        if (oldVertex != we::rhi::RHIBufferHandle::Invalid) {
+            (void)m_Device->DestroyBuffer(oldVertex);
+        }
+    } else if (!m_Device->UpdateBuffer(
+                   gpu.vertex,
+                   std::span(
+                       reinterpret_cast<const std::uint8_t*>(m_UploadScratch.data()),
+                       vertexBytes))) {
+        return false;
     }
 
-    if (gpu.index == we::rhi::RHIBufferHandle::Invalid
+    const bool needNewIndex = gpu.index == we::rhi::RHIBufferHandle::Invalid
         || gpu.indexBytes < indexBytes
         || (use16 && gpu.indexType != we::rhi::IndexType::UInt16)
-        || (!use16 && gpu.indexType != we::rhi::IndexType::UInt32)) {
-        if (gpu.index != we::rhi::RHIBufferHandle::Invalid) {
-            (void)m_Device->DestroyBuffer(gpu.index);
-            gpu.index = we::rhi::RHIBufferHandle::Invalid;
-        }
+        || (!use16 && gpu.indexType != we::rhi::IndexType::UInt32);
+
+    if (needNewIndex) {
         we::rhi::BufferDesc desc{};
         desc.size = std::max<std::uint64_t>(
             indexBytes, use16 ? sizeof(std::uint16_t) : sizeof(std::uint32_t));
@@ -369,20 +385,41 @@ bool TerrainRenderer::UploadChunk(const TerrainChunk& chunk, ChunkGpu& gpu) {
         if (!buf) {
             return false;
         }
+        we::rhi::RHIBufferHandle oldIndex = gpu.index;
+        const auto oldIndexType = gpu.indexType;
         gpu.index = *buf;
         gpu.indexBytes = desc.size;
         gpu.indexType = use16 ? we::rhi::IndexType::UInt16 : we::rhi::IndexType::UInt32;
-    }
 
-    if (!m_Device->UpdateBuffer(
-            gpu.vertex,
-            std::span(
-                reinterpret_cast<const std::uint8_t*>(m_UploadScratch.data()),
-                vertexBytes))) {
-        return false;
-    }
+        const bool indexOk = [&]() -> bool {
+            if (use16) {
+                m_IndexScratch16.resize(chunk.mesh.indices.size());
+                for (std::size_t i = 0; i < chunk.mesh.indices.size(); ++i) {
+                    m_IndexScratch16[i] = static_cast<std::uint16_t>(chunk.mesh.indices[i]);
+                }
+                return static_cast<bool>(m_Device->UpdateBuffer(
+                    gpu.index,
+                    std::span(
+                        reinterpret_cast<const std::uint8_t*>(m_IndexScratch16.data()),
+                        indexBytes)));
+            }
+            return static_cast<bool>(m_Device->UpdateBuffer(
+                gpu.index,
+                std::span(
+                    reinterpret_cast<const std::uint8_t*>(chunk.mesh.indices.data()),
+                    indexBytes)));
+        }();
 
-    if (use16) {
+        if (!indexOk) {
+            (void)m_Device->DestroyBuffer(gpu.index);
+            gpu.index = oldIndex;
+            gpu.indexType = oldIndexType;
+            return false;
+        }
+        if (oldIndex != we::rhi::RHIBufferHandle::Invalid) {
+            (void)m_Device->DestroyBuffer(oldIndex);
+        }
+    } else if (use16) {
         m_IndexScratch16.resize(chunk.mesh.indices.size());
         for (std::size_t i = 0; i < chunk.mesh.indices.size(); ++i) {
             m_IndexScratch16[i] = static_cast<std::uint16_t>(chunk.mesh.indices[i]);
@@ -482,17 +519,20 @@ void TerrainRenderer::SyncChunks(TerrainChunkManager& chunks) {
 
         ChunkGpu& gpu = m_GpuChunks[chunk.id];
         gpu.visible = true;
-        if (chunk.gpuDirty || gpu.vertex == we::rhi::RHIBufferHandle::Invalid
-            || gpu.indexCount == 0) {
+        const bool needsUpload = chunk.gpuDirty || gpu.vertex == we::rhi::RHIBufferHandle::Invalid
+            || gpu.index == we::rhi::RHIBufferHandle::Invalid || gpu.indexCount == 0;
+        if (needsUpload) {
             if (UploadChunk(chunk, gpu)) {
                 chunk.gpuDirty = false;
                 ++uploaded;
                 ++uploadedDirty;
-            } else {
+            } else if (gpu.vertex == we::rhi::RHIBufferHandle::Invalid
+                || gpu.index == we::rhi::RHIBufferHandle::Invalid) {
                 HE_ERROR(
                     "[Terrain] GPU upload failed for chunk ("
                     + std::to_string(chunk.id.x) + "," + std::to_string(chunk.id.z) + ").");
             }
+            // Keep previous GPU buffers on upload failure so the chunk does not flash empty.
         } else {
             ++uploaded;
         }
@@ -600,14 +640,15 @@ void TerrainRenderer::Draw(
     material.lightDir[3] = m_Roughness;
     material.material[0] = m_Metallic;
     material.material[1] = lit.valid ? 1.0f : 0.0f;
-    material.gridParams[0] = m_GridSpacing;
-    material.gridParams[1] = m_GridLineWidth;
-    material.gridParams[2] = m_GridOpacity;
-    material.gridColor[0] = m_GridColor.x;
-    material.gridColor[1] = m_GridColor.y;
-    material.gridColor[2] = m_GridColor.z;
-    material.gridFade[0] = m_GridFadeStart;
-    material.gridFade[1] = m_GridFadeEnd;
+    material.material[2] = m_Specular;
+    material.checkerParams[0] = m_CheckerCellSize;
+    material.checkerParams[1] = m_UseChecker ? 1.0f : 0.0f;
+    material.checkerColorA[0] = m_CheckerColorA.x;
+    material.checkerColorA[1] = m_CheckerColorA.y;
+    material.checkerColorA[2] = m_CheckerColorA.z;
+    material.checkerColorB[0] = m_CheckerColorB.x;
+    material.checkerColorB[1] = m_CheckerColorB.y;
+    material.checkerColorB[2] = m_CheckerColorB.z;
     material.sunTravel[0] = lit.sunDirection.x;
     material.sunTravel[1] = lit.sunDirection.y;
     material.sunTravel[2] = lit.sunDirection.z;

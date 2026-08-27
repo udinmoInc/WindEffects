@@ -68,6 +68,7 @@ private:
     we::platform::WindowId m_Window = we::platform::WindowId::Invalid;
     we::projects::EditorCommandLine m_CommandLine{};
     bool m_Running = true;
+    bool m_ShutdownComplete = false;
     bool m_FirstRunAgreementPending = false;
     std::string m_StatusMessage;
 

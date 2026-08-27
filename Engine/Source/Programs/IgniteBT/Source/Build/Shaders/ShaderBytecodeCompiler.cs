@@ -26,6 +26,7 @@ public static class ShaderBytecodeCompiler
 
     public sealed class ShaderCompileStats
     {
+        public bool Success { get; set; } = true;
         public int Compiled { get; set; }
         public int Skipped { get; set; }
         public long ElapsedMs { get; set; }
@@ -47,6 +48,7 @@ public static class ShaderBytecodeCompiler
         if (string.IsNullOrEmpty(dxcPath))
         {
             Log.Warning("DXC not found; shader bytecode will not be compiled. Install the DirectX Shader Compiler.");
+            stats.Success = false;
             return stats;
         }
 
@@ -61,6 +63,7 @@ public static class ShaderBytecodeCompiler
         if (compileLock == null)
         {
             Log.Warning("Timed out waiting for shader compile lock; skipping bytecode generation.");
+            stats.Success = false;
             return stats;
         }
 
@@ -84,9 +87,12 @@ public static class ShaderBytecodeCompiler
 
         var compiled = 0;
         var skipped = 0;
+        var successFlag = 1;
 
-        Parallel.ForEach(tasks, task =>
+        Parallel.ForEach(tasks, (task, state) =>
         {
+            if (state.IsStopped) return;
+
             var sourceHash = FastHash.HashFile(task.Source);
             var targetTag = task.Spirv ? "spirv" : "dxil";
             var cacheKey = FastHash.CombineHashes(sourceHash, includeHash, dxcVersion, task.Profile, task.Entry, targetTag);
@@ -102,8 +108,14 @@ public static class ShaderBytecodeCompiler
                 cache.Store(cacheKey, task.Output, sourceHash, includeHash, dxcVersion, task.Profile, task.Entry);
                 Interlocked.Increment(ref compiled);
             }
+            else
+            {
+                Interlocked.Exchange(ref successFlag, 0);
+                state.Stop();
+            }
         });
 
+        stats.Success = successFlag == 1;
         stats.Compiled = compiled;
         stats.Skipped = skipped;
 
@@ -184,11 +196,9 @@ public static class ShaderBytecodeCompiler
         if (process.ExitCode != 0 || !File.Exists(tempOutputPath))
         {
             TryDeleteFile(tempOutputPath);
-            Log.Error(
-                "DXC failed for {Output} (exit {ExitCode}): {Error}",
-                Path.GetFileName(outputPath),
-                process.ExitCode,
-                string.IsNullOrWhiteSpace(stderr) ? stdout : stderr);
+            var errMsg = string.IsNullOrWhiteSpace(stderr) ? stdout : stderr;
+            Log.Error("\x1b[31m❌ DXC failed for {Output} (exit {ExitCode}): {Error}\x1b[0m",
+                Path.GetFileName(outputPath), process.ExitCode, errMsg.Trim());
             return false;
         }
 

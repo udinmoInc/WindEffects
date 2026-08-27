@@ -71,7 +71,7 @@ public sealed class JobGraphScheduler : IDisposable
             {
                 _failed = true;
                 _graph.MarkFailed(node, ex);
-                Log.Error(ex, "Job {JobId} failed", node.Id);
+                Log.Error("\x1b[31m❌ Job '{JobId}' failed:\n{Message}\x1b[0m", node.Id, ex.Message.Trim());
                 OnJobFinished();
             }
         }, node.Name);
@@ -79,6 +79,13 @@ public sealed class JobGraphScheduler : IDisposable
 
     private void OnJobFinished()
     {
+        if (_failed)
+        {
+            try { _completion.Signal(); }
+            catch (InvalidOperationException) { }
+            return;
+        }
+
         ScheduleReadyJobs();
         if (_graph.IsComplete)
         {

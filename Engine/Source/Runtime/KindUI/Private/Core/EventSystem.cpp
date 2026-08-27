@@ -27,6 +27,7 @@ void BubbleMouseWheelToScrollParents(
 
 std::shared_ptr<Widget> EventSystem::HitTest(const std::shared_ptr<Widget>& root, const Point& pos) {
     if (!root || !root->IsVisible()) return nullptr;
+    if (root->IsPointerTransparent()) return nullptr;
     if (!root->GetGeometry().Contains(pos)) return nullptr;
 
     const auto& children = root->GetChildren();

@@ -146,8 +146,12 @@ int main(int argc, char* argv[]) {
         (void)platform.SetWindowIcon(window, IDI_ICON1);
 #endif
 
-        we::programs::editor::Editor editor(window, commandLine);
-        editor.Run();
+        {
+            // Editor must be destroyed while the platform backend is still alive —
+            // ~Editor() / Shutdown() call Platform::Get().
+            we::programs::editor::Editor editor(window, commandLine);
+            editor.Run();
+        }
 
         we::projects::EngineContext::Get().Shutdown();
         (void)platform.DestroyWindow(window);

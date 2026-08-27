@@ -104,7 +104,7 @@ void DesignButton::OnMouseDown(const MouseEvent& event) {
 void DesignButton::OnMouseUp(const MouseEvent& event) {
     if (event.button == MouseButton::Left && m_Pressed) {
         SetPressed(false);
-        if (IsEnabled() && m_Geometry.Contains(event.position) && m_OnClicked) {
+        if (IsEnabled() && m_OnClicked) {
             m_OnClicked();
         }
     }
@@ -163,7 +163,7 @@ void IconButton::OnMouseDown(const MouseEvent& event) {
 void IconButton::OnMouseUp(const MouseEvent& event) {
     if (event.button == MouseButton::Left && m_Pressed) {
         SetPressed(false);
-        if (m_Geometry.Contains(event.position) && m_OnClicked) {
+        if (m_OnClicked) {
             m_OnClicked();
         }
     }
