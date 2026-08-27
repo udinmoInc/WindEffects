@@ -93,6 +93,7 @@ Size OverlayHost::Measure(const Size& availableSize) {
 
 void OverlayHost::Arrange(const Rect& allottedRect) {
     m_Geometry = allottedRect;
+    ClearLayoutDirty();
     if (m_BaseWidget) {
         m_BaseWidget->Arrange(allottedRect);
     }
@@ -126,7 +127,8 @@ void OverlayHost::Paint(PaintContext& context) {
 }
 
 void OverlayHost::OnMouseDown(const MouseEvent&) {
-    CloseAllPopups();
+    // Popup dismissal is handled by EventSystem when clicking outside a popup.
+    // Do not close here — empty-area hits on this host must not swallow clicks.
 }
 
 } // namespace we::runtime::kindui

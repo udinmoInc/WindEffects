@@ -23,7 +23,7 @@ Element LeftActions(const ProjectsViewModel& vm) {
     std::vector<Element> actions;
     if (const ProjectsCommands* commands = vm.Commands()) {
         actions.push_back(UI::AlignStart(UI::Style(
-            UI::Host([commands]() {
+            UI::Id(UI::Host([commands]() {
                 auto btn = MakeSecondaryAction(
                     Resources::OpenProjectLabel, Icons::OpenFolderName);
                 btn->SetOnClicked([cmd = commands->BrowseProject] {
@@ -32,11 +32,11 @@ Element LeftActions(const ProjectsViewModel& vm) {
                     }
                 });
                 return btn;
-            }),
+            }), "projects-open-btn"),
             Styles::Toolbar)));
 
         actions.push_back(UI::AlignStart(UI::Style(
-            UI::Host([commands]() {
+            UI::Id(UI::Host([commands]() {
                 auto btn = MakePrimaryAction(
                     Resources::NewProjectLabel, Icons::PlusName);
                 btn->SetOnClicked([cmd = commands->NewProject] {
@@ -45,7 +45,7 @@ Element LeftActions(const ProjectsViewModel& vm) {
                     }
                 });
                 return btn;
-            }),
+            }), "projects-new-btn"),
             Styles::Toolbar)));
     }
     return UI::Gap(

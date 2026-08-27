@@ -63,12 +63,11 @@ public:
         m_Albedo = params.albedo;
         m_Roughness = params.roughness;
         m_Metallic = params.metallic;
-        m_GridSpacing = params.gridSpacing;
-        m_GridLineWidth = params.gridLineWidth;
-        m_GridColor = params.gridColor;
-        m_GridOpacity = params.gridOpacity;
-        m_GridFadeStart = params.gridFadeStart;
-        m_GridFadeEnd = params.gridFadeEnd;
+        m_Specular = params.specular;
+        m_UseChecker = params.useChecker;
+        m_CheckerCellSize = params.checkerCellSize;
+        m_CheckerColorA = params.checkerColorA;
+        m_CheckerColorB = params.checkerColorB;
         m_MaterialPath = params.materialPath;
     }
     [[nodiscard]] const std::string& MaterialPath() const noexcept { return m_MaterialPath; }
@@ -106,21 +105,17 @@ private:
             kDefaultLandscapeAlbedoB,
             1.0f};
         float lightDir[4]{0.0f, 0.0f, 0.0f, kDefaultLandscapeRoughness};
-        float material[4]{kDefaultLandscapeMetallic, 0.0f, 0.0f, 0.0f};
-        float gridParams[4]{
-            kDefaultLandscapeGridSpacing,
-            kDefaultLandscapeGridLineWidth,
-            kDefaultLandscapeGridOpacity,
+        float material[4]{kDefaultLandscapeMetallic, 0.0f, kDefaultLandscapeSpecular, 0.0f};
+        float checkerParams[4]{kDefaultLandscapeCheckerCellSize, 1.0f, 0.0f, 0.0f};
+        float checkerColorA[4]{
+            kDefaultLandscapeCheckerLightR,
+            kDefaultLandscapeCheckerLightG,
+            kDefaultLandscapeCheckerLightB,
             0.0f};
-        float gridColor[4]{
-            kDefaultLandscapeGridColorR,
-            kDefaultLandscapeGridColorG,
-            kDefaultLandscapeGridColorB,
-            0.0f};
-        float gridFade[4]{
-            kDefaultLandscapeGridFadeStart,
-            kDefaultLandscapeGridFadeEnd,
-            0.0f,
+        float checkerColorB[4]{
+            kDefaultLandscapeCheckerDarkR,
+            kDefaultLandscapeCheckerDarkG,
+            kDefaultLandscapeCheckerDarkB,
             0.0f};
         float sunTravel[4]{0.3f, -0.8f, 0.2f, 1.2f};
         float sunColor[4]{1.0f, 0.98f, 0.95f, 0.0f};
@@ -162,15 +157,17 @@ private:
         1.0f};
     float m_Roughness = kDefaultLandscapeRoughness;
     float m_Metallic = kDefaultLandscapeMetallic;
-    float m_GridSpacing = kDefaultLandscapeGridSpacing;
-    float m_GridLineWidth = kDefaultLandscapeGridLineWidth;
-    we::math::Vec3 m_GridColor{
-        kDefaultLandscapeGridColorR,
-        kDefaultLandscapeGridColorG,
-        kDefaultLandscapeGridColorB};
-    float m_GridOpacity = kDefaultLandscapeGridOpacity;
-    float m_GridFadeStart = kDefaultLandscapeGridFadeStart;
-    float m_GridFadeEnd = kDefaultLandscapeGridFadeEnd;
+    float m_Specular = kDefaultLandscapeSpecular;
+    bool m_UseChecker = true;
+    float m_CheckerCellSize = kDefaultLandscapeCheckerCellSize;
+    we::math::Vec3 m_CheckerColorA{
+        kDefaultLandscapeCheckerLightR,
+        kDefaultLandscapeCheckerLightG,
+        kDefaultLandscapeCheckerLightB};
+    we::math::Vec3 m_CheckerColorB{
+        kDefaultLandscapeCheckerDarkR,
+        kDefaultLandscapeCheckerDarkG,
+        kDefaultLandscapeCheckerDarkB};
     std::string m_MaterialPath = kDefaultLandscapeMaterialPath;
     TerrainRenderStats m_Stats{};
     std::uint32_t m_Uploaded = 0;

@@ -191,6 +191,30 @@ public:
     void SetWorldTransform(const we::math::Vec3& o, const we::math::Vec3& s) override;
 };
 
+namespace {
+
+void ExpandChunkCullBounds(TerrainChunk& chunk, const TerrainCreateInfo& info) {
+    const float y0 = info.heightOffset;
+    const float y1 = info.heightOffset + info.heightScale * info.worldScale.y;
+    chunk.bounds.min.y = std::min(chunk.bounds.min.y, y0);
+    chunk.bounds.max.y = std::max(chunk.bounds.max.y, y1);
+
+    const int samplesX = std::max(2, info.resolutionX);
+    const int samplesZ = std::max(2, info.resolutionY);
+    const float dx = (info.worldSizeX * info.worldScale.x)
+        / static_cast<float>(std::max(1, samplesX - 1));
+    const float dz = (info.worldSizeY * info.worldScale.z)
+        / static_cast<float>(std::max(1, samplesZ - 1));
+    const float marginX = dx * static_cast<float>(std::max(1, chunk.quads)) * 0.05f;
+    const float marginZ = dz * static_cast<float>(std::max(1, chunk.quads)) * 0.05f;
+    chunk.bounds.min.x -= marginX;
+    chunk.bounds.min.z -= marginZ;
+    chunk.bounds.max.x += marginX;
+    chunk.bounds.max.z += marginZ;
+}
+
+} // namespace
+
 class TerrainInstanceImpl final : public ITerrain {
 public:
     TerrainId id{};
@@ -498,7 +522,7 @@ public:
         materials.Initialize(info.resolutionX, info.resolutionY);
         collision.Bind(&heightfield, &info);
 
-        // Always bind Engine/Content M_DefaultLandscapeEditor when no project material is assigned.
+        // Always bind DefaultLandscapeMaterial when no project material is assigned.
         materials.EnsureDefaultLandscapeMaterial(info);
 
         if (!info.materialSlot0.empty()) {
@@ -602,6 +626,7 @@ public:
                     }
                     chunk.bounds.min = bmin;
                     chunk.bounds.max = bmax;
+                    ExpandChunkCullBounds(chunk, info);
                 }
                 chunk.meshDirty = false;
                 chunk.gpuDirty = true;
@@ -1052,11 +1077,11 @@ public:
                 midY,
                 impl.info.worldSizeY * 0.5f);
         e.Scale = we::math::Vec3(1.0f, 1.0f, 1.0f);
-        // Charcoal outliner tint — never debug green. Actual shading uses M_DefaultLandscapeEditor.
+        // Neutral gray outliner tint — actual shading uses DefaultLandscapeMaterial.
         e.Color = we::math::Vec4(
-            kDefaultLandscapeAlbedoR,
-            kDefaultLandscapeAlbedoG,
-            kDefaultLandscapeAlbedoB,
+            kDefaultLandscapeCheckerLightR,
+            kDefaultLandscapeCheckerLightG,
+            kDefaultLandscapeCheckerLightB,
             1.0f);
         impl.component.entityId = e.Id;
         impl.component.origin = impl.info.worldOrigin;
@@ -1101,6 +1126,7 @@ public:
         for (auto& [_, terrain] : m_Terrains) {
             terrain->renderer.Init(device);
             terrain->BindShadingFromMaterials();
+            terrain->chunks.MarkAllDirty();
             terrain->RebuildDirtyMeshesAndGpu();
         }
     }

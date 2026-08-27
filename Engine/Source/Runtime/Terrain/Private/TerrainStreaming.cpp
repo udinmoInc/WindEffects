@@ -17,6 +17,7 @@ void TerrainStreaming::RequestUnload(TerrainChunkId id) {
 
 void TerrainStreaming::Update(TerrainChunkManager& chunks, const we::math::Vec3& cameraWorldPos,
     const TerrainCreateInfo& info, const TerrainFrustump* frustum) {
+    (void)frustum;
     if (!m_Enabled || chunks.Chunks().empty()) {
         return;
     }
@@ -44,13 +45,8 @@ void TerrainStreaming::Update(TerrainChunkManager& chunks, const we::math::Vec3&
             resident = (dx * dx + dz * dz) <= (m_LoadRadius * m_LoadRadius);
         }
 
-        bool inFrustum = true;
-        if (frustum && chunk.bounds.min.x <= chunk.bounds.max.x) {
-            inFrustum = chunk.bounds.IntersectsFrustumPlanes(frustum->planes);
-        }
-
-        // Residency stays independent of frustum; frustum only gates draw.
-        chunk.visible = resident && inFrustum;
+        // Editor landscapes: never frustum-cull individual chunks (prevents whole-chunk white holes).
+        chunk.visible = resident;
         if (resident) {
             m_Active.insert(chunk.id);
         }

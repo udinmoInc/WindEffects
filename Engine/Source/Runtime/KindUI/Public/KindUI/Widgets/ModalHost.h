@@ -21,6 +21,7 @@ public:
     void Paint(PaintContext& context) override;
     void OnMouseDown(const MouseEvent& event) override;
     void Tick(float deltaTime) override;
+    [[nodiscard]] bool IsPointerTransparent() const override;
 
     void SetOnScrimClicked(std::function<void()> cb) { m_OnScrimClicked = std::move(cb); }
     void SetDismissOnScrim(bool enabled) { m_DismissOnScrim = enabled; }

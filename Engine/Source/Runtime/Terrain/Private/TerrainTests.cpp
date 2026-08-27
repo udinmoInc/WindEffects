@@ -88,9 +88,10 @@ TerrainTestReport RunTerrainRuntimeTests() {
     bool defaultMaterial = false;
     if (terrain) {
         const auto& slot = terrain->GetInfo().materialSlot0;
-        defaultMaterial = slot.find("M_DefaultLandscapeEditor") != std::string::npos;
+        defaultMaterial = slot.find("DefaultLandscapeMaterial") != std::string::npos
+            || slot.find("M_DefaultLandscapeMaterial") != std::string::npos;
     }
-    AddCase(report, "DefaultLandscapeMaterialBound", defaultMaterial, "M_DefaultLandscapeEditor");
+    AddCase(report, "DefaultLandscapeMaterialBound", defaultMaterial, "DefaultLandscapeMaterial");
 
     // Streaming must keep the whole small landscape resident (no camera-follow plane).
     bool allResident = false;

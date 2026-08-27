@@ -41,6 +41,10 @@ public:
     virtual void OnKeyDown(const KeyEvent&) {}
     virtual void OnKeyUp(const KeyEvent&) {}
     virtual bool ShowsPointerCursor(const Point&) const { return false; }
+
+    /// When true, this widget is skipped during hit-testing (clicks pass through).
+    [[nodiscard]] virtual bool IsPointerTransparent() const { return false; }
+
     virtual void OnFocus() { m_Focused = true; }
     virtual void OnBlur() { m_Focused = false; }
 

@@ -80,6 +80,9 @@ void TerrainLODManager::UpdateChunkLods(TerrainChunkManager& chunks, const we::m
         if (!chunk.visible) {
             continue;
         }
+        if (chunk.meshDirty) {
+            continue;
+        }
         if (!(chunk.bounds.min.x <= chunk.bounds.max.x)) {
             continue;
         }
@@ -100,7 +103,7 @@ void TerrainLODManager::UpdateChunkLods(TerrainChunkManager& chunks, const we::m
             const float relative = (dist / std::max(1.0f, chunkWorld)) * std::max(0.25f, m_LodBias);
             const float thresholds[] = {1.15f, 2.25f, 4.50f, 8.00f};
             const int band = std::clamp(desired - 1, 0, 3);
-            if (std::abs(relative - thresholds[band]) < 0.35f) {
+            if (std::abs(relative - thresholds[band]) < 0.55f) {
                 continue;
             }
         }
@@ -196,9 +199,10 @@ bool TerrainLODManager::BuildChunkMesh(const TerrainHeightmap& heightmap, const 
             const std::uint32_t i1 = i0 + 1;
             const std::uint32_t i2 = i0 + static_cast<std::uint32_t>(grid);
             const std::uint32_t i3 = i2 + 1;
+            // Both tris in each quad must face +Y (single-sided cull from above).
             outMesh.indices.push_back(i0);
-            outMesh.indices.push_back(i1);
             outMesh.indices.push_back(i2);
+            outMesh.indices.push_back(i1);
             outMesh.indices.push_back(i1);
             outMesh.indices.push_back(i3);
             outMesh.indices.push_back(i2);

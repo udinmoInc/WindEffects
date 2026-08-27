@@ -60,6 +60,7 @@ public class WindowsSDKProvider : BaseSDKProvider
                 headers.Add(Path.Combine(versionDir, "um"));
                 headers.Add(Path.Combine(versionDir, "shared"));
                 headers.Add(Path.Combine(versionDir, "winrt"));
+                headers.Add(Path.Combine(versionDir, "ucrt"));
             }
             
             // Also add the latest version's um and shared directories
@@ -69,6 +70,7 @@ public class WindowsSDKProvider : BaseSDKProvider
                 headers.Add(Path.Combine(latestVersion, "um"));
                 headers.Add(Path.Combine(latestVersion, "shared"));
                 headers.Add(Path.Combine(latestVersion, "winrt"));
+                headers.Add(Path.Combine(latestVersion, "ucrt"));
             }
         }
         

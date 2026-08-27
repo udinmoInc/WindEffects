@@ -19,29 +19,32 @@ inline constexpr int kDefaultTileSize = 1;
 inline constexpr float kMidHeightNormalized = 0.5f;
 inline constexpr std::uint16_t kMidHeightSample = 32768;
 
-/// Built-in editor landscape material (Engine Content — never project Content).
+/// Built-in engine landscape material (Engine Content — never project Content).
 /// Applied automatically when a Landscape has no assigned user material.
 inline constexpr const char* kDefaultLandscapeMaterialPath =
-    "Engine/Content/Materials/M_DefaultLandscapeEditor.wemat";
+    "Engine/Content/Materials/M_DefaultLandscapeMaterial.wemat";
 inline constexpr const char* kDefaultLandscapeMaterialRelative =
-    "Materials/M_DefaultLandscapeEditor.wemat";
+    "Materials/M_DefaultLandscapeMaterial.wemat";
+inline constexpr const char* kDefaultLandscapeMaterialName = "DefaultLandscapeMaterial";
 
-/// Dark charcoal base (#2A2A2A) — professional editor terrain, not debug.
-inline constexpr float kDefaultLandscapeAlbedoR = 0.165f; // ~42/255
-inline constexpr float kDefaultLandscapeAlbedoG = 0.165f;
-inline constexpr float kDefaultLandscapeAlbedoB = 0.165f;
-inline constexpr float kDefaultLandscapeRoughness = 0.92f;
+/// Neutral gray checker placeholder (Unreal-style default landscape).
+inline constexpr float kDefaultLandscapeCheckerLightR = 0.50f;
+inline constexpr float kDefaultLandscapeCheckerLightG = 0.50f;
+inline constexpr float kDefaultLandscapeCheckerLightB = 0.50f;
+inline constexpr float kDefaultLandscapeCheckerDarkR = 0.35f;
+inline constexpr float kDefaultLandscapeCheckerDarkG = 0.35f;
+inline constexpr float kDefaultLandscapeCheckerDarkB = 0.35f;
+inline constexpr float kDefaultLandscapeCheckerCellSize = 100.0f; // meters, world-space
+inline constexpr float kDefaultLandscapeRoughness = 1.0f;
 inline constexpr float kDefaultLandscapeMetallic = 0.0f;
+inline constexpr float kDefaultLandscapeSpecular = 0.0f;
+/// Fallback flat albedo when checker is disabled (project materials).
+inline constexpr float kDefaultLandscapeAlbedoR = 0.50f;
+inline constexpr float kDefaultLandscapeAlbedoG = 0.50f;
+inline constexpr float kDefaultLandscapeAlbedoB = 0.50f;
 
-/// Procedural world-space grid defaults (editor material only).
-inline constexpr float kDefaultLandscapeGridSpacing = 10.0f;
-inline constexpr float kDefaultLandscapeGridLineWidth = 1.25f;
-inline constexpr float kDefaultLandscapeGridColorR = 0.42f;
-inline constexpr float kDefaultLandscapeGridColorG = 0.42f;
-inline constexpr float kDefaultLandscapeGridColorB = 0.42f;
-inline constexpr float kDefaultLandscapeGridOpacity = 0.22f;
-inline constexpr float kDefaultLandscapeGridFadeStart = 80.0f;
-inline constexpr float kDefaultLandscapeGridFadeEnd = 320.0f;
+/// Minimum AABB half-extent (meters) for frustum tests — flat chunks must not paper-thin cull.
+inline constexpr float kTerrainCullMinExtent = 32.0f;
 
 /// Scene lighting snapshot for terrain (matches EnvironmentBuffer sun/sky terms).
 /// Populated from SceneEnvironmentUniform so terrain uses the same light model as world geometry.

@@ -28,6 +28,26 @@ float ParseFloatAfterKey(const std::string& content, const char* key, float fall
     }
 }
 
+bool ParseBoolAfterKey(const std::string& content, const char* key, bool fallback) {
+    const std::string needle = std::string("\"") + key + "\"";
+    const auto pos = content.find(needle);
+    if (pos == std::string::npos) {
+        return fallback;
+    }
+    const auto colon = content.find(':', pos + needle.size());
+    if (colon == std::string::npos) {
+        return fallback;
+    }
+    const auto tail = content.substr(colon + 1);
+    if (tail.find("true") != std::string::npos) {
+        return true;
+    }
+    if (tail.find("false") != std::string::npos) {
+        return false;
+    }
+    return fallback;
+}
+
 bool ParseVec3AfterKey(
     const std::string& content,
     const char* key,
@@ -61,8 +81,34 @@ bool ParseVec3AfterKey(
     return true;
 }
 
-bool IsEditorLandscapeMaterialPath(const std::string& path) {
-    return path.find("M_DefaultLandscapeEditor") != std::string::npos;
+bool IsDefaultLandscapeMaterialPath(const std::string& path) {
+    return path.find("M_DefaultLandscapeMaterial") != std::string::npos
+        || path.find("DefaultLandscapeMaterial") != std::string::npos;
+}
+
+TerrainMaterialParams EmbeddedDefaultParams() {
+    TerrainMaterialParams params{};
+    params.albedo = we::math::Vec4(
+        kDefaultLandscapeAlbedoR,
+        kDefaultLandscapeAlbedoG,
+        kDefaultLandscapeAlbedoB,
+        1.0f);
+    params.roughness = kDefaultLandscapeRoughness;
+    params.metallic = kDefaultLandscapeMetallic;
+    params.specular = kDefaultLandscapeSpecular;
+    params.useChecker = true;
+    params.checkerCellSize = kDefaultLandscapeCheckerCellSize;
+    params.checkerColorA = we::math::Vec3(
+        kDefaultLandscapeCheckerLightR,
+        kDefaultLandscapeCheckerLightG,
+        kDefaultLandscapeCheckerLightB);
+    params.checkerColorB = we::math::Vec3(
+        kDefaultLandscapeCheckerDarkR,
+        kDefaultLandscapeCheckerDarkG,
+        kDefaultLandscapeCheckerDarkB);
+    params.materialPath = kDefaultLandscapeMaterialPath;
+    params.loadedFromEngineContent = false;
+    return params;
 }
 
 } // namespace
@@ -71,7 +117,6 @@ void TerrainMaterialSystem::Initialize(int width, int height) {
     m_Width = std::max(1, width);
     m_Height = std::max(1, height);
     m_Weights.assign(static_cast<std::size_t>(m_Width) * static_cast<std::size_t>(m_Height) * 4u, 0);
-    // Default: full weight on layer 0 (R channel).
     for (std::size_t i = 0; i < m_Weights.size(); i += 4) {
         m_Weights[i] = 255;
     }
@@ -174,6 +219,8 @@ bool TerrainMaterialSystem::TryLoadWemat(
         return false;
     }
 
+    const bool engineDefault = IsDefaultLandscapeMaterialPath(we::core::PathService::ToGeneric(path));
+
     float r = kDefaultLandscapeAlbedoR;
     float g = kDefaultLandscapeAlbedoG;
     float b = kDefaultLandscapeAlbedoB;
@@ -181,35 +228,41 @@ bool TerrainMaterialSystem::TryLoadWemat(
         outParams.albedo = we::math::Vec4(r, g, b, 1.0f);
     }
     outParams.roughness = std::clamp(
-        ParseFloatAfterKey(content, "roughness", kDefaultLandscapeRoughness), 0.04f, 1.0f);
+        ParseFloatAfterKey(content, "roughness", kDefaultLandscapeRoughness), 0.0f, 1.0f);
     outParams.metallic = std::clamp(
         ParseFloatAfterKey(content, "metallic", kDefaultLandscapeMetallic), 0.0f, 1.0f);
+    outParams.specular = std::clamp(
+        ParseFloatAfterKey(content, "specular", kDefaultLandscapeSpecular), 0.0f, 1.0f);
     const float opacity = std::clamp(ParseFloatAfterKey(content, "opacity", 1.0f), 0.0f, 1.0f);
     outParams.albedo.w = opacity;
 
-    // Grid: editor default enables it; project materials stay grid-free unless specified.
-    const bool editorDefault = IsEditorLandscapeMaterialPath(we::core::PathService::ToGeneric(path));
-    const float defaultGridOpacity = editorDefault ? kDefaultLandscapeGridOpacity : 0.0f;
-    outParams.gridSpacing = std::max(
-        ParseFloatAfterKey(content, "gridSpacing", kDefaultLandscapeGridSpacing), 0.01f);
-    outParams.gridLineWidth = std::max(
-        ParseFloatAfterKey(content, "gridLineWidth", kDefaultLandscapeGridLineWidth), 0.01f);
-    outParams.gridOpacity = std::clamp(
-        ParseFloatAfterKey(content, "gridOpacity", defaultGridOpacity), 0.0f, 1.0f);
+    outParams.useChecker = ParseBoolAfterKey(content, "useChecker", engineDefault);
+    outParams.checkerCellSize = std::max(
+        ParseFloatAfterKey(content, "checkerCellSize", kDefaultLandscapeCheckerCellSize), 0.01f);
 
-    float gr = kDefaultLandscapeGridColorR;
-    float gg = kDefaultLandscapeGridColorG;
-    float gb = kDefaultLandscapeGridColorB;
-    if (ParseVec3AfterKey(content, "gridColor", gr, gg, gb)) {
-        outParams.gridColor = we::math::Vec3(gr, gg, gb);
+    float caR = kDefaultLandscapeCheckerLightR;
+    float caG = kDefaultLandscapeCheckerLightG;
+    float caB = kDefaultLandscapeCheckerLightB;
+    if (ParseVec3AfterKey(content, "checkerColorA", caR, caG, caB)) {
+        outParams.checkerColorA = we::math::Vec3(caR, caG, caB);
     } else {
-        outParams.gridColor = we::math::Vec3(
-            kDefaultLandscapeGridColorR,
-            kDefaultLandscapeGridColorG,
-            kDefaultLandscapeGridColorB);
+        outParams.checkerColorA = we::math::Vec3(
+            kDefaultLandscapeCheckerLightR,
+            kDefaultLandscapeCheckerLightG,
+            kDefaultLandscapeCheckerLightB);
     }
-    outParams.gridFadeStart = kDefaultLandscapeGridFadeStart;
-    outParams.gridFadeEnd = kDefaultLandscapeGridFadeEnd;
+
+    float cbR = kDefaultLandscapeCheckerDarkR;
+    float cbG = kDefaultLandscapeCheckerDarkG;
+    float cbB = kDefaultLandscapeCheckerDarkB;
+    if (ParseVec3AfterKey(content, "checkerColorB", cbR, cbG, cbB)) {
+        outParams.checkerColorB = we::math::Vec3(cbR, cbG, cbB);
+    } else {
+        outParams.checkerColorB = we::math::Vec3(
+            kDefaultLandscapeCheckerDarkR,
+            kDefaultLandscapeCheckerDarkG,
+            kDefaultLandscapeCheckerDarkB);
+    }
 
     outParams.materialPath = we::core::PathService::ToGeneric(path);
     outParams.loadedFromEngineContent = true;
@@ -224,7 +277,6 @@ TerrainMaterialParams TerrainMaterialSystem::ResolveShadingParams(
         ? kDefaultLandscapeMaterialPath
         : createInfo.materialSlot0;
 
-    // Project materials always win when the assigned path exists.
     const auto tryPath = [&](const std::filesystem::path& candidate) -> bool {
         if (candidate.empty()) {
             return false;
@@ -232,12 +284,10 @@ TerrainMaterialParams TerrainMaterialSystem::ResolveShadingParams(
         return TryLoadWemat(candidate, params);
     };
 
-    // Absolute / project-relative first.
     if (tryPath(params.materialPath)) {
         return params;
     }
 
-    // Engine Content resolution for built-in default (and engine-relative slots).
     auto& paths = we::core::PathService::Get();
     const auto relative = (params.materialPath.find("Materials/") != std::string::npos)
         ? std::filesystem::path(params.materialPath.substr(params.materialPath.find("Materials/")))
@@ -249,7 +299,6 @@ TerrainMaterialParams TerrainMaterialSystem::ResolveShadingParams(
         }
     }
 
-    // Last resort: EngineRoot/Content and EngineRoot/Engine/Content.
     const auto engineRoot = paths.EngineRoot();
     if (tryPath(engineRoot / "Content" / kDefaultLandscapeMaterialRelative)
         || tryPath(paths.EngineContentRoot() / kDefaultLandscapeMaterialRelative))
@@ -257,27 +306,9 @@ TerrainMaterialParams TerrainMaterialSystem::ResolveShadingParams(
         return params;
     }
 
-    // Embedded editor defaults — charcoal + world grid (never debug green).
-    params.albedo = we::math::Vec4(
-        kDefaultLandscapeAlbedoR,
-        kDefaultLandscapeAlbedoG,
-        kDefaultLandscapeAlbedoB,
-        1.0f);
-    params.roughness = kDefaultLandscapeRoughness;
-    params.metallic = kDefaultLandscapeMetallic;
-    params.gridSpacing = kDefaultLandscapeGridSpacing;
-    params.gridLineWidth = kDefaultLandscapeGridLineWidth;
-    params.gridColor = we::math::Vec3(
-        kDefaultLandscapeGridColorR,
-        kDefaultLandscapeGridColorG,
-        kDefaultLandscapeGridColorB);
-    params.gridOpacity = kDefaultLandscapeGridOpacity;
-    params.gridFadeStart = kDefaultLandscapeGridFadeStart;
-    params.gridFadeEnd = kDefaultLandscapeGridFadeEnd;
-    params.materialPath = kDefaultLandscapeMaterialPath;
-    params.loadedFromEngineContent = false;
+    params = EmbeddedDefaultParams();
     HE_WARN(
-        "[Terrain] M_DefaultLandscapeEditor.wemat not found; using embedded editor defaults.");
+        "[Terrain] DefaultLandscapeMaterial.wemat not found; using embedded defaults.");
     return params;
 }
 
