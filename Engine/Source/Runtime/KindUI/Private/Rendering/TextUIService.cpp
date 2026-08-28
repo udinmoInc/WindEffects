@@ -254,6 +254,7 @@ void TextUIService::SyncDirtyAtlasPages() {
     const uint64_t gen = atlas->Generation();
     if (gen != m_LastSeenAtlasGeneration) {
         m_LastSeenAtlasGeneration = gen;
+        m_MeasureCache.clear();
         m_TextEngine->InvalidateLayoutCache();
         if (m_DebugEnabled && !m_DumpedAtlas) {
             DumpAtlasPagesToDisk();
@@ -354,9 +355,15 @@ float TextUIService::MeasureText(
     const std::string& text,
     float fontSize,
     we::runtime::text::layout::FontWeight weight) const {
-    if (!m_TextEngine) {
+    if (!m_TextEngine || text.empty()) {
         return 0.0f;
     }
+    TextMeasureKey key{ text, fontSize, static_cast<uint16_t>(weight) };
+    auto it = m_MeasureCache.find(key);
+    if (it != m_MeasureCache.end()) {
+        return it->second;
+    }
+
     we::runtime::text::layout::TextStyle style{};
     // fontSize is in final layout pixels (themes/StylePipeline apply DPI before draw/measure).
     style.sizePx = fontSize;
@@ -372,7 +379,9 @@ float TextUIService::MeasureText(
     } else if (weight >= we::runtime::text::layout::FontWeight::Medium) {
         fontHandle = m_MediumFont;
     }
-    return m_TextEngine->Measure(text, style, constraints, fontHandle).width;
+    float width = m_TextEngine->Measure(text, style, constraints, fontHandle).width;
+    m_MeasureCache[key] = width;
+    return width;
 }
 
 we::rhi::RHIDescriptorSetHandle TextUIService::GetDescriptorForFont(

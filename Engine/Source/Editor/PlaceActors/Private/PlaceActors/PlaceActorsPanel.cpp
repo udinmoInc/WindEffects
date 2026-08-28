@@ -40,7 +40,7 @@ namespace Icons = ::we::runtime::kindui::Icons;
 namespace PanelChrome = ::we::editor::panels::PanelChrome;
 
 namespace {
-constexpr float kDragThreshold = 6.0f;
+
 constexpr const char* kFavoritesCategoryId = "__Favorites";
 constexpr const char* kRecentCategoryId = "__Recent";
 constexpr const char* kQuickAccessCategoryId = "__QuickAccess";

@@ -295,6 +295,11 @@ enum class MetricToken : uint32_t {
     ButtonGroupSpacing,
     ScrollbarWidth,
 
+    DragThreshold,      // pointer movement before drag gesture starts
+    MenuPadding,        // popup / dropdown inner inset
+    CheckMarkSize,      // checkbox / menu check glyph
+    MenuTextIndent,     // label offset after check column in menus
+
     Space1,
     Space2,
     Space3,

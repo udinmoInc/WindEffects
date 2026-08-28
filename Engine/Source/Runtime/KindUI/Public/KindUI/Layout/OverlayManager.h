@@ -34,6 +34,8 @@ private:
     std::shared_ptr<Widget> m_BaseWidget;
     std::vector<std::shared_ptr<Widget>> m_Popups;
     std::vector<bool> m_FullscreenPopups;
+    std::vector<Size> m_PopupCachedSizes;
+    Size m_LastArrangeSize{};
 };
 
 using OverlayManager = OverlayHost;

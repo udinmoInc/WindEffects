@@ -18,9 +18,9 @@ enum class NavigationPreset {
 struct ViewportNavigationSettings {
     NavigationPreset preset = NavigationPreset::UE5;
 
-    float mouseSensitivity = 0.15f;
+    float mouseSensitivity = 0.25f;
     float cameraAcceleration = 1.0f;
-    float cameraSmoothing = 12.0f;
+    float cameraSmoothing = 45.0f;
     bool invertX = false;
     bool invertY = false;
 

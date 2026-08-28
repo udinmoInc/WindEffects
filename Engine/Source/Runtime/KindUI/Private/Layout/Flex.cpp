@@ -261,6 +261,13 @@ void Flex::Arrange(const Rect& allottedRect) {
             }
         }
 
+        const float mainEnd = row
+            ? allottedRect.x + allottedRect.width - m_Padding.right
+            : allottedRect.y + allottedRect.height - m_Padding.bottom;
+        if (mainCursor + item.mainSize > mainEnd) {
+            item.mainSize = std::max(0.0f, mainEnd - mainCursor);
+        }
+
         Rect childRect;
         if (row) {
             childRect = { mainCursor, crossPos, item.mainSize, crossSize };
@@ -268,8 +275,12 @@ void Flex::Arrange(const Rect& allottedRect) {
             childRect = { crossPos, mainCursor, crossSize, item.mainSize };
         }
 
-        item.widget->Arrange(childRect);
-        AssertLayoutRectValid("Flex.child", childRect, allottedRect);
+        if (item.mainSize >= 0.5f && crossSize >= 0.5f) {
+            item.widget->Arrange(childRect);
+            AssertLayoutRectValid("Flex.child", childRect, allottedRect);
+        } else {
+            item.widget->Arrange(Rect{childRect.x, childRect.y, 0.0f, 0.0f});
+        }
         mainCursor += item.mainSize + item.marginMainEnd;
     }
 }

@@ -117,6 +117,7 @@ private:
     Extent2D m_Extent{};
     Format m_Format = Format::B8G8R8A8_UNORM;
     uint32_t m_Index = 0;
+    bool m_Vsync = true;
     std::vector<RHITextureHandle> m_Handles;
 };
 

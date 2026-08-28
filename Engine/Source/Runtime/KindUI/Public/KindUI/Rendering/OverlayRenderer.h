@@ -104,6 +104,7 @@ public:
     }
 
     const UIFrameStats& GetFrameStats() const { return m_FrameStats; }
+    [[nodiscard]] uint64_t GetGeometryGeneration() const { return m_GeometryGeneration; }
 
 private:
 #pragma warning(push)

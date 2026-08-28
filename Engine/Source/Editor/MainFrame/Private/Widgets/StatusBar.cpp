@@ -1,6 +1,8 @@
+#include "Platform/Platform.h"
 #include "Widgets/StatusBar.h"
 #include "Widgets/CommandInput.h"
 #include "Widgets/ToolButton.h"
+#include "KindUI/Layout/Spacer.h"
 #include "KindUI/Core/PaintContext.h"
 #include "KindUI/Tokens/DesignToken.h"
 #include "KindUI/Theming/StyleRole.h"
@@ -11,12 +13,15 @@
 using ::we::runtime::kindui::ColorToken;
 using ::we::runtime::kindui::MetricToken;
 using ::we::runtime::kindui::PaddingToken;
+using ::we::runtime::kindui::Spacer;
 
 namespace we::editor::shell {
 using ::we::editor::toolbar::ToolButton;
 using ::we::editor::toolbar::ToolButtonStyle;
 using ::we::runtime::kindui::VerticalAlignment;
 using ::we::runtime::kindui::DPIContext;
+using ::we::runtime::kindui::Margin;
+using ::we::runtime::kindui::AlignItems;
 namespace Icons = ::we::runtime::kindui::Icons;
 
 namespace {
@@ -29,6 +34,7 @@ namespace {
     {
         auto button = std::make_shared<ToolButton>(iconName, label, nullptr, tooltip);
         button->SetButtonStyle(ToolButtonStyle::ToolbarInline);
+        button->SetChromeless(true);
         button->SetIsDropdown(isDropdown);
         button->SetVerticalAlignment(VerticalAlignment::Center);
         return button;
@@ -43,8 +49,15 @@ namespace {
 StatusBar::StatusBar() = default;
 
 void StatusBar::Construct() {
+    const float uiScale = UiScale();
+    const float pad = ThemeMetric(MetricToken::Space2) * uiScale;
+    Padding(Margin{pad, 0, pad, 0});
+    Gap(ThemeMetric(MetricToken::Space2) * uiScale);
+    Align(AlignItems::Center);
+
     m_LeftBox = std::make_shared<Row>();
     m_LeftBox->Gap(ThemeMetric(MetricToken::Space1));
+    m_LeftBox->SetFlexShrink(0.0f);
 
     m_AssetsPanelButton = MakeFooterControl(Icons::ContentBrowserName, "Content Drawer", false, "Content Browser");
     m_DiagnosticsPanelButton = MakeFooterControl(Icons::OutputLogName, "Output Log", false, "Output Log");
@@ -59,10 +72,18 @@ void StatusBar::Construct() {
     m_CommandInput = std::make_shared<CommandInput>();
     m_CommandInput->SetVerticalAlignment(VerticalAlignment::Center);
     m_CommandInput->SetPlaceholder("Console Commands...");
+    m_CommandInput->SetFlexGrow(1.0f);
+    m_CommandInput->SetFlexShrink(1.0f);
+    m_CommandInput->SetMaxWidth(300.0f * uiScale);
     AddChild(m_CommandInput);
+
+    auto spacer = std::make_shared<Spacer>();
+    spacer->SetFlexGrow(1.0f);
+    AddChild(spacer);
 
     m_RightBox = std::make_shared<Row>();
     m_RightBox->Gap(ThemeMetric(MetricToken::Space1));
+    m_RightBox->SetFlexShrink(0.0f);
 
     m_OutputLogButton = MakeFooterControl(Icons::BuildName, "Source Control", false, "Source Control");
     m_BuildMenuButton = MakeFooterControl(Icons::ProfilerName, "FPS", false, "Frame Rate");
@@ -98,88 +119,21 @@ void StatusBar::SelectPanelTab(int index, bool notify) {
 }
 
 Size StatusBar::Measure(const Size& availableSize) {
-    const float uiScale = UiScale();
-    const float padH = ThemeMetric(MetricToken::Space2) * uiScale;
-    const float sectionGap = ThemeMetric(MetricToken::Space2) * uiScale;
-    const Size sectionAvailable{
-        std::max(0.0f, availableSize.width - padH * 2.0f),
-        m_Height
-    };
-
-    if (m_LeftBox) {
-        m_LeftBox->Measure(sectionAvailable);
-    }
-    if (m_RightBox) {
-        m_RightBox->Measure(sectionAvailable);
-    }
-    if (m_CommandInput) {
-        m_CommandInput->Measure(sectionAvailable);
-    }
-
-    m_DesiredSize = Size{ availableSize.width, m_Height };
-    (void)sectionGap;
+    Size size = Row::Measure(availableSize);
+    size.height = m_Height;
+    m_DesiredSize = size;
     return m_DesiredSize;
 }
 
 void StatusBar::Arrange(const Rect& allottedRect) {
-    const float uiScale = UiScale();
-    const float padL = ThemeMetric(MetricToken::Space2) * uiScale;
-    const float padR = padL;
-    const float sectionGap = ThemeMetric(MetricToken::Space2) * uiScale;
-    const float minCommandWidth = 120.0f * uiScale;
-
     const float barHeight = std::min(m_Height, allottedRect.height);
     const float barY = allottedRect.y + allottedRect.height - barHeight;
     m_Geometry = Rect{ allottedRect.x, barY, allottedRect.width, barHeight };
-
-    const float contentX = m_Geometry.x + padL;
-    const float contentY = m_Geometry.y;
-    const float contentH = barHeight;
-    const float contentW = std::max(0.0f, m_Geometry.width - padL - padR);
-    const Size sectionAvailable{ contentW, contentH };
-
-    if (m_LeftBox) {
-        m_LeftBox->Measure(sectionAvailable);
-    }
-    if (m_RightBox) {
-        m_RightBox->Measure(sectionAvailable);
-    }
-
-    const float leftW = m_LeftBox ? m_LeftBox->GetDesiredSize().width : 0.0f;
-    const float rightW = m_RightBox ? m_RightBox->GetDesiredSize().width : 0.0f;
-
-    const float fixedW = leftW + rightW + sectionGap * 2.0f;
-    float commandW = std::max(0.0f, contentW - fixedW);
-    if (commandW > 0.0f) {
-        commandW = std::max(minCommandWidth, commandW);
-        if (leftW + sectionGap + commandW + sectionGap + rightW > contentW) {
-            commandW = std::max(0.0f, contentW - leftW - rightW - sectionGap * 2.0f);
-        }
-    }
-
-    float x = contentX;
-    if (m_LeftBox) {
-        m_LeftBox->Arrange(Rect{ x, contentY, leftW, contentH });
-        x += leftW;
-        if (commandW > 0.0f || rightW > 0.0f) {
-            x += sectionGap;
-        }
-    }
-
-    if (m_CommandInput && commandW > 0.0f) {
-        m_CommandInput->Arrange(Rect{ x, contentY, commandW, contentH });
-        x += commandW + sectionGap;
-    }
-
-    if (m_RightBox) {
-        const float rightX = std::max(x, contentX + contentW - rightW);
-        m_RightBox->Arrange(Rect{ rightX, contentY, std::min(rightW, contentW), contentH });
-    }
+    Row::Arrange(m_Geometry);
 }
 
 void StatusBar::Paint(PaintContext& context) {
     context.DrawRect(m_Geometry, ThemeColor(ColorToken::StatusBarBackground));
-
     Rect topBorder{
         m_Geometry.x,
         m_Geometry.y,
@@ -187,16 +141,7 @@ void StatusBar::Paint(PaintContext& context) {
         ThemeMetric(MetricToken::BorderWidth)
     };
     context.DrawRect(topBorder, ThemeColor(ColorToken::Separator));
-
-    if (m_LeftBox && m_LeftBox->IsVisible()) {
-        m_LeftBox->Paint(context);
-    }
-    if (m_CommandInput && m_CommandInput->IsVisible()) {
-        m_CommandInput->Paint(context);
-    }
-    if (m_RightBox && m_RightBox->IsVisible()) {
-        m_RightBox->Paint(context);
-    }
+    Row::Paint(context);
 }
 
 void StatusBar::SetActiveFooterTab(int index) {
@@ -244,3 +189,4 @@ void StatusBar::SetOnQualityMenuClicked(std::function<void()> onClicked) {
 }
 
 } // namespace we::editor::shell
+

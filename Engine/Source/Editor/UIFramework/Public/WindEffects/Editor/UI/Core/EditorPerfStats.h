@@ -12,13 +12,18 @@ struct UIFRAMEWORK_API EditorPerfSample {
     float frameMs = 0.0f;
     float tickMs = 0.0f;
     float layoutMs = 0.0f;
+    float rhiPrepareMs = 0.0f;
     float uiBuildMs = 0.0f;
+    float uiOnlyMs = 0.0f;
     float sceneMs = 0.0f;
     float presentMs = 0.0f;
     uint32_t uiVertices = 0;
     uint32_t uiBatches = 0;
     uint64_t uiRebuilds = 0;
     uint64_t uiSkips = 0;
+    uint64_t uiLayoutRebuilds = 0;
+    uint64_t uiPaintRebuilds = 0;
+    uint64_t uiIdleSkips = 0;
 };
 
 class UIFRAMEWORK_API EditorPerfStats {
@@ -26,7 +31,7 @@ public:
     static EditorPerfStats& Get();
 
     void BeginFrame();
-    void Mark(const char* stage); // "tick" | "layout" | "ui" | "scene" | "present"
+    void Mark(const char* stage); // "tick" | "layout" | "rhi" | "ui" | "scene" | "present"
     void EndFrame(uint32_t uiVertices, uint32_t uiBatches);
 
     [[nodiscard]] const EditorPerfSample& Last() const { return m_Last; }

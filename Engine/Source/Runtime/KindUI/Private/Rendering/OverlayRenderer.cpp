@@ -6,6 +6,7 @@
 #include "KindUI/Rendering/UIWidgetAdapter.h"
 #include "KindUI/Rendering/UIStateManager.h"
 #include "KindUI/Rendering/UiGpuUpload.h"
+#include "KindUI/Profiling/UiPathDiagnostics.h"
 #include "Rendering/UiImmediateRenderer.h"
 
 #include "Core/AssetRegistry.h"
@@ -175,13 +176,26 @@ void OverlayRenderer::RenderUI(const std::shared_ptr<Widget>& root, uint32_t fra
 
     const bool sizeChanged = width != m_LastBuiltWidth || height != m_LastBuiltHeight;
     const bool forceRebuild = frameNumber <= 3 || sizeChanged || m_Vertices.empty();
-    const bool rebuild = forceRebuild || UIRepaintGate::ConsumeNeedsRebuild();
+    const bool needsLayout = forceRebuild || UIRepaintGate::ConsumeNeedsLayout();
+    const bool needsPaint = forceRebuild
+        || UIRepaintGate::ConsumeNeedsPaint()
+        || needsLayout;
 
-    if (rebuild) {
+    if (!needsLayout && !needsPaint) {
+        m_FrameStats.vertices = static_cast<uint32_t>(m_Vertices.size());
+        m_FrameStats.indices = static_cast<uint32_t>(m_Indices.size());
+        m_FrameStats.batches = static_cast<uint32_t>(m_Batches.size());
+        m_FrameStats.drawCalls = m_FrameStats.batches;
+        m_FrameStats.width = width;
+        m_FrameStats.height = height;
+        return;
+    }
+
+    if (needsPaint) {
         Widget::ResetDiagnostics();
         if (m_WidgetAdapter) {
             m_WidgetAdapter->ResetDiagnostics();
-            m_WidgetAdapter->ProcessWidget(root, width, height);
+            m_WidgetAdapter->ProcessWidget(root, width, height, needsLayout);
             m_Vertices = m_WidgetAdapter->GetVertices();
             m_Indices = m_WidgetAdapter->GetIndices();
             m_Batches = m_WidgetAdapter->GetBatches();
@@ -227,7 +241,8 @@ void OverlayRenderer::EndOverlayPass(const we::runtime::uigfx::OverlayRenderCont
     m_UIImmediate->BeginFrame(params);
     m_UIImmediate->SubmitDrawList(
         BuildDrawList(m_Vertices, m_Indices, m_Batches, m_CurrentWidth, m_CurrentHeight),
-        m_ActiveFrameSlot);
+        m_ActiveFrameSlot,
+        m_GeometryGeneration);
     m_UIImmediate->EndFrame();
 }
 

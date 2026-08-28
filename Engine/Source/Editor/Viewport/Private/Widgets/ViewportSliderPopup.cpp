@@ -1,12 +1,16 @@
 #include "Widgets/ViewportSliderPopup.h"
 #include "KindUI/Core/PaintContext.h"
+#include "KindUI/Core/TextMetrics.h"
 #include "KindUI/Input/InputEvents.h"
 #include "KindUI/Tokens/DesignToken.h"
 #include "KindUI/Theming/StyleRole.h"
+#include "KindUI/Theming/ThemeAccess.h"
 #include <algorithm>
 #include <cmath>
 
 namespace we::programs::editor {
+using ::we::runtime::kindui::TextMetrics;
+using ::we::runtime::kindui::ResolveColor;
 
 
 namespace {
@@ -113,17 +117,22 @@ void ViewportSliderPopup::SetValueFromMouseX(float mouseX) {
 }
 
 void ViewportSliderPopup::Paint(PaintContext& context) {
-    context.DrawShadow(m_Geometry, ThemeColor(ColorToken::ShadowSubtle), 4.0f, 12.0f);
-    context.DrawRoundedRect(m_Geometry, ThemeColor(ColorToken::PanelBackground), 4.0f);
-    context.DrawRoundedRectOutline(m_Geometry, ThemeColor(ColorToken::BorderDefault), 1.0f, 4.0f);
+    // 100% Solid Opaque Neutral Charcoal Surface (#18191B)
+    context.DrawRoundedRect(m_Geometry, ResolveColor(ColorToken::PanelBackground), 4.0f);
+    // Solid 1px Border (#303236 / BorderLight)
+    context.DrawRoundedRectOutline(m_Geometry, ResolveColor(ColorToken::BorderLight), 1.0f, 4.0f);
+
+    const float titleSize = 10.0f;
+    const float valSize = 11.0f;
 
     context.DrawText(m_Title, Point{ m_Geometry.x + kPadding, m_Geometry.y + 8.0f },
-        ThemeColor(ColorToken::TextSecondary), 10.0f);
+        ResolveColor(ColorToken::TextSecondary), titleSize);
 
     const std::string valueText = m_Format ? m_Format(m_Value) : std::to_string(m_Value);
+    const float valueW = TextMetrics::MeasureWidth(valueText, valSize);
     context.DrawText(valueText,
-        Point{ m_Geometry.x + m_Geometry.width - kPadding - valueText.length() * 6.5f, m_Geometry.y + 8.0f },
-        ThemeColor(ColorToken::TextPrimary), 11.0f);
+        Point{ m_Geometry.x + m_Geometry.width - kPadding - valueW, m_Geometry.y + 8.0f },
+        ResolveColor(ColorToken::TextPrimary), valSize);
 
     const Rect track = SliderTrackRect();
     context.DrawRoundedRect(track, ThemeColor(ColorToken::BorderDefault), 3.0f);

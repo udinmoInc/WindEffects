@@ -1,6 +1,7 @@
 #pragma once
 
 #include "KindUI/Core/Widget.h"
+#include "KindUI/Layout/Flex.h"
 #include "KindUI/Core/Style.h"
 #include "KindUI/Core/Widgets/DesignSystemControls.h"
 #include "KindUI/Core/Widgets/ToolbarIconButton.h"
@@ -87,7 +88,7 @@ private:
 };
 
 // Premium AAA toolbar with reusable components.
-class ContentBrowserToolbarControls : public Widget {
+class ContentBrowserToolbarControls : public we::runtime::kindui::Row {
 public:
     enum class ToolbarMode {
         Full,           // Panel toolbar: create, import, back, forward, folder

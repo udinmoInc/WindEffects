@@ -13,7 +13,7 @@ enum class Orientation {
 
 class KINDUI_API Splitter : public Widget {
 public:
-    enum class ResizeMode { Ratio, FixedFirst };
+    enum class ResizeMode { Ratio, FixedFirst, FixedSecond };
 
     Splitter(Orientation orientation, float initialRatio = 0.5f);
     virtual ~Splitter() = default;
@@ -33,7 +33,9 @@ public:
     [[nodiscard]] float GetSplitRatio() const { return m_SplitRatio; }
     
     void SetFixedFirstWidth(float width);
+    void SetFixedSecondWidth(float width);
     [[nodiscard]] float GetFixedFirstWidth() const { return m_FixedFirstWidth; }
+    [[nodiscard]] float GetFixedSecondWidth() const { return m_FixedSecondWidth; }
     
     void SetResizeMode(ResizeMode mode);
     [[nodiscard]] ResizeMode GetResizeMode() const { return m_ResizeMode; }
@@ -59,6 +61,7 @@ private:
     Orientation m_Orientation;
     float m_SplitRatio = 0.5f;
     float m_FixedFirstWidth = 280.0f;
+    float m_FixedSecondWidth = 280.0f;
     ResizeMode m_ResizeMode = ResizeMode::Ratio;
     float m_BarThicknessLogical = 2.0f;
     float m_HitThicknessLogical = 8.0f;

@@ -11,7 +11,7 @@
 #include "KindUI/Core/DPIContext.h"
 #include "KindUI/Rendering/IconMetrics.h"
 #include "KindUI/Core/Animator.h"
-#include "KindUI/Core/Geometry.h"
+#include "KindUI/Core/UiMetrics.h"
 #include "Core/Logger.h"
 
 #include <algorithm>
@@ -47,7 +47,7 @@ using ::we::editor::widgets::SearchBox;
 namespace PanelChrome = ::we::editor::panels::PanelChrome;
 
 namespace {
-constexpr float kDragThreshold = 6.0f;
+namespace PanelChrome = ::we::editor::panels::PanelChrome;
 
 std::string ToUpper(std::string value) {
     for (char& ch : value) {
@@ -575,7 +575,7 @@ void ToolsPanel::OnMouseMove(const MouseEvent& event) {
     if (m_PendingDragTool && !m_DragStarted) {
         const float dx = event.position.x - m_DragStartPosition.x;
         const float dy = event.position.y - m_DragStartPosition.y;
-        if ((dx * dx + dy * dy) >= (kDragThreshold * kDragThreshold)) {
+        if (we::runtime::kindui::UiMetrics::ExceedsDragThreshold(dx, dy)) {
             m_DragStarted = true;
             if (m_PendingDragTool->onDragStart) m_PendingDragTool->onDragStart();
             m_PendingDragTool = nullptr;

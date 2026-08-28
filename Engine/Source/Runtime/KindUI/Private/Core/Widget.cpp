@@ -2,6 +2,7 @@
 #include "KindUI/Core/UIRepaintGate.h"
 #include "KindUI/Core/WidgetContext.h"
 #include "KindUI/Layout/IPopupHost.h"
+#include "KindUI/Profiling/UiPathDiagnostics.h"
 #include "KindUI/Theming/StyleResolve.h"
 #include "KindUI/Theming/ThemeAccess.h"
 #include "KindUI/Theming/StyleClass.h"
@@ -22,12 +23,11 @@ void Widget::ResetDiagnostics() {
 }
 
 void Widget::Tick(float deltaTime) {
-    if (!m_Visible) return;
-    
-    // We create a copy of children in case they modify the child list during Tick
-    auto childrenCopy = m_Children;
-    for (auto& child : childrenCopy) {
-        if (child) {
+    if (!m_Visible || m_Children.empty()) return;
+
+    const size_t count = m_Children.size();
+    for (size_t i = 0; i < count && i < m_Children.size(); ++i) {
+        if (const auto& child = m_Children[i]) {
             child->Tick(deltaTime);
         }
     }
@@ -41,21 +41,68 @@ Size Widget::ClampDesiredSize(const Size& desired) const {
 }
 
 void Widget::InvalidateLayout() {
+    if (m_NeedsLayout) {
+        return;
+    }
     m_NeedsLayout = true;
-    m_NeedsPaint = true;
-    UIRepaintGate::Request();
+    UIRepaintGate::RequestLayout();
+    UiPathDiagnostics::Get().OnLayoutInvalidation();
     if (s_GlobalDiagnostics) {
         ++s_GlobalDiagnostics->invalidateCount;
-    }
-    if (auto parent = m_Parent.lock()) {
-        parent->InvalidateLayout();
     }
 }
 
 void Widget::InvalidatePaint() {
+    if (m_NeedsPaint) {
+        return;
+    }
     m_NeedsPaint = true;
+    UIRepaintGate::RequestPaint();
+    UiPathDiagnostics::Get().OnPaintInvalidation();
     if (s_GlobalDiagnostics) {
         ++s_GlobalDiagnostics->invalidateCount;
+    }
+}
+
+bool Widget::SubtreeNeedsPaint() const {
+    if (m_NeedsPaint) {
+        return true;
+    }
+    for (const auto& child : m_Children) {
+        if (child && child->SubtreeNeedsPaint()) {
+            return true;
+        }
+    }
+    return false;
+}
+
+bool Widget::SubtreeNeedsLayout() const {
+    if (m_NeedsLayout) {
+        return true;
+    }
+    for (const auto& child : m_Children) {
+        if (child && child->SubtreeNeedsLayout()) {
+            return true;
+        }
+    }
+    return false;
+}
+
+void Widget::ClearSubtreePaintDirty() {
+    m_NeedsPaint = false;
+    for (auto& child : m_Children) {
+        if (child) {
+            child->ClearSubtreePaintDirty();
+        }
+    }
+}
+
+void Widget::ClearSubtreeLayoutDirty() {
+    m_NeedsLayout = false;
+    for (auto& child : m_Children) {
+        if (child) {
+            child->ClearSubtreeLayoutDirty();
+        }
     }
 }
 
@@ -80,6 +127,22 @@ void Widget::AddChild(const std::shared_ptr<Widget>& child) {
     InvalidateLayout();
 }
 
+void Widget::AttachOverlayChild(const std::shared_ptr<Widget>& child) {
+    if (!child) {
+        return;
+    }
+    if (auto oldParent = child->GetParent()) {
+        oldParent->DetachOverlayChild(child);
+    }
+    child->m_Parent = shared_from_this();
+    if (m_Context) {
+        child->SetContext(m_Context);
+    }
+    m_Children.push_back(child);
+    UIRepaintGate::RequestPaint();
+    UiPathDiagnostics::Get().OnPaintInvalidation();
+}
+
 void Widget::RemoveChild(const std::shared_ptr<Widget>& child) {
     if (!child) return;
 
@@ -88,6 +151,19 @@ void Widget::RemoveChild(const std::shared_ptr<Widget>& child) {
         child->m_Parent.reset();
         m_Children.erase(it);
         InvalidateLayout();
+    }
+}
+
+void Widget::DetachOverlayChild(const std::shared_ptr<Widget>& child) {
+    if (!child) {
+        return;
+    }
+    auto it = std::find(m_Children.begin(), m_Children.end(), child);
+    if (it != m_Children.end()) {
+        child->m_Parent.reset();
+        m_Children.erase(it);
+        UIRepaintGate::RequestPaint();
+        UiPathDiagnostics::Get().OnPaintInvalidation();
     }
 }
 

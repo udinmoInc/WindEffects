@@ -17,7 +17,7 @@ using ::we::runtime::kindui::MouseEvent;
 using ::we::runtime::kindui::WidgetStyle;
 
 
-class DropdownMenu : public Widget {
+class MENUS_API DropdownMenu : public Widget {
 public:
     DropdownMenu(const std::vector<std::shared_ptr<MenuItem>>& items);
     virtual ~DropdownMenu() = default;
@@ -28,17 +28,18 @@ public:
 
     void OnMouseDown(const MouseEvent& event) override;
     void OnMouseMove(const MouseEvent& event) override;
-    // We want to handle clicks and close the menu when done
+    void OnMouseWheel(const MouseEvent& event) override;
 
 private:
     std::vector<std::shared_ptr<MenuItem>> m_Items;
     int m_HoveredItem = -1;
+    float m_ScrollOffset = 0.0f;
 
     int HitItemAt(const Point& pos) const;
     
-    float m_ItemHeight = 22.0f;
-    float m_PaddingY = 3.0f;
-    float m_PaddingX = 6.0f;
+    float m_ItemHeight = 24.0f;
+    float m_PaddingY = 4.0f;
+    float m_PaddingX = 8.0f;
 };
 
 } // namespace we::editor::menus

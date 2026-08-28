@@ -13,6 +13,7 @@
 #include "KindUI/Core/Icon.h"
 #include "KindUI/Core/Animator.h"
 #include "KindUI/Input/InputEvents.h"
+#include "KindUI/Layout/Flex.h"
 #include <algorithm>
 
 using ::we::runtime::kindui::ColorToken;
@@ -23,6 +24,9 @@ namespace we::editor::contentbrowser {
 using ::we::runtime::kindui::ResolveIconColor;
 using ::we::runtime::kindui::MouseButton;
 using ::we::runtime::kindui::IconPainter;
+using ::we::runtime::kindui::Row;
+using ::we::runtime::kindui::Margin;
+using ::we::runtime::kindui::AlignItems;
 namespace Icons = ::we::runtime::kindui::Icons;
 namespace IconMetrics = ::we::runtime::kindui::IconMetrics;
 using ::we::runtime::kindui::MakePrimaryAction;
@@ -209,14 +213,24 @@ std::shared_ptr<ContentBrowserToolbarControls> ContentBrowserToolbarControls::Cr
 }
 
 ContentBrowserToolbarControls::ContentBrowserToolbarControls(ToolbarMode mode)
-    : m_Mode(mode)
-{}
+    : Row()
+    , m_Mode(mode)
+{
+    const float pad = ThemeMetric(MetricToken::Space3);
+    Padding(Margin{pad, 0.0f, pad, 0.0f});
+    Gap(ThemeMetric(MetricToken::Space2));
+    Align(AlignItems::Center);
+}
 
 void ContentBrowserToolbarControls::InitializeChildren() {
     if (m_Mode == ToolbarMode::Full) {
         m_CreateBtn = MakePrimaryAction("Add", Icons::PlusName);
         m_ImportBtn = MakeSecondaryAction("Import", "import");
         m_SaveBtn = std::make_shared<ToolbarLabeledButton>("Save All", Icons::SaveAllName, false, ToolbarLabeledButton::Variant::Standard, ThemeMetric(MetricToken::Space3));
+
+        m_CreateBtn->SetFlexShrink(0.0f);
+        m_ImportBtn->SetFlexShrink(0.0f);
+        m_SaveBtn->SetFlexShrink(0.0f);
 
         AddChild(m_CreateBtn);
         AddChild(m_ImportBtn);
@@ -225,10 +239,16 @@ void ContentBrowserToolbarControls::InitializeChildren() {
         // Asset pane toolbar: search, save all, filter icon
         m_SearchBox = std::make_shared<SearchBox>();
         m_SearchBox->SetPlaceholder("Search Assets...");
-        m_SearchBox->SetWidth(ThemeMetric(MetricToken::Space6) * 15.0f);
+        m_SearchBox->SetFlexGrow(1.0f);
+        m_SearchBox->SetFlexShrink(1.0f);
+        m_SearchBox->SetMinWidth(100.0f);
+        m_SearchBox->SetMaxWidth(320.0f);
 
         m_SaveBtn = std::make_shared<ToolbarLabeledButton>("Save All", Icons::SaveAllName, false, ToolbarLabeledButton::Variant::Standard, ThemeMetric(MetricToken::Space3));
         m_FilterIconBtn = std::make_shared<ToolbarIconToggle>(Icons::FilterName, "Filter");
+
+        m_SaveBtn->SetFlexShrink(0.0f);
+        m_FilterIconBtn->SetFlexShrink(0.0f);
 
         AddChild(m_SearchBox);
         AddChild(m_SaveBtn);
@@ -237,84 +257,24 @@ void ContentBrowserToolbarControls::InitializeChildren() {
 }
 
 Size ContentBrowserToolbarControls::Measure(const Size& availableSize) {
-    m_DesiredSize = Size{ availableSize.width, ThemeMetric(MetricToken::PanelToolbarHeight) };
+    Size size = Row::Measure(availableSize);
+    size.height = ThemeMetric(MetricToken::PanelToolbarHeight);
+    m_DesiredSize = size;
     return m_DesiredSize;
 }
 
 void ContentBrowserToolbarControls::ArrangeControlRow(const Rect& row, float contentLeft, float contentRight) {
-    const float centerY = row.y + row.height * 0.5f;
-    const float contentWidth = std::max(0.0f, contentRight - contentLeft);
-    const Size measureSize{ contentWidth, ThemeMetric(MetricToken::ButtonHeight) };
-
-    if (m_Mode == ToolbarMode::Full) {
-        float x = contentLeft;
-
-        if (m_CreateBtn) {
-            const Size desired = m_CreateBtn->Measure(measureSize);
-            m_CreateBtn->Arrange(Rect{ x, centerY - desired.height * 0.5f, desired.width, desired.height });
-            x += desired.width + ThemeMetric(MetricToken::ButtonSpacing);
-        }
-
-        if (m_ImportBtn) {
-            const Size desired = m_ImportBtn->Measure(measureSize);
-            m_ImportBtn->Arrange(Rect{ x, centerY - desired.height * 0.5f, desired.width, desired.height });
-            x += desired.width + ThemeMetric(MetricToken::ButtonGroupSpacing);
-        }
-
-        if (m_SaveBtn) {
-            const Size desired = m_SaveBtn->Measure(measureSize);
-            m_SaveBtn->Arrange(Rect{ x, centerY - desired.height * 0.5f, desired.width, desired.height });
-        }
-    } else {
-        // Asset pane toolbar: search, save all, filter icon
-        float searchWidth = std::min(ThemeMetric(MetricToken::Space6) * 15.0f, std::max(ThemeMetric(MetricToken::Space6) * 10.0f, contentWidth * 0.5f));
-
-        const std::vector<std::shared_ptr<Widget>> actionButtons = {
-            m_SaveBtn, m_FilterIconBtn
-        };
-
-        float actionsWidth = 0.0f;
-        for (const auto& widget : actionButtons) {
-            actionsWidth += widget->Measure(measureSize).width + ThemeMetric(MetricToken::Space1);
-        }
-
-        const float fixedWidth = searchWidth + ThemeMetric(MetricToken::Space2) + actionsWidth;
-
-        if (fixedWidth > contentWidth) {
-            searchWidth = std::max(ThemeMetric(MetricToken::Space6) * 6.67f, contentWidth - (fixedWidth - searchWidth));
-        }
-
-        float x = contentLeft;
-
-        m_SearchBox->Arrange(Rect{
-            x,
-            centerY - ThemeMetric(MetricToken::SearchBoxHeight) * 0.5f,
-            searchWidth,
-            ThemeMetric(MetricToken::SearchBoxHeight)
-        });
-        x += searchWidth + ThemeMetric(MetricToken::Space2);
-
-        for (const auto& widget : actionButtons) {
-            const Size desired = widget->Measure(measureSize);
-            widget->Arrange(Rect{ x, centerY - desired.height * 0.5f, desired.width, desired.height });
-            x += desired.width + ThemeMetric(MetricToken::Space1);
-        }
-    }
+    Row::Arrange(row);
 }
 
 void ContentBrowserToolbarControls::Arrange(const Rect& allottedRect) {
     m_Geometry = allottedRect;
-    const float contentLeft = allottedRect.x + ThemeMetric(MetricToken::Space3);
-    const float contentRight = allottedRect.x + allottedRect.width - ThemeMetric(MetricToken::Space3);
-    ArrangeControlRow(allottedRect, contentLeft, contentRight);
+    Row::Arrange(allottedRect);
 }
 
 void ContentBrowserToolbarControls::Paint(PaintContext& context) {
     PanelChrome::PaintToolbarRegion(context, m_Geometry);
-
-    for (const auto& child : m_Children) {
-        if (child->IsVisible()) child->Paint(context);
-    }
+    Row::Paint(context);
 }
 
 void ContentBrowserToolbarControls::OnMouseDown(const MouseEvent& event) {

@@ -92,6 +92,20 @@ public static class RunCommand
                 startInfo.ArgumentList.Add(arg);
             }
             startInfo.Environment["PATH"] = pathPrefix + (Environment.GetEnvironmentVariable("PATH") ?? string.Empty);
+            foreach (System.Collections.DictionaryEntry entry in Environment.GetEnvironmentVariables())
+            {
+                var key = entry.Key?.ToString();
+                if (string.IsNullOrEmpty(key) || !key.StartsWith("WE_", StringComparison.Ordinal))
+                {
+                    continue;
+                }
+
+                var value = entry.Value?.ToString();
+                if (value != null)
+                {
+                    startInfo.Environment[key] = value;
+                }
+            }
 
             System.Diagnostics.Process.Start(startInfo);
             return 0;

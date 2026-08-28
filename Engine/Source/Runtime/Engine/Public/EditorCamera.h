@@ -13,9 +13,9 @@ inline constexpr float kEditorCameraDefaultSpeed = 4.0f;
 inline constexpr float kEditorCameraLandscapeDefaultSpeed = 120.0f;
 
 struct EditorCameraNavigationSettings {
-    float mouseSensitivity = 0.15f;
+    float mouseSensitivity = 0.25f;
     float cameraAcceleration = 1.0f;
-    float cameraSmoothing = 12.0f;
+    float cameraSmoothing = 45.0f;
     bool invertX = false;
     bool invertY = false;
     float maxBoostMultiplier = 4.0f;

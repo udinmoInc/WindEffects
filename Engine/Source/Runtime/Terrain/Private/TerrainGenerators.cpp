@@ -6,6 +6,7 @@
 #include <functional>
 #include <memory>
 #include <string>
+#include <thread>
 #include <vector>
 
 namespace we::runtime::terrain {
@@ -99,9 +100,10 @@ float Voronoi2D(float x, float y, std::uint32_t seed) {
         for (int ox = -1; ox <= 1; ++ox) {
             const float cx = xi + static_cast<float>(ox);
             const float cy = yi + static_cast<float>(oz);
-            const float px = cx + Hash01(static_cast<std::uint32_t>(cx), static_cast<std::uint32_t>(cy), seed);
-            const float py =
-                cy + Hash01(static_cast<std::uint32_t>(cx), static_cast<std::uint32_t>(cy), seed + 17u);
+            const auto ix = static_cast<std::uint32_t>(static_cast<int>(cx));
+            const auto iy = static_cast<std::uint32_t>(static_cast<int>(cy));
+            const float px = cx + Hash01(ix, iy, seed);
+            const float py = cy + Hash01(ix + 7u, iy + 13u, seed);
             const float dx = px - x;
             const float dy = py - y;
             minDist = std::min(minDist, dx * dx + dy * dy);
@@ -120,11 +122,35 @@ void FillHeight(
     }
     const int w = map.Width();
     const int h = map.Height();
-    for (int z = 0; z < h; ++z) {
-        for (int x = 0; x < w; ++x) {
-            float height = sampleFn(x, z, w, h);
-            height = std::clamp(height, 0.f, 1.f);
-            map.Set(x, z, static_cast<std::uint16_t>(height * 65535.f + 0.5f));
+    const unsigned int numThreads = std::max(1u, std::thread::hardware_concurrency());
+    if (numThreads > 1 && h >= 16) {
+        std::vector<std::thread> workers;
+        workers.reserve(numThreads);
+        const int rowsPerThread = (h + numThreads - 1) / numThreads;
+        for (unsigned int t = 0; t < numThreads; ++t) {
+            const int startZ = t * rowsPerThread;
+            const int endZ = std::min(h, startZ + rowsPerThread);
+            if (startZ >= endZ) break;
+            workers.emplace_back([&map, &sampleFn, startZ, endZ, w, h]() {
+                for (int z = startZ; z < endZ; ++z) {
+                    for (int x = 0; x < w; ++x) {
+                        float height = sampleFn(x, z, w, h);
+                        height = std::clamp(height, 0.f, 1.f);
+                        map.Set(x, z, static_cast<std::uint16_t>(height * 65535.f + 0.5f));
+                    }
+                }
+            });
+        }
+        for (auto& worker : workers) {
+            if (worker.joinable()) worker.join();
+        }
+    } else {
+        for (int z = 0; z < h; ++z) {
+            for (int x = 0; x < w; ++x) {
+                float height = sampleFn(x, z, w, h);
+                height = std::clamp(height, 0.f, 1.f);
+                map.Set(x, z, static_cast<std::uint16_t>(height * 65535.f + 0.5f));
+            }
         }
     }
     map.MarkRegionDirty(0, 0, w - 1, h - 1);

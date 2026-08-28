@@ -6,6 +6,8 @@
 #include "KindUI/Layout/LayoutAssert.h"
 #include "KindUI/Tokens/DesignToken.h"
 #include "KindUI/Theming/StyleRole.h"
+#include "KindUI/Core/UiMetrics.h"
+#include "KindUI/Core/Animator.h"
 #include <algorithm>
 #include <cmath>
 
@@ -18,10 +20,6 @@ using ::we::runtime::kindui::ClampRectToParent;
 
 namespace we::editor::docking {
 namespace PanelChrome = ::we::editor::panels::PanelChrome;
-
-namespace {
-constexpr float kTabDragThreshold = 6.0f;
-}
 
 DockContainer::DockContainer() {
     m_HeaderHeightLogical = ThemeMetric(MetricToken::PanelTabHeight);
@@ -88,9 +86,17 @@ void DockContainer::SetActiveTab(int index) {
 void DockContainer::Tick(float deltaTime) {
     Widget::Tick(deltaTime);
     const float speed = 12.0f;
+    bool hoverChanged = false;
     for (auto& tab : m_Tabs) {
         const float target = tab.isHovered ? 1.0f : 0.0f;
+        const float previous = tab.hoverAnim;
         tab.hoverAnim += (target - tab.hoverAnim) * std::min(1.0f, deltaTime * speed);
+        if (std::abs(tab.hoverAnim - previous) > we::runtime::kindui::Animator::kSettleEpsilon) {
+            hoverChanged = true;
+        }
+    }
+    if (hoverChanged) {
+        InvalidatePaint();
     }
 }
 
@@ -273,7 +279,7 @@ void DockContainer::OnMouseMove(const MouseEvent& event) {
     if (m_TabDragCandidate && m_DragTabIndex >= 0) {
         const float dx = event.position.x - m_DragStart.x;
         const float dy = event.position.y - m_DragStart.y;
-        if (std::sqrt(dx * dx + dy * dy) >= kTabDragThreshold) {
+        if (we::runtime::kindui::UiMetrics::ExceedsDragThreshold(dx, dy)) {
             m_TabDragCandidate = false;
             if (m_OnTabDragStarted && m_DragTabIndex < static_cast<int>(m_Tabs.size())) {
                 m_OnTabDragStarted(m_Tabs[static_cast<size_t>(m_DragTabIndex)].panel, event.position);

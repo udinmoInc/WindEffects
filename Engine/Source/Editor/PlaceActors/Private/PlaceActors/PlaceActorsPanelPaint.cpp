@@ -25,6 +25,7 @@
 #include "KindUI/Theming/StyleRole.h"
 #include "KindUI/Core/Icon.h"
 #include "KindUI/Core/Animator.h"
+#include "KindUI/Core/UiMetrics.h"
 #include "KindUI/Input/InputEvents.h"
 #include "Core/EditorConfigPaths.h"
 
@@ -50,9 +51,7 @@ using ::we::runtime::kindui::MouseButton;
 using ::we::runtime::kindui::KeyEvent;
 namespace Icons = ::we::runtime::kindui::Icons;
 
-namespace {
-constexpr float kDragThreshold = 6.0f;
-}
+namespace Icons = ::we::runtime::kindui::Icons;
 
 void PlaceActorsPanel::Paint(we::runtime::kindui::PaintContext& context) {
     PanelChrome::PaintContentRegion(context, m_Geometry);
@@ -439,7 +438,7 @@ void PlaceActorsPanel::OnMouseMove(const MouseEvent& event) {
     if (m_PendingDragItem && !m_DragStarted) {
         const float dx = event.position.x - m_DragStartPosition.x;
         const float dy = event.position.y - m_DragStartPosition.y;
-        if ((dx * dx + dy * dy) >= (kDragThreshold * kDragThreshold)) {
+        if (we::runtime::kindui::UiMetrics::ExceedsDragThreshold(dx, dy)) {
             m_DragStarted = true;
             m_LastClickToolId = m_PendingDragItem->toolId;
             PlaceActorsPlacement::Get().BeginDragPlacement(m_PendingDragItem->toolId);

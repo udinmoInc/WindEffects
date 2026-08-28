@@ -204,8 +204,8 @@ bool TerrainLODManager::BuildChunkMesh(const TerrainHeightmap& heightmap, const 
             outMesh.indices.push_back(i2);
             outMesh.indices.push_back(i1);
             outMesh.indices.push_back(i1);
-            outMesh.indices.push_back(i3);
             outMesh.indices.push_back(i2);
+            outMesh.indices.push_back(i3);
         }
     }
 

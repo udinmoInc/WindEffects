@@ -1,9 +1,11 @@
 #include "Widgets/ExplorerFilterMenu.h"
-#include "Widgets/ExplorerToolbar.h"
 
+#include "KindUI/Core/UiMetrics.h"
 #include "KindUI/Core/PaintContext.h"
+#include "KindUI/Core/TextMetrics.h"
 #include "KindUI/Tokens/DesignToken.h"
 #include "KindUI/Theming/StyleRole.h"
+#include "KindUI/Theming/ThemeAccess.h"
 #include "KindUI/Core/Icon.h"
 #include "KindUI/Input/InputEvents.h"
 #include "KindUI/Layout/OverlayManager.h"
@@ -13,18 +15,12 @@
 using ::we::runtime::kindui::ColorToken;
 using ::we::runtime::kindui::MetricToken;
 using ::we::runtime::kindui::PaddingToken;
+using ::we::runtime::kindui::TextMetrics;
 
 namespace we::editor::outliner {
 using ::we::runtime::kindui::IconPainter;
 using ::we::runtime::kindui::MouseButton;
 namespace Icons = ::we::runtime::kindui::Icons;
-
-namespace {
-constexpr float kMenuItemHeight = 26.0f;
-constexpr float kMenuPadding = 4.0f;
-constexpr float kCheckSize = 16.0f;
-constexpr float kTextOffset = 24.0f;
-} // namespace
 
 ExplorerFilterMenu::ExplorerFilterMenu(const FilterOptions& initialOptions, OnFilterChanged callback)
     : m_FilterOptions(initialOptions)
@@ -81,50 +77,64 @@ void ExplorerFilterMenu::BuildMenuItems() {
 
 Size ExplorerFilterMenu::Measure(const Size& availableSize) {
     (void)availableSize;
+    const float textSize = ThemeMetric(MetricToken::TextSizeSmall);
     float maxWidth = 180.0f;
     for (const auto& item : m_MenuItems) {
         if (!item.isSeparator) {
-            maxWidth = std::max(maxWidth, kTextOffset + static_cast<float>(item.label.size()) * 7.5f + 16.0f);
+            const float itemW = we::runtime::kindui::UiMetrics::MenuTextIndent()
+                + TextMetrics::MeasureWidth(item.label, textSize)
+                + ThemeMetric(MetricToken::Space4);
+            maxWidth = std::max(maxWidth, itemW);
         }
     }
-    m_DesiredSize = Size{ maxWidth, kMenuPadding * 2.0f + m_MenuItems.size() * kMenuItemHeight };
+    const float menuPad = we::runtime::kindui::UiMetrics::MenuPadding();
+    const float rowH = we::runtime::kindui::UiMetrics::MenuItemHeight();
+    m_DesiredSize = Size{ maxWidth, menuPad * 2.0f + static_cast<float>(m_MenuItems.size()) * rowH };
     return m_DesiredSize;
 }
 
 void ExplorerFilterMenu::Arrange(const Rect& allottedRect) {
     m_Geometry = allottedRect;
     
-    float y = m_Geometry.y + kMenuPadding;
+    const float menuPad = we::runtime::kindui::UiMetrics::MenuPadding();
+    const float rowH = we::runtime::kindui::UiMetrics::MenuItemHeight();
+    float y = m_Geometry.y + menuPad;
     for (auto& item : m_MenuItems) {
-        item.geometry = Rect{ m_Geometry.x + kMenuPadding, y, m_Geometry.width - kMenuPadding * 2.0f, kMenuItemHeight };
-        y += kMenuItemHeight;
+        item.geometry = Rect{ m_Geometry.x + menuPad, y, m_Geometry.width - menuPad * 2.0f, rowH };
+        y += rowH;
     }
 }
 
 void ExplorerFilterMenu::Paint(PaintContext& context) {
-    
-    // Draw menu background with shadow
-    context.DrawShadow(m_Geometry, ThemeColor(ColorToken::ShadowOverlay), 6.0f, 12.0f);
-    context.DrawRoundedRect(m_Geometry, ThemeColor(ColorToken::PopupBackground), ThemeMetric(MetricToken::CornerRadiusSmall));
-    context.DrawRoundedRectOutline(m_Geometry, ThemeColor(ColorToken::BorderDefault), 1.0f, ThemeMetric(MetricToken::CornerRadiusSmall));
-    
+    const float rowH = we::runtime::kindui::UiMetrics::MenuItemHeight();
+    const float checkSize = we::runtime::kindui::UiMetrics::CheckMarkSize();
+    const float menuPad = we::runtime::kindui::UiMetrics::MenuPadding();
+    const float radius = ThemeMetric(MetricToken::CornerRadiusSmall);
+
+    context.DrawRoundedRect(m_Geometry, ResolveColor(ColorToken::PanelBackground), radius);
+    context.DrawRoundedRectOutline(
+        m_Geometry,
+        ResolveColor(ColorToken::BorderLight),
+        ThemeMetric(MetricToken::BorderWidth),
+        radius);
+
     for (size_t i = 0; i < m_MenuItems.size(); ++i) {
         const auto& item = m_MenuItems[i];
-        
+
         if (item.isSeparator) {
-            const float sepY = item.geometry.y + kMenuItemHeight * 0.5f;
-            context.DrawRect(Rect{ item.geometry.x + 4.0f, sepY, item.geometry.width - 8.0f, 1.0f }, ThemeColor(ColorToken::Separator));
+            const float sepY = item.geometry.y + rowH * 0.5f;
+            context.DrawRect(
+                Rect{ item.geometry.x + menuPad, sepY, item.geometry.width - menuPad * 2.0f, ThemeMetric(MetricToken::BorderWidth) },
+                ThemeColor(ColorToken::Separator));
             continue;
         }
-        
-        // Draw hover background
+
         if (static_cast<int>(i) == m_HoveredItem) {
-            context.DrawRoundedRect(item.geometry, ThemeColor(ColorToken::HoverBackground), 3.0f);
+            context.DrawRoundedRect(item.geometry, ThemeColor(ColorToken::HoverBackground), radius * 0.75f);
         }
-        
-        // Draw check/radio indicator
-        const float checkX = item.geometry.x + 4.0f;
-        const float checkY = item.geometry.y + (kMenuItemHeight - kCheckSize) * 0.5f;
+
+        const float checkX = item.geometry.x + menuPad;
+        const float checkY = item.geometry.y + (rowH - checkSize) * 0.5f;
         
         if (item.isRadio) {
             // Radio button style - check if this sort option is selected
@@ -132,19 +142,19 @@ void ExplorerFilterMenu::Paint(PaintContext& context) {
             if (i >= sortStartIndex) {
                 const bool isSelected = (m_FilterOptions.sortOrder == static_cast<int>(i - sortStartIndex));
                 if (isSelected) {
-                    IconPainter::DrawIcon(context, Icons::CheckName, Rect{ checkX, checkY, kCheckSize, kCheckSize }, ThemeColor(ColorToken::AccentPrimary));
+                    IconPainter::DrawIcon(context, Icons::CheckName, Rect{ checkX, checkY, checkSize, checkSize }, ThemeColor(ColorToken::AccentPrimary));
                 }
             }
         } else {
             // Checkbox style
             if (item.value && *item.value) {
-                IconPainter::DrawIcon(context, Icons::CheckName, Rect{ checkX, checkY, kCheckSize, kCheckSize }, ThemeColor(ColorToken::AccentPrimary));
+                IconPainter::DrawIcon(context, Icons::CheckName, Rect{ checkX, checkY, checkSize, checkSize }, ThemeColor(ColorToken::AccentPrimary));
             }
         }
         
         // Draw label
-        const float textX = item.geometry.x + kTextOffset;
-        const float textY = item.geometry.y + (kMenuItemHeight - ThemeMetric(MetricToken::TextSizeNormal)) * 0.5f;
+        const float textX = item.geometry.x + we::runtime::kindui::UiMetrics::MenuTextIndent();
+        const float textY = item.geometry.y + (rowH - ThemeMetric(MetricToken::TextSizeNormal)) * 0.5f;
         context.DrawText(item.label, Point{ textX, textY }, ThemeColor(ColorToken::TextPrimary), ThemeMetric(MetricToken::TextSizeNormal));
     }
 }

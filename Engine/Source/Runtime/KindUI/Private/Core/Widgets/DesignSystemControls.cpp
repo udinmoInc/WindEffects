@@ -309,11 +309,11 @@ void SearchBoxControl::SetText(std::string text) {
 }
 
 Size SearchBoxControl::Measure(const Size& availableSize) {
+    (void)availableSize;
     const ResolvedStyle style = ThemeManager::Get().Resolve(StyleRole::SearchBox);
-    m_DesiredSize = Size{
-        availableSize.width > 0.0f ? availableSize.width : 220.0f,
-        style.height > 0.0f ? style.height : ResolveMetric(MetricToken::SearchBoxHeight)
-    };
+    const float minW = m_MinSize.width > 0.0f ? m_MinSize.width : 60.0f;
+    const float h = style.height > 0.0f ? style.height : ResolveMetric(MetricToken::SearchBoxHeight);
+    m_DesiredSize = Size{ minW, h };
     return m_DesiredSize;
 }
 

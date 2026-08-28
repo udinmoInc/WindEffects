@@ -210,10 +210,13 @@ void TreeView::Arrange(const Rect& allottedRect) {
     const float rowHeight = m_ItemHeight * TreeUiScale();
     const float viewportX = m_ScrollMetrics.viewport.x;
     const float viewportWidth = m_ScrollMetrics.viewport.width;
-    float y = m_ScrollMetrics.viewport.y - m_Scroll.offset;
-    for (size_t i = 0; i < m_RenderList.size(); ++i) {
-        auto& item = m_RenderList[i];
-        item.flatIndex = static_cast<int>(i);
+    const int first = std::max(0, m_FirstVisibleIndex - 2);
+    const int last = std::min(static_cast<int>(m_RenderList.size()) - 1, m_LastVisibleIndex + 2);
+    float y = m_ScrollMetrics.viewport.y - m_Scroll.offset
+        + static_cast<float>(first) * rowHeight;
+    for (int i = first; i <= last && i < static_cast<int>(m_RenderList.size()); ++i) {
+        auto& item = m_RenderList[static_cast<size_t>(i)];
+        item.flatIndex = i;
         item.geometry = Rect{
             viewportX + item.depth * m_IndentWidth,
             y,
@@ -740,6 +743,23 @@ void TreeView::UpdateVisibleRange() {
 }
 
 TreeView::RenderItem* TreeView::GetItemAtPosition(const Point& pos) {
+    if (m_RenderList.empty()) return nullptr;
+
+    const float rowHeight = m_ItemHeight * TreeUiScale();
+    if (rowHeight > 0.0f) {
+        const float viewTop = m_ScrollMetrics.viewport.y - m_Scroll.offset;
+        const float relY = pos.y - viewTop;
+        if (relY >= 0.0f) {
+            const size_t index = static_cast<size_t>(relY / rowHeight);
+            if (index < m_RenderList.size()) {
+                auto& item = m_RenderList[index];
+                if (item.geometry.Contains(pos)) {
+                    return &item;
+                }
+            }
+        }
+    }
+
     for (auto& item : m_RenderList) {
         if (item.geometry.Contains(pos)) {
             return &item;
