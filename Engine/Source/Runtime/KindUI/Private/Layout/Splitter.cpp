@@ -1,6 +1,7 @@
 #include "KindUI/Layout/Splitter.h"
 #include "KindUI/Layout/LayoutAssert.h"
 #include "KindUI/Core/PaintContext.h"
+#include "KindUI/Core/UIRepaintGate.h"
 #include "KindUI/Core/DPIContext.h"
 #include "KindUI/Theming/ThemeAccess.h"
 #include "KindUI/Tokens/DesignToken.h"
@@ -32,6 +33,10 @@ void Splitter::SetSplitRatio(float ratio) {
 
 void Splitter::SetFixedFirstWidth(float width) {
     m_FixedFirstWidth = std::max(1.0f, width);
+}
+
+void Splitter::SetFixedSecondWidth(float width) {
+    m_FixedSecondWidth = std::max(1.0f, width);
 }
 
 void Splitter::SetResizeMode(ResizeMode mode) {
@@ -83,6 +88,8 @@ Rect Splitter::GetSplitterBarRect() const {
         float x;
         if (m_ResizeMode == ResizeMode::FixedFirst) {
             x = m_Geometry.x + m_FixedFirstWidth;
+        } else if (m_ResizeMode == ResizeMode::FixedSecond) {
+            x = m_Geometry.x + m_Geometry.width - barThickness - m_FixedSecondWidth;
         } else {
             x = m_Geometry.x + (m_Geometry.width - barThickness) * m_SplitRatio;
         }
@@ -298,9 +305,12 @@ void Splitter::OnMouseDown(const MouseEvent& event) {
 
 void Splitter::OnMouseMove(const MouseEvent& event) {
     Rect hitRect = GetSplitterHitRect();
+    const bool wasHovered = m_Hovered;
     m_Hovered = hitRect.Contains(event.position);
-
     if (!m_Dragging) {
+        if (wasHovered != m_Hovered) {
+            InvalidatePaint();
+        }
         return;
     }
 
@@ -310,20 +320,26 @@ void Splitter::OnMouseMove(const MouseEvent& event) {
             const float relativeX = event.position.x - m_Geometry.x;
             const float maxFirst = std::max(m_MinFirstPx, m_Geometry.width - barThickness - m_MinSecondPx);
             m_FixedFirstWidth = std::clamp(relativeX, m_MinFirstPx, maxFirst);
+        } else if (m_ResizeMode == ResizeMode::FixedSecond) {
+            const float relativeX = m_Geometry.width - (event.position.x - m_Geometry.x) - barThickness;
+            const float maxSecond = std::max(m_MinSecondPx, m_Geometry.width - barThickness - m_MinFirstPx);
+            m_FixedSecondWidth = std::clamp(relativeX, m_MinSecondPx, maxSecond);
         } else {
             const float usable = std::max(1.0f, m_Geometry.width - barThickness);
             const float relativeX = event.position.x - m_Geometry.x;
             m_SplitRatio = relativeX / usable;
             ClampSplitToMins(m_Geometry.width, barThickness);
         }
-        InvalidateLayout();
     } else {
         const float usable = std::max(1.0f, m_Geometry.height - barThickness);
         const float relativeY = event.position.y - m_Geometry.y;
         m_SplitRatio = relativeY / usable;
         ClampSplitToMins(m_Geometry.height, barThickness);
-        InvalidateLayout();
     }
+
+    // Split geometry changed inside a fixed allotted rect — local arrange + paint only.
+    Arrange(m_Geometry);
+    InvalidatePaint();
 }
 
 void Splitter::OnMouseUp(const MouseEvent& event) {

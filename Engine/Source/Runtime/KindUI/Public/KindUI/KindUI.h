@@ -41,6 +41,8 @@
 
 #include "KindUI/Layout/Flex.h"
 #include "KindUI/Layout/Grid.h"
+#include "KindUI/Core/Widgets/PanelToolbarRow.h"
+#include "KindUI/Core/UiMetrics.h"
 #include "KindUI/Widgets/Components.h"
 #include "KindUI/Widgets/ModalHost.h"
 #include "KindUI/Widgets/VirtualList.h"

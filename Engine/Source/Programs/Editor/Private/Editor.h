@@ -61,6 +61,8 @@ private:
     void EnsureVisibleSwapchain();
     void SyncViewportFramebufferFromLayout();
     void UpdateUiScaleFromWindow();
+    void TickSimulation(float dt);
+    void ProcessLateInputMouse();
     void LogWidgetTreeLayout(const std::shared_ptr<we::runtime::kindui::Widget>& widget, const std::string& name, int depth = 0);
     void SetRootWidget(const std::shared_ptr<we::runtime::kindui::Widget>& root);
     void UpdateWindowTitle();

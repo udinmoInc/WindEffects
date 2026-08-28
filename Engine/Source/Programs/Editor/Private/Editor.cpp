@@ -1,6 +1,11 @@
 #include "Editor.h"
 #include "FirstRunAgreementPopup.h"
+#include "KindUI/Benchmark/KindUIBenchmark.h"
+#include "KindUI/Benchmark/KindUIInteractionBenchmark.h"
+#include "KindUI/Profiling/UiPathDiagnostics.h"
 #include "Core/Logger.h"
+
+#include <cstdlib>
 #include "Core/DiagnosticMacros.h"
 #include "Core/FrameCounter.h"
 #include "Core/StartupValidator.h"
@@ -121,6 +126,29 @@ Editor::Editor(we::platform::WindowId window, const we::projects::EditorCommandL
     HE_INFO("[Startup] Swapchain: " + std::to_string(m_Renderer->GetSwapchainWidth())
         + "x" + std::to_string(m_Renderer->GetSwapchainHeight()));
     HE_INFO("[Startup] === WindEffects Engine Editor successfully bootstrapped ===");
+
+    if (const char* bench = std::getenv("WE_UI_BENCH"); bench != nullptr && bench[0] != '\0' && bench[0] != '0') {
+        const auto report = UI::RunKindUIBenchmark(500);
+        HE_INFO("[UIBench] " + report.summary);
+    }
+    if (const char* interactBench = std::getenv("WE_UI_INTERACT_BENCH");
+        interactBench != nullptr && interactBench[0] != '\0' && interactBench[0] != '0') {
+        const auto report = UI::RunKindUIInteractionBenchmark(32);
+        HE_INFO("[UIInteractBench] " + report.summary);
+        for (const auto& scenario : report.scenarios) {
+            HE_INFO("[UIInteractBench] " + scenario.name
+                + " peak=" + std::to_string(static_cast<uint64_t>(scenario.peakMs * 1000.0)) + "us"
+                + " avg=" + std::to_string(static_cast<uint64_t>(scenario.avgMs * 1000.0)) + "us"
+                + " layout=" + std::to_string(scenario.layoutPasses)
+                + " paint=" + std::to_string(scenario.paintPasses)
+                + " inv=" + std::to_string(scenario.invalidateCount)
+                + " layoutInv=" + std::to_string(scenario.layoutInvalidations)
+                + " paintInv=" + std::to_string(scenario.paintInvalidations)
+                + " widgets=" + std::to_string(scenario.widgetsVisited)
+                + " cmds=" + std::to_string(scenario.paintCommands)
+                + " cause=" + scenario.rootCause);
+        }
+    }
 }
 
 bool Editor::LaunchWeLauncher(const std::vector<std::string>& extraArgs) {
@@ -722,15 +750,18 @@ void Editor::SyncViewportFramebufferFromLayout() {
     }
 
     const bool sizeChanged = w != m_LastLayoutSwapchainW || h != m_LastLayoutSwapchainH;
-    const bool needsLayout = sizeChanged || we::runtime::kindui::UIRepaintGate::PeekNeedsRebuild();
+    const bool needsLayout = sizeChanged || we::runtime::kindui::UIRepaintGate::PeekNeedsLayout();
 
     if (needsLayout) {
         // Root Measure/Arrange uses the swapchain = Windows CLIENT RECT only
         // (GetClientRect). Title/menu/toolbar/status are flex chrome rows; the
         // workspace Column FlexGrow(1) receives the remaining client area.
         const UI::Rect clientRect{ 0.0f, 0.0f, static_cast<float>(w), static_cast<float>(h) };
+        we::runtime::kindui::UiPathDiagnostics::Get().OnLayoutPass();
         m_RootWidget->Measure(UI::Size{ clientRect.width, clientRect.height });
         m_RootWidget->Arrange(clientRect);
+        m_RootWidget->ClearSubtreeLayoutDirty();
+        we::runtime::kindui::UIRepaintGate::RequestPaint();
         m_LastLayoutSwapchainW = w;
         m_LastLayoutSwapchainH = h;
     }
@@ -814,6 +845,8 @@ void Editor::MainLoop() {
     we::runtime::kindui::UIRepaintGate::Request();
 
     while (m_Running) {
+        we::runtime::kindui::UIRepaintGate::BeginFrame();
+        we::runtime::kindui::UiPathDiagnostics::Get().BeginFrame();
         ::we::editor::services::EditorPerfStats::Get().BeginFrame();
 
         if (!platform.PollEvents()) {
@@ -824,7 +857,8 @@ void Editor::MainLoop() {
         }
 
         for (const auto& event : platform.GetFrameEvents()) {
-            bool requestUiRebuild = false;
+            bool requestUiLayout = false;
+            bool requestUiPaint = false;
             const bool isMotion = std::holds_alternative<we::platform::MouseMoveEvent>(event)
                 || std::holds_alternative<we::platform::RawMouseEvent>(event);
 
@@ -844,7 +878,7 @@ void Editor::MainLoop() {
                 || std::holds_alternative<we::platform::WindowDpiEvent>(event)
                 || std::holds_alternative<we::platform::WindowMaximizeEvent>(event)
                 || std::holds_alternative<we::platform::WindowMinimizeEvent>(event)) {
-                requestUiRebuild = true;
+                requestUiLayout = true;
             } else if (const auto* move = std::get_if<we::platform::MouseMoveEvent>(&event)) {
                 UI::MouseEvent mouseEvent{};
                 mouseEvent.type = UI::MouseEventType::MouseMove;
@@ -856,18 +890,6 @@ void Editor::MainLoop() {
                 mouseEvent.shiftDown = we::platform::HasFlag(mods, we::platform::KeyModifier::Shift);
                 mouseEvent.ctrlDown = we::platform::HasFlag(mods, we::platform::KeyModifier::Control);
                 m_UIEventSystem->ProcessMouseEvent(mouseEvent);
-
-                bool skipUiRebuild = false;
-                if (m_ViewportWidget) {
-                    if (auto vp = std::dynamic_pointer_cast<ViewportWidget>(m_ViewportWidget)) {
-                        if (vp->IsViewportNavigating()) {
-                            skipUiRebuild = true;
-                        }
-                    }
-                }
-                if (!skipUiRebuild) {
-                    requestUiRebuild = true;
-                }
             } else if (const auto* raw = std::get_if<we::platform::RawMouseEvent>(&event)) {
                 UI::MouseEvent mouseEvent{};
                 mouseEvent.type = UI::MouseEventType::MouseMove;
@@ -880,18 +902,6 @@ void Editor::MainLoop() {
                 mouseEvent.shiftDown = we::platform::HasFlag(mods, we::platform::KeyModifier::Shift);
                 mouseEvent.ctrlDown = we::platform::HasFlag(mods, we::platform::KeyModifier::Control);
                 m_UIEventSystem->ProcessMouseEvent(mouseEvent);
-
-                bool skipUiRebuild = false;
-                if (m_ViewportWidget) {
-                    if (auto vp = std::dynamic_pointer_cast<ViewportWidget>(m_ViewportWidget)) {
-                        if (vp->IsViewportNavigating()) {
-                            skipUiRebuild = true;
-                        }
-                    }
-                }
-                if (!skipUiRebuild) {
-                    requestUiRebuild = true;
-                }
             } else if (const auto* button = std::get_if<we::platform::MouseButtonEvent>(&event)) {
                 UI::MouseEvent mouseEvent{};
                 mouseEvent.type = button->pressed ? UI::MouseEventType::MouseDown : UI::MouseEventType::MouseUp;
@@ -906,7 +916,7 @@ void Editor::MainLoop() {
                 mouseEvent.shiftDown = we::platform::HasFlag(button->modifiers, we::platform::KeyModifier::Shift);
                 mouseEvent.ctrlDown = we::platform::HasFlag(button->modifiers, we::platform::KeyModifier::Control);
                 m_UIEventSystem->ProcessMouseEvent(mouseEvent);
-                requestUiRebuild = true;
+                requestUiPaint = true;
             } else if (const auto* wheel = std::get_if<we::platform::MouseWheelEvent>(&event)) {
                 UI::MouseEvent mouseEvent{};
                 mouseEvent.type = UI::MouseEventType::MouseWheel;
@@ -918,7 +928,7 @@ void Editor::MainLoop() {
                 mouseEvent.shiftDown = we::platform::HasFlag(mods, we::platform::KeyModifier::Shift);
                 mouseEvent.ctrlDown = we::platform::HasFlag(mods, we::platform::KeyModifier::Control);
                 m_UIEventSystem->ProcessMouseEvent(mouseEvent);
-                requestUiRebuild = true;
+                requestUiPaint = true;
             } else if (const auto* key = std::get_if<we::platform::KeyEvent>(&event)) {
 #if WE_DEBUG_UI
                 if (key->pressed && key->key == we::platform::KeyCode::F9) {
@@ -932,14 +942,16 @@ void Editor::MainLoop() {
                 keyEvent.shiftDown = we::platform::HasFlag(key->modifiers, we::platform::KeyModifier::Shift);
                 keyEvent.ctrlDown = we::platform::HasFlag(key->modifiers, we::platform::KeyModifier::Control);
                 m_UIEventSystem->ProcessKeyEvent(keyEvent);
-                requestUiRebuild = true;
+                requestUiPaint = true;
             } else if (std::holds_alternative<we::platform::TextInputEvent>(event)) {
-                requestUiRebuild = true;
+                requestUiPaint = true;
             }
 
             (void)isMotion;
-            if (requestUiRebuild) {
+            if (requestUiLayout) {
                 we::runtime::kindui::UIRepaintGate::Request();
+            } else if (requestUiPaint) {
+                we::runtime::kindui::UIRepaintGate::RequestPaint();
             }
         }
         
@@ -1058,6 +1070,8 @@ void Editor::MainLoop() {
             // Forward ECS extract packet  Renderer never queries World/entities.
             m_Renderer->SetExtractedFrame(m_Scene ? m_Scene->GetExtractedFrame() : nullptr);
 
+            ::we::editor::services::EditorPerfStats::Get().Mark("rhi");
+
             // CPU UI build + viewport sync before the graph (GPU overlay records inside UiOverlayPass).
             if (m_OverlayRenderer) {
                 const uint32_t imageIndex = m_Renderer->GetCurrentImageIndex();
@@ -1113,6 +1127,8 @@ void Editor::MainLoop() {
                     ? m_OverlayRenderer->GetFrameStats()
                     : we::runtime::kindui::UIFrameStats{};
                 ::we::editor::services::EditorPerfStats::Get().EndFrame(stats.vertices, stats.batches);
+                we::runtime::kindui::UiPathDiagnostics::Get().SetGeometryVertices(stats.vertices);
+                we::runtime::kindui::UiPathDiagnostics::Get().EndFrame();
             }
 
             if (firstFrame) {
@@ -1125,8 +1141,10 @@ void Editor::MainLoop() {
         } else if (!m_Renderer) {
             HE_ERROR("[Render] Renderer is null in main loop.");
             ::we::editor::services::EditorPerfStats::Get().EndFrame(0, 0);
+            we::runtime::kindui::UiPathDiagnostics::Get().EndFrame();
         } else {
             ::we::editor::services::EditorPerfStats::Get().EndFrame(0, 0);
+            we::runtime::kindui::UiPathDiagnostics::Get().EndFrame();
         }
     }
 }

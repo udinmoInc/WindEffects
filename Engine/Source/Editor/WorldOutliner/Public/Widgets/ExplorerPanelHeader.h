@@ -1,92 +1,43 @@
 #pragma once
 
-#include "KindUI/Core/Widget.h"
-#include "KindUI/Theming/ThemeAccess.h"
+#include "KindUI/Core/Widgets/PanelToolbarRow.h"
+#include "KindUI/Core/Types.h"
 #include "ContentBrowser/Widgets/TreeView.h"
 #include <functional>
 #include <string>
-#include <vector>
-#include "KindUI/Tokens/DesignToken.h"
-#include "KindUI/Input/InputEvents.h"
-#include "KindUI/Core/Style.h"
 
 namespace we::editor::outliner {
-using ::we::runtime::kindui::Widget;
-using ::we::runtime::kindui::Size;
-using ::we::runtime::kindui::Rect;
-using ::we::runtime::kindui::Point;
-using ::we::runtime::kindui::Color;
-using ::we::runtime::kindui::PaintContext;
-using ::we::runtime::kindui::MouseEvent;
-using ::we::runtime::kindui::KeyEvent;
-using ::we::runtime::kindui::WidgetStyle;
-using ::we::runtime::kindui::MetricToken;
 
-
-class ExplorerPanelHeader : public Widget {
+class ExplorerPanelHeader : public we::runtime::kindui::PanelToolbarRow {
 public:
-    static float DefaultHeight() { return we::runtime::kindui::ResolveMetric(MetricToken::PanelToolbarHeight); }
-    static float LogoLogicalSize() { return we::runtime::kindui::ResolveMetric(MetricToken::IconSizeToolbar); }
+    using Rect = we::runtime::kindui::Rect;
+    static float DefaultHeight() {
+        return we::runtime::kindui::ResolveMetric(we::runtime::kindui::MetricToken::PanelToolbarHeight);
+    }
 
     using FilterOptions = ::we::editor::contentbrowser::TreeView::FilterOptions;
 
     ExplorerPanelHeader();
 
-    Size Measure(const Size& availableSize) override;
-    void Arrange(const Rect& allottedRect) override;
-    void Paint(PaintContext& context) override;
-    void Tick(float deltaTime) override;
+    void Initialize();
 
-    void OnMouseDown(const MouseEvent& event) override;
-    void OnMouseMove(const MouseEvent& event) override;
-    void OnMouseUp(const MouseEvent& event) override;
-    void OnKeyDown(const KeyEvent& event) override;
-    void OnTextInput(const std::string& text);
-    bool ShowsPointerCursor(const Point& position) const override;
+    Rect GetFilterButtonGeometry() const;
 
-    // Geometry getters for menu positioning
-    Rect GetFilterButtonGeometry() const { return m_FilterButtonGeometry; }
-
-    // Search functionality
     void SetSearchQuery(const std::string& query);
-    std::string GetSearchQuery() const { return m_SearchQuery; }
-    void SetOnSearchChanged(std::function<void(const std::string&)> callback) { m_OnSearchChanged = std::move(callback); }
+    std::string GetSearchQuery() const;
+    void SetOnSearchChanged(std::function<void(const std::string&)> callback);
+    void SetOnFilterClicked(std::function<void()> callback);
+    void SetOnNewFolder(std::function<void()> callback);
+    void SetOnRefresh(std::function<void()> callback);
 
-    // Filter functionality
-    void SetOnFilterClicked(std::function<void()> callback) { m_OnFilterClicked = std::move(callback); }
-    void SetOnNewFolder(std::function<void()> callback) { m_OnNewFolder = std::move(callback); }
-    void SetOnRefresh(std::function<void()> callback) { m_OnRefresh = std::move(callback); }
-
-    // Filter state
     FilterOptions GetFilterOptions() const { return m_FilterOptions; }
     void SetFilterOptions(const FilterOptions& options) { m_FilterOptions = options; }
 
+protected:
+    void EnsureBuilt();
+
 private:
-    struct HeaderButton {
-        std::string iconName;
-        Rect geometry;
-    };
-
-    void PaintToolbarButton(PaintContext& context, const Rect& geometry,
-                           const std::string& iconName, bool hovered);
-    int HitButtonIndex(const Point& position) const;
-    bool IsSearchFocused() const { return m_SearchFocused; }
-
-    std::string m_SearchQuery;
-    bool m_SearchFocused = false;
-    float m_CursorBlink = 0.0f;
-    
-    Rect m_SearchBoxGeometry;
-    Rect m_FilterButtonGeometry;
-    Rect m_NewFolderButtonGeometry;
-    Rect m_RefreshButtonGeometry;
-
-    int m_HoveredButton = -1;
-    int m_PressedButton = -1;
-
     FilterOptions m_FilterOptions;
-
-    std::function<void(const std::string&)> m_OnSearchChanged;
     std::function<void()> m_OnFilterClicked;
     std::function<void()> m_OnNewFolder;
     std::function<void()> m_OnRefresh;

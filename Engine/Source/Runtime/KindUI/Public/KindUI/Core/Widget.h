@@ -63,7 +63,12 @@ public:
 
     [[nodiscard]] bool IsFocused() const { return m_Focused; }
     [[nodiscard]] bool IsHovered() const { return m_Hovered; }
-    void SetHovered(bool hovered) { m_Hovered = hovered; }
+    void SetHovered(bool hovered) { 
+        if (m_Hovered != hovered) {
+            m_Hovered = hovered; 
+            InvalidatePaint(); 
+        }
+    }
 
     [[nodiscard]] bool IsPressed() const { return m_Pressed; }
     void SetPressed(bool pressed) { m_Pressed = pressed; InvalidatePaint(); }
@@ -106,7 +111,11 @@ public:
     static void ResetDiagnostics();
 
     void AddChild(const std::shared_ptr<Widget>& child);
+    /// Attach overlay/popup child without forcing a full layout relayout of the base tree.
+    void AttachOverlayChild(const std::shared_ptr<Widget>& child);
     void RemoveChild(const std::shared_ptr<Widget>& child);
+    /// Detach overlay child without recursive layout invalidation.
+    void DetachOverlayChild(const std::shared_ptr<Widget>& child);
     void ClearChildren();
 
     const std::vector<std::shared_ptr<Widget>>& GetChildren() const { return m_Children; }
@@ -134,6 +143,8 @@ public:
 
     void SetMinSize(const Size& size) { m_MinSize = size; InvalidateLayout(); }
     void SetMaxSize(const Size& size) { m_MaxSize = size; InvalidateLayout(); }
+    void SetMinWidth(float minWidth) { m_MinSize.width = minWidth; InvalidateLayout(); }
+    void SetMaxWidth(float maxWidth) { m_MaxSize.width = maxWidth; InvalidateLayout(); }
     [[nodiscard]] const Size& GetMinSize() const { return m_MinSize; }
     [[nodiscard]] const Size& GetMaxSize() const { return m_MaxSize; }
     [[nodiscard]] Size ClampDesiredSize(const Size& desired) const;
@@ -157,9 +168,13 @@ public:
     [[nodiscard]] bool NeedsLayout() const { return m_NeedsLayout; }
     [[nodiscard]] bool NeedsPaint() const { return m_NeedsPaint; }
     [[nodiscard]] bool NeedsStyle() const { return m_NeedsStyle; }
+    [[nodiscard]] bool SubtreeNeedsPaint() const;
+    [[nodiscard]] bool SubtreeNeedsLayout() const;
     void ClearLayoutDirty() { m_NeedsLayout = false; }
     void ClearPaintDirty() { m_NeedsPaint = false; }
     void ClearStyleDirty() { m_NeedsStyle = false; }
+    void ClearSubtreePaintDirty();
+    void ClearSubtreeLayoutDirty();
 
     void SetContext(std::shared_ptr<IWidgetContext> context);
     [[nodiscard]] IWidgetContext* GetContext() const { return m_Context.get(); }
@@ -200,8 +215,8 @@ protected:
     bool m_Enabled = true;
     bool m_Visible = true;
     bool m_IsActive = true;
-    bool m_NeedsLayout = true;
-    bool m_NeedsPaint = true;
+    bool m_NeedsLayout = false;
+    bool m_NeedsPaint = false;
     bool m_NeedsStyle = true;
 
     HorizontalAlignment m_HAlign = HorizontalAlignment::Fill;

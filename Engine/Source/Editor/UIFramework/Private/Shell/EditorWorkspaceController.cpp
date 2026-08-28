@@ -102,7 +102,7 @@ void EditorWorkspaceController::SetPanelVisible(const std::string& panelId, bool
         m_OnPanelVisibilityChanged();
     }
 
-    we::runtime::kindui::UIRepaintGate::Request();
+    we::runtime::kindui::UIRepaintGate::RequestLayout();
 }
 
 void EditorWorkspaceController::TogglePanelVisibility(const std::string& panelId) {
@@ -159,7 +159,7 @@ void EditorWorkspaceController::ApplyToolsPanelVisibility(bool visible) {
         toolsIt->second.visible = visible;
     }
 
-    we::runtime::kindui::UIRepaintGate::Request();
+    we::runtime::kindui::UIRepaintGate::RequestLayout();
 }
 
 void EditorWorkspaceController::SetBottomPanelIndex(int index) {
@@ -193,10 +193,10 @@ void EditorWorkspaceController::ToggleContentBrowserExpanded() {
 
     m_ContentBrowserExpanded = !m_ContentBrowserExpanded;
     if (m_ContentBrowserExpanded) {
-        m_Layout.leftCenterSplitter->SetSplitRatio(m_ContentBrowserSplitRatio);
+        m_Layout.leftCenterSplitter->SetFixedSecondWidth(m_ContentBrowserSplitRatio);
     } else {
-        m_ContentBrowserSplitRatio = m_Layout.leftCenterSplitter->GetSplitRatio();
-        m_Layout.leftCenterSplitter->SetSplitRatio(0.92f);
+        m_ContentBrowserSplitRatio = m_Layout.leftCenterSplitter->GetFixedSecondWidth();
+        m_Layout.leftCenterSplitter->SetFixedSecondWidth(0.0f);
     }
 }
 

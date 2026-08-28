@@ -117,9 +117,13 @@ std::shared_ptr<Widget> DockLayoutBuilder::BuildNode(
         auto splitter = std::make_shared<Splitter>(ToOrientation(node.orientation), node.splitRatio);
         splitter->SetPanelGapEnabled(true);
         splitter->SetSlotId(node.slotId);
-        splitter->SetMinPaneSizes(
-            node.minFirstLogical * dpiScale,
-            node.minSecondLogical * dpiScale);
+        splitter->SetMinPaneSizes(node.minFirstLogical * dpiScale, node.minSecondLogical * dpiScale);
+        if (node.slotId == "leftCenter") {
+            splitter->SetResizeMode(Splitter::ResizeMode::FixedSecond);
+            splitter->SetFixedSecondWidth(280.0f * dpiScale);
+            splitter->SetMinPaneSizes(200.0f * dpiScale, 150.0f * dpiScale);
+        }
+
         if (node.children.size() >= 1) {
             splitter->SetFirstChild(BuildNode(node.children[0], extensions, dpiScale, result));
         }

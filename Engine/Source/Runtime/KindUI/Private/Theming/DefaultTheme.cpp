@@ -8,92 +8,92 @@ Color DefaultTheme::ResolveColor(ColorToken token) const {
     case ColorToken::WindowBackground:
     case ColorToken::WorkspaceBackground:
     case ColorToken::ViewportBackground:
-    case ColorToken::DockAreaBackground: return {0.078f, 0.078f, 0.086f, 1.0f}; // ~#141416
+    case ColorToken::DockAreaBackground: return {0.067f, 0.071f, 0.078f, 1.0f}; // #111214
 
     case ColorToken::PrimarySurface:
     case ColorToken::PanelBackground:
     case ColorToken::PanelContentBackground:
-    case ColorToken::ContentBrowserBackground: return {0.102f, 0.102f, 0.110f, 1.0f}; // ~#1A1A1C
+    case ColorToken::ContentBrowserBackground: return {0.094f, 0.098f, 0.106f, 1.0f}; // #18191B
 
     case ColorToken::CardBackground:
-    case ColorToken::SecondarySurface: return {0.133f, 0.133f, 0.141f, 1.0f}; // ~#222224
+    case ColorToken::SecondarySurface: return {0.114f, 0.118f, 0.125f, 1.0f}; // #1D1E20
 
     case ColorToken::ControlBackground:
     case ColorToken::InputBackground:
-    case ColorToken::SearchBoxBackground: return {0.118f, 0.118f, 0.125f, 1.0f}; // ~#1E1E20
+    case ColorToken::SearchBoxBackground: return {0.078f, 0.082f, 0.090f, 1.0f}; // #141517
 
-    case ColorToken::TertiarySurface: return {0.157f, 0.157f, 0.165f, 1.0f}; // ~#28282A
+    case ColorToken::TertiarySurface: return {0.133f, 0.137f, 0.149f, 1.0f}; // #222326
 
     case ColorToken::OverlayBackground:
-    case ColorToken::DialogBackground: return {0.165f, 0.165f, 0.173f, 1.0f}; // ~#2A2A2C
+    case ColorToken::DialogBackground: return {0.133f, 0.137f, 0.149f, 1.0f}; // #222326
 
     case ColorToken::PopupBackground:
-    case ColorToken::TooltipBackground: return {0.180f, 0.180f, 0.188f, 1.0f}; // ~#2E2E30
+    case ColorToken::TooltipBackground: return {0.133f, 0.137f, 0.149f, 1.0f}; // #222326
 
     case ColorToken::HeaderBackground:
     case ColorToken::ToolbarBackground:
-    case ColorToken::PanelToolbarBackground:
+    case ColorToken::PanelToolbarBackground: return {0.110f, 0.114f, 0.122f, 1.0f}; // #1C1D1F
     case ColorToken::MenuBarBackground:
     case ColorToken::StatusBarBackground:
-    case ColorToken::FooterBackground: return {0.094f, 0.094f, 0.102f, 1.0f};
+    case ColorToken::FooterBackground: return {0.067f, 0.071f, 0.078f, 1.0f}; // #111214
 
     case ColorToken::TabBackground:
-    case ColorToken::PanelTabInactiveBackground: return {0.118f, 0.118f, 0.125f, 1.0f};
-    case ColorToken::PanelTabActiveBackground: return {0.133f, 0.133f, 0.141f, 1.0f};
+    case ColorToken::PanelTabInactiveBackground: return {0.161f, 0.165f, 0.176f, 1.0f}; // #292A2D
+    case ColorToken::PanelTabActiveBackground: return {0.110f, 0.114f, 0.122f, 1.0f}; // #1C1D1F
 
     case ColorToken::AccentSurface:
-    case ColorToken::AccentPrimary:      return {0.25f, 0.45f, 0.85f, 1.0f};
-    case ColorToken::AccentHover:        return {0.35f, 0.55f, 0.90f, 1.0f};
+    case ColorToken::AccentPrimary:      return {0.220f, 0.224f, 0.235f, 1.0f}; // #38393C
+    case ColorToken::AccentHover:        return {0.251f, 0.267f, 0.290f, 1.0f};
 
     case ColorToken::ControlBackgroundHover:
-    case ColorToken::HoverBackground:    return {0.173f, 0.173f, 0.180f, 1.0f};
+    case ColorToken::HoverBackground:    return {0.153f, 0.157f, 0.169f, 1.0f}; // #27282B
     case ColorToken::ControlBackgroundPressed:
-    case ColorToken::PressedBackground:  return {0.204f, 0.204f, 0.220f, 1.0f};
+    case ColorToken::PressedBackground:  return {0.078f, 0.082f, 0.090f, 1.0f}; // #141517
     case ColorToken::ControlBackgroundDisabled:
-    case ColorToken::DisabledBackground: return {0.094f, 0.094f, 0.102f, 1.0f};
+    case ColorToken::DisabledBackground: return {0.067f, 0.071f, 0.078f, 1.0f};
     case ColorToken::ControlBackgroundSelected:
     case ColorToken::SelectedBackground:
-    case ColorToken::ActiveBackground:   return {0.25f, 0.45f, 0.85f, 0.3f};
+    case ColorToken::ActiveBackground:   return {0.196f, 0.200f, 0.212f, 1.0f}; // #323336
 
-    case ColorToken::BorderDefault:      return {0.212f, 0.212f, 0.227f, 1.0f};
+    case ColorToken::BorderDefault:      return {0.161f, 0.165f, 0.176f, 1.0f}; // #292A2D
     case ColorToken::BorderSubtle:
-    case ColorToken::BorderDark:         return {1.0f, 1.0f, 1.0f, 0.07f};
+    case ColorToken::BorderDark:         return {0.137f, 0.141f, 0.153f, 1.0f}; // #232427
     case ColorToken::BorderFocused:
     case ColorToken::BorderFocus:
-    case ColorToken::ActiveTabLine:      return {0.25f, 0.45f, 0.85f, 1.0f};
+    case ColorToken::ActiveTabLine:      return {0.220f, 0.224f, 0.235f, 1.0f}; // #38393C
     case ColorToken::BorderError:
     case ColorToken::ErrorColor:
-    case ColorToken::ErrorForeground:    return {0.85f, 0.25f, 0.25f, 1.0f};
+    case ColorToken::ErrorForeground:    return {0.878f, 0.322f, 0.322f, 1.0f}; // #E05252
     case ColorToken::BorderLight:
-    case ColorToken::Separator:          return {1.0f, 1.0f, 1.0f, 0.12f};
+    case ColorToken::Separator:          return {0.137f, 0.141f, 0.153f, 1.0f}; // #232427
 
     case ColorToken::TextPrimary:
     case ColorToken::TextWindowLabel:
     case ColorToken::CodeForeground:     return {0.902f, 0.902f, 0.902f, 1.0f}; // #E6E6E6
-    case ColorToken::TextSecondary:      return {0.647f, 0.647f, 0.647f, 1.0f}; // #A5A5A5
-    case ColorToken::TextCaption:        return {0.647f, 0.647f, 0.647f, 1.0f}; // #A5A5A5
+    case ColorToken::TextSecondary:      return {0.627f, 0.631f, 0.639f, 1.0f}; // #A0A1A3
+    case ColorToken::TextCaption:        return {0.627f, 0.631f, 0.639f, 1.0f}; // #A0A1A3
     case ColorToken::TextMuted:
     case ColorToken::TextHint:
-    case ColorToken::SearchPlaceholder:  return {0.647f, 0.647f, 0.647f, 1.0f}; // #A5A5A5
-    case ColorToken::TextDisabled:       return {0.439f, 0.439f, 0.439f, 1.0f}; // #707070
-    case ColorToken::TextOnAccent:       return {1.0f, 1.0f, 1.0f, 1.0f};
+    case ColorToken::SearchPlaceholder:  return {0.439f, 0.443f, 0.455f, 1.0f}; // #707174
+    case ColorToken::TextDisabled:       return {0.310f, 0.314f, 0.325f, 1.0f}; // #4F5053
+    case ColorToken::TextOnAccent:       return {0.902f, 0.902f, 0.902f, 1.0f};
     case ColorToken::TextLink:
     case ColorToken::LinkForeground:
-    case ColorToken::PlayForeground:     return {0.40f, 0.65f, 1.0f, 1.0f};
+    case ColorToken::PlayForeground:     return {0.627f, 0.631f, 0.639f, 1.0f};
 
     case ColorToken::IconPrimary:
-    case ColorToken::IconDefault:        return {0.83f, 0.83f, 0.83f, 1.0f};
-    case ColorToken::IconSecondary:      return {0.66f, 0.66f, 0.66f, 1.0f};
-    case ColorToken::IconDisabled:       return {0.36f, 0.36f, 0.36f, 1.0f};
+    case ColorToken::IconDefault:        return {0.627f, 0.631f, 0.639f, 1.0f};
+    case ColorToken::IconSecondary:      return {0.627f, 0.631f, 0.639f, 1.0f};
+    case ColorToken::IconDisabled:       return {0.310f, 0.314f, 0.325f, 1.0f};
     case ColorToken::IconAccent:
     case ColorToken::IconHover:
-    case ColorToken::IconActive:         return {0.40f, 0.65f, 1.0f, 1.0f};
+    case ColorToken::IconActive:         return {0.902f, 0.902f, 0.902f, 1.0f};
 
     case ColorToken::Success:
-    case ColorToken::SuccessColor:       return {0.20f, 0.70f, 0.35f, 1.0f};
+    case ColorToken::SuccessColor:       return {0.298f, 0.686f, 0.314f, 1.0f}; // #4CAF50
     case ColorToken::Warning:
-    case ColorToken::WarningColor:       return {0.90f, 0.65f, 0.15f, 1.0f};
-    case ColorToken::InfoColor:          return {0.25f, 0.55f, 0.90f, 1.0f};
+    case ColorToken::WarningColor:       return {0.839f, 0.651f, 0.165f, 1.0f}; // #D6A62A
+    case ColorToken::InfoColor:          return {0.627f, 0.631f, 0.639f, 1.0f};
 
     case ColorToken::ScrimOverlay:
     case ColorToken::ModalScrim:         return {0.0f, 0.0f, 0.0f, 0.55f};
@@ -161,6 +161,10 @@ float DefaultTheme::ResolveMetric(MetricToken token) const {
     case MetricToken::Space1: return 4.0f;
     case MetricToken::ButtonGroupSpacing: return 10.0f;
     case MetricToken::ScrollbarWidth: return 10.0f;
+    case MetricToken::DragThreshold: return 6.0f;
+    case MetricToken::MenuPadding: return 4.0f;
+    case MetricToken::CheckMarkSize: return 16.0f;
+    case MetricToken::MenuTextIndent: return 24.0f;
     case MetricToken::Space3: return 12.0f;
     case MetricToken::Space4: return 16.0f;
     case MetricToken::Space5: return 20.0f;

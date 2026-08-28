@@ -14,27 +14,32 @@ we::runtime::kindui::Color EdHex(uint8_t r, uint8_t g, uint8_t b, float a = 1.0f
 we::runtime::kindui::Color EditorTheme::ResolveColor(we::runtime::kindui::ColorToken token) const {
     using ::we::runtime::kindui::ColorToken;
     switch (token) {
+    // Neutral Grayscale Accent (replacing Sleek Blue)
     case ColorToken::IconAccent:
+        return EdHex(0xE6, 0xE6, 0xE6);
     case ColorToken::AccentPrimary:
-        return EdHex(0xF0, 0xA4, 0x2A);
-    case ColorToken::AccentHover:
-        return EdHex(0xF5, 0xB8, 0x45);
     case ColorToken::BorderFocus:
     case ColorToken::LinkForeground:
     case ColorToken::PlayForeground:
-        return EdHex(0xF0, 0xA4, 0x2A);
+        return EdHex(0x38, 0x39, 0x3C); 
+    case ColorToken::AccentHover:
+        return EdHex(0x40, 0x44, 0x4A);
     case ColorToken::ActiveTabLine:
-        return EdHex(0xF0, 0xA4, 0x2A, 0.80f);
+        return EdHex(0x38, 0x39, 0x3C, 0.80f);
+        
+    // Primary Buttons (Neutral Charcoal)
     case ColorToken::ButtonPrimaryBackground:
-        return EdHex(0xC4, 0x7E, 0x18);
+        return EdHex(0x1D, 0x1E, 0x20);
     case ColorToken::ButtonPrimaryHover:
-        return EdHex(0xD9, 0x92, 0x28);
+        return EdHex(0x27, 0x28, 0x2B);
     case ColorToken::ButtonPrimaryPressed:
-        return EdHex(0xA3, 0x68, 0x12);
+        return EdHex(0x14, 0x15, 0x17);
+        
+    // Selection Highlights (Neutral Charcoal)
     case ColorToken::SelectedBackground:
-        return EdHex(0x3A, 0x32, 0x24);
+        return EdHex(0x32, 0x33, 0x36);
     case ColorToken::SelectionHighlight:
-        return EdHex(0xF0, 0xA4, 0x2A, 0.22f);
+        return EdHex(0x32, 0x33, 0x36, 0.90f);
     default:
         return GraphiteDarkTheme::ResolveColor(token);
     }

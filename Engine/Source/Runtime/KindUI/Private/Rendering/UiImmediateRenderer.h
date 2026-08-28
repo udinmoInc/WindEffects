@@ -43,7 +43,7 @@ public:
     [[nodiscard]] we::rhi::RHISamplerHandle GetDefaultSampler() const { return m_DummySampler; }
 
     void BeginFrame(const we::rhi::FramePresentParams& params);
-    void SubmitDrawList(const we::rhi::UIDrawList& list, uint32_t frameSlot);
+    void SubmitDrawList(const we::rhi::UIDrawList& list, uint32_t frameSlot, uint64_t geometryGeneration = 0);
     void EndFrame();
 
 private:
@@ -52,6 +52,9 @@ private:
         we::rhi::RHIBufferHandle indexBuffer = we::rhi::RHIBufferHandle::Invalid;
         uint64_t vertexCapacity = 0;
         uint64_t indexCapacity = 0;
+        uint64_t uploadedGeneration = 0;
+        uint32_t uploadedVertexCount = 0;
+        uint32_t uploadedIndexCount = 0;
     };
 
     struct UploadedTexture {

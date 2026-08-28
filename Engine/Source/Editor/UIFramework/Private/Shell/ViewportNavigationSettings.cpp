@@ -69,9 +69,9 @@ void ViewportNavigationSettingsStore::ApplyPreset(NavigationPreset preset) {
     m_Settings.preset = preset;
     switch (preset) {
     case NavigationPreset::UE5:
-        m_Settings.mouseSensitivity = 0.15f;
+        m_Settings.mouseSensitivity = 0.25f;
         m_Settings.cameraAcceleration = 1.0f;
-        m_Settings.cameraSmoothing = 12.0f;
+        m_Settings.cameraSmoothing = 45.0f;
         m_Settings.invertX = false;
         m_Settings.invertY = false;
         m_Settings.defaultCameraSpeed = 4.0f;

@@ -1,4 +1,5 @@
 #include "KindUI/Rendering/UIWidgetAdapter.h"
+#include "KindUI/Profiling/UiPathDiagnostics.h"
 #include "KindUI/Rendering/IconRenderer.h"
 #include "KindUI/Rendering/IconMetrics.h"
 #include "KindUI/Core/Icon.h"
@@ -77,15 +78,16 @@ void UIWidgetAdapter::Shutdown() {
 }
 
 void UIWidgetAdapter::ProcessWidget(const std::shared_ptr<Widget>& root,
-                                     uint32_t width, uint32_t height) {
+                                     uint32_t width, uint32_t height,
+                                     bool runLayout) {
     if (!root || !m_Renderer) {
         return;
     }
-    
+
     m_Width = width;
     m_Height = height;
     m_DefaultTextureSet = m_Renderer->GetDummyDescriptorSet();
-    
+
     // Clear previous frame data
     m_Vertices.clear();
     m_Indices.clear();
@@ -116,10 +118,11 @@ void UIWidgetAdapter::ProcessWidget(const std::shared_ptr<Widget>& root,
         std::abs(existing.width - static_cast<float>(width)) < 0.5f &&
         std::abs(existing.height - static_cast<float>(height)) < 0.5f;
     const bool alreadyLaidOut = sizeMatches && !root->NeedsLayout();
-    if (!alreadyLaidOut) {
+    if (runLayout && !alreadyLaidOut) {
+        UiPathDiagnostics::Get().OnLayoutPass();
         root->Measure(Size{static_cast<float>(width), static_cast<float>(height)});
         root->Arrange(Rect{0.0f, 0.0f, static_cast<float>(width), static_cast<float>(height)});
-        root->ClearLayoutDirty();
+        root->ClearSubtreeLayoutDirty();
     }
 
     if (IsEnvEnabled("WE_KINDUI_DUMP_LAYOUT")) {
@@ -141,15 +144,63 @@ void UIWidgetAdapter::ProcessWidget(const std::shared_ptr<Widget>& root,
     }
     if (Widget::s_GlobalDiagnostics) {
         Widget::s_GlobalDiagnostics->paintCalls++;
+        UiPathDiagnostics::Get().SetWidgetsVisited(Widget::s_GlobalDiagnostics->totalWidgetCount);
     }
+    UiPathDiagnostics::Get().OnPaintPass();
     root->Paint(paintCtx);
     m_Diagnostics.paintCommandsRecorded = static_cast<uint32_t>(paintCtx.GetCommands().size());
+    UiPathDiagnostics::Get().SetPaintCommands(m_Diagnostics.paintCommandsRecorded);
+    root->ClearSubtreePaintDirty();
     
     // Convert paint commands to geometry
     const auto& commands = paintCtx.GetCommands();
     for (const auto& cmd : commands) {
         ConvertDrawCommand(cmd);
     }
+
+    m_LastBuiltWidth = width;
+    m_LastBuiltHeight = height;
+}
+
+void UIWidgetAdapter::AddOrMergeBatch(uint32_t indexCount, bool isText, uint32_t atlasW, uint32_t atlasH, float msdfRange) {
+    if (indexCount == 0) return;
+
+    const float scX = static_cast<float>(m_CurrentScissor.x);
+    const float scY = static_cast<float>(m_CurrentScissor.y);
+    const float scW = static_cast<float>(m_CurrentScissor.width);
+    const float scH = static_cast<float>(m_CurrentScissor.height);
+
+    if (!m_Batches.empty()) {
+        auto& last = m_Batches.back();
+        if (last.textureSet == m_CurrentTextureSet &&
+            last.isText == isText &&
+            last.scissor[0] == scX &&
+            last.scissor[1] == scY &&
+            last.scissor[2] == scW &&
+            last.scissor[3] == scH &&
+            (!isText || (last.atlasWidth == atlasW && last.atlasHeight == atlasH && last.msdfPixelRange == msdfRange)))
+        {
+            last.indexCount += indexCount;
+            return;
+        }
+    }
+
+    UIRenderBatch batch{};
+    batch.textureSet = m_CurrentTextureSet;
+    batch.indexCount = indexCount;
+    batch.firstIndex = static_cast<uint32_t>(m_Indices.size()) - indexCount;
+    batch.vertexOffset = 0;
+    batch.scissor[0] = scX;
+    batch.scissor[1] = scY;
+    batch.scissor[2] = scW;
+    batch.scissor[3] = scH;
+    batch.stencilRef = 0;
+    batch.isText = isText;
+    batch.atlasWidth = atlasW;
+    batch.atlasHeight = atlasH;
+    batch.msdfPixelRange = msdfRange;
+
+    m_Batches.push_back(batch);
 }
 
 void UIWidgetAdapter::ConvertDrawCommand(const DrawCommand& cmd) {
@@ -273,19 +324,7 @@ void UIWidgetAdapter::GenerateRectGeometry(const DrawCommand& cmd) {
     m_Indices.push_back(startIndex + 3);
     m_Indices.push_back(startIndex + 0);
     
-    // Create batch
-    UIRenderBatch batch;
-    batch.textureSet = m_CurrentTextureSet;
-    batch.indexCount = 6;
-    batch.firstIndex = static_cast<uint32_t>(m_Indices.size()) - 6;
-    batch.vertexOffset = 0;
-    batch.scissor[0] = static_cast<float>(m_CurrentScissor.x);
-    batch.scissor[1] = static_cast<float>(m_CurrentScissor.y);
-    batch.scissor[2] = static_cast<float>(m_CurrentScissor.width);
-    batch.scissor[3] = static_cast<float>(m_CurrentScissor.height);
-    batch.stencilRef = 0;
-    
-    m_Batches.push_back(batch);
+    AddOrMergeBatch(6);
 }
 
 void UIWidgetAdapter::GenerateTextGeometry(const DrawCommand& cmd) {
@@ -310,26 +349,12 @@ void UIWidgetAdapter::GenerateTextGeometry(const DrawCommand& cmd) {
     }
 
     m_CurrentTextureSet = fontDescriptor;
-    m_Diagnostics.textGlyphsResolved += static_cast<uint32_t>((m_Indices.size() - startTotalIndex) / 6);
+    const uint32_t textIndexCount = static_cast<uint32_t>(m_Indices.size()) - startTotalIndex;
+    m_Diagnostics.textGlyphsResolved += textIndexCount / 6;
     m_Diagnostics.textVerticesGenerated += static_cast<uint32_t>(m_Vertices.size());
     m_Diagnostics.textIndicesGenerated += static_cast<uint32_t>(m_Indices.size());
-    
-    UIRenderBatch batch;
-    batch.textureSet = m_CurrentTextureSet;
-    batch.indexCount = static_cast<uint32_t>(m_Indices.size()) - startTotalIndex;
-    batch.firstIndex = startTotalIndex;
-    batch.vertexOffset = 0;
-    batch.scissor[0] = static_cast<float>(m_CurrentScissor.x);
-    batch.scissor[1] = static_cast<float>(m_CurrentScissor.y);
-    batch.scissor[2] = static_cast<float>(m_CurrentScissor.width);
-    batch.scissor[3] = static_cast<float>(m_CurrentScissor.height);
-    batch.stencilRef = 0;
-    batch.isText = batchInfo.isText;
-    batch.atlasWidth = batchInfo.atlasWidth;
-    batch.atlasHeight = batchInfo.atlasHeight;
-    batch.msdfPixelRange = batchInfo.msdfPixelRange;
-    
-    m_Batches.push_back(batch);
+
+    AddOrMergeBatch(textIndexCount, batchInfo.isText, batchInfo.atlasWidth, batchInfo.atlasHeight, batchInfo.msdfPixelRange);
     ++m_Diagnostics.textBatchesCreated;
 
     if (textService->IsDebugEnabled()) {
@@ -412,18 +437,7 @@ void UIWidgetAdapter::GenerateTextureGeometry(const DrawCommand& cmd) {
     m_Indices.push_back(startIndex + 3);
     m_Indices.push_back(startIndex + 0);
     
-    UIRenderBatch batch;
-    batch.textureSet = m_CurrentTextureSet;
-    batch.indexCount = 6;
-    batch.firstIndex = static_cast<uint32_t>(m_Indices.size()) - 6;
-    batch.vertexOffset = 0;
-    batch.scissor[0] = static_cast<float>(m_CurrentScissor.x);
-    batch.scissor[1] = static_cast<float>(m_CurrentScissor.y);
-    batch.scissor[2] = static_cast<float>(m_CurrentScissor.width);
-    batch.scissor[3] = static_cast<float>(m_CurrentScissor.height);
-    batch.stencilRef = 0;
-    
-    m_Batches.push_back(batch);
+    AddOrMergeBatch(6);
 }
 
 void UIWidgetAdapter::GenerateColorTextureGeometry(const DrawCommand& cmd) {
@@ -461,18 +475,7 @@ void UIWidgetAdapter::GenerateColorTextureGeometry(const DrawCommand& cmd) {
     m_Indices.push_back(startIndex + 3);
     m_Indices.push_back(startIndex + 0);
 
-    UIRenderBatch batch;
-    batch.textureSet = m_CurrentTextureSet;
-    batch.indexCount = 6;
-    batch.firstIndex = static_cast<uint32_t>(m_Indices.size()) - 6;
-    batch.vertexOffset = 0;
-    batch.scissor[0] = static_cast<float>(m_CurrentScissor.x);
-    batch.scissor[1] = static_cast<float>(m_CurrentScissor.y);
-    batch.scissor[2] = static_cast<float>(m_CurrentScissor.width);
-    batch.scissor[3] = static_cast<float>(m_CurrentScissor.height);
-    batch.stencilRef = 0;
-
-    m_Batches.push_back(batch);
+    AddOrMergeBatch(6);
 }
 
 void UIWidgetAdapter::GenerateIconGeometry(const DrawCommand& cmd) {
@@ -544,22 +547,10 @@ void UIWidgetAdapter::GenerateIconGeometry(const DrawCommand& cmd) {
     m_Indices.push_back(startIndex + 3);
     m_Indices.push_back(startIndex + 0);
     
-    UIRenderBatch batch;
-    batch.textureSet = m_CurrentTextureSet;
-    batch.indexCount = 6;
-    batch.firstIndex = static_cast<uint32_t>(m_Indices.size()) - 6;
-    batch.vertexOffset = 0;
-    batch.scissor[0] = static_cast<float>(m_CurrentScissor.x);
-    batch.scissor[1] = static_cast<float>(m_CurrentScissor.y);
-    batch.scissor[2] = static_cast<float>(m_CurrentScissor.width);
-    batch.scissor[3] = static_cast<float>(m_CurrentScissor.height);
-    batch.stencilRef = 0;
-    
-    m_Batches.push_back(batch);
+    AddOrMergeBatch(6);
 }
 
 void UIWidgetAdapter::GenerateLineGeometry(const DrawCommand& cmd) {
-    // Pixel-snap line endpoints; 1px lines blur heavily when placed at half pixels.
     Point s{SnapPx(cmd.lineStart.x), SnapPx(cmd.lineStart.y)};
     Point e{SnapPx(cmd.lineEnd.x), SnapPx(cmd.lineEnd.y)};
     float dx = e.x - s.x;
@@ -576,7 +567,7 @@ void UIWidgetAdapter::GenerateLineGeometry(const DrawCommand& cmd) {
         float sw = dx * len;
         float sh = dy * len;
         
-        float type = 0.0f; // Textured (using dummy)
+        float type = 0.0f;
         
         UIVertex2 v0{ {s.x + px, s.y + py}, {0.5f, 0.5f}, {cmd.color.r, cmd.color.g, cmd.color.b, cmd.color.a}, {sx, sy, sw, sh}, {0.0f, type, 0.0f, 0.0f} };
         UIVertex2 v1{ {s.x - px, s.y - py}, {0.5f, 0.5f}, {cmd.color.r, cmd.color.g, cmd.color.b, cmd.color.a}, {sx, sy, sw, sh}, {0.0f, type, 0.0f, 0.0f} };
@@ -596,23 +587,11 @@ void UIWidgetAdapter::GenerateLineGeometry(const DrawCommand& cmd) {
         m_Indices.push_back(startIndex + 3);
         m_Indices.push_back(startIndex + 0);
         
-        UIRenderBatch batch;
-        batch.textureSet = m_CurrentTextureSet;
-        batch.indexCount = 6;
-        batch.firstIndex = static_cast<uint32_t>(m_Indices.size()) - 6;
-        batch.vertexOffset = 0;
-        batch.scissor[0] = static_cast<float>(m_CurrentScissor.x);
-        batch.scissor[1] = static_cast<float>(m_CurrentScissor.y);
-        batch.scissor[2] = static_cast<float>(m_CurrentScissor.width);
-        batch.scissor[3] = static_cast<float>(m_CurrentScissor.height);
-        batch.stencilRef = 0;
-        
-        m_Batches.push_back(batch);
+        AddOrMergeBatch(6);
     }
 }
 
 void UIWidgetAdapter::GenerateShadowGeometry(const DrawCommand& cmd) {
-    // Approximate soft shadow using multiple expanded semi-transparent rects
     const int numLayers = 4;
     float shadowSpread = cmd.blur / numLayers;
     float baseAlpha = cmd.color.a / (numLayers * 1.5f);
@@ -630,17 +609,16 @@ void UIWidgetAdapter::GenerateShadowGeometry(const DrawCommand& cmd) {
         float sh = h + expand * 2.0f;
         float alpha = baseAlpha * (1.0f - (float)i / numLayers);
         
-        // Clamp shadow coordinates to viewport bounds to prevent off-screen rendering
         if (sx < 0.0f) {
-            sw += sx; // Reduce width by the amount we're clamping
+            sw += sx;
             sx = 0.0f;
         }
         if (sy < 0.0f) {
-            sh += sy; // Reduce height by the amount we're clamping
+            sh += sy;
             sy = 0.0f;
         }
         
-        float type = 1.0f; // SDF Rect
+        float type = 1.0f;
         float r = cmd.borderRadius + expand;
         
         UIVertex2 v0{ {sx,      sy},      {0.5f, 0.5f}, {cmd.color.r, cmd.color.g, cmd.color.b, alpha}, {sx, sy, sw, sh}, {r, type, 0.0f, 0.0f} };
@@ -662,18 +640,7 @@ void UIWidgetAdapter::GenerateShadowGeometry(const DrawCommand& cmd) {
         m_Indices.push_back(startIndex + 0);
     }
     
-    UIRenderBatch batch;
-    batch.textureSet = m_CurrentTextureSet;
-    batch.indexCount = numLayers * 6;
-    batch.firstIndex = static_cast<uint32_t>(m_Indices.size()) - (numLayers * 6);
-    batch.vertexOffset = 0;
-    batch.scissor[0] = static_cast<float>(m_CurrentScissor.x);
-    batch.scissor[1] = static_cast<float>(m_CurrentScissor.y);
-    batch.scissor[2] = static_cast<float>(m_CurrentScissor.width);
-    batch.scissor[3] = static_cast<float>(m_CurrentScissor.height);
-    batch.stencilRef = 0;
-    
-    m_Batches.push_back(batch);
+    AddOrMergeBatch(numLayers * 6);
 }
 
 void UIWidgetAdapter::GenerateGradientGeometry(const DrawCommand& cmd) {
@@ -686,7 +653,7 @@ void UIWidgetAdapter::GenerateGradientGeometry(const DrawCommand& cmd) {
     float w = x1 - x0;
     float h = y1 - y0;
     
-    float type = 1.0f; // SDF rounded rect for gradient support
+    float type = 1.0f;
     
     Color colorTop = cmd.color;
     Color colorBottom = cmd.colorBottom;
@@ -709,18 +676,7 @@ void UIWidgetAdapter::GenerateGradientGeometry(const DrawCommand& cmd) {
     m_Indices.push_back(startIndex + 3);
     m_Indices.push_back(startIndex + 0);
     
-    UIRenderBatch batch;
-    batch.textureSet = m_CurrentTextureSet;
-    batch.indexCount = 6;
-    batch.firstIndex = static_cast<uint32_t>(m_Indices.size()) - 6;
-    batch.vertexOffset = 0;
-    batch.scissor[0] = static_cast<float>(m_CurrentScissor.x);
-    batch.scissor[1] = static_cast<float>(m_CurrentScissor.y);
-    batch.scissor[2] = static_cast<float>(m_CurrentScissor.width);
-    batch.scissor[3] = static_cast<float>(m_CurrentScissor.height);
-    batch.stencilRef = 0;
-    
-    m_Batches.push_back(batch);
+    AddOrMergeBatch(6);
 }
 
 void UIWidgetAdapter::GenerateRoundedOutlineGeometry(const DrawCommand& cmd) {
@@ -733,7 +689,7 @@ void UIWidgetAdapter::GenerateRoundedOutlineGeometry(const DrawCommand& cmd) {
     float w = x1 - x0;
     float h = y1 - y0;
     
-    float type = 2.0f; // SDF rounded outline
+    float type = 2.0f;
     float thickness = cmd.thickness;
     
     UIVertex2 v0{ {x,     y},     {0.5f, 0.5f}, {cmd.color.r, cmd.color.g, cmd.color.b, cmd.color.a}, {x, y, w, h}, {cmd.borderRadius, type, thickness, 0.0f} };
@@ -754,18 +710,7 @@ void UIWidgetAdapter::GenerateRoundedOutlineGeometry(const DrawCommand& cmd) {
     m_Indices.push_back(startIndex + 3);
     m_Indices.push_back(startIndex + 0);
     
-    UIRenderBatch batch;
-    batch.textureSet = m_CurrentTextureSet;
-    batch.indexCount = 6;
-    batch.firstIndex = static_cast<uint32_t>(m_Indices.size()) - 6;
-    batch.vertexOffset = 0;
-    batch.scissor[0] = static_cast<float>(m_CurrentScissor.x);
-    batch.scissor[1] = static_cast<float>(m_CurrentScissor.y);
-    batch.scissor[2] = static_cast<float>(m_CurrentScissor.width);
-    batch.scissor[3] = static_cast<float>(m_CurrentScissor.height);
-    batch.stencilRef = 0;
-    
-    m_Batches.push_back(batch);
+    AddOrMergeBatch(6);
 }
 
 } // namespace we::runtime::kindui

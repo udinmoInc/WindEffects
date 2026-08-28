@@ -4,6 +4,8 @@
 #include "ECS/Registry.h"
 
 #include <algorithm>
+#include <execution>
+#include <atomic>
 #include <chrono>
 #include <cmath>
 #include <filesystem>
@@ -601,46 +603,76 @@ public:
 
     void RebuildDirtyMeshesAndGpu(int maxChunks = -1) {
         const auto t0 = std::chrono::steady_clock::now();
-        std::uint64_t rebuilt = 0;
-        std::uint64_t dirty = 0;
+        std::atomic<std::uint64_t> rebuilt{0};
+        std::atomic<std::uint64_t> dirty{0};
         const int budget = maxChunks < 0 ? 1000000 : maxChunks;
-        for (TerrainChunk& chunk : chunks.Chunks()) {
-            if (!chunk.meshDirty) {
-                continue;
-            }
-            ++dirty;
-            if (static_cast<int>(rebuilt) >= budget) {
-                break;
-            }
-            TerrainMeshCPU mesh;
-            if (TerrainLODManager::BuildChunkMesh(heightfield, info, chunk, chunk.lod, mesh)) {
-                chunk.mesh = std::move(mesh);
-                if (!chunk.mesh.positions.empty()) {
-                    we::math::Vec3 bmin = chunk.mesh.positions.front();
-                    we::math::Vec3 bmax = bmin;
-                    for (const we::math::Vec3& p : chunk.mesh.positions) {
-                        bmin = we::math::Vec3(
-                            std::min(bmin.x, p.x), std::min(bmin.y, p.y), std::min(bmin.z, p.z));
-                        bmax = we::math::Vec3(
-                            std::max(bmax.x, p.x), std::max(bmax.y, p.y), std::max(bmax.z, p.z));
+
+        if (maxChunks < 0) {
+            std::for_each(std::execution::par, chunks.Chunks().begin(), chunks.Chunks().end(), [&](TerrainChunk& chunk) {
+                if (!chunk.meshDirty) return;
+                ++dirty;
+                TerrainMeshCPU mesh;
+                if (TerrainLODManager::BuildChunkMesh(heightfield, info, chunk, chunk.lod, mesh)) {
+                    chunk.mesh = std::move(mesh);
+                    if (!chunk.mesh.positions.empty()) {
+                        we::math::Vec3 bmin = chunk.mesh.positions.front();
+                        we::math::Vec3 bmax = bmin;
+                        for (const we::math::Vec3& p : chunk.mesh.positions) {
+                            bmin = we::math::Vec3(
+                                std::min(bmin.x, p.x), std::min(bmin.y, p.y), std::min(bmin.z, p.z));
+                            bmax = we::math::Vec3(
+                                std::max(bmax.x, p.x), std::max(bmax.y, p.y), std::max(bmax.z, p.z));
+                        }
+                        chunk.bounds.min = bmin;
+                        chunk.bounds.max = bmax;
+                        ExpandChunkCullBounds(chunk, info);
                     }
-                    chunk.bounds.min = bmin;
-                    chunk.bounds.max = bmax;
-                    ExpandChunkCullBounds(chunk, info);
+                    chunk.meshDirty = false;
+                    chunk.gpuDirty = true;
+                    ++rebuilt;
                 }
-                chunk.meshDirty = false;
-                chunk.gpuDirty = true;
-                ++rebuilt;
+            });
+        } else {
+            std::uint64_t localRebuilt = 0;
+            std::uint64_t localDirty = 0;
+            for (TerrainChunk& chunk : chunks.Chunks()) {
+                if (!chunk.meshDirty) continue;
+                ++localDirty;
+                if (static_cast<int>(localRebuilt) >= budget) break;
+                
+                TerrainMeshCPU mesh;
+                if (TerrainLODManager::BuildChunkMesh(heightfield, info, chunk, chunk.lod, mesh)) {
+                    chunk.mesh = std::move(mesh);
+                    if (!chunk.mesh.positions.empty()) {
+                        we::math::Vec3 bmin = chunk.mesh.positions.front();
+                        we::math::Vec3 bmax = bmin;
+                        for (const we::math::Vec3& p : chunk.mesh.positions) {
+                            bmin = we::math::Vec3(
+                                std::min(bmin.x, p.x), std::min(bmin.y, p.y), std::min(bmin.z, p.z));
+                            bmax = we::math::Vec3(
+                                std::max(bmax.x, p.x), std::max(bmax.y, p.y), std::max(bmax.z, p.z));
+                        }
+                        chunk.bounds.min = bmin;
+                        chunk.bounds.max = bmax;
+                        ExpandChunkCullBounds(chunk, info);
+                    }
+                    chunk.meshDirty = false;
+                    chunk.gpuDirty = true;
+                    ++localRebuilt;
+                }
             }
+            rebuilt = localRebuilt;
+            dirty = localDirty;
         }
+
         renderer.SyncChunks(chunks);
         const auto micros = static_cast<std::uint64_t>(
             std::chrono::duration_cast<std::chrono::microseconds>(
                 std::chrono::steady_clock::now() - t0)
                 .count());
-        TerrainDiagnostics::Get().OnMeshRebuild(micros, dirty);
+        TerrainDiagnostics::Get().OnMeshRebuild(micros, dirty.load());
         if (rebuilt > 0) {
-            TerrainDiagnostics::Get().OnChunksRebuilt(rebuilt);
+            TerrainDiagnostics::Get().OnChunksRebuilt(rebuilt.load());
         }
     }
 

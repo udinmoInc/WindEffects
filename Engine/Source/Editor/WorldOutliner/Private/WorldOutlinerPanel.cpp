@@ -50,6 +50,7 @@ std::shared_ptr<Panel> CreateWorldOutlinerPanel() {
     }
 
     g_ExplorerHeader = std::make_shared<ExplorerPanelHeader>();
+    g_ExplorerHeader->Initialize();
 
     g_ExplorerHeader->SetOnSearchChanged([treeView](const std::string& query) {
         treeView->SetSearchQuery(query);

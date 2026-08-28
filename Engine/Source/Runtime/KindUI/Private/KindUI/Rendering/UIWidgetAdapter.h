@@ -23,8 +23,9 @@ public:
     void Shutdown();
 
     // Convert widget paint commands to renderer format
-    void ProcessWidget(const std::shared_ptr<Widget>& root, 
-                      uint32_t width, uint32_t height);
+    void ProcessWidget(const std::shared_ptr<Widget>& root,
+                      uint32_t width, uint32_t height,
+                      bool runLayout = true);
 
     // Get generated geometry for the renderer
     const std::vector<UIVertex2>& GetVertices() const { return m_Vertices; }
@@ -85,6 +86,7 @@ public:
     void ResetDiagnostics() { m_Diagnostics.Reset(); }
     
 private:
+    void AddOrMergeBatch(uint32_t indexCount, bool isText = false, uint32_t atlasW = 0, uint32_t atlasH = 0, float msdfRange = 0.0f);
     void ConvertDrawCommand(const DrawCommand& cmd);
     void GenerateRectGeometry(const DrawCommand& cmd);
     void GenerateTextGeometry(const DrawCommand& cmd);
@@ -103,6 +105,8 @@ private:
     
     uint32_t m_Width;
     uint32_t m_Height;
+    uint32_t m_LastBuiltWidth = 0;
+    uint32_t m_LastBuiltHeight = 0;
     we::rhi::RHIDescriptorSetHandle m_CurrentTextureSet;
     we::rhi::RHIDescriptorSetHandle m_DefaultTextureSet;
     UIDirtyRegion m_CurrentScissor;

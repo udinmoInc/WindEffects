@@ -12,6 +12,7 @@ struct KINDUI_API TextMetrics {
     using MeasureFn = std::function<float(std::string_view text, float fontSize, bool bold)>;
 
     static void SetMeasureProvider(MeasureFn provider);
+    static void ClearCache();
 
     [[nodiscard]] static float MeasureWidth(std::string_view text, float fontSize, bool bold = false);
 

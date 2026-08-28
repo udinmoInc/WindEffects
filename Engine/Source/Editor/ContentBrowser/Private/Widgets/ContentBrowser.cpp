@@ -197,7 +197,7 @@ void ContentBrowser::Tick(float deltaTime) {
         m_ItemHoverAlpha = std::max(target, m_ItemHoverAlpha - hoverSpeed * deltaTime);
     }
     if (std::abs(m_ItemHoverAlpha - prev) > 0.0005f) {
-        UIRepaintGate::MarkAnimating();
+        UIRepaintGate::RequestPaint();
     }
 }
 

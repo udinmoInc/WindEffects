@@ -77,6 +77,26 @@ private:
     we::runtime::text::FontHandle m_MediumFont = we::runtime::text::kInvalidFontHandle;
     we::runtime::text::FontHandle m_SemiBoldFont = we::runtime::text::kInvalidFontHandle;
 
+    struct TextMeasureKey {
+        std::string text;
+        float fontSize = 0.0f;
+        uint16_t weight = 0;
+        bool operator==(const TextMeasureKey& o) const {
+            return fontSize == o.fontSize && weight == o.weight && text == o.text;
+        }
+    };
+
+    struct TextMeasureHash {
+        size_t operator()(const TextMeasureKey& k) const {
+            size_t h = std::hash<std::string>{}(k.text);
+            h ^= std::hash<float>{}(k.fontSize) + 0x9e3779b9 + (h << 6) + (h >> 2);
+            h ^= std::hash<uint16_t>{}(k.weight) + 0x9e3779b9 + (h << 6) + (h >> 2);
+            return h;
+        }
+    };
+
+    mutable std::unordered_map<TextMeasureKey, float, TextMeasureHash> m_MeasureCache;
+
     bool m_DebugEnabled = false;
     bool m_LoggedScaleDiagnostics = false;
     bool m_DumpedAtlas = false;

@@ -38,8 +38,8 @@ void EditorCamera::Reset() {
     m_FreeLook = false;
     m_SavedOrbitPivot = we::math::Vec3(0.0f);
     m_MoveSpeed = kEditorCameraDefaultSpeed;
-    m_Sensitivity = 0.15f;
-    m_LerpSpeed = 12.0f;
+    m_Sensitivity = 0.25f; // was 0.15f
+    m_LerpSpeed = 45.0f; // was 12.0f
     m_Acceleration = 1.0f;
     m_BoostMultiplier = 4.0f;
     m_SlowMultiplier = 0.25f;

@@ -20,15 +20,30 @@ void OverlayHost::SetBaseWidget(const std::shared_ptr<Widget>& baseWidget) {
 }
 
 void OverlayHost::ShowPopup(const std::shared_ptr<Widget>& popup, const Point& position) {
-    const float width = (std::max)(m_Geometry.width, 1.0f);
-    const float height = (std::max)(m_Geometry.height, 1.0f);
-    Size size = popup->Measure(Size{width, height});
-    Rect geom{position.x, position.y, size.width, size.height};
+    const float screenW = (std::max)(m_Geometry.width, 1.0f);
+    const float screenH = (std::max)(m_Geometry.height, 1.0f);
+    const float maxW = (std::max)(50.0f, screenW - 16.0f);
+    const float availBelowY = (std::max)(50.0f, screenH - position.y - 8.0f);
+
+    Size size = popup->Measure(Size{ maxW, availBelowY });
+    size = popup->ClampDesiredSize(size);
+
+    float posX = position.x;
+    float posY = position.y;
+
+    if (posY + size.height > screenH - 4.0f && posY - size.height >= 4.0f) {
+        posY = posY - size.height - 28.0f;
+    }
+    posX = std::clamp(posX, 4.0f, (std::max)(4.0f, screenW - size.width - 4.0f));
+    posY = std::clamp(posY, 4.0f, (std::max)(4.0f, screenH - size.height - 4.0f));
+
+    Rect geom{ posX, posY, size.width, size.height };
     popup->Arrange(geom);
 
     m_Popups.push_back(popup);
     m_FullscreenPopups.push_back(false);
-    AddChild(popup);
+    m_PopupCachedSizes.push_back(size);
+    AttachOverlayChild(popup);
 }
 
 void OverlayHost::ShowFullscreenPopup(const std::shared_ptr<Widget>& popup) {
@@ -40,24 +55,29 @@ void OverlayHost::ShowFullscreenPopup(const std::shared_ptr<Widget>& popup) {
 
     m_Popups.push_back(popup);
     m_FullscreenPopups.push_back(true);
-    AddChild(popup);
+    m_PopupCachedSizes.push_back(Size{width, height});
+    AttachOverlayChild(popup);
 }
 
 void OverlayHost::CloseTopPopup() {
     if (m_Popups.empty()) {
         return;
     }
-    RemoveChild(m_Popups.back());
+    DetachOverlayChild(m_Popups.back());
     m_Popups.pop_back();
     m_FullscreenPopups.pop_back();
+    if (!m_PopupCachedSizes.empty()) {
+        m_PopupCachedSizes.pop_back();
+    }
 }
 
 void OverlayHost::CloseAllPopups() {
     for (auto& popup : m_Popups) {
-        RemoveChild(popup);
+        DetachOverlayChild(popup);
     }
     m_Popups.clear();
     m_FullscreenPopups.clear();
+    m_PopupCachedSizes.clear();
 }
 
 void OverlayHost::ExecutePendingCallbacks() {
@@ -93,26 +113,57 @@ Size OverlayHost::Measure(const Size& availableSize) {
 
 void OverlayHost::Arrange(const Rect& allottedRect) {
     m_Geometry = allottedRect;
+    const bool hostResized =
+        std::abs(allottedRect.width - m_LastArrangeSize.width) > 0.5f
+        || std::abs(allottedRect.height - m_LastArrangeSize.height) > 0.5f;
+    m_LastArrangeSize = Size{allottedRect.width, allottedRect.height};
     ClearLayoutDirty();
     if (m_BaseWidget) {
         m_BaseWidget->Arrange(allottedRect);
     }
 
+    const float maxW = (std::max)(50.0f, allottedRect.width - 16.0f);
+
     for (size_t i = 0; i < m_Popups.size(); ++i) {
         auto& popup = m_Popups[i];
         if (i < m_FullscreenPopups.size() && m_FullscreenPopups[i]) {
-            popup->Measure(Size{allottedRect.width, allottedRect.height});
+            if (hostResized || popup->NeedsLayout()) {
+                popup->Measure(Size{allottedRect.width, allottedRect.height});
+            }
             popup->Arrange(allottedRect);
+            if (i < m_PopupCachedSizes.size()) {
+                m_PopupCachedSizes[i] = Size{allottedRect.width, allottedRect.height};
+            }
             continue;
         }
 
         Rect geom = popup->GetGeometry();
-        if (geom.x + geom.width > allottedRect.width) {
-            geom.x = allottedRect.width - geom.width;
+        Size size = (i < m_PopupCachedSizes.size()) ? m_PopupCachedSizes[i] : Size{};
+        const bool needsRemeasure =
+            popup->NeedsLayout() || size.width <= 0.0f || size.height <= 0.0f;
+        if (needsRemeasure) {
+            const float availH = (std::max)(50.0f, allottedRect.height - geom.y - 8.0f);
+            size = popup->Measure(Size{maxW, availH});
+            size = popup->ClampDesiredSize(size);
+            if (i < m_PopupCachedSizes.size()) {
+                m_PopupCachedSizes[i] = size;
+            } else {
+                m_PopupCachedSizes.push_back(size);
+            }
         }
-        if (geom.y + geom.height > allottedRect.height) {
-            geom.y = allottedRect.height - geom.height;
+
+        geom.width = size.width;
+        geom.height = size.height;
+
+        if (geom.x + geom.width > allottedRect.width - 4.0f) {
+            geom.x = (std::max)(4.0f, allottedRect.width - geom.width - 4.0f);
         }
+        if (geom.y + geom.height > allottedRect.height - 4.0f) {
+            geom.y = (std::max)(4.0f, allottedRect.height - geom.height - 4.0f);
+        }
+        if (geom.x < 4.0f) geom.x = 4.0f;
+        if (geom.y < 4.0f) geom.y = 4.0f;
+
         popup->Arrange(geom);
     }
 }

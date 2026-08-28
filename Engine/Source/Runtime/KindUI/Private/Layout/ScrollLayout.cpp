@@ -107,6 +107,7 @@ void ScrollLayout::OnMouseMove(const MouseEvent& event) {
     m_Scroll.OnMouseMove(event, m_Metrics, ViewportHeight(), m_ContentHeight);
     if (m_Scroll.IsDraggingThumb()) {
         Arrange(m_Geometry);
+        InvalidatePaint();
         return;
     }
 

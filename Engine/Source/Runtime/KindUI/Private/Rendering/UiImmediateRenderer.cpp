@@ -645,12 +645,30 @@ void UiImmediateRenderer::BeginFrame(const we::rhi::FramePresentParams& params) 
         std::span(reinterpret_cast<const uint8_t*>(push), sizeof(push)));
 }
 
-void UiImmediateRenderer::SubmitDrawList(const we::rhi::UIDrawList& list, uint32_t frameSlot) {
+void UiImmediateRenderer::SubmitDrawList(
+    const we::rhi::UIDrawList& list,
+    uint32_t frameSlot,
+    const uint64_t geometryGeneration)
+{
     if (!m_Cmd || !m_InRenderPass || frameSlot >= m_FrameGeometry.size()) {
         return;
     }
-    if (!list.vertices.empty() && !list.indices.empty()) {
-        UpdateGeometryBuffers(frameSlot, list.vertices, list.indices);
+    FrameGeometry& frame = m_FrameGeometry[frameSlot];
+    const bool geometryUnchanged =
+        geometryGeneration != 0
+        && frame.uploadedGeneration == geometryGeneration
+        && frame.uploadedVertexCount == list.vertices.size()
+        && frame.uploadedIndexCount == list.indices.size()
+        && !list.vertices.empty()
+        && !list.indices.empty();
+
+    if (!geometryUnchanged) {
+        if (!list.vertices.empty() && !list.indices.empty()) {
+            UpdateGeometryBuffers(frameSlot, list.vertices, list.indices);
+            frame.uploadedGeneration = geometryGeneration;
+            frame.uploadedVertexCount = static_cast<uint32_t>(list.vertices.size());
+            frame.uploadedIndexCount = static_cast<uint32_t>(list.indices.size());
+        }
     }
 
     const FrameGeometry& buffers = m_FrameGeometry[frameSlot];
@@ -725,23 +743,28 @@ void UiImmediateRenderer::SubmitDrawList(const we::rhi::UIDrawList& list, uint32
         return true;
     };
 
-    for (const auto& batch : list.batches) {
-        if (!batch.isText) {
-            (void)tryDrawBatch(batch, false);
-        }
-    }
+    int currentPipelineType = -1; // 0 = UI, 1 = Text
 
-    bool textPipelineBound = false;
     for (const auto& batch : list.batches) {
-        if (!batch.isText) {
-            continue;
-        }
-        if (!textPipelineBound) {
-            m_Cmd->BindGraphicsPipeline(m_TextPipeline);
+        const int requiredPipeline = batch.isText ? 1 : 0;
+        if (requiredPipeline != currentPipelineType) {
+            if (requiredPipeline == 1) {
+                m_Cmd->BindGraphicsPipeline(m_TextPipeline);
+            } else {
+                m_Cmd->BindGraphicsPipeline(m_UiPipeline);
+                float push[4];
+                FillUiTransform(m_CurrentWidth, m_CurrentHeight, push);
+                m_Cmd->PushConstants(
+                    m_UiLayout,
+                    we::rhi::ShaderStageFlags::Vertex,
+                    0,
+                    std::span(reinterpret_cast<const uint8_t*>(push), sizeof(push)));
+            }
             m_BoundSet = we::rhi::RHIDescriptorSetHandle::Invalid;
-            textPipelineBound = true;
+            currentPipelineType = requiredPipeline;
         }
-        (void)tryDrawBatch(batch, true);
+
+        (void)tryDrawBatch(batch, batch.isText);
     }
 }
 

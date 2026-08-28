@@ -1,4 +1,9 @@
+#pragma warning(disable: 4505)
 #include "LandscapeWorkspaceInternal.h"
+#include "KindUI/Widgets/Components.h"
+#include "KindUI/Widgets/Label.h"
+#include "KindUI/Core/Widgets/DesignSystemControls.h"
+
 #include "LandscapePanelChrome.h"
 
 #include <algorithm>
@@ -8,93 +13,148 @@
 namespace we::editor::terrain {
 namespace {
 
-namespace Chrome = LandscapePanelChrome;
+using namespace we::runtime::kindui;
 
-void AddSectionTitle(LandscapeLayoutBuilder& layout, std::string_view title) {
-    LandscapeHitTarget t{};
-    t.kind = LandscapeHitKind::None;
-    t.geometry = {layout.contentX, layout.cursorY, layout.contentW, Chrome::RowHeight()};
-    t.label = std::string(title);
-    t.id = -1;
-    layout.targets.push_back(std::move(t));
-    layout.Advance(Chrome::RowHeight() + 4.f);
+static void AddSectionTitle(const std::shared_ptr<Column>& layout, std::string_view title) {
+    auto header = MakeSectionHeader(std::string(title));
+    layout->AddChild(header);
 }
 
-void AddInfo(LandscapeLayoutBuilder& layout, std::string label, std::string value) {
-    LandscapeHitTarget t{};
-    t.kind = LandscapeHitKind::None;
-    t.geometry = {layout.contentX, layout.cursorY, layout.contentW, Chrome::RowHeight()};
-    t.label = std::move(label);
-    t.value = std::move(value);
-    t.id = -2; // info row
-    layout.targets.push_back(std::move(t));
-    layout.Advance(Chrome::RowHeight() + 2.f);
+static void AddChipRow(
+    const std::shared_ptr<Column>& layout,
+    const std::vector<std::tuple<std::string, const char*, bool, std::function<void()>>>& chips)
+{
+    const size_t maxPerRow = 4;
+    std::shared_ptr<Row> currentRow = nullptr;
+    size_t countInRow = 0;
+
+    for (const auto& [label, icon, selected, onClick] : chips) {
+        if (!currentRow || countInRow >= maxPerRow) {
+            currentRow = MakeRow();
+            currentRow->Gap(4.0f);
+            currentRow->SetFlexShrink(0.0f);
+            layout->AddChild(currentRow);
+            countInRow = 0;
+        }
+        auto btn = MakeSecondaryAction(label, icon ? icon : "");
+        btn->SetFlexGrow(1.0f);
+        btn->SetFlexShrink(1.0f);
+        btn->SetMinWidth(50.0f);
+        btn->SetOnClicked(onClick);
+        currentRow->AddChild(btn);
+        ++countInRow;
+    }
 }
 
-void AddField(
-    LandscapeLayoutBuilder& layout,
+static void AddField(
+    const std::shared_ptr<Column>& layout,
     std::string label,
     std::string value,
     std::function<void(std::string_view)> onCommit)
 {
-    const float h = Chrome::RowHeight();
-    LandscapeHitTarget t{};
-    t.kind = LandscapeHitKind::Field;
-    t.geometry = {
-        layout.contentX + Chrome::LabelColumnWidth() + 8.f,
-        layout.cursorY,
-        layout.contentW - Chrome::LabelColumnWidth() - 8.f,
-        h};
-    t.label = std::move(label);
-    t.value = std::move(value);
-    t.editable = true;
-    t.onTextCommit = std::move(onCommit);
-    layout.targets.push_back(std::move(t));
-    layout.Advance(h + 4.f);
+    auto row = MakeRow();
+    row->Align(AlignItems::Center);
+    row->Gap(8.0f);
+    auto lbl = std::make_shared<Label>(label);
+    lbl->SetMinWidth(120.0f);
+    lbl->SetMaxWidth(120.0f);
+    lbl->SetFlexShrink(0.0f);
+    lbl->SetFlexGrow(0.0f);
+
+    auto input = std::make_shared<SearchBoxControl>("");
+    input->SetText(value);
+    input->SetFlexGrow(1.0f);
+    input->SetFlexShrink(1.0f);
+    input->SetMinWidth(60.0f);
+    input->SetOnChanged([onCommit](const std::string& v) { onCommit(v); });
+
+    row->AddChild(lbl);
+    row->AddChild(input);
+    layout->AddChild(row);
 }
 
-void AddButton(
-    LandscapeLayoutBuilder& layout,
+static void AddToggle(
+    const std::shared_ptr<Column>& layout,
+    std::string label,
+    bool on,
+    std::function<void()> onClick)
+{
+    auto btn = MakeSecondaryAction(label + (on ? " : ON" : " : OFF"));
+    btn->SetOnClicked(onClick);
+    layout->AddChild(btn);
+}
+
+static void AddButton(
+    const std::shared_ptr<Column>& layout,
     std::string label,
     std::function<void()> onClick,
     bool danger = false)
 {
-    LandscapeHitTarget t{};
-    t.kind = LandscapeHitKind::Button;
-    t.geometry = {layout.contentX, layout.cursorY, layout.contentW, Chrome::RowHeight() + 4.f};
-    t.label = std::move(label);
-    t.onClick = std::move(onClick);
-    t.isDanger = danger;
-    layout.targets.push_back(std::move(t));
-    layout.Advance(Chrome::RowHeight() + 10.f);
+    std::shared_ptr<DesignButton> btn; if(danger) btn = MakePrimaryAction(label); else btn = MakeSecondaryAction(label);
+    btn->SetOnClicked(onClick);
+    layout->AddChild(btn);
 }
 
-std::string FormatBytes(std::uint64_t bytes) {
-    if (bytes < 1024) {
-        return std::to_string(bytes) + " B";
-    }
-    if (bytes < 1024ull * 1024ull) {
-        char buf[64];
-        std::snprintf(buf, sizeof(buf), "%.1f KB", bytes / 1024.0);
-        return buf;
-    }
-    char buf[64];
-    std::snprintf(buf, sizeof(buf), "%.2f MB", bytes / (1024.0 * 1024.0));
-    return buf;
+static void AddLayerRow(
+    const std::shared_ptr<Column>& layout,
+    int layerIndex,
+    std::string name,
+    bool selected,
+    bool visible,
+    std::function<void()> onSelect,
+    std::function<void()> onToggleVisibility)
+{
+    auto row = MakeRow();
+    row->Align(AlignItems::Center);
+    row->Gap(8.0f);
+    
+    auto visBtn = std::make_shared<IconButton>(visible ? "eye" : "eye-off");
+    visBtn->SetOnClicked(onToggleVisibility);
+    
+    auto selectBtn = MakeSecondaryAction(name);
+    selectBtn->SetOnClicked(onSelect);
+    
+    row->AddChild(visBtn);
+    row->AddChild(selectBtn);
+    layout->AddChild(row);
 }
 
-int ParseInt(std::string_view s, int fallback) {
-    try {
-        return std::stoi(std::string(s));
-    } catch (...) {
-        return fallback;
-    }
-}
+std::string FormatFloat(float v) { char buf[64]; std::snprintf(buf, sizeof(buf), "%.3g", static_cast<double>(v)); return buf; }
+std::string FormatInt(int v) { return std::to_string(v); }
+float ParseFloat(std::string_view s, float fallback) { try { return std::stof(std::string(s)); } catch (...) { return fallback; } }
+int ParseInt(std::string_view s, int fallback) { try { return std::stoi(std::string(s)); } catch (...) { return fallback; } }
 
 } // namespace
 
+
+static void AddInfo(const std::shared_ptr<Column>& layout, std::string label, std::string value) {
+    auto row = MakeRow();
+    row->Align(AlignItems::Center);
+    row->Gap(8.0f);
+    auto lbl = std::make_shared<Label>(label);
+    lbl->SetMinWidth(120.0f);
+    lbl->SetMaxWidth(120.0f);
+    lbl->SetFlexShrink(0.0f);
+    lbl->SetFlexGrow(0.0f);
+
+    auto val = std::make_shared<Label>(value);
+    val->SetFlexGrow(1.0f);
+    val->SetFlexShrink(1.0f);
+    val->SetMinWidth(60.0f);
+
+    row->AddChild(lbl);
+    row->AddChild(val);
+    layout->AddChild(row);
+}
+
+static std::string FormatBytes(size_t bytes) {
+    if (bytes < 1024) return std::to_string(bytes) + " B";
+    if (bytes < 1024 * 1024) return std::to_string(bytes / 1024) + " KB";
+    return std::to_string(bytes / (1024 * 1024)) + " MB";
+}
+
 void BuildManageTab(
-    LandscapeLayoutBuilder& layout,
+    const std::shared_ptr<we::runtime::kindui::Column>& layout,
     ILandscapeEditor& editor,
     std::string& importPath,
     std::string& exportPath,
@@ -157,3 +217,4 @@ void BuildManageTab(
 }
 
 } // namespace we::editor::terrain
+

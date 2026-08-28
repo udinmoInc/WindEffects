@@ -49,6 +49,7 @@ RHIResult<void> DX12Swapchain::Create(const DeviceDesc& desc) {
         m_Extent.height = 1;
     }
     m_Format = Format::B8G8R8A8_UNORM;
+    m_Vsync = desc.vsync;
 
     // Prefer the device factory; fall back to a local one if needed.
     ComPtr<IDXGIFactory4> factory = m_Device->GetFactory();
@@ -167,7 +168,7 @@ RHIResult<void> DX12Swapchain::Present() {
     if (!m_Swap) {
         return RHIError::Make(RHIErrorCode::NotInitialized, "Swapchain not created.", "Present");
     }
-    const HRESULT hr = m_Swap->Present(1, 0);
+    const HRESULT hr = m_Swap->Present(m_Vsync ? 1u : 0u, 0);
     if (hr == DXGI_ERROR_DEVICE_REMOVED || hr == DXGI_ERROR_DEVICE_RESET) {
         HRESULT reason = DXGI_ERROR_DEVICE_REMOVED;
         if (m_Device && m_Device->GetD3DDevice()) {

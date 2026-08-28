@@ -1,4 +1,9 @@
+#pragma warning(disable: 4505)
 #include "LandscapeWorkspaceInternal.h"
+#include "KindUI/Widgets/Components.h"
+#include "KindUI/Widgets/Label.h"
+#include "KindUI/Core/Widgets/DesignSystemControls.h"
+
 #include "LandscapePanelChrome.h"
 
 #include <algorithm>
@@ -8,100 +13,89 @@
 namespace we::editor::terrain {
 namespace {
 
-namespace Chrome = LandscapePanelChrome;
+using namespace we::runtime::kindui;
 
-void AddSectionTitle(LandscapeLayoutBuilder& layout, std::string_view title) {
-    LandscapeHitTarget t{};
-    t.kind = LandscapeHitKind::None;
-    t.geometry = {layout.contentX, layout.cursorY, layout.contentW, Chrome::RowHeight()};
-    t.label = std::string(title);
-    t.id = -1;
-    layout.targets.push_back(std::move(t));
-    layout.Advance(Chrome::RowHeight() + 4.f);
+void AddSectionTitle(const std::shared_ptr<Column>& layout, std::string_view title) {
+    auto header = MakeSectionHeader(std::string(title));
+    layout->AddChild(header);
 }
 
 void AddChipRow(
-    LandscapeLayoutBuilder& layout,
+    const std::shared_ptr<Column>& layout,
     const std::vector<std::tuple<std::string, const char*, bool, std::function<void()>>>& chips)
 {
-    const float gap = 6.f;
-    const float chipH = Chrome::ChipHeight();
-    float x = layout.contentX;
-    float y = layout.cursorY;
-    const float maxW = layout.contentW;
+    const size_t maxPerRow = 4;
+    std::shared_ptr<Row> currentRow = nullptr;
+    size_t countInRow = 0;
+
     for (const auto& [label, icon, selected, onClick] : chips) {
-        const float chipW = std::min(110.f, (maxW - gap * 2.f) * 0.33f);
-        if (x + chipW > layout.contentX + maxW + 0.5f) {
-            x = layout.contentX;
-            y += chipH + gap;
+        if (!currentRow || countInRow >= maxPerRow) {
+            currentRow = MakeRow();
+            currentRow->Gap(4.0f);
+            currentRow->SetFlexShrink(0.0f);
+            layout->AddChild(currentRow);
+            countInRow = 0;
         }
-        LandscapeHitTarget t{};
-        t.kind = LandscapeHitKind::Chip;
-        t.geometry = {x, y, chipW, chipH};
-        t.label = label;
-        t.iconHook = icon;
-        t.selected = selected;
-        t.onClick = onClick;
-        layout.targets.push_back(std::move(t));
-        x += chipW + gap;
+        auto btn = MakeSecondaryAction(label, icon ? icon : "");
+        btn->SetFlexGrow(1.0f);
+        btn->SetFlexShrink(1.0f);
+        btn->SetMinWidth(50.0f);
+        btn->SetOnClicked(onClick);
+        currentRow->AddChild(btn);
+        ++countInRow;
     }
-    layout.cursorY = y + chipH + Chrome::SectionGap();
-    layout.contentHeight = std::max(layout.contentHeight, layout.cursorY);
 }
 
 void AddField(
-    LandscapeLayoutBuilder& layout,
+    const std::shared_ptr<Column>& layout,
     std::string label,
     std::string value,
     std::function<void(std::string_view)> onCommit)
 {
-    const float h = Chrome::RowHeight();
-    LandscapeHitTarget t{};
-    t.kind = LandscapeHitKind::Field;
-    t.geometry = {
-        layout.contentX + Chrome::LabelColumnWidth() + 8.f,
-        layout.cursorY,
-        layout.contentW - Chrome::LabelColumnWidth() - 8.f,
-        h};
-    t.label = std::move(label);
-    t.value = std::move(value);
-    t.editable = true;
-    t.onTextCommit = std::move(onCommit);
-    layout.targets.push_back(std::move(t));
-    layout.Advance(h + 4.f);
+    auto row = MakeRow();
+    row->Align(AlignItems::Center);
+    row->Gap(8.0f);
+    auto lbl = std::make_shared<Label>(label);
+    lbl->SetMinWidth(120.0f);
+    lbl->SetMaxWidth(120.0f);
+    lbl->SetFlexShrink(0.0f);
+    lbl->SetFlexGrow(0.0f);
+
+    auto input = std::make_shared<SearchBoxControl>("");
+    input->SetText(value);
+    input->SetFlexGrow(1.0f);
+    input->SetFlexShrink(1.0f);
+    input->SetMinWidth(60.0f);
+    input->SetOnChanged([onCommit](const std::string& v) { onCommit(v); });
+
+    row->AddChild(lbl);
+    row->AddChild(input);
+    layout->AddChild(row);
 }
 
 void AddToggle(
-    LandscapeLayoutBuilder& layout,
+    const std::shared_ptr<Column>& layout,
     std::string label,
     bool on,
     std::function<void()> onClick)
 {
-    LandscapeHitTarget t{};
-    t.kind = LandscapeHitKind::Toggle;
-    t.geometry = {layout.contentX, layout.cursorY, layout.contentW, Chrome::RowHeight()};
-    t.label = std::move(label);
-    t.toggled = on;
-    t.onClick = std::move(onClick);
-    layout.targets.push_back(std::move(t));
-    layout.Advance(Chrome::RowHeight() + 4.f);
+    auto btn = MakeSecondaryAction(label + (on ? " : ON" : " : OFF"));
+    btn->SetOnClicked(onClick);
+    layout->AddChild(btn);
 }
 
 void AddButton(
-    LandscapeLayoutBuilder& layout,
+    const std::shared_ptr<Column>& layout,
     std::string label,
     std::function<void()> onClick,
     bool danger = false)
 {
-    LandscapeHitTarget t{};
-    t.kind = LandscapeHitKind::Button;
-    t.geometry = {layout.contentX, layout.cursorY, layout.contentW, Chrome::RowHeight() + 4.f};
-    t.label = std::move(label);
-    t.onClick = std::move(onClick);
-    t.isDanger = danger;
-    layout.targets.push_back(std::move(t));
-    layout.Advance(Chrome::RowHeight() + 10.f);
+    std::shared_ptr<DesignButton> btn; if(danger) btn = MakePrimaryAction(label); else btn = MakeSecondaryAction(label);
+    // If it's danger, maybe we don't have MakeDangerAction, just use Primary
+    btn->SetOnClicked(onClick);
+    layout->AddChild(btn);
 }
+
 
 std::string FormatFloat(float v) {
     char buf[64];
@@ -128,10 +122,10 @@ int ParseInt(std::string_view s, int fallback) {
         return fallback;
     }
 }
-
 } // namespace
 
-void BuildCreateTab(LandscapeLayoutBuilder& layout, ILandscapeEditor& editor) {
+
+void BuildCreateTab(const std::shared_ptr<we::runtime::kindui::Column>& layout, ILandscapeEditor& editor) {
     auto& dialog = editor.Dialog();
     auto& wizard = editor.Wizard();
     wizard.State() = dialog;
@@ -264,3 +258,4 @@ void BuildCreateTab(LandscapeLayoutBuilder& layout, ILandscapeEditor& editor) {
 }
 
 } // namespace we::editor::terrain
+

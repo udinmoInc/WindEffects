@@ -62,7 +62,7 @@ void EventSystem::ProcessMouseEvent(const MouseEvent& event) {
     std::shared_ptr<Widget> targetWidget = hitWidget;
     if (auto captured = m_CapturedWidget.lock()) {
         targetWidget = captured;
-    } else if (event.type == MouseEventType::MouseMove || event.type == MouseEventType::MouseUp) {
+    } else if (event.type == MouseEventType::MouseUp) {
         if (auto focused = m_FocusedWidget.lock()) {
             if (m_PopupHost && hitWidget && m_PopupHost->IsWidgetInPopup(hitWidget)) {
                 targetWidget = hitWidget;
