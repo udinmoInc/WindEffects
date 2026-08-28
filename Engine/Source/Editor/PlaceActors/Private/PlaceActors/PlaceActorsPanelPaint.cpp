@@ -19,6 +19,7 @@
 #include "ContentBrowser/Widgets/SearchBox.h"
 #include "Widgets/ToolButton.h"
 #include "WindEffects/Editor/UI/Panel/PanelChrome.h"
+#include "KindUI/Layout/ScrollViewport.h"
 #include "KindUI/Core/PaintContext.h"
 #include "KindUI/Core/DPIContext.h"
 #include "KindUI/Tokens/DesignToken.h"
@@ -49,6 +50,7 @@ using ::we::runtime::kindui::DPIContext;
 using ::we::runtime::kindui::MouseEvent;
 using ::we::runtime::kindui::MouseButton;
 using ::we::runtime::kindui::KeyEvent;
+using ::we::runtime::kindui::ScrollViewport;
 namespace Icons = ::we::runtime::kindui::Icons;
 
 namespace Icons = ::we::runtime::kindui::Icons;
@@ -56,13 +58,7 @@ namespace Icons = ::we::runtime::kindui::Icons;
 void PlaceActorsPanel::Paint(we::runtime::kindui::PaintContext& context) {
     PanelChrome::PaintContentRegion(context, m_Geometry);
 
-    ActorsPanelChrome::PaintSearchField(
-        context,
-        m_SearchBox->GetGeometry(),
-        "Search Assets...",
-        m_SearchText,
-        m_SearchBox->IsFocused(),
-        m_SearchBox->ShouldShowCaret());
+    m_SearchBox->Paint(context);
     m_FilterButton->Paint(context);
 
     auto& catalog = PlaceActorsCatalog::Get();
@@ -78,7 +74,7 @@ void PlaceActorsPanel::Paint(we::runtime::kindui::PaintContext& context) {
 
     SyncScrollMetrics();
     UpdateVisibleRange();
-    const std::string query = !m_ExternalSearchFilter.empty() ? m_ExternalSearchFilter : m_SearchText;
+    const std::string query = !m_ExternalSearchFilter.empty() ? m_ExternalSearchFilter : m_SearchBox->GetText();
     const float textSize = ThemeMetric(MetricToken::TextSizeSmall);
     const Rect clip = m_ScrollMetrics.viewport;
 
@@ -315,8 +311,7 @@ void PlaceActorsPanel::HideTooltip() {
 }
 
 bool PlaceActorsPanel::ShowsPointerCursor(const Point& position) const {
-    return m_ScrollMetrics.showsScrollbar &&
-        (m_ScrollMetrics.thumb.Contains(position) || m_ScrollMetrics.track.Contains(position));
+    return ScrollViewport::ShowsScrollbarCursor(m_ScrollMetrics, position);
 }
 
 void PlaceActorsPanel::OnMouseDown(const MouseEvent& event) {
@@ -515,6 +510,11 @@ void PlaceActorsPanel::OnMouseWheel(const MouseEvent& event) {
         : ActorsPanelLayout::ActorRowHeight() * 0.75f;
     m_Scroll.ApplyWheel(event.wheelDeltaY, wheelStep, m_ContentRect.height, m_ContentHeight);
     RebuildLayout();
+    InvalidatePaint();
+}
+
+bool PlaceActorsPanel::CanReceiveMouseWheelAt(const Point& pos) const {
+    return ScrollViewport::CanReceiveWheelAt(m_Geometry, m_ContentRect, m_ScrollMetrics, pos);
 }
 
 void PlaceActorsPanel::OnKeyDown(const KeyEvent& event) {

@@ -26,7 +26,7 @@ public:
     [[nodiscard]] bool IsFocusable() const override { return true; }
 
     void OnKeyDown(const KeyEvent& event) override;
-    void OnTextInput(const std::string& utf8);
+    void OnTextInput(const std::string& utf8) override;
 
     void SetText(const std::string& text) {
         if (m_Session) {

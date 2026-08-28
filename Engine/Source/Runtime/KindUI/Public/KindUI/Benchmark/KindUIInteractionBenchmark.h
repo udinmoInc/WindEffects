@@ -29,7 +29,38 @@ struct KINDUI_API KindUIInteractionReport {
     std::string summary;
 };
 
+struct KINDUI_API UiLatencyScenarioResult {
+    std::string name;
+    double inputToHandlerMs = 0.0;
+    double handlerToPaintMs = 0.0;
+    double paintToPresentMs = 0.0;
+    double totalVisibleMs = 0.0;
+    std::string rootCause;
+};
+
+struct KINDUI_API UiLatencyBenchmarkReport {
+    std::vector<UiLatencyScenarioResult> scenarios;
+    std::string summary;
+};
+
 /// Headless interaction spike profiler for docking, splitters, popups, resize.
 [[nodiscard]] KINDUI_API KindUIInteractionReport RunKindUIInteractionBenchmark(uint32_t dragSteps = 32);
+
+/// Simulates editor input→layout→paint→present path with UiInputLatencyAudit.
+[[nodiscard]] KINDUI_API UiLatencyBenchmarkReport RunUiInputLatencyBenchmark(uint32_t steps = 32);
+
+struct KINDUI_API HitTestAuditResult {
+    std::string name;
+    bool passed = false;
+    std::string detail;
+};
+
+struct KINDUI_API HitTestAuditReport {
+    std::vector<HitTestAuditResult> cases;
+    std::string summary;
+};
+
+/// Validates framework hit-testing: clipping, z-order, scroll offset, splitters.
+[[nodiscard]] KINDUI_API HitTestAuditReport RunHitTestAudit();
 
 } // namespace we::runtime::kindui

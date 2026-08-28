@@ -1,4 +1,4 @@
-﻿#include "Renderer/Renderer.h"
+#include "Renderer/Renderer.h"
 #include "Renderer/Graph/RenderGraph.h"
 #include "Renderer/Graph/ScenePasses.h"
 #include "Graph/ViewportSkyRenderer.h"
@@ -39,6 +39,23 @@ we::rhi::RHIBackend PreferBackendFromEnvironment(we::rhi::RHIBackend fallback) {
     return fallback;
 }
 
+bool VsyncFromEnvironment() {
+    if (const char* env = std::getenv("WE_VSYNC")) {
+        return env[0] != '\0' && env[0] != '0';
+    }
+    return true;
+}
+
+uint32_t FramesInFlightFromEnvironment() {
+    if (const char* env = std::getenv("WE_FRAMES_IN_FLIGHT")) {
+        const int value = std::atoi(env);
+        if (value >= 1 && value <= 3) {
+            return static_cast<uint32_t>(value);
+        }
+    }
+    return kMaxFramesInFlight;
+}
+
 } // namespace
 
 Renderer& Renderer::Get() {
@@ -67,14 +84,15 @@ void Renderer::Init(we::platform::WindowId window) {
     we::rhi::RHIInitDesc rhiInit{};
     rhiInit.preferredBackend = PreferBackendFromEnvironment(we::rhi::RHIBackend::Auto);
     rhiInit.appName = "WindEffects";
-    rhiInit.framesInFlight = kMaxFramesInFlight;
+    const uint32_t framesInFlight = FramesInFlightFromEnvironment();
+    rhiInit.framesInFlight = framesInFlight;
     (void)we::rhi::RHI::Initialize(rhiInit);
 
     we::rhi::DeviceDesc deviceDesc{};
     deviceDesc.windowId = window;
     deviceDesc.window = nativeWindow;
-    deviceDesc.framesInFlight = kMaxFramesInFlight;
-    deviceDesc.vsync = true;
+    deviceDesc.framesInFlight = framesInFlight;
+    deviceDesc.vsync = VsyncFromEnvironment();
     auto deviceResult = we::rhi::RHI::Get().CreateDevice(deviceDesc);
     WE_VALIDATE_INIT(deviceResult.Ok() && deviceResult.value, "Renderer",
         deviceResult.Ok() ? "RHI CreateDevice returned null." : deviceResult.error.message.c_str());
@@ -357,6 +375,29 @@ void Renderer::RenderScene() {
     m_SceneImageIndex = m_CurrentImageIndex;
 }
 
+void Renderer::RenderUiPaintOnly() {
+    WE_VALIDATE_RENDER(m_Initialized && m_FrameActive, "Renderer::RenderUiPaintOnly", "No active frame.");
+    if (!m_FrameCmd || !m_RenderGraph || !m_RHIDevice) {
+        return;
+    }
+
+    auto* swap = m_RHIDevice->GetSwapchain();
+    const we::rhi::Extent2D swapExtent = swap ? swap->GetExtent() : we::rhi::Extent2D{1, 1};
+    const we::rhi::RHITextureHandle swapImage = swap ? swap->GetCurrentImage() : we::rhi::RHITextureHandle::Invalid;
+
+    m_RenderGraph->ClearPasses();
+    m_RenderGraph->SetScheduleMode(RGScheduleMode::AsyncPlanned);
+
+    m_RenderGraph->AddPass(std::make_unique<ClearPass>(
+        swapImage,
+        we::rhi::Color4f{0.09f, 0.09f, 0.10f, 1.0f},
+        swapExtent));
+    m_RenderGraph->AddPass(std::make_unique<UiOverlayPass>(swapImage, m_OverlayRecorder));
+    m_RenderGraph->AddPass(std::make_unique<PresentPass>(swapImage));
+
+    m_RenderGraph->Execute(*m_FrameCmd, m_CurrentFrame);
+}
+
 void Renderer::SetOverlayRecorder(OverlayRecordFn recorder) {
     m_OverlayRecorder = std::move(recorder);
 }
@@ -384,18 +425,27 @@ std::string Renderer::DumpRenderGraph() const {
     return m_RenderGraph->Dump();
 }
 
-void Renderer::SubmitAndPresent() {
-    WE_VALIDATE_RENDER(m_Initialized && m_FrameActive, "Renderer::SubmitAndPresent", "No active frame.");
-
-    // PresentPass already transitioned the swapchain to Present via RG barriers.
+void Renderer::SubmitFrame() {
+    WE_VALIDATE_RENDER(m_Initialized && m_FrameActive, "Renderer::SubmitFrame", "No active frame.");
     if (m_FrameCmd && m_RHIDevice) {
         (void)m_RHIDevice->Submit(m_FrameCmd);
         m_FrameCmd = nullptr;
     }
-    (void)m_RHIDevice->Present();
-    (void)m_RHIDevice->EndFrame();
+}
+
+void Renderer::PresentFrame() {
+    WE_VALIDATE_RENDER(m_Initialized, "Renderer::PresentFrame", "Renderer not initialized.");
+    if (m_RHIDevice) {
+        (void)m_RHIDevice->Present();
+        (void)m_RHIDevice->EndFrame();
+    }
     m_FrameActive = false;
-    m_CurrentFrame = (m_CurrentFrame + 1) % kMaxFramesInFlight;
+    m_CurrentFrame = (m_CurrentFrame + 1) % std::max(1u, FramesInFlightFromEnvironment());
+}
+
+void Renderer::SubmitAndPresent() {
+    SubmitFrame();
+    PresentFrame();
 }
 
 void Renderer::RenderFrame() {

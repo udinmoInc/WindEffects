@@ -37,6 +37,8 @@ public:
     void OnMouseUp(const MouseEvent& event) override;
     void OnMouseWheel(const MouseEvent& event) override;
     bool ShowsPointerCursor(const Point& position) const override;
+    [[nodiscard]] std::shared_ptr<Widget> HitTestPoint(const Point& pos, const Rect* clip = nullptr) override;
+    [[nodiscard]] bool IsInteractiveContainer() const override { return true; }
 
     void AddPanel(const std::shared_ptr<Panel>& panel);
     void RemovePanel(const std::shared_ptr<Panel>& panel);
@@ -70,6 +72,7 @@ private:
 
     float MeasureTabWidth(PaintContext& context, const TabInfo& tabInfo, bool isActive, bool flushLeft = false);
     void PaintTab(PaintContext& context, TabInfo& tabInfo, int index, float& currentX);
+    void LayoutTabGeometries();
 
     std::vector<TabInfo> m_Tabs;
     int m_ActiveTabIndex = -1;

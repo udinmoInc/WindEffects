@@ -6,14 +6,6 @@
 
 namespace we::programs::editor::ActorsPanelChrome {
 
-void PaintSearchField(
-    we::runtime::kindui::PaintContext& context,
-    const we::runtime::kindui::Rect& bounds,
-    const std::string& placeholder,
-    const std::string& text,
-    bool focused,
-    bool showCaret = false);
-
 void PaintActorRowBackground(
     we::runtime::kindui::PaintContext& context,
     const we::runtime::kindui::Rect& rowRect,

@@ -29,6 +29,7 @@ public:
     void Arrange(const Rect& allottedRect) override;
     void Paint(PaintContext& context) override;
     void OnMouseDown(const MouseEvent& event) override;
+    [[nodiscard]] std::shared_ptr<Widget> HitTestPoint(const Point& pos, const Rect* clip = nullptr) override;
 
 private:
     std::shared_ptr<Widget> m_BaseWidget;

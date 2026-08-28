@@ -5,6 +5,8 @@
 #include "KindUI/Core/Widget.h"
 #include "KindUI/Layout/ScrollViewport.h"
 
+#include <optional>
+
 namespace we::runtime::kindui {
 
 // Generic vertical scroll container with clipping, wheel/track/thumb interaction,
@@ -21,8 +23,13 @@ public:
     void OnMouseDown(const MouseEvent& event) override;
     void OnMouseMove(const MouseEvent& event) override;
     void OnMouseUp(const MouseEvent& event) override;
-    void OnMouseWheel(const MouseEvent& event) override;
+    virtual void OnMouseWheel(const MouseEvent& event) override;
     bool ShowsPointerCursor(const Point& position) const override;
+    [[nodiscard]] std::shared_ptr<Widget> HitTestPoint(const Point& pos, const Rect* clip = nullptr) override;
+    [[nodiscard]] std::optional<Rect> GetHitTestClipRect() const override;
+    [[nodiscard]] bool IsInteractiveContainer() const override { return true; }
+    [[nodiscard]] bool CanReceiveMouseWheelAt(const Point& pos) const override;
+    [[nodiscard]] const Rect& GetViewportRect() const { return m_Metrics.viewport; }
 
     void SetContent(const std::shared_ptr<Widget>& child);
     [[nodiscard]] std::shared_ptr<Widget> GetContent() const { return m_Content; }

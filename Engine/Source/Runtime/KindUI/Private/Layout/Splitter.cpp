@@ -208,6 +208,9 @@ void Splitter::Arrange(const Rect& allottedRect) {
             AssertLayoutRectValid("Splitter.second", secondRect, allottedRect);
             m_SecondChild->Arrange(secondRect);
         }
+
+        m_CachedBarRect = Rect{ barX, allottedRect.y, barThickness, availH };
+        UpdateCachedBarHitRect();
     } else {
         float h1 = 0.0f;
         float h2 = 0.0f;
@@ -248,19 +251,64 @@ void Splitter::Arrange(const Rect& allottedRect) {
             AssertLayoutRectValid("Splitter.second", secondRect, allottedRect);
             m_SecondChild->Arrange(secondRect);
         }
+
+        m_CachedBarRect = Rect{ allottedRect.x, barY, availW, barThickness };
+        UpdateCachedBarHitRect();
     }
 }
 
 Rect Splitter::GetSplitterHitRect() const {
-    Rect barRect = GetSplitterBarRect();
-    const float barThickness = GetEffectiveBarThickness();
-    const float hitThickness = DPIContext::Snap(m_HitThicknessLogical * DPIContext::GetScale());
+    return ComputeBarHitRect();
+}
+
+Rect Splitter::ComputeBarHitRect() const {
+    if (!m_CachedBarHitRect.IsEmpty()) {
+        return m_CachedBarHitRect;
+    }
+
+    const Rect barRect = m_CachedBarRect.IsEmpty() ? GetSplitterBarRect() : m_CachedBarRect;
+    if (barRect.IsEmpty() && m_Geometry.IsEmpty()) {
+        return {};
+    }
+
+    const float barThickness = m_Orientation == Orientation::Horizontal
+        ? std::max(1.0f, barRect.width)
+        : std::max(1.0f, barRect.height);
+    const float scale = std::max(1.0f, DPIContext::GetScale());
+    const float hitThickness = std::max(8.0f, DPIContext::Snap(m_HitThicknessLogical * scale));
     if (m_Orientation == Orientation::Horizontal) {
         const float padding = (hitThickness - barThickness) * 0.5f;
-        return Rect{ barRect.x - padding, barRect.y, hitThickness, barRect.height };
+        const float height = std::max(1.0f, barRect.height > 0.0f ? barRect.height : m_Geometry.height);
+        return Rect{ barRect.x - padding, barRect.y, hitThickness, height };
     }
+
     const float padding = (hitThickness - barThickness) * 0.5f;
-    return Rect{ barRect.x, barRect.y - padding, barRect.width, hitThickness };
+    const float width = std::max(1.0f, barRect.width > 0.0f ? barRect.width : m_Geometry.width);
+    return Rect{ barRect.x, barRect.y - padding, width, hitThickness };
+}
+
+void Splitter::UpdateCachedBarHitRect() {
+    const Rect barRect = m_CachedBarRect.IsEmpty() ? GetSplitterBarRect() : m_CachedBarRect;
+    if (barRect.IsEmpty() && m_Geometry.IsEmpty()) {
+        m_CachedBarHitRect = {};
+        return;
+    }
+
+    const float barThickness = m_Orientation == Orientation::Horizontal
+        ? std::max(1.0f, barRect.width)
+        : std::max(1.0f, barRect.height);
+    const float scale = std::max(1.0f, DPIContext::GetScale());
+    const float hitThickness = std::max(8.0f, DPIContext::Snap(m_HitThicknessLogical * scale));
+    if (m_Orientation == Orientation::Horizontal) {
+        const float padding = (hitThickness - barThickness) * 0.5f;
+        const float height = std::max(1.0f, barRect.height > 0.0f ? barRect.height : m_Geometry.height);
+        m_CachedBarHitRect = Rect{ barRect.x - padding, barRect.y, hitThickness, height };
+        return;
+    }
+
+    const float padding = (hitThickness - barThickness) * 0.5f;
+    const float width = std::max(1.0f, barRect.width > 0.0f ? barRect.width : m_Geometry.width);
+    m_CachedBarHitRect = Rect{ barRect.x, barRect.y - padding, width, hitThickness };
 }
 
 void Splitter::Paint(PaintContext& context) {
@@ -345,6 +393,32 @@ void Splitter::OnMouseMove(const MouseEvent& event) {
 void Splitter::OnMouseUp(const MouseEvent& event) {
     (void)event;
     m_Dragging = false;
+}
+
+std::shared_ptr<Widget> Splitter::HitTestPoint(const Point& pos, const Rect* clip) {
+    if (!IsVisible() || IsPointerTransparent() || !IsEnabled()) {
+        return nullptr;
+    }
+    if ((clip != nullptr && !clip->Contains(pos)) || !m_Geometry.Contains(pos)) {
+        return nullptr;
+    }
+
+    if (ComputeBarHitRect().Contains(pos)) {
+        return shared_from_this();
+    }
+
+    if (m_SecondChild && m_SecondChild->IsVisible()) {
+        if (auto hit = m_SecondChild->HitTestPoint(pos, clip)) {
+            return hit;
+        }
+    }
+    if (m_FirstChild && m_FirstChild->IsVisible()) {
+        if (auto hit = m_FirstChild->HitTestPoint(pos, clip)) {
+            return hit;
+        }
+    }
+
+    return nullptr;
 }
 
 } // namespace we::runtime::kindui

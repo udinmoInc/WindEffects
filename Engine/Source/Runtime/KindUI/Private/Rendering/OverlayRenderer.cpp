@@ -7,6 +7,7 @@
 #include "KindUI/Rendering/UIStateManager.h"
 #include "KindUI/Rendering/UiGpuUpload.h"
 #include "KindUI/Profiling/UiPathDiagnostics.h"
+#include "KindUI/Profiling/UiInputLatencyAudit.h"
 #include "Rendering/UiImmediateRenderer.h"
 
 #include "Core/AssetRegistry.h"
@@ -192,6 +193,7 @@ void OverlayRenderer::RenderUI(const std::shared_ptr<Widget>& root, uint32_t fra
     }
 
     if (needsPaint) {
+        UiInputLatencyAudit::Get().OnUiBuild();
         Widget::ResetDiagnostics();
         if (m_WidgetAdapter) {
             m_WidgetAdapter->ResetDiagnostics();
@@ -243,6 +245,7 @@ void OverlayRenderer::EndOverlayPass(const we::runtime::uigfx::OverlayRenderCont
         BuildDrawList(m_Vertices, m_Indices, m_Batches, m_CurrentWidth, m_CurrentHeight),
         m_ActiveFrameSlot,
         m_GeometryGeneration);
+    UiInputLatencyAudit::Get().OnRenderSubmit();
     m_UIImmediate->EndFrame();
 }
 

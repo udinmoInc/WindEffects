@@ -20,6 +20,16 @@
 #include <Windows.h>
 
 namespace we::rhi::dx12 {
+
+namespace {
+
+double ElapsedMs(const std::chrono::steady_clock::time_point& start) {
+    using clock = std::chrono::steady_clock;
+    return std::chrono::duration<double, std::milli>(clock::now() - start).count();
+}
+
+} // namespace
+
 DX12Swapchain::DX12Swapchain(DX12Device* device)
     : m_Device(device)
 {
@@ -27,6 +37,34 @@ DX12Swapchain::DX12Swapchain(DX12Device* device)
 
 DX12Swapchain::~DX12Swapchain() {
     Destroy();
+}
+
+uint32_t DX12Swapchain::MaxFrameLatencyFromEnvironment() const {
+    if (const char* env = std::getenv("WE_MAX_FRAME_LATENCY")) {
+        const int value = std::atoi(env);
+        if (value >= 1 && value <= 3) {
+            return static_cast<uint32_t>(value);
+        }
+    }
+    return 1;
+}
+
+void DX12Swapchain::QueryRefreshRate(HWND hwnd) {
+    m_RefreshRateHz = 60;
+    HMONITOR monitor = MonitorFromWindow(hwnd, MONITOR_DEFAULTTONEAREST);
+    if (!monitor) {
+        return;
+    }
+    MONITORINFOEXW info{};
+    info.cbSize = sizeof(info);
+    if (!GetMonitorInfoW(monitor, &info)) {
+        return;
+    }
+    DEVMODEW dm{};
+    dm.dmSize = sizeof(dm);
+    if (EnumDisplaySettingsW(info.szDevice, ENUM_CURRENT_SETTINGS, &dm) && dm.dmDisplayFrequency > 0) {
+        m_RefreshRateHz = dm.dmDisplayFrequency;
+    }
 }
 
 RHIResult<void> DX12Swapchain::Create(const DeviceDesc& desc) {
@@ -50,8 +88,9 @@ RHIResult<void> DX12Swapchain::Create(const DeviceDesc& desc) {
     }
     m_Format = Format::B8G8R8A8_UNORM;
     m_Vsync = desc.vsync;
+    m_MaxFrameLatency = MaxFrameLatencyFromEnvironment();
+    QueryRefreshRate(hwnd);
 
-    // Prefer the device factory; fall back to a local one if needed.
     ComPtr<IDXGIFactory4> factory = m_Device->GetFactory();
     if (!factory) {
         UINT flags = 0;
@@ -76,6 +115,7 @@ RHIResult<void> DX12Swapchain::Create(const DeviceDesc& desc) {
     scDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
     scDesc.Scaling = DXGI_SCALING_STRETCH;
     scDesc.AlphaMode = DXGI_ALPHA_MODE_IGNORE;
+    scDesc.Flags = DXGI_SWAP_CHAIN_FLAG_FRAME_LATENCY_WAITABLE_OBJECT;
 
     ComPtr<IDXGISwapChain1> swap1;
     auto& q = m_Device->GetQueue(QueueType::Graphics);
@@ -99,6 +139,15 @@ RHIResult<void> DX12Swapchain::Create(const DeviceDesc& desc) {
     if (FAILED(swap1.As(&m_Swap)) || !m_Swap) {
         return RHIError::Make(RHIErrorCode::BackendFailure, "QueryInterface IDXGISwapChain3 failed.", "Swapchain::Create");
     }
+    if (FAILED(m_Swap.As(&m_Swap2)) || !m_Swap2) {
+        return RHIError::Make(RHIErrorCode::BackendFailure, "QueryInterface IDXGISwapChain2 failed.", "Swapchain::Create");
+    }
+
+    if (ComPtr<IDXGIDevice1> dxgiDevice; SUCCEEDED(m_Device->GetD3DDevice()->QueryInterface(IID_PPV_ARGS(&dxgiDevice)))) {
+        (void)dxgiDevice->SetMaximumFrameLatency(m_MaxFrameLatency);
+    }
+    (void)m_Swap2->SetMaximumFrameLatency(m_MaxFrameLatency);
+    m_FrameLatencyWaitable = m_Swap2->GetFrameLatencyWaitableObject();
 
     m_Handles.clear();
     m_Handles.resize(scDesc.BufferCount);
@@ -110,10 +159,18 @@ RHIResult<void> DX12Swapchain::Create(const DeviceDesc& desc) {
         m_Handles[i] = m_Device->RegisterSwapchainTexture(buffer, m_Extent, m_Format);
     }
     m_Index = m_Swap->GetCurrentBackBufferIndex();
+
+    WE_LOG_INFO(we::LogCategory::Startup.data(),
+        std::string("DX12 swapchain: refresh=") + std::to_string(m_RefreshRateHz) + "Hz"
+        + " maxLatency=" + std::to_string(m_MaxFrameLatency)
+        + " vsync=" + (m_Vsync ? "on" : "off"));
+
     return RHIResult<void>::Success();
 }
 
 void DX12Swapchain::Destroy() {
+    m_FrameLatencyWaitable = nullptr;
+    m_Swap2.Reset();
     if (m_Device && !m_Handles.empty()) {
         m_Device->ClearSwapchainTextures(m_Handles);
     }
@@ -162,6 +219,15 @@ RHIResult<uint32_t> DX12Swapchain::AcquireNextImage() {
     }
     m_Index = m_Swap->GetCurrentBackBufferIndex();
     return m_Index;
+}
+
+double DX12Swapchain::WaitForFrameLatency() {
+    if (!m_FrameLatencyWaitable) {
+        return 0.0;
+    }
+    const auto start = std::chrono::steady_clock::now();
+    (void)WaitForSingleObjectEx(m_FrameLatencyWaitable, INFINITE, true);
+    return ElapsedMs(start);
 }
 
 RHIResult<void> DX12Swapchain::Present() {

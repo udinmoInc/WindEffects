@@ -2,7 +2,12 @@
 #include "KindUI/Core/Widget.h"
 #include "KindUI/Layout/OverlayManager.h"
 #include "KindUI/Layout/ScrollLayout.h"
+#include "KindUI/Profiling/UiInputDebug.h"
+#include "KindUI/Profiling/UiInputLatencyAudit.h"
 #include "Platform/Platform.h"
+
+#include <cstdint>
+#include <string>
 
 namespace we::runtime::kindui {
 
@@ -10,37 +15,55 @@ EventSystem::~EventSystem() = default;
 
 namespace {
 
-void BubbleMouseWheelToScrollParents(
-    const std::shared_ptr<Widget>& start,
-    const MouseEvent& event)
-{
-    for (auto parent = start ? start->GetParent() : nullptr; parent; parent = parent->GetParent()) {
-        auto scrollLayout = std::dynamic_pointer_cast<ScrollLayout>(parent);
-        if (!scrollLayout || !scrollLayout->GetGeometry().Contains(event.position)) {
-            continue;
+std::string Utf8FromCodepoint(char32_t codepoint) {
+    if (codepoint <= 0x7F) {
+        return std::string(1, static_cast<char>(codepoint));
+    }
+    if (codepoint <= 0x7FF) {
+        std::string out(2, '\0');
+        out[0] = static_cast<char>(0xC0 | ((codepoint >> 6) & 0x1F));
+        out[1] = static_cast<char>(0x80 | (codepoint & 0x3F));
+        return out;
+    }
+    if (codepoint <= 0xFFFF) {
+        std::string out(3, '\0');
+        out[0] = static_cast<char>(0xE0 | ((codepoint >> 12) & 0x0F));
+        out[1] = static_cast<char>(0x80 | ((codepoint >> 6) & 0x3F));
+        out[2] = static_cast<char>(0x80 | (codepoint & 0x3F));
+        return out;
+    }
+    std::string out(4, '\0');
+    out[0] = static_cast<char>(0xF0 | ((codepoint >> 18) & 0x07));
+    out[1] = static_cast<char>(0x80 | ((codepoint >> 12) & 0x3F));
+    out[2] = static_cast<char>(0x80 | ((codepoint >> 6) & 0x3F));
+    out[3] = static_cast<char>(0x80 | (codepoint & 0x3F));
+    return out;
+}
+
+void DispatchMouseWheel(const std::shared_ptr<Widget>& start, const MouseEvent& event) {
+    for (auto node = start; node; node = node->GetParent()) {
+        if (node->CanReceiveMouseWheelAt(event.position)) {
+            node->OnMouseWheel(event);
+            return;
         }
-        scrollLayout->OnMouseWheel(event);
-        break;
     }
 }
+
 } // namespace
 
 std::shared_ptr<Widget> EventSystem::HitTest(const std::shared_ptr<Widget>& root, const Point& pos) {
-    if (!root || !root->IsVisible()) return nullptr;
-    if (root->IsPointerTransparent()) return nullptr;
-    if (!root->GetGeometry().Contains(pos)) return nullptr;
-
-    const auto& children = root->GetChildren();
-    for (auto it = children.rbegin(); it != children.rend(); ++it) {
-        auto hit = HitTest(*it, pos);
-        if (hit) return hit;
+    if (!root) {
+        return nullptr;
     }
-
-    return root;
+    return root->HitTestPoint(pos, nullptr);
 }
 
 void EventSystem::ProcessMouseEvent(const MouseEvent& event) {
     if (!m_Root) return;
+
+    if (UiInputLatencyAudit::IsEnabled()) {
+        UiInputLatencyAudit::Get().OnEventSystemReceive();
+    }
 
     std::shared_ptr<Widget> hitWidget = HitTest(m_Root, event.position);
 
@@ -72,6 +95,14 @@ void EventSystem::ProcessMouseEvent(const MouseEvent& event) {
         }
     }
 
+    UiInputDebug::OnMouseEvent(
+        event,
+        event.position,
+        hitWidget,
+        targetWidget,
+        m_FocusedWidget.lock(),
+        m_CapturedWidget.lock());
+
     if (targetWidget) {
         if (event.type == MouseEventType::MouseDown) {
             if (m_PopupHost) {
@@ -80,7 +111,11 @@ void EventSystem::ProcessMouseEvent(const MouseEvent& event) {
                 }
             }
 
-            SetFocusedWidget(targetWidget);
+            if (hitWidget && hitWidget->IsFocusable()) {
+                SetFocusedWidget(hitWidget);
+            } else if (!hitWidget || !m_PopupHost || !m_PopupHost->IsWidgetInPopup(hitWidget)) {
+                SetFocusedWidget(nullptr);
+            }
             SetCapturedWidget(targetWidget);
             targetWidget->OnMouseDown(event);
         } else if (event.type == MouseEventType::MouseUp) {
@@ -89,8 +124,7 @@ void EventSystem::ProcessMouseEvent(const MouseEvent& event) {
         } else if (event.type == MouseEventType::MouseMove) {
             targetWidget->OnMouseMove(event);
         } else if (event.type == MouseEventType::MouseWheel) {
-            targetWidget->OnMouseWheel(event);
-            BubbleMouseWheelToScrollParents(targetWidget, event);
+            DispatchMouseWheel(hitWidget ? hitWidget : targetWidget, event);
         }
     } else {
         if (event.type == MouseEventType::MouseDown) {
@@ -101,8 +135,28 @@ void EventSystem::ProcessMouseEvent(const MouseEvent& event) {
             m_CapturedWidget.reset();
         } else if (event.type == MouseEventType::MouseUp) {
             m_CapturedWidget.reset();
+        } else if (event.type == MouseEventType::MouseWheel) {
+            DispatchMouseWheel(m_Root, event);
         }
     }
+
+    if (UiInputLatencyAudit::IsEnabled()) {
+        UiInputLatencyAudit::Get().OnWidgetHandler();
+    }
+}
+
+void EventSystem::ProcessTextInput(char32_t codepoint) {
+    if (codepoint < 32 && codepoint != '\t') {
+        return;
+    }
+
+    auto focused = m_FocusedWidget.lock();
+    UiInputDebug::OnTextInput(codepoint, focused);
+    if (!focused) {
+        return;
+    }
+
+    focused->OnTextInput(Utf8FromCodepoint(codepoint));
 }
 
 void EventSystem::UpdateCursorForWidget(const std::shared_ptr<Widget>& widget, const Point& position) {

@@ -127,10 +127,26 @@ IRHICommandList* DX12Device::BeginFrame() {
         return nullptr;
     }
 
+    double frameLatencyWaitMs = 0.0;
+    if (m_Swapchain) {
+        frameLatencyWaitMs = m_Swapchain->WaitForFrameLatency();
+    }
+
+    const auto fenceWaitStart = std::chrono::steady_clock::now();
     const uint64_t fenceToWait = m_FenceValues[m_FrameSlot];
     if (m_FrameFence && m_FrameFence->GetCompletedValue() < fenceToWait) {
         m_FrameFence->SetEventOnCompletion(fenceToWait, m_FenceEvent);
         WaitForSingleObject(m_FenceEvent, INFINITE);
+    }
+    const double fenceWaitMs = std::chrono::duration<double, std::milli>(
+        std::chrono::steady_clock::now() - fenceWaitStart).count();
+
+    m_Diagnostics.lastFrame.frameLatencyWaitMs = frameLatencyWaitMs;
+    m_Diagnostics.lastFrame.beginFrameFenceWaitMs = fenceWaitMs;
+    m_Diagnostics.lastFrame.framesInFlight = m_FramesInFlight;
+    if (m_Swapchain) {
+        m_Diagnostics.lastFrame.refreshRateHz = m_Swapchain->GetRefreshRateHz();
+        m_Diagnostics.lastFrame.vsyncOn = m_Swapchain->IsVsyncEnabled();
     }
 
     m_Allocators[m_FrameSlot]->Reset();
@@ -180,7 +196,11 @@ RHIResult<void> DX12Device::Present() {
     if (!m_Swapchain) {
         return RHIResult<void>::Success();
     }
-    return m_Swapchain->Present();
+    const auto presentStart = std::chrono::steady_clock::now();
+    const auto result = m_Swapchain->Present();
+    m_Diagnostics.lastFrame.presentBlockMs = std::chrono::duration<double, std::milli>(
+        std::chrono::steady_clock::now() - presentStart).count();
+    return result;
 }
 
 RHIResult<void> DX12Device::EndFrame() {

@@ -37,6 +37,7 @@ public:
     void OnMouseDown(const MouseEvent& event) override;
     void OnMouseMove(const MouseEvent& event) override;
     void OnKeyDown(const KeyEvent& event) override;
+    void OnTextInput(const std::string& utf8) override;
     void OnFocus() override;
     void OnBlur() override;
 

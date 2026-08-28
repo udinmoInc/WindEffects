@@ -107,16 +107,27 @@ public:
     [[nodiscard]] uint32_t GetImageCount() const override { return static_cast<uint32_t>(m_Handles.size()); }
     [[nodiscard]] RHITextureHandle GetCurrentImage() const override;
     [[nodiscard]] uint32_t GetCurrentImageIndex() const override { return m_Index; }
+    [[nodiscard]] uint32_t GetRefreshRateHz() const noexcept { return m_RefreshRateHz; }
+    [[nodiscard]] bool IsVsyncEnabled() const noexcept { return m_Vsync; }
     RHIResult<void> Resize(Extent2D extent) override;
     RHIResult<uint32_t> AcquireNextImage() override;
+  /// Wait until DXGI allows a new frame (SetMaximumFrameLatency). Returns wait ms.
+    double WaitForFrameLatency();
     RHIResult<void> Present() override;
 
 private:
+    void QueryRefreshRate(HWND hwnd);
+    uint32_t MaxFrameLatencyFromEnvironment() const;
+
     DX12Device* m_Device = nullptr;
     ComPtr<IDXGISwapChain3> m_Swap;
+    ComPtr<IDXGISwapChain2> m_Swap2;
+    HANDLE m_FrameLatencyWaitable = nullptr;
     Extent2D m_Extent{};
     Format m_Format = Format::B8G8R8A8_UNORM;
     uint32_t m_Index = 0;
+    uint32_t m_RefreshRateHz = 60;
+    uint32_t m_MaxFrameLatency = 1;
     bool m_Vsync = true;
     std::vector<RHITextureHandle> m_Handles;
 };

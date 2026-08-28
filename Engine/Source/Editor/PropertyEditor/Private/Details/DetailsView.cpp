@@ -8,6 +8,12 @@
 namespace we::editor::property {
 namespace detail {
 
+namespace {
+constexpr float kDetailsWheelStepPx = 40.f;
+constexpr float kDetailsLabelColumnPx = 140.f;
+constexpr float kDetailsRowHeightPx = 22.f;
+} // namespace
+
 using we::runtime::kindui::ColorToken;
 using we::runtime::kindui::MetricToken;
 using we::runtime::kindui::MouseButton;
@@ -40,6 +46,7 @@ public:
     void Arrange(const Rect& allottedRect) override {
         m_Geometry = allottedRect;
         SyncScroll();
+        LayoutEditors();
     }
 
     void Paint(PaintContext& context) override {
@@ -63,18 +70,70 @@ public:
         m_Scroll.Paint(context, m_ScrollMetrics, m_Scroll.IsThumbHovered());
     }
 
-    void OnMouseDown(const MouseEvent& event) override {
-        if (!m_Tree) {
-            return;
+    [[nodiscard]] std::optional<Rect> GetHitTestClipRect() const override {
+        return m_ScrollMetrics.viewport;
+    }
+
+    [[nodiscard]] bool CanReceiveMouseWheelAt(const Point& pos) const override {
+        return ScrollViewport::CanReceiveWheelAt(m_Geometry, m_ScrollMetrics.viewport, m_ScrollMetrics, pos);
+    }
+
+    std::shared_ptr<Widget> HitTestPoint(const Point& pos, const Rect* clip) override {
+        if (!IsVisible() || IsPointerTransparent() || !IsEnabled()) {
+            return nullptr;
         }
+        if (!m_Geometry.Contains(pos)) {
+            return nullptr;
+        }
+
+        SyncScroll();
+
+        const Rect viewportClip = m_ScrollMetrics.viewport;
+        Rect effectiveClip = viewportClip;
+        if (clip != nullptr) {
+            effectiveClip = viewportClip.Intersect(*clip);
+        }
+        if (effectiveClip.IsEmpty()) {
+            return nullptr;
+        }
+
+        if (!effectiveClip.Contains(pos)) {
+            if (ScrollViewport::ShowsScrollbarCursor(m_ScrollMetrics, pos)) {
+                return shared_from_this();
+            }
+            return nullptr;
+        }
+
+        if (!m_Tree) {
+            return nullptr;
+        }
+
+        float y = m_ScrollMetrics.viewport.y - m_Scroll.offset;
+        for (const auto& root : m_Tree->GetFilteredRootNodes()) {
+            if (auto hit = HitTestNode(root, pos, y, &effectiveClip)) {
+                return hit;
+            }
+        }
+        return nullptr;
+    }
+
+    void OnMouseDown(const MouseEvent& event) override {
         SyncScroll();
         if (m_Scroll.OnMouseDown(event, m_ScrollMetrics, m_Geometry.height, m_ContentHeight)) {
+            InvalidatePaint();
+            return;
+        }
+
+        if (!m_Tree) {
             return;
         }
 
         float y = m_ScrollMetrics.viewport.y - m_Scroll.offset;
         for (const auto& root : m_Tree->GetFilteredRootNodes()) {
-            if (HitNode(root, event.position, y)) {
+            if (ToggleCategoryAt(root, event.position, y)) {
+                InvalidateEditors();
+                InvalidateLayout();
+                InvalidatePaint();
                 return;
             }
         }
@@ -88,19 +147,74 @@ public:
 
     void OnMouseWheel(const MouseEvent& event) override {
         SyncScroll();
-        m_Scroll.ApplyWheel(event.wheelDeltaY, 40.f, m_Geometry.height, m_ContentHeight);
+        m_Scroll.ApplyWheel(event.wheelDeltaY, kDetailsWheelStepPx, m_Geometry.height, m_ContentHeight);
+        LayoutEditors();
+        InvalidatePaint();
     }
 
 private:
-    void SyncScroll() {
-        m_ContentHeight = MeasureContentHeight();
-        m_Scroll.Sync(m_Geometry.height, m_ContentHeight);
-        const float uiScale = std::max(1.0f, DPIContext::GetScale());
-        m_ScrollMetrics = m_Scroll.ComputeMetrics(m_Geometry, m_ContentHeight, uiScale);
+    void LayoutEditors() {
+        if (!m_Tree) {
+            return;
+        }
+
+        const float viewTop = m_ScrollMetrics.viewport.y;
+        const float viewBottom = m_ScrollMetrics.viewport.y + m_ScrollMetrics.viewport.height;
+        float y = m_ScrollMetrics.viewport.y - m_Scroll.offset;
+        for (const auto& root : m_Tree->GetFilteredRootNodes()) {
+            y = LayoutNode(root, y, viewTop, viewBottom);
+        }
     }
 
-    [[nodiscard]] float RowHeight() const { return 22.f; }
-    [[nodiscard]] float CategoryHeight() const { return 22.f; }
+    float LayoutNode(
+        const PropertyNodePtr& node,
+        float y,
+        float viewTop,
+        float viewBottom)
+    {
+        if (!node) {
+            return y;
+        }
+
+        const float height = node->IsCategoryNode() ? CategoryHeight() : RowHeight();
+        if (y + height >= viewTop && y <= viewBottom && !node->IsCategoryNode()) {
+            if (m_Factory && node->GetHandle() && node->GetPropertyInfo()) {
+                auto& editorWidget = m_EditorWidgets[std::string(node->GetPath())];
+                if (!editorWidget) {
+                    if (auto editor =
+                            m_Factory->CreateEditor(*node->GetPropertyInfo(), node->GetHandle())) {
+                        editorWidget = editor->CreateWidget();
+                    }
+                }
+                if (editorWidget) {
+                    Rect row{
+                        m_ScrollMetrics.viewport.x,
+                        y,
+                        m_ScrollMetrics.viewport.width,
+                        height};
+                    const float valueX = row.x + kDetailsLabelColumnPx;
+                    Rect valueRect{valueX, row.y, row.width - (valueX - row.x) - 8.f, height};
+                    editorWidget->Arrange(valueRect);
+                }
+            }
+        }
+
+        y += height;
+        if (node->IsExpanded()) {
+            for (const auto& child : node->GetChildren()) {
+                y = LayoutNode(child, y, viewTop, viewBottom);
+            }
+        }
+        return y;
+    }
+    void SyncScroll() {
+        m_ContentHeight = MeasureContentHeight();
+        const float uiScale = std::max(1.0f, DPIContext::GetScale());
+        m_ScrollMetrics = m_Scroll.UpdateMetrics(m_Geometry, m_Geometry.height, m_ContentHeight, uiScale);
+    }
+
+    [[nodiscard]] float RowHeight() const { return kDetailsRowHeightPx; }
+    [[nodiscard]] float CategoryHeight() const { return kDetailsRowHeightPx; }
 
     float MeasureContentHeight() const {
         if (!m_Tree) {
@@ -174,9 +288,8 @@ private:
                         }
                     }
                     if (editorWidget) {
-                        const float valueX = row.x + 140.f;
+                        const float valueX = row.x + kDetailsLabelColumnPx;
                         Rect valueRect{valueX, row.y, row.width - (valueX - row.x) - 8.f, height};
-                        editorWidget->Arrange(valueRect);
                         editorWidget->Paint(context);
                     }
                 }
@@ -192,32 +305,71 @@ private:
         return y;
     }
 
-    bool HitNode(const PropertyNodePtr& node, const Point& pos, float& y) {
+    std::shared_ptr<Widget> HitTestNode(
+        const PropertyNodePtr& node,
+        const Point& pos,
+        float& y,
+        const Rect* clip)
+    {
         if (!node) {
-            return false;
+            return nullptr;
         }
+
         const float height = node->IsCategoryNode() ? CategoryHeight() : RowHeight();
         Rect row{m_ScrollMetrics.viewport.x, y, m_ScrollMetrics.viewport.width, height};
-        if (row.Contains(pos)) {
-            if (node->IsCategoryNode() || !node->GetChildren().empty()) {
-                node->SetExpanded(!node->IsExpanded());
-                InvalidateEditors();
-            } else if (m_Factory) {
-                auto it = m_EditorWidgets.find(std::string(node->GetPath()));
-                if (it != m_EditorWidgets.end() && it->second) {
-                    MouseEvent down{};
-                    down.type = MouseEventType::MouseDown;
-                    down.position = pos;
-                    down.button = MouseButton::Left;
-                    it->second->OnMouseDown(down);
+        if (!row.Contains(pos)) {
+            y += height;
+            if (node->IsExpanded()) {
+                for (const auto& child : node->GetChildren()) {
+                    if (auto hit = HitTestNode(child, pos, y, clip)) {
+                        return hit;
+                    }
                 }
             }
-            return true;
+            return nullptr;
         }
+
+        if (node->IsCategoryNode()) {
+            return shared_from_this();
+        }
+
+        if (m_Factory && node->GetHandle() && node->GetPropertyInfo()) {
+            auto it = m_EditorWidgets.find(std::string(node->GetPath()));
+            if (it != m_EditorWidgets.end() && it->second) {
+                if (auto hit = it->second->HitTestPoint(pos, clip)) {
+                    return hit;
+                }
+                return it->second;
+            }
+        }
+
         y += height;
         if (node->IsExpanded()) {
             for (const auto& child : node->GetChildren()) {
-                if (HitNode(child, pos, y)) {
+                if (auto hit = HitTestNode(child, pos, y, clip)) {
+                    return hit;
+                }
+            }
+        }
+        return nullptr;
+    }
+
+    bool ToggleCategoryAt(const PropertyNodePtr& node, const Point& pos, float& y) {
+        if (!node) {
+            return false;
+        }
+
+        const float height = node->IsCategoryNode() ? CategoryHeight() : RowHeight();
+        Rect row{m_ScrollMetrics.viewport.x, y, m_ScrollMetrics.viewport.width, height};
+        if (row.Contains(pos) && (node->IsCategoryNode() || !node->GetChildren().empty())) {
+            node->SetExpanded(!node->IsExpanded());
+            return true;
+        }
+
+        y += height;
+        if (node->IsExpanded()) {
+            for (const auto& child : node->GetChildren()) {
+                if (ToggleCategoryAt(child, pos, y)) {
                     return true;
                 }
             }

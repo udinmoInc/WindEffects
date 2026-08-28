@@ -96,6 +96,7 @@ void DockContainer::Tick(float deltaTime) {
         }
     }
     if (hoverChanged) {
+        InvalidateLayout();
         InvalidatePaint();
     }
 }
@@ -159,6 +160,69 @@ void DockContainer::Arrange(const Rect& allottedRect) {
             panel->Arrange(Rect{0.0f, 0.0f, 0.0f, 0.0f});
         }
     }
+
+    LayoutTabGeometries();
+}
+
+void DockContainer::LayoutTabGeometries() {
+    PaintContext context;
+    float currentX = m_HeaderRect.x;
+    for (int i = 0; i < static_cast<int>(m_Tabs.size()); ++i) {
+        auto& tabInfo = m_Tabs[static_cast<size_t>(i)];
+        const bool isActive = (i == m_ActiveTabIndex);
+        const bool showClose = isActive || tabInfo.isHovered;
+
+        PanelChrome::DockTabDescriptor descriptor{};
+        descriptor.title = tabInfo.panel->GetTitle();
+        descriptor.iconName = tabInfo.panel->GetTabIcon();
+        descriptor.hasBrand = tabInfo.panel->HasTabBrand();
+        descriptor.brandDescriptor = tabInfo.panel->GetTabBrandDescriptor();
+        descriptor.brandLogicalSize = tabInfo.panel->GetTabBrandLogicalSize();
+
+        const auto layout = PanelChrome::LayoutDockTabGeometries(
+            context,
+            descriptor,
+            m_HeaderRect,
+            currentX,
+            isActive,
+            showClose);
+        tabInfo.tabRect = layout.tabRect;
+        tabInfo.closeRect = showClose ? layout.closeRect : Rect{};
+        currentX += layout.tabRect.width + PanelChrome::TabGap();
+    }
+}
+
+std::shared_ptr<Widget> DockContainer::HitTestPoint(const Point& pos, const Rect* clip) {
+    if (!IsVisible() || IsPointerTransparent() || !IsEnabled()) {
+        return nullptr;
+    }
+    if ((clip != nullptr && !clip->Contains(pos)) || !m_Geometry.Contains(pos)) {
+        return nullptr;
+    }
+
+    if (m_HeaderRect.Contains(pos)) {
+        for (const auto& tabInfo : m_Tabs) {
+            if (tabInfo.tabRect.Contains(pos)) {
+                return shared_from_this();
+            }
+        }
+        return shared_from_this();
+    }
+
+    if (m_ActiveTabIndex >= 0 && m_ActiveTabIndex < static_cast<int>(m_Tabs.size())) {
+        Rect contentClip = m_ContentRect;
+        if (clip != nullptr) {
+            contentClip = contentClip.Intersect(*clip);
+        }
+        if (!contentClip.IsEmpty() && contentClip.Contains(pos)) {
+            const auto& activePanel = m_Tabs[static_cast<size_t>(m_ActiveTabIndex)].panel;
+            if (auto hit = activePanel->HitTestPoint(pos, &contentClip)) {
+                return hit;
+            }
+        }
+    }
+
+    return nullptr;
 }
 
 float DockContainer::MeasureTabWidth(PaintContext& context, const TabInfo& tabInfo, bool isActive, bool flushLeft) {
@@ -261,17 +325,15 @@ void DockContainer::OnMouseDown(const MouseEvent& event) {
 
     if (m_ActiveTabIndex >= 0 && m_ActiveTabIndex < static_cast<int>(m_Tabs.size())) {
         auto activePanel = m_Tabs[static_cast<size_t>(m_ActiveTabIndex)].panel;
-        if (auto toolbar = activePanel->GetToolbar()) {
-            if (toolbar->GetGeometry().Contains(event.position)) {
-                toolbar->OnMouseDown(event);
-                return;
-            }
-        }
-        if (auto content = activePanel->GetContent()) {
-            if (content->GetGeometry().Contains(event.position)) {
-                content->OnMouseDown(event);
-            }
-        }
+        const auto toolbar = activePanel->GetToolbar();
+        const auto content = activePanel->GetContent();
+        PanelChrome::RoutePanelBodyPointer(
+            event,
+            toolbar,
+            toolbar ? toolbar->GetGeometry() : Rect{},
+            content,
+            content ? content->GetGeometry() : Rect{},
+            &Widget::OnMouseDown);
     }
 }
 
@@ -302,16 +364,15 @@ void DockContainer::OnMouseMove(const MouseEvent& event) {
 
     if (m_ActiveTabIndex >= 0 && m_ActiveTabIndex < static_cast<int>(m_Tabs.size())) {
         auto activePanel = m_Tabs[static_cast<size_t>(m_ActiveTabIndex)].panel;
-        if (auto toolbar = activePanel->GetToolbar()) {
-            if (toolbar->GetGeometry().Contains(event.position)) {
-                toolbar->OnMouseMove(event);
-            }
-        }
-        if (auto content = activePanel->GetContent()) {
-            if (content->GetGeometry().Contains(event.position)) {
-                content->OnMouseMove(event);
-            }
-        }
+        const auto toolbar = activePanel->GetToolbar();
+        const auto content = activePanel->GetContent();
+        PanelChrome::RoutePanelBodyPointer(
+            event,
+            toolbar,
+            toolbar ? toolbar->GetGeometry() : Rect{},
+            content,
+            content ? content->GetGeometry() : Rect{},
+            &Widget::OnMouseMove);
     }
 }
 
@@ -321,34 +382,30 @@ void DockContainer::OnMouseUp(const MouseEvent& event) {
 
     if (m_ActiveTabIndex >= 0 && m_ActiveTabIndex < static_cast<int>(m_Tabs.size())) {
         auto activePanel = m_Tabs[static_cast<size_t>(m_ActiveTabIndex)].panel;
-        if (auto toolbar = activePanel->GetToolbar()) {
-            if (toolbar->GetGeometry().Contains(event.position)) {
-                toolbar->OnMouseUp(event);
-                return;
-            }
-        }
-        if (auto content = activePanel->GetContent()) {
-            if (content->GetGeometry().Contains(event.position)) {
-                content->OnMouseUp(event);
-            }
-        }
+        const auto toolbar = activePanel->GetToolbar();
+        const auto content = activePanel->GetContent();
+        PanelChrome::RoutePanelBodyPointer(
+            event,
+            toolbar,
+            toolbar ? toolbar->GetGeometry() : Rect{},
+            content,
+            content ? content->GetGeometry() : Rect{},
+            &Widget::OnMouseUp);
     }
 }
 
 void DockContainer::OnMouseWheel(const MouseEvent& event) {
     if (m_ActiveTabIndex >= 0 && m_ActiveTabIndex < static_cast<int>(m_Tabs.size())) {
         auto activePanel = m_Tabs[static_cast<size_t>(m_ActiveTabIndex)].panel;
-        if (auto toolbar = activePanel->GetToolbar()) {
-            if (toolbar->GetGeometry().Contains(event.position)) {
-                toolbar->OnMouseWheel(event);
-                return;
-            }
-        }
-        if (auto content = activePanel->GetContent()) {
-            if (content->GetGeometry().Contains(event.position)) {
-                content->OnMouseWheel(event);
-            }
-        }
+        const auto toolbar = activePanel->GetToolbar();
+        const auto content = activePanel->GetContent();
+        PanelChrome::RoutePanelBodyPointer(
+            event,
+            toolbar,
+            toolbar ? toolbar->GetGeometry() : Rect{},
+            content,
+            content ? content->GetGeometry() : Rect{},
+            &Widget::OnMouseWheel);
     }
 }
 

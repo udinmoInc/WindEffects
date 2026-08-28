@@ -2,7 +2,9 @@
 #include "FirstRunAgreementPopup.h"
 #include "KindUI/Benchmark/KindUIBenchmark.h"
 #include "KindUI/Benchmark/KindUIInteractionBenchmark.h"
+#include "KindUI/Profiling/UiInputLatencyAudit.h"
 #include "KindUI/Profiling/UiPathDiagnostics.h"
+#include "KindUI/Input/InputEvents.h"
 #include "Core/Logger.h"
 
 #include <cstdlib>
@@ -78,6 +80,44 @@ bool PresentAuditEnabled() {
     }();
     return enabled;
 }
+
+we::runtime::kindui::UiInteractionKind InteractionKindForMouse(const we::runtime::kindui::MouseEvent& event) {
+    switch (event.type) {
+    case we::runtime::kindui::MouseEventType::MouseMove: return we::runtime::kindui::UiInteractionKind::MouseMove;
+    case we::runtime::kindui::MouseEventType::MouseWheel: return we::runtime::kindui::UiInteractionKind::Wheel;
+    case we::runtime::kindui::MouseEventType::MouseDown: return we::runtime::kindui::UiInteractionKind::Click;
+    case we::runtime::kindui::MouseEventType::MouseUp: return we::runtime::kindui::UiInteractionKind::ButtonPress;
+    default: return we::runtime::kindui::UiInteractionKind::Unknown;
+    }
+}
+
+we::runtime::kindui::UiInteractionKind InteractionKindForKey(bool pressed) {
+    (void)pressed;
+    return we::runtime::kindui::UiInteractionKind::Keyboard;
+}
+
+void MarkOsInput(we::runtime::kindui::UiInteractionKind kind) {
+    if (we::runtime::kindui::UiInputLatencyAudit::IsEnabled()) {
+        we::runtime::kindui::UiInputLatencyAudit::Get().OnOsEvent(kind);
+    }
+}
+
+uint64_t HashCameraUniform(const we::runtime::renderer::CameraUniform& camera) {
+    uint64_t hash = 14695981039346656037ull;
+    auto mix = [&](float value) {
+        const uint32_t bits = *reinterpret_cast<const uint32_t*>(&value);
+        hash ^= static_cast<uint64_t>(bits);
+        hash *= 1099511628211ull;
+    };
+    for (int i = 0; i < 16; ++i) {
+        mix(camera.view.m[i]);
+        mix(camera.proj.m[i]);
+    }
+    mix(camera.position.x);
+    mix(camera.position.y);
+    mix(camera.position.z);
+    return hash;
+}
 } // namespace
 
 namespace we::programs::editor {
@@ -149,6 +189,29 @@ Editor::Editor(we::platform::WindowId window, const we::projects::EditorCommandL
                 + " cause=" + scenario.rootCause);
         }
     }
+    if (const char* latencyBench = std::getenv("WE_UI_LATENCY_BENCH");
+        latencyBench != nullptr && latencyBench[0] != '\0' && latencyBench[0] != '0') {
+        const auto report = UI::RunUiInputLatencyBenchmark(32);
+        HE_INFO("[UILatencyBench] " + report.summary);
+        for (const auto& scenario : report.scenarios) {
+            HE_INFO("[UILatencyBench] " + scenario.name
+                + " in→handler=" + std::to_string(static_cast<uint64_t>(scenario.inputToHandlerMs * 1000.0)) + "us"
+                + " handler→paint=" + std::to_string(static_cast<uint64_t>(scenario.handlerToPaintMs * 1000.0)) + "us"
+                + " paint→present=" + std::to_string(static_cast<uint64_t>(scenario.paintToPresentMs * 1000.0)) + "us"
+                + " total=" + std::to_string(static_cast<uint64_t>(scenario.totalVisibleMs * 1000.0)) + "us"
+                + " cause=" + scenario.rootCause);
+        }
+    }
+    if (const char* hitBench = std::getenv("WE_UI_HITTEST_BENCH");
+        hitBench != nullptr && hitBench[0] != '\0' && hitBench[0] != '0') {
+        const auto report = UI::RunHitTestAudit();
+        HE_INFO("[UIHitTestBench] " + report.summary);
+        for (const auto& testCase : report.cases) {
+            HE_INFO("[UIHitTestBench] " + testCase.name
+                + (testCase.passed ? " PASS " : " FAIL ")
+                + testCase.detail);
+        }
+    }
 }
 
 bool Editor::LaunchWeLauncher(const std::vector<std::string>& extraArgs) {
@@ -187,11 +250,23 @@ void Editor::InitializeEngine() {
 
     HE_INFO("[Startup] Stage 4/6: OverlayRenderer init...");
     m_OverlayRenderer = std::make_unique<we::runtime::kindui::OverlayRenderer>();
-    if (!m_OverlayRenderer->Init(m_Renderer->GetRHIDevice(), m_Renderer->GetSwapchainFormat(), 2)) {
+    if (!m_OverlayRenderer->Init(m_Renderer->GetRHIDevice(), m_Renderer->GetSwapchainFormat(), 1)) {
         throw std::runtime_error("Failed to initialize OverlayRenderer!");
     }
 
     m_UIEventSystem = std::make_shared<UI::EventSystem>();
+
+    if (const char* vsyncEnv = std::getenv("WE_VSYNC"); vsyncEnv != nullptr) {
+        we::runtime::kindui::UiInputLatencyAudit::SetVsyncEnabled(vsyncEnv[0] != '\0' && vsyncEnv[0] != '0');
+    } else {
+        we::runtime::kindui::UiInputLatencyAudit::SetVsyncEnabled(true);
+    }
+    if (m_Renderer->GetRHIDevice()) {
+        const auto& rhiStats = m_Renderer->GetRHIDevice()->GetDiagnostics().lastFrame;
+        if (rhiStats.refreshRateHz > 0) {
+            we::runtime::kindui::UiInputLatencyAudit::SetRefreshRateHz(rhiStats.refreshRateHz);
+        }
+    }
 
     UpdateUiScaleFromWindow();
     m_UIContext = std::make_unique<::we::editor::services::EditorApplicationContext>();
@@ -762,6 +837,7 @@ void Editor::SyncViewportFramebufferFromLayout() {
         m_RootWidget->Arrange(clientRect);
         m_RootWidget->ClearSubtreeLayoutDirty();
         we::runtime::kindui::UIRepaintGate::RequestPaint();
+        we::runtime::kindui::UiInputLatencyAudit::Get().OnLayout();
         m_LastLayoutSwapchainW = w;
         m_LastLayoutSwapchainH = h;
     }
@@ -818,6 +894,82 @@ void Editor::CreateNewLevel() {
     ::we::editor::environment::TickEditor();
 }
 
+void Editor::ProcessLateInputMouse() {
+    if (!m_UIEventSystem || !m_RootWidget) {
+        return;
+    }
+    auto& platform = we::platform::Platform::Get();
+    const auto pos = platform.GetMousePosition(m_Window);
+    if (pos.x == m_LastSampledMousePos.x && pos.y == m_LastSampledMousePos.y) {
+        return;
+    }
+    m_LastSampledMousePos = pos;
+
+    UI::MouseEvent mouseEvent{};
+    mouseEvent.type = UI::MouseEventType::MouseMove;
+    mouseEvent.position = UI::Point{ static_cast<float>(pos.x), static_cast<float>(pos.y) };
+    const auto mods = platform.GetKeyModifiers();
+    mouseEvent.altDown = we::platform::HasFlag(mods, we::platform::KeyModifier::Alt);
+    mouseEvent.shiftDown = we::platform::HasFlag(mods, we::platform::KeyModifier::Shift);
+    mouseEvent.ctrlDown = we::platform::HasFlag(mods, we::platform::KeyModifier::Control);
+    MarkOsInput(UI::UiInteractionKind::MouseMove);
+    m_UIEventSystem->ProcessMouseEvent(mouseEvent);
+}
+
+void Editor::TickSimulation(float dt) {
+    if (m_RootWidget) {
+        m_RootWidget->Tick(dt);
+    }
+    if (m_Camera) {
+        m_Camera->Update(dt);
+    }
+    if (m_Scene) {
+        m_Scene->Update();
+    }
+    if (m_Camera) {
+        auto& env = we::runtime::world::environment::EnvironmentSystem::Get();
+        env.Tick(dt);
+        env.SyncFromScene(m_Camera->GetPosition());
+    }
+    ::we::editor::environment::TickEditor();
+    if (m_WorldOutliner) {
+        m_WorldOutliner->Outliner().Tick(dt);
+    }
+    if (m_ContentBrowser) {
+        m_ContentBrowser->Browser().Tick(dt);
+    }
+    if (m_PrefabEditor) {
+        m_PrefabEditor->Tick(dt);
+    }
+    if (m_CompilationRuntime) {
+        m_CompilationRuntime->Manager().Tick(dt);
+    }
+    if (m_ViewportEdit) {
+        m_ViewportEdit->SyncSelectionFromScene();
+        m_ViewportEdit->Tick(dt);
+    }
+    if (m_Camera) {
+        const auto pos = m_Camera->GetPosition();
+        const we::math::Mat4 viewProj =
+            m_Camera->GetProjectionMatrix() * m_Camera->GetViewMatrix();
+        we::editor::terrain::GetLandscapeEditor().Tick(
+            dt, pos.x, pos.y, pos.z, &viewProj);
+    }
+    if (::we::editor::services::EditorPerfStats::IsPerfLoggingEnabled()
+        && we::runtime::terrain::TerrainSystem::Get().IsCreated())
+    {
+        static double s_LastTerrainLogMs = 0.0;
+        using clock = std::chrono::steady_clock;
+        const double nowMs = std::chrono::duration<double, std::milli>(
+            clock::now().time_since_epoch())
+                                .count();
+        if (nowMs - s_LastTerrainLogMs >= 1000.0) {
+            HE_INFO(we::runtime::terrain::TerrainDiagnostics::Get().FormatSummary());
+            s_LastTerrainLogMs = nowMs;
+        }
+    }
+}
+
 void Editor::MaybeShowFirstRunAgreement() {
     if (HasAcceptedFirstRunAgreement()) {
         m_FirstRunAgreementPending = false;
@@ -856,7 +1008,15 @@ void Editor::MainLoop() {
             }
         }
 
-        for (const auto& event : platform.GetFrameEvents()) {
+        const auto frameEvents = platform.GetFrameEvents();
+        we::runtime::kindui::UiInputLatencyAudit::Get().BeginFrame(
+            static_cast<uint32_t>(frameEvents.size()));
+
+        // Keep hit-test geometry current before routing pointer/keyboard input.
+        UpdateUiScaleFromWindow();
+        SyncViewportFramebufferFromLayout();
+
+        for (const auto& event : frameEvents) {
             bool requestUiLayout = false;
             bool requestUiPaint = false;
             const bool isMotion = std::holds_alternative<we::platform::MouseMoveEvent>(event)
@@ -879,7 +1039,12 @@ void Editor::MainLoop() {
                 || std::holds_alternative<we::platform::WindowMaximizeEvent>(event)
                 || std::holds_alternative<we::platform::WindowMinimizeEvent>(event)) {
                 requestUiLayout = true;
+                UpdateUiScaleFromWindow();
+                SyncViewportFramebufferFromLayout();
             } else if (const auto* move = std::get_if<we::platform::MouseMoveEvent>(&event)) {
+                if (we::runtime::kindui::UIRepaintGate::PeekNeedsLayout()) {
+                    SyncViewportFramebufferFromLayout();
+                }
                 UI::MouseEvent mouseEvent{};
                 mouseEvent.type = UI::MouseEventType::MouseMove;
                 mouseEvent.position = UI::Point{ static_cast<float>(move->position.x), static_cast<float>(move->position.y) };
@@ -889,7 +1054,9 @@ void Editor::MainLoop() {
                 mouseEvent.altDown = we::platform::HasFlag(mods, we::platform::KeyModifier::Alt);
                 mouseEvent.shiftDown = we::platform::HasFlag(mods, we::platform::KeyModifier::Shift);
                 mouseEvent.ctrlDown = we::platform::HasFlag(mods, we::platform::KeyModifier::Control);
+                MarkOsInput(InteractionKindForMouse(mouseEvent));
                 m_UIEventSystem->ProcessMouseEvent(mouseEvent);
+                m_LastSampledMousePos = move->position;
             } else if (const auto* raw = std::get_if<we::platform::RawMouseEvent>(&event)) {
                 UI::MouseEvent mouseEvent{};
                 mouseEvent.type = UI::MouseEventType::MouseMove;
@@ -901,8 +1068,13 @@ void Editor::MainLoop() {
                 mouseEvent.altDown = we::platform::HasFlag(mods, we::platform::KeyModifier::Alt);
                 mouseEvent.shiftDown = we::platform::HasFlag(mods, we::platform::KeyModifier::Shift);
                 mouseEvent.ctrlDown = we::platform::HasFlag(mods, we::platform::KeyModifier::Control);
+                MarkOsInput(UI::UiInteractionKind::MouseMove);
                 m_UIEventSystem->ProcessMouseEvent(mouseEvent);
+                m_LastSampledMousePos = pos;
             } else if (const auto* button = std::get_if<we::platform::MouseButtonEvent>(&event)) {
+                if (we::runtime::kindui::UIRepaintGate::PeekNeedsLayout()) {
+                    SyncViewportFramebufferFromLayout();
+                }
                 UI::MouseEvent mouseEvent{};
                 mouseEvent.type = button->pressed ? UI::MouseEventType::MouseDown : UI::MouseEventType::MouseUp;
                 mouseEvent.position = UI::Point{ static_cast<float>(button->position.x), static_cast<float>(button->position.y) };
@@ -915,9 +1087,13 @@ void Editor::MainLoop() {
                 mouseEvent.altDown = we::platform::HasFlag(button->modifiers, we::platform::KeyModifier::Alt);
                 mouseEvent.shiftDown = we::platform::HasFlag(button->modifiers, we::platform::KeyModifier::Shift);
                 mouseEvent.ctrlDown = we::platform::HasFlag(button->modifiers, we::platform::KeyModifier::Control);
+                MarkOsInput(InteractionKindForMouse(mouseEvent));
                 m_UIEventSystem->ProcessMouseEvent(mouseEvent);
                 requestUiPaint = true;
             } else if (const auto* wheel = std::get_if<we::platform::MouseWheelEvent>(&event)) {
+                if (we::runtime::kindui::UIRepaintGate::PeekNeedsLayout()) {
+                    SyncViewportFramebufferFromLayout();
+                }
                 UI::MouseEvent mouseEvent{};
                 mouseEvent.type = UI::MouseEventType::MouseWheel;
                 mouseEvent.position = UI::Point{ static_cast<float>(wheel->position.x), static_cast<float>(wheel->position.y) };
@@ -927,6 +1103,7 @@ void Editor::MainLoop() {
                 mouseEvent.altDown = we::platform::HasFlag(mods, we::platform::KeyModifier::Alt);
                 mouseEvent.shiftDown = we::platform::HasFlag(mods, we::platform::KeyModifier::Shift);
                 mouseEvent.ctrlDown = we::platform::HasFlag(mods, we::platform::KeyModifier::Control);
+                MarkOsInput(UI::UiInteractionKind::Wheel);
                 m_UIEventSystem->ProcessMouseEvent(mouseEvent);
                 requestUiPaint = true;
             } else if (const auto* key = std::get_if<we::platform::KeyEvent>(&event)) {
@@ -941,9 +1118,13 @@ void Editor::MainLoop() {
                 keyEvent.altDown = we::platform::HasFlag(key->modifiers, we::platform::KeyModifier::Alt);
                 keyEvent.shiftDown = we::platform::HasFlag(key->modifiers, we::platform::KeyModifier::Shift);
                 keyEvent.ctrlDown = we::platform::HasFlag(key->modifiers, we::platform::KeyModifier::Control);
+                MarkOsInput(InteractionKindForKey(key->pressed));
                 m_UIEventSystem->ProcessKeyEvent(keyEvent);
                 requestUiPaint = true;
-            } else if (std::holds_alternative<we::platform::TextInputEvent>(event)) {
+            } else if (const auto* text = std::get_if<we::platform::TextInputEvent>(&event)) {
+                if (m_UIEventSystem) {
+                    m_UIEventSystem->ProcessTextInput(text->codepoint);
+                }
                 requestUiPaint = true;
             }
 
@@ -962,70 +1143,13 @@ void Editor::MainLoop() {
 
         if (!m_Running) break;
 
-        uint64_t now = platform.GetHighResolutionCounter();
-        float dt = static_cast<float>((now - lastTime) / frequency);
-        lastTime = now;
-        if (dt > 0.1f) dt = 0.1f;
-        // Input and fly movement update camera targets first; smoothing runs after.
-        if (m_RootWidget) {
-            m_RootWidget->Tick(dt);
-        } else {
-            HE_ERROR("[Render] Root widget is null during frame tick; stopping main loop.");
-            m_Running = false;
-            break;
-        }
-        if (m_Camera) {
-            m_Camera->Update(dt);
-        }
-        if (m_Scene) {
-            m_Scene->Update();
-        }
-        if (m_Camera) {
-            auto& env = we::runtime::world::environment::EnvironmentSystem::Get();
-            env.Tick(dt);
-            env.SyncFromScene(m_Camera->GetPosition());
-        }
-        ::we::editor::environment::TickEditor();
-        if (m_WorldOutliner) {
-            m_WorldOutliner->Outliner().Tick(dt);
-        }
-        if (m_ContentBrowser) {
-            m_ContentBrowser->Browser().Tick(dt);
-        }
-        if (m_PrefabEditor) {
-            m_PrefabEditor->Tick(dt);
-        }
-        if (m_CompilationRuntime) {
-            m_CompilationRuntime->Manager().Tick(dt);
-        }
-        if (m_ViewportEdit) {
-            m_ViewportEdit->SyncSelectionFromScene();
-            m_ViewportEdit->Tick(dt);
-        }
-        if (m_Camera) {
-            const auto pos = m_Camera->GetPosition();
-            const we::math::Mat4 viewProj =
-                m_Camera->GetProjectionMatrix() * m_Camera->GetViewMatrix();
-            we::editor::terrain::GetLandscapeEditor().Tick(
-                dt, pos.x, pos.y, pos.z, &viewProj);
-        }
-        if (::we::editor::services::EditorPerfStats::IsPerfLoggingEnabled()
-            && we::runtime::terrain::TerrainSystem::Get().IsCreated())
-        {
-            static double s_LastTerrainLogMs = 0.0;
-            using clock = std::chrono::steady_clock;
-            const double nowMs = std::chrono::duration<double, std::milli>(
-                clock::now().time_since_epoch())
-                                    .count();
-            if (nowMs - s_LastTerrainLogMs >= 1000.0) {
-                HE_INFO(we::runtime::terrain::TerrainDiagnostics::Get().FormatSummary());
-                s_LastTerrainLogMs = nowMs;
-            }
-        }
+        // Layout immediately after input so interaction geometry is current before render.
         UpdateUiScaleFromWindow();
-        ::we::editor::services::EditorPerfStats::Get().Mark("tick");
-
         SyncViewportFramebufferFromLayout();
+        ProcessLateInputMouse();
+        if (we::runtime::kindui::UIRepaintGate::PeekNeedsLayout()) {
+            SyncViewportFramebufferFromLayout();
+        }
         ::we::editor::services::EditorPerfStats::Get().Mark("layout");
 
         we::runtime::core::FrameCounter::Advance();
@@ -1049,6 +1173,10 @@ void Editor::MainLoop() {
             cameraUBO.padding = static_cast<float>(skyDebugMode);
             we::runtime::renderer::FoundationRenderDebug::MaybeLog(skyDebugMode);
         }
+
+        const bool uiLayoutRequested = we::runtime::kindui::UIRepaintGate::PeekNeedsLayout();
+        const bool uiPaintRequested = we::runtime::kindui::UIRepaintGate::PeekNeedsPaint();
+        const uint64_t cameraHash = HashCameraUniform(cameraUBO);
 
 
 
@@ -1074,6 +1202,7 @@ void Editor::MainLoop() {
 
             // CPU UI build + viewport sync before the graph (GPU overlay records inside UiOverlayPass).
             if (m_OverlayRenderer) {
+                ProcessLateInputMouse();
                 const uint32_t imageIndex = m_Renderer->GetCurrentImageIndex();
                 m_OverlayRenderer->SetPipelineAuditImageIndex(imageIndex);
                 m_OverlayRenderer->SetTargetExtent(
@@ -1115,10 +1244,30 @@ void Editor::MainLoop() {
                 m_Renderer->ClearOverlayRecorder();
             }
 
-            m_Renderer->RenderScene();
+            const bool paintOnlyFrame =
+                !uiLayoutRequested
+                && uiPaintRequested
+                && m_HasRenderedScene
+                && cameraHash == m_LastSceneCameraHash;
+            if (paintOnlyFrame) {
+                m_Renderer->RenderUiPaintOnly();
+            } else {
+                m_Renderer->RenderScene();
+                m_LastSceneCameraHash = cameraHash;
+                m_HasRenderedScene = true;
+            }
             ::we::editor::services::EditorPerfStats::Get().Mark("scene");
 
-            m_Renderer->SubmitAndPresent();
+            m_Renderer->SubmitFrame();
+            we::runtime::kindui::UiInputLatencyAudit::Get().OnGpuSubmit();
+            we::runtime::kindui::UiInputLatencyAudit::Get().OnPresentStart();
+            m_Renderer->PresentFrame();
+            if (m_Renderer->GetRHIDevice()) {
+                we::runtime::kindui::UiInputLatencyAudit::Get().OnPresentComplete(
+                    &m_Renderer->GetRHIDevice()->GetDiagnostics().lastFrame);
+            } else {
+                we::runtime::kindui::UiInputLatencyAudit::Get().OnPresentComplete(nullptr);
+            }
             ::we::editor::services::EditorPerfStats::Get().Mark("present");
             m_Renderer->ClearOverlayRecorder();
 
@@ -1145,6 +1294,25 @@ void Editor::MainLoop() {
         } else {
             ::we::editor::services::EditorPerfStats::Get().EndFrame(0, 0);
             we::runtime::kindui::UiPathDiagnostics::Get().EndFrame();
+        }
+
+        uint64_t now = platform.GetHighResolutionCounter();
+        float dt = static_cast<float>((now - lastTime) / frequency);
+        lastTime = now;
+        if (dt > 0.1f) dt = 0.1f;
+        if (!m_RootWidget) {
+            HE_ERROR("[Render] Root widget is null during frame tick; stopping main loop.");
+            m_Running = false;
+            break;
+        }
+        TickSimulation(dt);
+        ::we::editor::services::EditorPerfStats::Get().Mark("tick");
+
+        if (we::runtime::kindui::UiInputLatencyAudit::IsEnabled()) {
+            ++m_LatencyAuditFrameCounter;
+            if (m_LatencyAuditFrameCounter % 300 == 0) {
+                we::runtime::kindui::UiInputLatencyAudit::Get().FlushPendingReport();
+            }
         }
     }
 }
@@ -1184,6 +1352,7 @@ void Editor::Shutdown() {
         m_OverlayRenderer->Shutdown();
         m_OverlayRenderer.reset();
     }
+    we::runtime::kindui::UiInputLatencyAudit::Get().FlushPendingReport();
 
     // EditorCompositor no longer used
     m_UIEventSystem.reset();

@@ -10,6 +10,7 @@
 #include "KindUI/Theming/ResolvedStyle.h"
 
 #include <memory>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -37,13 +38,24 @@ public:
     virtual void OnMouseDown(const MouseEvent&) {}
     virtual void OnMouseMove(const MouseEvent&) {}
     virtual void OnMouseUp(const MouseEvent&) {}
-    virtual void OnMouseWheel(const MouseEvent&) {}
     virtual void OnKeyDown(const KeyEvent&) {}
     virtual void OnKeyUp(const KeyEvent&) {}
+    virtual void OnTextInput(const std::string& utf8) { (void)utf8; }
+    virtual void OnMouseWheel(const MouseEvent& event) { (void)event; }
+    [[nodiscard]] virtual bool CanReceiveMouseWheelAt(const Point& pos) const { (void)pos; return false; }
     virtual bool ShowsPointerCursor(const Point&) const { return false; }
 
     /// When true, this widget is skipped during hit-testing (clicks pass through).
     [[nodiscard]] virtual bool IsPointerTransparent() const { return false; }
+
+    /// Deepest interactive widget under a root-space point. Respects clipping and z-order.
+    [[nodiscard]] virtual std::shared_ptr<Widget> HitTestPoint(const Point& pos, const Rect* clip = nullptr);
+
+    /// Optional clip rect applied while hit-testing descendants (e.g. scroll viewport).
+    [[nodiscard]] virtual std::optional<Rect> GetHitTestClipRect() const { return std::nullopt; }
+
+    /// When true, this container may be returned when no child claims the point.
+    [[nodiscard]] virtual bool IsInteractiveContainer() const { return false; }
 
     virtual void OnFocus() { m_Focused = true; }
     virtual void OnBlur() { m_Focused = false; }
@@ -194,6 +206,8 @@ public:
     [[nodiscard]] IPopupHost* GetPopupHost() const;
 
 protected:
+    [[nodiscard]] std::shared_ptr<Widget> HitTestChildren(const Point& pos, const Rect* clip) const;
+
 #pragma warning(push)
 #pragma warning(disable: 4251)
     std::weak_ptr<Widget> m_Parent;
