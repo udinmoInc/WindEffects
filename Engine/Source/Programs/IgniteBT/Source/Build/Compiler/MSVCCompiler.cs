@@ -391,6 +391,20 @@ exit /b %ERRORLEVEL%
                 args.Add($"/I\"{path}\"");
             }
         }
+        else
+        {
+            // Automatically resolve MSVC core headers if running from a local toolchain path
+            var exeDir = Path.GetDirectoryName(ExecutablePath);
+            if (!string.IsNullOrEmpty(exeDir))
+            {
+                var msvcRoot = Path.GetFullPath(Path.Combine(exeDir, "..", "..", ".."));
+                var msvcIncludeDir = Path.Combine(msvcRoot, "include");
+                if (Directory.Exists(msvcIncludeDir))
+                {
+                    args.Add($"/I\"{msvcIncludeDir}\"");
+                }
+            }
+        }
 
         // Definitions
         foreach (var definition in options.Definitions)

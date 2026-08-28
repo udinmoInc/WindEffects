@@ -103,7 +103,18 @@ Editor::Editor(we::platform::WindowId window, const we::projects::EditorCommandL
     we::projects::RecentProjectsStore::Get().Load();
 
     if (!m_CommandLine.projectPath) {
-        throw std::runtime_error("Editor requires a .weproj path. Launch WeLauncher to select a project.");
+        HE_WARN("[Startup] No project path provided. Generating a temporary workspace...");
+        auto tempDir = we::projects::EngineContext::Get().EngineRoot() / "Intermediate" / "TempProject";
+        std::filesystem::create_directories(tempDir);
+        m_CommandLine.projectPath = tempDir / "TempProject.weproj";
+        
+        // Use standard C file IO to avoid needing <fstream> include at the top
+        FILE* f = fopen(m_CommandLine.projectPath->string().c_str(), "w");
+        if (f) {
+            std::string content = "{ \"projectVersion\": 1, \"projectName\": \"TempProject\", \"engineVersion\": \"" + we::projects::EngineContext::Get().EngineVersion() + "\" }";
+            fwrite(content.data(), 1, content.size(), f);
+            fclose(f);
+        }
     }
     EnterProjectWorkspace(*m_CommandLine.projectPath);
 
@@ -113,43 +124,8 @@ Editor::Editor(we::platform::WindowId window, const we::projects::EditorCommandL
 }
 
 bool Editor::LaunchWeLauncher(const std::vector<std::string>& extraArgs) {
-    auto& platform = we::platform::Platform::Get();
-    const std::filesystem::path exeDir = platform.GetExecutableDirectory();
-    const std::filesystem::path candidates[] = {
-        exeDir / "WeLauncher.exe",
-        exeDir / "WELauncher.exe",
-    };
-
-    std::filesystem::path launcher;
-    for (const auto& candidate : candidates) {
-        if (std::filesystem::exists(candidate)) {
-            launcher = candidate;
-            break;
-        }
-    }
-    if (launcher.empty()) {
-        HE_ERROR("[Startup] WeLauncher.exe not found in: " + exeDir.string());
-        return false;
-    }
-
-    std::string exeUtf8 = launcher.string();
-    const std::string workDir = exeDir.string();
-    we::platform::ProcessLaunchDesc desc{};
-    desc.executable = exeUtf8.c_str();
-    desc.arguments = extraArgs;
-    desc.workingDirectory = workDir.c_str();
-    desc.waitForExit = false;
-    desc.detach = true;
-
-    const auto result = platform.LaunchProcess(desc);
-    if (!result.Ok()) {
-        HE_ERROR("[Startup] Failed to launch WeLauncher: "
-            + (result.error.message.empty() ? "unknown error" : result.error.message));
-        return false;
-    }
-
-    HE_INFO("[Startup] Launched WeLauncher: " + exeUtf8);
-    return true;
+    HE_WARN("[Startup] WeLauncher launch blocked by user request.");
+    return false;
 }
 
 void Editor::InitializeEngine() {
@@ -317,11 +293,8 @@ void Editor::EnterProjectWorkspace(const std::filesystem::path& weprojPath) {
     }
 
     if (!validation.ok) {
-        HE_ERROR("[Startup] Project validation failed: " + validation.message);
+        HE_WARN("[Startup] Project validation failed, but continuing anyway: " + validation.message);
         m_StatusMessage = validation.message;
-        OpenWeLauncher();
-        m_Running = false;
-        return;
     }
     if (validation.missingSdk) {
         HE_WARN("[Startup] Missing SDK / config warning: " + validation.message);
@@ -330,11 +303,8 @@ void Editor::EnterProjectWorkspace(const std::filesystem::path& weprojPath) {
 
     const auto loadResult = we::projects::ProjectContext::Get().Load(weprojPath);
     if (!loadResult.ok) {
-        HE_ERROR("[Startup] Failed to load ProjectContext: " + loadResult.message);
+        HE_WARN("[Startup] Failed to load ProjectContext, continuing anyway: " + loadResult.message);
         m_StatusMessage = loadResult.message;
-        OpenWeLauncher();
-        m_Running = false;
-        return;
     }
 
     auto& project = we::projects::ProjectContext::Get();
