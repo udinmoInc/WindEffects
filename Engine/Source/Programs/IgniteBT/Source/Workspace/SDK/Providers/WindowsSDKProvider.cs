@@ -91,15 +91,15 @@ public class WindowsSDKProvider : BaseSDKProvider
             var versionDirs = Directory.GetDirectories(libPath);
             foreach (var versionDir in versionDirs)
             {
-                // Add architecture-specific library directories
+                // Add architecture-specific library directories for standard Windows SDK
                 var archDirs = new[]
                 {
-                    Path.Combine(versionDir, "x64"),
-                    Path.Combine(versionDir, "x86"),
-                    Path.Combine(versionDir, "arm"),
-                    Path.Combine(versionDir, "arm64"),
-                    Path.Combine(versionDir, "um"),
-                    Path.Combine(versionDir, "ucrt")
+                    Path.Combine(versionDir, "um", "x64"),
+                    Path.Combine(versionDir, "ucrt", "x64"),
+                    Path.Combine(versionDir, "um", "x86"),
+                    Path.Combine(versionDir, "ucrt", "x86"),
+                    Path.Combine(versionDir, "um", "arm64"),
+                    Path.Combine(versionDir, "ucrt", "arm64")
                 };
                 
                 foreach (var archDir in archDirs)

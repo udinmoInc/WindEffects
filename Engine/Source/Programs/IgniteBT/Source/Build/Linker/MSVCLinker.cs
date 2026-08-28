@@ -388,6 +388,20 @@ public class MSVCLinker : ILinker
             args.Add($"/LIBPATH:\"{libDir}\"");
         }
 
+        // Automatically resolve MSVC core libraries (like delayimp.lib) if running from a local toolchain path
+        var exeDir = Path.GetDirectoryName(ExecutablePath);
+        if (!string.IsNullOrEmpty(exeDir))
+        {
+            var msvcRoot = Path.GetFullPath(Path.Combine(exeDir, "..", "..", ".."));
+            var arch = exeDir.EndsWith("x86", StringComparison.OrdinalIgnoreCase) ? "x86" : "x64";
+            
+            var msvcLibDir = Path.Combine(msvcRoot, "lib", arch);
+            if (Directory.Exists(msvcLibDir))
+            {
+                args.Add($"/LIBPATH:\"{msvcLibDir}\"");
+            }
+        }
+
         // Object files
         foreach (var objFile in options.ObjectFiles)
         {

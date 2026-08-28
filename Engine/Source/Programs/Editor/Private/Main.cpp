@@ -30,9 +30,7 @@ void ConfigureModuleSearchPath() {
 }
 
 [[nodiscard]] bool NeedsWeLauncher(const we::projects::EditorCommandLine& commandLine) {
-    return commandLine.forceProjectManager
-        || commandLine.newProject
-        || !commandLine.projectPath.has_value();
+    return false; // Temporarily disabled: commandLine.forceProjectManager || commandLine.newProject || !commandLine.projectPath.has_value();
 }
 
 } // namespace
@@ -81,7 +79,12 @@ int main(int argc, char* argv[]) {
             return 0;
         }
 
-        HE_INFO("[Startup] Project argument: " + commandLine.projectPath->string());
+        if (commandLine.projectPath.has_value()) {
+            HE_INFO("[Startup] Project argument: " + commandLine.projectPath->string());
+        } else {
+            HE_INFO("[Startup] Starting without a project.");
+        }
+        
         if (commandLine.safeMode) {
             HE_INFO("[Startup] Safe mode enabled.");
         }
