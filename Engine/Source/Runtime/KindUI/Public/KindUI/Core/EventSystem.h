@@ -3,6 +3,7 @@
 #include "KindUI/Export.h"
 #include "KindUI/Input/InputEvents.h"
 
+#include <cstdint>
 #include <memory>
 #include <vector>
 
@@ -21,6 +22,7 @@ public:
 
     void ProcessMouseEvent(const MouseEvent& event);
     void ProcessKeyEvent(const KeyEvent& event);
+    void ProcessTextInput(char32_t codepoint);
 
     std::shared_ptr<Widget> GetFocusedWidget() const { return m_FocusedWidget.lock(); }
     std::shared_ptr<Widget> GetHoveredWidget() const { return m_HoveredWidget.lock(); }

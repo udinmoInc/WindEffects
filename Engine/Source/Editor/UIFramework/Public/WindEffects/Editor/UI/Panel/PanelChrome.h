@@ -4,15 +4,18 @@
 #include "KindUI/Core/Widget.h"
 #include "KindUI/Core/Types.h"
 #include "KindUI/Core/PaintContext.h"
+#include "KindUI/Input/InputEvents.h"
 #include "RHI/Types.h"
 #include <string>
 #include <vector>
+#include <functional>
 
 namespace we::editor::panels {
 using ::we::runtime::kindui::Widget;
 using ::we::runtime::kindui::PaintContext;
 using ::we::runtime::kindui::Rect;
 using ::we::runtime::kindui::Color;
+using ::we::runtime::kindui::MouseEvent;
 
 /// Shared panel design system — dock tabs, headers, toolbars, search, and rows.
 namespace PanelChrome {
@@ -56,6 +59,14 @@ UIFRAMEWORK_API float MeasureDockTabWidth(
     bool showClose,
     bool flushLeft = false);
 
+UIFRAMEWORK_API DockTabLayout LayoutDockTabGeometries(
+    PaintContext& context,
+    const DockTabDescriptor& tab,
+    const Rect& headerRect,
+    float x,
+    bool isActive,
+    bool showClose);
+
 UIFRAMEWORK_API DockTabLayout PaintDockTab(
     PaintContext& context,
     const DockTabDescriptor& tab,
@@ -73,6 +84,13 @@ struct FloatingHeaderAction {
     bool hovered = false;
     bool pressed = false;
 };
+
+UIFRAMEWORK_API void LayoutFloatingPanelHeaderGeometries(
+    const Rect& headerRect,
+    bool showOptionsMenu,
+    size_t actionCount,
+    Rect& outOptionsMenuRect,
+    const std::function<void(size_t actionIndex, const Rect& actionRect)>& setActionRect);
 
 UIFRAMEWORK_API void PaintFloatingPanelHeader(
     PaintContext& context,
@@ -117,12 +135,14 @@ UIFRAMEWORK_API void PaintHeaderIconButton(
     bool pressed,
     bool compactGlyph = false);
 
-UIFRAMEWORK_API void PaintToolbarIconButton(
-    PaintContext& context,
-    const Rect& rect,
-    const std::string& iconName,
-    bool hovered,
-    bool pressed);
+/// Forward a mouse event to toolbar/content regions when the point is inside their rects.
+UIFRAMEWORK_API void RoutePanelBodyPointer(
+    const MouseEvent& event,
+    const std::shared_ptr<Widget>& toolbar,
+    const Rect& toolbarRect,
+    const std::shared_ptr<Widget>& content,
+    const Rect& contentRect,
+    void (Widget::*handler)(const MouseEvent&));
 
 UIFRAMEWORK_API Rect InsetSearchRect(const Rect& toolbarRect, float searchWidth);
 

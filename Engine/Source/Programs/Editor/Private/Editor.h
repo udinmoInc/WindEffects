@@ -95,6 +95,11 @@ private:
     std::shared_ptr<::we::runtime::prefab::IPrefabRuntime> m_PrefabRuntime;
     std::shared_ptr<::we::editor::prefab::IPrefabEditor> m_PrefabEditor;
     std::shared_ptr<::we::runtime::compilation::ICompilationRuntime> m_CompilationRuntime;
+
+    we::platform::Int2 m_LastSampledMousePos{-1, -1};
+    uint64_t m_LatencyAuditFrameCounter = 0;
+    uint64_t m_LastSceneCameraHash = 0;
+    bool m_HasRenderedScene = false;
     std::unique_ptr<::we::runtime::serialization::ISerializer> m_Serializer;
     ::we::editor::mainframe::EditorWindowHitTestData m_WindowHitTestData{};
 

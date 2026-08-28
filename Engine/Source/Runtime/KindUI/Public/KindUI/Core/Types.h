@@ -31,6 +31,10 @@ struct Rect {
         return p.x >= x && p.x <= x + width && p.y >= y && p.y <= y + height;
     }
 
+    [[nodiscard]] bool IsEmpty() const {
+        return width <= 0.0f || height <= 0.0f;
+    }
+
     [[nodiscard]] Rect Intersect(const Rect& other) const {
         const float nx = (x > other.x) ? x : other.x;
         const float ny = (y > other.y) ? y : other.y;

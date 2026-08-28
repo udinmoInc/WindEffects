@@ -64,6 +64,49 @@ bool ScrollViewport::ScrollToRange(float itemTop, float itemBottom, float viewpo
     return std::abs(offset - previous) > 0.01f;
 }
 
+ScrollViewportMetrics ScrollViewport::UpdateMetrics(
+    const Rect& bounds,
+    float viewportHeight,
+    float contentHeight,
+    float uiScale)
+{
+    Sync(viewportHeight, contentHeight);
+    return ComputeMetrics(bounds, contentHeight, uiScale);
+}
+
+bool ScrollViewport::CanReceiveWheelAt(
+    const Rect& widgetBounds,
+    const Rect& wheelArea,
+    const ScrollViewportMetrics& metrics,
+    const Point& pos)
+{
+    if (!widgetBounds.Contains(pos)) {
+        return false;
+    }
+    if (wheelArea.Contains(pos)) {
+        return true;
+    }
+    return ShowsScrollbarCursor(metrics, pos);
+}
+
+bool ScrollViewport::ShowsScrollbarCursor(const ScrollViewportMetrics& metrics, const Point& pos) {
+    return metrics.showsScrollbar
+        && (metrics.thumb.Contains(pos) || metrics.track.Contains(pos));
+}
+
+bool ScrollViewport::ScrollScreenRectIntoView(
+    ScrollViewport& scroll,
+    float itemScreenY,
+    float itemHeight,
+    float viewportY,
+    float viewportHeight,
+    float contentHeight)
+{
+    const float top = itemScreenY + scroll.offset - viewportY;
+    const float bottom = top + itemHeight;
+    return scroll.ScrollToRange(top, bottom, viewportHeight, contentHeight);
+}
+
 ScrollViewportMetrics ScrollViewport::ComputeMetrics(
     const Rect& bounds,
     float contentHeight,

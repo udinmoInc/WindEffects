@@ -28,6 +28,7 @@ SearchBox::SearchBox()
     : m_Style(WidgetStyle::TextBox())
 {
     m_Height = ThemeMetric(MetricToken::SearchBoxHeight);
+    SetFocusable(true);
 }
 
 Size SearchBox::Measure(const Size& availableSize) {
@@ -82,6 +83,19 @@ void SearchBox::OnMouseDown(const MouseEvent& event) {
 
 void SearchBox::OnMouseMove(const MouseEvent& event) {
     (void)event;
+}
+
+void SearchBox::OnTextInput(const std::string& utf8) {
+    if (!IsFocused() || utf8.empty()) {
+        return;
+    }
+
+    m_Text.insert(m_CaretPosition, utf8);
+    m_CaretPosition += utf8.size();
+    if (m_OnTextChanged) {
+        m_OnTextChanged(m_Text);
+    }
+    InvalidatePaint();
 }
 
 void SearchBox::OnKeyDown(const KeyEvent& event) {

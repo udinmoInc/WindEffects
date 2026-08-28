@@ -20,43 +20,6 @@ using ::we::runtime::kindui::ColorToken;
 using ::we::runtime::kindui::MetricToken;
 using ::we::runtime::kindui::PaddingToken;
 
-void PaintSearchField(PaintContext& context, const Rect& bounds, const std::string& placeholder, const std::string& text, bool focused, bool showCaret) {
-    const float uiScale = std::max(1.0f, we::runtime::kindui::DPIContext::GetScale());
-    const float radius = we::runtime::kindui::ResolveMetric(MetricToken::CornerRadiusSmall) * uiScale;
-    const float pad = ActorsPanelLayout::ContentPadH();
-
-    Color bg = we::runtime::kindui::ResolveColor(ColorToken::SearchBoxBackground);
-    if (focused) {
-        bg = Color::Lerp(bg, we::runtime::kindui::ResolveColor(ColorToken::HoverBackground), 0.35f);
-    }
-    context.DrawRoundedRect(bounds, bg, radius);
-    context.DrawRoundedRectOutline(bounds, we::runtime::kindui::ResolveColor(ColorToken::BorderDefault), 1.0f, radius);
-
-    const float iconSize = static_cast<float>(we::runtime::kindui::IconMetrics::GlyphTierPx(MetricToken::IconSizeSearch));
-    Rect iconBand{ bounds.x + pad, bounds.y, iconSize, bounds.height };
-    we::runtime::kindui::IconPainter::DrawIcon(
-        context,
-        we::runtime::kindui::Icons::SearchName,
-        we::runtime::kindui::IconMetrics::PlaceGlyphCentered(iconBand, iconSize),
-        we::runtime::kindui::ResolveColor(ColorToken::IconPrimary));
-
-    const float fontSize = we::runtime::kindui::ResolveMetric(MetricToken::TextSizeBody) * uiScale;
-    const float textX = bounds.x + pad + iconSize + we::runtime::kindui::ResolveMetric(MetricToken::Space2);
-    const float textY = bounds.y + (bounds.height - fontSize) * 0.5f;
-    const std::string& display = text.empty() ? placeholder : text;
-    const Color textColor = text.empty()
-        ? we::runtime::kindui::ResolveColor(ColorToken::SearchPlaceholder)
-        : we::runtime::kindui::ResolveColor(ColorToken::TextPrimary);
-    context.DrawText(display, Point{ textX, textY }, textColor, fontSize);
-
-    if (!text.empty() && focused && showCaret) {
-        const float caretX = textX + context.GetTextWidth(text, fontSize);
-        context.DrawRect(
-            Rect{ caretX, textY, we::runtime::kindui::ResolveMetric(MetricToken::BorderWidth), fontSize },
-            we::runtime::kindui::ResolveColor(ColorToken::TextPrimary));
-    }
-}
-
 void PaintActorRowBackground(PaintContext& context, const Rect& rowRect, float hoverAnim, float pressAnim, bool selected) {
     const float radius = ActorsPanelLayout::RowRadius();
     if (selected) {

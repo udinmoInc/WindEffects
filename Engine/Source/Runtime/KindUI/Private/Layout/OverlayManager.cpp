@@ -182,4 +182,28 @@ void OverlayHost::OnMouseDown(const MouseEvent&) {
     // Do not close here — empty-area hits on this host must not swallow clicks.
 }
 
+std::shared_ptr<Widget> OverlayHost::HitTestPoint(const Point& pos, const Rect* clip) {
+    if (!IsVisible() || IsPointerTransparent() || !IsEnabled()) {
+        return nullptr;
+    }
+    if ((clip != nullptr && !clip->Contains(pos)) || !m_Geometry.Contains(pos)) {
+        return nullptr;
+    }
+
+    for (auto it = m_Popups.rbegin(); it != m_Popups.rend(); ++it) {
+        if (!*it) {
+            continue;
+        }
+        if (auto hit = (*it)->HitTestPoint(pos, clip)) {
+            return hit;
+        }
+    }
+
+    if (m_BaseWidget) {
+        return m_BaseWidget->HitTestPoint(pos, clip);
+    }
+
+    return nullptr;
+}
+
 } // namespace we::runtime::kindui

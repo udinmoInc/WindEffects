@@ -167,8 +167,7 @@ TreeView::TreeView()
 }
 
 void TreeView::SyncScrollMetrics() {
-    m_Scroll.Sync(m_Geometry.height, m_ContentHeight);
-    m_ScrollMetrics = m_Scroll.ComputeMetrics(m_Geometry, m_ContentHeight, TreeUiScale());
+    m_ScrollMetrics = m_Scroll.UpdateMetrics(m_Geometry, m_Geometry.height, m_ContentHeight, TreeUiScale());
 }
 
 void TreeView::ScrollSelectionIntoView() {
@@ -528,6 +527,7 @@ void TreeView::OnMouseWheel(const MouseEvent& event) {
     if (event.ctrlDown) {
         SetZoomLevel(m_ZoomLevel + event.wheelDeltaY * kTreeZoomStep);
         Arrange(m_Geometry);
+        InvalidatePaint();
         return;
     }
 
@@ -538,6 +538,11 @@ void TreeView::OnMouseWheel(const MouseEvent& event) {
         m_Geometry.height,
         m_ContentHeight);
     Arrange(m_Geometry);
+    InvalidatePaint();
+}
+
+bool TreeView::CanReceiveMouseWheelAt(const Point& pos) const {
+    return ScrollViewport::CanReceiveWheelAt(m_Geometry, m_ScrollMetrics.viewport, m_ScrollMetrics, pos);
 }
 
 void TreeView::SetItemHeight(float height) {
@@ -911,8 +916,7 @@ void TreeView::SetSearchQuery(const std::string& query) {
 }
 
 bool TreeView::ShowsPointerCursor(const Point& position) const {
-    return m_ScrollMetrics.showsScrollbar &&
-        (m_ScrollMetrics.thumb.Contains(position) || m_ScrollMetrics.track.Contains(position));
+    return ScrollViewport::ShowsScrollbarCursor(m_ScrollMetrics, position);
 }
 
 } // namespace we::editor::contentbrowser

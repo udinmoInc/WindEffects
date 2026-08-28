@@ -19,6 +19,7 @@
 #include "ContentBrowser/Widgets/SearchBox.h"
 #include "Widgets/ToolButton.h"
 #include "WindEffects/Editor/UI/Panel/PanelChrome.h"
+#include "KindUI/Layout/ScrollViewport.h"
 #include "KindUI/Core/PaintContext.h"
 #include "KindUI/Core/DPIContext.h"
 #include "KindUI/Tokens/DesignToken.h"
@@ -82,6 +83,7 @@ std::unordered_map<std::string, std::string> LoadIniValues(const std::string& pa
 
 } // namespace
 
+using ::we::runtime::kindui::ScrollViewport;
 using ::we::runtime::kindui::Color;
 using ::we::runtime::kindui::KeyEvent;
 using ::we::runtime::kindui::MouseButton;
@@ -102,8 +104,7 @@ PlaceActorsPanel::PlaceActorsPanel() {
     m_SearchBox = std::make_shared<::we::editor::widgets::SearchBox>();
     m_SearchBox->SetFillWidth(true);
     m_SearchBox->SetPlaceholder("Search Assets...");
-    m_SearchBox->SetOnTextChanged([this](const std::string& text) {
-        m_SearchText = text;
+    m_SearchBox->SetOnTextChanged([this](const std::string& /*text*/) {
         RefreshFilteredContent();
     });
 
@@ -238,7 +239,7 @@ void PlaceActorsPanel::RebuildData() {
 
     m_DisplayCategories.clear();
     const auto& config = PlaceActorsConfig::Get();
-    const std::string query = !m_ExternalSearchFilter.empty() ? m_ExternalSearchFilter : m_SearchText;
+    const std::string query = !m_ExternalSearchFilter.empty() ? m_ExternalSearchFilter : m_SearchBox->GetText();
 
     BuildQuickAccessCategory(query);
 
@@ -311,9 +312,8 @@ void PlaceActorsPanel::RebuildData() {
 }
 
 void PlaceActorsPanel::SyncScrollMetrics() {
-    m_Scroll.Sync(m_ContentRect.height, m_ContentHeight);
     const float uiScale = std::max(1.0f, we::runtime::kindui::DPIContext::GetScale());
-    m_ScrollMetrics = m_Scroll.ComputeMetrics(m_ContentRect, m_ContentHeight, uiScale);
+    m_ScrollMetrics = m_Scroll.UpdateMetrics(m_ContentRect, m_ContentRect.height, m_ContentHeight, uiScale);
 }
 
 void PlaceActorsPanel::UpdateVisibleRange() {
@@ -497,9 +497,13 @@ void PlaceActorsPanel::ScrollFocusedIntoView() {
         return;
     }
     const auto& entry = m_Layout[static_cast<size_t>(m_FocusedIndex)];
-    const float top = entry.geometry.y + m_Scroll.offset - m_ScrollMetrics.viewport.y;
-    const float bottom = top + entry.geometry.height;
-    if (m_Scroll.ScrollToRange(top, bottom, m_ContentRect.height, m_ContentHeight)) {
+    if (ScrollViewport::ScrollScreenRectIntoView(
+            m_Scroll,
+            entry.geometry.y,
+            entry.geometry.height,
+            m_ScrollMetrics.viewport.y,
+            m_ContentRect.height,
+            m_ContentHeight)) {
         RebuildLayout();
     }
 }

@@ -40,6 +40,7 @@ using ::we::runtime::kindui::PaintContext;
 using ::we::runtime::kindui::Point;
 using ::we::runtime::kindui::Rect;
 using ::we::runtime::kindui::Size;
+using ::we::runtime::kindui::Widget;
 using ::we::runtime::kindui::ColorToken;
 using ::we::runtime::kindui::MetricToken;
 using ::we::runtime::kindui::PaddingToken;
@@ -476,6 +477,48 @@ void ToolsPanel::Paint(PaintContext& context) {
 
 bool ToolsPanel::HitTest(const Point& position) const {
     return m_Geometry.Contains(position);
+}
+
+std::shared_ptr<Widget> ToolsPanel::HitTestPoint(const Point& pos, const Rect* clip) {
+    if (!IsVisible() || IsPointerTransparent() || !IsEnabled()) {
+        return nullptr;
+    }
+    if ((clip != nullptr && !clip->Contains(pos)) || !m_Geometry.Contains(pos)) {
+        return nullptr;
+    }
+
+    if (m_ContextMenuOpen) {
+        for (const auto& item : m_ContextMenuItems) {
+            if (item.geometry.Contains(pos)) {
+                return shared_from_this();
+            }
+        }
+        if (m_ContextMenuRect.Contains(pos)) {
+            return shared_from_this();
+        }
+    }
+
+    if (m_ModeContentWidget) {
+        if (auto hit = m_ModeContentWidget->HitTestPoint(pos, clip)) {
+            return hit;
+        }
+        if (m_PanelRect.Contains(pos)) {
+            return shared_from_this();
+        }
+        return nullptr;
+    }
+
+    if (m_SearchRect.Contains(pos) && m_SearchBox) {
+        if (auto hit = m_SearchBox->HitTestPoint(pos, clip)) {
+            return hit;
+        }
+    }
+
+    if (m_PanelRect.Contains(pos)) {
+        return shared_from_this();
+    }
+
+    return nullptr;
 }
 
 ToolsPanel::SectionHit* ToolsPanel::HitSectionHeader(const Point& p) {

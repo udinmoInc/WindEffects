@@ -3,6 +3,7 @@
 #include "KindUI/Core/WidgetContext.h"
 #include "KindUI/Layout/IPopupHost.h"
 #include "KindUI/Profiling/UiPathDiagnostics.h"
+#include "KindUI/Profiling/UiInputLatencyAudit.h"
 #include "KindUI/Theming/StyleResolve.h"
 #include "KindUI/Theming/ThemeAccess.h"
 #include "KindUI/Theming/StyleClass.h"
@@ -59,6 +60,7 @@ void Widget::InvalidatePaint() {
     m_NeedsPaint = true;
     UIRepaintGate::RequestPaint();
     UiPathDiagnostics::Get().OnPaintInvalidation();
+    UiInputLatencyAudit::Get().OnInvalidation();
     if (s_GlobalDiagnostics) {
         ++s_GlobalDiagnostics->invalidateCount;
     }
@@ -301,6 +303,70 @@ Color Widget::ThemeIconForState(bool hovered, bool active) const {
 
 IPopupHost* Widget::GetPopupHost() const {
     return m_Context ? m_Context->GetPopupHost() : nullptr;
+}
+
+namespace {
+
+bool PointInClip(const Point& pos, const Rect* clip) {
+    return clip == nullptr || clip->Contains(pos);
+}
+
+Rect EffectiveChildClip(const Rect* parentClip, const std::optional<Rect>& localClip) {
+    if (!localClip.has_value()) {
+        return parentClip ? *parentClip : Rect{};
+    }
+    if (!parentClip) {
+        return *localClip;
+    }
+    return localClip->Intersect(*parentClip);
+}
+
+} // namespace
+
+std::shared_ptr<Widget> Widget::HitTestChildren(const Point& pos, const Rect* clip) const {
+    for (auto it = m_Children.rbegin(); it != m_Children.rend(); ++it) {
+        if (!*it) {
+            continue;
+        }
+        if (auto hit = (*it)->HitTestPoint(pos, clip)) {
+            return hit;
+        }
+    }
+    return nullptr;
+}
+
+std::shared_ptr<Widget> Widget::HitTestPoint(const Point& pos, const Rect* clip) {
+    if (!IsVisible() || IsPointerTransparent() || !IsEnabled()) {
+        return nullptr;
+    }
+    if (!PointInClip(pos, clip) || !m_Geometry.Contains(pos)) {
+        return nullptr;
+    }
+
+  const std::optional<Rect> localClip = GetHitTestClipRect();
+    const Rect effectiveClip = EffectiveChildClip(clip, localClip);
+    const Rect* childClip = clip;
+    if (localClip.has_value() || clip != nullptr) {
+        if (effectiveClip.IsEmpty() || !effectiveClip.Contains(pos)) {
+            return nullptr;
+        }
+        childClip = &effectiveClip;
+    }
+
+    if (auto hit = HitTestChildren(pos, childClip)) {
+        return hit;
+    }
+
+    if (IsInteractiveContainer()) {
+        return shared_from_this();
+    }
+
+    // Leaf widgets still participate in hit testing so clicks route to their handlers.
+    if (m_Children.empty()) {
+        return shared_from_this();
+    }
+
+    return nullptr;
 }
 
 } // namespace we::runtime::kindui

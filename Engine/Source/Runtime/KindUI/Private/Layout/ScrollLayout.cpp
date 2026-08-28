@@ -35,8 +35,8 @@ float ScrollLayout::WheelStep() const {
 void ScrollLayout::SyncScrollMetrics() {
     m_ContentHeight = ContentHeight();
     m_MaxScroll = ScrollViewport::MaxScroll(ViewportHeight(), m_ContentHeight);
-    m_Scroll.Sync(ViewportHeight(), m_ContentHeight);
-    m_Metrics = m_Scroll.ComputeMetrics(m_Geometry, m_ContentHeight, std::max(1.0f, DPIContext::GetScale()));
+    const float uiScale = std::max(1.0f, DPIContext::GetScale());
+    m_Metrics = m_Scroll.UpdateMetrics(m_Geometry, ViewportHeight(), m_ContentHeight, uiScale);
 }
 
 Size ScrollLayout::Measure(const Size& availableSize) {
@@ -131,11 +131,15 @@ void ScrollLayout::OnMouseWheel(const MouseEvent& event) {
     SyncScrollMetrics();
     m_Scroll.ApplyWheel(event.wheelDeltaY, WheelStep(), ViewportHeight(), m_ContentHeight);
     Arrange(m_Geometry);
+    InvalidatePaint();
+}
+
+bool ScrollLayout::CanReceiveMouseWheelAt(const Point& pos) const {
+    return ScrollViewport::CanReceiveWheelAt(m_Geometry, m_Metrics.viewport, m_Metrics, pos);
 }
 
 bool ScrollLayout::ShowsPointerCursor(const Point& position) const {
-    return m_Metrics.showsScrollbar &&
-        (m_Metrics.thumb.Contains(position) || m_Metrics.track.Contains(position));
+    return ScrollViewport::ShowsScrollbarCursor(m_Metrics, position);
 }
 
 void ScrollLayout::SetScrollOffset(float offset) {
@@ -160,6 +164,44 @@ bool ScrollLayout::ScrollToMakeVisible(const Rect& contentRect) {
         Arrange(m_Geometry);
     }
     return changed;
+}
+
+std::optional<Rect> ScrollLayout::GetHitTestClipRect() const {
+    return m_Metrics.viewport;
+}
+
+std::shared_ptr<Widget> ScrollLayout::HitTestPoint(const Point& pos, const Rect* clip) {
+    if (!IsVisible() || IsPointerTransparent() || !IsEnabled()) {
+        return nullptr;
+    }
+    if ((clip != nullptr && !clip->Contains(pos)) || !m_Geometry.Contains(pos)) {
+        return nullptr;
+    }
+
+    if (m_Metrics.showsScrollbar
+        && (m_Metrics.thumb.Contains(pos) || m_Metrics.track.Contains(pos))) {
+        return shared_from_this();
+    }
+
+    if (!m_Metrics.viewport.Contains(pos)) {
+        return nullptr;
+    }
+
+    Rect viewportClip = m_Metrics.viewport;
+    if (clip != nullptr) {
+        viewportClip = viewportClip.Intersect(*clip);
+    }
+    if (viewportClip.IsEmpty() || !viewportClip.Contains(pos)) {
+        return nullptr;
+    }
+
+    if (m_Content) {
+        if (auto hit = m_Content->HitTestPoint(pos, &viewportClip)) {
+            return hit;
+        }
+    }
+
+    return nullptr;
 }
 
 } // namespace we::runtime::kindui

@@ -114,9 +114,8 @@ Size ContentBrowser::Measure(const Size& availableSize) {
 }
 
 void ContentBrowser::SyncScrollMetrics() {
-    m_Scroll.Sync(m_Geometry.height, m_ContentHeight);
     const float uiScale = std::max(1.0f, DPIContext::GetScale());
-    m_ScrollMetrics = m_Scroll.ComputeMetrics(m_Geometry, m_ContentHeight, uiScale);
+    m_ScrollMetrics = m_Scroll.UpdateMetrics(m_Geometry, m_Geometry.height, m_ContentHeight, uiScale);
 }
 
 float ContentBrowser::ComputeContentHeight() const {
@@ -489,9 +488,13 @@ void ContentBrowser::ScrollSelectionIntoView() {
         if (item.item.id != selectedId) {
             continue;
         }
-        const float top = item.geometry.y + m_Scroll.offset - m_ScrollMetrics.viewport.y;
-        const float bottom = top + item.geometry.height;
-        if (m_Scroll.ScrollToRange(top, bottom, m_Geometry.height, m_ContentHeight)) {
+        if (ScrollViewport::ScrollScreenRectIntoView(
+                m_Scroll,
+                item.geometry.y,
+                item.geometry.height,
+                m_ScrollMetrics.viewport.y,
+                m_Geometry.height,
+                m_ContentHeight)) {
             RecalculateLayout();
             UpdateVisibleRange();
         }
@@ -644,11 +647,15 @@ void ContentBrowser::OnMouseWheel(const MouseEvent& event) {
         m_ContentHeight);
     RecalculateLayout();
     UpdateVisibleRange();
+    InvalidatePaint();
+}
+
+bool ContentBrowser::CanReceiveMouseWheelAt(const Point& pos) const {
+    return ScrollViewport::CanReceiveWheelAt(m_Geometry, m_ScrollMetrics.viewport, m_ScrollMetrics, pos);
 }
 
 bool ContentBrowser::ShowsPointerCursor(const Point& position) const {
-    return m_ScrollMetrics.showsScrollbar &&
-        (m_ScrollMetrics.thumb.Contains(position) || m_ScrollMetrics.track.Contains(position));
+    return ScrollViewport::ShowsScrollbarCursor(m_ScrollMetrics, position);
 }
 
 void ContentBrowser::OnKeyDown(const KeyEvent& event) {

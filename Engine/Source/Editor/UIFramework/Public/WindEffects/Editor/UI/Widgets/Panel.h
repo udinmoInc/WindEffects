@@ -34,6 +34,8 @@ public:
     void OnMouseMove(const MouseEvent& event) override;
     void OnMouseUp(const MouseEvent& event) override;
     void OnMouseWheel(const MouseEvent& event) override;
+    [[nodiscard]] std::shared_ptr<Widget> HitTestPoint(const Point& pos, const Rect* clip = nullptr) override;
+    [[nodiscard]] bool IsInteractiveContainer() const override { return true; }
 
     // Content management
     void SetContent(const std::shared_ptr<Widget>& content);

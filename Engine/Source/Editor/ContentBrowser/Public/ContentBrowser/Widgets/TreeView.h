@@ -63,6 +63,7 @@ public:
     void OnMouseWheel(const MouseEvent& event) override;
     void OnKeyDown(const KeyEvent& event) override;
     bool ShowsPointerCursor(const Point& position) const override;
+    [[nodiscard]] bool CanReceiveMouseWheelAt(const Point& pos) const override;
 
     // Tree management
     void SetRoot(const std::shared_ptr<TreeNode>& root);

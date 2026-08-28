@@ -21,7 +21,8 @@ namespace we::runtime::ecs { struct ExtractedFrameData; }
 
 namespace we::runtime::renderer {
 
-constexpr uint32_t kMaxFramesInFlight = 2;
+/// Default 1 for low input→visible latency; override with WE_FRAMES_IN_FLIGHT=2|3.
+constexpr uint32_t kMaxFramesInFlight = 1;
 
 class ViewportSkyRenderer;
 class ViewportGridRenderer;
@@ -39,6 +40,10 @@ public:
     void RenderFrame();
     bool BeginFrame();
     void RenderScene();
+    /// Paint-only path: clear swapchain + UI overlay, skip 3D scene passes.
+    void RenderUiPaintOnly();
+    void SubmitFrame();
+    void PresentFrame();
     void SubmitAndPresent();
 
     void UploadCameraUniform(const CameraUniform& uniform);

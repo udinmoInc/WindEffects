@@ -48,6 +48,7 @@ public:
     void OnMouseWheel(const MouseEvent& event) override;
     void OnKeyDown(const KeyEvent& event) override;
     bool ShowsPointerCursor(const Point& position) const override;
+    [[nodiscard]] bool CanReceiveMouseWheelAt(const Point& pos) const override;
 
     void AddItem(const ContentItem& item);
     void RemoveItem(const std::string& id);

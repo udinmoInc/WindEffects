@@ -163,6 +163,31 @@ float MeasureDockTabWidth(
     return padH + leadingWidth + textWidth + closeWidth + padH;
 }
 
+DockTabLayout LayoutDockTabGeometries(
+    PaintContext& context,
+    const DockTabDescriptor& tab,
+    const Rect& headerRect,
+    float x,
+    bool isActive,
+    bool showClose)
+{
+    const float padH = TabPadH();
+    const float buttonSize = HeaderButtonSize();
+    const float centerY = headerRect.y + headerRect.height * 0.5f;
+
+    DockTabLayout layout{};
+    const float tabWidth = MeasureDockTabWidth(context, tab, isActive, showClose);
+    layout.tabRect = Rect{ x, headerRect.y, tabWidth, headerRect.height };
+
+    if (showClose) {
+        const float closeX = layout.tabRect.x + layout.tabRect.width - padH - buttonSize;
+        const float closeY = centerY - buttonSize * 0.5f;
+        layout.closeRect = Rect{ closeX, closeY, buttonSize, buttonSize };
+    }
+
+    return layout;
+}
+
 DockTabLayout PaintDockTab(
     PaintContext& context,
     const DockTabDescriptor& tab,
@@ -174,7 +199,7 @@ DockTabLayout PaintDockTab(
     bool closeHovered,
     bool flushLeft)
 {
-    DockTabLayout layout{};
+    DockTabLayout layout = LayoutDockTabGeometries(context, tab, headerRect, x, isActive, showClose);
     (void)flushLeft;
     const float scale = UiScale();
     const float fontSize = we::runtime::kindui::ResolveMetric(MetricToken::TextSizeTabs) * scale;
@@ -183,9 +208,6 @@ DockTabLayout PaintDockTab(
     const float iconGap = we::runtime::kindui::ResolveMetric(MetricToken::Space1) * scale;
     const float radius = TabTopRadius();
     const float buttonSize = HeaderButtonSize();
-
-    const float tabWidth = MeasureDockTabWidth(context, tab, isActive, showClose);
-    layout.tabRect = Rect{ x, headerRect.y, tabWidth, headerRect.height };
 
     if (isActive) {
         DrawRoundedRectTop(context, layout.tabRect, we::runtime::kindui::ResolveColor(ColorToken::PanelBackground), radius);
@@ -229,13 +251,41 @@ DockTabLayout PaintDockTab(
         isActive);
 
     if (showClose) {
-        const float closeX = layout.tabRect.x + layout.tabRect.width - padH - buttonSize;
-        const float closeY = centerY - buttonSize * 0.5f;
-        layout.closeRect = Rect{ closeX, closeY, buttonSize, buttonSize };
         PaintHeaderIconButton(context, layout.closeRect, Icons::XName, closeHovered, false, true);
     }
 
     return layout;
+}
+
+void LayoutFloatingPanelHeaderGeometries(
+    const Rect& headerRect,
+    bool showOptionsMenu,
+    size_t actionCount,
+    Rect& outOptionsMenuRect,
+    const std::function<void(size_t actionIndex, const Rect& actionRect)>& setActionRect)
+{
+    const float scale = UiScale();
+    const float padH = TabPadH();
+    const float buttonSize = HeaderButtonSize();
+    const float gap = we::runtime::kindui::ResolveMetric(MetricToken::Space1) * scale;
+    const float centerY = headerRect.y + headerRect.height * 0.5f;
+    const float optionsX = headerRect.x + headerRect.width - padH - buttonSize;
+
+    outOptionsMenuRect = {};
+    float actionX = headerRect.x + headerRect.width - padH;
+    if (showOptionsMenu) {
+        outOptionsMenuRect = Rect{ optionsX, centerY - buttonSize * 0.5f, buttonSize, buttonSize };
+        actionX = optionsX - gap - buttonSize;
+    }
+
+    for (size_t i = 0; i < actionCount; ++i) {
+        const size_t reverseIndex = actionCount - 1 - i;
+        const Rect actionRect{ actionX, centerY - buttonSize * 0.5f, buttonSize, buttonSize };
+        if (setActionRect) {
+            setActionRect(reverseIndex, actionRect);
+        }
+        actionX -= buttonSize + gap;
+    }
 }
 
 void PaintFloatingPanelHeader(
@@ -437,8 +487,21 @@ void PaintHeaderIconButton(
     }
 }
 
-void PaintToolbarIconButton(PaintContext& context, const Rect& rect, const std::string& iconName, bool hovered, bool pressed) {
-    PaintHeaderIconButton(context, rect, iconName, hovered, pressed, false);
+void RoutePanelBodyPointer(
+    const MouseEvent& event,
+    const std::shared_ptr<Widget>& toolbar,
+    const Rect& toolbarRect,
+    const std::shared_ptr<Widget>& content,
+    const Rect& contentRect,
+    void (Widget::*handler)(const MouseEvent&))
+{
+    if (toolbar && toolbarRect.Contains(event.position)) {
+        (toolbar.get()->*handler)(event);
+        return;
+    }
+    if (content && contentRect.Contains(event.position)) {
+        (content.get()->*handler)(event);
+    }
 }
 
 Rect InsetSearchRect(const Rect& toolbarRect, float searchWidth) {

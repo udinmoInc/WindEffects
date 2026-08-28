@@ -1,12 +1,15 @@
 #include "KindUI/Benchmark/KindUIInteractionBenchmark.h"
 
+#include "KindUI/Core/EventSystem.h"
 #include "KindUI/Core/PaintContext.h"
 #include "KindUI/Core/UIRepaintGate.h"
 #include "KindUI/Core/Widgets/DesignSystemControls.h"
 #include "KindUI/Input/InputEvents.h"
 #include "KindUI/Layout/Flex.h"
 #include "KindUI/Layout/OverlayManager.h"
+#include "KindUI/Layout/ScrollLayout.h"
 #include "KindUI/Layout/Splitter.h"
+#include "KindUI/Profiling/UiInputLatencyAudit.h"
 #include "KindUI/Profiling/UiPathDiagnostics.h"
 #include "KindUI/Theming/DefaultTheme.h"
 #include "KindUI/Theming/ThemeManager.h"
@@ -347,6 +350,198 @@ KindUIInteractionReport RunKindUIInteractionBenchmark(const uint32_t dragSteps) 
             << ",layout=" << s.layoutPasses << ",paint=" << s.paintPasses
             << ",inv=" << s.invalidateCount;
     }
+    report.summary = oss.str();
+    return report;
+}
+
+UiLatencyScenarioResult RunLatencyScenario(
+    const char* name,
+    UiInteractionKind kind,
+    const std::function<void(EditorLikeShell&, const std::shared_ptr<EventSystem>&)>& fn) {
+    UiLatencyScenarioResult result{};
+    result.name = name;
+
+    UiInputLatencyAudit::SetBenchmarkActive(true);
+    UiInputLatencyAudit::Get().FlushPendingReport();
+
+    ThemeManager::Get().Initialize(std::make_shared<DefaultTheme>(), 1.0f);
+    auto shell = BuildShell();
+    auto events = std::make_shared<EventSystem>();
+    events->SetRootWidget(shell.host);
+    FullUiFrame(shell, 1280.0f, 720.0f);
+
+    UIRepaintGate::BeginFrame();
+    UiInputLatencyAudit::Get().BeginFrame(1);
+    UiInputLatencyAudit::Get().OnOsEvent(kind);
+    fn(shell, events);
+    if (UIRepaintGate::PeekNeedsLayout()) {
+        LayoutTree(shell.host, 1280.0f, 720.0f);
+        UiInputLatencyAudit::Get().OnLayout();
+    }
+    if (UIRepaintGate::PeekNeedsPaint()) {
+        PaintTree(shell.host);
+        UiInputLatencyAudit::Get().OnUiBuild();
+        shell.host->ClearSubtreePaintDirty();
+    }
+    UiInputLatencyAudit::Get().OnRenderSubmit();
+    UiInputLatencyAudit::Get().OnGpuSubmit();
+    UiInputLatencyAudit::Get().OnPresentStart();
+    UiInputLatencyAudit::Get().OnPresentComplete(nullptr);
+
+    const auto& sample = UiInputLatencyAudit::Get().Last();
+    result.inputToHandlerMs = sample.inputToHandlerMs;
+    result.handlerToPaintMs = sample.handlerToPaintMs;
+    result.paintToPresentMs = sample.paintToPresentMs;
+    result.totalVisibleMs = sample.inputToVisibleMs;
+
+    UiInputLatencyAudit::SetBenchmarkActive(false);
+    return result;
+}
+
+UiLatencyBenchmarkReport RunUiInputLatencyBenchmark(const uint32_t steps) {
+    UiLatencyBenchmarkReport report{};
+    (void)steps;
+
+    auto hover = RunLatencyScenario("hover", UiInteractionKind::Hover, [](EditorLikeShell& shell, const std::shared_ptr<EventSystem>& es) {
+        MouseEvent move{};
+        move.type = MouseEventType::MouseMove;
+        move.position = Point{420.0f, 180.0f};
+        es->ProcessMouseEvent(move);
+        (void)shell;
+    });
+    hover.rootCause = "EventSystem hover + paint-only invalidation";
+    report.scenarios.push_back(hover);
+
+    auto click = RunLatencyScenario("click", UiInteractionKind::Click, [](EditorLikeShell& shell, const std::shared_ptr<EventSystem>& es) {
+        MouseEvent down{};
+        down.type = MouseEventType::MouseDown;
+        down.position = Point{300.0f, 120.0f};
+        down.button = MouseButton::Left;
+        es->ProcessMouseEvent(down);
+        (void)shell;
+    });
+    click.rootCause = "click dispatch + paint";
+    report.scenarios.push_back(click);
+
+    auto splitter = RunLatencyScenario("splitter_drag", UiInteractionKind::SplitterDrag, [](EditorLikeShell& shell, const std::shared_ptr<EventSystem>& es) {
+        (void)es;
+        auto split = shell.toolsViewportSplit;
+        MouseEvent down{};
+        down.type = MouseEventType::MouseDown;
+        down.position = Point{200.0f, 360.0f};
+        down.button = MouseButton::Left;
+        split->OnMouseDown(down);
+        MouseEvent move{};
+        move.type = MouseEventType::MouseMove;
+        move.position = Point{420.0f, 360.0f};
+        split->OnMouseMove(move);
+    });
+    splitter.rootCause = "local splitter arrange + paint";
+    report.scenarios.push_back(splitter);
+
+    auto popup = RunLatencyScenario("popup_open", UiInteractionKind::PopupOpen, [](EditorLikeShell& shell, const std::shared_ptr<EventSystem>&) {
+        shell.host->ShowPopup(BuildDropdownMenu(), Point{420.0f, 180.0f});
+    });
+    popup.rootCause = "AttachOverlayChild paint-only attach";
+    report.scenarios.push_back(popup);
+
+    auto scroll = RunLatencyScenario("scroll", UiInteractionKind::Scroll, [](EditorLikeShell& shell, const std::shared_ptr<EventSystem>& es) {
+        auto menu = BuildDropdownMenu();
+        shell.host->ShowPopup(menu, Point{360.0f, 140.0f});
+        MouseEvent wheel{};
+        wheel.type = MouseEventType::MouseWheel;
+        wheel.position = Point{360.0f, 150.0f};
+        wheel.wheelDeltaY = -1.0f;
+        es->ProcessMouseEvent(wheel);
+    });
+    scroll.rootCause = "wheel + paint invalidation";
+    report.scenarios.push_back(scroll);
+
+    std::ostringstream oss;
+    oss << "UILatencyBench scenarios=" << report.scenarios.size();
+    for (const auto& s : report.scenarios) {
+        oss << " | " << s.name
+            << ":total=" << static_cast<uint64_t>(s.totalVisibleMs * 1000.0) << "us"
+            << ",in→handler=" << static_cast<uint64_t>(s.inputToHandlerMs * 1000.0) << "us"
+            << ",handler→paint=" << static_cast<uint64_t>(s.handlerToPaintMs * 1000.0) << "us"
+            << ",paint→present=" << static_cast<uint64_t>(s.paintToPresentMs * 1000.0) << "us";
+    }
+    report.summary = oss.str();
+    return report;
+}
+
+HitTestAuditReport RunHitTestAudit() {
+    HitTestAuditReport report{};
+    ThemeManager::Get().Initialize(std::make_shared<DefaultTheme>(), 1.0f);
+
+    auto record = [&](const char* name, bool passed, std::string detail) {
+        report.cases.push_back(HitTestAuditResult{name, passed, std::move(detail)});
+    };
+
+    {
+        auto shell = BuildShell();
+        FullUiFrame(shell, 1280.0f, 720.0f);
+        const auto toolsGeom = shell.toolsPanel->GetGeometry();
+        const Point toolPoint{toolsGeom.x + 20.0f, toolsGeom.y + 40.0f};
+        const auto hit = EventSystem::HitTest(shell.host, toolPoint);
+        const bool passed = hit && hit != shell.toolsPanel && hit != shell.toolsViewportSplit;
+        record("sidebar_child", passed, passed ? hit->GetId() : "no deep child");
+    }
+
+    {
+        auto shell = BuildShell();
+        FullUiFrame(shell, 1280.0f, 720.0f);
+        const auto barHit = shell.toolsViewportSplit->GetSplitterHitRect();
+        const Point splitPoint{
+            barHit.x + barHit.width * 0.5f,
+            barHit.y + barHit.height * 0.5f
+        };
+        const auto hit = EventSystem::HitTest(shell.toolsViewportSplit, splitPoint);
+        record(
+            "splitter_bar",
+            hit.get() == shell.toolsViewportSplit.get(),
+            hit.get() == shell.toolsViewportSplit.get() ? "splitter" : "other");
+    }
+
+    {
+        auto scroll = std::make_shared<ScrollLayout>();
+        auto content = std::make_shared<Column>();
+        for (int i = 0; i < 40; ++i) {
+            content->AddChild(std::make_shared<Label>("Row " + std::to_string(i)));
+        }
+        scroll->SetContent(content);
+        scroll->Measure(Size{300.0f, 120.0f});
+        scroll->Arrange(Rect{100.0f, 100.0f, 300.0f, 120.0f});
+        scroll->SetScrollOffset(200.0f);
+        scroll->Arrange(Rect{100.0f, 100.0f, 300.0f, 120.0f});
+
+        const Point visible{150.0f, 150.0f};
+        const Point clipped{150.0f, 90.0f};
+        const auto visibleHit = EventSystem::HitTest(scroll, visible);
+        const auto clippedHit = EventSystem::HitTest(scroll, clipped);
+        record(
+            "scroll_clip",
+            visibleHit != nullptr && clippedHit == nullptr,
+            visibleHit ? "visible_ok" : "visible_miss");
+    }
+
+    {
+        auto shell = BuildShell();
+        FullUiFrame(shell, 1280.0f, 720.0f);
+        const Point outside{10.0f, 10.0f};
+        const auto hit = EventSystem::HitTest(shell.host, outside);
+        const bool passed = hit && hit != shell.root && hit != shell.host;
+        record("flex_passthrough", passed, passed ? "child_hit" : "container_stole");
+    }
+
+    size_t passed = 0;
+    for (const auto& c : report.cases) {
+        if (c.passed) {
+            ++passed;
+        }
+    }
+    std::ostringstream oss;
+    oss << "HitTestAudit " << passed << "/" << report.cases.size() << " passed";
     report.summary = oss.str();
     return report;
 }

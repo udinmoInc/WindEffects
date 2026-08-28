@@ -107,6 +107,25 @@ void Panel::Arrange(const Rect& allottedRect) {
     CalculateHeaderGeometries();
 }
 
+void Panel::CalculateHeaderGeometries() {
+    if (m_HeaderHeight <= 0.0f) {
+        m_OptionsMenuRect = {};
+        for (auto& action : m_HeaderActions) {
+            action.geometry = {};
+        }
+        return;
+    }
+
+    Chrome::LayoutFloatingPanelHeaderGeometries(
+        m_HeaderRect,
+        HasOptionsMenuHandler(),
+        m_HeaderActions.size(),
+        m_OptionsMenuRect,
+        [this](const size_t index, const Rect& actionRect) {
+            m_HeaderActions[index].geometry = actionRect;
+        });
+}
+
 void Panel::Paint(PaintContext& context) {
     if (!m_TransparentBackground) {
         Chrome::PaintContentRegion(context, m_Geometry);
@@ -137,26 +156,6 @@ void Panel::Paint(PaintContext& context) {
             HasOptionsMenuHandler(),
             m_OptionsMenuHovered,
             m_OptionsMenuRect);
-
-        const float buttonSize = Chrome::HeaderButtonSize();
-        const float padH = Chrome::TabPadH();
-        const float gap = ThemeMetric(MetricToken::Space1) * Chrome::UiScale();
-        const float centerY = m_HeaderRect.y + m_HeaderRect.height * 0.5f;
-        float actionX = m_HeaderRect.x + m_HeaderRect.width - padH - buttonSize;
-
-        if (HasOptionsMenuHandler()) {
-            actionX -= buttonSize + gap;
-        }
-
-        for (int i = static_cast<int>(m_HeaderActions.size()) - 1; i >= 0; --i) {
-            m_HeaderActions[static_cast<size_t>(i)].geometry = Rect{
-                actionX,
-                centerY - buttonSize * 0.5f,
-                buttonSize,
-                buttonSize
-            };
-            actionX -= buttonSize + gap;
-        }
     }
 
     if (m_Content) {
@@ -209,14 +208,8 @@ void Panel::OnMouseDown(const MouseEvent& event) {
 }
 
 void Panel::OnMouseWheel(const MouseEvent& event) {
-    if (m_Toolbar && m_ToolbarRect.Contains(event.position)) {
-        m_Toolbar->OnMouseWheel(event);
-        return;
-    }
-
-    if (m_Content && m_ContentRect.Contains(event.position)) {
-        m_Content->OnMouseWheel(event);
-    }
+    PanelChrome::RoutePanelBodyPointer(
+        event, m_Toolbar, m_ToolbarRect, m_Content, m_ContentRect, &Widget::OnMouseWheel);
 }
 
 void Panel::OnMouseMove(const MouseEvent& event) {
@@ -237,28 +230,16 @@ void Panel::OnMouseMove(const MouseEvent& event) {
         m_HoveredActionIndex = -1;
     }
 
-    if (m_Toolbar && m_ToolbarRect.Contains(event.position)) {
-        m_Toolbar->OnMouseMove(event);
-        return;
-    }
-
-    if (m_Content && m_ContentRect.Contains(event.position)) {
-        m_Content->OnMouseMove(event);
-    }
+    PanelChrome::RoutePanelBodyPointer(
+        event, m_Toolbar, m_ToolbarRect, m_Content, m_ContentRect, &Widget::OnMouseMove);
 }
 
 void Panel::OnMouseUp(const MouseEvent& event) {
     (void)event;
     m_PressedActionIndex = -1;
 
-    if (m_Toolbar && m_ToolbarRect.Contains(event.position)) {
-        m_Toolbar->OnMouseUp(event);
-        return;
-    }
-
-    if (m_Content && m_ContentRect.Contains(event.position)) {
-        m_Content->OnMouseUp(event);
-    }
+    PanelChrome::RoutePanelBodyPointer(
+        event, m_Toolbar, m_ToolbarRect, m_Content, m_ContentRect, &Widget::OnMouseUp);
 }
 
 void Panel::SetContent(const std::shared_ptr<Widget>& content) {
@@ -288,15 +269,48 @@ void Panel::InvokeOptionsMenu() const {
     }
 }
 
-void Panel::CalculateHeaderGeometries() {
-    // We don't pre-calculate action geometries anymore since they depend on the tab width
-    // which is calculated in Paint(). The geometries are updated during Paint().
+std::shared_ptr<Widget> Panel::HitTestPoint(const Point& pos, const Rect* clip) {
+    if (!IsVisible() || IsPointerTransparent() || !IsEnabled()) {
+        return nullptr;
+    }
+    if ((clip != nullptr && !clip->Contains(pos)) || !m_Geometry.Contains(pos)) {
+        return nullptr;
+    }
+
+    if (m_HeaderHeight > 0.0f && m_HeaderRect.Contains(pos)) {
+        return shared_from_this();
+    }
+
+    if (m_Toolbar && m_ToolbarRect.Contains(pos)) {
+        Rect toolbarClip = m_ToolbarRect;
+        if (clip != nullptr) {
+            toolbarClip = toolbarClip.Intersect(*clip);
+        }
+        if (!toolbarClip.IsEmpty()) {
+            if (auto hit = m_Toolbar->HitTestPoint(pos, &toolbarClip)) {
+                return hit;
+            }
+        }
+    }
+
+    if (m_Content && m_ContentRect.Contains(pos)) {
+        Rect contentClip = m_ContentRect;
+        if (clip != nullptr) {
+            contentClip = contentClip.Intersect(*clip);
+        }
+        if (!contentClip.IsEmpty()) {
+            if (auto hit = m_Content->HitTestPoint(pos, &contentClip)) {
+                return hit;
+            }
+        }
+    }
+
+    return nullptr;
 }
 
 Panel::HeaderAction* Panel::GetActionAtPosition(const Point& pos) {
     for (auto& action : m_HeaderActions) {
-        if (pos.x >= action.geometry.x && pos.x <= action.geometry.x + action.geometry.width &&
-            pos.y >= action.geometry.y && pos.y <= action.geometry.y + action.geometry.height) {
+        if (action.geometry.Contains(pos)) {
             return &action;
         }
     }

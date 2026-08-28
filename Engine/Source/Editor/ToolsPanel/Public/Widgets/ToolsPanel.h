@@ -36,6 +36,11 @@ public:
     void OnMouseUp(const we::runtime::kindui::MouseEvent& event) override;
     void OnKeyDown(const we::runtime::kindui::KeyEvent& event) override;
 
+    [[nodiscard]] std::shared_ptr<we::runtime::kindui::Widget> HitTestPoint(
+        const we::runtime::kindui::Point& pos,
+        const we::runtime::kindui::Rect* clip = nullptr) override;
+    [[nodiscard]] bool IsInteractiveContainer() const override { return true; }
+
     bool HitTest(const we::runtime::kindui::Point& position) const;
 
 private:

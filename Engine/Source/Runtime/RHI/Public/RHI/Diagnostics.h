@@ -18,11 +18,17 @@ struct RHI_API RHIFrameStats {
     uint64_t frameIndex = 0;
     double cpuFrameMs = 0.0;
     double gpuFrameMs = 0.0;
+    double frameLatencyWaitMs = 0.0;
+    double beginFrameFenceWaitMs = 0.0;
+    double presentBlockMs = 0.0;
     uint32_t drawCalls = 0;
     uint32_t dispatchCalls = 0;
     uint32_t triangles = 0;
     uint32_t pipelineBinds = 0;
     uint32_t barrierCount = 0;
+    uint32_t refreshRateHz = 0;
+    uint32_t framesInFlight = 0;
+    bool vsyncOn = true;
 };
 
 struct RHI_API RHIDiagnostics {

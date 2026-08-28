@@ -47,6 +47,7 @@ public:
     void OnMouseWheel(const we::runtime::kindui::MouseEvent& event) override;
     void OnKeyDown(const we::runtime::kindui::KeyEvent& event) override;
     bool ShowsPointerCursor(const we::runtime::kindui::Point& position) const override;
+    [[nodiscard]] bool CanReceiveMouseWheelAt(const we::runtime::kindui::Point& pos) const override;
 
 private:
     struct LayoutEntry {
@@ -105,7 +106,6 @@ private:
     std::shared_ptr<::we::editor::widgets::SearchBox> m_SearchBox;
     std::shared_ptr<::we::editor::toolbar::ToolButton> m_FilterButton;
 
-    std::string m_SearchText;
     std::string m_ExternalSearchFilter;
     std::string m_CategoryFilter = "All";
     PlaceActorsViewMode m_ViewMode = PlaceActorsViewMode::Grid;

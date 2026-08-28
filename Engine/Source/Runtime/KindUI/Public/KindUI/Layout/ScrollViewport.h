@@ -32,6 +32,31 @@ public:
     void SetOffset(float value, float viewportHeight, float contentHeight);
     bool ScrollToRange(float itemTop, float itemBottom, float viewportHeight, float contentHeight);
 
+    /// Sync offset clamping and compute scrollbar/viewport metrics in one step.
+    [[nodiscard]] ScrollViewportMetrics UpdateMetrics(
+        const Rect& bounds,
+        float viewportHeight,
+        float contentHeight,
+        float uiScale);
+
+    /// Whether a wheel event at `pos` should scroll this viewport (content area or scrollbar).
+    [[nodiscard]] static bool CanReceiveWheelAt(
+        const Rect& widgetBounds,
+        const Rect& wheelArea,
+        const ScrollViewportMetrics& metrics,
+        const Point& pos);
+
+    [[nodiscard]] static bool ShowsScrollbarCursor(const ScrollViewportMetrics& metrics, const Point& pos);
+
+    /// Convert screen-space item geometry to scroll-space and scroll into view.
+    [[nodiscard]] static bool ScrollScreenRectIntoView(
+        ScrollViewport& scroll,
+        float itemScreenY,
+        float itemHeight,
+        float viewportY,
+        float viewportHeight,
+        float contentHeight);
+
     [[nodiscard]] ScrollViewportMetrics ComputeMetrics(
         const Rect& bounds,
         float contentHeight,
