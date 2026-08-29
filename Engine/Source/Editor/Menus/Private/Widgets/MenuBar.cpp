@@ -19,6 +19,8 @@ namespace Icons = ::we::runtime::kindui::Icons;
 
 MenuBar::MenuBar()
     : m_Style(WidgetStyle::Panel())
+    , m_Height(we::runtime::kindui::ResolveMetric(MetricToken::TitleBarHeight))
+    , m_ItemPaddingH(we::runtime::kindui::ResolveMetric(MetricToken::Space3))
 {}
 
 Size MenuBar::Measure(const Size& availableSize) {

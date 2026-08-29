@@ -66,10 +66,7 @@ void ModalHost::Arrange(const Rect& allottedRect) {
 }
 
 void ModalHost::Paint(PaintContext& context) {
-    Color scrim = ResolveColor(ColorToken::ModalScrim);
-    if (scrim.a < 0.40f || scrim.a > 0.50f) {
-        scrim = Color{ 0.0f, 0.0f, 0.0f, 0.45f };
-    }
+    const Color scrim = ResolveColor(ColorToken::ModalScrim);
     context.DrawRect(m_Geometry, scrim);
     if (m_Content && m_Content->IsVisible()) {
         m_Content->Paint(context);

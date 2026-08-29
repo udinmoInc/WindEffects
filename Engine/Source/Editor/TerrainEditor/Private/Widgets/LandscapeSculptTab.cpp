@@ -31,7 +31,7 @@ static void AddChipRow(
     for (const auto& [label, icon, selected, onClick] : chips) {
         if (!currentRow || countInRow >= maxPerRow) {
             currentRow = MakeRow();
-            currentRow->Gap(4.0f);
+            currentRow->Gap(we::runtime::kindui::ResolveMetric(we::runtime::kindui::MetricToken::Space1));
             currentRow->SetFlexShrink(0.0f);
             layout->AddChild(currentRow);
             countInRow = 0;
@@ -39,7 +39,7 @@ static void AddChipRow(
         auto btn = MakeSecondaryAction(label, icon ? icon : "");
         btn->SetFlexGrow(1.0f);
         btn->SetFlexShrink(1.0f);
-        btn->SetMinWidth(50.0f);
+        btn->SetMinWidth(ChipButtonMinWidth());
         btn->SetOnClicked(onClick);
         currentRow->AddChild(btn);
         ++countInRow;
@@ -52,25 +52,7 @@ static void AddField(
     std::string value,
     std::function<void(std::string_view)> onCommit)
 {
-    auto row = MakeRow();
-    row->Align(AlignItems::Center);
-    row->Gap(8.0f);
-    auto lbl = std::make_shared<Label>(label);
-    lbl->SetMinWidth(120.0f);
-    lbl->SetMaxWidth(120.0f);
-    lbl->SetFlexShrink(0.0f);
-    lbl->SetFlexGrow(0.0f);
-
-    auto input = std::make_shared<SearchBoxControl>("");
-    input->SetText(value);
-    input->SetFlexGrow(1.0f);
-    input->SetFlexShrink(1.0f);
-    input->SetMinWidth(60.0f);
-    input->SetOnChanged([onCommit](const std::string& v) { onCommit(v); });
-
-    row->AddChild(lbl);
-    row->AddChild(input);
-    layout->AddChild(row);
+    AddFormField(layout, label, value, std::move(onCommit));
 }
 
 static void AddToggle(

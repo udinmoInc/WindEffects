@@ -1,6 +1,7 @@
 #include "KindUI/Rendering/OverlayRenderer.h"
 
 #include "KindUI/Rendering/IconRenderer.h"
+#include "KindUI/Profiling/UiColorDebug.h"
 #include "KindUI/Rendering/Icons/IconManager.h"
 #include "KindUI/Rendering/TextUIService.h"
 #include "KindUI/Rendering/UIWidgetAdapter.h"
@@ -168,10 +169,17 @@ void OverlayRenderer::RenderUI(const std::shared_ptr<Widget>& root, uint32_t fra
     const uint32_t width = m_CurrentWidth;
     const uint32_t height = m_CurrentHeight;
 
+    if (UiColorDebug::IsEnabled()) {
+        UiColorDebug::Get().BeginFrame();
+    }
+
     if (!root || width == 0 || height == 0) {
         m_Vertices.clear();
         m_Indices.clear();
         m_Batches.clear();
+        if (UiColorDebug::IsEnabled()) {
+            UiColorDebug::Get().EndFrame();
+        }
         return;
     }
 
@@ -213,6 +221,10 @@ void OverlayRenderer::RenderUI(const std::shared_ptr<Widget>& root, uint32_t fra
     m_FrameStats.drawCalls = m_FrameStats.batches;
     m_FrameStats.width = width;
     m_FrameStats.height = height;
+
+    if (UiColorDebug::IsEnabled()) {
+        UiColorDebug::Get().EndFrame();
+    }
 }
 
 void OverlayRenderer::BeginOverlayPass(const we::runtime::uigfx::OverlayRenderContext& context) {

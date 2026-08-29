@@ -1,5 +1,6 @@
 #include "KindUI/Rendering/UIWidgetAdapter.h"
 #include "KindUI/Profiling/UiPathDiagnostics.h"
+#include "KindUI/Profiling/UiColorDebug.h"
 #include "KindUI/Rendering/IconRenderer.h"
 #include "KindUI/Rendering/IconMetrics.h"
 #include "KindUI/Core/Icon.h"
@@ -156,6 +157,21 @@ void UIWidgetAdapter::ProcessWidget(const std::shared_ptr<Widget>& root,
     const auto& commands = paintCtx.GetCommands();
     for (const auto& cmd : commands) {
         ConvertDrawCommand(cmd);
+    }
+
+    if (UiColorDebug::IsOverlayEnabled()) {
+        m_CurrentTextureSet = m_DefaultTextureSet;
+        m_CurrentScissor = {0, 0, m_Width, m_Height};
+        const uint32_t indexBefore = static_cast<uint32_t>(m_Indices.size());
+        UiColorDebug::Get().AppendOverlaySwatches(
+            m_Vertices,
+            m_Indices,
+            static_cast<float>(width),
+            static_cast<float>(height));
+        const uint32_t indexAdded = static_cast<uint32_t>(m_Indices.size()) - indexBefore;
+        if (indexAdded > 0) {
+            AddOrMergeBatch(indexAdded);
+        }
     }
 
     m_LastBuiltWidth = width;
@@ -323,8 +339,20 @@ void UIWidgetAdapter::GenerateRectGeometry(const DrawCommand& cmd) {
     m_Indices.push_back(startIndex + 2);
     m_Indices.push_back(startIndex + 3);
     m_Indices.push_back(startIndex + 0);
-    
+
     AddOrMergeBatch(6);
+
+    if (UiColorDebug::IsEnabled()) {
+        ColorToken token{};
+        if (UiColorDebug::TryMatchToken(cmd.color, token)) {
+            UiColorDebug::Get().TraceVertex(
+                "UIWidgetAdapter::GenerateRectGeometry",
+                token,
+                cmd.color,
+                cmd.rect,
+                type);
+        }
+    }
 }
 
 void UIWidgetAdapter::GenerateTextGeometry(const DrawCommand& cmd) {
@@ -476,6 +504,10 @@ void UIWidgetAdapter::GenerateColorTextureGeometry(const DrawCommand& cmd) {
     m_Indices.push_back(startIndex + 0);
 
     AddOrMergeBatch(6);
+
+    if (UiColorDebug::IsEnabled()) {
+        UiColorDebug::Get().TraceViewportTexture(cmd.rect);
+    }
 }
 
 void UIWidgetAdapter::GenerateIconGeometry(const DrawCommand& cmd) {

@@ -403,7 +403,7 @@ void LauncherShell::RebuildSettingsPage() {
     page->Gap(0.0f);
     page->SetHorizontalAlignment(HorizontalAlignment::Fill);
     page->SetVerticalAlignment(VerticalAlignment::Fill);
-    page->Background(LColor(ColorToken::PanelContentBackground));
+    page->Background(LColor(ColorToken::PanelBackground));
 
     const float s = LScale();
     const std::string queryLower = ToLowerCopy(m_SearchQuery);
@@ -460,7 +460,7 @@ void LauncherShell::RebuildSettingsPage() {
         content->AddChild(MakeLabel(
             "No settings match your search.",
             LMetric(MetricToken::TextSizeBody) * s,
-            LColor(ColorToken::TextMuted)));
+            LColor(ColorToken::TextHint)));
     }
 
     contentScroll->SetContent(content);

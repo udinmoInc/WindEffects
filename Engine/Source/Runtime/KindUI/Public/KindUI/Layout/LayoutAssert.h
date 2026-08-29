@@ -51,6 +51,32 @@ inline void AssertNonNegativeSize(std::string_view label, float width, float hei
 #endif
 }
 
+inline void AssertMinSizeRespected(
+    std::string_view label,
+    const Rect& arranged,
+    float minWidth,
+    float minHeight) {
+#if defined(WE_DEBUG) || defined(_DEBUG) || !defined(NDEBUG)
+    if (minWidth > 0.5f && arranged.width + 0.5f < minWidth) {
+        HE_ERROR(
+            std::string("[Layout] '") + std::string(label)
+            + "' width " + std::to_string(arranged.width)
+            + " below min " + std::to_string(minWidth));
+    }
+    if (minHeight > 0.5f && arranged.height + 0.5f < minHeight) {
+        HE_ERROR(
+            std::string("[Layout] '") + std::string(label)
+            + "' height " + std::to_string(arranged.height)
+            + " below min " + std::to_string(minHeight));
+    }
+#else
+    (void)label;
+    (void)arranged;
+    (void)minWidth;
+    (void)minHeight;
+#endif
+}
+
 inline Rect ClampRectToParent(const Rect& child, const Rect& parent) {
     Rect out = child;
     const float parentRight = parent.x + parent.width;

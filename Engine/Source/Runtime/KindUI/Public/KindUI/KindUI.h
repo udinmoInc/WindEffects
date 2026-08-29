@@ -47,6 +47,9 @@
 #include "KindUI/Widgets/ModalHost.h"
 #include "KindUI/Widgets/VirtualList.h"
 #include "KindUI/Tokens/DesignToken.h"
+#include "KindUI/Tokens/DesignSystem.h"
+#include "KindUI/Core/LayoutMetrics.h"
+#include "KindUI/Theming/Palette.h"
 
 // --- Advanced / extension (include directly when needed) ----------------------
 //

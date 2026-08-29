@@ -43,8 +43,8 @@ private:
     size_t m_CaretPosition = 0;
     bool m_ShowCaret = false;
 
-    float m_Height = 24.0f;
-    float m_Width = 280.0f;
+    float m_Height = 0.0f;
+    float m_Width = 0.0f;
 
     OnCommandSubmitted m_OnCommandSubmitted;
 };

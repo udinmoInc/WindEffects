@@ -55,7 +55,7 @@ void PaintIconButton(
 }
 
 void PaintStatusDot(PaintContext& context, const Rect& row, const std::string& status, float s) {
-    Color c = LColor(ColorToken::TextMuted);
+    Color c = LColor(ColorToken::TextHint);
     if (status == "Compatible") {
         c = LColor(ColorToken::Success);
     } else if (status == "Warning") {
@@ -353,7 +353,7 @@ void ProjectTableRow::Paint(PaintContext& context) {
     context.DrawText(
         Ellipsize(EllipsizePath(m_Summary.projectRoot, 72), cols.name - colPad - 8.0f * s, metaSize),
         Point{ x + colPad, nameTop + textSize + nameGap },
-        LColor(ColorToken::TextMuted),
+        LColor(ColorToken::TextHint),
         metaSize);
     x += cols.name;
 
@@ -383,7 +383,7 @@ void ProjectTableRow::Paint(PaintContext& context) {
 
     {
         const std::string& status = m_Summary.statusLabel.empty() ? "Unknown" : m_Summary.statusLabel;
-        Color statusColor = LColor(ColorToken::TextMuted);
+        Color statusColor = LColor(ColorToken::TextHint);
         if (status == "Compatible") {
             statusColor = LColor(ColorToken::Success);
         } else if (status == "Warning") {
@@ -565,7 +565,7 @@ void TemplateListRow::Paint(PaintContext& context) {
     context.DrawText(
         meta,
         Point{ textX, m_Geometry.y + 8.0f * s + titleSize + 2.0f * s },
-        LColor(ColorToken::TextMuted),
+        LColor(ColorToken::TextHint),
         metaSize);
 }
 
@@ -666,7 +666,7 @@ void EngineInstallRow::Paint(PaintContext& context) {
             + "  ·  " + std::to_string(m_Info.pluginCount) + " plugins"
             + "  ·  " + m_Info.updateStatus,
         Point{ x, m_Geometry.y + 8.0f * s + textSize + 2.0f * s },
-        LColor(ColorToken::TextMuted),
+        LColor(ColorToken::TextHint),
         metaSize);
 
     static const char* kIcons[] = {
@@ -861,7 +861,7 @@ void LibraryPackageRow::Paint(PaintContext& context) {
         context.DrawText(
             m_Kind + "  ·  " + m_Detail,
             Point{ textX, m_Geometry.y + m_Geometry.height * 0.5f + 2.0f * s },
-            LColor(ColorToken::TextMuted),
+            LColor(ColorToken::TextHint),
             metaSize);
     }
 }

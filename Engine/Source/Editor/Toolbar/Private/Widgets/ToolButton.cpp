@@ -112,7 +112,7 @@ Size ToolButton::Measure(const Size& availableSize) {
         const float chevGap  = ChevronGapPx(uiScale);
         const float chevW    = IconMetrics::CompactDisplayPx();
         const float textSize = ThemeMetric(MetricToken::TextSizeToolbar) * uiScale;
-        const float controlH = ThemeMetric(MetricToken::IconButtonSize) * uiScale;
+        const float controlH = (std::max)(24.0f * uiScale, ThemeMetric(MetricToken::HeaderControlHeight) * uiScale);
         const bool hasIcon = !m_IconName.empty() && Icons::IsKnownIcon(m_IconName);
 
         float textW = m_Label.empty() ? 0.0f : ApproxInlineTextWidth(m_Label, textSize);
@@ -162,35 +162,29 @@ Size ToolButton::Measure(const Size& availableSize) {
     }
 
     if (m_ButtonStyle == ToolButtonStyle::ToolbarLabeled) {
-        const float padH = 4.0f * uiScale;
+        const float padH = ThemeMetric(MetricToken::Space2) * uiScale;
         const float textSize = ThemeMetric(MetricToken::TextSizeCaption) * uiScale;
         const float labelW = m_Label.empty() ? 0.0f : ApproxInlineTextWidth(m_Label, textSize);
-        const float minW = 42.0f * uiScale;
+        const float minW = ThemeMetric(MetricToken::ToolbarLabeledMinWidth) * uiScale;
         const float width = (std::max)(minW, labelW + padH * 2.0f);
-        const float height = 34.0f * uiScale;
+        const float height = ThemeMetric(MetricToken::ToolbarLabeledHeight) * uiScale;
         m_DesiredSize = Size{ width, height };
         return m_DesiredSize;
     }
 
-    // TransportButton: Play / Pause / Stop
-    if (m_ButtonStyle == ToolButtonStyle::TransportButton || m_ButtonStyle == ToolButtonStyle::PlayButton) {
-        const float controlSize = ThemeMetric(MetricToken::IconButtonSize) * uiScale;
-        m_DesiredSize = Size{ controlSize, controlSize };
-        return m_DesiredSize;
-    }
-
-    if (m_ButtonStyle == ToolButtonStyle::ToolbarIconOnly) {
-        const float controlSize = ThemeMetric(MetricToken::IconButtonSize) * uiScale;
+    // TransportButton & ToolbarIconOnly (Play / Pause / Stop / Tools)
+    if (m_ButtonStyle == ToolButtonStyle::TransportButton || m_ButtonStyle == ToolButtonStyle::PlayButton || m_ButtonStyle == ToolButtonStyle::ToolbarIconOnly) {
+        const float controlSize = (std::max)(32.0f * uiScale, ThemeMetric(MetricToken::ToolbarLabeledHeight) * uiScale);
         m_DesiredSize = Size{ controlSize, controlSize };
         return m_DesiredSize;
     }
 
     // Normal – used for labeled dropdowns (Platform, Settings)
-    const float height  = ThemeMetric(MetricToken::ButtonHeight) * uiScale;
+    const float height  = (std::max)(32.0f * uiScale, ThemeMetric(MetricToken::ToolbarLabeledHeight) * uiScale);
     const float padL    = ThemeMetric(MetricToken::ButtonPaddingHorizontal) * uiScale;
     const float padR    = ThemeMetric(MetricToken::Space2) * uiScale;
     const float iconSz  = IconSize(uiScale);
-    const float iconGap = 4.0f * uiScale;
+    const float iconGap = ThemeMetric(MetricToken::Space1) * uiScale;
     const float chevW   = IconMetrics::CompactDisplayPx();
 
     float width = padL + iconSz;
@@ -397,7 +391,7 @@ void ToolButton::Paint(PaintContext& context) {
 
         if (drawBg) context.DrawRoundedRect(renderRect, bg, ThemeMetric(MetricToken::CornerRadiusSmall) * uiScale);
 
-        if (isDropdownControl) {
+        if (isDropdownControl && (m_HoverAnim > 0.01f || pressStrength > 0.01f || m_Active)) {
             Color borderCol = m_HoverAnim > 0.01f
                 ? ThemeColor(ColorToken::BorderLight)
                 : ThemeColor(ColorToken::BorderDefault);
@@ -467,10 +461,19 @@ void ToolButton::OnMouseWheel(const MouseEvent& event) {
 }
 
 // ToolSeparator implementation
+float ToolSeparator::SeparatorHeight() {
+    return we::runtime::kindui::ResolveMetric(MetricToken::ToolbarSeparatorHeight);
+}
+
+float ToolSeparator::SeparatorWidth() {
+    return we::runtime::kindui::ResolveMetric(MetricToken::BorderWidth);
+}
+
 ToolSeparator::ToolSeparator() {}
 
 Size ToolSeparator::Measure(const Size& availableSize) {
-    return Size{ SEPARATOR_WIDTH, SEPARATOR_HEIGHT };
+    const float uiScale = (std::max)(1.0f, DPIContext::GetScale());
+    return Size{ SeparatorWidth() * uiScale, SeparatorHeight() * uiScale };
 }
 
 void ToolSeparator::Arrange(const Rect& allottedRect) {
@@ -479,10 +482,11 @@ void ToolSeparator::Arrange(const Rect& allottedRect) {
 
 void ToolSeparator::Paint(PaintContext& context) {
     const float uiScale = (std::max)(1.0f, DPIContext::GetScale());
-    float centerY = m_Geometry.y + m_Geometry.height / 2.0f;
-    float halfHeight = (SEPARATOR_HEIGHT * uiScale) / 2.0f;
-    
-    Rect lineRect{ m_Geometry.x, centerY - halfHeight, SEPARATOR_WIDTH * uiScale, SEPARATOR_HEIGHT * uiScale };
+    const float sepH = SeparatorHeight() * uiScale;
+    const float sepW = SeparatorWidth() * uiScale;
+    const float centerY = m_Geometry.y + m_Geometry.height * 0.5f;
+    const float centerX = m_Geometry.x + m_Geometry.width * 0.5f;
+    const Rect lineRect{ centerX - sepW * 0.5f, centerY - sepH * 0.5f, sepW, sepH };
     context.DrawRect(lineRect, ThemeColor(ColorToken::Separator));
 }
 

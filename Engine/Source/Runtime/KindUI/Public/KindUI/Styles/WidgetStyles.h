@@ -77,7 +77,7 @@ struct MenuStyle {
 };
 
 struct TreeViewStyle {
-    ColorProperty background{ColorToken::PrimarySurface};
+    ColorProperty background{ColorToken::PanelBackground};
     ColorProperty rowBackground{ColorToken::ControlBackground};
     ColorProperty rowBackgroundHover{ColorToken::ControlBackgroundHover};
     ColorProperty rowBackgroundSelected{ColorToken::ControlBackgroundSelected};
@@ -90,7 +90,7 @@ struct TreeViewStyle {
 };
 
 struct TableViewStyle {
-    ColorProperty background{ColorToken::PrimarySurface};
+    ColorProperty background{ColorToken::PanelBackground};
     ColorProperty headerBackground{ColorToken::SecondarySurface};
     ColorProperty rowBackground{ColorToken::ControlBackground};
     ColorProperty rowBackgroundHover{ColorToken::ControlBackgroundHover};
@@ -104,7 +104,7 @@ struct TableViewStyle {
 };
 
 struct GridStyle {
-    ColorProperty background{ColorToken::PrimarySurface};
+    ColorProperty background{ColorToken::PanelBackground};
     ColorProperty cellBackground{ColorToken::ControlBackground};
     ColorProperty foreground{ColorToken::TextPrimary};
     BorderStyleTokens border{};
@@ -113,7 +113,7 @@ struct GridStyle {
 };
 
 struct FlexStyle {
-    ColorProperty background{ColorToken::PrimarySurface};
+    ColorProperty background{ColorToken::PanelBackground};
     SpacingProperty gap{SpacingToken::Medium};
     PaddingStyle padding{};
 };
@@ -124,7 +124,7 @@ struct SearchBoxStyle {
     ColorProperty foreground{ColorToken::TextPrimary};
     ColorProperty placeholder{ColorToken::TextHint};
     BorderStyleTokens border{ColorProperty{ColorToken::BorderSubtle}};
-    BorderStyleTokens borderFocused{ColorProperty{ColorToken::BorderFocused}};
+    BorderStyleTokens borderFocused{ColorProperty{ColorToken::BorderFocus}};
     RadiusProperty cornerRadius{RadiusToken::Small};
     PaddingStyle padding{};
     TypographyStyle typography{};
@@ -149,7 +149,7 @@ struct TextBoxStyle {
 
 struct CheckBoxStyle {
     ColorProperty boxBackground{ColorToken::ControlBackground};
-    ColorProperty boxBackgroundChecked{ColorToken::AccentSurface};
+    ColorProperty boxBackgroundChecked{ColorToken::SelectedBackground};
     ColorProperty checkmark{ColorToken::TextOnAccent};
     ColorProperty foreground{ColorToken::TextPrimary};
     BorderStyleTokens border{};
@@ -162,7 +162,7 @@ struct CheckBoxStyle {
 
 struct RadioButtonStyle {
     ColorProperty circleBackground{ColorToken::ControlBackground};
-    ColorProperty circleBackgroundSelected{ColorToken::AccentSurface};
+    ColorProperty circleBackgroundSelected{ColorToken::SelectedBackground};
     ColorProperty dot{ColorToken::TextOnAccent};
     ColorProperty foreground{ColorToken::TextPrimary};
     BorderStyleTokens border{};
@@ -185,8 +185,8 @@ struct ComboBoxStyle {
 };
 
 struct DialogStyle {
-    ColorProperty background{ColorToken::DialogBackground};
-    ColorProperty scrim{ColorToken::ScrimOverlay};
+    ColorProperty background{ColorToken::PopupBackground};
+    ColorProperty scrim{ColorToken::ModalScrim};
     ColorProperty foreground{ColorToken::TextPrimary};
     BorderStyleTokens border{ColorProperty{ColorToken::BorderSubtle}};
     RadiusProperty cornerRadius{RadiusToken::Large};
@@ -209,31 +209,31 @@ struct TooltipStyle {
 };
 
 struct ScrollBarStyle {
-    ColorProperty track{ColorToken::TertiarySurface};
+    ColorProperty track{ColorToken::CardBackground};
     ColorProperty thumb{ColorToken::BorderDefault};
-    ColorProperty thumbHover{ColorToken::BorderFocused};
+    ColorProperty thumbHover{ColorToken::BorderFocus};
     RadiusProperty cornerRadius{RadiusToken::Full};
     SpacingProperty width{SpacingToken::Small};
     AnimationProperty transition{AnimationToken::Fast};
 };
 
 struct ProgressBarStyle {
-    ColorProperty track{ColorToken::TertiarySurface};
-    ColorProperty fill{ColorToken::AccentSurface};
-    ColorProperty fillSuccess{ColorToken::SuccessColor};
-    ColorProperty fillWarning{ColorToken::WarningColor};
-    ColorProperty fillError{ColorToken::ErrorColor};
+    ColorProperty track{ColorToken::CardBackground};
+    ColorProperty fill{ColorToken::SelectedBackground};
+    ColorProperty fillSuccess{ColorToken::Success};
+    ColorProperty fillWarning{ColorToken::Warning};
+    ColorProperty fillError{ColorToken::ErrorForeground};
     RadiusProperty cornerRadius{RadiusToken::Full};
     SpacingProperty height{SpacingToken::Small};
     AnimationProperty transition{AnimationToken::Normal};
 };
 
 struct PropertyGridStyle {
-    ColorProperty background{ColorToken::PrimarySurface};
+    ColorProperty background{ColorToken::PanelBackground};
     ColorProperty rowBackground{ColorToken::ControlBackground};
     ColorProperty rowBackgroundHover{ColorToken::ControlBackgroundHover};
     ColorProperty rowBackgroundSelected{ColorToken::ControlBackgroundSelected};
-    ColorProperty labelForeground{ColorToken::TextCaption};
+    ColorProperty labelForeground{ColorToken::TextSecondary};
     ColorProperty valueForeground{ColorToken::TextPrimary};
     BorderStyleTokens border{ColorProperty{ColorToken::BorderSubtle}};
     PaddingStyle padding{};

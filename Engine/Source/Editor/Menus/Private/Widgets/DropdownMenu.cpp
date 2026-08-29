@@ -5,6 +5,7 @@
 #include "KindUI/Tokens/DesignToken.h"
 #include "KindUI/Theming/StyleRole.h"
 #include "KindUI/Theming/ThemeAccess.h"
+#include "KindUI/Core/ControlChrome.h"
 #include "KindUI/Layout/OverlayManager.h"
 #include <algorithm>
 
@@ -17,15 +18,19 @@ namespace Icons = ::we::runtime::kindui::Icons;
 
 namespace we::editor::menus {
 using ::we::runtime::kindui::MouseButton;
+namespace ControlChrome = ::we::runtime::kindui::ControlChrome;
 
 DropdownMenu::DropdownMenu(const std::vector<std::shared_ptr<MenuItem>>& items)
     : m_Items(items)
 {
+    m_ItemHeight = ThemeMetric(MetricToken::MenuItemHeight);
+    m_PaddingY = ThemeMetric(MetricToken::MenuPadding);
+    m_PaddingX = ThemeMetric(MetricToken::Space2);
 }
 
 Size DropdownMenu::Measure(const Size& availableSize) {
     const float textSize = ThemeMetric(MetricToken::TextSizeSmall);
-    float maxContentW = 140.0f; // min dropdown width
+    float maxContentW = ThemeMetric(MetricToken::PopupMinWidth);
 
     for (const auto& item : m_Items) {
         if (!item) continue;
@@ -34,17 +39,19 @@ Size DropdownMenu::Measure(const Size& availableSize) {
             itemW += TextMetrics::MeasureWidth(item->label, textSize);
         }
         if (item->checked) {
-            itemW += 24.0f;
+            itemW += ThemeMetric(MetricToken::MenuTextIndent);
         }
         if (!item->shortcut.empty()) {
-            itemW += 24.0f + TextMetrics::MeasureWidth(item->shortcut, textSize);
+            itemW += ThemeMetric(MetricToken::MenuTextIndent) + TextMetrics::MeasureWidth(item->shortcut, textSize);
         }
         maxContentW = std::max(maxContentW, itemW);
     }
 
-    const float calcW = std::clamp(maxContentW, 140.0f, 340.0f);
+    const float calcW = std::clamp(maxContentW, ThemeMetric(MetricToken::PopupMinWidth), ThemeMetric(MetricToken::PopupMaxWidth));
     const float fullH = m_PaddingY * 2.0f + static_cast<float>(m_Items.size()) * m_ItemHeight;
-    const float maxAllowedH = availableSize.height > 0.0f ? std::min(availableSize.height, 360.0f) : 360.0f;
+    const float maxAllowedH = availableSize.height > 0.0f
+        ? std::min(availableSize.height, ThemeMetric(MetricToken::PopupMaxHeight))
+        : ThemeMetric(MetricToken::PopupMaxHeight);
     const float calcH = std::min(fullH, maxAllowedH);
 
     m_DesiredSize = Size{ calcW, calcH };
@@ -71,30 +78,31 @@ int DropdownMenu::HitItemAt(const Point& pos) const {
 }
 
 void DropdownMenu::Paint(PaintContext& context) {
-    // 100% Solid Opaque Neutral Charcoal Popup Surface (#18191B / #222326)
-    context.DrawShadow(m_Geometry, ResolveColor(ColorToken::ShadowSubtle), 4.0f, 10.0f);
-    context.DrawRoundedRect(m_Geometry, ResolveColor(ColorToken::PopupBackground), 4.0f);
-    context.DrawRoundedRectOutline(m_Geometry, ResolveColor(ColorToken::BorderLight), 1.0f, 4.0f);
+    ControlChrome::PaintPopupSurface(context, m_Geometry);
 
     context.PushClipRect(m_Geometry);
 
     const float textSize = ThemeMetric(MetricToken::TextSizeSmall);
+    const float checkSize = ThemeMetric(MetricToken::CheckMarkSize);
     float y = m_Geometry.y + m_PaddingY - m_ScrollOffset;
 
     for (size_t i = 0; i < m_Items.size(); ++i) {
         const auto& item = m_Items[i];
         if (!item) continue;
 
-        const Rect itemRect{ m_Geometry.x + 2.0f, y, m_Geometry.width - 4.0f, m_ItemHeight };
+        const Rect itemRect{ m_Geometry.x + m_PaddingX, y, m_Geometry.width - m_PaddingX * 2.0f, m_ItemHeight };
 
         if (y + m_ItemHeight >= m_Geometry.y && y <= m_Geometry.y + m_Geometry.height) {
             if (item->label.empty()) {
-                // Separator line
                 const float sepY = itemRect.y + m_ItemHeight * 0.5f;
-                context.DrawRect(Rect{ itemRect.x + 4.0f, sepY, itemRect.width - 8.0f, 1.0f }, ResolveColor(ColorToken::BorderLight));
+                context.DrawRect(
+                    Rect{ itemRect.x, sepY, itemRect.width, ThemeMetric(MetricToken::BorderWidth) },
+                    ResolveColor(ColorToken::Separator));
             } else {
                 if (m_HoveredItem == static_cast<int>(i) && item->enabled) {
-                    context.DrawRoundedRect(itemRect, ResolveColor(ColorToken::HoverBackground), 2.0f);
+                    ControlChrome::InteractionState state{};
+                    state.hoverAnim = 1.0f;
+                    ControlChrome::PaintListRow(context, itemRect, state);
                 }
 
                 const Color textColor = item->enabled
@@ -102,13 +110,16 @@ void DropdownMenu::Paint(PaintContext& context) {
                     : ResolveColor(ColorToken::TextDisabled);
                 const float textY = itemRect.y + (m_ItemHeight - textSize) * 0.5f;
 
-                context.DrawText(item->label, Point{ itemRect.x + m_PaddingX, textY }, textColor, textSize);
+                context.DrawText(item->label, Point{ itemRect.x, textY }, textColor, textSize);
 
                 if (item->checked) {
-                    const float iconSize = 14.0f;
-                    const float iconX = itemRect.x + itemRect.width - m_PaddingX - iconSize;
-                    const float iconY = itemRect.y + (m_ItemHeight - iconSize) * 0.5f;
-                    IconPainter::DrawIcon(context, Icons::CheckName, Rect{ iconX, iconY, iconSize, iconSize }, ResolveColor(ColorToken::AccentPrimary));
+                    const float iconX = itemRect.x + itemRect.width - m_PaddingX - checkSize;
+                    const float iconY = itemRect.y + (m_ItemHeight - checkSize) * 0.5f;
+                    IconPainter::DrawIcon(
+                        context,
+                        Icons::CheckName,
+                        Rect{ iconX, iconY, checkSize, checkSize },
+                        ResolveColor(ColorToken::AccentPrimary));
                 } else if (!item->shortcut.empty()) {
                     const float shortcutW = TextMetrics::MeasureWidth(item->shortcut, textSize);
                     const float shortcutX = itemRect.x + itemRect.width - m_PaddingX - shortcutW;
@@ -136,7 +147,7 @@ void DropdownMenu::OnMouseMove(const MouseEvent& event) {
 void DropdownMenu::OnMouseWheel(const MouseEvent& event) {
     const float fullH = m_PaddingY * 2.0f + static_cast<float>(m_Items.size()) * m_ItemHeight;
     const float maxScroll = std::max(0.0f, fullH - m_Geometry.height);
-    m_ScrollOffset = std::clamp(m_ScrollOffset - event.wheelDeltaY * 24.0f, 0.0f, maxScroll);
+    m_ScrollOffset = std::clamp(m_ScrollOffset - event.wheelDeltaY * ThemeMetric(MetricToken::ListRowHeight), 0.0f, maxScroll);
     InvalidatePaint();
 }
 

@@ -1,6 +1,7 @@
 #include "KindUI/Core/Widgets/DesignSystemControls.h"
 
 #include "KindUI/Core/Animator.h"
+#include "KindUI/Core/LayoutMetrics.h"
 #include "KindUI/Core/ControlChrome.h"
 #include "KindUI/Core/Icon.h"
 #include "KindUI/Core/PaintContext.h"
@@ -12,8 +13,9 @@
 #include "KindUI/Tokens/TypographySpec.h"
 #include "Platform/Platform.h"
 
-#include <algorithm>
+#include "KindUI/Rendering/IconMetrics.h"
 
+#include <algorithm>
 
 namespace we::runtime::kindui {
 
@@ -22,6 +24,7 @@ DesignButton::DesignButton(std::string label, StyleRole role, const char* icon)
     , m_Role(role)
     , m_Icon(icon) {
     SetFocusable(false);
+    LayoutMetrics::ApplyButtonMinSize(*this, m_Role);
 }
 
 void DesignButton::SetIconName(std::string icon) {
@@ -247,7 +250,7 @@ Size SectionHeader::Measure(const Size& availableSize) {
     // Report content-intrinsic width. Parent Flex Stretch expands on the cross axis;
     // claiming availableSize.width made every Column inside a Row overflow and shrink
     // all siblings to 0x0.
-    m_DesiredSize = Size{ std::max(w, 32.0f), h };
+    m_DesiredSize = Size{ std::max(w, ResolveMetric(MetricToken::IconButtonSize) + ResolveMetric(MetricToken::Space2)), h };
     return m_DesiredSize;
 }
 
@@ -262,6 +265,7 @@ void SectionHeader::Paint(PaintContext& context) {
 PropertyRow::PropertyRow(std::string label, std::string value)
     : m_Label(std::move(label))
     , m_Value(std::move(value)) {
+    LayoutMetrics::ApplyFormRowMinSize(*this);
 }
 
 Size PropertyRow::Measure(const Size& availableSize) {
@@ -299,6 +303,7 @@ SearchBoxControl::SearchBoxControl(std::string placeholder)
     : m_Placeholder(std::move(placeholder)) {
     SetFocusable(true);
     SetStyleClass("SearchBar");
+    LayoutMetrics::ApplyInputMinSize(*this);
 }
 
 void SearchBoxControl::SetText(std::string text) {
@@ -311,8 +316,8 @@ void SearchBoxControl::SetText(std::string text) {
 Size SearchBoxControl::Measure(const Size& availableSize) {
     (void)availableSize;
     const ResolvedStyle style = ThemeManager::Get().Resolve(StyleRole::SearchBox);
-    const float minW = m_MinSize.width > 0.0f ? m_MinSize.width : 60.0f;
-    const float h = style.height > 0.0f ? style.height : ResolveMetric(MetricToken::SearchBoxHeight);
+    const float minW = m_MinSize.width > 0.0f ? m_MinSize.width : 120.0f;
+    const float h = (std::max)(26.0f, style.height > 0.0f ? style.height : ResolveMetric(MetricToken::SearchBoxHeight));
     m_DesiredSize = Size{ minW, h };
     return m_DesiredSize;
 }
@@ -322,16 +327,44 @@ void SearchBoxControl::Arrange(const Rect& allottedRect) {
 }
 
 void SearchBoxControl::Paint(PaintContext& context) {
+    if (!m_Visible) {
+        return;
+    }
+
     ControlChrome::InteractionState state{ m_HoverAnim, 0.0f, false, m_Focused, false };
-    ControlChrome::PaintInputFrame(context, m_Geometry, state);
+    ControlChrome::PaintSearchInputFrame(context, m_Geometry, state);
+
+    const float radius = m_Geometry.height * 0.5f;
+    const float iconSize = static_cast<float>(IconMetrics::NativeIconTierPx(ResolveMetric(MetricToken::IconSizeSearch)));
+    const float padH = (std::max)(8.0f, radius * 0.65f);
+
+    // Draw Magnifying Glass Search Icon inside input on left
+    const float iconX = m_Geometry.x + padH;
+    Rect iconBand{ iconX, m_Geometry.y, iconSize, m_Geometry.height };
+    IconPainter::DrawIcon(
+        context,
+        Icons::SearchName,
+        IconMetrics::PlaceGlyphCentered(iconBand, iconSize),
+        ResolveColor(m_Focused ? ColorToken::TextPrimary : ColorToken::IconSecondary));
+
     const ResolvedStyle style = ThemeManager::Get().Resolve(StyleRole::SearchBox);
-    const float pad = ResolveMetric(MetricToken::Space2);
+    const float fontSize = style.fontSize > 0.0f ? style.fontSize : ResolveMetric(MetricToken::TextSizeSmall);
+    const float textX = iconX + iconSize + ResolveMetric(MetricToken::Space1);
+    const float textY = m_Geometry.y + (m_Geometry.height - fontSize) * 0.5f;
     const bool empty = m_Text.empty();
+
     context.DrawText(
         empty ? m_Placeholder : m_Text,
-        Point{ m_Geometry.x + pad, m_Geometry.y + (m_Geometry.height - style.fontSize) * 0.5f },
-        empty ? ResolveColor(ColorToken::SearchPlaceholder) : style.foreground,
-        style.fontSize);
+        Point{ textX, textY },
+        empty ? ResolveColor(ColorToken::SearchPlaceholder) : ResolveColor(ColorToken::TextPrimary),
+        fontSize);
+
+    if (m_Focused && !empty) {
+        const float caretX = textX + context.GetTextWidth(m_Text, fontSize);
+        context.DrawRect(
+            Rect{ caretX, textY, 1.0f, fontSize },
+            ResolveColor(ColorToken::TextPrimary));
+    }
 }
 
 void SearchBoxControl::Tick(float deltaTime) {
@@ -378,6 +411,62 @@ void SearchBoxControl::OnFocus() {
 
 void SearchBoxControl::OnBlur() {
     m_Focused = false;
+}
+
+PanelTab::PanelTab(std::string label)
+    : m_Label(std::move(label)) {
+    SetFocusable(false);
+    SetMinSize({ 0.0f, ResolveMetric(MetricToken::PanelTabHeight) });
+}
+
+Size PanelTab::Measure(const Size& availableSize) {
+    const float padH = ResolveMetric(MetricToken::Space3);
+    const float fontSize = ResolveMetric(MetricToken::TextSizeCaption);
+    const float textW = TextMetrics::MeasureWidth(m_Label, fontSize, false);
+    float w = textW + padH * 2.0f;
+    if (availableSize.width > 0.0f) {
+        w = std::max(w, availableSize.width);
+    }
+    m_DesiredSize = Size{ w, ResolveMetric(MetricToken::PanelTabHeight) };
+    return m_DesiredSize;
+}
+
+void PanelTab::Arrange(const Rect& allottedRect) {
+    m_Geometry = allottedRect;
+}
+
+void PanelTab::Paint(PaintContext& context) {
+    if (!m_Visible) {
+        return;
+    }
+    ControlChrome::InteractionState state{
+        m_HoverAnim,
+        m_Pressed ? 1.0f : 0.0f,
+        m_Active,
+        false,
+        false
+    };
+    ControlChrome::PaintPanelTab(context, m_Geometry, m_Label, state);
+}
+
+void PanelTab::OnMouseDown(const MouseEvent& event) {
+    if (event.button == MouseButton::Left) {
+        m_Pressed = true;
+    }
+}
+
+void PanelTab::OnMouseUp(const MouseEvent& event) {
+    if (event.button == MouseButton::Left && m_Pressed) {
+        m_Pressed = false;
+        if (m_OnClicked) {
+            m_OnClicked();
+        }
+    }
+}
+
+void PanelTab::Tick(float deltaTime) {
+    m_HoverAnim = Animator::Damp(m_HoverAnim, m_Hovered ? 1.0f : 0.0f, ControlChrome::HoverDamping());
+    Widget::Tick(deltaTime);
 }
 
 SidebarItem::SidebarItem(std::string label, const char* icon)
@@ -526,6 +615,10 @@ std::shared_ptr<SecondaryButton> MakeSecondaryAction(std::string label, std::str
         btn->SetIconName(std::move(icon));
     }
     return btn;
+}
+
+std::shared_ptr<PanelTab> MakePanelTab(std::string label) {
+    return std::make_shared<PanelTab>(std::move(label));
 }
 
 } // namespace we::runtime::kindui

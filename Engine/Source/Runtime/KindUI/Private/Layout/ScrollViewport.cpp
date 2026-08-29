@@ -14,13 +14,12 @@
 namespace we::runtime::kindui {
 namespace {
 
-constexpr float kMinThumbHeight = 24.0f;
-
 float ThumbHeight(float trackHeight, float viewportHeight, float contentHeight) {
+    const float minThumb = ResolveMetric(MetricToken::ScrollbarThumbMinHeight);
     if (contentHeight <= viewportHeight || trackHeight <= 0.0f) {
         return trackHeight;
     }
-    return std::max(kMinThumbHeight, trackHeight * (viewportHeight / contentHeight));
+    return std::max(minThumb, trackHeight * (viewportHeight / contentHeight));
 }
 
 } // namespace
@@ -140,10 +139,10 @@ ScrollViewportMetrics ScrollViewport::ComputeMetrics(
     const float thumbY = metrics.track.y + (metrics.track.height - thumbHeight) * scrollRatio;
 
     metrics.thumb = Rect{
-        metrics.track.x + metrics.scrollbarWidth * 0.15f,
-        thumbY,
-        metrics.track.width * 0.7f,
-        thumbHeight
+        metrics.track.x + metrics.scrollbarWidth * 0.18f,
+        thumbY + 3.0f,
+        metrics.track.width * 0.64f,
+        std::max(ResolveMetric(MetricToken::ScrollbarThumbMinHeight), thumbHeight - 6.0f)
     };
 
     return metrics;
@@ -159,10 +158,18 @@ void ScrollViewport::Paint(
     }
 
     const ResolvedStyle style = ThemeManager::Get().Resolve(StyleRole::Scrollbar);
+    const Color separator = ResolveColor(ColorToken::Separator);
+
+    // Left edge separates scroll gutter from panel content (UE-style).
+    context.DrawRect(
+        Rect{metrics.track.x, metrics.track.y, 1.0f, metrics.track.height},
+        separator);
     context.DrawRect(metrics.track, style.background);
 
-    Color thumbColor = thumbHovered || m_DraggingThumb ? style.border : style.foreground;
-    context.DrawRoundedRect(metrics.thumb, thumbColor, metrics.thumb.width * 0.5f);
+    const bool active = thumbHovered || m_DraggingThumb;
+    Color thumbColor = active ? ResolveColor(ColorToken::ScrollbarThumbHover) : style.foreground;
+    const float radius = metrics.thumb.width * 0.5f;
+    context.DrawRoundedRect(metrics.thumb, thumbColor, radius);
 }
 
 bool ScrollViewport::OnMouseDown(

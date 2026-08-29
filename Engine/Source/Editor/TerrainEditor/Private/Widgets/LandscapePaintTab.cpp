@@ -2,6 +2,8 @@
 #include "KindUI/Widgets/Components.h"
 #include "KindUI/Widgets/Label.h"
 #include "KindUI/Core/Widgets/DesignSystemControls.h"
+#include "KindUI/Theming/ThemeAccess.h"
+#include "KindUI/Tokens/DesignToken.h"
 #include "TerrainEditor/ILandscapeEditor.h"
 #include "ViewportEdit/ViewportEditSession.h"
 
@@ -14,7 +16,7 @@ namespace {
 static void AddLayerRow(const std::shared_ptr<Column>& layout, int index, const std::string& label, bool selected, bool danger, std::function<void()> onClick, std::function<void()> onDelete) {
     auto row = MakeRow();
     row->Align(AlignItems::Center);
-    row->Gap(4.0f);
+    row->Gap(ResolveMetric(MetricToken::Space1));
     
     std::shared_ptr<DesignButton> btn;
     if(danger) btn = MakePrimaryAction(label);
@@ -32,23 +34,7 @@ float ParseFloat(std::string_view s, float fallback) { try { return std::stof(st
 int ParseInt(std::string_view s, int fallback) { try { return std::stoi(std::string(s)); } catch (...) { return fallback; } }
 
 static void AddField(const std::shared_ptr<Column>& layout, std::string label, std::string value, std::function<void(std::string_view)> onCommit) {
-    auto row = MakeRow();
-    row->Align(AlignItems::Center);
-    row->Gap(8.0f);
-    auto lbl = std::make_shared<Label>(label);
-    lbl->SetMinWidth(120.0f);
-    lbl->SetMaxWidth(120.0f);
-    lbl->SetFlexShrink(0.0f);
-    lbl->SetFlexGrow(0.0f);
-    auto input = std::make_shared<SearchBoxControl>("");
-    input->SetText(value);
-    input->SetFlexGrow(1.0f);
-    input->SetFlexShrink(1.0f);
-    input->SetMinWidth(60.0f);
-    input->SetOnChanged([onCommit](const std::string& v) { onCommit(v); });
-    row->AddChild(lbl);
-    row->AddChild(input);
-    layout->AddChild(row);
+    AddFormField(layout, label, value, std::move(onCommit));
 }
 
 static void AddSectionTitle(const std::shared_ptr<Column>& layout, std::string title) {

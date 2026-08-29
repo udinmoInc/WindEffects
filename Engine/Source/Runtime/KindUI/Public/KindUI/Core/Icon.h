@@ -61,16 +61,16 @@ namespace Icons {
     constexpr const char* PlaySolidName  = "playsolid";
     constexpr const char* PauseName      = "pause";
     constexpr const char* StopName       = "stop";
-    constexpr const char* PerspectiveName = "3dcube";
+    constexpr const char* PerspectiveName = "object";
     constexpr const char* LitName        = "lit";
     constexpr const char* WireframeName  = "wireframe";
     constexpr const char* CameraName     = "pivot";
     constexpr const char* SnapName       = "magnet";
     constexpr const char* GridName       = "grid";
-    constexpr const char* CubeName       = "3dcube";
-    constexpr const char* SphereName     = "3dsphere";
+    constexpr const char* CubeName       = "object";
+    constexpr const char* SphereName     = "globe";
     constexpr const char* PlaneName      = "square";
-    constexpr const char* CylinderName   = "3dcylinder";
+    constexpr const char* CylinderName   = "object";
     // Full-color 3D primitive thumbnails baked into the UI icon atlas (tiers 32+).
     constexpr const char* Cube3DName        = "3dcube";
     constexpr const char* Sphere3DName      = "3dsphere";
@@ -139,11 +139,12 @@ namespace Icons {
     constexpr const char* ArrowRightName   = "chevronright";
     constexpr const char* EyeName        = "eye";
     constexpr const char* EyeOffName     = "eyeoff";
-    constexpr const char* LockName       = "settings";
-    constexpr const char* UnlockName     = "settings";
+    constexpr const char* LockName       = "lock";
+    constexpr const char* UnlockName     = "unlock";
+    constexpr const char* PinName        = "pin";
     constexpr const char* LayersName     = "contentbrowser";
-    constexpr const char* HierarchyName  = "object";
-    constexpr const char* PropertiesName = "settings";
+    constexpr const char* HierarchyName  = "list-tree";
+    constexpr const char* PropertiesName = "properties";
     constexpr const char* TerminalName   = "terminal";
     constexpr const char* OutputLogName  = "outputlog";
     constexpr const char* ConsoleName    = TerminalName;
@@ -156,6 +157,7 @@ namespace Icons {
     constexpr const char* WindLogoName   = "windlogo";
     constexpr const char* FilterName     = "filter";
     constexpr const char* PlusName       = "plus";
+    constexpr const char* FolderAddName  = "folderadd";
     constexpr const char* MinusName      = "minus";
     constexpr const char* XName          = "close";
     constexpr const char* CheckName      = "save";
@@ -261,8 +263,12 @@ namespace Icons {
             {"lock", LockName},
             {"unlock", UnlockName},
             {"layers", LayersName},
+            {"list-tree", HierarchyName},
             {"hierarchy", HierarchyName},
+            {"outliner", HierarchyName},
+            {"explorer", HierarchyName},
             {"properties", PropertiesName},
+            {"details", PropertiesName},
             {"console", ConsoleName},
             {"terminal", TerminalName},
             {"output-log", OutputLogName},

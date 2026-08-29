@@ -14,13 +14,13 @@ std::string IconForEntityType(scene::EntityType type) {
     case EntityType::DirectionalLight: return we::runtime::kindui::Icons::SunName;
     case EntityType::SkyLight: return we::runtime::kindui::Icons::LightName;
     case EntityType::SkyAtmosphere:
-    case EntityType::VolumetricClouds: return we::runtime::kindui::Icons::SphereName;
+    case EntityType::VolumetricClouds: return we::runtime::kindui::Icons::GlobeName;
     case EntityType::HeightFog: return we::runtime::kindui::Icons::LayersName;
     case EntityType::EmptyActor: return we::runtime::kindui::Icons::FolderName;
     case EntityType::Landscape: return we::runtime::kindui::Icons::MountainName;
     case EntityType::CameraIcon: return we::runtime::kindui::Icons::CameraName;
     case EntityType::AudioSource: return we::runtime::kindui::Icons::Volume2Name;
-    default: return we::runtime::kindui::Icons::CubeName;
+    default: return we::runtime::kindui::Icons::ToolbarObjectName;
     }
 }
 

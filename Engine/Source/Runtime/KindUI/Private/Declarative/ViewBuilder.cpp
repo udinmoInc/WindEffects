@@ -9,6 +9,8 @@
 #include "KindUI/Widgets/Components.h"
 #include "KindUI/Widgets/Label.h"
 #include "KindUI/Widgets/TextBox.h"
+#include "KindUI/Theming/ThemeAccess.h"
+#include "KindUI/Tokens/DesignToken.h"
 
 #include <algorithm>
 
@@ -430,7 +432,7 @@ std::shared_ptr<Widget> ViewBuilder::BuildElement(const Element& element) {
         if (expanded.type == ElementType::Toolbar) {
             row->SetStyleClass("ToolbarButton");
             row->Align(AlignItems::Center);
-            row->SetMinSize({ 0.0f, 36.0f });
+            row->SetMinSize({ 0.0f, ResolveMetric(MetricToken::ToolbarHeight) });
         }
         for (const Element& child : expanded.children) {
             if (auto built = BuildElement(child)) {

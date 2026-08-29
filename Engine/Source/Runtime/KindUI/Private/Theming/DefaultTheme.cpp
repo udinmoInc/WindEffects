@@ -1,114 +1,144 @@
 #include "KindUI/Theming/DefaultTheme.h"
+#include "KindUI/Theming/Palette.h"
 
 namespace we::runtime::kindui {
+using P = palette::GraphiteDark;
 
 Color DefaultTheme::ResolveColor(ColorToken token) const {
     switch (token) {
-    // Elevation: Window → Panel → Card → Control → Overlay → Popup
     case ColorToken::WindowBackground:
     case ColorToken::WorkspaceBackground:
-    case ColorToken::ViewportBackground:
-    case ColorToken::DockAreaBackground: return {0.067f, 0.071f, 0.078f, 1.0f}; // #111214
-
-    case ColorToken::PrimarySurface:
+    case ColorToken::StatusBarBackground:
+        return P::Window;
+    case ColorToken::ScrollbarTrack:
+        return P::ScrollbarTrack;
     case ColorToken::PanelBackground:
-    case ColorToken::PanelContentBackground:
-    case ColorToken::ContentBrowserBackground: return {0.094f, 0.098f, 0.106f, 1.0f}; // #18191B
-
+        return P::Panel;
+    case ColorToken::SecondarySurface:
+    case ColorToken::ButtonPrimaryBackground:
+        return P::Secondary;
     case ColorToken::CardBackground:
-    case ColorToken::SecondarySurface: return {0.114f, 0.118f, 0.125f, 1.0f}; // #1D1E20
-
-    case ColorToken::ControlBackground:
-    case ColorToken::InputBackground:
-    case ColorToken::SearchBoxBackground: return {0.078f, 0.082f, 0.090f, 1.0f}; // #141517
-
-    case ColorToken::TertiarySurface: return {0.133f, 0.137f, 0.149f, 1.0f}; // #222326
-
-    case ColorToken::OverlayBackground:
-    case ColorToken::DialogBackground: return {0.133f, 0.137f, 0.149f, 1.0f}; // #222326
-
     case ColorToken::PopupBackground:
-    case ColorToken::TooltipBackground: return {0.133f, 0.137f, 0.149f, 1.0f}; // #222326
-
+    case ColorToken::GizmoBackground:
+        return P::Card;
+    case ColorToken::TooltipBackground:
+        return P::TooltipBg;
+    case ColorToken::DragGhostBackground:
+        return P::DragGhost;
     case ColorToken::HeaderBackground:
     case ColorToken::ToolbarBackground:
-    case ColorToken::PanelToolbarBackground: return {0.110f, 0.114f, 0.122f, 1.0f}; // #1C1D1F
-    case ColorToken::MenuBarBackground:
-    case ColorToken::StatusBarBackground:
-    case ColorToken::FooterBackground: return {0.067f, 0.071f, 0.078f, 1.0f}; // #111214
-
+        return P::Header;
+    case ColorToken::ViewportToolbarBackground:
+        return P::ViewportToolbar;
     case ColorToken::TabBackground:
-    case ColorToken::PanelTabInactiveBackground: return {0.161f, 0.165f, 0.176f, 1.0f}; // #292A2D
-    case ColorToken::PanelTabActiveBackground: return {0.110f, 0.114f, 0.122f, 1.0f}; // #1C1D1F
-
-    case ColorToken::AccentSurface:
-    case ColorToken::AccentPrimary:      return {0.220f, 0.224f, 0.235f, 1.0f}; // #38393C
-    case ColorToken::AccentHover:        return {0.251f, 0.267f, 0.290f, 1.0f};
-
-    case ColorToken::ControlBackgroundHover:
-    case ColorToken::HoverBackground:    return {0.153f, 0.157f, 0.169f, 1.0f}; // #27282B
+        return P::TabInactive;
+    case ColorToken::InputBackground:
+    case ColorToken::ControlBackground:
+    case ColorToken::PressedBackground:
+    case ColorToken::ButtonPrimaryPressed:
     case ColorToken::ControlBackgroundPressed:
-    case ColorToken::PressedBackground:  return {0.078f, 0.082f, 0.090f, 1.0f}; // #141517
+        return P::Input;
+    case ColorToken::DisabledBackground:
     case ColorToken::ControlBackgroundDisabled:
-    case ColorToken::DisabledBackground: return {0.067f, 0.071f, 0.078f, 1.0f};
-    case ColorToken::ControlBackgroundSelected:
+        return {0.067f, 0.071f, 0.078f, 1.0f};
+    case ColorToken::ContentBrowserFolderBody:
+        return P::FolderBody;
+    case ColorToken::HoverBackground:
+    case ColorToken::ButtonPrimaryHover:
+        return P::Hover;
+    case ColorToken::ControlBackgroundHover:
+        return P::ControlHover;
     case ColorToken::SelectedBackground:
-    case ColorToken::ActiveBackground:   return {0.196f, 0.200f, 0.212f, 1.0f}; // #323336
-
-    case ColorToken::BorderDefault:      return {0.161f, 0.165f, 0.176f, 1.0f}; // #292A2D
+    case ColorToken::ContentBrowserFolderTab:
+    case ColorToken::ContentBrowserFolderPrimary:
+        return P::Selected;
+    case ColorToken::ControlBackgroundSelected:
+        return P::ControlSelected;
+    case ColorToken::Separator:
+        return P::Separator;
     case ColorToken::BorderSubtle:
-    case ColorToken::BorderDark:         return {0.137f, 0.141f, 0.153f, 1.0f}; // #232427
-    case ColorToken::BorderFocused:
-    case ColorToken::BorderFocus:
-    case ColorToken::ActiveTabLine:      return {0.220f, 0.224f, 0.235f, 1.0f}; // #38393C
-    case ColorToken::BorderError:
-    case ColorToken::ErrorColor:
-    case ColorToken::ErrorForeground:    return {0.878f, 0.322f, 0.322f, 1.0f}; // #E05252
+    case ColorToken::BorderDefault:
+    case ColorToken::ContentBrowserFolderEdge:
+        return P::Border;
     case ColorToken::BorderLight:
-    case ColorToken::Separator:          return {0.137f, 0.141f, 0.153f, 1.0f}; // #232427
-
+    case ColorToken::ContentBrowserFolderHighlight:
+    case ColorToken::AccentPrimary:
+    case ColorToken::BorderFocus:
+        return P::BorderLight;
+    case ColorToken::BorderError:
+    case ColorToken::ButtonDangerBackground:
+    case ColorToken::ErrorForeground:
+    case ColorToken::CloseButtonHover:
+        return P::Error;
+    case ColorToken::ButtonDangerHover:
+        return P::DangerHover;
+    case ColorToken::ButtonDangerPressed:
+        return P::DangerPressed;
     case ColorToken::TextPrimary:
-    case ColorToken::TextWindowLabel:
-    case ColorToken::CodeForeground:     return {0.902f, 0.902f, 0.902f, 1.0f}; // #E6E6E6
-    case ColorToken::TextSecondary:      return {0.627f, 0.631f, 0.639f, 1.0f}; // #A0A1A3
-    case ColorToken::TextCaption:        return {0.627f, 0.631f, 0.639f, 1.0f}; // #A0A1A3
-    case ColorToken::TextMuted:
-    case ColorToken::TextHint:
-    case ColorToken::SearchPlaceholder:  return {0.439f, 0.443f, 0.455f, 1.0f}; // #707174
-    case ColorToken::TextDisabled:       return {0.310f, 0.314f, 0.325f, 1.0f}; // #4F5053
-    case ColorToken::TextOnAccent:       return {0.902f, 0.902f, 0.902f, 1.0f};
-    case ColorToken::TextLink:
+    case ColorToken::TextOnAccent:
     case ColorToken::LinkForeground:
-    case ColorToken::PlayForeground:     return {0.627f, 0.631f, 0.639f, 1.0f};
-
+        return P::Text;
+    case ColorToken::TextSecondary:
+    case ColorToken::InfoColor:
+    case ColorToken::PlayForeground:
+        return P::TextSecondary;
+    case ColorToken::TextHint:
+    case ColorToken::SearchPlaceholder:
+        return P::TextHint;
+    case ColorToken::TextDisabled:
+        return P::TextDisabled;
     case ColorToken::IconPrimary:
-    case ColorToken::IconDefault:        return {0.627f, 0.631f, 0.639f, 1.0f};
-    case ColorToken::IconSecondary:      return {0.627f, 0.631f, 0.639f, 1.0f};
-    case ColorToken::IconDisabled:       return {0.310f, 0.314f, 0.325f, 1.0f};
+    case ColorToken::IconSecondary:
+        return P::TextSecondary;
     case ColorToken::IconAccent:
     case ColorToken::IconHover:
-    case ColorToken::IconActive:         return {0.902f, 0.902f, 0.902f, 1.0f};
-
+    case ColorToken::IconActive:
+        return P::Text;
+    case ColorToken::IconDisabled:
+        return P::TextDisabled;
+    case ColorToken::AccentHover:
+        return P::AccentHover;
+    case ColorToken::ActiveTabLine:
+        return P::ActiveTabLine;
+    case ColorToken::SelectionHighlight:
+        return P::SelectionHighlight;
     case ColorToken::Success:
-    case ColorToken::SuccessColor:       return {0.298f, 0.686f, 0.314f, 1.0f}; // #4CAF50
+        return P::Success;
     case ColorToken::Warning:
-    case ColorToken::WarningColor:       return {0.839f, 0.651f, 0.165f, 1.0f}; // #D6A62A
-    case ColorToken::InfoColor:          return {0.627f, 0.631f, 0.639f, 1.0f};
-
-    case ColorToken::ScrimOverlay:
-    case ColorToken::ModalScrim:         return {0.0f, 0.0f, 0.0f, 0.55f};
+        return P::Warning;
+    case ColorToken::ScrollbarThumb:
+        return P::ScrollThumb;
+    case ColorToken::ScrollbarThumbHover:
+        return P::ScrollThumbHover;
+    case ColorToken::GizmoAxisX:
+        return P::GizmoAxisX;
+    case ColorToken::GizmoAxisY:
+        return P::GizmoAxisY;
+    case ColorToken::GizmoAxisZ:
+        return P::GizmoAxisZ;
+    case ColorToken::HighlightSubtle:
+        return P::HighlightSubtle;
+    case ColorToken::ShadowPopup:
+        return P::ShadowPopup;
+    case ColorToken::ShadowSubtle:
+        return P::ShadowSubtle;
+    case ColorToken::ShadowOverlay:
+        return P::ShadowOverlay;
     case ColorToken::ShadowColor:
-    case ColorToken::ShadowSubtle:       return {0.0f, 0.0f, 0.0f, 0.22f};
-    case ColorToken::ShadowOverlay:      return {0.0f, 0.0f, 0.0f, 0.42f};
-    case ColorToken::ShadowPopup:        return {0.0f, 0.0f, 0.0f, 0.32f};
-    default:                             return {0.5f, 0.5f, 0.5f, 1.0f};
+        return P::ShadowColor;
+    case ColorToken::ModalScrim:
+        return P::ModalScrim;
+    case ColorToken::ContentBrowserFolderShadow:
+        return P::FolderShadow;
+    default:
+        return Color::Transparent();
     }
 }
 
 float DefaultTheme::ResolveMetric(MetricToken token) const {
     switch (token) {
     case MetricToken::CornerRadiusSmall: return 3.0f;
-    case MetricToken::CornerRadiusMedium: return 6.0f;
+    case MetricToken::CornerRadiusMedium: return 4.0f;
     case MetricToken::CornerRadiusLarge:
     case MetricToken::WindowCornerRadius: return 10.0f;
     case MetricToken::TextSizeMenu:
@@ -125,42 +155,71 @@ float DefaultTheme::ResolveMetric(MetricToken token) const {
     case MetricToken::TextSizeTitle: return 33.0f;
     case MetricToken::TextCharWidthRatio: return 0.55f;
     case MetricToken::BorderWidth: return 1.0f;
-    case MetricToken::FocusRingWidth: return 2.0f;
+    case MetricToken::FocusRingWidth: return 1.0f;
     case MetricToken::PanelHeaderHeight:
-    case MetricToken::PanelTabHeight:
-    case MetricToken::PanelToolbarHeight:
-    case MetricToken::HeaderControlHeight:
-    case MetricToken::IconButtonSize:
-    case MetricToken::ButtonHeight:
+    case MetricToken::PanelTabHeight: return 28.0f;
+    case MetricToken::PanelToolbarHeight: return 28.0f;
+    case MetricToken::HeaderControlHeight: return 24.0f;
+    case MetricToken::IconButtonSize: return 24.0f;
+    case MetricToken::ButtonHeight: return 24.0f;
     case MetricToken::NavigationButtonSize: return 32.0f;
-    case MetricToken::ControlHeightCompact: return 28.0f;
+    case MetricToken::ControlHeightCompact: return 24.0f;
     case MetricToken::ControlHeightLarge: return 40.0f;
-    case MetricToken::FormRowHeight: return 44.0f;
-    case MetricToken::MenuItemHeight: return 28.0f;
+    case MetricToken::FormRowHeight: return 28.0f;
+    case MetricToken::MenuItemHeight: return 24.0f;
     case MetricToken::PageMargin: return 16.0f;
     case MetricToken::SectionGap: return 24.0f;
     case MetricToken::CardPadding: return 12.0f;
     case MetricToken::ContentGap: return 12.0f;
     case MetricToken::FormRowGap: return 13.0f;
     case MetricToken::LabelHintGap: return 5.0f;
-    case MetricToken::ListRowHeight: return 48.0f;
-    case MetricToken::CategoryHeaderHeight: return 28.0f;
+    case MetricToken::ListRowHeight: return 28.0f;
+    case MetricToken::CategoryHeaderHeight: return 26.0f;
     case MetricToken::TitleBarHeight: return 34.0f;
     case MetricToken::WindowControlWidth: return 40.0f;
-    case MetricToken::ToolbarHeight: return 44.0f;
-    case MetricToken::SearchBoxHeight: return 28.0f;
+    case MetricToken::ToolbarHeight: return 40.0f;
+    case MetricToken::SearchBoxHeight: return 24.0f;
     case MetricToken::IconSizeSearch:
     case MetricToken::IconSizeToolbar:
     case MetricToken::IconSizePrimary:
     case MetricToken::IconSizeTree:
     case MetricToken::IconSizeNavigation: return 16.0f;
-    case MetricToken::IconButtonRadius: return 6.0f;
+    case MetricToken::IconButtonRadius: return 3.0f;
     case MetricToken::ButtonPaddingHorizontal:
     case MetricToken::Space2: return 8.0f;
-    case MetricToken::ButtonSpacing:
+    case MetricToken::ButtonSpacing: return 6.0f;
     case MetricToken::Space1: return 4.0f;
-    case MetricToken::ButtonGroupSpacing: return 10.0f;
-    case MetricToken::ScrollbarWidth: return 10.0f;
+    case MetricToken::ButtonGroupSpacing: return 14.0f;
+    case MetricToken::ScrollbarWidth: return 14.0f;
+    case MetricToken::ScrollbarThumbMinHeight: return 20.0f;
+    case MetricToken::TabTopRadius: return 2.0f;
+    case MetricToken::TabActiveIndicatorHeight: return 2.0f;
+    case MetricToken::StatusBarHeight: return 24.0f;
+    case MetricToken::TabGap: return 2.0f;
+    case MetricToken::ToolbarSeparatorHeight: return 22.0f;
+    case MetricToken::ToolbarLabeledHeight: return 34.0f;
+    case MetricToken::ToolbarLabeledMinWidth: return 48.0f;
+    case MetricToken::BreadcrumbBarHeight: return 26.0f;
+    case MetricToken::PropertyLabelColumnWidth: return 140.0f;
+    case MetricToken::PropertyIndentStep: return 12.0f;
+    case MetricToken::TreeIndentWidth: return 16.0f;
+    case MetricToken::PopupMinWidth: return 140.0f;
+    case MetricToken::PopupMaxWidth: return 340.0f;
+    case MetricToken::PopupMaxHeight: return 360.0f;
+    case MetricToken::TooltipMinWidth: return 180.0f;
+    case MetricToken::ToggleTrackWidth: return 34.0f;
+    case MetricToken::ToggleTrackHeight: return 18.0f;
+    case MetricToken::CheckboxGlyphSize: return 14.0f;
+    case MetricToken::PrimaryButtonHeight: return 34.0f;
+    case MetricToken::ContentBrowserGridPadding: return 8.0f;
+    case MetricToken::ContentBrowserGridHSpacing: return 6.0f;
+    case MetricToken::ContentBrowserGridVSpacing: return 6.0f;
+    case MetricToken::ContentBrowserThumbLarge: return 104.0f;
+    case MetricToken::ContentBrowserThumbMedium: return 72.0f;
+    case MetricToken::ContentBrowserThumbSmall: return 48.0f;
+    case MetricToken::ContentBrowserCellLarge: return 112.0f;
+    case MetricToken::ContentBrowserCellMedium: return 80.0f;
+    case MetricToken::ContentBrowserCellSmall: return 56.0f;
     case MetricToken::DragThreshold: return 6.0f;
     case MetricToken::MenuPadding: return 4.0f;
     case MetricToken::CheckMarkSize: return 16.0f;

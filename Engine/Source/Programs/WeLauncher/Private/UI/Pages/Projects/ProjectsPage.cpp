@@ -44,7 +44,7 @@ void ProjectsPage::Attach(
         state.root->SetHorizontalAlignment(we::runtime::kindui::HorizontalAlignment::Fill);
         state.root->SetVerticalAlignment(we::runtime::kindui::VerticalAlignment::Fill);
         if (auto box = std::dynamic_pointer_cast<we::runtime::kindui::Column>(state.root)) {
-            box->Background(LColor(we::runtime::kindui::ColorToken::PanelContentBackground));
+            box->Background(LColor(we::runtime::kindui::ColorToken::PanelBackground));
         }
     }
     state.scroll = nullptr;

@@ -61,17 +61,12 @@ void PlaceActorsThumbnailProvider::Paint(PaintContext& context,
     const PlaceActorsThumbnail thumb = Resolve(item);
 
     // Shared preview frame — identical layout for placeholder, atlas icon, and future thumbnails.
-    Color frame = we::runtime::kindui::ResolveColor(ColorToken::ActiveBackground);
-    frame = Color::Lerp(frame, we::runtime::kindui::ResolveColor(ColorToken::PanelContentBackground), 0.35f);
+    Color frame = we::runtime::kindui::ResolveColor(ColorToken::HoverBackground);
+    frame = Color::Lerp(frame, we::runtime::kindui::ResolveColor(ColorToken::PanelBackground), 0.35f);
     if (hoverAnim > 0.01f) {
         frame = Color::Lerp(frame, we::runtime::kindui::ResolveColor(ColorToken::HoverBackground), hoverAnim * 0.25f);
     }
     context.DrawRoundedRect(previewRect, frame, radius);
-    context.DrawRoundedRectOutline(
-        previewRect,
-        we::runtime::kindui::ResolveColor(ColorToken::BorderDefault),
-        1.0f,
-        radius);
 
     if (thumb.kind == PlaceActorsThumbnailKind::CachedTexture && thumb.cachedTexture != nullptr) {
         // Future path: generated thumbnails drawn into the same preview rect.

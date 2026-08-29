@@ -35,9 +35,7 @@ std::shared_ptr<Panel> CreateDetailsPanel() {
     return PanelBuilder(title)
         .TabIcon(Icons::PropertiesName)
         .WithCloseButton()
-        .ToolbarBox([searchBox](Row& toolbar) {
-            toolbar.AddChild(searchBox);
-        })
+        .Search(searchBox)
         .Content(content);
 }
 

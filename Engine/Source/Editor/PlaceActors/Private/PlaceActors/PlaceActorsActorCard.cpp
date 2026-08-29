@@ -56,7 +56,6 @@ void PlaceActorsActorCard::Paint(PaintContext& context,
 
     if (selected) {
         context.DrawRoundedRect(cardBounds, we::runtime::kindui::ResolveColor(ColorToken::SelectedBackground), radius);
-        context.DrawRoundedRectOutline(cardBounds, we::runtime::kindui::ResolveColor(ColorToken::BorderDefault), 1.0f, radius);
     } else if (hoverAnim > 0.01f || pressAnim > 0.01f) {
         Color bg = we::runtime::kindui::ResolveColor(ColorToken::HoverBackground);
         bg.a *= std::clamp(std::max(hoverAnim, pressAnim * 0.85f), 0.0f, 1.0f);

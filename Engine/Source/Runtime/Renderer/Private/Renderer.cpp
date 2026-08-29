@@ -323,7 +323,7 @@ void Renderer::RenderScene() {
         m_ViewportSky.get(), &m_LastCamera, &m_LastEnvironment));
     m_RenderGraph->AddPass(std::make_unique<ClearPass>(
         swapImage,
-        we::rhi::Color4f{0.09f, 0.09f, 0.10f, 1.0f},
+        m_SwapchainClearColor,
         swapExtent));
     m_RenderGraph->AddPass(std::make_unique<StubGraphicsPass>(
         "DepthPrepass", depthId, we::rhi::ResourceState::DepthWrite));
@@ -390,7 +390,7 @@ void Renderer::RenderUiPaintOnly() {
 
     m_RenderGraph->AddPass(std::make_unique<ClearPass>(
         swapImage,
-        we::rhi::Color4f{0.09f, 0.09f, 0.10f, 1.0f},
+        m_SwapchainClearColor,
         swapExtent));
     m_RenderGraph->AddPass(std::make_unique<UiOverlayPass>(swapImage, m_OverlayRecorder));
     m_RenderGraph->AddPass(std::make_unique<PresentPass>(swapImage));
@@ -408,6 +408,14 @@ void Renderer::SetExtractedFrame(const we::runtime::ecs::ExtractedFrameData* fra
 
 void Renderer::ClearOverlayRecorder() {
     m_OverlayRecorder = {};
+}
+
+void Renderer::SetSwapchainClearColor(const we::rhi::Color4f& color) {
+    m_SwapchainClearColor = color;
+}
+
+we::rhi::Color4f Renderer::GetSwapchainClearColor() const {
+    return m_SwapchainClearColor;
 }
 
 void Renderer::SetTerrainDrawer(TerrainDrawFn drawer) {

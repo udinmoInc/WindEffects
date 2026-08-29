@@ -71,9 +71,9 @@ private:
     MenuInfo* GetMenuAtPosition(const Point& pos);
 
     std::vector<MenuInfo> m_Menus;
-    float m_Height = 34.0f;
+    float m_Height = 0.0f;
     float m_ItemSpacing = 0.0f;
-    float m_ItemPaddingH = 10.0f;
+    float m_ItemPaddingH = 0.0f;
     int m_HoveredMenu = -1;
     bool m_MenuOpen = false;
 

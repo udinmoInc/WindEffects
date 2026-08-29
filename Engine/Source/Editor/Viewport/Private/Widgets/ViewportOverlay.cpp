@@ -20,6 +20,9 @@ using ::we::runtime::kindui::IconPainter;
 ViewportOverlay::ViewportOverlay()
     : m_Style(WidgetStyle::Panel())
 {
+    m_StatsPadding = ThemeMetric(MetricToken::Space2);
+    m_NavButtonSize = ThemeMetric(MetricToken::NavigationButtonSize);
+    m_NavSpacing = ThemeMetric(MetricToken::Space1);
     // Initialize navigation buttons
     m_NavButtons = {
         { Icons::PlusName, "zoom-in", Rect{} },
@@ -150,8 +153,8 @@ void ViewportOverlay::CalculateLayout() {
         float statsWidth = 160.0f;
         float statsHeight = 120.0f;
         m_StatsRect = Rect{
-            m_Geometry.x + 8.0f,
-            m_Geometry.y + 8.0f,
+            m_Geometry.x + m_StatsPadding,
+            m_Geometry.y + m_StatsPadding,
             statsWidth,
             statsHeight
         };
@@ -160,8 +163,8 @@ void ViewportOverlay::CalculateLayout() {
     // Axis gizmo (top-right)
     if (m_GizmoVisible) {
         m_GizmoRect = Rect{
-            m_Geometry.x + m_Geometry.width - m_GizmoSize - 16.0f,
-            m_Geometry.y + 16.0f,
+            m_Geometry.x + m_Geometry.width - m_GizmoSize - m_StatsPadding * 2.0f,
+            m_Geometry.y + m_StatsPadding * 2.0f,
             m_GizmoSize,
             m_GizmoSize
         };
@@ -173,8 +176,8 @@ void ViewportOverlay::CalculateLayout() {
         float navHeight = m_NavButtonSize + m_NavSpacing * 2.0f;
         
         m_NavigationRect = Rect{
-            m_Geometry.x + m_Geometry.width - navWidth - 8.0f,
-            m_Geometry.y + m_Geometry.height - navHeight - 8.0f,
+            m_Geometry.x + m_Geometry.width - navWidth - m_StatsPadding,
+            m_Geometry.y + m_Geometry.height - navHeight - m_StatsPadding,
             navWidth,
             navHeight
         };
@@ -236,6 +239,8 @@ void AxisGizmo::SetOrientation(float pitch, float yaw, float roll) {
 
 // NavigationControls implementation
 NavigationControls::NavigationControls() {
+    m_ButtonSize = ThemeMetric(MetricToken::NavigationButtonSize);
+    m_Spacing = ThemeMetric(MetricToken::Space1);
     m_Buttons = {
         { Icons::PlusName, "zoom-in", Rect{}, false },
         { Icons::MinusName, "zoom-out", Rect{}, false },

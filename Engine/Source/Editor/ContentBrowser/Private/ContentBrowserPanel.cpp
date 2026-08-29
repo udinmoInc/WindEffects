@@ -10,7 +10,10 @@
 #include "ContentBrowser/Widgets/TreeView.h"
 #include "KindUI/Layout/Flex.h"
 #include "KindUI/Layout/Splitter.h"
+#include "KindUI/Theming/ThemeAccess.h"
+#include "KindUI/Tokens/DesignToken.h"
 #include "KindUI/Core/Icon.h"
+#include "KindUI/Core/DPIContext.h"
 #include "Core/Localization.h"
 #include "Core/Paths.h"
 #include "Services/ContentBrowserService.h"
@@ -176,32 +179,31 @@ void ShutdownContentBrowserService() {
 std::shared_ptr<::we::editor::panels::Panel> CreateContentBrowserPanel() {
     auto title = we::core::Localization::Get().GetString("Panel_ContentBrowser", "Content Browser");
 
-    auto panelToolbar = ::we::editor::contentbrowser::ContentBrowserToolbarControls::Create(
-        ::we::editor::contentbrowser::ContentBrowserToolbarControls::ToolbarMode::Full);
-
     auto folderTree = std::make_shared<::we::editor::contentbrowser::TreeView>();
-    folderTree->SetExplorerStyle(true);
-    folderTree->SetItemHeight(26.0f);
-    folderTree->SetIndentWidth(16.0f);
+    folderTree->SetExplorerStyle(false);
+    folderTree->SetItemHeight(we::runtime::kindui::ResolveMetric(we::runtime::kindui::MetricToken::ListRowHeight));
+    folderTree->SetIndentWidth(we::runtime::kindui::ResolveMetric(we::runtime::kindui::MetricToken::TreeIndentWidth));
     folderTree->SetShowRowControls(false);
 
-    // Right pane: asset browser with its own toolbar (AssetPane mode)
+    // Right pane: asset browser with toolbar (AssetPane mode)
     auto assetToolbar = ::we::editor::contentbrowser::ContentBrowserToolbarControls::Create(::we::editor::contentbrowser::ContentBrowserToolbarControls::ToolbarMode::AssetPane);
     auto contentBrowser = std::make_shared<::we::editor::contentbrowser::ContentBrowser>();
     auto statusBar = std::make_shared<::we::editor::contentbrowser::ContentBrowserStatusBar>();
 
-    // Build right pane: asset toolbar + content browser + status bar
-    auto rightPane = std::make_shared<we::runtime::kindui::Column>();
-    rightPane->Gap(0.0f);
-    rightPane->AddChild(assetToolbar);
-    rightPane->AddChild(contentBrowser);
-    rightPane->AddChild(statusBar);
+    assetToolbar->SetFlexShrink(0.0f);
+    contentBrowser->SetFlexGrow(1.0f);
+    contentBrowser->SetFlexShrink(1.0f);
+    statusBar->SetFlexShrink(0.0f);
 
-    // Split content area into left (folder tree) and right (asset browser)
-    auto contentSplitter = std::make_shared<we::runtime::kindui::Splitter>(we::runtime::kindui::Orientation::Horizontal, 280.0f);
+    // Split content area into left (folder tree) and right (asset browser).
+    const float treePaneWidth = std::max(220.0f * we::runtime::kindui::DPIContext::GetScale(),
+        we::runtime::kindui::ResolveMetric(we::runtime::kindui::MetricToken::PropertyLabelColumnWidth) * 2.0f);
+    auto contentSplitter = std::make_shared<we::runtime::kindui::Splitter>(we::runtime::kindui::Orientation::Horizontal, treePaneWidth);
     contentSplitter->SetFirstChild(folderTree);
-    contentSplitter->SetSecondChild(rightPane);
+    contentSplitter->SetSecondChild(contentBrowser);
     contentSplitter->SetResizeMode(we::runtime::kindui::Splitter::ResizeMode::FixedFirst);
+    contentSplitter->SetFlexGrow(1.0f);
+    contentSplitter->SetFlexShrink(1.0f);
 
     auto panel = PanelBuilder(title)
         .TabIcon(Icons::ContentBrowserName)
@@ -210,14 +212,30 @@ std::shared_ptr<::we::editor::panels::Panel> CreateContentBrowserPanel() {
                 EditorWorkspaceController::Get().ToggleContentBrowserExpanded();
             }
         })
-        .Toolbar(panelToolbar)
+        .Toolbar(assetToolbar)
+        .Footer(statusBar)
         .Content(contentSplitter);
 
     RefreshFolderTree(folderTree);
     WireContentBrowser(contentBrowser, statusBar, nullptr);
     NavigateToFolder(ContentBrowserService::Get().GetCurrentFolder(), contentBrowser, nullptr, statusBar);
 
-    // Wire up asset toolbar (right pane) - search, save, filter
+    // Wire up asset toolbar - create, import, search, save, filter
+    assetToolbar->SetOnCreateClicked([]() {
+        // Add asset menu placeholder – layout hook for future creation workflow.
+    });
+
+    assetToolbar->SetOnImportClicked([]() {
+        auto& paths = we::core::PathService::Get();
+        const auto inputCandidates = paths.FontCandidates("Inter-Regular.ttf");
+        const auto inputFont = we::core::PathService::FindExisting(inputCandidates);
+        if (!inputFont) {
+            return;
+        }
+        const auto outputDir = inputFont->parent_path();
+        (void)we::runtime::kindui::FontImportService::ImportFontFile(*inputFont, outputDir, 18.0f);
+    });
+
     assetToolbar->GetSearchBox()->SetOnTextChanged([contentBrowser](const std::string& text) {
         ContentBrowserService::Get().GetSearchController().SetQuery(text);
         if (contentBrowser->GetModel()) contentBrowser->GetModel()->NotifyChanged();
@@ -230,26 +248,6 @@ std::shared_ptr<::we::editor::panels::Panel> CreateContentBrowserPanel() {
     assetToolbar->SetOnFilterClicked([contentBrowser]() {
         ContentBrowserService::Get().GetFilterController().ToggleFilter(ContentFilter::Textures);
         if (contentBrowser->GetModel()) contentBrowser->GetModel()->NotifyChanged();
-    });
-
-    // Wire up panel toolbar (top) - create, import, back, forward, folder
-    panelToolbar->SetOnCreateClicked([]() {
-        // Add asset menu placeholder – layout hook for future creation workflow.
-    });
-
-    panelToolbar->SetOnSaveClicked([]() {
-        // Save all placeholder – layout hook for future save workflow.
-    });
-
-    panelToolbar->SetOnImportClicked([]() {
-        auto& paths = we::core::PathService::Get();
-        const auto inputCandidates = paths.FontCandidates("Inter-Regular.ttf");
-        const auto inputFont = we::core::PathService::FindExisting(inputCandidates);
-        if (!inputFont) {
-            return;
-        }
-        const auto outputDir = inputFont->parent_path();
-        (void)we::runtime::kindui::FontImportService::ImportFontFile(*inputFont, outputDir, 18.0f);
     });
 
     folderTree->SetOnSelectionChanged([contentBrowser, statusBar](const std::vector<std::string>& ids) {

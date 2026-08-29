@@ -5,6 +5,7 @@
 #include "KindUI/Core/Widget.h"
 #include "KindUI/Core/Style.h"
 #include "KindUI/Core/Icon.h"
+#include "WindEffects/Editor/UI/Panel/PanelBodyLayout.h"
 #include "RHI/Types.h"
 #include <string>
 #include <memory>
@@ -26,6 +27,9 @@ public:
     Panel(const std::string& title = "");
     virtual ~Panel() = default;
 
+    /// Attach the body layout after the panel is owned by std::shared_ptr.
+    void AttachBodyLayout();
+
     Size Measure(const Size& availableSize) override;
     void Arrange(const Rect& allottedRect) override;
     void Paint(PaintContext& context) override;
@@ -39,11 +43,19 @@ public:
 
     // Content management
     void SetContent(const std::shared_ptr<Widget>& content);
-    std::shared_ptr<Widget> GetContent() const { return m_Content; }
+    std::shared_ptr<Widget> GetContent() const;
+
+    // Body region management (shared vertical hierarchy)
+    void SetModeTabs(const std::shared_ptr<Widget>& modeTabs);
+    void SetSearch(const std::shared_ptr<Widget>& search);
+    void SetColumnHeader(const std::shared_ptr<Widget>& columnHeader);
+    void SetFooter(const std::shared_ptr<Widget>& footer);
+    [[nodiscard]] std::shared_ptr<PanelBodyLayout> GetBodyLayout() const { return m_BodyLayout; }
+    [[nodiscard]] Rect GetRegionRect(PanelBodyRegion region) const;
     
     // Toolbar management
     void SetToolbar(const std::shared_ptr<Widget>& toolbar);
-    std::shared_ptr<Widget> GetToolbar() const { return m_Toolbar; }
+    std::shared_ptr<Widget> GetToolbar() const;
 
     // Header management
     void SetTitle(const std::string& title) { m_Title = title; }
@@ -90,8 +102,7 @@ private:
     HeaderAction* GetActionAtPosition(const Point& pos);
 
     std::string m_Title;
-    std::shared_ptr<Widget> m_Content;
-    std::shared_ptr<Widget> m_Toolbar;
+    std::shared_ptr<PanelBodyLayout> m_BodyLayout;
     std::vector<HeaderAction> m_HeaderActions;
     std::function<void()> m_OnOptionsMenu;
 
@@ -105,13 +116,11 @@ private:
     bool m_TransparentBackground = false;
     bool m_FloatingToolbar = false;
 
-    float m_HeaderHeight = 28.0f; // Thin header standard
+    float m_HeaderHeight = 0.0f; // resolved in constructor from PanelTabHeight token
     float m_ActionIconSize = 16.0f;
     float m_ActionSpacing = 4.0f;
 
     Rect m_HeaderRect;
-    Rect m_ToolbarRect;
-    Rect m_ContentRect;
     Rect m_OptionsMenuRect;
 
     WidgetStyle m_Style;

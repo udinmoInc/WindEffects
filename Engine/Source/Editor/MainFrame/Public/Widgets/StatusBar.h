@@ -44,7 +44,7 @@ public:
 private:
     void SelectPanelTab(int index, bool notify);
 
-    float m_Height = 28.0f;
+    float m_Height = 0.0f; // resolved in constructor from StatusBarHeight token
     int m_ActivePanelTab = 0;
 
     std::function<void(int)> m_OnFooterTabChanged;

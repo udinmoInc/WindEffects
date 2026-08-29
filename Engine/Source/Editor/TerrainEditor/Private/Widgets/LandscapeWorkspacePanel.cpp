@@ -4,20 +4,24 @@
 #include "KindUI/Widgets/Label.h"
 #include "KindUI/Core/Widgets/DesignSystemControls.h"
 
-#include "KindUI/Layout/Flex.h"
-#include "KindUI/Layout/ScrollLayout.h"
-#include "KindUI/Core/Widgets/DesignSystemControls.h"
-#include "WindEffects/Editor/UI/Panel/PanelChrome.h"
+#include "KindUI/Tokens/DesignToken.h"
+#include "KindUI/Theming/ThemeAccess.h"
 
 namespace we::editor::terrain {
+namespace {
+using we::runtime::kindui::MetricToken;
+using we::runtime::kindui::ResolveMetric;
+float Space1() { return ResolveMetric(MetricToken::Space1); }
+float Space2() { return ResolveMetric(MetricToken::Space2); }
+} // namespace
 
 LandscapeWorkspacePanel::LandscapeWorkspacePanel(ILandscapeEditor* editor) : m_Editor(editor) {
     SetFlexGrow(1.0f);
     SetFlexShrink(1.0f);
     SetMinSize({0.0f, 0.0f});
     m_ContentContainer = std::make_shared<we::runtime::kindui::Column>();
-    m_ContentContainer->Padding(we::runtime::kindui::Margin{8.f, 8.f, 8.f, 8.f});
-    m_ContentContainer->Gap(8.f);
+    m_ContentContainer->Padding(we::runtime::kindui::Margin{ Space2(), Space2(), Space2(), Space2() });
+    m_ContentContainer->Gap(Space2());
     m_ContentContainer->SetMinSize({0.0f, 0.0f});
     SyncDefaultTab();
     RebuildLayout();
@@ -51,14 +55,15 @@ void LandscapeWorkspacePanel::RebuildLayout() {
     m_ContentContainer->ClearChildren();
     
     auto tabBar = std::make_shared<we::runtime::kindui::Row>();
-    tabBar->Gap(4.f);
+    tabBar->Gap(Space1());
     tabBar->SetFlexShrink(0.0f);
     
     auto addTab = [&](const char* label, LandscapeWorkspaceTab tab) {
-        auto btn = we::runtime::kindui::MakeSecondaryAction(label);
+        auto btn = we::runtime::kindui::MakePanelTab(label);
+        btn->SetActive(m_ActiveTab == tab);
         btn->SetFlexGrow(1.0f);
         btn->SetFlexShrink(1.0f);
-        btn->SetMinWidth(50.0f);
+        btn->SetMinWidth(ChipButtonMinWidth());
         btn->SetOnClicked([this, tab]() { SetActiveTab(tab); });
         tabBar->AddChild(btn);
     };
@@ -76,7 +81,7 @@ void LandscapeWorkspacePanel::RebuildLayout() {
     contentArea->SetMinSize({0.0f, 0.0f});
 
     auto tabContent = std::make_shared<we::runtime::kindui::Column>();
-    tabContent->Gap(8.f);
+    tabContent->Gap(Space2());
 
     switch (m_ActiveTab) {
     case LandscapeWorkspaceTab::Create: BuildCreateTab(tabContent, *m_Editor); break;

@@ -1,6 +1,7 @@
 #include "KindUI/Widgets/Components.h"
 #include "KindUI/Core/PaintContext.h"
 #include "KindUI/Tokens/DesignToken.h"
+#include "KindUI/Theming/ThemeAccess.h"
 #include "KindUI/Theming/StyleRole.h"
 
 #include <cmath>
@@ -27,7 +28,8 @@ EmptyState::EmptyState(std::string title, std::string subtitle) {
 
 StatusBadge::StatusBadge(std::string text) : m_Text(std::move(text)) {
     SetStyleClass("Card");
-    SetMinSize({ 48.0f, 20.0f });
+    const float minH = ThemeMetric(MetricToken::ControlHeightCompact);
+    SetMinSize({ ThemeMetric(MetricToken::IconButtonSize) * 2.0f, minH });
 }
 
 void StatusBadge::SetText(std::string text) {
@@ -37,7 +39,13 @@ void StatusBadge::SetText(std::string text) {
 
 Size StatusBadge::Measure(const Size& availableSize) {
     (void)availableSize;
-    m_DesiredSize = ClampDesiredSize({ std::max(48.0f, static_cast<float>(m_Text.size()) * 7.0f + 16.0f), 20.0f });
+    const float minH = ThemeMetric(MetricToken::ControlHeightCompact);
+    const float padH = ThemeMetric(MetricToken::Space2);
+    m_DesiredSize = ClampDesiredSize({
+        std::max(ThemeMetric(MetricToken::IconButtonSize) * 2.0f,
+            static_cast<float>(m_Text.size()) * ThemeMetric(MetricToken::TextCharWidthRatio) * ThemeMetric(MetricToken::TextSizeSmall) + padH * 2.0f),
+        minH
+    });
     return m_DesiredSize;
 }
 
@@ -73,13 +81,13 @@ DialogChrome::DialogChrome(std::string title, const std::shared_ptr<Widget>& bod
 
 ToolbarBar::ToolbarBar() {
     SetStyleClass("ToolbarButton");
-    Gap(6.0f);
+    Gap(ThemeMetric(MetricToken::ButtonGroupSpacing) * 0.6f);
     Align(AlignItems::Center);
-    SetMinSize({ 0.0f, 36.0f });
+    SetMinSize({ 0.0f, ThemeMetric(MetricToken::ToolbarHeight) });
 }
 
 SkeletonBlock::SkeletonBlock() {
-    SetMinSize({ 40.0f, 16.0f });
+    SetMinSize({ ThemeMetric(MetricToken::IconButtonSize) + ThemeMetric(MetricToken::Space2), ThemeMetric(MetricToken::ControlHeightCompact) * 0.75f });
     SetFlexGrow(1.0f);
 }
 

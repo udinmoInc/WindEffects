@@ -30,6 +30,7 @@ using ::we::runtime::kindui::ScrollViewportMetrics;
 struct TreeNode {
     std::string id;
     std::string label;
+    std::string typeName;
     std::string iconName;
     we::rhi::RHIDescriptorSetHandle iconTexture = we::rhi::RHIDescriptorSetHandle::Invalid;
     std::vector<std::shared_ptr<TreeNode>> children;
@@ -79,6 +80,7 @@ public:
 
     // Callbacks
     void SetOnSelectionChanged(OnSelectionChanged callback) { m_OnSelectionChanged = callback; }
+    OnSelectionChanged GetOnSelectionChanged() const { return m_OnSelectionChanged; }
     void SetOnItemDoubleClicked(OnItemDoubleClicked callback) { m_OnItemDoubleClicked = callback; }
     void SetOnVisibilityToggled(OnVisibilityToggled callback) { m_OnVisibilityToggled = callback; }
     void SetOnLockToggled(OnLockToggled callback) { m_OnLockToggled = callback; }
@@ -89,7 +91,9 @@ public:
     void SetItemHeight(float height);
     void SetIndentWidth(float width);
     void SetExplorerStyle(bool enabled) { m_ExplorerStyle = enabled; if (enabled) m_Style.text.size = 13.0f; }
+    void SetShowColumnHeader(bool show) { m_ShowColumnHeader = show; InvalidateLayout(); }
     void SetShowRowControls(bool show) { m_ShowRowControls = show; }
+    size_t GetRenderItemCount() const { return m_RenderList.size(); }
 
     // Search and Filter
     void SetSearchQuery(const std::string& query);
@@ -115,6 +119,22 @@ private:
         int flatIndex;
         Rect geometry;
     };
+
+    struct TreeRowLayoutSlots {
+        Rect rowBounds;
+        float indentX = 0.0f;
+        Rect expanderBounds;
+        bool hasExpander = false;
+        Rect iconBounds;
+        bool hasIcon = false;
+        float textX = 0.0f;
+        float maxTextWidth = 0.0f;
+        Rect eyeBounds;
+        Rect lockBounds;
+        Rect typeBounds;
+    };
+
+    TreeRowLayoutSlots ComputeTreeRowLayout(const RenderItem& item) const;
 
     void BuildRenderList();
     void MarkRenderListDirty() { m_RenderListDirty = true; }
@@ -145,12 +165,13 @@ private:
     ScrollViewportMetrics m_ScrollMetrics{};
     int m_FirstVisibleIndex = 0;
     int m_LastVisibleIndex = 0;
-    float m_BaseItemHeight = 24.0f;
-    float m_BaseIndentWidth = 20.0f;
-    float m_ItemHeight = 24.0f;
-    float m_IndentWidth = 20.0f;
+    float m_BaseItemHeight = 0.0f;
+    float m_BaseIndentWidth = 0.0f;
+    float m_ItemHeight = 0.0f;
+    float m_IndentWidth = 0.0f;
     float m_ZoomLevel = 1.0f;
     bool m_ExplorerStyle = false;
+    bool m_ShowColumnHeader = true;
     bool m_ShowRowControls = true;
 
     std::string m_RenamingId;

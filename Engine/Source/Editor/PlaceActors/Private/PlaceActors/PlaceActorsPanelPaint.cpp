@@ -56,10 +56,9 @@ namespace Icons = ::we::runtime::kindui::Icons;
 namespace Icons = ::we::runtime::kindui::Icons;
 
 void PlaceActorsPanel::Paint(we::runtime::kindui::PaintContext& context) {
-    PanelChrome::PaintContentRegion(context, m_Geometry);
-
-    m_SearchBox->Paint(context);
-    m_FilterButton->Paint(context);
+    if (m_BodyLayout) {
+        m_BodyLayout->Paint(context);
+    }
 
     auto& catalog = PlaceActorsCatalog::Get();
     auto& favorites = PlaceActorsFavoritesManager::Get();
@@ -301,7 +300,11 @@ void PlaceActorsPanel::ShowTooltip(const PlaceActorsItemData& item, const Rect& 
     }
     m_TooltipToolId = item.toolId;
     m_TooltipText = item.description;
-    m_TooltipRect = Rect{ anchor.x, anchor.y + anchor.height + 4.0f, 220.0f, 28.0f };
+    m_TooltipRect = Rect{
+        anchor.x,
+        anchor.y + anchor.height + ThemeMetric(MetricToken::Space1),
+        ThemeMetric(MetricToken::TooltipMinWidth) + ThemeMetric(MetricToken::Space6),
+        ThemeMetric(MetricToken::PanelToolbarHeight) };
 }
 
 void PlaceActorsPanel::HideTooltip() {
@@ -345,7 +348,10 @@ void PlaceActorsPanel::OnMouseDown(const MouseEvent& event) {
         return;
     }
 
-    if (m_SearchRowRect.Contains(event.position)) {
+    const Rect searchRect = m_BodyLayout
+        ? m_BodyLayout->GetRegionRect(::we::editor::panels::PanelBodyRegion::Search)
+        : Rect{};
+    if (!searchRect.IsEmpty() && searchRect.Contains(event.position)) {
         if (m_SearchBox->GetGeometry().Contains(event.position)) m_SearchBox->OnMouseDown(event);
         else if (m_FilterButton->GetGeometry().Contains(event.position)) m_FilterButton->OnMouseDown(event);
         return;
@@ -403,7 +409,10 @@ void PlaceActorsPanel::OnMouseDown(const MouseEvent& event) {
 }
 
 void PlaceActorsPanel::OnMouseMove(const MouseEvent& event) {
-    if (m_SearchRowRect.Contains(event.position)) {
+    const Rect searchRect = m_BodyLayout
+        ? m_BodyLayout->GetRegionRect(::we::editor::panels::PanelBodyRegion::Search)
+        : Rect{};
+    if (!searchRect.IsEmpty() && searchRect.Contains(event.position)) {
         m_SearchBox->OnMouseMove(event);
         m_FilterButton->OnMouseMove(event);
     }

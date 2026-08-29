@@ -134,8 +134,16 @@ private:
 
 EditorModeSelector::EditorModeSelector() {
     Refresh();
-    EditorModeController::Get().AddModeChangedListener([this](const std::string&) {
-        Refresh();
+}
+
+EditorModeSelector::~EditorModeSelector() = default;
+
+void EditorModeSelector::InitializeCallbacks(const std::shared_ptr<EditorModeSelector>& self) {
+    std::weak_ptr<EditorModeSelector> weak = self;
+    EditorModeController::Get().AddModeChangedListener([weak](const std::string&) {
+        if (auto self = weak.lock()) {
+            self->Refresh();
+        }
     });
 }
 
@@ -160,7 +168,7 @@ Size EditorModeSelector::Measure(const Size& availableSize) {
     const float iconSz = ToolbarButtonChrome::IconSize(uiScale);
     const float iconGap = ToolbarButtonChrome::IconGapPx(uiScale);
     const float chevW = we::runtime::kindui::IconMetrics::CompactDisplayPx();
-    const float controlH = ThemeMetric(MetricToken::IconButtonSize) * uiScale;
+    const float controlH = (std::max)(32.0f * uiScale, ThemeMetric(MetricToken::ToolbarLabeledHeight) * uiScale);
     m_DesiredSize = Size{
         padH + iconSz + iconGap + chevW + padH,
         controlH

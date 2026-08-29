@@ -63,6 +63,11 @@ KINDUI_API void PaintInputFrame(
     const Rect& rect,
     const InteractionState& state);
 
+KINDUI_API void PaintSearchInputFrame(
+    PaintContext& context,
+    const Rect& rect,
+    const InteractionState& state);
+
 KINDUI_API void PaintListRow(
     PaintContext& context,
     const Rect& rect,
@@ -106,6 +111,21 @@ KINDUI_API void PaintCheckbox(
     const Rect& box,
     bool checked,
     const InteractionState& state);
+
+/// In-panel workspace tab (Create / Sculpt / …). No strip background — inactive tabs are transparent.
+KINDUI_API void PaintPanelTab(
+    PaintContext& context,
+    const Rect& bounds,
+    std::string_view label,
+    const InteractionState& state);
+
+/// Draws a connected vertical editor divider line across [top, bottom].
+KINDUI_API void PaintVerticalSeparator(
+    PaintContext& context,
+    float x,
+    float top,
+    float bottom,
+    float thickness = 1.0f);
 
 } // namespace ControlChrome
 

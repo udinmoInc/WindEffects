@@ -64,13 +64,13 @@ private:
 
     Orientation m_Orientation;
     float m_SplitRatio = 0.5f;
-    float m_FixedFirstWidth = 280.0f;
-    float m_FixedSecondWidth = 280.0f;
+    float m_FixedFirstWidth = 0.0f;
+    float m_FixedSecondWidth = 0.0f;
     ResizeMode m_ResizeMode = ResizeMode::Ratio;
-    float m_BarThicknessLogical = 2.0f;
-    float m_HitThicknessLogical = 8.0f;
-    float m_MinFirstPx = 80.0f;
-    float m_MinSecondPx = 80.0f;
+    float m_BarThicknessLogical = 0.0f;
+    float m_HitThicknessLogical = 0.0f;
+    float m_MinFirstPx = 0.0f;
+    float m_MinSecondPx = 0.0f;
     bool m_PanelGapEnabled = false;
     bool m_Dragging = false;
     bool m_Hovered = false;

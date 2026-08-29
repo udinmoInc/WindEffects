@@ -157,6 +157,29 @@ private:
     std::function<void(const std::string&)> m_OnChanged;
 };
 
+class KINDUI_API PanelTab : public Widget {
+public:
+    explicit PanelTab(std::string label);
+
+    void SetActive(bool active) { m_Active = active; InvalidatePaint(); }
+    void SetOnClicked(std::function<void()> cb) { m_OnClicked = std::move(cb); }
+
+    Size Measure(const Size& availableSize) override;
+    void Arrange(const Rect& allottedRect) override;
+    void Paint(PaintContext& context) override;
+    void OnMouseDown(const MouseEvent& event) override;
+    void OnMouseUp(const MouseEvent& event) override;
+    void Tick(float deltaTime) override;
+    bool ShowsPointerCursor(const Point& position) const override { return m_Geometry.Contains(position); }
+
+private:
+    std::string m_Label;
+    bool m_Active = false;
+    bool m_Pressed = false;
+    float m_HoverAnim = 0.0f;
+    std::function<void()> m_OnClicked;
+};
+
 class KINDUI_API SidebarItem : public Widget {
 public:
     SidebarItem(std::string label, const char* icon = nullptr);
@@ -214,5 +237,6 @@ protected:
 [[nodiscard]] KINDUI_API std::shared_ptr<SecondaryButton> MakeSecondaryAction(
     std::string label,
     std::string icon = {});
+[[nodiscard]] KINDUI_API std::shared_ptr<PanelTab> MakePanelTab(std::string label);
 
 } // namespace we::runtime::kindui

@@ -5,8 +5,10 @@
 #include "KindUI/Core/DPIContext.h"
 #include "KindUI/Rendering/IconMetrics.h"
 #include "KindUI/Tokens/DesignToken.h"
-#include "KindUI/Theming/StyleRole.h"
 #include "KindUI/Theming/ThemeAccess.h"
+#include "KindUI/Rendering/IconMetrics.h"
+#include "KindUI/Theming/ThemeAccess.h"
+#include "KindUI/Core/ControlChrome.h"
 #include "KindUI/Input/InputEvents.h"
 #include "KindUI/Core/Icon.h"
 #include <algorithm>
@@ -21,9 +23,14 @@ using ::we::runtime::kindui::KeyEventType;
 using ::we::runtime::kindui::IconPainter;
 namespace Icons = ::we::runtime::kindui::Icons;
 namespace IconMetrics = ::we::runtime::kindui::IconMetrics;
+namespace ControlChrome = ::we::runtime::kindui::ControlChrome;
 using ::we::runtime::kindui::KeyCodeToChar;
 
-CommandInput::CommandInput() = default;
+CommandInput::CommandInput()
+    : m_Height(we::runtime::kindui::ResolveMetric(MetricToken::SearchBoxHeight))
+    , m_Width(we::runtime::kindui::ResolveMetric(MetricToken::PropertyLabelColumnWidth) * 2.0f)
+{
+}
 
 Size CommandInput::Measure(const Size& availableSize) {
     (void)availableSize;
@@ -38,22 +45,18 @@ void CommandInput::Arrange(const Rect& allottedRect) {
 }
 
 void CommandInput::Paint(PaintContext& context) {
-    const float cornerRadius = 4.0f;
-    context.DrawRoundedRect(m_Geometry, ThemeColor(ColorToken::InputBackground), cornerRadius);
-
-    Color borderColor = ThemeColor(ColorToken::BorderDefault);
-    if (IsFocused()) {
-        borderColor = ThemeColor(ColorToken::AccentPrimary);
-    }
-    context.DrawRoundedRectOutline(m_Geometry, borderColor, 1.0f, cornerRadius);
+    ControlChrome::InteractionState state{};
+    state.focused = IsFocused();
+    ControlChrome::PaintInputFrame(context, m_Geometry, state);
 
     const float iconSize = static_cast<float>(IconMetrics::NativeIconTierPx(ThemeMetric(MetricToken::IconSizeSearch)));
-    const float iconX = m_Geometry.x + 10.0f;
+    const float padH = ThemeMetric(MetricToken::Space2);
+    const float iconX = m_Geometry.x + padH;
     const float iconY = m_Geometry.y + (m_Geometry.height - iconSize) / 2.0f;
     IconPainter::DrawIcon(context, Icons::TerminalName, Rect{ iconX, iconY, iconSize, iconSize }, ThemeColor(ColorToken::IconSecondary));
 
-    const float textX = m_Geometry.x + 10.0f + iconSize + 8.0f;
-    const float fontSize = 12.0f;
+    const float textX = iconX + iconSize + ThemeMetric(MetricToken::Space1);
+    const float fontSize = ThemeMetric(MetricToken::TextSizeSmall);
     const float textY = m_Geometry.y + (m_Geometry.height - fontSize) / 2.0f;
 
     if (m_Text.empty() && !IsFocused()) {
@@ -73,12 +76,15 @@ void CommandInput::OnMouseDown(const MouseEvent& event) {
         return;
     }
 
-    const float textX = m_Geometry.x + 32.0f;
+    const float iconSize = static_cast<float>(IconMetrics::NativeIconTierPx(ThemeMetric(MetricToken::IconSizeSearch)));
+    const float padH = ThemeMetric(MetricToken::Space2);
+    const float textX = m_Geometry.x + padH + iconSize + ThemeMetric(MetricToken::Space1);
     const float clickX = std::max(0.0f, event.position.x - textX);
+    const float charWidth = ThemeMetric(MetricToken::TextSizeSmall) * ThemeMetric(MetricToken::TextCharWidthRatio);
     size_t closestPos = 0;
     float minDist = FLT_MAX;
     for (size_t i = 0; i <= m_Text.length(); ++i) {
-        const float charX = 7.0f * static_cast<float>(i);
+        const float charX = charWidth * static_cast<float>(i);
         const float dist = std::abs(clickX - charX);
         if (dist < minDist) {
             minDist = dist;

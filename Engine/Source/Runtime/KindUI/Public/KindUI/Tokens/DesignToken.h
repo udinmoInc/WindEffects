@@ -6,105 +6,78 @@
 
 namespace we::runtime::kindui {
 
-// Platform-neutral semantic design tokens.
-// Applications supply concrete values through IKindUITheme; KindUI never hardcodes branding.
+// Semantic color tokens — one role per entry.
+// Concrete values live in Palette.h (GraphiteDark) and theme ResolveColor().
+// Multiple tokens may share a palette entry when roles intentionally match.
 
 enum class ColorToken : uint32_t {
-    // Semantic elevation surfaces (darkest → lightest for dark themes)
-    // Window → Panel → Card → Control → Overlay → Popup
-    PrimarySurface,   // Panel-level content surface
-    SecondarySurface, // Card / raised content surface
-    TertiarySurface,  // Elevated chrome / nested wells
-    AccentSurface,
-    WindowBackground,
-    ControlBackground,
+    // ── Surfaces (elevation: Window → Panel → Card → Control → Popup) ───────
+    WindowBackground,       // Outermost chrome (#151515)
+    WorkspaceBackground,    // Dock/viewport void (#151515)
+    PanelBackground,        // Panel body fill (#242424)
+    SecondarySurface,       // Recessed secondary panels (#1D1E20)
+    CardBackground,         // Raised cards / popups (#222326)
+    HeaderBackground,       // Panel header / active tab (#1C1D1F)
+    ToolbarBackground,      // Toolbar strips (#1C1D1F)
+    TabBackground,          // Inactive dock tab (#292A2D)
+    InputBackground,        // Text/numeric fields (#141517)
+    ControlBackground,      // Generic control wells (#141517)
+    PopupBackground,        // Dropdowns / menus (#222326)
+    TooltipBackground,      // Tooltips (#222326 @ 97%)
+    DisabledBackground,     // Disabled control fill (#111214)
+    StatusBarBackground,    // Bottom status bar (#151515)
+    ViewportToolbarBackground, // Floating viewport toolbar (#1C1D1F @ 96%)
+    ScrollbarTrack,         // Scroll gutter (#1A1A1A)
+
+    // ── Interaction states ────────────────────────────────────────────────────
+    HoverBackground,
+    PressedBackground,
+    SelectedBackground,
     ControlBackgroundHover,
     ControlBackgroundPressed,
     ControlBackgroundDisabled,
     ControlBackgroundSelected,
-    CardBackground, // Explicit card fill (aliases SecondarySurface in themes)
 
-    // App chrome surfaces
-    WorkspaceBackground,
-    ToolbarBackground,
-    PanelBackground,
-    HeaderBackground,
-    ViewportBackground,
-    FooterBackground,
-    MenuBarBackground,
-    TabBackground,
-    PopupBackground,
-    OverlayBackground, // Modal/dialog elevation fill
-    ContentBrowserBackground,
-    PanelContentBackground,
-    PanelToolbarBackground,
-    PanelTabActiveBackground,
-    PanelTabInactiveBackground,
-    DockAreaBackground,
-    StatusBarBackground,
-    ViewportToolbarBackground,
-    DialogBackground,
-    TooltipBackground,
-    InputBackground,
-    SearchBoxBackground,
+    // ── Borders & separators ──────────────────────────────────────────────────
+    Separator,              // 1px panel edges (#232427)
+    BorderSubtle,           // Subtle panel border (#292A2D)
+    BorderDefault,          // Default control border (#292A2D)
+    BorderLight,            // Emphasized border (#38393C)
+    BorderFocus,            // Focus ring (#38393C)
+    BorderError,            // Validation error (#E05252)
 
-    // Borders
-    BorderDefault,
-    BorderSubtle,
-    BorderFocused,
-    BorderError,
-    BorderLight,
-    BorderDark,
-    BorderFocus, // alias of BorderFocused for product themes
-    Separator,
+    // ── Text hierarchy ──────────────────────────────────────────────────────
+    TextPrimary,            // Body / labels (#E6E6E6)
+    TextSecondary,          // Supporting copy (#A0A1A3)
+    TextHint,               // Placeholders / muted (#707174)
+    TextDisabled,           // Disabled text (#4F5053)
+    TextOnAccent,           // Text on filled buttons (#E6E6E6)
+    LinkForeground,         // Hyperlinks (#E6E6E6)
+    SearchPlaceholder,      // Search field placeholder (alias → TextHint)
 
-    // Interaction
-    HoverBackground,
-    ActiveBackground,
-    SelectedBackground,
-    DisabledBackground,
-    PressedBackground,
-    ContentBrowserHoverBackground,
+    // ── Icons ─────────────────────────────────────────────────────────────────
+    IconPrimary,            // Default icon (#A0A1A3)
+    IconSecondary,          // De-emphasized icon (#A0A1A3)
+    IconDisabled,           // Disabled icon (#4F5053)
+    IconAccent,             // Active/accent icon (#E6E6E6)
+    IconHover,              // Hovered icon (#E6E6E6)
+    IconActive,             // Pressed/active icon (#E6E6E6)
 
-    // Text — semantic hierarchy (Primary > Secondary > Caption/Muted > Hint > Disabled)
-    TextPrimary,   // PageTitle, SectionTitle, Body, labels
-    TextSecondary, // Descriptions, supporting copy
-    TextCaption,   // Captions / meta (between Secondary and Hint)
-    TextDisabled,
-    TextOnAccent,
-    TextLink,
-    TextMuted,     // Hint / placeholder (aliases TextHint in themes)
-    TextHint,      // Explicit hint/placeholder role
-    TextWindowLabel,
-    SearchPlaceholder,
-    CodeForeground,
-    LinkForeground,
+    // ── Accent & selection ────────────────────────────────────────────────────
+    AccentPrimary,          // Primary accent (#38393C)
+    AccentHover,            // Accent hover (#40444A)
+    ActiveTabLine,          // Active dock tab indicator (#38393C @ 80%)
+    SelectionHighlight,     // Selection overlay (#323336 @ 90%)
 
-    // Icons
-    IconPrimary,
-    IconSecondary,
-    IconDisabled,
-    IconAccent,
-    IconDefault,
-    IconHover,
-    IconActive,
-
-    // Accent / semantic
-    AccentPrimary,
-    AccentHover,
-    ActiveTabLine,
-    SelectionHighlight,
-    SuccessColor,
-    WarningColor,
-    ErrorColor,
-    InfoColor,
+    // ── Semantic status ───────────────────────────────────────────────────────
     Success,
     Warning,
     ErrorForeground,
+    InfoColor,
     PlayForeground,
     CloseButtonHover,
 
-    // Buttons
+    // ── Buttons ───────────────────────────────────────────────────────────────
     ButtonPrimaryBackground,
     ButtonPrimaryHover,
     ButtonPrimaryPressed,
@@ -112,23 +85,22 @@ enum class ColorToken : uint32_t {
     ButtonDangerHover,
     ButtonDangerPressed,
 
-    // Gizmo
+    // ── Gizmo / viewport helpers ──────────────────────────────────────────────
     GizmoBackground,
     GizmoAxisX,
     GizmoAxisY,
     GizmoAxisZ,
 
-    // Depth
+    // ── Depth & overlays ──────────────────────────────────────────────────────
     HighlightSubtle,
     ShadowSubtle,
     ShadowOverlay,
     ShadowPopup,
     ShadowColor,
-    ScrimOverlay,
     ModalScrim,
     DragGhostBackground,
 
-    // Content Browser folder art
+    // ── Content-browser folder art ────────────────────────────────────────────
     ContentBrowserFolderShadow,
     ContentBrowserFolderEdge,
     ContentBrowserFolderHighlight,
@@ -136,8 +108,7 @@ enum class ColorToken : uint32_t {
     ContentBrowserFolderPrimary,
     ContentBrowserFolderBody,
 
-    // Scrollbar
-    ScrollbarTrack,
+    // ── Scrollbar ─────────────────────────────────────────────────────────────
     ScrollbarThumb,
     ScrollbarThumbHover,
 };
@@ -294,6 +265,40 @@ enum class MetricToken : uint32_t {
     ButtonSpacing,
     ButtonGroupSpacing,
     ScrollbarWidth,
+    ScrollbarThumbMinHeight,
+
+    TabTopRadius,              // dock tab upper corner radius
+    TabActiveIndicatorHeight,  // accent line on active dock tab
+    TabGap,                    // horizontal gap between dock tabs
+    StatusBarHeight,           // bottom status/command bar
+
+    ToolbarSeparatorHeight,    // vertical separator line in toolbars
+    ToolbarLabeledHeight,      // labeled toolbar button variant
+    ToolbarLabeledMinWidth,
+
+    BreadcrumbBarHeight,       // content browser path bar
+    PropertyLabelColumnWidth,  // details / property inspector label column
+    PropertyIndentStep,        // nested property tree indent per level
+    TreeIndentWidth,           // tree view indent per depth level
+
+    PopupMinWidth,
+    PopupMaxWidth,
+    PopupMaxHeight,            // scrollable dropdown / context menu cap
+    TooltipMinWidth,
+    ToggleTrackWidth,          // toggle switch track
+    ToggleTrackHeight,
+    CheckboxGlyphSize,         // checkbox inner mark
+    PrimaryButtonHeight,       // prominent panel CTA (e.g. Create Landscape)
+
+    ContentBrowserGridPadding,
+    ContentBrowserGridHSpacing,
+    ContentBrowserGridVSpacing,
+    ContentBrowserThumbLarge,
+    ContentBrowserThumbMedium,
+    ContentBrowserThumbSmall,
+    ContentBrowserCellLarge,
+    ContentBrowserCellMedium,
+    ContentBrowserCellSmall,
 
     DragThreshold,      // pointer movement before drag gesture starts
     MenuPadding,        // popup / dropdown inner inset

@@ -24,7 +24,6 @@ void PaintActorRowBackground(PaintContext& context, const Rect& rowRect, float h
     const float radius = ActorsPanelLayout::RowRadius();
     if (selected) {
         context.DrawRoundedRect(rowRect, we::runtime::kindui::ResolveColor(ColorToken::SelectedBackground), radius);
-        context.DrawRoundedRectOutline(rowRect, we::runtime::kindui::ResolveColor(ColorToken::BorderDefault), 1.0f, radius);
         return;
     }
 
@@ -37,7 +36,7 @@ void PaintActorRowBackground(PaintContext& context, const Rect& rowRect, float h
 }
 
 void PaintCategoryHeaderBackground(PaintContext& context, const Rect& bounds, float hoverAnim) {
-    Color bg = we::runtime::kindui::ResolveColor(ColorToken::ActiveBackground);
+    Color bg = we::runtime::kindui::ResolveColor(ColorToken::HoverBackground);
     bg.a = 0.55f;
     context.DrawRoundedRect(bounds, bg, ActorsPanelLayout::SectionRadius());
     if (hoverAnim > 0.01f) {
@@ -48,7 +47,7 @@ void PaintCategoryHeaderBackground(PaintContext& context, const Rect& bounds, fl
 }
 
 void PaintSectionBackground(PaintContext& context, const Rect& bounds) {
-    Color fill = we::runtime::kindui::ResolveColor(ColorToken::ActiveBackground);
+    Color fill = we::runtime::kindui::ResolveColor(ColorToken::HoverBackground);
     fill.a = 0.28f;
     context.DrawRoundedRect(bounds, fill, ActorsPanelLayout::SectionRadius());
 }

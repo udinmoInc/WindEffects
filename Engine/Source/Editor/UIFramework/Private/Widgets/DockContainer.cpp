@@ -102,33 +102,42 @@ void DockContainer::Tick(float deltaTime) {
 }
 
 Size DockContainer::Measure(const Size& availableSize) {
-    m_DesiredSize = availableSize;
     const float headerHeight = GetHeaderHeightDevice();
 
+    PaintContext context;
+    float requiredTabWidth = 0.0f;
+    for (int i = 0; i < static_cast<int>(m_Tabs.size()); ++i) {
+        const auto& tabInfo = m_Tabs[static_cast<size_t>(i)];
+        const bool isActive = (i == m_ActiveTabIndex);
+        requiredTabWidth += MeasureTabWidth(context, tabInfo, isActive, i == 0);
+        if (i + 1 < static_cast<int>(m_Tabs.size())) {
+            requiredTabWidth += PanelChrome::TabGap();
+        }
+    }
+
+    float desiredW = (availableSize.width < 1.0e8f) ? availableSize.width : requiredTabWidth;
+    float desiredH = (availableSize.height < 1.0e8f) ? availableSize.height : headerHeight;
+
+    Size panelContentDesired{ 0.0f, 0.0f };
     if (m_ActiveTabIndex >= 0 && m_ActiveTabIndex < static_cast<int>(m_Tabs.size())) {
         auto activePanel = m_Tabs[static_cast<size_t>(m_ActiveTabIndex)].panel;
 
         Size contentAvailable = availableSize;
-        contentAvailable.height = std::max(0.0f, contentAvailable.height - headerHeight);
-
-        float usedHeight = headerHeight;
-
-        if (auto toolbar = activePanel->GetToolbar()) {
-            if (!activePanel->IsFloatingToolbar()) {
-                Size tbSize = toolbar->Measure(contentAvailable);
-                contentAvailable.height = std::max(0.0f, contentAvailable.height - tbSize.height);
-                usedHeight += tbSize.height;
-            }
+        if (contentAvailable.height < 1.0e8f) {
+            contentAvailable.height = (std::max)(0.0f, contentAvailable.height - headerHeight);
         }
 
-        if (auto content = activePanel->GetContent()) {
-            Size cSize = content->Measure(contentAvailable);
-            usedHeight += cSize.height;
-        }
-
-        m_DesiredSize.height = std::max(m_DesiredSize.height, usedHeight);
+        panelContentDesired = activePanel->Measure(contentAvailable);
     }
 
+    if (availableSize.width >= 1.0e8f) {
+        desiredW = (std::max)({ desiredW, requiredTabWidth, panelContentDesired.width });
+    }
+    if (availableSize.height >= 1.0e8f) {
+        desiredH = headerHeight + panelContentDesired.height;
+    }
+
+    m_DesiredSize = ClampDesiredSize(Size{ desiredW, desiredH });
     return m_DesiredSize;
 }
 
@@ -145,7 +154,7 @@ void DockContainer::Arrange(const Rect& allottedRect) {
             allottedRect.x,
             allottedRect.y + headerHeight,
             allottedRect.width,
-            std::max(0.0f, allottedRect.height - headerHeight)
+            (std::max)(0.0f, allottedRect.height - headerHeight)
         },
         allottedRect);
 
@@ -222,7 +231,7 @@ std::shared_ptr<Widget> DockContainer::HitTestPoint(const Point& pos, const Rect
         }
     }
 
-    return nullptr;
+    return shared_from_this();
 }
 
 float DockContainer::MeasureTabWidth(PaintContext& context, const TabInfo& tabInfo, bool isActive, bool flushLeft) {
@@ -237,6 +246,7 @@ float DockContainer::MeasureTabWidth(PaintContext& context, const TabInfo& tabIn
 }
 
 void DockContainer::PaintTab(PaintContext& context, TabInfo& tabInfo, int index, float& currentX) {
+    (void)currentX;
     const bool isActive = (index == m_ActiveTabIndex);
     const bool showClose = isActive || tabInfo.isHovered;
     const bool flushLeft = (index == 0);
@@ -248,56 +258,33 @@ void DockContainer::PaintTab(PaintContext& context, TabInfo& tabInfo, int index,
     descriptor.brandDescriptor = tabInfo.panel->GetTabBrandDescriptor();
     descriptor.brandLogicalSize = tabInfo.panel->GetTabBrandLogicalSize();
 
-    const auto layout = PanelChrome::PaintDockTab(
+    PanelChrome::DockTabLayout layout{ tabInfo.tabRect, tabInfo.closeRect };
+    PanelChrome::PaintDockTab(
         context,
         descriptor,
+        layout,
         m_HeaderRect,
-        currentX,
         isActive,
         tabInfo.hoverAnim,
         showClose,
         tabInfo.isCloseHovered,
         flushLeft);
-
-    tabInfo.tabRect = layout.tabRect;
-    tabInfo.closeRect = showClose ? layout.closeRect : Rect{};
-    currentX += layout.tabRect.width + PanelChrome::TabGap();
 }
 
 void DockContainer::Paint(PaintContext& context) {
-    context.DrawRect(m_HeaderRect, ThemeColor(ColorToken::WorkspaceBackground));
+    PanelChrome::PaintDockHeaderBand(context, m_HeaderRect);
 
     float currentX = m_HeaderRect.x;
     for (int i = 0; i < static_cast<int>(m_Tabs.size()); ++i) {
         PaintTab(context, m_Tabs[static_cast<size_t>(i)], i, currentX);
     }
 
-    const Rect bodyRect{
-        m_Geometry.x,
-        m_ContentRect.y,
-        m_Geometry.width,
-        std::max(0.0f, m_Geometry.height - GetHeaderHeightDevice())
-    };
-
     if (m_ActiveTabIndex >= 0 && m_ActiveTabIndex < static_cast<int>(m_Tabs.size())) {
         auto activePanel = m_Tabs[static_cast<size_t>(m_ActiveTabIndex)].panel;
 
-        if (!activePanel->IsTransparentBackground()) {
-            PanelChrome::PaintPanelSurface(context, bodyRect);
-        }
-
-        if (auto content = activePanel->GetContent()) {
-            context.PushClipRect(bodyRect);
-            content->Paint(context);
-            context.PopClipRect();
-        }
-
-        if (auto toolbar = activePanel->GetToolbar()) {
-            if (!activePanel->IsFloatingToolbar()) {
-                PanelChrome::PaintToolbarRegion(context, toolbar->GetGeometry());
-            }
-            toolbar->Paint(context);
-        }
+        context.PushClipRect(m_ContentRect);
+        activePanel->Paint(context);
+        context.PopClipRect();
     }
 }
 

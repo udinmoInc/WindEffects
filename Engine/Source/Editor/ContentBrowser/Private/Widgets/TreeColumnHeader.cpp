@@ -1,0 +1,78 @@
+#include "ContentBrowser/Widgets/TreeColumnHeader.h"
+
+#include "WindEffects/Editor/UI/Panel/PanelChrome.h"
+#include "KindUI/Core/Icon.h"
+#include "KindUI/Core/DPIContext.h"
+#include "KindUI/Rendering/IconMetrics.h"
+#include "KindUI/Theming/ThemeAccess.h"
+#include "KindUI/Tokens/DesignToken.h"
+
+namespace we::editor::contentbrowser {
+namespace Chrome = ::we::editor::panels::PanelChrome;
+namespace IconMetrics = ::we::runtime::kindui::IconMetrics;
+namespace Icons = ::we::runtime::kindui::Icons;
+
+using ::we::runtime::kindui::ColorToken;
+using ::we::runtime::kindui::DPIContext;
+using ::we::runtime::kindui::IconPainter;
+using ::we::runtime::kindui::MetricToken;
+using ::we::runtime::kindui::PaintContext;
+using ::we::runtime::kindui::Point;
+using ::we::runtime::kindui::Rect;
+using ::we::runtime::kindui::Size;
+
+Size TreeColumnHeader::Measure(const Size& availableSize) {
+    m_DesiredSize = Size{
+        availableSize.width < 1.0e8f ? availableSize.width : 0.0f,
+        Chrome::ColumnHeaderRowHeight()
+    };
+    return m_DesiredSize;
+}
+
+void TreeColumnHeader::Arrange(const Rect& allottedRect) {
+    m_Geometry = allottedRect;
+}
+
+void TreeColumnHeader::Paint(PaintContext& context) {
+    const float uiScale = (std::max)(1.0f, DPIContext::GetScale());
+    Chrome::PaintToolbarRegion(context, m_Geometry);
+
+    const float glyphTier = static_cast<float>(IconMetrics::StandardGlyphTierPx());
+    const float headerTextSize = ThemeMetric(MetricToken::TextSizeCaption) * uiScale;
+    const float headerTextY = m_Geometry.y + (m_Geometry.height - headerTextSize) * 0.5f;
+
+    const float eyeX = m_Geometry.x + ThemeMetric(MetricToken::Space2) * uiScale;
+    Rect eyeBand{ eyeX, m_Geometry.y, glyphTier, m_Geometry.height };
+    IconPainter::DrawIcon(
+        context,
+        Icons::EyeName,
+        IconMetrics::PlaceGlyphCentered(eyeBand, glyphTier),
+        ThemeColor(ColorToken::TextSecondary));
+
+    const float lockX = m_Geometry.x + ThemeMetric(MetricToken::Space6) * uiScale;
+    Rect lockBand{ lockX, m_Geometry.y, glyphTier, m_Geometry.height };
+    IconPainter::DrawIcon(
+        context,
+        Icons::LockName,
+        IconMetrics::PlaceGlyphCentered(lockBand, glyphTier),
+        ThemeColor(ColorToken::TextSecondary));
+
+    const float labelX = m_Geometry.x + ThemeMetric(MetricToken::Space6) * 3.0f * uiScale;
+    context.DrawText(
+        "Item Label",
+        Point{ labelX, headerTextY },
+        ThemeColor(ColorToken::TextSecondary),
+        headerTextSize,
+        true);
+
+    const float typeRightX = m_Geometry.x + m_Geometry.width - ThemeMetric(MetricToken::Space3) * uiScale;
+    const float typeWidth = context.GetTextWidth("Type", headerTextSize);
+    context.DrawText(
+        "Type",
+        Point{ typeRightX - typeWidth, headerTextY },
+        ThemeColor(ColorToken::TextSecondary),
+        headerTextSize,
+        true);
+}
+
+} // namespace we::editor::contentbrowser

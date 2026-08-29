@@ -1,6 +1,8 @@
 #include "PlaceActors/PlaceActorsConfig.h"
 
 #include "Core/EditorConfigPaths.h"
+#include "KindUI/Theming/ThemeAccess.h"
+#include "KindUI/Tokens/DesignToken.h"
 
 #include <algorithm>
 #include <cctype>
@@ -46,6 +48,14 @@ PlaceActorsConfig& PlaceActorsConfig::Get() {
 
 void PlaceActorsConfig::EnsureLoaded() {
     if (!m_Loaded) {
+        using we::runtime::kindui::MetricToken;
+        using we::runtime::kindui::ResolveMetric;
+        if (listRowHeight <= 0.0f) {
+            listRowHeight = ResolveMetric(MetricToken::ListRowHeight);
+        }
+        if (categoryHeaderHeight <= 0.0f) {
+            categoryHeaderHeight = ResolveMetric(MetricToken::CategoryHeaderHeight);
+        }
         Load();
         m_Loaded = true;
     }

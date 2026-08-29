@@ -1,6 +1,7 @@
 #include "Platform/Platform.h"
 #include "Widgets/ToolsPanel.h"
 #include "WindEffects/Editor/UI/Panel/PanelChrome.h"
+#include "WindEffects/Editor/UI/Panel/PanelBodyLayout.h"
 #include "WindEffects/Editor/UI/Shell/EditorModeController.h"
 #include "WindEffects/Editor/UI/Shell/EditorToolsRegistry.h"
 #include "ContentBrowser/Widgets/SearchBox.h"
@@ -81,25 +82,76 @@ bool ShortcutMatches(const std::string& toolShortcut, const KeyEvent& event) {
 }
 } // namespace
 
+class ToolsPanelContentHost final : public Widget {
+public:
+    explicit ToolsPanelContentHost(ToolsPanel* owner) : m_Owner(owner) {}
+
+    Size Measure(const Size& availableSize) override {
+        m_DesiredSize = availableSize;
+        return m_DesiredSize;
+    }
+
+    void Arrange(const Rect& allottedRect) override {
+        m_Geometry = allottedRect;
+    }
+
+    void Paint(PaintContext& context) override {
+        (void)context;
+    }
+
+private:
+    ToolsPanel* m_Owner = nullptr;
+};
+
 ToolsPanel::ToolsPanel() {
     m_State.Load();
+
+    m_BodyLayout = std::make_shared<::we::editor::panels::PanelBodyLayout>();
 
     m_SearchBox = std::make_shared<::we::editor::widgets::SearchBox>();
     m_SearchBox->SetFillWidth(true);
     m_SearchBox->SetPlaceholder("Search Actors...");
-    m_SearchBox->SetOnTextChanged([this](const std::string& text) {
-        m_SearchText = text;
-        RebuildLayout();
-    });
+
+    m_ContentHost = std::make_shared<ToolsPanelContentHost>(this);
+    m_SearchVisible = true;
 }
 
 ToolsPanel::~ToolsPanel() {
     SaveState();
+    CloseContextMenu();
+    if (m_SearchBox) {
+        m_SearchBox->SetOnTextChanged({});
+    }
+    if (m_BodyLayout) {
+        m_BodyLayout->ClearRegions();
+        RemoveChild(m_BodyLayout);
+    }
+    m_ModeContentWidget.reset();
+    m_ContentHost.reset();
+    m_SearchBox.reset();
+    m_BodyLayout.reset();
 }
 
-void ToolsPanel::InitializeFromRegistry() {
-    EditorModeController::Get().AddModeChangedListener([this](const std::string&) {
-        OnModeChanged();
+void ToolsPanel::InitializeFromRegistry(const std::shared_ptr<ToolsPanel>& self) {
+    std::weak_ptr<ToolsPanel> weak = self;
+    if (m_BodyLayout && m_BodyLayout->GetParent() != self) {
+        AddChild(m_BodyLayout);
+        m_BodyLayout->SetRegion(::we::editor::panels::PanelBodyRegion::Search, m_SearchBox);
+        m_BodyLayout->SetRegion(::we::editor::panels::PanelBodyRegion::Content, m_ContentHost);
+    }
+    if (m_SearchBox) {
+        m_SearchBox->SetOnTextChanged([weak](const std::string& text) {
+            if (auto self = weak.lock()) {
+                self->m_SearchText = text;
+                self->m_BodyRegionsDirty = true;
+                self->RebuildLayout();
+            }
+        });
+    }
+    EditorModeController::Get().AddModeChangedListener([weak](const std::string&) {
+        if (auto self = weak.lock()) {
+            self->OnModeChanged();
+        }
     });
     RebuildLayout();
     HE_INFO("[ToolsPanel] Mode tools panel ready.");
@@ -112,6 +164,7 @@ void ToolsPanel::OnModeChanged() {
     m_ModeContentModeId.clear();
     m_ModeContentSearchText.clear();
     CloseContextMenu();
+    m_BodyRegionsDirty = true;
     RebuildLayout();
 }
 
@@ -170,11 +223,6 @@ void ToolsPanel::RebuildModeContent() {
         m_ModeContentWidget = contentMode->customContent(*contentMode, m_SearchText);
         m_ModeContentModeId = contentModeId;
         m_ModeContentSearchText = m_SearchText;
-    }
-
-    if (m_ModeContentWidget) {
-        m_ModeContentWidget->Measure(Size{ m_PanelRect.width, m_PanelRect.height });
-        m_ModeContentWidget->Arrange(m_PanelRect);
     }
 }
 
@@ -260,59 +308,80 @@ bool ToolsPanel::HandleShortcut(const KeyEvent& event) {
 
 Size ToolsPanel::Measure(const Size& availableSize) {
     m_DesiredSize = availableSize;
+    if (m_BodyLayout) {
+        m_BodyLayout->Measure(availableSize);
+    }
     return m_DesiredSize;
 }
 
 void ToolsPanel::Arrange(const Rect& allottedRect) {
     m_Geometry = allottedRect;
-    RebuildLayout();
-}
-
-void ToolsPanel::RebuildLayout() {
-    const float width = m_Geometry.width;
-    if (width < 1.0f) {
-        m_PanelRect = {};
+    m_PanelRect = m_Geometry;
+    if (m_BodyRegionsDirty) {
+        SyncBodyRegions();
+        m_BodyRegionsDirty = false;
+    }
+    if (m_BodyLayout) {
+        m_BodyLayout->Arrange(allottedRect);
+        m_ContentRect = m_BodyLayout->GetRegionRect(::we::editor::panels::PanelBodyRegion::Content);
+    } else {
+        m_ContentRect = {};
+    }
+    if (m_ModeContentWidget) {
         m_Sections.clear();
         m_ToolHits.clear();
         return;
     }
+    RebuildToolListGeometry();
+}
 
-    m_PanelRect = Rect{ m_Geometry.x, m_Geometry.y, width, m_Geometry.height };
+void ToolsPanel::SyncBodyRegions() {
+    if (!m_BodyLayout) {
+        return;
+    }
 
     const std::string contentModeId = GetDrawerContentModeId();
     const EditorToolMode* contentMode = EditorToolsRegistry::Get().FindMode(contentModeId);
     const bool useCustomContent = contentMode && contentMode->customContent;
 
-    const float padH = PanelChrome::PanelPaddingH();
-    const float searchH = PanelChrome::SearchHeight();
-    const float searchRowH = searchH + ThemeMetric(MetricToken::Space1);
-    const float rowH = PanelChrome::ListRowHeight();
-    const float sectionH = PanelChrome::CategoryHeaderHeight();
-    const float iconSize = ThemeMetric(MetricToken::IconSizeTree);
-    const float sectionGap = ThemeMetric(MetricToken::Space2);
-
-    float y = m_PanelRect.y + padH;
-    if (!useCustomContent) {
-        m_SearchRect = Rect{ m_PanelRect.x + padH, y, m_PanelRect.width - padH * 2.0f, searchH };
-        m_SearchBox->Measure(Size{ m_SearchRect.width, m_SearchRect.height });
-        m_SearchBox->Arrange(m_SearchRect);
-        y = m_PanelRect.y + searchRowH;
-    } else {
-        m_SearchRect = {};
-        y = m_PanelRect.y;
+    const bool wantSearch = !useCustomContent;
+    if (wantSearch != m_SearchVisible) {
+        m_SearchVisible = wantSearch;
+        m_BodyLayout->SetRegion(
+            ::we::editor::panels::PanelBodyRegion::Search,
+            wantSearch ? m_SearchBox : nullptr);
     }
 
-    m_ContentRect = Rect{
-        m_PanelRect.x,
-        y,
-        m_PanelRect.width,
-        (std::max)(0.0f, m_PanelRect.y + m_PanelRect.height - y)
-    };
+    if (useCustomContent) {
+        RebuildModeContent();
+        if (m_ModeContentWidget
+            && m_BodyLayout->GetRegion(::we::editor::panels::PanelBodyRegion::Content) != m_ModeContentWidget) {
+            m_BodyLayout->SetRegion(::we::editor::panels::PanelBodyRegion::Content, m_ModeContentWidget);
+        }
+        return;
+    }
 
+    m_ModeContentWidget.reset();
+    m_ModeContentModeId.clear();
+    m_ModeContentSearchText.clear();
+    if (m_BodyLayout->GetRegion(::we::editor::panels::PanelBodyRegion::Content) != m_ContentHost) {
+        m_BodyLayout->SetRegion(::we::editor::panels::PanelBodyRegion::Content, m_ContentHost);
+    }
+}
+
+void ToolsPanel::RebuildToolListGeometry() {
+    if (m_Geometry.width < 1.0f) {
+        m_Sections.clear();
+        m_ToolHits.clear();
+        return;
+    }
+
+    const std::string contentModeId = GetDrawerContentModeId();
     m_Sections.clear();
     m_ToolHits.clear();
 
     auto drawToolList = [&](const std::vector<const EditorToolAction*>& tools, float& yPos) {
+        const float rowH = PanelChrome::ListRowHeight();
         for (const auto* tool : tools) {
             ToolHit hit;
             hit.tool = tool;
@@ -323,14 +392,8 @@ void ToolsPanel::RebuildLayout() {
         }
     };
 
-    // Place Actors (and other custom drawer UIs) always win for modes that provide them.
-    if (useCustomContent) {
-        RebuildModeContent();
-        return;
-    }
-
-    m_ModeContentWidget.reset();
-    m_ModeContentModeId.clear();
+    const float sectionH = PanelChrome::CategoryHeaderHeight();
+    const float sectionGap = ThemeMetric(MetricToken::Space2);
 
     if (!m_SearchText.empty()) {
         SectionHit section;
@@ -388,7 +451,33 @@ void ToolsPanel::RebuildLayout() {
         }
     }
 
-    (void)iconSize;
+    (void)sectionGap;
+}
+
+void ToolsPanel::RebuildLayout() {
+    SyncBodyRegions();
+    m_BodyRegionsDirty = false;
+
+    const float width = m_Geometry.width;
+    if (width < 1.0f) {
+        m_PanelRect = {};
+        m_ContentRect = {};
+        m_Sections.clear();
+        m_ToolHits.clear();
+        return;
+    }
+
+    m_PanelRect = Rect{ m_Geometry.x, m_Geometry.y, width, m_Geometry.height };
+    if (m_BodyLayout) {
+        m_ContentRect = m_BodyLayout->GetRegionRect(::we::editor::panels::PanelBodyRegion::Content);
+    }
+    if (m_ModeContentWidget) {
+        m_Sections.clear();
+        m_ToolHits.clear();
+        InvalidateLayout();
+        return;
+    }
+    RebuildToolListGeometry();
 }
 
 void ToolsPanel::Tick(float deltaTime) {
@@ -398,21 +487,17 @@ void ToolsPanel::Tick(float deltaTime) {
 void ToolsPanel::Paint(PaintContext& context) {
     if (m_Geometry.width < 1.0f) return;
 
-    if (m_ModeContentWidget) {
-        m_ModeContentWidget->Paint(context);
-    } else {
+    if (m_BodyLayout) {
+        m_BodyLayout->Paint(context);
+    }
+
+    if (!m_ModeContentWidget) {
         const float uiScale = (std::max)(1.0f, we::runtime::kindui::DPIContext::GetScale());
         const float labelFontSize = ThemeMetric(MetricToken::TextSizeBody) * uiScale;
         const float shortcutFontSize = ThemeMetric(MetricToken::TextSizeCaption) * uiScale;
         const float iconSize = static_cast<float>(we::runtime::kindui::IconMetrics::NativeIconTierPx(ThemeMetric(MetricToken::IconSizeTree)));
         const float padH = PanelChrome::PanelPaddingH();
         const float chevronGap = ThemeMetric(MetricToken::Space2) * uiScale;
-
-        PanelChrome::PaintContentRegion(context, m_PanelRect);
-
-        if (m_SearchRect.width > 0.0f) {
-            m_SearchBox->Paint(context);
-        }
 
         for (const auto& section : m_Sections) {
             std::string title = section.categoryId;
@@ -508,7 +593,10 @@ std::shared_ptr<Widget> ToolsPanel::HitTestPoint(const Point& pos, const Rect* c
         return nullptr;
     }
 
-    if (m_SearchRect.Contains(pos) && m_SearchBox) {
+    const Rect searchRect = m_BodyLayout
+        ? m_BodyLayout->GetRegionRect(::we::editor::panels::PanelBodyRegion::Search)
+        : Rect{};
+    if (!searchRect.IsEmpty() && searchRect.Contains(pos) && m_SearchBox) {
         if (auto hit = m_SearchBox->HitTestPoint(pos, clip)) {
             return hit;
         }
@@ -564,7 +652,10 @@ void ToolsPanel::OnMouseDown(const MouseEvent& event) {
         return;
     }
 
-    if (m_SearchRect.Contains(event.position)) {
+    const Rect searchRect = m_BodyLayout
+        ? m_BodyLayout->GetRegionRect(::we::editor::panels::PanelBodyRegion::Search)
+        : Rect{};
+    if (!searchRect.IsEmpty() && searchRect.Contains(event.position)) {
         m_SearchBox->OnMouseDown(event);
         return;
     }

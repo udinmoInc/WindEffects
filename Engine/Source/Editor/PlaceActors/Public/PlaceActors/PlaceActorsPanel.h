@@ -19,6 +19,7 @@ using ::we::runtime::kindui::ScrollViewport;
 using ::we::runtime::kindui::ScrollViewportMetrics;
 }
 
+#include "WindEffects/Editor/UI/Panel/PanelBodyLayout.h"
 #include "ContentBrowser/Widgets/SearchBox.h"
 #include "Widgets/ToolButton.h"
 
@@ -28,6 +29,11 @@ class PLACEACTORS_API PlaceActorsPanel : public we::runtime::kindui::Widget {
 public:
     PlaceActorsPanel();
     ~PlaceActorsPanel() override;
+
+    PlaceActorsPanel(const PlaceActorsPanel&) = delete;
+    PlaceActorsPanel& operator=(const PlaceActorsPanel&) = delete;
+
+    void InitializeCallbacks(const std::shared_ptr<PlaceActorsPanel>& self);
 
     void SetExternalSearchFilter(const std::string& filter) {
         if (m_ExternalSearchFilter != filter) {
@@ -105,6 +111,8 @@ private:
 
     std::shared_ptr<::we::editor::widgets::SearchBox> m_SearchBox;
     std::shared_ptr<::we::editor::toolbar::ToolButton> m_FilterButton;
+    std::shared_ptr<::we::editor::panels::PanelBodyLayout> m_BodyLayout;
+    std::shared_ptr<we::runtime::kindui::Widget> m_ContentHost;
 
     std::string m_ExternalSearchFilter;
     std::string m_CategoryFilter = "All";
@@ -117,7 +125,6 @@ private:
     float m_ContentHeight = 0.0f;
     float m_LastViewportWidth = -1.0f;
 
-    we::runtime::kindui::Rect m_SearchRowRect;
     we::runtime::kindui::Rect m_ContentRect;
     we::runtime::kindui::Rect m_TooltipRect;
 

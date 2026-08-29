@@ -72,8 +72,12 @@ ToolbarBuilder& ToolbarBuilder::Right(std::function<void(ToolbarBuilder&)> build
 
 std::shared_ptr<Toolbar> ToolbarBuilder::Build() {
     auto toolbar = std::make_shared<Toolbar>();
-    toolbar->SetHeight(m_Height);
-    toolbar->SetIconSize(m_IconSize);
+    if (m_Height > 0.0f) {
+        toolbar->SetHeight(m_Height);
+    }
+    if (m_IconSize > 0.0f) {
+        toolbar->SetIconSize(m_IconSize);
+    }
     toolbar->SetFloating(m_Floating);
 
     for (const auto& spec : m_Items) {

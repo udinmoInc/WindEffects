@@ -50,8 +50,8 @@ public:
     [[nodiscard]] std::shared_ptr<Toolbar> Build();
 
 private:
-    float m_Height = 28.0f;
-    float m_IconSize = 16.0f;
+    float m_Height = 0.0f;
+    float m_IconSize = 0.0f;
     bool m_Floating = false;
     std::vector<ToolbarItemSpec> m_Items;
 };

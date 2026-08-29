@@ -4,6 +4,7 @@
 
 #include "KindUI/Core/Widget.h"
 #include "KindUI/Core/PaintContext.h"
+#include "WindEffects/Editor/UI/Panel/PanelBodyLayout.h"
 #include "WindEffects/Editor/UI/Shell/EditorToolsRegistry.h"
 #include "ToolsPanelState.h"
 #include <functional>
@@ -23,7 +24,12 @@ public:
     ToolsPanel();
     ~ToolsPanel() override;
 
-    void InitializeFromRegistry();
+    ToolsPanel(const ToolsPanel&) = delete;
+    ToolsPanel& operator=(const ToolsPanel&) = delete;
+    ToolsPanel(ToolsPanel&&) = delete;
+    ToolsPanel& operator=(ToolsPanel&&) = delete;
+
+    void InitializeFromRegistry(const std::shared_ptr<ToolsPanel>& self);
     void OnModeChanged();
 
     we::runtime::kindui::Size Measure(const we::runtime::kindui::Size& availableSize) override;
@@ -64,6 +70,8 @@ private:
     };
 
     void RebuildLayout();
+    void SyncBodyRegions();
+    void RebuildToolListGeometry();
     void RebuildModeContent();
     void ExecuteTool(const EditorToolAction* tool);
     bool IsCategoryExpanded(const std::string& categoryId, bool defaultExpanded) const;
@@ -84,12 +92,13 @@ private:
 
     std::string m_SearchText;
     std::shared_ptr<::we::editor::widgets::SearchBox> m_SearchBox;
+    std::shared_ptr<::we::editor::panels::PanelBodyLayout> m_BodyLayout;
+    std::shared_ptr<we::runtime::kindui::Widget> m_ContentHost;
     std::shared_ptr<we::runtime::kindui::Widget> m_ModeContentWidget;
     std::string m_ModeContentModeId;
     std::string m_ModeContentSearchText;
 
     we::runtime::kindui::Rect m_PanelRect;
-    we::runtime::kindui::Rect m_SearchRect;
     we::runtime::kindui::Rect m_ContentRect;
 
     std::vector<SectionHit> m_Sections;
@@ -103,6 +112,8 @@ private:
     we::runtime::kindui::Rect m_ContextMenuRect;
     std::vector<ContextMenuItem> m_ContextMenuItems;
     int m_ContextMenuHovered = -1;
+    bool m_SearchVisible = true;
+    bool m_BodyRegionsDirty = true;
 };
 
 } // namespace we::programs::editor

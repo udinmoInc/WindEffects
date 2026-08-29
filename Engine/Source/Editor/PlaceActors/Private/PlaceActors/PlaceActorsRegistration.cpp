@@ -132,6 +132,7 @@ void ConfigureActorsModePanel() {
 
     mode.customContent = [](const EditorToolMode&, const std::string& searchFilter) {
         auto panel = std::make_shared<PlaceActorsPanel>();
+        panel->InitializeCallbacks(panel);
         panel->SetExternalSearchFilter(searchFilter);
         return panel;
     };

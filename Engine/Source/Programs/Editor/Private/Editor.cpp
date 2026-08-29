@@ -19,6 +19,7 @@
 #include "KindUI/Rendering/IconRenderer.h"
 #include "KindUI/Layout/OverlayManager.h"
 #include "WindEffects/Editor/UI/Shell/EditorWorkspaceController.h"
+#include "WindEffects/Editor/UI/Shell/EditorModeController.h"
 #include "WindEffects/Editor/UI/Extensions/UIExtensionRegistry.h"
 
 #include "EditorWindowHitTest.h"
@@ -47,6 +48,8 @@
 #include "KindUI/Core/DPIContext.h"
 #include "KindUI/Core/UIRepaintGate.h"
 #include "KindUI/Theming/ThemeManager.h"
+#include "KindUI/Theming/ThemeAccess.h"
+#include "KindUI/Tokens/DesignToken.h"
 #include "WindEffects/Editor/UI/Core/EditorPerfStats.h"
 #include "Debug/FoundationRenderDebug.h"
 #include "DefaultScene/DefaultSceneBuilder.h"
@@ -272,6 +275,11 @@ void Editor::InitializeEngine() {
     m_UIContext = std::make_unique<::we::editor::services::EditorApplicationContext>();
     m_UIContext->Initialize(we::runtime::kindui::DPIContext::GetScale());
     UpdateUiScaleFromWindow();
+
+    if (m_Renderer) {
+        const auto workspace = we::runtime::kindui::ResolveColor(we::runtime::kindui::ColorToken::WorkspaceBackground);
+        m_Renderer->SetSwapchainClearColor({workspace.r, workspace.g, workspace.b, workspace.a});
+    }
 
     m_FirstRunAgreementPending = !HasAcceptedFirstRunAgreement();
     HE_INFO("[Startup] Engine context ready (project not loaded yet).");
@@ -1321,6 +1329,8 @@ void Editor::Shutdown() {
     if (m_OverlayHost) {
         m_OverlayHost->CloseAllPopups();
     }
+
+    ::we::editor::shell::EditorModeController::Get().ClearModeChangedListeners();
 
     EditorWorkspaceController::Get().SaveLayout();
 

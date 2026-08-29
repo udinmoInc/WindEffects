@@ -20,7 +20,7 @@ ThemeColors ThemeColors::Resolve(const IKindUITheme& theme) {
 
     colors.textPrimary = theme.ResolveColor(ColorToken::TextPrimary);
     colors.textSecondary = theme.ResolveColor(ColorToken::TextSecondary);
-    colors.textCaption = theme.ResolveColor(ColorToken::TextCaption);
+    colors.textCaption = theme.ResolveColor(ColorToken::TextSecondary);
     colors.textHint = theme.ResolveColor(ColorToken::TextHint);
     colors.textDisabled = theme.ResolveColor(ColorToken::TextDisabled);
 

@@ -58,7 +58,7 @@ void ToolbarGlyphButton::Paint(PaintContext& context) {
     m_PressOffset = Animator::Damp(m_PressOffset, targetOffset, pressDamping);
 
     Color bgColor = IsEnabled() ? baseStyle.background : ThemeColor(ColorToken::DisabledBackground);
-    Color borderColor = IsEnabled() ? baseStyle.border : ThemeColor(ColorToken::BorderDark);
+    Color borderColor = IsEnabled() ? baseStyle.border : ThemeColor(ColorToken::Separator);
     Color iconColor = IsEnabled()
         ? (IsSelected() ? hoverStyle.icon : baseStyle.icon)
         : ThemeColor(ColorToken::IconDisabled);

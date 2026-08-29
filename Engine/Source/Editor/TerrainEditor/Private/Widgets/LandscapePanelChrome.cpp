@@ -1,3 +1,4 @@
+#include "KindUI/Core/ControlChrome.h"
 #include "LandscapePanelChrome.h"
 
 #include "WindEffects/Editor/UI/Panel/PanelChrome.h"
@@ -31,20 +32,19 @@ float UiScale() {
 
 float PanelPad() { return PanelChromeNs::PanelPaddingH(); }
 float SectionGap() { return ResolveMetric(MetricToken::Space2) * UiScale(); }
-float RowHeight() { return 26.f * UiScale(); }
-float ChipHeight() { return 30.f * UiScale(); }
-float TabBarHeight() { return 32.f * UiScale(); }
-float PrimaryButtonHeight() { return 34.f * UiScale(); }
-float LabelColumnWidth() { return 108.f * UiScale(); }
+float RowHeight() { return ResolveMetric(MetricToken::FormRowHeight) * UiScale(); }
+float ChipHeight() { return ResolveMetric(MetricToken::ToolbarLabeledHeight) * UiScale(); }
+float TabBarHeight() { return ResolveMetric(MetricToken::NavigationButtonSize) * UiScale(); }
+float PrimaryButtonHeight() { return ResolveMetric(MetricToken::PrimaryButtonHeight) * UiScale(); }
+float LabelColumnWidth() { return ResolveMetric(MetricToken::PropertyLabelColumnWidth) * UiScale(); }
 
 void PaintPanelBackground(PaintContext& context, const Rect& bounds) {
     PanelChromeNs::PaintContentRegion(context, bounds);
 }
 
 void PaintTabBar(PaintContext& context, const Rect& bounds) {
-    context.DrawRect(bounds, ResolveColor(ColorToken::PanelBackground));
-    const float y = bounds.y + bounds.height - 1.f;
-    context.DrawRect(Rect{bounds.x, y, bounds.width, 1.f}, ResolveColor(ColorToken::BorderSubtle));
+    (void)context;
+    (void)bounds;
 }
 
 void PaintTab(
@@ -54,34 +54,19 @@ void PaintTab(
     bool active,
     float hoverAnim)
 {
-    if (active) {
-        context.DrawRect(bounds, ResolveColor(ColorToken::PanelTabActiveBackground));
-        context.DrawRect(
-            Rect{bounds.x + 4.f, bounds.y + bounds.height - 2.f, bounds.width - 8.f, 2.f},
-            ResolveColor(ColorToken::AccentPrimary));
-    } else if (hoverAnim > 0.01f) {
-        context.DrawRect(
-            bounds,
-            Color::Lerp(
-                ResolveColor(ColorToken::PanelBackground),
-                ResolveColor(ColorToken::HoverBackground),
-                hoverAnim));
-    }
-    const auto color = active ? ResolveColor(ColorToken::TextPrimary)
-                              : ResolveColor(ColorToken::TextSecondary);
-    const float fontSize = ResolveMetric(MetricToken::TextSizeCaption) * UiScale();
-    context.DrawText(
-        std::string(label),
-        Point{bounds.x + 10.f, bounds.y + (bounds.height - fontSize) * 0.5f},
-        color,
-        fontSize,
-        false);
+    we::runtime::kindui::ControlChrome::InteractionState state{
+        hoverAnim,
+        0.0f,
+        active,
+        false,
+        false
+    };
+    we::runtime::kindui::ControlChrome::PaintPanelTab(context, bounds, label, state);
 }
 
 void PaintSectionCard(PaintContext& context, const Rect& bounds) {
     const float radius = ResolveMetric(MetricToken::CornerRadiusSmall) * UiScale();
     context.DrawRoundedRect(bounds, ResolveColor(ColorToken::CardBackground), radius);
-    context.DrawRoundedRectOutline(bounds, ResolveColor(ColorToken::BorderSubtle), 1.f, radius);
 }
 
 void PaintSectionTitle(PaintContext& context, const Rect& bounds, std::string_view title) {
@@ -114,23 +99,25 @@ void PaintChip(
         bg = Color::Lerp(bg, ResolveColor(ColorToken::HoverBackground), hoverAnim);
     }
     context.DrawRoundedRect(bounds, bg, radius);
-    context.DrawRoundedRectOutline(
-        bounds,
-        selected ? ResolveColor(ColorToken::AccentPrimary) : ResolveColor(ColorToken::BorderSubtle),
-        1.f,
-        radius);
+    if (selected || hoverAnim > 0.01f) {
+        context.DrawRoundedRectOutline(
+            bounds,
+            selected ? ResolveColor(ColorToken::AccentPrimary) : ResolveColor(ColorToken::BorderSubtle),
+            1.f,
+            radius);
+    }
 
-    float textX = bounds.x + 8.f;
+    float textX = bounds.x + ResolveMetric(MetricToken::Space2) * UiScale();
     if (iconHook && iconHook[0] != '\0') {
         const float iconSize = static_cast<float>(
             we::runtime::kindui::IconMetrics::GlyphTierPx(MetricToken::IconSizeTree));
-        const Rect iconBand{bounds.x + 6.f, bounds.y, iconSize, bounds.height};
+        const Rect iconBand{bounds.x + ResolveMetric(MetricToken::Space2) * UiScale(), bounds.y, iconSize, bounds.height};
         we::runtime::kindui::IconPainter::DrawIcon(
             context,
             iconHook,
             we::runtime::kindui::IconMetrics::PlaceGlyphCentered(iconBand, iconSize),
             selected ? ResolveColor(ColorToken::AccentPrimary) : ResolveColor(ColorToken::IconPrimary));
-        textX = bounds.x + 6.f + iconSize + 6.f;
+        textX = bounds.x + ResolveMetric(MetricToken::Space2) * UiScale() + iconSize + ResolveMetric(MetricToken::Space2) * UiScale();
     }
     const float fontSize = ResolveMetric(MetricToken::TextSizeCaption) * UiScale();
     context.DrawText(
@@ -166,15 +153,17 @@ void PaintField(
         bg = Color::Lerp(bg, ResolveColor(ColorToken::HoverBackground), 0.5f);
     }
     context.DrawRoundedRect(bounds, bg, radius);
-    context.DrawRoundedRectOutline(
-        bounds,
-        focused ? ResolveColor(ColorToken::BorderFocused) : ResolveColor(ColorToken::BorderSubtle),
-        1.f,
-        radius);
+    if (focused || hovered) {
+        context.DrawRoundedRectOutline(
+            bounds,
+            focused ? ResolveColor(ColorToken::BorderFocus) : ResolveColor(ColorToken::BorderSubtle),
+            1.f,
+            radius);
+    }
     const float fontSize = ResolveMetric(MetricToken::TextSizeCaption) * UiScale();
     context.DrawText(
         std::string(value),
-        Point{bounds.x + 8.f, bounds.y + (bounds.height - fontSize) * 0.5f},
+        Point{bounds.x + ResolveMetric(MetricToken::Space2) * UiScale(), bounds.y + (bounds.height - fontSize) * 0.5f},
         ResolveColor(ColorToken::TextPrimary),
         fontSize,
         false);
@@ -187,8 +176,8 @@ void PaintToggle(
     bool on,
     float hoverAnim)
 {
-    const float trackW = 34.f * UiScale();
-    const float trackH = 18.f * UiScale();
+    const float trackW = ResolveMetric(MetricToken::ToggleTrackWidth) * UiScale();
+    const float trackH = ResolveMetric(MetricToken::ToggleTrackHeight) * UiScale();
     const float trackX = bounds.x;
     const float trackY = bounds.y + (bounds.height - trackH) * 0.5f;
     const Rect track{trackX, trackY, trackW, trackH};
@@ -246,7 +235,9 @@ void PaintSecondaryButton(
     Color bg = ResolveColor(ColorToken::ControlBackground);
     bg = Color::Lerp(bg, ResolveColor(ColorToken::HoverBackground), hoverAnim * 0.7f + pressAnim * 0.3f);
     context.DrawRoundedRect(bounds, bg, radius);
-    context.DrawRoundedRectOutline(bounds, ResolveColor(ColorToken::BorderSubtle), 1.f, radius);
+    if (hoverAnim > 0.01f || pressAnim > 0.01f) {
+        context.DrawRoundedRectOutline(bounds, ResolveColor(ColorToken::BorderSubtle), 1.f, radius);
+    }
     const float fontSize = ResolveMetric(MetricToken::TextSizeCaption) * UiScale();
     const float textW = context.GetTextWidth(std::string(label), fontSize, false);
     context.DrawText(

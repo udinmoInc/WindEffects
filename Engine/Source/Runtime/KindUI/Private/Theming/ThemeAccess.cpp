@@ -1,5 +1,6 @@
 #include "KindUI/Theming/ThemeAccess.h"
 
+#include "KindUI/Profiling/UiColorDebug.h"
 #include "KindUI/Theming/ThemeManager.h"
 #include "KindUI/Tokens/TypographySpec.h"
 
@@ -11,7 +12,11 @@ IKindUITheme& ResolveDefaultTheme() {
 }
 
 Color ResolveColor(ColorToken token) {
-    return ThemeManager::Get().Theme().ResolveColor(token);
+    const Color resolved = ThemeManager::Get().Theme().ResolveColor(token);
+    if (UiColorDebug::IsEnabled()) {
+        UiColorDebug::Get().TraceResolve(token, resolved);
+    }
+    return resolved;
 }
 
 float ResolveMetric(MetricToken token) {

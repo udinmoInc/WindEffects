@@ -4,8 +4,9 @@ namespace we::runtime::kindui {
 
 PanelToolbarRow::PanelToolbarRow(std::string searchPlaceholder)
     : m_SearchPlaceholder(std::move(searchPlaceholder)) {
-    const float pad = ThemeMetric(MetricToken::Space2);
-    Padding(Margin{pad, pad, pad, pad});
+    const float padH = ThemeMetric(MetricToken::Space2);
+    const float padV = 4.0f;
+    Padding(Margin{padH, padV, padH, padV});
     Gap(ThemeMetric(MetricToken::Space1));
     Align(AlignItems::Center);
 

@@ -48,14 +48,22 @@ namespace {
 
 Toolbar::Toolbar()
     : m_Style(WidgetStyle::Panel())
+    , m_Height(we::runtime::kindui::ResolveMetric(MetricToken::ToolbarHeight))
+    , m_IconSize(we::runtime::kindui::ResolveMetric(MetricToken::IconSizeToolbar))
+    , m_ButtonSpacing(we::runtime::kindui::ResolveMetric(MetricToken::ButtonSpacing))
+    , m_GroupSpacing(we::runtime::kindui::ResolveMetric(MetricToken::ButtonGroupSpacing))
+    , m_EdgePadding(we::runtime::kindui::ResolveMetric(MetricToken::Space2))
+    , m_LeftInset(we::runtime::kindui::ResolveMetric(MetricToken::Space2))
 {
 }
 
 Size Toolbar::Measure(const Size& availableSize) {
-    float contentHeight = m_Height;
+    const float uiScale = (std::max)(1.0f, DPIContext::GetScale());
+    const float targetHeight = m_Height > 0.0f ? m_Height : ScaledMetric(MetricToken::ToolbarHeight);
+    float contentHeight = targetHeight;
     for (auto& tool : m_Tools) {
         if (tool.button && tool.button->IsVisible()) {
-            tool.button->Measure(availableSize);
+            tool.button->Measure(Size{ availableSize.width, targetHeight });
             contentHeight = (std::max)(contentHeight, tool.button->GetDesiredSize().height);
         }
     }
@@ -65,9 +73,7 @@ Size Toolbar::Measure(const Size& availableSize) {
 
 void Toolbar::Arrange(const Rect& allottedRect) {
     m_Geometry = allottedRect;
-    const float itemSpacing = m_IsFloating
-        ? ScaledMetric(MetricToken::ButtonGroupSpacing)
-        : ScaledMetric(MetricToken::Space2);
+    const float itemSpacing = ScaledMetric(MetricToken::ButtonSpacing);
     const float groupSpacing = ScaledMetric(MetricToken::ButtonGroupSpacing);
 
     std::vector<ToolInfo*> leftTools, centerTools, rightTools;
@@ -79,32 +85,40 @@ void Toolbar::Arrange(const Rect& allottedRect) {
         else if (tool.align == ToolbarAlignment::Right) rightTools.push_back(&tool);
     }
 
-    auto layoutGroup = [&](const std::vector<ToolInfo*>& tools, float startX, bool isRightAligned) -> float {
-        struct ItemToPlace {
-            std::shared_ptr<Widget> button;
-            float width;
-            float marginBefore;
-        };
+    struct ItemToPlace {
+        std::shared_ptr<Widget> button;
+        float width;
+        float marginBefore;
+    };
 
+    auto buildLayoutItems = [&](const std::vector<ToolInfo*>& tools) {
         std::vector<ItemToPlace> items;
         float pendingSpacing = 0.0f;
-        bool isFirstButton = true;
+        bool isFirst = true;
 
         for (auto* tool : tools) {
-            if (tool->isSeparator && tool->button) {
-                if (!isFirstButton) {
-                    items.push_back({ tool->button, groupSpacing, tool->button->GetDesiredSize().width });
-                    pendingSpacing = itemSpacing;
+            if (!tool || !tool->button || !tool->button->IsVisible()) continue;
+
+            if (tool->isSeparator) {
+                if (!isFirst) {
+                    const float sepW = tool->button->GetDesiredSize().width;
+                    const float halfGap = (std::max)(0.0f, (groupSpacing - sepW) * 0.5f);
+                    items.push_back({ tool->button, sepW, halfGap });
+                    pendingSpacing = halfGap;
                 }
-            } else if (tool->button) {
-                float w = tool->button->GetDesiredSize().width;
-                float margin = isFirstButton ? 0.0f : pendingSpacing;
-                if (!isFirstButton && pendingSpacing == 0.0f) margin = itemSpacing;
+            } else {
+                const float w = tool->button->GetDesiredSize().width;
+                const float margin = isFirst ? 0.0f : pendingSpacing;
                 items.push_back({ tool->button, w, margin });
                 pendingSpacing = itemSpacing;
-                isFirstButton = false;
+                isFirst = false;
             }
         }
+        return items;
+    };
+
+    auto layoutGroup = [&](const std::vector<ToolInfo*>& tools, float startX, bool isRightAligned) -> float {
+        auto items = buildLayoutItems(tools);
 
         float totalWidth = 0.0f;
         for (const auto& item : items) {
@@ -119,7 +133,7 @@ void Toolbar::Arrange(const Rect& allottedRect) {
         for (const auto& item : items) {
             currentX += item.marginBefore;
             float itemHeight = item.button->GetDesiredSize().height;
-            const float barHeight = m_IsFloating ? allottedRect.height : m_Height;
+            const float barHeight = allottedRect.height;
             float y = allottedRect.y + (barHeight - itemHeight) * 0.5f;
             item.button->Arrange(Rect{ currentX, y, item.width, itemHeight });
             currentX += item.width;
@@ -132,22 +146,10 @@ void Toolbar::Arrange(const Rect& allottedRect) {
     layoutGroup(rightTools, allottedRect.x + allottedRect.width - m_EdgePadding - m_RightInset, true);
 
     auto computeWidth = [&](const std::vector<ToolInfo*>& tools) -> float {
-        float pendingSpacing = 0.0f;
-        bool isFirstButton = true;
+        auto items = buildLayoutItems(tools);
         float totalWidth = 0.0f;
-        for (auto* tool : tools) {
-            if (tool->isSeparator && tool->button) {
-                if (!isFirstButton) {
-                    totalWidth += groupSpacing + tool->button->GetDesiredSize().width;
-                    pendingSpacing = itemSpacing;
-                }
-            } else if (tool->button) {
-                float margin = isFirstButton ? 0.0f : pendingSpacing;
-                if (!isFirstButton && pendingSpacing == 0.0f) margin = itemSpacing;
-                totalWidth += margin + tool->button->GetDesiredSize().width;
-                pendingSpacing = itemSpacing;
-                isFirstButton = false;
-            }
+        for (const auto& item : items) {
+            totalWidth += item.marginBefore + item.width;
         }
         return totalWidth;
     };
@@ -169,7 +171,7 @@ void Toolbar::Paint(PaintContext& context) {
             m_Geometry.width,
             1.0f * uiScale
         };
-        context.DrawRect(bottomEdge, ThemeColor(ColorToken::BorderDark));
+        context.DrawRect(bottomEdge, ThemeColor(ColorToken::Separator));
     }
 
     for (auto& tool : m_Tools) {
@@ -310,7 +312,7 @@ void ToolbarSeparator::Arrange(const Rect& allottedRect) {
 
 void ToolbarSeparator::Paint(PaintContext& context) {
     const float uiScale = (std::max)(1.0f, DPIContext::GetScale());
-    const float lineHeight = 14.0f * uiScale;
+    const float lineHeight = ThemeMetric(MetricToken::ToolbarSeparatorHeight) * uiScale;
     const float centerY = m_Geometry.y + m_Geometry.height * 0.5f;
     const float halfH = lineHeight * 0.5f;
 
@@ -383,14 +385,6 @@ void ToolbarGroup::Paint(PaintContext& context) {
             ThemeMetric(MetricToken::Space2) * uiScale);
     }
     context.DrawRoundedRect(m_Geometry, groupBg, radius);
-
-    if (m_Elevated) {
-        context.DrawRoundedRectOutline(
-            m_Geometry,
-            ThemeColor(ColorToken::BorderDefault),
-            1.0f * uiScale,
-            radius);
-    }
 
     for (const auto& item : m_Items) {
         if (item && item->IsVisible()) {

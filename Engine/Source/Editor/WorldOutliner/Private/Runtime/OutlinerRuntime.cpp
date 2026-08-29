@@ -108,22 +108,25 @@ public:
             return;
         }
 
-        tree->SetOnSelectionChanged([this](const std::vector<std::string>& ids) {
-            if (m_ApplyingExternalSelection) {
-                return;
-            }
-            std::vector<OutlinerNodeId> nodeIds;
-            nodeIds.reserve(ids.size());
-            for (const auto& id : ids) {
-                const auto value = static_cast<std::uint64_t>(std::strtoull(id.c_str(), nullptr, 10));
-                if (value != 0) {
-                    nodeIds.push_back(OutlinerNodeId{value});
+        const auto existingSelectionCb = tree->GetOnSelectionChanged();
+        tree->SetOnSelectionChanged([this, existingSelectionCb](const std::vector<std::string>& ids) {
+            if (!m_ApplyingExternalSelection) {
+                std::vector<OutlinerNodeId> nodeIds;
+                nodeIds.reserve(ids.size());
+                for (const auto& id : ids) {
+                    const auto value = static_cast<std::uint64_t>(std::strtoull(id.c_str(), nullptr, 10));
+                    if (value != 0) {
+                        nodeIds.push_back(OutlinerNodeId{value});
+                    }
+                }
+                if (nodeIds.empty()) {
+                    m_Selection->Clear();
+                } else {
+                    m_Selection->SetMany(nodeIds);
                 }
             }
-            if (nodeIds.empty()) {
-                m_Selection->Clear();
-            } else {
-                m_Selection->SetMany(nodeIds);
+            if (existingSelectionCb) {
+                existingSelectionCb(ids);
             }
         });
 
@@ -236,9 +239,20 @@ public:
         const auto primary = m_Selection->GetPrimary();
         if (!primary.IsValid()) {
             m_Deps.scene->SetSelectedEntityIndex(-1);
+            if (m_Deps.detailsView) {
+                m_Deps.detailsView->Clear();
+            }
             return;
         }
         m_Deps.scene->SetSelectedEntityId(primary.value);
+        if (m_Deps.detailsView) {
+            if (auto* entity = m_Deps.scene->FindEntityById(primary.value)) {
+                static const auto entityTypeId = ::we::runtime::reflection::MakeTypeId("we::runtime::scene::Entity");
+                m_Deps.detailsView->SetObject(entityTypeId, entity);
+            } else {
+                m_Deps.detailsView->Clear();
+            }
+        }
     }
 
     void SyncSelectionFromScene() override {
@@ -370,6 +384,7 @@ private:
                 auto tn = std::make_shared<::we::editor::contentbrowser::TreeNode>();
                 tn->id = std::to_string(id.value);
                 tn->label = std::string(node->GetDisplayName());
+                tn->typeName = std::string(node->GetTypeName());
                 tn->iconName = std::string(node->GetIconName());
                 tn->expanded = m_Model->IsExpanded(id);
                 tn->visible = node->GetFlags().visible;

@@ -7,22 +7,17 @@ namespace we::editor::outliner {
 namespace Icons = ::we::runtime::kindui::Icons;
 
 ExplorerPanelHeader::ExplorerPanelHeader()
-    : PanelToolbarRow("Search Actors...") {}
+    : PanelToolbarRow("Search...") {}
 
 void ExplorerPanelHeader::Initialize() {
-    AddIconButton(Icons::FilterName, [this]() {
-        if (m_OnFilterClicked) {
-            m_OnFilterClicked();
-        }
-    });
-    AddIconButton(Icons::PlusName, [this]() {
+    AddIconButton(Icons::FolderAddName, [this]() {
         if (m_OnNewFolder) {
             m_OnNewFolder();
         }
     });
-    AddIconButton(Icons::RefreshName, [this]() {
-        if (m_OnRefresh) {
-            m_OnRefresh();
+    AddIconButton(Icons::SettingsName, [this]() {
+        if (m_OnFilterClicked) {
+            m_OnFilterClicked();
         }
     });
 
@@ -30,7 +25,7 @@ void ExplorerPanelHeader::Initialize() {
 }
 
 Rect ExplorerPanelHeader::GetFilterButtonGeometry() const {
-    if (auto btn = GetIconButton(0)) {
+    if (auto btn = GetIconButton(1)) {
         return btn->GetGeometry();
     }
     return {};

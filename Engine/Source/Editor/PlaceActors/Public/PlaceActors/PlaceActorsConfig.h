@@ -23,8 +23,8 @@ public:
     bool showRecent = true;
     bool showFavorites = true;
     int gridColumns = 3;
-    float listRowHeight = 32.0f;
-    float categoryHeaderHeight = 28.0f;
+    float listRowHeight = 0.0f;
+    float categoryHeaderHeight = 0.0f;
 
 private:
     PlaceActorsConfig() = default;

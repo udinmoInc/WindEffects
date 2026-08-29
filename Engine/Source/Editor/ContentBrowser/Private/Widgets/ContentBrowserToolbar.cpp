@@ -147,21 +147,7 @@ void ToolbarLabeledButton::Paint(PaintContext& context) {
     m_PressAnim = Animator::Damp(m_PressAnim, m_Pressed ? 1.0f : 0.0f, 25.0f);
     PaintToolbarButtonChrome(context, m_Geometry, m_HoverAnim, m_PressAnim, false, m_Variant == Variant::Primary);
 
-    if (m_Label == "Create" && m_Variant == Variant::Standard) {
-        const float radius = ThemeMetric(MetricToken::CornerRadiusSmall);
 
-        context.DrawRoundedRectOutline(
-            Rect{ m_Geometry.x + ThemeMetric(MetricToken::BorderWidth), m_Geometry.y + ThemeMetric(MetricToken::BorderWidth),
-                m_Geometry.width - 2.0f * ThemeMetric(MetricToken::BorderWidth), m_Geometry.height - 2.0f * ThemeMetric(MetricToken::BorderWidth) },
-            ThemeColor(ColorToken::HighlightSubtle), ThemeMetric(MetricToken::BorderWidth), radius
-        );
-
-        context.DrawRoundedRectOutline(
-            Rect{ m_Geometry.x - ThemeMetric(MetricToken::BorderWidth), m_Geometry.y - ThemeMetric(MetricToken::BorderWidth),
-                m_Geometry.width + 2.0f * ThemeMetric(MetricToken::BorderWidth), m_Geometry.height + 2.0f * ThemeMetric(MetricToken::BorderWidth) },
-            ThemeColor(ColorToken::ShadowSubtle), ThemeMetric(MetricToken::BorderWidth), radius
-        );
-    }
     const float hPad = m_HorizontalPadding;
     float x = m_Geometry.x + hPad;
     const float textSize = ThemeMetric(MetricToken::TextSizeBody);
@@ -236,7 +222,9 @@ void ContentBrowserToolbarControls::InitializeChildren() {
         AddChild(m_ImportBtn);
         AddChild(m_SaveBtn);
     } else {
-        // Asset pane toolbar: search, save all, filter icon
+        // Asset pane toolbar: add, import, search, save all, filter icon
+        m_CreateBtn = MakePrimaryAction("Add", Icons::PlusName);
+        m_ImportBtn = MakeSecondaryAction("Import", "import");
         m_SearchBox = std::make_shared<SearchBox>();
         m_SearchBox->SetPlaceholder("Search Assets...");
         m_SearchBox->SetFlexGrow(1.0f);
@@ -247,9 +235,13 @@ void ContentBrowserToolbarControls::InitializeChildren() {
         m_SaveBtn = std::make_shared<ToolbarLabeledButton>("Save All", Icons::SaveAllName, false, ToolbarLabeledButton::Variant::Standard, ThemeMetric(MetricToken::Space3));
         m_FilterIconBtn = std::make_shared<ToolbarIconToggle>(Icons::FilterName, "Filter");
 
+        m_CreateBtn->SetFlexShrink(0.0f);
+        m_ImportBtn->SetFlexShrink(0.0f);
         m_SaveBtn->SetFlexShrink(0.0f);
         m_FilterIconBtn->SetFlexShrink(0.0f);
 
+        AddChild(m_CreateBtn);
+        AddChild(m_ImportBtn);
         AddChild(m_SearchBox);
         AddChild(m_SaveBtn);
         AddChild(m_FilterIconBtn);

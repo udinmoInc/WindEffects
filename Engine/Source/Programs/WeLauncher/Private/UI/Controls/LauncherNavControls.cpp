@@ -270,7 +270,7 @@ void SearchField::Paint(PaintContext& context) {
     const float s = LScale();
     const float radius = LMetric(MetricToken::CornerRadiusSmall) * s;
 
-    Color bg = LColor(ColorToken::SearchBoxBackground);
+    Color bg = LColor(ColorToken::InputBackground);
     if (m_HoverAnim > 0.01f || m_FocusAnim > 0.01f) {
         bg = Color::Lerp(bg, LColor(ColorToken::HoverBackground), std::max(m_HoverAnim, m_FocusAnim) * 0.35f);
     }
@@ -523,7 +523,7 @@ void StatusFooter::Arrange(const Rect& allottedRect) {
 
 void StatusFooter::Paint(PaintContext& context) {
     const float s = LScale();
-    context.DrawRect(m_Geometry, LColor(ColorToken::FooterBackground));
+    context.DrawRect(m_Geometry, LColor(ColorToken::WindowBackground));
     context.DrawRect(
         Rect{ m_Geometry.x, m_Geometry.y, m_Geometry.width, 1.0f * s },
         LColor(ColorToken::Separator));
@@ -535,7 +535,7 @@ void StatusFooter::Paint(PaintContext& context) {
     const float textY = m_Geometry.y + (m_Geometry.height - textSize) * 0.5f;
     const float iconY = m_Geometry.y + (m_Geometry.height - iconPx) * 0.5f;
     const Color iconColor = LColor(ColorToken::IconSecondary);
-    const Color textColor = LColor(ColorToken::TextCaption);
+    const Color textColor = LColor(ColorToken::TextSecondary);
 
     float leftX = m_Geometry.x + pad;
     IconPainter::DrawIcon(

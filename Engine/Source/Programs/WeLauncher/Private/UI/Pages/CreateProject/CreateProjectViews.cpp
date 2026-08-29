@@ -154,7 +154,7 @@ void WizardDialogShell::Paint(PaintContext& context) {
         radius,
         28.0f * s);
 
-    context.DrawRoundedRect(m_Geometry, LColor(ColorToken::DialogBackground), radius);
+    context.DrawRoundedRect(m_Geometry, LColor(ColorToken::PopupBackground), radius);
     context.DrawRoundedRectOutline(
         m_Geometry,
         LColor(ColorToken::BorderDefault),
@@ -321,7 +321,7 @@ void CreateTemplateRow::Paint(PaintContext& context) {
     context.DrawText(
         Ellipsize(desc, textW, metaSize),
         Point{ textX, m_Geometry.y + m_Geometry.height - metaSize - 12.0f * s },
-        LColor(ColorToken::TextMuted),
+        LColor(ColorToken::TextHint),
         metaSize);
 }
 
