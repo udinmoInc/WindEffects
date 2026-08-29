@@ -80,10 +80,10 @@ private:
     
     std::vector<NavButton> m_NavButtons;
     
-    float m_StatsPadding = 8.0f;
+    float m_StatsPadding = 0.0f;
     float m_GizmoSize = 80.0f;
-    float m_NavButtonSize = 24.0f;
-    float m_NavSpacing = 4.0f;
+    float m_NavButtonSize = 0.0f;
+    float m_NavSpacing = 0.0f;
 
     OnNavigationAction m_OnNavigationAction;
 
@@ -139,8 +139,8 @@ private:
     std::vector<NavButton> m_Buttons;
     OnAction m_OnAction;
     
-    float m_ButtonSize = 24.0f;
-    float m_Spacing = 4.0f;
+    float m_ButtonSize = 0.0f;
+    float m_Spacing = 0.0f;
 };
 
 } // namespace we::editor::viewport

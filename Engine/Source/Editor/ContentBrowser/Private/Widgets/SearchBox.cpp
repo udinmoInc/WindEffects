@@ -3,8 +3,8 @@
 #include "KindUI/Core/EventSystem.h"
 #include "KindUI/Core/PaintContext.h"
 #include "WindEffects/Editor/UI/Panel/PanelChrome.h"
-#include "KindUI/Tokens/DesignToken.h"
-#include "KindUI/Theming/StyleRole.h"
+#include "KindUI/Core/LayoutMetrics.h"
+#include "KindUI/Theming/ThemeManager.h"
 #include "KindUI/Core/DPIContext.h"
 #include "KindUI/Rendering/IconMetrics.h"
 #include "KindUI/Input/InputEvents.h"
@@ -15,6 +15,7 @@ using ::we::runtime::kindui::MetricToken;
 using ::we::runtime::kindui::PaddingToken;
 
 namespace we::editor::widgets {
+namespace LayoutMetrics = ::we::runtime::kindui::LayoutMetrics;
 using ::we::runtime::kindui::MouseButton;
 using ::we::runtime::kindui::KeyEventType;
 using ::we::runtime::kindui::DPIContext;
@@ -27,20 +28,20 @@ namespace PanelChrome = ::we::editor::panels::PanelChrome;
 SearchBox::SearchBox()
     : m_Style(WidgetStyle::TextBox())
 {
-    m_Height = ThemeMetric(MetricToken::SearchBoxHeight);
+    LayoutMetrics::ApplyInputMinSize(*this);
     SetFocusable(true);
 }
 
 Size SearchBox::Measure(const Size& availableSize) {
+    const float uiScale = (std::max)(1.0f, DPIContext::GetScale());
     float w = m_FillWidth ? availableSize.width : m_Width;
-    const float scale = (std::max)(1.0f, DPIContext::GetScale());
-    m_DesiredSize = Size{ w, m_Height * scale };
+    m_DesiredSize = Size{ w, LayoutMetrics::InputMinHeight() * uiScale };
     return m_DesiredSize;
 }
 
 void SearchBox::Arrange(const Rect& allottedRect) {
-    const float scale = (std::max)(1.0f, DPIContext::GetScale());
-    const float h = std::min(m_Height * scale, allottedRect.height);
+    const float uiScale = (std::max)(1.0f, DPIContext::GetScale());
+    const float h = std::min(LayoutMetrics::InputMinHeight() * uiScale, allottedRect.height);
     const float y = allottedRect.y + (allottedRect.height - h) * 0.5f;
     m_Geometry = Rect{ allottedRect.x, y, allottedRect.width, h };
 }

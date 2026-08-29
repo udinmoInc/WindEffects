@@ -67,8 +67,6 @@ using ::we::editor::menus::MenuItem;
 using ::we::editor::shell::TitleBar;
 using ::we::editor::shell::StatusBar;
 using ::we::editor::shell::WindowShell;
-using ::we::editor::shell::kTitleBarLogoDisplaySize;
-using ::we::editor::shell::kWindowControlCount;
 using ::we::editor::toolbar::Toolbar;
 using ::we::editor::toolbar::ToolButtonStyle;
 using ::we::editor::toolbar::ToolbarAlignment;
@@ -256,7 +254,9 @@ EditorShellResult EditorShellBuilder::Build(
     });
     menuBar->SetItemSpacing(0.0f);
 
-    const int logoPx = static_cast<int>(std::round(kTitleBarLogoDisplaySize * uiScale));
+    const int logoPx = static_cast<int>(std::round(
+        (we::runtime::kindui::ResolveMetric(MetricToken::IconSizePrimary)
+            + we::runtime::kindui::ResolveMetric(MetricToken::Space1) * 0.5f) * uiScale));
     we::rhi::RHIDescriptorSetHandle logoSet = we::rhi::RHIDescriptorSetHandle::Invalid;
     if (deps.overlayRenderer && deps.overlayRenderer->GetIconRenderer()) {
         logoSet = deps.overlayRenderer->GetIconRenderer()->GetIcon("Assets/Editor/WindEffects.svg", logoPx);
@@ -272,7 +272,8 @@ EditorShellResult EditorShellBuilder::Build(
     toolbar->SetContext(widgetContext);
     toolbar->SetHeight(toolbarStyle.height > 0.0f ? toolbarStyle.height : we::runtime::kindui::ResolveMetric(MetricToken::ToolbarHeight) * uiScale);
     toolbar->SetLeftInset(style.Scaled(we::runtime::kindui::ResolveMetric(MetricToken::Space3)));
-    toolbar->SetRightInset(style.Scaled(we::runtime::kindui::ResolveMetric(MetricToken::WindowControlWidth) * kWindowControlCount));
+    constexpr int windowControlCount = 3;
+    toolbar->SetRightInset(style.Scaled(we::runtime::kindui::ResolveMetric(MetricToken::WindowControlWidth) * windowControlCount));
     toolbar->SetEdgePadding(style.Scaled(we::runtime::kindui::ResolveMetric(MetricToken::Space2)));
     const float toolbarIconTier = static_cast<float>(IconMetrics::NativeIconTierPx(
         toolbarStyle.iconSize > 0.0f ? toolbarStyle.iconSize : we::runtime::kindui::ResolveMetric(MetricToken::IconSizeToolbar)));
@@ -281,6 +282,7 @@ EditorShellResult EditorShellBuilder::Build(
     // Actor / object mode selector (pivot icon opens place-actors drawer)
     auto modeSelector = std::make_shared<we::programs::editor::EditorModeSelector>();
     modeSelector->SetContext(widgetContext);
+    modeSelector->InitializeCallbacks(modeSelector);
     modeSelector->Refresh();
     toolbar->AddWidget(modeSelector);
     toolbar->AddSeparator();
@@ -326,6 +328,7 @@ EditorShellResult EditorShellBuilder::Build(
     auto projectBtn = toolbar->AddTool(Icons::ProjectFolderName, "MyProject", [](){}, "MyProject", false, ToolbarAlignment::Right);
     projectBtn->SetButtonStyle(ToolButtonStyle::ToolbarInline);
     projectBtn->SetIsDropdown(true);
+    toolbar->AddSeparator(ToolbarAlignment::Right);
     toolbar->AddTool(Icons::SettingsName, "", [](){ we::programs::editor::ShowViewportNavigationPreferences(); }, "Editor Settings", false, ToolbarAlignment::Right);
 
     toolbar->SetActiveTool(Icons::CursorName);
@@ -412,7 +415,7 @@ EditorShellResult EditorShellBuilder::Build(
 
     auto statusBar = std::make_shared<StatusBar>();
     statusBar->Construct();
-    statusBar->SetHeight(statusStyle.height > 0.0f ? statusStyle.height : 28.0f * uiScale);
+    statusBar->SetHeight(statusStyle.height > 0.0f ? statusStyle.height : we::runtime::kindui::ResolveMetric(MetricToken::StatusBarHeight) * uiScale);
     statusBar->SetOnFooterTabChanged([](int index) {
         we::programs::editor::EditorWorkspaceController::Get().SetBottomPanelIndex(index);
     });
@@ -453,7 +456,7 @@ EditorShellResult EditorShellBuilder::Build(
     toolbar->SetMinSize(Size{ 0.0f, toolbarHeight });
     toolbar->SetMaxSize(Size{ 1.0e9f, toolbarHeight });
     statusBar->SetFlexShrink(0.0f);
-    const float statusHeight = statusStyle.height > 0.0f ? statusStyle.height : 28.0f * uiScale;
+    const float statusHeight = statusStyle.height > 0.0f ? statusStyle.height : we::runtime::kindui::ResolveMetric(MetricToken::StatusBarHeight) * uiScale;
     statusBar->SetMinSize(Size{ 0.0f, statusHeight });
     statusBar->SetMaxSize(Size{ 1.0e9f, statusHeight });
 

@@ -171,11 +171,15 @@ std::shared_ptr<Widget> ProjectManagerView::Build(
     root->Gap(0.0f);
     root->SetHorizontalAlignment(HorizontalAlignment::Fill);
     root->SetVerticalAlignment(VerticalAlignment::Fill);
-    root->Background(ResolveColor(ColorToken::PanelContentBackground));
+    root->Background(ResolveColor(ColorToken::PanelBackground));
 
     auto header = std::make_shared<Column>();
-    header->Gap(6.0f);
-    header->Padding(Margin{ 24.0f, 20.0f, 24.0f, 12.0f });
+    header->Gap(ResolveMetric(MetricToken::Space2));
+    header->Padding(Margin{
+        ResolveMetric(MetricToken::Space6),
+        ResolveMetric(MetricToken::Space5),
+        ResolveMetric(MetricToken::Space6),
+        ResolveMetric(MetricToken::Space3) });
     header->AddChild(std::make_shared<Label>("WindEffects Project Manager", TypographyToken::Title));
     header->AddChild(MakeMuted(
         "Select a project to edit. The Editor never assumes a default project."));
@@ -185,12 +189,17 @@ std::shared_ptr<Widget> ProjectManagerView::Build(
     root->AddChild(header);
 
     auto actions = std::make_shared<Row>();
-    actions->Gap(8.0f);
-    actions->Padding(Margin{ 24.0f, 0.0f, 24.0f, 12.0f });
+    actions->Gap(ResolveMetric(MetricToken::Space2));
+    actions->Padding(Margin{
+        ResolveMetric(MetricToken::Space6), 0.0f, ResolveMetric(MetricToken::Space6), ResolveMetric(MetricToken::Space3) });
 
     auto bodyHost = std::make_shared<Column>();
-    bodyHost->Gap(8.0f);
-    bodyHost->Padding(Margin{ 24.0f, 8.0f, 24.0f, 24.0f });
+    bodyHost->Gap(ResolveMetric(MetricToken::Space2));
+    bodyHost->Padding(Margin{
+        ResolveMetric(MetricToken::Space6),
+        ResolveMetric(MetricToken::Space2),
+        ResolveMetric(MetricToken::Space6),
+        ResolveMetric(MetricToken::Space6) });
     bodyHost->SetFlexGrow(1.0f);
     bodyHost->SetHorizontalAlignment(HorizontalAlignment::Fill);
     bodyHost->SetVerticalAlignment(VerticalAlignment::Fill);

@@ -50,7 +50,7 @@ bool IsMediumRole(const TypographyToken token) {
 ColorToken ColorForRole(const TypographyToken token) {
     switch (token) {
     case TypographyToken::Link:
-        return ColorToken::TextLink;
+        return ColorToken::LinkForeground;
     case TypographyToken::Error:
         return ColorToken::ErrorForeground;
     case TypographyToken::Warning:

@@ -188,7 +188,7 @@ void LauncherTitleBar::Paint(PaintContext& context) {
     context.DrawText(
         m_Title,
         Point{ logoRect.x + logoSize + LMetric(MetricToken::Space2) * s, m_Geometry.y + (m_Geometry.height - titleSize) * 0.5f },
-        LColor(ColorToken::TextWindowLabel),
+        LColor(ColorToken::TextPrimary),
         titleSize,
         true);
 

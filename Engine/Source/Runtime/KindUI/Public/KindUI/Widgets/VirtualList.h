@@ -15,7 +15,7 @@ class KINDUI_API VirtualList : public Widget {
 public:
     using ItemFactory = std::function<std::shared_ptr<Widget>(size_t index)>;
 
-    VirtualList() = default;
+    VirtualList();
 
     Size Measure(const Size& availableSize) override;
     void Arrange(const Rect& allottedRect) override;
@@ -47,7 +47,7 @@ private:
     void RebuildVisible();
 
     size_t m_ItemCount = 0;
-    float m_ItemHeight = 28.0f;
+    float m_ItemHeight = 0.0f;
     float m_ScrollOffset = 0.0f;
     ItemFactory m_ItemFactory;
     std::vector<std::shared_ptr<Widget>> m_Cache;

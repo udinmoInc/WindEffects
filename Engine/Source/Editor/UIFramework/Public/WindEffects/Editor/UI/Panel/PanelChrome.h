@@ -27,6 +27,12 @@ UIFRAMEWORK_API float SearchHeight();
 UIFRAMEWORK_API float ListRowHeight();
 UIFRAMEWORK_API float PanelPaddingH();
 UIFRAMEWORK_API float CategoryHeaderHeight();
+UIFRAMEWORK_API float PanelPaddingV();
+UIFRAMEWORK_API float ModeTabRowHeight();
+UIFRAMEWORK_API float SearchRowHeight();
+UIFRAMEWORK_API float ToolbarRowHeight();
+UIFRAMEWORK_API float ColumnHeaderRowHeight();
+UIFRAMEWORK_API float FooterRowHeight();
 
 UIFRAMEWORK_API float TabPadH();
 UIFRAMEWORK_API float TabIconSize();
@@ -72,6 +78,17 @@ UIFRAMEWORK_API DockTabLayout PaintDockTab(
     const DockTabDescriptor& tab,
     const Rect& headerRect,
     float x,
+    bool isActive,
+    float hoverAnim,
+    bool showClose,
+    bool closeHovered,
+    bool flushLeft = false);
+
+UIFRAMEWORK_API void PaintDockTab(
+    PaintContext& context,
+    const DockTabDescriptor& tab,
+    const DockTabLayout& layout,
+    const Rect& headerRect,
     bool isActive,
     float hoverAnim,
     bool showClose,

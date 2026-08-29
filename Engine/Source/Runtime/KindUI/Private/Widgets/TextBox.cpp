@@ -4,6 +4,7 @@
 #include "KindUI/Core/EventSystem.h"
 #include "KindUI/Core/PaintContext.h"
 #include "KindUI/Theming/ThemeAccess.h"
+#include "KindUI/Core/LayoutMetrics.h"
 #include "KindUI/Theming/ThemeManager.h"
 #include "KindUI/Tokens/DesignToken.h"
 #include "KindUI/Theming/StyleRole.h"
@@ -18,6 +19,7 @@ TextBox::TextBox(const std::string& initialText, std::function<void(const std::s
     , m_OnTextChanged(std::move(onTextChanged))
 {
     SetFocusable(true);
+    LayoutMetrics::ApplyInputMinSize(*this);
 }
 
 Size TextBox::Measure(const Size& availableSize) {

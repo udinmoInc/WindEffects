@@ -62,7 +62,7 @@ void OutputLogWidget::SetSearchQuery(const std::string& query) {
 
 Color OutputLogWidget::LevelColor(we::Logger::Level level) const {
     switch (level) {
-        case we::Logger::Level::Trace: return ThemeColor(ColorToken::TextMuted);
+        case we::Logger::Level::Trace: return ThemeColor(ColorToken::TextHint);
         case we::Logger::Level::Debug: return ThemeColor(ColorToken::TextSecondary);
         case we::Logger::Level::Info: return ThemeColor(ColorToken::TextSecondary);
         case we::Logger::Level::Warning: return ThemeColor(ColorToken::Warning);

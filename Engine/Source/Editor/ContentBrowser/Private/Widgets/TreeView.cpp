@@ -13,6 +13,7 @@
 #include "KindUI/Core/Icon.h"
 #include "KindUI/Core/DPIContext.h"
 #include "KindUI/Input/InputEvents.h"
+#include "KindUI/Core/ControlChrome.h"
 #include "KindUI/Rendering/IconMetrics.h"
 #include <algorithm>
 #include <cmath>
@@ -30,6 +31,7 @@ using ::we::runtime::kindui::KeyCodeToChar;
 namespace Icons = ::we::runtime::kindui::Icons;
 namespace IconMetrics = ::we::runtime::kindui::IconMetrics;
 namespace PanelChrome = ::we::editor::panels::PanelChrome;
+namespace ControlChrome = ::we::runtime::kindui::ControlChrome;
 using ::we::runtime::kindui::DPIContext;
 
 
@@ -85,47 +87,60 @@ public:
 
     Size Measure(const Size& availableSize) override {
         (void)availableSize;
-        float maxWidth = 200.0f;
+        const float itemHeight = ThemeMetric(MetricToken::MenuItemHeight);
+        const float menuPad = ThemeMetric(MetricToken::MenuPadding);
+        float maxWidth = ThemeMetric(MetricToken::PopupMinWidth);
         for (const auto& item : m_Items) {
-            maxWidth = std::max(maxWidth, 24.0f + static_cast<float>(item.label.size()) * 7.0f + 24.0f);
+            maxWidth = std::max(maxWidth, ThemeMetric(MetricToken::MenuTextIndent)
+                + static_cast<float>(item.label.size()) * ThemeMetric(MetricToken::TextSizeSmall) * 0.55f
+                + ThemeMetric(MetricToken::Space3));
         }
-        m_DesiredSize = Size{ maxWidth, 6.0f + m_Items.size() * 26.0f };
+        m_DesiredSize = Size{ maxWidth, menuPad * 2.0f + m_Items.size() * itemHeight };
         return m_DesiredSize;
     }
 
     void Arrange(const Rect& allottedRect) override { m_Geometry = allottedRect; }
 
     void Paint(PaintContext& context) override {
-        context.DrawShadow(m_Geometry, ThemeColor(ColorToken::ShadowSubtle), 4.0f, 10.0f);
-        context.DrawRoundedRect(m_Geometry, ThemeColor(ColorToken::PopupBackground), ThemeMetric(MetricToken::CornerRadiusSmall));
-        context.DrawRoundedRectOutline(m_Geometry, ThemeColor(ColorToken::BorderDefault), 1.0f, ThemeMetric(MetricToken::CornerRadiusSmall));
+        ControlChrome::PaintPopupSurface(context, m_Geometry);
 
-        float y = m_Geometry.y + 3.0f;
+        const float itemHeight = ThemeMetric(MetricToken::MenuItemHeight);
+        const float menuPad = ThemeMetric(MetricToken::MenuPadding);
+        const float padX = ThemeMetric(MetricToken::Space2);
+        const float textSize = ThemeMetric(MetricToken::TextSizeSmall);
+        const float rowRadius = ThemeMetric(MetricToken::CornerRadiusSmall);
+
+        float y = m_Geometry.y + menuPad;
         for (size_t i = 0; i < m_Items.size(); ++i) {
             const auto& item = m_Items[i];
-            Rect row{ m_Geometry.x + 2.0f, y, m_Geometry.width - 4.0f, 24.0f };
+            Rect row{ m_Geometry.x + menuPad, y, m_Geometry.width - menuPad * 2.0f, itemHeight };
             if (!item.enabled) {
-                y += 26.0f;
+                y += itemHeight;
                 continue;
             }
             if (static_cast<int>(i) == m_Hovered) {
-                context.DrawRoundedRect(row, ThemeColor(ColorToken::HoverBackground), 3.0f);
+                ControlChrome::InteractionState state{};
+                state.hoverAnim = 1.0f;
+                ControlChrome::PaintListRow(context, row, state);
             }
-            context.DrawText(item.label, Point{ row.x + 10.0f, row.y + 5.0f }, ThemeColor(ColorToken::TextPrimary), 11.0f);
-            y += 26.0f;
+            const float textY = row.y + (row.height - textSize) * 0.5f;
+            context.DrawText(item.label, Point{ row.x + padX, textY }, ThemeColor(ColorToken::TextPrimary), textSize);
+            y += itemHeight;
         }
     }
 
     void OnMouseMove(const MouseEvent& event) override {
         m_Hovered = -1;
-        float y = m_Geometry.y + 3.0f;
+        const float itemHeight = ThemeMetric(MetricToken::MenuItemHeight);
+        const float menuPad = ThemeMetric(MetricToken::MenuPadding);
+        float y = m_Geometry.y + menuPad;
         for (size_t i = 0; i < m_Items.size(); ++i) {
-            Rect row{ m_Geometry.x + 2.0f, y, m_Geometry.width - 4.0f, 24.0f };
+            Rect row{ m_Geometry.x + menuPad, y, m_Geometry.width - menuPad * 2.0f, itemHeight };
             if (row.Contains(event.position)) {
                 m_Hovered = static_cast<int>(i);
                 break;
             }
-            y += 26.0f;
+            y += itemHeight;
         }
     }
 
@@ -133,9 +148,11 @@ public:
         if (event.button != MouseButton::Left) {
             return;
         }
-        float y = m_Geometry.y + 3.0f;
+        const float itemHeight = ThemeMetric(MetricToken::MenuItemHeight);
+        const float menuPad = ThemeMetric(MetricToken::MenuPadding);
+        float y = m_Geometry.y + menuPad;
         for (size_t i = 0; i < m_Items.size(); ++i) {
-            Rect row{ m_Geometry.x + 2.0f, y, m_Geometry.width - 4.0f, 24.0f };
+            Rect row{ m_Geometry.x + menuPad, y, m_Geometry.width - menuPad * 2.0f, itemHeight };
             if (row.Contains(event.position) && m_Items[i].enabled && m_Items[i].onClick) {
                 m_Items[i].onClick();
                 if (auto* overlay = GetPopupHost()) {
@@ -146,7 +163,7 @@ public:
                 }
                 return;
             }
-            y += 26.0f;
+            y += itemHeight;
         }
     }
 
@@ -161,13 +178,23 @@ private:
 TreeView::TreeView()
     : m_Style(WidgetStyle::TreeItem())
 {
+    m_BaseItemHeight = we::runtime::kindui::ResolveMetric(MetricToken::ListRowHeight);
+    m_BaseIndentWidth = we::runtime::kindui::ResolveMetric(MetricToken::TreeIndentWidth);
+    m_ItemHeight = m_BaseItemHeight;
+    m_IndentWidth = m_BaseIndentWidth;
     m_Root = std::make_shared<TreeNode>();
     m_Root->id = "root";
     m_Root->label = "Root";
 }
 
 void TreeView::SyncScrollMetrics() {
-    m_ScrollMetrics = m_Scroll.UpdateMetrics(m_Geometry, m_Geometry.height, m_ContentHeight, TreeUiScale());
+    const float headerHeight = (m_ExplorerStyle && m_ShowColumnHeader)
+        ? PanelChrome::ColumnHeaderRowHeight()
+        : 0.0f;
+    Rect viewportGeom = m_Geometry;
+    viewportGeom.y += headerHeight;
+    viewportGeom.height = (std::max)(0.0f, viewportGeom.height - headerHeight);
+    m_ScrollMetrics = m_Scroll.UpdateMetrics(viewportGeom, viewportGeom.height, m_ContentHeight, TreeUiScale());
 }
 
 void TreeView::ScrollSelectionIntoView() {
@@ -209,6 +236,7 @@ void TreeView::Arrange(const Rect& allottedRect) {
     const float rowHeight = m_ItemHeight * TreeUiScale();
     const float viewportX = m_ScrollMetrics.viewport.x;
     const float viewportWidth = m_ScrollMetrics.viewport.width;
+    const float indentOffset = m_ExplorerStyle ? 48.0f * TreeUiScale() : 0.0f;
     const int first = std::max(0, m_FirstVisibleIndex - 2);
     const int last = std::min(static_cast<int>(m_RenderList.size()) - 1, m_LastVisibleIndex + 2);
     float y = m_ScrollMetrics.viewport.y - m_Scroll.offset
@@ -217,9 +245,9 @@ void TreeView::Arrange(const Rect& allottedRect) {
         auto& item = m_RenderList[static_cast<size_t>(i)];
         item.flatIndex = i;
         item.geometry = Rect{
-            viewportX + item.depth * m_IndentWidth,
+            viewportX + indentOffset + item.depth * m_IndentWidth,
             y,
-            std::max(0.0f, viewportWidth - item.depth * m_IndentWidth),
+            std::max(0.0f, viewportWidth - indentOffset - item.depth * m_IndentWidth),
             rowHeight
         };
         y += rowHeight;
@@ -233,8 +261,106 @@ void TreeView::Tick(float deltaTime) {
     }
 }
 
+TreeView::TreeRowLayoutSlots TreeView::ComputeTreeRowLayout(const RenderItem& item) const {
+    TreeRowLayoutSlots layout{};
+    const float uiScale = TreeUiScale();
+    const float rowHeight = m_ItemHeight * uiScale;
+    const float viewportX = m_ScrollMetrics.viewport.x;
+    const float viewportWidth = m_ScrollMetrics.viewport.width;
+
+    layout.rowBounds = Rect{ viewportX, item.geometry.y, viewportWidth, rowHeight };
+
+    const float accessorySize = static_cast<float>(IconMetrics::GlyphTierPx(MetricToken::IconSizeTree)) * uiScale;
+    const float prefixOffset = m_ExplorerStyle ? 48.0f * uiScale : 0.0f;
+    const float centerY = item.geometry.y + rowHeight * 0.5f;
+
+    if (m_ExplorerStyle) {
+        layout.eyeBounds = Rect{ viewportX + 8.0f * uiScale, centerY - accessorySize * 0.5f, accessorySize, accessorySize };
+        layout.lockBounds = Rect{ viewportX + 28.0f * uiScale, centerY - accessorySize * 0.5f, accessorySize, accessorySize };
+    }
+
+    layout.indentX = viewportX + prefixOffset + (static_cast<float>(item.depth) * m_IndentWidth);
+
+    const float expanderWidth = 12.0f * uiScale;
+    layout.expanderBounds = Rect{ layout.indentX, item.geometry.y, expanderWidth, rowHeight };
+    layout.hasExpander = !item.node->children.empty();
+
+    const float contentSlotX = layout.indentX + expanderWidth + 2.0f * uiScale;
+
+    const float iconSize = static_cast<float>(IconMetrics::GlyphTierPx(MetricToken::IconSizeTree)) * uiScale;
+    const bool hasIcon = !item.node->iconName.empty() || item.node->iconTexture != we::rhi::RHIDescriptorSetHandle::Invalid;
+    layout.hasIcon = hasIcon;
+    if (hasIcon) {
+        layout.iconBounds = Rect{ contentSlotX, centerY - iconSize * 0.5f, iconSize, iconSize };
+        layout.textX = contentSlotX + iconSize + 4.0f * uiScale;
+    } else {
+        layout.iconBounds = Rect{ contentSlotX, item.geometry.y, 0.0f, 0.0f };
+        layout.textX = contentSlotX;
+    }
+
+    float rightReservedX = viewportX + viewportWidth - 12.0f * uiScale;
+
+    if (m_ShowRowControls && !m_ExplorerStyle) {
+        const float controlGap = 4.0f * uiScale;
+        rightReservedX -= accessorySize;
+        layout.eyeBounds = Rect{ rightReservedX, centerY - accessorySize * 0.5f, accessorySize, accessorySize };
+        rightReservedX -= (accessorySize + controlGap);
+        layout.lockBounds = Rect{ rightReservedX, centerY - accessorySize * 0.5f, accessorySize, accessorySize };
+        rightReservedX -= controlGap;
+    }
+
+    if (!item.node->typeName.empty()) {
+        const float typeWidth = 100.0f * uiScale;
+        rightReservedX -= (typeWidth + 8.0f * uiScale);
+        layout.typeBounds = Rect{ rightReservedX, item.geometry.y, typeWidth, rowHeight };
+    }
+
+    layout.maxTextWidth = (std::max)(10.0f, rightReservedX - layout.textX - 4.0f * uiScale);
+    return layout;
+}
+
 void TreeView::Paint(PaintContext& context) {
     ::we::editor::panels::PanelChrome::PaintContentRegion(context, m_Geometry);
+
+    const float uiScale = TreeUiScale();
+    const float fontSize = m_Style.text.size * uiScale;
+
+    if (m_ExplorerStyle && m_ShowColumnHeader) {
+        const float headerHeight = PanelChrome::ColumnHeaderRowHeight();
+        const Rect headerRect{ m_Geometry.x, m_Geometry.y, m_Geometry.width, headerHeight };
+
+        context.DrawRect(headerRect, ThemeColor(ColorToken::HeaderBackground));
+
+        const float glyphTier = static_cast<float>(IconMetrics::StandardGlyphTierPx());
+        const float headerTextSize = ThemeMetric(MetricToken::TextSizeCaption) * uiScale;
+        const float headerTextY = m_Geometry.y + (headerHeight - headerTextSize) * 0.5f;
+
+        // Eye icon column header
+        const float eyeX = m_Geometry.x + 8.0f * uiScale;
+        Rect eyeBand{ eyeX, m_Geometry.y, glyphTier, headerHeight };
+        IconPainter::DrawIcon(context, Icons::EyeName, IconMetrics::PlaceGlyphCentered(eyeBand, glyphTier), ThemeColor(ColorToken::TextSecondary));
+
+        // Pin/Lock column header
+        const float lockX = m_Geometry.x + 28.0f * uiScale;
+        Rect lockBand{ lockX, m_Geometry.y, glyphTier, headerHeight };
+        IconPainter::DrawIcon(context, Icons::LockName, IconMetrics::PlaceGlyphCentered(lockBand, glyphTier), ThemeColor(ColorToken::TextSecondary));
+
+        // Item Label header
+        const float labelX = m_Geometry.x + 48.0f * uiScale;
+        context.DrawText("Item Label ▲", Point{ labelX, headerTextY }, ThemeColor(ColorToken::TextSecondary), headerTextSize, true);
+
+        // Type column header
+        const float typeRightX = m_Geometry.x + m_Geometry.width - 24.0f * uiScale;
+        const float typeWidth = context.GetTextWidth("Type", headerTextSize);
+        context.DrawText("Type", Point{ typeRightX - typeWidth, headerTextY }, ThemeColor(ColorToken::TextSecondary), headerTextSize, true);
+
+        // Header bottom separator line
+        context.DrawLine(
+            Point{ m_Geometry.x, m_Geometry.y + headerHeight - 1.0f },
+            Point{ m_Geometry.x + m_Geometry.width, m_Geometry.y + headerHeight - 1.0f },
+            ThemeColor(ColorToken::Separator)
+        );
+    }
 
     if (m_RenderList.empty()) {
         return;
@@ -243,11 +369,12 @@ void TreeView::Paint(PaintContext& context) {
     SyncScrollMetrics();
     UpdateVisibleRange();
 
-    const float fontSize = m_Style.text.size * TreeUiScale();
     const float viewTop = m_ScrollMetrics.viewport.y;
     const float viewBottom = m_ScrollMetrics.viewport.y + m_ScrollMetrics.viewport.height;
 
     context.PushClipRect(m_ScrollMetrics.viewport);
+
+    const Color guideLineColor = ThemeColor(ColorToken::BorderSubtle) * 0.5f;
 
     for (int i = m_FirstVisibleIndex; i <= m_LastVisibleIndex && i < static_cast<int>(m_RenderList.size()); ++i) {
         const auto& item = m_RenderList[static_cast<size_t>(i)];
@@ -259,75 +386,119 @@ void TreeView::Paint(PaintContext& context) {
             continue;
         }
 
-        Color bgColor{0, 0, 0, 0};
+        const TreeRowLayoutSlots layout = ComputeTreeRowLayout(item);
         const bool selected = IsSelected(node->id);
         const bool hovered = node->id == m_HoveredId;
+
+        // Full-Width Row Background
         if (selected || hovered) {
-            Rect rowRect = item.geometry;
-            rowRect.x = m_ScrollMetrics.viewport.x;
-            rowRect.width = m_ScrollMetrics.viewport.width;
-            ::we::editor::panels::PanelChrome::PaintListRowBackground(context, rowRect, hovered, selected);
+            ::we::editor::panels::PanelChrome::PaintListRowBackground(context, layout.rowBounds, hovered, selected);
         }
 
+        // Drop Target Indicator Line
         if (node->id == m_DropTargetId && m_Dragging) {
             Rect dropLine{
                 m_ScrollMetrics.viewport.x + 4.0f,
-                item.geometry.y,
+                layout.rowBounds.y,
                 m_ScrollMetrics.viewport.width - 8.0f,
                 2.0f
             };
             context.DrawRect(dropLine, ThemeColor(ColorToken::AccentPrimary));
         }
 
-        if (!node->children.empty()) {
-            const float tier = static_cast<float>(IconMetrics::StandardGlyphTierPx());
-            const float chevronX = item.geometry.x + ThemeMetric(MetricToken::Space1) * TreeUiScale();
-            const float centerY = item.geometry.y + rowHeight * 0.5f;
+        const float centerY = layout.rowBounds.y + rowHeight * 0.5f;
+
+        // Left Controls (ExplorerStyle)
+        if (m_ExplorerStyle) {
+            if (hovered || selected || !node->visible) {
+                const Color eyeColor = node->visible ? ThemeColor(ColorToken::TextSecondary) : ThemeColor(ColorToken::TextSecondary) * 0.45f;
+                const char* eyeIcon = node->visible ? Icons::EyeName : Icons::EyeOffName;
+                IconPainter::DrawIcon(context, eyeIcon,
+                    IconMetrics::PlaceGlyphCentered(layout.eyeBounds, layout.eyeBounds.width), eyeColor);
+            }
+            if (node->locked) {
+                const Color lockColor = ThemeColor(ColorToken::Warning);
+                IconPainter::DrawIcon(context, Icons::LockName,
+                    IconMetrics::PlaceGlyphCentered(layout.lockBounds, layout.lockBounds.width), lockColor);
+            }
+        }
+
+        // Tree Hierarchy Guide Lines
+        if (item.depth > 0) {
+            const float indentOffset = m_ExplorerStyle ? 48.0f * uiScale : 0.0f;
+
+            bool isLastChild = true;
+            for (size_t nextIdx = static_cast<size_t>(i) + 1; nextIdx < m_RenderList.size(); ++nextIdx) {
+                const auto& nextItem = m_RenderList[nextIdx];
+                if (nextItem.depth < item.depth) break;
+                if (nextItem.depth == item.depth) {
+                    isLastChild = false;
+                    break;
+                }
+            }
+
+            for (int d = 0; d < item.depth; ++d) {
+                const float lineX = m_ScrollMetrics.viewport.x + indentOffset + (static_cast<float>(d) * m_IndentWidth) + 5.0f * uiScale;
+                if (d == item.depth - 1) {
+                    const float vertBottom = isLastChild ? centerY : (layout.rowBounds.y + rowHeight);
+                    context.DrawLine(Point{ lineX, layout.rowBounds.y }, Point{ lineX, vertBottom }, guideLineColor, 1.0f);
+                    const float branchX1 = layout.indentX + (layout.hasExpander ? 0.0f : 10.0f * uiScale);
+                    context.DrawLine(Point{ lineX, centerY }, Point{ branchX1, centerY }, guideLineColor, 1.0f);
+                } else {
+                    bool ancestorContinues = false;
+                    for (size_t nextIdx = static_cast<size_t>(i) + 1; nextIdx < m_RenderList.size(); ++nextIdx) {
+                        if (m_RenderList[nextIdx].depth <= d) {
+                            if (m_RenderList[nextIdx].depth > d) ancestorContinues = true;
+                            break;
+                        }
+                    }
+                    if (ancestorContinues) {
+                        context.DrawLine(Point{ lineX, layout.rowBounds.y }, Point{ lineX, layout.rowBounds.y + rowHeight }, guideLineColor, 1.0f);
+                    }
+                }
+            }
+        }
+
+        // Expander Chevron
+        if (layout.hasExpander) {
             const char* chevronIcon = node->expanded ? Icons::ChevronDownName : Icons::ChevronRightName;
-            Rect chevronControl{ chevronX, centerY - tier * 0.5f, tier, tier };
             IconPainter::DrawIcon(context, chevronIcon,
-                IconMetrics::PlaceGlyphCentered(chevronControl, tier),
+                IconMetrics::PlaceGlyphCentered(layout.expanderBounds, layout.expanderBounds.width),
                 ThemeColor(ColorToken::TextSecondary));
         }
 
-        const float iconSize = static_cast<float>(IconMetrics::GlyphTierPx(MetricToken::IconSizeTree));
-        const float iconX = item.geometry.x + ThemeMetric(MetricToken::Space2)
-            + static_cast<float>(IconMetrics::StandardGlyphTierPx())
-            + ThemeMetric(MetricToken::Space1) * TreeUiScale();
-        if (!node->iconName.empty() || node->iconTexture != we::rhi::RHIDescriptorSetHandle::Invalid) {
-            Rect iconBand{ iconX, item.geometry.y, iconSize, rowHeight };
-            Rect iconRect = IconMetrics::PlaceGlyphCentered(iconBand, iconSize);
-            PaintTreeNodeIcon(context, *node, iconRect, node->id == m_HoveredId);
+        // Node Icon
+        if (layout.hasIcon) {
+            Rect iconRect = IconMetrics::PlaceGlyphCentered(layout.iconBounds, layout.iconBounds.width);
+            PaintTreeNodeIcon(context, *node, iconRect, hovered);
         }
 
-        const float textX = iconX + iconSize + ThemeMetric(MetricToken::Space2) * TreeUiScale();
-        const float textY = item.geometry.y + (rowHeight - fontSize) * 0.5f;
+        // Node Label Text (With Search Highlighting & Text Clipping)
+        const float textY = layout.rowBounds.y + (rowHeight - fontSize) * 0.5f;
         Color textColor = node->locked ? ThemeColor(ColorToken::TextSecondary) * 0.6f : ThemeColor(ColorToken::TextPrimary);
         if (!node->visible) {
             textColor = ThemeColor(ColorToken::TextSecondary) * 0.45f;
         }
 
+        context.PushClipRect(Rect{ layout.textX, layout.rowBounds.y, layout.maxTextWidth, rowHeight });
+
         if (node->id == m_RenamingId) {
-            Rect editBg{ textX - 4.0f, item.geometry.y + 2.0f, item.geometry.width - 80.0f, rowHeight - 4.0f };
+            Rect editBg{ layout.textX - 4.0f, layout.rowBounds.y + 2.0f, (std::max)(40.0f, layout.maxTextWidth), rowHeight - 4.0f };
             context.DrawRoundedRect(editBg, ThemeColor(ColorToken::InputBackground), 3.0f);
             context.DrawRoundedRectOutline(editBg, ThemeColor(ColorToken::AccentPrimary), 1.0f, 3.0f);
-            context.DrawText(m_RenameBuffer, Point{ textX, textY }, ThemeColor(ColorToken::TextPrimary), fontSize);
+            context.DrawText(m_RenameBuffer, Point{ layout.textX, textY }, ThemeColor(ColorToken::TextPrimary), fontSize);
             if (static_cast<int>(m_RenameCursorBlink * 2.0f) % 2 == 0) {
-                const float cursorX = textX + context.GetTextWidth(m_RenameBuffer, fontSize) + 1.0f;
+                const float cursorX = layout.textX + context.GetTextWidth(m_RenameBuffer, fontSize) + 1.0f;
                 context.DrawRect(Rect{ cursorX, textY, 1.0f, fontSize }, ThemeColor(ColorToken::TextPrimary));
             }
         } else {
-            // Draw text with search highlighting
             if (!m_SearchQuery.empty()) {
                 const std::string& label = node->label;
                 const std::string& query = m_SearchQuery;
-                
-                // Find match positions
                 size_t matchStart = 0;
                 size_t matchEnd = 0;
                 bool foundMatch = false;
-                
-                // Simple case-insensitive search for highlighting
+
                 for (size_t searchIdx = 0; searchIdx <= label.size() - query.size() && !foundMatch; ++searchIdx) {
                     bool matches = true;
                     for (size_t j = 0; j < query.size(); ++j) {
@@ -342,55 +513,54 @@ void TreeView::Paint(PaintContext& context) {
                         foundMatch = true;
                     }
                 }
-                
+
                 if (foundMatch) {
-                    // Draw text before match
                     const std::string beforeMatch = label.substr(0, matchStart);
-                    float currentX = textX;
+                    float currentX = layout.textX;
                     if (!beforeMatch.empty()) {
                         context.DrawText(beforeMatch, Point{ currentX, textY }, textColor, fontSize);
                         currentX += context.GetTextWidth(beforeMatch, fontSize);
                     }
-                    
-                    // Draw highlighted match
                     const std::string matchText = label.substr(matchStart, matchEnd - matchStart);
                     const float matchWidth = context.GetTextWidth(matchText, fontSize);
                     Rect highlightRect{ currentX, textY, matchWidth, fontSize };
                     context.DrawRoundedRect(highlightRect, ThemeColor(ColorToken::AccentPrimary) * 0.3f, 2.0f);
                     context.DrawText(matchText, Point{ currentX, textY }, ThemeColor(ColorToken::AccentPrimary), fontSize);
                     currentX += matchWidth;
-                    
-                    // Draw text after match
                     const std::string afterMatch = label.substr(matchEnd);
                     if (!afterMatch.empty()) {
                         context.DrawText(afterMatch, Point{ currentX, textY }, textColor, fontSize);
                     }
                 } else {
-                    context.DrawText(label, Point{ textX, textY }, textColor, fontSize);
+                    context.DrawText(node->label, Point{ layout.textX, textY }, textColor, fontSize);
                 }
             } else {
-                context.DrawText(node->label, Point{ textX, textY }, textColor, fontSize);
+                context.DrawText(node->label, Point{ layout.textX, textY }, textColor, fontSize);
             }
         }
 
-        if (m_ShowRowControls) {
-        const float accessorySize = static_cast<float>(IconMetrics::GlyphTierPx(MetricToken::IconSizeTree));
-        const float accessoryGap = ThemeMetric(MetricToken::Space1) * TreeUiScale();
-        const float rowPad = ThemeMetric(MetricToken::Space2) * TreeUiScale();
-        const float eyeX = item.geometry.x + item.geometry.width - accessorySize - rowPad;
-        const float centerY = item.geometry.y + rowHeight * 0.5f;
-        const Color eyeColor = node->visible ? ThemeColor(ColorToken::TextSecondary) : ThemeColor(ColorToken::TextSecondary) * 0.45f;
-        const char* eyeIcon = node->visible ? Icons::EyeName : Icons::EyeOffName;
-        Rect eyeControl{ eyeX, centerY - accessorySize * 0.5f, accessorySize, accessorySize };
-        IconPainter::DrawIcon(context, eyeIcon,
-            IconMetrics::PlaceGlyphCentered(eyeControl, accessorySize), eyeColor);
+        context.PopClipRect();
 
-        const float lockX = eyeX - accessorySize - accessoryGap;
-        const Color lockColor = node->locked ? ThemeColor(ColorToken::Warning) : ThemeColor(ColorToken::TextSecondary) * 0.55f;
-        const char* lockIcon = node->locked ? Icons::LockName : Icons::UnlockName;
-        Rect lockControl{ lockX, centerY - accessorySize * 0.5f, accessorySize, accessorySize };
-        IconPainter::DrawIcon(context, lockIcon,
-            IconMetrics::PlaceGlyphCentered(lockControl, accessorySize), lockColor);
+        // Trailing Type Column (Right-Aligned)
+        if (!node->typeName.empty()) {
+            const float typeFontSize = fontSize * 0.9f;
+            const float typeWidth = context.GetTextWidth(node->typeName, typeFontSize);
+            const float typeRightX = m_ScrollMetrics.viewport.x + m_ScrollMetrics.viewport.width - 24.0f * uiScale;
+            const float typeY = layout.rowBounds.y + (rowHeight - typeFontSize) * 0.5f;
+            context.DrawText(node->typeName, Point{ typeRightX - typeWidth, typeY }, ThemeColor(ColorToken::TextSecondary) * 0.65f, typeFontSize);
+        }
+
+        // Trailing Row Controls (Non-ExplorerStyle)
+        if (m_ShowRowControls && !m_ExplorerStyle) {
+            const Color eyeColor = node->visible ? ThemeColor(ColorToken::TextSecondary) : ThemeColor(ColorToken::TextSecondary) * 0.45f;
+            const char* eyeIcon = node->visible ? Icons::EyeName : Icons::EyeOffName;
+            IconPainter::DrawIcon(context, eyeIcon,
+                IconMetrics::PlaceGlyphCentered(layout.eyeBounds, layout.eyeBounds.width), eyeColor);
+
+            const Color lockColor = node->locked ? ThemeColor(ColorToken::Warning) : ThemeColor(ColorToken::TextSecondary) * 0.55f;
+            const char* lockIcon = node->locked ? Icons::LockName : Icons::UnlockName;
+            IconPainter::DrawIcon(context, lockIcon,
+                IconMetrics::PlaceGlyphCentered(layout.lockBounds, layout.lockBounds.width), lockColor);
         }
     }
 
@@ -423,26 +593,15 @@ void TreeView::OnMouseDown(const MouseEvent& event) {
         return;
     }
 
+    const TreeRowLayoutSlots layout = ComputeTreeRowLayout(*item);
     const auto& node = item->node;
-    const float rowHeight = m_ItemHeight * TreeUiScale();
 
-    if (!node->children.empty()) {
-        const float tier = static_cast<float>(IconMetrics::StandardGlyphTierPx());
-        const float chevronX = item->geometry.x + ThemeMetric(MetricToken::Space1) * TreeUiScale();
-        Rect chevronRect{ chevronX, item->geometry.y + (rowHeight - tier) * 0.5f, tier, tier };
-        if (chevronRect.Contains(event.position)) {
-            ToggleExpand(node->id);
-            return;
-        }
+    if (layout.hasExpander && layout.expanderBounds.Contains(event.position)) {
+        ToggleExpand(node->id);
+        return;
     }
 
-    const float accessorySize = static_cast<float>(IconMetrics::GlyphTierPx(MetricToken::IconSizeTree));
-    const float accessoryGap = ThemeMetric(MetricToken::Space1) * TreeUiScale();
-    const float rowPad = ThemeMetric(MetricToken::Space2) * TreeUiScale();
-    const float eyeX = item->geometry.x + item->geometry.width - accessorySize - rowPad;
-    const float lockX = eyeX - accessorySize - accessoryGap;
-    Rect lockRect{ lockX, item->geometry.y + (rowHeight - accessorySize) * 0.5f, accessorySize, accessorySize };
-    if (lockRect.Contains(event.position)) {
+    if (layout.lockBounds.width > 0.0f && layout.lockBounds.Contains(event.position)) {
         node->locked = !node->locked;
         if (m_OnLockToggled) {
             m_OnLockToggled(node->id, node->locked);
@@ -450,8 +609,7 @@ void TreeView::OnMouseDown(const MouseEvent& event) {
         return;
     }
 
-    Rect eyeRect{ eyeX, item->geometry.y + (rowHeight - accessorySize) * 0.5f, accessorySize, accessorySize };
-    if (eyeRect.Contains(event.position)) {
+    if (layout.eyeBounds.width > 0.0f && layout.eyeBounds.Contains(event.position)) {
         node->visible = !node->visible;
         if (m_OnVisibilityToggled) {
             m_OnVisibilityToggled(node->id, node->visible);
@@ -461,8 +619,8 @@ void TreeView::OnMouseDown(const MouseEvent& event) {
 
     HandleSelection(node->id, event.shiftDown, event.ctrlDown);
     m_Dragging = false;
-    m_DragSourceId = node->id;
     m_DragStart = event.position;
+    m_DragSourceId = node->id;
 }
 
 void TreeView::OnMouseUp(const MouseEvent& event) {

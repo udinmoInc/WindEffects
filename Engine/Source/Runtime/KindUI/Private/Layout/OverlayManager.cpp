@@ -1,5 +1,7 @@
 #include "KindUI/Layout/OverlayManager.h"
 #include "KindUI/Core/PaintContext.h"
+#include "KindUI/Tokens/DesignToken.h"
+#include "KindUI/Theming/ThemeAccess.h"
 #include "Core/Logger.h"
 
 #include <algorithm>
@@ -22,8 +24,10 @@ void OverlayHost::SetBaseWidget(const std::shared_ptr<Widget>& baseWidget) {
 void OverlayHost::ShowPopup(const std::shared_ptr<Widget>& popup, const Point& position) {
     const float screenW = (std::max)(m_Geometry.width, 1.0f);
     const float screenH = (std::max)(m_Geometry.height, 1.0f);
-    const float maxW = (std::max)(50.0f, screenW - 16.0f);
-    const float availBelowY = (std::max)(50.0f, screenH - position.y - 8.0f);
+    const float margin = ResolveMetric(MetricToken::Space1);
+    const float screenMargin = ResolveMetric(MetricToken::Space4);
+    const float maxW = (std::max)(ResolveMetric(MetricToken::PopupMinWidth) * 0.35f, screenW - screenMargin);
+    const float availBelowY = (std::max)(ResolveMetric(MetricToken::PopupMinWidth) * 0.35f, screenH - position.y - margin);
 
     Size size = popup->Measure(Size{ maxW, availBelowY });
     size = popup->ClampDesiredSize(size);
@@ -31,11 +35,12 @@ void OverlayHost::ShowPopup(const std::shared_ptr<Widget>& popup, const Point& p
     float posX = position.x;
     float posY = position.y;
 
-    if (posY + size.height > screenH - 4.0f && posY - size.height >= 4.0f) {
-        posY = posY - size.height - 28.0f;
+    const float flipOffset = ResolveMetric(MetricToken::PanelToolbarHeight);
+    if (posY + size.height > screenH - margin && posY - size.height >= margin) {
+        posY = posY - size.height - flipOffset;
     }
-    posX = std::clamp(posX, 4.0f, (std::max)(4.0f, screenW - size.width - 4.0f));
-    posY = std::clamp(posY, 4.0f, (std::max)(4.0f, screenH - size.height - 4.0f));
+    posX = std::clamp(posX, margin, (std::max)(margin, screenW - size.width - margin));
+    posY = std::clamp(posY, margin, (std::max)(margin, screenH - size.height - margin));
 
     Rect geom{ posX, posY, size.width, size.height };
     popup->Arrange(geom);
@@ -122,7 +127,9 @@ void OverlayHost::Arrange(const Rect& allottedRect) {
         m_BaseWidget->Arrange(allottedRect);
     }
 
-    const float maxW = (std::max)(50.0f, allottedRect.width - 16.0f);
+    const float popupMargin = ResolveMetric(MetricToken::Space2) * 2.0f;
+    const float minPopupDim = ResolveMetric(MetricToken::ToolbarLabeledMinWidth) + ResolveMetric(MetricToken::Space2);
+    const float maxW = (std::max)(minPopupDim, allottedRect.width - popupMargin);
 
     for (size_t i = 0; i < m_Popups.size(); ++i) {
         auto& popup = m_Popups[i];
@@ -142,7 +149,7 @@ void OverlayHost::Arrange(const Rect& allottedRect) {
         const bool needsRemeasure =
             popup->NeedsLayout() || size.width <= 0.0f || size.height <= 0.0f;
         if (needsRemeasure) {
-            const float availH = (std::max)(50.0f, allottedRect.height - geom.y - 8.0f);
+            const float availH = (std::max)(minPopupDim, allottedRect.height - geom.y - ResolveMetric(MetricToken::Space2));
             size = popup->Measure(Size{maxW, availH});
             size = popup->ClampDesiredSize(size);
             if (i < m_PopupCachedSizes.size()) {

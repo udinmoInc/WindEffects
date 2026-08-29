@@ -62,7 +62,7 @@ void LauncherShell::ApplyDeclarativePage(PageState& state, const Element& view, 
         state.root->SetHorizontalAlignment(HorizontalAlignment::Fill);
         state.root->SetVerticalAlignment(VerticalAlignment::Fill);
         if (auto box = std::dynamic_pointer_cast<Column>(state.root)) {
-            box->Background(LColor(ColorToken::PanelContentBackground));
+            box->Background(LColor(ColorToken::PanelBackground));
         }
     }
     state.scroll = scrollId ? FindScrollById(state.root, scrollId) : nullptr;
@@ -262,7 +262,7 @@ EnginePageModel LauncherShell::BuildEnginePageModel() {
     }));
 
     for (const auto& check : m_Context->Sdk().RunChecks()) {
-        Color color = LColor(ColorToken::TextMuted);
+        Color color = LColor(ColorToken::TextHint);
         if (check.status == SdkCheckStatus::Pass) {
             color = LColor(ColorToken::Success);
         } else if (check.status == SdkCheckStatus::Warn) {
@@ -336,7 +336,7 @@ void LauncherShell::RebuildChrome() {
     contentHost->SetVerticalAlignment(VerticalAlignment::Fill);
     contentHost->SetFlexGrow(1.0f);
     contentHost->SetFlexBasis(0.0f);
-    contentHost->Background(LColor(ColorToken::PanelContentBackground));
+    contentHost->Background(LColor(ColorToken::PanelBackground));
     m_ContentHost = contentHost;
     mainColumn->AddChild(m_ContentHost);
 

@@ -2,6 +2,7 @@
 #include "PropertyEditor/IDetailsView.h"
 
 #include "KindUI/Core/Style.h"
+#include "KindUI/Core/Icon.h"
 
 #include <cmath>
 
@@ -9,9 +10,18 @@ namespace we::editor::property {
 namespace detail {
 
 namespace {
-constexpr float kDetailsWheelStepPx = 40.f;
-constexpr float kDetailsLabelColumnPx = 140.f;
-constexpr float kDetailsRowHeightPx = 22.f;
+float DetailsLabelColumnPx() {
+    return we::runtime::kindui::ResolveMetric(we::runtime::kindui::MetricToken::PropertyLabelColumnWidth);
+}
+float DetailsRowHeightPx() {
+    return we::runtime::kindui::ResolveMetric(we::runtime::kindui::MetricToken::FormRowHeight);
+}
+float DetailsPropertyIndentStepPx() {
+    return we::runtime::kindui::ResolveMetric(we::runtime::kindui::MetricToken::PropertyIndentStep);
+}
+float DetailsWheelStepPx() {
+    return we::runtime::kindui::ResolveMetric(we::runtime::kindui::MetricToken::ControlHeightLarge);
+}
 } // namespace
 
 using we::runtime::kindui::ColorToken;
@@ -28,6 +38,8 @@ using we::runtime::kindui::Size;
 using we::runtime::kindui::Widget;
 using we::runtime::kindui::WidgetStyle;
 using we::runtime::kindui::DPIContext;
+using we::runtime::kindui::IconPainter;
+namespace Icons = we::runtime::kindui::Icons;
 namespace PanelChrome = we::editor::panels::PanelChrome;
 
 class DetailsViewWidget final : public Widget {
@@ -50,13 +62,30 @@ public:
     }
 
     void Paint(PaintContext& context) override {
-        PanelChrome::PaintContentRegion(context, m_Geometry);
         SyncScroll();
-        if (!m_Tree) {
+        if (!m_Tree || m_Tree->GetFilteredRootNodes().empty()) {
+            const float uiScale = (std::max)(1.0f, DPIContext::GetScale());
+            const float iconSize = 24.0f * uiScale;
+            const float fontSize = 13.0f * uiScale;
+            const float fontHeight = fontSize;
+            const float totalHeight = iconSize + 8.0f * uiScale + fontHeight;
+
+            const float centerX = m_Geometry.x + m_Geometry.width * 0.5f;
+            const float centerY = m_Geometry.y + m_Geometry.height * 0.5f;
+
+            const Rect iconRect{ centerX - iconSize * 0.5f, centerY - totalHeight * 0.5f, iconSize, iconSize };
+            IconPainter::DrawIcon(context, Icons::PropertiesName, iconRect, ThemeColor(ColorToken::TextSecondary) * 0.35f);
+
+            const std::string emptyMsg = (m_Tree && !m_Tree->GetFilter().searchText.empty()) ? "No matching properties" : "Select an object to view details";
+            const float textWidth = context.GetTextWidth(emptyMsg, fontSize);
+            const float textX = centerX - textWidth * 0.5f;
+            const float textY = iconRect.y + iconSize + 8.0f * uiScale;
+
+            context.DrawText(emptyMsg, Point{ textX, textY }, ThemeColor(ColorToken::TextSecondary) * 0.45f, fontSize);
             return;
         }
 
-        const float uiScale = std::max(1.0f, DPIContext::GetScale());
+        const float uiScale = (std::max)(1.0f, DPIContext::GetScale());
         const float viewTop = m_ScrollMetrics.viewport.y;
         const float viewBottom = m_ScrollMetrics.viewport.y + m_ScrollMetrics.viewport.height;
         float y = m_ScrollMetrics.viewport.y - m_Scroll.offset;
@@ -147,7 +176,7 @@ public:
 
     void OnMouseWheel(const MouseEvent& event) override {
         SyncScroll();
-        m_Scroll.ApplyWheel(event.wheelDeltaY, kDetailsWheelStepPx, m_Geometry.height, m_ContentHeight);
+        m_Scroll.ApplyWheel(event.wheelDeltaY, DetailsWheelStepPx(), m_Geometry.height, m_ContentHeight);
         LayoutEditors();
         InvalidatePaint();
     }
@@ -192,8 +221,8 @@ private:
                         y,
                         m_ScrollMetrics.viewport.width,
                         height};
-                    const float valueX = row.x + kDetailsLabelColumnPx;
-                    Rect valueRect{valueX, row.y, row.width - (valueX - row.x) - 8.f, height};
+                    const float valueX = row.x + DetailsLabelColumnPx();
+                    Rect valueRect{valueX, row.y, row.width - (valueX - row.x) - we::runtime::kindui::ResolveMetric(MetricToken::Space2), height};
                     editorWidget->Arrange(valueRect);
                 }
             }
@@ -213,8 +242,8 @@ private:
         m_ScrollMetrics = m_Scroll.UpdateMetrics(m_Geometry, m_Geometry.height, m_ContentHeight, uiScale);
     }
 
-    [[nodiscard]] float RowHeight() const { return kDetailsRowHeightPx; }
-    [[nodiscard]] float CategoryHeight() const { return kDetailsRowHeightPx; }
+    [[nodiscard]] float RowHeight() const { return DetailsRowHeightPx(); }
+    [[nodiscard]] float CategoryHeight() const { return DetailsRowHeightPx(); }
 
     float MeasureContentHeight() const {
         if (!m_Tree) {
@@ -268,7 +297,8 @@ private:
                     node->IsExpanded(),
                     false);
             } else {
-                const float indent = 8.f + static_cast<float>(node->GetDepth()) * 12.f;
+                const float indent = we::runtime::kindui::ResolveMetric(MetricToken::Space2)
+                    + static_cast<float>(node->GetDepth()) * DetailsPropertyIndentStepPx();
                 const float labelX = row.x + PanelChrome::PanelPaddingH() + indent;
                 const float labelY = row.y + (height - ThemeMetric(MetricToken::TextSizeBody)) * 0.5f;
                 const bool mixed = node->GetValueState() == PropertyValueState::Mixed;
@@ -288,8 +318,8 @@ private:
                         }
                     }
                     if (editorWidget) {
-                        const float valueX = row.x + kDetailsLabelColumnPx;
-                        Rect valueRect{valueX, row.y, row.width - (valueX - row.x) - 8.f, height};
+                        const float valueX = row.x + DetailsLabelColumnPx();
+                        Rect valueRect{valueX, row.y, row.width - (valueX - row.x) - we::runtime::kindui::ResolveMetric(MetricToken::Space2), height};
                         editorWidget->Paint(context);
                     }
                 }

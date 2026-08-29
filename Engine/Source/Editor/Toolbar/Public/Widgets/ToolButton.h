@@ -93,8 +93,8 @@ public:
     void Arrange(const Rect& allottedRect) override;
     void Paint(PaintContext& context) override;
 
-    static constexpr float SEPARATOR_WIDTH = 1.0f;
-    static constexpr float SEPARATOR_HEIGHT = 24.0f;
+    static float SeparatorHeight();
+    static float SeparatorWidth();
 };
 
 } // namespace we::editor::toolbar

@@ -66,7 +66,7 @@ ButtonStyle VariantButtonStyle(WidgetVariant variant) {
     ButtonStyle style{};
     switch (variant) {
     case WidgetVariant::Primary:
-        style.background = ColorProperty{ColorToken::AccentSurface};
+        style.background = ColorProperty{ColorToken::SelectedBackground};
         style.backgroundHover = ColorProperty{ColorToken::ControlBackgroundHover};
         style.foreground = ColorProperty{ColorToken::TextOnAccent};
         break;
@@ -75,35 +75,35 @@ ButtonStyle VariantButtonStyle(WidgetVariant variant) {
         break;
     case WidgetVariant::Ghost:
     case WidgetVariant::Flat:
-        style.background = ColorProperty{ColorToken::PrimarySurface, Color::Transparent()};
+        style.background = ColorProperty{ColorToken::PanelBackground, Color::Transparent()};
         style.border = BorderStyleTokens{};
         break;
     case WidgetVariant::Link:
-        style.background = ColorProperty{ColorToken::PrimarySurface, Color::Transparent()};
-        style.foreground = ColorProperty{ColorToken::TextLink};
+        style.background = ColorProperty{ColorToken::PanelBackground, Color::Transparent()};
+        style.foreground = ColorProperty{ColorToken::LinkForeground};
         break;
     case WidgetVariant::Success:
-        style.background = ColorProperty{ColorToken::SuccessColor};
+        style.background = ColorProperty{ColorToken::Success};
         style.foreground = ColorProperty{ColorToken::TextOnAccent};
         break;
     case WidgetVariant::Warning:
-        style.background = ColorProperty{ColorToken::WarningColor};
+        style.background = ColorProperty{ColorToken::Warning};
         style.foreground = ColorProperty{ColorToken::TextOnAccent};
         break;
     case WidgetVariant::Danger:
-        style.background = ColorProperty{ColorToken::ErrorColor};
+        style.background = ColorProperty{ColorToken::ErrorForeground};
         style.foreground = ColorProperty{ColorToken::TextOnAccent};
         break;
     case WidgetVariant::Outline:
-        style.background = ColorProperty{ColorToken::PrimarySurface, Color::Transparent()};
+        style.background = ColorProperty{ColorToken::PanelBackground, Color::Transparent()};
         style.border.color = ColorProperty{ColorToken::BorderDefault};
         break;
     case WidgetVariant::Toolbar:
-        style.background = ColorProperty{ColorToken::TertiarySurface};
+        style.background = ColorProperty{ColorToken::CardBackground};
         style.cornerRadius = RadiusProperty{RadiusToken::Small};
         break;
     case WidgetVariant::Accent:
-        style.background = ColorProperty{ColorToken::AccentSurface};
+        style.background = ColorProperty{ColorToken::SelectedBackground};
         break;
     default:
         break;

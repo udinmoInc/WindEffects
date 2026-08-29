@@ -14,6 +14,7 @@ using ::we::runtime::kindui::Row;
 
 PanelBuilder::PanelBuilder(std::string_view title)
     : m_Panel(std::make_shared<Panel>(std::string(title))) {
+    m_Panel->AttachBodyLayout();
     m_Panel->SetHeaderHeight(ResolveMetric(MetricToken::PanelTabHeight));
 }
 
@@ -54,6 +55,26 @@ PanelBuilder& PanelBuilder::WithHeaderAction(std::string_view iconName, std::fun
 
 PanelBuilder& PanelBuilder::Toolbar(std::shared_ptr<Widget> toolbar) {
     m_Panel->SetToolbar(std::move(toolbar));
+    return *this;
+}
+
+PanelBuilder& PanelBuilder::ModeTabs(std::shared_ptr<Widget> modeTabs) {
+    m_Panel->SetModeTabs(std::move(modeTabs));
+    return *this;
+}
+
+PanelBuilder& PanelBuilder::Search(std::shared_ptr<Widget> search) {
+    m_Panel->SetSearch(std::move(search));
+    return *this;
+}
+
+PanelBuilder& PanelBuilder::ColumnHeader(std::shared_ptr<Widget> columnHeader) {
+    m_Panel->SetColumnHeader(std::move(columnHeader));
+    return *this;
+}
+
+PanelBuilder& PanelBuilder::Footer(std::shared_ptr<Widget> footer) {
+    m_Panel->SetFooter(std::move(footer));
     return *this;
 }
 

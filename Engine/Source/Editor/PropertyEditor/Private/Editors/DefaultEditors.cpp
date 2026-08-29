@@ -62,7 +62,9 @@ public:
                     checkSize};
                 Color bg = m_Value ? ThemeColor(ColorToken::AccentPrimary) : ThemeColor(ColorToken::InputBackground);
                 context.DrawRoundedRect(checkRect, bg, 3.f);
-                context.DrawRoundedRectOutline(checkRect, ThemeColor(ColorToken::BorderDefault), 1.f, 3.f);
+                if (m_Focused) {
+                    context.DrawRoundedRectOutline(checkRect, ThemeColor(ColorToken::BorderFocus), 1.f, 3.f);
+                }
                 if (m_Value) {
                     IconPainter::DrawIcon(
                         context,
@@ -239,7 +241,9 @@ public:
             void Arrange(const Rect& r) override { m_Geometry = r; }
             void Paint(PaintContext& context) override {
                 context.DrawRoundedRect(m_Geometry, ThemeColor(ColorToken::InputBackground), 3.f);
-                context.DrawRoundedRectOutline(m_Geometry, ThemeColor(ColorToken::BorderDefault), 1.f, 3.f);
+                if (m_Focused) {
+                    context.DrawRoundedRectOutline(m_Geometry, ThemeColor(ColorToken::BorderFocus), 1.f, 3.f);
+                }
                 const std::string label =
                     m_Handle && m_Handle->GetValueState() == PropertyValueState::Mixed ? "—" : m_CurrentName;
                 context.DrawText(
@@ -353,7 +357,6 @@ public:
                     Color c{m_Values[0], m_Values[1], m_Values[2], m_Values[3]};
                     Rect swatch{m_Geometry.x, m_Geometry.y + 2.f, 16.f, 16.f};
                     context.DrawRoundedRect(swatch, c, 3.f);
-                    context.DrawRoundedRectOutline(swatch, ThemeColor(ColorToken::BorderDefault), 1.f, 3.f);
                 }
                 char buf[128]{};
                 if (m_Handle && m_Handle->GetValueState() == PropertyValueState::Mixed) {

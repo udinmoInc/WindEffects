@@ -199,7 +199,7 @@ EmptyStatePanel::HitZone EmptyStatePanel::HitTest(const Point& p) const {
 void EmptyStatePanel::Paint(PaintContext& context) {
     const float s = LScale();
     // Fill surface so the host never reads as a black void.
-    context.DrawRect(m_Geometry, LColor(ColorToken::PanelContentBackground));
+    context.DrawRect(m_Geometry, LColor(ColorToken::PanelBackground));
 
     const float cx = m_Geometry.x + m_Geometry.width * 0.5f;
     const bool hasIcon = m_Icon && m_Icon[0];
@@ -258,7 +258,7 @@ void EmptyStatePanel::Paint(PaintContext& context) {
         const float radius = LMetric(MetricToken::CornerRadiusSmall) * s;
         Color bg = primary
             ? LColor(ColorToken::ButtonPrimaryBackground)
-            : LColor(ColorToken::ActiveBackground);
+            : LColor(ColorToken::HoverBackground);
         if (primary) {
             if (pressed) {
                 bg = LColor(ColorToken::ButtonPrimaryPressed);
@@ -403,7 +403,7 @@ ProjectsEmptyState::HitZone ProjectsEmptyState::HitTest(const Point& p) const {
 
 void ProjectsEmptyState::Paint(PaintContext& context) {
     const float s = LScale();
-    context.DrawRect(m_Geometry, LColor(ColorToken::PanelContentBackground));
+    context.DrawRect(m_Geometry, LColor(ColorToken::PanelBackground));
 
     LayoutContent();
     const float cx = m_Geometry.x + m_Geometry.width * 0.5f;
@@ -441,7 +441,7 @@ void ProjectsEmptyState::Paint(PaintContext& context) {
         const float radius = 8.0f * s;
         Color bg = primary
             ? LColor(ColorToken::ButtonPrimaryBackground)
-            : LColor(ColorToken::ActiveBackground);
+            : LColor(ColorToken::HoverBackground);
         if (primary) {
             if (pressed) bg = LColor(ColorToken::ButtonPrimaryPressed);
             else if (hovered) bg = LColor(ColorToken::ButtonPrimaryHover);
@@ -471,7 +471,7 @@ void ProjectsEmptyState::Paint(PaintContext& context) {
     context.DrawText(
         cap,
         Point{ cx - context.GetTextWidth(cap, capSize) * 0.5f, y },
-        LColor(ColorToken::TextCaption),
+        LColor(ColorToken::TextSecondary),
         capSize);
 
     y += capSize + 6.0f * s;
@@ -489,7 +489,7 @@ void ProjectsEmptyState::Paint(PaintContext& context) {
     m_ChangeRect = Rect{ rowX + pathW + changeGap, y, changeW, changeH };
 
     const float radius = 6.0f * s;
-    Color changeBg = LColor(ColorToken::ActiveBackground);
+    Color changeBg = LColor(ColorToken::HoverBackground);
     if (m_Hover == HitZone::Change) {
         changeBg = Color::Lerp(changeBg, LColor(ColorToken::HoverBackground), 0.75f);
     }

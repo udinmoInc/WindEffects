@@ -27,6 +27,10 @@ public:
     PanelBuilder& WithHeaderAction(std::string_view iconName, std::function<void()> onClick);
     PanelBuilder& Toolbar(std::shared_ptr<Widget> toolbar);
     PanelBuilder& ToolbarBox(std::function<void(Row&)> build);
+    PanelBuilder& ModeTabs(std::shared_ptr<Widget> modeTabs);
+    PanelBuilder& Search(std::shared_ptr<Widget> search);
+    PanelBuilder& ColumnHeader(std::shared_ptr<Widget> columnHeader);
+    PanelBuilder& Footer(std::shared_ptr<Widget> footer);
 
     [[nodiscard]] std::shared_ptr<Panel> Content(std::shared_ptr<Widget> content);
     [[nodiscard]] std::shared_ptr<Panel> Build();

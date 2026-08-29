@@ -1,6 +1,8 @@
 #include "WindEffects/Editor/EditorSDK.h"
 #include "Widgets/ToolbarBuilder.h"
 #include "KindUI/Widgets/Label.h"
+#include "KindUI/Tokens/DesignToken.h"
+#include "KindUI/Theming/ThemeAccess.h"
 
 namespace we::programs::editor {
 using namespace ::we::runtime::kindui;
@@ -12,8 +14,8 @@ namespace Icons = ::we::runtime::kindui::Icons;
 
 std::shared_ptr<Panel> CreateGamePanel() {
     auto toolbar = ToolbarBuilder()
-        .Height(28.0f)
-        .IconSize(16.0f)
+        .Height(we::runtime::kindui::ResolveMetric(we::runtime::kindui::MetricToken::PanelToolbarHeight))
+        .IconSize(we::runtime::kindui::ResolveMetric(we::runtime::kindui::MetricToken::IconSizeToolbar))
         .Dropdown(Icons::PlayName, "Game", {}, "Game View Options")
         .Separator()
         .Dropdown(Icons::ConsoleName, "Display 1", {}, "Select Display")

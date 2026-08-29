@@ -77,7 +77,7 @@ private:
     std::vector<TabInfo> m_Tabs;
     int m_ActiveTabIndex = -1;
 
-    float m_HeaderHeightLogical = 26.0f;
+    float m_HeaderHeightLogical = 0.0f;
     Rect m_HeaderRect;
     Rect m_ContentRect;
 

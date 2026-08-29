@@ -557,7 +557,7 @@ void CacheUsageBar::Paint(PaintContext& context) {
     context.DrawText(
         usage,
         Point{ m_Geometry.x + m_Geometry.width - uw, m_Geometry.y },
-        LColor(ColorToken::TextMuted),
+        LColor(ColorToken::TextHint),
         textSize);
 
     Rect track{
@@ -619,7 +619,7 @@ void AppearancePreviewPanel::Arrange(const Rect& allottedRect) {
 void AppearancePreviewPanel::Paint(PaintContext& context) {
     const float s = LScale();
     const float radius = LMetric(MetricToken::CornerRadiusMedium) * s;
-    context.DrawRoundedRect(m_Geometry, LColor(ColorToken::PanelContentBackground), radius);
+    context.DrawRoundedRect(m_Geometry, LColor(ColorToken::PanelBackground), radius);
     context.DrawRoundedRectOutline(m_Geometry, LColor(ColorToken::BorderSubtle), 1.0f, radius);
 
     const Color accent = ParseHexColor(m_AccentHex);

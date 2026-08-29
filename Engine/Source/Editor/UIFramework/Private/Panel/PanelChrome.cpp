@@ -6,6 +6,7 @@
 #include "KindUI/Theming/StyleRole.h"
 #include "KindUI/Core/Icon.h"
 #include "KindUI/Core/DPIContext.h"
+#include "KindUI/Core/ControlChrome.h"
 #include "KindUI/Rendering/IconMetrics.h"
 #include <algorithm>
 #include <cmath>
@@ -26,6 +27,7 @@ using ::we::runtime::kindui::PaintContext;
 using ::we::runtime::kindui::Rect;
 using ::we::runtime::kindui::Color;
 using ::we::runtime::kindui::Point;
+namespace ControlChrome = ::we::runtime::kindui::ControlChrome;
 
 namespace {
 
@@ -89,6 +91,30 @@ float CategoryHeaderHeight() {
     return we::runtime::kindui::ResolveMetric(MetricToken::CategoryHeaderHeight) * UiScale();
 }
 
+float PanelPaddingV() {
+    return we::runtime::kindui::ResolveMetric(MetricToken::Space1) * UiScale();
+}
+
+float ModeTabRowHeight() {
+    return TabHeight();
+}
+
+float SearchRowHeight() {
+    return SearchHeight() + PanelPaddingV() * 2.0f;
+}
+
+float ToolbarRowHeight() {
+    return ToolbarHeight() + PanelPaddingV() * 2.0f;
+}
+
+float ColumnHeaderRowHeight() {
+    return ListRowHeight();
+}
+
+float FooterRowHeight() {
+    return ListRowHeight();
+}
+
 float TabPadH() {
     return we::runtime::kindui::ResolveMetric(MetricToken::Space2) * UiScale();
 }
@@ -98,11 +124,11 @@ float TabIconSize() {
 }
 
 float TabGap() {
-    return 2.0f * UiScale();
+    return we::runtime::kindui::ResolveMetric(MetricToken::TabGap) * UiScale();
 }
 
 float TabTopRadius() {
-    return 4.0f * UiScale();
+    return 0.0f;
 }
 
 float HeaderButtonSize() {
@@ -114,7 +140,7 @@ void PaintPanelSurface(PaintContext& context, const Rect& rect) {
 }
 
 void PaintToolbarRegion(PaintContext& context, const Rect& rect) {
-    context.DrawRect(rect, we::runtime::kindui::ResolveColor(ColorToken::PanelToolbarBackground));
+    context.DrawRect(rect, we::runtime::kindui::ResolveColor(ColorToken::ToolbarBackground));
 
     const float scale = UiScale();
     Rect separator{
@@ -127,12 +153,15 @@ void PaintToolbarRegion(PaintContext& context, const Rect& rect) {
 }
 
 void PaintContentRegion(PaintContext& context, const Rect& rect) {
-    context.DrawRect(rect, we::runtime::kindui::ResolveColor(ColorToken::PanelBackground));
+    PaintPanelSurface(context, rect);
 }
 
 void PaintDockHeaderBand(PaintContext& context, const Rect& headerRect) {
-    (void)context;
-    (void)headerRect;
+    const float scale = UiScale();
+    const float separatorHeight = we::runtime::kindui::ResolveMetric(MetricToken::BorderWidth) * scale;
+    context.DrawRect(
+        Rect{ headerRect.x, headerRect.y + headerRect.height - separatorHeight, headerRect.width, separatorHeight },
+        we::runtime::kindui::ResolveColor(ColorToken::Separator));
 }
 
 float MeasureDockTabWidth(
@@ -171,21 +200,97 @@ DockTabLayout LayoutDockTabGeometries(
     bool isActive,
     bool showClose)
 {
+    const float scale = UiScale();
     const float padH = TabPadH();
     const float buttonSize = HeaderButtonSize();
-    const float centerY = headerRect.y + headerRect.height * 0.5f;
+    const float insetTop = 2.0f * scale;
+    const float tabHeight = (std::max)(16.0f, headerRect.height - insetTop);
+    const float tabY = headerRect.y + insetTop;
+    const float centerY = std::floor(tabY + tabHeight * 0.5f);
 
     DockTabLayout layout{};
     const float tabWidth = MeasureDockTabWidth(context, tab, isActive, showClose);
-    layout.tabRect = Rect{ x, headerRect.y, tabWidth, headerRect.height };
+    layout.tabRect = Rect{ x, tabY, tabWidth, tabHeight };
 
     if (showClose) {
         const float closeX = layout.tabRect.x + layout.tabRect.width - padH - buttonSize;
-        const float closeY = centerY - buttonSize * 0.5f;
+        const float closeY = std::floor(centerY - buttonSize * 0.5f);
         layout.closeRect = Rect{ closeX, closeY, buttonSize, buttonSize };
     }
 
     return layout;
+}
+
+void PaintDockTab(
+    PaintContext& context,
+    const DockTabDescriptor& tab,
+    const DockTabLayout& layout,
+    const Rect& headerRect,
+    bool isActive,
+    float hoverAnim,
+    bool showClose,
+    bool closeHovered,
+    bool flushLeft)
+{
+    (void)flushLeft;
+    (void)headerRect;
+    const float scale = UiScale();
+    const float fontSize = we::runtime::kindui::ResolveMetric(MetricToken::TextSizeTabs) * scale;
+    const float iconSize = TabIconSize();
+    const float padH = TabPadH();
+    const float iconGap = we::runtime::kindui::ResolveMetric(MetricToken::Space1) * scale;
+    const float radius = TabTopRadius();
+
+    if (isActive) {
+        Color activeBg = we::runtime::kindui::ResolveColor(ColorToken::PanelBackground);
+        DrawRoundedRectTop(context, layout.tabRect, activeBg, radius);
+
+        const float indicatorHeight = we::runtime::kindui::ResolveMetric(MetricToken::TabActiveIndicatorHeight) * scale;
+        context.DrawRect(
+            Rect{ layout.tabRect.x, layout.tabRect.y, layout.tabRect.width, indicatorHeight },
+            we::runtime::kindui::ResolveColor(ColorToken::ActiveTabLine));
+    } else if (hoverAnim > 0.01f) {
+        Color tabBg = Color::Lerp(
+            Color::Transparent(),
+            we::runtime::kindui::ResolveColor(ColorToken::HoverBackground),
+            hoverAnim * 0.85f);
+        DrawRoundedRectTop(context, layout.tabRect, tabBg, radius);
+    }
+
+    float itemX = layout.tabRect.x + padH;
+    const float centerY = std::floor(layout.tabRect.y + layout.tabRect.height * 0.5f);
+
+    if (tab.hasBrand) {
+        const float brandSize = tab.brandLogicalSize * scale;
+        const float logoY = std::floor(centerY - brandSize * 0.5f);
+        const auto snap = [](float v) { return std::floor(v + 0.5f); };
+        if (tab.brandDescriptor != we::rhi::RHIDescriptorSetHandle::Invalid) {
+            context.DrawTexture(
+                Rect{ snap(itemX), snap(logoY), brandSize, brandSize },
+                tab.brandDescriptor,
+                we::runtime::kindui::ResolveColor(ColorToken::TextPrimary));
+        }
+        itemX += brandSize + iconGap;
+    } else if (!tab.iconName.empty()) {
+        IconPainter::DrawIcon(
+            context,
+            tab.iconName,
+            Rect{ itemX, std::floor(centerY - iconSize * 0.5f), iconSize, iconSize },
+            ResolveTabIconColor(isActive, hoverAnim));
+        itemX += iconSize + iconGap;
+    }
+
+    const float titleY = std::floor(centerY - fontSize * 0.5f);
+    context.DrawText(
+        tab.title,
+        Point{ itemX, titleY },
+        ResolveTabTextColor(isActive, hoverAnim),
+        fontSize,
+        isActive);
+
+    if (showClose && !layout.closeRect.IsEmpty()) {
+        PaintHeaderIconButton(context, layout.closeRect, Icons::XName, closeHovered, false, true);
+    }
 }
 
 DockTabLayout PaintDockTab(
@@ -200,60 +305,7 @@ DockTabLayout PaintDockTab(
     bool flushLeft)
 {
     DockTabLayout layout = LayoutDockTabGeometries(context, tab, headerRect, x, isActive, showClose);
-    (void)flushLeft;
-    const float scale = UiScale();
-    const float fontSize = we::runtime::kindui::ResolveMetric(MetricToken::TextSizeTabs) * scale;
-    const float iconSize = TabIconSize();
-    const float padH = TabPadH();
-    const float iconGap = we::runtime::kindui::ResolveMetric(MetricToken::Space1) * scale;
-    const float radius = TabTopRadius();
-    const float buttonSize = HeaderButtonSize();
-
-    if (isActive) {
-        DrawRoundedRectTop(context, layout.tabRect, we::runtime::kindui::ResolveColor(ColorToken::PanelBackground), radius);
-    } else if (hoverAnim > 0.01f) {
-        Color hoverBg = Color::Lerp(
-            Color{0.0f, 0.0f, 0.0f, 0.0f},
-            we::runtime::kindui::ResolveColor(ColorToken::HoverBackground),
-            hoverAnim * 0.85f);
-        DrawRoundedRectTop(context, layout.tabRect, hoverBg, radius);
-    }
-
-    float itemX = layout.tabRect.x + padH;
-    const float centerY = headerRect.y + headerRect.height * 0.5f;
-
-    if (tab.hasBrand) {
-        const float brandSize = tab.brandLogicalSize * scale;
-        const float logoY = centerY - brandSize * 0.5f;
-        const auto snap = [](float v) { return std::floor(v + 0.5f); };
-        if (tab.brandDescriptor != we::rhi::RHIDescriptorSetHandle::Invalid) {
-            context.DrawTexture(
-                Rect{ snap(itemX), snap(logoY), brandSize, brandSize },
-                tab.brandDescriptor,
-                we::runtime::kindui::ResolveColor(ColorToken::TextPrimary));
-        }
-        itemX += brandSize + iconGap;
-    } else if (!tab.iconName.empty()) {
-        IconPainter::DrawIcon(
-            context,
-            tab.iconName,
-            Rect{ itemX, centerY - iconSize * 0.5f, iconSize, iconSize },
-            ResolveTabIconColor(isActive, hoverAnim));
-        itemX += iconSize + iconGap;
-    }
-
-    const float titleY = centerY - fontSize * 0.5f;
-    context.DrawText(
-        tab.title,
-        Point{ itemX, titleY },
-        ResolveTabTextColor(isActive, hoverAnim),
-        fontSize,
-        isActive);
-
-    if (showClose) {
-        PaintHeaderIconButton(context, layout.closeRect, Icons::XName, closeHovered, false, true);
-    }
-
+    PaintDockTab(context, tab, layout, headerRect, isActive, hoverAnim, showClose, closeHovered, flushLeft);
     return layout;
 }
 
@@ -309,11 +361,13 @@ void PaintFloatingPanelHeader(
     const float radius = TabTopRadius();
     const float buttonSize = HeaderButtonSize();
 
-    Color headerBg = we::runtime::kindui::ResolveColor(ColorToken::PanelContentBackground);
+    Color headerBg = we::runtime::kindui::ResolveColor(ColorToken::HeaderBackground);
     DrawRoundedRectTop(context, headerRect, headerBg, radius);
 
-    Rect topSheen{ headerRect.x, headerRect.y, headerRect.width, 1.0f * scale };
-    context.DrawRect(topSheen, we::runtime::kindui::ResolveColor(ColorToken::HighlightSubtle));
+    const float indicatorHeight = we::runtime::kindui::ResolveMetric(MetricToken::TabActiveIndicatorHeight) * scale;
+    context.DrawRect(
+        Rect{ headerRect.x, headerRect.y, headerRect.width, indicatorHeight },
+        we::runtime::kindui::ResolveColor(ColorToken::ActiveTabLine));
 
     Rect separator{
         headerRect.x,
@@ -323,14 +377,14 @@ void PaintFloatingPanelHeader(
     };
     context.DrawRect(separator, we::runtime::kindui::ResolveColor(ColorToken::Separator));
 
-    const float centerY = headerRect.y + headerRect.height * 0.5f;
+    const float centerY = std::floor(headerRect.y + headerRect.height * 0.5f);
     float itemX = headerRect.x + padH;
 
     if (hasBrand) {
         const float brandSize = brandLogicalSize * scale;
         if ((brandDescriptor != we::rhi::RHIDescriptorSetHandle::Invalid)) {
             context.DrawTexture(
-                Rect{ itemX, centerY - brandSize * 0.5f, brandSize, brandSize },
+                Rect{ itemX, std::floor(centerY - brandSize * 0.5f), brandSize, brandSize },
                 brandDescriptor,
                 we::runtime::kindui::ResolveColor(ColorToken::TextPrimary));
         }
@@ -339,14 +393,14 @@ void PaintFloatingPanelHeader(
         IconPainter::DrawIcon(
             context,
             iconName,
-            Rect{ itemX, centerY - iconSize * 0.5f, iconSize, iconSize },
+            Rect{ itemX, std::floor(centerY - iconSize * 0.5f), iconSize, iconSize },
             we::runtime::kindui::ResolveColor(ColorToken::IconActive));
         itemX += iconSize + iconGap;
     }
 
     context.DrawText(
         title,
-        Point{ itemX, centerY - fontSize * 0.5f },
+        Point{ itemX, std::floor(centerY - fontSize * 0.5f) },
         we::runtime::kindui::ResolveColor(ColorToken::TextPrimary),
         fontSize,
         true);
@@ -355,14 +409,14 @@ void PaintFloatingPanelHeader(
     outOptionsMenuRect = {};
     float actionX = headerRect.x + headerRect.width - padH;
     if (showOptionsMenu) {
-        outOptionsMenuRect = Rect{ optionsX, centerY - buttonSize * 0.5f, buttonSize, buttonSize };
+        outOptionsMenuRect = Rect{ optionsX, std::floor(centerY - buttonSize * 0.5f), buttonSize, buttonSize };
         PaintHeaderIconButton(context, outOptionsMenuRect, Icons::MoreName, optionsMenuHovered, false);
         actionX = optionsX - we::runtime::kindui::ResolveMetric(MetricToken::Space1) * scale - buttonSize;
     }
 
     for (auto it = actions.rbegin(); it != actions.rend(); ++it) {
         const auto& action = *it;
-        Rect actionRect{ actionX, centerY - buttonSize * 0.5f, buttonSize, buttonSize };
+        Rect actionRect{ actionX, std::floor(centerY - buttonSize * 0.5f), buttonSize, buttonSize };
         PaintHeaderIconButton(context, actionRect, action.iconName, action.hovered, action.pressed, false);
         actionX -= buttonSize + we::runtime::kindui::ResolveMetric(MetricToken::Space1) * scale;
     }
@@ -377,16 +431,13 @@ void PaintSearchField(
     bool showCaret)
 {
     const float scale = UiScale();
-    const float radius = we::runtime::kindui::ResolveMetric(MetricToken::CornerRadiusSmall) * scale;
-    const float fontSize = we::runtime::kindui::ResolveMetric(MetricToken::TextSizeBody) * scale;
+    const float fontSize = we::runtime::kindui::ResolveMetric(MetricToken::TextSizeSmall) * scale;
     const float iconSize = static_cast<float>(IconMetrics::NativeIconTierPx(we::runtime::kindui::ResolveMetric(MetricToken::IconSizeSearch)));
-    const float padH = TabPadH();
+    const float padH = (std::max)(8.0f, rect.height * 0.5f * 0.65f);
 
-    Color bg = we::runtime::kindui::ResolveColor(ColorToken::SearchBoxBackground);
-    if (focused) {
-        bg = Color::Lerp(bg, we::runtime::kindui::ResolveColor(ColorToken::HoverBackground), 0.35f);
-    }
-    context.DrawRoundedRect(rect, bg, radius);
+    ControlChrome::InteractionState state{};
+    state.focused = focused;
+    ControlChrome::PaintSearchInputFrame(context, rect, state);
 
     const float iconX = rect.x + padH;
     Rect iconBand{ iconX, rect.y, iconSize, rect.height };

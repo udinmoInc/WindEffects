@@ -63,7 +63,7 @@ ResolvedStyle StyleResolve::ApplyState(
     if (disabled) {
         style.background = theme.ResolveColor(cls.disabledBackground);
         style.foreground = theme.ResolveColor(ColorToken::TextDisabled);
-        style.border = theme.ResolveColor(ColorToken::BorderDark);
+        style.border = theme.ResolveColor(ColorToken::Separator);
         return style;
     }
     if (pressed) {

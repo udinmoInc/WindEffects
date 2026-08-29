@@ -18,13 +18,9 @@ using ::we::runtime::kindui::PaddingToken;
 namespace we::editor::viewport {
 using ::we::runtime::kindui::Color;
 using ::we::runtime::kindui::MouseButton;
+using ::we::runtime::kindui::ResolveMetric;
 
 namespace {
-constexpr float kHeaderHeight = 22.0f;
-constexpr float kPadding = 8.0f;
-constexpr float kLineHeight = 13.0f;
-constexpr float kPopupWidth = 360.0f;
-constexpr const char* kTitle = "Graphics Debugger";
 } // namespace
 
 GraphicsDebuggerPopup::GraphicsDebuggerPopup(
@@ -41,18 +37,22 @@ void GraphicsDebuggerPopup::SetFrameStats(float fps, float frameTimeMs) {
 Size GraphicsDebuggerPopup::Measure(const Size& /*availableSize*/) {
     std::vector<std::string> lines;
     BuildLines(lines);
-    const float height = kHeaderHeight + kPadding * 2.0f + static_cast<float>(lines.size()) * kLineHeight;
-    m_DesiredSize = Size{ kPopupWidth, height };
+    const float headerH = ResolveMetric(MetricToken::PanelToolbarHeight);
+    const float padding = ResolveMetric(MetricToken::Space2);
+    const float lineH = ResolveMetric(MetricToken::TextSizeCaption) + ResolveMetric(MetricToken::Space1);
+    const float height = headerH + padding * 2.0f + static_cast<float>(lines.size()) * lineH;
+    m_DesiredSize = Size{ ResolveMetric(MetricToken::PopupMaxWidth), height };
     return m_DesiredSize;
 }
 
 void GraphicsDebuggerPopup::Arrange(const Rect& allottedRect) {
     m_Geometry = allottedRect;
-    m_HeaderRect = Rect{ allottedRect.x, allottedRect.y, allottedRect.width, kHeaderHeight };
+    const float headerH = ResolveMetric(MetricToken::PanelToolbarHeight);
+    m_HeaderRect = Rect{ allottedRect.x, allottedRect.y, allottedRect.width, headerH };
 }
 
 void GraphicsDebuggerPopup::ArrangeInViewport(const Rect& viewportRect) {
-    const Size size = Measure(Size{ kPopupWidth, 10000.0f });
+    const Size size = Measure(Size{ ResolveMetric(MetricToken::PopupMaxWidth), 10000.0f });
     Arrange(Rect{
         viewportRect.x + m_Offset.x,
         viewportRect.y + m_Offset.y,
@@ -104,21 +104,27 @@ void GraphicsDebuggerPopup::Paint(PaintContext& context) {
         return;
     }
     context.DrawShadow(m_Geometry, ThemeColor(ColorToken::ContentBrowserFolderShadow), 6.0f, 12.0f);
-    context.DrawRoundedRect(m_Geometry, ThemeColor(ColorToken::PopupBackground), ThemeMetric(MetricToken::CornerRadiusSmall));
-    context.DrawRoundedRectOutline(m_Geometry, ThemeColor(ColorToken::BorderDefault), 1.0f, ThemeMetric(MetricToken::CornerRadiusSmall));
+    context.DrawRoundedRect(m_Geometry, ThemeColor(ColorToken::PopupBackground), ResolveMetric(MetricToken::CornerRadiusSmall));
+    context.DrawRoundedRectOutline(m_Geometry, ThemeColor(ColorToken::BorderDefault), 1.0f, ResolveMetric(MetricToken::CornerRadiusSmall));
     context.DrawRect(m_HeaderRect, ThemeColor(ColorToken::HeaderBackground));
-    context.DrawText(kTitle, Point{ m_Geometry.x + kPadding, m_Geometry.y + 5.0f },
-        ThemeColor(ColorToken::TextPrimary), 11.0f, true);
+    const float padding = ResolveMetric(MetricToken::Space2);
+    const float headerH = ResolveMetric(MetricToken::PanelToolbarHeight);
+    const float titleSize = ResolveMetric(MetricToken::TextSizeToolbar);
+    const float lineH = ResolveMetric(MetricToken::TextSizeCaption) + ResolveMetric(MetricToken::Space1);
+    const float bodySize = ResolveMetric(MetricToken::TextSizeCaption);
+    context.DrawText("Graphics Debugger",
+        Point{ m_Geometry.x + padding, m_Geometry.y + (headerH - titleSize) * 0.5f },
+        ThemeColor(ColorToken::TextPrimary), titleSize, true);
 
     std::vector<std::string> lines;
     BuildLines(lines);
-    float lineY = m_Geometry.y + kHeaderHeight + kPadding;
+    float lineY = m_Geometry.y + headerH + padding;
     const Color textColor = ThemeColor(ColorToken::TextSecondary);
     const Color accentColor = ThemeColor(ColorToken::TextPrimary);
     for (size_t i = 0; i < lines.size(); ++i) {
         const Color color = (i >= lines.size() - 2) ? accentColor : textColor;
-        context.DrawText(lines[i], Point{ m_Geometry.x + kPadding, lineY }, color, 11.0f);
-        lineY += kLineHeight;
+        context.DrawText(lines[i], Point{ m_Geometry.x + padding, lineY }, color, bodySize);
+        lineY += lineH;
     }
 }
 

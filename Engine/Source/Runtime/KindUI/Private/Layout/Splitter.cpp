@@ -13,7 +13,16 @@
 namespace we::runtime::kindui {
 
 Splitter::Splitter(Orientation orientation, float initialRatio)
-    : m_Orientation(orientation), m_SplitRatio(initialRatio) {}
+    : m_Orientation(orientation), m_SplitRatio(initialRatio) {
+    const float defaultPane = ResolveMetric(MetricToken::PropertyLabelColumnWidth) * 2.0f;
+    m_FixedFirstWidth = defaultPane;
+    m_FixedSecondWidth = defaultPane;
+    const float scale = DPIContext::GetScale();
+    m_MinFirstPx = ResolveMetric(MetricToken::NavigationButtonSize) * 2.5f * scale;
+    m_MinSecondPx = m_MinFirstPx;
+    m_BarThicknessLogical = ResolveMetric(MetricToken::BorderWidth);
+    m_HitThicknessLogical = ResolveMetric(MetricToken::Space2);
+}
 
 void Splitter::SetFirstChild(const std::shared_ptr<Widget>& child) {
     if (m_FirstChild) RemoveChild(m_FirstChild);
@@ -327,20 +336,18 @@ void Splitter::Paint(PaintContext& context) {
     }
 
     Rect barRect = GetSplitterBarRect();
-    Color subtleBorder = ThemeColor(ColorToken::BorderDefault);
-    if (m_Dragging || m_Hovered) {
-        subtleBorder = ThemeColor(ColorToken::AccentPrimary);
-        if (!m_Dragging) {
-            subtleBorder.a = 0.5f;
-        }
-    }
 
-    if (m_Orientation == Orientation::Horizontal) {
-        Rect visualRect{ barRect.x + barRect.width * 0.5f, barRect.y, 1.0f, barRect.height };
-        context.DrawRect(visualRect, subtleBorder);
-    } else {
-        Rect visualRect{ barRect.x, barRect.y + barRect.height * 0.5f, barRect.width, 1.0f };
-        context.DrawRect(visualRect, subtleBorder);
+    // Always draw a crisp 1px divider line using the shared Separator token.
+    // No hover/drag highlight — cursor change provides sufficient feedback.
+    {
+        Color separatorColor = ThemeColor(ColorToken::Separator);
+        if (m_Orientation == Orientation::Horizontal) {
+            Rect visualRect{ std::floor(barRect.x + barRect.width * 0.5f), barRect.y, 1.0f, barRect.height };
+            context.DrawRect(visualRect, separatorColor);
+        } else {
+            Rect visualRect{ barRect.x, std::floor(barRect.y + barRect.height * 0.5f), barRect.width, 1.0f };
+            context.DrawRect(visualRect, separatorColor);
+        }
     }
 }
 

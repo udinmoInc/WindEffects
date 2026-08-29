@@ -76,6 +76,7 @@ std::shared_ptr<Panel> DockLayoutBuilder::CreatePanel(
     const auto it = panels.find(std::string(panelId));
     if (it == panels.end()) {
         auto fallback = std::make_shared<Panel>(std::string(panelId));
+        fallback->AttachBodyLayout();
         fallback->SetHeaderHeight(tabHeight);
         result.panels[std::string(panelId)] = fallback;
         return fallback;
@@ -119,9 +120,12 @@ std::shared_ptr<Widget> DockLayoutBuilder::BuildNode(
         splitter->SetSlotId(node.slotId);
         splitter->SetMinPaneSizes(node.minFirstLogical * dpiScale, node.minSecondLogical * dpiScale);
         if (node.slotId == "leftCenter") {
+            const float defaultPane = ResolveMetric(MetricToken::PropertyLabelColumnWidth) * 2.0f;
             splitter->SetResizeMode(Splitter::ResizeMode::FixedSecond);
-            splitter->SetFixedSecondWidth(280.0f * dpiScale);
-            splitter->SetMinPaneSizes(200.0f * dpiScale, 150.0f * dpiScale);
+            splitter->SetFixedSecondWidth(defaultPane * dpiScale);
+            splitter->SetMinPaneSizes(
+                ResolveMetric(MetricToken::PropertyLabelColumnWidth) * 1.43f * dpiScale,
+                ResolveMetric(MetricToken::PropertyLabelColumnWidth) * 1.07f * dpiScale);
         }
 
         if (node.children.size() >= 1) {

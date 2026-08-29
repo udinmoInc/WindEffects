@@ -46,6 +46,7 @@ bool IsBlueprintItem(const ContentItem& item) {
 
 ContentBrowser::ContentBrowser()
     : m_Style(WidgetStyle::Panel())
+    , m_ListRowHeight(ThemeMetric(MetricToken::ListRowHeight))
 {
     m_Model = std::make_shared<ContentBrowserModel>();
     m_Controller = std::make_shared<ContentBrowserController>(m_Model);
@@ -70,36 +71,37 @@ ContentViewMode ContentBrowser::GetEffectiveViewMode() const {
 
 ContentBrowser::GridMetrics ContentBrowser::GetGridMetrics() const {
     GridMetrics m;
-    m.padding = 8.0f;
-    m.hSpacing = 6.0f;
-    m.vSpacing = 6.0f;
-    m.labelLineHeight = 13.0f;
-    m.labelGap = 5.0f;
+    m.padding = ThemeMetric(MetricToken::ContentBrowserGridPadding);
+    m.hSpacing = ThemeMetric(MetricToken::ContentBrowserGridHSpacing);
+    m.vSpacing = ThemeMetric(MetricToken::ContentBrowserGridVSpacing);
+    m.labelLineHeight = ThemeMetric(MetricToken::TextSizeCaption);
+    m.labelGap = ThemeMetric(MetricToken::Space1);
 
     switch (GetEffectiveViewMode()) {
         case ContentViewMode::LargeIcons:
-            m.thumbSize = 104.0f;
-            m.cellWidth = 112.0f;
+            m.thumbSize = ThemeMetric(MetricToken::ContentBrowserThumbLarge);
+            m.cellWidth = ThemeMetric(MetricToken::ContentBrowserCellLarge);
             m.labelLines = 2.0f;
             m.cellHeight = m.thumbSize + m.labelGap + m.labelLineHeight * m.labelLines;
             break;
         case ContentViewMode::MediumIcons:
-            m.thumbSize = 72.0f;
-            m.cellWidth = 80.0f;
+            m.thumbSize = ThemeMetric(MetricToken::ContentBrowserThumbMedium);
+            m.cellWidth = ThemeMetric(MetricToken::ContentBrowserCellMedium);
             m.labelLines = 2.0f;
             m.cellHeight = m.thumbSize + m.labelGap + m.labelLineHeight * m.labelLines;
             break;
         case ContentViewMode::SmallIcons:
-            m.thumbSize = 48.0f;
-            m.cellWidth = 56.0f;
+            m.thumbSize = ThemeMetric(MetricToken::ContentBrowserThumbSmall);
+            m.cellWidth = ThemeMetric(MetricToken::ContentBrowserCellSmall);
             m.labelLines = 1.0f;
             m.cellHeight = m.thumbSize + m.labelGap + m.labelLineHeight;
             break;
         case ContentViewMode::Tiles:
-            m.thumbSize = 104.0f;
-            m.cellWidth = 112.0f;
+            m.thumbSize = ThemeMetric(MetricToken::ContentBrowserThumbLarge);
+            m.cellWidth = ThemeMetric(MetricToken::ContentBrowserCellLarge);
             m.labelLines = 2.0f;
-            m.cellHeight = m.thumbSize + m.labelGap + m.labelLineHeight * 2.0f + 14.0f;
+            m.cellHeight = m.thumbSize + m.labelGap + m.labelLineHeight * 2.0f
+                + ThemeMetric(MetricToken::FormRowHeight);
             break;
         default:
             break;
@@ -253,7 +255,7 @@ void ContentBrowser::PaintTileChrome(PaintContext& context, const Rect& cell, bo
 
     // Removed selector box - only show hover effect
     if (hoverAlpha > 0.001f) {
-        Color hoverBg = ThemeColor(ColorToken::ContentBrowserHoverBackground);
+        Color hoverBg = ThemeColor(ColorToken::HoverBackground);
         hoverBg.a *= hoverAlpha * 0.65f;
         context.DrawRoundedRect(cell, hoverBg, radius);
     }
@@ -374,10 +376,11 @@ void ContentBrowser::PaintGridItem(PaintContext& context, const RenderItem& rend
     PaintItemLabel(context, renderItem.geometry, item.name, renderItem.geometry.width - 4.0f, labelLines);
 
     if (GetEffectiveViewMode() == ContentViewMode::Tiles && !item.isFolder) {
-        const float typeW = context.GetTextWidth(item.type, 10.0f);
+        const float typeW = context.GetTextWidth(item.type, ThemeMetric(MetricToken::TextSizeCaption));
         const float x = renderItem.geometry.x + (renderItem.geometry.width - typeW) * 0.5f;
-        const float y = renderItem.geometry.y + renderItem.geometry.height - 26.0f;
-        context.DrawText(item.type, Point{ x, y }, ThemeColor(ColorToken::TextSecondary), 10.0f);
+        const float typeLineH = ThemeMetric(MetricToken::TextSizeCaption) + ThemeMetric(MetricToken::Space2);
+        const float y = renderItem.geometry.y + renderItem.geometry.height - typeLineH;
+        context.DrawText(item.type, Point{ x, y }, ThemeColor(ColorToken::TextSecondary), ThemeMetric(MetricToken::TextSizeCaption));
     }
 }
 
@@ -458,17 +461,23 @@ void ContentBrowser::Paint(PaintContext& context) {
     if (m_IsDragging && m_Model && !m_Model->selectedIds.empty()) {
         for (const auto& renderItem : m_RenderList) {
             if (!IsSelected(renderItem.item.id)) continue;
-            Rect ghostRect{ m_MousePos.x - 40.0f, m_MousePos.y - 40.0f, 80.0f, 80.0f };
-            context.DrawRoundedRect(ghostRect, ThemeColor(ColorToken::DragGhostBackground), 4.0f);
-            context.DrawRoundedRectOutline(ghostRect, ThemeColor(ColorToken::AccentPrimary), 1.0f, 4.0f);
+            const float ghostSize = ThemeMetric(MetricToken::ContentBrowserThumbSmall);
+            const float ghostHalf = ghostSize * 0.5f;
+            Rect ghostRect{ m_MousePos.x - ghostHalf, m_MousePos.y - ghostHalf, ghostSize, ghostSize };
+            context.DrawRoundedRect(ghostRect, ThemeColor(ColorToken::DragGhostBackground), ThemeMetric(MetricToken::CornerRadiusSmall));
+            context.DrawRoundedRectOutline(ghostRect, ThemeColor(ColorToken::AccentPrimary), ThemeMetric(MetricToken::BorderWidth), ThemeMetric(MetricToken::CornerRadiusSmall));
             if (renderItem.item.iconTexture != we::rhi::RHIDescriptorSetHandle::Invalid) {
-                Rect iconRect{ ghostRect.x + 12.0f, ghostRect.y + 12.0f, 56.0f, 56.0f };
+                const float iconInset = ThemeMetric(MetricToken::Space3);
+                const float iconSize = ghostSize - iconInset * 2.0f;
+                Rect iconRect{ ghostRect.x + iconInset, ghostRect.y + iconInset, iconSize, iconSize };
                 context.DrawTexture(iconRect, renderItem.item.iconTexture);
             }
             if (m_Model->selectedIds.size() > 1) {
                 const std::string countStr = std::to_string(m_Model->selectedIds.size());
-                Rect badgeRect{ ghostRect.x + ghostRect.width - 24.0f, ghostRect.y - 8.0f, 32.0f, 20.0f };
-                context.DrawRoundedRect(badgeRect, ThemeColor(ColorToken::ErrorForeground), 10.0f);
+                const float badgeW = ThemeMetric(MetricToken::IconButtonSize) + ThemeMetric(MetricToken::Space2);
+                const float badgeH = ThemeMetric(MetricToken::ButtonHeight) - ThemeMetric(MetricToken::Space1);
+                Rect badgeRect{ ghostRect.x + ghostRect.width - badgeW + ThemeMetric(MetricToken::Space1), ghostRect.y - ThemeMetric(MetricToken::Space2), badgeW, badgeH };
+                context.DrawRoundedRect(badgeRect, ThemeColor(ColorToken::ErrorForeground), ThemeMetric(MetricToken::CornerRadiusMedium));
                 context.DrawText(countStr, Point{ badgeRect.x + ThemeMetric(MetricToken::Space2), badgeRect.y + ThemeMetric(MetricToken::Space1) - 2.0f }, ThemeColor(ColorToken::TextPrimary), ThemeMetric(MetricToken::TextSizeSmall));
             }
             break;
@@ -795,7 +804,7 @@ ContentBrowserStatusBar::ContentBrowserStatusBar() = default;
 
 Size ContentBrowserStatusBar::Measure(const Size& availableSize) {
     (void)availableSize;
-    m_DesiredSize = Size{ availableSize.width, 20.0f };
+    m_DesiredSize = Size{ availableSize.width, ThemeMetric(MetricToken::StatusBarHeight) };
     return m_DesiredSize;
 }
 
@@ -804,20 +813,28 @@ void ContentBrowserStatusBar::Arrange(const Rect& allottedRect) {
 }
 
 void ContentBrowserStatusBar::Paint(PaintContext& context) {
-    context.DrawRect(m_Geometry, ThemeColor(ColorToken::HeaderBackground));
+    // Top 1px separator
+    context.DrawRect(
+        Rect{ m_Geometry.x, m_Geometry.y, m_Geometry.width, ThemeMetric(MetricToken::BorderWidth) },
+        ThemeColor(ColorToken::Separator));
+    context.DrawRect(
+        Rect{ m_Geometry.x, m_Geometry.y + ThemeMetric(MetricToken::BorderWidth), m_Geometry.width, m_Geometry.height - ThemeMetric(MetricToken::BorderWidth) },
+        ThemeColor(ColorToken::HeaderBackground));
+    const float textSize = ThemeMetric(MetricToken::TextSizeSmall);
     const size_t total = m_AssetCount + m_FolderCount;
     std::string text = std::to_string(total) + " items";
     if (m_SelectedCount > 0) {
         text += "  ·  " + std::to_string(m_SelectedCount) + " selected";
     }
-    context.DrawText(text, Point{ m_Geometry.x + 12.0f, m_Geometry.y + 3.0f }, ThemeColor(ColorToken::TextSecondary), 11.0f);
+    const float textY = m_Geometry.y + (m_Geometry.height - textSize) * 0.5f;
+    context.DrawText(text, Point{ m_Geometry.x + ThemeMetric(MetricToken::Space3), textY }, ThemeColor(ColorToken::TextSecondary), textSize);
 }
 
 Breadcrumb::Breadcrumb() = default;
 
 Size Breadcrumb::Measure(const Size& availableSize) {
     CalculateLayout();
-    return Size{ availableSize.width, 32.0f };
+    return Size{ availableSize.width, ThemeMetric(MetricToken::BreadcrumbBarHeight) };
 }
 
 void Breadcrumb::Arrange(const Rect& allottedRect) {
@@ -826,27 +843,33 @@ void Breadcrumb::Arrange(const Rect& allottedRect) {
 }
 
 void Breadcrumb::Paint(PaintContext& context) {
-    context.DrawRect(m_Geometry, ThemeColor(ColorToken::PanelBackground));
-    context.DrawRect(Rect{ m_Geometry.x, m_Geometry.y + m_Geometry.height - 1.0f, m_Geometry.width, 1.0f }, ThemeColor(ColorToken::Separator));
+    context.DrawRect(m_Geometry, ThemeColor(ColorToken::ToolbarBackground));
+    context.DrawRect(
+        Rect{ m_Geometry.x, m_Geometry.y + m_Geometry.height - ThemeMetric(MetricToken::BorderWidth), m_Geometry.width, ThemeMetric(MetricToken::BorderWidth) },
+        ThemeColor(ColorToken::Separator));
 
-    const float iconSize = 16.0f;
+    const float iconSize = ThemeMetric(MetricToken::IconSizePrimary);
+    const float padH = ThemeMetric(MetricToken::Space3);
     const float iconY = m_Geometry.y + (m_Geometry.height - iconSize) * 0.5f;
     ContentBrowserFolderArt::Get().PaintSmallIcon(context,
-        we::runtime::kindui::Rect{ m_Geometry.x + 12.0f, iconY, iconSize, iconSize }, false);
+        we::runtime::kindui::Rect{ m_Geometry.x + padH, iconY, iconSize, iconSize }, false);
 
-    float x = m_Geometry.x + 12.0f + iconSize + 8.0f;
+    const float textSize = ThemeMetric(MetricToken::TextSizeNormal);
+    const float crumbPadH = ThemeMetric(MetricToken::Space2);
+    const float crumbRadius = ThemeMetric(MetricToken::CornerRadiusSmall);
+    float x = m_Geometry.x + padH + iconSize + ThemeMetric(MetricToken::Space2);
     for (size_t i = 0; i < m_Crumbs.size(); ++i) {
         const auto& crumb = m_Crumbs[i];
         if (crumb.hovered) {
-            context.DrawRoundedRect(crumb.geometry, ThemeColor(ColorToken::HighlightSubtle), 4.0f);
+            context.DrawRoundedRect(crumb.geometry, ThemeColor(ColorToken::HoverBackground), crumbRadius);
         }
-        const float textX = crumb.geometry.x + 8.0f;
-        const float textY = crumb.geometry.y + (crumb.geometry.height - 13.0f) * 0.5f;
+        const float textX = crumb.geometry.x + crumbPadH;
+        const float textY = crumb.geometry.y + (crumb.geometry.height - textSize) * 0.5f;
         const Color textColor = static_cast<int>(i) == m_HoveredCrumb ? ThemeColor(ColorToken::IconHover) : ThemeColor(ColorToken::IconPrimary);
-        context.DrawText(crumb.text, Point{ textX, textY }, textColor, 13.0f, false);
+        context.DrawText(crumb.text, Point{ textX, textY }, textColor, textSize, false);
         if (i < m_Crumbs.size() - 1) {
-            const float sepX = crumb.geometry.x + crumb.geometry.width + 4.0f;
-            context.DrawText("/", Point{ sepX, textY }, ThemeColor(ColorToken::TextSecondary), 12.0f);
+            const float sepX = crumb.geometry.x + crumb.geometry.width + ThemeMetric(MetricToken::Space1);
+            context.DrawText("/", Point{ sepX, textY }, ThemeColor(ColorToken::TextSecondary), ThemeMetric(MetricToken::TextSizeSmall));
         }
     }
 }
@@ -891,14 +914,18 @@ void Breadcrumb::Clear() {
 }
 
 void Breadcrumb::CalculateLayout() {
-    const float iconSize = 16.0f;
-    float x = m_Geometry.x + 12.0f + iconSize + 8.0f;
-    const float h = std::max(32.0f, m_Geometry.height);
+    const float iconSize = ThemeMetric(MetricToken::IconSizePrimary);
+    const float padH = ThemeMetric(MetricToken::Space3);
+    const float textSize = ThemeMetric(MetricToken::TextSizeNormal);
+    const float crumbPadH = ThemeMetric(MetricToken::Space2);
+    float x = m_Geometry.x + padH + iconSize + ThemeMetric(MetricToken::Space2);
+    const float h = std::max(ThemeMetric(MetricToken::BreadcrumbBarHeight), m_Geometry.height);
+    const float crumbHeight = ThemeMetric(MetricToken::BreadcrumbBarHeight);
     for (auto& crumb : m_Crumbs) {
-        const float textWidth = crumb.text.length() * 13.0f * 0.58f;
-        const float width = std::max(32.0f, textWidth + 16.0f);
-        crumb.geometry = Rect{ x, m_Geometry.y + (h - 32.0f) * 0.5f, width, 32.0f };
-        x += width + 4.0f;
+        const float textWidth = crumb.text.length() * textSize * ThemeMetric(MetricToken::TextCharWidthRatio);
+        const float width = std::max(ThemeMetric(MetricToken::IconButtonSize), textWidth + crumbPadH * 2.0f);
+        crumb.geometry = Rect{ x, m_Geometry.y + (h - crumbHeight) * 0.5f, width, crumbHeight };
+        x += width + ThemeMetric(MetricToken::Space1);
     }
 }
 

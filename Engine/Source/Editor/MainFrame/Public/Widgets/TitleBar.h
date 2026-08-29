@@ -23,11 +23,7 @@ using ::we::runtime::kindui::MouseEvent;
 using ::we::runtime::kindui::WidgetStyle;
 using ::we::runtime::kindui::Row;
 
-inline constexpr float kTitleBarHeight          = 34.0f;
-inline constexpr float kTitleBarLogoDisplaySize = 18.0f;
-inline constexpr float kHeaderControlHeight     = 24.0f;
-inline constexpr float kWindowControlWidth      = 40.0f;
-inline constexpr float kWindowControlCount      = 3.0f;
+// Title bar metrics are resolved from MetricToken via ThemeAccess / ds:: at runtime.
 
 class MAINFRAME_API TitleBar : public Row {
 public:

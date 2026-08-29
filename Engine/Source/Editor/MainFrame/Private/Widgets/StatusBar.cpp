@@ -8,6 +8,7 @@
 #include "KindUI/Theming/StyleRole.h"
 #include "KindUI/Core/Icon.h"
 #include "KindUI/Core/DPIContext.h"
+#include "KindUI/Core/ControlChrome.h"
 #include <algorithm>
 
 using ::we::runtime::kindui::ColorToken;
@@ -23,6 +24,7 @@ using ::we::runtime::kindui::DPIContext;
 using ::we::runtime::kindui::Margin;
 using ::we::runtime::kindui::AlignItems;
 namespace Icons = ::we::runtime::kindui::Icons;
+namespace ControlChrome = ::we::runtime::kindui::ControlChrome;
 
 namespace {
 
@@ -44,15 +46,41 @@ namespace {
         return std::max(1.0f, DPIContext::GetScale());
     }
 
+    void PaintVerticalSeparator(PaintContext& context, float x, float top, float bottom) {
+        ControlChrome::PaintVerticalSeparator(context, x, top, bottom, 1.0f);
+    }
+
+    void PaintSeparatorsBetweenChildren(
+        PaintContext& context,
+        const std::shared_ptr<Row>& row,
+        float barTop,
+        float barBottom)
+    {
+        if (!row) {
+            return;
+        }
+        const auto& children = row->GetChildren();
+        for (size_t i = 1; i < children.size(); ++i) {
+            if (!children[i]) {
+                continue;
+            }
+            const Rect g = children[i]->GetGeometry();
+            PaintVerticalSeparator(context, g.x, barTop, barBottom);
+        }
+    }
+
 } // namespace
 
-StatusBar::StatusBar() = default;
+StatusBar::StatusBar()
+    : m_Height(we::runtime::kindui::ResolveMetric(MetricToken::StatusBarHeight))
+{
+}
 
 void StatusBar::Construct() {
     const float uiScale = UiScale();
-    const float pad = ThemeMetric(MetricToken::Space2) * uiScale;
+    const float pad = ThemeMetric(MetricToken::Space1) * uiScale;
     Padding(Margin{pad, 0, pad, 0});
-    Gap(ThemeMetric(MetricToken::Space2) * uiScale);
+    Gap(ThemeMetric(MetricToken::Space1) * uiScale);
     Align(AlignItems::Center);
 
     m_LeftBox = std::make_shared<Row>();
@@ -106,12 +134,6 @@ void StatusBar::SelectPanelTab(int index, bool notify) {
     }
 
     m_ActivePanelTab = index;
-    if (m_AssetsPanelButton) {
-        m_AssetsPanelButton->SetActive(index == 0);
-    }
-    if (m_DiagnosticsPanelButton) {
-        m_DiagnosticsPanelButton->SetActive(index == 1);
-    }
 
     if (notify && m_OnFooterTabChanged) {
         m_OnFooterTabChanged(index);
@@ -142,6 +164,41 @@ void StatusBar::Paint(PaintContext& context) {
     };
     context.DrawRect(topBorder, ThemeColor(ColorToken::Separator));
     Row::Paint(context);
+
+    const float barTop = m_Geometry.y;
+    const float barBottom = m_Geometry.y + m_Geometry.height;
+
+    // Draw vertical line dividers between items inside left and right boxes
+    PaintSeparatorsBetweenChildren(context, m_LeftBox, barTop, barBottom);
+    PaintSeparatorsBetweenChildren(context, m_RightBox, barTop, barBottom);
+
+    const float gap = ThemeMetric(MetricToken::Space1) * UiScale();
+
+    // Section divider between Left Controls and Console Commands input
+    if (m_LeftBox && m_CommandInput) {
+        const Rect left = m_LeftBox->GetGeometry();
+        const Rect cmd = m_CommandInput->GetGeometry();
+        if (cmd.x > left.x + left.width) {
+            PaintVerticalSeparator(
+                context,
+                cmd.x - gap * 0.5f,
+                barTop,
+                barBottom);
+        }
+    }
+
+    // Section divider right before Source Control (Right Stats Controls)
+    if (m_CommandInput && m_RightBox) {
+        const Rect cmd = m_CommandInput->GetGeometry();
+        const Rect right = m_RightBox->GetGeometry();
+        if (right.x > cmd.x + cmd.width) {
+            PaintVerticalSeparator(
+                context,
+                right.x - gap * 0.5f,
+                barTop,
+                barBottom);
+        }
+    }
 }
 
 void StatusBar::SetActiveFooterTab(int index) {

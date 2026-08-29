@@ -174,6 +174,14 @@ void Flex::Arrange(const Rect& allottedRect) {
             const float reduced = item.mainSize - deficit * (shrink / totalShrink);
             item.mainSize = std::max(minMain, reduced);
         }
+        for (auto& item : items) {
+            const float minMain = row
+                ? item.widget->GetMinSize().width
+                : item.widget->GetMinSize().height;
+            if (minMain > 0.0f) {
+                item.mainSize = std::max(item.mainSize, minMain);
+            }
+        }
         freeSpace = 0.0f;
     }
 
@@ -264,8 +272,18 @@ void Flex::Arrange(const Rect& allottedRect) {
         const float mainEnd = row
             ? allottedRect.x + allottedRect.width - m_Padding.right
             : allottedRect.y + allottedRect.height - m_Padding.bottom;
+        const float minMain = row
+            ? item.widget->GetMinSize().width
+            : item.widget->GetMinSize().height;
         if (mainCursor + item.mainSize > mainEnd) {
-            item.mainSize = std::max(0.0f, mainEnd - mainCursor);
+            item.mainSize = std::max(minMain, mainEnd - mainCursor);
+        }
+
+        const float minCross = row
+            ? item.widget->GetMinSize().height
+            : item.widget->GetMinSize().width;
+        if (minCross > 0.0f) {
+            crossSize = std::max(crossSize, minCross);
         }
 
         Rect childRect;
@@ -278,6 +296,11 @@ void Flex::Arrange(const Rect& allottedRect) {
         if (item.mainSize >= 0.5f && crossSize >= 0.5f) {
             item.widget->Arrange(childRect);
             AssertLayoutRectValid("Flex.child", childRect, allottedRect);
+            AssertMinSizeRespected(
+                "Flex.child",
+                childRect,
+                item.widget->GetMinSize().width,
+                item.widget->GetMinSize().height);
         } else {
             item.widget->Arrange(Rect{childRect.x, childRect.y, 0.0f, 0.0f});
         }

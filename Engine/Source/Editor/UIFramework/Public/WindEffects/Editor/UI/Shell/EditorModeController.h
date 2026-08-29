@@ -33,6 +33,7 @@ public:
 
     using ModeChangedCallback = std::function<void(const std::string& modeId)>;
     void AddModeChangedListener(ModeChangedCallback callback);
+    void ClearModeChangedListeners();
 
     void LoadState();
     void SaveState() const;
@@ -47,7 +48,7 @@ private:
     bool m_DrawerVisible = true;
     bool m_DrawerCollapsed = false;
     bool m_DrawerPinned = true;
-    float m_DrawerWidth = 280.0f;
+    float m_DrawerWidth = 0.0f;
 
     std::vector<ModeChangedCallback> m_ModeListeners;
 };

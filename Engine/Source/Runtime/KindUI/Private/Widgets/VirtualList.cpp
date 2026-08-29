@@ -1,12 +1,20 @@
 #include "KindUI/Widgets/VirtualList.h"
+#include "KindUI/Tokens/DesignToken.h"
+#include "KindUI/Theming/ThemeAccess.h"
 
 #include <algorithm>
 #include <cmath>
 
 namespace we::runtime::kindui {
 
+VirtualList::VirtualList() {
+    m_ItemHeight = ResolveMetric(MetricToken::ListRowHeight);
+}
+
 std::shared_ptr<VirtualList> MakeVirtualList() {
-    return std::make_shared<VirtualList>();
+    auto list = std::make_shared<VirtualList>();
+    list->SetItemHeight(ResolveMetric(MetricToken::ListRowHeight));
+    return list;
 }
 
 void VirtualList::SetItemCount(size_t count) {

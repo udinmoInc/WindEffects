@@ -3,7 +3,7 @@
 #include "KindUI/Core/PaintContext.h"
 #include "KindUI/Theming/ThemeAccess.h"
 #include "KindUI/Theming/ThemeColors.h"
-#include "KindUI/Tokens/DesignToken.h"
+#include "KindUI/Tokens/DesignSystem.h"
 #include "KindUI/Theming/StyleRole.h"
 #include "KindUI/Core/Icon.h"
 #include "KindUI/Core/Animator.h"
@@ -55,32 +55,38 @@ namespace {
 
     class LogoSlotWidget : public Widget {
     public:
-        static constexpr float kSlotSize = 28.0f;
+        static float SlotSize() {
+            return we::runtime::kindui::ResolveMetric(MetricToken::PanelToolbarHeight);
+        }
 
         explicit LogoSlotWidget(we::rhi::RHIDescriptorSetHandle logoSet) : m_LogoSet(logoSet) {}
 
         Size Measure(const Size& availableSize) override {
             (void)availableSize;
-            m_DesiredSize = Size{ kSlotSize, kSlotSize };
+            const float slot = SlotSize();
+            m_DesiredSize = Size{ slot, slot };
             return m_DesiredSize;
         }
         void Arrange(const Rect& allottedRect) override {
             m_Geometry = allottedRect;
-            if (allottedRect.height > kSlotSize) {
-                m_Geometry.y += (allottedRect.height - kSlotSize) * 0.5f;
-                m_Geometry.height = kSlotSize;
+            const float slot = SlotSize();
+            if (allottedRect.height > slot) {
+                m_Geometry.y += (allottedRect.height - slot) * 0.5f;
+                m_Geometry.height = slot;
             }
         }
         void Paint(PaintContext& context) override {
             const float cx = m_Geometry.x + m_Geometry.width  * 0.5f;
             const float cy = m_Geometry.y + m_Geometry.height * 0.5f;
-            const float half = kTitleBarLogoDisplaySize * 0.5f;
+            const float logoSize = we::runtime::kindui::ResolveMetric(MetricToken::IconSizePrimary)
+                + we::runtime::kindui::ResolveMetric(MetricToken::Space1) * 0.5f;
+            const float half = logoSize * 0.5f;
             const auto snap = [](float v) { return std::floor(v + 0.5f); };
             Rect logoRect{
                 snap(cx - half),
                 snap(cy - half),
-                kTitleBarLogoDisplaySize,
-                kTitleBarLogoDisplaySize
+                logoSize,
+                logoSize
             };
 
             if ((m_LogoSet != we::rhi::RHIDescriptorSetHandle::Invalid)) {
@@ -95,20 +101,21 @@ namespace {
 
     class ProjectSelectorWidget : public Widget {
     public:
-        static constexpr float kHeight   = kHeaderControlHeight;
-        static constexpr float kPadH     = 8.0f;
-        static constexpr float kIconSize = 16.0f;
-        static constexpr float kIconGap  = 8.0f;
-        static constexpr float kChevGap  = 8.0f;
-        static constexpr float kTextSize = 12.0f;
         static constexpr const char* kProjectName = "MyProject";
+
+        static float ControlHeight() {
+            return we::runtime::kindui::ResolveMetric(MetricToken::HeaderControlHeight);
+        }
 
         ProjectSelectorWidget() {}
         Size Measure(const Size& availableSize) override {
             (void)availableSize;
-            float textW = kProjectName[0] ? static_cast<float>(strlen(kProjectName)) * 6.8f : 0.0f;
-            float width = kPadH + kIconSize + kIconGap + textW + kChevGap + IconMetrics::CompactDisplayPx() + kPadH;
-            m_DesiredSize = Size{ width, kHeight };
+            const float padH = we::runtime::kindui::ResolveMetric(MetricToken::Space2);
+            const float iconSize = we::runtime::kindui::ResolveMetric(MetricToken::IconSizePrimary);
+            const float textSize = we::runtime::kindui::ResolveMetric(MetricToken::TextSizeMenu);
+            float textW = kProjectName[0] ? static_cast<float>(strlen(kProjectName)) * textSize * 0.55f : 0.0f;
+            float width = padH + iconSize + padH + textW + padH + IconMetrics::CompactDisplayPx() + padH;
+            m_DesiredSize = Size{ width, ControlHeight() };
             return m_DesiredSize;
         }
         void Arrange(const Rect& allottedRect) override {
@@ -135,23 +142,25 @@ namespace {
                 context.DrawRoundedRect(m_Geometry, idleBg, radius);
             }
 
+            const float padH = we::runtime::kindui::ResolveMetric(MetricToken::Space2);
             const float centerY = m_Geometry.y + m_Geometry.height * 0.5f;
-            const float iconSize = static_cast<float>(IconMetrics::NativeIconTierPx(kIconSize));
-            const float textSize = kTextSize * uiScale;
+            const float iconSize = static_cast<float>(IconMetrics::NativeIconTierPx(
+                we::runtime::kindui::ResolveMetric(MetricToken::IconSizePrimary)));
+            const float textSize = we::runtime::kindui::ResolveMetric(MetricToken::TextSizeMenu) * uiScale;
 
             Color iconColor = ResolveIconColor(IconColorRole::Secondary, m_HoverAnim);
 
             IconPainter::DrawIcon(context, Icons::PackageName,
-                Rect{ m_Geometry.x + kPadH * uiScale, centerY - iconSize * 0.5f, iconSize, iconSize },
+                Rect{ m_Geometry.x + padH * uiScale, centerY - iconSize * 0.5f, iconSize, iconSize },
                 iconColor);
 
-            const float textX = m_Geometry.x + (kPadH + iconSize + kIconGap) * uiScale;
+            const float textX = m_Geometry.x + (padH + iconSize + padH) * uiScale;
             context.DrawText(kProjectName,
                 Point{ textX, centerY - textSize * 0.5f },
                 ThemeColor(ColorToken::TextPrimary), textSize);
 
             const float display = IconMetrics::CompactDisplayPx();
-            const float chevronX = m_Geometry.x + m_Geometry.width - (kPadH + display) * uiScale;
+            const float chevronX = m_Geometry.x + m_Geometry.width - (padH + display) * uiScale;
             Rect chevronControl{ chevronX, centerY - display * 0.5f, display, display };
             IconPainter::DrawCompactIcon(context, Icons::ChevronDownName, chevronControl, iconColor);
         }
@@ -160,8 +169,8 @@ namespace {
         float m_HoverAnim = 0.0f;
     };
 
-    constexpr float kWindowPadLeft = 16.0f;
-    constexpr float kLogoToMenuGap = 8.0f;
+    float WindowPadLeft() { return we::runtime::kindui::ResolveMetric(MetricToken::Space4); }
+    float LogoToMenuGap() { return we::runtime::kindui::ResolveMetric(MetricToken::Space2); }
 }
 
 TitleBar::TitleBar(we::platform::WindowId window, const std::string& title, we::rhi::RHIDescriptorSetHandle logoSet, std::shared_ptr<::we::editor::menus::MenuBar> menuBar)
@@ -178,10 +187,10 @@ void TitleBar::Construct() {
 
     m_LogoWidget = std::make_shared<LogoSlotWidget>(m_LogoSet);
     m_LeftContainer->AddChild(m_LogoWidget);
-    m_LeftContainer->AddChild(std::make_shared<FixedGap>(kLogoToMenuGap * uiScale));
+    m_LeftContainer->AddChild(std::make_shared<FixedGap>(LogoToMenuGap() * uiScale));
 
     if (m_MenuBar) {
-        m_MenuBar->SetHeight(kTitleBarHeight * uiScale);
+        m_MenuBar->SetHeight(we::runtime::kindui::ResolveMetric(MetricToken::TitleBarHeight) * uiScale);
         m_LeftContainer->AddChild(m_MenuBar);
     }
 
@@ -249,7 +258,7 @@ Size TitleBar::Measure(const Size& availableSize) {
     if (m_CenterContainer) m_CenterContainer->Measure(availableSize);
     if (m_RightContainer) m_RightContainer->Measure(availableSize);
 
-    m_DesiredSize = Size{ availableSize.width, kTitleBarHeight * uiScale };
+    m_DesiredSize = Size{ availableSize.width, we::runtime::kindui::ResolveMetric(MetricToken::TitleBarHeight) * uiScale };
     return m_DesiredSize;
 }
 
@@ -276,7 +285,7 @@ void TitleBar::Arrange(const Rect& allottedRect) {
     if (m_LeftContainer) {
         Size leftSize = m_LeftContainer->GetDesiredSize();
         m_LeftContainer->Arrange(Rect{
-            allottedRect.x + kWindowPadLeft * uiScale,
+            allottedRect.x + WindowPadLeft() * uiScale,
             allottedRect.y,
             leftSize.width,
             allottedRect.height
@@ -295,7 +304,7 @@ void TitleBar::Paint(PaintContext& context) {
         m_Geometry.width,
         1.0f * uiScale
     };
-    context.DrawRect(bottomEdge, ThemeColor(ColorToken::BorderDark));
+    context.DrawRect(bottomEdge, ThemeColor(ColorToken::Separator));
 
     Row::Paint(context);
 }

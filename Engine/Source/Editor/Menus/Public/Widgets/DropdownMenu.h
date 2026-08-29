@@ -37,9 +37,9 @@ private:
 
     int HitItemAt(const Point& pos) const;
     
-    float m_ItemHeight = 24.0f;
-    float m_PaddingY = 4.0f;
-    float m_PaddingX = 8.0f;
+    float m_ItemHeight = 0.0f;
+    float m_PaddingY = 0.0f;
+    float m_PaddingX = 0.0f;
 };
 
 } // namespace we::editor::menus

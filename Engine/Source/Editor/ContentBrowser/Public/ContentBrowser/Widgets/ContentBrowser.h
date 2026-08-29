@@ -143,7 +143,7 @@ private:
     bool m_IsSelecting = false;
     bool m_IsDragging = false;
 
-    float m_ListRowHeight = 22.0f;
+    float m_ListRowHeight = 0.0f;
     ScrollViewport m_Scroll;
     ScrollViewportMetrics m_ScrollMetrics{};
     float m_ContentHeight = 0.0f;

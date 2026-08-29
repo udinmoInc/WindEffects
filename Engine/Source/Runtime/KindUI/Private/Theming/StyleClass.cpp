@@ -124,7 +124,7 @@ void StyleClassRegistry::RegisterDefaults() {
     StyleClass search;
     search.name = "SearchBar";
     search.parentName = "Button";
-    search.background = ColorToken::SearchBoxBackground;
+    search.background = ColorToken::InputBackground;
     search.heightToken = MetricToken::SearchBoxHeight;
     Register(search);
 }

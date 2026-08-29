@@ -18,8 +18,15 @@ namespace Chrome = ::we::editor::panels::PanelChrome;
 
 Panel::Panel(const std::string& title)
     : m_Title(title)
+    , m_BodyLayout(std::make_shared<PanelBodyLayout>())
 {
     m_HeaderHeight = ThemeMetric(MetricToken::PanelTabHeight);
+}
+
+void Panel::AttachBodyLayout() {
+    if (m_BodyLayout && !m_BodyLayout->GetParent()) {
+        AddChild(m_BodyLayout);
+    }
 }
 
 void Panel::SetTabBrand(we::rhi::RHIDescriptorSetHandle descriptor, float logicalSize) {
@@ -28,82 +35,92 @@ void Panel::SetTabBrand(we::rhi::RHIDescriptorSetHandle descriptor, float logica
 }
 
 void Panel::SetToolbar(const std::shared_ptr<Widget>& toolbar) {
-    if (m_Toolbar) RemoveChild(m_Toolbar);
-    m_Toolbar = toolbar;
-    if (m_Toolbar) AddChild(m_Toolbar);
+    AttachBodyLayout();
+    m_BodyLayout->SetRegion(PanelBodyRegion::Toolbar, toolbar);
+}
+
+std::shared_ptr<Widget> Panel::GetToolbar() const {
+    return m_BodyLayout->GetRegion(PanelBodyRegion::Toolbar);
+}
+
+void Panel::SetModeTabs(const std::shared_ptr<Widget>& modeTabs) {
+    AttachBodyLayout();
+    m_BodyLayout->SetRegion(PanelBodyRegion::ModeTabs, modeTabs);
+}
+
+void Panel::SetSearch(const std::shared_ptr<Widget>& search) {
+    AttachBodyLayout();
+    m_BodyLayout->SetRegion(PanelBodyRegion::Search, search);
+}
+
+void Panel::SetColumnHeader(const std::shared_ptr<Widget>& columnHeader) {
+    AttachBodyLayout();
+    m_BodyLayout->SetRegion(PanelBodyRegion::ColumnHeader, columnHeader);
+}
+
+void Panel::SetFooter(const std::shared_ptr<Widget>& footer) {
+    AttachBodyLayout();
+    m_BodyLayout->SetRegion(PanelBodyRegion::Footer, footer);
+}
+
+Rect Panel::GetRegionRect(const PanelBodyRegion region) const {
+    return m_BodyLayout ? m_BodyLayout->GetRegionRect(region) : Rect{};
 }
 
 Size Panel::Measure(const Size& availableSize) {
-    float reservedHeight = m_HeaderHeight;
+    AttachBodyLayout();
+    const float headerH = (m_HeaderHeight > 0.0f)
+        ? (std::max)(m_HeaderHeight, PanelChrome::TabHeight())
+        : 0.0f;
 
-    if (m_Toolbar && !m_FloatingToolbar) {
-        Size tbSize = m_Toolbar->Measure(availableSize);
-        reservedHeight += tbSize.height;
+    Size bodyAvailable = availableSize;
+    if (bodyAvailable.height < 1.0e8f) {
+        bodyAvailable.height = (std::max)(0.0f, bodyAvailable.height - headerH);
     }
 
-    if (m_Content) {
-        const float contentHeight = std::max(0.0f, availableSize.height - reservedHeight);
-        m_Content->Measure(Size{ availableSize.width, contentHeight });
+    Size bodySize{ 0.0f, 0.0f };
+    if (m_BodyLayout) {
+        bodySize = m_BodyLayout->Measure(bodyAvailable);
     }
 
-    return Size{ availableSize.width, availableSize.height };
+    const float desiredW = (availableSize.width < 1.0e8f)
+        ? availableSize.width
+        : bodySize.width;
+
+    const float desiredH = (availableSize.height < 1.0e8f)
+        ? availableSize.height
+        : (headerH + bodySize.height);
+
+    m_DesiredSize = ClampDesiredSize(Size{ desiredW, desiredH });
+    return m_DesiredSize;
 }
 
 void Panel::Arrange(const Rect& allottedRect) {
+    AttachBodyLayout();
     m_Geometry = allottedRect;
-    
-    // Calculate header rect
+
+    const float headerH = (m_HeaderHeight > 0.0f)
+        ? (std::max)(m_HeaderHeight, PanelChrome::TabHeight())
+        : 0.0f;
+
     m_HeaderRect = Rect{
         allottedRect.x,
         allottedRect.y,
         allottedRect.width,
-        m_HeaderHeight
+        headerH
     };
-    
-    float currentY = allottedRect.y + m_HeaderHeight;
 
-    // Docked toolbar sits below the header; content starts underneath it.
-    if (m_Toolbar && !m_FloatingToolbar) {
-        m_Toolbar->Measure(Size{ allottedRect.width, allottedRect.height });
-        const Size tbSize = m_Toolbar->GetDesiredSize();
-        m_ToolbarRect = Rect{
+    const float bodyY = allottedRect.y + headerH;
+    const float bodyHeight = (std::max)(0.0f, allottedRect.y + allottedRect.height - bodyY);
+    if (m_BodyLayout) {
+        m_BodyLayout->Arrange(Rect{
             allottedRect.x,
-            currentY,
+            bodyY,
             allottedRect.width,
-            tbSize.height
-        };
-        m_Toolbar->Arrange(m_ToolbarRect);
-        currentY += tbSize.height;
+            bodyHeight
+        });
     }
 
-    if (m_Content) {
-        const float contentHeight = std::max(0.0f, allottedRect.y + allottedRect.height - currentY);
-        m_ContentRect = Rect{
-            allottedRect.x,
-            currentY,
-            allottedRect.width,
-            contentHeight
-        };
-        m_Content->Arrange(m_ContentRect);
-    }
-
-    // Floating toolbar overlays the top of the content region.
-    if (m_Toolbar && m_FloatingToolbar) {
-        const float uiScale = std::max(1.0f, DPIContext::GetScale());
-        const float inset = ThemeMetric(MetricToken::Space2) * uiScale;
-        m_Toolbar->Measure(m_ContentRect.width > 0.0f
-            ? Size{ m_ContentRect.width, m_ContentRect.height }
-            : Size{ allottedRect.width, allottedRect.height });
-        const Size tbSize = m_Toolbar->GetDesiredSize();
-        m_ToolbarRect = Rect{
-            m_ContentRect.x + inset,
-            m_ContentRect.y + inset,
-            std::max(0.0f, m_ContentRect.width - inset * 2.0f),
-            tbSize.height
-        };
-        m_Toolbar->Arrange(m_ToolbarRect);
-    }
-    
     CalculateHeaderGeometries();
 }
 
@@ -127,10 +144,9 @@ void Panel::CalculateHeaderGeometries() {
 }
 
 void Panel::Paint(PaintContext& context) {
+    AttachBodyLayout();
     if (!m_TransparentBackground) {
         Chrome::PaintContentRegion(context, m_Geometry);
-    } else if (m_Toolbar && !m_FloatingToolbar) {
-        Chrome::PaintToolbarRegion(context, m_ToolbarRect);
     }
 
     if (m_HeaderHeight > 0.0f) {
@@ -158,17 +174,8 @@ void Panel::Paint(PaintContext& context) {
             m_OptionsMenuRect);
     }
 
-    if (m_Content) {
-        context.PushClipRect(m_ContentRect);
-        m_Content->Paint(context);
-        context.PopClipRect();
-    }
-
-    if (m_Toolbar) {
-        if (!m_FloatingToolbar) {
-            Chrome::PaintToolbarRegion(context, m_ToolbarRect);
-        }
-        m_Toolbar->Paint(context);
+    if (m_BodyLayout) {
+        m_BodyLayout->Paint(context);
     }
 }
 
@@ -196,20 +203,15 @@ void Panel::OnMouseDown(const MouseEvent& event) {
         return;
     }
 
-    if (m_Toolbar && m_ToolbarRect.Contains(event.position)) {
-        m_Toolbar->OnMouseDown(event);
-        return;
-    }
-
-    if (m_Content && m_ContentRect.Contains(event.position)) {
-        m_Content->OnFocus();
-        m_Content->OnMouseDown(event);
+    if (m_BodyLayout) {
+        m_BodyLayout->OnMouseDown(event);
     }
 }
 
 void Panel::OnMouseWheel(const MouseEvent& event) {
-    PanelChrome::RoutePanelBodyPointer(
-        event, m_Toolbar, m_ToolbarRect, m_Content, m_ContentRect, &Widget::OnMouseWheel);
+    if (m_BodyLayout) {
+        m_BodyLayout->OnMouseWheel(event);
+    }
 }
 
 void Panel::OnMouseMove(const MouseEvent& event) {
@@ -230,22 +232,27 @@ void Panel::OnMouseMove(const MouseEvent& event) {
         m_HoveredActionIndex = -1;
     }
 
-    PanelChrome::RoutePanelBodyPointer(
-        event, m_Toolbar, m_ToolbarRect, m_Content, m_ContentRect, &Widget::OnMouseMove);
+    if (m_BodyLayout) {
+        m_BodyLayout->OnMouseMove(event);
+    }
 }
 
 void Panel::OnMouseUp(const MouseEvent& event) {
     (void)event;
     m_PressedActionIndex = -1;
 
-    PanelChrome::RoutePanelBodyPointer(
-        event, m_Toolbar, m_ToolbarRect, m_Content, m_ContentRect, &Widget::OnMouseUp);
+    if (m_BodyLayout) {
+        m_BodyLayout->OnMouseUp(event);
+    }
 }
 
 void Panel::SetContent(const std::shared_ptr<Widget>& content) {
-    if (m_Content) RemoveChild(m_Content);
-    m_Content = content;
-    if (m_Content) AddChild(m_Content);
+    AttachBodyLayout();
+    m_BodyLayout->SetRegion(PanelBodyRegion::Content, content);
+}
+
+std::shared_ptr<Widget> Panel::GetContent() const {
+    return m_BodyLayout->GetRegion(PanelBodyRegion::Content);
 }
 
 void Panel::SetExpanded(bool expanded) {
@@ -281,31 +288,13 @@ std::shared_ptr<Widget> Panel::HitTestPoint(const Point& pos, const Rect* clip) 
         return shared_from_this();
     }
 
-    if (m_Toolbar && m_ToolbarRect.Contains(pos)) {
-        Rect toolbarClip = m_ToolbarRect;
-        if (clip != nullptr) {
-            toolbarClip = toolbarClip.Intersect(*clip);
-        }
-        if (!toolbarClip.IsEmpty()) {
-            if (auto hit = m_Toolbar->HitTestPoint(pos, &toolbarClip)) {
-                return hit;
-            }
+    if (m_BodyLayout) {
+        if (auto hit = m_BodyLayout->HitTestPoint(pos, clip)) {
+            return hit;
         }
     }
 
-    if (m_Content && m_ContentRect.Contains(pos)) {
-        Rect contentClip = m_ContentRect;
-        if (clip != nullptr) {
-            contentClip = contentClip.Intersect(*clip);
-        }
-        if (!contentClip.IsEmpty()) {
-            if (auto hit = m_Content->HitTestPoint(pos, &contentClip)) {
-                return hit;
-            }
-        }
-    }
-
-    return nullptr;
+    return shared_from_this();
 }
 
 Panel::HeaderAction* Panel::GetActionAtPosition(const Point& pos) {

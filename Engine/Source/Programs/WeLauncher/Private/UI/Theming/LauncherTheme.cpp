@@ -18,69 +18,86 @@ Color LnHex(uint8_t r, uint8_t g, uint8_t b, float a = 1.0f) {
 
 Color LauncherTheme::ResolveColor(ColorToken token) const {
     switch (token) {
-    // Elevation ladder aligned with Graphite (product accent overrides below)
-    case ColorToken::WindowBackground:        return LnHex(0x14, 0x14, 0x16);
-    case ColorToken::WorkspaceBackground:     return LnHex(0x14, 0x14, 0x16);
-    case ColorToken::PanelContentBackground:  return LnHex(0x1A, 0x1A, 0x1C);
-    case ColorToken::PanelBackground:         return LnHex(0x1A, 0x1A, 0x1C);
-    case ColorToken::PrimarySurface:          return LnHex(0x1A, 0x1A, 0x1C);
-    case ColorToken::CardBackground:          return LnHex(0x22, 0x22, 0x24);
-    case ColorToken::SecondarySurface:        return LnHex(0x22, 0x22, 0x24);
-    case ColorToken::TertiarySurface:         return LnHex(0x28, 0x28, 0x2A);
-    case ColorToken::HeaderBackground:        return LnHex(0x18, 0x18, 0x1A);
-    case ColorToken::MenuBarBackground:       return LnHex(0x16, 0x16, 0x18);
-    case ColorToken::PanelToolbarBackground:  return LnHex(0x18, 0x18, 0x1A);
-    case ColorToken::FooterBackground:        return LnHex(0x16, 0x16, 0x18);
-    case ColorToken::StatusBarBackground:     return LnHex(0x16, 0x16, 0x18);
-    case ColorToken::InputBackground:         return LnHex(0x1E, 0x1E, 0x20);
-    case ColorToken::SearchBoxBackground:     return LnHex(0x1E, 0x1E, 0x20);
-    case ColorToken::ControlBackground:       return LnHex(0x1E, 0x1E, 0x20);
-    case ColorToken::DialogBackground:        return LnHex(0x2A, 0x2A, 0x2C);
-    case ColorToken::OverlayBackground:       return LnHex(0x2A, 0x2A, 0x2C);
-    case ColorToken::PopupBackground:         return LnHex(0x2E, 0x2E, 0x30);
-    case ColorToken::TooltipBackground:       return LnHex(0x2E, 0x2E, 0x30);
+    case ColorToken::WindowBackground:
+    case ColorToken::WorkspaceBackground:
+        return LnHex(0x14, 0x14, 0x16);
+    case ColorToken::PanelBackground:
+        return LnHex(0x1A, 0x1A, 0x1C);
+    case ColorToken::CardBackground:
+    case ColorToken::SecondarySurface:
+        return LnHex(0x22, 0x22, 0x24);
+    case ColorToken::HeaderBackground:
+    case ColorToken::ToolbarBackground:
+        return LnHex(0x18, 0x18, 0x1A);
+    case ColorToken::StatusBarBackground:
+        return LnHex(0x16, 0x16, 0x18);
+    case ColorToken::InputBackground:
+    case ColorToken::ControlBackground:
+        return LnHex(0x1E, 0x1E, 0x20);
+    case ColorToken::PopupBackground:
+        return LnHex(0x2A, 0x2A, 0x2C);
+    case ColorToken::TooltipBackground:
+        return LnHex(0x2E, 0x2E, 0x30);
 
-    case ColorToken::Separator:               return LnHex(0xFF, 0xFF, 0xFF, 0.08f);
-    case ColorToken::BorderSubtle:            return LnHex(0xFF, 0xFF, 0xFF, 0.07f);
-    case ColorToken::BorderDark:              return LnHex(0xFF, 0xFF, 0xFF, 0.05f);
-    case ColorToken::BorderDefault:           return LnHex(0x36, 0x36, 0x3A);
-    case ColorToken::BorderLight:             return LnHex(0xFF, 0xFF, 0xFF, 0.14f);
+    case ColorToken::Separator:
+        return LnHex(0xFF, 0xFF, 0xFF, 0.08f);
+    case ColorToken::BorderSubtle:
+        return LnHex(0xFF, 0xFF, 0xFF, 0.07f);
+    case ColorToken::BorderDefault:
+        return LnHex(0x36, 0x36, 0x3A);
+    case ColorToken::BorderLight:
+        return LnHex(0xFF, 0xFF, 0xFF, 0.14f);
 
-    case ColorToken::AccentPrimary:           return LnHex(0x3B, 0x82, 0xF6);
-    case ColorToken::AccentHover:             return LnHex(0x60, 0xA5, 0xFA);
-    case ColorToken::IconAccent:              return LnHex(0x3B, 0x82, 0xF6);
-    case ColorToken::BorderFocus:             return LnHex(0x3B, 0x82, 0xF6);
-    case ColorToken::ActiveTabLine:           return LnHex(0x3B, 0x82, 0xF6, 0.85f);
-    case ColorToken::LinkForeground:          return LnHex(0x60, 0xA5, 0xFA);
-    case ColorToken::PlayForeground:          return LnHex(0x3B, 0x82, 0xF6);
+    case ColorToken::AccentPrimary:
+    case ColorToken::IconAccent:
+    case ColorToken::BorderFocus:
+    case ColorToken::PlayForeground:
+        return LnHex(0x3B, 0x82, 0xF6);
+    case ColorToken::AccentHover:
+    case ColorToken::LinkForeground:
+        return LnHex(0x60, 0xA5, 0xFA);
+    case ColorToken::ActiveTabLine:
+        return LnHex(0x3B, 0x82, 0xF6, 0.85f);
 
-    case ColorToken::ButtonPrimaryBackground: return LnHex(0x3B, 0x82, 0xF6);
-    case ColorToken::ButtonPrimaryHover:      return LnHex(0x60, 0xA5, 0xFA);
-    case ColorToken::ButtonPrimaryPressed:    return LnHex(0x25, 0x63, 0xEB);
+    case ColorToken::ButtonPrimaryBackground:
+        return LnHex(0x3B, 0x82, 0xF6);
+    case ColorToken::ButtonPrimaryHover:
+        return LnHex(0x60, 0xA5, 0xFA);
+    case ColorToken::ButtonPrimaryPressed:
+        return LnHex(0x25, 0x63, 0xEB);
 
-    case ColorToken::SelectedBackground:      return LnHex(0x3B, 0x82, 0xF6, 0.28f);
-    case ColorToken::SelectionHighlight:      return LnHex(0x3B, 0x82, 0xF6, 0.20f);
+    case ColorToken::SelectedBackground:
+        return LnHex(0x3B, 0x82, 0xF6, 0.28f);
+    case ColorToken::SelectionHighlight:
+        return LnHex(0x3B, 0x82, 0xF6, 0.20f);
 
-    case ColorToken::ModalScrim:              return LnHex(0x00, 0x00, 0x00, 0.50f);
+    case ColorToken::ModalScrim:
+        return LnHex(0x00, 0x00, 0x00, 0.50f);
 
-    case ColorToken::HoverBackground:         return LnHex(0x2C, 0x2C, 0x2E);
-    case ColorToken::ActiveBackground:        return LnHex(0x26, 0x26, 0x28);
-    case ColorToken::PressedBackground:       return LnHex(0x34, 0x34, 0x38);
-    case ColorToken::DisabledBackground:      return LnHex(0x14, 0x14, 0x16);
-    case ColorToken::ContentBrowserHoverBackground: return LnHex(0x2C, 0x2C, 0x2E);
+    case ColorToken::HoverBackground:
+        return LnHex(0x2C, 0x2C, 0x2E);
+    case ColorToken::PressedBackground:
+        return LnHex(0x34, 0x34, 0x38);
+    case ColorToken::DisabledBackground:
+        return LnHex(0x14, 0x14, 0x16);
 
-    case ColorToken::TextPrimary:             return LnHex(0xEC, 0xEC, 0xEC);
-    case ColorToken::TextSecondary:           return LnHex(0xB4, 0xB4, 0xB4);
-    case ColorToken::TextCaption:             return LnHex(0x9A, 0x9A, 0x9A);
-    case ColorToken::TextMuted:               return LnHex(0x85, 0x85, 0x85);
-    case ColorToken::TextHint:                return LnHex(0x85, 0x85, 0x85);
-    case ColorToken::SearchPlaceholder:       return LnHex(0x85, 0x85, 0x85);
-    case ColorToken::TextDisabled:            return LnHex(0x5C, 0x5C, 0x5C);
-    case ColorToken::TextWindowLabel:         return LnHex(0xEC, 0xEC, 0xEC);
+    case ColorToken::TextPrimary:
+    case ColorToken::TextOnAccent:
+        return LnHex(0xEC, 0xEC, 0xEC);
+    case ColorToken::TextSecondary:
+        return LnHex(0xB4, 0xB4, 0xB4);
+    case ColorToken::TextHint:
+    case ColorToken::SearchPlaceholder:
+        return LnHex(0x85, 0x85, 0x85);
+    case ColorToken::TextDisabled:
+        return LnHex(0x5C, 0x5C, 0x5C);
 
-    case ColorToken::Success:                 return LnHex(0x4C, 0xAF, 0x50);
-    case ColorToken::IconPrimary:             return LnHex(0xD4, 0xD4, 0xD4);
-    case ColorToken::IconSecondary:           return LnHex(0xA8, 0xA8, 0xA8);
+    case ColorToken::Success:
+        return LnHex(0x4C, 0xAF, 0x50);
+    case ColorToken::IconPrimary:
+        return LnHex(0xD4, 0xD4, 0xD4);
+    case ColorToken::IconSecondary:
+        return LnHex(0xA8, 0xA8, 0xA8);
 
     default:
         return GraphiteDarkTheme::ResolveColor(token);

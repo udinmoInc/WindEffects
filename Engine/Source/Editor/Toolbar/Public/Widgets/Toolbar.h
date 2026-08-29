@@ -77,12 +77,12 @@ private:
     std::vector<ToolInfo> m_Tools;
     std::string m_ActiveTool;
     
-    float m_Height = 32.0f;
-    float m_IconSize = 16.0f;
-    float m_ButtonSpacing = 4.0f;
-    float m_GroupSpacing = 10.0f;
-    float m_EdgePadding = 8.0f;
-    float m_LeftInset = 8.0f;
+    float m_Height = 0.0f; // resolved in constructor from ToolbarHeight token
+    float m_IconSize = 0.0f;
+    float m_ButtonSpacing = 0.0f;
+    float m_GroupSpacing = 0.0f;
+    float m_EdgePadding = 0.0f;
+    float m_LeftInset = 0.0f;
     float m_RightInset = 0.0f;
     bool m_IsFloating = false;
 

@@ -3,6 +3,7 @@
 
 #include "PlaceActors/ActorsPanelLayout.h"
 #include "PlaceActors/ActorsPanelChrome.h"
+#include "WindEffects/Editor/UI/Panel/PanelBodyLayout.h"
 #include "PlaceActors/PlaceActorsCatalog.h"
 #include "PlaceActors/PlaceActorsConfig.h"
 #include "PlaceActors/PlaceActorsSearch.h"
@@ -19,6 +20,7 @@
 #include "ContentBrowser/Widgets/SearchBox.h"
 #include "Widgets/ToolButton.h"
 #include "WindEffects/Editor/UI/Panel/PanelChrome.h"
+#include "KindUI/Layout/Flex.h"
 #include "KindUI/Layout/ScrollViewport.h"
 #include "KindUI/Core/PaintContext.h"
 #include "KindUI/Core/DPIContext.h"
@@ -96,24 +98,44 @@ using ::we::runtime::kindui::ColorToken;
 using ::we::runtime::kindui::MetricToken;
 using ::we::runtime::kindui::PaddingToken;
 
+namespace {
+
+class PlaceActorsContentHost final : public we::runtime::kindui::Widget {
+public:
+    explicit PlaceActorsContentHost(PlaceActorsPanel* /*owner*/) {}
+
+    we::runtime::kindui::Size Measure(const we::runtime::kindui::Size& availableSize) override {
+        m_DesiredSize = availableSize;
+        return m_DesiredSize;
+    }
+
+    void Arrange(const we::runtime::kindui::Rect& allottedRect) override {
+        m_Geometry = allottedRect;
+    }
+
+    void Paint(we::runtime::kindui::PaintContext& context) override {
+        (void)context;
+    }
+};
+
+} // namespace
+
 PlaceActorsPanel::PlaceActorsPanel() {
     auto& config = PlaceActorsConfig::Get();
     config.EnsureLoaded();
     m_ViewMode = config.defaultView;
 
+    m_BodyLayout = std::make_shared<::we::editor::panels::PanelBodyLayout>();
+
     m_SearchBox = std::make_shared<::we::editor::widgets::SearchBox>();
     m_SearchBox->SetFillWidth(true);
     m_SearchBox->SetPlaceholder("Search Assets...");
-    m_SearchBox->SetOnTextChanged([this](const std::string& /*text*/) {
-        RefreshFilteredContent();
-    });
 
     m_FilterButton = std::make_shared<::we::editor::toolbar::ToolButton>(
-        we::runtime::kindui::Icons::FilterName, "", [this]() {
-            const Rect btn = m_FilterButton->GetGeometry();
-            ToggleFilterMenu(Point{ btn.x, btn.y + btn.height });
-        }, "Filter and view options");
+        we::runtime::kindui::Icons::FilterName, "", nullptr, "Filter and view options");
     m_FilterButton->SetButtonStyle(::we::editor::toolbar::ToolButtonStyle::ToolbarIconOnly);
+
+    m_ContentHost = std::make_shared<PlaceActorsContentHost>(this);
 
     LoadPanelState();
     PlaceActorsCatalog::Get().Refresh();
@@ -123,6 +145,60 @@ PlaceActorsPanel::PlaceActorsPanel() {
 PlaceActorsPanel::~PlaceActorsPanel() {
     SaveCategoryState();
     SaveFavorites();
+    if (m_SearchBox) {
+        m_SearchBox->SetOnTextChanged({});
+    }
+    if (m_FilterButton) {
+        m_FilterButton->SetOnClicked(nullptr);
+    }
+    if (m_BodyLayout) {
+        m_BodyLayout->ClearRegions();
+        RemoveChild(m_BodyLayout);
+    }
+    m_ContentHost.reset();
+    m_SearchBox.reset();
+    m_FilterButton.reset();
+    m_BodyLayout.reset();
+}
+
+void PlaceActorsPanel::InitializeCallbacks(const std::shared_ptr<PlaceActorsPanel>& self) {
+    std::weak_ptr<PlaceActorsPanel> weak = self;
+    if (m_BodyLayout && m_BodyLayout->GetParent() != self) {
+        AddChild(m_BodyLayout);
+
+        auto searchRow = std::make_shared<we::runtime::kindui::Row>();
+        searchRow->Gap(ActorsPanelLayout::FilterButtonGap());
+        searchRow->Padding(we::runtime::kindui::Margin{
+            ActorsPanelLayout::ContentPadH(),
+            ActorsPanelLayout::ContentPadV(),
+            ActorsPanelLayout::ContentPadH(),
+            ActorsPanelLayout::ContentPadV()
+        });
+        searchRow->Align(we::runtime::kindui::AlignItems::Center);
+        m_SearchBox->SetFlexGrow(1.0f);
+        m_SearchBox->SetFlexShrink(1.0f);
+        m_FilterButton->SetFlexShrink(0.0f);
+        searchRow->AddChild(m_SearchBox);
+        searchRow->AddChild(m_FilterButton);
+
+        m_BodyLayout->SetRegion(::we::editor::panels::PanelBodyRegion::Search, searchRow);
+        m_BodyLayout->SetRegion(::we::editor::panels::PanelBodyRegion::Content, m_ContentHost);
+    }
+    if (m_SearchBox) {
+        m_SearchBox->SetOnTextChanged([weak](const std::string& /*text*/) {
+            if (auto self = weak.lock()) {
+                self->RefreshFilteredContent();
+            }
+        });
+    }
+    if (m_FilterButton) {
+        m_FilterButton->SetOnClicked([weak]() {
+            if (auto self = weak.lock()) {
+                const Rect btn = self->m_FilterButton->GetGeometry();
+                self->ToggleFilterMenu(Point{ btn.x, btn.y + btn.height });
+            }
+        });
+    }
 }
 
 PlaceActorsGridMetrics PlaceActorsPanel::MakeGridMetrics() const {
@@ -508,37 +584,12 @@ void PlaceActorsPanel::ScrollFocusedIntoView() {
     }
 }
 
-Size PlaceActorsPanel::Measure(const Size& availableSize) {
-    m_DesiredSize = availableSize;
-    return m_DesiredSize;
-}
-
 void PlaceActorsPanel::Arrange(const Rect& allottedRect) {
     m_Geometry = allottedRect;
-
-    const float padH = ActorsPanelLayout::ContentPadH();
-    const float searchRowH = ActorsPanelLayout::SearchRowHeight();
-    const float filterBtn = ActorsPanelLayout::ToolbarIconSize();
-    const float filterGap = ActorsPanelLayout::FilterButtonGap();
-
-    m_SearchRowRect = Rect{ allottedRect.x, allottedRect.y, allottedRect.width, searchRowH };
-    m_ContentRect = Rect{
-        allottedRect.x,
-        allottedRect.y + searchRowH,
-        allottedRect.width,
-        std::max(0.0f, allottedRect.height - searchRowH)
-    };
-
-    const float searchWidth = std::max(80.0f, m_SearchRowRect.width - padH * 2.0f - filterBtn - filterGap);
-    const float searchY = m_SearchRowRect.y + (searchRowH - ActorsPanelLayout::SearchHeight()) * 0.5f;
-
-    m_SearchBox->Measure(Size{ searchWidth, ActorsPanelLayout::SearchHeight() });
-    m_SearchBox->Arrange(Rect{ m_SearchRowRect.x + padH, searchY, searchWidth, ActorsPanelLayout::SearchHeight() });
-
-    const float filterX = m_SearchRowRect.x + m_SearchRowRect.width - padH - filterBtn;
-    const float filterY = m_SearchRowRect.y + (searchRowH - filterBtn) * 0.5f;
-    m_FilterButton->Measure(Size{ filterBtn, filterBtn });
-    m_FilterButton->Arrange(Rect{ filterX, filterY, filterBtn, filterBtn });
+    if (m_BodyLayout) {
+        m_BodyLayout->Arrange(allottedRect);
+        m_ContentRect = m_BodyLayout->GetRegionRect(::we::editor::panels::PanelBodyRegion::Content);
+    }
 
     const bool widthChanged = std::abs(m_ContentRect.width - m_LastViewportWidth) > 0.5f;
     if (m_NeedsLayout || widthChanged) {
@@ -548,6 +599,14 @@ void PlaceActorsPanel::Arrange(const Rect& allottedRect) {
         }
         RebuildLayout();
     }
+}
+
+Size PlaceActorsPanel::Measure(const Size& availableSize) {
+    m_DesiredSize = availableSize;
+    if (m_BodyLayout) {
+        m_BodyLayout->Measure(availableSize);
+    }
+    return m_DesiredSize;
 }
 
 void PlaceActorsPanel::Tick(float deltaTime) {

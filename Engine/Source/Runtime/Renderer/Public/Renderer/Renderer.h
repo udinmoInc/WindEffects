@@ -60,6 +60,9 @@ public:
     void SetOverlayRecorder(OverlayRecordFn recorder);
     void ClearOverlayRecorder();
 
+    void SetSwapchainClearColor(const we::rhi::Color4f& color);
+    [[nodiscard]] we::rhi::Color4f GetSwapchainClearColor() const;
+
     void SetTerrainDrawer(TerrainDrawFn drawer);
     void ClearTerrainDrawer();
 
@@ -138,6 +141,7 @@ private:
     uint32_t m_UiImageIndex = UINT32_MAX;
     bool m_OverlayPassRan = false;
     bool m_OverlayPassEnded = false;
+    we::rhi::Color4f m_SwapchainClearColor{0.09f, 0.09f, 0.10f, 1.0f};
 };
 
 } // namespace we::runtime::renderer

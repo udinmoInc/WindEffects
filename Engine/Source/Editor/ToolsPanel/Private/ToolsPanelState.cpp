@@ -37,15 +37,21 @@ void ToolsPanelState::Load() {
 }
 
 void ToolsPanelState::Save() const {
-    const auto path = GetStatePath();
-    std::error_code ec;
-    std::filesystem::create_directories(path.parent_path(), ec);
+    try {
+        const auto path = GetStatePath();
+        std::error_code ec;
+        std::filesystem::create_directories(path.parent_path(), ec);
 
-    std::ofstream file(path, std::ios::trunc);
-    if (!file.is_open()) return;
+        std::ofstream file(path, std::ios::trunc);
+        if (!file.is_open()) {
+            return;
+        }
 
-    for (const auto& [categoryId, expanded] : categoryExpanded) {
-        file << "category." << categoryId << "=" << (expanded ? "1" : "0") << "\n";
+        for (const auto& [categoryId, expanded] : categoryExpanded) {
+            file << "category." << categoryId << "=" << (expanded ? "1" : "0") << "\n";
+        }
+    } catch (...) {
+        // Ignore I/O failures during shutdown.
     }
 }
 

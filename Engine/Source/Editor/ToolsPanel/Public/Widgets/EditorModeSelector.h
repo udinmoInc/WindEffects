@@ -11,6 +11,10 @@ namespace we::programs::editor {
 class TOOLSPANEL_API EditorModeSelector : public we::runtime::kindui::Widget {
 public:
     EditorModeSelector();
+    ~EditorModeSelector() override;
+
+    EditorModeSelector(const EditorModeSelector&) = delete;
+    EditorModeSelector& operator=(const EditorModeSelector&) = delete;
 
     we::runtime::kindui::Size Measure(const we::runtime::kindui::Size& availableSize) override;
     void Arrange(const we::runtime::kindui::Rect& allottedRect) override;
@@ -20,6 +24,8 @@ public:
     void OnMouseMove(const we::runtime::kindui::MouseEvent& event) override;
 
     void Refresh();
+
+    void InitializeCallbacks(const std::shared_ptr<EditorModeSelector>& self);
 
 private:
     void OpenModeMenu();

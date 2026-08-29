@@ -236,7 +236,7 @@ void LauncherShell::RebuildProjectActionsDialog() {
         LMetric(MetricToken::Space6) * LScale()
     });
     panel->Gap(LMetric(MetricToken::Space2) * LScale());
-    panel->Background(LColor(ColorToken::DialogBackground));
+    panel->Background(LColor(ColorToken::PopupBackground));
     panel->AddChild(MakeLabel(
         project->descriptor.displayName,
         LMetric(MetricToken::TextSizeHeader) * LScale(),
@@ -244,7 +244,7 @@ void LauncherShell::RebuildProjectActionsDialog() {
     panel->AddChild(MakeLabel(
         EllipsizePath(project->projectRoot, 52),
         LMetric(MetricToken::TextSizeCaption) * LScale(),
-        LColor(ColorToken::TextMuted)));
+        LColor(ColorToken::TextHint)));
 
     auto addAction = [this, &panel](const char* label, const char* icon, auto fn, bool closeAfter = true) {
         auto btn = MakeSecondaryAction(label, icon);

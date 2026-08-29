@@ -1,6 +1,7 @@
 #include "KindUI/Core/ControlChrome.h"
 
 #include "KindUI/Core/PaintContext.h"
+#include "KindUI/Core/DPIContext.h"
 #include "KindUI/Theming/ThemeManager.h"
 #include "KindUI/Theming/ThemeAccess.h"
 #include "KindUI/Tokens/DesignToken.h"
@@ -9,6 +10,7 @@
 
 #include <algorithm>
 #include <string>
+#include <string_view>
 
 
 namespace we::runtime::kindui {
@@ -46,8 +48,7 @@ void PaintElevation(PaintContext& context, const Rect& rect, int elevation, floa
 }
 
 void PaintFocusRing(PaintContext& context, const Rect& rect, float radius) {
-    const float width = ResolveMetric(MetricToken::FocusRingWidth);
-    context.DrawRoundedRectOutline(rect, ResolveColor(ColorToken::BorderFocus), width, radius);
+    context.DrawRoundedRectOutline(rect, ResolveColor(ColorToken::BorderFocus), 1.0f, radius);
 }
 
 void PaintFilledButton(
@@ -76,15 +77,14 @@ void PaintFilledButton(
 
     PaintElevation(context, rect, base.elevation, base.cornerRadius);
     context.DrawRoundedRect(rect, bg, base.cornerRadius);
-    if (base.border.a > 0.01f) {
+    if (state.focused) {
+        context.DrawRoundedRectOutline(rect, ResolveColor(ColorToken::BorderFocus), 1.0f, base.cornerRadius);
+    } else if (base.border.a > 0.01f) {
         Color border = base.border;
         if (state.hoverAnim > 0.01f) {
             border = Color::Lerp(border, ResolveColor(ColorToken::BorderLight), state.hoverAnim);
         }
-        context.DrawRoundedRectOutline(rect, border, base.borderWidth, base.cornerRadius);
-    }
-    if (state.focused) {
-        PaintFocusRing(context, rect, base.cornerRadius);
+        context.DrawRoundedRectOutline(rect, border, 1.0f, base.cornerRadius);
     }
 }
 
@@ -125,16 +125,32 @@ void PaintInputFrame(
     if (state.disabled) {
         bg = ResolveColor(ColorToken::DisabledBackground);
     }
-    context.DrawRoundedRect(rect, bg, base.cornerRadius);
+    const float radius = base.cornerRadius > 0.0f ? base.cornerRadius : ResolveMetric(MetricToken::CornerRadiusSmall);
+    context.DrawRoundedRect(rect, bg, radius);
     Color border = state.focused
         ? ResolveColor(ColorToken::BorderFocus)
         : (state.hoverAnim > 0.01f
             ? Color::Lerp(ResolveColor(ColorToken::BorderDefault), ResolveColor(ColorToken::BorderLight), state.hoverAnim)
             : ResolveColor(ColorToken::BorderDefault));
-    const float width = state.focused
-        ? ResolveMetric(MetricToken::FocusRingWidth)
-        : base.borderWidth;
-    context.DrawRoundedRectOutline(rect, border, width, base.cornerRadius);
+    context.DrawRoundedRectOutline(rect, border, 1.0f, radius);
+}
+
+void PaintSearchInputFrame(
+    PaintContext& context,
+    const Rect& rect,
+    const InteractionState& state) {
+    Color bg = ResolveColor(ColorToken::InputBackground);
+    if (state.disabled) {
+        bg = ResolveColor(ColorToken::DisabledBackground);
+    }
+    const float radius = ResolveMetric(MetricToken::CornerRadiusSmall);
+    context.DrawRoundedRect(rect, bg, radius);
+    Color border = state.focused
+        ? ResolveColor(ColorToken::BorderFocus)
+        : (state.hoverAnim > 0.01f
+            ? Color::Lerp(ResolveColor(ColorToken::BorderDefault), ResolveColor(ColorToken::BorderLight), state.hoverAnim)
+            : ResolveColor(ColorToken::BorderDefault));
+    context.DrawRoundedRectOutline(rect, border, 1.0f, radius);
 }
 
 void PaintListRow(
@@ -154,11 +170,10 @@ void PaintListRow(
         base.background = Color::Transparent();
     }
     context.DrawRoundedRect(rect, base.background, base.cornerRadius);
-    if (state.selected && base.border.a > 0.01f) {
-        context.DrawRoundedRectOutline(rect, base.border, 1.5f, base.cornerRadius);
-    }
     if (state.focused) {
-        PaintFocusRing(context, rect, base.cornerRadius);
+        context.DrawRoundedRectOutline(rect, ResolveColor(ColorToken::BorderFocus), 1.0f, base.cornerRadius);
+    } else if (state.selected && base.border.a > 0.01f) {
+        context.DrawRoundedRectOutline(rect, base.border, 1.0f, base.cornerRadius);
     }
 }
 
@@ -255,11 +270,10 @@ void PaintDangerButton(
 
     PaintElevation(context, rect, base.elevation, base.cornerRadius);
     context.DrawRoundedRect(rect, bg, base.cornerRadius);
-    if (base.border.a > 0.01f) {
-        context.DrawRoundedRectOutline(rect, base.border, base.borderWidth, base.cornerRadius);
-    }
     if (state.focused) {
-        PaintFocusRing(context, rect, base.cornerRadius);
+        context.DrawRoundedRectOutline(rect, ResolveColor(ColorToken::BorderFocus), 1.0f, base.cornerRadius);
+    } else if (base.border.a > 0.01f) {
+        context.DrawRoundedRectOutline(rect, base.border, 1.0f, base.cornerRadius);
     }
 }
 
@@ -268,7 +282,7 @@ void PaintPopupSurface(PaintContext& context, const Rect& rect) {
     PaintElevation(context, rect, style.elevation > 0 ? style.elevation : 2, style.cornerRadius);
     context.DrawRoundedRect(rect, style.background, style.cornerRadius);
     if (style.border.a > 0.01f) {
-        context.DrawRoundedRectOutline(rect, style.border, style.borderWidth, style.cornerRadius);
+        context.DrawRoundedRectOutline(rect, style.border, 1.0f, style.cornerRadius);
     }
 }
 
@@ -292,11 +306,8 @@ void PaintCheckbox(
         bg = Color::Lerp(bg, ResolveColor(ColorToken::AccentPrimary), 0.85f);
     }
     context.DrawRoundedRect(box, bg, style.cornerRadius);
-    context.DrawRoundedRectOutline(
-        box,
-        state.focused ? ResolveColor(ColorToken::BorderFocus) : style.border,
-        state.focused ? ResolveMetric(MetricToken::FocusRingWidth) : style.borderWidth,
-        style.cornerRadius);
+    Color border = state.focused ? ResolveColor(ColorToken::BorderFocus) : style.border;
+    context.DrawRoundedRectOutline(box, border, 1.0f, style.cornerRadius);
     if (checked) {
         const float inset = std::max(2.0f, box.width * 0.22f);
         context.DrawRoundedRect(
@@ -304,6 +315,63 @@ void PaintCheckbox(
             ResolveColor(ColorToken::TextPrimary),
             std::max(1.0f, style.cornerRadius * 0.5f));
     }
+}
+
+void PaintPanelTab(
+    PaintContext& context,
+    const Rect& bounds,
+    std::string_view label,
+    const InteractionState& state) {
+    if (state.selected) {
+        const float inset = ResolveMetric(MetricToken::Space1);
+        const float indicatorH = ResolveMetric(MetricToken::TabActiveIndicatorHeight);
+        context.DrawRect(
+            Rect{
+                bounds.x + inset,
+                bounds.y + bounds.height - indicatorH,
+                bounds.width - inset * 2.0f,
+                indicatorH
+            },
+            ResolveColor(ColorToken::AccentPrimary));
+    } else if (state.hoverAnim > 0.01f) {
+        context.DrawRect(
+            bounds,
+            Color::Lerp(
+                Color::Transparent(),
+                ResolveColor(ColorToken::HoverBackground),
+                state.hoverAnim));
+    }
+
+    const float fontSize = ResolveMetric(MetricToken::TextSizeCaption);
+    const Color textColor = state.selected
+        ? ResolveColor(ColorToken::TextPrimary)
+        : ResolveColor(ColorToken::TextSecondary);
+    context.DrawText(
+        std::string(label),
+        Point{
+            bounds.x + ResolveMetric(MetricToken::Space3),
+            bounds.y + (bounds.height - fontSize) * 0.5f
+        },
+        textColor,
+        fontSize,
+        false);
+}
+
+void PaintVerticalSeparator(
+    PaintContext& context,
+    float x,
+    float top,
+    float bottom,
+    float thickness)
+{
+    if (bottom <= top) {
+        return;
+    }
+    const float scale = std::max(1.0f, DPIContext::GetScale());
+    const float w = (std::max)(1.0f, thickness) * scale;
+    context.DrawRect(
+        Rect{ std::floor(x - w * 0.5f), top, w, bottom - top },
+        ResolveColor(ColorToken::Separator));
 }
 
 } // namespace ControlChrome
