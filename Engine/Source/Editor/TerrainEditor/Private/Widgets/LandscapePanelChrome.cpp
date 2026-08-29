@@ -1,6 +1,7 @@
 #include "KindUI/Core/ControlChrome.h"
 #include "LandscapePanelChrome.h"
 
+#include "KindUI/Core/PropertyPanelChrome.h"
 #include "WindEffects/Editor/UI/Panel/PanelChrome.h"
 #include "KindUI/Tokens/DesignToken.h"
 #include "KindUI/Theming/ThemeAccess.h"
@@ -23,6 +24,7 @@ using we::runtime::kindui::Rect;
 using we::runtime::kindui::ResolveColor;
 using we::runtime::kindui::ResolveMetric;
 namespace PanelChromeNs = we::editor::panels::PanelChrome;
+namespace PropertyPanelChrome = we::runtime::kindui::PropertyPanelChrome;
 
 float UiScale() {
     return std::max(1.0f, we::runtime::kindui::DPIContext::GetScale());
@@ -31,12 +33,12 @@ float UiScale() {
 } // namespace
 
 float PanelPad() { return PanelChromeNs::PanelPaddingH(); }
-float SectionGap() { return ResolveMetric(MetricToken::Space2) * UiScale(); }
-float RowHeight() { return ResolveMetric(MetricToken::FormRowHeight) * UiScale(); }
+float SectionGap() { return PropertyPanelChrome::FormStackGap(); }
+float RowHeight() { return PropertyPanelChrome::RowHeight(); }
 float ChipHeight() { return ResolveMetric(MetricToken::ToolbarLabeledHeight) * UiScale(); }
 float TabBarHeight() { return ResolveMetric(MetricToken::NavigationButtonSize) * UiScale(); }
 float PrimaryButtonHeight() { return ResolveMetric(MetricToken::PrimaryButtonHeight) * UiScale(); }
-float LabelColumnWidth() { return ResolveMetric(MetricToken::PropertyLabelColumnWidth) * UiScale(); }
+float LabelColumnWidth() { return PropertyPanelChrome::LabelColumnWidth(); }
 
 void PaintPanelBackground(PaintContext& context, const Rect& bounds) {
     PanelChromeNs::PaintContentRegion(context, bounds);
@@ -280,7 +282,7 @@ void PaintInfoValue(
     const float fontSize = ResolveMetric(MetricToken::TextSizeCaption) * UiScale();
     context.DrawText(
         std::string(value),
-        Point{bounds.x + LabelColumnWidth() + 8.f, bounds.y + (bounds.height - fontSize) * 0.5f},
+        Point{bounds.x + LabelColumnWidth() + PropertyPanelChrome::ValueColumnGap(), bounds.y + (bounds.height - fontSize) * 0.5f},
         ResolveColor(ColorToken::TextPrimary),
         fontSize,
         false);

@@ -1,21 +1,14 @@
 #include "WindEffects/Editor/UI/Panel/PanelModeTabs.h"
 
 #include "WindEffects/Editor/UI/Panel/PanelChrome.h"
-#include "KindUI/Core/Icon.h"
 #include "KindUI/Core/PaintContext.h"
-#include "KindUI/Tokens/DesignToken.h"
-#include "KindUI/Theming/ThemeAccess.h"
 
 #include <algorithm>
 
 namespace we::editor::panels {
 namespace Chrome = PanelChrome;
-using ::we::runtime::kindui::ColorToken;
-using ::we::runtime::kindui::IconPainter;
-using ::we::runtime::kindui::MetricToken;
 using ::we::runtime::kindui::MouseEvent;
 using ::we::runtime::kindui::PaintContext;
-using ::we::runtime::kindui::Point;
 using ::we::runtime::kindui::Rect;
 using ::we::runtime::kindui::Size;
 
@@ -32,7 +25,7 @@ void PanelModeTabs::SetActiveTabId(const std::string& tabId) {
         return;
     }
     m_ActiveTabId = tabId;
-    InvalidatePaint();
+    InvalidateLayout();
 }
 
 Size PanelModeTabs::Measure(const Size& availableSize) {
@@ -49,72 +42,63 @@ void PanelModeTabs::Arrange(const Rect& allottedRect) {
     RebuildTabGeometries();
 }
 
+size_t PanelModeTabs::ActiveTabIndex() const {
+    for (size_t i = 0; i < m_Tabs.size(); ++i) {
+        if (m_Tabs[i].id == m_ActiveTabId) {
+            return i;
+        }
+    }
+    return 0;
+}
+
 void PanelModeTabs::RebuildTabGeometries() {
-    m_Layout.clear();
+    m_Descriptors.clear();
+    m_StripLayout.tabs.clear();
     if (m_Tabs.empty() || m_Geometry.width <= 0.0f) {
         return;
     }
 
-    PaintContext context;
-    const float padH = Chrome::TabPadH();
-    const float gap = Chrome::TabGap();
-    float x = m_Geometry.x + padH;
-
+    m_Descriptors.reserve(m_Tabs.size());
     for (const auto& tab : m_Tabs) {
         Chrome::DockTabDescriptor descriptor{};
         descriptor.title = tab.label;
         descriptor.iconName = tab.iconName;
-        const bool isActive = tab.id == m_ActiveTabId;
-        const float width = Chrome::MeasureDockTabWidth(context, descriptor, isActive, false);
-        TabLayout layout{};
-        layout.descriptor = tab;
-        layout.geometry = Rect{ x, m_Geometry.y, width, m_Geometry.height };
-        m_Layout.push_back(layout);
-        x += width + gap;
+        m_Descriptors.push_back(descriptor);
     }
+
+    PaintContext context;
+    Chrome::DockTabStripState state{};
+    state.activeIndex = ActiveTabIndex();
+    state.showClose = [](size_t /*index*/, bool /*isActive*/, bool /*isHovered*/) { return false; };
+    m_StripLayout = Chrome::LayoutDockTabStrip(context, m_Geometry, m_Descriptors, state);
 }
 
 void PanelModeTabs::Paint(PaintContext& context) {
-    Chrome::PaintToolbarRegion(context, m_Geometry);
-
-    PaintContext measureContext;
-    const float padH = Chrome::TabPadH();
-    float x = m_Geometry.x + padH;
-
-    for (size_t i = 0; i < m_Tabs.size(); ++i) {
-        const auto& tab = m_Tabs[i];
-        const bool isActive = tab.id == m_ActiveTabId;
-        const float hoverAnim = static_cast<int>(i) == m_HoveredIndex ? 1.0f : 0.0f;
-
-        Chrome::DockTabDescriptor descriptor{};
-        descriptor.title = tab.label;
-        descriptor.iconName = tab.iconName;
-        Chrome::PaintDockTab(
-            context,
-            descriptor,
-            m_Geometry,
-            x,
-            isActive,
-            hoverAnim,
-            false,
-            false);
-        x += Chrome::MeasureDockTabWidth(measureContext, descriptor, isActive, false) + Chrome::TabGap();
-        (void)padH;
+    if (m_Descriptors.empty() || m_StripLayout.tabs.empty()) {
+        return;
     }
+
+    Chrome::DockTabStripState state{};
+    state.activeIndex = ActiveTabIndex();
+    state.showClose = [](size_t /*index*/, bool /*isActive*/, bool /*isHovered*/) { return false; };
+    state.hoverAnim = [this](size_t index) {
+        return static_cast<int>(index) == m_HoveredIndex ? 1.0f : 0.0f;
+    };
+    Chrome::PaintDockTabStrip(context, m_Geometry, m_Descriptors, m_StripLayout, state);
 }
 
 void PanelModeTabs::OnMouseDown(const MouseEvent& event) {
-    for (size_t i = 0; i < m_Layout.size(); ++i) {
-        if (!m_Layout[i].geometry.Contains(event.position)) {
+    for (size_t i = 0; i < m_StripLayout.tabs.size(); ++i) {
+        if (!m_StripLayout.tabs[i].tabRect.Contains(event.position)) {
             continue;
         }
-        const std::string& tabId = m_Layout[i].descriptor.id;
+        const std::string& tabId = m_Tabs[i].id;
         if (tabId != m_ActiveTabId) {
             m_ActiveTabId = tabId;
             if (m_OnTabChanged) {
                 m_OnTabChanged(tabId);
             }
-            InvalidatePaint();
+            InvalidateLayout();
         }
         return;
     }
@@ -122,8 +106,8 @@ void PanelModeTabs::OnMouseDown(const MouseEvent& event) {
 
 void PanelModeTabs::OnMouseMove(const MouseEvent& event) {
     m_HoveredIndex = -1;
-    for (size_t i = 0; i < m_Layout.size(); ++i) {
-        if (m_Layout[i].geometry.Contains(event.position)) {
+    for (size_t i = 0; i < m_StripLayout.tabs.size(); ++i) {
+        if (m_StripLayout.tabs[i].tabRect.Contains(event.position)) {
             m_HoveredIndex = static_cast<int>(i);
             break;
         }

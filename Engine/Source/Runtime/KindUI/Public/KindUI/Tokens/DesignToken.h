@@ -270,6 +270,7 @@ enum class MetricToken : uint32_t {
     TabTopRadius,              // dock tab upper corner radius
     TabActiveIndicatorHeight,  // accent line on active dock tab
     TabGap,                    // horizontal gap between dock tabs
+    TabStripPadH,              // dock/mode tab strip left inset (align with panel content)
     StatusBarHeight,           // bottom status/command bar
 
     ToolbarSeparatorHeight,    // vertical separator line in toolbars

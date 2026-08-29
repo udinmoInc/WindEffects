@@ -23,8 +23,44 @@ constexpr size_t RegionIndex(PanelBodyRegion region) {
     return static_cast<size_t>(region);
 }
 
-bool RegionUsesToolbarChrome(PanelBodyRegion region) {
+void PaintRegionChrome(PanelBodyRegion region, PaintContext& context, const Rect& geometry) {
+    switch (region) {
+    case PanelBodyRegion::ModeTabs:
+        Chrome::PaintDockTabStripDivider(context, geometry);
+        break;
+    case PanelBodyRegion::Search:
+    case PanelBodyRegion::Toolbar:
+        Chrome::PaintToolbarRegion(context, geometry);
+        break;
+    case PanelBodyRegion::ColumnHeader:
+        Chrome::PaintHeaderRegion(context, geometry);
+        break;
+    case PanelBodyRegion::Content:
+        Chrome::PaintContentWell(context, geometry);
+        break;
+    case PanelBodyRegion::Footer:
+        Chrome::PaintFooterRegion(context, geometry);
+        break;
+    case PanelBodyRegion::Count:
+        break;
+    }
+}
+
+bool RegionUsesHorizontalInset(PanelBodyRegion region) {
     return region == PanelBodyRegion::Search || region == PanelBodyRegion::Toolbar;
+}
+
+Rect InsetRegionContent(const Rect& regionGeometry, PanelBodyRegion region) {
+    if (!RegionUsesHorizontalInset(region)) {
+        return regionGeometry;
+    }
+    const float padH = Chrome::PanelPaddingH();
+    return Rect{
+        regionGeometry.x + padH,
+        regionGeometry.y,
+        std::max(0.0f, regionGeometry.width - padH * 2.0f),
+        regionGeometry.height
+    };
 }
 
 } // namespace
@@ -114,7 +150,9 @@ Size PanelBodyLayout::Measure(const Size& availableSize) {
 
     measureFixed(PanelBodyRegion::ModeTabs);
     measureFixed(PanelBodyRegion::Search);
-    measureFixed(PanelBodyRegion::Toolbar);
+    if (!m_OverlayToolbar) {
+        measureFixed(PanelBodyRegion::Toolbar);
+    }
     measureFixed(PanelBodyRegion::ColumnHeader);
     measureFixed(PanelBodyRegion::Footer);
 
@@ -161,7 +199,7 @@ void PanelBodyLayout::ArrangeFixedRegion(
         Rect{ allottedRect.x, currentY, allottedRect.width, std::min(measuredH, availableH) },
         allottedRect);
     AssertLayoutRectValid("PanelBodyLayout.region", slot.geometry, allottedRect);
-    slot.widget->Arrange(slot.geometry);
+    slot.widget->Arrange(InsetRegionContent(slot.geometry, region));
     currentY += slot.geometry.height;
 }
 
@@ -174,7 +212,9 @@ void PanelBodyLayout::Arrange(const Rect& allottedRect) {
 
     ArrangeFixedRegion(PanelBodyRegion::ModeTabs, currentY, allottedRect);
     ArrangeFixedRegion(PanelBodyRegion::Search, currentY, allottedRect);
-    ArrangeFixedRegion(PanelBodyRegion::Toolbar, currentY, allottedRect);
+    if (!m_OverlayToolbar) {
+        ArrangeFixedRegion(PanelBodyRegion::Toolbar, currentY, allottedRect);
+    }
     ArrangeFixedRegion(PanelBodyRegion::ColumnHeader, currentY, allottedRect);
 
     float footerHeight = 0.0f;
@@ -198,6 +238,22 @@ void PanelBodyLayout::Arrange(const Rect& allottedRect) {
         contentSlot.widget->Arrange(contentSlot.geometry);
         m_ContentClipRect = contentSlot.geometry;
         currentY += contentSlot.geometry.height;
+
+        auto& toolbarSlot = m_Regions[RegionIndex(PanelBodyRegion::Toolbar)];
+        if (m_OverlayToolbar && toolbarSlot.widget && toolbarSlot.widget->IsVisible()) {
+            const float toolbarH = IntrinsicRegionHeight(PanelBodyRegion::Toolbar);
+            toolbarSlot.geometry = ClampRectToParent(
+                Rect{
+                    contentSlot.geometry.x,
+                    contentSlot.geometry.y,
+                    contentSlot.geometry.width,
+                    std::min(toolbarH, contentSlot.geometry.height)
+                },
+                allottedRect);
+            toolbarSlot.widget->Arrange(InsetRegionContent(toolbarSlot.geometry, PanelBodyRegion::Toolbar));
+        } else if (m_OverlayToolbar && toolbarSlot.widget) {
+            toolbarSlot.geometry = {};
+        }
     } else {
         contentSlot.geometry = {};
         m_ContentClipRect = {};
@@ -215,17 +271,23 @@ void PanelBodyLayout::Arrange(const Rect& allottedRect) {
 }
 
 void PanelBodyLayout::Paint(PaintContext& context) {
-    Chrome::PaintContentRegion(context, m_Geometry);
+    if (!m_SuppressContentSurfaces) {
+        Chrome::PaintPanelSurface(context, m_Geometry);
+    }
 
-    for (size_t i = 0; i < m_Regions.size(); ++i) {
-        const auto region = static_cast<PanelBodyRegion>(i);
-        const auto& slot = m_Regions[i];
+    const auto paintRegion = [&](PanelBodyRegion region, bool paintAfterContent) {
+        const size_t index = RegionIndex(region);
+        const auto& slot = m_Regions[index];
         if (!slot.widget || slot.geometry.IsEmpty()) {
-            continue;
+            return;
         }
 
-        if (RegionUsesToolbarChrome(region)) {
-            Chrome::PaintToolbarRegion(context, slot.geometry);
+        const bool skipRegionChrome =
+            (m_SuppressContentSurfaces
+                && (region == PanelBodyRegion::Content || region == PanelBodyRegion::Footer))
+            || (m_OverlayToolbar && region == PanelBodyRegion::Toolbar);
+        if (!skipRegionChrome) {
+            PaintRegionChrome(region, context, slot.geometry);
         }
 
         if (region == PanelBodyRegion::Content) {
@@ -235,6 +297,19 @@ void PanelBodyLayout::Paint(PaintContext& context) {
         } else {
             slot.widget->Paint(context);
         }
+        (void)paintAfterContent;
+    };
+
+    for (size_t i = 0; i < m_Regions.size(); ++i) {
+        const auto region = static_cast<PanelBodyRegion>(i);
+        if (m_OverlayToolbar && region == PanelBodyRegion::Toolbar) {
+            continue;
+        }
+        paintRegion(region, false);
+    }
+
+    if (m_OverlayToolbar) {
+        paintRegion(PanelBodyRegion::Toolbar, true);
     }
 }
 

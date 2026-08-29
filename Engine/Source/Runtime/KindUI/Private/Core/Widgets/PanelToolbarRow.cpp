@@ -1,12 +1,12 @@
 #include "KindUI/Core/Widgets/PanelToolbarRow.h"
+#include "KindUI/Core/LayoutMetrics.h"
 
 namespace we::runtime::kindui {
 
 PanelToolbarRow::PanelToolbarRow(std::string searchPlaceholder)
     : m_SearchPlaceholder(std::move(searchPlaceholder)) {
-    const float padH = ThemeMetric(MetricToken::Space2);
-    const float padV = 4.0f;
-    Padding(Margin{padH, padV, padH, padV});
+    const float padV = ThemeMetric(MetricToken::Space1);
+    Padding(Margin{0.0f, padV, 0.0f, padV});
     Gap(ThemeMetric(MetricToken::Space1));
     Align(AlignItems::Center);
 
@@ -14,6 +14,13 @@ PanelToolbarRow::PanelToolbarRow(std::string searchPlaceholder)
     m_SearchBox->SetFlexGrow(1.0f);
     m_SearchBox->SetFlexShrink(1.0f);
     m_SearchBox->SetMinWidth(ThemeMetric(MetricToken::Space6) * 4.0f);
+}
+
+Size PanelToolbarRow::Measure(const Size& availableSize) {
+    Size size = Row::Measure(availableSize);
+    size.height = LayoutMetrics::SearchRowHeight();
+    m_DesiredSize = size;
+    return m_DesiredSize;
 }
 
 void PanelToolbarRow::Finalize() {

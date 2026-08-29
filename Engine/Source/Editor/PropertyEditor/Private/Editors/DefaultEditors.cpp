@@ -2,7 +2,10 @@
 #include "PropertyEditor/IPropertyEditor.h"
 #include "PropertyEditor/IPropertyEditorFactory.h"
 
+#include "KindUI/Core/ControlChrome.h"
 #include "KindUI/Core/Icon.h"
+#include "KindUI/Core/LayoutMetrics.h"
+#include "KindUI/Theming/ThemeAccess.h"
 #include "KindUI/Widgets/TextBox.h"
 
 #include <cstdio>
@@ -27,6 +30,16 @@ using we::runtime::kindui::TextBox;
 using we::runtime::kindui::Widget;
 namespace Icons = we::runtime::kindui::Icons;
 using we::runtime::kindui::IconPainter;
+namespace Layout = we::runtime::kindui::LayoutMetrics;
+namespace Chrome = we::runtime::kindui::ControlChrome;
+
+float EditorControlHeight() {
+    return Layout::PropertyControlHeight();
+}
+
+Rect EditorControlRect(const Rect& valueRect) {
+    return Layout::LayoutPropertyControlInRow(valueRect);
+}
 
 class BoundEditorBase : public IPropertyEditor {
 public:
@@ -51,33 +64,26 @@ public:
                     (void)m_Handle->GetBool(m_Value);
                 }
             }
-            Size Measure(const Size&) override { return Size{40.f, 20.f}; }
+            Size Measure(const Size& available) override {
+                return Size{ available.width, EditorControlHeight() };
+            }
             void Arrange(const Rect& r) override { m_Geometry = r; }
             void Paint(PaintContext& context) override {
-                const float checkSize = 16.f;
-                Rect checkRect{
-                    m_Geometry.x + (m_Geometry.width - checkSize) * 0.5f,
-                    m_Geometry.y + (m_Geometry.height - checkSize) * 0.5f,
-                    checkSize,
-                    checkSize};
-                Color bg = m_Value ? ThemeColor(ColorToken::AccentPrimary) : ThemeColor(ColorToken::InputBackground);
-                context.DrawRoundedRect(checkRect, bg, 3.f);
-                if (m_Focused) {
-                    context.DrawRoundedRectOutline(checkRect, ThemeColor(ColorToken::BorderFocus), 1.f, 3.f);
-                }
-                if (m_Value) {
-                    IconPainter::DrawIcon(
-                        context,
-                        Icons::CheckName,
-                        Rect{checkRect.x + 2.f, checkRect.y + 2.f, checkSize - 4.f, checkSize - 4.f},
-                        ThemeColor(ColorToken::TextPrimary));
-                }
+                const float checkSize = ResolveMetric(MetricToken::CheckboxGlyphSize);
+                Rect checkRect = EditorControlRect(m_Geometry);
+                checkRect.width = checkSize;
+                checkRect.height = checkSize;
+                checkRect.x = m_Geometry.x + (m_Geometry.width - checkSize) * 0.5f;
+                Chrome::InteractionState state;
+                state.focused = m_Focused;
+                Chrome::PaintCheckbox(context, checkRect, m_Value, state);
                 if (m_Handle && m_Handle->GetValueState() == PropertyValueState::Mixed) {
+                    const float fontSize = ResolveMetric(MetricToken::TextSizeProperty);
                     context.DrawText(
                         "—",
-                        Point{m_Geometry.x + 4.f, m_Geometry.y + 2.f},
+                        Point{ m_Geometry.x + ResolveMetric(MetricToken::Space1), m_Geometry.y + (m_Geometry.height - fontSize) * 0.5f },
                         ThemeColor(ColorToken::TextSecondary),
-                        ThemeMetric(MetricToken::TextSizeBody));
+                        fontSize);
                 }
             }
             void OnMouseDown(const MouseEvent& event) override {
@@ -236,21 +242,23 @@ public:
                 Refresh();
             }
             Size Measure(const Size& available) override {
-                return Size{available.width, 20.f};
+                return Size{ available.width, EditorControlHeight() };
             }
             void Arrange(const Rect& r) override { m_Geometry = r; }
             void Paint(PaintContext& context) override {
-                context.DrawRoundedRect(m_Geometry, ThemeColor(ColorToken::InputBackground), 3.f);
-                if (m_Focused) {
-                    context.DrawRoundedRectOutline(m_Geometry, ThemeColor(ColorToken::BorderFocus), 1.f, 3.f);
-                }
+                const Rect frame = EditorControlRect(m_Geometry);
+                Chrome::InteractionState state;
+                state.focused = m_Focused;
+                Chrome::PaintInputFrame(context, frame, state);
                 const std::string label =
                     m_Handle && m_Handle->GetValueState() == PropertyValueState::Mixed ? "—" : m_CurrentName;
+                const float fontSize = ResolveMetric(MetricToken::TextSizeProperty);
+                const float pad = ResolveMetric(MetricToken::Space2);
                 context.DrawText(
                     label,
-                    Point{m_Geometry.x + 6.f, m_Geometry.y + 2.f},
+                    Point{ frame.x + pad, frame.y + (frame.height - fontSize) * 0.5f },
                     ThemeColor(ColorToken::TextPrimary),
-                    ThemeMetric(MetricToken::TextSizeBody));
+                    fontSize);
             }
             void OnMouseDown(const MouseEvent& event) override {
                 if (event.button != MouseButton::Left || !m_Handle || m_Handle->IsReadOnly() || m_Values.empty()) {
@@ -350,13 +358,17 @@ public:
             VecWidget(PropertyHandlePtr handle, Mode mode) : m_Handle(std::move(handle)), m_Mode(mode) {
                 Read();
             }
-            Size Measure(const Size& available) override { return Size{available.width, 20.f}; }
+            Size Measure(const Size& available) override { return Size{ available.width, EditorControlHeight() }; }
             void Arrange(const Rect& r) override { m_Geometry = r; }
             void Paint(PaintContext& context) override {
+                const Rect frame = EditorControlRect(m_Geometry);
+                Chrome::InteractionState state;
+                Chrome::PaintInputFrame(context, frame, state);
                 if (m_Mode == Mode::Color) {
-                    Color c{m_Values[0], m_Values[1], m_Values[2], m_Values[3]};
-                    Rect swatch{m_Geometry.x, m_Geometry.y + 2.f, 16.f, 16.f};
-                    context.DrawRoundedRect(swatch, c, 3.f);
+                    Color c{ m_Values[0], m_Values[1], m_Values[2], m_Values[3] };
+                    const float swatch = ResolveMetric(MetricToken::CheckboxGlyphSize);
+                    Rect swatchRect{ frame.x + ResolveMetric(MetricToken::Space2), frame.y + (frame.height - swatch) * 0.5f, swatch, swatch };
+                    context.DrawRoundedRect(swatchRect, c, ResolveMetric(MetricToken::CornerRadiusSmall));
                 }
                 char buf[128]{};
                 if (m_Handle && m_Handle->GetValueState() == PropertyValueState::Mixed) {
@@ -375,12 +387,14 @@ public:
                         m_Values[2],
                         m_Values[3]);
                 }
-                const float textX = m_Mode == Mode::Color ? m_Geometry.x + 22.f : m_Geometry.x + 4.f;
+                const float fontSize = ResolveMetric(MetricToken::TextSizeProperty);
+                const float pad = ResolveMetric(MetricToken::Space2);
+                const float swatchPad = m_Mode == Mode::Color ? ResolveMetric(MetricToken::CheckboxGlyphSize) + pad : 0.0f;
                 context.DrawText(
                     buf,
-                    Point{textX, m_Geometry.y + 2.f},
+                    Point{ frame.x + pad + swatchPad, frame.y + (frame.height - fontSize) * 0.5f },
                     ThemeColor(ColorToken::TextPrimary),
-                    ThemeMetric(MetricToken::TextSizeBody));
+                    fontSize);
             }
 
         private:
@@ -411,14 +425,15 @@ public:
     [[nodiscard]] std::shared_ptr<Widget> CreateWidget() override {
         class StructWidget final : public Widget {
         public:
-            Size Measure(const Size& available) override { return Size{available.width, 18.f}; }
+            Size Measure(const Size& available) override { return Size{ available.width, EditorControlHeight() }; }
             void Arrange(const Rect& r) override { m_Geometry = r; }
             void Paint(PaintContext& context) override {
+                const float fontSize = ResolveMetric(MetricToken::TextSizeProperty);
                 context.DrawText(
                     "{...}",
-                    Point{m_Geometry.x + 4.f, m_Geometry.y + 2.f},
+                    Point{ m_Geometry.x + ResolveMetric(MetricToken::Space2), m_Geometry.y + (m_Geometry.height - fontSize) * 0.5f },
                     ThemeColor(ColorToken::TextSecondary),
-                    ThemeMetric(MetricToken::TextSizeBody));
+                    fontSize);
             }
         };
         return std::make_shared<StructWidget>();
@@ -432,7 +447,7 @@ public:
     [[nodiscard]] std::shared_ptr<Widget> CreateWidget() override {
         class Stub final : public Widget {
         public:
-            Size Measure(const Size& available) override { return Size{available.width, 18.f}; }
+            Size Measure(const Size& available) override { return Size{ available.width, EditorControlHeight() }; }
             void Arrange(const Rect& r) override { m_Geometry = r; }
             void Paint(PaintContext& context) override {
                 context.DrawText(
@@ -454,7 +469,7 @@ public:
         class Stub final : public Widget {
         public:
             explicit Stub(const char* label) : m_Label(label) {}
-            Size Measure(const Size& available) override { return Size{available.width, 18.f}; }
+            Size Measure(const Size& available) override { return Size{ available.width, EditorControlHeight() }; }
             void Arrange(const Rect& r) override { m_Geometry = r; }
             void Paint(PaintContext& context) override {
                 context.DrawText(
@@ -482,7 +497,7 @@ public:
         class Stub final : public Widget {
         public:
             explicit Stub(PropertyHandlePtr handle) : m_Handle(std::move(handle)) {}
-            Size Measure(const Size& available) override { return Size{available.width, 18.f}; }
+            Size Measure(const Size& available) override { return Size{ available.width, EditorControlHeight() }; }
             void Arrange(const Rect& r) override { m_Geometry = r; }
             void Paint(PaintContext& context) override {
                 const char* label = "Asset picker — stub";

@@ -2,6 +2,7 @@
 
 #include "KindUI/Core/Animator.h"
 #include "KindUI/Core/LayoutMetrics.h"
+#include "KindUI/Core/PropertyPanelChrome.h"
 #include "KindUI/Core/ControlChrome.h"
 #include "KindUI/Core/Icon.h"
 #include "KindUI/Core/PaintContext.h"
@@ -282,20 +283,17 @@ void PropertyRow::Arrange(const Rect& allottedRect) {
 }
 
 void PropertyRow::Paint(PaintContext& context) {
-    const TypographySpec labelSpec = ResolveTypography(TypographyToken::PropertyLabel);
+    const auto layout = PropertyPanelChrome::LayoutPropertyRow(m_Geometry, 0);
+    PropertyPanelChrome::PaintPropertyRowLabel(context, layout.label, m_Label, false);
+
     const TypographySpec valueSpec = ResolveTypography(TypographyToken::PropertyValue);
-    const float gap = ResolveMetric(MetricToken::LabelHintGap);
-    context.DrawText(
-        m_Label,
-        Point{ m_Geometry.x, m_Geometry.y + gap },
-        labelSpec.color,
-        labelSpec.sizePx,
-        labelSpec.bold);
+    const float fontSize = valueSpec.sizePx;
+    const float textY = layout.value.y + (layout.value.height - fontSize) * 0.5f;
     context.DrawText(
         m_Value.empty() ? "—" : m_Value,
-        Point{ m_Geometry.x, m_Geometry.y + labelSpec.lineHeightPx + gap },
+        Point{ layout.value.x, textY },
         valueSpec.color,
-        valueSpec.sizePx,
+        fontSize,
         valueSpec.bold);
 }
 
@@ -314,16 +312,16 @@ void SearchBoxControl::SetText(std::string text) {
 }
 
 Size SearchBoxControl::Measure(const Size& availableSize) {
-    (void)availableSize;
-    const ResolvedStyle style = ThemeManager::Get().Resolve(StyleRole::SearchBox);
-    const float minW = m_MinSize.width > 0.0f ? m_MinSize.width : 120.0f;
-    const float h = (std::max)(26.0f, style.height > 0.0f ? style.height : ResolveMetric(MetricToken::SearchBoxHeight));
-    m_DesiredSize = Size{ minW, h };
+    const float minW = m_MinSize.width > 0.0f
+        ? m_MinSize.width
+        : ResolveMetric(MetricToken::Space6) * 4.0f;
+    const float w = availableSize.width < 1.0e8f ? availableSize.width : minW;
+    m_DesiredSize = Size{ w, LayoutMetrics::SearchInputHeight() };
     return m_DesiredSize;
 }
 
 void SearchBoxControl::Arrange(const Rect& allottedRect) {
-    m_Geometry = allottedRect;
+    m_Geometry = LayoutMetrics::LayoutSearchInputRect(allottedRect);
 }
 
 void SearchBoxControl::Paint(PaintContext& context) {
@@ -332,39 +330,7 @@ void SearchBoxControl::Paint(PaintContext& context) {
     }
 
     ControlChrome::InteractionState state{ m_HoverAnim, 0.0f, false, m_Focused, false };
-    ControlChrome::PaintSearchInputFrame(context, m_Geometry, state);
-
-    const float radius = m_Geometry.height * 0.5f;
-    const float iconSize = static_cast<float>(IconMetrics::NativeIconTierPx(ResolveMetric(MetricToken::IconSizeSearch)));
-    const float padH = (std::max)(8.0f, radius * 0.65f);
-
-    // Draw Magnifying Glass Search Icon inside input on left
-    const float iconX = m_Geometry.x + padH;
-    Rect iconBand{ iconX, m_Geometry.y, iconSize, m_Geometry.height };
-    IconPainter::DrawIcon(
-        context,
-        Icons::SearchName,
-        IconMetrics::PlaceGlyphCentered(iconBand, iconSize),
-        ResolveColor(m_Focused ? ColorToken::TextPrimary : ColorToken::IconSecondary));
-
-    const ResolvedStyle style = ThemeManager::Get().Resolve(StyleRole::SearchBox);
-    const float fontSize = style.fontSize > 0.0f ? style.fontSize : ResolveMetric(MetricToken::TextSizeSmall);
-    const float textX = iconX + iconSize + ResolveMetric(MetricToken::Space1);
-    const float textY = m_Geometry.y + (m_Geometry.height - fontSize) * 0.5f;
-    const bool empty = m_Text.empty();
-
-    context.DrawText(
-        empty ? m_Placeholder : m_Text,
-        Point{ textX, textY },
-        empty ? ResolveColor(ColorToken::SearchPlaceholder) : ResolveColor(ColorToken::TextPrimary),
-        fontSize);
-
-    if (m_Focused && !empty) {
-        const float caretX = textX + context.GetTextWidth(m_Text, fontSize);
-        context.DrawRect(
-            Rect{ caretX, textY, 1.0f, fontSize },
-            ResolveColor(ColorToken::TextPrimary));
-    }
+    ControlChrome::PaintSearchField(context, m_Geometry, m_Placeholder, m_Text, state, m_Focused && !m_Text.empty());
 }
 
 void SearchBoxControl::Tick(float deltaTime) {

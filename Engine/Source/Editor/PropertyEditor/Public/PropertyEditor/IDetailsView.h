@@ -30,6 +30,15 @@ public:
     virtual void SetSearchText(std::string_view text) = 0;
     virtual void SetShowAdvanced(bool show) = 0;
 
+    /// Display title for the selected-object header strip (auto-derived when empty).
+    virtual void SetObjectTitle(std::string title) = 0;
+    [[nodiscard]] virtual std::string GetObjectTitle() const = 0;
+
+    /// Category filter for the tab row; empty shows all categories.
+    virtual void SetActiveCategory(std::string_view category) = 0;
+    [[nodiscard]] virtual std::string GetActiveCategory() const = 0;
+    [[nodiscard]] virtual std::vector<std::string> GetCategoryNames() const = 0;
+
     virtual void ExpandAll() = 0;
     virtual void CollapseAll() = 0;
     virtual void SetCategoryExpanded(std::string_view category, bool expanded) = 0;

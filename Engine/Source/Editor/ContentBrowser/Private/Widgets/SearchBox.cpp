@@ -33,17 +33,13 @@ SearchBox::SearchBox()
 }
 
 Size SearchBox::Measure(const Size& availableSize) {
-    const float uiScale = (std::max)(1.0f, DPIContext::GetScale());
     float w = m_FillWidth ? availableSize.width : m_Width;
-    m_DesiredSize = Size{ w, LayoutMetrics::InputMinHeight() * uiScale };
+    m_DesiredSize = Size{ w, LayoutMetrics::SearchInputHeight() };
     return m_DesiredSize;
 }
 
 void SearchBox::Arrange(const Rect& allottedRect) {
-    const float uiScale = (std::max)(1.0f, DPIContext::GetScale());
-    const float h = std::min(LayoutMetrics::InputMinHeight() * uiScale, allottedRect.height);
-    const float y = allottedRect.y + (allottedRect.height - h) * 0.5f;
-    m_Geometry = Rect{ allottedRect.x, y, allottedRect.width, h };
+    m_Geometry = LayoutMetrics::LayoutSearchInputRect(allottedRect);
 }
 
 void SearchBox::Paint(PaintContext& context) {
@@ -62,8 +58,7 @@ void SearchBox::OnMouseDown(const MouseEvent& event) {
 
         Rect textRect = GetTextRect();
         float clickX = event.position.x - textRect.x;
-        const float scale = (std::max)(1.0f, DPIContext::GetScale());
-        const float fontSize = ThemeMetric(MetricToken::TextSizeBody) * scale;
+        const float fontSize = LayoutMetrics::SearchInputFontSize();
 
         float minDist = FLT_MAX;
         size_t closestPos = 0;
@@ -162,11 +157,10 @@ void SearchBox::UpdateCaretBlink(float deltaTime) {
 }
 
 Rect SearchBox::GetTextRect() const {
-    const float scale = (std::max)(1.0f, DPIContext::GetScale());
-    const float padH = PanelChrome::TabPadH();
-    const float iconSize = static_cast<float>(IconMetrics::NativeIconTierPx(ThemeMetric(MetricToken::IconSizeSearch)));
-    const float fontSize = ThemeMetric(MetricToken::TextSizeBody) * scale;
-    const float iconWidth = padH + iconSize + ThemeMetric(MetricToken::Space1) * scale;
+    const float padH = LayoutMetrics::SearchInputPaddingH();
+    const float iconSize = LayoutMetrics::SearchInputIconSize();
+    const float fontSize = LayoutMetrics::SearchInputFontSize();
+    const float iconWidth = padH + iconSize + ThemeMetric(MetricToken::Space1);
     const float clearW = m_Text.empty() ? 0.0f : (iconSize + padH);
     return Rect{
         m_Geometry.x + iconWidth,
@@ -177,9 +171,8 @@ Rect SearchBox::GetTextRect() const {
 }
 
 Rect SearchBox::GetClearButtonRect() const {
-    const float scale = (std::max)(1.0f, DPIContext::GetScale());
-    const float clearSize = static_cast<float>(IconMetrics::NativeIconTierPx(ThemeMetric(MetricToken::IconSizeSearch)));
-    const float padH = PanelChrome::TabPadH();
+    const float clearSize = LayoutMetrics::SearchInputIconSize();
+    const float padH = LayoutMetrics::SearchInputPaddingH();
     return Rect{
         m_Geometry.x + m_Geometry.width - clearSize - padH,
         m_Geometry.y + (m_Geometry.height - clearSize) * 0.5f,

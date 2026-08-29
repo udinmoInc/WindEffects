@@ -47,6 +47,12 @@ public:
 
     void ClearRegions();
 
+    void SetSuppressContentSurfaces(bool suppress) { m_SuppressContentSurfaces = suppress; }
+    [[nodiscard]] bool SuppressesContentSurfaces() const { return m_SuppressContentSurfaces; }
+
+    void SetOverlayToolbar(bool overlay) { m_OverlayToolbar = overlay; }
+    [[nodiscard]] bool OverlaysToolbar() const { return m_OverlayToolbar; }
+
 private:
     struct RegionSlot {
         std::shared_ptr<we::runtime::kindui::Widget> widget;
@@ -61,6 +67,8 @@ private:
 
     std::array<RegionSlot, static_cast<size_t>(PanelBodyRegion::Count)> m_Regions{};
     we::runtime::kindui::Rect m_ContentClipRect;
+    bool m_SuppressContentSurfaces = false;
+    bool m_OverlayToolbar = false;
 };
 
 } // namespace we::editor::panels

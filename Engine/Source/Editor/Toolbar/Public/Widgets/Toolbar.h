@@ -24,13 +24,20 @@ using ::we::runtime::kindui::MouseEvent;
 using ::we::runtime::kindui::WidgetStyle;
 using ::we::runtime::kindui::IWidgetContext;
 
+class ToolButton;
+class ToolbarGroup;
+
 enum class ToolbarAlignment {
     Left,
     Center,
     Right
 };
 
-// Toolbar widget with icon buttons and grouping
+enum class ToolbarGroupStyle {
+  Transparent,
+  ExecutionCluster
+};
+
 class TOOLBAR_API Toolbar : public Widget {
 public:
     Toolbar();
@@ -110,10 +117,13 @@ public:
     bool ShowsPointerCursor(const Point& position) const override;
 
     void SetElevated(bool elevated) { m_Elevated = elevated; }
+    void SetStyle(ToolbarGroupStyle style) { m_Style = style; }
+    [[nodiscard]] ToolbarGroupStyle GetStyle() const { return m_Style; }
 
 private:
     std::vector<std::shared_ptr<Widget>> m_Items;
     bool m_Elevated = false;
+    ToolbarGroupStyle m_Style = ToolbarGroupStyle::Transparent;
 
     std::shared_ptr<Widget> HitChildAt(const Point& position) const;
 };

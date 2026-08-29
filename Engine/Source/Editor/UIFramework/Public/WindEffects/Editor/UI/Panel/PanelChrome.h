@@ -35,6 +35,7 @@ UIFRAMEWORK_API float ColumnHeaderRowHeight();
 UIFRAMEWORK_API float FooterRowHeight();
 
 UIFRAMEWORK_API float TabPadH();
+UIFRAMEWORK_API float TabStripPadH();
 UIFRAMEWORK_API float TabIconSize();
 UIFRAMEWORK_API float TabGap();
 UIFRAMEWORK_API float TabTopRadius();
@@ -42,7 +43,16 @@ UIFRAMEWORK_API float HeaderButtonSize();
 
 UIFRAMEWORK_API void PaintPanelSurface(PaintContext& context, const Rect& rect);
 UIFRAMEWORK_API void PaintToolbarRegion(PaintContext& context, const Rect& rect);
+UIFRAMEWORK_API void PaintHeaderRegion(PaintContext& context, const Rect& rect);
+UIFRAMEWORK_API void PaintFooterRegion(PaintContext& context, const Rect& rect);
+UIFRAMEWORK_API void PaintContentWell(PaintContext& context, const Rect& rect);
+UIFRAMEWORK_API void PaintPrimaryContentRegion(PaintContext& context, const Rect& rect);
+UIFRAMEWORK_API void PaintNavigationRegion(PaintContext& context, const Rect& rect);
+/// Recessed panel content well — alias for PaintContentWell.
 UIFRAMEWORK_API void PaintContentRegion(PaintContext& context, const Rect& rect);
+/// Single subtle divider beneath the dock tab strip (no full-width tab background).
+UIFRAMEWORK_API void PaintDockTabStripDivider(PaintContext& context, const Rect& headerRect);
+/// @deprecated Use PaintDockTabStripDivider — kept for callers that only need the strip edge.
 UIFRAMEWORK_API void PaintDockHeaderBand(PaintContext& context, const Rect& headerRect);
 
 struct DockTabDescriptor {
@@ -94,6 +104,30 @@ UIFRAMEWORK_API void PaintDockTab(
     bool showClose,
     bool closeHovered,
     bool flushLeft = false);
+
+struct DockTabStripState {
+    size_t activeIndex = 0;
+    std::function<bool(size_t index, bool isActive, bool isHovered)> showClose;
+    std::function<float(size_t index)> hoverAnim;
+    std::function<bool(size_t index)> closeHovered;
+};
+
+struct DockTabStripLayout {
+    std::vector<DockTabLayout> tabs;
+};
+
+[[nodiscard]] UIFRAMEWORK_API DockTabStripLayout LayoutDockTabStrip(
+    PaintContext& context,
+    const Rect& stripRect,
+    const std::vector<DockTabDescriptor>& descriptors,
+    const DockTabStripState& state);
+
+UIFRAMEWORK_API void PaintDockTabStrip(
+    PaintContext& context,
+    const Rect& stripRect,
+    const std::vector<DockTabDescriptor>& descriptors,
+    const DockTabStripLayout& layout,
+    const DockTabStripState& state);
 
 struct FloatingHeaderAction {
     std::string iconName;

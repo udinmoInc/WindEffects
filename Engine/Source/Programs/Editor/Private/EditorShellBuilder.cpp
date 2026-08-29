@@ -6,7 +6,7 @@
 #include "WindEffects/Editor/UI/Shell/EditorWorkspaceController.h"
 #include "Explorer/WorldOutlinerApi.h"
 #include "Environment/EnvironmentEditorApi.h"
-#include "ViewportNavigationPreferences.h"
+#include "MainEditorToolbar.h"
 #include "KindUI/Theming/ThemeAccess.h"
 
 #include "WindEffects/Editor/UI/Widgets/Panel.h"
@@ -14,10 +14,8 @@
 #include "Widgets/TitleBar.h"
 #include "Widgets/WindowShell.h"
 #include "Widgets/StatusBar.h"
-#include "Widgets/Toolbar.h"
 #include "Widgets/MenuBar.h"
 #include "Widgets/ViewportWidget.h"
-#include "Widgets/EditorModeSelector.h"
 #include "ContentBrowser/Widgets/TreeView.h"
 #include "KindUI/Layout/Flex.h"
 #include "KindUI/Layout/OverlayManager.h"
@@ -27,11 +25,9 @@
 #include "KindUI/Core/WidgetContext.h"
 #include "KindUI/Rendering/OverlayRenderer.h"
 #include "KindUI/Rendering/IconRenderer.h"
-#include "KindUI/Rendering/IconMetrics.h"
 #include "Renderer/Renderer.h"
 #include "Scene/Scene.h"
 #include "PropertyEditor/PropertyEditorSession.h"
-#include "Environment/EnvironmentEditorApi.h"
 
 #include <algorithm>
 #include <vector>
@@ -67,11 +63,6 @@ using ::we::editor::menus::MenuItem;
 using ::we::editor::shell::TitleBar;
 using ::we::editor::shell::StatusBar;
 using ::we::editor::shell::WindowShell;
-using ::we::editor::toolbar::Toolbar;
-using ::we::editor::toolbar::ToolButtonStyle;
-using ::we::editor::toolbar::ToolbarAlignment;
-namespace Icons = ::we::runtime::kindui::Icons;
-namespace IconMetrics = ::we::runtime::kindui::IconMetrics;
 namespace {
 
 void PropagateWidgetContext(const std::shared_ptr<Widget>& widget, const std::shared_ptr<IWidgetContext>& context) {
@@ -268,70 +259,22 @@ EditorShellResult EditorShellBuilder::Build(
 
     ::we::editor::shell::EditorModeController::Get().InitializeFromRegistry();
 
-    auto toolbar = std::make_shared<Toolbar>();
-    toolbar->SetContext(widgetContext);
-    toolbar->SetHeight(toolbarStyle.height > 0.0f ? toolbarStyle.height : we::runtime::kindui::ResolveMetric(MetricToken::ToolbarHeight) * uiScale);
-    toolbar->SetLeftInset(style.Scaled(we::runtime::kindui::ResolveMetric(MetricToken::Space3)));
+    const float toolbarHeight = toolbarStyle.height > 0.0f
+        ? toolbarStyle.height
+        : we::runtime::kindui::ResolveMetric(MetricToken::ToolbarHeight) * uiScale;
+    const float toolbarLeftInset = style.Scaled(we::runtime::kindui::ResolveMetric(MetricToken::Space3));
     constexpr int windowControlCount = 3;
-    toolbar->SetRightInset(style.Scaled(we::runtime::kindui::ResolveMetric(MetricToken::WindowControlWidth) * windowControlCount));
-    toolbar->SetEdgePadding(style.Scaled(we::runtime::kindui::ResolveMetric(MetricToken::Space2)));
-    const float toolbarIconTier = static_cast<float>(IconMetrics::NativeIconTierPx(
-        toolbarStyle.iconSize > 0.0f ? toolbarStyle.iconSize : we::runtime::kindui::ResolveMetric(MetricToken::IconSizeToolbar)));
-    toolbar->SetIconSize(toolbarIconTier);
+    const float toolbarRightInset = style.Scaled(
+        we::runtime::kindui::ResolveMetric(MetricToken::WindowControlWidth) * windowControlCount);
+    const float toolbarEdgePadding = style.Scaled(we::runtime::kindui::ResolveMetric(MetricToken::Space2));
 
-    // Actor / object mode selector (pivot icon opens place-actors drawer)
-    auto modeSelector = std::make_shared<we::programs::editor::EditorModeSelector>();
-    modeSelector->SetContext(widgetContext);
-    modeSelector->InitializeCallbacks(modeSelector);
-    modeSelector->Refresh();
-    toolbar->AddWidget(modeSelector);
-    toolbar->AddSeparator();
-
-    // File operations
-    toolbar->AddTool(Icons::NewName, "", deps.onCreateNewLevel ? deps.onCreateNewLevel : [](){}, "New Level (Ctrl+N)");
-    toolbar->AddTool(Icons::OpenName, "", [](){}, "Open (Ctrl+O)");
-    toolbar->AddTool(Icons::SaveName, "", [](){}, "Save (Ctrl+S)");
-    toolbar->AddTool(Icons::SaveAllName, "", [](){}, "Save All");
-    toolbar->AddSeparator();
-
-    // Transform tools (icon + label)
-    auto selectBtn = toolbar->AddTool(Icons::CursorName, "Select", [](){}, "Select (Q)");
-    auto moveBtn = toolbar->AddTool(Icons::MoveName, "Move", [](){}, "Move (W)");
-    auto rotateBtn = toolbar->AddTool(Icons::RotateName, "Rotate", [](){}, "Rotate (E)");
-    auto scaleBtn = toolbar->AddTool(Icons::ScaleName, "Scale", [](){}, "Scale (R)");
-    selectBtn->SetButtonStyle(ToolButtonStyle::ToolbarLabeled);
-    moveBtn->SetButtonStyle(ToolButtonStyle::ToolbarLabeled);
-    rotateBtn->SetButtonStyle(ToolButtonStyle::ToolbarLabeled);
-    scaleBtn->SetButtonStyle(ToolButtonStyle::ToolbarLabeled);
-    toolbar->AddTool(Icons::SnapName, "", [](){}, "Snap");
-    toolbar->AddSeparator();
-
-    // History
-    toolbar->AddTool(Icons::UndoName, "", deps.onUndo ? deps.onUndo : std::function<void()>{}, "Undo (Ctrl+Z)");
-    toolbar->AddTool(Icons::RedoName, "", deps.onRedo ? deps.onRedo : std::function<void()>{}, "Redo (Ctrl+Y)");
-    toolbar->AddSeparator();
-
-    toolbar->AddWidget(::we::editor::environment::CreateEnvironmentToolbarMenu());
-
-    // Transport (centered)
-    auto playBtn = toolbar->AddTool(Icons::MediaPlayName, "", [](){}, "Play (Alt+P)", false, ToolbarAlignment::Center);
-    auto pauseBtn = toolbar->AddTool(Icons::PauseName, "", [](){}, "Pause (Alt+P)", false, ToolbarAlignment::Center);
-    auto stopBtn = toolbar->AddTool(Icons::StopName, "", [](){}, "Stop", false, ToolbarAlignment::Center);
-    playBtn->SetButtonStyle(ToolButtonStyle::TransportButton);
-    pauseBtn->SetButtonStyle(ToolButtonStyle::TransportButton);
-    stopBtn->SetButtonStyle(ToolButtonStyle::TransportButton);
-
-    // Platform, project, settings (right)
-    auto windowsBtn = toolbar->AddTool(Icons::MonitorName, "Windows", [](){}, "Windows", false, ToolbarAlignment::Right);
-    windowsBtn->SetButtonStyle(ToolButtonStyle::ToolbarInline);
-    windowsBtn->SetIsDropdown(true);
-    auto projectBtn = toolbar->AddTool(Icons::ProjectFolderName, "MyProject", [](){}, "MyProject", false, ToolbarAlignment::Right);
-    projectBtn->SetButtonStyle(ToolButtonStyle::ToolbarInline);
-    projectBtn->SetIsDropdown(true);
-    toolbar->AddSeparator(ToolbarAlignment::Right);
-    toolbar->AddTool(Icons::SettingsName, "", [](){ we::programs::editor::ShowViewportNavigationPreferences(); }, "Editor Settings", false, ToolbarAlignment::Right);
-
-    toolbar->SetActiveTool(Icons::CursorName);
+    auto toolbar = BuildMainEditorToolbar(
+        deps,
+        widgetContext,
+        toolbarHeight,
+        toolbarLeftInset,
+        toolbarRightInset,
+        toolbarEdgePadding);
 
     DockLayoutBuilder layoutBuilder;
     shellResult.layout = layoutBuilder.Build(context.GetDockManager().GetLayout(), context.GetExtensionRegistry(), uiScale);
@@ -450,9 +393,6 @@ EditorShellResult EditorShellBuilder::Build(
     titleBar->SetMinSize(Size{ 0.0f, titleHeight });
     titleBar->SetMaxSize(Size{ 1.0e9f, titleHeight });
     toolbar->SetFlexShrink(0.0f);
-    const float toolbarHeight = toolbarStyle.height > 0.0f
-        ? toolbarStyle.height
-        : we::runtime::kindui::ResolveMetric(MetricToken::ToolbarHeight) * uiScale;
     toolbar->SetMinSize(Size{ 0.0f, toolbarHeight });
     toolbar->SetMaxSize(Size{ 1.0e9f, toolbarHeight });
     statusBar->SetFlexShrink(0.0f);

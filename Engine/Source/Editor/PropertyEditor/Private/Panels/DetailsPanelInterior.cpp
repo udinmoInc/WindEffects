@@ -1,0 +1,201 @@
+#include "PropertyEditor/PropertyEditorSession.h"
+#include "PropertyEditor/IDetailsView.h"
+
+#include "KindUI/Core/DPIContext.h"
+#include "KindUI/Core/Icon.h"
+#include "KindUI/Core/LayoutMetrics.h"
+#include "KindUI/Core/PropertyPanelChrome.h"
+#include "KindUI/Core/Widgets/DesignSystemControls.h"
+#include "KindUI/Layout/Flex.h"
+#include "KindUI/Tokens/DesignToken.h"
+#include "KindUI/Theming/ThemeAccess.h"
+
+#include <string>
+#include <utility>
+#include <vector>
+
+namespace we::editor::property {
+namespace detail {
+namespace {
+
+using we::runtime::kindui::Column;
+using we::runtime::kindui::MakeColumn;
+using we::runtime::kindui::MouseButton;
+using we::runtime::kindui::MouseEvent;
+using we::runtime::kindui::PaintContext;
+using we::runtime::kindui::Point;
+using we::runtime::kindui::Rect;
+using we::runtime::kindui::SearchBoxControl;
+using we::runtime::kindui::Size;
+using we::runtime::kindui::Widget;
+namespace Icons = we::runtime::kindui::Icons;
+namespace Layout = we::runtime::kindui::LayoutMetrics;
+namespace PanelChrome = we::runtime::kindui::PropertyPanelChrome;
+using we::runtime::kindui::ResolveMetric;
+using we::runtime::kindui::MetricToken;
+
+class SelectedObjectHeaderWidget final : public Widget {
+public:
+    void SetDetails(IDetailsView* details) { m_Details = details; }
+
+    Size Measure(const Size& availableSize) override {
+        m_DesiredSize = Size{ availableSize.width, Layout::PropertyObjectHeaderHeight() };
+        return m_DesiredSize;
+    }
+
+    void Arrange(const Rect& allottedRect) override { m_Geometry = allottedRect; }
+
+    void Paint(PaintContext& context) override {
+        const bool active = m_Details && !m_Details->GetObjectTitle().empty();
+        const std::string title = active ? m_Details->GetObjectTitle() : "No Selection";
+        PanelChrome::PaintObjectHeader(
+            context,
+            m_Geometry,
+            title,
+            active ? Icons::PropertiesName : "",
+            active);
+    }
+
+private:
+    IDetailsView* m_Details = nullptr;
+};
+
+class CategoryFilterTabsWidget final : public Widget {
+public:
+    void SetDetails(IDetailsView* details) { m_Details = details; }
+
+    Size Measure(const Size& availableSize) override {
+        m_DesiredSize = Size{ availableSize.width, Layout::PropertyCategoryTabRowHeight() };
+        return m_DesiredSize;
+    }
+
+    void Arrange(const Rect& allottedRect) override {
+        m_Geometry = allottedRect;
+        LayoutTabs();
+    }
+
+    void Paint(PaintContext& context) override {
+        if (!m_Details) {
+            return;
+        }
+        LayoutTabs();
+        const std::string active = m_Details->GetActiveCategory();
+        for (const auto& tab : m_Tabs) {
+            const bool isActive = tab.label == "All" ? active.empty() : active == tab.label;
+            PanelChrome::PaintCategoryTab(context, tab.rect, tab.label, isActive, m_HoveredTab == tab.label);
+        }
+    }
+
+    void OnMouseMove(const MouseEvent& event) override {
+        const std::string prev = m_HoveredTab;
+        m_HoveredTab = TabAt(event.position);
+        if (prev != m_HoveredTab) {
+            InvalidatePaint();
+        }
+    }
+
+    void OnMouseDown(const MouseEvent& event) override {
+        if (event.button != MouseButton::Left || !m_Details) {
+            return;
+        }
+        const std::string tab = TabAt(event.position);
+        if (tab.empty()) {
+            return;
+        }
+        m_Details->SetActiveCategory(tab == "All" ? "" : tab);
+        InvalidatePaint();
+    }
+
+private:
+    struct TabSlot {
+        std::string label;
+        Rect rect;
+    };
+
+    void LayoutTabs() {
+        m_Tabs.clear();
+        if (!m_Details) {
+            return;
+        }
+
+        const float scale = std::max(1.0f, we::runtime::kindui::DPIContext::GetScale());
+        const float padH = ResolveMetric(MetricToken::Space2) * scale;
+        const float padV = ResolveMetric(MetricToken::Space1) * scale;
+        const float tabH = PanelChrome::CategoryTabHeight();
+        const float gap = ResolveMetric(MetricToken::Space1) * scale;
+        const float minTabW = padH * 3.0f;
+
+        float x = m_Geometry.x + padH;
+        const float y = m_Geometry.y + padV;
+
+        auto addTab = [&](const std::string& label, float textWidth) {
+            const float tabW = std::max(minTabW, textWidth + padH * 2.0f);
+            m_Tabs.push_back(TabSlot{ label, Rect{ x, y, tabW, tabH } });
+            x += tabW + gap;
+        };
+
+        const float captionSize = ResolveMetric(MetricToken::TextSizeCaption) * scale;
+        addTab("All", captionSize * 1.5f);
+        for (const auto& category : m_Details->GetCategoryNames()) {
+            addTab(category, static_cast<float>(category.size()) * captionSize * 0.55f);
+        }
+    }
+
+    [[nodiscard]] std::string TabAt(const Point& pos) const {
+        for (const auto& tab : m_Tabs) {
+            if (tab.rect.Contains(pos)) {
+                return tab.label;
+            }
+        }
+        return {};
+    }
+
+    IDetailsView* m_Details = nullptr;
+    std::vector<TabSlot> m_Tabs;
+    std::string m_HoveredTab;
+};
+
+} // namespace
+
+std::shared_ptr<Widget> CreateDetailsPanelInterior(
+    const std::shared_ptr<Widget>& propertyList,
+    IDetailsView* details)
+{
+    auto column = MakeColumn();
+    column->SetFlexGrow(1.0f);
+    column->SetFlexShrink(1.0f);
+    column->Gap(0.0f);
+
+    auto header = std::make_shared<SelectedObjectHeaderWidget>();
+    header->SetDetails(details);
+    header->SetFlexShrink(0.0f);
+
+    auto search = std::make_shared<SearchBoxControl>("Search...");
+    search->SetOnChanged([details](const std::string& text) {
+        if (details) {
+            details->SetSearchText(text);
+        }
+    });
+    search->SetMinSize({ 0.0f, Layout::SearchRowHeight() });
+    search->SetFlexShrink(0.0f);
+
+    auto tabs = std::make_shared<CategoryFilterTabsWidget>();
+    tabs->SetDetails(details);
+    tabs->SetFlexShrink(0.0f);
+
+    if (propertyList) {
+        propertyList->SetFlexGrow(1.0f);
+        propertyList->SetFlexShrink(1.0f);
+    }
+
+    column->AddChild(header);
+    column->AddChild(search);
+    column->AddChild(tabs);
+    if (propertyList) {
+        column->AddChild(propertyList);
+    }
+    return column;
+}
+
+} // namespace detail
+} // namespace we::editor::property

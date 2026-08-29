@@ -168,7 +168,7 @@ Size EditorModeSelector::Measure(const Size& availableSize) {
     const float iconSz = ToolbarButtonChrome::IconSize(uiScale);
     const float iconGap = ToolbarButtonChrome::IconGapPx(uiScale);
     const float chevW = we::runtime::kindui::IconMetrics::CompactDisplayPx();
-    const float controlH = (std::max)(32.0f * uiScale, ThemeMetric(MetricToken::ToolbarLabeledHeight) * uiScale);
+    const float controlH = ToolbarButtonChrome::RowContentHeight(uiScale);
     m_DesiredSize = Size{
         padH + iconSz + iconGap + chevW + padH,
         controlH

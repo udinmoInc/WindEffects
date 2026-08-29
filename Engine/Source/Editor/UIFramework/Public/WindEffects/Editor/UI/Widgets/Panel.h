@@ -78,9 +78,19 @@ public:
     void SetCollapsible(bool collapsible) { m_Collapsible = collapsible; }
     void SetBackgroundColor(const Color& color) { m_Style.background.color = color; }
     void SetStyle(const WidgetStyle& style) { m_Style = style; }
-    void SetTransparentBackground(bool transparent) { m_TransparentBackground = transparent; }
+    void SetTransparentBackground(bool transparent) {
+        m_TransparentBackground = transparent;
+        if (m_BodyLayout) {
+            m_BodyLayout->SetSuppressContentSurfaces(transparent);
+        }
+    }
     bool IsTransparentBackground() const { return m_TransparentBackground; }
-    void SetFloatingToolbar(bool floating) { m_FloatingToolbar = floating; }
+    void SetFloatingToolbar(bool floating) {
+        m_FloatingToolbar = floating;
+        if (m_BodyLayout) {
+            m_BodyLayout->SetOverlayToolbar(floating);
+        }
+    }
     bool IsFloatingToolbar() const { return m_FloatingToolbar; }
 
     void SetTabIcon(const std::string& iconName) { m_TabIconName = iconName; }
