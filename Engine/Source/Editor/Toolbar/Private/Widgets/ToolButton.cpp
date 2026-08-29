@@ -45,7 +45,7 @@ namespace {
     }
 
     Color ResolvePlayIconColor(float hoverAnim, float pressStrength, bool active) {
-        return ::we::runtime::kindui::ResolveIconColor(IconColorRole::Primary, hoverAnim, pressStrength, active);
+        return ToolbarButtonChrome::ResolvePlayIconColor(hoverAnim, pressStrength, active);
     }
 
     bool IsPlayTransportIcon(const std::string& iconName) {
@@ -112,7 +112,7 @@ Size ToolButton::Measure(const Size& availableSize) {
         const float chevGap  = ChevronGapPx(uiScale);
         const float chevW    = IconMetrics::CompactDisplayPx();
         const float textSize = ThemeMetric(MetricToken::TextSizeToolbar) * uiScale;
-        const float controlH = (std::max)(24.0f * uiScale, ThemeMetric(MetricToken::HeaderControlHeight) * uiScale);
+        const float controlH = ToolbarButtonChrome::RowContentHeight(uiScale);
         const bool hasIcon = !m_IconName.empty() && Icons::IsKnownIcon(m_IconName);
 
         float textW = m_Label.empty() ? 0.0f : ApproxInlineTextWidth(m_Label, textSize);
@@ -174,13 +174,13 @@ Size ToolButton::Measure(const Size& availableSize) {
 
     // TransportButton & ToolbarIconOnly (Play / Pause / Stop / Tools)
     if (m_ButtonStyle == ToolButtonStyle::TransportButton || m_ButtonStyle == ToolButtonStyle::PlayButton || m_ButtonStyle == ToolButtonStyle::ToolbarIconOnly) {
-        const float controlSize = (std::max)(32.0f * uiScale, ThemeMetric(MetricToken::ToolbarLabeledHeight) * uiScale);
+        const float controlSize = ToolbarButtonChrome::ItemSize(uiScale);
         m_DesiredSize = Size{ controlSize, controlSize };
         return m_DesiredSize;
     }
 
     // Normal – used for labeled dropdowns (Platform, Settings)
-    const float height  = (std::max)(32.0f * uiScale, ThemeMetric(MetricToken::ToolbarLabeledHeight) * uiScale);
+    const float height  = ToolbarButtonChrome::RowContentHeight(uiScale);
     const float padL    = ThemeMetric(MetricToken::ButtonPaddingHorizontal) * uiScale;
     const float padR    = ThemeMetric(MetricToken::Space2) * uiScale;
     const float iconSz  = IconSize(uiScale);
@@ -285,7 +285,7 @@ void ToolButton::Paint(PaintContext& context) {
     // ── Inline toolbar items (Windows / MyProject chip dropdowns) ────────────
     if (isInline) {
         if (!m_Chromeless) {
-            PaintChipDropdown(context, renderRect, m_HoverAnim, pressStrength, uiScale);
+            PaintInlineDropdown(context, renderRect, m_HoverAnim, pressStrength, uiScale);
         } else {
             PaintIconButton(context, renderRect, m_HoverAnim, pressStrength, m_Active, m_ActiveAnim, uiScale);
         }
@@ -371,32 +371,7 @@ void ToolButton::Paint(PaintContext& context) {
 
     // ── Normal labeled buttons (legacy dropdown style) ───────────────────────
     if (isNormal) {
-        const bool isDropdownControl = m_IsDropdown;
-        Color bg{ 0.0f, 0.0f, 0.0f, 0.0f };
-        bool drawBg = false;
-        if (pressStrength > 0.01f) {
-            bg = we::runtime::kindui::ResolveColor(ColorToken::PressedBackground);
-            bg.a *= pressStrength;
-            drawBg = true;
-        } else if (m_HoverAnim > 0.01f) {
-            bg = Color::Lerp(Color{0.0f, 0.0f, 0.0f, 0.0f}, ThemeColor(ColorToken::HoverBackground), m_HoverAnim);
-            drawBg = true;
-        } else if (m_Active) {
-            bg = ThemeColor(ColorToken::SelectedBackground);
-            drawBg = true;
-        } else if (isDropdownControl) {
-            bg = ThemeColor(ColorToken::StatusBarBackground);
-            drawBg = true;
-        }
-
-        if (drawBg) context.DrawRoundedRect(renderRect, bg, ThemeMetric(MetricToken::CornerRadiusSmall) * uiScale);
-
-        if (isDropdownControl && (m_HoverAnim > 0.01f || pressStrength > 0.01f || m_Active)) {
-            Color borderCol = m_HoverAnim > 0.01f
-                ? ThemeColor(ColorToken::BorderLight)
-                : ThemeColor(ColorToken::BorderDefault);
-            context.DrawRoundedRectOutline(renderRect, borderCol, 1.0f * uiScale, ThemeMetric(MetricToken::CornerRadiusSmall) * uiScale);
-        }
+        PaintInlineDropdown(context, renderRect, m_HoverAnim, pressStrength, uiScale);
 
         Color iconColor = ToolbarButtonChrome::ResolveIconColor(m_HoverAnim, pressStrength, m_Active);
 

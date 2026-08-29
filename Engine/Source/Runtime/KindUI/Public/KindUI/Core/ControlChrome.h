@@ -68,6 +68,20 @@ KINDUI_API void PaintSearchInputFrame(
     const Rect& rect,
     const InteractionState& state);
 
+struct SearchFieldPaintOptions {
+    bool showClearButton = false;
+    bool clearHovered = false;
+};
+
+KINDUI_API void PaintSearchField(
+    PaintContext& context,
+    const Rect& rect,
+    const std::string& placeholder,
+    const std::string& text,
+    const InteractionState& state,
+    bool showCaret = false,
+    const SearchFieldPaintOptions& options = {});
+
 KINDUI_API void PaintListRow(
     PaintContext& context,
     const Rect& rect,

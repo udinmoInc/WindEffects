@@ -5,6 +5,10 @@
 #include "KindUI/Theming/ThemeAccess.h"
 #include "KindUI/Theming/ThemeManager.h"
 #include "KindUI/Widgets/Label.h"
+#include "KindUI/Rendering/IconMetrics.h"
+#include "KindUI/Widgets/TextBox.h"
+
+#include "KindUI/Core/PropertyPanelChrome.h"
 
 #include <algorithm>
 
@@ -29,10 +33,69 @@ float InputMinHeight() {
     return ResolvedStyleHeight(StyleRole::Input, MetricToken::SearchBoxHeight);
 }
 
+float SearchInputHeight() {
+    return ResolvedStyleHeight(StyleRole::SearchBox, MetricToken::SearchBoxHeight);
+}
+
+float SearchRowHeight() {
+    const float inset = ResolveMetric(MetricToken::Space1) * UiScale();
+    return SearchInputHeight() + inset * 2.0f;
+}
+
+float SearchInputPaddingH() {
+    return ResolvePadding(PaddingToken::Input).left * UiScale();
+}
+
+float SearchInputFontSize() {
+    const ResolvedStyle style = ThemeManager::Get().Resolve(StyleRole::SearchBox);
+    if (style.fontSize > 0.0f) {
+        return style.fontSize;
+    }
+    return ResolveMetric(MetricToken::TextSizeSmall) * UiScale();
+}
+
+float SearchInputIconSize() {
+    return static_cast<float>(IconMetrics::NativeIconTierPx(ResolveMetric(MetricToken::IconSizeSearch)));
+}
+
+Rect LayoutSearchInputRect(const Rect& allottedRect) {
+    const float h = SearchInputHeight();
+    const float y = allottedRect.y + (allottedRect.height - h) * 0.5f;
+    return Rect{ allottedRect.x, y, allottedRect.width, h };
+}
+
 float FormRowMinHeight() {
     return std::max(
         ResolvedStyleHeight(StyleRole::PropertyRow, MetricToken::FormRowHeight),
         InputMinHeight());
+}
+
+float PropertySectionHeight() {
+    return PropertyPanelChrome::SectionHeight();
+}
+
+float PropertyObjectHeaderHeight() {
+    return PropertyPanelChrome::ObjectHeaderHeight();
+}
+
+float PropertyCategoryTabRowHeight() {
+    return PropertyPanelChrome::CategoryTabRowHeight();
+}
+
+float PropertyLabelColumnWidth() {
+    return PropertyPanelChrome::LabelColumnWidth();
+}
+
+float PropertyRowHeight() {
+    return PropertyPanelChrome::RowHeight();
+}
+
+float PropertyControlHeight() {
+    return ResolveMetric(MetricToken::ControlHeightCompact) * UiScale();
+}
+
+Rect LayoutPropertyControlInRow(const Rect& valueRect) {
+    return PropertyPanelChrome::LayoutPropertyControlRect(valueRect);
 }
 
 float ButtonMinHeight(StyleRole role) {
@@ -60,27 +123,46 @@ void ApplyButtonMinSize(Widget& widget, StyleRole role) {
 std::shared_ptr<Row> MakeFormRow(const std::string& label, const std::shared_ptr<Widget>& control) {
     auto row = MakeRow();
     row->Align(AlignItems::Center);
-    row->Gap(ResolveMetric(MetricToken::Space2));
     row->SetFlexShrink(0.0f);
+    row->SetHorizontalAlignment(HorizontalAlignment::Fill);
     ApplyFormRowMinSize(*row);
 
-    const float labelW = ResolveMetric(MetricToken::PropertyLabelColumnWidth);
     auto lbl = std::make_shared<Label>(label, TypographyToken::PropertyLabel);
-    lbl->SetMinWidth(labelW);
-    lbl->SetMaxWidth(labelW);
-    lbl->SetFlexShrink(0.0f);
-    lbl->SetFlexGrow(0.0f);
-
+    PropertyPanelChrome::ConfigureFormRowChildren(*lbl, nullptr, 0);
     row->AddChild(lbl);
 
     if (control) {
         ApplyInputMinSize(*control);
-        control->SetFlexGrow(1.0f);
-        control->SetFlexShrink(0.0f);
+        PropertyPanelChrome::ConfigureFormRowChildren(*lbl, control.get(), 0);
         row->AddChild(control);
     }
 
     return row;
+}
+
+std::shared_ptr<Row> MakeTextFormRow(
+    const std::string& label,
+    const std::string& value,
+    std::function<void(std::string_view)> onCommit)
+{
+    auto input = std::make_shared<TextBox>(value, [onCommit](const std::string& v) {
+        if (onCommit) {
+            onCommit(v);
+        }
+    });
+    return MakeFormRow(label, input);
+}
+
+void ConfigurePropertyFormColumn(Column& column) {
+    const float pad = PropertyPanelChrome::FormColumnPadding();
+    column.Align(AlignItems::Stretch);
+    column.Padding(Margin{ pad, pad, pad, pad });
+    column.Gap(PropertyPanelChrome::FormStackGap());
+}
+
+float FormChipButtonMinWidth() {
+    return ResolveMetric(MetricToken::PrimaryButtonHeight) * UiScale()
+        + ResolveMetric(MetricToken::Space2) * UiScale() * 2.0f;
 }
 
 } // namespace we::runtime::kindui::LayoutMetrics

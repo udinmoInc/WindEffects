@@ -25,6 +25,8 @@ Panel::Panel(const std::string& title)
 
 void Panel::AttachBodyLayout() {
     if (m_BodyLayout && !m_BodyLayout->GetParent()) {
+        m_BodyLayout->SetSuppressContentSurfaces(m_TransparentBackground);
+        m_BodyLayout->SetOverlayToolbar(m_FloatingToolbar);
         AddChild(m_BodyLayout);
     }
 }
@@ -146,7 +148,15 @@ void Panel::CalculateHeaderGeometries() {
 void Panel::Paint(PaintContext& context) {
     AttachBodyLayout();
     if (!m_TransparentBackground) {
-        Chrome::PaintContentRegion(context, m_Geometry);
+        if (m_HeaderHeight > 0.0f) {
+            const float bodyY = m_Geometry.y + m_HeaderRect.height;
+            const float bodyH = (std::max)(0.0f, m_Geometry.height - m_HeaderRect.height);
+            if (bodyH > 0.0f) {
+                Chrome::PaintPanelSurface(
+                    context,
+                    Rect{ m_Geometry.x, bodyY, m_Geometry.width, bodyH });
+            }
+        }
     }
 
     if (m_HeaderHeight > 0.0f) {

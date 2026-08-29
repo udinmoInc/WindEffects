@@ -1,5 +1,6 @@
 #include "ContentBrowser/Widgets/ContentBrowserToolbar.h"
 #include "WindEffects/Editor/UI/Panel/PanelChrome.h"
+#include "KindUI/Core/LayoutMetrics.h"
 #include "ContentBrowser/Widgets/SearchBox.h"
 #include "ContentBrowser/Widgets/ContentBrowser.h"
 #include "KindUI/Core/PaintContext.h"
@@ -202,8 +203,8 @@ ContentBrowserToolbarControls::ContentBrowserToolbarControls(ToolbarMode mode)
     : Row()
     , m_Mode(mode)
 {
-    const float pad = ThemeMetric(MetricToken::Space3);
-    Padding(Margin{pad, 0.0f, pad, 0.0f});
+    const float padV = ThemeMetric(MetricToken::Space1);
+    Padding(Margin{0.0f, padV, 0.0f, padV});
     Gap(ThemeMetric(MetricToken::Space2));
     Align(AlignItems::Center);
 }
@@ -250,7 +251,7 @@ void ContentBrowserToolbarControls::InitializeChildren() {
 
 Size ContentBrowserToolbarControls::Measure(const Size& availableSize) {
     Size size = Row::Measure(availableSize);
-    size.height = ThemeMetric(MetricToken::PanelToolbarHeight);
+    size.height = ::we::runtime::kindui::LayoutMetrics::SearchRowHeight();
     m_DesiredSize = size;
     return m_DesiredSize;
 }
@@ -265,7 +266,6 @@ void ContentBrowserToolbarControls::Arrange(const Rect& allottedRect) {
 }
 
 void ContentBrowserToolbarControls::Paint(PaintContext& context) {
-    PanelChrome::PaintToolbarRegion(context, m_Geometry);
     Row::Paint(context);
 }
 

@@ -157,7 +157,7 @@ float DefaultTheme::ResolveMetric(MetricToken token) const {
     case MetricToken::BorderWidth: return 1.0f;
     case MetricToken::FocusRingWidth: return 1.0f;
     case MetricToken::PanelHeaderHeight:
-    case MetricToken::PanelTabHeight: return 28.0f;
+    case MetricToken::PanelTabHeight: return 24.0f;
     case MetricToken::PanelToolbarHeight: return 28.0f;
     case MetricToken::HeaderControlHeight: return 24.0f;
     case MetricToken::IconButtonSize: return 24.0f;
@@ -165,7 +165,7 @@ float DefaultTheme::ResolveMetric(MetricToken token) const {
     case MetricToken::NavigationButtonSize: return 32.0f;
     case MetricToken::ControlHeightCompact: return 24.0f;
     case MetricToken::ControlHeightLarge: return 40.0f;
-    case MetricToken::FormRowHeight: return 28.0f;
+    case MetricToken::FormRowHeight: return 24.0f;
     case MetricToken::MenuItemHeight: return 24.0f;
     case MetricToken::PageMargin: return 16.0f;
     case MetricToken::SectionGap: return 24.0f;
@@ -174,7 +174,7 @@ float DefaultTheme::ResolveMetric(MetricToken token) const {
     case MetricToken::FormRowGap: return 13.0f;
     case MetricToken::LabelHintGap: return 5.0f;
     case MetricToken::ListRowHeight: return 28.0f;
-    case MetricToken::CategoryHeaderHeight: return 26.0f;
+    case MetricToken::CategoryHeaderHeight: return 24.0f;
     case MetricToken::TitleBarHeight: return 34.0f;
     case MetricToken::WindowControlWidth: return 40.0f;
     case MetricToken::ToolbarHeight: return 40.0f;
@@ -196,6 +196,7 @@ float DefaultTheme::ResolveMetric(MetricToken token) const {
     case MetricToken::TabActiveIndicatorHeight: return 2.0f;
     case MetricToken::StatusBarHeight: return 24.0f;
     case MetricToken::TabGap: return 2.0f;
+    case MetricToken::TabStripPadH: return 0.0f;
     case MetricToken::ToolbarSeparatorHeight: return 22.0f;
     case MetricToken::ToolbarLabeledHeight: return 34.0f;
     case MetricToken::ToolbarLabeledMinWidth: return 48.0f;

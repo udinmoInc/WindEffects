@@ -80,8 +80,10 @@ namespace Surface {
 [[nodiscard]] inline Color Window() { return ResolveColor(ColorToken::WindowBackground); }
 [[nodiscard]] inline Color Workspace() { return ResolveColor(ColorToken::WorkspaceBackground); }
 [[nodiscard]] inline Color Panel() { return ResolveColor(ColorToken::PanelBackground); }
+[[nodiscard]] inline Color Secondary() { return ResolveColor(ColorToken::SecondarySurface); }
 [[nodiscard]] inline Color Header() { return ResolveColor(ColorToken::HeaderBackground); }
 [[nodiscard]] inline Color Toolbar() { return ResolveColor(ColorToken::ToolbarBackground); }
+[[nodiscard]] inline Color TabInactive() { return ResolveColor(ColorToken::TabBackground); }
 [[nodiscard]] inline Color Card() { return ResolveColor(ColorToken::CardBackground); }
 [[nodiscard]] inline Color Input() { return ResolveColor(ColorToken::InputBackground); }
 [[nodiscard]] inline Color Popup() { return ResolveColor(ColorToken::PopupBackground); }
@@ -103,7 +105,9 @@ namespace Panel {
 [[nodiscard]] inline float ToolbarHeight() { return ResolveMetric(MetricToken::PanelToolbarHeight); }
 [[nodiscard]] inline float Padding() { return ResolvePadding(PaddingToken::Panel).left; }
 [[nodiscard]] inline Color Background() { return ResolveColor(ColorToken::PanelBackground); }
-[[nodiscard]] inline Color ContentBackground() { return ResolveColor(ColorToken::PanelBackground); }
+[[nodiscard]] inline Color ContentWellBackground() { return ResolveColor(ColorToken::SecondarySurface); }
+[[nodiscard]] inline Color PrimaryContentBackground() { return ResolveColor(ColorToken::PanelBackground); }
+[[nodiscard]] inline Color NavigationBackground() { return ResolveColor(ColorToken::SecondarySurface); }
 [[nodiscard]] inline Color ToolbarBackground() { return ResolveColor(ColorToken::ToolbarBackground); }
 } // namespace Panel
 

@@ -1,8 +1,13 @@
 #include "PropertyEditorInternal.h"
 #include "PropertyEditor/IDetailsView.h"
 
+#include "KindUI/Core/LayoutMetrics.h"
+#include "KindUI/Core/PropertyPanelChrome.h"
 #include "KindUI/Core/Style.h"
 #include "KindUI/Core/Icon.h"
+#include "KindUI/Tokens/TypographySpec.h"
+#include "KindUI/Theming/ThemeAccess.h"
+#include "KindUI/Rendering/IconMetrics.h"
 
 #include <cmath>
 
@@ -10,14 +15,11 @@ namespace we::editor::property {
 namespace detail {
 
 namespace {
-float DetailsLabelColumnPx() {
-    return we::runtime::kindui::ResolveMetric(we::runtime::kindui::MetricToken::PropertyLabelColumnWidth);
-}
 float DetailsRowHeightPx() {
-    return we::runtime::kindui::ResolveMetric(we::runtime::kindui::MetricToken::FormRowHeight);
+    return we::runtime::kindui::PropertyPanelChrome::RowHeight();
 }
-float DetailsPropertyIndentStepPx() {
-    return we::runtime::kindui::ResolveMetric(we::runtime::kindui::MetricToken::PropertyIndentStep);
+float DetailsSectionHeightPx() {
+    return we::runtime::kindui::PropertyPanelChrome::SectionHeight();
 }
 float DetailsWheelStepPx() {
     return we::runtime::kindui::ResolveMetric(we::runtime::kindui::MetricToken::ControlHeightLarge);
@@ -26,6 +28,9 @@ float DetailsWheelStepPx() {
 
 using we::runtime::kindui::ColorToken;
 using we::runtime::kindui::MetricToken;
+using we::runtime::kindui::TypographyToken;
+using we::runtime::kindui::TypographySpec;
+using we::runtime::kindui::ResolveTypography;
 using we::runtime::kindui::MouseButton;
 using we::runtime::kindui::MouseEvent;
 using we::runtime::kindui::MouseEventType;
@@ -40,7 +45,7 @@ using we::runtime::kindui::WidgetStyle;
 using we::runtime::kindui::DPIContext;
 using we::runtime::kindui::IconPainter;
 namespace Icons = we::runtime::kindui::Icons;
-namespace PanelChrome = we::editor::panels::PanelChrome;
+namespace PanelChrome = we::runtime::kindui::PropertyPanelChrome;
 
 class DetailsViewWidget final : public Widget {
 public:
@@ -65,23 +70,29 @@ public:
         SyncScroll();
         if (!m_Tree || m_Tree->GetFilteredRootNodes().empty()) {
             const float uiScale = (std::max)(1.0f, DPIContext::GetScale());
-            const float iconSize = 24.0f * uiScale;
-            const float fontSize = 13.0f * uiScale;
-            const float fontHeight = fontSize;
-            const float totalHeight = iconSize + 8.0f * uiScale + fontHeight;
+            const TypographySpec hintSpec = ResolveTypography(TypographyToken::Subtitle);
+            const float iconSize = static_cast<float>(we::runtime::kindui::IconMetrics::StandardGlyphTierPx());
+            const float gap = ResolveMetric(MetricToken::Space2) * uiScale;
+            const float totalHeight = iconSize + gap + hintSpec.lineHeightPx;
 
             const float centerX = m_Geometry.x + m_Geometry.width * 0.5f;
             const float centerY = m_Geometry.y + m_Geometry.height * 0.5f;
 
             const Rect iconRect{ centerX - iconSize * 0.5f, centerY - totalHeight * 0.5f, iconSize, iconSize };
-            IconPainter::DrawIcon(context, Icons::PropertiesName, iconRect, ThemeColor(ColorToken::TextSecondary) * 0.35f);
+            IconPainter::DrawIcon(
+                context,
+                Icons::PropertiesName,
+                iconRect,
+                ThemeColor(ColorToken::TextHint));
 
-            const std::string emptyMsg = (m_Tree && !m_Tree->GetFilter().searchText.empty()) ? "No matching properties" : "Select an object to view details";
-            const float textWidth = context.GetTextWidth(emptyMsg, fontSize);
+            const std::string emptyMsg = (m_Tree && !m_Tree->GetFilter().searchText.empty())
+                ? "No matching properties"
+                : "Select an object to view details";
+            const float textWidth = context.GetTextWidth(emptyMsg, hintSpec.sizePx);
             const float textX = centerX - textWidth * 0.5f;
-            const float textY = iconRect.y + iconSize + 8.0f * uiScale;
+            const float textY = iconRect.y + iconSize + gap;
 
-            context.DrawText(emptyMsg, Point{ textX, textY }, ThemeColor(ColorToken::TextSecondary) * 0.45f, fontSize);
+            context.DrawText(emptyMsg, Point{ textX, textY }, ThemeColor(ColorToken::TextHint), hintSpec.sizePx);
             return;
         }
 
@@ -170,6 +181,7 @@ public:
 
     void OnMouseMove(const MouseEvent& event) override {
         m_Scroll.OnMouseMove(event, m_ScrollMetrics, m_Geometry.height, m_ContentHeight);
+        UpdateHoveredSection(event.position);
     }
 
     void OnMouseUp(const MouseEvent& event) override { m_Scroll.OnMouseUp(event); }
@@ -221,9 +233,9 @@ private:
                         y,
                         m_ScrollMetrics.viewport.width,
                         height};
-                    const float valueX = row.x + DetailsLabelColumnPx();
-                    Rect valueRect{valueX, row.y, row.width - (valueX - row.x) - we::runtime::kindui::ResolveMetric(MetricToken::Space2), height};
-                    editorWidget->Arrange(valueRect);
+                    const auto layout = PanelChrome::LayoutPropertyRow(row, node->GetDepth());
+                    const Rect controlRect = PanelChrome::LayoutPropertyControlRect(layout.value);
+                    editorWidget->Arrange(controlRect);
                 }
             }
         }
@@ -243,7 +255,7 @@ private:
     }
 
     [[nodiscard]] float RowHeight() const { return DetailsRowHeightPx(); }
-    [[nodiscard]] float CategoryHeight() const { return DetailsRowHeightPx(); }
+    [[nodiscard]] float CategoryHeight() const { return DetailsSectionHeightPx(); }
 
     float MeasureContentHeight() const {
         if (!m_Tree) {
@@ -290,25 +302,22 @@ private:
                 height};
 
             if (node->IsCategoryNode()) {
-                PanelChrome::PaintCategoryHeader(
+                const bool hovered = m_HoveredSectionPath == node->GetPath();
+                PanelChrome::PaintSectionHeader(
                     context,
                     row,
                     std::string(node->GetDisplayName()),
                     node->IsExpanded(),
-                    false);
+                    hovered);
             } else {
-                const float indent = we::runtime::kindui::ResolveMetric(MetricToken::Space2)
-                    + static_cast<float>(node->GetDepth()) * DetailsPropertyIndentStepPx();
-                const float labelX = row.x + PanelChrome::PanelPaddingH() + indent;
-                const float labelY = row.y + (height - ThemeMetric(MetricToken::TextSizeBody)) * 0.5f;
+                const auto layout = PanelChrome::LayoutPropertyRow(row, node->GetDepth());
                 const bool mixed = node->GetValueState() == PropertyValueState::Mixed;
-                context.DrawText(
+                PanelChrome::PaintPropertyRowLabel(
+                    context,
+                    layout.label,
                     std::string(node->GetDisplayName()),
-                    Point{labelX, labelY},
-                    mixed ? ThemeColor(ColorToken::AccentPrimary) : ThemeColor(ColorToken::TextSecondary),
-                    ThemeMetric(MetricToken::TextSizeBody));
+                    mixed);
 
-                // Value column — paint editor widget if available
                 if (m_Factory && node->GetHandle() && node->GetPropertyInfo()) {
                     auto& editorWidget = m_EditorWidgets[std::string(node->GetPath())];
                     if (!editorWidget) {
@@ -318,8 +327,6 @@ private:
                         }
                     }
                     if (editorWidget) {
-                        const float valueX = row.x + DetailsLabelColumnPx();
-                        Rect valueRect{valueX, row.y, row.width - (valueX - row.x) - we::runtime::kindui::ResolveMetric(MetricToken::Space2), height};
                         editorWidget->Paint(context);
                     }
                 }
@@ -407,12 +414,51 @@ private:
         return false;
     }
 
+    void UpdateHoveredSection(const Point& pos) {
+        if (!m_Tree) {
+            return;
+        }
+        std::string hovered;
+        float y = m_ScrollMetrics.viewport.y - m_Scroll.offset;
+        for (const auto& root : m_Tree->GetFilteredRootNodes()) {
+            if (FindHoveredSection(root, pos, y, hovered)) {
+                break;
+            }
+        }
+        if (hovered != m_HoveredSectionPath) {
+            m_HoveredSectionPath = std::move(hovered);
+            InvalidatePaint();
+        }
+    }
+
+    bool FindHoveredSection(const PropertyNodePtr& node, const Point& pos, float& y, std::string& outPath) {
+        if (!node) {
+            return false;
+        }
+        const float height = node->IsCategoryNode() ? CategoryHeight() : RowHeight();
+        Rect row{ m_ScrollMetrics.viewport.x, y, m_ScrollMetrics.viewport.width, height };
+        if (node->IsCategoryNode() && row.Contains(pos)) {
+            outPath = std::string(node->GetPath());
+            return true;
+        }
+        y += height;
+        if (node->IsExpanded()) {
+            for (const auto& child : node->GetChildren()) {
+                if (FindHoveredSection(child, pos, y, outPath)) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
     std::shared_ptr<IPropertyTree> m_Tree;
     IPropertyEditorFactory* m_Factory = nullptr;
     ScrollViewport m_Scroll;
     ScrollViewportMetrics m_ScrollMetrics{};
     float m_ContentHeight = 0.f;
     WidgetStyle m_Style;
+    std::string m_HoveredSectionPath;
     std::unordered_map<std::string, std::shared_ptr<Widget>> m_EditorWidgets;
 };
 
@@ -429,30 +475,41 @@ public:
 
     void SetObject(TypeId typeId, void* instance) override {
         m_Tree->Build(typeId, instance);
+        ResolveObjectTitle(typeId);
         ApplyCustomizations(typeId);
         WireHandleListeners();
         m_Widget->InvalidateEditors();
+        m_Widget->InvalidatePaint();
     }
 
     void SetObjects(TypeId typeId, const std::vector<void*>& instances) override {
         m_Tree->Build(typeId, instances);
+        ResolveObjectTitle(typeId);
         ApplyCustomizations(typeId);
         WireHandleListeners();
         m_Widget->InvalidateEditors();
+        m_Widget->InvalidatePaint();
     }
 
     void SetBindings(const std::vector<ObjectBinding>& bindings) override {
         m_Tree->BuildBindings(bindings);
         if (!bindings.empty()) {
+            ResolveObjectTitle(bindings.front().typeId);
             ApplyCustomizations(bindings.front().typeId);
+        } else {
+            m_ObjectTitle.clear();
         }
         WireHandleListeners();
         m_Widget->InvalidateEditors();
+        m_Widget->InvalidatePaint();
     }
 
     void Clear() override {
         m_Tree->Clear();
+        m_ObjectTitle.clear();
+        m_ActiveCategory.clear();
         m_Widget->InvalidateEditors();
+        m_Widget->InvalidatePaint();
     }
 
     void SetFilter(const PropertyFilterOptions& filter) override {
@@ -472,6 +529,32 @@ public:
         m_Tree->ApplyFilter(filter);
         m_Tree->Rebuild();
         m_Widget->InvalidateEditors();
+    }
+
+    void SetObjectTitle(std::string title) override { m_ObjectTitle = std::move(title); }
+    [[nodiscard]] std::string GetObjectTitle() const override { return m_ObjectTitle; }
+
+    void SetActiveCategory(std::string_view category) override {
+        m_ActiveCategory = std::string(category);
+        auto filter = m_Tree->GetFilter();
+        if (category.empty()) {
+            filter.categoryAllowlist.clear();
+        } else {
+            filter.categoryAllowlist = { std::string(category) };
+        }
+        SetFilter(filter);
+    }
+
+    [[nodiscard]] std::string GetActiveCategory() const override { return m_ActiveCategory; }
+
+    [[nodiscard]] std::vector<std::string> GetCategoryNames() const override {
+        std::vector<std::string> names;
+        for (const auto& root : m_Tree->GetRootNodes()) {
+            if (root && root->IsCategoryNode()) {
+                names.emplace_back(root->GetDisplayName());
+            }
+        }
+        return names;
     }
 
     void ExpandAll() override { SetExpandedRecursive(m_Tree->GetRootNodes(), true); }
@@ -515,6 +598,18 @@ private:
         }
     }
 
+    void ResolveObjectTitle(TypeId typeId) {
+        if (!m_Services.registry) {
+            m_ObjectTitle.clear();
+            return;
+        }
+        if (const TypeInfo* info = m_Services.registry->Find(typeId)) {
+            m_ObjectTitle = std::string(info->name) + " (Instance)";
+        } else {
+            m_ObjectTitle.clear();
+        }
+    }
+
     void WireHandleListeners() {
         WireNode(m_Tree->GetRootNodes());
     }
@@ -541,6 +636,8 @@ private:
     std::shared_ptr<IPropertyTree> m_Tree;
     std::shared_ptr<DetailsViewWidget> m_Widget;
     std::vector<PropertyChangeListener> m_Listeners;
+    std::string m_ObjectTitle;
+    std::string m_ActiveCategory;
 };
 
 std::unique_ptr<IDetailsView> CreateDetailsView(RuntimeServices services) {

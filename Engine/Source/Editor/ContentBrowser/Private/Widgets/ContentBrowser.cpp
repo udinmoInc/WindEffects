@@ -425,7 +425,7 @@ void ContentBrowser::PaintListItem(PaintContext& context, const RenderItem& rend
 }
 
 void ContentBrowser::Paint(PaintContext& context) {
-    PanelChrome::PaintContentRegion(context, m_Geometry);
+    PanelChrome::PaintPrimaryContentRegion(context, m_Geometry);
     SyncScrollMetrics();
     UpdateVisibleRange();
 
@@ -813,13 +813,7 @@ void ContentBrowserStatusBar::Arrange(const Rect& allottedRect) {
 }
 
 void ContentBrowserStatusBar::Paint(PaintContext& context) {
-    // Top 1px separator
-    context.DrawRect(
-        Rect{ m_Geometry.x, m_Geometry.y, m_Geometry.width, ThemeMetric(MetricToken::BorderWidth) },
-        ThemeColor(ColorToken::Separator));
-    context.DrawRect(
-        Rect{ m_Geometry.x, m_Geometry.y + ThemeMetric(MetricToken::BorderWidth), m_Geometry.width, m_Geometry.height - ThemeMetric(MetricToken::BorderWidth) },
-        ThemeColor(ColorToken::HeaderBackground));
+    PanelChrome::PaintFooterRegion(context, m_Geometry);
     const float textSize = ThemeMetric(MetricToken::TextSizeSmall);
     const size_t total = m_AssetCount + m_FolderCount;
     std::string text = std::to_string(total) + " items";

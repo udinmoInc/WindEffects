@@ -175,29 +175,31 @@ void DockContainer::Arrange(const Rect& allottedRect) {
 
 void DockContainer::LayoutTabGeometries() {
     PaintContext context;
-    float currentX = m_HeaderRect.x;
-    for (int i = 0; i < static_cast<int>(m_Tabs.size()); ++i) {
-        auto& tabInfo = m_Tabs[static_cast<size_t>(i)];
-        const bool isActive = (i == m_ActiveTabIndex);
-        const bool showClose = isActive || tabInfo.isHovered;
-
+    std::vector<PanelChrome::DockTabDescriptor> descriptors;
+    descriptors.reserve(m_Tabs.size());
+    for (const auto& tabInfo : m_Tabs) {
         PanelChrome::DockTabDescriptor descriptor{};
         descriptor.title = tabInfo.panel->GetTitle();
         descriptor.iconName = tabInfo.panel->GetTabIcon();
         descriptor.hasBrand = tabInfo.panel->HasTabBrand();
         descriptor.brandDescriptor = tabInfo.panel->GetTabBrandDescriptor();
         descriptor.brandLogicalSize = tabInfo.panel->GetTabBrandLogicalSize();
+        descriptors.push_back(descriptor);
+    }
 
-        const auto layout = PanelChrome::LayoutDockTabGeometries(
-            context,
-            descriptor,
-            m_HeaderRect,
-            currentX,
-            isActive,
-            showClose);
-        tabInfo.tabRect = layout.tabRect;
-        tabInfo.closeRect = showClose ? layout.closeRect : Rect{};
-        currentX += layout.tabRect.width + PanelChrome::TabGap();
+    PanelChrome::DockTabStripState state{};
+    if (m_ActiveTabIndex >= 0) {
+        state.activeIndex = static_cast<size_t>(m_ActiveTabIndex);
+    }
+    state.showClose = [this](size_t index, bool isActive, bool /*isHovered*/) {
+        const auto& tabInfo = m_Tabs[index];
+        return isActive || tabInfo.isHovered;
+    };
+
+    const auto layout = PanelChrome::LayoutDockTabStrip(context, m_HeaderRect, descriptors, state);
+    for (size_t i = 0; i < m_Tabs.size(); ++i) {
+        m_Tabs[i].tabRect = layout.tabs[i].tabRect;
+        m_Tabs[i].closeRect = layout.tabs[i].closeRect;
     }
 }
 
@@ -272,15 +274,42 @@ void DockContainer::PaintTab(PaintContext& context, TabInfo& tabInfo, int index,
 }
 
 void DockContainer::Paint(PaintContext& context) {
-    PanelChrome::PaintDockHeaderBand(context, m_HeaderRect);
-
-    float currentX = m_HeaderRect.x;
-    for (int i = 0; i < static_cast<int>(m_Tabs.size()); ++i) {
-        PaintTab(context, m_Tabs[static_cast<size_t>(i)], i, currentX);
+    std::vector<PanelChrome::DockTabDescriptor> descriptors;
+    descriptors.reserve(m_Tabs.size());
+    PanelChrome::DockTabStripLayout stripLayout{};
+    stripLayout.tabs.reserve(m_Tabs.size());
+    for (const auto& tabInfo : m_Tabs) {
+        PanelChrome::DockTabDescriptor descriptor{};
+        descriptor.title = tabInfo.panel->GetTitle();
+        descriptor.iconName = tabInfo.panel->GetTabIcon();
+        descriptor.hasBrand = tabInfo.panel->HasTabBrand();
+        descriptor.brandDescriptor = tabInfo.panel->GetTabBrandDescriptor();
+        descriptor.brandLogicalSize = tabInfo.panel->GetTabBrandLogicalSize();
+        descriptors.push_back(descriptor);
+        stripLayout.tabs.push_back({ tabInfo.tabRect, tabInfo.closeRect });
     }
+
+    PanelChrome::DockTabStripState state{};
+    if (m_ActiveTabIndex >= 0) {
+        state.activeIndex = static_cast<size_t>(m_ActiveTabIndex);
+    }
+    state.showClose = [this](size_t index, bool isActive, bool /*isHovered*/) {
+        const auto& tabInfo = m_Tabs[index];
+        return isActive || tabInfo.isHovered;
+    };
+    state.hoverAnim = [this](size_t index) {
+        return m_Tabs[index].hoverAnim;
+    };
+    state.closeHovered = [this](size_t index) {
+        return m_Tabs[index].isCloseHovered;
+    };
+    PanelChrome::PaintDockTabStrip(context, m_HeaderRect, descriptors, stripLayout, state);
 
     if (m_ActiveTabIndex >= 0 && m_ActiveTabIndex < static_cast<int>(m_Tabs.size())) {
         auto activePanel = m_Tabs[static_cast<size_t>(m_ActiveTabIndex)].panel;
+        if (!activePanel->IsTransparentBackground()) {
+            PanelChrome::PaintPanelSurface(context, m_ContentRect);
+        }
 
         context.PushClipRect(m_ContentRect);
         activePanel->Paint(context);

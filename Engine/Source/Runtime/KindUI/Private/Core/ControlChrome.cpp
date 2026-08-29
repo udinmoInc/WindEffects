@@ -6,7 +6,9 @@
 #include "KindUI/Theming/ThemeAccess.h"
 #include "KindUI/Tokens/DesignToken.h"
 #include "KindUI/Tokens/TypographySpec.h"
-#include "KindUI/Theming/StyleRole.h"
+#include "KindUI/Core/LayoutMetrics.h"
+#include "KindUI/Core/Icon.h"
+#include "KindUI/Rendering/IconMetrics.h"
 
 #include <algorithm>
 #include <string>
@@ -15,6 +17,111 @@
 
 namespace we::runtime::kindui {
 namespace ControlChrome {
+namespace Icons = ::we::runtime::kindui::Icons;
+
+namespace {
+
+enum class ControlBorderMode {
+    None,
+    Subtle,
+    Styled,
+};
+
+struct ControlFrameStyle {
+    Color normalBackground = Color::Transparent();
+    Color hoverBackground = Color::Transparent();
+    Color pressedBackground = Color::Transparent();
+    Color disabledBackground = Color::Transparent();
+    Color selectedBackground = Color::Transparent();
+    float cornerRadius = 0.0f;
+};
+
+struct ResolvedControlBorder {
+    Color color = Color::Transparent();
+    float width = 0.0f;
+};
+
+Color ResolveControlBackground(const InteractionState& state, const ControlFrameStyle& style) {
+    if (state.disabled) {
+        return style.disabledBackground.a > 0.01f ? style.disabledBackground : style.normalBackground;
+    }
+    if (state.selected && style.selectedBackground.a > 0.01f) {
+        return Color::Lerp(style.normalBackground, style.selectedBackground, 0.55f);
+    }
+    if (state.pressAnim > 0.01f && style.pressedBackground.a > 0.01f) {
+        return Color::Lerp(style.normalBackground, style.pressedBackground, state.pressAnim);
+    }
+    if (state.hoverAnim > 0.01f && style.hoverBackground.a > 0.01f) {
+        return Color::Lerp(style.normalBackground, style.hoverBackground, state.hoverAnim);
+    }
+    return style.normalBackground;
+}
+
+ResolvedControlBorder ResolveControlBorder(
+    const InteractionState& state,
+    ControlBorderMode mode,
+    const Color& styleBorder = Color::Transparent()) {
+    const float width = ResolveMetric(MetricToken::BorderWidth);
+    if (state.focused) {
+        return { ResolveColor(ColorToken::BorderFocus), width };
+    }
+
+    switch (mode) {
+    case ControlBorderMode::None:
+        return { Color::Transparent(), 0.0f };
+    case ControlBorderMode::Subtle:
+        if (state.hoverAnim > 0.01f) {
+            return {
+                Color::Lerp(
+                    ResolveColor(ColorToken::BorderSubtle),
+                    ResolveColor(ColorToken::BorderLight),
+                    state.hoverAnim * 0.35f),
+                width
+            };
+        }
+        if (state.selected) {
+            return { ResolveColor(ColorToken::BorderSubtle), width };
+        }
+        return { Color::Transparent(), 0.0f };
+    case ControlBorderMode::Styled:
+        if (styleBorder.a > 0.01f) {
+            return { styleBorder, width };
+        }
+        return { ResolveColor(ColorToken::BorderSubtle), width };
+    default:
+        return { Color::Transparent(), 0.0f };
+    }
+}
+
+void PaintControlFrame(
+    PaintContext& context,
+    const Rect& rect,
+    const InteractionState& state,
+    const ControlFrameStyle& style,
+    ControlBorderMode borderMode,
+    const Color& styleBorder = Color::Transparent()) {
+    const Color bg = ResolveControlBackground(state, style);
+    context.DrawRoundedRect(rect, bg, style.cornerRadius);
+
+    const ResolvedControlBorder border = ResolveControlBorder(state, borderMode, styleBorder);
+    if (border.color.a > 0.01f && border.width > 0.0f) {
+        context.DrawRoundedRectOutline(rect, border.color, border.width, style.cornerRadius);
+    }
+}
+
+ControlFrameStyle InputFrameStyle() {
+    const ResolvedStyle base = Role(StyleRole::Input);
+    ControlFrameStyle style;
+    style.normalBackground = base.background;
+    style.hoverBackground = ResolveColor(ColorToken::ControlBackgroundHover);
+    style.disabledBackground = ResolveColor(ColorToken::DisabledBackground);
+    style.cornerRadius = base.cornerRadius > 0.0f
+        ? base.cornerRadius
+        : ResolveMetric(MetricToken::CornerRadiusSmall);
+    return style;
+}
+
+} // namespace
 
 ResolvedStyle Role(StyleRole role) {
     return ThemeManager::Get().Resolve(role);
@@ -65,27 +172,21 @@ void PaintFilledButton(
         return;
     }
 
-    Color bg = base.background;
-    if (state.pressAnim > 0.01f) {
-        bg = Color::Lerp(bg, Role(pressRole).background, state.pressAnim);
-    } else if (state.hoverAnim > 0.01f) {
-        bg = Color::Lerp(bg, Role(hoverRole).background, state.hoverAnim);
-    }
-    if (state.selected) {
-        bg = Color::Lerp(bg, ResolveColor(ColorToken::SelectedBackground), 0.55f);
-    }
-
     PaintElevation(context, rect, base.elevation, base.cornerRadius);
-    context.DrawRoundedRect(rect, bg, base.cornerRadius);
-    if (state.focused) {
-        context.DrawRoundedRectOutline(rect, ResolveColor(ColorToken::BorderFocus), 1.0f, base.cornerRadius);
-    } else if (base.border.a > 0.01f) {
-        Color border = base.border;
-        if (state.hoverAnim > 0.01f) {
-            border = Color::Lerp(border, ResolveColor(ColorToken::BorderLight), state.hoverAnim);
-        }
-        context.DrawRoundedRectOutline(rect, border, 1.0f, base.cornerRadius);
-    }
+
+    ControlFrameStyle frame;
+    frame.normalBackground = base.background;
+    frame.hoverBackground = Role(hoverRole).background;
+    frame.pressedBackground = Role(pressRole).background;
+    frame.selectedBackground = ResolveColor(ColorToken::SelectedBackground);
+    frame.cornerRadius = base.cornerRadius;
+    PaintControlFrame(
+        context,
+        rect,
+        state,
+        frame,
+        base.border.a > 0.01f ? ControlBorderMode::Subtle : ControlBorderMode::None,
+        base.border);
 }
 
 void PaintGhostButton(
@@ -120,37 +221,74 @@ void PaintInputFrame(
     PaintContext& context,
     const Rect& rect,
     const InteractionState& state) {
-    ResolvedStyle base = Role(StyleRole::Input);
-    Color bg = base.background;
-    if (state.disabled) {
-        bg = ResolveColor(ColorToken::DisabledBackground);
-    }
-    const float radius = base.cornerRadius > 0.0f ? base.cornerRadius : ResolveMetric(MetricToken::CornerRadiusSmall);
-    context.DrawRoundedRect(rect, bg, radius);
-    Color border = state.focused
-        ? ResolveColor(ColorToken::BorderFocus)
-        : (state.hoverAnim > 0.01f
-            ? Color::Lerp(ResolveColor(ColorToken::BorderDefault), ResolveColor(ColorToken::BorderLight), state.hoverAnim)
-            : ResolveColor(ColorToken::BorderDefault));
-    context.DrawRoundedRectOutline(rect, border, 1.0f, radius);
+    PaintControlFrame(context, rect, state, InputFrameStyle(), ControlBorderMode::None);
 }
 
 void PaintSearchInputFrame(
     PaintContext& context,
     const Rect& rect,
     const InteractionState& state) {
-    Color bg = ResolveColor(ColorToken::InputBackground);
-    if (state.disabled) {
-        bg = ResolveColor(ColorToken::DisabledBackground);
+    PaintInputFrame(context, rect, state);
+}
+
+void PaintSearchField(
+    PaintContext& context,
+    const Rect& rect,
+    const std::string& placeholder,
+    const std::string& text,
+    const InteractionState& state,
+    bool showCaret,
+    const SearchFieldPaintOptions& options) {
+    PaintSearchInputFrame(context, rect, state);
+
+    const float padH = LayoutMetrics::SearchInputPaddingH();
+    const float iconSize = LayoutMetrics::SearchInputIconSize();
+    const float fontSize = LayoutMetrics::SearchInputFontSize();
+    const float iconGap = ResolveMetric(MetricToken::Space1);
+
+    const float iconX = rect.x + padH;
+    Rect iconBand{ iconX, rect.y, iconSize, rect.height };
+    IconPainter::DrawIcon(
+        context,
+        Icons::SearchName,
+        IconMetrics::PlaceGlyphCentered(iconBand, iconSize),
+        ResolveColor(state.focused ? ColorToken::IconAccent : ColorToken::IconSecondary));
+
+    const float textX = iconX + iconSize + iconGap;
+    const float textY = rect.y + (rect.height - fontSize) * 0.5f;
+    const bool empty = text.empty();
+
+    if (empty) {
+        context.DrawText(
+            placeholder,
+            Point{ textX, textY },
+            ResolveColor(ColorToken::SearchPlaceholder),
+            fontSize);
+    } else {
+        context.DrawText(text, Point{ textX, textY }, ResolveColor(ColorToken::TextPrimary), fontSize);
+        if (state.focused && showCaret) {
+            const float caretX = textX + context.GetTextWidth(text, fontSize);
+            context.DrawRect(
+                Rect{ caretX, textY, ResolveMetric(MetricToken::BorderWidth), fontSize },
+                ResolveColor(ColorToken::TextPrimary));
+        }
     }
-    const float radius = ResolveMetric(MetricToken::CornerRadiusSmall);
-    context.DrawRoundedRect(rect, bg, radius);
-    Color border = state.focused
-        ? ResolveColor(ColorToken::BorderFocus)
-        : (state.hoverAnim > 0.01f
-            ? Color::Lerp(ResolveColor(ColorToken::BorderDefault), ResolveColor(ColorToken::BorderLight), state.hoverAnim)
-            : ResolveColor(ColorToken::BorderDefault));
-    context.DrawRoundedRectOutline(rect, border, 1.0f, radius);
+
+    if (options.showClearButton && !empty) {
+        const float clearSize = iconSize;
+        const float clearX = rect.x + rect.width - clearSize - padH;
+        const float clearY = rect.y + (rect.height - clearSize) * 0.5f;
+        const Rect clearRect{ clearX, clearY, clearSize, clearSize };
+        if (options.clearHovered) {
+            const float radius = ResolveMetric(MetricToken::IconButtonRadius);
+            context.DrawRoundedRect(clearRect, ResolveColor(ColorToken::HoverBackground), radius);
+        }
+        IconPainter::DrawIcon(
+            context,
+            Icons::XName,
+            IconMetrics::PlaceGlyphCentered(clearRect, clearSize),
+            ResolveColor(ColorToken::IconSecondary));
+    }
 }
 
 void PaintListRow(
@@ -170,10 +308,12 @@ void PaintListRow(
         base.background = Color::Transparent();
     }
     context.DrawRoundedRect(rect, base.background, base.cornerRadius);
-    if (state.focused) {
-        context.DrawRoundedRectOutline(rect, ResolveColor(ColorToken::BorderFocus), 1.0f, base.cornerRadius);
-    } else if (state.selected && base.border.a > 0.01f) {
-        context.DrawRoundedRectOutline(rect, base.border, 1.0f, base.cornerRadius);
+    const ResolvedControlBorder border = ResolveControlBorder(
+        state,
+        state.selected ? ControlBorderMode::Subtle : ControlBorderMode::None,
+        base.border);
+    if (border.color.a > 0.01f && border.width > 0.0f) {
+        context.DrawRoundedRectOutline(rect, border.color, border.width, base.cornerRadius);
     }
 }
 
@@ -261,20 +401,14 @@ void PaintDangerButton(
         return;
     }
 
-    Color bg = base.background;
-    if (state.pressAnim > 0.01f) {
-        bg = Color::Lerp(bg, ResolveColor(ColorToken::ButtonDangerPressed), state.pressAnim);
-    } else if (state.hoverAnim > 0.01f) {
-        bg = Color::Lerp(bg, ResolveColor(ColorToken::ButtonDangerHover), state.hoverAnim);
-    }
-
     PaintElevation(context, rect, base.elevation, base.cornerRadius);
-    context.DrawRoundedRect(rect, bg, base.cornerRadius);
-    if (state.focused) {
-        context.DrawRoundedRectOutline(rect, ResolveColor(ColorToken::BorderFocus), 1.0f, base.cornerRadius);
-    } else if (base.border.a > 0.01f) {
-        context.DrawRoundedRectOutline(rect, base.border, 1.0f, base.cornerRadius);
-    }
+
+    ControlFrameStyle frame;
+    frame.normalBackground = base.background;
+    frame.hoverBackground = ResolveColor(ColorToken::ButtonDangerHover);
+    frame.pressedBackground = ResolveColor(ColorToken::ButtonDangerPressed);
+    frame.cornerRadius = base.cornerRadius;
+    PaintControlFrame(context, rect, state, frame, ControlBorderMode::None, base.border);
 }
 
 void PaintPopupSurface(PaintContext& context, const Rect& rect) {
@@ -306,8 +440,13 @@ void PaintCheckbox(
         bg = Color::Lerp(bg, ResolveColor(ColorToken::AccentPrimary), 0.85f);
     }
     context.DrawRoundedRect(box, bg, style.cornerRadius);
-    Color border = state.focused ? ResolveColor(ColorToken::BorderFocus) : style.border;
-    context.DrawRoundedRectOutline(box, border, 1.0f, style.cornerRadius);
+    const ResolvedControlBorder border = ResolveControlBorder(
+        state,
+        ControlBorderMode::Subtle,
+        ResolveColor(ColorToken::BorderSubtle));
+    if (border.color.a > 0.01f && border.width > 0.0f) {
+        context.DrawRoundedRectOutline(box, border.color, border.width, style.cornerRadius);
+    }
     if (checked) {
         const float inset = std::max(2.0f, box.width * 0.22f);
         context.DrawRoundedRect(

@@ -1,5 +1,6 @@
 #include "Widgets/Toolbar.h"
 #include "KindUI/Core/PaintContext.h"
+#include "KindUI/Core/ToolbarButtonChrome.h"
 #include "KindUI/Tokens/DesignToken.h"
 #include "KindUI/Theming/StyleRole.h"
 #include "KindUI/Core/Icon.h"
@@ -340,27 +341,33 @@ void ToolbarGroup::AddChildWidget(const std::shared_ptr<Widget>& child) {
 Size ToolbarGroup::Measure(const Size& availableSize) {
     (void)availableSize;
     const float uiScale = (std::max)(1.0f, DPIContext::GetScale());
-    const float padH = ThemeMetric(MetricToken::Space1) * uiScale;
-    const float itemGap = ThemeMetric(MetricToken::ButtonSpacing) * uiScale;
-    float maxHeight = ThemeMetric(MetricToken::IconButtonSize) * uiScale;
+    const float itemGap = we::runtime::kindui::ToolbarButtonChrome::ItemGap(uiScale);
+  const float padH = (m_Style == ToolbarGroupStyle::ExecutionCluster)
+        ? we::runtime::kindui::ToolbarButtonChrome::HorizontalPad(uiScale)
+        : 0.0f;
+    float maxHeight = we::runtime::kindui::ToolbarButtonChrome::ItemSize(uiScale);
     float width = padH * 2.0f;
 
     for (size_t i = 0; i < m_Items.size(); ++i) {
-        if (i > 0) width += itemGap;
+        if (i > 0) {
+            width += itemGap;
+        }
         m_Items[i]->Measure(availableSize);
         width += m_Items[i]->GetDesiredSize().width;
         maxHeight = (std::max)(maxHeight, m_Items[i]->GetDesiredSize().height);
     }
 
-    m_DesiredSize = Size{ width, maxHeight + padH * 2.0f };
+    m_DesiredSize = Size{ width, maxHeight };
     return m_DesiredSize;
 }
 
 void ToolbarGroup::Arrange(const Rect& allottedRect) {
     m_Geometry = allottedRect;
     const float uiScale = (std::max)(1.0f, DPIContext::GetScale());
-    const float padH = ThemeMetric(MetricToken::Space1) * uiScale;
-    const float itemGap = ThemeMetric(MetricToken::ButtonSpacing) * uiScale;
+    const float itemGap = we::runtime::kindui::ToolbarButtonChrome::ItemGap(uiScale);
+    const float padH = (m_Style == ToolbarGroupStyle::ExecutionCluster)
+        ? we::runtime::kindui::ToolbarButtonChrome::HorizontalPad(uiScale)
+        : 0.0f;
 
     float currentX = allottedRect.x + padH;
     for (const auto& item : m_Items) {
@@ -373,18 +380,9 @@ void ToolbarGroup::Arrange(const Rect& allottedRect) {
 
 void ToolbarGroup::Paint(PaintContext& context) {
     const float uiScale = (std::max)(1.0f, DPIContext::GetScale());
-    const float radius = ThemeMetric(MetricToken::CornerRadiusSmall) * uiScale;
-    Color groupBg = m_Elevated
-        ? ThemeColor(ColorToken::ViewportToolbarBackground)
-        : ThemeColor(ColorToken::ButtonPrimaryBackground);
-    if (m_Elevated) {
-        context.DrawShadow(
-            m_Geometry,
-            ThemeColor(ColorToken::ShadowSubtle),
-            radius,
-            ThemeMetric(MetricToken::Space2) * uiScale);
+    if (m_Style == ToolbarGroupStyle::ExecutionCluster) {
+        we::runtime::kindui::ToolbarButtonChrome::PaintExecutionCluster(context, m_Geometry, uiScale);
     }
-    context.DrawRoundedRect(m_Geometry, groupBg, radius);
 
     for (const auto& item : m_Items) {
         if (item && item->IsVisible()) {

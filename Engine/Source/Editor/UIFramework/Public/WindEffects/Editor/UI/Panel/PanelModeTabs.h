@@ -1,6 +1,7 @@
 #pragma once
 
 #include "WindEffects/Editor/UI/Export.h"
+#include "WindEffects/Editor/UI/Panel/PanelChrome.h"
 #include "KindUI/Core/Widget.h"
 #include "KindUI/Core/PaintContext.h"
 #include "KindUI/Input/InputEvents.h"
@@ -36,15 +37,12 @@ public:
     void OnMouseMove(const we::runtime::kindui::MouseEvent& event) override;
 
 private:
-    struct TabLayout {
-        PanelModeTabDescriptor descriptor;
-        we::runtime::kindui::Rect geometry;
-    };
-
+    [[nodiscard]] size_t ActiveTabIndex() const;
     void RebuildTabGeometries();
 
     std::vector<PanelModeTabDescriptor> m_Tabs;
-    std::vector<TabLayout> m_Layout;
+    std::vector<PanelChrome::DockTabDescriptor> m_Descriptors;
+    PanelChrome::DockTabStripLayout m_StripLayout;
     std::string m_ActiveTabId;
     int m_HoveredIndex = -1;
     std::function<void(const std::string& tabId)> m_OnTabChanged;

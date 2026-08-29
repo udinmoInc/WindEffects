@@ -23,10 +23,11 @@ TextBox::TextBox(const std::string& initialText, std::function<void(const std::s
 }
 
 Size TextBox::Measure(const Size& availableSize) {
-    (void)availableSize;
     const ResolvedStyle role = ThemeManager::Get().Resolve(StyleRole::Input);
+    const float minW = ResolveMetric(MetricToken::Space6) * 5.0f;
+    const float w = availableSize.width < 1.0e8f ? availableSize.width : minW;
     m_DesiredSize = Size{
-        ResolveMetric(MetricToken::Space6) * 5.0f,
+        w,
         role.height > 0.0f ? role.height : ResolveMetric(MetricToken::SearchBoxHeight)
     };
     return m_DesiredSize;

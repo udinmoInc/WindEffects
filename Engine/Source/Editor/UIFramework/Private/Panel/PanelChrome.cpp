@@ -1,8 +1,11 @@
 #include "WindEffects/Editor/UI/Panel/PanelChrome.h"
 
+#include "KindUI/Core/PropertyPanelChrome.h"
+
+#include "KindUI/Tokens/DesignSystem.h"
+#include "KindUI/Core/LayoutMetrics.h"
 #include "KindUI/Theming/ThemeAccess.h"
 #include "KindUI/Theming/ThemeColors.h"
-#include "KindUI/Tokens/DesignToken.h"
 #include "KindUI/Theming/StyleRole.h"
 #include "KindUI/Core/Icon.h"
 #include "KindUI/Core/DPIContext.h"
@@ -39,6 +42,17 @@ void DrawRoundedRectTop(PaintContext& context, const Rect& rect, const Color& co
     context.DrawRoundedRect(rect, color, radius);
     const float coverH = radius + 1.0f;
     context.DrawRect(Rect{ rect.x, rect.y + rect.height - coverH, rect.width, coverH }, color);
+}
+
+void PaintSeparatorEdge(PaintContext& context, const Rect& rect, bool topEdge) {
+    const float scale = (std::max)(1.0f, DPIContext::GetScale());
+    const float thickness = we::runtime::kindui::ResolveMetric(MetricToken::BorderWidth) * scale;
+    const Color separator = we::runtime::kindui::ds::Border::Separator();
+    if (topEdge) {
+        context.DrawRect(Rect{ rect.x, rect.y, rect.width, thickness }, separator);
+    } else {
+        context.DrawRect(Rect{ rect.x, rect.y + rect.height - thickness, rect.width, thickness }, separator);
+    }
 }
 
 Color ResolveTabIconColor(bool isActive, float hoverAnim) {
@@ -100,11 +114,11 @@ float ModeTabRowHeight() {
 }
 
 float SearchRowHeight() {
-    return SearchHeight() + PanelPaddingV() * 2.0f;
+    return we::runtime::kindui::LayoutMetrics::SearchRowHeight();
 }
 
 float ToolbarRowHeight() {
-    return ToolbarHeight() + PanelPaddingV() * 2.0f;
+    return SearchRowHeight();
 }
 
 float ColumnHeaderRowHeight() {
@@ -119,6 +133,10 @@ float TabPadH() {
     return we::runtime::kindui::ResolveMetric(MetricToken::Space2) * UiScale();
 }
 
+float TabStripPadH() {
+    return we::runtime::kindui::ResolveMetric(MetricToken::TabStripPadH) * UiScale();
+}
+
 float TabIconSize() {
     return static_cast<float>(IconMetrics::GlyphTierPx(MetricToken::IconSizeToolbar)) * UiScale();
 }
@@ -128,7 +146,7 @@ float TabGap() {
 }
 
 float TabTopRadius() {
-    return 0.0f;
+    return we::runtime::kindui::ResolveMetric(MetricToken::CornerRadiusSmall) * UiScale();
 }
 
 float HeaderButtonSize() {
@@ -136,32 +154,50 @@ float HeaderButtonSize() {
 }
 
 void PaintPanelSurface(PaintContext& context, const Rect& rect) {
-    context.DrawRect(rect, we::runtime::kindui::ResolveColor(ColorToken::PanelBackground));
+    context.DrawRect(rect, we::runtime::kindui::ds::Surface::Panel());
 }
 
 void PaintToolbarRegion(PaintContext& context, const Rect& rect) {
-    context.DrawRect(rect, we::runtime::kindui::ResolveColor(ColorToken::ToolbarBackground));
+    context.DrawRect(rect, we::runtime::kindui::ds::Surface::Toolbar());
+    PaintSeparatorEdge(context, rect, false);
+}
 
+void PaintHeaderRegion(PaintContext& context, const Rect& rect) {
+    context.DrawRect(rect, we::runtime::kindui::ds::Surface::Header());
+    PaintSeparatorEdge(context, rect, false);
+}
+
+void PaintFooterRegion(PaintContext& context, const Rect& rect) {
+    PaintSeparatorEdge(context, rect, true);
     const float scale = UiScale();
-    Rect separator{
-        rect.x,
-        rect.y + rect.height - 1.0f * scale,
-        rect.width,
-        1.0f * scale
-    };
-    context.DrawRect(separator, we::runtime::kindui::ResolveColor(ColorToken::Separator));
+    const float thickness = we::runtime::kindui::ResolveMetric(MetricToken::BorderWidth) * scale;
+    context.DrawRect(
+        Rect{ rect.x, rect.y + thickness, rect.width, rect.height - thickness },
+        we::runtime::kindui::ds::Surface::Header());
+}
+
+void PaintContentWell(PaintContext& context, const Rect& rect) {
+    context.DrawRect(rect, we::runtime::kindui::ds::Panel::ContentWellBackground());
+}
+
+void PaintPrimaryContentRegion(PaintContext& context, const Rect& rect) {
+    context.DrawRect(rect, we::runtime::kindui::ds::Panel::PrimaryContentBackground());
+}
+
+void PaintNavigationRegion(PaintContext& context, const Rect& rect) {
+    context.DrawRect(rect, we::runtime::kindui::ds::Panel::NavigationBackground());
 }
 
 void PaintContentRegion(PaintContext& context, const Rect& rect) {
-    PaintPanelSurface(context, rect);
+    PaintContentWell(context, rect);
+}
+
+void PaintDockTabStripDivider(PaintContext& context, const Rect& headerRect) {
+    PaintSeparatorEdge(context, headerRect, false);
 }
 
 void PaintDockHeaderBand(PaintContext& context, const Rect& headerRect) {
-    const float scale = UiScale();
-    const float separatorHeight = we::runtime::kindui::ResolveMetric(MetricToken::BorderWidth) * scale;
-    context.DrawRect(
-        Rect{ headerRect.x, headerRect.y + headerRect.height - separatorHeight, headerRect.width, separatorHeight },
-        we::runtime::kindui::ResolveColor(ColorToken::Separator));
+    PaintDockTabStripDivider(context, headerRect);
 }
 
 float MeasureDockTabWidth(
@@ -203,9 +239,9 @@ DockTabLayout LayoutDockTabGeometries(
     const float scale = UiScale();
     const float padH = TabPadH();
     const float buttonSize = HeaderButtonSize();
-    const float insetTop = 2.0f * scale;
-    const float tabHeight = (std::max)(16.0f, headerRect.height - insetTop);
-    const float tabY = headerRect.y + insetTop;
+    const float dividerH = we::runtime::kindui::ResolveMetric(MetricToken::BorderWidth) * scale;
+    const float tabHeight = (std::max)(16.0f, headerRect.height - dividerH);
+    const float tabY = headerRect.y;
     const float centerY = std::floor(tabY + tabHeight * 0.5f);
 
     DockTabLayout layout{};
@@ -242,19 +278,17 @@ void PaintDockTab(
     const float radius = TabTopRadius();
 
     if (isActive) {
-        Color activeBg = we::runtime::kindui::ResolveColor(ColorToken::PanelBackground);
-        DrawRoundedRectTop(context, layout.tabRect, activeBg, radius);
-
-        const float indicatorHeight = we::runtime::kindui::ResolveMetric(MetricToken::TabActiveIndicatorHeight) * scale;
-        context.DrawRect(
-            Rect{ layout.tabRect.x, layout.tabRect.y, layout.tabRect.width, indicatorHeight },
-            we::runtime::kindui::ResolveColor(ColorToken::ActiveTabLine));
+        Rect activeRect = layout.tabRect;
+        activeRect.height = headerRect.height;
+        DrawRoundedRectTop(context, activeRect, we::runtime::kindui::ds::Tab::ActiveBackground(), radius);
     } else if (hoverAnim > 0.01f) {
         Color tabBg = Color::Lerp(
             Color::Transparent(),
-            we::runtime::kindui::ResolveColor(ColorToken::HoverBackground),
+            we::runtime::kindui::ds::Tab::InactiveBackground(),
             hoverAnim * 0.85f);
-        DrawRoundedRectTop(context, layout.tabRect, tabBg, radius);
+        if (tabBg.a > 0.01f) {
+            context.DrawRoundedRect(layout.tabRect, tabBg, radius);
+        }
     }
 
     float itemX = layout.tabRect.x + padH;
@@ -354,72 +388,109 @@ void PaintFloatingPanelHeader(
     Rect& outOptionsMenuRect)
 {
     const float scale = UiScale();
-    const float fontSize = we::runtime::kindui::ResolveMetric(MetricToken::TextSizeTabs) * scale;
-    const float iconSize = TabIconSize();
-    const float padH = TabPadH();
-    const float iconGap = we::runtime::kindui::ResolveMetric(MetricToken::Space1) * scale;
-    const float radius = TabTopRadius();
+    const float gap = we::runtime::kindui::ResolveMetric(MetricToken::Space1) * scale;
     const float buttonSize = HeaderButtonSize();
 
-    Color headerBg = we::runtime::kindui::ResolveColor(ColorToken::HeaderBackground);
-    DrawRoundedRectTop(context, headerRect, headerBg, radius);
+    DockTabDescriptor descriptor{};
+    descriptor.title = title;
+    descriptor.iconName = iconName;
+    descriptor.hasBrand = hasBrand;
+    descriptor.brandDescriptor = brandDescriptor;
+    descriptor.brandLogicalSize = brandLogicalSize;
 
-    const float indicatorHeight = we::runtime::kindui::ResolveMetric(MetricToken::TabActiveIndicatorHeight) * scale;
-    context.DrawRect(
-        Rect{ headerRect.x, headerRect.y, headerRect.width, indicatorHeight },
-        we::runtime::kindui::ResolveColor(ColorToken::ActiveTabLine));
-
-    Rect separator{
-        headerRect.x,
-        headerRect.y + headerRect.height - 1.0f * scale,
-        headerRect.width,
-        1.0f * scale
-    };
-    context.DrawRect(separator, we::runtime::kindui::ResolveColor(ColorToken::Separator));
-
-    const float centerY = std::floor(headerRect.y + headerRect.height * 0.5f);
-    float itemX = headerRect.x + padH;
-
-    if (hasBrand) {
-        const float brandSize = brandLogicalSize * scale;
-        if ((brandDescriptor != we::rhi::RHIDescriptorSetHandle::Invalid)) {
-            context.DrawTexture(
-                Rect{ itemX, std::floor(centerY - brandSize * 0.5f), brandSize, brandSize },
-                brandDescriptor,
-                we::runtime::kindui::ResolveColor(ColorToken::TextPrimary));
+    bool showClose = false;
+    bool closeHovered = false;
+    for (const auto& action : actions) {
+        if (action.iconName == Icons::XName) {
+            showClose = true;
+            closeHovered = action.hovered;
+            break;
         }
-        itemX += brandSize + iconGap;
-    } else if (!iconName.empty()) {
-        IconPainter::DrawIcon(
-            context,
-            iconName,
-            Rect{ itemX, std::floor(centerY - iconSize * 0.5f), iconSize, iconSize },
-            we::runtime::kindui::ResolveColor(ColorToken::IconActive));
-        itemX += iconSize + iconGap;
     }
 
-    context.DrawText(
-        title,
-        Point{ itemX, std::floor(centerY - fontSize * 0.5f) },
-        we::runtime::kindui::ResolveColor(ColorToken::TextPrimary),
-        fontSize,
-        true);
+    const float tabX = headerRect.x + TabStripPadH();
+    DockTabLayout layout = LayoutDockTabGeometries(context, descriptor, headerRect, tabX, true, showClose);
+    PaintDockTab(context, descriptor, layout, headerRect, true, 0.0f, showClose, closeHovered);
 
-    const float optionsX = headerRect.x + headerRect.width - padH - buttonSize;
+    const float centerY = std::floor(layout.tabRect.y + layout.tabRect.height * 0.5f);
+    float actionX = layout.tabRect.x + layout.tabRect.width + gap;
     outOptionsMenuRect = {};
-    float actionX = headerRect.x + headerRect.width - padH;
     if (showOptionsMenu) {
-        outOptionsMenuRect = Rect{ optionsX, std::floor(centerY - buttonSize * 0.5f), buttonSize, buttonSize };
+        outOptionsMenuRect = Rect{ actionX, std::floor(centerY - buttonSize * 0.5f), buttonSize, buttonSize };
         PaintHeaderIconButton(context, outOptionsMenuRect, Icons::MoreName, optionsMenuHovered, false);
-        actionX = optionsX - we::runtime::kindui::ResolveMetric(MetricToken::Space1) * scale - buttonSize;
+        actionX += buttonSize + gap;
     }
 
     for (auto it = actions.rbegin(); it != actions.rend(); ++it) {
         const auto& action = *it;
+        if (action.iconName == Icons::XName) {
+            continue;
+        }
         Rect actionRect{ actionX, std::floor(centerY - buttonSize * 0.5f), buttonSize, buttonSize };
-        PaintHeaderIconButton(context, actionRect, action.iconName, action.hovered, action.pressed, false);
-        actionX -= buttonSize + we::runtime::kindui::ResolveMetric(MetricToken::Space1) * scale;
+        PaintHeaderIconButton(context, actionRect, action.iconName, action.hovered, action.pressed, true);
+        actionX += buttonSize + gap;
     }
+
+    PaintDockTabStripDivider(context, headerRect);
+}
+
+DockTabStripLayout LayoutDockTabStrip(
+    PaintContext& context,
+    const Rect& stripRect,
+    const std::vector<DockTabDescriptor>& descriptors,
+    const DockTabStripState& state)
+{
+    DockTabStripLayout result{};
+    result.tabs.reserve(descriptors.size());
+
+    float x = stripRect.x + TabStripPadH();
+    for (size_t i = 0; i < descriptors.size(); ++i) {
+        const bool isActive = i == state.activeIndex;
+        const bool isHovered = state.hoverAnim ? (state.hoverAnim(i) > 0.01f) : false;
+        const bool showClose = state.showClose
+            ? state.showClose(i, isActive, isHovered)
+            : false;
+        const auto layout = LayoutDockTabGeometries(
+            context,
+            descriptors[i],
+            stripRect,
+            x,
+            isActive,
+            showClose);
+        result.tabs.push_back(layout);
+        x += layout.tabRect.width + TabGap();
+    }
+    return result;
+}
+
+void PaintDockTabStrip(
+    PaintContext& context,
+    const Rect& stripRect,
+    const std::vector<DockTabDescriptor>& descriptors,
+    const DockTabStripLayout& layout,
+    const DockTabStripState& state)
+{
+    const size_t count = std::min(descriptors.size(), layout.tabs.size());
+    for (size_t i = 0; i < count; ++i) {
+        const bool isActive = i == state.activeIndex;
+        const float hover = state.hoverAnim ? state.hoverAnim(i) : 0.0f;
+        const bool isHovered = hover > 0.01f;
+        const bool showClose = state.showClose
+            ? state.showClose(i, isActive, isHovered)
+            : false;
+        const bool closeHovered = state.closeHovered ? state.closeHovered(i) : false;
+        PaintDockTab(
+            context,
+            descriptors[i],
+            layout.tabs[i],
+            stripRect,
+            isActive,
+            hover,
+            showClose,
+            closeHovered,
+            i == 0);
+    }
+    PaintDockTabStripDivider(context, stripRect);
 }
 
 void PaintSearchField(
@@ -430,42 +501,11 @@ void PaintSearchField(
     bool focused,
     bool showCaret)
 {
-    const float scale = UiScale();
-    const float fontSize = we::runtime::kindui::ResolveMetric(MetricToken::TextSizeSmall) * scale;
-    const float iconSize = static_cast<float>(IconMetrics::NativeIconTierPx(we::runtime::kindui::ResolveMetric(MetricToken::IconSizeSearch)));
-    const float padH = (std::max)(8.0f, rect.height * 0.5f * 0.65f);
-
     ControlChrome::InteractionState state{};
     state.focused = focused;
-    ControlChrome::PaintSearchInputFrame(context, rect, state);
-
-    const float iconX = rect.x + padH;
-    Rect iconBand{ iconX, rect.y, iconSize, rect.height };
-    IconPainter::DrawIcon(
-        context,
-        Icons::SearchName,
-        IconMetrics::PlaceGlyphCentered(iconBand, iconSize),
-        we::runtime::kindui::ResolveColor(ColorToken::IconSecondary));
-
-    const float textX = iconX + iconSize + we::runtime::kindui::ResolveMetric(MetricToken::Space1) * scale;
-    const float textY = rect.y + (rect.height - fontSize) * 0.5f;
-
-    if (text.empty()) {
-        context.DrawText(placeholder, Point{ textX, textY }, we::runtime::kindui::ResolveColor(ColorToken::SearchPlaceholder), fontSize);
-    } else {
-        context.DrawText(text, Point{ textX, textY }, we::runtime::kindui::ResolveColor(ColorToken::TextPrimary), fontSize);
-        if (focused && showCaret) {
-            const float caretX = textX + context.GetTextWidth(text, fontSize);
-            context.DrawRect(
-                Rect{ caretX, textY, we::runtime::kindui::ResolveMetric(MetricToken::BorderWidth), fontSize },
-                we::runtime::kindui::ResolveColor(ColorToken::TextPrimary));
-        }
-
-        const float clearSize = iconSize;
-        const float clearX = rect.x + rect.width - clearSize - padH;
-        const float clearY = rect.y + (rect.height - clearSize) * 0.5f;
-        PaintHeaderIconButton(context, Rect{ clearX, clearY, clearSize, clearSize }, Icons::XName, false, false, false);
-    }
+    ControlChrome::SearchFieldPaintOptions options{};
+    options.showClearButton = !text.empty();
+    ControlChrome::PaintSearchField(context, rect, placeholder, text, state, showCaret, options);
 }
 
 void PaintListRowBackground(PaintContext& context, const Rect& rowRect, bool hovered, bool selected) {
@@ -488,25 +528,8 @@ void PaintCategoryHeader(
     bool hovered,
     float indent)
 {
-    const float scale = UiScale();
-    const float padH = PanelPaddingH() + indent;
-    const float chevronSize = static_cast<float>(IconMetrics::StandardGlyphTierPx());
-    const float fontSize = we::runtime::kindui::ResolveMetric(MetricToken::TextSizeCategory) * scale;
-    const float centerY = rect.y + rect.height * 0.5f;
-
-    if (hovered) {
-        context.DrawRect(rect, we::runtime::kindui::ResolveColor(ColorToken::HoverBackground));
-    }
-
-    const char* chevronIcon = expanded ? Icons::ChevronDownName : Icons::ChevronRightName;
-    IconPainter::DrawIcon(
-        context,
-        chevronIcon,
-        Rect{ rect.x + padH, centerY - chevronSize * 0.5f, chevronSize, chevronSize },
-        we::runtime::kindui::ResolveColor(ColorToken::TextSecondary));
-
-    const float textX = rect.x + padH + chevronSize + we::runtime::kindui::ResolveMetric(MetricToken::Space1) * scale;
-    context.DrawText(title, Point{ textX, centerY - fontSize * 0.5f }, we::runtime::kindui::ResolveColor(ColorToken::TextSecondary), fontSize, true);
+    we::runtime::kindui::PropertyPanelChrome::PaintSectionHeader(
+        context, rect, title, expanded, hovered, indent);
 }
 
 void PaintHeaderIconButton(

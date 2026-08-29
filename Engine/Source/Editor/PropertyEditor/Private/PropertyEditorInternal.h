@@ -103,6 +103,9 @@ struct RuntimeServices {
 
 [[nodiscard]] std::shared_ptr<IPropertyTree> CreatePropertyTree(RuntimeServices services);
 [[nodiscard]] std::unique_ptr<IDetailsView> CreateDetailsView(RuntimeServices services);
+[[nodiscard]] std::shared_ptr<we::runtime::kindui::Widget> CreateDetailsPanelInterior(
+    const std::shared_ptr<we::runtime::kindui::Widget>& propertyList,
+    IDetailsView* details);
 [[nodiscard]] std::unique_ptr<IPropertyEditorFactory> CreateEditorFactory(
     ITypeRegistry* registry,
     bool registerDefaults);

@@ -320,7 +320,7 @@ TreeView::TreeRowLayoutSlots TreeView::ComputeTreeRowLayout(const RenderItem& it
 }
 
 void TreeView::Paint(PaintContext& context) {
-    ::we::editor::panels::PanelChrome::PaintContentRegion(context, m_Geometry);
+    ::we::editor::panels::PanelChrome::PaintNavigationRegion(context, m_Geometry);
 
     const float uiScale = TreeUiScale();
     const float fontSize = m_Style.text.size * uiScale;
@@ -329,7 +329,7 @@ void TreeView::Paint(PaintContext& context) {
         const float headerHeight = PanelChrome::ColumnHeaderRowHeight();
         const Rect headerRect{ m_Geometry.x, m_Geometry.y, m_Geometry.width, headerHeight };
 
-        context.DrawRect(headerRect, ThemeColor(ColorToken::HeaderBackground));
+        PanelChrome::PaintHeaderRegion(context, headerRect);
 
         const float glyphTier = static_cast<float>(IconMetrics::StandardGlyphTierPx());
         const float headerTextSize = ThemeMetric(MetricToken::TextSizeCaption) * uiScale;
@@ -353,13 +353,6 @@ void TreeView::Paint(PaintContext& context) {
         const float typeRightX = m_Geometry.x + m_Geometry.width - 24.0f * uiScale;
         const float typeWidth = context.GetTextWidth("Type", headerTextSize);
         context.DrawText("Type", Point{ typeRightX - typeWidth, headerTextY }, ThemeColor(ColorToken::TextSecondary), headerTextSize, true);
-
-        // Header bottom separator line
-        context.DrawLine(
-            Point{ m_Geometry.x, m_Geometry.y + headerHeight - 1.0f },
-            Point{ m_Geometry.x + m_Geometry.width, m_Geometry.y + headerHeight - 1.0f },
-            ThemeColor(ColorToken::Separator)
-        );
     }
 
     if (m_RenderList.empty()) {
