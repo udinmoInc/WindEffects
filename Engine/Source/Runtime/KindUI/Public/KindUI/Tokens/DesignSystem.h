@@ -79,11 +79,13 @@ namespace Radius {
 namespace Surface {
 [[nodiscard]] inline Color Window() { return ResolveColor(ColorToken::WindowBackground); }
 [[nodiscard]] inline Color Workspace() { return ResolveColor(ColorToken::WorkspaceBackground); }
+[[nodiscard]] inline Color DockChrome() { return ResolveColor(ColorToken::DockChromeBackground); }
 [[nodiscard]] inline Color Panel() { return ResolveColor(ColorToken::PanelBackground); }
 [[nodiscard]] inline Color Secondary() { return ResolveColor(ColorToken::SecondarySurface); }
 [[nodiscard]] inline Color Header() { return ResolveColor(ColorToken::HeaderBackground); }
 [[nodiscard]] inline Color Toolbar() { return ResolveColor(ColorToken::ToolbarBackground); }
 [[nodiscard]] inline Color TabInactive() { return ResolveColor(ColorToken::TabBackground); }
+[[nodiscard]] inline Color TabActive() { return ResolveColor(ColorToken::TabActiveBackground); }
 [[nodiscard]] inline Color Card() { return ResolveColor(ColorToken::CardBackground); }
 [[nodiscard]] inline Color Input() { return ResolveColor(ColorToken::InputBackground); }
 [[nodiscard]] inline Color Popup() { return ResolveColor(ColorToken::PopupBackground); }
@@ -124,7 +126,7 @@ namespace Tab {
 [[nodiscard]] inline float TopRadius() { return ResolveMetric(MetricToken::TabTopRadius); }
 [[nodiscard]] inline float ActiveIndicatorHeight() { return ResolveMetric(MetricToken::TabActiveIndicatorHeight); }
 [[nodiscard]] inline Color InactiveBackground() { return ResolveColor(ColorToken::TabBackground); }
-[[nodiscard]] inline Color ActiveBackground() { return ResolveColor(ColorToken::HeaderBackground); }
+[[nodiscard]] inline Color ActiveBackground() { return ResolveColor(ColorToken::TabActiveBackground); }
 } // namespace Tab
 
 namespace Toolbar {

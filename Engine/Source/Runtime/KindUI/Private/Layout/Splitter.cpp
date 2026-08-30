@@ -60,7 +60,7 @@ void Splitter::SetMinPaneSizes(float minFirstPx, float minSecondPx) {
 float Splitter::GetEffectiveBarThickness() const {
     const float scale = DPIContext::GetScale();
     if (m_PanelGapEnabled) {
-        return DPIContext::Snap(ResolveMetric(MetricToken::Space2) * scale);
+        return DPIContext::Snap(ResolveMetric(MetricToken::BorderWidth) * scale);
     }
     return DPIContext::Snap(m_BarThicknessLogical * scale);
 }
@@ -325,7 +325,14 @@ void Splitter::Paint(PaintContext& context) {
 
     if (m_PanelGapEnabled && m_FirstChild && m_FirstChild->IsVisible()) {
         Rect barRect = GetSplitterBarRect();
-        context.DrawRect(barRect, ResolveColor(ColorToken::WorkspaceBackground));
+        const Color separatorColor = ThemeColor(ColorToken::Separator);
+        if (m_Orientation == Orientation::Horizontal) {
+            Rect visualRect{ std::floor(barRect.x + barRect.width * 0.5f), barRect.y, 1.0f, barRect.height };
+            context.DrawRect(visualRect, separatorColor);
+        } else {
+            Rect visualRect{ barRect.x, std::floor(barRect.y + barRect.height * 0.5f), barRect.width, 1.0f };
+            context.DrawRect(visualRect, separatorColor);
+        }
     }
 
     if (m_FirstChild && m_FirstChild->IsVisible()) m_FirstChild->Paint(context);

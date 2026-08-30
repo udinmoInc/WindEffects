@@ -24,6 +24,7 @@
 #include "KindUI/Tokens/DesignToken.h"
 #include "KindUI/Theming/StyleRole.h"
 #include "WindEffects/Editor/UI/Panel/PanelChrome.h"
+#include "WindEffects/Editor/UI/Widgets/Panel.h"
 
 #include <algorithm>
 #include <cstring>
@@ -103,7 +104,8 @@ struct RuntimeServices {
 
 [[nodiscard]] std::shared_ptr<IPropertyTree> CreatePropertyTree(RuntimeServices services);
 [[nodiscard]] std::unique_ptr<IDetailsView> CreateDetailsView(RuntimeServices services);
-[[nodiscard]] std::shared_ptr<we::runtime::kindui::Widget> CreateDetailsPanelInterior(
+void PopulateDetailsPanelRegions(
+    const std::shared_ptr<we::editor::panels::Panel>& panel,
     const std::shared_ptr<we::runtime::kindui::Widget>& propertyList,
     IDetailsView* details);
 [[nodiscard]] std::unique_ptr<IPropertyEditorFactory> CreateEditorFactory(

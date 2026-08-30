@@ -23,20 +23,35 @@ constexpr size_t RegionIndex(PanelBodyRegion region) {
     return static_cast<size_t>(region);
 }
 
+void PaintRegionBackground(PanelBodyRegion region, PaintContext& context, const Rect& geometry) {
+    switch (region) {
+    case PanelBodyRegion::ModeTabs:
+    case PanelBodyRegion::Search:
+    case PanelBodyRegion::Toolbar:
+        Chrome::PaintPanelSurface(context, geometry);
+        break;
+    case PanelBodyRegion::Content:
+        Chrome::PaintContentWell(context, geometry);
+        break;
+    case PanelBodyRegion::ColumnHeader:
+    case PanelBodyRegion::Footer:
+    case PanelBodyRegion::Count:
+        break;
+    }
+}
+
 void PaintRegionChrome(PanelBodyRegion region, PaintContext& context, const Rect& geometry) {
     switch (region) {
     case PanelBodyRegion::ModeTabs:
-        Chrome::PaintDockTabStripDivider(context, geometry);
         break;
     case PanelBodyRegion::Search:
     case PanelBodyRegion::Toolbar:
-        Chrome::PaintToolbarRegion(context, geometry);
+        Chrome::PaintDockTabStripDivider(context, geometry);
         break;
     case PanelBodyRegion::ColumnHeader:
         Chrome::PaintHeaderRegion(context, geometry);
         break;
     case PanelBodyRegion::Content:
-        Chrome::PaintContentWell(context, geometry);
         break;
     case PanelBodyRegion::Footer:
         Chrome::PaintFooterRegion(context, geometry);
@@ -149,10 +164,10 @@ Size PanelBodyLayout::Measure(const Size& availableSize) {
     };
 
     measureFixed(PanelBodyRegion::ModeTabs);
-    measureFixed(PanelBodyRegion::Search);
     if (!m_OverlayToolbar) {
         measureFixed(PanelBodyRegion::Toolbar);
     }
+    measureFixed(PanelBodyRegion::Search);
     measureFixed(PanelBodyRegion::ColumnHeader);
     measureFixed(PanelBodyRegion::Footer);
 
@@ -211,10 +226,10 @@ void PanelBodyLayout::Arrange(const Rect& allottedRect) {
     const float totalBottom = allottedRect.y + allottedRect.height;
 
     ArrangeFixedRegion(PanelBodyRegion::ModeTabs, currentY, allottedRect);
-    ArrangeFixedRegion(PanelBodyRegion::Search, currentY, allottedRect);
     if (!m_OverlayToolbar) {
         ArrangeFixedRegion(PanelBodyRegion::Toolbar, currentY, allottedRect);
     }
+    ArrangeFixedRegion(PanelBodyRegion::Search, currentY, allottedRect);
     ArrangeFixedRegion(PanelBodyRegion::ColumnHeader, currentY, allottedRect);
 
     float footerHeight = 0.0f;
@@ -271,10 +286,6 @@ void PanelBodyLayout::Arrange(const Rect& allottedRect) {
 }
 
 void PanelBodyLayout::Paint(PaintContext& context) {
-    if (!m_SuppressContentSurfaces) {
-        Chrome::PaintPanelSurface(context, m_Geometry);
-    }
-
     const auto paintRegion = [&](PanelBodyRegion region, bool paintAfterContent) {
         const size_t index = RegionIndex(region);
         const auto& slot = m_Regions[index];
@@ -287,6 +298,7 @@ void PanelBodyLayout::Paint(PaintContext& context) {
                 && (region == PanelBodyRegion::Content || region == PanelBodyRegion::Footer))
             || (m_OverlayToolbar && region == PanelBodyRegion::Toolbar);
         if (!skipRegionChrome) {
+            PaintRegionBackground(region, context, slot.geometry);
             PaintRegionChrome(region, context, slot.geometry);
         }
 

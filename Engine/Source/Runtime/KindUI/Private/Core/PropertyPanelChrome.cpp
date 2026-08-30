@@ -131,10 +131,13 @@ void PaintObjectHeader(
     std::string_view iconName,
     bool active) {
     const float scale = UiScale();
-    const Color bg = active
-        ? ResolveColor(ColorToken::SecondarySurface)
-        : ResolveColor(ColorToken::ToolbarBackground);
+    const Color bg = ResolveColor(ColorToken::PanelBackground);
     context.DrawRect(rect, bg);
+
+    const float thickness = ResolveMetric(MetricToken::BorderWidth) * scale;
+    context.DrawRect(
+        Rect{ rect.x, rect.y + rect.height - thickness, rect.width, thickness },
+        ResolveColor(ColorToken::Separator));
 
     const float padH = ResolveMetric(MetricToken::Space2) * scale;
     const float iconSize = static_cast<float>(IconMetrics::StandardGlyphTierPx());
@@ -168,20 +171,20 @@ void PaintSectionHeader(
     float indent) {
     const float scale = UiScale();
     const Color bg = hovered
-        ? ResolveColor(ColorToken::HoverBackground)
-        : ResolveColor(ColorToken::SecondarySurface);
+        ? ResolveInteractiveBackground(1.0f, 0.0f, false, ColorToken::HeaderBackground)
+        : ResolveColor(ColorToken::HeaderBackground);
     context.DrawRect(rect, bg);
 
     const float padH = RowPaddingH() + indent;
-    const float chevronSize = static_cast<float>(IconMetrics::StandardGlyphTierPx());
+    const float chevronSize = static_cast<float>(IconMetrics::CompactGlyphTierPx());
     const float fontSize = ResolveMetric(MetricToken::TextSizeCategory) * scale;
     const float centerY = rect.y + rect.height * 0.5f;
 
     const char* chevronIcon = expanded ? Icons::ChevronDownName : Icons::ChevronRightName;
-    IconPainter::DrawIcon(
+    IconPainter::DrawCompactIcon(
         context,
         chevronIcon,
-        Rect{ rect.x + padH, centerY - chevronSize * 0.5f, chevronSize, chevronSize },
+        IconMetrics::CompactGlyphBand(rect, rect.x + padH),
         ResolveColor(ColorToken::IconSecondary));
 
     const float textX = rect.x + padH + chevronSize + ResolveMetric(MetricToken::Space1) * scale;
@@ -224,7 +227,14 @@ void PaintCategoryTab(
     if (!active && hovered) {
         bg = Color::Lerp(bg, ResolveColor(ColorToken::HoverBackground), 0.65f);
     }
-    context.DrawRoundedRect(rect, bg, radius);
+    ControlChrome::PaintPanelButtonFace(
+        context,
+        rect,
+        bg,
+        radius,
+        hovered ? 1.0f : 0.0f,
+        0.0f,
+        active);
 
     if (active) {
         context.DrawRoundedRectOutline(rect, ResolveColor(ColorToken::BorderFocus), ResolveMetric(MetricToken::BorderWidth), radius);

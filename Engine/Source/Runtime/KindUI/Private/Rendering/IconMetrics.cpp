@@ -263,4 +263,9 @@ Rect PlaceGlyphCentered(const Rect& controlBounds, float logicalTierPx) {
     return PlaceGlyphCentered(controlBounds, SnapToAtlasTier(logicalTierPx));
 }
 
+Rect CompactGlyphBand(const Rect& controlBounds, float x) {
+    const float tier = static_cast<float>(CompactGlyphTierPx());
+    return Rect{ x, controlBounds.y, tier, controlBounds.height };
+}
+
 } // namespace we::runtime::kindui::IconMetrics

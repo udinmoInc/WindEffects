@@ -19,7 +19,7 @@ inline float ContentPadV() {
 }
 
 inline float ChevronSize() {
-    return we::runtime::kindui::ResolveMetric(MetricToken::IconSizeTree);
+    return static_cast<float>(we::runtime::kindui::IconMetrics::CompactGlyphTierPx());
 }
 
 inline float ActorRowHeight() {

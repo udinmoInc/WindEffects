@@ -43,7 +43,7 @@ public:
     static void DrawIcon(PaintContext& context, const std::string& iconName,
         const Rect& bounds, const Color& color);
 
-    // 12px layout using the 16px atlas tier (dock-tab close, dropdown chevrons).
+    // 12px native-tier glyphs (dropdown chevrons, compact affordances).
     static void DrawCompactIcon(PaintContext& context, const std::string& iconName,
         const Rect& bounds, const Color& color);
 

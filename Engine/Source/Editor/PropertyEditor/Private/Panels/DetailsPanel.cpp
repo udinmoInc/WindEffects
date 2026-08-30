@@ -4,30 +4,32 @@
 #include "PropertyEditor/IDetailsView.h"
 #include "Core/Localization.h"
 #include "KindUI/Core/Icon.h"
+#include "KindUI/Tokens/DesignToken.h"
+#include "KindUI/Theming/ThemeAccess.h"
 
 namespace we::programs::editor {
 namespace Icons = ::we::runtime::kindui::Icons;
 
 using namespace ::we::runtime::kindui;
 using ::we::editor::panels::Panel;
-using ::we::editor::panels::PanelBuilder;
 using ::we::editor::docking::DockZone;
 using ::we::editor::property::PropertyEditorSession;
-using ::we::editor::property::detail::CreateDetailsPanelInterior;
+using ::we::editor::property::detail::PopulateDetailsPanelRegions;
 
 std::shared_ptr<Panel> CreateDetailsPanel() {
     const auto title = we::core::Localization::Get().GetString("Panel_Details", "Details");
 
-    auto details = PropertyEditorSession::DetailsShared();
-    std::shared_ptr<Widget> content;
-    if (details) {
-        content = CreateDetailsPanelInterior(details->GetWidget(), details.get());
+    auto panel = std::make_shared<Panel>(std::string(title));
+    panel->AttachBodyLayout();
+    panel->SetHeaderHeight(we::runtime::kindui::ResolveMetric(MetricToken::PanelHeaderHeight));
+    panel->SetCollapsible(false);
+    panel->SetTabIcon(Icons::SettingsName);
+
+    if (auto details = PropertyEditorSession::DetailsShared()) {
+        PopulateDetailsPanelRegions(panel, details->GetWidget(), details.get());
     }
 
-    return PanelBuilder(title)
-        .TabIcon(Icons::PropertiesName)
-        .WithCloseButton()
-        .Content(content);
+    return panel;
 }
 
 REGISTER_UI_PANEL(Details,

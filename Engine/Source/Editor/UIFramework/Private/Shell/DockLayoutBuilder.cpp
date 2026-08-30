@@ -53,8 +53,10 @@ void WireSplitterSlot(const std::shared_ptr<Splitter>& splitter, const DockLayou
     const std::string& slot = node.slotId;
     if (slot == "mainHorizontal") {
         result.mainHorizontalSplitter = splitter;
+    } else if (slot == "rootVertical") {
+        result.rootVerticalSplitter = splitter;
     } else if (slot == "leftCenter") {
-        result.leftCenterSplitter = splitter;
+        result.rootVerticalSplitter = splitter;
     } else if (slot == "toolsViewport") {
         result.toolsViewportSplitter = splitter;
     } else if (slot == "rightVertical") {
@@ -116,10 +118,9 @@ std::shared_ptr<Widget> DockLayoutBuilder::BuildNode(
     }
     case DockNodeType::Split: {
         auto splitter = std::make_shared<Splitter>(ToOrientation(node.orientation), node.splitRatio);
-        splitter->SetPanelGapEnabled(true);
         splitter->SetSlotId(node.slotId);
         splitter->SetMinPaneSizes(node.minFirstLogical * dpiScale, node.minSecondLogical * dpiScale);
-        if (node.slotId == "leftCenter") {
+        if (node.slotId == "rootVertical" || node.slotId == "leftCenter") {
             const float defaultPane = ResolveMetric(MetricToken::PropertyLabelColumnWidth) * 2.0f;
             splitter->SetResizeMode(Splitter::ResizeMode::FixedSecond);
             splitter->SetFixedSecondWidth(defaultPane * dpiScale);

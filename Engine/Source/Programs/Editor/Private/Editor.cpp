@@ -50,6 +50,7 @@
 #include "KindUI/Theming/ThemeManager.h"
 #include "KindUI/Theming/ThemeAccess.h"
 #include "KindUI/Tokens/DesignToken.h"
+#include "KindUI/Core/ColorSpace.h"
 #include "WindEffects/Editor/UI/Core/EditorPerfStats.h"
 #include "Debug/FoundationRenderDebug.h"
 #include "DefaultScene/DefaultSceneBuilder.h"
@@ -278,7 +279,10 @@ void Editor::InitializeEngine() {
 
     if (m_Renderer) {
         const auto workspace = we::runtime::kindui::ResolveColor(we::runtime::kindui::ColorToken::WorkspaceBackground);
-        m_Renderer->SetSwapchainClearColor({workspace.r, workspace.g, workspace.b, workspace.a});
+        const auto clearColor = we::runtime::kindui::ColorSpace::ClearColorForTarget(
+            m_Renderer->GetSwapchainFormat(),
+            workspace);
+        m_Renderer->SetSwapchainClearColor({clearColor.r, clearColor.g, clearColor.b, clearColor.a});
     }
 
     m_FirstRunAgreementPending = !HasAcceptedFirstRunAgreement();

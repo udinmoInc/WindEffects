@@ -250,7 +250,7 @@ EditorShellResult EditorShellBuilder::Build(
             + we::runtime::kindui::ResolveMetric(MetricToken::Space1) * 0.5f) * uiScale));
     we::rhi::RHIDescriptorSetHandle logoSet = we::rhi::RHIDescriptorSetHandle::Invalid;
     if (deps.overlayRenderer && deps.overlayRenderer->GetIconRenderer()) {
-        logoSet = deps.overlayRenderer->GetIconRenderer()->GetIcon("Assets/Editor/WindEffects.svg", logoPx);
+        logoSet = deps.overlayRenderer->GetIconRenderer()->GetIcon("Assets/Editor/Logo/Logo_UI.png", logoPx);
     }
 
     auto titleBar = std::make_shared<TitleBar>(deps.window, "WindEffects Editor", logoSet, menuBar);
@@ -311,7 +311,7 @@ EditorShellResult EditorShellBuilder::Build(
             const float logoLogical = we::programs::editor::GetExplorerDockTabLogoSize();
             const int explorerLogoPx = static_cast<int>(std::round(logoLogical * uiScale));
             we::rhi::RHIDescriptorSetHandle explorerLogo = deps.overlayRenderer->GetIconRenderer()->GetIcon(
-                "Assets/Editor/WindEffects.svg", explorerLogoPx);
+                "Assets/Editor/Logo/Logo_UI.png", explorerLogoPx);
             explorerPanel->SetTabBrand(explorerLogo, logoLogical);
             we::programs::editor::BindExplorerBrandLogo(explorerLogo, logoLogical);
         }
@@ -403,11 +403,8 @@ EditorShellResult EditorShellBuilder::Build(
     rootVBox->AddChild(titleBar);
     rootVBox->AddChild(toolbar);
     if (shellResult.layout.root) {
-        const float workspaceGap = we::runtime::kindui::ResolveMetric(MetricToken::Space2) * uiScale;
         auto workspaceArea = std::make_shared<Column>();
         workspaceArea->Gap(0.0f);
-        workspaceArea->Padding({ workspaceGap, workspaceGap, workspaceGap, workspaceGap });
-        workspaceArea->Background(we::runtime::kindui::ResolveColor(ColorToken::WorkspaceBackground));
         workspaceArea->SetFlexGrow(1.0f);
         workspaceArea->SetFlexShrink(0.0f);
         workspaceArea->SetVerticalAlignment(VerticalAlignment::Fill);

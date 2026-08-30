@@ -168,7 +168,8 @@ UIFRAMEWORK_API void PaintListRowBackground(
     PaintContext& context,
     const Rect& rowRect,
     bool hovered,
-    bool selected);
+    bool selected,
+    bool focused = true);
 
 UIFRAMEWORK_API void PaintCategoryHeader(
     PaintContext& context,

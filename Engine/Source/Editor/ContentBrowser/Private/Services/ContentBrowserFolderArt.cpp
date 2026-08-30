@@ -57,26 +57,12 @@ void ContentBrowserFolderArt::PaintFolderIcon(
     kindui::Color tint = kindui::ResolveColor(
         hovered ? kindui::ColorToken::ContentBrowserFolderHighlight
                 : kindui::ColorToken::ContentBrowserFolderPrimary);
-    const kindui::Color body = kindui::ResolveColor(kindui::ColorToken::ContentBrowserFolderBody);
-    const kindui::Color edge = kindui::ResolveColor(kindui::ColorToken::ContentBrowserFolderEdge);
     if (hovered) {
-        tint = kindui::Color{
-            (tint.r * 0.70f) + (body.r * 0.30f),
-            (tint.g * 0.70f) + (body.g * 0.30f),
-            (tint.b * 0.70f) + (body.b * 0.30f),
-            1.0f};
-    } else {
-        tint = kindui::Color{
-            (body.r * 0.45f) + (edge.r * 0.55f),
-            (body.g * 0.45f) + (edge.g * 0.55f),
-            (body.b * 0.45f) + (edge.b * 0.55f),
-            1.0f};
+        tint = kindui::Color::Lerp(
+            kindui::ResolveColor(kindui::ColorToken::ContentBrowserFolderPrimary),
+            kindui::ResolveColor(kindui::ColorToken::ContentBrowserFolderBody),
+            0.30f);
     }
-    // Crush residual prebaked highlight energy from the atlas glyphs.
-    constexpr float kPrebakedLightCrush = 0.72f;
-    tint.r *= kPrebakedLightCrush;
-    tint.g *= kPrebakedLightCrush;
-    tint.b *= kPrebakedLightCrush;
 
     const char* iconName = opened ? kindui::Icons::OpenFolderName : kindui::Icons::FolderName;
     const float requestedPx = std::max(folderRect.width, folderRect.height);

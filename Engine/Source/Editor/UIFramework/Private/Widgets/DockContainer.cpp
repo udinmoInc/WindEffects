@@ -5,6 +5,7 @@
 #include "KindUI/Core/DPIContext.h"
 #include "KindUI/Layout/LayoutAssert.h"
 #include "KindUI/Tokens/DesignToken.h"
+#include "KindUI/Tokens/DesignSystem.h"
 #include "KindUI/Theming/StyleRole.h"
 #include "KindUI/Core/UiMetrics.h"
 #include "KindUI/Core/Animator.h"
@@ -306,10 +307,10 @@ void DockContainer::Paint(PaintContext& context) {
     PanelChrome::PaintDockTabStrip(context, m_HeaderRect, descriptors, stripLayout, state);
 
     if (m_ActiveTabIndex >= 0 && m_ActiveTabIndex < static_cast<int>(m_Tabs.size())) {
-        auto activePanel = m_Tabs[static_cast<size_t>(m_ActiveTabIndex)].panel;
-        if (!activePanel->IsTransparentBackground()) {
-            PanelChrome::PaintPanelSurface(context, m_ContentRect);
+        if (!m_ContentRect.IsEmpty()) {
+            context.DrawRect(m_ContentRect, we::runtime::kindui::ds::Surface::Panel());
         }
+        auto activePanel = m_Tabs[static_cast<size_t>(m_ActiveTabIndex)].panel;
 
         context.PushClipRect(m_ContentRect);
         activePanel->Paint(context);

@@ -19,7 +19,33 @@ KINDUI_API TypographySpec ResolveTypography(TypographyToken token);
 /// Maps ControlSize → theme metric height (logical px, before DPI).
 KINDUI_API float ResolveControlHeight(ControlSize size);
 KINDUI_API Color ResolveInteractiveBackground(float hoverAnim, float pressAnim, bool selected = false);
+/// Opaque sRGB blend from a surface token — no alpha stacking over parents.
+KINDUI_API Color ResolveInteractiveBackground(
+    float hoverAnim,
+    float pressAnim,
+    bool selected,
+    ColorToken surfaceToken);
 KINDUI_API Color ResolveTextForState(bool hovered, bool active = false);
 KINDUI_API Color ResolveIconForState(bool hovered, bool active = false);
+
+enum class IconColorRole {
+    Primary,
+    Secondary,
+    Accent,
+    Disabled,
+};
+
+// Resolve mono icon tint: Secondary (gray) at rest; brightens on hover; Accent only when active.
+[[nodiscard]] KINDUI_API Color ResolveIconColor(
+    IconColorRole role,
+    float hoverAnim = 0.0f,
+    float pressStrength = 0.0f,
+    bool accent = false);
+
+[[nodiscard]] KINDUI_API Color ResolveIconColorForState(
+    bool hovered,
+    bool accent,
+    bool disabled = false,
+    bool secondary = false);
 
 } // namespace we::runtime::kindui

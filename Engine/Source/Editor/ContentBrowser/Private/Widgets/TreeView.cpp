@@ -320,8 +320,6 @@ TreeView::TreeRowLayoutSlots TreeView::ComputeTreeRowLayout(const RenderItem& it
 }
 
 void TreeView::Paint(PaintContext& context) {
-    ::we::editor::panels::PanelChrome::PaintNavigationRegion(context, m_Geometry);
-
     const float uiScale = TreeUiScale();
     const float fontSize = m_Style.text.size * uiScale;
 
@@ -367,7 +365,7 @@ void TreeView::Paint(PaintContext& context) {
 
     context.PushClipRect(m_ScrollMetrics.viewport);
 
-    const Color guideLineColor = ThemeColor(ColorToken::BorderSubtle) * 0.5f;
+    const Color guideLineColor = ThemeColor(ColorToken::Separator) * 0.65f;
 
     for (int i = m_FirstVisibleIndex; i <= m_LastVisibleIndex && i < static_cast<int>(m_RenderList.size()); ++i) {
         const auto& item = m_RenderList[static_cast<size_t>(i)];
@@ -385,7 +383,8 @@ void TreeView::Paint(PaintContext& context) {
 
         // Full-Width Row Background
         if (selected || hovered) {
-            ::we::editor::panels::PanelChrome::PaintListRowBackground(context, layout.rowBounds, hovered, selected);
+            ::we::editor::panels::PanelChrome::PaintListRowBackground(
+                context, layout.rowBounds, hovered, selected, IsFocused());
         }
 
         // Drop Target Indicator Line
@@ -540,7 +539,7 @@ void TreeView::Paint(PaintContext& context) {
             const float typeWidth = context.GetTextWidth(node->typeName, typeFontSize);
             const float typeRightX = m_ScrollMetrics.viewport.x + m_ScrollMetrics.viewport.width - 24.0f * uiScale;
             const float typeY = layout.rowBounds.y + (rowHeight - typeFontSize) * 0.5f;
-            context.DrawText(node->typeName, Point{ typeRightX - typeWidth, typeY }, ThemeColor(ColorToken::TextSecondary) * 0.65f, typeFontSize);
+            context.DrawText(node->typeName, Point{ typeRightX - typeWidth, typeY }, ThemeColor(ColorToken::TextSecondary), typeFontSize);
         }
 
         // Trailing Row Controls (Non-ExplorerStyle)

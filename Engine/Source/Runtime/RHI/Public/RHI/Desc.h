@@ -64,7 +64,7 @@ struct SwapchainDesc {
     we::platform::NativeWindowHandle window{};
     Extent2D extent{};
     uint32_t imageCount = 3;
-    Format preferredFormat = Format::B8G8R8A8_UNORM;
+    Format preferredFormat = Format::B8G8R8A8_SRGB;
     bool vsync = true;
     const char* debugName = "Swapchain";
 };
@@ -220,7 +220,7 @@ struct GraphicsPipelineDesc {
     BlendStateDesc blend{};
     // Color attachment formats (MRT). If empty, uses colorFormat for a single RT.
     std::vector<Format> colorFormats{};
-    Format colorFormat = Format::B8G8R8A8_UNORM;
+    Format colorFormat = Format::B8G8R8A8_SRGB;
     Format depthFormat = Format::D32_SFLOAT;
     bool depthAttachment = true;
     // Legacy convenience fields (map into rasterizer/depthStencil when left default).

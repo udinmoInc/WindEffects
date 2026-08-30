@@ -370,7 +370,7 @@ WorkspaceLayout CreateDefaultEditorWorkspaceLayout() {
 
     layout.panels.emplace("Tools", MakePanelDesc("Tools", "Actors", "tools-panel", DockZone::Left, true, 0));
     layout.panels.emplace("Viewport", MakePanelDesc("Viewport", "Viewport", "viewport", DockZone::Center, true, 1));
-    layout.panels.emplace("WorldOutliner", MakePanelDesc("WorldOutliner", "Explorer", "outliner", DockZone::Right, true, 2));
+    layout.panels.emplace("WorldOutliner", MakePanelDesc("WorldOutliner", "Outliner", "outliner", DockZone::Right, true, 2));
     layout.panels.emplace("Details", MakePanelDesc("Details", "Details", "details", DockZone::Right, true, 3));
     layout.panels.emplace(
         "ContentBrowser",
@@ -379,10 +379,10 @@ WorkspaceLayout CreateDefaultEditorWorkspaceLayout() {
         "OutputLog",
         MakePanelDesc("OutputLog", "Output Log", "output-log", DockZone::Floating, false, 5));
 
-    // Root split: main body (78%) | right sidebar (22%)
+    // UE layout: top row (tools+viewport | outliner+details), content browser full width below.
     DockLayoutNode rightSidebar = MakeSplit(
         SplitOrientation::Vertical,
-        0.40f,
+        0.45f,
         "rightVertical",
         140.0f,
         160.0f,
@@ -398,23 +398,23 @@ WorkspaceLayout CreateDefaultEditorWorkspaceLayout() {
         MakeTabGroup("Tools"),
         MakeTabGroup("Viewport"));
 
-    DockLayoutNode leftCenter = MakeSplit(
-        SplitOrientation::Vertical,
-        0.70f,
-        "leftCenter",
-        200.0f,
-        140.0f,
-        std::move(toolsViewport),
-        MakeTabGroup("ContentBrowser"));
-
-    layout.root = MakeSplit(
+    DockLayoutNode topRow = MakeSplit(
         SplitOrientation::Horizontal,
-        0.78f,
+        0.75f,
         "mainHorizontal",
         320.0f,
         200.0f,
-        std::move(leftCenter),
+        std::move(toolsViewport),
         std::move(rightSidebar));
+
+    layout.root = MakeSplit(
+        SplitOrientation::Vertical,
+        0.72f,
+        "rootVertical",
+        240.0f,
+        140.0f,
+        std::move(topRow),
+        MakeTabGroup("ContentBrowser"));
 
     return layout;
 }

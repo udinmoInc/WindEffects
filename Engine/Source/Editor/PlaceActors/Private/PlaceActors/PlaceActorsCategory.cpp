@@ -63,8 +63,8 @@ void PlaceActorsCategory::PaintHeader(PaintContext& context,
 
     float cursorX = bounds.x + padH;
     if (showChevron) {
-        const Rect chevronRect{ cursorX, centerY - chevronSize * 0.5f, chevronSize, chevronSize };
-        ActorsPanelChrome::PaintChevron(context, chevronRect, expanded, hoverAnim);
+        const Rect chevronBand = we::runtime::kindui::IconMetrics::CompactGlyphBand(bounds, cursorX);
+        ActorsPanelChrome::PaintChevron(context, chevronBand, expanded, hoverAnim);
         cursorX += chevronSize + we::runtime::kindui::ResolveMetric(MetricToken::Space1) * uiScale;
     }
 

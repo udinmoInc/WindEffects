@@ -1,4 +1,5 @@
 #include "KindUI/Theming/IKindUITheme.h"
+#include "KindUI/Theming/ThemeAccess.h"
 
 namespace we::runtime::kindui {
 namespace {
@@ -128,18 +129,7 @@ TypographySpec IKindUITheme::ResolveTypography(const TypographyToken token) cons
 }
 
 Color IKindUITheme::InteractiveBackground(float hoverAnim, float pressAnim, bool selected) const {
-    if (pressAnim > 0.01f) {
-        auto c = ResolveColor(ColorToken::PressedBackground);
-        c.a *= pressAnim;
-        return c;
-    }
-    if (hoverAnim > 0.01f) {
-        return Color::Transparent().Lerp(ResolveColor(ColorToken::HoverBackground), hoverAnim);
-    }
-    if (selected) {
-        return ResolveColor(ColorToken::SelectedBackground);
-    }
-    return Color::Transparent();
+    return ResolveInteractiveBackground(hoverAnim, pressAnim, selected, ColorToken::PanelBackground);
 }
 
 Color IKindUITheme::IconForState(bool hovered, bool active) const {

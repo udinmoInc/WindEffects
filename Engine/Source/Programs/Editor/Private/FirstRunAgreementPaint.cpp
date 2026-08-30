@@ -180,10 +180,10 @@ const float lineHeight = fontSize * kBaseLineHeight;
                     color = ThemeColor(ColorToken::TextPrimary);
                     break;
                 case TextStyle::Code:
-                    color = we::runtime::kindui::Color{ 0.9f, 0.7f, 0.4f, 1.0f };
+                    color = ThemeColor(ColorToken::AccentOrange);
                     break;
                 case TextStyle::Link:
-                    color = we::runtime::kindui::Color{ 0.4f, 0.7f, 1.0f, 1.0f };
+                    color = ThemeColor(ColorToken::LinkForeground);
                     break;
                 default:
                     break;
@@ -227,14 +227,14 @@ const float padding = kCodeBlockPadding * m_DpiScale;
         node.cachedHeight
     };
     
-    context.DrawRoundedRect(bgRect, we::runtime::kindui::Color{ 0.15f, 0.15f, 0.18f, 1.0f }, 4.0f);
+    context.DrawRoundedRect(bgRect, ThemeColor(ColorToken::InputBackground), 4.0f);
     
     const auto lines = node.wrappedLines;
     float textY = y + padding;
     
     for (const auto& line : lines) {
         context.DrawText(line, we::runtime::kindui::Point{ bgRect.x + padding, textY },
-            we::runtime::kindui::Color{ 0.9f, 0.9f, 0.85f, 1.0f }, fontSize, false);
+            ThemeColor(ColorToken::TextPrimary), fontSize, false);
         textY += lineHeight;
     }
 }
@@ -369,7 +369,7 @@ switch (type) {
         case NodeType::Heading3:
             return ThemeColor(ColorToken::TextPrimary);
         case NodeType::CodeBlock:
-            return we::runtime::kindui::Color{ 0.9f, 0.9f, 0.85f, 1.0f };
+            return ThemeColor(ColorToken::TextPrimary);
         case NodeType::Blockquote:
             return ThemeColor(ColorToken::TextSecondary);
         default:

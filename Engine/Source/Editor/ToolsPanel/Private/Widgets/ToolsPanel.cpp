@@ -5,7 +5,9 @@
 #include "WindEffects/Editor/UI/Shell/EditorModeController.h"
 #include "WindEffects/Editor/UI/Shell/EditorToolsRegistry.h"
 #include "ContentBrowser/Widgets/SearchBox.h"
+#include "KindUI/Core/ControlChrome.h"
 #include "KindUI/Core/PaintContext.h"
+#include "KindUI/Theming/ThemeAccess.h"
 #include "KindUI/Tokens/DesignToken.h"
 #include "KindUI/Theming/StyleRole.h"
 #include "KindUI/Core/Icon.h"
@@ -546,12 +548,15 @@ void ToolsPanel::Paint(PaintContext& context) {
         const float uiScale = (std::max)(1.0f, we::runtime::kindui::DPIContext::GetScale());
         const float labelFontSize = ThemeMetric(MetricToken::TextSizeBody) * uiScale;
         const float rowH = PanelChrome::ListRowHeight();
-        context.DrawShadow(m_ContextMenuRect, ThemeColor(ColorToken::ShadowPopup), 3.0f, 8.0f);
+        we::runtime::kindui::ControlChrome::PaintPopupShadow(context, m_ContextMenuRect);
         context.DrawRoundedRect(m_ContextMenuRect, ThemeColor(ColorToken::PopupBackground), ThemeMetric(MetricToken::CornerRadiusSmall));
         for (size_t i = 0; i < m_ContextMenuItems.size(); ++i) {
             const auto& item = m_ContextMenuItems[i];
             if (static_cast<int>(i) == m_ContextMenuHovered) {
-                context.DrawRect(item.geometry, ThemeColor(ColorToken::HoverBackground));
+                context.DrawRect(
+                    item.geometry,
+                    we::runtime::kindui::ResolveInteractiveBackground(
+                        1.0f, 0.0f, false, ColorToken::PopupBackground));
             }
             context.DrawText(item.label,
                 Point{ item.geometry.x + PanelChrome::PanelPaddingH(), item.geometry.y + (rowH - labelFontSize) * 0.5f },
