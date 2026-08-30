@@ -33,6 +33,61 @@ KINDUI_API void PaintElevation(
     int elevation,
     float radius);
 
+KINDUI_API void PaintPopupShadow(PaintContext& context, const Rect& rect, float radius = 4.0f);
+
+KINDUI_API void PaintInteractiveFill(
+    PaintContext& context,
+    const Rect& rect,
+    float radius,
+    float hoverAnim,
+    float pressAnim,
+    bool selected,
+    ColorToken surfaceToken = ColorToken::PanelBackground);
+
+/// Soft drop shadow for raised controls (buttons, chips).
+KINDUI_API void PaintSubtleDropShadow(
+    PaintContext& context,
+    const Rect& rect,
+    float radius,
+    float strength = 1.0f);
+
+/// Top/left highlight + bottom/right shade for a raised 3D control face.
+KINDUI_API void PaintRaisedBevel(
+    PaintContext& context,
+    const Rect& rect,
+    float radius,
+    float strength = 1.0f);
+
+/// Top inner shadow + bottom inner highlight for recessed inputs.
+KINDUI_API void PaintInsetBevel(
+    PaintContext& context,
+    const Rect& rect,
+    float radius,
+    float strength = 1.0f);
+
+/// Soft outer edge depth for panels, cards, and region borders.
+KINDUI_API void PaintSubtleBorderDepth(
+    PaintContext& context,
+    const Rect& rect,
+    float radius,
+    float strength = 1.0f);
+
+/// UE Slate toolbar/panel button edge — top highlight + bottom shade.
+KINDUI_API void PaintSlateButtonBevel(
+    PaintContext& context,
+    const Rect& rect,
+    float strength = 1.0f);
+
+/// Raised 3D face for in-panel buttons and tabs (shadow, border, bevel).
+KINDUI_API void PaintPanelButtonFace(
+    PaintContext& context,
+    const Rect& rect,
+    const Color& background,
+    float radius,
+    float hoverAnim = 0.0f,
+    float pressAnim = 0.0f,
+    bool emphasized = false);
+
 KINDUI_API void PaintFocusRing(
     PaintContext& context,
     const Rect& rect,

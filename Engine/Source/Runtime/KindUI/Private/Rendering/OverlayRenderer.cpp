@@ -2,6 +2,7 @@
 
 #include "KindUI/Rendering/IconRenderer.h"
 #include "KindUI/Profiling/UiColorDebug.h"
+#include "KindUI/Core/ColorSpace.h"
 #include "KindUI/Rendering/Icons/IconManager.h"
 #include "KindUI/Rendering/TextUIService.h"
 #include "KindUI/Rendering/UIWidgetAdapter.h"
@@ -30,6 +31,7 @@ namespace {
     const std::vector<UIVertex2>& vertices,
     const std::vector<uint32_t>& indices,
     const std::vector<UIRenderBatch>& batches,
+    we::rhi::Format targetFormat,
     uint32_t width,
     uint32_t height)
 {
@@ -42,7 +44,10 @@ namespace {
         const auto& src = vertices[i];
         std::memcpy(dst.position, src.position, sizeof(dst.position));
         std::memcpy(dst.uv, src.uv, sizeof(dst.uv));
-        std::memcpy(dst.color, src.color, sizeof(dst.color));
+        ColorSpace::WriteGpuVertexColorForTarget(
+            targetFormat,
+            Color{src.color[0], src.color[1], src.color[2], src.color[3]},
+            dst.color);
         std::memcpy(dst.sdfRect, src.sdfRect, sizeof(dst.sdfRect));
         std::memcpy(dst.sdfParams, src.sdfParams, sizeof(dst.sdfParams));
     }
@@ -253,8 +258,11 @@ void OverlayRenderer::EndOverlayPass(const we::runtime::uigfx::OverlayRenderCont
     params.imageIndex = context.imageIndex;
 
     m_UIImmediate->BeginFrame(params);
+    const we::rhi::Format targetFormat = context.targetFormat != we::rhi::Format::Unknown
+        ? context.targetFormat
+        : m_SwapchainFormat;
     m_UIImmediate->SubmitDrawList(
-        BuildDrawList(m_Vertices, m_Indices, m_Batches, m_CurrentWidth, m_CurrentHeight),
+        BuildDrawList(m_Vertices, m_Indices, m_Batches, targetFormat, m_CurrentWidth, m_CurrentHeight),
         m_ActiveFrameSlot,
         m_GeometryGeneration);
     UiInputLatencyAudit::Get().OnRenderSubmit();

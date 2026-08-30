@@ -22,7 +22,8 @@ using ::we::editor::extensions::UIExtensionRegistry;
 struct DockLayoutBuildResult {
     std::shared_ptr<Widget> root;
     std::shared_ptr<Splitter> mainHorizontalSplitter;
-    std::shared_ptr<Splitter> leftCenterSplitter;
+    std::shared_ptr<Splitter> rootVerticalSplitter;
+    std::shared_ptr<Splitter> leftCenterSplitter; // legacy alias
     std::shared_ptr<Splitter> toolsViewportSplitter;
     std::shared_ptr<Splitter> rightVerticalSplitter;
     std::shared_ptr<DockContainer> toolsDock;

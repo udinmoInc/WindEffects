@@ -1,6 +1,8 @@
 #include "PropertyEditor/PropertyEditorSession.h"
 #include "PropertyEditor/IDetailsView.h"
+#include "PropertyEditorInternal.h"
 
+#include "WindEffects/Editor/UI/Widgets/Panel.h"
 #include "KindUI/Core/DPIContext.h"
 #include "KindUI/Core/Icon.h"
 #include "KindUI/Core/LayoutMetrics.h"
@@ -19,7 +21,6 @@ namespace detail {
 namespace {
 
 using we::runtime::kindui::Column;
-using we::runtime::kindui::MakeColumn;
 using we::runtime::kindui::MouseButton;
 using we::runtime::kindui::MouseEvent;
 using we::runtime::kindui::PaintContext;
@@ -33,6 +34,7 @@ namespace Layout = we::runtime::kindui::LayoutMetrics;
 namespace PanelChrome = we::runtime::kindui::PropertyPanelChrome;
 using we::runtime::kindui::ResolveMetric;
 using we::runtime::kindui::MetricToken;
+using ::we::editor::panels::Panel;
 
 class SelectedObjectHeaderWidget final : public Widget {
 public:
@@ -157,15 +159,11 @@ private:
 
 } // namespace
 
-std::shared_ptr<Widget> CreateDetailsPanelInterior(
+void PopulateDetailsPanelRegions(
+    const std::shared_ptr<Panel>& panel,
     const std::shared_ptr<Widget>& propertyList,
     IDetailsView* details)
 {
-    auto column = MakeColumn();
-    column->SetFlexGrow(1.0f);
-    column->SetFlexShrink(1.0f);
-    column->Gap(0.0f);
-
     auto header = std::make_shared<SelectedObjectHeaderWidget>();
     header->SetDetails(details);
     header->SetFlexShrink(0.0f);
@@ -188,13 +186,10 @@ std::shared_ptr<Widget> CreateDetailsPanelInterior(
         propertyList->SetFlexShrink(1.0f);
     }
 
-    column->AddChild(header);
-    column->AddChild(search);
-    column->AddChild(tabs);
-    if (propertyList) {
-        column->AddChild(propertyList);
-    }
-    return column;
+    panel->SetModeTabs(header);
+    panel->SetSearch(search);
+    panel->SetToolbar(tabs);
+    panel->SetContent(propertyList);
 }
 
 } // namespace detail

@@ -2,8 +2,10 @@
 #include "FirstRunAgreementPopup.h"
 #include "FirstRunAgreementInternal.h"
 #include "Core/EditorConfigPaths.h"
+#include "KindUI/Core/ControlChrome.h"
 #include "KindUI/Core/Icon.h"
 #include "KindUI/Core/PaintContext.h"
+#include "KindUI/Theming/ThemeAccess.h"
 #include "KindUI/Tokens/DesignToken.h"
 #include "KindUI/Theming/StyleRole.h"
 #include "KindUI/Core/DPIContext.h"
@@ -115,10 +117,9 @@ void FirstRunAgreementPopup::Arrange(const we::runtime::kindui::Rect& allottedRe
 
 void FirstRunAgreementPopup::Paint(we::runtime::kindui::PaintContext& context) {
     // Background overlay - cover entire viewport
-    context.DrawRect(m_Geometry, we::runtime::kindui::Color{ 0.0f, 0.0f, 0.0f, 0.65f });
-    
-    // Dialog shadow and background
-    context.DrawShadow(m_DialogRect, we::runtime::kindui::Color{ 0.0f, 0.0f, 0.0f, 0.40f }, 16.0f, 24.0f);
+    context.DrawRect(m_Geometry, ThemeColor(ColorToken::ModalScrim));
+
+    we::runtime::kindui::ControlChrome::PaintPopupShadow(context, m_DialogRect, 8.0f);
     context.DrawRoundedRect(m_DialogRect, ThemeColor(ColorToken::PanelBackground), 8.0f);
     context.DrawRoundedRectOutline(m_DialogRect, ThemeColor(ColorToken::BorderDefault), 1.0f, 8.0f);
     
@@ -161,11 +162,16 @@ void FirstRunAgreementPopup::Paint(we::runtime::kindui::PaintContext& context) {
     // Scrollbar
     UpdateScrollbarGeometry();
     if (m_TotalDocumentHeight > m_ContentRect.height + 1.0f) {
-        const float trackAlpha = m_Scrollbar.hovering ? 0.15f : 0.08f;
-        const float thumbAlpha = (m_Scrollbar.hovering || m_Scrollbar.dragging) ? 0.50f : 0.30f;
-        
-        context.DrawRoundedRect(m_Scrollbar.track, we::runtime::kindui::Color{ 1.0f, 1.0f, 1.0f, trackAlpha }, 4.0f);
-        context.DrawRoundedRect(m_Scrollbar.thumb, we::runtime::kindui::Color{ 1.0f, 1.0f, 1.0f, thumbAlpha }, 4.0f);
+        context.DrawRoundedRect(
+            m_Scrollbar.track,
+            ThemeColor(ColorToken::ScrollbarTrack),
+            4.0f);
+        context.DrawRoundedRect(
+            m_Scrollbar.thumb,
+            ThemeColor(m_Scrollbar.hovering || m_Scrollbar.dragging
+                ? ColorToken::ScrollbarThumbHover
+                : ColorToken::ScrollbarThumb),
+            4.0f);
     }
     
     // Footer hint text
@@ -176,11 +182,28 @@ void FirstRunAgreementPopup::Paint(we::runtime::kindui::PaintContext& context) {
     
     // Buttons
     auto paintButton = [&](const ButtonState& button, bool primary) {
-        we::runtime::kindui::Color bg = primary ? ThemeColor(ColorToken::AccentPrimary) : ThemeColor(ColorToken::HoverBackground);
-        if (!button.hovered) bg.a *= 0.85f;
-        if (button.pressed) bg = we::runtime::kindui::Color::Lerp(bg, ThemeColor(ColorToken::PressedBackground), 0.45f);
-        context.DrawRoundedRect(button.rect, bg, 4.0f);
-        context.DrawRoundedRectOutline(button.rect, ThemeColor(ColorToken::BorderDefault), 1.0f, 4.0f);
+        const float radius = 4.0f;
+        const float hoverAnim = button.hovered ? 1.0f : 0.0f;
+        const float pressAnim = button.pressed ? 1.0f : 0.0f;
+        if (primary) {
+            we::runtime::kindui::Color bg = ThemeColor(ColorToken::AccentPrimary);
+            if (pressAnim > 0.01f) {
+                bg = ThemeColor(ColorToken::ButtonPrimaryPressed);
+            } else if (hoverAnim > 0.01f) {
+                bg = ThemeColor(ColorToken::ButtonPrimaryHover);
+            }
+            context.DrawRoundedRect(button.rect, bg, radius);
+        } else {
+            we::runtime::kindui::ControlChrome::PaintInteractiveFill(
+                context,
+                button.rect,
+                radius,
+                hoverAnim,
+                pressAnim,
+                false,
+                ColorToken::PanelBackground);
+        }
+        context.DrawRoundedRectOutline(button.rect, ThemeColor(ColorToken::BorderDefault), 1.0f, radius);
         
         const float iconSize = 13.0f * m_DpiScale;
         const float textGap = button.iconName.empty() ? 0.0f : 6.0f * m_DpiScale;
@@ -188,7 +211,9 @@ void FirstRunAgreementPopup::Paint(we::runtime::kindui::PaintContext& context) {
         const float tw = context.GetTextWidth(button.label, fontSize);
         const float contentW = tw + (button.iconName.empty() ? 0.0f : iconSize + textGap);
         float contentX = button.rect.x + (button.rect.width - contentW) * 0.5f;
-        const we::runtime::kindui::Color textColor = primary ? we::runtime::kindui::Color{ 0.10f, 0.10f, 0.10f, 1.0f } : ThemeColor(ColorToken::TextPrimary);
+        const we::runtime::kindui::Color textColor = primary
+            ? ThemeColor(ColorToken::TextOnAccent)
+            : ThemeColor(ColorToken::TextPrimary);
         
         if (!button.iconName.empty()) {
             we::runtime::kindui::IconPainter::DrawIcon(context, button.iconName,

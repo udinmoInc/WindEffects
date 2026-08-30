@@ -3,12 +3,13 @@
 #include "KindUI/Core/LayoutMetrics.h"
 #include "ContentBrowser/Widgets/SearchBox.h"
 #include "ContentBrowser/Widgets/ContentBrowser.h"
+#include "KindUI/Core/ControlChrome.h"
 #include "KindUI/Core/PaintContext.h"
 #include "KindUI/Core/Widgets/DesignSystemControls.h"
 #include "KindUI/Core/DPIContext.h"
 #include "KindUI/Rendering/IconMetrics.h"
 #include "KindUI/Theming/ThemeAccess.h"
-#include "KindUI/Theming/ThemeColors.h"
+#include "KindUI/Theming/ThemeAccess.h"
 #include "KindUI/Tokens/DesignToken.h"
 #include "KindUI/Theming/StyleRole.h"
 #include "KindUI/Core/Icon.h"
@@ -42,22 +43,31 @@ namespace {
 void PaintToolbarButtonChrome(PaintContext& context, const Rect& rect, float hoverAnim, float pressAnim,
     bool selected, bool primary)
 {
-    Color bg = we::runtime::kindui::ResolveInteractiveBackground(hoverAnim, pressAnim, selected);
-
     const float radius = we::runtime::kindui::ResolveMetric(MetricToken::CornerRadiusSmall);
-    if (bg.a > 0.01f) {
-        context.DrawRoundedRect(rect, bg, radius);
-    }
+    we::runtime::kindui::ControlChrome::PaintInteractiveFill(
+        context,
+        rect,
+        radius,
+        hoverAnim,
+        pressAnim,
+        selected,
+        ColorToken::PanelBackground);
 
     if (primary) {
-        Color border = we::runtime::kindui::ResolveColor(ColorToken::AccentPrimary);
-        border.a = 0.55f + hoverAnim * 0.2f;
-        context.DrawRoundedRectOutline(rect, border, we::runtime::kindui::ResolveMetric(MetricToken::BorderWidth), radius);
-        Color fill = we::runtime::kindui::ResolveColor(ColorToken::AccentPrimary);
-        fill.a = 0.08f + hoverAnim * 0.06f;
-        context.DrawRoundedRect(rect, fill, radius);
+        context.DrawRoundedRectOutline(
+            rect,
+            we::runtime::kindui::ResolveColor(ColorToken::AccentPrimary),
+            we::runtime::kindui::ResolveMetric(MetricToken::BorderWidth),
+            radius);
     } else if (selected) {
-        context.DrawRoundedRectOutline(rect, we::runtime::kindui::ResolveColor(ColorToken::PressedBackground), we::runtime::kindui::ResolveMetric(MetricToken::BorderWidth), radius);
+        context.DrawRoundedRectOutline(
+            rect,
+            we::runtime::kindui::ResolveColor(ColorToken::PressedBackground),
+            we::runtime::kindui::ResolveMetric(MetricToken::BorderWidth),
+            radius);
+    } else if (hoverAnim > 0.01f || pressAnim > 0.01f) {
+        const float bevelStrength = std::max(0.35f, 1.0f - pressAnim * 0.75f);
+        we::runtime::kindui::ControlChrome::PaintSlateButtonBevel(context, rect, bevelStrength);
     }
 }
 
@@ -128,7 +138,7 @@ Size ToolbarLabeledButton::Measure(const Size& availableSize) {
     float width = m_HorizontalPadding * 2.0f;
     if (!m_IconName.empty()) width += ThemeMetric(MetricToken::IconSizeToolbar) + ThemeMetric(MetricToken::Space1) + 1.0f;
     width += static_cast<float>(m_Label.size()) * 7.2f;
-    if (m_ShowChevron) width += ThemeMetric(MetricToken::Space2) + IconMetrics::CompactDisplayPx();
+    if (m_ShowChevron) width += ThemeMetric(MetricToken::Space2) + static_cast<float>(IconMetrics::CompactGlyphTierPx());
     m_DesiredSize = Size{ width, ThemeMetric(MetricToken::ButtonHeight) };
     return m_DesiredSize;
 }
@@ -171,11 +181,12 @@ void ToolbarLabeledButton::Paint(PaintContext& context) {
     context.DrawText(m_Label, Point{ x, textY }, textColor, textSize, m_Variant == Variant::Primary);
 
     if (m_ShowChevron) {
-        const float display = IconMetrics::CompactDisplayPx();
-        const float chevronX = m_Geometry.x + m_Geometry.width - hPad - display;
-        const float centerY = m_Geometry.y + m_Geometry.height * 0.5f;
-        Rect chevronControl{ chevronX, centerY - display * 0.5f, display, display };
-            IconPainter::DrawCompactIcon(context, Icons::ChevronDownName, chevronControl,
+        const float tier = static_cast<float>(IconMetrics::CompactGlyphTierPx());
+        const float chevronX = m_Geometry.x + m_Geometry.width - hPad - tier;
+        IconPainter::DrawCompactIcon(
+            context,
+            Icons::ChevronDownName,
+            IconMetrics::CompactGlyphBand(m_Geometry, chevronX),
             ResolveIconColor(IconColorRole::Secondary, m_HoverAnim, m_PressAnim));
     }
 }

@@ -4,6 +4,7 @@
 #include "KindUI/Core/PropertyPanelChrome.h"
 #include "WindEffects/Editor/UI/Panel/PanelChrome.h"
 #include "KindUI/Tokens/DesignToken.h"
+#include "KindUI/Theming/StyleRole.h"
 #include "KindUI/Theming/ThemeAccess.h"
 #include "KindUI/Core/DPIContext.h"
 #include "KindUI/Core/Icon.h"
@@ -17,13 +18,17 @@ namespace {
 
 using we::runtime::kindui::Color;
 using we::runtime::kindui::ColorToken;
+namespace ControlChrome = we::runtime::kindui::ControlChrome;
 using we::runtime::kindui::MetricToken;
 using we::runtime::kindui::PaintContext;
 using we::runtime::kindui::Point;
 using we::runtime::kindui::Rect;
-using we::runtime::kindui::ResolveColor;
+using we::runtime::kindui::ResolvedStyle;
+using we::runtime::kindui::StyleRole;
+using we::runtime::kindui::ResolveInteractiveBackground;
 using we::runtime::kindui::ResolveMetric;
 namespace PanelChromeNs = we::editor::panels::PanelChrome;
+
 namespace PropertyPanelChrome = we::runtime::kindui::PropertyPanelChrome;
 
 float UiScale() {
@@ -97,10 +102,16 @@ void PaintChip(
     Color bg = ResolveColor(ColorToken::ControlBackground);
     if (selected) {
         bg = Color::Lerp(bg, ResolveColor(ColorToken::AccentPrimary), 0.35f);
-    } else if (hoverAnim > 0.01f) {
-        bg = Color::Lerp(bg, ResolveColor(ColorToken::HoverBackground), hoverAnim);
+    } else {
+        const Color interactive = ResolveInteractiveBackground(hoverAnim, 0.0f, false, ColorToken::ControlBackground);
+        if (interactive.a > 0.001f) {
+            bg = interactive;
+        }
     }
     context.DrawRoundedRect(bounds, bg, radius);
+    const float bevelStrength = std::max(0.15f, 1.0f - hoverAnim * 0.2f);
+    ControlChrome::PaintSubtleDropShadow(context, bounds, radius, bevelStrength * 0.65f);
+    ControlChrome::PaintRaisedBevel(context, bounds, radius, bevelStrength);
     if (selected || hoverAnim > 0.01f) {
         context.DrawRoundedRectOutline(
             bounds,
@@ -147,21 +158,10 @@ void PaintField(
     bool focused,
     bool hovered)
 {
-    const float radius = ResolveMetric(MetricToken::CornerRadiusSmall) * UiScale();
-    Color bg = ResolveColor(ColorToken::InputBackground);
-    if (focused) {
-        bg = Color::Lerp(bg, ResolveColor(ColorToken::AccentPrimary), 0.12f);
-    } else if (hovered) {
-        bg = Color::Lerp(bg, ResolveColor(ColorToken::HoverBackground), 0.5f);
-    }
-    context.DrawRoundedRect(bounds, bg, radius);
-    if (focused || hovered) {
-        context.DrawRoundedRectOutline(
-            bounds,
-            focused ? ResolveColor(ColorToken::BorderFocus) : ResolveColor(ColorToken::BorderSubtle),
-            1.f,
-            radius);
-    }
+    ControlChrome::InteractionState state{};
+    state.focused = focused;
+    state.hoverAnim = hovered ? 1.0f : 0.0f;
+    ControlChrome::PaintInputFrame(context, bounds, state);
     const float fontSize = ResolveMetric(MetricToken::TextSizeCaption) * UiScale();
     context.DrawText(
         std::string(value),
@@ -185,8 +185,8 @@ void PaintToggle(
     const Rect track{trackX, trackY, trackW, trackH};
     Color trackColor = on ? ResolveColor(ColorToken::AccentPrimary)
                           : ResolveColor(ColorToken::ControlBackground);
-    if (hoverAnim > 0.01f && !on) {
-        trackColor = Color::Lerp(trackColor, ResolveColor(ColorToken::HoverBackground), hoverAnim);
+    if (!on && hoverAnim > 0.01f) {
+        trackColor = ResolveInteractiveBackground(hoverAnim, 0.0f, false, ColorToken::ControlBackground);
     }
     context.DrawRoundedRect(track, trackColor, trackH * 0.5f);
     const float knob = trackH - 4.f;
@@ -213,9 +213,12 @@ void PaintPrimaryButton(
 {
     const float radius = ResolveMetric(MetricToken::CornerRadiusSmall) * UiScale();
     Color bg = ResolveColor(ColorToken::ButtonPrimaryBackground);
-    bg = Color::Lerp(bg, ResolveColor(ColorToken::ButtonPrimaryHover), hoverAnim);
-    bg = Color::Lerp(bg, ResolveColor(ColorToken::ButtonPrimaryPressed), pressAnim);
-    context.DrawRoundedRect(bounds, bg, radius);
+    if (pressAnim > 0.01f) {
+        bg = Color::Lerp(bg, ResolveColor(ColorToken::ButtonPrimaryPressed), pressAnim);
+    } else if (hoverAnim > 0.01f) {
+        bg = Color::Lerp(bg, ResolveColor(ColorToken::ButtonPrimaryHover), hoverAnim);
+    }
+    ControlChrome::PaintPanelButtonFace(context, bounds, bg, radius, hoverAnim, pressAnim, true);
     const float fontSize = ResolveMetric(MetricToken::TextSizeBody) * UiScale();
     const float textW = context.GetTextWidth(std::string(label), fontSize, true);
     context.DrawText(
@@ -235,11 +238,11 @@ void PaintSecondaryButton(
 {
     const float radius = ResolveMetric(MetricToken::CornerRadiusSmall) * UiScale();
     Color bg = ResolveColor(ColorToken::ControlBackground);
-    bg = Color::Lerp(bg, ResolveColor(ColorToken::HoverBackground), hoverAnim * 0.7f + pressAnim * 0.3f);
-    context.DrawRoundedRect(bounds, bg, radius);
-    if (hoverAnim > 0.01f || pressAnim > 0.01f) {
-        context.DrawRoundedRectOutline(bounds, ResolveColor(ColorToken::BorderSubtle), 1.f, radius);
+    const float mix = hoverAnim * 0.7f + pressAnim * 0.3f;
+    if (mix > 0.01f) {
+        bg = Color::Lerp(bg, ResolveColor(ColorToken::HoverBackground), mix);
     }
+    ControlChrome::PaintPanelButtonFace(context, bounds, bg, radius, hoverAnim, pressAnim, false);
     const float fontSize = ResolveMetric(MetricToken::TextSizeCaption) * UiScale();
     const float textW = context.GetTextWidth(std::string(label), fontSize, false);
     context.DrawText(
@@ -258,10 +261,10 @@ void PaintDangerButton(
     float pressAnim)
 {
     const float radius = ResolveMetric(MetricToken::CornerRadiusSmall) * UiScale();
-    Color bg = ResolveColor(ColorToken::ButtonDangerBackground);
-    bg = Color::Lerp(bg, ResolveColor(ColorToken::ButtonDangerHover), hoverAnim);
-    bg = Color::Lerp(bg, ResolveColor(ColorToken::ButtonDangerPressed), pressAnim);
-    context.DrawRoundedRect(bounds, bg, radius);
+    ControlChrome::InteractionState state{hoverAnim, pressAnim, false, false, false};
+    ResolvedStyle base = ControlChrome::Role(StyleRole::ButtonDanger);
+    base.cornerRadius = radius;
+    ControlChrome::PaintDangerButton(context, bounds, base, state);
     const float fontSize = ResolveMetric(MetricToken::TextSizeCaption) * UiScale();
     const float textW = context.GetTextWidth(std::string(label), fontSize, true);
     context.DrawText(

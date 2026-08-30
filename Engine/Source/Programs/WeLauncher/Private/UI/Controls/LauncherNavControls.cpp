@@ -12,6 +12,7 @@
 #include "Platform/Events.h"
 #include "Platform/PlatformSDK.h"
 #include "KindUI/Theming/ThemeManager.h"
+#include "KindUI/Theming/ThemeAccess.h"
 #include "KindUI/Tokens/DesignToken.h"
 #include "KindUI/Theming/StyleRole.h"
 #include <algorithm>
@@ -133,16 +134,16 @@ void NavSidebar::Paint(PaintContext& context) {
             bg.a *= std::max(item.selectAnim, active ? 1.0f : 0.0f);
             context.DrawRoundedRect(r, bg, radius);
         } else if (item.hoverAnim > 0.01f) {
-            Color bg = LColor(ColorToken::HoverBackground);
-            bg.a *= item.hoverAnim;
+            const Color bg = ResolveInteractiveBackground(
+                item.hoverAnim, 0.0f, false, ColorToken::WindowBackground);
             context.DrawRoundedRect(r, bg, radius);
         }
 
         const Color fg = active
-            ? Color{ 1.0f, 1.0f, 1.0f, 1.0f }
+            ? LColor(ColorToken::TextOnAccent)
             : LColor(ColorToken::TextSecondary);
         const Color iconColor = active
-            ? Color{ 1.0f, 1.0f, 1.0f, 1.0f }
+            ? LColor(ColorToken::TextOnAccent)
             : LColor(ColorToken::IconSecondary);
 
         const float iconSize = kLauncherIconPx * s;
@@ -447,7 +448,11 @@ void SegmentedControl::Paint(PaintContext& context) {
         } else if (m_HoverAnims[static_cast<std::size_t>(i)] > 0.01f) {
             context.DrawRoundedRect(
                 r,
-                Color::Lerp(Color::Transparent(), LColor(ColorToken::HoverBackground), m_HoverAnims[static_cast<std::size_t>(i)]),
+                ResolveInteractiveBackground(
+                    m_HoverAnims[static_cast<std::size_t>(i)],
+                    0.0f,
+                    false,
+                    ColorToken::InputBackground),
                 radius - 1.0f);
         }
 

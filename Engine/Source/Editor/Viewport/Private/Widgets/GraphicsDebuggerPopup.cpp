@@ -1,6 +1,7 @@
 #include "Widgets/GraphicsDebuggerPopup.h"
 #include "EditorCamera.h"
 #include "Scene/Scene.h"
+#include "KindUI/Core/ControlChrome.h"
 #include "KindUI/Core/PaintContext.h"
 #include "KindUI/Input/InputEvents.h"
 #include "KindUI/Theming/ThemeAccess.h"
@@ -103,7 +104,7 @@ void GraphicsDebuggerPopup::Paint(PaintContext& context) {
     if (!m_Visible) {
         return;
     }
-    context.DrawShadow(m_Geometry, ThemeColor(ColorToken::ContentBrowserFolderShadow), 6.0f, 12.0f);
+    we::runtime::kindui::ControlChrome::PaintPopupShadow(context, m_Geometry, 6.0f);
     context.DrawRoundedRect(m_Geometry, ThemeColor(ColorToken::PopupBackground), ResolveMetric(MetricToken::CornerRadiusSmall));
     context.DrawRoundedRectOutline(m_Geometry, ThemeColor(ColorToken::BorderDefault), 1.0f, ResolveMetric(MetricToken::CornerRadiusSmall));
     context.DrawRect(m_HeaderRect, ThemeColor(ColorToken::HeaderBackground));

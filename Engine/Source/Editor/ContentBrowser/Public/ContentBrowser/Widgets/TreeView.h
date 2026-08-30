@@ -90,8 +90,15 @@ public:
     // Styling
     void SetItemHeight(float height);
     void SetIndentWidth(float width);
-    void SetExplorerStyle(bool enabled) { m_ExplorerStyle = enabled; if (enabled) m_Style.text.size = 13.0f; }
+    void SetExplorerStyle(bool enabled) {
+        m_ExplorerStyle = enabled;
+        if (enabled) {
+            m_Style.text.size = 13.0f;
+        }
+        m_PaintNavigationBackground = true;
+    }
     void SetShowColumnHeader(bool show) { m_ShowColumnHeader = show; InvalidateLayout(); }
+    void SetPaintNavigationBackground(bool paint) { m_PaintNavigationBackground = paint; }
     void SetShowRowControls(bool show) { m_ShowRowControls = show; }
     size_t GetRenderItemCount() const { return m_RenderList.size(); }
 
@@ -173,6 +180,7 @@ private:
     bool m_ExplorerStyle = false;
     bool m_ShowColumnHeader = true;
     bool m_ShowRowControls = true;
+    bool m_PaintNavigationBackground = true;
 
     std::string m_RenamingId;
     std::string m_RenameBuffer;

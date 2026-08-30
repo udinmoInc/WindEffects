@@ -39,7 +39,7 @@ void TreeColumnHeader::Paint(PaintContext& context) {
     const float headerTextSize = ThemeMetric(MetricToken::TextSizeCaption) * uiScale;
     const float headerTextY = m_Geometry.y + (m_Geometry.height - headerTextSize) * 0.5f;
 
-    const float eyeX = m_Geometry.x + ThemeMetric(MetricToken::Space2) * uiScale;
+    const float eyeX = m_Geometry.x + 8.0f * uiScale;
     Rect eyeBand{ eyeX, m_Geometry.y, glyphTier, m_Geometry.height };
     IconPainter::DrawIcon(
         context,
@@ -47,7 +47,7 @@ void TreeColumnHeader::Paint(PaintContext& context) {
         IconMetrics::PlaceGlyphCentered(eyeBand, glyphTier),
         ThemeColor(ColorToken::TextSecondary));
 
-    const float lockX = m_Geometry.x + ThemeMetric(MetricToken::Space6) * uiScale;
+    const float lockX = m_Geometry.x + 28.0f * uiScale;
     Rect lockBand{ lockX, m_Geometry.y, glyphTier, m_Geometry.height };
     IconPainter::DrawIcon(
         context,
@@ -55,7 +55,7 @@ void TreeColumnHeader::Paint(PaintContext& context) {
         IconMetrics::PlaceGlyphCentered(lockBand, glyphTier),
         ThemeColor(ColorToken::TextSecondary));
 
-    const float labelX = m_Geometry.x + ThemeMetric(MetricToken::Space6) * 3.0f * uiScale;
+    const float labelX = m_Geometry.x + 48.0f * uiScale;
     context.DrawText(
         "Item Label",
         Point{ labelX, headerTextY },

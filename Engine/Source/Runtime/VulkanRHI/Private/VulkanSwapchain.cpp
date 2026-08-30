@@ -129,13 +129,22 @@ RHIResult<void> VulkanSwapchain::Rebuild() {
         m_Device->GetVkPhysicalDevice(), m_Surface, &presentModeCount, presentModes.data());
 
     VkSurfaceFormatKHR surfaceFormat = formats.empty()
-        ? VkSurfaceFormatKHR{VK_FORMAT_B8G8R8A8_UNORM, VK_COLOR_SPACE_SRGB_NONLINEAR_KHR}
+        ? VkSurfaceFormatKHR{VK_FORMAT_B8G8R8A8_SRGB, VK_COLOR_SPACE_SRGB_NONLINEAR_KHR}
         : formats[0];
     for (const auto& available : formats) {
-        if (available.format == VK_FORMAT_R8G8B8A8_UNORM
+        if (available.format == VK_FORMAT_B8G8R8A8_SRGB
             && available.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR) {
             surfaceFormat = available;
             break;
+        }
+    }
+    if (surfaceFormat.format != VK_FORMAT_B8G8R8A8_SRGB) {
+        for (const auto& available : formats) {
+            if (available.format == VK_FORMAT_R8G8B8A8_SRGB
+                && available.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR) {
+                surfaceFormat = available;
+                break;
+            }
         }
     }
 

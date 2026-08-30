@@ -18,8 +18,8 @@ inline std::string ResolvePanelTabIconName(std::string_view iconResource) {
     static const std::unordered_map<std::string, const char*> kPanelTabIcons = {
         {"tools-panel", Icons::LayersName},
         {"viewport", Icons::PerspectiveName},
-        {"outliner", Icons::HierarchyName},
-        {"details", Icons::PropertiesName},
+        {"outliner", Icons::ContentBrowserName},
+        {"details", Icons::SettingsName},
         {"content-browser", Icons::ContentBrowserName},
         {"output-log", Icons::OutputLogName},
         {"terminal", Icons::TerminalName},

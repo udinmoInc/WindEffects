@@ -6,6 +6,7 @@
 #include "KindUI/Core/EventSystem.h"
 #include "KindUI/Core/Icon.h"
 #include "KindUI/Core/PaintContext.h"
+#include "KindUI/Rendering/IconMetrics.h"
 #include "KindUI/Core/TextMetrics.h"
 #include "KindUI/Core/Widgets/DesignSystemControls.h"
 #include "KindUI/Layout/Flex.h"
@@ -294,10 +295,12 @@ void SettingsDropdown::Paint(PaintContext& context) {
         Point{ trigger.x + 10.0f * s, trigger.y + (triggerH - textSize) * 0.5f },
         InputValueTextColor(),
         textSize);
-    IconPainter::DrawIcon(
+    const float tier = static_cast<float>(IconMetrics::CompactGlyphTierPx());
+    const float chevX = trigger.x + trigger.width - 10.0f * s - tier;
+    IconPainter::DrawCompactIcon(
         context,
         Icons::ChevronDownName,
-        Rect{ trigger.x + trigger.width - 20.0f * s, trigger.y + (triggerH - 12.0f * s) * 0.5f, 12.0f * s, 12.0f * s },
+        IconMetrics::CompactGlyphBand(trigger, chevX),
         LColor(ColorToken::IconSecondary));
 
     if (m_Open) {
@@ -435,7 +438,11 @@ void SettingsSegmented::Paint(PaintContext& context) {
         } else if (m_HoverAnims[static_cast<std::size_t>(i)] > 0.01f) {
             context.DrawRoundedRect(
                 r,
-                Color::Lerp(Color::Transparent(), LColor(ColorToken::HoverBackground), m_HoverAnims[static_cast<std::size_t>(i)]),
+                ResolveInteractiveBackground(
+                    m_HoverAnims[static_cast<std::size_t>(i)],
+                    0.0f,
+                    false,
+                    ColorToken::InputBackground),
                 radius - 1.0f);
         }
         const std::string& label = m_Labels[static_cast<std::size_t>(i)];

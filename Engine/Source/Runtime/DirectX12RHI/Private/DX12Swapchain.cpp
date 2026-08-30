@@ -86,7 +86,7 @@ RHIResult<void> DX12Swapchain::Create(const DeviceDesc& desc) {
     if (m_Extent.height == 0) {
         m_Extent.height = 1;
     }
-    m_Format = Format::B8G8R8A8_UNORM;
+    m_Format = Format::B8G8R8A8_SRGB;
     m_Vsync = desc.vsync;
     m_MaxFrameLatency = MaxFrameLatencyFromEnvironment();
     QueryRefreshRate(hwnd);
@@ -107,7 +107,7 @@ RHIResult<void> DX12Swapchain::Create(const DeviceDesc& desc) {
     DXGI_SWAP_CHAIN_DESC1 scDesc{};
     scDesc.Width = m_Extent.width;
     scDesc.Height = m_Extent.height;
-    scDesc.Format = DXGI_FORMAT_B8G8R8A8_UNORM;
+    scDesc.Format = DXGI_FORMAT_B8G8R8A8_UNORM_SRGB;
     scDesc.SampleDesc.Count = 1;
     scDesc.SampleDesc.Quality = 0;
     scDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
@@ -196,7 +196,7 @@ RHIResult<void> DX12Swapchain::Resize(Extent2D extent) {
     m_Extent.width = extent.width ? extent.width : 1;
     m_Extent.height = extent.height ? extent.height : 1;
 
-    const HRESULT hr = m_Swap->ResizeBuffers(2, m_Extent.width, m_Extent.height, DXGI_FORMAT_B8G8R8A8_UNORM, 0);
+    const HRESULT hr = m_Swap->ResizeBuffers(2, m_Extent.width, m_Extent.height, DXGI_FORMAT_B8G8R8A8_UNORM_SRGB, 0);
     if (FAILED(hr)) {
         return RHIError::Make(RHIErrorCode::BackendFailure, "ResizeBuffers failed.", "Resize", hr);
     }

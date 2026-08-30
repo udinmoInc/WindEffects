@@ -13,15 +13,15 @@ namespace we::editor::panels {
 /// Fixed vertical regions inside a dock panel body (below the tab strip / floating header).
 enum class PanelBodyRegion : std::uint8_t {
     ModeTabs,
-    Search,
     Toolbar,
+    Search,
     ColumnHeader,
     Content,
     Footer,
     Count
 };
 
-/// Shared vertical stack: ModeTabs → Search → Toolbar → ColumnHeader → Content → Footer.
+/// Shared vertical stack: ModeTabs → Toolbar → Search → ColumnHeader → Content → Footer.
 /// Fixed regions use intrinsic DPI-aware heights; Content receives all remaining space.
 class UIFRAMEWORK_API PanelBodyLayout : public we::runtime::kindui::Widget {
 public:

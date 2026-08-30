@@ -98,7 +98,7 @@ bool UiImmediateRenderer::Init(
     }
     m_SwapchainFormat = swapchainFormat != we::rhi::Format::Unknown
         ? swapchainFormat
-        : we::rhi::Format::B8G8R8A8_UNORM;
+        : we::rhi::Format::B8G8R8A8_SRGB;
     m_MaxFramesInFlight = framesInFlight ? framesInFlight : 2;
 
     if (!LoadShaders()) {

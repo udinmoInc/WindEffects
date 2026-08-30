@@ -266,7 +266,7 @@ void CreateTemplateRow::Paint(PaintContext& context) {
 
     Color bg = m_Selected
         ? LColor(ColorToken::SelectedBackground)
-        : Color::Lerp(Color::Transparent(), LColor(ColorToken::HoverBackground), m_HoverAnim);
+        : ResolveInteractiveBackground(m_HoverAnim, 0.0f, false, ColorToken::PanelBackground);
     if (m_Selected || m_HoverAnim > 0.01f) {
         context.DrawRoundedRect(m_Geometry, bg, radius);
     }

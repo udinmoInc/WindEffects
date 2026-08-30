@@ -2,6 +2,9 @@
 
 #include "KindUI/Export.h"
 
+#include <cstddef>
+#include <cstdint>
+
 namespace we::runtime::kindui {
 
 struct Point {
@@ -54,6 +57,7 @@ struct Rect {
 };
 
 struct Color {
+    // sRGB-encoded RGB in 0..1 (UE StyleColors / Hex authoring space). Alpha is linear.
     float r = 1.0f;
     float g = 1.0f;
     float b = 1.0f;
@@ -67,21 +71,53 @@ struct Color {
         return { r * scalar, g * scalar, b * scalar, a * scalar };
     }
 
-    [[nodiscard]] Color Lerp(const Color& other, float t) const {
-        return {
-            r + (other.r - r) * t,
-            g + (other.g - g) * t,
-            b + (other.b - b) * t,
-            a + (other.a - a) * t
-        };
-    }
+    [[nodiscard]] Color Lerp(const Color& other, float t) const;
 
-    static Color Lerp(const Color& a, const Color& b, float t) {
-        return a.Lerp(b, t);
-    }
+    [[nodiscard]] Color ToLinear() const;
+    [[nodiscard]] Color ToSrgb() const;
+
+    static Color Lerp(const Color& a, const Color& b, float t);
 };
+
+namespace detail {
+constexpr uint8_t HexValue(char c) {
+    return (c >= '0' && c <= '9') ? static_cast<uint8_t>(c - '0')
+         : (c >= 'A' && c <= 'F') ? static_cast<uint8_t>(c - 'A' + 10)
+         : (c >= 'a' && c <= 'f') ? static_cast<uint8_t>(c - 'a' + 10)
+         : 0;
+}
+
+constexpr uint8_t HexByte(char hi, char lo) {
+    return static_cast<uint8_t>((HexValue(hi) << 4) | HexValue(lo));
+}
+
+constexpr float HexChannel(uint8_t v) {
+    return static_cast<float>(v) / 255.0f;
+}
+} // namespace detail
+
+// Parse "#RRGGBB" or "#RRGGBBAA" — returns sRGB authoring values (UE StyleColors).
+template <size_t N>
+constexpr Color Hex(const char (&value)[N]) {
+    const size_t start = (value[0] == '#') ? 1u : 0u;
+    const uint8_t r = detail::HexByte(value[start + 0], value[start + 1]);
+    const uint8_t g = detail::HexByte(value[start + 2], value[start + 3]);
+    const uint8_t b = detail::HexByte(value[start + 4], value[start + 5]);
+    float a = 1.0f;
+    if ((N - start) >= 9) {
+        a = detail::HexChannel(detail::HexByte(value[start + 6], value[start + 7]));
+    }
+    return {
+        detail::HexChannel(r),
+        detail::HexChannel(g),
+        detail::HexChannel(b),
+        a
+    };
+}
 
 enum class HorizontalAlignment { Left, Center, Right, Fill };
 enum class VerticalAlignment { Top, Center, Bottom, Fill };
 
 } // namespace we::runtime::kindui
+
+#include "KindUI/Core/ColorSpace.h"

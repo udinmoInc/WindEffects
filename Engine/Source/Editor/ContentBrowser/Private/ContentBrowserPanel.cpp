@@ -181,6 +181,7 @@ std::shared_ptr<::we::editor::panels::Panel> CreateContentBrowserPanel() {
 
     auto folderTree = std::make_shared<::we::editor::contentbrowser::TreeView>();
     folderTree->SetExplorerStyle(false);
+    folderTree->SetPaintNavigationBackground(false);
     folderTree->SetItemHeight(we::runtime::kindui::ResolveMetric(we::runtime::kindui::MetricToken::ListRowHeight));
     folderTree->SetIndentWidth(we::runtime::kindui::ResolveMetric(we::runtime::kindui::MetricToken::TreeIndentWidth));
     folderTree->SetShowRowControls(false);

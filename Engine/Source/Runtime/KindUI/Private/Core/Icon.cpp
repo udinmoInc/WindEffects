@@ -55,10 +55,9 @@ void IconPainter::DrawIcon(PaintContext& context, const std::string& iconName,
 void IconPainter::DrawCompactIcon(PaintContext& context, const std::string& iconName,
                                   const Rect& bounds, const Color& color) {
     const std::string resolved = Icons::ResolveLucideName(iconName);
-    const float displayPx = IconMetrics::CompactDisplayPx();
-    const float atlasTier = static_cast<float>(IconMetrics::CompactSourceTierPx());
-    const Rect drawRect = IconMetrics::PlaceGlyphCentered(bounds, displayPx);
-    context.DrawIcon(resolved, drawRect, color, atlasTier);
+    const uint32_t tierPx = IconMetrics::CompactGlyphTierPx();
+    const Rect drawRect = IconMetrics::PlaceGlyphCentered(bounds, tierPx);
+    context.DrawIcon(resolved, drawRect, color, static_cast<float>(tierPx));
 }
 
 void IconPainter::DrawVerticalMoreMenu(PaintContext& context, const Rect& bounds, const Color& color) {

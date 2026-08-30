@@ -1,6 +1,7 @@
 #include "Widgets/EditorModeSelector.h"
 #include "WindEffects/Editor/UI/Shell/EditorModeController.h"
 #include "WindEffects/Editor/UI/Shell/EditorToolsRegistry.h"
+#include "KindUI/Core/ControlChrome.h"
 #include "KindUI/Core/PaintContext.h"
 #include "KindUI/Tokens/DesignToken.h"
 #include "KindUI/Theming/StyleRole.h"
@@ -59,7 +60,7 @@ public:
     void Arrange(const Rect& allottedRect) override { m_Geometry = allottedRect; }
 
     void Paint(PaintContext& context) override {
-        context.DrawShadow(m_Geometry, ThemeColor(ColorToken::ShadowPopup), 3.0f, 8.0f);
+        we::runtime::kindui::ControlChrome::PaintPopupShadow(context, m_Geometry);
         context.DrawRoundedRect(m_Geometry, ThemeColor(ColorToken::PopupBackground), ThemeMetric(MetricToken::CornerRadiusSmall));
 
         const float rowH = ThemeMetric(MetricToken::ListRowHeight);
@@ -167,7 +168,7 @@ Size EditorModeSelector::Measure(const Size& availableSize) {
     const float padH = ToolbarButtonChrome::HorizontalPad(uiScale);
     const float iconSz = ToolbarButtonChrome::IconSize(uiScale);
     const float iconGap = ToolbarButtonChrome::IconGapPx(uiScale);
-    const float chevW = we::runtime::kindui::IconMetrics::CompactDisplayPx();
+    const float chevW = static_cast<float>(we::runtime::kindui::IconMetrics::CompactGlyphTierPx());
     const float controlH = ToolbarButtonChrome::RowContentHeight(uiScale);
     m_DesiredSize = Size{
         padH + iconSz + iconGap + chevW + padH,
@@ -193,7 +194,7 @@ void EditorModeSelector::Paint(PaintContext& context) {
     const float padH = ToolbarButtonChrome::HorizontalPad(uiScale);
     const float iconSize = ToolbarButtonChrome::IconSize(uiScale);
     const float iconGap = ToolbarButtonChrome::IconGapPx(uiScale);
-    const float chevSize = we::runtime::kindui::IconMetrics::CompactDisplayPx();
+    const float chevSize = static_cast<float>(we::runtime::kindui::IconMetrics::CompactGlyphTierPx());
     Color iconColor = ToolbarButtonChrome::ResolveIconColor(
         m_HoverAnim, pressStrength, false);
 
@@ -208,8 +209,10 @@ void EditorModeSelector::Paint(PaintContext& context) {
         iconColor);
 
     const float chevX = m_Geometry.x + m_Geometry.width - padH - chevSize;
-    we::runtime::kindui::IconPainter::DrawCompactIcon(context, we::runtime::kindui::Icons::ChevronDownName,
-        Rect{ chevX, centerY - chevSize * 0.5f, chevSize, chevSize },
+    we::runtime::kindui::IconPainter::DrawCompactIcon(
+        context,
+        we::runtime::kindui::Icons::ChevronDownName,
+        we::runtime::kindui::IconMetrics::CompactGlyphBand(m_Geometry, chevX),
         iconColor);
 }
 

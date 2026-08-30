@@ -124,7 +124,7 @@ private:
     ComPtr<IDXGISwapChain2> m_Swap2;
     HANDLE m_FrameLatencyWaitable = nullptr;
     Extent2D m_Extent{};
-    Format m_Format = Format::B8G8R8A8_UNORM;
+    Format m_Format = Format::B8G8R8A8_SRGB;
     uint32_t m_Index = 0;
     uint32_t m_RefreshRateHz = 60;
     uint32_t m_MaxFrameLatency = 1;

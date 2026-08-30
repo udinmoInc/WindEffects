@@ -83,4 +83,7 @@ KINDUI_API float IconContentPaddingPx(float uiScale);
 KINDUI_API Rect PlaceGlyphCentered(const Rect& controlBounds, uint32_t tierPx);
 KINDUI_API Rect PlaceGlyphCentered(const Rect& controlBounds, float logicalTierPx);
 
+// Full-height band for compact chevrons — keeps glyphs vertically centered in toolbar rows.
+[[nodiscard]] KINDUI_API Rect CompactGlyphBand(const Rect& controlBounds, float x);
+
 } // namespace we::runtime::kindui::IconMetrics

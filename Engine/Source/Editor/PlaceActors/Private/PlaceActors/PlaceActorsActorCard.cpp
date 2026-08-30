@@ -3,6 +3,7 @@
 #include "PlaceActors/ActorsPanelChrome.h"
 #include "PlaceActors/ActorsPanelLayout.h"
 #include "PlaceActors/PlaceActorsThumbnailProvider.h"
+#include "KindUI/Core/ControlChrome.h"
 #include "KindUI/Theming/ThemeAccess.h"
 #include "KindUI/Tokens/DesignToken.h"
 #include "KindUI/Theming/StyleRole.h"
@@ -55,11 +56,16 @@ void PlaceActorsActorCard::Paint(PaintContext& context,
     const float radius = ActorsPanelLayout::RowRadius();
 
     if (selected) {
-        context.DrawRoundedRect(cardBounds, we::runtime::kindui::ResolveColor(ColorToken::SelectedBackground), radius);
+        context.DrawRoundedRect(cardBounds, we::runtime::kindui::ResolveColor(ColorToken::SelectHoverBackground), radius);
     } else if (hoverAnim > 0.01f || pressAnim > 0.01f) {
-        Color bg = we::runtime::kindui::ResolveColor(ColorToken::HoverBackground);
-        bg.a *= std::clamp(std::max(hoverAnim, pressAnim * 0.85f), 0.0f, 1.0f);
-        context.DrawRoundedRect(cardBounds, bg, radius);
+        we::runtime::kindui::ControlChrome::PaintInteractiveFill(
+            context,
+            cardBounds,
+            radius,
+            hoverAnim,
+            pressAnim,
+            false,
+            ColorToken::SecondarySurface);
     }
 
     PlaceActorsThumbnailProvider::Get().Paint(context, previewBounds, item, hoverAnim);

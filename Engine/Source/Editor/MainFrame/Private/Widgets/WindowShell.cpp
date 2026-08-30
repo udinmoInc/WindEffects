@@ -38,8 +38,6 @@ void WindowShell::Arrange(const Rect& allottedRect) {
 }
 
 void WindowShell::Paint(PaintContext& context) {
-    context.DrawRect(m_Geometry, ThemeColor(ColorToken::WindowBackground));
-
     if (m_Content) {
         m_Content->Paint(context);
     }

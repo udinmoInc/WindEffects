@@ -7,6 +7,7 @@
 #include "Services/ContentBrowserFolderArt.h"
 #include "Services/ContentBrowserBlueprintArt.h"
 #include "WindEffects/Editor/UI/Panel/PanelChrome.h"
+#include "KindUI/Core/ControlChrome.h"
 #include "KindUI/Core/PaintContext.h"
 #include "KindUI/Core/DPIContext.h"
 #include "KindUI/Rendering/IconMetrics.h"
@@ -252,12 +253,16 @@ void ContentBrowser::RequestVisibleThumbnails() {
 
 void ContentBrowser::PaintTileChrome(PaintContext& context, const Rect& cell, bool selected, float hoverAlpha) {
     constexpr float radius = 4.0f;
-
-    // Removed selector box - only show hover effect
+    (void)selected;
     if (hoverAlpha > 0.001f) {
-        Color hoverBg = ThemeColor(ColorToken::HoverBackground);
-        hoverBg.a *= hoverAlpha * 0.65f;
-        context.DrawRoundedRect(cell, hoverBg, radius);
+        we::runtime::kindui::ControlChrome::PaintInteractiveFill(
+            context,
+            cell,
+            radius,
+            hoverAlpha,
+            0.0f,
+            false,
+            ColorToken::SecondarySurface);
     }
 }
 
@@ -390,7 +395,7 @@ void ContentBrowser::PaintListItem(PaintContext& context, const RenderItem& rend
     const bool hovered = item.id == m_HoveredId;
 
     if (selected || hovered) {
-        PanelChrome::PaintListRowBackground(context, renderItem.geometry, hovered, selected);
+        PanelChrome::PaintListRowBackground(context, renderItem.geometry, hovered, selected, IsFocused());
     }
 
     const float iconSize = static_cast<float>(IconMetrics::NativeIconTierPx(ThemeMetric(MetricToken::IconSizeTree)));
@@ -425,7 +430,6 @@ void ContentBrowser::PaintListItem(PaintContext& context, const RenderItem& rend
 }
 
 void ContentBrowser::Paint(PaintContext& context) {
-    PanelChrome::PaintPrimaryContentRegion(context, m_Geometry);
     SyncScrollMetrics();
     UpdateVisibleRange();
 
@@ -813,7 +817,6 @@ void ContentBrowserStatusBar::Arrange(const Rect& allottedRect) {
 }
 
 void ContentBrowserStatusBar::Paint(PaintContext& context) {
-    PanelChrome::PaintFooterRegion(context, m_Geometry);
     const float textSize = ThemeMetric(MetricToken::TextSizeSmall);
     const size_t total = m_AssetCount + m_FolderCount;
     std::string text = std::to_string(total) + " items";
@@ -837,7 +840,7 @@ void Breadcrumb::Arrange(const Rect& allottedRect) {
 }
 
 void Breadcrumb::Paint(PaintContext& context) {
-    context.DrawRect(m_Geometry, ThemeColor(ColorToken::ToolbarBackground));
+    context.DrawRect(m_Geometry, ThemeColor(ColorToken::PanelBackground));
     context.DrawRect(
         Rect{ m_Geometry.x, m_Geometry.y + m_Geometry.height - ThemeMetric(MetricToken::BorderWidth), m_Geometry.width, ThemeMetric(MetricToken::BorderWidth) },
         ThemeColor(ColorToken::Separator));

@@ -11,63 +11,69 @@ namespace we::runtime::kindui {
 // Multiple tokens may share a palette entry when roles intentionally match.
 
 enum class ColorToken : uint32_t {
-    // ── Surfaces (elevation: Window → Panel → Card → Control → Popup) ───────
-    WindowBackground,       // Outermost chrome (#151515)
-    WorkspaceBackground,    // Dock/viewport void (#151515)
-    PanelBackground,        // Panel body fill (#242424)
-    SecondarySurface,       // Recessed secondary panels (#1D1E20)
-    CardBackground,         // Raised cards / popups (#222326)
-    HeaderBackground,       // Panel header / active tab (#1C1D1F)
-    ToolbarBackground,      // Toolbar strips (#1C1D1F)
-    TabBackground,          // Inactive dock tab (#292A2D)
-    InputBackground,        // Text/numeric fields (#141517)
-    ControlBackground,      // Generic control wells (#141517)
-    PopupBackground,        // Dropdowns / menus (#222326)
-    TooltipBackground,      // Tooltips (#222326 @ 97%)
-    DisabledBackground,     // Disabled control fill (#111214)
+    // ── Surfaces (UE5 Slate StyleColors dark defaults) ───────────────────────
+    WindowBackground,       // Title (#151515) — window frame
+    WorkspaceBackground,    // Background (#151515) — dock/viewport void
+    DockChromeBackground,   // Background (#151515) — dock tab strip / splitter chrome
+    PanelBackground,        // Panel (#242424) — panel body
+    TabActiveBackground,    // Panel (#242424) — active dock tab fill
+    SecondarySurface,       // Recessed (#1A1A1A) — tree / grid wells
+    CardBackground,         // Dropdown (#383838) — raised cards
+    HeaderBackground,       // Header (#2F2F2F) — section headers
+    ToolbarBackground,      // Background (#151515) — main toolbar strip
+    TabBackground,          // Background (#151515) — inactive dock tab
+    InputBackground,        // Input (#0F0F0F) — search / property fields
+    ControlBackground,      // Input (#0F0F0F) — generic control wells
+    PopupBackground,        // Dropdown (#383838) — menus / context popups
+    TooltipBackground,      // Tooltips (#383838 @ 97%)
+    DisabledBackground,     // Foldout (#0F0F0F) — disabled control fill
     StatusBarBackground,    // Bottom status bar (#151515)
-    ViewportToolbarBackground, // Floating viewport toolbar (#1C1D1F @ 96%)
-    ScrollbarTrack,         // Scroll gutter (#1A1A1A)
+    ViewportToolbarBackground, // Floating viewport toolbar (opaque chrome)
+    ScrollbarTrack,         // Scroll gutter / recessed (#1A1A1A)
 
     // ── Interaction states ────────────────────────────────────────────────────
     HoverBackground,
     PressedBackground,
-    SelectedBackground,
+    SelectedBackground,     // Select (#0070E0)
+    SelectInactiveBackground, // Select inactive (#40576F)
+    SelectParentBackground,   // Select parent (#2C323A)
+    SelectHoverBackground,    // Select hover (#242424)
     ControlBackgroundHover,
     ControlBackgroundPressed,
     ControlBackgroundDisabled,
     ControlBackgroundSelected,
 
     // ── Borders & separators ──────────────────────────────────────────────────
-    Separator,              // 1px panel edges (#232427)
-    BorderSubtle,           // Subtle panel border (#292A2D)
-    BorderDefault,          // Default control border (#292A2D)
-    BorderLight,            // Emphasized border (#38393C)
-    BorderFocus,            // Focus ring (#38393C)
-    BorderError,            // Validation error (#E05252)
+    Separator,              // WindowBorder (#0F0F0F) — dividers
+    BorderSubtle,           // InputOutline (#383838) — input / recessed edges
+    BorderDefault,          // InputOutline (#383838) — general control borders
+    BorderLight,            // DropdownOutline (#4C4C4C) — raised / popup edges
+    BorderFocus,            // Focus ring (#0070E0)
+    BorderError,            // Validation error (#EF3535)
 
     // ── Text hierarchy ──────────────────────────────────────────────────────
-    TextPrimary,            // Body / labels (#E6E6E6)
-    TextSecondary,          // Supporting copy (#A0A1A3)
-    TextHint,               // Placeholders / muted (#707174)
-    TextDisabled,           // Disabled text (#4F5053)
-    TextOnAccent,           // Text on filled buttons (#E6E6E6)
-    LinkForeground,         // Hyperlinks (#E6E6E6)
+    TextPrimary,            // Foreground (#C0C0C0)
+    TextSecondary,          // Muted metadata (#808080)
+    TextHint,               // Placeholders / muted (#808080)
+    TextDisabled,           // Disabled / placeholder (#464B50)
+    TextOnAccent,           // Text on filled buttons (#FFFFFF)
+    LinkForeground,         // Hyperlinks (#0070E0)
     SearchPlaceholder,      // Search field placeholder (alias → TextHint)
 
     // ── Icons ─────────────────────────────────────────────────────────────────
-    IconPrimary,            // Default icon (#A0A1A3)
-    IconSecondary,          // De-emphasized icon (#A0A1A3)
+    IconPrimary,            // ForegroundHeader (#C8C8C8)
+    IconSecondary,          // Foreground (#C0C0C0)
     IconDisabled,           // Disabled icon (#4F5053)
-    IconAccent,             // Active/accent icon (#E6E6E6)
-    IconHover,              // Hovered icon (#E6E6E6)
-    IconActive,             // Pressed/active icon (#E6E6E6)
+    IconAccent,             // Active/accent icon (#FFFFFF)
+    IconHover,              // Hovered icon (#FFFFFF)
+    IconActive,             // Pressed/active icon (#FFFFFF)
 
     // ── Accent & selection ────────────────────────────────────────────────────
-    AccentPrimary,          // Primary accent (#38393C)
-    AccentHover,            // Accent hover (#40444A)
-    ActiveTabLine,          // Active dock tab indicator (#38393C @ 80%)
-    SelectionHighlight,     // Selection overlay (#323336 @ 90%)
+    AccentPrimary,          // Primary accent (#0070E0)
+    AccentHover,            // Accent hover (#0E86FF)
+    AccentOrange,           // Inline code / warning accent (#FE9B07)
+    ActiveTabLine,          // Active dock tab indicator (#0070E0 @ 80%)
+    SelectionHighlight,     // Selection overlay (#0070E0 @ 90%)
 
     // ── Semantic status ───────────────────────────────────────────────────────
     Success,
@@ -90,6 +96,10 @@ enum class ColorToken : uint32_t {
     GizmoAxisX,
     GizmoAxisY,
     GizmoAxisZ,
+
+    // ── Button chrome (bevel edges — not surface fills) ───────────────────────
+    ButtonBevelHighlight,
+    ButtonBevelShadow,
 
     // ── Depth & overlays ──────────────────────────────────────────────────────
     HighlightSubtle,

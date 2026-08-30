@@ -147,7 +147,7 @@ void Panel::CalculateHeaderGeometries() {
 
 void Panel::Paint(PaintContext& context) {
     AttachBodyLayout();
-    if (!m_TransparentBackground) {
+    if (!m_TransparentBackground && !m_BodyLayout) {
         if (m_HeaderHeight > 0.0f) {
             const float bodyY = m_Geometry.y + m_HeaderRect.height;
             const float bodyH = (std::max)(0.0f, m_Geometry.height - m_HeaderRect.height);

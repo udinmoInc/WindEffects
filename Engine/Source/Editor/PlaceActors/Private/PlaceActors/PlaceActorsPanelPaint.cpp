@@ -20,8 +20,10 @@
 #include "Widgets/ToolButton.h"
 #include "WindEffects/Editor/UI/Panel/PanelChrome.h"
 #include "KindUI/Layout/ScrollViewport.h"
+#include "KindUI/Core/ControlChrome.h"
 #include "KindUI/Core/PaintContext.h"
 #include "KindUI/Core/DPIContext.h"
+#include "KindUI/Theming/ThemeAccess.h"
 #include "KindUI/Tokens/DesignToken.h"
 #include "KindUI/Theming/StyleRole.h"
 #include "KindUI/Core/Icon.h"
@@ -143,7 +145,7 @@ void PlaceActorsPanel::Paint(we::runtime::kindui::PaintContext& context) {
     m_Scroll.Paint(context, m_ScrollMetrics, m_Scroll.IsThumbHovered());
 
     if (!m_TooltipText.empty() && m_TooltipRect.width > 0.0f) {
-        context.DrawShadow(m_TooltipRect, ThemeColor(ColorToken::ShadowPopup), 3.0f, 6.0f);
+        we::runtime::kindui::ControlChrome::PaintPopupShadow(context, m_TooltipRect);
         context.DrawRoundedRect(m_TooltipRect, ThemeColor(ColorToken::PopupBackground), ThemeMetric(MetricToken::CornerRadiusSmall));
         context.DrawText(m_TooltipText,
             Point{ m_TooltipRect.x + ActorsPanelLayout::ContentPadH(), m_TooltipRect.y + (m_TooltipRect.height - textSize) * 0.5f },
@@ -151,11 +153,14 @@ void PlaceActorsPanel::Paint(we::runtime::kindui::PaintContext& context) {
     }
 
     if (m_FilterMenuOpen) {
-        context.DrawShadow(m_FilterMenuRect, ThemeColor(ColorToken::ShadowPopup), 3.0f, 8.0f);
+        we::runtime::kindui::ControlChrome::PaintPopupShadow(context, m_FilterMenuRect);
         context.DrawRoundedRect(m_FilterMenuRect, ThemeColor(ColorToken::PopupBackground), ThemeMetric(MetricToken::CornerRadiusSmall));
         for (size_t i = 0; i < m_FilterMenuItems.size(); ++i) {
             if (static_cast<int>(i) == m_FilterMenuHovered) {
-                context.DrawRect(m_FilterMenuItems[i].geometry, ThemeColor(ColorToken::HoverBackground));
+                context.DrawRect(
+                    m_FilterMenuItems[i].geometry,
+                    we::runtime::kindui::ResolveInteractiveBackground(
+                        1.0f, 0.0f, false, ColorToken::PopupBackground));
             }
             const Color textColor = m_FilterMenuItems[i].checked
                 ? ThemeColor(ColorToken::AccentPrimary)
@@ -167,12 +172,15 @@ void PlaceActorsPanel::Paint(we::runtime::kindui::PaintContext& context) {
     }
 
     if (m_ContextMenuOpen) {
-        context.DrawShadow(m_ContextMenuRect, ThemeColor(ColorToken::ShadowPopup), 3.0f, 8.0f);
+        we::runtime::kindui::ControlChrome::PaintPopupShadow(context, m_ContextMenuRect);
         context.DrawRoundedRect(m_ContextMenuRect, ThemeColor(ColorToken::PopupBackground), ThemeMetric(MetricToken::CornerRadiusSmall));
         const float rowH = ActorsPanelLayout::ActorRowHeight();
         for (size_t i = 0; i < m_ContextMenuItems.size(); ++i) {
             if (static_cast<int>(i) == m_ContextMenuHovered) {
-                context.DrawRect(m_ContextMenuItems[i].geometry, ThemeColor(ColorToken::HoverBackground));
+                context.DrawRect(
+                    m_ContextMenuItems[i].geometry,
+                    we::runtime::kindui::ResolveInteractiveBackground(
+                        1.0f, 0.0f, false, ColorToken::PopupBackground));
             }
             context.DrawText(m_ContextMenuItems[i].label,
                 Point{ m_ContextMenuItems[i].geometry.x + ActorsPanelLayout::ContentPadH(), m_ContextMenuItems[i].geometry.y + (rowH - textSize) * 0.5f },

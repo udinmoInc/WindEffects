@@ -60,14 +60,21 @@ void MenuBar::Paint(PaintContext& context) {
     auto drawMenu = [&](const MenuInfo& menu, int index) {
         bool isActive = m_MenuOpen && index == m_HoveredMenu;
         const bool isHighlighted = menu.hovered || isActive;
-        const float radius = ThemeMetric(MetricToken::CornerRadiusMedium) * uiScale;
+        const float radius = ThemeMetric(MetricToken::CornerRadiusSmall) * uiScale;
+        const float insetV = ThemeMetric(MetricToken::Space1) * uiScale;
+        const float insetH = ThemeMetric(MetricToken::Space1) * 0.5f * uiScale;
 
         if (isHighlighted) {
-            Color hoverBg = ThemeColor(ColorToken::HoverBackground);
-            if (isActive) {
-                hoverBg = Color::Lerp(hoverBg, ThemeColor(ColorToken::SelectedBackground), 0.35f);
-            }
-            context.DrawRoundedRect(menu.geometry, hoverBg, radius);
+            Rect highlightRect{
+                menu.geometry.x + insetH,
+                menu.geometry.y + insetV,
+                std::max(0.0f, menu.geometry.width - insetH * 2.0f),
+                std::max(0.0f, menu.geometry.height - insetV * 2.0f)
+            };
+            const ColorToken fillToken = isActive
+                ? ColorToken::SelectInactiveBackground
+                : ColorToken::HoverBackground;
+            context.DrawRoundedRect(highlightRect, ThemeColor(fillToken), radius);
         }
 
         float textX = menu.geometry.x + m_ItemPaddingH * uiScale;

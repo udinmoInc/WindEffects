@@ -2,7 +2,7 @@
 #include "Widgets/MenuBar.h"
 #include "KindUI/Core/PaintContext.h"
 #include "KindUI/Theming/ThemeAccess.h"
-#include "KindUI/Theming/ThemeColors.h"
+#include "KindUI/Theming/ThemeAccess.h"
 #include "KindUI/Tokens/DesignSystem.h"
 #include "KindUI/Theming/StyleRole.h"
 #include "KindUI/Core/Icon.h"
@@ -90,9 +90,9 @@ namespace {
             };
 
             if ((m_LogoSet != we::rhi::RHIDescriptorSetHandle::Invalid)) {
-                context.DrawTexture(logoRect, m_LogoSet, ThemeColor(ColorToken::IconPrimary));
+                context.DrawTexture(logoRect, m_LogoSet, ThemeColor(ColorToken::TextPrimary));
             } else {
-                IconPainter::DrawIcon(context, Icons::CameraName, logoRect, ThemeColor(ColorToken::IconPrimary));
+                IconPainter::DrawIcon(context, Icons::WindLogoName, logoRect, ThemeColor(ColorToken::TextPrimary));
             }
         }
     private:
@@ -114,7 +114,7 @@ namespace {
             const float iconSize = we::runtime::kindui::ResolveMetric(MetricToken::IconSizePrimary);
             const float textSize = we::runtime::kindui::ResolveMetric(MetricToken::TextSizeMenu);
             float textW = kProjectName[0] ? static_cast<float>(strlen(kProjectName)) * textSize * 0.55f : 0.0f;
-            float width = padH + iconSize + padH + textW + padH + IconMetrics::CompactDisplayPx() + padH;
+            float width = padH + iconSize + padH + textW + padH + static_cast<float>(IconMetrics::CompactGlyphTierPx()) + padH;
             m_DesiredSize = Size{ width, ControlHeight() };
             return m_DesiredSize;
         }
@@ -137,9 +137,7 @@ namespace {
                     m_HoverAnim);
                 context.DrawRoundedRect(m_Geometry, hoverBg, radius);
             } else {
-                Color idleBg = ThemeColor(ColorToken::ButtonPrimaryBackground);
-                idleBg.a = 0.65f;
-                context.DrawRoundedRect(m_Geometry, idleBg, radius);
+                context.DrawRoundedRect(m_Geometry, ThemeColor(ColorToken::ButtonPrimaryBackground), radius);
             }
 
             const float padH = we::runtime::kindui::ResolveMetric(MetricToken::Space2);
@@ -159,10 +157,13 @@ namespace {
                 Point{ textX, centerY - textSize * 0.5f },
                 ThemeColor(ColorToken::TextPrimary), textSize);
 
-            const float display = IconMetrics::CompactDisplayPx();
-            const float chevronX = m_Geometry.x + m_Geometry.width - (padH + display) * uiScale;
-            Rect chevronControl{ chevronX, centerY - display * 0.5f, display, display };
-            IconPainter::DrawCompactIcon(context, Icons::ChevronDownName, chevronControl, iconColor);
+            const float tier = static_cast<float>(IconMetrics::CompactGlyphTierPx());
+            const float chevronX = m_Geometry.x + m_Geometry.width - (padH + tier) * uiScale;
+            IconPainter::DrawCompactIcon(
+                context,
+                Icons::ChevronDownName,
+                IconMetrics::CompactGlyphBand(m_Geometry, chevronX),
+                iconColor);
         }
         bool ShowsPointerCursor(const Point&) const override { return true; }
     private:

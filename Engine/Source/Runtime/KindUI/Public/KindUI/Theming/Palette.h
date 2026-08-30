@@ -1,80 +1,85 @@
 #pragma once
 
 #include "KindUI/Core/Types.h"
+#include "KindUI/Core/ColorSpace.h"
 
 namespace we::runtime::kindui::palette {
 
-// Authoritative Graphite Dark palette — one canonical value per unique color.
-// ColorToken::ResolveColor maps semantic roles onto these entries.
-// Do not duplicate HEX values elsewhere in the UI stack.
+// UE5 Slate EStyleColor dark defaults — the only place HEX literals may be authored.
+// ColorToken resolves semantic roles onto these entries via GraphiteDarkTheme::ResolveColor.
+// Do not reference this struct from widgets; use ResolveColor / ds:: accessors.
 
 struct GraphiteDark {
-    // ── Surfaces (darkest → lightest) ───────────────────────────────────────
-    static constexpr Color Window       = {0x15 / 255.0f, 0x15 / 255.0f, 0x15 / 255.0f, 1.0f}; // #151515
-    static constexpr Color ScrollbarTrack = {0x1A / 255.0f, 0x1A / 255.0f, 0x1A / 255.0f, 1.0f}; // #1A1A1A
-    static constexpr Color Panel        = {0x24 / 255.0f, 0x24 / 255.0f, 0x24 / 255.0f, 1.0f}; // #242424
-    static constexpr Color Secondary    = {0x1D / 255.0f, 0x1E / 255.0f, 0x20 / 255.0f, 1.0f}; // #1D1E20
-    static constexpr Color Card         = {0x22 / 255.0f, 0x23 / 255.0f, 0x26 / 255.0f, 1.0f}; // #222326
-    static constexpr Color Header       = {0x1C / 255.0f, 0x1D / 255.0f, 0x1F / 255.0f, 1.0f}; // #1C1D1F
-    static constexpr Color Input        = {0x14 / 255.0f, 0x15 / 255.0f, 0x17 / 255.0f, 1.0f}; // #141517
-    static constexpr Color TabInactive    = {0x29 / 255.0f, 0x2A / 255.0f, 0x2D / 255.0f, 1.0f}; // #292A2D
-    static constexpr Color Disabled     = {0x11 / 255.0f, 0x12 / 255.0f, 0x14 / 255.0f, 1.0f}; // #111214
+    // ── Base surfaces (EStyleColor) ─────────────────────────────────────────
+    static constexpr Color Black             = Hex("#000000");
+    static constexpr Color Title             = Hex("#151515"); // window chrome / title strip
+    static constexpr Color Background        = Hex("#151515"); // workspace / tab strip / toolbar
+    static constexpr Color WindowBorder      = Hex("#0F0F0F"); // dividers / separators
+    static constexpr Color Foldout           = Hex("#0F0F0F"); // disabled control wells
+    static constexpr Color Input             = Hex("#0F0F0F"); // inputs / pressed wells
+    static constexpr Color InputOutline      = Hex("#383838"); // input & control borders
+    static constexpr Color Recessed          = Hex("#1A1A1A"); // tree / grid wells
+    static constexpr Color Panel             = Hex("#242424"); // panel body / active tab
+    static constexpr Color Header            = Hex("#2F2F2F"); // section / panel headers
+    static constexpr Color Dropdown          = Hex("#383838"); // menus / cards / popups
+    static constexpr Color DropdownOutline   = Hex("#4C4C4C"); // raised control / popup edges
 
-    // ── Interaction states ──────────────────────────────────────────────────
-    static constexpr Color Hover        = {0x27 / 255.0f, 0x28 / 255.0f, 0x2B / 255.0f, 1.0f}; // #27282B
-    static constexpr Color Pressed      = {0x14 / 255.0f, 0x15 / 255.0f, 0x17 / 255.0f, 1.0f}; // #141517
-    static constexpr Color Selected     = {0x32 / 255.0f, 0x33 / 255.0f, 0x36 / 255.0f, 1.0f}; // #323336
-    static constexpr Color ControlHover   = {0x1B / 255.0f, 0x1C / 255.0f, 0x1F / 255.0f, 1.0f}; // #1B1C1F
-    static constexpr Color ControlSelected = {0x24 / 255.0f, 0x27 / 255.0f, 0x2B / 255.0f, 1.0f}; // #24272B
+    // ── Interaction (EStyleColor) ─────────────────────────────────────────────
+    static constexpr Color Hover             = Hex("#575757"); // row / control hover only
+    static constexpr Color Hover2            = Hex("#808080"); // muted text / scrollbar hover
+    static constexpr Color Highlight         = Hex("#0070E0");
+    static constexpr Color Primary           = Hex("#0070E0");
+    static constexpr Color PrimaryHover      = Hex("#0E86FF");
+    static constexpr Color PrimaryPress      = Hex("#0050A0");
+    static constexpr Color Secondary         = Hex("#383838"); // legacy EStyleColor name (= Dropdown)
+    static constexpr Color Select            = Primary;
+    static constexpr Color SelectInactive    = Hex("#40576F");
+    static constexpr Color SelectParent      = Hex("#2C323A");
+    static constexpr Color SelectHover       = Panel;
 
-    // ── Borders & separators ────────────────────────────────────────────────
-    static constexpr Color Separator    = {0x23 / 255.0f, 0x24 / 255.0f, 0x27 / 255.0f, 1.0f}; // #232427
-    static constexpr Color Border       = {0x29 / 255.0f, 0x2A / 255.0f, 0x2D / 255.0f, 1.0f}; // #292A2D
-    static constexpr Color BorderLight    = {0x38 / 255.0f, 0x39 / 255.0f, 0x3C / 255.0f, 1.0f}; // #38393C
+    // ── Text (EStyleColor) ────────────────────────────────────────────────────
+    static constexpr Color White             = Hex("#FFFFFF");
+    static constexpr Color White25           = Hex("#FFFFFF40");
+    static constexpr Color Foreground        = Hex("#C0C0C0");
+    static constexpr Color ForegroundHover   = Hex("#FFFFFF");
+    static constexpr Color ForegroundInverted = Input;
+    static constexpr Color ForegroundHeader  = Hex("#C8C8C8");
+    static constexpr Color Notifications     = Hex("#464B50"); // disabled label text
 
-    // ── Text ────────────────────────────────────────────────────────────────
-    static constexpr Color Text         = {0xE6 / 255.0f, 0xE6 / 255.0f, 0xE6 / 255.0f, 1.0f}; // #E6E6E6
-    static constexpr Color TextSecondary = {0xA0 / 255.0f, 0xA1 / 255.0f, 0xA3 / 255.0f, 1.0f}; // #A0A1A3
-    static constexpr Color TextHint     = {0x70 / 255.0f, 0x71 / 255.0f, 0x74 / 255.0f, 1.0f}; // #707174
-    static constexpr Color TextDisabled = {0x4F / 255.0f, 0x50 / 255.0f, 0x53 / 255.0f, 1.0f}; // #4F5053
+    // ── Status & accents (EStyleColor) ────────────────────────────────────────
+    static constexpr Color Warning           = Hex("#FFB800");
+    static constexpr Color Error             = Hex("#EF3535");
+    static constexpr Color Success           = Hex("#1FE44B");
 
-    // ── Accent & semantic ───────────────────────────────────────────────────
-    static constexpr Color Accent       = {0x38 / 255.0f, 0x39 / 255.0f, 0x3C / 255.0f, 1.0f}; // #38393C
-    static constexpr Color AccentHover    = {0x40 / 255.0f, 0x44 / 255.0f, 0x4A / 255.0f, 1.0f}; // #40444A
-    static constexpr Color Success      = {0x4C / 255.0f, 0xAF / 255.0f, 0x50 / 255.0f, 1.0f}; // #4CAF50
-    static constexpr Color Warning      = {0xD6 / 255.0f, 0xA6 / 255.0f, 0x2A / 255.0f, 1.0f}; // #D6A62A
-    static constexpr Color Error        = {0xE0 / 255.0f, 0x52 / 255.0f, 0x52 / 255.0f, 1.0f}; // #E05252
+    static constexpr Color AccentBlue        = Hex("#26BBFF");
+    static constexpr Color AccentPurple      = Hex("#A139BF");
+    static constexpr Color AccentPink        = Hex("#FF729C");
+    static constexpr Color AccentRed         = Hex("#FF4040");
+    static constexpr Color AccentOrange      = Hex("#FE9B07");
+    static constexpr Color AccentYellow      = Hex("#FFDC1A");
+    static constexpr Color AccentGreen       = Hex("#8BC24A");
+    static constexpr Color AccentBrown       = Hex("#804D39");
+    static constexpr Color AccentBlack       = Hex("#242424");
+    static constexpr Color AccentGray        = Hex("#808080"); // = Hover2
+    static constexpr Color AccentWhite       = Hex("#FFFFFF");
+    static constexpr Color AccentFolder      = Hex("#B68F55");
 
-    // ── Content-browser folder art ──────────────────────────────────────────
-    static constexpr Color FolderBody   = {0x2D / 255.0f, 0x2E / 255.0f, 0x31 / 255.0f, 1.0f}; // #2D2E31
-    static constexpr Color FolderPrimary = {0x32 / 255.0f, 0x33 / 255.0f, 0x36 / 255.0f, 1.0f}; // #323336
+    // ── Composites (alpha permitted — overlays / shadows only) ────────────────
+    static constexpr Color TooltipBg         = Hex("#383838F7");
+    static constexpr Color DragGhost           = Hex("#383838E6");
+    static constexpr Color ActiveTabLine       = Hex("#0070E0CC");
+    static constexpr Color SelectionHighlight  = Hex("#0070E0E6");
+    static constexpr Color HighlightSubtle     = White25;
+    static constexpr Color ModalScrim          = Hex("#0000008C");
+    static constexpr Color ShadowSubtle        = Hex("#00000038");
+    static constexpr Color ShadowOverlay       = Hex("#0000006B");
+    static constexpr Color ShadowPopup         = Hex("#00000052");
+    static constexpr Color ShadowColor         = Hex("#00000047");
+    static constexpr Color FolderShadow        = Hex("#00000061");
 
-    // ── Scrollbar ───────────────────────────────────────────────────────────
-    static constexpr Color ScrollThumb  = {0x58 / 255.0f, 0x58 / 255.0f, 0x58 / 255.0f, 1.0f}; // #585858
-    static constexpr Color ScrollThumbHover = {0x6E / 255.0f, 0x6E / 255.0f, 0x6E / 255.0f, 1.0f}; // #6E6E6E
-
-    // ── Depth / overlays (alpha variants) ───────────────────────────────────
-    static constexpr Color HighlightSubtle = {1.0f, 1.0f, 1.0f, 0.05f};
-    static constexpr Color ShadowSubtle   = {0.0f, 0.0f, 0.0f, 0.22f};
-    static constexpr Color ShadowOverlay  = {0.0f, 0.0f, 0.0f, 0.42f};
-    static constexpr Color ShadowPopup    = {0.0f, 0.0f, 0.0f, 0.32f};
-    static constexpr Color ShadowColor    = {0.0f, 0.0f, 0.0f, 0.28f};
-    static constexpr Color ModalScrim     = {0.0f, 0.0f, 0.0f, 0.55f};
-    static constexpr Color FolderShadow   = {0.0f, 0.0f, 0.0f, 0.38f};
-    static constexpr Color TooltipBg      = {0x22 / 255.0f, 0x23 / 255.0f, 0x26 / 255.0f, 0.97f};
-    static constexpr Color DragGhost      = {0x22 / 255.0f, 0x23 / 255.0f, 0x26 / 255.0f, 0.90f};
-    static constexpr Color ViewportToolbar = {0x1C / 255.0f, 0x1D / 255.0f, 0x1F / 255.0f, 0.96f};
-    static constexpr Color ActiveTabLine  = {0x38 / 255.0f, 0x39 / 255.0f, 0x3C / 255.0f, 0.80f};
-    static constexpr Color SelectionHighlight = {0x32 / 255.0f, 0x33 / 255.0f, 0x36 / 255.0f, 0.90f};
-
-    // ── Gizmo axes ──────────────────────────────────────────────────────────
-    static constexpr Color GizmoAxisX     = {0.90f, 0.25f, 0.25f, 1.0f};
-    static constexpr Color GizmoAxisY     = {0.30f, 0.85f, 0.35f, 1.0f};
-    static constexpr Color GizmoAxisZ     = {0.30f, 0.50f, 0.95f, 1.0f};
-
-    // ── Button danger (unique shades) ─────────────────────────────────────────
-    static constexpr Color DangerHover    = {0xEC / 255.0f, 0x64 / 255.0f, 0x64 / 255.0f, 1.0f};
-    static constexpr Color DangerPressed  = {0xC0 / 255.0f, 0x3A / 255.0f, 0x3A / 255.0f, 1.0f};
+    // ── Button bevel (toolbar / raised controls only — never full-surface fills)
+    static constexpr Color ButtonBevelTop      = Hex("#383A3D");
+    static constexpr Color ButtonBevelBottom   = Hex("#111213");
 };
 
 } // namespace we::runtime::kindui::palette

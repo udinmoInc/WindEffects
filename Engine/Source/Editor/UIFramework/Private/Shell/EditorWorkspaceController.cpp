@@ -187,16 +187,17 @@ void EditorWorkspaceController::FocusViewportNavigationPanel() {
 }
 
 void EditorWorkspaceController::ToggleContentBrowserExpanded() {
-    if (!m_Layout.leftCenterSplitter) {
+    auto& contentSplitter = m_Layout.rootVerticalSplitter ? m_Layout.rootVerticalSplitter : m_Layout.leftCenterSplitter;
+    if (!contentSplitter) {
         return;
     }
 
     m_ContentBrowserExpanded = !m_ContentBrowserExpanded;
     if (m_ContentBrowserExpanded) {
-        m_Layout.leftCenterSplitter->SetFixedSecondWidth(m_ContentBrowserSplitRatio);
+        contentSplitter->SetFixedSecondWidth(m_ContentBrowserSplitRatio);
     } else {
-        m_ContentBrowserSplitRatio = m_Layout.leftCenterSplitter->GetFixedSecondWidth();
-        m_Layout.leftCenterSplitter->SetFixedSecondWidth(0.0f);
+        m_ContentBrowserSplitRatio = contentSplitter->GetFixedSecondWidth();
+        contentSplitter->SetFixedSecondWidth(0.0f);
     }
 }
 
@@ -228,8 +229,14 @@ void EditorWorkspaceController::LoadLayout() {
 
         if (key == "mainHorizontal" && m_Layout.mainHorizontalSplitter) {
             m_Layout.mainHorizontalSplitter->SetSplitRatio(ratio);
-        } else if (key == "leftCenterVertical" && m_Layout.leftCenterSplitter) {
-            m_Layout.leftCenterSplitter->SetSplitRatio(ratio);
+        } else if (key == "leftCenterVertical") {
+            auto splitter = m_Layout.rootVerticalSplitter ? m_Layout.rootVerticalSplitter : m_Layout.leftCenterSplitter;
+            if (splitter) {
+                splitter->SetSplitRatio(ratio);
+                m_ContentBrowserSplitRatio = ratio;
+            }
+        } else if (key == "rootVertical" && m_Layout.rootVerticalSplitter) {
+            m_Layout.rootVerticalSplitter->SetSplitRatio(ratio);
             m_ContentBrowserSplitRatio = ratio;
         } else if (key == "toolsViewport" && m_Layout.toolsViewportSplitter) {
             m_Layout.toolsViewportSplitter->SetSplitRatio(ratio);
@@ -258,7 +265,7 @@ void EditorWorkspaceController::SaveLayout() const {
     };
 
     writeRatio("mainHorizontal", m_Layout.mainHorizontalSplitter);
-    writeRatio("leftCenterVertical", m_Layout.leftCenterSplitter);
+    writeRatio("rootVertical", m_Layout.rootVerticalSplitter);
     writeRatio("toolsViewport", m_Layout.toolsViewportSplitter);
     writeRatio("rightVertical", m_Layout.rightVerticalSplitter);
 }

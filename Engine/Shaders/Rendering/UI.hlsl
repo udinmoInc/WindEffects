@@ -1,3 +1,5 @@
+// Vertex COLOR is linear RGB (converted from sRGB authoring in OverlayRenderer).
+// The swapchain uses an sRGB format; the GPU encodes linear shader output to sRGB storage.
 struct VSInput
 {
     [[vk::location(0)]] float2 position : POSITION0;
@@ -95,7 +97,6 @@ float4 PSMain(VSOutput input) : SV_Target
         opacity = pow(opacity, 1.0 / 1.1);
 
         float4 outColor = input.color;
-        outColor.rgb *= outColor.a;
         outColor.a *= opacity;
         return outColor;
     }

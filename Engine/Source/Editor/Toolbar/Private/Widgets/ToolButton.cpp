@@ -1,7 +1,7 @@
 #include "Widgets/ToolButton.h"
 #include "KindUI/Core/PaintContext.h"
 #include "KindUI/Theming/ThemeAccess.h"
-#include "KindUI/Theming/ThemeColors.h"
+#include "KindUI/Theming/ThemeAccess.h"
 #include "KindUI/Core/Animator.h"
 #include "KindUI/Core/Icon.h"
 #include "KindUI/Core/ToolbarButtonChrome.h"
@@ -110,7 +110,7 @@ Size ToolButton::Measure(const Size& availableSize) {
         const float iconSz   = IconSize(uiScale);
         const float iconGap  = IconGapPx(uiScale);
         const float chevGap  = ChevronGapPx(uiScale);
-        const float chevW    = IconMetrics::CompactDisplayPx();
+        const float chevW    = static_cast<float>(IconMetrics::CompactGlyphTierPx());
         const float textSize = ThemeMetric(MetricToken::TextSizeToolbar) * uiScale;
         const float controlH = ToolbarButtonChrome::RowContentHeight(uiScale);
         const bool hasIcon = !m_IconName.empty() && Icons::IsKnownIcon(m_IconName);
@@ -138,7 +138,7 @@ Size ToolButton::Measure(const Size& availableSize) {
         const float iconSz   = IconSize(uiScale);
         const float iconGap  = IconGapPx(uiScale);
         const float chevGap  = ChevronGapPx(uiScale);
-        const float chevW    = IconMetrics::CompactDisplayPx();
+        const float chevW    = static_cast<float>(IconMetrics::CompactGlyphTierPx());
         const float textSize = ThemeMetric(MetricToken::TextSizeToolbar) * uiScale;
         const float controlH = ThemeMetric(MetricToken::IconButtonSize) * uiScale;
         const bool hasIcon = !m_IconName.empty() && Icons::IsKnownIcon(m_IconName);
@@ -185,7 +185,7 @@ Size ToolButton::Measure(const Size& availableSize) {
     const float padR    = ThemeMetric(MetricToken::Space2) * uiScale;
     const float iconSz  = IconSize(uiScale);
     const float iconGap = ThemeMetric(MetricToken::Space1) * uiScale;
-    const float chevW   = IconMetrics::CompactDisplayPx();
+    const float chevW   = static_cast<float>(IconMetrics::CompactGlyphTierPx());
 
     float width = padL + iconSz;
     if (!m_Label.empty()) {
@@ -228,10 +228,11 @@ void ToolButton::Paint(PaintContext& context) {
     // ── Window controls (Minimize / Maximize / Close) ────────────────────────
     if (isWindowControl) {
         if (m_HoverAnim > 0.01f) {
-            Color hoverBg = (m_ButtonStyle == ToolButtonStyle::WindowClose)
-                            ? Color::Lerp(Color{0.0f, 0.0f, 0.0f, 0.0f}, ThemeColor(ColorToken::CloseButtonHover), m_HoverAnim)
-                            : Color::Lerp(Color{0.0f, 0.0f, 0.0f, 0.0f}, ThemeColor(ColorToken::HoverBackground), m_HoverAnim);
-            context.DrawRect(renderRect, hoverBg);
+            const Color base = ThemeColor(ColorToken::WindowBackground);
+            const Color hover = (m_ButtonStyle == ToolButtonStyle::WindowClose)
+                ? ThemeColor(ColorToken::CloseButtonHover)
+                : ThemeColor(ColorToken::HoverBackground);
+            context.DrawRect(renderRect, Color::Lerp(base, hover, m_HoverAnim));
         }
 
         Color iconColor = ::we::runtime::kindui::ResolveIconColor(IconColorRole::Secondary, m_HoverAnim, pressStrength, false);
@@ -313,9 +314,11 @@ void ToolButton::Paint(PaintContext& context) {
 
         if (m_IsDropdown) {
             currentX += chevGap;
-            const float display = IconMetrics::CompactDisplayPx();
-            Rect chevronControl{ currentX, centerY - display * 0.5f, display, display };
-            IconPainter::DrawCompactIcon(context, Icons::ChevronDownName, chevronControl, iconColor);
+            IconPainter::DrawCompactIcon(
+                context,
+                Icons::ChevronDownName,
+                IconMetrics::CompactGlyphBand(renderRect, currentX),
+                iconColor);
         }
         return;
     }
@@ -348,9 +351,11 @@ void ToolButton::Paint(PaintContext& context) {
 
         if (m_IsDropdown) {
             currentX += chevGap;
-            const float display = IconMetrics::CompactDisplayPx();
-            Rect chevronControl{ currentX, centerY - display * 0.5f, display, display };
-            IconPainter::DrawCompactIcon(context, Icons::ChevronDownName, chevronControl, iconColor);
+            IconPainter::DrawCompactIcon(
+                context,
+                Icons::ChevronDownName,
+                IconMetrics::CompactGlyphBand(renderRect, currentX),
+                iconColor);
         }
         return;
     }
@@ -401,10 +406,13 @@ void ToolButton::Paint(PaintContext& context) {
         }
 
         if (m_IsDropdown) {
-            const float display = IconMetrics::CompactDisplayPx();
-            const float chevronX = renderRect.x + renderRect.width - ChipHorizontalPad(uiScale) - display;
-            Rect chevronControl{ chevronX, centerY - display * 0.5f, display, display };
-            IconPainter::DrawCompactIcon(context, Icons::ChevronDownName, chevronControl, iconColor);
+            const float tier = static_cast<float>(IconMetrics::CompactGlyphTierPx());
+            const float chevronX = renderRect.x + renderRect.width - ChipHorizontalPad(uiScale) - tier;
+            IconPainter::DrawCompactIcon(
+                context,
+                Icons::ChevronDownName,
+                IconMetrics::CompactGlyphBand(renderRect, chevronX),
+                iconColor);
         }
     }
 }

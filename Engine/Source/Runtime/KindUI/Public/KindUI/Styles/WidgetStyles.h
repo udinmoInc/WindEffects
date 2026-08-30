@@ -77,7 +77,7 @@ struct MenuStyle {
 };
 
 struct TreeViewStyle {
-    ColorProperty background{ColorToken::PanelBackground};
+    ColorProperty background{ColorToken::SecondarySurface};
     ColorProperty rowBackground{ColorToken::ControlBackground};
     ColorProperty rowBackgroundHover{ColorToken::ControlBackgroundHover};
     ColorProperty rowBackgroundSelected{ColorToken::ControlBackgroundSelected};
