@@ -111,6 +111,7 @@ namespace Panel {
 [[nodiscard]] inline Color PrimaryContentBackground() { return ResolveSurfaceColor(SurfaceRole::Panel); }
 [[nodiscard]] inline Color NavigationBackground() { return ResolveSurfaceColor(SurfaceRole::Recessed); }
 [[nodiscard]] inline Color ToolbarBackground() { return ResolveSurfaceColor(SurfaceRole::Toolbar); }
+[[nodiscard]] inline Color ListLabelBandBackground() { return ResolveColor(ColorToken::ListLabelBandBackground); }
 } // namespace Panel
 
 namespace Header {

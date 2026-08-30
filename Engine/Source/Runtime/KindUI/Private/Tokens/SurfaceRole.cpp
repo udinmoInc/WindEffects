@@ -92,6 +92,7 @@ SurfaceRole SurfaceRoleFromColorToken(ColorToken token) {
     case ColorToken::PanelBackground:
         return SurfaceRole::Panel;
     case ColorToken::HeaderBackground:
+    case ColorToken::ListLabelBandBackground:
         return SurfaceRole::PanelHeader;
     case ColorToken::SecondarySurface:
         return SurfaceRole::Recessed;

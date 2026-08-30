@@ -34,6 +34,8 @@ void TreeColumnHeader::Arrange(const Rect& allottedRect) {
 }
 
 void TreeColumnHeader::Paint(PaintContext& context) {
+    Chrome::PaintListLabelBand(context, m_Geometry);
+
     const float uiScale = (std::max)(1.0f, DPIContext::GetScale());
     const float glyphTier = static_cast<float>(IconMetrics::StandardGlyphTierPx());
     const float headerTextSize = ThemeMetric(MetricToken::TextSizeCaption) * uiScale;
