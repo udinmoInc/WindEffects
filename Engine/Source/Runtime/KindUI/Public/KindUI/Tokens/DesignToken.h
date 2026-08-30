@@ -20,6 +20,7 @@ enum class ColorToken : uint32_t {
     SecondarySurface,       // Recessed (#1A1A1A) — tree / grid wells
     CardBackground,         // Dropdown (#383838) — raised cards
     HeaderBackground,       // Header (#2F2F2F) — section headers
+    ListLabelBandBackground, // Header (#2F2F2F) — column label rows, panel footer bands
     ToolbarBackground,      // Background (#151515) — main toolbar strip
     TabBackground,          // Background (#151515) — inactive dock tab
     InputBackground,        // Input (#0F0F0F) — search / property fields

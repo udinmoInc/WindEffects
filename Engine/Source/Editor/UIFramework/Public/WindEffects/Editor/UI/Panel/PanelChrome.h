@@ -47,6 +47,8 @@ UIFRAMEWORK_API float HeaderButtonSize();
 
 UIFRAMEWORK_API void PaintPanelSurface(PaintContext& context, const Rect& rect);
 UIFRAMEWORK_API void PaintToolbarRegion(PaintContext& context, const Rect& rect);
+/// Column label rows, list headers, and panel footer/status bands (#2F2F2F).
+UIFRAMEWORK_API void PaintListLabelBand(PaintContext& context, const Rect& rect);
 UIFRAMEWORK_API void PaintHeaderRegion(PaintContext& context, const Rect& rect);
 UIFRAMEWORK_API void PaintFooterRegion(PaintContext& context, const Rect& rect);
 UIFRAMEWORK_API void PaintContentWell(PaintContext& context, const Rect& rect);

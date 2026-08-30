@@ -190,8 +190,12 @@ void PaintToolbarRegion(PaintContext& context, const Rect& rect) {
     context.DrawSurface(rect, we::runtime::kindui::SurfaceRole::Toolbar, 0.0f, "PanelToolbar");
 }
 
+void PaintListLabelBand(PaintContext& context, const Rect& rect) {
+    context.DrawSurface(rect, we::runtime::kindui::SurfaceRole::PanelHeader, 0.0f, "ListLabelBand");
+}
+
 void PaintHeaderRegion(PaintContext& context, const Rect& rect) {
-    context.DrawSurface(rect, we::runtime::kindui::SurfaceRole::PanelHeader, 0.0f, "PanelHeader");
+    PaintListLabelBand(context, rect);
     PaintSeparatorEdge(context, rect, false);
 }
 
@@ -206,7 +210,7 @@ void PaintFooterRegion(PaintContext& context, const Rect& rect) {
     Rect body = rect;
     body.y += thickness;
     body.height -= thickness;
-    context.DrawSurface(body, we::runtime::kindui::SurfaceRole::PanelHeader, 0.0f, "PanelFooter");
+    PaintListLabelBand(context, body);
 }
 
 void PaintContentWell(PaintContext& context, const Rect& rect) {
@@ -655,7 +659,7 @@ void PaintHeaderIconButton(
             hovered ? 1.0f : 0.0f,
             pressed ? 1.0f : 0.0f,
             false,
-            ColorToken::HeaderBackground);
+            ColorToken::ListLabelBandBackground);
     }
 
     const float emphasis = (hovered || pressed) ? 1.0f : 0.0f;

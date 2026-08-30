@@ -5,6 +5,7 @@
 #include "KindUI/Core/ControlChrome.h"
 #include "KindUI/Theming/ThemeAccess.h"
 #include "KindUI/Tokens/DesignToken.h"
+#include "KindUI/Tokens/DesignSystem.h"
 #include "KindUI/Core/Icon.h"
 #include "KindUI/Rendering/IconMetrics.h"
 
@@ -43,7 +44,7 @@ void PaintActorRowBackground(
 void PaintCategoryHeaderBackground(PaintContext& context, const Rect& bounds, float hoverAnim) {
     const Color bg = hoverAnim > 0.01f
         ? we::runtime::kindui::ResolveColor(ColorToken::HoverBackground)
-        : we::runtime::kindui::ResolveColor(ColorToken::HeaderBackground);
+        : we::runtime::kindui::ds::Panel::ListLabelBandBackground();
     context.DrawRect(bounds, bg);
 }
 

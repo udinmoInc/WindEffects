@@ -1,12 +1,12 @@
 #include "Platform/Platform.h"
 #include "ContentBrowser/Widgets/ContentBrowser.h"
+#include "WindEffects/Editor/UI/Panel/PanelChrome.h"
 #include "KindUI/Layout/ScrollViewport.h"
 #include "Controllers/FilterController.h"
 #include "Controllers/SearchController.h"
 #include "Services/ContentBrowserService.h"
 #include "Services/ContentBrowserFolderArt.h"
 #include "Services/ContentBrowserBlueprintArt.h"
-#include "WindEffects/Editor/UI/Panel/PanelChrome.h"
 #include "KindUI/Core/ControlChrome.h"
 #include "KindUI/Core/PaintContext.h"
 #include "KindUI/Core/DPIContext.h"
@@ -842,7 +842,7 @@ void Breadcrumb::Arrange(const Rect& allottedRect) {
 }
 
 void Breadcrumb::Paint(PaintContext& context) {
-    context.DrawRect(m_Geometry, ThemeColor(ColorToken::PanelBackground));
+    PanelChrome::PaintListLabelBand(context, m_Geometry);
     context.DrawRect(
         Rect{ m_Geometry.x, m_Geometry.y + m_Geometry.height - ThemeMetric(MetricToken::BorderWidth), m_Geometry.width, ThemeMetric(MetricToken::BorderWidth) },
         ThemeColor(ColorToken::Separator));

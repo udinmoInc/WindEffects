@@ -33,6 +33,7 @@ Color GraphiteDarkTheme::ResolveColor(ColorToken token) const {
     case ColorToken::ScrollbarTrack:
         return CS::OpaqueSurface(P::Recessed);
     case ColorToken::HeaderBackground:
+    case ColorToken::ListLabelBandBackground:
         return CS::OpaqueSurface(P::Header);
     case ColorToken::InputBackground:
     case ColorToken::ControlBackground:
@@ -687,7 +688,7 @@ ResolvedStyle StyleResolver::Resolve(StyleRole role) const {
         style.elevation = theme.ResolveElevation(ElevationToken::Card);
         break;
     case StyleRole::TableHeader:
-        style.background = theme.ResolveColor(ColorToken::HeaderBackground);
+        style.background = theme.ResolveColor(ColorToken::ListLabelBandBackground);
         style.foreground = theme.ResolveColor(ColorToken::TextSecondary);
         style.height = Scaled(theme.ResolveMetric(MetricToken::MenuItemHeight));
         style.fontSize = Scaled(theme.ResolveMetric(MetricToken::TextSizeCaption));
@@ -714,7 +715,7 @@ ResolvedStyle StyleResolver::Resolve(StyleRole role) const {
         style.cornerRadius = 0.0f;
         break;
     case StyleRole::SectionHeader:
-        style.background = theme.ResolveColor(ColorToken::HeaderBackground);
+        style.background = theme.ResolveColor(ColorToken::ListLabelBandBackground);
         style.foreground = theme.ResolveColor(ColorToken::TextPrimary);
         style.fontSize = Scaled(theme.ResolveMetric(MetricToken::TextSizeHeader));
         style.bold = true;

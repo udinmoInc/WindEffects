@@ -171,8 +171,8 @@ void PaintSectionHeader(
     float indent) {
     const float scale = UiScale();
     const Color bg = hovered
-        ? ResolveInteractiveBackground(1.0f, 0.0f, false, ColorToken::HeaderBackground)
-        : ResolveColor(ColorToken::HeaderBackground);
+        ? ResolveInteractiveBackground(1.0f, 0.0f, false, ColorToken::ListLabelBandBackground)
+        : ResolveColor(ColorToken::ListLabelBandBackground);
     context.DrawRect(rect, bg);
 
     const float padH = RowPaddingH() + indent;

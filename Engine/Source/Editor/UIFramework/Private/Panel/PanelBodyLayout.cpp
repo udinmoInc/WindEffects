@@ -35,6 +35,8 @@ void PaintRegionBackground(PanelBodyRegion region, PaintContext& context, const 
         break;
     case PanelBodyRegion::ColumnHeader:
     case PanelBodyRegion::Footer:
+        Chrome::PaintListLabelBand(context, geometry);
+        break;
     case PanelBodyRegion::Count:
         break;
     }
@@ -302,8 +304,7 @@ void PanelBodyLayout::Paint(PaintContext& context) {
         }
 
         const bool skipRegionChrome =
-            (m_SuppressContentSurfaces
-                && (region == PanelBodyRegion::Content || region == PanelBodyRegion::Footer))
+            (m_SuppressContentSurfaces && region == PanelBodyRegion::Content)
             || (m_OverlayToolbar && region == PanelBodyRegion::Toolbar);
         if (!skipRegionChrome) {
             PaintRegionBackground(region, context, slot.geometry);
