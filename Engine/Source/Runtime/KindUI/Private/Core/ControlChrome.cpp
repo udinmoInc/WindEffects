@@ -5,6 +5,7 @@
 #include "KindUI/Theming/ThemeManager.h"
 #include "KindUI/Theming/ThemeAccess.h"
 #include "KindUI/Tokens/DesignToken.h"
+#include "KindUI/Tokens/SurfaceRole.h"
 #include "KindUI/Tokens/TypographySpec.h"
 #include "KindUI/Core/LayoutMetrics.h"
 #include "KindUI/Core/Icon.h"
@@ -252,6 +253,42 @@ ControlFrameStyle InputFrameStyle() {
     return style;
 }
 
+float SearchInputCornerRadius(const Rect& rect) {
+    return rect.height * 0.5f;
+}
+
+void PaintInputFrameInternal(
+    PaintContext& context,
+    const Rect& rect,
+    const InteractionState& state,
+    float cornerRadius) {
+    context.PushSurfaceOwner("Input", SurfaceRole::Input);
+
+    SurfaceRole fillRole = SurfaceRole::Input;
+    if (state.disabled) {
+        fillRole = SurfaceRole::Disabled;
+    } else if (state.pressAnim > 0.01f) {
+        fillRole = SurfaceRole::ControlPressed;
+    } else if (state.hoverAnim > 0.01f) {
+        fillRole = SurfaceRole::ControlHover;
+    }
+    context.DrawSurface(rect, fillRole, cornerRadius, "Input");
+
+    const float borderWidth = EdgeWidthPx();
+    if (state.focused) {
+        context.DrawRoundedRectOutline(
+            rect,
+            ResolveColor(ColorToken::BorderFocus),
+            borderWidth,
+            cornerRadius);
+    } else if (state.hoverAnim > 0.01f) {
+        context.DrawSurfaceOutline(rect, SurfaceRole::InputBorder, borderWidth, cornerRadius, "InputBorder");
+    } else {
+        context.DrawSurfaceOutline(rect, SurfaceRole::Border, borderWidth, cornerRadius, "InputBorder");
+    }
+    context.PopSurfaceOwner();
+}
+
 } // namespace
 
 ResolvedStyle Role(StyleRole role) {
@@ -290,12 +327,39 @@ void PaintInteractiveFill(
     float hoverAnim,
     float pressAnim,
     bool selected,
+    SurfaceRole surfaceRole)
+{
+    const Color fill = ResolveInteractiveSurfaceColor(surfaceRole, hoverAnim, pressAnim, selected);
+    if (fill.a > 0.001f) {
+        SurfaceRole drawRole = surfaceRole;
+        if (selected) {
+            drawRole = SurfaceRole::Selected;
+        } else if (pressAnim > 0.01f) {
+            drawRole = SurfaceRole::ControlPressed;
+        } else if (hoverAnim > 0.01f) {
+            drawRole = SurfaceRole::ControlHover;
+        }
+        context.DrawSurface(rect, drawRole, cornerRadius, "InteractiveFill");
+    }
+}
+
+void PaintInteractiveFill(
+    PaintContext& context,
+    const Rect& rect,
+    float cornerRadius,
+    float hoverAnim,
+    float pressAnim,
+    bool selected,
     ColorToken surfaceToken)
 {
-    const Color fill = ResolveInteractiveBackground(hoverAnim, pressAnim, selected, surfaceToken);
-    if (fill.a > 0.001f) {
-        context.DrawRoundedRect(rect, fill, cornerRadius);
-    }
+    PaintInteractiveFill(
+        context,
+        rect,
+        cornerRadius,
+        hoverAnim,
+        pressAnim,
+        selected,
+        SurfaceRoleFromColorToken(surfaceToken));
 }
 
 void PaintFocusRing(PaintContext& context, const Rect& rect, float radius) {
@@ -369,30 +433,14 @@ void PaintInputFrame(
     PaintContext& context,
     const Rect& rect,
     const InteractionState& state) {
-    const ControlFrameStyle style = InputFrameStyle();
-    PaintControlFrame(context, rect, state, style, ControlBorderMode::None);
-
-    const float borderWidth = EdgeWidthPx();
-    if (state.focused) {
-        context.DrawRoundedRectOutline(
-            rect,
-            ResolveColor(ColorToken::BorderFocus),
-            borderWidth,
-            style.cornerRadius);
-    } else if (state.hoverAnim > 0.01f) {
-        context.DrawRoundedRectOutline(
-            rect,
-            ResolveColor(ColorToken::BorderDefault),
-            borderWidth,
-            style.cornerRadius);
-    }
+    PaintInputFrameInternal(context, rect, state, InputFrameStyle().cornerRadius);
 }
 
 void PaintSearchInputFrame(
     PaintContext& context,
     const Rect& rect,
     const InteractionState& state) {
-    PaintInputFrame(context, rect, state);
+    PaintInputFrameInternal(context, rect, state, SearchInputCornerRadius(rect));
 }
 
 void PaintSearchField(
@@ -460,21 +508,32 @@ void PaintListRow(
     const Rect& rect,
     const InteractionState& state) {
     ResolvedStyle base = Role(StyleRole::TableRow);
-    if (state.selected) {
+    we::runtime::kindui::ControlState controlState = ControlState::Normal;
+    if (state.disabled) {
+        controlState = ControlState::Disabled;
+    } else if (state.selected) {
+        controlState = state.focused ? ControlState::Selected : ControlState::SelectedInactive;
         base = Role(StyleRole::TableRowSelected);
-        if (!state.focused) {
-            base.background = ResolveColor(ColorToken::SelectInactiveBackground);
-        }
     } else if (state.hoverAnim > 0.01f) {
+        controlState = ControlState::Hover;
         base = Role(StyleRole::TableRowHover);
-        base.background = Color::Lerp(
-            Color::Transparent(),
-            Role(StyleRole::TableRowHover).background,
-            state.hoverAnim);
-    } else {
-        base.background = Color::Transparent();
     }
-    context.DrawRoundedRect(rect, base.background, base.cornerRadius);
+
+    const Color bg = ResolveControlColor(ControlKind::TreeRow, controlState);
+    if (bg.a > 0.001f) {
+        SurfaceRole role = SurfaceRole::Transparent;
+        switch (controlState) {
+        case ControlState::Selected: role = SurfaceRole::Selected; break;
+        case ControlState::SelectedInactive: role = SurfaceRole::SelectedInactive; break;
+        case ControlState::Hover: role = SurfaceRole::ControlHover; break;
+        case ControlState::Disabled: role = SurfaceRole::Disabled; break;
+        default: break;
+        }
+        if (role != SurfaceRole::Transparent) {
+            context.DrawSurface(rect, role, base.cornerRadius, "ListRow");
+        }
+    }
+
     const ResolvedControlBorder border = ResolveControlBorder(
         state,
         state.selected ? ControlBorderMode::Subtle : ControlBorderMode::None,
@@ -628,18 +687,12 @@ void PaintPanelTab(
     const Rect& bounds,
     std::string_view label,
     const InteractionState& state) {
-    const float radius = ResolveMetric(MetricToken::CornerRadiusSmall);
+    const float radius = 0.0f;
     if (state.selected) {
-        const float inset = ResolveMetric(MetricToken::Space1);
-        const float indicatorH = ResolveMetric(MetricToken::TabActiveIndicatorHeight);
-        context.DrawRect(
-            Rect{
-                bounds.x + inset,
-                bounds.y + bounds.height - indicatorH,
-                bounds.width - inset * 2.0f,
-                indicatorH
-            },
-            ResolveColor(ColorToken::AccentPrimary));
+        context.DrawRoundedRect(
+            bounds,
+            ResolveSurfaceColor(SurfaceRole::TabActive),
+            radius);
     } else if (state.hoverAnim > 0.01f || state.pressAnim > 0.01f) {
         Color tabBg = Color::Lerp(
             Color::Transparent(),
@@ -677,7 +730,8 @@ void PaintVerticalSeparator(
     float x,
     float top,
     float bottom,
-    float thickness)
+    float thickness,
+    ColorToken colorToken)
 {
     if (bottom <= top) {
         return;
@@ -686,7 +740,7 @@ void PaintVerticalSeparator(
     const float w = (std::max)(1.0f, thickness) * scale;
     context.DrawRect(
         Rect{ std::floor(x - w * 0.5f), top, w, bottom - top },
-        ResolveColor(ColorToken::Separator));
+        ResolveColor(colorToken));
 }
 
 } // namespace ControlChrome

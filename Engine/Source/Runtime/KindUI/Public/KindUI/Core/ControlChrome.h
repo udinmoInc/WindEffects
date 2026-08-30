@@ -4,6 +4,7 @@
 #include "KindUI/Theming/IKindUITheme.h"
 #include "KindUI/Theming/ResolvedStyle.h"
 #include "KindUI/Core/Geometry.h"
+#include "KindUI/Tokens/SurfaceRole.h"
 
 #include <string>
 
@@ -42,7 +43,16 @@ KINDUI_API void PaintInteractiveFill(
     float hoverAnim,
     float pressAnim,
     bool selected,
-    ColorToken surfaceToken = ColorToken::PanelBackground);
+    SurfaceRole surfaceRole = SurfaceRole::Panel);
+
+KINDUI_API void PaintInteractiveFill(
+    PaintContext& context,
+    const Rect& rect,
+    float radius,
+    float hoverAnim,
+    float pressAnim,
+    bool selected,
+    ColorToken surfaceToken);
 
 /// Soft drop shadow for raised controls (buttons, chips).
 KINDUI_API void PaintSubtleDropShadow(
@@ -194,7 +204,8 @@ KINDUI_API void PaintVerticalSeparator(
     float x,
     float top,
     float bottom,
-    float thickness = 1.0f);
+    float thickness = 1.0f,
+    ColorToken colorToken = ColorToken::Separator);
 
 } // namespace ControlChrome
 

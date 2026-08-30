@@ -60,6 +60,24 @@ KINDUI_API void PaintExecutionCluster(
     const Rect& rect,
     float uiScale);
 
+/// Flat toolbar button hover/press/active surfaces (no bevel, no accent underline).
+KINDUI_API void PaintToolbarButtonSurface(
+    PaintContext& context,
+    const Rect& rect,
+    float hoverAnim,
+    float pressStrength,
+    bool active,
+    float activeAnim,
+    float uiScale);
+
+/// Status bar dock control: text brighten on hover, accent underline when active.
+KINDUI_API void PaintStatusBarControl(
+    PaintContext& context,
+    const Rect& rect,
+    float hoverAnim,
+    bool active,
+    float uiScale);
+
 KINDUI_API void PaintChipDropdown(
     PaintContext& context,
     const Rect& rect,

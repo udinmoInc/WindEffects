@@ -28,7 +28,8 @@ enum class ToolButtonStyle {
     ToolbarIconOnly,
     ToolbarInline,    // Icon + optional label + chevron
     ToolbarLabeled,   // Icon above text label (transform tools)
-    ViewportChip      // Individual floating viewport control pill
+    ViewportChip,     // Individual floating viewport control pill
+    StatusBar         // Flat footer/status strip control
 };
 
 // Icon and text button for toolbar use

@@ -33,8 +33,14 @@ CommandInput::CommandInput()
 }
 
 Size CommandInput::Measure(const Size& availableSize) {
-    (void)availableSize;
-    m_DesiredSize = Size{ m_Width, m_Height };
+    const float width = m_FlatChrome
+        ? availableSize.width
+        : (m_Width > 0.0f ? m_Width : availableSize.width);
+    float height = m_Height;
+    if (m_FlatChrome && availableSize.height > 0.0f && availableSize.height < 1.0e8f) {
+        height = std::min(height, availableSize.height);
+    }
+    m_DesiredSize = Size{ width, height };
     return m_DesiredSize;
 }
 
@@ -47,7 +53,19 @@ void CommandInput::Arrange(const Rect& allottedRect) {
 void CommandInput::Paint(PaintContext& context) {
     ControlChrome::InteractionState state{};
     state.focused = IsFocused();
-    ControlChrome::PaintInputFrame(context, m_Geometry, state);
+    state.hoverAnim = IsHovered() ? 1.0f : 0.0f;
+
+    if (m_FlatChrome) {
+        if (state.focused) {
+            ControlChrome::PaintInputFrame(context, m_Geometry, state);
+        } else if (state.hoverAnim > 0.01f) {
+            const Color base = ThemeColor(ColorToken::StatusBarBackground);
+            const Color hover = ThemeColor(ColorToken::HoverBackground);
+            context.DrawRect(m_Geometry, Color::Lerp(base, hover, state.hoverAnim * 0.18f));
+        }
+    } else {
+        ControlChrome::PaintInputFrame(context, m_Geometry, state);
+    }
 
     const float iconSize = static_cast<float>(IconMetrics::NativeIconTierPx(ThemeMetric(MetricToken::IconSizeSearch)));
     const float padH = ThemeMetric(MetricToken::Space2);

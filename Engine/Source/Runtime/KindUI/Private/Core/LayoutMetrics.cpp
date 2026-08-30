@@ -60,8 +60,9 @@ float SearchInputIconSize() {
 
 Rect LayoutSearchInputRect(const Rect& allottedRect) {
     const float h = SearchInputHeight();
-    const float y = allottedRect.y + (allottedRect.height - h) * 0.5f;
-    return Rect{ allottedRect.x, y, allottedRect.width, h };
+    const float inset = ResolveMetric(MetricToken::Space1) * UiScale();
+    const float y = allottedRect.y + std::min(inset, std::max(0.0f, allottedRect.height - h));
+    return Rect{ allottedRect.x, y, allottedRect.width, std::min(h, allottedRect.height) };
 }
 
 float FormRowMinHeight() {

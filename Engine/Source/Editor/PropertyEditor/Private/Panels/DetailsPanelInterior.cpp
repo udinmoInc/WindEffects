@@ -188,7 +188,7 @@ void PopulateDetailsPanelRegions(
 
     panel->SetModeTabs(header);
     panel->SetSearch(search);
-    panel->SetToolbar(tabs);
+    panel->SetColumnHeader(tabs);
     panel->SetContent(propertyList);
 }
 

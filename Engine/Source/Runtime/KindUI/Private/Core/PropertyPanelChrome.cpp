@@ -221,23 +221,19 @@ void PaintCategoryTab(
     const float radius = ResolveMetric(MetricToken::CornerRadiusSmall) * scale;
     const float fontSize = ResolveMetric(MetricToken::TextSizeCaption) * scale;
 
-    Color bg = active
-        ? ResolveColor(ColorToken::AccentPrimary)
-        : ResolveColor(ColorToken::InputBackground);
-    if (!active && hovered) {
-        bg = Color::Lerp(bg, ResolveColor(ColorToken::HoverBackground), 0.65f);
-    }
-    ControlChrome::PaintPanelButtonFace(
-        context,
-        rect,
-        bg,
-        radius,
-        hovered ? 1.0f : 0.0f,
-        0.0f,
-        active);
-
     if (active) {
-        context.DrawRoundedRectOutline(rect, ResolveColor(ColorToken::BorderFocus), ResolveMetric(MetricToken::BorderWidth), radius);
+        context.DrawRoundedRect(rect, ResolveColor(ColorToken::AccentPrimary), radius);
+    } else if (hovered) {
+        ControlChrome::PaintInteractiveFill(
+            context,
+            rect,
+            radius,
+            1.0f,
+            0.0f,
+            false,
+            ColorToken::InputBackground);
+    } else {
+        context.DrawRoundedRect(rect, ResolveColor(ColorToken::InputBackground), radius);
     }
 
     const float textW = context.GetTextWidth(std::string(label), fontSize);

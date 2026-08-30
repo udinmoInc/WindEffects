@@ -4,6 +4,10 @@
 #include "KindUI/Benchmark/KindUIInteractionBenchmark.h"
 #include "KindUI/Profiling/UiInputLatencyAudit.h"
 #include "KindUI/Profiling/UiPathDiagnostics.h"
+#include "KindUI/Profiling/UiColorPipelineDiagnostic.h"
+#include "KindUI/Profiling/UiColorCompositionDiagnostic.h"
+#include "EditorCompositionProbes.h"
+#include "KindUI/Core/ColorSpace.h"
 #include "KindUI/Input/InputEvents.h"
 #include "Core/Logger.h"
 
@@ -278,11 +282,28 @@ void Editor::InitializeEngine() {
     UpdateUiScaleFromWindow();
 
     if (m_Renderer) {
-        const auto workspace = we::runtime::kindui::ResolveColor(we::runtime::kindui::ColorToken::WorkspaceBackground);
+        const bool isolatedPipelineTest =
+            we::runtime::kindui::UiColorPipelineDiagnostic::IsEnabled()
+            && !we::runtime::kindui::UiColorCompositionDiagnostic::IsEnabled();
+        const we::runtime::kindui::Color clearAuthoring =
+            isolatedPipelineTest
+                ? we::runtime::kindui::Color::Black()
+                : we::runtime::kindui::ResolveColor(we::runtime::kindui::ColorToken::WorkspaceBackground);
         const auto clearColor = we::runtime::kindui::ColorSpace::ClearColorForTarget(
             m_Renderer->GetSwapchainFormat(),
-            workspace);
+            clearAuthoring);
         m_Renderer->SetSwapchainClearColor({clearColor.r, clearColor.g, clearColor.b, clearColor.a});
+        if (isolatedPipelineTest) {
+            HE_INFO("[UiColorPipeline] WE_UI_COLOR_PIPELINE_TEST=1 — isolated UI swatch grid (no editor chrome, no 3D).");
+        }
+        if (we::runtime::kindui::UiColorCompositionDiagnostic::IsEnabled()) {
+            we::runtime::kindui::UiColorCompositionDiagnostic::Get().Reset();
+            we::runtime::kindui::UiColorCompositionDiagnostic::SetProbeRegistrar(
+                [](const std::shared_ptr<we::runtime::kindui::Widget>& root) {
+                    we::programs::editor::RegisterEditorCompositionProbes(root);
+                });
+            HE_INFO("[UiColorComposition] WE_UI_COLOR_COMPOSITION_TEST=1 — real editor composition audit (full shell, diagnostic hooks only).");
+        }
     }
 
     m_FirstRunAgreementPending = !HasAcceptedFirstRunAgreement();
@@ -1256,11 +1277,16 @@ void Editor::MainLoop() {
                 m_Renderer->ClearOverlayRecorder();
             }
 
+            const bool pipelineColorTest =
+                we::runtime::kindui::UiColorPipelineDiagnostic::IsEnabled()
+                && !we::runtime::kindui::UiColorCompositionDiagnostic::IsEnabled();
+            const bool compositionColorTest = we::runtime::kindui::UiColorCompositionDiagnostic::IsEnabled();
             const bool paintOnlyFrame =
-                !uiLayoutRequested
-                && uiPaintRequested
-                && m_HasRenderedScene
-                && cameraHash == m_LastSceneCameraHash;
+                pipelineColorTest
+                || (!uiLayoutRequested
+                    && uiPaintRequested
+                    && m_HasRenderedScene
+                    && cameraHash == m_LastSceneCameraHash);
             if (paintOnlyFrame) {
                 m_Renderer->RenderUiPaintOnly();
             } else {
@@ -1277,6 +1303,14 @@ void Editor::MainLoop() {
             if (m_Renderer->GetRHIDevice()) {
                 we::runtime::kindui::UiInputLatencyAudit::Get().OnPresentComplete(
                     &m_Renderer->GetRHIDevice()->GetDiagnostics().lastFrame);
+                if (pipelineColorTest) {
+                    we::runtime::kindui::UiColorPipelineDiagnostic::Get().TryFinalizeAndReport(
+                        m_Renderer->GetRHIDevice());
+                }
+                if (compositionColorTest) {
+                    we::runtime::kindui::UiColorCompositionDiagnostic::Get().OnFramePresented(
+                        m_Renderer->GetRHIDevice());
+                }
             } else {
                 we::runtime::kindui::UiInputLatencyAudit::Get().OnPresentComplete(nullptr);
             }

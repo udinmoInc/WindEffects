@@ -7,6 +7,7 @@
 #include "Explorer/WorldOutlinerApi.h"
 #include "Environment/EnvironmentEditorApi.h"
 #include "MainEditorToolbar.h"
+#include "Widgets/WindowsPanelMenuButton.h"
 #include "KindUI/Theming/ThemeAccess.h"
 
 #include "WindEffects/Editor/UI/Widgets/Panel.h"
@@ -35,7 +36,9 @@
 
 using we::runtime::kindui::ColorToken;
 using we::runtime::kindui::MetricToken;
+using we::runtime::kindui::Margin;
 using we::runtime::kindui::PaddingToken;
+using we::runtime::kindui::ResolveColor;
 
 namespace we::programs::editor {
 using ::we::runtime::kindui::Widget;
@@ -268,8 +271,17 @@ EditorShellResult EditorShellBuilder::Build(
         we::runtime::kindui::ResolveMetric(MetricToken::WindowControlWidth) * windowControlCount);
     const float toolbarEdgePadding = style.Scaled(we::runtime::kindui::ResolveMetric(MetricToken::Space2));
 
+    EditorShellDependencies toolbarDeps = deps;
+    toolbarDeps.windowsPanelMenu = ::we::editor::toolbar::WindowsPanelMenuButton::Create(
+        context.GetExtensionRegistry(),
+        [&workspace](const std::string& panelId) { workspace.TogglePanelVisibility(panelId); },
+        [&workspace](const std::string& panelId) { return workspace.IsPanelVisible(panelId); });
+    if (toolbarDeps.windowsPanelMenu) {
+        toolbarDeps.windowsPanelMenu->SetContext(widgetContext);
+    }
+
     auto toolbar = BuildMainEditorToolbar(
-        deps,
+        toolbarDeps,
         widgetContext,
         toolbarHeight,
         toolbarLeftInset,
@@ -403,8 +415,11 @@ EditorShellResult EditorShellBuilder::Build(
     rootVBox->AddChild(titleBar);
     rootVBox->AddChild(toolbar);
     if (shellResult.layout.root) {
+        const float dockGap = style.Scaled(we::runtime::kindui::ResolveMetric(MetricToken::DockPanelGap));
         auto workspaceArea = std::make_shared<Column>();
         workspaceArea->Gap(0.0f);
+        workspaceArea->Padding(Margin{ dockGap, dockGap, dockGap, dockGap });
+        workspaceArea->Background(ResolveColor(ColorToken::DockChromeBackground));
         workspaceArea->SetFlexGrow(1.0f);
         workspaceArea->SetFlexShrink(0.0f);
         workspaceArea->SetVerticalAlignment(VerticalAlignment::Fill);
@@ -433,6 +448,7 @@ EditorShellResult EditorShellBuilder::Build(
     shellResult.overlayHost = overlayHost;
 
     workspace.LoadLayout();
+    workspace.ApplyToolsPanelVisibility(::we::editor::shell::EditorModeController::Get().IsDrawerVisible());
 
     for (const auto& binding : windowMenuBindings) {
         binding.item->checked = workspace.IsPanelVisible(binding.panelId);

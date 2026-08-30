@@ -105,9 +105,9 @@ void PlaceActorsConfig::Load() {
         } else if (key == "GridColumns") {
             gridColumns = std::clamp(ParseInt(value, gridColumns), 1, 6);
         } else if (key == "ListRowHeight") {
-            listRowHeight = std::clamp(ParseFloat(value, listRowHeight), 32.0f, 72.0f);
+            listRowHeight = std::clamp(ParseFloat(value, listRowHeight), 26.0f, 72.0f);
         } else if (key == "CategoryHeaderHeight") {
-            categoryHeaderHeight = std::clamp(ParseFloat(value, categoryHeaderHeight), 24.0f, 40.0f);
+            categoryHeaderHeight = std::clamp(ParseFloat(value, categoryHeaderHeight), 22.0f, 36.0f);
         }
     }
 }

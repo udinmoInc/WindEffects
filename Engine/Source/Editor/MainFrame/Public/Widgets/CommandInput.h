@@ -36,12 +36,14 @@ public:
 
     void SetPlaceholder(const std::string& placeholder) { m_Placeholder = placeholder; }
     void SetOnCommandSubmitted(OnCommandSubmitted callback) { m_OnCommandSubmitted = std::move(callback); }
+    void SetFlatChrome(bool flat) { m_FlatChrome = flat; }
 
 private:
     std::string m_Text;
     std::string m_Placeholder = "Enter command...";
     size_t m_CaretPosition = 0;
     bool m_ShowCaret = false;
+    bool m_FlatChrome = false;
 
     float m_Height = 0.0f;
     float m_Width = 0.0f;

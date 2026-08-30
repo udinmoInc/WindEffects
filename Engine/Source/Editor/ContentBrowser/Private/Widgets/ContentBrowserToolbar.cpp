@@ -9,13 +9,14 @@
 #include "KindUI/Core/DPIContext.h"
 #include "KindUI/Rendering/IconMetrics.h"
 #include "KindUI/Theming/ThemeAccess.h"
-#include "KindUI/Theming/ThemeAccess.h"
 #include "KindUI/Tokens/DesignToken.h"
 #include "KindUI/Theming/StyleRole.h"
 #include "KindUI/Core/Icon.h"
 #include "KindUI/Core/Animator.h"
 #include "KindUI/Input/InputEvents.h"
 #include "KindUI/Layout/Flex.h"
+#include "KindUI/Profiling/UiGeometryDebug.h"
+#include "WindEffects/Editor/UI/Layout/EditorMetrics.h"
 #include <algorithm>
 
 using ::we::runtime::kindui::ColorToken;
@@ -51,7 +52,7 @@ void PaintToolbarButtonChrome(PaintContext& context, const Rect& rect, float hov
         hoverAnim,
         pressAnim,
         selected,
-        ColorToken::PanelBackground);
+        ColorToken::ToolbarBackground);
 
     if (primary) {
         context.DrawRoundedRectOutline(
@@ -65,9 +66,6 @@ void PaintToolbarButtonChrome(PaintContext& context, const Rect& rect, float hov
             we::runtime::kindui::ResolveColor(ColorToken::PressedBackground),
             we::runtime::kindui::ResolveMetric(MetricToken::BorderWidth),
             radius);
-    } else if (hoverAnim > 0.01f || pressAnim > 0.01f) {
-        const float bevelStrength = std::max(0.35f, 1.0f - pressAnim * 0.75f);
-        we::runtime::kindui::ControlChrome::PaintSlateButtonBevel(context, rect, bevelStrength);
     }
 }
 
@@ -262,7 +260,7 @@ void ContentBrowserToolbarControls::InitializeChildren() {
 
 Size ContentBrowserToolbarControls::Measure(const Size& availableSize) {
     Size size = Row::Measure(availableSize);
-    size.height = ::we::runtime::kindui::LayoutMetrics::SearchRowHeight();
+    size.height = PanelChrome::ToolbarRowHeight();
     m_DesiredSize = size;
     return m_DesiredSize;
 }
@@ -278,6 +276,17 @@ void ContentBrowserToolbarControls::Arrange(const Rect& allottedRect) {
 
 void ContentBrowserToolbarControls::Paint(PaintContext& context) {
     Row::Paint(context);
+
+    if (we::runtime::kindui::UiGeometryDebug::IsEnabled()) {
+        we::runtime::kindui::UiGeometryDebug::Get().TraceRegion(
+            "ContentBrowserToolbar",
+            m_Geometry,
+            "ContentBrowser",
+            we::editor::layout::EditorMetrics::Scaled(we::runtime::kindui::MetricToken::Space2),
+            0.0f,
+            we::runtime::kindui::ResolveMetric(we::runtime::kindui::MetricToken::TextSizeSmall),
+            we::runtime::kindui::ResolveMetric(we::runtime::kindui::MetricToken::IconSizeToolbar));
+    }
 }
 
 void ContentBrowserToolbarControls::OnMouseDown(const MouseEvent& event) {

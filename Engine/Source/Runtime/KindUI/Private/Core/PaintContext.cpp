@@ -1,8 +1,77 @@
 #include "KindUI/Core/PaintContext.h"
 #include "KindUI/Core/TextMetrics.h"
+#include "KindUI/Profiling/UiColorDebug.h"
 #include "KindUI/Rendering/TextUIService.h"
 
 namespace we::runtime::kindui {
+
+void PaintContext::PushSurfaceOwner(const char* widgetName, SurfaceRole role) {
+    m_SurfaceOwnerStack.push_back(SurfaceOwnerScope{ widgetName, role });
+}
+
+void PaintContext::PopSurfaceOwner() {
+    if (!m_SurfaceOwnerStack.empty()) {
+        m_SurfaceOwnerStack.pop_back();
+    }
+}
+
+const char* PaintContext::CurrentWidgetName() const {
+    return m_SurfaceOwnerStack.empty() ? nullptr : m_SurfaceOwnerStack.back().widgetName;
+}
+
+const char* PaintContext::ParentWidgetName() const {
+    if (m_SurfaceOwnerStack.size() < 2) {
+        return nullptr;
+    }
+    return m_SurfaceOwnerStack[m_SurfaceOwnerStack.size() - 2].widgetName;
+}
+
+void PaintContext::RecordSemanticDraw(
+    DrawCommand& cmd,
+    SurfaceRole role,
+    const char* widgetName,
+    bool requiresRole)
+{
+    cmd.semantic.surfaceRole = role;
+    cmd.semantic.widgetName = widgetName ? widgetName : CurrentWidgetName();
+    cmd.semantic.parentWidget = ParentWidgetName();
+    cmd.semantic.layer = ++m_LayerCounter;
+    cmd.semantic.requiresRole = requiresRole;
+    if (UiColorDebug::IsSemanticAuditEnabled()) {
+        UiColorDebug::Get().TraceSemanticDraw(cmd);
+    }
+}
+
+void PaintContext::DrawSurface(const Rect& rect, SurfaceRole role, float borderRadius, const char* widgetName) {
+    const Color color = ResolveSurfaceColor(role);
+    DrawCommand cmd{};
+    cmd.type = DrawCommandType::Rect;
+    cmd.rect = rect;
+    cmd.color = color;
+    cmd.clipRect = GetCurrentClipRect();
+    cmd.borderRadius = borderRadius;
+    RecordSemanticDraw(cmd, role, widgetName, true);
+    m_Commands.push_back(cmd);
+}
+
+void PaintContext::DrawSurfaceOutline(
+    const Rect& rect,
+    SurfaceRole role,
+    float thickness,
+    float radius,
+    const char* widgetName)
+{
+    const Color color = ResolveSurfaceColor(role);
+    DrawCommand cmd{};
+    cmd.type = DrawCommandType::RoundedOutline;
+    cmd.rect = rect;
+    cmd.color = color;
+    cmd.borderRadius = radius;
+    cmd.thickness = thickness;
+    cmd.clipRect = GetCurrentClipRect();
+    RecordSemanticDraw(cmd, role, widgetName, true);
+    m_Commands.push_back(cmd);
+}
 
 void PaintContext::PushClipRect(const Rect& clip) {
     if (m_ClipStack.empty()) {
@@ -35,6 +104,14 @@ void PaintContext::DrawRect(const Rect& rect, const Color& color, float borderRa
     cmd.color = color;
     cmd.clipRect = GetCurrentClipRect();
     cmd.borderRadius = borderRadius;
+    const bool opaqueFill = color.a > 0.95f && rect.width >= 8.0f && rect.height >= 8.0f;
+    if (opaqueFill && UiColorDebug::IsSemanticAuditEnabled()) {
+        cmd.semantic.requiresRole = true;
+        cmd.semantic.widgetName = CurrentWidgetName();
+        cmd.semantic.parentWidget = ParentWidgetName();
+        cmd.semantic.layer = ++m_LayerCounter;
+        UiColorDebug::Get().TraceUnassignedBackground(cmd);
+    }
     m_Commands.push_back(cmd);
 }
 
@@ -45,6 +122,14 @@ void PaintContext::DrawRoundedRect(const Rect& rect, const Color& color, float r
     cmd.color = color;
     cmd.clipRect = GetCurrentClipRect();
     cmd.borderRadius = radius;
+    const bool opaqueFill = color.a > 0.95f && rect.width >= 8.0f && rect.height >= 8.0f;
+    if (opaqueFill && UiColorDebug::IsSemanticAuditEnabled()) {
+        cmd.semantic.requiresRole = true;
+        cmd.semantic.widgetName = CurrentWidgetName();
+        cmd.semantic.parentWidget = ParentWidgetName();
+        cmd.semantic.layer = ++m_LayerCounter;
+        UiColorDebug::Get().TraceUnassignedBackground(cmd);
+    }
     m_Commands.push_back(cmd);
 }
 

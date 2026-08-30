@@ -4,11 +4,13 @@
 #include "Widgets/ToolButton.h"
 #include "KindUI/Layout/Spacer.h"
 #include "KindUI/Core/PaintContext.h"
-#include "KindUI/Tokens/DesignToken.h"
+#include "KindUI/Profiling/UiGeometryDebug.h"
+#include "KindUI/Tokens/SurfaceRole.h"
 #include "KindUI/Theming/StyleRole.h"
 #include "KindUI/Core/Icon.h"
 #include "KindUI/Core/DPIContext.h"
 #include "KindUI/Core/ControlChrome.h"
+#include "KindUI/Theming/ThemeAccess.h"
 #include <algorithm>
 
 using ::we::runtime::kindui::ColorToken;
@@ -28,16 +30,23 @@ namespace ControlChrome = ::we::runtime::kindui::ControlChrome;
 
 namespace {
 
-    std::shared_ptr<ToolButton> MakeFooterControl(
+    std::shared_ptr<ToolButton> MakeDockControl(
         const char* iconName,
         const std::string& label,
-        bool isDropdown,
         const char* tooltip)
     {
         auto button = std::make_shared<ToolButton>(iconName, label, nullptr, tooltip);
-        button->SetButtonStyle(ToolButtonStyle::ToolbarInline);
-        button->SetChromeless(true);
-        button->SetIsDropdown(isDropdown);
+        button->SetButtonStyle(ToolButtonStyle::StatusBar);
+        button->SetVerticalAlignment(VerticalAlignment::Center);
+        return button;
+    }
+
+    std::shared_ptr<ToolButton> MakeStatusIndicator(
+        const std::string& label,
+        const char* tooltip)
+    {
+        auto button = std::make_shared<ToolButton>("", label, nullptr, tooltip);
+        button->SetButtonStyle(ToolButtonStyle::StatusBar);
         button->SetVerticalAlignment(VerticalAlignment::Center);
         return button;
     }
@@ -46,27 +55,18 @@ namespace {
         return std::max(1.0f, DPIContext::GetScale());
     }
 
-    void PaintVerticalSeparator(PaintContext& context, float x, float top, float bottom) {
-        ControlChrome::PaintVerticalSeparator(context, x, top, bottom, 1.0f);
-    }
-
-    void PaintSeparatorsBetweenChildren(
-        PaintContext& context,
-        const std::shared_ptr<Row>& row,
-        float barTop,
-        float barBottom)
-    {
-        if (!row) {
-            return;
-        }
-        const auto& children = row->GetChildren();
-        for (size_t i = 1; i < children.size(); ++i) {
-            if (!children[i]) {
-                continue;
-            }
-            const Rect g = children[i]->GetGeometry();
-            PaintVerticalSeparator(context, g.x, barTop, barBottom);
-        }
+    void PaintSectionSeparator(PaintContext& context, float x, float barTop, float barBottom) {
+        const float uiScale = UiScale();
+        const float lineHeight = we::runtime::kindui::ResolveMetric(MetricToken::ToolbarSeparatorHeight) * uiScale;
+        const float centerY = barTop + (barBottom - barTop) * 0.5f;
+        const float halfH = lineHeight * 0.5f;
+        ControlChrome::PaintVerticalSeparator(
+            context,
+            x,
+            centerY - halfH,
+            centerY + halfH,
+            1.0f,
+            ColorToken::BorderSubtle);
     }
 
 } // namespace
@@ -78,17 +78,17 @@ StatusBar::StatusBar()
 
 void StatusBar::Construct() {
     const float uiScale = UiScale();
-    const float pad = ThemeMetric(MetricToken::Space1) * uiScale;
-    Padding(Margin{pad, 0, pad, 0});
-    Gap(ThemeMetric(MetricToken::Space1) * uiScale);
+    const float padH = ThemeMetric(MetricToken::Space2) * uiScale;
+    Padding(Margin{ padH, 0, padH, 0 });
+    Gap(ThemeMetric(MetricToken::Space2) * uiScale);
     Align(AlignItems::Center);
 
     m_LeftBox = std::make_shared<Row>();
-    m_LeftBox->Gap(ThemeMetric(MetricToken::Space1));
+    m_LeftBox->Gap(ThemeMetric(MetricToken::Space2) * uiScale);
     m_LeftBox->SetFlexShrink(0.0f);
 
-    m_AssetsPanelButton = MakeFooterControl(Icons::ContentBrowserName, "Content Drawer", false, "Content Browser");
-    m_DiagnosticsPanelButton = MakeFooterControl(Icons::OutputLogName, "Output Log", false, "Output Log");
+    m_AssetsPanelButton = MakeDockControl(Icons::ContentBrowserName, "Content Drawer", "Content Browser");
+    m_DiagnosticsPanelButton = MakeDockControl(Icons::OutputLogName, "Output Log", "Output Log");
 
     m_AssetsPanelButton->SetOnClicked([this]() { SelectPanelTab(0, true); });
     m_DiagnosticsPanelButton->SetOnClicked([this]() { SelectPanelTab(1, true); });
@@ -98,11 +98,11 @@ void StatusBar::Construct() {
     AddChild(m_LeftBox);
 
     m_CommandInput = std::make_shared<CommandInput>();
+    m_CommandInput->SetFlatChrome(true);
     m_CommandInput->SetVerticalAlignment(VerticalAlignment::Center);
     m_CommandInput->SetPlaceholder("Console Commands...");
     m_CommandInput->SetFlexGrow(1.0f);
     m_CommandInput->SetFlexShrink(1.0f);
-    m_CommandInput->SetMaxWidth(300.0f * uiScale);
     AddChild(m_CommandInput);
 
     auto spacer = std::make_shared<Spacer>();
@@ -110,13 +110,13 @@ void StatusBar::Construct() {
     AddChild(spacer);
 
     m_RightBox = std::make_shared<Row>();
-    m_RightBox->Gap(ThemeMetric(MetricToken::Space1));
+    m_RightBox->Gap(ThemeMetric(MetricToken::Space3) * uiScale);
     m_RightBox->SetFlexShrink(0.0f);
 
-    m_OutputLogButton = MakeFooterControl(Icons::BuildName, "Source Control", false, "Source Control");
-    m_BuildMenuButton = MakeFooterControl(Icons::ProfilerName, "FPS", false, "Frame Rate");
-    m_TraceButton = MakeFooterControl(Icons::PackageName, "Memory", false, "Memory Usage");
-    m_QualityMenuButton = MakeFooterControl(Icons::LitName, "RHI", false, "Graphics API");
+    m_OutputLogButton = MakeStatusIndicator("Source Control", "Source Control");
+    m_BuildMenuButton = MakeStatusIndicator("FPS", "Frame Rate");
+    m_TraceButton = MakeStatusIndicator("Memory", "Memory Usage");
+    m_QualityMenuButton = MakeStatusIndicator("RHI", "Graphics API");
 
     m_RightBox->AddChild(m_OutputLogButton);
     m_RightBox->AddChild(m_BuildMenuButton);
@@ -134,6 +134,12 @@ void StatusBar::SelectPanelTab(int index, bool notify) {
     }
 
     m_ActivePanelTab = index;
+    if (m_AssetsPanelButton) {
+        m_AssetsPanelButton->SetActive(index == 0);
+    }
+    if (m_DiagnosticsPanelButton) {
+        m_DiagnosticsPanelButton->SetActive(index == 1);
+    }
 
     if (notify && m_OnFooterTabChanged) {
         m_OnFooterTabChanged(index);
@@ -155,49 +161,46 @@ void StatusBar::Arrange(const Rect& allottedRect) {
 }
 
 void StatusBar::Paint(PaintContext& context) {
-    context.DrawRect(m_Geometry, ThemeColor(ColorToken::StatusBarBackground));
-    Rect topBorder{
-        m_Geometry.x,
-        m_Geometry.y,
-        m_Geometry.width,
-        ThemeMetric(MetricToken::BorderWidth)
-    };
-    context.DrawRect(topBorder, ThemeColor(ColorToken::Separator));
+    context.PushSurfaceOwner("StatusBar", we::runtime::kindui::SurfaceRole::StatusBar);
+    context.DrawSurface(m_Geometry, we::runtime::kindui::SurfaceRole::StatusBar, 0.0f, "StatusBar");
+
+    const float borderWidth = ThemeMetric(MetricToken::BorderWidth);
+    context.DrawSurface(
+        Rect{ m_Geometry.x, m_Geometry.y, m_Geometry.width, borderWidth },
+        we::runtime::kindui::SurfaceRole::Separator,
+        0.0f,
+        "StatusBarBorder");
+
     Row::Paint(context);
 
     const float barTop = m_Geometry.y;
     const float barBottom = m_Geometry.y + m_Geometry.height;
 
-    // Draw vertical line dividers between items inside left and right boxes
-    PaintSeparatorsBetweenChildren(context, m_LeftBox, barTop, barBottom);
-    PaintSeparatorsBetweenChildren(context, m_RightBox, barTop, barBottom);
-
-    const float gap = ThemeMetric(MetricToken::Space1) * UiScale();
-
-    // Section divider between Left Controls and Console Commands input
     if (m_LeftBox && m_CommandInput) {
         const Rect left = m_LeftBox->GetGeometry();
         const Rect cmd = m_CommandInput->GetGeometry();
-        if (cmd.x > left.x + left.width) {
-            PaintVerticalSeparator(
-                context,
-                cmd.x - gap * 0.5f,
-                barTop,
-                barBottom);
+        if (cmd.x > left.x + left.width + 1.0f) {
+            PaintSectionSeparator(context, cmd.x - ThemeMetric(MetricToken::Space1) * UiScale(), barTop, barBottom);
         }
     }
 
-    // Section divider right before Source Control (Right Stats Controls)
     if (m_CommandInput && m_RightBox) {
         const Rect cmd = m_CommandInput->GetGeometry();
         const Rect right = m_RightBox->GetGeometry();
-        if (right.x > cmd.x + cmd.width) {
-            PaintVerticalSeparator(
-                context,
-                right.x - gap * 0.5f,
-                barTop,
-                barBottom);
+        if (right.x > cmd.x + cmd.width + 1.0f) {
+            PaintSectionSeparator(context, right.x - ThemeMetric(MetricToken::Space1) * UiScale(), barTop, barBottom);
         }
+    }
+    context.PopSurfaceOwner();
+
+    if (we::runtime::kindui::UiGeometryDebug::IsEnabled()) {
+        we::runtime::kindui::UiGeometryDebug::Get().TraceRegion(
+            "StatusBar",
+            m_Geometry,
+            "EditorShell",
+            0.0f,
+            0.0f,
+            we::runtime::kindui::ResolveMetric(MetricToken::TextSizeSmall));
     }
 }
 
@@ -246,4 +249,3 @@ void StatusBar::SetOnQualityMenuClicked(std::function<void()> onClicked) {
 }
 
 } // namespace we::editor::shell
-

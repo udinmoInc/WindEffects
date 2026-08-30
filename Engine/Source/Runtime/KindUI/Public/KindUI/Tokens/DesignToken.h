@@ -281,6 +281,12 @@ enum class MetricToken : uint32_t {
     TabActiveIndicatorHeight,  // accent line on active dock tab
     TabGap,                    // horizontal gap between dock tabs
     TabStripPadH,              // dock/mode tab strip left inset (align with panel content)
+    TabStripPadV,              // dock tab strip top inset (gap above tabs)
+    TabActiveIndicatorWidth,   // active tab left accent width
+    TabPaddingH,               // dock tab horizontal inner padding
+    TabPaddingV,               // dock tab vertical inner padding
+    DockPanelGap,              // gutter between docked panels and workspace edge (logical px)
+    ViewportToolbarHeight,     // floating viewport control strip
     StatusBarHeight,           // bottom status/command bar
 
     ToolbarSeparatorHeight,    // vertical separator line in toolbars
@@ -291,6 +297,7 @@ enum class MetricToken : uint32_t {
     PropertyLabelColumnWidth,  // details / property inspector label column
     PropertyIndentStep,        // nested property tree indent per level
     TreeIndentWidth,           // tree view indent per depth level
+    TreeExpanderHitSize,       // expand/collapse chevron hit area (20–24 logical px)
 
     PopupMinWidth,
     PopupMaxWidth,
@@ -316,7 +323,9 @@ enum class MetricToken : uint32_t {
     CheckMarkSize,      // checkbox / menu check glyph
     MenuTextIndent,     // label offset after check column in menus
 
+    SpaceXS,
     Space1,
+    SpaceMD,   // compact editor rhythm (6 logical px)
     Space2,
     Space3,
     Space4,

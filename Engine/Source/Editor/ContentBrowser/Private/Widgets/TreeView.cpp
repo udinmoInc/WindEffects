@@ -9,12 +9,15 @@
 #include "WindEffects/Editor/UI/Panel/PanelChrome.h"
 #include "KindUI/Theming/ThemeAccess.h"
 #include "KindUI/Tokens/DesignToken.h"
+#include "KindUI/Tokens/DesignSystem.h"
 #include "KindUI/Theming/StyleRole.h"
 #include "KindUI/Core/Icon.h"
 #include "KindUI/Core/DPIContext.h"
 #include "KindUI/Input/InputEvents.h"
 #include "KindUI/Core/ControlChrome.h"
 #include "KindUI/Rendering/IconMetrics.h"
+#include "KindUI/Profiling/UiGeometryDebug.h"
+#include "WindEffects/Editor/UI/Layout/EditorMetrics.h"
 #include <algorithm>
 #include <cmath>
 #include <functional>
@@ -39,6 +42,21 @@ namespace {
 
 using ::we::editor::contentbrowser::ContentBrowserBlueprintArt;
 using ::we::editor::contentbrowser::ContentBrowserFolderArt;
+namespace EditorMetrics = ::we::editor::layout::EditorMetrics;
+
+float TreeExplorerPrefix(float uiScale) {
+    return EditorMetrics::TreeExplorerPrefixWidth() * uiScale;
+}
+
+float TreeExpanderHit(float uiScale) {
+    return EditorMetrics::TreeExpanderHitSize() * uiScale;
+}
+
+float TreeAccessoryColumnX(float viewportX, int column, float uiScale) {
+    const float pad = we::runtime::kindui::ResolveMetric(MetricToken::Space2) * uiScale;
+    const float hit = TreeExpanderHit(uiScale);
+    return viewportX + pad + static_cast<float>(column) * hit;
+}
 
 bool IsFolderIconName(const std::string& iconName) {
     return iconName == Icons::FolderName;
@@ -233,10 +251,11 @@ void TreeView::Arrange(const Rect& allottedRect) {
     SyncScrollMetrics();
     UpdateVisibleRange();
 
-    const float rowHeight = m_ItemHeight * TreeUiScale();
+    const float uiScale = TreeUiScale();
+    const float rowHeight = m_ItemHeight * uiScale;
     const float viewportX = m_ScrollMetrics.viewport.x;
     const float viewportWidth = m_ScrollMetrics.viewport.width;
-    const float indentOffset = m_ExplorerStyle ? 48.0f * TreeUiScale() : 0.0f;
+    const float indentOffset = m_ExplorerStyle ? TreeExplorerPrefix(uiScale) : 0.0f;
     const int first = std::max(0, m_FirstVisibleIndex - 2);
     const int last = std::min(static_cast<int>(m_RenderList.size()) - 1, m_LastVisibleIndex + 2);
     float y = m_ScrollMetrics.viewport.y - m_Scroll.offset
@@ -271,21 +290,30 @@ TreeView::TreeRowLayoutSlots TreeView::ComputeTreeRowLayout(const RenderItem& it
     layout.rowBounds = Rect{ viewportX, item.geometry.y, viewportWidth, rowHeight };
 
     const float accessorySize = static_cast<float>(IconMetrics::GlyphTierPx(MetricToken::IconSizeTree)) * uiScale;
-    const float prefixOffset = m_ExplorerStyle ? 48.0f * uiScale : 0.0f;
+    const float prefixOffset = m_ExplorerStyle ? TreeExplorerPrefix(uiScale) : 0.0f;
     const float centerY = item.geometry.y + rowHeight * 0.5f;
 
     if (m_ExplorerStyle) {
-        layout.eyeBounds = Rect{ viewportX + 8.0f * uiScale, centerY - accessorySize * 0.5f, accessorySize, accessorySize };
-        layout.lockBounds = Rect{ viewportX + 28.0f * uiScale, centerY - accessorySize * 0.5f, accessorySize, accessorySize };
+        const float hitSize = TreeExpanderHit(uiScale);
+        layout.eyeBounds = Rect{
+            TreeAccessoryColumnX(viewportX, 0, uiScale),
+            centerY - hitSize * 0.5f,
+            hitSize,
+            hitSize };
+        layout.lockBounds = Rect{
+            TreeAccessoryColumnX(viewportX, 1, uiScale),
+            centerY - hitSize * 0.5f,
+            hitSize,
+            hitSize };
     }
 
     layout.indentX = viewportX + prefixOffset + (static_cast<float>(item.depth) * m_IndentWidth);
 
-    const float expanderWidth = 12.0f * uiScale;
+    const float expanderWidth = TreeExpanderHit(uiScale);
     layout.expanderBounds = Rect{ layout.indentX, item.geometry.y, expanderWidth, rowHeight };
     layout.hasExpander = !item.node->children.empty();
 
-    const float contentSlotX = layout.indentX + expanderWidth + 2.0f * uiScale;
+    const float contentSlotX = layout.indentX + expanderWidth + ThemeMetric(MetricToken::SpaceXS) * uiScale;
 
     const float iconSize = static_cast<float>(IconMetrics::GlyphTierPx(MetricToken::IconSizeTree)) * uiScale;
     const bool hasIcon = !item.node->iconName.empty() || item.node->iconTexture != we::rhi::RHIDescriptorSetHandle::Invalid;
@@ -334,21 +362,22 @@ void TreeView::Paint(PaintContext& context) {
         const float headerTextY = m_Geometry.y + (headerHeight - headerTextSize) * 0.5f;
 
         // Eye icon column header
-        const float eyeX = m_Geometry.x + 8.0f * uiScale;
+        const float eyeX = TreeAccessoryColumnX(m_Geometry.x, 0, uiScale);
         Rect eyeBand{ eyeX, m_Geometry.y, glyphTier, headerHeight };
         IconPainter::DrawIcon(context, Icons::EyeName, IconMetrics::PlaceGlyphCentered(eyeBand, glyphTier), ThemeColor(ColorToken::TextSecondary));
 
         // Pin/Lock column header
-        const float lockX = m_Geometry.x + 28.0f * uiScale;
+        const float lockX = TreeAccessoryColumnX(m_Geometry.x, 1, uiScale);
         Rect lockBand{ lockX, m_Geometry.y, glyphTier, headerHeight };
         IconPainter::DrawIcon(context, Icons::LockName, IconMetrics::PlaceGlyphCentered(lockBand, glyphTier), ThemeColor(ColorToken::TextSecondary));
 
         // Item Label header
-        const float labelX = m_Geometry.x + 48.0f * uiScale;
+        const float labelX = m_Geometry.x + TreeExplorerPrefix(uiScale);
         context.DrawText("Item Label ▲", Point{ labelX, headerTextY }, ThemeColor(ColorToken::TextSecondary), headerTextSize, true);
 
         // Type column header
-        const float typeRightX = m_Geometry.x + m_Geometry.width - 24.0f * uiScale;
+        const float typeColumnReserve = we::runtime::kindui::ResolveMetric(MetricToken::Space6) * uiScale;
+        const float typeRightX = m_Geometry.x + m_Geometry.width - typeColumnReserve;
         const float typeWidth = context.GetTextWidth("Type", headerTextSize);
         context.DrawText("Type", Point{ typeRightX - typeWidth, headerTextY }, ThemeColor(ColorToken::TextSecondary), headerTextSize, true);
     }
@@ -360,12 +389,16 @@ void TreeView::Paint(PaintContext& context) {
     SyncScrollMetrics();
     UpdateVisibleRange();
 
+    if (m_PaintNavigationBackground && m_ScrollMetrics.viewport.width > 0.0f && m_ScrollMetrics.viewport.height > 0.0f) {
+        context.DrawRect(
+            m_ScrollMetrics.viewport,
+            we::runtime::kindui::ds::Panel::NavigationBackground());
+    }
+
     const float viewTop = m_ScrollMetrics.viewport.y;
     const float viewBottom = m_ScrollMetrics.viewport.y + m_ScrollMetrics.viewport.height;
 
     context.PushClipRect(m_ScrollMetrics.viewport);
-
-    const Color guideLineColor = ThemeColor(ColorToken::Separator) * 0.65f;
 
     for (int i = m_FirstVisibleIndex; i <= m_LastVisibleIndex && i < static_cast<int>(m_RenderList.size()); ++i) {
         const auto& item = m_RenderList[static_cast<size_t>(i)];
@@ -382,6 +415,8 @@ void TreeView::Paint(PaintContext& context) {
         const bool hovered = node->id == m_HoveredId;
 
         // Full-Width Row Background
+        ::we::editor::panels::PanelChrome::PaintAlternatingListRowBackground(
+            context, layout.rowBounds, item.flatIndex);
         if (selected || hovered) {
             ::we::editor::panels::PanelChrome::PaintListRowBackground(
                 context, layout.rowBounds, hovered, selected, IsFocused());
@@ -398,8 +433,6 @@ void TreeView::Paint(PaintContext& context) {
             context.DrawRect(dropLine, ThemeColor(ColorToken::AccentPrimary));
         }
 
-        const float centerY = layout.rowBounds.y + rowHeight * 0.5f;
-
         // Left Controls (ExplorerStyle)
         if (m_ExplorerStyle) {
             if (hovered || selected || !node->visible) {
@@ -412,42 +445,6 @@ void TreeView::Paint(PaintContext& context) {
                 const Color lockColor = ThemeColor(ColorToken::Warning);
                 IconPainter::DrawIcon(context, Icons::LockName,
                     IconMetrics::PlaceGlyphCentered(layout.lockBounds, layout.lockBounds.width), lockColor);
-            }
-        }
-
-        // Tree Hierarchy Guide Lines
-        if (item.depth > 0) {
-            const float indentOffset = m_ExplorerStyle ? 48.0f * uiScale : 0.0f;
-
-            bool isLastChild = true;
-            for (size_t nextIdx = static_cast<size_t>(i) + 1; nextIdx < m_RenderList.size(); ++nextIdx) {
-                const auto& nextItem = m_RenderList[nextIdx];
-                if (nextItem.depth < item.depth) break;
-                if (nextItem.depth == item.depth) {
-                    isLastChild = false;
-                    break;
-                }
-            }
-
-            for (int d = 0; d < item.depth; ++d) {
-                const float lineX = m_ScrollMetrics.viewport.x + indentOffset + (static_cast<float>(d) * m_IndentWidth) + 5.0f * uiScale;
-                if (d == item.depth - 1) {
-                    const float vertBottom = isLastChild ? centerY : (layout.rowBounds.y + rowHeight);
-                    context.DrawLine(Point{ lineX, layout.rowBounds.y }, Point{ lineX, vertBottom }, guideLineColor, 1.0f);
-                    const float branchX1 = layout.indentX + (layout.hasExpander ? 0.0f : 10.0f * uiScale);
-                    context.DrawLine(Point{ lineX, centerY }, Point{ branchX1, centerY }, guideLineColor, 1.0f);
-                } else {
-                    bool ancestorContinues = false;
-                    for (size_t nextIdx = static_cast<size_t>(i) + 1; nextIdx < m_RenderList.size(); ++nextIdx) {
-                        if (m_RenderList[nextIdx].depth <= d) {
-                            if (m_RenderList[nextIdx].depth > d) ancestorContinues = true;
-                            break;
-                        }
-                    }
-                    if (ancestorContinues) {
-                        context.DrawLine(Point{ lineX, layout.rowBounds.y }, Point{ lineX, layout.rowBounds.y + rowHeight }, guideLineColor, 1.0f);
-                    }
-                }
             }
         }
 
@@ -537,7 +534,8 @@ void TreeView::Paint(PaintContext& context) {
         if (!node->typeName.empty()) {
             const float typeFontSize = fontSize * 0.9f;
             const float typeWidth = context.GetTextWidth(node->typeName, typeFontSize);
-            const float typeRightX = m_ScrollMetrics.viewport.x + m_ScrollMetrics.viewport.width - 24.0f * uiScale;
+            const float typeColumnReserve = we::runtime::kindui::ResolveMetric(MetricToken::Space6) * uiScale;
+            const float typeRightX = m_ScrollMetrics.viewport.x + m_ScrollMetrics.viewport.width - typeColumnReserve;
             const float typeY = layout.rowBounds.y + (rowHeight - typeFontSize) * 0.5f;
             context.DrawText(node->typeName, Point{ typeRightX - typeWidth, typeY }, ThemeColor(ColorToken::TextSecondary), typeFontSize);
         }
@@ -558,6 +556,18 @@ void TreeView::Paint(PaintContext& context) {
 
     context.PopClipRect();
     m_Scroll.Paint(context, m_ScrollMetrics, m_Scroll.IsThumbHovered());
+
+    if (we::runtime::kindui::UiGeometryDebug::IsEnabled() && !m_RenderList.empty()) {
+        const float rowHeight = m_ItemHeight * uiScale;
+        we::runtime::kindui::UiGeometryDebug::Get().TraceRegion(
+            "OutlinerRow",
+            Rect{ m_Geometry.x, m_Geometry.y, m_Geometry.width, rowHeight },
+            "TreeView",
+            EditorMetrics::TreeIndent(),
+            0.0f,
+            fontSize,
+            static_cast<float>(IconMetrics::GlyphTierPx(MetricToken::IconSizeTree)));
+    }
 }
 
 void TreeView::OnMouseDown(const MouseEvent& event) {

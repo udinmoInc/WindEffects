@@ -31,11 +31,15 @@ UIFRAMEWORK_API float PanelPaddingV();
 UIFRAMEWORK_API float ModeTabRowHeight();
 UIFRAMEWORK_API float SearchRowHeight();
 UIFRAMEWORK_API float ToolbarRowHeight();
+UIFRAMEWORK_API float ViewportToolbarRowHeight();
 UIFRAMEWORK_API float ColumnHeaderRowHeight();
 UIFRAMEWORK_API float FooterRowHeight();
 
 UIFRAMEWORK_API float TabPadH();
+UIFRAMEWORK_API float TabPadV();
 UIFRAMEWORK_API float TabStripPadH();
+UIFRAMEWORK_API float TabStripPadTop();
+UIFRAMEWORK_API float TabActiveIndicatorWidth();
 UIFRAMEWORK_API float TabIconSize();
 UIFRAMEWORK_API float TabGap();
 UIFRAMEWORK_API float TabTopRadius();
@@ -73,7 +77,8 @@ UIFRAMEWORK_API float MeasureDockTabWidth(
     const DockTabDescriptor& tab,
     bool isActive,
     bool showClose,
-    bool flushLeft = false);
+    bool flushLeft = false,
+    bool modeTabs = false);
 
 UIFRAMEWORK_API DockTabLayout LayoutDockTabGeometries(
     PaintContext& context,
@@ -81,7 +86,8 @@ UIFRAMEWORK_API DockTabLayout LayoutDockTabGeometries(
     const Rect& headerRect,
     float x,
     bool isActive,
-    bool showClose);
+    bool showClose,
+    bool modeTabs = false);
 
 UIFRAMEWORK_API DockTabLayout PaintDockTab(
     PaintContext& context,
@@ -92,7 +98,8 @@ UIFRAMEWORK_API DockTabLayout PaintDockTab(
     float hoverAnim,
     bool showClose,
     bool closeHovered,
-    bool flushLeft = false);
+    bool flushLeft = false,
+    bool flatCorners = false);
 
 UIFRAMEWORK_API void PaintDockTab(
     PaintContext& context,
@@ -103,10 +110,12 @@ UIFRAMEWORK_API void PaintDockTab(
     float hoverAnim,
     bool showClose,
     bool closeHovered,
-    bool flushLeft = false);
+    bool flushLeft = false,
+    bool flatCorners = false);
 
 struct DockTabStripState {
     size_t activeIndex = 0;
+    bool flatCorners = false; // inner mode tabs — square, no rounded tops
     std::function<bool(size_t index, bool isActive, bool isHovered)> showClose;
     std::function<float(size_t index)> hoverAnim;
     std::function<bool(size_t index)> closeHovered;
@@ -163,6 +172,11 @@ UIFRAMEWORK_API void PaintSearchField(
     const std::string& text,
     bool focused,
     bool showCaret);
+
+UIFRAMEWORK_API void PaintAlternatingListRowBackground(
+    PaintContext& context,
+    const Rect& rowRect,
+    int rowIndex);
 
 UIFRAMEWORK_API void PaintListRowBackground(
     PaintContext& context,

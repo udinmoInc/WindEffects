@@ -43,7 +43,7 @@ void WindowShell::Paint(PaintContext& context) {
     }
 
     // Square frame — bottom edge stays flush with the system edge (no rounded cutout).
-    const Color border = ThemeColor(ColorToken::BorderDefault);
+    const Color border = ThemeColor(ColorToken::Separator);
     const float x = m_Geometry.x;
     const float y = m_Geometry.y;
     const float w = m_Geometry.width;

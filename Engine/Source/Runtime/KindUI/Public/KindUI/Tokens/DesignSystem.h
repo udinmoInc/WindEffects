@@ -61,11 +61,11 @@ namespace IconSizing {
 namespace Border {
 [[nodiscard]] inline float Width() { return ResolveMetric(MetricToken::BorderWidth); }
 [[nodiscard]] inline float FocusRing() { return ResolveMetric(MetricToken::FocusRingWidth); }
-[[nodiscard]] inline Color Default() { return ResolveColor(ColorToken::BorderDefault); }
+[[nodiscard]] inline Color Default() { return ResolveSurfaceColor(SurfaceRole::Border); }
 [[nodiscard]] inline Color Subtle() { return ResolveColor(ColorToken::BorderSubtle); }
 [[nodiscard]] inline Color Light() { return ResolveColor(ColorToken::BorderLight); }
 [[nodiscard]] inline Color Focus() { return ResolveColor(ColorToken::BorderFocus); }
-[[nodiscard]] inline Color Separator() { return ResolveColor(ColorToken::Separator); }
+[[nodiscard]] inline Color Separator() { return ResolveSurfaceColor(SurfaceRole::Separator); }
 } // namespace Border
 
 namespace Radius {
@@ -77,22 +77,22 @@ namespace Radius {
 } // namespace Radius
 
 namespace Surface {
-[[nodiscard]] inline Color Window() { return ResolveColor(ColorToken::WindowBackground); }
-[[nodiscard]] inline Color Workspace() { return ResolveColor(ColorToken::WorkspaceBackground); }
-[[nodiscard]] inline Color DockChrome() { return ResolveColor(ColorToken::DockChromeBackground); }
-[[nodiscard]] inline Color Panel() { return ResolveColor(ColorToken::PanelBackground); }
-[[nodiscard]] inline Color Secondary() { return ResolveColor(ColorToken::SecondarySurface); }
-[[nodiscard]] inline Color Header() { return ResolveColor(ColorToken::HeaderBackground); }
-[[nodiscard]] inline Color Toolbar() { return ResolveColor(ColorToken::ToolbarBackground); }
-[[nodiscard]] inline Color TabInactive() { return ResolveColor(ColorToken::TabBackground); }
-[[nodiscard]] inline Color TabActive() { return ResolveColor(ColorToken::TabActiveBackground); }
-[[nodiscard]] inline Color Card() { return ResolveColor(ColorToken::CardBackground); }
-[[nodiscard]] inline Color Input() { return ResolveColor(ColorToken::InputBackground); }
-[[nodiscard]] inline Color Popup() { return ResolveColor(ColorToken::PopupBackground); }
-[[nodiscard]] inline Color Hover() { return ResolveColor(ColorToken::HoverBackground); }
-[[nodiscard]] inline Color Pressed() { return ResolveColor(ColorToken::PressedBackground); }
-[[nodiscard]] inline Color Selected() { return ResolveColor(ColorToken::SelectedBackground); }
-[[nodiscard]] inline Color Disabled() { return ResolveColor(ColorToken::DisabledBackground); }
+[[nodiscard]] inline Color Window() { return ResolveSurfaceColor(SurfaceRole::Window); }
+[[nodiscard]] inline Color Workspace() { return ResolveSurfaceColor(SurfaceRole::DockChrome); }
+[[nodiscard]] inline Color DockChrome() { return ResolveSurfaceColor(SurfaceRole::DockChrome); }
+[[nodiscard]] inline Color Panel() { return ResolveSurfaceColor(SurfaceRole::Panel); }
+[[nodiscard]] inline Color Secondary() { return ResolveSurfaceColor(SurfaceRole::Recessed); }
+[[nodiscard]] inline Color Header() { return ResolveSurfaceColor(SurfaceRole::PanelHeader); }
+[[nodiscard]] inline Color Toolbar() { return ResolveSurfaceColor(SurfaceRole::Toolbar); }
+[[nodiscard]] inline Color TabInactive() { return ResolveSurfaceColor(SurfaceRole::TabInactive); }
+[[nodiscard]] inline Color TabActive() { return ResolveSurfaceColor(SurfaceRole::TabActive); }
+[[nodiscard]] inline Color Card() { return ResolveSurfaceColor(SurfaceRole::Control); }
+[[nodiscard]] inline Color Input() { return ResolveSurfaceColor(SurfaceRole::Input); }
+[[nodiscard]] inline Color Popup() { return ResolveSurfaceColor(SurfaceRole::Popup); }
+[[nodiscard]] inline Color Hover() { return ResolveSurfaceColor(SurfaceRole::ControlHover); }
+[[nodiscard]] inline Color Pressed() { return ResolveSurfaceColor(SurfaceRole::ControlPressed); }
+[[nodiscard]] inline Color Selected() { return ResolveSurfaceColor(SurfaceRole::Selected); }
+[[nodiscard]] inline Color Disabled() { return ResolveSurfaceColor(SurfaceRole::Disabled); }
 } // namespace Surface
 
 namespace Control {
@@ -106,17 +106,17 @@ namespace Panel {
 [[nodiscard]] inline float HeaderHeight() { return ResolveMetric(MetricToken::PanelHeaderHeight); }
 [[nodiscard]] inline float ToolbarHeight() { return ResolveMetric(MetricToken::PanelToolbarHeight); }
 [[nodiscard]] inline float Padding() { return ResolvePadding(PaddingToken::Panel).left; }
-[[nodiscard]] inline Color Background() { return ResolveColor(ColorToken::PanelBackground); }
-[[nodiscard]] inline Color ContentWellBackground() { return ResolveColor(ColorToken::SecondarySurface); }
-[[nodiscard]] inline Color PrimaryContentBackground() { return ResolveColor(ColorToken::PanelBackground); }
-[[nodiscard]] inline Color NavigationBackground() { return ResolveColor(ColorToken::SecondarySurface); }
-[[nodiscard]] inline Color ToolbarBackground() { return ResolveColor(ColorToken::ToolbarBackground); }
+[[nodiscard]] inline Color Background() { return ResolveSurfaceColor(SurfaceRole::Panel); }
+[[nodiscard]] inline Color ContentWellBackground() { return ResolveSurfaceColor(SurfaceRole::Recessed); }
+[[nodiscard]] inline Color PrimaryContentBackground() { return ResolveSurfaceColor(SurfaceRole::Panel); }
+[[nodiscard]] inline Color NavigationBackground() { return ResolveSurfaceColor(SurfaceRole::Recessed); }
+[[nodiscard]] inline Color ToolbarBackground() { return ResolveSurfaceColor(SurfaceRole::Toolbar); }
 } // namespace Panel
 
 namespace Header {
 [[nodiscard]] inline float Height() { return ResolveMetric(MetricToken::PanelHeaderHeight); }
 [[nodiscard]] inline float ControlHeight() { return ResolveMetric(MetricToken::HeaderControlHeight); }
-[[nodiscard]] inline Color Background() { return ResolveColor(ColorToken::HeaderBackground); }
+[[nodiscard]] inline Color Background() { return ResolveSurfaceColor(SurfaceRole::PanelHeader); }
 [[nodiscard]] inline Color ActiveTabLine() { return ResolveColor(ColorToken::ActiveTabLine); }
 } // namespace Header
 
@@ -125,8 +125,8 @@ namespace Tab {
 [[nodiscard]] inline float Gap() { return ResolveMetric(MetricToken::TabGap); }
 [[nodiscard]] inline float TopRadius() { return ResolveMetric(MetricToken::TabTopRadius); }
 [[nodiscard]] inline float ActiveIndicatorHeight() { return ResolveMetric(MetricToken::TabActiveIndicatorHeight); }
-[[nodiscard]] inline Color InactiveBackground() { return ResolveColor(ColorToken::TabBackground); }
-[[nodiscard]] inline Color ActiveBackground() { return ResolveColor(ColorToken::TabActiveBackground); }
+[[nodiscard]] inline Color InactiveBackground() { return ResolveSurfaceColor(SurfaceRole::TabInactive); }
+[[nodiscard]] inline Color ActiveBackground() { return ResolveSurfaceColor(SurfaceRole::TabActive); }
 } // namespace Tab
 
 namespace Toolbar {
@@ -134,7 +134,7 @@ namespace Toolbar {
 [[nodiscard]] inline float SeparatorHeight() { return ResolveMetric(MetricToken::ToolbarSeparatorHeight); }
 [[nodiscard]] inline float LabeledHeight() { return ResolveMetric(MetricToken::ToolbarLabeledHeight); }
 [[nodiscard]] inline float LabeledMinWidth() { return ResolveMetric(MetricToken::ToolbarLabeledMinWidth); }
-[[nodiscard]] inline Color Background() { return ResolveColor(ColorToken::ToolbarBackground); }
+[[nodiscard]] inline Color Background() { return ResolveSurfaceColor(SurfaceRole::Toolbar); }
 } // namespace Toolbar
 
 namespace Popup {
@@ -150,13 +150,13 @@ namespace Input {
 [[nodiscard]] inline float Height() { return ResolveMetric(MetricToken::SearchBoxHeight); }
 [[nodiscard]] inline float PaddingH() { return ResolvePadding(PaddingToken::Input).left; }
 [[nodiscard]] inline float PaddingV() { return ResolvePadding(PaddingToken::Input).top; }
-[[nodiscard]] inline Color Background() { return ResolveColor(ColorToken::InputBackground); }
-[[nodiscard]] inline Color Placeholder() { return ResolveColor(ColorToken::SearchPlaceholder); }
+[[nodiscard]] inline Color Background() { return ResolveSurfaceColor(SurfaceRole::Input); }
+[[nodiscard]] inline Color Placeholder() { return ResolveTextColor(TextRole::Hint); }
 } // namespace Input
 
 namespace StatusBar {
 [[nodiscard]] inline float Height() { return ResolveMetric(MetricToken::StatusBarHeight); }
-[[nodiscard]] inline Color Background() { return ResolveColor(ColorToken::StatusBarBackground); }
+[[nodiscard]] inline Color Background() { return ResolveSurfaceColor(SurfaceRole::StatusBar); }
 } // namespace StatusBar
 
 namespace Breadcrumb {

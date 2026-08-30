@@ -3,7 +3,7 @@
 #include "KindUI/Core/PaintContext.h"
 #include "KindUI/Theming/ThemeAccess.h"
 #include "KindUI/Theming/ThemeAccess.h"
-#include "KindUI/Tokens/DesignSystem.h"
+#include "KindUI/Tokens/SurfaceRole.h"
 #include "KindUI/Theming/StyleRole.h"
 #include "KindUI/Core/Icon.h"
 #include "KindUI/Core/Animator.h"
@@ -295,19 +295,10 @@ void TitleBar::Arrange(const Rect& allottedRect) {
 }
 
 void TitleBar::Paint(PaintContext& context) {
-    const float uiScale = (std::max)(1.0f, DPIContext::GetScale());
-
-    context.DrawRect(m_Geometry, ThemeColor(ColorToken::WindowBackground));
-
-    Rect bottomEdge{
-        m_Geometry.x,
-        m_Geometry.y + m_Geometry.height - 1.0f * uiScale,
-        m_Geometry.width,
-        1.0f * uiScale
-    };
-    context.DrawRect(bottomEdge, ThemeColor(ColorToken::Separator));
-
+    context.PushSurfaceOwner("TitleBar", we::runtime::kindui::SurfaceRole::Window);
+    context.DrawSurface(m_Geometry, we::runtime::kindui::SurfaceRole::Window, 0.0f, "TitleBar");
     Row::Paint(context);
+    context.PopSurfaceOwner();
 }
 
 void TitleBar::OnMouseDown(const MouseEvent& event) {

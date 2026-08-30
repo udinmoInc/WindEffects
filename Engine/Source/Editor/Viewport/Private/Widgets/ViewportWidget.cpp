@@ -92,15 +92,13 @@ void ViewportWidget::Arrange(const Rect& allottedRect) {
 
     for (auto& child : m_Children) {
         if (child == m_GraphicsDebugger) {
+            if (m_GraphicsDebugger->IsVisible()) {
+                m_GraphicsDebugger->ArrangeInViewport(allottedRect);
+            }
             continue;
         }
-        float compactHeight = 34.0f;
-        child->Measure(Size{allottedRect.width, compactHeight});
-        child->Arrange(Rect{allottedRect.x, allottedRect.y, allottedRect.width, compactHeight});
-    }
-
-    if (m_GraphicsDebugger && m_GraphicsDebugger->IsVisible()) {
-        m_GraphicsDebugger->ArrangeInViewport(allottedRect);
+        child->Measure(Size{ allottedRect.width, allottedRect.height });
+        child->Arrange(allottedRect);
     }
 }
 
@@ -175,10 +173,15 @@ we::rhi::RHITextureHandle ViewportWidget::GetViewportColorTexture() const {
 }
 
 bool ViewportWidget::HitTestGizmoReset(const Point& position) const {
-    Point gizmoCenter = Point{m_Geometry.x + m_Geometry.width - 55.0f, m_Geometry.y + 55.0f};
-    float dx = position.x - gizmoCenter.x;
-    float dy = position.y - gizmoCenter.y;
-    return dx * dx + dy * dy <= 900.0f;
+    const float inset = we::runtime::kindui::ResolveMetric(we::runtime::kindui::MetricToken::Space2);
+    const float hitRadius = we::runtime::kindui::ResolveMetric(we::runtime::kindui::MetricToken::NavigationButtonSize) * 0.5f;
+    const Point gizmoCenter = Point{
+        m_Geometry.x + m_Geometry.width - inset - hitRadius,
+        m_Geometry.y + inset + hitRadius
+    };
+    const float dx = position.x - gizmoCenter.x;
+    const float dy = position.y - gizmoCenter.y;
+    return dx * dx + dy * dy <= hitRadius * hitRadius;
 }
 
 void ViewportWidget::Paint(PaintContext& context) {

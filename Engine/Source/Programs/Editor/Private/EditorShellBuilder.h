@@ -49,6 +49,7 @@ struct EditorShellDependencies {
     std::function<void()> onOpenProjectManager;
     std::function<void()> onUndo;
     std::function<void()> onRedo;
+    std::shared_ptr<::we::runtime::kindui::Widget> windowsPanelMenu;
     std::function<void(std::shared_ptr<::we::runtime::kindui::Widget>& viewportWidget)> onViewportCreated;
     std::function<void(const DockLayoutBuildResult& layout)> onLayoutBuilt;
 };
