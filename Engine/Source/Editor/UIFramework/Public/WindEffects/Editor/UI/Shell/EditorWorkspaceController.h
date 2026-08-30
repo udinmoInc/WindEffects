@@ -51,6 +51,7 @@ public:
 private:
     EditorWorkspaceController() = default;
 
+    std::shared_ptr<::we::editor::docking::DockContainer> DockForPanel(const std::string& panelId) const;
     std::shared_ptr<::we::editor::docking::DockContainer> DockForZone(
         ::we::editor::docking::DockZone zone) const;
 
@@ -65,9 +66,9 @@ private:
     ::we::runtime::kindui::OverlayHost* m_PopupHost = nullptr;
     std::function<void()> m_OnPanelVisibilityChanged;
 
-    float m_ToolsSplitRatio = 0.18f;
+    float m_ToolsPaneWidth = 300.0f;
     bool m_ContentBrowserExpanded = true;
-    float m_ContentBrowserSplitRatio = 0.70f;
+    float m_ContentBrowserBottomHeight = 240.0f;
 };
 
 UIFRAMEWORK_API ::we::runtime::kindui::IPopupHost* GetEditorPopupHost();

@@ -7,6 +7,7 @@
 #include <vector>
 #include <string>
 #include "KindUI/Core/Geometry.h"
+#include "KindUI/Tokens/SurfaceRole.h"
 
 namespace we::runtime::kindui {
 
@@ -22,6 +23,14 @@ enum class DrawCommandType {
     Line,
     Texture,
     ColorTexture
+};
+
+struct DrawCommandSemantic {
+    SurfaceRole surfaceRole = SurfaceRole::None;
+    const char* widgetName = nullptr;
+    const char* parentWidget = nullptr;
+    uint32_t layer = 0;
+    bool requiresRole = false;
 };
 
 struct DrawCommand {
@@ -41,6 +50,12 @@ struct DrawCommand {
     float blur = 0.0f;  // For shadows
     Point lineStart;
     Point lineEnd;
+    DrawCommandSemantic semantic{};
+};
+
+struct SurfaceOwnerScope {
+    const char* widgetName = nullptr;
+    SurfaceRole role = SurfaceRole::None;
 };
 
 class KINDUI_API PaintContext {
@@ -49,6 +64,13 @@ public:
 
     void PushClipRect(const Rect& clip);
     void PopClipRect();
+
+    void PushSurfaceOwner(const char* widgetName, SurfaceRole role);
+    void PopSurfaceOwner();
+
+    /// Semantic surface fill — resolves color from SurfaceRole (preferred for backgrounds).
+    void DrawSurface(const Rect& rect, SurfaceRole role, float borderRadius = 0.0f, const char* widgetName = nullptr);
+    void DrawSurfaceOutline(const Rect& rect, SurfaceRole role, float thickness, float radius, const char* widgetName = nullptr);
 
     void DrawRect(const Rect& rect, const Color& color, float borderRadius = 0.0f);
     void DrawRoundedRect(const Rect& rect, const Color& color, float radius);
@@ -82,8 +104,13 @@ private:
     TextUIService* m_TextService = nullptr;
     std::vector<DrawCommand> m_Commands;
     std::vector<Rect> m_ClipStack;
+    std::vector<SurfaceOwnerScope> m_SurfaceOwnerStack;
+    uint32_t m_LayerCounter = 0;
 #pragma warning(pop)
     Rect GetCurrentClipRect() const;
+    [[nodiscard]] const char* CurrentWidgetName() const;
+    [[nodiscard]] const char* ParentWidgetName() const;
+    void RecordSemanticDraw(DrawCommand& cmd, SurfaceRole role, const char* widgetName, bool requiresRole);
 };
 
 } // namespace we::runtime::kindui

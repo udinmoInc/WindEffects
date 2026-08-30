@@ -1,7 +1,9 @@
 #include "Widgets/Toolbar.h"
 #include "KindUI/Core/PaintContext.h"
 #include "KindUI/Core/ToolbarButtonChrome.h"
+#include "KindUI/Profiling/UiGeometryDebug.h"
 #include "KindUI/Tokens/DesignToken.h"
+#include "KindUI/Tokens/SurfaceRole.h"
 #include "KindUI/Theming/StyleRole.h"
 #include "KindUI/Core/Icon.h"
 #include "KindUI/Theming/ThemeAccess.h"
@@ -161,10 +163,11 @@ void Toolbar::Arrange(const Rect& allottedRect) {
 }
 
 void Toolbar::Paint(PaintContext& context) {
+    context.PushSurfaceOwner("Toolbar", we::runtime::kindui::SurfaceRole::Toolbar);
     if (!m_IsFloating) {
         const float uiScale = (std::max)(1.0f, DPIContext::GetScale());
 
-        context.DrawRect(m_Geometry, ThemeColor(ColorToken::ToolbarBackground));
+        context.DrawSurface(m_Geometry, we::runtime::kindui::SurfaceRole::Toolbar, 0.0f, "Toolbar");
 
         Rect bottomEdge{
             m_Geometry.x,
@@ -172,13 +175,25 @@ void Toolbar::Paint(PaintContext& context) {
             m_Geometry.width,
             1.0f * uiScale
         };
-        context.DrawRect(bottomEdge, ThemeColor(ColorToken::Separator));
+        context.DrawSurface(bottomEdge, we::runtime::kindui::SurfaceRole::Separator, 0.0f, "ToolbarBorder");
     }
 
     for (auto& tool : m_Tools) {
         if (tool.button && tool.button->IsVisible()) {
             tool.button->Paint(context);
         }
+    }
+    context.PopSurfaceOwner();
+
+    if (we::runtime::kindui::UiGeometryDebug::IsEnabled()) {
+        we::runtime::kindui::UiGeometryDebug::Get().TraceRegion(
+            "MainToolbar",
+            m_Geometry,
+            "EditorShell",
+            we::runtime::kindui::ResolveMetric(MetricToken::Space2),
+            we::runtime::kindui::ResolveMetric(MetricToken::Space1),
+            we::runtime::kindui::ResolveMetric(MetricToken::TextSizeToolbar),
+            we::runtime::kindui::ResolveMetric(MetricToken::IconSizeToolbar));
     }
 }
 
@@ -304,7 +319,10 @@ ToolbarSeparator::ToolbarSeparator() {}
 Size ToolbarSeparator::Measure(const Size& availableSize) {
     (void)availableSize;
     const float uiScale = (std::max)(1.0f, DPIContext::GetScale());
-    return Size{ 1.0f * uiScale, ThemeMetric(MetricToken::IconButtonSize) * uiScale };
+    return Size{
+        1.0f * uiScale,
+        ThemeMetric(MetricToken::ToolbarSeparatorHeight) * uiScale
+    };
 }
 
 void ToolbarSeparator::Arrange(const Rect& allottedRect) {
@@ -323,7 +341,7 @@ void ToolbarSeparator::Paint(PaintContext& context) {
         1.0f * uiScale,
         lineHeight
     };
-    context.DrawRect(lineRect, ThemeColor(ColorToken::Separator));
+    context.DrawRect(lineRect, ThemeColor(ColorToken::BorderSubtle));
 }
 
 ToolbarGroup::ToolbarGroup() = default;

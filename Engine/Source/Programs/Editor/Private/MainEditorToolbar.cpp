@@ -4,11 +4,12 @@
 #include "ViewportNavigationPreferences.h"
 #include "Widgets/EditorModeSelector.h"
 #include "Environment/EnvironmentEditorApi.h"
-#include "WindEffects/Editor/UI/Shell/EditorToolsRegistry.h"
 
 #include "Widgets/Toolbar.h"
 #include "Widgets/ToolbarBuilder.h"
 #include "Widgets/ToolbarItem.h"
+#include "Widgets/ToolButton.h"
+#include "Widgets/WindowsPanelMenuButton.h"
 
 #include "KindUI/Core/Icon.h"
 #include "KindUI/Rendering/IconMetrics.h"
@@ -28,32 +29,10 @@ using ::we::editor::toolbar::Toolbar;
 using ::we::editor::toolbar::ToolbarAlignment;
 using ::we::editor::toolbar::ToolbarBuilder;
 using ::we::editor::toolbar::ToolbarGroupStyle;
-using ::we::editor::toolspanel::EditorToolsRegistry;
+using ::we::editor::toolbar::ToolButton;
+using ::we::editor::toolbar::ToolButtonStyle;
 namespace Icons = ::we::runtime::kindui::Icons;
 namespace IconMetrics = ::we::runtime::kindui::IconMetrics;
-
-std::function<void()> ToolAction(std::string_view toolId) {
-    return [toolId = std::string(toolId)]() {
-        if (const auto* tool = EditorToolsRegistry::Get().FindTool(toolId)) {
-            if (tool->onExecute) {
-                tool->onExecute();
-            }
-        }
-    };
-}
-
-std::function<void()> TransformToolAction(
-    const std::shared_ptr<std::shared_ptr<Toolbar>>& toolbarHolder,
-    std::string_view iconName,
-    std::string_view toolId)
-{
-    return [toolbarHolder, icon = std::string(iconName), toolId = std::string(toolId)]() {
-        if (toolbarHolder && *toolbarHolder) {
-            (*toolbarHolder)->SetActiveTool(icon);
-        }
-        ToolAction(toolId)();
-    };
-}
 
 } // namespace
 
@@ -74,8 +53,6 @@ std::shared_ptr<::we::runtime::kindui::Widget> BuildMainEditorToolbar(
     const float toolbarIconTier = static_cast<float>(IconMetrics::NativeIconTierPx(
         we::runtime::kindui::ResolveMetric(we::runtime::kindui::MetricToken::IconSizeToolbar)));
 
-    auto toolbarHolder = std::make_shared<std::shared_ptr<Toolbar>>();
-
     ToolbarBuilder builder;
     builder.Height(toolbarHeight)
         .IconSize(toolbarIconTier)
@@ -87,47 +64,57 @@ std::shared_ptr<::we::runtime::kindui::Widget> BuildMainEditorToolbar(
     builder.Separator();
 
     builder.Group(ToolbarAlignment::Left, ToolbarGroupStyle::Transparent, [&](ToolbarBuilder& file) {
-        file.IconItem(Icons::NewName, "New Level (Ctrl+N)", deps.onCreateNewLevel ? deps.onCreateNewLevel : std::function<void()>{});
-        file.IconItem(Icons::OpenName, "Open (Ctrl+O)", deps.onOpenProject ? deps.onOpenProject : std::function<void()>{});
-        file.IconItem(Icons::SaveName, "Save (Ctrl+S)");
-        file.IconItem(Icons::SaveAllName, "Save All");
-    });
-    builder.Separator();
-
-    builder.Group(ToolbarAlignment::Left, ToolbarGroupStyle::Transparent, [&](ToolbarBuilder& transform) {
-        transform.IconItem(Icons::CursorName, "Select (Q)", TransformToolAction(toolbarHolder, Icons::CursorName, "SelectTool"));
-        transform.IconItem(Icons::MoveName, "Move (W)", TransformToolAction(toolbarHolder, Icons::MoveName, "MoveTool"));
-        transform.IconItem(Icons::RotateName, "Rotate (E)", TransformToolAction(toolbarHolder, Icons::RotateName, "RotateTool"));
-        transform.IconItem(Icons::ScaleName, "Scale (R)", TransformToolAction(toolbarHolder, Icons::ScaleName, "ScaleTool"));
-        transform.IconItem(Icons::SnapName, "Snap");
+        if (deps.onCreateNewLevel) {
+            file.IconItem(Icons::NewName, "New Level (Ctrl+N)", deps.onCreateNewLevel);
+        }
+        if (deps.onOpenProject) {
+            file.IconItem(Icons::OpenName, "Open (Ctrl+O)", deps.onOpenProject);
+        }
     });
     builder.Separator();
 
     builder.Group(ToolbarAlignment::Left, ToolbarGroupStyle::Transparent, [&](ToolbarBuilder& history) {
-        history.IconItem(Icons::UndoName, "Undo (Ctrl+Z)", deps.onUndo ? deps.onUndo : std::function<void()>{});
-        history.IconItem(Icons::RedoName, "Redo (Ctrl+Y)", deps.onRedo ? deps.onRedo : std::function<void()>{});
+        if (deps.onUndo) {
+            history.IconItem(Icons::UndoName, "Undo (Ctrl+Z)", deps.onUndo);
+        }
+        if (deps.onRedo) {
+            history.IconItem(Icons::RedoName, "Redo (Ctrl+Y)", deps.onRedo);
+        }
+    });
+    builder.Separator();
+
+    builder.Group(ToolbarAlignment::Left, ToolbarGroupStyle::Transparent, [&](ToolbarBuilder& play) {
+        play.IconItem(Icons::MediaPlayName, "Play (PIE)", []() {}, [](const std::shared_ptr<ToolButton>& btn) {
+            btn->SetButtonStyle(ToolButtonStyle::PlayButton);
+        });
+        play.IconItem(Icons::PauseName, "Pause", []() {}, [](const std::shared_ptr<ToolButton>& btn) {
+            btn->SetButtonStyle(ToolButtonStyle::TransportButton);
+        });
+        play.IconItem(Icons::StopName, "Stop", []() {}, [](const std::shared_ptr<ToolButton>& btn) {
+            btn->SetButtonStyle(ToolButtonStyle::TransportButton);
+        });
     });
     builder.Separator();
 
     builder.AddWidget(::we::editor::environment::CreateEnvironmentToolbarMenu());
 
-    builder.Group(ToolbarAlignment::Center, ToolbarGroupStyle::ExecutionCluster, [&](ToolbarBuilder& transport) {
-        transport.TransportItem(Icons::MediaPlayName, "Play (Alt+P)", {}, true);
-        transport.TransportItem(Icons::PauseName, "Pause (Alt+P)");
-        transport.TransportItem(Icons::StopName, "Stop");
-    });
-
     builder.Right([&](ToolbarBuilder& right) {
-        right.DropdownItem(Icons::MonitorName, "Windows", {}, "Windows");
-        right.DropdownItem(Icons::ProjectFolderName, "MyProject", {}, "MyProject");
+        if (deps.windowsPanelMenu) {
+            right.AddWidget(deps.windowsPanelMenu);
+        }
+        if (deps.onOpenProjectManager) {
+            right.DropdownItem(
+                Icons::ProjectFolderName,
+                "Project",
+                deps.onOpenProjectManager,
+                "Project Manager");
+        }
         right.Separator();
         right.IconItem(Icons::SettingsName, "Editor Settings", []() { ShowViewportNavigationPreferences(); });
     });
 
     auto toolbar = builder.Build();
-    *toolbarHolder = toolbar;
     toolbar->SetContext(widgetContext);
-    toolbar->SetActiveTool(Icons::CursorName);
     return toolbar;
 }
 

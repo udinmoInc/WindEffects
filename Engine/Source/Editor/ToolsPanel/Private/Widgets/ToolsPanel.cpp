@@ -395,7 +395,6 @@ void ToolsPanel::RebuildToolListGeometry() {
     };
 
     const float sectionH = PanelChrome::CategoryHeaderHeight();
-    const float sectionGap = ThemeMetric(MetricToken::Space2);
 
     if (!m_SearchText.empty()) {
         SectionHit section;
@@ -409,13 +408,8 @@ void ToolsPanel::RebuildToolListGeometry() {
     }
 
     float contentY = m_ContentRect.y;
-    bool firstSection = true;
 
     auto addSection = [&](const std::string& id, bool defaultExpanded) -> SectionHit* {
-        if (!firstSection) {
-            contentY += sectionGap;
-        }
-        firstSection = false;
         SectionHit section;
         section.categoryId = id;
         section.headerRect = Rect{ m_ContentRect.x, contentY, m_ContentRect.width, sectionH };
@@ -453,7 +447,6 @@ void ToolsPanel::RebuildToolListGeometry() {
         }
     }
 
-    (void)sectionGap;
 }
 
 void ToolsPanel::RebuildLayout() {

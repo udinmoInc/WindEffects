@@ -69,6 +69,7 @@ void PanelModeTabs::RebuildTabGeometries() {
     PaintContext context;
     Chrome::DockTabStripState state{};
     state.activeIndex = ActiveTabIndex();
+    state.flatCorners = true;
     state.showClose = [](size_t /*index*/, bool /*isActive*/, bool /*isHovered*/) { return false; };
     m_StripLayout = Chrome::LayoutDockTabStrip(context, m_Geometry, m_Descriptors, state);
 }
@@ -80,6 +81,7 @@ void PanelModeTabs::Paint(PaintContext& context) {
 
     Chrome::DockTabStripState state{};
     state.activeIndex = ActiveTabIndex();
+    state.flatCorners = true;
     state.showClose = [](size_t /*index*/, bool /*isActive*/, bool /*isHovered*/) { return false; };
     state.hoverAnim = [this](size_t index) {
         return static_cast<int>(index) == m_HoveredIndex ? 1.0f : 0.0f;

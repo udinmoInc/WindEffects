@@ -203,6 +203,7 @@ std::shared_ptr<::we::editor::panels::Panel> CreateContentBrowserPanel() {
     contentSplitter->SetFirstChild(folderTree);
     contentSplitter->SetSecondChild(contentBrowser);
     contentSplitter->SetResizeMode(we::runtime::kindui::Splitter::ResizeMode::FixedFirst);
+    contentSplitter->SetFixedFirstWidth(treePaneWidth);
     contentSplitter->SetFlexGrow(1.0f);
     contentSplitter->SetFlexShrink(1.0f);
 

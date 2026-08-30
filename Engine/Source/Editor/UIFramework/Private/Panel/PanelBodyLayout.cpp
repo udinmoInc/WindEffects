@@ -131,7 +131,7 @@ float PanelBodyLayout::IntrinsicRegionHeight(const PanelBodyRegion region) const
     case PanelBodyRegion::Search:
         return Chrome::SearchRowHeight();
     case PanelBodyRegion::Toolbar:
-        return Chrome::ToolbarRowHeight();
+        return m_OverlayToolbar ? Chrome::ViewportToolbarRowHeight() : Chrome::ToolbarRowHeight();
     case PanelBodyRegion::ColumnHeader:
         return Chrome::ColumnHeaderRowHeight();
     case PanelBodyRegion::Footer:
@@ -207,11 +207,18 @@ void PanelBodyLayout::ArrangeFixedRegion(
 
     const float intrinsicH = IntrinsicRegionHeight(region);
     const float availableH = std::max(0.0f, totalBottom - currentY);
-    slot.widget->Measure(Size{ allottedRect.width, availableH });
-    const float measuredH = std::max(intrinsicH, slot.widget->GetDesiredSize().height);
+
+    float regionH = intrinsicH;
+    if (regionH > 0.0f) {
+        slot.widget->Measure(Size{ allottedRect.width, regionH });
+        regionH = std::min(availableH, regionH);
+    } else {
+        slot.widget->Measure(Size{ allottedRect.width, availableH });
+        regionH = std::min(availableH, std::max(0.0f, slot.widget->GetDesiredSize().height));
+    }
 
     slot.geometry = ClampRectToParent(
-        Rect{ allottedRect.x, currentY, allottedRect.width, std::min(measuredH, availableH) },
+        Rect{ allottedRect.x, currentY, allottedRect.width, regionH },
         allottedRect);
     AssertLayoutRectValid("PanelBodyLayout.region", slot.geometry, allottedRect);
     slot.widget->Arrange(InsetRegionContent(slot.geometry, region));
@@ -257,15 +264,16 @@ void PanelBodyLayout::Arrange(const Rect& allottedRect) {
         auto& toolbarSlot = m_Regions[RegionIndex(PanelBodyRegion::Toolbar)];
         if (m_OverlayToolbar && toolbarSlot.widget && toolbarSlot.widget->IsVisible()) {
             const float toolbarH = IntrinsicRegionHeight(PanelBodyRegion::Toolbar);
+            const float inset = Chrome::PanelPaddingH();
             toolbarSlot.geometry = ClampRectToParent(
                 Rect{
-                    contentSlot.geometry.x,
-                    contentSlot.geometry.y,
-                    contentSlot.geometry.width,
-                    std::min(toolbarH, contentSlot.geometry.height)
+                    contentSlot.geometry.x + inset,
+                    contentSlot.geometry.y + inset,
+                    std::max(0.0f, contentSlot.geometry.width - inset * 2.0f),
+                    std::min(toolbarH, std::max(0.0f, contentSlot.geometry.height - inset))
                 },
                 allottedRect);
-            toolbarSlot.widget->Arrange(InsetRegionContent(toolbarSlot.geometry, PanelBodyRegion::Toolbar));
+            toolbarSlot.widget->Arrange(toolbarSlot.geometry);
         } else if (m_OverlayToolbar && toolbarSlot.widget) {
             toolbarSlot.geometry = {};
         }

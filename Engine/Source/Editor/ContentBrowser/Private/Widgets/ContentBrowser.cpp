@@ -394,6 +394,8 @@ void ContentBrowser::PaintListItem(PaintContext& context, const RenderItem& rend
     const bool selected = IsSelected(item.id);
     const bool hovered = item.id == m_HoveredId;
 
+    PanelChrome::PaintAlternatingListRowBackground(
+        context, renderItem.geometry, renderItem.sourceIndex);
     if (selected || hovered) {
         PanelChrome::PaintListRowBackground(context, renderItem.geometry, hovered, selected, IsFocused());
     }

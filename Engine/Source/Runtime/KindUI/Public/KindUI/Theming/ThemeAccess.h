@@ -2,6 +2,7 @@
 
 #include "KindUI/Export.h"
 #include "KindUI/Tokens/DesignToken.h"
+#include "KindUI/Tokens/SurfaceRole.h"
 #include "KindUI/Tokens/TypographySpec.h"
 #include "KindUI/Theming/IKindUITheme.h"
 #include "KindUI/Core/Types.h"

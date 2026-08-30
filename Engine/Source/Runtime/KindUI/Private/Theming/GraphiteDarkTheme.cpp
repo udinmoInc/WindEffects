@@ -17,8 +17,9 @@ Color GraphiteDarkTheme::ResolveColor(ColorToken token) const {
     case ColorToken::WindowBackground:
     case ColorToken::StatusBarBackground:
         return CS::OpaqueSurface(P::Title);
-    case ColorToken::WorkspaceBackground:
     case ColorToken::ToolbarBackground:
+        return CS::OpaqueSurface(P::Panel);
+    case ColorToken::WorkspaceBackground:
     case ColorToken::DockChromeBackground:
     case ColorToken::TabBackground:
         return CS::OpaqueSurface(P::Background);
@@ -164,66 +165,75 @@ float GraphiteDarkTheme::ResolveMetric(MetricToken token) const {
     case MetricToken::TextSizeMenu: return 12.0f;
     case MetricToken::TextSizeToolbar: return 12.0f;
     case MetricToken::TextSizeTabs: return 12.0f;
-    case MetricToken::TextSizeNormal: return 13.0f;
+    case MetricToken::TextSizeNormal: return 12.0f;
     case MetricToken::TextSizeProperty: return 12.0f;
     case MetricToken::TextSizeCaption: return 12.0f;
-    case MetricToken::TextSizeWindow: return 13.0f;
+    case MetricToken::TextSizeWindow: return 12.0f;
     case MetricToken::TextSizeHeader: return 16.5f;
-    case MetricToken::TextSizeBody: return 14.0f;
+    case MetricToken::TextSizeBody: return 13.0f;
     case MetricToken::TextSizeSmall: return 12.0f;
     case MetricToken::TextSizeCategory: return 12.0f;
     case MetricToken::TextSizeTitle: return 33.0f;
     case MetricToken::TextCharWidthRatio: return 0.55f;
     case MetricToken::BorderWidth: return 1.0f;
     case MetricToken::FocusRingWidth: return 1.0f;
-    case MetricToken::PanelHeaderHeight:
-    case MetricToken::PanelTabHeight: return 24.0f;
-    case MetricToken::PanelToolbarHeight: return 24.0f;
-    case MetricToken::HeaderControlHeight: return 24.0f;
-    case MetricToken::IconButtonSize: return 24.0f;
-    case MetricToken::ButtonHeight: return 24.0f;
-    case MetricToken::ControlHeightCompact: return 24.0f;
-    case MetricToken::ControlHeightLarge: return 40.0f;
-    case MetricToken::FormRowHeight: return 24.0f;
-    case MetricToken::MenuItemHeight: return 24.0f;
+    case MetricToken::PanelHeaderHeight: return 30.0f;
+    case MetricToken::PanelTabHeight: return 30.0f;
+    case MetricToken::PanelToolbarHeight: return 30.0f;
+    case MetricToken::HeaderControlHeight: return 28.0f;
+    case MetricToken::IconButtonSize: return 28.0f;
+    case MetricToken::ButtonHeight: return 28.0f;
+    case MetricToken::ControlHeightCompact: return 26.0f;
+    case MetricToken::ControlHeightLarge: return 36.0f;
+    case MetricToken::FormRowHeight: return 26.0f;
+    case MetricToken::MenuItemHeight: return 26.0f;
     case MetricToken::PageMargin: return 16.0f;
-    case MetricToken::SectionGap: return 24.0f;
+    case MetricToken::SectionGap: return 12.0f;
     case MetricToken::CardPadding: return 12.0f;
-    case MetricToken::ContentGap: return 12.0f;
-    case MetricToken::FormRowGap: return 13.0f;
-    case MetricToken::LabelHintGap: return 5.0f;
-    case MetricToken::ListRowHeight: return 21.0f;
-    case MetricToken::CategoryHeaderHeight: return 24.0f;
-    case MetricToken::TitleBarHeight: return 34.0f;
+    case MetricToken::ContentGap: return 8.0f;
+    case MetricToken::FormRowGap: return 6.0f;
+    case MetricToken::LabelHintGap: return 4.0f;
+    case MetricToken::ListRowHeight: return 24.0f;
+    case MetricToken::CategoryHeaderHeight: return 28.0f;
+    case MetricToken::TitleBarHeight: return 32.0f;
     case MetricToken::WindowControlWidth: return 40.0f;
-    case MetricToken::ToolbarHeight: return 40.0f;
-    case MetricToken::SearchBoxHeight: return 24.0f;
-    case MetricToken::NavigationButtonSize: return 32.0f;
+    case MetricToken::ToolbarHeight: return 38.0f;
+    case MetricToken::SearchBoxHeight: return 28.0f;
+    case MetricToken::NavigationButtonSize: return 28.0f;
     case MetricToken::IconSizeSearch:
-    case MetricToken::IconSizeToolbar:
-    case MetricToken::IconSizePrimary:
     case MetricToken::IconSizeTree:
     case MetricToken::IconSizeNavigation: return 16.0f;
+    case MetricToken::IconSizeToolbar:
+    case MetricToken::IconSizePrimary: return 16.0f;
     case MetricToken::IconButtonRadius: return 3.0f;
-    case MetricToken::ButtonPaddingHorizontal:
+    case MetricToken::ButtonPaddingHorizontal: return 6.0f;
     case MetricToken::Space2: return 8.0f;
-    case MetricToken::ButtonSpacing: return 6.0f;
+    case MetricToken::ButtonSpacing: return 3.0f;
+    case MetricToken::SpaceXS: return 2.0f;
     case MetricToken::Space1: return 4.0f;
-    case MetricToken::ButtonGroupSpacing: return 14.0f;
+    case MetricToken::SpaceMD: return 6.0f;
+    case MetricToken::ButtonGroupSpacing: return 10.0f;
     case MetricToken::ScrollbarWidth: return 14.0f;
     case MetricToken::ScrollbarThumbMinHeight: return 20.0f;
-    case MetricToken::TabTopRadius: return 2.0f;
+    case MetricToken::TabTopRadius: return 5.0f;
     case MetricToken::TabActiveIndicatorHeight: return 2.0f;
     case MetricToken::StatusBarHeight: return 24.0f;
-    case MetricToken::TabGap: return 2.0f;
+    case MetricToken::TabGap: return 4.0f;
     case MetricToken::TabStripPadH: return 0.0f;
-    case MetricToken::ToolbarSeparatorHeight: return 22.0f;
-    case MetricToken::ToolbarLabeledHeight: return 34.0f;
-    case MetricToken::ToolbarLabeledMinWidth: return 48.0f;
-    case MetricToken::BreadcrumbBarHeight: return 26.0f;
+    case MetricToken::TabStripPadV: return 3.0f;
+    case MetricToken::TabActiveIndicatorWidth: return 0.0f;
+    case MetricToken::TabPaddingH: return 10.0f;
+    case MetricToken::TabPaddingV: return 5.0f;
+    case MetricToken::DockPanelGap: return 6.0f;
+    case MetricToken::ViewportToolbarHeight: return 28.0f;
+    case MetricToken::ToolbarSeparatorHeight: return 24.0f;
+    case MetricToken::ToolbarLabeledHeight: return 28.0f;
+    case MetricToken::ToolbarLabeledMinWidth: return 44.0f;
+    case MetricToken::BreadcrumbBarHeight: return 32.0f;
     case MetricToken::PropertyLabelColumnWidth: return 140.0f;
-    case MetricToken::PropertyIndentStep: return 12.0f;
-    case MetricToken::TreeIndentWidth: return 16.0f;
+    case MetricToken::PropertyIndentStep: return 18.0f;
+    case MetricToken::TreeIndentWidth: return 18.0f;
+    case MetricToken::TreeExpanderHitSize: return 18.0f;
     case MetricToken::PopupMinWidth: return 140.0f;
     case MetricToken::PopupMaxWidth: return 340.0f;
     case MetricToken::PopupMaxHeight: return 360.0f;
@@ -231,11 +241,11 @@ float GraphiteDarkTheme::ResolveMetric(MetricToken token) const {
     case MetricToken::ToggleTrackWidth: return 34.0f;
     case MetricToken::ToggleTrackHeight: return 18.0f;
     case MetricToken::CheckboxGlyphSize: return 14.0f;
-    case MetricToken::PrimaryButtonHeight: return 34.0f;
+    case MetricToken::PrimaryButtonHeight: return 28.0f;
     case MetricToken::ContentBrowserGridPadding: return 8.0f;
-    case MetricToken::ContentBrowserGridHSpacing: return 6.0f;
-    case MetricToken::ContentBrowserGridVSpacing: return 6.0f;
-    case MetricToken::ContentBrowserThumbLarge: return 104.0f;
+    case MetricToken::ContentBrowserGridHSpacing: return 8.0f;
+    case MetricToken::ContentBrowserGridVSpacing: return 8.0f;
+    case MetricToken::ContentBrowserThumbLarge: return 96.0f;
     case MetricToken::ContentBrowserThumbMedium: return 72.0f;
     case MetricToken::ContentBrowserThumbSmall: return 48.0f;
     case MetricToken::ContentBrowserCellLarge: return 112.0f;
@@ -550,16 +560,21 @@ ResolvedStyle StyleResolver::Resolve(StyleRole role) const {
         style.cornerRadius = Scaled(theme.ResolveMetric(MetricToken::IconButtonRadius));
         break;
     case StyleRole::Input:
-    case StyleRole::SearchBox:
         style.background = theme.ResolveColor(ColorToken::InputBackground);
         style.foreground = theme.ResolveColor(ColorToken::TextPrimary);
         style.height = Scaled(theme.ResolveMetric(MetricToken::SearchBoxHeight));
         style.cornerRadius = Scaled(theme.ResolveMetric(MetricToken::CornerRadiusSmall));
         break;
+    case StyleRole::SearchBox:
+        style.background = theme.ResolveColor(ColorToken::InputBackground);
+        style.foreground = theme.ResolveColor(ColorToken::TextPrimary);
+        style.height = Scaled(theme.ResolveMetric(MetricToken::SearchBoxHeight));
+        style.cornerRadius = Scaled(theme.ResolveMetric(MetricToken::SearchBoxHeight)) * 0.5f;
+        break;
     case StyleRole::StatusBar:
         style.background = theme.ResolveColor(ColorToken::StatusBarBackground);
         style.foreground = theme.ResolveColor(ColorToken::TextSecondary);
-        style.height = Scaled(theme.ResolveMetric(MetricToken::Space6) + theme.ResolveMetric(MetricToken::Space2));
+        style.height = Scaled(theme.ResolveMetric(MetricToken::StatusBarHeight));
         style.fontSize = Scaled(theme.ResolveMetric(MetricToken::TextSizeSmall));
         break;
     case StyleRole::MenuBar:

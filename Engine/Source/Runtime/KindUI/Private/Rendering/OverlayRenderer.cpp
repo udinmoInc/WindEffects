@@ -1,7 +1,10 @@
 #include "KindUI/Rendering/OverlayRenderer.h"
 
 #include "KindUI/Rendering/IconRenderer.h"
+#include "KindUI/Profiling/UiGeometryDebug.h"
 #include "KindUI/Profiling/UiColorDebug.h"
+#include "KindUI/Profiling/UiColorPipelineDiagnostic.h"
+#include "KindUI/Profiling/UiColorCompositionDiagnostic.h"
 #include "KindUI/Core/ColorSpace.h"
 #include "KindUI/Rendering/Icons/IconManager.h"
 #include "KindUI/Rendering/TextUIService.h"
@@ -174,26 +177,39 @@ void OverlayRenderer::RenderUI(const std::shared_ptr<Widget>& root, uint32_t fra
     const uint32_t width = m_CurrentWidth;
     const uint32_t height = m_CurrentHeight;
 
-    if (UiColorDebug::IsEnabled()) {
+    if (UiColorDebug::IsEnabled() || UiColorDebug::IsSemanticAuditEnabled()) {
         UiColorDebug::Get().BeginFrame();
+    }
+    if (UiGeometryDebug::IsEnabled()) {
+        UiGeometryDebug::Get().BeginFrame();
     }
 
     if (!root || width == 0 || height == 0) {
         m_Vertices.clear();
         m_Indices.clear();
         m_Batches.clear();
-        if (UiColorDebug::IsEnabled()) {
+        if (UiColorDebug::IsEnabled() || UiColorDebug::IsSemanticAuditEnabled()) {
             UiColorDebug::Get().EndFrame();
+        }
+        if (UiGeometryDebug::IsEnabled()) {
+            UiGeometryDebug::Get().EndFrame();
         }
         return;
     }
 
+    if (UiColorCompositionDiagnostic::IsEnabled()) {
+        UiColorCompositionDiagnostic::Get().BeginFrame(width, height);
+    }
+
     const bool sizeChanged = width != m_LastBuiltWidth || height != m_LastBuiltHeight;
-    const bool forceRebuild = frameNumber <= 3 || sizeChanged || m_Vertices.empty();
+    const bool compositionAudit = UiColorCompositionDiagnostic::IsEnabled()
+        && !UiColorCompositionDiagnostic::Get().HasCompleted();
+    const bool forceRebuild = frameNumber <= 3 || sizeChanged || m_Vertices.empty() || compositionAudit;
     const bool needsLayout = forceRebuild || UIRepaintGate::ConsumeNeedsLayout();
     const bool needsPaint = forceRebuild
         || UIRepaintGate::ConsumeNeedsPaint()
-        || needsLayout;
+        || needsLayout
+        || compositionAudit;
 
     if (!needsLayout && !needsPaint) {
         m_FrameStats.vertices = static_cast<uint32_t>(m_Vertices.size());
@@ -227,8 +243,11 @@ void OverlayRenderer::RenderUI(const std::shared_ptr<Widget>& root, uint32_t fra
     m_FrameStats.width = width;
     m_FrameStats.height = height;
 
-    if (UiColorDebug::IsEnabled()) {
+    if (UiColorDebug::IsEnabled() || UiColorDebug::IsSemanticAuditEnabled()) {
         UiColorDebug::Get().EndFrame();
+    }
+    if (UiGeometryDebug::IsEnabled()) {
+        UiGeometryDebug::Get().EndFrame();
     }
 }
 
@@ -261,12 +280,32 @@ void OverlayRenderer::EndOverlayPass(const we::runtime::uigfx::OverlayRenderCont
     const we::rhi::Format targetFormat = context.targetFormat != we::rhi::Format::Unknown
         ? context.targetFormat
         : m_SwapchainFormat;
-    m_UIImmediate->SubmitDrawList(
-        BuildDrawList(m_Vertices, m_Indices, m_Batches, targetFormat, m_CurrentWidth, m_CurrentHeight),
-        m_ActiveFrameSlot,
-        m_GeometryGeneration);
+    const we::rhi::UIDrawList drawList =
+        BuildDrawList(m_Vertices, m_Indices, m_Batches, targetFormat, m_CurrentWidth, m_CurrentHeight);
+    m_UIImmediate->SubmitDrawList(drawList, m_ActiveFrameSlot, m_GeometryGeneration);
     UiInputLatencyAudit::Get().OnRenderSubmit();
     m_UIImmediate->EndFrame();
+
+    if (UiColorPipelineDiagnostic::IsEnabled()
+        && !UiColorCompositionDiagnostic::IsEnabled()
+        && context.cmd) {
+        UiColorPipelineDiagnostic::Get().ScheduleFramebufferReadback(
+            m_RHIDevice,
+            context.cmd,
+            context.colorTarget,
+            targetFormat,
+            m_CurrentWidth,
+            m_CurrentHeight);
+    }
+    if (UiColorCompositionDiagnostic::IsEnabled() && context.cmd) {
+        UiColorCompositionDiagnostic::Get().ScheduleFramebufferReadback(
+            m_RHIDevice,
+            context.cmd,
+            context.colorTarget,
+            targetFormat,
+            m_CurrentWidth,
+            m_CurrentHeight);
+    }
 }
 
 void OverlayRenderer::SetPipelineAuditImageIndex(uint32_t imageIndex) {

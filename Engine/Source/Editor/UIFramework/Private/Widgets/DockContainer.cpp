@@ -1,6 +1,6 @@
 #include "WindEffects/Editor/UI/Widgets/DockContainer.h"
 #include "WindEffects/Editor/UI/Panel/PanelChrome.h"
-#include "KindUI/Core/PaintContext.h"
+#include "KindUI/Profiling/UiGeometryDebug.h"
 #include "KindUI/Core/Icon.h"
 #include "KindUI/Core/DPIContext.h"
 #include "KindUI/Layout/LayoutAssert.h"
@@ -172,6 +172,16 @@ void DockContainer::Arrange(const Rect& allottedRect) {
     }
 
     LayoutTabGeometries();
+
+    if (we::runtime::kindui::UiGeometryDebug::IsEnabled()) {
+        we::runtime::kindui::UiGeometryDebug::Get().TraceRegion(
+            "DockTabStrip",
+            m_HeaderRect,
+            "DockContainer",
+            we::runtime::kindui::ResolveMetric(we::runtime::kindui::MetricToken::TabPaddingH),
+            we::runtime::kindui::ResolveMetric(we::runtime::kindui::MetricToken::TabPaddingV),
+            we::runtime::kindui::ResolveMetric(we::runtime::kindui::MetricToken::TextSizeTabs));
+    }
 }
 
 void DockContainer::LayoutTabGeometries() {
@@ -307,9 +317,6 @@ void DockContainer::Paint(PaintContext& context) {
     PanelChrome::PaintDockTabStrip(context, m_HeaderRect, descriptors, stripLayout, state);
 
     if (m_ActiveTabIndex >= 0 && m_ActiveTabIndex < static_cast<int>(m_Tabs.size())) {
-        if (!m_ContentRect.IsEmpty()) {
-            context.DrawRect(m_ContentRect, we::runtime::kindui::ds::Surface::Panel());
-        }
         auto activePanel = m_Tabs[static_cast<size_t>(m_ActiveTabIndex)].panel;
 
         context.PushClipRect(m_ContentRect);

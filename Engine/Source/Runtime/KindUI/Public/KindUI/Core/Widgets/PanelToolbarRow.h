@@ -28,6 +28,7 @@ public:
     /// Adds search + icon children to the flex row. Safe to call once after configuration.
     void Finalize();
     [[nodiscard]] Size Measure(const Size& availableSize) override;
+    void Arrange(const Rect& allottedRect) override;
 
     [[nodiscard]] std::shared_ptr<IconButton> GetIconButton(size_t index) const;
     [[nodiscard]] std::shared_ptr<SearchBoxControl> GetSearchBox() const { return m_SearchBox; }

@@ -269,7 +269,7 @@ Rect SearchField::ClearRect() const {
 
 void SearchField::Paint(PaintContext& context) {
     const float s = LScale();
-    const float radius = LMetric(MetricToken::CornerRadiusSmall) * s;
+    const float radius = m_Geometry.height * 0.5f;
 
     Color bg = LColor(ColorToken::InputBackground);
     if (m_HoverAnim > 0.01f || m_FocusAnim > 0.01f) {

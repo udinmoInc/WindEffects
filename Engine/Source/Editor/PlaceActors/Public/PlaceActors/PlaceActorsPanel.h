@@ -124,6 +124,7 @@ private:
     we::runtime::kindui::ScrollViewportMetrics m_ScrollMetrics{};
     float m_ContentHeight = 0.0f;
     float m_LastViewportWidth = -1.0f;
+    float m_LastViewportHeight = -1.0f;
 
     we::runtime::kindui::Rect m_ContentRect;
     we::runtime::kindui::Rect m_TooltipRect;

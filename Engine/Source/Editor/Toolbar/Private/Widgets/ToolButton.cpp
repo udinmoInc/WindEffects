@@ -105,6 +105,27 @@ Size ToolButton::Measure(const Size& availableSize) {
         return m_DesiredSize;
     }
 
+    if (m_ButtonStyle == ToolButtonStyle::StatusBar) {
+        const float padH = ChipHorizontalPad(uiScale);
+        const float iconSz = IconSize(uiScale);
+        const float iconGap = IconGapPx(uiScale);
+        const float textSize = ThemeMetric(MetricToken::TextSizeSmall) * uiScale;
+        const float controlH = ThemeMetric(MetricToken::StatusBarHeight) * uiScale;
+        const bool hasIcon = !m_IconName.empty() && Icons::IsKnownIcon(m_IconName);
+
+        float textW = m_Label.empty() ? 0.0f : ApproxInlineTextWidth(m_Label, textSize);
+        float width = padH * 2.0f;
+        if (hasIcon) {
+            width += iconSz;
+            if (!m_Label.empty()) {
+                width += iconGap;
+            }
+        }
+        width += textW;
+        m_DesiredSize = Size{ width, controlH };
+        return m_DesiredSize;
+    }
+
     if (m_ButtonStyle == ToolButtonStyle::ToolbarInline) {
         const float padH     = ChipHorizontalPad(uiScale);
         const float iconSz   = IconSize(uiScale);
@@ -140,7 +161,7 @@ Size ToolButton::Measure(const Size& availableSize) {
         const float chevGap  = ChevronGapPx(uiScale);
         const float chevW    = static_cast<float>(IconMetrics::CompactGlyphTierPx());
         const float textSize = ThemeMetric(MetricToken::TextSizeToolbar) * uiScale;
-        const float controlH = ThemeMetric(MetricToken::IconButtonSize) * uiScale;
+        const float controlH = ThemeMetric(MetricToken::ViewportToolbarHeight) * uiScale;
         const bool hasIcon = !m_IconName.empty() && Icons::IsKnownIcon(m_IconName);
 
         float textW = m_Label.empty() ? 0.0f : ApproxInlineTextWidth(m_Label, textSize);
@@ -221,6 +242,7 @@ void ToolButton::Paint(PaintContext& context) {
                                    m_ButtonStyle == ToolButtonStyle::TransportButton ||
                                    m_ButtonStyle == ToolButtonStyle::PlayButton);
     const bool isLabeled       = (m_ButtonStyle == ToolButtonStyle::ToolbarLabeled);
+    const bool isStatusBar     = (m_ButtonStyle == ToolButtonStyle::StatusBar);
     const bool isInline        = (m_ButtonStyle == ToolButtonStyle::ToolbarInline);
     const bool isViewportChip  = (m_ButtonStyle == ToolButtonStyle::ViewportChip);
     const bool isNormal        = (m_ButtonStyle == ToolButtonStyle::Normal);
@@ -279,6 +301,42 @@ void ToolButton::Paint(PaintContext& context) {
                 labelColor = Color::Lerp(labelColor, ThemeColor(ColorToken::TextPrimary), m_HoverAnim);
             }
             context.DrawText(m_Label, Point{ labelX, labelY }, labelColor, textSize);
+        }
+        return;
+    }
+
+    // ── Status bar dock/stat controls ────────────────────────────────────────
+    if (isStatusBar) {
+        ToolbarButtonChrome::PaintStatusBarControl(context, renderRect, m_HoverAnim, m_Active, uiScale);
+
+        const float iconSize = IconSize(uiScale);
+        const float textSize = ThemeMetric(MetricToken::TextSizeSmall) * uiScale;
+        const float iconGap = IconGapPx(uiScale);
+        const float padH = ChipHorizontalPad(uiScale);
+        const bool hasIcon = !m_IconName.empty() && Icons::IsKnownIcon(m_IconName);
+
+        float currentX = renderRect.x + padH;
+        Color iconColor = m_Active
+            ? ThemeColor(ColorToken::TextPrimary)
+            : ThemeColor(ColorToken::IconSecondary);
+        if (m_HoverAnim > 0.01f && !m_Active) {
+            iconColor = Color::Lerp(iconColor, ThemeColor(ColorToken::TextPrimary), m_HoverAnim * 0.45f);
+        }
+
+        if (hasIcon) {
+            Rect iconBand{ currentX, centerY - iconSize * 0.5f, iconSize, iconSize };
+            IconPainter::DrawIcon(context, m_IconName, PlaceIconInControl(iconBand, iconSize), iconColor);
+            currentX += iconSize + iconGap;
+        }
+
+        if (!m_Label.empty()) {
+            Color textColor = m_Active
+                ? ThemeColor(ColorToken::TextPrimary)
+                : ThemeColor(ColorToken::TextSecondary);
+            if (m_HoverAnim > 0.01f && !m_Active) {
+                textColor = Color::Lerp(textColor, ThemeColor(ColorToken::TextPrimary), m_HoverAnim * 0.45f);
+            }
+            context.DrawText(m_Label, Point{ currentX, centerY - textSize * 0.5f }, textColor, textSize);
         }
         return;
     }

@@ -29,6 +29,8 @@ struct DockLayoutBuildResult {
     std::shared_ptr<DockContainer> toolsDock;
     std::shared_ptr<DockContainer> viewportDock;
     std::shared_ptr<DockContainer> explorerDock;
+    std::shared_ptr<DockContainer> detailsDock;
+    std::shared_ptr<DockContainer> contentBrowserDock;
     std::unordered_map<std::string, std::shared_ptr<Panel>> panels;
 };
 

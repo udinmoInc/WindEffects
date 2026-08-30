@@ -1,6 +1,9 @@
 #include "KindUI/Rendering/UIWidgetAdapter.h"
 #include "KindUI/Profiling/UiPathDiagnostics.h"
 #include "KindUI/Profiling/UiColorDebug.h"
+#include "KindUI/Profiling/UiColorPipelineDiagnostic.h"
+#include "KindUI/Profiling/UiColorCompositionDiagnostic.h"
+#include "KindUI/Tokens/SurfaceRole.h"
 #include "KindUI/Rendering/IconRenderer.h"
 #include "KindUI/Rendering/IconMetrics.h"
 #include "KindUI/Core/Icon.h"
@@ -93,6 +96,25 @@ void UIWidgetAdapter::ProcessWidget(const std::shared_ptr<Widget>& root,
     m_Vertices.clear();
     m_Indices.clear();
     m_Batches.clear();
+
+    if (UiColorPipelineDiagnostic::IsEnabled()
+        && !UiColorCompositionDiagnostic::IsEnabled()) {
+        m_CurrentTextureSet = m_DefaultTextureSet;
+        m_CurrentScissor = {0, 0, m_Width, m_Height};
+        const uint32_t indexBefore = static_cast<uint32_t>(m_Indices.size());
+        UiColorPipelineDiagnostic::Get().AppendTestGrid(
+            m_Vertices,
+            m_Indices,
+            static_cast<float>(width),
+            static_cast<float>(height));
+        const uint32_t indexAdded = static_cast<uint32_t>(m_Indices.size()) - indexBefore;
+        if (indexAdded > 0) {
+            AddOrMergeBatch(indexAdded);
+        }
+        m_LastBuiltWidth = width;
+        m_LastBuiltHeight = height;
+        return;
+    }
     
     // Helper lambda to count widgets (diagnostics only — avoid per-frame tree walk).
     if (Widget::s_GlobalDiagnostics) {
@@ -147,8 +169,34 @@ void UIWidgetAdapter::ProcessWidget(const std::shared_ptr<Widget>& root,
         Widget::s_GlobalDiagnostics->paintCalls++;
         UiPathDiagnostics::Get().SetWidgetsVisited(Widget::s_GlobalDiagnostics->totalWidgetCount);
     }
+    UiColorCompositionDiagnostic::InvokeProbeRegistrar(root);
+
     UiPathDiagnostics::Get().OnPaintPass();
     root->Paint(paintCtx);
+
+    auto& compositionDiag = UiColorCompositionDiagnostic::Get();
+    if (compositionDiag.ShouldInjectPanelFlatOverride()) {
+        const Rect overrideRect = compositionDiag.GetPanelFlatOverrideRect();
+        const Rect inner = {
+            overrideRect.x + 8.0f,
+            overrideRect.y + 8.0f,
+            std::max(0.0f, overrideRect.width - 16.0f),
+            std::max(0.0f, overrideRect.height - 16.0f)
+        };
+        if (inner.width >= 4.0f && inner.height >= 4.0f) {
+            paintCtx.DrawSurface(inner, SurfaceRole::Panel, 0.0f, "CompositionFlatOverride");
+            compositionDiag.NotifyPanelFlatOverrideInjected();
+        }
+    }
+
+    if (UiColorDebug::IsSemanticAuditEnabled()) {
+        UiColorDebug::Get().AuditPaintCommands(paintCtx.GetCommands());
+    }
+
+    if (UiColorCompositionDiagnostic::IsEnabled()) {
+        compositionDiag.RecordDrawCommands(paintCtx.GetCommands());
+    }
+
     m_Diagnostics.paintCommandsRecorded = static_cast<uint32_t>(paintCtx.GetCommands().size());
     UiPathDiagnostics::Get().SetPaintCommands(m_Diagnostics.paintCommandsRecorded);
     root->ClearSubtreePaintDirty();

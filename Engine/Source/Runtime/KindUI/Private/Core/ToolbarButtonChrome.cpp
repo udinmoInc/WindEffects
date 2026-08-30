@@ -3,7 +3,6 @@
 #include "KindUI/Rendering/IconMetrics.h"
 #include "KindUI/Core/PaintContext.h"
 #include "KindUI/Theming/ThemeAccess.h"
-#include "KindUI/Theming/ThemeAccess.h"
 #include "KindUI/Tokens/DesignToken.h"
 
 #include <algorithm>
@@ -25,11 +24,11 @@ float PrimaryIconSize(float uiScale) {
 }
 
 float HorizontalPad(float uiScale) {
-    return ResolveMetric(MetricToken::Space1) * uiScale;
+    return ResolveMetric(MetricToken::ButtonPaddingHorizontal) * uiScale;
 }
 
 float ChipHorizontalPad(float uiScale) {
-    return ResolveMetric(MetricToken::Space2) * uiScale;
+    return ResolveMetric(MetricToken::SpaceMD) * uiScale;
 }
 
 float IconGapPx(float uiScale) {
@@ -37,17 +36,18 @@ float IconGapPx(float uiScale) {
 }
 
 float ChevronGapPx(float uiScale) {
-    return ResolveMetric(MetricToken::Space2) * uiScale;
+    return ResolveMetric(MetricToken::SpaceMD) * uiScale;
 }
 
 float ItemSize(float uiScale) {
-    return ResolveMetric(MetricToken::IconButtonSize) * uiScale;
+    return ResolveMetric(MetricToken::ButtonHeight) * uiScale;
 }
 
 float RowContentHeight(float uiScale) {
     const float toolbarH = ResolveMetric(MetricToken::ToolbarHeight) * uiScale;
     const float itemH = ItemSize(uiScale);
-    return std::min(toolbarH, std::max(itemH, ResolveMetric(MetricToken::HeaderControlHeight) * uiScale));
+    const float inset = ResolveMetric(MetricToken::Space1) * uiScale;
+    return std::min(toolbarH - inset * 2.0f, itemH);
 }
 
 float GroupGap(float uiScale) {
@@ -84,6 +84,60 @@ Color ResolvePlayIconColor(float hoverAnim, float pressStrength, bool active) {
     return play;
 }
 
+namespace {
+
+void PaintSubtleToolbarFill(
+    PaintContext& context,
+    const Rect& rect,
+    float radius,
+    float hoverAnim,
+    float pressStrength,
+    bool active,
+    float activeAnim)
+{
+    const Color toolbarSurface = ResolveColor(ColorToken::ToolbarBackground);
+
+    if (active || activeAnim > 0.01f) {
+        const float strength = active ? 1.0f : activeAnim;
+        const Color selected = ResolveColor(ColorToken::SelectInactiveBackground);
+        context.DrawRoundedRect(rect, Color::Lerp(toolbarSurface, selected, strength * 0.55f), radius);
+        return;
+    }
+
+    const float hoverStrength = hoverAnim * 0.38f;
+    const float press = pressStrength * 0.72f;
+    const float t = std::max(hoverStrength, press);
+    if (t <= 0.01f) {
+        return;
+    }
+
+    const Color target = press > hoverStrength
+        ? ResolveColor(ColorToken::PressedBackground)
+        : ResolveColor(ColorToken::HoverBackground);
+    context.DrawRoundedRect(rect, Color::Lerp(toolbarSurface, target, t), radius);
+}
+
+} // namespace
+
+void PaintToolbarButtonSurface(
+    PaintContext& context,
+    const Rect& rect,
+    float hoverAnim,
+    float pressStrength,
+    bool active,
+    float activeAnim,
+    float uiScale)
+{
+    PaintSubtleToolbarFill(
+        context,
+        rect,
+        ButtonRadius(uiScale),
+        hoverAnim,
+        pressStrength,
+        active,
+        activeAnim);
+}
+
 void PaintIconButton(
     PaintContext& context,
     const Rect& rect,
@@ -93,25 +147,7 @@ void PaintIconButton(
     float activeAnim,
     float uiScale)
 {
-    const float radius = ButtonRadius(uiScale);
-    const float interaction = std::max({hoverAnim, pressStrength, active ? 1.0f : activeAnim});
-
-    if (active || activeAnim > 0.01f) {
-        PaintActiveIndicator(context, rect, active ? 1.0f : activeAnim, uiScale);
-    }
-
-    if (interaction > 0.01f) {
-        ControlChrome::PaintInteractiveFill(
-            context,
-            rect,
-            radius,
-            hoverAnim,
-            pressStrength,
-            active,
-            ColorToken::PanelBackground);
-        const float bevelStrength = std::max(0.0f, interaction * (1.0f - pressStrength * 0.75f));
-        ControlChrome::PaintRaisedBevel(context, rect, radius, bevelStrength);
-    }
+    PaintToolbarButtonSurface(context, rect, hoverAnim, pressStrength, active, activeAnim, uiScale);
 }
 
 void PaintActiveIndicator(
@@ -120,19 +156,10 @@ void PaintActiveIndicator(
     float activeAnim,
     float uiScale)
 {
-    if (activeAnim <= 0.01f) {
-        return;
-    }
-    const float thickness = std::max(1.0f, ResolveMetric(MetricToken::BorderWidth) * uiScale);
-    const float inset = HorizontalPad(uiScale) * 1.5f;
-    context.DrawRect(
-        Rect{
-            rect.x + inset,
-            rect.y + rect.height - thickness - 1.0f * uiScale,
-            std::max(0.0f, rect.width - inset * 2.0f),
-            thickness
-        },
-        ResolveColor(ColorToken::AccentPrimary));
+    (void)context;
+    (void)rect;
+    (void)activeAnim;
+    (void)uiScale;
 }
 
 void PaintInlineDropdown(
@@ -142,15 +169,14 @@ void PaintInlineDropdown(
     float pressStrength,
     float uiScale)
 {
-    const float radius = ButtonRadius(uiScale);
-    ControlChrome::PaintInteractiveFill(
+    PaintSubtleToolbarFill(
         context,
         rect,
-        radius,
+        ButtonRadius(uiScale),
         hoverAnim,
         pressStrength,
         false,
-        ColorToken::PanelBackground);
+        0.0f);
 }
 
 void PaintExecutionCluster(
@@ -159,11 +185,34 @@ void PaintExecutionCluster(
     float uiScale)
 {
     const float radius = ButtonRadius(uiScale);
-    context.DrawRoundedRectOutline(
-        rect,
-        ResolveColor(ColorToken::BorderDefault),
-        std::max(1.0f, ResolveMetric(MetricToken::BorderWidth) * uiScale),
-        radius);
+    context.DrawRoundedRect(rect, ResolveColor(ColorToken::InputBackground), radius);
+}
+
+void PaintStatusBarControl(
+    PaintContext& context,
+    const Rect& rect,
+    float hoverAnim,
+    bool active,
+    float uiScale)
+{
+    if (active) {
+        const float thickness = std::max(1.0f, ResolveMetric(MetricToken::BorderWidth) * uiScale);
+        context.DrawRect(
+            Rect{
+                rect.x + HorizontalPad(uiScale),
+                rect.y + rect.height - thickness,
+                std::max(0.0f, rect.width - HorizontalPad(uiScale) * 2.0f),
+                thickness
+            },
+            ResolveColor(ColorToken::ActiveTabLine));
+        return;
+    }
+
+    if (hoverAnim > 0.01f) {
+        const Color base = ResolveColor(ColorToken::StatusBarBackground);
+        const Color hover = ResolveColor(ColorToken::HoverBackground);
+        context.DrawRect(rect, Color::Lerp(base, hover, hoverAnim * 0.22f));
+    }
 }
 
 void PaintChipDropdown(

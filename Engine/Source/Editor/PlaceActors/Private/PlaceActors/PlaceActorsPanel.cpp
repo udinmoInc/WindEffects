@@ -591,13 +591,21 @@ void PlaceActorsPanel::Arrange(const Rect& allottedRect) {
         m_ContentRect = m_BodyLayout->GetRegionRect(::we::editor::panels::PanelBodyRegion::Content);
     }
 
-    const bool widthChanged = std::abs(m_ContentRect.width - m_LastViewportWidth) > 0.5f;
-    if (m_NeedsLayout || widthChanged) {
-        m_ScrollMetrics.viewport = m_ContentRect;
-        if (m_NeedsLayout) {
-            RebuildData();
+    const bool geometryChanged =
+        std::abs(m_ContentRect.width - m_LastViewportWidth) > 0.5f
+        || std::abs(m_ContentRect.height - m_LastViewportHeight) > 0.5f;
+    if (m_NeedsLayout || geometryChanged) {
+        if (m_ContentRect.width > 0.0f && m_ContentRect.height > 0.0f) {
+            m_ScrollMetrics.viewport = m_ContentRect;
+            if (m_NeedsLayout) {
+                RebuildData();
+            }
+            RebuildLayout();
+            m_LastViewportWidth = m_ContentRect.width;
+            m_LastViewportHeight = m_ContentRect.height;
+        } else {
+            m_NeedsLayout = true;
         }
-        RebuildLayout();
     }
 }
 

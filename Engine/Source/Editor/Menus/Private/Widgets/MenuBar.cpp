@@ -71,10 +71,15 @@ void MenuBar::Paint(PaintContext& context) {
                 std::max(0.0f, menu.geometry.width - insetH * 2.0f),
                 std::max(0.0f, menu.geometry.height - insetV * 2.0f)
             };
-            const ColorToken fillToken = isActive
-                ? ColorToken::SelectInactiveBackground
-                : ColorToken::HoverBackground;
-            context.DrawRoundedRect(highlightRect, ThemeColor(fillToken), radius);
+            const Color base = ThemeColor(ColorToken::WindowBackground);
+            const Color target = isActive
+                ? ThemeColor(ColorToken::SelectInactiveBackground)
+                : ThemeColor(ColorToken::HoverBackground);
+            const float strength = isActive ? 0.5f : 0.28f;
+            context.DrawRoundedRect(
+                highlightRect,
+                Color::Lerp(base, target, strength),
+                radius * 0.5f);
         }
 
         float textX = menu.geometry.x + m_ItemPaddingH * uiScale;

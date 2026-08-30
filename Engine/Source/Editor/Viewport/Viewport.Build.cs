@@ -21,6 +21,8 @@ public class Viewport : ModuleRules
         PrivateDependencies.Add("Toolbar");
         PrivateDependencies.Add("PlaceActors");
         PrivateDependencies.Add("Terrain");
+        PrivateDependencies.Add("ViewportEdit");
+        PrivateDependencies.Add("Menus");
 
         AddOptionalThirdParty("glm");
         DefineIf(HasThirdParty("glm"), "WE_HAS_GLM=1");

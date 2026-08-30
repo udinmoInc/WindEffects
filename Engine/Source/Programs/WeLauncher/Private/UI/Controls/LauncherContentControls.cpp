@@ -586,7 +586,7 @@ void CompactSearchField::Arrange(const Rect& allottedRect) {
 
 void CompactSearchField::Paint(PaintContext& context) {
     ControlChrome::InteractionState state{ m_HoverAnim, 0.0f, false, m_Focused, false };
-    ControlChrome::PaintInputFrame(context, m_Geometry, state);
+    ControlChrome::PaintSearchInputFrame(context, m_Geometry, state);
 
     const float s = LScale();
     const float iconSize = kLauncherIconPx * s;

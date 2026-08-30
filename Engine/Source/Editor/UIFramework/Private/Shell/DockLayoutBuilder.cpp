@@ -55,8 +55,6 @@ void WireSplitterSlot(const std::shared_ptr<Splitter>& splitter, const DockLayou
         result.mainHorizontalSplitter = splitter;
     } else if (slot == "rootVertical") {
         result.rootVerticalSplitter = splitter;
-    } else if (slot == "leftCenter") {
-        result.rootVerticalSplitter = splitter;
     } else if (slot == "toolsViewport") {
         result.toolsViewportSplitter = splitter;
     } else if (slot == "rightVertical") {
@@ -113,20 +111,30 @@ std::shared_ptr<Widget> DockLayoutBuilder::BuildNode(
             result.viewportDock = dock;
         } else if (node.panelId == "WorldOutliner") {
             result.explorerDock = dock;
+        } else if (node.panelId == "Details") {
+            result.detailsDock = dock;
+        } else if (node.panelId == "ContentBrowser") {
+            result.contentBrowserDock = dock;
         }
         return dock;
     }
     case DockNodeType::Split: {
         auto splitter = std::make_shared<Splitter>(ToOrientation(node.orientation), node.splitRatio);
         splitter->SetSlotId(node.slotId);
+        splitter->SetPanelGapEnabled(true);
         splitter->SetMinPaneSizes(node.minFirstLogical * dpiScale, node.minSecondLogical * dpiScale);
-        if (node.slotId == "rootVertical" || node.slotId == "leftCenter") {
-            const float defaultPane = ResolveMetric(MetricToken::PropertyLabelColumnWidth) * 2.0f;
+        if (node.slotId == "rootVertical") {
             splitter->SetResizeMode(Splitter::ResizeMode::FixedSecond);
-            splitter->SetFixedSecondWidth(defaultPane * dpiScale);
-            splitter->SetMinPaneSizes(
-                ResolveMetric(MetricToken::PropertyLabelColumnWidth) * 1.43f * dpiScale,
-                ResolveMetric(MetricToken::PropertyLabelColumnWidth) * 1.07f * dpiScale);
+            splitter->SetFixedSecondWidth(240.0f * dpiScale);
+            splitter->SetMinPaneSizes(200.0f * dpiScale, 140.0f * dpiScale);
+        } else if (node.slotId == "toolsViewport") {
+            splitter->SetResizeMode(Splitter::ResizeMode::FixedFirst);
+            splitter->SetFixedFirstWidth(300.0f * dpiScale);
+            splitter->SetMinPaneSizes(200.0f * dpiScale, 240.0f * dpiScale);
+        } else if (node.slotId == "mainHorizontal") {
+            splitter->SetResizeMode(Splitter::ResizeMode::FixedSecond);
+            splitter->SetFixedSecondWidth(340.0f * dpiScale);
+            splitter->SetMinPaneSizes(320.0f * dpiScale, 280.0f * dpiScale);
         }
 
         if (node.children.size() >= 1) {
