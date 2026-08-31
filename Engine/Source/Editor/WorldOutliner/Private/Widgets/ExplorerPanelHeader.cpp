@@ -16,7 +16,7 @@ void ExplorerPanelHeader::Initialize() {
             m_OnNewFolder();
         }
     });
-    AddIconButton(kWindIconNone, [this]() {
+    AddIconButton(WindIcons::ListFilter16, [this]() {
         if (m_OnFilterClicked) {
             m_OnFilterClicked();
         }

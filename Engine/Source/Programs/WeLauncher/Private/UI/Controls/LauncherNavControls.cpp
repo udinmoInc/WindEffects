@@ -143,20 +143,19 @@ void NavSidebar::Paint(PaintContext& context) {
         const Color fg = active
             ? LColor(ColorToken::TextOnAccent)
             : LColor(ColorToken::TextSecondary);
-        const Color iconColor = active
-            ? LColor(ColorToken::TextOnAccent)
-            : LColor(ColorToken::IconSecondary);
 
         const float iconSize = kLauncherIconPx * s;
         const float iconPad = kLauncherNavIconTextGap * s;
         const float iconX = r.x + (m_Collapsed ? (r.width - iconSize) * 0.5f : iconPad);
         IconPainter::Draw(
-            context, item.icon, Rect{
-                std::round(iconX)) * 0.5f),
+            context,
+            item.icon,
+            Rect{
+                std::round(iconX),
+                std::round(r.y + (r.height - iconSize) * 0.5f),
                 iconSize,
                 iconSize
-            },
-            iconColor);
+            });
 
         if (!m_Collapsed) {
             const float textSize = LMetric(MetricToken::TextSizeBody) * s;
@@ -284,8 +283,9 @@ void SearchField::Paint(PaintContext& context) {
     const float iconSize = 16.0f;
     const float pad = 10.0f * s;
     IconPainter::Draw(
-        context, WindIcons::Search16, Rect{ m_Geometry.x + pad, m_Geometry.y + (m_Geometry.height - iconSize) * 0.5f, iconSize, iconSize },
-        LColor(ColorToken::IconSecondary);
+        context,
+        WindIcons::Search16,
+        Rect{ m_Geometry.x + pad, m_Geometry.y + (m_Geometry.height - iconSize) * 0.5f, iconSize, iconSize });
 
     const float textSize = LMetric(MetricToken::TextSizeBody) * s;
     const float textX = m_Geometry.x + pad + iconSize + 8.0f * s;
@@ -378,7 +378,9 @@ void SearchField::Tick(float deltaTime) {
 
 // ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ SegmentedControl ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬
 
-SegmentedControl::SegmentedControl(std::vector<std::string> labels, std::vector<std::string> icons)
+SegmentedControl::SegmentedControl(
+    std::vector<std::string> labels,
+    std::vector<WindIconRef> icons)
     : m_Labels(std::move(labels))
     , m_Icons(std::move(icons)) {
     m_HoverAnims.assign(m_Labels.size(), 0.0f);
@@ -453,12 +455,20 @@ void SegmentedControl::Paint(PaintContext& context) {
         }
 
         const float iconSize = LIconPx(MetricToken::IconSizeToolbar) * s;
-        const std::string& icon = (i < static_cast<int>(m_Icons.size()))
+        const WindIconRef icon = (i < static_cast<int>(m_Icons.size()))
             ? m_Icons[static_cast<std::size_t>(i)]
-            : m_Labels[static_cast<std::size_t>(i)];
-        IconPainter::Draw(
-            context, icon, Rect{ r.x + (r.width - iconSize) * 0.5f, r.y + (r.height - iconSize) * 0.5f, iconSize, iconSize },
-            selected ? LColor(ColorToken::TextPrimary) : LColor(ColorToken::IconSecondary);
+            : kWindIconNone;
+        if (icon.IsValid()) {
+            IconPainter::Draw(
+                context,
+                icon,
+                Rect{
+                    r.x + (r.width - iconSize) * 0.5f,
+                    r.y + (r.height - iconSize) * 0.5f,
+                    iconSize,
+                    iconSize
+                });
+        }
     }
 }
 

@@ -76,17 +76,15 @@ std::string EntityTypeLabel(EntityType type) {
 we::runtime::kindui::WindIconRef IconForEntity(const Entity& entity) {
     switch (entity.Type) {
     case EntityType::DirectionalLight:
-        return we::runtime::kindui::WindIcons::Sun16;
     case EntityType::SkyLight:
-        return we::runtime::kindui::kWindIconNone;
+        return we::runtime::kindui::WindIcons::Sun16;
     case EntityType::SkyAtmosphere:
-        return we::runtime::kindui::kWindIconNone;
-    case EntityType::HeightFog:
-        return we::runtime::kindui::kWindIconNone;
     case EntityType::VolumetricClouds:
-        return we::runtime::kindui::kWindIconNone;
+        return we::runtime::kindui::WindIcons::Globe16;
+    case EntityType::Landscape:
+        return we::runtime::kindui::WindIcons::Grid3x316;
+    case EntityType::HeightFog:
     case EntityType::EmptyActor:
-        return we::runtime::kindui::kWindIconNone;
     default:
         return we::runtime::kindui::kWindIconNone;
     }

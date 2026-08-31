@@ -174,16 +174,8 @@ we::rhi::RHIDescriptorSetHandle LoadLauncherLogoTexture(
     }
 #else
     (void)logoPath;
+    (void)displaySizePx;
 #endif
-
-    if (auto* icons = renderer->GetIconRenderer()) {
-        const uint32_t size = displaySizePx > 0 ? displaySizePx : 18u;
-        auto set = icons->GetIcon("Assets/Editor/Logo/Logo_UI.png", size);
-        if (set == we::rhi::RHIDescriptorSetHandle::Invalid) {
-            set = icons->GetIcon("Assets/Editor/WindEffects.svg", size);
-        }
-        return set;
-    }
 
     return we::rhi::RHIDescriptorSetHandle::Invalid;
 }

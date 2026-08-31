@@ -112,7 +112,7 @@ void WindowsPanelMenuButton::Paint(::we::runtime::kindui::PaintContext& context)
     const auto iconColor = ToolbarButtonChrome::ResolveIconColor(m_HoverAnim, pressStrength, false);
 
     IconPainter::Draw(
-        context, kWindIconNone, ToolbarButtonChrome::PlaceIconInControl(
+        context, WindIcons::Grid3x316, ToolbarButtonChrome::PlaceIconInControl(
             Rect{ m_Geometry.x + padH, m_Geometry.y, iconSize, m_Geometry.height },
             iconSize));
 

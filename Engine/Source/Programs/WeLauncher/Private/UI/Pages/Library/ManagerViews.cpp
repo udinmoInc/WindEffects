@@ -33,7 +33,7 @@ float ApproxTextWidth(const std::string& text, float textSize) {
 void PaintIconButton(
     PaintContext& context,
     const Rect& rect,
-    const char* icon,
+    WindIconRef icon,
     bool hovered,
     bool accent,
     float radius) {
@@ -42,15 +42,19 @@ void PaintIconButton(
         Color bg = accent ? LColor(ColorToken::SelectedBackground) : LColor(ColorToken::HoverBackground);
         context.DrawRoundedRect(rect, bg, radius);
     }
+    if (!icon.IsValid()) {
+        return;
+    }
     const float iconSize = LIconPx(MetricToken::IconSizeToolbar) * s;
     IconPainter::Draw(
-        context, icon, Rect{
-            rect.x + (rect.width - iconSize) * 0.5f) * 0.5f,
+        context,
+        icon,
+        Rect{
+            rect.x + (rect.width - iconSize) * 0.5f,
+            rect.y + (rect.height - iconSize) * 0.5f,
             iconSize,
             iconSize
-        },
-        accent ? LColor(ColorToken::AccentPrimary)
-               : (hovered ? LColor(ColorToken::TextPrimary) : LColor(ColorToken::IconSecondary));
+        });
 }
 
 void PaintStatusDot(PaintContext& context, const Rect& row, const std::string& status, float s) {
@@ -82,7 +86,7 @@ std::string Ellipsize(const std::string& text, float maxWidth, float textSize) {
 
 } // namespace
 
-const char* TemplateTypeIcon(const std::string& templateId) {
+WindIconRef TemplateTypeIcon(const std::string& templateId) {
     if (templateId == "FirstPerson" || templateId == "ThirdPerson" || templateId == "TopDown"
         || templateId == "Vehicle") {
         return kWindIconNone;
@@ -192,15 +196,17 @@ void ProjectTableHeader::Paint(PaintContext& context) {
         x += width;
     };
 
-    // Atlas favorite glyph (Icons_Star → "star"), not the sun/light icon.
+    // No star icon in WindIcons — favorite column header is blank.
     const float starPx = 16.0f * s;
     IconPainter::Draw(
-        context, "star", Rect{
-            x + (cols.favorite - starPx) * 0.5f) * 0.5f,
+        context,
+        kWindIconNone,
+        Rect{
+            x + (cols.favorite - starPx) * 0.5f,
+            m_Geometry.y + (m_Geometry.height - starPx) * 0.5f,
             starPx,
             starPx
-        },
-        LColor(ColorToken::IconSecondary);
+        });
     x += cols.favorite;
     drawCol("NAME", cols.name, m_SortMode == ProjectSortMode::Name, true);
     drawCol("MODIFIED", cols.lastOpened, m_SortMode == ProjectSortMode::Recent, true);
@@ -329,7 +335,7 @@ void ProjectTableRow::Paint(PaintContext& context) {
     PaintIconButton(
         context,
         FavoriteRect(),
-        "star",
+        kWindIconNone,
         m_HoverZone == HitZone::Favorite,
         m_Favorite,
         radius);
@@ -527,12 +533,14 @@ void TemplateListRow::Paint(PaintContext& context) {
         Color::Lerp(badge, LColor(ColorToken::PanelBackground), 0.5f),
         6.0f * s);
     IconPainter::Draw(
-        context, TemplateTypeIcon(m_Info.id), Rect{
-            m_Geometry.x + pad + 6.0f * s) * 0.5f,
+        context,
+        TemplateTypeIcon(m_Info.id),
+        Rect{
+            m_Geometry.x + pad + (iconBox - 16.0f * s) * 0.5f,
+            m_Geometry.y + (m_Geometry.height - 16.0f * s) * 0.5f,
             16.0f * s,
             16.0f * s
-        },
-        badge);
+        });
 
     const float textX = m_Geometry.x + pad + iconBox + 10.0f * s;
     const float titleSize = LMetric(MetricToken::TextSizeBody) * s;
@@ -662,7 +670,7 @@ void EngineInstallRow::Paint(PaintContext& context) {
         LColor(ColorToken::TextHint),
         metaSize);
 
-    static const char* kIcons[] = {
+    static const WindIconRef kIcons[] = {
         kWindIconNone, WindIcons::Check16, WindIcons::Wrench16, kWindIconNone, kWindIconNone
     };
     static const HitZone kZones[] = {
@@ -799,7 +807,7 @@ LibraryPackageRow::LibraryPackageRow(
     std::string kind,
     std::string name,
     std::string detail,
-    const char* icon,
+    WindIconRef icon,
     ClickFn onClick)
     : m_Kind(std::move(kind))
     , m_Name(std::move(name))
@@ -828,10 +836,16 @@ void LibraryPackageRow::Paint(PaintContext& context) {
 
     const float pad = 10.0f * s;
     const float iconSize = 16.0f * s;
-    if (m_Icon) {
+    if (m_Icon.IsValid()) {
         IconPainter::Draw(
-            context, m_Icon, Rect{ m_Geometry.x + pad, m_Geometry.y + (m_Geometry.height - iconSize) * 0.5f, iconSize, iconSize },
-            LColor(ColorToken::IconSecondary);
+            context,
+            m_Icon,
+            Rect{
+                m_Geometry.x + pad,
+                m_Geometry.y + (m_Geometry.height - iconSize) * 0.5f,
+                iconSize,
+                iconSize
+            });
     }
 
     const float textX = m_Geometry.x + pad + iconSize + 10.0f * s;

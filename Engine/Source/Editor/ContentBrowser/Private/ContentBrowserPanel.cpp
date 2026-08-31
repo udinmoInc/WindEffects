@@ -75,10 +75,10 @@ void RefreshFolderTree(const std::shared_ptr<::we::editor::contentbrowser::TreeV
 
     root->children.push_back(MakeSection("__favorites__", "Favorites", WindIcons::Check16));
     root->children.push_back(MakeSection("__collections__", "Collections", kWindIconNone));
-    root->children.push_back(MakeSection("__plugins__", "Plugins", kWindIconNone));
-    root->children.push_back(MakeSection("__engine__", "Engine Content", kWindIconNone, false));
+    root->children.push_back(MakeSection("__plugins__", "Plugins", WindIcons::Wrench16));
+    root->children.push_back(MakeSection("__engine__", "Engine Content", WindIcons::Globe16, false));
 
-    auto project = MakeSection("__project__", "Project Content", kWindIconNone, true);
+    auto project = MakeSection("__project__", "Project Content", WindIcons::Box16, true);
     if (const auto* game = ContentAssetRegistry::Get().FindByVirtualPath("/Game")) {
         project->children.push_back(BuildFolderNode(game));
     }

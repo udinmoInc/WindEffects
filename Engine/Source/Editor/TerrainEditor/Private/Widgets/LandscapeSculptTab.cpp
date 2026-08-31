@@ -22,7 +22,7 @@ void BuildSculptTab(const std::shared_ptr<we::runtime::kindui::Column>& layout, 
 
     AddFormSectionTitle(layout, "Basic");
     AddFormChipRow(layout, {
-        {"Raise", kWindIconNone, op == runtime_terrain::TerrainBrushOp::Raise,
+        {"Raise", WindIcons::Box16, op == runtime_terrain::TerrainBrushOp::Raise,
             [&]() { ActivateOp(editor, runtime_terrain::TerrainBrushOp::Raise,
                 viewportedit::ViewportToolId::LandscapeSculpt); }},
         {"Lower", WindIcons::Minus16, op == runtime_terrain::TerrainBrushOp::Lower,

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "KindUI/Core/Widget.h"
+#include "KindUI/Core/WindIcon.h"
 #include "Model/WeProjectDescriptor.h"
 #include "RHI/Types.h"
 
@@ -77,7 +78,7 @@ private:
     void PaintIconButton(
         we::runtime::kindui::PaintContext& context,
         const we::runtime::kindui::Rect& r,
-        const char* icon,
+        we::runtime::kindui::WindIconRef icon,
         float hover,
         bool danger = false) const;
 
@@ -150,7 +151,7 @@ private:
     struct Item {
         LauncherPage page;
         const char* label;
-        const char* icon;
+        we::runtime::kindui::WindIconRef icon = we::runtime::kindui::kWindIconNone;
         float hoverAnim = 0.0f;
         float selectAnim = 0.0f;
     };
@@ -206,7 +207,9 @@ class SegmentedControl : public we::runtime::kindui::Widget {
 public:
     using Changed = std::function<void(int)>;
 
-    SegmentedControl(std::vector<std::string> labels, std::vector<std::string> icons = {});
+    SegmentedControl(
+        std::vector<std::string> labels,
+        std::vector<we::runtime::kindui::WindIconRef> icons = {});
 
     void SetSelected(int index);
     [[nodiscard]] int GetSelected() const { return m_Selected; }
@@ -225,7 +228,7 @@ private:
     we::runtime::kindui::Rect SegmentRect(int index) const;
 
     std::vector<std::string> m_Labels;
-    std::vector<std::string> m_Icons;
+    std::vector<we::runtime::kindui::WindIconRef> m_Icons;
     int m_Selected = 0;
     int m_Hovered = -1;
     Changed m_OnChanged;
@@ -268,10 +271,19 @@ private:
 
 class EmptyStatePanel : public we::runtime::kindui::Widget {
 public:
-    EmptyStatePanel(std::string title, std::string subtitle, const char* iconName = nullptr);
+    EmptyStatePanel(
+        std::string title,
+        std::string subtitle,
+        we::runtime::kindui::WindIconRef icon = we::runtime::kindui::kWindIconNone);
 
-    void SetPrimaryAction(std::string label, const char* icon, std::function<void()> onClick);
-    void SetSecondaryAction(std::string label, const char* icon, std::function<void()> onClick);
+    void SetPrimaryAction(
+        std::string label,
+        we::runtime::kindui::WindIconRef icon,
+        std::function<void()> onClick);
+    void SetSecondaryAction(
+        std::string label,
+        we::runtime::kindui::WindIconRef icon,
+        std::function<void()> onClick);
 
     we::runtime::kindui::Size Measure(const we::runtime::kindui::Size& availableSize) override;
     void Arrange(const we::runtime::kindui::Rect& allottedRect) override;
@@ -288,11 +300,11 @@ private:
 
     std::string m_Title;
     std::string m_Subtitle;
-    const char* m_Icon = nullptr;
+    we::runtime::kindui::WindIconRef m_Icon = we::runtime::kindui::kWindIconNone;
     std::string m_PrimaryLabel;
     std::string m_SecondaryLabel;
-    const char* m_PrimaryIcon = nullptr;
-    const char* m_SecondaryIcon = nullptr;
+    we::runtime::kindui::WindIconRef m_PrimaryIcon = we::runtime::kindui::kWindIconNone;
+    we::runtime::kindui::WindIconRef m_SecondaryIcon = we::runtime::kindui::kWindIconNone;
     std::function<void()> m_OnPrimary;
     std::function<void()> m_OnSecondary;
     we::runtime::kindui::Rect m_PrimaryRect{};
