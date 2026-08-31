@@ -5,6 +5,7 @@
 #include "KindUI/Core/ControlChrome.h"
 #include "KindUI/Core/DPIContext.h"
 #include "KindUI/Core/EventSystem.h"
+#include "KindUI/Core/WindIcon.h"
 #include "KindUI/Core/Icon.h"
 #include "KindUI/Core/PaintContext.h"
 #include "KindUI/Core/TextMetrics.h"
@@ -163,12 +164,10 @@ void LauncherTitleBar::PaintIconButton(
         context.DrawRoundedRect(r, bg, radius);
     }
 
-    const float glyph = kLauncherIconPx * s;
-    IconPainter::DrawIcon(
-        context,
-        icon,
-        Rect{ r.x + (r.width - glyph) * 0.5f, r.y + (r.height - glyph) * 0.5f, glyph, glyph },
-        LColor(ColorToken::IconSecondary));
+    const float glyph = LIconPx(MetricToken::IconSizeToolbar) * s;
+    IconPainter::Draw(
+        context, icon, Rect{ r.x + (r.width - glyph) * 0.5f, r.y + (r.height - glyph) * 0.5f, glyph, glyph },
+        LColor(ColorToken::IconSecondary);
 }
 
 void LauncherTitleBar::Paint(PaintContext& context) {
@@ -182,7 +181,7 @@ void LauncherTitleBar::Paint(PaintContext& context) {
     const float logoX = m_BrandRect.x;
     const float logoY = m_Geometry.y + (m_Geometry.height - logoSize) * 0.5f;
     Rect logoRect{ logoX, logoY, logoSize, logoSize };
-    IconPainter::DrawIcon(context, Icons::WindLogoName, logoRect, Color::White());
+    IconPainter::Draw(context, kWindIconNone, logoRect);
 
     const float titleSize = LMetric(MetricToken::TextSizeToolbar) * s;
     context.DrawText(
@@ -192,11 +191,11 @@ void LauncherTitleBar::Paint(PaintContext& context) {
         titleSize,
         true);
 
-    PaintIconButton(context, m_HelpRect, Icons::InfoName, m_HoverHelp);
-    PaintIconButton(context, m_SettingsRect, Icons::SettingsName, m_HoverSettings);
+    PaintIconButton(context, m_HelpRect, kWindIconNone, m_HoverHelp);
+    PaintIconButton(context, m_SettingsRect, kWindIconNone, m_HoverSettings);
 
-    const char* maxIcon = m_IsMaximized ? Icons::RestoreName : Icons::MaximizeName;
-    const char* icons[3] = { Icons::MinimizeName, maxIcon, Icons::XName };
+    const char* maxIcon = m_IsMaximized ? kWindIconNone : kWindIconNone;
+    const char* icons[3] = { kWindIconNone, maxIcon, WindIcons::Close16 };
     const Rect controls[3] = { m_MinRect, m_MaxRect, m_CloseRect };
     const float hovers[3] = { m_HoverMin, m_HoverMax, m_HoverClose };
     for (int i = 0; i < 3; ++i) {
@@ -210,12 +209,10 @@ void LauncherTitleBar::Paint(PaintContext& context) {
         if (bg.a > 0.01f) {
             context.DrawRect(r, bg);
         }
-        const float glyph = kLauncherIconPx * s;
-        IconPainter::DrawIcon(
-            context,
-            icons[i],
-            Rect{ r.x + (r.width - glyph) * 0.5f, r.y + (r.height - glyph) * 0.5f, glyph, glyph },
-            LColor(ColorToken::IconSecondary));
+        const float glyph = LIconPx(MetricToken::IconSizeToolbar) * s;
+        IconPainter::Draw(
+            context, icons[i], Rect{ r.x + (r.width - glyph) * 0.5f, r.y + (r.height - glyph) * 0.5f, glyph, glyph },
+            LColor(ColorToken::IconSecondary);
     }
 }
 

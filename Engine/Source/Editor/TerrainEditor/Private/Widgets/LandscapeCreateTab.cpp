@@ -1,10 +1,15 @@
 #pragma warning(disable: 4505)
 #include "LandscapeWorkspaceInternal.h"
 #include "LandscapeFormLayout.h"
+#include "KindUI/Core/WindIcon.h"
 
 #include <algorithm>
 
 namespace we::editor::terrain {
+namespace {
+using we::runtime::kindui::kWindIconNone;
+namespace WindIcons = we::runtime::kindui::WindIcons;
+} // namespace
 
 void BuildCreateTab(const std::shared_ptr<we::runtime::kindui::Column>& layout, ILandscapeEditor& editor) {
     auto& dialog = editor.Dialog();
@@ -24,29 +29,29 @@ void BuildCreateTab(const std::shared_ptr<we::runtime::kindui::Column>& layout, 
     };
 
     AddFormChipRow(layout, {
-        {"Flat", "grid", dialog.generatorId == runtime_terrain::TerrainGeneratorId::Flat
+        {"Flat", WindIcons::Grid3x316, dialog.generatorId == runtime_terrain::TerrainGeneratorId::Flat
             && dialog.creationMethod != runtime_terrain::TerrainCreationMethod::HeightmapImport,
             selectGen(runtime_terrain::TerrainGeneratorId::Flat,
                 runtime_terrain::TerrainCreationMethod::Flat)},
-        {"Empty", "minus", dialog.generatorId == runtime_terrain::TerrainGeneratorId::Empty,
+        {"Empty", WindIcons::Minus16, dialog.generatorId == runtime_terrain::TerrainGeneratorId::Empty,
             selectGen(runtime_terrain::TerrainGeneratorId::Empty,
                 runtime_terrain::TerrainCreationMethod::Empty)},
-        {"Perlin", "waves", dialog.generatorId == runtime_terrain::TerrainGeneratorId::PerlinNoise,
+        {"Perlin", kWindIconNone, dialog.generatorId == runtime_terrain::TerrainGeneratorId::PerlinNoise,
             selectGen(runtime_terrain::TerrainGeneratorId::PerlinNoise,
                 runtime_terrain::TerrainCreationMethod::Noise)},
-        {"FBM", "layers", dialog.generatorId == runtime_terrain::TerrainGeneratorId::Fbm,
+        {"FBM", kWindIconNone, dialog.generatorId == runtime_terrain::TerrainGeneratorId::Fbm,
             selectGen(runtime_terrain::TerrainGeneratorId::Fbm,
                 runtime_terrain::TerrainCreationMethod::Fractal)},
-        {"Ridged", "mountain", dialog.generatorId == runtime_terrain::TerrainGeneratorId::RidgedNoise,
+        {"Ridged", kWindIconNone, dialog.generatorId == runtime_terrain::TerrainGeneratorId::RidgedNoise,
             selectGen(runtime_terrain::TerrainGeneratorId::RidgedNoise,
                 runtime_terrain::TerrainCreationMethod::Fractal)},
-        {"Voronoi", "hexagon", dialog.generatorId == runtime_terrain::TerrainGeneratorId::Voronoi,
+        {"Voronoi", kWindIconNone, dialog.generatorId == runtime_terrain::TerrainGeneratorId::Voronoi,
             selectGen(runtime_terrain::TerrainGeneratorId::Voronoi,
                 runtime_terrain::TerrainCreationMethod::Procedural)},
-        {"Island", "globe", dialog.generatorId == runtime_terrain::TerrainGeneratorId::Island,
+        {"Island", WindIcons::Globe16, dialog.generatorId == runtime_terrain::TerrainGeneratorId::Island,
             selectGen(runtime_terrain::TerrainGeneratorId::Island,
                 runtime_terrain::TerrainCreationMethod::Procedural)},
-        {"Heightmap", "image",
+        {"Heightmap", kWindIconNone,
             dialog.creationMethod == runtime_terrain::TerrainCreationMethod::HeightmapImport,
             [&editor]() {
                 auto& d = editor.Dialog();

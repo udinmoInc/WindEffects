@@ -3,8 +3,10 @@
 #include "FirstRunAgreementInternal.h"
 #include "Core/EditorConfigPaths.h"
 #include "KindUI/Core/ControlChrome.h"
+#include "KindUI/Core/WindIcon.h"
 #include "KindUI/Core/Icon.h"
 #include "KindUI/Core/PaintContext.h"
+#include "KindUI/Rendering/IconMetrics.h"
 #include "KindUI/Theming/ThemeAccess.h"
 #include "KindUI/Tokens/DesignToken.h"
 #include "KindUI/Theming/StyleRole.h"
@@ -22,7 +24,7 @@ namespace we::programs::editor {
 using ::we::runtime::kindui::DPIContext;
 using ::we::runtime::kindui::IconPainter;
 using ::we::runtime::kindui::MouseButton;
-namespace Icons = ::we::runtime::kindui::Icons;
+using ::we::runtime::kindui::kWindIconNone;
 
 using we::runtime::kindui::ColorToken;
 using we::runtime::kindui::MetricToken;
@@ -42,11 +44,11 @@ FirstRunAgreementPopup::FirstRunAgreementPopup(std::string markdownAndTextConten
     ParseDocument();
     
     m_AgreeButton.label = "I Agree";
-    m_AgreeButton.iconName = we::runtime::kindui::Icons::CheckName;
+    m_AgreeButton.icon = we::runtime::kindui::WindIcons::Check16;
     m_DeclineButton.label = "Quit";
-    m_DeclineButton.iconName = we::runtime::kindui::Icons::XName;
+    m_DeclineButton.icon = we::runtime::kindui::WindIcons::Close16;
     m_CopyButton.label = "Copy";
-    m_CopyButton.iconName = we::runtime::kindui::Icons::CopyName;
+    m_CopyButton.icon = we::runtime::kindui::kWindIconNone;
 }
 
 FirstRunAgreementPopup::~FirstRunAgreementPopup() = default;
@@ -205,19 +207,26 @@ void FirstRunAgreementPopup::Paint(we::runtime::kindui::PaintContext& context) {
         }
         context.DrawRoundedRectOutline(button.rect, ThemeColor(ColorToken::BorderDefault), 1.0f, radius);
         
-        const float iconSize = 13.0f * m_DpiScale;
-        const float textGap = button.iconName.empty() ? 0.0f : 6.0f * m_DpiScale;
+        const float iconSize = 16.0f
+            * m_DpiScale;
+        const float textGap = button.icon.IsValid() ? 6.0f * m_DpiScale : 0.0f;
         const float fontSize = 12.0f * m_DpiScale;
         const float tw = context.GetTextWidth(button.label, fontSize);
-        const float contentW = tw + (button.iconName.empty() ? 0.0f : iconSize + textGap);
+        const float contentW = tw + (button.icon.IsValid() ? iconSize + textGap : 0.0f);
         float contentX = button.rect.x + (button.rect.width - contentW) * 0.5f;
         const we::runtime::kindui::Color textColor = primary
             ? ThemeColor(ColorToken::TextOnAccent)
             : ThemeColor(ColorToken::TextPrimary);
         
-        if (!button.iconName.empty()) {
-            we::runtime::kindui::IconPainter::DrawIcon(context, button.iconName,
-                we::runtime::kindui::Rect{ contentX, button.rect.y + (button.rect.height - iconSize) * 0.5f, iconSize, iconSize }, textColor);
+        if (button.icon.IsValid()) {
+            we::runtime::kindui::IconPainter::Draw(
+                context,
+                button.icon,
+                we::runtime::kindui::Rect{
+                    contentX,
+                    button.rect.y + (button.rect.height - iconSize) * 0.5f,
+                    iconSize,
+                    iconSize});
             contentX += iconSize + textGap;
         }
         context.DrawText(button.label,

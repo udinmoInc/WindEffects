@@ -4,6 +4,7 @@
 #include "KindUI/Core/Animator.h"
 #include "KindUI/Core/ControlChrome.h"
 #include "KindUI/Core/EventSystem.h"
+#include "KindUI/Core/WindIcon.h"
 #include "KindUI/Core/Icon.h"
 #include "KindUI/Core/PaintContext.h"
 #include "KindUI/Rendering/IconMetrics.h"
@@ -140,16 +141,9 @@ void SettingsCheckBox::Paint(PaintContext& context) {
     context.DrawRoundedRect(m_Geometry, bg, radius);
     context.DrawRoundedRectOutline(m_Geometry, LColor(ColorToken::BorderDefault), 1.0f, radius);
     if (m_Checked) {
-        IconPainter::DrawIcon(
-            context,
-            Icons::CheckName,
-            Rect{
-                m_Geometry.x + 2.0f * s,
-                m_Geometry.y + 2.0f * s,
-                m_Geometry.width - 4.0f * s,
-                m_Geometry.height - 4.0f * s
-            },
-            LColor(ColorToken::TextPrimary));
+        IconPainter::Draw(
+            context, WindIcons::Check16, Rect{
+                m_Geometry.x + 2.0f * s);
     }
 }
 
@@ -295,13 +289,10 @@ void SettingsDropdown::Paint(PaintContext& context) {
         Point{ trigger.x + 10.0f * s, trigger.y + (triggerH - textSize) * 0.5f },
         InputValueTextColor(),
         textSize);
-    const float tier = static_cast<float>(IconMetrics::CompactGlyphTierPx());
+    const float tier = static_cast<float>(16u);
     const float chevX = trigger.x + trigger.width - 10.0f * s - tier;
-    IconPainter::DrawCompactIcon(
-        context,
-        Icons::ChevronDownName,
-        IconMetrics::CompactGlyphBand(trigger, chevX),
-        LColor(ColorToken::IconSecondary));
+    IconPainter::Draw(
+        context, WindIcons::ChevronDown16, IconMetrics::CompactGlyphBand(trigger, chevX));
 
     if (m_Open) {
         const Rect menu = MenuRect();

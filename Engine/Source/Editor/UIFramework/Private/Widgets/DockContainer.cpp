@@ -1,6 +1,7 @@
 #include "WindEffects/Editor/UI/Widgets/DockContainer.h"
 #include "WindEffects/Editor/UI/Panel/PanelChrome.h"
 #include "KindUI/Profiling/UiGeometryDebug.h"
+#include "KindUI/Core/WindIcon.h"
 #include "KindUI/Core/Icon.h"
 #include "KindUI/Core/DPIContext.h"
 #include "KindUI/Layout/LayoutAssert.h"
@@ -191,7 +192,7 @@ void DockContainer::LayoutTabGeometries() {
     for (const auto& tabInfo : m_Tabs) {
         PanelChrome::DockTabDescriptor descriptor{};
         descriptor.title = tabInfo.panel->GetTitle();
-        descriptor.iconName = tabInfo.panel->GetTabIcon();
+        descriptor.icon = tabInfo.panel->GetTabIcon();
         descriptor.hasBrand = tabInfo.panel->HasTabBrand();
         descriptor.brandDescriptor = tabInfo.panel->GetTabBrandDescriptor();
         descriptor.brandLogicalSize = tabInfo.panel->GetTabBrandLogicalSize();
@@ -250,7 +251,7 @@ std::shared_ptr<Widget> DockContainer::HitTestPoint(const Point& pos, const Rect
 float DockContainer::MeasureTabWidth(PaintContext& context, const TabInfo& tabInfo, bool isActive, bool flushLeft) {
     PanelChrome::DockTabDescriptor descriptor{};
     descriptor.title = tabInfo.panel->GetTitle();
-    descriptor.iconName = tabInfo.panel->GetTabIcon();
+    descriptor.icon = tabInfo.panel->GetTabIcon();
     descriptor.hasBrand = tabInfo.panel->HasTabBrand();
     descriptor.brandDescriptor = tabInfo.panel->GetTabBrandDescriptor();
     descriptor.brandLogicalSize = tabInfo.panel->GetTabBrandLogicalSize();
@@ -266,7 +267,7 @@ void DockContainer::PaintTab(PaintContext& context, TabInfo& tabInfo, int index,
 
     PanelChrome::DockTabDescriptor descriptor{};
     descriptor.title = tabInfo.panel->GetTitle();
-    descriptor.iconName = tabInfo.panel->GetTabIcon();
+    descriptor.icon = tabInfo.panel->GetTabIcon();
     descriptor.hasBrand = tabInfo.panel->HasTabBrand();
     descriptor.brandDescriptor = tabInfo.panel->GetTabBrandDescriptor();
     descriptor.brandLogicalSize = tabInfo.panel->GetTabBrandLogicalSize();
@@ -292,7 +293,7 @@ void DockContainer::Paint(PaintContext& context) {
     for (const auto& tabInfo : m_Tabs) {
         PanelChrome::DockTabDescriptor descriptor{};
         descriptor.title = tabInfo.panel->GetTitle();
-        descriptor.iconName = tabInfo.panel->GetTabIcon();
+        descriptor.icon = tabInfo.panel->GetTabIcon();
         descriptor.hasBrand = tabInfo.panel->HasTabBrand();
         descriptor.brandDescriptor = tabInfo.panel->GetTabBrandDescriptor();
         descriptor.brandLogicalSize = tabInfo.panel->GetTabBrandLogicalSize();

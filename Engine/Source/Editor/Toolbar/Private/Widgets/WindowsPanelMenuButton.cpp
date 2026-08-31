@@ -6,6 +6,7 @@
 
 #include "KindUI/Core/Animator.h"
 #include "KindUI/Core/DPIContext.h"
+#include "KindUI/Core/WindIcon.h"
 #include "KindUI/Core/Icon.h"
 #include "KindUI/Core/PaintContext.h"
 #include "KindUI/Core/ToolbarButtonChrome.h"
@@ -21,7 +22,9 @@ using ::we::runtime::kindui::Animator;
 using ::we::runtime::kindui::IconPainter;
 using ::we::runtime::kindui::MouseButton;
 using ::we::runtime::kindui::MetricToken;
-namespace Icons = ::we::runtime::kindui::Icons;
+using ::we::runtime::kindui::Rect;
+namespace WindIcons = ::we::runtime::kindui::WindIcons;
+using ::we::runtime::kindui::kWindIconNone;
 namespace IconMetrics = ::we::runtime::kindui::IconMetrics;
 namespace ToolbarButtonChrome = ::we::runtime::kindui::ToolbarButtonChrome;
 
@@ -77,7 +80,7 @@ void WindowsPanelMenuButton::RefreshVisibilityState() {
     const float padH = ToolbarButtonChrome::ChipHorizontalPad(uiScale);
     const float iconSz = ToolbarButtonChrome::IconSize(uiScale);
     const float iconGap = ToolbarButtonChrome::IconGapPx(uiScale);
-    const float chevW = static_cast<float>(IconMetrics::CompactGlyphTierPx());
+    const float chevW = static_cast<float>(16u);
     const float textSize = we::runtime::kindui::ResolveMetric(MetricToken::TextSizeToolbar) * uiScale;
     const float textW = textSize * 3.8f;
     const float controlH = ToolbarButtonChrome::RowContentHeight(uiScale);
@@ -108,13 +111,10 @@ void WindowsPanelMenuButton::Paint(::we::runtime::kindui::PaintContext& context)
     const float iconGap = ToolbarButtonChrome::IconGapPx(uiScale);
     const auto iconColor = ToolbarButtonChrome::ResolveIconColor(m_HoverAnim, pressStrength, false);
 
-    IconPainter::DrawIcon(
-        context,
-        Icons::MonitorName,
-        ToolbarButtonChrome::PlaceIconInControl(
-            ::we::runtime::kindui::Rect{ m_Geometry.x + padH, centerY - iconSize * 0.5f, iconSize, iconSize },
-            iconSize),
-        iconColor);
+    IconPainter::Draw(
+        context, kWindIconNone, ToolbarButtonChrome::PlaceIconInControl(
+            Rect{ m_Geometry.x + padH, m_Geometry.y, iconSize, m_Geometry.height },
+            iconSize));
 
     const float textSize = we::runtime::kindui::ResolveMetric(MetricToken::TextSizeToolbar) * uiScale;
     const float textX = m_Geometry.x + padH + iconSize + iconGap;
@@ -124,13 +124,10 @@ void WindowsPanelMenuButton::Paint(::we::runtime::kindui::PaintContext& context)
         we::runtime::kindui::ResolveTextForState(m_HoverAnim > 0.01f, false),
         textSize);
 
-    const float tier = static_cast<float>(IconMetrics::CompactGlyphTierPx());
+    const float tier = static_cast<float>(16u);
     const float chevronX = m_Geometry.x + m_Geometry.width - padH - tier;
-    IconPainter::DrawCompactIcon(
-        context,
-        Icons::ChevronDownName,
-        IconMetrics::CompactGlyphBand(m_Geometry, chevronX),
-        iconColor);
+    IconPainter::Draw(
+        context, WindIcons::ChevronDown16, IconMetrics::CompactGlyphBand(m_Geometry, chevronX));
 }
 
 void WindowsPanelMenuButton::OnMouseDown(const ::we::runtime::kindui::MouseEvent& event) {

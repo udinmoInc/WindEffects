@@ -4,7 +4,8 @@
 #include "Widgets/ToolsPanel.h"
 
 namespace we::programs::editor {
-namespace Icons = ::we::runtime::kindui::Icons;
+namespace WindIcons = ::we::runtime::kindui::WindIcons;
+using ::we::runtime::kindui::kWindIconNone;
 
 using namespace ::we::runtime::kindui;
 using ::we::editor::panels::Panel;
@@ -29,7 +30,7 @@ void SyncPanelTitle(const std::shared_ptr<Panel>& panel) {
         if (const auto* actors = EditorToolsRegistry::Get().FindMode("Actors")) {
             if (actors->customContent) {
                 panel->SetTitle(actors->label);
-                panel->SetTabIcon(actors->iconName);
+                panel->SetTabIcon(actors->icon);
                 return;
             }
         }
@@ -37,12 +38,12 @@ void SyncPanelTitle(const std::shared_ptr<Panel>& panel) {
 
     if (!mode) {
         panel->SetTitle("Actors");
-        panel->SetTabIcon(Icons::LayersName);
+        panel->SetTabIcon(kWindIconNone);
         return;
     }
 
     panel->SetTitle(mode->label);
-    panel->SetTabIcon(mode->iconName);
+    panel->SetTabIcon(mode->icon);
 }
 
 } // namespace
@@ -60,7 +61,7 @@ std::shared_ptr<Panel> CreateToolsPanel() {
         tabDescriptors.push_back(PanelModeTabDescriptor{
             mode->id,
             mode->label,
-            mode->iconName
+            mode->icon
         });
     }
     modeTabs->SetTabs(std::move(tabDescriptors));
@@ -71,12 +72,12 @@ std::shared_ptr<Panel> CreateToolsPanel() {
     });
 
     auto panel = PanelBuilder("Assets")
-        .TabIcon(Icons::CubeName)
-        .WithHeaderAction(Icons::LockName, []() {
+        .TabIcon(kWindIconNone)
+        .WithHeaderAction(we::runtime::kindui::kWindIconNone, []() {
             auto& modeController = EditorModeController::Get();
             modeController.SetDrawerPinned(!modeController.IsDrawerPinned());
         })
-        .WithHeaderAction(Icons::XName, []() {
+        .WithHeaderAction(WindIcons::Close16, []() {
             EditorModeController::Get().SetDrawerVisible(false);
         })
         .ModeTabs(modeTabs)

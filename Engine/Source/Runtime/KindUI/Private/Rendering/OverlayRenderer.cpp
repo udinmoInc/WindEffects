@@ -111,29 +111,17 @@ bool OverlayRenderer::Init(we::rhi::IRHIDevice* device, we::rhi::Format swapchai
     m_IconRenderer = std::make_unique<IconRenderer>();
     m_IconManager = std::make_unique<IconManager>();
 
-    const auto metaCandidates = we::core::PathService::Get().IconCandidates(
-        std::filesystem::path("Atlas") / "icons.weiconmeta");
-    const auto metaFound = we::core::PathService::FindExisting(metaCandidates);
-    const std::string metaPath = metaFound ? we::core::PathService::ToUtf8(*metaFound) : std::string{};
-    const auto atlasRoot = [&]() -> std::filesystem::path {
-        if (metaFound) {
-            return metaFound->parent_path();
-        }
-        const auto probeCandidates = we::core::PathService::Get().IconCandidates(
-            std::filesystem::path("Atlas") / "ui_Atlas_16.weiconatlas");
-        if (const auto probe = we::core::PathService::FindExisting(probeCandidates)) {
-            return probe->parent_path();
-        }
-        return {};
-    }();
-    if (!metaPath.empty() && !atlasRoot.empty()) {
-        if (m_IconManager->Init(this, metaPath, atlasRoot)) {
+    const auto windIconsCandidates = we::core::PathService::Get().IconCandidates(
+        std::filesystem::path("WindIcons"));
+    const auto windIconsRoot = we::core::PathService::FindExisting(windIconsCandidates);
+    if (windIconsRoot) {
+        if (m_IconManager->Init(this, *windIconsRoot)) {
             m_IconRenderer->SetIconManager(m_IconManager.get());
         } else {
             WE_LOG_WARN(we::LogCategory::Startup, "OverlayRenderer: IconManager init failed.");
         }
     } else {
-        WE_LOG_WARN(we::LogCategory::Startup, "OverlayRenderer: icon atlas assets not found.");
+        WE_LOG_WARN(we::LogCategory::Startup, "OverlayRenderer: WindIcons folder not found.");
     }
 
     m_WidgetAdapter = std::make_unique<UIWidgetAdapter>();

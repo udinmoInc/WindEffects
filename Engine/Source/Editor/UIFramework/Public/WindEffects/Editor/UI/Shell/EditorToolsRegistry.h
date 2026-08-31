@@ -1,6 +1,7 @@
 #pragma once
 
 #include "WindEffects/Editor/UI/Export.h"
+#include "KindUI/Core/WindIcon.h"
 #include "KindUI/Core/Widget.h"
 
 #include <functional>
@@ -11,13 +12,12 @@
 #include <vector>
 
 namespace we::editor::toolspanel {
-using ::we::runtime::kindui::Widget;
 
 struct EditorToolAction {
     std::string id;
     std::string categoryId;
     std::string label;
-    std::string iconName;
+    we::runtime::kindui::WindIconRef icon = we::runtime::kindui::kWindIconNone;
     std::string shortcut;
     std::string keywords;
     int sortOrder = 0;
@@ -30,7 +30,7 @@ struct EditorToolCategory {
     std::string id;
     std::string modeId;
     std::string label;
-    std::string iconName;
+    we::runtime::kindui::WindIconRef icon = we::runtime::kindui::kWindIconNone;
     int sortOrder = 0;
     bool defaultExpanded = true;
 };
@@ -38,7 +38,7 @@ struct EditorToolCategory {
 struct EditorToolMode {
     std::string id;
     std::string label;
-    std::string iconName;
+    we::runtime::kindui::WindIconRef icon = we::runtime::kindui::kWindIconNone;
     std::string keywords;
     int sortOrder = 0;
     bool opensToolDrawerByDefault = true;
@@ -100,7 +100,7 @@ private:
                 ::we::editor::toolspanel::EditorToolMode mode; \
                 mode.id = #ModeId; \
                 mode.label = Label; \
-                mode.iconName = IconName; \
+                mode.icon = IconName; \
                 mode.sortOrder = SortOrder; \
                 mode.keywords = Label; \
                 mode.opensToolDrawerByDefault = OpensDrawer; \
@@ -124,7 +124,7 @@ private:
                 category.id = #CategoryId; \
                 category.modeId = #ModeId; \
                 category.label = Label; \
-                category.iconName = IconName; \
+                category.icon = IconName; \
                 category.sortOrder = SortOrder; \
                 ::we::editor::toolspanel::EditorToolsRegistry::Get().RegisterCategory(std::move(category)); \
             } \
@@ -140,7 +140,7 @@ private:
                 tool.id = #ToolId; \
                 tool.categoryId = #CategoryId; \
                 tool.label = Label; \
-                tool.iconName = IconName; \
+                tool.icon = IconName; \
                 tool.shortcut = Shortcut; \
                 tool.keywords = Label; \
                 tool.onExecute = ExecuteFunc; \

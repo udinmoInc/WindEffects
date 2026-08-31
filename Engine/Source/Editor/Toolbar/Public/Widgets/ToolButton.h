@@ -4,7 +4,7 @@
 
 #include "KindUI/Core/Widget.h"
 #include "KindUI/Core/Style.h"
-#include "KindUI/Core/Icon.h"
+#include "KindUI/Core/WindIcon.h"
 #include <functional>
 
 namespace we::editor::toolbar {
@@ -35,7 +35,7 @@ enum class ToolButtonStyle {
 // Icon and text button for toolbar use
 class TOOLBAR_API ToolButton : public Widget {
 public:
-    ToolButton(const std::string& iconName, const std::string& label = "", std::function<void()> onClicked = nullptr, const std::string& tooltip = "");
+    ToolButton(we::runtime::kindui::WindIconRef icon, const std::string& label = "", std::function<void()> onClicked = nullptr, const std::string& tooltip = "");
     virtual ~ToolButton() = default;
 
     Size Measure(const Size& availableSize) override;
@@ -48,9 +48,9 @@ public:
     void OnMouseWheel(const MouseEvent& event) override;
     bool ShowsPointerCursor(const Point& position) const override { return m_Geometry.Contains(position); }
 
-    const std::string& GetIconName() const { return m_IconName; }
+    we::runtime::kindui::WindIconRef GetIcon() const { return m_Icon; }
     const std::string& GetTooltip() const { return m_Tooltip; }
-    void SetIcon(const std::string& iconName) { m_IconName = iconName; }
+    void SetIcon(we::runtime::kindui::WindIconRef icon) { m_Icon = icon; }
     void SetLabel(const std::string& label) { m_Label = label; }
     const std::string& GetLabel() const { return m_Label; }
     void SetOnMouseWheel(std::function<void(float wheelDeltaY)> onMouseWheel) { m_OnMouseWheel = std::move(onMouseWheel); }
@@ -65,7 +65,7 @@ public:
     bool IsChromeless() const { return m_Chromeless; }
 
 private:
-    std::string m_IconName;
+    we::runtime::kindui::WindIconRef m_Icon = we::runtime::kindui::kWindIconNone;
     std::string m_Label;
     std::string m_Tooltip;
     std::function<void()> m_OnClicked;

@@ -3,8 +3,7 @@
 #include "PlaceActors/Export.h"
 
 #include "KindUI/Core/PaintContext.h"
-#include "KindUI/Core/Geometry.h"
-#include <string>
+#include "KindUI/Core/WindIcon.h"
 
 namespace we::programs::editor {
 
@@ -15,7 +14,7 @@ public:
     static void PaintHeader(we::runtime::kindui::PaintContext& context,
                             const we::runtime::kindui::Rect& bounds,
                             const std::string& label,
-                            const std::string& iconName,
+                            we::runtime::kindui::WindIconRef icon,
                             bool expanded,
                             float hoverAnim,
                             float expandAnim,

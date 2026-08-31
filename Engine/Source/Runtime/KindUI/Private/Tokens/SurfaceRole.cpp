@@ -233,7 +233,7 @@ Color ResolveTextColor(TextRole role) {
     case TextRole::OnAccent:
         return ResolveColor(ColorToken::TextOnAccent);
     case TextRole::Header:
-        return ResolveColor(ColorToken::IconPrimary);
+        return ResolveColor(ColorToken::TextPrimary);
     default:
         return ResolveColor(ColorToken::TextPrimary);
     }

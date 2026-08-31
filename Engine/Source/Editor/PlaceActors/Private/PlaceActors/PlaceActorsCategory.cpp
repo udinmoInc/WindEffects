@@ -5,6 +5,7 @@
 #include "KindUI/Theming/ThemeAccess.h"
 #include "KindUI/Tokens/DesignToken.h"
 #include "KindUI/Theming/StyleRole.h"
+#include "KindUI/Core/WindIcon.h"
 #include "KindUI/Core/Icon.h"
 #include "KindUI/Core/DPIContext.h"
 
@@ -13,7 +14,8 @@
 namespace we::programs::editor {
 using ::we::runtime::kindui::DPIContext;
 using ::we::runtime::kindui::IconPainter;
-namespace Icons = ::we::runtime::kindui::Icons;
+namespace WindIcons = ::we::runtime::kindui::WindIcons;
+using ::we::runtime::kindui::kWindIconNone;
 namespace PanelChrome = ::we::editor::panels::PanelChrome;
 
 
@@ -24,7 +26,7 @@ using ::we::runtime::kindui::Rect;
 using ::we::runtime::kindui::ColorToken;
 using ::we::runtime::kindui::MetricToken;
 using ::we::runtime::kindui::PaddingToken;
-namespace WEIcons = we::runtime::kindui::Icons;
+using ::we::runtime::kindui::WindIconRef;
 
 float PlaceActorsCategory::MeasureHeaderHeight(float configuredHeight) {
     (void)configuredHeight;
@@ -45,7 +47,7 @@ void PlaceActorsCategory::PaintEmptyState(PaintContext& context, const Rect& bou
 void PlaceActorsCategory::PaintHeader(PaintContext& context,
                                       const Rect& bounds,
                                       const std::string& label,
-                                      const std::string& iconName,
+                                      WindIconRef icon,
                                       bool expanded,
                                       float hoverAnim,
                                       float expandAnim,
@@ -70,18 +72,14 @@ void PlaceActorsCategory::PaintHeader(PaintContext& context,
 
     const float iconDraw = ActorsPanelLayout::IconSize();
     if (isFavoritesSection) {
-        we::runtime::kindui::IconPainter::DrawIcon(
-            context,
-            WEIcons::StarName,
-            Rect{ cursorX, centerY - iconDraw * 0.5f, iconDraw, iconDraw },
-            we::runtime::kindui::ResolveColor(ColorToken::Warning));
+        IconPainter::Draw(
+            context, kWindIconNone,
+            Rect{ cursorX, centerY - iconDraw * 0.5f, iconDraw, iconDraw });
         cursorX += iconDraw + we::runtime::kindui::ResolveMetric(MetricToken::Space1) * uiScale;
-    } else if (!iconName.empty()) {
-        we::runtime::kindui::IconPainter::DrawIcon(
-            context,
-            iconName,
-            Rect{ cursorX, centerY - iconDraw * 0.5f, iconDraw, iconDraw },
-            we::runtime::kindui::ResolveColor(ColorToken::IconPrimary));
+    } else if (icon.IsValid()) {
+        IconPainter::Draw(
+            context, icon,
+            Rect{ cursorX, centerY - iconDraw * 0.5f, iconDraw, iconDraw });
         cursorX += iconDraw + we::runtime::kindui::ResolveMetric(MetricToken::Space1) * uiScale;
     }
 

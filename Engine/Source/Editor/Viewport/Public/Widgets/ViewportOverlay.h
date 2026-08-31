@@ -2,6 +2,7 @@
 
 #include "KindUI/Core/Widget.h"
 #include "KindUI/Core/Style.h"
+#include "KindUI/Core/WindIcon.h"
 #include "KindUI/Core/Icon.h"
 #include <string>
 #include <functional>
@@ -60,7 +61,7 @@ public:
 
 private:
     struct NavButton {
-        std::string iconName;
+        we::runtime::kindui::WindIconRef icon = we::runtime::kindui::kWindIconNone;
         std::string action;
         Rect geometry;
     };
@@ -127,7 +128,7 @@ public:
 
 private:
     struct NavButton {
-        std::string iconName;
+        we::runtime::kindui::WindIconRef icon = we::runtime::kindui::kWindIconNone;
         std::string action;
         Rect geometry;
         bool hovered = false;

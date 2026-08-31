@@ -3,6 +3,7 @@
 #include "PropertyEditor/IPropertyEditorFactory.h"
 
 #include "KindUI/Core/ControlChrome.h"
+#include "KindUI/Core/WindIcon.h"
 #include "KindUI/Core/Icon.h"
 #include "KindUI/Core/LayoutMetrics.h"
 #include "KindUI/Theming/ThemeAccess.h"
@@ -28,7 +29,6 @@ using we::runtime::kindui::Rect;
 using we::runtime::kindui::Size;
 using we::runtime::kindui::TextBox;
 using we::runtime::kindui::Widget;
-namespace Icons = we::runtime::kindui::Icons;
 using we::runtime::kindui::IconPainter;
 namespace Layout = we::runtime::kindui::LayoutMetrics;
 namespace Chrome = we::runtime::kindui::ControlChrome;

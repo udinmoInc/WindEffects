@@ -6,6 +6,8 @@
 #include "ViewportEdit/ViewportEditSession.h"
 
 namespace we::programs::editor {
+using ::we::runtime::kindui::kWindIconNone;
+namespace WindIcons = ::we::runtime::kindui::WindIcons;
 
 using ::we::editor::terrain::TerrainEditorService;
 using ::we::editor::terrain::GetLandscapeEditor;
@@ -45,7 +47,7 @@ void ConfigureLandscapeModePanel() {
     } else {
         mode.id = "Landscape";
         mode.label = "Landscape";
-        mode.iconName = "grid";
+        mode.icon = WindIcons::Grid3x316;
         mode.sortOrder = 30;
         mode.opensToolDrawerByDefault = true;
     }
@@ -67,7 +69,7 @@ static LandscapeWorkspaceRegistration g_LandscapeWorkspaceRegistration;
 } // namespace
 
 // Keep tool registrations for shortcuts / search; primary UX is the workspace panel.
-REGISTER_EDITOR_TOOL(LandscapeSculpt, SculptRaise, "Raise", "plus", "", []() {
+REGISTER_EDITOR_TOOL(LandscapeSculpt, SculptRaise, "Raise", kWindIconNone, "", []() {
     ActivateLandscapeViewportMode();
     TerrainEditorService::Get().SetBrushOp(TerrainBrushOp::Raise);
     TerrainEditorService::Get().EnsureLandscape();
@@ -75,7 +77,7 @@ REGISTER_EDITOR_TOOL(LandscapeSculpt, SculptRaise, "Raise", "plus", "", []() {
         editor->SetActiveTool(we::editor::viewportedit::ViewportToolId::LandscapeSculpt);
     }
 })
-REGISTER_EDITOR_TOOL(LandscapeSculpt, SculptLower, "Lower", "minus", "", []() {
+REGISTER_EDITOR_TOOL(LandscapeSculpt, SculptLower, "Lower", WindIcons::Minus16, "", []() {
     ActivateLandscapeViewportMode();
     TerrainEditorService::Get().SetBrushOp(TerrainBrushOp::Lower);
     TerrainEditorService::Get().EnsureLandscape();
@@ -83,7 +85,7 @@ REGISTER_EDITOR_TOOL(LandscapeSculpt, SculptLower, "Lower", "minus", "", []() {
         editor->SetActiveTool(we::editor::viewportedit::ViewportToolId::LandscapeSculpt);
     }
 })
-REGISTER_EDITOR_TOOL(LandscapeSculpt, SculptSmooth, "Smooth", "refresh", "", []() {
+REGISTER_EDITOR_TOOL(LandscapeSculpt, SculptSmooth, "Smooth", WindIcons::Refresh16, "", []() {
     ActivateLandscapeViewportMode();
     TerrainEditorService::Get().SetBrushOp(TerrainBrushOp::Smooth);
     TerrainEditorService::Get().EnsureLandscape();
@@ -91,7 +93,7 @@ REGISTER_EDITOR_TOOL(LandscapeSculpt, SculptSmooth, "Smooth", "refresh", "", [](
         editor->SetActiveTool(we::editor::viewportedit::ViewportToolId::LandscapeSmooth);
     }
 })
-REGISTER_EDITOR_TOOL(LandscapeSculpt, SculptFlatten, "Flatten", "plane", "", []() {
+REGISTER_EDITOR_TOOL(LandscapeSculpt, SculptFlatten, "Flatten", kWindIconNone, "", []() {
     ActivateLandscapeViewportMode();
     TerrainEditorService::Get().SetBrushOp(TerrainBrushOp::Flatten);
     TerrainEditorService::Get().EnsureLandscape();
@@ -100,8 +102,8 @@ REGISTER_EDITOR_TOOL(LandscapeSculpt, SculptFlatten, "Flatten", "plane", "", [](
     }
 })
 
-REGISTER_EDITOR_TOOL_CATEGORY(Landscape, LandscapeErosion, "Erosion", "layers", 20)
-REGISTER_EDITOR_TOOL(LandscapeErosion, SculptNoise, "Noise", "star", "", []() {
+REGISTER_EDITOR_TOOL_CATEGORY(Landscape, LandscapeErosion, "Erosion", kWindIconNone, 20)
+REGISTER_EDITOR_TOOL(LandscapeErosion, SculptNoise, "Noise", kWindIconNone, "", []() {
     ActivateLandscapeViewportMode();
     TerrainEditorService::Get().SetBrushOp(TerrainBrushOp::Noise);
     TerrainEditorService::Get().EnsureLandscape();
@@ -109,18 +111,18 @@ REGISTER_EDITOR_TOOL(LandscapeErosion, SculptNoise, "Noise", "star", "", []() {
         editor->SetActiveTool(we::editor::viewportedit::ViewportToolId::LandscapeNoise);
     }
 })
-REGISTER_EDITOR_TOOL(LandscapeErosion, SculptHydraulic, "Hydraulic Erosion", "refresh", "", []() {
+REGISTER_EDITOR_TOOL(LandscapeErosion, SculptHydraulic, "Hydraulic Erosion", WindIcons::Refresh16, "", []() {
     ActivateLandscapeViewportMode();
     TerrainEditorService::Get().SetBrushOp(TerrainBrushOp::HydraulicErosion);
     TerrainEditorService::Get().EnsureLandscape();
 })
-REGISTER_EDITOR_TOOL(LandscapeErosion, SculptThermal, "Thermal Erosion", "snap", "", []() {
+REGISTER_EDITOR_TOOL(LandscapeErosion, SculptThermal, "Thermal Erosion", kWindIconNone, "", []() {
     ActivateLandscapeViewportMode();
     TerrainEditorService::Get().SetBrushOp(TerrainBrushOp::ThermalErosion);
     TerrainEditorService::Get().EnsureLandscape();
 })
 
-REGISTER_EDITOR_TOOL(TerrainTools, TerrainGenerate, "Generate Terrain", "grid", "", []() {
+REGISTER_EDITOR_TOOL(TerrainTools, TerrainGenerate, "Generate Terrain", WindIcons::Grid3x316, "", []() {
     ActivateLandscapeViewportMode();
     auto& landscape = GetLandscapeEditor();
     landscape.Wizard().Reset();
@@ -129,18 +131,18 @@ REGISTER_EDITOR_TOOL(TerrainTools, TerrainGenerate, "Generate Terrain", "grid", 
     landscape.Wizard().State() = landscape.Dialog();
     (void)landscape.CreateFromDialog();
 })
-REGISTER_EDITOR_TOOL(TerrainTools, TerrainImport, "Import Heightmap", "open", "", []() {
+REGISTER_EDITOR_TOOL(TerrainTools, TerrainImport, "Import Heightmap", kWindIconNone, "", []() {
     ActivateLandscapeViewportMode();
     TerrainEditorService::Get().EnsureLandscape();
 })
-REGISTER_EDITOR_TOOL(TerrainTools, TerrainNewLandscape, "New Landscape", "plus", "", []() {
+REGISTER_EDITOR_TOOL(TerrainTools, TerrainNewLandscape, "New Landscape", kWindIconNone, "", []() {
     ActivateLandscapeViewportMode();
     auto& landscape = GetLandscapeEditor();
     landscape.Wizard().Reset();
     (void)landscape.CreateFromDialog();
 })
 
-REGISTER_EDITOR_TOOL(FoliagePaint, FoliagePaintTool, "Paint Foliage", "layers", "Shift+4", []() {
+REGISTER_EDITOR_TOOL(FoliagePaint, FoliagePaintTool, "Paint Foliage", kWindIconNone, "Shift+4", []() {
     TerrainEditorService::Get().SpawnFoliageInDefaultRegion();
 })
 

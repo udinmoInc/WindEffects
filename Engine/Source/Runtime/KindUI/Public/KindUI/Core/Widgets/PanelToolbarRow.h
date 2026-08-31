@@ -23,7 +23,7 @@ public:
     [[nodiscard]] const std::string& GetSearchText() const;
 
     void SetOnSearchChanged(std::function<void(const std::string&)> callback);
-    void AddIconButton(const char* icon, std::function<void()> onClicked);
+    void AddIconButton(WindIconRef icon, std::function<void()> onClicked);
 
     /// Adds search + icon children to the flex row. Safe to call once after configuration.
     void Finalize();

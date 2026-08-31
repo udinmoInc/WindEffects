@@ -9,6 +9,7 @@
 #include "Widgets/ExplorerPanelHeader.h"
 #include "KindUI/Theming/ThemeAccess.h"
 #include "Widgets/ExplorerFilterMenu.h"
+#include "KindUI/Core/WindIcon.h"
 #include "KindUI/Core/Icon.h"
 #include "KindUI/Widgets/Label.h"
 #include "KindUI/Layout/Flex.h"
@@ -16,7 +17,8 @@
 #include "KindUI/Tokens/DesignToken.h"
 
 namespace we::programs::editor {
-namespace Icons = ::we::runtime::kindui::Icons;
+namespace WindIcons = ::we::runtime::kindui::WindIcons;
+using ::we::runtime::kindui::kWindIconNone;
 
 
 using ::we::runtime::kindui::ColorToken;
@@ -43,7 +45,7 @@ std::shared_ptr<Panel> CreateWorldOutlinerPanel() {
     panel->AttachBodyLayout();
     panel->SetHeaderHeight(we::runtime::kindui::ResolveMetric(MetricToken::PanelHeaderHeight));
     panel->SetCollapsible(false);
-    panel->SetTabIcon(Icons::HierarchyName);
+    panel->SetTabIcon(kWindIconNone);
 
     auto treeView = std::make_shared<TreeView>();
     treeView->SetExplorerStyle(true);

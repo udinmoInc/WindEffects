@@ -14,6 +14,7 @@
 #include "Widgets/DropdownMenu.h"
 #include "WindEffects/Editor/UI/Shell/EditorWorkspaceController.h"
 
+#include "KindUI/Core/WindIcon.h"
 #include "KindUI/Core/Icon.h"
 #include "KindUI/Tokens/DesignToken.h"
 #include "KindUI/Theming/ThemeAccess.h"
@@ -33,10 +34,11 @@ using ::we::editor::toolbar::ToolbarBuilder;
 using ::we::editor::toolbar::ToolbarGroupStyle;
 using ::we::editor::toolspanel::EditorToolsRegistry;
 using ::we::editor::viewportedit::ViewportEditSession;
-namespace Icons = ::we::runtime::kindui::Icons;
+namespace WindIcons = ::we::runtime::kindui::WindIcons;
+using ::we::runtime::kindui::kWindIconNone;
 
 std::shared_ptr<ToolButton> MakeViewportChip(
-    const char* icon,
+    we::runtime::kindui::WindIconRef icon,
     const std::string& label,
     std::function<void()> onClick,
     const char* tooltip,
@@ -50,7 +52,7 @@ std::shared_ptr<ToolButton> MakeViewportChip(
 }
 
 std::shared_ptr<ToolButton> MakeViewportIconChip(
-    const char* icon,
+    we::runtime::kindui::WindIconRef icon,
     std::function<void()> onClick,
     const char* tooltip)
 {
@@ -67,11 +69,11 @@ void RunRegistryTool(std::string_view toolId) {
 
 void ActivateViewportTool(
     const std::shared_ptr<std::shared_ptr<Toolbar>>& toolbarHolder,
-    const char* iconName,
+    we::runtime::kindui::WindIconRef icon,
     std::string_view toolId)
 {
     if (toolbarHolder && *toolbarHolder) {
-        (*toolbarHolder)->SetActiveTool(iconName);
+        (*toolbarHolder)->SetActiveTool(icon);
     }
     if (auto* editor = ViewportEditSession::Editor()) {
         editor->SetActiveTool(toolId);
@@ -211,7 +213,7 @@ std::shared_ptr<::we::runtime::kindui::Widget> CreateViewportToolbar() {
         we::runtime::kindui::MetricToken::ViewportToolbarHeight));
 
     auto perspectiveButton = MakeViewportChip(
-        Icons::PerspectiveName,
+        we::runtime::kindui::kWindIconNone,
         "Perspective",
         nullptr,
         "Viewport Projection",
@@ -221,7 +223,7 @@ std::shared_ptr<::we::runtime::kindui::Widget> CreateViewportToolbar() {
     });
 
     auto litButton = MakeViewportChip(
-        Icons::LitName,
+        kWindIconNone,
         "Lit",
         nullptr,
         "Viewport Lighting Mode",
@@ -231,7 +233,7 @@ std::shared_ptr<::we::runtime::kindui::Widget> CreateViewportToolbar() {
     });
 
     auto showButton = MakeViewportChip(
-        Icons::EyeName,
+        WindIcons::Eye16,
         "Show",
         nullptr,
         "Show Viewport Options",
@@ -247,30 +249,30 @@ std::shared_ptr<::we::runtime::kindui::Widget> CreateViewportToolbar() {
 
     builder.Group(ToolbarAlignment::Left, ToolbarGroupStyle::Transparent, [&](ToolbarBuilder& tools) {
         tools.IconItem(
-            Icons::CursorName,
+            we::runtime::kindui::kWindIconNone,
             "Select (Q)",
-            [toolbarHolder]() { ActivateViewportTool(toolbarHolder, Icons::CursorName, "SelectTool"); },
+            [toolbarHolder]() { ActivateViewportTool(toolbarHolder, we::runtime::kindui::kWindIconNone, "SelectTool"); },
             [](const std::shared_ptr<ToolButton>& btn) {
                 btn->SetButtonStyle(ToolButtonStyle::ViewportChip);
             });
         tools.IconItem(
-            Icons::MoveName,
+            kWindIconNone,
             "Move (W)",
-            [toolbarHolder]() { ActivateViewportTool(toolbarHolder, Icons::MoveName, "MoveTool"); },
+            [toolbarHolder]() { ActivateViewportTool(toolbarHolder, kWindIconNone, "MoveTool"); },
             [](const std::shared_ptr<ToolButton>& btn) {
                 btn->SetButtonStyle(ToolButtonStyle::ViewportChip);
             });
         tools.IconItem(
-            Icons::RotateName,
+            kWindIconNone,
             "Rotate (E)",
-            [toolbarHolder]() { ActivateViewportTool(toolbarHolder, Icons::RotateName, "RotateTool"); },
+            [toolbarHolder]() { ActivateViewportTool(toolbarHolder, kWindIconNone, "RotateTool"); },
             [](const std::shared_ptr<ToolButton>& btn) {
                 btn->SetButtonStyle(ToolButtonStyle::ViewportChip);
             });
         tools.IconItem(
-            Icons::ScaleName,
+            WindIcons::Scaling16,
             "Scale (R)",
-            [toolbarHolder]() { ActivateViewportTool(toolbarHolder, Icons::ScaleName, "ScaleTool"); },
+            [toolbarHolder]() { ActivateViewportTool(toolbarHolder, WindIcons::Scaling16, "ScaleTool"); },
             [](const std::shared_ptr<ToolButton>& btn) {
                 btn->SetButtonStyle(ToolButtonStyle::ViewportChip);
             });
@@ -279,7 +281,7 @@ std::shared_ptr<::we::runtime::kindui::Widget> CreateViewportToolbar() {
     builder.Separator();
 
     builder.AddWidget(MakeViewportIconChip(
-        Icons::GridName,
+        WindIcons::Grid3x316,
         []() {
             if (auto* editor = ViewportEditSession::Editor()) {
                 auto& grid = editor->Grid();
@@ -289,24 +291,24 @@ std::shared_ptr<::we::runtime::kindui::Widget> CreateViewportToolbar() {
         "Toggle Grid"));
 
     builder.AddWidget(MakeViewportIconChip(
-        Icons::SnapName,
+        kWindIconNone,
         []() { ToggleGridSnap(); },
         "Toggle Grid Snap"));
 
     builder.AddWidget(MakeViewportIconChip(
-        Icons::RotateName,
+        kWindIconNone,
         []() { ToggleRotationSnap(); },
         "Toggle Rotation Snap"));
 
     builder.AddWidget(MakeViewportIconChip(
-        Icons::ScaleName,
+        kWindIconNone,
         []() { ToggleScaleSnap(); },
         "Toggle Scale Snap"));
 
     builder.Separator();
 
     auto cameraButton = MakeViewportChip(
-        Icons::CameraName,
+        kWindIconNone,
         "Camera",
         []() { ShowViewportCameraSpeedPopup(); },
         "Camera Speed",
@@ -317,7 +319,7 @@ std::shared_ptr<::we::runtime::kindui::Widget> CreateViewportToolbar() {
     cameraSpeedButton = cameraButton;
 
     builder.AddWidget(MakeViewportIconChip(
-        Icons::SettingsName,
+        we::runtime::kindui::kWindIconNone,
         []() { ShowViewportNavigationPreferences(); },
         "Viewport Settings"));
 
@@ -325,7 +327,7 @@ std::shared_ptr<::we::runtime::kindui::Widget> CreateViewportToolbar() {
 
     auto toolbar = builder.Build();
     *toolbarHolder = toolbar;
-    toolbar->SetActiveTool(Icons::CursorName);
+    toolbar->SetActiveTool(we::runtime::kindui::kWindIconNone);
 
     if (cameraSpeedButton) {
         SetViewportCameraSpeedIndicator(cameraSpeedButton);

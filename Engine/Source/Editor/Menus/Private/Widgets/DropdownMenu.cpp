@@ -1,6 +1,7 @@
 #include "Widgets/DropdownMenu.h"
 #include "KindUI/Core/PaintContext.h"
 #include "KindUI/Core/TextMetrics.h"
+#include "KindUI/Core/WindIcon.h"
 #include "KindUI/Core/Icon.h"
 #include "KindUI/Tokens/DesignToken.h"
 #include "KindUI/Theming/StyleRole.h"
@@ -14,7 +15,8 @@ using ::we::runtime::kindui::MetricToken;
 using ::we::runtime::kindui::PaddingToken;
 using ::we::runtime::kindui::TextMetrics;
 using ::we::runtime::kindui::IconPainter;
-namespace Icons = ::we::runtime::kindui::Icons;
+namespace WindIcons = ::we::runtime::kindui::WindIcons;
+using ::we::runtime::kindui::kWindIconNone;
 
 namespace we::editor::menus {
 using ::we::runtime::kindui::MouseButton;
@@ -115,11 +117,8 @@ void DropdownMenu::Paint(PaintContext& context) {
                 if (item->checked) {
                     const float iconX = itemRect.x + itemRect.width - m_PaddingX - checkSize;
                     const float iconY = itemRect.y + (m_ItemHeight - checkSize) * 0.5f;
-                    IconPainter::DrawIcon(
-                        context,
-                        Icons::CheckName,
-                        Rect{ iconX, iconY, checkSize, checkSize },
-                        ResolveColor(ColorToken::AccentPrimary));
+                    IconPainter::Draw(
+                        context, WindIcons::Check16, Rect{ iconX, iconY, checkSize, checkSize });
                 } else if (!item->shortcut.empty()) {
                     const float shortcutW = TextMetrics::MeasureWidth(item->shortcut, textSize);
                     const float shortcutX = itemRect.x + itemRect.width - m_PaddingX - shortcutW;

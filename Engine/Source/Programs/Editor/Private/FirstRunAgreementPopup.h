@@ -1,6 +1,7 @@
 #pragma once
 
 #include "KindUI/Core/Widget.h"
+#include "KindUI/Core/WindIcon.h"
 #include <functional>
 #include <string>
 #include <vector>
@@ -76,7 +77,7 @@ private:
     struct ButtonState {
         we::runtime::kindui::Rect rect{};
         std::string label;
-        std::string iconName;
+        we::runtime::kindui::WindIconRef icon = we::runtime::kindui::kWindIconNone;
         bool hovered = false;
         bool pressed = false;
     };

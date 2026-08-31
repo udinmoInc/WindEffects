@@ -104,17 +104,19 @@ Color GraphiteDarkTheme::ResolveColor(ColorToken token) const {
     case ColorToken::TextPrimary:
         return P::Foreground;
     case ColorToken::TextOnAccent:
-    case ColorToken::IconAccent:
-    case ColorToken::IconHover:
-    case ColorToken::IconActive:
         return P::ForegroundHover;
+    case ColorToken::IconAccent:
+    case ColorToken::IconActive:
+        return P::IconActiveTint;
+    case ColorToken::IconHover:
+        return P::IconHoverTint;
     case ColorToken::TextDisabled:
-    case ColorToken::IconDisabled:
         return P::Notifications;
+    case ColorToken::IconDisabled:
+        return P::IconSubdued;
     case ColorToken::IconPrimary:
-        return P::ForegroundHeader;
     case ColorToken::IconSecondary:
-        return P::Foreground;
+        return P::IconNormal;
     case ColorToken::AccentHover:
         return P::PrimaryHover;
     case ColorToken::AccentOrange:
@@ -202,10 +204,10 @@ float GraphiteDarkTheme::ResolveMetric(MetricToken token) const {
     case MetricToken::SearchBoxHeight: return 28.0f;
     case MetricToken::NavigationButtonSize: return 28.0f;
     case MetricToken::IconSizeSearch:
-    case MetricToken::IconSizeTree:
-    case MetricToken::IconSizeNavigation: return 16.0f;
+    case MetricToken::IconSizeTree: return 16.0f;
     case MetricToken::IconSizeToolbar:
-    case MetricToken::IconSizePrimary: return 16.0f;
+    case MetricToken::IconSizeNavigation: return 24.0f;
+    case MetricToken::IconSizePrimary: return 32.0f;
     case MetricToken::IconButtonRadius: return 3.0f;
     case MetricToken::ButtonPaddingHorizontal: return 6.0f;
     case MetricToken::Space2: return 8.0f;
@@ -427,13 +429,12 @@ Color GraphiteDarkTheme::InteractiveBackground(float hoverAnim, float pressAnim,
 
 Color GraphiteDarkTheme::IconForState(bool hovered, bool active) const {
     if (active) {
-        return ResolveColor(ColorToken::IconAccent);
+        return ResolveColor(ColorToken::IconActive);
     }
-    Color base = ResolveColor(ColorToken::IconSecondary);
     if (hovered) {
-        return Color::Lerp(base, ResolveColor(ColorToken::IconPrimary), 1.0f);
+        return ResolveColor(ColorToken::IconHover);
     }
-    return base;
+    return ResolveColor(ColorToken::IconSecondary);
 }
 
 Color GraphiteDarkTheme::TextForState(bool hovered, bool active) const {
@@ -470,7 +471,7 @@ ResolvedStyle StyleResolver::Resolve(StyleRole role) const {
         style.background = theme.ResolveColor(ColorToken::ToolbarBackground);
         style.height = Scaled(theme.ResolveMetric(MetricToken::ToolbarHeight));
         style.fontSize = Scaled(theme.ResolveMetric(MetricToken::TextSizeToolbar));
-        style.iconSize = static_cast<float>(IconMetrics::GlyphTierPx(MetricToken::IconSizeToolbar));
+        style.iconSize = static_cast<float>(16u);
         break;
     case StyleRole::Panel:
         style.background = theme.ResolveColor(ColorToken::PanelBackground);
@@ -505,7 +506,7 @@ ResolvedStyle StyleResolver::Resolve(StyleRole role) const {
         style.foreground = theme.ResolveColor(ColorToken::TextSecondary);
         style.border = Color::Transparent();
         style.height = Scaled(theme.ResolveMetric(MetricToken::ButtonHeight));
-        style.iconSize = static_cast<float>(IconMetrics::GlyphTierPx(MetricToken::IconSizeToolbar));
+        style.iconSize = static_cast<float>(16u);
         style.cornerRadius = Scaled(theme.ResolveMetric(MetricToken::CornerRadiusSmall));
         break;
     case StyleRole::ButtonHover:
@@ -523,7 +524,7 @@ ResolvedStyle StyleResolver::Resolve(StyleRole role) const {
         style.border = Color::Transparent();
         style.borderWidth = 0.0f;
         style.height = Scaled(theme.ResolveMetric(MetricToken::ButtonHeight));
-        style.iconSize = static_cast<float>(IconMetrics::GlyphTierPx(MetricToken::IconSizeToolbar));
+        style.iconSize = static_cast<float>(16u);
         style.cornerRadius = Scaled(theme.ResolveMetric(MetricToken::CornerRadiusSmall));
         break;
     case StyleRole::ButtonSecondary:
@@ -532,7 +533,7 @@ ResolvedStyle StyleResolver::Resolve(StyleRole role) const {
         style.border = theme.ResolveColor(ColorToken::BorderDefault);
         style.borderWidth = 1.0f;
         style.height = Scaled(theme.ResolveMetric(MetricToken::ButtonHeight));
-        style.iconSize = static_cast<float>(IconMetrics::GlyphTierPx(MetricToken::IconSizeToolbar));
+        style.iconSize = static_cast<float>(16u);
         style.cornerRadius = Scaled(theme.ResolveMetric(MetricToken::CornerRadiusSmall));
         break;
     case StyleRole::IconButton:
@@ -540,7 +541,7 @@ ResolvedStyle StyleResolver::Resolve(StyleRole role) const {
         style.icon = theme.ResolveColor(ColorToken::IconSecondary);
         style.border = Color::Transparent();
         style.height = Scaled(theme.ResolveMetric(MetricToken::IconButtonSize));
-        style.iconSize = static_cast<float>(IconMetrics::GlyphTierPx(MetricToken::IconSizeToolbar));
+        style.iconSize = static_cast<float>(16u);
         style.cornerRadius = Scaled(theme.ResolveMetric(MetricToken::IconButtonRadius));
         break;
     case StyleRole::IconButtonHover:
@@ -557,7 +558,7 @@ ResolvedStyle StyleResolver::Resolve(StyleRole role) const {
         style.icon = theme.ResolveColor(ColorToken::IconSecondary);
         style.border = Color::Transparent();
         style.height = Scaled(theme.ResolveMetric(MetricToken::NavigationButtonSize));
-        style.iconSize = static_cast<float>(IconMetrics::GlyphTierPx(MetricToken::IconSizeNavigation));
+        style.iconSize = static_cast<float>(16u);
         style.cornerRadius = Scaled(theme.ResolveMetric(MetricToken::IconButtonRadius));
         break;
     case StyleRole::Input:
@@ -649,7 +650,7 @@ ResolvedStyle StyleResolver::Resolve(StyleRole role) const {
         style.foreground = theme.ResolveColor(ColorToken::TextSecondary);
         style.border = Color::Transparent();
         style.height = Scaled(theme.ResolveMetric(MetricToken::ButtonHeight));
-        style.iconSize = static_cast<float>(IconMetrics::GlyphTierPx(MetricToken::IconSizeToolbar));
+        style.iconSize = static_cast<float>(16u);
         style.cornerRadius = Scaled(theme.ResolveMetric(MetricToken::CornerRadiusSmall));
         break;
     case StyleRole::ButtonDanger:
@@ -657,7 +658,7 @@ ResolvedStyle StyleResolver::Resolve(StyleRole role) const {
         style.foreground = theme.ResolveColor(ColorToken::TextPrimary);
         style.border = theme.ResolveColor(ColorToken::ButtonDangerHover);
         style.height = Scaled(theme.ResolveMetric(MetricToken::ButtonHeight));
-        style.iconSize = static_cast<float>(IconMetrics::GlyphTierPx(MetricToken::IconSizeToolbar));
+        style.iconSize = static_cast<float>(16u);
         style.cornerRadius = Scaled(theme.ResolveMetric(MetricToken::CornerRadiusSmall));
         break;
     case StyleRole::ToolbarButton:
@@ -665,7 +666,7 @@ ResolvedStyle StyleResolver::Resolve(StyleRole role) const {
         style.foreground = theme.ResolveColor(ColorToken::TextSecondary);
         style.border = Color::Transparent();
         style.height = Scaled(theme.ResolveMetric(MetricToken::HeaderControlHeight));
-        style.iconSize = static_cast<float>(IconMetrics::GlyphTierPx(MetricToken::IconSizeToolbar));
+        style.iconSize = static_cast<float>(16u);
         style.cornerRadius = Scaled(theme.ResolveMetric(MetricToken::CornerRadiusSmall));
         style.fontSize = Scaled(theme.ResolveMetric(MetricToken::TextSizeToolbar));
         break;
@@ -733,7 +734,7 @@ ResolvedStyle StyleResolver::Resolve(StyleRole role) const {
         style.icon = theme.ResolveColor(ColorToken::IconSecondary);
         style.height = Scaled(theme.ResolveMetric(MetricToken::FormRowHeight));
         style.fontSize = Scaled(theme.ResolveMetric(MetricToken::TextSizeBody));
-        style.iconSize = static_cast<float>(IconMetrics::GlyphTierPx(MetricToken::IconSizeNavigation));
+        style.iconSize = static_cast<float>(16u);
         style.cornerRadius = Scaled(theme.ResolveMetric(MetricToken::CornerRadiusSmall));
         break;
     case StyleRole::SidebarItemActive:
@@ -743,7 +744,7 @@ ResolvedStyle StyleResolver::Resolve(StyleRole role) const {
         style.border = theme.ResolveColor(ColorToken::AccentPrimary);
         style.height = Scaled(theme.ResolveMetric(MetricToken::FormRowHeight));
         style.fontSize = Scaled(theme.ResolveMetric(MetricToken::TextSizeBody));
-        style.iconSize = static_cast<float>(IconMetrics::GlyphTierPx(MetricToken::IconSizeNavigation));
+        style.iconSize = static_cast<float>(16u);
         style.cornerRadius = Scaled(theme.ResolveMetric(MetricToken::CornerRadiusSmall));
         style.bold = true;
         break;
@@ -773,7 +774,7 @@ ResolvedStyle StyleResolver::Resolve(StyleRole role) const {
         style.foreground = theme.ResolveColor(ColorToken::TextSecondary);
         style.height = Scaled(theme.ResolveMetric(MetricToken::ListRowHeight));
         style.fontSize = Scaled(theme.ResolveMetric(MetricToken::TextSizeSmall));
-        style.iconSize = static_cast<float>(IconMetrics::GlyphTierPx(MetricToken::IconSizeTree));
+        style.iconSize = static_cast<float>(16u);
         break;
     case StyleRole::TreeItemSelected:
         style.background = theme.ResolveColor(ColorToken::SelectedBackground);

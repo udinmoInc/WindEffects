@@ -8,6 +8,7 @@
 #include <string>
 #include "KindUI/Core/Geometry.h"
 #include "KindUI/Tokens/SurfaceRole.h"
+#include "KindUI/Core/WindIcon.h"
 
 namespace we::runtime::kindui {
 
@@ -41,6 +42,8 @@ struct DrawCommand {
     Rect clipRect;      // Scissor clipping
     we::rhi::RHIDescriptorSetHandle textureId = we::rhi::RHIDescriptorSetHandle::Invalid;
     std::string text;
+    std::string iconStem;
+    uint32_t iconSizePx = 0;
     float fontSize = 14.0f;
     uint16_t textWeight = 400; // FontWeight: 400 Regular / 500 Medium / 600 SemiBold
     bool textBold = false;     // legacy; when true, treated as SemiBold (600)
@@ -87,8 +90,7 @@ public:
         float fontSize,
         we::runtime::text::layout::FontWeight weight,
         bool italic = false);
-    void DrawIcon(const std::string& iconName, const Point& pos, const Color& color, float size = 16.0f);
-    void DrawIcon(const std::string& iconName, const Rect& rect, const Color& color, float atlasTierPx);
+    void DrawWindIcon(WindIconRef icon, const Rect& rect);
     void DrawLine(const Point& start, const Point& end, const Color& color, float thickness = 1.0f);
     void DrawTexture(const Rect& rect, we::rhi::RHIDescriptorSetHandle textureId, const Color& tint = Color::White(), const Color& tintBottom = Color::Transparent());
     void DrawColorTexture(const Rect& rect, we::rhi::RHIDescriptorSetHandle textureId, const Color& tint = Color::White());

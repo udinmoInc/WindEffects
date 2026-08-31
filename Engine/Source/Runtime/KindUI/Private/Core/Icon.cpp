@@ -1,67 +1,25 @@
+#include "KindUI/Core/WindIcon.h"
 #include "KindUI/Core/Icon.h"
 #include "KindUI/Core/PaintContext.h"
 #include "KindUI/Rendering/IconMetrics.h"
-#include <algorithm>
 
 namespace we::runtime::kindui {
 
-IconRegistry& IconRegistry::Get() {
-    static IconRegistry instance;
-    return instance;
+void IconPainter::Draw(PaintContext& context, WindIconRef icon, const Point& position) {
+    if (!icon.IsValid()) {
+        return;
+    }
+    const float drawSize = static_cast<float>(icon.sizePx);
+    const Rect drawRect{ position.x, position.y, drawSize, drawSize };
+    context.DrawWindIcon(icon, drawRect);
 }
 
-void IconRegistry::RegisterIcon(const std::string& name, const std::string& svgPath) {
-    std::scoped_lock lock(m_Mutex);
-    m_Icons[name] = svgPath;
-}
-
-std::string IconRegistry::GetIconPath(const std::string& name) const {
-    std::scoped_lock lock(m_Mutex);
-    auto it = m_Icons.find(name);
-    return it != m_Icons.end() ? it->second : "";
-}
-
-bool IconRegistry::HasIcon(const std::string& name) const {
-    std::scoped_lock lock(m_Mutex);
-    return m_Icons.find(name) != m_Icons.end();
-}
-
-bool IconRegistry::IsEditorSvgIcon(const std::string& name) const {
-    return HasIcon(name);
-}
-
-void IconRegistry::InitializeDefaultIcons() {
-    // Icon overrides are baked into icons.weiconmeta by we-icon-compile.
-}
-
-void IconPainter::DrawIcon(PaintContext& context, const std::string& iconName,
-                           const Point& position, float size, const Color& color) {
-    context.DrawIcon(Icons::ResolveLucideName(iconName), position, color, size);
-}
-
-void IconPainter::DrawIcon(PaintContext& context, const std::string& iconName,
-                           const Rect& bounds, const Color& color) {
-    const std::string resolved = Icons::ResolveLucideName(iconName);
-    const float displayPx = std::min(bounds.width, bounds.height);
-    const uint32_t atlasTier = IconMetrics::TierPxForIcon(resolved, displayPx);
-    const Rect drawRect = IconMetrics::PlaceGlyphCentered(bounds, static_cast<float>(atlasTier));
-    context.DrawIcon(
-        resolved,
-        drawRect,
-        color,
-        static_cast<float>(atlasTier));
-}
-
-void IconPainter::DrawCompactIcon(PaintContext& context, const std::string& iconName,
-                                  const Rect& bounds, const Color& color) {
-    const std::string resolved = Icons::ResolveLucideName(iconName);
-    const uint32_t tierPx = IconMetrics::CompactGlyphTierPx();
-    const Rect drawRect = IconMetrics::PlaceGlyphCentered(bounds, tierPx);
-    context.DrawIcon(resolved, drawRect, color, static_cast<float>(tierPx));
-}
-
-void IconPainter::DrawVerticalMoreMenu(PaintContext& context, const Rect& bounds, const Color& color) {
-    DrawIcon(context, Icons::MoreName, bounds, color);
+void IconPainter::Draw(PaintContext& context, WindIconRef icon, const Rect& bounds) {
+    if (!icon.IsValid()) {
+        return;
+    }
+    const Rect drawRect = IconMetrics::PlaceGlyphCentered(bounds, icon.sizePx);
+    context.DrawWindIcon(icon, drawRect);
 }
 
 } // namespace we::runtime::kindui

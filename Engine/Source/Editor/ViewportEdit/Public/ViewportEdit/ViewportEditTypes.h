@@ -1,6 +1,8 @@
 #pragma once
 
 #include "ViewportEdit/Export.h"
+
+#include "KindUI/Core/WindIcon.h"
 #include "Core/Math/Types.h"
 
 #include <cstdint>
@@ -161,7 +163,7 @@ struct VIEWPORTEDIT_API ViewportEditConfig {
 struct VIEWPORTEDIT_API ViewportModeDescriptor {
     std::string id;          // "Select", "Landscape", "Plugin.MyMode"
     std::string displayName;
-    std::string iconName;
+    we::runtime::kindui::WindIconRef icon = we::runtime::kindui::kWindIconNone;
     std::string description;
     ViewportModeId builtinId = ViewportModeId::Custom;
     int sortOrder = 0;
@@ -173,7 +175,7 @@ struct VIEWPORTEDIT_API ViewportModeDescriptor {
 struct VIEWPORTEDIT_API ViewportToolDescriptor {
     std::string id; // stable string; "Select", "Landscape.Sculpt", ...
     std::string displayName;
-    std::string iconName;
+    we::runtime::kindui::WindIconRef icon = we::runtime::kindui::kWindIconNone;
     std::string ownerModeId; // empty = available in all modes
     ViewportToolId builtinId = ViewportToolId::Custom;
     int sortOrder = 0;

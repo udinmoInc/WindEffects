@@ -1,13 +1,7 @@
 #include "Services/ContentBrowserFolderArt.h"
 
-#include "KindUI/Core/Icon.h"
+#include "KindUI/Core/WindIcon.h"
 #include "KindUI/Core/PaintContext.h"
-#include "KindUI/Rendering/IconMetrics.h"
-#include "KindUI/Theming/ThemeAccess.h"
-#include "KindUI/Tokens/DesignToken.h"
-
-#include <algorithm>
-#include <cmath>
 
 namespace we::editor::contentbrowser {
 namespace kindui = ::we::runtime::kindui;
@@ -22,7 +16,6 @@ void ContentBrowserFolderArt::Initialize(we::runtime::kindui::IconRenderer* icon
 }
 
 void ContentBrowserFolderArt::InvalidateCache() {
-    // Atlas icons are resolved live — nothing to clear.
 }
 
 we::runtime::kindui::Rect ContentBrowserFolderArt::ComputeFolderRect(
@@ -48,27 +41,10 @@ void ContentBrowserFolderArt::PaintFolderIcon(
     bool hovered,
     bool opened) const
 {
-    if (folderRect.width < 1.0f || folderRect.height < 1.0f) {
-        return;
-    }
-
-    // Atlas folders are near-white with prebaked lighting — tint must stay dark so
-    // highlights don't blow out to neon orange-yellow.
-    kindui::Color tint = kindui::ResolveColor(
-        hovered ? kindui::ColorToken::ContentBrowserFolderHighlight
-                : kindui::ColorToken::ContentBrowserFolderPrimary);
-    if (hovered) {
-        tint = kindui::Color::Lerp(
-            kindui::ResolveColor(kindui::ColorToken::ContentBrowserFolderPrimary),
-            kindui::ResolveColor(kindui::ColorToken::ContentBrowserFolderBody),
-            0.30f);
-    }
-
-    const char* iconName = opened ? kindui::Icons::OpenFolderName : kindui::Icons::FolderName;
-    const float requestedPx = std::max(folderRect.width, folderRect.height);
-    const uint32_t atlasTier = kindui::IconMetrics::SnapToAtlasTier(requestedPx);
-
-    context.DrawIcon(iconName, folderRect, tint, static_cast<float>(atlasTier));
+    (void)context;
+    (void)folderRect;
+    (void)hovered;
+    (void)opened;
 }
 
 void ContentBrowserFolderArt::PaintThumbnail(
@@ -86,13 +62,9 @@ void ContentBrowserFolderArt::PaintSmallIcon(
     bool hovered,
     bool opened) const
 {
-    const float aspectRatio = opened ? kFolderOpenAspectRatio : kFolderAspectRatio;
-    we::runtime::kindui::Rect folderRect = ComputeFolderRect(
-        iconRect, kSmallIconWidthFill, kSmallIconHeightFill, false, aspectRatio);
-    folderRect.width = std::max(1.0f, std::round(folderRect.width));
-    folderRect.height = std::max(1.0f, std::round(folderRect.height));
-    folderRect.x = std::round(folderRect.x);
-    folderRect.y = std::round(folderRect.y);
+    const we::runtime::kindui::Rect folderRect = ComputeFolderRect(
+        iconRect, kSmallIconWidthFill, kSmallIconHeightFill, false,
+        opened ? kFolderOpenAspectRatio : kFolderAspectRatio);
     PaintFolderIcon(context, folderRect, hovered, opened);
 }
 

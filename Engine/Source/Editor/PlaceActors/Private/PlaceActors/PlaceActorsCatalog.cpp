@@ -81,7 +81,7 @@ void PlaceActorsCatalog::BuildFromRegistry() {
         PlaceActorsCategoryData categoryData;
         categoryData.id = category->id;
         categoryData.label = category->label;
-        categoryData.iconName = category->iconName;
+        categoryData.icon = category->icon;
         categoryData.sortOrder = category->sortOrder;
         categoryData.defaultExpanded = category->defaultExpanded;
 
@@ -92,7 +92,7 @@ void PlaceActorsCatalog::BuildFromRegistry() {
             item.categoryId = category->id;
             item.categoryLabel = category->label;
             item.label = tool->label;
-            item.iconName = tool->iconName;
+            item.icon = tool->icon;
             item.description = meta.description;
             item.tags = meta.tags;
             item.aliases = meta.aliases;

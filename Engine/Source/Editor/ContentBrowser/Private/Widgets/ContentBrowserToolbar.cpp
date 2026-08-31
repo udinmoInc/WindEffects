@@ -11,6 +11,7 @@
 #include "KindUI/Theming/ThemeAccess.h"
 #include "KindUI/Tokens/DesignToken.h"
 #include "KindUI/Theming/StyleRole.h"
+#include "KindUI/Core/WindIcon.h"
 #include "KindUI/Core/Icon.h"
 #include "KindUI/Core/Animator.h"
 #include "KindUI/Input/InputEvents.h"
@@ -30,7 +31,8 @@ using ::we::runtime::kindui::IconPainter;
 using ::we::runtime::kindui::Row;
 using ::we::runtime::kindui::Margin;
 using ::we::runtime::kindui::AlignItems;
-namespace Icons = ::we::runtime::kindui::Icons;
+namespace WindIcons = ::we::runtime::kindui::WindIcons;
+using ::we::runtime::kindui::kWindIconNone;
 namespace IconMetrics = ::we::runtime::kindui::IconMetrics;
 using ::we::runtime::kindui::MakePrimaryAction;
 using ::we::runtime::kindui::MakeSecondaryAction;
@@ -80,8 +82,8 @@ Rect CenterRect(const Rect& parent, float w, float h) {
 
 } // namespace
 
-ToolbarIconToggle::ToolbarIconToggle(const std::string& iconName, const char*)
-    : m_IconName(iconName)
+ToolbarIconToggle::ToolbarIconToggle(we::runtime::kindui::WindIconRef icon, const char*)
+    : m_Icon(icon)
 {}
 
 Size ToolbarIconToggle::Measure(const Size& availableSize) {
@@ -101,12 +103,12 @@ void ToolbarIconToggle::Paint(PaintContext& context) {
     m_PressAnim = Animator::Damp(m_PressAnim, m_Pressed ? 1.0f : 0.0f, 25.0f);
     PaintToolbarButtonChrome(context, m_Geometry, m_HoverAnim, m_PressAnim, m_Selected, false);
 
-    const float iconSize = static_cast<float>(IconMetrics::NativeIconTierPx(ThemeMetric(MetricToken::IconSizeToolbar)));
+    const float iconSize = 16.0f;
     const Rect iconRect = CenterRect(m_Geometry, iconSize, iconSize);
     Color iconColor = m_Selected
         ? ThemeColor(ColorToken::IconAccent)
         : ResolveIconColor(IconColorRole::Secondary, m_HoverAnim, m_PressAnim);
-    IconPainter::DrawIcon(context, m_IconName, iconRect, iconColor);
+    IconPainter::Draw(context, m_Icon, iconRect);
 }
 
 void ToolbarIconToggle::OnMouseDown(const MouseEvent& event) {
@@ -122,10 +124,10 @@ void ToolbarIconToggle::OnMouseUp(const MouseEvent& event) {
     }
 }
 
-ToolbarLabeledButton::ToolbarLabeledButton(const std::string& label, const std::string& iconName,
+ToolbarLabeledButton::ToolbarLabeledButton(const std::string& label, we::runtime::kindui::WindIconRef icon,
     bool showChevron, Variant variant, float horizontalPadding)
     : m_Label(label)
-    , m_IconName(iconName)
+    , m_Icon(icon)
     , m_ShowChevron(showChevron)
     , m_Variant(variant)
     , m_HorizontalPadding(horizontalPadding)
@@ -134,9 +136,9 @@ ToolbarLabeledButton::ToolbarLabeledButton(const std::string& label, const std::
 Size ToolbarLabeledButton::Measure(const Size& availableSize) {
     (void)availableSize;
     float width = m_HorizontalPadding * 2.0f;
-    if (!m_IconName.empty()) width += ThemeMetric(MetricToken::IconSizeToolbar) + ThemeMetric(MetricToken::Space1) + 1.0f;
+    if (m_Icon.IsValid()) width += ThemeMetric(MetricToken::IconSizeToolbar) + ThemeMetric(MetricToken::Space1) + 1.0f;
     width += static_cast<float>(m_Label.size()) * 7.2f;
-    if (m_ShowChevron) width += ThemeMetric(MetricToken::Space2) + static_cast<float>(IconMetrics::CompactGlyphTierPx());
+    if (m_ShowChevron) width += ThemeMetric(MetricToken::Space2) + static_cast<float>(16u);
     m_DesiredSize = Size{ width, ThemeMetric(MetricToken::ButtonHeight) };
     return m_DesiredSize;
 }
@@ -162,13 +164,13 @@ void ToolbarLabeledButton::Paint(PaintContext& context) {
     const float textSize = ThemeMetric(MetricToken::TextSizeBody);
     const float textY = m_Geometry.y + (m_Geometry.height - textSize) * 0.5f;
 
-    if (!m_IconName.empty()) {
-        const float iconSize = static_cast<float>(IconMetrics::NativeIconTierPx(ThemeMetric(MetricToken::IconSizeToolbar)));
+    if (m_Icon.IsValid()) {
+        const float iconSize = 16.0f;
         Color iconColor = m_Variant == Variant::Primary
             ? ThemeColor(ColorToken::IconAccent)
             : ResolveIconColor(IconColorRole::Secondary, m_HoverAnim, m_PressAnim);
         Rect iconBand{ x, m_Geometry.y, iconSize, m_Geometry.height };
-        IconPainter::DrawIcon(context, m_IconName, IconMetrics::PlaceGlyphCentered(iconBand, iconSize), iconColor);
+        IconPainter::Draw(context, m_Icon, IconMetrics::PlaceGlyphCentered(iconBand, 16u));
         x += iconSize + ThemeMetric(MetricToken::Space2);
     }
 
@@ -179,13 +181,10 @@ void ToolbarLabeledButton::Paint(PaintContext& context) {
     context.DrawText(m_Label, Point{ x, textY }, textColor, textSize, m_Variant == Variant::Primary);
 
     if (m_ShowChevron) {
-        const float tier = static_cast<float>(IconMetrics::CompactGlyphTierPx());
+        const float tier = static_cast<float>(16u);
         const float chevronX = m_Geometry.x + m_Geometry.width - hPad - tier;
-        IconPainter::DrawCompactIcon(
-            context,
-            Icons::ChevronDownName,
-            IconMetrics::CompactGlyphBand(m_Geometry, chevronX),
-            ResolveIconColor(IconColorRole::Secondary, m_HoverAnim, m_PressAnim));
+        IconPainter::Draw(
+            context, WindIcons::ChevronDown16, IconMetrics::CompactGlyphBand(m_Geometry, chevronX));
     }
 }
 
@@ -220,9 +219,9 @@ ContentBrowserToolbarControls::ContentBrowserToolbarControls(ToolbarMode mode)
 
 void ContentBrowserToolbarControls::InitializeChildren() {
     if (m_Mode == ToolbarMode::Full) {
-        m_CreateBtn = MakePrimaryAction("Add", Icons::PlusName);
-        m_ImportBtn = MakeSecondaryAction("Import", "import");
-        m_SaveBtn = std::make_shared<ToolbarLabeledButton>("Save All", Icons::SaveAllName, false, ToolbarLabeledButton::Variant::Standard, ThemeMetric(MetricToken::Space3));
+        m_CreateBtn = MakePrimaryAction("Add", kWindIconNone);
+        m_ImportBtn = MakeSecondaryAction("Import", kWindIconNone);
+        m_SaveBtn = std::make_shared<ToolbarLabeledButton>("Save All", kWindIconNone, false, ToolbarLabeledButton::Variant::Standard, ThemeMetric(MetricToken::Space3));
 
         m_CreateBtn->SetFlexShrink(0.0f);
         m_ImportBtn->SetFlexShrink(0.0f);
@@ -233,8 +232,8 @@ void ContentBrowserToolbarControls::InitializeChildren() {
         AddChild(m_SaveBtn);
     } else {
         // Asset pane toolbar: add, import, search, save all, filter icon
-        m_CreateBtn = MakePrimaryAction("Add", Icons::PlusName);
-        m_ImportBtn = MakeSecondaryAction("Import", "import");
+        m_CreateBtn = MakePrimaryAction("Add", kWindIconNone);
+        m_ImportBtn = MakeSecondaryAction("Import", kWindIconNone);
         m_SearchBox = std::make_shared<SearchBox>();
         m_SearchBox->SetPlaceholder("Search Assets...");
         m_SearchBox->SetFlexGrow(1.0f);
@@ -242,8 +241,8 @@ void ContentBrowserToolbarControls::InitializeChildren() {
         m_SearchBox->SetMinWidth(100.0f);
         m_SearchBox->SetMaxWidth(320.0f);
 
-        m_SaveBtn = std::make_shared<ToolbarLabeledButton>("Save All", Icons::SaveAllName, false, ToolbarLabeledButton::Variant::Standard, ThemeMetric(MetricToken::Space3));
-        m_FilterIconBtn = std::make_shared<ToolbarIconToggle>(Icons::FilterName, "Filter");
+        m_SaveBtn = std::make_shared<ToolbarLabeledButton>("Save All", kWindIconNone, false, ToolbarLabeledButton::Variant::Standard, ThemeMetric(MetricToken::Space3));
+        m_FilterIconBtn = std::make_shared<ToolbarIconToggle>(WindIcons::ListFilter16, "Filter");
 
         m_CreateBtn->SetFlexShrink(0.0f);
         m_ImportBtn->SetFlexShrink(0.0f);

@@ -14,6 +14,7 @@
 #include "Util/PathUtils.h"
 
 #include "KindUI/Core/EventSystem.h"
+#include "KindUI/Core/WindIcon.h"
 #include "KindUI/Core/Icon.h"
 #include "KindUI/Core/PaintContext.h"
 #include "KindUI/Core/Widgets/DesignSystemControls.h"
@@ -385,10 +386,10 @@ void LauncherShell::RebuildCreateWizard() {
     footer->AddChild(footerLeft);
     footer->AddChild(std::make_shared<Spacer>());
 
-    auto cancel = MakeSecondaryAction("Cancel", "");
+    auto cancel = MakeSecondaryAction("Cancel");
     cancel->SetOnClicked([this] { CloseModal(); });
     footer->AddChild(cancel);
-    auto create = MakePrimaryAction("Create Project", Icons::PlusName);
+    auto create = MakePrimaryAction("Create Project", kWindIconNone);
     create->SetOnClicked([this] { CommitCreateProject(); });
     footer->AddChild(create);
     root->AddChild(footer);

@@ -7,9 +7,9 @@
 #include "KindUI/Tokens/DesignToken.h"
 #include "KindUI/Theming/ThemeAccess.h"
 #include "KindUI/Rendering/IconMetrics.h"
-#include "KindUI/Theming/ThemeAccess.h"
 #include "KindUI/Core/ControlChrome.h"
 #include "KindUI/Input/InputEvents.h"
+#include "KindUI/Core/WindIcon.h"
 #include "KindUI/Core/Icon.h"
 #include <algorithm>
 
@@ -21,7 +21,8 @@ namespace we::editor::shell {
 using ::we::runtime::kindui::MouseButton;
 using ::we::runtime::kindui::KeyEventType;
 using ::we::runtime::kindui::IconPainter;
-namespace Icons = ::we::runtime::kindui::Icons;
+namespace WindIcons = ::we::runtime::kindui::WindIcons;
+using ::we::runtime::kindui::kWindIconNone;
 namespace IconMetrics = ::we::runtime::kindui::IconMetrics;
 namespace ControlChrome = ::we::runtime::kindui::ControlChrome;
 using ::we::runtime::kindui::KeyCodeToChar;
@@ -56,22 +57,16 @@ void CommandInput::Paint(PaintContext& context) {
     state.hoverAnim = IsHovered() ? 1.0f : 0.0f;
 
     if (m_FlatChrome) {
-        if (state.focused) {
-            ControlChrome::PaintInputFrame(context, m_Geometry, state);
-        } else if (state.hoverAnim > 0.01f) {
-            const Color base = ThemeColor(ColorToken::StatusBarBackground);
-            const Color hover = ThemeColor(ColorToken::HoverBackground);
-            context.DrawRect(m_Geometry, Color::Lerp(base, hover, state.hoverAnim * 0.18f));
-        }
+        ControlChrome::PaintStatusBarCommandField(context, m_Geometry, state);
     } else {
         ControlChrome::PaintInputFrame(context, m_Geometry, state);
     }
 
-    const float iconSize = static_cast<float>(IconMetrics::NativeIconTierPx(ThemeMetric(MetricToken::IconSizeSearch)));
+    const float iconSize = 16.0f;
     const float padH = ThemeMetric(MetricToken::Space2);
     const float iconX = m_Geometry.x + padH;
     const float iconY = m_Geometry.y + (m_Geometry.height - iconSize) / 2.0f;
-    IconPainter::DrawIcon(context, Icons::TerminalName, Rect{ iconX, iconY, iconSize, iconSize }, ThemeColor(ColorToken::IconSecondary));
+    IconPainter::Draw(context, kWindIconNone, Rect{ iconX, iconY, iconSize, iconSize });
 
     const float textX = iconX + iconSize + ThemeMetric(MetricToken::Space1);
     const float fontSize = ThemeMetric(MetricToken::TextSizeSmall);
@@ -94,7 +89,7 @@ void CommandInput::OnMouseDown(const MouseEvent& event) {
         return;
     }
 
-    const float iconSize = static_cast<float>(IconMetrics::NativeIconTierPx(ThemeMetric(MetricToken::IconSizeSearch)));
+    const float iconSize = 16.0f;
     const float padH = ThemeMetric(MetricToken::Space2);
     const float textX = m_Geometry.x + padH + iconSize + ThemeMetric(MetricToken::Space1);
     const float clickX = std::max(0.0f, event.position.x - textX);

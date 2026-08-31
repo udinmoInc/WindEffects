@@ -3,8 +3,10 @@
 #include "ToolsPanel/Export.h"
 
 #include "KindUI/Core/Widget.h"
-#include <string>
+#include "KindUI/Core/WindIcon.h"
 
+#include <memory>
+#include <string>
 namespace we::programs::editor {
 
 /// Compact toolbar control: shows active editor mode and opens a registry-driven mode menu.
@@ -34,7 +36,7 @@ private:
     bool m_Pressed = false;
     float m_HoverAnim = 0.0f;
     std::string m_Label;
-    std::string m_IconName = "cursor";
+    we::runtime::kindui::WindIconRef m_Icon = we::runtime::kindui::kWindIconNone;
 };
 
 } // namespace we::programs::editor

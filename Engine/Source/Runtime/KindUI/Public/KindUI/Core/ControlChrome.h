@@ -128,6 +128,12 @@ KINDUI_API void PaintInputFrame(
     const Rect& rect,
     const InteractionState& state);
 
+/// Recessed console field integrated into the editor status bar (UE footer style).
+KINDUI_API void PaintStatusBarCommandField(
+    PaintContext& context,
+    const Rect& rect,
+    const InteractionState& state);
+
 KINDUI_API void PaintSearchInputFrame(
     PaintContext& context,
     const Rect& rect,

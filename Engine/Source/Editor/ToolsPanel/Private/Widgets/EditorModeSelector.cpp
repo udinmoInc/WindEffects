@@ -5,6 +5,7 @@
 #include "KindUI/Core/PaintContext.h"
 #include "KindUI/Tokens/DesignToken.h"
 #include "KindUI/Theming/StyleRole.h"
+#include "KindUI/Core/WindIcon.h"
 #include "KindUI/Core/Icon.h"
 #include "KindUI/Core/ToolbarButtonChrome.h"
 #include "KindUI/Core/Animator.h"
@@ -21,7 +22,8 @@ namespace we::programs::editor {
 using ::we::runtime::kindui::DPIContext;
 using ::we::runtime::kindui::IconPainter;
 using ::we::runtime::kindui::Animator;
-namespace Icons = ::we::runtime::kindui::Icons;
+namespace WindIcons = ::we::runtime::kindui::WindIcons;
+using ::we::runtime::kindui::kWindIconNone;
 namespace IconMetrics = ::we::runtime::kindui::IconMetrics;
 
 
@@ -67,7 +69,7 @@ public:
         const float padY = ThemeMetric(MetricToken::Space1);
         const float padX = ThemeMetric(MetricToken::Space2);
         const float textSize = ThemeMetric(MetricToken::TextSizeSmall);
-        const float iconSize = static_cast<float>(we::runtime::kindui::IconMetrics::NativeIconTierPx(ThemeMetric(MetricToken::IconSizeTree)));
+        const float iconSize = 16.0f;
 
         float y = m_Geometry.y + padY;
         for (size_t i = 0; i < m_Items.size(); ++i) {
@@ -77,16 +79,19 @@ public:
                 context.DrawRect(row, ThemeColor(ColorToken::HoverBackground));
             }
 
-            we::runtime::kindui::IconPainter::DrawIcon(context, item->shortcut,
-                Rect{ row.x + padX, row.y + (rowH - iconSize) * 0.5f, iconSize, iconSize }, ThemeColor(ColorToken::TextPrimary));
+            if (item->icon.IsValid()) {
+                we::runtime::kindui::IconPainter::Draw(
+                    context, item->icon,
+                    Rect{ row.x + padX, row.y + (rowH - iconSize) * 0.5f, iconSize, iconSize });
+            }
 
             context.DrawText(item->label, Point{ row.x + padX + iconSize + ThemeMetric(MetricToken::Space1), row.y + (rowH - textSize) * 0.5f },
                 ThemeColor(ColorToken::TextPrimary), textSize);
 
             if (item->checked) {
-                we::runtime::kindui::IconPainter::DrawIcon(context, we::runtime::kindui::Icons::CheckName,
-                    Rect{ row.x + row.width - padX - iconSize, row.y + (rowH - iconSize) * 0.5f, iconSize, iconSize },
-                    ThemeColor(ColorToken::AccentPrimary));
+                we::runtime::kindui::IconPainter::Draw(
+                    context, we::runtime::kindui::WindIcons::Check16,
+                    Rect{ row.x + row.width - padX - iconSize, row.y + (rowH - iconSize) * 0.5f, iconSize, iconSize });
             }
 
             y += rowH;
@@ -152,13 +157,10 @@ void EditorModeSelector::Refresh() {
     const auto& modeId = EditorModeController::Get().GetActiveModeId();
     if (const auto* mode = EditorToolsRegistry::Get().FindMode(modeId)) {
         m_Label = mode->label;
-        m_IconName = mode->iconName;
-        if (!we::runtime::kindui::Icons::IsKnownIcon(m_IconName)) {
-            m_IconName = we::runtime::kindui::Icons::CursorName;
-        }
+        m_Icon = mode->icon;
     } else {
         m_Label = "Select";
-        m_IconName = we::runtime::kindui::Icons::CursorName;
+        m_Icon = we::runtime::kindui::kWindIconNone;
     }
 }
 
@@ -168,7 +170,7 @@ Size EditorModeSelector::Measure(const Size& availableSize) {
     const float padH = ToolbarButtonChrome::HorizontalPad(uiScale);
     const float iconSz = ToolbarButtonChrome::IconSize(uiScale);
     const float iconGap = ToolbarButtonChrome::IconGapPx(uiScale);
-    const float chevW = static_cast<float>(we::runtime::kindui::IconMetrics::CompactGlyphTierPx());
+    const float chevW = static_cast<float>(16u);
     const float controlH = ToolbarButtonChrome::RowContentHeight(uiScale);
     m_DesiredSize = Size{
         padH + iconSz + iconGap + chevW + padH,
@@ -194,7 +196,7 @@ void EditorModeSelector::Paint(PaintContext& context) {
     const float padH = ToolbarButtonChrome::HorizontalPad(uiScale);
     const float iconSize = ToolbarButtonChrome::IconSize(uiScale);
     const float iconGap = ToolbarButtonChrome::IconGapPx(uiScale);
-    const float chevSize = static_cast<float>(we::runtime::kindui::IconMetrics::CompactGlyphTierPx());
+    const float chevSize = static_cast<float>(16u);
     Color iconColor = ToolbarButtonChrome::ResolveIconColor(
         m_HoverAnim, pressStrength, false);
 
@@ -204,16 +206,11 @@ void EditorModeSelector::Paint(PaintContext& context) {
         (std::max)(iconSize, m_Geometry.width - padH * 2.0f - iconGap - chevSize),
         m_Geometry.height
     };
-    we::runtime::kindui::IconPainter::DrawIcon(context, m_IconName,
-        ToolbarButtonChrome::PlaceIconInControl(iconBand, iconSize),
-        iconColor);
+    we::runtime::kindui::IconPainter::Draw(context, m_Icon, ToolbarButtonChrome::PlaceIconInControl(iconBand, iconSize));
 
     const float chevX = m_Geometry.x + m_Geometry.width - padH - chevSize;
-    we::runtime::kindui::IconPainter::DrawCompactIcon(
-        context,
-        we::runtime::kindui::Icons::ChevronDownName,
-        we::runtime::kindui::IconMetrics::CompactGlyphBand(m_Geometry, chevX),
-        iconColor);
+    we::runtime::kindui::IconPainter::Draw(
+        context, we::runtime::kindui::WindIcons::ChevronDown16, we::runtime::kindui::IconMetrics::CompactGlyphBand(m_Geometry, chevX));
 }
 
 void EditorModeSelector::OnMouseDown(const MouseEvent& event) {
@@ -239,7 +236,7 @@ void EditorModeSelector::OpenModeMenu() {
     for (const auto* mode : EditorToolsRegistry::Get().GetModesSorted()) {
         auto item = std::make_shared<MenuItem>();
         item->label = mode->label;
-        item->shortcut = mode->iconName;
+        item->icon = mode->icon;
         item->checked = mode->id == activeId;
         const std::string modeId = mode->id;
         item->onClick = [modeId]() {

@@ -4,6 +4,7 @@
 #include "KindUI/Core/Animator.h"
 #include "KindUI/Core/ControlChrome.h"
 #include "KindUI/Core/EventSystem.h"
+#include "KindUI/Core/WindIcon.h"
 #include "KindUI/Core/Icon.h"
 #include "KindUI/Core/PaintContext.h"
 #include "KindUI/Core/TextMetrics.h"

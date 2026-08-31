@@ -2,9 +2,13 @@
 
 #include "Icons/Export.h"
 
+#include <algorithm>
+#include <array>
 #include <cstdint>
 #include <filesystem>
+#include <span>
 #include <string>
+#include <string_view>
 #include <vector>
 
 namespace we::runtime::icons {
@@ -26,6 +30,42 @@ ICONS_API void FreeAtlasTiers(std::uint32_t* tiers);
 /// Parse `ui_Atlas_24` / `ui_Atlas_24.atlas` / `ui_Atlas_101.weiconatlas` → 24 / 101.
 /// Returns 0 when the name is not a recognized atlas stem.
 [[nodiscard]] ICONS_API std::uint32_t ParseAtlasTierFromStem(std::string_view stem);
+
+/// Square UI glyph tiers (kindicons + toolbar/tree/search). Folder-only packs (13/19/101/202) are excluded.
+inline constexpr std::array<std::uint32_t, 7> kEssentialUiAtlasTiers = {12, 16, 20, 24, 32, 48, 64};
+
+[[nodiscard]] constexpr bool IsEssentialUiAtlasTier(const std::uint32_t tierPx)
+{
+    for (const std::uint32_t essential : kEssentialUiAtlasTiers) {
+        if (tierPx == essential) {
+            return true;
+        }
+    }
+    return false;
+}
+
+/// Intersect discovered tiers with the essential UI allowlist (sorted ascending).
+[[nodiscard]] inline std::vector<std::uint32_t> FilterEssentialUiAtlasTiers(const std::span<const std::uint32_t> tiers)
+{
+    std::vector<std::uint32_t> filtered;
+    filtered.reserve(kEssentialUiAtlasTiers.size());
+    for (const std::uint32_t essential : kEssentialUiAtlasTiers) {
+        if (std::find(tiers.begin(), tiers.end(), essential) != tiers.end()) {
+            filtered.push_back(essential);
+        }
+    }
+    if (!filtered.empty()) {
+        return filtered;
+    }
+    filtered.assign(kEssentialUiAtlasTiers.begin(), kEssentialUiAtlasTiers.end());
+    return filtered;
+}
+
+/// Folder glyphs may snap to dedicated folder-pack tiers (13/19/101/202).
+[[nodiscard]] inline bool UsesFolderPackTiers(const std::string_view runtimeIconName)
+{
+    return runtimeIconName == "folder" || runtimeIconName == "openfolder";
+}
 
 enum class IconAtlasFormat : uint8_t {
     Rgba8 = 0,

@@ -1,5 +1,7 @@
 #pragma once
 
+#include "KindUI/Core/WindIcon.h"
+
 #include <string>
 #include <vector>
 
@@ -21,7 +23,7 @@ struct PlaceActorsItemData {
     std::string categoryId;
     std::string categoryLabel;
     std::string label;
-    std::string iconName;
+    we::runtime::kindui::WindIconRef icon = we::runtime::kindui::kWindIconNone;
     std::string description;
     std::vector<std::string> tags;
     std::vector<std::string> aliases;
@@ -32,7 +34,7 @@ struct PlaceActorsItemData {
 struct PlaceActorsCategoryData {
     std::string id;
     std::string label;
-    std::string iconName;
+    we::runtime::kindui::WindIconRef icon = we::runtime::kindui::kWindIconNone;
     int sortOrder = 0;
     bool defaultExpanded = true;
     std::vector<PlaceActorsItemData> items;

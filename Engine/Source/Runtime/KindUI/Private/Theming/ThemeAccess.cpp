@@ -126,11 +126,10 @@ Color ResolveIconColor(
     }
 
     Color base = ResolveColor(ColorToken::IconSecondary);
-    const float emphasis = std::max(hoverAnim, pressStrength);
-    if (emphasis > 0.01f) {
-        Color bright = ResolveColor(ColorToken::IconPrimary);
-        bright = Color::Lerp(bright, ResolveColor(ColorToken::IconHover), emphasis);
-        base = Color::Lerp(base, bright, emphasis);
+    if (pressStrength > 0.01f) {
+        base = Color::Lerp(base, ResolveColor(ColorToken::IconActive), pressStrength);
+    } else if (hoverAnim > 0.01f) {
+        base = Color::Lerp(base, ResolveColor(ColorToken::IconHover), hoverAnim);
     }
     return base;
 }

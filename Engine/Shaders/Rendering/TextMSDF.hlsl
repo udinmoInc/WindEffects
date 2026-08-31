@@ -71,6 +71,8 @@ float4 PSMain(VSOutput input) : SV_Target
     // sdfParams.z carries the atlas pixel range; push constant is the batch fallback.
     float pxRange = max(input.sdfParams.z, max(pc.uPixelRange, 1.0));
     float spr = screenPxRange(input.uv, pxRange, pc.uAtlasSize);
+    // Cap AA spread so small text stays crisp without halos or blur.
+    spr = clamp(spr, 1.0, 2.75);
 
     // Center the threshold at 0.5 (MSDF mid-edge). spr scales AA to ~1 screen pixel.
     float opacity = saturate((sd - 0.5) * spr + 0.5);

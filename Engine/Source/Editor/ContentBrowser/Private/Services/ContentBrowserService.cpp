@@ -10,7 +10,8 @@
 
 namespace we::editor::contentbrowser {
 using ::we::runtime::kindui::UIRepaintGate;
-namespace Icons = ::we::runtime::kindui::Icons;
+namespace WindIcons = ::we::runtime::kindui::WindIcons;
+using ::we::runtime::kindui::kWindIconNone;
 
 
 ContentBrowserService& ContentBrowserService::Get() {
@@ -72,7 +73,7 @@ void ContentBrowserService::RefreshBrowserModel(const std::shared_ptr<::we::edit
         item.path = asset->virtualPath;
         item.isFolder = asset->isFolder;
         item.isFavorite = asset->isFavorite;
-        item.iconName = asset->isFolder ? we::runtime::kindui::Icons::FolderName : AssetTypeToKey(asset->type);
+        item.icon = we::runtime::kindui::kWindIconNone;
         if (!asset->isFolder) {
             item.iconTexture = m_ThumbnailManager.GetCachedTexture(asset->id);
             item.thumbnailRequested = item.iconTexture != we::rhi::RHIDescriptorSetHandle::Invalid;

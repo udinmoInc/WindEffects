@@ -1,15 +1,17 @@
 #pragma once
 
 #include "KindUI/Export.h"
+
+#include "KindUI/Core/Geometry.h"
+#include "KindUI/Core/WindIcon.h"
+#include "KindUI/Rendering/Icons/IconManager.h"
+
 #include "RHI/IRHI.h"
 #include "RHI/Types.h"
 
 #include <memory>
 #include <unordered_map>
 #include <vector>
-#include "KindUI/Core/Geometry.h"
-#include "KindUI/Core/Icon.h"
-#include "KindUI/Rendering/Icons/IconManager.h"
 
 namespace we::runtime::kindui {
 
@@ -34,28 +36,20 @@ public:
 
     void SetIconManager(IconManager* iconManager) { m_IconManager = iconManager; }
 
-    [[nodiscard]] IconDrawInfo GetLucideIconDrawInfo(
-        const std::string& iconName,
-        uint32_t size,
-        const Color& color,
-        float strokeWidth = 0.0f) const;
+    [[nodiscard]] IconDrawInfo GetIconDrawInfo(WindIconRef icon) const;
 
-    we::rhi::RHIDescriptorSetHandle GetLucideIcon(const std::string& iconName, uint32_t size, const Color& color, float strokeWidth = 0.0f);
-    we::rhi::RHIDescriptorSetHandle GetIcon(const std::string& iconName, uint32_t size);
-    we::rhi::RHIDescriptorSetHandle CreateTextureFromBitmap(const std::vector<uint8_t>& bitmap, uint32_t width, uint32_t height);
+    [[nodiscard]] we::rhi::RHIDescriptorSetHandle CreateTextureFromBitmap(
+        const std::vector<uint8_t>& bitmap,
+        uint32_t width,
+        uint32_t height);
 
     void ClearCache();
 
 private:
-    bool CreateTexture(const std::vector<uint8_t>& bitmap, uint32_t width, uint32_t height, IconTexture& outTexture);
-    void DestroyTexture(IconTexture& texture);
-
     we::rhi::IRHIDevice* m_Device = nullptr;
     UiGpuUpload* m_GpuUpload = nullptr;
     IconManager* m_IconManager = nullptr;
-
     std::unordered_map<std::string, IconTexture> m_ThumbnailCache;
-    Color m_DefaultColor = Color::White();
 };
 
 } // namespace we::runtime::kindui

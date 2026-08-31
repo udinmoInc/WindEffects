@@ -1,6 +1,7 @@
 #include "WindEffects/Editor/UI/Widgets/Panel.h"
 #include "WindEffects/Editor/UI/Panel/PanelChrome.h"
 #include "KindUI/Core/PaintContext.h"
+#include "KindUI/Core/WindIcon.h"
 #include "KindUI/Core/Icon.h"
 #include "KindUI/Core/DPIContext.h"
 #include "KindUI/Tokens/DesignToken.h"
@@ -164,7 +165,7 @@ void Panel::Paint(PaintContext& context) {
         chromeActions.reserve(m_HeaderActions.size());
         for (size_t i = 0; i < m_HeaderActions.size(); ++i) {
             Chrome::FloatingHeaderAction action{};
-            action.iconName = m_HeaderActions[i].iconName;
+            action.icon = m_HeaderActions[i].icon;
             action.hovered = static_cast<int>(i) == m_HoveredActionIndex;
             action.pressed = static_cast<int>(i) == m_PressedActionIndex;
             chromeActions.push_back(action);
@@ -174,7 +175,7 @@ void Panel::Paint(PaintContext& context) {
             context,
             m_HeaderRect,
             m_Title,
-            m_TabIconName,
+            m_TabIcon,
             HasTabBrand(),
             m_TabBrandDescriptor,
             m_TabBrandLogicalSize,
@@ -272,9 +273,9 @@ void Panel::SetExpanded(bool expanded) {
     Arrange(m_Geometry);
 }
 
-void Panel::AddHeaderAction(const std::string& iconName, std::function<void()> onClick) {
+void Panel::AddHeaderAction(we::runtime::kindui::WindIconRef icon, std::function<void()> onClick) {
     HeaderAction action;
-    action.iconName = iconName;
+    action.icon = icon;
     action.onClick = onClick;
     m_HeaderActions.push_back(action);
     CalculateHeaderGeometries();

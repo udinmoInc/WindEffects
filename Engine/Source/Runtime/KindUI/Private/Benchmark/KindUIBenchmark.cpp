@@ -1,5 +1,6 @@
 #include "KindUI/Benchmark/KindUIBenchmark.h"
 
+#include "KindUI/Core/WindIcon.h"
 #include "KindUI/Core/Icon.h"
 #include "KindUI/Core/PaintContext.h"
 #include "KindUI/Core/UIRepaintGate.h"
@@ -23,9 +24,9 @@ std::shared_ptr<Column> BuildEditorLikeTree() {
     root->Gap(ResolveMetric(MetricToken::Space2));
 
     auto toolbar = std::make_shared<PanelToolbarRow>("Search Assets...");
-    toolbar->AddIconButton(Icons::FilterName, []() {});
-    toolbar->AddIconButton(Icons::PlusName, []() {});
-    toolbar->AddIconButton(Icons::RefreshName, []() {});
+    toolbar->AddIconButton(WindIcons::ListFilter16, []() {});
+    toolbar->AddIconButton(kWindIconNone, []() {});
+    toolbar->AddIconButton(WindIcons::Refresh16, []() {});
     toolbar->Finalize();
     root->AddChild(toolbar);
 

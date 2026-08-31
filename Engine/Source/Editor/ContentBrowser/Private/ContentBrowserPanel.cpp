@@ -12,6 +12,7 @@
 #include "KindUI/Layout/Splitter.h"
 #include "KindUI/Theming/ThemeAccess.h"
 #include "KindUI/Tokens/DesignToken.h"
+#include "KindUI/Core/WindIcon.h"
 #include "KindUI/Core/Icon.h"
 #include "KindUI/Core/DPIContext.h"
 #include "Core/Localization.h"
@@ -25,7 +26,8 @@
 #include <sstream>
 
 namespace we::programs::editor {
-namespace Icons = ::we::runtime::kindui::Icons;
+namespace WindIcons = ::we::runtime::kindui::WindIcons;
+using ::we::runtime::kindui::kWindIconNone;
 
 using namespace ::we::runtime::kindui;
 using namespace ::we::runtime::kindui;
@@ -42,12 +44,12 @@ using ::we::editor::contentbrowser::ContentFilter;
 using ::we::editor::contentbrowser::ContentViewMode;
 
 std::shared_ptr<::we::editor::contentbrowser::TreeNode> MakeSection(const std::string& id, const std::string& label,
-    const std::string& icon, bool expanded = false)
+    we::runtime::kindui::WindIconRef icon, bool expanded = false)
 {
     auto node = std::make_shared<::we::editor::contentbrowser::TreeNode>();
     node->id = id;
     node->label = label;
-    node->iconName = icon;
+    node->icon = icon;
     node->expanded = expanded;
     return node;
 }
@@ -56,7 +58,7 @@ std::shared_ptr<::we::editor::contentbrowser::TreeNode> BuildFolderNode(const As
     auto node = std::make_shared<::we::editor::contentbrowser::TreeNode>();
     node->id = folder->id;
     node->label = folder->name;
-    node->iconName = we::runtime::kindui::Icons::FolderName;
+    node->icon = we::runtime::kindui::kWindIconNone;
     node->expanded = folder->virtualPath == "/Game";
 
     for (const auto* child : ContentAssetRegistry::Get().GetChildren(folder->virtualPath)) {
@@ -71,12 +73,12 @@ void RefreshFolderTree(const std::shared_ptr<::we::editor::contentbrowser::TreeV
     root->label = "Content";
     root->expanded = true;
 
-    root->children.push_back(MakeSection("__favorites__", "Favorites", "check"));
-    root->children.push_back(MakeSection("__collections__", "Collections", "layers"));
-    root->children.push_back(MakeSection("__plugins__", "Plugins", "build"));
-    root->children.push_back(MakeSection("__engine__", "Engine Content", "package", false));
+    root->children.push_back(MakeSection("__favorites__", "Favorites", WindIcons::Check16));
+    root->children.push_back(MakeSection("__collections__", "Collections", kWindIconNone));
+    root->children.push_back(MakeSection("__plugins__", "Plugins", kWindIconNone));
+    root->children.push_back(MakeSection("__engine__", "Engine Content", kWindIconNone, false));
 
-    auto project = MakeSection("__project__", "Project Content", "open", true);
+    auto project = MakeSection("__project__", "Project Content", kWindIconNone, true);
     if (const auto* game = ContentAssetRegistry::Get().FindByVirtualPath("/Game")) {
         project->children.push_back(BuildFolderNode(game));
     }
@@ -208,7 +210,7 @@ std::shared_ptr<::we::editor::panels::Panel> CreateContentBrowserPanel() {
     contentSplitter->SetFlexShrink(1.0f);
 
     auto panel = PanelBuilder(title)
-        .TabIcon(Icons::ContentBrowserName)
+        .TabIcon(kWindIconNone)
         .WithCloseButton([]() {
             if (EditorWorkspaceController::Get().IsContentBrowserExpanded()) {
                 EditorWorkspaceController::Get().ToggleContentBrowserExpanded();

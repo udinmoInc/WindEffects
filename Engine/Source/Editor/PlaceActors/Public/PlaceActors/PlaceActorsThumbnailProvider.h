@@ -2,6 +2,7 @@
 
 #include "PlaceActors/Export.h"
 #include "PlaceActors/PlaceActorsTypes.h"
+#include "KindUI/Core/WindIcon.h"
 #include "KindUI/Core/Geometry.h"
 #include "KindUI/Core/PaintContext.h"
 #include <string>
@@ -17,7 +18,7 @@ enum class PlaceActorsThumbnailKind {
 
 struct PlaceActorsThumbnail {
     PlaceActorsThumbnailKind kind = PlaceActorsThumbnailKind::Placeholder;
-    std::string atlasIconName;
+    we::runtime::kindui::WindIconRef windIcon = we::runtime::kindui::kWindIconNone;
     void* cachedTexture = nullptr; // reserved for future generated thumbnails
 };
 

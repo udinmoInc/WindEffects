@@ -1,8 +1,5 @@
 #include "KindUI/Rendering/IconRenderer.h"
 
-#include "KindUI/Rendering/IconMetrics.h"
-#include "Core/Logger.h"
-
 namespace we::runtime::kindui {
 
 IconRenderer::IconRenderer() = default;
@@ -23,39 +20,11 @@ void IconRenderer::Shutdown() {
     m_GpuUpload = nullptr;
 }
 
-IconDrawInfo IconRenderer::GetLucideIconDrawInfo(
-    const std::string& iconName,
-    const uint32_t size,
-    const Color& color,
-    const float strokeWidth) const {
-    (void)strokeWidth;
+IconDrawInfo IconRenderer::GetIconDrawInfo(WindIconRef icon) const {
     if (!m_IconManager) {
         return {};
     }
-    return m_IconManager->ResolveIcon(iconName, size, color);
-}
-
-we::rhi::RHIDescriptorSetHandle IconRenderer::GetLucideIcon(
-    const std::string& iconName,
-    const uint32_t size,
-    const Color& color,
-    const float strokeWidth) {
-    const IconDrawInfo info = GetLucideIconDrawInfo(iconName, size, color, strokeWidth);
-    return info.valid ? info.descriptorSet : we::rhi::RHIDescriptorSetHandle::Invalid;
-}
-
-we::rhi::RHIDescriptorSetHandle IconRenderer::GetIcon(const std::string& iconName, const uint32_t size) {
-    if (!m_IconManager) {
-        return we::rhi::RHIDescriptorSetHandle::Invalid;
-    }
-
-    const uint32_t tierPx = IconMetrics::SnapToAtlasTier(size);
-    if (iconName.find('/') != std::string::npos || iconName.find('\\') != std::string::npos) {
-        const IconDrawInfo info = m_IconManager->ResolvePathIcon(iconName, tierPx, m_DefaultColor);
-        return info.valid ? info.descriptorSet : we::rhi::RHIDescriptorSetHandle::Invalid;
-    }
-
-    return GetLucideIcon(iconName, tierPx, m_DefaultColor);
+    return m_IconManager->ResolveIcon(icon);
 }
 
 we::rhi::RHIDescriptorSetHandle IconRenderer::CreateTextureFromBitmap(
@@ -71,15 +40,5 @@ we::rhi::RHIDescriptorSetHandle IconRenderer::CreateTextureFromBitmap(
 void IconRenderer::ClearCache() {
     m_ThumbnailCache.clear();
 }
-
-bool IconRenderer::CreateTexture(
-    const std::vector<uint8_t>&,
-    const uint32_t,
-    const uint32_t,
-    IconTexture&) {
-    return false;
-}
-
-void IconRenderer::DestroyTexture(IconTexture&) {}
 
 } // namespace we::runtime::kindui

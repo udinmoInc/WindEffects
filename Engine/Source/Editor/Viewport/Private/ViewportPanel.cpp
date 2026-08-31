@@ -8,13 +8,14 @@ using ::we::editor::panels::Panel;
 using ::we::editor::panels::PanelBuilder;
 using ::we::editor::docking::DockZone;
 using ::we::runtime::kindui::Label;
-namespace Icons = ::we::runtime::kindui::Icons;
+namespace WindIcons = ::we::runtime::kindui::WindIcons;
+using ::we::runtime::kindui::kWindIconNone;
 
 std::shared_ptr<Panel> CreateViewportPanel() {
     auto toolbar = CreateViewportToolbar();
 
     return PanelBuilder("Viewport")
-        .TabIcon(Icons::PerspectiveName)
+        .TabIcon(we::runtime::kindui::kWindIconNone)
         .Transparent()
         .FloatingToolbar()
         .WithCloseButton()

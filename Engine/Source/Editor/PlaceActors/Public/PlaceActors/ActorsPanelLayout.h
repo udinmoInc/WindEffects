@@ -19,7 +19,7 @@ inline float ContentPadV() {
 }
 
 inline float ChevronSize() {
-    return static_cast<float>(we::runtime::kindui::IconMetrics::CompactGlyphTierPx());
+    return static_cast<float>(16u);
 }
 
 inline float ActorRowHeight() {
@@ -33,8 +33,7 @@ inline float CategoryHeight() {
 }
 
 inline float IconSize() {
-    return static_cast<float>(we::runtime::kindui::IconMetrics::NativeIconTierPx(
-        we::runtime::kindui::ResolveMetric(MetricToken::IconSizeTree)));
+    return 16.0f;
 }
 
 inline float RowRadius() {

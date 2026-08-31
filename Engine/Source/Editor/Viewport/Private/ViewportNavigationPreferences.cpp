@@ -9,13 +9,15 @@
 #include "WindEffects/Editor/UI/Widgets/Panel.h"
 #include "KindUI/Layout/Flex.h"
 #include "Widgets/ToolButton.h"
+#include "KindUI/Core/WindIcon.h"
 #include "KindUI/Core/Icon.h"
 
 #include <memory>
 #include <string>
 
 namespace we::programs::editor {
-namespace Icons = ::we::runtime::kindui::Icons;
+namespace WindIcons = ::we::runtime::kindui::WindIcons;
+using ::we::runtime::kindui::kWindIconNone;
 using ::we::editor::viewport::ViewportNavigationSettingsStore;
 using ::we::editor::viewport::NavigationPreset;
 
@@ -35,7 +37,7 @@ std::shared_ptr<we::runtime::kindui::Column> BuildViewportNavigationPreferencesC
                             float maxValue,
                             auto onChanged) {
         auto row = std::make_shared<::we::editor::toolbar::ToolButton>(
-            we::runtime::kindui::Icons::SettingsName,
+            we::runtime::kindui::kWindIconNone,
             label + ": " + std::to_string(value).substr(0, 5),
             [value, minValue, maxValue, onChanged, label]() {
                 auto popup = std::make_shared<ViewportSliderPopup>(
@@ -98,7 +100,7 @@ std::shared_ptr<we::runtime::kindui::Column> BuildViewportNavigationPreferencesC
     });
 
     auto presetBtn = std::make_shared<::we::editor::toolbar::ToolButton>(
-        we::runtime::kindui::Icons::SettingsName,
+        we::runtime::kindui::kWindIconNone,
         "Preset: " + ViewportNavigationSettingsStore::PresetToString(settings.preset),
         []() {
             auto& navStore = ViewportNavigationSettingsStore::Get();
@@ -120,7 +122,7 @@ std::shared_ptr<we::runtime::kindui::Column> BuildViewportNavigationPreferencesC
     content->AddChild(presetBtn);
 
     auto invertX = std::make_shared<::we::editor::toolbar::ToolButton>(
-        we::runtime::kindui::Icons::SettingsName,
+        we::runtime::kindui::kWindIconNone,
         std::string("Invert X: ") + (settings.invertX ? "On" : "Off"),
         []() {
             auto& navStore = ViewportNavigationSettingsStore::Get();
@@ -133,7 +135,7 @@ std::shared_ptr<we::runtime::kindui::Column> BuildViewportNavigationPreferencesC
     content->AddChild(invertX);
 
     auto invertY = std::make_shared<::we::editor::toolbar::ToolButton>(
-        we::runtime::kindui::Icons::SettingsName,
+        we::runtime::kindui::kWindIconNone,
         std::string("Invert Y: ") + (settings.invertY ? "On" : "Off"),
         []() {
             auto& navStore = ViewportNavigationSettingsStore::Get();
@@ -146,7 +148,7 @@ std::shared_ptr<we::runtime::kindui::Column> BuildViewportNavigationPreferencesC
     content->AddChild(invertY);
 
     auto orbitSelection = std::make_shared<::we::editor::toolbar::ToolButton>(
-        we::runtime::kindui::Icons::SettingsName,
+        we::runtime::kindui::kWindIconNone,
         std::string("Orbit Around Selection: ") + (settings.orbitAroundSelection ? "On" : "Off"),
         []() {
             auto& navStore = ViewportNavigationSettingsStore::Get();
@@ -157,7 +159,7 @@ std::shared_ptr<we::runtime::kindui::Column> BuildViewportNavigationPreferencesC
     content->AddChild(orbitSelection);
 
     auto focusSelection = std::make_shared<::we::editor::toolbar::ToolButton>(
-        we::runtime::kindui::Icons::SettingsName,
+        we::runtime::kindui::kWindIconNone,
         std::string("Focus On Selection (F): ") + (settings.focusOnSelection ? "On" : "Off"),
         []() {
             auto& navStore = ViewportNavigationSettingsStore::Get();
@@ -174,7 +176,7 @@ std::shared_ptr<we::runtime::kindui::Column> BuildViewportNavigationPreferencesC
 
 std::shared_ptr<::we::editor::panels::Panel> CreateViewportNavigationPreferencesPanel() {
     return ::we::editor::panels::PanelBuilder("Viewport Navigation")
-        .TabIcon(we::runtime::kindui::Icons::SettingsName)
+        .TabIcon(we::runtime::kindui::kWindIconNone)
         .Content(BuildViewportNavigationPreferencesContent());
 }
 

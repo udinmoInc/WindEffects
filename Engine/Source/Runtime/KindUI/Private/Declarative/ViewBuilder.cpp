@@ -11,6 +11,7 @@
 #include "KindUI/Widgets/TextBox.h"
 #include "KindUI/Theming/ThemeAccess.h"
 #include "KindUI/Tokens/DesignToken.h"
+#include "KindUI/Core/WindIcon.h"
 
 #include <algorithm>
 
@@ -18,7 +19,8 @@ namespace we::runtime::kindui {
 namespace {
 
 std::shared_ptr<DesignButton> MakeDesignButton(const Element& element) {
-    const char* icon = element.icon.empty() ? nullptr : element.icon.c_str();
+    const WindIconRef icon = kWindIconNone;
+    (void)element.icon;
     switch (element.variant) {
     case WidgetVariant::Primary:
     case WidgetVariant::Accent:
@@ -489,7 +491,7 @@ std::shared_ptr<Widget> ViewBuilder::BuildElement(const Element& element) {
     }
     case ElementType::Button: {
         if (!expanded.icon.empty() && expanded.text.empty()) {
-            auto iconBtn = std::make_shared<IconButton>(expanded.icon.c_str());
+            auto iconBtn = std::make_shared<IconButton>(kWindIconNone);
             if (expanded.events.onClicked) {
                 iconBtn->SetOnClicked(expanded.events.onClicked);
             }

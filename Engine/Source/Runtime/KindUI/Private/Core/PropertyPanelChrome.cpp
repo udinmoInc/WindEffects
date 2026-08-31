@@ -3,6 +3,7 @@
 #include "KindUI/Core/ControlChrome.h"
 #include "KindUI/Core/Widget.h"
 #include "KindUI/Core/DPIContext.h"
+#include "KindUI/Core/WindIcon.h"
 #include "KindUI/Core/Icon.h"
 #include "KindUI/Core/PaintContext.h"
 #include "KindUI/Rendering/IconMetrics.h"
@@ -14,7 +15,6 @@
 
 namespace we::runtime::kindui {
 namespace PropertyPanelChrome {
-namespace Icons = ::we::runtime::kindui::Icons;
 
 namespace {
 
@@ -128,8 +128,9 @@ void PaintObjectHeader(
     PaintContext& context,
     const Rect& rect,
     std::string_view title,
-    std::string_view iconName,
+    WindIconRef icon,
     bool active) {
+    (void)active;
     const float scale = UiScale();
     const Color bg = ResolveColor(ColorToken::PanelBackground);
     context.DrawRect(rect, bg);
@@ -140,19 +141,18 @@ void PaintObjectHeader(
         ResolveColor(ColorToken::Separator));
 
     const float padH = ResolveMetric(MetricToken::Space2) * scale;
-    const float iconSize = static_cast<float>(IconMetrics::StandardGlyphTierPx());
+    const float iconSize = 16.0f;
     const float fontSize = ResolveMetric(MetricToken::TextSizeProperty) * scale;
     const float centerY = rect.y + rect.height * 0.5f;
 
-    if (!iconName.empty()) {
-        IconPainter::DrawIcon(
+    if (icon.IsValid()) {
+        IconPainter::Draw(
             context,
-            std::string(iconName),
-            Rect{ rect.x + padH, centerY - iconSize * 0.5f, iconSize, iconSize },
-            ResolveColor(active ? ColorToken::IconAccent : ColorToken::IconSecondary));
+            icon,
+            Rect{ rect.x + padH, centerY - iconSize * 0.5f, iconSize, iconSize });
     }
 
-    const float textX = rect.x + padH + (iconName.empty() ? 0.0f : iconSize + ResolveMetric(MetricToken::Space1) * scale);
+    const float textX = rect.x + padH + (icon.IsValid() ? iconSize + ResolveMetric(MetricToken::Space1) * scale : 0.0f);
     const Color textColor = active ? ResolveColor(ColorToken::TextPrimary) : ResolveColor(ColorToken::TextSecondary);
     context.DrawText(
         std::string(title),
@@ -176,16 +176,12 @@ void PaintSectionHeader(
     context.DrawRect(rect, bg);
 
     const float padH = RowPaddingH() + indent;
-    const float chevronSize = static_cast<float>(IconMetrics::CompactGlyphTierPx());
+    const float chevronSize = 16.0f;
     const float fontSize = ResolveMetric(MetricToken::TextSizeCategory) * scale;
     const float centerY = rect.y + rect.height * 0.5f;
 
-    const char* chevronIcon = expanded ? Icons::ChevronDownName : Icons::ChevronRightName;
-    IconPainter::DrawCompactIcon(
-        context,
-        chevronIcon,
-        IconMetrics::CompactGlyphBand(rect, rect.x + padH),
-        ResolveColor(ColorToken::IconSecondary));
+    const WindIconRef chevronIcon = expanded ? WindIcons::ChevronDown16 : WindIcons::ChevronRight16;
+    IconPainter::Draw(context, chevronIcon, IconMetrics::CompactGlyphBand(rect, rect.x + padH));
 
     const float textX = rect.x + padH + chevronSize + ResolveMetric(MetricToken::Space1) * scale;
     context.DrawText(

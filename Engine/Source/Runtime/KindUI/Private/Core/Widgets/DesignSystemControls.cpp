@@ -4,6 +4,7 @@
 #include "KindUI/Core/LayoutMetrics.h"
 #include "KindUI/Core/PropertyPanelChrome.h"
 #include "KindUI/Core/ControlChrome.h"
+#include "KindUI/Core/WindIcon.h"
 #include "KindUI/Core/Icon.h"
 #include "KindUI/Core/PaintContext.h"
 #include "KindUI/Core/TextMetrics.h"
@@ -20,17 +21,12 @@
 
 namespace we::runtime::kindui {
 
-DesignButton::DesignButton(std::string label, StyleRole role, const char* icon)
+DesignButton::DesignButton(std::string label, StyleRole role, WindIconRef icon)
     : m_Label(std::move(label))
     , m_Role(role)
     , m_Icon(icon) {
     SetFocusable(false);
     LayoutMetrics::ApplyButtonMinSize(*this, m_Role);
-}
-
-void DesignButton::SetIconName(std::string icon) {
-    m_IconStorage = std::move(icon);
-    m_Icon = m_IconStorage.empty() ? nullptr : m_IconStorage.c_str();
 }
 
 void DesignButton::SetLabel(std::string label) {
@@ -43,7 +39,7 @@ Size DesignButton::Measure(const Size& availableSize) {
     const ResolvedStyle style = ThemeManager::Get().Resolve(m_Role);
     const float pad = ResolveMetric(MetricToken::ButtonPaddingHorizontal);
     const float textW = TextMetrics::MeasureWidth(m_Label, style.fontSize);
-    const float iconW = m_Icon ? (style.iconSize + ResolveMetric(MetricToken::Space1)) : 0.0f;
+    const float iconW = m_Icon.IsValid() ? (style.iconSize + ResolveMetric(MetricToken::Space1)) : 0.0f;
     m_DesiredSize = Size{ textW + iconW + pad * 2.0f, style.height > 0.0f ? style.height : ResolveMetric(MetricToken::ButtonHeight) };
     return m_DesiredSize;
 }
@@ -78,17 +74,13 @@ void DesignButton::Paint(PaintContext& context) {
         fg = ResolveColor(ColorToken::TextDisabled);
     }
     float x = m_Geometry.x + ResolveMetric(MetricToken::ButtonPaddingHorizontal);
-    if (m_Icon) {
-        IconPainter::DrawIcon(
-            context,
-            m_Icon,
-            Rect{
-                x,
-                m_Geometry.y + (m_Geometry.height - style.iconSize) * 0.5f,
-                style.iconSize,
-                style.iconSize
-            },
-            fg);
+    if (m_Icon.IsValid()) {
+        const Rect iconRect{
+            x,
+            m_Geometry.y + (m_Geometry.height - style.iconSize) * 0.5f,
+            style.iconSize,
+            style.iconSize};
+        IconPainter::Draw(context, m_Icon, iconRect);
         x += style.iconSize + ResolveMetric(MetricToken::Space1);
     }
     context.DrawText(
@@ -121,7 +113,7 @@ void DesignButton::Tick(float deltaTime) {
     Widget::Tick(deltaTime);
 }
 
-IconButton::IconButton(const char* icon)
+IconButton::IconButton(WindIconRef icon)
     : m_Icon(icon) {
 }
 
@@ -139,22 +131,15 @@ void IconButton::Arrange(const Rect& allottedRect) {
 void IconButton::Paint(PaintContext& context) {
     ControlChrome::InteractionState state{ m_HoverAnim, m_PressAnim, m_Active, m_Focused, false };
     ControlChrome::PaintIconButtonFrame(context, m_Geometry, state, m_Active);
-    if (m_Icon) {
+    if (m_Icon.IsValid()) {
         const ResolvedStyle style = ThemeManager::Get().Resolve(
             m_Active ? StyleRole::IconButtonPressed : StyleRole::IconButton);
-        Color icon = m_Active
-            ? ResolveColor(ColorToken::AccentPrimary)
-            : ResolveIconForState(m_HoverAnim > 0.5f, m_Active);
-        IconPainter::DrawIcon(
-            context,
-            m_Icon,
-            Rect{
-                m_Geometry.x + (m_Geometry.width - style.iconSize) * 0.5f,
-                m_Geometry.y + (m_Geometry.height - style.iconSize) * 0.5f,
-                style.iconSize,
-                style.iconSize
-            },
-            icon);
+        const Rect iconRect{
+            m_Geometry.x + (m_Geometry.width - style.iconSize) * 0.5f,
+            m_Geometry.y + (m_Geometry.height - style.iconSize) * 0.5f,
+            style.iconSize,
+            style.iconSize};
+        IconPainter::Draw(context, m_Icon, iconRect);
     }
 }
 
@@ -435,7 +420,7 @@ void PanelTab::Tick(float deltaTime) {
     Widget::Tick(deltaTime);
 }
 
-SidebarItem::SidebarItem(std::string label, const char* icon)
+SidebarItem::SidebarItem(std::string label, WindIconRef icon)
     : m_Label(std::move(label))
     , m_Icon(icon) {
 }
@@ -471,17 +456,13 @@ void SidebarItem::Paint(PaintContext& context) {
             ResolveColor(ColorToken::AccentPrimary));
     }
     float x = m_Geometry.x + ResolveMetric(MetricToken::Space2);
-    if (m_Icon) {
-        IconPainter::DrawIcon(
-            context,
-            m_Icon,
-            Rect{
-                x,
-                m_Geometry.y + (m_Geometry.height - style.iconSize) * 0.5f,
-                style.iconSize,
-                style.iconSize
-            },
-            style.icon);
+    if (m_Icon.IsValid()) {
+        const Rect iconRect{
+            x,
+            m_Geometry.y + (m_Geometry.height - style.iconSize) * 0.5f,
+            style.iconSize,
+            style.iconSize};
+        IconPainter::Draw(context, m_Icon, iconRect);
         x += style.iconSize + ResolveMetric(MetricToken::Space2);
     }
     context.DrawText(
@@ -567,20 +548,12 @@ void TableRowBase::Tick(float deltaTime) {
     Widget::Tick(deltaTime);
 }
 
-std::shared_ptr<PrimaryButton> MakePrimaryAction(std::string label, std::string icon) {
-    auto btn = std::make_shared<PrimaryButton>(std::move(label));
-    if (!icon.empty()) {
-        btn->SetIconName(std::move(icon));
-    }
-    return btn;
+std::shared_ptr<PrimaryButton> MakePrimaryAction(std::string label, WindIconRef icon) {
+    return std::make_shared<PrimaryButton>(std::move(label), icon);
 }
 
-std::shared_ptr<SecondaryButton> MakeSecondaryAction(std::string label, std::string icon) {
-    auto btn = std::make_shared<SecondaryButton>(std::move(label));
-    if (!icon.empty()) {
-        btn->SetIconName(std::move(icon));
-    }
-    return btn;
+std::shared_ptr<SecondaryButton> MakeSecondaryAction(std::string label, WindIconRef icon) {
+    return std::make_shared<SecondaryButton>(std::move(label), icon);
 }
 
 std::shared_ptr<PanelTab> MakePanelTab(std::string label) {

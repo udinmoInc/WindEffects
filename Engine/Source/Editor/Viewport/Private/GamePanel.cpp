@@ -10,27 +10,28 @@ using ::we::editor::panels::Panel;
 using ::we::editor::panels::PanelBuilder;
 using ::we::editor::docking::DockZone;
 using ::we::editor::toolbar::ToolbarBuilder;
-namespace Icons = ::we::runtime::kindui::Icons;
+namespace WindIcons = ::we::runtime::kindui::WindIcons;
+using ::we::runtime::kindui::kWindIconNone;
 
 std::shared_ptr<Panel> CreateGamePanel() {
     auto toolbar = ToolbarBuilder()
         .Height(we::runtime::kindui::ResolveMetric(we::runtime::kindui::MetricToken::PanelToolbarHeight))
         .IconSize(we::runtime::kindui::ResolveMetric(we::runtime::kindui::MetricToken::IconSizeToolbar))
-        .Dropdown(Icons::PlayName, "Game", {}, "Game View Options")
+        .Dropdown(kWindIconNone, "Game", {}, "Game View Options")
         .Separator()
-        .Dropdown(Icons::ConsoleName, "Display 1", {}, "Select Display")
+        .Dropdown(kWindIconNone, "Display 1", {}, "Select Display")
         .Separator()
-        .Dropdown(Icons::MaximizeName, "Auto Resolution", {}, "Select Resolution")
+        .Dropdown(kWindIconNone, "Auto Resolution", {}, "Select Resolution")
         .Separator()
-        .Dropdown(Icons::CameraName, "Free Aspect", {}, "Aspect Ratio")
+        .Dropdown(kWindIconNone, "Free Aspect", {}, "Aspect Ratio")
         .Separator()
-        .Dropdown(Icons::ScaleName, "1x", {}, "View Scale")
+        .Dropdown(kWindIconNone, "1x", {}, "View Scale")
         .Separator()
-        .Dropdown(Icons::PlayName, "Play Focus", {}, "Play Focus Mode")
+        .Dropdown(kWindIconNone, "Play Focus", {}, "Play Focus Mode")
         .Separator()
-        .Item(Icons::ProfilerName, "Stats", {}, "Toggle Stats")
+        .Item(kWindIconNone, "Stats", {}, "Toggle Stats")
         .Separator()
-        .Dropdown(Icons::GridName, "Gizmos", {}, "Toggle Gizmos")
+        .Dropdown(WindIcons::Grid3x316, "Gizmos", {}, "Toggle Gizmos")
         .Build();
 
     return PanelBuilder("Game")

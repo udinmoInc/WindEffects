@@ -6,7 +6,7 @@
 #include "KindUI/Tokens/SurfaceRole.h"
 #include "KindUI/Rendering/IconRenderer.h"
 #include "KindUI/Rendering/IconMetrics.h"
-#include "KindUI/Core/Icon.h"
+#include "KindUI/Core/WindIcon.h"
 #include "KindUI/Rendering/TextUIService.h"
 #include "Core/Logger.h"
 #include "Core/FrameCounter.h"
@@ -563,11 +563,14 @@ void UIWidgetAdapter::GenerateIconGeometry(const DrawCommand& cmd) {
         return;
     }
 
+    if (cmd.iconStem.empty() || cmd.iconSizePx == 0) {
+        return;
+    }
+
+    WindIconRef icon{ cmd.iconStem.c_str(), cmd.iconSizePx };
+
     IconRenderer* iconRenderer = m_Renderer->GetIconRenderer();
-    const uint32_t atlasTier = IconMetrics::TierPxForIcon(
-        Icons::ResolveLucideName(cmd.text),
-        cmd.fontSize);
-    const IconDrawInfo drawInfo = iconRenderer->GetLucideIconDrawInfo(cmd.text, atlasTier, cmd.color);
+    const IconDrawInfo drawInfo = iconRenderer->GetIconDrawInfo(icon);
 
     if (!drawInfo.valid || drawInfo.descriptorSet == we::rhi::RHIDescriptorSetHandle::Invalid) {
         return;
@@ -575,39 +578,13 @@ void UIWidgetAdapter::GenerateIconGeometry(const DrawCommand& cmd) {
 
     m_CurrentTextureSet = drawInfo.descriptorSet;
 
-    const float w = cmd.rect.width > 0.0f ? cmd.rect.width : static_cast<float>(atlasTier);
-    const float h = cmd.rect.height > 0.0f ? cmd.rect.height : static_cast<float>(atlasTier);
-    const float x = SnapPx(cmd.rect.x);
-    const float y = SnapPx(cmd.rect.y);
-
-    if (IsEnvEnabled("WE_VERIFY_ICONS")) {
-        bool perfect = true;
-        std::string report = "Icon Verification [" + cmd.text + "]: ";
-        if (cmd.rect.x != std::floor(cmd.rect.x) || cmd.rect.y != std::floor(cmd.rect.y)) { perfect = false; report += "Fractional Layout Position; "; }
-        if (cmd.fontSize != static_cast<float>(atlasTier) && (w != cmd.rect.width || h != cmd.rect.height)) {
-            perfect = false;
-            report += "Compact/Scaled Icon Draw; ";
-        }
-        if (w != static_cast<float>(atlasTier) || h != static_cast<float>(atlasTier)) {
-            if (cmd.fontSize == static_cast<float>(atlasTier)) {
-                perfect = false;
-                report += "Display Size Mismatch (Atlas " + std::to_string(atlasTier) + ", Draw " + std::to_string(w) + "); ";
-            }
-        }
-        if (cmd.fontSize != static_cast<float>(atlasTier) && w == static_cast<float>(atlasTier)) {
-            perfect = false;
-            report += "DPI/FontSize Resampling; ";
-        }
-        
-        if (!perfect) {
-            HE_WARN(report);
-        } else {
-            HE_INFO("Icon Verification [" + cmd.text + "]: PASS (1:1 Pixel Mapping, Integer Aligned, No Resampling, Nearest Filtered).");
-        }
-    }
+    const float w = static_cast<float>(icon.sizePx);
+    const float h = w;
+    const float x = SnapPx(cmd.rect.x + (cmd.rect.width - w) * 0.5f);
+    const float y = SnapPx(cmd.rect.y + (cmd.rect.height - h) * 0.5f);
 
     const float type = drawInfo.shaderType;
-    Color color = cmd.color;
+    const Color color = Color::White();
 
     UIVertex2 v0{ {x,     y},     {drawInfo.uvMin[0], drawInfo.uvMin[1]}, {color.r, color.g, color.b, color.a}, {x, y, w, h}, {0.0f, type, 0.0f, 0.0f} };
     UIVertex2 v1{ {x + w, y},     {drawInfo.uvMax[0], drawInfo.uvMin[1]}, {color.r, color.g, color.b, color.a}, {x, y, w, h}, {0.0f, type, 0.0f, 0.0f} };
@@ -633,62 +610,109 @@ void UIWidgetAdapter::GenerateIconGeometry(const DrawCommand& cmd) {
 void UIWidgetAdapter::GenerateLineGeometry(const DrawCommand& cmd) {
     Point s{SnapPx(cmd.lineStart.x), SnapPx(cmd.lineStart.y)};
     Point e{SnapPx(cmd.lineEnd.x), SnapPx(cmd.lineEnd.y)};
-    float dx = e.x - s.x;
-    float dy = e.y - s.y;
-    float len = std::sqrt(dx * dx + dy * dy);
-    if (len > 0.0f) {
-        dx /= len;
-        dy /= len;
-        float px = -dy * (cmd.thickness * 0.5f);
-        float py = dx * (cmd.thickness * 0.5f);
-        
-        float sx = s.x;
-        float sy = s.y;
-        float sw = dx * len;
-        float sh = dy * len;
-        
-        float type = 0.0f;
-        
-        UIVertex2 v0{ {s.x + px, s.y + py}, {0.5f, 0.5f}, {cmd.color.r, cmd.color.g, cmd.color.b, cmd.color.a}, {sx, sy, sw, sh}, {0.0f, type, 0.0f, 0.0f} };
-        UIVertex2 v1{ {s.x - px, s.y - py}, {0.5f, 0.5f}, {cmd.color.r, cmd.color.g, cmd.color.b, cmd.color.a}, {sx, sy, sw, sh}, {0.0f, type, 0.0f, 0.0f} };
-        UIVertex2 v2{ {e.x - px, e.y - py}, {0.5f, 0.5f}, {cmd.color.r, cmd.color.g, cmd.color.b, cmd.color.a}, {sx, sy, sw, sh}, {0.0f, type, 0.0f, 0.0f} };
-        UIVertex2 v3{ {e.x + px, e.y + py}, {0.5f, 0.5f}, {cmd.color.r, cmd.color.g, cmd.color.b, cmd.color.a}, {sx, sy, sw, sh}, {0.0f, type, 0.0f, 0.0f} };
-        
-        uint32_t startIndex = static_cast<uint32_t>(m_Vertices.size());
+    const float thickness = std::max(1.0f, SnapPx(cmd.thickness));
+    const float dx = e.x - s.x;
+    const float dy = e.y - s.y;
+    const float len = std::sqrt(dx * dx + dy * dy);
+    if (len <= 0.0f) {
+        return;
+    }
+
+    const float type = 1.0f;
+    const float radius = 0.0f;
+    const Color color = cmd.color;
+
+    auto emitSolidRect = [&](float x, float y, float w, float h) {
+        const float x0 = SnapPx(x);
+        const float y0 = SnapPx(y);
+        const float x1 = SnapPx(x + w);
+        const float y1 = SnapPx(y + h);
+        const float rw = x1 - x0;
+        const float rh = y1 - y0;
+        if (rw <= 0.0f || rh <= 0.0f) {
+            return;
+        }
+        UIVertex2 v0{{x0, y0}, {0.5f, 0.5f}, {color.r, color.g, color.b, color.a}, {x0, y0, rw, rh}, {radius, type, 0.0f, 0.0f}};
+        UIVertex2 v1{{x1, y0}, {0.5f, 0.5f}, {color.r, color.g, color.b, color.a}, {x0, y0, rw, rh}, {radius, type, 0.0f, 0.0f}};
+        UIVertex2 v2{{x1, y1}, {0.5f, 0.5f}, {color.r, color.g, color.b, color.a}, {x0, y0, rw, rh}, {radius, type, 0.0f, 0.0f}};
+        UIVertex2 v3{{x0, y1}, {0.5f, 0.5f}, {color.r, color.g, color.b, color.a}, {x0, y0, rw, rh}, {radius, type, 0.0f, 0.0f}};
+        const uint32_t startIndex = static_cast<uint32_t>(m_Vertices.size());
         m_Vertices.push_back(v0);
         m_Vertices.push_back(v1);
         m_Vertices.push_back(v2);
         m_Vertices.push_back(v3);
-        
         m_Indices.push_back(startIndex + 0);
         m_Indices.push_back(startIndex + 1);
         m_Indices.push_back(startIndex + 2);
         m_Indices.push_back(startIndex + 2);
         m_Indices.push_back(startIndex + 3);
         m_Indices.push_back(startIndex + 0);
-        
         AddOrMergeBatch(6);
+    };
+
+    // Axis-aligned lines: pixel-snapped solid fills for crisp 1px separators.
+    if (std::abs(dx) < 0.5f) {
+        const float x = s.x - thickness * 0.5f;
+        const float y = std::min(s.y, e.y);
+        const float h = std::max(len, 1.0f);
+        emitSolidRect(x, y, thickness, h);
+        return;
     }
+    if (std::abs(dy) < 0.5f) {
+        const float x = std::min(s.x, e.x);
+        const float y = s.y - thickness * 0.5f;
+        const float w = std::max(len, 1.0f);
+        emitSolidRect(x, y, w, thickness);
+        return;
+    }
+
+    // Diagonal lines: solid quad tint (type 5) — no texture dependency.
+    float ndx = dx / len;
+    float ndy = dy / len;
+    const float px = -ndy * (thickness * 0.5f);
+    const float py = ndx * (thickness * 0.5f);
+    const float solidType = 5.0f;
+
+    UIVertex2 v0{{s.x + px, s.y + py}, {0.5f, 0.5f}, {color.r, color.g, color.b, color.a}, {0, 0, 0, 0}, {0.0f, solidType, 0.0f, 0.0f}};
+    UIVertex2 v1{{s.x - px, s.y - py}, {0.5f, 0.5f}, {color.r, color.g, color.b, color.a}, {0, 0, 0, 0}, {0.0f, solidType, 0.0f, 0.0f}};
+    UIVertex2 v2{{e.x - px, e.y - py}, {0.5f, 0.5f}, {color.r, color.g, color.b, color.a}, {0, 0, 0, 0}, {0.0f, solidType, 0.0f, 0.0f}};
+    UIVertex2 v3{{e.x + px, e.y + py}, {0.5f, 0.5f}, {color.r, color.g, color.b, color.a}, {0, 0, 0, 0}, {0.0f, solidType, 0.0f, 0.0f}};
+
+    const uint32_t startIndex = static_cast<uint32_t>(m_Vertices.size());
+    m_Vertices.push_back(v0);
+    m_Vertices.push_back(v1);
+    m_Vertices.push_back(v2);
+    m_Vertices.push_back(v3);
+    m_Indices.push_back(startIndex + 0);
+    m_Indices.push_back(startIndex + 1);
+    m_Indices.push_back(startIndex + 2);
+    m_Indices.push_back(startIndex + 2);
+    m_Indices.push_back(startIndex + 3);
+    m_Indices.push_back(startIndex + 0);
+    AddOrMergeBatch(6);
 }
 
 void UIWidgetAdapter::GenerateShadowGeometry(const DrawCommand& cmd) {
-    const int numLayers = 4;
-    float shadowSpread = cmd.blur / numLayers;
-    float baseAlpha = cmd.color.a / (numLayers * 1.5f);
-    
-    float x = cmd.rect.x;
-    float y = cmd.rect.y;
-    float w = cmd.rect.width;
-    float h = cmd.rect.height;
-    
+    // Three tight layers keep shadows soft without muddy dark halos on dark surfaces.
+    const int numLayers = 3;
+    const float shadowSpread = cmd.blur / static_cast<float>(numLayers);
+    const float baseAlpha = cmd.color.a / (static_cast<float>(numLayers) * 1.35f);
+
+    const float x0 = SnapPx(cmd.rect.x);
+    const float y0 = SnapPx(cmd.rect.y);
+    const float x1 = SnapPx(cmd.rect.x + cmd.rect.width);
+    const float y1 = SnapPx(cmd.rect.y + cmd.rect.height);
+    const float w = x1 - x0;
+    const float h = y1 - y0;
+
     for (int i = 0; i < numLayers; ++i) {
-        float expand = (i + 1) * shadowSpread;
-        float sx = x - expand;
-        float sy = y - expand;
-        float sw = w + expand * 2.0f;
-        float sh = h + expand * 2.0f;
-        float alpha = baseAlpha * (1.0f - (float)i / numLayers);
-        
+        const float expand = (i + 1) * shadowSpread;
+        float sx = SnapPx(x0 - expand);
+        float sy = SnapPx(y0 - expand);
+        float sw = SnapPx(x1 + expand) - sx;
+        float sh = SnapPx(y1 + expand) - sy;
+        const float alpha = baseAlpha * (1.0f - static_cast<float>(i) / static_cast<float>(numLayers));
+
         if (sx < 0.0f) {
             sw += sx;
             sx = 0.0f;
@@ -697,21 +721,21 @@ void UIWidgetAdapter::GenerateShadowGeometry(const DrawCommand& cmd) {
             sh += sy;
             sy = 0.0f;
         }
-        
-        float type = 1.0f;
-        float r = cmd.borderRadius + expand;
-        
+
+        const float type = 1.0f;
+        const float r = cmd.borderRadius + expand;
+
         UIVertex2 v0{ {sx,      sy},      {0.5f, 0.5f}, {cmd.color.r, cmd.color.g, cmd.color.b, alpha}, {sx, sy, sw, sh}, {r, type, 0.0f, 0.0f} };
         UIVertex2 v1{ {sx + sw, sy},      {0.5f, 0.5f}, {cmd.color.r, cmd.color.g, cmd.color.b, alpha}, {sx, sy, sw, sh}, {r, type, 0.0f, 0.0f} };
         UIVertex2 v2{ {sx + sw, sy + sh}, {0.5f, 0.5f}, {cmd.color.r, cmd.color.g, cmd.color.b, alpha}, {sx, sy, sw, sh}, {r, type, 0.0f, 0.0f} };
         UIVertex2 v3{ {sx,      sy + sh}, {0.5f, 0.5f}, {cmd.color.r, cmd.color.g, cmd.color.b, alpha}, {sx, sy, sw, sh}, {r, type, 0.0f, 0.0f} };
-        
-        uint32_t startIndex = static_cast<uint32_t>(m_Vertices.size());
+
+        const uint32_t startIndex = static_cast<uint32_t>(m_Vertices.size());
         m_Vertices.push_back(v0);
         m_Vertices.push_back(v1);
         m_Vertices.push_back(v2);
         m_Vertices.push_back(v3);
-        
+
         m_Indices.push_back(startIndex + 0);
         m_Indices.push_back(startIndex + 1);
         m_Indices.push_back(startIndex + 2);
@@ -719,7 +743,7 @@ void UIWidgetAdapter::GenerateShadowGeometry(const DrawCommand& cmd) {
         m_Indices.push_back(startIndex + 3);
         m_Indices.push_back(startIndex + 0);
     }
-    
+
     AddOrMergeBatch(numLayers * 6);
 }
 
@@ -770,7 +794,7 @@ void UIWidgetAdapter::GenerateRoundedOutlineGeometry(const DrawCommand& cmd) {
     float h = y1 - y0;
     
     float type = 2.0f;
-    float thickness = cmd.thickness;
+    const float thickness = std::max(1.0f, SnapPx(cmd.thickness));
     
     UIVertex2 v0{ {x,     y},     {0.5f, 0.5f}, {cmd.color.r, cmd.color.g, cmd.color.b, cmd.color.a}, {x, y, w, h}, {cmd.borderRadius, type, thickness, 0.0f} };
     UIVertex2 v1{ {x + w, y},     {0.5f, 0.5f}, {cmd.color.r, cmd.color.g, cmd.color.b, cmd.color.a}, {x, y, w, h}, {cmd.borderRadius, type, thickness, 0.0f} };

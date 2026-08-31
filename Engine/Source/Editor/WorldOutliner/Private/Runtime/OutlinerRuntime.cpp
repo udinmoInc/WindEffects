@@ -385,7 +385,7 @@ private:
                 tn->id = std::to_string(id.value);
                 tn->label = std::string(node->GetDisplayName());
                 tn->typeName = std::string(node->GetTypeName());
-                tn->iconName = std::string(node->GetIconName());
+                tn->icon = node->GetIcon();
                 tn->expanded = m_Model->IsExpanded(id);
                 tn->visible = node->GetFlags().visible;
                 tn->locked = node->GetFlags().locked;

@@ -2,6 +2,9 @@
 #include "ViewportEdit/ViewportEditSession.h"
 
 namespace we::editor::viewportedit {
+using ::we::runtime::kindui::kWindIconNone;
+namespace WindIcons = ::we::runtime::kindui::WindIcons;
+
 namespace {
 
 void ActivateTool(ViewportToolId tool) {
@@ -13,16 +16,16 @@ void ActivateTool(ViewportToolId tool) {
 } // namespace
 
 // Overrides empty Select-mode stubs in ToolsPanel DefaultEditorModes.
-REGISTER_EDITOR_TOOL(SelectEssentials, SelectTool, "Select", "cursor", "Q", []() {
+REGISTER_EDITOR_TOOL(SelectEssentials, SelectTool, "Select", kWindIconNone, "Q", []() {
     ActivateTool(ViewportToolId::Select);
 })
-REGISTER_EDITOR_TOOL(SelectEssentials, MoveTool, "Move", "move", "W", []() {
+REGISTER_EDITOR_TOOL(SelectEssentials, MoveTool, "Move", kWindIconNone, "W", []() {
     ActivateTool(ViewportToolId::Move);
 })
-REGISTER_EDITOR_TOOL(SelectEssentials, RotateTool, "Rotate", "rotate", "E", []() {
+REGISTER_EDITOR_TOOL(SelectEssentials, RotateTool, "Rotate", kWindIconNone, "E", []() {
     ActivateTool(ViewportToolId::Rotate);
 })
-REGISTER_EDITOR_TOOL(SelectEssentials, ScaleTool, "Scale", "scale", "R", []() {
+REGISTER_EDITOR_TOOL(SelectEssentials, ScaleTool, "Scale", WindIcons::Scaling16, "R", []() {
     ActivateTool(ViewportToolId::Scale);
 })
 

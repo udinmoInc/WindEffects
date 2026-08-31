@@ -4,6 +4,7 @@
 #include "KindUI/Core/PaintContext.h"
 #include "KindUI/Tokens/DesignToken.h"
 #include "KindUI/Theming/StyleRole.h"
+#include "KindUI/Core/WindIcon.h"
 #include "KindUI/Core/Icon.h"
 #include "KindUI/Core/DPIContext.h"
 #include <algorithm>
@@ -15,7 +16,8 @@ using ::we::runtime::kindui::PaddingToken;
 namespace we::editor::menus {
 using ::we::runtime::kindui::DPIContext;
 using ::we::runtime::kindui::IconPainter;
-namespace Icons = ::we::runtime::kindui::Icons;
+namespace WindIcons = ::we::runtime::kindui::WindIcons;
+using ::we::runtime::kindui::kWindIconNone;
 
 MenuBar::MenuBar()
     : m_Style(WidgetStyle::Panel())

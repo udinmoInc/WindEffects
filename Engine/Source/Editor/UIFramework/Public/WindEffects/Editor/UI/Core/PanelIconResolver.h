@@ -1,37 +1,39 @@
 #pragma once
 
-#include "KindUI/Core/Icon.h"
+#include "KindUI/Core/WindIcon.h"
 
-#include <string>
 #include <string_view>
-#include <unordered_map>
 
 namespace we::editor::services {
-namespace Icons = ::we::runtime::kindui::Icons;
 
-// Canonical dock-tab and panel icon aliases — single registry for shell layout.
-inline std::string ResolvePanelTabIconName(std::string_view iconResource) {
-    if (iconResource.empty()) {
-        return {};
+// Explicit dock-tab icon assignments. Unlisted panels render with no tab icon.
+inline we::runtime::kindui::WindIconRef ResolvePanelTabIcon(std::string_view panelId) {
+    using namespace we::runtime::kindui;
+    if (panelId == "content-browser") {
+        return kWindIconNone;
     }
-
-    static const std::unordered_map<std::string, const char*> kPanelTabIcons = {
-        {"tools-panel", Icons::LayersName},
-        {"viewport", Icons::PerspectiveName},
-        {"outliner", Icons::ContentBrowserName},
-        {"details", Icons::SettingsName},
-        {"content-browser", Icons::ContentBrowserName},
-        {"output-log", Icons::OutputLogName},
-        {"terminal", Icons::TerminalName},
-        {"place-actors", Icons::PivotName},
-    };
-
-    const std::string key(iconResource);
-    if (const auto it = kPanelTabIcons.find(key); it != kPanelTabIcons.end()) {
-        return it->second;
+    if (panelId == "output-log") {
+        return kWindIconNone;
     }
-
-    return Icons::ResolveLucideName(key);
+    if (panelId == "terminal") {
+        return kWindIconNone;
+    }
+    if (panelId == "viewport") {
+        return kWindIconNone;
+    }
+    if (panelId == "outliner") {
+        return kWindIconNone;
+    }
+    if (panelId == "details") {
+        return kWindIconNone;
+    }
+    if (panelId == "tools-panel") {
+        return kWindIconNone;
+    }
+    if (panelId == "place-actors") {
+        return kWindIconNone;
+    }
+    return kWindIconNone;
 }
 
 } // namespace we::editor::services

@@ -15,6 +15,7 @@
 #include "Util/PathUtils.h"
 
 #include "KindUI/Core/EventSystem.h"
+#include "KindUI/Core/WindIcon.h"
 #include "KindUI/Core/Icon.h"
 #include "KindUI/Core/PaintContext.h"
 #include "KindUI/Core/Widgets/DesignSystemControls.h"
@@ -217,7 +218,7 @@ std::shared_ptr<Widget> LauncherShell::BuildSettingsEngine(const std::string& qu
     });
     AppendSettingsRow(*body, queryLower, "Engine Installation Directory", "Root used when scanning for WindEffects installs", folder, "path browse");
 
-    auto scan = MakeSecondaryAction("Scan for Installed Engines", Icons::RefreshName);
+    auto scan = MakeSecondaryAction("Scan for Installed Engines", WindIcons::Refresh16);
     scan->SetOnClicked([this] {
         auto& settings = m_Context->Settings().Settings();
         std::filesystem::path start = PathUtils::GetExecutableDirectory();
@@ -234,7 +235,7 @@ std::shared_ptr<Widget> LauncherShell::BuildSettingsEngine(const std::string& qu
     });
     AppendSettingsRow(*body, queryLower, "Scan for Installed Engines", "Rediscover local engine installs", scan);
 
-    auto verify = MakeSecondaryAction("Verify Engine Installation", Icons::CheckName);
+    auto verify = MakeSecondaryAction("Verify Engine Installation", WindIcons::Check16);
     verify->SetOnClicked([this] {
         int pass = 0, warn = 0, fail = 0;
         for (const auto& check : m_Context->Sdk().RunChecks()) {
@@ -252,7 +253,7 @@ std::shared_ptr<Widget> LauncherShell::BuildSettingsEngine(const std::string& qu
     });
     AppendSettingsRow(*body, queryLower, "Verify Engine Installation", "Run SDK and toolchain health checks", verify);
 
-    auto updates = MakeSecondaryAction("Check for Launcher Updates", Icons::RefreshName);
+    auto updates = MakeSecondaryAction("Check for Launcher Updates", WindIcons::Refresh16);
     updates->SetOnClicked([this] {
         SetStatus(std::string("Launcher ") + kLauncherVersion + " â€” update check is not available yet");
     });
@@ -273,7 +274,7 @@ std::shared_ptr<Widget> LauncherShell::BuildSettingsStorage(const std::string& q
     const std::string cacheSize = PathUtils::FormatByteSize(PathUtils::EstimateDirectoryBytes(cacheRoot));
     const std::string thumbSize = PathUtils::FormatByteSize(PathUtils::EstimateDirectoryBytes(thumbRoot));
 
-    auto clearCache = MakeSecondaryAction("Clear Cache", Icons::DeleteName);
+    auto clearCache = MakeSecondaryAction("Clear Cache", kWindIconNone);
     clearCache->SetOnClicked([this] {
         const bool ok = PathUtils::ClearDirectoryContents(PathUtils::GetLauncherCacheRoot());
         MarkPageDirty(LauncherPage::Settings);
@@ -289,7 +290,7 @@ std::shared_ptr<Widget> LauncherShell::BuildSettingsStorage(const std::string& q
         clearCache,
         "storage clear");
 
-    auto clearThumbs = MakeSecondaryAction("Clear Cache", Icons::DeleteName);
+    auto clearThumbs = MakeSecondaryAction("Clear Cache", kWindIconNone);
     clearThumbs->SetOnClicked([this] {
         const bool ok = PathUtils::ClearDirectoryContents(PathUtils::GetThumbnailCacheRoot());
         MarkPageDirty(LauncherPage::Settings);
@@ -315,14 +316,14 @@ std::shared_ptr<Widget> LauncherShell::BuildSettingsFileAssociations(const std::
     auto root = MakeSettingsStack();
     auto body = MakeSettingsStack();
 
-    auto weproj = MakeSecondaryAction("Associate .weproj", Icons::DocumentName);
+    auto weproj = MakeSecondaryAction("Associate .weproj", kWindIconNone);
     weproj->SetOnClicked([this] {
         const auto result = AssociateProjectExtension(".weproj");
         SetStatus(result.message);
     });
     AppendSettingsRow(*body, queryLower, "Associate .weproj files", "Open .weproj with WindeffectsEditor", weproj);
 
-    auto weproject = MakeSecondaryAction("Associate .weproject", Icons::DocumentName);
+    auto weproject = MakeSecondaryAction("Associate .weproject", kWindIconNone);
     weproject->SetOnClicked([this] {
         const auto result = AssociateProjectExtension(".weproject");
         SetStatus(result.message);
@@ -346,7 +347,7 @@ std::shared_ptr<Widget> LauncherShell::BuildSettingsAbout(const std::string& que
         "WindEffects Launcher",
         MakeLabel(kLauncherVersion, LMetric(MetricToken::TextSizeBody) * LScale(), LColor(ColorToken::TextPrimary)));
 
-    auto logs = MakeSecondaryAction("Open Logs Folder", Icons::OpenFolderName);
+    auto logs = MakeSecondaryAction("Open Logs Folder", kWindIconNone);
     logs->SetOnClicked([this] {
         const auto path = PathUtils::GetLauncherLogsRoot();
         std::error_code ec;
@@ -359,7 +360,7 @@ std::shared_ptr<Widget> LauncherShell::BuildSettingsAbout(const std::string& que
     });
     AppendSettingsRow(*body, queryLower, "Open Logs Folder", "Launcher diagnostic logs", logs);
 
-    auto install = MakeSecondaryAction("Open Installation Folder", Icons::OpenFolderName);
+    auto install = MakeSecondaryAction("Open Installation Folder", kWindIconNone);
     install->SetOnClicked([this] {
         const auto path = PathUtils::ToUtf8(PathUtils::GetExecutableDirectory());
         if (OpenPathInExplorer(path) || RevealInExplorer(path)) {
@@ -370,7 +371,7 @@ std::shared_ptr<Widget> LauncherShell::BuildSettingsAbout(const std::string& que
     });
     AppendSettingsRow(*body, queryLower, "Open Installation Folder", "Folder containing WeLauncher.exe", install);
 
-    auto docs = MakeSecondaryAction("Documentation", Icons::DocumentName);
+    auto docs = MakeSecondaryAction("Documentation", kWindIconNone);
     docs->SetOnClicked([this] {
         if (OpenUrl("https://windeffects.dev/docs")) {
             SetStatus("Opened documentation");
@@ -380,7 +381,7 @@ std::shared_ptr<Widget> LauncherShell::BuildSettingsAbout(const std::string& que
     });
     AppendSettingsRow(*body, queryLower, "Documentation", "Online guides and API reference", docs);
 
-    auto reset = MakeSecondaryAction("Reset Launcher Settings", Icons::RefreshName);
+    auto reset = MakeSecondaryAction("Reset Launcher Settings", WindIcons::Refresh16);
     reset->SetOnClicked([this] {
         m_Context->Settings().ResetToDefaults();
         PersistLauncherSettings("Launcher settings reset to defaults");

@@ -1,6 +1,8 @@
 #include "KindUI/Core/PaintContext.h"
+#include "KindUI/Core/WindIcon.h"
 #include "KindUI/Core/TextMetrics.h"
 #include "KindUI/Profiling/UiColorDebug.h"
+#include "KindUI/Rendering/IconMetrics.h"
 #include "KindUI/Rendering/TextUIService.h"
 
 namespace we::runtime::kindui {
@@ -198,18 +200,17 @@ void PaintContext::DrawText(
     m_Commands.push_back(cmd);
 }
 
-void PaintContext::DrawIcon(const std::string& iconName, const Point& pos, const Color& color, float size) {
-    DrawIcon(iconName, Rect{ pos.x, pos.y, size, size }, color, size);
-}
-
-void PaintContext::DrawIcon(const std::string& iconName, const Rect& rect, const Color& color, float atlasTierPx) {
+void PaintContext::DrawWindIcon(WindIconRef icon, const Rect& rect) {
+    if (!icon.IsValid()) {
+        return;
+    }
     DrawCommand cmd{};
     cmd.type = DrawCommandType::Icon;
     cmd.rect = rect;
-    cmd.color = color;
+    cmd.color = Color::White();
     cmd.clipRect = GetCurrentClipRect();
-    cmd.text = iconName;
-    cmd.fontSize = atlasTierPx;
+    cmd.iconStem = icon.stem;
+    cmd.iconSizePx = icon.sizePx;
     m_Commands.push_back(cmd);
 }
 

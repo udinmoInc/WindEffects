@@ -11,8 +11,7 @@
 #include "Widgets/ToolButton.h"
 #include "Widgets/WindowsPanelMenuButton.h"
 
-#include "KindUI/Core/Icon.h"
-#include "KindUI/Rendering/IconMetrics.h"
+#include "KindUI/Core/WindIcon.h"
 #include "KindUI/Tokens/DesignToken.h"
 #include "KindUI/Theming/StyleRole.h"
 #include "KindUI/Theming/ThemeAccess.h"
@@ -31,8 +30,8 @@ using ::we::editor::toolbar::ToolbarBuilder;
 using ::we::editor::toolbar::ToolbarGroupStyle;
 using ::we::editor::toolbar::ToolButton;
 using ::we::editor::toolbar::ToolButtonStyle;
-namespace Icons = ::we::runtime::kindui::Icons;
-namespace IconMetrics = ::we::runtime::kindui::IconMetrics;
+using ::we::runtime::kindui::kWindIconNone;
+namespace WindIcons = ::we::runtime::kindui::WindIcons;
 
 } // namespace
 
@@ -49,13 +48,8 @@ std::shared_ptr<::we::runtime::kindui::Widget> BuildMainEditorToolbar(
     modeSelector->InitializeCallbacks(modeSelector);
     modeSelector->Refresh();
 
-    const float uiScale = std::max(1.0f, deps.dpiScale);
-    const float toolbarIconTier = static_cast<float>(IconMetrics::NativeIconTierPx(
-        we::runtime::kindui::ResolveMetric(we::runtime::kindui::MetricToken::IconSizeToolbar)));
-
     ToolbarBuilder builder;
     builder.Height(toolbarHeight)
-        .IconSize(toolbarIconTier)
         .LeftInset(leftInset)
         .RightInset(rightInset)
         .EdgePadding(edgePadding);
@@ -65,32 +59,32 @@ std::shared_ptr<::we::runtime::kindui::Widget> BuildMainEditorToolbar(
 
     builder.Group(ToolbarAlignment::Left, ToolbarGroupStyle::Transparent, [&](ToolbarBuilder& file) {
         if (deps.onCreateNewLevel) {
-            file.IconItem(Icons::NewName, "New Level (Ctrl+N)", deps.onCreateNewLevel);
+            file.IconItem(kWindIconNone, "New Level (Ctrl+N)", deps.onCreateNewLevel);
         }
         if (deps.onOpenProject) {
-            file.IconItem(Icons::OpenName, "Open (Ctrl+O)", deps.onOpenProject);
+            file.IconItem(kWindIconNone, "Open (Ctrl+O)", deps.onOpenProject);
         }
     });
     builder.Separator();
 
     builder.Group(ToolbarAlignment::Left, ToolbarGroupStyle::Transparent, [&](ToolbarBuilder& history) {
         if (deps.onUndo) {
-            history.IconItem(Icons::UndoName, "Undo (Ctrl+Z)", deps.onUndo);
+            history.IconItem(WindIcons::Undo16, "Undo (Ctrl+Z)", deps.onUndo);
         }
         if (deps.onRedo) {
-            history.IconItem(Icons::RedoName, "Redo (Ctrl+Y)", deps.onRedo);
+            history.IconItem(WindIcons::Redo16, "Redo (Ctrl+Y)", deps.onRedo);
         }
     });
     builder.Separator();
 
     builder.Group(ToolbarAlignment::Left, ToolbarGroupStyle::Transparent, [&](ToolbarBuilder& play) {
-        play.IconItem(Icons::MediaPlayName, "Play (PIE)", []() {}, [](const std::shared_ptr<ToolButton>& btn) {
+        play.IconItem(kWindIconNone, "Play (PIE)", []() {}, [](const std::shared_ptr<ToolButton>& btn) {
             btn->SetButtonStyle(ToolButtonStyle::PlayButton);
         });
-        play.IconItem(Icons::PauseName, "Pause", []() {}, [](const std::shared_ptr<ToolButton>& btn) {
+        play.IconItem(kWindIconNone, "Pause", []() {}, [](const std::shared_ptr<ToolButton>& btn) {
             btn->SetButtonStyle(ToolButtonStyle::TransportButton);
         });
-        play.IconItem(Icons::StopName, "Stop", []() {}, [](const std::shared_ptr<ToolButton>& btn) {
+        play.IconItem(kWindIconNone, "Stop", []() {}, [](const std::shared_ptr<ToolButton>& btn) {
             btn->SetButtonStyle(ToolButtonStyle::TransportButton);
         });
     });
@@ -104,13 +98,13 @@ std::shared_ptr<::we::runtime::kindui::Widget> BuildMainEditorToolbar(
         }
         if (deps.onOpenProjectManager) {
             right.DropdownItem(
-                Icons::ProjectFolderName,
+                kWindIconNone,
                 "Project",
                 deps.onOpenProjectManager,
                 "Project Manager");
         }
         right.Separator();
-        right.IconItem(Icons::SettingsName, "Editor Settings", []() { ShowViewportNavigationPreferences(); });
+        right.IconItem(kWindIconNone, "Editor Settings", []() { ShowViewportNavigationPreferences(); });
     });
 
     auto toolbar = builder.Build();

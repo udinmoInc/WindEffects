@@ -1,6 +1,7 @@
 #include "ContentBrowser/Widgets/TreeColumnHeader.h"
 
 #include "WindEffects/Editor/UI/Panel/PanelChrome.h"
+#include "KindUI/Core/WindIcon.h"
 #include "KindUI/Core/Icon.h"
 #include "KindUI/Core/DPIContext.h"
 #include "KindUI/Rendering/IconMetrics.h"
@@ -10,7 +11,8 @@
 namespace we::editor::contentbrowser {
 namespace Chrome = ::we::editor::panels::PanelChrome;
 namespace IconMetrics = ::we::runtime::kindui::IconMetrics;
-namespace Icons = ::we::runtime::kindui::Icons;
+namespace WindIcons = ::we::runtime::kindui::WindIcons;
+using ::we::runtime::kindui::kWindIconNone;
 
 using ::we::runtime::kindui::ColorToken;
 using ::we::runtime::kindui::DPIContext;
@@ -37,7 +39,7 @@ void TreeColumnHeader::Paint(PaintContext& context) {
     Chrome::PaintListLabelBand(context, m_Geometry);
 
     const float uiScale = (std::max)(1.0f, DPIContext::GetScale());
-    const float glyphTier = static_cast<float>(IconMetrics::StandardGlyphTierPx());
+    const float glyphTier = static_cast<float>(16u);
     const float headerTextSize = ThemeMetric(MetricToken::TextSizeCaption) * uiScale;
     const float headerTextY = m_Geometry.y + (m_Geometry.height - headerTextSize) * 0.5f;
 
@@ -46,19 +48,13 @@ void TreeColumnHeader::Paint(PaintContext& context) {
     const float prefix = (ThemeMetric(MetricToken::Space2) + 2.0f * ThemeMetric(MetricToken::TreeExpanderHitSize)) * uiScale;
     const float eyeX = m_Geometry.x + pad;
     Rect eyeBand{ eyeX, m_Geometry.y, glyphTier, m_Geometry.height };
-    IconPainter::DrawIcon(
-        context,
-        Icons::EyeName,
-        IconMetrics::PlaceGlyphCentered(eyeBand, glyphTier),
-        ThemeColor(ColorToken::TextSecondary));
+    IconPainter::Draw(
+        context, WindIcons::Eye16, IconMetrics::PlaceGlyphCentered(eyeBand, 16u));
 
     const float lockX = m_Geometry.x + pad + hit;
     Rect lockBand{ lockX, m_Geometry.y, glyphTier, m_Geometry.height };
-    IconPainter::DrawIcon(
-        context,
-        Icons::LockName,
-        IconMetrics::PlaceGlyphCentered(lockBand, glyphTier),
-        ThemeColor(ColorToken::TextSecondary));
+    IconPainter::Draw(
+        context, we::runtime::kindui::kWindIconNone, IconMetrics::PlaceGlyphCentered(lockBand, 16u));
 
     const float labelX = m_Geometry.x + prefix;
     context.DrawText(

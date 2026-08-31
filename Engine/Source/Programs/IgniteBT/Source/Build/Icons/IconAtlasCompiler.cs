@@ -133,9 +133,17 @@ public static class IconAtlasCompiler
             })
             .Where(File.Exists)
             .Select(FastHash.HashFile)
-            .OrderBy(h => h, StringComparer.Ordinal)
-            .ToArray();
-        return FastHash.CombineHashes(hashes);
+            .ToList();
+
+        var kindIconsDir = Path.Combine(Path.GetDirectoryName(inputDir) ?? inputDir, "kindicons", "icons");
+        if (Directory.Exists(kindIconsDir))
+        {
+            hashes.AddRange(
+                Directory.EnumerateFiles(kindIconsDir, "icon_*.png", SearchOption.TopDirectoryOnly)
+                    .Select(FastHash.HashFile));
+        }
+
+        return FastHash.CombineHashes(hashes.OrderBy(h => h, StringComparer.Ordinal).ToArray());
     }
 
     private static bool RunCompiler(string weCliExe, string inputDir, string outputDir)

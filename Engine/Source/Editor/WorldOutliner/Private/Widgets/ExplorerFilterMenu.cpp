@@ -6,6 +6,7 @@
 #include "KindUI/Tokens/DesignToken.h"
 #include "KindUI/Theming/StyleRole.h"
 #include "KindUI/Theming/ThemeAccess.h"
+#include "KindUI/Core/WindIcon.h"
 #include "KindUI/Core/Icon.h"
 #include "KindUI/Input/InputEvents.h"
 #include "KindUI/Layout/OverlayManager.h"
@@ -20,7 +21,8 @@ using ::we::runtime::kindui::TextMetrics;
 namespace we::editor::outliner {
 using ::we::runtime::kindui::IconPainter;
 using ::we::runtime::kindui::MouseButton;
-namespace Icons = ::we::runtime::kindui::Icons;
+namespace WindIcons = ::we::runtime::kindui::WindIcons;
+using ::we::runtime::kindui::kWindIconNone;
 
 ExplorerFilterMenu::ExplorerFilterMenu(const FilterOptions& initialOptions, OnFilterChanged callback)
     : m_FilterOptions(initialOptions)
@@ -142,13 +144,13 @@ void ExplorerFilterMenu::Paint(PaintContext& context) {
             if (i >= sortStartIndex) {
                 const bool isSelected = (m_FilterOptions.sortOrder == static_cast<int>(i - sortStartIndex));
                 if (isSelected) {
-                    IconPainter::DrawIcon(context, Icons::CheckName, Rect{ checkX, checkY, checkSize, checkSize }, ThemeColor(ColorToken::AccentPrimary));
+                    IconPainter::Draw(context, WindIcons::Check16, Rect{ checkX, checkY, checkSize, checkSize });
                 }
             }
         } else {
             // Checkbox style
             if (item.value && *item.value) {
-                IconPainter::DrawIcon(context, Icons::CheckName, Rect{ checkX, checkY, checkSize, checkSize }, ThemeColor(ColorToken::AccentPrimary));
+                IconPainter::Draw(context, WindIcons::Check16, Rect{ checkX, checkY, checkSize, checkSize });
             }
         }
         

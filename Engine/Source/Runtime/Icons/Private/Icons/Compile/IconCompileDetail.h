@@ -41,4 +41,13 @@ struct ParsedAtlasDescriptor {
 [[nodiscard]] bool IsFullColorIcon(const std::string& runtimeName);
 [[nodiscard]] std::vector<std::string> RuntimeAliasesFor(const std::string& runtimeName);
 
+[[nodiscard]] std::filesystem::path ResolveKindIconsDirectory(const std::filesystem::path& atlasInputDir);
+[[nodiscard]] uint32_t ApplyKindIconsOverlay(
+    std::vector<uint8_t>& atlasRgba,
+    uint32_t atlasWidth,
+    uint32_t atlasHeight,
+    uint32_t tierPx,
+    const std::filesystem::path& kindIconsDir,
+    const std::vector<ParsedAtlasRegion>& regions);
+
 } // namespace we::runtime::icons::compiling::detail

@@ -4,9 +4,11 @@
 
 #include "KindUI/Core/Animator.h"
 #include "KindUI/Core/ControlChrome.h"
+#include "KindUI/Core/WindIcon.h"
 #include "KindUI/Core/Icon.h"
 #include "KindUI/Core/PaintContext.h"
 #include "KindUI/Core/TextMetrics.h"
+#include "KindUI/Rendering/IconMetrics.h"
 #include "KindUI/Theming/ThemeManager.h"
 #include "KindUI/Tokens/DesignToken.h"
 #include "KindUI/Theming/StyleRole.h"
@@ -40,18 +42,15 @@ void PaintIconButton(
         Color bg = accent ? LColor(ColorToken::SelectedBackground) : LColor(ColorToken::HoverBackground);
         context.DrawRoundedRect(rect, bg, radius);
     }
-    const float iconSize = 14.0f * s;
-    IconPainter::DrawIcon(
-        context,
-        icon,
-        Rect{
-            rect.x + (rect.width - iconSize) * 0.5f,
-            rect.y + (rect.height - iconSize) * 0.5f,
+    const float iconSize = LIconPx(MetricToken::IconSizeToolbar) * s;
+    IconPainter::Draw(
+        context, icon, Rect{
+            rect.x + (rect.width - iconSize) * 0.5f) * 0.5f,
             iconSize,
             iconSize
         },
         accent ? LColor(ColorToken::AccentPrimary)
-               : (hovered ? LColor(ColorToken::TextPrimary) : LColor(ColorToken::IconSecondary)));
+               : (hovered ? LColor(ColorToken::TextPrimary) : LColor(ColorToken::IconSecondary));
 }
 
 void PaintStatusDot(PaintContext& context, const Rect& row, const std::string& status, float s) {
@@ -86,15 +85,15 @@ std::string Ellipsize(const std::string& text, float maxWidth, float textSize) {
 const char* TemplateTypeIcon(const std::string& templateId) {
     if (templateId == "FirstPerson" || templateId == "ThirdPerson" || templateId == "TopDown"
         || templateId == "Vehicle") {
-        return Icons::PlayName;
+        return kWindIconNone;
     }
     if (templateId == "VR" || templateId == "AR") {
-        return Icons::Cube3DName;
+        return kWindIconNone;
     }
     if (templateId == "Blank" || templateId == "Empty") {
-        return Icons::Cube3DName;
+        return kWindIconNone;
     }
-    return Icons::LayersName;
+    return kWindIconNone;
 }
 
 Color TemplateBadgeColor(const std::string& templateId) {
@@ -195,16 +194,13 @@ void ProjectTableHeader::Paint(PaintContext& context) {
 
     // Atlas favorite glyph (Icons_Star → "star"), not the sun/light icon.
     const float starPx = 16.0f * s;
-    IconPainter::DrawIcon(
-        context,
-        "star",
-        Rect{
-            x + (cols.favorite - starPx) * 0.5f,
-            m_Geometry.y + (m_Geometry.height - starPx) * 0.5f,
+    IconPainter::Draw(
+        context, "star", Rect{
+            x + (cols.favorite - starPx) * 0.5f) * 0.5f,
             starPx,
             starPx
         },
-        LColor(ColorToken::IconSecondary));
+        LColor(ColorToken::IconSecondary);
     x += cols.favorite;
     drawCol("NAME", cols.name, m_SortMode == ProjectSortMode::Name, true);
     drawCol("MODIFIED", cols.lastOpened, m_SortMode == ProjectSortMode::Recent, true);
@@ -406,7 +402,7 @@ void ProjectTableRow::Paint(PaintContext& context) {
     PaintIconButton(
         context,
         MoreRect(),
-        Icons::MoreName,
+        WindIcons::VerticalDots16,
         m_HoverZone == HitZone::More,
         false,
         radius);
@@ -530,12 +526,9 @@ void TemplateListRow::Paint(PaintContext& context) {
         Rect{ m_Geometry.x + pad, m_Geometry.y + (m_Geometry.height - iconBox) * 0.5f, iconBox, iconBox },
         Color::Lerp(badge, LColor(ColorToken::PanelBackground), 0.5f),
         6.0f * s);
-    IconPainter::DrawIcon(
-        context,
-        TemplateTypeIcon(m_Info.id),
-        Rect{
-            m_Geometry.x + pad + 6.0f * s,
-            m_Geometry.y + (m_Geometry.height - 16.0f * s) * 0.5f,
+    IconPainter::Draw(
+        context, TemplateTypeIcon(m_Info.id), Rect{
+            m_Geometry.x + pad + 6.0f * s) * 0.5f,
             16.0f * s,
             16.0f * s
         },
@@ -670,7 +663,7 @@ void EngineInstallRow::Paint(PaintContext& context) {
         metaSize);
 
     static const char* kIcons[] = {
-        Icons::PlayName, Icons::CheckName, Icons::BuildName, Icons::OpenFolderName, Icons::DeleteName
+        kWindIconNone, WindIcons::Check16, WindIcons::Wrench16, kWindIconNone, kWindIconNone
     };
     static const HitZone kZones[] = {
         HitZone::Launch, HitZone::Verify, HitZone::Repair, HitZone::Folder, HitZone::Uninstall
@@ -836,16 +829,9 @@ void LibraryPackageRow::Paint(PaintContext& context) {
     const float pad = 10.0f * s;
     const float iconSize = 16.0f * s;
     if (m_Icon) {
-        IconPainter::DrawIcon(
-            context,
-            m_Icon,
-            Rect{
-                m_Geometry.x + pad,
-                m_Geometry.y + (m_Geometry.height - iconSize) * 0.5f,
-                iconSize,
-                iconSize
-            },
-            LColor(ColorToken::IconSecondary));
+        IconPainter::Draw(
+            context, m_Icon, Rect{ m_Geometry.x + pad, m_Geometry.y + (m_Geometry.height - iconSize) * 0.5f, iconSize, iconSize },
+            LColor(ColorToken::IconSecondary);
     }
 
     const float textX = m_Geometry.x + pad + iconSize + 10.0f * s;

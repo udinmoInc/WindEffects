@@ -18,7 +18,7 @@ using ::we::editor::docking::SplitOrientation;
 using ::we::editor::docking::DockPanelDescriptor;
 using ::we::editor::docking::DockLayoutNode;
 using ::we::editor::docking::DockNodeType;
-using ::we::editor::services::ResolvePanelTabIconName;
+using ::we::editor::services::ResolvePanelTabIcon;
 
 namespace {
 
@@ -27,7 +27,8 @@ Orientation ToOrientation(SplitOrientation orientation) {
 }
 
 std::string ResolveTabIconName(const DockPanelDescriptor& descriptor) {
-    return ResolvePanelTabIconName(descriptor.iconResource);
+    (void)descriptor;
+    return {};
 }
 
 void ApplyPanelDescriptor(const std::shared_ptr<Panel>& panel, const DockPanelDescriptor& descriptor) {
@@ -39,10 +40,7 @@ void ApplyPanelDescriptor(const std::shared_ptr<Panel>& panel, const DockPanelDe
         panel->SetTitle(descriptor.title);
     }
 
-    const std::string iconName = ResolveTabIconName(descriptor);
-    if (!iconName.empty()) {
-        panel->SetTabIcon(iconName);
-    }
+    panel->SetTabIcon(ResolvePanelTabIcon(descriptor.id));
 }
 
 void WireSplitterSlot(const std::shared_ptr<Splitter>& splitter, const DockLayoutNode& node, DockLayoutBuildResult& result) {

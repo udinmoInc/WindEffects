@@ -1099,7 +1099,7 @@ public:
         ViewportModeDescriptor desc;
         desc.id = "Landscape";
         desc.displayName = "Landscape";
-        desc.iconName = "mountain";
+        desc.icon = we::runtime::kindui::kWindIconNone;
         desc.description = "Terrain sculpt, paint, and streaming";
         desc.builtinId = ViewportModeId::Landscape;
         desc.sortOrder = 10;

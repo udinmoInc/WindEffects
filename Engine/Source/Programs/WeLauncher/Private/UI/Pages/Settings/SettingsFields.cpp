@@ -4,9 +4,10 @@
 #include "KindUI/Core/Animator.h"
 #include "KindUI/Core/ControlChrome.h"
 #include "KindUI/Core/EventSystem.h"
+#include "KindUI/Core/WindIcon.h"
 #include "KindUI/Core/Icon.h"
 #include "KindUI/Core/PaintContext.h"
-#include "KindUI/Core/TextMetrics.h"
+#include "KindUI/Rendering/IconMetrics.h"
 #include "KindUI/Core/Widgets/DesignSystemControls.h"
 #include "KindUI/Layout/Flex.h"
 #include "Platform/PlatformSDK.h"
@@ -454,17 +455,16 @@ void NumberStepper::Paint(PaintContext& context) {
     context.DrawRoundedRectOutline(m_Geometry, LColor(ColorToken::BorderDefault), 1.0f, radius);
 
     auto paintBtn = [&](const Rect& r, const char* icon, bool hot) {
+        const float glyph = LIconPx(MetricToken::IconSizeSearch) * s;
         if (hot) {
             context.DrawRoundedRect(r, LColor(ColorToken::HoverBackground), radius);
         }
-        IconPainter::DrawIcon(
-            context,
-            icon,
-            Rect{ r.x + (r.width - 12.0f * s) * 0.5f, r.y + (r.height - 12.0f * s) * 0.5f, 12.0f * s, 12.0f * s },
-            LColor(ColorToken::IconSecondary));
+        IconPainter::Draw(
+            context, icon, Rect{ r.x + (r.width - glyph) * 0.5f, r.y + (r.height - glyph) * 0.5f, glyph, glyph },
+            LColor(ColorToken::IconSecondary);
     };
-    paintBtn(MinusRect(), Icons::MinusName, m_Hover == Zone::Minus);
-    paintBtn(PlusRect(), Icons::PlusName, m_Hover == Zone::Plus);
+    paintBtn(MinusRect(), WindIcons::Minus16, m_Hover == Zone::Minus);
+    paintBtn(PlusRect(), kWindIconNone, m_Hover == Zone::Plus);
 
     char buf[48];
     if (m_Suffix == "%") {
@@ -665,17 +665,12 @@ void AppearancePreviewPanel::Paint(PaintContext& context) {
         LColor(ColorToken::TextHint),
         bodySize);
 
-    const float icon = 16.0f * s * m_UiScale;
-    IconPainter::DrawIcon(
-        context,
-        Icons::Cube3DName,
-        Rect{ card.x + card.width - icon - 14.0f * s, card.y + 14.0f * s, icon, icon },
-        accent);
-    IconPainter::DrawIcon(
-        context,
-        Icons::SettingsName,
-        Rect{ card.x + card.width - icon * 2.0f - 24.0f * s, card.y + 14.0f * s, icon, icon },
-        LColor(ColorToken::IconSecondary));
+    const float icon = LIconPx(MetricToken::IconSizeNavigation) * s;
+    const float iconY = card.y + (card.height - icon) * 0.5f;
+    IconPainter::Draw(
+        context, kWindIconNone, Rect{ card.x + card.width - icon - 14.0f * s, iconY, icon, icon });
+    IconPainter::Draw(
+        context, kWindIconNone, Rect{ card.x + card.width - icon * 2.0f - 24.0f * s, iconY, icon, icon });
 }
 
 void AppearancePreviewPanel::Tick(float deltaTime) {
