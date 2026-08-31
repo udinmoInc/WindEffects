@@ -13,6 +13,7 @@
 #include "KindUI/Core/DPIContext.h"
 #include "KindUI/Tokens/DesignToken.h"
 #include "KindUI/Theming/StyleRole.h"
+#include "KindUI/Core/WindIcon.h"
 #include "KindUI/Core/Icon.h"
 #include "KindUI/Core/ToolbarButtonChrome.h"
 #include "KindUI/Rendering/IconMetrics.h"
@@ -36,7 +37,8 @@ using ::we::runtime::world::environment::EnvironmentPreset;
 using ::we::runtime::kindui::IconPainter;
 using ::we::runtime::kindui::MouseButton;
 using ::we::runtime::kindui::Animator;
-namespace Icons = ::we::runtime::kindui::Icons;
+namespace WindIcons = ::we::runtime::kindui::WindIcons;
+using ::we::runtime::kindui::kWindIconNone;
 namespace IconMetrics = ::we::runtime::kindui::IconMetrics;
 namespace ToolbarButtonChrome = ::we::runtime::kindui::ToolbarButtonChrome;
 using ::we::runtime::kindui::DPIContext;
@@ -55,7 +57,7 @@ public:
         const float padH = we::runtime::kindui::ToolbarButtonChrome::HorizontalPad(uiScale);
         const float iconSz = we::runtime::kindui::ToolbarButtonChrome::IconSize(uiScale);
         const float iconGap = we::runtime::kindui::ToolbarButtonChrome::IconGapPx(uiScale);
-        const float chevW = static_cast<float>(we::runtime::kindui::IconMetrics::CompactGlyphTierPx());
+        const float chevW = static_cast<float>(16u);
         const float controlH = ThemeMetric(we::runtime::kindui::MetricToken::IconButtonSize) * uiScale;
         m_DesiredSize = we::runtime::kindui::Size{
             padH + iconSz + iconGap + chevW + padH,
@@ -82,19 +84,16 @@ public:
         we::runtime::kindui::Color iconColor = we::runtime::kindui::ToolbarButtonChrome::ResolveIconColor(
             m_HoverAnim, pressStrength, false);
 
-        we::runtime::kindui::IconPainter::DrawIcon(context, we::runtime::kindui::Icons::ToolbarEnvironmentName,
+        we::runtime::kindui::IconPainter::Draw(
+            context, we::runtime::kindui::kWindIconNone,
             we::runtime::kindui::ToolbarButtonChrome::PlaceIconInControl(
-                we::runtime::kindui::Rect{ m_Geometry.x + padH, centerY - iconSize * 0.5f, iconSize, iconSize },
-                iconSize),
-            iconColor);
+                we::runtime::kindui::Rect{ m_Geometry.x + padH, m_Geometry.y, iconSize, m_Geometry.height },
+                iconSize));
 
-        const float tier = static_cast<float>(we::runtime::kindui::IconMetrics::CompactGlyphTierPx());
+        const float tier = static_cast<float>(16u);
         const float chevronX = m_Geometry.x + m_Geometry.width - padH - tier;
-        we::runtime::kindui::IconPainter::DrawCompactIcon(
-            context,
-            we::runtime::kindui::Icons::ChevronDownName,
-            we::runtime::kindui::IconMetrics::CompactGlyphBand(m_Geometry, chevronX),
-            iconColor);
+        we::runtime::kindui::IconPainter::Draw(
+            context, we::runtime::kindui::WindIcons::ChevronDown16, we::runtime::kindui::IconMetrics::CompactGlyphBand(m_Geometry, chevronX));
     }
 
     void OnMouseMove(const we::runtime::kindui::MouseEvent& event) override {

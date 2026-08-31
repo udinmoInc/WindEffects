@@ -6,7 +6,7 @@
 #include "KindUI/Layout/Flex.h"
 #include "KindUI/Layout/Spacer.h"
 #include "KindUI/Core/Style.h"
-#include "KindUI/Core/Icon.h"
+#include "KindUI/Core/WindIcon.h"
 #include "Widgets/ToolButton.h"
 #include <string>
 #include <functional>
@@ -54,15 +54,14 @@ public:
     bool ShowsPointerCursor(const Point& position) const override;
 
     // Tool management
-    std::shared_ptr<ToolButton> AddTool(const std::string& iconName, const std::string& label, std::function<void()> onClick, const std::string& tooltip = "", bool isPlayButton = false, ToolbarAlignment align = ToolbarAlignment::Left);
+    std::shared_ptr<ToolButton> AddTool(we::runtime::kindui::WindIconRef icon, const std::string& label, std::function<void()> onClick, const std::string& tooltip = "", bool isPlayButton = false, ToolbarAlignment align = ToolbarAlignment::Left);
     void AddSeparator(ToolbarAlignment align = ToolbarAlignment::Left);
     void AddWidget(std::shared_ptr<Widget> widget, ToolbarAlignment align = ToolbarAlignment::Left);
     void AddGroup(std::shared_ptr<Widget> group, ToolbarAlignment align = ToolbarAlignment::Left);
     void Clear();
 
     // Active tool management
-    void SetActiveTool(const std::string& iconName);
-    std::string GetActiveTool() const { return m_ActiveTool; }
+    void SetActiveTool(we::runtime::kindui::WindIconRef icon);
 
     // Styling
     void SetHeight(float height) { m_Height = height; }
@@ -75,14 +74,14 @@ public:
 
 private:
     struct ToolInfo {
-        std::string iconName;
+        we::runtime::kindui::WindIconRef icon = we::runtime::kindui::kWindIconNone;
         std::shared_ptr<Widget> button;
         bool isSeparator = false;
         ToolbarAlignment align = ToolbarAlignment::Left;
     };
 
     std::vector<ToolInfo> m_Tools;
-    std::string m_ActiveTool;
+    we::runtime::kindui::WindIconRef m_ActiveTool = we::runtime::kindui::kWindIconNone;
     
     float m_Height = 0.0f; // resolved in constructor from ToolbarHeight token
     float m_IconSize = 0.0f;

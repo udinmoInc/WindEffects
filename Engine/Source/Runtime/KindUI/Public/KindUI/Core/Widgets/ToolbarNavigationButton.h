@@ -4,16 +4,15 @@
 #include "KindUI/Core/Widgets/ToolbarGlyphButton.h"
 
 #include <functional>
-#include <string>
 #include "KindUI/Tokens/DesignToken.h"
 
 namespace we::runtime::kindui {
 
 class KINDUI_API ToolbarNavigationButton : public ToolbarGlyphButton {
 public:
-    explicit ToolbarNavigationButton(const std::string& iconName, const char* tooltip = nullptr)
+    explicit ToolbarNavigationButton(WindIconRef icon, const char* tooltip = nullptr)
         : ToolbarGlyphButton(
-            iconName,
+            icon,
             StyleRole::NavigationButton,
             MetricToken::NavigationButtonSize,
             MetricToken::IconSizeNavigation)

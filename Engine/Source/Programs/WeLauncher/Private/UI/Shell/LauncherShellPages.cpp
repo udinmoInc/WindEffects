@@ -14,6 +14,7 @@
 #include "Util/PathUtils.h"
 
 #include "KindUI/Core/EventSystem.h"
+#include "KindUI/Core/WindIcon.h"
 #include "KindUI/Core/Icon.h"
 #include "KindUI/Core/PaintContext.h"
 #include "KindUI/Core/Widgets/DesignSystemControls.h"
@@ -77,12 +78,12 @@ LearnPageModel LauncherShell::BuildLearnPageModel() {
     model.chrome.onSearchChanged = [this](const std::string& text) { OnSearchChanged(text); };
 
     model.chrome.toolbarActions.push_back(UI::Host([this]() {
-        auto btn = MakeSecondaryAction("Open Docs", Icons::DocumentName);
+        auto btn = MakeSecondaryAction("Open Docs", kWindIconNone);
         btn->SetOnClicked([this] { SetStatus("Documentation ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â coming soon"); });
         return btn;
     }));
     model.chrome.toolbarActions.push_back(UI::Host([this]() {
-        auto btn = MakeSecondaryAction("Refresh", Icons::RefreshName);
+        auto btn = MakeSecondaryAction("Refresh", WindIcons::Refresh16);
         btn->SetOnClicked([this] {
             MarkPageDirty(LauncherPage::Learn);
             EnsurePageBuilt(LauncherPage::Learn);
@@ -94,17 +95,17 @@ LearnPageModel LauncherShell::BuildLearnPageModel() {
 
     const std::vector<LearnEntryModel> allEntries = {
         { "Guide", "Create your first project", "Walk through New Project and open it in the editor",
-          Icons::PlusName, [this] { ShowCreateWizard(); } },
+          kWindIconNone, [this] { ShowCreateWizard(); } },
         { "Guide", "Open documentation", "API reference and engine guides",
-          Icons::DocumentName, [this] { SetStatus("Documentation ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â coming soon"); } },
+          kWindIconNone, [this] { SetStatus("Documentation ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â coming soon"); } },
         { "Guide", "Explore the engine install", "Verify SDK health and local builds",
-          Icons::BuildName, [this] { GoToPage(LauncherPage::Engine); } },
+          WindIcons::Wrench16, [this] { GoToPage(LauncherPage::Engine); } },
         { "Sample", "First Person Demo", "Movement and camera baseline",
-          Icons::PlayName, [this] { SetStatus("Sample projects ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â coming soon"); } },
+          kWindIconNone, [this] { SetStatus("Sample projects ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â coming soon"); } },
         { "Sample", "Atmosphere Showcase", "Sky, clouds, and fog overview",
-          Icons::SunName, [this] { SetStatus("Sample projects ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â coming soon"); } },
+          WindIcons::Sun16, [this] { SetStatus("Sample projects ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â coming soon"); } },
         { "Sample", "ECS Sandbox", "Entity component patterns",
-          Icons::ComponentName, [this] { SetStatus("Sample projects ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â coming soon"); } },
+          kWindIconNone, [this] { SetStatus("Sample projects ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â coming soon"); } },
     };
 
     const std::string query = ToLowerCopy(m_SearchQuery);
@@ -141,7 +142,7 @@ EnginePageModel LauncherShell::BuildEnginePageModel() {
     model.chrome.onSearchChanged = [this](const std::string& text) { OnSearchChanged(text); };
 
     model.chrome.toolbarActions.push_back(UI::Host([this]() {
-        auto btn = MakeSecondaryAction("Refresh", Icons::RefreshName);
+        auto btn = MakeSecondaryAction("Refresh", WindIcons::Refresh16);
         btn->SetOnClicked([this] {
             UpdateFooter();
             MarkPageDirty(LauncherPage::Engine);

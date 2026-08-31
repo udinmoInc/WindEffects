@@ -5,6 +5,7 @@
 #include "KindUI/Core/ControlChrome.h"
 #include "KindUI/Core/DPIContext.h"
 #include "KindUI/Core/EventSystem.h"
+#include "KindUI/Core/WindIcon.h"
 #include "KindUI/Core/Icon.h"
 #include "KindUI/Core/PaintContext.h"
 #include "KindUI/Core/TextMetrics.h"
@@ -98,7 +99,7 @@ void SectionCard::Tick(float deltaTime) {
 EmptyStatePanel::EmptyStatePanel(std::string title, std::string subtitle, const char* iconName)
     : m_Title(std::move(title))
     , m_Subtitle(std::move(subtitle))
-    , m_Icon(iconName && iconName[0] ? iconName : Icons::Cube3DName) {
+    , m_Icon(iconName && iconName[0] ? iconName : kWindIconNone) {
 }
 
 void EmptyStatePanel::SetPrimaryAction(std::string label, const char* icon, std::function<void()> onClick) {
@@ -151,7 +152,9 @@ void EmptyStatePanel::Arrange(const Rect& allottedRect) {
 
     const float titleSize = LMetric(MetricToken::TextSizeHeader) * s;
     const float subSize = LMetric(MetricToken::TextSizeBody) * s;
-    const float iconSize = hasIcon ? 72.0f * s : 0.0f;
+    const float iconSize = hasIcon
+        ? static_cast<float>(16u) * s
+        : 0.0f;
     float blockH = titleSize;
     if (hasIcon) {
         blockH += iconSize + LMetric(MetricToken::Space3) * s;
@@ -208,7 +211,9 @@ void EmptyStatePanel::Paint(PaintContext& context) {
 
     const float titleSize = LMetric(MetricToken::TextSizeHeader) * s;
     const float subSize = LMetric(MetricToken::TextSizeBody) * s;
-    const float iconSize = hasIcon ? 72.0f * s : 0.0f;
+    const float iconSize = hasIcon
+        ? static_cast<float>(16u) * s
+        : 0.0f;
     float blockH = titleSize;
     if (hasIcon) {
         blockH += iconSize + LMetric(MetricToken::Space3) * s;
@@ -223,13 +228,9 @@ void EmptyStatePanel::Paint(PaintContext& context) {
 
     float y = blockTop;
     if (hasIcon) {
-        Color iconColor = LColor(ColorToken::IconPrimary);
-        iconColor.a *= 0.45f;
-        IconPainter::DrawIcon(
-            context,
-            m_Icon,
-            Rect{ cx - iconSize * 0.5f, y, iconSize, iconSize },
-            iconColor);
+        Color iconColor = LColor(ColorToken::IconSecondary);
+        IconPainter::Draw(
+            context, m_Icon, Rect{ cx - iconSize * 0.5f, y, iconSize, iconSize });
         y += iconSize + LMetric(MetricToken::Space3) * s;
     }
 
@@ -273,7 +274,7 @@ void EmptyStatePanel::Paint(PaintContext& context) {
             context.DrawRoundedRectOutline(r, LColor(ColorToken::BorderDefault), 1.0f, radius);
         }
 
-        const float glyph = 14.0f * s;
+        const float glyph = LIconPx(MetricToken::IconSizeToolbar) * s;
         const float textSize = LMetric(MetricToken::TextSizeToolbar) * s;
         float contentW = context.GetTextWidth(label, textSize);
         if (icon && icon[0]) {
@@ -284,10 +285,8 @@ void EmptyStatePanel::Paint(PaintContext& context) {
             ? Color{ 1.0f, 1.0f, 1.0f, 1.0f }
             : LColor(ColorToken::TextPrimary);
         if (icon && icon[0]) {
-            IconPainter::DrawIcon(
-                context,
-                icon,
-                Rect{ x, r.y + (r.height - glyph) * 0.5f, glyph, glyph },
+            IconPainter::Draw(
+                context, icon, Rect{ x) * 0.5f, glyph, glyph },
                 fg);
             x += glyph + 6.0f * s;
         }
@@ -379,7 +378,7 @@ void ProjectsEmptyState::LayoutContent() {
     const float openW = 148.0f * s;
     const float gap = 8.0f * s;
 
-    const float iconSize = 68.0f * s;
+    const float iconSize = static_cast<float>(16u) * s;
     const float blockH = iconSize + 16.0f * s + 28.0f * s + 8.0f * s + 40.0f * s
         + 16.0f * s + btnH + 28.0f * s + 52.0f * s;
     const float blockTop = m_Geometry.y + std::max(16.0f * s, (m_Geometry.height - blockH) * 0.5f);
@@ -407,16 +406,13 @@ void ProjectsEmptyState::Paint(PaintContext& context) {
 
     LayoutContent();
     const float cx = m_Geometry.x + m_Geometry.width * 0.5f;
-    const float iconSize = 68.0f * s;
+    const float iconSize = static_cast<float>(16u) * s;
     const float blockH = iconSize + 16.0f * s + 28.0f * s + 8.0f * s + 40.0f * s
         + 16.0f * s + 34.0f * s + 28.0f * s + 52.0f * s;
     const float blockTop = m_Geometry.y + std::max(16.0f * s, (m_Geometry.height - blockH) * 0.5f);
 
-    IconPainter::DrawIcon(
-        context,
-        Icons::OpenFolderName,
-        Rect{ cx - iconSize * 0.5f, blockTop, iconSize, iconSize },
-        LColor(ColorToken::IconPrimary));
+    IconPainter::Draw(
+        context, kWindIconNone, Rect{ cx - iconSize * 0.5f, blockTop, iconSize, iconSize });
 
     float y = blockTop + iconSize + 16.0f * s;
     const float titleSize = LMetric(MetricToken::TextSizeHeader) * s;
@@ -589,18 +585,15 @@ void CompactSearchField::Paint(PaintContext& context) {
     ControlChrome::PaintSearchInputFrame(context, m_Geometry, state);
 
     const float s = LScale();
-    const float iconSize = kLauncherIconPx * s;
+    const float iconSize = LIconPx(MetricToken::IconSizeSearch) * s;
     const float pad = 10.0f * s;
-    IconPainter::DrawIcon(
-        context,
-        Icons::SearchName,
-        Rect{
-            std::round(m_Geometry.x + pad),
-            std::round(m_Geometry.y + (m_Geometry.height - iconSize) * 0.5f),
+    IconPainter::Draw(
+        context, WindIcons::Search16, Rect{
+            std::round(m_Geometry.x + pad)) * 0.5f),
             iconSize,
             iconSize
         },
-        LColor(ColorToken::IconSecondary));
+        LColor(ColorToken::IconSecondary);
 
     const float textSize = LMetric(MetricToken::TextSizeBody) * s;
     const bool empty = m_Text.empty();

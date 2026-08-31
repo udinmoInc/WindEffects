@@ -13,6 +13,7 @@
 #include "KindUI/Rendering/IconMetrics.h"
 #include "KindUI/Tokens/DesignToken.h"
 #include "KindUI/Theming/StyleRole.h"
+#include "KindUI/Core/WindIcon.h"
 #include "KindUI/Core/Icon.h"
 #include "KindUI/Core/UIRepaintGate.h"
 #include <algorithm>
@@ -30,7 +31,8 @@ using ::we::runtime::kindui::IconPainter;
 using ::we::runtime::kindui::UIRepaintGate;
 namespace PanelChrome = ::we::editor::panels::PanelChrome;
 namespace IconMetrics = ::we::runtime::kindui::IconMetrics;
-namespace Icons = ::we::runtime::kindui::Icons;
+namespace WindIcons = ::we::runtime::kindui::WindIcons;
+using ::we::runtime::kindui::kWindIconNone;
 
 
 namespace {
@@ -289,12 +291,13 @@ void ContentBrowser::PaintAssetThumbnail(PaintContext& context, const Rect& thum
             thumbRect.y + (thumbRect.height - iconSize) * 0.5f,
             iconSize, iconSize
         };
-        IconPainter::DrawIcon(context, item.iconName, iconRect, ThemeColor(ColorToken::IconPrimary));
+        IconPainter::Draw(context, item.icon, iconRect);
     }
 
     if (item.isFavorite) {
-        Rect star{ thumbRect.x + thumbRect.width - 16.0f, thumbRect.y + 4.0f, 12.0f, 12.0f };
-        IconPainter::DrawIcon(context, Icons::StarFilledName, star, accent);
+        const float starSize = 16.0f;
+        Rect star{ thumbRect.x + thumbRect.width - starSize - 4.0f, thumbRect.y + 4.0f, starSize, starSize };
+        IconPainter::Draw(context, kWindIconNone, star);
     }
     if (item.isDirty) {
         Rect dot{ thumbRect.x + 4.0f, thumbRect.y + 4.0f, 6.0f, 6.0f };
@@ -400,7 +403,7 @@ void ContentBrowser::PaintListItem(PaintContext& context, const RenderItem& rend
         PanelChrome::PaintListRowBackground(context, renderItem.geometry, hovered, selected, IsFocused());
     }
 
-    const float iconSize = static_cast<float>(IconMetrics::NativeIconTierPx(ThemeMetric(MetricToken::IconSizeTree)));
+    const float iconSize = 16.0f;
     const float iconX = renderItem.geometry.x + PanelChrome::PanelPaddingH();
     const float iconY = renderItem.geometry.y + (renderItem.geometry.height - iconSize) * 0.5f;
     Rect iconRect{ iconX, iconY, iconSize, iconSize };
@@ -412,7 +415,7 @@ void ContentBrowser::PaintListItem(PaintContext& context, const RenderItem& rend
     } else if (item.iconTexture != we::rhi::RHIDescriptorSetHandle::Invalid) {
         context.DrawTexture(iconRect, item.iconTexture);
     } else {
-        IconPainter::DrawIcon(context, item.iconName, iconRect, ThemeColor(ColorToken::IconPrimary));
+        IconPainter::Draw(context, item.icon, iconRect);
     }
 
     const float nameX = iconX + iconSize + ThemeMetric(MetricToken::Space2);
@@ -826,7 +829,7 @@ void ContentBrowserStatusBar::Paint(PaintContext& context) {
         text += "  ·  " + std::to_string(m_SelectedCount) + " selected";
     }
     const float textY = m_Geometry.y + (m_Geometry.height - textSize) * 0.5f;
-    context.DrawText(text, Point{ m_Geometry.x + ThemeMetric(MetricToken::Space3), textY }, ThemeColor(ColorToken::TextSecondary), textSize);
+    context.DrawText(text, Point{ m_Geometry.x + ThemeMetric(MetricToken::Space3), textY }, ThemeColor(ColorToken::TextPrimary), textSize);
 }
 
 Breadcrumb::Breadcrumb() = default;
@@ -847,7 +850,7 @@ void Breadcrumb::Paint(PaintContext& context) {
         Rect{ m_Geometry.x, m_Geometry.y + m_Geometry.height - ThemeMetric(MetricToken::BorderWidth), m_Geometry.width, ThemeMetric(MetricToken::BorderWidth) },
         ThemeColor(ColorToken::Separator));
 
-    const float iconSize = ThemeMetric(MetricToken::IconSizePrimary);
+    const float iconSize = ThemeMetric(MetricToken::IconSizeToolbar);
     const float padH = ThemeMetric(MetricToken::Space3);
     const float iconY = m_Geometry.y + (m_Geometry.height - iconSize) * 0.5f;
     ContentBrowserFolderArt::Get().PaintSmallIcon(context,
@@ -913,7 +916,7 @@ void Breadcrumb::Clear() {
 }
 
 void Breadcrumb::CalculateLayout() {
-    const float iconSize = ThemeMetric(MetricToken::IconSizePrimary);
+    const float iconSize = ThemeMetric(MetricToken::IconSizeToolbar);
     const float padH = ThemeMetric(MetricToken::Space3);
     const float textSize = ThemeMetric(MetricToken::TextSizeNormal);
     const float crumbPadH = ThemeMetric(MetricToken::Space2);

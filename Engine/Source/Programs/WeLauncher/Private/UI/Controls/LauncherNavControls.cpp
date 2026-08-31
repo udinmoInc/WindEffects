@@ -5,6 +5,7 @@
 #include "KindUI/Core/ControlChrome.h"
 #include "KindUI/Core/DPIContext.h"
 #include "KindUI/Core/EventSystem.h"
+#include "KindUI/Core/WindIcon.h"
 #include "KindUI/Core/Icon.h"
 #include "KindUI/Core/PaintContext.h"
 #include "KindUI/Core/TextMetrics.h"
@@ -26,10 +27,10 @@ using we::runtime::kindui::PaddingToken;
 using namespace launcher_controls_detail;
 NavSidebar::NavSidebar() {
     m_Items = {
-        { LauncherPage::Projects, "Projects", Icons::OpenFolderName },
-        { LauncherPage::Learn, "Learn", Icons::MediaPlayName },
-        { LauncherPage::Engine, "Engine", Icons::BuildName },
-        { LauncherPage::Settings, "Settings", Icons::SettingsName },
+        { LauncherPage::Projects, "Projects", kWindIconNone },
+        { LauncherPage::Learn, "Learn", kWindIconNone },
+        { LauncherPage::Engine, "Engine", WindIcons::Wrench16 },
+        { LauncherPage::Settings, "Settings", kWindIconNone },
     };
     m_WidthAnim = kLauncherNavWidth;
     SetFlexShrink(0.0f);
@@ -149,12 +150,9 @@ void NavSidebar::Paint(PaintContext& context) {
         const float iconSize = kLauncherIconPx * s;
         const float iconPad = kLauncherNavIconTextGap * s;
         const float iconX = r.x + (m_Collapsed ? (r.width - iconSize) * 0.5f : iconPad);
-        IconPainter::DrawIcon(
-            context,
-            item.icon,
-            Rect{
-                std::round(iconX),
-                std::round(r.y + (r.height - iconSize) * 0.5f),
+        IconPainter::Draw(
+            context, item.icon, Rect{
+                std::round(iconX)) * 0.5f),
                 iconSize,
                 iconSize
             },
@@ -258,7 +256,7 @@ void SearchField::Arrange(const Rect& allottedRect) {
 
 Rect SearchField::ClearRect() const {
     const float s = LScale();
-    const float size = 14.0f * s;
+    const float size = LIconPx(MetricToken::IconSizeSearch) * s;
     return Rect{
         m_Geometry.x + m_Geometry.width - size - 8.0f * s,
         m_Geometry.y + (m_Geometry.height - size) * 0.5f,
@@ -283,13 +281,11 @@ void SearchField::Paint(PaintContext& context) {
     }
     context.DrawRoundedRectOutline(m_Geometry, border, 1.0f, radius);
 
-    const float iconSize = static_cast<float>(IconMetrics::NativeIconTierPx(LMetric(MetricToken::IconSizeSearch)));
+    const float iconSize = 16.0f;
     const float pad = 10.0f * s;
-    IconPainter::DrawIcon(
-        context,
-        Icons::SearchName,
-        Rect{ m_Geometry.x + pad, m_Geometry.y + (m_Geometry.height - iconSize) * 0.5f, iconSize, iconSize },
-        LColor(ColorToken::IconSecondary));
+    IconPainter::Draw(
+        context, WindIcons::Search16, Rect{ m_Geometry.x + pad, m_Geometry.y + (m_Geometry.height - iconSize) * 0.5f, iconSize, iconSize },
+        LColor(ColorToken::IconSecondary);
 
     const float textSize = LMetric(MetricToken::TextSizeBody) * s;
     const float textX = m_Geometry.x + pad + iconSize + 8.0f * s;
@@ -298,7 +294,7 @@ void SearchField::Paint(PaintContext& context) {
         context.DrawText(m_Placeholder, Point{ textX, textY }, LColor(ColorToken::SearchPlaceholder), textSize);
     } else {
         context.DrawText(m_Text, Point{ textX, textY }, LColor(ColorToken::TextPrimary), textSize);
-        IconPainter::DrawIcon(context, Icons::XName, ClearRect(), LColor(ColorToken::IconSecondary));
+        IconPainter::Draw(context, WindIcons::Close16, ClearRect());
     }
 
     if (m_Focused && m_ShowCaret) {
@@ -456,15 +452,13 @@ void SegmentedControl::Paint(PaintContext& context) {
                 radius - 1.0f);
         }
 
-        const float iconSize = 14.0f * s;
+        const float iconSize = LIconPx(MetricToken::IconSizeToolbar) * s;
         const std::string& icon = (i < static_cast<int>(m_Icons.size()))
             ? m_Icons[static_cast<std::size_t>(i)]
             : m_Labels[static_cast<std::size_t>(i)];
-        IconPainter::DrawIcon(
-            context,
-            icon,
-            Rect{ r.x + (r.width - iconSize) * 0.5f, r.y + (r.height - iconSize) * 0.5f, iconSize, iconSize },
-            selected ? LColor(ColorToken::TextPrimary) : LColor(ColorToken::IconSecondary));
+        IconPainter::Draw(
+            context, icon, Rect{ r.x + (r.width - iconSize) * 0.5f, r.y + (r.height - iconSize) * 0.5f, iconSize, iconSize },
+            selected ? LColor(ColorToken::TextPrimary) : LColor(ColorToken::IconSecondary);
     }
 }
 
@@ -535,7 +529,7 @@ void StatusFooter::Paint(PaintContext& context) {
 
     const float textSize = LMetric(MetricToken::TextSizeCaption) * s;
     const float pad = kLauncherContentPadX * s;
-    const float iconPx = 14.0f * s;
+    const float iconPx = LIconPx(MetricToken::IconSizeSearch) * s;
     const float iconGap = 6.0f * s;
     const float textY = m_Geometry.y + (m_Geometry.height - textSize) * 0.5f;
     const float iconY = m_Geometry.y + (m_Geometry.height - iconPx) * 0.5f;
@@ -543,11 +537,8 @@ void StatusFooter::Paint(PaintContext& context) {
     const Color textColor = LColor(ColorToken::TextSecondary);
 
     float leftX = m_Geometry.x + pad;
-    IconPainter::DrawIcon(
-        context,
-        Icons::InfoName,
-        Rect{ leftX, iconY, iconPx, iconPx },
-        iconColor);
+    IconPainter::Draw(
+        context, kWindIconNone, Rect{ leftX, iconY, iconPx, iconPx });
     leftX += iconPx + iconGap;
     context.DrawText(m_Status, Point{ leftX, textY }, textColor, textSize);
 
@@ -558,12 +549,9 @@ void StatusFooter::Paint(PaintContext& context) {
         context.DrawText(m_SdkSummary, Point{ rightX, textY }, textColor, textSize);
         rightX -= iconGap;
         rightX -= iconPx;
-        IconPainter::DrawIcon(
-            context,
-            Icons::PackageName,
-            Rect{ rightX, iconY, iconPx, iconPx },
-            iconColor);
-        rightX -= 14.0f * s;
+        IconPainter::Draw(
+            context, kWindIconNone, Rect{ rightX, iconY, iconPx, iconPx });
+        rightX -= LIconPx(MetricToken::IconSizeSearch) * s;
     }
     if (!m_EngineLabel.empty()) {
         const float engW = context.GetTextWidth(m_EngineLabel, textSize);
@@ -571,11 +559,8 @@ void StatusFooter::Paint(PaintContext& context) {
         context.DrawText(m_EngineLabel, Point{ rightX, textY }, textColor, textSize);
         rightX -= iconGap;
         rightX -= iconPx;
-        IconPainter::DrawIcon(
-            context,
-            Icons::BuildName,
-            Rect{ rightX, iconY, iconPx, iconPx },
-            iconColor);
+        IconPainter::Draw(
+            context, WindIcons::Wrench16, Rect{ rightX, iconY, iconPx, iconPx });
     }
 }
 

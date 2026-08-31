@@ -4,6 +4,7 @@
 #include "KindUI/Rendering/FontImportService.h"
 #include "KindUI/Rendering/OverlayRenderer.h"
 #include "Rendering/UiDebugImageWriter.h"
+#include "Text/Assets/FontAsset.h"
 #include "Core/AssetRegistry.h"
 #include "Core/Logger.h"
 #include "Core/Paths.h"
@@ -17,7 +18,7 @@ namespace we::runtime::kindui {
 
 namespace {
 
-constexpr float kFontBakeSizePx = 18.0f;
+constexpr float kFontBakeSizePx = 24.0f;
 
 inline float SnapPx(const float v) {
     return std::floor(v + 0.5f);
@@ -39,12 +40,33 @@ std::filesystem::path ResolveTtfPath(const std::string& baseName) {
     return {};
 }
 
+bool NeedsFontRebake(const std::filesystem::path& wefontPath) {
+    const auto loaded = we::runtime::text::assets::FontAssetReader::LoadFromFile(wefontPath);
+    if (!loaded.ok) {
+        return true;
+    }
+    return loaded.value.metrics.bakeSizePx + 0.5f < kFontBakeSizePx;
+}
+
 std::filesystem::path EnsureWeFontAsset(const std::string& baseName) {
+    const auto ttfPath = ResolveTtfPath(baseName);
     if (const auto existing = ResolveWeFontPath(baseName); !existing.empty()) {
-        return existing;
+        if (!NeedsFontRebake(existing) || ttfPath.empty()) {
+            return existing;
+        }
+        // Rebake at higher resolution for sharper small-size text.
+        try {
+            if (!FontImportService::ImportFontFile(ttfPath, ttfPath.parent_path(), kFontBakeSizePx, "basic")) {
+                WE_LOG_WARN("TextUIService", "Font rebake failed for " + baseName + "; using existing asset.");
+                return existing;
+            }
+        } catch (const std::exception& ex) {
+            WE_LOG_WARN("TextUIService", std::string("Font rebake exception: ") + ex.what());
+            return existing;
+        }
+        return ResolveWeFontPath(baseName);
     }
 
-    const auto ttfPath = ResolveTtfPath(baseName);
     if (ttfPath.empty()) {
         return {};
     }

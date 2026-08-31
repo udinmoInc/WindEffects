@@ -3,6 +3,7 @@
 #include "UI/Pages/Projects/ProjectsCommands.h"
 #include "UI/Pages/Projects/ProjectsViewModel.h"
 
+#include "KindUI/Core/WindIcon.h"
 #include "KindUI/Core/Icon.h"
 #include "KindUI/Core/Widgets/DesignSystemControls.h"
 #include "KindUI/Declarative/UI.h"
@@ -25,7 +26,7 @@ Element LeftActions(const ProjectsViewModel& vm) {
         actions.push_back(UI::AlignStart(UI::Style(
             UI::Id(UI::Host([commands]() {
                 auto btn = MakeSecondaryAction(
-                    Resources::OpenProjectLabel, Icons::OpenFolderName);
+                    Resources::OpenProjectLabel, kWindIconNone);
                 btn->SetOnClicked([cmd = commands->BrowseProject] {
                     if (cmd && cmd->CanExecute({})) {
                         cmd->Execute({});
@@ -38,7 +39,7 @@ Element LeftActions(const ProjectsViewModel& vm) {
         actions.push_back(UI::AlignStart(UI::Style(
             UI::Id(UI::Host([commands]() {
                 auto btn = MakePrimaryAction(
-                    Resources::NewProjectLabel, Icons::PlusName);
+                    Resources::NewProjectLabel, kWindIconNone);
                 btn->SetOnClicked([cmd = commands->NewProject] {
                     if (cmd && cmd->CanExecute({})) {
                         cmd->Execute({});
@@ -158,7 +159,7 @@ Element ProjectsEmptyState(const ProjectsViewModel& vm) {
                 return std::make_shared<EmptyStatePanel>(
                     Resources::EmptyNoProjectsTitle,
                     Resources::EmptyNoProjectsSubtitle,
-                    Icons::Cube3DName);
+                    kWindIconNone);
             })),
             Styles::EmptyState);
     }
@@ -168,11 +169,11 @@ Element ProjectsEmptyState(const ProjectsViewModel& vm) {
             auto empty = std::make_shared<EmptyStatePanel>(
                 Resources::EmptyNoMatchesTitle,
                 Resources::EmptyNoMatchesSubtitle,
-                Icons::SearchName);
+                WindIcons::Search16);
             if (commands && commands->ClearSearch) {
                 empty->SetPrimaryAction(
                     Resources::ClearSearchLabel,
-                    Icons::RefreshName,
+                    WindIcons::Refresh16,
                     [cmd = commands->ClearSearch] {
                         if (cmd && cmd->CanExecute({})) {
                             cmd->Execute({});

@@ -7,6 +7,7 @@
 #include "KindUI/Theming/ThemeAccess.h"
 #include "KindUI/Tokens/DesignToken.h"
 #include "KindUI/Theming/StyleRole.h"
+#include "KindUI/Core/WindIcon.h"
 #include "KindUI/Core/Icon.h"
 #include "KindUI/Core/DPIContext.h"
 #include "KindUI/Rendering/IconMetrics.h"
@@ -16,7 +17,8 @@
 namespace we::programs::editor {
 using ::we::runtime::kindui::DPIContext;
 using ::we::runtime::kindui::IconPainter;
-namespace Icons = ::we::runtime::kindui::Icons;
+namespace WindIcons = ::we::runtime::kindui::WindIcons;
+using ::we::runtime::kindui::kWindIconNone;
 namespace IconMetrics = ::we::runtime::kindui::IconMetrics;
 
 
@@ -27,12 +29,11 @@ using ::we::runtime::kindui::Rect;
 using ::we::runtime::kindui::ColorToken;
 using ::we::runtime::kindui::MetricToken;
 using ::we::runtime::kindui::PaddingToken;
-namespace WEIcons = we::runtime::kindui::Icons;
 
 namespace {
 
 Rect FavoriteStarRect(const Rect& cardBounds) {
-    const float starSize = static_cast<float>(we::runtime::kindui::IconMetrics::StandardGlyphTierPx());
+    const float starSize = static_cast<float>(16u);
     return Rect{
         cardBounds.x + cardBounds.width - starSize - 4.0f,
         cardBounds.y + 4.0f,
@@ -91,7 +92,7 @@ void PlaceActorsActorCard::Paint(PaintContext& context,
         const Color starColor = favorite
             ? we::runtime::kindui::ResolveColor(ColorToken::Warning)
             : we::runtime::kindui::ResolveColor(ColorToken::IconPrimary);
-        we::runtime::kindui::IconPainter::DrawIcon(context, WEIcons::StarName, starRect, starColor);
+        we::runtime::kindui::IconPainter::Draw(context, we::runtime::kindui::kWindIconNone, starRect);
     }
 }
 

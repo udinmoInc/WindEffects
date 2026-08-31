@@ -59,11 +59,24 @@ float sdRoundBox(float2 p, float2 b, float r)
     return min(max(q.x, q.y), 0.0) + length(max(q, 0.0)) - r;
 }
 
-// Smoothstep for anti-aliasing
-float smoothstepAA(float edge0, float edge1, float x)
+// Screen-space anti-aliasing width for analytic SDF shapes (~1 pixel feather).
+float sdfFeather(float dist)
 {
-    float t = clamp((x - edge0) / (edge1 - edge0), 0.0, 1.0);
-    return t * t * (3.0 - 2.0 * t);
+    return max(fwidth(dist), 0.75);
+}
+
+// Smooth coverage for filled SDF shapes (rects, shadows).
+float sdfFillAlpha(float dist)
+{
+    float w = sdfFeather(dist);
+    return 1.0 - smoothstep(-w * 0.5, w * 0.5, dist);
+}
+
+// Smooth coverage for SDF border rings.
+float sdfBorderAlpha(float edgeDist)
+{
+    float w = sdfFeather(edgeDist);
+    return 1.0 - smoothstep(-w * 0.5, w * 0.5, edgeDist);
 }
 
 float median3(float r, float g, float b)
@@ -93,9 +106,6 @@ float4 PSMain(VSOutput input) : SV_Target
         float spr = screenPxRange(input.uv, max(input.sdfParams.z, 1.0), float2(atlasW, atlasH));
         float opacity = saturate((sd - 0.5) * spr + 0.5);
 
-        // Basic gamma-aware edge response to reduce dark fringes/halos.
-        opacity = pow(opacity, 1.0 / 1.1);
-
         float4 outColor = input.color;
         outColor.a *= opacity;
         return outColor;
@@ -103,36 +113,19 @@ float4 PSMain(VSOutput input) : SV_Target
 
     // Type 0.0 is Texture/Icon bitmap.
     // Icons/thumbnails store coverage in alpha; vertex color carries the tint.
+    // Flat mono tint — no baked shadow/highlight layers (keeps icons crisp on dark UI).
     if (type < 0.5)
     {
-        uint atlasW = 0, atlasH = 0;
-        texSampler.GetDimensions(atlasW, atlasH);
-        
-        // 1 px offset in Y for depth effect
-        float2 dy = float2(0.0, 1.0 / (float)atlasH);
-
+        // Nearest-filtered icon atlases: sample alpha only, preserve tint color exactly.
         float coverage = texSampler.Sample(samp0, input.uv).a;
-        float shadowCov = texSampler.Sample(samp0, input.uv - dy).a;
-        float highCov = texSampler.Sample(samp0, input.uv + dy).a;
+        coverage = saturate(coverage);
+        return float4(input.color.rgb, input.color.a * coverage);
+    }
 
-        // Shadow is black, opacity ~10%
-        float4 shadowLayer = float4(0.0, 0.0, 0.0, shadowCov * 0.10);
-        // Highlight is white, opacity ~12%
-        float4 highlightLayer = float4(1.0, 1.0, 1.0, highCov * 0.12);
-        
-        // Base icon layer
-        float4 iconLayer = float4(input.color.rgb, input.color.a * coverage);
-
-        // Composite bottom-up: Shadow -> Highlight -> Icon
-        // 1. Shadow + Highlight
-        float outAlpha1 = highlightLayer.a + shadowLayer.a * (1.0 - highlightLayer.a);
-        float3 outColor1 = (highlightLayer.rgb * highlightLayer.a + shadowLayer.rgb * shadowLayer.a * (1.0 - highlightLayer.a)) / max(outAlpha1, 0.00001);
-        
-        // 2. (Shadow + Highlight) + Icon
-        float finalAlpha = iconLayer.a + outAlpha1 * (1.0 - iconLayer.a);
-        float3 finalColor = (iconLayer.rgb * iconLayer.a + outColor1 * outAlpha1 * (1.0 - iconLayer.a)) / max(finalAlpha, 0.00001);
-        
-        return float4(finalColor, finalAlpha);
+    // Type 5.0 is a solid quad (lines, flat fills) — vertex color only.
+    if (type > 4.5 && type < 5.5)
+    {
+        return input.color;
     }
 
     // Type 4.0 is a full-color texture (viewport / render targets).
@@ -156,11 +149,11 @@ float4 PSMain(VSOutput input) : SV_Target
     {
         float thickness = max(input.sdfParams.z, 1.0);
         float edgeDist = abs(dist) - thickness * 0.5;
-        alpha = 1.0 - smoothstepAA(0.0, 1.0, edgeDist);
+        alpha = sdfBorderAlpha(edgeDist);
     }
     else
     {
-        alpha = 1.0 - smoothstepAA(-1.0, 1.0, dist);
+        alpha = sdfFillAlpha(dist);
     }
 
     float4 outColor = input.color;

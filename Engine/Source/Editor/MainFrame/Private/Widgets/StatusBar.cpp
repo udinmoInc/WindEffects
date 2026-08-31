@@ -7,6 +7,7 @@
 #include "KindUI/Profiling/UiGeometryDebug.h"
 #include "KindUI/Tokens/SurfaceRole.h"
 #include "KindUI/Theming/StyleRole.h"
+#include "KindUI/Core/WindIcon.h"
 #include "KindUI/Core/Icon.h"
 #include "KindUI/Core/DPIContext.h"
 #include "KindUI/Core/ControlChrome.h"
@@ -25,17 +26,18 @@ using ::we::runtime::kindui::VerticalAlignment;
 using ::we::runtime::kindui::DPIContext;
 using ::we::runtime::kindui::Margin;
 using ::we::runtime::kindui::AlignItems;
-namespace Icons = ::we::runtime::kindui::Icons;
+namespace WindIcons = ::we::runtime::kindui::WindIcons;
+using ::we::runtime::kindui::kWindIconNone;
 namespace ControlChrome = ::we::runtime::kindui::ControlChrome;
 
 namespace {
 
     std::shared_ptr<ToolButton> MakeDockControl(
-        const char* iconName,
+        we::runtime::kindui::WindIconRef icon,
         const std::string& label,
         const char* tooltip)
     {
-        auto button = std::make_shared<ToolButton>(iconName, label, nullptr, tooltip);
+        auto button = std::make_shared<ToolButton>(icon, label, nullptr, tooltip);
         button->SetButtonStyle(ToolButtonStyle::StatusBar);
         button->SetVerticalAlignment(VerticalAlignment::Center);
         return button;
@@ -45,7 +47,7 @@ namespace {
         const std::string& label,
         const char* tooltip)
     {
-        auto button = std::make_shared<ToolButton>("", label, nullptr, tooltip);
+        auto button = std::make_shared<ToolButton>(kWindIconNone, label, nullptr, tooltip);
         button->SetButtonStyle(ToolButtonStyle::StatusBar);
         button->SetVerticalAlignment(VerticalAlignment::Center);
         return button;
@@ -66,7 +68,7 @@ namespace {
             centerY - halfH,
             centerY + halfH,
             1.0f,
-            ColorToken::BorderSubtle);
+            ColorToken::Separator);
     }
 
 } // namespace
@@ -87,8 +89,8 @@ void StatusBar::Construct() {
     m_LeftBox->Gap(ThemeMetric(MetricToken::Space2) * uiScale);
     m_LeftBox->SetFlexShrink(0.0f);
 
-    m_AssetsPanelButton = MakeDockControl(Icons::ContentBrowserName, "Content Drawer", "Content Browser");
-    m_DiagnosticsPanelButton = MakeDockControl(Icons::OutputLogName, "Output Log", "Output Log");
+    m_AssetsPanelButton = MakeDockControl(kWindIconNone, "Content Drawer", "Content Browser");
+    m_DiagnosticsPanelButton = MakeDockControl(kWindIconNone, "Output Log", "Output Log");
 
     m_AssetsPanelButton->SetOnClicked([this]() { SelectPanelTab(0, true); });
     m_DiagnosticsPanelButton->SetOnClicked([this]() { SelectPanelTab(1, true); });

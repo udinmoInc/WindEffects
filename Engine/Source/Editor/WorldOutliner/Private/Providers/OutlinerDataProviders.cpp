@@ -1,5 +1,6 @@
 #include "OutlinerInternal.h"
 
+#include "KindUI/Core/WindIcon.h"
 #include "KindUI/Core/Icon.h"
 
 #include <algorithm>
@@ -8,19 +9,19 @@ namespace we::editor::outliner {
 namespace detail {
 namespace {
 
-std::string IconForEntityType(scene::EntityType type) {
+we::runtime::kindui::WindIconRef IconForEntityType(scene::EntityType type) {
     using scene::EntityType;
     switch (type) {
-    case EntityType::DirectionalLight: return we::runtime::kindui::Icons::SunName;
-    case EntityType::SkyLight: return we::runtime::kindui::Icons::LightName;
+    case EntityType::DirectionalLight: return we::runtime::kindui::WindIcons::Sun16;
+    case EntityType::SkyLight: return we::runtime::kindui::kWindIconNone;
     case EntityType::SkyAtmosphere:
-    case EntityType::VolumetricClouds: return we::runtime::kindui::Icons::GlobeName;
-    case EntityType::HeightFog: return we::runtime::kindui::Icons::LayersName;
-    case EntityType::EmptyActor: return we::runtime::kindui::Icons::FolderName;
-    case EntityType::Landscape: return we::runtime::kindui::Icons::MountainName;
-    case EntityType::CameraIcon: return we::runtime::kindui::Icons::CameraName;
-    case EntityType::AudioSource: return we::runtime::kindui::Icons::Volume2Name;
-    default: return we::runtime::kindui::Icons::ToolbarObjectName;
+    case EntityType::VolumetricClouds: return we::runtime::kindui::WindIcons::Globe16;
+    case EntityType::HeightFog: return we::runtime::kindui::kWindIconNone;
+    case EntityType::EmptyActor: return we::runtime::kindui::kWindIconNone;
+    case EntityType::Landscape: return we::runtime::kindui::kWindIconNone;
+    case EntityType::CameraIcon: return we::runtime::kindui::kWindIconNone;
+    case EntityType::AudioSource: return we::runtime::kindui::kWindIconNone;
+    default: return we::runtime::kindui::kWindIconNone;
     }
 }
 
@@ -57,7 +58,7 @@ public:
     OutlinerNodeKind kind = OutlinerNodeKind::Actor;
     std::string name;
     std::string typeName;
-    std::string icon;
+    we::runtime::kindui::WindIconRef icon = we::runtime::kindui::kWindIconNone;
     std::string layer;
     std::vector<std::string> tags;
     OutlinerNodeFlags flags{};
@@ -68,7 +69,7 @@ public:
     [[nodiscard]] OutlinerNodeKind GetKind() const noexcept override { return kind; }
     [[nodiscard]] std::string_view GetDisplayName() const noexcept override { return name; }
     [[nodiscard]] std::string_view GetTypeName() const noexcept override { return typeName; }
-    [[nodiscard]] std::string_view GetIconName() const noexcept override { return icon; }
+    [[nodiscard]] we::runtime::kindui::WindIconRef GetIcon() const noexcept override { return icon; }
     [[nodiscard]] std::string_view GetLayer() const noexcept override { return layer; }
     [[nodiscard]] std::span<const std::string> GetTags() const noexcept override { return tags; }
     [[nodiscard]] const OutlinerNodeFlags& GetFlags() const noexcept override { return flags; }

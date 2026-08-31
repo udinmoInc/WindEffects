@@ -91,6 +91,17 @@ public:
                     descriptor.pngPath.string());
             }
 
+            const auto kindIconsDir = detail::ResolveKindIconsDirectory(options.inputDir);
+            if (!kindIconsDir.empty()) {
+                (void)detail::ApplyKindIconsOverlay(
+                    rgba,
+                    pngWidth,
+                    pngHeight,
+                    tierPx,
+                    kindIconsDir,
+                    descriptor.regions);
+            }
+
             for (const auto& region : descriptor.regions) {
                 const std::string runtimeName = ResolveRuntimeIconName(region.sourceName);
                 const auto flags = IsFullColorIcon(runtimeName)

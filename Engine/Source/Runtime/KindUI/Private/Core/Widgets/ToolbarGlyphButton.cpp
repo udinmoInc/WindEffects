@@ -1,6 +1,7 @@
 #include "KindUI/Core/Widgets/ToolbarGlyphButton.h"
 
 #include "KindUI/Core/Animator.h"
+#include "KindUI/Core/WindIcon.h"
 #include "KindUI/Core/Icon.h"
 #include "KindUI/Core/PaintContext.h"
 #include "KindUI/Rendering/IconMetrics.h"
@@ -9,15 +10,14 @@
 
 #include <algorithm>
 
-
 namespace we::runtime::kindui {
 
 ToolbarGlyphButton::ToolbarGlyphButton(
-    std::string iconName,
+    WindIconRef icon,
     StyleRole role,
     MetricToken sizeToken,
     MetricToken iconSizeToken)
-    : m_IconName(std::move(iconName))
+    : m_Icon(icon)
     , m_Role(role)
     , m_SizeToken(sizeToken)
     , m_IconSizeToken(iconSizeToken)
@@ -59,18 +59,13 @@ void ToolbarGlyphButton::Paint(PaintContext& context) {
 
     Color bgColor = IsEnabled() ? baseStyle.background : ThemeColor(ColorToken::DisabledBackground);
     Color borderColor = IsEnabled() ? baseStyle.border : ThemeColor(ColorToken::Separator);
-    Color iconColor = IsEnabled()
-        ? (IsSelected() ? hoverStyle.icon : baseStyle.icon)
-        : ThemeColor(ColorToken::IconDisabled);
 
     if (IsEnabled() && m_HoverAnim > 0.01f) {
         bgColor = Color::Lerp(bgColor, hoverStyle.background, m_HoverAnim);
-        iconColor = Color::Lerp(iconColor, hoverStyle.icon, m_HoverAnim);
         borderColor = Color::Lerp(borderColor, hoverStyle.border, m_HoverAnim);
     }
     if (IsEnabled() && m_PressAnim > 0.01f) {
         bgColor = Color::Lerp(bgColor, pressStyle.background, m_PressAnim);
-        iconColor = Color::Lerp(iconColor, pressStyle.icon, m_PressAnim);
     }
 
     Rect buttonRect = m_Geometry;
@@ -84,8 +79,9 @@ void ToolbarGlyphButton::Paint(PaintContext& context) {
         context.DrawRoundedRectOutline(buttonRect, borderColor, baseStyle.borderWidth * 0.5f, baseStyle.cornerRadius);
     }
 
-    const float iconSize = static_cast<float>(IconMetrics::GlyphTierPx(m_IconSizeToken));
-    IconPainter::DrawIcon(context, m_IconName, IconMetrics::PlaceGlyphCentered(buttonRect, iconSize), iconColor);
+    if (m_Icon.IsValid()) {
+        IconPainter::Draw(context, m_Icon, IconMetrics::PlaceGlyphCentered(buttonRect, m_Icon.sizePx));
+    }
 }
 
 void ToolbarGlyphButton::OnMouseDown(const MouseEvent& event) {

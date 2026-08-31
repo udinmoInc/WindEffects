@@ -60,7 +60,7 @@ using ::we::editor::docking::DockZone;
 using ::we::editor::services::IEditorApplicationContext;
 using ::we::editor::panels::Panel;
 using ::we::editor::extensions::PanelRegistration;
-using ::we::editor::services::ResolvePanelTabIconName;
+using ::we::editor::services::ResolvePanelTabIcon;
 using ::we::editor::menus::MenuBar;
 using ::we::editor::menus::MenuItem;
 using ::we::editor::shell::TitleBar;
@@ -79,10 +79,6 @@ void PropagateWidgetContext(const std::shared_ptr<Widget>& widget, const std::sh
     }
 }
 
-std::string ResolveTabIconName(const DockPanelDescriptor& descriptor) {
-    return ResolvePanelTabIconName(descriptor.iconResource);
-}
-
 void ApplyPanelDescriptor(
     const std::shared_ptr<Panel>& panel,
     const DockPanelDescriptor& descriptor) {
@@ -94,10 +90,7 @@ void ApplyPanelDescriptor(
         panel->SetTitle(descriptor.title);
     }
 
-    const std::string iconName = ResolveTabIconName(descriptor);
-    if (!iconName.empty()) {
-        panel->SetTabIcon(iconName);
-    }
+    panel->SetTabIcon(ResolvePanelTabIcon(descriptor.id));
 }
 
 } // namespace
@@ -252,9 +245,7 @@ EditorShellResult EditorShellBuilder::Build(
         (we::runtime::kindui::ResolveMetric(MetricToken::IconSizePrimary)
             + we::runtime::kindui::ResolveMetric(MetricToken::Space1) * 0.5f) * uiScale));
     we::rhi::RHIDescriptorSetHandle logoSet = we::rhi::RHIDescriptorSetHandle::Invalid;
-    if (deps.overlayRenderer && deps.overlayRenderer->GetIconRenderer()) {
-        logoSet = deps.overlayRenderer->GetIconRenderer()->GetIcon("Assets/Editor/Logo/Logo_UI.png", logoPx);
-    }
+    (void)logoPx;
 
     auto titleBar = std::make_shared<TitleBar>(deps.window, "WindEffects Editor", logoSet, menuBar);
     titleBar->SetContext(widgetContext);
@@ -319,14 +310,9 @@ EditorShellResult EditorShellBuilder::Build(
     }
 
     if (auto explorerPanel = shellResult.layout.panels["WorldOutliner"]) {
-        if (deps.overlayRenderer && deps.overlayRenderer->GetIconRenderer()) {
-            const float logoLogical = we::programs::editor::GetExplorerDockTabLogoSize();
-            const int explorerLogoPx = static_cast<int>(std::round(logoLogical * uiScale));
-            we::rhi::RHIDescriptorSetHandle explorerLogo = deps.overlayRenderer->GetIconRenderer()->GetIcon(
-                "Assets/Editor/Logo/Logo_UI.png", explorerLogoPx);
-            explorerPanel->SetTabBrand(explorerLogo, logoLogical);
-            we::programs::editor::BindExplorerBrandLogo(explorerLogo, logoLogical);
-        }
+        const float logoLogical = we::programs::editor::GetExplorerDockTabLogoSize();
+        explorerPanel->SetTabBrand(we::rhi::RHIDescriptorSetHandle::Invalid, logoLogical);
+        we::programs::editor::BindExplorerBrandLogo(we::rhi::RHIDescriptorSetHandle::Invalid, logoLogical);
     }
 
     if (shellResult.layout.explorerDock) {

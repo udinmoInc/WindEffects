@@ -2,12 +2,13 @@
 #include "KindUI/Theming/ThemeAccess.h"
 #include "KindUI/Tokens/DesignToken.h"
 #include "KindUI/Core/Geometry.h"
+#include "KindUI/Core/WindIcon.h"
 
 using ::we::runtime::kindui::ColorToken;
 using ::we::runtime::kindui::MetricToken;
 using ::we::runtime::kindui::ResolveMetric;
 using ::we::runtime::kindui::Margin;
-using namespace we::runtime::kindui::Icons;
+namespace WindIcons = ::we::runtime::kindui::WindIcons;
 
 namespace we::editor::panels {
 using ::we::runtime::kindui::Row;
@@ -18,8 +19,8 @@ PanelBuilder::PanelBuilder(std::string_view title)
     m_Panel->SetHeaderHeight(ResolveMetric(MetricToken::PanelTabHeight));
 }
 
-PanelBuilder& PanelBuilder::TabIcon(std::string_view iconName) {
-    m_Panel->SetTabIcon(std::string(iconName));
+PanelBuilder& PanelBuilder::TabIcon(we::runtime::kindui::WindIconRef icon) {
+    m_Panel->SetTabIcon(icon);
     return *this;
 }
 
@@ -44,12 +45,12 @@ PanelBuilder& PanelBuilder::Collapsible(bool collapsible) {
 }
 
 PanelBuilder& PanelBuilder::WithCloseButton(std::function<void()> onClose) {
-    m_Panel->AddHeaderAction(XName, std::move(onClose));
+    m_Panel->AddHeaderAction(WindIcons::Close16, std::move(onClose));
     return *this;
 }
 
-PanelBuilder& PanelBuilder::WithHeaderAction(std::string_view iconName, std::function<void()> onClick) {
-    m_Panel->AddHeaderAction(std::string(iconName), std::move(onClick));
+PanelBuilder& PanelBuilder::WithHeaderAction(we::runtime::kindui::WindIconRef icon, std::function<void()> onClick) {
+    m_Panel->AddHeaderAction(icon, std::move(onClick));
     return *this;
 }
 

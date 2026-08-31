@@ -26,6 +26,7 @@
 #include "KindUI/Theming/ThemeAccess.h"
 #include "KindUI/Tokens/DesignToken.h"
 #include "KindUI/Theming/StyleRole.h"
+#include "KindUI/Core/WindIcon.h"
 #include "KindUI/Core/Icon.h"
 #include "KindUI/Core/Animator.h"
 #include "KindUI/Core/UiMetrics.h"
@@ -53,9 +54,11 @@ using ::we::runtime::kindui::MouseEvent;
 using ::we::runtime::kindui::MouseButton;
 using ::we::runtime::kindui::KeyEvent;
 using ::we::runtime::kindui::ScrollViewport;
-namespace Icons = ::we::runtime::kindui::Icons;
+namespace WindIcons = ::we::runtime::kindui::WindIcons;
+using ::we::runtime::kindui::kWindIconNone;
 
-namespace Icons = ::we::runtime::kindui::Icons;
+namespace WindIcons = ::we::runtime::kindui::WindIcons;
+using ::we::runtime::kindui::kWindIconNone;
 
 void PlaceActorsPanel::Paint(we::runtime::kindui::PaintContext& context) {
     if (m_BodyLayout) {
@@ -115,7 +118,7 @@ void PlaceActorsPanel::Paint(we::runtime::kindui::PaintContext& context) {
                 context,
                 entry.geometry,
                 category->label,
-                category->iconName,
+                category->icon,
                 expanded,
                 entry.hoverAnim,
                 CategoryExpandAnim(entry.categoryId),

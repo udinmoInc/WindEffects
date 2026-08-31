@@ -4,6 +4,7 @@
 #include "KindUI/Core/LayoutMetrics.h"
 #include "KindUI/Core/PropertyPanelChrome.h"
 #include "KindUI/Core/Style.h"
+#include "KindUI/Core/WindIcon.h"
 #include "KindUI/Core/Icon.h"
 #include "KindUI/Tokens/TypographySpec.h"
 #include "KindUI/Theming/ThemeAccess.h"
@@ -44,7 +45,7 @@ using we::runtime::kindui::Widget;
 using we::runtime::kindui::WidgetStyle;
 using we::runtime::kindui::DPIContext;
 using we::runtime::kindui::IconPainter;
-namespace Icons = we::runtime::kindui::Icons;
+using ::we::runtime::kindui::kWindIconNone;
 namespace PanelChrome = we::runtime::kindui::PropertyPanelChrome;
 
 class DetailsViewWidget final : public Widget {
@@ -71,7 +72,7 @@ public:
         if (!m_Tree || m_Tree->GetFilteredRootNodes().empty()) {
             const float uiScale = (std::max)(1.0f, DPIContext::GetScale());
             const TypographySpec hintSpec = ResolveTypography(TypographyToken::Subtitle);
-            const float iconSize = static_cast<float>(we::runtime::kindui::IconMetrics::StandardGlyphTierPx());
+            const float iconSize = static_cast<float>(16u);
             const float gap = ResolveMetric(MetricToken::Space2) * uiScale;
             const float totalHeight = iconSize + gap + hintSpec.lineHeightPx;
 
@@ -79,11 +80,8 @@ public:
             const float centerY = m_Geometry.y + m_Geometry.height * 0.5f;
 
             const Rect iconRect{ centerX - iconSize * 0.5f, centerY - totalHeight * 0.5f, iconSize, iconSize };
-            IconPainter::DrawIcon(
-                context,
-                Icons::PropertiesName,
-                iconRect,
-                ThemeColor(ColorToken::TextHint));
+            IconPainter::Draw(
+                context, kWindIconNone, iconRect);
 
             const std::string emptyMsg = (m_Tree && !m_Tree->GetFilter().searchText.empty())
                 ? "No matching properties"

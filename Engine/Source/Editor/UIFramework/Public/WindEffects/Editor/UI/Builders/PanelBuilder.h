@@ -3,7 +3,7 @@
 #include "WindEffects/Editor/UI/Export.h"
 #include "WindEffects/Editor/UI/Widgets/Panel.h"
 #include "KindUI/Layout/Flex.h"
-#include "KindUI/Core/Icon.h"
+#include "KindUI/Core/WindIcon.h"
 
 #include <functional>
 #include <memory>
@@ -18,13 +18,13 @@ class UIFRAMEWORK_API PanelBuilder {
 public:
     explicit PanelBuilder(std::string_view title);
 
-    PanelBuilder& TabIcon(std::string_view iconName);
+    PanelBuilder& TabIcon(we::runtime::kindui::WindIconRef icon);
     PanelBuilder& HeaderHeight(float height);
     PanelBuilder& Transparent();
     PanelBuilder& FloatingToolbar();
     PanelBuilder& Collapsible(bool collapsible);
     PanelBuilder& WithCloseButton(std::function<void()> onClose = {});
-    PanelBuilder& WithHeaderAction(std::string_view iconName, std::function<void()> onClick);
+    PanelBuilder& WithHeaderAction(we::runtime::kindui::WindIconRef icon, std::function<void()> onClick);
     PanelBuilder& Toolbar(std::shared_ptr<Widget> toolbar);
     PanelBuilder& ToolbarBox(std::function<void(Row&)> build);
     PanelBuilder& ModeTabs(std::shared_ptr<Widget> modeTabs);

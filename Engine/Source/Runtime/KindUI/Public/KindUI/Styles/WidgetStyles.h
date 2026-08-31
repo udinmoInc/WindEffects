@@ -19,7 +19,7 @@ struct ResolvedVisualStyle {
     float fontSize = 13.0f;
     Margin padding{};
     float height = 0.0f;
-    float iconSize = 16.0f;
+    float iconSize = 24.0f;
     bool bold = false;
     int elevation = 0;
     float opacity = 1.0f;

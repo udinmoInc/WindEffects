@@ -1,8 +1,13 @@
 #include "LandscapeWorkspaceInternal.h"
 #include "LandscapeFormLayout.h"
 #include "ViewportEdit/ViewportEditSession.h"
+#include "KindUI/Core/WindIcon.h"
 
 namespace we::editor::terrain {
+namespace {
+using we::runtime::kindui::kWindIconNone;
+namespace WindIcons = we::runtime::kindui::WindIcons;
+} // namespace
 
 static void ActivateOp(ILandscapeEditor& editor, runtime_terrain::TerrainBrushOp op, viewportedit::ViewportToolId tool) {
     editor.SetBrushOp(op);
@@ -17,39 +22,39 @@ void BuildSculptTab(const std::shared_ptr<we::runtime::kindui::Column>& layout, 
 
     AddFormSectionTitle(layout, "Basic");
     AddFormChipRow(layout, {
-        {"Raise", "plus", op == runtime_terrain::TerrainBrushOp::Raise,
+        {"Raise", kWindIconNone, op == runtime_terrain::TerrainBrushOp::Raise,
             [&]() { ActivateOp(editor, runtime_terrain::TerrainBrushOp::Raise,
                 viewportedit::ViewportToolId::LandscapeSculpt); }},
-        {"Lower", "minus", op == runtime_terrain::TerrainBrushOp::Lower,
+        {"Lower", WindIcons::Minus16, op == runtime_terrain::TerrainBrushOp::Lower,
             [&]() { ActivateOp(editor, runtime_terrain::TerrainBrushOp::Lower,
                 viewportedit::ViewportToolId::LandscapeSculpt); }},
-        {"Smooth", "refresh", op == runtime_terrain::TerrainBrushOp::Smooth,
+        {"Smooth", WindIcons::Refresh16, op == runtime_terrain::TerrainBrushOp::Smooth,
             [&]() { ActivateOp(editor, runtime_terrain::TerrainBrushOp::Smooth,
                 viewportedit::ViewportToolId::LandscapeSmooth); }},
-        {"Flatten", "plane", op == runtime_terrain::TerrainBrushOp::Flatten,
+        {"Flatten", kWindIconNone, op == runtime_terrain::TerrainBrushOp::Flatten,
             [&]() { ActivateOp(editor, runtime_terrain::TerrainBrushOp::Flatten,
                 viewportedit::ViewportToolId::LandscapeFlatten); }},
     });
 
     AddFormSectionTitle(layout, "Advanced");
     AddFormChipRow(layout, {
-        {"Noise", "star", op == runtime_terrain::TerrainBrushOp::Noise,
+        {"Noise", kWindIconNone, op == runtime_terrain::TerrainBrushOp::Noise,
             [&]() { ActivateOp(editor, runtime_terrain::TerrainBrushOp::Noise,
                 viewportedit::ViewportToolId::LandscapeNoise); }},
-        {"Ramp", "trending-up", op == runtime_terrain::TerrainBrushOp::Ramp,
+        {"Ramp", kWindIconNone, op == runtime_terrain::TerrainBrushOp::Ramp,
             [&]() { ActivateOp(editor, runtime_terrain::TerrainBrushOp::Ramp,
                 viewportedit::ViewportToolId::LandscapeSculpt); }},
-        {"Terrace", "layers", op == runtime_terrain::TerrainBrushOp::Terrace,
+        {"Terrace", kWindIconNone, op == runtime_terrain::TerrainBrushOp::Terrace,
             [&]() { ActivateOp(editor, runtime_terrain::TerrainBrushOp::Terrace,
                 viewportedit::ViewportToolId::LandscapeSculpt); }},
     });
 
     AddFormSectionTitle(layout, "Erosion");
     AddFormChipRow(layout, {
-        {"Hydraulic", "droplet", op == runtime_terrain::TerrainBrushOp::HydraulicErosion,
+        {"Hydraulic", kWindIconNone, op == runtime_terrain::TerrainBrushOp::HydraulicErosion,
             [&]() { ActivateOp(editor, runtime_terrain::TerrainBrushOp::HydraulicErosion,
                 viewportedit::ViewportToolId::LandscapeSculpt); }},
-        {"Thermal", "thermometer", op == runtime_terrain::TerrainBrushOp::ThermalErosion,
+        {"Thermal", kWindIconNone, op == runtime_terrain::TerrainBrushOp::ThermalErosion,
             [&]() { ActivateOp(editor, runtime_terrain::TerrainBrushOp::ThermalErosion,
                 viewportedit::ViewportToolId::LandscapeSculpt); }},
     });
@@ -69,34 +74,20 @@ void BuildSculptTab(const std::shared_ptr<we::runtime::kindui::Column>& layout, 
 
     AddFormSectionTitle(layout, "Brush Shape");
     AddFormChipRow(layout, {
-        {"Circle", "circle", ui.shape == LandscapeBrushShape::Circle,
+        {"Circle", kWindIconNone, ui.shape == LandscapeBrushShape::Circle,
             [&]() { editor.BrushUi().shape = LandscapeBrushShape::Circle; }},
-        {"Square", "square", ui.shape == LandscapeBrushShape::Square,
+        {"Square", WindIcons::Square16, ui.shape == LandscapeBrushShape::Square,
             [&]() { editor.BrushUi().shape = LandscapeBrushShape::Square; }},
     });
 
     AddFormField(layout, "Alpha", ui.alphaPath.empty() ? "(none)" : ui.alphaPath,
         [&](std::string_view v) {
             if (v.empty() || v == "(none)") {
-                editor.ClearBrushAlpha();
+                editor.BrushUi().alphaPath.clear();
             } else {
-                editor.SetBrushAlphaPlaceholder(v);
+                editor.BrushUi().alphaPath = std::string(v);
             }
         });
-
-    AddFormToggle(layout, "Invert", ui.invert, [&]() {
-        editor.BrushUi().invert = !editor.BrushUi().invert;
-    });
-    AddFormToggle(layout, "Mirror", ui.mirror, [&]() {
-        editor.BrushUi().mirror = !editor.BrushUi().mirror;
-    });
-    AddFormToggle(layout, "Brush Preview", ui.showPreview, [&]() {
-        editor.BrushUi().showPreview = !editor.BrushUi().showPreview;
-        editor.BrushPreview().visible = editor.BrushUi().showPreview;
-    });
-    AddFormToggle(layout, "Brush Cursor", ui.showCursor, [&]() {
-        editor.BrushUi().showCursor = !editor.BrushUi().showCursor;
-    });
 }
 
 } // namespace we::editor::terrain

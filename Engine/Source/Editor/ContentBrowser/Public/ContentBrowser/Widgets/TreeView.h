@@ -4,6 +4,7 @@
 
 #include "KindUI/Core/Widget.h"
 #include "KindUI/Core/Style.h"
+#include "KindUI/Core/WindIcon.h"
 #include "KindUI/Core/Icon.h"
 #include "KindUI/Layout/ScrollViewport.h"
 #include <functional>
@@ -31,7 +32,7 @@ struct TreeNode {
     std::string id;
     std::string label;
     std::string typeName;
-    std::string iconName;
+    we::runtime::kindui::WindIconRef icon = we::runtime::kindui::kWindIconNone;
     we::rhi::RHIDescriptorSetHandle iconTexture = we::rhi::RHIDescriptorSetHandle::Invalid;
     std::vector<std::shared_ptr<TreeNode>> children;
     bool expanded = true;

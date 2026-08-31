@@ -2,6 +2,7 @@
 
 #include "KindUI/Declarative/UI.h"
 #include "KindUI/Core/Widgets/DesignSystemControls.h"
+#include "KindUI/Core/WindIcon.h"
 #include "KindUI/Core/Icon.h"
 #include "UI/Controls/LauncherControls.h"
 #include "UI/Pages/Library/ManagerViews.h"
@@ -60,9 +61,9 @@ we::runtime::kindui::Element BuildLearnPage(const LearnPageModel& model) {
             auto empty = std::make_shared<EmptyStatePanel>(
                 emptyTitle,
                 emptySubtitle,
-                onClearSearch ? Icons::SearchName : Icons::MediaPlayName);
+                onClearSearch ? WindIcons::Search16 : kWindIconNone);
             if (onClearSearch) {
-                empty->SetPrimaryAction("Clear Search", Icons::RefreshName, onClearSearch);
+                empty->SetPrimaryAction("Clear Search", WindIcons::Refresh16, onClearSearch);
             }
             return empty;
         })));
@@ -108,15 +109,15 @@ we::runtime::kindui::Element BuildEnginePage(const EnginePageModel& model) {
             auto empty = std::make_shared<EmptyStatePanel>(
                 emptyTitle,
                 emptySubtitle,
-                Icons::BuildName);
+                WindIcons::Wrench16);
             if (onOpenProjects) {
-                empty->SetPrimaryAction("Open Projects", Icons::OpenFolderName, onOpenProjects);
+                empty->SetPrimaryAction("Open Projects", kWindIconNone, onOpenProjects);
             }
             if (onRefresh) {
-                empty->SetSecondaryAction("Refresh", Icons::RefreshName, onRefresh);
+                empty->SetSecondaryAction("Refresh", WindIcons::Refresh16, onRefresh);
             }
             if (onClearSearch) {
-                empty->SetPrimaryAction("Clear Search", Icons::RefreshName, onClearSearch);
+                empty->SetPrimaryAction("Clear Search", WindIcons::Refresh16, onClearSearch);
             }
             return empty;
         })));

@@ -4,18 +4,19 @@
 using namespace we::runtime::kindui;
 
 namespace we::editor::outliner {
-namespace Icons = ::we::runtime::kindui::Icons;
+namespace WindIcons = ::we::runtime::kindui::WindIcons;
+using ::we::runtime::kindui::kWindIconNone;
 
 ExplorerPanelHeader::ExplorerPanelHeader()
     : PanelToolbarRow("Search...") {}
 
 void ExplorerPanelHeader::Initialize() {
-    AddIconButton(Icons::FolderAddName, [this]() {
+    AddIconButton(kWindIconNone, [this]() {
         if (m_OnNewFolder) {
             m_OnNewFolder();
         }
     });
-    AddIconButton(Icons::SettingsName, [this]() {
+    AddIconButton(kWindIconNone, [this]() {
         if (m_OnFilterClicked) {
             m_OnFilterClicked();
         }

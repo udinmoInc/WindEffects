@@ -5,9 +5,11 @@
 #include "KindUI/Tokens/DesignToken.h"
 #include "KindUI/Tokens/SurfaceRole.h"
 #include "KindUI/Theming/StyleRole.h"
+#include "KindUI/Core/WindIcon.h"
 #include "KindUI/Core/Icon.h"
 #include "KindUI/Theming/ThemeAccess.h"
 #include "KindUI/Core/DPIContext.h"
+#include "KindUI/Rendering/IconMetrics.h"
 #include "Widgets/ToolButton.h"
 #include <algorithm>
 #include <functional>
@@ -169,11 +171,15 @@ void Toolbar::Paint(PaintContext& context) {
 
         context.DrawSurface(m_Geometry, we::runtime::kindui::SurfaceRole::Toolbar, 0.0f, "Toolbar");
 
+        const float thickness = std::max(1.0f, we::runtime::kindui::IconMetrics::SnapPx(
+            we::runtime::kindui::ResolveMetric(MetricToken::BorderWidth) * uiScale));
+        const float edgeY = we::runtime::kindui::IconMetrics::SnapPx(
+            m_Geometry.y + m_Geometry.height - thickness);
         Rect bottomEdge{
             m_Geometry.x,
-            m_Geometry.y + m_Geometry.height - 1.0f * uiScale,
+            edgeY,
             m_Geometry.width,
-            1.0f * uiScale
+            thickness
         };
         context.DrawSurface(bottomEdge, we::runtime::kindui::SurfaceRole::Separator, 0.0f, "ToolbarBorder");
     }
@@ -197,13 +203,13 @@ void Toolbar::Paint(PaintContext& context) {
     }
 }
 
-std::shared_ptr<ToolButton> Toolbar::AddTool(const std::string& iconName, const std::string& label, std::function<void()> onClick, const std::string& tooltip, bool isPlayButton, ToolbarAlignment align) {
+std::shared_ptr<ToolButton> Toolbar::AddTool(we::runtime::kindui::WindIconRef icon, const std::string& label, std::function<void()> onClick, const std::string& tooltip, bool isPlayButton, ToolbarAlignment align) {
     ToolInfo tool;
-    tool.iconName = iconName;
+    tool.icon = icon;
     tool.isSeparator = false;
     tool.align = align;
 
-    auto btn = std::make_shared<ToolButton>(iconName, label, onClick, tooltip);
+    auto btn = std::make_shared<ToolButton>(icon, label, onClick, tooltip);
     if (isPlayButton) {
         btn->SetButtonStyle(ToolButtonStyle::PlayButton);
     } else if (label.empty()) {
@@ -240,7 +246,7 @@ void Toolbar::AddSeparator(ToolbarAlignment align) {
 
 void Toolbar::AddWidget(std::shared_ptr<Widget> widget, ToolbarAlignment align) {
     ToolInfo tool;
-    tool.iconName = "";
+    tool.icon = we::runtime::kindui::kWindIconNone;
     tool.isSeparator = false;
     tool.align = align;
     tool.button = widget;
@@ -256,18 +262,22 @@ void Toolbar::AddGroup(std::shared_ptr<Widget> group, ToolbarAlignment align) {
 
 void Toolbar::Clear() {
     m_Tools.clear();
-    m_ActiveTool.clear();
+    m_ActiveTool = we::runtime::kindui::kWindIconNone;
 }
 
-void Toolbar::SetActiveTool(const std::string& iconName) {
-    m_ActiveTool = iconName;
+void Toolbar::SetActiveTool(we::runtime::kindui::WindIconRef icon) {
+    m_ActiveTool = icon;
 
     for (auto& tool : m_Tools) {
         if (!tool.button || tool.isSeparator) continue;
 
         VisitToolbarWidgets(tool.button, [&](const std::shared_ptr<Widget>& widget) {
             if (auto toolBtn = std::dynamic_pointer_cast<ToolButton>(widget)) {
-                toolBtn->SetActive(toolBtn->GetIconName() == iconName);
+                const auto activeIcon = toolBtn->GetIcon();
+                const bool matches = activeIcon.IsValid() && icon.IsValid()
+                    && activeIcon.sizePx == icon.sizePx
+                    && std::string_view(activeIcon.stem) == icon.stem;
+                toolBtn->SetActive(matches);
             }
         });
     }

@@ -15,12 +15,17 @@ float ButtonRadius(float uiScale) {
 
 float IconSize(float uiScale) {
     (void)uiScale;
-    return static_cast<float>(IconMetrics::GlyphTierPx(MetricToken::IconSizeToolbar));
+    return static_cast<float>(16u);
 }
 
 float PrimaryIconSize(float uiScale) {
     (void)uiScale;
-    return static_cast<float>(IconMetrics::GlyphTierPx(MetricToken::IconSizePrimary));
+    return static_cast<float>(16u);
+}
+
+float NavigationIconSize(float uiScale) {
+    (void)uiScale;
+    return static_cast<float>(16u);
 }
 
 float HorizontalPad(float uiScale) {
@@ -210,8 +215,8 @@ void PaintStatusBarControl(
 
     if (hoverAnim > 0.01f) {
         const Color base = ResolveColor(ColorToken::StatusBarBackground);
-        const Color hover = ResolveColor(ColorToken::HoverBackground);
-        context.DrawRect(rect, Color::Lerp(base, hover, hoverAnim * 0.22f));
+        const Color hover = ResolveColor(ColorToken::SecondarySurface);
+        context.DrawRect(rect, Color::Lerp(base, hover, hoverAnim * 0.35f));
     }
 }
 

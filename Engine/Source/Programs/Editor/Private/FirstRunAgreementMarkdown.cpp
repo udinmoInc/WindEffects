@@ -2,6 +2,7 @@
 #include "FirstRunAgreementPopup.h"
 #include "FirstRunAgreementInternal.h"
 #include "Core/EditorConfigPaths.h"
+#include "KindUI/Core/WindIcon.h"
 #include "KindUI/Core/Icon.h"
 #include "KindUI/Core/PaintContext.h"
 #include "KindUI/Tokens/DesignToken.h"
@@ -20,7 +21,7 @@ namespace we::programs::editor {
 using ::we::runtime::kindui::DPIContext;
 using ::we::runtime::kindui::IconPainter;
 using ::we::runtime::kindui::MouseButton;
-namespace Icons = ::we::runtime::kindui::Icons;
+using ::we::runtime::kindui::kWindIconNone;
 using namespace first_run_detail;
 
 using we::runtime::kindui::ColorToken;

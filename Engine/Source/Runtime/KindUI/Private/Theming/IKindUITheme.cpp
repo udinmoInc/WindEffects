@@ -134,13 +134,12 @@ Color IKindUITheme::InteractiveBackground(float hoverAnim, float pressAnim, bool
 
 Color IKindUITheme::IconForState(bool hovered, bool active) const {
     if (active) {
-        return ResolveColor(ColorToken::IconAccent);
+        return ResolveColor(ColorToken::IconActive);
     }
-    Color base = ResolveColor(ColorToken::IconSecondary);
     if (hovered) {
-        return Color::Lerp(base, ResolveColor(ColorToken::IconPrimary), 1.0f);
+        return ResolveColor(ColorToken::IconHover);
     }
-    return base;
+    return ResolveColor(ColorToken::IconSecondary);
 }
 
 Color IKindUITheme::TextForState(bool hovered, bool active) const {

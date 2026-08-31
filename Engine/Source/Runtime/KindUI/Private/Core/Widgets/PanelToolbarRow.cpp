@@ -73,7 +73,7 @@ void PanelToolbarRow::SetOnSearchChanged(std::function<void(const std::string&)>
     }
 }
 
-void PanelToolbarRow::AddIconButton(const char* icon, std::function<void()> onClicked) {
+void PanelToolbarRow::AddIconButton(WindIconRef icon, std::function<void()> onClicked) {
     auto btn = std::make_shared<IconButton>(icon);
     btn->SetFlexShrink(0.0f);
     btn->SetOnClicked(std::move(onClicked));

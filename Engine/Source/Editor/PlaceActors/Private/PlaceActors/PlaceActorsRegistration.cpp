@@ -2,6 +2,7 @@
 #include "PlaceActors/PlaceActorsPanel.h"
 #include "PlaceActors/PlaceActorsPlacement.h"
 #include "WindEffects/Editor/UI/Shell/EditorToolsRegistry.h"
+#include "KindUI/Core/WindIcon.h"
 #include "KindUI/Core/Icon.h"
 
 #include <memory>
@@ -9,7 +10,8 @@
 #include <vector>
 
 namespace we::programs::editor {
-namespace Icons = ::we::runtime::kindui::Icons;
+namespace WindIcons = ::we::runtime::kindui::WindIcons;
+using ::we::runtime::kindui::kWindIconNone;
 using ::we::editor::toolspanel::EditorToolsRegistry;
 using ::we::editor::toolspanel::EditorToolCategory;
 using ::we::editor::toolspanel::EditorToolAction;
@@ -18,16 +20,14 @@ using ::we::editor::toolspanel::EditorToolMode;
 
 namespace {
 
-namespace WEIcons = we::runtime::kindui::Icons;
-
-void RegisterCategory(const char* modeId, const char* categoryId, const char* label, const char* icon,
+void RegisterCategory(const char* modeId, const char* categoryId, const char* label, we::runtime::kindui::WindIconRef icon,
     int sortOrder, bool defaultExpanded = false)
 {
     EditorToolCategory category;
     category.id = categoryId;
     category.modeId = modeId;
     category.label = label;
-    category.iconName = icon;
+    category.icon = icon;
     category.sortOrder = sortOrder;
     category.defaultExpanded = defaultExpanded;
     EditorToolsRegistry::Get().RegisterCategory(std::move(category));
@@ -36,7 +36,7 @@ void RegisterCategory(const char* modeId, const char* categoryId, const char* la
 void RegisterTool(const char* categoryId,
                   const char* toolId,
                   const char* label,
-                  const char* icon,
+                  we::runtime::kindui::WindIconRef icon,
                   int sortOrder,
                   const std::vector<std::string>& keywords = {})
 {
@@ -44,7 +44,7 @@ void RegisterTool(const char* categoryId,
     tool.id = toolId;
     tool.categoryId = categoryId;
     tool.label = label;
-    tool.iconName = icon;
+    tool.icon = icon;
     tool.sortOrder = sortOrder;
     if (!keywords.empty()) {
         std::string joined;
@@ -65,56 +65,56 @@ void RegisterTool(const char* categoryId,
 
 void RegisterActorCatalog() {
     // Basic category removed — Quick Access is synthesized by PlaceActorsPanel.
-    RegisterCategory("Actors", "ActorGeometry", "Geometry", WEIcons::CubeName, 20, false);
-    RegisterCategory("Actors", "ActorLights", "Lights", WEIcons::LightName, 30, false);
-    RegisterCategory("Actors", "ActorCameras", "Cameras", WEIcons::CameraName, 40, false);
-    RegisterCategory("Actors", "ActorCharacters", "Characters", WEIcons::UserName, 50, false);
-    RegisterCategory("Actors", "ActorEnvironment", "Environment", WEIcons::MountainName, 60, false);
-    RegisterCategory("Actors", "ActorCinematics", "Cinematics", WEIcons::VideoName, 70, false);
-    RegisterCategory("Actors", "ActorAudio", "Audio", WEIcons::Volume2Name, 80, false);
-    RegisterCategory("Actors", "ActorFX", "Visual Effects", WEIcons::SparklesName, 90, false);
-    RegisterCategory("Actors", "ActorVolumes", "Volumes", WEIcons::LayersName, 100, false);
-    RegisterCategory("Actors", "ActorAllClasses", "All Classes", WEIcons::ListName, 110, false);
+    RegisterCategory("Actors", "ActorGeometry", "Geometry", kWindIconNone, 20, false);
+    RegisterCategory("Actors", "ActorLights", "Lights", kWindIconNone, 30, false);
+    RegisterCategory("Actors", "ActorCameras", "Cameras", kWindIconNone, 40, false);
+    RegisterCategory("Actors", "ActorCharacters", "Characters", kWindIconNone, 50, false);
+    RegisterCategory("Actors", "ActorEnvironment", "Environment", kWindIconNone, 60, false);
+    RegisterCategory("Actors", "ActorCinematics", "Cinematics", kWindIconNone, 70, false);
+    RegisterCategory("Actors", "ActorAudio", "Audio", kWindIconNone, 80, false);
+    RegisterCategory("Actors", "ActorFX", "Visual Effects", kWindIconNone, 90, false);
+    RegisterCategory("Actors", "ActorVolumes", "Volumes", kWindIconNone, 100, false);
+    RegisterCategory("Actors", "ActorAllClasses", "All Classes", kWindIconNone, 110, false);
 
-    RegisterTool("ActorGeometry", "PlaceCube", "Cube", WEIcons::CubeName, 10, {"box", "mesh", "geometry"});
-    RegisterTool("ActorGeometry", "PlaceSphere", "Sphere", WEIcons::SphereName, 20, {"ball", "mesh", "geometry"});
-    RegisterTool("ActorGeometry", "PlaceCylinder", "Cylinder", WEIcons::CylinderName, 30, {"tube", "mesh", "geometry"});
-    RegisterTool("ActorGeometry", "PlacePlane", "Plane", WEIcons::PlaneName, 40, {"floor", "mesh", "geometry"});
-    RegisterTool("ActorGeometry", "PlaceCone", "Cone", WEIcons::ConeName, 50, {"cone", "mesh", "geometry"});
-    RegisterTool("ActorGeometry", "PlaceCapsule", "Capsule", WEIcons::CapsuleName, 60, {"capsule", "mesh", "geometry"});
+    RegisterTool("ActorGeometry", "PlaceCube", "Cube", kWindIconNone, 10, {"box", "mesh", "geometry"});
+    RegisterTool("ActorGeometry", "PlaceSphere", "Sphere", kWindIconNone, 20, {"ball", "mesh", "geometry"});
+    RegisterTool("ActorGeometry", "PlaceCylinder", "Cylinder", kWindIconNone, 30, {"tube", "mesh", "geometry"});
+    RegisterTool("ActorGeometry", "PlacePlane", "Plane", kWindIconNone, 40, {"floor", "mesh", "geometry"});
+    RegisterTool("ActorGeometry", "PlaceCone", "Cone", kWindIconNone, 50, {"cone", "mesh", "geometry"});
+    RegisterTool("ActorGeometry", "PlaceCapsule", "Capsule", kWindIconNone, 60, {"capsule", "mesh", "geometry"});
 
     // Empty transforms live under Characters / All Classes for catalog search; Quick Access surfaces them.
-    RegisterTool("ActorCharacters", "PlaceEmptyActor", "Empty Actor", WEIcons::CrosshairName, 5, {"empty", "actor", "transform"});
-    RegisterTool("ActorCharacters", "PlaceEmptyCharacter", "Empty Character", WEIcons::UserName, 8, {"character", "pawn", "empty"});
-    RegisterTool("ActorCharacters", "PlaceEmptyPawn", "Empty Pawn", WEIcons::UserName, 9, {"pawn", "empty"});
-    RegisterTool("ActorCharacters", "PlaceCharacter", "Character", WEIcons::UserName, 10, {"pawn", "character", "player"});
+    RegisterTool("ActorCharacters", "PlaceEmptyActor", "Empty Actor", kWindIconNone, 5, {"empty", "actor", "transform"});
+    RegisterTool("ActorCharacters", "PlaceEmptyCharacter", "Empty Character", kWindIconNone, 8, {"character", "pawn", "empty"});
+    RegisterTool("ActorCharacters", "PlaceEmptyPawn", "Empty Pawn", kWindIconNone, 9, {"pawn", "empty"});
+    RegisterTool("ActorCharacters", "PlaceCharacter", "Character", kWindIconNone, 10, {"pawn", "character", "player"});
 
-    RegisterTool("ActorLights", "LightDirectional", "Directional Light", WEIcons::SunName, 10, {"sun", "directional", "light"});
-    RegisterTool("ActorLights", "LightPoint", "Point Light", WEIcons::PointLightName, 20, {"point", "omni", "light"});
-    RegisterTool("ActorLights", "LightSpot", "Spot Light", WEIcons::FlashlightName, 30, {"spot", "cone", "light"});
+    RegisterTool("ActorLights", "LightDirectional", "Directional Light", we::runtime::kindui::WindIcons::Sun16, 10, {"sun", "directional", "light"});
+    RegisterTool("ActorLights", "LightPoint", "Point Light", kWindIconNone, 20, {"point", "omni", "light"});
+    RegisterTool("ActorLights", "LightSpot", "Spot Light", kWindIconNone, 30, {"spot", "cone", "light"});
 
-    RegisterTool("ActorCameras", "PlaceCamera", "Camera", WEIcons::CameraName, 10, {"camera", "cine", "view"});
+    RegisterTool("ActorCameras", "PlaceCamera", "Camera", kWindIconNone, 10, {"camera", "cine", "view"});
 
-    RegisterTool("ActorEnvironment", "TerrainGenerate", "Landscape", WEIcons::MountainName, 10, {"terrain", "heightfield", "environment"});
-    RegisterTool("ActorEnvironment", "FoliagePaintTool", "Foliage", WEIcons::TreesName, 20, {"foliage", "grass", "environment"});
+    RegisterTool("ActorEnvironment", "TerrainGenerate", "Landscape", kWindIconNone, 10, {"terrain", "heightfield", "environment"});
+    RegisterTool("ActorEnvironment", "FoliagePaintTool", "Foliage", kWindIconNone, 20, {"foliage", "grass", "environment"});
 
-    RegisterTool("ActorCinematics", "CineAddShot", "Cinematic Camera", WEIcons::VideoName, 10, {"sequencer", "cinematic", "shot"});
+    RegisterTool("ActorCinematics", "CineAddShot", "Cinematic Camera", kWindIconNone, 10, {"sequencer", "cinematic", "shot"});
 
-    RegisterTool("ActorAudio", "AudioPlace", "Audio Source", WEIcons::Volume2Name, 10, {"sound", "audio", "speaker"});
+    RegisterTool("ActorAudio", "AudioPlace", "Audio Source", kWindIconNone, 10, {"sound", "audio", "speaker"});
 
-    RegisterTool("ActorFX", "FXSpawn", "Particle System", WEIcons::SparklesName, 10, {"vfx", "niagara", "particle"});
+    RegisterTool("ActorFX", "FXSpawn", "Particle System", kWindIconNone, 10, {"vfx", "niagara", "particle"});
 
-    RegisterTool("ActorVolumes", "NavPaint", "Nav Modifier Volume", WEIcons::MapName, 10, {"volume", "nav", "navigation"});
-    RegisterTool("ActorVolumes", "PhysicsCollision", "Physics Volume", WEIcons::CubeName, 20, {"collision", "trigger", "volume"});
+    RegisterTool("ActorVolumes", "NavPaint", "Nav Modifier Volume", kWindIconNone, 10, {"volume", "nav", "navigation"});
+    RegisterTool("ActorVolumes", "PhysicsCollision", "Physics Volume", kWindIconNone, 20, {"collision", "trigger", "volume"});
 
-    RegisterTool("ActorAllClasses", "PlaceBlueprint", "Blueprint", WEIcons::BlocksName, 10, {"blueprint", "class", "script"});
-    RegisterTool("ActorAllClasses", "PlaceBlueprintClass", "Blueprint Class", WEIcons::BlocksName, 20, {"blueprint", "class"});
-    RegisterTool("ActorAllClasses", "ModelingExtrude", "Geometry Brush", WEIcons::CubeName, 30, {"brush", "geometry", "modeling"});
-    RegisterTool("ActorAllClasses", "UIWidget", "UI Widget", WEIcons::LayoutPanelName, 40, {"widget", "hud", "ui"});
-    RegisterTool("ActorAllClasses", "AIBehaviorTree", "AI Controller", WEIcons::BrainName, 50, {"behavior", "ai"});
-    RegisterTool("ActorAllClasses", "NavBake", "Nav Mesh Bounds", WEIcons::CompassName, 60, {"navigation", "navmesh"});
-    RegisterTool("ActorAllClasses", "SplineDraw", "Gameplay Trigger", WEIcons::ZapName, 70, {"trigger", "gameplay", "spline"});
-    RegisterTool("ActorAllClasses", "PlaceNote", "Editor Note", WEIcons::StickyNoteName, 80, {"note", "comment", "utility"});
+    RegisterTool("ActorAllClasses", "PlaceBlueprint", "Blueprint", kWindIconNone, 10, {"blueprint", "class", "script"});
+    RegisterTool("ActorAllClasses", "PlaceBlueprintClass", "Blueprint Class", kWindIconNone, 20, {"blueprint", "class"});
+    RegisterTool("ActorAllClasses", "ModelingExtrude", "Geometry Brush", kWindIconNone, 30, {"brush", "geometry", "modeling"});
+    RegisterTool("ActorAllClasses", "UIWidget", "UI Widget", kWindIconNone, 40, {"widget", "hud", "ui"});
+    RegisterTool("ActorAllClasses", "AIBehaviorTree", "AI Controller", kWindIconNone, 50, {"behavior", "ai"});
+    RegisterTool("ActorAllClasses", "NavBake", "Nav Mesh Bounds", kWindIconNone, 60, {"navigation", "navmesh"});
+    RegisterTool("ActorAllClasses", "SplineDraw", "Gameplay Trigger", kWindIconNone, 70, {"trigger", "gameplay", "spline"});
+    RegisterTool("ActorAllClasses", "PlaceNote", "Editor Note", kWindIconNone, 80, {"note", "comment", "utility"});
 }
 
 void ConfigureActorsModePanel() {
@@ -124,7 +124,7 @@ void ConfigureActorsModePanel() {
     } else {
         mode.id = "Actors";
         mode.label = "Assets";
-        mode.iconName = WEIcons::PivotName;
+        mode.icon = kWindIconNone;
         mode.sortOrder = 20;
         mode.keywords = "Actors Place Assets";
         mode.opensToolDrawerByDefault = true;

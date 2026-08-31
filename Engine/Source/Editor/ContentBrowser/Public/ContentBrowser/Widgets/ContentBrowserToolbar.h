@@ -1,5 +1,6 @@
 #pragma once
 
+#include "ContentBrowser/Models/ContentBrowserModel.h"
 #include "KindUI/Core/Widget.h"
 #include "KindUI/Layout/Flex.h"
 #include "KindUI/Core/Style.h"
@@ -8,7 +9,7 @@
 #include "KindUI/Core/Widgets/ToolbarNavigationButton.h"
 #include "KindUI/Tokens/DesignToken.h"
 #include "KindUI/Theming/StyleRole.h"
-#include "ContentBrowser/Models/ContentBrowserModel.h"
+#include "KindUI/Core/WindIcon.h"
 #include <functional>
 #include <memory>
 #include <string>
@@ -34,7 +35,7 @@ class Breadcrumb;
 // Square icon toggle for view modes (legacy, kept for compatibility).
 class ToolbarIconToggle : public Widget {
 public:
-    ToolbarIconToggle(const std::string& iconName, const char* tooltip = nullptr);
+    ToolbarIconToggle(we::runtime::kindui::WindIconRef icon, const char* tooltip = nullptr);
 
     Size Measure(const Size& availableSize) override;
     void Arrange(const Rect& allottedRect) override;
@@ -49,7 +50,7 @@ public:
     void SetOnClicked(std::function<void()> callback) { m_OnClicked = callback; }
 
 private:
-    std::string m_IconName;
+    we::runtime::kindui::WindIconRef m_Icon = we::runtime::kindui::kWindIconNone;
     bool m_Selected = false;
     bool m_Pressed = false;
     float m_HoverAnim = 0.0f;
@@ -62,7 +63,7 @@ class ToolbarLabeledButton : public Widget {
 public:
     enum class Variant { Standard, Primary };
 
-    ToolbarLabeledButton(const std::string& label, const std::string& iconName = {},
+    ToolbarLabeledButton(const std::string& label, we::runtime::kindui::WindIconRef icon = we::runtime::kindui::kWindIconNone,
         bool showChevron = false, Variant variant = Variant::Standard, float horizontalPadding = 12.0f);
 
     Size Measure(const Size& availableSize) override;
@@ -77,7 +78,7 @@ public:
 
 private:
     std::string m_Label;
-    std::string m_IconName;
+    we::runtime::kindui::WindIconRef m_Icon = we::runtime::kindui::kWindIconNone;
     bool m_ShowChevron = false;
     Variant m_Variant = Variant::Standard;
     float m_HorizontalPadding = 12.0f;

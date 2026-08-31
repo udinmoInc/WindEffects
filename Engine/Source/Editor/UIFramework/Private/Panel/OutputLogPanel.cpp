@@ -4,7 +4,8 @@
 #include "KindUI/Core/Widgets/DesignSystemControls.h"
 
 namespace we::programs::editor {
-namespace Icons = ::we::runtime::kindui::Icons;
+namespace WindIcons = ::we::runtime::kindui::WindIcons;
+using ::we::runtime::kindui::kWindIconNone;
 using namespace ::we::runtime::kindui;
 using ::we::editor::panels::Panel;
 using ::we::editor::panels::PanelBuilder;
@@ -15,7 +16,7 @@ std::shared_ptr<Panel> CreateOutputLogPanel() {
     auto outputWidget = std::make_shared<OutputLogWidget>();
 
     return PanelBuilder("Output Log")
-        .TabIcon(Icons::OutputLogName)
+        .TabIcon(kWindIconNone)
         .ToolbarBox([&](Row& toolbar) {
             toolbar.Padding(Margin{6.0f, 4.0f, 6.0f, 4.0f});
 

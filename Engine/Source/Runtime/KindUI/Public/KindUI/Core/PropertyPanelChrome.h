@@ -2,6 +2,7 @@
 
 #include "KindUI/Export.h"
 #include "KindUI/Core/Geometry.h"
+#include "KindUI/Core/WindIcon.h"
 
 #include <string>
 #include <string_view>
@@ -11,7 +12,6 @@ namespace we::runtime::kindui {
 class PaintContext;
 class Widget;
 
-/// Shared layout and paint primitives for Details / property inspector panels.
 namespace PropertyPanelChrome {
 
 struct PropertyRowLayout {
@@ -30,7 +30,6 @@ struct PropertyRowLayout {
 [[nodiscard]] KINDUI_API float ControlPaddingH();
 [[nodiscard]] KINDUI_API float PropertyIndentStep();
 
-/// Apply label/control flex sizing from LayoutPropertyRow metrics.
 KINDUI_API void ConfigureFormRowChildren(Widget& labelWidget, Widget* controlWidget, int depth = 0);
 
 [[nodiscard]] KINDUI_API float FormColumnPadding();
@@ -44,7 +43,7 @@ KINDUI_API void PaintObjectHeader(
     PaintContext& context,
     const Rect& rect,
     std::string_view title,
-    std::string_view iconName,
+    WindIconRef icon,
     bool active);
 
 KINDUI_API void PaintSectionHeader(

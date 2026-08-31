@@ -55,7 +55,7 @@ float SearchInputFontSize() {
 }
 
 float SearchInputIconSize() {
-    return static_cast<float>(IconMetrics::NativeIconTierPx(ResolveMetric(MetricToken::IconSizeSearch)));
+    return 16.0f;
 }
 
 Rect LayoutSearchInputRect(const Rect& allottedRect) {

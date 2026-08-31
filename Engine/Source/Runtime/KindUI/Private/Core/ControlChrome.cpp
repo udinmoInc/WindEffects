@@ -8,6 +8,7 @@
 #include "KindUI/Tokens/SurfaceRole.h"
 #include "KindUI/Tokens/TypographySpec.h"
 #include "KindUI/Core/LayoutMetrics.h"
+#include "KindUI/Core/WindIcon.h"
 #include "KindUI/Core/Icon.h"
 #include "KindUI/Rendering/IconMetrics.h"
 
@@ -18,7 +19,7 @@
 
 namespace we::runtime::kindui {
 namespace ControlChrome {
-namespace Icons = ::we::runtime::kindui::Icons;
+using ::we::runtime::kindui::kWindIconNone;
 
 namespace {
 
@@ -436,6 +437,26 @@ void PaintInputFrame(
     PaintInputFrameInternal(context, rect, state, InputFrameStyle().cornerRadius);
 }
 
+void PaintStatusBarCommandField(
+    PaintContext& context,
+    const Rect& rect,
+    const InteractionState& state) {
+    // UE footer console: always-recessed well that blends into the status strip.
+    Color fill = ResolveColor(ColorToken::InputBackground);
+    if (state.hoverAnim > 0.01f && !state.focused) {
+        fill = Color::Lerp(fill, ResolveColor(ColorToken::SecondarySurface), state.hoverAnim * 0.28f);
+    }
+    context.DrawRect(rect, fill);
+
+    if (state.focused) {
+        context.DrawRoundedRectOutline(
+            rect,
+            ResolveColor(ColorToken::BorderSubtle),
+            EdgeWidthPx(),
+            0.0f);
+    }
+}
+
 void PaintSearchInputFrame(
     PaintContext& context,
     const Rect& rect,
@@ -454,19 +475,18 @@ void PaintSearchField(
     PaintSearchInputFrame(context, rect, state);
 
     const float padH = LayoutMetrics::SearchInputPaddingH();
-    const float iconSize = LayoutMetrics::SearchInputIconSize();
+    const uint32_t iconTier = static_cast<uint32_t>(LayoutMetrics::SearchInputIconSize());
     const float fontSize = LayoutMetrics::SearchInputFontSize();
     const float iconGap = ResolveMetric(MetricToken::Space1);
 
     const float iconX = rect.x + padH;
-    Rect iconBand{ iconX, rect.y, iconSize, rect.height };
-    IconPainter::DrawIcon(
+    Rect iconBand{ iconX, rect.y, static_cast<float>(iconTier), rect.height };
+    IconPainter::Draw(
         context,
-        Icons::SearchName,
-        IconMetrics::PlaceGlyphCentered(iconBand, iconSize),
-        ResolveColor(state.focused ? ColorToken::IconAccent : ColorToken::IconSecondary));
+        WindIcons::Search16,
+        IconMetrics::PlaceGlyphCentered(iconBand, iconTier));
 
-    const float textX = iconX + iconSize + iconGap;
+    const float textX = iconX + static_cast<float>(iconTier) + iconGap;
     const float textY = rect.y + (rect.height - fontSize) * 0.5f;
     const bool empty = text.empty();
 
@@ -487,7 +507,7 @@ void PaintSearchField(
     }
 
     if (options.showClearButton && !empty) {
-        const float clearSize = iconSize;
+        const float clearSize = static_cast<float>(iconTier);
         const float clearX = rect.x + rect.width - clearSize - padH;
         const float clearY = rect.y + (rect.height - clearSize) * 0.5f;
         const Rect clearRect{ clearX, clearY, clearSize, clearSize };
@@ -495,11 +515,10 @@ void PaintSearchField(
             const float radius = ResolveMetric(MetricToken::IconButtonRadius);
             context.DrawRoundedRect(clearRect, ResolveColor(ColorToken::HoverBackground), radius);
         }
-        IconPainter::DrawIcon(
+        IconPainter::Draw(
             context,
-            Icons::XName,
-            IconMetrics::PlaceGlyphCentered(clearRect, clearSize),
-            ResolveColor(ColorToken::IconSecondary));
+            WindIcons::Close16,
+            IconMetrics::PlaceGlyphCentered(clearRect, 16u));
     }
 }
 

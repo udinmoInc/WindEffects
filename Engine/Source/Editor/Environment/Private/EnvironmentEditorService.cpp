@@ -18,6 +18,7 @@
 #include "KindUI/Core/DPIContext.h"
 #include "KindUI/Tokens/DesignToken.h"
 #include "KindUI/Theming/StyleRole.h"
+#include "KindUI/Core/WindIcon.h"
 #include "KindUI/Core/Icon.h"
 #include "KindUI/Core/ToolbarButtonChrome.h"
 #include "KindUI/Rendering/IconMetrics.h"
@@ -38,7 +39,8 @@ namespace we::editor::environment {
 using ::we::runtime::kindui::IconPainter;
 using ::we::runtime::kindui::MouseButton;
 using ::we::runtime::kindui::Animator;
-namespace Icons = ::we::runtime::kindui::Icons;
+namespace WindIcons = ::we::runtime::kindui::WindIcons;
+using ::we::runtime::kindui::kWindIconNone;
 namespace IconMetrics = ::we::runtime::kindui::IconMetrics;
 namespace ToolbarButtonChrome = ::we::runtime::kindui::ToolbarButtonChrome;
 using ::we::runtime::kindui::DPIContext;
@@ -71,22 +73,22 @@ std::string EntityTypeLabel(EntityType type) {
     }
 }
 
-std::string IconForEntity(const Entity& entity) {
+we::runtime::kindui::WindIconRef IconForEntity(const Entity& entity) {
     switch (entity.Type) {
     case EntityType::DirectionalLight:
-        return we::runtime::kindui::Icons::SunName;
+        return we::runtime::kindui::WindIcons::Sun16;
     case EntityType::SkyLight:
-        return we::runtime::kindui::Icons::LightName;
+        return we::runtime::kindui::kWindIconNone;
     case EntityType::SkyAtmosphere:
-        return we::runtime::kindui::Icons::SphereName;
+        return we::runtime::kindui::kWindIconNone;
     case EntityType::HeightFog:
-        return we::runtime::kindui::Icons::LayersName;
+        return we::runtime::kindui::kWindIconNone;
     case EntityType::VolumetricClouds:
-        return we::runtime::kindui::Icons::SphereName;
+        return we::runtime::kindui::kWindIconNone;
     case EntityType::EmptyActor:
-        return we::runtime::kindui::Icons::FolderName;
+        return we::runtime::kindui::kWindIconNone;
     default:
-        return we::runtime::kindui::Icons::CubeName;
+        return we::runtime::kindui::kWindIconNone;
     }
 }
 
@@ -229,7 +231,7 @@ std::shared_ptr<::we::editor::contentbrowser::TreeNode> BuildNodeForEntity(const
     auto node = std::make_shared<::we::editor::contentbrowser::TreeNode>();
     node->id = std::to_string(entity.Id);
     node->label = entity.Name;
-    node->iconName = IconForEntity(entity);
+    node->icon = IconForEntity(entity);
     node->userData = reinterpret_cast<void*>(entity.Id);
     if (entity.Type == EntityType::EmptyActor && entity.Name == we::runtime::world::environment::kEnvironmentFolderName) {
         node->expanded = true;

@@ -3,6 +3,7 @@
 #include "KindUI/Core/DPIContext.h"
 #include "KindUI/Core/Geometry.h"
 #include "KindUI/Core/UIRepaintGate.h"
+#include "KindUI/Rendering/IconMetrics.h"
 #include "KindUI/Theming/ThemeAccess.h"
 #include "KindUI/Tokens/DesignToken.h"
 #include "KindUI/Theming/StyleRole.h"
@@ -44,7 +45,14 @@ inline constexpr float kLauncherToolbarControlGap = 8.0f;
 inline constexpr float kLauncherButtonGap = 8.0f;
 inline constexpr float kLauncherSearchW = 320.0f;
 inline constexpr float kLauncherRowH = 44.0f;
-inline constexpr float kLauncherIconPx = 16.0f;
+/// Standard launcher navigation / title-bar icon layout size (maps to native 24px atlas tier).
+inline constexpr float kLauncherIconPx = 24.0f;
+
+/// Resolve a theme icon metric to the nearest native atlas tier (no resampling).
+inline float LIconPx(we::runtime::kindui::MetricToken role) {
+    const float logicalPx = we::runtime::kindui::ResolveMetric(role);
+    return static_cast<float>(16u);
+}
 
 inline we::runtime::kindui::Color LColor(we::runtime::kindui::ColorToken token) {
     return we::runtime::kindui::ResolveColor(token);

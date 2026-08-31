@@ -62,7 +62,7 @@ void PanelModeTabs::RebuildTabGeometries() {
     for (const auto& tab : m_Tabs) {
         Chrome::DockTabDescriptor descriptor{};
         descriptor.title = tab.label;
-        descriptor.iconName = tab.iconName;
+        descriptor.icon = tab.icon;
         m_Descriptors.push_back(descriptor);
     }
 

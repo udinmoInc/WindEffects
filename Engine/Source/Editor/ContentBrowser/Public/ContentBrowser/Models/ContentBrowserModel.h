@@ -4,6 +4,7 @@
 #include <vector>
 #include <functional>
 #include "RHI/Types.h"
+#include "KindUI/Core/WindIcon.h"
 
 namespace we::editor::contentbrowser {
 
@@ -12,7 +13,7 @@ struct ContentItem {
     std::string name;
     std::string type;
     std::string path;
-    std::string iconName;
+    we::runtime::kindui::WindIconRef icon = we::runtime::kindui::kWindIconNone;
     we::rhi::RHIDescriptorSetHandle iconTexture = we::rhi::RHIDescriptorSetHandle::Invalid;
     bool isFolder = false;
     bool isFavorite = false;

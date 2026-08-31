@@ -1,6 +1,7 @@
 #pragma once
 
 #include "KindUI/Core/PaintContext.h"
+#include "KindUI/Core/WindIcon.h"
 #include "KindUI/Core/Geometry.h"
 
 #include <string>
@@ -48,7 +49,7 @@ void PaintChip(
     we::runtime::kindui::PaintContext& context,
     const we::runtime::kindui::Rect& bounds,
     std::string_view label,
-    const char* iconHook,
+    we::runtime::kindui::WindIconRef icon,
     bool selected,
     float hoverAnim);
 

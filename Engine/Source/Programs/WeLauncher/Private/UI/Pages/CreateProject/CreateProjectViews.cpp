@@ -4,6 +4,7 @@
 #include "UI/Pages/Library/ManagerViews.h"
 
 #include "KindUI/Core/Animator.h"
+#include "KindUI/Core/WindIcon.h"
 #include "KindUI/Core/Icon.h"
 #include "KindUI/Core/PaintContext.h"
 #include "KindUI/Core/TextMetrics.h"
@@ -287,16 +288,13 @@ void CreateTemplateRow::Paint(PaintContext& context) {
         },
         LColor(ColorToken::CardBackground),
         8.0f * s);
-    IconPainter::DrawIcon(
-        context,
-        TemplateTypeIcon(m_Info.id),
-        Rect{
-            m_Geometry.x + pad + 8.0f * s,
-            m_Geometry.y + (m_Geometry.height - 20.0f * s) * 0.5f,
+    IconPainter::Draw(
+        context, TemplateTypeIcon(m_Info.id), Rect{
+            m_Geometry.x + pad + 8.0f * s) * 0.5f,
             20.0f * s,
             20.0f * s
         },
-        LColor(ColorToken::AccentPrimary));
+        LColor(ColorToken::AccentPrimary);
 
     const float textX = m_Geometry.x + pad + iconBox + 12.0f * s;
     const float textW = std::max(40.0f, m_Geometry.width - (textX - m_Geometry.x) - pad);

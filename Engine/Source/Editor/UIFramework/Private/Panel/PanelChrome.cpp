@@ -7,6 +7,7 @@
 #include "KindUI/Tokens/SurfaceRole.h"
 #include "KindUI/Core/LayoutMetrics.h"
 #include "KindUI/Theming/ThemeAccess.h"
+#include "KindUI/Core/WindIcon.h"
 #include "KindUI/Core/Icon.h"
 #include "KindUI/Core/DPIContext.h"
 #include "KindUI/Rendering/IconMetrics.h"
@@ -22,7 +23,7 @@ using ::we::runtime::kindui::ResolveIconColor;
 using ::we::runtime::kindui::Point;
 using ::we::runtime::kindui::IconPainter;
 using ::we::runtime::kindui::DPIContext;
-namespace Icons = ::we::runtime::kindui::Icons;
+namespace WindIcons = ::we::runtime::kindui::WindIcons;
 namespace IconMetrics = ::we::runtime::kindui::IconMetrics;
 
 namespace we::editor::panels {
@@ -60,10 +61,12 @@ void DrawRoundedRectTop(PaintContext& context, const Rect& rect, const Color& co
 
 void PaintSeparatorEdge(PaintContext& context, const Rect& rect, bool topEdge) {
     const float scale = (std::max)(1.0f, DPIContext::GetScale());
-    const float thickness = we::runtime::kindui::ResolveMetric(MetricToken::BorderWidth) * scale;
-    const Rect edge = topEdge
-        ? Rect{ rect.x, rect.y, rect.width, thickness }
-        : Rect{ rect.x, rect.y + rect.height - thickness, rect.width, thickness };
+    const float thickness = std::max(1.0f, IconMetrics::SnapPx(
+        we::runtime::kindui::ResolveMetric(MetricToken::BorderWidth) * scale));
+    const float edgeY = topEdge
+        ? IconMetrics::SnapPx(rect.y)
+        : IconMetrics::SnapPx(rect.y + rect.height - thickness);
+    const Rect edge{ IconMetrics::SnapPx(rect.x), edgeY, rect.width, thickness };
     context.DrawSurface(edge, we::runtime::kindui::SurfaceRole::Separator, 0.0f, "PanelSeparator");
 }
 
@@ -163,11 +166,11 @@ float TabActiveIndicatorWidth() {
 }
 
 float TabIconSize() {
-    return static_cast<float>(IconMetrics::GlyphTierPx(MetricToken::IconSizeToolbar));
+    return static_cast<float>(16u);
 }
 
 float CloseGlyphSize() {
-    return static_cast<float>(IconMetrics::GlyphTierPx(MetricToken::IconSizeTree));
+    return static_cast<float>(16u);
 }
 
 float TabGap() {
@@ -267,7 +270,7 @@ float MeasureDockTabWidth(
     float leadingWidth = 0.0f;
     if (tab.hasBrand) {
         leadingWidth = tab.brandLogicalSize * scale + iconGap;
-    } else if (!tab.iconName.empty()) {
+    } else if (tab.icon.IsValid()) {
         leadingWidth = iconSize + iconGap;
     }
 
@@ -369,7 +372,7 @@ void PaintDockTab(
                 we::runtime::kindui::ResolveColor(ColorToken::TextPrimary));
         }
         itemX += brandSize + iconGap;
-    } else if (!tab.iconName.empty()) {
+    } else if (tab.icon.IsValid()) {
         const Rect iconSlot{
             itemX,
             layout.tabRect.y,
@@ -377,11 +380,10 @@ void PaintDockTab(
             layout.tabRect.height
         };
         const Rect iconRect = IconMetrics::PlaceGlyphCentered(iconSlot, static_cast<uint32_t>(iconSize));
-        IconPainter::DrawIcon(
+        IconPainter::Draw(
             context,
-            tab.iconName,
-            iconRect,
-            ResolveTabIconColor(isActive, hoverAnim));
+            tab.icon,
+            iconRect);
         itemX += iconSize + iconGap;
     }
 
@@ -394,7 +396,7 @@ void PaintDockTab(
         false);
 
     if (showClose && !layout.closeRect.IsEmpty()) {
-        PaintHeaderIconButton(context, layout.closeRect, Icons::XName, closeHovered, false, true);
+        PaintHeaderIconButton(context, layout.closeRect, WindIcons::Close16, closeHovered, false, true);
     }
 }
 
@@ -450,7 +452,7 @@ void PaintFloatingPanelHeader(
     PaintContext& context,
     const Rect& headerRect,
     const std::string& title,
-    const std::string& iconName,
+    we::runtime::kindui::WindIconRef icon,
     bool hasBrand,
     we::rhi::RHIDescriptorSetHandle brandDescriptor,
     float brandLogicalSize,
@@ -467,7 +469,7 @@ void PaintFloatingPanelHeader(
 
     DockTabDescriptor descriptor{};
     descriptor.title = title;
-    descriptor.iconName = iconName;
+    descriptor.icon = icon;
     descriptor.hasBrand = hasBrand;
     descriptor.brandDescriptor = brandDescriptor;
     descriptor.brandLogicalSize = brandLogicalSize;
@@ -475,7 +477,7 @@ void PaintFloatingPanelHeader(
     bool showClose = false;
     bool closeHovered = false;
     for (const auto& action : actions) {
-        if (action.iconName == Icons::XName) {
+        if (action.icon.stem == WindIcons::Close16.stem && action.icon.sizePx == WindIcons::Close16.sizePx) {
             showClose = true;
             closeHovered = action.hovered;
             break;
@@ -491,17 +493,17 @@ void PaintFloatingPanelHeader(
     outOptionsMenuRect = {};
     if (showOptionsMenu) {
         outOptionsMenuRect = Rect{ actionX, std::floor(centerY - buttonSize * 0.5f), buttonSize, buttonSize };
-        PaintHeaderIconButton(context, outOptionsMenuRect, Icons::MoreName, optionsMenuHovered, false);
+        PaintHeaderIconButton(context, outOptionsMenuRect, WindIcons::VerticalDots16, optionsMenuHovered, false);
         actionX += buttonSize + gap;
     }
 
     for (auto it = actions.rbegin(); it != actions.rend(); ++it) {
         const auto& action = *it;
-        if (action.iconName == Icons::XName) {
+        if (action.icon.stem == WindIcons::Close16.stem && action.icon.sizePx == WindIcons::Close16.sizePx) {
             continue;
         }
         Rect actionRect{ actionX, std::floor(centerY - buttonSize * 0.5f), buttonSize, buttonSize };
-        PaintHeaderIconButton(context, actionRect, action.iconName, action.hovered, action.pressed, true);
+        PaintHeaderIconButton(context, actionRect, action.icon, action.hovered, action.pressed, true);
         actionX += buttonSize + gap;
     }
 
@@ -642,12 +644,12 @@ void PaintCategoryHeader(
 void PaintHeaderIconButton(
     PaintContext& context,
     const Rect& rect,
-    const std::string& iconName,
+    we::runtime::kindui::WindIconRef icon,
     bool hovered,
     bool pressed,
     bool compactGlyph)
 {
-    const bool isClose = Icons::ResolveLucideName(iconName) == Icons::XName;
+    const bool isClose = icon.stem == WindIcons::Close16.stem && icon.sizePx == WindIcons::Close16.sizePx;
     const float scale = UiScale();
     const float radius = we::runtime::kindui::ResolveMetric(MetricToken::IconButtonRadius) * scale;
 
@@ -662,20 +664,16 @@ void PaintHeaderIconButton(
             ColorToken::ListLabelBandBackground);
     }
 
-    const float emphasis = (hovered || pressed) ? 1.0f : 0.0f;
-    Color iconColor = ResolveIconColor(IconColorRole::Secondary, emphasis, pressed ? 1.0f : 0.0f);
+    if (!icon.IsValid()) {
+        return;
+    }
 
-    if (isClose) {
-        const uint32_t tierPx = IconMetrics::CompactGlyphTierPx();
-        const Rect iconRect = IconMetrics::PlaceGlyphCentered(rect, tierPx);
-        const std::string resolved = Icons::ResolveLucideName(iconName);
-        context.DrawIcon(resolved, iconRect, iconColor, static_cast<float>(tierPx));
-    } else if (compactGlyph) {
-        IconPainter::DrawCompactIcon(context, iconName, rect, iconColor);
+    if (isClose || compactGlyph) {
+        IconPainter::Draw(context, icon, rect);
     } else {
-        const float iconSize = static_cast<float>(TabIconSize());
+        const uint32_t iconSize = static_cast<uint32_t>(TabIconSize());
         const Rect iconRect = IconMetrics::PlaceGlyphCentered(rect, iconSize);
-        IconPainter::DrawIcon(context, iconName, iconRect, iconColor);
+        IconPainter::Draw(context, icon, iconRect);
     }
 }
 

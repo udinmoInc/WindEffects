@@ -62,11 +62,11 @@ enum class ColorToken : uint32_t {
     SearchPlaceholder,      // Search field placeholder (alias → TextHint)
 
     // ── Icons ─────────────────────────────────────────────────────────────────
-    IconPrimary,            // ForegroundHeader (#C8C8C8)
-    IconSecondary,          // Foreground (#C0C0C0)
-    IconDisabled,           // Disabled icon (#4F5053)
+    IconPrimary,            // Default mono icon (#A7AFBA)
+    IconSecondary,          // Default mono icon (#A7AFBA)
+    IconDisabled,           // Disabled icon (#5C6570)
     IconAccent,             // Active/accent icon (#FFFFFF)
-    IconHover,              // Hovered icon (#FFFFFF)
+    IconHover,              // Hovered icon (#D6DBE1)
     IconActive,             // Pressed/active icon (#FFFFFF)
 
     // ── Accent & selection ────────────────────────────────────────────────────

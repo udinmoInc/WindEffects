@@ -7,6 +7,7 @@
 #include "KindUI/Theming/StyleRole.h"
 #include "KindUI/Theming/ThemeAccess.h"
 #include "KindUI/Core/DPIContext.h"
+#include "KindUI/Core/WindIcon.h"
 #include "KindUI/Core/Icon.h"
 #include "KindUI/Rendering/IconMetrics.h"
 #include "KindUI/Core/Types.h"
@@ -94,7 +95,7 @@ void PaintChip(
     PaintContext& context,
     const Rect& bounds,
     std::string_view label,
-    const char* iconHook,
+    we::runtime::kindui::WindIconRef icon,
     bool selected,
     float hoverAnim)
 {
@@ -121,15 +122,11 @@ void PaintChip(
     }
 
     float textX = bounds.x + ResolveMetric(MetricToken::Space2) * UiScale();
-    if (iconHook && iconHook[0] != '\0') {
-        const float iconSize = static_cast<float>(
-            we::runtime::kindui::IconMetrics::GlyphTierPx(MetricToken::IconSizeTree));
+    if (icon.IsValid()) {
+        const float iconSize = 16.0f;
         const Rect iconBand{bounds.x + ResolveMetric(MetricToken::Space2) * UiScale(), bounds.y, iconSize, bounds.height};
-        we::runtime::kindui::IconPainter::DrawIcon(
-            context,
-            iconHook,
-            we::runtime::kindui::IconMetrics::PlaceGlyphCentered(iconBand, iconSize),
-            selected ? ResolveColor(ColorToken::AccentPrimary) : ResolveColor(ColorToken::IconPrimary));
+        we::runtime::kindui::IconPainter::Draw(
+            context, icon, we::runtime::kindui::IconMetrics::PlaceGlyphCentered(iconBand, 16u));
         textX = bounds.x + ResolveMetric(MetricToken::Space2) * UiScale() + iconSize + ResolveMetric(MetricToken::Space2) * UiScale();
     }
     const float fontSize = ResolveMetric(MetricToken::TextSizeCaption) * UiScale();

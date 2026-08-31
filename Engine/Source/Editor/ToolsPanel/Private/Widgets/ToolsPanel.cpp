@@ -10,6 +10,7 @@
 #include "KindUI/Theming/ThemeAccess.h"
 #include "KindUI/Tokens/DesignToken.h"
 #include "KindUI/Theming/StyleRole.h"
+#include "KindUI/Core/WindIcon.h"
 #include "KindUI/Core/Icon.h"
 #include "KindUI/Core/DPIContext.h"
 #include "KindUI/Rendering/IconMetrics.h"
@@ -25,7 +26,9 @@ namespace we::programs::editor {
 using ::we::runtime::kindui::DPIContext;
 using ::we::runtime::kindui::IconPainter;
 using ::we::runtime::kindui::Animator;
-namespace Icons = ::we::runtime::kindui::Icons;
+namespace WindIcons = ::we::runtime::kindui::WindIcons;
+using ::we::runtime::kindui::kWindIconNone;
+using ::we::runtime::kindui::WindIconRef;
 namespace IconMetrics = ::we::runtime::kindui::IconMetrics;
 
 
@@ -490,7 +493,7 @@ void ToolsPanel::Paint(PaintContext& context) {
         const float uiScale = (std::max)(1.0f, we::runtime::kindui::DPIContext::GetScale());
         const float labelFontSize = ThemeMetric(MetricToken::TextSizeBody) * uiScale;
         const float shortcutFontSize = ThemeMetric(MetricToken::TextSizeCaption) * uiScale;
-        const float iconSize = static_cast<float>(we::runtime::kindui::IconMetrics::NativeIconTierPx(ThemeMetric(MetricToken::IconSizeTree)));
+        const float iconSize = 16.0f;
         const float padH = PanelChrome::PanelPaddingH();
         const float chevronGap = ThemeMetric(MetricToken::Space2) * uiScale;
 
@@ -514,8 +517,7 @@ void ToolsPanel::Paint(PaintContext& context) {
 
             const float rowIconX = toolHit.geometry.x + padH + iconSize + chevronGap;
             const float iconY = toolHit.geometry.y + (toolHit.geometry.height - iconSize) * 0.5f;
-            we::runtime::kindui::IconPainter::DrawIcon(context, toolHit.tool->iconName,
-                Rect{ rowIconX, iconY, iconSize, iconSize }, ThemeColor(ColorToken::IconPrimary));
+            we::runtime::kindui::IconPainter::Draw(context, toolHit.tool->icon, Rect{ rowIconX, iconY, iconSize, iconSize });
 
             context.DrawText(toolHit.tool->label,
                 Point{ rowIconX + iconSize + chevronGap, toolHit.geometry.y + (toolHit.geometry.height - labelFontSize) * 0.5f },
@@ -530,10 +532,8 @@ void ToolsPanel::Paint(PaintContext& context) {
             }
 
             const float starX = toolHit.geometry.x + toolHit.geometry.width - padH - iconSize;
-            const char* starIcon = toolHit.favorite ? we::runtime::kindui::Icons::StarFilledName : we::runtime::kindui::Icons::StarName;
-            Color starColor = toolHit.favorite ? ThemeColor(ColorToken::IconAccent) : ThemeColor(ColorToken::IconSecondary);
-            we::runtime::kindui::IconPainter::DrawIcon(context, starIcon,
-                Rect{ starX, iconY, iconSize, iconSize }, starColor);
+            const WindIconRef starIcon = toolHit.favorite ? kWindIconNone : kWindIconNone;
+            we::runtime::kindui::IconPainter::Draw(context, starIcon, Rect{ starX, iconY, iconSize, iconSize });
         }
     }
 

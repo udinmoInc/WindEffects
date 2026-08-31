@@ -2,6 +2,7 @@
 
 #include "WorldOutliner/Export.h"
 #include "WorldOutliner/OutlinerTypes.h"
+#include "KindUI/Core/WindIcon.h"
 
 #include <span>
 #include <string>
@@ -19,7 +20,7 @@ public:
     [[nodiscard]] virtual OutlinerNodeKind GetKind() const noexcept = 0;
     [[nodiscard]] virtual std::string_view GetDisplayName() const noexcept = 0;
     [[nodiscard]] virtual std::string_view GetTypeName() const noexcept = 0;
-    [[nodiscard]] virtual std::string_view GetIconName() const noexcept = 0;
+    [[nodiscard]] virtual we::runtime::kindui::WindIconRef GetIcon() const noexcept = 0;
     [[nodiscard]] virtual std::string_view GetLayer() const noexcept = 0;
     [[nodiscard]] virtual std::span<const std::string> GetTags() const noexcept = 0;
     [[nodiscard]] virtual const OutlinerNodeFlags& GetFlags() const noexcept = 0;

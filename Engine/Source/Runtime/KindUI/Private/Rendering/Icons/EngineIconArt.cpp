@@ -500,31 +500,11 @@ bool EngineIconArt::IsEngineIcon(std::string_view iconName) const {
 }
 
 we::rhi::RHIDescriptorSetHandle EngineIconArt::GetTexture(std::string_view iconName, uint32_t displaySizePx, float hoverAnim, float activeAnim) const {
-    if (!m_Renderer || displaySizePx == 0) return we::rhi::RHIDescriptorSetHandle::Invalid;
-
-    const float dpi = std::max(1.0f, DPIContext::GetScale());
-    const uint32_t rasterSize = std::max(kIconDesignSize, static_cast<uint32_t>(std::ceil(static_cast<float>(displaySizePx) * dpi)));
-
-    const int hoverBucket = static_cast<int>(std::round(hoverAnim * 4.0f));
-    const int activeBucket = static_cast<int>(std::round(activeAnim * 4.0f));
-    const std::string key = std::string(iconName) + "_" + std::to_string(rasterSize) + "_h" + std::to_string(hoverBucket) + "_a" + std::to_string(activeBucket);
-
-    {
-        std::scoped_lock lock(m_CacheMutex);
-        if (const auto it = m_Cache.find(key); it != m_Cache.end()) {
-            return it->second;
-        }
-    }
-
-    const IconBitmap bitmap = RenderIconBitmap(iconName, rasterSize, hoverAnim, activeAnim);
-    if (bitmap.pixels.empty()) return we::rhi::RHIDescriptorSetHandle::Invalid;
-
-    const we::rhi::RHIDescriptorSetHandle texture = m_Renderer->CreateTextureFromBitmap(bitmap.pixels, bitmap.width, bitmap.height);
-    if (texture != we::rhi::RHIDescriptorSetHandle::Invalid) {
-        std::scoped_lock lock(m_CacheMutex);
-        m_Cache[key] = texture;
-    }
-    return texture;
+    (void)iconName;
+    (void)displaySizePx;
+    (void)hoverAnim;
+    (void)activeAnim;
+    return we::rhi::RHIDescriptorSetHandle::Invalid;
 }
 
 void EngineIconArt::Paint(

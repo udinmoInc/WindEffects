@@ -26,6 +26,7 @@
 #include "KindUI/Core/DPIContext.h"
 #include "KindUI/Tokens/DesignToken.h"
 #include "KindUI/Theming/StyleRole.h"
+#include "KindUI/Core/WindIcon.h"
 #include "KindUI/Core/Icon.h"
 #include "KindUI/Core/Animator.h"
 #include "Core/EditorConfigPaths.h"
@@ -39,7 +40,8 @@
 namespace we::programs::editor {
 using ::we::runtime::kindui::DPIContext;
 using ::we::runtime::kindui::Animator;
-namespace Icons = ::we::runtime::kindui::Icons;
+namespace WindIcons = ::we::runtime::kindui::WindIcons;
+using ::we::runtime::kindui::kWindIconNone;
 namespace PanelChrome = ::we::editor::panels::PanelChrome;
 
 namespace {
@@ -132,7 +134,7 @@ PlaceActorsPanel::PlaceActorsPanel() {
     m_SearchBox->SetPlaceholder("Search Assets...");
 
     m_FilterButton = std::make_shared<::we::editor::toolbar::ToolButton>(
-        we::runtime::kindui::Icons::FilterName, "", nullptr, "Filter and view options");
+        we::runtime::kindui::WindIcons::ListFilter16, "", nullptr, "Filter and view options");
     m_FilterButton->SetButtonStyle(::we::editor::toolbar::ToolButtonStyle::ToolbarIconOnly);
 
     m_ContentHost = std::make_shared<PlaceActorsContentHost>(this);
@@ -244,7 +246,7 @@ void PlaceActorsPanel::BuildQuickAccessCategory(const std::string& query) {
     PlaceActorsCategoryData quick;
     quick.id = kQuickAccessCategoryId;
     quick.label = "Quick Access";
-    quick.iconName = we::runtime::kindui::Icons::PivotName;
+    quick.icon = we::runtime::kindui::kWindIconNone;
     quick.defaultExpanded = true;
     quick.items = std::move(items);
     m_CategoryExpanded[quick.id] = true;
@@ -326,7 +328,7 @@ void PlaceActorsPanel::RebuildData() {
         PlaceActorsCategoryData favCategory;
         favCategory.id = kFavoritesCategoryId;
         favCategory.label = "Favorites";
-        favCategory.iconName = we::runtime::kindui::Icons::StarName;
+        favCategory.icon = we::runtime::kindui::kWindIconNone;
         favCategory.defaultExpanded = true;
         favCategory.items = std::move(favoriteItems);
         if (m_CategoryExpanded.find(favCategory.id) == m_CategoryExpanded.end()) {
@@ -341,7 +343,7 @@ void PlaceActorsPanel::RebuildData() {
             PlaceActorsCategoryData recentCategory;
             recentCategory.id = kRecentCategoryId;
             recentCategory.label = "Recently Used";
-            recentCategory.iconName = we::runtime::kindui::Icons::RefreshName;
+            recentCategory.icon = we::runtime::kindui::WindIcons::Refresh16;
             recentCategory.defaultExpanded = true;
             recentCategory.items = std::move(recentItems);
             if (m_CategoryExpanded.find(recentCategory.id) == m_CategoryExpanded.end()) {

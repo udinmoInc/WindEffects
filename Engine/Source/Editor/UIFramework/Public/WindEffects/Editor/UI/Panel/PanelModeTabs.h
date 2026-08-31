@@ -1,5 +1,6 @@
 #pragma once
 
+#include "KindUI/Core/WindIcon.h"
 #include "WindEffects/Editor/UI/Export.h"
 #include "WindEffects/Editor/UI/Panel/PanelChrome.h"
 #include "KindUI/Core/Widget.h"
@@ -15,7 +16,7 @@ namespace we::editor::panels {
 struct PanelModeTabDescriptor {
     std::string id;
     std::string label;
-    std::string iconName;
+    we::runtime::kindui::WindIconRef icon = we::runtime::kindui::kWindIconNone;
 };
 
 /// Horizontal mode tab strip for editor tool drawers (Actors, Landscape, etc.).

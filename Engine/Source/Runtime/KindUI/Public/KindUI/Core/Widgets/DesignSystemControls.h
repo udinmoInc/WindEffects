@@ -2,6 +2,7 @@
 
 #include "KindUI/Export.h"
 #include "KindUI/Core/Widget.h"
+#include "KindUI/Core/WindIcon.h"
 #include "KindUI/Tokens/DesignToken.h"
 #include "KindUI/Theming/StyleRole.h"
 
@@ -14,12 +15,11 @@ namespace we::runtime::kindui {
 
 class KINDUI_API DesignButton : public Widget {
 public:
-    DesignButton(std::string label, StyleRole role, const char* icon = nullptr);
+    DesignButton(std::string label, StyleRole role, WindIconRef icon = kWindIconNone);
 
     void SetOnClicked(std::function<void()> cb) { m_OnClicked = std::move(cb); }
     void SetLabel(std::string label);
-    void SetIcon(const char* icon) { m_Icon = icon; m_IconStorage.clear(); }
-    void SetIconName(std::string icon);
+    void SetIcon(WindIconRef icon) { m_Icon = icon; }
 
     Size Measure(const Size& availableSize) override;
     void Arrange(const Rect& allottedRect) override;
@@ -32,8 +32,7 @@ public:
 protected:
     std::string m_Label;
     StyleRole m_Role = StyleRole::ButtonSecondary;
-    std::string m_IconStorage;
-    const char* m_Icon = nullptr;
+    WindIconRef m_Icon = kWindIconNone;
     float m_HoverAnim = 0.0f;
     float m_PressAnim = 0.0f;
     std::function<void()> m_OnClicked;
@@ -41,37 +40,37 @@ protected:
 
 class KINDUI_API PrimaryButton : public DesignButton {
 public:
-    explicit PrimaryButton(std::string label, const char* icon = nullptr)
+    explicit PrimaryButton(std::string label, WindIconRef icon = kWindIconNone)
         : DesignButton(std::move(label), StyleRole::ButtonPrimary, icon) {}
 };
 
 class KINDUI_API SecondaryButton : public DesignButton {
 public:
-    explicit SecondaryButton(std::string label, const char* icon = nullptr)
+    explicit SecondaryButton(std::string label, WindIconRef icon = kWindIconNone)
         : DesignButton(std::move(label), StyleRole::ButtonSecondary, icon) {}
 };
 
 class KINDUI_API GhostButton : public DesignButton {
 public:
-    explicit GhostButton(std::string label, const char* icon = nullptr)
+    explicit GhostButton(std::string label, WindIconRef icon = kWindIconNone)
         : DesignButton(std::move(label), StyleRole::ButtonGhost, icon) {}
 };
 
 class KINDUI_API ToolbarButton : public DesignButton {
 public:
-    explicit ToolbarButton(std::string label, const char* icon = nullptr)
+    explicit ToolbarButton(std::string label, WindIconRef icon = kWindIconNone)
         : DesignButton(std::move(label), StyleRole::ToolbarButton, icon) {}
 };
 
 class KINDUI_API DangerButton : public DesignButton {
 public:
-    explicit DangerButton(std::string label, const char* icon = nullptr)
+    explicit DangerButton(std::string label, WindIconRef icon = kWindIconNone)
         : DesignButton(std::move(label), StyleRole::ButtonDanger, icon) {}
 };
 
 class KINDUI_API IconButton : public Widget {
 public:
-    explicit IconButton(const char* icon);
+    explicit IconButton(WindIconRef icon = kWindIconNone);
 
     void SetOnClicked(std::function<void()> cb) { m_OnClicked = std::move(cb); }
     void SetActive(bool active) { m_Active = active; }
@@ -85,7 +84,7 @@ public:
     bool ShowsPointerCursor(const Point& position) const override { return m_Geometry.Contains(position); }
 
 private:
-    const char* m_Icon = nullptr;
+    WindIconRef m_Icon = kWindIconNone;
     bool m_Active = false;
     bool m_Pressed = false;
     float m_HoverAnim = 0.0f;
@@ -182,7 +181,7 @@ private:
 
 class KINDUI_API SidebarItem : public Widget {
 public:
-    SidebarItem(std::string label, const char* icon = nullptr);
+    SidebarItem(std::string label, WindIconRef icon = kWindIconNone);
 
     void SetActive(bool active) { m_Active = active; }
     void SetOnClicked(std::function<void()> cb) { m_OnClicked = std::move(cb); }
@@ -198,7 +197,7 @@ public:
 
 private:
     std::string m_Label;
-    const char* m_Icon = nullptr;
+    WindIconRef m_Icon = kWindIconNone;
     bool m_Active = false;
     bool m_Pressed = false;
     float m_HoverAnim = 0.0f;
@@ -233,10 +232,10 @@ protected:
 
 [[nodiscard]] KINDUI_API std::shared_ptr<PrimaryButton> MakePrimaryAction(
     std::string label,
-    std::string icon = {});
+    WindIconRef icon = kWindIconNone);
 [[nodiscard]] KINDUI_API std::shared_ptr<SecondaryButton> MakeSecondaryAction(
     std::string label,
-    std::string icon = {});
+    WindIconRef icon = kWindIconNone);
 [[nodiscard]] KINDUI_API std::shared_ptr<PanelTab> MakePanelTab(std::string label);
 
 } // namespace we::runtime::kindui

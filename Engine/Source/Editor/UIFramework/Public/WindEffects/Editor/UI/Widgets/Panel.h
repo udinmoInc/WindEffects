@@ -4,7 +4,7 @@
 
 #include "KindUI/Core/Widget.h"
 #include "KindUI/Core/Style.h"
-#include "KindUI/Core/Icon.h"
+#include "KindUI/Core/WindIcon.h"
 #include "WindEffects/Editor/UI/Panel/PanelBodyLayout.h"
 #include "RHI/Types.h"
 #include <string>
@@ -67,7 +67,7 @@ public:
     void Toggle() { SetExpanded(!m_Expanded); }
 
     // Header actions (icons on the right side of header)
-    void AddHeaderAction(const std::string& iconName, std::function<void()> onClick);
+    void AddHeaderAction(we::runtime::kindui::WindIconRef icon, std::function<void()> onClick);
 
     void SetOptionsMenuHandler(std::function<void()> onClick) { m_OnOptionsMenu = std::move(onClick); }
     void InvokeOptionsMenu() const;
@@ -93,8 +93,8 @@ public:
     }
     bool IsFloatingToolbar() const { return m_FloatingToolbar; }
 
-    void SetTabIcon(const std::string& iconName) { m_TabIconName = iconName; }
-    [[nodiscard]] const std::string& GetTabIcon() const { return m_TabIconName; }
+    void SetTabIcon(we::runtime::kindui::WindIconRef icon) { m_TabIcon = icon; }
+    [[nodiscard]] we::runtime::kindui::WindIconRef GetTabIcon() const { return m_TabIcon; }
 
     void SetTabBrand(we::rhi::RHIDescriptorSetHandle descriptor, float logicalSize);
     [[nodiscard]] bool HasTabBrand() const { return m_TabBrandDescriptor != we::rhi::RHIDescriptorSetHandle::Invalid; }
@@ -103,7 +103,7 @@ public:
 
 private:
     struct HeaderAction {
-        std::string iconName;
+        we::runtime::kindui::WindIconRef icon = we::runtime::kindui::kWindIconNone;
         std::function<void()> onClick;
         Rect geometry;
     };
@@ -127,7 +127,7 @@ private:
     bool m_FloatingToolbar = false;
 
     float m_HeaderHeight = 0.0f; // resolved in constructor from PanelTabHeight token
-    float m_ActionIconSize = 16.0f;
+    float m_ActionIconSize = 24.0f;
     float m_ActionSpacing = 4.0f;
 
     Rect m_HeaderRect;
@@ -136,7 +136,7 @@ private:
     WidgetStyle m_Style;
     WidgetStyle m_HeaderStyle;
 
-    std::string m_TabIconName;
+    we::runtime::kindui::WindIconRef m_TabIcon = we::runtime::kindui::kWindIconNone;
     we::rhi::RHIDescriptorSetHandle m_TabBrandDescriptor = we::rhi::RHIDescriptorSetHandle::Invalid;
     float m_TabBrandLogicalSize = 0.0f;
 };

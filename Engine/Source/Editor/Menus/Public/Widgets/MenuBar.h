@@ -4,6 +4,7 @@
 
 #include "KindUI/Core/Widget.h"
 #include "KindUI/Core/Style.h"
+#include "KindUI/Core/WindIcon.h"
 #include <string>
 #include <vector>
 #include <functional>
@@ -24,6 +25,7 @@ using ::we::runtime::kindui::WidgetStyle;
 struct MenuItem {
     std::string label;
     std::string shortcut;
+    we::runtime::kindui::WindIconRef icon = we::runtime::kindui::kWindIconNone;
     std::function<void()> onClick;
     bool enabled = true;
     bool checked = false;

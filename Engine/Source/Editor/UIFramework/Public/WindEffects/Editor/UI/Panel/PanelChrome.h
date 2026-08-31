@@ -2,7 +2,7 @@
 
 #include "WindEffects/Editor/UI/Export.h"
 #include "KindUI/Core/Widget.h"
-#include "KindUI/Core/Types.h"
+#include "KindUI/Core/WindIcon.h"
 #include "KindUI/Core/PaintContext.h"
 #include "KindUI/Input/InputEvents.h"
 #include "RHI/Types.h"
@@ -63,7 +63,7 @@ UIFRAMEWORK_API void PaintDockHeaderBand(PaintContext& context, const Rect& head
 
 struct DockTabDescriptor {
     std::string title;
-    std::string iconName;
+    we::runtime::kindui::WindIconRef icon = we::runtime::kindui::kWindIconNone;
     bool hasBrand = false;
     we::rhi::RHIDescriptorSetHandle brandDescriptor = we::rhi::RHIDescriptorSetHandle::Invalid;
     float brandLogicalSize = 0.0f;
@@ -141,7 +141,7 @@ UIFRAMEWORK_API void PaintDockTabStrip(
     const DockTabStripState& state);
 
 struct FloatingHeaderAction {
-    std::string iconName;
+    we::runtime::kindui::WindIconRef icon = we::runtime::kindui::kWindIconNone;
     Rect geometry;
     bool hovered = false;
     bool pressed = false;
@@ -158,7 +158,7 @@ UIFRAMEWORK_API void PaintFloatingPanelHeader(
     PaintContext& context,
     const Rect& headerRect,
     const std::string& title,
-    const std::string& iconName,
+    we::runtime::kindui::WindIconRef icon,
     bool hasBrand,
     we::rhi::RHIDescriptorSetHandle brandDescriptor,
     float brandLogicalSize,
@@ -198,7 +198,7 @@ UIFRAMEWORK_API void PaintCategoryHeader(
 UIFRAMEWORK_API void PaintHeaderIconButton(
     PaintContext& context,
     const Rect& rect,
-    const std::string& iconName,
+    we::runtime::kindui::WindIconRef icon,
     bool hovered,
     bool pressed,
     bool compactGlyph = false);

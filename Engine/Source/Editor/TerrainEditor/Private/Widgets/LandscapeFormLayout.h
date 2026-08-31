@@ -2,6 +2,8 @@
 
 #include "KindUI/Layout/Flex.h"
 
+#include "KindUI/Core/WindIcon.h"
+
 #include <functional>
 #include <memory>
 #include <string>
@@ -11,7 +13,7 @@
 
 namespace we::editor::terrain {
 
-using FormChip = std::tuple<std::string, const char*, bool, std::function<void()>>;
+using FormChip = std::tuple<std::string, we::runtime::kindui::WindIconRef, bool, std::function<void()>>;
 
 void ConfigureLandscapeFormColumn(const std::shared_ptr<we::runtime::kindui::Column>& layout);
 

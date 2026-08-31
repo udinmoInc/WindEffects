@@ -4,6 +4,7 @@
 
 #include "KindUI/Core/Widget.h"
 #include "KindUI/Core/Style.h"
+#include "KindUI/Core/WindIcon.h"
 #include "KindUI/Core/Icon.h"
 #include <string>
 #include <functional>

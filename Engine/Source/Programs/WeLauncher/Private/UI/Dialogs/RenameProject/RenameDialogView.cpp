@@ -3,6 +3,7 @@
 #include "UI/Dialogs/DialogStyles.h"
 #include "UI/Shell/LauncherHelpers.h"
 
+#include "KindUI/Core/WindIcon.h"
 #include "KindUI/Core/Icon.h"
 #include "KindUI/Core/Widgets/DesignSystemControls.h"
 #include "KindUI/Declarative/UI.h"
@@ -39,13 +40,13 @@ we::runtime::kindui::Element BuildRenameDialogView(const RenameDialogState& stat
                 UI::Row({
                     UI::Spacer(),
                     UI::Host([onCancel]() {
-                        auto btn = we::runtime::kindui::MakeSecondaryAction("Cancel", "");
+                        auto btn = we::runtime::kindui::MakeSecondaryAction("Cancel");
                         btn->SetOnClicked(onCancel);
                         return btn;
                     }),
                     UI::Host([onRename]() {
                         auto btn = we::runtime::kindui::MakePrimaryAction(
-                            "Rename", we::runtime::kindui::Icons::CheckName);
+                            "Rename", we::runtime::kindui::WindIcons::Check16);
                         btn->SetOnClicked(onRename);
                         return btn;
                     }),

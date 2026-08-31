@@ -11,6 +11,7 @@
 #include "KindUI/Tokens/DesignToken.h"
 #include "KindUI/Tokens/DesignSystem.h"
 #include "KindUI/Theming/StyleRole.h"
+#include "KindUI/Core/WindIcon.h"
 #include "KindUI/Core/Icon.h"
 #include "KindUI/Core/DPIContext.h"
 #include "KindUI/Input/InputEvents.h"
@@ -31,7 +32,9 @@ namespace we::editor::contentbrowser {
 using ::we::runtime::kindui::IconPainter;
 using ::we::runtime::kindui::MouseButton;
 using ::we::runtime::kindui::KeyCodeToChar;
-namespace Icons = ::we::runtime::kindui::Icons;
+namespace WindIcons = ::we::runtime::kindui::WindIcons;
+using ::we::runtime::kindui::kWindIconNone;
+using ::we::runtime::kindui::WindIconRef;
 namespace IconMetrics = ::we::runtime::kindui::IconMetrics;
 namespace PanelChrome = ::we::editor::panels::PanelChrome;
 namespace ControlChrome = ::we::runtime::kindui::ControlChrome;
@@ -58,13 +61,6 @@ float TreeAccessoryColumnX(float viewportX, int column, float uiScale) {
     return viewportX + pad + static_cast<float>(column) * hit;
 }
 
-bool IsFolderIconName(const std::string& iconName) {
-    return iconName == Icons::FolderName;
-}
-
-bool IsBlueprintIconName(const std::string& iconName) {
-    return iconName == "blueprint";
-}
 
 constexpr float kMinTreeZoom = 0.75f;
 constexpr float kMaxTreeZoom = 1.75f;
@@ -75,20 +71,13 @@ float TreeUiScale() {
 }
 
 void PaintTreeNodeIcon(PaintContext& context, const TreeNode& node, const Rect& iconRect, bool hovered) {
+    (void)hovered;
     if (node.iconTexture != we::rhi::RHIDescriptorSetHandle::Invalid) {
         context.DrawTexture(iconRect, node.iconTexture);
         return;
     }
-    if (IsFolderIconName(node.iconName)) {
-        ContentBrowserFolderArt::Get().PaintSmallIcon(context, iconRect, hovered, node.expanded);
-        return;
-    }
-    if (IsBlueprintIconName(node.iconName)) {
-        ContentBrowserBlueprintArt::Get().PaintSmallIcon(context, iconRect, hovered);
-        return;
-    }
-    if (!node.iconName.empty()) {
-        IconPainter::DrawIcon(context, node.iconName, iconRect, we::runtime::kindui::ResolveColor(ColorToken::IconPrimary));
+    if (node.icon.IsValid()) {
+        IconPainter::Draw(context, node.icon, iconRect);
     }
 }
 
@@ -289,7 +278,7 @@ TreeView::TreeRowLayoutSlots TreeView::ComputeTreeRowLayout(const RenderItem& it
 
     layout.rowBounds = Rect{ viewportX, item.geometry.y, viewportWidth, rowHeight };
 
-    const float accessorySize = static_cast<float>(IconMetrics::GlyphTierPx(MetricToken::IconSizeTree)) * uiScale;
+    const float accessorySize = static_cast<float>(16u) * uiScale;
     const float prefixOffset = m_ExplorerStyle ? TreeExplorerPrefix(uiScale) : 0.0f;
     const float centerY = item.geometry.y + rowHeight * 0.5f;
 
@@ -315,8 +304,8 @@ TreeView::TreeRowLayoutSlots TreeView::ComputeTreeRowLayout(const RenderItem& it
 
     const float contentSlotX = layout.indentX + expanderWidth + ThemeMetric(MetricToken::SpaceXS) * uiScale;
 
-    const float iconSize = static_cast<float>(IconMetrics::GlyphTierPx(MetricToken::IconSizeTree)) * uiScale;
-    const bool hasIcon = !item.node->iconName.empty() || item.node->iconTexture != we::rhi::RHIDescriptorSetHandle::Invalid;
+    const float iconSize = static_cast<float>(16u);
+    const bool hasIcon = item.node->icon.IsValid() || item.node->iconTexture != we::rhi::RHIDescriptorSetHandle::Invalid;
     layout.hasIcon = hasIcon;
     if (hasIcon) {
         layout.iconBounds = Rect{ contentSlotX, centerY - iconSize * 0.5f, iconSize, iconSize };
@@ -357,19 +346,19 @@ void TreeView::Paint(PaintContext& context) {
 
         PanelChrome::PaintHeaderRegion(context, headerRect);
 
-        const float glyphTier = static_cast<float>(IconMetrics::StandardGlyphTierPx());
+        const float glyphTier = static_cast<float>(16u);
         const float headerTextSize = ThemeMetric(MetricToken::TextSizeCaption) * uiScale;
         const float headerTextY = m_Geometry.y + (headerHeight - headerTextSize) * 0.5f;
 
         // Eye icon column header
         const float eyeX = TreeAccessoryColumnX(m_Geometry.x, 0, uiScale);
         Rect eyeBand{ eyeX, m_Geometry.y, glyphTier, headerHeight };
-        IconPainter::DrawIcon(context, Icons::EyeName, IconMetrics::PlaceGlyphCentered(eyeBand, glyphTier), ThemeColor(ColorToken::TextSecondary));
+        IconPainter::Draw(context, WindIcons::Eye16, IconMetrics::PlaceGlyphCentered(eyeBand, 16u));
 
         // Pin/Lock column header
         const float lockX = TreeAccessoryColumnX(m_Geometry.x, 1, uiScale);
         Rect lockBand{ lockX, m_Geometry.y, glyphTier, headerHeight };
-        IconPainter::DrawIcon(context, Icons::LockName, IconMetrics::PlaceGlyphCentered(lockBand, glyphTier), ThemeColor(ColorToken::TextSecondary));
+        IconPainter::Draw(context, we::runtime::kindui::kWindIconNone, IconMetrics::PlaceGlyphCentered(lockBand, 16u));
 
         // Item Label header
         const float labelX = m_Geometry.x + TreeExplorerPrefix(uiScale);
@@ -437,23 +426,19 @@ void TreeView::Paint(PaintContext& context) {
         if (m_ExplorerStyle) {
             if (hovered || selected || !node->visible) {
                 const Color eyeColor = node->visible ? ThemeColor(ColorToken::TextSecondary) : ThemeColor(ColorToken::TextSecondary) * 0.45f;
-                const char* eyeIcon = node->visible ? Icons::EyeName : Icons::EyeOffName;
-                IconPainter::DrawIcon(context, eyeIcon,
-                    IconMetrics::PlaceGlyphCentered(layout.eyeBounds, layout.eyeBounds.width), eyeColor);
+                const WindIconRef eyeIcon = node->visible ? WindIcons::Eye16 : kWindIconNone;
+                IconPainter::Draw(context, eyeIcon, IconMetrics::PlaceGlyphCentered(layout.eyeBounds, 16u));
             }
             if (node->locked) {
                 const Color lockColor = ThemeColor(ColorToken::Warning);
-                IconPainter::DrawIcon(context, Icons::LockName,
-                    IconMetrics::PlaceGlyphCentered(layout.lockBounds, layout.lockBounds.width), lockColor);
+                IconPainter::Draw(context, we::runtime::kindui::kWindIconNone, IconMetrics::PlaceGlyphCentered(layout.lockBounds, 16u));
             }
         }
 
         // Expander Chevron
         if (layout.hasExpander) {
-            const char* chevronIcon = node->expanded ? Icons::ChevronDownName : Icons::ChevronRightName;
-            IconPainter::DrawIcon(context, chevronIcon,
-                IconMetrics::PlaceGlyphCentered(layout.expanderBounds, layout.expanderBounds.width),
-                ThemeColor(ColorToken::TextSecondary));
+            const WindIconRef chevronIcon = node->expanded ? WindIcons::ChevronDown16 : WindIcons::ChevronRight16;
+            IconPainter::Draw(context, chevronIcon, IconMetrics::PlaceGlyphCentered(layout.expanderBounds, 16u));
         }
 
         // Node Icon
@@ -543,14 +528,12 @@ void TreeView::Paint(PaintContext& context) {
         // Trailing Row Controls (Non-ExplorerStyle)
         if (m_ShowRowControls && !m_ExplorerStyle) {
             const Color eyeColor = node->visible ? ThemeColor(ColorToken::TextSecondary) : ThemeColor(ColorToken::TextSecondary) * 0.45f;
-            const char* eyeIcon = node->visible ? Icons::EyeName : Icons::EyeOffName;
-            IconPainter::DrawIcon(context, eyeIcon,
-                IconMetrics::PlaceGlyphCentered(layout.eyeBounds, layout.eyeBounds.width), eyeColor);
+            const WindIconRef eyeIcon = node->visible ? WindIcons::Eye16 : kWindIconNone;
+            IconPainter::Draw(context, eyeIcon, IconMetrics::PlaceGlyphCentered(layout.eyeBounds, 16u));
 
-            const Color lockColor = node->locked ? ThemeColor(ColorToken::Warning) : ThemeColor(ColorToken::TextSecondary) * 0.55f;
-            const char* lockIcon = node->locked ? Icons::LockName : Icons::UnlockName;
-            IconPainter::DrawIcon(context, lockIcon,
-                IconMetrics::PlaceGlyphCentered(layout.lockBounds, layout.lockBounds.width), lockColor);
+            if (node->locked) {
+                IconPainter::Draw(context, kWindIconNone, IconMetrics::PlaceGlyphCentered(layout.lockBounds, 16u));
+            }
         }
     }
 
@@ -566,7 +549,7 @@ void TreeView::Paint(PaintContext& context) {
             EditorMetrics::TreeIndent(),
             0.0f,
             fontSize,
-            static_cast<float>(IconMetrics::GlyphTierPx(MetricToken::IconSizeTree)));
+            16.0f);
     }
 }
 
@@ -844,7 +827,7 @@ void TreeView::BuildRenderList() {
         }
         
         // Empty folders filter
-        if (!m_FilterOptions.showEmptyFolders && node->children.empty() && node->iconName == Icons::FolderName) {
+        if (!m_FilterOptions.showEmptyFolders && node->children.empty() && !node->icon.IsValid()) {
             return false;
         }
         

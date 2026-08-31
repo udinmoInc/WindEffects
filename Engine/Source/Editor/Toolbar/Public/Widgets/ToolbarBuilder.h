@@ -3,6 +3,7 @@
 #include "Toolbar/Export.h"
 #include "Widgets/Toolbar.h"
 #include "Widgets/ToolButton.h"
+#include "KindUI/Core/WindIcon.h"
 
 #include <functional>
 #include <memory>
@@ -13,13 +14,14 @@
 namespace we::editor::toolbar {
 
 struct ToolbarItemSpec {
-    std::string icon;
+    we::runtime::kindui::WindIconRef icon = we::runtime::kindui::kWindIconNone;
     std::string label;
     std::string tooltip;
     std::function<void()> onClick;
     ToolButtonStyle style = ToolButtonStyle::ToolbarIconOnly;
     bool dropdown = false;
     bool isPlayTransport = false;
+    bool isSeparator = false;
     ToolbarAlignment alignment = ToolbarAlignment::Left;
     std::function<void(float)> onMouseWheel;
     std::function<void(std::shared_ptr<ToolButton>)> configure;
@@ -43,33 +45,33 @@ public:
         const std::function<void(ToolbarBuilder&)>& buildGroup);
 
     ToolbarBuilder& IconItem(
-        std::string_view icon,
+        we::runtime::kindui::WindIconRef icon,
         std::string_view tooltip,
         std::function<void()> onClick = {},
         std::function<void(std::shared_ptr<ToolButton>)> configure = {});
 
     ToolbarBuilder& DropdownItem(
-        std::string_view icon,
+        we::runtime::kindui::WindIconRef icon,
         std::string_view label,
         std::function<void()> onClick = {},
         std::string_view tooltip = {},
         std::function<void(std::shared_ptr<ToolButton>)> configure = {});
 
     ToolbarBuilder& TransportItem(
-        std::string_view icon,
+        we::runtime::kindui::WindIconRef icon,
         std::string_view tooltip,
         std::function<void()> onClick = {},
         bool isPlay = false);
 
     ToolbarBuilder& Item(
-        std::string_view icon,
+        we::runtime::kindui::WindIconRef icon,
         std::string_view label = {},
         std::function<void()> onClick = {},
         std::string_view tooltip = {},
         std::function<void(std::shared_ptr<ToolButton>)> configure = {});
 
     ToolbarBuilder& Dropdown(
-        std::string_view icon,
+        we::runtime::kindui::WindIconRef icon,
         std::string_view label,
         std::function<void()> onClick = {},
         std::string_view tooltip = {},

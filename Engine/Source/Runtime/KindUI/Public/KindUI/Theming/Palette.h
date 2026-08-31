@@ -46,6 +46,12 @@ struct GraphiteDark {
     static constexpr Color ForegroundHeader  = Hex("#C8C8C8");
     static constexpr Color Notifications     = Hex("#464B50"); // disabled label text
 
+    // ── Icons (mono atlas tint targets — separate from body text) ─────────────
+    static constexpr Color IconNormal        = Hex("#A7AFBA"); // inactive toolbar / panel icons
+    static constexpr Color IconHoverTint     = Hex("#D6DBE1"); // hovered icon emphasis
+    static constexpr Color IconActiveTint    = Hex("#FFFFFF"); // selected / active / important
+    static constexpr Color IconSubdued         = Hex("#5C6570"); // disabled icon (~55% of normal)
+
     // ── Status & accents (EStyleColor) ────────────────────────────────────────
     static constexpr Color Warning           = Hex("#FFB800");
     static constexpr Color Error             = Hex("#EF3535");

@@ -1,6 +1,7 @@
 #include "PlaceActors/PlaceActorsThumbnailProvider.h"
 
 #include "PlaceActors/PlaceActorsIconProvider.h"
+#include "KindUI/Core/WindIcon.h"
 #include "KindUI/Core/Icon.h"
 #include "KindUI/Theming/ThemeAccess.h"
 #include "KindUI/Tokens/DesignToken.h"
@@ -10,14 +11,13 @@
 
 namespace we::programs::editor {
 using ::we::runtime::kindui::IconPainter;
-namespace Icons = ::we::runtime::kindui::Icons;
+using ::we::runtime::kindui::WindIconRef;
 using ::we::runtime::kindui::Color;
 using ::we::runtime::kindui::PaintContext;
 using ::we::runtime::kindui::Rect;
 using ::we::runtime::kindui::ColorToken;
 using ::we::runtime::kindui::MetricToken;
 using ::we::runtime::kindui::PaddingToken;
-namespace WEIcons = ::we::runtime::kindui::Icons;
 
 PlaceActorsThumbnailProvider& PlaceActorsThumbnailProvider::Get() {
     static PlaceActorsThumbnailProvider instance;
@@ -38,10 +38,10 @@ PlaceActorsThumbnail PlaceActorsThumbnailProvider::Resolve(const std::string& to
         return thumb;
     }
 
-    const std::string previewIcon = PlaceActorsIconProvider::Get().ResolvePreviewIcon(toolId);
-    if (!previewIcon.empty()) {
+    const we::runtime::kindui::WindIconRef previewIcon = PlaceActorsIconProvider::Get().ResolvePreviewIcon(toolId);
+    if (previewIcon.IsValid()) {
         thumb.kind = PlaceActorsThumbnailKind::AtlasIcon;
-        thumb.atlasIconName = previewIcon;
+        thumb.windIcon = previewIcon;
         return thumb;
     }
 
@@ -73,7 +73,7 @@ void PlaceActorsThumbnailProvider::Paint(PaintContext& context,
         return;
     }
 
-    if (thumb.kind == PlaceActorsThumbnailKind::AtlasIcon && !thumb.atlasIconName.empty()) {
+    if (thumb.kind == PlaceActorsThumbnailKind::AtlasIcon && thumb.windIcon.IsValid()) {
         const float inset = std::max(4.0f, previewRect.width * 0.10f);
         const Rect iconRect{
             previewRect.x + inset,
@@ -81,8 +81,7 @@ void PlaceActorsThumbnailProvider::Paint(PaintContext& context,
             previewRect.width - inset * 2.0f,
             previewRect.height - inset * 2.0f
         };
-        we::runtime::kindui::IconPainter::DrawIcon(
-            context, thumb.atlasIconName, iconRect, Color::White());
+        IconPainter::Draw(context, thumb.windIcon, iconRect);
         return;
     }
 
@@ -94,13 +93,9 @@ void PlaceActorsThumbnailProvider::Paint(PaintContext& context,
         iconSize,
         iconSize
     };
-    const std::string chromeIcon = PlaceActorsIconProvider::Get().ResolveChromeIcon(item);
-    const std::string& placeholderIcon = !chromeIcon.empty() ? chromeIcon : WEIcons::PackageName;
-    we::runtime::kindui::IconPainter::DrawIcon(
-        context,
-        placeholderIcon,
-        iconRect,
-        we::runtime::kindui::ResolveColor(ColorToken::IconSecondary));
+    const WindIconRef chromeIcon = PlaceActorsIconProvider::Get().ResolveChromeIcon(item);
+    const WindIconRef placeholderIcon = chromeIcon.IsValid() ? chromeIcon : item.icon;
+    IconPainter::Draw(context, placeholderIcon, iconRect);
 }
 
 void PlaceActorsThumbnailProvider::CacheTexture(const std::string& toolId, void* texture) {

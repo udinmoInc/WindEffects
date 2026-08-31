@@ -122,7 +122,7 @@ void RegisterBuiltinModes(IViewportModeRegistry& registry) {
     ViewportModeDescriptor select;
     select.id = "Select";
     select.displayName = "Select";
-    select.iconName = "cursor";
+    select.icon = we::runtime::kindui::kWindIconNone;
     select.builtinId = ViewportModeId::Select;
     select.sortOrder = 0;
     registry.RegisterFactory(std::move(select), []() {

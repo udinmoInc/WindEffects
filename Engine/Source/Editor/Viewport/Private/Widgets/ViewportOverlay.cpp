@@ -2,6 +2,7 @@
 #include "KindUI/Core/PaintContext.h"
 #include "KindUI/Tokens/DesignToken.h"
 #include "KindUI/Theming/StyleRole.h"
+#include "KindUI/Core/WindIcon.h"
 #include "KindUI/Core/Icon.h"
 #include "KindUI/Theming/ThemeAccess.h"
 #include "KindUI/Rendering/IconMetrics.h"
@@ -13,7 +14,8 @@ using ::we::runtime::kindui::PaddingToken;
 
 namespace we::editor::viewport {
 using ::we::runtime::kindui::WidgetStyle;
-namespace Icons = ::we::runtime::kindui::Icons;
+namespace WindIcons = ::we::runtime::kindui::WindIcons;
+using ::we::runtime::kindui::kWindIconNone;
 namespace IconMetrics = ::we::runtime::kindui::IconMetrics;
 using ::we::runtime::kindui::IconPainter;
 
@@ -25,9 +27,9 @@ ViewportOverlay::ViewportOverlay()
     m_NavSpacing = ThemeMetric(MetricToken::Space1);
     // Initialize navigation buttons
     m_NavButtons = {
-        { Icons::PlusName, "zoom-in", Rect{} },
-        { Icons::MinusName, "zoom-out", Rect{} },
-        { Icons::CameraName, "reset-camera", Rect{} }
+        { kWindIconNone, "zoom-in", Rect{} },
+        { WindIcons::Minus16, "zoom-out", Rect{} },
+        { kWindIconNone, "reset-camera", Rect{} }
     };
 }
 
@@ -124,10 +126,8 @@ void ViewportOverlay::Paint(PaintContext& context) {
         context.DrawRoundedRect(m_NavigationRect, ThemeColor(ColorToken::GizmoBackground), 4.0f);
         
         for (const auto& btn : m_NavButtons) {
-            const float tier = static_cast<float>(IconMetrics::GlyphTierPx(MetricToken::IconSizeNavigation));
-            IconPainter::DrawIcon(context, btn.iconName,
-                IconMetrics::PlaceGlyphCentered(btn.geometry, tier),
-                ThemeColor(ColorToken::TextPrimary));
+            const float tier = static_cast<float>(16u);
+            IconPainter::Draw(context, btn.icon, IconMetrics::PlaceGlyphCentered(btn.geometry, 16u));
         }
     }
 }
@@ -242,9 +242,9 @@ NavigationControls::NavigationControls() {
     m_ButtonSize = ThemeMetric(MetricToken::NavigationButtonSize);
     m_Spacing = ThemeMetric(MetricToken::Space1);
     m_Buttons = {
-        { Icons::PlusName, "zoom-in", Rect{}, false },
-        { Icons::MinusName, "zoom-out", Rect{}, false },
-        { Icons::CameraName, "reset", Rect{}, false }
+        { kWindIconNone, "zoom-in", Rect{}, false },
+        { WindIcons::Minus16, "zoom-out", Rect{}, false },
+        { kWindIconNone, "reset", Rect{}, false }
     };
 }
 
@@ -263,9 +263,8 @@ void NavigationControls::Paint(PaintContext& context) {
     
     for (const auto& btn : m_Buttons) {
         Color iconColor = btn.hovered ? ThemeColor(ColorToken::AccentPrimary) : ThemeColor(ColorToken::TextPrimary);
-        const float tier = static_cast<float>(IconMetrics::GlyphTierPx(MetricToken::IconSizeNavigation));
-        IconPainter::DrawIcon(context, btn.iconName,
-            IconMetrics::PlaceGlyphCentered(btn.geometry, tier), iconColor);
+        const float tier = static_cast<float>(16u);
+        IconPainter::Draw(context, btn.icon, IconMetrics::PlaceGlyphCentered(btn.geometry, 16u));
     }
 }
 

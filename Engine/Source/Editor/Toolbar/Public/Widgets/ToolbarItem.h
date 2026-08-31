@@ -12,18 +12,18 @@ namespace we::editor::toolbar {
 namespace ToolbarItem {
 
 TOOLBAR_API std::shared_ptr<ToolButton> Icon(
-    const std::string& iconName,
+    we::runtime::kindui::WindIconRef icon,
     const std::string& tooltip,
     std::function<void()> onClick);
 
 TOOLBAR_API std::shared_ptr<ToolButton> LabeledDropdown(
-    const std::string& iconName,
+    we::runtime::kindui::WindIconRef icon,
     const std::string& label,
     const std::string& tooltip,
     std::function<void()> onClick);
 
 TOOLBAR_API std::shared_ptr<ToolButton> Transport(
-    const std::string& iconName,
+    we::runtime::kindui::WindIconRef icon,
     const std::string& tooltip,
     std::function<void()> onClick,
     bool isPlay = false);

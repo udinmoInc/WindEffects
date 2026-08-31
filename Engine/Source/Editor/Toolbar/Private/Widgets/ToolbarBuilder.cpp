@@ -59,7 +59,7 @@ ToolbarBuilder& ToolbarBuilder::Group(
 
     auto group = ToolbarItem::MakeGroup(style);
     for (const auto& childSpec : groupBuilder.m_Items) {
-        if (childSpec.icon == "__separator__" || childSpec.customWidget || childSpec.group) {
+        if (childSpec.isSeparator || childSpec.customWidget || childSpec.group) {
             continue;
         }
         std::shared_ptr<ToolButton> button;
@@ -95,13 +95,13 @@ ToolbarBuilder& ToolbarBuilder::Group(
 }
 
 ToolbarBuilder& ToolbarBuilder::IconItem(
-    std::string_view icon,
+    we::runtime::kindui::WindIconRef icon,
     std::string_view tooltip,
     std::function<void()> onClick,
     std::function<void(std::shared_ptr<ToolButton>)> configure)
 {
     ToolbarItemSpec spec;
-    spec.icon = std::string(icon);
+    spec.icon = icon;
     spec.tooltip = std::string(tooltip);
     spec.onClick = std::move(onClick);
     spec.style = ToolButtonStyle::ToolbarIconOnly;
@@ -111,14 +111,14 @@ ToolbarBuilder& ToolbarBuilder::IconItem(
 }
 
 ToolbarBuilder& ToolbarBuilder::DropdownItem(
-    std::string_view icon,
+    we::runtime::kindui::WindIconRef icon,
     std::string_view label,
     std::function<void()> onClick,
     std::string_view tooltip,
     std::function<void(std::shared_ptr<ToolButton>)> configure)
 {
     ToolbarItemSpec spec;
-    spec.icon = std::string(icon);
+    spec.icon = icon;
     spec.label = std::string(label);
     spec.tooltip = tooltip.empty() ? spec.label : std::string(tooltip);
     spec.onClick = std::move(onClick);
@@ -130,13 +130,13 @@ ToolbarBuilder& ToolbarBuilder::DropdownItem(
 }
 
 ToolbarBuilder& ToolbarBuilder::TransportItem(
-    std::string_view icon,
+    we::runtime::kindui::WindIconRef icon,
     std::string_view tooltip,
     std::function<void()> onClick,
     bool isPlay)
 {
     ToolbarItemSpec spec;
-    spec.icon = std::string(icon);
+    spec.icon = icon;
     spec.tooltip = std::string(tooltip);
     spec.onClick = std::move(onClick);
     spec.style = ToolButtonStyle::TransportButton;
@@ -146,7 +146,7 @@ ToolbarBuilder& ToolbarBuilder::TransportItem(
 }
 
 ToolbarBuilder& ToolbarBuilder::Item(
-    std::string_view icon,
+    we::runtime::kindui::WindIconRef icon,
     std::string_view label,
     std::function<void()> onClick,
     std::string_view tooltip,
@@ -156,7 +156,7 @@ ToolbarBuilder& ToolbarBuilder::Item(
 }
 
 ToolbarBuilder& ToolbarBuilder::Dropdown(
-    std::string_view icon,
+    we::runtime::kindui::WindIconRef icon,
     std::string_view label,
     std::function<void()> onClick,
     std::string_view tooltip,
@@ -168,7 +168,7 @@ ToolbarBuilder& ToolbarBuilder::Dropdown(
 ToolbarBuilder& ToolbarBuilder::Separator(ToolbarAlignment alignment) {
     ToolbarItemSpec spec;
     spec.alignment = alignment;
-    spec.icon = "__separator__";
+    spec.isSeparator = true;
     PushItem(std::move(spec));
     return *this;
 }
@@ -205,7 +205,7 @@ std::shared_ptr<Toolbar> ToolbarBuilder::Build() {
     }
 
     for (const auto& spec : m_Items) {
-        if (spec.icon == "__separator__") {
+        if (spec.isSeparator) {
             toolbar->AddSeparator(spec.alignment);
             continue;
         }

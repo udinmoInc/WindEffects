@@ -3,12 +3,14 @@
 #include "PropertyEditorInternal.h"
 #include "PropertyEditor/IDetailsView.h"
 #include "Core/Localization.h"
+#include "KindUI/Core/WindIcon.h"
 #include "KindUI/Core/Icon.h"
 #include "KindUI/Tokens/DesignToken.h"
 #include "KindUI/Theming/ThemeAccess.h"
 
 namespace we::programs::editor {
-namespace Icons = ::we::runtime::kindui::Icons;
+namespace WindIcons = ::we::runtime::kindui::WindIcons;
+using ::we::runtime::kindui::kWindIconNone;
 
 using namespace ::we::runtime::kindui;
 using ::we::editor::panels::Panel;
@@ -23,7 +25,7 @@ std::shared_ptr<Panel> CreateDetailsPanel() {
     panel->AttachBodyLayout();
     panel->SetHeaderHeight(we::runtime::kindui::ResolveMetric(MetricToken::PanelHeaderHeight));
     panel->SetCollapsible(false);
-    panel->SetTabIcon(Icons::SettingsName);
+    panel->SetTabIcon(we::runtime::kindui::kWindIconNone);
 
     if (auto details = PropertyEditorSession::DetailsShared()) {
         PopulateDetailsPanelRegions(panel, details->GetWidget(), details.get());

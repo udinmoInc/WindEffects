@@ -52,7 +52,7 @@ void AddFormChipRow(
             layout->AddChild(currentRow);
             countInRow = 0;
         }
-        auto btn = MakeSecondaryAction(label, icon ? icon : "");
+        auto btn = MakeSecondaryAction(label, icon);
         btn->SetFlexGrow(1.0f);
         btn->SetFlexShrink(1.0f);
         btn->SetMinWidth(LayoutMetrics::FormChipButtonMinWidth());

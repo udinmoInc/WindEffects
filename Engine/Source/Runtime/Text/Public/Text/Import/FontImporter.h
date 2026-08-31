@@ -15,7 +15,7 @@ namespace we::runtime::text::importing {
 using assets::FontAsset;
 
 struct ImportOptions {
-    float bakeSizePx = 18.0f;
+    float bakeSizePx = 24.0f;
     float msdfPixelRange = 4.0f;
     int atlasWidth = 0;
     int atlasHeight = 0;

@@ -14,6 +14,7 @@
 #include "Util/PathUtils.h"
 
 #include "KindUI/Core/EventSystem.h"
+#include "KindUI/Core/WindIcon.h"
 #include "KindUI/Core/Icon.h"
 #include "KindUI/Core/PaintContext.h"
 #include "KindUI/Core/Widgets/DesignSystemControls.h"
@@ -257,20 +258,20 @@ void LauncherShell::RebuildProjectActionsDialog() {
         panel->AddChild(btn);
     };
 
-    addAction("Open", Icons::PlayName, [this] { OpenSelectedProject(); });
-    addAction("Clone", Icons::CopyName, [this] { CloneSelectedProject(); });
-    addAction("Rename", Icons::DocumentName, [this] { ShowRenameDialog(); }, false);
+    addAction("Open", kWindIconNone, [this] { OpenSelectedProject(); });
+    addAction("Clone", kWindIconNone, [this] { CloneSelectedProject(); });
+    addAction("Rename", kWindIconNone, [this] { ShowRenameDialog(); }, false);
     addAction(
         IsFavorite(project->weprojPath) ? "Unpin" : "Pin",
-        Icons::StarName,
+        kWindIconNone,
         [this, path = project->weprojPath] { ToggleFavorite(path); });
-    addAction("Show in Explorer", Icons::OpenFolderName, [this] { ShowSelectedInExplorer(); });
-    addAction("Regenerate Project Files", Icons::BuildName, [this] { RegenerateSelectedProjectFiles(); });
-    addAction("Delete", Icons::DeleteName, [this] { DeleteSelectedProject(); });
+    addAction("Show in Explorer", kWindIconNone, [this] { ShowSelectedInExplorer(); });
+    addAction("Regenerate Project Files", WindIcons::Wrench16, [this] { RegenerateSelectedProjectFiles(); });
+    addAction("Delete", kWindIconNone, [this] { DeleteSelectedProject(); });
 
     auto closeRow = std::make_shared<Row>();
     closeRow->AddChild(std::make_shared<Spacer>());
-    auto close = MakeSecondaryAction("Close", "");
+    auto close = MakeSecondaryAction("Close");
     close->SetOnClicked([this] { CloseModal(); });
     closeRow->AddChild(close);
     panel->AddChild(closeRow);

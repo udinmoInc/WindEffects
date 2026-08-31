@@ -4,6 +4,7 @@
 
 #include "WindEffects/Editor/UI/Widgets/Panel.h"
 #include "KindUI/Core/DPIContext.h"
+#include "KindUI/Core/WindIcon.h"
 #include "KindUI/Core/Icon.h"
 #include "KindUI/Core/LayoutMetrics.h"
 #include "KindUI/Core/PropertyPanelChrome.h"
@@ -29,7 +30,7 @@ using we::runtime::kindui::Rect;
 using we::runtime::kindui::SearchBoxControl;
 using we::runtime::kindui::Size;
 using we::runtime::kindui::Widget;
-namespace Icons = we::runtime::kindui::Icons;
+using ::we::runtime::kindui::kWindIconNone;
 namespace Layout = we::runtime::kindui::LayoutMetrics;
 namespace PanelChrome = we::runtime::kindui::PropertyPanelChrome;
 using we::runtime::kindui::ResolveMetric;
@@ -54,7 +55,7 @@ public:
             context,
             m_Geometry,
             title,
-            active ? Icons::PropertiesName : "",
+            kWindIconNone,
             active);
     }
 

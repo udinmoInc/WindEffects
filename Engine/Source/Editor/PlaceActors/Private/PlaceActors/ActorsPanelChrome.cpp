@@ -6,12 +6,14 @@
 #include "KindUI/Theming/ThemeAccess.h"
 #include "KindUI/Tokens/DesignToken.h"
 #include "KindUI/Tokens/DesignSystem.h"
+#include "KindUI/Core/WindIcon.h"
 #include "KindUI/Core/Icon.h"
 #include "KindUI/Rendering/IconMetrics.h"
 
 namespace we::programs::editor::ActorsPanelChrome {
 
 using ::we::runtime::kindui::Color;
+using ::we::runtime::kindui::WindIconRef;
 using ::we::runtime::kindui::PaintContext;
 using ::we::runtime::kindui::Point;
 using ::we::runtime::kindui::Rect;
@@ -63,10 +65,10 @@ void PaintSoftSeparator(PaintContext& context, const Rect& bounds) {
 
 void PaintChevron(PaintContext& context, const Rect& bounds, bool expanded, float hoverAnim) {
     const Color color = we::runtime::kindui::ResolveTextForState(hoverAnim > 0.01f, false);
-    const char* chevronIcon = expanded
-        ? we::runtime::kindui::Icons::ChevronDownName
-        : we::runtime::kindui::Icons::ChevronRightName;
-    we::runtime::kindui::IconPainter::DrawCompactIcon(context, chevronIcon, bounds, color);
+    const WindIconRef chevronIcon = expanded
+        ? we::runtime::kindui::WindIcons::ChevronDown16
+        : we::runtime::kindui::WindIcons::ChevronRight16;
+    we::runtime::kindui::IconPainter::Draw(context, chevronIcon, bounds);
 }
 
 } // namespace we::programs::editor::ActorsPanelChrome
