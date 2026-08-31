@@ -85,7 +85,7 @@ public:
             m_HoverAnim, pressStrength, false);
 
         we::runtime::kindui::IconPainter::Draw(
-            context, we::runtime::kindui::kWindIconNone,
+            context, we::runtime::kindui::WindIcons::Globe16,
             we::runtime::kindui::ToolbarButtonChrome::PlaceIconInControl(
                 we::runtime::kindui::Rect{ m_Geometry.x + padH, m_Geometry.y, iconSize, m_Geometry.height },
                 iconSize));

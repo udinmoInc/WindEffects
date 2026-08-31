@@ -76,10 +76,10 @@ void RegisterActorCatalog() {
     RegisterCategory("Actors", "ActorVolumes", "Volumes", kWindIconNone, 100, false);
     RegisterCategory("Actors", "ActorAllClasses", "All Classes", kWindIconNone, 110, false);
 
-    RegisterTool("ActorGeometry", "PlaceCube", "Cube", kWindIconNone, 10, {"box", "mesh", "geometry"});
+    RegisterTool("ActorGeometry", "PlaceCube", "Cube", WindIcons::Box16, 10, {"box", "mesh", "geometry"});
     RegisterTool("ActorGeometry", "PlaceSphere", "Sphere", kWindIconNone, 20, {"ball", "mesh", "geometry"});
     RegisterTool("ActorGeometry", "PlaceCylinder", "Cylinder", kWindIconNone, 30, {"tube", "mesh", "geometry"});
-    RegisterTool("ActorGeometry", "PlacePlane", "Plane", kWindIconNone, 40, {"floor", "mesh", "geometry"});
+    RegisterTool("ActorGeometry", "PlacePlane", "Plane", WindIcons::Square16, 40, {"floor", "mesh", "geometry"});
     RegisterTool("ActorGeometry", "PlaceCone", "Cone", kWindIconNone, 50, {"cone", "mesh", "geometry"});
     RegisterTool("ActorGeometry", "PlaceCapsule", "Capsule", kWindIconNone, 60, {"capsule", "mesh", "geometry"});
 
@@ -95,7 +95,7 @@ void RegisterActorCatalog() {
 
     RegisterTool("ActorCameras", "PlaceCamera", "Camera", kWindIconNone, 10, {"camera", "cine", "view"});
 
-    RegisterTool("ActorEnvironment", "TerrainGenerate", "Landscape", kWindIconNone, 10, {"terrain", "heightfield", "environment"});
+    RegisterTool("ActorEnvironment", "TerrainGenerate", "Landscape", WindIcons::Grid3x316, 10, {"terrain", "heightfield", "environment"});
     RegisterTool("ActorEnvironment", "FoliagePaintTool", "Foliage", kWindIconNone, 20, {"foliage", "grass", "environment"});
 
     RegisterTool("ActorCinematics", "CineAddShot", "Cinematic Camera", kWindIconNone, 10, {"sequencer", "cinematic", "shot"});

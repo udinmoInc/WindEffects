@@ -141,9 +141,17 @@ void SettingsCheckBox::Paint(PaintContext& context) {
     context.DrawRoundedRect(m_Geometry, bg, radius);
     context.DrawRoundedRectOutline(m_Geometry, LColor(ColorToken::BorderDefault), 1.0f, radius);
     if (m_Checked) {
+        const float inset = 2.0f * s;
+        const float checkSize = m_Geometry.width - inset * 2.0f;
         IconPainter::Draw(
-            context, WindIcons::Check16, Rect{
-                m_Geometry.x + 2.0f * s);
+            context,
+            WindIcons::Check16,
+            Rect{
+                m_Geometry.x + inset,
+                m_Geometry.y + inset,
+                checkSize,
+                checkSize
+            });
     }
 }
 

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "KindUI/Core/Widget.h"
+#include "KindUI/Core/WindIcon.h"
 #include "KindUI/Tokens/DesignToken.h"
 #include "KindUI/Theming/StyleRole.h"
 
@@ -354,7 +355,7 @@ class SettingsActionBar : public we::runtime::kindui::Widget {
 public:
     void AddAction(
         std::string label,
-        const char* icon,
+        we::runtime::kindui::WindIconRef icon,
         std::function<void()> onClick,
         bool primary = false);
 

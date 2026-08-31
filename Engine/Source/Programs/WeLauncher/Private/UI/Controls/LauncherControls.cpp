@@ -19,6 +19,7 @@
 #include <cmath>
 #include <memory>
 using namespace we::runtime::kindui;
+namespace WindIcons = ::we::runtime::kindui::WindIcons;
 namespace we::programs::welauncher {
 using we::runtime::kindui::ColorToken;
 using we::runtime::kindui::MetricToken;
@@ -147,7 +148,7 @@ LauncherTitleBar::HitZone LauncherTitleBar::HitTest(const Point& p) const {
 void LauncherTitleBar::PaintIconButton(
     PaintContext& context,
     const Rect& r,
-    const char* icon,
+    WindIconRef icon,
     float hover,
     bool danger) const {
     const float s = LScale();
@@ -164,10 +165,15 @@ void LauncherTitleBar::PaintIconButton(
         context.DrawRoundedRect(r, bg, radius);
     }
 
+    if (!icon.IsValid()) {
+        return;
+    }
+
     const float glyph = LIconPx(MetricToken::IconSizeToolbar) * s;
     IconPainter::Draw(
-        context, icon, Rect{ r.x + (r.width - glyph) * 0.5f, r.y + (r.height - glyph) * 0.5f, glyph, glyph },
-        LColor(ColorToken::IconSecondary);
+        context,
+        icon,
+        Rect{ r.x + (r.width - glyph) * 0.5f, r.y + (r.height - glyph) * 0.5f, glyph, glyph });
 }
 
 void LauncherTitleBar::Paint(PaintContext& context) {
@@ -194,8 +200,8 @@ void LauncherTitleBar::Paint(PaintContext& context) {
     PaintIconButton(context, m_HelpRect, kWindIconNone, m_HoverHelp);
     PaintIconButton(context, m_SettingsRect, kWindIconNone, m_HoverSettings);
 
-    const char* maxIcon = m_IsMaximized ? kWindIconNone : kWindIconNone;
-    const char* icons[3] = { kWindIconNone, maxIcon, WindIcons::Close16 };
+    const WindIconRef maxIcon = kWindIconNone;
+    const WindIconRef icons[3] = { kWindIconNone, maxIcon, WindIcons::Close16 };
     const Rect controls[3] = { m_MinRect, m_MaxRect, m_CloseRect };
     const float hovers[3] = { m_HoverMin, m_HoverMax, m_HoverClose };
     for (int i = 0; i < 3; ++i) {
@@ -209,10 +215,13 @@ void LauncherTitleBar::Paint(PaintContext& context) {
         if (bg.a > 0.01f) {
             context.DrawRect(r, bg);
         }
-        const float glyph = LIconPx(MetricToken::IconSizeToolbar) * s;
-        IconPainter::Draw(
-            context, icons[i], Rect{ r.x + (r.width - glyph) * 0.5f, r.y + (r.height - glyph) * 0.5f, glyph, glyph },
-            LColor(ColorToken::IconSecondary);
+        if (icons[i].IsValid()) {
+            const float glyph = LIconPx(MetricToken::IconSizeToolbar) * s;
+            IconPainter::Draw(
+                context,
+                icons[i],
+                Rect{ r.x + (r.width - glyph) * 0.5f, r.y + (r.height - glyph) * 0.5f, glyph, glyph });
+        }
     }
 }
 

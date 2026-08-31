@@ -454,14 +454,22 @@ void NumberStepper::Paint(PaintContext& context) {
     context.DrawRoundedRect(m_Geometry, LColor(ColorToken::InputBackground), radius);
     context.DrawRoundedRectOutline(m_Geometry, LColor(ColorToken::BorderDefault), 1.0f, radius);
 
-    auto paintBtn = [&](const Rect& r, const char* icon, bool hot) {
+    auto paintBtn = [&](const Rect& r, WindIconRef icon, bool hot) {
         const float glyph = LIconPx(MetricToken::IconSizeSearch) * s;
         if (hot) {
             context.DrawRoundedRect(r, LColor(ColorToken::HoverBackground), radius);
         }
-        IconPainter::Draw(
-            context, icon, Rect{ r.x + (r.width - glyph) * 0.5f, r.y + (r.height - glyph) * 0.5f, glyph, glyph },
-            LColor(ColorToken::IconSecondary);
+        if (icon.IsValid()) {
+            IconPainter::Draw(
+                context,
+                icon,
+                Rect{
+                    r.x + (r.width - glyph) * 0.5f,
+                    r.y + (r.height - glyph) * 0.5f,
+                    glyph,
+                    glyph
+                });
+        }
     };
     paintBtn(MinusRect(), WindIcons::Minus16, m_Hover == Zone::Minus);
     paintBtn(PlusRect(), kWindIconNone, m_Hover == Zone::Plus);
@@ -682,7 +690,7 @@ void AppearancePreviewPanel::Tick(float deltaTime) {
 
 void SettingsActionBar::AddAction(
     std::string label,
-    const char* icon,
+    WindIconRef icon,
     std::function<void()> onClick,
     bool primary) {
     std::shared_ptr<Widget> btn;

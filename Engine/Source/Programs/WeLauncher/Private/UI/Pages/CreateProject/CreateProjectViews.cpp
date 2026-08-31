@@ -289,12 +289,14 @@ void CreateTemplateRow::Paint(PaintContext& context) {
         LColor(ColorToken::CardBackground),
         8.0f * s);
     IconPainter::Draw(
-        context, TemplateTypeIcon(m_Info.id), Rect{
-            m_Geometry.x + pad + 8.0f * s) * 0.5f,
+        context,
+        TemplateTypeIcon(m_Info.id),
+        Rect{
+            m_Geometry.x + pad + (iconBox - 20.0f * s) * 0.5f,
+            m_Geometry.y + (m_Geometry.height - 20.0f * s) * 0.5f,
             20.0f * s,
             20.0f * s
-        },
-        LColor(ColorToken::AccentPrimary);
+        });
 
     const float textX = m_Geometry.x + pad + iconBox + 12.0f * s;
     const float textW = std::max(40.0f, m_Geometry.width - (textX - m_Geometry.x) - pad);

@@ -247,7 +247,7 @@ void LauncherShell::RebuildProjectActionsDialog() {
         LMetric(MetricToken::TextSizeCaption) * LScale(),
         LColor(ColorToken::TextHint)));
 
-    auto addAction = [this, &panel](const char* label, const char* icon, auto fn, bool closeAfter = true) {
+    auto addAction = [this, &panel](const char* label, WindIconRef icon, auto fn, bool closeAfter = true) {
         auto btn = MakeSecondaryAction(label, icon);
         btn->SetOnClicked([this, fn = std::move(fn), closeAfter] {
             fn();

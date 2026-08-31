@@ -177,7 +177,7 @@ public:
         std::string kind,
         std::string name,
         std::string detail,
-        const char* icon,
+        we::runtime::kindui::WindIconRef icon,
         ClickFn onClick = {});
 
     we::runtime::kindui::Size Measure(const we::runtime::kindui::Size& availableSize) override;
@@ -194,13 +194,13 @@ private:
     std::string m_Kind;
     std::string m_Name;
     std::string m_Detail;
-    const char* m_Icon = nullptr;
+    we::runtime::kindui::WindIconRef m_Icon = we::runtime::kindui::kWindIconNone;
     ClickFn m_OnClick;
     bool m_Pressed = false;
     float m_HoverAnim = 0.0f;
 };
 
-[[nodiscard]] const char* TemplateTypeIcon(const std::string& templateId);
+[[nodiscard]] we::runtime::kindui::WindIconRef TemplateTypeIcon(const std::string& templateId);
 [[nodiscard]] we::runtime::kindui::Color TemplateBadgeColor(const std::string& templateId);
 
 } // namespace we::programs::welauncher

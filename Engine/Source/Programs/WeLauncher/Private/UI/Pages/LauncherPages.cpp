@@ -77,7 +77,7 @@ we::runtime::kindui::Element BuildLearnPage(const LearnPageModel& model) {
                     entry.kind,
                     entry.name,
                     entry.detail,
-                    entry.icon.c_str(),
+                    entry.icon,
                     entry.onClick);
             }), "learn-row-" + std::to_string(i)));
         }

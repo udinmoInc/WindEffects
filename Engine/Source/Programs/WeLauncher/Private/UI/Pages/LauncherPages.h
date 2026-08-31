@@ -1,6 +1,7 @@
 #pragma once
 
 #include "KindUI/Declarative/Element.h"
+#include "KindUI/Core/WindIcon.h"
 #include "UI/Shell/LauncherHelpers.h"
 
 #include <functional>
@@ -25,7 +26,7 @@ struct LearnEntryModel {
     std::string kind;
     std::string name;
     std::string detail;
-    std::string icon;
+    we::runtime::kindui::WindIconRef icon = we::runtime::kindui::kWindIconNone;
     std::function<void()> onClick;
 };
 

@@ -1,10 +1,12 @@
 #include "PlaceActors/PlaceActorsIconProvider.h"
 
+#include "WindEffects/Editor/UI/Shell/EditorToolsRegistry.h"
 #include "KindUI/Core/WindIcon.h"
 
 namespace we::programs::editor {
 using ::we::runtime::kindui::kWindIconNone;
 using ::we::runtime::kindui::WindIconRef;
+using ::we::editor::toolspanel::EditorToolsRegistry;
 
 PlaceActorsIconProvider& PlaceActorsIconProvider::Get() {
     static PlaceActorsIconProvider instance;
@@ -12,8 +14,7 @@ PlaceActorsIconProvider& PlaceActorsIconProvider::Get() {
 }
 
 WindIconRef PlaceActorsIconProvider::ResolveChromeIcon(const PlaceActorsItemData& item) const {
-    (void)item;
-    return kWindIconNone;
+    return ResolvePreviewIcon(item.toolId);
 }
 
 WindIconRef PlaceActorsIconProvider::ResolvePreviewIcon(const PlaceActorsItemData& item) const {
@@ -21,7 +22,9 @@ WindIconRef PlaceActorsIconProvider::ResolvePreviewIcon(const PlaceActorsItemDat
 }
 
 WindIconRef PlaceActorsIconProvider::ResolvePreviewIcon(const std::string& toolId) const {
-    (void)toolId;
+    if (const auto* tool = EditorToolsRegistry::Get().FindTool(toolId)) {
+        return tool->icon;
+    }
     return kWindIconNone;
 }
 

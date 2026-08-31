@@ -96,20 +96,20 @@ void SectionCard::Tick(float deltaTime) {
 
 // ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ EmptyStatePanel ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬
 
-EmptyStatePanel::EmptyStatePanel(std::string title, std::string subtitle, const char* iconName)
+EmptyStatePanel::EmptyStatePanel(std::string title, std::string subtitle, WindIconRef icon)
     : m_Title(std::move(title))
     , m_Subtitle(std::move(subtitle))
-    , m_Icon(iconName && iconName[0] ? iconName : kWindIconNone) {
+    , m_Icon(icon) {
 }
 
-void EmptyStatePanel::SetPrimaryAction(std::string label, const char* icon, std::function<void()> onClick) {
+void EmptyStatePanel::SetPrimaryAction(std::string label, WindIconRef icon, std::function<void()> onClick) {
     m_PrimaryLabel = std::move(label);
     m_PrimaryIcon = icon;
     m_OnPrimary = std::move(onClick);
     InvalidateUI();
 }
 
-void EmptyStatePanel::SetSecondaryAction(std::string label, const char* icon, std::function<void()> onClick) {
+void EmptyStatePanel::SetSecondaryAction(std::string label, WindIconRef icon, std::function<void()> onClick) {
     m_SecondaryLabel = std::move(label);
     m_SecondaryIcon = icon;
     m_OnSecondary = std::move(onClick);
@@ -135,7 +135,7 @@ void EmptyStatePanel::Arrange(const Rect& allottedRect) {
     const float gap = LMetric(MetricToken::Space2) * s;
     const bool hasPrimary = !m_PrimaryLabel.empty();
     const bool hasSecondary = !m_SecondaryLabel.empty();
-    const bool hasIcon = m_Icon && m_Icon[0];
+    const bool hasIcon = m_Icon.IsValid();
     const bool hasSubtitle = !m_Subtitle.empty();
 
     const float primaryW = hasPrimary
@@ -205,7 +205,7 @@ void EmptyStatePanel::Paint(PaintContext& context) {
     context.DrawRect(m_Geometry, LColor(ColorToken::PanelBackground));
 
     const float cx = m_Geometry.x + m_Geometry.width * 0.5f;
-    const bool hasIcon = m_Icon && m_Icon[0];
+    const bool hasIcon = m_Icon.IsValid();
     const bool hasSubtitle = !m_Subtitle.empty();
     const bool hasActions = !m_PrimaryLabel.empty() || !m_SecondaryLabel.empty();
 
@@ -228,7 +228,6 @@ void EmptyStatePanel::Paint(PaintContext& context) {
 
     float y = blockTop;
     if (hasIcon) {
-        Color iconColor = LColor(ColorToken::IconSecondary);
         IconPainter::Draw(
             context, m_Icon, Rect{ cx - iconSize * 0.5f, y, iconSize, iconSize });
         y += iconSize + LMetric(MetricToken::Space3) * s;
@@ -252,7 +251,7 @@ void EmptyStatePanel::Paint(PaintContext& context) {
         y += subSize;
     }
 
-    auto paintButton = [&](const Rect& r, const std::string& label, const char* icon, bool primary, bool hovered, bool pressed) {
+    auto paintButton = [&](const Rect& r, const std::string& label, WindIconRef icon, bool primary, bool hovered, bool pressed) {
         if (r.width <= 0.0f) {
             return;
         }
@@ -277,17 +276,16 @@ void EmptyStatePanel::Paint(PaintContext& context) {
         const float glyph = LIconPx(MetricToken::IconSizeToolbar) * s;
         const float textSize = LMetric(MetricToken::TextSizeToolbar) * s;
         float contentW = context.GetTextWidth(label, textSize);
-        if (icon && icon[0]) {
+        if (icon.IsValid()) {
             contentW += glyph + 6.0f * s;
         }
         float x = r.x + (r.width - contentW) * 0.5f;
         const Color fg = primary
             ? Color{ 1.0f, 1.0f, 1.0f, 1.0f }
             : LColor(ColorToken::TextPrimary);
-        if (icon && icon[0]) {
+        if (icon.IsValid()) {
             IconPainter::Draw(
-                context, icon, Rect{ x) * 0.5f, glyph, glyph },
-                fg);
+                context, icon, Rect{ x, r.y + (r.height - glyph) * 0.5f, glyph, glyph });
             x += glyph + 6.0f * s;
         }
         context.DrawText(label, Point{ x, r.y + (r.height - textSize) * 0.5f }, fg, textSize);
@@ -588,12 +586,14 @@ void CompactSearchField::Paint(PaintContext& context) {
     const float iconSize = LIconPx(MetricToken::IconSizeSearch) * s;
     const float pad = 10.0f * s;
     IconPainter::Draw(
-        context, WindIcons::Search16, Rect{
-            std::round(m_Geometry.x + pad)) * 0.5f),
+        context,
+        WindIcons::Search16,
+        Rect{
+            std::round(m_Geometry.x + pad),
+            std::round(m_Geometry.y + (m_Geometry.height - iconSize) * 0.5f),
             iconSize,
             iconSize
-        },
-        LColor(ColorToken::IconSecondary);
+        });
 
     const float textSize = LMetric(MetricToken::TextSizeBody) * s;
     const bool empty = m_Text.empty();
