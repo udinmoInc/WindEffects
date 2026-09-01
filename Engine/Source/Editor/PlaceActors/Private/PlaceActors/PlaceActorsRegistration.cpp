@@ -65,16 +65,16 @@ void RegisterTool(const char* categoryId,
 
 void RegisterActorCatalog() {
     // Basic category removed — Quick Access is synthesized by PlaceActorsPanel.
-    RegisterCategory("Actors", "ActorGeometry", "Geometry", kWindIconNone, 20, false);
-    RegisterCategory("Actors", "ActorLights", "Lights", kWindIconNone, 30, false);
-    RegisterCategory("Actors", "ActorCameras", "Cameras", kWindIconNone, 40, false);
-    RegisterCategory("Actors", "ActorCharacters", "Characters", kWindIconNone, 50, false);
-    RegisterCategory("Actors", "ActorEnvironment", "Environment", kWindIconNone, 60, false);
-    RegisterCategory("Actors", "ActorCinematics", "Cinematics", kWindIconNone, 70, false);
-    RegisterCategory("Actors", "ActorAudio", "Audio", kWindIconNone, 80, false);
-    RegisterCategory("Actors", "ActorFX", "Visual Effects", kWindIconNone, 90, false);
-    RegisterCategory("Actors", "ActorVolumes", "Volumes", kWindIconNone, 100, false);
-    RegisterCategory("Actors", "ActorAllClasses", "All Classes", kWindIconNone, 110, false);
+    RegisterCategory("Actors", "ActorGeometry", "Geometry", WindIcons::BoxSolid16, 20, false);
+    RegisterCategory("Actors", "ActorLights", "Lights", WindIcons::Bulb16, 30, false);
+    RegisterCategory("Actors", "ActorCameras", "Cameras", WindIcons::Camera16, 40, false);
+    RegisterCategory("Actors", "ActorCharacters", "Characters", WindIcons::Mouse16, 50, false);
+    RegisterCategory("Actors", "ActorEnvironment", "Environment", WindIcons::WorldGlobe16, 60, false);
+    RegisterCategory("Actors", "ActorCinematics", "Cinematics", WindIcons::VideoCamera16, 70, false);
+    RegisterCategory("Actors", "ActorAudio", "Audio", WindIcons::AlertNormal16, 80, false);
+    RegisterCategory("Actors", "ActorFX", "Visual Effects", WindIcons::Cloud16, 90, false);
+    RegisterCategory("Actors", "ActorVolumes", "Volumes", WindIcons::Box16, 100, false);
+    RegisterCategory("Actors", "ActorAllClasses", "All Classes", WindIcons::FolderClosed16, 110, false);
 
     RegisterTool("ActorGeometry", "PlaceCube", "Cube", WindIcons::Box16, 10, {"box", "mesh", "geometry"});
     RegisterTool("ActorGeometry", "PlaceSphere", "Sphere", kWindIconNone, 20, {"ball", "mesh", "geometry"});
@@ -90,15 +90,15 @@ void RegisterActorCatalog() {
     RegisterTool("ActorCharacters", "PlaceCharacter", "Character", kWindIconNone, 10, {"pawn", "character", "player"});
 
     RegisterTool("ActorLights", "LightDirectional", "Directional Light", we::runtime::kindui::WindIcons::Sun16, 10, {"sun", "directional", "light"});
-    RegisterTool("ActorLights", "LightPoint", "Point Light", kWindIconNone, 20, {"point", "omni", "light"});
-    RegisterTool("ActorLights", "LightSpot", "Spot Light", kWindIconNone, 30, {"spot", "cone", "light"});
+    RegisterTool("ActorLights", "LightPoint", "Point Light", WindIcons::Bulb16, 20, {"point", "omni", "light"});
+    RegisterTool("ActorLights", "LightSpot", "Spot Light", WindIcons::Bulb16, 30, {"spot", "cone", "light"});
 
-    RegisterTool("ActorCameras", "PlaceCamera", "Camera", kWindIconNone, 10, {"camera", "cine", "view"});
+    RegisterTool("ActorCameras", "PlaceCamera", "Camera", WindIcons::Camera16, 10, {"camera", "cine", "view"});
 
     RegisterTool("ActorEnvironment", "TerrainGenerate", "Landscape", WindIcons::Grid3x316, 10, {"terrain", "heightfield", "environment"});
     RegisterTool("ActorEnvironment", "FoliagePaintTool", "Foliage", kWindIconNone, 20, {"foliage", "grass", "environment"});
 
-    RegisterTool("ActorCinematics", "CineAddShot", "Cinematic Camera", kWindIconNone, 10, {"sequencer", "cinematic", "shot"});
+    RegisterTool("ActorCinematics", "CineAddShot", "Cinematic Camera", WindIcons::VideoCamera16, 10, {"sequencer", "cinematic", "shot"});
 
     RegisterTool("ActorAudio", "AudioPlace", "Audio Source", kWindIconNone, 10, {"sound", "audio", "speaker"});
 
@@ -110,11 +110,11 @@ void RegisterActorCatalog() {
     RegisterTool("ActorAllClasses", "PlaceBlueprint", "Blueprint", kWindIconNone, 10, {"blueprint", "class", "script"});
     RegisterTool("ActorAllClasses", "PlaceBlueprintClass", "Blueprint Class", kWindIconNone, 20, {"blueprint", "class"});
     RegisterTool("ActorAllClasses", "ModelingExtrude", "Geometry Brush", kWindIconNone, 30, {"brush", "geometry", "modeling"});
-    RegisterTool("ActorAllClasses", "UIWidget", "UI Widget", kWindIconNone, 40, {"widget", "hud", "ui"});
+    RegisterTool("ActorAllClasses", "UIWidget", "UI Widget", WindIcons::Mouse16, 40, {"widget", "hud", "ui"});
     RegisterTool("ActorAllClasses", "AIBehaviorTree", "AI Controller", kWindIconNone, 50, {"behavior", "ai"});
     RegisterTool("ActorAllClasses", "NavBake", "Nav Mesh Bounds", kWindIconNone, 60, {"navigation", "navmesh"});
     RegisterTool("ActorAllClasses", "SplineDraw", "Gameplay Trigger", kWindIconNone, 70, {"trigger", "gameplay", "spline"});
-    RegisterTool("ActorAllClasses", "PlaceNote", "Editor Note", kWindIconNone, 80, {"note", "comment", "utility"});
+    RegisterTool("ActorAllClasses", "PlaceNote", "Editor Note", WindIcons::InfoNormal16, 80, {"note", "comment", "utility"});
 }
 
 void ConfigureActorsModePanel() {

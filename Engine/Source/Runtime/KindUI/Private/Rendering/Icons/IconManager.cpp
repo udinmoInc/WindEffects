@@ -65,18 +65,34 @@ IconManager::CachedTexture* IconManager::LoadTexture(WindIconRef icon) const
     }
 
     const std::string key = CacheKey(icon);
-    {
+    const auto path = AssetPathFor(icon);
+    if (std::filesystem::exists(path)) {
+        const auto sourceWriteTime = std::filesystem::last_write_time(path);
         std::scoped_lock lock(m_Mutex);
         auto it = m_Textures.find(key);
         if (it != m_Textures.end()) {
-            return it->second.ready ? &it->second : nullptr;
+            if (it->second.ready && it->second.sourceWriteTime == sourceWriteTime) {
+                return it->second.ready ? &it->second : nullptr;
+            }
+            DestroyTexture(it->second);
+            m_Textures.erase(it);
+        }
+    } else {
+        std::scoped_lock lock(m_Mutex);
+        auto it = m_Textures.find(key);
+        if (it != m_Textures.end()) {
+            if (it->second.ready) {
+                return &it->second;
+            }
+            return nullptr;
         }
     }
 
-    const auto path = AssetPathFor(icon);
     if (!std::filesystem::exists(path)) {
         return nullptr;
     }
+
+    const auto sourceWriteTime = std::filesystem::last_write_time(path);
 
     std::vector<uint8_t> rgba;
     uint32_t width = 0;
@@ -95,6 +111,7 @@ IconManager::CachedTexture* IconManager::LoadTexture(WindIconRef icon) const
         return nullptr;
     }
     uploaded.ready = true;
+    uploaded.sourceWriteTime = sourceWriteTime;
 
     std::scoped_lock lock(m_Mutex);
     auto [it, inserted] = m_Textures.emplace(key, uploaded);

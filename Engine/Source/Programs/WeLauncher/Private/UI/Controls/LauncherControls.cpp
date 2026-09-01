@@ -170,10 +170,7 @@ void LauncherTitleBar::PaintIconButton(
     }
 
     const float glyph = LIconPx(MetricToken::IconSizeToolbar) * s;
-    IconPainter::Draw(
-        context,
-        icon,
-        Rect{ r.x + (r.width - glyph) * 0.5f, r.y + (r.height - glyph) * 0.5f, glyph, glyph });
+    IconPainter::Draw(context, icon, r, static_cast<uint32_t>(glyph));
 }
 
 void LauncherTitleBar::Paint(PaintContext& context) {
@@ -197,11 +194,10 @@ void LauncherTitleBar::Paint(PaintContext& context) {
         titleSize,
         true);
 
-    PaintIconButton(context, m_HelpRect, kWindIconNone, m_HoverHelp);
-    PaintIconButton(context, m_SettingsRect, kWindIconNone, m_HoverSettings);
+    PaintIconButton(context, m_HelpRect, WindIcons::CircleHelp16, m_HoverHelp);
+    PaintIconButton(context, m_SettingsRect, WindIcons::Settings16, m_HoverSettings);
 
-    const WindIconRef maxIcon = kWindIconNone;
-    const WindIconRef icons[3] = { kWindIconNone, maxIcon, WindIcons::Close16 };
+    const WindIconRef icons[3] = { WindIcons::Minus16, WindIcons::Square16, WindIcons::Close16 };
     const Rect controls[3] = { m_MinRect, m_MaxRect, m_CloseRect };
     const float hovers[3] = { m_HoverMin, m_HoverMax, m_HoverClose };
     for (int i = 0; i < 3; ++i) {
@@ -216,11 +212,8 @@ void LauncherTitleBar::Paint(PaintContext& context) {
             context.DrawRect(r, bg);
         }
         if (icons[i].IsValid()) {
-            const float glyph = LIconPx(MetricToken::IconSizeToolbar) * s;
-            IconPainter::Draw(
-                context,
-                icons[i],
-                Rect{ r.x + (r.width - glyph) * 0.5f, r.y + (r.height - glyph) * 0.5f, glyph, glyph });
+            const float glyph = LIconPx(MetricToken::IconSizeWindowControl) * s;
+            IconPainter::Draw(context, icons[i], controls[i], static_cast<uint32_t>(glyph));
         }
     }
 }

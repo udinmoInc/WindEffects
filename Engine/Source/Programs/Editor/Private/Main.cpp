@@ -96,13 +96,12 @@ int main(int argc, char* argv[]) {
 
         HE_INFO("[Startup] Loading editor feature modules...");
         const char* modules[] = {
-            "WindEffects-KindUIFramework",
+            "WindEffects-UIFramework",
             "WindEffects-MainFrame",
             "WindEffects-Viewport",
             "WindEffects-ContentBrowser",
             "WindEffects-WorldOutliner",
             "WindEffects-PropertyEditor",
-            "WindEffects-Details",
             "WindEffects-Toolbar",
             "WindEffects-Menus",
             "WindEffects-ToolsPanel",

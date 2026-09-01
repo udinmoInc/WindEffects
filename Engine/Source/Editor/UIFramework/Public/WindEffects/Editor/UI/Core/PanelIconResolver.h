@@ -10,28 +10,28 @@ namespace we::editor::services {
 inline we::runtime::kindui::WindIconRef ResolvePanelTabIcon(std::string_view panelId) {
     using namespace we::runtime::kindui;
     if (panelId == "content-browser") {
-        return kWindIconNone;
+        return WindIcons::FolderSearch16;
     }
     if (panelId == "output-log") {
-        return kWindIconNone;
+        return WindIcons::Logs16;
     }
     if (panelId == "terminal") {
-        return kWindIconNone;
+        return WindIcons::Logs16;
     }
     if (panelId == "viewport") {
-        return kWindIconNone;
+        return WindIcons::Camera16;
     }
     if (panelId == "outliner") {
-        return kWindIconNone;
+        return WindIcons::FolderOpened16;
     }
     if (panelId == "details") {
-        return kWindIconNone;
+        return WindIcons::AdjustmentHorizontal16;
     }
     if (panelId == "tools-panel") {
-        return kWindIconNone;
+        return WindIcons::Wrench16;
     }
     if (panelId == "place-actors") {
-        return kWindIconNone;
+        return WindIcons::PlusCircle16;
     }
     return kWindIconNone;
 }

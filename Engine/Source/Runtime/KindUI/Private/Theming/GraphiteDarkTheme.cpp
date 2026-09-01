@@ -203,10 +203,12 @@ float GraphiteDarkTheme::ResolveMetric(MetricToken token) const {
     case MetricToken::ToolbarHeight: return 38.0f;
     case MetricToken::SearchBoxHeight: return 28.0f;
     case MetricToken::NavigationButtonSize: return 28.0f;
-    case MetricToken::IconSizeSearch:
-    case MetricToken::IconSizeTree: return 16.0f;
+    case MetricToken::IconSizeSearch: return 14.0f;
+    case MetricToken::IconSizeTree:
     case MetricToken::IconSizeToolbar:
-    case MetricToken::IconSizeNavigation: return 24.0f;
+    case MetricToken::IconSizeNavigation: return 16.0f;
+    case MetricToken::IconSizeVerySmall:
+    case MetricToken::IconSizeWindowControl: return 12.0f;
     case MetricToken::IconSizePrimary: return 32.0f;
     case MetricToken::IconButtonRadius: return 3.0f;
     case MetricToken::ButtonPaddingHorizontal: return 6.0f;
@@ -228,6 +230,8 @@ float GraphiteDarkTheme::ResolveMetric(MetricToken token) const {
     case MetricToken::TabPaddingH: return 10.0f;
     case MetricToken::TabPaddingV: return 5.0f;
     case MetricToken::DockPanelGap: return 6.0f;
+    case MetricToken::ChromeSeparationGap: return 1.0f;
+    case MetricToken::ChromeSeparationGapWide: return 2.0f;
     case MetricToken::ViewportToolbarHeight: return 28.0f;
     case MetricToken::ToolbarSeparatorHeight: return 24.0f;
     case MetricToken::ToolbarLabeledHeight: return 28.0f;
@@ -787,6 +791,9 @@ ResolvedStyle StyleResolver::Resolve(StyleRole role) const {
     }
 
     style.borderWidth = Scaled(theme.ResolveMetric(MetricToken::BorderWidth));
+    // Gap-cut chrome: structural borders come from layout spacing, not strokes.
+    style.border = Color::Transparent();
+    style.borderWidth = 0.0f;
     return style;
 }
 

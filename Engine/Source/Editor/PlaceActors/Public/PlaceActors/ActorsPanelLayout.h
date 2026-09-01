@@ -3,6 +3,7 @@
 #include "WindEffects/Editor/UI/Panel/PanelChrome.h"
 #include "KindUI/Theming/ThemeAccess.h"
 #include "KindUI/Tokens/DesignToken.h"
+#include "KindUI/Tokens/ChromeSeparation.h"
 #include "KindUI/Theming/StyleRole.h"
 #include "KindUI/Rendering/IconMetrics.h"
 
@@ -68,7 +69,7 @@ inline float StarIconX(float contentX, float contentWidth) {
 }
 
 inline float CategoryGap() {
-    return we::runtime::kindui::ResolveMetric(MetricToken::SectionGap);
+    return we::runtime::kindui::ChromeSeparation::GapWide();
 }
 
 inline float CategoryContentGap() {

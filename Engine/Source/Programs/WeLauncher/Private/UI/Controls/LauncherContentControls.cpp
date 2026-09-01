@@ -580,32 +580,13 @@ void CompactSearchField::Arrange(const Rect& allottedRect) {
 
 void CompactSearchField::Paint(PaintContext& context) {
     ControlChrome::InteractionState state{ m_HoverAnim, 0.0f, false, m_Focused, false };
-    ControlChrome::PaintSearchInputFrame(context, m_Geometry, state);
-
-    const float s = LScale();
-    const float iconSize = LIconPx(MetricToken::IconSizeSearch) * s;
-    const float pad = 10.0f * s;
-    IconPainter::Draw(
+    ControlChrome::PaintSearchField(
         context,
-        WindIcons::Search16,
-        Rect{
-            std::round(m_Geometry.x + pad),
-            std::round(m_Geometry.y + (m_Geometry.height - iconSize) * 0.5f),
-            iconSize,
-            iconSize
-        });
-
-    const float textSize = LMetric(MetricToken::TextSizeBody) * s;
-    const bool empty = m_Text.empty();
-    const std::string& draw = empty ? m_Placeholder : m_Text;
-    context.DrawText(
-        draw,
-        Point{
-            std::round(m_Geometry.x + pad + iconSize + kLauncherNavIconTextGap * s),
-            std::round(m_Geometry.y + (m_Geometry.height - textSize) * 0.5f)
-        },
-        empty ? LColor(ColorToken::SearchPlaceholder) : LColor(ColorToken::TextPrimary),
-        textSize);
+        m_Geometry,
+        m_Placeholder,
+        m_Text,
+        state,
+        m_Focused);
 }
 
 void CompactSearchField::OnMouseDown(const MouseEvent& event) {

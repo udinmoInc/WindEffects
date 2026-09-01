@@ -4,6 +4,7 @@
 
 #include "KindUI/Core/Widget.h"
 #include "KindUI/Core/PaintContext.h"
+#include "KindUI/Core/Widgets/PanelToolbarRow.h"
 #include "WindEffects/Editor/UI/Panel/PanelBodyLayout.h"
 #include "WindEffects/Editor/UI/Shell/EditorToolsRegistry.h"
 #include "ToolsPanelState.h"
@@ -12,8 +13,6 @@
 #include <string>
 #include <vector>
 #include "KindUI/Input/InputEvents.h"
-
-namespace we::editor::widgets { class SearchBox; }
 
 namespace we::programs::editor {
 using ::we::editor::toolspanel::EditorToolAction;
@@ -91,7 +90,7 @@ private:
     ToolsPanelState m_State;
 
     std::string m_SearchText;
-    std::shared_ptr<::we::editor::widgets::SearchBox> m_SearchBox;
+    std::shared_ptr<::we::runtime::kindui::PanelToolbarRow> m_SearchRow;
     std::shared_ptr<::we::editor::panels::PanelBodyLayout> m_BodyLayout;
     std::shared_ptr<we::runtime::kindui::Widget> m_ContentHost;
     std::shared_ptr<we::runtime::kindui::Widget> m_ModeContentWidget;

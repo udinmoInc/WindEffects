@@ -18,6 +18,7 @@ using ::we::runtime::kindui::PaintContext;
 using ::we::runtime::kindui::Point;
 using ::we::runtime::kindui::Rect;
 using ::we::runtime::kindui::ColorToken;
+using ::we::runtime::kindui::MetricToken;
 namespace PanelChrome = ::we::editor::panels::PanelChrome;
 
 void PaintActorRowBackground(
@@ -44,10 +45,19 @@ void PaintActorRowBackground(
 }
 
 void PaintCategoryHeaderBackground(PaintContext& context, const Rect& bounds, float hoverAnim) {
-    const Color bg = hoverAnim > 0.01f
-        ? we::runtime::kindui::ResolveColor(ColorToken::HoverBackground)
-        : we::runtime::kindui::ds::Panel::ListLabelBandBackground();
-    context.DrawRect(bounds, bg);
+    if (hoverAnim > 0.01f) {
+        PanelChrome::PaintListLabelBand(context, bounds);
+        we::runtime::kindui::ControlChrome::PaintInteractiveFill(
+            context,
+            bounds,
+            0.0f,
+            hoverAnim,
+            0.0f,
+            false,
+            ColorToken::ListLabelBandBackground);
+        return;
+    }
+    PanelChrome::PaintListLabelBand(context, bounds);
 }
 
 void PaintSectionBackground(PaintContext& context, const Rect& bounds) {
@@ -55,12 +65,8 @@ void PaintSectionBackground(PaintContext& context, const Rect& bounds) {
 }
 
 void PaintSoftSeparator(PaintContext& context, const Rect& bounds) {
-    const float y = bounds.y + bounds.height * 0.5f;
-    context.DrawLine(
-        Point{ bounds.x + ActorsPanelLayout::ContentPadH(), y },
-        Point{ bounds.x + bounds.width - ActorsPanelLayout::ContentPadH(), y },
-        we::runtime::kindui::ResolveColor(ColorToken::Separator),
-        1.0f);
+    (void)context;
+    (void)bounds;
 }
 
 void PaintChevron(PaintContext& context, const Rect& bounds, bool expanded, float hoverAnim) {

@@ -21,6 +21,11 @@ void AddFormSectionTitle(
     const std::shared_ptr<we::runtime::kindui::Column>& layout,
     std::string_view title);
 
+/// Tight vertical stack for settings rows separated by 1px chrome gap cuts (no column FormStackGap).
+[[nodiscard]] std::shared_ptr<we::runtime::kindui::Column> MakeFormFieldGroupColumn();
+
+void AddFormRowDivider(const std::shared_ptr<we::runtime::kindui::Column>& layout);
+
 void AddFormField(
     const std::shared_ptr<we::runtime::kindui::Column>& layout,
     const std::string& label,

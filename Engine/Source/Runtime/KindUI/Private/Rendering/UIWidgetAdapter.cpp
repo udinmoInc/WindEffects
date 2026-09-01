@@ -578,8 +578,8 @@ void UIWidgetAdapter::GenerateIconGeometry(const DrawCommand& cmd) {
 
     m_CurrentTextureSet = drawInfo.descriptorSet;
 
-    const float w = static_cast<float>(icon.sizePx);
-    const float h = w;
+    const float w = cmd.rect.width > 0.0f ? cmd.rect.width : static_cast<float>(icon.sizePx);
+    const float h = cmd.rect.height > 0.0f ? cmd.rect.height : static_cast<float>(icon.sizePx);
     const float x = SnapPx(cmd.rect.x + (cmd.rect.width - w) * 0.5f);
     const float y = SnapPx(cmd.rect.y + (cmd.rect.height - h) * 0.5f);
 

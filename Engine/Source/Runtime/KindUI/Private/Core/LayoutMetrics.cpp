@@ -37,13 +37,18 @@ float SearchInputHeight() {
     return ResolvedStyleHeight(StyleRole::SearchBox, MetricToken::SearchBoxHeight);
 }
 
+float ToolbarSearchInputHeight() {
+    const float rowH = SearchRowHeight();
+    const float padV = ResolveMetric(MetricToken::Space1) * UiScale();
+    return std::max(24.0f, rowH - padV);
+}
+
 float SearchRowHeight() {
-    const float inset = ResolveMetric(MetricToken::Space1) * UiScale();
-    return SearchInputHeight() + inset * 2.0f;
+    return ResolveMetric(MetricToken::PanelToolbarHeight) * UiScale();
 }
 
 float SearchInputPaddingH() {
-    return ResolvePadding(PaddingToken::Input).left * UiScale();
+    return ResolveMetric(MetricToken::SpaceMD) * UiScale();
 }
 
 float SearchInputFontSize() {
@@ -55,14 +60,19 @@ float SearchInputFontSize() {
 }
 
 float SearchInputIconSize() {
-    return 16.0f;
+    return ResolveMetric(MetricToken::IconSizeSearch) * UiScale();
 }
 
 Rect LayoutSearchInputRect(const Rect& allottedRect) {
-    const float h = SearchInputHeight();
-    const float inset = ResolveMetric(MetricToken::Space1) * UiScale();
-    const float y = allottedRect.y + std::min(inset, std::max(0.0f, allottedRect.height - h));
-    return Rect{ allottedRect.x, y, allottedRect.width, std::min(h, allottedRect.height) };
+    const float h = std::min(SearchInputHeight(), allottedRect.height);
+    const float y = allottedRect.y + (allottedRect.height - h) * 0.5f;
+    return Rect{ allottedRect.x, y, allottedRect.width, h };
+}
+
+Rect LayoutToolbarSearchInputRect(const Rect& allottedRect) {
+    const float h = std::min(ToolbarSearchInputHeight(), allottedRect.height);
+    const float y = allottedRect.y + (allottedRect.height - h) * 0.5f;
+    return Rect{ allottedRect.x, y, allottedRect.width, h };
 }
 
 float FormRowMinHeight() {

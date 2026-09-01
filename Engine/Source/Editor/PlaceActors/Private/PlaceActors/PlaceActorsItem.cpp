@@ -122,7 +122,7 @@ void PlaceActorsItem::PaintList(PaintContext& context,
             ? we::runtime::kindui::ResolveColor(ColorToken::Warning)
             : we::runtime::kindui::ResolveColor(ColorToken::IconPrimary);
         we::runtime::kindui::IconPainter::Draw(
-            context, we::runtime::kindui::kWindIconNone, we::runtime::kindui::IconMetrics::PlaceGlyphCentered(starBand, 16u));
+            context, we::runtime::kindui::WindIcons::Check16, we::runtime::kindui::IconMetrics::PlaceGlyphCentered(starBand, 16u));
     }
 }
 

@@ -123,6 +123,12 @@ KINDUI_API void PaintIconButtonFrame(
     const InteractionState& state,
     bool active = false);
 
+/// UE panel-toolbar style: icon only, hover/press tint with no persistent border.
+KINDUI_API void PaintBorderlessIconButton(
+    PaintContext& context,
+    const Rect& rect,
+    const InteractionState& state);
+
 KINDUI_API void PaintInputFrame(
     PaintContext& context,
     const Rect& rect,
@@ -142,6 +148,8 @@ KINDUI_API void PaintSearchInputFrame(
 struct SearchFieldPaintOptions {
     bool showClearButton = false;
     bool clearHovered = false;
+    /// Panel toolbar search: no recessed input chrome or focus outline.
+    bool toolbarFlat = false;
 };
 
 KINDUI_API void PaintSearchField(

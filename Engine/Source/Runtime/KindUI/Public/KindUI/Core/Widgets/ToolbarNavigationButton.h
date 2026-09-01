@@ -15,7 +15,7 @@ public:
             icon,
             StyleRole::NavigationButton,
             MetricToken::NavigationButtonSize,
-            MetricToken::IconSizeNavigation)
+            MetricToken::IconSizeWindowControl)
     {
         (void)tooltip;
     }

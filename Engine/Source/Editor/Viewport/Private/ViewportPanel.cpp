@@ -15,7 +15,7 @@ std::shared_ptr<Panel> CreateViewportPanel() {
     auto toolbar = CreateViewportToolbar();
 
     return PanelBuilder("Viewport")
-        .TabIcon(we::runtime::kindui::kWindIconNone)
+        .TabIcon(WindIcons::Camera16)
         .Transparent()
         .FloatingToolbar()
         .WithCloseButton()

@@ -14,11 +14,12 @@ void IconPainter::Draw(PaintContext& context, WindIconRef icon, const Point& pos
     context.DrawWindIcon(icon, drawRect);
 }
 
-void IconPainter::Draw(PaintContext& context, WindIconRef icon, const Rect& bounds) {
+void IconPainter::Draw(PaintContext& context, WindIconRef icon, const Rect& controlBounds, uint32_t displayPx) {
     if (!icon.IsValid()) {
         return;
     }
-    const Rect drawRect = IconMetrics::PlaceGlyphCentered(bounds, icon.sizePx);
+    const uint32_t drawPx = displayPx > 0 ? displayPx : icon.sizePx;
+    const Rect drawRect = IconMetrics::PlaceGlyphCentered(controlBounds, drawPx);
     context.DrawWindIcon(icon, drawRect);
 }
 

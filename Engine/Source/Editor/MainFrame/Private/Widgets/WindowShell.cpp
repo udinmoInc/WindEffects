@@ -41,20 +41,6 @@ void WindowShell::Paint(PaintContext& context) {
     if (m_Content) {
         m_Content->Paint(context);
     }
-
-    // Square frame — bottom edge stays flush with the system edge (no rounded cutout).
-    const Color border = ThemeColor(ColorToken::Separator);
-    const float x = m_Geometry.x;
-    const float y = m_Geometry.y;
-    const float w = m_Geometry.width;
-    const float h = m_Geometry.height;
-    const float bottom = y + h - 1.0f;
-    const float right = x + w - 1.0f;
-
-    context.DrawLine(Point{ x, y }, Point{ right, y }, border, 1.0f);
-    context.DrawLine(Point{ x, y }, Point{ x, bottom }, border, 1.0f);
-    context.DrawLine(Point{ right, y }, Point{ right, bottom }, border, 1.0f);
-    context.DrawLine(Point{ x, bottom }, Point{ right, bottom }, border, 1.0f);
 }
 
 } // namespace we::editor::shell

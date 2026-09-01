@@ -1,9 +1,14 @@
 #include "LandscapeFormLayout.h"
 
 #include "KindUI/Core/LayoutMetrics.h"
+#include "KindUI/Core/DPIContext.h"
+#include "KindUI/Core/PaintContext.h"
+#include "KindUI/Core/PropertyPanelChrome.h"
 #include "KindUI/Core/Widgets/DesignSystemControls.h"
 #include "KindUI/Widgets/Components.h"
 #include "KindUI/Widgets/Label.h"
+#include "WindEffects/Editor/UI/Panel/PanelChrome.h"
+#include "KindUI/Tokens/ChromeSeparation.h"
 #include "KindUI/Tokens/DesignToken.h"
 #include "KindUI/Theming/ThemeAccess.h"
 
@@ -13,6 +18,72 @@ namespace we::editor::terrain {
 namespace {
 
 using namespace we::runtime::kindui;
+namespace PanelChrome = we::editor::panels::PanelChrome;
+
+class FormSectionTitleWidget final : public Widget {
+public:
+    explicit FormSectionTitleWidget(std::string title, bool leadingGap)
+        : m_Title(std::move(title))
+        , m_LeadingGap(leadingGap) {}
+
+    Size Measure(const Size& availableSize) override {
+        const float gap = m_LeadingGap ? ChromeSeparation::GapWide() : 0.0f;
+        const float bandH = PropertyPanelChrome::SectionHeight();
+        m_DesiredSize = Size{ availableSize.width, gap + bandH };
+        return m_DesiredSize;
+    }
+
+    void Arrange(const Rect& allottedRect) override {
+        m_Geometry = allottedRect;
+        const float gap = m_LeadingGap ? ChromeSeparation::GapWide() : 0.0f;
+        m_TitleBand = Rect{
+            allottedRect.x,
+            allottedRect.y + gap,
+            allottedRect.width,
+            std::max(0.0f, allottedRect.height - gap)
+        };
+    }
+
+    void Paint(PaintContext& context) override {
+        if (m_TitleBand.IsEmpty()) {
+            return;
+        }
+        PanelChrome::PaintListLabelBand(context, m_TitleBand);
+        const float scale = std::max(1.0f, DPIContext::GetScale());
+        const float fontSize = ResolveMetric(MetricToken::TextSizeCategory) * scale;
+        const float padH = PropertyPanelChrome::RowPaddingH();
+        const float textY = m_TitleBand.y + (m_TitleBand.height - fontSize) * 0.5f;
+        context.DrawText(
+            m_Title,
+            Point{ m_TitleBand.x + padH, textY },
+            ResolveColor(ColorToken::TextPrimary),
+            fontSize,
+            true);
+    }
+
+private:
+    std::string m_Title;
+    bool m_LeadingGap = false;
+    Rect m_TitleBand;
+};
+
+/// 1px chrome gap between property rows; parent recessed surface shows through (no painted line).
+class FormRowDividerWidget final : public Widget {
+public:
+    Size Measure(const Size& availableSize) override {
+        const float gap = ChromeSeparation::kGapCutsEnabled ? ChromeSeparation::Gap() : 0.0f;
+        m_DesiredSize = Size{ availableSize.width, gap };
+        return m_DesiredSize;
+    }
+
+    void Arrange(const Rect& allottedRect) override {
+        m_Geometry = allottedRect;
+    }
+
+    void Paint(PaintContext& context) override {
+        (void)context;
+    }
+};
 
 } // namespace
 
@@ -24,7 +95,23 @@ void ConfigureLandscapeFormColumn(const std::shared_ptr<Column>& layout) {
 }
 
 void AddFormSectionTitle(const std::shared_ptr<Column>& layout, std::string_view title) {
-    layout->AddChild(MakeSectionHeader(std::string(title)));
+    const bool leadingGap = layout && !layout->GetChildren().empty();
+    layout->AddChild(std::make_shared<FormSectionTitleWidget>(std::string(title), leadingGap));
+}
+
+std::shared_ptr<Column> MakeFormFieldGroupColumn() {
+    auto group = std::make_shared<Column>();
+    group->Align(AlignItems::Stretch);
+    group->Gap(0.0f);
+    group->SetFlexShrink(0.0f);
+    return group;
+}
+
+void AddFormRowDivider(const std::shared_ptr<Column>& layout) {
+    if (!layout || !ChromeSeparation::kGapCutsEnabled) {
+        return;
+    }
+    layout->AddChild(std::make_shared<FormRowDividerWidget>());
 }
 
 void AddFormField(

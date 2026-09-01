@@ -472,7 +472,7 @@ void NumberStepper::Paint(PaintContext& context) {
         }
     };
     paintBtn(MinusRect(), WindIcons::Minus16, m_Hover == Zone::Minus);
-    paintBtn(PlusRect(), kWindIconNone, m_Hover == Zone::Plus);
+    paintBtn(PlusRect(), WindIcons::Plus16, m_Hover == Zone::Plus);
 
     char buf[48];
     if (m_Suffix == "%") {

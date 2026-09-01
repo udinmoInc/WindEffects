@@ -1,4 +1,5 @@
 #include "Widgets/ToolButton.h"
+#include "KindUI/Core/ControlChrome.h"
 #include "KindUI/Core/PaintContext.h"
 #include "KindUI/Core/WindIcon.h"
 #include "KindUI/Core/Icon.h"
@@ -253,9 +254,8 @@ void ToolButton::Paint(PaintContext& context) {
             context.DrawRect(renderRect, Color::Lerp(base, hover, m_HoverAnim));
         }
 
-        const float iconSize = IconSize(uiScale);
-        const Rect iconRect = PlaceIconInControl(renderRect, iconSize);
-        IconPainter::Draw(context, m_Icon, iconRect);
+        const float iconSize = WindowControlIconSize(uiScale);
+        IconPainter::Draw(context, m_Icon, renderRect, static_cast<uint32_t>(iconSize));
         return;
     }
 
@@ -479,11 +479,15 @@ void ToolSeparator::Arrange(const Rect& allottedRect) {
 void ToolSeparator::Paint(PaintContext& context) {
     const float uiScale = (std::max)(1.0f, DPIContext::GetScale());
     const float sepH = SeparatorHeight() * uiScale;
-    const float sepW = SeparatorWidth() * uiScale;
     const float centerY = m_Geometry.y + m_Geometry.height * 0.5f;
     const float centerX = m_Geometry.x + m_Geometry.width * 0.5f;
-    const Rect lineRect{ centerX - sepW * 0.5f, centerY - sepH * 0.5f, sepW, sepH };
-    context.DrawRect(lineRect, ThemeColor(ColorToken::Separator));
+    we::runtime::kindui::ControlChrome::PaintVerticalSeparator(
+        context,
+        centerX,
+        centerY - sepH * 0.5f,
+        centerY + sepH * 0.5f,
+        SeparatorWidth(),
+        ColorToken::Separator);
 }
 
 } // namespace we::editor::toolbar

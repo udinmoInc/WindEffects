@@ -80,7 +80,8 @@ void ToolbarGlyphButton::Paint(PaintContext& context) {
     }
 
     if (m_Icon.IsValid()) {
-        IconPainter::Draw(context, m_Icon, IconMetrics::PlaceGlyphCentered(buttonRect, m_Icon.sizePx));
+        const float iconPx = ThemeMetric(m_IconSizeToken);
+        IconPainter::Draw(context, m_Icon, buttonRect, static_cast<uint32_t>(iconPx));
     }
 }
 

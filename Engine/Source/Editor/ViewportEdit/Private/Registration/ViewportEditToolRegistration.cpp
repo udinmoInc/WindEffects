@@ -16,13 +16,13 @@ void ActivateTool(ViewportToolId tool) {
 } // namespace
 
 // Overrides empty Select-mode stubs in ToolsPanel DefaultEditorModes.
-REGISTER_EDITOR_TOOL(SelectEssentials, SelectTool, "Select", WindIcons::Box16, "Q", []() {
+REGISTER_EDITOR_TOOL(SelectEssentials, SelectTool, "Select", WindIcons::BoxSolid16, "Q", []() {
     ActivateTool(ViewportToolId::Select);
 })
-REGISTER_EDITOR_TOOL(SelectEssentials, MoveTool, "Move", kWindIconNone, "W", []() {
+REGISTER_EDITOR_TOOL(SelectEssentials, MoveTool, "Move", WindIcons::AdjustmentHorizontal16, "W", []() {
     ActivateTool(ViewportToolId::Move);
 })
-REGISTER_EDITOR_TOOL(SelectEssentials, RotateTool, "Rotate", kWindIconNone, "E", []() {
+REGISTER_EDITOR_TOOL(SelectEssentials, RotateTool, "Rotate", WindIcons::RedoAlt16, "E", []() {
     ActivateTool(ViewportToolId::Rotate);
 })
 REGISTER_EDITOR_TOOL(SelectEssentials, ScaleTool, "Scale", WindIcons::Scaling16, "R", []() {

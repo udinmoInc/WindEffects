@@ -144,22 +144,25 @@ namespace {
 
             const float padH = we::runtime::kindui::ResolveMetric(MetricToken::Space2);
             const float centerY = m_Geometry.y + m_Geometry.height * 0.5f;
-            const float iconSize = 16.0f;
+            const float iconSize = we::runtime::kindui::ResolveMetric(MetricToken::IconSizeToolbar) * uiScale;
             const float textSize = we::runtime::kindui::ResolveMetric(MetricToken::TextSizeMenu) * uiScale;
-
-            Color iconColor = ResolveIconColor(IconColorRole::Secondary, m_HoverAnim);
-
-            IconPainter::Draw(context, kWindIconNone, Rect{ m_Geometry.x + padH * uiScale, centerY - iconSize * 0.5f, iconSize, iconSize });
+            const Rect iconBand{
+                m_Geometry.x + padH * uiScale,
+                m_Geometry.y,
+                iconSize,
+                m_Geometry.height
+            };
+            IconPainter::Draw(context, WindIcons::FolderClosed16, iconBand, static_cast<uint32_t>(iconSize));
 
             const float textX = m_Geometry.x + (padH + iconSize + padH) * uiScale;
             context.DrawText(kProjectName,
                 Point{ textX, centerY - textSize * 0.5f },
                 ThemeColor(ColorToken::TextPrimary), textSize);
 
-            const float tier = static_cast<float>(16u);
-            const float chevronX = m_Geometry.x + m_Geometry.width - (padH + tier) * uiScale;
+            const float chevronX = m_Geometry.x + m_Geometry.width - (padH + iconSize) * uiScale;
+            Rect chevronBand{ chevronX, m_Geometry.y, iconSize, m_Geometry.height };
             IconPainter::Draw(
-                context, WindIcons::ChevronDown16, IconMetrics::CompactGlyphBand(m_Geometry, chevronX));
+                context, WindIcons::ChevronDown16, chevronBand, static_cast<uint32_t>(iconSize));
         }
         bool ShowsPointerCursor(const Point&) const override { return true; }
     private:
@@ -197,12 +200,12 @@ void TitleBar::Construct() {
     m_RightContainer = std::make_shared<Row>();
     m_RightContainer->Gap(0.0f);
 
-    auto minimizeBtn = std::make_shared<ToolButton>(kWindIconNone, "", [this]() {
+    auto minimizeBtn = std::make_shared<ToolButton>(WindIcons::Minus16, "", [this]() {
         if (m_Window != we::platform::WindowId::Invalid) {
             we::platform::Platform::Get().MinimizeWindow(m_Window);
         }
     });
-    auto maximizeBtn = std::make_shared<ToolButton>(kWindIconNone, "", [this]() {
+    auto maximizeBtn = std::make_shared<ToolButton>(WindIcons::Square16, "", [this]() {
         if (m_Window != we::platform::WindowId::Invalid) {
             auto& platform = we::platform::Platform::Get();
             if (platform.IsWindowMaximized(m_Window)) {
@@ -309,11 +312,7 @@ void TitleBar::UpdateMaximizeIcon() {
     if (m_Window == we::platform::WindowId::Invalid || !m_MaximizeWidget) return;
 
     auto toolBtn = std::static_pointer_cast<ToolButton>(m_MaximizeWidget);
-    if (we::platform::Platform::Get().IsWindowMaximized(m_Window)) {
-        toolBtn->SetIcon(kWindIconNone);
-    } else {
-        toolBtn->SetIcon(kWindIconNone);
-    }
+    toolBtn->SetIcon(WindIcons::Square16);
 }
 
 we::platform::WindowHitTestResult TitleBar::HitTest(we::platform::Int2 point) {

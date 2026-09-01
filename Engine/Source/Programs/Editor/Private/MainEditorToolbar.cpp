@@ -59,10 +59,10 @@ std::shared_ptr<::we::runtime::kindui::Widget> BuildMainEditorToolbar(
 
     builder.Group(ToolbarAlignment::Left, ToolbarGroupStyle::Transparent, [&](ToolbarBuilder& file) {
         if (deps.onCreateNewLevel) {
-            file.IconItem(kWindIconNone, "New Level (Ctrl+N)", deps.onCreateNewLevel);
+            file.IconItem(WindIcons::PlusCircle16, "New Level (Ctrl+N)", deps.onCreateNewLevel);
         }
         if (deps.onOpenProject) {
-            file.IconItem(kWindIconNone, "Open (Ctrl+O)", deps.onOpenProject);
+            file.IconItem(WindIcons::FolderOpened16, "Open (Ctrl+O)", deps.onOpenProject);
         }
     });
     builder.Separator();
@@ -78,13 +78,13 @@ std::shared_ptr<::we::runtime::kindui::Widget> BuildMainEditorToolbar(
     builder.Separator();
 
     builder.Group(ToolbarAlignment::Left, ToolbarGroupStyle::Transparent, [&](ToolbarBuilder& play) {
-        play.IconItem(kWindIconNone, "Play (PIE)", []() {}, [](const std::shared_ptr<ToolButton>& btn) {
+        play.IconItem(WindIcons::PlayGreen16, "Play (PIE)", []() {}, [](const std::shared_ptr<ToolButton>& btn) {
             btn->SetButtonStyle(ToolButtonStyle::PlayButton);
         });
-        play.IconItem(kWindIconNone, "Pause", []() {}, [](const std::shared_ptr<ToolButton>& btn) {
+        play.IconItem(WindIcons::StopSolid16, "Pause", []() {}, [](const std::shared_ptr<ToolButton>& btn) {
             btn->SetButtonStyle(ToolButtonStyle::TransportButton);
         });
-        play.IconItem(kWindIconNone, "Stop", []() {}, [](const std::shared_ptr<ToolButton>& btn) {
+        play.IconItem(WindIcons::StopSolid16, "Stop", []() {}, [](const std::shared_ptr<ToolButton>& btn) {
             btn->SetButtonStyle(ToolButtonStyle::TransportButton);
         });
     });
@@ -98,13 +98,13 @@ std::shared_ptr<::we::runtime::kindui::Widget> BuildMainEditorToolbar(
         }
         if (deps.onOpenProjectManager) {
             right.DropdownItem(
-                kWindIconNone,
+                WindIcons::FolderClosed16,
                 "Project",
                 deps.onOpenProjectManager,
                 "Project Manager");
         }
         right.Separator();
-        right.IconItem(kWindIconNone, "Editor Settings", []() { ShowViewportNavigationPreferences(); });
+        right.IconItem(WindIcons::Settings16, "Editor Settings", []() { ShowViewportNavigationPreferences(); });
     });
 
     auto toolbar = builder.Build();

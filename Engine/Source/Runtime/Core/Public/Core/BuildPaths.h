@@ -43,10 +43,15 @@ inline std::string StripLegacyModulePrefix(std::string_view logicalName) {
 
 inline std::vector<std::string> BuildModuleBinaryCandidates(std::string_view moduleName) {
     const std::string name(StripLegacyModulePrefix(moduleName));
-    return {
+    std::vector<std::string> candidates = {
         "Windeffects" + name + ".dll",
         "WE" + name + ".dll",
     };
+    if (name == "KindUIFramework") {
+        candidates.insert(candidates.begin(), "WEUIFramework.dll");
+        candidates.insert(candidates.begin(), "WindeffectsUIFramework.dll");
+    }
+    return candidates;
 }
 
 inline std::optional<std::filesystem::path> FindExistingBinary(

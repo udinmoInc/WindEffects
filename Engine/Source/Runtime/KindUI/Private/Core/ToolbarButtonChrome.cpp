@@ -15,17 +15,22 @@ float ButtonRadius(float uiScale) {
 
 float IconSize(float uiScale) {
     (void)uiScale;
-    return static_cast<float>(16u);
+    return ResolveMetric(MetricToken::IconSizeToolbar);
 }
 
 float PrimaryIconSize(float uiScale) {
     (void)uiScale;
-    return static_cast<float>(16u);
+    return ResolveMetric(MetricToken::IconSizeToolbar);
 }
 
 float NavigationIconSize(float uiScale) {
     (void)uiScale;
-    return static_cast<float>(16u);
+    return ResolveMetric(MetricToken::IconSizeNavigation);
+}
+
+float WindowControlIconSize(float uiScale) {
+    (void)uiScale;
+    return ResolveMetric(MetricToken::IconSizeWindowControl);
 }
 
 float HorizontalPad(float uiScale) {

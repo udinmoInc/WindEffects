@@ -4,7 +4,7 @@
 #include "WindEffects/Editor/UI/Panel/PanelBodyLayout.h"
 #include "WindEffects/Editor/UI/Shell/EditorModeController.h"
 #include "WindEffects/Editor/UI/Shell/EditorToolsRegistry.h"
-#include "ContentBrowser/Widgets/SearchBox.h"
+#include "KindUI/Core/Widgets/PanelToolbarRow.h"
 #include "KindUI/Core/ControlChrome.h"
 #include "KindUI/Core/PaintContext.h"
 #include "KindUI/Theming/ThemeAccess.h"
@@ -50,7 +50,7 @@ using ::we::runtime::kindui::Widget;
 using ::we::runtime::kindui::ColorToken;
 using ::we::runtime::kindui::MetricToken;
 using ::we::runtime::kindui::PaddingToken;
-using ::we::editor::widgets::SearchBox;
+using ::we::runtime::kindui::PanelToolbarRow;
 namespace PanelChrome = ::we::editor::panels::PanelChrome;
 
 namespace {
@@ -113,9 +113,8 @@ ToolsPanel::ToolsPanel() {
 
     m_BodyLayout = std::make_shared<::we::editor::panels::PanelBodyLayout>();
 
-    m_SearchBox = std::make_shared<::we::editor::widgets::SearchBox>();
-    m_SearchBox->SetFillWidth(true);
-    m_SearchBox->SetPlaceholder("Search Actors...");
+    m_SearchRow = std::make_shared<PanelToolbarRow>("Search Actors...");
+    m_SearchRow->Finalize();
 
     m_ContentHost = std::make_shared<ToolsPanelContentHost>(this);
     m_SearchVisible = true;
@@ -124,8 +123,8 @@ ToolsPanel::ToolsPanel() {
 ToolsPanel::~ToolsPanel() {
     SaveState();
     CloseContextMenu();
-    if (m_SearchBox) {
-        m_SearchBox->SetOnTextChanged({});
+    if (m_SearchRow) {
+        m_SearchRow->SetOnSearchChanged({});
     }
     if (m_BodyLayout) {
         m_BodyLayout->ClearRegions();
@@ -133,7 +132,7 @@ ToolsPanel::~ToolsPanel() {
     }
     m_ModeContentWidget.reset();
     m_ContentHost.reset();
-    m_SearchBox.reset();
+    m_SearchRow.reset();
     m_BodyLayout.reset();
 }
 
@@ -141,11 +140,11 @@ void ToolsPanel::InitializeFromRegistry(const std::shared_ptr<ToolsPanel>& self)
     std::weak_ptr<ToolsPanel> weak = self;
     if (m_BodyLayout && m_BodyLayout->GetParent() != self) {
         AddChild(m_BodyLayout);
-        m_BodyLayout->SetRegion(::we::editor::panels::PanelBodyRegion::Search, m_SearchBox);
+        m_BodyLayout->SetRegion(::we::editor::panels::PanelBodyRegion::Search, m_SearchRow);
         m_BodyLayout->SetRegion(::we::editor::panels::PanelBodyRegion::Content, m_ContentHost);
     }
-    if (m_SearchBox) {
-        m_SearchBox->SetOnTextChanged([weak](const std::string& text) {
+    if (m_SearchRow) {
+        m_SearchRow->SetOnSearchChanged([weak](const std::string& text) {
             if (auto self = weak.lock()) {
                 self->m_SearchText = text;
                 self->m_BodyRegionsDirty = true;
@@ -164,7 +163,7 @@ void ToolsPanel::InitializeFromRegistry(const std::shared_ptr<ToolsPanel>& self)
 
 void ToolsPanel::OnModeChanged() {
     m_SearchText.clear();
-    if (m_SearchBox) m_SearchBox->SetText("");
+    if (m_SearchRow) m_SearchRow->SetSearchText("");
     m_ModeContentWidget.reset();
     m_ModeContentModeId.clear();
     m_ModeContentSearchText.clear();
@@ -354,7 +353,7 @@ void ToolsPanel::SyncBodyRegions() {
         m_SearchVisible = wantSearch;
         m_BodyLayout->SetRegion(
             ::we::editor::panels::PanelBodyRegion::Search,
-            wantSearch ? m_SearchBox : nullptr);
+            wantSearch ? m_SearchRow : nullptr);
     }
 
     if (useCustomContent) {
@@ -594,8 +593,8 @@ std::shared_ptr<Widget> ToolsPanel::HitTestPoint(const Point& pos, const Rect* c
     const Rect searchRect = m_BodyLayout
         ? m_BodyLayout->GetRegionRect(::we::editor::panels::PanelBodyRegion::Search)
         : Rect{};
-    if (!searchRect.IsEmpty() && searchRect.Contains(pos) && m_SearchBox) {
-        if (auto hit = m_SearchBox->HitTestPoint(pos, clip)) {
+    if (!searchRect.IsEmpty() && searchRect.Contains(pos) && m_SearchRow) {
+        if (auto hit = m_SearchRow->HitTestPoint(pos, clip)) {
             return hit;
         }
     }
@@ -646,15 +645,20 @@ void ToolsPanel::OnMouseDown(const MouseEvent& event) {
     }
 
     if (m_ModeContentWidget && m_ModeContentWidget->GetGeometry().Contains(event.position)) {
-        m_ModeContentWidget->OnMouseDown(event);
+        const Rect* clip = m_ContentRect.IsEmpty() ? nullptr : &m_ContentRect;
+        if (auto hit = m_ModeContentWidget->HitTestPoint(event.position, clip)) {
+            hit->OnMouseDown(event);
+        } else {
+            m_ModeContentWidget->OnMouseDown(event);
+        }
         return;
     }
 
     const Rect searchRect = m_BodyLayout
         ? m_BodyLayout->GetRegionRect(::we::editor::panels::PanelBodyRegion::Search)
         : Rect{};
-    if (!searchRect.IsEmpty() && searchRect.Contains(event.position)) {
-        m_SearchBox->OnMouseDown(event);
+    if (!searchRect.IsEmpty() && searchRect.Contains(event.position) && m_SearchRow) {
+        m_SearchRow->OnMouseDown(event);
         return;
     }
 
@@ -730,8 +734,8 @@ void ToolsPanel::OnMouseUp(const MouseEvent& event) {
 void ToolsPanel::OnKeyDown(const KeyEvent& event) {
     if (HandleShortcut(event)) return;
 
-    if (m_SearchBox) {
-        m_SearchBox->OnKeyDown(event);
+    if (auto searchBox = m_SearchRow ? m_SearchRow->GetSearchBox() : nullptr) {
+        searchBox->OnKeyDown(event);
     }
 
     if (m_ModeContentWidget) {

@@ -21,7 +21,8 @@ namespace {
 using InitializeModuleFunc = IModuleInterface* (*)();
 
 bool IsRuntimeLinkedModule(std::string_view moduleName) {
-    return moduleName == "WindEffects-KindUIFramework"
+    return moduleName == "WindEffects-UIFramework"
+        || moduleName == "WindEffects-KindUIFramework"
         || moduleName == "WindEffects-KindUI"
         || moduleName == "WindEffects_KindUI";
 }

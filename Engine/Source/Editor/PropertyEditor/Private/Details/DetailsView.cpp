@@ -4,11 +4,6 @@
 #include "KindUI/Core/LayoutMetrics.h"
 #include "KindUI/Core/PropertyPanelChrome.h"
 #include "KindUI/Core/Style.h"
-#include "KindUI/Core/WindIcon.h"
-#include "KindUI/Core/Icon.h"
-#include "KindUI/Tokens/TypographySpec.h"
-#include "KindUI/Theming/ThemeAccess.h"
-#include "KindUI/Rendering/IconMetrics.h"
 
 #include <cmath>
 
@@ -27,11 +22,7 @@ float DetailsWheelStepPx() {
 }
 } // namespace
 
-using we::runtime::kindui::ColorToken;
 using we::runtime::kindui::MetricToken;
-using we::runtime::kindui::TypographyToken;
-using we::runtime::kindui::TypographySpec;
-using we::runtime::kindui::ResolveTypography;
 using we::runtime::kindui::MouseButton;
 using we::runtime::kindui::MouseEvent;
 using we::runtime::kindui::MouseEventType;
@@ -44,8 +35,6 @@ using we::runtime::kindui::Size;
 using we::runtime::kindui::Widget;
 using we::runtime::kindui::WidgetStyle;
 using we::runtime::kindui::DPIContext;
-using we::runtime::kindui::IconPainter;
-using ::we::runtime::kindui::kWindIconNone;
 namespace PanelChrome = we::runtime::kindui::PropertyPanelChrome;
 
 class DetailsViewWidget final : public Widget {
@@ -70,27 +59,6 @@ public:
     void Paint(PaintContext& context) override {
         SyncScroll();
         if (!m_Tree || m_Tree->GetFilteredRootNodes().empty()) {
-            const float uiScale = (std::max)(1.0f, DPIContext::GetScale());
-            const TypographySpec hintSpec = ResolveTypography(TypographyToken::Subtitle);
-            const float iconSize = static_cast<float>(16u);
-            const float gap = ResolveMetric(MetricToken::Space2) * uiScale;
-            const float totalHeight = iconSize + gap + hintSpec.lineHeightPx;
-
-            const float centerX = m_Geometry.x + m_Geometry.width * 0.5f;
-            const float centerY = m_Geometry.y + m_Geometry.height * 0.5f;
-
-            const Rect iconRect{ centerX - iconSize * 0.5f, centerY - totalHeight * 0.5f, iconSize, iconSize };
-            IconPainter::Draw(
-                context, kWindIconNone, iconRect);
-
-            const std::string emptyMsg = (m_Tree && !m_Tree->GetFilter().searchText.empty())
-                ? "No matching properties"
-                : "Select an object to view details";
-            const float textWidth = context.GetTextWidth(emptyMsg, hintSpec.sizePx);
-            const float textX = centerX - textWidth * 0.5f;
-            const float textY = iconRect.y + iconSize + gap;
-
-            context.DrawText(emptyMsg, Point{ textX, textY }, ThemeColor(ColorToken::TextHint), hintSpec.sizePx);
             return;
         }
 

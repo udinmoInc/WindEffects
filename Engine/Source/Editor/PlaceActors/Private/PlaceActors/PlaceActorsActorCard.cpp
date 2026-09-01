@@ -92,7 +92,7 @@ void PlaceActorsActorCard::Paint(PaintContext& context,
         const Color starColor = favorite
             ? we::runtime::kindui::ResolveColor(ColorToken::Warning)
             : we::runtime::kindui::ResolveColor(ColorToken::IconPrimary);
-        we::runtime::kindui::IconPainter::Draw(context, we::runtime::kindui::kWindIconNone, starRect);
+        we::runtime::kindui::IconPainter::Draw(context, we::runtime::kindui::WindIcons::Check16, starRect);
     }
 }
 

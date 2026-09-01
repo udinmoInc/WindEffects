@@ -4,8 +4,33 @@
 #include "KindUI/Profiling/UiColorDebug.h"
 #include "KindUI/Rendering/IconMetrics.h"
 #include "KindUI/Rendering/TextUIService.h"
+#include "KindUI/Theming/ThemeAccess.h"
+#include "KindUI/Tokens/ChromeSeparation.h"
+#include "KindUI/Tokens/DesignToken.h"
+
+#include <cmath>
 
 namespace we::runtime::kindui {
+namespace {
+
+bool ColorsMatch(const Color& a, const Color& b) {
+    constexpr float kEps = 0.001f;
+    return std::fabs(a.r - b.r) < kEps
+        && std::fabs(a.g - b.g) < kEps
+        && std::fabs(a.b - b.b) < kEps
+        && std::fabs(a.a - b.a) < kEps;
+}
+
+bool AllowsChromeOutline(const Color& color) {
+    if (!ChromeSeparation::kGapCutsEnabled) {
+        return true;
+    }
+    return ColorsMatch(color, ResolveColor(ColorToken::BorderFocus))
+        || ColorsMatch(color, ResolveColor(ColorToken::AccentPrimary))
+        || ColorsMatch(color, ResolveColor(ColorToken::BorderError));
+}
+
+} // namespace
 
 void PaintContext::PushSurfaceOwner(const char* widgetName, SurfaceRole role) {
     m_SurfaceOwnerStack.push_back(SurfaceOwnerScope{ widgetName, role });
@@ -64,6 +89,9 @@ void PaintContext::DrawSurfaceOutline(
     const char* widgetName)
 {
     const Color color = ResolveSurfaceColor(role);
+    if (!AllowsChromeOutline(color)) {
+        return;
+    }
     DrawCommand cmd{};
     cmd.type = DrawCommandType::RoundedOutline;
     cmd.rect = rect;
@@ -158,6 +186,9 @@ void PaintContext::DrawShadow(const Rect& rect, const Color& color, float radius
 }
 
 void PaintContext::DrawRoundedRectOutline(const Rect& rect, const Color& color, float thickness, float radius) {
+    if (!AllowsChromeOutline(color)) {
+        return;
+    }
     DrawCommand cmd{};
     cmd.type = DrawCommandType::RoundedOutline;
     cmd.rect = rect;

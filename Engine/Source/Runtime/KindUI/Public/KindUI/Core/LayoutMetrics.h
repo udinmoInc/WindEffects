@@ -22,11 +22,13 @@ namespace LayoutMetrics {
 
 [[nodiscard]] KINDUI_API float InputMinHeight();
 [[nodiscard]] KINDUI_API float SearchInputHeight();
+[[nodiscard]] KINDUI_API float ToolbarSearchInputHeight();
 [[nodiscard]] KINDUI_API float SearchRowHeight();
 [[nodiscard]] KINDUI_API float SearchInputPaddingH();
 [[nodiscard]] KINDUI_API float SearchInputFontSize();
 [[nodiscard]] KINDUI_API float SearchInputIconSize();
 [[nodiscard]] KINDUI_API Rect LayoutSearchInputRect(const Rect& allottedRect);
+[[nodiscard]] KINDUI_API Rect LayoutToolbarSearchInputRect(const Rect& allottedRect);
 [[nodiscard]] KINDUI_API float FormRowMinHeight();
 [[nodiscard]] KINDUI_API float PropertySectionHeight();
 [[nodiscard]] KINDUI_API float PropertyObjectHeaderHeight();

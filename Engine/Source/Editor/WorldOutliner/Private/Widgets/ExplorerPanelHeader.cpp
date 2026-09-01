@@ -11,12 +11,13 @@ ExplorerPanelHeader::ExplorerPanelHeader()
     : PanelToolbarRow("Search...") {}
 
 void ExplorerPanelHeader::Initialize() {
-    AddIconButton(kWindIconNone, [this]() {
+    AddSeparator();
+    AddIconButton(WindIcons::FolderPlus16, [this]() {
         if (m_OnNewFolder) {
             m_OnNewFolder();
         }
     });
-    AddIconButton(WindIcons::ListFilter16, [this]() {
+    AddIconButton(WindIcons::Settings16, [this]() {
         if (m_OnFilterClicked) {
             m_OnFilterClicked();
         }
