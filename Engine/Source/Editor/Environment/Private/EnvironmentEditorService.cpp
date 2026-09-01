@@ -79,12 +79,14 @@ we::runtime::kindui::WindIconRef IconForEntity(const Entity& entity) {
     case EntityType::SkyLight:
         return we::runtime::kindui::WindIcons::Sun16;
     case EntityType::SkyAtmosphere:
+        return we::runtime::kindui::WindIcons::WorldGlobe16;
     case EntityType::VolumetricClouds:
-        return we::runtime::kindui::WindIcons::Globe16;
+    case EntityType::HeightFog:
+        return we::runtime::kindui::WindIcons::Cloud16;
     case EntityType::Landscape:
         return we::runtime::kindui::WindIcons::Grid3x316;
-    case EntityType::HeightFog:
     case EntityType::EmptyActor:
+        return we::runtime::kindui::WindIcons::FolderClosed16;
     default:
         return we::runtime::kindui::kWindIconNone;
     }

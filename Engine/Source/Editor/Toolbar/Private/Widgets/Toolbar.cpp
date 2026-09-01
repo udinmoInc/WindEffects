@@ -1,8 +1,10 @@
 #include "Widgets/Toolbar.h"
+#include "KindUI/Core/ControlChrome.h"
 #include "KindUI/Core/PaintContext.h"
 #include "KindUI/Core/ToolbarButtonChrome.h"
 #include "KindUI/Profiling/UiGeometryDebug.h"
 #include "KindUI/Tokens/DesignToken.h"
+#include "KindUI/Tokens/DesignSystem.h"
 #include "KindUI/Tokens/SurfaceRole.h"
 #include "KindUI/Theming/StyleRole.h"
 #include "KindUI/Core/WindIcon.h"
@@ -330,7 +332,7 @@ Size ToolbarSeparator::Measure(const Size& availableSize) {
     (void)availableSize;
     const float uiScale = (std::max)(1.0f, DPIContext::GetScale());
     return Size{
-        1.0f * uiScale,
+        we::runtime::kindui::ds::Chrome::SeparationGapWide() * uiScale,
         ThemeMetric(MetricToken::ToolbarSeparatorHeight) * uiScale
     };
 }
@@ -341,17 +343,16 @@ void ToolbarSeparator::Arrange(const Rect& allottedRect) {
 
 void ToolbarSeparator::Paint(PaintContext& context) {
     const float uiScale = (std::max)(1.0f, DPIContext::GetScale());
-    const float lineHeight = ThemeMetric(MetricToken::ToolbarSeparatorHeight) * uiScale;
+    const float sepH = ThemeMetric(MetricToken::ToolbarSeparatorHeight) * uiScale;
     const float centerY = m_Geometry.y + m_Geometry.height * 0.5f;
-    const float halfH = lineHeight * 0.5f;
-
-    Rect lineRect{
-        m_Geometry.x + m_Geometry.width * 0.5f - 0.5f * uiScale,
-        centerY - halfH,
-        1.0f * uiScale,
-        lineHeight
-    };
-    context.DrawRect(lineRect, ThemeColor(ColorToken::BorderSubtle));
+    const float centerX = m_Geometry.x + m_Geometry.width * 0.5f;
+    we::runtime::kindui::ControlChrome::PaintVerticalSeparator(
+        context,
+        centerX,
+        centerY - sepH * 0.5f,
+        centerY + sepH * 0.5f,
+        we::runtime::kindui::ResolveMetric(MetricToken::BorderWidth),
+        ColorToken::Separator);
 }
 
 ToolbarGroup::ToolbarGroup() = default;

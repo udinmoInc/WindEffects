@@ -27,9 +27,9 @@ ViewportOverlay::ViewportOverlay()
     m_NavSpacing = ThemeMetric(MetricToken::Space1);
     // Initialize navigation buttons
     m_NavButtons = {
-        { kWindIconNone, "zoom-in", Rect{} },
+        { WindIcons::Plus16, "zoom-in", Rect{} },
         { WindIcons::Minus16, "zoom-out", Rect{} },
-        { WindIcons::Refresh16, "reset-camera", Rect{} }
+        { WindIcons::RefreshCwDot16, "reset-camera", Rect{} }
     };
 }
 
@@ -242,9 +242,9 @@ NavigationControls::NavigationControls() {
     m_ButtonSize = ThemeMetric(MetricToken::NavigationButtonSize);
     m_Spacing = ThemeMetric(MetricToken::Space1);
     m_Buttons = {
-        { kWindIconNone, "zoom-in", Rect{}, false },
+        { WindIcons::Plus16, "zoom-in", Rect{}, false },
         { WindIcons::Minus16, "zoom-out", Rect{}, false },
-        { WindIcons::Refresh16, "reset", Rect{}, false }
+        { WindIcons::RefreshCwDot16, "reset", Rect{}, false }
     };
 }
 

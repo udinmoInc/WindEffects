@@ -55,6 +55,8 @@ namespace IconSizing {
 [[nodiscard]] inline float Primary() { return ResolveMetric(MetricToken::IconSizePrimary); }
 [[nodiscard]] inline float Tree() { return ResolveMetric(MetricToken::IconSizeTree); }
 [[nodiscard]] inline float Navigation() { return ResolveMetric(MetricToken::IconSizeNavigation); }
+[[nodiscard]] inline float VerySmall() { return ResolveMetric(MetricToken::IconSizeVerySmall); }
+[[nodiscard]] inline float WindowControl() { return ResolveMetric(MetricToken::IconSizeWindowControl); }
 [[nodiscard]] inline float CheckMark() { return ResolveMetric(MetricToken::CheckMarkSize); }
 } // namespace IconSizing
 
@@ -185,5 +187,10 @@ namespace Scroll {
 [[nodiscard]] inline float WheelStep() { return ResolveMetric(MetricToken::ListRowHeight); }
 [[nodiscard]] inline float BarWidth() { return ResolveMetric(MetricToken::ScrollbarWidth); }
 } // namespace Scroll
+
+namespace Chrome {
+[[nodiscard]] inline float SeparationGap() { return ResolveMetric(MetricToken::ChromeSeparationGap); }
+[[nodiscard]] inline float SeparationGapWide() { return ResolveMetric(MetricToken::ChromeSeparationGapWide); }
+} // namespace Chrome
 
 } // namespace we::runtime::kindui::ds

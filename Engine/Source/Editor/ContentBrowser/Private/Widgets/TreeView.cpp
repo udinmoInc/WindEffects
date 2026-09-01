@@ -358,7 +358,7 @@ void TreeView::Paint(PaintContext& context) {
         // Pin/Lock column header
         const float lockX = TreeAccessoryColumnX(m_Geometry.x, 1, uiScale);
         Rect lockBand{ lockX, m_Geometry.y, glyphTier, headerHeight };
-        IconPainter::Draw(context, we::runtime::kindui::kWindIconNone, IconMetrics::PlaceGlyphCentered(lockBand, 16u));
+        IconPainter::Draw(context, WindIcons::LockOpen16, IconMetrics::PlaceGlyphCentered(lockBand, 16u));
 
         // Item Label header
         const float labelX = m_Geometry.x + TreeExplorerPrefix(uiScale);
@@ -367,6 +367,15 @@ void TreeView::Paint(PaintContext& context) {
         // Type column header
         const float typeColumnReserve = we::runtime::kindui::ResolveMetric(MetricToken::Space6) * uiScale;
         const float typeRightX = m_Geometry.x + m_Geometry.width - typeColumnReserve;
+        const float sepH = we::runtime::kindui::ResolveMetric(MetricToken::ToolbarSeparatorHeight) * uiScale;
+        const float headerCenterY = m_Geometry.y + headerHeight * 0.5f;
+        ControlChrome::PaintVerticalSeparator(
+            context,
+            typeRightX,
+            headerCenterY - sepH * 0.5f,
+            headerCenterY + sepH * 0.5f,
+            we::runtime::kindui::ResolveMetric(MetricToken::BorderWidth),
+            ColorToken::Separator);
         const float typeWidth = context.GetTextWidth("Type", headerTextSize);
         context.DrawText("Type", Point{ typeRightX - typeWidth, headerTextY }, ThemeColor(ColorToken::TextSecondary), headerTextSize, true);
     }
@@ -431,7 +440,7 @@ void TreeView::Paint(PaintContext& context) {
             }
             if (node->locked) {
                 const Color lockColor = ThemeColor(ColorToken::Warning);
-                IconPainter::Draw(context, we::runtime::kindui::kWindIconNone, IconMetrics::PlaceGlyphCentered(layout.lockBounds, 16u));
+                IconPainter::Draw(context, WindIcons::Lock16, IconMetrics::PlaceGlyphCentered(layout.lockBounds, 16u));
             }
         }
 
@@ -532,7 +541,7 @@ void TreeView::Paint(PaintContext& context) {
             IconPainter::Draw(context, eyeIcon, IconMetrics::PlaceGlyphCentered(layout.eyeBounds, 16u));
 
             if (node->locked) {
-                IconPainter::Draw(context, kWindIconNone, IconMetrics::PlaceGlyphCentered(layout.lockBounds, 16u));
+                IconPainter::Draw(context, WindIcons::Lock16, IconMetrics::PlaceGlyphCentered(layout.lockBounds, 16u));
             }
         }
     }
@@ -944,6 +953,14 @@ std::shared_ptr<TreeNode> TreeView::FindNode(const std::string& id) {
 void TreeView::ToggleExpand(const std::string& id) {
     if (auto node = FindNode(id)) {
         node->expanded = !node->expanded;
+        if (node->icon.IsValid()) {
+            const bool isFolderGlyph =
+                node->icon.stem == WindIcons::FolderClosed16.stem
+                || node->icon.stem == WindIcons::FolderOpened16.stem;
+            if (isFolderGlyph) {
+                node->icon = node->expanded ? WindIcons::FolderOpened16 : WindIcons::FolderClosed16;
+            }
+        }
     }
     MarkRenderListDirty();
     BuildRenderList();

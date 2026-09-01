@@ -27,10 +27,10 @@ using we::runtime::kindui::PaddingToken;
 using namespace launcher_controls_detail;
 NavSidebar::NavSidebar() {
     m_Items = {
-        { LauncherPage::Projects, "Projects", kWindIconNone },
-        { LauncherPage::Learn, "Learn", kWindIconNone },
+        { LauncherPage::Projects, "Projects", WindIcons::FolderClosed16 },
+        { LauncherPage::Learn, "Learn", WindIcons::CircleHelp16 },
         { LauncherPage::Engine, "Engine", WindIcons::Wrench16 },
-        { LauncherPage::Settings, "Settings", kWindIconNone },
+        { LauncherPage::Settings, "Settings", WindIcons::Settings16 },
     };
     m_WidthAnim = kLauncherNavWidth;
     SetFlexShrink(0.0f);
@@ -265,54 +265,18 @@ Rect SearchField::ClearRect() const {
 }
 
 void SearchField::Paint(PaintContext& context) {
-    const float s = LScale();
-    const float radius = m_Geometry.height * 0.5f;
-
-    Color bg = LColor(ColorToken::InputBackground);
-    if (m_HoverAnim > 0.01f || m_FocusAnim > 0.01f) {
-        bg = Color::Lerp(bg, LColor(ColorToken::HoverBackground), std::max(m_HoverAnim, m_FocusAnim) * 0.35f);
-    }
-    context.DrawRoundedRect(m_Geometry, bg, radius);
-
-    Color border = LColor(ColorToken::BorderDefault);
-    if (m_FocusAnim > 0.01f) {
-        border = Color::Lerp(border, LColor(ColorToken::BorderFocus), m_FocusAnim);
-    }
-    context.DrawRoundedRectOutline(m_Geometry, border, 1.0f, radius);
-
-    const float iconSize = 16.0f;
-    const float pad = 10.0f * s;
-    IconPainter::Draw(
+    ControlChrome::InteractionState state{ m_HoverAnim, 0.0f, false, m_Focused, false };
+    ControlChrome::PaintSearchField(
         context,
-        WindIcons::Search16,
-        Rect{ m_Geometry.x + pad, m_Geometry.y + (m_Geometry.height - iconSize) * 0.5f, iconSize, iconSize });
-
-    const float textSize = LMetric(MetricToken::TextSizeBody) * s;
-    const float textX = m_Geometry.x + pad + iconSize + 8.0f * s;
-    const float textY = m_Geometry.y + (m_Geometry.height - textSize) * 0.5f;
-    if (m_Text.empty()) {
-        context.DrawText(m_Placeholder, Point{ textX, textY }, LColor(ColorToken::SearchPlaceholder), textSize);
-    } else {
-        context.DrawText(m_Text, Point{ textX, textY }, LColor(ColorToken::TextPrimary), textSize);
-        IconPainter::Draw(context, WindIcons::Close16, ClearRect());
-    }
-
-    if (m_Focused && m_ShowCaret) {
-        const float caretX = textX + ApproxTextWidth(m_Text, textSize);
-        context.DrawRect(Rect{ caretX, textY, 1.0f * s, textSize }, LColor(ColorToken::TextPrimary));
-    }
+        m_Geometry,
+        m_Placeholder,
+        m_Text,
+        state,
+        m_Focused && m_ShowCaret);
 }
 
 void SearchField::OnMouseDown(const MouseEvent& event) {
     if (event.button != MouseButton::Left) {
-        return;
-    }
-    if (!m_Text.empty() && ClearRect().Contains(event.position)) {
-        m_Text.clear();
-        if (m_OnTextChanged) {
-            m_OnTextChanged(m_Text);
-        }
-        InvalidateUI();
         return;
     }
     m_CaretBlink = 0.0f;

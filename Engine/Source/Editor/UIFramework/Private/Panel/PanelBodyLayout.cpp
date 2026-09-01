@@ -3,6 +3,9 @@
 #include "WindEffects/Editor/UI/Panel/PanelChrome.h"
 #include "KindUI/Layout/LayoutAssert.h"
 #include "KindUI/Core/LayoutMetrics.h"
+#include "KindUI/Core/DPIContext.h"
+#include "KindUI/Tokens/ChromeSeparation.h"
+#include "KindUI/Tokens/DesignSystem.h"
 
 #include <algorithm>
 
@@ -10,6 +13,7 @@ namespace we::editor::panels {
 namespace Chrome = PanelChrome;
 using ::we::runtime::kindui::AssertLayoutRectValid;
 using ::we::runtime::kindui::ClampRectToParent;
+using ::we::runtime::kindui::DPIContext;
 using ::we::runtime::kindui::MouseEvent;
 using ::we::runtime::kindui::PaintContext;
 using ::we::runtime::kindui::Point;
@@ -23,19 +27,26 @@ constexpr size_t RegionIndex(PanelBodyRegion region) {
     return static_cast<size_t>(region);
 }
 
+float RegionSeparationGap() {
+    if (we::runtime::kindui::ChromeSeparation::kGapCutsEnabled) {
+        return we::runtime::kindui::ChromeSeparation::Gap();
+    }
+    return 0.0f;
+}
+
 void PaintRegionBackground(PanelBodyRegion region, PaintContext& context, const Rect& geometry) {
     switch (region) {
     case PanelBodyRegion::ModeTabs:
-    case PanelBodyRegion::Search:
-    case PanelBodyRegion::Toolbar:
-        Chrome::PaintPanelSurface(context, geometry);
-        break;
-    case PanelBodyRegion::Content:
-        Chrome::PaintContentWell(context, geometry);
-        break;
     case PanelBodyRegion::ColumnHeader:
     case PanelBodyRegion::Footer:
         Chrome::PaintListLabelBand(context, geometry);
+        break;
+    case PanelBodyRegion::Search:
+    case PanelBodyRegion::Toolbar:
+        Chrome::PaintToolbarRegion(context, geometry);
+        break;
+    case PanelBodyRegion::Content:
+        Chrome::PaintContentWell(context, geometry);
         break;
     case PanelBodyRegion::Count:
         break;
@@ -43,20 +54,26 @@ void PaintRegionBackground(PanelBodyRegion region, PaintContext& context, const 
 }
 
 void PaintRegionChrome(PanelBodyRegion region, PaintContext& context, const Rect& geometry) {
+    if (we::runtime::kindui::ChromeSeparation::kGapCutsEnabled) {
+        (void)region;
+        (void)context;
+        (void)geometry;
+        return;
+    }
     switch (region) {
     case PanelBodyRegion::ModeTabs:
-        break;
-    case PanelBodyRegion::Search:
     case PanelBodyRegion::Toolbar:
         Chrome::PaintDockTabStripDivider(context, geometry);
         break;
+    case PanelBodyRegion::Search:
+        break;
     case PanelBodyRegion::ColumnHeader:
-        Chrome::PaintHeaderRegion(context, geometry);
+        Chrome::PaintDockTabStripDivider(context, geometry);
         break;
     case PanelBodyRegion::Content:
         break;
     case PanelBodyRegion::Footer:
-        Chrome::PaintFooterRegion(context, geometry);
+        Chrome::PaintDockFooterDivider(context, geometry);
         break;
     case PanelBodyRegion::Count:
         break;
@@ -173,6 +190,22 @@ Size PanelBodyLayout::Measure(const Size& availableSize) {
     measureFixed(PanelBodyRegion::ColumnHeader);
     measureFixed(PanelBodyRegion::Footer);
 
+    int regionGapCount = 0;
+    auto countGap = [&](PanelBodyRegion region) {
+        const auto& slot = m_Regions[RegionIndex(region)];
+        if (slot.widget && slot.widget->IsVisible()) {
+            ++regionGapCount;
+        }
+    };
+    countGap(PanelBodyRegion::ModeTabs);
+    if (!m_OverlayToolbar) {
+        countGap(PanelBodyRegion::Toolbar);
+    }
+    countGap(PanelBodyRegion::Search);
+    countGap(PanelBodyRegion::ColumnHeader);
+    countGap(PanelBodyRegion::Footer);
+    reservedHeight += static_cast<float>(regionGapCount) * RegionSeparationGap();
+
     Size rowAvailable = availableSize;
     if (rowAvailable.height < 1.0e8f) {
         rowAvailable.height = std::max(0.0f, rowAvailable.height - reservedHeight);
@@ -225,6 +258,9 @@ void PanelBodyLayout::ArrangeFixedRegion(
     AssertLayoutRectValid("PanelBodyLayout.region", slot.geometry, allottedRect);
     slot.widget->Arrange(InsetRegionContent(slot.geometry, region));
     currentY += slot.geometry.height;
+    if (slot.geometry.height > 0.01f) {
+        currentY = std::min(currentY + RegionSeparationGap(), totalBottom);
+    }
 }
 
 void PanelBodyLayout::Arrange(const Rect& allottedRect) {
@@ -252,7 +288,12 @@ void PanelBodyLayout::Arrange(const Rect& allottedRect) {
             availableH);
     }
 
-    const float contentHeight = std::max(0.0f, totalBottom - currentY - footerHeight);
+    float footerGap = 0.0f;
+    if (footerSlot.widget && footerSlot.widget->IsVisible() && footerHeight > 0.0f) {
+        footerGap = RegionSeparationGap();
+    }
+
+    const float contentHeight = std::max(0.0f, totalBottom - currentY - footerHeight - footerGap);
     auto& contentSlot = m_Regions[RegionIndex(PanelBodyRegion::Content)];
     if (contentSlot.widget) {
         contentSlot.geometry = ClampRectToParent(
@@ -285,6 +326,7 @@ void PanelBodyLayout::Arrange(const Rect& allottedRect) {
     }
 
     if (footerSlot.widget && footerSlot.widget->IsVisible() && footerHeight > 0.0f) {
+        currentY = std::min(currentY + RegionSeparationGap(), totalBottom);
         footerSlot.geometry = ClampRectToParent(
             Rect{ allottedRect.x, currentY, allottedRect.width, footerHeight },
             allottedRect);
@@ -296,6 +338,10 @@ void PanelBodyLayout::Arrange(const Rect& allottedRect) {
 }
 
 void PanelBodyLayout::Paint(PaintContext& context) {
+    if (!m_Geometry.IsEmpty()) {
+        Chrome::PaintNavigationRegion(context, m_Geometry);
+    }
+
     const auto paintRegion = [&](PanelBodyRegion region, bool paintAfterContent) {
         const size_t index = RegionIndex(region);
         const auto& slot = m_Regions[index];
@@ -308,7 +354,6 @@ void PanelBodyLayout::Paint(PaintContext& context) {
             || (m_OverlayToolbar && region == PanelBodyRegion::Toolbar);
         if (!skipRegionChrome) {
             PaintRegionBackground(region, context, slot.geometry);
-            PaintRegionChrome(region, context, slot.geometry);
         }
 
         if (region == PanelBodyRegion::Content) {
@@ -317,6 +362,10 @@ void PanelBodyLayout::Paint(PaintContext& context) {
             context.PopClipRect();
         } else {
             slot.widget->Paint(context);
+        }
+
+        if (!skipRegionChrome) {
+            PaintRegionChrome(region, context, slot.geometry);
         }
         (void)paintAfterContent;
     };

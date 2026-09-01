@@ -276,7 +276,13 @@ void ContentBrowser::PaintAssetThumbnail(PaintContext& context, const Rect& thum
     const Color accent = ThemeColor(ColorToken::AccentPrimary);
 
     if (item.isFolder) {
-        ContentBrowserFolderArt::Get().PaintThumbnail(context, thumbRect, hovered);
+        const float iconSize = std::min(thumbRect.width, thumbRect.height) * 0.42f;
+        Rect iconRect{
+            thumbRect.x + (thumbRect.width - iconSize) * 0.5f,
+            thumbRect.y + (thumbRect.height - iconSize) * 0.5f,
+            iconSize, iconSize
+        };
+        IconPainter::Draw(context, WindIcons::FolderClosed16, iconRect);
         return;
     }
 
@@ -297,7 +303,7 @@ void ContentBrowser::PaintAssetThumbnail(PaintContext& context, const Rect& thum
     if (item.isFavorite) {
         const float starSize = 16.0f;
         Rect star{ thumbRect.x + thumbRect.width - starSize - 4.0f, thumbRect.y + 4.0f, starSize, starSize };
-        IconPainter::Draw(context, kWindIconNone, star);
+        IconPainter::Draw(context, WindIcons::Check16, star);
     }
     if (item.isDirty) {
         Rect dot{ thumbRect.x + 4.0f, thumbRect.y + 4.0f, 6.0f, 6.0f };
@@ -409,7 +415,7 @@ void ContentBrowser::PaintListItem(PaintContext& context, const RenderItem& rend
     Rect iconRect{ iconX, iconY, iconSize, iconSize };
 
     if (item.isFolder) {
-        ContentBrowserFolderArt::Get().PaintSmallIcon(context, iconRect, hovered);
+        IconPainter::Draw(context, WindIcons::FolderClosed16, IconMetrics::PlaceGlyphCentered(iconRect, 16u));
     } else if (IsBlueprintItem(item)) {
         ContentBrowserBlueprintArt::Get().PaintSmallIcon(context, iconRect, hovered);
     } else if (item.iconTexture != we::rhi::RHIDescriptorSetHandle::Invalid) {
@@ -850,16 +856,26 @@ void Breadcrumb::Paint(PaintContext& context) {
         Rect{ m_Geometry.x, m_Geometry.y + m_Geometry.height - ThemeMetric(MetricToken::BorderWidth), m_Geometry.width, ThemeMetric(MetricToken::BorderWidth) },
         ThemeColor(ColorToken::Separator));
 
-    const float iconSize = ThemeMetric(MetricToken::IconSizeToolbar);
+    const float iconSize = ThemeMetric(MetricToken::IconSizeTree);
     const float padH = ThemeMetric(MetricToken::Space3);
     const float iconY = m_Geometry.y + (m_Geometry.height - iconSize) * 0.5f;
-    ContentBrowserFolderArt::Get().PaintSmallIcon(context,
-        we::runtime::kindui::Rect{ m_Geometry.x + padH, iconY, iconSize, iconSize }, false);
+    IconPainter::Draw(
+        context,
+        WindIcons::FolderClosed16,
+        IconMetrics::PlaceGlyphCentered(
+            we::runtime::kindui::Rect{ m_Geometry.x + padH, iconY, iconSize, iconSize },
+            16u));
 
     const float textSize = ThemeMetric(MetricToken::TextSizeNormal);
     const float crumbPadH = ThemeMetric(MetricToken::Space2);
     const float crumbRadius = ThemeMetric(MetricToken::CornerRadiusSmall);
+    const float chevronSize = 16.0f;
     float x = m_Geometry.x + padH + iconSize + ThemeMetric(MetricToken::Space2);
+    if (!m_Crumbs.empty()) {
+        Rect backBand{ x, m_Geometry.y, chevronSize, m_Geometry.height };
+        IconPainter::Draw(context, WindIcons::ChevronLeft16, IconMetrics::PlaceGlyphCentered(backBand, 16u));
+        x += chevronSize + ThemeMetric(MetricToken::Space1);
+    }
     for (size_t i = 0; i < m_Crumbs.size(); ++i) {
         const auto& crumb = m_Crumbs[i];
         if (crumb.hovered) {
@@ -916,7 +932,7 @@ void Breadcrumb::Clear() {
 }
 
 void Breadcrumb::CalculateLayout() {
-    const float iconSize = ThemeMetric(MetricToken::IconSizeToolbar);
+    const float iconSize = ThemeMetric(MetricToken::IconSizeTree);
     const float padH = ThemeMetric(MetricToken::Space3);
     const float textSize = ThemeMetric(MetricToken::TextSizeNormal);
     const float crumbPadH = ThemeMetric(MetricToken::Space2);

@@ -221,7 +221,7 @@ std::shared_ptr<::we::runtime::kindui::Widget> CreateViewportToolbar() {
         we::runtime::kindui::MetricToken::ViewportToolbarHeight));
 
     auto perspectiveButton = MakeViewportChip(
-        we::runtime::kindui::kWindIconNone,
+        WindIcons::Camera16,
         "Perspective",
         nullptr,
         "Viewport Projection",
@@ -231,7 +231,7 @@ std::shared_ptr<::we::runtime::kindui::Widget> CreateViewportToolbar() {
     });
 
     auto litButton = MakeViewportChip(
-        kWindIconNone,
+        WindIcons::Bulb16,
         "Lit",
         nullptr,
         "Viewport Lighting Mode",

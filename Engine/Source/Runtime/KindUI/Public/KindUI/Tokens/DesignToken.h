@@ -267,10 +267,12 @@ enum class MetricToken : uint32_t {
     LabelHintGap,         // gap between label and hint in a form row
     NavigationButtonSize,
     IconSizeSearch,
-    IconSizeToolbar,
+    IconSizeToolbar,       // small inline glyphs (16px tier)
     IconSizePrimary,
     IconSizeTree,
     IconSizeNavigation,
+    IconSizeVerySmall,     // title-bar min / max / close (12px display)
+    IconSizeWindowControl, // alias tier for window chrome glyphs
     IconButtonRadius,
     ButtonPaddingHorizontal,
     ButtonSpacing,
@@ -287,6 +289,8 @@ enum class MetricToken : uint32_t {
     TabPaddingH,               // dock tab horizontal inner padding
     TabPaddingV,               // dock tab vertical inner padding
     DockPanelGap,              // gutter between docked panels and workspace edge (logical px)
+    ChromeSeparationGap,       // gap between stacked panel regions (background shows through)
+    ChromeSeparationGapWide,   // wider gap for toolbar/status section separation
     ViewportToolbarHeight,     // floating viewport control strip
     StatusBarHeight,           // bottom status/command bar
 

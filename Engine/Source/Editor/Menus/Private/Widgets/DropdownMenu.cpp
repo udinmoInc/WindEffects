@@ -96,10 +96,7 @@ void DropdownMenu::Paint(PaintContext& context) {
 
         if (y + m_ItemHeight >= m_Geometry.y && y <= m_Geometry.y + m_Geometry.height) {
             if (item->label.empty()) {
-                const float sepY = itemRect.y + m_ItemHeight * 0.5f;
-                context.DrawRect(
-                    Rect{ itemRect.x, sepY, itemRect.width, ThemeMetric(MetricToken::BorderWidth) },
-                    ResolveColor(ColorToken::Separator));
+                // Separator rows are spacing-only; background shows through the gap.
             } else {
                 if (m_HoveredItem == static_cast<int>(i) && item->enabled) {
                     ControlChrome::InteractionState state{};

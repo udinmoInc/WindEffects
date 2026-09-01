@@ -11,6 +11,7 @@
 #include "KindUI/Core/WindIcon.h"
 #include "KindUI/Core/Icon.h"
 #include "KindUI/Rendering/IconMetrics.h"
+#include "KindUI/Tokens/DesignSystem.h"
 
 #include <algorithm>
 #include <string>
@@ -63,36 +64,13 @@ ResolvedControlBorder ResolveControlBorder(
     const InteractionState& state,
     ControlBorderMode mode,
     const Color& styleBorder = Color::Transparent()) {
-    const float width = ResolveMetric(MetricToken::BorderWidth);
+    (void)mode;
+    (void)styleBorder;
     if (state.focused) {
+        const float width = ResolveMetric(MetricToken::FocusRingWidth);
         return { ResolveColor(ColorToken::BorderFocus), width };
     }
-
-    switch (mode) {
-    case ControlBorderMode::None:
-        return { Color::Transparent(), 0.0f };
-    case ControlBorderMode::Subtle:
-        if (state.hoverAnim > 0.01f) {
-            return {
-                Color::Lerp(
-                    ResolveColor(ColorToken::BorderSubtle),
-                    ResolveColor(ColorToken::BorderLight),
-                    state.hoverAnim * 0.35f),
-                width
-            };
-        }
-        if (state.selected) {
-            return { ResolveColor(ColorToken::BorderSubtle), width };
-        }
-        return { Color::Transparent(), 0.0f };
-    case ControlBorderMode::Styled:
-        if (styleBorder.a > 0.01f) {
-            return { styleBorder, width };
-        }
-        return { ResolveColor(ColorToken::BorderSubtle), width };
-    default:
-        return { Color::Transparent(), 0.0f };
-    }
+    return { Color::Transparent(), 0.0f };
 }
 
 void PaintControlFrame(
@@ -130,43 +108,16 @@ void PaintSubtleDropShadow(PaintContext& context, const Rect& rect, float radius
 }
 
 void PaintRaisedBevel(PaintContext& context, const Rect& rect, float radius, float strength) {
-    if (strength <= 0.01f) {
-        return;
-    }
-    const float w = EdgeWidthPx();
-    const float inset = std::max(1.0f, w);
-    const float edgeTrim = radius * 0.35f;
-
-    Color highlight = ResolveColor(ColorToken::ButtonBevelHighlight);
-    highlight.a *= strength;
-    Color shade = ResolveColor(ColorToken::ButtonBevelShadow);
-    shade.a *= strength;
-
-    context.DrawRect(
-        Rect{ rect.x + edgeTrim, rect.y + inset, rect.width - edgeTrim * 2.0f, w },
-        highlight);
-    context.DrawRect(
-        Rect{ rect.x + inset, rect.y + inset, w, rect.height - inset * 2.0f },
-        highlight);
-    context.DrawRect(
-        Rect{ rect.x + edgeTrim, rect.y + rect.height - inset - w, rect.width - edgeTrim * 2.0f, w },
-        shade);
-    context.DrawRect(
-        Rect{ rect.x + rect.width - inset - w, rect.y + inset, w, rect.height - inset * 2.0f },
-        shade);
+    (void)context;
+    (void)rect;
+    (void)radius;
+    (void)strength;
 }
 
 void PaintSlateButtonBevel(PaintContext& context, const Rect& rect, float strength) {
-    if (strength <= 0.01f) {
-        return;
-    }
-    const float w = EdgeWidthPx();
-    Color top = ResolveColor(ColorToken::ButtonBevelHighlight);
-    top.a *= strength;
-    Color bottom = ResolveColor(ColorToken::ButtonBevelShadow);
-    bottom.a *= strength;
-    context.DrawRect(Rect{ rect.x + 1.0f, rect.y, std::max(0.0f, rect.width - 2.0f), w }, top);
-    context.DrawRect(Rect{ rect.x, rect.y + rect.height - w, rect.width, w }, bottom);
+    (void)context;
+    (void)rect;
+    (void)strength;
 }
 
 void PaintInsetBevel(PaintContext& context, const Rect& rect, float radius, float strength) {
@@ -221,23 +172,10 @@ void PaintPanelButtonFace(
     float hoverAnim,
     float pressAnim,
     bool emphasized) {
-    const float interaction = std::max(hoverAnim, pressAnim);
-    const float baseStrength = emphasized ? 0.9f : 0.55f;
-    const float bevelStrength = std::max(
-        0.15f,
-        baseStrength + interaction * 0.35f - pressAnim * 0.7f);
-
-    PaintSubtleDropShadow(context, rect, radius, bevelStrength * 0.8f);
+    (void)hoverAnim;
+    (void)pressAnim;
+    (void)emphasized;
     context.DrawRoundedRect(rect, background, radius);
-
-    Color border = emphasized
-        ? ResolveColor(ColorToken::BorderLight)
-        : ResolveColor(ColorToken::BorderSubtle);
-    if (!emphasized && interaction > 0.01f) {
-        border = Color::Lerp(border, ResolveColor(ColorToken::BorderLight), interaction * 0.45f);
-    }
-    context.DrawRoundedRectOutline(rect, border, EdgeWidthPx(), radius);
-    PaintSlateButtonBevel(context, rect, bevelStrength);
 }
 
 namespace {
@@ -275,17 +213,12 @@ void PaintInputFrameInternal(
     }
     context.DrawSurface(rect, fillRole, cornerRadius, "Input");
 
-    const float borderWidth = EdgeWidthPx();
     if (state.focused) {
         context.DrawRoundedRectOutline(
             rect,
             ResolveColor(ColorToken::BorderFocus),
-            borderWidth,
+            EdgeWidthPx(),
             cornerRadius);
-    } else if (state.hoverAnim > 0.01f) {
-        context.DrawSurfaceOutline(rect, SurfaceRole::InputBorder, borderWidth, cornerRadius, "InputBorder");
-    } else {
-        context.DrawSurfaceOutline(rect, SurfaceRole::Border, borderWidth, cornerRadius, "InputBorder");
     }
     context.PopSurfaceOwner();
 }
@@ -430,6 +363,21 @@ void PaintIconButtonFrame(
     PaintFilledButton(context, rect, base, state, StyleRole::IconButtonHover, StyleRole::IconButtonPressed);
 }
 
+void PaintBorderlessIconButton(
+    PaintContext& context,
+    const Rect& rect,
+    const InteractionState& state) {
+    const float interaction = std::max(state.hoverAnim, state.pressAnim);
+    if (interaction > 0.01f) {
+        Color bg = state.pressAnim > state.hoverAnim
+            ? ResolveColor(ColorToken::PressedBackground)
+            : ResolveColor(ColorToken::HoverBackground);
+        bg.a *= interaction;
+        const float radius = ResolveMetric(MetricToken::IconButtonRadius);
+        context.DrawRoundedRect(rect, bg, radius);
+    }
+}
+
 void PaintInputFrame(
     PaintContext& context,
     const Rect& rect,
@@ -461,7 +409,13 @@ void PaintSearchInputFrame(
     PaintContext& context,
     const Rect& rect,
     const InteractionState& state) {
-    PaintInputFrameInternal(context, rect, state, SearchInputCornerRadius(rect));
+    const float radius = SearchInputCornerRadius(rect);
+    context.DrawRoundedRect(rect, ResolveColor(ColorToken::InputBackground), radius);
+
+    if (state.focused) {
+        Color border = ResolveColor(ColorToken::BorderSubtle);
+        context.DrawRoundedRectOutline(rect, border, EdgeWidthPx(), radius);
+    }
 }
 
 void PaintSearchField(
@@ -472,21 +426,26 @@ void PaintSearchField(
     const InteractionState& state,
     bool showCaret,
     const SearchFieldPaintOptions& options) {
-    PaintSearchInputFrame(context, rect, state);
+    if (!options.toolbarFlat) {
+        PaintSearchInputFrame(context, rect, state);
+    }
 
-    const float padH = LayoutMetrics::SearchInputPaddingH();
-    const uint32_t iconTier = static_cast<uint32_t>(LayoutMetrics::SearchInputIconSize());
+    const float padH = options.toolbarFlat
+        ? LayoutMetrics::SearchInputPaddingH() * 0.5f
+        : LayoutMetrics::SearchInputPaddingH();
+    const float iconPx = LayoutMetrics::SearchInputIconSize();
     const float fontSize = LayoutMetrics::SearchInputFontSize();
     const float iconGap = ResolveMetric(MetricToken::Space1);
 
     const float iconX = rect.x + padH;
-    Rect iconBand{ iconX, rect.y, static_cast<float>(iconTier), rect.height };
+    Rect iconBand{ iconX, rect.y, iconPx, rect.height };
     IconPainter::Draw(
         context,
         WindIcons::Search16,
-        IconMetrics::PlaceGlyphCentered(iconBand, iconTier));
+        iconBand,
+        static_cast<uint32_t>(iconPx));
 
-    const float textX = iconX + static_cast<float>(iconTier) + iconGap;
+    const float textX = iconX + iconPx + iconGap;
     const float textY = rect.y + (rect.height - fontSize) * 0.5f;
     const bool empty = text.empty();
 
@@ -507,18 +466,21 @@ void PaintSearchField(
     }
 
     if (options.showClearButton && !empty) {
-        const float clearSize = static_cast<float>(iconTier);
+        const float clearSize = iconPx;
         const float clearX = rect.x + rect.width - clearSize - padH;
-        const float clearY = rect.y + (rect.height - clearSize) * 0.5f;
-        const Rect clearRect{ clearX, clearY, clearSize, clearSize };
+        Rect clearBand{ clearX, rect.y, clearSize, rect.height };
         if (options.clearHovered) {
             const float radius = ResolveMetric(MetricToken::IconButtonRadius);
-            context.DrawRoundedRect(clearRect, ResolveColor(ColorToken::HoverBackground), radius);
+            context.DrawRoundedRect(
+                Rect{ clearX, rect.y + (rect.height - clearSize) * 0.5f, clearSize, clearSize },
+                ResolveColor(ColorToken::HoverBackground),
+                radius);
         }
         IconPainter::Draw(
             context,
             WindIcons::Close16,
-            IconMetrics::PlaceGlyphCentered(clearRect, 16u));
+            clearBand,
+            static_cast<uint32_t>(clearSize));
     }
 }
 
@@ -581,13 +543,6 @@ void PaintCard(
     const int elevation = state.hoverAnim > 0.35f ? base.elevation : 0;
     PaintElevation(context, rect, elevation, base.cornerRadius);
     context.DrawRoundedRect(rect, base.background, base.cornerRadius);
-    const Color border = base.border.a > 0.01f
-        ? base.border
-        : ResolveColor(ColorToken::BorderSubtle);
-    const float borderWidth = base.borderWidth > 0.0f
-        ? base.borderWidth
-        : ResolveMetric(MetricToken::BorderWidth);
-    context.DrawRoundedRectOutline(rect, border, borderWidth, base.cornerRadius);
 }
 
 void PaintCenteredLabel(
@@ -660,9 +615,6 @@ void PaintPopupSurface(PaintContext& context, const Rect& rect) {
     const ResolvedStyle style = Role(StyleRole::Popup);
     PaintElevation(context, rect, style.elevation > 0 ? style.elevation : 2, style.cornerRadius);
     context.DrawRoundedRect(rect, style.background, style.cornerRadius);
-    if (style.border.a > 0.01f) {
-        context.DrawRoundedRectOutline(rect, style.border, 1.0f, style.cornerRadius);
-    }
 }
 
 void PaintTooltipSurface(PaintContext& context, const Rect& rect) {
@@ -685,13 +637,6 @@ void PaintCheckbox(
         bg = Color::Lerp(bg, ResolveColor(ColorToken::AccentPrimary), 0.85f);
     }
     context.DrawRoundedRect(box, bg, style.cornerRadius);
-    const ResolvedControlBorder border = ResolveControlBorder(
-        state,
-        ControlBorderMode::Subtle,
-        ResolveColor(ColorToken::BorderSubtle));
-    if (border.color.a > 0.01f && border.width > 0.0f) {
-        context.DrawRoundedRectOutline(box, border.color, border.width, style.cornerRadius);
-    }
     if (checked) {
         const float inset = std::max(2.0f, box.width * 0.22f);
         context.DrawRoundedRect(
@@ -752,14 +697,16 @@ void PaintVerticalSeparator(
     float thickness,
     ColorToken colorToken)
 {
-    if (bottom <= top) {
+    const float height = bottom - top;
+    if (height <= 0.0f) {
         return;
     }
-    const float scale = std::max(1.0f, DPIContext::GetScale());
-    const float w = (std::max)(1.0f, thickness) * scale;
-    context.DrawRect(
-        Rect{ std::floor(x - w * 0.5f), top, w, bottom - top },
-        ResolveColor(colorToken));
+
+    const float uiScale = (std::max)(1.0f, DPIContext::GetScale());
+    const float lineWidth = (std::max)(1.0f, IconMetrics::SnapPx(
+        (thickness > 0.0f ? thickness : ResolveMetric(MetricToken::BorderWidth)) * uiScale));
+    const float snappedX = IconMetrics::SnapPx(x - lineWidth * 0.5f);
+    context.DrawRect(Rect{ snappedX, top, lineWidth, height }, ResolveColor(colorToken));
 }
 
 } // namespace ControlChrome

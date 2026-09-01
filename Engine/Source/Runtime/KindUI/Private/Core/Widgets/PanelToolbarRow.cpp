@@ -1,16 +1,18 @@
 #include "KindUI/Core/Widgets/PanelToolbarRow.h"
+#include "KindUI/Core/Widgets/VerticalDivider.h"
 #include "KindUI/Core/LayoutMetrics.h"
 
 namespace we::runtime::kindui {
 
 PanelToolbarRow::PanelToolbarRow(std::string searchPlaceholder)
     : m_SearchPlaceholder(std::move(searchPlaceholder)) {
-    const float padV = ThemeMetric(MetricToken::Space1);
-    Padding(Margin{0.0f, padV, 0.0f, padV});
-    Gap(ThemeMetric(MetricToken::Space1));
-    Align(AlignItems::Start);
+    Padding(Margin{});
+    Gap(ThemeMetric(MetricToken::Space2));
+    Align(AlignItems::Center);
 
     m_SearchBox = std::make_shared<SearchBoxControl>(m_SearchPlaceholder);
+    m_SearchBox->SetToolbarInset(true);
+    m_SearchBox->SetMargin(Margin{ 0.0f, 0.0f, ThemeMetric(MetricToken::Space1), 0.0f });
     m_SearchBox->SetFlexGrow(1.0f);
     m_SearchBox->SetFlexShrink(1.0f);
     m_SearchBox->SetMinWidth(ThemeMetric(MetricToken::Space6) * 4.0f);
@@ -29,14 +31,8 @@ Size PanelToolbarRow::Measure(const Size& availableSize) {
 }
 
 void PanelToolbarRow::Arrange(const Rect& allottedRect) {
-    const float rowH = LayoutMetrics::SearchRowHeight();
-    Rect rowRect{
-        allottedRect.x,
-        allottedRect.y,
-        allottedRect.width,
-        std::min(rowH, allottedRect.height)
-    };
-    Row::Arrange(rowRect);
+    m_Geometry = allottedRect;
+    Row::Arrange(allottedRect);
 }
 
 void PanelToolbarRow::Finalize() {
@@ -48,8 +44,8 @@ void PanelToolbarRow::EnsureBuilt() {
         return;
     }
     AddChild(m_SearchBox);
-    for (const auto& btn : m_IconButtons) {
-        AddChild(btn);
+    for (const auto& item : m_TrailingItems) {
+        AddChild(item);
     }
     m_Built = true;
 }
@@ -73,11 +69,22 @@ void PanelToolbarRow::SetOnSearchChanged(std::function<void(const std::string&)>
     }
 }
 
+void PanelToolbarRow::AddSeparator() {
+    auto divider = std::make_shared<VerticalDivider>();
+    divider->SetFlexShrink(0.0f);
+    m_TrailingItems.push_back(divider);
+    if (m_Built) {
+        AddChild(divider);
+    }
+}
+
 void PanelToolbarRow::AddIconButton(WindIconRef icon, std::function<void()> onClicked) {
     auto btn = std::make_shared<IconButton>(icon);
+    btn->SetBorderless(true);
     btn->SetFlexShrink(0.0f);
     btn->SetOnClicked(std::move(onClicked));
     m_IconButtons.push_back(btn);
+    m_TrailingItems.push_back(btn);
     if (m_Built) {
         AddChild(btn);
     }

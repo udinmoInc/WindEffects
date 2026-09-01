@@ -60,14 +60,14 @@ void DrawRoundedRectTop(PaintContext& context, const Rect& rect, const Color& co
 }
 
 void PaintSeparatorEdge(PaintContext& context, const Rect& rect, bool topEdge) {
-    const float scale = (std::max)(1.0f, DPIContext::GetScale());
-    const float thickness = std::max(1.0f, IconMetrics::SnapPx(
+    const float scale = PanelChrome::UiScale();
+    const float thickness = (std::max)(1.0f, IconMetrics::SnapPx(
         we::runtime::kindui::ResolveMetric(MetricToken::BorderWidth) * scale));
     const float edgeY = topEdge
-        ? IconMetrics::SnapPx(rect.y)
+        ? rect.y
         : IconMetrics::SnapPx(rect.y + rect.height - thickness);
-    const Rect edge{ IconMetrics::SnapPx(rect.x), edgeY, rect.width, thickness };
-    context.DrawSurface(edge, we::runtime::kindui::SurfaceRole::Separator, 0.0f, "PanelSeparator");
+    const Rect edge{ rect.x, edgeY, rect.width, thickness };
+    context.DrawSurface(edge, we::runtime::kindui::SurfaceRole::Separator, 0.0f, "PanelSeparatorEdge");
 }
 
 void PaintInsetWellTopEdge(PaintContext& context, const Rect& rect) {
@@ -170,7 +170,7 @@ float TabIconSize() {
 }
 
 float CloseGlyphSize() {
-    return static_cast<float>(16u);
+    return we::runtime::kindui::ResolveMetric(MetricToken::IconSizeVerySmall) * UiScale();
 }
 
 float TabGap() {
@@ -207,13 +207,8 @@ void PaintElevatedHeaderRegion(PaintContext& context, const Rect& rect) {
 }
 
 void PaintFooterRegion(PaintContext& context, const Rect& rect) {
+    PaintListLabelBand(context, rect);
     PaintSeparatorEdge(context, rect, true);
-    const float scale = UiScale();
-    const float thickness = we::runtime::kindui::ResolveMetric(MetricToken::BorderWidth) * scale;
-    Rect body = rect;
-    body.y += thickness;
-    body.height -= thickness;
-    PaintListLabelBand(context, body);
 }
 
 void PaintContentWell(PaintContext& context, const Rect& rect) {
@@ -239,6 +234,10 @@ void PaintContentRegion(PaintContext& context, const Rect& rect) {
 
 void PaintDockTabStripDivider(PaintContext& context, const Rect& headerRect) {
     PaintSeparatorEdge(context, headerRect, false);
+}
+
+void PaintDockFooterDivider(PaintContext& context, const Rect& footerRect) {
+    PaintSeparatorEdge(context, footerRect, true);
 }
 
 void PaintDockHeaderBand(PaintContext& context, const Rect& headerRect) {
@@ -604,7 +603,6 @@ void PaintSearchField(
     ControlChrome::InteractionState state{};
     state.focused = focused;
     ControlChrome::SearchFieldPaintOptions options{};
-    options.showClearButton = !text.empty();
     ControlChrome::PaintSearchField(context, rect, placeholder, text, state, showCaret, options);
 }
 
@@ -669,11 +667,11 @@ void PaintHeaderIconButton(
     }
 
     if (isClose || compactGlyph) {
-        IconPainter::Draw(context, icon, rect);
+        const uint32_t glyph = static_cast<uint32_t>(CloseGlyphSize());
+        IconPainter::Draw(context, icon, rect, glyph);
     } else {
         const uint32_t iconSize = static_cast<uint32_t>(TabIconSize());
-        const Rect iconRect = IconMetrics::PlaceGlyphCentered(rect, iconSize);
-        IconPainter::Draw(context, icon, iconRect);
+        IconPainter::Draw(context, icon, rect, iconSize);
     }
 }
 

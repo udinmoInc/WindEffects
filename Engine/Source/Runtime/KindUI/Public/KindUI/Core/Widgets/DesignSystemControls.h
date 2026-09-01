@@ -74,6 +74,7 @@ public:
 
     void SetOnClicked(std::function<void()> cb) { m_OnClicked = std::move(cb); }
     void SetActive(bool active) { m_Active = active; }
+    void SetBorderless(bool borderless) { m_Borderless = borderless; }
 
     Size Measure(const Size& availableSize) override;
     void Arrange(const Rect& allottedRect) override;
@@ -86,6 +87,7 @@ public:
 private:
     WindIconRef m_Icon = kWindIconNone;
     bool m_Active = false;
+    bool m_Borderless = false;
     bool m_Pressed = false;
     float m_HoverAnim = 0.0f;
     float m_PressAnim = 0.0f;
@@ -138,6 +140,8 @@ public:
     void SetText(std::string text);
     [[nodiscard]] const std::string& GetText() const { return m_Text; }
     void SetOnChanged(std::function<void(const std::string&)> cb) { m_OnChanged = std::move(cb); }
+    void SetToolbarFlat(bool flat) { m_ToolbarFlat = flat; }
+    void SetToolbarInset(bool inset);
 
     [[nodiscard]] bool IsFocusable() const override { return true; }
 
@@ -153,6 +157,8 @@ private:
     std::string m_Placeholder;
     std::string m_Text;
     float m_HoverAnim = 0.0f;
+    bool m_ToolbarFlat = false;
+    bool m_ToolbarInset = false;
     std::function<void(const std::string&)> m_OnChanged;
 };
 

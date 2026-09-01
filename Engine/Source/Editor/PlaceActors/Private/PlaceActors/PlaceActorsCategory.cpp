@@ -73,7 +73,7 @@ void PlaceActorsCategory::PaintHeader(PaintContext& context,
     const float iconDraw = ActorsPanelLayout::IconSize();
     if (isFavoritesSection) {
         IconPainter::Draw(
-            context, kWindIconNone,
+            context, WindIcons::Check16,
             Rect{ cursorX, centerY - iconDraw * 0.5f, iconDraw, iconDraw });
         cursorX += iconDraw + we::runtime::kindui::ResolveMetric(MetricToken::Space1) * uiScale;
     } else if (icon.IsValid()) {

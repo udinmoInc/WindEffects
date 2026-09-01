@@ -158,12 +158,7 @@ void ScrollViewport::Paint(
     }
 
     const ResolvedStyle style = ThemeManager::Get().Resolve(StyleRole::Scrollbar);
-    const Color separator = ResolveColor(ColorToken::Separator);
 
-    // Left edge separates scroll gutter from panel content (UE-style).
-    context.DrawRect(
-        Rect{metrics.track.x, metrics.track.y, 1.0f, metrics.track.height},
-        separator);
     context.DrawRect(metrics.track, style.background);
 
     const bool active = thumbHovered || m_DraggingThumb;

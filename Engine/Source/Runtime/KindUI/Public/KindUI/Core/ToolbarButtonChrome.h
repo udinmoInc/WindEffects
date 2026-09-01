@@ -13,6 +13,7 @@ KINDUI_API float ButtonRadius(float uiScale);
 KINDUI_API float IconSize(float uiScale);
 KINDUI_API float PrimaryIconSize(float uiScale);
 KINDUI_API float NavigationIconSize(float uiScale);
+KINDUI_API float WindowControlIconSize(float uiScale);
 KINDUI_API float HorizontalPad(float uiScale);
 KINDUI_API float ChipHorizontalPad(float uiScale);
 KINDUI_API float IconGapPx(float uiScale);

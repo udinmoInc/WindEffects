@@ -132,14 +132,6 @@ void PaintObjectHeader(
     bool active) {
     (void)active;
     const float scale = UiScale();
-    const Color bg = ResolveColor(ColorToken::PanelBackground);
-    context.DrawRect(rect, bg);
-
-    const float thickness = ResolveMetric(MetricToken::BorderWidth) * scale;
-    context.DrawRect(
-        Rect{ rect.x, rect.y + rect.height - thickness, rect.width, thickness },
-        ResolveColor(ColorToken::Separator));
-
     const float padH = ResolveMetric(MetricToken::Space2) * scale;
     const float iconSize = 16.0f;
     const float fontSize = ResolveMetric(MetricToken::TextSizeProperty) * scale;

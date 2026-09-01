@@ -4,8 +4,9 @@
 #include "TerrainEditor/ILandscapeEditor.h"
 
 #include "KindUI/Core/Widget.h"
-#include "KindUI/Layout/ScrollViewport.h"
+#include "KindUI/Layout/ScrollLayout.h"
 #include "KindUI/Layout/Flex.h"
+#include "KindUI/Core/Widgets/DesignSystemControls.h"
 
 #include <cstdint>
 #include <algorithm>
@@ -14,6 +15,10 @@
 #include <string>
 #include <unordered_map>
 #include <vector>
+
+namespace we::editor::panels {
+class PanelBodyLayout;
+}
 
 namespace we::editor::terrain {
 
@@ -25,22 +30,19 @@ public:
     using ExtensionFactory = std::function<std::shared_ptr<we::runtime::kindui::Widget>(LandscapeWorkspaceTab tab)>;
     void RegisterExtension(LandscapeWorkspaceTab tab, ExtensionFactory factory);
 
-    we::runtime::kindui::Size Measure(const we::runtime::kindui::Size& availableSize) override {
-        if (!m_ContentContainer) {
-            return availableSize;
-        }
-        we::runtime::kindui::Size desired = m_ContentContainer->Measure(availableSize);
-        if (availableSize.width > 0.0f) {
-            desired.width = (std::min)(desired.width, availableSize.width);
-        }
-        if (availableSize.height > 0.0f) {
-            desired.height = (std::min)(desired.height, availableSize.height);
-        }
-        return desired;
-    }
-    void Arrange(const we::runtime::kindui::Rect& allottedRect) override { m_Geometry = allottedRect; if (m_ContentContainer) m_ContentContainer->Arrange(allottedRect); }
-    void Paint(we::runtime::kindui::PaintContext& context) override { if (m_ContentContainer) m_ContentContainer->Paint(context); }
+    we::runtime::kindui::Size Measure(const we::runtime::kindui::Size& availableSize) override;
+    void Arrange(const we::runtime::kindui::Rect& allottedRect) override;
+    void Paint(we::runtime::kindui::PaintContext& context) override;
     bool IsFocusable() const override { return true; }
+
+    void OnMouseDown(const we::runtime::kindui::MouseEvent& event) override;
+    void OnMouseMove(const we::runtime::kindui::MouseEvent& event) override;
+    void OnMouseUp(const we::runtime::kindui::MouseEvent& event) override;
+    void OnMouseWheel(const we::runtime::kindui::MouseEvent& event) override;
+    [[nodiscard]] bool CanReceiveMouseWheelAt(const we::runtime::kindui::Point& pos) const override;
+    [[nodiscard]] std::shared_ptr<we::runtime::kindui::Widget> HitTestPoint(
+        const we::runtime::kindui::Point& pos,
+        const we::runtime::kindui::Rect* clip = nullptr) override;
 
 private:
     void RebuildLayout();
@@ -52,7 +54,11 @@ private:
     LandscapeWorkspaceTab m_ActiveTab = LandscapeWorkspaceTab::Create;
     bool m_UserSelectedTab = false;
 
-    std::shared_ptr<we::runtime::kindui::Column> m_ContentContainer;
+    std::shared_ptr<we::editor::panels::PanelBodyLayout> m_BodyLayout;
+    std::shared_ptr<we::runtime::kindui::Row> m_TabBar;
+    std::shared_ptr<we::runtime::kindui::ScrollLayout> m_ScrollArea;
+    std::shared_ptr<we::runtime::kindui::Column> m_TabContent;
+    std::shared_ptr<we::runtime::kindui::DesignButton> m_FooterButton;
 
     std::string m_ImportPath;
     std::string m_ExportPath = "Landscape.r16";

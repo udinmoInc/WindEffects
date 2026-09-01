@@ -9,6 +9,7 @@
 #include "KindUI/Core/LayoutMetrics.h"
 #include "KindUI/Core/PropertyPanelChrome.h"
 #include "KindUI/Core/Widgets/DesignSystemControls.h"
+#include "KindUI/Core/Widgets/PanelToolbarRow.h"
 #include "KindUI/Layout/Flex.h"
 #include "KindUI/Tokens/DesignToken.h"
 #include "KindUI/Theming/ThemeAccess.h"
@@ -25,12 +26,13 @@ using we::runtime::kindui::Column;
 using we::runtime::kindui::MouseButton;
 using we::runtime::kindui::MouseEvent;
 using we::runtime::kindui::PaintContext;
+using we::runtime::kindui::PanelToolbarRow;
 using we::runtime::kindui::Point;
 using we::runtime::kindui::Rect;
-using we::runtime::kindui::SearchBoxControl;
 using we::runtime::kindui::Size;
 using we::runtime::kindui::Widget;
 using ::we::runtime::kindui::kWindIconNone;
+namespace WindIcons = ::we::runtime::kindui::WindIcons;
 namespace Layout = we::runtime::kindui::LayoutMetrics;
 namespace PanelChrome = we::runtime::kindui::PropertyPanelChrome;
 using we::runtime::kindui::ResolveMetric;
@@ -42,6 +44,11 @@ public:
     void SetDetails(IDetailsView* details) { m_Details = details; }
 
     Size Measure(const Size& availableSize) override {
+        UpdateVisibility();
+        if (!IsVisible()) {
+            m_DesiredSize = Size{ availableSize.width, 0.0f };
+            return m_DesiredSize;
+        }
         m_DesiredSize = Size{ availableSize.width, Layout::PropertyObjectHeaderHeight() };
         return m_DesiredSize;
     }
@@ -49,17 +56,33 @@ public:
     void Arrange(const Rect& allottedRect) override { m_Geometry = allottedRect; }
 
     void Paint(PaintContext& context) override {
-        const bool active = m_Details && !m_Details->GetObjectTitle().empty();
-        const std::string title = active ? m_Details->GetObjectTitle() : "No Selection";
+        UpdateVisibility();
+        if (!IsVisible() || !m_Details || m_Details->GetObjectTitle().empty()) {
+            return;
+        }
         PanelChrome::PaintObjectHeader(
             context,
             m_Geometry,
-            title,
-            kWindIconNone,
-            active);
+            m_Details->GetObjectTitle(),
+            WindIcons::AdjustmentHorizontal16,
+            true);
+    }
+
+    void Tick(float deltaTime) override {
+        Widget::Tick(deltaTime);
+        UpdateVisibility();
     }
 
 private:
+    void UpdateVisibility() {
+        const bool active = m_Details && !m_Details->GetObjectTitle().empty();
+        if (active == IsVisible()) {
+            return;
+        }
+        SetVisible(active);
+        InvalidateLayout();
+    }
+
     IDetailsView* m_Details = nullptr;
 };
 
@@ -168,14 +191,15 @@ void PopulateDetailsPanelRegions(
     auto header = std::make_shared<SelectedObjectHeaderWidget>();
     header->SetDetails(details);
     header->SetFlexShrink(0.0f);
+    header->SetVisible(false);
 
-    auto search = std::make_shared<SearchBoxControl>("Search...");
-    search->SetOnChanged([details](const std::string& text) {
+    auto search = std::make_shared<PanelToolbarRow>("Search...");
+    search->SetOnSearchChanged([details](const std::string& text) {
         if (details) {
             details->SetSearchText(text);
         }
     });
-    search->SetMinSize({ 0.0f, Layout::SearchRowHeight() });
+    search->Finalize();
     search->SetFlexShrink(0.0f);
 
     auto tabs = std::make_shared<CategoryFilterTabsWidget>();

@@ -58,6 +58,7 @@ UIFRAMEWORK_API void PaintNavigationRegion(PaintContext& context, const Rect& re
 UIFRAMEWORK_API void PaintContentRegion(PaintContext& context, const Rect& rect);
 /// Single subtle divider beneath the dock tab strip (no full-width tab background).
 UIFRAMEWORK_API void PaintDockTabStripDivider(PaintContext& context, const Rect& headerRect);
+UIFRAMEWORK_API void PaintDockFooterDivider(PaintContext& context, const Rect& footerRect);
 /// @deprecated Use PaintDockTabStripDivider — kept for callers that only need the strip edge.
 UIFRAMEWORK_API void PaintDockHeaderBand(PaintContext& context, const Rect& headerRect);
 

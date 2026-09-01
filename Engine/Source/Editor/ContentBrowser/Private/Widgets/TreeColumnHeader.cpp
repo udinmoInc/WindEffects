@@ -1,6 +1,7 @@
 #include "ContentBrowser/Widgets/TreeColumnHeader.h"
 
 #include "WindEffects/Editor/UI/Panel/PanelChrome.h"
+#include "KindUI/Core/ControlChrome.h"
 #include "KindUI/Core/WindIcon.h"
 #include "KindUI/Core/Icon.h"
 #include "KindUI/Core/DPIContext.h"
@@ -15,6 +16,7 @@ namespace WindIcons = ::we::runtime::kindui::WindIcons;
 using ::we::runtime::kindui::kWindIconNone;
 
 using ::we::runtime::kindui::ColorToken;
+namespace ControlChrome = ::we::runtime::kindui::ControlChrome;
 using ::we::runtime::kindui::DPIContext;
 using ::we::runtime::kindui::IconPainter;
 using ::we::runtime::kindui::MetricToken;
@@ -36,8 +38,6 @@ void TreeColumnHeader::Arrange(const Rect& allottedRect) {
 }
 
 void TreeColumnHeader::Paint(PaintContext& context) {
-    Chrome::PaintListLabelBand(context, m_Geometry);
-
     const float uiScale = (std::max)(1.0f, DPIContext::GetScale());
     const float glyphTier = static_cast<float>(16u);
     const float headerTextSize = ThemeMetric(MetricToken::TextSizeCaption) * uiScale;
@@ -54,7 +54,7 @@ void TreeColumnHeader::Paint(PaintContext& context) {
     const float lockX = m_Geometry.x + pad + hit;
     Rect lockBand{ lockX, m_Geometry.y, glyphTier, m_Geometry.height };
     IconPainter::Draw(
-        context, we::runtime::kindui::kWindIconNone, IconMetrics::PlaceGlyphCentered(lockBand, 16u));
+        context, WindIcons::LockOpen16, IconMetrics::PlaceGlyphCentered(lockBand, 16u));
 
     const float labelX = m_Geometry.x + prefix;
     context.DrawText(
@@ -65,6 +65,18 @@ void TreeColumnHeader::Paint(PaintContext& context) {
         true);
 
     const float typeRightX = m_Geometry.x + m_Geometry.width - ThemeMetric(MetricToken::Space3) * uiScale;
+    const float typeColumnReserve = ThemeMetric(MetricToken::Space6) * uiScale;
+    const float dividerX = m_Geometry.x + m_Geometry.width - typeColumnReserve;
+    const float sepH = ThemeMetric(MetricToken::ToolbarSeparatorHeight) * uiScale;
+    const float centerY = m_Geometry.y + m_Geometry.height * 0.5f;
+    ControlChrome::PaintVerticalSeparator(
+        context,
+        dividerX,
+        centerY - sepH * 0.5f,
+        centerY + sepH * 0.5f,
+        ThemeMetric(MetricToken::BorderWidth),
+        ColorToken::Separator);
+
     const float typeWidth = context.GetTextWidth("Type", headerTextSize);
     context.DrawText(
         "Type",

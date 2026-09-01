@@ -19,6 +19,7 @@
 #include "WindEffects/Editor/UI/Shell/EditorToolsRegistry.h"
 #include "ContentBrowser/Widgets/SearchBox.h"
 #include "Widgets/ToolButton.h"
+#include "KindUI/Core/Widgets/PanelToolbarRow.h"
 #include "WindEffects/Editor/UI/Panel/PanelChrome.h"
 #include "KindUI/Layout/Flex.h"
 #include "KindUI/Layout/ScrollViewport.h"
@@ -88,6 +89,7 @@ std::unordered_map<std::string, std::string> LoadIniValues(const std::string& pa
 } // namespace
 
 using ::we::runtime::kindui::ScrollViewport;
+using ::we::runtime::kindui::PanelToolbarRow;
 using ::we::runtime::kindui::Color;
 using ::we::runtime::kindui::KeyEvent;
 using ::we::runtime::kindui::MouseButton;
@@ -104,7 +106,7 @@ namespace {
 
 class PlaceActorsContentHost final : public we::runtime::kindui::Widget {
 public:
-    explicit PlaceActorsContentHost(PlaceActorsPanel* /*owner*/) {}
+    explicit PlaceActorsContentHost(PlaceActorsPanel* owner) : m_Owner(owner) {}
 
     we::runtime::kindui::Size Measure(const we::runtime::kindui::Size& availableSize) override {
         m_DesiredSize = availableSize;
@@ -118,6 +120,33 @@ public:
     void Paint(we::runtime::kindui::PaintContext& context) override {
         (void)context;
     }
+
+    void OnMouseDown(const we::runtime::kindui::MouseEvent& event) override {
+        if (m_Owner) {
+            m_Owner->OnMouseDown(event);
+        }
+    }
+
+    void OnMouseMove(const we::runtime::kindui::MouseEvent& event) override {
+        if (m_Owner) {
+            m_Owner->OnMouseMove(event);
+        }
+    }
+
+    void OnMouseUp(const we::runtime::kindui::MouseEvent& event) override {
+        if (m_Owner) {
+            m_Owner->OnMouseUp(event);
+        }
+    }
+
+    void OnMouseWheel(const we::runtime::kindui::MouseEvent& event) override {
+        if (m_Owner) {
+            m_Owner->OnMouseWheel(event);
+        }
+    }
+
+private:
+    PlaceActorsPanel* m_Owner = nullptr;
 };
 
 } // namespace
@@ -129,13 +158,9 @@ PlaceActorsPanel::PlaceActorsPanel() {
 
     m_BodyLayout = std::make_shared<::we::editor::panels::PanelBodyLayout>();
 
-    m_SearchBox = std::make_shared<::we::editor::widgets::SearchBox>();
-    m_SearchBox->SetFillWidth(true);
-    m_SearchBox->SetPlaceholder("Search Assets...");
-
-    m_FilterButton = std::make_shared<::we::editor::toolbar::ToolButton>(
-        we::runtime::kindui::WindIcons::ListFilter16, "", nullptr, "Filter and view options");
-    m_FilterButton->SetButtonStyle(::we::editor::toolbar::ToolButtonStyle::ToolbarIconOnly);
+    m_SearchRow = std::make_shared<PanelToolbarRow>("Search Assets...");
+    m_SearchRow->AddIconButton(WindIcons::ListFilter16, []() {});
+    m_SearchRow->Finalize();
 
     m_ContentHost = std::make_shared<PlaceActorsContentHost>(this);
 
@@ -147,19 +172,15 @@ PlaceActorsPanel::PlaceActorsPanel() {
 PlaceActorsPanel::~PlaceActorsPanel() {
     SaveCategoryState();
     SaveFavorites();
-    if (m_SearchBox) {
-        m_SearchBox->SetOnTextChanged({});
-    }
-    if (m_FilterButton) {
-        m_FilterButton->SetOnClicked(nullptr);
+    if (m_SearchRow) {
+        m_SearchRow->SetOnSearchChanged({});
     }
     if (m_BodyLayout) {
         m_BodyLayout->ClearRegions();
         RemoveChild(m_BodyLayout);
     }
     m_ContentHost.reset();
-    m_SearchBox.reset();
-    m_FilterButton.reset();
+    m_SearchRow.reset();
     m_BodyLayout.reset();
 }
 
@@ -167,39 +188,23 @@ void PlaceActorsPanel::InitializeCallbacks(const std::shared_ptr<PlaceActorsPane
     std::weak_ptr<PlaceActorsPanel> weak = self;
     if (m_BodyLayout && m_BodyLayout->GetParent() != self) {
         AddChild(m_BodyLayout);
-
-        auto searchRow = std::make_shared<we::runtime::kindui::Row>();
-        searchRow->Gap(ActorsPanelLayout::FilterButtonGap());
-        searchRow->Padding(we::runtime::kindui::Margin{
-            ActorsPanelLayout::ContentPadH(),
-            ActorsPanelLayout::ContentPadV(),
-            ActorsPanelLayout::ContentPadH(),
-            ActorsPanelLayout::ContentPadV()
-        });
-        searchRow->Align(we::runtime::kindui::AlignItems::Center);
-        m_SearchBox->SetFlexGrow(1.0f);
-        m_SearchBox->SetFlexShrink(1.0f);
-        m_FilterButton->SetFlexShrink(0.0f);
-        searchRow->AddChild(m_SearchBox);
-        searchRow->AddChild(m_FilterButton);
-
-        m_BodyLayout->SetRegion(::we::editor::panels::PanelBodyRegion::Search, searchRow);
+        m_BodyLayout->SetRegion(::we::editor::panels::PanelBodyRegion::Search, m_SearchRow);
         m_BodyLayout->SetRegion(::we::editor::panels::PanelBodyRegion::Content, m_ContentHost);
     }
-    if (m_SearchBox) {
-        m_SearchBox->SetOnTextChanged([weak](const std::string& /*text*/) {
+    if (m_SearchRow) {
+        m_SearchRow->SetOnSearchChanged([weak](const std::string& /*text*/) {
             if (auto self = weak.lock()) {
                 self->RefreshFilteredContent();
             }
         });
-    }
-    if (m_FilterButton) {
-        m_FilterButton->SetOnClicked([weak]() {
-            if (auto self = weak.lock()) {
-                const Rect btn = self->m_FilterButton->GetGeometry();
-                self->ToggleFilterMenu(Point{ btn.x, btn.y + btn.height });
-            }
-        });
+        if (auto filterBtn = m_SearchRow->GetIconButton(0)) {
+            filterBtn->SetOnClicked([weak, filterBtn]() {
+                if (auto self = weak.lock()) {
+                    const Rect btn = filterBtn->GetGeometry();
+                    self->ToggleFilterMenu(Point{ btn.x, btn.y + btn.height });
+                }
+            });
+        }
     }
 }
 
@@ -246,7 +251,7 @@ void PlaceActorsPanel::BuildQuickAccessCategory(const std::string& query) {
     PlaceActorsCategoryData quick;
     quick.id = kQuickAccessCategoryId;
     quick.label = "Quick Access";
-    quick.icon = we::runtime::kindui::kWindIconNone;
+    quick.icon = WindIcons::PlusCircle16;
     quick.defaultExpanded = true;
     quick.items = std::move(items);
     m_CategoryExpanded[quick.id] = true;
@@ -317,7 +322,7 @@ void PlaceActorsPanel::RebuildData() {
 
     m_DisplayCategories.clear();
     const auto& config = PlaceActorsConfig::Get();
-    const std::string query = !m_ExternalSearchFilter.empty() ? m_ExternalSearchFilter : m_SearchBox->GetText();
+    const std::string query = !m_ExternalSearchFilter.empty() ? m_ExternalSearchFilter : m_SearchRow->GetSearchText();
 
     BuildQuickAccessCategory(query);
 
@@ -328,7 +333,7 @@ void PlaceActorsPanel::RebuildData() {
         PlaceActorsCategoryData favCategory;
         favCategory.id = kFavoritesCategoryId;
         favCategory.label = "Favorites";
-        favCategory.icon = we::runtime::kindui::kWindIconNone;
+        favCategory.icon = WindIcons::Check16;
         favCategory.defaultExpanded = true;
         favCategory.items = std::move(favoriteItems);
         if (m_CategoryExpanded.find(favCategory.id) == m_CategoryExpanded.end()) {
@@ -620,7 +625,7 @@ Size PlaceActorsPanel::Measure(const Size& availableSize) {
 }
 
 void PlaceActorsPanel::Tick(float deltaTime) {
-    m_SearchBox->Tick(deltaTime);
+    (void)deltaTime;
     we::runtime::kindui::Animator::Tick(deltaTime);
     const float expandSpeed = PlaceActorsConfig::Get().enableAnimations ? 16.0f : 1000.0f;
     const float pressSpeed = PlaceActorsConfig::Get().enableAnimations ? 18.0f : 1000.0f;

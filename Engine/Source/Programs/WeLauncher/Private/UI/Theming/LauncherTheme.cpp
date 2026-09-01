@@ -33,8 +33,10 @@ float LauncherTheme::ResolveMetric(we::runtime::kindui::MetricToken token) const
     case we::runtime::kindui::MetricToken::TextSizeCaption: return 11.0f;
     case we::runtime::kindui::MetricToken::TextSizeToolbar: return 12.0f;
     case we::runtime::kindui::MetricToken::IconSizeToolbar:
-    case we::runtime::kindui::MetricToken::IconSizeNavigation: return 24.0f;
+    case we::runtime::kindui::MetricToken::IconSizeNavigation:
     case we::runtime::kindui::MetricToken::IconSizeSearch: return 16.0f;
+    case we::runtime::kindui::MetricToken::IconSizeVerySmall:
+    case we::runtime::kindui::MetricToken::IconSizeWindowControl: return 12.0f;
     case we::runtime::kindui::MetricToken::HoverAnimationDamping: return 14.0f;
     case we::runtime::kindui::MetricToken::PressAnimationDamping: return 18.0f;
     case we::runtime::kindui::MetricToken::TitleBarHeight: return 36.0f;

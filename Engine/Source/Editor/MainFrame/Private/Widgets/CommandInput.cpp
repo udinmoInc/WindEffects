@@ -59,16 +59,22 @@ void CommandInput::Paint(PaintContext& context) {
     if (m_FlatChrome) {
         ControlChrome::PaintStatusBarCommandField(context, m_Geometry, state);
     } else {
-        ControlChrome::PaintInputFrame(context, m_Geometry, state);
+        ControlChrome::PaintSearchField(
+            context,
+            m_Geometry,
+            m_Placeholder,
+            m_Text,
+            state,
+            IsFocused() && m_ShowCaret);
+        return;
     }
 
-    const float iconSize = 16.0f;
-    const float padH = ThemeMetric(MetricToken::Space2);
-    const float iconX = m_Geometry.x + padH;
-    const float iconY = m_Geometry.y + (m_Geometry.height - iconSize) / 2.0f;
-    IconPainter::Draw(context, kWindIconNone, Rect{ iconX, iconY, iconSize, iconSize });
+    const float iconSize = ThemeMetric(MetricToken::IconSizeSearch);
+    const float padH = ThemeMetric(MetricToken::SpaceMD);
+    Rect iconBand{ m_Geometry.x + padH, m_Geometry.y, iconSize, m_Geometry.height };
+    IconPainter::Draw(context, WindIcons::Search16, iconBand, static_cast<uint32_t>(iconSize));
 
-    const float textX = iconX + iconSize + ThemeMetric(MetricToken::Space1);
+    const float textX = m_Geometry.x + padH + iconSize + ThemeMetric(MetricToken::Space1);
     const float fontSize = ThemeMetric(MetricToken::TextSizeSmall);
     const float textY = m_Geometry.y + (m_Geometry.height - fontSize) / 2.0f;
 

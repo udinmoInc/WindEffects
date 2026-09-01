@@ -125,21 +125,27 @@ Size IconButton::Measure(const Size& availableSize) {
 }
 
 void IconButton::Arrange(const Rect& allottedRect) {
-    m_Geometry = allottedRect;
+    const float size = ThemeManager::Get().Resolve(StyleRole::IconButton).height;
+    m_Geometry = Rect{
+        allottedRect.x,
+        allottedRect.y + (allottedRect.height - size) * 0.5f,
+        size,
+        size
+    };
 }
 
 void IconButton::Paint(PaintContext& context) {
     ControlChrome::InteractionState state{ m_HoverAnim, m_PressAnim, m_Active, m_Focused, false };
-    ControlChrome::PaintIconButtonFrame(context, m_Geometry, state, m_Active);
+    if (m_Borderless) {
+        ControlChrome::PaintBorderlessIconButton(context, m_Geometry, state);
+    } else {
+        ControlChrome::PaintIconButtonFrame(context, m_Geometry, state, m_Active);
+    }
     if (m_Icon.IsValid()) {
         const ResolvedStyle style = ThemeManager::Get().Resolve(
             m_Active ? StyleRole::IconButtonPressed : StyleRole::IconButton);
-        const Rect iconRect{
-            m_Geometry.x + (m_Geometry.width - style.iconSize) * 0.5f,
-            m_Geometry.y + (m_Geometry.height - style.iconSize) * 0.5f,
-            style.iconSize,
-            style.iconSize};
-        IconPainter::Draw(context, m_Icon, iconRect);
+        const float iconPx = style.iconSize;
+        IconPainter::Draw(context, m_Icon, m_Geometry, static_cast<uint32_t>(iconPx));
     }
 }
 
@@ -289,6 +295,17 @@ SearchBoxControl::SearchBoxControl(std::string placeholder)
     LayoutMetrics::ApplyInputMinSize(*this);
 }
 
+void SearchBoxControl::SetToolbarInset(bool inset) {
+    m_ToolbarInset = inset;
+    if (inset) {
+        const Size current = GetMinSize();
+        SetMinSize({ current.width, LayoutMetrics::ToolbarSearchInputHeight() });
+    } else {
+        LayoutMetrics::ApplyInputMinSize(*this);
+    }
+    InvalidateLayout();
+}
+
 void SearchBoxControl::SetText(std::string text) {
     m_Text = std::move(text);
     if (m_OnChanged) {
@@ -301,12 +318,17 @@ Size SearchBoxControl::Measure(const Size& availableSize) {
         ? m_MinSize.width
         : ResolveMetric(MetricToken::Space6) * 4.0f;
     const float w = availableSize.width < 1.0e8f ? availableSize.width : minW;
-    m_DesiredSize = Size{ w, LayoutMetrics::SearchInputHeight() };
+    const float h = m_ToolbarInset
+        ? LayoutMetrics::ToolbarSearchInputHeight()
+        : LayoutMetrics::SearchInputHeight();
+    m_DesiredSize = Size{ w, h };
     return m_DesiredSize;
 }
 
 void SearchBoxControl::Arrange(const Rect& allottedRect) {
-    m_Geometry = LayoutMetrics::LayoutSearchInputRect(allottedRect);
+    m_Geometry = m_ToolbarInset
+        ? LayoutMetrics::LayoutToolbarSearchInputRect(allottedRect)
+        : LayoutMetrics::LayoutSearchInputRect(allottedRect);
 }
 
 void SearchBoxControl::Paint(PaintContext& context) {
@@ -315,7 +337,16 @@ void SearchBoxControl::Paint(PaintContext& context) {
     }
 
     ControlChrome::InteractionState state{ m_HoverAnim, 0.0f, false, m_Focused, false };
-    ControlChrome::PaintSearchField(context, m_Geometry, m_Placeholder, m_Text, state, m_Focused && !m_Text.empty());
+    ControlChrome::SearchFieldPaintOptions options{};
+    options.toolbarFlat = m_ToolbarFlat;
+    ControlChrome::PaintSearchField(
+        context,
+        m_Geometry,
+        m_Placeholder,
+        m_Text,
+        state,
+        m_Focused && !m_Text.empty(),
+        options);
 }
 
 void SearchBoxControl::Tick(float deltaTime) {

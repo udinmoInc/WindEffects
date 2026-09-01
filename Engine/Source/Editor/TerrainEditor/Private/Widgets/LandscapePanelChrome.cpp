@@ -51,6 +51,14 @@ void PaintPanelBackground(PaintContext& context, const Rect& bounds) {
 }
 
 void PaintTabBar(PaintContext& context, const Rect& bounds) {
+    PanelChromeNs::PaintListLabelBand(context, bounds);
+}
+
+void PaintSectionCard(PaintContext& context, const Rect& bounds) {
+    PanelChromeNs::PaintContentWell(context, bounds);
+}
+
+void PaintSoftSeparator(PaintContext& context, const Rect& bounds) {
     (void)context;
     (void)bounds;
 }
@@ -72,23 +80,16 @@ void PaintTab(
     we::runtime::kindui::ControlChrome::PaintPanelTab(context, bounds, label, state);
 }
 
-void PaintSectionCard(PaintContext& context, const Rect& bounds) {
-    const float radius = ResolveMetric(MetricToken::CornerRadiusSmall) * UiScale();
-    context.DrawRoundedRect(bounds, ResolveColor(ColorToken::CardBackground), radius);
-}
-
 void PaintSectionTitle(PaintContext& context, const Rect& bounds, std::string_view title) {
-    const float fontSize = ResolveMetric(MetricToken::TextSizeBody) * UiScale();
+    PanelChromeNs::PaintListLabelBand(context, bounds);
+    const float fontSize = ResolveMetric(MetricToken::TextSizeCategory) * UiScale();
+    const float padH = PropertyPanelChrome::RowPaddingH();
     context.DrawText(
         std::string(title),
-        Point{bounds.x, bounds.y + (bounds.height - fontSize) * 0.5f},
+        Point{bounds.x + padH, bounds.y + (bounds.height - fontSize) * 0.5f},
         ResolveColor(ColorToken::TextPrimary),
         fontSize,
         true);
-}
-
-void PaintSoftSeparator(PaintContext& context, const Rect& bounds) {
-    context.DrawRect(bounds, ResolveColor(ColorToken::Separator));
 }
 
 void PaintChip(

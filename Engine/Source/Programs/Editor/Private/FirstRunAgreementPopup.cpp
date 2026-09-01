@@ -46,7 +46,7 @@ FirstRunAgreementPopup::FirstRunAgreementPopup(std::string markdownAndTextConten
     m_AgreeButton.label = "I Agree";
     m_AgreeButton.icon = we::runtime::kindui::WindIcons::Check16;
     m_DeclineButton.label = "Quit";
-    m_DeclineButton.icon = we::runtime::kindui::WindIcons::Close16;
+    m_DeclineButton.icon = we::runtime::kindui::WindIcons::RoundedClose16;
     m_CopyButton.label = "Copy";
     m_CopyButton.icon = we::runtime::kindui::kWindIconNone;
 }

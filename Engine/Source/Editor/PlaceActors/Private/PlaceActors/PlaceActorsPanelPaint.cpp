@@ -78,7 +78,9 @@ void PlaceActorsPanel::Paint(we::runtime::kindui::PaintContext& context) {
 
     SyncScrollMetrics();
     UpdateVisibleRange();
-    const std::string query = !m_ExternalSearchFilter.empty() ? m_ExternalSearchFilter : m_SearchBox->GetText();
+    const std::string query = !m_ExternalSearchFilter.empty()
+        ? m_ExternalSearchFilter
+        : (m_SearchRow ? m_SearchRow->GetSearchText() : std::string{});
     const float textSize = ThemeMetric(MetricToken::TextSizeSmall);
     const Rect clip = m_ScrollMetrics.viewport;
 
@@ -328,6 +330,35 @@ bool PlaceActorsPanel::ShowsPointerCursor(const Point& position) const {
     return ScrollViewport::ShowsScrollbarCursor(m_ScrollMetrics, position);
 }
 
+std::shared_ptr<we::runtime::kindui::Widget> PlaceActorsPanel::HitTestPoint(const Point& pos, const Rect* clip) {
+    if (!IsVisible() || IsPointerTransparent() || !IsEnabled()) {
+        return nullptr;
+    }
+    if ((clip != nullptr && !clip->Contains(pos)) || !m_Geometry.Contains(pos)) {
+        return nullptr;
+    }
+
+    if (m_BodyLayout) {
+        const Rect searchRect = m_BodyLayout->GetRegionRect(::we::editor::panels::PanelBodyRegion::Search);
+        if (!searchRect.IsEmpty() && searchRect.Contains(pos)) {
+            if (auto hit = m_BodyLayout->HitTestPoint(pos, clip)) {
+                return hit;
+            }
+        }
+
+        const Rect contentRect = m_BodyLayout->GetRegionRect(::we::editor::panels::PanelBodyRegion::Content);
+        if (!contentRect.IsEmpty() && contentRect.Contains(pos)) {
+            return shared_from_this();
+        }
+
+        if (auto hit = m_BodyLayout->HitTestPoint(pos, clip)) {
+            return hit;
+        }
+    }
+
+    return nullptr;
+}
+
 void PlaceActorsPanel::OnMouseDown(const MouseEvent& event) {
     if (m_FilterMenuOpen) {
         if (m_FilterMenuRect.Contains(event.position)) {
@@ -362,9 +393,10 @@ void PlaceActorsPanel::OnMouseDown(const MouseEvent& event) {
     const Rect searchRect = m_BodyLayout
         ? m_BodyLayout->GetRegionRect(::we::editor::panels::PanelBodyRegion::Search)
         : Rect{};
-    if (!searchRect.IsEmpty() && searchRect.Contains(event.position)) {
-        if (m_SearchBox->GetGeometry().Contains(event.position)) m_SearchBox->OnMouseDown(event);
-        else if (m_FilterButton->GetGeometry().Contains(event.position)) m_FilterButton->OnMouseDown(event);
+    if (!searchRect.IsEmpty() && searchRect.Contains(event.position) && m_SearchRow) {
+        if (auto hit = m_SearchRow->HitTestPoint(event.position, &searchRect)) {
+            hit->OnMouseDown(event);
+        }
         return;
     }
 
@@ -423,9 +455,8 @@ void PlaceActorsPanel::OnMouseMove(const MouseEvent& event) {
     const Rect searchRect = m_BodyLayout
         ? m_BodyLayout->GetRegionRect(::we::editor::panels::PanelBodyRegion::Search)
         : Rect{};
-    if (!searchRect.IsEmpty() && searchRect.Contains(event.position)) {
-        m_SearchBox->OnMouseMove(event);
-        m_FilterButton->OnMouseMove(event);
+    if (!searchRect.IsEmpty() && searchRect.Contains(event.position) && m_SearchRow) {
+        m_SearchRow->OnMouseMove(event);
     }
 
     SyncScrollMetrics();

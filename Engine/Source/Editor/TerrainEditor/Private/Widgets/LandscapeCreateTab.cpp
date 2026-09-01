@@ -61,68 +61,84 @@ void BuildCreateTab(const std::shared_ptr<we::runtime::kindui::Column>& layout, 
     });
 
     AddFormSectionTitle(layout, "Terrain Settings");
-    AddFormField(layout, "Name", dialog.name, [&](std::string_view v) {
+    auto terrainSettings = MakeFormFieldGroupColumn();
+    bool firstTerrainRow = true;
+    const auto addTerrainField = [&](
+        const std::string& label,
+        const std::string& value,
+        std::function<void(std::string_view)> onCommit) {
+        if (!firstTerrainRow) {
+            AddFormRowDivider(terrainSettings);
+        }
+        firstTerrainRow = false;
+        AddFormField(terrainSettings, label, value, std::move(onCommit));
+    };
+
+    addTerrainField("Name", dialog.name, [&](std::string_view v) {
         editor.Dialog().name = std::string(v);
         editor.Wizard().State() = editor.Dialog();
     });
-    AddFormField(layout, "Width", FormFormatFloat(dialog.createInfo.worldSizeX), [&](std::string_view v) {
+    addTerrainField("Width", FormFormatFloat(dialog.createInfo.worldSizeX), [&](std::string_view v) {
         editor.Dialog().createInfo.worldSizeX = FormParseFloat(v, editor.Dialog().createInfo.worldSizeX);
         editor.Wizard().State() = editor.Dialog();
     });
-    AddFormField(layout, "Height", FormFormatFloat(dialog.createInfo.worldSizeY), [&](std::string_view v) {
+    addTerrainField("Height", FormFormatFloat(dialog.createInfo.worldSizeY), [&](std::string_view v) {
         editor.Dialog().createInfo.worldSizeY = FormParseFloat(v, editor.Dialog().createInfo.worldSizeY);
         editor.Wizard().State() = editor.Dialog();
     });
-    AddFormField(layout, "Resolution X", FormFormatInt(dialog.createInfo.resolutionX), [&](std::string_view v) {
+    addTerrainField("Resolution X", FormFormatInt(dialog.createInfo.resolutionX), [&](std::string_view v) {
         editor.Dialog().createInfo.resolutionX = FormParseInt(v, editor.Dialog().createInfo.resolutionX);
         editor.Wizard().State() = editor.Dialog();
     });
-    AddFormField(layout, "Resolution Y", FormFormatInt(dialog.createInfo.resolutionY), [&](std::string_view v) {
+    addTerrainField("Resolution Y", FormFormatInt(dialog.createInfo.resolutionY), [&](std::string_view v) {
         editor.Dialog().createInfo.resolutionY = FormParseInt(v, editor.Dialog().createInfo.resolutionY);
         editor.Wizard().State() = editor.Dialog();
     });
-    AddFormField(layout, "Chunk Size", FormFormatInt(dialog.createInfo.chunkQuads), [&](std::string_view v) {
+    addTerrainField("Chunk Size", FormFormatInt(dialog.createInfo.chunkQuads), [&](std::string_view v) {
         editor.Dialog().createInfo.chunkQuads = FormParseInt(v, editor.Dialog().createInfo.chunkQuads);
         editor.Wizard().State() = editor.Dialog();
     });
-    AddFormField(layout, "Section Size", FormFormatInt(dialog.createInfo.tileSize), [&](std::string_view v) {
+    addTerrainField("Section Size", FormFormatInt(dialog.createInfo.tileSize), [&](std::string_view v) {
         editor.Dialog().createInfo.tileSize = FormParseInt(v, editor.Dialog().createInfo.tileSize);
         editor.Wizard().State() = editor.Dialog();
     });
-    AddFormField(layout, "World Scale", FormFormatFloat(dialog.createInfo.worldScale.x), [&](std::string_view v) {
+    addTerrainField("World Scale", FormFormatFloat(dialog.createInfo.worldScale.x), [&](std::string_view v) {
         const float s = FormParseFloat(v, editor.Dialog().createInfo.worldScale.x);
         editor.Dialog().createInfo.worldScale = {s, s, s};
         editor.Wizard().State() = editor.Dialog();
     });
-    AddFormField(layout, "Initial Height", FormFormatFloat(dialog.createInfo.initialElevation), [&](std::string_view v) {
+    addTerrainField("Initial Height", FormFormatFloat(dialog.createInfo.initialElevation), [&](std::string_view v) {
         editor.Dialog().createInfo.initialElevation =
             std::clamp(FormParseFloat(v, editor.Dialog().createInfo.initialElevation), 0.f, 1.f);
         editor.Wizard().State() = editor.Dialog();
     });
-    AddFormField(layout, "Material", dialog.materialSlot0.empty() ? "None" : dialog.materialSlot0,
+    addTerrainField("Material", dialog.materialSlot0.empty() ? "None" : dialog.materialSlot0,
         [&](std::string_view v) {
             editor.Dialog().materialSlot0 = (v == "None") ? "" : std::string(v);
             editor.Wizard().State() = editor.Dialog();
         });
-    AddFormField(layout, "Position X", FormFormatFloat(dialog.createInfo.worldOrigin.x), [&](std::string_view v) {
+    addTerrainField("Position X", FormFormatFloat(dialog.createInfo.worldOrigin.x), [&](std::string_view v) {
         editor.Dialog().createInfo.worldOrigin.x = FormParseFloat(v, editor.Dialog().createInfo.worldOrigin.x);
         editor.Wizard().State() = editor.Dialog();
     });
-    AddFormField(layout, "Position Y", FormFormatFloat(dialog.createInfo.worldOrigin.y), [&](std::string_view v) {
+    addTerrainField("Position Y", FormFormatFloat(dialog.createInfo.worldOrigin.y), [&](std::string_view v) {
         editor.Dialog().createInfo.worldOrigin.y = FormParseFloat(v, editor.Dialog().createInfo.worldOrigin.y);
         editor.Wizard().State() = editor.Dialog();
     });
-    AddFormField(layout, "Position Z", FormFormatFloat(dialog.createInfo.worldOrigin.z), [&](std::string_view v) {
+    addTerrainField("Position Z", FormFormatFloat(dialog.createInfo.worldOrigin.z), [&](std::string_view v) {
         editor.Dialog().createInfo.worldOrigin.z = FormParseFloat(v, editor.Dialog().createInfo.worldOrigin.z);
         editor.Wizard().State() = editor.Dialog();
     });
 
     if (dialog.creationMethod == runtime_terrain::TerrainCreationMethod::HeightmapImport) {
-        AddFormField(layout, "Heightmap Path", dialog.importHeightmapPath.string(), [&](std::string_view v) {
+        AddFormRowDivider(terrainSettings);
+        AddFormField(terrainSettings, "Heightmap Path", dialog.importHeightmapPath.string(), [&](std::string_view v) {
             editor.Dialog().importHeightmapPath = std::filesystem::path(std::string(v));
             editor.Wizard().State() = editor.Dialog();
         });
     }
+
+    layout->AddChild(terrainSettings);
 
     AddFormSectionTitle(layout, "Streaming");
     AddFormToggle(layout, "Enable Streaming", dialog.enableStreaming, [&]() {

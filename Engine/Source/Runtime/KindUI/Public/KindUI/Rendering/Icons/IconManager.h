@@ -44,6 +44,7 @@ private:
         uint32_t width = 0;
         uint32_t height = 0;
         bool ready = false;
+        std::filesystem::file_time_type sourceWriteTime{};
     };
 
     [[nodiscard]] std::filesystem::path AssetPathFor(WindIconRef icon) const;
