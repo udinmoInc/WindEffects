@@ -18,15 +18,9 @@ namespace we::runtime::kindui::ColorSpace {
     }
 }
 
-// IEC 61966-2-1 transfers — matches UE FColor → FLinearColor / FLinearColor → display.
-// Authoring (Hex, Palette, StyleColors) lives in sRGB. GPU compositing uses linear RGB.
-
+// IEC 61966-2-1 — palette HEX is authored in sRGB; convert once before GPU compositing.
 [[nodiscard]] inline float SrgbChannelToLinear(float channel) {
     return channel <= 0.04045f ? channel / 12.92f : std::pow((channel + 0.055f) / 1.055f, 2.4f);
-}
-
-[[nodiscard]] inline float LinearChannelToSrgb(float channel) {
-    return channel <= 0.0031308f ? channel * 12.92f : 1.055f * std::pow(channel, 1.0f / 2.4f) - 0.055f;
 }
 
 [[nodiscard]] inline Color SrgbToLinear(Color srgb) {
@@ -38,30 +32,7 @@ namespace we::runtime::kindui::ColorSpace {
     };
 }
 
-[[nodiscard]] inline Color LinearToSrgb(Color linear) {
-    return {
-        LinearChannelToSrgb(linear.r),
-        LinearChannelToSrgb(linear.g),
-        LinearChannelToSrgb(linear.b),
-        linear.a
-    };
-}
-
-[[nodiscard]] inline Color LerpLinear(Color a, Color b, float t) {
-    return {
-        a.r + (b.r - a.r) * t,
-        a.g + (b.g - a.g) * t,
-        a.b + (b.b - a.b) * t,
-        a.a + (b.a - a.a) * t
-    };
-}
-
-// Perceptually correct blend for theme/UI colors stored as sRGB.
-[[nodiscard]] inline Color LerpSrgb(Color a, Color b, float t) {
-    return LinearToSrgb(LerpLinear(SrgbToLinear(a), SrgbToLinear(b), t));
-}
-
-// Convert authoring sRGB to linear RGB for GPU vertex attributes (alpha stays linear).
+// Authoring sRGB → linear RGB for GPU vertex attributes (alpha stays linear).
 inline void WriteGpuVertexColor(const Color& authoringSrgb, float out[4]) {
     const Color linear = SrgbToLinear(authoringSrgb);
     out[0] = linear.r;
@@ -75,7 +46,7 @@ inline void WriteGpuVertexColorForTarget(
     const Color& authoringSrgb,
     float out[4])
 {
-    if (IsSrgbSurfaceFormat(targetFormat)) {
+    if (targetFormat == we::rhi::Format::Unknown || IsSrgbSurfaceFormat(targetFormat)) {
         WriteGpuVertexColor(authoringSrgb, out);
         return;
     }
@@ -86,7 +57,10 @@ inline void WriteGpuVertexColorForTarget(
 }
 
 [[nodiscard]] inline Color ClearColorForTarget(we::rhi::Format targetFormat, Color authoringSrgb) {
-    return IsSrgbSurfaceFormat(targetFormat) ? authoringSrgb.ToLinear() : authoringSrgb;
+    if (targetFormat == we::rhi::Format::Unknown || IsSrgbSurfaceFormat(targetFormat)) {
+        return SrgbToLinear(authoringSrgb);
+    }
+    return authoringSrgb;
 }
 
 [[nodiscard]] inline Color OpaqueSurface(Color surface) {
@@ -94,24 +68,29 @@ inline void WriteGpuVertexColorForTarget(
     return surface;
 }
 
+[[nodiscard]] inline bool IsOpaqueAuthoring(Color color) {
+    return color.a >= 0.999f;
+}
+
+[[nodiscard]] inline Color OpaqueAuthoringColor(Color color) {
+    return OpaqueSurface(color);
+}
+
+// Discrete state pick — no channel interpolation.
+[[nodiscard]] inline Color PickColor(Color a, Color b, float t) {
+    return t >= 0.5f ? b : a;
+}
+
 } // namespace we::runtime::kindui::ColorSpace
 
 namespace we::runtime::kindui {
 
-inline Color Color::Lerp(const Color& other, float t) const {
-    return ColorSpace::LerpSrgb(*this, other, t);
+inline Color Color::Pick(const Color& other, float t) const {
+    return ColorSpace::PickColor(*this, other, t);
 }
 
-inline Color Color::ToLinear() const {
-    return ColorSpace::SrgbToLinear(*this);
-}
-
-inline Color Color::ToSrgb() const {
-    return ColorSpace::LinearToSrgb(*this);
-}
-
-inline Color Color::Lerp(const Color& a, const Color& b, float t) {
-    return a.Lerp(b, t);
+inline Color Color::Pick(const Color& a, const Color& b, float t) {
+    return a.Pick(b, t);
 }
 
 } // namespace we::runtime::kindui

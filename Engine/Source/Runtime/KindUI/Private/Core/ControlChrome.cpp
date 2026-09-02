@@ -1,5 +1,6 @@
 #include "KindUI/Core/ControlChrome.h"
 
+#include "KindUI/Core/ColorSpace.h"
 #include "KindUI/Core/PaintContext.h"
 #include "KindUI/Core/DPIContext.h"
 #include "KindUI/Theming/ThemeManager.h"
@@ -49,13 +50,13 @@ Color ResolveControlBackground(const InteractionState& state, const ControlFrame
         return style.disabledBackground.a > 0.01f ? style.disabledBackground : style.normalBackground;
     }
     if (state.selected && style.selectedBackground.a > 0.01f) {
-        return Color::Lerp(style.normalBackground, style.selectedBackground, 0.55f);
+        return style.selectedBackground;
     }
-    if (state.pressAnim > 0.01f && style.pressedBackground.a > 0.01f) {
-        return Color::Lerp(style.normalBackground, style.pressedBackground, state.pressAnim);
+    if (state.pressAnim >= 0.5f && style.pressedBackground.a > 0.01f) {
+        return style.pressedBackground;
     }
-    if (state.hoverAnim > 0.01f && style.hoverBackground.a > 0.01f) {
-        return Color::Lerp(style.normalBackground, style.hoverBackground, state.hoverAnim);
+    if (state.hoverAnim >= 0.5f && style.hoverBackground.a > 0.01f) {
+        return style.hoverBackground;
     }
     return style.normalBackground;
 }
@@ -206,9 +207,9 @@ void PaintInputFrameInternal(
     SurfaceRole fillRole = SurfaceRole::Input;
     if (state.disabled) {
         fillRole = SurfaceRole::Disabled;
-    } else if (state.pressAnim > 0.01f) {
+    } else if (state.pressAnim >= 0.5f) {
         fillRole = SurfaceRole::ControlPressed;
-    } else if (state.hoverAnim > 0.01f) {
+    } else if (state.hoverAnim >= 0.5f) {
         fillRole = SurfaceRole::ControlHover;
     }
     context.DrawSurface(rect, fillRole, cornerRadius, "Input");
@@ -265,15 +266,7 @@ void PaintInteractiveFill(
 {
     const Color fill = ResolveInteractiveSurfaceColor(surfaceRole, hoverAnim, pressAnim, selected);
     if (fill.a > 0.001f) {
-        SurfaceRole drawRole = surfaceRole;
-        if (selected) {
-            drawRole = SurfaceRole::Selected;
-        } else if (pressAnim > 0.01f) {
-            drawRole = SurfaceRole::ControlPressed;
-        } else if (hoverAnim > 0.01f) {
-            drawRole = SurfaceRole::ControlHover;
-        }
-        context.DrawSurface(rect, drawRole, cornerRadius, "InteractiveFill");
+        context.DrawRect(rect, ColorSpace::OpaqueSurface(fill), cornerRadius);
     }
 }
 
@@ -389,12 +382,11 @@ void PaintStatusBarCommandField(
     PaintContext& context,
     const Rect& rect,
     const InteractionState& state) {
-    // UE footer console: always-recessed well that blends into the status strip.
-    Color fill = ResolveColor(ColorToken::InputBackground);
-    if (state.hoverAnim > 0.01f && !state.focused) {
-        fill = Color::Lerp(fill, ResolveColor(ColorToken::SecondarySurface), state.hoverAnim * 0.28f);
+    SurfaceRole fillRole = SurfaceRole::Input;
+    if (state.hoverAnim >= 0.5f && !state.focused) {
+        fillRole = SurfaceRole::Recessed;
     }
-    context.DrawRect(rect, fill);
+    context.DrawSurface(rect, fillRole, 0.0f, "StatusBarCommandField");
 
     if (state.focused) {
         context.DrawRoundedRectOutline(
@@ -410,7 +402,7 @@ void PaintSearchInputFrame(
     const Rect& rect,
     const InteractionState& state) {
     const float radius = SearchInputCornerRadius(rect);
-    context.DrawRoundedRect(rect, ResolveColor(ColorToken::InputBackground), radius);
+    context.DrawSurface(rect, SurfaceRole::Input, radius, "SearchInput");
 
     if (state.focused) {
         Color border = ResolveColor(ColorToken::BorderSubtle);
@@ -502,17 +494,7 @@ void PaintListRow(
 
     const Color bg = ResolveControlColor(ControlKind::TreeRow, controlState);
     if (bg.a > 0.001f) {
-        SurfaceRole role = SurfaceRole::Transparent;
-        switch (controlState) {
-        case ControlState::Selected: role = SurfaceRole::Selected; break;
-        case ControlState::SelectedInactive: role = SurfaceRole::SelectedInactive; break;
-        case ControlState::Hover: role = SurfaceRole::ControlHover; break;
-        case ControlState::Disabled: role = SurfaceRole::Disabled; break;
-        default: break;
-        }
-        if (role != SurfaceRole::Transparent) {
-            context.DrawSurface(rect, role, base.cornerRadius, "ListRow");
-        }
+        context.DrawRect(rect, ColorSpace::OpaqueSurface(bg), base.cornerRadius);
     }
 
     const ResolvedControlBorder border = ResolveControlBorder(
@@ -528,17 +510,7 @@ void PaintCard(
     PaintContext& context,
     const Rect& rect,
     const InteractionState& state) {
-    ResolvedStyle base = state.hoverAnim > 0.5f ? Role(StyleRole::CardHover) : Role(StyleRole::Card);
-    if (state.hoverAnim > 0.01f && state.hoverAnim <= 0.5f) {
-        base.background = Color::Lerp(
-            Role(StyleRole::Card).background,
-            Role(StyleRole::CardHover).background,
-            state.hoverAnim);
-        base.border = Color::Lerp(
-            Role(StyleRole::Card).border,
-            Role(StyleRole::CardHover).border,
-            state.hoverAnim);
-    }
+    ResolvedStyle base = state.hoverAnim >= 0.5f ? Role(StyleRole::CardHover) : Role(StyleRole::Card);
     // Cards elevate via surface luminance; shadow only on stronger hover.
     const int elevation = state.hoverAnim > 0.35f ? base.elevation : 0;
     PaintElevation(context, rect, elevation, base.cornerRadius);
@@ -630,11 +602,11 @@ void PaintCheckbox(
     const InteractionState& state) {
     const ResolvedStyle style = Role(StyleRole::Checkbox);
     Color bg = style.background;
-    if (state.hoverAnim > 0.01f) {
-        bg = Color::Lerp(bg, ResolveColor(ColorToken::HoverBackground), state.hoverAnim);
+    if (state.hoverAnim >= 0.5f) {
+        bg = ResolveColor(ColorToken::HoverBackground);
     }
     if (checked) {
-        bg = Color::Lerp(bg, ResolveColor(ColorToken::AccentPrimary), 0.85f);
+        bg = ResolveColor(ColorToken::AccentPrimary);
     }
     context.DrawRoundedRect(box, bg, style.cornerRadius);
     if (checked) {
@@ -657,11 +629,8 @@ void PaintPanelTab(
             bounds,
             ResolveSurfaceColor(SurfaceRole::TabActive),
             radius);
-    } else if (state.hoverAnim > 0.01f || state.pressAnim > 0.01f) {
-        Color tabBg = Color::Lerp(
-            Color::Transparent(),
-            ResolveColor(ColorToken::HoverBackground),
-            std::max(state.hoverAnim, state.pressAnim));
+    } else if (state.hoverAnim >= 0.5f || state.pressAnim >= 0.5f) {
+        const Color tabBg = ResolveColor(ColorToken::HoverBackground);
         if (tabBg.a > 0.01f) {
             PaintPanelButtonFace(
                 context,

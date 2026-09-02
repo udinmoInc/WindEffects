@@ -251,7 +251,7 @@ void ToolButton::Paint(PaintContext& context) {
             const Color hover = (m_ButtonStyle == ToolButtonStyle::WindowClose)
                 ? ThemeColor(ColorToken::CloseButtonHover)
                 : ThemeColor(ColorToken::HoverBackground);
-            context.DrawRect(renderRect, Color::Lerp(base, hover, m_HoverAnim));
+            context.DrawRect(renderRect, Color::Pick(base, hover, m_HoverAnim));
         }
 
         const float iconSize = WindowControlIconSize(uiScale);
@@ -286,7 +286,7 @@ void ToolButton::Paint(PaintContext& context) {
                 ? ThemeColor(ColorToken::IconAccent)
                 : ThemeColor(ColorToken::TextSecondary);
             if (m_HoverAnim > 0.01f && !m_Active) {
-                labelColor = Color::Lerp(labelColor, ThemeColor(ColorToken::TextPrimary), m_HoverAnim);
+                labelColor = Color::Pick(labelColor, ThemeColor(ColorToken::TextPrimary), m_HoverAnim);
             }
             context.DrawText(m_Label, Point{ labelX, labelY }, labelColor, textSize);
         }
@@ -312,12 +312,12 @@ void ToolButton::Paint(PaintContext& context) {
         if (!m_Label.empty()) {
             Color textColor = m_Active
                 ? ThemeColor(ColorToken::TextPrimary)
-                : Color::Lerp(
+                : Color::Pick(
                     ThemeColor(ColorToken::TextPrimary),
                     ThemeColor(ColorToken::TextSecondary),
                     0.18f);
             if (m_HoverAnim > 0.01f && !m_Active) {
-                textColor = Color::Lerp(textColor, ThemeColor(ColorToken::TextPrimary), m_HoverAnim * 0.35f);
+                textColor = Color::Pick(textColor, ThemeColor(ColorToken::TextPrimary), m_HoverAnim * 0.35f);
             }
             context.DrawText(m_Label, Point{ currentX, centerY - textSize * 0.5f }, textColor, textSize);
         }

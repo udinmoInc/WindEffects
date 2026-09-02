@@ -67,24 +67,6 @@ private:
     Rect m_TitleBand;
 };
 
-/// 1px chrome gap between property rows; parent recessed surface shows through (no painted line).
-class FormRowDividerWidget final : public Widget {
-public:
-    Size Measure(const Size& availableSize) override {
-        const float gap = ChromeSeparation::kGapCutsEnabled ? ChromeSeparation::Gap() : 0.0f;
-        m_DesiredSize = Size{ availableSize.width, gap };
-        return m_DesiredSize;
-    }
-
-    void Arrange(const Rect& allottedRect) override {
-        m_Geometry = allottedRect;
-    }
-
-    void Paint(PaintContext& context) override {
-        (void)context;
-    }
-};
-
 } // namespace
 
 void ConfigureLandscapeFormColumn(const std::shared_ptr<Column>& layout) {
@@ -97,21 +79,6 @@ void ConfigureLandscapeFormColumn(const std::shared_ptr<Column>& layout) {
 void AddFormSectionTitle(const std::shared_ptr<Column>& layout, std::string_view title) {
     const bool leadingGap = layout && !layout->GetChildren().empty();
     layout->AddChild(std::make_shared<FormSectionTitleWidget>(std::string(title), leadingGap));
-}
-
-std::shared_ptr<Column> MakeFormFieldGroupColumn() {
-    auto group = std::make_shared<Column>();
-    group->Align(AlignItems::Stretch);
-    group->Gap(0.0f);
-    group->SetFlexShrink(0.0f);
-    return group;
-}
-
-void AddFormRowDivider(const std::shared_ptr<Column>& layout) {
-    if (!layout || !ChromeSeparation::kGapCutsEnabled) {
-        return;
-    }
-    layout->AddChild(std::make_shared<FormRowDividerWidget>());
 }
 
 void AddFormField(

@@ -1,5 +1,6 @@
 #include "KindUI/Rendering/UIWidgetAdapter.h"
 #include "KindUI/Profiling/UiPathDiagnostics.h"
+#include "KindUI/Core/ColorSpace.h"
 #include "KindUI/Profiling/UiColorDebug.h"
 #include "KindUI/Profiling/UiColorPipelineDiagnostic.h"
 #include "KindUI/Profiling/UiColorCompositionDiagnostic.h"
@@ -172,6 +173,12 @@ void UIWidgetAdapter::ProcessWidget(const std::shared_ptr<Widget>& root,
     UiColorCompositionDiagnostic::InvokeProbeRegistrar(root);
 
     UiPathDiagnostics::Get().OnPaintPass();
+    // Opaque full-frame base: type-5 replace compositing, never alpha-blend against swapchain clear.
+    paintCtx.DrawSurface(
+        Rect{0.0f, 0.0f, static_cast<float>(width), static_cast<float>(height)},
+        SurfaceRole::Workspace,
+        0.0f,
+        "WorkspaceBackdrop");
     root->Paint(paintCtx);
 
     auto& compositionDiag = UiColorCompositionDiagnostic::Get();
@@ -226,7 +233,14 @@ void UIWidgetAdapter::ProcessWidget(const std::shared_ptr<Widget>& root,
     m_LastBuiltHeight = height;
 }
 
-void UIWidgetAdapter::AddOrMergeBatch(uint32_t indexCount, bool isText, uint32_t atlasW, uint32_t atlasH, float msdfRange) {
+void UIWidgetAdapter::AddOrMergeBatch(
+    uint32_t indexCount,
+    bool isText,
+    uint32_t atlasW,
+    uint32_t atlasH,
+    float msdfRange,
+    bool opaqueReplace)
+{
     if (indexCount == 0) return;
 
     const float scX = static_cast<float>(m_CurrentScissor.x);
@@ -238,6 +252,7 @@ void UIWidgetAdapter::AddOrMergeBatch(uint32_t indexCount, bool isText, uint32_t
         auto& last = m_Batches.back();
         if (last.textureSet == m_CurrentTextureSet &&
             last.isText == isText &&
+            last.opaqueReplace == opaqueReplace &&
             last.scissor[0] == scX &&
             last.scissor[1] == scY &&
             last.scissor[2] == scW &&
@@ -260,6 +275,7 @@ void UIWidgetAdapter::AddOrMergeBatch(uint32_t indexCount, bool isText, uint32_t
     batch.scissor[3] = scH;
     batch.stencilRef = 0;
     batch.isText = isText;
+    batch.opaqueReplace = opaqueReplace;
     batch.atlasWidth = atlasW;
     batch.atlasHeight = atlasH;
     batch.msdfPixelRange = msdfRange;
@@ -363,17 +379,53 @@ void UIWidgetAdapter::GenerateRectGeometry(const DrawCommand& cmd) {
     float y = y0;
     float w = x1 - x0;
     float h = y1 - y0;
+
+    const bool opaqueFill = ColorSpace::IsOpaqueAuthoring(cmd.color);
+    constexpr float solidType = 5.0f;
+
+    // Opaque surfaces: type-5 solid quad + replace blending (One, Zero).
+    if (opaqueFill) {
+        UIVertex2 v0{{x, y}, {0.5f, 0.5f}, {cmd.color.r, cmd.color.g, cmd.color.b, 1.0f}, {0, 0, 0, 0}, {0.0f, solidType, 0.0f, 0.0f}};
+        UIVertex2 v1{{x + w, y}, {0.5f, 0.5f}, {cmd.color.r, cmd.color.g, cmd.color.b, 1.0f}, {0, 0, 0, 0}, {0.0f, solidType, 0.0f, 0.0f}};
+        UIVertex2 v2{{x + w, y + h}, {0.5f, 0.5f}, {cmd.color.r, cmd.color.g, cmd.color.b, 1.0f}, {0, 0, 0, 0}, {0.0f, solidType, 0.0f, 0.0f}};
+        UIVertex2 v3{{x, y + h}, {0.5f, 0.5f}, {cmd.color.r, cmd.color.g, cmd.color.b, 1.0f}, {0, 0, 0, 0}, {0.0f, solidType, 0.0f, 0.0f}};
+
+        const uint32_t startIndex = static_cast<uint32_t>(m_Vertices.size());
+        m_Vertices.push_back(v0);
+        m_Vertices.push_back(v1);
+        m_Vertices.push_back(v2);
+        m_Vertices.push_back(v3);
+
+        m_Indices.push_back(startIndex + 0);
+        m_Indices.push_back(startIndex + 1);
+        m_Indices.push_back(startIndex + 2);
+        m_Indices.push_back(startIndex + 2);
+        m_Indices.push_back(startIndex + 3);
+        m_Indices.push_back(startIndex + 0);
+
+        AddOrMergeBatch(6, false, 0, 0, 0.0f, true);
+
+        if (UiColorDebug::IsEnabled()) {
+            ColorToken token{};
+            if (UiColorDebug::TryMatchToken(cmd.color, token)) {
+                UiColorDebug::Get().TraceVertex(
+                    "UIWidgetAdapter::GenerateRectGeometry",
+                    token,
+                    cmd.color,
+                    cmd.rect,
+                    solidType);
+            }
+        }
+        return;
+    }
     
-    // Use SDF rendering for rounded rectangles
-    float type = 1.0f; // SDF rounded rect
+    // Semi-transparent rects still use SDF feathering + alpha blending.
+    float type = 1.0f;
     
-    Color colorTop = cmd.color;
-    Color colorBottom = cmd.color;
-    
-    UIVertex2 v0{ {x,     y},     {0.5f, 0.5f}, {colorTop.r, colorTop.g, colorTop.b, colorTop.a},       {x, y, w, h}, {cmd.borderRadius, type, 0.0f, 0.0f} };
-    UIVertex2 v1{ {x + w, y},     {0.5f, 0.5f}, {colorTop.r, colorTop.g, colorTop.b, colorTop.a},       {x, y, w, h}, {cmd.borderRadius, type, 0.0f, 0.0f} };
-    UIVertex2 v2{ {x + w, y + h}, {0.5f, 0.5f}, {colorBottom.r, colorBottom.g, colorBottom.b, colorBottom.a}, {x, y, w, h}, {cmd.borderRadius, type, 0.0f, 0.0f} };
-    UIVertex2 v3{ {x,     y + h}, {0.5f, 0.5f}, {colorBottom.r, colorBottom.g, colorBottom.b, colorBottom.a}, {x, y, w, h}, {cmd.borderRadius, type, 0.0f, 0.0f} };
+    UIVertex2 v0{ {x,     y},     {0.5f, 0.5f}, {cmd.color.r, cmd.color.g, cmd.color.b, cmd.color.a}, {x, y, w, h}, {cmd.borderRadius, type, 0.0f, 0.0f} };
+    UIVertex2 v1{ {x + w, y},     {0.5f, 0.5f}, {cmd.color.r, cmd.color.g, cmd.color.b, cmd.color.a}, {x, y, w, h}, {cmd.borderRadius, type, 0.0f, 0.0f} };
+    UIVertex2 v2{ {x + w, y + h}, {0.5f, 0.5f}, {cmd.color.r, cmd.color.g, cmd.color.b, cmd.color.a}, {x, y, w, h}, {cmd.borderRadius, type, 0.0f, 0.0f} };
+    UIVertex2 v3{ {x,     y + h}, {0.5f, 0.5f}, {cmd.color.r, cmd.color.g, cmd.color.b, cmd.color.a}, {x, y, w, h}, {cmd.borderRadius, type, 0.0f, 0.0f} };
     
     uint32_t startIndex = static_cast<uint32_t>(m_Vertices.size());
     m_Vertices.push_back(v0);
@@ -618,24 +670,25 @@ void UIWidgetAdapter::GenerateLineGeometry(const DrawCommand& cmd) {
         return;
     }
 
-    const float type = 1.0f;
-    const float radius = 0.0f;
     const Color color = cmd.color;
+    const bool opaqueFill = ColorSpace::IsOpaqueAuthoring(color);
+    const float alpha = opaqueFill ? 1.0f : color.a;
 
-    auto emitSolidRect = [&](float x, float y, float w, float h) {
-        const float x0 = SnapPx(x);
-        const float y0 = SnapPx(y);
-        const float x1 = SnapPx(x + w);
-        const float y1 = SnapPx(y + h);
-        const float rw = x1 - x0;
-        const float rh = y1 - y0;
-        if (rw <= 0.0f || rh <= 0.0f) {
+    auto emitSolidRect = [&](float rx, float ry, float rw, float rh) {
+        const float x0 = SnapPx(rx);
+        const float y0 = SnapPx(ry);
+        const float x1 = SnapPx(rx + rw);
+        const float y1 = SnapPx(ry + rh);
+        const float rectW = x1 - x0;
+        const float rectH = y1 - y0;
+        if (rectW <= 0.0f || rectH <= 0.0f) {
             return;
         }
-        UIVertex2 v0{{x0, y0}, {0.5f, 0.5f}, {color.r, color.g, color.b, color.a}, {x0, y0, rw, rh}, {radius, type, 0.0f, 0.0f}};
-        UIVertex2 v1{{x1, y0}, {0.5f, 0.5f}, {color.r, color.g, color.b, color.a}, {x0, y0, rw, rh}, {radius, type, 0.0f, 0.0f}};
-        UIVertex2 v2{{x1, y1}, {0.5f, 0.5f}, {color.r, color.g, color.b, color.a}, {x0, y0, rw, rh}, {radius, type, 0.0f, 0.0f}};
-        UIVertex2 v3{{x0, y1}, {0.5f, 0.5f}, {color.r, color.g, color.b, color.a}, {x0, y0, rw, rh}, {radius, type, 0.0f, 0.0f}};
+        constexpr float solidType = 5.0f;
+        UIVertex2 v0{{x0, y0}, {0.5f, 0.5f}, {color.r, color.g, color.b, alpha}, {0, 0, 0, 0}, {0.0f, solidType, 0.0f, 0.0f}};
+        UIVertex2 v1{{x1, y0}, {0.5f, 0.5f}, {color.r, color.g, color.b, alpha}, {0, 0, 0, 0}, {0.0f, solidType, 0.0f, 0.0f}};
+        UIVertex2 v2{{x1, y1}, {0.5f, 0.5f}, {color.r, color.g, color.b, alpha}, {0, 0, 0, 0}, {0.0f, solidType, 0.0f, 0.0f}};
+        UIVertex2 v3{{x0, y1}, {0.5f, 0.5f}, {color.r, color.g, color.b, alpha}, {0, 0, 0, 0}, {0.0f, solidType, 0.0f, 0.0f}};
         const uint32_t startIndex = static_cast<uint32_t>(m_Vertices.size());
         m_Vertices.push_back(v0);
         m_Vertices.push_back(v1);
@@ -647,7 +700,7 @@ void UIWidgetAdapter::GenerateLineGeometry(const DrawCommand& cmd) {
         m_Indices.push_back(startIndex + 2);
         m_Indices.push_back(startIndex + 3);
         m_Indices.push_back(startIndex + 0);
-        AddOrMergeBatch(6);
+        AddOrMergeBatch(6, false, 0, 0, 0.0f, opaqueFill);
     };
 
     // Axis-aligned lines: pixel-snapped solid fills for crisp 1px separators.
@@ -673,10 +726,10 @@ void UIWidgetAdapter::GenerateLineGeometry(const DrawCommand& cmd) {
     const float py = ndx * (thickness * 0.5f);
     const float solidType = 5.0f;
 
-    UIVertex2 v0{{s.x + px, s.y + py}, {0.5f, 0.5f}, {color.r, color.g, color.b, color.a}, {0, 0, 0, 0}, {0.0f, solidType, 0.0f, 0.0f}};
-    UIVertex2 v1{{s.x - px, s.y - py}, {0.5f, 0.5f}, {color.r, color.g, color.b, color.a}, {0, 0, 0, 0}, {0.0f, solidType, 0.0f, 0.0f}};
-    UIVertex2 v2{{e.x - px, e.y - py}, {0.5f, 0.5f}, {color.r, color.g, color.b, color.a}, {0, 0, 0, 0}, {0.0f, solidType, 0.0f, 0.0f}};
-    UIVertex2 v3{{e.x + px, e.y + py}, {0.5f, 0.5f}, {color.r, color.g, color.b, color.a}, {0, 0, 0, 0}, {0.0f, solidType, 0.0f, 0.0f}};
+    UIVertex2 v0{{s.x + px, s.y + py}, {0.5f, 0.5f}, {color.r, color.g, color.b, alpha}, {0, 0, 0, 0}, {0.0f, solidType, 0.0f, 0.0f}};
+    UIVertex2 v1{{s.x - px, s.y - py}, {0.5f, 0.5f}, {color.r, color.g, color.b, alpha}, {0, 0, 0, 0}, {0.0f, solidType, 0.0f, 0.0f}};
+    UIVertex2 v2{{e.x - px, e.y - py}, {0.5f, 0.5f}, {color.r, color.g, color.b, alpha}, {0, 0, 0, 0}, {0.0f, solidType, 0.0f, 0.0f}};
+    UIVertex2 v3{{e.x + px, e.y + py}, {0.5f, 0.5f}, {color.r, color.g, color.b, alpha}, {0, 0, 0, 0}, {0.0f, solidType, 0.0f, 0.0f}};
 
     const uint32_t startIndex = static_cast<uint32_t>(m_Vertices.size());
     m_Vertices.push_back(v0);
@@ -689,7 +742,7 @@ void UIWidgetAdapter::GenerateLineGeometry(const DrawCommand& cmd) {
     m_Indices.push_back(startIndex + 2);
     m_Indices.push_back(startIndex + 3);
     m_Indices.push_back(startIndex + 0);
-    AddOrMergeBatch(6);
+    AddOrMergeBatch(6, false, 0, 0, 0.0f, opaqueFill);
 }
 
 void UIWidgetAdapter::GenerateShadowGeometry(const DrawCommand& cmd) {
@@ -748,6 +801,19 @@ void UIWidgetAdapter::GenerateShadowGeometry(const DrawCommand& cmd) {
 }
 
 void UIWidgetAdapter::GenerateGradientGeometry(const DrawCommand& cmd) {
+    const bool sameOpaqueColor =
+        ColorSpace::IsOpaqueAuthoring(cmd.color)
+        && ColorSpace::IsOpaqueAuthoring(cmd.colorBottom)
+        && std::fabs(cmd.color.r - cmd.colorBottom.r) < 0.001f
+        && std::fabs(cmd.color.g - cmd.colorBottom.g) < 0.001f
+        && std::fabs(cmd.color.b - cmd.colorBottom.b) < 0.001f;
+    if (sameOpaqueColor && cmd.borderRadius <= 0.0f) {
+        DrawCommand solid = cmd;
+        solid.colorBottom = cmd.color;
+        GenerateRectGeometry(solid);
+        return;
+    }
+
     float x0 = SnapPx(cmd.rect.x);
     float y0 = SnapPx(cmd.rect.y);
     float x1 = SnapPx(cmd.rect.x + cmd.rect.width);
@@ -795,11 +861,14 @@ void UIWidgetAdapter::GenerateRoundedOutlineGeometry(const DrawCommand& cmd) {
     
     float type = 2.0f;
     const float thickness = std::max(1.0f, SnapPx(cmd.thickness));
+    const bool opaqueFill = ColorSpace::IsOpaqueAuthoring(cmd.color);
+    const float opaqueHard = opaqueFill ? 1.0f : 0.0f;
+    const float fillAlpha = opaqueFill ? 1.0f : cmd.color.a;
     
-    UIVertex2 v0{ {x,     y},     {0.5f, 0.5f}, {cmd.color.r, cmd.color.g, cmd.color.b, cmd.color.a}, {x, y, w, h}, {cmd.borderRadius, type, thickness, 0.0f} };
-    UIVertex2 v1{ {x + w, y},     {0.5f, 0.5f}, {cmd.color.r, cmd.color.g, cmd.color.b, cmd.color.a}, {x, y, w, h}, {cmd.borderRadius, type, thickness, 0.0f} };
-    UIVertex2 v2{ {x + w, y + h}, {0.5f, 0.5f}, {cmd.color.r, cmd.color.g, cmd.color.b, cmd.color.a}, {x, y, w, h}, {cmd.borderRadius, type, thickness, 0.0f} };
-    UIVertex2 v3{ {x,     y + h}, {0.5f, 0.5f}, {cmd.color.r, cmd.color.g, cmd.color.b, cmd.color.a}, {x, y, w, h}, {cmd.borderRadius, type, thickness, 0.0f} };
+    UIVertex2 v0{ {x,     y},     {0.5f, 0.5f}, {cmd.color.r, cmd.color.g, cmd.color.b, fillAlpha}, {x, y, w, h}, {cmd.borderRadius, type, thickness, opaqueHard} };
+    UIVertex2 v1{ {x + w, y},     {0.5f, 0.5f}, {cmd.color.r, cmd.color.g, cmd.color.b, fillAlpha}, {x, y, w, h}, {cmd.borderRadius, type, thickness, opaqueHard} };
+    UIVertex2 v2{ {x + w, y + h}, {0.5f, 0.5f}, {cmd.color.r, cmd.color.g, cmd.color.b, fillAlpha}, {x, y, w, h}, {cmd.borderRadius, type, thickness, opaqueHard} };
+    UIVertex2 v3{ {x,     y + h}, {0.5f, 0.5f}, {cmd.color.r, cmd.color.g, cmd.color.b, fillAlpha}, {x, y, w, h}, {cmd.borderRadius, type, thickness, opaqueHard} };
     
     uint32_t startIndex = static_cast<uint32_t>(m_Vertices.size());
     m_Vertices.push_back(v0);
@@ -814,7 +883,7 @@ void UIWidgetAdapter::GenerateRoundedOutlineGeometry(const DrawCommand& cmd) {
     m_Indices.push_back(startIndex + 3);
     m_Indices.push_back(startIndex + 0);
     
-    AddOrMergeBatch(6);
+    AddOrMergeBatch(6, false, 0, 0, 0.0f, opaqueFill);
 }
 
 } // namespace we::runtime::kindui

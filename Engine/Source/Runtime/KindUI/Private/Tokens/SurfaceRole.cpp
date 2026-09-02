@@ -13,6 +13,8 @@ ColorToken TokenForRole(SurfaceRole role) {
     switch (role) {
     case SurfaceRole::Window:
         return ColorToken::WindowBackground;
+    case SurfaceRole::Workspace:
+        return ColorToken::WorkspaceBackground;
     case SurfaceRole::Toolbar:
         return ColorToken::ToolbarBackground;
     case SurfaceRole::DockChrome:
@@ -32,7 +34,7 @@ ColorToken TokenForRole(SurfaceRole role) {
     case SurfaceRole::InputBorder:
         return ColorToken::BorderDefault;
     case SurfaceRole::Control:
-        return ColorToken::CardBackground;
+        return ColorToken::ControlBackground;
     case SurfaceRole::ControlHover:
         return ColorToken::HoverBackground;
     case SurfaceRole::ControlPressed:
@@ -54,7 +56,7 @@ ColorToken TokenForRole(SurfaceRole role) {
     case SurfaceRole::Border:
         return ColorToken::BorderDefault;
     case SurfaceRole::StatusBar:
-        return ColorToken::WorkspaceBackground;
+        return ColorToken::StatusBarBackground;
     case SurfaceRole::ViewportToolbar:
         return ColorToken::ViewportToolbarBackground;
     case SurfaceRole::Accent:
@@ -80,9 +82,10 @@ SurfaceRole SurfaceRoleFromColorToken(ColorToken token) {
     switch (token) {
     case ColorToken::WindowBackground:
         return SurfaceRole::Window;
+    case ColorToken::WorkspaceBackground:
+        return SurfaceRole::Workspace;
     case ColorToken::ToolbarBackground:
         return SurfaceRole::Toolbar;
-    case ColorToken::WorkspaceBackground:
     case ColorToken::DockChromeBackground:
         return SurfaceRole::DockChrome;
     case ColorToken::TabActiveBackground:
@@ -149,6 +152,7 @@ TextRole TextRoleFromSurfaceRole(SurfaceRole role) {
 const char* SurfaceRoleName(SurfaceRole role) {
     switch (role) {
     case SurfaceRole::Window: return "Window";
+    case SurfaceRole::Workspace: return "Workspace";
     case SurfaceRole::Toolbar: return "Toolbar";
     case SurfaceRole::DockChrome: return "DockChrome";
     case SurfaceRole::TabActive: return "TabActive";
@@ -213,7 +217,7 @@ Color ResolveSurfaceColor(SurfaceRole role) {
     if (role == SurfaceRole::Transparent || role == SurfaceRole::None) {
         return Color::Transparent();
     }
-    const Color resolved = ResolveColor(TokenForRole(role));
+    const Color resolved = ColorSpace::OpaqueSurface(ResolveColor(TokenForRole(role)));
     if (UiColorDebug::IsSemanticAuditEnabled()) {
         UiColorDebug::Get().TraceResolveSurface(role, resolved);
     }

@@ -122,20 +122,21 @@ float4 PSMain(VSOutput input) : SV_Target
         return float4(input.color.rgb, input.color.a * coverage);
     }
 
-    // Type 5.0 is a solid quad (lines, flat fills) — vertex color only.
+    // Type 5.0 is an opaque solid quad — RGB only, alpha forced to 1.0.
     if (type > 4.5 && type < 5.5)
     {
-        return input.color;
+        return float4(input.color.rgb, 1.0);
     }
 
-    // Type 4.0 is a full-color texture (viewport / render targets).
+    // Type 4.0 is a full-color texture (viewport / render targets) — no tint multiply.
     if (type > 3.5 && type < 4.5)
     {
-        float4 texColor = texSampler.Sample(samp0, input.uv);
-        return texColor * input.color;
+        return texSampler.Sample(samp0, input.uv);
     }
 
     // Type 1.0 is Rect, Type 2.0 is Border
+    // sdfParams.w = 1.0 requests a hard coverage mask (no SDF feather) for opaque theme fills.
+    const bool opaqueHard = input.sdfParams.w > 0.5;
     float2 center = float2(input.sdfRect.x + input.sdfRect.z * 0.5, input.sdfRect.y + input.sdfRect.w * 0.5);
     float2 halfSize = float2(input.sdfRect.z * 0.5, input.sdfRect.w * 0.5);
     float radius = input.sdfParams.x;
@@ -149,10 +150,22 @@ float4 PSMain(VSOutput input) : SV_Target
     {
         float thickness = max(input.sdfParams.z, 1.0);
         float edgeDist = abs(dist) - thickness * 0.5;
+        if (opaqueHard) {
+            if (edgeDist > 0.0) {
+                discard;
+            }
+            return float4(input.color.rgb, 1.0);
+        }
         alpha = sdfBorderAlpha(edgeDist);
     }
     else
     {
+        if (opaqueHard) {
+            if (dist > 0.0) {
+                discard;
+            }
+            return float4(input.color.rgb, 1.0);
+        }
         alpha = sdfFillAlpha(dist);
     }
 

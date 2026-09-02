@@ -474,11 +474,8 @@ void SidebarItem::Paint(PaintContext& context) {
         m_Active ? StyleRole::SidebarItemActive : StyleRole::SidebarItem);
     ControlChrome::InteractionState state{ m_HoverAnim, m_Pressed ? 1.0f : 0.0f, m_Active, false, false };
     ResolvedStyle paintStyle = style;
-    if (!m_Active && m_HoverAnim > 0.01f) {
-        paintStyle.background = Color::Lerp(
-            Color::Transparent(),
-            ResolveColor(ColorToken::HoverBackground),
-            m_HoverAnim);
+    if (!m_Active && m_HoverAnim >= 0.5f) {
+        paintStyle.background = ResolveColor(ColorToken::HoverBackground);
     }
     context.DrawRoundedRect(m_Geometry, paintStyle.background, style.cornerRadius);
     if (m_Active) {

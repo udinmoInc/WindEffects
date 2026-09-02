@@ -1,5 +1,6 @@
 #include "OutlinerInternal.h"
 
+#include "PropertyEditor/DetailsSceneBinding.h"
 #include "ViewportEdit/IViewportEditor.h"
 #include "ViewportEdit/IViewportSelection.h"
 #include "ViewportEdit/ViewportEditSession.h"
@@ -247,8 +248,7 @@ public:
         m_Deps.scene->SetSelectedEntityId(primary.value);
         if (m_Deps.detailsView) {
             if (auto* entity = m_Deps.scene->FindEntityById(primary.value)) {
-                static const auto entityTypeId = ::we::runtime::reflection::MakeTypeId("we::runtime::scene::Entity");
-                m_Deps.detailsView->SetObject(entityTypeId, entity);
+                ::we::editor::property::PopulateDetailsFromSceneEntity(*m_Deps.detailsView, entity);
             } else {
                 m_Deps.detailsView->Clear();
             }

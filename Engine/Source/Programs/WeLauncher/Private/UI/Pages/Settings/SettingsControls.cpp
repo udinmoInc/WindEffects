@@ -58,7 +58,7 @@ void ToggleSwitch::Paint(PaintContext& context) {
     const float radius = m_Geometry.height * 0.5f;
     Color off = LColor(ColorToken::InputBackground);
     Color on = LColor(ColorToken::AccentPrimary);
-    Color track = Color::Lerp(off, on, m_Anim);
+    Color track = Color::Pick(off, on, m_Anim);
     context.DrawRoundedRect(m_Geometry, track, radius);
     context.DrawRoundedRectOutline(m_Geometry, LColor(ColorToken::BorderDefault), 1.0f, radius);
 
@@ -136,7 +136,7 @@ void SettingsCheckBox::Paint(PaintContext& context) {
     const float radius = 4.0f * s;
     Color bg = m_Checked ? LColor(ColorToken::AccentPrimary) : LColor(ColorToken::InputBackground);
     if (m_HoverAnim > 0.01f && !m_Checked) {
-        bg = Color::Lerp(bg, LColor(ColorToken::HoverBackground), m_HoverAnim);
+        bg = Color::Pick(bg, LColor(ColorToken::HoverBackground), m_HoverAnim);
     }
     context.DrawRoundedRect(m_Geometry, bg, radius);
     context.DrawRoundedRectOutline(m_Geometry, LColor(ColorToken::BorderDefault), 1.0f, radius);
@@ -282,7 +282,7 @@ void SettingsDropdown::Paint(PaintContext& context) {
 
     Color bg = LColor(ColorToken::InputBackground);
     if (m_HoverAnim > 0.01f || m_Open) {
-        bg = Color::Lerp(bg, LColor(ColorToken::HoverBackground), std::max(m_HoverAnim, m_Open ? 1.0f : 0.0f));
+        bg = Color::Pick(bg, LColor(ColorToken::HoverBackground), std::max(m_HoverAnim, m_Open ? 1.0f : 0.0f));
     }
     context.DrawRoundedRect(trigger, bg, radius);
     context.DrawRoundedRectOutline(

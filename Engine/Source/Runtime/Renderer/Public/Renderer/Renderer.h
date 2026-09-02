@@ -141,7 +141,8 @@ private:
     uint32_t m_UiImageIndex = UINT32_MAX;
     bool m_OverlayPassRan = false;
     bool m_OverlayPassEnded = false;
-    we::rhi::Color4f m_SwapchainClearColor{0.09f, 0.09f, 0.10f, 1.0f};
+    // Linear RGB clear for GraphiteDark #151515 on sRGB swapchains (set precisely in Editor startup).
+    we::rhi::Color4f m_SwapchainClearColor{0.007499f, 0.007499f, 0.007499f, 1.0f};
 };
 
 } // namespace we::runtime::renderer

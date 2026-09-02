@@ -37,16 +37,18 @@ float RegionSeparationGap() {
 void PaintRegionBackground(PanelBodyRegion region, PaintContext& context, const Rect& geometry) {
     switch (region) {
     case PanelBodyRegion::ModeTabs:
+        break;
     case PanelBodyRegion::ColumnHeader:
     case PanelBodyRegion::Footer:
         Chrome::PaintListLabelBand(context, geometry);
         break;
     case PanelBodyRegion::Search:
+        break;
     case PanelBodyRegion::Toolbar:
         Chrome::PaintToolbarRegion(context, geometry);
         break;
     case PanelBodyRegion::Content:
-        Chrome::PaintContentWell(context, geometry);
+        Chrome::PaintPrimaryContentRegion(context, geometry);
         break;
     case PanelBodyRegion::Count:
         break;
@@ -339,7 +341,7 @@ void PanelBodyLayout::Arrange(const Rect& allottedRect) {
 
 void PanelBodyLayout::Paint(PaintContext& context) {
     if (!m_Geometry.IsEmpty()) {
-        Chrome::PaintNavigationRegion(context, m_Geometry);
+        Chrome::PaintPanelSurface(context, m_Geometry);
     }
 
     const auto paintRegion = [&](PanelBodyRegion region, bool paintAfterContent) {

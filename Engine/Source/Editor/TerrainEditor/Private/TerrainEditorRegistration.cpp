@@ -17,6 +17,9 @@ using we::runtime::terrain::TerrainBrushOp;
 namespace {
 
 void ActivateLandscapeViewportMode() {
+    if (we::editor::shell::EditorModeController::Get().GetActiveModeId() != "Landscape") {
+        we::editor::shell::EditorModeController::Get().SetActiveMode("Landscape");
+    }
     TerrainEditorService::Get().InstallViewportMode();
     if (auto* editor = we::editor::viewportedit::ViewportEditSession::Editor()) {
         editor->SetActiveMode("Landscape");

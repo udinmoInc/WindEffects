@@ -530,7 +530,7 @@ void TemplateListRow::Paint(PaintContext& context) {
     const float pad = 10.0f * s;
     context.DrawRoundedRect(
         Rect{ m_Geometry.x + pad, m_Geometry.y + (m_Geometry.height - iconBox) * 0.5f, iconBox, iconBox },
-        Color::Lerp(badge, LColor(ColorToken::PanelBackground), 0.5f),
+        Color::Pick(badge, LColor(ColorToken::PanelBackground), 0.5f),
         6.0f * s);
     IconPainter::Draw(
         context,

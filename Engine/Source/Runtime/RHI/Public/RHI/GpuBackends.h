@@ -34,6 +34,7 @@ struct UIDrawBatch {
     float scissor[4]{};
     uint32_t stencilRef = 0;
     bool isText = false;
+    bool opaqueReplace = false;
     uint32_t atlasWidth = 0;
     uint32_t atlasHeight = 0;
     float msdfPixelRange = 4.0f;

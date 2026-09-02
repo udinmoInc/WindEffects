@@ -539,7 +539,7 @@ we::rhi::Format Renderer::GetSwapchainFormat() const {
     if (m_RHIDevice && m_RHIDevice->GetSwapchain()) {
         return m_RHIDevice->GetSwapchain()->GetFormat();
     }
-    return we::rhi::Format::B8G8R8A8_UNORM;
+    return we::rhi::Format::B8G8R8A8_SRGB;
 }
 
 void Renderer::RecreateSwapchain(uint32_t width, uint32_t height) {

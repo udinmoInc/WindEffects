@@ -62,9 +62,9 @@ void PlaceActorsThumbnailProvider::Paint(PaintContext& context,
 
     // Shared preview frame — identical layout for placeholder, atlas icon, and future thumbnails.
     Color frame = we::runtime::kindui::ResolveColor(ColorToken::HoverBackground);
-    frame = Color::Lerp(frame, we::runtime::kindui::ResolveColor(ColorToken::PanelBackground), 0.35f);
+    frame = Color::Pick(frame, we::runtime::kindui::ResolveColor(ColorToken::PanelBackground), 0.35f);
     if (hoverAnim > 0.01f) {
-        frame = Color::Lerp(frame, we::runtime::kindui::ResolveColor(ColorToken::HoverBackground), hoverAnim * 0.25f);
+        frame = Color::Pick(frame, we::runtime::kindui::ResolveColor(ColorToken::HoverBackground), hoverAnim * 0.25f);
     }
     context.DrawRoundedRect(previewRect, frame, radius);
 

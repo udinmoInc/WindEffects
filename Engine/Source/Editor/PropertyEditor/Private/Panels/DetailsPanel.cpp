@@ -23,7 +23,6 @@ std::shared_ptr<Panel> CreateDetailsPanel() {
 
     auto panel = std::make_shared<Panel>(std::string(title));
     panel->AttachBodyLayout();
-    panel->SetHeaderHeight(we::runtime::kindui::ResolveMetric(MetricToken::PanelHeaderHeight));
     panel->SetCollapsible(false);
     panel->SetTabIcon(we::runtime::kindui::kWindIconNone);
 

@@ -61,7 +61,7 @@ void PaintToolbarButtonChrome(PaintContext& context, const Rect& rect, float hov
         hoverAnim,
         pressAnim,
         selected,
-        ColorToken::ToolbarBackground);
+        ColorToken::ControlBackground);
 
     if (primary) {
         context.DrawRoundedRectOutline(
@@ -176,7 +176,7 @@ void ToolbarLabeledButton::Paint(PaintContext& context) {
 
     Color textColor = ThemeColor(ColorToken::TextPrimary);
     if (m_Variant == Variant::Primary) {
-        textColor = Color::Lerp(ThemeColor(ColorToken::TextPrimary), ThemeColor(ColorToken::AccentPrimary), 0.25f);
+        textColor = Color::Pick(ThemeColor(ColorToken::TextPrimary), ThemeColor(ColorToken::AccentPrimary), 0.25f);
     }
     context.DrawText(m_Label, Point{ x, textY }, textColor, textSize, m_Variant == Variant::Primary);
 

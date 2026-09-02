@@ -57,7 +57,7 @@ void SettingsTextField::Paint(PaintContext& context) {
     const float radius = LMetric(MetricToken::CornerRadiusSmall) * s;
     Color bg = LColor(ColorToken::InputBackground);
     if (m_HoverAnim > 0.01f) {
-        bg = Color::Lerp(bg, LColor(ColorToken::HoverBackground), m_HoverAnim * 0.5f);
+        bg = Color::Pick(bg, LColor(ColorToken::HoverBackground), m_HoverAnim * 0.5f);
     }
     context.DrawRoundedRect(m_Geometry, bg, radius);
     context.DrawRoundedRectOutline(
@@ -212,7 +212,7 @@ void PathPickerField::Paint(PaintContext& context) {
 
     Color browseBg = LColor(ColorToken::ButtonPrimaryBackground);
     if (m_HoverBrowse) {
-        browseBg = Color::Lerp(browseBg, LColor(ColorToken::ButtonPrimaryHover), 0.65f);
+        browseBg = Color::Pick(browseBg, LColor(ColorToken::ButtonPrimaryHover), 0.65f);
     }
     context.DrawRoundedRect(browse, browseBg, radius);
 

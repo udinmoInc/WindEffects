@@ -11,26 +11,40 @@
 namespace we::runtime::kindui {
 namespace {
 
+bool IsCompositeColorToken(ColorToken token) {
+    switch (token) {
+    case ColorToken::TooltipBackground:
+    case ColorToken::DragGhostBackground:
+    case ColorToken::ActiveTabLine:
+    case ColorToken::SelectionHighlight:
+    case ColorToken::HighlightSubtle:
+    case ColorToken::ModalScrim:
+    case ColorToken::ShadowPopup:
+    case ColorToken::ShadowSubtle:
+    case ColorToken::ShadowOverlay:
+    case ColorToken::ShadowColor:
+    case ColorToken::ContentBrowserFolderShadow:
+        return true;
+    default:
+        return false;
+    }
+}
+
 Color ResolveInteractiveBackgroundImpl(
     float hoverAnim,
     float pressAnim,
     bool selected,
     ColorToken surfaceToken)
 {
-    using namespace ColorSpace;
+    (void)surfaceToken;
     if (selected) {
-        return OpaqueSurface(ResolveColor(ColorToken::SelectedBackground));
+        return ColorSpace::OpaqueSurface(ResolveColor(ColorToken::SelectedBackground));
     }
-    const Color base = OpaqueSurface(ResolveColor(surfaceToken));
-    const float press = std::clamp(pressAnim, 0.0f, 1.0f);
-    if (press > 0.001f) {
-        const Color pressed = OpaqueSurface(ResolveColor(ColorToken::PressedBackground));
-        return LerpSrgb(base, pressed, press);
+    if (pressAnim >= 0.5f) {
+        return ColorSpace::OpaqueSurface(ResolveColor(ColorToken::PressedBackground));
     }
-    const float hover = std::clamp(hoverAnim, 0.0f, 1.0f);
-    if (hover > 0.001f) {
-        const Color hoverColor = OpaqueSurface(ResolveColor(ColorToken::HoverBackground));
-        return LerpSrgb(base, hoverColor, hover);
+    if (hoverAnim >= 0.5f) {
+        return ColorSpace::OpaqueSurface(ResolveColor(ColorToken::HoverBackground));
     }
     return Color::Transparent();
 }
@@ -42,7 +56,10 @@ IKindUITheme& ResolveDefaultTheme() {
 }
 
 Color ResolveColor(ColorToken token) {
-    const Color resolved = ThemeManager::Get().Theme().ResolveColor(token);
+    Color resolved = ThemeManager::Get().Theme().ResolveColor(token);
+    if (!IsCompositeColorToken(token)) {
+        resolved = ColorSpace::OpaqueSurface(resolved);
+    }
     if (UiColorDebug::IsEnabled()) {
         UiColorDebug::Get().TraceResolve(token, resolved);
     }
@@ -114,9 +131,8 @@ Color ResolveIconColor(
 {
     if (accent || role == IconColorRole::Accent) {
         Color accentColor = ResolveColor(ColorToken::IconAccent);
-        if (hoverAnim > 0.01f || pressStrength > 0.01f) {
-            const Color hover = ResolveColor(ColorToken::AccentHover);
-            accentColor = Color::Lerp(accentColor, hover, std::max(hoverAnim, pressStrength));
+        if (hoverAnim >= 0.5f || pressStrength >= 0.5f) {
+            accentColor = ResolveColor(ColorToken::AccentHover);
         }
         return accentColor;
     }
@@ -126,10 +142,10 @@ Color ResolveIconColor(
     }
 
     Color base = ResolveColor(ColorToken::IconSecondary);
-    if (pressStrength > 0.01f) {
-        base = Color::Lerp(base, ResolveColor(ColorToken::IconActive), pressStrength);
-    } else if (hoverAnim > 0.01f) {
-        base = Color::Lerp(base, ResolveColor(ColorToken::IconHover), hoverAnim);
+    if (pressStrength >= 0.5f) {
+        base = ResolveColor(ColorToken::IconActive);
+    } else if (hoverAnim >= 0.5f) {
+        base = ResolveColor(ColorToken::IconHover);
     }
     return base;
 }

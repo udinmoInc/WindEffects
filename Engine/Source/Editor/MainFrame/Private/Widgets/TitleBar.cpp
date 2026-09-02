@@ -133,7 +133,7 @@ namespace {
 
             const float radius = ThemeMetric(MetricToken::CornerRadiusMedium) * uiScale;
             if (m_HoverAnim > 0.01f) {
-                Color hoverBg = Color::Lerp(
+                Color hoverBg = Color::Pick(
                     ThemeColor(ColorToken::ButtonPrimaryBackground),
                     ThemeColor(ColorToken::HoverBackground),
                     m_HoverAnim);

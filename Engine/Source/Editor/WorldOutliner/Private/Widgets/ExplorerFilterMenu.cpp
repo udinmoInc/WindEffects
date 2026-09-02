@@ -4,6 +4,7 @@
 #include "KindUI/Core/PaintContext.h"
 #include "KindUI/Core/TextMetrics.h"
 #include "KindUI/Tokens/DesignToken.h"
+#include "KindUI/Tokens/SurfaceRole.h"
 #include "KindUI/Theming/StyleRole.h"
 #include "KindUI/Theming/ThemeAccess.h"
 #include "KindUI/Core/WindIcon.h"
@@ -113,7 +114,7 @@ void ExplorerFilterMenu::Paint(PaintContext& context) {
     const float menuPad = we::runtime::kindui::UiMetrics::MenuPadding();
     const float radius = ThemeMetric(MetricToken::CornerRadiusSmall);
 
-    context.DrawRoundedRect(m_Geometry, ResolveColor(ColorToken::PanelBackground), radius);
+    context.DrawSurface(m_Geometry, we::runtime::kindui::SurfaceRole::Popup, radius, "ExplorerFilterMenu");
     context.DrawRoundedRectOutline(
         m_Geometry,
         ResolveColor(ColorToken::BorderLight),
@@ -125,9 +126,11 @@ void ExplorerFilterMenu::Paint(PaintContext& context) {
 
         if (item.isSeparator) {
             const float sepY = item.geometry.y + rowH * 0.5f;
-            context.DrawRect(
+            context.DrawSurface(
                 Rect{ item.geometry.x + menuPad, sepY, item.geometry.width - menuPad * 2.0f, ThemeMetric(MetricToken::BorderWidth) },
-                ThemeColor(ColorToken::Separator));
+                we::runtime::kindui::SurfaceRole::Separator,
+                0.0f,
+                "ExplorerFilterMenuSeparator");
             continue;
         }
 

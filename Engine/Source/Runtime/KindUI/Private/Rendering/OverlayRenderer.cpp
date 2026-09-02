@@ -65,6 +65,7 @@ namespace {
         std::memcpy(out.scissor, batch.scissor, sizeof(out.scissor));
         out.stencilRef = batch.stencilRef;
         out.isText = batch.isText;
+        out.opaqueReplace = batch.opaqueReplace;
         out.atlasWidth = batch.atlasWidth;
         out.atlasHeight = batch.atlasHeight;
         out.msdfPixelRange = batch.msdfPixelRange;

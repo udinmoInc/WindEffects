@@ -13,12 +13,9 @@
 #include <algorithm>
 #include <cmath>
 
-using ::we::runtime::kindui::ColorToken;
 using ::we::runtime::kindui::MetricToken;
-using ::we::runtime::kindui::PaddingToken;
 using ::we::runtime::kindui::DPIContext;
 using ::we::runtime::kindui::AssertLayoutRectValid;
-using ::we::runtime::kindui::ClampRectToParent;
 
 namespace we::editor::docking {
 namespace PanelChrome = ::we::editor::panels::PanelChrome;
@@ -105,6 +102,8 @@ void DockContainer::Tick(float deltaTime) {
 
 Size DockContainer::Measure(const Size& availableSize) {
     const float headerHeight = GetHeaderHeightDevice();
+    const float headerContentGap = PanelChrome::DockHeaderContentGap();
+    const Size measuredAvail = PanelChrome::InsetDockMeasureAvailable(availableSize);
 
     PaintContext context;
     float requiredTabWidth = 0.0f;
@@ -117,48 +116,43 @@ Size DockContainer::Measure(const Size& availableSize) {
         }
     }
 
-    float desiredW = (availableSize.width < 1.0e8f) ? availableSize.width : requiredTabWidth;
-    float desiredH = (availableSize.height < 1.0e8f) ? availableSize.height : headerHeight;
+    float desiredW = (measuredAvail.width < 1.0e8f) ? measuredAvail.width : requiredTabWidth;
+    float desiredH = (measuredAvail.height < 1.0e8f) ? measuredAvail.height : headerHeight;
 
     Size panelContentDesired{ 0.0f, 0.0f };
     if (m_ActiveTabIndex >= 0 && m_ActiveTabIndex < static_cast<int>(m_Tabs.size())) {
         auto activePanel = m_Tabs[static_cast<size_t>(m_ActiveTabIndex)].panel;
 
-        Size contentAvailable = availableSize;
+        Size contentAvailable = measuredAvail;
         if (contentAvailable.height < 1.0e8f) {
-            contentAvailable.height = (std::max)(0.0f, contentAvailable.height - headerHeight);
+            contentAvailable.height = std::max(0.0f, contentAvailable.height - headerHeight - headerContentGap);
         }
 
         panelContentDesired = activePanel->Measure(contentAvailable);
     }
 
     if (availableSize.width >= 1.0e8f) {
-        desiredW = (std::max)({ desiredW, requiredTabWidth, panelContentDesired.width });
+        desiredW = std::max({ desiredW, requiredTabWidth, panelContentDesired.width });
+    } else {
+        desiredW = std::max(desiredW, panelContentDesired.width);
     }
     if (availableSize.height >= 1.0e8f) {
-        desiredH = headerHeight + panelContentDesired.height;
+        desiredH = headerHeight + headerContentGap + panelContentDesired.height;
+    } else {
+        desiredH = std::max(desiredH, headerHeight + headerContentGap + panelContentDesired.height);
     }
 
-    m_DesiredSize = ClampDesiredSize(Size{ desiredW, desiredH });
+    m_DesiredSize = ClampDesiredSize(
+        PanelChrome::ExpandDockMeasuredSize(Size{ desiredW, desiredH }, availableSize));
     return m_DesiredSize;
 }
 
 void DockContainer::Arrange(const Rect& allottedRect) {
     m_Geometry = allottedRect;
-    const float headerHeight = GetHeaderHeightDevice();
-
-    m_HeaderRect = ClampRectToParent(
-        Rect{ allottedRect.x, allottedRect.y, allottedRect.width, headerHeight },
-        allottedRect);
-
-    m_ContentRect = ClampRectToParent(
-        Rect{
-            allottedRect.x,
-            allottedRect.y + headerHeight,
-            allottedRect.width,
-            (std::max)(0.0f, allottedRect.height - headerHeight)
-        },
-        allottedRect);
+    const auto layout = PanelChrome::LayoutDockPanel(allottedRect, GetHeaderHeightDevice());
+    m_HeaderRect = layout.headerRect;
+    m_HeaderContentGapRect = layout.headerContentGapRect;
+    m_ContentRect = layout.contentRect;
 
     AssertLayoutRectValid("DockContainer.header", m_HeaderRect, allottedRect);
     AssertLayoutRectValid("DockContainer.content", m_ContentRect, allottedRect);
@@ -260,32 +254,25 @@ float DockContainer::MeasureTabWidth(PaintContext& context, const TabInfo& tabIn
 }
 
 void DockContainer::PaintTab(PaintContext& context, TabInfo& tabInfo, int index, float& currentX) {
+    (void)context;
+    (void)tabInfo;
+    (void)index;
     (void)currentX;
-    const bool isActive = (index == m_ActiveTabIndex);
-    const bool showClose = isActive || tabInfo.isHovered;
-    const bool flushLeft = (index == 0);
-
-    PanelChrome::DockTabDescriptor descriptor{};
-    descriptor.title = tabInfo.panel->GetTitle();
-    descriptor.icon = tabInfo.panel->GetTabIcon();
-    descriptor.hasBrand = tabInfo.panel->HasTabBrand();
-    descriptor.brandDescriptor = tabInfo.panel->GetTabBrandDescriptor();
-    descriptor.brandLogicalSize = tabInfo.panel->GetTabBrandLogicalSize();
-
-    PanelChrome::DockTabLayout layout{ tabInfo.tabRect, tabInfo.closeRect };
-    PanelChrome::PaintDockTab(
-        context,
-        descriptor,
-        layout,
-        m_HeaderRect,
-        isActive,
-        tabInfo.hoverAnim,
-        showClose,
-        tabInfo.isCloseHovered,
-        flushLeft);
 }
 
 void DockContainer::Paint(PaintContext& context) {
+    if (m_ActiveTabIndex < 0 || m_ActiveTabIndex >= static_cast<int>(m_Tabs.size())) {
+        return;
+    }
+
+    if (!m_HeaderRect.IsEmpty()) {
+        context.DrawSurface(
+            m_HeaderRect,
+            we::runtime::kindui::SurfaceRole::DockChrome,
+            0.0f,
+            "DockTabStripBand");
+    }
+
     std::vector<PanelChrome::DockTabDescriptor> descriptors;
     descriptors.reserve(m_Tabs.size());
     PanelChrome::DockTabStripLayout stripLayout{};
@@ -302,9 +289,7 @@ void DockContainer::Paint(PaintContext& context) {
     }
 
     PanelChrome::DockTabStripState state{};
-    if (m_ActiveTabIndex >= 0) {
-        state.activeIndex = static_cast<size_t>(m_ActiveTabIndex);
-    }
+    state.activeIndex = static_cast<size_t>(m_ActiveTabIndex);
     state.showClose = [this](size_t index, bool isActive, bool /*isHovered*/) {
         const auto& tabInfo = m_Tabs[index];
         return isActive || tabInfo.isHovered;
@@ -315,15 +300,19 @@ void DockContainer::Paint(PaintContext& context) {
     state.closeHovered = [this](size_t index) {
         return m_Tabs[index].isCloseHovered;
     };
-    PanelChrome::PaintDockTabStrip(context, m_HeaderRect, descriptors, stripLayout, state);
 
-    if (m_ActiveTabIndex >= 0 && m_ActiveTabIndex < static_cast<int>(m_Tabs.size())) {
-        auto activePanel = m_Tabs[static_cast<size_t>(m_ActiveTabIndex)].panel;
-
-        context.PushClipRect(m_ContentRect);
-        activePanel->Paint(context);
-        context.PopClipRect();
-    }
+    auto activePanel = m_Tabs[static_cast<size_t>(m_ActiveTabIndex)].panel;
+    PanelChrome::PaintDockPanelChrome(
+        context,
+        m_HeaderRect,
+        m_HeaderContentGapRect,
+        m_ContentRect,
+        descriptors,
+        stripLayout,
+        state,
+        [&](PaintContext& paintContext) {
+            activePanel->Paint(paintContext);
+        });
 }
 
 void DockContainer::OnMouseDown(const MouseEvent& event) {

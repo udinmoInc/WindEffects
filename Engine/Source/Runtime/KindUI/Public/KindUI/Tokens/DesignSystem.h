@@ -80,7 +80,7 @@ namespace Radius {
 
 namespace Surface {
 [[nodiscard]] inline Color Window() { return ResolveSurfaceColor(SurfaceRole::Window); }
-[[nodiscard]] inline Color Workspace() { return ResolveSurfaceColor(SurfaceRole::DockChrome); }
+[[nodiscard]] inline Color Workspace() { return ResolveSurfaceColor(SurfaceRole::Workspace); }
 [[nodiscard]] inline Color DockChrome() { return ResolveSurfaceColor(SurfaceRole::DockChrome); }
 [[nodiscard]] inline Color Panel() { return ResolveSurfaceColor(SurfaceRole::Panel); }
 [[nodiscard]] inline Color Secondary() { return ResolveSurfaceColor(SurfaceRole::Recessed); }

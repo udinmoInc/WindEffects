@@ -1,9 +1,11 @@
 #include "PropertyEditorInternal.h"
 #include "PropertyEditor/IDetailsView.h"
 
+#include "WindEffects/Editor/UI/Panel/PanelChrome.h"
 #include "KindUI/Core/LayoutMetrics.h"
 #include "KindUI/Core/PropertyPanelChrome.h"
 #include "KindUI/Core/Style.h"
+#include "KindUI/Core/WindIcon.h"
 
 #include <cmath>
 
@@ -60,6 +62,10 @@ public:
         SyncScroll();
         if (!m_Tree || m_Tree->GetFilteredRootNodes().empty()) {
             return;
+        }
+
+        if (!m_ScrollMetrics.viewport.IsEmpty()) {
+            we::editor::panels::PanelChrome::PaintPanelSurface(context, m_ScrollMetrics.viewport);
         }
 
         const float uiScale = (std::max)(1.0f, DPIContext::GetScale());
@@ -440,42 +446,43 @@ public:
     }
 
     void SetObject(TypeId typeId, void* instance) override {
+        ResetCategoryFilter();
         m_Tree->Build(typeId, instance);
         ResolveObjectTitle(typeId);
         ApplyCustomizations(typeId);
         WireHandleListeners();
-        m_Widget->InvalidateEditors();
-        m_Widget->InvalidatePaint();
+        InvalidateView();
     }
 
     void SetObjects(TypeId typeId, const std::vector<void*>& instances) override {
+        ResetCategoryFilter();
         m_Tree->Build(typeId, instances);
         ResolveObjectTitle(typeId);
         ApplyCustomizations(typeId);
         WireHandleListeners();
-        m_Widget->InvalidateEditors();
-        m_Widget->InvalidatePaint();
+        InvalidateView();
     }
 
     void SetBindings(const std::vector<ObjectBinding>& bindings) override {
+        ResetCategoryFilter();
         m_Tree->BuildBindings(bindings);
         if (!bindings.empty()) {
-            ResolveObjectTitle(bindings.front().typeId);
             ApplyCustomizations(bindings.front().typeId);
-        } else {
-            m_ObjectTitle.clear();
+        }
+        if (m_ObjectTitle.empty() && !bindings.empty()) {
+            ResolveObjectTitle(bindings.front().typeId);
         }
         WireHandleListeners();
-        m_Widget->InvalidateEditors();
-        m_Widget->InvalidatePaint();
+        InvalidateView();
     }
 
     void Clear() override {
         m_Tree->Clear();
-        m_ObjectTitle.clear();
         m_ActiveCategory.clear();
+        m_ObjectTitle.clear();
+        m_ObjectIcon = we::runtime::kindui::kWindIconNone;
         m_Widget->InvalidateEditors();
-        m_Widget->InvalidatePaint();
+        InvalidateView();
     }
 
     void SetFilter(const PropertyFilterOptions& filter) override {
@@ -499,6 +506,13 @@ public:
 
     void SetObjectTitle(std::string title) override { m_ObjectTitle = std::move(title); }
     [[nodiscard]] std::string GetObjectTitle() const override { return m_ObjectTitle; }
+
+    void SetObjectIcon(we::runtime::kindui::WindIconRef icon) override { m_ObjectIcon = icon; }
+    [[nodiscard]] we::runtime::kindui::WindIconRef GetObjectIcon() const override { return m_ObjectIcon; }
+
+    [[nodiscard]] bool HasSelection() const override {
+        return !m_ObjectTitle.empty() && m_Tree && !m_Tree->GetRootNodes().empty();
+    }
 
     void SetActiveCategory(std::string_view category) override {
         m_ActiveCategory = std::string(category);
@@ -543,6 +557,19 @@ public:
     }
 
 private:
+    void ResetCategoryFilter() {
+        m_ActiveCategory.clear();
+        auto filter = m_Tree->GetFilter();
+        filter.categoryAllowlist.clear();
+        m_Tree->ApplyFilter(filter);
+    }
+
+    void InvalidateView() {
+        m_Widget->InvalidateEditors();
+        m_Widget->InvalidateLayout();
+        m_Widget->InvalidatePaint();
+    }
+
     void SetExpandedRecursive(const std::vector<PropertyNodePtr>& nodes, bool expanded) {
         for (const auto& node : nodes) {
             if (!node) {
@@ -603,6 +630,7 @@ private:
     std::shared_ptr<DetailsViewWidget> m_Widget;
     std::vector<PropertyChangeListener> m_Listeners;
     std::string m_ObjectTitle;
+    we::runtime::kindui::WindIconRef m_ObjectIcon = we::runtime::kindui::kWindIconNone;
     std::string m_ActiveCategory;
 };
 

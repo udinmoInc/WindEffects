@@ -263,10 +263,10 @@ void EmptyStatePanel::Paint(PaintContext& context) {
             if (pressed) {
                 bg = LColor(ColorToken::ButtonPrimaryPressed);
             } else if (hovered) {
-                bg = Color::Lerp(bg, LColor(ColorToken::ButtonPrimaryHover), 0.85f);
+                bg = Color::Pick(bg, LColor(ColorToken::ButtonPrimaryHover), 0.85f);
             }
         } else if (hovered) {
-            bg = Color::Lerp(bg, LColor(ColorToken::HoverBackground), 0.75f);
+            bg = Color::Pick(bg, LColor(ColorToken::HoverBackground), 0.75f);
         }
         context.DrawRoundedRect(r, bg, radius);
         if (!primary) {
@@ -440,7 +440,7 @@ void ProjectsEmptyState::Paint(PaintContext& context) {
             if (pressed) bg = LColor(ColorToken::ButtonPrimaryPressed);
             else if (hovered) bg = LColor(ColorToken::ButtonPrimaryHover);
         } else if (hovered) {
-            bg = Color::Lerp(bg, LColor(ColorToken::HoverBackground), 0.7f);
+            bg = Color::Pick(bg, LColor(ColorToken::HoverBackground), 0.7f);
         }
         context.DrawRoundedRect(r, bg, radius);
         if (!primary) {
@@ -485,7 +485,7 @@ void ProjectsEmptyState::Paint(PaintContext& context) {
     const float radius = 6.0f * s;
     Color changeBg = LColor(ColorToken::HoverBackground);
     if (m_Hover == HitZone::Change) {
-        changeBg = Color::Lerp(changeBg, LColor(ColorToken::HoverBackground), 0.75f);
+        changeBg = Color::Pick(changeBg, LColor(ColorToken::HoverBackground), 0.75f);
     }
     context.DrawRoundedRect(m_ChangeRect, changeBg, radius);
     context.DrawRoundedRectOutline(m_ChangeRect, LColor(ColorToken::BorderDefault), 1.0f, radius);

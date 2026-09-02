@@ -1,6 +1,7 @@
 #include "PlaceActors/PlaceActorsPlacement.h"
 
 #include "WindEffects/Editor/UI/Shell/EditorToolsRegistry.h"
+#include "WindEffects/Editor/UI/Shell/EditorModeController.h"
 #include "EditorCamera.h"
 #include "Scene/Scene.h"
 #include "Scene/Entity.h"
@@ -94,6 +95,7 @@ bool PlaceActorsPlacement::SpawnToolAt(const std::string& toolId, const we::math
 
     if (toolId == "TerrainGenerate") {
         ::we::editor::terrain::TerrainEditorService::Get().BindScene(scene.get());
+        we::editor::shell::EditorModeController::Get().SetActiveMode("Landscape");
         if (!::we::editor::terrain::TerrainEditorService::Get().GenerateDefaultLandscape()) {
             return false;
         }

@@ -79,6 +79,7 @@ private:
 
     float m_HeaderHeightLogical = 0.0f;
     Rect m_HeaderRect;
+    Rect m_HeaderContentGapRect;
     Rect m_ContentRect;
 
     int m_DragTabIndex = -1;

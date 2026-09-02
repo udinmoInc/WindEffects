@@ -85,11 +85,11 @@ Color ResolveIconColor(float hoverAnim, float pressStrength, bool active) {
 
 Color ResolvePlayIconColor(float hoverAnim, float pressStrength, bool active) {
     Color play = ResolveColor(ColorToken::Success);
-    if (active || pressStrength > 0.01f) {
-        return Color::Lerp(play, ResolveColor(ColorToken::TextPrimary), std::min(1.0f, pressStrength * 0.35f));
+    if (active || pressStrength >= 0.5f) {
+        return ResolveColor(ColorToken::TextPrimary);
     }
-    if (hoverAnim > 0.01f) {
-        return Color::Lerp(play, ResolveColor(ColorToken::TextPrimary), hoverAnim * 0.2f);
+    if (hoverAnim >= 0.5f) {
+        return ResolveColor(ColorToken::TextPrimary);
     }
     return play;
 }
@@ -105,26 +105,19 @@ void PaintSubtleToolbarFill(
     bool active,
     float activeAnim)
 {
-    const Color toolbarSurface = ResolveColor(ColorToken::ToolbarBackground);
-
-    if (active || activeAnim > 0.01f) {
-        const float strength = active ? 1.0f : activeAnim;
+    if (active || activeAnim >= 0.5f) {
         const Color selected = ResolveColor(ColorToken::SelectInactiveBackground);
-        context.DrawRoundedRect(rect, Color::Lerp(toolbarSurface, selected, strength * 0.55f), radius);
+        context.DrawRoundedRect(rect, selected, radius);
         return;
     }
 
-    const float hoverStrength = hoverAnim * 0.38f;
-    const float press = pressStrength * 0.72f;
-    const float t = std::max(hoverStrength, press);
-    if (t <= 0.01f) {
+    if (pressStrength >= 0.5f) {
+        context.DrawRoundedRect(rect, ResolveColor(ColorToken::PressedBackground), radius);
         return;
     }
-
-    const Color target = press > hoverStrength
-        ? ResolveColor(ColorToken::PressedBackground)
-        : ResolveColor(ColorToken::HoverBackground);
-    context.DrawRoundedRect(rect, Color::Lerp(toolbarSurface, target, t), radius);
+    if (hoverAnim >= 0.5f) {
+        context.DrawRoundedRect(rect, ResolveColor(ColorToken::HoverBackground), radius);
+    }
 }
 
 } // namespace
@@ -195,7 +188,7 @@ void PaintExecutionCluster(
     float uiScale)
 {
     const float radius = ButtonRadius(uiScale);
-    context.DrawRoundedRect(rect, ResolveColor(ColorToken::InputBackground), radius);
+    context.DrawRoundedRect(rect, ResolveColor(ColorToken::ControlBackground), radius);
 }
 
 void PaintStatusBarControl(
@@ -218,10 +211,9 @@ void PaintStatusBarControl(
         return;
     }
 
-    if (hoverAnim > 0.01f) {
-        const Color base = ResolveColor(ColorToken::StatusBarBackground);
+    if (hoverAnim >= 0.5f) {
         const Color hover = ResolveColor(ColorToken::SecondarySurface);
-        context.DrawRect(rect, Color::Lerp(base, hover, hoverAnim * 0.35f));
+        context.DrawRect(rect, hover);
     }
 }
 

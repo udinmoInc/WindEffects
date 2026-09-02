@@ -9,6 +9,7 @@
 #include "KindUI/Rendering/IconMetrics.h"
 #include "KindUI/Theming/ThemeAccess.h"
 #include "KindUI/Tokens/DesignToken.h"
+#include "KindUI/Tokens/SurfaceRole.h"
 #include "KindUI/Tokens/TypographySpec.h"
 
 #include <algorithm>
@@ -26,7 +27,8 @@ float UiScale() {
 
 float ObjectHeaderHeight() {
     const float scale = UiScale();
-    return (ResolveMetric(MetricToken::HeaderControlHeight) + ResolveMetric(MetricToken::Space1) * 2.0f) * scale;
+    const float titleRowH = ResolveMetric(MetricToken::ControlHeightCompact) * scale;
+    return titleRowH + RowHeight();
 }
 
 float CategoryTabHeight() {
@@ -124,16 +126,18 @@ Rect LayoutPropertyControlRect(const Rect& valueRect) {
     return Rect{ valueRect.x, y, valueRect.width, controlH };
 }
 
-void PaintObjectHeader(
+namespace {
+
+void PaintInlineIconLabelRow(
     PaintContext& context,
     const Rect& rect,
-    std::string_view title,
+    std::string_view text,
     WindIconRef icon,
-    bool active) {
-    (void)active;
+    bool emphasized) {
     const float scale = UiScale();
-    const float padH = ResolveMetric(MetricToken::Space2) * scale;
+    const float padH = RowPaddingH();
     const float iconSize = 16.0f;
+    const float gap = ResolveMetric(MetricToken::Space1) * scale;
     const float fontSize = ResolveMetric(MetricToken::TextSizeProperty) * scale;
     const float centerY = rect.y + rect.height * 0.5f;
 
@@ -144,14 +148,52 @@ void PaintObjectHeader(
             Rect{ rect.x + padH, centerY - iconSize * 0.5f, iconSize, iconSize });
     }
 
-    const float textX = rect.x + padH + (icon.IsValid() ? iconSize + ResolveMetric(MetricToken::Space1) * scale : 0.0f);
-    const Color textColor = active ? ResolveColor(ColorToken::TextPrimary) : ResolveColor(ColorToken::TextSecondary);
+    const float textX = rect.x + padH + (icon.IsValid() ? iconSize + gap : 0.0f);
     context.DrawText(
-        std::string(title),
+        std::string(text),
         Point{ textX, centerY - fontSize * 0.5f },
-        textColor,
+        ResolveColor(ColorToken::TextPrimary),
         fontSize,
+        emphasized);
+}
+
+} // namespace
+
+void PaintObjectHeader(
+    PaintContext& context,
+    const Rect& rect,
+    std::string_view title,
+    WindIconRef icon,
+    bool active) {
+    PaintInlineIconLabelRow(
+        context,
+        rect,
+        title,
+        icon,
         active);
+}
+
+void PaintDetailsObjectHeader(
+    PaintContext& context,
+    const Rect& rect,
+    std::string_view displayName,
+    WindIconRef icon) {
+    const float scale = UiScale();
+    const float titleRowH = ResolveMetric(MetricToken::ControlHeightCompact) * scale;
+    const float instanceRowH = RowHeight();
+
+    const Rect titleRow{ rect.x, rect.y, rect.width, titleRowH };
+    const Rect instanceRow{ rect.x, rect.y + titleRowH, rect.width, instanceRowH };
+
+    PaintInlineIconLabelRow(context, titleRow, displayName, icon, true);
+
+    ControlChrome::InteractionState state;
+    state.selected = true;
+    ControlChrome::PaintListRow(context, instanceRow, state);
+
+    std::string instanceLabel = std::string(displayName);
+    instanceLabel += " (Instance)";
+    PaintInlineIconLabelRow(context, instanceRow, instanceLabel, icon, false);
 }
 
 void PaintSectionHeader(
@@ -162,10 +204,18 @@ void PaintSectionHeader(
     bool hovered,
     float indent) {
     const float scale = UiScale();
-    const Color bg = hovered
-        ? ResolveInteractiveBackground(1.0f, 0.0f, false, ColorToken::ListLabelBandBackground)
-        : ResolveColor(ColorToken::ListLabelBandBackground);
-    context.DrawRect(rect, bg);
+    if (hovered) {
+        ControlChrome::PaintInteractiveFill(
+            context,
+            rect,
+            0.0f,
+            1.0f,
+            0.0f,
+            false,
+            SurfaceRole::PanelHeader);
+    } else {
+        context.DrawSurface(rect, SurfaceRole::PanelHeader, 0.0f, "SectionHeader");
+    }
 
     const float padH = RowPaddingH() + indent;
     const float chevronSize = 16.0f;
@@ -210,7 +260,7 @@ void PaintCategoryTab(
     const float fontSize = ResolveMetric(MetricToken::TextSizeCaption) * scale;
 
     if (active) {
-        context.DrawRoundedRect(rect, ResolveColor(ColorToken::AccentPrimary), radius);
+        context.DrawSurface(rect, SurfaceRole::Selected, ResolveMetric(MetricToken::CornerRadiusSmall) * scale, "CategoryTabActive");
     } else if (hovered) {
         ControlChrome::PaintInteractiveFill(
             context,
@@ -219,9 +269,9 @@ void PaintCategoryTab(
             1.0f,
             0.0f,
             false,
-            ColorToken::InputBackground);
+            SurfaceRole::Control);
     } else {
-        context.DrawRoundedRect(rect, ResolveColor(ColorToken::InputBackground), radius);
+        context.DrawSurface(rect, SurfaceRole::Control, radius, "CategoryTab");
     }
 
     const float textW = context.GetTextWidth(std::string(label), fontSize);
@@ -230,7 +280,7 @@ void PaintCategoryTab(
     context.DrawText(
         std::string(label),
         Point{ textX, textY },
-        active ? ResolveColor(ColorToken::TextOnAccent) : ResolveColor(ColorToken::TextSecondary),
+        active ? ResolveColor(ColorToken::TextPrimary) : ResolveColor(ColorToken::TextSecondary),
         fontSize);
 }
 

@@ -80,6 +80,16 @@ void FillUiBlend(we::rhi::BlendStateDesc& blend) {
     blend.alphaOp = we::rhi::BlendOp::Add;
 }
 
+void FillUiOpaqueBlend(we::rhi::BlendStateDesc& blend) {
+    blend.enable = true;
+    blend.srcColor = we::rhi::BlendFactor::One;
+    blend.dstColor = we::rhi::BlendFactor::Zero;
+    blend.colorOp = we::rhi::BlendOp::Add;
+    blend.srcAlpha = we::rhi::BlendFactor::One;
+    blend.dstAlpha = we::rhi::BlendFactor::Zero;
+    blend.alphaOp = we::rhi::BlendOp::Add;
+}
+
 } // namespace
 
 UiImmediateRenderer::~UiImmediateRenderer() {
@@ -218,6 +228,10 @@ void UiImmediateRenderer::Shutdown() {
         (void)m_Device->DestroyGraphicsPipeline(m_UiPipeline);
         m_UiPipeline = we::rhi::RHIGraphicsPipelineHandle::Invalid;
     }
+    if (m_UiOpaquePipeline != we::rhi::RHIGraphicsPipelineHandle::Invalid) {
+        (void)m_Device->DestroyGraphicsPipeline(m_UiOpaquePipeline);
+        m_UiOpaquePipeline = we::rhi::RHIGraphicsPipelineHandle::Invalid;
+    }
     if (m_TextPipeline != we::rhi::RHIGraphicsPipelineHandle::Invalid) {
         (void)m_Device->DestroyGraphicsPipeline(m_TextPipeline);
         m_TextPipeline = we::rhi::RHIGraphicsPipelineHandle::Invalid;
@@ -314,6 +328,16 @@ bool UiImmediateRenderer::CreatePipelines() {
         return false;
     }
     m_UiPipeline = *uiPipe;
+
+    we::rhi::GraphicsPipelineDesc uiOpaquePso = uiPso;
+    FillUiOpaqueBlend(uiOpaquePso.blend);
+    uiOpaquePso.debugName = "UiImmediate.UIOpaque";
+    auto uiOpaquePipe = m_Device->CreateGraphicsPipeline(uiOpaquePso);
+    if (!uiOpaquePipe) {
+        WE_LOG_ERROR(we::LogCategory::Startup, "UiImmediateRenderer: UI opaque CreateGraphicsPipeline failed.");
+        return false;
+    }
+    m_UiOpaquePipeline = *uiOpaquePipe;
 
     we::rhi::GraphicsPipelineDesc textPso = uiPso;
     textPso.vertexShader = m_TextVs;
@@ -743,13 +767,22 @@ void UiImmediateRenderer::SubmitDrawList(
         return true;
     };
 
-    int currentPipelineType = -1; // 0 = UI, 1 = Text
+    int currentPipelineType = -1; // 0 = UI blend, 1 = Text, 2 = UI opaque replace
 
     for (const auto& batch : list.batches) {
-        const int requiredPipeline = batch.isText ? 1 : 0;
+        const int requiredPipeline = batch.isText ? 1 : (batch.opaqueReplace ? 2 : 0);
         if (requiredPipeline != currentPipelineType) {
             if (requiredPipeline == 1) {
                 m_Cmd->BindGraphicsPipeline(m_TextPipeline);
+            } else if (requiredPipeline == 2) {
+                m_Cmd->BindGraphicsPipeline(m_UiOpaquePipeline);
+                float push[4];
+                FillUiTransform(m_CurrentWidth, m_CurrentHeight, push);
+                m_Cmd->PushConstants(
+                    m_UiLayout,
+                    we::rhi::ShaderStageFlags::Vertex,
+                    0,
+                    std::span(reinterpret_cast<const uint8_t*>(push), sizeof(push)));
             } else {
                 m_Cmd->BindGraphicsPipeline(m_UiPipeline);
                 float push[4];

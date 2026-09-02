@@ -1,10 +1,13 @@
 #include "KindUI/Layout/Splitter.h"
 #include "KindUI/Layout/LayoutAssert.h"
+#include "KindUI/Core/ColorSpace.h"
 #include "KindUI/Core/PaintContext.h"
 #include "KindUI/Core/UIRepaintGate.h"
 #include "KindUI/Core/DPIContext.h"
 #include "KindUI/Theming/ThemeAccess.h"
+#include "KindUI/Tokens/ChromeSeparation.h"
 #include "KindUI/Tokens/DesignToken.h"
+#include "KindUI/Tokens/SurfaceRole.h"
 #include "KindUI/Theming/StyleRole.h"
 
 #include <algorithm>
@@ -60,7 +63,14 @@ void Splitter::SetMinPaneSizes(float minFirstPx, float minSecondPx) {
 float Splitter::GetEffectiveBarThickness() const {
     const float scale = DPIContext::GetScale();
     if (m_PanelGapEnabled) {
-        return DPIContext::Snap(ResolveMetric(MetricToken::DockPanelGap) * scale);
+        // Gap-cuts: one 1px splitter band between panels; workspace padding handles outer edges.
+        if (ChromeSeparation::kGapCutsEnabled) {
+            return ChromeSeparation::DockSplitterGapPx();
+        }
+        const float gapLogical = m_PanelGapLogical > 0.0f
+            ? m_PanelGapLogical
+            : ResolveMetric(MetricToken::DockPanelGap);
+        return std::max(1.0f, DPIContext::Snap(gapLogical * scale));
     }
     return DPIContext::Snap(m_BarThicknessLogical * scale);
 }
@@ -207,6 +217,8 @@ void Splitter::Arrange(const Rect& allottedRect) {
             }
         }
 
+        m_FirstChildRect = {};
+        m_SecondChildRect = {};
         if (m_FirstChild && m_FirstChild->IsVisible()) {
             Rect firstRect = ClampRectToParent(
                 Rect{
@@ -217,6 +229,7 @@ void Splitter::Arrange(const Rect& allottedRect) {
                 },
                 allottedRect);
             AssertLayoutRectValid("Splitter.first", firstRect, allottedRect);
+            m_FirstChildRect = firstRect;
             m_FirstChild->Arrange(firstRect);
         }
         if (m_SecondChild && m_SecondChild->IsVisible()) {
@@ -230,6 +243,7 @@ void Splitter::Arrange(const Rect& allottedRect) {
                 },
                 allottedRect);
             AssertLayoutRectValid("Splitter.second", secondRect, allottedRect);
+            m_SecondChildRect = secondRect;
             m_SecondChild->Arrange(secondRect);
         }
 
@@ -260,6 +274,8 @@ void Splitter::Arrange(const Rect& allottedRect) {
             }
         }
 
+        m_FirstChildRect = {};
+        m_SecondChildRect = {};
         if (m_FirstChild && m_FirstChild->IsVisible()) {
             Rect firstRect = ClampRectToParent(
                 Rect{
@@ -270,6 +286,7 @@ void Splitter::Arrange(const Rect& allottedRect) {
                 },
                 allottedRect);
             AssertLayoutRectValid("Splitter.first", firstRect, allottedRect);
+            m_FirstChildRect = firstRect;
             m_FirstChild->Arrange(firstRect);
         }
         if (m_SecondChild && m_SecondChild->IsVisible()) {
@@ -283,6 +300,7 @@ void Splitter::Arrange(const Rect& allottedRect) {
                 },
                 allottedRect);
             AssertLayoutRectValid("Splitter.second", secondRect, allottedRect);
+            m_SecondChildRect = secondRect;
             m_SecondChild->Arrange(secondRect);
         }
 
@@ -328,11 +346,34 @@ void Splitter::UpdateCachedBarHitRect() {
         return;
     }
 
+    const float scale = std::max(1.0f, DPIContext::GetScale());
+    const float hitThickness = std::max(8.0f, DPIContext::Snap(m_HitThicknessLogical * scale));
+
+    if (m_PanelGapEnabled && ChromeSeparation::kGapCutsEnabled) {
+        if (m_Orientation == Orientation::Horizontal) {
+            const float boundaryX = !m_SecondChildRect.IsEmpty()
+                ? m_SecondChildRect.x
+                : (barRect.width > 0.0f ? barRect.x : barRect.x);
+            const float height = std::max(
+                1.0f,
+                !m_FirstChildRect.IsEmpty() ? m_FirstChildRect.height : m_Geometry.height);
+            m_CachedBarHitRect = Rect{ boundaryX - hitThickness * 0.5f, m_Geometry.y, hitThickness, height };
+            return;
+        }
+
+        const float boundaryY = !m_SecondChildRect.IsEmpty()
+            ? m_SecondChildRect.y
+            : (barRect.height > 0.0f ? barRect.y : barRect.y);
+        const float width = std::max(
+            1.0f,
+            !m_FirstChildRect.IsEmpty() ? m_FirstChildRect.width : m_Geometry.width);
+        m_CachedBarHitRect = Rect{ m_Geometry.x, boundaryY - hitThickness * 0.5f, width, hitThickness };
+        return;
+    }
+
     const float barThickness = m_Orientation == Orientation::Horizontal
         ? std::max(1.0f, barRect.width)
         : std::max(1.0f, barRect.height);
-    const float scale = std::max(1.0f, DPIContext::GetScale());
-    const float hitThickness = std::max(8.0f, DPIContext::Snap(m_HitThicknessLogical * scale));
     if (m_Orientation == Orientation::Horizontal) {
         const float padding = (hitThickness - barThickness) * 0.5f;
         const float height = std::max(1.0f, barRect.height > 0.0f ? barRect.height : m_Geometry.height);
@@ -348,6 +389,29 @@ void Splitter::UpdateCachedBarHitRect() {
 void Splitter::Paint(PaintContext& context) {
     if (!m_Visible) return;
 
+    if (m_PanelGapEnabled && ChromeSeparation::kGapCutsEnabled && !m_Geometry.IsEmpty()) {
+        context.DrawSurface(
+            m_Geometry,
+            SurfaceRole::Workspace,
+            0.0f,
+            "SplitterChromeBase");
+    }
+
+    const auto paintChildClipped = [&](const std::shared_ptr<Widget>& child, const Rect& clipRect) {
+        if (!child || !child->IsVisible() || clipRect.IsEmpty()) {
+            return;
+        }
+        context.PushClipRect(clipRect);
+        child->Paint(context);
+        context.PopClipRect();
+    };
+
+    if (m_PanelGapEnabled && ChromeSeparation::kGapCutsEnabled) {
+        paintChildClipped(m_FirstChild, m_FirstChildRect);
+        paintChildClipped(m_SecondChild, m_SecondChildRect);
+        return;
+    }
+
     if (m_FirstChild && m_FirstChild->IsVisible()) m_FirstChild->Paint(context);
     if (m_SecondChild && m_SecondChild->IsVisible()) m_SecondChild->Paint(context);
 
@@ -359,16 +423,13 @@ void Splitter::Paint(PaintContext& context) {
 
     // Always draw a crisp 1px divider line using the shared Separator token.
     // No hover/drag highlight — cursor change provides sufficient feedback.
-    {
-        Color separatorColor = ThemeColor(ColorToken::Separator);
-        if (m_Orientation == Orientation::Horizontal) {
+    if (m_Orientation == Orientation::Horizontal) {
             Rect visualRect{ std::floor(barRect.x + barRect.width * 0.5f), barRect.y, 1.0f, barRect.height };
-            context.DrawRect(visualRect, separatorColor);
+            context.DrawSurface(visualRect, SurfaceRole::Separator, 0.0f, "SplitterDivider");
         } else {
             Rect visualRect{ barRect.x, std::floor(barRect.y + barRect.height * 0.5f), barRect.width, 1.0f };
-            context.DrawRect(visualRect, separatorColor);
+            context.DrawSurface(visualRect, SurfaceRole::Separator, 0.0f, "SplitterDivider");
         }
-    }
 }
 
 void Splitter::OnMouseDown(const MouseEvent& event) {

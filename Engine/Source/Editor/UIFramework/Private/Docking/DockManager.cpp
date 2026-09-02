@@ -382,10 +382,10 @@ WorkspaceLayout CreateDefaultEditorWorkspaceLayout() {
     // UE layout: top row (tools+viewport | outliner+details), content browser full width below.
     DockLayoutNode rightSidebar = MakeSplit(
         SplitOrientation::Vertical,
-        0.45f,
+        0.52f,
         "rightVertical",
-        140.0f,
         160.0f,
+        140.0f,
         MakeTabGroup("WorldOutliner"),
         MakeTabGroup("Details"));
 

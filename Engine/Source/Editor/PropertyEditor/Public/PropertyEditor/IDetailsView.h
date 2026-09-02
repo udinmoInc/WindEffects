@@ -6,6 +6,7 @@
 #include "PropertyEditor/PropertyChangeEvent.h"
 #include "PropertyEditor/PropertyEditorTypes.h"
 #include "Reflection/TypeId.h"
+#include "KindUI/Core/WindIcon.h"
 #include "KindUI/Core/Widget.h"
 
 #include <memory>
@@ -33,6 +34,12 @@ public:
     /// Display title for the selected-object header strip (auto-derived when empty).
     virtual void SetObjectTitle(std::string title) = 0;
     [[nodiscard]] virtual std::string GetObjectTitle() const = 0;
+
+    /// Icon shown inline in the object header (entity-type icon from the icon system).
+    virtual void SetObjectIcon(we::runtime::kindui::WindIconRef icon) = 0;
+    [[nodiscard]] virtual we::runtime::kindui::WindIconRef GetObjectIcon() const = 0;
+
+    [[nodiscard]] virtual bool HasSelection() const = 0;
 
     /// Category filter for the tab row; empty shows all categories.
     virtual void SetActiveCategory(std::string_view category) = 0;

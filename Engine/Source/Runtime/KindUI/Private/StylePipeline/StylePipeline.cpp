@@ -192,7 +192,6 @@ ResolvedVisualStyle StylePipeline::ApplyInteractionState(
     if (ctx.interaction.IsDisabled()) {
         visual.background = ResolveColorProp(styleDef.backgroundDisabled, theme);
         visual.foreground = ResolveColorProp(styleDef.foregroundDisabled, theme);
-        visual.opacity = 0.5f;
         return visual;
     }
     if (ctx.interaction.IsPressed()) {
@@ -204,7 +203,7 @@ ResolvedVisualStyle StylePipeline::ApplyInteractionState(
         visual.background = theme.ResolveColor(ColorToken::ControlBackgroundSelected);
     }
     if (HasState(ctx.interaction.flags, InteractionState::Loading)) {
-        visual.opacity = 0.7f;
+        visual.opacity = 1.0f;
     }
     if (HasState(ctx.interaction.flags, InteractionState::Error)) {
         visual.border = theme.ResolveColor(ColorToken::BorderError);
