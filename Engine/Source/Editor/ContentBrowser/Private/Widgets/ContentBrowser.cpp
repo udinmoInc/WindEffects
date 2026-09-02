@@ -12,6 +12,7 @@
 #include "KindUI/Core/DPIContext.h"
 #include "KindUI/Rendering/IconMetrics.h"
 #include "KindUI/Tokens/DesignToken.h"
+#include "KindUI/Tokens/SurfaceRole.h"
 #include "KindUI/Theming/StyleRole.h"
 #include "KindUI/Core/WindIcon.h"
 #include "KindUI/Core/Icon.h"
@@ -852,9 +853,11 @@ void Breadcrumb::Arrange(const Rect& allottedRect) {
 
 void Breadcrumb::Paint(PaintContext& context) {
     PanelChrome::PaintListLabelBand(context, m_Geometry);
-    context.DrawRect(
+    context.DrawSurface(
         Rect{ m_Geometry.x, m_Geometry.y + m_Geometry.height - ThemeMetric(MetricToken::BorderWidth), m_Geometry.width, ThemeMetric(MetricToken::BorderWidth) },
-        ThemeColor(ColorToken::Separator));
+        we::runtime::kindui::SurfaceRole::Separator,
+        0.0f,
+        "BreadcrumbSeparator");
 
     const float iconSize = ThemeMetric(MetricToken::IconSizeTree);
     const float padH = ThemeMetric(MetricToken::Space3);

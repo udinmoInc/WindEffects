@@ -23,19 +23,16 @@ Margin ScalePadding(const Margin& padding, float dpiScale) {
 ResolvedStyle BuildFromClass(const StyleClass& cls, const IKindUITheme& theme, float dpiScale) {
     using namespace ColorSpace;
     ResolvedStyle style{};
-    style.background = OpaqueSurface(theme.ResolveColor(cls.background));
-    style.foreground = theme.ResolveColor(cls.foreground);
-    style.border = theme.ResolveColor(cls.border);
+    style.background = OpaqueSurface(ResolveColor(cls.background));
+    style.foreground = ResolveColor(cls.foreground);
+    style.border = ResolveColor(cls.border);
     style.cornerRadius = ScaleMetric(theme.ResolveMetric(cls.radiusToken), dpiScale);
     style.fontSize = ScaleMetric(theme.ResolveMetric(cls.fontSizeToken), dpiScale);
     style.height = ScaleMetric(theme.ResolveMetric(cls.heightToken), dpiScale);
     style.padding = ScalePadding(theme.ResolvePadding(cls.paddingToken), dpiScale);
     style.bold = cls.bold;
     if (cls.opacity < 0.999f) {
-        style.foreground = LerpSrgb(
-            style.foreground,
-            theme.ResolveColor(ColorToken::TextDisabled),
-            1.0f - cls.opacity);
+        style.foreground = ResolveColor(ColorToken::TextDisabled);
     }
     return style;
 }
@@ -68,15 +65,15 @@ ResolvedStyle StyleResolve::ApplyState(
     using namespace ColorSpace;
     ResolvedStyle style = base;
     if (disabled) {
-        style.background = OpaqueSurface(theme.ResolveColor(cls.disabledBackground));
-        style.foreground = theme.ResolveColor(ColorToken::TextDisabled);
-        style.border = theme.ResolveColor(ColorToken::Separator);
+        style.background = OpaqueSurface(ResolveColor(cls.disabledBackground));
+        style.foreground = ResolveColor(ColorToken::TextDisabled);
+        style.border = ResolveColor(ColorToken::Separator);
         return style;
     }
     if (pressed) {
-        style.background = OpaqueSurface(theme.ResolveColor(cls.pressedBackground));
+        style.background = OpaqueSurface(ResolveColor(cls.pressedBackground));
     } else if (hovered) {
-        style.background = OpaqueSurface(theme.ResolveColor(cls.hoverBackground));
+        style.background = OpaqueSurface(ResolveColor(cls.hoverBackground));
     }
     style.cornerRadius = ScaleMetric(theme.ResolveMetric(cls.radiusToken), dpiScale);
     return style;

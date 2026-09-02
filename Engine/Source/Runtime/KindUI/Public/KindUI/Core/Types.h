@@ -57,7 +57,7 @@ struct Rect {
 };
 
 struct Color {
-    // sRGB-encoded RGB in 0..1 (UE StyleColors / Hex authoring space). Alpha is linear.
+    // sRGB-encoded RGB in 0..1 (palette HEX authoring space). Alpha is linear.
     float r = 1.0f;
     float g = 1.0f;
     float b = 1.0f;
@@ -67,16 +67,9 @@ struct Color {
     static Color Black() { return {0.0f, 0.0f, 0.0f, 1.0f}; }
     static Color Transparent() { return {0.0f, 0.0f, 0.0f, 0.0f}; }
 
-    Color operator*(float scalar) const {
-        return { r * scalar, g * scalar, b * scalar, a * scalar };
-    }
-
-    [[nodiscard]] Color Lerp(const Color& other, float t) const;
-
-    [[nodiscard]] Color ToLinear() const;
-    [[nodiscard]] Color ToSrgb() const;
-
-    static Color Lerp(const Color& a, const Color& b, float t);
+    // Discrete state pick at t >= 0.5 — no channel interpolation.
+    [[nodiscard]] Color Pick(const Color& other, float t) const;
+    static Color Pick(const Color& a, const Color& b, float t);
 };
 
 namespace detail {

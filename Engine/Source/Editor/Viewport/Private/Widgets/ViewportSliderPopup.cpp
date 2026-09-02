@@ -3,6 +3,7 @@
 #include "KindUI/Core/TextMetrics.h"
 #include "KindUI/Input/InputEvents.h"
 #include "KindUI/Tokens/DesignToken.h"
+#include "KindUI/Tokens/SurfaceRole.h"
 #include "KindUI/Theming/StyleRole.h"
 #include "KindUI/Theming/ThemeAccess.h"
 #include <algorithm>
@@ -117,9 +118,7 @@ void ViewportSliderPopup::SetValueFromMouseX(float mouseX) {
 }
 
 void ViewportSliderPopup::Paint(PaintContext& context) {
-    // 100% Solid Opaque Neutral Charcoal Surface (#18191B)
-    context.DrawRoundedRect(m_Geometry, ResolveColor(ColorToken::PanelBackground), 4.0f);
-    // Solid 1px Border (#303236 / BorderLight)
+    context.DrawSurface(m_Geometry, we::runtime::kindui::SurfaceRole::Popup, 4.0f, "ViewportSliderPopup");
     context.DrawRoundedRectOutline(m_Geometry, ResolveColor(ColorToken::BorderLight), 1.0f, 4.0f);
 
     const float titleSize = 10.0f;

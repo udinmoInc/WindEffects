@@ -60,12 +60,12 @@ void ToolbarGlyphButton::Paint(PaintContext& context) {
     Color bgColor = IsEnabled() ? baseStyle.background : ThemeColor(ColorToken::DisabledBackground);
     Color borderColor = IsEnabled() ? baseStyle.border : ThemeColor(ColorToken::Separator);
 
-    if (IsEnabled() && m_HoverAnim > 0.01f) {
-        bgColor = Color::Lerp(bgColor, hoverStyle.background, m_HoverAnim);
-        borderColor = Color::Lerp(borderColor, hoverStyle.border, m_HoverAnim);
+    if (IsEnabled() && m_HoverAnim >= 0.5f) {
+        bgColor = hoverStyle.background;
+        borderColor = hoverStyle.border;
     }
-    if (IsEnabled() && m_PressAnim > 0.01f) {
-        bgColor = Color::Lerp(bgColor, pressStyle.background, m_PressAnim);
+    if (IsEnabled() && m_PressAnim >= 0.5f) {
+        bgColor = pressStyle.background;
     }
 
     Rect buttonRect = m_Geometry;

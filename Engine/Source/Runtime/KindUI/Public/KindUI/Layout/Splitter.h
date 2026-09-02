@@ -4,6 +4,8 @@
 
 #include "KindUI/Core/Widget.h"
 
+#include <algorithm>
+
 namespace we::runtime::kindui {
 
 enum class Orientation {
@@ -45,6 +47,10 @@ public:
     void SetPanelGapEnabled(bool enabled) { m_PanelGapEnabled = enabled; }
     [[nodiscard]] bool IsPanelGapEnabled() const { return m_PanelGapEnabled; }
 
+    /// Optional logical gap width when panel-gap mode is enabled and kGapCutsEnabled is false.
+    void SetPanelGapLogical(float logicalPx) { m_PanelGapLogical = (std::max)(0.0f, logicalPx); }
+    [[nodiscard]] float GetPanelGapLogical() const { return m_PanelGapLogical; }
+
     /// Device-pixel minimum pane sizes (already DPI-scaled by caller).
     void SetMinPaneSizes(float minFirstPx, float minSecondPx);
     [[nodiscard]] float GetMinFirstSize() const { return m_MinFirstPx; }
@@ -72,6 +78,7 @@ private:
     float m_MinFirstPx = 0.0f;
     float m_MinSecondPx = 0.0f;
     bool m_PanelGapEnabled = false;
+    float m_PanelGapLogical = 0.0f;
     bool m_Dragging = false;
     bool m_Hovered = false;
 #pragma warning(push)
@@ -81,6 +88,8 @@ private:
     std::shared_ptr<Widget> m_SecondChild;
     Rect m_CachedBarHitRect{};
     Rect m_CachedBarRect{};
+    Rect m_FirstChildRect{};
+    Rect m_SecondChildRect{};
 #pragma warning(pop)
 };
 

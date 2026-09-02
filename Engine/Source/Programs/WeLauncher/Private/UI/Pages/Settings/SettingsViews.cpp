@@ -199,7 +199,7 @@ void SettingsRow::Paint(PaintContext& context) {
     if (m_Highlighted) {
         context.DrawRoundedRect(
             m_Geometry,
-            Color::Lerp(LColor(ColorToken::PanelBackground), LColor(ColorToken::SelectedBackground), 0.55f),
+            Color::Pick(LColor(ColorToken::PanelBackground), LColor(ColorToken::SelectedBackground), 0.55f),
             LMetric(MetricToken::CornerRadiusSmall) * s);
     }
 

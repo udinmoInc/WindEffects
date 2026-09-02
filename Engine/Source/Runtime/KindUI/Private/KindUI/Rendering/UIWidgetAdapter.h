@@ -86,7 +86,13 @@ public:
     void ResetDiagnostics() { m_Diagnostics.Reset(); }
     
 private:
-    void AddOrMergeBatch(uint32_t indexCount, bool isText = false, uint32_t atlasW = 0, uint32_t atlasH = 0, float msdfRange = 0.0f);
+    void AddOrMergeBatch(
+        uint32_t indexCount,
+        bool isText = false,
+        uint32_t atlasW = 0,
+        uint32_t atlasH = 0,
+        float msdfRange = 0.0f,
+        bool opaqueReplace = false);
     void ConvertDrawCommand(const DrawCommand& cmd);
     void GenerateRectGeometry(const DrawCommand& cmd);
     void GenerateTextGeometry(const DrawCommand& cmd);

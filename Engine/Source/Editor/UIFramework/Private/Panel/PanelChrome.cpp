@@ -4,6 +4,7 @@
 #include "KindUI/Core/PropertyPanelChrome.h"
 
 #include "KindUI/Tokens/DesignSystem.h"
+#include "KindUI/Tokens/ChromeSeparation.h"
 #include "KindUI/Tokens/SurfaceRole.h"
 #include "KindUI/Core/LayoutMetrics.h"
 #include "KindUI/Theming/ThemeAccess.h"
@@ -12,8 +13,9 @@
 #include "KindUI/Core/DPIContext.h"
 #include "KindUI/Rendering/IconMetrics.h"
 #include "KindUI/Profiling/UiGeometryDebug.h"
+#include "KindUI/Layout/LayoutAssert.h"
 #include <algorithm>
-#include <cmath>
+#include <functional>
 
 using ::we::runtime::kindui::ColorToken;
 using ::we::runtime::kindui::MetricToken;
@@ -21,8 +23,10 @@ using ::we::runtime::kindui::PaddingToken;
 using ::we::runtime::kindui::IconColorRole;
 using ::we::runtime::kindui::ResolveIconColor;
 using ::we::runtime::kindui::Point;
+using ::we::runtime::kindui::Size;
 using ::we::runtime::kindui::IconPainter;
 using ::we::runtime::kindui::DPIContext;
+using ::we::runtime::kindui::ClampRectToParent;
 namespace WindIcons = ::we::runtime::kindui::WindIcons;
 namespace IconMetrics = ::we::runtime::kindui::IconMetrics;
 
@@ -32,6 +36,7 @@ using ::we::runtime::kindui::Rect;
 using ::we::runtime::kindui::Color;
 using ::we::runtime::kindui::Point;
 namespace ControlChrome = ::we::runtime::kindui::ControlChrome;
+namespace ChromeSeparation = ::we::runtime::kindui::ChromeSeparation;
 
 namespace {
 
@@ -60,6 +65,12 @@ void DrawRoundedRectTop(PaintContext& context, const Rect& rect, const Color& co
 }
 
 void PaintSeparatorEdge(PaintContext& context, const Rect& rect, bool topEdge) {
+    if (ChromeSeparation::kGapCutsEnabled) {
+        (void)context;
+        (void)rect;
+        (void)topEdge;
+        return;
+    }
     const float scale = PanelChrome::UiScale();
     const float thickness = (std::max)(1.0f, IconMetrics::SnapPx(
         we::runtime::kindui::ResolveMetric(MetricToken::BorderWidth) * scale));
@@ -275,7 +286,11 @@ float MeasureDockTabWidth(
 
     const float textWidth = context.GetTextWidth(tab.title, fontSize, false);
     const float closeWidth = showClose ? closeGlyph + closeGap : 0.0f;
-    return padH + leadingWidth + textWidth + closeWidth + padH;
+    float width = padH + leadingWidth + textWidth + closeWidth + padH;
+    if (!modeTabs && UsesGapCutDockTabs()) {
+        width = std::max(width, 88.0f * scale);
+    }
+    return width;
 }
 
 DockTabLayout LayoutDockTabGeometries(
@@ -292,9 +307,14 @@ DockTabLayout LayoutDockTabGeometries(
         ? we::runtime::kindui::ResolveMetric(MetricToken::Space2) * scale
         : TabPadH();
     const float closeGlyph = CloseGlyphSize();
-    const float dividerH = we::runtime::kindui::ResolveMetric(MetricToken::BorderWidth) * scale;
-    const float topPad = modeTabs ? 0.0f : TabStripPadTop();
-    const float tabHeight = (std::max)(16.0f, headerRect.height - topPad - dividerH);
+    const bool floatingDockTabs = !modeTabs && UsesGapCutDockTabs();
+    const float stripPadV = floatingDockTabs ? TabStripPadTop() : 0.0f;
+    const float dividerH = (modeTabs || floatingDockTabs)
+        ? 0.0f
+        : we::runtime::kindui::ResolveMetric(MetricToken::BorderWidth) * scale;
+    const float topPad = modeTabs ? 0.0f : (floatingDockTabs ? stripPadV : TabStripPadTop());
+    const float bottomPad = floatingDockTabs ? stripPadV : 0.0f;
+    const float tabHeight = (std::max)(16.0f, headerRect.height - topPad - bottomPad - dividerH);
     const float tabY = headerRect.y + topPad;
     const float centerY = std::floor(tabY + tabHeight * 0.5f);
 
@@ -332,25 +352,29 @@ void PaintDockTab(
         ? we::runtime::kindui::ResolveMetric(MetricToken::Space2) * scale
         : TabPadH();
     const float iconGap = we::runtime::kindui::ResolveMetric(MetricToken::Space1) * scale;
+    const bool dockTabs = !flatCorners;
+    const bool floatingDockTabs = dockTabs && UsesGapCutDockTabs();
     const float radius = flatCorners ? 0.0f : TabTopRadius();
 
     if (isActive) {
         Rect activeRect = layout.tabRect;
-        if (!flatCorners) {
+        if (!floatingDockTabs) {
             activeRect.height = (headerRect.y + headerRect.height) - activeRect.y;
         }
-        const Color activeColor = we::runtime::kindui::ResolveSurfaceColor(
-            we::runtime::kindui::SurfaceRole::TabActive);
-        if (flatCorners || radius <= 0.01f) {
-            context.DrawRect(activeRect, activeColor);
+        const auto activeRole = we::runtime::kindui::SurfaceRole::TabActive;
+        if (floatingDockTabs) {
+            context.DrawSurface(activeRect, activeRole, radius, "DockTabActive");
+        } else if (radius <= 0.01f) {
+            context.DrawSurface(activeRect, activeRole, 0.0f, "DockTabActive");
         } else {
+            const Color activeColor = we::runtime::kindui::ResolveSurfaceColor(activeRole);
             DrawRoundedRectTop(context, activeRect, activeColor, radius, flushLeft);
         }
     } else if (hoverAnim > 0.01f) {
         we::runtime::kindui::ControlChrome::PaintInteractiveFill(
             context,
             layout.tabRect,
-            radius,
+            floatingDockTabs ? radius : radius,
             hoverAnim,
             0.0f,
             false,
@@ -460,7 +484,7 @@ void PaintFloatingPanelHeader(
     bool optionsMenuHovered,
     Rect& outOptionsMenuRect)
 {
-    context.DrawSurface(headerRect, we::runtime::kindui::SurfaceRole::DockChrome, 0.0f, "FloatingPanelHeader");
+    context.DrawSurface(headerRect, we::runtime::kindui::SurfaceRole::PanelHeader, 0.0f, "FloatingPanelHeader");
 
     const float scale = UiScale();
     const float gap = we::runtime::kindui::ResolveMetric(MetricToken::Space1) * scale;
@@ -547,9 +571,7 @@ void PaintDockTabStrip(
     const DockTabStripLayout& layout,
     const DockTabStripState& state)
 {
-    if (!state.flatCorners) {
-        context.DrawSurface(stripRect, we::runtime::kindui::SurfaceRole::DockChrome, 0.0f, "DockTabStrip");
-    }
+    context.DrawSurface(stripRect, we::runtime::kindui::SurfaceRole::DockChrome, 0.0f, "DockTabStrip");
 
     const size_t count = std::min(descriptors.size(), layout.tabs.size());
     for (size_t i = 0; i < count; ++i) {
@@ -592,6 +614,135 @@ void PaintDockTabStrip(
     }
 }
 
+bool UsesGapCutDockTabs() {
+    // Dock tabs always use UE5-style connected geometry: the active tab is the top
+    // edge of its panel. Gap-cuts apply only between separate dock panels, not
+    // between a panel's own tab strip and its content.
+    return false;
+}
+
+float DockStructureGapDevice() {
+    return ChromeSeparation::DockStructureGapPx();
+}
+
+float DockHeaderContentGap() {
+    // No seam between a dock tab strip and the panel body below it.
+    return 0.0f;
+}
+
+Rect InsetDockChromeRect(const Rect& allottedRect) {
+    const float gap = DockStructureGapDevice();
+    if (gap <= 0.0f || allottedRect.IsEmpty()) {
+        return allottedRect;
+    }
+
+    return ClampRectToParent(
+        Rect{
+            allottedRect.x + gap,
+            allottedRect.y + gap,
+            std::max(0.0f, allottedRect.width - (2.0f * gap)),
+            std::max(0.0f, allottedRect.height - (2.0f * gap))
+        },
+        allottedRect);
+}
+
+DockPanelGeometry LayoutDockPanel(const Rect& allottedRect, float headerHeightDevice) {
+    DockPanelGeometry geometry{};
+    geometry.chromeRect = InsetDockChromeRect(allottedRect);
+    const float headerContentGap = DockHeaderContentGap();
+
+    geometry.headerRect = ClampRectToParent(
+        Rect{ geometry.chromeRect.x, geometry.chromeRect.y, geometry.chromeRect.width, headerHeightDevice },
+        allottedRect);
+
+    geometry.contentRect = ClampRectToParent(
+        Rect{
+            geometry.chromeRect.x,
+            geometry.chromeRect.y + headerHeightDevice + headerContentGap,
+            geometry.chromeRect.width,
+            std::max(0.0f, geometry.chromeRect.height - headerHeightDevice - headerContentGap)
+        },
+        allottedRect);
+
+    if (headerContentGap > 0.0f) {
+        geometry.headerContentGapRect = ClampRectToParent(
+            Rect{
+                geometry.chromeRect.x,
+                geometry.chromeRect.y + headerHeightDevice,
+                geometry.chromeRect.width,
+                headerContentGap
+            },
+            allottedRect);
+    }
+
+    return geometry;
+}
+
+Size InsetDockMeasureAvailable(const Size& availableSize) {
+    const float structureGap = DockStructureGapDevice();
+    Size measuredAvail = availableSize;
+    if (measuredAvail.width < 1.0e8f) {
+        measuredAvail.width = std::max(0.0f, measuredAvail.width - (2.0f * structureGap));
+    }
+    if (measuredAvail.height < 1.0e8f) {
+        measuredAvail.height = std::max(0.0f, measuredAvail.height - (2.0f * structureGap));
+    }
+    return measuredAvail;
+}
+
+Size ExpandDockMeasuredSize(const Size& innerDesired, const Size& availableSize) {
+    const float structureGap = DockStructureGapDevice();
+    Size desired = innerDesired;
+    if (availableSize.width < 1.0e8f) {
+        desired.width = std::min(desired.width + (2.0f * structureGap), availableSize.width);
+    }
+    if (availableSize.height < 1.0e8f) {
+        desired.height = std::min(desired.height + (2.0f * structureGap), availableSize.height);
+    }
+    return desired;
+}
+
+void PaintDockPanelContent(
+    PaintContext& context,
+    const Rect& contentRect,
+    const std::function<void(PaintContext& context)>& paintBody)
+{
+    if (contentRect.IsEmpty() || !paintBody) {
+        return;
+    }
+
+    PaintPanelSurface(context, contentRect);
+    context.PushClipRect(contentRect);
+    paintBody(context);
+    context.PopClipRect();
+}
+
+void PaintDockHeaderContentGap(PaintContext& context, const Rect& gapRect) {
+    if (gapRect.IsEmpty()) {
+        return;
+    }
+    context.DrawSurface(
+        gapRect,
+        we::runtime::kindui::SurfaceRole::Separator,
+        0.0f,
+        "DockHeaderContentGap");
+}
+
+void PaintDockPanelChrome(
+    PaintContext& context,
+    const Rect& headerRect,
+    const Rect& headerContentGapRect,
+    const Rect& contentRect,
+    const std::vector<DockTabDescriptor>& descriptors,
+    const DockTabStripLayout& stripLayout,
+    const DockTabStripState& state,
+    const std::function<void(PaintContext& context)>& paintBody)
+{
+    PaintDockTabStrip(context, headerRect, descriptors, stripLayout, state);
+    PaintDockHeaderContentGap(context, headerContentGapRect);
+    PaintDockPanelContent(context, contentRect, paintBody);
+}
+
 void PaintSearchField(
     PaintContext& context,
     const Rect& rect,
@@ -609,7 +760,7 @@ void PaintSearchField(
 void PaintAlternatingListRowBackground(PaintContext& context, const Rect& rowRect, int rowIndex) {
     const we::runtime::kindui::SurfaceRole role = (rowIndex % 2 == 0)
         ? we::runtime::kindui::SurfaceRole::Recessed
-        : we::runtime::kindui::SurfaceRole::DockChrome;
+        : we::runtime::kindui::SurfaceRole::Panel;
     context.DrawSurface(rowRect, role, 0.0f, "ListRowStripe");
 }
 
@@ -659,7 +810,7 @@ void PaintHeaderIconButton(
             hovered ? 1.0f : 0.0f,
             pressed ? 1.0f : 0.0f,
             false,
-            ColorToken::ListLabelBandBackground);
+            ColorToken::ControlBackground);
     }
 
     if (!icon.IsValid()) {

@@ -5,6 +5,7 @@
 #include "Environment/EnvironmentTypes.h"
 #include "Scene/Entity.h"
 #include "Scene/Scene.h"
+#include "PropertyEditor/DetailsSceneBinding.h"
 #include "PropertyEditor/IDetailsView.h"
 #include "PropertyEditor/PropertyChangeEvent.h"
 #include "PropertyEditor/PropertyEditorTypes.h"
@@ -180,51 +181,7 @@ void RefreshDetailsPanel() {
     }
     g_LastSelectedEntityId = entity->Id;
 
-    EnvironmentSystem& system = EnvironmentSystem::Get();
-    system.SyncFromScene();
-
-    std::vector<::we::editor::property::ObjectBinding> bindings;
-    ::we::editor::property::ObjectBinding entityBinding;
-    entityBinding.typeId = we::runtime::reflection::MakeTypeId("we::runtime::scene::Entity");
-    entityBinding.instance = entity;
-    bindings.push_back(entityBinding);
-
-    switch (system.GetActorKind(entity->Id)) {
-    case EnvironmentActorKind::DirectionalLight:
-        bindings.push_back({
-            we::runtime::reflection::MakeTypeId("we::runtime::world::environment::EnvironmentDirectionalLight"),
-            &system.GetSun()});
-        break;
-    case EnvironmentActorKind::SkyLight:
-        bindings.push_back({
-            we::runtime::reflection::MakeTypeId("we::runtime::world::environment::EnvironmentSkyLight"),
-            &system.GetSkyLight()});
-        break;
-    case EnvironmentActorKind::SkyAtmosphere:
-        bindings.push_back({
-            we::runtime::reflection::MakeTypeId("we::runtime::world::environment::EnvironmentSkyAtmosphere"),
-            &system.GetSkyAtmosphere()});
-        break;
-    case EnvironmentActorKind::HeightFog:
-        bindings.push_back({
-            we::runtime::reflection::MakeTypeId("we::runtime::world::environment::EnvironmentHeightFog"),
-            &system.GetHeightFog()});
-        break;
-    case EnvironmentActorKind::VolumetricClouds:
-        bindings.push_back({
-            we::runtime::reflection::MakeTypeId("we::runtime::world::environment::EnvironmentVolumetricClouds"),
-            &system.GetVolumetricClouds()});
-        break;
-    case EnvironmentActorKind::ExposureController:
-        bindings.push_back({
-            we::runtime::reflection::MakeTypeId("we::runtime::world::environment::EnvironmentExposureController"),
-            &system.GetExposureController()});
-        break;
-    default:
-        break;
-    }
-
-    details->SetBindings(bindings);
+    ::we::editor::property::PopulateDetailsFromSceneEntity(*details, entity);
 }
 
 std::shared_ptr<::we::editor::contentbrowser::TreeNode> BuildNodeForEntity(const Entity& entity) {

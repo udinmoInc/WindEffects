@@ -18,7 +18,9 @@ public class PropertyEditor : ModuleRules
         PublicDependencies.Add("UIFramework");
         PublicDependencies.Add("Reflection");
         PublicDependencies.Add("Serialization");
+        PublicDependencies.Add("Scene");
         PrivateDependencies.Add("Reflection");
+        PrivateDependencies.Add("World");
 
         Definitions.Add("PROPERTYEDITOR_EXPORTS");
     }

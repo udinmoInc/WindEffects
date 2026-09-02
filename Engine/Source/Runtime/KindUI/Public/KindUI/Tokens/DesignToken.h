@@ -13,7 +13,7 @@ namespace we::runtime::kindui {
 enum class ColorToken : uint32_t {
     // ── Surfaces (UE5 Slate StyleColors dark defaults) ───────────────────────
     WindowBackground,       // Title (#151515) — window frame
-    WorkspaceBackground,    // Background (#151515) — dock/viewport void
+    WorkspaceBackground,    // Background (#151515) — workspace canvas / tab-strip backdrop
     DockChromeBackground,   // Background (#151515) — dock tab strip / splitter chrome
     PanelBackground,        // Panel (#242424) — panel body
     TabActiveBackground,    // Panel (#242424) — active dock tab fill
@@ -24,7 +24,7 @@ enum class ColorToken : uint32_t {
     ToolbarBackground,      // Background (#151515) — main toolbar strip
     TabBackground,          // Background (#151515) — inactive dock tab
     InputBackground,        // Input (#0F0F0F) — search / property fields
-    ControlBackground,      // Input (#0F0F0F) — generic control wells
+    ControlBackground,      // Dropdown (#383838) — raised controls / secondary buttons
     PopupBackground,        // Dropdown (#383838) — menus / context popups
     TooltipBackground,      // Tooltips (#383838 @ 97%)
     DisabledBackground,     // Foldout (#0F0F0F) — disabled control fill
@@ -288,7 +288,7 @@ enum class MetricToken : uint32_t {
     TabActiveIndicatorWidth,   // active tab left accent width
     TabPaddingH,               // dock tab horizontal inner padding
     TabPaddingV,               // dock tab vertical inner padding
-    DockPanelGap,              // gutter between docked panels and workspace edge (logical px)
+    DockPanelGap,              // legacy alias — dock gutter (logical px, use ChromeSeparationGap)
     ChromeSeparationGap,       // gap between stacked panel regions (background shows through)
     ChromeSeparationGapWide,   // wider gap for toolbar/status section separation
     ViewportToolbarHeight,     // floating viewport control strip

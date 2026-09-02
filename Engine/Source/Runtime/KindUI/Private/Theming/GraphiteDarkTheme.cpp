@@ -18,8 +18,9 @@ Color GraphiteDarkTheme::ResolveColor(ColorToken token) const {
     case ColorToken::StatusBarBackground:
         return CS::OpaqueSurface(P::Title);
     case ColorToken::ToolbarBackground:
-        return CS::OpaqueSurface(P::Panel);
+        return CS::OpaqueSurface(P::Background);
     case ColorToken::WorkspaceBackground:
+        return CS::OpaqueSurface(P::Background);
     case ColorToken::DockChromeBackground:
     case ColorToken::TabBackground:
         return CS::OpaqueSurface(P::Background);
@@ -35,8 +36,9 @@ Color GraphiteDarkTheme::ResolveColor(ColorToken token) const {
     case ColorToken::HeaderBackground:
     case ColorToken::ListLabelBandBackground:
         return CS::OpaqueSurface(P::Header);
-    case ColorToken::InputBackground:
     case ColorToken::ControlBackground:
+        return CS::OpaqueSurface(P::Dropdown);
+    case ColorToken::InputBackground:
     case ColorToken::PressedBackground:
     case ColorToken::ControlBackgroundPressed:
         return CS::OpaqueSurface(P::Input);
@@ -220,16 +222,16 @@ float GraphiteDarkTheme::ResolveMetric(MetricToken token) const {
     case MetricToken::ButtonGroupSpacing: return 10.0f;
     case MetricToken::ScrollbarWidth: return 14.0f;
     case MetricToken::ScrollbarThumbMinHeight: return 20.0f;
-    case MetricToken::TabTopRadius: return 5.0f;
+    case MetricToken::TabTopRadius: return 6.0f;
     case MetricToken::TabActiveIndicatorHeight: return 2.0f;
     case MetricToken::StatusBarHeight: return 24.0f;
     case MetricToken::TabGap: return 4.0f;
     case MetricToken::TabStripPadH: return 0.0f;
-    case MetricToken::TabStripPadV: return 3.0f;
+    case MetricToken::TabStripPadV: return 4.0f;
     case MetricToken::TabActiveIndicatorWidth: return 0.0f;
-    case MetricToken::TabPaddingH: return 10.0f;
+    case MetricToken::TabPaddingH: return 16.0f;
     case MetricToken::TabPaddingV: return 5.0f;
-    case MetricToken::DockPanelGap: return 6.0f;
+    case MetricToken::DockPanelGap: return 4.0f;
     case MetricToken::ChromeSeparationGap: return 1.0f;
     case MetricToken::ChromeSeparationGapWide: return 2.0f;
     case MetricToken::ViewportToolbarHeight: return 28.0f;
@@ -466,20 +468,20 @@ ResolvedStyle StyleResolver::Resolve(StyleRole role) const {
 
     switch (role) {
     case StyleRole::Window:
-        style.background = theme.ResolveColor(ColorToken::WindowBackground);
+        style.background = ResolveColor(ColorToken::WindowBackground);
         break;
     case StyleRole::Workspace:
-        style.background = theme.ResolveColor(ColorToken::WorkspaceBackground);
+        style.background = ResolveColor(ColorToken::WorkspaceBackground);
         break;
     case StyleRole::Toolbar:
-        style.background = theme.ResolveColor(ColorToken::ToolbarBackground);
+        style.background = ResolveColor(ColorToken::ToolbarBackground);
         style.height = Scaled(theme.ResolveMetric(MetricToken::ToolbarHeight));
         style.fontSize = Scaled(theme.ResolveMetric(MetricToken::TextSizeToolbar));
         style.iconSize = static_cast<float>(16u);
         break;
     case StyleRole::Panel:
-        style.background = theme.ResolveColor(ColorToken::PanelBackground);
-        style.border = theme.ResolveColor(ColorToken::BorderSubtle);
+        style.background = ResolveColor(ColorToken::PanelBackground);
+        style.border = ResolveColor(ColorToken::BorderSubtle);
         style.cornerRadius = Scaled(theme.ResolveMetric(MetricToken::CornerRadiusMedium));
         style.padding = theme.ResolvePadding(PaddingToken::PaddingPanelLeft);
         for (auto& v : {&style.padding.left, &style.padding.top, &style.padding.right, &style.padding.bottom}) {
@@ -487,44 +489,44 @@ ResolvedStyle StyleResolver::Resolve(StyleRole role) const {
         }
         break;
     case StyleRole::PanelHeader:
-        style.background = theme.ResolveColor(ColorToken::HeaderBackground);
-        style.foreground = theme.ResolveColor(ColorToken::TextPrimary);
+        style.background = ResolveColor(ColorToken::HeaderBackground);
+        style.foreground = ResolveColor(ColorToken::TextPrimary);
         style.height = Scaled(theme.ResolveMetric(MetricToken::PanelHeaderHeight));
         style.fontSize = Scaled(theme.ResolveMetric(MetricToken::TextSizeTabs));
         break;
     case StyleRole::Tab:
     case StyleRole::DockTab:
-        style.background = theme.ResolveColor(ColorToken::TabBackground);
-        style.foreground = theme.ResolveColor(ColorToken::TextSecondary);
+        style.background = ResolveColor(ColorToken::TabBackground);
+        style.foreground = ResolveColor(ColorToken::TextSecondary);
         style.fontSize = Scaled(theme.ResolveMetric(MetricToken::TextSizeTabs));
         break;
     case StyleRole::TabActive:
     case StyleRole::DockTabActive:
-        style.background = theme.ResolveColor(ColorToken::TabActiveBackground);
-        style.foreground = theme.ResolveColor(ColorToken::TextPrimary);
-        style.border = theme.ResolveColor(ColorToken::BorderLight);
+        style.background = ResolveColor(ColorToken::TabActiveBackground);
+        style.foreground = ResolveColor(ColorToken::TextPrimary);
+        style.border = ResolveColor(ColorToken::BorderLight);
         style.fontSize = Scaled(theme.ResolveMetric(MetricToken::TextSizeTabs));
         break;
     case StyleRole::Button:
         style.background = Color::Transparent();
-        style.foreground = theme.ResolveColor(ColorToken::TextSecondary);
+        style.foreground = ResolveColor(ColorToken::TextSecondary);
         style.border = Color::Transparent();
         style.height = Scaled(theme.ResolveMetric(MetricToken::ButtonHeight));
         style.iconSize = static_cast<float>(16u);
         style.cornerRadius = Scaled(theme.ResolveMetric(MetricToken::CornerRadiusSmall));
         break;
     case StyleRole::ButtonHover:
-        style.background = theme.ResolveColor(ColorToken::HoverBackground);
-        style.foreground = theme.ResolveColor(ColorToken::TextPrimary);
-        style.border = theme.ResolveColor(ColorToken::BorderLight);
+        style.background = ResolveColor(ColorToken::HoverBackground);
+        style.foreground = ResolveColor(ColorToken::TextPrimary);
+        style.border = ResolveColor(ColorToken::BorderLight);
         break;
     case StyleRole::ButtonActive:
-        style.background = theme.ResolveColor(ColorToken::PressedBackground);
-        style.foreground = theme.ResolveColor(ColorToken::TextPrimary);
+        style.background = ResolveColor(ColorToken::PressedBackground);
+        style.foreground = ResolveColor(ColorToken::TextPrimary);
         break;
     case StyleRole::ButtonPrimary:
-        style.background = theme.ResolveColor(ColorToken::ButtonPrimaryBackground);
-        style.foreground = theme.ResolveColor(ColorToken::TextOnAccent);
+        style.background = ResolveColor(ColorToken::ButtonPrimaryBackground);
+        style.foreground = ResolveColor(ColorToken::TextOnAccent);
         style.border = Color::Transparent();
         style.borderWidth = 0.0f;
         style.height = Scaled(theme.ResolveMetric(MetricToken::ButtonHeight));
@@ -532,9 +534,9 @@ ResolvedStyle StyleResolver::Resolve(StyleRole role) const {
         style.cornerRadius = Scaled(theme.ResolveMetric(MetricToken::CornerRadiusSmall));
         break;
     case StyleRole::ButtonSecondary:
-        style.background = theme.ResolveColor(ColorToken::ControlBackground);
-        style.foreground = theme.ResolveColor(ColorToken::TextSecondary);
-        style.border = theme.ResolveColor(ColorToken::BorderDefault);
+        style.background = ResolveColor(ColorToken::ControlBackground);
+        style.foreground = ResolveColor(ColorToken::TextSecondary);
+        style.border = ResolveColor(ColorToken::BorderDefault);
         style.borderWidth = 1.0f;
         style.height = Scaled(theme.ResolveMetric(MetricToken::ButtonHeight));
         style.iconSize = static_cast<float>(16u);
@@ -542,132 +544,132 @@ ResolvedStyle StyleResolver::Resolve(StyleRole role) const {
         break;
     case StyleRole::IconButton:
         style.background = Color::Transparent();
-        style.icon = theme.ResolveColor(ColorToken::IconSecondary);
+        style.icon = ResolveColor(ColorToken::IconSecondary);
         style.border = Color::Transparent();
         style.height = Scaled(theme.ResolveMetric(MetricToken::IconButtonSize));
         style.iconSize = static_cast<float>(16u);
         style.cornerRadius = Scaled(theme.ResolveMetric(MetricToken::IconButtonRadius));
         break;
     case StyleRole::IconButtonHover:
-        style.background = theme.ResolveColor(ColorToken::HoverBackground);
-        style.icon = theme.ResolveColor(ColorToken::IconHover);
-        style.border = theme.ResolveColor(ColorToken::BorderLight);
+        style.background = ResolveColor(ColorToken::HoverBackground);
+        style.icon = ResolveColor(ColorToken::IconHover);
+        style.border = ResolveColor(ColorToken::BorderLight);
         break;
     case StyleRole::IconButtonPressed:
-        style.background = theme.ResolveColor(ColorToken::PressedBackground);
-        style.icon = theme.ResolveColor(ColorToken::IconActive);
+        style.background = ResolveColor(ColorToken::PressedBackground);
+        style.icon = ResolveColor(ColorToken::IconActive);
         break;
     case StyleRole::NavigationButton:
         style.background = Color::Transparent();
-        style.icon = theme.ResolveColor(ColorToken::IconSecondary);
+        style.icon = ResolveColor(ColorToken::IconSecondary);
         style.border = Color::Transparent();
         style.height = Scaled(theme.ResolveMetric(MetricToken::NavigationButtonSize));
         style.iconSize = static_cast<float>(16u);
         style.cornerRadius = Scaled(theme.ResolveMetric(MetricToken::IconButtonRadius));
         break;
     case StyleRole::Input:
-        style.background = theme.ResolveColor(ColorToken::InputBackground);
-        style.foreground = theme.ResolveColor(ColorToken::TextPrimary);
+        style.background = ResolveColor(ColorToken::InputBackground);
+        style.foreground = ResolveColor(ColorToken::TextPrimary);
         style.height = Scaled(theme.ResolveMetric(MetricToken::SearchBoxHeight));
         style.cornerRadius = Scaled(theme.ResolveMetric(MetricToken::CornerRadiusSmall));
         break;
     case StyleRole::SearchBox:
-        style.background = theme.ResolveColor(ColorToken::InputBackground);
-        style.foreground = theme.ResolveColor(ColorToken::TextPrimary);
+        style.background = ResolveColor(ColorToken::InputBackground);
+        style.foreground = ResolveColor(ColorToken::TextPrimary);
         style.height = Scaled(theme.ResolveMetric(MetricToken::SearchBoxHeight));
         style.cornerRadius = Scaled(theme.ResolveMetric(MetricToken::SearchBoxHeight)) * 0.5f;
         break;
     case StyleRole::StatusBar:
-        style.background = theme.ResolveColor(ColorToken::StatusBarBackground);
-        style.foreground = theme.ResolveColor(ColorToken::TextSecondary);
+        style.background = ResolveColor(ColorToken::StatusBarBackground);
+        style.foreground = ResolveColor(ColorToken::TextSecondary);
         style.height = Scaled(theme.ResolveMetric(MetricToken::StatusBarHeight));
         style.fontSize = Scaled(theme.ResolveMetric(MetricToken::TextSizeSmall));
         break;
     case StyleRole::MenuBar:
-        style.background = theme.ResolveColor(ColorToken::WindowBackground);
-        style.foreground = theme.ResolveColor(ColorToken::TextSecondary);
+        style.background = ResolveColor(ColorToken::WindowBackground);
+        style.foreground = ResolveColor(ColorToken::TextSecondary);
         style.fontSize = Scaled(theme.ResolveMetric(MetricToken::TextSizeMenu));
         break;
     case StyleRole::MenuItem:
         style.background = Color::Transparent();
-        style.foreground = theme.ResolveColor(ColorToken::TextSecondary);
+        style.foreground = ResolveColor(ColorToken::TextSecondary);
         style.fontSize = Scaled(theme.ResolveMetric(MetricToken::TextSizeMenu));
         break;
     case StyleRole::Popup:
-        style.background = theme.ResolveColor(ColorToken::PopupBackground);
-        style.foreground = theme.ResolveColor(ColorToken::TextPrimary);
-        style.border = theme.ResolveColor(ColorToken::BorderSubtle);
+        style.background = ResolveColor(ColorToken::PopupBackground);
+        style.foreground = ResolveColor(ColorToken::TextPrimary);
+        style.border = ResolveColor(ColorToken::BorderSubtle);
         style.cornerRadius = Scaled(theme.ResolveMetric(MetricToken::CornerRadiusMedium));
         style.elevation = theme.ResolveElevation(ElevationToken::Popup);
         break;
     case StyleRole::Tooltip:
-        style.background = theme.ResolveColor(ColorToken::TooltipBackground);
-        style.foreground = theme.ResolveColor(ColorToken::TextPrimary);
+        style.background = ResolveColor(ColorToken::TooltipBackground);
+        style.foreground = ResolveColor(ColorToken::TextPrimary);
         style.fontSize = Scaled(theme.ResolveMetric(MetricToken::TextSizeCaption));
         style.cornerRadius = Scaled(theme.ResolveMetric(MetricToken::CornerRadiusSmall));
         style.elevation = theme.ResolveElevation(ElevationToken::Popup);
         break;
     case StyleRole::Modal:
-        style.background = theme.ResolveColor(ColorToken::PopupBackground);
-        style.foreground = theme.ResolveColor(ColorToken::TextPrimary);
-        style.border = theme.ResolveColor(ColorToken::BorderSubtle);
+        style.background = ResolveColor(ColorToken::PopupBackground);
+        style.foreground = ResolveColor(ColorToken::TextPrimary);
+        style.border = ResolveColor(ColorToken::BorderSubtle);
         style.cornerRadius = Scaled(theme.ResolveMetric(MetricToken::WindowCornerRadius));
         style.elevation = theme.ResolveElevation(ElevationToken::Overlay);
         break;
     case StyleRole::Gizmo:
-        style.background = theme.ResolveColor(ColorToken::GizmoBackground);
+        style.background = ResolveColor(ColorToken::GizmoBackground);
         style.cornerRadius = Scaled(theme.ResolveMetric(MetricToken::CornerRadiusSmall));
         break;
     case StyleRole::ContentBrowser:
-        style.background = theme.ResolveColor(ColorToken::PanelBackground);
-        style.foreground = theme.ResolveColor(ColorToken::TextPrimary);
+        style.background = ResolveColor(ColorToken::PanelBackground);
+        style.foreground = ResolveColor(ColorToken::TextPrimary);
         style.fontSize = Scaled(theme.ResolveMetric(MetricToken::TextSizeBody));
         break;
     case StyleRole::Splitter:
-        style.background = theme.ResolveColor(ColorToken::BorderDefault);
+        style.background = ResolveColor(ColorToken::BorderDefault);
         break;
     case StyleRole::Separator:
-        style.background = theme.ResolveColor(ColorToken::Separator);
+        style.background = ResolveColor(ColorToken::Separator);
         break;
     case StyleRole::TextPrimary:
-        style.foreground = theme.ResolveColor(ColorToken::TextPrimary);
+        style.foreground = ResolveColor(ColorToken::TextPrimary);
         style.fontSize = Scaled(theme.ResolveMetric(MetricToken::TextSizeBody));
         break;
     case StyleRole::TextSecondary:
-        style.foreground = theme.ResolveColor(ColorToken::TextSecondary);
+        style.foreground = ResolveColor(ColorToken::TextSecondary);
         style.fontSize = Scaled(theme.ResolveMetric(MetricToken::TextSizeBody));
         break;
     case StyleRole::TextCaption:
-        style.foreground = theme.ResolveColor(ColorToken::TextSecondary);
+        style.foreground = ResolveColor(ColorToken::TextSecondary);
         style.fontSize = Scaled(theme.ResolveMetric(MetricToken::TextSizeSmall));
         break;
     case StyleRole::TextHint:
-        style.foreground = theme.ResolveColor(ColorToken::TextHint);
+        style.foreground = ResolveColor(ColorToken::TextHint);
         style.fontSize = Scaled(theme.ResolveMetric(MetricToken::TextSizeCaption));
         break;
     case StyleRole::TextDisabled:
-        style.foreground = theme.ResolveColor(ColorToken::TextDisabled);
+        style.foreground = ResolveColor(ColorToken::TextDisabled);
         style.fontSize = Scaled(theme.ResolveMetric(MetricToken::TextSizeBody));
         break;
     case StyleRole::ButtonGhost:
         style.background = Color::Transparent();
-        style.foreground = theme.ResolveColor(ColorToken::TextSecondary);
+        style.foreground = ResolveColor(ColorToken::TextSecondary);
         style.border = Color::Transparent();
         style.height = Scaled(theme.ResolveMetric(MetricToken::ButtonHeight));
         style.iconSize = static_cast<float>(16u);
         style.cornerRadius = Scaled(theme.ResolveMetric(MetricToken::CornerRadiusSmall));
         break;
     case StyleRole::ButtonDanger:
-        style.background = theme.ResolveColor(ColorToken::ButtonDangerBackground);
-        style.foreground = theme.ResolveColor(ColorToken::TextPrimary);
-        style.border = theme.ResolveColor(ColorToken::ButtonDangerHover);
+        style.background = ResolveColor(ColorToken::ButtonDangerBackground);
+        style.foreground = ResolveColor(ColorToken::TextPrimary);
+        style.border = ResolveColor(ColorToken::ButtonDangerHover);
         style.height = Scaled(theme.ResolveMetric(MetricToken::ButtonHeight));
         style.iconSize = static_cast<float>(16u);
         style.cornerRadius = Scaled(theme.ResolveMetric(MetricToken::CornerRadiusSmall));
         break;
     case StyleRole::ToolbarButton:
         style.background = Color::Transparent();
-        style.foreground = theme.ResolveColor(ColorToken::TextSecondary);
+        style.foreground = ResolveColor(ColorToken::TextSecondary);
         style.border = Color::Transparent();
         style.height = Scaled(theme.ResolveMetric(MetricToken::HeaderControlHeight));
         style.iconSize = static_cast<float>(16u);
@@ -675,9 +677,9 @@ ResolvedStyle StyleResolver::Resolve(StyleRole role) const {
         style.fontSize = Scaled(theme.ResolveMetric(MetricToken::TextSizeToolbar));
         break;
     case StyleRole::Card:
-        style.background = theme.ResolveColor(ColorToken::CardBackground);
-        style.foreground = theme.ResolveColor(ColorToken::TextPrimary);
-        style.border = theme.ResolveColor(ColorToken::BorderSubtle);
+        style.background = ResolveColor(ColorToken::CardBackground);
+        style.foreground = ResolveColor(ColorToken::TextPrimary);
+        style.border = ResolveColor(ColorToken::BorderSubtle);
         style.cornerRadius = Scaled(theme.ResolveMetric(MetricToken::CornerRadiusMedium));
         {
             const float pad = Scaled(theme.ResolveMetric(MetricToken::CardPadding));
@@ -686,66 +688,66 @@ ResolvedStyle StyleResolver::Resolve(StyleRole role) const {
         style.elevation = theme.ResolveElevation(ElevationToken::Card);
         break;
     case StyleRole::CardHover:
-        style.background = theme.ResolveColor(ColorToken::HoverBackground);
-        style.foreground = theme.ResolveColor(ColorToken::TextPrimary);
-        style.border = theme.ResolveColor(ColorToken::BorderLight);
+        style.background = ResolveColor(ColorToken::HoverBackground);
+        style.foreground = ResolveColor(ColorToken::TextPrimary);
+        style.border = ResolveColor(ColorToken::BorderLight);
         style.cornerRadius = Scaled(theme.ResolveMetric(MetricToken::CornerRadiusMedium));
         style.elevation = theme.ResolveElevation(ElevationToken::Card);
         break;
     case StyleRole::TableHeader:
-        style.background = theme.ResolveColor(ColorToken::ListLabelBandBackground);
-        style.foreground = theme.ResolveColor(ColorToken::TextSecondary);
+        style.background = ResolveColor(ColorToken::ListLabelBandBackground);
+        style.foreground = ResolveColor(ColorToken::TextSecondary);
         style.height = Scaled(theme.ResolveMetric(MetricToken::MenuItemHeight));
         style.fontSize = Scaled(theme.ResolveMetric(MetricToken::TextSizeCaption));
         break;
     case StyleRole::TableRow:
         style.background = Color::Transparent();
-        style.foreground = theme.ResolveColor(ColorToken::TextPrimary);
+        style.foreground = ResolveColor(ColorToken::TextPrimary);
         style.height = Scaled(theme.ResolveMetric(MetricToken::ListRowHeight));
         style.fontSize = Scaled(theme.ResolveMetric(MetricToken::TextSizeBody));
         style.cornerRadius = 0.0f;
         break;
     case StyleRole::TableRowHover:
-        style.background = theme.ResolveColor(ColorToken::HoverBackground);
-        style.foreground = theme.ResolveColor(ColorToken::TextPrimary);
+        style.background = ResolveColor(ColorToken::HoverBackground);
+        style.foreground = ResolveColor(ColorToken::TextPrimary);
         style.height = Scaled(theme.ResolveMetric(MetricToken::ListRowHeight));
         style.cornerRadius = 0.0f;
         break;
     case StyleRole::TableRowSelected:
-        style.background = theme.ResolveColor(ColorToken::SelectedBackground);
-        style.foreground = theme.ResolveColor(ColorToken::TextPrimary);
+        style.background = ResolveColor(ColorToken::SelectedBackground);
+        style.foreground = ResolveColor(ColorToken::TextPrimary);
         style.border = Color::Transparent();
         style.borderWidth = 0.0f;
         style.height = Scaled(theme.ResolveMetric(MetricToken::ListRowHeight));
         style.cornerRadius = 0.0f;
         break;
     case StyleRole::SectionHeader:
-        style.background = theme.ResolveColor(ColorToken::ListLabelBandBackground);
-        style.foreground = theme.ResolveColor(ColorToken::TextPrimary);
+        style.background = ResolveColor(ColorToken::ListLabelBandBackground);
+        style.foreground = ResolveColor(ColorToken::TextPrimary);
         style.fontSize = Scaled(theme.ResolveMetric(MetricToken::TextSizeHeader));
         style.bold = true;
         style.height = Scaled(theme.ResolveMetric(MetricToken::CategoryHeaderHeight));
         break;
     case StyleRole::PropertyRow:
         style.background = Color::Transparent();
-        style.foreground = theme.ResolveColor(ColorToken::TextSecondary);
+        style.foreground = ResolveColor(ColorToken::TextSecondary);
         style.height = Scaled(theme.ResolveMetric(MetricToken::FormRowHeight));
         style.fontSize = Scaled(theme.ResolveMetric(MetricToken::TextSizeProperty));
         break;
     case StyleRole::SidebarItem:
         style.background = Color::Transparent();
-        style.foreground = theme.ResolveColor(ColorToken::TextSecondary);
-        style.icon = theme.ResolveColor(ColorToken::IconSecondary);
+        style.foreground = ResolveColor(ColorToken::TextSecondary);
+        style.icon = ResolveColor(ColorToken::IconSecondary);
         style.height = Scaled(theme.ResolveMetric(MetricToken::FormRowHeight));
         style.fontSize = Scaled(theme.ResolveMetric(MetricToken::TextSizeBody));
         style.iconSize = static_cast<float>(16u);
         style.cornerRadius = Scaled(theme.ResolveMetric(MetricToken::CornerRadiusSmall));
         break;
     case StyleRole::SidebarItemActive:
-        style.background = theme.ResolveColor(ColorToken::SelectedBackground);
-        style.foreground = theme.ResolveColor(ColorToken::TextPrimary);
-        style.icon = theme.ResolveColor(ColorToken::AccentPrimary);
-        style.border = theme.ResolveColor(ColorToken::AccentPrimary);
+        style.background = ResolveColor(ColorToken::SelectedBackground);
+        style.foreground = ResolveColor(ColorToken::TextPrimary);
+        style.icon = ResolveColor(ColorToken::AccentPrimary);
+        style.border = ResolveColor(ColorToken::AccentPrimary);
         style.height = Scaled(theme.ResolveMetric(MetricToken::FormRowHeight));
         style.fontSize = Scaled(theme.ResolveMetric(MetricToken::TextSizeBody));
         style.iconSize = static_cast<float>(16u);
@@ -753,36 +755,36 @@ ResolvedStyle StyleResolver::Resolve(StyleRole role) const {
         style.bold = true;
         break;
     case StyleRole::WindowHeader:
-        style.background = theme.ResolveColor(ColorToken::HeaderBackground);
-        style.foreground = theme.ResolveColor(ColorToken::TextPrimary);
+        style.background = ResolveColor(ColorToken::HeaderBackground);
+        style.foreground = ResolveColor(ColorToken::TextPrimary);
         style.height = Scaled(theme.ResolveMetric(MetricToken::TitleBarHeight));
         style.fontSize = Scaled(theme.ResolveMetric(MetricToken::TextSizeWindow));
         break;
     case StyleRole::Checkbox:
     case StyleRole::ToggleSwitch:
-        style.background = theme.ResolveColor(ColorToken::InputBackground);
-        style.foreground = theme.ResolveColor(ColorToken::AccentPrimary);
-        style.border = theme.ResolveColor(ColorToken::BorderDefault);
+        style.background = ResolveColor(ColorToken::InputBackground);
+        style.foreground = ResolveColor(ColorToken::AccentPrimary);
+        style.border = ResolveColor(ColorToken::BorderDefault);
         style.cornerRadius = Scaled(theme.ResolveMetric(MetricToken::CornerRadiusSmall));
         style.height = Scaled(theme.ResolveMetric(MetricToken::ControlHeightCompact));
         style.iconSize = Scaled(theme.ResolveMetric(MetricToken::CheckboxGlyphSize));
         break;
     case StyleRole::Scrollbar:
-        style.background = theme.ResolveColor(ColorToken::ScrollbarTrack);
-        style.foreground = theme.ResolveColor(ColorToken::ScrollbarThumb);
-        style.border = theme.ResolveColor(ColorToken::ScrollbarThumbHover);
+        style.background = ResolveColor(ColorToken::ScrollbarTrack);
+        style.foreground = ResolveColor(ColorToken::ScrollbarThumb);
+        style.border = ResolveColor(ColorToken::ScrollbarThumbHover);
         style.height = Scaled(theme.ResolveMetric(MetricToken::ScrollbarWidth));
         break;
     case StyleRole::TreeItem:
         style.background = Color::Transparent();
-        style.foreground = theme.ResolveColor(ColorToken::TextSecondary);
+        style.foreground = ResolveColor(ColorToken::TextSecondary);
         style.height = Scaled(theme.ResolveMetric(MetricToken::ListRowHeight));
         style.fontSize = Scaled(theme.ResolveMetric(MetricToken::TextSizeSmall));
         style.iconSize = static_cast<float>(16u);
         break;
     case StyleRole::TreeItemSelected:
-        style.background = theme.ResolveColor(ColorToken::SelectedBackground);
-        style.foreground = theme.ResolveColor(ColorToken::TextPrimary);
+        style.background = ResolveColor(ColorToken::SelectedBackground);
+        style.foreground = ResolveColor(ColorToken::TextPrimary);
         style.height = Scaled(theme.ResolveMetric(MetricToken::ListRowHeight));
         style.fontSize = Scaled(theme.ResolveMetric(MetricToken::TextSizeSmall));
         break;

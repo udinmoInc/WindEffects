@@ -58,6 +58,17 @@ we::runtime::kindui::IPopupHost* GetEditorPopupHost() {
 
 void EditorWorkspaceController::BindLayout(const ::we::editor::shell::DockLayoutBuildResult& layout) {
     m_Layout = layout;
+    ApplyToolsPaneWidth(m_ToolsPaneWidth);
+}
+
+void EditorWorkspaceController::ApplyToolsPaneWidth(float width) {
+    const float paneWidth = SanitizeToolsPaneWidth(width);
+    m_ToolsPaneWidth = paneWidth;
+
+    if (m_Layout.toolsViewportSplitter) {
+        m_Layout.toolsViewportSplitter->SetResizeMode(Splitter::ResizeMode::FixedFirst);
+        m_Layout.toolsViewportSplitter->SetFixedFirstWidth(paneWidth);
+    }
 }
 
 void EditorWorkspaceController::SetPopupHost(we::runtime::kindui::OverlayHost* host) {
@@ -201,9 +212,7 @@ void EditorWorkspaceController::ApplyToolsPanelVisibility(bool visible) {
 
     if (m_Layout.toolsViewportSplitter) {
         if (visible) {
-            m_Layout.toolsViewportSplitter->SetResizeMode(Splitter::ResizeMode::FixedFirst);
-            m_Layout.toolsViewportSplitter->SetFixedFirstWidth(
-                m_ToolsPaneWidth > 0.0f ? m_ToolsPaneWidth : 300.0f);
+            ApplyToolsPaneWidth(m_ToolsPaneWidth > 0.0f ? m_ToolsPaneWidth : 300.0f);
         } else {
             const float currentWidth = m_Layout.toolsViewportSplitter->GetFixedFirstWidth();
             if (currentWidth >= kMinUsableToolsPaneWidth) {
@@ -302,9 +311,7 @@ void EditorWorkspaceController::LoadLayout() {
                 m_Layout.rootVerticalSplitter->SetFixedSecondWidth(m_ContentBrowserBottomHeight);
             }
         } else if (key == "toolsPaneWidth" && m_Layout.toolsViewportSplitter) {
-            m_ToolsPaneWidth = SanitizeToolsPaneWidth(parsed);
-            m_Layout.toolsViewportSplitter->SetResizeMode(Splitter::ResizeMode::FixedFirst);
-            m_Layout.toolsViewportSplitter->SetFixedFirstWidth(m_ToolsPaneWidth);
+            ApplyToolsPaneWidth(parsed);
         } else if (key == "mainHorizontalRightWidth" && m_Layout.mainHorizontalSplitter) {
             m_Layout.mainHorizontalSplitter->SetResizeMode(Splitter::ResizeMode::FixedSecond);
             m_Layout.mainHorizontalSplitter->SetFixedSecondWidth(std::max(parsed, 200.0f));
@@ -321,9 +328,7 @@ void EditorWorkspaceController::LoadLayout() {
                 m_Layout.rootVerticalSplitter->SetFixedSecondWidth(m_ContentBrowserBottomHeight);
             }
         } else if (key == "toolsViewport" && m_Layout.toolsViewportSplitter) {
-            m_ToolsPaneWidth = SanitizeToolsPaneWidth(parsed);
-            m_Layout.toolsViewportSplitter->SetResizeMode(Splitter::ResizeMode::FixedFirst);
-            m_Layout.toolsViewportSplitter->SetFixedFirstWidth(m_ToolsPaneWidth);
+            ApplyToolsPaneWidth(parsed);
         } else if (key == "contentBrowserStoredHeight" && m_Layout.rootVerticalSplitter) {
             m_ContentBrowserBottomHeight = SanitizeContentBrowserHeight(parsed);
         } else if (key == "rightVertical" && m_Layout.rightVerticalSplitter) {

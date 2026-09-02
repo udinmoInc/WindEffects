@@ -9,11 +9,13 @@
 #include <string>
 #include <vector>
 #include <functional>
+#include <functional>
 
 namespace we::editor::panels {
 using ::we::runtime::kindui::Widget;
 using ::we::runtime::kindui::PaintContext;
 using ::we::runtime::kindui::Rect;
+using ::we::runtime::kindui::Size;
 using ::we::runtime::kindui::Color;
 using ::we::runtime::kindui::MouseEvent;
 
@@ -140,6 +142,40 @@ UIFRAMEWORK_API void PaintDockTabStrip(
     const std::vector<DockTabDescriptor>& descriptors,
     const DockTabStripLayout& layout,
     const DockTabStripState& state);
+
+/// Shared dock-panel chrome layout used by every DockContainer (Actors, Viewport, Content Browser, etc.).
+struct DockPanelGeometry {
+    Rect chromeRect;
+    Rect headerRect;
+    Rect headerContentGapRect;
+    Rect contentRect;
+};
+
+[[nodiscard]] UIFRAMEWORK_API bool UsesGapCutDockTabs();
+[[nodiscard]] UIFRAMEWORK_API float DockStructureGapDevice();
+[[nodiscard]] UIFRAMEWORK_API float DockHeaderContentGap();
+[[nodiscard]] UIFRAMEWORK_API Rect InsetDockChromeRect(const Rect& allottedRect);
+[[nodiscard]] UIFRAMEWORK_API DockPanelGeometry LayoutDockPanel(
+    const Rect& allottedRect,
+    float headerHeightDevice);
+[[nodiscard]] UIFRAMEWORK_API Size InsetDockMeasureAvailable(const Size& availableSize);
+[[nodiscard]] UIFRAMEWORK_API Size ExpandDockMeasuredSize(
+    const Size& innerDesired,
+    const Size& availableSize);
+UIFRAMEWORK_API void PaintDockPanelContent(
+    PaintContext& context,
+    const Rect& contentRect,
+    const std::function<void(PaintContext& context)>& paintBody);
+UIFRAMEWORK_API void PaintDockHeaderContentGap(PaintContext& context, const Rect& gapRect);
+UIFRAMEWORK_API void PaintDockPanelChrome(
+    PaintContext& context,
+    const Rect& headerRect,
+    const Rect& headerContentGapRect,
+    const Rect& contentRect,
+    const std::vector<DockTabDescriptor>& descriptors,
+    const DockTabStripLayout& stripLayout,
+    const DockTabStripState& state,
+    const std::function<void(PaintContext& context)>& paintBody);
 
 struct FloatingHeaderAction {
     we::runtime::kindui::WindIconRef icon = we::runtime::kindui::kWindIconNone;

@@ -1,4 +1,5 @@
 #include "KindUI/Core/PaintContext.h"
+#include "KindUI/Core/ColorSpace.h"
 #include "KindUI/Core/WindIcon.h"
 #include "KindUI/Core/TextMetrics.h"
 #include "KindUI/Profiling/UiColorDebug.h"
@@ -70,7 +71,7 @@ void PaintContext::RecordSemanticDraw(
 }
 
 void PaintContext::DrawSurface(const Rect& rect, SurfaceRole role, float borderRadius, const char* widgetName) {
-    const Color color = ResolveSurfaceColor(role);
+    const Color color = ColorSpace::OpaqueSurface(ResolveSurfaceColor(role));
     DrawCommand cmd{};
     cmd.type = DrawCommandType::Rect;
     cmd.rect = rect;
@@ -88,7 +89,7 @@ void PaintContext::DrawSurfaceOutline(
     float radius,
     const char* widgetName)
 {
-    const Color color = ResolveSurfaceColor(role);
+    const Color color = ColorSpace::OpaqueSurface(ResolveSurfaceColor(role));
     if (!AllowsChromeOutline(color)) {
         return;
     }

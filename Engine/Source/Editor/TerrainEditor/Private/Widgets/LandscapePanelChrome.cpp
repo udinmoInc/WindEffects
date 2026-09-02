@@ -47,7 +47,7 @@ float PrimaryButtonHeight() { return ResolveMetric(MetricToken::PrimaryButtonHei
 float LabelColumnWidth() { return PropertyPanelChrome::LabelColumnWidth(); }
 
 void PaintPanelBackground(PaintContext& context, const Rect& bounds) {
-    PanelChromeNs::PaintContentRegion(context, bounds);
+    PanelChromeNs::PaintPrimaryContentRegion(context, bounds);
 }
 
 void PaintTabBar(PaintContext& context, const Rect& bounds) {
@@ -55,12 +55,17 @@ void PaintTabBar(PaintContext& context, const Rect& bounds) {
 }
 
 void PaintSectionCard(PaintContext& context, const Rect& bounds) {
-    PanelChromeNs::PaintContentWell(context, bounds);
+    PanelChromeNs::PaintPrimaryContentRegion(context, bounds);
 }
 
 void PaintSoftSeparator(PaintContext& context, const Rect& bounds) {
-    (void)context;
-    (void)bounds;
+    if (bounds.IsEmpty()) {
+        return;
+    }
+    const float scale = UiScale();
+    const float thickness = std::max(1.0f, scale);
+    const Rect separatorRect{ bounds.x, bounds.y, bounds.width, thickness };
+    context.DrawSurface(separatorRect, we::runtime::kindui::SurfaceRole::Separator, 0.0f, "LandscapeSoftSeparator");
 }
 
 void PaintTab(
@@ -103,7 +108,7 @@ void PaintChip(
     const float radius = ResolveMetric(MetricToken::CornerRadiusSmall) * UiScale();
     Color bg = ResolveColor(ColorToken::ControlBackground);
     if (selected) {
-        bg = Color::Lerp(bg, ResolveColor(ColorToken::AccentPrimary), 0.35f);
+        bg = Color::Pick(bg, ResolveColor(ColorToken::AccentPrimary), 0.35f);
     } else {
         const Color interactive = ResolveInteractiveBackground(hoverAnim, 0.0f, false, ColorToken::ControlBackground);
         if (interactive.a > 0.001f) {
@@ -212,9 +217,9 @@ void PaintPrimaryButton(
     const float radius = ResolveMetric(MetricToken::CornerRadiusSmall) * UiScale();
     Color bg = ResolveColor(ColorToken::ButtonPrimaryBackground);
     if (pressAnim > 0.01f) {
-        bg = Color::Lerp(bg, ResolveColor(ColorToken::ButtonPrimaryPressed), pressAnim);
+        bg = Color::Pick(bg, ResolveColor(ColorToken::ButtonPrimaryPressed), pressAnim);
     } else if (hoverAnim > 0.01f) {
-        bg = Color::Lerp(bg, ResolveColor(ColorToken::ButtonPrimaryHover), hoverAnim);
+        bg = Color::Pick(bg, ResolveColor(ColorToken::ButtonPrimaryHover), hoverAnim);
     }
     ControlChrome::PaintPanelButtonFace(context, bounds, bg, radius, hoverAnim, pressAnim, true);
     const float fontSize = ResolveMetric(MetricToken::TextSizeBody) * UiScale();
@@ -238,7 +243,7 @@ void PaintSecondaryButton(
     Color bg = ResolveColor(ColorToken::ControlBackground);
     const float mix = hoverAnim * 0.7f + pressAnim * 0.3f;
     if (mix > 0.01f) {
-        bg = Color::Lerp(bg, ResolveColor(ColorToken::HoverBackground), mix);
+        bg = Color::Pick(bg, ResolveColor(ColorToken::HoverBackground), mix);
     }
     ControlChrome::PaintPanelButtonFace(context, bounds, bg, radius, hoverAnim, pressAnim, false);
     const float fontSize = ResolveMetric(MetricToken::TextSizeCaption) * UiScale();

@@ -22,6 +22,8 @@ class PanelBodyLayout;
 
 namespace we::editor::terrain {
 
+class LandscapeWorkspaceTabBar;
+
 class TERRAINEDITOR_API LandscapeWorkspacePanel : public we::runtime::kindui::Widget {
 public:
     explicit LandscapeWorkspacePanel(ILandscapeEditor* editor);
@@ -55,7 +57,7 @@ private:
     bool m_UserSelectedTab = false;
 
     std::shared_ptr<we::editor::panels::PanelBodyLayout> m_BodyLayout;
-    std::shared_ptr<we::runtime::kindui::Row> m_TabBar;
+    std::shared_ptr<LandscapeWorkspaceTabBar> m_TabBar;
     std::shared_ptr<we::runtime::kindui::ScrollLayout> m_ScrollArea;
     std::shared_ptr<we::runtime::kindui::Column> m_TabContent;
     std::shared_ptr<we::runtime::kindui::DesignButton> m_FooterButton;

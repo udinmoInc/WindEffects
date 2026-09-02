@@ -21,7 +21,7 @@ using we::runtime::kindui::TextMetrics;
 
 // Input/dropdown value text — slightly brighter than primary for long paths.
 inline Color InputValueTextColor() {
-    return Color::Lerp(LColor(ColorToken::TextPrimary), Color{ 1.0f, 1.0f, 1.0f, 1.0f }, 0.28f);
+    return Color::Pick(LColor(ColorToken::TextPrimary), Color{ 1.0f, 1.0f, 1.0f, 1.0f }, 0.28f);
 }
 
 inline float ApproxTextWidth(const std::string& text, float textSize) {

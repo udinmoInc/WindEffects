@@ -388,9 +388,7 @@ void TreeView::Paint(PaintContext& context) {
     UpdateVisibleRange();
 
     if (m_PaintNavigationBackground && m_ScrollMetrics.viewport.width > 0.0f && m_ScrollMetrics.viewport.height > 0.0f) {
-        context.DrawRect(
-            m_ScrollMetrics.viewport,
-            we::runtime::kindui::ds::Panel::NavigationBackground());
+        ::we::editor::panels::PanelChrome::PaintNavigationRegion(context, m_ScrollMetrics.viewport);
     }
 
     const float viewTop = m_ScrollMetrics.viewport.y;
@@ -434,7 +432,7 @@ void TreeView::Paint(PaintContext& context) {
         // Left Controls (ExplorerStyle)
         if (m_ExplorerStyle) {
             if (hovered || selected || !node->visible) {
-                const Color eyeColor = node->visible ? ThemeColor(ColorToken::TextSecondary) : ThemeColor(ColorToken::TextSecondary) * 0.45f;
+                (void)(node->visible ? ThemeColor(ColorToken::TextSecondary) : ThemeColor(ColorToken::TextDisabled));
                 const WindIconRef eyeIcon = node->visible ? WindIcons::Eye16 : kWindIconNone;
                 IconPainter::Draw(context, eyeIcon, IconMetrics::PlaceGlyphCentered(layout.eyeBounds, 16u));
             }
@@ -458,9 +456,9 @@ void TreeView::Paint(PaintContext& context) {
 
         // Node Label Text (With Search Highlighting & Text Clipping)
         const float textY = layout.rowBounds.y + (rowHeight - fontSize) * 0.5f;
-        Color textColor = node->locked ? ThemeColor(ColorToken::TextSecondary) * 0.6f : ThemeColor(ColorToken::TextPrimary);
+        Color textColor = node->locked ? ThemeColor(ColorToken::TextSecondary) : ThemeColor(ColorToken::TextPrimary);
         if (!node->visible) {
-            textColor = ThemeColor(ColorToken::TextSecondary) * 0.45f;
+            textColor = ThemeColor(ColorToken::TextDisabled);
         }
 
         context.PushClipRect(Rect{ layout.textX, layout.rowBounds.y, layout.maxTextWidth, rowHeight });
@@ -507,7 +505,7 @@ void TreeView::Paint(PaintContext& context) {
                     const std::string matchText = label.substr(matchStart, matchEnd - matchStart);
                     const float matchWidth = context.GetTextWidth(matchText, fontSize);
                     Rect highlightRect{ currentX, textY, matchWidth, fontSize };
-                    context.DrawRoundedRect(highlightRect, ThemeColor(ColorToken::AccentPrimary) * 0.3f, 2.0f);
+                    context.DrawRoundedRect(highlightRect, ThemeColor(ColorToken::SelectionHighlight), 2.0f);
                     context.DrawText(matchText, Point{ currentX, textY }, ThemeColor(ColorToken::AccentPrimary), fontSize);
                     currentX += matchWidth;
                     const std::string afterMatch = label.substr(matchEnd);
@@ -536,7 +534,7 @@ void TreeView::Paint(PaintContext& context) {
 
         // Trailing Row Controls (Non-ExplorerStyle)
         if (m_ShowRowControls && !m_ExplorerStyle) {
-            const Color eyeColor = node->visible ? ThemeColor(ColorToken::TextSecondary) : ThemeColor(ColorToken::TextSecondary) * 0.45f;
+            (void)(node->visible ? ThemeColor(ColorToken::TextSecondary) : ThemeColor(ColorToken::TextDisabled));
             const WindIconRef eyeIcon = node->visible ? WindIcons::Eye16 : kWindIconNone;
             IconPainter::Draw(context, eyeIcon, IconMetrics::PlaceGlyphCentered(layout.eyeBounds, 16u));
 

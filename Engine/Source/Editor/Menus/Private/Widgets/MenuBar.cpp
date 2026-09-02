@@ -80,7 +80,7 @@ void MenuBar::Paint(PaintContext& context) {
             const float strength = isActive ? 0.5f : 0.28f;
             context.DrawRoundedRect(
                 highlightRect,
-                Color::Lerp(base, target, strength),
+                Color::Pick(base, target, strength),
                 radius * 0.5f);
         }
 

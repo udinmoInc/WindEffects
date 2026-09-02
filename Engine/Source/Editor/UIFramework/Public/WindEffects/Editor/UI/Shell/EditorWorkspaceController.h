@@ -51,6 +51,8 @@ public:
 private:
     EditorWorkspaceController() = default;
 
+    void ApplyToolsPaneWidth(float width);
+
     std::shared_ptr<::we::editor::docking::DockContainer> DockForPanel(const std::string& panelId) const;
     std::shared_ptr<::we::editor::docking::DockContainer> DockForZone(
         ::we::editor::docking::DockZone zone) const;

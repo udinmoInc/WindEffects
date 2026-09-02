@@ -46,6 +46,13 @@ KINDUI_API void PaintObjectHeader(
     WindIconRef icon,
     bool active);
 
+/// UE-style Details object header: title row + selected instance row (inline 16px icon, no containers).
+KINDUI_API void PaintDetailsObjectHeader(
+    PaintContext& context,
+    const Rect& rect,
+    std::string_view displayName,
+    WindIconRef icon);
+
 KINDUI_API void PaintSectionHeader(
     PaintContext& context,
     const Rect& rect,

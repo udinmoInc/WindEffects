@@ -5,6 +5,7 @@
 #include "KindUI/Theming/ThemeAccess.h"
 #include "KindUI/Theming/ThemeManager.h"
 #include "KindUI/Tokens/DesignToken.h"
+#include "KindUI/Tokens/SurfaceRole.h"
 #include "KindUI/Theming/StyleRole.h"
 
 #include <algorithm>
@@ -158,8 +159,7 @@ void ScrollViewport::Paint(
     }
 
     const ResolvedStyle style = ThemeManager::Get().Resolve(StyleRole::Scrollbar);
-
-    context.DrawRect(metrics.track, style.background);
+    context.DrawSurface(metrics.track, SurfaceRole::Recessed, 0.0f, "ScrollbarTrack");
 
     const bool active = thumbHovered || m_DraggingThumb;
     Color thumbColor = active ? ResolveColor(ColorToken::ScrollbarThumbHover) : style.foreground;

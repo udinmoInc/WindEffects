@@ -6,6 +6,7 @@
 #include "KindUI/Input/InputEvents.h"
 #include "KindUI/Theming/ThemeAccess.h"
 #include "KindUI/Tokens/DesignToken.h"
+#include "KindUI/Tokens/SurfaceRole.h"
 #include "KindUI/Theming/StyleRole.h"
 #include "Core/Logger.h"
 #include "Core/Math/Types.h"
@@ -105,9 +106,13 @@ void GraphicsDebuggerPopup::Paint(PaintContext& context) {
         return;
     }
     we::runtime::kindui::ControlChrome::PaintPopupShadow(context, m_Geometry, 6.0f);
-    context.DrawRoundedRect(m_Geometry, ThemeColor(ColorToken::PopupBackground), ResolveMetric(MetricToken::CornerRadiusSmall));
+    context.DrawSurface(
+        m_Geometry,
+        we::runtime::kindui::SurfaceRole::Popup,
+        ResolveMetric(MetricToken::CornerRadiusSmall),
+        "GraphicsDebuggerPopup");
     context.DrawRoundedRectOutline(m_Geometry, ThemeColor(ColorToken::BorderDefault), 1.0f, ResolveMetric(MetricToken::CornerRadiusSmall));
-    context.DrawRect(m_HeaderRect, ThemeColor(ColorToken::HeaderBackground));
+    context.DrawSurface(m_HeaderRect, we::runtime::kindui::SurfaceRole::PanelHeader, 0.0f, "GraphicsDebuggerHeader");
     const float padding = ResolveMetric(MetricToken::Space2);
     const float headerH = ResolveMetric(MetricToken::PanelToolbarHeight);
     const float titleSize = ResolveMetric(MetricToken::TextSizeToolbar);

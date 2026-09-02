@@ -32,6 +32,7 @@
 
 #include <algorithm>
 #include <vector>
+#include "KindUI/Tokens/ChromeSeparation.h"
 #include "KindUI/Tokens/DesignToken.h"
 
 using we::runtime::kindui::ColorToken;
@@ -317,13 +318,26 @@ EditorShellResult EditorShellBuilder::Build(
 
     if (shellResult.layout.explorerDock) {
         shellResult.layout.explorerDock->SetOnTabClosed([](const std::shared_ptr<Panel>& panel) {
-            if (panel && panel->GetTitle() == "Explorer") {
+            if (panel) {
                 we::programs::editor::EditorWorkspaceController::Get().SetPanelVisible("WorldOutliner", false);
             }
         });
         shellResult.layout.explorerDock->SetOnTabDragStarted([](const std::shared_ptr<Panel>& panel, const Point&) {
-            if (panel && panel->GetTitle() == "Explorer") {
+            if (panel) {
                 we::programs::editor::EditorWorkspaceController::Get().FloatPanel("WorldOutliner");
+            }
+        });
+    }
+
+    if (shellResult.layout.detailsDock) {
+        shellResult.layout.detailsDock->SetOnTabClosed([](const std::shared_ptr<Panel>& panel) {
+            if (panel) {
+                we::programs::editor::EditorWorkspaceController::Get().SetPanelVisible("Details", false);
+            }
+        });
+        shellResult.layout.detailsDock->SetOnTabDragStarted([](const std::shared_ptr<Panel>& panel, const Point&) {
+            if (panel) {
+                we::programs::editor::EditorWorkspaceController::Get().FloatPanel("Details");
             }
         });
     }
@@ -401,11 +415,14 @@ EditorShellResult EditorShellBuilder::Build(
     rootVBox->AddChild(titleBar);
     rootVBox->AddChild(toolbar);
     if (shellResult.layout.root) {
-        const float dockGap = style.Scaled(we::runtime::kindui::ResolveMetric(MetricToken::DockPanelGap));
+        const float dockGap = style.Scaled(
+            we::runtime::kindui::ChromeSeparation::kGapCutsEnabled
+                ? we::runtime::kindui::ChromeSeparation::Gap()
+                : we::runtime::kindui::ResolveMetric(MetricToken::DockPanelGap));
         auto workspaceArea = std::make_shared<Column>();
         workspaceArea->Gap(0.0f);
         workspaceArea->Padding(Margin{ dockGap, dockGap, dockGap, dockGap });
-        workspaceArea->Background(ResolveColor(ColorToken::DockChromeBackground));
+        workspaceArea->Background(ResolveColor(ColorToken::WorkspaceBackground));
         workspaceArea->SetFlexGrow(1.0f);
         workspaceArea->SetFlexShrink(0.0f);
         workspaceArea->SetVerticalAlignment(VerticalAlignment::Fill);

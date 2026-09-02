@@ -10,6 +10,7 @@ namespace we::runtime::kindui {
 enum class SurfaceRole : uint8_t {
     None = 0,
     Window,
+    Workspace,
     Toolbar,
     DockChrome,
     TabActive,

@@ -156,7 +156,7 @@ void LauncherTitleBar::PaintIconButton(
 
     Color bg = Color::Transparent();
     if (hover > 0.01f) {
-        bg = Color::Lerp(
+        bg = Color::Pick(
             bg,
             danger ? LColor(ColorToken::CloseButtonHover) : LColor(ColorToken::HoverBackground),
             hover);
@@ -204,9 +204,9 @@ void LauncherTitleBar::Paint(PaintContext& context) {
         const Rect& r = controls[i];
         Color bg = Color::Transparent();
         if (i == 2 && hovers[i] > 0.01f) {
-            bg = Color::Lerp(bg, LColor(ColorToken::CloseButtonHover), hovers[i]);
+            bg = Color::Pick(bg, LColor(ColorToken::CloseButtonHover), hovers[i]);
         } else if (hovers[i] > 0.01f) {
-            bg = Color::Lerp(bg, LColor(ColorToken::HoverBackground), hovers[i]);
+            bg = Color::Pick(bg, LColor(ColorToken::HoverBackground), hovers[i]);
         }
         if (bg.a > 0.01f) {
             context.DrawRect(r, bg);

@@ -199,7 +199,7 @@ void FilterChip::Paint(PaintContext& context) {
     const float radius = 8.0f * s;
     Color bg = m_Selected
         ? LColor(ColorToken::SelectedBackground)
-        : Color::Lerp(LColor(ColorToken::PanelBackground), LColor(ColorToken::HoverBackground), m_HoverAnim);
+        : Color::Pick(LColor(ColorToken::PanelBackground), LColor(ColorToken::HoverBackground), m_HoverAnim);
     context.DrawRoundedRect(m_Geometry, bg, radius);
     if (m_Selected) {
         context.DrawRoundedRectOutline(m_Geometry, LColor(ColorToken::AccentPrimary), 1.0f * s, radius);

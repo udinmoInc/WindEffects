@@ -87,7 +87,7 @@ private:
 
     we::rhi::IRHIDevice* m_Device = nullptr;
     we::rhi::IRHICommandList* m_Cmd = nullptr;
-    we::rhi::Format m_SwapchainFormat = we::rhi::Format::B8G8R8A8_UNORM;
+    we::rhi::Format m_SwapchainFormat = we::rhi::Format::B8G8R8A8_SRGB;
     uint32_t m_MaxFramesInFlight = 2;
     uint32_t m_CurrentWidth = 0;
     uint32_t m_CurrentHeight = 0;
@@ -108,6 +108,7 @@ private:
     we::rhi::RHIPipelineLayoutHandle m_UiLayout = we::rhi::RHIPipelineLayoutHandle::Invalid;
     we::rhi::RHIPipelineLayoutHandle m_TextLayout = we::rhi::RHIPipelineLayoutHandle::Invalid;
     we::rhi::RHIGraphicsPipelineHandle m_UiPipeline = we::rhi::RHIGraphicsPipelineHandle::Invalid;
+    we::rhi::RHIGraphicsPipelineHandle m_UiOpaquePipeline = we::rhi::RHIGraphicsPipelineHandle::Invalid;
     we::rhi::RHIGraphicsPipelineHandle m_TextPipeline = we::rhi::RHIGraphicsPipelineHandle::Invalid;
 
     we::rhi::RHITextureHandle m_DummyTexture = we::rhi::RHITextureHandle::Invalid;
