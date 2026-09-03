@@ -3,6 +3,7 @@
 #include "KindUI/Export.h"
 
 #include "KindUI/Core/Geometry.h"
+#include "KindUI/Theming/Palette.h"
 
 #include <cstdint>
 #include <string>

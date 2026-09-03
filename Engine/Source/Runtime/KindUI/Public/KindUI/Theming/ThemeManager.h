@@ -44,12 +44,14 @@ public:
     void AddChangeListener(ChangeListener listener);
     void ClearChangeListeners();
 
+    /// Notify listeners after live palette / theme data changes.
+    void NotifyChanged();
+
     // Convenience: resolve a role through the active resolver.
     [[nodiscard]] ResolvedStyle Resolve(StyleRole role) const;
 
 private:
     ThemeManager() = default;
-    void NotifyChanged();
 
     std::shared_ptr<IKindUITheme> m_Theme;
     std::shared_ptr<StyleResolver> m_Resolver;

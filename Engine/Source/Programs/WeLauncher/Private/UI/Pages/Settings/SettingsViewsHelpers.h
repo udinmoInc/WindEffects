@@ -4,6 +4,7 @@
 #include "KindUI/Core/PaintContext.h"
 #include "KindUI/Core/TextMetrics.h"
 #include "KindUI/Core/Types.h"
+#include "KindUI/Theming/PaletteRuntime.h"
 
 #include <algorithm>
 #include <cctype>
@@ -18,10 +19,11 @@ namespace settings_detail {
 using we::runtime::kindui::Color;
 using we::runtime::kindui::ColorToken;
 using we::runtime::kindui::TextMetrics;
+using we::runtime::kindui::palette::GraphiteDarkLive;
 
 // Input/dropdown value text — slightly brighter than primary for long paths.
 inline Color InputValueTextColor() {
-    return Color::Pick(LColor(ColorToken::TextPrimary), Color{ 1.0f, 1.0f, 1.0f, 1.0f }, 0.28f);
+    return Color::Pick(LColor(ColorToken::TextPrimary), GraphiteDarkLive().ForegroundHover, 0.28f);
 }
 
 inline float ApproxTextWidth(const std::string& text, float textSize) {
@@ -42,9 +44,34 @@ inline bool ContainsInsensitive(const std::string& haystack, const std::string& 
     return ToLowerLocal(haystack).find(needleLower) != std::string::npos;
 }
 
-inline const char* kAccentPalette[] = {
-    "#5B8DEF", "#6BCB9A", "#E0A35A", "#C97BDB", "#5AABB8", "#E07070", "#A0A8B8"
-};
+inline constexpr int kAccentPaletteCount = 7;
+
+inline Color AccentSwatch(int index) {
+    const auto& p = GraphiteDarkLive();
+    switch (index) {
+    case 0: return p.Primary;
+    case 1: return p.AccentGreen;
+    case 2: return p.AccentOrange;
+    case 3: return p.AccentPurple;
+    case 4: return p.AccentBlue;
+    case 5: return p.AccentRed;
+    case 6: return p.AccentGray;
+    default: return p.Primary;
+    }
+}
+
+inline std::string ColorToHexRgb(Color color) {
+    char buf[8];
+    const int r = static_cast<int>(std::lround(std::clamp(color.r, 0.0f, 1.0f) * 255.0f));
+    const int g = static_cast<int>(std::lround(std::clamp(color.g, 0.0f, 1.0f) * 255.0f));
+    const int b = static_cast<int>(std::lround(std::clamp(color.b, 0.0f, 1.0f) * 255.0f));
+    std::snprintf(buf, sizeof(buf), "#%02X%02X%02X", r, g, b);
+    return buf;
+}
+
+inline std::string DefaultAccentHex() {
+    return ColorToHexRgb(GraphiteDarkLive().Primary);
+}
 
 } // namespace settings_detail
 
@@ -77,21 +104,25 @@ inline const char* SettingsCategoryKeywords(SettingsCategory category) {
 }
 
 inline we::runtime::kindui::Color ParseHexColor(const std::string& hex) {
-    unsigned int r = 91, g = 141, b = 239;
+    using we::runtime::kindui::palette::GraphiteDarkLive;
+    unsigned int r = 0;
+    unsigned int g = 0;
+    unsigned int b = 0;
     if (hex.size() >= 7 && hex[0] == '#') {
         unsigned int value = 0;
         if (std::sscanf(hex.c_str() + 1, "%06x", &value) == 1) {
             r = (value >> 16) & 0xFF;
             g = (value >> 8) & 0xFF;
             b = value & 0xFF;
+            return we::runtime::kindui::Color{
+                static_cast<float>(r) / 255.0f,
+                static_cast<float>(g) / 255.0f,
+                static_cast<float>(b) / 255.0f,
+                1.0f
+            };
         }
     }
-    return we::runtime::kindui::Color{
-        static_cast<float>(r) / 255.0f,
-        static_cast<float>(g) / 255.0f,
-        static_cast<float>(b) / 255.0f,
-        1.0f
-    };
+    return GraphiteDarkLive().Primary;
 }
 
 inline int IndexOfOption(const std::vector<std::string>& options, const std::string& value) {

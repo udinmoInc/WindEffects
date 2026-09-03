@@ -9,6 +9,7 @@
 #include "KindUI/Core/Geometry.h"
 #include "KindUI/Tokens/SurfaceRole.h"
 #include "KindUI/Core/WindIcon.h"
+#include "KindUI/Theming/Palette.h"
 
 namespace we::runtime::kindui {
 
@@ -78,6 +79,8 @@ public:
     void DrawRect(const Rect& rect, const Color& color, float borderRadius = 0.0f);
     void DrawRoundedRect(const Rect& rect, const Color& color, float radius);
     void DrawRoundedRectOutline(const Rect& rect, const Color& color, float thickness, float radius);
+    /// Recessed input/control rim — not suppressed by panel gap-cut outline policy.
+    void DrawControlOutline(const Rect& rect, const Color& color, float thickness, float radius);
 
     void DrawGradient(const Rect& rect, const Color& topColor, const Color& bottomColor, float radius = 0.0f);
     void DrawShadow(const Rect& rect, const Color& color, float radius, float blur);
@@ -96,6 +99,11 @@ public:
     void DrawColorTexture(const Rect& rect, we::rhi::RHIDescriptorSetHandle textureId, const Color& tint = Color::White());
 
     float GetTextWidth(const std::string& text, float fontSize, bool bold = false, bool italic = false) const;
+    float GetTextWidth(
+        const std::string& text,
+        float fontSize,
+        we::runtime::text::layout::FontWeight weight,
+        bool italic = false) const;
 
     const std::vector<DrawCommand>& GetCommands() const { return m_Commands; }
     void Clear() { m_Commands.clear(); m_ClipStack.clear(); }

@@ -12,6 +12,31 @@
 #include <sstream>
 
 namespace we::runtime::kindui {
+namespace {
+
+std::string EllipsizeToWidth(
+    const std::string& text,
+    const float fontSize,
+    const bool bold,
+    const float maxWidth) {
+    if (maxWidth <= 0.0f || text.empty()) {
+        return text;
+    }
+    if (TextMetrics::MeasureWidth(text, fontSize, bold) <= maxWidth) {
+        return text;
+    }
+
+    constexpr const char* kEllipsis = "...";
+    std::string truncated = text;
+    while (truncated.size() > 1
+        && TextMetrics::MeasureWidth(truncated + kEllipsis, fontSize, bold) > maxWidth) {
+        truncated.pop_back();
+    }
+    truncated += kEllipsis;
+    return truncated;
+}
+
+} // namespace
 
 Label::Label(const std::string& text, TypographyToken role)
     : m_Text(text)
@@ -44,7 +69,7 @@ float Label::LineHeight() const
         }
         return m_Style.size * (spec.lineHeightPx / spec.sizePx);
     }
-    return m_Style.size * 1.4f;
+    return m_Style.size * 1.25f;
 }
 
 Size Label::Measure(const Size& availableSize) {
@@ -70,9 +95,14 @@ Size Label::Measure(const Size& availableSize) {
         }
     } else {
         std::istringstream stream(m_Text);
-        std::string line;
-        while (std::getline(stream, line, '\n')) {
-            m_WrappedLines.push_back(line);
+        std::string rawLine;
+        while (std::getline(stream, rawLine, '\n')) {
+            m_WrappedLines.push_back(rawLine);
+        }
+        if (availableSize.width > 0.0f && !m_WrappedLines.empty()) {
+            for (auto& wrapped : m_WrappedLines) {
+                wrapped = EllipsizeToWidth(wrapped, m_Style.size, m_Style.bold, availableSize.width);
+            }
         }
     }
 
@@ -86,12 +116,25 @@ Size Label::Measure(const Size& availableSize) {
 
     const float lineHeight = LineHeight();
     const float height = static_cast<float>(std::max<size_t>(m_WrappedLines.size(), 1)) * lineHeight;
+    if (availableSize.width > 0.0f && !m_WrapText) {
+        maxWidth = std::min(maxWidth, availableSize.width);
+    }
     m_DesiredSize = Size{ maxWidth, height };
     return m_DesiredSize;
 }
 
 void Label::Arrange(const Rect& allottedRect) {
     m_Geometry = allottedRect;
+    if (!m_WrapText && allottedRect.width > 0.0f && !m_WrappedLines.empty()) {
+        // Re-ellipsize against final arranged width so labels never overflow neighbors.
+        std::istringstream stream(m_Text);
+        std::string rawLine;
+        m_WrappedLines.clear();
+        while (std::getline(stream, rawLine, '\n')) {
+            m_WrappedLines.push_back(
+                EllipsizeToWidth(rawLine, m_Style.size, m_Style.bold, allottedRect.width));
+        }
+    }
 }
 
 void Label::Paint(PaintContext& context) {
@@ -99,17 +142,22 @@ void Label::Paint(PaintContext& context) {
         return;
     }
     const float lineHeight = LineHeight();
-    float currentY = m_Geometry.y;
+    const float contentH = static_cast<float>(std::max<size_t>(m_WrappedLines.size(), 1)) * lineHeight;
+    float currentY = m_Geometry.y + std::max(0.0f, (m_Geometry.height - contentH) * 0.5f);
+
+    context.PushClipRect(m_Geometry);
     for (const auto& line : m_WrappedLines) {
         context.DrawText(
             line,
-            Point{ m_Geometry.x, currentY },
+            Point{ m_Geometry.x, currentY + (lineHeight - m_Style.size) * 0.5f },
             m_Style.color,
             m_Style.size,
-            static_cast<we::runtime::text::layout::FontWeight>(m_Style.weight > 0 ? m_Style.weight : (m_Style.bold ? 600 : 400)),
+            static_cast<we::runtime::text::layout::FontWeight>(
+                m_Style.weight > 0 ? m_Style.weight : (m_Style.bold ? 600 : 400)),
             m_Style.italic);
         currentY += lineHeight;
     }
+    context.PopClipRect();
 }
 
 } // namespace we::runtime::kindui

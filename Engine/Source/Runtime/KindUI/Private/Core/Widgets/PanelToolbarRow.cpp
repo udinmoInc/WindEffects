@@ -7,7 +7,7 @@ namespace we::runtime::kindui {
 PanelToolbarRow::PanelToolbarRow(std::string searchPlaceholder)
     : m_SearchPlaceholder(std::move(searchPlaceholder)) {
     Padding(Margin{});
-    Gap(ThemeMetric(MetricToken::Space2));
+    Gap(ThemeMetric(MetricToken::ChromeSeparationGapWide));
     Align(AlignItems::Center);
 
     m_SearchBox = std::make_shared<SearchBoxControl>(m_SearchPlaceholder);

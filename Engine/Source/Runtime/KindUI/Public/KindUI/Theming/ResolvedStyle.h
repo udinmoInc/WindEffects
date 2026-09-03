@@ -3,6 +3,7 @@
 #include "KindUI/Export.h"
 #include "KindUI/Core/Types.h"
 #include "KindUI/Theming/StyleRole.h"
+#include "KindUI/Theming/Palette.h"
 
 #include <string_view>
 
@@ -15,7 +16,7 @@ struct ResolvedStyle {
     Color icon = Color::White();
     float cornerRadius = 0.0f;
     float borderWidth = 1.0f;
-    float fontSize = 13.0f;
+    float fontSize = 12.0f;
     Margin padding{};
     float height = 0.0f;
     float iconSize = 16.0f;

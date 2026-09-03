@@ -86,7 +86,7 @@ std::filesystem::path EnsureWeFontAsset(const std::string& baseName) {
 }
 
 std::filesystem::path ResolveSemiBoldWeFontPath() {
-    const std::string names[] = {"Inter-SemiBold", "Inter-Bold"};
+    const std::string names[] = {"Roboto-Bold", "Roboto-Medium"};
     for (const auto& name : names) {
         if (const auto path = EnsureWeFontAsset(name); !path.empty()) {
             return path;
@@ -96,7 +96,7 @@ std::filesystem::path ResolveSemiBoldWeFontPath() {
 }
 
 std::filesystem::path ResolveMediumWeFontPath() {
-    const std::string names[] = {"Inter-Medium", "Inter-SemiBold", "Inter-Bold"};
+    const std::string names[] = {"Roboto-Medium", "Roboto-Bold"};
     for (const auto& name : names) {
         if (const auto path = EnsureWeFontAsset(name); !path.empty()) {
             return path;
@@ -134,7 +134,7 @@ bool TextUIService::Initialize(OverlayRenderer* renderer) {
     }
 #endif
 
-    const auto regularPath = EnsureWeFontAsset("Inter-Regular");
+    const auto regularPath = EnsureWeFontAsset("Roboto-Regular");
     const auto mediumPath = ResolveMediumWeFontPath();
     const auto semiBoldPath = ResolveSemiBoldWeFontPath();
     if (!regularPath.empty()) {
@@ -158,7 +158,7 @@ bool TextUIService::Initialize(OverlayRenderer* renderer) {
 
     if (m_RegularFont == we::runtime::text::kInvalidFontHandle) {
         WE_LOG_ERROR("TextUIService",
-            "No .wefont assets found and TTF import failed. Ensure Assets/Fonts/Inter-Regular.wefont exists.");
+            "No .wefont assets found and TTF import failed. Ensure Assets/Fonts/Roboto-Regular.wefont exists.");
         return false;
     }
 

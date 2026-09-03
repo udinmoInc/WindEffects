@@ -81,7 +81,6 @@ Size Toolbar::Measure(const Size& availableSize) {
 void Toolbar::Arrange(const Rect& allottedRect) {
     m_Geometry = allottedRect;
     const float itemSpacing = ScaledMetric(MetricToken::ButtonSpacing);
-    const float groupSpacing = ScaledMetric(MetricToken::ButtonGroupSpacing);
 
     std::vector<ToolInfo*> leftTools, centerTools, rightTools;
     for (auto& tool : m_Tools) {
@@ -96,6 +95,7 @@ void Toolbar::Arrange(const Rect& allottedRect) {
         std::shared_ptr<Widget> button;
         float width;
         float marginBefore;
+        bool isSeparator = false;
     };
 
     auto buildLayoutItems = [&](const std::vector<ToolInfo*>& tools) {
@@ -108,15 +108,15 @@ void Toolbar::Arrange(const Rect& allottedRect) {
 
             if (tool->isSeparator) {
                 if (!isFirst) {
+                    // Gap-cut only — no panel-colored margin wrapping the divider.
                     const float sepW = tool->button->GetDesiredSize().width;
-                    const float halfGap = (std::max)(0.0f, (groupSpacing - sepW) * 0.5f);
-                    items.push_back({ tool->button, sepW, halfGap });
-                    pendingSpacing = halfGap;
+                    items.push_back({ tool->button, sepW, 0.0f, true });
+                    pendingSpacing = 0.0f;
                 }
             } else {
                 const float w = tool->button->GetDesiredSize().width;
-                const float margin = isFirst ? 0.0f : pendingSpacing;
-                items.push_back({ tool->button, w, margin });
+                const float margin = isFirst ? 0.0f : (pendingSpacing > 0.0f ? pendingSpacing : itemSpacing);
+                items.push_back({ tool->button, w, margin, false });
                 pendingSpacing = itemSpacing;
                 isFirst = false;
             }
@@ -137,12 +137,17 @@ void Toolbar::Arrange(const Rect& allottedRect) {
             currentX = startX - totalWidth;
         }
 
+        const float barHeight = allottedRect.height;
         for (const auto& item : items) {
             currentX += item.marginBefore;
-            float itemHeight = item.button->GetDesiredSize().height;
-            const float barHeight = allottedRect.height;
-            float y = allottedRect.y + (barHeight - itemHeight) * 0.5f;
-            item.button->Arrange(Rect{ currentX, y, item.width, itemHeight });
+            if (item.isSeparator) {
+                // Full-height cut so Background connects through the toolbar strip.
+                item.button->Arrange(Rect{ currentX, allottedRect.y, item.width, barHeight });
+            } else {
+                float itemHeight = item.button->GetDesiredSize().height;
+                float y = allottedRect.y + (barHeight - itemHeight) * 0.5f;
+                item.button->Arrange(Rect{ currentX, y, item.width, itemHeight });
+            }
             currentX += item.width;
         }
 
@@ -169,21 +174,8 @@ void Toolbar::Arrange(const Rect& allottedRect) {
 void Toolbar::Paint(PaintContext& context) {
     context.PushSurfaceOwner("Toolbar", we::runtime::kindui::SurfaceRole::Toolbar);
     if (!m_IsFloating) {
-        const float uiScale = (std::max)(1.0f, DPIContext::GetScale());
-
+        // No hairline border — section cuts come from shell Background gaps + ToolbarSeparator.
         context.DrawSurface(m_Geometry, we::runtime::kindui::SurfaceRole::Toolbar, 0.0f, "Toolbar");
-
-        const float thickness = std::max(1.0f, we::runtime::kindui::IconMetrics::SnapPx(
-            we::runtime::kindui::ResolveMetric(MetricToken::BorderWidth) * uiScale));
-        const float edgeY = we::runtime::kindui::IconMetrics::SnapPx(
-            m_Geometry.y + m_Geometry.height - thickness);
-        Rect bottomEdge{
-            m_Geometry.x,
-            edgeY,
-            m_Geometry.width,
-            thickness
-        };
-        context.DrawSurface(bottomEdge, we::runtime::kindui::SurfaceRole::Separator, 0.0f, "ToolbarBorder");
     }
 
     for (auto& tool : m_Tools) {
@@ -329,12 +321,14 @@ bool Toolbar::ShowsPointerCursor(const Point& position) const {
 ToolbarSeparator::ToolbarSeparator() {}
 
 Size ToolbarSeparator::Measure(const Size& availableSize) {
-    (void)availableSize;
     const float uiScale = (std::max)(1.0f, DPIContext::GetScale());
-    return Size{
+    m_DesiredSize = Size{
         we::runtime::kindui::ds::Chrome::SeparationGapWide() * uiScale,
-        ThemeMetric(MetricToken::ToolbarSeparatorHeight) * uiScale
+        availableSize.height > 0.0f
+            ? availableSize.height
+            : ThemeMetric(MetricToken::ToolbarSeparatorHeight) * uiScale
     };
+    return m_DesiredSize;
 }
 
 void ToolbarSeparator::Arrange(const Rect& allottedRect) {
@@ -342,17 +336,12 @@ void ToolbarSeparator::Arrange(const Rect& allottedRect) {
 }
 
 void ToolbarSeparator::Paint(PaintContext& context) {
-    const float uiScale = (std::max)(1.0f, DPIContext::GetScale());
-    const float sepH = ThemeMetric(MetricToken::ToolbarSeparatorHeight) * uiScale;
-    const float centerY = m_Geometry.y + m_Geometry.height * 0.5f;
-    const float centerX = m_Geometry.x + m_Geometry.width * 0.5f;
-    we::runtime::kindui::ControlChrome::PaintVerticalSeparator(
-        context,
-        centerX,
-        centerY - sepH * 0.5f,
-        centerY + sepH * 0.5f,
-        we::runtime::kindui::ResolveMetric(MetricToken::BorderWidth),
-        ColorToken::Separator);
+    // Full-rect Background gap-cut — same as status / panel toolbar dividers.
+    context.DrawSurface(
+        m_Geometry,
+        we::runtime::kindui::SurfaceRole::Workspace,
+        0.0f,
+        "ToolbarSeparator");
 }
 
 ToolbarGroup::ToolbarGroup() = default;

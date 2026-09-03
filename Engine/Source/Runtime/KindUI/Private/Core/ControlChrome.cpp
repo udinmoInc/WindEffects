@@ -127,19 +127,19 @@ void PaintInsetBevel(PaintContext& context, const Rect& rect, float radius, floa
     }
     const float w = EdgeWidthPx();
     const float inset = std::max(1.0f, w);
-    const float edgeTrim = radius * 0.35f;
+    const float edgeTrim = std::min(radius * 0.42f, std::max(0.0f, rect.width * 0.22f));
+    const float lineW = std::max(0.0f, rect.width - edgeTrim * 2.0f);
+    if (lineW <= 0.0f) {
+        return;
+    }
 
-    Color innerShadow = ResolveColor(ColorToken::ShadowSubtle);
-    innerShadow.a *= strength * 0.95f;
-    Color innerHighlight = ResolveColor(ColorToken::HighlightSubtle);
-    innerHighlight.a *= strength * 1.4f;
+    Color highlight = ResolveColor(ColorToken::InputInsetInner);
+    highlight.a *= strength;
 
+    // Only a 1px top inner highlight — no left, right, or bottom rims.
     context.DrawRect(
-        Rect{ rect.x + edgeTrim, rect.y + inset, rect.width - edgeTrim * 2.0f, w },
-        innerShadow);
-    context.DrawRect(
-        Rect{ rect.x + edgeTrim, rect.y + rect.height - inset - w, rect.width - edgeTrim * 2.0f, w },
-        innerHighlight);
+        Rect{ rect.x + edgeTrim, rect.y + inset, lineW, w },
+        highlight);
 }
 
 void PaintSubtleBorderDepth(PaintContext& context, const Rect& rect, float radius, float strength) {
@@ -149,20 +149,18 @@ void PaintSubtleBorderDepth(PaintContext& context, const Rect& rect, float radiu
     const float w = EdgeWidthPx();
     const float trim = radius * 0.25f;
 
-    Color highlight = ResolveColor(ColorToken::HighlightSubtle);
-    highlight.a *= strength * 1.35f;
-    Color shade = ResolveColor(ColorToken::ShadowSubtle);
-    shade.a *= strength * 0.32f;
-    Color border = ResolveColor(ColorToken::BorderSubtle);
-    border.a *= strength * 0.9f;
+    Color inner = ResolveColor(ColorToken::InputInsetInner);
+    inner.a *= strength * 0.85f;
+    Color shade = ResolveColor(ColorToken::InputInsetOuter);
+    shade.a *= strength * 0.75f;
 
     context.DrawRect(
-        Rect{ rect.x + trim, rect.y, rect.width - trim * 2.0f, w },
-        highlight);
+        Rect{ rect.x + trim, rect.y, std::max(0.0f, rect.width - trim * 2.0f), w },
+        inner);
     context.DrawRect(
-        Rect{ rect.x + trim, rect.y + rect.height - w, rect.width - trim * 2.0f, w },
+        Rect{ rect.x + trim, rect.y + rect.height - w, std::max(0.0f, rect.width - trim * 2.0f), w },
         shade);
-    context.DrawRoundedRectOutline(rect, border, w, radius);
+    context.DrawControlOutline(rect, shade, w, radius);
 }
 
 void PaintPanelButtonFace(
@@ -214,6 +212,10 @@ void PaintInputFrameInternal(
     }
     context.DrawSurface(rect, fillRole, cornerRadius, "Input");
 
+    // Shared recessed chrome for every input/control (search, text, numeric, combo…).
+    const float bevelStrength = state.disabled ? 0.55f : 1.0f;
+    PaintInsetBevel(context, rect, cornerRadius, bevelStrength);
+
     if (state.focused) {
         context.DrawRoundedRectOutline(
             rect,
@@ -221,6 +223,7 @@ void PaintInputFrameInternal(
             EdgeWidthPx(),
             cornerRadius);
     }
+
     context.PopSurfaceOwner();
 }
 
@@ -387,11 +390,11 @@ void PaintStatusBarCommandField(
         fillRole = SurfaceRole::Recessed;
     }
     context.DrawSurface(rect, fillRole, 0.0f, "StatusBarCommandField");
-
+    PaintInsetBevel(context, rect, 0.0f, state.disabled ? 0.55f : 1.0f);
     if (state.focused) {
         context.DrawRoundedRectOutline(
             rect,
-            ResolveColor(ColorToken::BorderSubtle),
+            ResolveColor(ColorToken::BorderFocus),
             EdgeWidthPx(),
             0.0f);
     }
@@ -401,13 +404,8 @@ void PaintSearchInputFrame(
     PaintContext& context,
     const Rect& rect,
     const InteractionState& state) {
-    const float radius = SearchInputCornerRadius(rect);
-    context.DrawSurface(rect, SurfaceRole::Input, radius, "SearchInput");
-
-    if (state.focused) {
-        Color border = ResolveColor(ColorToken::BorderSubtle);
-        context.DrawRoundedRectOutline(rect, border, EdgeWidthPx(), radius);
-    }
+    // Same shared recessed input chrome as text boxes / property fields.
+    PaintInputFrameInternal(context, rect, state, SearchInputCornerRadius(rect));
 }
 
 void PaintSearchField(
@@ -425,19 +423,21 @@ void PaintSearchField(
     const float padH = options.toolbarFlat
         ? LayoutMetrics::SearchInputPaddingH() * 0.5f
         : LayoutMetrics::SearchInputPaddingH();
-    const float iconPx = LayoutMetrics::SearchInputIconSize();
+    const uint32_t glyphPx = WindIcons::Search16.sizePx;
+    const float iconPx = static_cast<float>(glyphPx);
     const float fontSize = LayoutMetrics::SearchInputFontSize();
     const float iconGap = ResolveMetric(MetricToken::Space1);
 
+    // Search glyph stays pinned to the left padding — never scrolls with typed text.
     const float iconX = rect.x + padH;
-    Rect iconBand{ iconX, rect.y, iconPx, rect.height };
-    IconPainter::Draw(
-        context,
-        WindIcons::Search16,
-        iconBand,
-        static_cast<uint32_t>(iconPx));
+    const Rect iconBand{ iconX, rect.y, iconPx, rect.height };
+    IconPainter::Draw(context, WindIcons::Search16, iconBand, glyphPx);
 
     const float textX = iconX + iconPx + iconGap;
+    const float clearReserve = (options.showClearButton && !text.empty())
+        ? (iconPx + padH)
+        : padH;
+    const float textMaxW = std::max(0.0f, (rect.x + rect.width - clearReserve) - textX);
     const float textY = rect.y + (rect.height - fontSize) * 0.5f;
     const bool empty = text.empty();
 
@@ -448,6 +448,7 @@ void PaintSearchField(
             ResolveColor(ColorToken::SearchPlaceholder),
             fontSize);
     } else {
+        context.PushClipRect(Rect{ textX, rect.y, textMaxW, rect.height });
         context.DrawText(text, Point{ textX, textY }, ResolveColor(ColorToken::TextPrimary), fontSize);
         if (state.focused && showCaret) {
             const float caretX = textX + context.GetTextWidth(text, fontSize);
@@ -455,6 +456,7 @@ void PaintSearchField(
                 Rect{ caretX, textY, ResolveMetric(MetricToken::BorderWidth), fontSize },
                 ResolveColor(ColorToken::TextPrimary));
         }
+        context.PopClipRect();
     }
 
     if (options.showClearButton && !empty) {

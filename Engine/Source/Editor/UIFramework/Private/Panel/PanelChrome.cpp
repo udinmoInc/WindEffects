@@ -14,6 +14,7 @@
 #include "KindUI/Rendering/IconMetrics.h"
 #include "KindUI/Profiling/UiGeometryDebug.h"
 #include "KindUI/Layout/LayoutAssert.h"
+#include "Text/Layout/TextStyle.h"
 #include <algorithm>
 #include <functional>
 
@@ -284,11 +285,14 @@ float MeasureDockTabWidth(
         leadingWidth = iconSize + iconGap;
     }
 
-    const float textWidth = context.GetTextWidth(tab.title, fontSize, false);
+    const float textWidth = context.GetTextWidth(
+        tab.title,
+        fontSize,
+        we::runtime::text::layout::FontWeight::Medium);
     const float closeWidth = showClose ? closeGlyph + closeGap : 0.0f;
     float width = padH + leadingWidth + textWidth + closeWidth + padH;
     if (!modeTabs && UsesGapCutDockTabs()) {
-        width = std::max(width, 88.0f * scale);
+        width = std::max(width, 72.0f * scale);
     }
     return width;
 }
@@ -416,7 +420,7 @@ void PaintDockTab(
         Point{ itemX, titleY },
         ResolveTabTextColor(isActive, hoverAnim),
         fontSize,
-        false);
+        we::runtime::text::layout::FontWeight::Medium);
 
     if (showClose && !layout.closeRect.IsEmpty()) {
         PaintHeaderIconButton(context, layout.closeRect, WindIcons::Close16, closeHovered, false, true);

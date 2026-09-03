@@ -56,7 +56,7 @@ struct SelectionHighlight {
 };
 
 struct TextStyle {
-    std::string family = "Inter";
+    std::string family = "Roboto";
     FontWeight weight = FontWeight::Regular;
     bool italic = false;
     float sizePx = 18.0f;

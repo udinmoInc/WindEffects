@@ -200,6 +200,20 @@ void PaintContext::DrawRoundedRectOutline(const Rect& rect, const Color& color, 
     m_Commands.push_back(cmd);
 }
 
+void PaintContext::DrawControlOutline(const Rect& rect, const Color& color, float thickness, float radius) {
+    if (color.a <= 0.01f) {
+        return;
+    }
+    DrawCommand cmd{};
+    cmd.type = DrawCommandType::RoundedOutline;
+    cmd.rect = rect;
+    cmd.color = color;
+    cmd.borderRadius = radius;
+    cmd.thickness = thickness;
+    cmd.clipRect = GetCurrentClipRect();
+    m_Commands.push_back(cmd);
+}
+
 void PaintContext::DrawText(const std::string& text, const Point& pos, const Color& color, float fontSize, bool bold, bool italic) {
     DrawText(
         text,
@@ -247,11 +261,27 @@ void PaintContext::DrawWindIcon(WindIconRef icon, const Rect& rect) {
 }
 
 float PaintContext::GetTextWidth(const std::string& text, const float fontSize, const bool bold, const bool italic) const {
+    return GetTextWidth(
+        text,
+        fontSize,
+        bold ? we::runtime::text::layout::FontWeight::SemiBold
+             : we::runtime::text::layout::FontWeight::Regular,
+        italic);
+}
+
+float PaintContext::GetTextWidth(
+    const std::string& text,
+    const float fontSize,
+    const we::runtime::text::layout::FontWeight weight,
+    const bool italic) const {
     (void)italic;
     if (m_TextService) {
-        return m_TextService->MeasureText(text, fontSize, bold);
+        return m_TextService->MeasureText(text, fontSize, weight);
     }
-    return TextMetrics::MeasureWidth(text, fontSize, bold);
+    return TextMetrics::MeasureWidth(
+        text,
+        fontSize,
+        weight >= we::runtime::text::layout::FontWeight::SemiBold);
 }
 
 void PaintContext::DrawLine(const Point& start, const Point& end, const Color& color, float thickness) {

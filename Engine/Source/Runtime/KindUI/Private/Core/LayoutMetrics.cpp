@@ -134,6 +134,7 @@ void ApplyButtonMinSize(Widget& widget, StyleRole role) {
 std::shared_ptr<Row> MakeFormRow(const std::string& label, const std::shared_ptr<Widget>& control) {
     auto row = MakeRow();
     row->Align(AlignItems::Center);
+    row->Gap(PropertyPanelChrome::ValueColumnGap());
     row->SetFlexShrink(0.0f);
     row->SetHorizontalAlignment(HorizontalAlignment::Fill);
     ApplyFormRowMinSize(*row);

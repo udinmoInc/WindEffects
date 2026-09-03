@@ -13,7 +13,7 @@
 namespace we::runtime::text::assets {
 
 struct FontFaceRequest {
-    std::string family = "Inter";
+    std::string family = "Roboto";
     uint16_t weight = 400;
     bool italic = false;
 };

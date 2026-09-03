@@ -29,6 +29,14 @@ inline constexpr bool kGapCutsEnabled = true;
     return ResolveMetric(MetricToken::DockPanelGap) * 0.5f;
 }
 
+/// Device-pixel gutter width for internal panel region separation.
+[[nodiscard]] inline float GapDevicePx() {
+    if (!kGapCutsEnabled) {
+        return 0.0f;
+    }
+    return DPIContext::Snap(Gap() * DPIContext::GetScale());
+}
+
 /// Device-pixel dock panel gutter per edge (left/right/top/bottom).
 /// Each dock container insets its chrome so workspace background shows through.
 [[nodiscard]] inline float DockStructureGapPx() {
@@ -36,14 +44,6 @@ inline constexpr bool kGapCutsEnabled = true;
         return 0.0f;
     }
     return GapDevicePx();
-}
-
-/// Device-pixel gutter width for internal panel region separation.
-[[nodiscard]] inline float GapDevicePx() {
-    if (!kGapCutsEnabled) {
-        return 0.0f;
-    }
-    return DPIContext::Snap(Gap() * DPIContext::GetScale());
 }
 
 /// Device-pixel gutter drawn by dock splitters between adjacent panels.

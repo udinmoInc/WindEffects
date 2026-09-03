@@ -68,7 +68,7 @@ KINDUI_API void PaintRaisedBevel(
     float radius,
     float strength = 1.0f);
 
-/// Top inner shadow + bottom inner highlight for recessed inputs.
+/// Single 1px top inner highlight for recessed inputs (no side or bottom rims).
 KINDUI_API void PaintInsetBevel(
     PaintContext& context,
     const Rect& rect,

@@ -63,8 +63,8 @@ struct Color {
     float b = 1.0f;
     float a = 1.0f;
 
-    static Color White() { return {1.0f, 1.0f, 1.0f, 1.0f}; }
-    static Color Black() { return {0.0f, 0.0f, 0.0f, 1.0f}; }
+    static KINDUI_API Color White();
+    static KINDUI_API Color Black();
     static Color Transparent() { return {0.0f, 0.0f, 0.0f, 0.0f}; }
 
     // Discrete state pick at t >= 0.5 — no channel interpolation.

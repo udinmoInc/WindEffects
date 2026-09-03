@@ -7,6 +7,8 @@
 #include "KindUI/Core/Widgets/DesignSystemControls.h"
 #include "KindUI/Widgets/TextBox.h"
 #include "KindUI/Widgets/CheckBox.h"
+#include "KindUI/Theming/ThemeAccess.h"
+#include "KindUI/Theming/Palette.h"
 #include "Core/Logger.h"
 #include "Core/Paths.h"
 #include "ConfigManager.h"
@@ -113,13 +115,16 @@ void CrashReporterUI::Construct() {
     HE_INFO("[CrashReporterUI] Project name: " + projName);
 
     // 1. Header Label
-    auto header = std::make_shared<Label>("An Unreal process has crashed: " + projName, Color{0.9f, 0.9f, 0.9f, 1.0f}, 18.0f);
+    auto header = std::make_shared<Label>(
+        "An Unreal process has crashed: " + projName,
+        ResolveColor(ColorToken::TextPrimary),
+        18.0f);
     header->SetHorizontalAlignment(HorizontalAlignment::Left);
     rootBox->AddChild(header);
 
     // 2. Apology & Instructions
     std::string apology = "We are very sorry that this crash occurred. Our goal is to prevent crashes like this from occurring in the future. Please help us track down and fix this crash by providing detailed information about what you were doing so that we may reproduce the crash and fix it quickly. You can also log a Bug Report with us using the Bug Submission Form and work directly with support staff to report this issue.\n\nThanks for your help in improving the WindEffects Engine.";
-    auto apologyLabel = std::make_shared<Label>(apology, Color{0.75f, 0.75f, 0.75f, 1.0f}, 12.0f);
+    auto apologyLabel = std::make_shared<Label>(apology, ResolveColor(ColorToken::TextPrimary), 12.0f);
     apologyLabel->SetHorizontalAlignment(HorizontalAlignment::Left);
     apologyLabel->SetWrapText(true);
     rootBox->AddChild(apologyLabel);
@@ -127,7 +132,10 @@ void CrashReporterUI::Construct() {
     // 3. User Input (Placeholder via Label for now)
     auto inputPanel = std::make_shared<Column>();
     inputPanel->Padding(Margin{8.0f, 8.0f, 8.0f, 8.0f});
-    auto inputLabel = std::make_shared<Label>("Please provide detailed information about what you were doing when the crash occurred.", Color{0.5f, 0.5f, 0.5f, 1.0f}, 12.0f);
+    auto inputLabel = std::make_shared<Label>(
+        "Please provide detailed information about what you were doing when the crash occurred.",
+        ResolveColor(ColorToken::TextHint),
+        12.0f);
     inputLabel->SetHorizontalAlignment(HorizontalAlignment::Left);
     inputPanel->AddChild(inputLabel);
     rootBox->AddChild(inputPanel);
@@ -136,14 +144,20 @@ void CrashReporterUI::Construct() {
     auto dirBox = std::make_shared<Row>();
     dirBox->Gap(4.0f);
     dirBox->SetHorizontalAlignment(HorizontalAlignment::Left);
-    auto dirLabel1 = std::make_shared<Label>("Crash reports comprise diagnostics files (", Color{0.6f, 0.6f, 0.6f, 1.0f}, 12.0f);
+    auto dirLabel1 = std::make_shared<Label>(
+        "Crash reports comprise diagnostics files (",
+        ResolveColor(ColorToken::TextSecondary),
+        12.0f);
     dirBox->AddChild(dirLabel1);
     dirBox->AddChild([this] {
         auto b = MakeSecondaryAction("click here to view directory");
         b->SetOnClicked([this] { OnOpenCrashFolder(); });
         return b;
     }());
-    auto dirLabel2 = std::make_shared<Label>(") and the following summary information:", Color{0.6f, 0.6f, 0.6f, 1.0f}, 12.0f);
+    auto dirLabel2 = std::make_shared<Label>(
+        ") and the following summary information:",
+        ResolveColor(ColorToken::TextSecondary),
+        12.0f);
     dirBox->AddChild(dirLabel2);
     rootBox->AddChild(dirBox);
 
@@ -157,12 +171,12 @@ void CrashReporterUI::Construct() {
     summaryStr += "Caught signal\n\n";
     summaryStr += m_StackTrace.empty() ? "No stack trace available." : m_StackTrace;
 
-    auto stackLabel = std::make_shared<Label>(summaryStr, Color{0.8f, 0.8f, 0.8f, 1.0f}, 11.0f);
+    auto stackLabel = std::make_shared<Label>(summaryStr, ResolveColor(ColorToken::TextPrimary), 11.0f);
     stackLabel->SetHorizontalAlignment(HorizontalAlignment::Left);
     stackPanel->AddChild(stackLabel);
     
     auto bgPanel = std::make_shared<Panel>();
-    bgPanel->SetBackgroundColor(Color{0.05f, 0.05f, 0.05f, 1.0f});
+    bgPanel->SetBackgroundColor(ResolveColor(ColorToken::InputBackground));
     bgPanel->SetContent(stackPanel);
     stackScroll->SetContent(bgPanel);
     

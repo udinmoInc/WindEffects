@@ -12,6 +12,9 @@
 #include "KindUI/Tokens/DesignToken.h"
 #include "KindUI/Theming/ThemeAccess.h"
 
+#include "KindUI/Core/TextMetrics.h"
+#include "Text/Layout/TextStyle.h"
+
 #include <cstdio>
 
 namespace we::editor::terrain {
@@ -51,14 +54,14 @@ public:
         PanelChrome::PaintListLabelBand(context, m_TitleBand);
         const float scale = std::max(1.0f, DPIContext::GetScale());
         const float fontSize = ResolveMetric(MetricToken::TextSizeCategory) * scale;
-        const float padH = PropertyPanelChrome::RowPaddingH();
+        // Match form-row label left edge (column padding already applied).
         const float textY = m_TitleBand.y + (m_TitleBand.height - fontSize) * 0.5f;
         context.DrawText(
             m_Title,
-            Point{ m_TitleBand.x + padH, textY },
+            Point{ m_TitleBand.x, textY },
             ResolveColor(ColorToken::TextPrimary),
             fontSize,
-            true);
+            we::runtime::text::layout::FontWeight::Medium);
     }
 
 private:
@@ -124,6 +127,8 @@ void AddFormToggle(
 {
     auto btn = MakeSecondaryAction(label + (on ? " : ON" : " : OFF"));
     btn->SetOnClicked(std::move(onClick));
+    btn->SetHorizontalAlignment(HorizontalAlignment::Fill);
+    btn->SetFlexShrink(0.0f);
     layout->AddChild(btn);
 }
 

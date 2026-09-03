@@ -15,10 +15,10 @@ namespace we::runtime::kindui {
 ///   Disabled                        → TextDisabled
 struct KINDUI_API TypographySpec {
     TypographyToken role = TypographyToken::Body;
-    float sizePx = 13.0f;
-    float lineHeightPx = 18.0f;
+    float sizePx = 12.0f;
+    float lineHeightPx = 15.0f;
     float letterSpacing = 0.0f;
-    /// Inter weight ladder: 400 Regular / 500 Medium / 600 SemiBold.
+    /// Roboto weight ladder: 400 Regular / 500 Medium / 600 SemiBold.
     uint16_t weight = 400;
     bool bold = false; // true when weight >= SemiBold (legacy DrawText flag)
     bool italic = false;

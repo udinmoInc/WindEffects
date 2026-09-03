@@ -113,18 +113,18 @@ BackgroundStyle StyleFactory::BackgroundInput(const IStyleResolver& styles) {
 }
 
 TextStyle StyleFactory::TextMenu(const IStyleResolver& styles) {
-    const auto resolved = styles.Resolve(StyleRole::TextPrimary);
-    return TextStyle{resolved.foreground, resolved.fontSize, false, false};
+    (void)styles;
+    return TextStyle::FromRole(TypographyToken::Menu);
 }
 
 TextStyle StyleFactory::TextToolbar(const IStyleResolver& styles) {
-    const auto resolved = styles.Resolve(StyleRole::Toolbar);
-    return TextStyle{resolved.foreground, resolved.fontSize, false, false};
+    (void)styles;
+    return TextStyle::FromRole(TypographyToken::Toolbar);
 }
 
 TextStyle StyleFactory::TextHeader(const IStyleResolver& styles) {
-    const auto resolved = styles.Resolve(StyleRole::SectionHeader);
-    return TextStyle{resolved.foreground, resolved.fontSize, true, false};
+    (void)styles;
+    return TextStyle::FromRole(TypographyToken::SectionTitle);
 }
 
 TextStyle StyleFactory::TextBody(const IStyleResolver& styles) {
@@ -184,7 +184,8 @@ WidgetStyle StyleFactory::Tab(const IStyleResolver& styles) {
 WidgetStyle StyleFactory::TabActive(const IStyleResolver& styles) {
     (void)styles;
     WidgetStyle style = FromRole(StyleRole::TabActive, StyleRole::TabActive, StyleRole::TabActive);
-    style.text.bold = true;
+    style.text.weight = 500;
+    style.text.bold = false;
     return style;
 }
 
