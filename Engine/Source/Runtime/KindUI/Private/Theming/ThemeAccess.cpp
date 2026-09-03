@@ -2,6 +2,7 @@
 
 #include "KindUI/Core/ColorSpace.h"
 #include "KindUI/Profiling/UiColorDebug.h"
+#include "KindUI/Theming/PaletteRuntime.h"
 #include "KindUI/Theming/ThemeManager.h"
 #include "KindUI/Tokens/TypographySpec.h"
 
@@ -24,6 +25,8 @@ bool IsCompositeColorToken(ColorToken token) {
     case ColorToken::ShadowOverlay:
     case ColorToken::ShadowColor:
     case ColorToken::ContentBrowserFolderShadow:
+    case ColorToken::InputInsetInner:
+    case ColorToken::InputInsetOuter:
         return true;
     default:
         return false;
@@ -56,6 +59,7 @@ IKindUITheme& ResolveDefaultTheme() {
 }
 
 Color ResolveColor(ColorToken token) {
+    palette::ReloadGraphiteDarkPaletteIfChanged();
     Color resolved = ThemeManager::Get().Theme().ResolveColor(token);
     if (!IsCompositeColorToken(token)) {
         resolved = ColorSpace::OpaqueSurface(resolved);

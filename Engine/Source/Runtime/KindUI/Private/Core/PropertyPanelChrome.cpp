@@ -11,6 +11,7 @@
 #include "KindUI/Tokens/DesignToken.h"
 #include "KindUI/Tokens/SurfaceRole.h"
 #include "KindUI/Tokens/TypographySpec.h"
+#include "Text/Layout/TextStyle.h"
 
 #include <algorithm>
 
@@ -79,18 +80,25 @@ float ValueColumnGap() {
 void ConfigureFormRowChildren(Widget& labelWidget, Widget* controlWidget, int depth) {
     const float labelW = LabelColumnWidth();
     const float valuePad = ControlPaddingH();
-    const float padH = RowPaddingH();
+    const float indent = static_cast<float>(depth) * PropertyIndentStep();
 
+    // Fixed label column so every value control shares one left edge.
+    // Horizontal inset comes from the form column padding — do not double-pad here.
     labelWidget.SetMinWidth(labelW);
     labelWidget.SetMaxWidth(labelW);
+    labelWidget.SetFlexBasis(labelW);
     labelWidget.SetFlexShrink(0.0f);
     labelWidget.SetFlexGrow(0.0f);
-    labelWidget.SetMargin(Margin{ padH + static_cast<float>(depth) * PropertyIndentStep(), 0.0f, 0.0f, 0.0f });
+    labelWidget.SetMargin(Margin{ indent, 0.0f, 0.0f, 0.0f });
+    labelWidget.SetVerticalAlignment(VerticalAlignment::Center);
 
     if (controlWidget) {
         controlWidget->SetFlexGrow(1.0f);
         controlWidget->SetFlexShrink(1.0f);
+        controlWidget->SetFlexBasis(0.0f);
         controlWidget->SetMargin(Margin{ 0.0f, 0.0f, valuePad, 0.0f });
+        controlWidget->SetVerticalAlignment(VerticalAlignment::Center);
+        controlWidget->SetMinWidth(0.0f);
     }
 }
 
@@ -102,15 +110,16 @@ PropertyRowLayout LayoutPropertyRow(const Rect& rowRect, int depth) {
     const float indent = padH + static_cast<float>(depth) * PropertyIndentStep();
     const float labelW = LabelColumnWidth();
     const float valuePad = ControlPaddingH();
+    const float gap = ValueColumnGap();
 
     layout.label = Rect{
         rowRect.x + indent,
         rowRect.y,
-        std::max(0.0f, labelW - (indent - padH)),
+        labelW,
         rowRect.height
     };
 
-    const float valueX = rowRect.x + labelW;
+    const float valueX = layout.label.x + layout.label.width + gap;
     layout.value = Rect{
         valueX,
         rowRect.y,
@@ -154,7 +163,9 @@ void PaintInlineIconLabelRow(
         Point{ textX, centerY - fontSize * 0.5f },
         ResolveColor(ColorToken::TextPrimary),
         fontSize,
-        emphasized);
+        emphasized
+            ? we::runtime::text::layout::FontWeight::Medium
+            : we::runtime::text::layout::FontWeight::Regular);
 }
 
 } // namespace
@@ -231,7 +242,7 @@ void PaintSectionHeader(
         Point{ textX, centerY - fontSize * 0.5f },
         ResolveColor(ColorToken::TextPrimary),
         fontSize,
-        true);
+        we::runtime::text::layout::FontWeight::Medium);
 }
 
 void PaintPropertyRowLabel(
@@ -242,11 +253,27 @@ void PaintPropertyRowLabel(
     const float scale = UiScale();
     const float fontSize = ResolveMetric(MetricToken::TextSizeProperty) * scale;
     const float textY = labelRect.y + (labelRect.height - fontSize) * 0.5f;
+
+    std::string display(label);
+    if (labelRect.width > 0.0f) {
+        const float maxW = labelRect.width;
+        if (context.GetTextWidth(display, fontSize) > maxW) {
+            constexpr const char* kEllipsis = "...";
+            while (display.size() > 1
+                && context.GetTextWidth(display + kEllipsis, fontSize) > maxW) {
+                display.pop_back();
+            }
+            display += kEllipsis;
+        }
+    }
+
+    context.PushClipRect(labelRect);
     context.DrawText(
-        std::string(label),
+        display,
         Point{ labelRect.x, textY },
         mixed ? ResolveColor(ColorToken::AccentPrimary) : ResolveColor(ColorToken::TextSecondary),
         fontSize);
+    context.PopClipRect();
 }
 
 void PaintCategoryTab(
@@ -274,14 +301,18 @@ void PaintCategoryTab(
         context.DrawSurface(rect, SurfaceRole::Control, radius, "CategoryTab");
     }
 
-    const float textW = context.GetTextWidth(std::string(label), fontSize);
+    const float textW = context.GetTextWidth(
+        std::string(label),
+        fontSize,
+        we::runtime::text::layout::FontWeight::Medium);
     const float textX = rect.x + (rect.width - textW) * 0.5f;
     const float textY = rect.y + (rect.height - fontSize) * 0.5f;
     context.DrawText(
         std::string(label),
         Point{ textX, textY },
         active ? ResolveColor(ColorToken::TextPrimary) : ResolveColor(ColorToken::TextSecondary),
-        fontSize);
+        fontSize,
+        we::runtime::text::layout::FontWeight::Medium);
 }
 
 void PaintPropertyRowBackground(

@@ -1,0 +1,17 @@
+{
+  "createdUtc": "2026-09-03T03:14:20Z",
+  "custom": {},
+  "dependencies": [],
+  "displayName": "Roboto-Bold",
+  "engineVersion": "0.1.0",
+  "guid": "535a1306-a251-4ffe-8fce-d27b896a2773",
+  "importSettings": {},
+  "importerId": "font.ttf",
+  "importerVersion": "1.0.0",
+  "kind": "Font",
+  "modifiedUtc": "2026-09-03T03:14:20Z",
+  "schemaVersion": 1,
+  "sourceHash": "1ed6c31f78547095",
+  "sourcePath": "f:\\Coding\\windeffects\\Assets\\Fonts\\Roboto-Bold.ttf",
+  "tags": []
+}

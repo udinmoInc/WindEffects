@@ -10,8 +10,8 @@
 
 #include "KindUI/Tokens/DesignToken.h"
 #include "KindUI/Theming/ThemeAccess.h"
+#include "KindUI/Core/TextMetrics.h"
 
-#include <cstring>
 
 namespace we::editor::terrain {
 
@@ -99,22 +99,23 @@ private:
         const float padV = ResolveMetric(MetricToken::Space1) * scale;
         const float tabH = PanelChrome::CategoryTabHeight();
         const float gap = ResolveMetric(MetricToken::Space1) * scale;
-        const float minTabW = padH * 3.0f;
         const float captionSize = ResolveMetric(MetricToken::TextSizeCaption) * scale;
+        const float textPad = ResolveMetric(MetricToken::Space2) * scale;
 
         float x = m_Geometry.x + padH;
         const float y = m_Geometry.y + padV;
 
-        auto addTab = [&](const char* label, LandscapeWorkspaceTab tab, float textScale) {
-            const float tabW = std::max(minTabW, static_cast<float>(std::strlen(label)) * captionSize * textScale + padH * 2.0f);
+        auto addTab = [&](const char* label, LandscapeWorkspaceTab tab) {
+            const float textW = we::runtime::kindui::TextMetrics::MeasureWidth(label, captionSize, false);
+            const float tabW = std::max(textPad * 2.0f, textW + textPad * 2.0f);
             m_Tabs.push_back(TabSlot{ label, tab, Rect{ x, y, tabW, tabH } });
             x += tabW + gap;
         };
 
-        addTab("Create", LandscapeWorkspaceTab::Create, 0.55f);
-        addTab("Sculpt", LandscapeWorkspaceTab::Sculpt, 0.55f);
-        addTab("Paint", LandscapeWorkspaceTab::Paint, 0.5f);
-        addTab("Manage", LandscapeWorkspaceTab::Manage, 0.55f);
+        addTab("Create", LandscapeWorkspaceTab::Create);
+        addTab("Sculpt", LandscapeWorkspaceTab::Sculpt);
+        addTab("Paint", LandscapeWorkspaceTab::Paint);
+        addTab("Manage", LandscapeWorkspaceTab::Manage);
     }
 
     [[nodiscard]] LandscapeWorkspaceTab TabAt(const Point& pos) const {

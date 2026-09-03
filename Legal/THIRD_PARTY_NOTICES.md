@@ -6,8 +6,10 @@ WindEffects Engine incorporates third-party software and assets. Each component 
 
 ### Fonts
 
-- **Inter Font** - Licensed under SIL Open Font License 1.1
-  - License file: `Assets/Fonts/Inter-LICENSE.txt`
+- **Roboto Font** - Licensed under SIL Open Font License 1.1
+  - License file: `Assets/Fonts/Roboto-LICENSE.txt`
+  - Source: https://github.com/googlefonts/roboto-classic
+- **Inter Font** (legacy assets) - Licensed under SIL Open Font License 1.1
   - Source: https://rsms.me/inter/
 
 ### Icons

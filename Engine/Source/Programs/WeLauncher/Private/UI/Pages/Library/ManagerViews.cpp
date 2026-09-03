@@ -9,6 +9,7 @@
 #include "KindUI/Core/PaintContext.h"
 #include "KindUI/Core/TextMetrics.h"
 #include "KindUI/Rendering/IconMetrics.h"
+#include "KindUI/Theming/PaletteRuntime.h"
 #include "KindUI/Theming/ThemeManager.h"
 #include "KindUI/Tokens/DesignToken.h"
 #include "KindUI/Theming/StyleRole.h"
@@ -101,17 +102,26 @@ WindIconRef TemplateTypeIcon(const std::string& templateId) {
 }
 
 Color TemplateBadgeColor(const std::string& templateId) {
+    using we::runtime::kindui::palette::GraphiteDarkLive;
+    const auto& p = GraphiteDarkLive();
+    const Color kBadges[] = {
+        p.Primary,
+        p.AccentBlue,
+        p.AccentGreen,
+        p.AccentOrange,
+        p.AccentPurple,
+        p.AccentPink,
+        p.AccentRed,
+        p.AccentYellow,
+        p.AccentGray,
+        p.AccentFolder,
+    };
     unsigned int hash = 2166136261u;
     for (unsigned char ch : templateId) {
         hash ^= ch;
         hash *= 16777619u;
     }
-    const float h = static_cast<float>(hash % 360) / 360.0f;
-    // Simple HSL-ish accent from hash (keep readable on dark UI).
-    const float r = 0.35f + 0.45f * std::fabs(std::sin(h * 6.28318f));
-    const float g = 0.35f + 0.45f * std::fabs(std::sin((h + 0.33f) * 6.28318f));
-    const float b = 0.35f + 0.45f * std::fabs(std::sin((h + 0.66f) * 6.28318f));
-    return Color{ r, g, b, 1.0f };
+    return kBadges[hash % (sizeof(kBadges) / sizeof(kBadges[0]))];
 }
 
 ProjectColumnLayout ProjectColumnLayout::Compute(float totalWidth, float scale) {

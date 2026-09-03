@@ -127,7 +127,7 @@ bool AssetRegistry::LoadDefaultEditorAssets() {
     const auto& paths = PathService::Get();
 
     const std::vector<std::pair<std::string, std::vector<std::string>>> fonts = {
-        {"Font_UI", PathsToStrings(paths.FontCandidates("Inter-Regular.wefont"))},
+        {"Font_UI", PathsToStrings(paths.FontCandidates("Roboto-Regular.wefont"))},
     };
 
     const std::vector<std::pair<std::string, std::string>> shaderNames = {

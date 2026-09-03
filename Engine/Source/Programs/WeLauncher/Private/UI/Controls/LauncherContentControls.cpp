@@ -281,7 +281,7 @@ void EmptyStatePanel::Paint(PaintContext& context) {
         }
         float x = r.x + (r.width - contentW) * 0.5f;
         const Color fg = primary
-            ? Color{ 1.0f, 1.0f, 1.0f, 1.0f }
+            ? LColor(ColorToken::TextOnAccent)
             : LColor(ColorToken::TextPrimary);
         if (icon.IsValid()) {
             IconPainter::Draw(
@@ -447,7 +447,7 @@ void ProjectsEmptyState::Paint(PaintContext& context) {
             context.DrawRoundedRectOutline(r, LColor(ColorToken::BorderDefault), 1.0f, radius);
         }
         const float textSize = LMetric(MetricToken::TextSizeToolbar) * s;
-        const Color fg = primary ? Color{ 1.0f, 1.0f, 1.0f, 1.0f } : LColor(ColorToken::TextPrimary);
+        const Color fg = primary ? LColor(ColorToken::TextOnAccent) : LColor(ColorToken::TextPrimary);
         const float tw = context.GetTextWidth(label, textSize);
         context.DrawText(
             label,

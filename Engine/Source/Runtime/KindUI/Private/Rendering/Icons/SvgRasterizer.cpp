@@ -1,10 +1,13 @@
 #include "KindUI/Rendering/Icons/SvgRasterizer.h"
+#include "KindUI/Theming/PaletteRuntime.h"
 #include "Core/Logger.h"
 #include "Core/Paths.h"
 
 #include <lunasvg.h>
 
 #include <algorithm>
+#include <cmath>
+#include <cstdio>
 #include <filesystem>
 #include <fstream>
 #include <sstream>
@@ -35,9 +38,19 @@ void ReplaceAll(std::string& text, const std::string& from, const std::string& t
     }
 }
 
+std::string ColorToHexRgb(Color color) {
+    char buf[8];
+    const int r = static_cast<int>(std::lround(std::clamp(color.r, 0.0f, 1.0f) * 255.0f));
+    const int g = static_cast<int>(std::lround(std::clamp(color.g, 0.0f, 1.0f) * 255.0f));
+    const int b = static_cast<int>(std::lround(std::clamp(color.b, 0.0f, 1.0f) * 255.0f));
+    std::snprintf(buf, sizeof(buf), "#%02X%02X%02X", r, g, b);
+    return buf;
+}
+
 std::string PrepareSvgForRasterization(const std::string& svgText) {
     std::string prepared = svgText;
-    ReplaceAll(prepared, "currentColor", "#000000");
+    // Mono SVG baseline fill — authored as GraphiteDark::Black (tinted later).
+    ReplaceAll(prepared, "currentColor", ColorToHexRgb(palette::GraphiteDarkLive().Black));
     return prepared;
 }
 

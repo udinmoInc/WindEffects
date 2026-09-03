@@ -78,7 +78,7 @@ ContentBrowser::GridMetrics ContentBrowser::GetGridMetrics() const {
     m.padding = ThemeMetric(MetricToken::ContentBrowserGridPadding);
     m.hSpacing = ThemeMetric(MetricToken::ContentBrowserGridHSpacing);
     m.vSpacing = ThemeMetric(MetricToken::ContentBrowserGridVSpacing);
-    m.labelLineHeight = ThemeMetric(MetricToken::TextSizeCaption);
+    m.labelLineHeight = ThemeMetric(MetricToken::TextSizeNormal) * 1.25f;
     m.labelGap = ThemeMetric(MetricToken::Space1);
 
     switch (GetEffectiveViewMode()) {

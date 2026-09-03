@@ -3,6 +3,7 @@
 #include "KindUI/Export.h"
 #include "KindUI/Core/Geometry.h"
 #include "KindUI/Theming/ThemeAccess.h"
+#include "KindUI/Theming/Palette.h"
 #include "KindUI/Tokens/TypographySpec.h"
 #include <string>
 #include <memory>
@@ -35,7 +36,7 @@ struct BackgroundStyle {
 
 struct TextStyle {
     Color color = Color::White();
-    float size = 13.0f;
+    float size = 12.0f;
     uint16_t weight = 400;
     bool bold = false;
     bool italic = false;

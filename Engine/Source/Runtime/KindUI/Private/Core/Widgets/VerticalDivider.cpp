@@ -1,8 +1,9 @@
 #include "KindUI/Core/Widgets/VerticalDivider.h"
 
-#include "KindUI/Core/ControlChrome.h"
 #include "KindUI/Core/DPIContext.h"
+#include "KindUI/Core/PaintContext.h"
 #include "KindUI/Tokens/DesignSystem.h"
+#include "KindUI/Tokens/SurfaceRole.h"
 #include "KindUI/Theming/ThemeAccess.h"
 #include "KindUI/Tokens/DesignToken.h"
 
@@ -26,17 +27,8 @@ void VerticalDivider::Arrange(const Rect& allottedRect) {
 }
 
 void VerticalDivider::Paint(PaintContext& context) {
-    const float uiScale = (std::max)(1.0f, DPIContext::GetScale());
-    const float sepH = ResolveMetric(MetricToken::ToolbarSeparatorHeight) * uiScale;
-    const float centerY = m_Geometry.y + m_Geometry.height * 0.5f;
-    const float centerX = m_Geometry.x + m_Geometry.width * 0.5f;
-    ControlChrome::PaintVerticalSeparator(
-        context,
-        centerX,
-        centerY - sepH * 0.5f,
-        centerY + sepH * 0.5f,
-        ResolveMetric(MetricToken::BorderWidth),
-        ColorToken::Separator);
+    // Full-rect Background gap-cut (connects to workspace chrome).
+    context.DrawSurface(m_Geometry, SurfaceRole::Workspace, 0.0f, "VerticalDivider");
 }
 
 } // namespace we::runtime::kindui

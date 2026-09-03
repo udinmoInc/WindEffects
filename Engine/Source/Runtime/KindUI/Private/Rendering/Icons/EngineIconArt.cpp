@@ -197,18 +197,25 @@ void RenderLandscape(IconBitmap& bmp, const Shade& s) {
 }
 
 void RenderSearch(IconBitmap& bmp, const Shade& s) {
-    const int cx = static_cast<int>(bmp.width) / 2 - 2;
-    const int cy = static_cast<int>(bmp.height) / 2 - 2;
-    bmp.FillCircle(cx, cy, 9, s.base[0], s.base[1], s.base[2], 0);
-    bmp.DrawLine(cx + 6, cy + 6, cx + 14, cy + 14, s.highlight[0], s.highlight[1], s.highlight[2], 255, 2);
-    for (int dy = -9; dy <= 9; ++dy) {
-        for (int dx = -9; dx <= 9; ++dx) {
-            const int dist = dx * dx + dy * dy;
-            if (dist >= 49 && dist <= 81) {
+    const int w = static_cast<int>(bmp.width);
+    const int h = static_cast<int>(bmp.height);
+    const int cx = w / 2 - std::max(1, w / 10);
+    const int cy = h / 2 - std::max(1, h / 10);
+    const int outer = std::max(4, w / 4);
+    const int inner = std::max(2, outer - std::max(2, w / 12));
+    for (int dy = -outer; dy <= outer; ++dy) {
+        for (int dx = -outer; dx <= outer; ++dx) {
+            const int dist2 = dx * dx + dy * dy;
+            if (dist2 <= outer * outer && dist2 >= inner * inner) {
                 bmp.SetPixel(cx + dx, cy + dy, s.base[0], s.base[1], s.base[2]);
             }
         }
     }
+    const int hx0 = cx + inner;
+    const int hy0 = cy + inner;
+    const int hx1 = std::min(w - 2, cx + outer + std::max(3, w / 6));
+    const int hy1 = std::min(h - 2, cy + outer + std::max(3, h / 6));
+    bmp.DrawLine(hx0, hy0, hx1, hy1, s.base[0], s.base[1], s.base[2], 255, std::max(2, w / 16));
 }
 
 void RenderSettings(IconBitmap& bmp, const Shade& s) {

@@ -9,6 +9,8 @@
 #include "KindUI/Rendering/IconMetrics.h"
 #include "KindUI/Core/WindIcon.h"
 #include "KindUI/Rendering/TextUIService.h"
+#include "KindUI/Theming/Palette.h"
+#include "KindUI/Theming/PaletteRuntime.h"
 #include "Core/Logger.h"
 #include "Core/FrameCounter.h"
 #include <cmath>
@@ -383,7 +385,67 @@ void UIWidgetAdapter::GenerateRectGeometry(const DrawCommand& cmd) {
     const bool opaqueFill = ColorSpace::IsOpaqueAuthoring(cmd.color);
     constexpr float solidType = 5.0f;
 
-    // Opaque surfaces: type-5 solid quad + replace blending (One, Zero).
+    // Opaque + radius: type-1 SDF with hard coverage so rounded chrome (search pills, etc.)
+    // actually rounds — type-5 solid quads ignore borderRadius and look square.
+    if (opaqueFill && cmd.borderRadius > 0.0f) {
+        constexpr float type = 1.0f;
+        constexpr float opaqueHard = 1.0f;
+        UIVertex2 v0{
+            {x, y},
+            {0.5f, 0.5f},
+            {cmd.color.r, cmd.color.g, cmd.color.b, 1.0f},
+            {x, y, w, h},
+            {cmd.borderRadius, type, 0.0f, opaqueHard}};
+        UIVertex2 v1{
+            {x + w, y},
+            {0.5f, 0.5f},
+            {cmd.color.r, cmd.color.g, cmd.color.b, 1.0f},
+            {x, y, w, h},
+            {cmd.borderRadius, type, 0.0f, opaqueHard}};
+        UIVertex2 v2{
+            {x + w, y + h},
+            {0.5f, 0.5f},
+            {cmd.color.r, cmd.color.g, cmd.color.b, 1.0f},
+            {x, y, w, h},
+            {cmd.borderRadius, type, 0.0f, opaqueHard}};
+        UIVertex2 v3{
+            {x, y + h},
+            {0.5f, 0.5f},
+            {cmd.color.r, cmd.color.g, cmd.color.b, 1.0f},
+            {x, y, w, h},
+            {cmd.borderRadius, type, 0.0f, opaqueHard}};
+
+        const uint32_t startIndex = static_cast<uint32_t>(m_Vertices.size());
+        m_Vertices.push_back(v0);
+        m_Vertices.push_back(v1);
+        m_Vertices.push_back(v2);
+        m_Vertices.push_back(v3);
+
+        m_Indices.push_back(startIndex + 0);
+        m_Indices.push_back(startIndex + 1);
+        m_Indices.push_back(startIndex + 2);
+        m_Indices.push_back(startIndex + 2);
+        m_Indices.push_back(startIndex + 3);
+        m_Indices.push_back(startIndex + 0);
+
+        // Alpha blend (not opaque-replace): discarded corner pixels reveal the parent surface.
+        AddOrMergeBatch(6);
+
+        if (UiColorDebug::IsEnabled()) {
+            ColorToken token{};
+            if (UiColorDebug::TryMatchToken(cmd.color, token)) {
+                UiColorDebug::Get().TraceVertex(
+                    "UIWidgetAdapter::GenerateRectGeometry",
+                    token,
+                    cmd.color,
+                    cmd.rect,
+                    type);
+            }
+        }
+        return;
+    }
+
+    // Opaque axis-aligned surfaces: type-5 solid quad + replace blending (One, Zero).
     if (opaqueFill) {
         UIVertex2 v0{{x, y}, {0.5f, 0.5f}, {cmd.color.r, cmd.color.g, cmd.color.b, 1.0f}, {0, 0, 0, 0}, {0.0f, solidType, 0.0f, 0.0f}};
         UIVertex2 v1{{x + w, y}, {0.5f, 0.5f}, {cmd.color.r, cmd.color.g, cmd.color.b, 1.0f}, {0, 0, 0, 0}, {0.0f, solidType, 0.0f, 0.0f}};
@@ -497,7 +559,7 @@ void UIWidgetAdapter::GenerateTextGeometry(const DrawCommand& cmd) {
                 const float w = std::max(g.bounds.width, 1.0f);
                 const float h = std::max(g.bounds.height, 1.0f);
                 // Magenta wireframe-ish fill at low alpha so bounds are visible over missing glyphs.
-                const Color c{1.0f, 0.2f, 0.8f, 0.35f};
+                const Color c = palette::GraphiteDarkLive().DebugGlyphBounds;
                 UIVertex2 v0{{x, y}, {0.5f, 0.5f}, {c.r, c.g, c.b, c.a}, {x, y, w, h}, {outlineRadius, outlineType, 0.0f, 0.0f}};
                 UIVertex2 v1{{x + w, y}, {0.5f, 0.5f}, {c.r, c.g, c.b, c.a}, {x, y, w, h}, {outlineRadius, outlineType, 0.0f, 0.0f}};
                 UIVertex2 v2{{x + w, y + h}, {0.5f, 0.5f}, {c.r, c.g, c.b, c.a}, {x, y, w, h}, {outlineRadius, outlineType, 0.0f, 0.0f}};
@@ -636,7 +698,8 @@ void UIWidgetAdapter::GenerateIconGeometry(const DrawCommand& cmd) {
     const float y = SnapPx(cmd.rect.y + (cmd.rect.height - h) * 0.5f);
 
     const float type = drawInfo.shaderType;
-    const Color color = Color::White();
+    // Multiplicative tint from DrawCommand (defaults to live White identity).
+    const Color color = cmd.color.a > 0.0f ? cmd.color : palette::GraphiteDarkLive().White;
 
     UIVertex2 v0{ {x,     y},     {drawInfo.uvMin[0], drawInfo.uvMin[1]}, {color.r, color.g, color.b, color.a}, {x, y, w, h}, {0.0f, type, 0.0f, 0.0f} };
     UIVertex2 v1{ {x + w, y},     {drawInfo.uvMax[0], drawInfo.uvMin[1]}, {color.r, color.g, color.b, color.a}, {x, y, w, h}, {0.0f, type, 0.0f, 0.0f} };

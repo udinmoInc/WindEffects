@@ -8,6 +8,7 @@
 #include "KindUI/Rendering/IconMetrics.h"
 #include "KindUI/Theming/ThemeAccess.h"
 #include "KindUI/Tokens/DesignToken.h"
+#include "Text/Layout/TextStyle.h"
 
 namespace we::editor::contentbrowser {
 namespace Chrome = ::we::editor::panels::PanelChrome;
@@ -62,7 +63,7 @@ void TreeColumnHeader::Paint(PaintContext& context) {
         Point{ labelX, headerTextY },
         ThemeColor(ColorToken::TextSecondary),
         headerTextSize,
-        true);
+        we::runtime::text::layout::FontWeight::Medium);
 
     const float typeRightX = m_Geometry.x + m_Geometry.width - ThemeMetric(MetricToken::Space3) * uiScale;
     const float typeColumnReserve = ThemeMetric(MetricToken::Space6) * uiScale;
@@ -77,13 +78,16 @@ void TreeColumnHeader::Paint(PaintContext& context) {
         ThemeMetric(MetricToken::BorderWidth),
         ColorToken::Separator);
 
-    const float typeWidth = context.GetTextWidth("Type", headerTextSize);
+    const float typeWidth = context.GetTextWidth(
+        "Type",
+        headerTextSize,
+        we::runtime::text::layout::FontWeight::Medium);
     context.DrawText(
         "Type",
         Point{ typeRightX - typeWidth, headerTextY },
         ThemeColor(ColorToken::TextSecondary),
         headerTextSize,
-        true);
+        we::runtime::text::layout::FontWeight::Medium);
 }
 
 } // namespace we::editor::contentbrowser

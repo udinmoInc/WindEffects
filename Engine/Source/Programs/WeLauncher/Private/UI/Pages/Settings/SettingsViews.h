@@ -344,7 +344,7 @@ public:
 
 private:
     std::string m_Theme = "Graphite Dark";
-    std::string m_AccentHex = "#5B8DEF";
+    std::string m_AccentHex; // empty → ParseHexColor → GraphiteDark::Primary
     std::string m_IconStyle = "Outline";
     float m_UiScale = 1.0f;
     float m_FontSize = 13.0f;

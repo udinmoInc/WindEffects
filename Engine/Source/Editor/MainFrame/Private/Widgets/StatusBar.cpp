@@ -60,22 +60,17 @@ namespace {
     }
 
     void PaintSectionSeparator(PaintContext& context, float x, float barTop, float barBottom) {
-        const float uiScale = UiScale();
-        const float lineHeight = we::runtime::kindui::ResolveMetric(MetricToken::ToolbarSeparatorHeight) * uiScale;
-        const float centerY = barTop + (barBottom - barTop) * 0.5f;
-        const float halfH = lineHeight * 0.5f;
-        ControlChrome::PaintVerticalSeparator(
-            context,
-            x,
-            centerY - halfH,
-            centerY + halfH,
-            we::runtime::kindui::ResolveMetric(MetricToken::BorderWidth),
-            ColorToken::Separator);
+        (void)context;
+        (void)x;
+        (void)barTop;
+        (void)barBottom;
+        // Deprecated: status bar uses VerticalDivider gap-cuts instead of hairlines.
     }
 
     std::shared_ptr<we::runtime::kindui::VerticalDivider> MakeStatusDivider() {
         auto divider = std::make_shared<we::runtime::kindui::VerticalDivider>();
         divider->SetFlexShrink(0.0f);
+        divider->SetVerticalAlignment(VerticalAlignment::Fill);
         return divider;
     }
 

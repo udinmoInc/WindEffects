@@ -4,15 +4,26 @@
 namespace we::runtime::kindui {
 namespace {
 
-bool IsTitleRole(const TypographyToken token) {
+bool IsDisplayTitleRole(const TypographyToken token) {
     switch (token) {
     case TypographyToken::WindowTitle:
     case TypographyToken::PageTitle:
+    case TypographyToken::Display:
+    case TypographyToken::Heading1:
+        return true;
+    default:
+        return false;
+    }
+}
+
+bool IsTitleRole(const TypographyToken token) {
+    if (IsDisplayTitleRole(token)) {
+        return true;
+    }
+    switch (token) {
     case TypographyToken::SectionTitle:
     case TypographyToken::CardTitle:
     case TypographyToken::DialogTitle:
-    case TypographyToken::Display:
-    case TypographyToken::Heading1:
     case TypographyToken::Heading2:
     case TypographyToken::Heading3:
     case TypographyToken::Heading4:
@@ -24,23 +35,24 @@ bool IsTitleRole(const TypographyToken token) {
     }
 }
 
-bool IsStrongRole(const TypographyToken token) {
-    if (IsTitleRole(token)) {
-        return true;
-    }
+bool IsMediumRole(const TypographyToken token) {
+    // Roboto Medium for tabs/headers/toolbar labels and emphasized chrome text.
     switch (token) {
+    case TypographyToken::SectionTitle:
+    case TypographyToken::CardTitle:
+    case TypographyToken::DialogTitle:
+    case TypographyToken::Heading:
+    case TypographyToken::Heading2:
+    case TypographyToken::Heading3:
+    case TypographyToken::Heading4:
+    case TypographyToken::Title:
     case TypographyToken::Button:
     case TypographyToken::TableHeader:
-        return true;
-    default:
-        return false;
-    }
-}
-
-bool IsMediumRole(const TypographyToken token) {
-    switch (token) {
     case TypographyToken::Label:
     case TypographyToken::BodyStrong:
+    case TypographyToken::Toolbar:
+    case TypographyToken::Menu:
+    case TypographyToken::Navigation:
         return true;
     default:
         return false;
@@ -92,35 +104,29 @@ TypographySpec IKindUITheme::ResolveTypography(const TypographyToken token) cons
     spec.role = token;
     spec.sizePx = ResolveFontSize(token);
 
-    // Vertical rhythm: body/hints ~1.4×; titles tighter; captions open.
-    float lhMul = 1.35f;
+    // Compact UE5-style rhythm: normal line height, no excess leading.
+    float lhMul = 1.25f;
     if (token == TypographyToken::Body
         || token == TypographyToken::BodyStrong
         || token == TypographyToken::Hint
         || token == TypographyToken::Caption
         || token == TypographyToken::CaptionSmall
         || token == TypographyToken::Subtitle) {
-        lhMul = 1.40f;
-    } else if (IsTitleRole(token)) {
-        lhMul = 1.25f;
+        lhMul = 1.30f;
+    } else if (IsDisplayTitleRole(token)) {
+        lhMul = 1.20f;
     }
     spec.lineHeightPx = spec.sizePx * lhMul;
 
-    // Optical tracking: titles slightly tight; hints slightly open.
-    if (IsTitleRole(token) && token != TypographyToken::Title) {
-        spec.letterSpacing = -0.2f;
-    } else if (token == TypographyToken::Hint || token == TypographyToken::CaptionSmall) {
-        spec.letterSpacing = 0.15f;
-    } else {
-        spec.letterSpacing = 0.0f;
-    }
+    // Keep tracking neutral for compact editor chrome readability.
+    spec.letterSpacing = 0.0f;
 
-    if (IsStrongRole(token)) {
-        spec.weight = 600; // SemiBold
+    if (IsDisplayTitleRole(token)) {
+        spec.weight = 600; // SemiBold for large display titles only
     } else if (IsMediumRole(token)) {
-        spec.weight = 500; // Medium
+        spec.weight = 500; // Medium — tabs, section headers, toolbar, emphasized UI
     } else {
-        spec.weight = 400; // Regular
+        spec.weight = 400; // Regular — default editor text
     }
     spec.bold = spec.weight >= 600;
     spec.italic = false;

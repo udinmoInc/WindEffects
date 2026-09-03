@@ -288,10 +288,10 @@ void PathPickerField::Tick(float deltaTime) {
 
 ColorSwatchPicker::ColorSwatchPicker(std::string hexColor)
     : m_Hex(std::move(hexColor)) {
-    m_HoverAnims.assign(sizeof(kAccentPalette) / sizeof(kAccentPalette[0]), 0.0f);
+    m_HoverAnims.assign(static_cast<std::size_t>(kAccentPaletteCount), 0.0f);
     m_Selected = 0;
-    for (int i = 0; i < static_cast<int>(sizeof(kAccentPalette) / sizeof(kAccentPalette[0])); ++i) {
-        if (m_Hex == kAccentPalette[i]) {
+    for (int i = 0; i < kAccentPaletteCount; ++i) {
+        if (m_Hex == ColorToHexRgb(AccentSwatch(i))) {
             m_Selected = i;
             break;
         }
@@ -300,8 +300,8 @@ ColorSwatchPicker::ColorSwatchPicker(std::string hexColor)
 
 void ColorSwatchPicker::SetColorHex(std::string hex) {
     m_Hex = std::move(hex);
-    for (int i = 0; i < static_cast<int>(sizeof(kAccentPalette) / sizeof(kAccentPalette[0])); ++i) {
-        if (m_Hex == kAccentPalette[i]) {
+    for (int i = 0; i < kAccentPaletteCount; ++i) {
+        if (m_Hex == ColorToHexRgb(AccentSwatch(i))) {
             m_Selected = i;
             break;
         }
@@ -312,8 +312,7 @@ void ColorSwatchPicker::SetColorHex(std::string hex) {
 Size ColorSwatchPicker::Measure(const Size& availableSize) {
     (void)availableSize;
     const float s = LScale();
-    const int count = static_cast<int>(sizeof(kAccentPalette) / sizeof(kAccentPalette[0]));
-    m_DesiredSize = Size{ static_cast<float>(count) * 26.0f * s, 24.0f * s };
+    m_DesiredSize = Size{ static_cast<float>(kAccentPaletteCount) * 26.0f * s, 24.0f * s };
     return m_DesiredSize;
 }
 
@@ -337,8 +336,7 @@ Rect ColorSwatchPicker::SwatchRect(int index) const {
 }
 
 int ColorSwatchPicker::HitSwatch(const Point& p) const {
-    const int count = static_cast<int>(sizeof(kAccentPalette) / sizeof(kAccentPalette[0]));
-    for (int i = 0; i < count; ++i) {
+    for (int i = 0; i < kAccentPaletteCount; ++i) {
         if (SwatchRect(i).Contains(p)) {
             return i;
         }
@@ -348,10 +346,9 @@ int ColorSwatchPicker::HitSwatch(const Point& p) const {
 
 void ColorSwatchPicker::Paint(PaintContext& context) {
     const float s = LScale();
-    const int count = static_cast<int>(sizeof(kAccentPalette) / sizeof(kAccentPalette[0]));
-    for (int i = 0; i < count; ++i) {
+    for (int i = 0; i < kAccentPaletteCount; ++i) {
         const Rect r = SwatchRect(i);
-        context.DrawRoundedRect(r, ParseHexColor(kAccentPalette[i]), 6.0f * s);
+        context.DrawRoundedRect(r, AccentSwatch(i), 6.0f * s);
         if (i == m_Selected) {
             context.DrawRoundedRectOutline(r, LColor(ColorToken::TextPrimary), 2.0f, 6.0f * s);
         } else if (m_HoverAnims[static_cast<std::size_t>(i)] > 0.01f) {
@@ -367,7 +364,7 @@ void ColorSwatchPicker::OnMouseDown(const MouseEvent& event) {
     const int hit = HitSwatch(event.position);
     if (hit >= 0) {
         m_Selected = hit;
-        m_Hex = kAccentPalette[hit];
+        m_Hex = ColorToHexRgb(AccentSwatch(hit));
         if (m_OnChanged) {
             m_OnChanged(m_Hex);
         }

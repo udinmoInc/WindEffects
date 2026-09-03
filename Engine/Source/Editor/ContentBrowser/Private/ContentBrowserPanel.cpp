@@ -231,7 +231,7 @@ std::shared_ptr<::we::editor::panels::Panel> CreateContentBrowserPanel() {
 
     assetToolbar->SetOnImportClicked([]() {
         auto& paths = we::core::PathService::Get();
-        const auto inputCandidates = paths.FontCandidates("Inter-Regular.ttf");
+        const auto inputCandidates = paths.FontCandidates("Roboto-Regular.ttf");
         const auto inputFont = we::core::PathService::FindExisting(inputCandidates);
         if (!inputFont) {
             return;

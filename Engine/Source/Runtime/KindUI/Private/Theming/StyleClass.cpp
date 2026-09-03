@@ -124,8 +124,10 @@ void StyleClassRegistry::RegisterDefaults() {
     StyleClass search;
     search.name = "SearchBar";
     search.background = ColorToken::InputBackground;
-    search.border = ColorToken::InputBackground;
-    search.radiusToken = MetricToken::CornerRadiusSmall;
+    search.border = ColorToken::BorderSubtle;
+    // Pill radius is applied at paint time from control height; keep a medium
+    // token here so style-class consumers still prefer a rounded search look.
+    search.radiusToken = MetricToken::CornerRadiusMedium;
     search.heightToken = MetricToken::SearchBoxHeight;
     Register(search);
 }

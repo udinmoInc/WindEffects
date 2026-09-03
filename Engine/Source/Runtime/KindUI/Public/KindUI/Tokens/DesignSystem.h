@@ -155,6 +155,9 @@ namespace Input {
 [[nodiscard]] inline float PaddingV() { return ResolvePadding(PaddingToken::Input).top; }
 [[nodiscard]] inline Color Background() { return ResolveSurfaceColor(SurfaceRole::Input); }
 [[nodiscard]] inline Color Placeholder() { return ResolveTextColor(TextRole::Hint); }
+[[nodiscard]] inline Color InsetInner() { return ResolveColor(ColorToken::InputInsetInner); }
+[[nodiscard]] inline Color InsetOuter() { return ResolveColor(ColorToken::InputInsetOuter); }
+[[nodiscard]] inline Color Outline() { return ResolveColor(ColorToken::BorderSubtle); }
 } // namespace Input
 
 namespace StatusBar {

@@ -1,0 +1,17 @@
+{
+  "createdUtc": "2026-09-03T03:14:18Z",
+  "custom": {},
+  "dependencies": [],
+  "displayName": "Roboto-Regular",
+  "engineVersion": "0.1.0",
+  "guid": "43ae31e5-2f5e-41f1-83c2-3577c3eb01fd",
+  "importSettings": {},
+  "importerId": "font.ttf",
+  "importerVersion": "1.0.0",
+  "kind": "Font",
+  "modifiedUtc": "2026-09-03T03:14:18Z",
+  "schemaVersion": 1,
+  "sourceHash": "487e1ab38d8f014e",
+  "sourcePath": "f:\\Coding\\windeffects\\Assets\\Fonts\\Roboto-Regular.ttf",
+  "tags": []
+}

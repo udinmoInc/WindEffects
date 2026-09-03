@@ -17,6 +17,8 @@
 
 #include "KindUI/Rendering/IconMetrics.h"
 
+#include "Text/Layout/TextStyle.h"
+
 #include <algorithm>
 
 namespace we::runtime::kindui {
@@ -37,7 +39,7 @@ void DesignButton::SetLabel(std::string label) {
 Size DesignButton::Measure(const Size& availableSize) {
     (void)availableSize;
     const ResolvedStyle style = ThemeManager::Get().Resolve(m_Role);
-    const float pad = ResolveMetric(MetricToken::ButtonPaddingHorizontal);
+    const float pad = ResolveMetric(MetricToken::Space2);
     const float textW = TextMetrics::MeasureWidth(m_Label, style.fontSize);
     const float iconW = m_Icon.IsValid() ? (style.iconSize + ResolveMetric(MetricToken::Space1)) : 0.0f;
     m_DesiredSize = Size{ textW + iconW + pad * 2.0f, style.height > 0.0f ? style.height : ResolveMetric(MetricToken::ButtonHeight) };
@@ -73,7 +75,15 @@ void DesignButton::Paint(PaintContext& context) {
     if (!IsEnabled()) {
         fg = ResolveColor(ColorToken::TextDisabled);
     }
-    float x = m_Geometry.x + ResolveMetric(MetricToken::ButtonPaddingHorizontal);
+    const float pad = ResolveMetric(MetricToken::Space2);
+    const float textW = TextMetrics::MeasureWidth(m_Label, style.fontSize, style.bold);
+    const float iconW = m_Icon.IsValid() ? (style.iconSize + ResolveMetric(MetricToken::Space1)) : 0.0f;
+    const float contentW = textW + iconW;
+    // Center label in wide full-width buttons (toggles / CTAs); left-align when compact.
+    float x = m_Geometry.x + pad;
+    if (m_Geometry.width > contentW + pad * 2.0f + ResolveMetric(MetricToken::Space2)) {
+        x = m_Geometry.x + (m_Geometry.width - contentW) * 0.5f;
+    }
     if (m_Icon.IsValid()) {
         const Rect iconRect{
             x,
@@ -88,7 +98,8 @@ void DesignButton::Paint(PaintContext& context) {
         Point{ x, m_Geometry.y + (m_Geometry.height - style.fontSize) * 0.5f },
         fg,
         style.fontSize,
-        style.bold);
+        style.bold ? we::runtime::text::layout::FontWeight::Medium
+                   : we::runtime::text::layout::FontWeight::Regular);
 }
 
 void DesignButton::OnMouseDown(const MouseEvent& event) {

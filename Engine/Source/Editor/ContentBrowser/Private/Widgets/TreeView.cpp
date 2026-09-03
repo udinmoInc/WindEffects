@@ -19,6 +19,7 @@
 #include "KindUI/Rendering/IconMetrics.h"
 #include "KindUI/Profiling/UiGeometryDebug.h"
 #include "WindEffects/Editor/UI/Layout/EditorMetrics.h"
+#include "Text/Layout/TextStyle.h"
 #include <algorithm>
 #include <cmath>
 #include <functional>
@@ -362,7 +363,12 @@ void TreeView::Paint(PaintContext& context) {
 
         // Item Label header
         const float labelX = m_Geometry.x + TreeExplorerPrefix(uiScale);
-        context.DrawText("Item Label ▲", Point{ labelX, headerTextY }, ThemeColor(ColorToken::TextSecondary), headerTextSize, true);
+        context.DrawText(
+            "Item Label ▲",
+            Point{ labelX, headerTextY },
+            ThemeColor(ColorToken::TextSecondary),
+            headerTextSize,
+            we::runtime::text::layout::FontWeight::Medium);
 
         // Type column header
         const float typeColumnReserve = we::runtime::kindui::ResolveMetric(MetricToken::Space6) * uiScale;
@@ -376,8 +382,16 @@ void TreeView::Paint(PaintContext& context) {
             headerCenterY + sepH * 0.5f,
             we::runtime::kindui::ResolveMetric(MetricToken::BorderWidth),
             ColorToken::Separator);
-        const float typeWidth = context.GetTextWidth("Type", headerTextSize);
-        context.DrawText("Type", Point{ typeRightX - typeWidth, headerTextY }, ThemeColor(ColorToken::TextSecondary), headerTextSize, true);
+        const float typeWidth = context.GetTextWidth(
+            "Type",
+            headerTextSize,
+            we::runtime::text::layout::FontWeight::Medium);
+        context.DrawText(
+            "Type",
+            Point{ typeRightX - typeWidth, headerTextY },
+            ThemeColor(ColorToken::TextSecondary),
+            headerTextSize,
+            we::runtime::text::layout::FontWeight::Medium);
     }
 
     if (m_RenderList.empty()) {
@@ -709,7 +723,10 @@ void TreeView::SetZoomLevel(float zoomLevel) {
     m_ZoomLevel = std::clamp(zoomLevel, kMinTreeZoom, kMaxTreeZoom);
     m_ItemHeight = m_BaseItemHeight * m_ZoomLevel;
     m_IndentWidth = m_BaseIndentWidth * m_ZoomLevel;
-    m_Style.text.size = std::clamp(13.0f * m_ZoomLevel, 10.0f, 20.0f);
+    m_Style.text.size = std::clamp(
+        ThemeMetric(MetricToken::TextSizeSmall) * m_ZoomLevel,
+        10.0f,
+        20.0f);
 }
 
 void TreeView::OnKeyDown(const KeyEvent& event) {

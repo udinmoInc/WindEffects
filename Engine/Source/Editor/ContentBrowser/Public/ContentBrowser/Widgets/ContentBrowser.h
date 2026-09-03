@@ -91,12 +91,12 @@ private:
         float cellWidth = 100.0f;
         float cellHeight = 120.0f;
         float thumbSize = 88.0f;
-        float labelLineHeight = 14.0f;
+        float labelLineHeight = 12.0f;
         float labelLines = 2.0f;
-        float labelGap = 6.0f;
-        float hSpacing = 8.0f;
-        float vSpacing = 8.0f;
-        float padding = 16.0f;
+        float labelGap = 4.0f;
+        float hSpacing = 6.0f;
+        float vSpacing = 6.0f;
+        float padding = 6.0f;
     };
 
     void BuildRenderList();

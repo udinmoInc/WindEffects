@@ -1,0 +1,17 @@
+{
+  "createdUtc": "2026-09-03T03:14:19Z",
+  "custom": {},
+  "dependencies": [],
+  "displayName": "Roboto-Medium",
+  "engineVersion": "0.1.0",
+  "guid": "56453a19-7723-46eb-b233-0fa6a9c058b4",
+  "importSettings": {},
+  "importerId": "font.ttf",
+  "importerVersion": "1.0.0",
+  "kind": "Font",
+  "modifiedUtc": "2026-09-03T03:14:19Z",
+  "schemaVersion": 1,
+  "sourceHash": "fa2a3220cb7489b6",
+  "sourcePath": "f:\\Coding\\windeffects\\Assets\\Fonts\\Roboto-Medium.ttf",
+  "tags": []
+}

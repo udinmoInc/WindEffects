@@ -7,6 +7,7 @@
 #include "KindUI/Core/WindIcon.h"
 #include "KindUI/Core/Icon.h"
 #include "KindUI/Core/DPIContext.h"
+#include "Text/Layout/TextStyle.h"
 #include <algorithm>
 
 using ::we::runtime::kindui::ColorToken;
@@ -22,7 +23,7 @@ using ::we::runtime::kindui::kWindIconNone;
 MenuBar::MenuBar()
     : m_Style(WidgetStyle::Panel())
     , m_Height(we::runtime::kindui::ResolveMetric(MetricToken::TitleBarHeight))
-    , m_ItemPaddingH(we::runtime::kindui::ResolveMetric(MetricToken::Space3))
+    , m_ItemPaddingH(we::runtime::kindui::ResolveMetric(MetricToken::Space2))
 {}
 
 Size MenuBar::Measure(const Size& availableSize) {
@@ -88,7 +89,12 @@ void MenuBar::Paint(PaintContext& context) {
         float textY = menu.geometry.y + (menu.geometry.height - textSize) * 0.5f;
 
         Color textColor = ThemeTextForState(isHighlighted, isActive);
-        context.DrawText(menu.label, Point{ textX, textY }, textColor, textSize);
+        context.DrawText(
+            menu.label,
+            Point{ textX, textY },
+            textColor,
+            textSize,
+            we::runtime::text::layout::FontWeight::Medium);
     };
 
     for (size_t i = 0; i < m_VisibleMenus.size(); ++i) {

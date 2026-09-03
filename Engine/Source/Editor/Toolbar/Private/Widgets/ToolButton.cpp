@@ -9,6 +9,7 @@
 #include "KindUI/Rendering/IconMetrics.h"
 #include "KindUI/Tokens/DesignToken.h"
 #include "KindUI/Theming/ThemeAccess.h"
+#include "Text/Layout/TextStyle.h"
 
 #include <algorithm>
 #include <cctype>
@@ -66,7 +67,7 @@ namespace {
                         width += textSize * 0.75f;
                         break;
                     default:
-                        width += textSize * 0.52f;
+                        width += textSize * 0.54f;
                         break;
                 }
             }
@@ -288,7 +289,12 @@ void ToolButton::Paint(PaintContext& context) {
             if (m_HoverAnim > 0.01f && !m_Active) {
                 labelColor = Color::Pick(labelColor, ThemeColor(ColorToken::TextPrimary), m_HoverAnim);
             }
-            context.DrawText(m_Label, Point{ labelX, labelY }, labelColor, textSize);
+            context.DrawText(
+                m_Label,
+                Point{ labelX, labelY },
+                labelColor,
+                textSize,
+                we::runtime::text::layout::FontWeight::Medium);
         }
         return;
     }
@@ -319,7 +325,12 @@ void ToolButton::Paint(PaintContext& context) {
             if (m_HoverAnim > 0.01f && !m_Active) {
                 textColor = Color::Pick(textColor, ThemeColor(ColorToken::TextPrimary), m_HoverAnim * 0.35f);
             }
-            context.DrawText(m_Label, Point{ currentX, centerY - textSize * 0.5f }, textColor, textSize);
+            context.DrawText(
+                m_Label,
+                Point{ currentX, centerY - textSize * 0.5f },
+                textColor,
+                textSize,
+                we::runtime::text::layout::FontWeight::Medium);
         }
         return;
     }
@@ -346,7 +357,12 @@ void ToolButton::Paint(PaintContext& context) {
 
         if (!m_Label.empty()) {
             Color textColor = ResolveInteractiveTextColor(m_HoverAnim, pressStrength, false);
-            context.DrawText(m_Label, Point{ currentX, centerY - textSize * 0.5f }, textColor, textSize);
+            context.DrawText(
+                m_Label,
+                Point{ currentX, centerY - textSize * 0.5f },
+                textColor,
+                textSize,
+                we::runtime::text::layout::FontWeight::Medium);
             currentX += ApproxInlineTextWidth(m_Label, textSize);
         }
 
@@ -375,7 +391,12 @@ void ToolButton::Paint(PaintContext& context) {
 
         if (!m_Label.empty()) {
             Color textColor = ResolveInteractiveTextColor(m_HoverAnim, pressStrength, m_Active);
-            context.DrawText(m_Label, Point{ currentX, centerY - textSize * 0.5f }, textColor, textSize);
+            context.DrawText(
+                m_Label,
+                Point{ currentX, centerY - textSize * 0.5f },
+                textColor,
+                textSize,
+                we::runtime::text::layout::FontWeight::Medium);
             currentX += ApproxInlineTextWidth(m_Label, textSize);
         }
 
@@ -421,7 +442,12 @@ void ToolButton::Paint(PaintContext& context) {
         if (!m_Label.empty()) {
             const float textSize = ThemeMetric(MetricToken::TextSizeToolbar) * uiScale;
             Color textColor = ToolbarButtonChrome::ResolveIconColor(m_HoverAnim, pressStrength, m_Active);
-            context.DrawText(m_Label, Point{ currentX, centerY - textSize / 2.0f }, textColor, textSize);
+            context.DrawText(
+                m_Label,
+                Point{ currentX, centerY - textSize / 2.0f },
+                textColor,
+                textSize,
+                we::runtime::text::layout::FontWeight::Medium);
         }
 
         if (m_IsDropdown) {
@@ -462,14 +488,20 @@ float ToolSeparator::SeparatorHeight() {
 }
 
 float ToolSeparator::SeparatorWidth() {
-    return we::runtime::kindui::ResolveMetric(MetricToken::BorderWidth);
+    return we::runtime::kindui::ResolveMetric(MetricToken::ChromeSeparationGapWide);
 }
 
 ToolSeparator::ToolSeparator() {}
 
 Size ToolSeparator::Measure(const Size& availableSize) {
     const float uiScale = (std::max)(1.0f, DPIContext::GetScale());
-    return Size{ SeparatorWidth() * uiScale, SeparatorHeight() * uiScale };
+    m_DesiredSize = Size{
+        SeparatorWidth() * uiScale,
+        availableSize.height > 0.0f
+            ? availableSize.height
+            : SeparatorHeight() * uiScale
+    };
+    return m_DesiredSize;
 }
 
 void ToolSeparator::Arrange(const Rect& allottedRect) {
@@ -477,17 +509,11 @@ void ToolSeparator::Arrange(const Rect& allottedRect) {
 }
 
 void ToolSeparator::Paint(PaintContext& context) {
-    const float uiScale = (std::max)(1.0f, DPIContext::GetScale());
-    const float sepH = SeparatorHeight() * uiScale;
-    const float centerY = m_Geometry.y + m_Geometry.height * 0.5f;
-    const float centerX = m_Geometry.x + m_Geometry.width * 0.5f;
-    we::runtime::kindui::ControlChrome::PaintVerticalSeparator(
-        context,
-        centerX,
-        centerY - sepH * 0.5f,
-        centerY + sepH * 0.5f,
-        SeparatorWidth(),
-        ColorToken::Separator);
+    context.DrawSurface(
+        m_Geometry,
+        we::runtime::kindui::SurfaceRole::Workspace,
+        0.0f,
+        "ToolSeparator");
 }
 
 } // namespace we::editor::toolbar

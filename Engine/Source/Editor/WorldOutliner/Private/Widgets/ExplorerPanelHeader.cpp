@@ -11,7 +11,6 @@ ExplorerPanelHeader::ExplorerPanelHeader()
     : PanelToolbarRow("Search...") {}
 
 void ExplorerPanelHeader::Initialize() {
-    AddSeparator();
     AddIconButton(WindIcons::FolderPlus16, [this]() {
         if (m_OnNewFolder) {
             m_OnNewFolder();

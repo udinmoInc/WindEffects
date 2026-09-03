@@ -102,6 +102,10 @@ enum class ColorToken : uint32_t {
     ButtonBevelHighlight,
     ButtonBevelShadow,
 
+    // ── Input recessed edge chrome (charcoal only — never white/highlight) ────
+    InputInsetInner,        // 1px top inner highlight of recessed inputs
+    InputInsetOuter,        // Optional outer lip for non-input chrome
+
     // ── Depth & overlays ──────────────────────────────────────────────────────
     HighlightSubtle,
     ShadowSubtle,
@@ -122,6 +126,9 @@ enum class ColorToken : uint32_t {
     // ── Scrollbar ─────────────────────────────────────────────────────────────
     ScrollbarThumb,
     ScrollbarThumbHover,
+
+    // ── Diagnostics ───────────────────────────────────────────────────────────
+    DebugGlyphBounds,       // Text debug glyph wireframe fill
 };
 
 enum class SpacingToken : uint32_t {
