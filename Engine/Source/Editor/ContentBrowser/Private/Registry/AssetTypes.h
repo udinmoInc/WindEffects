@@ -1,9 +1,12 @@
 #pragma once
 
+#include "KindUI/Core/WindIcon.h"
+
 #include <string>
 #include <cstdint>
 
 namespace we::editor::contentbrowser {
+namespace WindIcons = ::we::runtime::kindui::WindIcons;
 
 enum class AssetType {
     Unknown,
@@ -42,6 +45,42 @@ inline std::string AssetTypeToString(AssetType type) {
         case AssetType::Script: return "Script";
         case AssetType::Video: return "Video";
         default: return "Unknown";
+    }
+}
+
+[[nodiscard]] inline we::runtime::kindui::WindIconRef IconForAssetType(AssetType type, bool folderExpanded = false) {
+    switch (type) {
+        case AssetType::Folder:
+            return folderExpanded ? WindIcons::FolderOpened16 : WindIcons::FolderClosed16;
+        case AssetType::Texture:
+            return WindIcons::Grid3x316;
+        case AssetType::Material:
+        case AssetType::MaterialInstance:
+            return WindIcons::Sun16;
+        case AssetType::StaticMesh:
+            return WindIcons::BoxSolid16;
+        case AssetType::SkeletalMesh:
+            return WindIcons::Box16;
+        case AssetType::Animation:
+            return WindIcons::PlayGreen16;
+        case AssetType::Blueprint:
+            return WindIcons::Wrench16;
+        case AssetType::Scene:
+            return WindIcons::WorldGlobe16;
+        case AssetType::Prefab:
+            return WindIcons::Box16;
+        case AssetType::Terrain:
+            return WindIcons::Globe16;
+        case AssetType::Audio:
+            return WindIcons::Cloud16;
+        case AssetType::Font:
+            return WindIcons::Square16;
+        case AssetType::Script:
+            return WindIcons::Logs16;
+        case AssetType::Video:
+            return WindIcons::VideoCamera16;
+        default:
+            return WindIcons::Square16;
     }
 }
 

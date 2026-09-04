@@ -58,6 +58,7 @@ namespace IconSizing {
 [[nodiscard]] inline float VerySmall() { return ResolveMetric(MetricToken::IconSizeVerySmall); }
 [[nodiscard]] inline float WindowControl() { return ResolveMetric(MetricToken::IconSizeWindowControl); }
 [[nodiscard]] inline float CheckMark() { return ResolveMetric(MetricToken::CheckMarkSize); }
+[[nodiscard]] inline Color ContactShadow() { return ResolveColor(ColorToken::IconContactShadow); }
 } // namespace IconSizing
 
 namespace Border {
@@ -134,6 +135,7 @@ namespace Tab {
 
 namespace Toolbar {
 [[nodiscard]] inline float Height() { return ResolveMetric(MetricToken::ToolbarHeight); }
+[[nodiscard]] inline float SeparatorWidth() { return ResolveMetric(MetricToken::ToolbarSeparatorWidth); }
 [[nodiscard]] inline float SeparatorHeight() { return ResolveMetric(MetricToken::ToolbarSeparatorHeight); }
 [[nodiscard]] inline float LabeledHeight() { return ResolveMetric(MetricToken::ToolbarLabeledHeight); }
 [[nodiscard]] inline float LabeledMinWidth() { return ResolveMetric(MetricToken::ToolbarLabeledMinWidth); }

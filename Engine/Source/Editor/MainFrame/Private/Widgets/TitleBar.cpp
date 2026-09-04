@@ -2,7 +2,7 @@
 #include "Widgets/MenuBar.h"
 #include "KindUI/Core/PaintContext.h"
 #include "KindUI/Theming/ThemeAccess.h"
-#include "KindUI/Theming/ThemeAccess.h"
+#include "KindUI/Core/ColorSpace.h"
 #include "KindUI/Tokens/SurfaceRole.h"
 #include "KindUI/Theming/StyleRole.h"
 #include "KindUI/Core/WindIcon.h"
@@ -132,15 +132,11 @@ namespace {
             m_HoverAnim = Animator::Damp(m_HoverAnim, m_Hovered ? 1.0f : 0.0f, ThemeMetric(MetricToken::HoverAnimationDamping));
 
             const float radius = ThemeMetric(MetricToken::CornerRadiusMedium) * uiScale;
-            if (m_HoverAnim > 0.01f) {
-                Color hoverBg = Color::Pick(
-                    ThemeColor(ColorToken::ButtonPrimaryBackground),
-                    ThemeColor(ColorToken::HoverBackground),
-                    m_HoverAnim);
-                context.DrawRoundedRect(m_Geometry, hoverBg, radius);
-            } else {
-                context.DrawRoundedRect(m_Geometry, ThemeColor(ColorToken::ButtonPrimaryBackground), radius);
-            }
+            const Color fill = Color::Pick(
+                ThemeColor(ColorToken::ButtonPrimaryBackground),
+                ThemeColor(ColorToken::ButtonPrimaryHover),
+                m_HoverAnim * 0.62f);
+            context.DrawRoundedRect(m_Geometry, fill, radius);
 
             const float padH = we::runtime::kindui::ResolveMetric(MetricToken::Space2);
             const float centerY = m_Geometry.y + m_Geometry.height * 0.5f;

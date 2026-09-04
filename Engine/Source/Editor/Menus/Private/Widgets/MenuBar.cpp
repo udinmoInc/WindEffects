@@ -78,7 +78,7 @@ void MenuBar::Paint(PaintContext& context) {
             const Color target = isActive
                 ? ThemeColor(ColorToken::SelectInactiveBackground)
                 : ThemeColor(ColorToken::HoverBackground);
-            const float strength = isActive ? 0.5f : 0.28f;
+            const float strength = isActive ? 0.5f : 0.62f;
             context.DrawRoundedRect(
                 highlightRect,
                 Color::Pick(base, target, strength),

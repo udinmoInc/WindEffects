@@ -306,11 +306,8 @@ Color ResolveControlColor(ControlKind kind, ControlState state) {
         case ControlState::Disabled:
             return ResolveSurfaceColor(SurfaceRole::Disabled);
         case ControlState::Focused:
-            return ResolveSurfaceColor(SurfaceRole::Input);
         case ControlState::Hover:
-            return ResolveSurfaceColor(SurfaceRole::ControlHover);
         case ControlState::Pressed:
-            return ResolveSurfaceColor(SurfaceRole::ControlPressed);
         case ControlState::Normal:
         default:
             return ResolveSurfaceColor(SurfaceRole::Input);

@@ -52,13 +52,19 @@ Color ResolveControlBackground(const InteractionState& state, const ControlFrame
     if (state.selected && style.selectedBackground.a > 0.01f) {
         return style.selectedBackground;
     }
-    if (state.pressAnim >= 0.5f && style.pressedBackground.a > 0.01f) {
-        return style.pressedBackground;
+
+    constexpr float kHoverMix = 0.62f;
+    constexpr float kPressMix = 0.50f;
+    Color result = style.normalBackground;
+    const float hover = std::clamp(state.hoverAnim, 0.0f, 1.0f);
+    const float press = std::clamp(state.pressAnim, 0.0f, 1.0f);
+    if (hover > 0.001f && style.hoverBackground.a > 0.01f) {
+        result = Color::Pick(result, style.hoverBackground, hover * kHoverMix);
     }
-    if (state.hoverAnim >= 0.5f && style.hoverBackground.a > 0.01f) {
-        return style.hoverBackground;
+    if (press > 0.001f && style.pressedBackground.a > 0.01f) {
+        result = Color::Pick(result, style.pressedBackground, press * kPressMix);
     }
-    return style.normalBackground;
+    return result;
 }
 
 ResolvedControlBorder ResolveControlBorder(
@@ -205,10 +211,6 @@ void PaintInputFrameInternal(
     SurfaceRole fillRole = SurfaceRole::Input;
     if (state.disabled) {
         fillRole = SurfaceRole::Disabled;
-    } else if (state.pressAnim >= 0.5f) {
-        fillRole = SurfaceRole::ControlPressed;
-    } else if (state.hoverAnim >= 0.5f) {
-        fillRole = SurfaceRole::ControlHover;
     }
     context.DrawSurface(rect, fillRole, cornerRadius, "Input");
 
@@ -217,11 +219,7 @@ void PaintInputFrameInternal(
     PaintInsetBevel(context, rect, cornerRadius, bevelStrength);
 
     if (state.focused) {
-        context.DrawRoundedRectOutline(
-            rect,
-            ResolveColor(ColorToken::BorderFocus),
-            EdgeWidthPx(),
-            cornerRadius);
+        PaintFocusRing(context, rect, cornerRadius);
     }
 
     context.PopSurfaceOwner();
@@ -269,7 +267,7 @@ void PaintInteractiveFill(
 {
     const Color fill = ResolveInteractiveSurfaceColor(surfaceRole, hoverAnim, pressAnim, selected);
     if (fill.a > 0.001f) {
-        context.DrawRect(rect, ColorSpace::OpaqueSurface(fill), cornerRadius);
+        context.DrawRoundedRect(rect, fill, cornerRadius);
     }
 }
 
@@ -293,7 +291,8 @@ void PaintInteractiveFill(
 }
 
 void PaintFocusRing(PaintContext& context, const Rect& rect, float radius) {
-    context.DrawRoundedRectOutline(rect, ResolveColor(ColorToken::BorderFocus), 1.0f, radius);
+    const float width = std::max(1.0f, ResolveMetric(MetricToken::FocusRingWidth));
+    context.DrawControlOutline(rect, ResolveColor(ColorToken::BorderFocus), width, radius);
 }
 
 void PaintFilledButton(
@@ -317,8 +316,13 @@ void PaintFilledButton(
     const float bevelStrength = std::max(0.0f, 1.0f - state.pressAnim * 0.8f);
     ControlFrameStyle frame;
     frame.normalBackground = base.background;
-    frame.hoverBackground = Role(hoverRole).background;
-    frame.pressedBackground = Role(pressRole).background;
+    if (hoverRole == StyleRole::ButtonPrimary) {
+        frame.hoverBackground = ResolveColor(ColorToken::ButtonPrimaryHover);
+        frame.pressedBackground = ResolveColor(ColorToken::ButtonPrimaryPressed);
+    } else {
+        frame.hoverBackground = Role(hoverRole).background;
+        frame.pressedBackground = Role(pressRole).background;
+    }
     frame.selectedBackground = ResolveColor(ColorToken::SelectedBackground);
     frame.cornerRadius = base.cornerRadius;
     PaintControlFrame(
@@ -336,14 +340,19 @@ void PaintGhostButton(
     const Rect& rect,
     const ResolvedStyle& base,
     const InteractionState& state) {
-    InteractionState local = state;
-    ResolvedStyle ghost = base;
-    ghost.background = Color::Transparent();
-    ghost.border = Color::Transparent();
-    if (local.hoverAnim > 0.01f || local.pressAnim > 0.01f || local.selected) {
-        PaintFilledButton(context, rect, Role(StyleRole::ButtonHover), local);
-    } else {
-        PaintFilledButton(context, rect, ghost, local);
+    if (state.disabled) {
+        return;
+    }
+    const Color fill = ResolveInteractiveBackground(
+        state.hoverAnim,
+        state.pressAnim,
+        state.selected,
+        ColorToken::PanelBackground);
+    if (fill.a > 0.001f) {
+        context.DrawRoundedRect(rect, fill, base.cornerRadius);
+    }
+    if (state.focused) {
+        PaintFocusRing(context, rect, base.cornerRadius);
     }
 }
 
@@ -353,9 +362,6 @@ void PaintIconButtonFrame(
     const InteractionState& state,
     bool active) {
     ResolvedStyle base = Role(active ? StyleRole::IconButtonPressed : StyleRole::IconButton);
-    if (state.hoverAnim > 0.01f && !active) {
-        base = Role(StyleRole::IconButtonHover);
-    }
     PaintFilledButton(context, rect, base, state, StyleRole::IconButtonHover, StyleRole::IconButtonPressed);
 }
 
@@ -363,14 +369,14 @@ void PaintBorderlessIconButton(
     PaintContext& context,
     const Rect& rect,
     const InteractionState& state) {
-    const float interaction = std::max(state.hoverAnim, state.pressAnim);
-    if (interaction > 0.01f) {
-        Color bg = state.pressAnim > state.hoverAnim
-            ? ResolveColor(ColorToken::PressedBackground)
-            : ResolveColor(ColorToken::HoverBackground);
-        bg.a *= interaction;
+    const Color fill = ResolveInteractiveBackground(
+        state.hoverAnim,
+        state.pressAnim,
+        false,
+        ColorToken::PanelBackground);
+    if (fill.a > 0.001f) {
         const float radius = ResolveMetric(MetricToken::IconButtonRadius);
-        context.DrawRoundedRect(rect, bg, radius);
+        context.DrawRoundedRect(rect, fill, radius);
     }
 }
 
@@ -386,17 +392,13 @@ void PaintStatusBarCommandField(
     const Rect& rect,
     const InteractionState& state) {
     SurfaceRole fillRole = SurfaceRole::Input;
-    if (state.hoverAnim >= 0.5f && !state.focused) {
-        fillRole = SurfaceRole::Recessed;
+    if (state.disabled) {
+        fillRole = SurfaceRole::Disabled;
     }
     context.DrawSurface(rect, fillRole, 0.0f, "StatusBarCommandField");
     PaintInsetBevel(context, rect, 0.0f, state.disabled ? 0.55f : 1.0f);
     if (state.focused) {
-        context.DrawRoundedRectOutline(
-            rect,
-            ResolveColor(ColorToken::BorderFocus),
-            EdgeWidthPx(),
-            0.0f);
+        PaintFocusRing(context, rect, 0.0f);
     }
 }
 
@@ -465,10 +467,14 @@ void PaintSearchField(
         Rect clearBand{ clearX, rect.y, clearSize, rect.height };
         if (options.clearHovered) {
             const float radius = ResolveMetric(MetricToken::IconButtonRadius);
-            context.DrawRoundedRect(
-                Rect{ clearX, rect.y + (rect.height - clearSize) * 0.5f, clearSize, clearSize },
-                ResolveColor(ColorToken::HoverBackground),
-                radius);
+            const Color fill = ResolveInteractiveBackground(
+                1.0f, 0.0f, false, ColorToken::PanelBackground);
+            if (fill.a > 0.001f) {
+                context.DrawRoundedRect(
+                    Rect{ clearX, rect.y + (rect.height - clearSize) * 0.5f, clearSize, clearSize },
+                    fill,
+                    radius);
+            }
         }
         IconPainter::Draw(
             context,
@@ -482,21 +488,15 @@ void PaintListRow(
     PaintContext& context,
     const Rect& rect,
     const InteractionState& state) {
-    ResolvedStyle base = Role(StyleRole::TableRow);
-    we::runtime::kindui::ControlState controlState = ControlState::Normal;
-    if (state.disabled) {
-        controlState = ControlState::Disabled;
-    } else if (state.selected) {
-        controlState = state.focused ? ControlState::Selected : ControlState::SelectedInactive;
-        base = Role(StyleRole::TableRowSelected);
-    } else if (state.hoverAnim > 0.01f) {
-        controlState = ControlState::Hover;
-        base = Role(StyleRole::TableRowHover);
-    }
-
-    const Color bg = ResolveControlColor(ControlKind::TreeRow, controlState);
+    const ResolvedStyle base = Role(StyleRole::TableRow);
+    const Color bg = MixInteractiveSurface(
+        base.background,
+        state.hoverAnim,
+        state.pressAnim,
+        state.selected,
+        state.disabled);
     if (bg.a > 0.001f) {
-        context.DrawRect(rect, ColorSpace::OpaqueSurface(bg), base.cornerRadius);
+        context.DrawRect(rect, bg, base.cornerRadius);
     }
 
     const ResolvedControlBorder border = ResolveControlBorder(
@@ -512,11 +512,14 @@ void PaintCard(
     PaintContext& context,
     const Rect& rect,
     const InteractionState& state) {
-    ResolvedStyle base = state.hoverAnim >= 0.5f ? Role(StyleRole::CardHover) : Role(StyleRole::Card);
-    // Cards elevate via surface luminance; shadow only on stronger hover.
-    const int elevation = state.hoverAnim > 0.35f ? base.elevation : 0;
-    PaintElevation(context, rect, elevation, base.cornerRadius);
-    context.DrawRoundedRect(rect, base.background, base.cornerRadius);
+    const ResolvedStyle base = Role(StyleRole::Card);
+    const Color fill = MixInteractiveSurface(
+        base.background,
+        state.hoverAnim,
+        state.pressAnim,
+        state.selected,
+        state.disabled);
+    context.DrawRoundedRect(rect, fill, base.cornerRadius);
 }
 
 void PaintCenteredLabel(
@@ -603,10 +606,12 @@ void PaintCheckbox(
     bool checked,
     const InteractionState& state) {
     const ResolvedStyle style = Role(StyleRole::Checkbox);
-    Color bg = style.background;
-    if (state.hoverAnim >= 0.5f) {
-        bg = ResolveColor(ColorToken::HoverBackground);
-    }
+    Color bg = MixInteractiveSurface(
+        style.background,
+        state.hoverAnim,
+        0.0f,
+        false,
+        state.disabled);
     if (checked) {
         bg = ResolveColor(ColorToken::AccentPrimary);
     }
@@ -631,17 +636,15 @@ void PaintPanelTab(
             bounds,
             ResolveSurfaceColor(SurfaceRole::TabActive),
             radius);
-    } else if (state.hoverAnim >= 0.5f || state.pressAnim >= 0.5f) {
-        const Color tabBg = ResolveColor(ColorToken::HoverBackground);
+    } else {
+        const Color tabBg = ResolveInteractiveBackground(
+            state.hoverAnim,
+            state.pressAnim,
+            false,
+            ColorToken::TabBackground);
         if (tabBg.a > 0.01f) {
             PaintPanelButtonFace(
-                context,
-                bounds,
-                tabBg,
-                radius,
-                state.hoverAnim,
-                state.pressAnim,
-                false);
+                context, bounds, tabBg, radius, state.hoverAnim, state.pressAnim, false);
         }
     }
 

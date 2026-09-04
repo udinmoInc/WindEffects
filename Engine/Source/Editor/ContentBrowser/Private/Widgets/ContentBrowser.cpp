@@ -30,6 +30,7 @@ using ::we::runtime::kindui::MouseButton;
 using ::we::runtime::kindui::DPIContext;
 using ::we::runtime::kindui::IconPainter;
 using ::we::runtime::kindui::UIRepaintGate;
+using ::we::runtime::kindui::WindIconRef;
 namespace PanelChrome = ::we::editor::panels::PanelChrome;
 namespace IconMetrics = ::we::runtime::kindui::IconMetrics;
 namespace WindIcons = ::we::runtime::kindui::WindIcons;
@@ -45,6 +46,13 @@ using ::we::editor::contentbrowser::ContentBrowserBlueprintArt;
 
 bool IsBlueprintItem(const ContentItem& item) {
     return item.type == "Blueprint";
+}
+
+WindIconRef ResolveItemIcon(const ContentItem& item) {
+    if (item.icon.IsValid()) {
+        return item.icon;
+    }
+    return item.isFolder ? WindIcons::FolderClosed16 : WindIcons::Square16;
 }
 }
 
@@ -84,25 +92,25 @@ ContentBrowser::GridMetrics ContentBrowser::GetGridMetrics() const {
     switch (GetEffectiveViewMode()) {
         case ContentViewMode::LargeIcons:
             m.thumbSize = ThemeMetric(MetricToken::ContentBrowserThumbLarge);
-            m.cellWidth = ThemeMetric(MetricToken::ContentBrowserCellLarge);
+            m.cellWidth = m.thumbSize;
             m.labelLines = 2.0f;
             m.cellHeight = m.thumbSize + m.labelGap + m.labelLineHeight * m.labelLines;
             break;
         case ContentViewMode::MediumIcons:
             m.thumbSize = ThemeMetric(MetricToken::ContentBrowserThumbMedium);
-            m.cellWidth = ThemeMetric(MetricToken::ContentBrowserCellMedium);
+            m.cellWidth = m.thumbSize;
             m.labelLines = 2.0f;
             m.cellHeight = m.thumbSize + m.labelGap + m.labelLineHeight * m.labelLines;
             break;
         case ContentViewMode::SmallIcons:
             m.thumbSize = ThemeMetric(MetricToken::ContentBrowserThumbSmall);
-            m.cellWidth = ThemeMetric(MetricToken::ContentBrowserCellSmall);
+            m.cellWidth = m.thumbSize;
             m.labelLines = 1.0f;
             m.cellHeight = m.thumbSize + m.labelGap + m.labelLineHeight;
             break;
         case ContentViewMode::Tiles:
             m.thumbSize = ThemeMetric(MetricToken::ContentBrowserThumbLarge);
-            m.cellWidth = ThemeMetric(MetricToken::ContentBrowserCellLarge);
+            m.cellWidth = m.thumbSize;
             m.labelLines = 2.0f;
             m.cellHeight = m.thumbSize + m.labelGap + m.labelLineHeight * 2.0f
                 + ThemeMetric(MetricToken::FormRowHeight);
@@ -255,17 +263,23 @@ void ContentBrowser::RequestVisibleThumbnails() {
 }
 
 void ContentBrowser::PaintTileChrome(PaintContext& context, const Rect& cell, bool selected, float hoverAlpha) {
-    constexpr float radius = 4.0f;
-    (void)selected;
-    if (hoverAlpha > 0.001f) {
+    const float radius = ThemeMetric(MetricToken::CornerRadiusSmall);
+    if (selected || hoverAlpha > 0.001f) {
         we::runtime::kindui::ControlChrome::PaintInteractiveFill(
             context,
             cell,
             radius,
             hoverAlpha,
             0.0f,
-            false,
+            selected,
             ColorToken::SecondarySurface);
+    }
+    if (selected) {
+        context.DrawRoundedRectOutline(
+            cell,
+            ThemeColor(ColorToken::AccentPrimary),
+            ThemeMetric(MetricToken::BorderWidth),
+            radius);
     }
 }
 
@@ -274,7 +288,6 @@ void ContentBrowser::PaintAssetThumbnail(PaintContext& context, const Rect& thum
 {
     (void)selected;
     (void)hovered;
-    const Color accent = ThemeColor(ColorToken::AccentPrimary);
 
     if (item.isFolder) {
         const float iconSize = std::min(thumbRect.width, thumbRect.height) * 0.42f;
@@ -283,7 +296,8 @@ void ContentBrowser::PaintAssetThumbnail(PaintContext& context, const Rect& thum
             thumbRect.y + (thumbRect.height - iconSize) * 0.5f,
             iconSize, iconSize
         };
-        IconPainter::Draw(context, WindIcons::FolderClosed16, iconRect);
+        const WindIconRef folderIcon = ResolveItemIcon(item);
+        IconPainter::Draw(context, folderIcon, iconRect);
         return;
     }
 
@@ -298,7 +312,7 @@ void ContentBrowser::PaintAssetThumbnail(PaintContext& context, const Rect& thum
             thumbRect.y + (thumbRect.height - iconSize) * 0.5f,
             iconSize, iconSize
         };
-        IconPainter::Draw(context, item.icon, iconRect);
+        IconPainter::Draw(context, ResolveItemIcon(item), iconRect);
     }
 
     if (item.isFavorite) {
@@ -383,8 +397,8 @@ void ContentBrowser::PaintGridItem(PaintContext& context, const RenderItem& rend
     const bool hovered = item.id == m_HoveredId;
     const float hoverAlpha = hovered ? m_ItemHoverAlpha : 0.0f;
 
-    // Use thumb geometry directly without padding to avoid empty space
-    PaintTileChrome(context, renderItem.thumbGeometry, selected, hoverAlpha);
+    // Chrome the full card so selection wraps thumbnail and label evenly
+    PaintTileChrome(context, renderItem.geometry, selected, hoverAlpha);
     PaintAssetThumbnail(context, renderItem.thumbGeometry, item, selected, hovered);
 
     const int labelLines = GetEffectiveViewMode() == ContentViewMode::SmallIcons ? 1 : 2;
@@ -416,13 +430,13 @@ void ContentBrowser::PaintListItem(PaintContext& context, const RenderItem& rend
     Rect iconRect{ iconX, iconY, iconSize, iconSize };
 
     if (item.isFolder) {
-        IconPainter::Draw(context, WindIcons::FolderClosed16, IconMetrics::PlaceGlyphCentered(iconRect, 16u));
+        IconPainter::Draw(context, ResolveItemIcon(item), IconMetrics::PlaceGlyphCentered(iconRect, 16u));
     } else if (IsBlueprintItem(item)) {
         ContentBrowserBlueprintArt::Get().PaintSmallIcon(context, iconRect, hovered);
     } else if (item.iconTexture != we::rhi::RHIDescriptorSetHandle::Invalid) {
         context.DrawTexture(iconRect, item.iconTexture);
     } else {
-        IconPainter::Draw(context, item.icon, iconRect);
+        IconPainter::Draw(context, ResolveItemIcon(item), IconMetrics::PlaceGlyphCentered(iconRect, 16u));
     }
 
     const float nameX = iconX + iconSize + ThemeMetric(MetricToken::Space2);
@@ -463,6 +477,24 @@ void ContentBrowser::Paint(PaintContext& context) {
     }
 
     context.PopClipRect();
+
+    if (m_Model) {
+        const size_t total = m_Model->assetCount + m_Model->folderCount;
+        std::string status = std::to_string(total) + " items";
+        if (!m_Model->selectedIds.empty()) {
+            status += "  ·  " + std::to_string(m_Model->selectedIds.size()) + " selected";
+        }
+        const float textSize = ThemeMetric(MetricToken::TextSizeSmall);
+        const float pad = ThemeMetric(MetricToken::Space2);
+        context.DrawText(
+            status,
+            Point{
+                m_ScrollMetrics.viewport.x + pad,
+                m_ScrollMetrics.viewport.y + m_ScrollMetrics.viewport.height - textSize - pad
+            },
+            ThemeColor(ColorToken::TextSecondary),
+            textSize);
+    }
 
     if (m_IsSelecting) {
         const float minX = std::min(m_SelectStart.x, m_SelectEnd.x);

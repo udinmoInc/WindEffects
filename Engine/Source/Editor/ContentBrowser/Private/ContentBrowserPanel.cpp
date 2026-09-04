@@ -69,7 +69,7 @@ std::shared_ptr<::we::editor::contentbrowser::TreeNode> BuildFolderNode(const As
 
 void RefreshFolderTree(const std::shared_ptr<::we::editor::contentbrowser::TreeView>& tree) {
     auto root = std::make_shared<::we::editor::contentbrowser::TreeNode>();
-    root->id = "__content_root__";
+    root->id = "root";
     root->label = "Content";
     root->expanded = true;
 
@@ -106,8 +106,7 @@ void UpdateBreadcrumb(const std::shared_ptr<::we::editor::contentbrowser::Breadc
 
 void NavigateToFolder(const std::string& virtualPath,
     const std::shared_ptr<::we::editor::contentbrowser::ContentBrowser>& browser,
-    const std::shared_ptr<::we::editor::contentbrowser::Breadcrumb>& breadcrumb,
-    const std::shared_ptr<::we::editor::contentbrowser::ContentBrowserStatusBar>& statusBar)
+    const std::shared_ptr<::we::editor::contentbrowser::Breadcrumb>& breadcrumb)
 {
     ContentBrowserService::Get().SetCurrentFolder(virtualPath);
     if (breadcrumb) {
@@ -118,17 +117,10 @@ void NavigateToFolder(const std::string& virtualPath,
     if (browser) {
         browser->ClearSelection();
     }
-    
-    if (statusBar && browser->GetModel()) {
-        statusBar->SetAssetCount(browser->GetModel()->assetCount);
-        statusBar->SetFolderCount(browser->GetModel()->folderCount);
-        statusBar->SetSelectedCount(browser->GetModel()->selectedIds.size());
-    }
 }
 
 void WireContentBrowser(
     const std::shared_ptr<::we::editor::contentbrowser::ContentBrowser>& browser,
-    const std::shared_ptr<::we::editor::contentbrowser::ContentBrowserStatusBar>& statusBar,
     const std::shared_ptr<::we::editor::contentbrowser::Breadcrumb>& breadcrumb)
 {
     auto& service = ContentBrowserService::Get();
@@ -140,13 +132,8 @@ void WireContentBrowser(
     browser->SetOnVisibleItemsChanged([&service](const std::unordered_set<std::string>& ids) {
         service.SetVisibleItemIds(ids);
     });
-    browser->SetOnItemDoubleClicked([&service, browser, statusBar, breadcrumb](const ::we::editor::contentbrowser::ContentItem& item) {
-        if (item.isFolder) NavigateToFolder(item.path, browser, breadcrumb, statusBar);
-    });
-    browser->SetOnItemSelected([browser, statusBar](const ::we::editor::contentbrowser::ContentItem&) {
-        if (browser->GetModel() && statusBar) {
-            statusBar->SetSelectedCount(browser->GetModel()->selectedIds.size());
-        }
+    browser->SetOnItemDoubleClicked([&service, browser, breadcrumb](const ::we::editor::contentbrowser::ContentItem& item) {
+        if (item.isFolder) NavigateToFolder(item.path, browser, breadcrumb);
     });
     service.SetOnThumbnailReady([browser](const std::string& id, we::rhi::RHIDescriptorSetHandle texture) {
         if (browser->GetController()) browser->GetController()->UpdateItemIcon(id, texture);
@@ -184,6 +171,7 @@ std::shared_ptr<::we::editor::panels::Panel> CreateContentBrowserPanel() {
     auto folderTree = std::make_shared<::we::editor::contentbrowser::TreeView>();
     folderTree->SetExplorerStyle(false);
     folderTree->SetPaintNavigationBackground(false);
+    folderTree->SetShowColumnHeader(false);
     folderTree->SetItemHeight(we::runtime::kindui::ResolveMetric(we::runtime::kindui::MetricToken::ListRowHeight));
     folderTree->SetIndentWidth(we::runtime::kindui::ResolveMetric(we::runtime::kindui::MetricToken::TreeIndentWidth));
     folderTree->SetShowRowControls(false);
@@ -191,15 +179,13 @@ std::shared_ptr<::we::editor::panels::Panel> CreateContentBrowserPanel() {
     // Right pane: asset browser with toolbar (AssetPane mode)
     auto assetToolbar = ::we::editor::contentbrowser::ContentBrowserToolbarControls::Create(::we::editor::contentbrowser::ContentBrowserToolbarControls::ToolbarMode::AssetPane);
     auto contentBrowser = std::make_shared<::we::editor::contentbrowser::ContentBrowser>();
-    auto statusBar = std::make_shared<::we::editor::contentbrowser::ContentBrowserStatusBar>();
 
     assetToolbar->SetFlexShrink(0.0f);
     contentBrowser->SetFlexGrow(1.0f);
     contentBrowser->SetFlexShrink(1.0f);
-    statusBar->SetFlexShrink(0.0f);
 
     // Split content area into left (folder tree) and right (asset browser).
-    const float treePaneWidth = std::max(220.0f * we::runtime::kindui::DPIContext::GetScale(),
+    const float treePaneWidth = std::max(200.0f * we::runtime::kindui::DPIContext::GetScale(),
         we::runtime::kindui::ResolveMetric(we::runtime::kindui::MetricToken::PropertyLabelColumnWidth) * 2.0f);
     auto contentSplitter = std::make_shared<we::runtime::kindui::Splitter>(we::runtime::kindui::Orientation::Horizontal, treePaneWidth);
     contentSplitter->SetFirstChild(folderTree);
@@ -217,12 +203,11 @@ std::shared_ptr<::we::editor::panels::Panel> CreateContentBrowserPanel() {
             }
         })
         .Toolbar(assetToolbar)
-        .Footer(statusBar)
         .Content(contentSplitter);
 
     RefreshFolderTree(folderTree);
-    WireContentBrowser(contentBrowser, statusBar, nullptr);
-    NavigateToFolder(ContentBrowserService::Get().GetCurrentFolder(), contentBrowser, nullptr, statusBar);
+    WireContentBrowser(contentBrowser, nullptr);
+    NavigateToFolder(ContentBrowserService::Get().GetCurrentFolder(), contentBrowser, nullptr);
 
     // Wire up asset toolbar - create, import, search, save, filter
     assetToolbar->SetOnCreateClicked([]() {
@@ -254,22 +239,22 @@ std::shared_ptr<::we::editor::panels::Panel> CreateContentBrowserPanel() {
         if (contentBrowser->GetModel()) contentBrowser->GetModel()->NotifyChanged();
     });
 
-    folderTree->SetOnSelectionChanged([contentBrowser, statusBar](const std::vector<std::string>& ids) {
+    folderTree->SetOnSelectionChanged([contentBrowser](const std::vector<std::string>& ids) {
         if (ids.empty()) return;
         const auto* asset = ContentAssetRegistry::Get().FindById(ids.front());
         if (!asset || !asset->isFolder || asset->id.rfind("__", 0) == 0) return;
-        NavigateToFolder(asset->virtualPath, contentBrowser, nullptr, statusBar);
+        NavigateToFolder(asset->virtualPath, contentBrowser, nullptr);
     });
 
-    folderTree->SetOnItemDoubleClicked([contentBrowser, statusBar](const std::string& id) {
+    folderTree->SetOnItemDoubleClicked([contentBrowser](const std::string& id) {
         const auto* asset = ContentAssetRegistry::Get().FindById(id);
         if (!asset || !asset->isFolder || asset->id.rfind("__", 0) == 0) return;
-        NavigateToFolder(asset->virtualPath, contentBrowser, nullptr, statusBar);
+        NavigateToFolder(asset->virtualPath, contentBrowser, nullptr);
     });
 
-    ContentAssetRegistry::Get().SetOnRegistryRefreshed([folderTree, contentBrowser, statusBar]() {
+    ContentAssetRegistry::Get().SetOnRegistryRefreshed([folderTree, contentBrowser]() {
         RefreshFolderTree(folderTree);
-        NavigateToFolder(ContentBrowserService::Get().GetCurrentFolder(), contentBrowser, nullptr, statusBar);
+        NavigateToFolder(ContentBrowserService::Get().GetCurrentFolder(), contentBrowser, nullptr);
     });
 
     return panel;

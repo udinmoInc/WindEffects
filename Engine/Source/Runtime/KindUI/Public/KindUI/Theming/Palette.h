@@ -117,8 +117,8 @@ struct GraphiteDark {
 
     // ── Icons (mono atlas tint targets — separate from body text) ───────────
 
-    // Normal inactive toolbar / panel icons
-    static constexpr Color IconNormal        = Hex("#A7AFBA");
+    // Normal inactive toolbar / panel icons — lifted for dark-surface contrast
+    static constexpr Color IconNormal        = Hex("#C2C8D0");
 
     // Hovered icon emphasis
     static constexpr Color IconHoverTint     = Hex("#D6DBE1");
@@ -128,6 +128,9 @@ struct GraphiteDark {
 
     // Disabled / subdued icons
     static constexpr Color IconSubdued       = Hex("#5C6570");
+
+    // 1px contact silhouette under glyphs (alpha; not a glow/box)
+    static constexpr Color IconContactShadow = Hex("#00000073");
 
 
     // ── Status & accents (EStyleColor) ──────────────────────────────────────

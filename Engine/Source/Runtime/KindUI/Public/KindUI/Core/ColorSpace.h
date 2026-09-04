@@ -76,9 +76,20 @@ inline void WriteGpuVertexColorForTarget(
     return OpaqueSurface(color);
 }
 
-// Discrete state pick — no channel interpolation.
+// Channel interpolation in authoring sRGB. `t` is clamped to [0, 1].
+[[nodiscard]] inline Color LerpColor(Color a, Color b, float t) {
+    const float u = t < 0.0f ? 0.0f : (t > 1.0f ? 1.0f : t);
+    return {
+        a.r + (b.r - a.r) * u,
+        a.g + (b.g - a.g) * u,
+        a.b + (b.b - a.b) * u,
+        a.a + (b.a - a.a) * u
+    };
+}
+
+// Smooth mix used by hover / press / selection painters.
 [[nodiscard]] inline Color PickColor(Color a, Color b, float t) {
-    return t >= 0.5f ? b : a;
+    return LerpColor(a, b, t);
 }
 
 } // namespace we::runtime::kindui::ColorSpace

@@ -13,6 +13,7 @@
 #include <string>
 #include <string_view>
 #include <unordered_map>
+#include <vector>
 
 #if WE_HAS_NLOHMANN_JSON
 #include <nlohmann/json.h>
@@ -23,6 +24,7 @@ namespace {
 
 std::mutex g_Mutex;
 GraphiteDarkColors g_Colors{};
+GraphiteDarkMetrics g_Metrics{};
 bool g_Initialized = false;
 std::filesystem::file_time_type g_LastWriteTime{};
 std::chrono::steady_clock::time_point g_LastPoll{};
@@ -99,6 +101,7 @@ void ResetToCompileDefaults(GraphiteDarkColors& c) {
     c.IconHoverTint = D::IconHoverTint;
     c.IconActiveTint = D::IconActiveTint;
     c.IconSubdued = D::IconSubdued;
+    c.IconContactShadow = D::IconContactShadow;
     c.Warning = D::Warning;
     c.Error = D::Error;
     c.Success = D::Success;
@@ -128,6 +131,15 @@ void ResetToCompileDefaults(GraphiteDarkColors& c) {
     c.ButtonBevelTop = D::ButtonBevelTop;
     c.ButtonBevelBottom = D::ButtonBevelBottom;
     c.DebugGlyphBounds = D::DebugGlyphBounds;
+}
+
+void ResetMetricsToCompileDefaults(GraphiteDarkMetrics& m) {
+    m.TabTopRadius = 6.0f;
+}
+
+float* MetricByName(GraphiteDarkMetrics& m, std::string_view name) {
+    if (name == "TabTopRadius") return &m.TabTopRadius;
+    return nullptr;
 }
 
 Color* ColorByName(GraphiteDarkColors& c, std::string_view name) {
@@ -168,6 +180,7 @@ Color* ColorByName(GraphiteDarkColors& c, std::string_view name) {
     if (name == "IconHoverTint") return &c.IconHoverTint;
     if (name == "IconActiveTint") return &c.IconActiveTint;
     if (name == "IconSubdued") return &c.IconSubdued;
+    if (name == "IconContactShadow") return &c.IconContactShadow;
     if (name == "Warning") return &c.Warning;
     if (name == "Error") return &c.Error;
     if (name == "Success") return &c.Success;
@@ -232,23 +245,42 @@ void ApplyAliasFallbacks(GraphiteDarkColors& c) {
     if (c.InputInsetOuter.a <= 0.0f) {
         c.InputInsetOuter = GraphiteDark::InputInsetOuter;
     }
+    if (c.IconContactShadow.a <= 0.0f) {
+        c.IconContactShadow = GraphiteDark::IconContactShadow;
+    }
 }
 
 std::filesystem::path ResolveConfigPath() {
     auto& paths = we::core::PathService::Get();
-    const auto primary = paths.EngineConfigRoot() / "Themes" / "GraphiteDark.json";
+    std::vector<std::filesystem::path> candidates;
+    candidates.push_back(paths.EngineConfigRoot() / "Themes" / "GraphiteDark.json");
+    candidates.push_back(paths.ConfigRoot() / "Themes" / "GraphiteDark.json");
+    if (const auto repo = we::core::PathService::FindRepositoryRoot(paths.ExecutableDirectory())) {
+        candidates.push_back(*repo / "Engine" / "Config" / "Themes" / "GraphiteDark.json");
+    }
+
+    // Prefer the newest existing copy so editing the repo source file hot-reloads
+    // without waiting for a rebuild/restage.
     std::error_code ec;
-    if (std::filesystem::exists(primary, ec)) {
-        return primary;
+    std::filesystem::path best;
+    std::filesystem::file_time_type bestTime{};
+    for (const auto& candidate : candidates) {
+        if (!std::filesystem::exists(candidate, ec)) {
+            continue;
+        }
+        const auto writeTime = std::filesystem::last_write_time(candidate, ec);
+        if (ec) {
+            continue;
+        }
+        if (best.empty() || writeTime > bestTime) {
+            best = candidate;
+            bestTime = writeTime;
+        }
     }
-    const auto fallback = paths.ConfigRoot() / "Themes" / "GraphiteDark.json";
-    if (std::filesystem::exists(fallback, ec)) {
-        return fallback;
-    }
-    return primary;
+    return best.empty() ? candidates.front() : best;
 }
 
-bool LoadFromFile(const std::filesystem::path& path, GraphiteDarkColors& out) {
+bool LoadFromFile(const std::filesystem::path& path, GraphiteDarkColors& outColors, GraphiteDarkMetrics& outMetrics) {
     std::ifstream input(path);
     if (!input) {
         return false;
@@ -260,7 +292,8 @@ bool LoadFromFile(const std::filesystem::path& path, GraphiteDarkColors& out) {
         return false;
     }
 
-    GraphiteDarkColors next = out;
+    GraphiteDarkColors nextColors = outColors;
+    GraphiteDarkMetrics nextMetrics = outMetrics;
     int applied = 0;
 
 #if WE_HAS_NLOHMANN_JSON
@@ -270,10 +303,21 @@ bool LoadFromFile(const std::filesystem::path& path, GraphiteDarkColors& out) {
             return false;
         }
         for (auto it = root.begin(); it != root.end(); ++it) {
+            if (it.key() == "Metrics" && it.value().is_object()) {
+                for (auto mit = it.value().begin(); mit != it.value().end(); ++mit) {
+                    float* slot = MetricByName(nextMetrics, mit.key());
+                    if (!slot || !mit.value().is_number()) {
+                        continue;
+                    }
+                    *slot = mit.value().get<float>();
+                    ++applied;
+                }
+                continue;
+            }
             if (!it.value().is_string()) {
                 continue;
             }
-            Color* slot = ColorByName(next, it.key());
+            Color* slot = ColorByName(nextColors, it.key());
             if (!slot) {
                 continue;
             }
@@ -289,7 +333,7 @@ bool LoadFromFile(const std::filesystem::path& path, GraphiteDarkColors& out) {
         return false;
     }
 #else
-    // Minimal fallback: scan "Key": "#RRGGBB" pairs.
+    // Minimal fallback: scan "Key": "#RRGGBB" pairs (colors only).
     size_t pos = 0;
     while (pos < text.size()) {
         const size_t keyStart = text.find('"', pos);
@@ -314,7 +358,7 @@ bool LoadFromFile(const std::filesystem::path& path, GraphiteDarkColors& out) {
             break;
         }
         const std::string value = text.substr(valStart + 1, valEnd - valStart - 1);
-        if (Color* slot = ColorByName(next, key)) {
+        if (Color* slot = ColorByName(nextColors, key)) {
             *slot = ParseHexString(value);
             ++applied;
         }
@@ -325,9 +369,10 @@ bool LoadFromFile(const std::filesystem::path& path, GraphiteDarkColors& out) {
     if (applied == 0) {
         return false;
     }
-    ApplyAliasFallbacks(next);
-    out = next;
-    HE_INFO("[Palette] Loaded " + std::to_string(applied) + " colors from " + we::core::PathService::ToUtf8(path));
+    ApplyAliasFallbacks(nextColors);
+    outColors = nextColors;
+    outMetrics = nextMetrics;
+    HE_INFO("[Palette] Loaded " + std::to_string(applied) + " theme values from " + we::core::PathService::ToUtf8(path));
     return true;
 }
 
@@ -336,10 +381,11 @@ bool EnsureLoadedLocked() {
         return false;
     }
     ResetToCompileDefaults(g_Colors);
+    ResetMetricsToCompileDefaults(g_Metrics);
     const auto path = ResolveConfigPath();
     std::error_code ec;
     if (std::filesystem::exists(path, ec)) {
-        LoadFromFile(path, g_Colors);
+        LoadFromFile(path, g_Colors, g_Metrics);
         g_LastWriteTime = std::filesystem::last_write_time(path, ec);
     } else {
         HE_WARN("[Palette] GraphiteDark.json not found — using compile defaults: " +
@@ -358,6 +404,12 @@ GraphiteDarkColors& GraphiteDarkLive() {
     return g_Colors;
 }
 
+GraphiteDarkMetrics& GraphiteDarkLiveMetrics() {
+    std::lock_guard lock(g_Mutex);
+    EnsureLoadedLocked();
+    return g_Metrics;
+}
+
 bool ReloadGraphiteDarkPaletteIfChanged() {
     bool reloaded = false;
     {
@@ -365,7 +417,8 @@ bool ReloadGraphiteDarkPaletteIfChanged() {
         EnsureLoadedLocked();
 
         const auto now = std::chrono::steady_clock::now();
-        if (now - g_LastPoll < std::chrono::milliseconds(250)) {
+        // Fast poll so Metrics/TabTopRadius edits show up immediately while editing JSON.
+        if (now - g_LastPoll < std::chrono::milliseconds(50)) {
             return false;
         }
         g_LastPoll = now;
@@ -380,12 +433,15 @@ bool ReloadGraphiteDarkPaletteIfChanged() {
             return false;
         }
 
-        GraphiteDarkColors next{};
-        ResetToCompileDefaults(next);
-        if (!LoadFromFile(path, next)) {
+        GraphiteDarkColors nextColors{};
+        GraphiteDarkMetrics nextMetrics{};
+        ResetToCompileDefaults(nextColors);
+        ResetMetricsToCompileDefaults(nextMetrics);
+        if (!LoadFromFile(path, nextColors, nextMetrics)) {
             return false;
         }
-        g_Colors = next;
+        g_Colors = nextColors;
+        g_Metrics = nextMetrics;
         g_LastWriteTime = writeTime;
         reloaded = true;
     }

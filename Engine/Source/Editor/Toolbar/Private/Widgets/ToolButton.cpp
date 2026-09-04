@@ -7,6 +7,7 @@
 #include "KindUI/Core/DPIContext.h"
 #include "KindUI/Core/Animator.h"
 #include "KindUI/Rendering/IconMetrics.h"
+#include "KindUI/Tokens/DesignSystem.h"
 #include "KindUI/Tokens/DesignToken.h"
 #include "KindUI/Theming/ThemeAccess.h"
 #include "Text/Layout/TextStyle.h"
@@ -488,7 +489,7 @@ float ToolSeparator::SeparatorHeight() {
 }
 
 float ToolSeparator::SeparatorWidth() {
-    return we::runtime::kindui::ResolveMetric(MetricToken::ChromeSeparationGapWide);
+    return we::runtime::kindui::ds::Toolbar::SeparatorWidth();
 }
 
 ToolSeparator::ToolSeparator() {}

@@ -73,7 +73,7 @@ void ContentBrowserService::RefreshBrowserModel(const std::shared_ptr<::we::edit
         item.path = asset->virtualPath;
         item.isFolder = asset->isFolder;
         item.isFavorite = asset->isFavorite;
-        item.icon = asset->isFolder ? WindIcons::FolderClosed16 : we::runtime::kindui::kWindIconNone;
+        item.icon = IconForAssetType(asset->isFolder ? AssetType::Folder : asset->type);
         if (!asset->isFolder) {
             item.iconTexture = m_ThumbnailManager.GetCachedTexture(asset->id);
             item.thumbnailRequested = item.iconTexture != we::rhi::RHIDescriptorSetHandle::Invalid;

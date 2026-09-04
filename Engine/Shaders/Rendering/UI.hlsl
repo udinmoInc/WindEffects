@@ -148,14 +148,9 @@ float4 PSMain(VSOutput input) : SV_Target
     float alpha;
     if (type > 1.5)
     {
+        // Type 2 is a stroke only. Hard-fill coverage would paint the interior of pills/inputs.
         float thickness = max(input.sdfParams.z, 1.0);
         float edgeDist = abs(dist) - thickness * 0.5;
-        if (opaqueHard) {
-            if (edgeDist > 0.0) {
-                discard;
-            }
-            return float4(input.color.rgb, 1.0);
-        }
         alpha = sdfBorderAlpha(edgeDist);
     }
     else

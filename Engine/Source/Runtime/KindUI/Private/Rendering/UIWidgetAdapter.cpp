@@ -11,8 +11,11 @@
 #include "KindUI/Rendering/TextUIService.h"
 #include "KindUI/Theming/Palette.h"
 #include "KindUI/Theming/PaletteRuntime.h"
+#include "KindUI/Theming/ThemeAccess.h"
+#include "KindUI/Tokens/DesignToken.h"
 #include "Core/Logger.h"
 #include "Core/FrameCounter.h"
+#include <algorithm>
 #include <cmath>
 #include <cstring>
 #include <cstdlib>
@@ -697,29 +700,57 @@ void UIWidgetAdapter::GenerateIconGeometry(const DrawCommand& cmd) {
     const float x = SnapPx(cmd.rect.x + (cmd.rect.width - w) * 0.5f);
     const float y = SnapPx(cmd.rect.y + (cmd.rect.height - h) * 0.5f);
 
-    const float type = drawInfo.shaderType;
-    // Multiplicative tint from DrawCommand (defaults to live White identity).
-    const Color color = cmd.color.a > 0.0f ? cmd.color : palette::GraphiteDarkLive().White;
+    auto emitQuad = [&](float px, float py, const Color& color, float type) {
+        UIVertex2 v0{
+            {px, py},
+            {drawInfo.uvMin[0], drawInfo.uvMin[1]},
+            {color.r, color.g, color.b, color.a},
+            {px, py, w, h},
+            {0.0f, type, 0.0f, 0.0f}};
+        UIVertex2 v1{
+            {px + w, py},
+            {drawInfo.uvMax[0], drawInfo.uvMin[1]},
+            {color.r, color.g, color.b, color.a},
+            {px, py, w, h},
+            {0.0f, type, 0.0f, 0.0f}};
+        UIVertex2 v2{
+            {px + w, py + h},
+            {drawInfo.uvMax[0], drawInfo.uvMax[1]},
+            {color.r, color.g, color.b, color.a},
+            {px, py, w, h},
+            {0.0f, type, 0.0f, 0.0f}};
+        UIVertex2 v3{
+            {px, py + h},
+            {drawInfo.uvMin[0], drawInfo.uvMax[1]},
+            {color.r, color.g, color.b, color.a},
+            {px, py, w, h},
+            {0.0f, type, 0.0f, 0.0f}};
 
-    UIVertex2 v0{ {x,     y},     {drawInfo.uvMin[0], drawInfo.uvMin[1]}, {color.r, color.g, color.b, color.a}, {x, y, w, h}, {0.0f, type, 0.0f, 0.0f} };
-    UIVertex2 v1{ {x + w, y},     {drawInfo.uvMax[0], drawInfo.uvMin[1]}, {color.r, color.g, color.b, color.a}, {x, y, w, h}, {0.0f, type, 0.0f, 0.0f} };
-    UIVertex2 v2{ {x + w, y + h}, {drawInfo.uvMax[0], drawInfo.uvMax[1]}, {color.r, color.g, color.b, color.a}, {x, y, w, h}, {0.0f, type, 0.0f, 0.0f} };
-    UIVertex2 v3{ {x,     y + h}, {drawInfo.uvMin[0], drawInfo.uvMax[1]}, {color.r, color.g, color.b, color.a}, {x, y, w, h}, {0.0f, type, 0.0f, 0.0f} };
-    
-    uint32_t startIndex = static_cast<uint32_t>(m_Vertices.size());
-    m_Vertices.push_back(v0);
-    m_Vertices.push_back(v1);
-    m_Vertices.push_back(v2);
-    m_Vertices.push_back(v3);
-    
-    m_Indices.push_back(startIndex + 0);
-    m_Indices.push_back(startIndex + 1);
-    m_Indices.push_back(startIndex + 2);
-    m_Indices.push_back(startIndex + 2);
-    m_Indices.push_back(startIndex + 3);
-    m_Indices.push_back(startIndex + 0);
-    
-    AddOrMergeBatch(6);
+        const uint32_t startIndex = static_cast<uint32_t>(m_Vertices.size());
+        m_Vertices.push_back(v0);
+        m_Vertices.push_back(v1);
+        m_Vertices.push_back(v2);
+        m_Vertices.push_back(v3);
+
+        m_Indices.push_back(startIndex + 0);
+        m_Indices.push_back(startIndex + 1);
+        m_Indices.push_back(startIndex + 2);
+        m_Indices.push_back(startIndex + 2);
+        m_Indices.push_back(startIndex + 3);
+        m_Indices.push_back(startIndex + 0);
+
+        AddOrMergeBatch(6);
+    };
+
+    // 1px downward contact silhouette — tonal separation, not a box/glow.
+    const Color contact = ResolveColor(ColorToken::IconContactShadow);
+    if (contact.a > 0.01f) {
+        constexpr float coverageType = 0.0f;
+        emitQuad(x, y + 1.0f, contact, coverageType);
+    }
+
+    const Color color = cmd.color.a > 0.0f ? cmd.color : ResolveColor(ColorToken::IconPrimary);
+    emitQuad(x, y, color, drawInfo.shaderType);
 }
 
 void UIWidgetAdapter::GenerateLineGeometry(const DrawCommand& cmd) {
@@ -921,32 +952,33 @@ void UIWidgetAdapter::GenerateRoundedOutlineGeometry(const DrawCommand& cmd) {
     float y = y0;
     float w = x1 - x0;
     float h = y1 - y0;
-    
-    float type = 2.0f;
+
+    // Type 2 = SDF border ring. Never hard-fill or opaque-replace: those paths paint the
+    // whole quad (search pills look like a solid accent fill when focused).
+    constexpr float type = 2.0f;
+    constexpr float opaqueHard = 0.0f;
     const float thickness = std::max(1.0f, SnapPx(cmd.thickness));
-    const bool opaqueFill = ColorSpace::IsOpaqueAuthoring(cmd.color);
-    const float opaqueHard = opaqueFill ? 1.0f : 0.0f;
-    const float fillAlpha = opaqueFill ? 1.0f : cmd.color.a;
-    
-    UIVertex2 v0{ {x,     y},     {0.5f, 0.5f}, {cmd.color.r, cmd.color.g, cmd.color.b, fillAlpha}, {x, y, w, h}, {cmd.borderRadius, type, thickness, opaqueHard} };
-    UIVertex2 v1{ {x + w, y},     {0.5f, 0.5f}, {cmd.color.r, cmd.color.g, cmd.color.b, fillAlpha}, {x, y, w, h}, {cmd.borderRadius, type, thickness, opaqueHard} };
-    UIVertex2 v2{ {x + w, y + h}, {0.5f, 0.5f}, {cmd.color.r, cmd.color.g, cmd.color.b, fillAlpha}, {x, y, w, h}, {cmd.borderRadius, type, thickness, opaqueHard} };
-    UIVertex2 v3{ {x,     y + h}, {0.5f, 0.5f}, {cmd.color.r, cmd.color.g, cmd.color.b, fillAlpha}, {x, y, w, h}, {cmd.borderRadius, type, thickness, opaqueHard} };
-    
+    const float radius = std::min(cmd.borderRadius, std::min(w, h) * 0.5f);
+
+    UIVertex2 v0{ {x,     y},     {0.5f, 0.5f}, {cmd.color.r, cmd.color.g, cmd.color.b, cmd.color.a}, {x, y, w, h}, {radius, type, thickness, opaqueHard} };
+    UIVertex2 v1{ {x + w, y},     {0.5f, 0.5f}, {cmd.color.r, cmd.color.g, cmd.color.b, cmd.color.a}, {x, y, w, h}, {radius, type, thickness, opaqueHard} };
+    UIVertex2 v2{ {x + w, y + h}, {0.5f, 0.5f}, {cmd.color.r, cmd.color.g, cmd.color.b, cmd.color.a}, {x, y, w, h}, {radius, type, thickness, opaqueHard} };
+    UIVertex2 v3{ {x,     y + h}, {0.5f, 0.5f}, {cmd.color.r, cmd.color.g, cmd.color.b, cmd.color.a}, {x, y, w, h}, {radius, type, thickness, opaqueHard} };
+
     uint32_t startIndex = static_cast<uint32_t>(m_Vertices.size());
     m_Vertices.push_back(v0);
     m_Vertices.push_back(v1);
     m_Vertices.push_back(v2);
     m_Vertices.push_back(v3);
-    
+
     m_Indices.push_back(startIndex + 0);
     m_Indices.push_back(startIndex + 1);
     m_Indices.push_back(startIndex + 2);
     m_Indices.push_back(startIndex + 2);
     m_Indices.push_back(startIndex + 3);
     m_Indices.push_back(startIndex + 0);
-    
-    AddOrMergeBatch(6, false, 0, 0, 0.0f, opaqueFill);
+
+    AddOrMergeBatch(6);
 }
 
 } // namespace we::runtime::kindui

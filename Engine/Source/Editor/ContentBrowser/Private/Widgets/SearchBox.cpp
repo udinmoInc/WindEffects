@@ -4,7 +4,7 @@
 #include "KindUI/Core/PaintContext.h"
 #include "WindEffects/Editor/UI/Panel/PanelChrome.h"
 #include "KindUI/Core/LayoutMetrics.h"
-#include "KindUI/Theming/ThemeManager.h"
+#include "KindUI/Theming/ThemeAccess.h"
 #include "KindUI/Core/DPIContext.h"
 #include "KindUI/Rendering/IconMetrics.h"
 #include "KindUI/Input/InputEvents.h"
@@ -35,12 +35,22 @@ SearchBox::SearchBox()
 
 Size SearchBox::Measure(const Size& availableSize) {
     float w = m_FillWidth ? availableSize.width : m_Width;
-    m_DesiredSize = Size{ w, LayoutMetrics::SearchInputHeight() };
+    const float h = m_ToolbarInset
+        ? ThemeMetric(MetricToken::ButtonHeight)
+        : LayoutMetrics::SearchInputHeight();
+    m_DesiredSize = Size{ w, h };
     return m_DesiredSize;
 }
 
 void SearchBox::Arrange(const Rect& allottedRect) {
-    m_Geometry = LayoutMetrics::LayoutSearchInputRect(allottedRect);
+    m_Geometry = m_ToolbarInset
+        ? LayoutMetrics::LayoutToolbarSearchInputRect(allottedRect)
+        : LayoutMetrics::LayoutSearchInputRect(allottedRect);
+    if (m_ToolbarInset) {
+        const float h = std::min(ThemeMetric(MetricToken::ButtonHeight), allottedRect.height);
+        m_Geometry.y = allottedRect.y + (allottedRect.height - h) * 0.5f;
+        m_Geometry.height = h;
+    }
 }
 
 void SearchBox::Paint(PaintContext& context) {

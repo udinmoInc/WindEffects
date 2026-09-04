@@ -27,10 +27,65 @@ bool IsCompositeColorToken(ColorToken token) {
     case ColorToken::ContentBrowserFolderShadow:
     case ColorToken::InputInsetInner:
     case ColorToken::InputInsetOuter:
+    case ColorToken::IconContactShadow:
         return true;
     default:
         return false;
     }
+}
+
+constexpr float kHoverMix = 0.62f;
+constexpr float kPressMix = 0.50f;
+
+float Clamp01(float t) {
+    return std::clamp(t, 0.0f, 1.0f);
+}
+
+Color MixInteractiveSurfaceImpl(
+    Color base,
+    float hoverAnim,
+    float pressAnim,
+    bool selected,
+    bool disabled)
+{
+    if (disabled) {
+        return ColorSpace::OpaqueSurface(ResolveColor(ColorToken::DisabledBackground));
+    }
+    if (selected) {
+        return ColorSpace::OpaqueSurface(ResolveColor(ColorToken::SelectedBackground));
+    }
+
+    const float hover = Clamp01(hoverAnim);
+    const float press = Clamp01(pressAnim);
+
+    if (base.a < 0.01f) {
+        if (press > 0.001f && press >= hover) {
+            Color fill = ColorSpace::OpaqueSurface(ResolveColor(ColorToken::PressedBackground));
+            fill.a = press * kPressMix;
+            return fill;
+        }
+        if (hover > 0.001f) {
+            Color fill = ColorSpace::OpaqueSurface(ResolveColor(ColorToken::HoverBackground));
+            fill.a = hover * kHoverMix;
+            return fill;
+        }
+        return Color::Transparent();
+    }
+
+    Color result = base;
+    if (hover > 0.001f) {
+        result = ColorSpace::LerpColor(
+            result,
+            ColorSpace::OpaqueSurface(ResolveColor(ColorToken::HoverBackground)),
+            hover * kHoverMix);
+    }
+    if (press > 0.001f) {
+        result = ColorSpace::LerpColor(
+            result,
+            ColorSpace::OpaqueSurface(ResolveColor(ColorToken::PressedBackground)),
+            press * kPressMix);
+    }
+    return ColorSpace::OpaqueSurface(result);
 }
 
 Color ResolveInteractiveBackgroundImpl(
@@ -39,17 +94,14 @@ Color ResolveInteractiveBackgroundImpl(
     bool selected,
     ColorToken surfaceToken)
 {
-    (void)surfaceToken;
     if (selected) {
         return ColorSpace::OpaqueSurface(ResolveColor(ColorToken::SelectedBackground));
     }
-    if (pressAnim >= 0.5f) {
-        return ColorSpace::OpaqueSurface(ResolveColor(ColorToken::PressedBackground));
+    if (Clamp01(hoverAnim) < 0.001f && Clamp01(pressAnim) < 0.001f) {
+        return Color::Transparent();
     }
-    if (hoverAnim >= 0.5f) {
-        return ColorSpace::OpaqueSurface(ResolveColor(ColorToken::HoverBackground));
-    }
-    return Color::Transparent();
+    const Color base = ColorSpace::OpaqueSurface(ResolveColor(surfaceToken));
+    return MixInteractiveSurfaceImpl(base, hoverAnim, pressAnim, false, false);
 }
 
 } // namespace
@@ -71,6 +123,7 @@ Color ResolveColor(ColorToken token) {
 }
 
 float ResolveMetric(MetricToken token) {
+    palette::ReloadGraphiteDarkPaletteIfChanged();
     return ThemeManager::Get().Theme().ResolveMetric(token);
 }
 
@@ -119,6 +172,17 @@ Color ResolveInteractiveBackground(
     return ResolveInteractiveBackgroundImpl(hoverAnim, pressAnim, selected, surfaceToken);
 }
 
+Color MixInteractiveSurface(
+    Color base,
+    float hoverAnim,
+    float pressAnim,
+    bool selected,
+    bool disabled)
+{
+    palette::ReloadGraphiteDarkPaletteIfChanged();
+    return MixInteractiveSurfaceImpl(base, hoverAnim, pressAnim, selected, disabled);
+}
+
 Color ResolveTextForState(bool hovered, bool active) {
     return ThemeManager::Get().Theme().TextForState(hovered, active);
 }
@@ -135,8 +199,11 @@ Color ResolveIconColor(
 {
     if (accent || role == IconColorRole::Accent) {
         Color accentColor = ResolveColor(ColorToken::IconAccent);
-        if (hoverAnim >= 0.5f || pressStrength >= 0.5f) {
-            accentColor = ResolveColor(ColorToken::AccentHover);
+        if (hoverAnim > 0.001f || pressStrength > 0.001f) {
+            accentColor = ColorSpace::LerpColor(
+                accentColor,
+                ResolveColor(ColorToken::AccentHover),
+                Clamp01(std::max(hoverAnim, pressStrength)) * 0.25f);
         }
         return accentColor;
     }
@@ -146,12 +213,14 @@ Color ResolveIconColor(
     }
 
     Color base = ResolveColor(ColorToken::IconSecondary);
-    if (pressStrength >= 0.5f) {
-        base = ResolveColor(ColorToken::IconActive);
-    } else if (hoverAnim >= 0.5f) {
-        base = ResolveColor(ColorToken::IconHover);
+    if (role == IconColorRole::Primary) {
+        base = ResolveColor(ColorToken::IconPrimary);
     }
-    return base;
+    Color hover = ResolveColor(ColorToken::IconHover);
+    Color pressed = ResolveColor(ColorToken::IconActive);
+    Color result = ColorSpace::LerpColor(base, hover, Clamp01(hoverAnim) * 0.45f);
+    result = ColorSpace::LerpColor(result, pressed, Clamp01(pressStrength) * 0.35f);
+    return result;
 }
 
 Color ResolveIconColorForState(bool hovered, bool accent, bool disabled, bool secondary) {

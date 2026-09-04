@@ -323,7 +323,7 @@ ToolbarSeparator::ToolbarSeparator() {}
 Size ToolbarSeparator::Measure(const Size& availableSize) {
     const float uiScale = (std::max)(1.0f, DPIContext::GetScale());
     m_DesiredSize = Size{
-        we::runtime::kindui::ds::Chrome::SeparationGapWide() * uiScale,
+        we::runtime::kindui::ds::Toolbar::SeparatorWidth() * uiScale,
         availableSize.height > 0.0f
             ? availableSize.height
             : ThemeMetric(MetricToken::ToolbarSeparatorHeight) * uiScale

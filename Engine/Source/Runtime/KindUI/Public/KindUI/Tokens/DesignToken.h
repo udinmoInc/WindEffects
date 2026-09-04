@@ -62,12 +62,13 @@ enum class ColorToken : uint32_t {
     SearchPlaceholder,      // Search field placeholder (alias → TextHint)
 
     // ── Icons ─────────────────────────────────────────────────────────────────
-    IconPrimary,            // Default mono icon (#A7AFBA)
-    IconSecondary,          // Default mono icon (#A7AFBA)
-    IconDisabled,           // Disabled icon (#5C6570)
-    IconAccent,             // Active/accent icon (#FFFFFF)
-    IconHover,              // Hovered icon (#D6DBE1)
-    IconActive,             // Pressed/active icon (#FFFFFF)
+    IconPrimary,            // Default mono icon
+    IconSecondary,          // Default mono icon
+    IconDisabled,           // Disabled icon
+    IconAccent,             // Active/accent icon
+    IconHover,              // Hovered icon
+    IconActive,             // Pressed/active icon
+    IconContactShadow,      // 1px glyph contact silhouette (composite)
 
     // ── Accent & selection ────────────────────────────────────────────────────
     AccentPrimary,          // Primary accent (#0070E0)
@@ -351,6 +352,8 @@ enum class MetricToken : uint32_t {
     ShadowBlurSmall,
     ShadowBlurMedium,
     ShadowSpreadMedium,
+
+    ToolbarSeparatorWidth,     // vertical toolbar divider gap-cut (logical px)
 };
 
 enum class PaddingToken : uint32_t {

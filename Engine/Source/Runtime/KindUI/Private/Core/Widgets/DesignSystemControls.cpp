@@ -67,6 +67,9 @@ void DesignButton::Paint(PaintContext& context) {
         ControlChrome::PaintGhostButton(context, m_Geometry, style, state);
     } else if (m_Role == StyleRole::ButtonDanger) {
         ControlChrome::PaintDangerButton(context, m_Geometry, style, state);
+    } else if (m_Role == StyleRole::ButtonPrimary) {
+        ControlChrome::PaintFilledButton(
+            context, m_Geometry, style, state, StyleRole::ButtonPrimary, StyleRole::ButtonPrimary);
     } else {
         ControlChrome::PaintFilledButton(context, m_Geometry, style, state);
     }
@@ -484,11 +487,14 @@ void SidebarItem::Paint(PaintContext& context) {
     const ResolvedStyle style = ThemeManager::Get().Resolve(
         m_Active ? StyleRole::SidebarItemActive : StyleRole::SidebarItem);
     ControlChrome::InteractionState state{ m_HoverAnim, m_Pressed ? 1.0f : 0.0f, m_Active, false, false };
-    ResolvedStyle paintStyle = style;
-    if (!m_Active && m_HoverAnim >= 0.5f) {
-        paintStyle.background = ResolveColor(ColorToken::HoverBackground);
-    }
-    context.DrawRoundedRect(m_Geometry, paintStyle.background, style.cornerRadius);
+    (void)state;
+    const Color fill = we::runtime::kindui::MixInteractiveSurface(
+        style.background,
+        m_Active ? 0.0f : m_HoverAnim,
+        m_Pressed && !m_Active ? 1.0f : 0.0f,
+        m_Active,
+        false);
+    context.DrawRoundedRect(m_Geometry, fill, style.cornerRadius);
     if (m_Active) {
         context.DrawRect(
             Rect{ m_Geometry.x, m_Geometry.y + 6.0f, 2.0f, m_Geometry.height - 12.0f },

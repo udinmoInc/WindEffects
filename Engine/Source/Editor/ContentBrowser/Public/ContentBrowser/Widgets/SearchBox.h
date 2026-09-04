@@ -53,6 +53,7 @@ public:
     // Styling
     void SetFillWidth(bool fill) { m_FillWidth = fill; }
     void SetWidth(float width) { m_Width = width; }
+    void SetToolbarInset(bool inset) { m_ToolbarInset = inset; }
 
     void Tick(float deltaTime);
     bool ShouldShowCaret() const { return m_ShowCaret; }
@@ -69,6 +70,7 @@ private:
     float m_Height = 0.0f;
     float m_Width = 240.0f;
     bool m_FillWidth = false;
+    bool m_ToolbarInset = false;
     float m_CaretBlinkTime = 0.0f;
     bool m_ShowCaret = true;
     

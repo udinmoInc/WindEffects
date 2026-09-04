@@ -120,7 +120,7 @@ struct FlexStyle {
 
 struct SearchBoxStyle {
     ColorProperty background{ColorToken::ControlBackground};
-    ColorProperty backgroundFocused{ColorToken::ControlBackgroundSelected};
+    ColorProperty backgroundFocused{ColorToken::InputBackground};
     ColorProperty foreground{ColorToken::TextPrimary};
     ColorProperty placeholder{ColorToken::TextHint};
     BorderStyleTokens border{ColorProperty{ColorToken::BorderSubtle}};
@@ -134,7 +134,7 @@ struct SearchBoxStyle {
 
 struct TextBoxStyle {
     ColorProperty background{ColorToken::ControlBackground};
-    ColorProperty backgroundFocused{ColorToken::ControlBackgroundSelected};
+    ColorProperty backgroundFocused{ColorToken::InputBackground};
     ColorProperty foreground{ColorToken::TextPrimary};
     ColorProperty foregroundDisabled{ColorToken::TextDisabled};
     BorderStyleTokens border{};
