@@ -253,7 +253,7 @@ void PaintContext::DrawWindIcon(WindIconRef icon, const Rect& rect) {
     DrawCommand cmd{};
     cmd.type = DrawCommandType::Icon;
     cmd.rect = rect;
-    cmd.color = Color::White();
+    cmd.color = ResolveColor(ColorToken::IconPrimary);
     cmd.clipRect = GetCurrentClipRect();
     cmd.iconStem = icon.stem;
     cmd.iconSizePx = icon.sizePx;

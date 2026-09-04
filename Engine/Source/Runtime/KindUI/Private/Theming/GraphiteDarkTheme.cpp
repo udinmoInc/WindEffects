@@ -94,6 +94,8 @@ Color GraphiteDarkTheme::ResolveColor(ColorToken token) const {
         return P.InputInsetInner;
     case ColorToken::InputInsetOuter:
         return P.InputInsetOuter;
+    case ColorToken::IconContactShadow:
+        return P.IconContactShadow;
     case ColorToken::ButtonPrimaryBackground:
         return CS::OpaqueSurface(P.Primary);
     case ColorToken::ButtonPrimaryHover:
@@ -230,7 +232,8 @@ float GraphiteDarkTheme::ResolveMetric(MetricToken token) const {
     case MetricToken::ButtonGroupSpacing: return 8.0f;
     case MetricToken::ScrollbarWidth: return 14.0f;
     case MetricToken::ScrollbarThumbMinHeight: return 20.0f;
-    case MetricToken::TabTopRadius: return 6.0f;
+    case MetricToken::TabTopRadius:
+        return palette::GraphiteDarkLiveMetrics().TabTopRadius;
     case MetricToken::TabActiveIndicatorHeight: return 2.0f;
     case MetricToken::StatusBarHeight: return 24.0f;
     case MetricToken::TabGap: return 3.0f;
@@ -243,6 +246,7 @@ float GraphiteDarkTheme::ResolveMetric(MetricToken token) const {
     case MetricToken::ChromeSeparationGap: return 1.0f;
     case MetricToken::ChromeSeparationGapWide: return 4.0f;
     case MetricToken::ViewportToolbarHeight: return 28.0f;
+    case MetricToken::ToolbarSeparatorWidth: return 2.0f;
     case MetricToken::ToolbarSeparatorHeight: return 24.0f;
     case MetricToken::ToolbarLabeledHeight: return 28.0f;
     case MetricToken::ToolbarLabeledMinWidth: return 36.0f;
@@ -276,8 +280,8 @@ float GraphiteDarkTheme::ResolveMetric(MetricToken token) const {
     case MetricToken::Space4: return 16.0f;
     case MetricToken::Space5: return 20.0f;
     case MetricToken::Space6: return 24.0f;
-    case MetricToken::HoverAnimationDamping: return 10.0f;
-    case MetricToken::PressAnimationDamping: return 14.0f;
+    case MetricToken::HoverAnimationDamping: return 28.0f;
+    case MetricToken::PressAnimationDamping: return 36.0f;
     case MetricToken::PressOffset: return 1.0f;
     case MetricToken::ShadowBlurSmall: return 4.0f;
     case MetricToken::ShadowBlurMedium: return 8.0f;
@@ -526,7 +530,7 @@ ResolvedStyle StyleResolver::Resolve(StyleRole role) const {
     case StyleRole::ButtonHover:
         style.background = ResolveColor(ColorToken::HoverBackground);
         style.foreground = ResolveColor(ColorToken::TextPrimary);
-        style.border = ResolveColor(ColorToken::BorderLight);
+        style.border = Color::Transparent();
         break;
     case StyleRole::ButtonActive:
         style.background = ResolveColor(ColorToken::PressedBackground);
@@ -561,7 +565,7 @@ ResolvedStyle StyleResolver::Resolve(StyleRole role) const {
     case StyleRole::IconButtonHover:
         style.background = ResolveColor(ColorToken::HoverBackground);
         style.icon = ResolveColor(ColorToken::IconHover);
-        style.border = ResolveColor(ColorToken::BorderLight);
+        style.border = Color::Transparent();
         break;
     case StyleRole::IconButtonPressed:
         style.background = ResolveColor(ColorToken::PressedBackground);
@@ -698,7 +702,7 @@ ResolvedStyle StyleResolver::Resolve(StyleRole role) const {
     case StyleRole::CardHover:
         style.background = ResolveColor(ColorToken::HoverBackground);
         style.foreground = ResolveColor(ColorToken::TextPrimary);
-        style.border = ResolveColor(ColorToken::BorderLight);
+        style.border = ResolveColor(ColorToken::BorderSubtle);
         style.cornerRadius = Scaled(theme.ResolveMetric(MetricToken::CornerRadiusMedium));
         style.elevation = theme.ResolveElevation(ElevationToken::Card);
         break;

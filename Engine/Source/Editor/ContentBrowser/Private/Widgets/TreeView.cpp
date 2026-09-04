@@ -297,7 +297,8 @@ TreeView::TreeRowLayoutSlots TreeView::ComputeTreeRowLayout(const RenderItem& it
             hitSize };
     }
 
-    layout.indentX = viewportX + prefixOffset + (static_cast<float>(item.depth) * m_IndentWidth);
+    const float contentPad = m_ExplorerStyle ? 0.0f : ThemeMetric(MetricToken::Space2) * uiScale;
+    layout.indentX = viewportX + prefixOffset + contentPad + (static_cast<float>(item.depth) * m_IndentWidth);
 
     const float expanderWidth = TreeExpanderHit(uiScale);
     layout.expanderBounds = Rect{ layout.indentX, item.geometry.y, expanderWidth, rowHeight };

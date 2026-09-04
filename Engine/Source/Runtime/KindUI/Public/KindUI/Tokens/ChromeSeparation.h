@@ -20,6 +20,11 @@ inline constexpr bool kGapCutsEnabled = true;
     return ResolveMetric(MetricToken::ChromeSeparationGapWide);
 }
 
+/// Vertical toolbar / panel-toolbar divider width (not title/workspace chrome gaps).
+[[nodiscard]] inline float DividerWidth() {
+    return ResolveMetric(MetricToken::ToolbarSeparatorWidth);
+}
+
 /// Logical dock gutter per edge when panels inset their own chrome.
 /// With gap-cuts enabled, gutters come from per-panel structure inset + workspace padding.
 [[nodiscard]] inline float DockGutterGap() {

@@ -3,6 +3,7 @@
 #include "KindUI/Rendering/IconMetrics.h"
 #include "KindUI/Core/PaintContext.h"
 #include "KindUI/Theming/ThemeAccess.h"
+#include "KindUI/Core/ColorSpace.h"
 #include "KindUI/Tokens/DesignToken.h"
 
 #include <algorithm>
@@ -85,13 +86,12 @@ Color ResolveIconColor(float hoverAnim, float pressStrength, bool active) {
 
 Color ResolvePlayIconColor(float hoverAnim, float pressStrength, bool active) {
     Color play = ResolveColor(ColorToken::Success);
-    if (active || pressStrength >= 0.5f) {
+    if (active) {
         return ResolveColor(ColorToken::TextPrimary);
     }
-    if (hoverAnim >= 0.5f) {
-        return ResolveColor(ColorToken::TextPrimary);
-    }
-    return play;
+    Color hover = ResolveColor(ColorToken::TextPrimary);
+    Color result = Color::Pick(play, hover, std::clamp(hoverAnim, 0.0f, 1.0f) * 0.35f);
+    return Color::Pick(result, hover, std::clamp(pressStrength, 0.0f, 1.0f) * 0.45f);
 }
 
 namespace {
@@ -106,18 +106,18 @@ void PaintSubtleToolbarFill(
     float activeAnim)
 {
     if (active || activeAnim >= 0.5f) {
-        const Color selected = ResolveColor(ColorToken::SelectInactiveBackground);
-        context.DrawRoundedRect(rect, selected, radius);
+        context.DrawRoundedRect(rect, ResolveColor(ColorToken::SelectInactiveBackground), radius);
         return;
     }
 
-    if (pressStrength >= 0.5f) {
-        context.DrawRoundedRect(rect, ResolveColor(ColorToken::PressedBackground), radius);
-        return;
-    }
-    if (hoverAnim >= 0.5f) {
-        context.DrawRoundedRect(rect, ResolveColor(ColorToken::HoverBackground), radius);
-    }
+    ControlChrome::PaintInteractiveFill(
+        context,
+        rect,
+        radius,
+        hoverAnim,
+        pressStrength,
+        false,
+        ColorToken::ToolbarBackground);
 }
 
 } // namespace
@@ -211,8 +211,9 @@ void PaintStatusBarControl(
         return;
     }
 
-    if (hoverAnim >= 0.5f) {
-        const Color hover = ResolveColor(ColorToken::SecondarySurface);
+    const Color hover = ResolveInteractiveBackground(
+        hoverAnim, 0.0f, false, ColorToken::ViewportToolbarBackground);
+    if (hover.a > 0.001f) {
         context.DrawRect(rect, hover);
     }
 }

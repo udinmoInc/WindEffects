@@ -213,7 +213,7 @@ ContentBrowserToolbarControls::ContentBrowserToolbarControls(ToolbarMode mode)
 {
     const float padV = ThemeMetric(MetricToken::Space1);
     Padding(Margin{0.0f, padV, 0.0f, padV});
-    Gap(ThemeMetric(MetricToken::Space2));
+    Gap(ThemeMetric(MetricToken::Space1));
     Align(AlignItems::Center);
 }
 
@@ -237,10 +237,11 @@ void ContentBrowserToolbarControls::InitializeChildren() {
         m_ImportBtn = MakeSecondaryAction("Import", WindIcons::FolderPlus16);
         m_SearchBox = std::make_shared<SearchBox>();
         m_SearchBox->SetPlaceholder("Search Assets...");
-        m_SearchBox->SetFlexGrow(1.0f);
-        m_SearchBox->SetFlexShrink(1.0f);
-        m_SearchBox->SetMinWidth(100.0f);
-        m_SearchBox->SetMaxWidth(320.0f);
+        m_SearchBox->SetToolbarInset(true);
+        m_SearchBox->SetFillWidth(false);
+        m_SearchBox->SetWidth(ThemeMetric(MetricToken::Space6) * 8.0f);
+        m_SearchBox->SetFlexGrow(0.0f);
+        m_SearchBox->SetFlexShrink(0.0f);
 
         m_SaveBtn = std::make_shared<ToolbarLabeledButton>("Save All", WindIcons::Check16, false, ToolbarLabeledButton::Variant::Standard, ThemeMetric(MetricToken::Space3));
         m_FilterIconBtn = std::make_shared<ToolbarIconToggle>(WindIcons::ListFilter16, "Filter");
@@ -252,9 +253,7 @@ void ContentBrowserToolbarControls::InitializeChildren() {
 
         AddChild(m_CreateBtn);
         AddChild(m_ImportBtn);
-        AddChild(MakeToolbarDivider());
         AddChild(m_SearchBox);
-        AddChild(MakeToolbarDivider());
         AddChild(m_SaveBtn);
         AddChild(m_FilterIconBtn);
     }

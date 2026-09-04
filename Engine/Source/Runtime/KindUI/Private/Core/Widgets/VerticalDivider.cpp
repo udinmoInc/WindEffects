@@ -14,7 +14,7 @@ namespace we::runtime::kindui {
 Size VerticalDivider::Measure(const Size& availableSize) {
     const float uiScale = (std::max)(1.0f, DPIContext::GetScale());
     m_DesiredSize = Size{
-        ds::Chrome::SeparationGapWide() * uiScale,
+        ds::Toolbar::SeparatorWidth() * uiScale,
         availableSize.height > 0.0f
             ? availableSize.height
             : ResolveMetric(MetricToken::ToolbarSeparatorHeight) * uiScale

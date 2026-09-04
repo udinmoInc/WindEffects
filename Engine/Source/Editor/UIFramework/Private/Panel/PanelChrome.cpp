@@ -41,25 +41,12 @@ namespace ChromeSeparation = ::we::runtime::kindui::ChromeSeparation;
 
 namespace {
 
-void DrawRoundedRectTop(PaintContext& context, const Rect& rect, const Color& color, float radius, bool squareTopLeft = false) {
+void DrawRoundedRectTop(PaintContext& context, const Rect& rect, const Color& color, float radius, bool /*squareTopLeft*/ = false) {
     if (radius <= 0.01f) {
         context.DrawRect(rect, color);
         return;
     }
-    if (squareTopLeft) {
-        const float capW = std::min(radius, rect.width);
-        const float bodyW = std::max(0.0f, rect.width - capW);
-        if (bodyW > 0.0f) {
-            context.DrawRect(Rect{ rect.x, rect.y, bodyW, rect.height }, color);
-        }
-        if (capW > 0.0f) {
-            const Rect cap{ rect.x + bodyW, rect.y, capW, rect.height };
-            context.DrawRoundedRect(cap, color, radius);
-            const float coverH = radius + 1.0f;
-            context.DrawRect(Rect{ cap.x, cap.y + cap.height - coverH, cap.width, coverH }, color);
-        }
-        return;
-    }
+    // Always round both top corners — first-tab flush-left no longer squares the left edge.
     context.DrawRoundedRect(rect, color, radius);
     const float coverH = radius + 1.0f;
     context.DrawRect(Rect{ rect.x, rect.y + rect.height - coverH, rect.width, coverH }, color);

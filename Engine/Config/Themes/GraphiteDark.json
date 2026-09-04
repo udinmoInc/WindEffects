@@ -1,4 +1,7 @@
 {
+  "Metrics": {
+    "TabTopRadius": 6
+  },
   "Black": "#000000",
   "Title": "#161616",
   "Background": "#121212",
@@ -31,10 +34,11 @@
   "ForegroundInverted": "#0E0E0E",
   "ForegroundHeader": "#C8C8C8",
   "Notifications": "#464B50",
-  "IconNormal": "#A7AFBA",
+  "IconNormal": "#C2C8D0",
   "IconHoverTint": "#D6DBE1",
   "IconActiveTint": "#FFFFFF",
   "IconSubdued": "#5C6570",
+  "IconContactShadow": "#00000073",
   "Warning": "#FFB800",
   "Error": "#EF3535",
   "Success": "#1FE44B",

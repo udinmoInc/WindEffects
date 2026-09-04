@@ -44,6 +44,7 @@ struct GraphiteDarkColors {
     Color IconHoverTint{};
     Color IconActiveTint{};
     Color IconSubdued{};
+    Color IconContactShadow{};
     Color Warning{};
     Color Error{};
     Color Success{};
@@ -75,11 +76,19 @@ struct GraphiteDarkColors {
     Color DebugGlyphBounds{};
 };
 
+/// Hot-reloadable metrics from GraphiteDark.json "Metrics" object.
+struct GraphiteDarkMetrics {
+    float TabTopRadius = 6.0f;
+};
+
 /// Live palette used by GraphiteDarkTheme / Color::White|Black.
 [[nodiscard]] KINDUI_API GraphiteDarkColors& GraphiteDarkLive();
 
+/// Live metrics (TabTopRadius, …) — edit Metrics in GraphiteDark.json; no rebuild.
+[[nodiscard]] KINDUI_API GraphiteDarkMetrics& GraphiteDarkLiveMetrics();
+
 /// Load JSON if needed; poll mtime and reload when the file changes.
-/// Returns true when colors were reloaded this call.
+/// Returns true when colors/metrics were reloaded this call.
 KINDUI_API bool ReloadGraphiteDarkPaletteIfChanged();
 
 } // namespace we::runtime::kindui::palette

@@ -26,6 +26,13 @@ KINDUI_API Color ResolveInteractiveBackground(
     float pressAnim,
     bool selected,
     ColorToken surfaceToken);
+/// Subtle hover/press mix on an existing fill. Rest state returns `base` unchanged.
+KINDUI_API Color MixInteractiveSurface(
+    Color base,
+    float hoverAnim,
+    float pressAnim,
+    bool selected = false,
+    bool disabled = false);
 KINDUI_API Color ResolveTextForState(bool hovered, bool active = false);
 KINDUI_API Color ResolveIconForState(bool hovered, bool active = false);
 
