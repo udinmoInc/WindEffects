@@ -45,7 +45,7 @@ std::shared_ptr<Panel> CreateWorldOutlinerPanel() {
     panel->AttachBodyLayout();
     panel->SetHeaderHeight(we::runtime::kindui::ResolveMetric(MetricToken::PanelHeaderHeight));
     panel->SetCollapsible(false);
-    panel->SetTabIcon(kWindIconNone);
+    panel->SetTabIcon(WindIcons::Outliner16);
 
     auto treeView = std::make_shared<TreeView>();
     treeView->SetExplorerStyle(true);

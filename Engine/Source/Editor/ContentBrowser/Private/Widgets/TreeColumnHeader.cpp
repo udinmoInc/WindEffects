@@ -46,16 +46,11 @@ void TreeColumnHeader::Paint(PaintContext& context) {
 
     const float pad = ThemeMetric(MetricToken::Space2) * uiScale;
     const float hit = ThemeMetric(MetricToken::TreeExpanderHitSize) * uiScale;
-    const float prefix = (ThemeMetric(MetricToken::Space2) + 2.0f * ThemeMetric(MetricToken::TreeExpanderHitSize)) * uiScale;
+    const float prefix = (ThemeMetric(MetricToken::Space2) + ThemeMetric(MetricToken::TreeExpanderHitSize)) * uiScale;
     const float eyeX = m_Geometry.x + pad;
     Rect eyeBand{ eyeX, m_Geometry.y, glyphTier, m_Geometry.height };
     IconPainter::Draw(
         context, WindIcons::Eye16, IconMetrics::PlaceGlyphCentered(eyeBand, 16u));
-
-    const float lockX = m_Geometry.x + pad + hit;
-    Rect lockBand{ lockX, m_Geometry.y, glyphTier, m_Geometry.height };
-    IconPainter::Draw(
-        context, WindIcons::LockOpen16, IconMetrics::PlaceGlyphCentered(lockBand, 16u));
 
     const float labelX = m_Geometry.x + prefix;
     context.DrawText(

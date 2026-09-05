@@ -306,11 +306,6 @@ TreeView::TreeRowLayoutSlots TreeView::ComputeTreeRowLayout(const RenderItem& it
             centerY - hitSize * 0.5f,
             hitSize,
             hitSize };
-        layout.lockBounds = Rect{
-            TreeAccessoryColumnX(viewportX, 1, uiScale),
-            centerY - hitSize * 0.5f,
-            hitSize,
-            hitSize };
     }
 
     const float contentPad = m_ExplorerStyle ? 0.0f : ThemeMetric(MetricToken::Space2) * uiScale;
@@ -372,11 +367,6 @@ void TreeView::Paint(PaintContext& context) {
         const float eyeX = TreeAccessoryColumnX(m_Geometry.x, 0, uiScale);
         Rect eyeBand{ eyeX, m_Geometry.y, glyphTier, headerHeight };
         IconPainter::Draw(context, WindIcons::Eye16, IconMetrics::PlaceGlyphCentered(eyeBand, 16u));
-
-        // Pin/Lock column header
-        const float lockX = TreeAccessoryColumnX(m_Geometry.x, 1, uiScale);
-        Rect lockBand{ lockX, m_Geometry.y, glyphTier, headerHeight };
-        IconPainter::Draw(context, WindIcons::LockOpen16, IconMetrics::PlaceGlyphCentered(lockBand, 16u));
 
         // Item Label header
         const float labelX = m_Geometry.x + TreeExplorerPrefix(uiScale);
@@ -468,10 +458,6 @@ void TreeView::Paint(PaintContext& context) {
                 const Color eyeColor = node->visible ? ThemeColor(ColorToken::TextSecondary) : ThemeColor(ColorToken::TextDisabled);
                 const WindIconRef eyeIcon = node->visible ? WindIcons::Eye16 : kWindIconNone;
                 IconPainter::Draw(context, eyeIcon, IconMetrics::PlaceGlyphCentered(layout.eyeBounds, 16u), eyeColor);
-            }
-            if (node->locked) {
-                const Color lockColor = ThemeColor(ColorToken::Warning);
-                IconPainter::Draw(context, WindIcons::Lock16, IconMetrics::PlaceGlyphCentered(layout.lockBounds, 16u), lockColor);
             }
         }
 

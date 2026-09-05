@@ -80,6 +80,7 @@ namespace WindIconAssets {
     inline constexpr const char* Lit = "lit";
     inline constexpr const char* Lock = "lock";
     inline constexpr const char* LockOpen = "lock-open";
+    inline constexpr const char* Logo = "logo";
     inline constexpr const char* Magnet = "magnet";
     inline constexpr const char* Medical = "medical";
     inline constexpr const char* Minus = "minus";
@@ -124,6 +125,7 @@ namespace WindIconAssets {
     inline constexpr const char* Window = "window";
     inline constexpr const char* Wrench = "wrench";
     inline constexpr const char* X = "x";
+    inline constexpr const char* Xv2 = "xv2";
 } // namespace WindIconAssets
 
 /// Invalid / blank icon slot.
@@ -252,6 +254,7 @@ namespace WindIcons {
     inline constexpr WindIconRef Lock24{ WindIconAssets::Lock, 24 };
     inline constexpr WindIconRef LockOpen16{ WindIconAssets::LockOpen, 16 };
     inline constexpr WindIconRef LockOpen24{ WindIconAssets::LockOpen, 24 };
+    inline constexpr WindIconRef Logo24{ WindIconAssets::Logo, 24 };
     inline constexpr WindIconRef Magnet16{ WindIconAssets::Magnet, 16 };
     inline constexpr WindIconRef Magnet24{ WindIconAssets::Magnet, 24 };
     inline constexpr WindIconRef Medical16{ WindIconAssets::Medical, 16 };
@@ -340,6 +343,7 @@ namespace WindIcons {
     inline constexpr WindIconRef Wrench24{ WindIconAssets::Wrench, 24 };
     inline constexpr WindIconRef X16{ WindIconAssets::X, 16 };
     inline constexpr WindIconRef X24{ WindIconAssets::X, 24 };
+    inline constexpr WindIconRef Xv212{ WindIconAssets::Xv2, 12 };
 } // namespace WindIcons
 
 } // namespace we::runtime::kindui
