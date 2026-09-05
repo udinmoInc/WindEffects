@@ -331,10 +331,11 @@ we::rhi::RHIDescriptorSetHandle OverlayRenderer::UploadRgbaTexture(
     uint32_t width,
     uint32_t height,
     std::span<const uint8_t> rgba,
-    bool linearFilter)
+    bool linearFilter,
+    bool srgb)
 {
     if (m_UIImmediate) {
-        return m_UIImmediate->UploadRgbaTexture(width, height, rgba, linearFilter);
+        return m_UIImmediate->UploadRgbaTexture(width, height, rgba, linearFilter, srgb);
     }
     return we::rhi::RHIDescriptorSetHandle::Invalid;
 }

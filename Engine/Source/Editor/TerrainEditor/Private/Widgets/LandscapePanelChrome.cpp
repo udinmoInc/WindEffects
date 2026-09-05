@@ -10,6 +10,7 @@
 #include "KindUI/Core/WindIcon.h"
 #include "KindUI/Core/Icon.h"
 #include "KindUI/Rendering/IconMetrics.h"
+#include "KindUI/Core/LayoutMetrics.h"
 #include "KindUI/Core/Types.h"
 
 #include <algorithm>
@@ -28,6 +29,7 @@ using we::runtime::kindui::ResolvedStyle;
 using we::runtime::kindui::StyleRole;
 using we::runtime::kindui::ResolveInteractiveBackground;
 using we::runtime::kindui::ResolveMetric;
+namespace LayoutMetrics = we::runtime::kindui::LayoutMetrics;
 namespace PanelChromeNs = we::editor::panels::PanelChrome;
 
 namespace PropertyPanelChrome = we::runtime::kindui::PropertyPanelChrome;
@@ -91,7 +93,7 @@ void PaintSectionTitle(PaintContext& context, const Rect& bounds, std::string_vi
     const float padH = PropertyPanelChrome::RowPaddingH();
     context.DrawText(
         std::string(title),
-        Point{bounds.x + padH, bounds.y + (bounds.height - fontSize) * 0.5f},
+        Point{bounds.x + padH, LayoutMetrics::AlignTextTopY(bounds, fontSize)},
         ResolveColor(ColorToken::TextPrimary),
         fontSize,
         true);
@@ -138,7 +140,7 @@ void PaintChip(
     const float fontSize = ResolveMetric(MetricToken::TextSizeCaption) * UiScale();
     context.DrawText(
         std::string(label),
-        Point{textX, bounds.y + (bounds.height - fontSize) * 0.5f},
+        Point{textX, LayoutMetrics::AlignTextTopY(bounds, fontSize)},
         ResolveColor(ColorToken::TextPrimary),
         fontSize,
         false);
@@ -148,7 +150,7 @@ void PaintPropertyLabel(PaintContext& context, const Rect& bounds, std::string_v
     const float fontSize = ResolveMetric(MetricToken::TextSizeCaption) * UiScale();
     context.DrawText(
         std::string(label),
-        Point{bounds.x, bounds.y + (bounds.height - fontSize) * 0.5f},
+        Point{bounds.x, LayoutMetrics::AlignTextTopY(bounds, fontSize)},
         ResolveColor(ColorToken::TextSecondary),
         fontSize,
         false);
@@ -168,7 +170,7 @@ void PaintField(
     const float fontSize = ResolveMetric(MetricToken::TextSizeCaption) * UiScale();
     context.DrawText(
         std::string(value),
-        Point{bounds.x + ResolveMetric(MetricToken::Space2) * UiScale(), bounds.y + (bounds.height - fontSize) * 0.5f},
+        Point{bounds.x + ResolveMetric(MetricToken::Space2) * UiScale(), LayoutMetrics::AlignTextTopY(bounds, fontSize)},
         ResolveColor(ColorToken::TextPrimary),
         fontSize,
         false);
@@ -201,7 +203,7 @@ void PaintToggle(
     const float fontSize = ResolveMetric(MetricToken::TextSizeCaption) * UiScale();
     context.DrawText(
         std::string(label),
-        Point{track.x + track.width + 10.f, bounds.y + (bounds.height - fontSize) * 0.5f},
+        Point{track.x + track.width + 10.f, LayoutMetrics::AlignTextTopY(bounds, fontSize)},
         ResolveColor(ColorToken::TextPrimary),
         fontSize,
         false);
@@ -226,7 +228,7 @@ void PaintPrimaryButton(
     const float textW = context.GetTextWidth(std::string(label), fontSize, true);
     context.DrawText(
         std::string(label),
-        Point{bounds.x + (bounds.width - textW) * 0.5f, bounds.y + (bounds.height - fontSize) * 0.5f},
+        Point{bounds.x + (bounds.width - textW) * 0.5f, LayoutMetrics::AlignTextTopY(bounds, fontSize)},
         ResolveColor(ColorToken::TextOnAccent),
         fontSize,
         true);
@@ -250,7 +252,7 @@ void PaintSecondaryButton(
     const float textW = context.GetTextWidth(std::string(label), fontSize, false);
     context.DrawText(
         std::string(label),
-        Point{bounds.x + (bounds.width - textW) * 0.5f, bounds.y + (bounds.height - fontSize) * 0.5f},
+        Point{bounds.x + (bounds.width - textW) * 0.5f, LayoutMetrics::AlignTextTopY(bounds, fontSize)},
         ResolveColor(ColorToken::TextPrimary),
         fontSize,
         false);
@@ -272,7 +274,7 @@ void PaintDangerButton(
     const float textW = context.GetTextWidth(std::string(label), fontSize, true);
     context.DrawText(
         std::string(label),
-        Point{bounds.x + (bounds.width - textW) * 0.5f, bounds.y + (bounds.height - fontSize) * 0.5f},
+        Point{bounds.x + (bounds.width - textW) * 0.5f, LayoutMetrics::AlignTextTopY(bounds, fontSize)},
         ResolveColor(ColorToken::TextOnAccent),
         fontSize,
         true);
@@ -288,7 +290,7 @@ void PaintInfoValue(
     const float fontSize = ResolveMetric(MetricToken::TextSizeCaption) * UiScale();
     context.DrawText(
         std::string(value),
-        Point{bounds.x + LabelColumnWidth() + PropertyPanelChrome::ValueColumnGap(), bounds.y + (bounds.height - fontSize) * 0.5f},
+        Point{bounds.x + LabelColumnWidth() + PropertyPanelChrome::ValueColumnGap(), LayoutMetrics::AlignTextTopY(bounds, fontSize)},
         ResolveColor(ColorToken::TextPrimary),
         fontSize,
         false);

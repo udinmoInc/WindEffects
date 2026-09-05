@@ -165,11 +165,11 @@ float TabActiveIndicatorWidth() {
 }
 
 float TabIconSize() {
-    return static_cast<float>(16u);
+    return we::runtime::kindui::ResolveMetric(MetricToken::IconSizeToolbar);
 }
 
 float CloseGlyphSize() {
-    return we::runtime::kindui::ResolveMetric(MetricToken::IconSizeVerySmall) * UiScale();
+    return we::runtime::kindui::ResolveMetric(MetricToken::IconSizeWindowControl);
 }
 
 float TabGap() {
@@ -401,7 +401,7 @@ void PaintDockTab(
         itemX += iconSize + iconGap;
     }
 
-    const float titleY = std::floor(centerY - fontSize * 0.5f);
+    const float titleY = std::floor(::we::runtime::kindui::LayoutMetrics::AlignTextTopAtCenterY(centerY, fontSize));
     context.DrawText(
         tab.title,
         Point{ itemX, titleY },
@@ -410,7 +410,7 @@ void PaintDockTab(
         we::runtime::text::layout::FontWeight::Medium);
 
     if (showClose && !layout.closeRect.IsEmpty()) {
-        PaintHeaderIconButton(context, layout.closeRect, WindIcons::Close16, closeHovered, false, true);
+        PaintHeaderIconButton(context, layout.closeRect, WindIcons::X16, closeHovered, false, true);
     }
 }
 
@@ -491,7 +491,7 @@ void PaintFloatingPanelHeader(
     bool showClose = false;
     bool closeHovered = false;
     for (const auto& action : actions) {
-        if (action.icon.stem == WindIcons::Close16.stem && action.icon.sizePx == WindIcons::Close16.sizePx) {
+        if (action.icon.stem == WindIcons::X16.stem && action.icon.sizePx == WindIcons::X16.sizePx) {
             showClose = true;
             closeHovered = action.hovered;
             break;
@@ -507,13 +507,13 @@ void PaintFloatingPanelHeader(
     outOptionsMenuRect = {};
     if (showOptionsMenu) {
         outOptionsMenuRect = Rect{ actionX, std::floor(centerY - buttonSize * 0.5f), buttonSize, buttonSize };
-        PaintHeaderIconButton(context, outOptionsMenuRect, WindIcons::VerticalDots16, optionsMenuHovered, false);
+        PaintHeaderIconButton(context, outOptionsMenuRect, WindIcons::EllipsisVertical16, optionsMenuHovered, false);
         actionX += buttonSize + gap;
     }
 
     for (auto it = actions.rbegin(); it != actions.rend(); ++it) {
         const auto& action = *it;
-        if (action.icon.stem == WindIcons::Close16.stem && action.icon.sizePx == WindIcons::Close16.sizePx) {
+        if (action.icon.stem == WindIcons::X16.stem && action.icon.sizePx == WindIcons::X16.sizePx) {
             continue;
         }
         Rect actionRect{ actionX, std::floor(centerY - buttonSize * 0.5f), buttonSize, buttonSize };
@@ -789,7 +789,7 @@ void PaintHeaderIconButton(
     bool pressed,
     bool compactGlyph)
 {
-    const bool isClose = icon.stem == WindIcons::Close16.stem && icon.sizePx == WindIcons::Close16.sizePx;
+    const bool isClose = icon.stem == WindIcons::X16.stem && icon.sizePx == WindIcons::X16.sizePx;
     const float scale = UiScale();
     const float radius = we::runtime::kindui::ResolveMetric(MetricToken::IconButtonRadius) * scale;
 

@@ -197,7 +197,7 @@ void LauncherTitleBar::Paint(PaintContext& context) {
     PaintIconButton(context, m_HelpRect, WindIcons::CircleHelp16, m_HoverHelp);
     PaintIconButton(context, m_SettingsRect, WindIcons::Settings16, m_HoverSettings);
 
-    const WindIconRef icons[3] = { WindIcons::Minus16, WindIcons::Square16, WindIcons::Close16 };
+    const WindIconRef icons[3] = { WindIcons::Minus16, WindIcons::Square16, WindIcons::X16 };
     const Rect controls[3] = { m_MinRect, m_MaxRect, m_CloseRect };
     const float hovers[3] = { m_HoverMin, m_HoverMax, m_HoverClose };
     for (int i = 0; i < 3; ++i) {

@@ -18,8 +18,9 @@ void IconPainter::Draw(PaintContext& context, WindIconRef icon, const Rect& cont
     if (!icon.IsValid()) {
         return;
     }
-    const uint32_t drawPx = displayPx > 0 ? displayPx : icon.sizePx;
-    const Rect drawRect = IconMetrics::PlaceGlyphCentered(controlBounds, drawPx);
+    // Always draw at the authored pixel size — never rescale 24→16/12 etc.
+    (void)displayPx;
+    const Rect drawRect = IconMetrics::PlaceGlyphCentered(controlBounds, icon.sizePx);
     context.DrawWindIcon(icon, drawRect);
 }
 

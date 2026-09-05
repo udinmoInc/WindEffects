@@ -94,7 +94,7 @@ void StatusBar::Construct() {
     m_LeftBox->SetFlexShrink(0.0f);
 
     m_AssetsPanelButton = MakeDockControl(WindIcons::FolderSearch16, "Content Drawer", "Content Browser");
-    m_DiagnosticsPanelButton = MakeDockControl(WindIcons::Logs16, "Output Log", "Output Log");
+    m_DiagnosticsPanelButton = MakeDockControl(WindIcons::Console16, "Output Log", "Output Log");
 
     m_AssetsPanelButton->SetOnClicked([this]() { SelectPanelTab(0, true); });
     m_DiagnosticsPanelButton->SetOnClicked([this]() { SelectPanelTab(1, true); });
@@ -120,8 +120,8 @@ void StatusBar::Construct() {
     m_RightBox->SetFlexShrink(0.0f);
 
     m_OutputLogButton = MakeStatusIndicator("Source Control", "Source Control");
-    m_BuildMenuButton = MakeDockControl(WindIcons::InfoYellow16, "FPS", "Frame Rate");
-    m_TraceButton = MakeDockControl(WindIcons::AlertRed16, "Memory", "Memory Usage");
+    m_BuildMenuButton = MakeDockControl(WindIcons::Notifications16, "FPS", "Frame Rate");
+    m_TraceButton = MakeDockControl(WindIcons::Error16, "Memory", "Memory Usage");
     m_QualityMenuButton = MakeDockControl(WindIcons::ChevronUp16, "RHI", "Graphics API");
 
     m_RightBox->AddChild(m_OutputLogButton);

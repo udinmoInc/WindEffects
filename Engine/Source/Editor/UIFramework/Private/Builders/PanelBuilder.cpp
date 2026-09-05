@@ -45,7 +45,7 @@ PanelBuilder& PanelBuilder::Collapsible(bool collapsible) {
 }
 
 PanelBuilder& PanelBuilder::WithCloseButton(std::function<void()> onClose) {
-    m_Panel->AddHeaderAction(WindIcons::Close16, std::move(onClose));
+    m_Panel->AddHeaderAction(WindIcons::X16, std::move(onClose));
     return *this;
 }
 

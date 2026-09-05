@@ -4,47 +4,15 @@
 #include "Core/Logger.h"
 #include "KindUI/Rendering/OverlayRenderer.h"
 
-#include <algorithm>
 #include <cstdint>
-#include <format>
 #include <vector>
 
 namespace we::runtime::kindui {
 namespace {
 
-float ClassifyIconShaderType(const std::vector<uint8_t>& rgba, uint32_t width, uint32_t height) {
-    const size_t count = static_cast<size_t>(width) * static_cast<size_t>(height);
-    if (rgba.size() < count * 4u) {
-        return 0.0f;
-    }
-    size_t covered = 0;
-    size_t chromatic = 0;
-    int minL = 255;
-    int maxL = 0;
-    for (size_t i = 0; i < count; ++i) {
-        const uint8_t* p = rgba.data() + i * 4u;
-        if (p[3] < 24) {
-            continue;
-        }
-        ++covered;
-        const int mx = (std::max)({ p[0], p[1], p[2] });
-        const int mn = (std::min)({ p[0], p[1], p[2] });
-        if (mx - mn > 30) {
-            ++chromatic;
-        }
-        const int luma = (static_cast<int>(p[0]) + static_cast<int>(p[1]) + static_cast<int>(p[2])) / 3;
-        minL = (std::min)(minL, luma);
-        maxL = (std::max)(maxL, luma);
-    }
-    if (covered == 0) {
-        return 0.0f;
-    }
-    // Keep authored RGB when the glyph has accent color or inner dark/light structure.
-    if (chromatic * 4u > covered || (maxL - minL) > 48) {
-        return 4.0f;
-    }
-    return 0.0f;
-}
+// WindIcons PNGs ship with authored RGB (and alpha coverage). Always sample as
+// full-color — never mono-tint with theme IconPrimary/Secondary.
+constexpr float kWindIconFullColorShaderType = 4.0f;
 
 } // namespace
 
@@ -145,13 +113,13 @@ IconManager::CachedTexture* IconManager::LoadTexture(WindIconRef icon) const
     CachedTexture uploaded{};
     uploaded.width = width;
     uploaded.height = height;
-    uploaded.descriptorSet = m_Renderer->UploadRgbaTexture(width, height, rgba, false);
+    uploaded.descriptorSet = m_Renderer->UploadRgbaTexture(width, height, rgba, false, true);
     if (uploaded.descriptorSet == we::rhi::RHIDescriptorSetHandle::Invalid) {
         HE_ERROR("[Icons] Failed to upload WindIcon: " + path.string());
         return nullptr;
     }
     uploaded.ready = true;
-    uploaded.shaderType = ClassifyIconShaderType(rgba, width, height);
+    uploaded.shaderType = kWindIconFullColorShaderType;
     uploaded.sourceWriteTime = sourceWriteTime;
 
     std::scoped_lock lock(m_Mutex);

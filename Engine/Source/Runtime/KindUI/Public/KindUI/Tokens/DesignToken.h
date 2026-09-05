@@ -275,12 +275,12 @@ enum class MetricToken : uint32_t {
     LabelHintGap,         // gap between label and hint in a form row
     NavigationButtonSize,
     IconSizeSearch,
-    IconSizeToolbar,       // small inline glyphs (16px tier)
+    IconSizeToolbar,       // default UI icons (16px authored)
     IconSizePrimary,
     IconSizeTree,
     IconSizeNavigation,
-    IconSizeVerySmall,     // title-bar min / max / close (12px display)
-    IconSizeWindowControl, // alias tier for window chrome glyphs
+    IconSizeVerySmall,     // close / compact chrome (16px authored)
+    IconSizeWindowControl, // system nav min/max/close (16px authored)
     IconButtonRadius,
     ButtonPaddingHorizontal,
     ButtonSpacing,

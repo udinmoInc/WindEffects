@@ -61,5 +61,17 @@ KINDUI_API void ConfigurePropertyFormColumn(Column& column);
 /// Minimum width for equal-width chip/action rows in tool panels.
 [[nodiscard]] KINDUI_API float FormChipButtonMinWidth();
 
+/// Roboto wefont face metrics: lineHeight / bakeSize (32 / 24).
+inline constexpr float kTextLineHeightRatio = 32.0f / 24.0f;
+
+/// Layout line box height for a DrawText fontSize (matches TextLayoutEngine).
+[[nodiscard]] KINDUI_API float TextLineHeight(float fontSizePx);
+
+/// Top Y for PaintContext::DrawText so the line box is vertically centered in bounds.
+[[nodiscard]] KINDUI_API float AlignTextTopY(const Rect& bounds, float fontSizePx);
+
+/// Top Y for DrawText centered on a horizontal midline (toolbar / tab chrome).
+[[nodiscard]] KINDUI_API float AlignTextTopAtCenterY(float centerY, float fontSizePx);
+
 } // namespace LayoutMetrics
 } // namespace we::runtime::kindui

@@ -60,7 +60,7 @@ float SearchInputFontSize() {
 }
 
 float SearchInputIconSize() {
-    return ResolveMetric(MetricToken::IconSizeSearch) * UiScale();
+    return ResolveMetric(MetricToken::IconSizeSearch);
 }
 
 Rect LayoutSearchInputRect(const Rect& allottedRect) {
@@ -175,6 +175,19 @@ void ConfigurePropertyFormColumn(Column& column) {
 float FormChipButtonMinWidth() {
     return ResolveMetric(MetricToken::PrimaryButtonHeight) * UiScale()
         + ResolveMetric(MetricToken::Space2) * UiScale() * 2.0f;
+}
+
+float TextLineHeight(float fontSizePx) {
+    return std::max(1.0f, fontSizePx) * kTextLineHeightRatio;
+}
+
+float AlignTextTopY(const Rect& bounds, float fontSizePx) {
+    const float lineH = TextLineHeight(fontSizePx);
+    return bounds.y + (bounds.height - lineH) * 0.5f;
+}
+
+float AlignTextTopAtCenterY(float centerY, float fontSizePx) {
+    return centerY - TextLineHeight(fontSizePx) * 0.5f;
 }
 
 } // namespace we::runtime::kindui::LayoutMetrics

@@ -52,7 +52,7 @@ WindIconRef ResolveItemIcon(const ContentItem& item) {
     if (item.icon.IsValid()) {
         return item.icon;
     }
-    return item.isFolder ? WindIcons::FolderClosed16 : WindIcons::Square16;
+    return item.isFolder ? WindIcons::Folder24 : WindIcons::Square16;
 }
 }
 
@@ -290,14 +290,7 @@ void ContentBrowser::PaintAssetThumbnail(PaintContext& context, const Rect& thum
     (void)hovered;
 
     if (item.isFolder) {
-        const float iconSize = std::min(thumbRect.width, thumbRect.height) * 0.42f;
-        Rect iconRect{
-            thumbRect.x + (thumbRect.width - iconSize) * 0.5f,
-            thumbRect.y + (thumbRect.height - iconSize) * 0.5f,
-            iconSize, iconSize
-        };
-        const WindIconRef folderIcon = ResolveItemIcon(item);
-        IconPainter::Draw(context, folderIcon, iconRect);
+        ContentBrowserFolderArt::Get().PaintThumbnail(context, thumbRect, hovered);
         return;
     }
 
@@ -430,7 +423,7 @@ void ContentBrowser::PaintListItem(PaintContext& context, const RenderItem& rend
     Rect iconRect{ iconX, iconY, iconSize, iconSize };
 
     if (item.isFolder) {
-        IconPainter::Draw(context, ResolveItemIcon(item), IconMetrics::PlaceGlyphCentered(iconRect, 16u));
+        ContentBrowserFolderArt::Get().PaintSmallIcon(context, iconRect, hovered, false);
     } else if (IsBlueprintItem(item)) {
         ContentBrowserBlueprintArt::Get().PaintSmallIcon(context, iconRect, hovered);
     } else if (item.iconTexture != we::rhi::RHIDescriptorSetHandle::Invalid) {
@@ -894,12 +887,11 @@ void Breadcrumb::Paint(PaintContext& context) {
     const float iconSize = ThemeMetric(MetricToken::IconSizeTree);
     const float padH = ThemeMetric(MetricToken::Space3);
     const float iconY = m_Geometry.y + (m_Geometry.height - iconSize) * 0.5f;
-    IconPainter::Draw(
+    ContentBrowserFolderArt::Get().PaintSmallIcon(
         context,
-        WindIcons::FolderClosed16,
-        IconMetrics::PlaceGlyphCentered(
-            we::runtime::kindui::Rect{ m_Geometry.x + padH, iconY, iconSize, iconSize },
-            16u));
+        we::runtime::kindui::Rect{ m_Geometry.x + padH, iconY, iconSize, iconSize },
+        false,
+        false);
 
     const float textSize = ThemeMetric(MetricToken::TextSizeNormal);
     const float crumbPadH = ThemeMetric(MetricToken::Space2);

@@ -59,7 +59,7 @@ std::shared_ptr<::we::editor::contentbrowser::TreeNode> BuildFolderNode(const As
     node->id = folder->id;
     node->label = folder->name;
     node->expanded = folder->virtualPath == "/Game";
-    node->icon = node->expanded ? WindIcons::FolderOpened16 : WindIcons::FolderClosed16;
+    node->icon = node->expanded ? WindIcons::FolderOpen24 : WindIcons::Folder24;
 
     for (const auto* child : ContentAssetRegistry::Get().GetChildren(folder->virtualPath)) {
         if (child->isFolder) node->children.push_back(BuildFolderNode(child));
@@ -73,12 +73,12 @@ void RefreshFolderTree(const std::shared_ptr<::we::editor::contentbrowser::TreeV
     root->label = "Content";
     root->expanded = true;
 
-    root->children.push_back(MakeSection("__favorites__", "Favorites", WindIcons::Check16));
-    root->children.push_back(MakeSection("__collections__", "Collections", WindIcons::FolderPlus16));
-    root->children.push_back(MakeSection("__plugins__", "Plugins", WindIcons::Wrench16));
-    root->children.push_back(MakeSection("__engine__", "Engine Content", WindIcons::Globe16, false));
+    root->children.push_back(MakeSection("__favorites__", "Favorites", WindIcons::Star24));
+    root->children.push_back(MakeSection("__collections__", "Collections", WindIcons::Folder24));
+    root->children.push_back(MakeSection("__plugins__", "Plugins", WindIcons::Plugin24));
+    root->children.push_back(MakeSection("__engine__", "Engine Content", WindIcons::Globe24, false));
 
-    auto project = MakeSection("__project__", "Project Content", WindIcons::Box16, true);
+    auto project = MakeSection("__project__", "Project Content", WindIcons::Folder24, true);
     if (const auto* game = ContentAssetRegistry::Get().FindByVirtualPath("/Game")) {
         project->children.push_back(BuildFolderNode(game));
     }

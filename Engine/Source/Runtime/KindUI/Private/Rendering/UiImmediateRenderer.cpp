@@ -471,7 +471,8 @@ we::rhi::RHIDescriptorSetHandle UiImmediateRenderer::UploadRgbaTexture(
     uint32_t width,
     uint32_t height,
     std::span<const uint8_t> rgba,
-    bool linearFilter)
+    bool linearFilter,
+    bool srgb)
 {
     std::lock_guard lock(m_Mutex);
     if (!m_Device || width == 0 || height == 0
@@ -481,9 +482,10 @@ we::rhi::RHIDescriptorSetHandle UiImmediateRenderer::UploadRgbaTexture(
 
     we::rhi::TextureDesc texDesc{};
     texDesc.extent = {width, height, 1};
-    texDesc.format = we::rhi::Format::R8G8B8A8_UNORM;
+    // WindIcons / authored UI bitmaps are sRGB; sample as linear for the sRGB swapchain.
+    texDesc.format = srgb ? we::rhi::Format::R8G8B8A8_SRGB : we::rhi::Format::R8G8B8A8_UNORM;
     texDesc.usage = we::rhi::TextureUsage::Sampled | we::rhi::TextureUsage::TransferDst;
-    texDesc.debugName = "UiImmediate.Atlas";
+    texDesc.debugName = srgb ? "UiImmediate.IconSrgb" : "UiImmediate.Atlas";
     auto tex = m_Device->CreateTexture(texDesc);
     if (!tex) {
         return we::rhi::RHIDescriptorSetHandle::Invalid;

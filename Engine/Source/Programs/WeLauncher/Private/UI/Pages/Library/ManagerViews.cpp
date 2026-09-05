@@ -418,7 +418,7 @@ void ProjectTableRow::Paint(PaintContext& context) {
     PaintIconButton(
         context,
         MoreRect(),
-        WindIcons::VerticalDots16,
+        WindIcons::EllipsisVertical16,
         m_HoverZone == HitZone::More,
         false,
         radius);

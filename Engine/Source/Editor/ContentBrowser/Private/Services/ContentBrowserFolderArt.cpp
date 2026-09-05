@@ -2,9 +2,30 @@
 
 #include "KindUI/Core/WindIcon.h"
 #include "KindUI/Core/PaintContext.h"
+#include "KindUI/Rendering/IconMetrics.h"
+#include "KindUI/Theming/ThemeAccess.h"
+#include "KindUI/Tokens/DesignToken.h"
+
+#include <algorithm>
 
 namespace we::editor::contentbrowser {
 namespace kindui = ::we::runtime::kindui;
+namespace WindIcons = ::we::runtime::kindui::WindIcons;
+
+namespace {
+
+kindui::Color FolderTint(bool hovered) {
+    kindui::Color tint = kindui::ResolveColor(kindui::ColorToken::ContentBrowserFolderPrimary);
+    if (hovered) {
+        tint = kindui::Color::Pick(
+            tint,
+            kindui::ResolveColor(kindui::ColorToken::ContentBrowserFolderTab),
+            0.4f);
+    }
+    return tint;
+}
+
+} // namespace
 
 ContentBrowserFolderArt& ContentBrowserFolderArt::Get() {
     static ContentBrowserFolderArt instance;
@@ -41,10 +62,12 @@ void ContentBrowserFolderArt::PaintFolderIcon(
     bool hovered,
     bool opened) const
 {
-    (void)context;
-    (void)folderRect;
-    (void)hovered;
-    (void)opened;
+    // Sidebar / list: authored folder / folder-open at tree tier (24).
+    const kindui::WindIconRef icon = opened ? WindIcons::FolderOpen24 : WindIcons::Folder24;
+    if (!icon.IsValid()) {
+        return;
+    }
+    context.DrawWindIcon(icon, folderRect, FolderTint(hovered));
 }
 
 void ContentBrowserFolderArt::PaintThumbnail(
@@ -52,8 +75,13 @@ void ContentBrowserFolderArt::PaintThumbnail(
     const we::runtime::kindui::Rect& thumbRect,
     bool hovered) const
 {
+    // Grid thumbnails: authored content-folder_512 art (scaled into the slot).
     const we::runtime::kindui::Rect folderRect = ComputeFolderRect(thumbRect);
-    PaintFolderIcon(context, folderRect, hovered, false);
+    if (!WindIcons::ContentFolder512.IsValid()) {
+        PaintFolderIcon(context, folderRect, hovered, false);
+        return;
+    }
+    context.DrawWindIcon(WindIcons::ContentFolder512, folderRect, FolderTint(hovered));
 }
 
 void ContentBrowserFolderArt::PaintSmallIcon(

@@ -175,7 +175,7 @@ Rect SearchBox::GetTextRect() const {
     const float clearW = m_Text.empty() ? 0.0f : (iconSize + padH);
     return Rect{
         m_Geometry.x + iconWidth,
-        m_Geometry.y + (m_Geometry.height - fontSize) * 0.5f,
+        LayoutMetrics::AlignTextTopY(m_Geometry, fontSize),
         std::max(0.0f, m_Geometry.width - iconWidth - clearW),
         fontSize
     };

@@ -55,7 +55,7 @@ public:
         const float scale = std::max(1.0f, DPIContext::GetScale());
         const float fontSize = ResolveMetric(MetricToken::TextSizeCategory) * scale;
         // Match form-row label left edge (column padding already applied).
-        const float textY = m_TitleBand.y + (m_TitleBand.height - fontSize) * 0.5f;
+        const float textY = LayoutMetrics::AlignTextTopY(m_TitleBand, fontSize);
         context.DrawText(
             m_Title,
             Point{ m_TitleBand.x, textY },

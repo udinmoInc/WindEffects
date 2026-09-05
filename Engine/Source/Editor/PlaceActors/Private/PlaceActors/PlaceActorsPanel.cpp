@@ -251,7 +251,7 @@ void PlaceActorsPanel::BuildQuickAccessCategory(const std::string& query) {
     PlaceActorsCategoryData quick;
     quick.id = kQuickAccessCategoryId;
     quick.label = "Quick Access";
-    quick.icon = WindIcons::PlusCircle16;
+    quick.icon = WindIcons::CirclePlus16;
     quick.defaultExpanded = true;
     quick.items = std::move(items);
     m_CategoryExpanded[quick.id] = true;

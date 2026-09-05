@@ -695,10 +695,25 @@ void UIWidgetAdapter::GenerateIconGeometry(const DrawCommand& cmd) {
 
     m_CurrentTextureSet = drawInfo.descriptorSet;
 
-    const float w = cmd.rect.width > 0.0f ? cmd.rect.width : static_cast<float>(icon.sizePx);
-    const float h = cmd.rect.height > 0.0f ? cmd.rect.height : static_cast<float>(icon.sizePx);
+    // Prefer authored slot size, but fit large assets (e.g. content-folder_512) into the command rect.
+    float w = static_cast<float>(icon.sizePx > 0 ? icon.sizePx : drawInfo.sizePx);
+    float h = w;
+    if (cmd.rect.width > 0.5f && cmd.rect.height > 0.5f) {
+        const float maxSide = std::min(cmd.rect.width, cmd.rect.height);
+        if (maxSide + 0.5f < w) {
+            w = maxSide;
+            h = maxSide;
+        }
+    }
     const float x = SnapPx(cmd.rect.x + (cmd.rect.width - w) * 0.5f);
     const float y = SnapPx(cmd.rect.y + (cmd.rect.height - h) * 0.5f);
+
+    // Near-white tint → full-color sample (type 4). Any other tint → mono alpha coverage (type 0)
+    // so white folder glyphs can take Content Browser amber without uploading mid-paint.
+    const Color tint = cmd.color.a > 0.0f ? cmd.color : Color::White();
+    const bool monoTint =
+        tint.r < 0.98f || tint.g < 0.98f || tint.b < 0.98f;
+    const float shaderType = monoTint ? 0.0f : 4.0f;
 
     auto emitQuad = [&](float px, float py, const Color& color, float type) {
         UIVertex2 v0{
@@ -742,15 +757,7 @@ void UIWidgetAdapter::GenerateIconGeometry(const DrawCommand& cmd) {
         AddOrMergeBatch(6);
     };
 
-    // 1px downward contact silhouette — tonal separation, not a box/glow.
-    const Color contact = ResolveColor(ColorToken::IconContactShadow);
-    if (contact.a > 0.01f) {
-        constexpr float coverageType = 0.0f;
-        emitQuad(x, y + 1.0f, contact, coverageType);
-    }
-
-    const Color color = cmd.color.a > 0.0f ? cmd.color : ResolveColor(ColorToken::IconPrimary);
-    emitQuad(x, y, color, drawInfo.shaderType);
+    emitQuad(x, y, tint, shaderType);
 }
 
 void UIWidgetAdapter::GenerateLineGeometry(const DrawCommand& cmd) {

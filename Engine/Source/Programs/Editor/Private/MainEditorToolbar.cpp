@@ -3,7 +3,6 @@
 #include "EditorShellBuilder.h"
 #include "ViewportNavigationPreferences.h"
 #include "Widgets/EditorModeSelector.h"
-#include "Environment/EnvironmentEditorApi.h"
 
 #include "Widgets/Toolbar.h"
 #include "Widgets/ToolbarBuilder.h"
@@ -54,19 +53,23 @@ std::shared_ptr<::we::runtime::kindui::Widget> BuildMainEditorToolbar(
         .RightInset(rightInset)
         .EdgePadding(edgePadding);
 
+    // 1) Editor mode
     builder.AddWidget(modeSelector);
     builder.Separator();
 
+    // 2) File — authored document / folder / save glyphs (not circle-plus)
     builder.Group(ToolbarAlignment::Left, ToolbarGroupStyle::Transparent, [&](ToolbarBuilder& file) {
         if (deps.onCreateNewLevel) {
-            file.IconItem(WindIcons::PlusCircle16, "New Level (Ctrl+N)", deps.onCreateNewLevel);
+            file.IconItem(WindIcons::Document16, "New Level (Ctrl+N)", deps.onCreateNewLevel);
         }
         if (deps.onOpenProject) {
-            file.IconItem(WindIcons::FolderOpened16, "Open (Ctrl+O)", deps.onOpenProject);
+            file.IconItem(WindIcons::FolderOpen16, "Open Project (Ctrl+O)", deps.onOpenProject);
         }
+        file.IconItem(WindIcons::Save16, "Save Level (Ctrl+S)", []() {});
     });
     builder.Separator();
 
+    // 3) History
     builder.Group(ToolbarAlignment::Left, ToolbarGroupStyle::Transparent, [&](ToolbarBuilder& history) {
         if (deps.onUndo) {
             history.IconItem(WindIcons::Undo16, "Undo (Ctrl+Z)", deps.onUndo);
@@ -77,28 +80,24 @@ std::shared_ptr<::we::runtime::kindui::Widget> BuildMainEditorToolbar(
     });
     builder.Separator();
 
+    // 4) Play-in-editor — triangle play + square stop (not fast-forward / ban)
     builder.Group(ToolbarAlignment::Left, ToolbarGroupStyle::Transparent, [&](ToolbarBuilder& play) {
-        play.IconItem(WindIcons::PlayGreen16, "Play (PIE)", []() {}, [](const std::shared_ptr<ToolButton>& btn) {
+        play.IconItem(WindIcons::TriangleRight16, "Play (PIE)", []() {}, [](const std::shared_ptr<ToolButton>& btn) {
             btn->SetButtonStyle(ToolButtonStyle::PlayButton);
         });
-        play.IconItem(WindIcons::StopSolid16, "Pause", []() {}, [](const std::shared_ptr<ToolButton>& btn) {
-            btn->SetButtonStyle(ToolButtonStyle::TransportButton);
-        });
-        play.IconItem(WindIcons::StopSolid16, "Stop", []() {}, [](const std::shared_ptr<ToolButton>& btn) {
+        play.IconItem(WindIcons::Square16, "Stop", []() {}, [](const std::shared_ptr<ToolButton>& btn) {
             btn->SetButtonStyle(ToolButtonStyle::TransportButton);
         });
     });
-    builder.Separator();
 
-    builder.AddWidget(::we::editor::environment::CreateEnvironmentToolbarMenu());
-
+    // Right chrome: panels / project / settings
     builder.Right([&](ToolbarBuilder& right) {
         if (deps.windowsPanelMenu) {
             right.AddWidget(deps.windowsPanelMenu);
         }
         if (deps.onOpenProjectManager) {
             right.DropdownItem(
-                WindIcons::FolderClosed16,
+                WindIcons::Documents16,
                 "Project",
                 deps.onOpenProjectManager,
                 "Project Manager");

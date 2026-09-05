@@ -21,7 +21,7 @@ struct IconDrawInfo {
     we::rhi::RHIDescriptorSetHandle descriptorSet = we::rhi::RHIDescriptorSetHandle::Invalid;
     float uvMin[2] = {0.0f, 0.0f};
     float uvMax[2] = {1.0f, 1.0f};
-    float shaderType = 0.0f; // 0 = mono alpha tint, 4 = full-color
+    float shaderType = 4.0f; // WindIcons are authored full-color (no mono tint)
     uint32_t sizePx = 0;
     bool valid = false;
 };
@@ -43,7 +43,7 @@ private:
         we::rhi::RHIDescriptorSetHandle descriptorSet = we::rhi::RHIDescriptorSetHandle::Invalid;
         uint32_t width = 0;
         uint32_t height = 0;
-        float shaderType = 0.0f;
+        float shaderType = 4.0f;
         bool ready = false;
         std::filesystem::file_time_type sourceWriteTime{};
     };

@@ -128,10 +128,14 @@ float4 PSMain(VSOutput input) : SV_Target
         return float4(input.color.rgb, 1.0);
     }
 
-    // Type 4.0 is a full-color texture (viewport / render targets) — no tint multiply.
+    // Type 4.0 is a full-color texture (WindIcons / viewports).
+    // Sample authored RGB+A; never replace RGB with vertex tint.
+    // Vertex alpha still scales coverage for fades.
     if (type > 3.5 && type < 4.5)
     {
-        return texSampler.Sample(samp0, input.uv);
+        float4 texColor = texSampler.Sample(samp0, input.uv);
+        texColor.a *= input.color.a;
+        return texColor;
     }
 
     // Type 1.0 is Rect, Type 2.0 is Border

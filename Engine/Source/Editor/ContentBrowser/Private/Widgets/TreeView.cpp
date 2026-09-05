@@ -17,6 +17,7 @@
 #include "KindUI/Input/InputEvents.h"
 #include "KindUI/Core/ControlChrome.h"
 #include "KindUI/Rendering/IconMetrics.h"
+#include "KindUI/Core/LayoutMetrics.h"
 #include "KindUI/Profiling/UiGeometryDebug.h"
 #include "WindEffects/Editor/UI/Layout/EditorMetrics.h"
 #include "Text/Layout/TextStyle.h"
@@ -37,6 +38,7 @@ namespace WindIcons = ::we::runtime::kindui::WindIcons;
 using ::we::runtime::kindui::kWindIconNone;
 using ::we::runtime::kindui::WindIconRef;
 namespace IconMetrics = ::we::runtime::kindui::IconMetrics;
+namespace LayoutMetrics = ::we::runtime::kindui::LayoutMetrics;
 namespace PanelChrome = ::we::editor::panels::PanelChrome;
 namespace ControlChrome = ::we::runtime::kindui::ControlChrome;
 using ::we::runtime::kindui::DPIContext;
@@ -72,14 +74,25 @@ float TreeUiScale() {
 }
 
 void PaintTreeNodeIcon(PaintContext& context, const TreeNode& node, const Rect& iconRect, bool hovered) {
-    (void)hovered;
     if (node.iconTexture != we::rhi::RHIDescriptorSetHandle::Invalid) {
         context.DrawTexture(iconRect, node.iconTexture);
         return;
     }
-    if (node.icon.IsValid()) {
-        IconPainter::Draw(context, node.icon, iconRect);
+    if (!node.icon.IsValid()) {
+        return;
     }
+
+    const bool isFolder =
+        node.icon.stem == WindIcons::Folder24.stem
+        || node.icon.stem == WindIcons::FolderOpen24.stem;
+    if (isFolder) {
+        const bool opened =
+            node.expanded || node.icon.stem == WindIcons::FolderOpen24.stem;
+        ContentBrowserFolderArt::Get().PaintSmallIcon(context, iconRect, hovered, opened);
+        return;
+    }
+
+    IconPainter::Draw(context, node.icon, iconRect);
 }
 
 struct TreeMenuItem {
@@ -306,7 +319,7 @@ TreeView::TreeRowLayoutSlots TreeView::ComputeTreeRowLayout(const RenderItem& it
 
     const float contentSlotX = layout.indentX + expanderWidth + ThemeMetric(MetricToken::SpaceXS) * uiScale;
 
-    const float iconSize = static_cast<float>(16u);
+    const float iconSize = ThemeMetric(MetricToken::IconSizeTree);
     const bool hasIcon = item.node->icon.IsValid() || item.node->iconTexture != we::rhi::RHIDescriptorSetHandle::Invalid;
     layout.hasIcon = hasIcon;
     if (hasIcon) {
@@ -470,7 +483,7 @@ void TreeView::Paint(PaintContext& context) {
         }
 
         // Node Label Text (With Search Highlighting & Text Clipping)
-        const float textY = layout.rowBounds.y + (rowHeight - fontSize) * 0.5f;
+        const float textY = LayoutMetrics::AlignTextTopY(layout.rowBounds, fontSize);
         Color textColor = node->locked ? ThemeColor(ColorToken::TextSecondary) : ThemeColor(ColorToken::TextPrimary);
         if (!node->visible) {
             textColor = ThemeColor(ColorToken::TextDisabled);
@@ -971,10 +984,10 @@ void TreeView::ToggleExpand(const std::string& id) {
         node->expanded = !node->expanded;
         if (node->icon.IsValid()) {
             const bool isFolderGlyph =
-                node->icon.stem == WindIcons::FolderClosed16.stem
-                || node->icon.stem == WindIcons::FolderOpened16.stem;
+                node->icon.stem == WindIcons::Folder24.stem
+                || node->icon.stem == WindIcons::FolderOpen24.stem;
             if (isFolderGlyph) {
-                node->icon = node->expanded ? WindIcons::FolderOpened16 : WindIcons::FolderClosed16;
+                node->icon = node->expanded ? WindIcons::FolderOpen24 : WindIcons::Folder24;
             }
         }
     }

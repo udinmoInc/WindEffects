@@ -19,13 +19,13 @@ void ActivateTool(ViewportToolId tool) {
 REGISTER_EDITOR_TOOL(SelectEssentials, SelectTool, "Select", WindIcons::BoxSolid16, "Q", []() {
     ActivateTool(ViewportToolId::Select);
 })
-REGISTER_EDITOR_TOOL(SelectEssentials, MoveTool, "Move", WindIcons::AdjustmentHorizontal16, "W", []() {
+REGISTER_EDITOR_TOOL(SelectEssentials, MoveTool, "Move", WindIcons::AdjustHorizon16, "W", []() {
     ActivateTool(ViewportToolId::Move);
 })
 REGISTER_EDITOR_TOOL(SelectEssentials, RotateTool, "Rotate", WindIcons::RedoAlt16, "E", []() {
     ActivateTool(ViewportToolId::Rotate);
 })
-REGISTER_EDITOR_TOOL(SelectEssentials, ScaleTool, "Scale", WindIcons::Scaling16, "R", []() {
+REGISTER_EDITOR_TOOL(SelectEssentials, ScaleTool, "Scale", WindIcons::ToolbarScaling16, "R", []() {
     ActivateTool(ViewportToolId::Scale);
 })
 

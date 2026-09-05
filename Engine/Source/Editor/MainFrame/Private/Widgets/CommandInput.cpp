@@ -2,6 +2,7 @@
 #include "Widgets/CommandInput.h"
 #include "KindUI/Core/EventSystem.h"
 #include "KindUI/Core/PaintContext.h"
+#include "KindUI/Core/LayoutMetrics.h"
 #include "KindUI/Core/DPIContext.h"
 #include "KindUI/Rendering/IconMetrics.h"
 #include "KindUI/Tokens/DesignToken.h"
@@ -24,6 +25,7 @@ using ::we::runtime::kindui::IconPainter;
 namespace WindIcons = ::we::runtime::kindui::WindIcons;
 using ::we::runtime::kindui::kWindIconNone;
 namespace IconMetrics = ::we::runtime::kindui::IconMetrics;
+namespace LayoutMetrics = ::we::runtime::kindui::LayoutMetrics;
 namespace ControlChrome = ::we::runtime::kindui::ControlChrome;
 using ::we::runtime::kindui::KeyCodeToChar;
 
@@ -76,7 +78,7 @@ void CommandInput::Paint(PaintContext& context) {
 
     const float textX = m_Geometry.x + padH + iconSize + ThemeMetric(MetricToken::Space1);
     const float fontSize = ThemeMetric(MetricToken::TextSizeSmall);
-    const float textY = m_Geometry.y + (m_Geometry.height - fontSize) / 2.0f;
+    const float textY = LayoutMetrics::AlignTextTopY(m_Geometry, fontSize);
 
     if (m_Text.empty() && !IsFocused()) {
         context.DrawText(m_Placeholder, Point{ textX, textY }, ThemeColor(ColorToken::SearchPlaceholder), fontSize);

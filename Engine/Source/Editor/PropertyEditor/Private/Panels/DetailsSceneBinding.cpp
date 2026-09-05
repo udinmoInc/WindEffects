@@ -26,14 +26,14 @@ WindIconRef IconForEntity(const Entity& entity) {
     case EntityType::SkyLight:
         return WindIcons::Sun16;
     case EntityType::SkyAtmosphere:
-        return WindIcons::WorldGlobe16;
+        return WindIcons::Earth16;
     case EntityType::VolumetricClouds:
     case EntityType::HeightFog:
         return WindIcons::Cloud16;
     case EntityType::Landscape:
-        return WindIcons::Grid3x316;
+        return WindIcons::Grid16;
     case EntityType::EmptyActor:
-        return WindIcons::FolderClosed16;
+        return WindIcons::Folder16;
     default:
         return kWindIconNone;
     }

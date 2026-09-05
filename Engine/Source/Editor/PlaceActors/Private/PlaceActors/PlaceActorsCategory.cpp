@@ -8,6 +8,7 @@
 #include "KindUI/Core/WindIcon.h"
 #include "KindUI/Core/Icon.h"
 #include "KindUI/Core/DPIContext.h"
+#include "KindUI/Core/LayoutMetrics.h"
 
 #include <algorithm>
 
@@ -40,7 +41,7 @@ void PlaceActorsCategory::PaintSectionBackground(PaintContext& context, const Re
 void PlaceActorsCategory::PaintEmptyState(PaintContext& context, const Rect& bounds, const std::string& message) {
     const float fontSize = we::runtime::kindui::ResolveMetric(MetricToken::TextSizeSmall);
     const float x = bounds.x + ActorsPanelLayout::ContentPadH();
-    const float y = bounds.y + (bounds.height - fontSize) * 0.5f;
+    const float y = ::we::runtime::kindui::LayoutMetrics::AlignTextTopY(bounds, fontSize);
     context.DrawText(message, Point{ x, y }, we::runtime::kindui::ResolveColor(ColorToken::TextSecondary), fontSize);
 }
 
@@ -90,7 +91,7 @@ void PlaceActorsCategory::PaintHeader(PaintContext& context,
         : we::runtime::kindui::ResolveColor(ColorToken::TextSecondary);
     context.DrawText(
         label,
-        Point{ cursorX, centerY - fontSize * 0.5f },
+        Point{ cursorX, ::we::runtime::kindui::LayoutMetrics::AlignTextTopAtCenterY(centerY, fontSize) },
         titleColor,
         fontSize,
         emphasize);

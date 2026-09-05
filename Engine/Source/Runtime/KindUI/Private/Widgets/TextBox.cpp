@@ -51,7 +51,7 @@ void TextBox::Paint(PaintContext& context) {
     const ResolvedStyle style = ThemeManager::Get().Resolve(StyleRole::Input);
     const float pad = ResolveMetric(MetricToken::Space2);
     const float textX = m_Geometry.x + pad;
-    const float textY = m_Geometry.y + (m_Geometry.height - style.fontSize) * 0.5f;
+    const float textY = LayoutMetrics::AlignTextTopY(m_Geometry, style.fontSize);
 
     const auto& text = m_Session->Text();
     const auto sel = m_Session->Caret().Selection();
