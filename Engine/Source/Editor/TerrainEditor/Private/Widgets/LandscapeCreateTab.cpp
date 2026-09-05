@@ -29,7 +29,7 @@ void BuildCreateTab(const std::shared_ptr<we::runtime::kindui::Column>& layout, 
     };
 
     AddFormChipRow(layout, {
-        {"Flat", WindIcons::Grid3x316, dialog.generatorId == runtime_terrain::TerrainGeneratorId::Flat
+        {"Flat", WindIcons::Grid16, dialog.generatorId == runtime_terrain::TerrainGeneratorId::Flat
             && dialog.creationMethod != runtime_terrain::TerrainCreationMethod::HeightmapImport,
             selectGen(runtime_terrain::TerrainGeneratorId::Flat,
                 runtime_terrain::TerrainCreationMethod::Flat)},

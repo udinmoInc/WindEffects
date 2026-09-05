@@ -7,6 +7,7 @@
 #include "KindUI/Core/DPIContext.h"
 #include "KindUI/Core/Animator.h"
 #include "KindUI/Rendering/IconMetrics.h"
+#include "KindUI/Core/LayoutMetrics.h"
 #include "KindUI/Tokens/DesignSystem.h"
 #include "KindUI/Tokens/DesignToken.h"
 #include "KindUI/Theming/ThemeAccess.h"
@@ -26,6 +27,7 @@ using ::we::runtime::kindui::MouseButton;
 using ::we::runtime::kindui::WindIconRef;
 namespace WindIcons = ::we::runtime::kindui::WindIcons;
 namespace IconMetrics = ::we::runtime::kindui::IconMetrics;
+namespace LayoutMetrics = ::we::runtime::kindui::LayoutMetrics;
 namespace ToolbarButtonChrome = ::we::runtime::kindui::ToolbarButtonChrome;
 
 namespace {
@@ -328,7 +330,7 @@ void ToolButton::Paint(PaintContext& context) {
             }
             context.DrawText(
                 m_Label,
-                Point{ currentX, centerY - textSize * 0.5f },
+                Point{ currentX, LayoutMetrics::AlignTextTopAtCenterY(centerY, textSize) },
                 textColor,
                 textSize,
                 we::runtime::text::layout::FontWeight::Medium);
@@ -360,7 +362,7 @@ void ToolButton::Paint(PaintContext& context) {
             Color textColor = ResolveInteractiveTextColor(m_HoverAnim, pressStrength, false);
             context.DrawText(
                 m_Label,
-                Point{ currentX, centerY - textSize * 0.5f },
+                Point{ currentX, LayoutMetrics::AlignTextTopAtCenterY(centerY, textSize) },
                 textColor,
                 textSize,
                 we::runtime::text::layout::FontWeight::Medium);
@@ -394,7 +396,7 @@ void ToolButton::Paint(PaintContext& context) {
             Color textColor = ResolveInteractiveTextColor(m_HoverAnim, pressStrength, m_Active);
             context.DrawText(
                 m_Label,
-                Point{ currentX, centerY - textSize * 0.5f },
+                Point{ currentX, LayoutMetrics::AlignTextTopAtCenterY(centerY, textSize) },
                 textColor,
                 textSize,
                 we::runtime::text::layout::FontWeight::Medium);
@@ -445,7 +447,7 @@ void ToolButton::Paint(PaintContext& context) {
             Color textColor = ToolbarButtonChrome::ResolveIconColor(m_HoverAnim, pressStrength, m_Active);
             context.DrawText(
                 m_Label,
-                Point{ currentX, centerY - textSize / 2.0f },
+                Point{ currentX, LayoutMetrics::AlignTextTopAtCenterY(centerY, textSize) },
                 textColor,
                 textSize,
                 we::runtime::text::layout::FontWeight::Medium);

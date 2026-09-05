@@ -11,8 +11,8 @@ class PaintContext;
 
 class KINDUI_API IconPainter {
 public:
-    /// Draw a WindIcon centered in controlBounds.
-    /// displayPx selects on-screen size (loads nearest authored tier); 0 uses icon.sizePx.
+    /// Draw a WindIcon centered in controlBounds at its authored sizePx.
+    /// displayPx is ignored (kept for call-site compatibility) — never rescale.
     static void Draw(PaintContext& context, WindIconRef icon, const Rect& controlBounds, uint32_t displayPx = 0);
 
     /// Draw a WindIcon at an explicit position using its authored pixel size.

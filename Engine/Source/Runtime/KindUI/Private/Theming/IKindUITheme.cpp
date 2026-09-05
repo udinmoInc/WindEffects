@@ -104,16 +104,9 @@ TypographySpec IKindUITheme::ResolveTypography(const TypographyToken token) cons
     spec.role = token;
     spec.sizePx = ResolveFontSize(token);
 
-    // Compact UE5-style rhythm: normal line height, no excess leading.
-    float lhMul = 1.25f;
-    if (token == TypographyToken::Body
-        || token == TypographyToken::BodyStrong
-        || token == TypographyToken::Hint
-        || token == TypographyToken::Caption
-        || token == TypographyToken::CaptionSmall
-        || token == TypographyToken::Subtitle) {
-        lhMul = 1.30f;
-    } else if (IsDisplayTitleRole(token)) {
+    // Match Roboto wefont face metrics (lineHeight 32 / bakeSize 24).
+    float lhMul = 32.0f / 24.0f;
+    if (IsDisplayTitleRole(token)) {
         lhMul = 1.20f;
     }
     spec.lineHeightPx = spec.sizePx * lhMul;

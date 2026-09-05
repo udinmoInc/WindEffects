@@ -50,7 +50,7 @@ void ConfigureLandscapeModePanel() {
     } else {
         mode.id = "Landscape";
         mode.label = "Landscape";
-        mode.icon = WindIcons::Grid3x316;
+        mode.icon = WindIcons::Grid16;
         mode.sortOrder = 30;
         mode.opensToolDrawerByDefault = true;
     }
@@ -125,7 +125,7 @@ REGISTER_EDITOR_TOOL(LandscapeErosion, SculptThermal, "Thermal Erosion", kWindIc
     TerrainEditorService::Get().EnsureLandscape();
 })
 
-REGISTER_EDITOR_TOOL(TerrainTools, TerrainGenerate, "Generate Terrain", WindIcons::Grid3x316, "", []() {
+REGISTER_EDITOR_TOOL(TerrainTools, TerrainGenerate, "Generate Terrain", WindIcons::Grid16, "", []() {
     ActivateLandscapeViewportMode();
     auto& landscape = GetLandscapeEditor();
     landscape.Wizard().Reset();

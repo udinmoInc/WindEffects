@@ -27,7 +27,7 @@ using we::runtime::kindui::PaddingToken;
 using namespace launcher_controls_detail;
 NavSidebar::NavSidebar() {
     m_Items = {
-        { LauncherPage::Projects, "Projects", WindIcons::FolderClosed16 },
+        { LauncherPage::Projects, "Projects", WindIcons::Folder16 },
         { LauncherPage::Learn, "Learn", WindIcons::CircleHelp16 },
         { LauncherPage::Engine, "Engine", WindIcons::Wrench16 },
         { LauncherPage::Settings, "Settings", WindIcons::Settings16 },

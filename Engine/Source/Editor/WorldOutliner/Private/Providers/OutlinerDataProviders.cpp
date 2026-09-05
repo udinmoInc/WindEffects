@@ -18,7 +18,7 @@ we::runtime::kindui::WindIconRef IconForEntityType(scene::EntityType type) {
     case EntityType::VolumetricClouds: return we::runtime::kindui::WindIcons::Globe16;
     case EntityType::HeightFog: return we::runtime::kindui::kWindIconNone;
     case EntityType::EmptyActor: return we::runtime::kindui::kWindIconNone;
-    case EntityType::Landscape: return we::runtime::kindui::WindIcons::Grid3x316;
+    case EntityType::Landscape: return we::runtime::kindui::WindIcons::Grid16;
     case EntityType::CameraIcon: return we::runtime::kindui::kWindIconNone;
     case EntityType::AudioSource: return we::runtime::kindui::kWindIconNone;
     default: return we::runtime::kindui::kWindIconNone;

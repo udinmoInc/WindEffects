@@ -28,6 +28,8 @@ using ::we::runtime::kindui::PaddingToken;
 namespace we::editor::contentbrowser {
 using ::we::runtime::kindui::ResolveIconColor;
 using ::we::runtime::kindui::MouseButton;
+using ::we::runtime::kindui::DPIContext;
+namespace LayoutMetrics = ::we::runtime::kindui::LayoutMetrics;
 using ::we::runtime::kindui::IconPainter;
 using ::we::runtime::kindui::Row;
 using ::we::runtime::kindui::Margin;
@@ -164,8 +166,9 @@ void ToolbarLabeledButton::Paint(PaintContext& context) {
 
     const float hPad = m_HorizontalPadding;
     float x = m_Geometry.x + hPad;
-    const float textSize = ThemeMetric(MetricToken::TextSizeBody);
-    const float textY = m_Geometry.y + (m_Geometry.height - textSize) * 0.5f;
+    const float uiScale = (std::max)(1.0f, DPIContext::GetScale());
+    const float textSize = ThemeMetric(MetricToken::TextSizeBody) * uiScale;
+    const float textY = LayoutMetrics::AlignTextTopY(m_Geometry, textSize);
 
     if (m_Icon.IsValid()) {
         const float iconSize = ThemeMetric(MetricToken::IconSizeToolbar);
@@ -220,8 +223,8 @@ ContentBrowserToolbarControls::ContentBrowserToolbarControls(ToolbarMode mode)
 void ContentBrowserToolbarControls::InitializeChildren() {
     if (m_Mode == ToolbarMode::Full) {
         m_CreateBtn = MakePrimaryAction("Add", WindIcons::Plus16);
-        m_ImportBtn = MakeSecondaryAction("Import", WindIcons::FolderPlus16);
-        m_SaveBtn = std::make_shared<ToolbarLabeledButton>("Save All", WindIcons::Check16, false, ToolbarLabeledButton::Variant::Standard, ThemeMetric(MetricToken::Space3));
+        m_ImportBtn = MakeSecondaryAction("Import", WindIcons::FolderCreate16);
+        m_SaveBtn = std::make_shared<ToolbarLabeledButton>("Save All", WindIcons::SaveAll16, false, ToolbarLabeledButton::Variant::Standard, ThemeMetric(MetricToken::Space3));
 
         m_CreateBtn->SetFlexShrink(0.0f);
         m_ImportBtn->SetFlexShrink(0.0f);
@@ -234,7 +237,7 @@ void ContentBrowserToolbarControls::InitializeChildren() {
     } else {
         // Asset pane toolbar: add, import, search, save all, filter icon
         m_CreateBtn = MakePrimaryAction("Add", WindIcons::Plus16);
-        m_ImportBtn = MakeSecondaryAction("Import", WindIcons::FolderPlus16);
+        m_ImportBtn = MakeSecondaryAction("Import", WindIcons::FolderCreate16);
         m_SearchBox = std::make_shared<SearchBox>();
         m_SearchBox->SetPlaceholder("Search Assets...");
         m_SearchBox->SetToolbarInset(true);
@@ -243,7 +246,7 @@ void ContentBrowserToolbarControls::InitializeChildren() {
         m_SearchBox->SetFlexGrow(0.0f);
         m_SearchBox->SetFlexShrink(0.0f);
 
-        m_SaveBtn = std::make_shared<ToolbarLabeledButton>("Save All", WindIcons::Check16, false, ToolbarLabeledButton::Variant::Standard, ThemeMetric(MetricToken::Space3));
+        m_SaveBtn = std::make_shared<ToolbarLabeledButton>("Save All", WindIcons::SaveAll16, false, ToolbarLabeledButton::Variant::Standard, ThemeMetric(MetricToken::Space3));
         m_FilterIconBtn = std::make_shared<ToolbarIconToggle>(WindIcons::ListFilter16, "Filter");
 
         m_CreateBtn->SetFlexShrink(0.0f);

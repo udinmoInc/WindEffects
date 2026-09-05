@@ -11,9 +11,9 @@ namespace we::runtime::kindui::IconMetrics {
 constexpr uint32_t kCompactGlyphPx = 16;
 
 constexpr float kSizeCompact = 16.0f;
-constexpr float kSizeSmall = 20.0f;
+constexpr float kSizeSmall = 16.0f;
 constexpr float kSizeMedium = 24.0f;
-constexpr float kSizeLarge = 32.0f;
+constexpr float kSizeLarge = 24.0f;
 constexpr float kSizeXLarge = 48.0f;
 
 KINDUI_API float SnapPx(float value);

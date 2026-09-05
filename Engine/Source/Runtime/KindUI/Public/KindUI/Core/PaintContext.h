@@ -94,6 +94,8 @@ public:
         we::runtime::text::layout::FontWeight weight,
         bool italic = false);
     void DrawWindIcon(WindIconRef icon, const Rect& rect);
+    /// Draw a WindIcon with an explicit mono tint (alpha coverage × tint RGB).
+    void DrawWindIcon(WindIconRef icon, const Rect& rect, const Color& tint);
     void DrawLine(const Point& start, const Point& end, const Color& color, float thickness = 1.0f);
     void DrawTexture(const Rect& rect, we::rhi::RHIDescriptorSetHandle textureId, const Color& tint = Color::White(), const Color& tintBottom = Color::Transparent());
     void DrawColorTexture(const Rect& rect, we::rhi::RHIDescriptorSetHandle textureId, const Color& tint = Color::White());

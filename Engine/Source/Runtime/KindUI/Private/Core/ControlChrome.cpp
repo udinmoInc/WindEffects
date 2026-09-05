@@ -440,7 +440,7 @@ void PaintSearchField(
         ? (iconPx + padH)
         : padH;
     const float textMaxW = std::max(0.0f, (rect.x + rect.width - clearReserve) - textX);
-    const float textY = rect.y + (rect.height - fontSize) * 0.5f;
+    const float textY = LayoutMetrics::AlignTextTopY(rect, fontSize);
     const bool empty = text.empty();
 
     if (empty) {
@@ -455,7 +455,7 @@ void PaintSearchField(
         if (state.focused && showCaret) {
             const float caretX = textX + context.GetTextWidth(text, fontSize);
             context.DrawRect(
-                Rect{ caretX, textY, ResolveMetric(MetricToken::BorderWidth), fontSize },
+                Rect{ caretX, textY, ResolveMetric(MetricToken::BorderWidth), LayoutMetrics::TextLineHeight(fontSize) },
                 ResolveColor(ColorToken::TextPrimary));
         }
         context.PopClipRect();
@@ -478,7 +478,7 @@ void PaintSearchField(
         }
         IconPainter::Draw(
             context,
-            WindIcons::Close16,
+            WindIcons::X16,
             clearBand,
             static_cast<uint32_t>(clearSize));
     }

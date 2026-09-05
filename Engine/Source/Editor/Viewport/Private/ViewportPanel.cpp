@@ -15,7 +15,7 @@ std::shared_ptr<Panel> CreateViewportPanel() {
     auto toolbar = CreateViewportToolbar();
 
     return PanelBuilder("Viewport")
-        .TabIcon(WindIcons::Camera16)
+        .TabIcon(WindIcons::ToolbarCamera16)
         .Transparent()
         .FloatingToolbar()
         .WithCloseButton()

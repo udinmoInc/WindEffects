@@ -140,7 +140,7 @@ namespace {
 
             const float padH = we::runtime::kindui::ResolveMetric(MetricToken::Space2);
             const float centerY = m_Geometry.y + m_Geometry.height * 0.5f;
-            const float iconSize = we::runtime::kindui::ResolveMetric(MetricToken::IconSizeToolbar) * uiScale;
+            const float iconSize = we::runtime::kindui::ResolveMetric(MetricToken::IconSizeToolbar);
             const float textSize = we::runtime::kindui::ResolveMetric(MetricToken::TextSizeMenu) * uiScale;
             const Rect iconBand{
                 m_Geometry.x + padH * uiScale,
@@ -148,17 +148,17 @@ namespace {
                 iconSize,
                 m_Geometry.height
             };
-            IconPainter::Draw(context, WindIcons::FolderClosed16, iconBand, static_cast<uint32_t>(iconSize));
+            IconPainter::Draw(context, WindIcons::Folder16, iconBand, static_cast<uint32_t>(iconSize));
 
             const float textX = m_Geometry.x + (padH + iconSize + padH) * uiScale;
             context.DrawText(kProjectName,
                 Point{ textX, centerY - textSize * 0.5f },
                 ThemeColor(ColorToken::TextPrimary), textSize);
 
-            const float chevronX = m_Geometry.x + m_Geometry.width - (padH + iconSize) * uiScale;
-            Rect chevronBand{ chevronX, m_Geometry.y, iconSize, m_Geometry.height };
+            const float chevronX = m_Geometry.x + m_Geometry.width - (padH + 16.0f) * uiScale;
+            Rect chevronBand{ chevronX, m_Geometry.y, 16.0f * uiScale, m_Geometry.height };
             IconPainter::Draw(
-                context, WindIcons::ChevronDown16, chevronBand, static_cast<uint32_t>(iconSize));
+                context, WindIcons::ChevronDown16, chevronBand);
         }
         bool ShowsPointerCursor(const Point&) const override { return true; }
     private:
@@ -212,7 +212,7 @@ void TitleBar::Construct() {
             UpdateMaximizeIcon();
         }
     });
-    auto closeBtn = std::make_shared<ToolButton>(WindIcons::Close16, "", [this]() {
+    auto closeBtn = std::make_shared<ToolButton>(WindIcons::X16, "", [this]() {
         if (m_Window != we::platform::WindowId::Invalid) {
             we::platform::Platform::Get().PushEvent(we::platform::WindowCloseEvent{m_Window});
         }

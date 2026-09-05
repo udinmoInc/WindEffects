@@ -221,7 +221,7 @@ std::shared_ptr<::we::runtime::kindui::Widget> CreateViewportToolbar() {
         we::runtime::kindui::MetricToken::ViewportToolbarHeight));
 
     auto perspectiveButton = MakeViewportChip(
-        WindIcons::Camera16,
+        WindIcons::ToolbarCamera16,
         "Perspective",
         nullptr,
         "Viewport Projection",
@@ -293,7 +293,7 @@ std::shared_ptr<::we::runtime::kindui::Widget> CreateViewportToolbar() {
     builder.Separator();
 
     builder.AddWidget(MakeViewportIconChip(
-        WindIcons::Grid3x316,
+        WindIcons::Grid16,
         []() {
             if (auto* editor = ViewportEditSession::Editor()) {
                 auto& grid = editor->Grid();

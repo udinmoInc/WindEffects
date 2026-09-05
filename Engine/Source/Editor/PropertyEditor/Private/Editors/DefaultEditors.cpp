@@ -15,6 +15,7 @@
 #include <unordered_map>
 
 namespace we::editor::property {
+namespace LayoutMetrics = ::we::runtime::kindui::LayoutMetrics;
 namespace detail {
 namespace {
 
@@ -81,7 +82,7 @@ public:
                     const float fontSize = ResolveMetric(MetricToken::TextSizeProperty);
                     context.DrawText(
                         "—",
-                        Point{ m_Geometry.x + ResolveMetric(MetricToken::Space1), m_Geometry.y + (m_Geometry.height - fontSize) * 0.5f },
+                        Point{ m_Geometry.x + ResolveMetric(MetricToken::Space1), LayoutMetrics::AlignTextTopY(m_Geometry, fontSize) },
                         ThemeColor(ColorToken::TextSecondary),
                         fontSize);
                 }
@@ -256,7 +257,7 @@ public:
                 const float pad = ResolveMetric(MetricToken::Space2);
                 context.DrawText(
                     label,
-                    Point{ frame.x + pad, frame.y + (frame.height - fontSize) * 0.5f },
+                    Point{ frame.x + pad, LayoutMetrics::AlignTextTopY(frame, fontSize) },
                     ThemeColor(ColorToken::TextPrimary),
                     fontSize);
             }
@@ -392,7 +393,7 @@ public:
                 const float swatchPad = m_Mode == Mode::Color ? ResolveMetric(MetricToken::CheckboxGlyphSize) + pad : 0.0f;
                 context.DrawText(
                     buf,
-                    Point{ frame.x + pad + swatchPad, frame.y + (frame.height - fontSize) * 0.5f },
+                    Point{ frame.x + pad + swatchPad, LayoutMetrics::AlignTextTopY(frame, fontSize) },
                     ThemeColor(ColorToken::TextPrimary),
                     fontSize);
             }
@@ -431,7 +432,7 @@ public:
                 const float fontSize = ResolveMetric(MetricToken::TextSizeProperty);
                 context.DrawText(
                     "{...}",
-                    Point{ m_Geometry.x + ResolveMetric(MetricToken::Space2), m_Geometry.y + (m_Geometry.height - fontSize) * 0.5f },
+                    Point{ m_Geometry.x + ResolveMetric(MetricToken::Space2), LayoutMetrics::AlignTextTopY(m_Geometry, fontSize) },
                     ThemeColor(ColorToken::TextSecondary),
                     fontSize);
             }

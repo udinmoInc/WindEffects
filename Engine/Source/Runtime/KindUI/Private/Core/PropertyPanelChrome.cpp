@@ -1,4 +1,5 @@
 #include "KindUI/Core/PropertyPanelChrome.h"
+#include "KindUI/Core/LayoutMetrics.h"
 
 #include "KindUI/Core/ControlChrome.h"
 #include "KindUI/Core/Widget.h"
@@ -252,7 +253,7 @@ void PaintPropertyRowLabel(
     bool mixed) {
     const float scale = UiScale();
     const float fontSize = ResolveMetric(MetricToken::TextSizeProperty) * scale;
-    const float textY = labelRect.y + (labelRect.height - fontSize) * 0.5f;
+    const float textY = LayoutMetrics::AlignTextTopY(labelRect, fontSize);
 
     std::string display(label);
     if (labelRect.width > 0.0f) {
@@ -306,7 +307,7 @@ void PaintCategoryTab(
         fontSize,
         we::runtime::text::layout::FontWeight::Medium);
     const float textX = rect.x + (rect.width - textW) * 0.5f;
-    const float textY = rect.y + (rect.height - fontSize) * 0.5f;
+    const float textY = LayoutMetrics::AlignTextTopY(rect, fontSize);
     context.DrawText(
         std::string(label),
         Point{ textX, textY },

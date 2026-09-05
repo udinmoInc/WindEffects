@@ -37,7 +37,8 @@ public:
         uint32_t width,
         uint32_t height,
         std::span<const uint8_t> rgba,
-        bool linearFilter);
+        bool linearFilter,
+        bool srgb = false);
 
     [[nodiscard]] we::rhi::RHIDescriptorSetHandle GetDummyTexture() const { return m_DummySet; }
     [[nodiscard]] we::rhi::RHISamplerHandle GetDefaultSampler() const { return m_DummySampler; }

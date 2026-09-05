@@ -13,25 +13,25 @@ inline we::runtime::kindui::WindIconRef ResolvePanelTabIcon(std::string_view pan
         return WindIcons::FolderSearch16;
     }
     if (panelId == "output-log") {
-        return WindIcons::Logs16;
+        return WindIcons::Console16;
     }
     if (panelId == "terminal") {
-        return WindIcons::Logs16;
+        return WindIcons::Console16;
     }
     if (panelId == "viewport") {
-        return WindIcons::Camera16;
+        return WindIcons::ToolbarCamera16;
     }
     if (panelId == "outliner") {
-        return WindIcons::FolderOpened16;
+        return WindIcons::Outliner16;
     }
     if (panelId == "details") {
-        return WindIcons::AdjustmentHorizontal16;
+        return WindIcons::AdjustHorizon16;
     }
     if (panelId == "tools-panel") {
         return WindIcons::Wrench16;
     }
     if (panelId == "place-actors") {
-        return WindIcons::PlusCircle16;
+        return WindIcons::CirclePlus16;
     }
     return kWindIconNone;
 }

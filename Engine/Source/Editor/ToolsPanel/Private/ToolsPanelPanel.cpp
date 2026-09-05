@@ -55,7 +55,7 @@ std::shared_ptr<Panel> CreateToolsPanel() {
             auto& modeController = EditorModeController::Get();
             modeController.SetDrawerPinned(!modeController.IsDrawerPinned());
         })
-        .WithHeaderAction(WindIcons::Close16, []() {
+        .WithHeaderAction(WindIcons::X16, []() {
             EditorModeController::Get().SetDrawerVisible(false);
         })
         .Content(toolsContent);

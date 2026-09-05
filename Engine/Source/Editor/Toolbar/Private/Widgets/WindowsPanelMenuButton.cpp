@@ -11,6 +11,7 @@
 #include "KindUI/Core/PaintContext.h"
 #include "KindUI/Core/ToolbarButtonChrome.h"
 #include "KindUI/Rendering/IconMetrics.h"
+#include "KindUI/Core/LayoutMetrics.h"
 #include "KindUI/Tokens/DesignToken.h"
 #include "KindUI/Theming/ThemeAccess.h"
 
@@ -26,6 +27,7 @@ using ::we::runtime::kindui::Rect;
 namespace WindIcons = ::we::runtime::kindui::WindIcons;
 using ::we::runtime::kindui::kWindIconNone;
 namespace IconMetrics = ::we::runtime::kindui::IconMetrics;
+namespace LayoutMetrics = ::we::runtime::kindui::LayoutMetrics;
 namespace ToolbarButtonChrome = ::we::runtime::kindui::ToolbarButtonChrome;
 
 std::shared_ptr<WindowsPanelMenuButton> WindowsPanelMenuButton::Create(
@@ -112,7 +114,7 @@ void WindowsPanelMenuButton::Paint(::we::runtime::kindui::PaintContext& context)
     const auto iconColor = ToolbarButtonChrome::ResolveIconColor(m_HoverAnim, pressStrength, false);
 
     IconPainter::Draw(
-        context, WindIcons::Grid3x316, ToolbarButtonChrome::PlaceIconInControl(
+        context, WindIcons::Window16, ToolbarButtonChrome::PlaceIconInControl(
             Rect{ m_Geometry.x + padH, m_Geometry.y, iconSize, m_Geometry.height },
             iconSize));
 
@@ -120,7 +122,7 @@ void WindowsPanelMenuButton::Paint(::we::runtime::kindui::PaintContext& context)
     const float textX = m_Geometry.x + padH + iconSize + iconGap;
     context.DrawText(
         "Windows",
-        ::we::runtime::kindui::Point{ textX, centerY - textSize * 0.5f },
+        ::we::runtime::kindui::Point{ textX, LayoutMetrics::AlignTextTopAtCenterY(centerY, textSize) },
         we::runtime::kindui::ResolveTextForState(m_HoverAnim > 0.01f, false),
         textSize);
 

@@ -247,13 +247,17 @@ void PaintContext::DrawText(
 }
 
 void PaintContext::DrawWindIcon(WindIconRef icon, const Rect& rect) {
+    DrawWindIcon(icon, rect, Color::White());
+}
+
+void PaintContext::DrawWindIcon(WindIconRef icon, const Rect& rect, const Color& tint) {
     if (!icon.IsValid()) {
         return;
     }
     DrawCommand cmd{};
     cmd.type = DrawCommandType::Icon;
     cmd.rect = rect;
-    cmd.color = ResolveColor(ColorToken::IconPrimary);
+    cmd.color = tint.a > 0.0f ? tint : Color::White();
     cmd.clipRect = GetCurrentClipRect();
     cmd.iconStem = icon.stem;
     cmd.iconSizePx = icon.sizePx;

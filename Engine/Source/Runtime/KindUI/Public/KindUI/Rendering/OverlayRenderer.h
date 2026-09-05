@@ -91,7 +91,8 @@ public:
         uint32_t width,
         uint32_t height,
         std::span<const uint8_t> rgba,
-        bool linearFilter = false);
+        bool linearFilter = false,
+        bool srgb = false);
 
     TextUIService* GetTextUIService() const;
     IconRenderer* GetIconRenderer() const;

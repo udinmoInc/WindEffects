@@ -1,5 +1,6 @@
 #include "KindUI/Widgets/Components.h"
 #include "KindUI/Core/PaintContext.h"
+#include "KindUI/Core/LayoutMetrics.h"
 #include "KindUI/Tokens/DesignToken.h"
 #include "KindUI/Theming/ThemeAccess.h"
 #include "KindUI/Theming/StyleRole.h"
@@ -63,7 +64,7 @@ void StatusBadge::Paint(PaintContext& context) {
     const float textW = context.GetTextWidth(m_Text, fontSize);
     const Point textPos{
         m_Geometry.x + (m_Geometry.width - textW) * 0.5f,
-        m_Geometry.y + (m_Geometry.height - fontSize) * 0.5f
+        LayoutMetrics::AlignTextTopY(m_Geometry, fontSize)
     };
     context.DrawText(m_Text, textPos, ThemeColor(ColorToken::TextPrimary), fontSize);
 }

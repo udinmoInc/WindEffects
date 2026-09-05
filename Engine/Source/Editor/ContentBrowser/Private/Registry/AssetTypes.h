@@ -51,9 +51,9 @@ inline std::string AssetTypeToString(AssetType type) {
 [[nodiscard]] inline we::runtime::kindui::WindIconRef IconForAssetType(AssetType type, bool folderExpanded = false) {
     switch (type) {
         case AssetType::Folder:
-            return folderExpanded ? WindIcons::FolderOpened16 : WindIcons::FolderClosed16;
+            return folderExpanded ? WindIcons::FolderOpen24 : WindIcons::Folder24;
         case AssetType::Texture:
-            return WindIcons::Grid3x316;
+            return WindIcons::Grid16;
         case AssetType::Material:
         case AssetType::MaterialInstance:
             return WindIcons::Sun16;
@@ -62,11 +62,11 @@ inline std::string AssetTypeToString(AssetType type) {
         case AssetType::SkeletalMesh:
             return WindIcons::Box16;
         case AssetType::Animation:
-            return WindIcons::PlayGreen16;
+            return WindIcons::PlayForward16;
         case AssetType::Blueprint:
             return WindIcons::Wrench16;
         case AssetType::Scene:
-            return WindIcons::WorldGlobe16;
+            return WindIcons::Earth16;
         case AssetType::Prefab:
             return WindIcons::Box16;
         case AssetType::Terrain:
@@ -76,9 +76,9 @@ inline std::string AssetTypeToString(AssetType type) {
         case AssetType::Font:
             return WindIcons::Square16;
         case AssetType::Script:
-            return WindIcons::Logs16;
+            return WindIcons::Console16;
         case AssetType::Video:
-            return WindIcons::VideoCamera16;
+            return WindIcons::ToolbarVideocamera16;
         default:
             return WindIcons::Square16;
     }

@@ -29,7 +29,7 @@ ViewportOverlay::ViewportOverlay()
     m_NavButtons = {
         { WindIcons::Plus16, "zoom-in", Rect{} },
         { WindIcons::Minus16, "zoom-out", Rect{} },
-        { WindIcons::RefreshCwDot16, "reset-camera", Rect{} }
+        { WindIcons::Refresh16, "reset-camera", Rect{} }
     };
 }
 
@@ -244,7 +244,7 @@ NavigationControls::NavigationControls() {
     m_Buttons = {
         { WindIcons::Plus16, "zoom-in", Rect{}, false },
         { WindIcons::Minus16, "zoom-out", Rect{}, false },
-        { WindIcons::RefreshCwDot16, "reset", Rect{}, false }
+        { WindIcons::Refresh16, "reset", Rect{}, false }
     };
 }
 
