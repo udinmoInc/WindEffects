@@ -163,7 +163,7 @@ float TabIconSize() {
 }
 
 float CloseGlyphSize() {
-    return we::runtime::kindui::ResolveMetric(MetricToken::IconSizeWindowControl);
+    return 12.0f * UiScale();
 }
 
 float TabGap() {
@@ -254,11 +254,14 @@ float MeasureDockTabWidth(
         ? we::runtime::kindui::ResolveMetric(MetricToken::TextSizeCaption) * scale
         : we::runtime::kindui::ResolveMetric(MetricToken::TextSizeTabs) * scale;
     const float iconSize = TabIconSize();
-    const float padH = modeTabs
+    const float padLeft = modeTabs
         ? we::runtime::kindui::ResolveMetric(MetricToken::Space2) * scale
-        : TabPadH();
-    const float iconGap = we::runtime::kindui::ResolveMetric(MetricToken::Space1) * scale;
-    const float closeGap = we::runtime::kindui::ResolveMetric(MetricToken::Space1) * scale;
+        : 14.0f * scale;
+    const float padRight = modeTabs
+        ? we::runtime::kindui::ResolveMetric(MetricToken::Space2) * scale
+        : 14.0f * scale;
+    const float iconGap = 8.0f * scale;
+    const float closeGap = 12.0f * scale;
     const float closeGlyph = CloseGlyphSize();
 
     float leadingWidth = 0.0f;
@@ -273,9 +276,9 @@ float MeasureDockTabWidth(
         fontSize,
         we::runtime::text::layout::FontWeight::Medium);
     const float closeWidth = showClose ? closeGlyph + closeGap : 0.0f;
-    float width = padH + leadingWidth + textWidth + closeWidth + padH;
-    if (!modeTabs && UsesGapCutDockTabs()) {
-        width = std::max(width, 72.0f * scale);
+    float width = padLeft + leadingWidth + textWidth + closeWidth + padRight;
+    if (!modeTabs) {
+        width = std::max(width, 110.0f * scale);
     }
     return width;
 }
@@ -290,9 +293,9 @@ DockTabLayout LayoutDockTabGeometries(
     bool modeTabs)
 {
     const float scale = UiScale();
-    const float padH = modeTabs
+    const float padRight = modeTabs
         ? we::runtime::kindui::ResolveMetric(MetricToken::Space2) * scale
-        : TabPadH();
+        : 14.0f * scale;
     const float closeGlyph = CloseGlyphSize();
     const bool floatingDockTabs = !modeTabs && UsesGapCutDockTabs();
     const float stripPadV = floatingDockTabs ? TabStripPadTop() : 0.0f;
@@ -310,7 +313,7 @@ DockTabLayout LayoutDockTabGeometries(
     layout.tabRect = Rect{ x, tabY, tabWidth, tabHeight };
 
     if (showClose) {
-        const float closeX = layout.tabRect.x + layout.tabRect.width - padH - closeGlyph;
+        const float closeX = layout.tabRect.x + layout.tabRect.width - padRight - closeGlyph;
         const float closeY = std::floor(centerY - closeGlyph * 0.5f);
         layout.closeRect = Rect{ closeX, closeY, closeGlyph, closeGlyph };
     }
@@ -335,10 +338,10 @@ void PaintDockTab(
         ? we::runtime::kindui::ResolveMetric(MetricToken::TextSizeCaption) * scale
         : we::runtime::kindui::ResolveMetric(MetricToken::TextSizeTabs) * scale;
     const float iconSize = TabIconSize();
-    const float padH = flatCorners
+    const float padLeft = flatCorners
         ? we::runtime::kindui::ResolveMetric(MetricToken::Space2) * scale
-        : TabPadH();
-    const float iconGap = we::runtime::kindui::ResolveMetric(MetricToken::Space1) * scale;
+        : 14.0f * scale;
+    const float iconGap = 8.0f * scale;
     const bool dockTabs = !flatCorners;
     const bool floatingDockTabs = dockTabs && UsesGapCutDockTabs();
     const float radius = flatCorners ? 0.0f : TabTopRadius();
@@ -368,7 +371,7 @@ void PaintDockTab(
             we::runtime::kindui::SurfaceRole::TabInactive);
     }
 
-    float itemX = layout.tabRect.x + padH;
+    float itemX = layout.tabRect.x + padLeft;
     const float centerY = std::floor(layout.tabRect.y + layout.tabRect.height * 0.5f);
 
     if (tab.hasBrand) {
@@ -406,7 +409,7 @@ void PaintDockTab(
         we::runtime::text::layout::FontWeight::Medium);
 
     if (showClose && !layout.closeRect.IsEmpty()) {
-        PaintHeaderIconButton(context, layout.closeRect, WindIcons::X16, closeHovered, false, true);
+        PaintHeaderIconButton(context, layout.closeRect, WindIcons::Xv212, closeHovered, false, true);
     }
 }
 
@@ -487,7 +490,8 @@ void PaintFloatingPanelHeader(
     bool showClose = false;
     bool closeHovered = false;
     for (const auto& action : actions) {
-        if (action.icon.stem == WindIcons::X16.stem && action.icon.sizePx == WindIcons::X16.sizePx) {
+        if ((action.icon.stem == WindIcons::X16.stem && action.icon.sizePx == WindIcons::X16.sizePx)
+            || (action.icon.stem == WindIcons::Xv212.stem && action.icon.sizePx == WindIcons::Xv212.sizePx)) {
             showClose = true;
             closeHovered = action.hovered;
             break;
@@ -509,7 +513,8 @@ void PaintFloatingPanelHeader(
 
     for (auto it = actions.rbegin(); it != actions.rend(); ++it) {
         const auto& action = *it;
-        if (action.icon.stem == WindIcons::X16.stem && action.icon.sizePx == WindIcons::X16.sizePx) {
+        if ((action.icon.stem == WindIcons::X16.stem && action.icon.sizePx == WindIcons::X16.sizePx)
+            || (action.icon.stem == WindIcons::Xv212.stem && action.icon.sizePx == WindIcons::Xv212.sizePx)) {
             continue;
         }
         Rect actionRect{ actionX, std::floor(centerY - buttonSize * 0.5f), buttonSize, buttonSize };
@@ -782,7 +787,8 @@ void PaintHeaderIconButton(
     bool pressed,
     bool compactGlyph)
 {
-    const bool isClose = icon.stem == WindIcons::X16.stem && icon.sizePx == WindIcons::X16.sizePx;
+    const bool isClose = (icon.stem == WindIcons::X16.stem && icon.sizePx == WindIcons::X16.sizePx)
+        || (icon.stem == WindIcons::Xv212.stem && icon.sizePx == WindIcons::Xv212.sizePx);
     const float scale = UiScale();
     const float radius = we::runtime::kindui::ResolveMetric(MetricToken::IconButtonRadius) * scale;
 

@@ -49,7 +49,7 @@ using MetricToken = we::runtime::kindui::MetricToken;
 [[nodiscard]] inline float TreeExpanderHitSize() { return we::runtime::kindui::ResolveMetric(MetricToken::TreeExpanderHitSize); }
 [[nodiscard]] inline float TreeExplorerPrefixWidth() {
     return we::runtime::kindui::ResolveMetric(MetricToken::Space2)
-        + 2.0f * we::runtime::kindui::ResolveMetric(MetricToken::TreeExpanderHitSize);
+        + we::runtime::kindui::ResolveMetric(MetricToken::TreeExpanderHitSize);
 }
 [[nodiscard]] inline float TabPaddingH() { return we::runtime::kindui::ResolveMetric(MetricToken::TabPaddingH); }
 [[nodiscard]] inline float TabPaddingV() { return we::runtime::kindui::ResolveMetric(MetricToken::TabPaddingV); }

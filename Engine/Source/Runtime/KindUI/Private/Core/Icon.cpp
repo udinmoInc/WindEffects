@@ -19,15 +19,26 @@ void IconPainter::Draw(PaintContext& context, WindIconRef icon, const Point& pos
 }
 
 void IconPainter::Draw(PaintContext& context, WindIconRef icon, const Rect& controlBounds, uint32_t displayPx) {
-    (void)displayPx;
-    Draw(context, icon, controlBounds, Color::White());
+    if (!icon.IsValid()) {
+        return;
+    }
+    const float targetPx = displayPx > 0
+        ? static_cast<float>(displayPx)
+        : (controlBounds.width > 0.0f && controlBounds.height > 0.0f
+            ? std::min({ controlBounds.width, controlBounds.height, static_cast<float>(icon.sizePx) })
+            : static_cast<float>(icon.sizePx));
+    const Rect drawRect = IconMetrics::PlaceGlyphCentered(controlBounds, targetPx);
+    context.DrawWindIcon(icon, drawRect, Color::White());
 }
 
 void IconPainter::Draw(PaintContext& context, WindIconRef icon, const Rect& controlBounds, const Color& tint) {
     if (!icon.IsValid()) {
         return;
     }
-    const Rect drawRect = IconMetrics::PlaceGlyphCentered(controlBounds, icon.sizePx);
+    const float targetPx = (controlBounds.width > 0.0f && controlBounds.height > 0.0f)
+        ? std::min({ controlBounds.width, controlBounds.height, static_cast<float>(icon.sizePx) })
+        : static_cast<float>(icon.sizePx);
+    const Rect drawRect = IconMetrics::PlaceGlyphCentered(controlBounds, targetPx);
     context.DrawWindIcon(icon, drawRect, tint);
 }
 

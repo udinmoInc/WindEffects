@@ -24,7 +24,7 @@ std::shared_ptr<Panel> CreateDetailsPanel() {
     auto panel = std::make_shared<Panel>(std::string(title));
     panel->AttachBodyLayout();
     panel->SetCollapsible(false);
-    panel->SetTabIcon(we::runtime::kindui::kWindIconNone);
+    panel->SetTabIcon(WindIcons::AdjustHorizon16);
 
     if (auto details = PropertyEditorSession::DetailsShared()) {
         PopulateDetailsPanelRegions(panel, details->GetWidget(), details.get());

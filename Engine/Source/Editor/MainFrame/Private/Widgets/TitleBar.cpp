@@ -57,49 +57,46 @@ namespace {
 
     class LogoSlotWidget : public Widget {
     public:
-        static float SlotSize() {
-            return we::runtime::kindui::ResolveMetric(MetricToken::PanelToolbarHeight);
+        static float SlotWidth() {
+            const float uiScale = (std::max)(1.0f, DPIContext::GetScale());
+            return 24.0f * uiScale;
+        }
+        static float SlotHeight() {
+            const float uiScale = (std::max)(1.0f, DPIContext::GetScale());
+            return we::runtime::kindui::ResolveMetric(MetricToken::TitleBarHeight) * uiScale;
         }
 
         explicit LogoSlotWidget(we::rhi::RHIDescriptorSetHandle logoSet) : m_LogoSet(logoSet) {}
 
         Size Measure(const Size& availableSize) override {
             (void)availableSize;
-            const float slot = SlotSize();
-            m_DesiredSize = Size{ slot, slot };
+            m_DesiredSize = Size{ SlotWidth(), SlotHeight() };
             return m_DesiredSize;
         }
         void Arrange(const Rect& allottedRect) override {
             m_Geometry = allottedRect;
-            const float slot = SlotSize();
-            if (allottedRect.height > slot) {
-                m_Geometry.y += (allottedRect.height - slot) * 0.5f;
-                m_Geometry.height = slot;
-            }
         }
         void Paint(PaintContext& context) override {
+            const float uiScale = (std::max)(1.0f, DPIContext::GetScale());
             const float cx = m_Geometry.x + m_Geometry.width  * 0.5f;
             const float cy = m_Geometry.y + m_Geometry.height * 0.5f;
-            const float logoSize = we::runtime::kindui::ResolveMetric(MetricToken::IconSizePrimary)
-                + we::runtime::kindui::ResolveMetric(MetricToken::Space1) * 0.5f;
+            const float logoSize = 24.0f * uiScale;
             const float half = logoSize * 0.5f;
             const auto snap = [](float v) { return std::floor(v + 0.5f); };
-            Rect logoRect{
-                snap(cx - half),
-                snap(cy - half),
-                logoSize,
-                logoSize
-            };
+            Rect logoRect{ snap(cx - half), snap(cy - half), logoSize, logoSize };
 
-            if ((m_LogoSet != we::rhi::RHIDescriptorSetHandle::Invalid)) {
+            if (m_LogoSet != we::rhi::RHIDescriptorSetHandle::Invalid) {
                 context.DrawTexture(logoRect, m_LogoSet, ThemeColor(ColorToken::TextPrimary));
             } else {
-                IconPainter::Draw(context, kWindIconNone, logoRect);
+                IconPainter::Draw(context, WindIcons::Logo24, logoRect, 24);
             }
         }
     private:
         we::rhi::RHIDescriptorSetHandle m_LogoSet;
     };
+
+    float WindowPadLeft() { return 8.0f; }
+    float LogoToMenuGap() { return 6.0f; }
 
     class ProjectSelectorWidget : public Widget {
     public:
@@ -165,8 +162,6 @@ namespace {
         float m_HoverAnim = 0.0f;
     };
 
-    float WindowPadLeft() { return we::runtime::kindui::ResolveMetric(MetricToken::Space4); }
-    float LogoToMenuGap() { return we::runtime::kindui::ResolveMetric(MetricToken::Space2); }
 }
 
 TitleBar::TitleBar(we::platform::WindowId window, const std::string& title, we::rhi::RHIDescriptorSetHandle logoSet, std::shared_ptr<::we::editor::menus::MenuBar> menuBar)
