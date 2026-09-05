@@ -266,7 +266,8 @@ void ToolButton::Paint(PaintContext& context) {
     if (m_ButtonStyle == ToolButtonStyle::TitleBarTool) {
         PaintIconButton(context, renderRect, m_HoverAnim, pressStrength, m_Active, m_ActiveAnim, uiScale);
         const float iconSize = IconSize(uiScale);
-        IconPainter::Draw(context, m_Icon, PlaceIconInControl(renderRect, iconSize));
+        const Color iconColor = ToolbarButtonChrome::ResolveIconColor(m_HoverAnim, pressStrength, m_Active);
+        IconPainter::Draw(context, m_Icon, PlaceIconInControl(renderRect, iconSize), iconColor);
         return;
     }
 
@@ -280,7 +281,8 @@ void ToolButton::Paint(PaintContext& context) {
         const float topY = renderRect.y + (renderRect.height - contentH) * 0.5f;
 
         Rect iconBand{ renderRect.x, topY, renderRect.width, iconSize };
-        IconPainter::Draw(context, m_Icon, PlaceIconInControl(iconBand, iconSize));
+        const Color iconColor = ToolbarButtonChrome::ResolveIconColor(m_HoverAnim, pressStrength, m_Active);
+        IconPainter::Draw(context, m_Icon, PlaceIconInControl(iconBand, iconSize), iconColor);
 
         if (!m_Label.empty()) {
             const float labelW = ApproxInlineTextWidth(m_Label, textSize);
@@ -388,7 +390,8 @@ void ToolButton::Paint(PaintContext& context) {
         float currentX = renderRect.x + padH;
         if (m_Icon.IsValid()) {
             Rect iconBand{ currentX, centerY - iconSize * 0.5f, iconSize, iconSize };
-            IconPainter::Draw(context, m_Icon, PlaceIconInControl(iconBand, iconSize));
+            const Color iconColor = ToolbarButtonChrome::ResolveIconColor(m_HoverAnim, pressStrength, m_Active);
+            IconPainter::Draw(context, m_Icon, PlaceIconInControl(iconBand, iconSize), iconColor);
             currentX += iconSize + iconGap;
         }
 
@@ -405,7 +408,8 @@ void ToolButton::Paint(PaintContext& context) {
 
         if (m_IsDropdown) {
             currentX += chevGap;
-            IconPainter::Draw(context, WindIcons::ChevronDown16, IconMetrics::CompactGlyphBand(renderRect, currentX));
+            const Color chevColor = ToolbarButtonChrome::ResolveIconColor(m_HoverAnim, pressStrength, m_Active);
+            IconPainter::Draw(context, WindIcons::ChevronDown16, IconMetrics::CompactGlyphBand(renderRect, currentX), chevColor);
         }
         return;
     }
@@ -416,7 +420,8 @@ void ToolButton::Paint(PaintContext& context) {
         const bool isTransport = (m_ButtonStyle == ToolButtonStyle::TransportButton
             || m_ButtonStyle == ToolButtonStyle::PlayButton);
         const float iconSize = isTransport ? PrimaryIconSize(uiScale) : IconSize(uiScale);
-        IconPainter::Draw(context, m_Icon, PlaceIconInControl(renderRect, iconSize));
+        const Color iconColor = ToolbarButtonChrome::ResolveIconColor(m_HoverAnim, pressStrength, m_Active);
+        IconPainter::Draw(context, m_Icon, PlaceIconInControl(renderRect, iconSize), iconColor);
         return;
     }
 
@@ -425,17 +430,18 @@ void ToolButton::Paint(PaintContext& context) {
 
         const float iconSize = IconSize(uiScale);
         float currentX = renderRect.x + ThemeMetric(MetricToken::ButtonPaddingHorizontal) * uiScale;
+        const Color iconColor = ToolbarButtonChrome::ResolveIconColor(m_HoverAnim, pressStrength, m_Active);
 
         if (m_Icon.IsValid()) {
             if (m_Label.empty() && !m_IsDropdown) {
-                IconPainter::Draw(context, m_Icon, PlaceIconInControl(renderRect, iconSize));
+                IconPainter::Draw(context, m_Icon, PlaceIconInControl(renderRect, iconSize), iconColor);
             } else if (m_Label.empty() && m_IsDropdown) {
                 currentX = renderRect.x + ChipHorizontalPad(uiScale);
                 Rect iconBand{ currentX, centerY - iconSize * 0.5f, iconSize, iconSize };
-                IconPainter::Draw(context, m_Icon, PlaceIconInControl(iconBand, iconSize));
+                IconPainter::Draw(context, m_Icon, PlaceIconInControl(iconBand, iconSize), iconColor);
             } else {
                 Rect iconBand{ currentX, centerY - iconSize * 0.5f, iconSize, iconSize };
-                IconPainter::Draw(context, m_Icon, PlaceIconInControl(iconBand, iconSize));
+                IconPainter::Draw(context, m_Icon, PlaceIconInControl(iconBand, iconSize), iconColor);
                 currentX += iconSize + IconGapPx(uiScale);
             }
         } else {

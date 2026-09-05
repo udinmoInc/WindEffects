@@ -61,10 +61,10 @@ private:
 // Icon + label + optional chevron (Filter, Sort, Import, Create) - legacy.
 class ToolbarLabeledButton : public Widget {
 public:
-    enum class Variant { Standard, Primary };
+    enum class Variant { Standard, Primary, AddAction };
 
     ToolbarLabeledButton(const std::string& label, we::runtime::kindui::WindIconRef icon = we::runtime::kindui::kWindIconNone,
-        bool showChevron = false, Variant variant = Variant::Standard, float horizontalPadding = 12.0f);
+        bool showChevron = false, Variant variant = Variant::Standard, float horizontalPadding = 8.0f);
 
     Size Measure(const Size& availableSize) override;
     void Arrange(const Rect& allottedRect) override;
@@ -81,7 +81,7 @@ private:
     we::runtime::kindui::WindIconRef m_Icon = we::runtime::kindui::kWindIconNone;
     bool m_ShowChevron = false;
     Variant m_Variant = Variant::Standard;
-    float m_HorizontalPadding = 12.0f;
+    float m_HorizontalPadding = 8.0f;
     bool m_Pressed = false;
     float m_HoverAnim = 0.0f;
     float m_PressAnim = 0.0f;
@@ -114,6 +114,7 @@ public:
     void SetOnImportClicked(std::function<void()> callback);
     void SetOnCreateClicked(std::function<void()> callback);
     void SetOnSaveClicked(std::function<void()> callback);
+    void SetOnFabClicked(std::function<void()> callback);
     void SetOnPreviousClicked(std::function<void()> callback);
     void SetOnNextClicked(std::function<void()> callback);
     void SetOnFolderClicked(std::function<void()> callback);
@@ -129,9 +130,11 @@ private:
     std::shared_ptr<Breadcrumb> m_Breadcrumb;
     std::shared_ptr<::we::editor::widgets::SearchBox> m_SearchBox;
     
-    // New reusable components
-    std::shared_ptr<PrimaryButton> m_CreateBtn;
-    std::shared_ptr<SecondaryButton> m_ImportBtn;
+    // Action buttons
+    std::shared_ptr<ToolbarLabeledButton> m_CreateBtn;
+    std::shared_ptr<ToolbarLabeledButton> m_ImportBtn;
+    std::shared_ptr<ToolbarLabeledButton> m_SaveBtn;
+    std::shared_ptr<ToolbarLabeledButton> m_FabBtn;
     std::shared_ptr<ToolbarNavigationButton> m_BackBtn;
     std::shared_ptr<ToolbarNavigationButton> m_ForwardBtn;
     std::shared_ptr<ToolbarNavigationButton> m_FolderBtn;
@@ -143,7 +146,6 @@ private:
     std::shared_ptr<ToolbarIconToggle> m_FilterIconBtn;
     std::shared_ptr<ToolbarLabeledButton> m_SortBtn;
     std::shared_ptr<ToolbarLabeledButton> m_FilterBtn;
-    std::shared_ptr<ToolbarLabeledButton> m_SaveBtn;
 };
 
 } // namespace we::editor::contentbrowser

@@ -234,7 +234,7 @@ void PaintSectionHeader(
     const float fontSize = ResolveMetric(MetricToken::TextSizeCategory) * scale;
     const float centerY = rect.y + rect.height * 0.5f;
 
-    const WindIconRef chevronIcon = expanded ? WindIcons::ChevronDown16 : WindIcons::ChevronRight16;
+    const WindIconRef chevronIcon = expanded ? WindIcons::TriangleDown16 : WindIcons::TriangleRight16;
     IconPainter::Draw(context, chevronIcon, IconMetrics::CompactGlyphBand(rect, rect.x + padH));
 
     const float textX = rect.x + padH + chevronSize + ResolveMetric(MetricToken::Space1) * scale;

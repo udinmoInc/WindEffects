@@ -83,16 +83,19 @@ void PaintTreeNodeIcon(PaintContext& context, const TreeNode& node, const Rect& 
     }
 
     const bool isFolder =
-        node.icon.stem == WindIcons::Folder24.stem
-        || node.icon.stem == WindIcons::FolderOpen24.stem;
+        node.icon.stem == WindIcons::Folder16.stem
+        || node.icon.stem == WindIcons::FolderOpen16.stem;
     if (isFolder) {
         const bool opened =
-            node.expanded || node.icon.stem == WindIcons::FolderOpen24.stem;
+            node.expanded || node.icon.stem == WindIcons::FolderOpen16.stem;
         ContentBrowserFolderArt::Get().PaintSmallIcon(context, iconRect, hovered, opened);
         return;
     }
 
-    IconPainter::Draw(context, node.icon, iconRect);
+    const Color iconColor = hovered
+        ? we::runtime::kindui::ResolveColor(ColorToken::IconHover)
+        : we::runtime::kindui::ResolveColor(ColorToken::IconSecondary);
+    IconPainter::Draw(context, node.icon, iconRect, iconColor);
 }
 
 struct TreeMenuItem {
@@ -439,9 +442,11 @@ void TreeView::Paint(PaintContext& context) {
         const bool hovered = node->id == m_HoveredId;
 
         // Full-Width Row Background
-        ::we::editor::panels::PanelChrome::PaintAlternatingListRowBackground(
-            context, layout.rowBounds, item.flatIndex);
-        if (selected || hovered) {
+        if (m_ShowAlternatingRowBackground) {
+            ::we::editor::panels::PanelChrome::PaintAlternatingListRowBackground(
+                context, layout.rowBounds, item.flatIndex);
+        }
+        if (m_ShowRowHighlight && (selected || hovered)) {
             ::we::editor::panels::PanelChrome::PaintListRowBackground(
                 context, layout.rowBounds, hovered, selected, IsFocused());
         }
@@ -460,20 +465,21 @@ void TreeView::Paint(PaintContext& context) {
         // Left Controls (ExplorerStyle)
         if (m_ExplorerStyle) {
             if (hovered || selected || !node->visible) {
-                (void)(node->visible ? ThemeColor(ColorToken::TextSecondary) : ThemeColor(ColorToken::TextDisabled));
+                const Color eyeColor = node->visible ? ThemeColor(ColorToken::TextSecondary) : ThemeColor(ColorToken::TextDisabled);
                 const WindIconRef eyeIcon = node->visible ? WindIcons::Eye16 : kWindIconNone;
-                IconPainter::Draw(context, eyeIcon, IconMetrics::PlaceGlyphCentered(layout.eyeBounds, 16u));
+                IconPainter::Draw(context, eyeIcon, IconMetrics::PlaceGlyphCentered(layout.eyeBounds, 16u), eyeColor);
             }
             if (node->locked) {
                 const Color lockColor = ThemeColor(ColorToken::Warning);
-                IconPainter::Draw(context, WindIcons::Lock16, IconMetrics::PlaceGlyphCentered(layout.lockBounds, 16u));
+                IconPainter::Draw(context, WindIcons::Lock16, IconMetrics::PlaceGlyphCentered(layout.lockBounds, 16u), lockColor);
             }
         }
 
-        // Expander Chevron
+        // Expander Triangle
         if (layout.hasExpander) {
-            const WindIconRef chevronIcon = node->expanded ? WindIcons::ChevronDown16 : WindIcons::ChevronRight16;
-            IconPainter::Draw(context, chevronIcon, IconMetrics::PlaceGlyphCentered(layout.expanderBounds, 16u));
+            const WindIconRef triangleIcon = node->expanded ? WindIcons::TriangleDown16 : WindIcons::TriangleRight16;
+            const Color expanderColor = hovered ? ThemeColor(ColorToken::TextPrimary) : ThemeColor(ColorToken::TextSecondary);
+            IconPainter::Draw(context, triangleIcon, IconMetrics::PlaceGlyphCentered(layout.expanderBounds, 16u), expanderColor);
         }
 
         // Node Icon
@@ -984,10 +990,10 @@ void TreeView::ToggleExpand(const std::string& id) {
         node->expanded = !node->expanded;
         if (node->icon.IsValid()) {
             const bool isFolderGlyph =
-                node->icon.stem == WindIcons::Folder24.stem
-                || node->icon.stem == WindIcons::FolderOpen24.stem;
+                node->icon.stem == WindIcons::Folder16.stem
+                || node->icon.stem == WindIcons::FolderOpen16.stem;
             if (isFolderGlyph) {
-                node->icon = node->expanded ? WindIcons::FolderOpen24 : WindIcons::Folder24;
+                node->icon = node->expanded ? WindIcons::FolderOpen16 : WindIcons::Folder16;
             }
         }
     }

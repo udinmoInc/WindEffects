@@ -6,6 +6,29 @@
 namespace fs = std::filesystem;
 
 namespace we::editor::contentbrowser {
+namespace {
+
+// Virtual paths always use '/', never native separators from std::filesystem::path::string().
+std::string VirtualParentPath(const std::string& virtualPath) {
+    if (virtualPath.empty() || virtualPath == "/Game") {
+        return {};
+    }
+    const auto slash = virtualPath.find_last_of('/');
+    if (slash == std::string::npos || slash == 0) {
+        return {};
+    }
+    return virtualPath.substr(0, slash);
+}
+
+std::string VirtualLeafName(const std::string& virtualPath) {
+    const auto slash = virtualPath.find_last_of('/');
+    if (slash == std::string::npos) {
+        return virtualPath;
+    }
+    return virtualPath.substr(slash + 1);
+}
+
+} // namespace
 
 ContentAssetRegistry& ContentAssetRegistry::Get() {
     static ContentAssetRegistry instance;
@@ -89,10 +112,10 @@ void ContentAssetRegistry::ScanDirectory(const std::string& diskPath, const std:
 
     AssetRecord folder{};
     folder.id = MakeId(virtualPath);
-    folder.name = virtualPath == "/Game" ? "Game" : fs::path(virtualPath).filename().string();
+    folder.name = virtualPath == "/Game" ? "Game" : VirtualLeafName(virtualPath);
     folder.virtualPath = virtualPath;
     folder.diskPath = diskPath;
-    folder.parentPath = virtualPath == "/Game" ? "" : fs::path(virtualPath).parent_path().string();
+    folder.parentPath = VirtualParentPath(virtualPath);
     folder.type = AssetType::Folder;
     folder.isFolder = true;
     folder.extension = "";
@@ -149,13 +172,14 @@ void ContentAssetRegistry::Tick(float deltaTime) {
     if (m_WatchTimer < m_WatchInterval) return;
     m_WatchTimer = 0.0f;
 
-    const fs::path gameRoot = fs::path(m_ContentRoot) / "Game";
-    if (!fs::exists(gameRoot)) return;
+    // Content root mounts as virtual /Game — watch the root itself, not a nested Game/.
+    const fs::path contentRoot = fs::path(m_ContentRoot);
+    if (!fs::exists(contentRoot)) return;
 
     static uint64_t lastScanSignature = 0;
     uint64_t signature = 0;
     std::error_code ec;
-    for (const auto& entry : fs::recursive_directory_iterator(gameRoot, ec)) {
+    for (const auto& entry : fs::recursive_directory_iterator(contentRoot, ec)) {
         signature += static_cast<uint64_t>(entry.file_size(ec));
         auto ftime = fs::last_write_time(entry, ec);
         signature ^= static_cast<uint64_t>(ftime.time_since_epoch().count());

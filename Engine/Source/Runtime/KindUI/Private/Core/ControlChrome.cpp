@@ -177,10 +177,29 @@ void PaintPanelButtonFace(
     float hoverAnim,
     float pressAnim,
     bool emphasized) {
-    (void)hoverAnim;
-    (void)pressAnim;
     (void)emphasized;
-    context.DrawRoundedRect(rect, background, radius);
+
+    Color bgIdle = background.a > 0.01f ? background : ResolveColor(ColorToken::ControlBackground);
+    Color bgHover = ResolveColor(ColorToken::ControlBackgroundHover);
+    Color bgPress = Color(bgIdle.r * 0.80f, bgIdle.g * 0.80f, bgIdle.b * 0.80f, 1.0f);
+
+    Color bgColor = bgIdle;
+    if (hoverAnim > 0.001f) {
+        bgColor = Color::Pick(bgColor, bgHover, std::clamp(hoverAnim, 0.0f, 1.0f));
+    }
+    if (pressAnim > 0.001f) {
+        bgColor = Color::Pick(bgColor, bgPress, std::clamp(pressAnim, 0.0f, 1.0f));
+    }
+
+    context.DrawRoundedRect(rect, bgColor, radius);
+
+    Color borderColor = ResolveColor(ColorToken::BorderDefault);
+    if (hoverAnim > 0.001f) {
+        borderColor = Color::Pick(borderColor, ResolveColor(ColorToken::BorderLight), std::clamp(hoverAnim, 0.0f, 1.0f));
+    } else if (pressAnim > 0.001f) {
+        borderColor = Color::Pick(borderColor, Color(borderColor.r * 0.85f, borderColor.g * 0.85f, borderColor.b * 0.85f, 1.0f), std::clamp(pressAnim, 0.0f, 1.0f));
+    }
+    context.DrawRoundedRectOutline(rect, borderColor, 1.0f, radius);
 }
 
 namespace {
@@ -214,9 +233,13 @@ void PaintInputFrameInternal(
     }
     context.DrawSurface(rect, fillRole, cornerRadius, "Input");
 
-    // Shared recessed chrome for every input/control (search, text, numeric, combo…).
-    const float bevelStrength = state.disabled ? 0.55f : 1.0f;
-    PaintInsetBevel(context, rect, cornerRadius, bevelStrength);
+    Color borderColor = ResolveColor(ColorToken::BorderDefault);
+    if (state.focused) {
+        borderColor = ResolveColor(ColorToken::BorderFocus);
+    } else if (state.hoverAnim > 0.001f) {
+        borderColor = Color::Pick(borderColor, ResolveColor(ColorToken::BorderLight), std::clamp(state.hoverAnim, 0.0f, 1.0f));
+    }
+    context.DrawRoundedRectOutline(rect, borderColor, 1.0f, cornerRadius);
 
     if (state.focused) {
         PaintFocusRing(context, rect, cornerRadius);
@@ -302,37 +325,34 @@ void PaintFilledButton(
     const InteractionState& state,
     StyleRole hoverRole,
     StyleRole pressRole) {
+    (void)hoverRole;
+    (void)pressRole;
     if (state.disabled) {
         context.DrawRoundedRect(rect, ResolveColor(ColorToken::DisabledBackground), base.cornerRadius);
         return;
     }
 
-    if (base.elevation <= 0) {
-        // Flat chrome — no drop shadow; surface color only.
-    } else {
-        PaintElevation(context, rect, base.elevation, base.cornerRadius);
+    Color bgIdle = base.background.a > 0.01f ? base.background : ResolveColor(ColorToken::ControlBackground);
+    Color bgHover = ResolveColor(ColorToken::ControlBackgroundHover);
+    Color bgPress = Color(bgIdle.r * 0.80f, bgIdle.g * 0.80f, bgIdle.b * 0.80f, 1.0f);
+
+    Color bgColor = bgIdle;
+    if (state.hoverAnim > 0.001f) {
+        bgColor = Color::Pick(bgColor, bgHover, std::clamp(state.hoverAnim, 0.0f, 1.0f));
+    }
+    if (state.pressAnim > 0.001f) {
+        bgColor = Color::Pick(bgColor, bgPress, std::clamp(state.pressAnim, 0.0f, 1.0f));
     }
 
-    const float bevelStrength = std::max(0.0f, 1.0f - state.pressAnim * 0.8f);
-    ControlFrameStyle frame;
-    frame.normalBackground = base.background;
-    if (hoverRole == StyleRole::ButtonPrimary) {
-        frame.hoverBackground = ResolveColor(ColorToken::ButtonPrimaryHover);
-        frame.pressedBackground = ResolveColor(ColorToken::ButtonPrimaryPressed);
-    } else {
-        frame.hoverBackground = Role(hoverRole).background;
-        frame.pressedBackground = Role(pressRole).background;
+    context.DrawRoundedRect(rect, bgColor, base.cornerRadius);
+
+    Color borderColor = base.border.a > 0.01f ? base.border : ResolveColor(ColorToken::BorderDefault);
+    if (state.hoverAnim > 0.001f) {
+        borderColor = Color::Pick(borderColor, ResolveColor(ColorToken::BorderLight), std::clamp(state.hoverAnim, 0.0f, 1.0f));
+    } else if (state.pressAnim > 0.001f) {
+        borderColor = Color::Pick(borderColor, Color(borderColor.r * 0.85f, borderColor.g * 0.85f, borderColor.b * 0.85f, 1.0f), std::clamp(state.pressAnim, 0.0f, 1.0f));
     }
-    frame.selectedBackground = ResolveColor(ColorToken::SelectedBackground);
-    frame.cornerRadius = base.cornerRadius;
-    PaintControlFrame(
-        context,
-        rect,
-        state,
-        frame,
-        base.border.a > 0.01f ? ControlBorderMode::Subtle : ControlBorderMode::Styled,
-        base.border);
-    PaintRaisedBevel(context, rect, frame.cornerRadius, bevelStrength);
+    context.DrawRoundedRectOutline(rect, borderColor, 1.0f, base.cornerRadius);
 }
 
 void PaintGhostButton(

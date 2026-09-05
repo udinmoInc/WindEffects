@@ -62,8 +62,8 @@ void ContentBrowserFolderArt::PaintFolderIcon(
     bool hovered,
     bool opened) const
 {
-    // Sidebar / list: authored folder / folder-open at tree tier (24).
-    const kindui::WindIconRef icon = opened ? WindIcons::FolderOpen24 : WindIcons::Folder24;
+    // Sidebar / list: compact folder / folder-open glyphs with CB amber tint.
+    const kindui::WindIconRef icon = opened ? WindIcons::FolderOpen16 : WindIcons::Folder16;
     if (!icon.IsValid()) {
         return;
     }
@@ -75,8 +75,13 @@ void ContentBrowserFolderArt::PaintThumbnail(
     const we::runtime::kindui::Rect& thumbRect,
     bool hovered) const
 {
-    // Grid thumbnails: authored content-folder_512 art (scaled into the slot).
-    const we::runtime::kindui::Rect folderRect = ComputeFolderRect(thumbRect);
+    // Grid thumbnails: content-folder_512 shape, same theme folder tint as the tree.
+    const we::runtime::kindui::Rect folderRect = ComputeFolderRect(
+        thumbRect,
+        kThumbnailWidthFill,
+        kThumbnailHeightFill,
+        true,
+        kContentFolderAspectRatio);
     if (!WindIcons::ContentFolder512.IsValid()) {
         PaintFolderIcon(context, folderRect, hovered, false);
         return;
@@ -90,10 +95,7 @@ void ContentBrowserFolderArt::PaintSmallIcon(
     bool hovered,
     bool opened) const
 {
-    const we::runtime::kindui::Rect folderRect = ComputeFolderRect(
-        iconRect, kSmallIconWidthFill, kSmallIconHeightFill, false,
-        opened ? kFolderOpenAspectRatio : kFolderAspectRatio);
-    PaintFolderIcon(context, folderRect, hovered, opened);
+    PaintFolderIcon(context, iconRect, hovered, opened);
 }
 
 } // namespace we::editor::contentbrowser

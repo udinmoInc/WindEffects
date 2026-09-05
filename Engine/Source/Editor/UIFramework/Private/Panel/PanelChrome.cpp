@@ -53,12 +53,6 @@ void DrawRoundedRectTop(PaintContext& context, const Rect& rect, const Color& co
 }
 
 void PaintSeparatorEdge(PaintContext& context, const Rect& rect, bool topEdge) {
-    if (ChromeSeparation::kGapCutsEnabled) {
-        (void)context;
-        (void)rect;
-        (void)topEdge;
-        return;
-    }
     const float scale = PanelChrome::UiScale();
     const float thickness = (std::max)(1.0f, IconMetrics::SnapPx(
         we::runtime::kindui::ResolveMetric(MetricToken::BorderWidth) * scale));
@@ -232,7 +226,8 @@ void PaintContentRegion(PaintContext& context, const Rect& rect) {
 }
 
 void PaintDockTabStripDivider(PaintContext& context, const Rect& headerRect) {
-    PaintSeparatorEdge(context, headerRect, false);
+    (void)context;
+    (void)headerRect;
 }
 
 void PaintDockFooterDivider(PaintContext& context, const Rect& footerRect) {
@@ -240,7 +235,8 @@ void PaintDockFooterDivider(PaintContext& context, const Rect& footerRect) {
 }
 
 void PaintDockHeaderBand(PaintContext& context, const Rect& headerRect) {
-    PaintDockTabStripDivider(context, headerRect);
+    (void)context;
+    (void)headerRect;
 }
 
 float MeasureDockTabWidth(
@@ -520,8 +516,6 @@ void PaintFloatingPanelHeader(
         PaintHeaderIconButton(context, actionRect, action.icon, action.hovered, action.pressed, true);
         actionX += buttonSize + gap;
     }
-
-    PaintDockTabStripDivider(context, headerRect);
 }
 
 DockTabStripLayout LayoutDockTabStrip(
@@ -585,7 +579,6 @@ void PaintDockTabStrip(
             i == 0,
             state.flatCorners);
     }
-    PaintDockTabStripDivider(context, stripRect);
 
     if (we::runtime::kindui::UiGeometryDebug::IsEnabled() && !layout.tabs.empty()) {
         we::runtime::kindui::UiGeometryDebug::Get().TraceRegion(

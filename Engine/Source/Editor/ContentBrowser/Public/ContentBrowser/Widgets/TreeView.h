@@ -93,6 +93,7 @@ public:
     void SetIndentWidth(float width);
     void SetExplorerStyle(bool enabled) {
         m_ExplorerStyle = enabled;
+        m_ShowAlternatingRowBackground = enabled;
         if (enabled) {
             m_Style.text.size = 13.0f;
         }
@@ -101,6 +102,8 @@ public:
     void SetShowColumnHeader(bool show) { m_ShowColumnHeader = show; InvalidateLayout(); }
     void SetPaintNavigationBackground(bool paint) { m_PaintNavigationBackground = paint; }
     void SetShowRowControls(bool show) { m_ShowRowControls = show; }
+    void SetShowAlternatingRowBackground(bool show) { m_ShowAlternatingRowBackground = show; }
+    void SetShowRowHighlight(bool show) { m_ShowRowHighlight = show; }
     size_t GetRenderItemCount() const { return m_RenderList.size(); }
 
     // Search and Filter
@@ -182,6 +185,8 @@ private:
     bool m_ShowColumnHeader = true;
     bool m_ShowRowControls = true;
     bool m_PaintNavigationBackground = true;
+    bool m_ShowAlternatingRowBackground = false;
+    bool m_ShowRowHighlight = true;
 
     std::string m_RenamingId;
     std::string m_RenameBuffer;

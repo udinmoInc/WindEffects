@@ -112,30 +112,26 @@ float4 PSMain(VSOutput input) : SV_Target
     }
 
     // Type 0.0 is Texture/Icon bitmap.
-    // Icons/thumbnails store coverage in alpha; vertex color carries the tint.
-    // Flat mono tint — no baked shadow/highlight layers (keeps icons crisp on dark UI).
+    // Sample texture RGB * vertex tint color; alpha is modulated by vertex alpha.
+    // Preserves 2.5D shading, highlights, and drop shadows while applying theme tint.
     if (type < 0.5)
     {
-        // Nearest-filtered icon atlases: sample alpha only, preserve tint color exactly.
-        float coverage = texSampler.Sample(samp0, input.uv).a;
-        coverage = saturate(coverage);
-        return float4(input.color.rgb, input.color.a * coverage);
+        float4 texColor = texSampler.Sample(samp0, input.uv);
+        return float4(texColor.rgb * input.color.rgb, texColor.a * input.color.a);
     }
 
-    // Type 5.0 is an opaque solid quad — RGB only, alpha forced to 1.0.
+    // Type 5.0 is a solid quad (e.g. lines, untextured rects).
     if (type > 4.5 && type < 5.5)
     {
-        return float4(input.color.rgb, 1.0);
+        return input.color;
     }
 
     // Type 4.0 is a full-color texture (WindIcons / viewports).
-    // Sample authored RGB+A; never replace RGB with vertex tint.
-    // Vertex alpha still scales coverage for fades.
+    // Sample authored RGB+A; vertex color modulates tint (white = unchanged).
     if (type > 3.5 && type < 4.5)
     {
         float4 texColor = texSampler.Sample(samp0, input.uv);
-        texColor.a *= input.color.a;
-        return texColor;
+        return float4(texColor.rgb * input.color.rgb, texColor.a * input.color.a);
     }
 
     // Type 1.0 is Rect, Type 2.0 is Border

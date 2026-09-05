@@ -118,16 +118,12 @@ void PaintChip(
         }
     }
     context.DrawRoundedRect(bounds, bg, radius);
-    const float bevelStrength = std::max(0.15f, 1.0f - hoverAnim * 0.2f);
-    ControlChrome::PaintSubtleDropShadow(context, bounds, radius, bevelStrength * 0.65f);
-    ControlChrome::PaintRaisedBevel(context, bounds, radius, bevelStrength);
-    if (selected || hoverAnim > 0.01f) {
-        context.DrawRoundedRectOutline(
-            bounds,
-            selected ? ResolveColor(ColorToken::AccentPrimary) : ResolveColor(ColorToken::BorderSubtle),
-            1.f,
-            radius);
+
+    Color borderColor = selected ? ResolveColor(ColorToken::AccentPrimary) : ResolveColor(ColorToken::BorderDefault);
+    if (!selected && hoverAnim > 0.01f) {
+        borderColor = Color::Pick(borderColor, ResolveColor(ColorToken::BorderLight), std::clamp(hoverAnim, 0.0f, 1.0f));
     }
+    context.DrawRoundedRectOutline(bounds, borderColor, 1.0f * UiScale(), radius);
 
     float textX = bounds.x + ResolveMetric(MetricToken::Space2) * UiScale();
     if (icon.IsValid()) {
@@ -229,7 +225,7 @@ void PaintPrimaryButton(
     context.DrawText(
         std::string(label),
         Point{bounds.x + (bounds.width - textW) * 0.5f, LayoutMetrics::AlignTextTopY(bounds, fontSize)},
-        ResolveColor(ColorToken::TextOnAccent),
+        ResolveColor(ColorToken::TextPrimary),
         fontSize,
         true);
 }
