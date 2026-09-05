@@ -384,9 +384,11 @@ private:
                 auto tn = std::make_shared<::we::editor::contentbrowser::TreeNode>();
                 tn->id = std::to_string(id.value);
                 tn->label = std::string(node->GetDisplayName());
-                tn->typeName = std::string(node->GetTypeName());
-                tn->icon = node->GetIcon();
-                tn->expanded = m_Model->IsExpanded(id);
+                tn->icon = node->GetIcon().IsValid()
+                    ? node->GetIcon()
+                    : (node->GetKind() == OutlinerNodeKind::Folder
+                        ? we::runtime::kindui::WindIcons::Folder16
+                        : we::runtime::kindui::WindIcons::BoxSolid16);
                 tn->visible = node->GetFlags().visible;
                 tn->locked = node->GetFlags().locked;
                 tn->userData = reinterpret_cast<void*>(id.value);

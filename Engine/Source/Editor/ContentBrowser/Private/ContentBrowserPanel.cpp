@@ -59,7 +59,7 @@ std::shared_ptr<::we::editor::contentbrowser::TreeNode> BuildFolderNode(const As
     node->id = folder->id;
     node->label = folder->name;
     node->expanded = folder->virtualPath == "/Game";
-    node->icon = node->expanded ? WindIcons::FolderOpen24 : WindIcons::Folder24;
+    node->icon = node->expanded ? WindIcons::FolderOpen16 : WindIcons::Folder16;
 
     for (const auto* child : ContentAssetRegistry::Get().GetChildren(folder->virtualPath)) {
         if (child->isFolder) node->children.push_back(BuildFolderNode(child));
@@ -73,12 +73,12 @@ void RefreshFolderTree(const std::shared_ptr<::we::editor::contentbrowser::TreeV
     root->label = "Content";
     root->expanded = true;
 
-    root->children.push_back(MakeSection("__favorites__", "Favorites", WindIcons::Star24));
-    root->children.push_back(MakeSection("__collections__", "Collections", WindIcons::Folder24));
-    root->children.push_back(MakeSection("__plugins__", "Plugins", WindIcons::Plugin24));
-    root->children.push_back(MakeSection("__engine__", "Engine Content", WindIcons::Globe24, false));
+    root->children.push_back(MakeSection("__favorites__", "Favorites", WindIcons::Star16));
+    root->children.push_back(MakeSection("__collections__", "Collections", WindIcons::Layers16));
+    root->children.push_back(MakeSection("__plugins__", "Plugins", WindIcons::Plugin16));
+    root->children.push_back(MakeSection("__engine__", "Engine Content", WindIcons::Globe16, false));
 
-    auto project = MakeSection("__project__", "Project Content", WindIcons::Folder24, true);
+    auto project = MakeSection("__project__", "Project Content", WindIcons::Folder16, true);
     if (const auto* game = ContentAssetRegistry::Get().FindByVirtualPath("/Game")) {
         project->children.push_back(BuildFolderNode(game));
     }
@@ -176,7 +176,11 @@ std::shared_ptr<::we::editor::panels::Panel> CreateContentBrowserPanel() {
     folderTree->SetIndentWidth(we::runtime::kindui::ResolveMetric(we::runtime::kindui::MetricToken::TreeIndentWidth));
     folderTree->SetShowRowControls(false);
 
-    // Right pane: asset browser with toolbar (AssetPane mode)
+    // Right pane: vertical column with toolbar on top and asset grid below
+    auto rightPane = std::make_shared<we::runtime::kindui::Column>();
+    rightPane->SetFlexGrow(1.0f);
+    rightPane->SetFlexShrink(1.0f);
+
     auto assetToolbar = ::we::editor::contentbrowser::ContentBrowserToolbarControls::Create(::we::editor::contentbrowser::ContentBrowserToolbarControls::ToolbarMode::AssetPane);
     auto contentBrowser = std::make_shared<::we::editor::contentbrowser::ContentBrowser>();
 
@@ -184,12 +188,15 @@ std::shared_ptr<::we::editor::panels::Panel> CreateContentBrowserPanel() {
     contentBrowser->SetFlexGrow(1.0f);
     contentBrowser->SetFlexShrink(1.0f);
 
-    // Split content area into left (folder tree) and right (asset browser).
+    rightPane->AddChild(assetToolbar);
+    rightPane->AddChild(contentBrowser);
+
+    // Split content area into left (folder tree sidebar) and right (content area with toolbar).
     const float treePaneWidth = std::max(200.0f * we::runtime::kindui::DPIContext::GetScale(),
         we::runtime::kindui::ResolveMetric(we::runtime::kindui::MetricToken::PropertyLabelColumnWidth) * 2.0f);
     auto contentSplitter = std::make_shared<we::runtime::kindui::Splitter>(we::runtime::kindui::Orientation::Horizontal, treePaneWidth);
     contentSplitter->SetFirstChild(folderTree);
-    contentSplitter->SetSecondChild(contentBrowser);
+    contentSplitter->SetSecondChild(rightPane);
     contentSplitter->SetResizeMode(we::runtime::kindui::Splitter::ResizeMode::FixedFirst);
     contentSplitter->SetFixedFirstWidth(treePaneWidth);
     contentSplitter->SetFlexGrow(1.0f);
@@ -202,7 +209,6 @@ std::shared_ptr<::we::editor::panels::Panel> CreateContentBrowserPanel() {
                 EditorWorkspaceController::Get().ToggleContentBrowserExpanded();
             }
         })
-        .Toolbar(assetToolbar)
         .Content(contentSplitter);
 
     RefreshFolderTree(folderTree);
@@ -234,6 +240,10 @@ std::shared_ptr<::we::editor::panels::Panel> CreateContentBrowserPanel() {
         // Save all placeholder – layout hook for future save workflow.
     });
 
+    assetToolbar->SetOnFabClicked([]() {
+        // Fab 3D marketplace placeholder – layout hook for future library workflow.
+    });
+
     assetToolbar->SetOnFilterClicked([contentBrowser]() {
         ContentBrowserService::Get().GetFilterController().ToggleFilter(ContentFilter::Textures);
         if (contentBrowser->GetModel()) contentBrowser->GetModel()->NotifyChanged();
@@ -241,12 +251,21 @@ std::shared_ptr<::we::editor::panels::Panel> CreateContentBrowserPanel() {
 
     folderTree->SetOnSelectionChanged([contentBrowser](const std::vector<std::string>& ids) {
         if (ids.empty()) return;
-        const auto* asset = ContentAssetRegistry::Get().FindById(ids.front());
+        const std::string& id = ids.front();
+        if (id == "__project__") {
+            NavigateToFolder("/Game", contentBrowser, nullptr);
+            return;
+        }
+        const auto* asset = ContentAssetRegistry::Get().FindById(id);
         if (!asset || !asset->isFolder || asset->id.rfind("__", 0) == 0) return;
         NavigateToFolder(asset->virtualPath, contentBrowser, nullptr);
     });
 
     folderTree->SetOnItemDoubleClicked([contentBrowser](const std::string& id) {
+        if (id == "__project__") {
+            NavigateToFolder("/Game", contentBrowser, nullptr);
+            return;
+        }
         const auto* asset = ContentAssetRegistry::Get().FindById(id);
         if (!asset || !asset->isFolder || asset->id.rfind("__", 0) == 0) return;
         NavigateToFolder(asset->virtualPath, contentBrowser, nullptr);

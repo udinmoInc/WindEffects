@@ -52,7 +52,7 @@ WindIconRef ResolveItemIcon(const ContentItem& item) {
     if (item.icon.IsValid()) {
         return item.icon;
     }
-    return item.isFolder ? WindIcons::Folder24 : WindIcons::Square16;
+    return item.isFolder ? WindIcons::ContentFolder512 : WindIcons::Square16;
 }
 }
 
@@ -62,6 +62,10 @@ ContentBrowser::ContentBrowser()
 {
     m_Model = std::make_shared<ContentBrowserModel>();
     m_Controller = std::make_shared<ContentBrowserController>(m_Model);
+    m_Model->onModelChanged = [this]() {
+        MarkLayoutDirty();
+        BuildRenderList();
+    };
 }
 
 void ContentBrowser::SetModel(std::shared_ptr<ContentBrowserModel> model) {
@@ -410,9 +414,6 @@ void ContentBrowser::PaintListItem(PaintContext& context, const RenderItem& rend
     const auto& item = renderItem.item;
     const bool selected = IsSelected(item.id);
     const bool hovered = item.id == m_HoveredId;
-
-    PanelChrome::PaintAlternatingListRowBackground(
-        context, renderItem.geometry, renderItem.sourceIndex);
     if (selected || hovered) {
         PanelChrome::PaintListRowBackground(context, renderItem.geometry, hovered, selected, IsFocused());
     }

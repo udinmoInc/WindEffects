@@ -56,12 +56,6 @@ void PaintRegionBackground(PanelBodyRegion region, PaintContext& context, const 
 }
 
 void PaintRegionChrome(PanelBodyRegion region, PaintContext& context, const Rect& geometry) {
-    if (we::runtime::kindui::ChromeSeparation::kGapCutsEnabled) {
-        (void)region;
-        (void)context;
-        (void)geometry;
-        return;
-    }
     switch (region) {
     case PanelBodyRegion::ModeTabs:
     case PanelBodyRegion::Toolbar:

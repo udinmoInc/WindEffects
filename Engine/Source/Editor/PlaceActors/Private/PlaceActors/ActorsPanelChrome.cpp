@@ -72,8 +72,8 @@ void PaintSoftSeparator(PaintContext& context, const Rect& bounds) {
 void PaintChevron(PaintContext& context, const Rect& bounds, bool expanded, float hoverAnim) {
     const Color color = we::runtime::kindui::ResolveTextForState(hoverAnim > 0.01f, false);
     const WindIconRef chevronIcon = expanded
-        ? we::runtime::kindui::WindIcons::ChevronDown16
-        : we::runtime::kindui::WindIcons::ChevronRight16;
+        ? we::runtime::kindui::WindIcons::TriangleDown16
+        : we::runtime::kindui::WindIcons::TriangleRight16;
     we::runtime::kindui::IconPainter::Draw(context, chevronIcon, bounds);
 }
 

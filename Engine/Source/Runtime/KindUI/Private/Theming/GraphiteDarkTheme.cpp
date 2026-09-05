@@ -97,11 +97,11 @@ Color GraphiteDarkTheme::ResolveColor(ColorToken token) const {
     case ColorToken::IconContactShadow:
         return P.IconContactShadow;
     case ColorToken::ButtonPrimaryBackground:
-        return CS::OpaqueSurface(P.Primary);
+        return CS::OpaqueSurface(P.Dropdown);
     case ColorToken::ButtonPrimaryHover:
-        return P.PrimaryHover;
+        return P.Hover;
     case ColorToken::ButtonPrimaryPressed:
-        return P.PrimaryPress;
+        return Color(P.Dropdown.r * 0.80f, P.Dropdown.g * 0.80f, P.Dropdown.b * 0.80f, 1.0f);
     case ColorToken::ButtonDangerBackground:
     case ColorToken::BorderError:
     case ColorToken::ErrorForeground:
@@ -217,7 +217,7 @@ float GraphiteDarkTheme::ResolveMetric(MetricToken token) const {
     case MetricToken::SearchBoxHeight: return 28.0f;
     case MetricToken::NavigationButtonSize: return 28.0f;
     case MetricToken::IconSizeSearch: return 16.0f;
-    case MetricToken::IconSizeTree: return 24.0f;
+    case MetricToken::IconSizeTree: return 16.0f;
     case MetricToken::IconSizeToolbar:
     case MetricToken::IconSizeNavigation:
     case MetricToken::IconSizePrimary: return 16.0f;
@@ -539,10 +539,10 @@ ResolvedStyle StyleResolver::Resolve(StyleRole role) const {
         style.foreground = ResolveColor(ColorToken::TextPrimary);
         break;
     case StyleRole::ButtonPrimary:
-        style.background = ResolveColor(ColorToken::ButtonPrimaryBackground);
-        style.foreground = ResolveColor(ColorToken::TextOnAccent);
-        style.border = Color::Transparent();
-        style.borderWidth = 0.0f;
+        style.background = ResolveColor(ColorToken::ControlBackground);
+        style.foreground = ResolveColor(ColorToken::TextPrimary);
+        style.border = ResolveColor(ColorToken::BorderDefault);
+        style.borderWidth = 1.0f;
         style.height = Scaled(theme.ResolveMetric(MetricToken::ButtonHeight));
         style.iconSize = theme.ResolveMetric(MetricToken::IconSizeToolbar);
         style.cornerRadius = Scaled(theme.ResolveMetric(MetricToken::CornerRadiusSmall));

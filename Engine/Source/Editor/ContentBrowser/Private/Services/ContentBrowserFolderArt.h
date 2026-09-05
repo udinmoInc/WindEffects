@@ -10,8 +10,9 @@ using ::we::runtime::kindui::IconRenderer;
 using ::we::runtime::kindui::PaintContext;
 using ::we::runtime::kindui::Rect;
 
-/// Content Browser folder glyphs from the icon atlas (folder / openfolder tiers),
-/// tinted with the dark orange–yellow Content Browser folder theme colors.
+/// Content Browser folder art (separate assets; shared theme folder tint):
+/// - Grid thumbnails: content-folder_512
+/// - Sidebar / list: folder / folder-open
 class ContentBrowserFolderArt {
 public:
     static ContentBrowserFolderArt& Get();
@@ -19,11 +20,12 @@ public:
     void Initialize(IconRenderer* iconRenderer);
     void InvalidateCache();
 
-    static constexpr float kThumbnailWidthFill = 0.825f;
-    static constexpr float kThumbnailHeightFill = 0.725f;
+    static constexpr float kThumbnailWidthFill = 0.92f;
+    static constexpr float kThumbnailHeightFill = 0.92f;
     static constexpr float kSmallIconWidthFill = 0.98f;
     static constexpr float kSmallIconHeightFill = 0.98f;
-    // New atlas folder art aspect (e.g. 128x101, 16x13).
+    // content-folder_512 is authored square; compact folder glyphs use atlas aspect.
+    static constexpr float kContentFolderAspectRatio = 1.0f;
     static constexpr float kFolderAspectRatio = 128.0f / 101.0f;
     static constexpr float kFolderOpenAspectRatio = 128.0f / 101.0f;
 
