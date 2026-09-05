@@ -24,9 +24,11 @@ void IconPainter::Draw(PaintContext& context, WindIconRef icon, const Rect& cont
     }
     const float targetPx = displayPx > 0
         ? static_cast<float>(displayPx)
-        : (controlBounds.width > 0.0f && controlBounds.height > 0.0f
-            ? std::min({ controlBounds.width, controlBounds.height, static_cast<float>(icon.sizePx) })
-            : static_cast<float>(icon.sizePx));
+        : (icon.sizePx > 0
+            ? static_cast<float>(icon.sizePx)
+            : ((controlBounds.width > 0.0f && controlBounds.height > 0.0f)
+                ? std::min(controlBounds.width, controlBounds.height)
+                : 16.0f));
     const Rect drawRect = IconMetrics::PlaceGlyphCentered(controlBounds, targetPx);
     context.DrawWindIcon(icon, drawRect, Color::White());
 }
@@ -35,9 +37,11 @@ void IconPainter::Draw(PaintContext& context, WindIconRef icon, const Rect& cont
     if (!icon.IsValid()) {
         return;
     }
-    const float targetPx = (controlBounds.width > 0.0f && controlBounds.height > 0.0f)
-        ? std::min({ controlBounds.width, controlBounds.height, static_cast<float>(icon.sizePx) })
-        : static_cast<float>(icon.sizePx);
+    const float targetPx = (icon.sizePx > 0)
+        ? static_cast<float>(icon.sizePx)
+        : ((controlBounds.width > 0.0f && controlBounds.height > 0.0f)
+            ? std::min(controlBounds.width, controlBounds.height)
+            : 16.0f);
     const Rect drawRect = IconMetrics::PlaceGlyphCentered(controlBounds, targetPx);
     context.DrawWindIcon(icon, drawRect, tint);
 }

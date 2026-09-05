@@ -31,9 +31,9 @@ Color GraphiteDarkTheme::ResolveColor(ColorToken token) const {
     case ColorToken::PanelBackground:
     case ColorToken::TabActiveBackground:
     case ColorToken::SelectHoverBackground:
+    case ColorToken::ScrollbarTrack:
         return CS::OpaqueSurface(P.Panel);
     case ColorToken::SecondarySurface:
-    case ColorToken::ScrollbarTrack:
         return CS::OpaqueSurface(P.Recessed);
     case ColorToken::HeaderBackground:
     case ColorToken::ListLabelBandBackground:
@@ -197,12 +197,15 @@ float GraphiteDarkTheme::ResolveMetric(MetricToken token) const {
     case MetricToken::FocusRingWidth: return 1.0f;
     case MetricToken::PanelHeaderHeight: return 34.0f;
     case MetricToken::PanelTabHeight: return 34.0f;
-    case MetricToken::PanelToolbarHeight: return 42.0f;
-    case MetricToken::HeaderControlHeight: return 28.0f;
-    case MetricToken::IconButtonSize: return 28.0f;
-    case MetricToken::ButtonHeight: return 28.0f;
-    case MetricToken::ControlHeightCompact: return 26.0f;
+    case MetricToken::PanelToolbarHeight: return 34.0f;
+    case MetricToken::HeaderControlHeight: return 24.0f;
+    case MetricToken::IconButtonSize: return 24.0f;
+    case MetricToken::ButtonHeight: return 24.0f;
+    case MetricToken::ControlHeightCompact: return 24.0f;
     case MetricToken::ControlHeightLarge: return 36.0f;
+    case MetricToken::InputWidthCompact: return 180.0f;
+    case MetricToken::InputWidthDefault: return 260.0f;
+    case MetricToken::InputWidthLarge: return 320.0f;
     case MetricToken::FormRowHeight: return 26.0f;
     case MetricToken::MenuItemHeight: return 26.0f;
     case MetricToken::PageMargin: return 16.0f;
@@ -216,8 +219,8 @@ float GraphiteDarkTheme::ResolveMetric(MetricToken token) const {
     case MetricToken::TitleBarHeight: return 32.0f;
     case MetricToken::WindowControlWidth: return 40.0f;
     case MetricToken::ToolbarHeight: return 38.0f;
-    case MetricToken::SearchBoxHeight: return 28.0f;
-    case MetricToken::NavigationButtonSize: return 28.0f;
+    case MetricToken::SearchBoxHeight: return 24.0f;
+    case MetricToken::NavigationButtonSize: return 24.0f;
     case MetricToken::IconSizeSearch: return 16.0f;
     case MetricToken::IconSizeTree: return 16.0f;
     case MetricToken::IconSizeToolbar:
@@ -242,17 +245,17 @@ float GraphiteDarkTheme::ResolveMetric(MetricToken token) const {
     case MetricToken::StatusBarHeight: return 34.0f;
     case MetricToken::TabGap: return 3.0f;
     case MetricToken::TabStripPadH: return 0.0f;
-    case MetricToken::TabStripPadV: return 4.0f;
+    case MetricToken::TabStripPadV: return 5.0f;
     case MetricToken::TabActiveIndicatorWidth: return 0.0f;
     case MetricToken::TabPaddingH: return 10.0f;
     case MetricToken::TabPaddingV: return 4.0f;
-    case MetricToken::DockPanelGap: return 3.0f;
-    case MetricToken::ChromeSeparationGap: return 3.0f;
-    case MetricToken::ChromeSeparationGapWide: return 3.0f;
-    case MetricToken::ViewportToolbarHeight: return 32.0f;
+    case MetricToken::DockPanelGap: return 4.0f;
+    case MetricToken::ChromeSeparationGap: return 4.0f;
+    case MetricToken::ChromeSeparationGapWide: return 6.0f;
+    case MetricToken::ViewportToolbarHeight: return 34.0f;
     case MetricToken::ToolbarSeparatorWidth: return 2.0f;
     case MetricToken::ToolbarSeparatorHeight: return 24.0f;
-    case MetricToken::ToolbarLabeledHeight: return 28.0f;
+    case MetricToken::ToolbarLabeledHeight: return 24.0f;
     case MetricToken::ToolbarLabeledMinWidth: return 36.0f;
     case MetricToken::BreadcrumbBarHeight: return 32.0f;
     case MetricToken::PropertyLabelColumnWidth: return 120.0f;
@@ -266,7 +269,7 @@ float GraphiteDarkTheme::ResolveMetric(MetricToken token) const {
     case MetricToken::ToggleTrackWidth: return 34.0f;
     case MetricToken::ToggleTrackHeight: return 18.0f;
     case MetricToken::CheckboxGlyphSize: return 14.0f;
-    case MetricToken::PrimaryButtonHeight: return 28.0f;
+    case MetricToken::PrimaryButtonHeight: return 24.0f;
     case MetricToken::ContentBrowserGridPadding: return 16.0f;
     case MetricToken::ContentBrowserGridHSpacing: return 12.0f;
     case MetricToken::ContentBrowserGridVSpacing: return 14.0f;

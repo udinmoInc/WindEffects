@@ -1,6 +1,7 @@
 #include "KindUI/Core/Widgets/PanelToolbarRow.h"
 #include "KindUI/Core/Widgets/VerticalDivider.h"
 #include "KindUI/Core/LayoutMetrics.h"
+#include "KindUI/Core/DPIContext.h"
 
 namespace we::runtime::kindui {
 
@@ -10,10 +11,13 @@ PanelToolbarRow::PanelToolbarRow(std::string searchPlaceholder)
     Gap(ThemeMetric(MetricToken::ChromeSeparationGapWide));
     Align(AlignItems::Center);
 
+    const float uiScale = (std::max)(1.0f, DPIContext::GetScale());
     m_SearchBox = std::make_shared<SearchBoxControl>(m_SearchPlaceholder);
     m_SearchBox->SetToolbarInset(true);
     m_SearchBox->SetMargin(Margin{ 0.0f, 0.0f, ThemeMetric(MetricToken::Space1), 0.0f });
-    m_SearchBox->SetFlexGrow(1.0f);
+    m_SearchBox->SetFillWidth(false);
+    m_SearchBox->SetWidth(ThemeMetric(MetricToken::InputWidthLarge) * uiScale);
+    m_SearchBox->SetFlexGrow(0.0f);
     m_SearchBox->SetFlexShrink(1.0f);
     m_SearchBox->SetMinWidth(ThemeMetric(MetricToken::Space6) * 4.0f);
 }

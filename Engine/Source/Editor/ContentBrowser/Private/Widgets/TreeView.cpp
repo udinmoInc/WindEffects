@@ -83,12 +83,16 @@ void PaintTreeNodeIcon(PaintContext& context, const TreeNode& node, const Rect& 
         return;
     }
 
+    const std::string_view stem = node.icon.stem ? node.icon.stem : "";
     const bool isFolder =
-        node.icon.stem == WindIcons::Folder16.stem
-        || node.icon.stem == WindIcons::FolderOpen16.stem;
+        stem == "folder"
+        || stem == "folder-open"
+        || stem == "content-folder"
+        || (WindIcons::Folder16.stem != nullptr && stem == WindIcons::Folder16.stem)
+        || (WindIcons::FolderOpen16.stem != nullptr && stem == WindIcons::FolderOpen16.stem);
     if (isFolder) {
         const bool opened =
-            node.expanded || node.icon.stem == WindIcons::FolderOpen16.stem;
+            node.expanded || stem == "folder-open" || (WindIcons::FolderOpen16.stem != nullptr && stem == WindIcons::FolderOpen16.stem);
         ContentBrowserFolderArt::Get().PaintSmallIcon(context, iconRect, hovered, opened);
         return;
     }
@@ -990,9 +994,12 @@ void TreeView::ToggleExpand(const std::string& id) {
     if (auto node = FindNode(id)) {
         node->expanded = !node->expanded;
         if (node->icon.IsValid()) {
+            const std::string_view stem = node->icon.stem ? node->icon.stem : "";
             const bool isFolderGlyph =
-                node->icon.stem == WindIcons::Folder16.stem
-                || node->icon.stem == WindIcons::FolderOpen16.stem;
+                stem == "folder"
+                || stem == "folder-open"
+                || (WindIcons::Folder16.stem != nullptr && stem == WindIcons::Folder16.stem)
+                || (WindIcons::FolderOpen16.stem != nullptr && stem == WindIcons::FolderOpen16.stem);
             if (isFolderGlyph) {
                 node->icon = node->expanded ? WindIcons::FolderOpen16 : WindIcons::Folder16;
             }

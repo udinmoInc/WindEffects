@@ -331,7 +331,7 @@ std::shared_ptr<::we::runtime::kindui::Widget> CreateViewportToolbar() {
     cameraSpeedButton = cameraButton;
 
     builder.AddWidget(MakeViewportIconChip(
-        WindIcons::Wrench16,
+        WindIcons::Wrench24,
         []() { ShowViewportNavigationPreferences(); },
         "Viewport Settings"));
 

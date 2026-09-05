@@ -1,6 +1,7 @@
 #include "KindUI/Core/Widgets/DesignSystemControls.h"
 
 #include "KindUI/Core/Animator.h"
+#include "KindUI/Core/DPIContext.h"
 #include "KindUI/Core/LayoutMetrics.h"
 #include "KindUI/Core/PropertyPanelChrome.h"
 #include "KindUI/Core/ControlChrome.h"
@@ -331,7 +332,14 @@ Size SearchBoxControl::Measure(const Size& availableSize) {
     const float minW = m_MinSize.width > 0.0f
         ? m_MinSize.width
         : ResolveMetric(MetricToken::Space6) * 4.0f;
-    const float w = availableSize.width < 1.0e8f ? availableSize.width : minW;
+    float w = minW;
+    if (m_FillWidth) {
+        w = availableSize.width < 1.0e8f ? availableSize.width : minW;
+    } else if (m_Width > 0.0f) {
+        w = m_Width;
+    } else {
+        w = ResolveMetric(MetricToken::InputWidthLarge) * (std::max)(1.0f, DPIContext::GetScale());
+    }
     const float h = m_ToolbarInset
         ? LayoutMetrics::ToolbarSearchInputHeight()
         : LayoutMetrics::SearchInputHeight();

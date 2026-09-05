@@ -142,6 +142,10 @@ public:
     void SetOnChanged(std::function<void(const std::string&)> cb) { m_OnChanged = std::move(cb); }
     void SetToolbarFlat(bool flat) { m_ToolbarFlat = flat; }
     void SetToolbarInset(bool inset);
+    void SetWidth(float width) { m_Width = width; InvalidateLayout(); }
+    [[nodiscard]] float GetWidth() const { return m_Width; }
+    void SetFillWidth(bool fill) { m_FillWidth = fill; InvalidateLayout(); }
+    [[nodiscard]] bool GetFillWidth() const { return m_FillWidth; }
 
     [[nodiscard]] bool IsFocusable() const override { return true; }
 
@@ -156,6 +160,8 @@ public:
 private:
     std::string m_Placeholder;
     std::string m_Text;
+    float m_Width = 0.0f;
+    bool m_FillWidth = true;
     float m_HoverAnim = 0.0f;
     bool m_ToolbarFlat = false;
     bool m_ToolbarInset = false;
