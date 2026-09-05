@@ -72,7 +72,11 @@ namespace WindIconAssets {
     inline constexpr const char* FolderCreate = "folder-create";
     inline constexpr const char* FolderOpen = "folder-open";
     inline constexpr const char* FolderSearch = "folder-search";
+    inline constexpr const char* Fps = "fps";
     inline constexpr const char* GameController = "game-controller";
+    inline constexpr const char* GitPullRequestDraft = "git-pull-request-draft";
+    inline constexpr const char* GitPullRequestPending = "git-pull-request-pending";
+    inline constexpr const char* GitPullRequestPushed = "git-pull-request-pushed";
     inline constexpr const char* Globe = "globe";
     inline constexpr const char* Grid = "grid";
     inline constexpr const char* Layers = "layers";
@@ -98,6 +102,7 @@ namespace WindIconAssets {
     inline constexpr const char* Redo = "redo";
     inline constexpr const char* RedoAlt = "redo-alt";
     inline constexpr const char* Refresh = "refresh";
+    inline constexpr const char* Rhi = "rhi";
     inline constexpr const char* Save = "save";
     inline constexpr const char* SaveAll = "save-all";
     inline constexpr const char* Search = "search";
@@ -238,8 +243,16 @@ namespace WindIcons {
     inline constexpr WindIconRef FolderOpen24{ WindIconAssets::FolderOpen, 24 };
     inline constexpr WindIconRef FolderSearch16{ WindIconAssets::FolderSearch, 16 };
     inline constexpr WindIconRef FolderSearch24{ WindIconAssets::FolderSearch, 24 };
+    inline constexpr WindIconRef Fps16{ WindIconAssets::Fps, 16 };
+    inline constexpr WindIconRef Fps24{ WindIconAssets::Fps, 24 };
     inline constexpr WindIconRef GameController16{ WindIconAssets::GameController, 16 };
     inline constexpr WindIconRef GameController24{ WindIconAssets::GameController, 24 };
+    inline constexpr WindIconRef GitPullRequestDraft16{ WindIconAssets::GitPullRequestDraft, 16 };
+    inline constexpr WindIconRef GitPullRequestDraft24{ WindIconAssets::GitPullRequestDraft, 24 };
+    inline constexpr WindIconRef GitPullRequestPending16{ WindIconAssets::GitPullRequestPending, 16 };
+    inline constexpr WindIconRef GitPullRequestPending24{ WindIconAssets::GitPullRequestPending, 24 };
+    inline constexpr WindIconRef GitPullRequestPushed16{ WindIconAssets::GitPullRequestPushed, 16 };
+    inline constexpr WindIconRef GitPullRequestPushed24{ WindIconAssets::GitPullRequestPushed, 24 };
     inline constexpr WindIconRef Globe16{ WindIconAssets::Globe, 16 };
     inline constexpr WindIconRef Globe24{ WindIconAssets::Globe, 24 };
     inline constexpr WindIconRef Grid16{ WindIconAssets::Grid, 16 };
@@ -289,6 +302,8 @@ namespace WindIcons {
     inline constexpr WindIconRef RedoAlt24{ WindIconAssets::RedoAlt, 24 };
     inline constexpr WindIconRef Refresh16{ WindIconAssets::Refresh, 16 };
     inline constexpr WindIconRef Refresh24{ WindIconAssets::Refresh, 24 };
+    inline constexpr WindIconRef Rhi16{ WindIconAssets::Rhi, 16 };
+    inline constexpr WindIconRef Rhi24{ WindIconAssets::Rhi, 24 };
     inline constexpr WindIconRef Save16{ WindIconAssets::Save, 16 };
     inline constexpr WindIconRef Save24{ WindIconAssets::Save, 24 };
     inline constexpr WindIconRef SaveAll16{ WindIconAssets::SaveAll, 16 };

@@ -93,11 +93,11 @@ public:
     void SetIndentWidth(float width);
     void SetExplorerStyle(bool enabled) {
         m_ExplorerStyle = enabled;
-        m_ShowAlternatingRowBackground = false;
+        m_ShowAlternatingRowBackground = enabled;
         if (enabled) {
             m_Style.text.size = 13.0f;
         }
-        m_PaintNavigationBackground = false;
+        m_PaintNavigationBackground = true;
     }
     void SetShowColumnHeader(bool show) { m_ShowColumnHeader = show; InvalidateLayout(); }
     void SetPaintNavigationBackground(bool paint) { m_PaintNavigationBackground = paint; }
@@ -184,7 +184,7 @@ private:
     bool m_ExplorerStyle = false;
     bool m_ShowColumnHeader = true;
     bool m_ShowRowControls = true;
-    bool m_PaintNavigationBackground = false;
+    bool m_PaintNavigationBackground = true;
     bool m_ShowAlternatingRowBackground = false;
     bool m_ShowRowHighlight = true;
 

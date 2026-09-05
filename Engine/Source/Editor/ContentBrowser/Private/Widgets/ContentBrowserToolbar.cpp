@@ -18,8 +18,10 @@
 #include "KindUI/Core/Widgets/VerticalDivider.h"
 #include "KindUI/Layout/Flex.h"
 #include "KindUI/Layout/Spacer.h"
+#include "KindUI/Layout/IPopupHost.h"
 #include "KindUI/Profiling/UiGeometryDebug.h"
 #include "WindEffects/Editor/UI/Layout/EditorMetrics.h"
+#include "WindEffects/Editor/UI/Shell/EditorWorkspaceController.h"
 #include <algorithm>
 
 using ::we::runtime::kindui::ColorToken;
@@ -31,6 +33,7 @@ using ::we::runtime::kindui::ResolveIconColor;
 using ::we::runtime::kindui::MouseButton;
 using ::we::runtime::kindui::DPIContext;
 namespace LayoutMetrics = ::we::runtime::kindui::LayoutMetrics;
+namespace ControlChrome = ::we::runtime::kindui::ControlChrome;
 using ::we::runtime::kindui::IconPainter;
 using ::we::runtime::kindui::Row;
 using ::we::runtime::kindui::Margin;
@@ -57,11 +60,11 @@ void PaintToolbarButtonChrome(PaintContext& context, const Rect& rect, float hov
     bool selected, bool primary)
 {
     const float uiScale = (std::max)(1.0f, DPIContext::GetScale());
-    const float radius = 3.0f * uiScale;
+    const float radius = we::runtime::kindui::ResolveMetric(MetricToken::CornerRadiusSmall) * uiScale;
 
     Color bgIdle = we::runtime::kindui::ResolveColor(ColorToken::ControlBackground);
     Color bgHover = we::runtime::kindui::ResolveColor(ColorToken::ControlBackgroundHover);
-    Color bgPress = Color(bgIdle.r * 0.80f, bgIdle.g * 0.80f, bgIdle.b * 0.80f, 1.0f);
+    Color bgPress = we::runtime::kindui::ResolveColor(ColorToken::PressedBackground);
     Color bgSelected = we::runtime::kindui::ResolveColor(ColorToken::SelectInactiveBackground);
 
     Color bgColor = bgIdle;
@@ -76,18 +79,22 @@ void PaintToolbarButtonChrome(PaintContext& context, const Rect& rect, float hov
         }
     }
 
-    // Flat dark button surface
+    // Main button surface - all corners rounded
     context.DrawRoundedRect(rect, bgColor, radius);
 
-    Color borderColor = we::runtime::kindui::ResolveColor(ColorToken::BorderDefault);
+    // Subtle black border from palette around all corners
+    Color borderColor = we::runtime::kindui::ResolveColor(ColorToken::Separator);
     if (primary) {
         borderColor = we::runtime::kindui::ResolveColor(ColorToken::AccentPrimary);
-    } else if (hoverAnim > 0.001f) {
-        borderColor = Color::Pick(borderColor, we::runtime::kindui::ResolveColor(ColorToken::BorderLight), std::clamp(hoverAnim, 0.0f, 1.0f));
-    } else if (pressAnim > 0.001f) {
-        borderColor = Color::Pick(borderColor, Color(borderColor.r * 0.85f, borderColor.g * 0.85f, borderColor.b * 0.85f, 1.0f), std::clamp(pressAnim, 0.0f, 1.0f));
     }
     context.DrawRoundedRectOutline(rect, borderColor, 1.0f * uiScale, radius);
+
+    // Subtle pressed recessed overlay
+    if (pressAnim > 0.01f) {
+        Color pressShadow = we::runtime::kindui::ResolveColor(ColorToken::ShadowOverlay);
+        pressShadow.a *= pressAnim;
+        context.DrawRoundedRect(rect, pressShadow, radius);
+    }
 }
 
 Rect CenterRect(const Rect& parent, float w, float h) {
@@ -98,6 +105,158 @@ Rect CenterRect(const Rect& parent, float w, float h) {
         h
     };
 }
+
+struct ToolbarMenuItem {
+    std::string label;
+    bool isSeparator = false;
+    bool isChecked = false;
+    we::runtime::kindui::WindIconRef icon = we::runtime::kindui::kWindIconNone;
+    bool enabled = true;
+    std::function<void()> onClick;
+};
+
+class ToolbarPopupMenu : public Widget {
+public:
+    ToolbarPopupMenu(std::vector<ToolbarMenuItem> items, std::function<void()> onDismiss = nullptr)
+        : m_Items(std::move(items))
+        , m_OnDismiss(std::move(onDismiss))
+    {}
+
+    Size Measure(const Size& availableSize) override {
+        (void)availableSize;
+        const float uiScale = (std::max)(1.0f, DPIContext::GetScale());
+        const float itemHeight = ThemeMetric(MetricToken::MenuItemHeight) * uiScale;
+        const float menuPad = ThemeMetric(MetricToken::MenuPadding) * uiScale;
+        float maxWidth = 190.0f * uiScale;
+        for (const auto& item : m_Items) {
+            if (!item.isSeparator) {
+                float itemW = 50.0f * uiScale + static_cast<float>(item.label.size()) * ThemeMetric(MetricToken::TextSizeSmall) * 0.65f * uiScale;
+                maxWidth = std::max(maxWidth, itemW);
+            }
+        }
+        float totalHeight = menuPad * 2.0f;
+        for (const auto& item : m_Items) {
+            totalHeight += item.isSeparator ? (6.0f * uiScale) : itemHeight;
+        }
+        m_DesiredSize = Size{ maxWidth, totalHeight };
+        return m_DesiredSize;
+    }
+
+    void Arrange(const Rect& allottedRect) override {
+        m_Geometry = allottedRect;
+    }
+
+    void Paint(PaintContext& context) override {
+        ControlChrome::PaintPopupSurface(context, m_Geometry);
+
+        const float uiScale = (std::max)(1.0f, DPIContext::GetScale());
+        const float itemHeight = ThemeMetric(MetricToken::MenuItemHeight) * uiScale;
+        const float menuPad = ThemeMetric(MetricToken::MenuPadding) * uiScale;
+        const float padX = ThemeMetric(MetricToken::Space3) * uiScale;
+        const float textSize = ThemeMetric(MetricToken::TextSizeSmall) * uiScale;
+
+        float y = m_Geometry.y + menuPad;
+        for (size_t i = 0; i < m_Items.size(); ++i) {
+            const auto& item = m_Items[i];
+            if (item.isSeparator) {
+                const float sepY = std::floor(y + 2.0f * uiScale);
+                context.DrawRect(Rect{ m_Geometry.x + padX, sepY, m_Geometry.width - padX * 2.0f, 1.0f * uiScale }, ThemeColor(ColorToken::Separator));
+                y += 6.0f * uiScale;
+                continue;
+            }
+
+            Rect row{ m_Geometry.x + menuPad, y, m_Geometry.width - menuPad * 2.0f, itemHeight };
+            if (static_cast<int>(i) == m_Hovered && item.enabled) {
+                ControlChrome::InteractionState state{};
+                state.hoverAnim = 1.0f;
+                ControlChrome::PaintListRow(context, row, state);
+            }
+
+            float textLeft = row.x + padX;
+            if (item.isChecked) {
+                const float checkSize = 16.0f * uiScale;
+                Rect checkRect{ textLeft, row.y + (row.height - checkSize) * 0.5f, checkSize, checkSize };
+                IconPainter::Draw(context, WindIcons::Check16, checkRect, ThemeColor(ColorToken::TextPrimary));
+                textLeft += checkSize + 6.0f * uiScale;
+            } else if (item.icon.IsValid()) {
+                const float iconSize = 16.0f * uiScale;
+                Rect iconRect{ textLeft, row.y + (row.height - iconSize) * 0.5f, iconSize, iconSize };
+                IconPainter::Draw(context, item.icon, iconRect, ThemeColor(ColorToken::IconSecondary));
+                textLeft += iconSize + 6.0f * uiScale;
+            }
+
+            const float textY = row.y + (row.height - textSize) * 0.5f;
+            Color textCol = item.enabled ? ThemeColor(ColorToken::TextPrimary) : ThemeColor(ColorToken::TextDisabled);
+            context.DrawText(item.label, Point{ textLeft, textY }, textCol, textSize);
+
+            y += itemHeight;
+        }
+    }
+
+    void OnMouseMove(const MouseEvent& event) override {
+        m_Hovered = -1;
+        const float uiScale = (std::max)(1.0f, DPIContext::GetScale());
+        const float itemHeight = ThemeMetric(MetricToken::MenuItemHeight) * uiScale;
+        const float menuPad = ThemeMetric(MetricToken::MenuPadding) * uiScale;
+        float y = m_Geometry.y + menuPad;
+        for (size_t i = 0; i < m_Items.size(); ++i) {
+            const auto& item = m_Items[i];
+            if (item.isSeparator) {
+                y += 6.0f * uiScale;
+                continue;
+            }
+            Rect row{ m_Geometry.x + menuPad, y, m_Geometry.width - menuPad * 2.0f, itemHeight };
+            if (row.Contains(event.position)) {
+                m_Hovered = static_cast<int>(i);
+                break;
+            }
+            y += itemHeight;
+        }
+    }
+
+    void OnMouseDown(const MouseEvent& event) override {
+        if (event.button != MouseButton::Left) return;
+
+        const float uiScale = (std::max)(1.0f, DPIContext::GetScale());
+        const float itemHeight = ThemeMetric(MetricToken::MenuItemHeight) * uiScale;
+        const float menuPad = ThemeMetric(MetricToken::MenuPadding) * uiScale;
+        float y = m_Geometry.y + menuPad;
+        for (size_t i = 0; i < m_Items.size(); ++i) {
+            const auto& item = m_Items[i];
+            if (item.isSeparator) {
+                y += 6.0f * uiScale;
+                continue;
+            }
+            Rect row{ m_Geometry.x + menuPad, y, m_Geometry.width - menuPad * 2.0f, itemHeight };
+            if (row.Contains(event.position) && item.enabled) {
+                if (item.onClick) {
+                    item.onClick();
+                }
+                auto* overlay = GetPopupHost();
+                if (!overlay) {
+                    overlay = ::we::programs::editor::GetEditorPopupHost();
+                }
+                if (overlay) {
+                    overlay->CloseAllPopups();
+                }
+                if (m_OnDismiss) {
+                    m_OnDismiss();
+                }
+                return;
+            }
+            y += itemHeight;
+        }
+    }
+
+    bool ShowsPointerCursor(const Point& position) const override {
+        return m_Geometry.Contains(position);
+    }
+
+private:
+    std::vector<ToolbarMenuItem> m_Items;
+    std::function<void()> m_OnDismiss;
+    int m_Hovered = -1;
+};
 
 } // namespace
 
@@ -122,29 +281,46 @@ void ToolbarIconToggle::Arrange(const Rect& allottedRect) {
 void ToolbarIconToggle::Paint(PaintContext& context) {
     m_HoverAnim = Animator::Damp(m_HoverAnim, m_Hovered ? 1.0f : 0.0f, 15.0f);
     m_PressAnim = Animator::Damp(m_PressAnim, m_Pressed ? 1.0f : 0.0f, 25.0f);
-    PaintToolbarButtonChrome(context, m_Geometry, m_HoverAnim, m_PressAnim, m_Selected, false);
 
     const float uiScale = (std::max)(1.0f, DPIContext::GetScale());
-    const float iconSize = 14.0f * uiScale;
+    const float radius = we::runtime::kindui::ResolveMetric(MetricToken::CornerRadiusSmall) * uiScale;
+
+    if (!m_Frameless) {
+        PaintToolbarButtonChrome(context, m_Geometry, m_HoverAnim, m_PressAnim, m_Selected, false);
+    } else {
+        // Frameless flat icon button (no idle border, no idle background box)
+        if (m_Selected) {
+            context.DrawRoundedRect(m_Geometry, we::runtime::kindui::ResolveColor(ColorToken::SelectInactiveBackground), radius);
+        } else if (m_HoverAnim > 0.001f || m_PressAnim > 0.001f) {
+            Color hoverBg = we::runtime::kindui::ResolveColor(ColorToken::ControlBackgroundHover);
+            if (m_PressAnim > 0.001f) {
+                hoverBg = Color::Pick(hoverBg, we::runtime::kindui::ResolveColor(ColorToken::PressedBackground), std::clamp(m_PressAnim, 0.0f, 1.0f));
+            }
+            hoverBg.a *= (std::max)(m_HoverAnim, m_PressAnim);
+            context.DrawRoundedRect(m_Geometry, hoverBg, radius);
+        }
+    }
+
     const Color iconColor = m_Selected
         ? we::runtime::kindui::ResolveColor(ColorToken::IconActive)
         : (m_HoverAnim > 0.01f
             ? we::runtime::kindui::ResolveColor(ColorToken::IconHover)
             : we::runtime::kindui::ResolveColor(ColorToken::IconSecondary));
-    const Rect iconBand = CenterRect(m_Geometry, iconSize, iconSize);
-    IconPainter::Draw(context, m_Icon, iconBand, iconColor);
+    IconPainter::Draw(context, m_Icon, m_Geometry, iconColor);
 }
 
 void ToolbarIconToggle::OnMouseDown(const MouseEvent& event) {
-    if (event.button == MouseButton::Left) m_Pressed = true;
+    if (event.button == MouseButton::Left) {
+        m_Pressed = true;
+        if (m_OnClicked) {
+            m_OnClicked();
+        }
+    }
 }
 
 void ToolbarIconToggle::OnMouseUp(const MouseEvent& event) {
-    if (event.button == MouseButton::Left && m_Pressed) {
+    if (event.button == MouseButton::Left) {
         m_Pressed = false;
-        if (m_Geometry.Contains(event.position) && m_OnClicked) {
-            m_OnClicked();
-        }
     }
 }
 
@@ -161,7 +337,7 @@ Size ToolbarLabeledButton::Measure(const Size& availableSize) {
     (void)availableSize;
     const float uiScale = (std::max)(1.0f, DPIContext::GetScale());
     float width = m_HorizontalPadding * 2.0f * uiScale;
-    if (m_Icon.IsValid()) width += 14.0f * uiScale + 4.0f * uiScale;
+    if (m_Icon.IsValid()) width += 16.0f * uiScale + 4.0f * uiScale;
     const float textSize = ThemeMetric(MetricToken::TextSizeToolbar) * uiScale;
     width += static_cast<float>(m_Label.size()) * textSize * 0.58f;
     if (m_ShowChevron) width += 4.0f * uiScale + 12.0f * uiScale;
@@ -193,7 +369,7 @@ void ToolbarLabeledButton::Paint(PaintContext& context) {
     const float textY = LayoutMetrics::AlignTextTopY(m_Geometry, textSize);
 
     if (m_Icon.IsValid()) {
-        const float iconSize = 14.0f * uiScale;
+        const float iconSize = 16.0f * uiScale;
         const float iconY = m_Geometry.y + (m_Geometry.height - iconSize) * 0.5f;
         Rect iconBand{ x, iconY, iconSize, iconSize };
 
@@ -222,15 +398,17 @@ void ToolbarLabeledButton::Paint(PaintContext& context) {
 }
 
 void ToolbarLabeledButton::OnMouseDown(const MouseEvent& event) {
-    if (event.button == MouseButton::Left) m_Pressed = true;
+    if (event.button == MouseButton::Left) {
+        m_Pressed = true;
+        if (m_OnClicked) {
+            m_OnClicked();
+        }
+    }
 }
 
 void ToolbarLabeledButton::OnMouseUp(const MouseEvent& event) {
-    if (event.button == MouseButton::Left && m_Pressed) {
+    if (event.button == MouseButton::Left) {
         m_Pressed = false;
-        if (m_Geometry.Contains(event.position) && m_OnClicked) {
-            m_OnClicked();
-        }
     }
 }
 
@@ -246,12 +424,26 @@ ContentBrowserToolbarControls::ContentBrowserToolbarControls(ToolbarMode mode)
 {
     const float padV = ThemeMetric(MetricToken::Space1);
     const float padH = ThemeMetric(MetricToken::Space2);
-    Padding(Margin{padH, padV, padH, padV});
+    Padding(Margin{padH, padV, padH + 6.0f, padV});
     Gap(ThemeMetric(MetricToken::Space1));
     Align(AlignItems::Center);
 }
 
 void ContentBrowserToolbarControls::InitializeChildren() {
+    auto showMenuBelow = [this](const std::shared_ptr<Widget>& anchor, const std::vector<ToolbarMenuItem>& items) {
+        if (!anchor) return;
+        auto* overlay = GetPopupHost();
+        if (!overlay) {
+            overlay = ::we::programs::editor::GetEditorPopupHost();
+        }
+        if (overlay) {
+            overlay->CloseAllPopups();
+            const Rect geom = anchor->GetGeometry();
+            auto menu = std::make_shared<ToolbarPopupMenu>(items);
+            overlay->ShowPopup(menu, Point{ geom.x, geom.y + geom.height + 2.0f });
+        }
+    };
+
     if (m_Mode == ToolbarMode::Full) {
         m_CreateBtn = std::make_shared<ToolbarLabeledButton>("Add", WindIcons::Plus16, false, ToolbarLabeledButton::Variant::AddAction, 8.0f);
         m_ImportBtn = std::make_shared<ToolbarLabeledButton>("Import", WindIcons::FolderCreate16, false, ToolbarLabeledButton::Variant::Standard, 8.0f);
@@ -266,31 +458,114 @@ void ContentBrowserToolbarControls::InitializeChildren() {
         AddChild(MakeToolbarDivider());
         AddChild(m_SaveBtn);
     } else {
-        // Asset pane toolbar: Add, Import, Save All, Filter on left; Search in last on right
+        // Asset pane toolbar: Add, Import, Save All, Filter, Search on left; Settings, Vertical Dots on right
         m_CreateBtn = std::make_shared<ToolbarLabeledButton>("Add", WindIcons::Plus16, false, ToolbarLabeledButton::Variant::AddAction, 8.0f);
         m_ImportBtn = std::make_shared<ToolbarLabeledButton>("Import", WindIcons::FolderCreate16, false, ToolbarLabeledButton::Variant::Standard, 8.0f);
         m_SaveBtn = std::make_shared<ToolbarLabeledButton>("Save All", WindIcons::SaveAll16, false, ToolbarLabeledButton::Variant::Standard, 8.0f);
+        
         m_FilterIconBtn = std::make_shared<ToolbarIconToggle>(WindIcons::ListFilter16, "Filter");
+        m_FilterIconBtn->SetFrameless(true);
 
         m_SearchBox = std::make_shared<SearchBox>();
         m_SearchBox->SetPlaceholder("Search Assets...");
         m_SearchBox->SetToolbarInset(true);
         m_SearchBox->SetFillWidth(false);
-        m_SearchBox->SetWidth(ThemeMetric(MetricToken::Space6) * 8.0f);
+        m_SearchBox->SetWidth(ThemeMetric(MetricToken::Space6) * 6.5f);
         m_SearchBox->SetFlexGrow(0.0f);
         m_SearchBox->SetFlexShrink(0.0f);
+
+        m_SettingsBtn = std::make_shared<ToolbarIconToggle>(WindIcons::Settings16, "Settings");
+        m_SettingsBtn->SetFrameless(true);
+        m_MoreBtn = std::make_shared<ToolbarIconToggle>(WindIcons::EllipsisVertical16, "More Options");
+        m_MoreBtn->SetFrameless(true);
 
         m_CreateBtn->SetFlexShrink(0.0f);
         m_ImportBtn->SetFlexShrink(0.0f);
         m_SaveBtn->SetFlexShrink(0.0f);
         m_FilterIconBtn->SetFlexShrink(0.0f);
+        m_SettingsBtn->SetFlexShrink(0.0f);
+        m_MoreBtn->SetFlexShrink(0.0f);
+
+        m_SettingsBtn->SetOnClicked([this, showMenuBelow]() {
+            std::vector<ToolbarMenuItem> items;
+            items.push_back({ "Tiles View", false, false, WindIcons::Grid16, true, [this]() {
+                if (m_OnViewModeChanged) m_OnViewModeChanged(ContentViewMode::Tiles);
+            }});
+            items.push_back({ "List View", false, false, WindIcons::ListFilter16, true, [this]() {
+                if (m_OnViewModeChanged) m_OnViewModeChanged(ContentViewMode::List);
+            }});
+            items.push_back({ "Large Icons", false, false, WindIcons::Square16, true, [this]() {
+                if (m_OnViewModeChanged) m_OnViewModeChanged(ContentViewMode::LargeIcons);
+            }});
+            items.push_back({ "Medium Icons", false, false, WindIcons::Square16, true, [this]() {
+                if (m_OnViewModeChanged) m_OnViewModeChanged(ContentViewMode::MediumIcons);
+            }});
+            items.push_back({ "Small Icons", false, false, WindIcons::Square16, true, [this]() {
+                if (m_OnViewModeChanged) m_OnViewModeChanged(ContentViewMode::SmallIcons);
+            }});
+            items.push_back({ "", true, false, kWindIconNone, true, nullptr });
+            items.push_back({ "Show Folders", false, true, kWindIconNone, true, nullptr });
+            items.push_back({ "Show Hidden Assets", false, false, kWindIconNone, true, nullptr });
+            items.push_back({ "Show Engine Content", false, false, kWindIconNone, true, nullptr });
+            items.push_back({ "Show Plugin Content", false, false, kWindIconNone, true, nullptr });
+
+            showMenuBelow(m_SettingsBtn, items);
+            if (m_OnSettingsClicked) m_OnSettingsClicked();
+        });
+
+        m_MoreBtn->SetOnClicked([this, showMenuBelow]() {
+            std::vector<ToolbarMenuItem> items;
+            items.push_back({ "Refresh", false, false, WindIcons::Refresh16, true, nullptr });
+            items.push_back({ "Expand All", false, false, WindIcons::ChevronDown16, true, nullptr });
+            items.push_back({ "Collapse All", false, false, WindIcons::ChevronUp16, true, nullptr });
+            items.push_back({ "", true, false, kWindIconNone, true, nullptr });
+            items.push_back({ "Dock in Layout", false, false, WindIcons::Window16, true, nullptr });
+            items.push_back({ "Open in New Tab", false, false, WindIcons::Plus16, true, nullptr });
+
+            showMenuBelow(m_MoreBtn, items);
+            if (m_OnMoreClicked) m_OnMoreClicked();
+        });
+
+        m_CreateBtn->SetOnClicked([this, showMenuBelow]() {
+            std::vector<ToolbarMenuItem> items;
+            items.push_back({ "New Folder", false, false, WindIcons::FolderCreate16, true, nullptr });
+            items.push_back({ "", true, false, kWindIconNone, true, nullptr });
+            items.push_back({ "Blueprint Class", false, false, WindIcons::Blueprint16, true, nullptr });
+            items.push_back({ "Material", false, false, WindIcons::ColorPalette16, true, nullptr });
+            items.push_back({ "Particle System", false, false, WindIcons::Sun16, true, nullptr });
+            items.push_back({ "Sound Cue", false, false, WindIcons::Speaker16, true, nullptr });
+            items.push_back({ "Level", false, false, WindIcons::Globe16, true, nullptr });
+
+            showMenuBelow(m_CreateBtn, items);
+            if (m_OnCreateClicked) m_OnCreateClicked();
+        });
+
+        m_FilterIconBtn->SetOnClicked([this, showMenuBelow]() {
+            std::vector<ToolbarMenuItem> items;
+            items.push_back({ "All Asset Types", false, true, kWindIconNone, true, nullptr });
+            items.push_back({ "", true, false, kWindIconNone, true, nullptr });
+            items.push_back({ "Blueprints", false, false, WindIcons::Blueprint16, true, nullptr });
+            items.push_back({ "Materials", false, false, WindIcons::ColorPalette16, true, nullptr });
+            items.push_back({ "Textures", false, false, WindIcons::ColorFill16, true, nullptr });
+            items.push_back({ "Static Meshes", false, false, WindIcons::Box16, true, nullptr });
+            items.push_back({ "Sounds", false, false, WindIcons::Speaker16, true, nullptr });
+
+            showMenuBelow(m_FilterIconBtn, items);
+            if (m_OnFilterClicked) m_OnFilterClicked();
+        });
+
+        auto spacer = std::make_shared<we::runtime::kindui::Spacer>();
+        spacer->SetFlexGrow(1.0f);
+        spacer->SetFlexShrink(1.0f);
 
         AddChild(m_CreateBtn);
         AddChild(m_ImportBtn);
         AddChild(m_SaveBtn);
         AddChild(m_FilterIconBtn);
-        AddChild(std::make_shared<we::runtime::kindui::Spacer>());
         AddChild(m_SearchBox);
+        AddChild(spacer);
+        AddChild(m_SettingsBtn);
+        AddChild(m_MoreBtn);
     }
 }
 
@@ -355,12 +630,7 @@ void ContentBrowserToolbarControls::OnMouseMove(const MouseEvent& event) {
 }
 
 void ContentBrowserToolbarControls::SetOnFilterClicked(std::function<void()> callback) {
-    if (m_FilterBtn) {
-        m_FilterBtn->SetOnClicked(std::move(callback));
-    }
-    if (m_FilterIconBtn) {
-        m_FilterIconBtn->SetOnClicked(std::move(callback));
-    }
+    m_OnFilterClicked = std::move(callback);
 }
 
 void ContentBrowserToolbarControls::SetOnSortClicked(std::function<void()> callback) {
@@ -368,28 +638,25 @@ void ContentBrowserToolbarControls::SetOnSortClicked(std::function<void()> callb
 }
 
 void ContentBrowserToolbarControls::SetOnImportClicked(std::function<void()> callback) {
-    m_ImportBtn->SetOnClicked(std::move(callback));
+    if (m_ImportBtn) {
+        m_ImportBtn->SetOnClicked(std::move(callback));
+    }
 }
 
 void ContentBrowserToolbarControls::SetOnCreateClicked(std::function<void()> callback) {
-    m_CreateBtn->SetOnClicked(std::move(callback));
+    m_OnCreateClicked = std::move(callback);
 }
 
 void ContentBrowserToolbarControls::SetOnViewModeChanged(std::function<void(ContentViewMode)> callback) {
-    m_GridViewBtn->SetOnClicked([this, callback]() {
-        m_GridViewBtn->SetSelected(true);
-        m_ListViewBtn->SetSelected(false);
-        if (callback) callback(ContentViewMode::LargeIcons);
-    });
-    m_ListViewBtn->SetOnClicked([this, callback]() {
-        m_ListViewBtn->SetSelected(true);
-        m_GridViewBtn->SetSelected(false);
-        if (callback) callback(ContentViewMode::List);
-    });
+    m_OnViewModeChanged = std::move(callback);
 }
 
 void ContentBrowserToolbarControls::SetOnSettingsClicked(std::function<void()> callback) {
-    m_SettingsBtn->SetOnClicked(std::move(callback));
+    m_OnSettingsClicked = std::move(callback);
+}
+
+void ContentBrowserToolbarControls::SetOnMoreClicked(std::function<void()> callback) {
+    m_OnMoreClicked = std::move(callback);
 }
 
 void ContentBrowserToolbarControls::SetOnSaveClicked(std::function<void()> callback) {

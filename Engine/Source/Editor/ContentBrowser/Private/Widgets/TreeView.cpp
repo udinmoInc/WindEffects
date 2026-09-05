@@ -59,9 +59,10 @@ float TreeExpanderHit(float uiScale) {
 }
 
 float TreeAccessoryColumnX(float viewportX, int column, float uiScale) {
-    const float pad = we::runtime::kindui::ResolveMetric(MetricToken::Space2) * uiScale;
-    const float hit = TreeExpanderHit(uiScale);
-    return viewportX + pad + static_cast<float>(column) * hit;
+    if (column == 0) {
+        return viewportX;
+    }
+    return viewportX + std::floor(30.0f * uiScale);
 }
 
 
@@ -301,10 +302,11 @@ TreeView::TreeRowLayoutSlots TreeView::ComputeTreeRowLayout(const RenderItem& it
 
     if (m_ExplorerStyle) {
         const float hitSize = TreeExpanderHit(uiScale);
+        const float colWidth = std::floor(30.0f * uiScale);
         layout.eyeBounds = Rect{
-            TreeAccessoryColumnX(viewportX, 0, uiScale),
+            viewportX,
             centerY - hitSize * 0.5f,
-            hitSize,
+            colWidth,
             hitSize };
     }
 
@@ -315,14 +317,14 @@ TreeView::TreeRowLayoutSlots TreeView::ComputeTreeRowLayout(const RenderItem& it
     layout.expanderBounds = Rect{ layout.indentX, item.geometry.y, expanderWidth, rowHeight };
     layout.hasExpander = !item.node->children.empty();
 
-    const float contentSlotX = layout.indentX + expanderWidth + ThemeMetric(MetricToken::SpaceXS) * uiScale;
+    const float contentSlotX = layout.indentX + expanderWidth + 4.0f * uiScale;
 
     const float iconSize = ThemeMetric(MetricToken::IconSizeTree);
     const bool hasIcon = item.node->icon.IsValid() || item.node->iconTexture != we::rhi::RHIDescriptorSetHandle::Invalid;
     layout.hasIcon = hasIcon;
     if (hasIcon) {
         layout.iconBounds = Rect{ contentSlotX, centerY - iconSize * 0.5f, iconSize, iconSize };
-        layout.textX = contentSlotX + iconSize + 4.0f * uiScale;
+        layout.textX = contentSlotX + iconSize + 6.0f * uiScale;
     } else {
         layout.iconBounds = Rect{ contentSlotX, item.geometry.y, 0.0f, 0.0f };
         layout.textX = contentSlotX;
@@ -359,44 +361,56 @@ void TreeView::Paint(PaintContext& context) {
 
         PanelChrome::PaintHeaderRegion(context, headerRect);
 
-        const float glyphTier = static_cast<float>(16u);
         const float headerTextSize = ThemeMetric(MetricToken::TextSizeCaption) * uiScale;
-        const float headerTextY = m_Geometry.y + (headerHeight - headerTextSize) * 0.5f;
+        const float headerTextY = LayoutMetrics::AlignTextTopY(headerRect, headerTextSize);
+        const Color sepColor = ThemeColor(ColorToken::Separator);
+        const Color textColor = ThemeColor(ColorToken::TextSecondary);
 
-        // Eye icon column header
-        const float eyeX = TreeAccessoryColumnX(m_Geometry.x, 0, uiScale);
-        Rect eyeBand{ eyeX, m_Geometry.y, glyphTier, headerHeight };
-        IconPainter::Draw(context, WindIcons::Eye16, IconMetrics::PlaceGlyphCentered(eyeBand, 16u));
+        const float topBorderY = std::floor(m_Geometry.y);
+        const float botBorderY = std::floor(m_Geometry.y + headerHeight - 1.0f);
 
-        // Item Label header
-        const float labelX = m_Geometry.x + TreeExplorerPrefix(uiScale);
+        // Top & Bottom horizontal border lines (crisp 1px solid)
+        context.DrawRect(Rect{ m_Geometry.x, topBorderY, m_Geometry.width, 1.0f }, sepColor);
+        context.DrawRect(Rect{ m_Geometry.x, botBorderY, m_Geometry.width, 1.0f }, sepColor);
+
+        // Column 0: Eye icon column header (spacious 30px cell)
+        const float eyeColWidth = std::floor(30.0f * uiScale);
+        Rect eyeBand{ m_Geometry.x, m_Geometry.y, eyeColWidth, headerHeight };
+        IconPainter::Draw(context, WindIcons::Eye16, IconMetrics::PlaceGlyphCentered(eyeBand, 16u), textColor);
+
+        // Vertical Separator after Eye Column
+        const float sep1X = std::floor(m_Geometry.x + eyeColWidth);
+        context.DrawRect(Rect{ sep1X, m_Geometry.y, 1.0f, headerHeight }, sepColor);
+
+        // Column 1: Star / Dirty column (spacious 28px cell with crisp 16u Star icon)
+        const float dirtyColWidth = std::floor(28.0f * uiScale);
+        const float sep2X = std::floor(sep1X + dirtyColWidth);
+        Rect starBand{ sep1X, m_Geometry.y, dirtyColWidth, headerHeight };
+        IconPainter::Draw(context, WindIcons::Star16, IconMetrics::PlaceGlyphCentered(starBand, 16u), textColor);
+
+        // Vertical Separator after Star Column
+        context.DrawRect(Rect{ sep2X, m_Geometry.y, 1.0f, headerHeight }, sepColor);
+
+        // Item Label header (generous 16px gap after separator)
+        const float labelPad = std::floor(16.0f * uiScale);
+        const float labelX = sep2X + labelPad;
         context.DrawText(
             "Item Label ▲",
             Point{ labelX, headerTextY },
-            ThemeColor(ColorToken::TextSecondary),
+            textColor,
             headerTextSize,
             we::runtime::text::layout::FontWeight::Medium);
 
         // Type column header
-        const float typeColumnReserve = we::runtime::kindui::ResolveMetric(MetricToken::Space6) * uiScale;
-        const float typeRightX = m_Geometry.x + m_Geometry.width - typeColumnReserve;
-        const float sepH = we::runtime::kindui::ResolveMetric(MetricToken::ToolbarSeparatorHeight) * uiScale;
-        const float headerCenterY = m_Geometry.y + headerHeight * 0.5f;
-        ControlChrome::PaintVerticalSeparator(
-            context,
-            typeRightX,
-            headerCenterY - sepH * 0.5f,
-            headerCenterY + sepH * 0.5f,
-            we::runtime::kindui::ResolveMetric(MetricToken::BorderWidth),
-            ColorToken::Separator);
-        const float typeWidth = context.GetTextWidth(
-            "Type",
-            headerTextSize,
-            we::runtime::text::layout::FontWeight::Medium);
+        const float typeColWidth = std::floor(90.0f * uiScale);
+        const float sep3X = std::floor(m_Geometry.x + m_Geometry.width - typeColWidth);
+        context.DrawRect(Rect{ sep3X, m_Geometry.y, 1.0f, headerHeight }, sepColor);
+
+        const float typeX = sep3X + labelPad;
         context.DrawText(
             "Type",
-            Point{ typeRightX - typeWidth, headerTextY },
-            ThemeColor(ColorToken::TextSecondary),
+            Point{ typeX, headerTextY },
+            textColor,
             headerTextSize,
             we::runtime::text::layout::FontWeight::Medium);
     }

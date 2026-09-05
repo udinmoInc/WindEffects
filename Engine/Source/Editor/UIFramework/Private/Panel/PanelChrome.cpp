@@ -256,12 +256,12 @@ float MeasureDockTabWidth(
     const float iconSize = TabIconSize();
     const float padLeft = modeTabs
         ? we::runtime::kindui::ResolveMetric(MetricToken::Space2) * scale
-        : 14.0f * scale;
+        : 6.0f * scale;
     const float padRight = modeTabs
         ? we::runtime::kindui::ResolveMetric(MetricToken::Space2) * scale
-        : 14.0f * scale;
-    const float iconGap = 8.0f * scale;
-    const float closeGap = 12.0f * scale;
+        : 6.0f * scale;
+    const float iconGap = 6.0f * scale;
+    const float closeGap = 6.0f * scale;
     const float closeGlyph = CloseGlyphSize();
 
     float leadingWidth = 0.0f;
@@ -278,7 +278,7 @@ float MeasureDockTabWidth(
     const float closeWidth = showClose ? closeGlyph + closeGap : 0.0f;
     float width = padLeft + leadingWidth + textWidth + closeWidth + padRight;
     if (!modeTabs) {
-        width = std::max(width, 110.0f * scale);
+        width = std::max(width, 140.0f * scale);
     }
     return width;
 }
@@ -295,7 +295,7 @@ DockTabLayout LayoutDockTabGeometries(
     const float scale = UiScale();
     const float padRight = modeTabs
         ? we::runtime::kindui::ResolveMetric(MetricToken::Space2) * scale
-        : 14.0f * scale;
+        : 6.0f * scale;
     const float closeGlyph = CloseGlyphSize();
     const bool floatingDockTabs = !modeTabs && UsesGapCutDockTabs();
     const float stripPadV = floatingDockTabs ? TabStripPadTop() : 0.0f;
@@ -340,8 +340,8 @@ void PaintDockTab(
     const float iconSize = TabIconSize();
     const float padLeft = flatCorners
         ? we::runtime::kindui::ResolveMetric(MetricToken::Space2) * scale
-        : 14.0f * scale;
-    const float iconGap = 8.0f * scale;
+        : 6.0f * scale;
+    const float iconGap = 6.0f * scale;
     const bool dockTabs = !flatCorners;
     const bool floatingDockTabs = dockTabs && UsesGapCutDockTabs();
     const float radius = flatCorners ? 0.0f : TabTopRadius();

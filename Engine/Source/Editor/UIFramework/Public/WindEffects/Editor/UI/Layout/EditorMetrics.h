@@ -46,10 +46,9 @@ using MetricToken = we::runtime::kindui::MetricToken;
 [[nodiscard]] inline float IconSize() { return we::runtime::kindui::ResolveMetric(MetricToken::IconSizeTree); }
 [[nodiscard]] inline float LargeIconSize() { return we::runtime::kindui::ResolveMetric(MetricToken::IconSizeToolbar); }
 [[nodiscard]] inline float TreeIndent() { return we::runtime::kindui::ResolveMetric(MetricToken::TreeIndentWidth); }
-[[nodiscard]] inline float TreeExpanderHitSize() { return we::runtime::kindui::ResolveMetric(MetricToken::TreeExpanderHitSize); }
+[[nodiscard]] inline float TreeExpanderHitSize() { return 18.0f; }
 [[nodiscard]] inline float TreeExplorerPrefixWidth() {
-    return we::runtime::kindui::ResolveMetric(MetricToken::Space2)
-        + we::runtime::kindui::ResolveMetric(MetricToken::TreeExpanderHitSize);
+    return 58.0f;
 }
 [[nodiscard]] inline float TabPaddingH() { return we::runtime::kindui::ResolveMetric(MetricToken::TabPaddingH); }
 [[nodiscard]] inline float TabPaddingV() { return we::runtime::kindui::ResolveMetric(MetricToken::TabPaddingV); }

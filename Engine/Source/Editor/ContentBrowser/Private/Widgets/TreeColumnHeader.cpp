@@ -5,6 +5,7 @@
 #include "KindUI/Core/WindIcon.h"
 #include "KindUI/Core/Icon.h"
 #include "KindUI/Core/DPIContext.h"
+#include "KindUI/Core/LayoutMetrics.h"
 #include "KindUI/Rendering/IconMetrics.h"
 #include "KindUI/Theming/ThemeAccess.h"
 #include "KindUI/Tokens/DesignToken.h"
@@ -13,10 +14,12 @@
 namespace we::editor::contentbrowser {
 namespace Chrome = ::we::editor::panels::PanelChrome;
 namespace IconMetrics = ::we::runtime::kindui::IconMetrics;
+namespace LayoutMetrics = ::we::runtime::kindui::LayoutMetrics;
 namespace WindIcons = ::we::runtime::kindui::WindIcons;
 using ::we::runtime::kindui::kWindIconNone;
 
 using ::we::runtime::kindui::ColorToken;
+using ::we::runtime::kindui::Color;
 namespace ControlChrome = ::we::runtime::kindui::ControlChrome;
 using ::we::runtime::kindui::DPIContext;
 using ::we::runtime::kindui::IconPainter;
@@ -40,47 +43,58 @@ void TreeColumnHeader::Arrange(const Rect& allottedRect) {
 
 void TreeColumnHeader::Paint(PaintContext& context) {
     const float uiScale = (std::max)(1.0f, DPIContext::GetScale());
-    const float glyphTier = static_cast<float>(16u);
     const float headerTextSize = ThemeMetric(MetricToken::TextSizeCaption) * uiScale;
-    const float headerTextY = m_Geometry.y + (m_Geometry.height - headerTextSize) * 0.5f;
+    const float headerTextY = LayoutMetrics::AlignTextTopY(m_Geometry, headerTextSize);
+    const Color sepColor = ThemeColor(ColorToken::Separator);
+    const Color textColor = ThemeColor(ColorToken::TextSecondary);
 
-    const float pad = ThemeMetric(MetricToken::Space2) * uiScale;
-    const float hit = ThemeMetric(MetricToken::TreeExpanderHitSize) * uiScale;
-    const float prefix = (ThemeMetric(MetricToken::Space2) + ThemeMetric(MetricToken::TreeExpanderHitSize)) * uiScale;
-    const float eyeX = m_Geometry.x + pad;
-    Rect eyeBand{ eyeX, m_Geometry.y, glyphTier, m_Geometry.height };
+    const float topBorderY = std::floor(m_Geometry.y);
+    const float botBorderY = std::floor(m_Geometry.y + m_Geometry.height - 1.0f);
+
+    // Top & Bottom horizontal border lines (crisp 1px solid)
+    context.DrawRect(Rect{ m_Geometry.x, topBorderY, m_Geometry.width, 1.0f }, sepColor);
+    context.DrawRect(Rect{ m_Geometry.x, botBorderY, m_Geometry.width, 1.0f }, sepColor);
+
+    // Column 0: Eye column (spacious 30px cell)
+    const float eyeColWidth = std::floor(30.0f * uiScale);
+    Rect eyeBand{ m_Geometry.x, m_Geometry.y, eyeColWidth, m_Geometry.height };
     IconPainter::Draw(
-        context, WindIcons::Eye16, IconMetrics::PlaceGlyphCentered(eyeBand, 16u));
+        context, WindIcons::Eye16, IconMetrics::PlaceGlyphCentered(eyeBand, 16u), textColor);
 
-    const float labelX = m_Geometry.x + prefix;
+    // Vertical Separator after Eye column
+    const float sep1X = std::floor(m_Geometry.x + eyeColWidth);
+    context.DrawRect(Rect{ sep1X, m_Geometry.y, 1.0f, m_Geometry.height }, sepColor);
+
+    // Column 1: Star / Dirty column (spacious 28px cell with crisp 16u Star icon)
+    const float dirtyColWidth = std::floor(28.0f * uiScale);
+    const float sep2X = std::floor(sep1X + dirtyColWidth);
+    Rect starBand{ sep1X, m_Geometry.y, dirtyColWidth, m_Geometry.height };
+    IconPainter::Draw(
+        context, WindIcons::Star16, IconMetrics::PlaceGlyphCentered(starBand, 16u), textColor);
+
+    // Vertical Separator after Star column
+    context.DrawRect(Rect{ sep2X, m_Geometry.y, 1.0f, m_Geometry.height }, sepColor);
+
+    // Column 2: Item Label (generous 16px gap after separator)
+    const float labelPad = std::floor(16.0f * uiScale);
+    const float labelX = sep2X + labelPad;
     context.DrawText(
         "Item Label",
         Point{ labelX, headerTextY },
-        ThemeColor(ColorToken::TextSecondary),
+        textColor,
         headerTextSize,
         we::runtime::text::layout::FontWeight::Medium);
 
-    const float typeRightX = m_Geometry.x + m_Geometry.width - ThemeMetric(MetricToken::Space3) * uiScale;
-    const float typeColumnReserve = ThemeMetric(MetricToken::Space6) * uiScale;
-    const float dividerX = m_Geometry.x + m_Geometry.width - typeColumnReserve;
-    const float sepH = ThemeMetric(MetricToken::ToolbarSeparatorHeight) * uiScale;
-    const float centerY = m_Geometry.y + m_Geometry.height * 0.5f;
-    ControlChrome::PaintVerticalSeparator(
-        context,
-        dividerX,
-        centerY - sepH * 0.5f,
-        centerY + sepH * 0.5f,
-        ThemeMetric(MetricToken::BorderWidth),
-        ColorToken::Separator);
+    // Column 3: Type column
+    const float typeColWidth = std::floor(90.0f * uiScale);
+    const float sep3X = std::floor(m_Geometry.x + m_Geometry.width - typeColWidth);
+    context.DrawRect(Rect{ sep3X, m_Geometry.y, 1.0f, m_Geometry.height }, sepColor);
 
-    const float typeWidth = context.GetTextWidth(
-        "Type",
-        headerTextSize,
-        we::runtime::text::layout::FontWeight::Medium);
+    const float typeX = sep3X + labelPad;
     context.DrawText(
         "Type",
-        Point{ typeRightX - typeWidth, headerTextY },
-        ThemeColor(ColorToken::TextSecondary),
+        Point{ typeX, headerTextY },
+        textColor,
         headerTextSize,
         we::runtime::text::layout::FontWeight::Medium);
 }

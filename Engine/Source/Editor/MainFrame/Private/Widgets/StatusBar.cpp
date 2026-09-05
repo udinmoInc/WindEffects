@@ -70,6 +70,7 @@ namespace {
     std::shared_ptr<we::runtime::kindui::VerticalDivider> MakeStatusDivider() {
         auto divider = std::make_shared<we::runtime::kindui::VerticalDivider>();
         divider->SetFlexShrink(0.0f);
+        divider->SetHeightRatio(1.0f);
         divider->SetVerticalAlignment(VerticalAlignment::Fill);
         return divider;
     }
@@ -83,18 +84,18 @@ StatusBar::StatusBar()
 
 void StatusBar::Construct() {
     const float uiScale = UiScale();
-    const float padH = ThemeMetric(MetricToken::Space2) * uiScale;
-    const float sectionGap = we::runtime::kindui::ds::Chrome::SeparationGapWide() * uiScale;
+    const float padH = ThemeMetric(MetricToken::Space3) * uiScale;
     Padding(Margin{ padH, 0, padH, 0 });
-    Gap(sectionGap);
+    Gap(ThemeMetric(MetricToken::Space2) * uiScale);
     Align(AlignItems::Center);
 
     m_LeftBox = std::make_shared<Row>();
-    m_LeftBox->Gap(ThemeMetric(MetricToken::Space2) * uiScale);
+    m_LeftBox->Gap(ThemeMetric(MetricToken::Space1) * uiScale);
     m_LeftBox->SetFlexShrink(0.0f);
+    m_LeftBox->Align(AlignItems::Center);
 
-    m_AssetsPanelButton = MakeDockControl(WindIcons::Folder16, "Content Drawer", "Content Browser");
-    m_DiagnosticsPanelButton = MakeDockControl(WindIcons::Console16, "Output Log", "Output Log");
+    m_AssetsPanelButton = MakeDockControl(WindIcons::FolderSearch16, "Content Drawer", "Content Browser");
+    m_DiagnosticsPanelButton = MakeDockControl(WindIcons::DocumentText16, "Output Log", "Output Log");
 
     m_AssetsPanelButton->SetOnClicked([this]() { SelectPanelTab(0, true); });
     m_DiagnosticsPanelButton->SetOnClicked([this]() { SelectPanelTab(1, true); });
@@ -108,21 +109,26 @@ void StatusBar::Construct() {
     m_CommandInput->SetFlatChrome(true);
     m_CommandInput->SetVerticalAlignment(VerticalAlignment::Center);
     m_CommandInput->SetPlaceholder("Console Commands...");
-    m_CommandInput->SetFlexGrow(1.0f);
-    m_CommandInput->SetFlexShrink(1.0f);
+    m_CommandInput->SetFlexGrow(0.0f);
+    m_CommandInput->SetFlexShrink(0.0f);
+    m_CommandInput->SetWidth(200.0f);
+    m_CommandInput->SetHeight(20.0f);
     AddChild(m_CommandInput);
 
     auto spacer = std::make_shared<Spacer>();
     spacer->SetFlexGrow(1.0f);
+    spacer->SetFlexShrink(1.0f);
     AddChild(spacer);
 
     m_RightBox = std::make_shared<Row>();
+    m_RightBox->Gap(ThemeMetric(MetricToken::Space2) * uiScale);
     m_RightBox->SetFlexShrink(0.0f);
+    m_RightBox->Align(AlignItems::Center);
 
-    m_OutputLogButton = MakeStatusIndicator("Source Control", "Source Control");
-    m_BuildMenuButton = MakeDockControl(WindIcons::Notifications16, "FPS", "Frame Rate");
+    m_OutputLogButton = MakeDockControl(WindIcons::GitPullRequestDraft16, "Source Control", "Source Control");
+    m_BuildMenuButton = MakeDockControl(WindIcons::Fps16, "FPS", "Frame Rate");
     m_TraceButton = MakeDockControl(WindIcons::Error16, "Memory", "Memory Usage");
-    m_QualityMenuButton = MakeDockControl(WindIcons::ChevronUp16, "RHI", "Graphics API");
+    m_QualityMenuButton = MakeDockControl(WindIcons::Rhi16, "RHI", "Graphics API");
 
     m_RightBox->AddChild(m_OutputLogButton);
     m_RightBox->AddChild(MakeStatusDivider());
@@ -132,7 +138,6 @@ void StatusBar::Construct() {
     m_RightBox->AddChild(MakeStatusDivider());
     m_RightBox->AddChild(m_QualityMenuButton);
 
-    AddChild(MakeStatusDivider());
     AddChild(m_RightBox);
 
     SelectPanelTab(0, false);
@@ -157,6 +162,8 @@ void StatusBar::SelectPanelTab(int index, bool notify) {
 }
 
 Size StatusBar::Measure(const Size& availableSize) {
+    const float uiScale = UiScale();
+    m_Height = we::runtime::kindui::ResolveMetric(MetricToken::StatusBarHeight) * uiScale;
     Size size = Row::Measure(availableSize);
     size.height = m_Height;
     m_DesiredSize = size;
@@ -173,6 +180,9 @@ void StatusBar::Arrange(const Rect& allottedRect) {
 void StatusBar::Paint(PaintContext& context) {
     context.PushSurfaceOwner("StatusBar", we::runtime::kindui::SurfaceRole::StatusBar);
     context.DrawSurface(m_Geometry, we::runtime::kindui::SurfaceRole::StatusBar, 0.0f, "StatusBar");
+
+    // Crisp 1px top border line separating status bar from workspace
+    context.DrawRect(Rect{ m_Geometry.x, std::floor(m_Geometry.y), m_Geometry.width, 1.0f }, ThemeColor(ColorToken::Separator));
 
     Row::Paint(context);
     context.PopSurfaceOwner();

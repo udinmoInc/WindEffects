@@ -22,6 +22,7 @@ namespace we::editor::shell {
 using ::we::runtime::kindui::MouseButton;
 using ::we::runtime::kindui::KeyEventType;
 using ::we::runtime::kindui::IconPainter;
+using ::we::runtime::kindui::DPIContext;
 namespace WindIcons = ::we::runtime::kindui::WindIcons;
 using ::we::runtime::kindui::kWindIconNone;
 namespace IconMetrics = ::we::runtime::kindui::IconMetrics;
@@ -30,25 +31,23 @@ namespace ControlChrome = ::we::runtime::kindui::ControlChrome;
 using ::we::runtime::kindui::KeyCodeToChar;
 
 CommandInput::CommandInput()
-    : m_Height(we::runtime::kindui::ResolveMetric(MetricToken::SearchBoxHeight))
-    , m_Width(we::runtime::kindui::ResolveMetric(MetricToken::PropertyLabelColumnWidth) * 2.0f)
+    : m_Height(20.0f)
+    , m_Width(200.0f)
 {
 }
 
 Size CommandInput::Measure(const Size& availableSize) {
-    const float width = m_FlatChrome
-        ? availableSize.width
-        : (m_Width > 0.0f ? m_Width : availableSize.width);
-    float height = m_Height;
-    if (m_FlatChrome && availableSize.height > 0.0f && availableSize.height < 1.0e8f) {
-        height = std::min(height, availableSize.height);
-    }
+    (void)availableSize;
+    const float uiScale = std::max(1.0f, DPIContext::GetScale());
+    const float width = (m_Width > 0.0f ? m_Width : 200.0f) * uiScale;
+    const float height = (m_Height > 0.0f ? m_Height : 20.0f) * uiScale;
     m_DesiredSize = Size{ width, height };
     return m_DesiredSize;
 }
 
 void CommandInput::Arrange(const Rect& allottedRect) {
-    const float h = std::min(m_Height, allottedRect.height);
+    const float uiScale = std::max(1.0f, DPIContext::GetScale());
+    const float h = std::min(m_Height > 0.0f ? m_Height * uiScale : 20.0f * uiScale, allottedRect.height);
     const float y = allottedRect.y + (allottedRect.height - h) * 0.5f;
     m_Geometry = Rect{ allottedRect.x, y, allottedRect.width, h };
 }
@@ -74,7 +73,7 @@ void CommandInput::Paint(PaintContext& context) {
     const float iconSize = ThemeMetric(MetricToken::IconSizeSearch);
     const float padH = ThemeMetric(MetricToken::SpaceMD);
     Rect iconBand{ m_Geometry.x + padH, m_Geometry.y, iconSize, m_Geometry.height };
-    IconPainter::Draw(context, WindIcons::Search16, iconBand, static_cast<uint32_t>(iconSize));
+    IconPainter::Draw(context, WindIcons::Console16, iconBand, static_cast<uint32_t>(iconSize));
 
     const float textX = m_Geometry.x + padH + iconSize + ThemeMetric(MetricToken::Space1);
     const float fontSize = ThemeMetric(MetricToken::TextSizeSmall);
@@ -97,8 +96,8 @@ void CommandInput::OnMouseDown(const MouseEvent& event) {
         return;
     }
 
-    const float iconSize = 16.0f;
-    const float padH = ThemeMetric(MetricToken::Space2);
+    const float iconSize = ThemeMetric(MetricToken::IconSizeSearch);
+    const float padH = ThemeMetric(MetricToken::SpaceMD);
     const float textX = m_Geometry.x + padH + iconSize + ThemeMetric(MetricToken::Space1);
     const float clickX = std::max(0.0f, event.position.x - textX);
     const float charWidth = ThemeMetric(MetricToken::TextSizeSmall) * ThemeMetric(MetricToken::TextCharWidthRatio);
