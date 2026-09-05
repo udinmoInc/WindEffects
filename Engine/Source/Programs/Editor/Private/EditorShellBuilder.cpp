@@ -395,12 +395,7 @@ EditorShellResult EditorShellBuilder::Build(
     });
 
     auto rootVBox = std::make_shared<Column>();
-    // Background shows through between title / toolbar / workspace (gap-cuts).
-    const float chromeGap = style.Scaled(
-        we::runtime::kindui::ChromeSeparation::kGapCutsEnabled
-            ? we::runtime::kindui::ChromeSeparation::GapWide()
-            : 0.0f);
-    rootVBox->Gap(chromeGap);
+    rootVBox->Gap(0.0f);
     rootVBox->SetVerticalAlignment(VerticalAlignment::Fill);
 
     titleBar->SetFlexShrink(0.0f);
@@ -422,12 +417,12 @@ EditorShellResult EditorShellBuilder::Build(
     if (shellResult.layout.root) {
         const float dockGap = style.Scaled(
             we::runtime::kindui::ChromeSeparation::kGapCutsEnabled
-                ? we::runtime::kindui::ChromeSeparation::GapWide()
+                ? we::runtime::kindui::ChromeSeparation::Gap()
                 : we::runtime::kindui::ResolveMetric(MetricToken::DockPanelGap));
         auto workspaceArea = std::make_shared<Column>();
         workspaceArea->Gap(0.0f);
-        // Top gap already comes from rootVBox chrome gap — only left/right/bottom here.
-        workspaceArea->Padding(Margin{ dockGap, 0.0f, dockGap, dockGap });
+        // Uniform 3px gap around the workspace: left, top, right, bottom
+        workspaceArea->Padding(Margin{ dockGap, dockGap, dockGap, dockGap });
         workspaceArea->Background(ResolveColor(ColorToken::WorkspaceBackground));
         workspaceArea->SetFlexGrow(1.0f);
         workspaceArea->SetFlexShrink(0.0f);

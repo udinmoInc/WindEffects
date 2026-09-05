@@ -36,14 +36,14 @@ SearchBox::SearchBox()
 Size SearchBox::Measure(const Size& availableSize) {
     float w = m_FillWidth ? availableSize.width : m_Width;
     const float uiScale = (std::max)(1.0f, DPIContext::GetScale());
-    const float h = 24.0f * uiScale;
+    const float h = 28.0f * uiScale;
     m_DesiredSize = Size{ w, h };
     return m_DesiredSize;
 }
 
 void SearchBox::Arrange(const Rect& allottedRect) {
     const float uiScale = (std::max)(1.0f, DPIContext::GetScale());
-    const float h = std::min(24.0f * uiScale, allottedRect.height);
+    const float h = std::min(28.0f * uiScale, allottedRect.height);
     m_Geometry = Rect{
         allottedRect.x,
         allottedRect.y + (allottedRect.height - h) * 0.5f,

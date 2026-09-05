@@ -249,6 +249,8 @@ enum class MetricToken : uint32_t {
     TextCharWidthRatio,
 
     BorderWidth,
+    PanelDividerWidth,
+    SplitterThickness,
     FocusRingWidth,
 
     PanelHeaderHeight,

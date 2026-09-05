@@ -192,10 +192,12 @@ float GraphiteDarkTheme::ResolveMetric(MetricToken token) const {
     case MetricToken::TextSizeTitle: return 33.0f;
     case MetricToken::TextCharWidthRatio: return 0.56f;
     case MetricToken::BorderWidth: return 1.0f;
+    case MetricToken::PanelDividerWidth: return 2.5f;
+    case MetricToken::SplitterThickness: return 2.5f;
     case MetricToken::FocusRingWidth: return 1.0f;
-    case MetricToken::PanelHeaderHeight: return 30.0f;
-    case MetricToken::PanelTabHeight: return 30.0f;
-    case MetricToken::PanelToolbarHeight: return 30.0f;
+    case MetricToken::PanelHeaderHeight: return 34.0f;
+    case MetricToken::PanelTabHeight: return 34.0f;
+    case MetricToken::PanelToolbarHeight: return 42.0f;
     case MetricToken::HeaderControlHeight: return 28.0f;
     case MetricToken::IconButtonSize: return 28.0f;
     case MetricToken::ButtonHeight: return 28.0f;
@@ -209,8 +211,8 @@ float GraphiteDarkTheme::ResolveMetric(MetricToken token) const {
     case MetricToken::ContentGap: return 8.0f;
     case MetricToken::FormRowGap: return 6.0f;
     case MetricToken::LabelHintGap: return 4.0f;
-    case MetricToken::ListRowHeight: return 28.0f;
-    case MetricToken::CategoryHeaderHeight: return 28.0f;
+    case MetricToken::ListRowHeight: return 20.0f;
+    case MetricToken::CategoryHeaderHeight: return 30.0f;
     case MetricToken::TitleBarHeight: return 32.0f;
     case MetricToken::WindowControlWidth: return 40.0f;
     case MetricToken::ToolbarHeight: return 38.0f;
@@ -225,7 +227,7 @@ float GraphiteDarkTheme::ResolveMetric(MetricToken token) const {
     case MetricToken::IconSizeVerySmall:
     case MetricToken::IconSizeWindowControl: return 16.0f;
     case MetricToken::IconButtonRadius: return 3.0f;
-    case MetricToken::ButtonPaddingHorizontal: return 4.0f;
+    case MetricToken::ButtonPaddingHorizontal: return 6.0f;
     case MetricToken::Space2: return 8.0f;
     case MetricToken::ButtonSpacing: return 2.0f;
     case MetricToken::SpaceXS: return 2.0f;
@@ -237,16 +239,16 @@ float GraphiteDarkTheme::ResolveMetric(MetricToken token) const {
     case MetricToken::TabTopRadius:
         return palette::GraphiteDarkLiveMetrics().TabTopRadius;
     case MetricToken::TabActiveIndicatorHeight: return 2.0f;
-    case MetricToken::StatusBarHeight: return 28.0f;
+    case MetricToken::StatusBarHeight: return 34.0f;
     case MetricToken::TabGap: return 3.0f;
     case MetricToken::TabStripPadH: return 0.0f;
     case MetricToken::TabStripPadV: return 4.0f;
     case MetricToken::TabActiveIndicatorWidth: return 0.0f;
     case MetricToken::TabPaddingH: return 10.0f;
     case MetricToken::TabPaddingV: return 4.0f;
-    case MetricToken::DockPanelGap: return 4.0f;
-    case MetricToken::ChromeSeparationGap: return 1.0f;
-    case MetricToken::ChromeSeparationGapWide: return 4.0f;
+    case MetricToken::DockPanelGap: return 3.0f;
+    case MetricToken::ChromeSeparationGap: return 3.0f;
+    case MetricToken::ChromeSeparationGapWide: return 3.0f;
     case MetricToken::ViewportToolbarHeight: return 32.0f;
     case MetricToken::ToolbarSeparatorWidth: return 2.0f;
     case MetricToken::ToolbarSeparatorHeight: return 24.0f;

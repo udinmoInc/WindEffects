@@ -111,8 +111,8 @@ void StatusBar::Construct() {
     m_CommandInput->SetPlaceholder("Console Commands...");
     m_CommandInput->SetFlexGrow(0.0f);
     m_CommandInput->SetFlexShrink(0.0f);
-    m_CommandInput->SetWidth(200.0f);
-    m_CommandInput->SetHeight(20.0f);
+    m_CommandInput->SetWidth(260.0f);
+    m_CommandInput->SetHeight(26.0f);
     AddChild(m_CommandInput);
 
     auto spacer = std::make_shared<Spacer>();
@@ -181,8 +181,9 @@ void StatusBar::Paint(PaintContext& context) {
     context.PushSurfaceOwner("StatusBar", we::runtime::kindui::SurfaceRole::StatusBar);
     context.DrawSurface(m_Geometry, we::runtime::kindui::SurfaceRole::StatusBar, 0.0f, "StatusBar");
 
-    // Crisp 1px top border line separating status bar from workspace
-    context.DrawRect(Rect{ m_Geometry.x, std::floor(m_Geometry.y), m_Geometry.width, 1.0f }, ThemeColor(ColorToken::Separator));
+    // Crisp top border line separating status bar from workspace
+    const float borderThickness = std::max(1.0f, ThemeMetric(MetricToken::PanelDividerWidth));
+    context.DrawRect(Rect{ m_Geometry.x, std::floor(m_Geometry.y), m_Geometry.width, borderThickness }, ThemeColor(ColorToken::Separator));
 
     Row::Paint(context);
     context.PopSurfaceOwner();

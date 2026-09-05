@@ -23,7 +23,7 @@ Splitter::Splitter(Orientation orientation, float initialRatio)
     const float scale = DPIContext::GetScale();
     m_MinFirstPx = ResolveMetric(MetricToken::NavigationButtonSize) * 2.5f * scale;
     m_MinSecondPx = m_MinFirstPx;
-    m_BarThicknessLogical = ResolveMetric(MetricToken::BorderWidth);
+    m_BarThicknessLogical = ResolveMetric(MetricToken::SplitterThickness);
     m_HitThicknessLogical = ResolveMetric(MetricToken::Space2);
 }
 
@@ -420,16 +420,17 @@ void Splitter::Paint(PaintContext& context) {
     }
 
     Rect barRect = GetSplitterBarRect();
+    const float scale = DPIContext::GetScale();
+    const float thickness = std::max(1.0f, ResolveMetric(MetricToken::SplitterThickness) * scale);
 
-    // Always draw a crisp 1px divider line using the shared Separator token.
-    // No hover/drag highlight — cursor change provides sufficient feedback.
+    // Divider line using the shared Separator token and SplitterThickness.
     if (m_Orientation == Orientation::Horizontal) {
-            Rect visualRect{ std::floor(barRect.x + barRect.width * 0.5f), barRect.y, 1.0f, barRect.height };
-            context.DrawSurface(visualRect, SurfaceRole::Separator, 0.0f, "SplitterDivider");
-        } else {
-            Rect visualRect{ barRect.x, std::floor(barRect.y + barRect.height * 0.5f), barRect.width, 1.0f };
-            context.DrawSurface(visualRect, SurfaceRole::Separator, 0.0f, "SplitterDivider");
-        }
+        Rect visualRect{ std::floor(barRect.x + (barRect.width - thickness) * 0.5f), barRect.y, thickness, barRect.height };
+        context.DrawSurface(visualRect, SurfaceRole::Separator, 0.0f, "SplitterDivider");
+    } else {
+        Rect visualRect{ barRect.x, std::floor(barRect.y + (barRect.height - thickness) * 0.5f), barRect.width, thickness };
+        context.DrawSurface(visualRect, SurfaceRole::Separator, 0.0f, "SplitterDivider");
+    }
 }
 
 void Splitter::OnMouseDown(const MouseEvent& event) {

@@ -55,7 +55,7 @@ void DrawRoundedRectTop(PaintContext& context, const Rect& rect, const Color& co
 void PaintSeparatorEdge(PaintContext& context, const Rect& rect, bool topEdge) {
     const float scale = PanelChrome::UiScale();
     const float thickness = (std::max)(1.0f, IconMetrics::SnapPx(
-        we::runtime::kindui::ResolveMetric(MetricToken::BorderWidth) * scale));
+        we::runtime::kindui::ResolveMetric(MetricToken::PanelDividerWidth) * scale));
     const float edgeY = topEdge
         ? rect.y
         : IconMetrics::SnapPx(rect.y + rect.height - thickness);
@@ -68,8 +68,13 @@ void PaintInsetWellTopEdge(PaintContext& context, const Rect& rect) {
 }
 
 Color ResolveTabIconColor(bool isActive, float hoverAnim) {
-    (void)isActive;
-    return ResolveIconColor(IconColorRole::Secondary, hoverAnim);
+    if (isActive) {
+        return we::runtime::kindui::ResolveColor(ColorToken::IconActive);
+    }
+    if (hoverAnim > 0.01f) {
+        return we::runtime::kindui::ResolveColor(ColorToken::IconHover);
+    }
+    return we::runtime::kindui::ResolveColor(ColorToken::IconSecondary);
 }
 
 Color ResolveTabTextColor(bool isActive, float hoverAnim) {
@@ -131,11 +136,11 @@ float ViewportToolbarRowHeight() {
 }
 
 float ColumnHeaderRowHeight() {
-    return ListRowHeight();
+    return CategoryHeaderHeight();
 }
 
 float FooterRowHeight() {
-    return ListRowHeight();
+    return CategoryHeaderHeight();
 }
 
 float TabPadH() {
@@ -396,7 +401,8 @@ void PaintDockTab(
         IconPainter::Draw(
             context,
             tab.icon,
-            iconRect);
+            iconRect,
+            ResolveTabIconColor(isActive, hoverAnim));
         itemX += iconSize + iconGap;
     }
 

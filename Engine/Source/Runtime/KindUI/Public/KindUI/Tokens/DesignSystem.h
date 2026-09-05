@@ -63,6 +63,8 @@ namespace IconSizing {
 
 namespace Border {
 [[nodiscard]] inline float Width() { return ResolveMetric(MetricToken::BorderWidth); }
+[[nodiscard]] inline float PanelDivider() { return ResolveMetric(MetricToken::PanelDividerWidth); }
+[[nodiscard]] inline float Splitter() { return ResolveMetric(MetricToken::SplitterThickness); }
 [[nodiscard]] inline float FocusRing() { return ResolveMetric(MetricToken::FocusRingWidth); }
 [[nodiscard]] inline Color Default() { return ResolveSurfaceColor(SurfaceRole::Border); }
 [[nodiscard]] inline Color Subtle() { return ResolveColor(ColorToken::BorderSubtle); }
