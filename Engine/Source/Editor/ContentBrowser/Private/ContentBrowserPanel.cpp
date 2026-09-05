@@ -215,9 +215,11 @@ std::shared_ptr<::we::editor::panels::Panel> CreateContentBrowserPanel() {
     WireContentBrowser(contentBrowser, nullptr);
     NavigateToFolder(ContentBrowserService::Get().GetCurrentFolder(), contentBrowser, nullptr);
 
-    // Wire up asset toolbar - create, import, search, save, filter
-    assetToolbar->SetOnCreateClicked([]() {
-        // Add asset menu placeholder – layout hook for future creation workflow.
+    // Wire up asset toolbar - create, import, search, save, filter, view modes
+    assetToolbar->SetOnViewModeChanged([contentBrowser](ContentViewMode mode) {
+        if (contentBrowser) {
+            contentBrowser->SetViewMode(mode);
+        }
     });
 
     assetToolbar->SetOnImportClicked([]() {
@@ -242,11 +244,6 @@ std::shared_ptr<::we::editor::panels::Panel> CreateContentBrowserPanel() {
 
     assetToolbar->SetOnFabClicked([]() {
         // Fab 3D marketplace placeholder – layout hook for future library workflow.
-    });
-
-    assetToolbar->SetOnFilterClicked([contentBrowser]() {
-        ContentBrowserService::Get().GetFilterController().ToggleFilter(ContentFilter::Textures);
-        if (contentBrowser->GetModel()) contentBrowser->GetModel()->NotifyChanged();
     });
 
     folderTree->SetOnSelectionChanged([contentBrowser](const std::vector<std::string>& ids) {

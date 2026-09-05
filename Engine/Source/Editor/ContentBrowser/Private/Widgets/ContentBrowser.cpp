@@ -133,7 +133,10 @@ Size ContentBrowser::Measure(const Size& availableSize) {
 
 void ContentBrowser::SyncScrollMetrics() {
     const float uiScale = std::max(1.0f, DPIContext::GetScale());
-    m_ScrollMetrics = m_Scroll.UpdateMetrics(m_Geometry, m_Geometry.height, m_ContentHeight, uiScale);
+    const float footerHeight = std::floor(24.0f * uiScale);
+    Rect viewRect = m_Geometry;
+    viewRect.height = std::max(0.0f, viewRect.height - footerHeight);
+    m_ScrollMetrics = m_Scroll.UpdateMetrics(viewRect, viewRect.height, m_ContentHeight, uiScale);
 }
 
 float ContentBrowser::ComputeContentHeight() const {
@@ -472,22 +475,38 @@ void ContentBrowser::Paint(PaintContext& context) {
 
     context.PopClipRect();
 
+    const float uiScale = std::max(1.0f, DPIContext::GetScale());
     if (m_Model) {
-        const size_t total = m_Model->assetCount + m_Model->folderCount;
-        std::string status = std::to_string(total) + " items";
-        if (!m_Model->selectedIds.empty()) {
-            status += "  ·  " + std::to_string(m_Model->selectedIds.size()) + " selected";
+        float maxItemBottom = m_Geometry.y;
+        for (const auto& renderItem : m_RenderList) {
+            maxItemBottom = std::max(maxItemBottom, renderItem.geometry.y + renderItem.geometry.height);
         }
-        const float textSize = ThemeMetric(MetricToken::TextSizeSmall);
-        const float pad = ThemeMetric(MetricToken::Space2);
-        context.DrawText(
-            status,
-            Point{
-                m_ScrollMetrics.viewport.x + pad,
-                m_ScrollMetrics.viewport.y + m_ScrollMetrics.viewport.height - textSize - pad
-            },
-            ThemeColor(ColorToken::TextSecondary),
-            textSize);
+        const float statusHeight = std::floor(24.0f * uiScale);
+        const float remainingSpace = (m_Geometry.y + m_Geometry.height) - maxItemBottom;
+        const bool isCompact = remainingSpace < (statusHeight + 16.0f * uiScale) || m_ScrollMetrics.showsScrollbar;
+
+        const float textSize = ThemeMetric(MetricToken::TextSizeSmall) * uiScale;
+        const float padX = std::floor(12.0f * uiScale);
+
+        if (isCompact) {
+            const float borderY = std::floor(m_Geometry.y + m_Geometry.height - statusHeight);
+            context.DrawRect(Rect{ m_Geometry.x, borderY, m_Geometry.width, 1.0f }, ThemeColor(ColorToken::Separator));
+
+            const float textY = std::floor(borderY + (statusHeight - textSize) * 0.5f);
+            std::string status = std::to_string(m_Model->assetCount + m_Model->folderCount) + " items";
+            if (!m_Model->selectedIds.empty()) {
+                status += " (" + std::to_string(m_Model->selectedIds.size()) + " selected)";
+            }
+            context.DrawText(status, Point{ m_Geometry.x + padX, textY }, ThemeColor(ColorToken::TextSecondary), textSize);
+        } else {
+            const float padY = std::floor(6.0f * uiScale);
+            const float textY = std::floor(m_Geometry.y + m_Geometry.height - textSize - padY);
+            std::string status = std::to_string(m_Model->assetCount + m_Model->folderCount) + " items";
+            if (!m_Model->selectedIds.empty()) {
+                status += " (" + std::to_string(m_Model->selectedIds.size()) + " selected)";
+            }
+            context.DrawText(status, Point{ m_Geometry.x + padX, textY }, ThemeColor(ColorToken::TextSecondary), textSize);
+        }
     }
 
     if (m_IsSelecting) {
@@ -823,7 +842,8 @@ void ContentBrowser::CalculateTilesLayout() {
 void ContentBrowser::CalculateListLayout() {
     const float contentX = m_ScrollMetrics.viewport.x;
     const float contentWidth = m_ScrollMetrics.viewport.width;
-    float y = m_ScrollMetrics.viewport.y - m_Scroll.offset;
+    const GridMetrics m = GetGridMetrics();
+    float y = m_ScrollMetrics.viewport.y + m.padding * 0.5f - m_Scroll.offset;
     for (auto& renderItem : m_RenderList) {
         renderItem.geometry = Rect{ contentX, y, contentWidth, m_ListRowHeight };
         renderItem.thumbGeometry = renderItem.geometry;
@@ -857,12 +877,12 @@ void ContentBrowserStatusBar::Arrange(const Rect& allottedRect) {
 void ContentBrowserStatusBar::Paint(PaintContext& context) {
     const float textSize = ThemeMetric(MetricToken::TextSizeSmall);
     const size_t total = m_AssetCount + m_FolderCount;
-    std::string text = std::to_string(total) + " items";
+    std::string text = std::to_string(total) + (total == 1 ? " item" : " items");
     if (m_SelectedCount > 0) {
-        text += "  ·  " + std::to_string(m_SelectedCount) + " selected";
+        text += " (" + std::to_string(m_SelectedCount) + " selected)";
     }
     const float textY = m_Geometry.y + (m_Geometry.height - textSize) * 0.5f;
-    context.DrawText(text, Point{ m_Geometry.x + ThemeMetric(MetricToken::Space3), textY }, ThemeColor(ColorToken::TextPrimary), textSize);
+    context.DrawText(text, Point{ m_Geometry.x + ThemeMetric(MetricToken::Space3), textY }, ThemeColor(ColorToken::TextSecondary), textSize);
 }
 
 Breadcrumb::Breadcrumb() = default;

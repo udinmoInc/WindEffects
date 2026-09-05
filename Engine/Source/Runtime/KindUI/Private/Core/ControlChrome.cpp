@@ -87,12 +87,22 @@ void PaintControlFrame(
     const ControlFrameStyle& style,
     ControlBorderMode borderMode,
     const Color& styleBorder = Color::Transparent()) {
+    if (rect.width <= 0.0f || rect.height <= 0.0f) {
+        return;
+    }
+
     const Color bg = ResolveControlBackground(state, style);
     context.DrawRoundedRect(rect, bg, style.cornerRadius);
 
     const ResolvedControlBorder border = ResolveControlBorder(state, borderMode, styleBorder);
-    if (border.color.a > 0.01f && border.width > 0.0f) {
-        context.DrawRoundedRectOutline(rect, border.color, border.width, style.cornerRadius);
+    Color borderCol = border.color.a > 0.01f ? border.color : (styleBorder.a > 0.01f ? styleBorder : ResolveColor(ColorToken::Separator));
+    const float borderW = border.width > 0.0f ? border.width : 1.0f;
+    context.DrawRoundedRectOutline(rect, borderCol, borderW, style.cornerRadius);
+
+    if (state.pressAnim > 0.01f) {
+        Color pressShadow = ResolveColor(ColorToken::ShadowOverlay);
+        pressShadow.a *= state.pressAnim;
+        context.DrawRoundedRect(rect, pressShadow, style.cornerRadius);
     }
 }
 
@@ -115,16 +125,20 @@ void PaintSubtleDropShadow(PaintContext& context, const Rect& rect, float radius
 }
 
 void PaintRaisedBevel(PaintContext& context, const Rect& rect, float radius, float strength) {
-    (void)context;
-    (void)rect;
-    (void)radius;
-    (void)strength;
+    if (strength <= 0.01f || rect.width <= 0.0f || rect.height <= 0.0f) {
+        return;
+    }
+    const float trim = radius;
+    const float lineW = std::max(0.0f, rect.width - trim * 2.0f);
+    if (lineW > 0.0f) {
+        Color topHi = ResolveColor(ColorToken::ButtonBevelHighlight);
+        topHi.a *= strength;
+        context.DrawRect(Rect{ rect.x + trim, rect.y + 1.0f, lineW, 1.0f }, topHi);
+    }
 }
 
 void PaintSlateButtonBevel(PaintContext& context, const Rect& rect, float strength) {
-    (void)context;
-    (void)rect;
-    (void)strength;
+    PaintRaisedBevel(context, rect, 3.0f, strength);
 }
 
 void PaintInsetBevel(PaintContext& context, const Rect& rect, float radius, float strength) {
@@ -415,10 +429,11 @@ void PaintStatusBarCommandField(
     if (state.disabled) {
         fillRole = SurfaceRole::Disabled;
     }
-    context.DrawSurface(rect, fillRole, 0.0f, "StatusBarCommandField");
-    PaintInsetBevel(context, rect, 0.0f, state.disabled ? 0.55f : 1.0f);
+    const float radius = ResolveMetric(MetricToken::CornerRadiusSmall);
+    context.DrawSurface(rect, fillRole, radius, "StatusBarCommandField");
+    PaintInsetBevel(context, rect, radius, state.disabled ? 0.55f : 1.0f);
     if (state.focused) {
-        PaintFocusRing(context, rect, 0.0f);
+        PaintFocusRing(context, rect, radius);
     }
 }
 

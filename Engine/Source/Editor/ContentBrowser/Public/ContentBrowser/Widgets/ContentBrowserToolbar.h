@@ -47,11 +47,14 @@ public:
 
     void SetSelected(bool selected) { m_Selected = selected; }
     bool IsSelected() const { return m_Selected; }
+    void SetFrameless(bool frameless) { m_Frameless = frameless; }
+    bool IsFrameless() const { return m_Frameless; }
     void SetOnClicked(std::function<void()> callback) { m_OnClicked = callback; }
 
 private:
     we::runtime::kindui::WindIconRef m_Icon = we::runtime::kindui::kWindIconNone;
     bool m_Selected = false;
+    bool m_Frameless = true;
     bool m_Pressed = false;
     float m_HoverAnim = 0.0f;
     float m_PressAnim = 0.0f;
@@ -120,6 +123,7 @@ public:
     void SetOnFolderClicked(std::function<void()> callback);
     void SetOnViewModeChanged(std::function<void(ContentViewMode)> callback);
     void SetOnSettingsClicked(std::function<void()> callback);
+    void SetOnMoreClicked(std::function<void()> callback);
 
 private:
     ContentBrowserToolbarControls(ToolbarMode mode);
@@ -139,13 +143,20 @@ private:
     std::shared_ptr<ToolbarNavigationButton> m_ForwardBtn;
     std::shared_ptr<ToolbarNavigationButton> m_FolderBtn;
     
-    // Legacy components (for AssetPane mode)
+    // Legacy / secondary controls (for AssetPane mode)
     std::shared_ptr<ToolbarIconToggle> m_GridViewBtn;
     std::shared_ptr<ToolbarIconToggle> m_ListViewBtn;
     std::shared_ptr<ToolbarIconToggle> m_SettingsBtn;
+    std::shared_ptr<ToolbarIconToggle> m_MoreBtn;
     std::shared_ptr<ToolbarIconToggle> m_FilterIconBtn;
     std::shared_ptr<ToolbarLabeledButton> m_SortBtn;
     std::shared_ptr<ToolbarLabeledButton> m_FilterBtn;
+
+    std::function<void(ContentViewMode)> m_OnViewModeChanged;
+    std::function<void()> m_OnSettingsClicked;
+    std::function<void()> m_OnMoreClicked;
+    std::function<void()> m_OnCreateClicked;
+    std::function<void()> m_OnFilterClicked;
 };
 
 } // namespace we::editor::contentbrowser

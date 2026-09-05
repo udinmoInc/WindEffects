@@ -37,6 +37,8 @@ public:
     void SetPlaceholder(const std::string& placeholder) { m_Placeholder = placeholder; }
     void SetOnCommandSubmitted(OnCommandSubmitted callback) { m_OnCommandSubmitted = std::move(callback); }
     void SetFlatChrome(bool flat) { m_FlatChrome = flat; }
+    void SetWidth(float width) { m_Width = width; InvalidateLayout(); }
+    void SetHeight(float height) { m_Height = height; InvalidateLayout(); }
 
 private:
     std::string m_Text;

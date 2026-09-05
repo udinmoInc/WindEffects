@@ -37,7 +37,7 @@ Color GraphiteDarkTheme::ResolveColor(ColorToken token) const {
         return CS::OpaqueSurface(P.Recessed);
     case ColorToken::HeaderBackground:
     case ColorToken::ListLabelBandBackground:
-        return CS::OpaqueSurface(P.Background);
+        return CS::OpaqueSurface(P.Header);
     case ColorToken::ControlBackground:
         return CS::OpaqueSurface(P.Dropdown);
     case ColorToken::InputBackground:
@@ -237,7 +237,7 @@ float GraphiteDarkTheme::ResolveMetric(MetricToken token) const {
     case MetricToken::TabTopRadius:
         return palette::GraphiteDarkLiveMetrics().TabTopRadius;
     case MetricToken::TabActiveIndicatorHeight: return 2.0f;
-    case MetricToken::StatusBarHeight: return 24.0f;
+    case MetricToken::StatusBarHeight: return 28.0f;
     case MetricToken::TabGap: return 3.0f;
     case MetricToken::TabStripPadH: return 0.0f;
     case MetricToken::TabStripPadV: return 4.0f;
@@ -265,9 +265,9 @@ float GraphiteDarkTheme::ResolveMetric(MetricToken token) const {
     case MetricToken::ToggleTrackHeight: return 18.0f;
     case MetricToken::CheckboxGlyphSize: return 14.0f;
     case MetricToken::PrimaryButtonHeight: return 28.0f;
-    case MetricToken::ContentBrowserGridPadding: return 6.0f;
-    case MetricToken::ContentBrowserGridHSpacing: return 6.0f;
-    case MetricToken::ContentBrowserGridVSpacing: return 6.0f;
+    case MetricToken::ContentBrowserGridPadding: return 16.0f;
+    case MetricToken::ContentBrowserGridHSpacing: return 12.0f;
+    case MetricToken::ContentBrowserGridVSpacing: return 14.0f;
     case MetricToken::ContentBrowserThumbLarge: return 96.0f;
     case MetricToken::ContentBrowserThumbMedium: return 72.0f;
     case MetricToken::ContentBrowserThumbSmall: return 48.0f;
