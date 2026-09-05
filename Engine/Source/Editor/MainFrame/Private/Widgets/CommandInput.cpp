@@ -31,23 +31,35 @@ namespace ControlChrome = ::we::runtime::kindui::ControlChrome;
 using ::we::runtime::kindui::KeyCodeToChar;
 
 CommandInput::CommandInput()
-    : m_Height(20.0f)
-    , m_Width(200.0f)
+    : m_Height(26.0f)
+    , m_Width(260.0f)
 {
 }
 
 Size CommandInput::Measure(const Size& availableSize) {
     (void)availableSize;
     const float uiScale = std::max(1.0f, DPIContext::GetScale());
-    const float width = (m_Width > 0.0f ? m_Width : 200.0f) * uiScale;
-    const float height = (m_Height > 0.0f ? m_Height : 20.0f) * uiScale;
+    const float iconSize = ThemeMetric(MetricToken::IconSizeSearch) * uiScale;
+    const float padH = ThemeMetric(MetricToken::SpaceMD) * uiScale;
+    const float iconGap = ThemeMetric(MetricToken::Space1) * uiScale;
+    const float fontSize = ThemeMetric(MetricToken::TextSizeSmall) * uiScale;
+
+    PaintContext ctx;
+    const std::string& displayStr = m_Text.empty() ? m_Placeholder : m_Text;
+    const float textW = ctx.GetTextWidth(displayStr, fontSize);
+
+    float width = padH * 2.0f + iconSize + iconGap + textW;
+    if (m_Width > 0.0f) {
+        width = std::max(width, m_Width * uiScale);
+    }
+    const float height = (m_Height > 0.0f ? m_Height : 26.0f) * uiScale;
     m_DesiredSize = Size{ width, height };
     return m_DesiredSize;
 }
 
 void CommandInput::Arrange(const Rect& allottedRect) {
     const float uiScale = std::max(1.0f, DPIContext::GetScale());
-    const float h = std::min(m_Height > 0.0f ? m_Height * uiScale : 20.0f * uiScale, allottedRect.height);
+    const float h = std::min(m_Height > 0.0f ? m_Height * uiScale : 26.0f * uiScale, allottedRect.height);
     const float y = allottedRect.y + (allottedRect.height - h) * 0.5f;
     m_Geometry = Rect{ allottedRect.x, y, allottedRect.width, h };
 }

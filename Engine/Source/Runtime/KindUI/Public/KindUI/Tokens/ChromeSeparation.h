@@ -43,21 +43,14 @@ inline constexpr bool kGapCutsEnabled = true;
 }
 
 /// Device-pixel dock panel gutter per edge (left/right/top/bottom).
-/// Each dock container insets its chrome so workspace background shows through.
+/// With gap-cuts, workspace padding and splitters provide clean 3px separation.
 [[nodiscard]] inline float DockStructureGapPx() {
-    if (!kGapCutsEnabled) {
-        return 0.0f;
-    }
-    return GapDevicePx();
+    return 0.0f;
 }
 
 /// Device-pixel gutter drawn by dock splitters between adjacent panels.
 [[nodiscard]] inline float DockSplitterGapPx() {
     if (!kGapCutsEnabled) {
-        return 0.0f;
-    }
-    // Per-panel structure gaps already separate adjacent dock chrome; avoid double gutters.
-    if (DockStructureGapPx() > 0.0f) {
         return 0.0f;
     }
     return (std::max)(1.0f, GapDevicePx());

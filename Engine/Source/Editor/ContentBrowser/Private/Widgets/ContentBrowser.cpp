@@ -490,7 +490,8 @@ void ContentBrowser::Paint(PaintContext& context) {
 
         if (isCompact) {
             const float borderY = std::floor(m_Geometry.y + m_Geometry.height - statusHeight);
-            context.DrawRect(Rect{ m_Geometry.x, borderY, m_Geometry.width, 1.0f }, ThemeColor(ColorToken::Separator));
+            const float borderThickness = std::max(1.0f, ThemeMetric(MetricToken::PanelDividerWidth));
+            context.DrawRect(Rect{ m_Geometry.x, borderY, m_Geometry.width, borderThickness }, ThemeColor(ColorToken::Separator));
 
             const float textY = std::floor(borderY + (statusHeight - textSize) * 0.5f);
             std::string status = std::to_string(m_Model->assetCount + m_Model->folderCount) + " items";
@@ -900,7 +901,7 @@ void Breadcrumb::Arrange(const Rect& allottedRect) {
 void Breadcrumb::Paint(PaintContext& context) {
     PanelChrome::PaintListLabelBand(context, m_Geometry);
     context.DrawSurface(
-        Rect{ m_Geometry.x, m_Geometry.y + m_Geometry.height - ThemeMetric(MetricToken::BorderWidth), m_Geometry.width, ThemeMetric(MetricToken::BorderWidth) },
+        Rect{ m_Geometry.x, m_Geometry.y + m_Geometry.height - ThemeMetric(MetricToken::PanelDividerWidth), m_Geometry.width, ThemeMetric(MetricToken::PanelDividerWidth) },
         we::runtime::kindui::SurfaceRole::Separator,
         0.0f,
         "BreadcrumbSeparator");

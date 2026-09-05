@@ -28,9 +28,6 @@ constexpr size_t RegionIndex(PanelBodyRegion region) {
 }
 
 float RegionSeparationGap() {
-    if (we::runtime::kindui::ChromeSeparation::kGapCutsEnabled) {
-        return we::runtime::kindui::ChromeSeparation::Gap();
-    }
     return 0.0f;
 }
 

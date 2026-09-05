@@ -87,7 +87,8 @@ void PaintToolbarButtonChrome(PaintContext& context, const Rect& rect, float hov
     if (primary) {
         borderColor = we::runtime::kindui::ResolveColor(ColorToken::AccentPrimary);
     }
-    context.DrawRoundedRectOutline(rect, borderColor, 1.0f * uiScale, radius);
+    const float borderW = we::runtime::kindui::ResolveMetric(MetricToken::BorderWidth) * uiScale;
+    context.DrawRoundedRectOutline(rect, borderColor, borderW, radius);
 
     // Subtle pressed recessed overlay
     if (pressAnim > 0.01f) {
@@ -160,7 +161,8 @@ public:
             const auto& item = m_Items[i];
             if (item.isSeparator) {
                 const float sepY = std::floor(y + 2.0f * uiScale);
-                context.DrawRect(Rect{ m_Geometry.x + padX, sepY, m_Geometry.width - padX * 2.0f, 1.0f * uiScale }, ThemeColor(ColorToken::Separator));
+                const float sepW = ThemeMetric(MetricToken::BorderWidth) * uiScale;
+                context.DrawRect(Rect{ m_Geometry.x + padX, sepY, m_Geometry.width - padX * 2.0f, sepW }, ThemeColor(ColorToken::Separator));
                 y += 6.0f * uiScale;
                 continue;
             }
@@ -336,19 +338,30 @@ ToolbarLabeledButton::ToolbarLabeledButton(const std::string& label, we::runtime
 Size ToolbarLabeledButton::Measure(const Size& availableSize) {
     (void)availableSize;
     const float uiScale = (std::max)(1.0f, DPIContext::GetScale());
-    float width = m_HorizontalPadding * 2.0f * uiScale;
-    if (m_Icon.IsValid()) width += 16.0f * uiScale + 4.0f * uiScale;
+    const float hPad = (m_HorizontalPadding > 0.0f
+        ? m_HorizontalPadding
+        : ThemeMetric(MetricToken::ButtonPaddingHorizontal)) * uiScale;
+    const float iconGap = ThemeMetric(MetricToken::Space1) * uiScale;
     const float textSize = ThemeMetric(MetricToken::TextSizeToolbar) * uiScale;
-    width += static_cast<float>(m_Label.size()) * textSize * 0.58f;
-    if (m_ShowChevron) width += 4.0f * uiScale + 12.0f * uiScale;
-    const float h = 24.0f * uiScale;
+
+    PaintContext ctx;
+    const float textWidth = ctx.GetTextWidth(m_Label, textSize);
+
+    float width = hPad * 2.0f + textWidth;
+    if (m_Icon.IsValid()) {
+        width += 16.0f * uiScale + iconGap;
+    }
+    if (m_ShowChevron) {
+        width += iconGap + 12.0f * uiScale;
+    }
+    const float h = ThemeMetric(MetricToken::ToolbarLabeledHeight) * uiScale;
     m_DesiredSize = Size{ width, h };
     return m_DesiredSize;
 }
 
 void ToolbarLabeledButton::Arrange(const Rect& allottedRect) {
     const float uiScale = (std::max)(1.0f, DPIContext::GetScale());
-    const float h = std::min(24.0f * uiScale, allottedRect.height);
+    const float h = std::min(ThemeMetric(MetricToken::ToolbarLabeledHeight) * uiScale, allottedRect.height);
     m_Geometry = Rect{
         allottedRect.x,
         allottedRect.y + (allottedRect.height - h) * 0.5f,
@@ -363,7 +376,10 @@ void ToolbarLabeledButton::Paint(PaintContext& context) {
     PaintToolbarButtonChrome(context, m_Geometry, m_HoverAnim, m_PressAnim, false, m_Variant == Variant::Primary);
 
     const float uiScale = (std::max)(1.0f, DPIContext::GetScale());
-    const float hPad = m_HorizontalPadding * uiScale;
+    const float hPad = (m_HorizontalPadding > 0.0f
+        ? m_HorizontalPadding
+        : ThemeMetric(MetricToken::ButtonPaddingHorizontal)) * uiScale;
+    const float iconGap = ThemeMetric(MetricToken::Space1) * uiScale;
     float x = m_Geometry.x + hPad;
     const float textSize = ThemeMetric(MetricToken::TextSizeToolbar) * uiScale;
     const float textY = LayoutMetrics::AlignTextTopY(m_Geometry, textSize);
@@ -380,7 +396,7 @@ void ToolbarLabeledButton::Paint(PaintContext& context) {
             iconColor = ThemeColor(ColorToken::IconHover);
         }
         IconPainter::Draw(context, m_Icon, iconBand, iconColor);
-        x += iconSize + 4.0f * uiScale;
+        x += iconSize + iconGap;
     }
 
     Color textColor = ThemeColor(ColorToken::TextPrimary);
@@ -445,9 +461,9 @@ void ContentBrowserToolbarControls::InitializeChildren() {
     };
 
     if (m_Mode == ToolbarMode::Full) {
-        m_CreateBtn = std::make_shared<ToolbarLabeledButton>("Add", WindIcons::Plus16, false, ToolbarLabeledButton::Variant::AddAction, 8.0f);
-        m_ImportBtn = std::make_shared<ToolbarLabeledButton>("Import", WindIcons::FolderCreate16, false, ToolbarLabeledButton::Variant::Standard, 8.0f);
-        m_SaveBtn = std::make_shared<ToolbarLabeledButton>("Save All", WindIcons::SaveAll16, false, ToolbarLabeledButton::Variant::Standard, 8.0f);
+        m_CreateBtn = std::make_shared<ToolbarLabeledButton>("Add", WindIcons::Plus16, false, ToolbarLabeledButton::Variant::AddAction);
+        m_ImportBtn = std::make_shared<ToolbarLabeledButton>("Import", WindIcons::FolderCreate16, false, ToolbarLabeledButton::Variant::Standard);
+        m_SaveBtn = std::make_shared<ToolbarLabeledButton>("Save All", WindIcons::SaveAll16, false, ToolbarLabeledButton::Variant::Standard);
 
         m_CreateBtn->SetFlexShrink(0.0f);
         m_ImportBtn->SetFlexShrink(0.0f);
@@ -459,9 +475,9 @@ void ContentBrowserToolbarControls::InitializeChildren() {
         AddChild(m_SaveBtn);
     } else {
         // Asset pane toolbar: Add, Import, Save All, Filter, Search on left; Settings, Vertical Dots on right
-        m_CreateBtn = std::make_shared<ToolbarLabeledButton>("Add", WindIcons::Plus16, false, ToolbarLabeledButton::Variant::AddAction, 8.0f);
-        m_ImportBtn = std::make_shared<ToolbarLabeledButton>("Import", WindIcons::FolderCreate16, false, ToolbarLabeledButton::Variant::Standard, 8.0f);
-        m_SaveBtn = std::make_shared<ToolbarLabeledButton>("Save All", WindIcons::SaveAll16, false, ToolbarLabeledButton::Variant::Standard, 8.0f);
+        m_CreateBtn = std::make_shared<ToolbarLabeledButton>("Add", WindIcons::Plus16, false, ToolbarLabeledButton::Variant::AddAction);
+        m_ImportBtn = std::make_shared<ToolbarLabeledButton>("Import", WindIcons::FolderCreate16, false, ToolbarLabeledButton::Variant::Standard);
+        m_SaveBtn = std::make_shared<ToolbarLabeledButton>("Save All", WindIcons::SaveAll16, false, ToolbarLabeledButton::Variant::Standard);
         
         m_FilterIconBtn = std::make_shared<ToolbarIconToggle>(WindIcons::ListFilter16, "Filter");
         m_FilterIconBtn->SetFrameless(true);
@@ -470,7 +486,8 @@ void ContentBrowserToolbarControls::InitializeChildren() {
         m_SearchBox->SetPlaceholder("Search Assets...");
         m_SearchBox->SetToolbarInset(true);
         m_SearchBox->SetFillWidth(false);
-        m_SearchBox->SetWidth(ThemeMetric(MetricToken::Space6) * 6.5f);
+        const float uiScale = (std::max)(1.0f, DPIContext::GetScale());
+        m_SearchBox->SetWidth(320.0f * uiScale);
         m_SearchBox->SetFlexGrow(0.0f);
         m_SearchBox->SetFlexShrink(0.0f);
 
@@ -590,7 +607,7 @@ void ContentBrowserToolbarControls::Paint(PaintContext& context) {
 
     // Existing background separator separating toolbar from content
     const float uiScale = (std::max)(1.0f, DPIContext::GetScale());
-    const float thickness = 1.0f * uiScale;
+    const float thickness = ThemeMetric(MetricToken::PanelDividerWidth) * uiScale;
     const Rect bottomBorder{ m_Geometry.x, m_Geometry.y + m_Geometry.height - thickness, m_Geometry.width, thickness };
     context.DrawSurface(bottomBorder, we::runtime::kindui::SurfaceRole::Separator, 0.0f, "ContentBrowserToolbarSeparator");
 

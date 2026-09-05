@@ -366,12 +366,13 @@ void TreeView::Paint(PaintContext& context) {
         const Color sepColor = ThemeColor(ColorToken::Separator);
         const Color textColor = ThemeColor(ColorToken::TextSecondary);
 
+        const float borderW = std::max(1.0f, ThemeMetric(MetricToken::BorderWidth));
         const float topBorderY = std::floor(m_Geometry.y);
-        const float botBorderY = std::floor(m_Geometry.y + headerHeight - 1.0f);
+        const float botBorderY = std::floor(m_Geometry.y + headerHeight - borderW);
 
-        // Top & Bottom horizontal border lines (crisp 1px solid)
-        context.DrawRect(Rect{ m_Geometry.x, topBorderY, m_Geometry.width, 1.0f }, sepColor);
-        context.DrawRect(Rect{ m_Geometry.x, botBorderY, m_Geometry.width, 1.0f }, sepColor);
+        // Top & Bottom horizontal border lines
+        context.DrawRect(Rect{ m_Geometry.x, topBorderY, m_Geometry.width, borderW }, sepColor);
+        context.DrawRect(Rect{ m_Geometry.x, botBorderY, m_Geometry.width, borderW }, sepColor);
 
         // Column 0: Eye icon column header (spacious 30px cell)
         const float eyeColWidth = std::floor(30.0f * uiScale);
@@ -380,7 +381,7 @@ void TreeView::Paint(PaintContext& context) {
 
         // Vertical Separator after Eye Column
         const float sep1X = std::floor(m_Geometry.x + eyeColWidth);
-        context.DrawRect(Rect{ sep1X, m_Geometry.y, 1.0f, headerHeight }, sepColor);
+        context.DrawRect(Rect{ sep1X, m_Geometry.y, borderW, headerHeight }, sepColor);
 
         // Column 1: Star / Dirty column (spacious 28px cell with crisp 16u Star icon)
         const float dirtyColWidth = std::floor(28.0f * uiScale);
@@ -389,7 +390,7 @@ void TreeView::Paint(PaintContext& context) {
         IconPainter::Draw(context, WindIcons::Star16, IconMetrics::PlaceGlyphCentered(starBand, 16u), textColor);
 
         // Vertical Separator after Star Column
-        context.DrawRect(Rect{ sep2X, m_Geometry.y, 1.0f, headerHeight }, sepColor);
+        context.DrawRect(Rect{ sep2X, m_Geometry.y, borderW, headerHeight }, sepColor);
 
         // Item Label header (generous 16px gap after separator)
         const float labelPad = std::floor(16.0f * uiScale);
@@ -404,7 +405,7 @@ void TreeView::Paint(PaintContext& context) {
         // Type column header
         const float typeColWidth = std::floor(90.0f * uiScale);
         const float sep3X = std::floor(m_Geometry.x + m_Geometry.width - typeColWidth);
-        context.DrawRect(Rect{ sep3X, m_Geometry.y, 1.0f, headerHeight }, sepColor);
+        context.DrawRect(Rect{ sep3X, m_Geometry.y, borderW, headerHeight }, sepColor);
 
         const float typeX = sep3X + labelPad;
         context.DrawText(

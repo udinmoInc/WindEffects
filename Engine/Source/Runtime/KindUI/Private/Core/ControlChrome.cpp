@@ -96,7 +96,7 @@ void PaintControlFrame(
 
     const ResolvedControlBorder border = ResolveControlBorder(state, borderMode, styleBorder);
     Color borderCol = border.color.a > 0.01f ? border.color : (styleBorder.a > 0.01f ? styleBorder : ResolveColor(ColorToken::Separator));
-    const float borderW = border.width > 0.0f ? border.width : 1.0f;
+    const float borderW = border.width > 0.0f ? border.width : ResolveMetric(MetricToken::BorderWidth);
     context.DrawRoundedRectOutline(rect, borderCol, borderW, style.cornerRadius);
 
     if (state.pressAnim > 0.01f) {
@@ -195,7 +195,7 @@ void PaintPanelButtonFace(
 
     Color bgIdle = background.a > 0.01f ? background : ResolveColor(ColorToken::ControlBackground);
     Color bgHover = ResolveColor(ColorToken::ControlBackgroundHover);
-    Color bgPress = Color(bgIdle.r * 0.80f, bgIdle.g * 0.80f, bgIdle.b * 0.80f, 1.0f);
+    Color bgPress = ResolveColor(ColorToken::PressedBackground);
 
     Color bgColor = bgIdle;
     if (hoverAnim > 0.001f) {
@@ -211,9 +211,9 @@ void PaintPanelButtonFace(
     if (hoverAnim > 0.001f) {
         borderColor = Color::Pick(borderColor, ResolveColor(ColorToken::BorderLight), std::clamp(hoverAnim, 0.0f, 1.0f));
     } else if (pressAnim > 0.001f) {
-        borderColor = Color::Pick(borderColor, Color(borderColor.r * 0.85f, borderColor.g * 0.85f, borderColor.b * 0.85f, 1.0f), std::clamp(pressAnim, 0.0f, 1.0f));
+        borderColor = Color::Pick(borderColor, ResolveColor(ColorToken::BorderFocus), std::clamp(pressAnim, 0.0f, 1.0f));
     }
-    context.DrawRoundedRectOutline(rect, borderColor, 1.0f, radius);
+    context.DrawRoundedRectOutline(rect, borderColor, ResolveMetric(MetricToken::BorderWidth), radius);
 }
 
 namespace {
@@ -253,7 +253,7 @@ void PaintInputFrameInternal(
     } else if (state.hoverAnim > 0.001f) {
         borderColor = Color::Pick(borderColor, ResolveColor(ColorToken::BorderLight), std::clamp(state.hoverAnim, 0.0f, 1.0f));
     }
-    context.DrawRoundedRectOutline(rect, borderColor, 1.0f, cornerRadius);
+    context.DrawRoundedRectOutline(rect, borderColor, ResolveMetric(MetricToken::BorderWidth), cornerRadius);
 
     if (state.focused) {
         PaintFocusRing(context, rect, cornerRadius);
@@ -348,7 +348,7 @@ void PaintFilledButton(
 
     Color bgIdle = base.background.a > 0.01f ? base.background : ResolveColor(ColorToken::ControlBackground);
     Color bgHover = ResolveColor(ColorToken::ControlBackgroundHover);
-    Color bgPress = Color(bgIdle.r * 0.80f, bgIdle.g * 0.80f, bgIdle.b * 0.80f, 1.0f);
+    Color bgPress = ResolveColor(ColorToken::PressedBackground);
 
     Color bgColor = bgIdle;
     if (state.hoverAnim > 0.001f) {
@@ -364,9 +364,9 @@ void PaintFilledButton(
     if (state.hoverAnim > 0.001f) {
         borderColor = Color::Pick(borderColor, ResolveColor(ColorToken::BorderLight), std::clamp(state.hoverAnim, 0.0f, 1.0f));
     } else if (state.pressAnim > 0.001f) {
-        borderColor = Color::Pick(borderColor, Color(borderColor.r * 0.85f, borderColor.g * 0.85f, borderColor.b * 0.85f, 1.0f), std::clamp(state.pressAnim, 0.0f, 1.0f));
+        borderColor = Color::Pick(borderColor, ResolveColor(ColorToken::BorderFocus), std::clamp(state.pressAnim, 0.0f, 1.0f));
     }
-    context.DrawRoundedRectOutline(rect, borderColor, 1.0f, base.cornerRadius);
+    context.DrawRoundedRectOutline(rect, borderColor, ResolveMetric(MetricToken::BorderWidth), base.cornerRadius);
 }
 
 void PaintGhostButton(
