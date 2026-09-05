@@ -75,17 +75,18 @@ void ContentBrowserFolderArt::PaintThumbnail(
     const we::runtime::kindui::Rect& thumbRect,
     bool hovered) const
 {
-    // Grid thumbnails: content-folder_512 shape, same theme folder tint as the tree.
     const we::runtime::kindui::Rect folderRect = ComputeFolderRect(
         thumbRect,
         kThumbnailWidthFill,
         kThumbnailHeightFill,
         true,
         kContentFolderAspectRatio);
+
     if (!WindIcons::ContentFolder512.IsValid()) {
         PaintFolderIcon(context, folderRect, hovered, false);
         return;
     }
+
     context.DrawWindIcon(WindIcons::ContentFolder512, folderRect, FolderTint(hovered));
 }
 

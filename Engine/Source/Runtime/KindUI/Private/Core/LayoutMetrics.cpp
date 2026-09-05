@@ -38,9 +38,7 @@ float SearchInputHeight() {
 }
 
 float ToolbarSearchInputHeight() {
-    const float rowH = SearchRowHeight();
-    const float padV = ResolveMetric(MetricToken::Space1) * UiScale();
-    return std::max(24.0f, rowH - padV);
+    return SearchInputHeight();
 }
 
 float SearchRowHeight() {

@@ -269,14 +269,14 @@ ToolbarIconToggle::ToolbarIconToggle(we::runtime::kindui::WindIconRef icon, cons
 Size ToolbarIconToggle::Measure(const Size& availableSize) {
     (void)availableSize;
     const float uiScale = (std::max)(1.0f, DPIContext::GetScale());
-    const float h = 24.0f * uiScale;
+    const float h = ThemeMetric(MetricToken::IconButtonSize) * uiScale;
     m_DesiredSize = Size{ h, h };
     return m_DesiredSize;
 }
 
 void ToolbarIconToggle::Arrange(const Rect& allottedRect) {
     const float uiScale = (std::max)(1.0f, DPIContext::GetScale());
-    const float h = std::min(24.0f * uiScale, allottedRect.height);
+    const float h = std::min(ThemeMetric(MetricToken::IconButtonSize) * uiScale, allottedRect.height);
     m_Geometry = CenterRect(allottedRect, h, h);
 }
 
@@ -349,7 +349,7 @@ Size ToolbarLabeledButton::Measure(const Size& availableSize) {
 
     float width = hPad * 2.0f + textWidth;
     if (m_Icon.IsValid()) {
-        width += 16.0f * uiScale + iconGap;
+        width += ThemeMetric(MetricToken::IconSizeToolbar) * uiScale + iconGap;
     }
     if (m_ShowChevron) {
         width += iconGap + 12.0f * uiScale;
@@ -385,7 +385,7 @@ void ToolbarLabeledButton::Paint(PaintContext& context) {
     const float textY = LayoutMetrics::AlignTextTopY(m_Geometry, textSize);
 
     if (m_Icon.IsValid()) {
-        const float iconSize = 16.0f * uiScale;
+        const float iconSize = ThemeMetric(MetricToken::IconSizeToolbar) * uiScale;
         const float iconY = m_Geometry.y + (m_Geometry.height - iconSize) * 0.5f;
         Rect iconBand{ x, iconY, iconSize, iconSize };
 
@@ -487,7 +487,7 @@ void ContentBrowserToolbarControls::InitializeChildren() {
         m_SearchBox->SetToolbarInset(true);
         m_SearchBox->SetFillWidth(false);
         const float uiScale = (std::max)(1.0f, DPIContext::GetScale());
-        m_SearchBox->SetWidth(320.0f * uiScale);
+        m_SearchBox->SetWidth(ThemeMetric(MetricToken::InputWidthLarge) * uiScale);
         m_SearchBox->SetFlexGrow(0.0f);
         m_SearchBox->SetFlexShrink(0.0f);
 

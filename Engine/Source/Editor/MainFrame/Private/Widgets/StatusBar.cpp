@@ -111,8 +111,8 @@ void StatusBar::Construct() {
     m_CommandInput->SetPlaceholder("Console Commands...");
     m_CommandInput->SetFlexGrow(0.0f);
     m_CommandInput->SetFlexShrink(0.0f);
-    m_CommandInput->SetWidth(260.0f);
-    m_CommandInput->SetHeight(26.0f);
+    m_CommandInput->SetWidth(ThemeMetric(MetricToken::InputWidthDefault) * uiScale);
+    m_CommandInput->SetHeight(ThemeMetric(MetricToken::ControlHeightCompact) * uiScale);
     AddChild(m_CommandInput);
 
     auto spacer = std::make_shared<Spacer>();

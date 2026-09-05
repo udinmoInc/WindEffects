@@ -267,6 +267,9 @@ enum class MetricToken : uint32_t {
     ButtonHeight,
     ControlHeightCompact, // denser form controls (toggle, spin, compact input)
     ControlHeightLarge,   // prominent CTAs
+    InputWidthCompact,    // 180px: compact filters, small toolbars, inspector inputs
+    InputWidthDefault,    // 260px: standard inputs, console command bar, panel search
+    InputWidthLarge,      // 320px: wide content browser search, prominent search bars
     FormRowHeight,        // label + control settings/property row
     MenuItemHeight,       // popup / dropdown option row
     PageMargin,           // page content inset

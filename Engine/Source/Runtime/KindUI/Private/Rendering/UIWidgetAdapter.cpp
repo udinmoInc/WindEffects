@@ -684,18 +684,25 @@ void UIWidgetAdapter::GenerateIconGeometry(const DrawCommand& cmd) {
         return;
     }
 
-    WindIconRef icon{ cmd.iconStem.c_str(), cmd.iconSizePx };
+    uint32_t targetSize = cmd.iconSizePx;
+    WindIconRef icon{ cmd.iconStem.c_str(), targetSize };
 
     IconRenderer* iconRenderer = m_Renderer->GetIconRenderer();
-    const IconDrawInfo drawInfo = iconRenderer->GetIconDrawInfo(icon);
+    IconDrawInfo drawInfo = iconRenderer->GetIconDrawInfo(icon);
 
     if (!drawInfo.valid || drawInfo.descriptorSet == we::rhi::RHIDescriptorSetHandle::Invalid) {
-        return;
+        if (targetSize != 16 && targetSize != 0) {
+            icon.sizePx = 16;
+            drawInfo = iconRenderer->GetIconDrawInfo(icon);
+        }
+        if (!drawInfo.valid || drawInfo.descriptorSet == we::rhi::RHIDescriptorSetHandle::Invalid) {
+            return;
+        }
     }
 
     m_CurrentTextureSet = drawInfo.descriptorSet;
 
-    // Prefer authored slot size, but fit large assets (e.g. content-folder_512) into the command rect.
+    // Render at direct 1:1 original image size of the asset
     float w = static_cast<float>(icon.sizePx > 0 ? icon.sizePx : drawInfo.sizePx);
     float h = w;
     if (cmd.rect.width > 0.5f && cmd.rect.height > 0.5f) {
@@ -708,12 +715,26 @@ void UIWidgetAdapter::GenerateIconGeometry(const DrawCommand& cmd) {
     const float x = SnapPx(cmd.rect.x + (cmd.rect.width - w) * 0.5f);
     const float y = SnapPx(cmd.rect.y + (cmd.rect.height - h) * 0.5f);
 
-    // Near-white tint → full-color sample (type 4). Any other tint → mono alpha coverage (type 0)
-    // so white folder glyphs can take Content Browser amber without uploading mid-paint.
-    const Color tint = cmd.color.a > 0.0f ? cmd.color : Color::White();
-    const bool monoTint =
-        tint.r < 0.98f || tint.g < 0.98f || tint.b < 0.98f;
-    const float shaderType = monoTint ? 0.0f : 4.0f;
+    // Render icons with original authored colors and brightness (no tint / dimming shifts).
+    // Preserve custom tint for folder icons (Content Browser / Outliner tree folders) with #B89252, and preserve alpha.
+    Color tint = Color::White();
+    const bool isFolder =
+        cmd.iconStem == "folder" ||
+        cmd.iconStem == "folder-open" ||
+        cmd.iconStem == "content-folder";
+    if (isFolder) {
+        if (cmd.color.a > 0.0f && (cmd.color.r < 0.99f || cmd.color.g < 0.99f || cmd.color.b < 0.99f)) {
+            tint = cmd.color;
+        } else {
+            tint = ResolveColor(ColorToken::ContentBrowserFolderPrimary);
+            if (cmd.color.a > 0.0f) {
+                tint.a = cmd.color.a;
+            }
+        }
+    } else if (cmd.color.a > 0.0f) {
+        tint.a = cmd.color.a;
+    }
+    const float shaderType = 4.0f;
 
     auto emitQuad = [&](float px, float py, const Color& color, float type) {
         UIVertex2 v0{

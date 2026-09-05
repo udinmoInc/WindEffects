@@ -159,7 +159,7 @@ void ScrollViewport::Paint(
     }
 
     const ResolvedStyle style = ThemeManager::Get().Resolve(StyleRole::Scrollbar);
-    context.DrawSurface(metrics.track, SurfaceRole::Recessed, 0.0f, "ScrollbarTrack");
+    context.DrawSurface(metrics.track, SurfaceRole::Panel, 0.0f, "ScrollbarTrack");
 
     const bool active = thumbHovered || m_DraggingThumb;
     Color thumbColor = active ? ResolveColor(ColorToken::ScrollbarThumbHover) : style.foreground;
