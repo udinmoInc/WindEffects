@@ -244,6 +244,10 @@ float GraphiteDarkTheme::ResolveMetric(MetricToken token) const {
     case MetricToken::TabActiveIndicatorHeight: return 2.0f;
     case MetricToken::StatusBarHeight: return 34.0f;
     case MetricToken::TabGap: return 1.5f;
+    case MetricToken::TabIconGap: return 6.0f;
+    case MetricToken::TabCloseGap: return 10.0f;
+    case MetricToken::TabMinWidth: return 160.0f;
+    case MetricToken::CloseGlyphSize: return 12.0f;
     case MetricToken::TabStripPadH: return 0.0f;
     case MetricToken::TabStripPadV: return 0.0f;
     case MetricToken::TabActiveIndicatorWidth: return 0.0f;

@@ -113,7 +113,8 @@ IconManager::CachedTexture* IconManager::LoadTexture(WindIconRef icon) const
     CachedTexture uploaded{};
     uploaded.width = width;
     uploaded.height = height;
-    uploaded.descriptorSet = m_Renderer->UploadRgbaTexture(width, height, rgba, true, true);
+    const bool linearFilter = width > 32 || height > 32;
+    uploaded.descriptorSet = m_Renderer->UploadRgbaTexture(width, height, rgba, linearFilter, true);
     if (uploaded.descriptorSet == we::rhi::RHIDescriptorSetHandle::Invalid) {
         HE_ERROR("[Icons] Failed to upload WindIcon: " + path.string());
         return nullptr;

@@ -154,7 +154,8 @@ float ContentBrowser::ComputeContentHeight() const {
     const float originY = m_ScrollMetrics.viewport.y > 0.0f
         ? m_ScrollMetrics.viewport.y - m_Scroll.offset
         : m_Geometry.y - m_Scroll.offset;
-    return std::max(0.0f, maxBottom - originY) + 16.0f;
+    const float uiScale = std::max(1.0f, DPIContext::GetScale());
+    return std::max(0.0f, maxBottom - originY) + 4.0f * uiScale;
 }
 
 void ContentBrowser::RecalculateLayout() {
@@ -483,37 +484,19 @@ void ContentBrowser::Paint(PaintContext& context) {
 
     const float uiScale = std::max(1.0f, DPIContext::GetScale());
     if (m_Model) {
-        float maxItemBottom = m_Geometry.y;
-        for (const auto& renderItem : m_RenderList) {
-            maxItemBottom = std::max(maxItemBottom, renderItem.geometry.y + renderItem.geometry.height);
-        }
         const float statusHeight = std::floor(24.0f * uiScale);
-        const float remainingSpace = (m_Geometry.y + m_Geometry.height) - maxItemBottom;
-        const bool isCompact = remainingSpace < (statusHeight + 16.0f * uiScale) || m_ScrollMetrics.showsScrollbar;
+        const float borderY = std::floor(m_Geometry.y + m_Geometry.height - statusHeight);
+        const float borderThickness = std::max(1.0f, ThemeMetric(MetricToken::PanelDividerWidth));
+        context.DrawRect(Rect{ m_Geometry.x, borderY, m_Geometry.width, borderThickness }, ThemeColor(ColorToken::Separator));
 
         const float textSize = ThemeMetric(MetricToken::TextSizeSmall) * uiScale;
         const float padX = std::floor(12.0f * uiScale);
-
-        if (isCompact) {
-            const float borderY = std::floor(m_Geometry.y + m_Geometry.height - statusHeight);
-            const float borderThickness = std::max(1.0f, ThemeMetric(MetricToken::PanelDividerWidth));
-            context.DrawRect(Rect{ m_Geometry.x, borderY, m_Geometry.width, borderThickness }, ThemeColor(ColorToken::Separator));
-
-            const float textY = std::floor(borderY + (statusHeight - textSize) * 0.5f);
-            std::string status = std::to_string(m_Model->assetCount + m_Model->folderCount) + " items";
-            if (!m_Model->selectedIds.empty()) {
-                status += " (" + std::to_string(m_Model->selectedIds.size()) + " selected)";
-            }
-            context.DrawText(status, Point{ m_Geometry.x + padX, textY }, ThemeColor(ColorToken::TextSecondary), textSize);
-        } else {
-            const float padY = std::floor(6.0f * uiScale);
-            const float textY = std::floor(m_Geometry.y + m_Geometry.height - textSize - padY);
-            std::string status = std::to_string(m_Model->assetCount + m_Model->folderCount) + " items";
-            if (!m_Model->selectedIds.empty()) {
-                status += " (" + std::to_string(m_Model->selectedIds.size()) + " selected)";
-            }
-            context.DrawText(status, Point{ m_Geometry.x + padX, textY }, ThemeColor(ColorToken::TextSecondary), textSize);
+        const float textY = std::floor(borderY + (statusHeight - textSize) * 0.5f);
+        std::string status = std::to_string(m_Model->assetCount + m_Model->folderCount) + " items";
+        if (!m_Model->selectedIds.empty()) {
+            status += " (" + std::to_string(m_Model->selectedIds.size()) + " selected)";
         }
+        context.DrawText(status, Point{ m_Geometry.x + padX, textY }, ThemeColor(ColorToken::TextSecondary), textSize);
     }
 
     if (m_IsSelecting) {

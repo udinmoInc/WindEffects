@@ -265,14 +265,6 @@ void DockContainer::Paint(PaintContext& context) {
         return;
     }
 
-    if (!m_HeaderRect.IsEmpty()) {
-        context.DrawSurface(
-            m_HeaderRect,
-            we::runtime::kindui::SurfaceRole::DockChrome,
-            0.0f,
-            "DockTabStripBand");
-    }
-
     std::vector<PanelChrome::DockTabDescriptor> descriptors;
     descriptors.reserve(m_Tabs.size());
     PanelChrome::DockTabStripLayout stripLayout{};

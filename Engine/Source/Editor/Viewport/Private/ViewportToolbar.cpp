@@ -217,125 +217,112 @@ std::shared_ptr<::we::runtime::kindui::Widget> CreateViewportToolbar() {
     std::shared_ptr<ToolButton> cameraSpeedButton;
 
     ToolbarBuilder builder;
-    builder.Floating().Height(we::runtime::kindui::ResolveMetric(
+    builder.Height(we::runtime::kindui::ResolveMetric(
         we::runtime::kindui::MetricToken::ViewportToolbarHeight));
 
-    auto perspectiveButton = MakeViewportChip(
-        WindIcons::ToolbarCamera16,
-        "Perspective",
-        nullptr,
-        "Viewport Projection",
-        true);
-    perspectiveButton->SetOnClicked([perspectiveButton]() {
-        ShowPerspectiveMenu(perspectiveButton->GetGeometry());
-    });
-
-    auto litButton = MakeViewportChip(
-        WindIcons::Bulb16,
-        "Lit",
-        nullptr,
-        "Viewport Lighting Mode",
-        true);
-    litButton->SetOnClicked([litButton]() {
-        ShowLitMenu(litButton->GetGeometry());
-    });
-
-    auto showButton = MakeViewportChip(
-        WindIcons::Eye16,
-        "Show",
-        nullptr,
-        "Show Viewport Options",
-        true);
-    showButton->SetOnClicked([showButton]() {
-        ShowShowMenu(showButton->GetGeometry());
-    });
-
-    builder.AddWidget(perspectiveButton);
-    builder.AddWidget(litButton);
-    builder.AddWidget(showButton);
-    builder.Separator();
-
+    // Flat left items on the toolbar strip (ungrouped, no separators)
     builder.Group(ToolbarAlignment::Left, ToolbarGroupStyle::Transparent, [&](ToolbarBuilder& tools) {
-        const WindIconRef selectIcon = RegistryToolIcon("SelectTool");
-        const WindIconRef moveIcon = RegistryToolIcon("MoveTool");
-        const WindIconRef rotateIcon = RegistryToolIcon("RotateTool");
-        const WindIconRef scaleIcon = RegistryToolIcon("ScaleTool");
+        const WindIconRef handIcon = WindIcons::ToolbarHand16;
+        const WindIconRef moveIcon = WindIcons::MoveOutline16;
+        const WindIconRef rotateIcon = WindIcons::ToolbarRotate16;
+        const WindIconRef scaleIcon = WindIcons::ToolbarScaling16;
         tools.IconItem(
-            selectIcon,
-            "Select (Q)",
-            [toolbarHolder, selectIcon]() { ActivateViewportTool(toolbarHolder, selectIcon, "SelectTool"); },
-            [](const std::shared_ptr<ToolButton>& btn) {
-                btn->SetButtonStyle(ToolButtonStyle::ViewportChip);
-            });
+            handIcon,
+            "Hand (Pan Viewport)",
+            [toolbarHolder, handIcon]() { ActivateViewportTool(toolbarHolder, handIcon, "SelectTool"); });
         tools.IconItem(
             moveIcon,
             "Move (W)",
-            [toolbarHolder, moveIcon]() { ActivateViewportTool(toolbarHolder, moveIcon, "MoveTool"); },
-            [](const std::shared_ptr<ToolButton>& btn) {
-                btn->SetButtonStyle(ToolButtonStyle::ViewportChip);
-            });
+            [toolbarHolder, moveIcon]() { ActivateViewportTool(toolbarHolder, moveIcon, "MoveTool"); });
         tools.IconItem(
             rotateIcon,
             "Rotate (E)",
-            [toolbarHolder, rotateIcon]() { ActivateViewportTool(toolbarHolder, rotateIcon, "RotateTool"); },
-            [](const std::shared_ptr<ToolButton>& btn) {
-                btn->SetButtonStyle(ToolButtonStyle::ViewportChip);
-            });
+            [toolbarHolder, rotateIcon]() { ActivateViewportTool(toolbarHolder, rotateIcon, "RotateTool"); });
         tools.IconItem(
             scaleIcon,
             "Scale (R)",
-            [toolbarHolder, scaleIcon]() { ActivateViewportTool(toolbarHolder, scaleIcon, "ScaleTool"); },
+            [toolbarHolder, scaleIcon]() { ActivateViewportTool(toolbarHolder, scaleIcon, "ScaleTool"); });
+
+        tools.IconItem(
+            WindIcons::Globe16,
+            "Cycle Coordinate Space (World / Local)",
+            []() {});
+        tools.IconItem(
+            WindIcons::Speaker16,
+            "Toggle Viewport Audio",
+            []() {});
+
+        tools.DropdownItem(
+            WindIcons::Grid16,
+            "10",
+            []() { ToggleGridSnap(); },
+            "Toggle Grid Snap");
+        tools.DropdownItem(
+            WindIcons::ToolbarRotate16,
+            "90°",
+            []() { ToggleRotationSnap(); },
+            "Toggle Rotation Snap");
+        tools.DropdownItem(
+            WindIcons::ToolbarScaling16,
+            "0.25",
+            []() { ToggleScaleSnap(); },
+            "Toggle Scale Snap");
+
+        tools.DropdownItem(
+            WindIcons::ToolbarCamera16,
+            "Perspective",
+            []() {},
+            "Viewport Projection",
             [](const std::shared_ptr<ToolButton>& btn) {
-                btn->SetButtonStyle(ToolButtonStyle::ViewportChip);
+                btn->SetOnClicked([btn]() {
+                    ShowPerspectiveMenu(btn->GetGeometry());
+                });
+            });
+        tools.DropdownItem(
+            WindIcons::Lit16,
+            "Lit",
+            []() {},
+            "Viewport Lighting Mode",
+            [](const std::shared_ptr<ToolButton>& btn) {
+                btn->SetOnClicked([btn]() {
+                    ShowLitMenu(btn->GetGeometry());
+                });
+            });
+        tools.DropdownItem(
+            WindIcons::Eye16,
+            "Show",
+            []() {},
+            "Show Viewport Options",
+            [](const std::shared_ptr<ToolButton>& btn) {
+                btn->SetOnClicked([btn]() {
+                    ShowShowMenu(btn->GetGeometry());
+                });
             });
     });
 
-    builder.Separator();
-
-    builder.AddWidget(MakeViewportIconChip(
-        WindIcons::Grid16,
-        []() {
-            if (auto* editor = ViewportEditSession::Editor()) {
-                auto& grid = editor->Grid();
-                grid.SetVisible(!grid.IsVisible());
-            }
-        },
-        "Toggle Grid"));
-
-    builder.AddWidget(MakeViewportIconChip(
-        kWindIconNone,
-        []() { ToggleGridSnap(); },
-        "Toggle Grid Snap"));
-
-    builder.AddWidget(MakeViewportIconChip(
-        kWindIconNone,
-        []() { ToggleRotationSnap(); },
-        "Toggle Rotation Snap"));
-
-    builder.AddWidget(MakeViewportIconChip(
-        kWindIconNone,
-        []() { ToggleScaleSnap(); },
-        "Toggle Scale Snap"));
-
-    builder.Separator();
-
-    auto cameraButton = MakeViewportChip(
-        kWindIconNone,
-        "Camera",
-        []() { ShowViewportCameraSpeedPopup(); },
-        "Camera Speed",
-        true);
-    cameraButton->SetOnMouseWheel([](float wheelDeltaY) {
-        AdjustViewportCameraSpeedFromWheel(wheelDeltaY);
+    // Right-aligned group (Camera speed + Multi-Viewport Layout)
+    builder.Group(ToolbarAlignment::Right, ToolbarGroupStyle::Transparent, [&](ToolbarBuilder& tools) {
+        tools.DropdownItem(
+            WindIcons::ToolbarVideocamera16,
+            "1",
+            []() { ShowViewportCameraSpeedPopup(); },
+            "Camera Speed",
+            [cameraButtonPtr = &cameraSpeedButton](const std::shared_ptr<ToolButton>& btn) {
+                btn->SetOnMouseWheel([](float wheelDeltaY) {
+                    AdjustViewportCameraSpeedFromWheel(wheelDeltaY);
+                });
+                *cameraButtonPtr = btn;
+            });
+        tools.IconItem(
+            WindIcons::Grid16,
+            "Multi-Viewport Layout",
+            []() {
+                if (auto* editor = ViewportEditSession::Editor()) {
+                    auto& grid = editor->Grid();
+                    grid.SetVisible(!grid.IsVisible());
+                }
+            });
     });
-    cameraSpeedButton = cameraButton;
-
-    builder.AddWidget(MakeViewportIconChip(
-        WindIcons::Wrench24,
-        []() { ShowViewportNavigationPreferences(); },
-        "Viewport Settings"));
-
-    builder.AddWidget(cameraButton, ToolbarAlignment::Right);
 
     auto toolbar = builder.Build();
     *toolbarHolder = toolbar;

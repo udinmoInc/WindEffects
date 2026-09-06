@@ -60,7 +60,7 @@ std::shared_ptr<::we::editor::contentbrowser::TreeNode> BuildFolderNode(const As
     node->id = folder->id;
     node->label = folder->name;
     node->expanded = folder->virtualPath == "/Game";
-    node->icon = node->expanded ? WindIcons::FolderOpen16 : WindIcons::Folder16;
+    node->icon = node->expanded ? WindIcons::FolderOpenMask16 : WindIcons::FolderMask16;
 
     for (const auto* child : ContentAssetRegistry::Get().GetChildren(folder->virtualPath)) {
         if (child->isFolder) node->children.push_back(BuildFolderNode(child));
@@ -79,7 +79,7 @@ void RefreshFolderTree(const std::shared_ptr<::we::editor::contentbrowser::TreeV
     root->children.push_back(MakeSection("__plugins__", "Plugins", WindIcons::Plugin16));
     root->children.push_back(MakeSection("__engine__", "Engine Content", WindIcons::Globe16, false));
 
-    auto project = MakeSection("__project__", "Project Content", WindIcons::Folder16, true);
+    auto project = MakeSection("__project__", "Project Content", WindIcons::FolderMask16, true);
     if (const auto* game = ContentAssetRegistry::Get().FindByVirtualPath("/Game")) {
         project->children.push_back(BuildFolderNode(game));
     }
