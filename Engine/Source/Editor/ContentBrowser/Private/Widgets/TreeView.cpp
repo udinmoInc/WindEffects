@@ -217,13 +217,16 @@ TreeView::TreeView()
 }
 
 void TreeView::SyncScrollMetrics() {
+    const float uiScale = TreeUiScale();
     const float headerHeight = (m_ExplorerStyle && m_ShowColumnHeader)
         ? PanelChrome::ColumnHeaderRowHeight()
         : 0.0f;
+    const float topPad = std::floor(4.0f * uiScale);
+    const float bottomPad = std::floor(6.0f * uiScale);
     Rect viewportGeom = m_Geometry;
-    viewportGeom.y += headerHeight;
-    viewportGeom.height = (std::max)(0.0f, viewportGeom.height - headerHeight);
-    m_ScrollMetrics = m_Scroll.UpdateMetrics(viewportGeom, viewportGeom.height, m_ContentHeight, TreeUiScale());
+    viewportGeom.y += (headerHeight + topPad);
+    viewportGeom.height = (std::max)(0.0f, viewportGeom.height - headerHeight - topPad - bottomPad);
+    m_ScrollMetrics = m_Scroll.UpdateMetrics(viewportGeom, viewportGeom.height, m_ContentHeight, uiScale);
 }
 
 void TreeView::ScrollSelectionIntoView() {

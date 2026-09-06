@@ -29,48 +29,48 @@ struct GraphiteDark {
     static constexpr Color Title             = Hex("#161616");
 
     // Main workspace — deep charcoal
-    static constexpr Color Background        = Hex("#101010");
+    static constexpr Color Background        = Hex("#0A0A0A");
 
     // Very dark separators / window edges
-    static constexpr Color WindowBorder      = Hex("#0C0C0C");
+    static constexpr Color WindowBorder      = Hex("#060606");
 
     // Recessed control wells
-    static constexpr Color Foldout           = Hex("#111111");
+    static constexpr Color Foldout           = Hex("#0D0D0D");
 
     // Inputs / pressed wells
-    static constexpr Color Input             = Hex("#0E0E0E");
+    static constexpr Color Input             = Hex("#0D0D0D");
 
     // Input and control borders
-    static constexpr Color InputOutline      = Hex("#303030");
+    static constexpr Color InputOutline      = Hex("#2E2E2E");
 
     // Recessed input top inner edge — darker charcoal, low contrast against Input.
-    static constexpr Color InputInsetInner   = Hex("#0C0C0C66");
+    static constexpr Color InputInsetInner   = Hex("#06060666");
     // Optional outer lip for non-input chrome (panels / cards).
     static constexpr Color InputInsetOuter   = Hex("#000000A8");
 
     // Tree / grid wells
-    static constexpr Color Recessed          = Hex("#151515");
+    static constexpr Color Recessed          = Hex("#101010");
 
-    // Main panel body — subtle separation from #181818
-    static constexpr Color Panel             = Hex("#1C1C1C");
+    // Main panel body
+    static constexpr Color Panel             = Hex("#161616");
 
     // Section / panel headers
-    static constexpr Color Header            = Hex("#252525");
+    static constexpr Color Header            = Hex("#212121");
 
     // Raised menus / cards / popups
-    static constexpr Color Dropdown          = Hex("#2D2D2D");
+    static constexpr Color Dropdown          = Hex("#242424");
 
     // Raised control / popup edges
-    static constexpr Color DropdownOutline   = Hex("#424242");
+    static constexpr Color DropdownOutline   = Hex("#383838");
 
 
     // ── Interaction (EStyleColor) ───────────────────────────────────────────
 
     // Row / control hover — visible but not bright gray
-    static constexpr Color Hover             = Hex("#353535");
+    static constexpr Color Hover             = Hex("#252525");
 
     // Muted text / scrollbar hover
-    static constexpr Color Hover2            = Hex("#707070");
+    static constexpr Color Hover2            = Hex("#8B9198");
 
     // Primary interaction blue
     static constexpr Color Highlight         = Hex("#0070E0");
@@ -100,7 +100,7 @@ struct GraphiteDark {
     static constexpr Color White25           = Hex("#FFFFFF40");
 
     // Main editor text
-    static constexpr Color Foreground        = Hex("#C0C0C0");
+    static constexpr Color Foreground        = Hex("#D6D9DD");
 
     // Hovered text
     static constexpr Color ForegroundHover   = White;
@@ -109,25 +109,25 @@ struct GraphiteDark {
     static constexpr Color ForegroundInverted = Input;
 
     // Header / section text
-    static constexpr Color ForegroundHeader  = Hex("#C8C8C8");
+    static constexpr Color ForegroundHeader  = Hex("#E0E3E8");
 
     // Disabled / notification label text
-    static constexpr Color Notifications     = Hex("#464B50");
+    static constexpr Color Notifications     = Hex("#8B9198");
 
 
     // ── Icons (mono atlas tint targets — separate from body text) ───────────
 
     // Normal inactive toolbar / panel icons — lifted for dark-surface contrast
-    static constexpr Color IconNormal        = Hex("#C2C8D0");
+    static constexpr Color IconNormal        = Hex("#D6D9DD");
 
     // Hovered icon emphasis
-    static constexpr Color IconHoverTint     = Hex("#D6DBE1");
+    static constexpr Color IconHoverTint     = White;
 
     // Selected / active / important icons
     static constexpr Color IconActiveTint    = White;
 
     // Disabled / subdued icons
-    static constexpr Color IconSubdued       = Hex("#5C6570");
+    static constexpr Color IconSubdued       = Hex("#8B9198");
 
     // 1px contact silhouette under glyphs (alpha; not a glow/box)
     static constexpr Color IconContactShadow = Hex("#00000073");
