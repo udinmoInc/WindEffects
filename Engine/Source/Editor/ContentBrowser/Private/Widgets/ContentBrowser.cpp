@@ -8,7 +8,9 @@
 #include "Services/ContentBrowserFolderArt.h"
 #include "Services/ContentBrowserBlueprintArt.h"
 #include "KindUI/Core/ControlChrome.h"
+#include "KindUI/Core/LayoutMetrics.h"
 #include "KindUI/Core/PaintContext.h"
+#include "KindUI/Core/Types.h"
 #include "KindUI/Core/DPIContext.h"
 #include "KindUI/Rendering/IconMetrics.h"
 #include "KindUI/Tokens/DesignToken.h"
@@ -31,6 +33,7 @@ using ::we::runtime::kindui::DPIContext;
 using ::we::runtime::kindui::IconPainter;
 using ::we::runtime::kindui::UIRepaintGate;
 using ::we::runtime::kindui::WindIconRef;
+namespace LayoutMetrics = ::we::runtime::kindui::LayoutMetrics;
 namespace PanelChrome = ::we::editor::panels::PanelChrome;
 namespace IconMetrics = ::we::runtime::kindui::IconMetrics;
 namespace WindIcons = ::we::runtime::kindui::WindIcons;
@@ -456,6 +459,9 @@ void ContentBrowser::Paint(PaintContext& context) {
     SyncScrollMetrics();
     UpdateVisibleRange();
 
+    Rect innerBounds{ m_Geometry.x, m_Geometry.y, m_Geometry.width, m_ScrollMetrics.viewport.height };
+    context.DrawRect(innerBounds, ::we::runtime::kindui::Hex("#151515"));
+
     const float viewTop = m_ScrollMetrics.viewport.y;
     const float viewBottom = m_ScrollMetrics.viewport.y + m_ScrollMetrics.viewport.height;
     const bool isGridLike = GetEffectiveViewMode() != ContentViewMode::List &&
@@ -546,7 +552,8 @@ void ContentBrowser::Paint(PaintContext& context) {
         }
     }
 
-    m_Scroll.Paint(context, m_ScrollMetrics, m_Scroll.IsThumbHovered());
+    const ::we::runtime::kindui::Color trackBg = ::we::runtime::kindui::Hex("#151515");
+    m_Scroll.Paint(context, m_ScrollMetrics, m_Scroll.IsThumbHovered(), &trackBg);
 }
 
 void ContentBrowser::ScrollSelectionIntoView() {
@@ -793,10 +800,12 @@ void ContentBrowser::BuildRenderList() {
 
 void ContentBrowser::CalculateGridLayout() {
     const GridMetrics m = GetGridMetrics();
+    const float uiScale = (std::max)(1.0f, DPIContext::GetScale());
     const float contentX = m_ScrollMetrics.viewport.x;
     const float contentWidth = m_ScrollMetrics.viewport.width;
+    const float topPadding = 4.0f * uiScale;
     float x = contentX + m.padding;
-    float y = m_ScrollMetrics.viewport.y + m.padding - m_Scroll.offset;
+    float y = m_ScrollMetrics.viewport.y + topPadding - m_Scroll.offset;
     const int itemsPerRow = std::max(1,
         static_cast<int>((contentWidth - m.padding * 2.0f + m.hSpacing) / (m.cellWidth + m.hSpacing)));
 
@@ -816,10 +825,12 @@ void ContentBrowser::CalculateGridLayout() {
 
 void ContentBrowser::CalculateTilesLayout() {
     const GridMetrics m = GetGridMetrics();
+    const float uiScale = (std::max)(1.0f, DPIContext::GetScale());
     const float contentX = m_ScrollMetrics.viewport.x;
     const float contentWidth = m_ScrollMetrics.viewport.width;
+    const float topPadding = 4.0f * uiScale;
     float x = contentX + m.padding;
-    float y = m_ScrollMetrics.viewport.y + m.padding - m_Scroll.offset;
+    float y = m_ScrollMetrics.viewport.y + topPadding - m_Scroll.offset;
     const int itemsPerRow = std::max(1,
         static_cast<int>((contentWidth - m.padding * 2.0f + m.hSpacing) / (m.cellWidth + m.hSpacing)));
 
@@ -843,8 +854,9 @@ void ContentBrowser::CalculateTilesLayout() {
 void ContentBrowser::CalculateListLayout() {
     const float contentX = m_ScrollMetrics.viewport.x;
     const float contentWidth = m_ScrollMetrics.viewport.width;
-    const GridMetrics m = GetGridMetrics();
-    float y = m_ScrollMetrics.viewport.y + m.padding * 0.5f - m_Scroll.offset;
+    const float uiScale = (std::max)(1.0f, DPIContext::GetScale());
+    const float topPadding = 4.0f * uiScale;
+    float y = m_ScrollMetrics.viewport.y + topPadding - m_Scroll.offset;
     for (auto& renderItem : m_RenderList) {
         renderItem.geometry = Rect{ contentX, y, contentWidth, m_ListRowHeight };
         renderItem.thumbGeometry = renderItem.geometry;
@@ -889,8 +901,21 @@ void ContentBrowserStatusBar::Paint(PaintContext& context) {
 Breadcrumb::Breadcrumb() = default;
 
 Size Breadcrumb::Measure(const Size& availableSize) {
-    CalculateLayout();
-    return Size{ availableSize.width, ThemeMetric(MetricToken::BreadcrumbBarHeight) };
+    (void)availableSize;
+    const float uiScale = (std::max)(1.0f, DPIContext::GetScale());
+    const float textSize = ThemeMetric(MetricToken::TextSizeToolbar) * uiScale;
+    const float chevronW = 12.0f * uiScale;
+    const float space = 4.0f * uiScale;
+
+    PaintContext ctx;
+    float totalW = 0.0f;
+    for (size_t i = 0; i < m_Crumbs.size(); ++i) {
+        float textW = ctx.GetTextWidth(m_Crumbs[i].text, textSize);
+        totalW += textW + space + chevronW + space;
+    }
+    const float h = ThemeMetric(MetricToken::ToolbarLabeledHeight) * uiScale;
+    m_DesiredSize = Size{ totalW, h };
+    return m_DesiredSize;
 }
 
 void Breadcrumb::Arrange(const Rect& allottedRect) {
@@ -899,49 +924,32 @@ void Breadcrumb::Arrange(const Rect& allottedRect) {
 }
 
 void Breadcrumb::Paint(PaintContext& context) {
-    PanelChrome::PaintListLabelBand(context, m_Geometry);
-    context.DrawSurface(
-        Rect{ m_Geometry.x, m_Geometry.y + m_Geometry.height - ThemeMetric(MetricToken::PanelDividerWidth), m_Geometry.width, ThemeMetric(MetricToken::PanelDividerWidth) },
-        we::runtime::kindui::SurfaceRole::Separator,
-        0.0f,
-        "BreadcrumbSeparator");
+    const float uiScale = (std::max)(1.0f, DPIContext::GetScale());
+    const float textSize = ThemeMetric(MetricToken::TextSizeToolbar) * uiScale;
+    const float textY = LayoutMetrics::AlignTextTopY(m_Geometry, textSize);
+    const float chevronSize = 12.0f * uiScale;
+    const float chevronY = m_Geometry.y + (m_Geometry.height - chevronSize) * 0.5f;
+    const Color kHighlightColor = Color(0.8392f, 0.8510f, 0.8667f, 1.0f); // #D6D9DD
 
-    const float iconSize = ThemeMetric(MetricToken::IconSizeTree);
-    const float padH = ThemeMetric(MetricToken::Space3);
-    const float iconY = m_Geometry.y + (m_Geometry.height - iconSize) * 0.5f;
-    ContentBrowserFolderArt::Get().PaintSmallIcon(
-        context,
-        we::runtime::kindui::Rect{ m_Geometry.x + padH, iconY, iconSize, iconSize },
-        false,
-        false);
-
-    const float textSize = ThemeMetric(MetricToken::TextSizeNormal);
-    const float crumbPadH = ThemeMetric(MetricToken::Space2);
-    const float crumbRadius = ThemeMetric(MetricToken::CornerRadiusSmall);
-    const float chevronSize = 16.0f;
-    float x = m_Geometry.x + padH + iconSize + ThemeMetric(MetricToken::Space2);
-    if (!m_Crumbs.empty()) {
-        Rect backBand{ x, m_Geometry.y, chevronSize, m_Geometry.height };
-        IconPainter::Draw(context, WindIcons::ChevronLeft16, IconMetrics::PlaceGlyphCentered(backBand, 16u));
-        x += chevronSize + ThemeMetric(MetricToken::Space1);
-    }
     for (size_t i = 0; i < m_Crumbs.size(); ++i) {
         const auto& crumb = m_Crumbs[i];
-        if (crumb.hovered) {
-            context.DrawRoundedRect(crumb.geometry, ThemeColor(ColorToken::HoverBackground), crumbRadius);
-        }
-        const float textX = crumb.geometry.x + crumbPadH;
-        const float textY = crumb.geometry.y + (crumb.geometry.height - textSize) * 0.5f;
-        const Color textColor = static_cast<int>(i) == m_HoveredCrumb ? ThemeColor(ColorToken::IconHover) : ThemeColor(ColorToken::IconPrimary);
+        const float textX = crumb.geometry.x;
+        const Color textColor = (static_cast<int>(i) == m_HoveredCrumb)
+            ? kHighlightColor
+            : ((i == m_Crumbs.size() - 1)
+                ? kHighlightColor
+                : ThemeColor(ColorToken::TextSecondary));
         context.DrawText(crumb.text, Point{ textX, textY }, textColor, textSize, false);
-        if (i < m_Crumbs.size() - 1) {
-            const float sepX = crumb.geometry.x + crumb.geometry.width + ThemeMetric(MetricToken::Space1);
-            context.DrawText("/", Point{ sepX, textY }, ThemeColor(ColorToken::TextSecondary), ThemeMetric(MetricToken::TextSizeSmall));
-        }
+
+        // Draw chevron separator '>' after each crumb
+        const float chevronX = crumb.geometry.x + crumb.geometry.width + 3.0f * uiScale;
+        Rect chevronRect{ chevronX, chevronY, chevronSize, chevronSize };
+        IconPainter::Draw(context, WindIcons::ChevronRight16, chevronRect, ThemeColor(ColorToken::IconSecondary));
     }
 }
 
 void Breadcrumb::OnMouseDown(const MouseEvent& event) {
+    if (event.button != MouseButton::Left) return;
     CrumbInfo* crumb = GetCrumbAtPosition(event.position);
     if (crumb && m_OnCrumbClicked) {
         const size_t index = static_cast<size_t>(crumb - &m_Crumbs[0]);
@@ -956,6 +964,13 @@ void Breadcrumb::OnMouseMove(const MouseEvent& event) {
         m_HoveredCrumb = static_cast<int>(crumb - &m_Crumbs[0]);
         m_Crumbs[static_cast<size_t>(m_HoveredCrumb)].hovered = true;
     }
+}
+
+bool Breadcrumb::ShowsPointerCursor(const Point& position) const {
+    for (const auto& crumb : m_Crumbs) {
+        if (crumb.geometry.Contains(position)) return true;
+    }
+    return false;
 }
 
 void Breadcrumb::SetPath(const std::vector<std::string>& path) {
@@ -981,18 +996,20 @@ void Breadcrumb::Clear() {
 }
 
 void Breadcrumb::CalculateLayout() {
-    const float iconSize = ThemeMetric(MetricToken::IconSizeTree);
-    const float padH = ThemeMetric(MetricToken::Space3);
-    const float textSize = ThemeMetric(MetricToken::TextSizeNormal);
-    const float crumbPadH = ThemeMetric(MetricToken::Space2);
-    float x = m_Geometry.x + padH + iconSize + ThemeMetric(MetricToken::Space2);
-    const float h = std::max(ThemeMetric(MetricToken::BreadcrumbBarHeight), m_Geometry.height);
-    const float crumbHeight = ThemeMetric(MetricToken::BreadcrumbBarHeight);
-    for (auto& crumb : m_Crumbs) {
-        const float textWidth = crumb.text.length() * textSize * ThemeMetric(MetricToken::TextCharWidthRatio);
-        const float width = std::max(ThemeMetric(MetricToken::IconButtonSize), textWidth + crumbPadH * 2.0f);
-        crumb.geometry = Rect{ x, m_Geometry.y + (h - crumbHeight) * 0.5f, width, crumbHeight };
-        x += width + ThemeMetric(MetricToken::Space1);
+    const float uiScale = (std::max)(1.0f, DPIContext::GetScale());
+    const float textSize = ThemeMetric(MetricToken::TextSizeToolbar) * uiScale;
+    const float chevronW = 12.0f * uiScale;
+    const float space = 4.0f * uiScale;
+
+    PaintContext ctx;
+    float x = m_Geometry.x;
+    const float crumbH = m_Geometry.height;
+    const float y = m_Geometry.y;
+
+    for (size_t i = 0; i < m_Crumbs.size(); ++i) {
+        float textW = ctx.GetTextWidth(m_Crumbs[i].text, textSize);
+        m_Crumbs[i].geometry = Rect{ x, y, textW, crumbH };
+        x += textW + space + chevronW + space;
     }
 }
 

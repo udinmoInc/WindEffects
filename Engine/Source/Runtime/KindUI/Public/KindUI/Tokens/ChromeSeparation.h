@@ -39,21 +39,21 @@ inline constexpr bool kGapCutsEnabled = true;
     if (!kGapCutsEnabled) {
         return 0.0f;
     }
-    return DPIContext::Snap(Gap() * DPIContext::GetScale());
+    return Gap() * DPIContext::GetScale();
 }
 
 /// Device-pixel dock panel gutter per edge (left/right/top/bottom).
 /// With gap-cuts, workspace padding and splitters provide clean 3px separation.
 [[nodiscard]] inline float DockStructureGapPx() {
-    return 0.0f;
+    if (!kGapCutsEnabled) {
+        return 0.0f;
+    }
+    return GapDevicePx() * 0.5f;
 }
 
 /// Device-pixel gutter drawn by dock splitters between adjacent panels.
 [[nodiscard]] inline float DockSplitterGapPx() {
-    if (!kGapCutsEnabled) {
-        return 0.0f;
-    }
-    return (std::max)(1.0f, GapDevicePx());
+    return 0.0f;
 }
 
 } // namespace we::runtime::kindui::ChromeSeparation

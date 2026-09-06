@@ -81,7 +81,9 @@ Rect InsetRegionContent(const Rect& regionGeometry, PanelBodyRegion region) {
     if (!RegionUsesHorizontalInset(region)) {
         return regionGeometry;
     }
-    const float padH = Chrome::PanelPaddingH();
+    const float padH = (region == PanelBodyRegion::Search)
+        ? 6.0f * Chrome::UiScale()
+        : Chrome::PanelPaddingH();
     return Rect{
         regionGeometry.x + padH,
         regionGeometry.y,

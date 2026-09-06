@@ -15,6 +15,7 @@
 #include "KindUI/Core/WindIcon.h"
 #include "KindUI/Core/Icon.h"
 #include "KindUI/Core/DPIContext.h"
+#include "KindUI/Core/Types.h"
 #include "Core/Localization.h"
 #include "Core/Paths.h"
 #include "Services/ContentBrowserService.h"
@@ -88,32 +89,73 @@ void RefreshFolderTree(const std::shared_ptr<::we::editor::contentbrowser::TreeV
 }
 
 void UpdateBreadcrumb(const std::shared_ptr<::we::editor::contentbrowser::Breadcrumb>& breadcrumb, const std::string& virtualPath) {
+    if (!breadcrumb) return;
     std::vector<std::string> crumbs;
-    if (virtualPath.size() <= 6) {
-        crumbs.push_back("All");
-        breadcrumb->SetPath(crumbs);
-        return;
-    }
-    std::string remainder = virtualPath.substr(6);
-    std::stringstream ss(remainder);
-    std::string segment;
-    while (std::getline(ss, segment, '/')) {
-        if (!segment.empty()) crumbs.push_back(segment);
-    }
     crumbs.push_back("All");
+    if (virtualPath.rfind("/Game", 0) == 0) {
+        crumbs.push_back("Content");
+        std::string remainder = virtualPath.substr(5);
+        std::stringstream ss(remainder);
+        std::string segment;
+        while (std::getline(ss, segment, '/')) {
+            if (!segment.empty()) crumbs.push_back(segment);
+        }
+    } else if (virtualPath.rfind("/Engine", 0) == 0) {
+        crumbs.push_back("Engine");
+        std::string remainder = virtualPath.substr(7);
+        std::stringstream ss(remainder);
+        std::string segment;
+        while (std::getline(ss, segment, '/')) {
+            if (!segment.empty()) crumbs.push_back(segment);
+        }
+    } else if (virtualPath.rfind("/Plugins", 0) == 0) {
+        crumbs.push_back("Plugins");
+        std::string remainder = virtualPath.substr(8);
+        std::stringstream ss(remainder);
+        std::string segment;
+        while (std::getline(ss, segment, '/')) {
+            if (!segment.empty()) crumbs.push_back(segment);
+        }
+    } else {
+        std::stringstream ss(virtualPath);
+        std::string segment;
+        while (std::getline(ss, segment, '/')) {
+            if (!segment.empty()) crumbs.push_back(segment);
+        }
+    }
     breadcrumb->SetPath(crumbs);
+}
+
+std::string GetPathFromCrumbIndex(const std::vector<std::string>& crumbs, size_t index) {
+    if (index == 0 || index == 1) {
+        return "/Game";
+    }
+    std::string path = "/Game";
+    for (size_t i = 2; i <= index && i < crumbs.size(); ++i) {
+        path += "/" + crumbs[i];
+    }
+    return path;
 }
 
 void NavigateToFolder(const std::string& virtualPath,
     const std::shared_ptr<::we::editor::contentbrowser::ContentBrowser>& browser,
-    const std::shared_ptr<::we::editor::contentbrowser::Breadcrumb>& breadcrumb)
+    const std::shared_ptr<::we::editor::contentbrowser::Breadcrumb>& breadcrumb,
+    const std::shared_ptr<::we::editor::widgets::SearchBox>& searchBox = nullptr)
 {
     ContentBrowserService::Get().SetCurrentFolder(virtualPath);
     if (breadcrumb) {
         UpdateBreadcrumb(breadcrumb, virtualPath);
     }
-    
-    // Clear selection when navigating to a new folder
+    if (searchBox) {
+        std::string folderName = "Assets";
+        size_t lastSlash = virtualPath.find_last_of('/');
+        if (lastSlash != std::string::npos && lastSlash + 1 < virtualPath.size()) {
+            folderName = virtualPath.substr(lastSlash + 1);
+        } else if (virtualPath == "/Game") {
+            folderName = "Content";
+        }
+        searchBox->SetPlaceholder("Search " + folderName + "...");
+    }
     if (browser) {
         browser->ClearSelection();
     }
@@ -121,7 +163,8 @@ void NavigateToFolder(const std::string& virtualPath,
 
 void WireContentBrowser(
     const std::shared_ptr<::we::editor::contentbrowser::ContentBrowser>& browser,
-    const std::shared_ptr<::we::editor::contentbrowser::Breadcrumb>& breadcrumb)
+    const std::shared_ptr<::we::editor::contentbrowser::Breadcrumb>& breadcrumb,
+    const std::shared_ptr<::we::editor::widgets::SearchBox>& searchBox = nullptr)
 {
     auto& service = ContentBrowserService::Get();
     service.RefreshBrowserModel(browser->GetModel());
@@ -132,8 +175,8 @@ void WireContentBrowser(
     browser->SetOnVisibleItemsChanged([&service](const std::unordered_set<std::string>& ids) {
         service.SetVisibleItemIds(ids);
     });
-    browser->SetOnItemDoubleClicked([&service, browser, breadcrumb](const ::we::editor::contentbrowser::ContentItem& item) {
-        if (item.isFolder) NavigateToFolder(item.path, browser, breadcrumb);
+    browser->SetOnItemDoubleClicked([&service, browser, breadcrumb, searchBox](const ::we::editor::contentbrowser::ContentItem& item) {
+        if (item.isFolder) NavigateToFolder(item.path, browser, breadcrumb, searchBox);
     });
     service.SetOnThumbnailReady([browser](const std::string& id, we::rhi::RHIDescriptorSetHandle texture) {
         if (browser->GetController()) browser->GetController()->UpdateItemIcon(id, texture);
@@ -176,22 +219,52 @@ std::shared_ptr<::we::editor::panels::Panel> CreateContentBrowserPanel() {
     folderTree->SetIndentWidth(we::runtime::kindui::ResolveMetric(we::runtime::kindui::MetricToken::TreeIndentWidth));
     folderTree->SetShowRowControls(false);
 
-    // Right pane: vertical column with toolbar on top and asset grid below
-    auto rightPane = std::make_shared<we::runtime::kindui::Column>();
-    rightPane->SetFlexGrow(1.0f);
-    rightPane->SetFlexShrink(1.0f);
+    // Main layout: vertical column with toolbar spanning the top, and splitter below
+    auto mainColumn = std::make_shared<we::runtime::kindui::Column>();
+    mainColumn->SetFlexGrow(1.0f);
+    mainColumn->SetFlexShrink(1.0f);
 
-    auto assetToolbar = ::we::editor::contentbrowser::ContentBrowserToolbarControls::Create(::we::editor::contentbrowser::ContentBrowserToolbarControls::ToolbarMode::AssetPane);
+    auto assetToolbar = ::we::editor::contentbrowser::ContentBrowserToolbarControls::Create(::we::editor::contentbrowser::ContentBrowserToolbarControls::ToolbarMode::Full);
     auto contentBrowser = std::make_shared<::we::editor::contentbrowser::ContentBrowser>();
 
     assetToolbar->SetFlexShrink(0.0f);
     contentBrowser->SetFlexGrow(1.0f);
     contentBrowser->SetFlexShrink(1.0f);
+    folderTree->SetFlexGrow(1.0f);
+    folderTree->SetFlexShrink(1.0f);
 
-    rightPane->AddChild(assetToolbar);
+    // Right pane layout: search & filter row at the top, content browser asset grid below
+    auto rightPane = std::make_shared<we::runtime::kindui::Column>();
+    rightPane->SetFlexGrow(1.0f);
+    rightPane->SetFlexShrink(1.0f);
+
+    auto searchRow = std::make_shared<we::runtime::kindui::Row>();
+    searchRow->Background(we::runtime::kindui::Hex("#151515"));
+    searchRow->Padding(Margin{ 6.0f, 4.0f, 6.0f, 2.0f });
+    searchRow->Gap(4.0f);
+    searchRow->Align(AlignItems::Center);
+    searchRow->SetFlexShrink(0.0f);
+
+    auto filterBtn = std::make_shared<::we::editor::contentbrowser::ToolbarIconToggle>(WindIcons::ListFilter16, "Filter");
+    filterBtn->SetFrameless(true);
+    filterBtn->SetFlexShrink(0.0f);
+
+    auto searchBox = std::make_shared<::we::editor::widgets::SearchBox>();
+    searchBox->SetPlaceholder("Search Assets...");
+    searchBox->SetToolbarInset(true);
+    searchBox->SetFillWidth(false);
+    const float uiScale = (std::max)(1.0f, we::runtime::kindui::DPIContext::GetScale());
+    searchBox->SetWidth(450.0f * uiScale);
+    searchBox->SetFlexGrow(0.0f);
+    searchBox->SetFlexShrink(0.0f);
+
+    searchRow->AddChild(filterBtn);
+    searchRow->AddChild(searchBox);
+
+    rightPane->AddChild(searchRow);
     rightPane->AddChild(contentBrowser);
 
-    // Split content area into left (folder tree sidebar) and right (content area with toolbar).
+    // Split content area below toolbar into left (folder tree sidebar) and right (content browser grid/list with search).
     const float treePaneWidth = std::max(200.0f * we::runtime::kindui::DPIContext::GetScale(),
         we::runtime::kindui::ResolveMetric(we::runtime::kindui::MetricToken::PropertyLabelColumnWidth) * 2.0f);
     auto contentSplitter = std::make_shared<we::runtime::kindui::Splitter>(we::runtime::kindui::Orientation::Horizontal, treePaneWidth);
@@ -202,6 +275,9 @@ std::shared_ptr<::we::editor::panels::Panel> CreateContentBrowserPanel() {
     contentSplitter->SetFlexGrow(1.0f);
     contentSplitter->SetFlexShrink(1.0f);
 
+    mainColumn->AddChild(assetToolbar);
+    mainColumn->AddChild(contentSplitter);
+
     auto panel = PanelBuilder(title)
         .TabIcon(WindIcons::FolderSearch16)
         .WithCloseButton([]() {
@@ -209,13 +285,73 @@ std::shared_ptr<::we::editor::panels::Panel> CreateContentBrowserPanel() {
                 EditorWorkspaceController::Get().ToggleContentBrowserExpanded();
             }
         })
-        .Content(contentSplitter);
+        .Content(mainColumn);
+
+    auto breadcrumb = assetToolbar->GetBreadcrumb();
+
+    // Folder navigation history stack
+    auto history = std::make_shared<std::vector<std::string>>();
+    auto historyIndex = std::make_shared<int>(-1);
+
+    auto updateNavButtons = [assetToolbar, history, historyIndex]() {
+        if (!assetToolbar) return;
+        if (auto backBtn = assetToolbar->GetBackBtn()) {
+            backBtn->SetEnabled(*historyIndex > 0);
+        }
+        if (auto forwardBtn = assetToolbar->GetForwardBtn()) {
+            forwardBtn->SetEnabled(*historyIndex + 1 < static_cast<int>(history->size()));
+        }
+    };
+
+    auto pushHistory = [history, historyIndex](const std::string& path) {
+        if (*historyIndex >= 0 && *historyIndex < static_cast<int>(history->size()) && (*history)[*historyIndex] == path) {
+            return;
+        }
+        if (*historyIndex + 1 < static_cast<int>(history->size())) {
+            history->erase(history->begin() + *historyIndex + 1, history->end());
+        }
+        history->push_back(path);
+        *historyIndex = static_cast<int>(history->size()) - 1;
+    };
+
+    auto doNavigate = [contentBrowser, breadcrumb, searchBox, pushHistory, updateNavButtons](const std::string& path, bool recordHistory = true) {
+        NavigateToFolder(path, contentBrowser, breadcrumb, searchBox);
+        if (recordHistory) {
+            pushHistory(path);
+        }
+        updateNavButtons();
+    };
 
     RefreshFolderTree(folderTree);
-    WireContentBrowser(contentBrowser, nullptr);
-    NavigateToFolder(ContentBrowserService::Get().GetCurrentFolder(), contentBrowser, nullptr);
+    WireContentBrowser(contentBrowser, breadcrumb, searchBox);
+    doNavigate(ContentBrowserService::Get().GetCurrentFolder(), true);
 
-    // Wire up asset toolbar - create, import, search, save, filter, view modes
+    // Wire up navigation buttons (Back, Forward, Folder, Breadcrumb)
+    assetToolbar->SetOnPreviousClicked([history, historyIndex, doNavigate, updateNavButtons]() {
+        if (*historyIndex > 0) {
+            --(*historyIndex);
+            doNavigate((*history)[*historyIndex], false);
+            updateNavButtons();
+        }
+    });
+
+    assetToolbar->SetOnNextClicked([history, historyIndex, doNavigate, updateNavButtons]() {
+        if (*historyIndex + 1 < static_cast<int>(history->size())) {
+            ++(*historyIndex);
+            doNavigate((*history)[*historyIndex], false);
+            updateNavButtons();
+        }
+    });
+
+    if (breadcrumb) {
+        breadcrumb->SetOnCrumbClicked([breadcrumb, doNavigate](size_t index) {
+            const auto& crumbs = breadcrumb->GetPath();
+            std::string targetPath = GetPathFromCrumbIndex(crumbs, index);
+            doNavigate(targetPath, true);
+        });
+    }
+
+    // Wire up view mode changes
     assetToolbar->SetOnViewModeChanged([contentBrowser](ContentViewMode mode) {
         if (contentBrowser) {
             contentBrowser->SetViewMode(mode);
@@ -233,7 +369,8 @@ std::shared_ptr<::we::editor::panels::Panel> CreateContentBrowserPanel() {
         (void)we::runtime::kindui::FontImportService::ImportFontFile(*inputFont, outputDir, 18.0f);
     });
 
-    assetToolbar->GetSearchBox()->SetOnTextChanged([contentBrowser](const std::string& text) {
+    // Wire search box in right pane
+    searchBox->SetOnTextChanged([contentBrowser](const std::string& text) {
         ContentBrowserService::Get().GetSearchController().SetQuery(text);
         if (contentBrowser->GetModel()) contentBrowser->GetModel()->NotifyChanged();
     });
@@ -246,31 +383,31 @@ std::shared_ptr<::we::editor::panels::Panel> CreateContentBrowserPanel() {
         // Fab 3D marketplace placeholder – layout hook for future library workflow.
     });
 
-    folderTree->SetOnSelectionChanged([contentBrowser](const std::vector<std::string>& ids) {
+    folderTree->SetOnSelectionChanged([doNavigate](const std::vector<std::string>& ids) {
         if (ids.empty()) return;
         const std::string& id = ids.front();
         if (id == "__project__") {
-            NavigateToFolder("/Game", contentBrowser, nullptr);
+            doNavigate("/Game", true);
             return;
         }
         const auto* asset = ContentAssetRegistry::Get().FindById(id);
         if (!asset || !asset->isFolder || asset->id.rfind("__", 0) == 0) return;
-        NavigateToFolder(asset->virtualPath, contentBrowser, nullptr);
+        doNavigate(asset->virtualPath, true);
     });
 
-    folderTree->SetOnItemDoubleClicked([contentBrowser](const std::string& id) {
+    folderTree->SetOnItemDoubleClicked([doNavigate](const std::string& id) {
         if (id == "__project__") {
-            NavigateToFolder("/Game", contentBrowser, nullptr);
+            doNavigate("/Game", true);
             return;
         }
         const auto* asset = ContentAssetRegistry::Get().FindById(id);
         if (!asset || !asset->isFolder || asset->id.rfind("__", 0) == 0) return;
-        NavigateToFolder(asset->virtualPath, contentBrowser, nullptr);
+        doNavigate(asset->virtualPath, true);
     });
 
-    ContentAssetRegistry::Get().SetOnRegistryRefreshed([folderTree, contentBrowser]() {
+    ContentAssetRegistry::Get().SetOnRegistryRefreshed([folderTree, doNavigate]() {
         RefreshFolderTree(folderTree);
-        NavigateToFolder(ContentBrowserService::Get().GetCurrentFolder(), contentBrowser, nullptr);
+        doNavigate(ContentBrowserService::Get().GetCurrentFolder(), false);
     });
 
     return panel;

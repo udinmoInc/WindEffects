@@ -63,6 +63,7 @@ public:
         float uiScale) const;
 
     void Paint(PaintContext& context, const ScrollViewportMetrics& metrics, bool thumbHovered) const;
+    void Paint(PaintContext& context, const ScrollViewportMetrics& metrics, bool thumbHovered, const Color* trackColor) const;
 
     bool OnMouseDown(const MouseEvent& event, const ScrollViewportMetrics& metrics, float viewportHeight, float contentHeight);
     void OnMouseMove(const MouseEvent& event, const ScrollViewportMetrics& metrics, float viewportHeight, float contentHeight);

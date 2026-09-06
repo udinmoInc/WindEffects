@@ -415,15 +415,11 @@ EditorShellResult EditorShellBuilder::Build(
     rootVBox->AddChild(titleBar);
     rootVBox->AddChild(toolbar);
     if (shellResult.layout.root) {
-        const float dockGapV = style.Scaled(
-            we::runtime::kindui::ChromeSeparation::kGapCutsEnabled
-                ? we::runtime::kindui::ChromeSeparation::Gap()
-                : we::runtime::kindui::ResolveMetric(MetricToken::DockPanelGap));
-        const float dockGapH = style.Scaled(
-            we::runtime::kindui::ResolveMetric(MetricToken::Space2));
+        const float dockGapV = style.Scaled(2.5f);
+        const float dockGapH = style.Scaled(2.5f);
         auto workspaceArea = std::make_shared<Column>();
         workspaceArea->Gap(0.0f);
-        // Gap cuts around the workspace: left/right (8px), top/bottom (3px)
+        // Gap cuts around the workspace: left/right (2.5px + 2.5px panel inset = 5.0px total), top/bottom (5.0px total)
         workspaceArea->Padding(Margin{ dockGapH, dockGapV, dockGapH, dockGapV });
         workspaceArea->Background(ResolveColor(ColorToken::WorkspaceBackground));
         workspaceArea->SetFlexGrow(1.0f);

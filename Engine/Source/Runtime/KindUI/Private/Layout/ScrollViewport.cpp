@@ -154,13 +154,26 @@ void ScrollViewport::Paint(
     const ScrollViewportMetrics& metrics,
     bool thumbHovered) const
 {
+    Paint(context, metrics, thumbHovered, nullptr);
+}
+
+void ScrollViewport::Paint(
+    PaintContext& context,
+    const ScrollViewportMetrics& metrics,
+    bool thumbHovered,
+    const Color* trackColor) const
+{
     if (!metrics.showsScrollbar) {
         return;
     }
 
-    const ResolvedStyle style = ThemeManager::Get().Resolve(StyleRole::Scrollbar);
-    context.DrawSurface(metrics.track, SurfaceRole::Panel, 0.0f, "ScrollbarTrack");
+    if (trackColor) {
+        context.DrawRect(metrics.track, *trackColor);
+    } else {
+        context.DrawSurface(metrics.track, SurfaceRole::Panel, 0.0f, "ScrollbarTrack");
+    }
 
+    const ResolvedStyle style = ThemeManager::Get().Resolve(StyleRole::Scrollbar);
     const bool active = thumbHovered || m_DraggingThumb;
     Color thumbColor = active ? ResolveColor(ColorToken::ScrollbarThumbHover) : style.foreground;
     const float radius = metrics.thumb.width * 0.5f;

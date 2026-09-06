@@ -108,7 +108,7 @@ float ListRowHeight() {
 }
 
 float PanelPaddingH() {
-    return we::runtime::kindui::ResolveMetric(MetricToken::Space2) * UiScale();
+    return 1.5f * UiScale();
 }
 
 float CategoryHeaderHeight() {
@@ -116,7 +116,7 @@ float CategoryHeaderHeight() {
 }
 
 float PanelPaddingV() {
-    return we::runtime::kindui::ResolveMetric(MetricToken::Space1) * UiScale();
+    return 1.5f * UiScale();
 }
 
 float ModeTabRowHeight() {
@@ -266,7 +266,7 @@ float MeasureDockTabWidth(
         ? we::runtime::kindui::ResolveMetric(MetricToken::Space2) * scale
         : TabPadH();
     const float iconGap = 6.0f * scale;
-    const float closeGap = 6.0f * scale;
+    const float closeGap = 10.0f * scale;
     const float closeGlyph = CloseGlyphSize();
 
     float leadingWidth = 0.0f;
@@ -283,7 +283,7 @@ float MeasureDockTabWidth(
     const float closeWidth = showClose ? closeGlyph + closeGap : 0.0f;
     float width = padLeft + leadingWidth + textWidth + closeWidth + padRight;
     if (!modeTabs) {
-        width = std::max(width, 140.0f * scale);
+        width = std::max(width, 160.0f * scale);
     }
     return width;
 }
@@ -391,19 +391,21 @@ void PaintDockTab(
         }
         itemX += brandSize + iconGap;
     } else if (tab.icon.IsValid()) {
+        const float effectiveIconSize = std::min(iconSize, std::max(10.0f, layout.tabRect.height - 4.0f));
+        const float iconY = std::floor(centerY - effectiveIconSize * 0.5f);
         const Rect iconSlot{
             itemX,
-            layout.tabRect.y,
-            iconSize,
-            layout.tabRect.height
+            iconY,
+            effectiveIconSize,
+            effectiveIconSize
         };
-        const Rect iconRect = IconMetrics::PlaceGlyphCentered(iconSlot, static_cast<uint32_t>(iconSize));
+        const Rect iconRect = IconMetrics::PlaceGlyphCentered(iconSlot, static_cast<uint32_t>(effectiveIconSize));
         IconPainter::Draw(
             context,
             tab.icon,
             iconRect,
             ResolveTabIconColor(isActive, hoverAnim));
-        itemX += iconSize + iconGap;
+        itemX += effectiveIconSize + iconGap;
     }
 
     const float titleY = std::floor(::we::runtime::kindui::LayoutMetrics::AlignTextTopAtCenterY(centerY, fontSize));

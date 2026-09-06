@@ -43,12 +43,13 @@ public:
 
     void OnMouseDown(const MouseEvent& event) override;
     void OnMouseUp(const MouseEvent& event) override;
-    bool ShowsPointerCursor(const Point& position) const override { return m_Geometry.Contains(position); }
+    bool ShowsPointerCursor(const Point& position) const override { return IsEnabled() && m_Geometry.Contains(position); }
 
     void SetSelected(bool selected) { m_Selected = selected; }
     bool IsSelected() const { return m_Selected; }
     void SetFrameless(bool frameless) { m_Frameless = frameless; }
     bool IsFrameless() const { return m_Frameless; }
+    void SetCustomColor(Color color) { m_CustomColor = color; m_HasCustomColor = true; }
     void SetOnClicked(std::function<void()> callback) { m_OnClicked = callback; }
 
 private:
@@ -56,6 +57,8 @@ private:
     bool m_Selected = false;
     bool m_Frameless = true;
     bool m_Pressed = false;
+    bool m_HasCustomColor = false;
+    Color m_CustomColor{ 1.0f, 1.0f, 1.0f, 1.0f };
     float m_HoverAnim = 0.0f;
     float m_PressAnim = 0.0f;
     std::function<void()> m_OnClicked;
@@ -75,9 +78,11 @@ public:
 
     void OnMouseDown(const MouseEvent& event) override;
     void OnMouseUp(const MouseEvent& event) override;
-    bool ShowsPointerCursor(const Point& position) const override { return m_Geometry.Contains(position); }
+    bool ShowsPointerCursor(const Point& position) const override { return IsEnabled() && m_Geometry.Contains(position); }
 
     void SetOnClicked(std::function<void()> callback) { m_OnClicked = callback; }
+    void SetFrameless(bool frameless) { m_Frameless = frameless; }
+    bool IsFrameless() const { return m_Frameless; }
 
 private:
     std::string m_Label;
@@ -85,6 +90,7 @@ private:
     bool m_ShowChevron = false;
     Variant m_Variant = Variant::Standard;
     float m_HorizontalPadding = 8.0f;
+    bool m_Frameless = false;
     bool m_Pressed = false;
     float m_HoverAnim = 0.0f;
     float m_PressAnim = 0.0f;
@@ -111,6 +117,9 @@ public:
 
     std::shared_ptr<::we::editor::widgets::SearchBox> GetSearchBox() const { return m_SearchBox; }
     std::shared_ptr<Breadcrumb> GetBreadcrumb() const { return m_Breadcrumb; }
+    std::shared_ptr<ToolbarIconToggle> GetBackBtn() const { return m_BackBtn; }
+    std::shared_ptr<ToolbarIconToggle> GetForwardBtn() const { return m_ForwardBtn; }
+    std::shared_ptr<ToolbarIconToggle> GetFolderBtn() const { return m_FolderBtn; }
 
     void SetOnFilterClicked(std::function<void()> callback);
     void SetOnSortClicked(std::function<void()> callback);
@@ -139,9 +148,9 @@ private:
     std::shared_ptr<ToolbarLabeledButton> m_ImportBtn;
     std::shared_ptr<ToolbarLabeledButton> m_SaveBtn;
     std::shared_ptr<ToolbarLabeledButton> m_FabBtn;
-    std::shared_ptr<ToolbarNavigationButton> m_BackBtn;
-    std::shared_ptr<ToolbarNavigationButton> m_ForwardBtn;
-    std::shared_ptr<ToolbarNavigationButton> m_FolderBtn;
+    std::shared_ptr<ToolbarIconToggle> m_BackBtn;
+    std::shared_ptr<ToolbarIconToggle> m_ForwardBtn;
+    std::shared_ptr<ToolbarIconToggle> m_FolderBtn;
     
     // Legacy / secondary controls (for AssetPane mode)
     std::shared_ptr<ToolbarIconToggle> m_GridViewBtn;
@@ -156,6 +165,8 @@ private:
     std::function<void()> m_OnSettingsClicked;
     std::function<void()> m_OnMoreClicked;
     std::function<void()> m_OnCreateClicked;
+    std::function<void()> m_OnImportClicked;
+    std::function<void()> m_OnSaveClicked;
     std::function<void()> m_OnFilterClicked;
 };
 
