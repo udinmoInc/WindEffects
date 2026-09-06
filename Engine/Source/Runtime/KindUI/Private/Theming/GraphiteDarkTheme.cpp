@@ -192,8 +192,8 @@ float GraphiteDarkTheme::ResolveMetric(MetricToken token) const {
     case MetricToken::TextSizeTitle: return 33.0f;
     case MetricToken::TextCharWidthRatio: return 0.56f;
     case MetricToken::BorderWidth: return 1.0f;
-    case MetricToken::PanelDividerWidth: return 2.5f;
-    case MetricToken::SplitterThickness: return 2.5f;
+    case MetricToken::PanelDividerWidth: return 1.0f;
+    case MetricToken::SplitterThickness: return 1.0f;
     case MetricToken::FocusRingWidth: return 1.0f;
     case MetricToken::PanelHeaderHeight: return 24.0f;
     case MetricToken::PanelTabHeight: return 24.0f;
@@ -249,9 +249,9 @@ float GraphiteDarkTheme::ResolveMetric(MetricToken token) const {
     case MetricToken::TabActiveIndicatorWidth: return 0.0f;
     case MetricToken::TabPaddingH: return 6.0f;
     case MetricToken::TabPaddingV: return 4.0f;
-    case MetricToken::DockPanelGap: return 5.0f;
-    case MetricToken::ChromeSeparationGap: return 5.0f;
-    case MetricToken::ChromeSeparationGapWide: return 6.0f;
+    case MetricToken::DockPanelGap: return 2.5f;
+    case MetricToken::ChromeSeparationGap: return 2.5f;
+    case MetricToken::ChromeSeparationGapWide: return 2.5f;
     case MetricToken::ViewportToolbarHeight: return 34.0f;
     case MetricToken::ToolbarSeparatorWidth: return 2.0f;
     case MetricToken::ToolbarSeparatorHeight: return 24.0f;
