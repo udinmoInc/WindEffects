@@ -1,9 +1,13 @@
-﻿# WindEffects Engine
+# WindEffects Engine
 
-![C++23](https://img.shields.io/badge/C++-23-blue?style=flat-square&logo=c%2B%2B)
+![C++23](https://img.shields.io/badge/C%2B%2B-23-blue?style=flat-square&logo=c%2B%2B)
 ![Vulkan](https://img.shields.io/badge/Vulkan-1.3-5C2028?style=flat-square&logo=vulkan)
 ![Platform](https://img.shields.io/badge/Platform-Windows-0078D7?style=flat-square&logo=windows)
+![Status](https://img.shields.io/badge/Status-In_Development-orange?style=flat-square)
 ![License](https://img.shields.io/badge/License-Proprietary-red?style=flat-square)
+
+> [!IMPORTANT]
+> **Under Active Development**: WindEffects Engine is currently in active development. There are no official or public releases available yet.
 
 **WindEffects Engine** is a next-generation game engine designed for professional game development, built from the ground up using modern C++23 and cutting-edge graphics technologies.
 
