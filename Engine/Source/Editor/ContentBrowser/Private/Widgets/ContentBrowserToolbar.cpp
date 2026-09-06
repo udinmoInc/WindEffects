@@ -439,13 +439,13 @@ void ToolbarLabeledButton::Paint(PaintContext& context) {
         float t = (std::max)(m_HoverAnim, m_PressAnim);
         textColor = Color::Pick(textColor, kHighlightColor, std::clamp(t, 0.0f, 1.0f));
     }
-    context.DrawText(m_Label, Point{ x, textY }, textColor, textSize, we::runtime::text::layout::FontWeight::Medium);
+    context.DrawText(m_Label, Point{ x, textY }, textColor, textSize, we::runtime::text::layout::FontWeight::Regular);
 
     if (m_ShowChevron) {
         const float tier = 12.0f * uiScale;
         const float chevronX = m_Geometry.x + m_Geometry.width - hPad - tier;
         Rect chevronBand{ chevronX, m_Geometry.y + (m_Geometry.height - tier) * 0.5f, tier, tier };
-        IconPainter::Draw(context, WindIcons::ChevronDown16, chevronBand, ThemeColor(ColorToken::TextSecondary));
+        IconPainter::Draw(context, WindIcons::ChevronDownV212, chevronBand, ThemeColor(ColorToken::TextSecondary));
     }
 }
 

@@ -160,12 +160,12 @@ Size ToolButton::Measure(const Size& availableSize) {
 
     if (m_ButtonStyle == ToolButtonStyle::ViewportChip) {
         const float padH     = ChipHorizontalPad(uiScale);
-        const float iconSz   = IconSize(uiScale);
+        const float iconSz   = m_Icon.IsValid() ? static_cast<float>(m_Icon.sizePx) : IconSize(uiScale);
         const float iconGap  = IconGapPx(uiScale);
         const float chevGap  = ChevronGapPx(uiScale);
         const float chevW    = kChevronSlotPx;
         const float textSize = ThemeMetric(MetricToken::TextSizeToolbar) * uiScale;
-        const float controlH = ThemeMetric(MetricToken::ViewportToolbarHeight) * uiScale;
+        const float controlH = ToolbarButtonChrome::RowContentHeight(uiScale);
         const bool hasIcon = m_Icon.IsValid();
 
         float textW = m_Label.empty() ? 0.0f : ApproxInlineTextWidth(m_Label, textSize);
@@ -198,21 +198,30 @@ Size ToolButton::Measure(const Size& availableSize) {
     }
 
     if (m_ButtonStyle == ToolButtonStyle::TransportButton || m_ButtonStyle == ToolButtonStyle::PlayButton || m_ButtonStyle == ToolButtonStyle::ToolbarIconOnly) {
-        const float controlSize = ToolbarButtonChrome::ItemSize(uiScale);
-        m_DesiredSize = Size{ controlSize, controlSize };
+        const float itemH = ToolbarButtonChrome::ItemSize(uiScale);
+        const float width = (m_ButtonStyle == ToolButtonStyle::TransportButton || m_ButtonStyle == ToolButtonStyle::PlayButton)
+            ? std::round(itemH * 1.15f)
+            : itemH;
+        m_DesiredSize = Size{ width, itemH };
         return m_DesiredSize;
     }
 
     const float height  = ToolbarButtonChrome::RowContentHeight(uiScale);
-    const float padL    = ThemeMetric(MetricToken::ButtonPaddingHorizontal) * uiScale;
-    const float padR    = ThemeMetric(MetricToken::Space2) * uiScale;
+    const float padL    = 10.0f * uiScale;
+    const float padR    = 10.0f * uiScale;
     const float iconSz  = IconSize(uiScale);
     const float iconGap = ThemeMetric(MetricToken::Space1) * uiScale;
     const float chevW   = kChevronSlotPx;
 
-    float width = padL + iconSz;
+    float width = padL;
+    if (m_Icon.IsValid()) {
+        width += iconSz;
+        if (!m_Label.empty()) {
+            width += iconGap;
+        }
+    }
     if (!m_Label.empty()) {
-        width += iconGap + m_Label.length() * (7.2f * uiScale);
+        width += m_Label.length() * (7.2f * uiScale);
     }
     if (m_IsDropdown) {
         width += chevW;
@@ -335,7 +344,7 @@ void ToolButton::Paint(PaintContext& context) {
                 Point{ currentX, LayoutMetrics::AlignTextTopAtCenterY(centerY, textSize) },
                 textColor,
                 textSize,
-                we::runtime::text::layout::FontWeight::Medium);
+                we::runtime::text::layout::FontWeight::Regular);
         }
         return;
     }
@@ -367,13 +376,13 @@ void ToolButton::Paint(PaintContext& context) {
                 Point{ currentX, LayoutMetrics::AlignTextTopAtCenterY(centerY, textSize) },
                 textColor,
                 textSize,
-                we::runtime::text::layout::FontWeight::Medium);
+                we::runtime::text::layout::FontWeight::Regular);
             currentX += ApproxInlineTextWidth(m_Label, textSize);
         }
 
         if (m_IsDropdown) {
             currentX += chevGap;
-            IconPainter::Draw(context, WindIcons::ChevronDown16, IconMetrics::CompactGlyphBand(renderRect, currentX));
+            IconPainter::Draw(context, WindIcons::ChevronDownV212, IconMetrics::CompactGlyphBand(renderRect, currentX));
         }
         return;
     }
@@ -381,7 +390,7 @@ void ToolButton::Paint(PaintContext& context) {
     if (isViewportChip) {
         PaintViewportChip(context, renderRect, m_HoverAnim, pressStrength, uiScale);
 
-        const float iconSize  = NavigationIconSize(uiScale);
+        const float iconSize  = m_Icon.IsValid() ? static_cast<float>(m_Icon.sizePx) : IconSize(uiScale);
         const float textSize  = ThemeMetric(MetricToken::TextSizeToolbar) * uiScale;
         const float iconGap   = IconGapPx(uiScale);
         const float chevGap   = ChevronGapPx(uiScale);
@@ -402,14 +411,14 @@ void ToolButton::Paint(PaintContext& context) {
                 Point{ currentX, LayoutMetrics::AlignTextTopAtCenterY(centerY, textSize) },
                 textColor,
                 textSize,
-                we::runtime::text::layout::FontWeight::Medium);
+                we::runtime::text::layout::FontWeight::Regular);
             currentX += ApproxInlineTextWidth(m_Label, textSize);
         }
 
         if (m_IsDropdown) {
             currentX += chevGap;
             const Color chevColor = ToolbarButtonChrome::ResolveIconColor(m_HoverAnim, pressStrength, m_Active);
-            IconPainter::Draw(context, WindIcons::ChevronDown16, IconMetrics::CompactGlyphBand(renderRect, currentX), chevColor);
+            IconPainter::Draw(context, WindIcons::ChevronDownV212, IconMetrics::CompactGlyphBand(renderRect, currentX), chevColor);
         }
         return;
     }
@@ -420,7 +429,9 @@ void ToolButton::Paint(PaintContext& context) {
         const bool isTransport = (m_ButtonStyle == ToolButtonStyle::TransportButton
             || m_ButtonStyle == ToolButtonStyle::PlayButton);
         const float iconSize = isTransport ? PrimaryIconSize(uiScale) : IconSize(uiScale);
-        const Color iconColor = ToolbarButtonChrome::ResolveIconColor(m_HoverAnim, pressStrength, m_Active);
+        const Color iconColor = (m_ButtonStyle == ToolButtonStyle::PlayButton)
+            ? ToolbarButtonChrome::ResolvePlayIconColor(m_HoverAnim, pressStrength, m_Active)
+            : ToolbarButtonChrome::ResolveIconColor(m_HoverAnim, pressStrength, m_Active);
         IconPainter::Draw(context, m_Icon, PlaceIconInControl(renderRect, iconSize), iconColor);
         return;
     }
@@ -461,7 +472,7 @@ void ToolButton::Paint(PaintContext& context) {
 
         if (m_IsDropdown) {
             const float chevronX = renderRect.x + renderRect.width - ChipHorizontalPad(uiScale) - kChevronSlotPx;
-            IconPainter::Draw(context, WindIcons::ChevronDown16, IconMetrics::CompactGlyphBand(renderRect, chevronX));
+            IconPainter::Draw(context, WindIcons::ChevronDownV212, IconMetrics::CompactGlyphBand(renderRect, chevronX));
         }
     }
 }

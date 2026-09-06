@@ -100,6 +100,8 @@ void Toolbar::Arrange(const Rect& allottedRect) {
 
     auto buildLayoutItems = [&](const std::vector<ToolInfo*>& tools) {
         std::vector<ItemToPlace> items;
+        const float uiScale = (std::max)(1.0f, DPIContext::GetScale());
+        const float groupGap = m_GroupSpacing > 0.0f ? m_GroupSpacing : (10.0f * uiScale);
         float pendingSpacing = 0.0f;
         bool isFirst = true;
 
@@ -108,16 +110,15 @@ void Toolbar::Arrange(const Rect& allottedRect) {
 
             if (tool->isSeparator) {
                 if (!isFirst) {
-                    // Gap-cut only — no panel-colored margin wrapping the divider.
                     const float sepW = tool->button->GetDesiredSize().width;
-                    items.push_back({ tool->button, sepW, 0.0f, true });
-                    pendingSpacing = 0.0f;
+                    items.push_back({ tool->button, sepW, groupGap, true });
+                    pendingSpacing = groupGap;
                 }
             } else {
                 const float w = tool->button->GetDesiredSize().width;
-                const float margin = isFirst ? 0.0f : (pendingSpacing > 0.0f ? pendingSpacing : itemSpacing);
+                const float margin = isFirst ? 0.0f : (pendingSpacing > 0.0f ? pendingSpacing : groupGap);
                 items.push_back({ tool->button, w, margin, false });
-                pendingSpacing = itemSpacing;
+                pendingSpacing = groupGap;
                 isFirst = false;
             }
         }
@@ -172,10 +173,9 @@ void Toolbar::Arrange(const Rect& allottedRect) {
 }
 
 void Toolbar::Paint(PaintContext& context) {
-    context.PushSurfaceOwner("Toolbar", we::runtime::kindui::SurfaceRole::Toolbar);
+    context.PushSurfaceOwner("Toolbar", m_SurfaceRole);
     if (!m_IsFloating) {
-        // No hairline border — section cuts come from shell Background gaps + ToolbarSeparator.
-        context.DrawSurface(m_Geometry, we::runtime::kindui::SurfaceRole::Toolbar, 0.0f, "Toolbar");
+        context.DrawSurface(m_Geometry, m_SurfaceRole, 0.0f, "Toolbar");
     }
 
     for (auto& tool : m_Tools) {
@@ -336,12 +336,16 @@ void ToolbarSeparator::Arrange(const Rect& allottedRect) {
 }
 
 void ToolbarSeparator::Paint(PaintContext& context) {
-    // Full-rect Background gap-cut — same as status / panel toolbar dividers.
-    context.DrawSurface(
-        m_Geometry,
-        we::runtime::kindui::SurfaceRole::Workspace,
-        0.0f,
-        "ToolbarSeparator");
+    const float uiScale = (std::max)(1.0f, DPIContext::GetScale());
+    const float lineWidth = 1.0f * uiScale;
+    const float insetY = 4.0f * uiScale;
+    const float lineX = std::round(m_Geometry.x + (m_Geometry.width - lineWidth) * 0.5f);
+    const float lineY = m_Geometry.y + insetY;
+    const float lineH = (std::max)(0.0f, m_Geometry.height - insetY * 2.0f);
+
+    context.DrawRect(
+        Rect{ lineX, lineY, lineWidth, lineH },
+        we::runtime::kindui::ResolveColor(we::runtime::kindui::ColorToken::Separator));
 }
 
 ToolbarGroup::ToolbarGroup() = default;
@@ -359,9 +363,11 @@ void ToolbarGroup::AddChildWidget(const std::shared_ptr<Widget>& child) {
 Size ToolbarGroup::Measure(const Size& availableSize) {
     (void)availableSize;
     const float uiScale = (std::max)(1.0f, DPIContext::GetScale());
-    const float itemGap = we::runtime::kindui::ToolbarButtonChrome::ItemGap(uiScale);
-  const float padH = (m_Style == ToolbarGroupStyle::ExecutionCluster)
-        ? we::runtime::kindui::ToolbarButtonChrome::HorizontalPad(uiScale)
+    const float itemGap = (m_Style == ToolbarGroupStyle::ExecutionCluster)
+        ? 0.0f
+        : we::runtime::kindui::ToolbarButtonChrome::ItemGap(uiScale);
+    const float padH = (m_Style == ToolbarGroupStyle::ExecutionCluster)
+        ? 0.0f
         : 0.0f;
     float maxHeight = we::runtime::kindui::ToolbarButtonChrome::ItemSize(uiScale);
     float width = padH * 2.0f;
@@ -382,16 +388,22 @@ Size ToolbarGroup::Measure(const Size& availableSize) {
 void ToolbarGroup::Arrange(const Rect& allottedRect) {
     m_Geometry = allottedRect;
     const float uiScale = (std::max)(1.0f, DPIContext::GetScale());
-    const float itemGap = we::runtime::kindui::ToolbarButtonChrome::ItemGap(uiScale);
+    const float itemGap = (m_Style == ToolbarGroupStyle::ExecutionCluster)
+        ? 0.0f
+        : we::runtime::kindui::ToolbarButtonChrome::ItemGap(uiScale);
     const float padH = (m_Style == ToolbarGroupStyle::ExecutionCluster)
-        ? we::runtime::kindui::ToolbarButtonChrome::HorizontalPad(uiScale)
+        ? 0.0f
         : 0.0f;
 
     float currentX = allottedRect.x + padH;
     for (const auto& item : m_Items) {
         const Size itemSize = item->GetDesiredSize();
-        const float y = allottedRect.y + (allottedRect.height - itemSize.height) * 0.5f;
-        item->Arrange(Rect{ currentX, y, itemSize.width, itemSize.height });
+        if (m_Style == ToolbarGroupStyle::ExecutionCluster) {
+            item->Arrange(Rect{ currentX, allottedRect.y, itemSize.width, allottedRect.height });
+        } else {
+            const float y = allottedRect.y + (allottedRect.height - itemSize.height) * 0.5f;
+            item->Arrange(Rect{ currentX, y, itemSize.width, itemSize.height });
+        }
         currentX += itemSize.width + itemGap;
     }
 }
@@ -402,9 +414,19 @@ void ToolbarGroup::Paint(PaintContext& context) {
         we::runtime::kindui::ToolbarButtonChrome::PaintExecutionCluster(context, m_Geometry, uiScale);
     }
 
-    for (const auto& item : m_Items) {
+    for (size_t i = 0; i < m_Items.size(); ++i) {
+        auto& item = m_Items[i];
         if (item && item->IsVisible()) {
             item->Paint(context);
+
+            if (m_Style == ToolbarGroupStyle::ExecutionCluster && i + 1 < m_Items.size() && m_Items[i + 1]->IsVisible()) {
+                const Rect itemGeo = item->GetGeometry();
+                const float sepX = std::round(itemGeo.x + itemGeo.width);
+                const float sepY = m_Geometry.y;
+                const float sepH = m_Geometry.height;
+                const Color sepColor = we::runtime::kindui::ResolveColor(we::runtime::kindui::ColorToken::Separator);
+                context.DrawRect(Rect{ sepX - 0.5f * uiScale, sepY, 1.0f * uiScale, sepH }, sepColor);
+            }
         }
     }
 }

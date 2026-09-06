@@ -426,7 +426,7 @@ void PaintDockTab(
         Point{ itemX, titleY },
         ResolveTabTextColor(isActive, hoverAnim),
         fontSize,
-        we::runtime::text::layout::FontWeight::Medium);
+        we::runtime::text::layout::FontWeight::Regular);
 
     if (showClose && !layout.closeRect.IsEmpty()) {
         PaintHeaderIconButton(context, layout.closeRect, WindIcons::Xv212, closeHovered, false, true);

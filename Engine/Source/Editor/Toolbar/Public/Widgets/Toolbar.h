@@ -7,6 +7,7 @@
 #include "KindUI/Layout/Spacer.h"
 #include "KindUI/Core/Style.h"
 #include "KindUI/Core/WindIcon.h"
+#include "KindUI/Tokens/SurfaceRole.h"
 #include "Widgets/ToolButton.h"
 #include <string>
 #include <functional>
@@ -71,6 +72,8 @@ public:
     void SetLeftInset(float inset) { m_LeftInset = inset; }
     void SetRightInset(float inset) { m_RightInset = inset; }
     void SetEdgePadding(float padding) { m_EdgePadding = padding; }
+    void SetSurfaceRole(we::runtime::kindui::SurfaceRole role) { m_SurfaceRole = role; }
+    [[nodiscard]] we::runtime::kindui::SurfaceRole GetSurfaceRole() const { return m_SurfaceRole; }
 
 private:
     struct ToolInfo {
@@ -91,6 +94,7 @@ private:
     float m_LeftInset = 0.0f;
     float m_RightInset = 0.0f;
     bool m_IsFloating = false;
+    we::runtime::kindui::SurfaceRole m_SurfaceRole = we::runtime::kindui::SurfaceRole::Toolbar;
 
     WidgetStyle m_Style;
 

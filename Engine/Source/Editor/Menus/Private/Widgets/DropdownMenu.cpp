@@ -105,7 +105,7 @@ void DropdownMenu::Paint(PaintContext& context) {
                 }
 
                 const Color textColor = item->enabled
-                    ? ResolveColor(ColorToken::TextPrimary)
+                    ? (m_HoveredItem == static_cast<int>(i) ? ResolveColor(ColorToken::TextPrimary) : ResolveColor(ColorToken::TextSecondary))
                     : ResolveColor(ColorToken::TextDisabled);
                 const float textY = itemRect.y + (m_ItemHeight - textSize) * 0.5f;
 

@@ -96,7 +96,7 @@ void MenuBar::Paint(PaintContext& context) {
             Point{ textX, textY },
             textColor,
             textSize,
-            we::runtime::text::layout::FontWeight::Medium);
+            we::runtime::text::layout::FontWeight::Regular);
     };
 
     for (size_t i = 0; i < m_VisibleMenus.size(); ++i) {
