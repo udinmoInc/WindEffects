@@ -48,7 +48,7 @@ inline constexpr bool kGapCutsEnabled = true;
     if (!kGapCutsEnabled) {
         return 0.0f;
     }
-    return GapDevicePx() * 0.5f;
+    return GapDevicePx();
 }
 
 /// Device-pixel gutter drawn by dock splitters between adjacent panels.

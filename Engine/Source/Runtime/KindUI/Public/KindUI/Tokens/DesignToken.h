@@ -296,6 +296,10 @@ enum class MetricToken : uint32_t {
     TabTopRadius,              // dock tab upper corner radius
     TabActiveIndicatorHeight,  // accent line on active dock tab
     TabGap,                    // horizontal gap between dock tabs
+    TabIconGap,                // horizontal gap between icon/brand and tab title
+    TabCloseGap,               // horizontal gap before close glyph
+    TabMinWidth,               // minimum width for dock tab
+    CloseGlyphSize,            // close glyph size (12 logical px)
     TabStripPadH,              // dock/mode tab strip left inset (align with panel content)
     TabStripPadV,              // dock tab strip top inset (gap above tabs)
     TabActiveIndicatorWidth,   // active tab left accent width

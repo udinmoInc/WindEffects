@@ -703,13 +703,13 @@ void UIWidgetAdapter::GenerateIconGeometry(const DrawCommand& cmd) {
     m_CurrentTextureSet = drawInfo.descriptorSet;
 
     // Render at direct 1:1 original image size of the asset
-    float w = static_cast<float>(icon.sizePx > 0 ? icon.sizePx : drawInfo.sizePx);
+    float w = SnapPx(static_cast<float>(icon.sizePx > 0 ? icon.sizePx : drawInfo.sizePx));
     float h = w;
     if (cmd.rect.width > 0.5f && cmd.rect.height > 0.5f) {
         const float maxSide = std::min(cmd.rect.width, cmd.rect.height);
         if (maxSide + 0.5f < w) {
-            w = maxSide;
-            h = maxSide;
+            w = SnapPx(maxSide);
+            h = w;
         }
     }
     const float x = SnapPx(cmd.rect.x + (cmd.rect.width - w) * 0.5f);
@@ -721,6 +721,8 @@ void UIWidgetAdapter::GenerateIconGeometry(const DrawCommand& cmd) {
     const bool isFolder =
         cmd.iconStem == "folder" ||
         cmd.iconStem == "folder-open" ||
+        cmd.iconStem == "folder-mask" ||
+        cmd.iconStem == "folder-open-mask" ||
         cmd.iconStem == "content-folder";
     if (isFolder) {
         if (cmd.color.a > 0.0f && (cmd.color.r < 0.99f || cmd.color.g < 0.99f || cmd.color.b < 0.99f)) {

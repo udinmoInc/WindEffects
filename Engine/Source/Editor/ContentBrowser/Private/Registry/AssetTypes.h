@@ -51,7 +51,7 @@ inline std::string AssetTypeToString(AssetType type) {
 [[nodiscard]] inline we::runtime::kindui::WindIconRef IconForAssetType(AssetType type, bool folderExpanded = false) {
     switch (type) {
         case AssetType::Folder:
-            return folderExpanded ? WindIcons::FolderOpen16 : WindIcons::Folder16;
+            return folderExpanded ? WindIcons::FolderOpenMask16 : WindIcons::FolderMask16;
         case AssetType::Texture:
             return WindIcons::Grid16;
         case AssetType::Material:

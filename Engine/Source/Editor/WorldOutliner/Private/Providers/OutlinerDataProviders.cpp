@@ -19,7 +19,7 @@ we::runtime::kindui::WindIconRef IconForEntityType(scene::EntityType type) {
     case EntityType::SkyAtmosphere:
     case EntityType::VolumetricClouds: return we::runtime::kindui::WindIcons::Globe16;
     case EntityType::Landscape: return we::runtime::kindui::WindIcons::Grid16;
-    case EntityType::EmptyActor: return we::runtime::kindui::WindIcons::Folder16;
+    case EntityType::EmptyActor: return we::runtime::kindui::WindIcons::FolderMask16;
     default: return we::runtime::kindui::WindIcons::BoxSolid16;
     }
 }

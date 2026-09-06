@@ -36,7 +36,7 @@ Rect PlaceGlyphCentered(const Rect& controlBounds, float logicalSizePx) {
 
 Rect CompactGlyphBand(const Rect& controlBounds, float x) {
     const float tier = static_cast<float>(kCompactGlyphPx);
-    return Rect{ x, controlBounds.y, tier, controlBounds.height };
+    return Rect{ SnapPx(x), SnapPx(controlBounds.y), tier, controlBounds.height };
 }
 
 } // namespace we::runtime::kindui::IconMetrics

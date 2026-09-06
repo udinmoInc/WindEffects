@@ -70,7 +70,9 @@ namespace WindIconAssets {
     inline constexpr const char* Eyedrop = "eyedrop";
     inline constexpr const char* Folder = "folder";
     inline constexpr const char* FolderCreate = "folder-create";
+    inline constexpr const char* FolderMask = "folder-mask";
     inline constexpr const char* FolderOpen = "folder-open";
+    inline constexpr const char* FolderOpenMask = "folder-open-mask";
     inline constexpr const char* FolderSearch = "folder-search";
     inline constexpr const char* Fps = "fps";
     inline constexpr const char* GameController = "game-controller";
@@ -89,6 +91,7 @@ namespace WindIconAssets {
     inline constexpr const char* Medical = "medical";
     inline constexpr const char* Minus = "minus";
     inline constexpr const char* Mouse = "mouse";
+    inline constexpr const char* MoveOutline = "move-outline";
     inline constexpr const char* Notifications = "notifications";
     inline constexpr const char* NotificationsOff = "notifications-off";
     inline constexpr const char* Outliner = "outliner";
@@ -120,6 +123,7 @@ namespace WindIconAssets {
     inline constexpr const char* ToolbarRotate = "toolbar-Rotate";
     inline constexpr const char* ToolbarVideocamera = "toolbar-videocamera";
     inline constexpr const char* ToolbarVideocameraOff = "toolbar-videocamera-off";
+    inline constexpr const char* ToolbarVideocameraOutlined = "toolbar-videocamera-outlined";
     inline constexpr const char* ToolbarScaling = "toolbar_scaling";
     inline constexpr const char* TriangleDown = "triangle-down";
     inline constexpr const char* TriangleLeft = "triangle-left";
@@ -239,8 +243,12 @@ namespace WindIcons {
     inline constexpr WindIconRef Folder24{ WindIconAssets::Folder, 24 };
     inline constexpr WindIconRef FolderCreate16{ WindIconAssets::FolderCreate, 16 };
     inline constexpr WindIconRef FolderCreate24{ WindIconAssets::FolderCreate, 24 };
+    inline constexpr WindIconRef FolderMask16{ WindIconAssets::FolderMask, 16 };
+    inline constexpr WindIconRef FolderMask24{ WindIconAssets::FolderMask, 24 };
     inline constexpr WindIconRef FolderOpen16{ WindIconAssets::FolderOpen, 16 };
     inline constexpr WindIconRef FolderOpen24{ WindIconAssets::FolderOpen, 24 };
+    inline constexpr WindIconRef FolderOpenMask16{ WindIconAssets::FolderOpenMask, 16 };
+    inline constexpr WindIconRef FolderOpenMask24{ WindIconAssets::FolderOpenMask, 24 };
     inline constexpr WindIconRef FolderSearch16{ WindIconAssets::FolderSearch, 16 };
     inline constexpr WindIconRef FolderSearch24{ WindIconAssets::FolderSearch, 24 };
     inline constexpr WindIconRef Fps16{ WindIconAssets::Fps, 16 };
@@ -276,6 +284,8 @@ namespace WindIcons {
     inline constexpr WindIconRef Minus24{ WindIconAssets::Minus, 24 };
     inline constexpr WindIconRef Mouse16{ WindIconAssets::Mouse, 16 };
     inline constexpr WindIconRef Mouse24{ WindIconAssets::Mouse, 24 };
+    inline constexpr WindIconRef MoveOutline16{ WindIconAssets::MoveOutline, 16 };
+    inline constexpr WindIconRef MoveOutline24{ WindIconAssets::MoveOutline, 24 };
     inline constexpr WindIconRef Notifications16{ WindIconAssets::Notifications, 16 };
     inline constexpr WindIconRef Notifications24{ WindIconAssets::Notifications, 24 };
     inline constexpr WindIconRef NotificationsOff16{ WindIconAssets::NotificationsOff, 16 };
@@ -338,6 +348,8 @@ namespace WindIcons {
     inline constexpr WindIconRef ToolbarVideocamera24{ WindIconAssets::ToolbarVideocamera, 24 };
     inline constexpr WindIconRef ToolbarVideocameraOff16{ WindIconAssets::ToolbarVideocameraOff, 16 };
     inline constexpr WindIconRef ToolbarVideocameraOff24{ WindIconAssets::ToolbarVideocameraOff, 24 };
+    inline constexpr WindIconRef ToolbarVideocameraOutlined16{ WindIconAssets::ToolbarVideocameraOutlined, 16 };
+    inline constexpr WindIconRef ToolbarVideocameraOutlined24{ WindIconAssets::ToolbarVideocameraOutlined, 24 };
     inline constexpr WindIconRef ToolbarScaling16{ WindIconAssets::ToolbarScaling, 16 };
     inline constexpr WindIconRef ToolbarScaling24{ WindIconAssets::ToolbarScaling, 24 };
     inline constexpr WindIconRef TriangleDown16{ WindIconAssets::TriangleDown, 16 };

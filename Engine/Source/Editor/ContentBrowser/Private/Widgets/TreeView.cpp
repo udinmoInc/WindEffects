@@ -87,12 +87,20 @@ void PaintTreeNodeIcon(PaintContext& context, const TreeNode& node, const Rect& 
     const bool isFolder =
         stem == "folder"
         || stem == "folder-open"
+        || stem == "folder-mask"
+        || stem == "folder-open-mask"
         || stem == "content-folder"
         || (WindIcons::Folder16.stem != nullptr && stem == WindIcons::Folder16.stem)
-        || (WindIcons::FolderOpen16.stem != nullptr && stem == WindIcons::FolderOpen16.stem);
+        || (WindIcons::FolderOpen16.stem != nullptr && stem == WindIcons::FolderOpen16.stem)
+        || (WindIcons::FolderMask16.stem != nullptr && stem == WindIcons::FolderMask16.stem)
+        || (WindIcons::FolderOpenMask16.stem != nullptr && stem == WindIcons::FolderOpenMask16.stem);
     if (isFolder) {
         const bool opened =
-            node.expanded || stem == "folder-open" || (WindIcons::FolderOpen16.stem != nullptr && stem == WindIcons::FolderOpen16.stem);
+            node.expanded
+            || stem == "folder-open"
+            || stem == "folder-open-mask"
+            || (WindIcons::FolderOpen16.stem != nullptr && stem == WindIcons::FolderOpen16.stem)
+            || (WindIcons::FolderOpenMask16.stem != nullptr && stem == WindIcons::FolderOpenMask16.stem);
         ContentBrowserFolderArt::Get().PaintSmallIcon(context, iconRect, hovered, opened);
         return;
     }
@@ -1001,10 +1009,14 @@ void TreeView::ToggleExpand(const std::string& id) {
             const bool isFolderGlyph =
                 stem == "folder"
                 || stem == "folder-open"
+                || stem == "folder-mask"
+                || stem == "folder-open-mask"
                 || (WindIcons::Folder16.stem != nullptr && stem == WindIcons::Folder16.stem)
-                || (WindIcons::FolderOpen16.stem != nullptr && stem == WindIcons::FolderOpen16.stem);
+                || (WindIcons::FolderOpen16.stem != nullptr && stem == WindIcons::FolderOpen16.stem)
+                || (WindIcons::FolderMask16.stem != nullptr && stem == WindIcons::FolderMask16.stem)
+                || (WindIcons::FolderOpenMask16.stem != nullptr && stem == WindIcons::FolderOpenMask16.stem);
             if (isFolderGlyph) {
-                node->icon = node->expanded ? WindIcons::FolderOpen16 : WindIcons::Folder16;
+                node->icon = node->expanded ? WindIcons::FolderOpenMask16 : WindIcons::FolderMask16;
             }
         }
     }

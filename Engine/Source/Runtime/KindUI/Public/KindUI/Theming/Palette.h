@@ -158,7 +158,7 @@ struct GraphiteDark {
     static constexpr Color AccentGray        = Hex("#707070");
 
     static constexpr Color AccentWhite       = White;
-    static constexpr Color AccentFolder      = Hex("#C09A5A");
+    static constexpr Color AccentFolder      = Hex("#9A7848");
 
 
     // ── Composites (alpha permitted — overlays / shadows only) ──────────────

@@ -108,7 +108,7 @@ float ListRowHeight() {
 }
 
 float PanelPaddingH() {
-    return 1.5f * UiScale();
+    return we::runtime::kindui::ResolveMetric(MetricToken::DockPanelGap) * UiScale();
 }
 
 float CategoryHeaderHeight() {
@@ -116,7 +116,7 @@ float CategoryHeaderHeight() {
 }
 
 float PanelPaddingV() {
-    return 1.5f * UiScale();
+    return we::runtime::kindui::ResolveMetric(MetricToken::DockPanelGap) * UiScale();
 }
 
 float ModeTabRowHeight() {
@@ -168,11 +168,23 @@ float TabIconSize() {
 }
 
 float CloseGlyphSize() {
-    return 12.0f * UiScale();
+    return we::runtime::kindui::ResolveMetric(MetricToken::CloseGlyphSize) * UiScale();
 }
 
 float TabGap() {
     return we::runtime::kindui::ResolveMetric(MetricToken::TabGap) * UiScale();
+}
+
+float TabIconGap() {
+    return we::runtime::kindui::ResolveMetric(MetricToken::TabIconGap) * UiScale();
+}
+
+float TabCloseGap() {
+    return we::runtime::kindui::ResolveMetric(MetricToken::TabCloseGap) * UiScale();
+}
+
+float TabMinWidth() {
+    return we::runtime::kindui::ResolveMetric(MetricToken::TabMinWidth) * UiScale();
 }
 
 float TabTopRadius() {
@@ -265,8 +277,8 @@ float MeasureDockTabWidth(
     const float padRight = modeTabs
         ? we::runtime::kindui::ResolveMetric(MetricToken::Space2) * scale
         : TabPadH();
-    const float iconGap = 6.0f * scale;
-    const float closeGap = 10.0f * scale;
+    const float iconGap = TabIconGap();
+    const float closeGap = TabCloseGap();
     const float closeGlyph = CloseGlyphSize();
 
     float leadingWidth = 0.0f;
@@ -283,7 +295,7 @@ float MeasureDockTabWidth(
     const float closeWidth = showClose ? closeGlyph + closeGap : 0.0f;
     float width = padLeft + leadingWidth + textWidth + closeWidth + padRight;
     if (!modeTabs) {
-        width = std::max(width, 160.0f * scale);
+        width = std::max(width, TabMinWidth());
     }
     return width;
 }
@@ -346,7 +358,7 @@ void PaintDockTab(
     const float padLeft = flatCorners
         ? we::runtime::kindui::ResolveMetric(MetricToken::Space2) * scale
         : TabPadH();
-    const float iconGap = 6.0f * scale;
+    const float iconGap = TabIconGap();
     const bool dockTabs = !flatCorners;
     const bool floatingDockTabs = dockTabs && UsesGapCutDockTabs();
     const float radius = flatCorners ? 0.0f : TabTopRadius();
@@ -482,8 +494,6 @@ void PaintFloatingPanelHeader(
     bool optionsMenuHovered,
     Rect& outOptionsMenuRect)
 {
-    context.DrawSurface(headerRect, we::runtime::kindui::SurfaceRole::PanelHeader, 0.0f, "FloatingPanelHeader");
-
     const float scale = UiScale();
     const float gap = we::runtime::kindui::ResolveMetric(MetricToken::Space1) * scale;
     const float buttonSize = HeaderButtonSize();
@@ -508,6 +518,16 @@ void PaintFloatingPanelHeader(
 
     const float tabX = headerRect.x + TabStripPadH();
     DockTabLayout layout = LayoutDockTabGeometries(context, descriptor, headerRect, tabX, true, showClose);
+
+    if (!headerRect.IsEmpty()) {
+        const Rect activeHeaderRect{
+            headerRect.x,
+            headerRect.y,
+            layout.tabRect.width,
+            headerRect.height
+        };
+        context.DrawSurface(activeHeaderRect, we::runtime::kindui::SurfaceRole::PanelHeader, 0.0f, "FloatingPanelHeader");
+    }
     PaintDockTab(context, descriptor, layout, headerRect, true, 0.0f, showClose, closeHovered);
 
     const float centerY = std::floor(layout.tabRect.y + layout.tabRect.height * 0.5f);
@@ -569,7 +589,9 @@ void PaintDockTabStrip(
     const DockTabStripLayout& layout,
     const DockTabStripState& state)
 {
-    context.DrawSurface(stripRect, we::runtime::kindui::SurfaceRole::DockChrome, 0.0f, "DockTabStrip");
+    if (!stripRect.IsEmpty()) {
+        context.DrawSurface(stripRect, we::runtime::kindui::SurfaceRole::DockChrome, 0.0f, "DockTabStrip");
+    }
 
     const size_t count = std::min(descriptors.size(), layout.tabs.size());
     for (size_t i = 0; i < count; ++i) {

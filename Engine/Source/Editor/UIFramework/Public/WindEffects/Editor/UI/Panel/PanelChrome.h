@@ -44,6 +44,10 @@ UIFRAMEWORK_API float TabStripPadTop();
 UIFRAMEWORK_API float TabActiveIndicatorWidth();
 UIFRAMEWORK_API float TabIconSize();
 UIFRAMEWORK_API float TabGap();
+UIFRAMEWORK_API float TabIconGap();
+UIFRAMEWORK_API float TabCloseGap();
+UIFRAMEWORK_API float TabMinWidth();
+UIFRAMEWORK_API float CloseGlyphSize();
 UIFRAMEWORK_API float TabTopRadius();
 UIFRAMEWORK_API float HeaderButtonSize();
 

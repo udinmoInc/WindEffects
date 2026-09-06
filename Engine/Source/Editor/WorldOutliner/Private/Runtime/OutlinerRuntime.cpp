@@ -387,7 +387,9 @@ private:
                 tn->icon = node->GetIcon().IsValid()
                     ? node->GetIcon()
                     : (node->GetKind() == OutlinerNodeKind::Folder
-                        ? we::runtime::kindui::WindIcons::Folder16
+                        ? (node->GetFlags().expanded
+                            ? we::runtime::kindui::WindIcons::FolderOpenMask16
+                            : we::runtime::kindui::WindIcons::FolderMask16)
                         : we::runtime::kindui::WindIcons::BoxSolid16);
                 tn->visible = node->GetFlags().visible;
                 tn->locked = node->GetFlags().locked;

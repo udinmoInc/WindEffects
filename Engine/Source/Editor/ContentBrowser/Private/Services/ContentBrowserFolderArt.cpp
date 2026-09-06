@@ -63,7 +63,7 @@ void ContentBrowserFolderArt::PaintFolderIcon(
     bool opened) const
 {
     // Sidebar / list: compact folder / folder-open glyphs with CB amber tint.
-    const kindui::WindIconRef icon = opened ? WindIcons::FolderOpen16 : WindIcons::Folder16;
+    const kindui::WindIconRef icon = opened ? WindIcons::FolderOpenMask16 : WindIcons::FolderMask16;
     if (!icon.IsValid()) {
         return;
     }
