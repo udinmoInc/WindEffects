@@ -78,6 +78,7 @@ public:
         std::function<void(std::shared_ptr<ToolButton>)> configure = {});
 
     ToolbarBuilder& Separator(ToolbarAlignment alignment = ToolbarAlignment::Left);
+    ToolbarBuilder& Center(const std::function<void(ToolbarBuilder&)>& buildCenter);
     ToolbarBuilder& Right(const std::function<void(ToolbarBuilder&)>& buildRight);
 
     [[nodiscard]] std::shared_ptr<Toolbar> Build();

@@ -60,12 +60,13 @@ Color GraphiteDarkTheme::ResolveColor(ColorToken token) const {
     case ColorToken::ScrollbarThumb:
         return P.Hover;
     case ColorToken::ScrollbarThumbHover:
-    case ColorToken::TextSecondary:
     case ColorToken::TextHint:
     case ColorToken::SearchPlaceholder:
     case ColorToken::InfoColor:
     case ColorToken::PlayForeground:
         return P.Hover2;
+    case ColorToken::TextSecondary:
+        return Color(0.64f, 0.66f, 0.68f, 1.0f);
     case ColorToken::SelectedBackground:
     case ColorToken::ControlBackgroundSelected:
         return P.Select;

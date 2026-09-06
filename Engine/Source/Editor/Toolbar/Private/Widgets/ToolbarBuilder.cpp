@@ -152,7 +152,18 @@ ToolbarBuilder& ToolbarBuilder::Item(
     std::string_view tooltip,
     std::function<void(std::shared_ptr<ToolButton>)> configure)
 {
-    return IconItem(icon, tooltip.empty() ? label : tooltip, std::move(onClick), std::move(configure));
+    if (label.empty()) {
+        return IconItem(icon, tooltip, std::move(onClick), std::move(configure));
+    }
+    ToolbarItemSpec spec;
+    spec.icon = icon;
+    spec.label = std::string(label);
+    spec.tooltip = tooltip.empty() ? spec.label : std::string(tooltip);
+    spec.onClick = std::move(onClick);
+    spec.style = ToolButtonStyle::ToolbarInline;
+    spec.configure = std::move(configure);
+    PushItem(std::move(spec));
+    return *this;
 }
 
 ToolbarBuilder& ToolbarBuilder::Dropdown(
@@ -170,6 +181,18 @@ ToolbarBuilder& ToolbarBuilder::Separator(ToolbarAlignment alignment) {
     spec.alignment = alignment;
     spec.isSeparator = true;
     PushItem(std::move(spec));
+    return *this;
+}
+
+ToolbarBuilder& ToolbarBuilder::Center(const std::function<void(ToolbarBuilder&)>& buildCenter) {
+    if (buildCenter) {
+        ToolbarBuilder centerBuilder;
+        buildCenter(centerBuilder);
+        for (auto& item : centerBuilder.m_Items) {
+            item.alignment = ToolbarAlignment::Center;
+            m_Items.push_back(std::move(item));
+        }
+    }
     return *this;
 }
 

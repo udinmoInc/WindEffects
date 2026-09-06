@@ -24,6 +24,9 @@ LRESULT WindowsPlatform::HandleMessage(HWND hwnd, UINT msg, WPARAM wParam, LPARA
     WindowState* window = FindWindowByHwnd(hwnd);
 
     switch (msg) {
+    case WM_ERASEBKGND:
+        return 1;
+
     case WM_CLOSE:
         if (window) {
             PushEvent(WindowCloseEvent{window->id});
@@ -347,6 +350,31 @@ Result<WindowId> WindowsPlatform::CreateWindow(const WindowDesc& desc) {
             static_cast<int32_t>(err));
     }
 
+#ifndef DWMWA_USE_IMMERSIVE_DARK_MODE
+#define DWMWA_USE_IMMERSIVE_DARK_MODE 20
+#endif
+#ifndef DWMWA_WINDOW_CORNER_PREFERENCE
+#define DWMWA_WINDOW_CORNER_PREFERENCE 33
+#endif
+#ifndef DWMWA_BORDER_COLOR
+#define DWMWA_BORDER_COLOR 34
+#endif
+#ifndef DWMWA_CAPTION_COLOR
+#define DWMWA_CAPTION_COLOR 35
+#endif
+#ifndef DWMWCP_ROUND
+#define DWMWCP_ROUND 2
+#endif
+#ifndef DWMWCP_DEFAULT
+#define DWMWCP_DEFAULT 0
+#endif
+
+    BOOL useDarkMode = TRUE;
+    DwmSetWindowAttribute(hwnd, DWMWA_USE_IMMERSIVE_DARK_MODE, &useDarkMode, sizeof(useDarkMode));
+    DwmSetWindowAttribute(hwnd, 19, &useDarkMode, sizeof(useDarkMode));
+    COLORREF darkCaptionColor = RGB(0x0A, 0x0A, 0x0A);
+    DwmSetWindowAttribute(hwnd, DWMWA_CAPTION_COLOR, &darkCaptionColor, sizeof(darkCaptionColor));
+
     WindowState state{};
     state.hwnd = hwnd;
     state.id = id;
@@ -447,6 +475,10 @@ Result<void> WindowsPlatform::ApplyWindowChrome(WindowId id, const WindowChromeD
 #define DWMWCP_DEFAULT 0
 #endif
 
+    BOOL useDarkMode = TRUE;
+    DwmSetWindowAttribute(state->hwnd, DWMWA_USE_IMMERSIVE_DARK_MODE, &useDarkMode, sizeof(useDarkMode));
+    DwmSetWindowAttribute(state->hwnd, 19, &useDarkMode, sizeof(useDarkMode));
+
     const int cornerPreference = desc.roundedCorners ? DWMWCP_ROUND : DWMWCP_DEFAULT;
     DwmSetWindowAttribute(state->hwnd, DWMWA_WINDOW_CORNER_PREFERENCE, &cornerPreference, sizeof(cornerPreference));
 
@@ -455,6 +487,9 @@ Result<void> WindowsPlatform::ApplyWindowChrome(WindowId id, const WindowChromeD
         (desc.borderColorRgb >> 8) & 0xFF,
         desc.borderColorRgb & 0xFF);
     DwmSetWindowAttribute(state->hwnd, DWMWA_BORDER_COLOR, &borderColor, sizeof(borderColor));
+
+    COLORREF darkCaptionColor = RGB(0x0A, 0x0A, 0x0A);
+    DwmSetWindowAttribute(state->hwnd, DWMWA_CAPTION_COLOR, &darkCaptionColor, sizeof(darkCaptionColor));
     ClearLastError();
     return Result<void>::Success();
 }

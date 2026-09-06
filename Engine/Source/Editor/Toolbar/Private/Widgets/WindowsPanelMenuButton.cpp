@@ -114,7 +114,7 @@ void WindowsPanelMenuButton::Paint(::we::runtime::kindui::PaintContext& context)
     const auto iconColor = ToolbarButtonChrome::ResolveIconColor(m_HoverAnim, pressStrength, false);
 
     IconPainter::Draw(
-        context, WindIcons::Window16, ToolbarButtonChrome::PlaceIconInControl(
+        context, WindIcons::Window24, ToolbarButtonChrome::PlaceIconInControl(
             Rect{ m_Geometry.x + padH, m_Geometry.y, iconSize, m_Geometry.height },
             iconSize));
 
@@ -129,7 +129,7 @@ void WindowsPanelMenuButton::Paint(::we::runtime::kindui::PaintContext& context)
     const float tier = static_cast<float>(16u);
     const float chevronX = m_Geometry.x + m_Geometry.width - padH - tier;
     IconPainter::Draw(
-        context, WindIcons::ChevronDown16, IconMetrics::CompactGlyphBand(m_Geometry, chevronX));
+        context, WindIcons::ChevronDownV212, IconMetrics::CompactGlyphBand(m_Geometry, chevronX));
 }
 
 void WindowsPanelMenuButton::OnMouseDown(const ::we::runtime::kindui::MouseEvent& event) {

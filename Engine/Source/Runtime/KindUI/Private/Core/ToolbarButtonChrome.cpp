@@ -53,14 +53,11 @@ float ChevronGapPx(float uiScale) {
 }
 
 float ItemSize(float uiScale) {
-    return ResolveMetric(MetricToken::ButtonHeight) * uiScale;
+    return 26.0f * uiScale;
 }
 
 float RowContentHeight(float uiScale) {
-    const float toolbarH = ResolveMetric(MetricToken::ToolbarHeight) * uiScale;
-    const float itemH = ItemSize(uiScale);
-    const float inset = ResolveMetric(MetricToken::Space1) * uiScale;
-    return std::min(toolbarH - inset * 2.0f, itemH);
+    return 26.0f * uiScale;
 }
 
 float GroupGap(float uiScale) {

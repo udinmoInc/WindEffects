@@ -52,7 +52,7 @@ void WindowsPlatform::RegisterWindowClass() {
     wc.lpfnWndProc = &WindowsPlatform::WndProc;
     wc.hInstance = m_Instance;
     wc.hCursor = LoadCursorW(nullptr, IDC_ARROW);
-    wc.hbrBackground = nullptr;
+    wc.hbrBackground = static_cast<HBRUSH>(GetStockObject(BLACK_BRUSH));
     wc.lpszClassName = kWindowClassName;
     m_ClassAtom = RegisterClassExW(&wc);
     m_ClassRegistered = m_ClassAtom != 0;

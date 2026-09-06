@@ -155,7 +155,7 @@ namespace {
             const float chevronX = m_Geometry.x + m_Geometry.width - (padH + 16.0f) * uiScale;
             Rect chevronBand{ chevronX, m_Geometry.y, 16.0f * uiScale, m_Geometry.height };
             IconPainter::Draw(
-                context, WindIcons::ChevronDown16, chevronBand);
+                context, WindIcons::ChevronDownV212, chevronBand);
         }
         bool ShowsPointerCursor(const Point&) const override { return true; }
     private:
@@ -191,6 +191,14 @@ void TitleBar::Construct() {
     m_RightContainer = std::make_shared<Row>();
     m_RightContainer->Gap(0.0f);
 
+    auto bookBtn = std::make_shared<ToolButton>(WindIcons::Book16, "", []() {}, "Documentation");
+    auto cloudBtn = std::make_shared<ToolButton>(WindIcons::Cloud16, "", []() {}, "Cloud Services");
+    auto notifBtn = std::make_shared<ToolButton>(WindIcons::Notifications16, "", []() {}, "Notifications");
+
+    bookBtn->SetButtonStyle(ToolButtonStyle::TitleBarTool);
+    cloudBtn->SetButtonStyle(ToolButtonStyle::TitleBarTool);
+    notifBtn->SetButtonStyle(ToolButtonStyle::TitleBarTool);
+
     auto minimizeBtn = std::make_shared<ToolButton>(WindIcons::Minus16, "", [this]() {
         if (m_Window != we::platform::WindowId::Invalid) {
             we::platform::Platform::Get().MinimizeWindow(m_Window);
@@ -225,6 +233,12 @@ void TitleBar::Construct() {
     m_MaximizeWidget = maximizeBtn;
     m_CloseWidget = closeBtn;
 
+    m_RightContainer->AddChild(bookBtn);
+    m_RightContainer->AddChild(std::make_shared<FixedGap>(4.0f * uiScale));
+    m_RightContainer->AddChild(cloudBtn);
+    m_RightContainer->AddChild(std::make_shared<FixedGap>(4.0f * uiScale));
+    m_RightContainer->AddChild(notifBtn);
+    m_RightContainer->AddChild(std::make_shared<FixedGap>(14.0f * uiScale));
     m_RightContainer->AddChild(m_MinimizeWidget);
     m_RightContainer->AddChild(m_MaximizeWidget);
     m_RightContainer->AddChild(m_CloseWidget);
@@ -234,6 +248,9 @@ void TitleBar::Construct() {
     AddChild(m_LeftContainer);
     AddChild(m_RightContainer);
 
+    m_InteractableWidgets.push_back(bookBtn);
+    m_InteractableWidgets.push_back(cloudBtn);
+    m_InteractableWidgets.push_back(notifBtn);
     m_InteractableWidgets.push_back(m_MinimizeWidget);
     m_InteractableWidgets.push_back(m_MaximizeWidget);
     m_InteractableWidgets.push_back(m_CloseWidget);

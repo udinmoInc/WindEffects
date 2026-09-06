@@ -93,7 +93,7 @@ public:
         const float tier = static_cast<float>(16u);
         const float chevronX = m_Geometry.x + m_Geometry.width - padH - tier;
         we::runtime::kindui::IconPainter::Draw(
-            context, we::runtime::kindui::WindIcons::ChevronDown16, we::runtime::kindui::IconMetrics::CompactGlyphBand(m_Geometry, chevronX));
+            context, we::runtime::kindui::WindIcons::ChevronDownV212, we::runtime::kindui::IconMetrics::CompactGlyphBand(m_Geometry, chevronX));
     }
 
     void OnMouseMove(const we::runtime::kindui::MouseEvent& event) override {

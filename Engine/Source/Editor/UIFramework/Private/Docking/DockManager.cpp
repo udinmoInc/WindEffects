@@ -379,7 +379,7 @@ WorkspaceLayout CreateDefaultEditorWorkspaceLayout() {
         "OutputLog",
         MakePanelDesc("OutputLog", "Output Log", "output-log", DockZone::Floating, false, 5));
 
-    // UE layout: top row (tools+viewport | outliner+details), content browser full width below.
+    // UE layout: leftCenterCol (tools+viewport on top, content browser on bottom), rightSidebar (outliner + details) on right.
     DockLayoutNode rightSidebar = MakeSplit(
         SplitOrientation::Vertical,
         0.52f,
@@ -398,23 +398,23 @@ WorkspaceLayout CreateDefaultEditorWorkspaceLayout() {
         MakeTabGroup("Tools"),
         MakeTabGroup("Viewport"));
 
-    DockLayoutNode topRow = MakeSplit(
-        SplitOrientation::Horizontal,
-        0.82f,
-        "mainHorizontal",
-        320.0f,
-        200.0f,
-        std::move(toolsViewport),
-        std::move(rightSidebar));
-
-    layout.root = MakeSplit(
+    DockLayoutNode leftCenterCol = MakeSplit(
         SplitOrientation::Vertical,
         0.78f,
         "rootVertical",
         240.0f,
         140.0f,
-        std::move(topRow),
+        std::move(toolsViewport),
         MakeTabGroup("ContentBrowser"));
+
+    layout.root = MakeSplit(
+        SplitOrientation::Horizontal,
+        0.82f,
+        "mainHorizontal",
+        320.0f,
+        200.0f,
+        std::move(leftCenterCol),
+        std::move(rightSidebar));
 
     return layout;
 }
