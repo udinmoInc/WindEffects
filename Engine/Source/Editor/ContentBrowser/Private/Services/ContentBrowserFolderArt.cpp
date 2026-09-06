@@ -87,6 +87,9 @@ void ContentBrowserFolderArt::PaintThumbnail(
         return;
     }
 
+    // content-folder_512.png is a clean white luminance-alpha mask (no baked shadows).
+    // DrawWindIcon multiplies FolderTint against the white pixels to produce the correct
+    // amber folder color. Alpha encodes the shading so the tab is slightly darker amber.
     context.DrawWindIcon(WindIcons::ContentFolder512, folderRect, FolderTint(hovered));
 }
 

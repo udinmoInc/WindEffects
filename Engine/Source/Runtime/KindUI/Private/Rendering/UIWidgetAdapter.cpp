@@ -987,11 +987,16 @@ void UIWidgetAdapter::GenerateRoundedOutlineGeometry(const DrawCommand& cmd) {
     constexpr float opaqueHard = 0.0f;
     const float thickness = std::max(1.0f, SnapPx(cmd.thickness));
     const float radius = std::min(cmd.borderRadius, std::min(w, h) * 0.5f);
+    const float pad = std::ceil(thickness * 0.5f + 1.0f);
+    const float qx = x - pad;
+    const float qy = y - pad;
+    const float qw = w + 2.0f * pad;
+    const float qh = h + 2.0f * pad;
 
-    UIVertex2 v0{ {x,     y},     {0.5f, 0.5f}, {cmd.color.r, cmd.color.g, cmd.color.b, cmd.color.a}, {x, y, w, h}, {radius, type, thickness, opaqueHard} };
-    UIVertex2 v1{ {x + w, y},     {0.5f, 0.5f}, {cmd.color.r, cmd.color.g, cmd.color.b, cmd.color.a}, {x, y, w, h}, {radius, type, thickness, opaqueHard} };
-    UIVertex2 v2{ {x + w, y + h}, {0.5f, 0.5f}, {cmd.color.r, cmd.color.g, cmd.color.b, cmd.color.a}, {x, y, w, h}, {radius, type, thickness, opaqueHard} };
-    UIVertex2 v3{ {x,     y + h}, {0.5f, 0.5f}, {cmd.color.r, cmd.color.g, cmd.color.b, cmd.color.a}, {x, y, w, h}, {radius, type, thickness, opaqueHard} };
+    UIVertex2 v0{ {qx,      qy},      {0.5f, 0.5f}, {cmd.color.r, cmd.color.g, cmd.color.b, cmd.color.a}, {x, y, w, h}, {radius, type, thickness, opaqueHard} };
+    UIVertex2 v1{ {qx + qw, qy},      {0.5f, 0.5f}, {cmd.color.r, cmd.color.g, cmd.color.b, cmd.color.a}, {x, y, w, h}, {radius, type, thickness, opaqueHard} };
+    UIVertex2 v2{ {qx + qw, qy + qh}, {0.5f, 0.5f}, {cmd.color.r, cmd.color.g, cmd.color.b, cmd.color.a}, {x, y, w, h}, {radius, type, thickness, opaqueHard} };
+    UIVertex2 v3{ {qx,      qy + qh}, {0.5f, 0.5f}, {cmd.color.r, cmd.color.g, cmd.color.b, cmd.color.a}, {x, y, w, h}, {radius, type, thickness, opaqueHard} };
 
     uint32_t startIndex = static_cast<uint32_t>(m_Vertices.size());
     m_Vertices.push_back(v0);

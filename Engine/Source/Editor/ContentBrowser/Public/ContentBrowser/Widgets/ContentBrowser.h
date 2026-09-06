@@ -173,6 +173,7 @@ public:
 
     void OnMouseDown(const MouseEvent& event) override;
     void OnMouseMove(const MouseEvent& event) override;
+    bool ShowsPointerCursor(const Point& position) const override;
 
     void SetPath(const std::vector<std::string>& path);
     const std::vector<std::string>& GetPath() const { return m_PathSegments; }

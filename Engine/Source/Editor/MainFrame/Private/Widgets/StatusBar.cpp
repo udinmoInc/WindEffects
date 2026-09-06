@@ -101,6 +101,7 @@ void StatusBar::Construct() {
     m_DiagnosticsPanelButton->SetOnClicked([this]() { SelectPanelTab(1, true); });
 
     m_LeftBox->AddChild(m_AssetsPanelButton);
+    m_LeftBox->AddChild(MakeStatusDivider());
     m_LeftBox->AddChild(m_DiagnosticsPanelButton);
     AddChild(m_LeftBox);
     AddChild(MakeStatusDivider());
@@ -119,6 +120,7 @@ void StatusBar::Construct() {
     spacer->SetFlexGrow(1.0f);
     spacer->SetFlexShrink(1.0f);
     AddChild(spacer);
+    AddChild(MakeStatusDivider());
 
     m_RightBox = std::make_shared<Row>();
     m_RightBox->Gap(ThemeMetric(MetricToken::Space2) * uiScale);

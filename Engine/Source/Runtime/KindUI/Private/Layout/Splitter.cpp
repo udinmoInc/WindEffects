@@ -70,7 +70,7 @@ float Splitter::GetEffectiveBarThickness() const {
         const float gapLogical = m_PanelGapLogical > 0.0f
             ? m_PanelGapLogical
             : ResolveMetric(MetricToken::DockPanelGap);
-        return std::max(1.0f, DPIContext::Snap(gapLogical * scale));
+        return (std::max)(1.0f, gapLogical * scale);
     }
     return DPIContext::Snap(m_BarThicknessLogical * scale);
 }

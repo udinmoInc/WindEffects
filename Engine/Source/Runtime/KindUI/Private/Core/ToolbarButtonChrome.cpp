@@ -6,6 +6,8 @@
 #include "KindUI/Core/ColorSpace.h"
 #include "KindUI/Tokens/DesignToken.h"
 
+#include "KindUI/Theming/PaletteRuntime.h"
+
 #include <algorithm>
 
 namespace we::runtime::kindui::ToolbarButtonChrome {
@@ -105,19 +107,37 @@ void PaintSubtleToolbarFill(
     bool active,
     float activeAnim)
 {
+    const Color borderColor = palette::GraphiteDarkLive().Black;
     if (active || activeAnim >= 0.5f) {
         context.DrawRoundedRect(rect, ResolveColor(ColorToken::SelectInactiveBackground), radius);
+        context.DrawControlOutline(rect, borderColor, 1.0f, radius);
         return;
     }
 
-    ControlChrome::PaintInteractiveFill(
-        context,
-        rect,
-        radius,
-        hoverAnim,
-        pressStrength,
-        false,
-        ColorToken::ToolbarBackground);
+    Color bgIdle = Color(0.21f, 0.21f, 0.21f, 1.0f);
+    Color bgHover = Color(0.27f, 0.27f, 0.27f, 1.0f);
+    Color bgPress = Color(0.13f, 0.13f, 0.13f, 1.0f);
+
+    Color bgColor = bgIdle;
+    if (hoverAnim > 0.001f) {
+        bgColor = Color::Pick(bgColor, bgHover, std::clamp(hoverAnim, 0.0f, 1.0f));
+    }
+    if (pressStrength > 0.001f) {
+        bgColor = Color::Pick(bgColor, bgPress, std::clamp(pressStrength, 0.0f, 1.0f));
+    }
+
+    // Main button surface - all corners rounded
+    context.DrawRoundedRect(rect, bgColor, radius);
+
+    // Crisp black border from palette around all corners
+    context.DrawControlOutline(rect, borderColor, 1.0f, radius);
+
+    // Subtle pressed recessed overlay
+    if (pressStrength > 0.01f) {
+        Color pressShadow = ResolveColor(ColorToken::ShadowOverlay);
+        pressShadow.a *= pressStrength;
+        context.DrawRoundedRect(rect, pressShadow, radius);
+    }
 }
 
 } // namespace
@@ -188,7 +208,9 @@ void PaintExecutionCluster(
     float uiScale)
 {
     const float radius = ButtonRadius(uiScale);
-    context.DrawRoundedRect(rect, ResolveColor(ColorToken::ControlBackground), radius);
+    Color bg = Color(0.21f, 0.21f, 0.21f, 1.0f);
+    context.DrawRoundedRect(rect, bg, radius);
+    context.DrawControlOutline(rect, palette::GraphiteDarkLive().Black, 1.0f * uiScale, radius);
 }
 
 void PaintStatusBarControl(
@@ -236,11 +258,27 @@ void PaintViewportChip(
     float uiScale)
 {
     const float radius = ButtonRadius(uiScale);
-    const Color idle = ResolveColor(ColorToken::ViewportToolbarBackground);
-    const Color fill = (hoverAnim > 0.001f || pressStrength > 0.001f)
-        ? ResolveInteractiveBackground(hoverAnim, pressStrength, false, ColorToken::ViewportToolbarBackground)
-        : idle;
-    context.DrawRoundedRect(rect, fill.a > 0.001f ? fill : idle, radius);
+    Color bgIdle = Color(0.21f, 0.21f, 0.21f, 1.0f);
+    Color bgHover = Color(0.27f, 0.27f, 0.27f, 1.0f);
+    Color bgPress = Color(0.13f, 0.13f, 0.13f, 1.0f);
+
+    Color fill = bgIdle;
+    if (hoverAnim > 0.001f) {
+        fill = Color::Pick(fill, bgHover, std::clamp(hoverAnim, 0.0f, 1.0f));
+    }
+    if (pressStrength > 0.001f) {
+        fill = Color::Pick(fill, bgPress, std::clamp(pressStrength, 0.0f, 1.0f));
+    }
+
+    context.DrawRoundedRect(rect, fill, radius);
+
+    context.DrawControlOutline(rect, palette::GraphiteDarkLive().Black, 1.0f * uiScale, radius);
+
+    if (pressStrength > 0.01f) {
+        Color pressShadow = ResolveColor(ColorToken::ShadowOverlay);
+        pressShadow.a *= pressStrength;
+        context.DrawRoundedRect(rect, pressShadow, radius);
+    }
 }
 
 } // namespace we::runtime::kindui::ToolbarButtonChrome
