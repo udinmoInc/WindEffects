@@ -1118,8 +1118,9 @@ public:
     void RequestRebuild() override { m_Model->MarkDirty(); }
 
     void Tick(float deltaSeconds) override {
+        // ContentBrowserService::Tick already advances ContentAssetRegistry — do not
+        // call m_Registry->Tick here (that double-fired the recursive FS scan timer).
         ContentBrowserService::Get().Tick(deltaSeconds);
-        m_Registry->Tick(deltaSeconds);
         m_Thumbnails->Tick(deltaSeconds);
         if (m_Model->IsDirty()) {
             m_Model->Rebuild();

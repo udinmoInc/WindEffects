@@ -209,8 +209,8 @@ void ContentBrowser::Arrange(const Rect& allottedRect) {
 
 void ContentBrowser::Tick(float deltaTime) {
     Widget::Tick(deltaTime);
-    ContentBrowserService::Get().Tick(deltaTime);
-    RequestVisibleThumbnails();
+    // Service/registry ticking is owned by IContentBrowser::Tick in the editor loop —
+    // do not call ContentBrowserService::Tick here (that double-processed thumbnails).
 
     constexpr float kHoverDuration = 0.135f;
     const float hoverSpeed = 1.0f / kHoverDuration;
@@ -251,6 +251,16 @@ void ContentBrowser::UpdateVisibleRange() {
 
 void ContentBrowser::RequestVisibleThumbnails() {
     if (!m_OnItemNeedsThumbnail) return;
+
+    const uint64_t listEpoch = m_ThumbnailVisibilityGeneration;
+    if (m_FirstVisibleIndex == m_LastThumbnailFirstVisible
+        && m_LastVisibleIndex == m_LastThumbnailLastVisible
+        && listEpoch == m_LastThumbnailVisibilityGeneration) {
+        return;
+    }
+    m_LastThumbnailFirstVisible = m_FirstVisibleIndex;
+    m_LastThumbnailLastVisible = m_LastVisibleIndex;
+    m_LastThumbnailVisibilityGeneration = listEpoch;
 
     std::unordered_set<std::string> visibleIds;
     for (int i = m_FirstVisibleIndex; i <= m_LastVisibleIndex && i < static_cast<int>(m_RenderList.size()); ++i) {
@@ -766,6 +776,7 @@ bool ContentBrowser::IsSelected(const std::string& id) const {
 
 void ContentBrowser::BuildRenderList() {
     m_RenderList.clear();
+    ++m_ThumbnailVisibilityGeneration;
     if (!m_Model) return;
 
     auto& service = ContentBrowserService::Get();

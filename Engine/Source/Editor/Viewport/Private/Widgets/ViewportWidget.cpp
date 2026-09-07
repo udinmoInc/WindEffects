@@ -6,6 +6,7 @@
 #include "EditorCamera.h"
 #include "Scene/Scene.h"
 #include "KindUI/Core/PaintContext.h"
+#include "KindUI/Layout/Splitter.h"
 #include "KindUI/Rendering/OverlayRenderer.h"
 #include "KindUI/Tokens/DesignToken.h"
 #include "KindUI/Theming/StyleRole.h"
@@ -102,16 +103,26 @@ void ViewportWidget::Arrange(const Rect& allottedRect) {
     }
 }
 
-void ViewportWidget::FlushPendingResize() {
+bool ViewportWidget::FlushPendingResize() {
     if (!m_ResizePending) {
-        return;
+        return false;
     }
-    m_ResizePending = false;
     if (m_PendingWidth == 0 || m_PendingHeight == 0) {
-        return;
+        m_ResizePending = false;
+        return false;
     }
 
+    // Keep camera aspect + blit rect in sync with the live panel geometry immediately.
     m_Camera->SetViewportSize(static_cast<float>(m_PendingWidth), static_cast<float>(m_PendingHeight));
+    SyncRendererViewport();
+
+    // While dragging splitters, stretch the last good RT into the new panel rect.
+    // Recreating GPU targets every mouse-move blanks the viewport and forces full scene.
+    if (we::runtime::kindui::Splitter::AnySplitterDragging()) {
+        return false;
+    }
+
+    m_ResizePending = false;
 
     if (m_ViewportController) {
         if (m_ViewportRenderTarget) {
@@ -142,6 +153,7 @@ void ViewportWidget::FlushPendingResize() {
     }
 
     SyncRendererViewport();
+    return true;
 }
 
 void ViewportWidget::SyncRendererViewport() {

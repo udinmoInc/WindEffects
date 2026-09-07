@@ -7,6 +7,7 @@
 #include "ECS/RenderExtract.h"
 #include "ECS/World.h"
 
+#include <algorithm>
 #include <cstring>
 
 
@@ -246,6 +247,7 @@ void Scene::CreateEntity(const std::string& name, EntityType type) {
     ApplyDefaultEntityProperties(entity, type);
     AttachEcsComponents(entity, ecsEntity.id);
     m_ViewCache.push_back(entity);
+    m_Dirty = true;
     HE_INFO("Created scene entity: " + name);
 }
 
@@ -311,6 +313,7 @@ bool Scene::IsEmpty() const {
 
 void Scene::Clear() {
     DestroyEntity(0xFFFFFFFF);
+    m_Dirty = true;
 }
 
 void Scene::DestroyEntity(size_t index) {
@@ -319,6 +322,7 @@ void Scene::DestroyEntity(size_t index) {
         m_ViewCache.clear();
         m_SelectedEntityIndex = -1;
         m_SelectedEntityId = 0;
+        m_Dirty = true;
         return;
     }
 
@@ -349,6 +353,7 @@ void Scene::DestroyEntity(size_t index) {
     } else if (m_SelectedEntityIndex > static_cast<int>(index)) {
         m_SelectedEntityIndex--;
     }
+    m_Dirty = true;
 }
 
 void Scene::SetSelectedEntityIndex(int index) {
@@ -365,19 +370,32 @@ void Scene::SetSelectedEntityId(std::uint64_t id) {
     m_SelectedEntityIndex = FindEntityIndexById(id);
 }
 
-void Scene::PushViewEntityToEcs(const Entity& entity) {
+bool Scene::PushViewEntityToEcs(const Entity& entity) {
     const we::runtime::ecs::Entity ecs{ entity.Id };
     if (!m_Registry->Valid(ecs)) {
-        return;
+        return false;
     }
+
+    bool changed = false;
 
     if (NameComponent* name = m_Registry->TryGet<NameComponent>(ecs)) {
         const std::size_t maxChars = sizeof(name->value) - 1u;
-        std::size_t i = 0;
-        for (; i < maxChars && i < entity.Name.size(); ++i) {
-            name->value[i] = entity.Name[i];
+        const std::size_t srcLen = (std::min)(entity.Name.size(), maxChars);
+        bool nameChanged = name->value[srcLen] != '\0';
+        for (std::size_t i = 0; i < srcLen; ++i) {
+            if (name->value[i] != entity.Name[i]) {
+                nameChanged = true;
+                break;
+            }
         }
-        name->value[i] = '\0';
+        if (nameChanged) {
+            std::size_t i = 0;
+            for (; i < srcLen; ++i) {
+                name->value[i] = entity.Name[i];
+            }
+            name->value[i] = '\0';
+            changed = true;
+        }
     } else {
         NameComponent nameComp{};
         const std::size_t maxChars = sizeof(nameComp.value) - 1u;
@@ -387,6 +405,7 @@ void Scene::PushViewEntityToEcs(const Entity& entity) {
         }
         nameComp.value[i] = '\0';
         m_Registry->Add<NameComponent>(ecs, nameComp);
+        changed = true;
     }
 
     if (TransformComponent* t = m_Registry->TryGet<TransformComponent>(ecs)) {
@@ -397,17 +416,26 @@ void Scene::PushViewEntityToEcs(const Entity& entity) {
             t->localRotation = entity.Rotation;
             t->localScale = entity.Scale;
             t->dirty = true;
+            changed = true;
         }
     }
 
     if (LegacyActorComponent* legacy = m_Registry->TryGet<LegacyActorComponent>(ecs)) {
-        legacy->entityType = static_cast<int>(entity.Type);
-        legacy->editorOnly = entity.EditorOnly;
-        legacy->mode = entity.Mode;
+        if (legacy->entityType != static_cast<int>(entity.Type)
+            || legacy->editorOnly != entity.EditorOnly
+            || legacy->mode != entity.Mode) {
+            legacy->entityType = static_cast<int>(entity.Type);
+            legacy->editorOnly = entity.EditorOnly;
+            legacy->mode = entity.Mode;
+            changed = true;
+        }
     }
 
     if (MaterialComponent* mat = m_Registry->TryGet<MaterialComponent>(ecs)) {
-        mat->color = entity.Color;
+        if (mat->color != entity.Color) {
+            mat->color = entity.Color;
+            changed = true;
+        }
     }
 
     // Keep mesh binding in sync for geometry actors (extract queries StaticMesh).
@@ -419,9 +447,11 @@ void Scene::PushViewEntityToEcs(const Entity& entity) {
     case EntityType::GroundPlane:
         if (!m_Registry->Has<StaticMeshComponent>(ecs)) {
             m_Registry->Add<StaticMeshComponent>(ecs, StaticMeshComponent{ 1, {} });
+            changed = true;
         } else if (StaticMeshComponent* mesh = m_Registry->TryGet<StaticMeshComponent>(ecs)) {
             if (mesh->meshAssetId == 0) {
                 mesh->meshAssetId = 1;
+                changed = true;
             }
         }
         break;
@@ -436,12 +466,16 @@ void Scene::PushViewEntityToEcs(const Entity& entity) {
         hierarchy.SetParent(*m_Registry, ecs,
             entity.ParentId ? we::runtime::ecs::Entity{ entity.ParentId }
                             : we::runtime::ecs::Entity{});
+        changed = true;
     }
+    return changed;
 }
 
 void Scene::SyncViewToEcs() {
     for (const Entity& entity : m_ViewCache) {
-        PushViewEntityToEcs(entity);
+        if (PushViewEntityToEcs(entity)) {
+            m_Dirty = true;
+        }
     }
 }
 
@@ -476,12 +510,14 @@ void Scene::Update() {
 }
 
 void Scene::Update(float deltaSeconds) {
-    // 1) Editor view mutations → ECS
+    // Push any editor-view mutations, then only run systems/extract/rebuild when something changed.
     SyncViewToEcs();
-    // 2) Systems (transform, extract, …) on ECS World
+    if (!m_Dirty) {
+        return;
+    }
     m_Systems->Update(*m_Registry, deltaSeconds);
-    // 3) Rebuild editor projection from ECS authority
     RebuildViewFromEcs();
+    m_Dirty = false;
 }
 
 } // namespace we::runtime::scene

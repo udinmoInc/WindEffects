@@ -25,6 +25,19 @@ public:
     [[nodiscard]] bool HasOpenPopups() const override { return !m_Popups.empty(); }
     [[nodiscard]] bool IsWidgetInPopup(const std::shared_ptr<Widget>& widget) const override;
 
+    /// Floating panels: survive outside-click dismissal and keep a stable size.
+    /// Kept off IPopupHost to avoid breaking the cross-DLL vtable ABI.
+    void ShowPinnedPopup(
+        const std::shared_ptr<Widget>& popup,
+        const Point& position,
+        const Size& preferredSize);
+    void ShowPinnedFullscreenPopup(const std::shared_ptr<Widget>& popup);
+    void MovePopup(const std::shared_ptr<Widget>& popup, const Point& position);
+    void ResizePopup(const std::shared_ptr<Widget>& popup, const Rect& bounds);
+    void ClosePopup(const std::shared_ptr<Widget>& popup);
+    void CloseTransientPopups();
+    [[nodiscard]] bool IsPinnedPopup(const std::shared_ptr<Widget>& popup) const;
+
     Size Measure(const Size& availableSize) override;
     void Arrange(const Rect& allottedRect) override;
     void Paint(PaintContext& context) override;
@@ -32,9 +45,13 @@ public:
     [[nodiscard]] std::shared_ptr<Widget> HitTestPoint(const Point& pos, const Rect* clip = nullptr) override;
 
 private:
+    void RemovePopupAt(size_t index);
+    [[nodiscard]] int FindPopupIndex(const std::shared_ptr<Widget>& popup) const;
+
     std::shared_ptr<Widget> m_BaseWidget;
     std::vector<std::shared_ptr<Widget>> m_Popups;
     std::vector<bool> m_FullscreenPopups;
+    std::vector<bool> m_PinnedPopups;
     std::vector<Size> m_PopupCachedSizes;
     Size m_LastArrangeSize{};
 };

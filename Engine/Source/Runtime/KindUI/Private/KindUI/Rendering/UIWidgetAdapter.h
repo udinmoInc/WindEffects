@@ -32,6 +32,11 @@ public:
     const std::vector<uint32_t>& GetIndices() const { return m_Indices; }
     const std::vector<UIRenderBatch>& GetBatches() const { return m_Batches; }
 
+    // Steal built geometry into the overlay cache (avoids a full vector copy each rebuild).
+    std::vector<UIVertex2> TakeVertices() { return std::move(m_Vertices); }
+    std::vector<uint32_t> TakeIndices() { return std::move(m_Indices); }
+    std::vector<UIRenderBatch> TakeBatches() { return std::move(m_Batches); }
+
     // Diagnostics (moved from static to instance-level to avoid global state)
     struct Diagnostics {
         uint32_t totalDrawCommandsGenerated = 0;

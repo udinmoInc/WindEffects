@@ -9,11 +9,79 @@
 #include "KindUI/Tokens/DesignToken.h"
 #include "KindUI/Tokens/SurfaceRole.h"
 #include "KindUI/Theming/StyleRole.h"
+#include "Platform/Platform.h"
+#include "Platform/Types.h"
 
 #include <algorithm>
+#include <atomic>
 #include <cmath>
 
 namespace we::runtime::kindui {
+namespace {
+std::atomic<int> g_SplitterDragCount{0};
+
+void ComputePaneExtents(
+    Splitter::ResizeMode mode,
+    float fixedFirst,
+    float fixedSecond,
+    float availMain,
+    float barThickness,
+    bool firstVisible,
+    bool secondVisible,
+    float minFirstPx,
+    float minSecondPx,
+    float& splitRatio,
+    float& first,
+    float& second) {
+    first = 0.0f;
+    second = 0.0f;
+    if (firstVisible && secondVisible) {
+        if (mode == Splitter::ResizeMode::FixedFirst) {
+            first = std::min(fixedFirst, std::max(0.0f, availMain - barThickness));
+            second = std::max(0.0f, availMain - barThickness - first);
+        } else if (mode == Splitter::ResizeMode::FixedSecond) {
+            second = std::min(fixedSecond, std::max(0.0f, availMain - barThickness));
+            first = std::max(0.0f, availMain - barThickness - second);
+        } else {
+            const float usable = std::max(0.0f, availMain - barThickness);
+            float minFirst = minFirstPx;
+            float minSecond = minSecondPx;
+            if (usable > 0.0f && minFirst + minSecond > usable) {
+                const float scale = usable / (minFirst + minSecond);
+                minFirst *= scale;
+                minSecond *= scale;
+            }
+            if (usable > 0.0f) {
+                const float minRatio = minFirst / usable;
+                const float maxRatio = 1.0f - (minSecond / usable);
+                splitRatio = std::clamp(splitRatio, minRatio, std::max(minRatio, maxRatio));
+                first = usable * splitRatio;
+                second = usable - first;
+            }
+        }
+    } else if (firstVisible) {
+        first = availMain;
+    } else if (secondVisible) {
+        second = availMain;
+    }
+}
+} // namespace
+
+bool Splitter::AnySplitterDragging() {
+    return g_SplitterDragCount.load(std::memory_order_relaxed) > 0;
+}
+
+void Splitter::ApplyResizeCursor(bool overResizeEdge) const {
+    auto& platform = we::platform::Platform::Get();
+    if (!overResizeEdge) {
+        platform.SetSystemCursor(we::platform::SystemCursor::Arrow);
+        return;
+    }
+    platform.SetSystemCursor(
+        m_Orientation == Orientation::Horizontal
+            ? we::platform::SystemCursor::SizeWE
+            : we::platform::SystemCursor::SizeNS);
+}
 
 Splitter::Splitter(Orientation orientation, float initialRatio)
     : m_Orientation(orientation), m_SplitRatio(initialRatio) {
@@ -133,54 +201,31 @@ Size Splitter::Measure(const Size& availableSize) {
     const float barThickness = GetEffectiveBarThickness();
     float availW = std::max(0.0f, availableSize.width);
     float availH = std::max(0.0f, availableSize.height);
+    const bool firstVisible = m_FirstChild && m_FirstChild->IsVisible();
+    const bool secondVisible = m_SecondChild && m_SecondChild->IsVisible();
 
     if (m_Orientation == Orientation::Horizontal) {
         float w1 = 0.0f;
         float w2 = 0.0f;
-        if (m_ResizeMode == ResizeMode::FixedFirst && (m_FirstChild && m_FirstChild->IsVisible())) {
-            w1 = std::min(m_FixedFirstWidth, std::max(0.0f, availW - barThickness));
-            w2 = std::max(0.0f, availW - barThickness - w1);
-        } else {
-            const bool firstVisible = m_FirstChild && m_FirstChild->IsVisible();
-            if (!firstVisible) {
-                w1 = 0.0f;
-                w2 = availW;
-            } else {
-                ClampSplitToMins(availW, barThickness);
-                SplitAvailable(availW, barThickness, w1, w2);
-            }
-        }
-
-        if (m_FirstChild && m_FirstChild->IsVisible()) {
+        ComputePaneExtents(
+            m_ResizeMode, m_FixedFirstWidth, m_FixedSecondWidth, availW, barThickness,
+            firstVisible, secondVisible, m_MinFirstPx, m_MinSecondPx, m_SplitRatio, w1, w2);
+        if (firstVisible) {
             m_FirstChild->Measure(Size{ w1, availH });
         }
-        if (m_SecondChild && m_SecondChild->IsVisible()) {
+        if (secondVisible) {
             m_SecondChild->Measure(Size{ w2, availH });
         }
     } else {
         float h1 = 0.0f;
         float h2 = 0.0f;
-        if (m_ResizeMode == ResizeMode::FixedFirst && (m_FirstChild && m_FirstChild->IsVisible())) {
-            h1 = std::min(m_FixedFirstWidth, std::max(0.0f, availH - barThickness));
-            h2 = std::max(0.0f, availH - barThickness - h1);
-        } else if (m_ResizeMode == ResizeMode::FixedSecond && (m_FirstChild && m_FirstChild->IsVisible())) {
-            h2 = std::min(m_FixedSecondWidth, std::max(0.0f, availH - barThickness));
-            h1 = std::max(0.0f, availH - barThickness - h2);
-        } else {
-            const bool firstVisible = m_FirstChild && m_FirstChild->IsVisible();
-            if (!firstVisible) {
-                h1 = 0.0f;
-                h2 = availH;
-            } else {
-                ClampSplitToMins(availH, barThickness);
-                SplitAvailable(availH, barThickness, h1, h2);
-            }
-        }
-
-        if (m_FirstChild && m_FirstChild->IsVisible()) {
+        ComputePaneExtents(
+            m_ResizeMode, m_FixedFirstWidth, m_FixedSecondWidth, availH, barThickness,
+            firstVisible, secondVisible, m_MinFirstPx, m_MinSecondPx, m_SplitRatio, h1, h2);
+        if (firstVisible) {
             m_FirstChild->Measure(Size{ availW, h1 });
         }
-        if (m_SecondChild && m_SecondChild->IsVisible()) {
+        if (secondVisible) {
             m_SecondChild->Measure(Size{ availW, h2 });
         }
     }
@@ -195,31 +240,20 @@ void Splitter::Arrange(const Rect& allottedRect) {
     const float barThickness = GetEffectiveBarThickness();
     float availW = std::max(0.0f, allottedRect.width);
     float availH = std::max(0.0f, allottedRect.height);
+    const bool firstVisible = m_FirstChild && m_FirstChild->IsVisible();
+    const bool secondVisible = m_SecondChild && m_SecondChild->IsVisible();
 
     if (m_Orientation == Orientation::Horizontal) {
         float w1 = 0.0f;
         float w2 = 0.0f;
-        float barX = allottedRect.x;
-        if (m_ResizeMode == ResizeMode::FixedFirst && (m_FirstChild && m_FirstChild->IsVisible())) {
-            w1 = std::min(m_FixedFirstWidth, std::max(0.0f, availW - barThickness));
-            w2 = std::max(0.0f, availW - barThickness - w1);
-            barX = allottedRect.x + w1;
-        } else {
-            const bool firstVisible = m_FirstChild && m_FirstChild->IsVisible();
-            if (!firstVisible) {
-                w1 = 0.0f;
-                w2 = availW;
-                barX = allottedRect.x;
-            } else {
-                ClampSplitToMins(availW, barThickness);
-                SplitAvailable(availW, barThickness, w1, w2);
-                barX = allottedRect.x + w1;
-            }
-        }
+        ComputePaneExtents(
+            m_ResizeMode, m_FixedFirstWidth, m_FixedSecondWidth, availW, barThickness,
+            firstVisible, secondVisible, m_MinFirstPx, m_MinSecondPx, m_SplitRatio, w1, w2);
+        const float barX = allottedRect.x + w1;
 
         m_FirstChildRect = {};
         m_SecondChildRect = {};
-        if (m_FirstChild && m_FirstChild->IsVisible()) {
+        if (firstVisible) {
             Rect firstRect = ClampRectToParent(
                 Rect{
                     std::round(allottedRect.x),
@@ -232,13 +266,14 @@ void Splitter::Arrange(const Rect& allottedRect) {
             m_FirstChildRect = firstRect;
             m_FirstChild->Arrange(firstRect);
         }
-        if (m_SecondChild && m_SecondChild->IsVisible()) {
-            const float secondX = w1 > 0.0f ? barX + barThickness : allottedRect.x;
+        if (secondVisible) {
+            const float secondX = (firstVisible && w1 > 0.0f) ? barX + barThickness : allottedRect.x;
+            const float secondW = (firstVisible && secondVisible) ? w2 : availW;
             Rect secondRect = ClampRectToParent(
                 Rect{
                     std::round(secondX),
                     std::round(allottedRect.y),
-                    std::round(secondX + w2) - std::round(secondX),
+                    std::round(secondX + secondW) - std::round(secondX),
                     std::round(allottedRect.y + availH) - std::round(allottedRect.y)
                 },
                 allottedRect);
@@ -247,36 +282,23 @@ void Splitter::Arrange(const Rect& allottedRect) {
             m_SecondChild->Arrange(secondRect);
         }
 
-        m_CachedBarRect = Rect{ barX, allottedRect.y, barThickness, availH };
+        if (firstVisible && secondVisible) {
+            m_CachedBarRect = Rect{ barX, allottedRect.y, barThickness, availH };
+        } else {
+            m_CachedBarRect = {};
+        }
         UpdateCachedBarHitRect();
     } else {
         float h1 = 0.0f;
         float h2 = 0.0f;
-        float barY = allottedRect.y;
-        if (m_ResizeMode == ResizeMode::FixedFirst && (m_FirstChild && m_FirstChild->IsVisible())) {
-            h1 = std::min(m_FixedFirstWidth, std::max(0.0f, availH - barThickness));
-            h2 = std::max(0.0f, availH - barThickness - h1);
-            barY = allottedRect.y + h1;
-        } else if (m_ResizeMode == ResizeMode::FixedSecond && (m_FirstChild && m_FirstChild->IsVisible())) {
-            h2 = std::min(m_FixedSecondWidth, std::max(0.0f, availH - barThickness));
-            h1 = std::max(0.0f, availH - barThickness - h2);
-            barY = allottedRect.y + h1;
-        } else {
-            const bool firstVisible = m_FirstChild && m_FirstChild->IsVisible();
-            if (!firstVisible) {
-                h1 = 0.0f;
-                h2 = availH;
-                barY = allottedRect.y;
-            } else {
-                ClampSplitToMins(availH, barThickness);
-                SplitAvailable(availH, barThickness, h1, h2);
-                barY = allottedRect.y + h1;
-            }
-        }
+        ComputePaneExtents(
+            m_ResizeMode, m_FixedFirstWidth, m_FixedSecondWidth, availH, barThickness,
+            firstVisible, secondVisible, m_MinFirstPx, m_MinSecondPx, m_SplitRatio, h1, h2);
+        const float barY = allottedRect.y + h1;
 
         m_FirstChildRect = {};
         m_SecondChildRect = {};
-        if (m_FirstChild && m_FirstChild->IsVisible()) {
+        if (firstVisible) {
             Rect firstRect = ClampRectToParent(
                 Rect{
                     std::round(allottedRect.x),
@@ -289,14 +311,15 @@ void Splitter::Arrange(const Rect& allottedRect) {
             m_FirstChildRect = firstRect;
             m_FirstChild->Arrange(firstRect);
         }
-        if (m_SecondChild && m_SecondChild->IsVisible()) {
-            const float secondY = h1 > 0.0f ? barY + barThickness : allottedRect.y;
+        if (secondVisible) {
+            const float secondY = (firstVisible && h1 > 0.0f) ? barY + barThickness : allottedRect.y;
+            const float secondH = (firstVisible && secondVisible) ? h2 : availH;
             Rect secondRect = ClampRectToParent(
                 Rect{
                     std::round(allottedRect.x),
                     std::round(secondY),
                     std::round(allottedRect.x + availW) - std::round(allottedRect.x),
-                    std::round(secondY + h2) - std::round(secondY)
+                    std::round(secondY + secondH) - std::round(secondY)
                 },
                 allottedRect);
             AssertLayoutRectValid("Splitter.second", secondRect, allottedRect);
@@ -304,7 +327,11 @@ void Splitter::Arrange(const Rect& allottedRect) {
             m_SecondChild->Arrange(secondRect);
         }
 
-        m_CachedBarRect = Rect{ allottedRect.x, barY, availW, barThickness };
+        if (firstVisible && secondVisible) {
+            m_CachedBarRect = Rect{ allottedRect.x, barY, availW, barThickness };
+        } else {
+            m_CachedBarRect = {};
+        }
         UpdateCachedBarHitRect();
     }
 }
@@ -389,8 +416,6 @@ void Splitter::UpdateCachedBarHitRect() {
 void Splitter::Paint(PaintContext& context) {
     if (!m_Visible) return;
 
-    // Removed redundant Workspace background clear - root window already clears this.
-
     const auto paintChildClipped = [&](const std::shared_ptr<Widget>& child, const Rect& clipRect) {
         if (!child || !child->IsVisible() || clipRect.IsEmpty()) {
             return;
@@ -417,7 +442,6 @@ void Splitter::Paint(PaintContext& context) {
     const float scale = DPIContext::GetScale();
     const float thickness = std::max(1.0f, ResolveMetric(MetricToken::SplitterThickness) * scale);
 
-    // Divider line using the shared Separator token and SplitterThickness.
     if (m_Orientation == Orientation::Horizontal) {
         Rect visualRect{ std::floor(barRect.x + (barRect.width - thickness) * 0.5f), barRect.y, thickness, barRect.height };
         context.DrawSurface(visualRect, SurfaceRole::Separator, 0.0f, "SplitterDivider");
@@ -430,7 +454,11 @@ void Splitter::Paint(PaintContext& context) {
 void Splitter::OnMouseDown(const MouseEvent& event) {
     Rect hitRect = GetSplitterHitRect();
     if (hitRect.Contains(event.position)) {
-        m_Dragging = true;
+        if (!m_Dragging) {
+            m_Dragging = true;
+            g_SplitterDragCount.fetch_add(1, std::memory_order_relaxed);
+        }
+        ApplyResizeCursor(true);
     }
 }
 
@@ -442,8 +470,12 @@ void Splitter::OnMouseMove(const MouseEvent& event) {
         if (wasHovered != m_Hovered) {
             InvalidatePaint();
         }
+        // Set after EventSystem's default arrow/hand so the resize cursor wins.
+        ApplyResizeCursor(m_Hovered);
         return;
     }
+
+    ApplyResizeCursor(true);
 
     const float barThickness = GetEffectiveBarThickness();
     if (m_Orientation == Orientation::Horizontal) {
@@ -483,7 +515,16 @@ void Splitter::OnMouseMove(const MouseEvent& event) {
 
 void Splitter::OnMouseUp(const MouseEvent& event) {
     (void)event;
-    m_Dragging = false;
+    if (m_Dragging) {
+        m_Dragging = false;
+        const int prev = g_SplitterDragCount.fetch_sub(1, std::memory_order_relaxed);
+        if (prev <= 0) {
+            g_SplitterDragCount.store(0, std::memory_order_relaxed);
+        }
+        ApplyResizeCursor(GetSplitterHitRect().Contains(event.position));
+        // Apply deferred viewport RT resize on the next flush after drag ends.
+        UIRepaintGate::RequestPaint();
+    }
 }
 
 std::shared_ptr<Widget> Splitter::HitTestPoint(const Point& pos, const Rect* clip) {

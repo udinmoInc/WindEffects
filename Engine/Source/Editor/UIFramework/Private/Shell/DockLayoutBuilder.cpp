@@ -65,14 +65,13 @@ std::shared_ptr<Panel> DockLayoutBuilder::CreatePanel(
     const UIExtensionRegistry& extensions,
     float dpiScale,
     DockLayoutBuildResult& result) {
-    // ResolveMetric is logical; scale once. DockContainer owns the tab strip height.
-    const float tabHeight = ResolveMetric(MetricToken::PanelTabHeight) * dpiScale;
+    (void)dpiScale;
 
     const auto& panels = extensions.GetPanels();
     const auto it = panels.find(std::string(panelId));
     if (it == panels.end()) {
         auto fallback = PanelBuilder::Create(std::string(panelId))
-            .HeaderHeight(tabHeight)
+            .HeaderHeight(0.0f)
             .Build();
         result.panels[std::string(panelId)] = fallback;
         return fallback;
@@ -80,7 +79,8 @@ std::shared_ptr<Panel> DockLayoutBuilder::CreatePanel(
 
     auto panel = it->second.factory();
     if (panel) {
-        panel->SetHeaderHeight(tabHeight);
+        // Docked panels use the DockContainer tab strip — never a floating header.
+        panel->SetHeaderHeight(0.0f);
         ApplyPanelDescriptor(panel, it->second.descriptor);
     }
     result.panels[std::string(panelId)] = panel;

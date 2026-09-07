@@ -124,9 +124,16 @@ namespace {
                 m_Geometry.height = m_DesiredSize.height;
             }
         }
+        void Tick(float deltaTime) override {
+            (void)deltaTime;
+            m_HoverAnim = Animator::Damp(
+                m_HoverAnim,
+                m_Hovered ? 1.0f : 0.0f,
+                ThemeMetric(MetricToken::HoverAnimationDamping));
+            Widget::Tick(deltaTime);
+        }
         void Paint(PaintContext& context) override {
             const float uiScale = (std::max)(1.0f, DPIContext::GetScale());
-            m_HoverAnim = Animator::Damp(m_HoverAnim, m_Hovered ? 1.0f : 0.0f, ThemeMetric(MetricToken::HoverAnimationDamping));
 
             const float radius = ThemeMetric(MetricToken::CornerRadiusMedium) * uiScale;
             const Color fill = Color::Pick(

@@ -3,6 +3,7 @@
 #include "KindUI/Export.h"
 
 #include "KindUI/Core/Widget.h"
+#include "Platform/Types.h"
 
 #include <algorithm>
 
@@ -56,6 +57,10 @@ public:
     [[nodiscard]] float GetMinFirstSize() const { return m_MinFirstPx; }
     [[nodiscard]] float GetMinSecondSize() const { return m_MinSecondPx; }
 
+    [[nodiscard]] bool IsDragging() const { return m_Dragging; }
+    /// True while any splitter bar is being dragged (viewport RT recreate should wait).
+    [[nodiscard]] static bool AnySplitterDragging();
+
     void SetSlotId(std::string id) { m_SlotId = std::move(id); }
     [[nodiscard]] const std::string& GetSlotId() const { return m_SlotId; }
     [[nodiscard]] Rect GetSplitterHitRect() const;
@@ -67,6 +72,7 @@ private:
     [[nodiscard]] float GetEffectiveBarThickness() const;
     void ClampSplitToMins(float availMain, float barThickness);
     void SplitAvailable(float availMain, float barThickness, float& first, float& second) const;
+    void ApplyResizeCursor(bool overResizeEdge) const;
 
     Orientation m_Orientation;
     float m_SplitRatio = 0.5f;

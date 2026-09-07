@@ -99,6 +99,11 @@ private:
     EnvironmentExposureController m_ExposureController{};
 
     std::vector<ChangeListener> m_ChangeListeners;
+
+    we::math::Vec3 m_LastSyncCameraPosition{ 0.0f };
+    we::math::Vec3 m_LastSunPosition{ 0.0f };
+    we::math::Vec3 m_LastSunRotation{ 0.0f };
+    bool m_EnvActorsDirty = true;
 };
 
 } // namespace we::runtime::world::environment

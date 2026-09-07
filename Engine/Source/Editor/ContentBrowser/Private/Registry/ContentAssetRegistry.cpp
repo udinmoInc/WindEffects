@@ -1,6 +1,7 @@
 #include "Registry/ContentAssetRegistry.h"
 #include "Registry/AssetTypeResolver.h"
 #include "Core/Logger.h"
+#include <algorithm>
 #include <filesystem>
 
 namespace fs = std::filesystem;
@@ -169,20 +170,33 @@ void ContentAssetRegistry::Tick(float deltaTime) {
     }
     if (!initialized) return;
     m_WatchTimer += deltaTime;
-    if (m_WatchTimer < m_WatchInterval) return;
+    // Idle editor should not recursively walk the content tree often — 5s is enough
+    // for external file drops without competing with mouse navigation.
+    constexpr float kMinWatchInterval = 5.0f;
+    const float interval = (std::max)(m_WatchInterval, kMinWatchInterval);
+    if (m_WatchTimer < interval) return;
     m_WatchTimer = 0.0f;
 
-    // Content root mounts as virtual /Game — watch the root itself, not a nested Game/.
+    // Prefer OS directory watchers when the platform has already polled them.
+    // Fall back to a shallow (non-recursive) signature of the content root entries.
     const fs::path contentRoot = fs::path(m_ContentRoot);
     if (!fs::exists(contentRoot)) return;
 
     static uint64_t lastScanSignature = 0;
     uint64_t signature = 0;
     std::error_code ec;
-    for (const auto& entry : fs::recursive_directory_iterator(contentRoot, ec)) {
+    for (const auto& entry : fs::directory_iterator(contentRoot, ec)) {
         signature += static_cast<uint64_t>(entry.file_size(ec));
         auto ftime = fs::last_write_time(entry, ec);
         signature ^= static_cast<uint64_t>(ftime.time_since_epoch().count());
+        // One level deep is enough to catch common /Game/<Asset> drops without a full tree walk.
+        if (entry.is_directory(ec)) {
+            for (const auto& child : fs::directory_iterator(entry.path(), ec)) {
+                signature += static_cast<uint64_t>(child.file_size(ec));
+                auto ctime = fs::last_write_time(child, ec);
+                signature ^= static_cast<uint64_t>(ctime.time_since_epoch().count());
+            }
+        }
     }
 
     if (signature != lastScanSignature) {

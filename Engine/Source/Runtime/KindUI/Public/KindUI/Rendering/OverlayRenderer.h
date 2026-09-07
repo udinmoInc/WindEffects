@@ -134,6 +134,9 @@ private:
     std::vector<UIVertex2> m_Vertices;
     std::vector<uint32_t> m_Indices;
     std::vector<UIRenderBatch> m_Batches;
+    we::rhi::UIDrawList m_CachedDrawList{};
+    uint64_t m_CachedDrawListGeneration = ~uint64_t{0};
+    we::rhi::Format m_CachedDrawListFormat = we::rhi::Format::Unknown;
 
     uint32_t m_ActiveFrameSlot = 0;
     uint32_t m_CurrentWidth = 0;

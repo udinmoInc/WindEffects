@@ -131,7 +131,7 @@ void ContentBrowserService::ProcessThumbnails() {
                 }
                 model->NotifyChanged();
             }
-            we::runtime::kindui::UIRepaintGate::Request();
+            we::runtime::kindui::UIRepaintGate::RequestPaint();
         });
 }
 

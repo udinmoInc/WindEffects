@@ -594,10 +594,19 @@ void EnvironmentSystem::SyncFromScene(const we::math::Vec3& cameraPosition) {
 
     if (m_Sun.EntityId == 0 || scene->FindEntityById(m_Sun.EntityId) == nullptr) {
         DiscoverExistingActors();
+        m_EnvActorsDirty = true;
     }
 
+    bool transformed = false;
     if (Entity* sun = scene->FindEntityById(m_Sun.EntityId)) {
+        const we::math::Vec3 prevPos = m_LastSunPosition;
+        const we::math::Vec3 prevRot = m_LastSunRotation;
         m_Sun.SyncFromEntityTransform(sun->Position, sun->Rotation, sun->Color);
+        if (sun->Position != prevPos || sun->Rotation != prevRot) {
+            transformed = true;
+            m_LastSunPosition = sun->Position;
+            m_LastSunRotation = sun->Rotation;
+        }
     }
     if (Entity* sky = scene->FindEntityById(m_SkyLight.EntityId)) {
         m_SkyLight.SyncFromEntity(sky->Color);
@@ -606,6 +615,15 @@ void EnvironmentSystem::SyncFromScene(const we::math::Vec3& cameraPosition) {
         m_HeightFog.SyncFromEntity(fog->Color, fog->Scale);
     }
 
+    const we::math::Vec3 camDelta = cameraPosition - m_LastSyncCameraPosition;
+    const float camMoveSq = camDelta.x * camDelta.x + camDelta.y * camDelta.y + camDelta.z * camDelta.z;
+    constexpr float kCamEpsSq = 1.0e-4f;
+    if (!m_EnvActorsDirty && !transformed && camMoveSq < kCamEpsSq) {
+        return;
+    }
+
+    m_LastSyncCameraPosition = cameraPosition;
+    m_EnvActorsDirty = false;
     UpdateRendering(cameraPosition);
     ApplyComponentsToActors();
 }
@@ -637,6 +655,7 @@ void EnvironmentSystem::AddChangeListener(ChangeListener listener) {
 }
 
 void EnvironmentSystem::NotifyChanged() {
+    m_EnvActorsDirty = true;
     for (const ChangeListener& listener : m_ChangeListeners) {
         if (listener) {
             listener();

@@ -21,8 +21,8 @@ namespace we::runtime::ecs { struct ExtractedFrameData; }
 
 namespace we::runtime::renderer {
 
-/// Default 1 for low input→visible latency; override with WE_FRAMES_IN_FLIGHT=2|3.
-constexpr uint32_t kMaxFramesInFlight = 1;
+/// Default 2 balances input latency vs GPU wait; override with WE_FRAMES_IN_FLIGHT=1|3.
+constexpr uint32_t kMaxFramesInFlight = 2;
 
 class ViewportSkyRenderer;
 class ViewportGridRenderer;

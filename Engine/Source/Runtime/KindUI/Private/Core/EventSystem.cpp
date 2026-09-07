@@ -71,6 +71,11 @@ void EventSystem::ProcessMouseEvent(const MouseEvent& event) {
     if (hitWidget != oldHovered) {
         if (oldHovered) {
             oldHovered->SetHovered(false);
+            // Clear any splitter SizeWE/NS cursor when the hover target changes.
+            if (!m_SuppressSystemCursor) {
+                we::platform::Platform::Get().SetSystemCursor(we::platform::SystemCursor::Arrow);
+                m_UsingPointerCursor = false;
+            }
         }
         if (hitWidget) {
             hitWidget->SetHovered(true);
@@ -107,7 +112,7 @@ void EventSystem::ProcessMouseEvent(const MouseEvent& event) {
         if (event.type == MouseEventType::MouseDown) {
             if (m_PopupHost) {
                 if (m_PopupHost->HasOpenPopups() && !m_PopupHost->IsWidgetInPopup(hitWidget)) {
-                    m_PopupHost->CloseAllPopups();
+                    m_PopupHost->CloseTransientPopups();
                 }
             }
 
@@ -129,7 +134,7 @@ void EventSystem::ProcessMouseEvent(const MouseEvent& event) {
     } else {
         if (event.type == MouseEventType::MouseDown) {
             if (m_PopupHost) {
-                m_PopupHost->CloseAllPopups();
+                m_PopupHost->CloseTransientPopups();
             }
             SetFocusedWidget(nullptr);
             m_CapturedWidget.reset();

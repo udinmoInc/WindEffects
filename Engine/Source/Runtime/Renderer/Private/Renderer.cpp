@@ -392,6 +392,11 @@ void Renderer::RenderUiPaintOnly() {
         swapImage,
         m_SwapchainClearColor,
         swapExtent));
+    // Keep the last HDR viewport in ShaderResource so UI sampling matches a full scene frame
+    // (TonemapPass normally emits this transition).
+    if (m_ViewportColorTexture != we::rhi::RHITextureHandle::Invalid) {
+        m_RenderGraph->AddPass(std::make_unique<TonemapPass>(m_ViewportColorTexture, swapImage));
+    }
     m_RenderGraph->AddPass(std::make_unique<UiOverlayPass>(swapImage, m_OverlayRecorder));
     m_RenderGraph->AddPass(std::make_unique<PresentPass>(swapImage));
 

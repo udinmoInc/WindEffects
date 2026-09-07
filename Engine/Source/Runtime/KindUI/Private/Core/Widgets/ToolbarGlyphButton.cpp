@@ -47,16 +47,6 @@ void ToolbarGlyphButton::Paint(PaintContext& context) {
     const auto hoverStyle = ResolveStyle(StyleRole::IconButtonHover);
     const auto pressStyle = ResolveStyle(StyleRole::IconButtonPressed);
 
-    const float hoverDamping = ThemeMetric(MetricToken::HoverAnimationDamping);
-    const float pressDamping = ThemeMetric(MetricToken::PressAnimationDamping);
-    const float pressOffsetTarget = ThemeMetric(MetricToken::PressOffset);
-
-    m_HoverAnim = Animator::Damp(m_HoverAnim, m_Hovered && IsEnabled() ? 1.0f : 0.0f, hoverDamping);
-    m_PressAnim = Animator::Damp(m_PressAnim, m_Pressed && IsEnabled() ? 1.0f : 0.0f, pressDamping);
-
-    const float targetOffset = m_Pressed && IsEnabled() ? pressOffsetTarget : 0.0f;
-    m_PressOffset = Animator::Damp(m_PressOffset, targetOffset, pressDamping);
-
     Color bgColor = IsEnabled() ? baseStyle.background : ThemeColor(ColorToken::DisabledBackground);
     Color borderColor = IsEnabled() ? baseStyle.border : ThemeColor(ColorToken::Separator);
 
@@ -102,6 +92,16 @@ void ToolbarGlyphButton::OnMouseUp(const MouseEvent& event) {
 
 void ToolbarGlyphButton::Tick(float deltaTime) {
     (void)deltaTime;
+    const float hoverDamping = ThemeMetric(MetricToken::HoverAnimationDamping);
+    const float pressDamping = ThemeMetric(MetricToken::PressAnimationDamping);
+    const float pressOffsetTarget = ThemeMetric(MetricToken::PressOffset);
+
+    m_HoverAnim = Animator::Damp(m_HoverAnim, m_Hovered && IsEnabled() ? 1.0f : 0.0f, hoverDamping);
+    m_PressAnim = Animator::Damp(m_PressAnim, m_Pressed && IsEnabled() ? 1.0f : 0.0f, pressDamping);
+
+    const float targetOffset = m_Pressed && IsEnabled() ? pressOffsetTarget : 0.0f;
+    m_PressOffset = Animator::Damp(m_PressOffset, targetOffset, pressDamping);
+
     Widget::Tick(deltaTime);
 }
 

@@ -229,13 +229,14 @@ void OverlayRenderer::RenderUI(const std::shared_ptr<Widget>& root, uint32_t fra
         if (m_WidgetAdapter) {
             m_WidgetAdapter->ResetDiagnostics();
             m_WidgetAdapter->ProcessWidget(root, width, height, needsLayout);
-            m_Vertices = m_WidgetAdapter->GetVertices();
-            m_Indices = m_WidgetAdapter->GetIndices();
-            m_Batches = m_WidgetAdapter->GetBatches();
+            m_Vertices = m_WidgetAdapter->TakeVertices();
+            m_Indices = m_WidgetAdapter->TakeIndices();
+            m_Batches = m_WidgetAdapter->TakeBatches();
         }
         m_LastBuiltWidth = width;
         m_LastBuiltHeight = height;
         ++m_GeometryGeneration;
+        m_CachedDrawListGeneration = ~uint64_t{0};
     }
 
     m_FrameStats.vertices = static_cast<uint32_t>(m_Vertices.size());
@@ -295,9 +296,18 @@ void OverlayRenderer::EndOverlayPass(const we::runtime::uigfx::OverlayRenderCont
     const we::rhi::Format targetFormat = context.targetFormat != we::rhi::Format::Unknown
         ? context.targetFormat
         : m_SwapchainFormat;
-    const we::rhi::UIDrawList drawList =
-        BuildDrawList(m_Vertices, m_Indices, m_Batches, targetFormat, m_CurrentWidth, m_CurrentHeight);
-    m_UIImmediate->SubmitDrawList(drawList, m_ActiveFrameSlot, m_GeometryGeneration);
+    // Rebuild the CPU draw list only when geometry or target format/size changed.
+    // GPU upload already skips unchanged geometryGeneration inside UiImmediateRenderer.
+    if (m_CachedDrawListGeneration != m_GeometryGeneration
+        || m_CachedDrawListFormat != targetFormat
+        || m_CachedDrawList.targetWidth != m_CurrentWidth
+        || m_CachedDrawList.targetHeight != m_CurrentHeight) {
+        m_CachedDrawList = BuildDrawList(
+            m_Vertices, m_Indices, m_Batches, targetFormat, m_CurrentWidth, m_CurrentHeight);
+        m_CachedDrawListGeneration = m_GeometryGeneration;
+        m_CachedDrawListFormat = targetFormat;
+    }
+    m_UIImmediate->SubmitDrawList(m_CachedDrawList, m_ActiveFrameSlot, m_GeometryGeneration);
     UiInputLatencyAudit::Get().OnRenderSubmit();
     m_UIImmediate->EndFrame();
 

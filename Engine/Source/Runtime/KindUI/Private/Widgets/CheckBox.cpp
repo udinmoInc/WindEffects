@@ -32,12 +32,16 @@ void CheckBox::Arrange(const Rect& allottedRect) {
     m_Geometry = allottedRect;
 }
 
+void CheckBox::Tick(float deltaTime) {
+    (void)deltaTime;
+    m_HoverAnim = Animator::Damp(m_HoverAnim, m_Hovered ? 1.0f : 0.0f, ControlChrome::HoverDamping());
+    Widget::Tick(deltaTime);
+}
+
 void CheckBox::Paint(PaintContext& context) {
     if (!m_Visible) {
         return;
     }
-
-    m_HoverAnim = Animator::Damp(m_HoverAnim, m_Hovered ? 1.0f : 0.0f, ControlChrome::HoverDamping());
 
     const Rect boxRect{
         m_Geometry.x,

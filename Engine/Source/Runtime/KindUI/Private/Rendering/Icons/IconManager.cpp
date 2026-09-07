@@ -73,29 +73,18 @@ IconManager::CachedTexture* IconManager::LoadTexture(WindIconRef icon) const
     }
 
     const std::string key = CacheKey(icon);
-    const auto path = AssetPathFor(icon);
-    if (std::filesystem::exists(path)) {
-        const auto sourceWriteTime = std::filesystem::last_write_time(path);
+
+    // Hot path: return cached textures without touching the filesystem. WindIcons are
+    // shipped assets; mtime checks belong on first load / explicit reload only.
+    {
         std::scoped_lock lock(m_Mutex);
         auto it = m_Textures.find(key);
         if (it != m_Textures.end()) {
-            if (it->second.ready && it->second.sourceWriteTime == sourceWriteTime) {
-                return it->second.ready ? &it->second : nullptr;
-            }
-            DestroyTexture(it->second);
-            m_Textures.erase(it);
-        }
-    } else {
-        std::scoped_lock lock(m_Mutex);
-        auto it = m_Textures.find(key);
-        if (it != m_Textures.end()) {
-            if (it->second.ready) {
-                return &it->second;
-            }
-            return nullptr;
+            return it->second.ready ? &it->second : nullptr;
         }
     }
 
+    const auto path = AssetPathFor(icon);
     if (!std::filesystem::exists(path)) {
         return nullptr;
     }

@@ -40,6 +40,7 @@ public:
     Size Measure(const Size& availableSize) override;
     void Arrange(const Rect& allottedRect) override;
     void Paint(PaintContext& context) override;
+    void Tick(float deltaTime) override;
 
     void OnMouseDown(const MouseEvent& event) override;
     void OnMouseUp(const MouseEvent& event) override;
@@ -75,6 +76,7 @@ public:
     Size Measure(const Size& availableSize) override;
     void Arrange(const Rect& allottedRect) override;
     void Paint(PaintContext& context) override;
+    void Tick(float deltaTime) override;
 
     void OnMouseDown(const MouseEvent& event) override;
     void OnMouseUp(const MouseEvent& event) override;
