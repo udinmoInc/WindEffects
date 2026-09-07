@@ -17,9 +17,10 @@
 
   "Panel": "#141414",
   "Header": "#1C1C1C",
-  "Dropdown": "#202020",
-  "DropdownOutline": "#303030",
-  "Hover": "#282828",
+  "Dropdown": "#1A1A1A",
+  "DropdownOutline": "#3a3a3a",
+  "ShadowPopup": "#00000080",
+  "Hover": "#28282C",
   "Hover2": "#858585",
 
   "Highlight": "#0070E0",
@@ -66,8 +67,8 @@
 
   "AccentFolder": "#927341",
 
-  "TooltipBg": "#242424F7",
-  "DragGhost": "#242424E6",
+  "TooltipBg": "#141416F5",
+  "DragGhost": "#141416E6",
 
   "ActiveTabLine": "#0070E0CC",
   "SelectionHighlight": "#0070E0E6",

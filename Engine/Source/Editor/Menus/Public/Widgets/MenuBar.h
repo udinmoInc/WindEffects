@@ -25,6 +25,7 @@ using ::we::runtime::kindui::WidgetStyle;
 struct MenuItem {
     std::string label;
     std::string shortcut;
+    std::string tooltip;
     we::runtime::kindui::WindIconRef icon = we::runtime::kindui::kWindIconNone;
     std::function<void()> onClick;
     bool enabled = true;

@@ -38,6 +38,7 @@ struct EditorToolCategory {
 struct EditorToolMode {
     std::string id;
     std::string label;
+    std::string tooltip;
     we::runtime::kindui::WindIconRef icon = we::runtime::kindui::kWindIconNone;
     std::string keywords;
     int sortOrder = 0;
@@ -93,13 +94,14 @@ private:
 #pragma warning(pop)
 };
 
-#define REGISTER_EDITOR_TOOL_MODE_IMPL(ModeId, Label, IconName, SortOrder, OpensDrawer) \
+#define REGISTER_EDITOR_TOOL_MODE_IMPL(ModeId, Label, IconName, SortOrder, OpensDrawer, TooltipText) \
     namespace { \
         struct EditorToolModeRegister_##ModeId { \
             EditorToolModeRegister_##ModeId() { \
                 ::we::editor::toolspanel::EditorToolMode mode; \
                 mode.id = #ModeId; \
                 mode.label = Label; \
+                mode.tooltip = TooltipText; \
                 mode.icon = IconName; \
                 mode.sortOrder = SortOrder; \
                 mode.keywords = Label; \
@@ -111,10 +113,16 @@ private:
     }
 
 #define REGISTER_EDITOR_TOOL_MODE(ModeId, Label, IconName, SortOrder) \
-    REGISTER_EDITOR_TOOL_MODE_IMPL(ModeId, Label, IconName, SortOrder, true)
+    REGISTER_EDITOR_TOOL_MODE_IMPL(ModeId, Label, IconName, SortOrder, true, "")
+
+#define REGISTER_EDITOR_TOOL_MODE_WITH_TOOLTIP(ModeId, Label, IconName, SortOrder, TooltipText) \
+    REGISTER_EDITOR_TOOL_MODE_IMPL(ModeId, Label, IconName, SortOrder, true, TooltipText)
 
 #define REGISTER_EDITOR_TOOL_MODE_COMPACT(ModeId, Label, IconName, SortOrder) \
-    REGISTER_EDITOR_TOOL_MODE_IMPL(ModeId, Label, IconName, SortOrder, false)
+    REGISTER_EDITOR_TOOL_MODE_IMPL(ModeId, Label, IconName, SortOrder, false, "")
+
+#define REGISTER_EDITOR_TOOL_MODE_COMPACT_WITH_TOOLTIP(ModeId, Label, IconName, SortOrder, TooltipText) \
+    REGISTER_EDITOR_TOOL_MODE_IMPL(ModeId, Label, IconName, SortOrder, false, TooltipText)
 
 #define REGISTER_EDITOR_TOOL_CATEGORY(ModeId, CategoryId, Label, IconName, SortOrder) \
     namespace { \
