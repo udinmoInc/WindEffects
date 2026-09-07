@@ -58,10 +58,10 @@ struct GraphiteDark {
     static constexpr Color Header            = Hex("#212121");
 
     // Raised menus / cards / popups
-    static constexpr Color Dropdown          = Hex("#1B1B1E");
+    static constexpr Color Dropdown          = Hex("#1A1A1A");
 
     // Raised control / popup edges
-    static constexpr Color DropdownOutline   = Hex("#333338");
+    static constexpr Color DropdownOutline   = Hex("#3A3A3A");
 
 
     // ── Interaction (EStyleColor) ───────────────────────────────────────────
@@ -164,7 +164,7 @@ struct GraphiteDark {
     // ── Composites (alpha permitted — overlays / shadows only) ──────────────
 
     // Tooltip / popup overlays
-    static constexpr Color TooltipBg         = Hex("#141416F5");
+    static constexpr Color TooltipBg         = Hex("#1A1A1AF5");
     static constexpr Color DragGhost         = Hex("#141416E6");
 
     // Selection / active tab
