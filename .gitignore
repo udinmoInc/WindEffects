@@ -3,7 +3,7 @@
 # ==========================
 # Root-only: a bare "Build/" also matched Engine/.../IgniteBT/Source/Build/
 /Build/
-
+/tools/
 # ==========================
 # Legacy / Generated Artifacts
 # ==========================
