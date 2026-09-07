@@ -2,6 +2,7 @@
 #include "Widgets/DropdownMenu.h"
 #include "KindUI/Layout/OverlayManager.h"
 #include "KindUI/Core/PaintContext.h"
+#include "KindUI/Core/TextMetrics.h"
 #include "KindUI/Tokens/DesignToken.h"
 #include "KindUI/Theming/StyleRole.h"
 #include "KindUI/Core/WindIcon.h"
@@ -14,6 +15,7 @@
 using ::we::runtime::kindui::ColorToken;
 using ::we::runtime::kindui::MetricToken;
 using ::we::runtime::kindui::PaddingToken;
+using ::we::runtime::kindui::TextMetrics;
 
 namespace we::editor::menus {
 using ::we::runtime::kindui::DPIContext;
@@ -24,26 +26,17 @@ using ::we::runtime::kindui::kWindIconNone;
 MenuBar::MenuBar()
     : m_Style(WidgetStyle::Panel())
     , m_Height(we::runtime::kindui::ResolveMetric(MetricToken::TitleBarHeight))
-    , m_ItemSpacing(4.0f)
+    , m_ItemSpacing(0.0f)
     , m_ItemPaddingH(10.0f)
 {}
 
 Size MenuBar::Measure(const Size& availableSize) {
     const float uiScale = (std::max)(1.0f, DPIContext::GetScale());
     const float textSize = ThemeMetric(MetricToken::TextSizeMenu) * uiScale;
-    auto getApproxTextWidth = [textSize](const std::string& str) {
-        float w = 0.0f;
-        for (char c : str) {
-            if (c == 'W' || c == 'M' || c == 'w' || c == 'm' || c == 'O' || c == 'Q') w += textSize * 0.70f;
-            else if (c == 'i' || c == 'l' || c == 'I' || c == 't' || c == 'f' || c == 'j' || c == 'r') w += textSize * 0.28f;
-            else w += textSize * 0.52f;
-        }
-        return w;
-    };
 
     float totalWidth = 0.0f;
     for (size_t i = 0; i < m_Menus.size(); ++i) {
-        float textWidth = getApproxTextWidth(m_Menus[i].label);
+        float textWidth = TextMetrics::MeasureWidth(m_Menus[i].label, textSize);
         totalWidth += textWidth + (m_ItemPaddingH * uiScale) * 2.0f;
         if (i + 1 < m_Menus.size()) {
             totalWidth += m_ItemSpacing * uiScale;
@@ -114,14 +107,23 @@ void MenuBar::Paint(PaintContext& context) {
 void MenuBar::OnMouseDown(const MouseEvent& event) {
     MenuInfo* menu = GetMenuAtPosition(event.position);
     if (menu) {
+        int idx = -1;
+        for (size_t i = 0; i < m_VisibleMenus.size(); ++i) {
+            if (&m_VisibleMenus[i] == menu) { idx = static_cast<int>(i); break; }
+        }
+        if (m_ShowsMore && &m_MoreMenu == menu) {
+            idx = static_cast<int>(m_VisibleMenus.size());
+        }
+
         if (auto* overlay = GetPopupHost()) {
-            bool wasOpen = m_MenuOpen;
+            bool wasOpen = m_MenuOpen && (m_HoveredMenu == idx);
             overlay->CloseAllPopups();
 
-            if (wasOpen && menu->hovered) {
+            if (wasOpen) {
                 m_MenuOpen = false;
             } else {
                 m_MenuOpen = true;
+                m_HoveredMenu = idx;
                 std::vector<std::shared_ptr<MenuItem>> itemsToShow = menu->items;
 
                 if (itemsToShow.empty()) {
@@ -139,17 +141,39 @@ void MenuBar::OnMouseDown(const MouseEvent& event) {
 }
 
 void MenuBar::OnMouseMove(const MouseEvent& event) {
-    if (m_MenuOpen && GetPopupHost() && !GetPopupHost()->HasOpenPopups()) {
+    auto* overlay = GetPopupHost();
+    if (m_MenuOpen && overlay && !overlay->HasOpenPopups()) {
         m_MenuOpen = false;
     }
 
     MenuInfo* menu = GetMenuAtPosition(event.position);
+    int newHovered = -1;
 
-    for (auto& m : m_VisibleMenus) m.hovered = false;
-    m_MoreMenu.hovered = false;
+    for (size_t i = 0; i < m_VisibleMenus.size(); ++i) {
+        bool h = (&m_VisibleMenus[i] == menu);
+        m_VisibleMenus[i].hovered = h;
+        if (h) newHovered = static_cast<int>(i);
+    }
+    bool moreH = (&m_MoreMenu == menu);
+    m_MoreMenu.hovered = moreH;
+    if (moreH) newHovered = static_cast<int>(m_VisibleMenus.size());
 
-    if (menu) {
-        menu->hovered = true;
+    if (menu && newHovered >= 0) {
+        if (m_MenuOpen && overlay && m_HoveredMenu != newHovered) {
+            overlay->CloseAllPopups();
+            m_HoveredMenu = newHovered;
+            std::vector<std::shared_ptr<MenuItem>> itemsToShow = menu->items;
+            if (itemsToShow.empty()) {
+                auto emptyItem = std::make_shared<MenuItem>();
+                emptyItem->label = "(Empty)";
+                emptyItem->enabled = false;
+                itemsToShow.push_back(emptyItem);
+            }
+            auto dropdown = std::make_shared<DropdownMenu>(itemsToShow);
+            overlay->ShowPopup(dropdown, Point{menu->geometry.x, menu->geometry.y + menu->geometry.height});
+        } else if (!m_MenuOpen) {
+            m_HoveredMenu = newHovered;
+        }
     }
 }
 
@@ -177,28 +201,18 @@ void MenuBar::CalculateMenuGeometries() {
     m_HiddenMenus.clear();
     m_ShowsMore = false;
 
-    auto getApproxTextWidth = [textSize](const std::string& str) {
-        float w = 0.0f;
-        for (char c : str) {
-            if (c == 'W' || c == 'M' || c == 'w' || c == 'm' || c == 'O' || c == 'Q') w += textSize * 0.70f;
-            else if (c == 'i' || c == 'l' || c == 'I' || c == 't' || c == 'f' || c == 'j' || c == 'r') w += textSize * 0.28f;
-            else w += textSize * 0.52f;
-        }
-        return w;
-    };
-
-    float moreTextW = getApproxTextWidth("More");
+    float moreTextW = TextMetrics::MeasureWidth("More", textSize);
     float moreWidth = moreTextW + (m_ItemPaddingH * uiScale) * 2.0f;
 
     for (size_t i = 0; i < m_Menus.size(); ++i) {
         auto& menu = m_Menus[i];
-        float textWidth = getApproxTextWidth(menu.label);
+        float textWidth = TextMetrics::MeasureWidth(menu.label, textSize);
         float itemWidth = textWidth + (m_ItemPaddingH * uiScale) * 2.0f;
 
         bool isLast = (i == m_Menus.size() - 1);
         float widthNeeded = isLast ? itemWidth : (itemWidth + m_ItemSpacing * uiScale + moreWidth);
 
-        if (i >= 4 && (x - m_Geometry.x) + widthNeeded > availableWidth && !m_Menus.empty()) {
+        if (availableWidth > 0.0f && i >= 4 && (x - m_Geometry.x) + widthNeeded > availableWidth && !m_Menus.empty()) {
             m_ShowsMore = true;
             m_HiddenMenus.push_back(menu);
         } else {

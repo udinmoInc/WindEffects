@@ -143,6 +143,7 @@ namespace WindIconAssets {
     inline constexpr const char* TriangleUp = "triangle-up";
     inline constexpr const char* Undo = "undo";
     inline constexpr const char* Unlit = "unlit";
+    inline constexpr const char* Viewport = "viewport";
     inline constexpr const char* Window = "window";
     inline constexpr const char* Wrench = "wrench";
     inline constexpr const char* X = "x";
@@ -391,6 +392,8 @@ namespace WindIcons {
     inline constexpr WindIconRef Undo24{ WindIconAssets::Undo, 24 };
     inline constexpr WindIconRef Unlit16{ WindIconAssets::Unlit, 16 };
     inline constexpr WindIconRef Unlit24{ WindIconAssets::Unlit, 24 };
+    inline constexpr WindIconRef Viewport16{ WindIconAssets::Viewport, 16 };
+    inline constexpr WindIconRef Viewport24{ WindIconAssets::Viewport, 24 };
     inline constexpr WindIconRef Window16{ WindIconAssets::Window, 16 };
     inline constexpr WindIconRef Window24{ WindIconAssets::Window, 24 };
     inline constexpr WindIconRef Wrench16{ WindIconAssets::Wrench, 16 };

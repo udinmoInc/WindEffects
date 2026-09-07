@@ -26,6 +26,7 @@
 #include <memory>
 #include <sstream>
 
+// Re-compiled for PanelBuilder API updates
 namespace we::programs::editor {
 namespace WindIcons = ::we::runtime::kindui::WindIcons;
 using ::we::runtime::kindui::kWindIconNone;
@@ -209,7 +210,7 @@ void ShutdownContentBrowserService() {
 }
 
 std::shared_ptr<::we::editor::panels::Panel> CreateContentBrowserPanel() {
-    auto title = we::core::Localization::Get().GetString("Panel_ContentBrowser", "Content Browser");
+    auto title = we::core::Localization::Get().GetString("Panel_ContentBrowser", "Asset Explorer");
 
     auto folderTree = std::make_shared<::we::editor::contentbrowser::TreeView>();
     folderTree->SetExplorerStyle(false);
@@ -414,7 +415,7 @@ std::shared_ptr<::we::editor::panels::Panel> CreateContentBrowserPanel() {
 }
 
 REGISTER_UI_PANEL(ContentBrowser,
-    WE_PANEL(ContentBrowser).Title("Content Browser").Icon("content-browser").Zone(DockZone::Bottom).WindowMenu("Content Browser").SortOrder(4),
+    WE_PANEL(ContentBrowser).Title("Asset Explorer").Icon("content-browser").Zone(DockZone::Bottom).WindowMenu("Asset Explorer").SortOrder(4),
     CreateContentBrowserPanel)
 
 } // namespace we::programs::editor

@@ -475,6 +475,30 @@ void ToolButton::Paint(PaintContext& context) {
             IconPainter::Draw(context, WindIcons::ChevronDownV212, IconMetrics::CompactGlyphBand(renderRect, chevronX));
         }
     }
+
+    if (m_Hovered && m_HoverAnim > 0.6f && !m_Tooltip.empty()) {
+        const float tooltipPadX = 10.0f * uiScale;
+        const float tooltipPadY = 5.0f * uiScale;
+        const float tooltipTextSize = ThemeMetric(MetricToken::TextSizeSmall) * uiScale;
+        const float tooltipTextW = m_Tooltip.length() * (6.8f * uiScale);
+        const float tooltipW = tooltipTextW + tooltipPadX * 2.0f;
+        const float tooltipH = tooltipTextSize + tooltipPadY * 2.0f;
+
+        const Rect tooltipRect{
+            renderRect.x + (renderRect.width - tooltipW) * 0.5f,
+            renderRect.y + renderRect.height + 6.0f * uiScale,
+            tooltipW,
+            tooltipH
+        };
+
+        we::runtime::kindui::ControlChrome::PaintTooltipSurface(context, tooltipRect);
+        context.DrawText(
+            m_Tooltip,
+            Point{ tooltipRect.x + tooltipPadX, tooltipRect.y + tooltipPadY },
+            ThemeColor(ColorToken::TextPrimary),
+            tooltipTextSize,
+            we::runtime::text::layout::FontWeight::Regular);
+    }
 }
 
 void ToolButton::OnMouseDown(const MouseEvent& event) {
@@ -494,7 +518,11 @@ void ToolButton::OnMouseUp(const MouseEvent& event) {
 }
 
 void ToolButton::OnMouseMove(const MouseEvent& event) {
-    (void)event;
+    const bool nextHovered = m_Geometry.Contains(event.position);
+    if (nextHovered != m_Hovered) {
+        m_Hovered = nextHovered;
+        InvalidatePaint();
+    }
 }
 
 void ToolButton::OnMouseWheel(const MouseEvent& event) {

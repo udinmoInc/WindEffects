@@ -6,14 +6,14 @@
   "Black": "#070707",
   "Title": "#070707",
   "Background": "#070707",
-  "WindowBorder": "#030303",
+  "WindowBorder": "#040404",
 
   "Foldout": "#0B0B0B",
   "Input": "#0B0B0B",
   "InputOutline": "#292929",
   "InputInsetInner": "#05050566",
   "InputInsetOuter": "#000000A8",
-  "Recessed": "#0E0E0E",
+  "Recessed": "0D0D0D",
 
   "Panel": "#141414",
   "Header": "#1C1C1C",

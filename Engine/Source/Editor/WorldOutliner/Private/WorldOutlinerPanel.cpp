@@ -4,6 +4,7 @@
 #include "WorldOutliner/OutlinerTypes.h"
 #include "WindEffects/Editor/EditorSDK.h"
 #include "WindEffects/Editor/UI/Widgets/Panel.h"
+#include "WindEffects/Editor/UI/Widgets/PanelBuilder.h"
 #include "ContentBrowser/Widgets/TreeView.h"
 #include "ContentBrowser/Widgets/TreeColumnHeader.h"
 #include "Widgets/ExplorerPanelHeader.h"
@@ -41,12 +42,6 @@ std::shared_ptr<ExplorerPanelHeader> g_ExplorerHeader;
 }
 
 std::shared_ptr<Panel> CreateWorldOutlinerPanel() {
-    auto panel = std::make_shared<Panel>("Outliner");
-    panel->AttachBodyLayout();
-    panel->SetHeaderHeight(we::runtime::kindui::ResolveMetric(MetricToken::PanelHeaderHeight));
-    panel->SetCollapsible(false);
-    panel->SetTabIcon(WindIcons::Outliner16);
-
     auto treeView = std::make_shared<TreeView>();
     treeView->SetExplorerStyle(true);
     treeView->SetShowColumnHeader(false);
@@ -143,15 +138,19 @@ std::shared_ptr<Panel> CreateWorldOutlinerPanel() {
         }
     });
 
-    panel->SetSearch(g_ExplorerHeader);
-    panel->SetColumnHeader(columnHeader);
-    panel->SetContent(treeView);
-    panel->SetFooter(statusRow);
-    return panel;
+    return PanelBuilder::Create("Scene Explorer")
+        .HeaderHeight(we::runtime::kindui::ResolveMetric(MetricToken::PanelHeaderHeight))
+        .Collapsible(false)
+        .TabIcon(WindIcons::Outliner16)
+        .Search(g_ExplorerHeader)
+        .ColumnHeader(columnHeader)
+        .Content(treeView)
+        .Footer(statusRow)
+        .Build();
 }
 
 REGISTER_UI_PANEL(WorldOutliner,
-    WE_PANEL(WorldOutliner).Title("Outliner").Icon("outliner").Zone(DockZone::Right).WindowMenu("Outliner").SortOrder(2),
+    WE_PANEL(WorldOutliner).Title("Scene Explorer").Icon("outliner").Zone(DockZone::Right).WindowMenu("Scene Explorer").SortOrder(2),
     CreateWorldOutlinerPanel)
 
 } // namespace we::programs::editor

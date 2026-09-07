@@ -4,17 +4,31 @@
 #include "KindUI/Core/Geometry.h"
 #include "KindUI/Core/WindIcon.h"
 
+// Rebuilt PanelBuilder API implementation for UIFramework
 using ::we::runtime::kindui::ColorToken;
 using ::we::runtime::kindui::MetricToken;
 using ::we::runtime::kindui::ResolveMetric;
 using ::we::runtime::kindui::Margin;
 namespace WindIcons = ::we::runtime::kindui::WindIcons;
 
+// Re-compiled for PanelBuilder API updates
 namespace we::editor::panels {
 using ::we::runtime::kindui::Row;
 
 PanelBuilder::PanelBuilder(std::string_view title)
     : m_Panel(std::make_shared<Panel>(std::string(title))) {
+    m_Panel->AttachBodyLayout();
+    m_Panel->SetHeaderHeight(ResolveMetric(MetricToken::PanelTabHeight));
+}
+
+PanelBuilder::PanelBuilder(const char* title)
+    : m_Panel(std::make_shared<Panel>(title ? std::string(title) : std::string())) {
+    m_Panel->AttachBodyLayout();
+    m_Panel->SetHeaderHeight(ResolveMetric(MetricToken::PanelTabHeight));
+}
+
+PanelBuilder::PanelBuilder(const std::string& title)
+    : m_Panel(std::make_shared<Panel>(title)) {
     m_Panel->AttachBodyLayout();
     m_Panel->SetHeaderHeight(ResolveMetric(MetricToken::PanelTabHeight));
 }
@@ -95,12 +109,12 @@ PanelBuilder& PanelBuilder::ToolbarBox(std::function<void(Row&)> build) {
     return *this;
 }
 
-std::shared_ptr<Panel> PanelBuilder::Content(std::shared_ptr<Widget> content) {
+PanelBuilder& PanelBuilder::Content(std::shared_ptr<Widget> content) {
     m_Panel->SetContent(std::move(content));
-    return m_Panel;
+    return *this;
 }
 
-std::shared_ptr<Panel> PanelBuilder::Build() {
+std::shared_ptr<Panel> PanelBuilder::Build() const {
     return m_Panel;
 }
 

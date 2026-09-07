@@ -7,6 +7,7 @@
 #include "KindUI/Theming/StyleRole.h"
 #include "KindUI/Theming/ThemeAccess.h"
 #include "KindUI/Core/ControlChrome.h"
+#include "KindUI/Core/LayoutMetrics.h"
 #include "KindUI/Layout/OverlayManager.h"
 #include <algorithm>
 
@@ -124,7 +125,8 @@ void DropdownMenu::Paint(PaintContext& context) {
                 const Color textColor = item->enabled
                     ? (m_HoveredItem == static_cast<int>(i) ? ResolveColor(ColorToken::TextPrimary) : ResolveColor(ColorToken::TextSecondary))
                     : ResolveColor(ColorToken::TextDisabled);
-                const float textY = itemRect.y + (m_ItemHeight - textSize) * 0.5f;
+                const float centerY = std::floor(itemRect.y + itemRect.height * 0.5f);
+                const float textY = std::floor(we::runtime::kindui::LayoutMetrics::AlignTextTopAtCenterY(centerY, textSize));
 
                 context.DrawText(item->label, Point{ textX, textY }, textColor, textSize);
 

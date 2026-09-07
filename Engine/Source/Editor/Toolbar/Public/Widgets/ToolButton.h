@@ -72,6 +72,7 @@ private:
     std::function<void(float)> m_OnMouseWheel;
     bool m_Active = false;
     bool m_Pressed = false;
+    bool m_Hovered = false;
     bool m_IsDropdown = false;
     bool m_Chromeless = false;
     ToolButtonStyle m_ButtonStyle = ToolButtonStyle::Normal;

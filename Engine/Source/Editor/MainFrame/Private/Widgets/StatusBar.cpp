@@ -94,8 +94,8 @@ void StatusBar::Construct() {
     m_LeftBox->SetFlexShrink(0.0f);
     m_LeftBox->Align(AlignItems::Center);
 
-    m_AssetsPanelButton = MakeDockControl(WindIcons::FolderSearch16, "Content Browser", "Content Browser");
-    m_DiagnosticsPanelButton = MakeDockControl(WindIcons::DocumentText16, "Output Log", "Output Log");
+    m_AssetsPanelButton = MakeDockControl(WindIcons::FolderSearch16, "Asset Explorer", "Asset Explorer");
+    m_DiagnosticsPanelButton = MakeDockControl(WindIcons::DocumentText16, "Console Log", "Console Log");
 
     m_AssetsPanelButton->SetOnClicked([this]() { SelectPanelTab(0, true); });
     m_DiagnosticsPanelButton->SetOnClicked([this]() { SelectPanelTab(1, true); });

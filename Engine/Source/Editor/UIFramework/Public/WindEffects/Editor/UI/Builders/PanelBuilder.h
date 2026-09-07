@@ -17,6 +17,12 @@ using ::we::runtime::kindui::Row;
 class UIFRAMEWORK_API PanelBuilder {
 public:
     explicit PanelBuilder(std::string_view title);
+    explicit PanelBuilder(const char* title);
+    explicit PanelBuilder(const std::string& title);
+
+    static PanelBuilder Create(std::string_view title = "") { return PanelBuilder(title); }
+    static PanelBuilder Create(const char* title) { return PanelBuilder(title); }
+    static PanelBuilder Create(const std::string& title) { return PanelBuilder(title); }
 
     PanelBuilder& TabIcon(we::runtime::kindui::WindIconRef icon);
     PanelBuilder& HeaderHeight(float height);
@@ -25,6 +31,7 @@ public:
     PanelBuilder& Collapsible(bool collapsible);
     PanelBuilder& WithCloseButton(std::function<void()> onClose = {});
     PanelBuilder& WithHeaderAction(we::runtime::kindui::WindIconRef icon, std::function<void()> onClick);
+    PanelBuilder& AddHeaderAction(we::runtime::kindui::WindIconRef icon, std::function<void()> onClick) { return WithHeaderAction(icon, std::move(onClick)); }
     PanelBuilder& Toolbar(std::shared_ptr<Widget> toolbar);
     PanelBuilder& ToolbarBox(std::function<void(Row&)> build);
     PanelBuilder& ModeTabs(std::shared_ptr<Widget> modeTabs);
@@ -32,8 +39,9 @@ public:
     PanelBuilder& ColumnHeader(std::shared_ptr<Widget> columnHeader);
     PanelBuilder& Footer(std::shared_ptr<Widget> footer);
 
-    [[nodiscard]] std::shared_ptr<Panel> Content(std::shared_ptr<Widget> content);
-    [[nodiscard]] std::shared_ptr<Panel> Build();
+    PanelBuilder& Content(std::shared_ptr<Widget> content);
+    [[nodiscard]] std::shared_ptr<Panel> Build() const;
+    operator std::shared_ptr<Panel>() const { return Build(); }
 
 private:
     std::shared_ptr<Panel> m_Panel;

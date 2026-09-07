@@ -1,6 +1,7 @@
 #include "WindEffects/Editor/UI/Shell/DockLayoutBuilder.h"
 
 #include "WindEffects/Editor/UI/Widgets/Panel.h"
+#include "WindEffects/Editor/UI/Widgets/PanelBuilder.h"
 #include "WindEffects/Editor/UI/Widgets/DockContainer.h"
 #include "KindUI/Layout/Splitter.h"
 #include "KindUI/Core/DPIContext.h"
@@ -13,22 +14,19 @@ using ::we::runtime::kindui::Orientation;
 using ::we::runtime::kindui::MetricToken;
 using ::we::runtime::kindui::DPIContext;
 
+// Re-compiled for PanelBuilder API updates
 namespace we::editor::shell {
 using ::we::editor::docking::SplitOrientation;
 using ::we::editor::docking::DockPanelDescriptor;
 using ::we::editor::docking::DockLayoutNode;
 using ::we::editor::docking::DockNodeType;
 using ::we::editor::services::ResolvePanelTabIcon;
+using ::we::editor::panels::PanelBuilder;
 
 namespace {
 
 Orientation ToOrientation(SplitOrientation orientation) {
     return orientation == SplitOrientation::Horizontal ? Orientation::Horizontal : Orientation::Vertical;
-}
-
-std::string ResolveTabIconName(const DockPanelDescriptor& descriptor) {
-    (void)descriptor;
-    return {};
 }
 
 void ApplyPanelDescriptor(const std::shared_ptr<Panel>& panel, const DockPanelDescriptor& descriptor) {
@@ -43,7 +41,7 @@ void ApplyPanelDescriptor(const std::shared_ptr<Panel>& panel, const DockPanelDe
     panel->SetTabIcon(ResolvePanelTabIcon(descriptor.id));
 }
 
-void WireSplitterSlot(const std::shared_ptr<Splitter>& splitter, const DockLayoutNode& node, DockLayoutBuildResult& result) {
+void WireSplitterSlot(const std::shared_ptr<we::runtime::kindui::Splitter>& splitter, const DockLayoutNode& node, DockLayoutBuildResult& result) {
     if (!splitter) {
         return;
     }
@@ -73,9 +71,9 @@ std::shared_ptr<Panel> DockLayoutBuilder::CreatePanel(
     const auto& panels = extensions.GetPanels();
     const auto it = panels.find(std::string(panelId));
     if (it == panels.end()) {
-        auto fallback = std::make_shared<Panel>(std::string(panelId));
-        fallback->AttachBodyLayout();
-        fallback->SetHeaderHeight(tabHeight);
+        auto fallback = PanelBuilder::Create(std::string(panelId))
+            .HeaderHeight(tabHeight)
+            .Build();
         result.panels[std::string(panelId)] = fallback;
         return fallback;
     }
@@ -89,7 +87,7 @@ std::shared_ptr<Panel> DockLayoutBuilder::CreatePanel(
     return panel;
 }
 
-std::shared_ptr<Widget> DockLayoutBuilder::BuildNode(
+std::shared_ptr<we::runtime::kindui::Widget> DockLayoutBuilder::BuildNode(
     const DockLayoutNode& node,
     const UIExtensionRegistry& extensions,
     float dpiScale,
@@ -98,7 +96,7 @@ std::shared_ptr<Widget> DockLayoutBuilder::BuildNode(
     case DockNodeType::Panel:
         return CreatePanel(node.panelId, extensions, dpiScale, result);
     case DockNodeType::TabGroup: {
-        auto dock = std::make_shared<DockContainer>();
+        auto dock = std::make_shared<we::editor::docking::DockContainer>();
         dock->SetHeaderHeightLogical(ResolveMetric(MetricToken::PanelTabHeight));
         if (auto panel = CreatePanel(node.panelId, extensions, dpiScale, result)) {
             dock->AddPanel(panel);
@@ -117,20 +115,20 @@ std::shared_ptr<Widget> DockLayoutBuilder::BuildNode(
         return dock;
     }
     case DockNodeType::Split: {
-        auto splitter = std::make_shared<Splitter>(ToOrientation(node.orientation), node.splitRatio);
+        auto splitter = std::make_shared<we::runtime::kindui::Splitter>(ToOrientation(node.orientation), node.splitRatio);
         splitter->SetSlotId(node.slotId);
         splitter->SetPanelGapEnabled(true);
         splitter->SetMinPaneSizes(node.minFirstLogical * dpiScale, node.minSecondLogical * dpiScale);
         if (node.slotId == "rootVertical") {
-            splitter->SetResizeMode(Splitter::ResizeMode::FixedSecond);
+            splitter->SetResizeMode(we::runtime::kindui::Splitter::ResizeMode::FixedSecond);
             splitter->SetFixedSecondWidth(240.0f * dpiScale);
             splitter->SetMinPaneSizes(200.0f * dpiScale, 140.0f * dpiScale);
         } else if (node.slotId == "toolsViewport") {
-            splitter->SetResizeMode(Splitter::ResizeMode::FixedFirst);
+            splitter->SetResizeMode(we::runtime::kindui::Splitter::ResizeMode::FixedFirst);
             splitter->SetFixedFirstWidth(360.0f * dpiScale);
             splitter->SetMinPaneSizes(220.0f * dpiScale, 240.0f * dpiScale);
         } else if (node.slotId == "mainHorizontal") {
-            splitter->SetResizeMode(Splitter::ResizeMode::FixedSecond);
+            splitter->SetResizeMode(we::runtime::kindui::Splitter::ResizeMode::FixedSecond);
             splitter->SetFixedSecondWidth(340.0f * dpiScale);
             splitter->SetMinPaneSizes(320.0f * dpiScale, 280.0f * dpiScale);
         }

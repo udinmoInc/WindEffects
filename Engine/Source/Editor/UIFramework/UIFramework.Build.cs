@@ -21,6 +21,7 @@ public class UIFramework : ModuleRules
         PrivateDependencies.Add("Engine");
         PrivateDependencies.Add("Scene");
         PrivateDependencies.Add("World");
+        PrivateDependencies.Add("Menus");
 
         AddOptionalThirdParty("nlohmann_json");
         DefineIf(HasThirdParty("nlohmann_json"), "WE_HAS_NLOHMANN_JSON=1");

@@ -3,6 +3,7 @@
 #include "ViewportToolbarState.h"
 #include "KindUI/Widgets/Label.h"
 
+// Re-compiled for PanelBuilder API updates
 namespace we::programs::editor {
 using ::we::editor::panels::Panel;
 using ::we::editor::panels::PanelBuilder;
@@ -15,7 +16,7 @@ std::shared_ptr<Panel> CreateViewportPanel() {
     auto toolbar = CreateViewportToolbar();
 
     return PanelBuilder("Viewport")
-        .TabIcon(WindIcons::ToolbarCamera16)
+        .TabIcon(WindIcons::Viewport16)
         .Transparent()
         .WithCloseButton()
         .Toolbar(toolbar)

@@ -205,7 +205,7 @@ void UIWidgetAdapter::ProcessWidget(const std::shared_ptr<Widget>& root,
         UiColorDebug::Get().AuditPaintCommands(paintCtx.GetCommands());
     }
 
-    if (UiColorCompositionDiagnostic::IsEnabled()) {
+    if (UiColorCompositionDiagnostic::IsEnabled() && !compositionDiag.HasCompleted()) {
         compositionDiag.RecordDrawCommands(paintCtx.GetCommands());
     }
 

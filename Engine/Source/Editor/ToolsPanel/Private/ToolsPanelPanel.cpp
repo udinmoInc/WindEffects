@@ -1,5 +1,6 @@
 #include "WindEffects/Editor/EditorSDK.h"
 #include "WindEffects/Editor/UI/Shell/EditorModeController.h"
+#include "WindEffects/Editor/UI/Widgets/PanelBuilder.h"
 #include "Widgets/ToolsPanel.h"
 
 namespace we::programs::editor {
@@ -49,16 +50,17 @@ std::shared_ptr<Panel> CreateToolsPanel() {
     auto toolsContent = std::make_shared<ToolsPanel>();
     toolsContent->InitializeFromRegistry(toolsContent);
 
-    auto panel = PanelBuilder("Assets")
+    auto panel = PanelBuilder::Create("Creation Palette")
         .TabIcon(kWindIconNone)
-        .WithHeaderAction(we::runtime::kindui::kWindIconNone, []() {
+        .AddHeaderAction(we::runtime::kindui::kWindIconNone, []() {
             auto& modeController = EditorModeController::Get();
             modeController.SetDrawerPinned(!modeController.IsDrawerPinned());
         })
-        .WithHeaderAction(WindIcons::X16, []() {
+        .AddHeaderAction(WindIcons::X16, []() {
             EditorModeController::Get().SetDrawerVisible(false);
         })
-        .Content(toolsContent);
+        .Content(toolsContent)
+        .Build();
 
     SyncPanelTitle(panel);
     std::weak_ptr<Panel> weakPanel = panel;
@@ -78,7 +80,7 @@ std::shared_ptr<Panel> CreateToolsPanel() {
 }
 
 REGISTER_UI_PANEL(Tools,
-    WE_PANEL(Tools).Title("Actors").Icon("tools-panel").Zone(DockZone::Left).SortOrder(0),
+    WE_PANEL(Tools).Title("Creation Palette").Icon("tools-panel").Zone(DockZone::Left).SortOrder(0),
     CreateToolsPanel)
 
 } // namespace we::programs::editor

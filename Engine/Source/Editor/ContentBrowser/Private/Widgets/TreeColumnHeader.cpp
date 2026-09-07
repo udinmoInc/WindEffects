@@ -66,12 +66,12 @@ void TreeColumnHeader::Paint(PaintContext& context) {
     const float sep1X = std::floor(m_Geometry.x + eyeColWidth);
     context.DrawRect(Rect{ sep1X, m_Geometry.y, borderW, m_Geometry.height }, sepColor);
 
-    // Column 1: Star / Dirty column (spacious 28px cell with crisp 16u Star icon)
+    // Column 1: Pin / Dirty column (spacious 28px cell with crisp 16u Pin icon)
     const float dirtyColWidth = std::floor(28.0f * uiScale);
     const float sep2X = std::floor(sep1X + dirtyColWidth);
     Rect starBand{ sep1X, m_Geometry.y, dirtyColWidth, m_Geometry.height };
     IconPainter::Draw(
-        context, WindIcons::Star16, IconMetrics::PlaceGlyphCentered(starBand, 16u), textColor);
+        context, WindIcons::Pin16, IconMetrics::PlaceGlyphCentered(starBand, 16u), textColor);
 
     // Vertical Separator after Star column
     context.DrawRect(Rect{ sep2X, m_Geometry.y, borderW, m_Geometry.height }, sepColor);

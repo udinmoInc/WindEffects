@@ -3,6 +3,7 @@
 #include "KindUI/Widgets/TextBox.h"
 #include "KindUI/Core/Widgets/DesignSystemControls.h"
 
+// Re-compiled for PanelBuilder API updates
 namespace we::programs::editor {
 namespace WindIcons = ::we::runtime::kindui::WindIcons;
 using ::we::runtime::kindui::kWindIconNone;
@@ -15,7 +16,7 @@ using ::we::editor::docking::DockZone;
 std::shared_ptr<Panel> CreateOutputLogPanel() {
     auto outputWidget = std::make_shared<OutputLogWidget>();
 
-    return PanelBuilder("Output Log")
+    return PanelBuilder("Console Log")
         .TabIcon(WindIcons::Console16)
         .ToolbarBox([&](Row& toolbar) {
             toolbar.Padding(Margin{6.0f, 4.0f, 6.0f, 4.0f});
@@ -44,7 +45,7 @@ std::shared_ptr<Panel> CreateOutputLogPanel() {
 }
 
 REGISTER_UI_PANEL(OutputLog,
-    WE_PANEL(OutputLog).Title("Output Log").Icon("output-log").Zone(DockZone::Floating).Hidden().SortOrder(5),
+    WE_PANEL(OutputLog).Title("Console Log").Icon("output-log").Zone(DockZone::Floating).Hidden().SortOrder(5),
     CreateOutputLogPanel)
 
 } // namespace we::programs::editor

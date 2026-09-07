@@ -368,16 +368,16 @@ WorkspaceLayout CreateDefaultEditorWorkspaceLayout() {
     WorkspaceLayout layout;
     layout.workspaceId = "Default";
 
-    layout.panels.emplace("Tools", MakePanelDesc("Tools", "Actors", "tools-panel", DockZone::Left, true, 0));
+    layout.panels.emplace("Tools", MakePanelDesc("Tools", "Creation Palette", "tools-panel", DockZone::Left, true, 0));
     layout.panels.emplace("Viewport", MakePanelDesc("Viewport", "Viewport", "viewport", DockZone::Center, true, 1));
-    layout.panels.emplace("WorldOutliner", MakePanelDesc("WorldOutliner", "Outliner", "outliner", DockZone::Right, true, 2));
-    layout.panels.emplace("Details", MakePanelDesc("Details", "Details", "details", DockZone::Right, true, 3));
+    layout.panels.emplace("WorldOutliner", MakePanelDesc("WorldOutliner", "Scene Explorer", "outliner", DockZone::Right, true, 2));
+    layout.panels.emplace("Details", MakePanelDesc("Details", "Inspector", "details", DockZone::Right, true, 3));
     layout.panels.emplace(
         "ContentBrowser",
-        MakePanelDesc("ContentBrowser", "Content Browser", "content-browser", DockZone::Bottom, true, 4));
+        MakePanelDesc("ContentBrowser", "Asset Explorer", "content-browser", DockZone::Bottom, true, 4));
     layout.panels.emplace(
         "OutputLog",
-        MakePanelDesc("OutputLog", "Output Log", "output-log", DockZone::Floating, false, 5));
+        MakePanelDesc("OutputLog", "Console Log", "output-log", DockZone::Floating, false, 5));
 
     // UE layout: leftCenterCol (tools+viewport on top, content browser on bottom), rightSidebar (outliner + details) on right.
     DockLayoutNode rightSidebar = MakeSplit(

@@ -858,7 +858,7 @@ void Editor::SyncViewportFramebufferFromLayout() {
     }
 
     const bool sizeChanged = w != m_LastLayoutSwapchainW || h != m_LastLayoutSwapchainH;
-    const bool needsLayout = sizeChanged || we::runtime::kindui::UIRepaintGate::PeekNeedsLayout();
+    const bool needsLayout = sizeChanged || we::runtime::kindui::UIRepaintGate::ConsumeNeedsLayout();
 
     if (needsLayout) {
         // Root Measure/Arrange uses the swapchain = Windows CLIENT RECT only
