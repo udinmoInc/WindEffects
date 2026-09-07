@@ -14,7 +14,6 @@ public class Menus : ModuleRules
         PublicDependencies.Add("RHI");
         PublicDependencies.Add("KindUI");
         PublicDependencies.Add("Text");
-        PublicDependencies.Add("UIFramework");
 
         Definitions.Add("MENUS_EXPORTS");
     }

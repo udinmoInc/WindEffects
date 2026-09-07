@@ -73,6 +73,7 @@ private:
     float MeasureTabWidth(PaintContext& context, const TabInfo& tabInfo, bool isActive, bool flushLeft = false);
     void PaintTab(PaintContext& context, TabInfo& tabInfo, int index, float& currentX);
     void LayoutTabGeometries();
+    void ShowPanelOptionsMenu(const Point& pos);
 
     std::vector<TabInfo> m_Tabs;
     int m_ActiveTabIndex = -1;
@@ -81,6 +82,9 @@ private:
     Rect m_HeaderRect;
     Rect m_HeaderContentGapRect;
     Rect m_ContentRect;
+
+    Rect m_OptionsMenuRect;
+    bool m_OptionsMenuHovered = false;
 
     int m_DragTabIndex = -1;
     Point m_DragStart{};

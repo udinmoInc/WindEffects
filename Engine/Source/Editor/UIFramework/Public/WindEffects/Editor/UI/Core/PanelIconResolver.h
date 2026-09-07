@@ -16,7 +16,7 @@ inline we::runtime::kindui::WindIconRef ResolvePanelTabIcon(std::string_view pan
         return WindIcons::Console16;
     }
     if (panelId == "viewport" || panelId == "Viewport") {
-        return WindIcons::ToolbarCamera16;
+        return WindIcons::Viewport16;
     }
     if (panelId == "outliner" || panelId == "WorldOutliner" || panelId == "world-outliner" || panelId == "explorer" || panelId == "Explorer") {
         return WindIcons::Outliner16;

@@ -27,6 +27,7 @@ public class ContentBrowser : ModuleRules
 
         PrivateDependencies.Add("RHI");
         PrivateDependencies.Add("Renderer");
+        PrivateDependencies.Add("Menus");
 
         Definitions.Add("CONTENTBROWSER_EXPORTS");
     }

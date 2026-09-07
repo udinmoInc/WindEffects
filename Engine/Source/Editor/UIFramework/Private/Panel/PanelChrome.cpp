@@ -239,7 +239,7 @@ void PaintNavigationRegion(PaintContext& context, const Rect& rect) {
 }
 
 void PaintContentRegion(PaintContext& context, const Rect& rect) {
-    PaintContentWell(context, rect);
+    PaintPrimaryContentRegion(context, rect);
 }
 
 void PaintDockTabStripDivider(PaintContext& context, const Rect& headerRect) {
@@ -615,6 +615,47 @@ void PaintDockTabStrip(
             state.flatCorners);
     }
 
+    if (!stripRect.IsEmpty()) {
+        const float buttonSize = HeaderButtonSize();
+        const float rightPad = TabStripPadH();
+        const Rect optionsRect{
+            stripRect.x + stripRect.width - rightPad - buttonSize,
+            std::floor(stripRect.y + (stripRect.height - buttonSize) * 0.5f),
+            buttonSize,
+            buttonSize
+        };
+        PaintHeaderIconButton(
+            context,
+            optionsRect,
+            WindIcons::EllipsisVertical16,
+            state.optionsMenuHovered,
+            false);
+
+        if (state.optionsMenuHovered) {
+            std::string tooltip = "Panel Options";
+            const float scale = UiScale();
+            const float textSize = we::runtime::kindui::ResolveMetric(MetricToken::TextSizeCaption) * scale;
+            const float padH = we::runtime::kindui::ResolveMetric(MetricToken::Space2) * scale;
+            const float padV = we::runtime::kindui::ResolveMetric(MetricToken::Space1) * scale;
+            const float tooltipW = tooltip.length() * (6.8f * scale) + padH * 2.0f;
+            const float tooltipH = textSize + padV * 2.0f;
+            const Rect tooltipRect{
+                optionsRect.x + (optionsRect.width - tooltipW) * 0.5f,
+                optionsRect.y + optionsRect.height + padV,
+                tooltipW,
+                tooltipH
+            };
+            we::runtime::kindui::ControlChrome::PaintTooltipSurface(context, tooltipRect);
+            context.DrawText(
+                tooltip,
+                Point{ tooltipRect.x + padH, tooltipRect.y + (tooltipRect.height - textSize) * 0.5f },
+                we::runtime::kindui::ResolveColor(ColorToken::TextPrimary),
+                textSize,
+                we::runtime::text::layout::FontWeight::Regular,
+                "PanelOptionsTooltip");
+        }
+    }
+
     if (we::runtime::kindui::UiGeometryDebug::IsEnabled() && !layout.tabs.empty()) {
         we::runtime::kindui::UiGeometryDebug::Get().TraceRegion(
             "DockTabStrip",
@@ -839,10 +880,12 @@ void PaintHeaderIconButton(
 
     if (isClose || compactGlyph) {
         const uint32_t glyph = static_cast<uint32_t>(CloseGlyphSize());
-        IconPainter::Draw(context, icon, rect, glyph);
+        const Rect iconRect = IconMetrics::PlaceGlyphCentered(rect, glyph);
+        IconPainter::Draw(context, icon, iconRect, glyph);
     } else {
         const uint32_t iconSize = static_cast<uint32_t>(TabIconSize());
-        IconPainter::Draw(context, icon, rect, iconSize);
+        const Rect iconRect = IconMetrics::PlaceGlyphCentered(rect, iconSize);
+        IconPainter::Draw(context, icon, iconRect, iconSize);
     }
 }
 

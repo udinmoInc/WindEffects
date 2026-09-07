@@ -15,6 +15,9 @@ struct Point {
 struct Size {
     float width = 0.0f;
     float height = 0.0f;
+
+    bool operator==(const Size& o) const { return width == o.width && height == o.height; }
+    bool operator!=(const Size& o) const { return !(*this == o); }
 };
 
 struct Margin {
@@ -22,6 +25,9 @@ struct Margin {
     float top = 0.0f;
     float right = 0.0f;
     float bottom = 0.0f;
+
+    bool operator==(const Margin& o) const { return left == o.left && top == o.top && right == o.right && bottom == o.bottom; }
+    bool operator!=(const Margin& o) const { return !(*this == o); }
 };
 
 struct Rect {

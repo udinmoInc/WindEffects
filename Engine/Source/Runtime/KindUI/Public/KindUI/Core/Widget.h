@@ -83,7 +83,7 @@ public:
     }
 
     [[nodiscard]] bool IsPressed() const { return m_Pressed; }
-    void SetPressed(bool pressed) { m_Pressed = pressed; InvalidatePaint(); }
+    void SetPressed(bool pressed) { if (m_Pressed != pressed) { m_Pressed = pressed; InvalidatePaint(); } }
 
     [[nodiscard]] bool IsSelected() const { return m_Selected; }
     void SetSelected(bool selected);
@@ -92,7 +92,7 @@ public:
     void SetLoading(bool loading);
 
     [[nodiscard]] bool IsReadOnly() const { return m_ReadOnly; }
-    void SetReadOnly(bool readOnly) { m_ReadOnly = readOnly; InvalidatePaint(); }
+    void SetReadOnly(bool readOnly) { if (m_ReadOnly != readOnly) { m_ReadOnly = readOnly; InvalidatePaint(); } }
 
     [[nodiscard]] bool IsCollapsed() const { return m_Collapsed; }
     void SetCollapsed(bool collapsed);
@@ -145,25 +145,25 @@ public:
     }
 
     HorizontalAlignment GetHorizontalAlignment() const { return m_HAlign; }
-    void SetHorizontalAlignment(HorizontalAlignment align) { m_HAlign = align; InvalidateLayout(); }
+    void SetHorizontalAlignment(HorizontalAlignment align) { if (m_HAlign != align) { m_HAlign = align; InvalidateLayout(); } }
 
     VerticalAlignment GetVerticalAlignment() const { return m_VAlign; }
-    void SetVerticalAlignment(VerticalAlignment align) { m_VAlign = align; InvalidateLayout(); }
+    void SetVerticalAlignment(VerticalAlignment align) { if (m_VAlign != align) { m_VAlign = align; InvalidateLayout(); } }
 
-    void SetMargin(const Margin& margin) { m_Margin = margin; InvalidateLayout(); }
+    void SetMargin(const Margin& margin) { if (m_Margin != margin) { m_Margin = margin; InvalidateLayout(); } }
     [[nodiscard]] const Margin& GetMargin() const { return m_Margin; }
 
-    void SetMinSize(const Size& size) { m_MinSize = size; InvalidateLayout(); }
-    void SetMaxSize(const Size& size) { m_MaxSize = size; InvalidateLayout(); }
-    void SetMinWidth(float minWidth) { m_MinSize.width = minWidth; InvalidateLayout(); }
-    void SetMaxWidth(float maxWidth) { m_MaxSize.width = maxWidth; InvalidateLayout(); }
+    void SetMinSize(const Size& size) { if (m_MinSize != size) { m_MinSize = size; InvalidateLayout(); } }
+    void SetMaxSize(const Size& size) { if (m_MaxSize != size) { m_MaxSize = size; InvalidateLayout(); } }
+    void SetMinWidth(float minWidth) { if (m_MinSize.width != minWidth) { m_MinSize.width = minWidth; InvalidateLayout(); } }
+    void SetMaxWidth(float maxWidth) { if (m_MaxSize.width != maxWidth) { m_MaxSize.width = maxWidth; InvalidateLayout(); } }
     [[nodiscard]] const Size& GetMinSize() const { return m_MinSize; }
     [[nodiscard]] const Size& GetMaxSize() const { return m_MaxSize; }
     [[nodiscard]] Size ClampDesiredSize(const Size& desired) const;
 
-    void SetFlexGrow(float grow) { m_FlexGrow = grow; InvalidateLayout(); }
-    void SetFlexShrink(float shrink) { m_FlexShrink = shrink; InvalidateLayout(); }
-    void SetFlexBasis(float basis) { m_FlexBasis = basis; InvalidateLayout(); }
+    void SetFlexGrow(float grow) { if (m_FlexGrow != grow) { m_FlexGrow = grow; InvalidateLayout(); } }
+    void SetFlexShrink(float shrink) { if (m_FlexShrink != shrink) { m_FlexShrink = shrink; InvalidateLayout(); } }
+    void SetFlexBasis(float basis) { if (m_FlexBasis != basis) { m_FlexBasis = basis; InvalidateLayout(); } }
     [[nodiscard]] float GetFlexGrow() const { return m_FlexGrow; }
     [[nodiscard]] float GetFlexShrink() const { return m_FlexShrink; }
     [[nodiscard]] float GetFlexBasis() const { return m_FlexBasis; }

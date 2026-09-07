@@ -4,6 +4,7 @@
 #include "KindUI/Tokens/DesignToken.h"
 #include "KindUI/Theming/ThemeAccess.h"
 
+// Re-compiled for PanelBuilder API updates
 namespace we::programs::editor {
 using namespace ::we::runtime::kindui;
 using ::we::editor::panels::Panel;

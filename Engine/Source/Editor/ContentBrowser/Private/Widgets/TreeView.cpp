@@ -1,5 +1,7 @@
 #include "Platform/Platform.h"
 #include "ContentBrowser/Widgets/TreeView.h"
+#include "Widgets/MenuBar.h"
+#include "Widgets/DropdownMenu.h"
 #include "KindUI/Core/EventSystem.h"
 #include "KindUI/Layout/OverlayManager.h"
 #include "KindUI/Layout/ScrollViewport.h"
@@ -110,105 +112,6 @@ void PaintTreeNodeIcon(PaintContext& context, const TreeNode& node, const Rect& 
         : we::runtime::kindui::ResolveColor(ColorToken::IconSecondary);
     IconPainter::Draw(context, node.icon, iconRect, iconColor);
 }
-
-struct TreeMenuItem {
-    std::string label;
-    std::function<void()> onClick;
-    bool enabled = true;
-};
-
-class TreeContextMenu : public Widget {
-public:
-    TreeContextMenu(std::vector<TreeMenuItem> items, std::function<void()> onDismiss)
-        : m_Items(std::move(items)), m_OnDismiss(std::move(onDismiss)) {}
-
-    Size Measure(const Size& availableSize) override {
-        (void)availableSize;
-        const float itemHeight = ThemeMetric(MetricToken::MenuItemHeight);
-        const float menuPad = ThemeMetric(MetricToken::MenuPadding);
-        float maxWidth = ThemeMetric(MetricToken::PopupMinWidth);
-        for (const auto& item : m_Items) {
-            maxWidth = std::max(maxWidth, ThemeMetric(MetricToken::MenuTextIndent)
-                + static_cast<float>(item.label.size()) * ThemeMetric(MetricToken::TextSizeSmall) * 0.55f
-                + ThemeMetric(MetricToken::Space3));
-        }
-        m_DesiredSize = Size{ maxWidth, menuPad * 2.0f + m_Items.size() * itemHeight };
-        return m_DesiredSize;
-    }
-
-    void Arrange(const Rect& allottedRect) override { m_Geometry = allottedRect; }
-
-    void Paint(PaintContext& context) override {
-        ControlChrome::PaintPopupSurface(context, m_Geometry);
-
-        const float itemHeight = ThemeMetric(MetricToken::MenuItemHeight);
-        const float menuPad = ThemeMetric(MetricToken::MenuPadding);
-        const float padX = ThemeMetric(MetricToken::Space2);
-        const float textSize = ThemeMetric(MetricToken::TextSizeSmall);
-        const float rowRadius = ThemeMetric(MetricToken::CornerRadiusSmall);
-
-        float y = m_Geometry.y + menuPad;
-        for (size_t i = 0; i < m_Items.size(); ++i) {
-            const auto& item = m_Items[i];
-            Rect row{ m_Geometry.x + menuPad, y, m_Geometry.width - menuPad * 2.0f, itemHeight };
-            if (!item.enabled) {
-                y += itemHeight;
-                continue;
-            }
-            if (static_cast<int>(i) == m_Hovered) {
-                ControlChrome::InteractionState state{};
-                state.hoverAnim = 1.0f;
-                ControlChrome::PaintListRow(context, row, state);
-            }
-            const float textY = row.y + (row.height - textSize) * 0.5f;
-            context.DrawText(item.label, Point{ row.x + padX, textY }, ThemeColor(ColorToken::TextPrimary), textSize);
-            y += itemHeight;
-        }
-    }
-
-    void OnMouseMove(const MouseEvent& event) override {
-        m_Hovered = -1;
-        const float itemHeight = ThemeMetric(MetricToken::MenuItemHeight);
-        const float menuPad = ThemeMetric(MetricToken::MenuPadding);
-        float y = m_Geometry.y + menuPad;
-        for (size_t i = 0; i < m_Items.size(); ++i) {
-            Rect row{ m_Geometry.x + menuPad, y, m_Geometry.width - menuPad * 2.0f, itemHeight };
-            if (row.Contains(event.position)) {
-                m_Hovered = static_cast<int>(i);
-                break;
-            }
-            y += itemHeight;
-        }
-    }
-
-    void OnMouseDown(const MouseEvent& event) override {
-        if (event.button != MouseButton::Left) {
-            return;
-        }
-        const float itemHeight = ThemeMetric(MetricToken::MenuItemHeight);
-        const float menuPad = ThemeMetric(MetricToken::MenuPadding);
-        float y = m_Geometry.y + menuPad;
-        for (size_t i = 0; i < m_Items.size(); ++i) {
-            Rect row{ m_Geometry.x + menuPad, y, m_Geometry.width - menuPad * 2.0f, itemHeight };
-            if (row.Contains(event.position) && m_Items[i].enabled && m_Items[i].onClick) {
-                m_Items[i].onClick();
-                if (auto* overlay = GetPopupHost()) {
-                    overlay->CloseAllPopups();
-                }
-                if (m_OnDismiss) {
-                    m_OnDismiss();
-                }
-                return;
-            }
-            y += itemHeight;
-        }
-    }
-
-private:
-    std::vector<TreeMenuItem> m_Items;
-    std::function<void()> m_OnDismiss;
-    int m_Hovered = -1;
-};
 
 } // namespace
 
@@ -398,11 +301,11 @@ void TreeView::Paint(PaintContext& context) {
         const float sep1X = std::floor(m_Geometry.x + eyeColWidth);
         context.DrawRect(Rect{ sep1X, m_Geometry.y, borderW, headerHeight }, sepColor);
 
-        // Column 1: Star / Dirty column (spacious 28px cell with crisp 16u Star icon)
+        // Column 1: Pin / Dirty column (spacious 28px cell with crisp 16u Pin icon)
         const float dirtyColWidth = std::floor(28.0f * uiScale);
         const float sep2X = std::floor(sep1X + dirtyColWidth);
         Rect starBand{ sep1X, m_Geometry.y, dirtyColWidth, headerHeight };
-        IconPainter::Draw(context, WindIcons::Star16, IconMetrics::PlaceGlyphCentered(starBand, 16u), textColor);
+        IconPainter::Draw(context, WindIcons::Pin16, IconMetrics::PlaceGlyphCentered(starBand, 16u), textColor);
 
         // Vertical Separator after Star Column
         context.DrawRect(Rect{ sep2X, m_Geometry.y, borderW, headerHeight }, sepColor);
@@ -709,7 +612,11 @@ void TreeView::OnMouseMove(const MouseEvent& event) {
     }
 
     RenderItem* item = GetItemAtPosition(event.position);
-    m_HoveredId = item ? item->node->id : "";
+    const std::string newHoveredId = item ? item->node->id : "";
+    if (m_HoveredId != newHoveredId) {
+        m_HoveredId = newHoveredId;
+        InvalidatePaint();
+    }
 
     if (!m_DragSourceId.empty()) {
         const float dx = event.position.x - m_DragStart.x;
@@ -1055,21 +962,36 @@ void TreeView::CancelRename() {
 }
 
 void TreeView::ShowContextMenu(const std::string& id, const Point& position) {
-    auto makeItem = [](const std::string& label, std::function<void()> onClick, bool enabled = true) {
-        TreeMenuItem item;
-        item.label = label;
-        item.onClick = std::move(onClick);
-        item.enabled = enabled;
-        return item;
-    };
+    std::vector<std::shared_ptr<::we::editor::menus::MenuItem>> menuItems;
+    menuItems.push_back([](const std::string& lbl, std::function<void()> fn) {
+        auto mi = std::make_shared<::we::editor::menus::MenuItem>();
+        mi->label = lbl;
+        mi->onClick = std::move(fn);
+        return mi;
+    }("Rename", [this, id]() { BeginRename(id); }));
 
-    std::vector<TreeMenuItem> items;
-    items.push_back(makeItem("Rename", [this, id]() { BeginRename(id); }));
-    items.push_back(makeItem("Duplicate", []() {}));
-    items.push_back(makeItem("Delete", []() {}));
-    items.push_back(makeItem("Create Child Actor", []() {}));
+    menuItems.push_back([](const std::string& lbl, std::function<void()> fn) {
+        auto mi = std::make_shared<::we::editor::menus::MenuItem>();
+        mi->label = lbl;
+        mi->onClick = std::move(fn);
+        return mi;
+    }("Duplicate", []() {}));
 
-    auto menu = std::make_shared<TreeContextMenu>(items, nullptr);
+    menuItems.push_back([](const std::string& lbl, std::function<void()> fn) {
+        auto mi = std::make_shared<::we::editor::menus::MenuItem>();
+        mi->label = lbl;
+        mi->onClick = std::move(fn);
+        return mi;
+    }("Delete", []() {}));
+
+    menuItems.push_back([](const std::string& lbl, std::function<void()> fn) {
+        auto mi = std::make_shared<::we::editor::menus::MenuItem>();
+        mi->label = lbl;
+        mi->onClick = std::move(fn);
+        return mi;
+    }("Create Child Actor", []() {}));
+
+    auto menu = std::make_shared<::we::editor::menus::DropdownMenu>(menuItems);
     if (auto* overlay = GetPopupHost()) {
         overlay->CloseAllPopups();
         overlay->ShowPopup(menu, position);

@@ -286,7 +286,9 @@ void OverlayRenderer::EndOverlayPass(const we::runtime::uigfx::OverlayRenderCont
             m_CurrentWidth,
             m_CurrentHeight);
     }
-    if (UiColorCompositionDiagnostic::IsEnabled() && context.cmd) {
+    if (UiColorCompositionDiagnostic::IsEnabled()
+        && !UiColorCompositionDiagnostic::Get().HasCompleted()
+        && context.cmd) {
         UiColorCompositionDiagnostic::Get().ScheduleFramebufferReadback(
             m_RHIDevice,
             context.cmd,

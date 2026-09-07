@@ -1,5 +1,7 @@
 #include "WindEffects/Editor/UI/Widgets/DockContainer.h"
 #include "WindEffects/Editor/UI/Panel/PanelChrome.h"
+#include "WindEffects/Editor/UI/Shell/EditorWorkspaceController.h"
+#include "Widgets/DropdownMenu.h"
 #include "KindUI/Profiling/UiGeometryDebug.h"
 #include "KindUI/Core/WindIcon.h"
 #include "KindUI/Core/Icon.h"
@@ -207,6 +209,15 @@ void DockContainer::LayoutTabGeometries() {
         m_Tabs[i].tabRect = layout.tabs[i].tabRect;
         m_Tabs[i].closeRect = layout.tabs[i].closeRect;
     }
+
+    const float buttonSize = PanelChrome::HeaderButtonSize();
+    const float rightPad = PanelChrome::TabStripPadH();
+    m_OptionsMenuRect = Rect{
+        m_HeaderRect.x + m_HeaderRect.width - rightPad - buttonSize,
+        std::floor(m_HeaderRect.y + (m_HeaderRect.height - buttonSize) * 0.5f),
+        buttonSize,
+        buttonSize
+    };
 }
 
 std::shared_ptr<Widget> DockContainer::HitTestPoint(const Point& pos, const Rect* clip) {
@@ -282,6 +293,7 @@ void DockContainer::Paint(PaintContext& context) {
 
     PanelChrome::DockTabStripState state{};
     state.activeIndex = static_cast<size_t>(m_ActiveTabIndex);
+    state.optionsMenuHovered = m_OptionsMenuHovered;
     state.showClose = [this](size_t index, bool isActive, bool /*isHovered*/) {
         const auto& tabInfo = m_Tabs[index];
         return isActive || tabInfo.isHovered;
@@ -309,6 +321,10 @@ void DockContainer::Paint(PaintContext& context) {
 
 void DockContainer::OnMouseDown(const MouseEvent& event) {
     if (m_HeaderRect.Contains(event.position)) {
+        if (m_OptionsMenuRect.Contains(event.position)) {
+            ShowPanelOptionsMenu(event.position);
+            return;
+        }
         for (int i = 0; i < static_cast<int>(m_Tabs.size()); ++i) {
             auto& tabInfo = m_Tabs[static_cast<size_t>(i)];
             if (tabInfo.tabRect.Contains(event.position)) {
@@ -357,11 +373,13 @@ void DockContainer::OnMouseMove(const MouseEvent& event) {
     }
 
     if (m_HeaderRect.Contains(event.position)) {
+        m_OptionsMenuHovered = m_OptionsMenuRect.Contains(event.position);
         for (auto& tabInfo : m_Tabs) {
             tabInfo.isHovered = tabInfo.tabRect.Contains(event.position);
             tabInfo.isCloseHovered = tabInfo.isHovered && tabInfo.closeRect.Contains(event.position);
         }
     } else {
+        m_OptionsMenuHovered = false;
         for (auto& tabInfo : m_Tabs) {
             tabInfo.isHovered = false;
             tabInfo.isCloseHovered = false;
@@ -417,6 +435,9 @@ void DockContainer::OnMouseWheel(const MouseEvent& event) {
 
 bool DockContainer::ShowsPointerCursor(const Point& position) const {
     if (m_HeaderRect.Contains(position)) {
+        if (m_OptionsMenuRect.Contains(position)) {
+            return true;
+        }
         for (const auto& tabInfo : m_Tabs) {
             if (tabInfo.tabRect.Contains(position)) {
                 return true;
@@ -439,6 +460,60 @@ bool DockContainer::ShowsPointerCursor(const Point& position) const {
     }
 
     return false;
+}
+
+void DockContainer::ShowPanelOptionsMenu(const Point& pos) {
+    (void)pos;
+    if (m_ActiveTabIndex < 0 || m_ActiveTabIndex >= static_cast<int>(m_Tabs.size())) {
+        return;
+    }
+    const auto activePanel = m_Tabs[static_cast<size_t>(m_ActiveTabIndex)].panel;
+
+    std::vector<std::shared_ptr<::we::editor::menus::MenuItem>> items;
+
+    auto floatItem = std::make_shared<::we::editor::menus::MenuItem>();
+    floatItem->label = "Float Panel";
+    floatItem->enabled = true;
+    floatItem->onClick = [this, activePanel]() {
+        // Float action placeholder / callback
+    };
+    items.push_back(floatItem);
+
+    auto closeItem = std::make_shared<::we::editor::menus::MenuItem>();
+    closeItem->label = "Close Panel";
+    closeItem->enabled = true;
+    closeItem->onClick = [this, activePanel]() {
+        if (m_OnTabClosed) {
+            m_OnTabClosed(activePanel);
+        }
+    };
+    items.push_back(closeItem);
+
+    if (m_Tabs.size() > 1) {
+        auto closeOthersItem = std::make_shared<::we::editor::menus::MenuItem>();
+        closeOthersItem->label = "Close Other Tabs";
+        closeOthersItem->enabled = true;
+        closeOthersItem->onClick = [this, activePanel]() {
+            std::vector<std::shared_ptr<Panel>> toClose;
+            for (const auto& tab : m_Tabs) {
+                if (tab.panel != activePanel) {
+                    toClose.push_back(tab.panel);
+                }
+            }
+            for (const auto& panel : toClose) {
+                if (m_OnTabClosed) {
+                    m_OnTabClosed(panel);
+                }
+            }
+        };
+        items.push_back(closeOthersItem);
+    }
+
+    auto menu = std::make_shared<::we::editor::menus::DropdownMenu>(items);
+    if (auto* overlay = ::we::programs::editor::GetEditorPopupHost()) {
+        overlay->CloseAllPopups();
+        overlay->ShowPopup(menu, Point{ m_OptionsMenuRect.x, m_OptionsMenuRect.y + m_OptionsMenuRect.height + 2.0f });
+    }
 }
 
 } // namespace we::editor::docking

@@ -257,12 +257,14 @@ using ::we::runtime::kindui::UiColorCompositionDiagnostic;
 } // namespace
 
 void RegisterEditorCompositionProbes(const std::shared_ptr<Widget>& root) {
-    if (!UiColorCompositionDiagnostic::IsEnabled() || !root) {
+    auto& diag = UiColorCompositionDiagnostic::Get();
+    if (!UiColorCompositionDiagnostic::IsEnabled() || diag.HasCompleted() || diag.IsProbesCached() || !root) {
         return;
     }
-    UiColorCompositionDiagnostic::Get().ClearProbes();
+    diag.ClearProbes();
     ProbeFlags flags{};
     WalkWidgets(root, flags);
+    diag.SetProbesCached(true);
 }
 
 } // namespace we::programs::editor

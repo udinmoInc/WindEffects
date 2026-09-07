@@ -3,6 +3,8 @@
 #include "KindUI/Core/LayoutMetrics.h"
 #include "ContentBrowser/Widgets/SearchBox.h"
 #include "ContentBrowser/Widgets/ContentBrowser.h"
+#include "Widgets/DropdownMenu.h"
+#include "Widgets/MenuBar.h"
 #include "KindUI/Core/ControlChrome.h"
 #include "KindUI/Core/PaintContext.h"
 #include "KindUI/Core/Widgets/DesignSystemControls.h"
@@ -116,150 +118,6 @@ struct ToolbarMenuItem {
     we::runtime::kindui::WindIconRef icon = we::runtime::kindui::kWindIconNone;
     bool enabled = true;
     std::function<void()> onClick;
-};
-
-class ToolbarPopupMenu : public Widget {
-public:
-    ToolbarPopupMenu(std::vector<ToolbarMenuItem> items, std::function<void()> onDismiss = nullptr)
-        : m_Items(std::move(items))
-        , m_OnDismiss(std::move(onDismiss))
-    {}
-
-    Size Measure(const Size& availableSize) override {
-        (void)availableSize;
-        const float uiScale = (std::max)(1.0f, DPIContext::GetScale());
-        const float itemHeight = ThemeMetric(MetricToken::MenuItemHeight) * uiScale;
-        const float menuPad = ThemeMetric(MetricToken::MenuPadding) * uiScale;
-        float maxWidth = 190.0f * uiScale;
-        for (const auto& item : m_Items) {
-            if (!item.isSeparator) {
-                float itemW = 50.0f * uiScale + static_cast<float>(item.label.size()) * ThemeMetric(MetricToken::TextSizeSmall) * 0.65f * uiScale;
-                maxWidth = std::max(maxWidth, itemW);
-            }
-        }
-        float totalHeight = menuPad * 2.0f;
-        for (const auto& item : m_Items) {
-            totalHeight += item.isSeparator ? (6.0f * uiScale) : itemHeight;
-        }
-        m_DesiredSize = Size{ maxWidth, totalHeight };
-        return m_DesiredSize;
-    }
-
-    void Arrange(const Rect& allottedRect) override {
-        m_Geometry = allottedRect;
-    }
-
-    void Paint(PaintContext& context) override {
-        ControlChrome::PaintPopupSurface(context, m_Geometry);
-
-        const float uiScale = (std::max)(1.0f, DPIContext::GetScale());
-        const float itemHeight = ThemeMetric(MetricToken::MenuItemHeight) * uiScale;
-        const float menuPad = ThemeMetric(MetricToken::MenuPadding) * uiScale;
-        const float padX = ThemeMetric(MetricToken::Space3) * uiScale;
-        const float textSize = ThemeMetric(MetricToken::TextSizeSmall) * uiScale;
-
-        float y = m_Geometry.y + menuPad;
-        for (size_t i = 0; i < m_Items.size(); ++i) {
-            const auto& item = m_Items[i];
-            if (item.isSeparator) {
-                const float sepY = std::floor(y + 2.0f * uiScale);
-                const float sepW = ThemeMetric(MetricToken::BorderWidth) * uiScale;
-                context.DrawRect(Rect{ m_Geometry.x + padX, sepY, m_Geometry.width - padX * 2.0f, sepW }, ThemeColor(ColorToken::Separator));
-                y += 6.0f * uiScale;
-                continue;
-            }
-
-            Rect row{ m_Geometry.x + menuPad, y, m_Geometry.width - menuPad * 2.0f, itemHeight };
-            if (static_cast<int>(i) == m_Hovered && item.enabled) {
-                ControlChrome::InteractionState state{};
-                state.hoverAnim = 1.0f;
-                ControlChrome::PaintListRow(context, row, state);
-            }
-
-            float textLeft = row.x + padX;
-            if (item.isChecked) {
-                const float checkSize = 16.0f * uiScale;
-                Rect checkRect{ textLeft, row.y + (row.height - checkSize) * 0.5f, checkSize, checkSize };
-                IconPainter::Draw(context, WindIcons::Check16, checkRect, ThemeColor(ColorToken::TextPrimary));
-                textLeft += checkSize + 6.0f * uiScale;
-            } else if (item.icon.IsValid()) {
-                const float iconSize = 16.0f * uiScale;
-                Rect iconRect{ textLeft, row.y + (row.height - iconSize) * 0.5f, iconSize, iconSize };
-                IconPainter::Draw(context, item.icon, iconRect, ThemeColor(ColorToken::IconSecondary));
-                textLeft += iconSize + 6.0f * uiScale;
-            }
-
-            const float textY = row.y + (row.height - textSize) * 0.5f;
-            Color textCol = item.enabled ? ThemeColor(ColorToken::TextPrimary) : ThemeColor(ColorToken::TextDisabled);
-            context.DrawText(item.label, Point{ textLeft, textY }, textCol, textSize);
-
-            y += itemHeight;
-        }
-    }
-
-    void OnMouseMove(const MouseEvent& event) override {
-        m_Hovered = -1;
-        const float uiScale = (std::max)(1.0f, DPIContext::GetScale());
-        const float itemHeight = ThemeMetric(MetricToken::MenuItemHeight) * uiScale;
-        const float menuPad = ThemeMetric(MetricToken::MenuPadding) * uiScale;
-        float y = m_Geometry.y + menuPad;
-        for (size_t i = 0; i < m_Items.size(); ++i) {
-            const auto& item = m_Items[i];
-            if (item.isSeparator) {
-                y += 6.0f * uiScale;
-                continue;
-            }
-            Rect row{ m_Geometry.x + menuPad, y, m_Geometry.width - menuPad * 2.0f, itemHeight };
-            if (row.Contains(event.position)) {
-                m_Hovered = static_cast<int>(i);
-                break;
-            }
-            y += itemHeight;
-        }
-    }
-
-    void OnMouseDown(const MouseEvent& event) override {
-        if (event.button != MouseButton::Left) return;
-
-        const float uiScale = (std::max)(1.0f, DPIContext::GetScale());
-        const float itemHeight = ThemeMetric(MetricToken::MenuItemHeight) * uiScale;
-        const float menuPad = ThemeMetric(MetricToken::MenuPadding) * uiScale;
-        float y = m_Geometry.y + menuPad;
-        for (size_t i = 0; i < m_Items.size(); ++i) {
-            const auto& item = m_Items[i];
-            if (item.isSeparator) {
-                y += 6.0f * uiScale;
-                continue;
-            }
-            Rect row{ m_Geometry.x + menuPad, y, m_Geometry.width - menuPad * 2.0f, itemHeight };
-            if (row.Contains(event.position) && item.enabled) {
-                if (item.onClick) {
-                    item.onClick();
-                }
-                auto* overlay = GetPopupHost();
-                if (!overlay) {
-                    overlay = ::we::programs::editor::GetEditorPopupHost();
-                }
-                if (overlay) {
-                    overlay->CloseAllPopups();
-                }
-                if (m_OnDismiss) {
-                    m_OnDismiss();
-                }
-                return;
-            }
-            y += itemHeight;
-        }
-    }
-
-    bool ShowsPointerCursor(const Point& position) const override {
-        return m_Geometry.Contains(position);
-    }
-
-private:
-    std::vector<ToolbarMenuItem> m_Items;
-    std::function<void()> m_OnDismiss;
-    int m_Hovered = -1;
 };
 
 } // namespace
@@ -491,7 +349,21 @@ void ContentBrowserToolbarControls::InitializeChildren() {
         if (overlay) {
             overlay->CloseAllPopups();
             const Rect geom = anchor->GetGeometry();
-            auto menu = std::make_shared<ToolbarPopupMenu>(items);
+            std::vector<std::shared_ptr<::we::editor::menus::MenuItem>> menuItems;
+            for (const auto& item : items) {
+                auto mi = std::make_shared<::we::editor::menus::MenuItem>();
+                if (item.isSeparator) {
+                    mi->label = "";
+                } else {
+                    mi->label = item.label;
+                    mi->icon = item.icon;
+                    mi->checked = item.isChecked;
+                    mi->enabled = item.enabled;
+                    mi->onClick = item.onClick;
+                }
+                menuItems.push_back(mi);
+            }
+            auto menu = std::make_shared<::we::editor::menus::DropdownMenu>(menuItems);
             overlay->ShowPopup(menu, Point{ geom.x, geom.y + geom.height + 2.0f });
         }
     };
