@@ -11,6 +11,7 @@
 #include "KindUI/Core/DPIContext.h"
 #include "KindUI/Rendering/IconMetrics.h"
 #include "KindUI/Theming/ThemeAccess.h"
+#include "KindUI/Core/ColorSpace.h"
 #include "KindUI/Theming/Palette.h"
 #include "KindUI/Theming/PaletteRuntime.h"
 #include "KindUI/Tokens/DesignToken.h"
@@ -83,6 +84,13 @@ void PaintToolbarButtonChrome(PaintContext& context, const Rect& rect, float hov
         }
     }
 
+    // Bake press ShadowOverlay into the opaque face — same Src-over result, one less alpha quad.
+    if (pressAnim > 0.01f) {
+        Color pressShadow = we::runtime::kindui::ResolveColor(ColorToken::ShadowOverlay);
+        pressShadow.a *= pressAnim;
+        bgColor = we::runtime::kindui::ColorSpace::CompositeSrcOverOpaque(bgColor, pressShadow);
+    }
+
     // Main button surface - all corners rounded
     context.DrawRoundedRect(rect, bgColor, radius);
 
@@ -93,13 +101,6 @@ void PaintToolbarButtonChrome(PaintContext& context, const Rect& rect, float hov
     }
     const float borderW = 1.0f * uiScale;
     context.DrawControlOutline(rect, borderColor, borderW, radius);
-
-    // Subtle pressed recessed overlay
-    if (pressAnim > 0.01f) {
-        Color pressShadow = we::runtime::kindui::ResolveColor(ColorToken::ShadowOverlay);
-        pressShadow.a *= pressAnim;
-        context.DrawRoundedRect(rect, pressShadow, radius);
-    }
 }
 
 Rect CenterRect(const Rect& parent, float w, float h) {
@@ -263,8 +264,15 @@ void ToolbarLabeledButton::Paint(PaintContext& context) {
         if (m_PressAnim > 0.001f) {
             hoverBg = Color::Pick(hoverBg, we::runtime::kindui::ResolveColor(ColorToken::PressedBackground), std::clamp(m_PressAnim, 0.0f, 1.0f));
         }
+        // Frameless controls sit on toolbar chrome — bake the translucent overlay onto that
+        // opaque underlay instead of stacking alpha.
         hoverBg.a *= (std::max)(m_HoverAnim, m_PressAnim);
-        context.DrawRoundedRect(m_Geometry, hoverBg, radius);
+        const Color underlay = we::runtime::kindui::ColorSpace::OpaqueSurface(
+            we::runtime::kindui::ResolveColor(ColorToken::ToolbarBackground));
+        context.DrawRoundedRect(
+            m_Geometry,
+            we::runtime::kindui::ColorSpace::CompositeSrcOverOpaque(underlay, hoverBg),
+            radius);
     }
 
     const Color kHighlightColor = Color(0.8392f, 0.8510f, 0.8667f, 1.0f); // #D6D9DD

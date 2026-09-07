@@ -166,6 +166,14 @@ KINDUI_API void PaintListRow(
     const Rect& rect,
     const InteractionState& state);
 
+/// Same as PaintListRow, but composites transparent-row hover onto `underlayToken`
+/// (e.g. PopupBackground for menus) for an exact opaque match over that surface.
+KINDUI_API void PaintListRow(
+    PaintContext& context,
+    const Rect& rect,
+    const InteractionState& state,
+    ColorToken underlayToken);
+
 KINDUI_API void PaintCard(
     PaintContext& context,
     const Rect& rect,

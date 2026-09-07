@@ -81,8 +81,6 @@ public:
     void StartupModule() override {
         RHIFactory::Register(RHIBackend::Vulkan, &CreateVulkanRHI, "Vulkan");
     }
-
-    void ShutdownModule() override {}
 };
 
 } // namespace we::rhi

@@ -76,6 +76,25 @@ inline void WriteGpuVertexColorForTarget(
     return OpaqueSurface(color);
 }
 
+// Src-over composite of `src` onto opaque `dst` in authoring sRGB.
+// Matches GPU SrcAlpha / OneMinusSrcAlpha when `dst.a == 1`.
+[[nodiscard]] inline Color CompositeSrcOverOpaque(Color dst, Color src) {
+    const float a = src.a < 0.0f ? 0.0f : (src.a > 1.0f ? 1.0f : src.a);
+    if (a <= 0.001f) {
+        return OpaqueSurface(dst);
+    }
+    if (a >= 0.999f) {
+        return OpaqueSurface(src);
+    }
+    const float inv = 1.0f - a;
+    return OpaqueSurface(Color{
+        src.r * a + dst.r * inv,
+        src.g * a + dst.g * inv,
+        src.b * a + dst.b * inv,
+        1.0f
+    });
+}
+
 // Channel interpolation in authoring sRGB. `t` is clamped to [0, 1].
 [[nodiscard]] inline Color LerpColor(Color a, Color b, float t) {
     const float u = t < 0.0f ? 0.0f : (t > 1.0f ? 1.0f : t);

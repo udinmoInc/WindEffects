@@ -93,7 +93,7 @@ void SharedComponentStore::Release(SharedComponentRef ref) {
     }
 }
 
-const void* SharedComponentStore::GetData(SharedComponentRef ref) const {
+const void* SharedComponentStore::GetSharedPayload(SharedComponentRef ref) const {
     std::lock_guard<std::mutex> lock(m_Mutex);
     if (ref.index >= m_Slots.size()) {
         return nullptr;
@@ -105,7 +105,7 @@ const void* SharedComponentStore::GetData(SharedComponentRef ref) const {
     return slot.bytes.data();
 }
 
-std::size_t SharedComponentStore::GetSize(SharedComponentRef ref) const {
+std::size_t SharedComponentStore::GetSharedPayloadSize(SharedComponentRef ref) const {
     std::lock_guard<std::mutex> lock(m_Mutex);
     if (ref.index >= m_Slots.size()) {
         return 0;

@@ -97,7 +97,6 @@ public:
     void StartupModule() override {
         RHIFactory::Register(RHIBackend::DirectX12, &CreateDirectX12RHI, "DirectX12");
     }
-    void ShutdownModule() override {}
 };
 } // namespace we::rhi
 
@@ -124,7 +123,6 @@ public:
     void StartupModule() override {
         RHIFactory::Register(RHIBackend::DirectX12, &CreateDirectX12RHI, "DirectX12");
     }
-    void ShutdownModule() override {}
 };
 } // namespace we::rhi
 

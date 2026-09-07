@@ -784,6 +784,9 @@ void PaintDockPanelContent(
         return;
     }
 
+    // PanelBuilder sets transparent panel backgrounds so body regions own differing surfaces
+    // (toolbar/header/recessed). Always paint the panel fill once here; body Content regions
+    // suppress their duplicate Panel fill via SetSuppressContentSurfaces.
     PaintPanelSurface(context, contentRect);
     paintBody(context);
 }
@@ -829,10 +832,12 @@ void PaintSearchField(
 }
 
 void PaintAlternatingListRowBackground(PaintContext& context, const Rect& rowRect, int rowIndex) {
-    const we::runtime::kindui::SurfaceRole role = (rowIndex % 2 == 0)
-        ? we::runtime::kindui::SurfaceRole::Recessed
-        : we::runtime::kindui::SurfaceRole::Panel;
-    context.DrawSurface(rowRect, role, 0.0f, "ListRowStripe");
+    // Even rows match Recessed navigation/well parents (TreeView paints Recessed first).
+    // Only paint the contrasting Panel stripe — skipping the redundant same-color fill.
+    if ((rowIndex % 2) == 0) {
+        return;
+    }
+    context.DrawSurface(rowRect, we::runtime::kindui::SurfaceRole::Panel, 0.0f, "ListRowStripe");
 }
 
 void PaintListRowBackground(PaintContext& context, const Rect& rowRect, bool hovered, bool selected, bool focused) {
