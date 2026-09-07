@@ -50,82 +50,121 @@ public:
         : m_Items(std::move(items)) {}
 
     Size Measure(const Size& availableSize) override {
-        const float rowH = ThemeMetric(MetricToken::ListRowHeight);
-        const float padY = ThemeMetric(MetricToken::Space1);
-        const float textSize = ThemeMetric(MetricToken::TextSizeSmall);
-        float maxWidth = 160.0f;
+        (void)availableSize;
+        const float uiScale = (std::max)(1.0f, DPIContext::GetScale());
+        const float rowH = ThemeMetric(MetricToken::MenuItemHeight) * uiScale;
+        const float padY = 4.0f * uiScale;
+        const float padX = ThemeMetric(MetricToken::Space2) * uiScale;
+        const float textSize = ThemeMetric(MetricToken::TextSizeSmall) * uiScale;
+        const float iconSize = 16.0f * uiScale;
+        const float iconGap = ThemeMetric(MetricToken::Space2) * uiScale;
+        const float checkSize = 16.0f * uiScale;
+
+        float maxTextW = 0.0f;
         for (const auto& item : m_Items) {
-            maxWidth = (std::max)(maxWidth, ThemeMetric(MetricToken::Space6) + item->label.length() * textSize * 0.52f + 28.0f);
+            if (!item || item->label.empty()) continue;
+            const float textW = item->label.length() * (7.2f * uiScale);
+            maxTextW = (std::max)(maxTextW, textW);
         }
-        m_DesiredSize = Size{ maxWidth, padY * 2.0f + m_Items.size() * rowH };
+
+        const float calcW = padX + iconSize + iconGap + maxTextW + 16.0f * uiScale + checkSize + padX;
+        const float minW = 180.0f * uiScale;
+        const float calcH = padY * 2.0f + static_cast<float>(m_Items.size()) * rowH;
+
+        m_DesiredSize = Size{ (std::max)(minW, calcW), calcH };
         return m_DesiredSize;
     }
 
     void Arrange(const Rect& allottedRect) override { m_Geometry = allottedRect; }
 
     void Paint(PaintContext& context) override {
-        we::runtime::kindui::ControlChrome::PaintPopupShadow(context, m_Geometry);
-        context.DrawRoundedRect(m_Geometry, ThemeColor(ColorToken::PopupBackground), ThemeMetric(MetricToken::CornerRadiusSmall));
+        we::runtime::kindui::ControlChrome::PaintPopupSurface(context, m_Geometry);
+        context.PushClipRect(m_Geometry);
 
-        const float rowH = ThemeMetric(MetricToken::ListRowHeight);
-        const float padY = ThemeMetric(MetricToken::Space1);
-        const float padX = ThemeMetric(MetricToken::Space2);
-        const float textSize = ThemeMetric(MetricToken::TextSizeSmall);
-        const float iconSize = 16.0f;
+        const float uiScale = (std::max)(1.0f, DPIContext::GetScale());
+        const float rowH = ThemeMetric(MetricToken::MenuItemHeight) * uiScale;
+        const float padY = 4.0f * uiScale;
+        const float padX = ThemeMetric(MetricToken::Space2) * uiScale;
+        const float textSize = ThemeMetric(MetricToken::TextSizeSmall) * uiScale;
+        const float iconSize = 16.0f * uiScale;
+        const float iconGap = ThemeMetric(MetricToken::Space2) * uiScale;
 
         float y = m_Geometry.y + padY;
         for (size_t i = 0; i < m_Items.size(); ++i) {
             const auto& item = m_Items[i];
-            Rect row{ m_Geometry.x + 1.0f, y, m_Geometry.width - 2.0f, rowH };
-            if (static_cast<int>(i) == m_Hovered) {
-                context.DrawRect(row, ThemeColor(ColorToken::HoverBackground));
+            if (!item || item->label.empty()) continue;
+
+            const Rect row{ m_Geometry.x + 4.0f * uiScale, y, m_Geometry.width - 8.0f * uiScale, rowH };
+
+            if (static_cast<int>(i) == m_Hovered && item->enabled) {
+                we::runtime::kindui::ControlChrome::InteractionState state{};
+                state.hoverAnim = 1.0f;
+                we::runtime::kindui::ControlChrome::PaintListRow(context, row, state);
             }
+
+            const float iconX = row.x + padX * 0.5f;
+            const float iconY = row.y + (rowH - iconSize) * 0.5f;
 
             if (item->icon.IsValid()) {
                 we::runtime::kindui::IconPainter::Draw(
-                    context, item->icon,
-                    Rect{ row.x + padX, row.y + (rowH - iconSize) * 0.5f, iconSize, iconSize });
+                    context, item->icon, Rect{ iconX, iconY, iconSize, iconSize });
             }
 
-            const Color rowTextColor = (static_cast<int>(i) == m_Hovered || item->checked)
-                ? ThemeColor(ColorToken::TextPrimary)
-                : ThemeColor(ColorToken::TextSecondary);
-            context.DrawText(item->label, Point{ row.x + padX + iconSize + ThemeMetric(MetricToken::Space1), row.y + (rowH - textSize) * 0.5f },
-                rowTextColor, textSize);
+            const float textX = iconX + iconSize + iconGap;
+            const float textY = row.y + (rowH - textSize) * 0.5f;
+            const Color rowTextColor = (!item->enabled)
+                ? ThemeColor(ColorToken::TextDisabled)
+                : ((static_cast<int>(i) == m_Hovered || item->checked)
+                    ? ThemeColor(ColorToken::TextPrimary)
+                    : ThemeColor(ColorToken::TextSecondary));
+
+            context.DrawText(
+                item->label,
+                Point{ textX, textY },
+                rowTextColor,
+                textSize,
+                we::runtime::text::layout::FontWeight::Regular);
 
             if (item->checked) {
+                const float checkX = row.x + row.width - padX * 0.5f - iconSize;
                 we::runtime::kindui::IconPainter::Draw(
-                    context, we::runtime::kindui::WindIcons::Check16,
-                    Rect{ row.x + row.width - padX - iconSize, row.y + (rowH - iconSize) * 0.5f, iconSize, iconSize });
+                    context,
+                    we::runtime::kindui::WindIcons::Check16,
+                    Rect{ checkX, iconY, iconSize, iconSize });
             }
 
             y += rowH;
         }
+
+        context.PopClipRect();
     }
 
     void OnMouseMove(const MouseEvent& event) override {
         m_Hovered = -1;
-        const float rowH = ThemeMetric(MetricToken::ListRowHeight);
-        const float padY = ThemeMetric(MetricToken::Space1);
+        const float uiScale = (std::max)(1.0f, DPIContext::GetScale());
+        const float rowH = ThemeMetric(MetricToken::MenuItemHeight) * uiScale;
+        const float padY = 4.0f * uiScale;
         float y = m_Geometry.y + padY;
         for (size_t i = 0; i < m_Items.size(); ++i) {
-            Rect row{ m_Geometry.x + 1.0f, y, m_Geometry.width - 2.0f, rowH };
+            Rect row{ m_Geometry.x + 4.0f * uiScale, y, m_Geometry.width - 8.0f * uiScale, rowH };
             if (row.Contains(event.position)) {
                 m_Hovered = static_cast<int>(i);
                 break;
             }
             y += rowH;
         }
+        InvalidatePaint();
     }
 
     void OnMouseDown(const MouseEvent& event) override {
         if (event.button != MouseButton::Left) return;
 
-        const float rowH = ThemeMetric(MetricToken::ListRowHeight);
-        const float padY = ThemeMetric(MetricToken::Space1);
+        const float uiScale = (std::max)(1.0f, DPIContext::GetScale());
+        const float rowH = ThemeMetric(MetricToken::MenuItemHeight) * uiScale;
+        const float padY = 4.0f * uiScale;
         float y = m_Geometry.y + padY;
         for (size_t i = 0; i < m_Items.size(); ++i) {
-            Rect row{ m_Geometry.x + 1.0f, y, m_Geometry.width - 2.0f, rowH };
+            Rect row{ m_Geometry.x + 4.0f * uiScale, y, m_Geometry.width - 8.0f * uiScale, rowH };
             if (row.Contains(event.position)) {
                 if (m_Items[i]->onClick) m_Items[i]->onClick();
                 break;
@@ -206,7 +245,7 @@ void EditorModeSelector::Paint(PaintContext& context) {
         m_HoverAnim, m_Hovered ? 1.0f : 0.0f, ThemeMetric(MetricToken::HoverAnimationDamping));
 
     const float pressStrength = m_Pressed ? 1.0f : 0.0f;
-    ToolbarButtonChrome::PaintViewportChip(
+    ToolbarButtonChrome::PaintInlineDropdown(
         context, m_Geometry, m_HoverAnim, pressStrength, uiScale);
 
     const float centerY = m_Geometry.y + m_Geometry.height * 0.5f;
@@ -260,6 +299,7 @@ void EditorModeSelector::OpenModeMenu() {
     const std::string& activeId = EditorModeController::Get().GetActiveModeId();
 
     for (const auto* mode : EditorToolsRegistry::Get().GetModesSorted()) {
+        if (!mode || mode->id.empty() || mode->label.empty()) continue;
         auto item = std::make_shared<MenuItem>();
         item->label = mode->label;
         item->icon = mode->icon;

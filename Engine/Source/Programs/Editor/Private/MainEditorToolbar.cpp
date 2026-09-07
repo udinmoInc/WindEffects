@@ -53,44 +53,37 @@ std::shared_ptr<::we::runtime::kindui::Widget> BuildMainEditorToolbar(
         .RightInset(rightInset)
         .EdgePadding(edgePadding);
 
-    // 1) Editor mode
-    builder.AddWidget(modeSelector);
-    builder.Separator();
-
-    // 2) File — authored document / folder / save / blueprint / clapperboard glyphs inside segmented cluster
-    builder.Group(ToolbarAlignment::Left, ToolbarGroupStyle::ExecutionCluster, [&](ToolbarBuilder& file) {
-        if (deps.onCreateNewLevel) {
-            file.IconItem(WindIcons::Document16, "New Level (Ctrl+N)", deps.onCreateNewLevel);
-        }
-        if (deps.onOpenProject) {
-            file.IconItem(WindIcons::FolderOpen16, "Open Project (Ctrl+O)", deps.onOpenProject);
-        }
-        file.IconItem(WindIcons::Save16, "Save Level (Ctrl+S)", []() {});
-        file.IconItem(WindIcons::Blueprint16, "Open Blueprints", []() {});
-        file.IconItem(WindIcons::Clapperboard16, "Cinematics & Sequencer", []() {});
-    });
-    builder.Separator();
-
-    // 3) Centered execution controls — Green Play + Mode Dropdown + Play Settings (segmented cluster)
-    builder.Group(ToolbarAlignment::Center, ToolbarGroupStyle::ExecutionCluster, [&](ToolbarBuilder& transport) {
-        transport.IconItem(WindIcons::Play16, "Play (PIE)", []() {}, [](const std::shared_ptr<ToolButton>& btn) {
-            btn->SetButtonStyle(ToolButtonStyle::PlayButton);
+    // Left group: Editor Mode Selector & File actions (Save, Blueprint, Sequencer)
+    builder.Left([&](ToolbarBuilder& left) {
+        left.AddWidget(modeSelector);
+        left.Separator();
+        left.Group(ToolbarAlignment::Left, ToolbarGroupStyle::ExecutionCluster, [&](ToolbarBuilder& file) {
+            file.IconItem(WindIcons::Save24, "Save Level (Ctrl+S)", []() {});
+            file.IconItem(WindIcons::Blueprint24, "Open Blueprints", []() {});
+            file.IconItem(WindIcons::Clapperboard24, "Cinematics & Sequencer", []() {});
         });
-        transport.DropdownItem(
-            we::runtime::kindui::kWindIconNone,
-            "Default (Debug)",
-            []() {},
-            "Play Mode Options");
-        transport.IconItem(WindIcons::Settings16, "Play Options", []() { ShowViewportNavigationPreferences(); });
     });
 
-    // 4) Right-aligned controls — standalone (unconnected) buttons with 16px icons, dark background card chip chrome (32px height) and text label
+    // Center group: Transport controls (Green Play + Mode Dropdown + Play Settings) at true window center
+    builder.Center([&](ToolbarBuilder& center) {
+        center.Group(ToolbarAlignment::Center, ToolbarGroupStyle::ExecutionCluster, [&](ToolbarBuilder& transport) {
+            transport.IconItem(WindIcons::Play24, "Play (PIE)", []() {}, [](const std::shared_ptr<ToolButton>& btn) {
+                btn->SetButtonStyle(ToolButtonStyle::PlayButton);
+            });
+            transport.DropdownItem(
+                we::runtime::kindui::kWindIconNone,
+                "Default (Debug)",
+                []() {},
+                "Play Mode Options");
+            transport.IconItem(WindIcons::SettingsV224, "Play Options", []() { ShowViewportNavigationPreferences(); });
+        });
+    });
+
+    // Right group: Build & Accessibility dropdown controls
     builder.Right([&](ToolbarBuilder& right) {
-        right.DropdownItem(WindIcons::Construct16, "Build", []() {}, "Build Options", [](const std::shared_ptr<ToolButton>& btn) {
-            btn->SetButtonStyle(ToolButtonStyle::ViewportChip);
-        });
-        right.DropdownItem(WindIcons::Accessibility16, "Accessibility", []() {}, "Accessibility Options", [](const std::shared_ptr<ToolButton>& btn) {
-            btn->SetButtonStyle(ToolButtonStyle::ViewportChip);
+        right.Group(ToolbarAlignment::Right, ToolbarGroupStyle::ExecutionCluster, [&](ToolbarBuilder& tools) {
+            tools.DropdownItem(WindIcons::ConstructV224, "", []() {}, "Build Options");
+            tools.DropdownItem(WindIcons::AccessibilityV224, "", []() {}, "Accessibility Options");
         });
     });
 

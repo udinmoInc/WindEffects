@@ -192,10 +192,10 @@ void PaintExecutionCluster(
     const Rect& rect,
     float uiScale)
 {
-    const float radius = ButtonRadius(uiScale);
-    Color bg = ResolveColor(ColorToken::HeaderBackground);
-    context.DrawRoundedRect(rect, bg, radius);
-    context.DrawControlOutline(rect, ResolveColor(ColorToken::BorderSubtle), 1.0f * uiScale, radius);
+    (void)context;
+    (void)rect;
+    (void)uiScale;
+    // Variant without recessed card background fill
 }
 
 void PaintStatusBarControl(
@@ -242,21 +242,7 @@ void PaintViewportChip(
     float pressStrength,
     float uiScale)
 {
-    const float radius = ButtonRadius(uiScale);
-    Color bgIdle = ResolveColor(ColorToken::HeaderBackground);
-    Color bgHover = ResolveColor(ColorToken::HoverBackground);
-    Color bgPress = ResolveColor(ColorToken::ControlBackgroundPressed);
-
-    Color fill = bgIdle;
-    if (hoverAnim > 0.001f) {
-        fill = Color::Pick(fill, bgHover, std::clamp(hoverAnim, 0.0f, 1.0f));
-    }
-    if (pressStrength > 0.001f) {
-        fill = Color::Pick(fill, bgPress, std::clamp(pressStrength, 0.0f, 1.0f));
-    }
-
-    context.DrawRoundedRect(rect, fill, radius);
-    context.DrawControlOutline(rect, ResolveColor(ColorToken::BorderSubtle), 1.0f * uiScale, radius);
+    PaintInlineDropdown(context, rect, hoverAnim, pressStrength, uiScale);
 }
 
 } // namespace we::runtime::kindui::ToolbarButtonChrome

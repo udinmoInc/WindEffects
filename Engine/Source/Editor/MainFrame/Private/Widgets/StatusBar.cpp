@@ -129,7 +129,7 @@ void StatusBar::Construct() {
 
     m_OutputLogButton = MakeDockControl(WindIcons::GitPullRequestDraft16, "Source Control", "Source Control");
     m_BuildMenuButton = MakeDockControl(WindIcons::Fps16, "FPS", "Frame Rate");
-    m_TraceButton = MakeDockControl(WindIcons::Error16, "Memory", "Memory Usage");
+    m_TraceButton = MakeDockControl(WindIcons::Database16, "Cache", "Cache Usage");
     m_QualityMenuButton = MakeDockControl(WindIcons::Rhi16, "RHI", "Graphics API");
 
     m_RightBox->AddChild(m_OutputLogButton);

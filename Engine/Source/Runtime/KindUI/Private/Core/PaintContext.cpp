@@ -256,7 +256,12 @@ void PaintContext::DrawWindIcon(WindIconRef icon, const Rect& rect, const Color&
     }
     DrawCommand cmd{};
     cmd.type = DrawCommandType::Icon;
-    cmd.rect = rect;
+    cmd.rect = Rect{
+        std::floor(rect.x + 0.5f),
+        std::floor(rect.y + 0.5f),
+        std::floor(rect.width + 0.5f),
+        std::floor(rect.height + 0.5f)
+    };
     cmd.color = tint.a > 0.0f ? tint : Color::White();
     cmd.clipRect = GetCurrentClipRect();
     cmd.iconStem = icon.stem;

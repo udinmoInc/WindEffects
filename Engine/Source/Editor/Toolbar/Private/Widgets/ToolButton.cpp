@@ -308,7 +308,7 @@ void ToolButton::Paint(PaintContext& context) {
                 Point{ labelX, labelY },
                 labelColor,
                 textSize,
-                we::runtime::text::layout::FontWeight::Medium);
+                we::runtime::text::layout::FontWeight::Regular);
         }
         return;
     }
@@ -356,7 +356,7 @@ void ToolButton::Paint(PaintContext& context) {
             PaintIconButton(context, renderRect, m_HoverAnim, pressStrength, m_Active, m_ActiveAnim, uiScale);
         }
 
-        const float iconSize  = IconSize(uiScale);
+        const float iconSize  = m_Icon.IsValid() ? static_cast<float>(m_Icon.sizePx) : IconSize(uiScale);
         const float textSize  = ThemeMetric(MetricToken::TextSizeToolbar) * uiScale;
         const float iconGap   = IconGapPx(uiScale);
         const float chevGap   = ChevronGapPx(uiScale);
@@ -467,7 +467,7 @@ void ToolButton::Paint(PaintContext& context) {
                 Point{ currentX, LayoutMetrics::AlignTextTopAtCenterY(centerY, textSize) },
                 textColor,
                 textSize,
-                we::runtime::text::layout::FontWeight::Medium);
+                we::runtime::text::layout::FontWeight::Regular);
         }
 
         if (m_IsDropdown) {

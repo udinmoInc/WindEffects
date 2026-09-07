@@ -24,7 +24,7 @@ std::shared_ptr<Panel> CreateDetailsPanel() {
     auto panel = std::make_shared<Panel>(std::string(title));
     panel->AttachBodyLayout();
     panel->SetCollapsible(false);
-    panel->SetTabIcon(WindIcons::AdjustHorizon16);
+    panel->SetTabIcon(WindIcons::PaperPencile16);
 
     if (auto details = PropertyEditorSession::DetailsShared()) {
         PopulateDetailsPanelRegions(panel, details->GetWidget(), details.get());
@@ -34,7 +34,7 @@ std::shared_ptr<Panel> CreateDetailsPanel() {
 }
 
 REGISTER_UI_PANEL(Details,
-    WE_PANEL(Details).Title("Details").Icon("details").Zone(DockZone::Right).WindowMenu("Details").SortOrder(3),
+    WE_PANEL(Details).Title("Details").Icon("paper-pencile").Zone(DockZone::Right).WindowMenu("Details").SortOrder(3),
     CreateDetailsPanel)
 
 } // namespace we::programs::editor

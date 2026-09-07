@@ -37,6 +37,9 @@ Size DropdownMenu::Measure(const Size& availableSize) {
     for (const auto& item : m_Items) {
         if (!item) continue;
         float itemW = m_PaddingX * 2.0f;
+        if (item->icon.IsValid()) {
+            itemW += 16.0f + ThemeMetric(MetricToken::Space2);
+        }
         if (!item->label.empty()) {
             itemW += TextMetrics::MeasureWidth(item->label, textSize);
         }
@@ -86,6 +89,8 @@ void DropdownMenu::Paint(PaintContext& context) {
 
     const float textSize = ThemeMetric(MetricToken::TextSizeSmall);
     const float checkSize = ThemeMetric(MetricToken::CheckMarkSize);
+    const float iconSize = 16.0f;
+    const float iconGap = ThemeMetric(MetricToken::Space2);
     float y = m_Geometry.y + m_PaddingY - m_ScrollOffset;
 
     for (size_t i = 0; i < m_Items.size(); ++i) {
@@ -96,7 +101,12 @@ void DropdownMenu::Paint(PaintContext& context) {
 
         if (y + m_ItemHeight >= m_Geometry.y && y <= m_Geometry.y + m_Geometry.height) {
             if (item->label.empty()) {
-                // Separator rows are spacing-only; background shows through the gap.
+                const float sepY = y + m_ItemHeight * 0.5f;
+                context.DrawLine(
+                    Point{ m_Geometry.x + m_PaddingX, sepY },
+                    Point{ m_Geometry.x + m_Geometry.width - m_PaddingX, sepY },
+                    ResolveColor(ColorToken::Separator),
+                    1.0f);
             } else {
                 if (m_HoveredItem == static_cast<int>(i) && item->enabled) {
                     ControlChrome::InteractionState state{};
@@ -104,12 +114,19 @@ void DropdownMenu::Paint(PaintContext& context) {
                     ControlChrome::PaintListRow(context, itemRect, state);
                 }
 
+                float textX = itemRect.x;
+                if (item->icon.IsValid()) {
+                    const float iconY = itemRect.y + (m_ItemHeight - iconSize) * 0.5f;
+                    IconPainter::Draw(context, item->icon, Rect{ textX, iconY, iconSize, iconSize });
+                    textX += iconSize + iconGap;
+                }
+
                 const Color textColor = item->enabled
                     ? (m_HoveredItem == static_cast<int>(i) ? ResolveColor(ColorToken::TextPrimary) : ResolveColor(ColorToken::TextSecondary))
                     : ResolveColor(ColorToken::TextDisabled);
                 const float textY = itemRect.y + (m_ItemHeight - textSize) * 0.5f;
 
-                context.DrawText(item->label, Point{ itemRect.x, textY }, textColor, textSize);
+                context.DrawText(item->label, Point{ textX, textY }, textColor, textSize);
 
                 if (item->checked) {
                     const float iconX = itemRect.x + itemRect.width - m_PaddingX - checkSize;

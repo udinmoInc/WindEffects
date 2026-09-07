@@ -14,7 +14,9 @@ void IconPainter::Draw(PaintContext& context, WindIconRef icon, const Point& pos
         return;
     }
     const float drawSize = static_cast<float>(icon.sizePx);
-    const Rect drawRect{ position.x, position.y, drawSize, drawSize };
+    const float x = IconMetrics::SnapPx(position.x);
+    const float y = IconMetrics::SnapPx(position.y);
+    const Rect drawRect{ x, y, drawSize, drawSize };
     context.DrawWindIcon(icon, drawRect, tint);
 }
 

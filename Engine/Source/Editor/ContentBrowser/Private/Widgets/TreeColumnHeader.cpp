@@ -84,7 +84,7 @@ void TreeColumnHeader::Paint(PaintContext& context) {
         Point{ labelX, headerTextY },
         textColor,
         headerTextSize,
-        we::runtime::text::layout::FontWeight::Medium);
+        we::runtime::text::layout::FontWeight::Regular);
 
     // Column 3: Type column
     const float typeColWidth = std::floor(90.0f * uiScale);
@@ -97,7 +97,7 @@ void TreeColumnHeader::Paint(PaintContext& context) {
         Point{ typeX, headerTextY },
         textColor,
         headerTextSize,
-        we::runtime::text::layout::FontWeight::Medium);
+        we::runtime::text::layout::FontWeight::Regular);
 }
 
 } // namespace we::editor::contentbrowser

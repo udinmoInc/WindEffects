@@ -46,7 +46,7 @@ float SearchRowHeight() {
 }
 
 float SearchInputPaddingH() {
-    return ResolveMetric(MetricToken::SpaceMD) * UiScale();
+    return std::floor(7.0f * UiScale());
 }
 
 float SearchInputFontSize() {

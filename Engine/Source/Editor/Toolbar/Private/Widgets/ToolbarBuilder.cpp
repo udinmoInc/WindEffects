@@ -184,6 +184,18 @@ ToolbarBuilder& ToolbarBuilder::Separator(ToolbarAlignment alignment) {
     return *this;
 }
 
+ToolbarBuilder& ToolbarBuilder::Left(const std::function<void(ToolbarBuilder&)>& buildLeft) {
+    if (buildLeft) {
+        ToolbarBuilder leftBuilder;
+        buildLeft(leftBuilder);
+        for (auto& item : leftBuilder.m_Items) {
+            item.alignment = ToolbarAlignment::Left;
+            m_Items.push_back(std::move(item));
+        }
+    }
+    return *this;
+}
+
 ToolbarBuilder& ToolbarBuilder::Center(const std::function<void(ToolbarBuilder&)>& buildCenter) {
     if (buildCenter) {
         ToolbarBuilder centerBuilder;

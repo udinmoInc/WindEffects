@@ -21,8 +21,8 @@ inline we::runtime::kindui::WindIconRef ResolvePanelTabIcon(std::string_view pan
     if (panelId == "outliner" || panelId == "WorldOutliner" || panelId == "world-outliner" || panelId == "explorer" || panelId == "Explorer") {
         return WindIcons::Outliner16;
     }
-    if (panelId == "details" || panelId == "Details" || panelId == "property-editor" || panelId == "PropertyEditor") {
-        return WindIcons::AdjustHorizon16;
+    if (panelId == "details" || panelId == "Details" || panelId == "property-editor" || panelId == "PropertyEditor" || panelId == "paper-pencile" || panelId == "PaperPencile") {
+        return WindIcons::PaperPencile16;
     }
     if (panelId == "tools-panel" || panelId == "Tools" || panelId == "ToolsPanel") {
         return WindIcons::Wrench16;

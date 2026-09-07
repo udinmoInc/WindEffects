@@ -21,6 +21,7 @@ struct WindIconRef {
 /// Asset stems available under Assets/Icons/WindIcons/.
 namespace WindIconAssets {
     inline constexpr const char* Accessibility = "accessibility";
+    inline constexpr const char* AccessibilityV2 = "accessibility-v2";
     inline constexpr const char* AdjustHorizon = "adjust-horizon";
     inline constexpr const char* Alert = "alert";
     inline constexpr const char* Android = "android";
@@ -58,6 +59,8 @@ namespace WindIconAssets {
     inline constexpr const char* ColorPalette = "color-palette";
     inline constexpr const char* Console = "console";
     inline constexpr const char* Construct = "construct";
+    inline constexpr const char* ConstructV2 = "construct-v2";
+    inline constexpr const char* Copy = "copy";
     inline constexpr const char* ContentFolder = "content-folder";
     inline constexpr const char* Cube25 = "Cube2.5";
     inline constexpr const char* Cut = "cut";
@@ -118,6 +121,7 @@ namespace WindIconAssets {
     inline constexpr const char* SaveAll = "save-all";
     inline constexpr const char* Search = "search";
     inline constexpr const char* Settings = "settings";
+    inline constexpr const char* SettingsV2 = "settings-v2";
     inline constexpr const char* Speaker = "speaker";
     inline constexpr const char* SpeakerOff = "speaker-off";
     inline constexpr const char* SpeakerX = "speaker-x";
@@ -152,6 +156,7 @@ inline constexpr WindIconRef kWindIconNone{ nullptr, 0 };
 namespace WindIcons {
     inline constexpr WindIconRef Accessibility16{ WindIconAssets::Accessibility, 16 };
     inline constexpr WindIconRef Accessibility24{ WindIconAssets::Accessibility, 24 };
+    inline constexpr WindIconRef AccessibilityV224{ WindIconAssets::AccessibilityV2, 24 };
     inline constexpr WindIconRef AdjustHorizon16{ WindIconAssets::AdjustHorizon, 16 };
     inline constexpr WindIconRef AdjustHorizon24{ WindIconAssets::AdjustHorizon, 24 };
     inline constexpr WindIconRef Alert16{ WindIconAssets::Alert, 16 };
@@ -222,6 +227,8 @@ namespace WindIcons {
     inline constexpr WindIconRef Console24{ WindIconAssets::Console, 24 };
     inline constexpr WindIconRef Construct16{ WindIconAssets::Construct, 16 };
     inline constexpr WindIconRef Construct24{ WindIconAssets::Construct, 24 };
+    inline constexpr WindIconRef ConstructV224{ WindIconAssets::ConstructV2, 24 };
+    inline constexpr WindIconRef Copy16{ WindIconAssets::Copy, 16 };
     inline constexpr WindIconRef ContentFolder16{ WindIconAssets::ContentFolder, 16 };
     inline constexpr WindIconRef ContentFolder24{ WindIconAssets::ContentFolder, 24 };
     inline constexpr WindIconRef ContentFolder512{ WindIconAssets::ContentFolder, 512 };
@@ -341,6 +348,7 @@ namespace WindIcons {
     inline constexpr WindIconRef Search24{ WindIconAssets::Search, 24 };
     inline constexpr WindIconRef Settings16{ WindIconAssets::Settings, 16 };
     inline constexpr WindIconRef Settings24{ WindIconAssets::Settings, 24 };
+    inline constexpr WindIconRef SettingsV224{ WindIconAssets::SettingsV2, 24 };
     inline constexpr WindIconRef Speaker16{ WindIconAssets::Speaker, 16 };
     inline constexpr WindIconRef Speaker24{ WindIconAssets::Speaker, 24 };
     inline constexpr WindIconRef SpeakerOff16{ WindIconAssets::SpeakerOff, 16 };
