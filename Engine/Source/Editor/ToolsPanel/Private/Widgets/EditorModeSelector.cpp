@@ -137,6 +137,34 @@ public:
         }
 
         context.PopClipRect();
+
+        if (m_Hovered >= 0 && m_Hovered < static_cast<int>(m_Items.size())) {
+            const auto& hoveredItem = m_Items[static_cast<size_t>(m_Hovered)];
+            if (hoveredItem && !hoveredItem->tooltip.empty()) {
+                const float tooltipPadX = 8.0f * uiScale;
+                const float tooltipPadY = 5.0f * uiScale;
+                const float tooltipTextSize = ThemeMetric(MetricToken::TextSizeSmall) * uiScale;
+                const float tooltipTextW = hoveredItem->tooltip.length() * (6.8f * uiScale);
+                const float tooltipW = tooltipTextW + tooltipPadX * 2.0f;
+                const float tooltipH = tooltipTextSize + tooltipPadY * 2.0f;
+
+                const float hoveredY = m_Geometry.y + padY + m_Hovered * rowH;
+                const Rect tooltipRect{
+                    m_Geometry.x + m_Geometry.width + 6.0f * uiScale,
+                    hoveredY + (rowH - tooltipH) * 0.5f,
+                    tooltipW,
+                    tooltipH
+                };
+
+                we::runtime::kindui::ControlChrome::PaintTooltipSurface(context, tooltipRect);
+                context.DrawText(
+                    hoveredItem->tooltip,
+                    Point{ tooltipRect.x + tooltipPadX, tooltipRect.y + tooltipPadY },
+                    ThemeColor(ColorToken::TextPrimary),
+                    tooltipTextSize,
+                    we::runtime::text::layout::FontWeight::Regular);
+            }
+        }
     }
 
     void OnMouseMove(const MouseEvent& event) override {
@@ -303,6 +331,7 @@ void EditorModeSelector::OpenModeMenu() {
         auto item = std::make_shared<MenuItem>();
         item->label = mode->label;
         item->icon = mode->icon;
+        item->tooltip = mode->tooltip;
         item->checked = mode->id == activeId;
         const std::string modeId = mode->id;
         item->onClick = [modeId]() {

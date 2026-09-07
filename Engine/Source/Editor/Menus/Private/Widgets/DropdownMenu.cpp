@@ -147,6 +147,33 @@ void DropdownMenu::Paint(PaintContext& context) {
     }
 
     context.PopClipRect();
+
+    if (m_HoveredItem >= 0 && m_HoveredItem < static_cast<int>(m_Items.size())) {
+        const auto& hoveredItem = m_Items[static_cast<size_t>(m_HoveredItem)];
+        if (hoveredItem && !hoveredItem->tooltip.empty()) {
+            const float tooltipPadX = 8.0f;
+            const float tooltipPadY = 5.0f;
+            const float tooltipTextSize = ThemeMetric(MetricToken::TextSizeSmall);
+            const float tooltipTextW = TextMetrics::MeasureWidth(hoveredItem->tooltip, tooltipTextSize);
+            const float tooltipW = tooltipTextW + tooltipPadX * 2.0f;
+            const float tooltipH = tooltipTextSize + tooltipPadY * 2.0f;
+
+            const float hoveredY = m_Geometry.y + m_PaddingY + static_cast<float>(m_HoveredItem) * m_ItemHeight - m_ScrollOffset;
+            const Rect tooltipRect{
+                m_Geometry.x + m_Geometry.width + 6.0f,
+                hoveredY + (m_ItemHeight - tooltipH) * 0.5f,
+                tooltipW,
+                tooltipH
+            };
+
+            ControlChrome::PaintTooltipSurface(context, tooltipRect);
+            context.DrawText(
+                hoveredItem->tooltip,
+                Point{ tooltipRect.x + tooltipPadX, tooltipRect.y + tooltipPadY },
+                ResolveColor(ColorToken::TextPrimary),
+                tooltipTextSize);
+        }
+    }
 }
 
 void DropdownMenu::OnMouseMove(const MouseEvent& event) {

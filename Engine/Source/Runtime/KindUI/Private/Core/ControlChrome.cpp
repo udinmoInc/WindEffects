@@ -627,12 +627,14 @@ void PaintPopupSurface(PaintContext& context, const Rect& rect) {
     const ResolvedStyle style = Role(StyleRole::Popup);
     PaintElevation(context, rect, style.elevation > 0 ? style.elevation : 2, style.cornerRadius);
     context.DrawRoundedRect(rect, style.background, style.cornerRadius);
+    context.DrawRoundedRectOutline(rect, ResolveColor(ColorToken::BorderSubtle), 1.0f, style.cornerRadius);
 }
 
 void PaintTooltipSurface(PaintContext& context, const Rect& rect) {
     const ResolvedStyle style = Role(StyleRole::Tooltip);
     PaintElevation(context, rect, style.elevation > 0 ? style.elevation : 2, style.cornerRadius);
     context.DrawRoundedRect(rect, style.background, style.cornerRadius);
+    context.DrawRoundedRectOutline(rect, ResolveColor(ColorToken::BorderLight), 1.0f, style.cornerRadius);
 }
 
 void PaintCheckbox(
