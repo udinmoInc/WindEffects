@@ -8,6 +8,7 @@
 #include "KindUI/Profiling/UiColorCompositionDiagnostic.h"
 #include "EditorCompositionProbes.h"
 #include "KindUI/Core/ColorSpace.h"
+#include "KindUI/Core/Animator.h"
 #include "KindUI/Input/InputEvents.h"
 #include "Core/Logger.h"
 
@@ -258,7 +259,13 @@ void Editor::InitializeEngine() {
 
     HE_INFO("[Startup] Stage 4/6: OverlayRenderer init...");
     m_OverlayRenderer = std::make_unique<we::runtime::kindui::OverlayRenderer>();
-    if (!m_OverlayRenderer->Init(m_Renderer->GetRHIDevice(), m_Renderer->GetSwapchainFormat(), 1)) {
+    const uint32_t uiFramesInFlight = m_Renderer->GetRHIDevice()
+        ? m_Renderer->GetRHIDevice()->GetFramesInFlight()
+        : 2u;
+    if (!m_OverlayRenderer->Init(
+            m_Renderer->GetRHIDevice(),
+            m_Renderer->GetSwapchainFormat(),
+            uiFramesInFlight)) {
         throw std::runtime_error("Failed to initialize OverlayRenderer!");
     }
 
@@ -343,10 +350,16 @@ void Editor::OpenWeLauncher() {
 void Editor::UnloadProjectWorkspace() {
     HE_INFO("[Startup] Unloading current project workspace...");
 
+    if (m_Window != we::platform::WindowId::Invalid) {
+        we::platform::Platform::Get().SetWindowHitTest(m_Window, nullptr, nullptr);
+    }
+    m_WindowHitTestData.titleBar.reset();
+
     if (m_OverlayHost) {
         m_OverlayHost->CloseAllPopups();
     }
     EditorWorkspaceController::Get().SaveLayout();
+    EditorWorkspaceController::Get().Reset();
 
     we::core::PluginManager::Get().UnloadAllPlugins();
     ShutdownContentBrowserService();
@@ -357,9 +370,11 @@ void Editor::UnloadProjectWorkspace() {
     }
 
     m_ViewportWidget.reset();
-    m_OverlayHost.reset();
-    m_StatusBar.reset();
     m_TitleBar.reset();
+    m_StatusBar.reset();
+    m_OverlayHost.reset();
+    m_RootWidget.reset();
+    EditorWorkspaceController::Get().ClearLayoutRefs();
 
     if (m_UndoRuntime) {
         m_UndoRuntime->Shutdown();
@@ -814,13 +829,14 @@ void Editor::UpdateUiScaleFromWindow() {
 
     const float clamped = std::clamp(scale, 1.0f, 3.0f);
     const float previous = we::runtime::kindui::DPIContext::GetScale();
+    if (std::abs(clamped - previous) <= 0.001f) {
+        return;
+    }
     we::runtime::kindui::DPIContext::SetScale(clamped);
     if (we::runtime::kindui::ThemeManager::Get().IsInitialized()) {
         we::runtime::kindui::ThemeManager::Get().SetDpiScale(clamped);
     }
-    if (std::abs(clamped - previous) > 0.001f) {
-        we::runtime::kindui::UIRepaintGate::Request();
-    }
+    we::runtime::kindui::UIRepaintGate::Request();
 }
 
 void Editor::EnsureVisibleSwapchain() {
@@ -846,15 +862,16 @@ void Editor::EnsureVisibleSwapchain() {
     }
 }
 
-void Editor::SyncViewportFramebufferFromLayout() {
+bool Editor::SyncViewportFramebufferFromLayout() {
+    bool layoutOrResize = false;
     if (!m_RootWidget || !m_Renderer) {
-        return;
+        return false;
     }
 
     const uint32_t w = m_Renderer->GetSwapchainWidth();
     const uint32_t h = m_Renderer->GetSwapchainHeight();
     if (w == 0 || h == 0) {
-        return;
+        return false;
     }
 
     const bool sizeChanged = w != m_LastLayoutSwapchainW || h != m_LastLayoutSwapchainH;
@@ -873,14 +890,20 @@ void Editor::SyncViewportFramebufferFromLayout() {
         we::runtime::kindui::UiInputLatencyAudit::Get().OnLayout();
         m_LastLayoutSwapchainW = w;
         m_LastLayoutSwapchainH = h;
+        layoutOrResize = true;
     }
 
     if (m_ViewportWidget) {
         if (auto vp = std::dynamic_pointer_cast<ViewportWidget>(m_ViewportWidget)) {
-            vp->FlushPendingResize();
+            // New viewport targets are empty until RenderScene fills them — never paint-only after resize.
+            if (vp->FlushPendingResize()) {
+                m_HasRenderedScene = false;
+                layoutOrResize = true;
+            }
             vp->SyncRendererViewport();
         }
     }
+    return layoutOrResize;
 }
 
 void Editor::LogWidgetTreeLayout(const std::shared_ptr<UI::Widget>& widget, const std::string& name, int depth) {
@@ -950,6 +973,7 @@ void Editor::ProcessLateInputMouse() {
 }
 
 void Editor::TickSimulation(float dt) {
+    we::runtime::kindui::Animator::Tick(dt);
     if (m_RootWidget) {
         m_RootWidget->Tick(dt);
     }
@@ -1033,6 +1057,11 @@ void Editor::MainLoop() {
         we::runtime::kindui::UIRepaintGate::BeginFrame();
         we::runtime::kindui::UiPathDiagnostics::Get().BeginFrame();
         ::we::editor::services::EditorPerfStats::Get().BeginFrame();
+
+        uint64_t now = platform.GetHighResolutionCounter();
+        float dt = static_cast<float>((now - lastTime) / frequency);
+        lastTime = now;
+        if (dt > 0.1f) dt = 0.1f;
 
         if (!platform.PollEvents()) {
             m_Running = false;
@@ -1173,15 +1202,26 @@ void Editor::MainLoop() {
         if (m_OverlayHost && m_OverlayHost->HasOpenPopups()) {
             m_OverlayHost->ExecutePendingCallbacks();
         }
+        EditorWorkspaceController::Get().FlushPendingDockActions();
 
         if (!m_Running) break;
 
-        // Layout immediately after input so interaction geometry is current before render.
-        UpdateUiScaleFromWindow();
-        SyncViewportFramebufferFromLayout();
+        // Tick before render so hover/press damping and camera settle apply to this frame's UI
+        // (previously Tick ran after Present → one-frame interaction lag).
+        if (!m_RootWidget) {
+            HE_ERROR("[Render] Root widget is null during frame tick; stopping main loop.");
+            m_Running = false;
+            break;
+        }
         ProcessLateInputMouse();
+        TickSimulation(dt);
+        ::we::editor::services::EditorPerfStats::Get().Mark("tick");
+
+        // Layout immediately after input/tick so interaction geometry is current before render.
+        UpdateUiScaleFromWindow();
+        bool layoutOrResizeThisFrame = SyncViewportFramebufferFromLayout();
         if (we::runtime::kindui::UIRepaintGate::PeekNeedsLayout()) {
-            SyncViewportFramebufferFromLayout();
+            layoutOrResizeThisFrame = SyncViewportFramebufferFromLayout() || layoutOrResizeThisFrame;
         }
         ::we::editor::services::EditorPerfStats::Get().Mark("layout");
 
@@ -1199,16 +1239,16 @@ void Editor::MainLoop() {
         cameraUBO.position = m_Camera->GetPosition();
         {
             // WE_SKY_DEBUG: 0 final, 1 sky only, 2 sun mask, 3 luminance, 4 no sun, 5 linear HDR.
-            int skyDebugMode = 0;
-            if (const char* v = std::getenv("WE_SKY_DEBUG")) {
-                skyDebugMode = std::atoi(v);
-            }
-            cameraUBO.padding = static_cast<float>(skyDebugMode);
-            we::runtime::renderer::FoundationRenderDebug::MaybeLog(skyDebugMode);
+            static int s_SkyDebugMode = []() {
+                if (const char* v = std::getenv("WE_SKY_DEBUG")) {
+                    return std::atoi(v);
+                }
+                return 0;
+            }();
+            cameraUBO.padding = static_cast<float>(s_SkyDebugMode);
+            we::runtime::renderer::FoundationRenderDebug::MaybeLog(s_SkyDebugMode);
         }
 
-        const bool uiLayoutRequested = we::runtime::kindui::UIRepaintGate::PeekNeedsLayout();
-        const bool uiPaintRequested = we::runtime::kindui::UIRepaintGate::PeekNeedsPaint();
         const uint64_t cameraHash = HashCameraUniform(cameraUBO);
 
 
@@ -1235,17 +1275,24 @@ void Editor::MainLoop() {
 
             // CPU UI build + viewport sync before the graph (GPU overlay records inside UiOverlayPass).
             if (m_OverlayRenderer) {
-                ProcessLateInputMouse();
                 const uint32_t imageIndex = m_Renderer->GetCurrentImageIndex();
+                // Must match the RHI frame slot — Renderer FIF and UI buffer count must stay in sync
+                // or every other frame skips UI draw after Clear (whole-chrome flicker).
+                const uint32_t frameSlot = m_Renderer->GetRHIDevice()
+                    ? m_Renderer->GetRHIDevice()->GetCurrentFrameSlot()
+                    : m_Renderer->GetCurrentFrameIndex();
                 m_OverlayRenderer->SetPipelineAuditImageIndex(imageIndex);
                 m_OverlayRenderer->SetTargetExtent(
                     m_Renderer->GetSwapchainWidth(), m_Renderer->GetSwapchainHeight());
-                m_OverlayRenderer->RenderUI(m_RootWidget, m_Renderer->GetCurrentFrameIndex());
+                m_OverlayRenderer->RenderUI(m_RootWidget, frameSlot);
                 ::we::editor::services::EditorPerfStats::Get().Mark("ui");
 
                 if (m_ViewportWidget) {
                     if (auto vp = std::dynamic_pointer_cast<ViewportWidget>(m_ViewportWidget)) {
-                        vp->FlushPendingResize();
+                        if (vp->FlushPendingResize()) {
+                            m_HasRenderedScene = false;
+                            layoutOrResizeThisFrame = true;
+                        }
                         vp->SyncRendererViewport();
                     }
                 }
@@ -1281,10 +1328,11 @@ void Editor::MainLoop() {
                 we::runtime::kindui::UiColorPipelineDiagnostic::IsEnabled()
                 && !we::runtime::kindui::UiColorCompositionDiagnostic::IsEnabled();
             const bool compositionColorTest = we::runtime::kindui::UiColorCompositionDiagnostic::IsEnabled();
+            // Hover/click only need UI. Reuse the last 3D viewport when the camera is stable and
+            // the viewport RT was not just recreated (FIF UI buffers are sized to match RHI).
             const bool paintOnlyFrame =
                 pipelineColorTest
-                || (!uiLayoutRequested
-                    && uiPaintRequested
+                || (!layoutOrResizeThisFrame
                     && m_HasRenderedScene
                     && cameraHash == m_LastSceneCameraHash);
             if (paintOnlyFrame) {
@@ -1317,21 +1365,6 @@ void Editor::MainLoop() {
             ::we::editor::services::EditorPerfStats::Get().Mark("present");
             m_Renderer->ClearOverlayRecorder();
 
-            {
-                const auto& stats = m_OverlayRenderer
-                    ? m_OverlayRenderer->GetFrameStats()
-                    : we::runtime::kindui::UIFrameStats{};
-                ::we::editor::services::EditorPerfStats::Get().EndFrame(
-                    stats.vertices,
-                    stats.batches,
-                    stats.opaqueBatches,
-                    stats.alphaBatches,
-                    stats.opaqueIndices,
-                    stats.alphaIndices);
-                we::runtime::kindui::UiPathDiagnostics::Get().SetGeometryVertices(stats.vertices);
-                we::runtime::kindui::UiPathDiagnostics::Get().EndFrame();
-            }
-
             if (firstFrame) {
                 HE_INFO("[Render] First foundation renderer frame presented.");
                 if (m_FirstRunAgreementPending) {
@@ -1341,24 +1374,22 @@ void Editor::MainLoop() {
             }
         } else if (!m_Renderer) {
             HE_ERROR("[Render] Renderer is null in main loop.");
-            ::we::editor::services::EditorPerfStats::Get().EndFrame(0, 0);
-            we::runtime::kindui::UiPathDiagnostics::Get().EndFrame();
-        } else {
-            ::we::editor::services::EditorPerfStats::Get().EndFrame(0, 0);
-            we::runtime::kindui::UiPathDiagnostics::Get().EndFrame();
         }
 
-        uint64_t now = platform.GetHighResolutionCounter();
-        float dt = static_cast<float>((now - lastTime) / frequency);
-        lastTime = now;
-        if (dt > 0.1f) dt = 0.1f;
-        if (!m_RootWidget) {
-            HE_ERROR("[Render] Root widget is null during frame tick; stopping main loop.");
-            m_Running = false;
-            break;
+        {
+            const auto& stats = m_OverlayRenderer
+                ? m_OverlayRenderer->GetFrameStats()
+                : we::runtime::kindui::UIFrameStats{};
+            ::we::editor::services::EditorPerfStats::Get().EndFrame(
+                stats.vertices,
+                stats.batches,
+                stats.opaqueBatches,
+                stats.alphaBatches,
+                stats.opaqueIndices,
+                stats.alphaIndices);
+            we::runtime::kindui::UiPathDiagnostics::Get().SetGeometryVertices(stats.vertices);
+            we::runtime::kindui::UiPathDiagnostics::Get().EndFrame();
         }
-        TickSimulation(dt);
-        ::we::editor::services::EditorPerfStats::Get().Mark("tick");
 
         if (we::runtime::kindui::UiInputLatencyAudit::IsEnabled()) {
             ++m_LatencyAuditFrameCounter;
@@ -1370,6 +1401,12 @@ void Editor::MainLoop() {
 }
 
 void Editor::Shutdown() {
+    if (m_Window != we::platform::WindowId::Invalid) {
+        we::platform::Platform::Get().SetWindowHitTest(m_Window, nullptr, nullptr);
+        we::platform::Platform::Get().SetRelativeMouseMode(m_Window, false);
+    }
+    m_WindowHitTestData.titleBar.reset();
+
     if (m_OverlayHost) {
         m_OverlayHost->CloseAllPopups();
     }
@@ -1377,16 +1414,16 @@ void Editor::Shutdown() {
     ::we::editor::shell::EditorModeController::Get().ClearModeChangedListeners();
 
     EditorWorkspaceController::Get().SaveLayout();
-
-    if (m_Window != we::platform::WindowId::Invalid) {
-        we::platform::Platform::Get().SetRelativeMouseMode(m_Window, false);
-    }
+    EditorWorkspaceController::Get().Reset();
 
     we::core::PluginManager::Get().UnloadAllPlugins();
 
     m_ViewportWidget.reset();
+    m_TitleBar.reset();
+    m_StatusBar.reset();
     m_OverlayHost.reset();
     m_RootWidget.reset();
+    EditorWorkspaceController::Get().ClearLayoutRefs();
     ShutdownContentBrowserService();
 
     // Tear down terrain GPU resources before destroying the RHI device.

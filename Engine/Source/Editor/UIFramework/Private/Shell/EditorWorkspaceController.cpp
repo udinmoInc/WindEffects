@@ -4,16 +4,27 @@
 #include "Core/Logger.h"
 #include "WindEffects/Editor/UI/Widgets/Panel.h"
 #include "WindEffects/Editor/UI/Widgets/DockContainer.h"
+#include "WindEffects/Editor/UI/Widgets/FloatingPanelFrame.h"
+#include "WindEffects/Editor/UI/Panel/PanelChrome.h"
 #include "KindUI/Layout/Splitter.h"
 #include "KindUI/Layout/OverlayManager.h"
 #include "KindUI/Core/UIRepaintGate.h"
+#include "KindUI/Tokens/DesignToken.h"
+#include "KindUI/Theming/ThemeAccess.h"
+#include "Widgets/DropdownMenu.h"
 
 #include <filesystem>
 #include <fstream>
 #include <sstream>
+#include <algorithm>
+#include <vector>
 
 namespace we::programs::editor {
 namespace {
+
+using ::we::runtime::kindui::Point;
+using ::we::runtime::kindui::Rect;
+using ::we::runtime::kindui::Size;
 
 constexpr const char* kLayoutFileName = "editor_layout.ini";
 
@@ -90,7 +101,11 @@ void EditorWorkspaceController::RegisterPanel(
     PanelEntry entry;
     entry.panel = panel;
     entry.zone = zone;
+    entry.homeZone = (zone == ::we::editor::docking::DockZone::Floating)
+        ? ::we::editor::docking::DockZone::Right
+        : zone;
     entry.visible = panel->IsVisible();
+    entry.floating = false;
     m_Panels[panelId] = std::move(entry);
 }
 
@@ -136,8 +151,36 @@ void EditorWorkspaceController::SetPanelVisible(const std::string& panelId, bool
         return;
     }
 
+    if (it->second.floating && !visible) {
+        if (m_PopupHost && it->second.floatFrame) {
+            m_PopupHost->ClosePopup(it->second.floatFrame);
+        }
+        if (it->second.floatFrame) {
+            (void)it->second.floatFrame->TakePanel();
+            it->second.floatFrame.reset();
+        }
+        it->second.panel->SetHeaderHeight(0.0f);
+        it->second.floating = false;
+        it->second.zone = it->second.homeZone;
+        it->second.visible = false;
+        it->second.panel->SetVisible(false);
+        if (m_OnPanelVisibilityChanged) {
+            m_OnPanelVisibilityChanged();
+        }
+        we::runtime::kindui::UIRepaintGate::RequestLayout();
+        return;
+    }
+
     it->second.visible = visible;
     it->second.panel->SetVisible(visible);
+
+    if (it->second.floating) {
+        if (m_OnPanelVisibilityChanged) {
+            m_OnPanelVisibilityChanged();
+        }
+        we::runtime::kindui::UIRepaintGate::RequestLayout();
+        return;
+    }
 
     if (auto dock = DockForPanel(panelId)) {
         if (visible) {
@@ -159,6 +202,8 @@ void EditorWorkspaceController::SetPanelVisible(const std::string& panelId, bool
         }
     }
 
+    UpdateEmptyDockVisibility();
+
     if (m_OnPanelVisibilityChanged) {
         m_OnPanelVisibilityChanged();
     }
@@ -175,21 +220,410 @@ bool EditorWorkspaceController::IsPanelVisible(const std::string& panelId) const
     return it != m_Panels.end() ? it->second.visible : false;
 }
 
-void EditorWorkspaceController::FloatPanel(const std::string& panelId) {
+std::string EditorWorkspaceController::FindPanelId(const ::we::editor::panels::Panel* panel) const {
+    if (!panel) {
+        return {};
+    }
+    for (const auto& [id, entry] : m_Panels) {
+        if (entry.panel.get() == panel) {
+            return id;
+        }
+    }
+    return {};
+}
+
+void EditorWorkspaceController::ShowFloatingOptionsMenu(const std::string& panelId) {
     const auto it = m_Panels.find(panelId);
-    if (it == m_Panels.end() || !it->second.panel || !m_PopupHost) {
+    if (it == m_Panels.end() || !it->second.panel || !m_PopupHost || !it->second.floatFrame) {
         return;
     }
 
-    if (auto dock = DockForPanel(panelId)) {
-        dock->RemovePanel(it->second.panel);
-    } else if (auto zoneDock = DockForZone(it->second.zone)) {
-        zoneDock->RemovePanel(it->second.panel);
+    const Rect header = it->second.floatFrame->GetGeometry();
+    const float titleH = we::runtime::kindui::ResolveMetric(
+        we::runtime::kindui::MetricToken::TitleBarHeight)
+        * ::we::editor::panels::PanelChrome::UiScale();
+
+    std::vector<std::shared_ptr<::we::editor::menus::MenuItem>> items;
+
+    auto dockItem = std::make_shared<::we::editor::menus::MenuItem>();
+    dockItem->label = "Dock Panel";
+    dockItem->enabled = true;
+    dockItem->onClick = [panelId]() {
+        EditorWorkspaceController::Get().DockPanel(panelId);
+    };
+    items.push_back(dockItem);
+
+    auto closeItem = std::make_shared<::we::editor::menus::MenuItem>();
+    closeItem->label = "Close Panel";
+    closeItem->enabled = true;
+    closeItem->onClick = [panelId]() {
+        EditorWorkspaceController::Get().SetPanelVisible(panelId, false);
+    };
+    items.push_back(closeItem);
+
+    auto menu = std::make_shared<::we::editor::menus::DropdownMenu>(items);
+    m_PopupHost->CloseTransientPopups();
+    const float menuY = header.y + titleH + 2.0f;
+    m_PopupHost->ShowPopup(menu, we::runtime::kindui::Point{
+        header.x + header.width - 160.0f,
+        menuY
+    });
+}
+
+::we::editor::docking::DockZone EditorWorkspaceController::ZoneForDock(
+    const std::shared_ptr<::we::editor::docking::DockContainer>& dock) const {
+    if (!dock) {
+        return ::we::editor::docking::DockZone::Floating;
+    }
+    if (dock == m_Layout.toolsDock) {
+        return ::we::editor::docking::DockZone::Left;
+    }
+    if (dock == m_Layout.viewportDock) {
+        return ::we::editor::docking::DockZone::Center;
+    }
+    if (dock == m_Layout.explorerDock || dock == m_Layout.detailsDock) {
+        return ::we::editor::docking::DockZone::Right;
+    }
+    if (dock == m_Layout.contentBrowserDock) {
+        return ::we::editor::docking::DockZone::Bottom;
+    }
+    return ::we::editor::docking::DockZone::Floating;
+}
+
+void EditorWorkspaceController::BeginFloating(
+    PanelEntry& entry,
+    const std::string& panelId,
+    const we::runtime::kindui::Point& position) {
+    if (!entry.panel || !m_PopupHost) {
+        return;
     }
 
-    m_PopupHost->ShowPopup(it->second.panel, we::runtime::kindui::Point{ 120.0f, 120.0f });
-    it->second.visible = true;
-    it->second.panel->SetVisible(true);
+    if (entry.floating && entry.floatFrame) {
+        m_PopupHost->MovePopup(entry.floatFrame, position);
+        return;
+    }
+
+    if (entry.zone != ::we::editor::docking::DockZone::Floating) {
+        entry.homeZone = entry.zone;
+    }
+
+    if (auto dock = DockForPanel(panelId)) {
+        dock->RemovePanel(entry.panel);
+    } else if (auto zoneDock = DockForZone(entry.zone)) {
+        zoneDock->RemovePanel(entry.panel);
+    }
+
+    const Rect geom = entry.panel->GetGeometry();
+    const float titleH = we::runtime::kindui::ResolveMetric(
+        we::runtime::kindui::MetricToken::TitleBarHeight)
+        * ::we::editor::panels::PanelChrome::UiScale();
+    we::runtime::kindui::Size floatSize{
+        (std::max)(geom.width, 320.0f),
+        (std::max)(geom.height + titleH, 280.0f)
+    };
+    if (floatSize.width < 40.0f) {
+        floatSize.width = 360.0f;
+    }
+    if (floatSize.height < 40.0f) {
+        floatSize.height = 420.0f;
+    }
+
+    auto frame = std::make_shared<::we::editor::docking::FloatingPanelFrame>();
+    frame->SetPanel(entry.panel);
+    if (m_PopupHost) {
+        frame->SetWorkspaceBounds(m_PopupHost->GetGeometry());
+    }
+
+    frame->SetOnClose([panelId]() {
+        EditorWorkspaceController::Get().SetPanelVisible(panelId, false);
+    });
+
+    frame->SetOnResize([this, weak = std::weak_ptr<::we::editor::docking::FloatingPanelFrame>(frame)](
+        const Rect& bounds) {
+        if (!m_PopupHost) {
+            return;
+        }
+        auto host = weak.lock();
+        if (!host) {
+            return;
+        }
+        m_PopupHost->ResizePopup(host, bounds);
+        we::runtime::kindui::UIRepaintGate::RequestPaint();
+    });
+
+    frame->SetOnMove([this, weak = std::weak_ptr<::we::editor::docking::FloatingPanelFrame>(frame)](
+        const we::runtime::kindui::Point& delta) {
+        if (!m_PopupHost) {
+            return;
+        }
+        auto host = weak.lock();
+        if (!host) {
+            return;
+        }
+        const Rect g = host->GetGeometry();
+        m_PopupHost->MovePopup(host, we::runtime::kindui::Point{ g.x + delta.x, g.y + delta.y });
+        we::runtime::kindui::UIRepaintGate::RequestPaint();
+    });
+
+    m_PopupHost->CloseTransientPopups();
+    m_PopupHost->ShowPinnedPopup(frame, position, floatSize);
+
+    entry.floatFrame = std::move(frame);
+    entry.zone = ::we::editor::docking::DockZone::Floating;
+    entry.floating = true;
+    entry.visible = true;
+    entry.panel->SetVisible(true);
+
+    UpdateEmptyDockVisibility();
+    we::runtime::kindui::UIRepaintGate::RequestLayout();
+}
+
+void EditorWorkspaceController::FloatPanel(const std::string& panelId) {
+    FloatPanelAt(panelId, we::runtime::kindui::Point{ 120.0f, 100.0f });
+}
+
+void EditorWorkspaceController::FloatPanelAt(
+    const std::string& panelId,
+    const we::runtime::kindui::Point& position) {
+    if (panelId.empty()) {
+        return;
+    }
+    // Defer: callers often run inside DockContainer::OnMouseMove or menu callbacks.
+    m_PendingFloatId = panelId;
+    m_PendingFloatPos = position;
+    m_PendingDockId.clear();
+}
+
+void EditorWorkspaceController::FloatPanelWidget(
+    const std::shared_ptr<::we::editor::panels::Panel>& panel) {
+    if (!panel) {
+        return;
+    }
+    const Rect g = panel->GetGeometry();
+    FloatPanelWidget(panel, we::runtime::kindui::Point{ g.x + 24.0f, g.y + 24.0f });
+}
+
+void EditorWorkspaceController::FloatPanelWidget(
+    const std::shared_ptr<::we::editor::panels::Panel>& panel,
+    const we::runtime::kindui::Point& position) {
+    const std::string id = FindPanelId(panel.get());
+    if (id.empty()) {
+        return;
+    }
+    FloatPanelAt(id, position);
+}
+
+void EditorWorkspaceController::HidePanelWidget(
+    const std::shared_ptr<::we::editor::panels::Panel>& panel) {
+    const std::string id = FindPanelId(panel.get());
+    if (id.empty()) {
+        return;
+    }
+    SetPanelVisible(id, false);
+}
+
+void EditorWorkspaceController::DockPanel(const std::string& panelId) {
+    if (panelId.empty()) {
+        return;
+    }
+    m_PendingDockId = panelId;
+    m_PendingDockTarget.reset();
+    m_PendingFloatId.clear();
+}
+
+void EditorWorkspaceController::DockPanelTo(
+    const std::string& panelId,
+    const std::shared_ptr<::we::editor::docking::DockContainer>& targetDock) {
+    if (panelId.empty()) {
+        return;
+    }
+    m_PendingDockId = panelId;
+    m_PendingDockTarget = targetDock;
+    m_PendingFloatId.clear();
+}
+
+void EditorWorkspaceController::FlushPendingDockActions() {
+    if (!m_PendingFloatId.empty()) {
+        const std::string id = m_PendingFloatId;
+        const Point pos = m_PendingFloatPos;
+        m_PendingFloatId.clear();
+        const auto it = m_Panels.find(id);
+        if (it != m_Panels.end()) {
+            BeginFloating(it->second, id, pos);
+        }
+    }
+
+    if (!m_PendingDockId.empty()) {
+        const std::string id = m_PendingDockId;
+        auto target = m_PendingDockTarget;
+        m_PendingDockId.clear();
+        m_PendingDockTarget.reset();
+        ApplyDockPanel(id, target);
+    }
+}
+
+void EditorWorkspaceController::ApplyDockPanel(
+    const std::string& panelId,
+    const std::shared_ptr<::we::editor::docking::DockContainer>& targetDock) {
+    const auto it = m_Panels.find(panelId);
+    if (it == m_Panels.end() || !it->second.panel) {
+        return;
+    }
+
+    PanelEntry& entry = it->second;
+    if (!entry.floating) {
+        return;
+    }
+
+    if (m_PopupHost && entry.floatFrame) {
+        m_PopupHost->ClosePopup(entry.floatFrame);
+    }
+
+    if (entry.floatFrame) {
+        (void)entry.floatFrame->TakePanel();
+        entry.floatFrame.reset();
+    }
+
+    entry.panel->SetHeaderHeight(0.0f);
+    entry.floating = false;
+    entry.visible = true;
+    entry.panel->SetVisible(true);
+
+    auto dock = targetDock;
+    if (!dock) {
+        dock = DockForPanel(panelId);
+    }
+    if (!dock) {
+        dock = DockForZone(entry.homeZone);
+    }
+
+    if (dock) {
+        entry.zone = ZoneForDock(dock);
+        if (entry.zone != ::we::editor::docking::DockZone::Floating) {
+            entry.homeZone = entry.zone;
+        }
+        // Make sure empty/hidden docks become visible before attach.
+        dock->SetVisible(true);
+        if (dock == m_Layout.contentBrowserDock && !m_ContentBrowserExpanded) {
+            m_ContentBrowserExpanded = true;
+            if (m_Layout.rootVerticalSplitter) {
+                m_Layout.rootVerticalSplitter->SetResizeMode(Splitter::ResizeMode::FixedSecond);
+                m_Layout.rootVerticalSplitter->SetFixedSecondWidth(
+                    SanitizeContentBrowserHeight(m_ContentBrowserBottomHeight));
+            }
+        }
+        if (!dock->ContainsPanel(entry.panel)) {
+            dock->AddPanel(entry.panel);
+        }
+        dock->FocusPanel(entry.panel);
+    } else {
+        entry.zone = entry.homeZone;
+    }
+
+    UpdateEmptyDockVisibility();
+    we::runtime::kindui::UIRepaintGate::RequestLayout();
+}
+
+void EditorWorkspaceController::UpdateEmptyDockVisibility() {
+    auto dockHasTabs = [](const std::shared_ptr<::we::editor::docking::DockContainer>& dock) {
+        return dock && dock->GetTabCount() > 0;
+    };
+
+    if (m_Layout.explorerDock) {
+        m_Layout.explorerDock->SetVisible(dockHasTabs(m_Layout.explorerDock));
+    }
+    if (m_Layout.detailsDock) {
+        m_Layout.detailsDock->SetVisible(dockHasTabs(m_Layout.detailsDock));
+    }
+    if (m_Layout.contentBrowserDock) {
+        const bool show = dockHasTabs(m_Layout.contentBrowserDock) && m_ContentBrowserExpanded;
+        m_Layout.contentBrowserDock->SetVisible(show);
+    }
+
+    const bool rightVisible =
+        (m_Layout.explorerDock && m_Layout.explorerDock->IsVisible())
+        || (m_Layout.detailsDock && m_Layout.detailsDock->IsVisible());
+
+    if (m_Layout.rightVerticalSplitter) {
+        m_Layout.rightVerticalSplitter->SetVisible(rightVisible);
+    }
+
+    if (m_Layout.mainHorizontalSplitter) {
+        m_Layout.mainHorizontalSplitter->SetResizeMode(Splitter::ResizeMode::FixedSecond);
+        if (rightVisible) {
+            const float width = m_RightSidebarWidth > 0.0f ? m_RightSidebarWidth : 340.0f;
+            m_Layout.mainHorizontalSplitter->SetFixedSecondWidth(std::max(width, 280.0f));
+        } else {
+            const float current = m_Layout.mainHorizontalSplitter->GetFixedSecondWidth();
+            if (current >= 200.0f) {
+                m_RightSidebarWidth = current;
+            }
+            m_Layout.mainHorizontalSplitter->SetFixedSecondWidth(0.0f);
+        }
+    }
+}
+
+void EditorWorkspaceController::EnsureDefaultDockPlacement() {
+    m_PendingFloatId.clear();
+    m_PendingDockId.clear();
+    m_PendingDockTarget.reset();
+
+    static const char* kCorePanels[] = {
+        "Tools", "Viewport", "WorldOutliner", "Details", "ContentBrowser"
+    };
+
+    for (const char* panelId : kCorePanels) {
+        const auto it = m_Panels.find(panelId);
+        if (it == m_Panels.end() || !it->second.panel) {
+            continue;
+        }
+
+        PanelEntry& entry = it->second;
+        if (entry.floating) {
+            if (m_PopupHost && entry.floatFrame) {
+                m_PopupHost->ClosePopup(entry.floatFrame);
+            }
+            if (entry.floatFrame) {
+                (void)entry.floatFrame->TakePanel();
+                entry.floatFrame.reset();
+            }
+            entry.floating = false;
+        }
+
+        entry.panel->SetHeaderHeight(0.0f);
+        entry.zone = entry.homeZone;
+        entry.visible = true;
+        entry.panel->SetVisible(true);
+
+        if (auto dock = DockForPanel(panelId)) {
+            dock->SetVisible(true);
+            if (!dock->ContainsPanel(entry.panel)) {
+                dock->AddPanel(entry.panel);
+            }
+            dock->FocusPanel(entry.panel);
+        }
+    }
+
+    if (m_Layout.explorerDock) {
+        m_Layout.explorerDock->SetVisible(true);
+    }
+    if (m_Layout.detailsDock) {
+        m_Layout.detailsDock->SetVisible(true);
+    }
+    if (m_Layout.contentBrowserDock) {
+        m_Layout.contentBrowserDock->SetVisible(m_ContentBrowserExpanded);
+    }
+    if (m_Layout.rightVerticalSplitter) {
+        m_Layout.rightVerticalSplitter->SetVisible(true);
+    }
+    if (m_Layout.mainHorizontalSplitter) {
+        m_Layout.mainHorizontalSplitter->SetResizeMode(Splitter::ResizeMode::FixedSecond);
+        const float width = m_RightSidebarWidth > 0.0f ? m_RightSidebarWidth : 340.0f;
+        m_Layout.mainHorizontalSplitter->SetFixedSecondWidth(std::max(width, 280.0f));
+    }
+
+    UpdateEmptyDockVisibility();
+    we::runtime::kindui::UIRepaintGate::RequestLayout();
 }
 
 void EditorWorkspaceController::FocusPanel(const std::string& panelId) {
@@ -313,8 +747,9 @@ void EditorWorkspaceController::LoadLayout() {
         } else if (key == "toolsPaneWidth" && m_Layout.toolsViewportSplitter) {
             ApplyToolsPaneWidth(parsed);
         } else if (key == "mainHorizontalRightWidth" && m_Layout.mainHorizontalSplitter) {
+            m_RightSidebarWidth = std::max(parsed, 280.0f);
             m_Layout.mainHorizontalSplitter->SetResizeMode(Splitter::ResizeMode::FixedSecond);
-            m_Layout.mainHorizontalSplitter->SetFixedSecondWidth(std::max(parsed, 200.0f));
+            m_Layout.mainHorizontalSplitter->SetFixedSecondWidth(m_RightSidebarWidth);
         } else if (key == "mainHorizontal" && m_Layout.mainHorizontalSplitter) {
             m_Layout.mainHorizontalSplitter->SetSplitRatio(parsed);
         } else if (key == "rootVertical" && m_Layout.rootVerticalSplitter) {
@@ -377,8 +812,43 @@ void EditorWorkspaceController::SaveLayout() const {
         }
     }
     writeFixedFirst("toolsPaneWidth", m_ToolsPaneWidth);
-    writeFixedSecond("mainHorizontalRightWidth", m_Layout.mainHorizontalSplitter, 200.0f);
+    if (m_Layout.mainHorizontalSplitter
+        && m_Layout.mainHorizontalSplitter->GetResizeMode() == Splitter::ResizeMode::FixedSecond) {
+        const float right = m_Layout.mainHorizontalSplitter->GetFixedSecondWidth();
+        if (right >= 200.0f) {
+            file << "mainHorizontalRightWidth=" << right << "\n";
+        } else if (m_RightSidebarWidth >= 200.0f) {
+            file << "mainHorizontalRightWidth=" << m_RightSidebarWidth << "\n";
+        }
+    }
     writeRatio("rightVertical", m_Layout.rightVerticalSplitter);
+}
+
+void EditorWorkspaceController::Reset() {
+    m_PendingFloatId.clear();
+    m_PendingDockId.clear();
+    m_PendingDockTarget.reset();
+
+    for (auto& [panelId, entry] : m_Panels) {
+        (void)panelId;
+        if (entry.floatFrame) {
+            if (m_PopupHost) {
+                m_PopupHost->ClosePopup(entry.floatFrame);
+            }
+            (void)entry.floatFrame->TakePanel();
+            entry.floatFrame.reset();
+        }
+        entry.floating = false;
+    }
+
+    m_Panels.clear();
+    m_PopupHost = nullptr;
+    m_OnPanelVisibilityChanged = nullptr;
+    // Keep m_Layout alive until ClearLayoutRefs() after the overlay tree is destroyed.
+}
+
+void EditorWorkspaceController::ClearLayoutRefs() {
+    m_Layout = {};
 }
 
 } // namespace we::programs::editor

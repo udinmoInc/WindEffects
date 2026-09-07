@@ -244,12 +244,17 @@ void ToolButton::Arrange(const Rect& allottedRect) {
     m_Geometry = allottedRect;
 }
 
-void ToolButton::Paint(PaintContext& context) {
-    if (!m_Visible) return;
-    const float uiScale = (std::max)(1.0f, DPIContext::GetScale());
+void ToolButton::Tick(float deltaTime) {
+    (void)deltaTime;
     m_HoverAnim = Animator::Damp(m_HoverAnim, m_Hovered ? 1.0f : 0.0f, HoverDamping());
     m_PressAnim = Animator::Damp(m_PressAnim, m_Pressed ? 1.0f : 0.0f, PressDamping());
     m_ActiveAnim = Animator::Damp(m_ActiveAnim, m_Active ? 1.0f : 0.0f, HoverDamping());
+    Widget::Tick(deltaTime);
+}
+
+void ToolButton::Paint(PaintContext& context) {
+    if (!m_Visible) return;
+    const float uiScale = (std::max)(1.0f, DPIContext::GetScale());
 
     const float pressStrength = PressStrength(m_Pressed, m_PressAnim);
 

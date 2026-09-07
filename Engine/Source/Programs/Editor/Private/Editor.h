@@ -59,7 +59,7 @@ private:
     void Shutdown();
 
     void EnsureVisibleSwapchain();
-    void SyncViewportFramebufferFromLayout();
+    bool SyncViewportFramebufferFromLayout();
     void UpdateUiScaleFromWindow();
     void TickSimulation(float dt);
     void ProcessLateInputMouse();

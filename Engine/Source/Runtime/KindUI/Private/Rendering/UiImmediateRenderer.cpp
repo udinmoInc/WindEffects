@@ -676,7 +676,15 @@ void UiImmediateRenderer::SubmitDrawList(
     uint32_t frameSlot,
     const uint64_t geometryGeneration)
 {
-    if (!m_Cmd || !m_InRenderPass || frameSlot >= m_FrameGeometry.size()) {
+    if (!m_Cmd || !m_InRenderPass || m_FrameGeometry.empty()) {
+        return;
+    }
+    if (frameSlot >= m_FrameGeometry.size()) {
+        WE_LOG_WARN(we::LogCategory::Renderer.data(),
+            "UiImmediateRenderer::SubmitDrawList: frameSlot="
+                + std::to_string(frameSlot) + " >= buffers="
+                + std::to_string(m_FrameGeometry.size())
+                + " (UI framesInFlight mismatch — skipping draw to avoid flicker).");
         return;
     }
     FrameGeometry& frame = m_FrameGeometry[frameSlot];

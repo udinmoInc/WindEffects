@@ -37,13 +37,17 @@ void TextBox::Arrange(const Rect& allottedRect) {
     m_Geometry = allottedRect;
 }
 
+void TextBox::Tick(float deltaTime) {
+    (void)deltaTime;
+    m_HoverAnim = Animator::Damp(m_HoverAnim, m_Hovered ? 1.0f : 0.0f, ControlChrome::HoverDamping());
+    m_FocusAnim = Animator::Damp(m_FocusAnim, m_Focused ? 1.0f : 0.0f, ControlChrome::HoverDamping());
+    Widget::Tick(deltaTime);
+}
+
 void TextBox::Paint(PaintContext& context) {
     if (!m_Visible || !m_Session) {
         return;
     }
-
-    m_HoverAnim = Animator::Damp(m_HoverAnim, m_Hovered ? 1.0f : 0.0f, ControlChrome::HoverDamping());
-    m_FocusAnim = Animator::Damp(m_FocusAnim, m_Focused ? 1.0f : 0.0f, ControlChrome::HoverDamping());
 
     ControlChrome::InteractionState state{ m_HoverAnim, 0.0f, false, m_Focused, false };
     ControlChrome::PaintInputFrame(context, m_Geometry, state);

@@ -141,10 +141,16 @@ void ToolbarIconToggle::Arrange(const Rect& allottedRect) {
     m_Geometry = CenterRect(allottedRect, h, h);
 }
 
-void ToolbarIconToggle::Paint(PaintContext& context) {
+void ToolbarIconToggle::Tick(float deltaTime) {
+    (void)deltaTime;
     const bool enabled = IsEnabled();
     m_HoverAnim = Animator::Damp(m_HoverAnim, (enabled && m_Hovered) ? 1.0f : 0.0f, 15.0f);
     m_PressAnim = Animator::Damp(m_PressAnim, (enabled && m_Pressed) ? 1.0f : 0.0f, 25.0f);
+    Widget::Tick(deltaTime);
+}
+
+void ToolbarIconToggle::Paint(PaintContext& context) {
+    const bool enabled = IsEnabled();
 
     if (!m_Frameless) {
         PaintToolbarButtonChrome(context, m_Geometry, m_HoverAnim, m_PressAnim, m_Selected, false);
@@ -249,11 +255,16 @@ void ToolbarLabeledButton::Arrange(const Rect& allottedRect) {
     };
 }
 
-void ToolbarLabeledButton::Paint(PaintContext& context) {
+void ToolbarLabeledButton::Tick(float deltaTime) {
+    (void)deltaTime;
     const bool enabled = IsEnabled();
     m_HoverAnim = Animator::Damp(m_HoverAnim, (enabled && m_Hovered) ? 1.0f : 0.0f, 15.0f);
     m_PressAnim = Animator::Damp(m_PressAnim, (enabled && m_Pressed) ? 1.0f : 0.0f, 25.0f);
+    Widget::Tick(deltaTime);
+}
 
+void ToolbarLabeledButton::Paint(PaintContext& context) {
+    const bool enabled = IsEnabled();
     const float uiScale = (std::max)(1.0f, DPIContext::GetScale());
     const float radius = we::runtime::kindui::ResolveMetric(MetricToken::CornerRadiusSmall) * uiScale;
 

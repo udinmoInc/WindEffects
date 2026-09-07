@@ -224,6 +224,28 @@ void EditorCamera::Update(float dt) {
 
     UpdateOrbitPositionFromAngles();
 
+    // Snap when nearly settled so camera hashes stabilize and paint-only frames can kick in.
+    constexpr float kSnapEps = 1.0e-4f;
+    constexpr float kSnapPosEps = 1.0e-3f;
+    const bool anglesSettled =
+        std::abs(m_Pitch - m_TargetPitch) < kSnapEps
+        && std::abs(m_Yaw - m_TargetYaw) < kSnapEps
+        && std::abs(m_Distance - m_TargetDistance) < kSnapEps;
+    const glm::vec3 posDelta = we::math::ToGlm(m_Position) - we::math::ToGlm(m_TargetPosition);
+    const glm::vec3 lookDelta = we::math::ToGlm(m_LookAt) - we::math::ToGlm(m_TargetLookAt);
+    const bool poseSettled =
+        glm::dot(posDelta, posDelta) < (kSnapPosEps * kSnapPosEps)
+        && glm::dot(lookDelta, lookDelta) < (kSnapPosEps * kSnapPosEps);
+
+    if (anglesSettled && poseSettled) {
+        m_Pitch = m_TargetPitch;
+        m_Yaw = m_TargetYaw;
+        m_Distance = m_TargetDistance;
+        m_LookAt = m_TargetLookAt;
+        m_Position = m_TargetPosition;
+        return;
+    }
+
     const float t = 1.0f - std::exp(-m_LerpSpeed * dt);
     m_Pitch = glm::mix(m_Pitch, m_TargetPitch, t);
     m_Yaw = glm::mix(m_Yaw, m_TargetYaw, t);

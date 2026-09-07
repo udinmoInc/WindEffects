@@ -320,32 +320,39 @@ EditorShellResult EditorShellBuilder::Build(
 
     if (shellResult.layout.explorerDock) {
         shellResult.layout.explorerDock->SetOnTabClosed([](const std::shared_ptr<Panel>& panel) {
-            if (panel) {
-                we::programs::editor::EditorWorkspaceController::Get().SetPanelVisible("WorldOutliner", false);
-            }
+            we::programs::editor::EditorWorkspaceController::Get().HidePanelWidget(panel);
         });
-        shellResult.layout.explorerDock->SetOnTabDragStarted([](const std::shared_ptr<Panel>& panel, const Point&) {
-            if (panel) {
-                we::programs::editor::EditorWorkspaceController::Get().FloatPanel("WorldOutliner");
-            }
+        shellResult.layout.explorerDock->SetOnTabDragStarted([](const std::shared_ptr<Panel>& panel, const Point& pos) {
+            we::programs::editor::EditorWorkspaceController::Get().FloatPanelWidget(panel, pos);
         });
     }
 
     if (shellResult.layout.detailsDock) {
         shellResult.layout.detailsDock->SetOnTabClosed([](const std::shared_ptr<Panel>& panel) {
-            if (panel) {
-                we::programs::editor::EditorWorkspaceController::Get().SetPanelVisible("Details", false);
-            }
+            we::programs::editor::EditorWorkspaceController::Get().HidePanelWidget(panel);
         });
-        shellResult.layout.detailsDock->SetOnTabDragStarted([](const std::shared_ptr<Panel>& panel, const Point&) {
-            if (panel) {
-                we::programs::editor::EditorWorkspaceController::Get().FloatPanel("Details");
-            }
+        shellResult.layout.detailsDock->SetOnTabDragStarted([](const std::shared_ptr<Panel>& panel, const Point& pos) {
+            we::programs::editor::EditorWorkspaceController::Get().FloatPanelWidget(panel, pos);
         });
     }
 
     if (shellResult.layout.toolsDock) {
         shellResult.layout.toolsDock->SetVisible(::we::editor::shell::EditorModeController::Get().IsDrawerVisible());
+        shellResult.layout.toolsDock->SetOnTabDragStarted([](const std::shared_ptr<Panel>& panel, const Point& pos) {
+            we::programs::editor::EditorWorkspaceController::Get().FloatPanelWidget(panel, pos);
+        });
+        shellResult.layout.toolsDock->SetOnTabClosed([](const std::shared_ptr<Panel>& panel) {
+            we::programs::editor::EditorWorkspaceController::Get().HidePanelWidget(panel);
+        });
+    }
+
+    if (shellResult.layout.contentBrowserDock) {
+        shellResult.layout.contentBrowserDock->SetOnTabDragStarted([](const std::shared_ptr<Panel>& panel, const Point& pos) {
+            we::programs::editor::EditorWorkspaceController::Get().FloatPanelWidget(panel, pos);
+        });
+        shellResult.layout.contentBrowserDock->SetOnTabClosed([](const std::shared_ptr<Panel>& panel) {
+            we::programs::editor::EditorWorkspaceController::Get().HidePanelWidget(panel);
+        });
     }
 
     std::shared_ptr<TreeView> worldOutlinerTree = we::programs::editor::GetExplorerTreeView();
@@ -452,6 +459,7 @@ EditorShellResult EditorShellBuilder::Build(
     shellResult.overlayHost = overlayHost;
 
     workspace.LoadLayout();
+    workspace.EnsureDefaultDockPlacement();
     workspace.ApplyToolsPanelVisibility(::we::editor::shell::EditorModeController::Get().IsDrawerVisible());
 
     for (const auto& binding : windowMenuBindings) {

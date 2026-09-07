@@ -49,6 +49,11 @@ public:
     int GetActiveTab() const { return m_ActiveTabIndex; }
     int GetTabCount() const { return static_cast<int>(m_Tabs.size()); }
 
+    /// Tab-strip / header band used for dock-drop hit testing and localized previews.
+    [[nodiscard]] Rect GetTabStripRect() const { return m_HeaderRect; }
+    [[nodiscard]] Rect GetContentRect() const { return m_ContentRect; }
+    [[nodiscard]] bool IsVisibleDock() const { return IsVisible(); }
+
     /// Logical (pre-DPI) tab strip height. Device height = logical * DPIContext::GetScale().
     void SetHeaderHeightLogical(float logicalPx) {
         m_HeaderHeightLogical = logicalPx < 0.0f ? 0.0f : logicalPx;

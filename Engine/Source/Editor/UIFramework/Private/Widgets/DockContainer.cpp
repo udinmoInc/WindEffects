@@ -364,11 +364,18 @@ void DockContainer::OnMouseMove(const MouseEvent& event) {
         const float dx = event.position.x - m_DragStart.x;
         const float dy = event.position.y - m_DragStart.y;
         if (we::runtime::kindui::UiMetrics::ExceedsDragThreshold(dx, dy)) {
-            m_TabDragCandidate = false;
-            if (m_OnTabDragStarted && m_DragTabIndex < static_cast<int>(m_Tabs.size())) {
-                m_OnTabDragStarted(m_Tabs[static_cast<size_t>(m_DragTabIndex)].panel, event.position);
+            // Only undock when the cursor leaves the dock — avoids accidental floats
+            // from small tab reordering / click jitter inside the panel.
+            if (!m_Geometry.Contains(event.position)) {
+                m_TabDragCandidate = false;
+                const int dragIndex = m_DragTabIndex;
+                m_DragTabIndex = -1;
+                if (m_OnTabDragStarted && dragIndex >= 0 && dragIndex < static_cast<int>(m_Tabs.size())) {
+                    const auto panel = m_Tabs[static_cast<size_t>(dragIndex)].panel;
+                    m_OnTabDragStarted(panel, event.position);
+                }
+                return;
             }
-            m_DragTabIndex = -1;
         }
     }
 
@@ -474,8 +481,8 @@ void DockContainer::ShowPanelOptionsMenu(const Point& pos) {
     auto floatItem = std::make_shared<::we::editor::menus::MenuItem>();
     floatItem->label = "Float Panel";
     floatItem->enabled = true;
-    floatItem->onClick = [this, activePanel]() {
-        // Float action placeholder / callback
+    floatItem->onClick = [activePanel]() {
+        ::we::programs::editor::EditorWorkspaceController::Get().FloatPanelWidget(activePanel);
     };
     items.push_back(floatItem);
 

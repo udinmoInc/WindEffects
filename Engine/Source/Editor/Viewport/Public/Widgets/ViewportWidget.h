@@ -58,7 +58,8 @@ public:
 
     void Tick(float deltaTime) override;
 
-    void FlushPendingResize();
+    /// Returns true when the viewport render-target size changed this call.
+    bool FlushPendingResize();
     void SyncRendererViewport();
 
     /// Optional editing interaction (Ctrl+LMB pick, transform tools). Installed by Editor host.

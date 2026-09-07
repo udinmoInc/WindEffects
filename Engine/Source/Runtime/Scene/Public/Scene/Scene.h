@@ -64,6 +64,10 @@ public:
     SCENE_API void Update();
     SCENE_API void Update(float deltaSeconds);
 
+    /// Mark the editor view / ECS bridge dirty so the next Update() runs a full sync+extract.
+    SCENE_API void MarkDirty() { m_Dirty = true; }
+    [[nodiscard]] SCENE_API bool IsDirty() const { return m_Dirty; }
+
     // Bridge: editor view → ECS (before systems) / ECS → view (after systems).
     SCENE_API void SyncViewToEcs();
     SCENE_API void RebuildViewFromEcs();
@@ -74,7 +78,7 @@ public:
 
 private:
     void AttachEcsComponents(const Entity& entity, std::uint64_t ecsEntityId);
-    void PushViewEntityToEcs(const Entity& entity);
+    [[nodiscard]] bool PushViewEntityToEcs(const Entity& entity);
     [[nodiscard]] we::runtime::ecs::RenderExtractionSystem* FindExtractionSystem() const;
 
     std::unique_ptr<we::runtime::ecs::Registry> m_Registry;
@@ -82,6 +86,7 @@ private:
     std::vector<Entity> m_ViewCache;
     int m_SelectedEntityIndex = -1;
     std::uint64_t m_SelectedEntityId = 0;
+    bool m_Dirty = true;
 };
 
 } // namespace we::runtime::scene

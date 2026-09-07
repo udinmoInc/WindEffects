@@ -134,6 +134,10 @@ private:
     std::string m_LastSelectedId;
     std::string m_HoveredId;
     float m_ItemHoverAlpha = 0.0f;
+    int m_LastThumbnailFirstVisible = -2;
+    int m_LastThumbnailLastVisible = -2;
+    uint64_t m_ThumbnailVisibilityGeneration = 0;
+    uint64_t m_LastThumbnailVisibilityGeneration = ~uint64_t{0};
 
     Point m_SelectStart{0,0};
     Point m_SelectEnd{0,0};

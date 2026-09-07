@@ -121,14 +121,20 @@ ToolsPanel::ToolsPanel() {
 }
 
 ToolsPanel::~ToolsPanel() {
-    SaveState();
-    CloseContextMenu();
+    try {
+        SaveState();
+    } catch (...) {
+    }
+    try {
+        CloseContextMenu();
+    } catch (...) {
+    }
     if (m_SearchRow) {
         m_SearchRow->SetOnSearchChanged({});
     }
+    // Do not RemoveChild/shared_from_this here — object may already be leaving shared ownership.
     if (m_BodyLayout) {
         m_BodyLayout->ClearRegions();
-        RemoveChild(m_BodyLayout);
     }
     m_ModeContentWidget.reset();
     m_ContentHost.reset();

@@ -137,7 +137,8 @@ void Widget::AttachOverlayChild(const std::shared_ptr<Widget>& child) {
         return;
     }
     if (auto oldParent = child->GetParent()) {
-        oldParent->DetachOverlayChild(child);
+        // Prefer RemoveChild so docked AddChild parents are cleared correctly.
+        oldParent->RemoveChild(child);
     }
     child->m_Parent = shared_from_this();
     if (m_Context) {
