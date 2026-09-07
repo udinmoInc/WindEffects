@@ -66,7 +66,7 @@ Color GraphiteDarkTheme::ResolveColor(ColorToken token) const {
     case ColorToken::PlayForeground:
         return P.Hover2;
     case ColorToken::TextSecondary:
-        return Color(0.64f, 0.66f, 0.68f, 1.0f);
+        return P.Notifications;
     case ColorToken::SelectedBackground:
     case ColorToken::ControlBackgroundSelected:
         return P.Select;
@@ -219,7 +219,7 @@ float GraphiteDarkTheme::ResolveMetric(MetricToken token) const {
     case MetricToken::CategoryHeaderHeight: return 30.0f;
     case MetricToken::TitleBarHeight: return 32.0f;
     case MetricToken::WindowControlWidth: return 40.0f;
-    case MetricToken::ToolbarHeight: return 38.0f;
+    case MetricToken::ToolbarHeight: return 30.0f;
     case MetricToken::SearchBoxHeight: return 24.0f;
     case MetricToken::NavigationButtonSize: return 24.0f;
     case MetricToken::IconSizeSearch: return 16.0f;
@@ -244,7 +244,7 @@ float GraphiteDarkTheme::ResolveMetric(MetricToken token) const {
         return palette::GraphiteDarkLiveMetrics().TabTopRadius;
     case MetricToken::TabActiveIndicatorHeight: return 2.0f;
     case MetricToken::StatusBarHeight: return 34.0f;
-    case MetricToken::TabGap: return 1.5f;
+    case MetricToken::TabGap: return 3.0f;
     case MetricToken::TabIconGap: return 6.0f;
     case MetricToken::TabCloseGap: return 10.0f;
     case MetricToken::TabMinWidth: return 160.0f;
@@ -252,7 +252,7 @@ float GraphiteDarkTheme::ResolveMetric(MetricToken token) const {
     case MetricToken::TabStripPadH: return 0.0f;
     case MetricToken::TabStripPadV: return 0.0f;
     case MetricToken::TabActiveIndicatorWidth: return 0.0f;
-    case MetricToken::TabPaddingH: return 6.0f;
+    case MetricToken::TabPaddingH: return 10.0f;
     case MetricToken::TabPaddingV: return 4.0f;
     case MetricToken::DockPanelGap: return 2.5f;
     case MetricToken::ChromeSeparationGap: return 2.5f;

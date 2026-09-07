@@ -127,8 +127,8 @@ std::shared_ptr<Widget> DockLayoutBuilder::BuildNode(
             splitter->SetMinPaneSizes(200.0f * dpiScale, 140.0f * dpiScale);
         } else if (node.slotId == "toolsViewport") {
             splitter->SetResizeMode(Splitter::ResizeMode::FixedFirst);
-            splitter->SetFixedFirstWidth(300.0f * dpiScale);
-            splitter->SetMinPaneSizes(200.0f * dpiScale, 240.0f * dpiScale);
+            splitter->SetFixedFirstWidth(360.0f * dpiScale);
+            splitter->SetMinPaneSizes(220.0f * dpiScale, 240.0f * dpiScale);
         } else if (node.slotId == "mainHorizontal") {
             splitter->SetResizeMode(Splitter::ResizeMode::FixedSecond);
             splitter->SetFixedSecondWidth(340.0f * dpiScale);

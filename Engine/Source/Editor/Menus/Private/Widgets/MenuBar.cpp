@@ -24,7 +24,8 @@ using ::we::runtime::kindui::kWindIconNone;
 MenuBar::MenuBar()
     : m_Style(WidgetStyle::Panel())
     , m_Height(we::runtime::kindui::ResolveMetric(MetricToken::TitleBarHeight))
-    , m_ItemPaddingH(6.0f)
+    , m_ItemSpacing(4.0f)
+    , m_ItemPaddingH(10.0f)
 {}
 
 Size MenuBar::Measure(const Size& availableSize) {
@@ -90,7 +91,9 @@ void MenuBar::Paint(PaintContext& context) {
         float textX = menu.geometry.x + m_ItemPaddingH * uiScale;
         float textY = std::floor(::we::runtime::kindui::LayoutMetrics::AlignTextTopAtCenterY(centerY, textSize));
 
-        Color textColor = ThemeTextForState(isHighlighted, isActive);
+        Color textColor = isHighlighted
+            ? ThemeColor(ColorToken::TextPrimary)
+            : ThemeColor(ColorToken::TextSecondary);
         context.DrawText(
             menu.label,
             Point{ textX, textY },

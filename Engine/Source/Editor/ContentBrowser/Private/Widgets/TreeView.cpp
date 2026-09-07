@@ -415,7 +415,7 @@ void TreeView::Paint(PaintContext& context) {
             Point{ labelX, headerTextY },
             textColor,
             headerTextSize,
-            we::runtime::text::layout::FontWeight::Medium);
+            we::runtime::text::layout::FontWeight::Regular);
 
         // Type column header
         const float typeColWidth = std::floor(90.0f * uiScale);
@@ -428,7 +428,7 @@ void TreeView::Paint(PaintContext& context) {
             Point{ typeX, headerTextY },
             textColor,
             headerTextSize,
-            we::runtime::text::layout::FontWeight::Medium);
+            we::runtime::text::layout::FontWeight::Regular);
     }
 
     if (m_RenderList.empty()) {

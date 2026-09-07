@@ -164,9 +164,7 @@ void PaintInlineIconLabelRow(
         Point{ textX, centerY - fontSize * 0.5f },
         ResolveColor(ColorToken::TextPrimary),
         fontSize,
-        emphasized
-            ? we::runtime::text::layout::FontWeight::Medium
-            : we::runtime::text::layout::FontWeight::Regular);
+        we::runtime::text::layout::FontWeight::Regular);
 }
 
 } // namespace
@@ -243,7 +241,7 @@ void PaintSectionHeader(
         Point{ textX, centerY - fontSize * 0.5f },
         ResolveColor(ColorToken::TextPrimary),
         fontSize,
-        we::runtime::text::layout::FontWeight::Medium);
+        we::runtime::text::layout::FontWeight::Regular);
 }
 
 void PaintPropertyRowLabel(
@@ -305,7 +303,7 @@ void PaintCategoryTab(
     const float textW = context.GetTextWidth(
         std::string(label),
         fontSize,
-        we::runtime::text::layout::FontWeight::Medium);
+        we::runtime::text::layout::FontWeight::Regular);
     const float textX = rect.x + (rect.width - textW) * 0.5f;
     const float textY = LayoutMetrics::AlignTextTopY(rect, fontSize);
     context.DrawText(
@@ -313,7 +311,7 @@ void PaintCategoryTab(
         Point{ textX, textY },
         active ? ResolveColor(ColorToken::TextPrimary) : ResolveColor(ColorToken::TextSecondary),
         fontSize,
-        we::runtime::text::layout::FontWeight::Medium);
+        we::runtime::text::layout::FontWeight::Regular);
 }
 
 void PaintPropertyRowBackground(

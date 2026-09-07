@@ -23,13 +23,13 @@ struct GraphiteDark {
     // Header     → panel/section header
     // Dropdown   → raised popup surface
 
-    static constexpr Color Black             = Hex("#000000");
+    static constexpr Color Black             = Hex("#070707");
 
     // Main editor chrome / title strip
-    static constexpr Color Title             = Hex("#161616");
+    static constexpr Color Title             = Hex("#070707");
 
-    // Main workspace — deep charcoal
-    static constexpr Color Background        = Hex("#0A0A0A");
+    // Main workspace — near-black base
+    static constexpr Color Background        = Hex("#070707");
 
     // Very dark separators / window edges
     static constexpr Color WindowBorder      = Hex("#060606");
@@ -96,23 +96,23 @@ struct GraphiteDark {
 
     // ── Text (EStyleColor) ──────────────────────────────────────────────────
 
-    static constexpr Color White             = Hex("#FFFFFF");
-    static constexpr Color White25           = Hex("#FFFFFF40");
+    static constexpr Color White             = Hex("#E0E0E0");
+    static constexpr Color White25           = Hex("#E0E0E040");
 
     // Main editor text
-    static constexpr Color Foreground        = Hex("#D6D9DD");
+    static constexpr Color Foreground        = Hex("#C2C2C2");
 
     // Hovered text
-    static constexpr Color ForegroundHover   = White;
+    static constexpr Color ForegroundHover   = Hex("#E0E0E0");
 
     // Text rendered over Input surfaces
     static constexpr Color ForegroundInverted = Input;
 
     // Header / section text
-    static constexpr Color ForegroundHeader  = Hex("#E0E3E8");
+    static constexpr Color ForegroundHeader  = Hex("#D0D0D0");
 
     // Disabled / notification label text
-    static constexpr Color Notifications     = Hex("#8B9198");
+    static constexpr Color Notifications     = Hex("#858585");
 
 
     // ── Icons (mono atlas tint targets — separate from body text) ───────────

@@ -421,11 +421,12 @@ void ToolbarGroup::Paint(PaintContext& context) {
 
             if (m_Style == ToolbarGroupStyle::ExecutionCluster && i + 1 < m_Items.size() && m_Items[i + 1]->IsVisible()) {
                 const Rect itemGeo = item->GetGeometry();
-                const float sepX = std::round(itemGeo.x + itemGeo.width);
-                const float sepY = m_Geometry.y;
-                const float sepH = m_Geometry.height;
+                const float sepX = std::floor(itemGeo.x + itemGeo.width + 0.5f);
+                const float insetY = 4.0f * uiScale;
+                const float sepY = m_Geometry.y + insetY;
+                const float sepH = (std::max)(0.0f, m_Geometry.height - insetY * 2.0f);
                 const Color sepColor = we::runtime::kindui::ResolveColor(we::runtime::kindui::ColorToken::Separator);
-                context.DrawRect(Rect{ sepX - 0.5f * uiScale, sepY, 1.0f * uiScale, sepH }, sepColor);
+                context.DrawRect(Rect{ sepX, sepY, 1.0f * uiScale, sepH }, sepColor);
             }
         }
     }

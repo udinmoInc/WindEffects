@@ -291,7 +291,7 @@ float MeasureDockTabWidth(
     const float textWidth = context.GetTextWidth(
         tab.title,
         fontSize,
-        we::runtime::text::layout::FontWeight::Medium);
+        we::runtime::text::layout::FontWeight::Regular);
     const float closeWidth = showClose ? closeGlyph + closeGap : 0.0f;
     float width = padLeft + leadingWidth + textWidth + closeWidth + padRight;
     if (!modeTabs) {

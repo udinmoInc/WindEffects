@@ -61,7 +61,7 @@ public:
             Point{ m_TitleBand.x, textY },
             ResolveColor(ColorToken::TextPrimary),
             fontSize,
-            we::runtime::text::layout::FontWeight::Medium);
+            we::runtime::text::layout::FontWeight::Regular);
     }
 
 private:

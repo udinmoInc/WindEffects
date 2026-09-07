@@ -391,9 +391,9 @@ WorkspaceLayout CreateDefaultEditorWorkspaceLayout() {
 
     DockLayoutNode toolsViewport = MakeSplit(
         SplitOrientation::Horizontal,
-        0.16f,
+        0.20f,
         "toolsViewport",
-        200.0f,
+        220.0f,
         240.0f,
         MakeTabGroup("Tools"),
         MakeTabGroup("Viewport"));

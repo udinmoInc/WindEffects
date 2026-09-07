@@ -91,6 +91,26 @@ float screenPxRange(float2 uv, float pxRange, float2 atlasSize)
     return max(0.5 * dot(unitRange, screenTexSize), 1.0);
 }
 
+// High-frequency pseudo-random hash for pixel-scale micro-texture
+float microTextureHash(float2 p)
+{
+    p = frac(p * float2(123.34, 456.21));
+    p += dot(p, p + 45.32);
+    return frac(p.x * p.y);
+}
+
+// Fine monochrome charcoal matte texture (2-4% subtle tonal variation for premium rough surface)
+float3 applyCharcoalMatteTexture(float3 baseColor, float2 screenPos)
+{
+    float n1 = microTextureHash(screenPos);
+    float n2 = microTextureHash(screenPos + float2(13.1, 7.9));
+    float noise = (n1 * 0.6 + n2 * 0.4) - 0.5;
+    
+    // 2.5% subtle monochrome tonal variation
+    float delta = noise * 0.025;
+    return saturate(baseColor + delta);
+}
+
 float4 PSMain(VSOutput input) : SV_Target
 {
     float type = input.sdfParams.y;
@@ -123,7 +143,12 @@ float4 PSMain(VSOutput input) : SV_Target
     // Type 5.0 is a solid quad (e.g. lines, untextured rects).
     if (type > 4.5 && type < 5.5)
     {
-        return input.color;
+        float3 color = input.color.rgb;
+        if (input.color.a > 0.9 && max(color.r, max(color.g, color.b)) < 0.35)
+        {
+            color = applyCharcoalMatteTexture(color, input.worldPos);
+        }
+        return float4(color, input.color.a);
     }
 
     // Type 4.0 is a full-color texture (WindIcons / viewports).
@@ -159,12 +184,21 @@ float4 PSMain(VSOutput input) : SV_Target
             if (dist > 0.0) {
                 discard;
             }
-            return float4(input.color.rgb, 1.0);
+            float3 color = input.color.rgb;
+            if (max(color.r, max(color.g, color.b)) < 0.35)
+            {
+                color = applyCharcoalMatteTexture(color, input.worldPos);
+            }
+            return float4(color, 1.0);
         }
         alpha = sdfFillAlpha(dist);
     }
 
     float4 outColor = input.color;
+    if (outColor.a > 0.9 && max(outColor.r, max(outColor.g, outColor.b)) < 0.35)
+    {
+        outColor.rgb = applyCharcoalMatteTexture(outColor.rgb, input.worldPos);
+    }
     outColor.a *= alpha;
     
     return outColor;

@@ -320,7 +320,11 @@ void TitleBar::UpdateMaximizeIcon() {
     if (m_Window == we::platform::WindowId::Invalid || !m_MaximizeWidget) return;
 
     auto toolBtn = std::static_pointer_cast<ToolButton>(m_MaximizeWidget);
-    toolBtn->SetIcon(WindIcons::Square16);
+    if (we::platform::Platform::Get().IsWindowMaximized(m_Window)) {
+        toolBtn->SetIcon(WindIcons::Copy16);
+    } else {
+        toolBtn->SetIcon(WindIcons::Square16);
+    }
 }
 
 we::platform::WindowHitTestResult TitleBar::HitTest(we::platform::Int2 point) {
