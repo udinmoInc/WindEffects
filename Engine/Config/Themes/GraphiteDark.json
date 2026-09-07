@@ -18,7 +18,7 @@
   "Panel": "#141414",
   "Header": "#1C1C1C",
   "Dropdown": "#1A1A1A",
-  "DropdownOutline": "#3a3a3a",
+  "DropdownOutline": "#3A3A3A",
   "ShadowPopup": "#00000080",
   "Hover": "#28282C",
   "Hover2": "#858585",
@@ -67,8 +67,8 @@
 
   "AccentFolder": "#927341",
 
-  "TooltipBg": "#141416F5",
-  "DragGhost": "#141416E6",
+  "TooltipBg": "#1A1A1AF5",
+  "DragGhost": "#1A1A1AE6",
 
   "ActiveTabLine": "#0070E0CC",
   "SelectionHighlight": "#0070E0E6",
