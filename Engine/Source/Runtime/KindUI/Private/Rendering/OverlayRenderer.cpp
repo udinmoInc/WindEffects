@@ -205,6 +205,19 @@ void OverlayRenderer::RenderUI(const std::shared_ptr<Widget>& root, uint32_t fra
         m_FrameStats.indices = static_cast<uint32_t>(m_Indices.size());
         m_FrameStats.batches = static_cast<uint32_t>(m_Batches.size());
         m_FrameStats.drawCalls = m_FrameStats.batches;
+        m_FrameStats.opaqueBatches = 0;
+        m_FrameStats.alphaBatches = 0;
+        m_FrameStats.opaqueIndices = 0;
+        m_FrameStats.alphaIndices = 0;
+        for (const auto& batch : m_Batches) {
+            if (batch.opaqueReplace) {
+                ++m_FrameStats.opaqueBatches;
+                m_FrameStats.opaqueIndices += batch.indexCount;
+            } else {
+                ++m_FrameStats.alphaBatches;
+                m_FrameStats.alphaIndices += batch.indexCount;
+            }
+        }
         m_FrameStats.width = width;
         m_FrameStats.height = height;
         return;
@@ -229,6 +242,19 @@ void OverlayRenderer::RenderUI(const std::shared_ptr<Widget>& root, uint32_t fra
     m_FrameStats.indices = static_cast<uint32_t>(m_Indices.size());
     m_FrameStats.batches = static_cast<uint32_t>(m_Batches.size());
     m_FrameStats.drawCalls = m_FrameStats.batches;
+    m_FrameStats.opaqueBatches = 0;
+    m_FrameStats.alphaBatches = 0;
+    m_FrameStats.opaqueIndices = 0;
+    m_FrameStats.alphaIndices = 0;
+    for (const auto& batch : m_Batches) {
+        if (batch.opaqueReplace) {
+            ++m_FrameStats.opaqueBatches;
+            m_FrameStats.opaqueIndices += batch.indexCount;
+        } else {
+            ++m_FrameStats.alphaBatches;
+            m_FrameStats.alphaIndices += batch.indexCount;
+        }
+    }
     m_FrameStats.width = width;
     m_FrameStats.height = height;
 

@@ -36,8 +36,8 @@ public:
     // Decrement refcount; frees storage when it reaches zero.
     void Release(SharedComponentRef ref);
 
-    [[nodiscard]] const void* GetData(SharedComponentRef ref) const;
-    [[nodiscard]] std::size_t GetSize(SharedComponentRef ref) const;
+    [[nodiscard]] const void* GetSharedPayload(SharedComponentRef ref) const;
+    [[nodiscard]] std::size_t GetSharedPayloadSize(SharedComponentRef ref) const;
     [[nodiscard]] std::uint32_t GetRefCount(SharedComponentRef ref) const;
     [[nodiscard]] bool Valid(SharedComponentRef ref) const;
 

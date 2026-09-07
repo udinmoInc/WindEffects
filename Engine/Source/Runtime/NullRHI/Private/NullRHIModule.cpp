@@ -566,8 +566,6 @@ public:
     void StartupModule() override {
         RHIFactory::Register(RHIBackend::Null, &CreateNullRHI, "Null");
     }
-
-    void ShutdownModule() override {}
 };
 
 } // namespace we::rhi

@@ -46,7 +46,8 @@ Color MixInteractiveSurfaceImpl(
     float hoverAnim,
     float pressAnim,
     bool selected,
-    bool disabled)
+    bool disabled,
+    Color opaqueUnderlay)
 {
     if (disabled) {
         return ColorSpace::OpaqueSurface(ResolveColor(ColorToken::DisabledBackground));
@@ -57,17 +58,18 @@ Color MixInteractiveSurfaceImpl(
 
     const float hover = Clamp01(hoverAnim);
     const float press = Clamp01(pressAnim);
+    const bool canBakeOverlay = ColorSpace::IsOpaqueAuthoring(opaqueUnderlay);
 
     if (base.a < 0.01f) {
         if (press > 0.001f && press >= hover) {
             Color fill = ColorSpace::OpaqueSurface(ResolveColor(ColorToken::PressedBackground));
             fill.a = press * kPressMix;
-            return fill;
+            return canBakeOverlay ? ColorSpace::CompositeSrcOverOpaque(opaqueUnderlay, fill) : fill;
         }
         if (hover > 0.001f) {
             Color fill = ColorSpace::OpaqueSurface(ResolveColor(ColorToken::HoverBackground));
             fill.a = hover * kHoverMix;
-            return fill;
+            return canBakeOverlay ? ColorSpace::CompositeSrcOverOpaque(opaqueUnderlay, fill) : fill;
         }
         return Color::Transparent();
     }
@@ -101,7 +103,7 @@ Color ResolveInteractiveBackgroundImpl(
         return Color::Transparent();
     }
     const Color base = ColorSpace::OpaqueSurface(ResolveColor(surfaceToken));
-    return MixInteractiveSurfaceImpl(base, hoverAnim, pressAnim, false, false);
+    return MixInteractiveSurfaceImpl(base, hoverAnim, pressAnim, false, false, Color::Transparent());
 }
 
 } // namespace
@@ -177,10 +179,11 @@ Color MixInteractiveSurface(
     float hoverAnim,
     float pressAnim,
     bool selected,
-    bool disabled)
+    bool disabled,
+    Color opaqueUnderlay)
 {
     palette::ReloadGraphiteDarkPaletteIfChanged();
-    return MixInteractiveSurfaceImpl(base, hoverAnim, pressAnim, selected, disabled);
+    return MixInteractiveSurfaceImpl(base, hoverAnim, pressAnim, selected, disabled, opaqueUnderlay);
 }
 
 Color ResolveTextForState(bool hovered, bool active) {

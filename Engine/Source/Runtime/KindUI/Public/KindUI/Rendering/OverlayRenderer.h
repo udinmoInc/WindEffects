@@ -54,6 +54,10 @@ struct UIFrameStats {
     uint32_t vertices = 0;
     uint32_t indices = 0;
     uint32_t batches = 0;
+    uint32_t opaqueBatches = 0;
+    uint32_t alphaBatches = 0;
+    uint32_t opaqueIndices = 0;
+    uint32_t alphaIndices = 0;
     uint32_t width = 0;
     uint32_t height = 0;
 };

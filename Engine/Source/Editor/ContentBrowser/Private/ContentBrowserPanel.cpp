@@ -265,7 +265,8 @@ std::shared_ptr<::we::editor::panels::Panel> CreateContentBrowserPanel() {
     rightPane->AddChild(searchRow);
     rightPane->AddChild(contentBrowser);
 
-    // Split content area below toolbar into left (folder tree sidebar) and right (content browser grid/list with search).
+    // Split content area below toolbar into left (folder tree sidebar) and right (content browser grid/list with
+    // search).
     const float treePaneWidth = std::max(200.0f * we::runtime::kindui::DPIContext::GetScale(),
         we::runtime::kindui::ResolveMetric(we::runtime::kindui::MetricToken::PropertyLabelColumnWidth) * 2.0f);
     auto contentSplitter = std::make_shared<we::runtime::kindui::Splitter>(we::runtime::kindui::Orientation::Horizontal, treePaneWidth);

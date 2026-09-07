@@ -1321,7 +1321,13 @@ void Editor::MainLoop() {
                 const auto& stats = m_OverlayRenderer
                     ? m_OverlayRenderer->GetFrameStats()
                     : we::runtime::kindui::UIFrameStats{};
-                ::we::editor::services::EditorPerfStats::Get().EndFrame(stats.vertices, stats.batches);
+                ::we::editor::services::EditorPerfStats::Get().EndFrame(
+                    stats.vertices,
+                    stats.batches,
+                    stats.opaqueBatches,
+                    stats.alphaBatches,
+                    stats.opaqueIndices,
+                    stats.alphaIndices);
                 we::runtime::kindui::UiPathDiagnostics::Get().SetGeometryVertices(stats.vertices);
                 we::runtime::kindui::UiPathDiagnostics::Get().EndFrame();
             }

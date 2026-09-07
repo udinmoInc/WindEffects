@@ -19,6 +19,10 @@ struct UIFRAMEWORK_API EditorPerfSample {
     float presentMs = 0.0f;
     uint32_t uiVertices = 0;
     uint32_t uiBatches = 0;
+    uint32_t uiOpaqueBatches = 0;
+    uint32_t uiAlphaBatches = 0;
+    uint32_t uiOpaqueIndices = 0;
+    uint32_t uiAlphaIndices = 0;
     uint64_t uiRebuilds = 0;
     uint64_t uiSkips = 0;
     uint64_t uiLayoutRebuilds = 0;
@@ -32,7 +36,13 @@ public:
 
     void BeginFrame();
     void Mark(const char* stage); // "tick" | "layout" | "rhi" | "ui" | "scene" | "present"
-    void EndFrame(uint32_t uiVertices, uint32_t uiBatches);
+    void EndFrame(
+        uint32_t uiVertices,
+        uint32_t uiBatches,
+        uint32_t uiOpaqueBatches = 0,
+        uint32_t uiAlphaBatches = 0,
+        uint32_t uiOpaqueIndices = 0,
+        uint32_t uiAlphaIndices = 0);
 
     [[nodiscard]] const EditorPerfSample& Last() const { return m_Last; }
     [[nodiscard]] float AverageFps() const { return m_AvgFps; }

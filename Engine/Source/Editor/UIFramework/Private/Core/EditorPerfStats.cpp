@@ -61,11 +61,21 @@ void EditorPerfStats::Mark(const char* stage) {
     m_StageStartMs = now;
 }
 
-void EditorPerfStats::EndFrame(uint32_t uiVertices, uint32_t uiBatches) {
+void EditorPerfStats::EndFrame(
+    uint32_t uiVertices,
+    uint32_t uiBatches,
+    uint32_t uiOpaqueBatches,
+    uint32_t uiAlphaBatches,
+    uint32_t uiOpaqueIndices,
+    uint32_t uiAlphaIndices) {
     const double now = NowMs();
     m_Last.frameMs = static_cast<float>(now - m_FrameStartMs);
     m_Last.uiVertices = uiVertices;
     m_Last.uiBatches = uiBatches;
+    m_Last.uiOpaqueBatches = uiOpaqueBatches;
+    m_Last.uiAlphaBatches = uiAlphaBatches;
+    m_Last.uiOpaqueIndices = uiOpaqueIndices;
+    m_Last.uiAlphaIndices = uiAlphaIndices;
     m_Last.uiRebuilds = UIRepaintGate::RebuildCount();
     m_Last.uiSkips = UIRepaintGate::SkipCount();
     m_Last.uiLayoutRebuilds = UIRepaintGate::LayoutRebuildCount();
@@ -81,6 +91,10 @@ void EditorPerfStats::EndFrame(uint32_t uiVertices, uint32_t uiBatches) {
     m_Accum.presentMs += m_Last.presentMs;
     m_Accum.uiVertices += m_Last.uiVertices;
     m_Accum.uiBatches += m_Last.uiBatches;
+    m_Accum.uiOpaqueBatches += m_Last.uiOpaqueBatches;
+    m_Accum.uiAlphaBatches += m_Last.uiAlphaBatches;
+    m_Accum.uiOpaqueIndices += m_Last.uiOpaqueIndices;
+    m_Accum.uiAlphaIndices += m_Last.uiAlphaIndices;
     ++m_AccumFrames;
 
     if (m_Last.frameMs > 0.001f) {
@@ -109,6 +123,10 @@ void EditorPerfStats::EndFrame(uint32_t uiVertices, uint32_t uiBatches) {
         " present=" + std::to_string(m_Accum.presentMs / n) + "ms" +
         " verts=" + std::to_string(static_cast<uint32_t>(m_Accum.uiVertices / m_AccumFrames)) +
         " batches=" + std::to_string(static_cast<uint32_t>(m_Accum.uiBatches / m_AccumFrames)) +
+        " opaqueBatches=" + std::to_string(static_cast<uint32_t>(m_Accum.uiOpaqueBatches / m_AccumFrames)) +
+        " alphaBatches=" + std::to_string(static_cast<uint32_t>(m_Accum.uiAlphaBatches / m_AccumFrames)) +
+        " opaqueIdx=" + std::to_string(static_cast<uint32_t>(m_Accum.uiOpaqueIndices / m_AccumFrames)) +
+        " alphaIdx=" + std::to_string(static_cast<uint32_t>(m_Accum.uiAlphaIndices / m_AccumFrames)) +
         " uiLayoutRebuild=" + std::to_string(UIRepaintGate::LayoutRebuildCount()) +
         " uiPaintRebuild=" + std::to_string(UIRepaintGate::PaintRebuildCount()) +
         " uiIdleSkip=" + std::to_string(UIRepaintGate::IdleSkipCount()) +

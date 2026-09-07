@@ -91,7 +91,15 @@ void PaintControlFrame(
         return;
     }
 
-    const Color bg = ResolveControlBackground(state, style);
+    Color bg = ResolveControlBackground(state, style);
+    const bool bgOpaque = ColorSpace::IsOpaqueAuthoring(bg);
+    // Bake ShadowOverlay press darkening into the fill when the face is opaque so we avoid a
+    // second full-rect alpha pass with identical Src-over results.
+    if (state.pressAnim > 0.01f && bgOpaque) {
+        Color pressShadow = ResolveColor(ColorToken::ShadowOverlay);
+        pressShadow.a *= state.pressAnim;
+        bg = ColorSpace::CompositeSrcOverOpaque(bg, pressShadow);
+    }
     context.DrawRoundedRect(rect, bg, style.cornerRadius);
 
     const ResolvedControlBorder border = ResolveControlBorder(state, borderMode, styleBorder);
@@ -99,7 +107,7 @@ void PaintControlFrame(
     const float borderW = border.width > 0.0f ? border.width : ResolveMetric(MetricToken::BorderWidth);
     context.DrawRoundedRectOutline(rect, borderCol, borderW, style.cornerRadius);
 
-    if (state.pressAnim > 0.01f) {
+    if (state.pressAnim > 0.01f && !bgOpaque) {
         Color pressShadow = ResolveColor(ColorToken::ShadowOverlay);
         pressShadow.a *= state.pressAnim;
         context.DrawRoundedRect(rect, pressShadow, style.cornerRadius);
@@ -523,13 +531,24 @@ void PaintListRow(
     PaintContext& context,
     const Rect& rect,
     const InteractionState& state) {
+    PaintListRow(context, rect, state, ColorToken::PanelBackground);
+}
+
+void PaintListRow(
+    PaintContext& context,
+    const Rect& rect,
+    const InteractionState& state,
+    ColorToken underlayToken) {
     const ResolvedStyle base = Role(StyleRole::TableRow);
+    // Pre-composite ghost hover onto the known underlay so idle-transparent rows stay opaque-replace.
+    const Color underlay = ColorSpace::OpaqueSurface(ResolveColor(underlayToken));
     const Color bg = MixInteractiveSurface(
         base.background,
         state.hoverAnim,
         state.pressAnim,
         state.selected,
-        state.disabled);
+        state.disabled,
+        underlay);
     if (bg.a > 0.001f) {
         context.DrawRect(rect, bg, base.cornerRadius);
     }

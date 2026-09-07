@@ -7,7 +7,10 @@ public:
     virtual ~IModuleInterface() = default;
 
     virtual void StartupModule() = 0;
-    virtual void ShutdownModule() = 0;
+
+    // Defaulted so modules without shutdown work (RHI backends, etc.)
+    // don't carry an empty override just to satisfy the base.
+    virtual void ShutdownModule() {}
 };
 
 #define IMPLEMENT_MODULE(ModuleClass, ModuleName) \

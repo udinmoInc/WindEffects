@@ -112,7 +112,8 @@ void DropdownMenu::Paint(PaintContext& context) {
                 if (m_HoveredItem == static_cast<int>(i) && item->enabled) {
                     ControlChrome::InteractionState state{};
                     state.hoverAnim = 1.0f;
-                    ControlChrome::PaintListRow(context, itemRect, state);
+                    ControlChrome::PaintListRow(
+                        context, itemRect, state, ColorToken::PopupBackground);
                 }
 
                 float textX = itemRect.x;

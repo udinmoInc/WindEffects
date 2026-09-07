@@ -27,12 +27,15 @@ KINDUI_API Color ResolveInteractiveBackground(
     bool selected,
     ColorToken surfaceToken);
 /// Subtle hover/press mix on an existing fill. Rest state returns `base` unchanged.
+/// When `base` is transparent and `opaqueUnderlay` is opaque, hover/press overlays are
+/// pre-composited onto the underlay so the result stays on the opaque-replace path.
 KINDUI_API Color MixInteractiveSurface(
     Color base,
     float hoverAnim,
     float pressAnim,
     bool selected = false,
-    bool disabled = false);
+    bool disabled = false,
+    Color opaqueUnderlay = Color::Transparent());
 KINDUI_API Color ResolveTextForState(bool hovered, bool active = false);
 KINDUI_API Color ResolveIconForState(bool hovered, bool active = false);
 
