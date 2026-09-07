@@ -92,7 +92,7 @@ void PaintSectionTitle(PaintContext& context, const Rect& bounds, std::string_vi
     const float fontSize = ResolveMetric(MetricToken::TextSizeCategory) * UiScale();
     const float padH = PropertyPanelChrome::RowPaddingH();
     context.DrawText(
-        std::string(title),
+        title,
         Point{bounds.x + padH, LayoutMetrics::AlignTextTopY(bounds, fontSize)},
         ResolveColor(ColorToken::TextPrimary),
         fontSize,
@@ -134,22 +134,12 @@ void PaintChip(
         textX = bounds.x + ResolveMetric(MetricToken::Space2) * UiScale() + iconSize + ResolveMetric(MetricToken::Space2) * UiScale();
     }
     const float fontSize = ResolveMetric(MetricToken::TextSizeCaption) * UiScale();
-    context.DrawText(
-        std::string(label),
-        Point{textX, LayoutMetrics::AlignTextTopY(bounds, fontSize)},
-        ResolveColor(ColorToken::TextPrimary),
-        fontSize,
-        false);
+    context.DrawText(label, Point{textX, LayoutMetrics::AlignTextTopY(bounds, fontSize)}, ResolveColor(ColorToken::TextPrimary), fontSize, false);
 }
 
 void PaintPropertyLabel(PaintContext& context, const Rect& bounds, std::string_view label) {
     const float fontSize = ResolveMetric(MetricToken::TextSizeCaption) * UiScale();
-    context.DrawText(
-        std::string(label),
-        Point{bounds.x, LayoutMetrics::AlignTextTopY(bounds, fontSize)},
-        ResolveColor(ColorToken::TextSecondary),
-        fontSize,
-        false);
+    context.DrawText(label, Point{bounds.x, LayoutMetrics::AlignTextTopY(bounds, fontSize)}, ResolveColor(ColorToken::TextSecondary), fontSize, false);
 }
 
 void PaintField(
@@ -164,12 +154,7 @@ void PaintField(
     state.hoverAnim = hovered ? 1.0f : 0.0f;
     ControlChrome::PaintInputFrame(context, bounds, state);
     const float fontSize = ResolveMetric(MetricToken::TextSizeCaption) * UiScale();
-    context.DrawText(
-        std::string(value),
-        Point{bounds.x + ResolveMetric(MetricToken::Space2) * UiScale(), LayoutMetrics::AlignTextTopY(bounds, fontSize)},
-        ResolveColor(ColorToken::TextPrimary),
-        fontSize,
-        false);
+    context.DrawText(value, Point{bounds.x + ResolveMetric(MetricToken::Space2) * UiScale(), LayoutMetrics::AlignTextTopY(bounds, fontSize)}, ResolveColor(ColorToken::TextPrimary), fontSize, false);
 }
 
 void PaintToggle(
@@ -197,12 +182,7 @@ void PaintToggle(
         ResolveColor(ColorToken::TextPrimary),
         knob * 0.5f);
     const float fontSize = ResolveMetric(MetricToken::TextSizeCaption) * UiScale();
-    context.DrawText(
-        std::string(label),
-        Point{track.x + track.width + 10.f, LayoutMetrics::AlignTextTopY(bounds, fontSize)},
-        ResolveColor(ColorToken::TextPrimary),
-        fontSize,
-        false);
+    context.DrawText(label, Point{track.x + track.width + 10.f, LayoutMetrics::AlignTextTopY(bounds, fontSize)}, ResolveColor(ColorToken::TextPrimary), fontSize, false);
 }
 
 void PaintPrimaryButton(
@@ -221,13 +201,8 @@ void PaintPrimaryButton(
     }
     ControlChrome::PaintPanelButtonFace(context, bounds, bg, radius, hoverAnim, pressAnim, true);
     const float fontSize = ResolveMetric(MetricToken::TextSizeBody) * UiScale();
-    const float textW = context.GetTextWidth(std::string(label), fontSize, true);
-    context.DrawText(
-        std::string(label),
-        Point{bounds.x + (bounds.width - textW) * 0.5f, LayoutMetrics::AlignTextTopY(bounds, fontSize)},
-        ResolveColor(ColorToken::TextPrimary),
-        fontSize,
-        true);
+    const float textW = context.GetTextWidth(label, fontSize, true);
+    context.DrawText(label, Point{bounds.x + (bounds.width - textW) * 0.5f, LayoutMetrics::AlignTextTopY(bounds, fontSize)}, ResolveColor(ColorToken::TextPrimary), fontSize, true);
 }
 
 void PaintSecondaryButton(
@@ -245,13 +220,8 @@ void PaintSecondaryButton(
     }
     ControlChrome::PaintPanelButtonFace(context, bounds, bg, radius, hoverAnim, pressAnim, false);
     const float fontSize = ResolveMetric(MetricToken::TextSizeCaption) * UiScale();
-    const float textW = context.GetTextWidth(std::string(label), fontSize, false);
-    context.DrawText(
-        std::string(label),
-        Point{bounds.x + (bounds.width - textW) * 0.5f, LayoutMetrics::AlignTextTopY(bounds, fontSize)},
-        ResolveColor(ColorToken::TextPrimary),
-        fontSize,
-        false);
+    const float textW = context.GetTextWidth(label, fontSize, false);
+    context.DrawText(label, Point{bounds.x + (bounds.width - textW) * 0.5f, LayoutMetrics::AlignTextTopY(bounds, fontSize)}, ResolveColor(ColorToken::TextPrimary), fontSize, false);
 }
 
 void PaintDangerButton(
@@ -267,13 +237,8 @@ void PaintDangerButton(
     base.cornerRadius = radius;
     ControlChrome::PaintDangerButton(context, bounds, base, state);
     const float fontSize = ResolveMetric(MetricToken::TextSizeCaption) * UiScale();
-    const float textW = context.GetTextWidth(std::string(label), fontSize, true);
-    context.DrawText(
-        std::string(label),
-        Point{bounds.x + (bounds.width - textW) * 0.5f, LayoutMetrics::AlignTextTopY(bounds, fontSize)},
-        ResolveColor(ColorToken::TextOnAccent),
-        fontSize,
-        true);
+    const float textW = context.GetTextWidth(label, fontSize, true);
+    context.DrawText(label, Point{bounds.x + (bounds.width - textW) * 0.5f, LayoutMetrics::AlignTextTopY(bounds, fontSize)}, ResolveColor(ColorToken::TextOnAccent), fontSize, true);
 }
 
 void PaintInfoValue(

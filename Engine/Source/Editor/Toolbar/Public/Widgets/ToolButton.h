@@ -51,7 +51,7 @@ public:
     we::runtime::kindui::WindIconRef GetIcon() const { return m_Icon; }
     const std::string& GetTooltip() const { return m_Tooltip; }
     void SetIcon(we::runtime::kindui::WindIconRef icon) { m_Icon = icon; }
-    void SetLabel(const std::string& label) { m_Label = label; }
+    void SetLabel(const std::string& label) { m_Label = label; m_CachedLabelWidthTextSize = -1.0f; }
     const std::string& GetLabel() const { return m_Label; }
     void SetOnMouseWheel(std::function<void(float wheelDeltaY)> onMouseWheel) { m_OnMouseWheel = std::move(onMouseWheel); }
     void SetTooltip(const std::string& tooltip) { m_Tooltip = tooltip; }
@@ -76,6 +76,8 @@ private:
     bool m_IsDropdown = false;
     bool m_Chromeless = false;
     ToolButtonStyle m_ButtonStyle = ToolButtonStyle::Normal;
+    mutable float m_CachedLabelWidthTextSize = -1.0f;
+    mutable float m_CachedLabelWidth = 0.0f;
 
     // Animation states [0.0, 1.0]
     float m_HoverAnim = 0.0f;

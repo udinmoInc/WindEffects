@@ -84,6 +84,14 @@ namespace {
         }
         return a.sizePx == b.sizePx && std::string_view(a.stem) == b.stem;
     }
+
+    float LabelWidth(const std::string& label, float textSize, float& cachedTextSize, float& cachedWidth) {
+        if (cachedTextSize != textSize) {
+            cachedTextSize = textSize;
+            cachedWidth = label.empty() ? 0.0f : ApproxInlineTextWidth(label, textSize);
+        }
+        return cachedWidth;
+    }
 }
 
 ToolButton::ToolButton(WindIconRef icon, const std::string& label, std::function<void()> onClicked, const std::string& tooltip)
@@ -117,7 +125,7 @@ Size ToolButton::Measure(const Size& availableSize) {
         const float controlH = ThemeMetric(MetricToken::StatusBarHeight) * uiScale;
         const bool hasIcon = m_Icon.IsValid();
 
-        float textW = m_Label.empty() ? 0.0f : ApproxInlineTextWidth(m_Label, textSize);
+        float textW = LabelWidth(m_Label, textSize, m_CachedLabelWidthTextSize, m_CachedLabelWidth);
         float width = padH * 2.0f;
         if (hasIcon) {
             width += iconSz;
@@ -140,7 +148,7 @@ Size ToolButton::Measure(const Size& availableSize) {
         const float controlH = ToolbarButtonChrome::RowContentHeight(uiScale);
         const bool hasIcon = m_Icon.IsValid();
 
-        float textW = m_Label.empty() ? 0.0f : ApproxInlineTextWidth(m_Label, textSize);
+        float textW = LabelWidth(m_Label, textSize, m_CachedLabelWidthTextSize, m_CachedLabelWidth);
 
         float width = padH * 2.0f;
         if (hasIcon) {
@@ -168,7 +176,7 @@ Size ToolButton::Measure(const Size& availableSize) {
         const float controlH = ToolbarButtonChrome::RowContentHeight(uiScale);
         const bool hasIcon = m_Icon.IsValid();
 
-        float textW = m_Label.empty() ? 0.0f : ApproxInlineTextWidth(m_Label, textSize);
+        float textW = LabelWidth(m_Label, textSize, m_CachedLabelWidthTextSize, m_CachedLabelWidth);
 
         float width = padH * 2.0f;
         if (hasIcon) {
@@ -189,7 +197,7 @@ Size ToolButton::Measure(const Size& availableSize) {
     if (m_ButtonStyle == ToolButtonStyle::ToolbarLabeled) {
         const float padH = ThemeMetric(MetricToken::Space2) * uiScale;
         const float textSize = ThemeMetric(MetricToken::TextSizeCaption) * uiScale;
-        const float labelW = m_Label.empty() ? 0.0f : ApproxInlineTextWidth(m_Label, textSize);
+        const float labelW = LabelWidth(m_Label, textSize, m_CachedLabelWidthTextSize, m_CachedLabelWidth);
         const float minW = ThemeMetric(MetricToken::ToolbarLabeledMinWidth) * uiScale;
         const float width = (std::max)(minW, labelW + padH * 2.0f);
         const float height = ThemeMetric(MetricToken::ToolbarLabeledHeight) * uiScale;
@@ -237,6 +245,7 @@ void ToolButton::Arrange(const Rect& allottedRect) {
 }
 
 void ToolButton::Paint(PaintContext& context) {
+    if (!m_Visible) return;
     const float uiScale = (std::max)(1.0f, DPIContext::GetScale());
     m_HoverAnim = Animator::Damp(m_HoverAnim, m_Hovered ? 1.0f : 0.0f, HoverDamping());
     m_PressAnim = Animator::Damp(m_PressAnim, m_Pressed ? 1.0f : 0.0f, PressDamping());
@@ -288,13 +297,13 @@ void ToolButton::Paint(PaintContext& context) {
         const float labelGap = 2.0f * uiScale;
         const float contentH = iconSize + labelGap + textSize;
         const float topY = renderRect.y + (renderRect.height - contentH) * 0.5f;
+        const float labelW = LabelWidth(m_Label, textSize, m_CachedLabelWidthTextSize, m_CachedLabelWidth);
 
         Rect iconBand{ renderRect.x, topY, renderRect.width, iconSize };
         const Color iconColor = ToolbarButtonChrome::ResolveIconColor(m_HoverAnim, pressStrength, m_Active);
         IconPainter::Draw(context, m_Icon, PlaceIconInControl(iconBand, iconSize), iconColor);
 
         if (!m_Label.empty()) {
-            const float labelW = ApproxInlineTextWidth(m_Label, textSize);
             const float labelX = renderRect.x + (renderRect.width - labelW) * 0.5f;
             const float labelY = topY + iconSize + labelGap;
             Color labelColor = m_Active
@@ -370,6 +379,7 @@ void ToolButton::Paint(PaintContext& context) {
         }
 
         if (!m_Label.empty()) {
+            const float labelW = LabelWidth(m_Label, textSize, m_CachedLabelWidthTextSize, m_CachedLabelWidth);
             Color textColor = ResolveInteractiveTextColor(m_HoverAnim, pressStrength, false);
             context.DrawText(
                 m_Label,
@@ -377,7 +387,7 @@ void ToolButton::Paint(PaintContext& context) {
                 textColor,
                 textSize,
                 we::runtime::text::layout::FontWeight::Regular);
-            currentX += ApproxInlineTextWidth(m_Label, textSize);
+            currentX += labelW;
         }
 
         if (m_IsDropdown) {
@@ -405,6 +415,7 @@ void ToolButton::Paint(PaintContext& context) {
         }
 
         if (!m_Label.empty()) {
+            const float labelW = LabelWidth(m_Label, textSize, m_CachedLabelWidthTextSize, m_CachedLabelWidth);
             Color textColor = ResolveInteractiveTextColor(m_HoverAnim, pressStrength, m_Active);
             context.DrawText(
                 m_Label,
@@ -412,7 +423,7 @@ void ToolButton::Paint(PaintContext& context) {
                 textColor,
                 textSize,
                 we::runtime::text::layout::FontWeight::Regular);
-            currentX += ApproxInlineTextWidth(m_Label, textSize);
+            currentX += labelW;
         }
 
         if (m_IsDropdown) {

@@ -26,6 +26,8 @@
 #include <algorithm>
 #include <cmath>
 #include <functional>
+#include <string_view>
+#include <string_view>
 
 using ::we::runtime::kindui::ColorToken;
 using ::we::runtime::kindui::MetricToken;
@@ -270,6 +272,7 @@ TreeView::TreeRowLayoutSlots TreeView::ComputeTreeRowLayout(const RenderItem& it
 }
 
 void TreeView::Paint(PaintContext& context) {
+    if (!m_Visible) return;
     const float uiScale = TreeUiScale();
     const float fontSize = m_Style.text.size * uiScale;
 
@@ -365,13 +368,12 @@ void TreeView::Paint(PaintContext& context) {
         const bool hovered = node->id == m_HoveredId;
 
         // Full-Width Row Background
-        if (m_ShowAlternatingRowBackground) {
-            ::we::editor::panels::PanelChrome::PaintAlternatingListRowBackground(
-                context, layout.rowBounds, item.flatIndex);
-        }
         if (m_ShowRowHighlight && (selected || hovered)) {
             ::we::editor::panels::PanelChrome::PaintListRowBackground(
                 context, layout.rowBounds, hovered, selected, IsFocused());
+        } else if (m_ShowAlternatingRowBackground) {
+            ::we::editor::panels::PanelChrome::PaintAlternatingListRowBackground(
+                context, layout.rowBounds, item.flatIndex);
         }
 
         // Drop Target Indicator Line
@@ -414,7 +416,7 @@ void TreeView::Paint(PaintContext& context) {
             textColor = ThemeColor(ColorToken::TextDisabled);
         }
 
-        context.PushClipRect(Rect{ layout.textX, layout.rowBounds.y, layout.maxTextWidth, rowHeight });
+        // Removed PushClipRect
 
         if (node->id == m_RenamingId) {
             Rect editBg{ layout.textX - 4.0f, layout.rowBounds.y + 2.0f, (std::max)(40.0f, layout.maxTextWidth), rowHeight - 4.0f };
@@ -429,11 +431,13 @@ void TreeView::Paint(PaintContext& context) {
             if (!m_SearchQuery.empty()) {
                 const std::string& label = node->label;
                 const std::string& query = m_SearchQuery;
+                const std::string_view labelView = label;
                 size_t matchStart = 0;
                 size_t matchEnd = 0;
                 bool foundMatch = false;
 
-                for (size_t searchIdx = 0; searchIdx <= label.size() - query.size() && !foundMatch; ++searchIdx) {
+                if (query.size() <= label.size()) {
+                    for (size_t searchIdx = 0; searchIdx <= label.size() - query.size() && !foundMatch; ++searchIdx) {
                     bool matches = true;
                     for (size_t j = 0; j < query.size(); ++j) {
                         if (std::tolower(label[searchIdx + j]) != std::tolower(query[j])) {
@@ -447,21 +451,22 @@ void TreeView::Paint(PaintContext& context) {
                         foundMatch = true;
                     }
                 }
+                }
 
                 if (foundMatch) {
-                    const std::string beforeMatch = label.substr(0, matchStart);
+                    const std::string_view beforeMatch = labelView.substr(0, matchStart);
                     float currentX = layout.textX;
                     if (!beforeMatch.empty()) {
                         context.DrawText(beforeMatch, Point{ currentX, textY }, textColor, fontSize);
                         currentX += context.GetTextWidth(beforeMatch, fontSize);
                     }
-                    const std::string matchText = label.substr(matchStart, matchEnd - matchStart);
+                    const std::string_view matchText = labelView.substr(matchStart, matchEnd - matchStart);
                     const float matchWidth = context.GetTextWidth(matchText, fontSize);
                     Rect highlightRect{ currentX, textY, matchWidth, fontSize };
                     context.DrawRoundedRect(highlightRect, ThemeColor(ColorToken::SelectionHighlight), 2.0f);
                     context.DrawText(matchText, Point{ currentX, textY }, ThemeColor(ColorToken::AccentPrimary), fontSize);
                     currentX += matchWidth;
-                    const std::string afterMatch = label.substr(matchEnd);
+                    const std::string_view afterMatch = labelView.substr(matchEnd);
                     if (!afterMatch.empty()) {
                         context.DrawText(afterMatch, Point{ currentX, textY }, textColor, fontSize);
                     }
@@ -473,7 +478,6 @@ void TreeView::Paint(PaintContext& context) {
             }
         }
 
-        context.PopClipRect();
 
         // Trailing Type Column (Right-Aligned)
         if (!node->typeName.empty()) {

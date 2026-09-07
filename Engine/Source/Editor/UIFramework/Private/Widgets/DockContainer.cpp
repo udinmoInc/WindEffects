@@ -97,12 +97,12 @@ void DockContainer::Tick(float deltaTime) {
         }
     }
     if (hoverChanged) {
-        InvalidateLayout();
         InvalidatePaint();
     }
 }
 
 Size DockContainer::Measure(const Size& availableSize) {
+
     const float headerHeight = GetHeaderHeightDevice();
     const float headerContentGap = PanelChrome::DockHeaderContentGap();
     const Size measuredAvail = PanelChrome::InsetDockMeasureAvailable(availableSize);
@@ -272,7 +272,7 @@ void DockContainer::PaintTab(PaintContext& context, TabInfo& tabInfo, int index,
 }
 
 void DockContainer::Paint(PaintContext& context) {
-    if (m_ActiveTabIndex < 0 || m_ActiveTabIndex >= static_cast<int>(m_Tabs.size())) {
+    if (!m_Visible || m_ActiveTabIndex < 0 || m_ActiveTabIndex >= static_cast<int>(m_Tabs.size())) {
         return;
     }
 

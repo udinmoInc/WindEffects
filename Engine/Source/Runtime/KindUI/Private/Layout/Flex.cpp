@@ -41,6 +41,7 @@ Flex& Flex::Style(std::string className) {
 }
 
 Size Flex::Measure(const Size& availableSize) {
+
     const float padW = m_Padding.left + m_Padding.right;
     const float padH = m_Padding.top + m_Padding.bottom;
     const Size contentAvail{

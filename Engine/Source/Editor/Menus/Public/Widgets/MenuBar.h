@@ -51,8 +51,12 @@ public:
     void AddMenu(const std::string& label, const std::vector<std::shared_ptr<MenuItem>>& items) {
         MenuInfo menu;
         menu.label = label;
-        menu.items = items;
-        m_Menus.push_back(menu);
+        for (const auto& item : items) {
+            if (item) {
+                menu.items.push_back(item);
+            }
+        }
+        m_Menus.push_back(std::move(menu));
         CalculateMenuGeometries();
     }
     void RemoveMenu(const std::string& label);

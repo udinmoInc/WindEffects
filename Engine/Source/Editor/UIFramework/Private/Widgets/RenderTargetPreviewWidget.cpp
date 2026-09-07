@@ -84,25 +84,10 @@ void RenderTargetPreviewWidget::Paint(PaintContext& context) {
         return;
     }
 
-    const float pxW = m_PreviewRect.width / static_cast<float>(m_Width);
-    const float pxH = m_PreviewRect.height / static_cast<float>(m_Height);
-    for (uint32_t y = 0; y < m_Height; ++y) {
-        for (uint32_t x = 0; x < m_Width; ++x) {
-            const size_t idx = (static_cast<size_t>(y) * m_Width + x) * 4;
-            if (idx + 2 >= m_Rgba.size()) continue;
-            Color c{};
-            c.r = m_Rgba[idx] / 255.0f;
-            c.g = m_Rgba[idx + 1] / 255.0f;
-            c.b = m_Rgba[idx + 2] / 255.0f;
-            c.a = 1.0f;
-            context.DrawRect(Rect{
-                m_PreviewRect.x + x * pxW,
-                m_PreviewRect.y + y * pxH,
-                (std::max)(pxW, 1.0f),
-                (std::max)(pxH, 1.0f)
-            }, c);
-        }
-    }
+    // Replaced CPU pixel-by-pixel rendering with a single placeholder text.
+    // An offscreen RHI texture upload and a single DrawColorTexture call should be used instead.
+    context.DrawText("Preview optimization pending", Point{ m_PreviewRect.x, m_PreviewRect.y },
+        ThemeColor(ColorToken::TextSecondary), ThemeMetric(MetricToken::TextSizeProperty) - 1.0f);
 }
 
 void RenderTargetPreviewWidget::OnMouseDown(const MouseEvent& event) {

@@ -150,6 +150,9 @@ void IconButton::Arrange(const Rect& allottedRect) {
 }
 
 void IconButton::Paint(PaintContext& context) {
+    if (!m_Visible) {
+        return;
+    }
     ControlChrome::InteractionState state{ m_HoverAnim, m_PressAnim, m_Active, m_Focused, false };
     if (m_Borderless) {
         ControlChrome::PaintBorderlessIconButton(context, m_Geometry, state);
@@ -222,6 +225,9 @@ void Card::Arrange(const Rect& allottedRect) {
 }
 
 void Card::Paint(PaintContext& context) {
+    if (!m_Visible) {
+        return;
+    }
     ControlChrome::InteractionState state{ m_HoverAnim, 0.0f, false, false, false };
     ControlChrome::PaintCard(context, m_Geometry, state);
     for (auto& child : GetChildren()) {
@@ -289,6 +295,9 @@ void PropertyRow::Arrange(const Rect& allottedRect) {
 }
 
 void PropertyRow::Paint(PaintContext& context) {
+    if (!m_Visible) {
+        return;
+    }
     const auto layout = PropertyPanelChrome::LayoutPropertyRow(m_Geometry, 0);
     PropertyPanelChrome::PaintPropertyRowLabel(context, layout.label, m_Label, false);
 
@@ -492,6 +501,9 @@ void SidebarItem::Arrange(const Rect& allottedRect) {
 }
 
 void SidebarItem::Paint(PaintContext& context) {
+    if (!m_Visible) {
+        return;
+    }
     const ResolvedStyle style = ThemeManager::Get().Resolve(
         m_Active ? StyleRole::SidebarItemActive : StyleRole::SidebarItem);
     ControlChrome::InteractionState state{ m_HoverAnim, m_Pressed ? 1.0f : 0.0f, m_Active, false, false };
@@ -565,6 +577,9 @@ void WindowHeader::Arrange(const Rect& allottedRect) {
 }
 
 void WindowHeader::Paint(PaintContext& context) {
+    if (!m_Visible) {
+        return;
+    }
     const ResolvedStyle style = ThemeManager::Get().Resolve(StyleRole::WindowHeader);
     context.DrawRect(m_Geometry, style.background);
     context.DrawText(
@@ -591,6 +606,9 @@ void TableRowBase::Arrange(const Rect& allottedRect) {
 }
 
 void TableRowBase::Paint(PaintContext& context) {
+    if (!m_Visible) {
+        return;
+    }
     ControlChrome::InteractionState state{ m_HoverAnim, 0.0f, m_Selected, m_Focused, false };
     ControlChrome::PaintListRow(context, m_Geometry, state);
 }

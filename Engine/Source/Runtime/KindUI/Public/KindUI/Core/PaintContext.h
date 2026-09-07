@@ -6,6 +6,7 @@
 
 #include <vector>
 #include <string>
+#include <string_view>
 #include "KindUI/Core/Geometry.h"
 #include "KindUI/Tokens/SurfaceRole.h"
 #include "KindUI/Core/WindIcon.h"
@@ -85,9 +86,25 @@ public:
     void DrawGradient(const Rect& rect, const Color& topColor, const Color& bottomColor, float radius = 0.0f);
     void DrawShadow(const Rect& rect, const Color& color, float radius, float blur);
 
+    void DrawText(const char* text, const Point& pos, const Color& color, float fontSize = 14.0f, bool bold = false, bool italic = false);
     void DrawText(const std::string& text, const Point& pos, const Color& color, float fontSize = 14.0f, bool bold = false, bool italic = false);
+    void DrawText(std::string_view text, const Point& pos, const Color& color, float fontSize = 14.0f, bool bold = false, bool italic = false);
+    void DrawText(
+        const char* text,
+        const Point& pos,
+        const Color& color,
+        float fontSize,
+        we::runtime::text::layout::FontWeight weight,
+        bool italic = false);
     void DrawText(
         const std::string& text,
+        const Point& pos,
+        const Color& color,
+        float fontSize,
+        we::runtime::text::layout::FontWeight weight,
+        bool italic = false);
+    void DrawText(
+        std::string_view text,
         const Point& pos,
         const Color& color,
         float fontSize,
@@ -100,9 +117,21 @@ public:
     void DrawTexture(const Rect& rect, we::rhi::RHIDescriptorSetHandle textureId, const Color& tint = Color::White(), const Color& tintBottom = Color::Transparent());
     void DrawColorTexture(const Rect& rect, we::rhi::RHIDescriptorSetHandle textureId, const Color& tint = Color::White());
 
+    float GetTextWidth(const char* text, float fontSize, bool bold = false, bool italic = false) const;
     float GetTextWidth(const std::string& text, float fontSize, bool bold = false, bool italic = false) const;
+    float GetTextWidth(std::string_view text, float fontSize, bool bold = false, bool italic = false) const;
+    float GetTextWidth(
+        const char* text,
+        float fontSize,
+        we::runtime::text::layout::FontWeight weight,
+        bool italic = false) const;
     float GetTextWidth(
         const std::string& text,
+        float fontSize,
+        we::runtime::text::layout::FontWeight weight,
+        bool italic = false) const;
+    float GetTextWidth(
+        std::string_view text,
         float fontSize,
         we::runtime::text::layout::FontWeight weight,
         bool italic = false) const;

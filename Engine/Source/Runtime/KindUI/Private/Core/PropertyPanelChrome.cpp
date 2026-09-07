@@ -160,7 +160,7 @@ void PaintInlineIconLabelRow(
 
     const float textX = rect.x + padH + (icon.IsValid() ? iconSize + gap : 0.0f);
     context.DrawText(
-        std::string(text),
+        text,
         Point{ textX, centerY - fontSize * 0.5f },
         ResolveColor(ColorToken::TextPrimary),
         fontSize,
@@ -201,7 +201,7 @@ void PaintDetailsObjectHeader(
     state.selected = true;
     ControlChrome::PaintListRow(context, instanceRow, state);
 
-    std::string instanceLabel = std::string(displayName);
+    std::string instanceLabel(displayName);
     instanceLabel += " (Instance)";
     PaintInlineIconLabelRow(context, instanceRow, instanceLabel, icon, false);
 }
@@ -237,7 +237,7 @@ void PaintSectionHeader(
 
     const float textX = rect.x + padH + chevronSize + ResolveMetric(MetricToken::Space1) * scale;
     context.DrawText(
-        std::string(title),
+        title,
         Point{ textX, centerY - fontSize * 0.5f },
         ResolveColor(ColorToken::TextPrimary),
         fontSize,
@@ -258,21 +258,20 @@ void PaintPropertyRowLabel(
         const float maxW = labelRect.width;
         if (context.GetTextWidth(display, fontSize) > maxW) {
             constexpr const char* kEllipsis = "...";
+            std::string displayEllipsis = display + kEllipsis;
             while (display.size() > 1
-                && context.GetTextWidth(display + kEllipsis, fontSize) > maxW) {
+                && context.GetTextWidth(displayEllipsis, fontSize) > maxW) {
                 display.pop_back();
+                displayEllipsis.pop_back();
             }
             display += kEllipsis;
         }
     }
-
-    context.PushClipRect(labelRect);
     context.DrawText(
         display,
         Point{ labelRect.x, textY },
         mixed ? ResolveColor(ColorToken::AccentPrimary) : ResolveColor(ColorToken::TextSecondary),
         fontSize);
-    context.PopClipRect();
 }
 
 void PaintCategoryTab(
@@ -301,13 +300,13 @@ void PaintCategoryTab(
     }
 
     const float textW = context.GetTextWidth(
-        std::string(label),
+        label,
         fontSize,
         we::runtime::text::layout::FontWeight::Regular);
     const float textX = rect.x + (rect.width - textW) * 0.5f;
     const float textY = LayoutMetrics::AlignTextTopY(rect, fontSize);
     context.DrawText(
-        std::string(label),
+        label,
         Point{ textX, textY },
         active ? ResolveColor(ColorToken::TextPrimary) : ResolveColor(ColorToken::TextSecondary),
         fontSize,

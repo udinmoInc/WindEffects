@@ -204,6 +204,15 @@ ToolbarLabeledButton::ToolbarLabeledButton(const std::string& label, we::runtime
     , m_HorizontalPadding(horizontalPadding)
 {}
 
+void ToolbarLabeledButton::UpdateTextMetrics(const float textSize) const {
+    if (m_CachedTextSize == textSize) {
+        return;
+    }
+    PaintContext ctx;
+    m_CachedTextWidth = ctx.GetTextWidth(m_Label, textSize);
+    m_CachedTextSize = textSize;
+}
+
 Size ToolbarLabeledButton::Measure(const Size& availableSize) {
     (void)availableSize;
     const float uiScale = (std::max)(1.0f, DPIContext::GetScale());
@@ -213,8 +222,8 @@ Size ToolbarLabeledButton::Measure(const Size& availableSize) {
     const float iconGap = ThemeMetric(MetricToken::Space1) * uiScale;
     const float textSize = ThemeMetric(MetricToken::TextSizeToolbar) * uiScale;
 
-    PaintContext ctx;
-    const float textWidth = ctx.GetTextWidth(m_Label, textSize);
+    UpdateTextMetrics(textSize);
+    const float textWidth = m_CachedTextWidth;
 
     float width = hPad * 2.0f + textWidth;
     if (m_Icon.IsValid()) {
@@ -266,6 +275,7 @@ void ToolbarLabeledButton::Paint(PaintContext& context) {
     float x = m_Geometry.x + hPad;
     const float textSize = ThemeMetric(MetricToken::TextSizeToolbar) * uiScale;
     const float textY = LayoutMetrics::AlignTextTopY(m_Geometry, textSize);
+    UpdateTextMetrics(textSize);
 
     if (m_Icon.IsValid()) {
         const float iconSize = ThemeMetric(MetricToken::IconSizeToolbar) * uiScale;

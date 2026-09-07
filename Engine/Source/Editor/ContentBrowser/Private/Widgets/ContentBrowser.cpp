@@ -22,6 +22,7 @@
 #include <algorithm>
 #include <cctype>
 #include <cmath>
+#include <string_view>
 
 using ::we::runtime::kindui::ColorToken;
 using ::we::runtime::kindui::MetricToken;
@@ -336,40 +337,44 @@ std::vector<std::string> ContentBrowser::WrapLabelText(
     std::vector<std::string> lines;
     if (text.empty() || maxLines <= 0) return lines;
 
-    auto truncateLine = [&](const std::string& value) {
-        if (context.GetTextWidth(value, fontSize) <= maxWidth) return value;
-        std::string trimmed = value;
-        while (trimmed.length() > 1 && context.GetTextWidth(trimmed + "...", fontSize) > maxWidth) {
+    const std::string_view textView = text;
+
+    auto truncateLine = [&](std::string_view value) {
+        if (context.GetTextWidth(value, fontSize) <= maxWidth) return std::string(value);
+        std::string trimmed(value);
+        std::string trimmedEllipsis = trimmed + "...";
+        while (trimmed.length() > 1 && context.GetTextWidth(trimmedEllipsis, fontSize) > maxWidth) {
             trimmed.pop_back();
+            trimmedEllipsis.pop_back();
         }
         return trimmed + "...";
     };
 
-    if (maxLines == 1 || context.GetTextWidth(text, fontSize) <= maxWidth) {
-        lines.push_back(truncateLine(text));
+    if (maxLines == 1 || context.GetTextWidth(textView, fontSize) <= maxWidth) {
+        lines.push_back(truncateLine(textView));
         return lines;
     }
 
-    size_t breakAt = text.size();
-    for (size_t i = 1; i <= text.size(); ++i) {
-        if (context.GetTextWidth(text.substr(0, i), fontSize) > maxWidth) {
+    size_t breakAt = textView.size();
+    for (size_t i = 1; i <= textView.size(); ++i) {
+        if (context.GetTextWidth(textView.substr(0, i), fontSize) > maxWidth) {
             breakAt = i > 1 ? i - 1 : 1;
             break;
         }
     }
 
     size_t split = breakAt;
-    const size_t lastSpace = text.rfind(' ', breakAt > 0 ? breakAt - 1 : 0);
+    const size_t lastSpace = textView.rfind(' ', breakAt > 0 ? breakAt - 1 : 0);
     if (lastSpace != std::string::npos && lastSpace > 0) {
         split = lastSpace;
     }
 
-    std::string line1 = text.substr(0, split);
+    std::string line1(textView.substr(0, split));
     while (!line1.empty() && line1.back() == ' ') line1.pop_back();
-    std::string remainder = split < text.size() ? text.substr(split) : std::string{};
+    std::string remainder = split < textView.size() ? std::string(textView.substr(split)) : std::string{};
     while (!remainder.empty() && remainder.front() == ' ') remainder.erase(remainder.begin());
 
-    if (line1.empty()) line1 = truncateLine(text);
+    if (line1.empty()) line1 = truncateLine(textView);
     lines.push_back(line1);
 
     if (!remainder.empty()) {
@@ -444,19 +449,25 @@ void ContentBrowser::PaintListItem(PaintContext& context, const RenderItem& rend
     const float nameY = renderItem.geometry.y + (renderItem.geometry.height - ThemeMetric(MetricToken::TextSizeBody)) * 0.5f;
     const float typeW = context.GetTextWidth(item.type, ThemeMetric(MetricToken::TextSizeBody));
     const float maxNameWidth = renderItem.geometry.width - (nameX - renderItem.geometry.x) - typeW - PanelChrome::PanelPaddingH() * 2.0f;
-    std::string displayName = item.name;
-    if (context.GetTextWidth(displayName, ThemeMetric(MetricToken::TextSizeBody)) > maxNameWidth) {
-        while (displayName.length() > 1 && context.GetTextWidth(displayName + "...", ThemeMetric(MetricToken::TextSizeBody)) > maxNameWidth) {
-            displayName.pop_back();
+    const std::string_view displayName = item.name;
+    if (context.GetTextWidth(displayName, ThemeMetric(MetricToken::TextSizeBody)) <= maxNameWidth) {
+        context.DrawText(displayName, Point{ nameX, nameY }, ThemeColor(ColorToken::TextPrimary), ThemeMetric(MetricToken::TextSizeBody), false);
+    } else {
+        std::string truncated(displayName);
+        std::string truncatedEllipsis = truncated + "...";
+        while (truncated.length() > 1 && context.GetTextWidth(truncatedEllipsis, ThemeMetric(MetricToken::TextSizeBody)) > maxNameWidth) {
+            truncated.pop_back();
+            truncatedEllipsis.pop_back();
         }
-        displayName += "...";
+        truncated += "...";
+        context.DrawText(truncated, Point{ nameX, nameY }, ThemeColor(ColorToken::TextPrimary), ThemeMetric(MetricToken::TextSizeBody), false);
     }
-    context.DrawText(displayName, Point{ nameX, nameY }, ThemeColor(ColorToken::TextPrimary), ThemeMetric(MetricToken::TextSizeBody), false);
     context.DrawText(item.type, Point{ renderItem.geometry.x + renderItem.geometry.width - typeW - PanelChrome::PanelPaddingH(), nameY },
         ThemeColor(ColorToken::TextSecondary), ThemeMetric(MetricToken::TextSizeBody));
 }
 
 void ContentBrowser::Paint(PaintContext& context) {
+    if (!m_Visible) return;
     SyncScrollMetrics();
     UpdateVisibleRange();
 
@@ -873,12 +884,21 @@ void ContentBrowserStatusBar::Arrange(const Rect& allottedRect) {
 void ContentBrowserStatusBar::Paint(PaintContext& context) {
     const float textSize = ThemeMetric(MetricToken::TextSizeSmall);
     const size_t total = m_AssetCount + m_FolderCount;
-    std::string text = std::to_string(total) + (total == 1 ? " item" : " items");
-    if (m_SelectedCount > 0) {
-        text += " (" + std::to_string(m_SelectedCount) + " selected)";
+    if (m_CachedText.empty()
+        || m_LastSelectedCount != m_SelectedCount
+        || m_LastAssetCount != m_AssetCount
+        || m_LastFolderCount != m_FolderCount) {
+        m_LastSelectedCount = m_SelectedCount;
+        m_LastAssetCount = m_AssetCount;
+        m_LastFolderCount = m_FolderCount;
+
+        m_CachedText = std::to_string(total) + (total == 1 ? " item" : " items");
+        if (m_SelectedCount > 0) {
+            m_CachedText += " (" + std::to_string(m_SelectedCount) + " selected)";
+        }
     }
     const float textY = m_Geometry.y + (m_Geometry.height - textSize) * 0.5f;
-    context.DrawText(text, Point{ m_Geometry.x + ThemeMetric(MetricToken::Space3), textY }, ThemeColor(ColorToken::TextSecondary), textSize);
+    context.DrawText(m_CachedText, Point{ m_Geometry.x + ThemeMetric(MetricToken::Space3), textY }, ThemeColor(ColorToken::TextSecondary), textSize);
 }
 
 Breadcrumb::Breadcrumb() = default;
@@ -886,14 +906,13 @@ Breadcrumb::Breadcrumb() = default;
 Size Breadcrumb::Measure(const Size& availableSize) {
     (void)availableSize;
     const float uiScale = (std::max)(1.0f, DPIContext::GetScale());
-    const float textSize = ThemeMetric(MetricToken::TextSizeToolbar) * uiScale;
     const float chevronW = 12.0f * uiScale;
     const float space = 4.0f * uiScale;
 
-    PaintContext ctx;
+    UpdateCrumbMetrics();
     float totalW = 0.0f;
     for (size_t i = 0; i < m_Crumbs.size(); ++i) {
-        float textW = ctx.GetTextWidth(m_Crumbs[i].text, textSize);
+        float textW = m_Crumbs[i].textWidth;
         totalW += textW + space + chevronW + space;
     }
     const float h = ThemeMetric(MetricToken::ToolbarLabeledHeight) * uiScale;
@@ -903,6 +922,7 @@ Size Breadcrumb::Measure(const Size& availableSize) {
 
 void Breadcrumb::Arrange(const Rect& allottedRect) {
     m_Geometry = allottedRect;
+    UpdateCrumbMetrics();
     CalculateLayout();
 }
 
@@ -964,6 +984,7 @@ void Breadcrumb::SetPath(const std::vector<std::string>& path) {
         info.text = crumb;
         m_Crumbs.push_back(info);
     }
+    m_CrumbMetricsDirty = true;
     CalculateLayout();
 }
 
@@ -971,26 +992,42 @@ void Breadcrumb::AddCrumb(const std::string& crumb) {
     CrumbInfo info;
     info.text = crumb;
     m_Crumbs.push_back(info);
+    m_CrumbMetricsDirty = true;
     CalculateLayout();
 }
 
 void Breadcrumb::Clear() {
     m_Crumbs.clear();
+    m_CrumbMetricsDirty = true;
+}
+
+void Breadcrumb::UpdateCrumbMetrics() {
+    const float uiScale = (std::max)(1.0f, DPIContext::GetScale());
+    const float textSize = ThemeMetric(MetricToken::TextSizeToolbar) * uiScale;
+    if (!m_CrumbMetricsDirty && m_LastTextSize == textSize && m_LastUiScale == uiScale) {
+        return;
+    }
+
+    PaintContext ctx;
+    for (auto& crumb : m_Crumbs) {
+        crumb.textWidth = ctx.GetTextWidth(crumb.text, textSize);
+    }
+    m_LastTextSize = textSize;
+    m_LastUiScale = uiScale;
+    m_CrumbMetricsDirty = false;
 }
 
 void Breadcrumb::CalculateLayout() {
+    UpdateCrumbMetrics();
     const float uiScale = (std::max)(1.0f, DPIContext::GetScale());
-    const float textSize = ThemeMetric(MetricToken::TextSizeToolbar) * uiScale;
     const float chevronW = 12.0f * uiScale;
     const float space = 4.0f * uiScale;
-
-    PaintContext ctx;
     float x = m_Geometry.x;
     const float crumbH = m_Geometry.height;
     const float y = m_Geometry.y;
 
     for (size_t i = 0; i < m_Crumbs.size(); ++i) {
-        float textW = ctx.GetTextWidth(m_Crumbs[i].text, textSize);
+        float textW = m_Crumbs[i].textWidth;
         m_Crumbs[i].geometry = Rect{ x, y, textW, crumbH };
         x += textW + space + chevronW + space;
     }

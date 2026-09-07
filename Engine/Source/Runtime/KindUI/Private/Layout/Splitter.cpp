@@ -389,13 +389,7 @@ void Splitter::UpdateCachedBarHitRect() {
 void Splitter::Paint(PaintContext& context) {
     if (!m_Visible) return;
 
-    if (m_PanelGapEnabled && ChromeSeparation::kGapCutsEnabled && !m_Geometry.IsEmpty()) {
-        context.DrawSurface(
-            m_Geometry,
-            SurfaceRole::Workspace,
-            0.0f,
-            "SplitterChromeBase");
-    }
+    // Removed redundant Workspace background clear - root window already clears this.
 
     const auto paintChildClipped = [&](const std::shared_ptr<Widget>& child, const Rect& clipRect) {
         if (!child || !child->IsVisible() || clipRect.IsEmpty()) {

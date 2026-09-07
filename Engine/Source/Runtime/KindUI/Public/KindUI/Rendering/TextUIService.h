@@ -9,6 +9,7 @@
 #include <memory>
 #include <string>
 #include <unordered_map>
+#include <string_view>
 #include <vector>
 
 namespace we::runtime::kindui {
@@ -42,9 +43,9 @@ public:
     [[nodiscard]] const std::vector<TextDebugGlyphInfo>& LastDebugGlyphs() const { return m_LastDebugGlyphs; }
     void DumpAtlasPagesToDisk();
 
-    [[nodiscard]] float MeasureText(const std::string& text, float fontSize, bool bold) const;
+    [[nodiscard]] float MeasureText(std::string_view text, float fontSize, bool bold) const;
     [[nodiscard]] float MeasureText(
-        const std::string& text,
+        std::string_view text,
         float fontSize,
         we::runtime::text::layout::FontWeight weight) const;
     bool GenerateTextGeometry(

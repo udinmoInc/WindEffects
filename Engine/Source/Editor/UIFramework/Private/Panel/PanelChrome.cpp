@@ -519,15 +519,6 @@ void PaintFloatingPanelHeader(
     const float tabX = headerRect.x + TabStripPadH();
     DockTabLayout layout = LayoutDockTabGeometries(context, descriptor, headerRect, tabX, true, showClose);
 
-    if (!headerRect.IsEmpty()) {
-        const Rect activeHeaderRect{
-            headerRect.x,
-            headerRect.y,
-            layout.tabRect.width,
-            headerRect.height
-        };
-        context.DrawSurface(activeHeaderRect, we::runtime::kindui::SurfaceRole::PanelHeader, 0.0f, "FloatingPanelHeader");
-    }
     PaintDockTab(context, descriptor, layout, headerRect, true, 0.0f, showClose, closeHovered);
 
     const float centerY = std::floor(layout.tabRect.y + layout.tabRect.height * 0.5f);
@@ -590,7 +581,29 @@ void PaintDockTabStrip(
     const DockTabStripState& state)
 {
     if (!stripRect.IsEmpty()) {
-        context.DrawSurface(stripRect, we::runtime::kindui::SurfaceRole::DockChrome, 0.0f, "DockTabStrip");
+        const float stripEndX = stripRect.x + stripRect.width;
+        float fillX = stripRect.x;
+        const size_t visibleCount = std::min(descriptors.size(), layout.tabs.size());
+        for (size_t i = 0; i < visibleCount; ++i) {
+            const Rect& tabRect = layout.tabs[i].tabRect;
+            const float tabStartX = std::max(stripRect.x, tabRect.x);
+            const float tabEndX = std::min(stripEndX, tabRect.x + tabRect.width);
+            if (tabStartX > fillX) {
+                context.DrawSurface(
+                    Rect{ fillX, stripRect.y, tabStartX - fillX, stripRect.height },
+                    we::runtime::kindui::SurfaceRole::DockChrome,
+                    0.0f,
+                    "DockTabStrip");
+            }
+            fillX = std::max(fillX, tabEndX);
+        }
+        if (fillX < stripEndX) {
+            context.DrawSurface(
+                Rect{ fillX, stripRect.y, stripEndX - fillX, stripRect.height },
+                we::runtime::kindui::SurfaceRole::DockChrome,
+                0.0f,
+                "DockTabStrip");
+        }
     }
 
     const size_t count = std::min(descriptors.size(), layout.tabs.size());
@@ -772,9 +785,7 @@ void PaintDockPanelContent(
     }
 
     PaintPanelSurface(context, contentRect);
-    context.PushClipRect(contentRect);
     paintBody(context);
-    context.PopClipRect();
 }
 
 void PaintDockHeaderContentGap(PaintContext& context, const Rect& gapRect) {

@@ -59,14 +59,13 @@ public:
     }
 
     void Paint(PaintContext& context) override {
+        if (!m_Visible) return;
         SyncScroll();
         if (!m_Tree || m_Tree->GetFilteredRootNodes().empty()) {
             return;
         }
 
-        if (!m_ScrollMetrics.viewport.IsEmpty()) {
-            we::editor::panels::PanelChrome::PaintPanelSurface(context, m_ScrollMetrics.viewport);
-        }
+        // Viewport background cleared by parent panel layout
 
         const float uiScale = (std::max)(1.0f, DPIContext::GetScale());
         const float viewTop = m_ScrollMetrics.viewport.y;
