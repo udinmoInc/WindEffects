@@ -179,7 +179,7 @@ bool TextUIService::Initialize(OverlayRenderer* renderer) {
 
     TextMetrics::SetMeasureProvider([this](const std::string_view text, const float fontSize, const bool bold) {
         return MeasureText(
-            std::string(text),
+            text,
             fontSize,
             bold ? we::runtime::text::layout::FontWeight::SemiBold
                  : we::runtime::text::layout::FontWeight::Regular);
@@ -365,7 +365,7 @@ we::runtime::text::layout::TextStyle TextUIService::BuildStyle(const DrawCommand
     return style;
 }
 
-float TextUIService::MeasureText(const std::string& text, float fontSize, bool bold) const {
+float TextUIService::MeasureText(std::string_view text, float fontSize, bool bold) const {
     return MeasureText(
         text,
         fontSize,
@@ -374,13 +374,16 @@ float TextUIService::MeasureText(const std::string& text, float fontSize, bool b
 }
 
 float TextUIService::MeasureText(
-    const std::string& text,
+    std::string_view text,
     float fontSize,
     we::runtime::text::layout::FontWeight weight) const {
     if (!m_TextEngine || text.empty()) {
         return 0.0f;
     }
-    TextMeasureKey key{ text, fontSize, static_cast<uint16_t>(weight) };
+    TextMeasureKey key;
+    key.text.assign(text.begin(), text.end());
+    key.fontSize = fontSize;
+    key.weight = static_cast<uint16_t>(weight);
     auto it = m_MeasureCache.find(key);
     if (it != m_MeasureCache.end()) {
         return it->second;
@@ -402,7 +405,7 @@ float TextUIService::MeasureText(
         fontHandle = m_MediumFont;
     }
     float width = m_TextEngine->Measure(text, style, constraints, fontHandle).width;
-    m_MeasureCache[key] = width;
+    m_MeasureCache.emplace(std::move(key), width);
     return width;
 }
 

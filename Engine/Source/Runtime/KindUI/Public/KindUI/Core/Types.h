@@ -36,6 +36,9 @@ struct Rect {
     float width = 0.0f;
     float height = 0.0f;
 
+    bool operator==(const Rect& o) const { return x == o.x && y == o.y && width == o.width && height == o.height; }
+    bool operator!=(const Rect& o) const { return !(*this == o); }
+
     [[nodiscard]] bool Contains(Point p) const {
         return p.x >= x && p.x <= x + width && p.y >= y && p.y <= y + height;
     }

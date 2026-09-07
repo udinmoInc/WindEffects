@@ -158,6 +158,7 @@ float PanelBodyLayout::IntrinsicRegionHeight(const PanelBodyRegion region) const
 }
 
 Size PanelBodyLayout::Measure(const Size& availableSize) {
+
     float reservedHeight = 0.0f;
     float maxWidth = 0.0f;
 
@@ -333,9 +334,7 @@ void PanelBodyLayout::Arrange(const Rect& allottedRect) {
 }
 
 void PanelBodyLayout::Paint(PaintContext& context) {
-    if (!m_Geometry.IsEmpty()) {
-        Chrome::PaintPanelSurface(context, m_Geometry);
-    }
+    if (!m_Visible) return;
 
     const auto paintRegion = [&](PanelBodyRegion region, bool paintAfterContent) {
         const size_t index = RegionIndex(region);
@@ -351,13 +350,7 @@ void PanelBodyLayout::Paint(PaintContext& context) {
             PaintRegionBackground(region, context, slot.geometry);
         }
 
-        if (region == PanelBodyRegion::Content) {
-            context.PushClipRect(m_ContentClipRect);
-            slot.widget->Paint(context);
-            context.PopClipRect();
-        } else {
-            slot.widget->Paint(context);
-        }
+        slot.widget->Paint(context);
 
         if (!skipRegionChrome) {
             PaintRegionChrome(region, context, slot.geometry);

@@ -46,6 +46,9 @@ void Widget::InvalidateLayout() {
         return;
     }
     m_NeedsLayout = true;
+    if (auto parent = m_Parent.lock()) {
+        parent->InvalidateLayout();
+    }
     UIRepaintGate::RequestLayout();
     UiPathDiagnostics::Get().OnLayoutInvalidation();
     if (s_GlobalDiagnostics) {

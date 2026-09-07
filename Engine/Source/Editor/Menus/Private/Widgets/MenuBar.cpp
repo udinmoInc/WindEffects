@@ -52,6 +52,7 @@ void MenuBar::Arrange(const Rect& allottedRect) {
 }
 
 void MenuBar::Paint(PaintContext& context) {
+    if (!m_Visible) return;
     const float uiScale = (std::max)(1.0f, DPIContext::GetScale());
     const float textSize = ThemeMetric(MetricToken::TextSizeMenu) * uiScale;
 
@@ -231,6 +232,7 @@ void MenuBar::CalculateMenuGeometries() {
         m_MoreMenu.items.clear();
         for (const auto& hidden : m_HiddenMenus) {
             for (const auto& item : hidden.items) {
+                if (!item) continue;
                 auto prefixedItem = std::make_shared<MenuItem>(*item);
                 prefixedItem->label = hidden.label + " > " + item->label;
                 m_MoreMenu.items.push_back(prefixedItem);

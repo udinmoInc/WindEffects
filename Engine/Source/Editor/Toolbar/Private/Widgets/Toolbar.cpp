@@ -173,6 +173,7 @@ void Toolbar::Arrange(const Rect& allottedRect) {
 }
 
 void Toolbar::Paint(PaintContext& context) {
+    if (!m_Visible) return;
     context.PushSurfaceOwner("Toolbar", m_SurfaceRole);
     if (!m_IsFloating) {
         context.DrawSurface(m_Geometry, m_SurfaceRole, 0.0f, "Toolbar");

@@ -690,7 +690,7 @@ void PaintPanelTab(
         ? ResolveColor(ColorToken::TextPrimary)
         : ResolveColor(ColorToken::TextSecondary);
     context.DrawText(
-        std::string(label),
+        label,
         Point{
             bounds.x + ResolveMetric(MetricToken::Space3),
             bounds.y + (bounds.height - fontSize) * 0.5f

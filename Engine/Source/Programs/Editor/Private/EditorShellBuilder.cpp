@@ -213,7 +213,9 @@ EditorShellResult EditorShellBuilder::Build(
     });
 
     for (const auto& menu : context.GetExtensionRegistry().GetMenus()) {
-        menuBar->AddMenu(menu.menuName, menu.factory());
+        if (menu.factory) {
+            menuBar->AddMenu(menu.menuName, menu.factory());
+        }
     }
 
     menuBar->AddMenu("Tools", {[] { auto i = std::make_shared<MenuItem>(); i->label = "Place Actors"; return i; }()});

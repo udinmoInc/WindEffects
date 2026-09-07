@@ -145,7 +145,6 @@ void Label::Paint(PaintContext& context) {
     const float contentH = static_cast<float>(std::max<size_t>(m_WrappedLines.size(), 1)) * lineHeight;
     float currentY = m_Geometry.y + std::max(0.0f, (m_Geometry.height - contentH) * 0.5f);
 
-    context.PushClipRect(m_Geometry);
     for (const auto& line : m_WrappedLines) {
         context.DrawText(
             line,
@@ -157,7 +156,6 @@ void Label::Paint(PaintContext& context) {
             m_Style.italic);
         currentY += lineHeight;
     }
-    context.PopClipRect();
 }
 
 } // namespace we::runtime::kindui

@@ -187,9 +187,11 @@ private:
     struct CrumbInfo {
         std::string text;
         Rect geometry;
+        float textWidth = 0.0f;
         bool hovered = false;
     };
 
+    void UpdateCrumbMetrics();
     void CalculateLayout();
     CrumbInfo* GetCrumbAtPosition(const Point& pos);
 
@@ -197,6 +199,9 @@ private:
     float m_SeparatorSpacing = 8.0f;
     float m_CrumbSpacing = 4.0f;
     int m_HoveredCrumb = -1;
+    float m_LastTextSize = -1.0f;
+    float m_LastUiScale = -1.0f;
+    bool m_CrumbMetricsDirty = true;
 
     OnCrumbClicked m_OnCrumbClicked;
     std::vector<std::string> m_PathSegments;
@@ -220,6 +225,10 @@ private:
     size_t m_AssetCount = 0;
     size_t m_FolderCount = 0;
     size_t m_MemoryUsage = 0;
+    std::string m_CachedText;
+    size_t m_LastSelectedCount = static_cast<size_t>(-1);
+    size_t m_LastAssetCount = static_cast<size_t>(-1);
+    size_t m_LastFolderCount = static_cast<size_t>(-1);
 };
 
 } // namespace we::editor::contentbrowser

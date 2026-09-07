@@ -196,14 +196,18 @@ void DropdownMenu::OnMouseWheel(const MouseEvent& event) {
 void DropdownMenu::OnMouseDown(const MouseEvent& event) {
     if (event.button == MouseButton::Left) {
         const int clickedItem = HitItemAt(event.position);
-        if (auto* overlay = GetPopupHost()) {
-            overlay->CloseTopPopup();
-        }
+        std::function<void()> callback;
         if (clickedItem >= 0 && clickedItem < static_cast<int>(m_Items.size())) {
             const auto& item = m_Items[static_cast<size_t>(clickedItem)];
             if (item && item->enabled && item->onClick) {
-                item->onClick();
+                callback = item->onClick;
             }
+        }
+        if (auto* overlay = GetPopupHost()) {
+            overlay->CloseTopPopup();
+        }
+        if (callback) {
+            callback();
         }
     }
 }

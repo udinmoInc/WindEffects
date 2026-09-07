@@ -214,7 +214,15 @@ void PaintContext::DrawControlOutline(const Rect& rect, const Color& color, floa
     m_Commands.push_back(cmd);
 }
 
+void PaintContext::DrawText(const char* text, const Point& pos, const Color& color, float fontSize, bool bold, bool italic) {
+    DrawText(std::string_view(text ? text : ""), pos, color, fontSize, bold, italic);
+}
+
 void PaintContext::DrawText(const std::string& text, const Point& pos, const Color& color, float fontSize, bool bold, bool italic) {
+    DrawText(std::string_view(text), pos, color, fontSize, bold, italic);
+}
+
+void PaintContext::DrawText(std::string_view text, const Point& pos, const Color& color, float fontSize, bool bold, bool italic) {
     DrawText(
         text,
         pos,
@@ -226,7 +234,27 @@ void PaintContext::DrawText(const std::string& text, const Point& pos, const Col
 }
 
 void PaintContext::DrawText(
+    const char* text,
+    const Point& pos,
+    const Color& color,
+    float fontSize,
+    we::runtime::text::layout::FontWeight weight,
+    bool italic) {
+    DrawText(std::string_view(text ? text : ""), pos, color, fontSize, weight, italic);
+}
+
+void PaintContext::DrawText(
     const std::string& text,
+    const Point& pos,
+    const Color& color,
+    float fontSize,
+    we::runtime::text::layout::FontWeight weight,
+    bool italic) {
+    DrawText(std::string_view(text), pos, color, fontSize, weight, italic);
+}
+
+void PaintContext::DrawText(
+    std::string_view text,
     const Point& pos,
     const Color& color,
     float fontSize,
@@ -238,7 +266,7 @@ void PaintContext::DrawText(
     cmd.rect = { pos.x, pos.y, 0.0f, 0.0f };
     cmd.color = color;
     cmd.clipRect = GetCurrentClipRect();
-    cmd.text = text;
+    cmd.text.assign(text.begin(), text.end());
     cmd.fontSize = fontSize;
     cmd.textWeight = static_cast<uint16_t>(weight);
     cmd.textBold = weight >= we::runtime::text::layout::FontWeight::SemiBold;
@@ -269,7 +297,15 @@ void PaintContext::DrawWindIcon(WindIconRef icon, const Rect& rect, const Color&
     m_Commands.push_back(cmd);
 }
 
+float PaintContext::GetTextWidth(const char* text, const float fontSize, const bool bold, const bool italic) const {
+    return GetTextWidth(std::string_view(text ? text : ""), fontSize, bold, italic);
+}
+
 float PaintContext::GetTextWidth(const std::string& text, const float fontSize, const bool bold, const bool italic) const {
+    return GetTextWidth(std::string_view(text), fontSize, bold, italic);
+}
+
+float PaintContext::GetTextWidth(std::string_view text, const float fontSize, const bool bold, const bool italic) const {
     return GetTextWidth(
         text,
         fontSize,
@@ -279,7 +315,23 @@ float PaintContext::GetTextWidth(const std::string& text, const float fontSize, 
 }
 
 float PaintContext::GetTextWidth(
+    const char* text,
+    const float fontSize,
+    const we::runtime::text::layout::FontWeight weight,
+    const bool italic) const {
+    return GetTextWidth(std::string_view(text ? text : ""), fontSize, weight, italic);
+}
+
+float PaintContext::GetTextWidth(
     const std::string& text,
+    const float fontSize,
+    const we::runtime::text::layout::FontWeight weight,
+    const bool italic) const {
+    return GetTextWidth(std::string_view(text), fontSize, weight, italic);
+}
+
+float PaintContext::GetTextWidth(
+    std::string_view text,
     const float fontSize,
     const we::runtime::text::layout::FontWeight weight,
     const bool italic) const {

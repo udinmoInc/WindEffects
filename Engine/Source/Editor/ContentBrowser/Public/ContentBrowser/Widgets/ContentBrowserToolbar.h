@@ -85,6 +85,8 @@ public:
     bool IsFrameless() const { return m_Frameless; }
 
 private:
+    void UpdateTextMetrics(float textSize) const;
+
     std::string m_Label;
     we::runtime::kindui::WindIconRef m_Icon = we::runtime::kindui::kWindIconNone;
     bool m_ShowChevron = false;
@@ -95,6 +97,8 @@ private:
     float m_HoverAnim = 0.0f;
     float m_PressAnim = 0.0f;
     std::function<void()> m_OnClicked;
+    mutable float m_CachedTextSize = -1.0f;
+    mutable float m_CachedTextWidth = 0.0f;
 };
 
 // Premium AAA toolbar with reusable components.
