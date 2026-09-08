@@ -2,6 +2,7 @@
 
 #include "KindUI/Declarative/Element.h"
 #include "KindUI/Commands/ICommandRegistry.h"
+#include "KindUI/Tokens/DesignToken.h"
 
 #include <functional>
 #include <utility>
@@ -18,6 +19,38 @@ namespace we::runtime::kindui::UI {
 
 [[nodiscard]] inline Element Style(Element e, std::string styleClass) {
     e.styleClass = std::move(styleClass);
+    return e;
+}
+
+// --- CSS-like token style props (resolved via theme at ViewBuilder apply) ------
+
+[[nodiscard]] inline Element Bg(Element e, ColorToken token) {
+    e.style.background = token;
+    return e;
+}
+
+[[nodiscard]] inline Element Fg(Element e, ColorToken token) {
+    e.style.foreground = token;
+    return e;
+}
+
+[[nodiscard]] inline Element Pad(Element e, PaddingToken token) {
+    e.style.padding = token;
+    return e;
+}
+
+[[nodiscard]] inline Element Gap(Element e, SpacingToken token) {
+    e.style.gap = token;
+    return e;
+}
+
+[[nodiscard]] inline Element Radius(Element e, RadiusToken token) {
+    e.style.radius = token;
+    return e;
+}
+
+[[nodiscard]] inline Element Type(Element e, TypographyToken token) {
+    e.style.typography = token;
     return e;
 }
 

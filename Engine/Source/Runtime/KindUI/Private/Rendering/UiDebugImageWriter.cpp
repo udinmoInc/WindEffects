@@ -86,3 +86,4 @@ bool SaveBmpRgba(const std::string& path, const std::vector<uint8_t>& rgba, uint
 }
 
 } // namespace we::runtime::kindui
+ 

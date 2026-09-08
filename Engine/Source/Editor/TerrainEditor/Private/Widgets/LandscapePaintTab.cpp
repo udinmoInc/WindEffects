@@ -75,3 +75,4 @@ void BuildPaintTab(const std::shared_ptr<Column>& layout, ILandscapeEditor& edit
 }
 
 } // namespace we::editor::terrain
+ 

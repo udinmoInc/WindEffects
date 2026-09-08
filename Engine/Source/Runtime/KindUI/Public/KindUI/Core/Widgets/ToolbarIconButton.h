@@ -19,7 +19,7 @@ public:
         (void)tooltip;
     }
 
-    void SetOnClicked(std::function<void()> callback) { ToolbarGlyphButton::SetOnClicked(std::move(callback)); }
+    void SetOnClicked(std::function<void()> callback);
     void SetEnabled(bool enabled) { Widget::SetEnabled(enabled); }
     void SetSelected(bool selected) { ToolbarGlyphButton::SetSelected(selected); }
     [[nodiscard]] bool IsEnabled() const { return Widget::IsEnabled(); }

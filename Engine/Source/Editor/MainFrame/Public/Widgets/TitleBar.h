@@ -30,7 +30,7 @@ public:
     TitleBar(we::platform::WindowId window, const std::string& title,
              we::rhi::RHIDescriptorSetHandle logoSet = we::rhi::RHIDescriptorSetHandle::Invalid,
              std::shared_ptr<::we::editor::menus::MenuBar> menuBar = nullptr);
-    virtual ~TitleBar() = default;
+    ~TitleBar() override;
 
     void Construct() override;
 

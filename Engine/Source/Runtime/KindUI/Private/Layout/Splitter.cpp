@@ -554,3 +554,4 @@ std::shared_ptr<Widget> Splitter::HitTestPoint(const Point& pos, const Rect* cli
 }
 
 } // namespace we::runtime::kindui
+ 

@@ -15,7 +15,7 @@ public class PropertyEditor : ModuleRules
         PublicDependencies.Add("Engine");
         PublicDependencies.Add("KindUI");
         PublicDependencies.Add("Text");
-        PublicDependencies.Add("UIFramework");
+        PublicDependencies.Add("EditorShell");
         PublicDependencies.Add("Reflection");
         PublicDependencies.Add("Serialization");
         PublicDependencies.Add("Scene");

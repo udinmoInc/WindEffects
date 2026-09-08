@@ -60,3 +60,4 @@ we::runtime::kindui::Element BuildRenameDialogView(const RenameDialogState& stat
 }
 
 } // namespace we::programs::welauncher
+ 

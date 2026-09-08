@@ -40,3 +40,4 @@ Rect CompactGlyphBand(const Rect& controlBounds, float x) {
 }
 
 } // namespace we::runtime::kindui::IconMetrics
+ 

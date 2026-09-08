@@ -214,6 +214,26 @@ void ViewBuilder::ApplyLayoutIntent(Widget& widget, const LayoutIntent& intent) 
     }
 }
 
+void ViewBuilder::ApplyStyleIntent(Widget& widget, const StyleIntent& style) {
+    if (auto* flex = dynamic_cast<Flex*>(&widget)) {
+        if (style.background) {
+            flex->Background(*style.background);
+        }
+        if (style.padding) {
+            flex->Padding(*style.padding);
+        }
+        if (style.gap) {
+            flex->Gap(*style.gap);
+        }
+        if (style.radius) {
+            flex->Radius(*style.radius);
+        }
+    }
+    // Foreground / typography apply via configure/styleClass on text controls for now.
+    (void)style.foreground;
+    (void)style.typography;
+}
+
 void ViewBuilder::ApplyElementProperties(Widget& widget, const Element& element) {
     widget.SetContext(m_Context);
     widget.SetVisible(element.visible);
@@ -222,6 +242,7 @@ void ViewBuilder::ApplyElementProperties(Widget& widget, const Element& element)
         widget.SetStyleClass(element.styleClass);
     }
     ApplyLayoutIntent(widget, element.layout);
+    ApplyStyleIntent(widget, element.style);
     if (element.width.has_value() || element.height.has_value()) {
         widget.SetMinSize({
             element.width.value_or(widget.GetMinSize().width),
@@ -259,6 +280,7 @@ void ViewBuilder::ReconcileElement(Widget& existing, const Element& updated) {
         existing.SetStyleClass(updated.styleClass);
     }
     ApplyLayoutIntent(existing, updated.layout);
+    ApplyStyleIntent(existing, updated.style);
     if (updated.width.has_value() || updated.height.has_value()) {
         existing.SetMinSize({
             updated.width.value_or(existing.GetMinSize().width),
@@ -606,3 +628,4 @@ std::shared_ptr<Widget> ViewBuilder::BuildElement(const Element& element) {
 }
 
 } // namespace we::runtime::kindui
+ 

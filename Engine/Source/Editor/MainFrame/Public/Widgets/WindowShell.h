@@ -21,7 +21,7 @@ using ::we::runtime::kindui::WidgetStyle;
 class MAINFRAME_API WindowShell : public Widget {
 public:
     WindowShell();
-    ~WindowShell() override = default;
+    ~WindowShell() override;
 
     void SetContent(const std::shared_ptr<Widget>& content);
     const std::shared_ptr<Widget>& GetContent() const { return m_Content; }

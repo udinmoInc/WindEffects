@@ -47,9 +47,9 @@ inline std::vector<std::string> BuildModuleBinaryCandidates(std::string_view mod
         "Windeffects" + name + ".dll",
         "WE" + name + ".dll",
     };
-    if (name == "KindUIFramework") {
-        candidates.insert(candidates.begin(), "WEUIFramework.dll");
-        candidates.insert(candidates.begin(), "WindeffectsUIFramework.dll");
+    if (name == "EditorShell" || name == "KindUIFramework" || name == "UIFramework") {
+        candidates.insert(candidates.begin(), "WEEditorShell.dll");
+        candidates.insert(candidates.begin(), "WindeffectsEditorShell.dll");
     }
     return candidates;
 }

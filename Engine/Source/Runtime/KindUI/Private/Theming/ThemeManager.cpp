@@ -124,3 +124,4 @@ void ThemeManager::NotifyChanged() {
 }
 
 } // namespace we::runtime::kindui
+ 

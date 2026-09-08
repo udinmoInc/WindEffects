@@ -17,3 +17,4 @@ public:
 };
 
 IMPLEMENT_MODULE(ToolbarModule, WindEffects_Toolbar)
+

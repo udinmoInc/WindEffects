@@ -796,3 +796,4 @@ void ToolsPanel::OnKeyDown(const KeyEvent& event) {
 }
 
 } // namespace we::programs::editor
+ 

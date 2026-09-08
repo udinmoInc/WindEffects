@@ -37,7 +37,7 @@ struct MenuItem {
 class MENUS_API MenuBar : public Widget {
 public:
     MenuBar();
-    virtual ~MenuBar() = default;
+    ~MenuBar() override;
 
     Size Measure(const Size& availableSize) override;
     void Arrange(const Rect& allottedRect) override;
@@ -48,31 +48,20 @@ public:
     void OnHoverLost() override;
     bool ShowsPointerCursor(const Point& position) const override { return m_Geometry.Contains(position); }
 
-    // Menu management
-    void AddMenu(const std::string& label, const std::vector<std::shared_ptr<MenuItem>>& items) {
-        MenuInfo menu;
-        menu.label = label;
-        for (const auto& item : items) {
-            if (item) {
-                menu.items.push_back(item);
-            }
-        }
-        m_Menus.push_back(std::move(menu));
-        CalculateMenuGeometries();
-    }
+    // Menu management (implemented in .cpp — STL members must not cross DLL heaps)
+    void AddMenu(const std::string& label, const std::vector<std::shared_ptr<MenuItem>>& items);
     void RemoveMenu(const std::string& label);
     void Clear();
 
     // Styling
     void SetHeight(float height) { m_Height = height; }
-    void SetItemSpacing(float spacing) { m_ItemSpacing = spacing; CalculateMenuGeometries(); }
+    void SetItemSpacing(float spacing);
 
 private:
     struct MenuInfo {
         std::string label;
         std::vector<std::shared_ptr<MenuItem>> items;
         Rect geometry;
-        bool hovered = false;
     };
 
     void CalculateMenuGeometries();

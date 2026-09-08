@@ -82,6 +82,8 @@ StatusBar::StatusBar()
 {
 }
 
+StatusBar::~StatusBar() = default;
+
 void StatusBar::Construct() {
     const float uiScale = UiScale();
     const float padH = ThemeMetric(MetricToken::Space3) * uiScale;
@@ -246,3 +248,5 @@ void StatusBar::SetOnQualityMenuClicked(std::function<void()> onClicked) {
 }
 
 } // namespace we::editor::shell
+
+ 

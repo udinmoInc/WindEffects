@@ -22,7 +22,7 @@ public class WorldOutliner : ModuleRules
         PublicDependencies.Add("ViewportEdit");
         PublicDependencies.Add("KindUI");
         PublicDependencies.Add("Text");
-        PublicDependencies.Add("UIFramework");
+        PublicDependencies.Add("EditorShell");
         PublicDependencies.Add("ContentBrowser");
 
         PrivateDependencies.Add("RHI");

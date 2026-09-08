@@ -17,3 +17,4 @@ float Animator::Damp(float current, float target, float speed) {
 }
 
 } // namespace we::runtime::kindui
+ 

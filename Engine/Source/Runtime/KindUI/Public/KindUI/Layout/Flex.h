@@ -3,6 +3,7 @@
 #include "KindUI/Export.h"
 #include "KindUI/Core/Widget.h"
 #include "KindUI/Core/PaintContext.h"
+#include "KindUI/Tokens/DesignToken.h"
 
 #include <vector>
 
@@ -27,8 +28,13 @@ public:
     Flex& Justify(JustifyContent j) { m_Justify = j; InvalidateLayout(); return *this; }
     Flex& Align(AlignItems a) { m_Align = a; InvalidateLayout(); return *this; }
     Flex& Gap(float gap) { m_Gap = gap; InvalidateLayout(); return *this; }
+    Flex& Gap(SpacingToken token);
     Flex& Padding(const Margin& p) { m_Padding = p; InvalidateLayout(); return *this; }
+    Flex& Padding(PaddingToken token);
     Flex& Background(const Color& c) { m_Background = c; m_HasBackground = true; InvalidatePaint(); return *this; }
+    Flex& Background(ColorToken token);
+    Flex& Radius(float radius) { m_Radius = radius; InvalidatePaint(); return *this; }
+    Flex& Radius(RadiusToken token);
     Flex& Style(std::string className);
 
     [[nodiscard]] FlexDirection GetDirection() const { return m_Direction; }
@@ -46,6 +52,7 @@ private:
     Margin m_Padding{};
     Color m_Background{};
     bool m_HasBackground = false;
+    float m_Radius = 0.0f;
 };
 
 class KINDUI_API Row : public Flex {

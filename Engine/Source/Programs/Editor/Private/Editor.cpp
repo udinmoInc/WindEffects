@@ -26,7 +26,7 @@
 #include "Projects/ProjectContext.h"
 #include "Projects/RecentProjectsStore.h"
 #include "Terrain/Terrain.h"
-#include "WindEffects/Editor/UI/Core/ScreenRecorder.h"
+#include "KindUI/Profiling/ScreenRecorder.h"
 #include "WindEffects/Editor/UI/Shell/EditorModeController.h"
 #include "WindEffects/Editor/UI/Shell/EditorWorkspaceController.h"
 #include "KindUI/Widgets/ScreenDebugOverlay.h"
@@ -206,7 +206,7 @@ void Editor::InitializeEngine() {
 
 void Editor::SetRootWidget(const std::shared_ptr<we::runtime::kindui::Widget>& root) {
     m_RootWidget = root;
-    if (m_RootWidget && ::we::editor::services::ScreenRecorder::IsRecordingEnabled()) {
+    if (m_RootWidget && ::we::runtime::kindui::ScreenRecorder::IsRecordingEnabled()) {
         m_RootWidget->AttachOverlayChild(std::make_shared<::we::runtime::kindui::ScreenDebugOverlay>());
     }
     if (m_UIEventSystem) {

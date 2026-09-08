@@ -16,3 +16,4 @@ public:
 };
 
 IMPLEMENT_MODULE(KindUIModule, WindEffects_KindUI)
+ 

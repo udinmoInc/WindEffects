@@ -64,6 +64,8 @@ Toolbar::Toolbar()
 {
 }
 
+Toolbar::~Toolbar() = default;
+
 Size Toolbar::Measure(const Size& availableSize) {
     const float uiScale = (std::max)(1.0f, DPIContext::GetScale());
     const float targetHeight = m_Height > 0.0f ? m_Height : ScaledMetric(MetricToken::ToolbarHeight);
@@ -471,3 +473,4 @@ bool ToolbarGroup::ShowsPointerCursor(const Point& position) const {
 }
 
 } // namespace we::editor::toolbar
+ 

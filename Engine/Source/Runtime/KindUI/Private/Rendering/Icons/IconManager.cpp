@@ -145,3 +145,4 @@ IconDrawInfo IconManager::ResolveIcon(WindIconRef icon) const
 }
 
 } // namespace we::runtime::kindui
+ 

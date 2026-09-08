@@ -98,9 +98,40 @@ ToolButton::ToolButton(WindIconRef icon, const std::string& label, std::function
     : m_Icon(icon)
     , m_Label(label)
     , m_Tooltip(tooltip)
-    , m_OnClicked(onClicked)
+    , m_OnClicked(std::move(onClicked))
     , m_Style(WidgetStyle::ToolButton())
 {}
+
+ToolButton::~ToolButton() = default;
+
+void ToolButton::SetIcon(WindIconRef icon) {
+    m_Icon = icon;
+}
+
+const std::string& ToolButton::GetTooltip() const {
+    return m_Tooltip;
+}
+
+void ToolButton::SetLabel(const std::string& label) {
+    m_Label = label;
+    m_CachedLabelWidthTextSize = -1.0f;
+}
+
+const std::string& ToolButton::GetLabel() const {
+    return m_Label;
+}
+
+void ToolButton::SetOnMouseWheel(std::function<void(float wheelDeltaY)> onMouseWheel) {
+    m_OnMouseWheel = std::move(onMouseWheel);
+}
+
+void ToolButton::SetTooltip(const std::string& tooltip) {
+    m_Tooltip = tooltip;
+}
+
+void ToolButton::SetOnClicked(std::function<void()> onClicked) {
+    m_OnClicked = std::move(onClicked);
+}
 
 Size ToolButton::Measure(const Size& availableSize) {
     const float uiScale = (std::max)(1.0f, DPIContext::GetScale());
@@ -573,3 +604,5 @@ void ToolSeparator::Paint(PaintContext& context) {
 }
 
 } // namespace we::editor::toolbar
+
+ 

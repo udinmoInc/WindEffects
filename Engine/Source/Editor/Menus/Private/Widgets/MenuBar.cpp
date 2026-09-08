@@ -30,6 +30,25 @@ MenuBar::MenuBar()
     , m_ItemPaddingH(10.0f)
 {}
 
+MenuBar::~MenuBar() = default;
+
+void MenuBar::AddMenu(const std::string& label, const std::vector<std::shared_ptr<MenuItem>>& items) {
+    MenuInfo menu;
+    menu.label = label;
+    for (const auto& item : items) {
+        if (item) {
+            menu.items.push_back(item);
+        }
+    }
+    m_Menus.push_back(std::move(menu));
+    CalculateMenuGeometries();
+}
+
+void MenuBar::SetItemSpacing(float spacing) {
+    m_ItemSpacing = spacing;
+    CalculateMenuGeometries();
+}
+
 Size MenuBar::Measure(const Size& availableSize) {
     const float uiScale = (std::max)(1.0f, DPIContext::GetScale());
     const float textSize = ThemeMetric(MetricToken::TextSizeMenu) * uiScale;
@@ -58,7 +77,7 @@ void MenuBar::Paint(PaintContext& context) {
 
     auto drawMenu = [&](const MenuInfo& menu, int index) {
         bool isActive = m_MenuOpen && index == m_HoveredMenu;
-        const bool isHighlighted = menu.hovered || isActive;
+        const bool isHighlighted = (index == m_HoveredMenu) || isActive;
         const float radius = ThemeMetric(MetricToken::CornerRadiusSmall) * uiScale;
         const float insetV = ThemeMetric(MetricToken::Space1) * uiScale;
         const float insetH = ThemeMetric(MetricToken::Space1) * 0.5f * uiScale;
@@ -142,19 +161,8 @@ void MenuBar::OnMouseDown(const MouseEvent& event) {
 }
 
 void MenuBar::OnHoverLost() {
-    bool changed = false;
-    for (auto& menu : m_VisibleMenus) {
-        if (menu.hovered) {
-            menu.hovered = false;
-            changed = true;
-        }
-    }
-    if (m_MoreMenu.hovered) {
-        m_MoreMenu.hovered = false;
-        changed = true;
-    }
-    m_HoveredMenu = -1;
-    if (changed) {
+    if (m_HoveredMenu >= 0) {
+        m_HoveredMenu = -1;
         InvalidatePaint();
     }
 }
@@ -167,31 +175,23 @@ void MenuBar::OnMouseMove(const MouseEvent& event) {
 
     MenuInfo* menu = GetMenuAtPosition(event.position);
     int newHovered = -1;
-    bool hoverChanged = false;
-
-    for (size_t i = 0; i < m_VisibleMenus.size(); ++i) {
-        bool h = (&m_VisibleMenus[i] == menu);
-        if (m_VisibleMenus[i].hovered != h) {
-            m_VisibleMenus[i].hovered = h;
-            hoverChanged = true;
+    if (menu) {
+        for (size_t i = 0; i < m_VisibleMenus.size(); ++i) {
+            if (&m_VisibleMenus[i] == menu) { newHovered = static_cast<int>(i); break; }
         }
-        if (h) newHovered = static_cast<int>(i);
+        if (newHovered < 0 && m_ShowsMore && &m_MoreMenu == menu) {
+            newHovered = static_cast<int>(m_VisibleMenus.size());
+        }
     }
-    bool moreH = (&m_MoreMenu == menu);
-    if (m_MoreMenu.hovered != moreH) {
-        m_MoreMenu.hovered = moreH;
-        hoverChanged = true;
-    }
-    if (moreH) newHovered = static_cast<int>(m_VisibleMenus.size());
 
-    if (hoverChanged) {
+    if (newHovered != m_HoveredMenu) {
+        m_HoveredMenu = newHovered;
         InvalidatePaint();
     }
 
     if (menu && newHovered >= 0) {
         if (m_MenuOpen && overlay && m_HoveredMenu != newHovered) {
             overlay->CloseAllPopups();
-            m_HoveredMenu = newHovered;
             std::vector<std::shared_ptr<MenuItem>> itemsToShow = menu->items;
             if (itemsToShow.empty()) {
                 auto emptyItem = std::make_shared<MenuItem>();
@@ -201,8 +201,6 @@ void MenuBar::OnMouseMove(const MouseEvent& event) {
             }
             auto dropdown = std::make_shared<DropdownMenu>(itemsToShow);
             overlay->ShowPopup(dropdown, Point{menu->geometry.x, menu->geometry.y + menu->geometry.height});
-        } else if (!m_MenuOpen) {
-            m_HoveredMenu = newHovered;
         }
     }
 }

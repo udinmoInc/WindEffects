@@ -750,3 +750,4 @@ void SettingsActionBar::Tick(float deltaTime) {
 }
 
 } // namespace we::programs::welauncher
+ 

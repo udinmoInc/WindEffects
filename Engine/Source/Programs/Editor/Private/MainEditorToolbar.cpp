@@ -94,3 +94,4 @@ std::shared_ptr<::we::runtime::kindui::Widget> BuildMainEditorToolbar(
 }
 
 } // namespace we::programs::editor
+ 

@@ -3,6 +3,7 @@
 #include "KindUI/Export.h"
 #include "KindUI/Core/Types.h"
 #include "KindUI/Core/WidgetVariant.h"
+#include "KindUI/Tokens/DesignToken.h"
 
 #include <functional>
 #include <memory>
@@ -88,6 +89,17 @@ struct LayoutIntent {
     std::optional<VerticalAlignment> vAlign;
 };
 
+/// CSS-like visual props as design tokens (resolved at build/apply time).
+/// Prefer tokens over raw floats/colors so themes stay consistent.
+struct StyleIntent {
+    std::optional<ColorToken> background;
+    std::optional<ColorToken> foreground;
+    std::optional<PaddingToken> padding;
+    std::optional<SpacingToken> gap;
+    std::optional<RadiusToken> radius;
+    std::optional<TypographyToken> typography;
+};
+
 using WidgetFactory = std::function<std::shared_ptr<Widget>()>;
 using WidgetConfigurator = std::function<void(Widget&)>;
 
@@ -100,6 +112,7 @@ struct Element {
     WidgetVariant variant = WidgetVariant::Default;
     std::string styleClass{};
     LayoutIntent layout{};
+    StyleIntent style{};
     ElementEvents events{};
     std::vector<Element> children{};
 

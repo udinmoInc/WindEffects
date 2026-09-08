@@ -17,7 +17,7 @@ public class TerrainEditor : ModuleRules
         PublicDependencies.Add("World");
         PublicDependencies.Add("Renderer");
         PublicDependencies.Add("KindUI");
-        PublicDependencies.Add("UIFramework");
+        PublicDependencies.Add("EditorShell");
         PublicDependencies.Add("Terrain");
         PublicDependencies.Add("ViewportEdit");
         PublicDependencies.Add("Undo");

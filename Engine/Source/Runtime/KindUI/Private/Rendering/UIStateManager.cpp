@@ -9,3 +9,4 @@ void UIStateManager::RestoreState(we::rhi::IRHICommandList*, const SavedGpuState
 bool UIStateManager::ValidateState(const SavedGpuState& state) const { return state.valid; }
 
 } // namespace we::runtime::kindui
+ 

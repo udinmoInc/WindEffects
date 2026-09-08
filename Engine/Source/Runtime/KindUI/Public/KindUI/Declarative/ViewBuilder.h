@@ -27,6 +27,7 @@ private:
     [[nodiscard]] std::shared_ptr<Widget> BuildElement(const Element& element);
     void ApplyElementProperties(Widget& widget, const Element& element);
     void ApplyLayoutIntent(Widget& widget, const LayoutIntent& intent);
+    void ApplyStyleIntent(Widget& widget, const StyleIntent& style);
     void ReconcileElement(Widget& existing, const Element& updated);
     void ReconcileChildren(Widget& container, const std::vector<Element>& children);
     void ReconcileScrollView(Widget& existing, const Element& expanded);

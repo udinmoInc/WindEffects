@@ -29,3 +29,4 @@ char KeyCodeToChar(we::platform::KeyCode key, bool shift) {
 }
 
 } // namespace we::runtime::kindui
+ 

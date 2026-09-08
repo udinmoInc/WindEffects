@@ -160,3 +160,4 @@ SvgRasterizeResult SvgRasterizer::Rasterize(const SvgRasterizeRequest& request) 
 }
 
 } // namespace we::runtime::kindui::Icons
+ 

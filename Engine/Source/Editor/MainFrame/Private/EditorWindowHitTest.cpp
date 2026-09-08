@@ -43,3 +43,4 @@ we::platform::WindowHitTestResult EditorWindowHitTest(
 }
 
 } // namespace we::editor::mainframe
+

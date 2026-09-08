@@ -681,4 +681,4 @@ void LauncherShell::OnKeyDown(const KeyEvent& event) {
     }
 }
 
-} // namespace we::programs::welauncher
+} // namespace we::programs::welauncher 

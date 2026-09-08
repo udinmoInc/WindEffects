@@ -25,6 +25,10 @@ ToolbarGlyphButton::ToolbarGlyphButton(
     SetFocusable(false);
 }
 
+void ToolbarGlyphButton::SetOnClicked(std::function<void()> callback) {
+    m_OnClicked = std::move(callback);
+}
+
 Size ToolbarGlyphButton::Measure(const Size& availableSize) {
     (void)availableSize;
     const float size = ThemeMetric(m_SizeToken);
@@ -106,3 +110,4 @@ void ToolbarGlyphButton::Tick(float deltaTime) {
 }
 
 } // namespace we::runtime::kindui
+ 

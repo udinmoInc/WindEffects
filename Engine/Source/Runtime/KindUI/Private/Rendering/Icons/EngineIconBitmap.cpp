@@ -225,3 +225,4 @@ IconBitmap UpscaleBitmap(const IconBitmap& source, uint32_t targetSize) {
 }
 
 } // namespace we::runtime::kindui
+ 

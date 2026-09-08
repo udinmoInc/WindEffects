@@ -12,3 +12,4 @@ Color Color::Black() {
 }
 
 } // namespace we::runtime::kindui
+ 

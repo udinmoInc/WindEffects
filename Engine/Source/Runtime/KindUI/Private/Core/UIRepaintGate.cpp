@@ -156,3 +156,4 @@ uint64_t UIRepaintGate::IdleSkipCount() {
 }
 
 } // namespace we::runtime::kindui
+ 

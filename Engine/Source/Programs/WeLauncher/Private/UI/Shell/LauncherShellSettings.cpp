@@ -473,3 +473,4 @@ void LauncherShell::RebuildSettingsPage() {
     state.scroll = contentScroll;
 }
 } // namespace we::programs::welauncher
+ 

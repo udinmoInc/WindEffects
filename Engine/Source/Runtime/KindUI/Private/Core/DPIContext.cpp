@@ -20,3 +20,4 @@ void DPIContext::SetScale(float scale) {
 }
 
 } // namespace we::runtime::kindui
+ 

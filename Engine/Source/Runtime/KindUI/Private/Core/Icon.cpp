@@ -49,3 +49,4 @@ void IconPainter::Draw(PaintContext& context, WindIconRef icon, const Rect& cont
 }
 
 } // namespace we::runtime::kindui
+ 
