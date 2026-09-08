@@ -57,6 +57,8 @@
 #include "KindUI/Tokens/DesignToken.h"
 #include "KindUI/Core/ColorSpace.h"
 #include "WindEffects/Editor/UI/Core/EditorPerfStats.h"
+#include "WindEffects/Editor/UI/Core/ScreenRecorder.h"
+#include "WindEffects/Editor/UI/Widgets/ScreenDebugOverlay.h"
 #include "Debug/FoundationRenderDebug.h"
 #include "DefaultScene/DefaultSceneBuilder.h"
 #include "Environment/EnvironmentSystem.h"
@@ -319,6 +321,9 @@ void Editor::InitializeEngine() {
 
 void Editor::SetRootWidget(const std::shared_ptr<we::runtime::kindui::Widget>& root) {
     m_RootWidget = root;
+    if (m_RootWidget && ::we::editor::services::ScreenRecorder::IsRecordingEnabled()) {
+        m_RootWidget->AttachOverlayChild(std::make_shared<::we::editor::panels::ScreenDebugOverlay>());
+    }
     if (m_UIEventSystem) {
         m_UIEventSystem->SetRootWidget(m_RootWidget);
     }
@@ -1389,12 +1394,14 @@ void Editor::MainLoop() {
                 stats.alphaIndices);
             we::runtime::kindui::UiPathDiagnostics::Get().SetGeometryVertices(stats.vertices);
             we::runtime::kindui::UiPathDiagnostics::Get().EndFrame();
+            ::we::editor::services::ScreenRecorder::Get().RecordFrame();
         }
 
         if (we::runtime::kindui::UiInputLatencyAudit::IsEnabled()) {
             ++m_LatencyAuditFrameCounter;
             if (m_LatencyAuditFrameCounter % 300 == 0) {
-                we::runtime::kindui::UiInputLatencyAudit::Get().FlushPendingReport();
+    we::runtime::kindui::UiInputLatencyAudit::Get().FlushPendingReport();
+    ::we::editor::services::ScreenRecorder::Get().Shutdown();
             }
         }
     }

@@ -78,6 +78,9 @@ public:
 
     [[nodiscard]] virtual const AtlasPageRuntime* GetPage(uint32_t pageIndex) const = 0;
     [[nodiscard]] virtual std::optional<AtlasPageRuntime> CopyPage(uint32_t pageIndex) const = 0;
+    // Cheap version probe (no pixel copy): lets uploaders skip CopyPage when
+    // the page they already uploaded is unchanged. 0 = no such page.
+    [[nodiscard]] virtual uint64_t PageVersion(uint32_t pageIndex) const = 0;
     [[nodiscard]] virtual size_t PageCount() const = 0;
     [[nodiscard]] virtual uint64_t Generation() const = 0;
     [[nodiscard]] virtual std::vector<uint32_t> TakeDirtyPages() = 0;

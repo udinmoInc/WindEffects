@@ -677,12 +677,18 @@ void ContentBrowser::OnMouseMove(const MouseEvent& event) {
         const float minY = std::min(m_SelectStart.y, m_SelectEnd.y);
         const float maxY = std::max(m_SelectStart.y, m_SelectEnd.y);
         Rect selectBox{ minX, minY, maxX - minX, maxY - minY };
-        ClearSelection();
+        // Batch the selection into one model update: per-item NotifyChanged
+        // here used to rebuild the whole render list N times per mouse move.
+        std::vector<std::string> boxedIds;
         for (const auto& renderItem : m_RenderList) {
             Rect intersection = renderItem.geometry.Intersect(selectBox);
             if (intersection.width > 0.0f && intersection.height > 0.0f) {
-                m_Controller->AddToSelection(renderItem.item.id);
+                boxedIds.push_back(renderItem.item.id);
             }
+        }
+        if (m_Model && m_Model->selectedIds != boxedIds) {
+            m_Model->selectedIds = std::move(boxedIds);
+            m_Model->NotifyChanged();
         }
     } else if (m_DragStart.x != 0.0f || m_DragStart.y != 0.0f) {
         const float dx = event.position.x - m_DragStart.x;
@@ -691,7 +697,11 @@ void ContentBrowser::OnMouseMove(const MouseEvent& event) {
     }
 
     RenderItem* renderItem = GetItemAtPosition(event.position);
-    m_HoveredId = renderItem ? renderItem->item.id : "";
+    const std::string newHoveredId = renderItem ? renderItem->item.id : "";
+    if (m_HoveredId != newHoveredId) {
+        m_HoveredId = newHoveredId;
+        InvalidatePaint();
+    }
 }
 
 void ContentBrowser::OnMouseUp(const MouseEvent& event) {
@@ -874,6 +884,16 @@ void ContentBrowser::CalculateDetailsLayout() {
 }
 
 ContentBrowser::RenderItem* ContentBrowser::GetItemAtPosition(const Point& pos) {
+    // Visible window first: keeps hover/drag hit-testing flat cost on huge
+    // folders instead of scanning the whole render list per mouse event.
+    const int last = static_cast<int>(m_RenderList.size()) - 1;
+    const int visFirst = std::max(0, std::min(m_FirstVisibleIndex, last));
+    const int visLast = std::max(-1, std::min(m_LastVisibleIndex, last));
+    for (int i = visFirst; i <= visLast; ++i) {
+        auto& renderItem = m_RenderList[static_cast<size_t>(i)];
+        if (renderItem.geometry.Contains(pos)) return &renderItem;
+    }
+    // Fallback: full scan covers stale visible ranges (layout not yet synced).
     for (auto& renderItem : m_RenderList) {
         if (renderItem.geometry.Contains(pos)) return &renderItem;
     }

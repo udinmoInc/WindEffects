@@ -14,6 +14,7 @@
 #include <memory>
 #include <string>
 #include <unordered_map>
+#include <vector>
 
 namespace we::programs::editor {
 using ::we::runtime::kindui::Splitter;
@@ -70,9 +71,15 @@ public:
 private:
     EditorWorkspaceController() = default;
 
+    struct FloatingHost {
+        int id = 0;
+        std::shared_ptr<::we::editor::docking::FloatingPanelFrame> frame;
+        std::shared_ptr<::we::editor::docking::DockContainer> dock;
+    };
+
     struct PanelEntry {
         std::shared_ptr<::we::editor::panels::Panel> panel;
-        std::shared_ptr<::we::editor::docking::FloatingPanelFrame> floatFrame;
+        int floatHostId = -1;
         ::we::editor::docking::DockZone zone = ::we::editor::docking::DockZone::Floating;
         ::we::editor::docking::DockZone homeZone = ::we::editor::docking::DockZone::Floating;
         bool visible = true;
@@ -86,6 +93,21 @@ private:
         const std::shared_ptr<::we::editor::docking::DockContainer>& targetDock = nullptr);
     void ShowFloatingOptionsMenu(const std::string& panelId);
     void UpdateEmptyDockVisibility();
+    void WireFloatingDock(FloatingHost& host);
+    void DestroyFloatingHost(int hostId);
+    void DetachPanelFromFloatHost(PanelEntry& entry);
+    [[nodiscard]] FloatingHost* FindFloatingHost(int hostId);
+    [[nodiscard]] const FloatingHost* FindFloatingHost(int hostId) const;
+    [[nodiscard]] FloatingHost* FindFloatingHostByDock(
+        const ::we::editor::docking::DockContainer* dock);
+    [[nodiscard]] FloatingHost* FindFloatingHostAtTabStrip(
+        const ::we::runtime::kindui::Point& cursor,
+        int excludeHostId = -1);
+    [[nodiscard]] std::shared_ptr<::we::editor::docking::DockContainer> FindZoneDockAtTabStrip(
+        const ::we::runtime::kindui::Point& cursor) const;
+    [[nodiscard]] FloatingHost& CreateFloatingHost(
+        const ::we::runtime::kindui::Point& position,
+        const ::we::runtime::kindui::Size& size);
     [[nodiscard]] ::we::editor::docking::DockZone ZoneForDock(
         const std::shared_ptr<::we::editor::docking::DockContainer>& dock) const;
     [[nodiscard]] std::string FindPanelId(const ::we::editor::panels::Panel* panel) const;
@@ -96,6 +118,8 @@ private:
 
     ::we::editor::shell::DockLayoutBuildResult m_Layout;
     std::unordered_map<std::string, PanelEntry> m_Panels;
+    std::vector<FloatingHost> m_FloatHosts;
+    int m_NextFloatHostId = 1;
     ::we::runtime::kindui::OverlayHost* m_PopupHost = nullptr;
     std::function<void()> m_OnPanelVisibilityChanged;
 

@@ -9,6 +9,7 @@
 #include "Services/ContentBrowserBlueprintArt.h"
 #include "KindUI/Core/PaintContext.h"
 #include "WindEffects/Editor/UI/Panel/PanelChrome.h"
+#include "WindEffects/Editor/UI/Core/ScreenRecorder.h"
 #include "KindUI/Theming/ThemeAccess.h"
 #include "KindUI/Tokens/DesignToken.h"
 #include "KindUI/Tokens/DesignSystem.h"
@@ -337,10 +338,6 @@ void TreeView::Paint(PaintContext& context) {
             we::runtime::text::layout::FontWeight::Regular);
     }
 
-    if (m_RenderList.empty()) {
-        return;
-    }
-
     SyncScrollMetrics();
     UpdateVisibleRange();
 
@@ -501,6 +498,34 @@ void TreeView::Paint(PaintContext& context) {
         }
     }
 
+    // Filler rows: keep faint striped rows running through empty viewport
+    // space below the last item (and when the list is empty), continuing
+    // flatIndex so the void never reads as a flat unpainted gap.
+    // Kept at low opacity on purpose — ghost rows, not highlights.
+    if (m_ShowAlternatingRowBackground) {
+        const float fillerRowHeight = m_ItemHeight * uiScale;
+        if (fillerRowHeight > 0.0f) {
+            const float contentBottom = m_ScrollMetrics.viewport.y - m_Scroll.offset
+                + static_cast<float>(m_RenderList.size()) * fillerRowHeight;
+            const float fillBottom = m_ScrollMetrics.viewport.y + m_ScrollMetrics.viewport.height;
+            int fillerIndex = static_cast<int>(m_RenderList.size());
+            for (float fillerY = contentBottom; fillerY < fillBottom; fillerY += fillerRowHeight, ++fillerIndex) {
+                if ((fillerIndex % 2) == 0) {
+                    continue;
+                }
+                const Rect fillerRow{
+                    m_ScrollMetrics.viewport.x,
+                    fillerY,
+                    m_ScrollMetrics.viewport.width,
+                    (std::min)(fillerRowHeight, fillBottom - fillerY)
+                };
+                Color stripe = ThemeColor(ColorToken::PanelBackground);
+                stripe.a *= 0.3f;
+                context.DrawRect(fillerRow, stripe);
+            }
+        }
+    }
+
     context.PopClipRect();
     m_Scroll.Paint(context, m_ScrollMetrics, m_Scroll.IsThumbHovered());
 
@@ -579,6 +604,8 @@ void TreeView::OnMouseUp(const MouseEvent& event) {
         if (m_OnReparentRequested) {
             m_OnReparentRequested(m_DragSourceId, m_DropTargetId);
         }
+        ::we::editor::services::ScreenRecorder::Get().RecordEvent(
+            "tree-drop " + m_DragSourceId + " -> " + m_DropTargetId);
     }
     m_Dragging = false;
     m_DropTargetId.clear();
@@ -625,11 +652,15 @@ void TreeView::OnMouseMove(const MouseEvent& event) {
     if (!m_DragSourceId.empty()) {
         const float dx = event.position.x - m_DragStart.x;
         const float dy = event.position.y - m_DragStart.y;
-        if (!m_Dragging && std::sqrt(dx * dx + dy * dy) > 5.0f) {
+        if (!m_Dragging && (dx * dx + dy * dy) > 25.0f) {
             m_Dragging = true;
         }
         if (m_Dragging) {
-            m_DropTargetId = item ? item->node->id : "";
+            const std::string newDropTargetId = item ? item->node->id : "";
+            if (m_DropTargetId != newDropTargetId) {
+                m_DropTargetId = newDropTargetId;
+                InvalidatePaint();
+            }
         }
     }
 }
@@ -879,7 +910,12 @@ TreeView::RenderItem* TreeView::GetItemAtPosition(const Point& pos) {
         }
     }
 
-    for (auto& item : m_RenderList) {
+    // Slow path: bound the scan to the visible window instead of the whole
+    // list so hover/drag hit-testing stays flat cost on huge trees.
+    const int slowFirst = std::max(0, m_FirstVisibleIndex - 2);
+    const int slowLast = std::min(static_cast<int>(m_RenderList.size()) - 1, m_LastVisibleIndex + 2);
+    for (int i = slowFirst; i <= slowLast; ++i) {
+        auto& item = m_RenderList[static_cast<size_t>(i)];
         if (item.geometry.Contains(pos)) {
             return &item;
         }

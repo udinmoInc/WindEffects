@@ -30,6 +30,53 @@ float DockContainer::GetHeaderHeightDevice() const {
     return DPIContext::Snap(m_HeaderHeightLogical * DPIContext::GetScale());
 }
 
+void DockContainer::SetTrailingReservedWidth(float width) {
+    m_TrailingReservedWidth = (std::max)(0.0f, width);
+}
+
+void DockContainer::SetLeadingReservedWidth(float width) {
+    m_LeadingReservedWidth = (std::max)(0.0f, width);
+}
+
+void DockContainer::SetShowOptionsMenu(bool show) {
+    m_ShowOptionsMenu = show;
+    if (!show) {
+        m_OptionsMenuRect = {};
+        m_OptionsMenuHovered = false;
+    }
+}
+
+std::shared_ptr<Panel> DockContainer::GetActivePanel() const {
+    if (m_ActiveTabIndex < 0 || m_ActiveTabIndex >= static_cast<int>(m_Tabs.size())) {
+        return nullptr;
+    }
+    return m_Tabs[static_cast<size_t>(m_ActiveTabIndex)].panel;
+}
+
+std::vector<std::shared_ptr<Panel>> DockContainer::GetPanels() const {
+    std::vector<std::shared_ptr<Panel>> panels;
+    panels.reserve(m_Tabs.size());
+    for (const auto& tab : m_Tabs) {
+        panels.push_back(tab.panel);
+    }
+    return panels;
+}
+
+bool DockContainer::IsTabStripInteractiveHit(const Point& pos) const {
+    if (!m_HeaderRect.Contains(pos)) {
+        return false;
+    }
+    if (m_ShowOptionsMenu && m_OptionsMenuRect.Contains(pos)) {
+        return true;
+    }
+    for (const auto& tab : m_Tabs) {
+        if (tab.tabRect.Contains(pos)) {
+            return true;
+        }
+    }
+    return false;
+}
+
 void DockContainer::AddPanel(const std::shared_ptr<Panel>& panel) {
     if (!panel) return;
     panel->SetHeaderHeight(0.0f);
@@ -204,20 +251,31 @@ void DockContainer::LayoutTabGeometries() {
         return isActive || tabInfo.isHovered;
     };
 
-    const auto layout = PanelChrome::LayoutDockTabStrip(context, m_HeaderRect, descriptors, state);
+    Rect tabStripRect = m_HeaderRect;
+    tabStripRect.x += m_LeadingReservedWidth;
+    tabStripRect.width = (std::max)(
+        0.0f,
+        tabStripRect.width - m_LeadingReservedWidth - m_TrailingReservedWidth);
+
+    const auto layout = PanelChrome::LayoutDockTabStrip(context, tabStripRect, descriptors, state);
     for (size_t i = 0; i < m_Tabs.size(); ++i) {
         m_Tabs[i].tabRect = layout.tabs[i].tabRect;
         m_Tabs[i].closeRect = layout.tabs[i].closeRect;
     }
 
     const float buttonSize = PanelChrome::HeaderButtonSize();
-    const float rightPad = PanelChrome::TabStripPadH();
-    m_OptionsMenuRect = Rect{
-        m_HeaderRect.x + m_HeaderRect.width - rightPad - buttonSize,
-        std::floor(m_HeaderRect.y + (m_HeaderRect.height - buttonSize) * 0.5f),
-        buttonSize,
-        buttonSize
-    };
+    const float rightPad = (std::max)(PanelChrome::TabStripPadH(), PanelChrome::TabPadH());
+    if (m_ShowOptionsMenu) {
+        const float optionsRight = m_HeaderRect.x + m_HeaderRect.width - m_TrailingReservedWidth - rightPad;
+        m_OptionsMenuRect = Rect{
+            optionsRight - buttonSize,
+            std::floor(m_HeaderRect.y + (m_HeaderRect.height - buttonSize) * 0.5f),
+            buttonSize,
+            buttonSize
+        };
+    } else {
+        m_OptionsMenuRect = {};
+    }
 }
 
 std::shared_ptr<Widget> DockContainer::HitTestPoint(const Point& pos, const Rect* clip) {
@@ -294,6 +352,7 @@ void DockContainer::Paint(PaintContext& context) {
     PanelChrome::DockTabStripState state{};
     state.activeIndex = static_cast<size_t>(m_ActiveTabIndex);
     state.optionsMenuHovered = m_OptionsMenuHovered;
+    state.showOptionsMenu = m_ShowOptionsMenu;
     state.showClose = [this](size_t index, bool isActive, bool /*isHovered*/) {
         const auto& tabInfo = m_Tabs[index];
         return isActive || tabInfo.isHovered;
@@ -306,9 +365,15 @@ void DockContainer::Paint(PaintContext& context) {
     };
 
     auto activePanel = m_Tabs[static_cast<size_t>(m_ActiveTabIndex)].panel;
+    // Paint strip only over the tab region (exclude leading logo / trailing window controls).
+    Rect paintHeader = m_HeaderRect;
+    paintHeader.x += m_LeadingReservedWidth;
+    paintHeader.width = (std::max)(
+        0.0f,
+        paintHeader.width - m_LeadingReservedWidth - m_TrailingReservedWidth);
     PanelChrome::PaintDockPanelChrome(
         context,
-        m_HeaderRect,
+        paintHeader,
         m_HeaderContentGapRect,
         m_ContentRect,
         descriptors,
@@ -321,7 +386,7 @@ void DockContainer::Paint(PaintContext& context) {
 
 void DockContainer::OnMouseDown(const MouseEvent& event) {
     if (m_HeaderRect.Contains(event.position)) {
-        if (m_OptionsMenuRect.Contains(event.position)) {
+        if (m_ShowOptionsMenu && m_OptionsMenuRect.Contains(event.position)) {
             ShowPanelOptionsMenu(event.position);
             return;
         }
@@ -442,7 +507,7 @@ void DockContainer::OnMouseWheel(const MouseEvent& event) {
 
 bool DockContainer::ShowsPointerCursor(const Point& position) const {
     if (m_HeaderRect.Contains(position)) {
-        if (m_OptionsMenuRect.Contains(position)) {
+        if (m_ShowOptionsMenu && m_OptionsMenuRect.Contains(position)) {
             return true;
         }
         for (const auto& tabInfo : m_Tabs) {
