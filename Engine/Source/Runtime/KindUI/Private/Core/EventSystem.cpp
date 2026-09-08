@@ -67,18 +67,52 @@ void EventSystem::ProcessMouseEvent(const MouseEvent& event) {
 
     std::shared_ptr<Widget> hitWidget = HitTest(m_Root, event.position);
 
-    std::shared_ptr<Widget> oldHovered = m_HoveredWidget.lock();
-    if (hitWidget != oldHovered) {
-        if (oldHovered) {
-            oldHovered->SetHovered(false);
-            // Clear any splitter SizeWE/NS cursor when the hover target changes.
-            if (!m_SuppressSystemCursor) {
-                we::platform::Platform::Get().SetSystemCursor(we::platform::SystemCursor::Arrow);
-                m_UsingPointerCursor = false;
+    std::vector<std::shared_ptr<Widget>> newChain;
+    for (auto curr = hitWidget; curr; curr = curr->GetParent()) {
+        newChain.push_back(curr);
+    }
+
+    // Determine widgets that lost hover: in m_HoverChain but not in newChain
+    for (auto& weakOld : m_HoverChain) {
+        if (auto old = weakOld.lock()) {
+            bool stillHovered = false;
+            for (const auto& nw : newChain) {
+                if (nw == old) {
+                    stillHovered = true;
+                    break;
+                }
+            }
+            if (!stillHovered) {
+                old->SetHovered(false);
             }
         }
-        if (hitWidget) {
-            hitWidget->SetHovered(true);
+    }
+
+    // Determine widgets that gained hover: in newChain but not in m_HoverChain
+    for (const auto& nw : newChain) {
+        bool wasHovered = false;
+        for (const auto& weakOld : m_HoverChain) {
+            if (weakOld.lock() == nw) {
+                wasHovered = true;
+                break;
+            }
+        }
+        if (!wasHovered) {
+            nw->SetHovered(true);
+        }
+    }
+
+    m_HoverChain.clear();
+    m_HoverChain.reserve(newChain.size());
+    for (const auto& nw : newChain) {
+        m_HoverChain.push_back(nw);
+    }
+
+    std::shared_ptr<Widget> oldHovered = m_HoveredWidget.lock();
+    if (hitWidget != oldHovered) {
+        if (oldHovered && !m_SuppressSystemCursor) {
+            we::platform::Platform::Get().SetSystemCursor(we::platform::SystemCursor::Arrow);
+            m_UsingPointerCursor = false;
         }
         m_HoveredWidget = hitWidget;
     }
@@ -178,10 +212,13 @@ void EventSystem::UpdateCursorForWidget(const std::shared_ptr<Widget>& widget, c
 }
 
 void EventSystem::ClearHover() {
-    if (auto oldHovered = m_HoveredWidget.lock()) {
-        oldHovered->SetHovered(false);
-        m_HoveredWidget.reset();
+    for (auto& weak : m_HoverChain) {
+        if (auto w = weak.lock()) {
+            w->SetHovered(false);
+        }
     }
+    m_HoverChain.clear();
+    m_HoveredWidget.reset();
     if (!m_SuppressSystemCursor && m_UsingPointerCursor) {
         we::platform::Platform::Get().SetSystemCursor(we::platform::SystemCursor::Arrow);
         m_UsingPointerCursor = false;

@@ -23,7 +23,7 @@ public:
     void Paint(we::runtime::kindui::PaintContext& context) override;
 
     void OnMouseDown(const we::runtime::kindui::MouseEvent& event) override;
-    void OnMouseMove(const we::runtime::kindui::MouseEvent& event) override;
+    bool ShowsPointerCursor(const we::runtime::kindui::Point& position) const override { (void)position; return true; }
 
     void Refresh();
 
@@ -32,8 +32,6 @@ public:
 private:
     void OpenModeMenu();
 
-    bool m_Hovered = false;
-    bool m_Pressed = false;
     float m_HoverAnim = 0.0f;
     std::string m_Label;
     we::runtime::kindui::WindIconRef m_Icon = we::runtime::kindui::kWindIconNone;

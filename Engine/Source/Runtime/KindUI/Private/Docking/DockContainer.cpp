@@ -543,4 +543,4 @@ void DockContainer::ShowPanelOptionsMenu(const Point& pos) {
     }
 }
 
-} // namespace we::editor::docking
+} // namespace we::runtime::kindui::docking

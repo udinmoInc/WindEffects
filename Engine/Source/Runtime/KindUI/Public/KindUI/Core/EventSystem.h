@@ -53,6 +53,7 @@ private:
     std::shared_ptr<Widget> m_Root;
     std::weak_ptr<Widget> m_FocusedWidget;
     std::weak_ptr<Widget> m_HoveredWidget;
+    std::vector<std::weak_ptr<Widget>> m_HoverChain;
     std::weak_ptr<Widget> m_CapturedWidget;
 #pragma warning(pop)
     OverlayHost* m_PopupHost = nullptr;

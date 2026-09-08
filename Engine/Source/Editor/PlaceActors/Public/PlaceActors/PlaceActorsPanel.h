@@ -19,7 +19,7 @@ using ::we::runtime::kindui::ScrollViewport;
 using ::we::runtime::kindui::ScrollViewportMetrics;
 }
 
-#include "WindEffects/Editor/UI/Panel/PanelBodyLayout.h"
+#include "KindUI/Panel/PanelBodyLayout.h"
 #include "KindUI/Core/Widgets/PanelToolbarRow.h"
 
 namespace we::programs::editor {
@@ -51,6 +51,7 @@ public:
     void OnMouseUp(const we::runtime::kindui::MouseEvent& event) override;
     void OnMouseWheel(const we::runtime::kindui::MouseEvent& event) override;
     void OnKeyDown(const we::runtime::kindui::KeyEvent& event) override;
+    void OnHoverLost() override;
     bool ShowsPointerCursor(const we::runtime::kindui::Point& position) const override;
     [[nodiscard]] bool CanReceiveMouseWheelAt(const we::runtime::kindui::Point& pos) const override;
     [[nodiscard]] std::shared_ptr<we::runtime::kindui::Widget> HitTestPoint(
@@ -112,7 +113,7 @@ private:
     void BuildQuickAccessCategory(const std::string& query);
 
     std::shared_ptr<we::runtime::kindui::PanelToolbarRow> m_SearchRow;
-    std::shared_ptr<::we::editor::panels::PanelBodyLayout> m_BodyLayout;
+    std::shared_ptr<::we::runtime::kindui::panels::PanelBodyLayout> m_BodyLayout;
     std::shared_ptr<we::runtime::kindui::Widget> m_ContentHost;
 
     std::string m_ExternalSearchFilter;

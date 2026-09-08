@@ -2,10 +2,10 @@
 
 #include "Core/EditorConfigPaths.h"
 #include "Core/Logger.h"
-#include "WindEffects/Editor/UI/Widgets/Panel.h"
-#include "WindEffects/Editor/UI/Widgets/DockContainer.h"
-#include "WindEffects/Editor/UI/Widgets/FloatingPanelFrame.h"
-#include "WindEffects/Editor/UI/Panel/PanelChrome.h"
+#include "KindUI/Panel/Panel.h"
+#include "KindUI/Docking/DockContainer.h"
+#include "KindUI/Docking/FloatingPanelFrame.h"
+#include "KindUI/Panel/PanelChrome.h"
 #include "KindUI/Layout/Splitter.h"
 #include "KindUI/Layout/OverlayManager.h"
 #include "KindUI/Core/UIRepaintGate.h"
@@ -93,7 +93,7 @@ we::runtime::kindui::IPopupHost* EditorWorkspaceController::GetPopupHost() const
 
 void EditorWorkspaceController::RegisterPanel(
     const std::string& panelId,
-    const std::shared_ptr<::we::editor::panels::Panel>& panel,
+    const std::shared_ptr<::we::runtime::kindui::panels::Panel>& panel,
     ::we::editor::docking::DockZone zone) {
     if (!panel) {
         return;
@@ -110,7 +110,7 @@ void EditorWorkspaceController::RegisterPanel(
     m_Panels[panelId] = std::move(entry);
 }
 
-std::shared_ptr<::we::editor::docking::DockContainer> EditorWorkspaceController::DockForPanel(
+std::shared_ptr<::we::runtime::kindui::docking::DockContainer> EditorWorkspaceController::DockForPanel(
     const std::string& panelId) const {
     if (panelId == "Tools") {
         return m_Layout.toolsDock;
@@ -130,7 +130,7 @@ std::shared_ptr<::we::editor::docking::DockContainer> EditorWorkspaceController:
     return nullptr;
 }
 
-std::shared_ptr<::we::editor::docking::DockContainer> EditorWorkspaceController::DockForZone(
+std::shared_ptr<::we::runtime::kindui::docking::DockContainer> EditorWorkspaceController::DockForZone(
     ::we::editor::docking::DockZone zone) const {
     switch (zone) {
     case ::we::editor::docking::DockZone::Left:
@@ -222,7 +222,7 @@ bool EditorWorkspaceController::IsPanelVisible(const std::string& panelId) const
     return it != m_Panels.end() ? it->second.visible : false;
 }
 
-std::string EditorWorkspaceController::FindPanelId(const ::we::editor::panels::Panel* panel) const {
+std::string EditorWorkspaceController::FindPanelId(const ::we::runtime::kindui::panels::Panel* panel) const {
     if (!panel) {
         return {};
     }
@@ -259,7 +259,7 @@ const EditorWorkspaceController::FloatingHost* EditorWorkspaceController::FindFl
 }
 
 EditorWorkspaceController::FloatingHost* EditorWorkspaceController::FindFloatingHostByDock(
-    const ::we::editor::docking::DockContainer* dock) {
+    const ::we::runtime::kindui::docking::DockContainer* dock) {
     if (!dock) {
         return nullptr;
     }
@@ -293,15 +293,15 @@ EditorWorkspaceController::FloatingHost* EditorWorkspaceController::FindFloating
     return best;
 }
 
-std::shared_ptr<::we::editor::docking::DockContainer> EditorWorkspaceController::FindZoneDockAtTabStrip(
+std::shared_ptr<::we::runtime::kindui::docking::DockContainer> EditorWorkspaceController::FindZoneDockAtTabStrip(
     const we::runtime::kindui::Point& cursor) const {
     struct Candidate {
-        std::shared_ptr<::we::editor::docking::DockContainer> dock;
+        std::shared_ptr<::we::runtime::kindui::docking::DockContainer> dock;
         float area = 0.0f;
     };
     std::vector<Candidate> candidates;
 
-    auto consider = [&](const std::shared_ptr<::we::editor::docking::DockContainer>& dock) {
+    auto consider = [&](const std::shared_ptr<::we::runtime::kindui::docking::DockContainer>& dock) {
         if (!dock || !dock->IsVisible() || dock->GetTabCount() < 0) {
             return;
         }
@@ -371,14 +371,14 @@ void EditorWorkspaceController::DetachPanelFromFloatHost(PanelEntry& entry) {
 
 void EditorWorkspaceController::WireFloatingDock(FloatingHost& host) {
     const int hostId = host.id;
-    host.dock->SetOnTabClosed([this](const std::shared_ptr<::we::editor::panels::Panel>& panel) {
+    host.dock->SetOnTabClosed([this](const std::shared_ptr<::we::runtime::kindui::panels::Panel>& panel) {
         const std::string id = FindPanelId(panel.get());
         if (!id.empty()) {
             SetPanelVisible(id, false);
         }
     });
     host.dock->SetOnTabDragStarted([this, hostId](
-        const std::shared_ptr<::we::editor::panels::Panel>& panel,
+        const std::shared_ptr<::we::runtime::kindui::panels::Panel>& panel,
         const Point& pos) {
         const std::string id = FindPanelId(panel.get());
         if (id.empty()) {
@@ -397,11 +397,11 @@ EditorWorkspaceController::FloatingHost& EditorWorkspaceController::CreateFloati
     we::runtime::kindui::UIRepaintGate::ScopedBatch batch;
     FloatingHost host;
     host.id = m_NextFloatHostId++;
-    host.dock = std::make_shared<::we::editor::docking::DockContainer>();
+    host.dock = std::make_shared<::we::runtime::kindui::docking::DockContainer>();
     host.dock->SetHeaderHeightLogical(
         we::runtime::kindui::ResolveMetric(we::runtime::kindui::MetricToken::PanelTabHeight));
 
-    host.frame = std::make_shared<::we::editor::docking::FloatingPanelFrame>();
+    host.frame = std::make_shared<::we::runtime::kindui::docking::FloatingPanelFrame>();
     host.frame->SetDock(host.dock);
     if (m_PopupHost) {
         host.frame->SetWorkspaceBounds(m_PopupHost->GetGeometry());
@@ -472,7 +472,7 @@ void EditorWorkspaceController::ShowFloatingOptionsMenu(const std::string& panel
     const Rect header = host->frame->GetGeometry();
     const float titleH = host->dock ? host->dock->GetHeaderHeightDevice()
         : we::runtime::kindui::ResolveMetric(we::runtime::kindui::MetricToken::PanelTabHeight)
-            * ::we::editor::panels::PanelChrome::UiScale();
+            * ::we::runtime::kindui::panels::PanelChrome::UiScale();
 
     std::vector<std::shared_ptr<::we::editor::menus::MenuItem>> items;
 
@@ -501,7 +501,7 @@ void EditorWorkspaceController::ShowFloatingOptionsMenu(const std::string& panel
 }
 
 ::we::editor::docking::DockZone EditorWorkspaceController::ZoneForDock(
-    const std::shared_ptr<::we::editor::docking::DockContainer>& dock) const {
+    const std::shared_ptr<::we::runtime::kindui::docking::DockContainer>& dock) const {
     if (!dock) {
         return ::we::editor::docking::DockZone::Floating;
     }
@@ -646,7 +646,7 @@ void EditorWorkspaceController::BeginFloating(
     const Rect geom = entry.panel->GetGeometry();
     const float tabH = we::runtime::kindui::ResolveMetric(
         we::runtime::kindui::MetricToken::PanelTabHeight)
-        * ::we::editor::panels::PanelChrome::UiScale();
+        * ::we::runtime::kindui::panels::PanelChrome::UiScale();
     Size floatSize{
         (std::max)(geom.width, 320.0f),
         (std::max)(geom.height + tabH, 280.0f)
@@ -688,7 +688,7 @@ void EditorWorkspaceController::FloatPanelAt(
 }
 
 void EditorWorkspaceController::FloatPanelWidget(
-    const std::shared_ptr<::we::editor::panels::Panel>& panel) {
+    const std::shared_ptr<::we::runtime::kindui::panels::Panel>& panel) {
     if (!panel) {
         return;
     }
@@ -697,7 +697,7 @@ void EditorWorkspaceController::FloatPanelWidget(
 }
 
 void EditorWorkspaceController::FloatPanelWidget(
-    const std::shared_ptr<::we::editor::panels::Panel>& panel,
+    const std::shared_ptr<::we::runtime::kindui::panels::Panel>& panel,
     const we::runtime::kindui::Point& position) {
     const std::string id = FindPanelId(panel.get());
     if (id.empty()) {
@@ -707,7 +707,7 @@ void EditorWorkspaceController::FloatPanelWidget(
 }
 
 void EditorWorkspaceController::HidePanelWidget(
-    const std::shared_ptr<::we::editor::panels::Panel>& panel) {
+    const std::shared_ptr<::we::runtime::kindui::panels::Panel>& panel) {
     const std::string id = FindPanelId(panel.get());
     if (id.empty()) {
         return;
@@ -726,7 +726,7 @@ void EditorWorkspaceController::DockPanel(const std::string& panelId) {
 
 void EditorWorkspaceController::DockPanelTo(
     const std::string& panelId,
-    const std::shared_ptr<::we::editor::docking::DockContainer>& targetDock) {
+    const std::shared_ptr<::we::runtime::kindui::docking::DockContainer>& targetDock) {
     if (panelId.empty()) {
         return;
     }
@@ -758,7 +758,7 @@ void EditorWorkspaceController::FlushPendingDockActions() {
 
 void EditorWorkspaceController::ApplyDockPanel(
     const std::string& panelId,
-    const std::shared_ptr<::we::editor::docking::DockContainer>& targetDock) {
+    const std::shared_ptr<::we::runtime::kindui::docking::DockContainer>& targetDock) {
     const auto it = m_Panels.find(panelId);
     if (it == m_Panels.end() || !it->second.panel) {
         return;
@@ -813,7 +813,7 @@ void EditorWorkspaceController::ApplyDockPanel(
 }
 
 void EditorWorkspaceController::UpdateEmptyDockVisibility() {
-    auto dockHasTabs = [](const std::shared_ptr<::we::editor::docking::DockContainer>& dock) {
+    auto dockHasTabs = [](const std::shared_ptr<::we::runtime::kindui::docking::DockContainer>& dock) {
         return dock && dock->GetTabCount() > 0;
     };
 

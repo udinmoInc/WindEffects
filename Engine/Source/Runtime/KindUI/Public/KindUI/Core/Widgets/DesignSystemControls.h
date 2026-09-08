@@ -88,7 +88,6 @@ private:
     WindIconRef m_Icon = kWindIconNone;
     bool m_Active = false;
     bool m_Borderless = false;
-    bool m_Pressed = false;
     float m_HoverAnim = 0.0f;
     float m_PressAnim = 0.0f;
     std::function<void()> m_OnClicked;
@@ -186,7 +185,6 @@ public:
 private:
     std::string m_Label;
     bool m_Active = false;
-    bool m_Pressed = false;
     float m_HoverAnim = 0.0f;
     std::function<void()> m_OnClicked;
 };
@@ -211,7 +209,6 @@ private:
     std::string m_Label;
     WindIconRef m_Icon = kWindIconNone;
     bool m_Active = false;
-    bool m_Pressed = false;
     float m_HoverAnim = 0.0f;
     std::function<void()> m_OnClicked;
 };

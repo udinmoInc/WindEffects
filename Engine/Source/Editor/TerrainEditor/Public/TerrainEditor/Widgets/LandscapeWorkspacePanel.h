@@ -15,11 +15,11 @@
 #include <string>
 #include <unordered_map>
 #include "KindUI/Panel/PanelBodyLayout.h"
+#include "KindUI/Panel/PanelModeTabs.h"
 
 namespace we::editor::terrain {
 using ::we::runtime::kindui::panels::PanelBodyLayout;
-
-class LandscapeWorkspaceTabBar;
+using ::we::runtime::kindui::panels::PanelModeTabs;
 
 class TERRAINEDITOR_API LandscapeWorkspacePanel : public we::runtime::kindui::Widget {
 public:
@@ -54,7 +54,7 @@ private:
     bool m_UserSelectedTab = false;
 
     std::shared_ptr<PanelBodyLayout> m_BodyLayout;
-    std::shared_ptr<LandscapeWorkspaceTabBar> m_TabBar;
+    std::shared_ptr<PanelModeTabs> m_TabBar;
     std::shared_ptr<we::runtime::kindui::ScrollLayout> m_ScrollArea;
     std::shared_ptr<we::runtime::kindui::Column> m_TabContent;
     std::shared_ptr<we::runtime::kindui::DesignButton> m_FooterButton;

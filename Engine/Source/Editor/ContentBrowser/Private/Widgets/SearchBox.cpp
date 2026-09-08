@@ -2,7 +2,7 @@
 #include "ContentBrowser/Widgets/SearchBox.h"
 #include "KindUI/Core/EventSystem.h"
 #include "KindUI/Core/PaintContext.h"
-#include "WindEffects/Editor/UI/Panel/PanelChrome.h"
+#include "KindUI/Panel/PanelChrome.h"
 #include "KindUI/Core/LayoutMetrics.h"
 #include "KindUI/Theming/ThemeAccess.h"
 #include "KindUI/Core/DPIContext.h"
@@ -24,7 +24,7 @@ namespace WindIcons = ::we::runtime::kindui::WindIcons;
 using ::we::runtime::kindui::kWindIconNone;
 namespace IconMetrics = ::we::runtime::kindui::IconMetrics;
 using ::we::runtime::kindui::KeyCodeToChar;
-namespace PanelChrome = ::we::editor::panels::PanelChrome;
+namespace PanelChrome = ::we::runtime::kindui::panels::PanelChrome;
 
 SearchBox::SearchBox()
     : m_Style(WidgetStyle::TextBox())

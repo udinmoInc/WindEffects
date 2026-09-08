@@ -8,7 +8,7 @@
 #include "Services/ContentBrowserFolderArt.h"
 #include "Services/ContentBrowserBlueprintArt.h"
 #include "KindUI/Core/PaintContext.h"
-#include "WindEffects/Editor/UI/Panel/PanelChrome.h"
+#include "KindUI/Panel/PanelChrome.h"
 #include "WindEffects/Editor/UI/Core/ScreenRecorder.h"
 #include "KindUI/Theming/ThemeAccess.h"
 #include "KindUI/Tokens/DesignToken.h"
@@ -28,7 +28,6 @@
 #include <cmath>
 #include <functional>
 #include <string_view>
-#include <string_view>
 
 using ::we::runtime::kindui::ColorToken;
 using ::we::runtime::kindui::MetricToken;
@@ -44,7 +43,7 @@ using ::we::runtime::kindui::kWindIconNone;
 using ::we::runtime::kindui::WindIconRef;
 namespace IconMetrics = ::we::runtime::kindui::IconMetrics;
 namespace LayoutMetrics = ::we::runtime::kindui::LayoutMetrics;
-namespace PanelChrome = ::we::editor::panels::PanelChrome;
+namespace PanelChrome = ::we::runtime::kindui::panels::PanelChrome;
 namespace ControlChrome = ::we::runtime::kindui::ControlChrome;
 using ::we::runtime::kindui::DPIContext;
 
@@ -342,7 +341,7 @@ void TreeView::Paint(PaintContext& context) {
     UpdateVisibleRange();
 
     if (m_PaintNavigationBackground && m_ScrollMetrics.viewport.width > 0.0f && m_ScrollMetrics.viewport.height > 0.0f) {
-        ::we::editor::panels::PanelChrome::PaintNavigationRegion(context, m_ScrollMetrics.viewport);
+        PanelChrome::PaintNavigationRegion(context, m_ScrollMetrics.viewport);
     }
 
     const float viewTop = m_ScrollMetrics.viewport.y;
@@ -366,10 +365,10 @@ void TreeView::Paint(PaintContext& context) {
 
         // Full-Width Row Background
         if (m_ShowRowHighlight && (selected || hovered)) {
-            ::we::editor::panels::PanelChrome::PaintListRowBackground(
+            PanelChrome::PaintListRowBackground(
                 context, layout.rowBounds, hovered, selected, IsFocused());
         } else if (m_ShowAlternatingRowBackground) {
-            ::we::editor::panels::PanelChrome::PaintAlternatingListRowBackground(
+            PanelChrome::PaintAlternatingListRowBackground(
                 context, layout.rowBounds, item.flatIndex);
         }
 
@@ -412,8 +411,6 @@ void TreeView::Paint(PaintContext& context) {
         if (!node->visible) {
             textColor = ThemeColor(ColorToken::TextDisabled);
         }
-
-        // Removed PushClipRect
 
         if (node->id == m_RenamingId) {
             Rect editBg{ layout.textX - 4.0f, layout.rowBounds.y + 2.0f, (std::max)(40.0f, layout.maxTextWidth), rowHeight - 4.0f };

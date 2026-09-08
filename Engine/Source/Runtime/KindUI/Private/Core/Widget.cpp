@@ -126,7 +126,11 @@ void Widget::AddChild(const std::shared_ptr<Widget>& child) {
         oldParent->RemoveChild(child);
     }
 
-    child->m_Parent = shared_from_this();
+    try {
+        child->m_Parent = shared_from_this();
+    } catch (const std::bad_weak_ptr&) {
+        child->m_Parent.reset();
+    }
     if (m_Context) {
         child->SetContext(m_Context);
     }
@@ -142,7 +146,11 @@ void Widget::AttachOverlayChild(const std::shared_ptr<Widget>& child) {
         // Prefer RemoveChild so docked AddChild parents are cleared correctly.
         oldParent->RemoveChild(child);
     }
-    child->m_Parent = shared_from_this();
+    try {
+        child->m_Parent = shared_from_this();
+    } catch (const std::bad_weak_ptr&) {
+        child->m_Parent.reset();
+    }
     if (m_Context) {
         child->SetContext(m_Context);
     }
@@ -185,6 +193,15 @@ void Widget::ClearChildren() {
 
 void Widget::SetContext(std::shared_ptr<IWidgetContext> context) {
     m_Context = std::move(context);
+    try {
+        auto self = shared_from_this();
+        for (auto& child : m_Children) {
+            if (child && child->GetParent() != self) {
+                child->m_Parent = self;
+            }
+        }
+    } catch (const std::bad_weak_ptr&) {
+    }
     for (auto& child : m_Children) {
         if (child) {
             child->SetContext(m_Context);

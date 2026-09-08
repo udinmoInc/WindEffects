@@ -1,6 +1,6 @@
 #include "ContentBrowser/Widgets/TreeColumnHeader.h"
 
-#include "WindEffects/Editor/UI/Panel/PanelChrome.h"
+#include "KindUI/Panel/PanelChrome.h"
 #include "KindUI/Core/ControlChrome.h"
 #include "KindUI/Core/WindIcon.h"
 #include "KindUI/Core/Icon.h"
@@ -12,7 +12,7 @@
 #include "Text/Layout/TextStyle.h"
 
 namespace we::editor::contentbrowser {
-namespace Chrome = ::we::editor::panels::PanelChrome;
+namespace Chrome = ::we::runtime::kindui::panels::PanelChrome;
 namespace IconMetrics = ::we::runtime::kindui::IconMetrics;
 namespace LayoutMetrics = ::we::runtime::kindui::LayoutMetrics;
 namespace WindIcons = ::we::runtime::kindui::WindIcons;

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "WindEffects/Editor/UI/Panel/PanelChrome.h"
+#include "KindUI/Panel/PanelChrome.h"
 #include "KindUI/Theming/ThemeAccess.h"
 #include "KindUI/Tokens/DesignToken.h"
 #include "KindUI/Tokens/ChromeSeparation.h"
@@ -12,7 +12,7 @@ namespace we::programs::editor::ActorsPanelLayout {
 using MetricToken = we::runtime::kindui::MetricToken;
 
 inline float ContentPadH() {
-    return ::we::editor::panels::PanelChrome::PanelPaddingH();
+    return ::we::runtime::kindui::panels::PanelChrome::PanelPaddingH();
 }
 
 inline float ContentPadV() {
@@ -25,12 +25,12 @@ inline float ChevronSize() {
 
 inline float ActorRowHeight() {
     return we::runtime::kindui::ResolveMetric(MetricToken::FormRowHeight)
-        * ::we::editor::panels::PanelChrome::UiScale();
+        * ::we::runtime::kindui::panels::PanelChrome::UiScale();
 }
 
 inline float CategoryHeight() {
     return we::runtime::kindui::ResolveMetric(MetricToken::CategoryHeaderHeight)
-        * ::we::editor::panels::PanelChrome::UiScale();
+        * ::we::runtime::kindui::panels::PanelChrome::UiScale();
 }
 
 inline float IconSize() {
@@ -39,11 +39,11 @@ inline float IconSize() {
 
 inline float RowRadius() {
     return we::runtime::kindui::ResolveMetric(MetricToken::CornerRadiusSmall)
-        * ::we::editor::panels::PanelChrome::UiScale();
+        * ::we::runtime::kindui::panels::PanelChrome::UiScale();
 }
 
 inline float SearchHeight() {
-    return ::we::editor::panels::PanelChrome::SearchHeight();
+    return ::we::runtime::kindui::panels::PanelChrome::SearchHeight();
 }
 
 inline float SearchRowHeight() {
@@ -82,7 +82,7 @@ inline float SectionRadius() {
 
 inline float ToolbarIconSize() {
     return we::runtime::kindui::ResolveMetric(MetricToken::IconButtonSize)
-        * ::we::editor::panels::PanelChrome::UiScale();
+        * ::we::runtime::kindui::panels::PanelChrome::UiScale();
 }
 
 inline float FilterButtonGap() {
@@ -91,12 +91,12 @@ inline float FilterButtonGap() {
 
 inline float GridMinCardWidth() {
     return we::runtime::kindui::ResolveMetric(MetricToken::ContentBrowserCellMedium)
-        * ::we::editor::panels::PanelChrome::UiScale();
+        * ::we::runtime::kindui::panels::PanelChrome::UiScale();
 }
 
 inline float GridMaxCardWidth() {
     return we::runtime::kindui::ResolveMetric(MetricToken::ContentBrowserCellLarge)
-        * ::we::editor::panels::PanelChrome::UiScale();
+        * ::we::runtime::kindui::panels::PanelChrome::UiScale();
 }
 
 inline float GridCardGap() {
@@ -105,7 +105,7 @@ inline float GridCardGap() {
 
 inline float GridLabelHeight() {
     return we::runtime::kindui::ResolveMetric(MetricToken::TextSizeCaption)
-        * ::we::editor::panels::PanelChrome::UiScale();
+        * ::we::runtime::kindui::panels::PanelChrome::UiScale();
 }
 
 inline float GridLabelGap() {
@@ -114,7 +114,7 @@ inline float GridLabelGap() {
 
 inline float GridScrollbarReserve() {
     return we::runtime::kindui::ResolveMetric(MetricToken::ScrollbarWidth)
-        * ::we::editor::panels::PanelChrome::UiScale()
+        * ::we::runtime::kindui::panels::PanelChrome::UiScale()
         + we::runtime::kindui::ResolveMetric(MetricToken::Space1);
 }
 

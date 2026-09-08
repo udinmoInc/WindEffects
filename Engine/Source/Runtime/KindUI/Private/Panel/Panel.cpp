@@ -323,4 +323,4 @@ Panel::HeaderAction* Panel::GetActionAtPosition(const Point& pos) {
     return nullptr;
 }
 
-} // namespace we::editor::panels
+} // namespace we::runtime::kindui::panels

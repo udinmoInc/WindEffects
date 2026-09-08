@@ -1,8 +1,8 @@
 #include "WindEffects/Editor/UI/Shell/DockLayoutBuilder.h"
 
-#include "WindEffects/Editor/UI/Widgets/Panel.h"
-#include "WindEffects/Editor/UI/Widgets/PanelBuilder.h"
-#include "WindEffects/Editor/UI/Widgets/DockContainer.h"
+#include "KindUI/Panel/Panel.h"
+#include "KindUI/Panel/PanelBuilder.h"
+#include "KindUI/Docking/DockContainer.h"
 #include "KindUI/Layout/Splitter.h"
 #include "KindUI/Core/DPIContext.h"
 #include "WindEffects/Editor/UI/Core/PanelIconResolver.h"
@@ -21,7 +21,7 @@ using ::we::editor::docking::DockPanelDescriptor;
 using ::we::editor::docking::DockLayoutNode;
 using ::we::editor::docking::DockNodeType;
 using ::we::editor::services::ResolvePanelTabIcon;
-using ::we::editor::panels::PanelBuilder;
+using ::we::runtime::kindui::panels::PanelBuilder;
 
 namespace {
 
@@ -96,7 +96,7 @@ std::shared_ptr<we::runtime::kindui::Widget> DockLayoutBuilder::BuildNode(
     case DockNodeType::Panel:
         return CreatePanel(node.panelId, extensions, dpiScale, result);
     case DockNodeType::TabGroup: {
-        auto dock = std::make_shared<we::editor::docking::DockContainer>();
+        auto dock = std::make_shared<we::runtime::kindui::docking::DockContainer>();
         dock->SetHeaderHeightLogical(ResolveMetric(MetricToken::PanelTabHeight));
         if (auto panel = CreatePanel(node.panelId, extensions, dpiScale, result)) {
             dock->AddPanel(panel);

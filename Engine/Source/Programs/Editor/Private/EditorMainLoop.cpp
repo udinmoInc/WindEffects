@@ -161,6 +161,7 @@ void Editor::MainLoop() {
                 MarkOsInput(InteractionKindForMouse(mouseEvent));
                 m_UIEventSystem->ProcessMouseEvent(mouseEvent);
                 m_LastSampledMousePos = move->position;
+                requestUiPaint = true;
             } else if (const auto* raw = std::get_if<we::platform::RawMouseEvent>(&event)) {
                 UI::MouseEvent mouseEvent{};
                 mouseEvent.type = UI::MouseEventType::MouseMove;
@@ -175,6 +176,7 @@ void Editor::MainLoop() {
                 MarkOsInput(UI::UiInteractionKind::MouseMove);
                 m_UIEventSystem->ProcessMouseEvent(mouseEvent);
                 m_LastSampledMousePos = pos;
+                requestUiPaint = true;
             } else if (const auto* button = std::get_if<we::platform::MouseButtonEvent>(&event)) {
                 if (we::runtime::kindui::UIRepaintGate::PeekNeedsLayout()) {
                     SyncViewportFramebufferFromLayout();

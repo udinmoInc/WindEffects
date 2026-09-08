@@ -5,10 +5,10 @@
 #include "WindEffects/Editor/UI/Shell/EditorWorkspaceController.h"
 #include "WindEffects/Editor/EditorSDK.h"
 
-#include "Widgets/ViewportSliderPopup.h"
-#include "WindEffects/Editor/UI/Widgets/Panel.h"
+#include "KindUI/Panel/Panel.h"
 #include "KindUI/Layout/Flex.h"
 #include "Widgets/ToolButton.h"
+#include "Widgets/ViewportSliderPopup.h"
 #include "KindUI/Core/WindIcon.h"
 #include "KindUI/Core/Icon.h"
 
@@ -175,8 +175,8 @@ std::shared_ptr<we::runtime::kindui::Column> BuildViewportNavigationPreferencesC
 
 } // namespace
 
-std::shared_ptr<::we::editor::panels::Panel> CreateViewportNavigationPreferencesPanel() {
-    return ::we::editor::panels::PanelBuilder("Viewport Navigation")
+std::shared_ptr<::we::runtime::kindui::panels::Panel> CreateViewportNavigationPreferencesPanel() {
+    return ::we::runtime::kindui::panels::PanelBuilder("Viewport Navigation")
         .TabIcon(we::runtime::kindui::kWindIconNone)
         .Content(BuildViewportNavigationPreferencesContent());
 }

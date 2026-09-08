@@ -16,9 +16,7 @@
 #include "PlaceActors/PlaceActorsThumbnailProvider.h"
 
 #include "WindEffects/Editor/UI/Shell/EditorToolsRegistry.h"
-#include "ContentBrowser/Widgets/SearchBox.h"
-#include "Widgets/ToolButton.h"
-#include "WindEffects/Editor/UI/Panel/PanelChrome.h"
+#include "KindUI/Panel/PanelChrome.h"
 #include "KindUI/Layout/ScrollViewport.h"
 #include "KindUI/Core/ControlChrome.h"
 #include "KindUI/Core/PaintContext.h"
@@ -40,7 +38,7 @@
 
 
 namespace we::programs::editor {
-namespace PanelChrome = ::we::editor::panels::PanelChrome;
+namespace PanelChrome = ::we::runtime::kindui::panels::PanelChrome;
 using ::we::runtime::kindui::ColorToken;
 using ::we::runtime::kindui::MetricToken;
 using ::we::runtime::kindui::PaddingToken;
@@ -339,14 +337,14 @@ std::shared_ptr<we::runtime::kindui::Widget> PlaceActorsPanel::HitTestPoint(cons
     }
 
     if (m_BodyLayout) {
-        const Rect searchRect = m_BodyLayout->GetRegionRect(::we::editor::panels::PanelBodyRegion::Search);
+        const Rect searchRect = m_BodyLayout->GetRegionRect(::we::runtime::kindui::panels::PanelBodyRegion::Search);
         if (!searchRect.IsEmpty() && searchRect.Contains(pos)) {
             if (auto hit = m_BodyLayout->HitTestPoint(pos, clip)) {
                 return hit;
             }
         }
 
-        const Rect contentRect = m_BodyLayout->GetRegionRect(::we::editor::panels::PanelBodyRegion::Content);
+        const Rect contentRect = m_BodyLayout->GetRegionRect(::we::runtime::kindui::panels::PanelBodyRegion::Content);
         if (!contentRect.IsEmpty() && contentRect.Contains(pos)) {
             return shared_from_this();
         }
@@ -391,7 +389,7 @@ void PlaceActorsPanel::OnMouseDown(const MouseEvent& event) {
     }
 
     const Rect searchRect = m_BodyLayout
-        ? m_BodyLayout->GetRegionRect(::we::editor::panels::PanelBodyRegion::Search)
+        ? m_BodyLayout->GetRegionRect(::we::runtime::kindui::panels::PanelBodyRegion::Search)
         : Rect{};
     if (!searchRect.IsEmpty() && searchRect.Contains(event.position) && m_SearchRow) {
         if (auto hit = m_SearchRow->HitTestPoint(event.position, &searchRect)) {
@@ -453,7 +451,7 @@ void PlaceActorsPanel::OnMouseDown(const MouseEvent& event) {
 
 void PlaceActorsPanel::OnMouseMove(const MouseEvent& event) {
     const Rect searchRect = m_BodyLayout
-        ? m_BodyLayout->GetRegionRect(::we::editor::panels::PanelBodyRegion::Search)
+        ? m_BodyLayout->GetRegionRect(::we::runtime::kindui::panels::PanelBodyRegion::Search)
         : Rect{};
     if (!searchRect.IsEmpty() && searchRect.Contains(event.position) && m_SearchRow) {
         m_SearchRow->OnMouseMove(event);
@@ -467,18 +465,28 @@ void PlaceActorsPanel::OnMouseMove(const MouseEvent& event) {
     }
 
     HideTooltip();
+    bool anyHoverChanged = false;
     for (auto& entry : m_Layout) {
         const bool hovered = entry.geometry.Contains(event.position);
         if (PlaceActorsConfig::Get().enableAnimations) {
+            const float prev = entry.hoverAnim;
             entry.hoverAnim = we::runtime::kindui::Animator::Damp(entry.hoverAnim, hovered ? 1.0f : 0.0f, 14.0f);
+            if (std::abs(entry.hoverAnim - prev) > 0.001f) anyHoverChanged = true;
         } else {
-            entry.hoverAnim = hovered ? 1.0f : 0.0f;
+            const float target = hovered ? 1.0f : 0.0f;
+            if (entry.hoverAnim != target) {
+                entry.hoverAnim = target;
+                anyHoverChanged = true;
+            }
         }
         if (hovered && entry.type == LayoutEntry::Type::Item) {
             if (const PlaceActorsItemData* item = PlaceActorsCatalog::Get().FindItem(entry.toolId)) {
                 ShowTooltip(*item, entry.geometry);
             }
         }
+    }
+    if (anyHoverChanged) {
+        InvalidatePaint();
     }
 
     if (m_PendingDragItem && !m_DragStarted) {
@@ -510,6 +518,22 @@ void PlaceActorsPanel::OnMouseMove(const MouseEvent& event) {
                 break;
             }
         }
+    }
+}
+
+void PlaceActorsPanel::OnHoverLost() {
+    HideTooltip();
+    bool anyChanged = false;
+    for (auto& entry : m_Layout) {
+        if (entry.hoverAnim > 0.001f) {
+            entry.hoverAnim = 0.0f;
+            anyChanged = true;
+        }
+    }
+    m_ContextMenuHovered = -1;
+    m_FilterMenuHovered = -1;
+    if (anyChanged) {
+        InvalidatePaint();
     }
 }
 

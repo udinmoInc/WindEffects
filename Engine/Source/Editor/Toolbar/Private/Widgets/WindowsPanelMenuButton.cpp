@@ -139,10 +139,6 @@ void WindowsPanelMenuButton::OnMouseDown(const ::we::runtime::kindui::MouseEvent
     }
 }
 
-void WindowsPanelMenuButton::OnMouseMove(const ::we::runtime::kindui::MouseEvent& event) {
-    m_Hovered = m_Geometry.Contains(event.position);
-}
-
 void WindowsPanelMenuButton::OnMouseUp(const ::we::runtime::kindui::MouseEvent& event) {
     (void)event;
     m_Pressed = false;

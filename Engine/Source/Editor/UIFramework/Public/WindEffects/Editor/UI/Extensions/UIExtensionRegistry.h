@@ -4,7 +4,7 @@
 #include "KindUI/Commands/ICommandRegistry.h"
 #include "KindUI/Core/Widget.h"
 #include "WindEffects/Editor/UI/Docking/IDockManager.h"
-#include "WindEffects/Editor/UI/Widgets/Panel.h"
+#include "KindUI/Panel/Panel.h"
 
 #include <functional>
 #include <memory>
@@ -22,7 +22,7 @@ namespace we::editor::extensions {
 using ::we::runtime::kindui::ICommand;
 using ::we::runtime::kindui::ICommandRegistry;
 
-using ExtensionPanelFactory = std::function<std::shared_ptr<::we::editor::panels::Panel>()>;
+using ExtensionPanelFactory = std::function<std::shared_ptr<::we::runtime::kindui::panels::Panel>()>;
 using ExtensionMenuFactory = std::function<std::vector<std::shared_ptr<::we::editor::menus::MenuItem>>()>;
 
 struct PanelRegistration {

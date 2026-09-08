@@ -1,6 +1,6 @@
 #include "Platform/Platform.h"
 #include "ContentBrowser/Widgets/ContentBrowser.h"
-#include "WindEffects/Editor/UI/Panel/PanelChrome.h"
+#include "KindUI/Panel/PanelChrome.h"
 #include "KindUI/Layout/ScrollViewport.h"
 #include "Controllers/FilterController.h"
 #include "Controllers/SearchController.h"
@@ -35,7 +35,7 @@ using ::we::runtime::kindui::IconPainter;
 using ::we::runtime::kindui::UIRepaintGate;
 using ::we::runtime::kindui::WindIconRef;
 namespace LayoutMetrics = ::we::runtime::kindui::LayoutMetrics;
-namespace PanelChrome = ::we::editor::panels::PanelChrome;
+namespace PanelChrome = ::we::runtime::kindui::panels::PanelChrome;
 namespace IconMetrics = ::we::runtime::kindui::IconMetrics;
 namespace WindIcons = ::we::runtime::kindui::WindIcons;
 using ::we::runtime::kindui::kWindIconNone;

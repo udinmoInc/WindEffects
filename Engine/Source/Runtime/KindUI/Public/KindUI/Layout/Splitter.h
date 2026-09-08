@@ -86,7 +86,6 @@ private:
     bool m_PanelGapEnabled = false;
     float m_PanelGapLogical = 0.0f;
     bool m_Dragging = false;
-    bool m_Hovered = false;
 #pragma warning(push)
 #pragma warning(disable: 4251)
     std::string m_SlotId;

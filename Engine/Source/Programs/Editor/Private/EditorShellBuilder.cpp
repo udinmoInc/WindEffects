@@ -10,8 +10,8 @@
 #include "Widgets/WindowsPanelMenuButton.h"
 #include "KindUI/Theming/ThemeAccess.h"
 
-#include "WindEffects/Editor/UI/Widgets/Panel.h"
-#include "WindEffects/Editor/UI/Widgets/DockContainer.h"
+#include "KindUI/Panel/Panel.h"
+#include "KindUI/Docking/DockContainer.h"
 #include "Widgets/TitleBar.h"
 #include "Widgets/WindowShell.h"
 #include "Widgets/StatusBar.h"
@@ -54,12 +54,12 @@ using ::we::runtime::kindui::Column;
 using ::we::runtime::kindui::OverlayHost;
 using ::we::editor::viewport::ViewportWidget;
 using ::we::editor::contentbrowser::TreeView;
-using ::we::editor::docking::DockContainer;
+using ::we::runtime::kindui::docking::DockContainer;
 using ::we::editor::shell::DockLayoutBuilder;
 using ::we::editor::docking::DockPanelDescriptor;
 using ::we::editor::docking::DockZone;
 using ::we::editor::services::IEditorApplicationContext;
-using ::we::editor::panels::Panel;
+using ::we::runtime::kindui::panels::Panel;
 using ::we::editor::extensions::PanelRegistration;
 using ::we::editor::services::ResolvePanelTabIcon;
 using ::we::editor::menus::MenuBar;

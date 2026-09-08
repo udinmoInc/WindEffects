@@ -7,8 +7,8 @@
 // Re-compiled for PanelBuilder API updates
 namespace we::programs::editor {
 using namespace ::we::runtime::kindui;
-using ::we::editor::panels::Panel;
-using ::we::editor::panels::PanelBuilder;
+using ::we::runtime::kindui::panels::Panel;
+using ::we::runtime::kindui::panels::PanelBuilder;
 using ::we::editor::docking::DockZone;
 using ::we::editor::toolbar::ToolbarBuilder;
 namespace WindIcons = ::we::runtime::kindui::WindIcons;

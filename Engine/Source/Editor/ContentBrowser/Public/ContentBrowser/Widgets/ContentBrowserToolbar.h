@@ -57,7 +57,6 @@ private:
     we::runtime::kindui::WindIconRef m_Icon = we::runtime::kindui::kWindIconNone;
     bool m_Selected = false;
     bool m_Frameless = true;
-    bool m_Pressed = false;
     bool m_HasCustomColor = false;
     Color m_CustomColor{ 1.0f, 1.0f, 1.0f, 1.0f };
     float m_HoverAnim = 0.0f;
@@ -95,7 +94,6 @@ private:
     Variant m_Variant = Variant::Standard;
     float m_HorizontalPadding = 8.0f;
     bool m_Frameless = false;
-    bool m_Pressed = false;
     float m_HoverAnim = 0.0f;
     float m_PressAnim = 0.0f;
     std::function<void()> m_OnClicked;

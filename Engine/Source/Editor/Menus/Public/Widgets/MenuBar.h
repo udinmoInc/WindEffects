@@ -45,6 +45,7 @@ public:
 
     void OnMouseDown(const MouseEvent& event) override;
     void OnMouseMove(const MouseEvent& event) override;
+    void OnHoverLost() override;
     bool ShowsPointerCursor(const Point& position) const override { return m_Geometry.Contains(position); }
 
     // Menu management

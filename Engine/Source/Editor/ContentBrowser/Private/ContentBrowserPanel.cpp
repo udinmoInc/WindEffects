@@ -22,6 +22,8 @@
 #include "Registry/ContentAssetRegistry.h"
 #include "Controllers/FilterController.h"
 #include "ContentBrowser/Models/ContentBrowserModel.h"
+#include "KindUI/Panel/Panel.h"
+#include "KindUI/Panel/PanelBuilder.h"
 #include <filesystem>
 #include <memory>
 #include <sstream>
@@ -32,9 +34,8 @@ namespace WindIcons = ::we::runtime::kindui::WindIcons;
 using ::we::runtime::kindui::kWindIconNone;
 
 using namespace ::we::runtime::kindui;
-using namespace ::we::runtime::kindui;
-using ::we::editor::panels::Panel;
-using ::we::editor::panels::PanelBuilder;
+using ::we::runtime::kindui::panels::Panel;
+using ::we::runtime::kindui::panels::PanelBuilder;
 using ::we::editor::docking::DockZone;
 
 namespace {
@@ -209,7 +210,7 @@ void ShutdownContentBrowserService() {
     ContentBrowserService::Get().Shutdown();
 }
 
-std::shared_ptr<::we::editor::panels::Panel> CreateContentBrowserPanel() {
+std::shared_ptr<::we::runtime::kindui::panels::Panel> CreateContentBrowserPanel() {
     auto title = we::core::Localization::Get().GetString("Panel_ContentBrowser", "Asset Explorer");
 
     auto folderTree = std::make_shared<::we::editor::contentbrowser::TreeView>();
