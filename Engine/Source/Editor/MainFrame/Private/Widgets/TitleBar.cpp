@@ -337,6 +337,16 @@ void TitleBar::UpdateMaximizeIcon() {
 we::platform::WindowHitTestResult TitleBar::HitTest(we::platform::Int2 point) {
     Point p{ static_cast<float>(point.x), static_cast<float>(point.y) };
 
+    if (m_LeftContainer && m_LeftContainer->GetGeometry().Contains(p)) {
+        return we::platform::WindowHitTestResult::Client;
+    }
+    if (m_RightContainer && m_RightContainer->GetGeometry().Contains(p)) {
+        return we::platform::WindowHitTestResult::Client;
+    }
+    if (m_CenterContainer && m_CenterContainer->GetGeometry().Contains(p)) {
+        return we::platform::WindowHitTestResult::Client;
+    }
+
     for (const auto& w : m_InteractableWidgets) {
         if (p.x >= w->GetGeometry().x && p.x <= w->GetGeometry().x + w->GetGeometry().width &&
             p.y >= w->GetGeometry().y && p.y <= w->GetGeometry().y + w->GetGeometry().height) {

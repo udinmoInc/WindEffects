@@ -634,6 +634,10 @@ void TreeView::OnMouseUp(const MouseEvent& event) {
     lastClickTime = now;
 }
 
+void TreeView::OnHoverLost() {
+    m_HoveredId.clear();
+}
+
 void TreeView::OnMouseMove(const MouseEvent& event) {
     SyncScrollMetrics();
     m_Scroll.OnMouseMove(event, m_ScrollMetrics, m_Geometry.height, m_ContentHeight);

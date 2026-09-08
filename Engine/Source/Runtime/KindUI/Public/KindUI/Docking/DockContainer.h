@@ -1,0 +1,123 @@
+#pragma once
+
+#include "KindUI/Export.h"
+
+#include "KindUI/Core/Widget.h"
+#include "KindUI/Panel/Panel.h"
+#include <functional>
+#include <memory>
+#include <vector>
+
+namespace we::runtime::kindui::docking {
+
+using ::we::runtime::kindui::Widget;
+using ::we::runtime::kindui::Size;
+using ::we::runtime::kindui::Rect;
+using ::we::runtime::kindui::PaintContext;
+using ::we::runtime::kindui::MouseEvent;
+using ::we::runtime::kindui::Point;
+using ::we::runtime::kindui::panels::Panel;
+
+// A container that manages multiple Panel widgets as tabs
+class KINDUI_API DockContainer : public Widget {
+public:
+    using OnTabClosed = std::function<void(const std::shared_ptr<Panel>& panel)>;
+    using OnTabDragStarted = std::function<void(const std::shared_ptr<Panel>& panel, const Point& position)>;
+    using OnActiveTabChanged = std::function<void(int index)>;
+    using OnOptionsMenuRequested = std::function<void(const std::shared_ptr<Panel>& panel, const Point& position)>;
+
+    DockContainer();
+    virtual ~DockContainer() = default;
+
+    Size Measure(const Size& availableSize) override;
+    void Arrange(const Rect& allottedRect) override;
+    void Paint(PaintContext& context) override;
+    void Tick(float deltaTime) override;
+
+    void OnMouseDown(const MouseEvent& event) override;
+    void OnMouseMove(const MouseEvent& event) override;
+    void OnMouseUp(const MouseEvent& event) override;
+    void OnMouseWheel(const MouseEvent& event) override;
+    void OnHoverLost() override;
+    bool ShowsPointerCursor(const Point& position) const override;
+    [[nodiscard]] std::shared_ptr<Widget> HitTestPoint(const Point& pos, const Rect* clip = nullptr) override;
+    [[nodiscard]] bool IsInteractiveContainer() const override { return true; }
+
+    void AddPanel(const std::shared_ptr<Panel>& panel);
+    void RemovePanel(const std::shared_ptr<Panel>& panel);
+    bool ContainsPanel(const std::shared_ptr<Panel>& panel) const;
+    void FocusPanel(const std::shared_ptr<Panel>& panel);
+
+    void SetActiveTab(int index);
+    int GetActiveTab() const { return m_ActiveTabIndex; }
+    int GetTabCount() const { return static_cast<int>(m_Tabs.size()); }
+
+    /// Tab-strip / header band used for dock-drop hit testing and localized previews.
+    [[nodiscard]] Rect GetTabStripRect() const { return m_HeaderRect; }
+    [[nodiscard]] Rect GetContentRect() const { return m_ContentRect; }
+    [[nodiscard]] bool IsVisibleDock() const { return IsVisible(); }
+    [[nodiscard]] std::shared_ptr<Panel> GetActivePanel() const;
+    [[nodiscard]] std::vector<std::shared_ptr<Panel>> GetPanels() const;
+    /// Reserve right-side header space (e.g. floating window min/max/close).
+    void SetTrailingReservedWidth(float width);
+    [[nodiscard]] float GetTrailingReservedWidth() const { return m_TrailingReservedWidth; }
+    /// Reserve left-side header space (e.g. floating window logo).
+    void SetLeadingReservedWidth(float width);
+    [[nodiscard]] float GetLeadingReservedWidth() const { return m_LeadingReservedWidth; }
+    void SetShowOptionsMenu(bool show);
+    [[nodiscard]] bool ShowsOptionsMenu() const { return m_ShowOptionsMenu; }
+    /// True when pos hits a tab, tab-close, or options control (not empty drag area).
+    [[nodiscard]] bool IsTabStripInteractiveHit(const Point& pos) const;
+
+    /// Logical (pre-DPI) tab strip height. Device height = logical * DPIContext::GetScale().
+    void SetHeaderHeightLogical(float logicalPx) {
+        m_HeaderHeightLogical = logicalPx < 0.0f ? 0.0f : logicalPx;
+    }
+    [[nodiscard]] float GetHeaderHeightLogical() const { return m_HeaderHeightLogical; }
+    [[nodiscard]] float GetHeaderHeightDevice() const;
+
+    void SetOnTabClosed(OnTabClosed callback) { m_OnTabClosed = std::move(callback); }
+    void SetOnTabDragStarted(OnTabDragStarted callback) { m_OnTabDragStarted = std::move(callback); }
+    void SetOnActiveTabChanged(OnActiveTabChanged callback) { m_OnActiveTabChanged = std::move(callback); }
+    void SetOnOptionsMenuRequested(OnOptionsMenuRequested callback) { m_OnOptionsMenuRequested = std::move(callback); }
+
+private:
+    struct TabInfo {
+        std::shared_ptr<Panel> panel;
+        Rect tabRect;
+        Rect closeRect;
+        bool isHovered = false;
+        bool isCloseHovered = false;
+        float hoverAnim = 0.0f;
+    };
+
+    float MeasureTabWidth(PaintContext& context, const TabInfo& tabInfo, bool isActive, bool flushLeft = false);
+    void PaintTab(PaintContext& context, TabInfo& tabInfo, int index, float& currentX);
+    void LayoutTabGeometries();
+    void ShowPanelOptionsMenu(const Point& pos);
+
+    std::vector<TabInfo> m_Tabs;
+    int m_ActiveTabIndex = -1;
+
+    float m_HeaderHeightLogical = 0.0f;
+    float m_TrailingReservedWidth = 0.0f;
+    float m_LeadingReservedWidth = 0.0f;
+    bool m_ShowOptionsMenu = true;
+    Rect m_HeaderRect;
+    Rect m_HeaderContentGapRect;
+    Rect m_ContentRect;
+
+    Rect m_OptionsMenuRect;
+    bool m_OptionsMenuHovered = false;
+
+    int m_DragTabIndex = -1;
+    Point m_DragStart{};
+    bool m_TabDragCandidate = false;
+
+    OnTabClosed m_OnTabClosed;
+    OnTabDragStarted m_OnTabDragStarted;
+    OnActiveTabChanged m_OnActiveTabChanged;
+    OnOptionsMenuRequested m_OnOptionsMenuRequested;
+};
+
+} // namespace we::runtime::kindui::docking

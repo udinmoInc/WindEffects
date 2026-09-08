@@ -75,9 +75,15 @@ public:
 
     [[nodiscard]] bool IsFocused() const { return m_Focused; }
     [[nodiscard]] bool IsHovered() const { return m_Hovered; }
+    /// Release any per-part hover latches (tab rows, header controls) that are only
+    /// maintained while this widget keeps receiving mouse moves.
+    virtual void OnHoverLost() {}
     void SetHovered(bool hovered) { 
         if (m_Hovered != hovered) {
             m_Hovered = hovered; 
+            if (!hovered) {
+                OnHoverLost();
+            }
             InvalidatePaint(); 
         }
     }

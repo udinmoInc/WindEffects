@@ -126,6 +126,7 @@ private:
     Extent2D m_Extent{};
     Format m_Format = Format::B8G8R8A8_SRGB;
     uint32_t m_Index = 0;
+    uint32_t m_BufferCount = 3;
     uint32_t m_RefreshRateHz = 60;
     uint32_t m_MaxFrameLatency = 1;
     bool m_Vsync = true;

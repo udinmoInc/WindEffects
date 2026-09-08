@@ -659,6 +659,10 @@ void ContentBrowser::OnMouseDown(const MouseEvent& event) {
     }
 }
 
+void ContentBrowser::OnHoverLost() {
+    m_HoveredId.clear();
+}
+
 void ContentBrowser::OnMouseMove(const MouseEvent& event) {
     m_MousePos = event.position;
 
@@ -989,6 +993,11 @@ void Breadcrumb::OnMouseDown(const MouseEvent& event) {
         const size_t index = static_cast<size_t>(crumb - &m_Crumbs[0]);
         m_OnCrumbClicked(index);
     }
+}
+
+void Breadcrumb::OnHoverLost() {
+    m_HoveredCrumb = -1;
+    for (auto& crumb : m_Crumbs) crumb.hovered = false;
 }
 
 void Breadcrumb::OnMouseMove(const MouseEvent& event) {

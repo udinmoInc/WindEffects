@@ -12,9 +12,7 @@ class KINDUI_API Animator {
 public:
     static constexpr float kSettleEpsilon = 0.001f;
 
-    static void Tick(float deltaTime) {
-        s_DeltaTime = deltaTime;
-    }
+    static void Tick(float deltaTime);
 
     /// Smooth dampening towards a target value (time-independent easing).
     /// Snaps when within epsilon so asymptotic tails do not repaint forever.
@@ -37,9 +35,7 @@ public:
         return next;
     }
 
-    static float Damp(float current, float target, float speed = 30.0f) {
-        return Damp(current, target, speed, s_DeltaTime);
-    }
+    static float Damp(float current, float target, float speed = 30.0f);
 
     static float MoveTowards(float current, float target, float maxDelta) {
         if (std::abs(target - current) <= maxDelta) {
@@ -48,12 +44,14 @@ public:
             }
             return target;
         }
-        UIRepaintGate::RequestPaint();
-        return current + std::copysign(maxDelta, target - current);
+        const float next = current + std::copysign(maxDelta, target - current);
+        if (next != current) {
+            UIRepaintGate::RequestPaint();
+        }
+        return next;
     }
 
-private:
-    static inline float s_DeltaTime = 0.016f;
+    static float GetDeltaTime();
 };
 
 } // namespace we::runtime::kindui

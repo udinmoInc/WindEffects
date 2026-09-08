@@ -14,13 +14,10 @@
 #include <memory>
 #include <string>
 #include <unordered_map>
-#include <vector>
-
-namespace we::editor::panels {
-class PanelBodyLayout;
-}
+#include "KindUI/Panel/PanelBodyLayout.h"
 
 namespace we::editor::terrain {
+using ::we::runtime::kindui::panels::PanelBodyLayout;
 
 class LandscapeWorkspaceTabBar;
 
@@ -56,7 +53,7 @@ private:
     LandscapeWorkspaceTab m_ActiveTab = LandscapeWorkspaceTab::Create;
     bool m_UserSelectedTab = false;
 
-    std::shared_ptr<we::editor::panels::PanelBodyLayout> m_BodyLayout;
+    std::shared_ptr<PanelBodyLayout> m_BodyLayout;
     std::shared_ptr<LandscapeWorkspaceTabBar> m_TabBar;
     std::shared_ptr<we::runtime::kindui::ScrollLayout> m_ScrollArea;
     std::shared_ptr<we::runtime::kindui::Column> m_TabContent;

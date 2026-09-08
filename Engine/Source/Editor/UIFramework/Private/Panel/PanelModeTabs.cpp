@@ -106,6 +106,10 @@ void PanelModeTabs::OnMouseDown(const MouseEvent& event) {
     }
 }
 
+void PanelModeTabs::OnHoverLost() {
+    m_HoveredIndex = -1;
+}
+
 void PanelModeTabs::OnMouseMove(const MouseEvent& event) {
     m_HoveredIndex = -1;
     for (size_t i = 0; i < m_StripLayout.tabs.size(); ++i) {

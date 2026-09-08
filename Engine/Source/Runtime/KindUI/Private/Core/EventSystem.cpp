@@ -177,6 +177,17 @@ void EventSystem::UpdateCursorForWidget(const std::shared_ptr<Widget>& widget, c
     m_UsingPointerCursor = shouldUsePointerCursor;
 }
 
+void EventSystem::ClearHover() {
+    if (auto oldHovered = m_HoveredWidget.lock()) {
+        oldHovered->SetHovered(false);
+        m_HoveredWidget.reset();
+    }
+    if (!m_SuppressSystemCursor && m_UsingPointerCursor) {
+        we::platform::Platform::Get().SetSystemCursor(we::platform::SystemCursor::Arrow);
+        m_UsingPointerCursor = false;
+    }
+}
+
 void EventSystem::ProcessKeyEvent(const KeyEvent& event) {
     if (event.type == KeyEventType::KeyDown &&
         event.key == we::platform::KeyCode::Tab) {

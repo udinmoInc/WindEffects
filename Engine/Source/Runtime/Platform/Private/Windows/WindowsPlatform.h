@@ -211,6 +211,7 @@ private:
     ATOM m_ClassAtom = 0;
     bool m_ClassRegistered = false;
     bool m_CursorVisible = true;
+    bool m_CursorInWindow = false;
     HCURSOR m_CurrentCursor = nullptr;
 
     LARGE_INTEGER m_QpcFrequency{};

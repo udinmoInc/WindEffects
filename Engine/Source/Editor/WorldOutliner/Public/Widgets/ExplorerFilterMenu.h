@@ -33,6 +33,7 @@ public:
     void OnMouseMove(const MouseEvent& event) override;
     void OnMouseUp(const MouseEvent& event) override;
     bool ShowsPointerCursor(const Point& position) const override;
+    void OnHoverLost() override { m_HoveredItem = -1; }
 
 private:
     struct MenuItem {

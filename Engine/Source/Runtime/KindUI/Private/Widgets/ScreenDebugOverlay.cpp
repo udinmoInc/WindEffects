@@ -1,5 +1,5 @@
-#include "WindEffects/Editor/UI/Widgets/ScreenDebugOverlay.h"
-#include "WindEffects/Editor/UI/Core/ScreenRecorder.h"
+#include "KindUI/Widgets/ScreenDebugOverlay.h"
+#include "KindUI/Profiling/ScreenRecorder.h"
 #include "KindUI/Core/PaintContext.h"
 #include "KindUI/Tokens/DesignToken.h"
 #include "KindUI/Theming/StyleRole.h"
@@ -8,25 +8,21 @@ using ::we::runtime::kindui::ColorToken;
 using ::we::runtime::kindui::MetricToken;
 using ::we::runtime::kindui::Point;
 
-namespace we::editor::panels {
+namespace we::runtime::kindui {
 
 ScreenDebugOverlay::ScreenDebugOverlay() {
-    SetVisible(services::ScreenRecorder::IsRecordingEnabled());
+    SetVisible(ScreenRecorder::IsRecordingEnabled());
 }
-
-ScreenDebugOverlay::~ScreenDebugOverlay() = default;
 
 void ScreenDebugOverlay::Tick(float deltaTime) {
     Widget::Tick(deltaTime);
     m_RefreshTimer += deltaTime;
-    if (m_RefreshTimer < 1.0f) {
+    if (m_RefreshTimer < 0.25f) {
         return;
     }
     m_RefreshTimer = 0.0f;
-    // Change-gated: an unchanged overlay must not request a global paint.
-    // Display lines are quantized to whole units so idle jitter never counts.
     const std::vector<std::string> fresh =
-        services::ScreenRecorder::Get().BuildOverlayLines();
+        ScreenRecorder::Get().BuildOverlayLines();
     if (fresh != m_Lines) {
         m_Lines = fresh;
         InvalidatePaint();
@@ -34,14 +30,13 @@ void ScreenDebugOverlay::Tick(float deltaTime) {
 }
 
 Size ScreenDebugOverlay::Measure(const Size& availableSize) {
-    m_DesiredSize = Size{ 460.0f, 140.0f };
+    m_DesiredSize = Size{ 460.0f, 165.0f };
     (void)availableSize;
     return m_DesiredSize;
 }
 
 void ScreenDebugOverlay::Arrange(const Rect& allottedRect) {
-    // Pin to top-left regardless of the allotted slot.
-    m_Geometry = Rect{ allottedRect.x + 12.0f, allottedRect.y + 12.0f, 460.0f, 140.0f };
+    m_Geometry = Rect{ allottedRect.x + 12.0f, allottedRect.y + 12.0f, 460.0f, 165.0f };
 }
 
 void ScreenDebugOverlay::Paint(PaintContext& context) {
@@ -62,4 +57,4 @@ void ScreenDebugOverlay::Paint(PaintContext& context) {
     }
 }
 
-} // namespace we::editor::panels
+} // namespace we::runtime::kindui
