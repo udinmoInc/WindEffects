@@ -29,7 +29,7 @@
 #include "WindEffects/Editor/UI/Core/ScreenRecorder.h"
 #include "WindEffects/Editor/UI/Shell/EditorModeController.h"
 #include "WindEffects/Editor/UI/Shell/EditorWorkspaceController.h"
-#include "WindEffects/Editor/UI/Widgets/ScreenDebugOverlay.h"
+#include "KindUI/Widgets/ScreenDebugOverlay.h"
 
 #include <cstdlib>
 
@@ -207,7 +207,7 @@ void Editor::InitializeEngine() {
 void Editor::SetRootWidget(const std::shared_ptr<we::runtime::kindui::Widget>& root) {
     m_RootWidget = root;
     if (m_RootWidget && ::we::editor::services::ScreenRecorder::IsRecordingEnabled()) {
-        m_RootWidget->AttachOverlayChild(std::make_shared<::we::editor::panels::ScreenDebugOverlay>());
+        m_RootWidget->AttachOverlayChild(std::make_shared<::we::runtime::kindui::ScreenDebugOverlay>());
     }
     if (m_UIEventSystem) {
         m_UIEventSystem->SetRootWidget(m_RootWidget);

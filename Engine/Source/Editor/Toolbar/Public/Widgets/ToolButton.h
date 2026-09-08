@@ -45,7 +45,6 @@ public:
 
     void OnMouseDown(const MouseEvent& event) override;
     void OnMouseUp(const MouseEvent& event) override;
-    void OnMouseMove(const MouseEvent& event) override;
     void OnMouseWheel(const MouseEvent& event) override;
     bool ShowsPointerCursor(const Point& position) const override { return m_Geometry.Contains(position); }
 
@@ -72,8 +71,6 @@ private:
     std::function<void()> m_OnClicked;
     std::function<void(float)> m_OnMouseWheel;
     bool m_Active = false;
-    bool m_Pressed = false;
-    bool m_Hovered = false;
     bool m_IsDropdown = false;
     bool m_Chromeless = false;
     ToolButtonStyle m_ButtonStyle = ToolButtonStyle::Normal;

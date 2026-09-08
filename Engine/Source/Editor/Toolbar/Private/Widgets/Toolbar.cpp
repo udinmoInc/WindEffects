@@ -214,6 +214,7 @@ std::shared_ptr<ToolButton> Toolbar::AddTool(we::runtime::kindui::WindIconRef ic
     if (m_Context) {
         btn->SetContext(m_Context);
     }
+    AddChild(btn);
     m_Tools.push_back(tool);
 
     return btn;
@@ -236,18 +237,21 @@ void Toolbar::AddSeparator(ToolbarAlignment align) {
     if (m_Context) {
         tool.button->SetContext(m_Context);
     }
+    AddChild(tool.button);
     m_Tools.push_back(tool);
 }
 
 void Toolbar::AddWidget(std::shared_ptr<Widget> widget, ToolbarAlignment align) {
+    if (!widget) return;
     ToolInfo tool;
     tool.icon = we::runtime::kindui::kWindIconNone;
     tool.isSeparator = false;
     tool.align = align;
     tool.button = widget;
-    if (m_Context && widget) {
+    if (m_Context) {
         widget->SetContext(m_Context);
     }
+    AddChild(widget);
     m_Tools.push_back(tool);
 }
 
@@ -256,6 +260,7 @@ void Toolbar::AddGroup(std::shared_ptr<Widget> group, ToolbarAlignment align) {
 }
 
 void Toolbar::Clear() {
+    ClearChildren();
     m_Tools.clear();
     m_ActiveTool = we::runtime::kindui::kWindIconNone;
 }

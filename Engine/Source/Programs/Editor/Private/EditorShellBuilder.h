@@ -3,7 +3,7 @@
 #include "WindEffects/Editor/UI/Export.h"
 #include "WindEffects/Editor/UI/Core/EditorApplicationContext.h"
 #include "WindEffects/Editor/UI/Shell/DockLayoutBuilder.h"
-#include "WindEffects/Editor/UI/Widgets/Panel.h"
+#include "KindUI/Panel/Panel.h"
 #include "KindUI/Core/EventSystem.h"
 #include "KindUI/Layout/OverlayManager.h"
 #include "KindUI/Rendering/OverlayRenderer.h"
@@ -31,7 +31,7 @@ using ::we::editor::shell::DockLayoutBuildResult;
 using ::we::editor::shell::DockLayoutBuilder;
 using ::we::editor::services::EditorApplicationContext;
 using ::we::editor::services::IEditorApplicationContext;
-using ::we::editor::panels::Panel;
+using ::we::runtime::kindui::panels::Panel;
 using ::we::editor::shell::TitleBar;
 using ::we::editor::shell::StatusBar;
 

@@ -67,7 +67,7 @@ public:
 
     void Paint(PaintContext& context) override {
         const float uiScale = std::max(1.0f, DPIContext::GetScale());
-        if (m_Hovered) {
+        if (IsHovered()) {
             we::runtime::kindui::ControlChrome::InteractionState state{};
             state.hoverAnim = 1.0f;
             we::runtime::kindui::ControlChrome::PaintListRow(context, m_Geometry, state);
@@ -78,14 +78,8 @@ public:
             m_Geometry.y + (m_Geometry.height - iconSz) * 0.5f,
             iconSz, iconSz
         };
-        IconPainter::Draw(context, m_Icon, iconBand, m_Hovered ? ResolveColor(ColorToken::TextPrimary) : ResolveColor(ColorToken::TextSecondary));
+        IconPainter::Draw(context, m_Icon, iconBand, IsHovered() ? ResolveColor(ColorToken::TextPrimary) : ResolveColor(ColorToken::TextSecondary));
     }
-
-    void OnMouseMove(const MouseEvent& event) override {
-        m_Hovered = m_Geometry.Contains(event.position);
-    }
-
-    void OnHoverLost() override { m_Hovered = false; }
 
     void OnMouseDown(const MouseEvent& event) override {
         if (event.button == MouseButton::Left && m_OnClick) {
@@ -99,7 +93,6 @@ private:
     we::runtime::kindui::WindIconRef m_Icon;
     std::function<void()> m_OnClick;
     std::string m_Tooltip;
-    bool m_Hovered = false;
 };
 
 } // namespace

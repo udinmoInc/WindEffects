@@ -1,8 +1,7 @@
 #include "KindUI/Core/ControlChrome.h"
 #include "LandscapePanelChrome.h"
 
-#include "KindUI/Core/PropertyPanelChrome.h"
-#include "WindEffects/Editor/UI/Panel/PanelChrome.h"
+#include "KindUI/Panel/PanelChrome.h"
 #include "KindUI/Tokens/DesignToken.h"
 #include "KindUI/Theming/StyleRole.h"
 #include "KindUI/Theming/ThemeAccess.h"
@@ -11,6 +10,7 @@
 #include "KindUI/Core/Icon.h"
 #include "KindUI/Rendering/IconMetrics.h"
 #include "KindUI/Core/LayoutMetrics.h"
+#include "KindUI/Core/PropertyPanelChrome.h"
 #include "KindUI/Core/Types.h"
 
 #include <algorithm>
@@ -30,7 +30,7 @@ using we::runtime::kindui::StyleRole;
 using we::runtime::kindui::ResolveInteractiveBackground;
 using we::runtime::kindui::ResolveMetric;
 namespace LayoutMetrics = we::runtime::kindui::LayoutMetrics;
-namespace PanelChromeNs = we::editor::panels::PanelChrome;
+namespace PanelChromeNs = we::runtime::kindui::panels::PanelChrome;
 
 namespace PropertyPanelChrome = we::runtime::kindui::PropertyPanelChrome;
 

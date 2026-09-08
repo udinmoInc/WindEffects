@@ -5,16 +5,16 @@
 #include "WindEffects/Editor/UI/Extensions/UIExtensionRegistry.h"
 #include "KindUI/Core/Widget.h"
 #include "KindUI/Layout/Splitter.h"
-#include "WindEffects/Editor/UI/Widgets/Panel.h"
-#include "WindEffects/Editor/UI/Widgets/DockContainer.h"
+#include "KindUI/Panel/Panel.h"
+#include "KindUI/Docking/DockContainer.h"
 
 #include <unordered_map>
 
 namespace we::editor::shell {
 using ::we::runtime::kindui::Widget;
 using ::we::runtime::kindui::Splitter;
-using ::we::editor::panels::Panel;
-using ::we::editor::docking::DockContainer;
+using ::we::runtime::kindui::panels::Panel;
+using ::we::runtime::kindui::docking::DockContainer;
 using ::we::editor::docking::WorkspaceLayout;
 using ::we::editor::docking::DockLayoutNode;
 using ::we::editor::extensions::UIExtensionRegistry;

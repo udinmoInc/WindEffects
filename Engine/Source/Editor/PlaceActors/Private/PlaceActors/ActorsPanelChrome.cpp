@@ -1,7 +1,7 @@
 #include "PlaceActors/ActorsPanelChrome.h"
 
 #include "PlaceActors/ActorsPanelLayout.h"
-#include "WindEffects/Editor/UI/Panel/PanelChrome.h"
+#include "KindUI/Panel/PanelChrome.h"
 #include "KindUI/Core/ControlChrome.h"
 #include "KindUI/Theming/ThemeAccess.h"
 #include "KindUI/Tokens/DesignToken.h"
@@ -19,7 +19,7 @@ using ::we::runtime::kindui::Point;
 using ::we::runtime::kindui::Rect;
 using ::we::runtime::kindui::ColorToken;
 using ::we::runtime::kindui::MetricToken;
-namespace PanelChrome = ::we::editor::panels::PanelChrome;
+namespace PanelChrome = ::we::runtime::kindui::panels::PanelChrome;
 
 void PaintActorRowBackground(
     PaintContext& context,

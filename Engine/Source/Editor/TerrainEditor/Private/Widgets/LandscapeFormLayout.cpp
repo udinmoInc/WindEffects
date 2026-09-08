@@ -6,8 +6,7 @@
 #include "KindUI/Core/PropertyPanelChrome.h"
 #include "KindUI/Core/Widgets/DesignSystemControls.h"
 #include "KindUI/Widgets/Components.h"
-#include "KindUI/Widgets/Label.h"
-#include "WindEffects/Editor/UI/Panel/PanelChrome.h"
+#include "KindUI/Panel/PanelChrome.h"
 #include "KindUI/Tokens/ChromeSeparation.h"
 #include "KindUI/Tokens/DesignToken.h"
 #include "KindUI/Theming/ThemeAccess.h"
@@ -21,7 +20,7 @@ namespace we::editor::terrain {
 namespace {
 
 using namespace we::runtime::kindui;
-namespace PanelChrome = we::editor::panels::PanelChrome;
+namespace PanelChrome = we::runtime::kindui::panels::PanelChrome;
 
 class FormSectionTitleWidget final : public Widget {
 public:

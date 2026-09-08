@@ -149,10 +149,6 @@ void EditorModeSelector::OnMouseDown(const MouseEvent& event) {
     m_Pressed = false;
 }
 
-void EditorModeSelector::OnMouseMove(const MouseEvent& event) {
-    m_Hovered = m_Geometry.Contains(event.position);
-}
-
 void EditorModeSelector::OpenModeMenu() {
     auto* overlay = GetPopupHost();
     if (!overlay) return;

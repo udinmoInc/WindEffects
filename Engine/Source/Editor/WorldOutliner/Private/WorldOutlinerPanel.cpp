@@ -1,10 +1,10 @@
+#include "WindEffects/Editor/EditorSDK.h"
 #include "Explorer/WorldOutlinerApi.h"
 #include "Explorer/ExplorerPanelAssets.h"
 #include "WorldOutliner/WorldOutlinerSession.h"
 #include "WorldOutliner/OutlinerTypes.h"
-#include "WindEffects/Editor/EditorSDK.h"
-#include "WindEffects/Editor/UI/Widgets/Panel.h"
-#include "WindEffects/Editor/UI/Widgets/PanelBuilder.h"
+#include "KindUI/Panel/Panel.h"
+#include "KindUI/Panel/PanelBuilder.h"
 #include "ContentBrowser/Widgets/TreeView.h"
 #include "ContentBrowser/Widgets/TreeColumnHeader.h"
 #include "Widgets/ExplorerPanelHeader.h"
@@ -29,8 +29,8 @@ using ::we::runtime::kindui::TypographyToken;
 
 using namespace ::we::runtime::kindui;
 using namespace ::we::runtime::kindui;
-using ::we::editor::panels::Panel;
-using ::we::editor::panels::PanelBuilder;
+using ::we::runtime::kindui::panels::Panel;
+using ::we::runtime::kindui::panels::PanelBuilder;
 using ::we::editor::docking::DockZone;
 using ::we::editor::outliner::ExplorerPanelHeader;
 using ::we::editor::outliner::ExplorerFilterMenu;

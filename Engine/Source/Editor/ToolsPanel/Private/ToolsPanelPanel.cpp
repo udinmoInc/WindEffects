@@ -1,6 +1,7 @@
 #include "WindEffects/Editor/EditorSDK.h"
 #include "WindEffects/Editor/UI/Shell/EditorModeController.h"
-#include "WindEffects/Editor/UI/Widgets/PanelBuilder.h"
+#include "KindUI/Panel/Panel.h"
+#include "KindUI/Panel/PanelBuilder.h"
 #include "Widgets/ToolsPanel.h"
 
 namespace we::programs::editor {
@@ -8,8 +9,8 @@ namespace WindIcons = ::we::runtime::kindui::WindIcons;
 using ::we::runtime::kindui::kWindIconNone;
 
 using namespace ::we::runtime::kindui;
-using ::we::editor::panels::Panel;
-using ::we::editor::panels::PanelBuilder;
+using ::we::runtime::kindui::panels::Panel;
+using ::we::runtime::kindui::panels::PanelBuilder;
 using ::we::editor::docking::DockZone;
 using ::we::editor::shell::EditorModeController;
 using ::we::editor::toolspanel::EditorToolsRegistry;

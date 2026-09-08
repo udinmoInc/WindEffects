@@ -2,7 +2,7 @@
 #include "PropertyEditor/IDetailsView.h"
 #include "PropertyEditorInternal.h"
 
-#include "WindEffects/Editor/UI/Widgets/Panel.h"
+#include "KindUI/Panel/Panel.h"
 #include "KindUI/Core/DPIContext.h"
 #include "KindUI/Core/WindIcon.h"
 #include "KindUI/Core/Icon.h"
@@ -35,7 +35,7 @@ namespace Layout = we::runtime::kindui::LayoutMetrics;
 namespace PanelChrome = we::runtime::kindui::PropertyPanelChrome;
 using we::runtime::kindui::ResolveMetric;
 using we::runtime::kindui::MetricToken;
-using ::we::editor::panels::Panel;
+using ::we::runtime::kindui::panels::Panel;
 
 [[nodiscard]] bool HasDetailsSelection(const IDetailsView* details) {
     return details && details->HasSelection();

@@ -435,4 +435,4 @@ std::shared_ptr<Widget> PanelBodyLayout::HitTestPoint(const Point& pos, const Re
     return shared_from_this();
 }
 
-} // namespace we::editor::panels
+} // namespace we::runtime::kindui::panels

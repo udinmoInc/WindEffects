@@ -9,7 +9,7 @@
 #include "KindUI/Core/Icon.h"
 #include "KindUI/Core/Animator.h"
 #include "KindUI/Widgets/Label.h"
-#include "WindEffects/Editor/UI/Widgets/Panel.h"
+#include "KindUI/Panel/Panel.h"
 #include "Widgets/ToolButton.h"
 #include "KindUI/Core/DPIContext.h"
 #include "KindUI/Rendering/IconMetrics.h"
@@ -37,8 +37,6 @@ using ::we::runtime::kindui::VerticalAlignment;
 namespace WindIcons = ::we::runtime::kindui::WindIcons;
 using ::we::runtime::kindui::kWindIconNone;
 namespace IconMetrics = ::we::runtime::kindui::IconMetrics;
-
-using ::we::editor::panels::Panel;
 
 namespace {
     class FixedGap : public Widget {

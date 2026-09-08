@@ -8,8 +8,7 @@
 #include "WindEffects/Editor/UI/UIFramework.h"
 #include "WindEffects/Editor/UI/Extensions/ExtensionBootstrap.h"
 #include "WindEffects/Editor/UI/Builders/PanelDescriptorBuilder.h"
-#include "WindEffects/Editor/UI/Builders/PanelBuilder.h"
-#include "WindEffects/Editor/UI/Panel/PanelBodyLayout.h"
-
-#include "WindEffects/Editor/UI/Widgets/Panel.h"
+#include "KindUI/Panel/PanelBuilder.h"
+#include "KindUI/Panel/PanelBodyLayout.h"
+#include "KindUI/Panel/Panel.h"
 #include "WindEffects/Editor/UI/Shell/EditorToolsRegistry.h"

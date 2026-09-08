@@ -533,14 +533,6 @@ void ToolButton::OnMouseUp(const MouseEvent& event) {
     }
 }
 
-void ToolButton::OnMouseMove(const MouseEvent& event) {
-    const bool nextHovered = m_Geometry.Contains(event.position);
-    if (nextHovered != m_Hovered) {
-        m_Hovered = nextHovered;
-        InvalidatePaint();
-    }
-}
-
 void ToolButton::OnMouseWheel(const MouseEvent& event) {
     if (m_OnMouseWheel && m_Geometry.Contains(event.position)) {
         m_OnMouseWheel(event.wheelDeltaY);

@@ -1,7 +1,7 @@
 #include "Platform/Platform.h"
 #include "Widgets/ToolsPanel.h"
-#include "WindEffects/Editor/UI/Panel/PanelChrome.h"
-#include "WindEffects/Editor/UI/Panel/PanelBodyLayout.h"
+#include "KindUI/Panel/PanelChrome.h"
+#include "KindUI/Panel/PanelBodyLayout.h"
 #include "WindEffects/Editor/UI/Shell/EditorModeController.h"
 #include "WindEffects/Editor/UI/Shell/EditorToolsRegistry.h"
 #include "KindUI/Core/Widgets/PanelToolbarRow.h"
@@ -51,10 +51,10 @@ using ::we::runtime::kindui::ColorToken;
 using ::we::runtime::kindui::MetricToken;
 using ::we::runtime::kindui::PaddingToken;
 using ::we::runtime::kindui::PanelToolbarRow;
-namespace PanelChrome = ::we::editor::panels::PanelChrome;
+namespace PanelChrome = ::we::runtime::kindui::panels::PanelChrome;
 
 namespace {
-namespace PanelChrome = ::we::editor::panels::PanelChrome;
+namespace PanelChrome = ::we::runtime::kindui::panels::PanelChrome;
 
 std::string ToUpper(std::string value) {
     for (char& ch : value) {
@@ -111,7 +111,7 @@ private:
 ToolsPanel::ToolsPanel() {
     m_State.Load();
 
-    m_BodyLayout = std::make_shared<::we::editor::panels::PanelBodyLayout>();
+    m_BodyLayout = std::make_shared<::we::runtime::kindui::panels::PanelBodyLayout>();
 
     m_SearchRow = std::make_shared<PanelToolbarRow>("Search Actors...");
     m_SearchRow->Finalize();
@@ -146,8 +146,8 @@ void ToolsPanel::InitializeFromRegistry(const std::shared_ptr<ToolsPanel>& self)
     std::weak_ptr<ToolsPanel> weak = self;
     if (m_BodyLayout && m_BodyLayout->GetParent() != self) {
         AddChild(m_BodyLayout);
-        m_BodyLayout->SetRegion(::we::editor::panels::PanelBodyRegion::Search, m_SearchRow);
-        m_BodyLayout->SetRegion(::we::editor::panels::PanelBodyRegion::Content, m_ContentHost);
+        m_BodyLayout->SetRegion(::we::runtime::kindui::panels::PanelBodyRegion::Search, m_SearchRow);
+        m_BodyLayout->SetRegion(::we::runtime::kindui::panels::PanelBodyRegion::Content, m_ContentHost);
     }
     if (m_SearchRow) {
         m_SearchRow->SetOnSearchChanged([weak](const std::string& text) {
@@ -333,7 +333,7 @@ void ToolsPanel::Arrange(const Rect& allottedRect) {
     }
     if (m_BodyLayout) {
         m_BodyLayout->Arrange(allottedRect);
-        m_ContentRect = m_BodyLayout->GetRegionRect(::we::editor::panels::PanelBodyRegion::Content);
+        m_ContentRect = m_BodyLayout->GetRegionRect(::we::runtime::kindui::panels::PanelBodyRegion::Content);
     } else {
         m_ContentRect = {};
     }
@@ -358,15 +358,15 @@ void ToolsPanel::SyncBodyRegions() {
     if (wantSearch != m_SearchVisible) {
         m_SearchVisible = wantSearch;
         m_BodyLayout->SetRegion(
-            ::we::editor::panels::PanelBodyRegion::Search,
+            ::we::runtime::kindui::panels::PanelBodyRegion::Search,
             wantSearch ? m_SearchRow : nullptr);
     }
 
     if (useCustomContent) {
         RebuildModeContent();
         if (m_ModeContentWidget
-            && m_BodyLayout->GetRegion(::we::editor::panels::PanelBodyRegion::Content) != m_ModeContentWidget) {
-            m_BodyLayout->SetRegion(::we::editor::panels::PanelBodyRegion::Content, m_ModeContentWidget);
+            && m_BodyLayout->GetRegion(::we::runtime::kindui::panels::PanelBodyRegion::Content) != m_ModeContentWidget) {
+            m_BodyLayout->SetRegion(::we::runtime::kindui::panels::PanelBodyRegion::Content, m_ModeContentWidget);
         }
         return;
     }
@@ -374,8 +374,8 @@ void ToolsPanel::SyncBodyRegions() {
     m_ModeContentWidget.reset();
     m_ModeContentModeId.clear();
     m_ModeContentSearchText.clear();
-    if (m_BodyLayout->GetRegion(::we::editor::panels::PanelBodyRegion::Content) != m_ContentHost) {
-        m_BodyLayout->SetRegion(::we::editor::panels::PanelBodyRegion::Content, m_ContentHost);
+    if (m_BodyLayout->GetRegion(::we::runtime::kindui::panels::PanelBodyRegion::Content) != m_ContentHost) {
+        m_BodyLayout->SetRegion(::we::runtime::kindui::panels::PanelBodyRegion::Content, m_ContentHost);
     }
 }
 
@@ -472,7 +472,7 @@ void ToolsPanel::RebuildLayout() {
 
     m_PanelRect = Rect{ m_Geometry.x, m_Geometry.y, width, m_Geometry.height };
     if (m_BodyLayout) {
-        m_ContentRect = m_BodyLayout->GetRegionRect(::we::editor::panels::PanelBodyRegion::Content);
+        m_ContentRect = m_BodyLayout->GetRegionRect(::we::runtime::kindui::panels::PanelBodyRegion::Content);
     }
     if (m_ModeContentWidget) {
         m_Sections.clear();
@@ -597,7 +597,7 @@ std::shared_ptr<Widget> ToolsPanel::HitTestPoint(const Point& pos, const Rect* c
     }
 
     const Rect searchRect = m_BodyLayout
-        ? m_BodyLayout->GetRegionRect(::we::editor::panels::PanelBodyRegion::Search)
+        ? m_BodyLayout->GetRegionRect(::we::runtime::kindui::panels::PanelBodyRegion::Search)
         : Rect{};
     if (!searchRect.IsEmpty() && searchRect.Contains(pos) && m_SearchRow) {
         if (auto hit = m_SearchRow->HitTestPoint(pos, clip)) {
@@ -661,7 +661,7 @@ void ToolsPanel::OnMouseDown(const MouseEvent& event) {
     }
 
     const Rect searchRect = m_BodyLayout
-        ? m_BodyLayout->GetRegionRect(::we::editor::panels::PanelBodyRegion::Search)
+        ? m_BodyLayout->GetRegionRect(::we::runtime::kindui::panels::PanelBodyRegion::Search)
         : Rect{};
     if (!searchRect.IsEmpty() && searchRect.Contains(event.position) && m_SearchRow) {
         m_SearchRow->OnMouseDown(event);
@@ -695,23 +695,35 @@ void ToolsPanel::OnMouseDown(const MouseEvent& event) {
 }
 
 void ToolsPanel::OnMouseMove(const MouseEvent& event) {
+    bool stateChanged = false;
     if (m_ModeContentWidget) {
         m_ModeContentWidget->OnMouseMove(event);
     } else {
         for (auto& tool : m_ToolHits) {
-            tool.hovered = tool.geometry.Contains(event.position);
+            const bool hover = tool.geometry.Contains(event.position);
+            if (tool.hovered != hover) {
+                tool.hovered = hover;
+                stateChanged = true;
+            }
         }
     }
 
     if (m_ContextMenuOpen) {
-        m_ContextMenuHovered = -1;
+        int nextContextHover = -1;
         for (size_t i = 0; i < m_ContextMenuItems.size(); ++i) {
             if (m_ContextMenuItems[i].geometry.Contains(event.position)) {
-                m_ContextMenuHovered = static_cast<int>(i);
+                nextContextHover = static_cast<int>(i);
                 break;
             }
         }
-        return;
+        if (nextContextHover != m_ContextMenuHovered) {
+            m_ContextMenuHovered = nextContextHover;
+            stateChanged = true;
+        }
+    }
+
+    if (stateChanged) {
+        InvalidatePaint();
     }
 
     if (m_PendingDragTool && !m_DragStarted) {
@@ -723,6 +735,40 @@ void ToolsPanel::OnMouseMove(const MouseEvent& event) {
             m_PendingDragTool = nullptr;
         }
     }
+}
+
+void ToolsPanel::OnHoverLost() {
+    bool stateChanged = false;
+    for (auto& tool : m_ToolHits) {
+        if (tool.hovered) {
+            tool.hovered = false;
+            stateChanged = true;
+        }
+    }
+    if (m_ContextMenuHovered != -1) {
+        m_ContextMenuHovered = -1;
+        stateChanged = true;
+    }
+    if (stateChanged) {
+        InvalidatePaint();
+    }
+}
+
+bool ToolsPanel::ShowsPointerCursor(const we::runtime::kindui::Point& position) const {
+    if (m_ContextMenuOpen && m_ContextMenuRect.Contains(position)) {
+        return true;
+    }
+    for (const auto& section : m_Sections) {
+        if (section.headerRect.Contains(position)) {
+            return true;
+        }
+    }
+    for (const auto& tool : m_ToolHits) {
+        if (tool.geometry.Contains(position)) {
+            return true;
+        }
+    }
+    return false;
 }
 
 void ToolsPanel::OnMouseUp(const MouseEvent& event) {

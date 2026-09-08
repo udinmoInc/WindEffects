@@ -7,9 +7,9 @@
 #include "Widgets/StatusBar.h"
 #include "ContentBrowser/Widgets/ContentBrowser.h"
 #include "ContentBrowser/Widgets/TreeView.h"
-#include "WindEffects/Editor/UI/Widgets/DockContainer.h"
-#include "WindEffects/Editor/UI/Widgets/Panel.h"
-#include "WindEffects/Editor/UI/Panel/PanelChrome.h"
+#include "KindUI/Docking/DockContainer.h"
+#include "KindUI/Panel/Panel.h"
+#include "KindUI/Panel/PanelChrome.h"
 
 #include <algorithm>
 #include <cmath>
@@ -25,9 +25,9 @@ using ::we::editor::toolbar::Toolbar;
 using ::we::editor::shell::StatusBar;
 using ::we::editor::contentbrowser::ContentBrowser;
 using ::we::editor::contentbrowser::TreeView;
-using ::we::editor::docking::DockContainer;
-using ::we::editor::panels::Panel;
-using ::we::editor::panels::PanelBodyRegion;
+using ::we::runtime::kindui::docking::DockContainer;
+using ::we::runtime::kindui::panels::Panel;
+using ::we::runtime::kindui::panels::PanelBodyRegion;
 using ::we::runtime::kindui::UiColorCompositionDiagnostic;
 
 Rect InsetRect(const Rect& rect, float inset) {
@@ -182,7 +182,7 @@ void WalkWidgets(const std::shared_ptr<Widget>& widget, ProbeFlags& flags) {
     if (auto* tree = dynamic_cast<TreeView*>(widget.get())) {
 using ::we::runtime::kindui::UiColorCompositionDiagnostic;
 
-        const float headerH = ::we::editor::panels::PanelChrome::ColumnHeaderRowHeight();
+        const float headerH = ::we::runtime::kindui::panels::PanelChrome::ColumnHeaderRowHeight();
         const float rowH = we::runtime::kindui::ResolveMetric(MetricToken::ListRowHeight);
 
         if (!flags.treeBackground) {

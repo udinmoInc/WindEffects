@@ -1,8 +1,8 @@
 #pragma once
 
+#include "KindUI/Export.h"
 #include "KindUI/Core/WindIcon.h"
-#include "WindEffects/Editor/UI/Export.h"
-#include "WindEffects/Editor/UI/Panel/PanelChrome.h"
+#include "KindUI/Panel/PanelChrome.h"
 #include "KindUI/Core/Widget.h"
 #include "KindUI/Core/PaintContext.h"
 #include "KindUI/Input/InputEvents.h"
@@ -11,7 +11,7 @@
 #include <string>
 #include <vector>
 
-namespace we::editor::panels {
+namespace we::runtime::kindui::panels {
 
 struct PanelModeTabDescriptor {
     std::string id;
@@ -19,8 +19,8 @@ struct PanelModeTabDescriptor {
     we::runtime::kindui::WindIconRef icon = we::runtime::kindui::kWindIconNone;
 };
 
-/// Horizontal mode tab strip for editor tool drawers (Actors, Landscape, etc.).
-class UIFRAMEWORK_API PanelModeTabs : public we::runtime::kindui::Widget {
+/// Horizontal mode tab strip for drawer panels (Actors, Landscape, Tools, etc.).
+class KINDUI_API PanelModeTabs : public we::runtime::kindui::Widget {
 public:
     void SetTabs(std::vector<PanelModeTabDescriptor> tabs);
     void SetActiveTabId(const std::string& tabId);
@@ -37,6 +37,7 @@ public:
     void OnMouseDown(const we::runtime::kindui::MouseEvent& event) override;
     void OnMouseMove(const we::runtime::kindui::MouseEvent& event) override;
     void OnHoverLost() override;
+    bool ShowsPointerCursor(const we::runtime::kindui::Point& position) const override;
 
 private:
     [[nodiscard]] size_t ActiveTabIndex() const;
@@ -50,4 +51,4 @@ private:
     std::function<void(const std::string& tabId)> m_OnTabChanged;
 };
 
-} // namespace we::editor::panels
+} // namespace we::runtime::kindui::panels

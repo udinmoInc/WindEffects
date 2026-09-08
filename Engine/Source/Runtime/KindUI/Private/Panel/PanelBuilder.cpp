@@ -1,18 +1,16 @@
-#include "WindEffects/Editor/UI/Builders/PanelBuilder.h"
+#include "KindUI/Panel/PanelBuilder.h"
 #include "KindUI/Theming/ThemeAccess.h"
 #include "KindUI/Tokens/DesignToken.h"
 #include "KindUI/Core/Geometry.h"
 #include "KindUI/Core/WindIcon.h"
 
-// Rebuilt PanelBuilder API implementation for UIFramework
 using ::we::runtime::kindui::ColorToken;
 using ::we::runtime::kindui::MetricToken;
 using ::we::runtime::kindui::ResolveMetric;
 using ::we::runtime::kindui::Margin;
 namespace WindIcons = ::we::runtime::kindui::WindIcons;
 
-// Re-compiled for PanelBuilder API updates
-namespace we::editor::panels {
+namespace we::runtime::kindui::panels {
 using ::we::runtime::kindui::Row;
 
 PanelBuilder::PanelBuilder(std::string_view title)
@@ -118,4 +116,4 @@ std::shared_ptr<Panel> PanelBuilder::Build() const {
     return m_Panel;
 }
 
-} // namespace we::editor::panels
+} // namespace we::runtime::kindui::panels

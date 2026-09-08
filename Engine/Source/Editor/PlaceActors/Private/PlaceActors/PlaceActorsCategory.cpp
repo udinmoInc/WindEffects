@@ -17,7 +17,7 @@ using ::we::runtime::kindui::DPIContext;
 using ::we::runtime::kindui::IconPainter;
 namespace WindIcons = ::we::runtime::kindui::WindIcons;
 using ::we::runtime::kindui::kWindIconNone;
-namespace PanelChrome = ::we::editor::panels::PanelChrome;
+namespace PanelChrome = ::we::runtime::kindui::panels::PanelChrome;
 
 
 using ::we::runtime::kindui::Color;

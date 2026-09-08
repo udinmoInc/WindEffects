@@ -3,9 +3,9 @@
 #include "WindEffects/Editor/UI/Export.h"
 #include "WindEffects/Editor/UI/Docking/IDockManager.h"
 #include "WindEffects/Editor/UI/Shell/DockLayoutBuilder.h"
-#include "WindEffects/Editor/UI/Widgets/Panel.h"
-#include "WindEffects/Editor/UI/Widgets/DockContainer.h"
-#include "WindEffects/Editor/UI/Widgets/FloatingPanelFrame.h"
+#include "KindUI/Panel/Panel.h"
+#include "KindUI/Docking/DockContainer.h"
+#include "KindUI/Docking/FloatingPanelFrame.h"
 #include "KindUI/Layout/IPopupHost.h"
 #include "KindUI/Layout/OverlayManager.h"
 #include "KindUI/Layout/Splitter.h"
@@ -29,7 +29,7 @@ public:
 
     void RegisterPanel(
         const std::string& panelId,
-        const std::shared_ptr<::we::editor::panels::Panel>& panel,
+        const std::shared_ptr<::we::runtime::kindui::panels::Panel>& panel,
         ::we::editor::docking::DockZone zone);
 
     void TogglePanelVisibility(const std::string& panelId);
@@ -37,15 +37,15 @@ public:
     [[nodiscard]] bool IsPanelVisible(const std::string& panelId) const;
     void FloatPanel(const std::string& panelId);
     void FloatPanelAt(const std::string& panelId, const ::we::runtime::kindui::Point& position);
-    void FloatPanelWidget(const std::shared_ptr<::we::editor::panels::Panel>& panel);
+    void FloatPanelWidget(const std::shared_ptr<::we::runtime::kindui::panels::Panel>& panel);
     void FloatPanelWidget(
-        const std::shared_ptr<::we::editor::panels::Panel>& panel,
+        const std::shared_ptr<::we::runtime::kindui::panels::Panel>& panel,
         const ::we::runtime::kindui::Point& position);
-    void HidePanelWidget(const std::shared_ptr<::we::editor::panels::Panel>& panel);
+    void HidePanelWidget(const std::shared_ptr<::we::runtime::kindui::panels::Panel>& panel);
     void DockPanel(const std::string& panelId);
     void DockPanelTo(
         const std::string& panelId,
-        const std::shared_ptr<::we::editor::docking::DockContainer>& targetDock);
+        const std::shared_ptr<::we::runtime::kindui::docking::DockContainer>& targetDock);
     /// Apply deferred float/dock after input + menu callbacks finish.
     void FlushPendingDockActions();
     /// Force core editor panels into their assigned docks (clears accidental floats).
@@ -73,12 +73,12 @@ private:
 
     struct FloatingHost {
         int id = 0;
-        std::shared_ptr<::we::editor::docking::FloatingPanelFrame> frame;
-        std::shared_ptr<::we::editor::docking::DockContainer> dock;
+        std::shared_ptr<::we::runtime::kindui::docking::FloatingPanelFrame> frame;
+        std::shared_ptr<::we::runtime::kindui::docking::DockContainer> dock;
     };
 
     struct PanelEntry {
-        std::shared_ptr<::we::editor::panels::Panel> panel;
+        std::shared_ptr<::we::runtime::kindui::panels::Panel> panel;
         int floatHostId = -1;
         ::we::editor::docking::DockZone zone = ::we::editor::docking::DockZone::Floating;
         ::we::editor::docking::DockZone homeZone = ::we::editor::docking::DockZone::Floating;
@@ -90,7 +90,7 @@ private:
     void BeginFloating(PanelEntry& entry, const std::string& panelId, const ::we::runtime::kindui::Point& position);
     void ApplyDockPanel(
         const std::string& panelId,
-        const std::shared_ptr<::we::editor::docking::DockContainer>& targetDock = nullptr);
+        const std::shared_ptr<::we::runtime::kindui::docking::DockContainer>& targetDock = nullptr);
     void ShowFloatingOptionsMenu(const std::string& panelId);
     void UpdateEmptyDockVisibility();
     void WireFloatingDock(FloatingHost& host);
@@ -99,21 +99,21 @@ private:
     [[nodiscard]] FloatingHost* FindFloatingHost(int hostId);
     [[nodiscard]] const FloatingHost* FindFloatingHost(int hostId) const;
     [[nodiscard]] FloatingHost* FindFloatingHostByDock(
-        const ::we::editor::docking::DockContainer* dock);
+        const ::we::runtime::kindui::docking::DockContainer* dock);
     [[nodiscard]] FloatingHost* FindFloatingHostAtTabStrip(
         const ::we::runtime::kindui::Point& cursor,
         int excludeHostId = -1);
-    [[nodiscard]] std::shared_ptr<::we::editor::docking::DockContainer> FindZoneDockAtTabStrip(
+    [[nodiscard]] std::shared_ptr<::we::runtime::kindui::docking::DockContainer> FindZoneDockAtTabStrip(
         const ::we::runtime::kindui::Point& cursor) const;
     [[nodiscard]] FloatingHost& CreateFloatingHost(
         const ::we::runtime::kindui::Point& position,
         const ::we::runtime::kindui::Size& size);
     [[nodiscard]] ::we::editor::docking::DockZone ZoneForDock(
-        const std::shared_ptr<::we::editor::docking::DockContainer>& dock) const;
-    [[nodiscard]] std::string FindPanelId(const ::we::editor::panels::Panel* panel) const;
+        const std::shared_ptr<::we::runtime::kindui::docking::DockContainer>& dock) const;
+    [[nodiscard]] std::string FindPanelId(const ::we::runtime::kindui::panels::Panel* panel) const;
 
-    std::shared_ptr<::we::editor::docking::DockContainer> DockForPanel(const std::string& panelId) const;
-    std::shared_ptr<::we::editor::docking::DockContainer> DockForZone(
+    std::shared_ptr<::we::runtime::kindui::docking::DockContainer> DockForPanel(const std::string& panelId) const;
+    std::shared_ptr<::we::runtime::kindui::docking::DockContainer> DockForZone(
         ::we::editor::docking::DockZone zone) const;
 
     ::we::editor::shell::DockLayoutBuildResult m_Layout;
@@ -126,7 +126,7 @@ private:
     std::string m_PendingFloatId;
     ::we::runtime::kindui::Point m_PendingFloatPos{};
     std::string m_PendingDockId;
-    std::shared_ptr<::we::editor::docking::DockContainer> m_PendingDockTarget;
+    std::shared_ptr<::we::runtime::kindui::docking::DockContainer> m_PendingDockTarget;
 
     float m_ToolsPaneWidth = 300.0f;
     float m_RightSidebarWidth = 340.0f;

@@ -141,6 +141,24 @@ void MenuBar::OnMouseDown(const MouseEvent& event) {
     }
 }
 
+void MenuBar::OnHoverLost() {
+    bool changed = false;
+    for (auto& menu : m_VisibleMenus) {
+        if (menu.hovered) {
+            menu.hovered = false;
+            changed = true;
+        }
+    }
+    if (m_MoreMenu.hovered) {
+        m_MoreMenu.hovered = false;
+        changed = true;
+    }
+    m_HoveredMenu = -1;
+    if (changed) {
+        InvalidatePaint();
+    }
+}
+
 void MenuBar::OnMouseMove(const MouseEvent& event) {
     auto* overlay = GetPopupHost();
     if (m_MenuOpen && overlay && !overlay->HasOpenPopups()) {
@@ -149,15 +167,26 @@ void MenuBar::OnMouseMove(const MouseEvent& event) {
 
     MenuInfo* menu = GetMenuAtPosition(event.position);
     int newHovered = -1;
+    bool hoverChanged = false;
 
     for (size_t i = 0; i < m_VisibleMenus.size(); ++i) {
         bool h = (&m_VisibleMenus[i] == menu);
-        m_VisibleMenus[i].hovered = h;
+        if (m_VisibleMenus[i].hovered != h) {
+            m_VisibleMenus[i].hovered = h;
+            hoverChanged = true;
+        }
         if (h) newHovered = static_cast<int>(i);
     }
     bool moreH = (&m_MoreMenu == menu);
-    m_MoreMenu.hovered = moreH;
+    if (m_MoreMenu.hovered != moreH) {
+        m_MoreMenu.hovered = moreH;
+        hoverChanged = true;
+    }
     if (moreH) newHovered = static_cast<int>(m_VisibleMenus.size());
+
+    if (hoverChanged) {
+        InvalidatePaint();
+    }
 
     if (menu && newHovered >= 0) {
         if (m_MenuOpen && overlay && m_HoveredMenu != newHovered) {

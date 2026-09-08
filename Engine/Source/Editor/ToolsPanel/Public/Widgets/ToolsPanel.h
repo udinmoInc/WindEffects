@@ -5,7 +5,7 @@
 #include "KindUI/Core/Widget.h"
 #include "KindUI/Core/PaintContext.h"
 #include "KindUI/Core/Widgets/PanelToolbarRow.h"
-#include "WindEffects/Editor/UI/Panel/PanelBodyLayout.h"
+#include "KindUI/Panel/PanelBodyLayout.h"
 #include "WindEffects/Editor/UI/Shell/EditorToolsRegistry.h"
 #include "ToolsPanelState.h"
 #include <functional>
@@ -39,7 +39,9 @@ public:
     void OnMouseDown(const we::runtime::kindui::MouseEvent& event) override;
     void OnMouseMove(const we::runtime::kindui::MouseEvent& event) override;
     void OnMouseUp(const we::runtime::kindui::MouseEvent& event) override;
+    void OnHoverLost() override;
     void OnKeyDown(const we::runtime::kindui::KeyEvent& event) override;
+    bool ShowsPointerCursor(const we::runtime::kindui::Point& position) const override;
 
     [[nodiscard]] std::shared_ptr<we::runtime::kindui::Widget> HitTestPoint(
         const we::runtime::kindui::Point& pos,
@@ -91,7 +93,7 @@ private:
 
     std::string m_SearchText;
     std::shared_ptr<::we::runtime::kindui::PanelToolbarRow> m_SearchRow;
-    std::shared_ptr<::we::editor::panels::PanelBodyLayout> m_BodyLayout;
+    std::shared_ptr<::we::runtime::kindui::panels::PanelBodyLayout> m_BodyLayout;
     std::shared_ptr<we::runtime::kindui::Widget> m_ContentHost;
     std::shared_ptr<we::runtime::kindui::Widget> m_ModeContentWidget;
     std::string m_ModeContentModeId;

@@ -1,5 +1,5 @@
 #include "ContentBrowser/Widgets/ContentBrowserToolbar.h"
-#include "WindEffects/Editor/UI/Panel/PanelChrome.h"
+#include "KindUI/Panel/PanelChrome.h"
 #include "KindUI/Core/LayoutMetrics.h"
 #include "ContentBrowser/Widgets/SearchBox.h"
 #include "ContentBrowser/Widgets/ContentBrowser.h"
@@ -51,7 +51,7 @@ using ::we::runtime::kindui::MakeSecondaryAction;
 using ::we::runtime::kindui::Animator;
 using ::we::runtime::kindui::IconColorRole;
 using ::we::editor::widgets::SearchBox;
-namespace PanelChrome = ::we::editor::panels::PanelChrome;
+namespace PanelChrome = ::we::runtime::kindui::panels::PanelChrome;
 
 namespace {
 

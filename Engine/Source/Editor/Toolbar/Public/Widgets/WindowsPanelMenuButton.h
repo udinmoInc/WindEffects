@@ -32,7 +32,6 @@ public:
     void Arrange(const ::we::runtime::kindui::Rect& allottedRect) override;
     void Paint(::we::runtime::kindui::PaintContext& context) override;
     void OnMouseDown(const ::we::runtime::kindui::MouseEvent& event) override;
-    void OnMouseMove(const ::we::runtime::kindui::MouseEvent& event) override;
     void OnMouseUp(const ::we::runtime::kindui::MouseEvent& event) override;
     bool ShowsPointerCursor(const ::we::runtime::kindui::Point& position) const override;
 
@@ -45,8 +44,6 @@ private:
     std::vector<WindowsPanelMenuEntry> m_Entries;
     std::function<void(const std::string& panelId)> m_OnTogglePanel;
     std::function<bool(const std::string& panelId)> m_IsPanelVisible;
-    bool m_Hovered = false;
-    bool m_Pressed = false;
     float m_HoverAnim = 0.0f;
 };
 

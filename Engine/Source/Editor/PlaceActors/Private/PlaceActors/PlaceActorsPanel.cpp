@@ -3,7 +3,7 @@
 
 #include "PlaceActors/ActorsPanelLayout.h"
 #include "PlaceActors/ActorsPanelChrome.h"
-#include "WindEffects/Editor/UI/Panel/PanelBodyLayout.h"
+#include "KindUI/Panel/PanelBodyLayout.h"
 #include "PlaceActors/PlaceActorsCatalog.h"
 #include "PlaceActors/PlaceActorsConfig.h"
 #include "PlaceActors/PlaceActorsSearch.h"
@@ -20,7 +20,7 @@
 #include "ContentBrowser/Widgets/SearchBox.h"
 #include "Widgets/ToolButton.h"
 #include "KindUI/Core/Widgets/PanelToolbarRow.h"
-#include "WindEffects/Editor/UI/Panel/PanelChrome.h"
+#include "KindUI/Panel/PanelChrome.h"
 #include "KindUI/Layout/Flex.h"
 #include "KindUI/Layout/ScrollViewport.h"
 #include "KindUI/Core/PaintContext.h"
@@ -43,7 +43,7 @@ using ::we::runtime::kindui::DPIContext;
 using ::we::runtime::kindui::Animator;
 namespace WindIcons = ::we::runtime::kindui::WindIcons;
 using ::we::runtime::kindui::kWindIconNone;
-namespace PanelChrome = ::we::editor::panels::PanelChrome;
+namespace PanelChrome = ::we::runtime::kindui::panels::PanelChrome;
 
 namespace {
 
@@ -156,7 +156,7 @@ PlaceActorsPanel::PlaceActorsPanel() {
     config.EnsureLoaded();
     m_ViewMode = config.defaultView;
 
-    m_BodyLayout = std::make_shared<::we::editor::panels::PanelBodyLayout>();
+    m_BodyLayout = std::make_shared<::we::runtime::kindui::panels::PanelBodyLayout>();
 
     m_SearchRow = std::make_shared<PanelToolbarRow>("Search Assets...");
     m_SearchRow->AddIconButton(WindIcons::ListFilter16, []() {});
@@ -188,8 +188,8 @@ void PlaceActorsPanel::InitializeCallbacks(const std::shared_ptr<PlaceActorsPane
     std::weak_ptr<PlaceActorsPanel> weak = self;
     if (m_BodyLayout && m_BodyLayout->GetParent() != self) {
         AddChild(m_BodyLayout);
-        m_BodyLayout->SetRegion(::we::editor::panels::PanelBodyRegion::Search, m_SearchRow);
-        m_BodyLayout->SetRegion(::we::editor::panels::PanelBodyRegion::Content, m_ContentHost);
+        m_BodyLayout->SetRegion(::we::runtime::kindui::panels::PanelBodyRegion::Search, m_SearchRow);
+        m_BodyLayout->SetRegion(::we::runtime::kindui::panels::PanelBodyRegion::Content, m_ContentHost);
     }
     if (m_SearchRow) {
         m_SearchRow->SetOnSearchChanged([weak](const std::string& /*text*/) {
@@ -595,7 +595,7 @@ void PlaceActorsPanel::Arrange(const Rect& allottedRect) {
     m_Geometry = allottedRect;
     if (m_BodyLayout) {
         m_BodyLayout->Arrange(allottedRect);
-        m_ContentRect = m_BodyLayout->GetRegionRect(::we::editor::panels::PanelBodyRegion::Content);
+        m_ContentRect = m_BodyLayout->GetRegionRect(::we::runtime::kindui::panels::PanelBodyRegion::Content);
     }
 
     const bool geometryChanged =
