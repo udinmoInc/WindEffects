@@ -206,7 +206,10 @@ EditorShellResult EditorShellBuilder::Build(
     }
     menuBar->AddMenu("Window", windowItems);
 
-    workspace.SetOnPanelVisibilityChanged([&windowMenuBindings, &workspace]() {
+    // NOTE: windowMenuBindings is captured BY VALUE. The workspace outlives
+    // this builder function — a reference capture would dangle and crash
+    // inside IsPanelVisible on later footer-tab clicks.
+    workspace.SetOnPanelVisibilityChanged([windowMenuBindings, &workspace]() {
         for (const auto& binding : windowMenuBindings) {
             binding.item->checked = workspace.IsPanelVisible(binding.panelId);
         }

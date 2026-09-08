@@ -1,7 +1,5 @@
-#include "WindEffects/Editor/UI/Widgets/DockContainer.h"
-#include "WindEffects/Editor/UI/Panel/PanelChrome.h"
-#include "WindEffects/Editor/UI/Shell/EditorWorkspaceController.h"
-#include "Widgets/DropdownMenu.h"
+#include "KindUI/Docking/DockContainer.h"
+#include "KindUI/Panel/PanelChrome.h"
 #include "KindUI/Profiling/UiGeometryDebug.h"
 #include "KindUI/Core/WindIcon.h"
 #include "KindUI/Core/Icon.h"
@@ -19,8 +17,8 @@ using ::we::runtime::kindui::MetricToken;
 using ::we::runtime::kindui::DPIContext;
 using ::we::runtime::kindui::AssertLayoutRectValid;
 
-namespace we::editor::docking {
-namespace PanelChrome = ::we::editor::panels::PanelChrome;
+namespace we::runtime::kindui::docking {
+namespace PanelChrome = ::we::runtime::kindui::panels::PanelChrome;
 
 DockContainer::DockContainer() {
     m_HeaderHeightLogical = ThemeMetric(MetricToken::PanelTabHeight);
@@ -133,18 +131,10 @@ void DockContainer::SetActiveTab(int index) {
 
 void DockContainer::Tick(float deltaTime) {
     Widget::Tick(deltaTime);
-    const float speed = 12.0f;
-    bool hoverChanged = false;
+    const float speed = 18.0f;
     for (auto& tab : m_Tabs) {
         const float target = tab.isHovered ? 1.0f : 0.0f;
-        const float previous = tab.hoverAnim;
-        tab.hoverAnim += (target - tab.hoverAnim) * std::min(1.0f, deltaTime * speed);
-        if (std::abs(tab.hoverAnim - previous) > we::runtime::kindui::Animator::kSettleEpsilon) {
-            hoverChanged = true;
-        }
-    }
-    if (hoverChanged) {
-        InvalidatePaint();
+        tab.hoverAnim = we::runtime::kindui::Animator::Damp(tab.hoverAnim, target, speed, deltaTime);
     }
 }
 
@@ -424,6 +414,14 @@ void DockContainer::OnMouseDown(const MouseEvent& event) {
     }
 }
 
+void DockContainer::OnHoverLost() {
+    m_OptionsMenuHovered = false;
+    for (auto& tabInfo : m_Tabs) {
+        tabInfo.isHovered = false;
+        tabInfo.isCloseHovered = false;
+    }
+}
+
 void DockContainer::OnMouseMove(const MouseEvent& event) {
     if (m_TabDragCandidate && m_DragTabIndex >= 0) {
         const float dx = event.position.x - m_DragStart.x;
@@ -540,51 +538,8 @@ void DockContainer::ShowPanelOptionsMenu(const Point& pos) {
         return;
     }
     const auto activePanel = m_Tabs[static_cast<size_t>(m_ActiveTabIndex)].panel;
-
-    std::vector<std::shared_ptr<::we::editor::menus::MenuItem>> items;
-
-    auto floatItem = std::make_shared<::we::editor::menus::MenuItem>();
-    floatItem->label = "Float Panel";
-    floatItem->enabled = true;
-    floatItem->onClick = [activePanel]() {
-        ::we::programs::editor::EditorWorkspaceController::Get().FloatPanelWidget(activePanel);
-    };
-    items.push_back(floatItem);
-
-    auto closeItem = std::make_shared<::we::editor::menus::MenuItem>();
-    closeItem->label = "Close Panel";
-    closeItem->enabled = true;
-    closeItem->onClick = [this, activePanel]() {
-        if (m_OnTabClosed) {
-            m_OnTabClosed(activePanel);
-        }
-    };
-    items.push_back(closeItem);
-
-    if (m_Tabs.size() > 1) {
-        auto closeOthersItem = std::make_shared<::we::editor::menus::MenuItem>();
-        closeOthersItem->label = "Close Other Tabs";
-        closeOthersItem->enabled = true;
-        closeOthersItem->onClick = [this, activePanel]() {
-            std::vector<std::shared_ptr<Panel>> toClose;
-            for (const auto& tab : m_Tabs) {
-                if (tab.panel != activePanel) {
-                    toClose.push_back(tab.panel);
-                }
-            }
-            for (const auto& panel : toClose) {
-                if (m_OnTabClosed) {
-                    m_OnTabClosed(panel);
-                }
-            }
-        };
-        items.push_back(closeOthersItem);
-    }
-
-    auto menu = std::make_shared<::we::editor::menus::DropdownMenu>(items);
-    if (auto* overlay = ::we::programs::editor::GetEditorPopupHost()) {
-        overlay->CloseAllPopups();
-        overlay->ShowPopup(menu, Point{ m_OptionsMenuRect.x, m_OptionsMenuRect.y + m_OptionsMenuRect.height + 2.0f });
+    if (m_OnOptionsMenuRequested) {
+        m_OnOptionsMenuRequested(activePanel, Point{ m_OptionsMenuRect.x, m_OptionsMenuRect.y + m_OptionsMenuRect.height + 2.0f });
     }
 }
 

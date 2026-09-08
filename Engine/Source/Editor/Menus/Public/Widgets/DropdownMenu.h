@@ -29,6 +29,7 @@ public:
     void OnMouseDown(const MouseEvent& event) override;
     void OnMouseMove(const MouseEvent& event) override;
     void OnMouseWheel(const MouseEvent& event) override;
+    void OnHoverLost() override { m_HoveredItem = -1; }
 
 private:
     std::vector<std::shared_ptr<MenuItem>> m_Items;

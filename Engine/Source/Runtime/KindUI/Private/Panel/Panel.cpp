@@ -1,5 +1,5 @@
-#include "WindEffects/Editor/UI/Widgets/Panel.h"
-#include "WindEffects/Editor/UI/Panel/PanelChrome.h"
+#include "KindUI/Panel/Panel.h"
+#include "KindUI/Panel/PanelChrome.h"
 #include "KindUI/Core/PaintContext.h"
 #include "KindUI/Core/WindIcon.h"
 #include "KindUI/Core/Icon.h"
@@ -14,8 +14,8 @@ using ::we::runtime::kindui::MetricToken;
 using ::we::runtime::kindui::PaddingToken;
 using ::we::runtime::kindui::DPIContext;
 
-namespace we::editor::panels {
-namespace Chrome = ::we::editor::panels::PanelChrome;
+namespace we::runtime::kindui::panels {
+namespace Chrome = ::we::runtime::kindui::panels::PanelChrome;
 
 Panel::Panel(const std::string& title)
     : m_Title(title)
@@ -223,6 +223,12 @@ void Panel::OnMouseWheel(const MouseEvent& event) {
     if (m_BodyLayout) {
         m_BodyLayout->OnMouseWheel(event);
     }
+}
+
+void Panel::OnHoverLost() {
+    m_HeaderHovered = false;
+    m_OptionsMenuHovered = false;
+    m_HoveredActionIndex = -1;
 }
 
 void Panel::OnMouseMove(const MouseEvent& event) {

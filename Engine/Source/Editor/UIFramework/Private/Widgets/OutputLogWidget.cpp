@@ -8,6 +8,9 @@ using ::we::runtime::kindui::ColorToken;
 using ::we::runtime::kindui::MetricToken;
 using ::we::runtime::kindui::PaddingToken;
 using ::we::runtime::kindui::Point;
+using ::we::runtime::kindui::Color;
+using ::we::runtime::kindui::Size;
+using ::we::runtime::kindui::Rect;
 
 namespace we::editor::panels {
 

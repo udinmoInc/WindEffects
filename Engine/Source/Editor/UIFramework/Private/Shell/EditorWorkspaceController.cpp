@@ -9,6 +9,7 @@
 #include "KindUI/Layout/Splitter.h"
 #include "KindUI/Layout/OverlayManager.h"
 #include "KindUI/Core/UIRepaintGate.h"
+#include "KindUI/Profiling/PaintCauseLog.h"
 #include "KindUI/Tokens/DesignToken.h"
 #include "KindUI/Theming/ThemeAccess.h"
 #include "Widgets/DropdownMenu.h"
@@ -150,6 +151,7 @@ void EditorWorkspaceController::SetPanelVisible(const std::string& panelId, bool
     if (it == m_Panels.end() || !it->second.panel) {
         return;
     }
+    we::runtime::kindui::UIRepaintGate::ScopedBatch batch;
 
     if (it->second.floating && !visible) {
         DetachPanelFromFloatHost(it->second);
@@ -327,6 +329,7 @@ std::shared_ptr<::we::editor::docking::DockContainer> EditorWorkspaceController:
 }
 
 void EditorWorkspaceController::DestroyFloatingHost(int hostId) {
+    we::runtime::kindui::UIRepaintGate::ScopedBatch batch;
     for (size_t i = 0; i < m_FloatHosts.size(); ++i) {
         if (m_FloatHosts[i].id != hostId) {
             continue;
@@ -391,6 +394,7 @@ void EditorWorkspaceController::WireFloatingDock(FloatingHost& host) {
 EditorWorkspaceController::FloatingHost& EditorWorkspaceController::CreateFloatingHost(
     const we::runtime::kindui::Point& position,
     const we::runtime::kindui::Size& size) {
+    we::runtime::kindui::UIRepaintGate::ScopedBatch batch;
     FloatingHost host;
     host.id = m_NextFloatHostId++;
     host.dock = std::make_shared<::we::editor::docking::DockContainer>();
@@ -450,6 +454,8 @@ EditorWorkspaceController::FloatingHost& EditorWorkspaceController::CreateFloati
     m_PopupHost->ShowPinnedPopup(host.frame, position, size);
 
     m_FloatHosts.push_back(std::move(host));
+    ::we::runtime::kindui::PaintCauseLog::Get().Push(
+        "float-create", WE_PAINT_CALLER);
     return m_FloatHosts.back();
 }
 
@@ -521,6 +527,7 @@ void EditorWorkspaceController::BeginFloating(
     if (!entry.panel || !m_PopupHost) {
         return;
     }
+    we::runtime::kindui::UIRepaintGate::ScopedBatch batch;
 
     // Already floating: resolve drop target under cursor (merge / redock / move host).
     if (entry.floating) {
@@ -729,6 +736,7 @@ void EditorWorkspaceController::DockPanelTo(
 }
 
 void EditorWorkspaceController::FlushPendingDockActions() {
+    we::runtime::kindui::UIRepaintGate::ScopedBatch batch;
     if (!m_PendingFloatId.empty()) {
         const std::string id = m_PendingFloatId;
         const Point pos = m_PendingFloatPos;
@@ -755,6 +763,7 @@ void EditorWorkspaceController::ApplyDockPanel(
     if (it == m_Panels.end() || !it->second.panel) {
         return;
     }
+    we::runtime::kindui::UIRepaintGate::ScopedBatch batch;
 
     PanelEntry& entry = it->second;
     if (!entry.floating) {
@@ -846,6 +855,7 @@ void EditorWorkspaceController::EnsureDefaultDockPlacement() {
     m_PendingFloatId.clear();
     m_PendingDockId.clear();
     m_PendingDockTarget.reset();
+    we::runtime::kindui::UIRepaintGate::ScopedBatch batch;
 
     // Tear down all floating hosts first.
     while (!m_FloatHosts.empty()) {
@@ -1110,6 +1120,7 @@ void EditorWorkspaceController::Reset() {
     m_PendingFloatId.clear();
     m_PendingDockId.clear();
     m_PendingDockTarget.reset();
+    we::runtime::kindui::UIRepaintGate::ScopedBatch batch;
 
     while (!m_FloatHosts.empty()) {
         DestroyFloatingHost(m_FloatHosts.front().id);

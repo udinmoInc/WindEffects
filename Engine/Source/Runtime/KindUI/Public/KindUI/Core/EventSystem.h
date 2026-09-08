@@ -32,6 +32,11 @@ public:
     void SetCapturedWidget(const std::shared_ptr<Widget>& widget) { m_CapturedWidget = widget; }
     void SetSuppressSystemCursor(bool suppress) { m_SuppressSystemCursor = suppress; }
 
+    /// Un-highlights the hovered widget and restores the system cursor. Call when
+    /// the pointer leaves the window or the window loses focus so hover can never
+    /// stay pinned on the last hit widget.
+    void ClearHover();
+
     void SetPopupHost(OverlayHost* popupHost) { m_PopupHost = popupHost; }
 
     /// Move keyboard focus to the next/previous focusable widget in tree order.

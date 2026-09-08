@@ -36,6 +36,7 @@ public:
 
     void OnMouseDown(const we::runtime::kindui::MouseEvent& event) override;
     void OnMouseMove(const we::runtime::kindui::MouseEvent& event) override;
+    void OnHoverLost() override;
 
 private:
     [[nodiscard]] size_t ActiveTabIndex() const;

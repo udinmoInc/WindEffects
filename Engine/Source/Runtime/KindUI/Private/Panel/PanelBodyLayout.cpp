@@ -1,6 +1,6 @@
-#include "WindEffects/Editor/UI/Panel/PanelBodyLayout.h"
+#include "KindUI/Panel/PanelBodyLayout.h"
 
-#include "WindEffects/Editor/UI/Panel/PanelChrome.h"
+#include "KindUI/Panel/PanelChrome.h"
 #include "KindUI/Layout/LayoutAssert.h"
 #include "KindUI/Core/LayoutMetrics.h"
 #include "KindUI/Core/DPIContext.h"
@@ -9,7 +9,7 @@
 
 #include <algorithm>
 
-namespace we::editor::panels {
+namespace we::runtime::kindui::panels {
 namespace Chrome = PanelChrome;
 using ::we::runtime::kindui::AssertLayoutRectValid;
 using ::we::runtime::kindui::ClampRectToParent;

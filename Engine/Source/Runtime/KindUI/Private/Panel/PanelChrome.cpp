@@ -1,4 +1,4 @@
-#include "WindEffects/Editor/UI/Panel/PanelChrome.h"
+#include "KindUI/Panel/PanelChrome.h"
 
 #include "KindUI/Core/ControlChrome.h"
 #include "KindUI/Core/PropertyPanelChrome.h"
@@ -31,7 +31,7 @@ using ::we::runtime::kindui::ClampRectToParent;
 namespace WindIcons = ::we::runtime::kindui::WindIcons;
 namespace IconMetrics = ::we::runtime::kindui::IconMetrics;
 
-namespace we::editor::panels {
+namespace we::runtime::kindui::panels {
 using ::we::runtime::kindui::PaintContext;
 using ::we::runtime::kindui::Rect;
 using ::we::runtime::kindui::Color;

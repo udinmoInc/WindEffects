@@ -85,6 +85,8 @@ public:
         m_Hovered = m_Geometry.Contains(event.position);
     }
 
+    void OnHoverLost() override { m_Hovered = false; }
+
     void OnMouseDown(const MouseEvent& event) override {
         if (event.button == MouseButton::Left && m_OnClick) {
             m_OnClick();

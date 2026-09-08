@@ -62,6 +62,7 @@ public:
     void OnMouseDown(const MouseEvent& event) override;
     void OnMouseUp(const MouseEvent& event) override;
     void OnMouseMove(const MouseEvent& event) override;
+    void OnHoverLost() override;
     void OnMouseWheel(const MouseEvent& event) override;
     void OnKeyDown(const KeyEvent& event) override;
     bool ShowsPointerCursor(const Point& position) const override;

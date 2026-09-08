@@ -171,12 +171,42 @@ LRESULT WindowsPlatform::HandleMessage(HWND hwnd, UINT msg, WPARAM wParam, LPARA
 
     case WM_MOUSEMOVE:
         if (window) {
+            if (!m_CursorInWindow) {
+                m_CursorInWindow = true;
+                PushEvent(CursorEnterEvent{window->id, true});
+            }
+            // Arm WM_MOUSELEAVE so the editor can clear hover when the cursor leaves.
+            TRACKMOUSEEVENT tme{ sizeof(TRACKMOUSEEVENT), TME_LEAVE, hwnd, 0 };
+            TrackMouseEvent(&tme);
             PushEvent(MouseMoveEvent{
                 window->id,
                 {GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam)},
                 {},
                 false
             });
+        }
+        return 0;
+
+    case WM_MOUSELEAVE:
+        if (window) {
+            // Verify cursor is actually outside the window client area before firing leave.
+            // Windows can generate spurious WM_MOUSELEAVE when moving within the window.
+            POINT cursorPos;
+            GetCursorPos(&cursorPos);
+            RECT clientRect;
+            GetClientRect(hwnd, &clientRect);
+            POINT clientPt = cursorPos;
+            ScreenToClient(hwnd, &clientPt);
+            bool outside = clientPt.x < 0 || clientPt.y < 0 ||
+                           clientPt.x >= clientRect.right || clientPt.y >= clientRect.bottom;
+            if (outside) {
+                m_CursorInWindow = false;
+                PushEvent(CursorEnterEvent{window->id, false});
+            } else {
+                // Cursor still inside — re-arm leave tracking and keep m_CursorInWindow = true.
+                TRACKMOUSEEVENT tme{ sizeof(TRACKMOUSEEVENT), TME_LEAVE, hwnd, 0 };
+                TrackMouseEvent(&tme);
+            }
         }
         return 0;
 

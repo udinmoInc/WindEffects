@@ -27,6 +27,24 @@ public:
     /// Clears per-frame animation latch; call once at the start of each UI frame.
     static void BeginFrame();
 
+    /// Scoped batching for multi-step structural operations (float/dock a panel,
+    /// swap a dock, teardown/recreate floating hosts). While a batch is open the
+    /// Request*/Mark* calls are recorded as deferred and collapsed into a single
+    /// flag set (plus one cause-log entry per deferred category) when the outermost
+    /// batch closes, so a multi-step operation produces exactly one layout pass and
+    /// one paint pass instead of one per mutated widget.
+    static void BeginBatch();
+    static void EndBatch();
+    [[nodiscard]] static bool InBatch();
+
+    /// RAII wrapper; use as a stack guard around a structural operation.
+    struct ScopedBatch {
+        ScopedBatch() { UIRepaintGate::BeginBatch(); }
+        ~ScopedBatch() { UIRepaintGate::EndBatch(); }
+        ScopedBatch(const ScopedBatch&) = delete;
+        ScopedBatch& operator=(const ScopedBatch&) = delete;
+    };
+
     // Returns true if Measure/Arrange should run this frame.
     [[nodiscard]] static bool ConsumeNeedsLayout();
     // Returns true if Paint + geometry upload should run this frame.
@@ -48,6 +66,10 @@ private:
     static std::atomic<bool> s_NeedsLayout;
     static std::atomic<bool> s_NeedsPaint;
     static std::atomic<bool> s_Animating;
+    static std::atomic<int> s_BatchDepth;
+    static std::atomic<bool> s_BatchDeferredLayout;
+    static std::atomic<bool> s_BatchDeferredPaint;
+    static std::atomic<bool> s_BatchDeferredAnimating;
     static std::atomic<uint64_t> s_RebuildCount;
     static std::atomic<uint64_t> s_SkipCount;
     static std::atomic<uint64_t> s_LayoutRebuildCount;

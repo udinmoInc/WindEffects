@@ -1,6 +1,6 @@
-#include "WindEffects/Editor/UI/Widgets/FloatingPanelFrame.h"
+#include "KindUI/Docking/FloatingPanelFrame.h"
 
-#include "WindEffects/Editor/UI/Panel/PanelChrome.h"
+#include "KindUI/Panel/PanelChrome.h"
 #include "KindUI/Core/PaintContext.h"
 #include "KindUI/Core/WindIcon.h"
 #include "KindUI/Tokens/DesignToken.h"
@@ -10,7 +10,7 @@
 #include <algorithm>
 #include <cmath>
 
-namespace we::editor::docking {
+namespace we::runtime::kindui::docking {
 namespace {
 
 using ::we::runtime::kindui::Color;
@@ -34,7 +34,7 @@ constexpr float kMinTitleOnlyHeight = 28.0f;
 FloatingPanelFrame::FloatingPanelFrame() = default;
 
 float FloatingPanelFrame::WindowControlsWidth() const {
-    const float scale = ::we::editor::panels::PanelChrome::UiScale();
+    const float scale = ::we::runtime::kindui::panels::PanelChrome::UiScale();
     const float controlW = ::we::runtime::kindui::ResolveMetric(MetricToken::WindowControlWidth) * scale;
     return controlW * 3.0f;
 }
@@ -49,7 +49,7 @@ void FloatingPanelFrame::SyncDockTrailingReserve() {
 }
 
 float FloatingPanelFrame::LeadingLogoWidth() const {
-    const float scale = ::we::editor::panels::PanelChrome::UiScale();
+    const float scale = ::we::runtime::kindui::panels::PanelChrome::UiScale();
     const float pad = ::we::runtime::kindui::ResolveMetric(MetricToken::Space2) * scale;
     const float icon = 16.0f * scale;
     // Logo + pads only on floating windows — docked panels keep flush tabs.
@@ -76,7 +76,7 @@ std::shared_ptr<DockContainer> FloatingPanelFrame::TakeDock() {
     return dock;
 }
 
-void FloatingPanelFrame::SetPanel(std::shared_ptr<::we::editor::panels::Panel> panel) {
+void FloatingPanelFrame::SetPanel(std::shared_ptr<::we::runtime::kindui::panels::Panel> panel) {
     if (!panel) {
         return;
     }
@@ -92,12 +92,12 @@ void FloatingPanelFrame::SetPanel(std::shared_ptr<::we::editor::panels::Panel> p
     m_Dock->FocusPanel(panel);
 }
 
-std::shared_ptr<::we::editor::panels::Panel> FloatingPanelFrame::GetActivePanel() const {
+std::shared_ptr<::we::runtime::kindui::panels::Panel> FloatingPanelFrame::GetActivePanel() const {
     return m_Dock ? m_Dock->GetActivePanel() : nullptr;
 }
 
-std::shared_ptr<::we::editor::panels::Panel> FloatingPanelFrame::TakePanel(
-    const std::shared_ptr<::we::editor::panels::Panel>& panel) {
+std::shared_ptr<::we::runtime::kindui::panels::Panel> FloatingPanelFrame::TakePanel(
+    const std::shared_ptr<::we::runtime::kindui::panels::Panel>& panel) {
     if (!m_Dock || !panel || !m_Dock->ContainsPanel(panel)) {
         return nullptr;
     }
@@ -148,17 +148,17 @@ float FloatingPanelFrame::TitleBarHeight() const {
         return m_Dock->GetHeaderHeightDevice();
     }
     return ::we::runtime::kindui::ResolveMetric(MetricToken::PanelTabHeight)
-        * ::we::editor::panels::PanelChrome::UiScale();
+        * ::we::runtime::kindui::panels::PanelChrome::UiScale();
 }
 
 float FloatingPanelFrame::ResizeBorder() const {
-    return 6.0f * ::we::editor::panels::PanelChrome::UiScale();
+    return 6.0f * ::we::runtime::kindui::panels::PanelChrome::UiScale();
 }
 
 void FloatingPanelFrame::RelayoutChrome() {
     SyncDockTrailingReserve();
     const float titleH = TitleBarHeight();
-    const float scale = ::we::editor::panels::PanelChrome::UiScale();
+    const float scale = ::we::runtime::kindui::panels::PanelChrome::UiScale();
     const float controlW = ::we::runtime::kindui::ResolveMetric(MetricToken::WindowControlWidth) * scale;
     const float controlH = titleH;
     const float pad = ::we::runtime::kindui::ResolveMetric(MetricToken::Space2) * scale;
@@ -300,7 +300,7 @@ void FloatingPanelFrame::Paint(::we::runtime::kindui::PaintContext& context) {
                 : ThemeColor(ColorToken::HoverBackground);
             context.DrawRect(rect, hover);
         }
-        ::we::editor::panels::PanelChrome::PaintHeaderIconButton(
+        ::we::runtime::kindui::panels::PanelChrome::PaintHeaderIconButton(
             context, rect, icon, hovered, false, true);
     };
 
@@ -387,6 +387,10 @@ void FloatingPanelFrame::OnMouseDown(const ::we::runtime::kindui::MouseEvent& ev
     if (m_Dock && !m_Minimized) {
         m_Dock->OnMouseDown(event);
     }
+}
+
+void FloatingPanelFrame::OnHoverLost() {
+    m_HoveredControl = -1;
 }
 
 void FloatingPanelFrame::OnMouseMove(const ::we::runtime::kindui::MouseEvent& event) {

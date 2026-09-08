@@ -46,7 +46,7 @@ uint32_t DX12Swapchain::MaxFrameLatencyFromEnvironment() const {
             return static_cast<uint32_t>(value);
         }
     }
-    return 1;
+    return 2;
 }
 
 void DX12Swapchain::QueryRefreshRate(HWND hwnd) {
@@ -89,6 +89,11 @@ RHIResult<void> DX12Swapchain::Create(const DeviceDesc& desc) {
     m_Format = Format::B8G8R8A8_SRGB;
     m_Vsync = desc.vsync;
     m_MaxFrameLatency = MaxFrameLatencyFromEnvironment();
+    // Flip-model presents serialize to the monitor refresh when BufferCount is too
+    // small, causing the CPU to stall on every-other vblank (~half fps). Ensure the
+    // swapchain has at least one more backbuffer than the configured frame latency
+    // (and always >= 3) so Present never blocks the frame loop.
+    m_BufferCount = (std::max)(3u, (desc.framesInFlight ? desc.framesInFlight : 2u) + 1u);
     QueryRefreshRate(hwnd);
 
     ComPtr<IDXGIFactory4> factory = m_Device->GetFactory();
@@ -111,7 +116,7 @@ RHIResult<void> DX12Swapchain::Create(const DeviceDesc& desc) {
     scDesc.SampleDesc.Count = 1;
     scDesc.SampleDesc.Quality = 0;
     scDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
-    scDesc.BufferCount = 2;
+    scDesc.BufferCount = m_BufferCount;
     scDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
     scDesc.Scaling = DXGI_SCALING_STRETCH;
     scDesc.AlphaMode = DXGI_ALPHA_MODE_IGNORE;
@@ -196,13 +201,14 @@ RHIResult<void> DX12Swapchain::Resize(Extent2D extent) {
     m_Extent.width = extent.width ? extent.width : 1;
     m_Extent.height = extent.height ? extent.height : 1;
 
-    const HRESULT hr = m_Swap->ResizeBuffers(2, m_Extent.width, m_Extent.height, DXGI_FORMAT_B8G8R8A8_UNORM_SRGB, 0);
+    const UINT bufferCount = (std::max)(m_BufferCount, 2u);
+    const HRESULT hr = m_Swap->ResizeBuffers(bufferCount, m_Extent.width, m_Extent.height, DXGI_FORMAT_B8G8R8A8_UNORM_SRGB, 0);
     if (FAILED(hr)) {
         return RHIError::Make(RHIErrorCode::BackendFailure, "ResizeBuffers failed.", "Resize", hr);
     }
 
-    m_Handles.resize(2);
-    for (UINT i = 0; i < 2; ++i) {
+    m_Handles.resize(bufferCount);
+    for (UINT i = 0; i < bufferCount; ++i) {
         ComPtr<ID3D12Resource> buffer;
         if (FAILED(m_Swap->GetBuffer(i, IID_PPV_ARGS(&buffer)))) {
             return RHIError::Make(RHIErrorCode::BackendFailure, "GetBuffer failed after resize.", "Resize");
