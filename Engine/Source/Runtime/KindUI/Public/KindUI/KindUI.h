@@ -7,8 +7,16 @@
 //   using namespace we::runtime::kindui;
 //   using namespace we::runtime::kindui::UI;
 //
-// Describe interface structure declaratively; KindUI handles layout, styling,
-// rendering, animation, focus, invalidation, and widget lifetime.
+// HTML-style trees + CSS-style token props (all C++, no .css / WEUI files):
+//   auto page = UI::Fill(UI::Bg(
+//       UI::Pad(UI::Column({
+//           UI::Label("Hello"),
+//           UI::Gap(UI::Row({…}), SpacingToken::Small),
+//       }), PaddingToken::Page),
+//       ColorToken::PanelBackground));
+//
+// Imperative twin on Flex:
+//   column->Background(ColorToken::WorkspaceBackground).Padding(PaddingToken::Panel);
 
 #include "KindUI/Export.h"
 

@@ -176,6 +176,8 @@ TitleBar::TitleBar(we::platform::WindowId window, const std::string& title, we::
     Gap(0.0f);
 }
 
+TitleBar::~TitleBar() = default;
+
 void TitleBar::Construct() {
     const float uiScale = (std::max)(1.0f, DPIContext::GetScale());
     m_LeftContainer = std::make_shared<Row>();
@@ -361,3 +363,5 @@ we::platform::WindowHitTestResult TitleBar::HitTest(we::platform::Int2 point) {
 }
 
 } // namespace we::editor::shell
+
+ 

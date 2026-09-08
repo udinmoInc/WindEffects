@@ -17,3 +17,4 @@ public:
 };
 
 IMPLEMENT_MODULE(MainFrameModule, WindEffects_MainFrame)
+

@@ -104,3 +104,4 @@ float TextMetrics::CharWidth(const float fontSize) {
 }
 
 } // namespace we::runtime::kindui
+ 

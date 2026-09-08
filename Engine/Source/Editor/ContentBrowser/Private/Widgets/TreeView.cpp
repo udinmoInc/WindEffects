@@ -9,7 +9,7 @@
 #include "Services/ContentBrowserBlueprintArt.h"
 #include "KindUI/Core/PaintContext.h"
 #include "KindUI/Panel/PanelChrome.h"
-#include "WindEffects/Editor/UI/Core/ScreenRecorder.h"
+#include "KindUI/Profiling/ScreenRecorder.h"
 #include "KindUI/Theming/ThemeAccess.h"
 #include "KindUI/Tokens/DesignToken.h"
 #include "KindUI/Tokens/DesignSystem.h"
@@ -22,7 +22,6 @@
 #include "KindUI/Rendering/IconMetrics.h"
 #include "KindUI/Core/LayoutMetrics.h"
 #include "KindUI/Profiling/UiGeometryDebug.h"
-#include "WindEffects/Editor/UI/Layout/EditorMetrics.h"
 #include "Text/Layout/TextStyle.h"
 #include <algorithm>
 #include <cmath>
@@ -52,14 +51,13 @@ namespace {
 
 using ::we::editor::contentbrowser::ContentBrowserBlueprintArt;
 using ::we::editor::contentbrowser::ContentBrowserFolderArt;
-namespace EditorMetrics = ::we::editor::layout::EditorMetrics;
 
 float TreeExplorerPrefix(float uiScale) {
-    return EditorMetrics::TreeExplorerPrefixWidth() * uiScale;
+    return 58.0f * uiScale;
 }
 
 float TreeExpanderHit(float uiScale) {
-    return EditorMetrics::TreeExpanderHitSize() * uiScale;
+    return 18.0f * uiScale;
 }
 
 float TreeAccessoryColumnX(float viewportX, int column, float uiScale) {
@@ -532,7 +530,7 @@ void TreeView::Paint(PaintContext& context) {
             "OutlinerRow",
             Rect{ m_Geometry.x, m_Geometry.y, m_Geometry.width, rowHeight },
             "TreeView",
-            EditorMetrics::TreeIndent(),
+            we::runtime::kindui::ResolveMetric(MetricToken::TreeIndentWidth),
             0.0f,
             fontSize,
             16.0f);
@@ -601,7 +599,7 @@ void TreeView::OnMouseUp(const MouseEvent& event) {
         if (m_OnReparentRequested) {
             m_OnReparentRequested(m_DragSourceId, m_DropTargetId);
         }
-        ::we::editor::services::ScreenRecorder::Get().RecordEvent(
+        ::we::runtime::kindui::ScreenRecorder::Get().RecordEvent(
             "tree-drop " + m_DragSourceId + " -> " + m_DropTargetId);
     }
     m_Dragging = false;

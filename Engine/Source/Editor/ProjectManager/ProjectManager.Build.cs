@@ -14,7 +14,6 @@ public class ProjectManager : ModuleRules
         PublicDependencies.Add("Projects");
         PublicDependencies.Add("KindUI");
         PublicDependencies.Add("Text");
-        PublicDependencies.Add("UIFramework");
 
         Definitions.Add("PROJECTMANAGER_EXPORTS");
     }

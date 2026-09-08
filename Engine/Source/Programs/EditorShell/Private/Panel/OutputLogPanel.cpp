@@ -49,3 +49,4 @@ REGISTER_UI_PANEL(OutputLog,
     CreateOutputLogPanel)
 
 } // namespace we::programs::editor
+ 

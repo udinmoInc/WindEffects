@@ -22,7 +22,7 @@ public class Editor : ModuleRules
         PublicDependencies.Add("World");
         PublicDependencies.Add("Text");
         PublicDependencies.Add("KindUI");
-        PublicDependencies.Add("UIFramework");
+        PublicDependencies.Add("EditorShell");
         PublicDependencies.Add("MainFrame");
         PublicDependencies.Add("Viewport");
         PublicDependencies.Add("ContentBrowser");

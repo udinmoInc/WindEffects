@@ -20,17 +20,19 @@ public:
         const float delta = target - current;
         if (std::abs(delta) < kSettleEpsilon) {
             if (current != target) {
-                UIRepaintGate::RequestPaint();
+                // Final snap still needs one paint; use MarkAnimating so the
+                // gate can settle instead of treating every damp as dirty chrome.
+                UIRepaintGate::MarkAnimating();
             }
             return target;
         }
         const float next = std::lerp(current, target, 1.0f - std::exp(-speed * dt));
         if (std::abs(next - target) < kSettleEpsilon) {
-            UIRepaintGate::RequestPaint();
+            UIRepaintGate::MarkAnimating();
             return target;
         }
         if (std::abs(next - current) >= kSettleEpsilon * 0.25f) {
-            UIRepaintGate::RequestPaint();
+            UIRepaintGate::MarkAnimating();
         }
         return next;
     }
@@ -40,13 +42,13 @@ public:
     static float MoveTowards(float current, float target, float maxDelta) {
         if (std::abs(target - current) <= maxDelta) {
             if (current != target) {
-                UIRepaintGate::RequestPaint();
+                UIRepaintGate::MarkAnimating();
             }
             return target;
         }
         const float next = current + std::copysign(maxDelta, target - current);
         if (next != current) {
-            UIRepaintGate::RequestPaint();
+            UIRepaintGate::MarkAnimating();
         }
         return next;
     }

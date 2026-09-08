@@ -36,7 +36,7 @@ enum class ToolButtonStyle {
 class TOOLBAR_API ToolButton : public Widget {
 public:
     ToolButton(we::runtime::kindui::WindIconRef icon, const std::string& label = "", std::function<void()> onClicked = nullptr, const std::string& tooltip = "");
-    virtual ~ToolButton() = default;
+    ~ToolButton() override;
 
     Size Measure(const Size& availableSize) override;
     void Arrange(const Rect& allottedRect) override;
@@ -49,13 +49,13 @@ public:
     bool ShowsPointerCursor(const Point& position) const override { return m_Geometry.Contains(position); }
 
     we::runtime::kindui::WindIconRef GetIcon() const { return m_Icon; }
-    const std::string& GetTooltip() const { return m_Tooltip; }
-    void SetIcon(we::runtime::kindui::WindIconRef icon) { m_Icon = icon; }
-    void SetLabel(const std::string& label) { m_Label = label; m_CachedLabelWidthTextSize = -1.0f; }
-    const std::string& GetLabel() const { return m_Label; }
-    void SetOnMouseWheel(std::function<void(float wheelDeltaY)> onMouseWheel) { m_OnMouseWheel = std::move(onMouseWheel); }
-    void SetTooltip(const std::string& tooltip) { m_Tooltip = tooltip; }
-    void SetOnClicked(std::function<void()> onClicked) { m_OnClicked = onClicked; }
+    const std::string& GetTooltip() const;
+    void SetIcon(we::runtime::kindui::WindIconRef icon);
+    void SetLabel(const std::string& label);
+    const std::string& GetLabel() const;
+    void SetOnMouseWheel(std::function<void(float wheelDeltaY)> onMouseWheel);
+    void SetTooltip(const std::string& tooltip);
+    void SetOnClicked(std::function<void()> onClicked);
     void SetActive(bool active) { m_Active = active; }
     bool IsActive() const { return m_Active; }
     void SetButtonStyle(ToolButtonStyle style) { m_ButtonStyle = style; }
@@ -100,3 +100,5 @@ public:
 };
 
 } // namespace we::editor::toolbar
+
+// dll-boundary: STL mutators live in ToolButton.cpp (639245129207446267)

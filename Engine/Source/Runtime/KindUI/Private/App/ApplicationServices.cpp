@@ -10,3 +10,4 @@ void ApplicationServices::Initialize(std::shared_ptr<IWidgetContext> widgetConte
 }
 
 } // namespace we::runtime::kindui
+ 

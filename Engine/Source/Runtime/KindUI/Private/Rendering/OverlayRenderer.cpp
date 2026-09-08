@@ -383,3 +383,4 @@ IconRenderer* OverlayRenderer::GetIconRenderer() const { return m_IconRenderer.g
 IconManager* OverlayRenderer::GetIconManager() const { return m_IconManager.get(); }
 
 } // namespace we::runtime::kindui
+ 

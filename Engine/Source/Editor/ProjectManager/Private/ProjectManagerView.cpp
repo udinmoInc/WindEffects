@@ -330,3 +330,4 @@ std::shared_ptr<Widget> ProjectManagerView::Build(
 }
 
 } // namespace we::editor::projectmanager
+ 

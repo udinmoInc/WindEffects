@@ -485,3 +485,4 @@ std::shared_ptr<::we::runtime::kindui::Widget> FloatingPanelFrame::HitTestPoint(
 }
 
 } // namespace we::runtime::kindui::docking
+ 

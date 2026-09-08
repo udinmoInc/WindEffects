@@ -25,7 +25,6 @@
 #include "KindUI/Layout/Spacer.h"
 #include "KindUI/Layout/IPopupHost.h"
 #include "KindUI/Profiling/UiGeometryDebug.h"
-#include "WindEffects/Editor/UI/Layout/EditorMetrics.h"
 #include "WindEffects/Editor/UI/Shell/EditorWorkspaceController.h"
 #include <algorithm>
 
@@ -546,7 +545,8 @@ void ContentBrowserToolbarControls::Paint(PaintContext& context) {
             "ContentBrowserToolbar",
             m_Geometry,
             "ContentBrowser",
-            we::editor::layout::EditorMetrics::Scaled(we::runtime::kindui::MetricToken::Space2),
+            we::runtime::kindui::ResolveMetric(we::runtime::kindui::MetricToken::Space2)
+                * (std::max)(1.0f, DPIContext::GetScale()),
             0.0f,
             we::runtime::kindui::ResolveMetric(we::runtime::kindui::MetricToken::TextSizeSmall),
             we::runtime::kindui::ResolveMetric(we::runtime::kindui::MetricToken::IconSizeToolbar));
@@ -633,3 +633,4 @@ void ContentBrowserToolbarControls::SetOnFolderClicked(std::function<void()> cal
 }
 
 } // namespace we::editor::contentbrowser
+ 

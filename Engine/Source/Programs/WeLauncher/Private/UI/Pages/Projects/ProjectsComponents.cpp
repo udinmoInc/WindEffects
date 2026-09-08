@@ -202,3 +202,4 @@ Element PageContent(const ProjectsViewModel& vm) {
 }
 
 } // namespace we::programs::welauncher::projects
+ 

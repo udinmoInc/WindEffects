@@ -32,6 +32,17 @@ DesignButton::DesignButton(std::string label, StyleRole role, WindIconRef icon)
     LayoutMetrics::ApplyButtonMinSize(*this, m_Role);
 }
 
+DesignButton::~DesignButton() = default;
+
+void DesignButton::SetOnClicked(std::function<void()> cb) {
+    m_OnClicked = std::move(cb);
+}
+
+void DesignButton::SetIcon(WindIconRef icon) {
+    m_Icon = icon;
+    InvalidatePaint();
+}
+
 void DesignButton::SetLabel(std::string label) {
     m_Label = std::move(label);
     InvalidatePaint();
@@ -130,6 +141,12 @@ void DesignButton::Tick(float deltaTime) {
 
 IconButton::IconButton(WindIconRef icon)
     : m_Icon(icon) {
+}
+
+IconButton::~IconButton() = default;
+
+void IconButton::SetOnClicked(std::function<void()> cb) {
+    m_OnClicked = std::move(cb);
 }
 
 Size IconButton::Measure(const Size& availableSize) {
@@ -337,6 +354,14 @@ void SearchBoxControl::SetText(std::string text) {
     }
 }
 
+const std::string& SearchBoxControl::GetText() const {
+    return m_Text;
+}
+
+void SearchBoxControl::SetOnChanged(std::function<void(const std::string&)> cb) {
+    m_OnChanged = std::move(cb);
+}
+
 Size SearchBoxControl::Measure(const Size& availableSize) {
     const float minW = m_MinSize.width > 0.0f
         ? m_MinSize.width
@@ -432,6 +457,12 @@ PanelTab::PanelTab(std::string label)
     SetMinSize({ 0.0f, ResolveMetric(MetricToken::PanelTabHeight) });
 }
 
+PanelTab::~PanelTab() = default;
+
+void PanelTab::SetOnClicked(std::function<void()> cb) {
+    m_OnClicked = std::move(cb);
+}
+
 Size PanelTab::Measure(const Size& availableSize) {
     const float padH = ResolveMetric(MetricToken::Space3);
     const float fontSize = ResolveMetric(MetricToken::TextSizeCaption);
@@ -485,6 +516,17 @@ void PanelTab::Tick(float deltaTime) {
 SidebarItem::SidebarItem(std::string label, WindIconRef icon)
     : m_Label(std::move(label))
     , m_Icon(icon) {
+}
+
+SidebarItem::~SidebarItem() = default;
+
+void SidebarItem::SetOnClicked(std::function<void()> cb) {
+    m_OnClicked = std::move(cb);
+}
+
+void SidebarItem::SetLabel(std::string label) {
+    m_Label = std::move(label);
+    InvalidatePaint();
 }
 
 Size SidebarItem::Measure(const Size& availableSize) {
@@ -632,3 +674,5 @@ std::shared_ptr<PanelTab> MakePanelTab(std::string label) {
 }
 
 } // namespace we::runtime::kindui
+ 
+ 

@@ -16,7 +16,7 @@ class KINDUI_API ToolbarGlyphButton : public Widget {
 public:
     ToolbarGlyphButton(WindIconRef icon, StyleRole role, MetricToken sizeToken, MetricToken iconSizeToken);
 
-    void SetOnClicked(std::function<void()> callback) { m_OnClicked = std::move(callback); }
+    void SetOnClicked(std::function<void()> callback);
     void SetSelected(bool selected) { Widget::SetSelected(selected); }
 
     Size Measure(const Size& availableSize) override;

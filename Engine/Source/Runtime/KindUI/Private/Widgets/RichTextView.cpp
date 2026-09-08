@@ -128,3 +128,4 @@ void RichTextView::Paint(PaintContext& context) {
 }
 
 } // namespace we::runtime::kindui
+ 

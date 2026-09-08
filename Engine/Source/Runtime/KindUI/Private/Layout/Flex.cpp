@@ -1,5 +1,6 @@
 #include "KindUI/Layout/Flex.h"
 #include "KindUI/Layout/LayoutAssert.h"
+#include "KindUI/Theming/ThemeAccess.h"
 
 #include <algorithm>
 #include <cmath>
@@ -38,6 +39,22 @@ Flex::Flex(FlexDirection direction) : m_Direction(direction) {}
 Flex& Flex::Style(std::string className) {
     SetStyleClass(std::move(className));
     return *this;
+}
+
+Flex& Flex::Gap(SpacingToken token) {
+    return Gap(ResolveSpacing(token));
+}
+
+Flex& Flex::Padding(PaddingToken token) {
+    return Padding(ResolvePadding(token));
+}
+
+Flex& Flex::Background(ColorToken token) {
+    return Background(ResolveColor(token));
+}
+
+Flex& Flex::Radius(RadiusToken token) {
+    return Radius(ResolveRadius(token));
 }
 
 Size Flex::Measure(const Size& availableSize) {
@@ -312,7 +329,11 @@ void Flex::Arrange(const Rect& allottedRect) {
 void Flex::Paint(PaintContext& context) {
     ClearPaintDirty();
     if (m_HasBackground) {
-        context.DrawRect(m_Geometry, m_Background);
+        if (m_Radius > 0.0f) {
+            context.DrawRoundedRect(m_Geometry, m_Background, m_Radius);
+        } else {
+            context.DrawRect(m_Geometry, m_Background);
+        }
     }
     for (auto& child : m_Children) {
         if (child && child->IsVisible()) {
@@ -330,3 +351,4 @@ std::shared_ptr<Column> MakeColumn() {
 }
 
 } // namespace we::runtime::kindui
+ 

@@ -934,3 +934,4 @@ Rect InsetSearchRect(const Rect& toolbarRect, float searchWidth) {
 } // namespace PanelChrome
 
 } // namespace we::runtime::kindui::panels
+ 

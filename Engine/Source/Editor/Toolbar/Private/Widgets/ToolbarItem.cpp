@@ -47,3 +47,5 @@ std::shared_ptr<ToolbarGroup> MakeGroup(ToolbarGroupStyle style) {
 
 } // namespace ToolbarItem
 } // namespace we::editor::toolbar
+
+ 

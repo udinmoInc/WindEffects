@@ -20,3 +20,4 @@ void UiGpuUpload::SubmitOneTime(const std::function<void(we::rhi::IRHICommandLis
 }
 
 } // namespace we::runtime::kindui
+ 

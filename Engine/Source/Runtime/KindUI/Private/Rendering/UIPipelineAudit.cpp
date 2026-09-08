@@ -13,3 +13,4 @@ StageValidation UIPipelineAudit::ValidateRenderPassStage(we::rhi::IRHICommandLis
 }
 
 } // namespace we::runtime::kindui
+ 

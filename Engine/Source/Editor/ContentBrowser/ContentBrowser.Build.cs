@@ -14,7 +14,7 @@ public class ContentBrowser : ModuleRules
         PublicDependencies.Add("Platform");
         PublicDependencies.Add("Engine");
         PublicDependencies.Add("KindUI");
-        PublicDependencies.Add("UIFramework");
+        PublicDependencies.Add("EditorShell");
         PublicDependencies.Add("Text");
         PublicDependencies.Add("AssetTools");
         PublicDependencies.Add("AssetImporter");

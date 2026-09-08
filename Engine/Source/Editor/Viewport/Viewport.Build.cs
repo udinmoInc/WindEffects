@@ -17,7 +17,7 @@ public class Viewport : ModuleRules
         PublicDependencies.Add("Scene");
         PublicDependencies.Add("KindUI");
         PublicDependencies.Add("Text");
-        PublicDependencies.Add("UIFramework");
+        PublicDependencies.Add("EditorShell");
         PrivateDependencies.Add("Toolbar");
         PrivateDependencies.Add("PlaceActors");
         PrivateDependencies.Add("Terrain");

@@ -27,3 +27,4 @@ IResourceRegistry& WidgetContext::GetResourceRegistry() const {
 }
 
 } // namespace we::runtime::kindui
+ 

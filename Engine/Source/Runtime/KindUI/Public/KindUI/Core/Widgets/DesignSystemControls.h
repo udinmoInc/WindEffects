@@ -16,10 +16,11 @@ namespace we::runtime::kindui {
 class KINDUI_API DesignButton : public Widget {
 public:
     DesignButton(std::string label, StyleRole role, WindIconRef icon = kWindIconNone);
+    ~DesignButton() override;
 
-    void SetOnClicked(std::function<void()> cb) { m_OnClicked = std::move(cb); }
+    void SetOnClicked(std::function<void()> cb);
     void SetLabel(std::string label);
-    void SetIcon(WindIconRef icon) { m_Icon = icon; }
+    void SetIcon(WindIconRef icon);
 
     Size Measure(const Size& availableSize) override;
     void Arrange(const Rect& allottedRect) override;
@@ -71,8 +72,9 @@ public:
 class KINDUI_API IconButton : public Widget {
 public:
     explicit IconButton(WindIconRef icon = kWindIconNone);
+    ~IconButton() override;
 
-    void SetOnClicked(std::function<void()> cb) { m_OnClicked = std::move(cb); }
+    void SetOnClicked(std::function<void()> cb);
     void SetActive(bool active) { m_Active = active; }
     void SetBorderless(bool borderless) { m_Borderless = borderless; }
 
@@ -137,8 +139,8 @@ public:
     explicit SearchBoxControl(std::string placeholder = "Search...");
 
     void SetText(std::string text);
-    [[nodiscard]] const std::string& GetText() const { return m_Text; }
-    void SetOnChanged(std::function<void(const std::string&)> cb) { m_OnChanged = std::move(cb); }
+    [[nodiscard]] const std::string& GetText() const;
+    void SetOnChanged(std::function<void(const std::string&)> cb);
     void SetToolbarFlat(bool flat) { m_ToolbarFlat = flat; }
     void SetToolbarInset(bool inset);
     void SetWidth(float width) { m_Width = width; InvalidateLayout(); }
@@ -170,9 +172,10 @@ private:
 class KINDUI_API PanelTab : public Widget {
 public:
     explicit PanelTab(std::string label);
+    ~PanelTab() override;
 
     void SetActive(bool active) { m_Active = active; InvalidatePaint(); }
-    void SetOnClicked(std::function<void()> cb) { m_OnClicked = std::move(cb); }
+    void SetOnClicked(std::function<void()> cb);
 
     Size Measure(const Size& availableSize) override;
     void Arrange(const Rect& allottedRect) override;
@@ -192,10 +195,11 @@ private:
 class KINDUI_API SidebarItem : public Widget {
 public:
     SidebarItem(std::string label, WindIconRef icon = kWindIconNone);
+    ~SidebarItem() override;
 
     void SetActive(bool active) { m_Active = active; }
-    void SetOnClicked(std::function<void()> cb) { m_OnClicked = std::move(cb); }
-    void SetLabel(std::string label) { m_Label = std::move(label); InvalidatePaint(); }
+    void SetOnClicked(std::function<void()> cb);
+    void SetLabel(std::string label);
 
     Size Measure(const Size& availableSize) override;
     void Arrange(const Rect& allottedRect) override;

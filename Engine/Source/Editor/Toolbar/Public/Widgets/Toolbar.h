@@ -42,7 +42,7 @@ enum class ToolbarGroupStyle {
 class TOOLBAR_API Toolbar : public Widget {
 public:
     Toolbar();
-    virtual ~Toolbar() = default;
+    ~Toolbar() override;
 
     Size Measure(const Size& availableSize) override;
     void Arrange(const Rect& allottedRect) override;

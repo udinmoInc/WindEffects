@@ -379,3 +379,4 @@ void PaintContext::DrawColorTexture(const Rect& rect, we::rhi::RHIDescriptorSetH
 }
 
 } // namespace we::runtime::kindui
+ 

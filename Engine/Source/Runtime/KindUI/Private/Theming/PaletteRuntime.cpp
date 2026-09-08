@@ -452,3 +452,4 @@ bool ReloadGraphiteDarkPaletteIfChanged() {
 }
 
 } // namespace we::runtime::kindui::palette
+ 

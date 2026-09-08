@@ -11,6 +11,8 @@ namespace we::editor::shell {
 
 WindowShell::WindowShell() = default;
 
+WindowShell::~WindowShell() = default;
+
 void WindowShell::SetContent(const std::shared_ptr<Widget>& content) {
     if (m_Content) {
         RemoveChild(m_Content);

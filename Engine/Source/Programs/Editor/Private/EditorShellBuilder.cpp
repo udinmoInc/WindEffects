@@ -429,11 +429,11 @@ EditorShellResult EditorShellBuilder::Build(
     if (shellResult.layout.root) {
         const float dockGapV = style.Scaled(2.5f);
         const float dockGapH = style.Scaled(2.5f);
+        // CSS-like token styling on Flex (imperative twin of UI::Bg / Padding).
         auto workspaceArea = std::make_shared<Column>();
         workspaceArea->Gap(0.0f);
-        // Gap cuts around the workspace: left/right (2.5px + 2.5px panel inset = 5.0px total), top/bottom (5.0px total)
         workspaceArea->Padding(Margin{ dockGapH, dockGapV, dockGapH, dockGapV });
-        workspaceArea->Background(ResolveColor(ColorToken::WorkspaceBackground));
+        workspaceArea->Background(ColorToken::WorkspaceBackground);
         workspaceArea->SetFlexGrow(1.0f);
         workspaceArea->SetFlexShrink(0.0f);
         workspaceArea->SetVerticalAlignment(VerticalAlignment::Fill);
@@ -473,7 +473,7 @@ EditorShellResult EditorShellBuilder::Build(
         deps.onLayoutBuilt(shellResult.layout);
     }
 
-    HE_INFO("[UIFramework] Editor shell assembled from workspace layout configuration.");
+    HE_INFO("[EditorShell] Editor shell assembled from KindUI widgets + workspace layout.");
     return shellResult;
 }
 

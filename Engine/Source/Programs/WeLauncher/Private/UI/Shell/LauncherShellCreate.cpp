@@ -399,3 +399,4 @@ void LauncherShell::RebuildCreateWizard() {
     InvalidateUI();
 }
 } // namespace we::programs::welauncher
+ 

@@ -459,3 +459,4 @@ void LauncherShell::ShowPage(LauncherPage page) {
 }
 
 } // namespace we::programs::welauncher
+ 

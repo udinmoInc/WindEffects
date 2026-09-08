@@ -22,7 +22,7 @@ public class ViewportEdit : ModuleRules
         PublicDependencies.Add("Undo");
         PublicDependencies.Add("PropertyEditor");
         PublicDependencies.Add("KindUI");
-        PublicDependencies.Add("UIFramework");
+        PublicDependencies.Add("EditorShell");
 
         PrivateDependencies.Add("RHI");
         PrivateDependencies.Add("Renderer");

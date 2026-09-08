@@ -42,3 +42,4 @@ void IconRenderer::ClearCache() {
 }
 
 } // namespace we::runtime::kindui
+ 

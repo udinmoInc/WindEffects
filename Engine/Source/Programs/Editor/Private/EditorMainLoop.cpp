@@ -16,7 +16,7 @@
 #include "Platform/PlatformSDK.h"
 #include "Widgets/ViewportWidget.h"
 #include "WindEffects/Editor/UI/Core/EditorPerfStats.h"
-#include "WindEffects/Editor/UI/Core/ScreenRecorder.h"
+#include "KindUI/Profiling/ScreenRecorder.h"
 #include "WindEffects/Editor/UI/Shell/EditorWorkspaceController.h"
 #include "WindEffects/Editor/UI/Widgets/RenderInvestigationModal.h"
 
@@ -161,7 +161,8 @@ void Editor::MainLoop() {
                 MarkOsInput(InteractionKindForMouse(mouseEvent));
                 m_UIEventSystem->ProcessMouseEvent(mouseEvent);
                 m_LastSampledMousePos = move->position;
-                requestUiPaint = true;
+                // Do not force a full UI rebuild on every move — hover/press
+                // widgets already InvalidatePaint when their state actually changes.
             } else if (const auto* raw = std::get_if<we::platform::RawMouseEvent>(&event)) {
                 UI::MouseEvent mouseEvent{};
                 mouseEvent.type = UI::MouseEventType::MouseMove;
@@ -176,7 +177,6 @@ void Editor::MainLoop() {
                 MarkOsInput(UI::UiInteractionKind::MouseMove);
                 m_UIEventSystem->ProcessMouseEvent(mouseEvent);
                 m_LastSampledMousePos = pos;
-                requestUiPaint = true;
             } else if (const auto* button = std::get_if<we::platform::MouseButtonEvent>(&event)) {
                 if (we::runtime::kindui::UIRepaintGate::PeekNeedsLayout()) {
                     SyncViewportFramebufferFromLayout();
@@ -433,14 +433,14 @@ void Editor::MainLoop() {
                 stats.alphaIndices);
             we::runtime::kindui::UiPathDiagnostics::Get().SetGeometryVertices(stats.vertices);
             we::runtime::kindui::UiPathDiagnostics::Get().EndFrame();
-            ::we::editor::services::ScreenRecorder::Get().RecordFrame();
+            ::we::runtime::kindui::ScreenRecorder::Get().RecordFrame();
         }
 
         if (we::runtime::kindui::UiInputLatencyAudit::IsEnabled()) {
             ++m_LatencyAuditFrameCounter;
             if (m_LatencyAuditFrameCounter % 300 == 0) {
     we::runtime::kindui::UiInputLatencyAudit::Get().FlushPendingReport();
-    ::we::editor::services::ScreenRecorder::Get().Shutdown();
+    ::we::runtime::kindui::ScreenRecorder::Get().Shutdown();
             }
         }
     }

@@ -18,7 +18,6 @@ public class CrashReporter : ModuleRules
         PrivateDependencies.Add("Renderer");
         PrivateDependencies.Add("RHI");
         PrivateDependencies.Add("KindUI");
-        PrivateDependencies.Add("UIFramework");
 
         AddOptionalThirdParty("nlohmann_json");
 

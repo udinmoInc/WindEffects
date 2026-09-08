@@ -17,7 +17,7 @@ public class Environment : ModuleRules
         PublicDependencies.Add("Renderer");
         PublicDependencies.Add("KindUI");
         PublicDependencies.Add("Text");
-        PublicDependencies.Add("UIFramework");
+        PublicDependencies.Add("EditorShell");
         PublicDependencies.Add("World");
         PublicDependencies.Add("Reflection");
         PrivateDependencies.Add("PropertyEditor");

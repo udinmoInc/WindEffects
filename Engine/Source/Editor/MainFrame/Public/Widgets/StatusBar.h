@@ -24,7 +24,7 @@ using ::we::runtime::kindui::Row;
 class MAINFRAME_API StatusBar : public Row {
 public:
     StatusBar();
-    ~StatusBar() override = default;
+    ~StatusBar() override;
 
     void Construct() override;
     Size Measure(const Size& availableSize) override;

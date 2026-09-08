@@ -137,3 +137,4 @@ bool PanelModeTabs::ShowsPointerCursor(const we::runtime::kindui::Point& positio
 }
 
 } // namespace we::runtime::kindui::panels
+ 

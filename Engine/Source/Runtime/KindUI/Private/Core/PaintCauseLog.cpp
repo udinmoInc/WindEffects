@@ -192,3 +192,4 @@ std::vector<PaintCauseLog::ResolvedCause> PaintCauseLog::Drain() {
 }
 
 } // namespace we::runtime::kindui
+ 

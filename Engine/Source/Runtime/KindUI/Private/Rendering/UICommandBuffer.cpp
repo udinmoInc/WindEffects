@@ -25,3 +25,4 @@ void UICommandBuffer::EndRecording() {}
 void UICommandBuffer::Execute(we::rhi::IRHICommandList*) {}
 
 } // namespace we::runtime::kindui
+ 
