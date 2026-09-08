@@ -53,6 +53,18 @@ public:
     [[nodiscard]] Rect GetTabStripRect() const { return m_HeaderRect; }
     [[nodiscard]] Rect GetContentRect() const { return m_ContentRect; }
     [[nodiscard]] bool IsVisibleDock() const { return IsVisible(); }
+    [[nodiscard]] std::shared_ptr<Panel> GetActivePanel() const;
+    [[nodiscard]] std::vector<std::shared_ptr<Panel>> GetPanels() const;
+    /// Reserve right-side header space (e.g. floating window min/max/close).
+    void SetTrailingReservedWidth(float width);
+    [[nodiscard]] float GetTrailingReservedWidth() const { return m_TrailingReservedWidth; }
+    /// Reserve left-side header space (e.g. floating window logo).
+    void SetLeadingReservedWidth(float width);
+    [[nodiscard]] float GetLeadingReservedWidth() const { return m_LeadingReservedWidth; }
+    void SetShowOptionsMenu(bool show);
+    [[nodiscard]] bool ShowsOptionsMenu() const { return m_ShowOptionsMenu; }
+    /// True when pos hits a tab, tab-close, or options control (not empty drag area).
+    [[nodiscard]] bool IsTabStripInteractiveHit(const Point& pos) const;
 
     /// Logical (pre-DPI) tab strip height. Device height = logical * DPIContext::GetScale().
     void SetHeaderHeightLogical(float logicalPx) {
@@ -84,6 +96,9 @@ private:
     int m_ActiveTabIndex = -1;
 
     float m_HeaderHeightLogical = 0.0f;
+    float m_TrailingReservedWidth = 0.0f;
+    float m_LeadingReservedWidth = 0.0f;
+    bool m_ShowOptionsMenu = true;
     Rect m_HeaderRect;
     Rect m_HeaderContentGapRect;
     Rect m_ContentRect;

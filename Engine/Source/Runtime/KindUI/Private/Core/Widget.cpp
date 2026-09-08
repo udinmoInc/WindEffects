@@ -1,5 +1,6 @@
 #include "KindUI/Core/Widget.h"
 #include "KindUI/Core/UIRepaintGate.h"
+#include "KindUI/Profiling/PaintCauseLog.h"
 #include "KindUI/Core/WidgetContext.h"
 #include "KindUI/Layout/IPopupHost.h"
 #include "KindUI/Profiling/UiPathDiagnostics.h"
@@ -61,6 +62,7 @@ void Widget::InvalidatePaint() {
         return;
     }
     m_NeedsPaint = true;
+    PaintCauseLog::Get().Push("invalidate", WE_PAINT_CALLER);
     UIRepaintGate::RequestPaint();
     UiPathDiagnostics::Get().OnPaintInvalidation();
     UiInputLatencyAudit::Get().OnInvalidation();

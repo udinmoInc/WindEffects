@@ -168,6 +168,15 @@ public:
         return m_Pages[pageIndex];
     }
 
+    uint64_t PageVersion(const uint32_t pageIndex) const override
+    {
+        std::lock_guard lock(m_Mutex);
+        if (pageIndex >= m_Pages.size()) {
+            return 0;
+        }
+        return m_Pages[pageIndex].version;
+    }
+
     size_t PageCount() const override
     {
         std::lock_guard lock(m_Mutex);

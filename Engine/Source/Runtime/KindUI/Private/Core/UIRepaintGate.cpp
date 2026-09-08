@@ -1,4 +1,5 @@
 #include "KindUI/Core/UIRepaintGate.h"
+#include "KindUI/Profiling/PaintCauseLog.h"
 
 namespace we::runtime::kindui {
 
@@ -12,19 +13,23 @@ std::atomic<uint64_t> UIRepaintGate::s_PaintRebuildCount{0};
 std::atomic<uint64_t> UIRepaintGate::s_IdleSkipCount{0};
 
 void UIRepaintGate::Request() {
+    PaintCauseLog::Get().Push("gate-all", WE_PAINT_CALLER);
     s_NeedsLayout.store(true, std::memory_order_release);
     s_NeedsPaint.store(true, std::memory_order_release);
 }
 
 void UIRepaintGate::RequestLayout() {
+    PaintCauseLog::Get().Push("gate-layout", WE_PAINT_CALLER);
     s_NeedsLayout.store(true, std::memory_order_release);
 }
 
 void UIRepaintGate::RequestPaint() {
+    PaintCauseLog::Get().Push("gate-paint", WE_PAINT_CALLER);
     s_NeedsPaint.store(true, std::memory_order_release);
 }
 
 void UIRepaintGate::MarkAnimating() {
+    PaintCauseLog::Get().Push("gate-anim", WE_PAINT_CALLER);
     s_Animating.store(true, std::memory_order_release);
     s_NeedsPaint.store(true, std::memory_order_release);
 }

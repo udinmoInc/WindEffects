@@ -628,9 +628,9 @@ void PaintDockTabStrip(
             state.flatCorners);
     }
 
-    if (!stripRect.IsEmpty()) {
+    if (!stripRect.IsEmpty() && state.showOptionsMenu) {
         const float buttonSize = HeaderButtonSize();
-        const float rightPad = TabStripPadH();
+        const float rightPad = (std::max)(TabStripPadH(), TabPadH());
         const Rect optionsRect{
             stripRect.x + stripRect.width - rightPad - buttonSize,
             std::floor(stripRect.y + (stripRect.height - buttonSize) * 0.5f),
@@ -833,11 +833,13 @@ void PaintSearchField(
 
 void PaintAlternatingListRowBackground(PaintContext& context, const Rect& rowRect, int rowIndex) {
     // Even rows match Recessed navigation/well parents (TreeView paints Recessed first).
-    // Only paint the contrasting Panel stripe — skipping the redundant same-color fill.
+    // Odd rows get a soft Panel stripe at low opacity — visible rhythm, not a highlight.
     if ((rowIndex % 2) == 0) {
         return;
     }
-    context.DrawSurface(rowRect, we::runtime::kindui::SurfaceRole::Panel, 0.0f, "ListRowStripe");
+    Color stripe = we::runtime::kindui::ResolveColor(ColorToken::PanelBackground);
+    stripe.a *= 0.55f;
+    context.DrawRect(rowRect, stripe);
 }
 
 void PaintListRowBackground(PaintContext& context, const Rect& rowRect, bool hovered, bool selected, bool focused) {

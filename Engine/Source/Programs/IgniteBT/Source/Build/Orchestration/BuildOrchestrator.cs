@@ -130,7 +130,7 @@ public sealed class BuildOrchestrator : IDisposable
         BuildManifest.TryLoad(manifestPath, out var previousManifest);
 
         var moduleHashInputs = modules.Select(m => (
-            m.Name, m.BuildCsPath, m.ModuleDirectory, DiscoverSourceFiles(m))).ToList();
+            m.Name, m.BuildCsPath, m.ModuleDirectory, DiscoverHashInputs(m))).ToList();
         var currentModuleHashes = NoOpBuildDetector.ComputeModuleHashes(moduleHashInputs, _fileHashes);
 
         var toolchainHash = FastHash.HashString(_ctx.CompilerVersion);
@@ -191,6 +191,23 @@ public sealed class BuildOrchestrator : IDisposable
             var ln = node;
             var linkNode = new JobNode { Id = linkId, Name = $"Link {node.Name}", Work = async _ => await LinkModuleAsync(ln, graph) };
             linkNode.Dependencies.AddRange(compileJobIds);
+            if (WindowsResourceCompiler.IsSupported(_ctx.Platform))
+            {
+                var resourceFiles = WindowsResourceCompiler.DiscoverResourceFiles(node.Module.ModuleDirectory);
+                if (resourceFiles.Count > 0)
+                {
+                    var rn = node;
+                    var resourceId = $"resource:{node.Name}";
+                    var resourceNode = new JobNode
+                    {
+                        Id = resourceId,
+                        Name = $"Resources {node.Name}",
+                        Work = async _ => await CompileModuleResourcesAsync(rn)
+                    };
+                    jobGraph.Add(resourceNode);
+                    linkNode.Dependencies.Add(resourceId);
+                }
+            }
             linkNode.Dependencies.AddRange(node.Dependencies.Select(d => $"link:{d.Name}"));
             jobGraph.Add(linkNode);
         }
@@ -336,6 +353,30 @@ public sealed class BuildOrchestrator : IDisposable
         _profiler.RecordModuleTiming(node.Name, 0);
     }
 
+    private async Task CompileModuleResourcesAsync(BuildNode node)
+    {
+        var objectDir = _ctx.Layout.GetModuleObjectsDirectory(node.Name);
+        Directory.CreateDirectory(objectDir);
+        var rcExe = WindowsResourceCompiler.FindRcExe();
+        if (rcExe == null)
+        {
+            throw new InvalidOperationException(
+                $"rc.exe not found; cannot compile Windows resources for module {node.Name}");
+        }
+        var includeDirs = ModuleCompileEnvironment.CollectIncludeDirectories(
+            node, _ctx.EngineDir, node.Module.ModuleDirectory, _ctx.DependencyResult, _ctx.Graph!);
+        foreach (var rcFile in WindowsResourceCompiler.DiscoverResourceFiles(node.Module.ModuleDirectory))
+        {
+            var resFile = Path.Combine(objectDir, Path.GetFileNameWithoutExtension(rcFile) + ".res");
+            if (!WindowsResourceCompiler.IsUpToDate(rcFile, resFile))
+            {
+                await WindowsResourceCompiler.CompileAsync(rcExe, rcFile, resFile, includeDirs);
+            }
+            _moduleObjects.AddOrUpdate(node.Name, _ => new List<string> { resFile },
+                (_, list) => { lock (list) { if (!list.Contains(resFile)) list.Add(resFile); } return list; });
+        }
+    }
+
     private async Task LinkModuleAsync(BuildNode node, DependencyGraph graph)
     {
         using var _ = _profiler.Scope(BuildStages.Link);
@@ -439,6 +480,27 @@ public sealed class BuildOrchestrator : IDisposable
             .Concat(_directoryCache.GetFiles(dir, "*.cxx", SearchOption.AllDirectories))
             .Concat(_directoryCache.GetFiles(dir, "*.cc", SearchOption.AllDirectories))
             .Select(_pathNormalizer.Normalize).ToList();
+    }
+
+    /// <summary>
+    /// Change-detection inputs: compiled sources plus Windows resources and
+    /// the art files they reference, so icon edits invalidate no-op builds.
+    /// </summary>
+    private List<string> DiscoverHashInputs(DiscoveredModule module)
+    {
+        var inputs = DiscoverSourceFiles(module);
+        if (WindowsResourceCompiler.IsSupported(_ctx.Platform))
+        {
+            foreach (var rc in WindowsResourceCompiler.DiscoverResourceFiles(module.ModuleDirectory))
+            {
+                inputs.Add(_pathNormalizer.Normalize(rc));
+                foreach (var dep in WindowsResourceCompiler.GetResourceDependencies(rc))
+                {
+                    inputs.Add(_pathNormalizer.Normalize(dep));
+                }
+            }
+        }
+        return inputs;
     }
 
     private ICompiler CreateCompiler()

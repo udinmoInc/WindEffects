@@ -126,6 +126,7 @@ struct DockTabStripState {
     size_t activeIndex = 0;
     bool flatCorners = false; // inner mode tabs — square, no rounded tops
     bool optionsMenuHovered = false;
+    bool showOptionsMenu = true;
     std::function<bool(size_t index, bool isActive, bool isHovered)> showClose;
     std::function<float(size_t index)> hoverAnim;
     std::function<bool(size_t index)> closeHovered;

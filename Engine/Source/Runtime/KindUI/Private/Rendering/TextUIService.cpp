@@ -295,12 +295,22 @@ we::rhi::RHIDescriptorSetHandle TextUIService::EnsureAtlasPageUploaded(const uin
     if (!atlas || !m_Renderer) {
         return we::rhi::RHIDescriptorSetHandle::Invalid;
     }
+
+    // Fast path: page version matches what we already uploaded, so skip the
+    // full pixel copy + re-upload. Version bumps on every pack and dims are
+    // fixed at page creation, so a match means identical content.
+    auto& gpu = m_DynamicPages[pageIndex];
+    const uint64_t version = atlas->PageVersion(pageIndex);
+    if (version != 0 && gpu.descriptorSet != we::rhi::RHIDescriptorSetHandle::Invalid
+        && gpu.version == version) {
+        return gpu.descriptorSet;
+    }
+
     const auto pageCopy = atlas->CopyPage(pageIndex);
     if (!pageCopy || pageCopy->page.rgba.empty()) {
         return we::rhi::RHIDescriptorSetHandle::Invalid;
     }
 
-    auto& gpu = m_DynamicPages[pageIndex];
     if (gpu.descriptorSet != we::rhi::RHIDescriptorSetHandle::Invalid
         && gpu.width == pageCopy->page.width
         && gpu.height == pageCopy->page.height

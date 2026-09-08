@@ -38,10 +38,10 @@ struct GraphiteDark {
     static constexpr Color Foldout           = Hex("#0D0D0D");
 
     // Inputs / pressed wells
-    static constexpr Color Input             = Hex("#0D0D0D");
+    static constexpr Color Input             = Hex("#0C0C0C");
 
     // Input and control borders
-    static constexpr Color InputOutline      = Hex("#2E2E2E");
+    static constexpr Color InputOutline      = Hex("#383838");
 
     // Recessed input top inner edge — darker charcoal, low contrast against Input.
     static constexpr Color InputInsetInner   = Hex("#06060666");

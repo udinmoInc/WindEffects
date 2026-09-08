@@ -152,15 +152,10 @@ void EditorWorkspaceController::SetPanelVisible(const std::string& panelId, bool
     }
 
     if (it->second.floating && !visible) {
-        if (m_PopupHost && it->second.floatFrame) {
-            m_PopupHost->ClosePopup(it->second.floatFrame);
-        }
-        if (it->second.floatFrame) {
-            (void)it->second.floatFrame->TakePanel();
-            it->second.floatFrame.reset();
-        }
+        DetachPanelFromFloatHost(it->second);
         it->second.panel->SetHeaderHeight(0.0f);
         it->second.floating = false;
+        it->second.floatHostId = -1;
         it->second.zone = it->second.homeZone;
         it->second.visible = false;
         it->second.panel->SetVisible(false);
@@ -175,6 +170,11 @@ void EditorWorkspaceController::SetPanelVisible(const std::string& panelId, bool
     it->second.panel->SetVisible(visible);
 
     if (it->second.floating) {
+        if (visible) {
+            if (FloatingHost* host = FindFloatingHost(it->second.floatHostId)) {
+                host->dock->FocusPanel(it->second.panel);
+            }
+        }
         if (m_OnPanelVisibilityChanged) {
             m_OnPanelVisibilityChanged();
         }
@@ -232,16 +232,241 @@ std::string EditorWorkspaceController::FindPanelId(const ::we::editor::panels::P
     return {};
 }
 
-void EditorWorkspaceController::ShowFloatingOptionsMenu(const std::string& panelId) {
-    const auto it = m_Panels.find(panelId);
-    if (it == m_Panels.end() || !it->second.panel || !m_PopupHost || !it->second.floatFrame) {
+EditorWorkspaceController::FloatingHost* EditorWorkspaceController::FindFloatingHost(int hostId) {
+    if (hostId < 0) {
+        return nullptr;
+    }
+    for (auto& host : m_FloatHosts) {
+        if (host.id == hostId) {
+            return &host;
+        }
+    }
+    return nullptr;
+}
+
+const EditorWorkspaceController::FloatingHost* EditorWorkspaceController::FindFloatingHost(int hostId) const {
+    if (hostId < 0) {
+        return nullptr;
+    }
+    for (const auto& host : m_FloatHosts) {
+        if (host.id == hostId) {
+            return &host;
+        }
+    }
+    return nullptr;
+}
+
+EditorWorkspaceController::FloatingHost* EditorWorkspaceController::FindFloatingHostByDock(
+    const ::we::editor::docking::DockContainer* dock) {
+    if (!dock) {
+        return nullptr;
+    }
+    for (auto& host : m_FloatHosts) {
+        if (host.dock.get() == dock) {
+            return &host;
+        }
+    }
+    return nullptr;
+}
+
+EditorWorkspaceController::FloatingHost* EditorWorkspaceController::FindFloatingHostAtTabStrip(
+    const we::runtime::kindui::Point& cursor,
+    int excludeHostId) {
+    FloatingHost* best = nullptr;
+    float bestArea = 1.0e30f;
+    for (auto& host : m_FloatHosts) {
+        if (host.id == excludeHostId || !host.dock) {
+            continue;
+        }
+        const Rect strip = host.dock->GetTabStripRect();
+        if (strip.width < 4.0f || strip.height < 4.0f || !strip.Contains(cursor)) {
+            continue;
+        }
+        const float area = strip.width * strip.height;
+        if (area < bestArea) {
+            bestArea = area;
+            best = &host;
+        }
+    }
+    return best;
+}
+
+std::shared_ptr<::we::editor::docking::DockContainer> EditorWorkspaceController::FindZoneDockAtTabStrip(
+    const we::runtime::kindui::Point& cursor) const {
+    struct Candidate {
+        std::shared_ptr<::we::editor::docking::DockContainer> dock;
+        float area = 0.0f;
+    };
+    std::vector<Candidate> candidates;
+
+    auto consider = [&](const std::shared_ptr<::we::editor::docking::DockContainer>& dock) {
+        if (!dock || !dock->IsVisible() || dock->GetTabCount() < 0) {
+            return;
+        }
+        // Accept empty visible docks? Prefer docks with tabs or still-visible geometry.
+        const Rect strip = dock->GetTabStripRect();
+        if (strip.width < 4.0f || strip.height < 4.0f || !strip.Contains(cursor)) {
+            return;
+        }
+        candidates.push_back(Candidate{ dock, strip.width * strip.height });
+    };
+
+    consider(m_Layout.toolsDock);
+    consider(m_Layout.explorerDock);
+    consider(m_Layout.detailsDock);
+    consider(m_Layout.contentBrowserDock);
+    consider(m_Layout.viewportDock);
+
+    if (candidates.empty()) {
+        return nullptr;
+    }
+    std::sort(candidates.begin(), candidates.end(), [](const Candidate& a, const Candidate& b) {
+        return a.area < b.area;
+    });
+    return candidates.front().dock;
+}
+
+void EditorWorkspaceController::DestroyFloatingHost(int hostId) {
+    for (size_t i = 0; i < m_FloatHosts.size(); ++i) {
+        if (m_FloatHosts[i].id != hostId) {
+            continue;
+        }
+        FloatingHost& host = m_FloatHosts[i];
+        if (m_PopupHost && host.frame) {
+            m_PopupHost->ClosePopup(host.frame);
+        }
+        if (host.frame) {
+            (void)host.frame->TakeDock();
+        }
+        m_FloatHosts.erase(m_FloatHosts.begin() + static_cast<std::ptrdiff_t>(i));
+        return;
+    }
+}
+
+void EditorWorkspaceController::DetachPanelFromFloatHost(PanelEntry& entry) {
+    if (!entry.floating || entry.floatHostId < 0 || !entry.panel) {
+        return;
+    }
+    FloatingHost* host = FindFloatingHost(entry.floatHostId);
+    if (!host || !host->dock) {
+        entry.floatHostId = -1;
+        entry.floating = false;
         return;
     }
 
-    const Rect header = it->second.floatFrame->GetGeometry();
-    const float titleH = we::runtime::kindui::ResolveMetric(
-        we::runtime::kindui::MetricToken::TitleBarHeight)
-        * ::we::editor::panels::PanelChrome::UiScale();
+    if (host->dock->ContainsPanel(entry.panel)) {
+        host->dock->RemovePanel(entry.panel);
+    }
+    const int hostId = host->id;
+    entry.floatHostId = -1;
+    entry.floating = false;
+
+    if (host->dock->GetTabCount() <= 0) {
+        DestroyFloatingHost(hostId);
+    }
+}
+
+void EditorWorkspaceController::WireFloatingDock(FloatingHost& host) {
+    const int hostId = host.id;
+    host.dock->SetOnTabClosed([this](const std::shared_ptr<::we::editor::panels::Panel>& panel) {
+        const std::string id = FindPanelId(panel.get());
+        if (!id.empty()) {
+            SetPanelVisible(id, false);
+        }
+    });
+    host.dock->SetOnTabDragStarted([this, hostId](
+        const std::shared_ptr<::we::editor::panels::Panel>& panel,
+        const Point& pos) {
+        const std::string id = FindPanelId(panel.get());
+        if (id.empty()) {
+            return;
+        }
+        // Peel tab into a new float / merge / redock based on drop cursor.
+        FloatPanelAt(id, pos);
+        // Stash source host so BeginFloating can decide peel vs move.
+        (void)hostId;
+    });
+}
+
+EditorWorkspaceController::FloatingHost& EditorWorkspaceController::CreateFloatingHost(
+    const we::runtime::kindui::Point& position,
+    const we::runtime::kindui::Size& size) {
+    FloatingHost host;
+    host.id = m_NextFloatHostId++;
+    host.dock = std::make_shared<::we::editor::docking::DockContainer>();
+    host.dock->SetHeaderHeightLogical(
+        we::runtime::kindui::ResolveMetric(we::runtime::kindui::MetricToken::PanelTabHeight));
+
+    host.frame = std::make_shared<::we::editor::docking::FloatingPanelFrame>();
+    host.frame->SetDock(host.dock);
+    if (m_PopupHost) {
+        host.frame->SetWorkspaceBounds(m_PopupHost->GetGeometry());
+    }
+
+    const int hostId = host.id;
+    host.frame->SetOnClose([this, hostId]() {
+        // Close all panels in this floating window.
+        FloatingHost* h = FindFloatingHost(hostId);
+        if (!h || !h->dock) {
+            return;
+        }
+        const auto panels = h->dock->GetPanels();
+        for (const auto& panel : panels) {
+            const std::string id = FindPanelId(panel.get());
+            if (!id.empty()) {
+                SetPanelVisible(id, false);
+            }
+        }
+    });
+
+    host.frame->SetOnResize([this, hostId](const Rect& bounds) {
+        if (!m_PopupHost) {
+            return;
+        }
+        FloatingHost* h = FindFloatingHost(hostId);
+        if (!h || !h->frame) {
+            return;
+        }
+        m_PopupHost->ResizePopup(h->frame, bounds);
+        we::runtime::kindui::UIRepaintGate::RequestPaint();
+    });
+
+    host.frame->SetOnMove([this, hostId](const Point& delta) {
+        if (!m_PopupHost) {
+            return;
+        }
+        FloatingHost* h = FindFloatingHost(hostId);
+        if (!h || !h->frame) {
+            return;
+        }
+        const Rect g = h->frame->GetGeometry();
+        m_PopupHost->MovePopup(h->frame, Point{ g.x + delta.x, g.y + delta.y });
+        we::runtime::kindui::UIRepaintGate::RequestPaint();
+    });
+
+    WireFloatingDock(host);
+
+    m_PopupHost->CloseTransientPopups();
+    m_PopupHost->ShowPinnedPopup(host.frame, position, size);
+
+    m_FloatHosts.push_back(std::move(host));
+    return m_FloatHosts.back();
+}
+
+void EditorWorkspaceController::ShowFloatingOptionsMenu(const std::string& panelId) {
+    const auto it = m_Panels.find(panelId);
+    if (it == m_Panels.end() || !it->second.panel || !m_PopupHost) {
+        return;
+    }
+    FloatingHost* host = FindFloatingHost(it->second.floatHostId);
+    if (!host || !host->frame) {
+        return;
+    }
+
+    const Rect header = host->frame->GetGeometry();
+    const float titleH = host->dock ? host->dock->GetHeaderHeightDevice()
+        : we::runtime::kindui::ResolveMetric(we::runtime::kindui::MetricToken::PanelTabHeight)
+            * ::we::editor::panels::PanelChrome::UiScale();
 
     std::vector<std::shared_ptr<::we::editor::menus::MenuItem>> items;
 
@@ -263,10 +488,9 @@ void EditorWorkspaceController::ShowFloatingOptionsMenu(const std::string& panel
 
     auto menu = std::make_shared<::we::editor::menus::DropdownMenu>(items);
     m_PopupHost->CloseTransientPopups();
-    const float menuY = header.y + titleH + 2.0f;
-    m_PopupHost->ShowPopup(menu, we::runtime::kindui::Point{
+    m_PopupHost->ShowPopup(menu, Point{
         header.x + header.width - 160.0f,
-        menuY
+        header.y + titleH + 2.0f
     });
 }
 
@@ -298,13 +522,112 @@ void EditorWorkspaceController::BeginFloating(
         return;
     }
 
-    if (entry.floating && entry.floatFrame) {
-        m_PopupHost->MovePopup(entry.floatFrame, position);
+    // Already floating: resolve drop target under cursor (merge / redock / move host).
+    if (entry.floating) {
+        const int sourceHostId = entry.floatHostId;
+        FloatingHost* sourceHost = FindFloatingHost(sourceHostId);
+
+        if (auto zoneDock = FindZoneDockAtTabStrip(position)) {
+            ApplyDockPanel(panelId, zoneDock);
+            return;
+        }
+
+        if (FloatingHost* targetHost = FindFloatingHostAtTabStrip(position, sourceHostId)) {
+            if (sourceHost && sourceHost->dock && sourceHost->dock->ContainsPanel(entry.panel)) {
+                sourceHost->dock->RemovePanel(entry.panel);
+            }
+            if (!targetHost->dock->ContainsPanel(entry.panel)) {
+                targetHost->dock->AddPanel(entry.panel);
+            }
+            targetHost->dock->FocusPanel(entry.panel);
+            entry.floatHostId = targetHost->id;
+            entry.floating = true;
+            entry.zone = ::we::editor::docking::DockZone::Floating;
+            if (sourceHost && sourceHost->dock && sourceHost->dock->GetTabCount() <= 0) {
+                DestroyFloatingHost(sourceHostId);
+            }
+            we::runtime::kindui::UIRepaintGate::RequestLayout();
+            return;
+        }
+
+        // Peel into a new floating window when the source host still has other tabs.
+        if (sourceHost && sourceHost->dock && sourceHost->dock->GetTabCount() > 1) {
+            sourceHost->dock->RemovePanel(entry.panel);
+            const Rect geom = sourceHost->frame ? sourceHost->frame->GetGeometry() : Rect{};
+            Size floatSize{
+                (std::max)(geom.width, 320.0f),
+                (std::max)(geom.height, 280.0f)
+            };
+            FloatingHost& newHost = CreateFloatingHost(position, floatSize);
+            newHost.dock->AddPanel(entry.panel);
+            newHost.dock->FocusPanel(entry.panel);
+            entry.floatHostId = newHost.id;
+            entry.floating = true;
+            entry.zone = ::we::editor::docking::DockZone::Floating;
+            we::runtime::kindui::UIRepaintGate::RequestLayout();
+            return;
+        }
+
+        // Sole tab: move the existing floating window.
+        if (sourceHost && sourceHost->frame) {
+            m_PopupHost->MovePopup(sourceHost->frame, position);
+            we::runtime::kindui::UIRepaintGate::RequestPaint();
+        }
         return;
     }
 
     if (entry.zone != ::we::editor::docking::DockZone::Floating) {
         entry.homeZone = entry.zone;
+    }
+
+    // Prefer merging into an existing floating window under the cursor.
+    if (FloatingHost* targetHost = FindFloatingHostAtTabStrip(position)) {
+        if (auto dock = DockForPanel(panelId)) {
+            dock->RemovePanel(entry.panel);
+        } else if (auto zoneDock = DockForZone(entry.zone)) {
+            zoneDock->RemovePanel(entry.panel);
+        }
+        if (!targetHost->dock->ContainsPanel(entry.panel)) {
+            targetHost->dock->AddPanel(entry.panel);
+        }
+        targetHost->dock->FocusPanel(entry.panel);
+        entry.floatHostId = targetHost->id;
+        entry.zone = ::we::editor::docking::DockZone::Floating;
+        entry.floating = true;
+        entry.visible = true;
+        entry.panel->SetVisible(true);
+        UpdateEmptyDockVisibility();
+        we::runtime::kindui::UIRepaintGate::RequestLayout();
+        return;
+    }
+
+    // Redock onto a zone tab strip if the undock drag lands there.
+    if (auto zoneDock = FindZoneDockAtTabStrip(position)) {
+        if (auto dock = DockForPanel(panelId)) {
+            if (dock != zoneDock) {
+                dock->RemovePanel(entry.panel);
+            }
+        } else if (auto home = DockForZone(entry.zone)) {
+            if (home != zoneDock) {
+                home->RemovePanel(entry.panel);
+            }
+        }
+        zoneDock->SetVisible(true);
+        if (!zoneDock->ContainsPanel(entry.panel)) {
+            zoneDock->AddPanel(entry.panel);
+        }
+        zoneDock->FocusPanel(entry.panel);
+        entry.zone = ZoneForDock(zoneDock);
+        if (entry.zone != ::we::editor::docking::DockZone::Floating) {
+            entry.homeZone = entry.zone;
+        }
+        entry.floating = false;
+        entry.floatHostId = -1;
+        entry.visible = true;
+        entry.panel->SetVisible(true);
+        UpdateEmptyDockVisibility();
+        we::runtime::kindui::UIRepaintGate::RequestLayout();
+        return;
     }
 
     if (auto dock = DockForPanel(panelId)) {
@@ -314,12 +637,12 @@ void EditorWorkspaceController::BeginFloating(
     }
 
     const Rect geom = entry.panel->GetGeometry();
-    const float titleH = we::runtime::kindui::ResolveMetric(
-        we::runtime::kindui::MetricToken::TitleBarHeight)
+    const float tabH = we::runtime::kindui::ResolveMetric(
+        we::runtime::kindui::MetricToken::PanelTabHeight)
         * ::we::editor::panels::PanelChrome::UiScale();
-    we::runtime::kindui::Size floatSize{
+    Size floatSize{
         (std::max)(geom.width, 320.0f),
-        (std::max)(geom.height + titleH, 280.0f)
+        (std::max)(geom.height + tabH, 280.0f)
     };
     if (floatSize.width < 40.0f) {
         floatSize.width = 360.0f;
@@ -328,47 +651,11 @@ void EditorWorkspaceController::BeginFloating(
         floatSize.height = 420.0f;
     }
 
-    auto frame = std::make_shared<::we::editor::docking::FloatingPanelFrame>();
-    frame->SetPanel(entry.panel);
-    if (m_PopupHost) {
-        frame->SetWorkspaceBounds(m_PopupHost->GetGeometry());
-    }
+    FloatingHost& host = CreateFloatingHost(position, floatSize);
+    host.dock->AddPanel(entry.panel);
+    host.dock->FocusPanel(entry.panel);
 
-    frame->SetOnClose([panelId]() {
-        EditorWorkspaceController::Get().SetPanelVisible(panelId, false);
-    });
-
-    frame->SetOnResize([this, weak = std::weak_ptr<::we::editor::docking::FloatingPanelFrame>(frame)](
-        const Rect& bounds) {
-        if (!m_PopupHost) {
-            return;
-        }
-        auto host = weak.lock();
-        if (!host) {
-            return;
-        }
-        m_PopupHost->ResizePopup(host, bounds);
-        we::runtime::kindui::UIRepaintGate::RequestPaint();
-    });
-
-    frame->SetOnMove([this, weak = std::weak_ptr<::we::editor::docking::FloatingPanelFrame>(frame)](
-        const we::runtime::kindui::Point& delta) {
-        if (!m_PopupHost) {
-            return;
-        }
-        auto host = weak.lock();
-        if (!host) {
-            return;
-        }
-        const Rect g = host->GetGeometry();
-        m_PopupHost->MovePopup(host, we::runtime::kindui::Point{ g.x + delta.x, g.y + delta.y });
-        we::runtime::kindui::UIRepaintGate::RequestPaint();
-    });
-
-    m_PopupHost->CloseTransientPopups();
-    m_PopupHost->ShowPinnedPopup(frame, position, floatSize);
-
-    entry.floatFrame = std::move(frame);
+    entry.floatHostId = host.id;
     entry.zone = ::we::editor::docking::DockZone::Floating;
     entry.floating = true;
     entry.visible = true;
@@ -388,7 +675,6 @@ void EditorWorkspaceController::FloatPanelAt(
     if (panelId.empty()) {
         return;
     }
-    // Defer: callers often run inside DockContainer::OnMouseMove or menu callbacks.
     m_PendingFloatId = panelId;
     m_PendingFloatPos = position;
     m_PendingDockId.clear();
@@ -475,17 +761,11 @@ void EditorWorkspaceController::ApplyDockPanel(
         return;
     }
 
-    if (m_PopupHost && entry.floatFrame) {
-        m_PopupHost->ClosePopup(entry.floatFrame);
-    }
-
-    if (entry.floatFrame) {
-        (void)entry.floatFrame->TakePanel();
-        entry.floatFrame.reset();
-    }
+    DetachPanelFromFloatHost(entry);
 
     entry.panel->SetHeaderHeight(0.0f);
     entry.floating = false;
+    entry.floatHostId = -1;
     entry.visible = true;
     entry.panel->SetVisible(true);
 
@@ -502,7 +782,6 @@ void EditorWorkspaceController::ApplyDockPanel(
         if (entry.zone != ::we::editor::docking::DockZone::Floating) {
             entry.homeZone = entry.zone;
         }
-        // Make sure empty/hidden docks become visible before attach.
         dock->SetVisible(true);
         if (dock == m_Layout.contentBrowserDock && !m_ContentBrowserExpanded) {
             m_ContentBrowserExpanded = true;
@@ -568,6 +847,11 @@ void EditorWorkspaceController::EnsureDefaultDockPlacement() {
     m_PendingDockId.clear();
     m_PendingDockTarget.reset();
 
+    // Tear down all floating hosts first.
+    while (!m_FloatHosts.empty()) {
+        DestroyFloatingHost(m_FloatHosts.front().id);
+    }
+
     static const char* kCorePanels[] = {
         "Tools", "Viewport", "WorldOutliner", "Details", "ContentBrowser"
     };
@@ -579,17 +863,8 @@ void EditorWorkspaceController::EnsureDefaultDockPlacement() {
         }
 
         PanelEntry& entry = it->second;
-        if (entry.floating) {
-            if (m_PopupHost && entry.floatFrame) {
-                m_PopupHost->ClosePopup(entry.floatFrame);
-            }
-            if (entry.floatFrame) {
-                (void)entry.floatFrame->TakePanel();
-                entry.floatFrame.reset();
-            }
-            entry.floating = false;
-        }
-
+        entry.floating = false;
+        entry.floatHostId = -1;
         entry.panel->SetHeaderHeight(0.0f);
         entry.zone = entry.homeZone;
         entry.visible = true;
@@ -629,6 +904,13 @@ void EditorWorkspaceController::EnsureDefaultDockPlacement() {
 void EditorWorkspaceController::FocusPanel(const std::string& panelId) {
     const auto it = m_Panels.find(panelId);
     if (it == m_Panels.end() || !it->second.panel) {
+        return;
+    }
+
+    if (it->second.floating) {
+        if (FloatingHost* host = FindFloatingHost(it->second.floatHostId)) {
+            host->dock->FocusPanel(it->second.panel);
+        }
         return;
     }
 
@@ -829,16 +1111,14 @@ void EditorWorkspaceController::Reset() {
     m_PendingDockId.clear();
     m_PendingDockTarget.reset();
 
+    while (!m_FloatHosts.empty()) {
+        DestroyFloatingHost(m_FloatHosts.front().id);
+    }
+
     for (auto& [panelId, entry] : m_Panels) {
         (void)panelId;
-        if (entry.floatFrame) {
-            if (m_PopupHost) {
-                m_PopupHost->ClosePopup(entry.floatFrame);
-            }
-            (void)entry.floatFrame->TakePanel();
-            entry.floatFrame.reset();
-        }
         entry.floating = false;
+        entry.floatHostId = -1;
     }
 
     m_Panels.clear();
