@@ -55,34 +55,25 @@ void DrawRoundedRectTop(PaintContext& context, const Rect& rect, const Color& co
 }
 
 void ResolvePanelBevelColors(Color& outHighlight, Color& outShadow) {
+    // Dark Graphite only — no light grey outline, but enough delta to read on Panel.
     const Color panel = we::runtime::kindui::ColorSpace::OpaqueSurface(
         we::runtime::kindui::ResolveColor(ColorToken::PanelBackground));
-    const Color bevelHi = we::runtime::kindui::ResolveColor(ColorToken::ButtonBevelHighlight);
-    const Color bevelLo = we::runtime::kindui::ResolveColor(ColorToken::ButtonBevelShadow);
+    const Color header = we::runtime::kindui::ColorSpace::OpaqueSurface(
+        we::runtime::kindui::ResolveColor(ColorToken::HeaderBackground));
+    const Color deep = we::runtime::kindui::ColorSpace::OpaqueSurface(
+        we::runtime::kindui::ResolveColor(ColorToken::WorkspaceBackground));
 
-    auto channelDelta = [](const Color& a, const Color& b) {
-        return std::fabs(a.r - b.r) + std::fabs(a.g - b.g) + std::fabs(a.b - b.b);
-    };
-
+    // Top/left: one step toward Header (#1D vs Panel #17) — dark, visible.
     outHighlight = we::runtime::kindui::ColorSpace::OpaqueSurface(
-        we::runtime::kindui::ColorSpace::LerpColor(panel, bevelHi, 0.75f));
-    if (channelDelta(outHighlight, panel) < 0.05f) {
-        outHighlight = we::runtime::kindui::ColorSpace::OpaqueSurface(
-            we::runtime::kindui::ColorSpace::LerpColor(
-                panel,
-                we::runtime::kindui::ResolveColor(ColorToken::BorderLight),
-                0.35f));
-    }
-
+        we::runtime::kindui::ColorSpace::LerpColor(panel, header, 0.85f));
+    // Bottom/right: sink toward workspace gap color.
     outShadow = we::runtime::kindui::ColorSpace::OpaqueSurface(
-        we::runtime::kindui::ColorSpace::LerpColor(panel, bevelLo, 0.80f));
-    if (channelDelta(panel, outShadow) < 0.05f) {
-        outShadow = we::runtime::kindui::ColorSpace::OpaqueSurface(
-            we::runtime::kindui::ColorSpace::LerpColor(panel, Color::Black(), 0.40f));
-    }
+        we::runtime::kindui::ColorSpace::LerpColor(panel, deep, 0.70f));
 }
 
-/// Soft concave shoulder where the active tab bends into the panel top.
+/// Outward shoulder fillet: tab side bends into the panel top (UE5).
+/// Center sits outside the corner at (edge±r, join-r) so we get a clean flare,
+/// not a quarter-disk "bite" blob from centering on the corner.
 void PaintTabShoulderFill(
     PaintContext& context,
     float tabEdgeX,
@@ -91,22 +82,36 @@ void PaintTabShoulderFill(
     bool leftSide,
     const Color& panelColor)
 {
-    if (radius < 1.0f) {
+    if (radius < 2.0f) {
         return;
     }
-    const float r = IconMetrics::SnapPx(radius);
-    const float cx = IconMetrics::SnapPx(tabEdgeX);
-    const float cy = IconMetrics::SnapPx(panelTopY);
-    const Rect pocket = leftSide
-        ? Rect{ cx - r, cy - r, r, r }
-        : Rect{ cx, cy - r, r, r };
-    if (pocket.IsEmpty()) {
-        return;
+    const float r = std::max(2.0f, IconMetrics::SnapPx(radius));
+    const float ex = IconMetrics::SnapPx(tabEdgeX);
+    const float py = IconMetrics::SnapPx(panelTopY);
+    const int ri = std::max(2, static_cast<int>(r));
+
+    // Rows from the top of the shoulder pocket down to just above the join.
+    for (int i = 0; i < ri; ++i) {
+        const float relY = static_cast<float>(i); // 0 at pocket top
+        const float rowY = py - r + relY;
+        const float dx = std::sqrt(std::max(0.0f, r * r - relY * relY));
+        // Arc x from outside center; fill only the inside of the silhouette.
+        if (leftSide) {
+            // Center (ex - r, py - r); arc at ex - r + dx.
+            const float arcX = ex - r + dx;
+            const float span = std::max(0.0f, ex - arcX);
+            if (span >= 1.0f) {
+                context.DrawRect(Rect{ arcX, rowY, span, 1.0f }, panelColor);
+            }
+        } else {
+            // Center (ex + r, py - r); arc at ex + r - dx.
+            const float arcX = ex + r - dx;
+            const float span = std::max(0.0f, arcX - ex);
+            if (span >= 1.0f) {
+                context.DrawRect(Rect{ ex, rowY, span, 1.0f }, panelColor);
+            }
+        }
     }
-    // Quarter-disk of panel color centered on the tab/panel junction.
-    context.PushClipRect(pocket);
-    context.DrawRoundedRect(Rect{ cx - r, cy - r, r * 2.0f, r * 2.0f }, panelColor, r);
-    context.PopClipRect();
 }
 
 void PaintHEdge(PaintContext& context, float x, float y, float width, const Color& color) {
@@ -135,7 +140,6 @@ void PaintPx(PaintContext& context, float x, float y, const Color& color) {
         color);
 }
 
-/// Convex outer corner (tab top). `left` = top-left, otherwise top-right.
 void PaintConvexTopCorner(
     PaintContext& context,
     float tabLeft,
@@ -149,24 +153,27 @@ void PaintConvexTopCorner(
         return;
     }
     constexpr float kHalfPi = 1.57079632679f;
-    const int steps = std::max(4, static_cast<int>(radius) * 2);
+    const int steps = std::max(6, static_cast<int>(radius) * 3);
     for (int i = 0; i <= steps; ++i) {
         const float theta = kHalfPi * (static_cast<float>(i) / static_cast<float>(steps));
-        // theta 0 at top edge → pi/2 at side edge.
         if (left) {
-            const float px = tabLeft + radius * (1.0f - std::cos(theta));
-            const float py = tabTop + radius * (1.0f - std::sin(theta));
-            PaintPx(context, px, py, color);
+            PaintPx(
+                context,
+                tabLeft + radius * (1.0f - std::cos(theta)),
+                tabTop + radius * (1.0f - std::sin(theta)),
+                color);
         } else {
-            const float px = tabRight - 1.0f - radius * (1.0f - std::cos(theta));
-            const float py = tabTop + radius * (1.0f - std::sin(theta));
-            PaintPx(context, px, py, color);
+            PaintPx(
+                context,
+                tabRight - 1.0f - radius * (1.0f - std::cos(theta)),
+                tabTop + radius * (1.0f - std::sin(theta)),
+                color);
         }
     }
 }
 
-/// Concave shoulder where tab side bends into the panel top.
-void PaintConcaveShoulderRim(
+/// 1px rim along the outward shoulder fillet (matches PaintTabShoulderFill).
+void PaintShoulderRim(
     PaintContext& context,
     float tabEdgeX,
     float panelTopY,
@@ -174,27 +181,28 @@ void PaintConcaveShoulderRim(
     bool left,
     const Color& color)
 {
-    if (radius < 1.0f) {
+    if (radius < 2.0f) {
         return;
     }
-    constexpr float kHalfPi = 1.57079632679f;
-    const int steps = std::max(4, static_cast<int>(radius) * 2);
-    for (int i = 0; i <= steps; ++i) {
-        const float theta = kHalfPi * (static_cast<float>(i) / static_cast<float>(steps));
-        // theta 0 at tab side (above panel) → pi/2 at panel top (outside tab).
+    const float r = std::max(2.0f, IconMetrics::SnapPx(radius));
+    const float ex = IconMetrics::SnapPx(tabEdgeX);
+    const float py = IconMetrics::SnapPx(panelTopY);
+    const int ri = std::max(2, static_cast<int>(r));
+
+    for (int i = 0; i <= ri; ++i) {
+        const float relY = static_cast<float>(i);
+        const float rowY = py - r + relY;
+        const float dx = std::sqrt(std::max(0.0f, r * r - relY * relY));
         if (left) {
-            const float px = tabEdgeX - radius * std::sin(theta);
-            const float py = panelTopY - radius * std::cos(theta);
-            PaintPx(context, px, py, color);
+            // Center (ex - r, py - r); arc x = ex - r + dx.
+            PaintPx(context, ex - r + dx, rowY, color);
         } else {
-            const float px = tabEdgeX + radius * std::sin(theta) - 1.0f;
-            const float py = panelTopY - radius * std::cos(theta);
-            PaintPx(context, px, py, color);
+            // Center (ex + r, py - r); arc x = ex + r - dx.
+            PaintPx(context, ex + r - dx - 1.0f, rowY, color);
         }
     }
 }
 
-/// 1px bevel that follows the active-tab silhouette into the panel (not a hard rectangle).
 void PaintDockConnectedFrameBevel(
     PaintContext& context,
     const Rect& contentRect,
@@ -213,98 +221,106 @@ void PaintDockConnectedFrameBevel(
         we::runtime::kindui::ResolveColor(ColorToken::PanelBackground));
 
     const float x0 = IconMetrics::SnapPx(contentRect.x);
-    const float yBody = IconMetrics::SnapPx(contentRect.y);
+    const float yJoin = IconMetrics::SnapPx(contentRect.y);
     float x1 = IconMetrics::SnapPx(contentRect.x + contentRect.width);
     float y1 = IconMetrics::SnapPx(contentRect.y + contentRect.height);
     if (x1 < x0 + 2.0f) {
         x1 = x0 + 2.0f;
     }
-    if (y1 < yBody + 2.0f) {
-        y1 = yBody + 2.0f;
+    if (y1 < yJoin + 2.0f) {
+        y1 = yJoin + 2.0f;
     }
 
     const bool hasTab = !activeTabRect.IsEmpty()
         && activeTabRect.width > 2.0f
         && activeTabRect.height > 2.0f;
     if (!hasTab) {
-        PaintHEdge(context, x0, yBody, x1 - x0, highlight);
-        PaintVEdge(context, x0, yBody, y1 - yBody, highlight);
+        PaintHEdge(context, x0, yJoin, x1 - x0, highlight);
+        PaintVEdge(context, x0, yJoin, y1 - yJoin, highlight);
         PaintHEdge(context, x0, y1 - 1.0f, x1 - x0, shadow);
-        PaintVEdge(context, x1 - 1.0f, yBody, y1 - yBody, shadow);
+        PaintVEdge(context, x1 - 1.0f, yJoin, y1 - yJoin, shadow);
         return;
     }
 
     const float tx0 = IconMetrics::SnapPx(activeTabRect.x);
     const float ty0 = IconMetrics::SnapPx(activeTabRect.y);
     const float tx1 = IconMetrics::SnapPx(activeTabRect.x + activeTabRect.width);
+
     float topR = std::max(0.0f, IconMetrics::SnapPx(tabTopRadius));
-    // Keep radius inside the tab; avoid degenerate arcs on narrow tabs.
     topR = std::min(topR, std::floor((tx1 - tx0) * 0.45f));
-    float shoulderR = std::max(
-        0.0f,
-        IconMetrics::SnapPx(std::min(topR > 0.0f ? topR : 4.0f, 5.0f)));
-    if (shoulderR > 0.0f) {
-        const float maxShoulder = std::max(0.0f, (yBody - ty0) - topR - 2.0f);
-        shoulderR = std::min(shoulderR, maxShoulder);
-    }
+
+    const float sideLen = std::max(0.0f, yJoin - ty0);
+    // Subtle UE5 shoulder — large radii read as a "bite".
+    float shoulderR = IconMetrics::SnapPx(4.0f);
+    shoulderR = std::max(3.0f, std::min(shoulderR, 5.0f));
+    shoulderR = std::min(shoulderR, std::max(0.0f, sideLen - topR - 1.0f));
 
     const bool flushLeft = (tx0 - x0) <= 1.5f;
     const bool flushRight = (x1 - tx1) <= 1.5f;
+    const bool bendLeft = !flushLeft && shoulderR >= 3.0f;
+    const bool bendRight = !flushRight && shoulderR >= 3.0f;
 
-    // Soft fill bend at tab→panel shoulders.
-    if (!flushLeft && shoulderR >= 1.0f) {
-        PaintTabShoulderFill(context, tx0, yBody, shoulderR, true, panel);
+    if (bendLeft) {
+        PaintTabShoulderFill(context, tx0, yJoin, shoulderR, true, panel);
     }
-    if (!flushRight && shoulderR >= 1.0f) {
-        PaintTabShoulderFill(context, tx1, yBody, shoulderR, false, panel);
+    if (bendRight) {
+        PaintTabShoulderFill(context, tx1, yJoin, shoulderR, false, panel);
     }
 
-    // Seal under the active tab so no chord/seam remains.
+    // Seal interior join only (do not cover shoulder flare pockets).
     {
-        const float sealL = flushLeft ? x0 : tx0;
-        const float sealR = flushRight ? x1 : tx1;
-        PaintHEdge(context, sealL, yBody - 1.0f, sealR - sealL, panel);
-        PaintHEdge(context, sealL, yBody, sealR - sealL, panel);
+        const float sealL = tx0;
+        const float sealR = tx1;
+        if (sealR > sealL + 1.0f) {
+            PaintHEdge(context, sealL, yJoin - 1.0f, sealR - sealL, panel);
+            PaintHEdge(context, sealL, yJoin, sealR - sealL, panel);
+        }
     }
 
-    // Panel bottom + outer sides under the body.
     PaintHEdge(context, x0, y1 - 1.0f, x1 - x0, shadow);
-    if (!flushLeft) {
-        PaintVEdge(context, x0, yBody, y1 - yBody, highlight);
-    }
-    if (!flushRight) {
-        PaintVEdge(context, x1 - 1.0f, yBody, y1 - yBody, shadow);
-    }
 
-    // --- Continuous silhouette rim (no DrawControlOutline — it broke corner joins) ---
-
-    // Left path.
+    // Left silhouette.
     if (flushLeft) {
-        // One vertical from below the top corner through the panel bottom.
         PaintVEdge(context, x0, ty0 + topR, (y1 - 1.0f) - (ty0 + topR), highlight);
         PaintConvexTopCorner(context, tx0, tx1, ty0, topR, true, highlight);
     } else {
-        PaintHEdge(context, x0, yBody, (tx0 - shoulderR) - x0, highlight);
-        PaintConcaveShoulderRim(context, tx0, yBody, shoulderR, true, highlight);
-        PaintVEdge(context, tx0, ty0 + topR, (yBody - shoulderR) - (ty0 + topR), highlight);
+        PaintVEdge(context, x0, yJoin, y1 - yJoin, highlight);
+        if (bendLeft) {
+            PaintHEdge(context, x0, yJoin, (tx0 - shoulderR) - x0, highlight);
+            PaintShoulderRim(context, tx0, yJoin, shoulderR, true, highlight);
+            PaintVEdge(context, tx0, ty0 + topR, (yJoin - shoulderR) - (ty0 + topR), highlight);
+        } else {
+            PaintHEdge(context, x0, yJoin, tx0 - x0, highlight);
+            PaintVEdge(context, tx0, ty0 + topR, yJoin - (ty0 + topR), highlight);
+        }
         PaintConvexTopCorner(context, tx0, tx1, ty0, topR, true, highlight);
     }
 
-    // Tab top flat between the two convex corners.
     if (tx1 - tx0 > topR * 2.0f + 1.0f) {
         PaintHEdge(context, tx0 + topR, ty0, (tx1 - topR) - (tx0 + topR), highlight);
     }
 
-    // Right path.
+    // Right silhouette — must bend into the panel top (fixes the stair-step).
     if (flushRight) {
-        PaintConvexTopCorner(context, tx0, tx1, ty0, topR, false, shadow);
+        PaintConvexTopCorner(context, tx0, tx1, ty0, topR, false, highlight);
         PaintVEdge(context, x1 - 1.0f, ty0 + topR, (y1 - 1.0f) - (ty0 + topR), shadow);
     } else {
         PaintConvexTopCorner(context, tx0, tx1, ty0, topR, false, highlight);
-        PaintVEdge(context, tx1 - 1.0f, ty0 + topR, (yBody - shoulderR) - (ty0 + topR), highlight);
-        PaintConcaveShoulderRim(context, tx1, yBody, shoulderR, false, highlight);
-        PaintHEdge(context, tx1 + shoulderR, yBody, x1 - (tx1 + shoulderR), highlight);
-        PaintVEdge(context, x1 - 1.0f, yBody, y1 - yBody, shadow);
+        if (bendRight) {
+            // Vertical stops above the shoulder; rim bends out into the panel top.
+            PaintVEdge(
+                context,
+                tx1 - 1.0f,
+                ty0 + topR,
+                (yJoin - shoulderR) - (ty0 + topR),
+                highlight);
+            PaintShoulderRim(context, tx1, yJoin, shoulderR, false, highlight);
+            PaintHEdge(context, tx1 + shoulderR, yJoin, x1 - (tx1 + shoulderR), highlight);
+        } else {
+            PaintVEdge(context, tx1 - 1.0f, ty0 + topR, yJoin - (ty0 + topR), highlight);
+            PaintHEdge(context, tx1 - 1.0f, yJoin, x1 - (tx1 - 1.0f), highlight);
+        }
+        PaintVEdge(context, x1 - 1.0f, yJoin, y1 - yJoin, shadow);
     }
 }
 
@@ -453,6 +469,29 @@ float HeaderButtonSize() {
 
 void PaintPanelSurface(PaintContext& context, const Rect& rect) {
     context.DrawSurface(rect, we::runtime::kindui::SurfaceRole::Panel, 0.0f, "Panel");
+}
+
+void PaintPanelAmbientShadow(PaintContext& context, const Rect& rect) {
+    if (rect.width < 2.0f || rect.height < 2.0f) {
+        return;
+    }
+
+    // Soft ambient depth only — edges stay sharp; no border/glow changes.
+    // Spread ~2–3px, offset ~1–2px, very low opacity black.
+    const float scale = UiScale();
+    const float blur = 2.5f * scale;
+    const float offsetY = 1.5f * scale;
+
+    Color shadow = we::runtime::kindui::ResolveColor(ColorToken::ShadowSubtle);
+    shadow.r = 0.0f;
+    shadow.g = 0.0f;
+    shadow.b = 0.0f;
+    // ShadowSubtle starts ~0.22a; keep final contribution barely visible.
+    shadow.a = std::min(shadow.a, 0.22f) * 0.40f;
+
+    Rect shadowRect = rect;
+    shadowRect.y += offsetY;
+    context.DrawShadow(shadowRect, shadow, 0.0f, blur);
 }
 
 void PaintPanelFrameBevel(PaintContext& context, const Rect& rect) {
@@ -609,9 +648,8 @@ DockTabLayout LayoutDockTabGeometries(
     const float closeGlyph = CloseGlyphSize();
     const bool floatingDockTabs = !modeTabs && UsesGapCutDockTabs();
     const float stripPadV = floatingDockTabs ? TabStripPadTop() : 0.0f;
-    const float dividerH = (modeTabs || floatingDockTabs)
-        ? 0.0f
-        : we::runtime::kindui::ResolveMetric(MetricToken::BorderWidth) * scale;
+    // Connected dock tabs meet the panel — no reserved 1px divider under the tab.
+    const float dividerH = 0.0f;
     const float topPad = modeTabs ? 0.0f : (floatingDockTabs ? stripPadV : TabStripPadTop());
     const float bottomPad = floatingDockTabs ? stripPadV : 0.0f;
     const float tabHeight = (std::max)(16.0f, headerRect.height - topPad - bottomPad - dividerH);
@@ -672,6 +710,29 @@ void PaintDockTab(
         } else {
             const Color activeColor = we::runtime::kindui::ResolveSurfaceColor(activeRole);
             DrawRoundedRectTop(context, activeRect, activeColor, radius, flushLeft);
+        }
+
+        // Outward shoulders so the tab fill bends into the panel (not a hard L).
+        if (!floatingDockTabs && !flatCorners) {
+            const Color panelColor = we::runtime::kindui::ResolveSurfaceColor(
+                we::runtime::kindui::SurfaceRole::Panel);
+            const float joinY = headerRect.y + headerRect.height;
+            const float sideLen = std::max(0.0f, joinY - layout.tabRect.y);
+            float shoulderR = IconMetrics::SnapPx(4.0f);
+            shoulderR = std::max(3.0f, std::min(shoulderR, 5.0f));
+            shoulderR = std::min(shoulderR, std::max(0.0f, sideLen - radius - 1.0f));
+            if (shoulderR >= 3.0f) {
+                const float tabLeft = IconMetrics::SnapPx(layout.tabRect.x);
+                const float tabRight = IconMetrics::SnapPx(layout.tabRect.x + layout.tabRect.width);
+                const float panelLeft = IconMetrics::SnapPx(headerRect.x);
+                const float panelRight = IconMetrics::SnapPx(headerRect.x + headerRect.width);
+                if ((tabLeft - panelLeft) > 1.5f) {
+                    PaintTabShoulderFill(context, tabLeft, joinY, shoulderR, true, panelColor);
+                }
+                if ((panelRight - tabRight) > 1.5f) {
+                    PaintTabShoulderFill(context, tabRight, joinY, shoulderR, false, panelColor);
+                }
+            }
         }
     } else if (hoverAnim > 0.01f) {
         we::runtime::kindui::ControlChrome::PaintInteractiveFill(
@@ -1106,8 +1167,34 @@ void PaintDockPanelChrome(
     const std::vector<DockTabDescriptor>& descriptors,
     const DockTabStripLayout& stripLayout,
     const DockTabStripState& state,
-    const std::function<void(PaintContext& context)>& paintBody)
+    const std::function<void(PaintContext& context)>& paintBody,
+    bool paintAmbientShadow)
 {
+    // Ambient depth behind the full dock silhouette (tabs + body). Paint first
+    // so fills and sharp edges cover the shadow and stay crisp.
+    if (paintAmbientShadow) {
+        Rect chrome = contentRect;
+        if (!headerRect.IsEmpty()) {
+            const float top = headerRect.y;
+            const float bottom = contentRect.IsEmpty()
+                ? (headerRect.y + headerRect.height)
+                : (contentRect.y + contentRect.height);
+            const float left = std::min(
+                headerRect.x,
+                contentRect.IsEmpty() ? headerRect.x : contentRect.x);
+            const float right = std::max(
+                headerRect.x + headerRect.width,
+                contentRect.IsEmpty() ? (headerRect.x + headerRect.width)
+                                      : (contentRect.x + contentRect.width));
+            chrome = Rect{
+                left,
+                top,
+                std::max(0.0f, right - left),
+                std::max(0.0f, bottom - top)};
+        }
+        PaintPanelAmbientShadow(context, chrome);
+    }
+
     PaintDockTabStrip(context, headerRect, descriptors, stripLayout, state);
     PaintDockHeaderContentGap(context, headerContentGapRect);
     PaintDockPanelContent(context, contentRect, paintBody);

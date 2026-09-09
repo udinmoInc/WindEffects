@@ -279,6 +279,7 @@ void FloatingPanelFrame::Paint(::we::runtime::kindui::PaintContext& context) {
     RelayoutChrome();
 
     context.PushSurfaceOwner("FloatingPanelFrame", SurfaceRole::Window);
+    ::we::runtime::kindui::panels::PanelChrome::PaintPanelAmbientShadow(context, m_Geometry);
     context.DrawSurface(m_Geometry, SurfaceRole::Window, 0.0f, "FloatingWindow");
     context.DrawSurface(m_TitleBarRect, SurfaceRole::DockChrome, 0.0f, "FloatingTitleBar");
     context.DrawSurfaceOutline(m_Geometry, SurfaceRole::Border, 1.0f, 0.0f, "FloatingBorder");

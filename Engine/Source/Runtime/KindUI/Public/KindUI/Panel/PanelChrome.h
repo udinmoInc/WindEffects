@@ -52,6 +52,8 @@ KINDUI_API float TabTopRadius();
 KINDUI_API float HeaderButtonSize();
 
 KINDUI_API void PaintPanelSurface(PaintContext& context, const Rect& rect);
+/// Barely-visible ambient drop shadow behind panel chrome. Does not alter edges.
+KINDUI_API void PaintPanelAmbientShadow(PaintContext& context, const Rect& rect);
 /// Soft 1px raised frame (brighter top/left, darker bottom/right) around a panel chrome rect.
 KINDUI_API void PaintPanelFrameBevel(PaintContext& context, const Rect& rect);
 KINDUI_API void PaintToolbarRegion(PaintContext& context, const Rect& rect);
@@ -178,7 +180,8 @@ KINDUI_API void PaintDockPanelChrome(
     const std::vector<DockTabDescriptor>& descriptors,
     const DockTabStripLayout& stripLayout,
     const DockTabStripState& state,
-    const std::function<void(PaintContext& context)>& paintBody);
+    const std::function<void(PaintContext& context)>& paintBody,
+    bool paintAmbientShadow = true);
 
 struct FloatingHeaderAction {
     we::runtime::kindui::WindIconRef icon = we::runtime::kindui::kWindIconNone;
