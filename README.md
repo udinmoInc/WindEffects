@@ -22,7 +22,9 @@
 
 ## 📸 Screenshots
 
-*[Add screenshots of the editor, rendering results, and key features]*
+![In-Development First Look](Visuals/inDevFirstLook.png)
+
+<p align="center"><em>WindEffects Engine — in-development first look.</em></p>
 
 ## 🚀 Quick Start
 
