@@ -6,9 +6,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [1.0.0] - 2026-07-05 🎉
 
-### ✨ Initial Public Release
+### ✨ Development Milestone
 
-This release represents the production-ready release of the project, marking a significant milestone in the project's development. This release establishes the project as a stable, feature-complete system suitable for production use in enterprise environments. The 1.0.0 release incorporates extensive testing, performance optimization, and refinement based on feedback from earlier development versions. The system has been validated for stability, performance, and correctness across a range of development scenarios and hardware configurations. This release represents the culmination of significant development effort and establishes a solid foundation for future enhancements and features.
+This entry documents the state of the project as of 2026-07-05. WindEffects Engine is still under active development and has no official or public releases yet.
 
 ### ➕ Added
 

@@ -405,15 +405,10 @@ If you encounter issues while using WindEffects, please provide:
 - Relevant log files or error messages
 - Screenshots or recordings if applicable
 
-## 🌟 Star History
-
-*[Add star history chart or link to star history]*
-
 ## 🤝 Community & Support
 
 - **Discussions**: Join our [GitHub Discussions](https://github.com/udinmoInc/WindEffects/discussions) for questions and ideas
 - **Issues**: Report bugs and request features via [GitHub Issues](https://github.com/udinmoInc/WindEffects/issues)
-- **Documentation**: Full documentation coming soon
 
 ## 📄 License
 
