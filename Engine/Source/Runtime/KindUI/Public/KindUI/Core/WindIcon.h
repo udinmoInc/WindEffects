@@ -88,6 +88,7 @@ namespace WindIconAssets {
     inline constexpr const char* GitPullRequestPushed = "git-pull-request-pushed";
     inline constexpr const char* Globe = "globe";
     inline constexpr const char* Grid = "grid";
+    inline constexpr const char* Import = "import";
     inline constexpr const char* Layers = "layers";
     inline constexpr const char* ListFilter = "list-filter";
     inline constexpr const char* Lit = "lit";
@@ -285,6 +286,8 @@ namespace WindIcons {
     inline constexpr WindIconRef Globe24{ WindIconAssets::Globe, 24 };
     inline constexpr WindIconRef Grid16{ WindIconAssets::Grid, 16 };
     inline constexpr WindIconRef Grid24{ WindIconAssets::Grid, 24 };
+    inline constexpr WindIconRef Import16{ WindIconAssets::Import, 16 };
+    inline constexpr WindIconRef Import24{ WindIconAssets::Import, 24 };
     inline constexpr WindIconRef Layers16{ WindIconAssets::Layers, 16 };
     inline constexpr WindIconRef Layers24{ WindIconAssets::Layers, 24 };
     inline constexpr WindIconRef ListFilter16{ WindIconAssets::ListFilter, 16 };

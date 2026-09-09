@@ -13,6 +13,7 @@
 #include "KindUI/Panel/Panel.h"
 #include "KindUI/Docking/DockContainer.h"
 #include "Widgets/TitleBar.h"
+#include "Projects/EngineContext.h"
 #include "Widgets/WindowShell.h"
 #include "Widgets/StatusBar.h"
 #include "Widgets/MenuBar.h"
@@ -253,7 +254,8 @@ EditorShellResult EditorShellBuilder::Build(
     we::rhi::RHIDescriptorSetHandle logoSet = we::rhi::RHIDescriptorSetHandle::Invalid;
     (void)logoPx;
 
-    auto titleBar = std::make_shared<TitleBar>(deps.window, "WindEffects Editor", logoSet, menuBar);
+    std::string titleText = "";
+    auto titleBar = std::make_shared<TitleBar>(deps.window, titleText, logoSet, menuBar);
     titleBar->SetContext(widgetContext);
     titleBar->Construct();
 
@@ -263,9 +265,7 @@ EditorShellResult EditorShellBuilder::Build(
         ? toolbarStyle.height
         : we::runtime::kindui::ResolveMetric(MetricToken::ToolbarHeight) * uiScale;
     const float toolbarLeftInset = style.Scaled(we::runtime::kindui::ResolveMetric(MetricToken::Space3));
-    constexpr int windowControlCount = 3;
-    const float toolbarRightInset = style.Scaled(
-        we::runtime::kindui::ResolveMetric(MetricToken::WindowControlWidth) * windowControlCount);
+    const float toolbarRightInset = style.Scaled(we::runtime::kindui::ResolveMetric(MetricToken::Space3));
     const float toolbarEdgePadding = style.Scaled(we::runtime::kindui::ResolveMetric(MetricToken::Space2));
 
     EditorShellDependencies toolbarDeps = deps;

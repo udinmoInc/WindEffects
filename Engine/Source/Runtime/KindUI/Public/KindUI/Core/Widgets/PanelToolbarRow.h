@@ -24,6 +24,7 @@ public:
 
     void SetOnSearchChanged(std::function<void(const std::string&)> callback);
     void AddSeparator();
+    void AddLeadingIconButton(WindIconRef icon, std::function<void()> onClicked);
     void AddIconButton(WindIconRef icon, std::function<void()> onClicked);
 
     /// Adds search + icon children to the flex row. Safe to call once after configuration.
@@ -41,6 +42,7 @@ private:
 
     std::string m_SearchPlaceholder;
     std::shared_ptr<SearchBoxControl> m_SearchBox;
+    std::vector<std::shared_ptr<Widget>> m_LeadingItems;
     std::vector<std::shared_ptr<Widget>> m_TrailingItems;
     std::vector<std::shared_ptr<IconButton>> m_IconButtons;
     std::vector<std::function<void()>> m_IconCallbacks;

@@ -388,7 +388,7 @@ void ContentBrowserToolbarControls::InitializeChildren() {
     m_CreateBtn->SetFrameless(false);
     m_CreateBtn->SetFlexShrink(0.0f);
 
-    m_ImportBtn = std::make_shared<ToolbarLabeledButton>("Import", WindIcons::FolderCreate16, false, ToolbarLabeledButton::Variant::Standard);
+    m_ImportBtn = std::make_shared<ToolbarLabeledButton>("Import", WindIcons::Import16, false, ToolbarLabeledButton::Variant::Standard);
     m_ImportBtn->SetFrameless(true);
     m_ImportBtn->SetFlexShrink(0.0f);
 

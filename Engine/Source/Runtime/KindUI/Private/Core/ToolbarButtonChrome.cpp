@@ -234,14 +234,36 @@ void PaintInlineDropdown(
     float pressStrength,
     float uiScale)
 {
-    PaintSubtleToolbarFill(
-        context,
-        rect,
-        ButtonRadius(uiScale),
-        hoverAnim,
-        pressStrength,
-        false,
-        0.0f);
+    const float radius = ButtonRadius(uiScale);
+    const float hover = std::clamp(hoverAnim, 0.0f, 1.0f);
+    const float press = std::clamp(pressStrength, 0.0f, 1.0f);
+
+    Color baseBg = ResolveColor(ColorToken::InputBackground);
+    Color hoverBg = ResolveColor(ColorToken::HoverBackground);
+    Color pressBg = ResolveColor(ColorToken::ControlBackgroundPressed);
+
+    Color borderNormal = ResolveColor(ColorToken::BorderSubtle);
+    Color borderHover = ResolveColor(ColorToken::BorderLight);
+
+    Color fill = baseBg;
+    if (hover > 0.001f) {
+        fill = Color::Pick(fill, hoverBg, hover * 0.6f);
+    }
+    if (press > 0.001f) {
+        fill = Color::Pick(fill, pressBg, press * 0.8f);
+    }
+
+    Color border = borderNormal;
+    if (hover > 0.001f || press > 0.001f) {
+        border = Color::Pick(borderNormal, borderHover, (std::max)(hover, press));
+    }
+
+    const float compactH = (std::min)(24.0f * uiScale, rect.height);
+    const float offsetY = (rect.height - compactH) * 0.5f;
+    Rect compactRect{ rect.x, rect.y + offsetY, rect.width, compactH };
+
+    context.DrawRoundedRect(compactRect, fill, radius);
+    context.DrawRoundedRectOutline(compactRect, border, 1.0f * uiScale, radius);
 }
 
 void PaintExecutionCluster(
