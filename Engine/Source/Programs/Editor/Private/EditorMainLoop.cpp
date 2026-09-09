@@ -169,19 +169,21 @@ void Editor::MainLoop() {
                 // Do not force a full UI rebuild on every move — hover/press
                 // widgets already InvalidatePaint when their state actually changes.
             } else if (const auto* raw = std::get_if<we::platform::RawMouseEvent>(&event)) {
-                UI::MouseEvent mouseEvent{};
-                mouseEvent.type = UI::MouseEventType::MouseMove;
-                const auto pos = platform.GetMousePosition(m_Window);
-                mouseEvent.position = UI::Point{ static_cast<float>(pos.x), static_cast<float>(pos.y) };
-                mouseEvent.deltaX = raw->delta.x;
-                mouseEvent.deltaY = raw->delta.y;
-                const auto mods = platform.GetKeyModifiers();
-                mouseEvent.altDown = we::platform::HasFlag(mods, we::platform::KeyModifier::Alt);
-                mouseEvent.shiftDown = we::platform::HasFlag(mods, we::platform::KeyModifier::Shift);
-                mouseEvent.ctrlDown = we::platform::HasFlag(mods, we::platform::KeyModifier::Control);
-                MarkOsInput(UI::UiInteractionKind::MouseMove);
-                m_UIEventSystem->ProcessMouseEvent(mouseEvent);
-                m_LastSampledMousePos = pos;
+                if (auto vp = std::dynamic_pointer_cast<ViewportWidget>(m_ViewportWidget); vp && vp->IsFlyLookActive()) {
+                    UI::MouseEvent mouseEvent{};
+                    mouseEvent.type = UI::MouseEventType::MouseMove;
+                    const auto pos = platform.GetMousePosition(m_Window);
+                    mouseEvent.position = UI::Point{ static_cast<float>(pos.x), static_cast<float>(pos.y) };
+                    mouseEvent.deltaX = raw->delta.x;
+                    mouseEvent.deltaY = raw->delta.y;
+                    const auto mods = platform.GetKeyModifiers();
+                    mouseEvent.altDown = we::platform::HasFlag(mods, we::platform::KeyModifier::Alt);
+                    mouseEvent.shiftDown = we::platform::HasFlag(mods, we::platform::KeyModifier::Shift);
+                    mouseEvent.ctrlDown = we::platform::HasFlag(mods, we::platform::KeyModifier::Control);
+                    MarkOsInput(UI::UiInteractionKind::MouseMove);
+                    m_UIEventSystem->ProcessMouseEvent(mouseEvent);
+                    m_LastSampledMousePos = pos;
+                }
             } else if (const auto* button = std::get_if<we::platform::MouseButtonEvent>(&event)) {
                 if (we::runtime::kindui::UIRepaintGate::PeekNeedsLayout()) {
                     SyncViewportFramebufferFromLayout();

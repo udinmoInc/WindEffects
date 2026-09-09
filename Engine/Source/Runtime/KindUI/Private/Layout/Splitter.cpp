@@ -112,11 +112,11 @@ void Splitter::SetSplitRatio(float ratio) {
 }
 
 void Splitter::SetFixedFirstWidth(float width) {
-    m_FixedFirstWidth = std::max(1.0f, width);
+    m_FixedFirstWidth = std::max(0.0f, width);
 }
 
 void Splitter::SetFixedSecondWidth(float width) {
-    m_FixedSecondWidth = std::max(1.0f, width);
+    m_FixedSecondWidth = std::max(0.0f, width);
 }
 
 void Splitter::SetResizeMode(ResizeMode mode) {
@@ -129,6 +129,11 @@ void Splitter::SetMinPaneSizes(float minFirstPx, float minSecondPx) {
 }
 
 float Splitter::GetEffectiveBarThickness() const {
+    const bool firstVisible = m_FirstChild && m_FirstChild->IsVisible();
+    const bool secondVisible = m_SecondChild && m_SecondChild->IsVisible();
+    if (!firstVisible || !secondVisible) {
+        return 0.0f;
+    }
     const float scale = DPIContext::GetScale();
     if (m_PanelGapEnabled) {
         // Gap-cuts: one 1px splitter band between panels; workspace padding handles outer edges.
@@ -413,15 +418,6 @@ void Splitter::UpdateCachedBarHitRect() {
     m_CachedBarHitRect = Rect{ barRect.x, barRect.y - padding, width, hitThickness };
 }
 
-bool Splitter::IsVisible() const {
-    if (!Widget::IsVisible()) {
-        return false;
-    }
-    const bool firstVis = m_FirstChild && m_FirstChild->IsVisible();
-    const bool secondVis = m_SecondChild && m_SecondChild->IsVisible();
-    return firstVis || secondVis;
-}
-
 void Splitter::Paint(PaintContext& context) {
     const bool firstVisible = m_FirstChild && m_FirstChild->IsVisible();
     const bool secondVisible = m_SecondChild && m_SecondChild->IsVisible();
@@ -539,6 +535,24 @@ void Splitter::OnMouseUp(const MouseEvent& event) {
         ApplyResizeCursor(GetSplitterHitRect().Contains(event.position));
         // Apply deferred viewport RT resize on the next flush after drag ends.
         UIRepaintGate::RequestPaint();
+    }
+}
+
+void Splitter::OnHoverLost() {
+    Widget::OnHoverLost();
+    if (m_Hovered) {
+        m_Hovered = false;
+        InvalidatePaint();
+    }
+    if (m_Dragging) {
+        m_Dragging = false;
+        const int prev = g_SplitterDragCount.fetch_sub(1, std::memory_order_relaxed);
+        if (prev <= 0) {
+            g_SplitterDragCount.store(0, std::memory_order_relaxed);
+        }
+    }
+    if (!AnySplitterDragging()) {
+        we::platform::Platform::Get().SetSystemCursor(we::platform::SystemCursor::Arrow);
     }
 }
 

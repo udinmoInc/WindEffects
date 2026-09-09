@@ -16,6 +16,8 @@
 #include <unordered_map>
 #include <vector>
 
+namespace we::runtime::kindui { class EventSystem; }
+
 namespace we::programs::editor {
 using ::we::runtime::kindui::Splitter;
 
@@ -26,6 +28,7 @@ public:
     void BindLayout(const ::we::editor::shell::DockLayoutBuildResult& layout);
     void SetPopupHost(::we::runtime::kindui::OverlayHost* host);
     [[nodiscard]] ::we::runtime::kindui::IPopupHost* GetPopupHost() const;
+    void SetEventSystem(::we::runtime::kindui::EventSystem* eventSystem) { m_EventSystem = eventSystem; }
 
     void RegisterPanel(
         const std::string& panelId,
@@ -121,6 +124,7 @@ private:
     std::vector<FloatingHost> m_FloatHosts;
     int m_NextFloatHostId = 1;
     ::we::runtime::kindui::OverlayHost* m_PopupHost = nullptr;
+    ::we::runtime::kindui::EventSystem* m_EventSystem = nullptr;
     std::function<void()> m_OnPanelVisibilityChanged;
 
     std::string m_PendingFloatId;

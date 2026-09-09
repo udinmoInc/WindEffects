@@ -102,6 +102,8 @@ void DockContainer::RemovePanel(const std::shared_ptr<Panel>& panel) {
         } else if (m_ActiveTabIndex == index) {
             m_ActiveTabIndex = std::max(0, m_ActiveTabIndex - 1);
         }
+        m_TabDragCandidate = false;
+        m_DragTabIndex = -1;
     }
 }
 
@@ -428,6 +430,8 @@ void DockContainer::OnMouseDown(const MouseEvent& event) {
 
 void DockContainer::OnHoverLost() {
     m_OptionsMenuHovered = false;
+    m_TabDragCandidate = false;
+    m_DragTabIndex = -1;
     for (auto& tabInfo : m_Tabs) {
         tabInfo.isHovered = false;
         tabInfo.isCloseHovered = false;
@@ -454,18 +458,38 @@ void DockContainer::OnMouseMove(const MouseEvent& event) {
         }
     }
 
+    bool tabStateChanged = false;
     if (m_HeaderRect.Contains(event.position)) {
-        m_OptionsMenuHovered = m_OptionsMenuRect.Contains(event.position);
+        const bool newOptionsHover = m_ShowOptionsMenu && m_OptionsMenuRect.Contains(event.position);
+        if (m_OptionsMenuHovered != newOptionsHover) {
+            m_OptionsMenuHovered = newOptionsHover;
+            tabStateChanged = true;
+        }
         for (auto& tabInfo : m_Tabs) {
-            tabInfo.isHovered = tabInfo.tabRect.Contains(event.position);
-            tabInfo.isCloseHovered = tabInfo.isHovered && tabInfo.closeRect.Contains(event.position);
+            const bool newH = tabInfo.tabRect.Contains(event.position);
+            const bool newCH = newH && tabInfo.closeRect.Contains(event.position);
+            if (tabInfo.isHovered != newH || tabInfo.isCloseHovered != newCH) {
+                tabInfo.isHovered = newH;
+                tabInfo.isCloseHovered = newCH;
+                tabStateChanged = true;
+            }
         }
     } else {
-        m_OptionsMenuHovered = false;
-        for (auto& tabInfo : m_Tabs) {
-            tabInfo.isHovered = false;
-            tabInfo.isCloseHovered = false;
+        if (m_OptionsMenuHovered) {
+            m_OptionsMenuHovered = false;
+            tabStateChanged = true;
         }
+        for (auto& tabInfo : m_Tabs) {
+            if (tabInfo.isHovered || tabInfo.isCloseHovered) {
+                tabInfo.isHovered = false;
+                tabInfo.isCloseHovered = false;
+                tabStateChanged = true;
+            }
+        }
+    }
+
+    if (tabStateChanged) {
+        InvalidatePaint();
     }
 
     if (m_ActiveTabIndex >= 0 && m_ActiveTabIndex < static_cast<int>(m_Tabs.size())) {

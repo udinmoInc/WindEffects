@@ -1,4 +1,5 @@
 #include "WindEffects/Editor/UI/Shell/EditorWorkspaceController.h"
+#include "WindEffects/Editor/UI/Shell/EditorModeController.h"
 
 #include "Core/EditorConfigPaths.h"
 #include "Core/Logger.h"
@@ -8,6 +9,7 @@
 #include "KindUI/Panel/PanelChrome.h"
 #include "KindUI/Layout/Splitter.h"
 #include "KindUI/Layout/OverlayManager.h"
+#include "KindUI/Core/EventSystem.h"
 #include "KindUI/Core/UIRepaintGate.h"
 #include "KindUI/Profiling/PaintCauseLog.h"
 #include "KindUI/Tokens/DesignToken.h"
@@ -737,6 +739,7 @@ void EditorWorkspaceController::DockPanelTo(
 
 void EditorWorkspaceController::FlushPendingDockActions() {
     we::runtime::kindui::UIRepaintGate::ScopedBatch batch;
+    bool hadAction = !m_PendingFloatId.empty() || !m_PendingDockId.empty();
     if (!m_PendingFloatId.empty()) {
         const std::string id = m_PendingFloatId;
         const Point pos = m_PendingFloatPos;
@@ -753,6 +756,10 @@ void EditorWorkspaceController::FlushPendingDockActions() {
         m_PendingDockId.clear();
         m_PendingDockTarget.reset();
         ApplyDockPanel(id, target);
+    }
+
+    if (hadAction && m_EventSystem) {
+        m_EventSystem->ClearAllInputState();
     }
 }
 
@@ -817,8 +824,14 @@ void EditorWorkspaceController::UpdateEmptyDockVisibility() {
         return dock && dock->GetTabCount() > 0;
     };
 
+    const bool drawerVisible = ::we::editor::shell::EditorModeController::Get().IsDrawerVisible();
     if (m_Layout.toolsDock) {
-        m_Layout.toolsDock->SetVisible(dockHasTabs(m_Layout.toolsDock));
+        const bool showTools = dockHasTabs(m_Layout.toolsDock) && drawerVisible;
+        m_Layout.toolsDock->SetVisible(showTools);
+        if (auto toolsIt = m_Panels.find("Tools"); toolsIt != m_Panels.end() && toolsIt->second.panel) {
+            toolsIt->second.panel->SetVisible(showTools);
+            toolsIt->second.visible = showTools;
+        }
     }
     if (m_Layout.viewportDock) {
         m_Layout.viewportDock->SetVisible(dockHasTabs(m_Layout.viewportDock));
@@ -840,41 +853,12 @@ void EditorWorkspaceController::UpdateEmptyDockVisibility() {
         }
     }
 
-    const bool toolsVis = m_Layout.toolsDock && m_Layout.toolsDock->IsVisible();
-    if (m_Layout.toolsViewportSplitter) {
-        m_Layout.toolsViewportSplitter->SetResizeMode(Splitter::ResizeMode::FixedFirst);
-        if (toolsVis) {
-            const float width = m_ToolsPaneWidth > 0.0f ? m_ToolsPaneWidth : 300.0f;
-            m_Layout.toolsViewportSplitter->SetFixedFirstWidth(std::max(width, 200.0f));
-        } else {
-            const float current = m_Layout.toolsViewportSplitter->GetFixedFirstWidth();
-            if (current >= 150.0f) {
-                m_ToolsPaneWidth = current;
-            }
-            m_Layout.toolsViewportSplitter->SetFixedFirstWidth(0.0f);
-        }
-    }
-
     const bool rightVisible =
         (m_Layout.explorerDock && m_Layout.explorerDock->IsVisible())
         || (m_Layout.detailsDock && m_Layout.detailsDock->IsVisible());
 
     if (m_Layout.rightVerticalSplitter) {
         m_Layout.rightVerticalSplitter->SetVisible(rightVisible);
-    }
-
-    if (m_Layout.mainHorizontalSplitter) {
-        m_Layout.mainHorizontalSplitter->SetResizeMode(Splitter::ResizeMode::FixedSecond);
-        if (rightVisible) {
-            const float width = m_RightSidebarWidth > 0.0f ? m_RightSidebarWidth : 340.0f;
-            m_Layout.mainHorizontalSplitter->SetFixedSecondWidth(std::max(width, 280.0f));
-        } else {
-            const float current = m_Layout.mainHorizontalSplitter->GetFixedSecondWidth();
-            if (current >= 200.0f) {
-                m_RightSidebarWidth = current;
-            }
-            m_Layout.mainHorizontalSplitter->SetFixedSecondWidth(0.0f);
-        }
     }
 }
 
