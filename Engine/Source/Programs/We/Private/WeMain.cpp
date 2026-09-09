@@ -1,4 +1,12 @@
-﻿#include "AssetTools/AssetTools.h"
+﻿// ==============================================================================
+// WindEffects — We — WeMain
+// Internal implementation for the We module.
+//
+// Copyright (c) 2026 WindEffects. All rights reserved.
+// This file is part of WindEffects Engine and is governed by the
+// WindEffects Engine EULA (see Legal/EULA.md at the repository root).
+// ==============================================================================
+#include "AssetTools/AssetTools.h"
 #include "Core/BuildPaths.h"
 #include "Core/Logger.h"
 #include "Core/Paths.h"

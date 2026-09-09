@@ -1,3 +1,11 @@
+// ==============================================================================
+// WindEffects — MainFrame — OutputLogWidget
+// UI widget used by the MainFrame module.
+//
+// Copyright (c) 2026 WindEffects. All rights reserved.
+// This file is part of WindEffects Engine and is governed by the
+// WindEffects Engine EULA (see Legal/EULA.md at the repository root).
+// ==============================================================================
 #include "Widgets/OutputLogWidget.h"
 #include "KindUI/Panel/PanelChrome.h"
 #include "KindUI/Core/PaintContext.h"

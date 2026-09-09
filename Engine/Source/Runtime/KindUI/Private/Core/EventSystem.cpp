@@ -1,3 +1,11 @@
+// ==============================================================================
+// WindEffects — KindUI — EventSystem
+// Internal implementation for the KindUI module.
+//
+// Copyright (c) 2026 WindEffects. All rights reserved.
+// This file is part of WindEffects Engine and is governed by the
+// WindEffects Engine EULA (see Legal/EULA.md at the repository root).
+// ==============================================================================
 #include "KindUI/Core/EventSystem.h"
 #include "KindUI/Core/Widget.h"
 #include "KindUI/Layout/OverlayManager.h"
@@ -81,10 +89,14 @@ void EventSystem::ProcessMouseEvent(const MouseEvent& event) {
         captured = nullptr;
     }
 
-    // Filter duplicate zero-delta mouse moves when no widget capture is active
+    // Filter sub-pixel OS jitter: skip move events where the cursor hasn't moved
+    // more than 0.5 logical pixels. Windows fires WM_MOUSEMOVE even while the
+    // mouse is stationary (sub-pixel noise), which would otherwise trigger the full
+    // hover chain, OnMouseMove dispatch, tooltip recalc, and InvalidatePaint every frame.
     if (event.type == MouseEventType::MouseMove && !captured) {
-        if (event.position.x == m_LastMousePos.x && event.position.y == m_LastMousePos.y &&
-            event.deltaX == 0 && event.deltaY == 0) {
+        const float dx = event.position.x - m_LastMousePos.x;
+        const float dy = event.position.y - m_LastMousePos.y;
+        if (std::abs(dx) < 0.5f && std::abs(dy) < 0.5f) {
             return;
         }
     }

@@ -1,3 +1,11 @@
+// ==============================================================================
+// WindEffects — ContentBrowser — ContentBrowserService
+// Internal implementation for the ContentBrowser module.
+//
+// Copyright (c) 2026 WindEffects. All rights reserved.
+// This file is part of WindEffects Engine and is governed by the
+// WindEffects Engine EULA (see Legal/EULA.md at the repository root).
+// ==============================================================================
 #include "Services/ContentBrowserService.h"
 #include "Services/ContentBrowserFolderArt.h"
 #include "Services/ContentBrowserBlueprintArt.h"

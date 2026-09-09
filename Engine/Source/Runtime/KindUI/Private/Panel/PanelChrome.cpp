@@ -1,3 +1,11 @@
+// ==============================================================================
+// WindEffects — KindUI — PanelChrome
+// Internal implementation for the KindUI module.
+//
+// Copyright (c) 2026 WindEffects. All rights reserved.
+// This file is part of WindEffects Engine and is governed by the
+// WindEffects Engine EULA (see Legal/EULA.md at the repository root).
+// ==============================================================================
 #include "KindUI/Panel/PanelChrome.h"
 
 #include "KindUI/Core/ControlChrome.h"
@@ -71,10 +79,6 @@ void ResolvePanelBevelColors(Color& outHighlight, Color& outShadow) {
     outShadow = we::runtime::kindui::ColorSpace::OpaqueSurface(
         we::runtime::kindui::ColorSpace::LerpColor(panel, deep, 0.70f));
 }
-
-/// Outward shoulder fillet: tab side bends into the panel top (UE5).
-/// Center sits outside the corner at (edge±r, join-r) so we get a clean flare,
-/// not a quarter-disk "bite" blob from centering on the corner.
 void PaintTabShoulderFill(
     PaintContext& context,
     float tabEdgeX,
@@ -251,7 +255,6 @@ void PaintDockConnectedFrameBevel(
     topR = std::min(topR, std::floor((tx1 - tx0) * 0.45f));
 
     const float sideLen = std::max(0.0f, yJoin - ty0);
-    // Subtle UE5 shoulder — large radii read as a "bite".
     float shoulderR = IconMetrics::SnapPx(4.0f);
     shoulderR = std::max(3.0f, std::min(shoulderR, 5.0f));
     shoulderR = std::min(shoulderR, std::max(0.0f, sideLen - topR - 1.0f));

@@ -1,3 +1,11 @@
+// ==============================================================================
+// WindEffects — ToolsPanel — ToolsPanelState
+// Internal implementation for the ToolsPanel module.
+//
+// Copyright (c) 2026 WindEffects. All rights reserved.
+// This file is part of WindEffects Engine and is governed by the
+// WindEffects Engine EULA (see Legal/EULA.md at the repository root).
+// ==============================================================================
 #include "ToolsPanelState.h"
 
 #include "Core/EditorConfigPaths.h"

@@ -1,3 +1,11 @@
+// ==============================================================================
+// WindEffects — IgniteBT — GraphCommand
+// Source file for the IgniteBT module.
+//
+// Copyright (c) 2026 WindEffects. All rights reserved.
+// This file is part of WindEffects Engine and is governed by the
+// WindEffects Engine EULA (see Legal/EULA.md at the repository root).
+// ==============================================================================
 using Serilog;
 using IgniteBT.Workspace.Modules;
 using IgniteBT.Build.Graph;
@@ -40,7 +48,6 @@ public static class GraphCommand
             var graph = new DependencyGraph();
             graph.BuildFromModules(modules);
             
-            // Validate graph
             if (!graph.Validate())
             {
                 Log.Error("Build graph validation failed");

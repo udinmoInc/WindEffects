@@ -1,3 +1,11 @@
+// ==============================================================================
+// WindEffects — PlaceActors — PlaceActorsPanelPaint
+// Internal implementation for the PlaceActors module.
+//
+// Copyright (c) 2026 WindEffects. All rights reserved.
+// This file is part of WindEffects Engine and is governed by the
+// WindEffects Engine EULA (see Legal/EULA.md at the repository root).
+// ==============================================================================
 #include "Platform/Platform.h"
 #include "PlaceActors/PlaceActorsPanel.h"
 
@@ -464,7 +472,9 @@ void PlaceActorsPanel::OnMouseMove(const MouseEvent& event) {
         return;
     }
 
-    HideTooltip();
+    if (!m_TooltipText.empty() || m_TooltipRect.width > 0.0f) {
+        HideTooltip();
+    }
     bool anyHoverChanged = false;
     for (auto& entry : m_Layout) {
         const bool hovered = entry.geometry.Contains(event.position);
