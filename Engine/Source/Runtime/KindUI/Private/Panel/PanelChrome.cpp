@@ -986,6 +986,14 @@ void PaintDockTabStrip(
             state.flatCorners);
     }
 
+    const float scale = UiScale();
+    const Color sepColor = we::runtime::kindui::ResolveColor(ColorToken::BorderSubtle);
+    context.DrawLine(
+        Point{ stripRect.x, stripRect.y + stripRect.height },
+        Point{ stripRect.x + stripRect.width, stripRect.y + stripRect.height },
+        sepColor,
+        1.0f * scale);
+
     if (!stripRect.IsEmpty() && state.showOptionsMenu) {
         const float buttonSize = HeaderButtonSize();
         const float rightPad = (std::max)(TabStripPadH(), TabPadH());
@@ -1004,7 +1012,6 @@ void PaintDockTabStrip(
 
         if (state.optionsMenuHovered) {
             std::string tooltip = "Panel Options";
-            const float scale = UiScale();
             const float textSize = we::runtime::kindui::ResolveMetric(MetricToken::TextSizeCaption) * scale;
             const float padH = we::runtime::kindui::ResolveMetric(MetricToken::Space2) * scale;
             const float padV = we::runtime::kindui::ResolveMetric(MetricToken::Space1) * scale;

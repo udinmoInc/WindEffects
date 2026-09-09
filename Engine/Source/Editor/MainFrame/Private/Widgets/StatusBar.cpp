@@ -97,7 +97,7 @@ void StatusBar::Construct() {
     m_LeftBox->Align(AlignItems::Center);
 
     m_AssetsPanelButton = MakeDockControl(WindIcons::FolderSearch16, "Asset Explorer", "Asset Explorer");
-    m_DiagnosticsPanelButton = MakeDockControl(WindIcons::DocumentText16, "Console Log", "Console Log");
+    m_DiagnosticsPanelButton = MakeDockControl(WindIcons::Console16, "Output Log", "Output Log");
 
     m_AssetsPanelButton->SetOnClicked([this]() { SelectPanelTab(0, true); });
     m_DiagnosticsPanelButton->SetOnClicked([this]() { SelectPanelTab(1, true); });
@@ -111,7 +111,7 @@ void StatusBar::Construct() {
     m_CommandInput = std::make_shared<CommandInput>();
     m_CommandInput->SetFlatChrome(true);
     m_CommandInput->SetVerticalAlignment(VerticalAlignment::Center);
-    m_CommandInput->SetPlaceholder("Console Commands...");
+    m_CommandInput->SetPlaceholder("Output Log Commands...");
     m_CommandInput->SetFlexGrow(0.0f);
     m_CommandInput->SetFlexShrink(0.0f);
     m_CommandInput->SetWidth(ThemeMetric(MetricToken::InputWidthDefault) * uiScale);

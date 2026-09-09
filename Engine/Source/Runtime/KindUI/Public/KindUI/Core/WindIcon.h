@@ -54,6 +54,7 @@ namespace WindIconAssets {
     inline constexpr const char* Cloud = "cloud";
     inline constexpr const char* CloudOffline = "cloud-offline";
     inline constexpr const char* Cogs = "cogs";
+    inline constexpr const char* Collab = "collab";
     inline constexpr const char* ColorFill = "color-fill";
     inline constexpr const char* ColorFilter = "color-filter";
     inline constexpr const char* ColorPalette = "color-palette";
@@ -113,6 +114,7 @@ namespace WindIconAssets {
     inline constexpr const char* Plugin = "plugin";
     inline constexpr const char* Plus = "plus";
     inline constexpr const char* Prism = "prism";
+    inline constexpr const char* Profiler = "profiler";
     inline constexpr const char* Stop = "stop";
     inline constexpr const char* Redo = "redo";
     inline constexpr const char* RedoAlt = "redo-alt";
@@ -219,6 +221,8 @@ namespace WindIcons {
     inline constexpr WindIconRef CloudOffline24{ WindIconAssets::CloudOffline, 24 };
     inline constexpr WindIconRef Cogs16{ WindIconAssets::Cogs, 16 };
     inline constexpr WindIconRef Cogs24{ WindIconAssets::Cogs, 24 };
+    inline constexpr WindIconRef Collab16{ WindIconAssets::Collab, 16 };
+    inline constexpr WindIconRef Collab24{ WindIconAssets::Collab, 24 };
     inline constexpr WindIconRef ColorFill16{ WindIconAssets::ColorFill, 16 };
     inline constexpr WindIconRef ColorFill24{ WindIconAssets::ColorFill, 24 };
     inline constexpr WindIconRef ColorFilter16{ WindIconAssets::ColorFilter, 16 };
@@ -334,6 +338,8 @@ namespace WindIcons {
     inline constexpr WindIconRef Plus24{ WindIconAssets::Plus, 24 };
     inline constexpr WindIconRef Prism16{ WindIconAssets::Prism, 16 };
     inline constexpr WindIconRef Prism24{ WindIconAssets::Prism, 24 };
+    inline constexpr WindIconRef Profiler16{ WindIconAssets::Profiler, 16 };
+    inline constexpr WindIconRef Profiler24{ WindIconAssets::Profiler, 24 };
     inline constexpr WindIconRef Stop16{ WindIconAssets::Stop, 16 };
     inline constexpr WindIconRef Stop24{ WindIconAssets::Stop, 24 };
     inline constexpr WindIconRef Redo16{ WindIconAssets::Redo, 16 };

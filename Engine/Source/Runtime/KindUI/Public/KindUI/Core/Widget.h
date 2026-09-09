@@ -142,7 +142,7 @@ public:
     const Rect& GetGeometry() const { return m_Geometry; }
     const Size& GetDesiredSize() const { return m_DesiredSize; }
 
-    bool IsVisible() const { return m_Visible; }
+    [[nodiscard]] virtual bool IsVisible() const { return m_Visible; }
     void SetVisible(bool visible) {
         if (m_Visible == visible) return;
         m_Visible = visible;

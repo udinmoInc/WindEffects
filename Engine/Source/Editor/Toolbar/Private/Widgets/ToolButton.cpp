@@ -488,8 +488,26 @@ void ToolButton::Paint(PaintContext& context) {
     if (isToolbarIcon) {
         // Always draw transport / play / settings glyphs at the 16px toolbar icon size.
         const float iconSize = IconSize(uiScale);
-        PaintFloatingIcon(
-            context, m_Icon, renderRect, iconSize, m_HoverAnim, pressStrength, m_Active);
+        if (m_IsDropdown) {
+            const float iconGap = IconGapPx(uiScale);
+            const float padH = ChipHorizontalPad(uiScale);
+            float currentX = renderRect.x + padH;
+            Rect iconBand{ currentX, centerY - iconSize * 0.5f, iconSize, iconSize };
+            PaintFloatingIcon(
+                context, m_Icon, iconBand, iconSize, m_HoverAnim, pressStrength, m_Active);
+            currentX += iconSize + iconGap;
+            PaintFloatingIcon(
+                context,
+                WindIcons::ChevronDownV212,
+                IconMetrics::CompactGlyphBand(renderRect, currentX),
+                16.0f,
+                m_HoverAnim,
+                pressStrength,
+                m_Active);
+        } else {
+            PaintFloatingIcon(
+                context, m_Icon, renderRect, iconSize, m_HoverAnim, pressStrength, m_Active);
+        }
         return;
     }
 

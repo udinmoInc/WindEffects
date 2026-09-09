@@ -6,6 +6,7 @@
 #include "KindUI/Core/DPIContext.h"
 #include "KindUI/Tokens/DesignToken.h"
 #include "KindUI/Theming/StyleRole.h"
+#include "KindUI/Core/UIRepaintGate.h"
 #include <functional>
 #include <algorithm>
 
@@ -286,7 +287,14 @@ void Panel::SetExpanded(bool expanded) {
     if (m_Expanded == expanded) return;
     
     m_Expanded = expanded;
-    Arrange(m_Geometry);
+    if (m_BodyLayout) {
+        m_BodyLayout->SetVisible(expanded);
+    }
+    if (!m_Geometry.IsEmpty()) {
+        Arrange(m_Geometry);
+    }
+    we::runtime::kindui::UIRepaintGate::RequestLayout();
+    we::runtime::kindui::UIRepaintGate::RequestPaint();
 }
 
 void Panel::AddHeaderAction(we::runtime::kindui::WindIconRef icon, std::function<void()> onClick) {

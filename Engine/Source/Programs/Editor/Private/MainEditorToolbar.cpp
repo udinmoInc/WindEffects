@@ -53,7 +53,7 @@ std::shared_ptr<::we::runtime::kindui::Widget> BuildMainEditorToolbar(
         .RightInset(rightInset)
         .EdgePadding(edgePadding);
 
-    // Left group: Save (with dropdown) first in execution cluster, then Mode Selector & File actions (Blueprint, Sequencer)
+    // Left group: Save first in execution cluster, then Mode Selector & File actions (Blueprint, Sequencer, Collab, Profiler, Accessibility)
     builder.Left([&](ToolbarBuilder& left) {
         left.Group(ToolbarAlignment::Left, ToolbarGroupStyle::ExecutionCluster, [&](ToolbarBuilder& file) {
             file.IconItem(WindIcons::Save16, "Save Level (Ctrl+S)", []() {});
@@ -61,31 +61,31 @@ std::shared_ptr<::we::runtime::kindui::Widget> BuildMainEditorToolbar(
         left.AddWidget(modeSelector);
         left.Separator();
         left.Group(ToolbarAlignment::Left, ToolbarGroupStyle::ExecutionCluster, [&](ToolbarBuilder& file) {
-            file.IconItem(WindIcons::Blueprint16, "Open Blueprints", []() {});
-            file.IconItem(WindIcons::Clapperboard16, "Cinematics & Sequencer", []() {});
+            file.DropdownItem(WindIcons::Blueprint16, "", []() {}, "Open Blueprints");
+            file.DropdownItem(WindIcons::Clapperboard16, "", []() {}, "Cinematics & Sequencer");
+            file.DropdownItem(WindIcons::Collab16, "", []() {}, "Collaboration");
+            file.DropdownItem(WindIcons::Profiler16, "", []() {}, "Profiler");
+            file.DropdownItem(WindIcons::Accessibility16, "", []() {}, "Accessibility");
         });
     });
 
-    // Center group: Transport controls (Play + Pause + Mode Dropdown) at true window center
+    // Center group: Transport controls (Play + Pause + Stop) at true window center
     builder.Center([&](ToolbarBuilder& center) {
         center.Group(ToolbarAlignment::Center, ToolbarGroupStyle::ExecutionCluster, [&](ToolbarBuilder& transport) {
             transport.IconItem(WindIcons::Play16, "Play (PIE)", []() {}, [](const std::shared_ptr<ToolButton>& btn) {
                 btn->SetButtonStyle(ToolButtonStyle::PlayButton);
             });
             transport.IconItem(WindIcons::Pause16, "Pause (PIE)", []() {});
-            transport.DropdownItem(
-                we::runtime::kindui::kWindIconNone,
-                "Default (Debug)",
-                []() {},
-                "Play Mode Options");
+            transport.IconItem(WindIcons::Stop16, "Stop (PIE)", []() {});
         });
     });
 
-    // Right group: Build & Settings dropdown controls
+    // Right group: Build, Settings & Platform dropdown controls
     builder.Right([&](ToolbarBuilder& right) {
         right.Group(ToolbarAlignment::Right, ToolbarGroupStyle::ExecutionCluster, [&](ToolbarBuilder& tools) {
             tools.DropdownItem(WindIcons::Construct16, "Build", []() {}, "Build Options");
             tools.DropdownItem(WindIcons::Settings16, "Settings", []() {}, "Settings Options");
+            tools.DropdownItem(WindIcons::Window16, "Platform", []() {}, "Target Platform Options");
         });
     });
 

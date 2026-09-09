@@ -413,28 +413,27 @@ void Splitter::UpdateCachedBarHitRect() {
     m_CachedBarHitRect = Rect{ barRect.x, barRect.y - padding, width, hitThickness };
 }
 
+bool Splitter::IsVisible() const {
+    if (!Widget::IsVisible()) {
+        return false;
+    }
+    const bool firstVis = m_FirstChild && m_FirstChild->IsVisible();
+    const bool secondVis = m_SecondChild && m_SecondChild->IsVisible();
+    return firstVis || secondVis;
+}
+
 void Splitter::Paint(PaintContext& context) {
-    if (!m_Visible) return;
+    const bool firstVisible = m_FirstChild && m_FirstChild->IsVisible();
+    const bool secondVisible = m_SecondChild && m_SecondChild->IsVisible();
 
-    const auto paintChildClipped = [&](const std::shared_ptr<Widget>& child, const Rect& clipRect) {
-        if (!child || !child->IsVisible() || clipRect.IsEmpty()) {
-            return;
-        }
-        context.PushClipRect(clipRect);
-        child->Paint(context);
-        context.PopClipRect();
-    };
-
-    if (m_PanelGapEnabled && ChromeSeparation::kGapCutsEnabled) {
-        paintChildClipped(m_FirstChild, m_FirstChildRect);
-        paintChildClipped(m_SecondChild, m_SecondChildRect);
-        return;
+    if (m_FirstChild && firstVisible) {
+        m_FirstChild->Paint(context);
+    }
+    if (m_SecondChild && secondVisible) {
+        m_SecondChild->Paint(context);
     }
 
-    if (m_FirstChild && m_FirstChild->IsVisible()) m_FirstChild->Paint(context);
-    if (m_SecondChild && m_SecondChild->IsVisible()) m_SecondChild->Paint(context);
-
-    if (!m_FirstChild || !m_FirstChild->IsVisible() || m_PanelGapEnabled) {
+    if (!firstVisible || !secondVisible) {
         return;
     }
 
@@ -452,6 +451,14 @@ void Splitter::Paint(PaintContext& context) {
 }
 
 void Splitter::OnMouseDown(const MouseEvent& event) {
+    const bool firstVisible = m_FirstChild && m_FirstChild->IsVisible();
+    const bool secondVisible = m_SecondChild && m_SecondChild->IsVisible();
+    if (!firstVisible || !secondVisible) {
+        if (m_FirstChild && firstVisible) m_FirstChild->OnMouseDown(event);
+        else if (m_SecondChild && secondVisible) m_SecondChild->OnMouseDown(event);
+        return;
+    }
+
     Rect hitRect = GetSplitterHitRect();
     if (hitRect.Contains(event.position)) {
         if (!m_Dragging) {
@@ -463,6 +470,14 @@ void Splitter::OnMouseDown(const MouseEvent& event) {
 }
 
 void Splitter::OnMouseMove(const MouseEvent& event) {
+    const bool firstVisible = m_FirstChild && m_FirstChild->IsVisible();
+    const bool secondVisible = m_SecondChild && m_SecondChild->IsVisible();
+    if (!firstVisible || !secondVisible) {
+        if (m_FirstChild && firstVisible) m_FirstChild->OnMouseMove(event);
+        else if (m_SecondChild && secondVisible) m_SecondChild->OnMouseMove(event);
+        return;
+    }
+
     Rect hitRect = GetSplitterHitRect();
     const bool wasHovered = m_Hovered;
     m_Hovered = hitRect.Contains(event.position);
@@ -535,16 +550,21 @@ std::shared_ptr<Widget> Splitter::HitTestPoint(const Point& pos, const Rect* cli
         return nullptr;
     }
 
-    if (ComputeBarHitRect().Contains(pos)) {
-        return shared_from_this();
+    const bool firstVisible = m_FirstChild && m_FirstChild->IsVisible();
+    const bool secondVisible = m_SecondChild && m_SecondChild->IsVisible();
+
+    if (firstVisible && secondVisible) {
+        if (ComputeBarHitRect().Contains(pos)) {
+            return shared_from_this();
+        }
     }
 
-    if (m_SecondChild && m_SecondChild->IsVisible()) {
+    if (m_SecondChild && secondVisible) {
         if (auto hit = m_SecondChild->HitTestPoint(pos, clip)) {
             return hit;
         }
     }
-    if (m_FirstChild && m_FirstChild->IsVisible()) {
+    if (m_FirstChild && firstVisible) {
         if (auto hit = m_FirstChild->HitTestPoint(pos, clip)) {
             return hit;
         }

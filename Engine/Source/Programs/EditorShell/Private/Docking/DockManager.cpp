@@ -377,7 +377,7 @@ WorkspaceLayout CreateDefaultEditorWorkspaceLayout() {
         MakePanelDesc("ContentBrowser", "Asset Explorer", "content-browser", DockZone::Bottom, true, 4));
     layout.panels.emplace(
         "OutputLog",
-        MakePanelDesc("OutputLog", "Console Log", "output-log", DockZone::Floating, false, 5));
+        MakePanelDesc("OutputLog", "Output Log", "output-log", DockZone::Bottom, true, 5));
 
     // Default layout: leftCenterCol (tools+viewport on top, content browser on bottom), rightSidebar (outliner + details) on
     // right.

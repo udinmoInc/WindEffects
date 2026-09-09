@@ -196,8 +196,8 @@ float GraphiteDarkTheme::ResolveMetric(MetricToken token) const {
     case MetricToken::PanelDividerWidth: return 1.0f;
     case MetricToken::SplitterThickness: return 1.0f;
     case MetricToken::FocusRingWidth: return 1.0f;
-    case MetricToken::PanelHeaderHeight: return 24.0f;
-    case MetricToken::PanelTabHeight: return 24.0f;
+    case MetricToken::PanelHeaderHeight: return 28.0f;
+    case MetricToken::PanelTabHeight: return 28.0f;
     case MetricToken::PanelToolbarHeight: return 34.0f;
     case MetricToken::HeaderControlHeight: return 24.0f;
     case MetricToken::IconButtonSize: return 24.0f;
