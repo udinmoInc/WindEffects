@@ -75,7 +75,7 @@ AssociationResult AssociateProjectExtension(const std::string& extensionWithDot)
     }
 
 #if defined(_WIN32)
-    // Double-click opens the Editor with the project path (Unreal-style).
+    // Double-click opens the Editor with the project path.
     const auto exeDir = PathUtils::GetExecutableDirectory();
     const std::filesystem::path exePath = exeDir / "WindeffectsEditor.exe";
     std::error_code ec;

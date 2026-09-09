@@ -27,7 +27,7 @@ inline constexpr const char* kDefaultLandscapeMaterialRelative =
     "Materials/M_DefaultLandscapeMaterial.wemat";
 inline constexpr const char* kDefaultLandscapeMaterialName = "DefaultLandscapeMaterial";
 
-/// Neutral gray checker placeholder (Unreal-style default landscape).
+/// Neutral gray checker placeholder for the default landscape.
 inline constexpr float kDefaultLandscapeCheckerLightR = 0.50f;
 inline constexpr float kDefaultLandscapeCheckerLightG = 0.50f;
 inline constexpr float kDefaultLandscapeCheckerLightB = 0.50f;

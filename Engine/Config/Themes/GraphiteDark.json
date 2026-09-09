@@ -83,8 +83,8 @@
   "ShadowColor": "#00000047",
   "FolderShadow": "#00000061",
 
-  "ButtonBevelTop": "#242424",
-  "ButtonBevelBottom": "#070707",
+  "ButtonBevelTop": "#2E2E2E",
+  "ButtonBevelBottom": "#0A0A0A",
 
   "DebugGlyphBounds": "#D8618250"
 }

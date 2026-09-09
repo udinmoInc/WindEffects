@@ -188,6 +188,12 @@ void Panel::Paint(PaintContext& context) {
     if (m_BodyLayout) {
         m_BodyLayout->Paint(context);
     }
+
+    // Standalone / floating panel chrome: frame includes header + body.
+    // Docked panels get their frame from PaintDockPanelChrome instead.
+    if (!m_TransparentBackground && m_HeaderHeight > 0.0f && !m_Geometry.IsEmpty()) {
+        Chrome::PaintPanelFrameBevel(context, m_Geometry);
+    }
 }
 
 void Panel::OnMouseDown(const MouseEvent& event) {

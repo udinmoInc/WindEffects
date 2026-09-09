@@ -98,7 +98,7 @@ constexpr float HexChannel(uint8_t v) {
 }
 } // namespace detail
 
-// Parse "#RRGGBB" or "#RRGGBBAA" — returns sRGB authoring values (UE StyleColors).
+// Parse "#RRGGBB" or "#RRGGBBAA" — returns sRGB authoring values.
 template <size_t N>
 constexpr Color Hex(const char (&value)[N]) {
     const size_t start = (value[0] == '#') ? 1u : 0u;

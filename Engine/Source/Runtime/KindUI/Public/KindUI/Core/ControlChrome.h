@@ -82,7 +82,7 @@ KINDUI_API void PaintSubtleBorderDepth(
     float radius,
     float strength = 1.0f);
 
-/// UE Slate toolbar/panel button edge — top highlight + bottom shade.
+/// Toolbar/panel button edge — top highlight + bottom shade.
 KINDUI_API void PaintSlateButtonBevel(
     PaintContext& context,
     const Rect& rect,
@@ -123,7 +123,7 @@ KINDUI_API void PaintIconButtonFrame(
     const InteractionState& state,
     bool active = false);
 
-/// UE panel-toolbar style: icon only, hover/press tint with no persistent border.
+/// Panel-toolbar button style: icon only, hover/press tint with no persistent border.
 KINDUI_API void PaintBorderlessIconButton(
     PaintContext& context,
     const Rect& rect,
@@ -134,7 +134,7 @@ KINDUI_API void PaintInputFrame(
     const Rect& rect,
     const InteractionState& state);
 
-/// Recessed console field integrated into the editor status bar (UE footer style).
+/// Recessed console field integrated into the editor status bar (footer style).
 KINDUI_API void PaintStatusBarCommandField(
     PaintContext& context,
     const Rect& rect,

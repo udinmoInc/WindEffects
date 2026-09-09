@@ -14,7 +14,7 @@ enum class NavigationPreset {
     Custom
 };
 
-// UE5-style viewport navigation settings, persisted across editor sessions.
+// Viewport navigation settings, persisted across editor sessions.
 struct ViewportNavigationSettings {
     NavigationPreset preset = NavigationPreset::UE5;
 

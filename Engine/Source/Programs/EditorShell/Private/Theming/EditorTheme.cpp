@@ -5,7 +5,7 @@
 namespace we::editor::services {
 
 we::runtime::kindui::Color EditorTheme::ResolveColor(we::runtime::kindui::ColorToken token) const {
-    // Editor uses the UE5-aligned GraphiteDark palette directly.
+    // Editor uses the GraphiteDark palette directly.
     return GraphiteDarkTheme::ResolveColor(token);
 }
 

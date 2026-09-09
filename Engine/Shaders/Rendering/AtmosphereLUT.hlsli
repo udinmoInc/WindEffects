@@ -5,7 +5,6 @@
 #include "SkyAtmosphere.hlsli"
 #include "../Common/Color.hlsli"
 
-// Transmittance LUT: UE5 distance/height parameterization.
 float2 WE_TransmittanceLUTCoord(float heightKm, float cosZenith, WE_AtmosphereParams params)
 {
     const float viewHeightKm = params.planetRadius + max(heightKm, 0.0);
