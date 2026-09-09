@@ -127,23 +127,28 @@ void Editor::MainLoop() {
                         m_OverlayHost->ExecutePendingCallbacks();
                     }
                 }
+            } else if (const auto* minEv = std::get_if<we::platform::WindowMinimizeEvent>(&event)) {
+                if (minEv->window == m_Window && minEv->minimized) {
+                    m_UIEventSystem->ClearAllInputState();
+                }
+                requestUiLayout = true;
+                UpdateUiScaleFromWindow();
+                SyncViewportFramebufferFromLayout();
             } else if (std::holds_alternative<we::platform::WindowResizeEvent>(event)
                 || std::holds_alternative<we::platform::WindowDpiEvent>(event)
-                || std::holds_alternative<we::platform::WindowMaximizeEvent>(event)
-                || std::holds_alternative<we::platform::WindowMinimizeEvent>(event)) {
+                || std::holds_alternative<we::platform::WindowMaximizeEvent>(event)) {
                 requestUiLayout = true;
                 UpdateUiScaleFromWindow();
                 SyncViewportFramebufferFromLayout();
             } else if (const auto* cursor = std::get_if<we::platform::CursorEnterEvent>(&event)) {
                 if (cursor->window == m_Window && !cursor->entered) {
-                    m_UIEventSystem->ClearHover();
+                    m_UIEventSystem->ClearAllInputState();
                     requestUiPaint = true;
                 }
             } else if (const auto* focus = std::get_if<we::platform::WindowFocusEvent>(&event)) {
-                // Alt-tab / focus steal: the pointer can stop inside the window with
-                // no further MouseMove, so release hover explicitly.
+                // Alt-tab / focus steal: release hover, capture, and focus explicitly.
                 if (focus->window == m_Window && !focus->focused) {
-                    m_UIEventSystem->ClearHover();
+                    m_UIEventSystem->ClearAllInputState();
                 }
             } else if (const auto* move = std::get_if<we::platform::MouseMoveEvent>(&event)) {
                 if (we::runtime::kindui::UIRepaintGate::PeekNeedsLayout()) {

@@ -123,14 +123,11 @@ void EventSystem::ProcessMouseEvent(const MouseEvent& event) {
 
     std::shared_ptr<Widget> targetWidget = hitWidget;
     if (auto captured = m_CapturedWidget.lock()) {
-        targetWidget = captured;
-    } else if (event.type == MouseEventType::MouseUp) {
-        if (auto focused = m_FocusedWidget.lock()) {
-            if (m_PopupHost && hitWidget && m_PopupHost->IsWidgetInPopup(hitWidget)) {
-                targetWidget = hitWidget;
-            } else {
-                targetWidget = focused;
-            }
+        if (captured->IsVisible() && captured->IsEnabled() && captured->IsActive()) {
+            targetWidget = captured;
+        } else {
+            m_CapturedWidget.reset();
+            targetWidget = hitWidget;
         }
     }
 
@@ -144,9 +141,15 @@ void EventSystem::ProcessMouseEvent(const MouseEvent& event) {
 
     if (targetWidget) {
         if (event.type == MouseEventType::MouseDown) {
+            m_CapturedWidget.reset();
+            targetWidget = hitWidget;
+
             if (m_PopupHost) {
-                if (m_PopupHost->HasOpenPopups() && !m_PopupHost->IsWidgetInPopup(hitWidget)) {
+                if (m_PopupHost->HasOpenPopups() && (!hitWidget || !m_PopupHost->IsWidgetInPopup(hitWidget))) {
                     m_PopupHost->CloseTransientPopups();
+                    // Re-test hitWidget after popup closure in case background controls became visible/unblocked
+                    hitWidget = HitTest(m_Root, event.position);
+                    targetWidget = hitWidget;
                 }
             }
 
@@ -155,8 +158,11 @@ void EventSystem::ProcessMouseEvent(const MouseEvent& event) {
             } else if (!hitWidget || !m_PopupHost || !m_PopupHost->IsWidgetInPopup(hitWidget)) {
                 SetFocusedWidget(nullptr);
             }
-            SetCapturedWidget(targetWidget);
-            targetWidget->OnMouseDown(event);
+
+            if (targetWidget) {
+                SetCapturedWidget(targetWidget);
+                targetWidget->OnMouseDown(event);
+            }
         } else if (event.type == MouseEventType::MouseUp) {
             targetWidget->OnMouseUp(event);
             m_CapturedWidget.reset();
@@ -167,11 +173,11 @@ void EventSystem::ProcessMouseEvent(const MouseEvent& event) {
         }
     } else {
         if (event.type == MouseEventType::MouseDown) {
+            m_CapturedWidget.reset();
             if (m_PopupHost) {
                 m_PopupHost->CloseTransientPopups();
             }
             SetFocusedWidget(nullptr);
-            m_CapturedWidget.reset();
         } else if (event.type == MouseEventType::MouseUp) {
             m_CapturedWidget.reset();
         } else if (event.type == MouseEventType::MouseWheel) {

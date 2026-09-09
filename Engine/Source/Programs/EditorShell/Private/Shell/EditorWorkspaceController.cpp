@@ -817,6 +817,12 @@ void EditorWorkspaceController::UpdateEmptyDockVisibility() {
         return dock && dock->GetTabCount() > 0;
     };
 
+    if (m_Layout.toolsDock) {
+        m_Layout.toolsDock->SetVisible(dockHasTabs(m_Layout.toolsDock));
+    }
+    if (m_Layout.viewportDock) {
+        m_Layout.viewportDock->SetVisible(dockHasTabs(m_Layout.viewportDock));
+    }
     if (m_Layout.explorerDock) {
         m_Layout.explorerDock->SetVisible(dockHasTabs(m_Layout.explorerDock));
     }
@@ -826,6 +832,27 @@ void EditorWorkspaceController::UpdateEmptyDockVisibility() {
     if (m_Layout.contentBrowserDock) {
         const bool show = dockHasTabs(m_Layout.contentBrowserDock) && m_ContentBrowserExpanded;
         m_Layout.contentBrowserDock->SetVisible(show);
+    }
+
+    for (auto& host : m_FloatHosts) {
+        if (host.dock && host.frame) {
+            host.frame->SetVisible(dockHasTabs(host.dock));
+        }
+    }
+
+    const bool toolsVis = m_Layout.toolsDock && m_Layout.toolsDock->IsVisible();
+    if (m_Layout.toolsViewportSplitter) {
+        m_Layout.toolsViewportSplitter->SetResizeMode(Splitter::ResizeMode::FixedFirst);
+        if (toolsVis) {
+            const float width = m_ToolsPaneWidth > 0.0f ? m_ToolsPaneWidth : 300.0f;
+            m_Layout.toolsViewportSplitter->SetFixedFirstWidth(std::max(width, 200.0f));
+        } else {
+            const float current = m_Layout.toolsViewportSplitter->GetFixedFirstWidth();
+            if (current >= 150.0f) {
+                m_ToolsPaneWidth = current;
+            }
+            m_Layout.toolsViewportSplitter->SetFixedFirstWidth(0.0f);
+        }
     }
 
     const bool rightVisible =

@@ -10,6 +10,7 @@
 #include "KindUI/Theming/StyleRole.h"
 #include "KindUI/Core/UiMetrics.h"
 #include "KindUI/Core/Animator.h"
+#include "KindUI/Core/UIRepaintGate.h"
 #include <algorithm>
 #include <cmath>
 
@@ -122,9 +123,18 @@ void DockContainer::SetActiveTab(int index) {
     if (index >= 0 && index < static_cast<int>(m_Tabs.size())) {
         if (m_ActiveTabIndex != index) {
             m_ActiveTabIndex = index;
+            const auto& activePanel = m_Tabs[static_cast<size_t>(m_ActiveTabIndex)].panel;
+            if (activePanel) {
+                activePanel->SetVisible(true);
+                if (!m_ContentRect.IsEmpty()) {
+                    activePanel->Arrange(m_ContentRect);
+                }
+            }
             if (m_OnActiveTabChanged) {
                 m_OnActiveTabChanged(m_ActiveTabIndex);
             }
+            UIRepaintGate::RequestLayout();
+            UIRepaintGate::RequestPaint();
         }
     }
 }

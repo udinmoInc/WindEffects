@@ -1,6 +1,6 @@
 #pragma once
 
-#include "WindEffects/Editor/UI/Export.h"
+#include "MainFrame/Export.h"
 
 #include "KindUI/Core/Widget.h"
 #include "Core/Logger.h"
@@ -15,7 +15,7 @@ using ::we::runtime::kindui::Size;
 using ::we::runtime::kindui::Rect;
 using ::we::runtime::kindui::PaintContext;
 
-class EDITORSHELL_API OutputLogWidget : public Widget {
+class MAINFRAME_API OutputLogWidget : public Widget {
 public:
     OutputLogWidget();
     ~OutputLogWidget() override;
@@ -25,13 +25,21 @@ public:
     void Arrange(const Rect& allottedRect) override;
     void Paint(PaintContext& context) override;
 
+    void OnMouseWheel(const ::we::runtime::kindui::MouseEvent& event) override;
+
     void SetPaused(bool paused) { m_Paused = paused; }
     bool IsPaused() const { return m_Paused; }
     void SetAutoScroll(bool enabled) { m_AutoScroll = enabled; }
+    bool IsAutoScroll() const { return m_AutoScroll; }
     void Clear();
     void SetSearchQuery(const std::string& query);
-    void SetMinimumLevel(we::Logger::Level level) { m_MinLevel = level; }
-    void SetCategoryFilter(const std::string& category) { m_CategoryFilter = category; }
+    void SetMinimumLevel(we::Logger::Level level);
+    void SetCategoryFilter(const std::string& category);
+
+    size_t GetInfoCount() const { return m_InfoCount; }
+    size_t GetWarningCount() const { return m_WarningCount; }
+    size_t GetErrorCount() const { return m_ErrorCount; }
+    size_t GetTotalCount() const { return m_TotalCount; }
 
 private:
     we::runtime::kindui::Color LevelColor(we::Logger::Level level) const;
@@ -49,6 +57,10 @@ private:
     bool m_Paused = false;
     bool m_AutoScroll = true;
     float m_ScrollOffset = 0.0f;
+    size_t m_InfoCount = 0;
+    size_t m_WarningCount = 0;
+    size_t m_ErrorCount = 0;
+    size_t m_TotalCount = 0;
     static constexpr size_t kMaxStoredRecords = 5000;
 };
 

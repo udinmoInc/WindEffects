@@ -1,12 +1,14 @@
-#include "WindEffects/Editor/UI/Widgets/OutputLogWidget.h"
+#include "Widgets/OutputLogWidget.h"
 #include "KindUI/Panel/PanelChrome.h"
 #include "KindUI/Core/PaintContext.h"
 #include "KindUI/Tokens/DesignToken.h"
 #include "KindUI/Theming/StyleRole.h"
+#include "KindUI/Tokens/SurfaceRole.h"
 
 using ::we::runtime::kindui::ColorToken;
 using ::we::runtime::kindui::MetricToken;
 using ::we::runtime::kindui::PaddingToken;
+using ::we::runtime::kindui::SurfaceRole;
 using ::we::runtime::kindui::Point;
 using ::we::runtime::kindui::Color;
 using ::we::runtime::kindui::Size;
@@ -50,12 +52,28 @@ void OutputLogWidget::Tick(float /*deltaTime*/) {
     RebuildVisibleLines();
 }
 
+void OutputLogWidget::OnMouseWheel(const ::we::runtime::kindui::MouseEvent& event) {
+    const float rowH = ::we::runtime::kindui::panels::PanelChrome::ListRowHeight();
+    const float delta = event.wheelDeltaY * rowH * 3.0f;
+    std::lock_guard<std::recursive_mutex> lock(m_Mutex);
+    const float contentHeight = static_cast<float>(m_VisibleLines.size()) * rowH;
+    const float maxScroll = std::max(0.0f, contentHeight - m_Geometry.height);
+    m_ScrollOffset = std::clamp(m_ScrollOffset - delta, 0.0f, maxScroll);
+    if (delta > 0.0f) {
+        m_AutoScroll = false;
+    }
+}
+
 void OutputLogWidget::Clear() {
     std::lock_guard<std::recursive_mutex> lock(m_Mutex);
     m_Records.clear();
     m_VisibleLines.clear();
     m_VisibleLevels.clear();
     m_ScrollOffset = 0.0f;
+    m_InfoCount = 0;
+    m_WarningCount = 0;
+    m_ErrorCount = 0;
+    m_TotalCount = 0;
 }
 
 void OutputLogWidget::SetSearchQuery(const std::string& query) {
@@ -63,11 +81,21 @@ void OutputLogWidget::SetSearchQuery(const std::string& query) {
     RebuildVisibleLines();
 }
 
+void OutputLogWidget::SetMinimumLevel(we::Logger::Level level) {
+    m_MinLevel = level;
+    RebuildVisibleLines();
+}
+
+void OutputLogWidget::SetCategoryFilter(const std::string& category) {
+    m_CategoryFilter = category;
+    RebuildVisibleLines();
+}
+
 Color OutputLogWidget::LevelColor(we::Logger::Level level) const {
     switch (level) {
         case we::Logger::Level::Trace: return ThemeColor(ColorToken::TextHint);
         case we::Logger::Level::Debug: return ThemeColor(ColorToken::TextSecondary);
-        case we::Logger::Level::Info: return ThemeColor(ColorToken::TextSecondary);
+        case we::Logger::Level::Info: return ThemeColor(ColorToken::TextPrimary);
         case we::Logger::Level::Warning: return ThemeColor(ColorToken::Warning);
         case we::Logger::Level::Error: return ThemeColor(ColorToken::ErrorForeground);
         case we::Logger::Level::Critical: return ThemeColor(ColorToken::ErrorForeground);
@@ -90,7 +118,20 @@ void OutputLogWidget::RebuildVisibleLines() {
 void OutputLogWidget::RebuildVisibleLinesUnlocked() {
     m_VisibleLines.clear();
     m_VisibleLevels.clear();
+    m_InfoCount = 0;
+    m_WarningCount = 0;
+    m_ErrorCount = 0;
+    m_TotalCount = m_Records.size();
+
     for (const auto& record : m_Records) {
+        if (record.level == we::Logger::Level::Info || record.level == we::Logger::Level::Debug || record.level == we::Logger::Level::Trace) {
+            m_InfoCount++;
+        } else if (record.level == we::Logger::Level::Warning) {
+            m_WarningCount++;
+        } else if (record.level == we::Logger::Level::Error || record.level == we::Logger::Level::Critical) {
+            m_ErrorCount++;
+        }
+
         if (!PassesFilter(record)) continue;
         m_VisibleLines.push_back(record.formattedText);
         m_VisibleLevels.push_back(record.level);
@@ -128,6 +169,16 @@ void OutputLogWidget::Paint(PaintContext& context) {
             continue;
         }
         if (y > maxY) break;
+
+        // Alternating row background accent
+        if (i % 2 == 1) {
+            context.DrawSurface(
+                Rect{ geometry.x, y, geometry.width, lineHeight },
+                SurfaceRole::Recessed,
+                0.0f,
+                "LogSubtleRow");
+        }
+
         context.DrawText(
             visibleLines[i],
             Point{ geometry.x + ::we::runtime::kindui::panels::PanelChrome::PanelPaddingH(), y + (lineHeight - ThemeMetric(MetricToken::TextSizeCaption)) * 0.5f },

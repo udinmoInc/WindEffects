@@ -7,6 +7,7 @@
 #include "KindUI/Tokens/SurfaceRole.h"
 #include "KindUI/Theming/ThemeAccess.h"
 
+#include "KindUI/Core/UIRepaintGate.h"
 #include <algorithm>
 #include <cmath>
 
@@ -341,9 +342,16 @@ void FloatingPanelFrame::OnMouseDown(const ::we::runtime::kindui::MouseEvent& ev
             bounds.x = m_Geometry.x;
             bounds.y = m_Geometry.y;
             bounds.width = (std::max)(bounds.width, m_Geometry.width);
+            Arrange(bounds);
+            if (m_Dock) {
+                m_Dock->SetVisible(true);
+                m_Dock->Arrange(bounds);
+            }
             if (m_OnResize) {
                 m_OnResize(bounds);
             }
+            ::we::runtime::kindui::UIRepaintGate::RequestLayout();
+            ::we::runtime::kindui::UIRepaintGate::RequestPaint();
         } else {
             if (!m_Maximized) {
                 m_RestoreBounds = m_Geometry;
@@ -351,9 +359,15 @@ void FloatingPanelFrame::OnMouseDown(const ::we::runtime::kindui::MouseEvent& ev
             m_Minimized = true;
             m_Maximized = false;
             const Rect bounds{ m_Geometry.x, m_Geometry.y, m_Geometry.width, TitleBarHeight() };
+            Arrange(bounds);
+            if (m_Dock) {
+                m_Dock->SetVisible(false);
+            }
             if (m_OnResize) {
                 m_OnResize(bounds);
             }
+            ::we::runtime::kindui::UIRepaintGate::RequestLayout();
+            ::we::runtime::kindui::UIRepaintGate::RequestPaint();
         }
         return;
     }

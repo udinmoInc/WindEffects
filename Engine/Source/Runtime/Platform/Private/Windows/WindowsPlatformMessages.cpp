@@ -43,10 +43,21 @@ LRESULT WindowsPlatform::HandleMessage(HWND hwnd, UINT msg, WPARAM wParam, LPARA
         return 0;
 
     case WM_KILLFOCUS:
+    case WM_CAPTURECHANGED:
+    case WM_CANCELMODE:
         if (window) {
             PushEvent(WindowFocusEvent{window->id, false});
         }
         m_Keys.fill(false);
+        m_MouseButtons.fill(false);
+        if (GetCapture() == hwnd) {
+            ReleaseCapture();
+        }
+        ClipCursor(nullptr);
+        if (window && window->relativeMouse) {
+            window->relativeMouse = false;
+            SetCursorVisible(true);
+        }
         return 0;
 
     case WM_MOVE:
@@ -155,8 +166,14 @@ LRESULT WindowsPlatform::HandleMessage(HWND hwnd, UINT msg, WPARAM wParam, LPARA
         TrackMouseButton(button, pressed);
         if (pressed) {
             SetCapture(hwnd);
-        } else if (!m_MouseButtons[0] && !m_MouseButtons[1] && !m_MouseButtons[2]) {
-            ReleaseCapture();
+        } else {
+            bool anyDown = false;
+            for (bool b : m_MouseButtons) {
+                if (b) { anyDown = true; break; }
+            }
+            if (!anyDown && GetCapture() == hwnd) {
+                ReleaseCapture();
+            }
         }
         PushEvent(MouseButtonEvent{
             window->id,

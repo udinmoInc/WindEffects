@@ -36,6 +36,9 @@ public:
     /// the pointer leaves the window or the window loses focus so hover can never
     /// stay pinned on the last hit widget.
     void ClearHover();
+    void ClearCapture() { m_CapturedWidget.reset(); }
+    void ClearFocus() { SetFocusedWidget(nullptr); }
+    void ClearAllInputState() { m_CapturedWidget.reset(); SetFocusedWidget(nullptr); ClearHover(); }
 
     void SetPopupHost(OverlayHost* popupHost) { m_PopupHost = popupHost; }
 
