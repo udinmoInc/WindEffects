@@ -347,7 +347,6 @@ void TransformSystem::Update(Registry& registry, float /*deltaSeconds*/) {
 }
 
 void VisibilitySystem::Update(Registry& registry, float /*deltaSeconds*/) {
-    // Placeholder for frustum / occlusion gates — reads VisibilityComponent.
     (void)registry;
 }
 

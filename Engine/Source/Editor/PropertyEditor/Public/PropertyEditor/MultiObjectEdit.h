@@ -32,7 +32,7 @@ struct PROPERTYEDITOR_API MultiObjectBinding {
 struct PROPERTYEDITOR_API MultiObjectPropertyState {
     std::string path;
     PropertyValueState valueState = PropertyValueState::Unavailable;
-    std::vector<std::uint8_t> commonBytes; // valid when Identical
+    std::vector<std::uint8_t> commonBytes;
     std::uint32_t propertySize = 0;
 };
 

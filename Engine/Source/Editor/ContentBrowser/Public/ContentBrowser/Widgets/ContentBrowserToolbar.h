@@ -158,7 +158,6 @@ private:
     std::shared_ptr<Breadcrumb> m_Breadcrumb;
     std::shared_ptr<::we::editor::widgets::SearchBox> m_SearchBox;
     
-    // Action buttons
     std::shared_ptr<ToolbarLabeledButton> m_CreateBtn;
     std::shared_ptr<ToolbarLabeledButton> m_ImportBtn;
     std::shared_ptr<ToolbarLabeledButton> m_SaveBtn;

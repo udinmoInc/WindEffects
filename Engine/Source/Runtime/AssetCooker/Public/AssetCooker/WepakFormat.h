@@ -21,7 +21,7 @@ namespace we::runtime::assetcooker {
 
 /// Shipping package container: WEPA magic + TOC + concatenated payloads.
 struct ASSETCOOKER_API AssetPackageArchive {
-    static constexpr uint32_t kMagic = 0x41504557; // "WEPA" LE
+    static constexpr uint32_t kMagic = 0x41504557;
     static constexpr uint16_t kVersion = 1;
 
     CookPlatform platform = CookPlatform::Windows;

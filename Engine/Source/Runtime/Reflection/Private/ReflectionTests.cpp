@@ -209,7 +209,6 @@ ReflectionTestReport RunReflectionTests() {
     Record(report, "plugin_unload", UnloadPluginReflection(*registry, pluginToken, false));
     Record(report, "plugin_unload_removes_types", !registry->Contains(pluginType));
 
-    // Queries
     registry->Seal();
     Record(report, "seal", registry->IsSealed());
     Record(report, "type_lookup", registry->Find(actorId) != nullptr);
@@ -217,14 +216,12 @@ ReflectionTestReport RunReflectionTests() {
     Record(report, "function_lookup", registry->FindFunction(actorId, "AddHealth") != nullptr);
     Record(report, "serialize_plan", registry->GetSerializePlan(actorId) != nullptr);
 
-    // Metadata
     const TypeInfo* actorInfo = registry->Find(actorId);
     Record(
         report,
         "metadata_queries",
         actorInfo && actorInfo->versions.schemaVersion == 2 && actorInfo->properties.size() == 3);
 
-    // Property path
     Actor actor{};
     actor.transform.position.x = 3.5f;
     actor.health = 50;
@@ -239,7 +236,6 @@ ReflectionTestReport RunReflectionTests() {
     const auto pathAgain = ResolvePropertyPath(*registry, actorId, "transform.position.x");
     Record(report, "property_path_cache", pathAgain.valid && GetPropertyPathCacheStats().hits >= 1);
 
-    // Generic accessor
     PropertyAccessorDependencies accessorDeps;
     accessorDeps.registry = registry.get();
     auto accessor = CreatePropertyAccessor(accessorDeps);
@@ -249,7 +245,6 @@ ReflectionTestReport RunReflectionTests() {
         "generic_property_access",
         accessor->GetInt32(actorId, &actor, "health", health) && health == 50);
 
-    // Function invoke
     std::int32_t delta = 7;
     std::int32_t newHealth = 0;
     Record(
@@ -259,7 +254,6 @@ ReflectionTestReport RunReflectionTests() {
             *registry, actorId, "AddHealth", &actor, &delta, sizeof(delta), &newHealth, sizeof(newHealth))
             && newHealth == 57 && actor.health == 57);
 
-    // Visitors
     CountingVisitor visitor;
     const std::size_t visitCount = VisitTypeHierarchy(*registry, actorId, visitor, {});
     Record(report, "reflection_visitors", visitCount > 0 && visitor.types > 0 && visitor.properties > 0);
@@ -288,7 +282,6 @@ ReflectionTestReport RunReflectionTests() {
     (void)hashB;
     DestroyClonedObject(*registry, actorId, cloned);
 
-    // Validation
     std::vector<DiagnosticIssue> issues;
     ValidationOptions options;
     options.reportUnusedTypes = false;
@@ -329,7 +322,6 @@ ReflectionTestReport RunReflectionTests() {
         Record(report, "invalid_property_offset_validation", foundOffset);
     }
 
-    // Binary compatibility
     const std::uint64_t fp = registry->ComputeFingerprint();
     const auto bin = ValidateBinaryCompatibility(*registry, fp, kReflectionSchemaVersion);
     Record(report, "binary_compatibility", bin.compatible);
@@ -362,7 +354,6 @@ ReflectionTestReport RunReflectionTests() {
         UnregisterTypeMigrations(actorId);
     }
 
-    // Cache verification
     const CacheVerificationReport caches = VerifyReflectionCaches(*registry);
     Record(report, "reflection_cache_verification", caches.valid);
 

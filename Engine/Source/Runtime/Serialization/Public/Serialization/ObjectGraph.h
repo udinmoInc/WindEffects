@@ -53,7 +53,7 @@ struct SERIALIZATION_API DocumentHeader {
     char magic[4] = {kSerializationMagic[0], kSerializationMagic[1], kSerializationMagic[2], kSerializationMagic[3]};
     std::uint32_t formatVersion = kSerializationFormatVersion;
     std::uint32_t abiVersion = kSerializationAbiVersion;
-    std::uint32_t flags = 0; // DocumentFlags
+    std::uint32_t flags = 0;
     std::uint64_t contentChecksum = 0;
     std::uint64_t objectCount = 0;
     std::uint64_t stringTableOffset = 0;
@@ -61,7 +61,7 @@ struct SERIALIZATION_API DocumentHeader {
     std::uint64_t referenceTableOffset = 0;
     std::uint64_t payloadOffset = 0;
     std::uint64_t payloadSize = 0;
-    std::uint64_t baseFingerprint = 0; // for delta documents
+    std::uint64_t baseFingerprint = 0;
     std::uint32_t reserved0 = 0;
     std::uint32_t reserved1 = 0;
 };

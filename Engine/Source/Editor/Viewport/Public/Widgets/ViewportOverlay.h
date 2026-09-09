@@ -54,7 +54,6 @@ public:
     void OnMouseDown(const MouseEvent& event) override;
     void OnMouseMove(const MouseEvent& event) override;
 
-    // Stats management
     void SetStats(const ViewportStats& stats) { m_Stats = stats; }
     const ViewportStats& GetStats() const { return m_Stats; }
 
@@ -63,7 +62,6 @@ public:
     void SetGizmoVisible(bool visible) { m_GizmoVisible = visible; }
     void SetNavigationVisible(bool visible) { m_NavigationVisible = visible; }
 
-    // Callbacks
     using OnNavigationAction = std::function<void(const std::string& action)>;
     void SetOnNavigationAction(OnNavigationAction callback) { m_OnNavigationAction = callback; }
 

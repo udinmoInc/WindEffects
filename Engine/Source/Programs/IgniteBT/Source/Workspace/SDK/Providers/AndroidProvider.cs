@@ -210,7 +210,6 @@ public class AndroidProvider : BaseSDKProvider
             }
             catch
             {
-                // Ignore errors
             }
         }
         

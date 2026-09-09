@@ -9,12 +9,10 @@
 #pragma once
 
 // KindUI — WindEffects application framework.
-//
 // Single public entry point for application development:
 //   #include "KindUI/KindUI.h"
 //   using namespace we::runtime::kindui;
 //   using namespace we::runtime::kindui::UI;
-//
 // HTML-style trees + CSS-style token props (all C++, no .css / WEUI files):
 //   auto page = UI::Fill(UI::Bg(
 //       UI::Pad(UI::Column({
@@ -22,7 +20,6 @@
 //           UI::Gap(UI::Row({…}), SpacingToken::Small),
 //       }), PaddingToken::Page),
 //       ColorToken::PanelBackground));
-//
 // Imperative twin on Flex:
 //   column->Background(ColorToken::WorkspaceBackground).Padding(PaddingToken::Panel);
 
@@ -70,7 +67,6 @@
 #include "KindUI/Theming/Palette.h"
 
 // --- Advanced / extension (include directly when needed) ----------------------
-//
 // KindUI/Core/Widget.h              — subclassing & custom widgets
 // KindUI/StylePipeline/StylePipeline.h — custom style resolution
 // KindUI/Rendering/OverlayRenderer.h — shell GPU integration

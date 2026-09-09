@@ -43,7 +43,6 @@ ExplorerFilterMenu::ExplorerFilterMenu(const FilterOptions& initialOptions, OnFi
 void ExplorerFilterMenu::BuildMenuItems() {
     m_MenuItems.clear();
     
-    // Show options
     MenuItem item1 = { "Show Folders", &m_FilterOptions.showFolders, false, false, 0, {} };
     m_MenuItems.push_back(item1);
     
@@ -57,7 +56,7 @@ void ExplorerFilterMenu::BuildMenuItems() {
     m_MenuItems.push_back(item4);
     
     MenuItem sep1 = { "", nullptr, true, false, 0, {} };
-    m_MenuItems.push_back(sep1); // Separator
+    m_MenuItems.push_back(sep1);
     
     // Visibility options
     MenuItem item5 = { "Show Hidden", &m_FilterOptions.showHidden, false, false, 0, {} };
@@ -73,7 +72,7 @@ void ExplorerFilterMenu::BuildMenuItems() {
     m_MenuItems.push_back(item8);
     
     MenuItem sep2 = { "", nullptr, true, false, 0, {} };
-    m_MenuItems.push_back(sep2); // Separator
+    m_MenuItems.push_back(sep2);
     
     // Sort options (radio group)
     MenuItem item9 = { "Sort A–Z", nullptr, false, true, 0, {} };
@@ -160,7 +159,6 @@ void ExplorerFilterMenu::Paint(PaintContext& context) {
                 }
             }
         } else {
-            // Checkbox style
             if (item.value && *item.value) {
                 IconPainter::Draw(context, WindIcons::Check16, Rect{ checkX, checkY, checkSize, checkSize });
             }
@@ -210,7 +208,6 @@ void ExplorerFilterMenu::OnMouseUp(const MouseEvent& event) {
                 m_FilterOptions.sortOrder = clickedIndex - static_cast<int>(sortStartIndex);
             }
         } else if (item.value) {
-            // Toggle checkbox
             *item.value = !*item.value;
         } else {
             // Handle radio buttons without value pointer
@@ -224,7 +221,6 @@ void ExplorerFilterMenu::OnMouseUp(const MouseEvent& event) {
             m_OnFilterChanged(m_FilterOptions);
         }
         
-        // Close the menu
         if (auto* overlay = GetPopupHost()) {
             overlay->CloseAllPopups();
         }

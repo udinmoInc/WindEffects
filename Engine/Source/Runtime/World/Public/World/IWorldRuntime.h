@@ -37,9 +37,9 @@ class IRenderWorldHook;
 
 /// Explicit dependency injection for World Runtime construction (no service location).
 struct WORLD_API WorldRuntimeDependencies {
-    reflection::ITypeRegistry* typeRegistry = nullptr;       // not owned
-    serialization::ISerializer* serializer = nullptr;        // not owned
-    assetruntime::IAssetManager* assetManager = nullptr;     // not owned
+    reflection::ITypeRegistry* typeRegistry = nullptr;
+    serialization::ISerializer* serializer = nullptr;
+    assetruntime::IAssetManager* assetManager = nullptr;
     std::shared_ptr<IPhysicsWorldHook> physicsHook;
     std::shared_ptr<IAudioWorldHook> audioHook;
     std::shared_ptr<INetworkWorldHook> networkHook;

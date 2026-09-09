@@ -80,7 +80,7 @@ void StyleClassRegistry::RegisterDefaults() {
     button.radiusToken = MetricToken::CornerRadiusMedium;
     button.paddingToken = PaddingToken::Button;
     button.fontSizeToken = MetricToken::TextSizeBody;
-    button.animDurationToken = MetricToken::Space1; // placeholder metric until motion tokens exist
+    button.animDurationToken = MetricToken::Space1;
     Register(button);
 
     StyleClass primary = button;

@@ -31,7 +31,6 @@ public static class GraphCommand
                 return 1;
             }
             
-            // Discover modules
             var discovery = new ModuleDiscoverer(
                 engineDir,
                 "Debug",
@@ -44,7 +43,6 @@ public static class GraphCommand
                 return 0;
             }
             
-            // Build graph
             var graph = new DependencyGraph();
             graph.BuildFromModules(modules);
             

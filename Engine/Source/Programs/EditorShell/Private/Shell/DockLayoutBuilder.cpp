@@ -22,7 +22,6 @@ using ::we::runtime::kindui::Orientation;
 using ::we::runtime::kindui::MetricToken;
 using ::we::runtime::kindui::DPIContext;
 
-// Re-compiled for PanelBuilder API updates
 namespace we::editor::shell {
 using ::we::editor::docking::SplitOrientation;
 using ::we::editor::docking::DockPanelDescriptor;

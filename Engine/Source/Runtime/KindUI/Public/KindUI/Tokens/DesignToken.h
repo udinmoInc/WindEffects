@@ -173,7 +173,6 @@ enum class TypographyToken : uint32_t {
     CardTitle,
     DialogTitle,
 
-    // Headings
     Display,
     Heading1,
     Heading2,
@@ -190,9 +189,8 @@ enum class TypographyToken : uint32_t {
     BodyStrong,
     Caption,
     CaptionSmall,
-    Hint,        // Placeholders, helper text (lowest readable emphasis)
+    Hint,
 
-    // Controls
     Label,
     Button,
     Toolbar,
@@ -205,7 +203,6 @@ enum class TypographyToken : uint32_t {
     PropertyLabel,
     PropertyValue,
 
-    // Specialized
     Code,
     Console,
     Monospace,

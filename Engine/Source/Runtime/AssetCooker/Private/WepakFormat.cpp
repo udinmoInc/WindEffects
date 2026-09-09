@@ -73,7 +73,7 @@ bool WriteWepak(const std::filesystem::path& path, const AssetPackageArchive& ar
 
     WriteU32(out, AssetPackageArchive::kMagic);
     WriteU16(out, AssetPackageArchive::kVersion);
-    WriteU16(out, 0); // flags
+    WriteU16(out, 0);
     WriteU32(out, static_cast<uint32_t>(headerJson.size()));
     WriteU32(out, static_cast<uint32_t>(archive.payloadBlob.size()));
     out.write(headerJson.data(), static_cast<std::streamsize>(headerJson.size()));

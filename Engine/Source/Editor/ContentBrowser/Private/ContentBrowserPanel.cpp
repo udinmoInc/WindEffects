@@ -36,7 +36,6 @@
 #include <memory>
 #include <sstream>
 
-// Re-compiled for PanelBuilder API updates
 namespace we::programs::editor {
 namespace WindIcons = ::we::runtime::kindui::WindIcons;
 using ::we::runtime::kindui::kWindIconNone;
@@ -200,7 +199,6 @@ void WireContentBrowser(
 void InitializeContentBrowserService(
     we::runtime::kindui::IconRenderer* iconRenderer,
     const std::string& contentRoot) {
-    // Compatibility entry — prefer CreateContentBrowserRuntime + ContentBrowserSession.
     if (::we::editor::contentbrowser::ContentBrowserSession::IsInstalled()) {
         return;
     }
@@ -368,7 +366,6 @@ std::shared_ptr<::we::runtime::kindui::panels::Panel> CreateContentBrowserPanel(
         });
     }
 
-    // Wire up view mode changes
     assetToolbar->SetOnViewModeChanged([contentBrowser](ContentViewMode mode) {
         if (contentBrowser) {
             contentBrowser->SetViewMode(mode);

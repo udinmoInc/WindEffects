@@ -38,7 +38,7 @@ struct MenuItem {
     std::function<void()> onClick;
     bool enabled = true;
     bool checked = false;
-    std::vector<std::shared_ptr<MenuItem>> submenu; // For nested menus
+    std::vector<std::shared_ptr<MenuItem>> submenu;
 };
 
 // Menu bar widget for top-level application menus
@@ -61,7 +61,6 @@ public:
     void RemoveMenu(const std::string& label);
     void Clear();
 
-    // Styling
     void SetHeight(float height) { m_Height = height; }
     void SetItemSpacing(float spacing);
 

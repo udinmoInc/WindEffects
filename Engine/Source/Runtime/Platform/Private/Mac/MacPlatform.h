@@ -29,4 +29,4 @@ public:
 
 } // namespace we::platform
 
-#endif // WE_PLATFORM_MAC
+#endif

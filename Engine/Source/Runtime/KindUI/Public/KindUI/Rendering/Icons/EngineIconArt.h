@@ -27,7 +27,6 @@ namespace EngineIcons {
 
 constexpr const char* kPrefix = "we/";
 
-// Primitives
 constexpr const char* Cube = "we/cube";
 constexpr const char* MeshCube = "mesh-cube";
 constexpr const char* Sphere = "we/sphere";
@@ -39,18 +38,15 @@ constexpr const char* Torus = "we/torus";
 constexpr const char* Pyramid = "we/pyramid";
 constexpr const char* Arrow = "we/arrow";
 
-// Lights
 constexpr const char* LightPoint = "we/light-point";
 constexpr const char* LightSpot = "we/light-spot";
 constexpr const char* LightDirectional = "we/light-directional";
 constexpr const char* LightRect = "we/light-rect";
 constexpr const char* LightSky = "we/light-sky";
 
-// Cameras
 constexpr const char* Camera = "we/camera";
 constexpr const char* CineCamera = "we/cine-camera";
 
-// Environment
 constexpr const char* Sky = "we/sky";
 constexpr const char* Landscape = "we/landscape";
 constexpr const char* Terrain = "we/terrain";
@@ -59,13 +55,11 @@ constexpr const char* Clouds = "we/clouds";
 constexpr const char* Fog = "we/fog";
 constexpr const char* Foliage = "we/foliage";
 
-// Effects
 constexpr const char* Particle = "we/particle";
 constexpr const char* Effect = "we/effect";
 constexpr const char* Decal = "we/decal";
 constexpr const char* ReflectionProbe = "we/reflection-probe";
 
-// Gameplay
 constexpr const char* Character = "we/character";
 constexpr const char* Pawn = "we/pawn";
 constexpr const char* EmptyActor = "we/empty-actor";
@@ -86,7 +80,6 @@ constexpr const char* Folder = "we/folder";
 constexpr const char* Scene = "we/scene";
 constexpr const char* Level = "we/level";
 
-// Editor
 constexpr const char* Search = "we/search";
 constexpr const char* Settings = "we/settings";
 constexpr const char* Save = "we/save";

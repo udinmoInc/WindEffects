@@ -123,19 +123,16 @@ void ViewportOverlay::Paint(PaintContext& context) {
         float centerY = m_GizmoRect.y + m_GizmoRect.height / 2.0f;
         float axisLength = 25.0f;
         
-        // X axis (red)
         context.DrawLine(Point{ centerX, centerY }, Point{ centerX + axisLength, centerY },
             ThemeColor(ColorToken::GizmoAxisX), 2.0f);
         context.DrawText("X", Point{ centerX + axisLength + 2.0f, centerY - 6.0f }, ThemeColor(ColorToken::GizmoAxisX),
             10.0f);
         
-        // Y axis (green)
         context.DrawLine(Point{ centerX, centerY }, Point{ centerX, centerY - axisLength },
             ThemeColor(ColorToken::GizmoAxisY), 2.0f);
         context.DrawText("Y", Point{ centerX - 3.0f, centerY - axisLength - 8.0f }, ThemeColor(ColorToken::GizmoAxisY),
             10.0f);
         
-        // Z axis (blue)
         context.DrawLine(Point{ centerX, centerY }, Point{ centerX - axisLength * 0.5f, centerY + axisLength * 0.5f },
             ThemeColor(ColorToken::GizmoAxisZ), 2.0f);
         context.DrawText("Z", Point{ centerX - axisLength * 0.5f - 8.0f, centerY + axisLength * 0.5f + 2.0f },
@@ -223,7 +220,6 @@ ViewportOverlay::NavButton* ViewportOverlay::GetNavButtonAtPosition(const Point&
     return nullptr;
 }
 
-// AxisGizmo implementation
 AxisGizmo::AxisGizmo() {}
 
 Size AxisGizmo::Measure(const Size& availableSize) {
@@ -246,11 +242,9 @@ void AxisGizmo::Paint(PaintContext& context) {
     context.DrawLine(Point{ centerX, centerY }, Point{ centerX + axisLength, centerY },
         ThemeColor(ColorToken::GizmoAxisX), 2.0f);
     
-    // Y axis (green)
     context.DrawLine(Point{ centerX, centerY }, Point{ centerX, centerY - axisLength },
         ThemeColor(ColorToken::GizmoAxisY), 2.0f);
     
-    // Z axis (blue)
     context.DrawLine(Point{ centerX, centerY }, Point{ centerX - axisLength * 0.5f, centerY + axisLength * 0.5f },
         ThemeColor(ColorToken::GizmoAxisZ), 2.0f);
 }
@@ -261,7 +255,6 @@ void AxisGizmo::SetOrientation(float pitch, float yaw, float roll) {
     m_Roll = roll;
 }
 
-// NavigationControls implementation
 NavigationControls::NavigationControls() {
     m_ButtonSize = ThemeMetric(MetricToken::NavigationButtonSize);
     m_Spacing = ThemeMetric(MetricToken::Space1);

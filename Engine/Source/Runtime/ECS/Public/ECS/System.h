@@ -55,7 +55,6 @@ public:
     void OnCreate(Registry& registry);
     void OnDestroy(Registry& registry);
 
-    // Sequential fallback.
     void Update(Registry& registry, float deltaSeconds);
 
     // Dependency-aware parallel execution over independent systems/chunks.
@@ -131,7 +130,6 @@ private:
     std::uint64_t m_FrameIndex = 0;
 };
 
-// Backward-compatible alias used by older call sites.
 using RenderSystem = RenderExtractionSystem;
 
 class ECS_API SkyAtmosphereSystem : public ISystem {

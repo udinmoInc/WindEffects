@@ -20,8 +20,8 @@
 
 namespace we::runtime::icons::assets {
 
-constexpr uint32_t kWeIconAtlasMagic = 0x534F4349; // "ICOS"
-constexpr uint32_t kWeIconMetaMagic = 0x54454D49;  // "IMET"
+constexpr uint32_t kWeIconAtlasMagic = 0x534F4349;
+constexpr uint32_t kWeIconMetaMagic = 0x54454D49;
 constexpr uint16_t kWeIconAtlasVersion = 1;
 constexpr uint16_t kWeIconMetaVersion = 1;
 

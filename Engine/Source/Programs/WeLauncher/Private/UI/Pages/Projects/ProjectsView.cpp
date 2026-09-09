@@ -20,13 +20,11 @@ we::runtime::kindui::Element BuildProjectsView(const ProjectsViewModel& viewMode
     const float s = LScale();
 
     // Semantic page column — one container per section, no mixed title/toolbar rows.
-    //
     // ProjectsPage
     // ├── Header
     // ├── Toolbar (Open / New | spacer | Search)
     // ├── Divider
     // └── Content (table header + list | empty | skeleton)
-    //
     // Status bar lives on the shell, not this page.
     return UI::Style(
         UI::Padding(

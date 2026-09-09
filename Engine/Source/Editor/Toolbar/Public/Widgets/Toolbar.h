@@ -62,7 +62,6 @@ public:
     void OnMouseWheel(const MouseEvent& event) override;
     bool ShowsPointerCursor(const Point& position) const override;
 
-    // Tool management
     std::shared_ptr<ToolButton> AddTool(we::runtime::kindui::WindIconRef icon, const std::string& label,
         std::function<void()> onClick, const std::string& tooltip = "", bool isPlayButton = false,
         ToolbarAlignment align = ToolbarAlignment::Left);
@@ -74,7 +73,6 @@ public:
     // Active tool management
     void SetActiveTool(we::runtime::kindui::WindIconRef icon);
 
-    // Styling
     void SetHeight(float height) { m_Height = height; }
     void SetIconSize(float size) { m_IconSize = size; }
     void SetFloating(bool floating) { m_IsFloating = floating; }

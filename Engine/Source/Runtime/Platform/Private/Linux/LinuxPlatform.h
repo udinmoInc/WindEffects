@@ -30,4 +30,4 @@ public:
 
 } // namespace we::platform
 
-#endif // WE_PLATFORM_LINUX
+#endif

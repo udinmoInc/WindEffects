@@ -68,7 +68,6 @@ public:
         int line = 0,
         const char* function = nullptr);
 
-    // Backward-compatible overload for legacy call sites.
     CORE_API static void Log(Level level, const std::string& message);
 
     CORE_API static void ReportError(const std::string& title, const std::string& description, bool fatal = false);
@@ -77,7 +76,6 @@ public:
     using ErrorDialogHandler = void (*)(const char* title, const char* message, bool fatal, void* userData);
     CORE_API static void SetErrorDialogHandler(ErrorDialogHandler handler, void* userData = nullptr);
 
-    // UI / diagnostics
     CORE_API static std::vector<LogRecord> GetNewLogs();
     CORE_API static std::vector<LogRecord> GetHistory();
     CORE_API static void AddListener(LogListener listener);

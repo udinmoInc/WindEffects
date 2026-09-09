@@ -82,7 +82,7 @@ public class FastNoOpProbeTests : IDisposable
     public void FastProbe_ReturnsFalse_WhenSourceChanged()
     {
         var cpp = Path.Combine(_engineRoot, "Source", "Test", "Test.cpp");
-        File.AppendAllText(cpp, "\n// change");
+        File.AppendAllText(cpp, "\n
 
         var layout = IgniteBT.Build.Layout.BuildLayout.Resolve(_projectRoot, "Win64",
             IgniteBT.Build.Compiler.BuildConfiguration.Development);

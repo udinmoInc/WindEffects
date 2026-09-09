@@ -57,7 +57,6 @@ public:
     void Tick(float deltaTime) override;
     void OnKeyDown(const we::runtime::kindui::KeyEvent& event) override;
 
-    // IProjectsHostActions
     void ShowCreateWizard() override;
     void BrowseForProject() override;
     void ShowRenameDialog() override;

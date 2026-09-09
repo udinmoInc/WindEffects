@@ -48,8 +48,8 @@ struct DrawCommand {
     DrawCommandType type;
     Rect rect;
     Color color;
-    Color colorBottom;  // For gradients
-    Rect clipRect;      // Scissor clipping
+    Color colorBottom;
+    Rect clipRect;
     we::rhi::RHIDescriptorSetHandle textureId = we::rhi::RHIDescriptorSetHandle::Invalid;
     std::string text;
     std::string iconStem;
@@ -60,7 +60,7 @@ struct DrawCommand {
     bool textItalic = false;
     float borderRadius = 0.0f;
     float thickness = 1.0f;
-    float blur = 0.0f;  // For shadows
+    float blur = 0.0f;
     Point lineStart;
     Point lineEnd;
     DrawCommandSemantic semantic{};

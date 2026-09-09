@@ -283,7 +283,6 @@ void PaintDockConnectedFrameBevel(
 
     PaintHEdge(context, x0, y1 - 1.0f, x1 - x0, shadow);
 
-    // Left silhouette.
     if (flushLeft) {
         PaintVEdge(context, x0, ty0 + topR, (y1 - 1.0f) - (ty0 + topR), highlight);
         PaintConvexTopCorner(context, tx0, tx1, ty0, topR, true, highlight);

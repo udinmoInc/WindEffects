@@ -61,5 +61,4 @@ std::vector<ResourceDescriptor> ModuleResourceRegistry::GetModuleResources(std::
 
 } // namespace we::runtime::kindui
 
-// export rebuild
  

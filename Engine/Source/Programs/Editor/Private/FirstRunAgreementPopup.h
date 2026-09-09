@@ -71,8 +71,8 @@ private:
     struct DocumentNode {
         NodeType type = NodeType::Paragraph;
         std::vector<TextRun> runs;
-        std::string rawText; // For code blocks
-        int listNumber = 0; // For ordered lists
+        std::string rawText;
+        int listNumber = 0;
         float marginTop = 0.0f;
         float marginBottom = 0.0f;
         
@@ -99,7 +99,6 @@ private:
         float dragStartScroll = 0.0f;
     };
 
-    // Document parsing
     void ParseDocument();
     std::vector<TextRun> ParseInlineText(const std::string& text);
     static std::string StripMarkdown(const std::string& text);
@@ -111,7 +110,6 @@ private:
     std::vector<std::string> WrapWords(we::runtime::kindui::PaintContext& context, const std::string& text,
         float fontSize, float maxWidth);
 
-    // Rendering
     void RenderNode(we::runtime::kindui::PaintContext& context, const DocumentNode& node, float y);
     void RenderTextRuns(we::runtime::kindui::PaintContext& context, const std::vector<TextRun>& runs, float x, float&
         y, float fontSize, const we::runtime::kindui::Color& baseColor, float maxWidth);
@@ -119,7 +117,6 @@ private:
     void RenderBlockquote(we::runtime::kindui::PaintContext& context, const DocumentNode& node, float y);
     void RenderList(we::runtime::kindui::PaintContext& context, const DocumentNode& node, float y);
 
-    // Scrolling
     void SetScrollOffset(float offset);
     void ScrollBy(float delta);
     void ScrollPageUp();
@@ -130,7 +127,6 @@ private:
     bool IsOverScrollbar(const we::runtime::kindui::Point& point) const;
     bool IsOverThumb(const we::runtime::kindui::Point& point) const;
 
-    // Utilities
     float GetFontSize(NodeType type) const;
     float GetLineHeight(NodeType type) const;
     we::runtime::kindui::Color GetTextColor(NodeType type) const;
@@ -138,7 +134,6 @@ private:
 public:
     static std::string BuildDefaultContent();
 
-    // Document
     std::string m_Title;
     std::string m_RawContent;
     std::vector<DocumentNode> m_DocumentNodes;
@@ -152,21 +147,17 @@ public:
     we::runtime::kindui::Rect m_ContentRect{};
     float m_ContentMargin = 16.0f;
 
-    // Scrolling
     float m_ScrollOffset = 0.0f;
     ScrollbarState m_Scrollbar{};
 
-    // Buttons
     ButtonState m_CopyButton{};
     ButtonState m_AgreeButton{};
     ButtonState m_DeclineButton{};
 
-    // Callbacks
     std::function<void()> m_OnAccepted;
     std::function<void()> m_OnDeclined;
     std::function<void()> m_PendingCallback;
 
-    // DPI
     float m_DpiScale = 1.0f;
 };
 

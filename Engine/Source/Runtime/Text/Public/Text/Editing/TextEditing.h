@@ -21,7 +21,7 @@
 namespace we::runtime::text::editing {
 
 struct TextSelection {
-    size_t anchor = 0; // codepoint index
+    size_t anchor = 0;
     size_t focus = 0;
 
     [[nodiscard]] size_t Start() const { return anchor < focus ? anchor : focus; }

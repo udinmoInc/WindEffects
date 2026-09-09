@@ -102,7 +102,6 @@ void SectionCard::Tick(float deltaTime) {
     Widget::Tick(deltaTime);
 }
 
-// EmptyStatePanel
 
 EmptyStatePanel::EmptyStatePanel(std::string title, std::string subtitle, WindIconRef icon)
     : m_Title(std::move(title))
@@ -543,7 +542,6 @@ bool ProjectsEmptyState::ShowsPointerCursor(const Point& position) const {
 }
 
 
-// CompactSearchField
 
 CompactSearchField::CompactSearchField(std::string placeholder)
     : m_Placeholder(std::move(placeholder)) {

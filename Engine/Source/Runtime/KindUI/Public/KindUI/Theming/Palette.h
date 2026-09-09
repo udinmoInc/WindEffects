@@ -89,10 +89,8 @@ struct GraphiteDark {
     // Legacy EStyleColor name
     static constexpr Color Secondary         = Dropdown;
 
-    // Selection
     static constexpr Color Select            = Primary;
 
-    // Inactive selection
     static constexpr Color SelectInactive    = Hex("#40576F");
 
     // Parent selection — subtle dark blue-gray
@@ -110,7 +108,6 @@ struct GraphiteDark {
     // Main editor text
     static constexpr Color Foreground        = Hex("#C2C2C2");
 
-    // Hovered text
     static constexpr Color ForegroundHover   = Hex("#E0E0E0");
 
     // Text rendered over Input surfaces

@@ -73,7 +73,6 @@ void RegisterTool(const char* categoryId,
 }
 
 void RegisterActorCatalog() {
-    // Basic category removed — Quick Access is synthesized by PlaceActorsPanel.
     RegisterCategory("Actors", "ActorGeometry", "Geometry", WindIcons::BoxSolid16, 20, false);
     RegisterCategory("Actors", "ActorLights", "Lights", WindIcons::Bulb16, 30, false);
     RegisterCategory("Actors", "ActorCameras", "Cameras", WindIcons::ToolbarCamera16, 40, false);

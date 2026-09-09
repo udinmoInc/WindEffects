@@ -720,7 +720,6 @@ public:
         }
     }
 
-    // ITerrain
     [[nodiscard]] TerrainId GetId() const noexcept override { return id; }
     [[nodiscard]] TerrainGuid GetAssetGuid() const noexcept override { return assetGuid; }
     [[nodiscard]] const TerrainCreateInfo& GetInfo() const noexcept override { return info; }

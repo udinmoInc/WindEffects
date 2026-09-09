@@ -248,7 +248,7 @@ bool HierarchyServiceImpl::SetParent(ActorHandle child, ActorHandle parent) {
         return false;
     }
     if (parent.IsValid() && IsAncestorOf(child, parent)) {
-        return false; // cycle
+        return false;
     }
 
     Detach(child);

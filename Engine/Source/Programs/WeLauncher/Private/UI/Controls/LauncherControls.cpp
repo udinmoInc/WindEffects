@@ -52,7 +52,6 @@ void FixedGap::Paint(PaintContext& context) {
     (void)context;
 }
 
-// ThinDivider
 
 Size ThinDivider::Measure(const Size& availableSize) {
     const float s = LScale();
@@ -88,7 +87,6 @@ void ThinVerticalDivider::Paint(PaintContext& context) {
 }
 
 
-// LauncherTitleBar
 
 LauncherTitleBar::LauncherTitleBar(we::platform::WindowId window, std::string title)
     : m_Window(window)
@@ -313,6 +311,5 @@ void LauncherTitleBar::Tick(float deltaTime) {
     Widget::Tick(deltaTime);
 }
 
-// NavSidebar
 
 } // namespace we::programs::welauncher

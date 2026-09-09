@@ -27,7 +27,6 @@ inline constexpr std::array<std::uint32_t, 7> kTiers = {12, 16, 20, 24, 32, 48, 
 /// Manually curated — add entries here, then re-run `we asset icons`.
 /// Do not auto-discover icons from the kindicons folder.
 inline constexpr KindIconBinding kBindings[] = {
-    // Original bindings
     {"search",      "search"},
     {"settings",    "settings"},
     {"star",        "star"},

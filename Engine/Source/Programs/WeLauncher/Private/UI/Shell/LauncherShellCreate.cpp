@@ -155,7 +155,6 @@ void LauncherShell::RebuildCreateWizard() {
     root->SetVerticalAlignment(VerticalAlignment::Fill);
     root->Padding(Margin{ 24.0f * s, 24.0f * s, 24.0f * s, 24.0f * s });
 
-    // Title
     auto title = MakeLabel("New project", 30.0f * s, LColor(ColorToken::TextPrimary));
     title->SetHorizontalAlignment(HorizontalAlignment::Left);
     root->AddChild(title);
@@ -236,7 +235,6 @@ void LauncherShell::RebuildCreateWizard() {
     left->AddChild(listScroll);
     body->AddChild(left);
 
-    // Vertical separator
     auto vlineHost = std::make_shared<Column>();
     vlineHost->Padding(Margin{ 16.0f * s, 0.0f, 16.0f * s, 0.0f });
     vlineHost->SetVerticalAlignment(VerticalAlignment::Fill);
@@ -376,7 +374,6 @@ void LauncherShell::RebuildCreateWizard() {
     root->AddChild(std::make_shared<WizardSeparator>());
     root->AddChild(std::make_shared<FixedGap>(1.0f, 16.0f * s));
 
-    // Footer
     auto footer = std::make_shared<Row>();
     footer->Gap(12.0f * s);
     footer->SetVerticalAlignment(VerticalAlignment::Center);

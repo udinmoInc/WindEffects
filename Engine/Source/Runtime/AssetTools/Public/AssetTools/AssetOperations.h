@@ -35,7 +35,7 @@ struct ASSETTOOLS_API AssetListEntry {
     std::string id;
     std::string displayName;
     std::string kind;
-    std::string detail; // extensions or path
+    std::string detail;
 };
 
 struct ASSETTOOLS_API AssetInfoResult {

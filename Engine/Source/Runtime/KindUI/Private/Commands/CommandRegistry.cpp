@@ -48,5 +48,4 @@ bool CommandRegistry::Execute(std::string_view commandId, const CommandContext& 
 
 } // namespace we::runtime::kindui
 
-// export rebuild
  

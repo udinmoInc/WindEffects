@@ -162,7 +162,7 @@ void WindowsPlatform::RegisterRawInput(HWND hwnd) {
     }
     RAWINPUTDEVICE rid{};
     rid.usUsagePage = 0x01;
-    rid.usUsage = 0x02; // mouse
+    rid.usUsage = 0x02;
     rid.dwFlags = 0;
     rid.hwndTarget = hwnd;
     RegisterRawInputDevices(&rid, 1, sizeof(rid));
@@ -304,5 +304,5 @@ KeyCode WindowsPlatform::TranslateVirtKey(WPARAM vkey, LPARAM lParam) const {
 
 } // namespace we::platform
 
-#endif // WE_PLATFORM_WINDOWS
+#endif
 
