@@ -148,6 +148,10 @@ void Panel::CalculateHeaderGeometries() {
 
 void Panel::Paint(PaintContext& context) {
     AttachBodyLayout();
+    // Standalone / floating panel ambient depth (docked chrome owns its own).
+    if (!m_TransparentBackground && m_HeaderHeight > 0.0f && !m_Geometry.IsEmpty()) {
+        Chrome::PaintPanelAmbientShadow(context, m_Geometry);
+    }
     if (!m_TransparentBackground && !m_BodyLayout) {
         if (m_HeaderHeight > 0.0f) {
             const float bodyY = m_Geometry.y + m_HeaderRect.height;

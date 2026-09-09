@@ -371,7 +371,9 @@ void DockContainer::Paint(PaintContext& context) {
         state,
         [&](PaintContext& paintContext) {
             activePanel->Paint(paintContext);
-        });
+        },
+        // Floating window frames own the ambient shadow for the whole section.
+        m_LeadingReservedWidth <= 0.5f && m_TrailingReservedWidth <= 0.5f);
 }
 
 void DockContainer::OnMouseDown(const MouseEvent& event) {
