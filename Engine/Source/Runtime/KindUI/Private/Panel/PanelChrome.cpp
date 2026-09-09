@@ -1,6 +1,7 @@
 #include "KindUI/Panel/PanelChrome.h"
 
 #include "KindUI/Core/ControlChrome.h"
+#include "KindUI/Core/ToolbarButtonChrome.h"
 #include "KindUI/Core/PropertyPanelChrome.h"
 
 #include "KindUI/Tokens/DesignSystem.h"
@@ -1273,35 +1274,24 @@ void PaintHeaderIconButton(
     bool pressed,
     bool compactGlyph)
 {
-    const bool isClose = (icon.stem == WindIcons::X16.stem && icon.sizePx == WindIcons::X16.sizePx)
-        || (icon.stem == WindIcons::Xv212.stem && icon.sizePx == WindIcons::Xv212.sizePx);
-    const float scale = UiScale();
-    const float radius = we::runtime::kindui::ResolveMetric(MetricToken::IconButtonRadius) * scale;
-
-    if (!isClose) {
-        we::runtime::kindui::ControlChrome::PaintInteractiveFill(
-            context,
-            rect,
-            radius,
-            hovered ? 1.0f : 0.0f,
-            pressed ? 1.0f : 0.0f,
-            false,
-            ColorToken::ControlBackground);
-    }
-
     if (!icon.IsValid()) {
         return;
     }
 
-    if (isClose || compactGlyph) {
-        const uint32_t glyph = static_cast<uint32_t>(CloseGlyphSize());
-        const Rect iconRect = IconMetrics::PlaceGlyphCentered(rect, glyph);
-        IconPainter::Draw(context, icon, iconRect, glyph);
-    } else {
-        const uint32_t iconSize = static_cast<uint32_t>(TabIconSize());
-        const Rect iconRect = IconMetrics::PlaceGlyphCentered(rect, iconSize);
-        IconPainter::Draw(context, icon, iconRect, iconSize);
-    }
+    const float glyphPx = (compactGlyph
+            || (icon.stem == WindIcons::X16.stem && icon.sizePx == WindIcons::X16.sizePx)
+            || (icon.stem == WindIcons::Xv212.stem && icon.sizePx == WindIcons::Xv212.sizePx))
+        ? CloseGlyphSize()
+        : TabIconSize();
+
+    we::runtime::kindui::ToolbarButtonChrome::PaintFloatingIcon(
+        context,
+        icon,
+        rect,
+        glyphPx,
+        hovered ? 1.0f : 0.0f,
+        pressed ? 1.0f : 0.0f,
+        false);
 }
 
 void RoutePanelBodyPointer(

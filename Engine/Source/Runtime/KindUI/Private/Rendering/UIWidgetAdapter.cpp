@@ -716,27 +716,9 @@ void UIWidgetAdapter::GenerateIconGeometry(const DrawCommand& cmd) {
     const float x = SnapPx(cmd.rect.x + (cmd.rect.width - w) * 0.5f);
     const float y = SnapPx(cmd.rect.y + (cmd.rect.height - h) * 0.5f);
 
-    // Render icons with original authored colors and brightness (no tint / dimming shifts).
-    // Preserve custom tint for folder icons (Content Browser / Outliner tree folders) with #B89252, and preserve alpha.
-    Color tint = Color::White();
-    const bool isFolder =
-        cmd.iconStem == "folder" ||
-        cmd.iconStem == "folder-open" ||
-        cmd.iconStem == "folder-mask" ||
-        cmd.iconStem == "folder-open-mask" ||
-        cmd.iconStem == "content-folder";
-    if (isFolder) {
-        if (cmd.color.a > 0.0f && (cmd.color.r < 0.99f || cmd.color.g < 0.99f || cmd.color.b < 0.99f)) {
-            tint = cmd.color;
-        } else {
-            tint = ResolveColor(ColorToken::ContentBrowserFolderPrimary);
-            if (cmd.color.a > 0.0f) {
-                tint.a = cmd.color.a;
-            }
-        }
-    } else if (cmd.color.a > 0.0f) {
-        tint.a = cmd.color.a;
-    }
+    // Vertex color multiplies authored icon RGB (white = unchanged). Used for hover brightness.
+    // Folder icons keep their authored colors — never force a theme brown override.
+    Color tint = (cmd.color.a > 0.0f) ? cmd.color : Color::White();
     const float shaderType = 4.0f;
 
     auto emitQuad = [&](float px, float py, const Color& color, float type) {

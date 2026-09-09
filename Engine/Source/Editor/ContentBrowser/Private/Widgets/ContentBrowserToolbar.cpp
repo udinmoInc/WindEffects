@@ -6,6 +6,7 @@
 #include "Widgets/DropdownMenu.h"
 #include "Widgets/MenuBar.h"
 #include "KindUI/Core/ControlChrome.h"
+#include "KindUI/Core/ToolbarButtonChrome.h"
 #include "KindUI/Core/PaintContext.h"
 #include "KindUI/Core/Widgets/DesignSystemControls.h"
 #include "KindUI/Core/DPIContext.h"
@@ -151,39 +152,31 @@ void ToolbarIconToggle::Tick(float deltaTime) {
 void ToolbarIconToggle::Paint(PaintContext& context) {
     const bool enabled = IsEnabled();
 
+    // Framed primary actions keep chrome; icon-only toggles stay floating glyphs.
     if (!m_Frameless) {
         PaintToolbarButtonChrome(context, m_Geometry, m_HoverAnim, m_PressAnim, m_Selected, false);
     }
 
-    const Color kHighlightColor = Color(0.8392f, 0.8510f, 0.8667f, 1.0f); // #D6D9DD
-    const Color kPressedColor = Color(1.0f, 1.0f, 1.0f, 1.0f);             // #FFFFFF on click
-    Color baseColor = m_HasCustomColor ? m_CustomColor : we::runtime::kindui::ResolveColor(ColorToken::IconSecondary);
-    Color iconColor = baseColor;
+    if (!m_Icon.IsValid()) {
+        return;
+    }
+
+    const float iconPx = static_cast<float>(m_Icon.sizePx > 0 ? m_Icon.sizePx : 16u);
     if (!enabled) {
-        iconColor = we::runtime::kindui::ResolveColor(ColorToken::IconDisabled);
-        if (iconColor.a > 0.35f) iconColor.a = 0.35f;
-    } else if (m_Selected) {
-        iconColor = kHighlightColor;
-    } else if (m_PressAnim > 0.01f) {
-        iconColor = Color::Pick(kHighlightColor, kPressedColor, std::clamp(m_PressAnim, 0.0f, 1.0f));
-    } else if (m_HoverAnim > 0.01f) {
-        iconColor = Color::Pick(baseColor, kHighlightColor, std::clamp(m_HoverAnim, 0.0f, 1.0f));
+        Color disabled = we::runtime::kindui::ToolbarButtonChrome::ResolveIconColor(0.0f, 0.0f, false);
+        disabled.a = 0.35f;
+        IconPainter::Draw(context, m_Icon, m_Geometry, static_cast<uint32_t>(iconPx), disabled);
+        return;
     }
 
-    Rect drawRect = m_Geometry;
-    if (enabled && m_PressAnim > 0.01f) {
-        const float scale = 1.0f - 0.08f * m_PressAnim; // Subtle tactile press scale from center
-        const float w = m_Geometry.width * scale;
-        const float h = m_Geometry.height * scale;
-        drawRect = Rect{
-            m_Geometry.x + (m_Geometry.width - w) * 0.5f,
-            m_Geometry.y + (m_Geometry.height - h) * 0.5f,
-            w,
-            h
-        };
-    }
-
-    IconPainter::Draw(context, m_Icon, drawRect, iconColor);
+    we::runtime::kindui::ToolbarButtonChrome::PaintFloatingIcon(
+        context,
+        m_Icon,
+        m_Geometry,
+        iconPx,
+        m_HoverAnim,
+        m_PressAnim,
+        m_Selected);
 }
 
 void ToolbarIconToggle::OnMouseDown(const MouseEvent& event) {
@@ -265,24 +258,9 @@ void ToolbarLabeledButton::Tick(float deltaTime) {
 void ToolbarLabeledButton::Paint(PaintContext& context) {
     const bool enabled = IsEnabled();
     const float uiScale = (std::max)(1.0f, DPIContext::GetScale());
-    const float radius = we::runtime::kindui::ResolveMetric(MetricToken::CornerRadiusSmall) * uiScale;
 
     if (!m_Frameless) {
         PaintToolbarButtonChrome(context, m_Geometry, m_HoverAnim, m_PressAnim, false, m_Variant == Variant::Primary);
-    } else if (enabled && (m_HoverAnim > 0.001f || m_PressAnim > 0.001f)) {
-        Color hoverBg = we::runtime::kindui::ResolveColor(ColorToken::ControlBackgroundHover);
-        if (m_PressAnim > 0.001f) {
-            hoverBg = Color::Pick(hoverBg, we::runtime::kindui::ResolveColor(ColorToken::PressedBackground), std::clamp(m_PressAnim, 0.0f, 1.0f));
-        }
-        // Frameless controls sit on toolbar chrome — bake the translucent overlay onto that
-        // opaque underlay instead of stacking alpha.
-        hoverBg.a *= (std::max)(m_HoverAnim, m_PressAnim);
-        const Color underlay = we::runtime::kindui::ColorSpace::OpaqueSurface(
-            we::runtime::kindui::ResolveColor(ColorToken::ToolbarBackground));
-        context.DrawRoundedRect(
-            m_Geometry,
-            we::runtime::kindui::ColorSpace::CompositeSrcOverOpaque(underlay, hoverBg),
-            radius);
     }
 
     const Color kHighlightColor = Color(0.8392f, 0.8510f, 0.8667f, 1.0f); // #D6D9DD
@@ -300,17 +278,27 @@ void ToolbarLabeledButton::Paint(PaintContext& context) {
         const float iconY = m_Geometry.y + (m_Geometry.height - iconSize) * 0.5f;
         Rect iconBand{ x, iconY, iconSize, iconSize };
 
-        Color iconColor = ThemeColor(ColorToken::IconSecondary);
         if (!enabled) {
-            iconColor = ThemeColor(ColorToken::IconDisabled);
-            if (iconColor.a > 0.35f) iconColor.a = 0.35f;
+            Color iconColor = we::runtime::kindui::ToolbarButtonChrome::ResolveIconColor(0.0f, 0.0f, false);
+            iconColor.a = 0.35f;
+            IconPainter::Draw(context, m_Icon, iconBand, static_cast<uint32_t>(iconSize), iconColor);
         } else if (m_Variant == Variant::AddAction) {
-            iconColor = ThemeColor(ColorToken::Success);
-        } else if (m_HoverAnim > 0.01f || m_PressAnim > 0.01f) {
-            float t = (std::max)(m_HoverAnim, m_PressAnim);
-            iconColor = Color::Pick(iconColor, kHighlightColor, std::clamp(t, 0.0f, 1.0f));
+            IconPainter::Draw(
+                context,
+                m_Icon,
+                iconBand,
+                static_cast<uint32_t>(iconSize),
+                ThemeColor(ColorToken::Success));
+        } else {
+            we::runtime::kindui::ToolbarButtonChrome::PaintFloatingIcon(
+                context,
+                m_Icon,
+                iconBand,
+                iconSize,
+                m_HoverAnim,
+                m_PressAnim,
+                false);
         }
-        IconPainter::Draw(context, m_Icon, iconBand, iconColor);
         x += iconSize + iconGap;
     }
 
@@ -427,7 +415,6 @@ void ContentBrowserToolbarControls::InitializeChildren() {
     m_FolderBtn = std::make_shared<ToolbarIconToggle>(WindIcons::Folder16, "Folder");
     m_FolderBtn->SetFrameless(true);
     m_FolderBtn->SetFlexShrink(0.0f);
-    m_FolderBtn->SetCustomColor(Color(0.8392f, 0.8510f, 0.8667f, 1.0f)); // #D6D9DD
 
     m_Breadcrumb = std::make_shared<Breadcrumb>();
     m_Breadcrumb->SetFlexShrink(0.0f);

@@ -1,5 +1,6 @@
 #include "KindUI/Core/ToolbarButtonChrome.h"
 #include "KindUI/Core/ControlChrome.h"
+#include "KindUI/Core/Icon.h"
 #include "KindUI/Rendering/IconMetrics.h"
 #include "KindUI/Core/PaintContext.h"
 #include "KindUI/Theming/ThemeAccess.h"
@@ -9,6 +10,7 @@
 #include "KindUI/Theming/PaletteRuntime.h"
 
 #include <algorithm>
+#include <string_view>
 
 namespace we::runtime::kindui::ToolbarButtonChrome {
 
@@ -73,24 +75,71 @@ Rect PlaceIconInControl(const Rect& controlBounds, float glyphTierPx) {
 }
 
 Color ResolveIconColor(float hoverAnim, float pressStrength, bool active) {
-    if (active) {
-        return ResolveColor(ColorToken::TextOnAccent);
+    // Grayscale multiply: muted at rest → luminous on hover. Preserves authored icon hue.
+    float brightness = active ? 1.06f : 0.78f;
+    brightness = brightness + (1.12f - brightness) * std::clamp(hoverAnim, 0.0f, 1.0f);
+    if (pressStrength > 0.001f) {
+        brightness = brightness + (1.00f - brightness) * std::clamp(pressStrength, 0.0f, 1.0f) * 0.35f;
     }
-    return we::runtime::kindui::ResolveIconColor(
-        IconColorRole::Primary,
-        hoverAnim,
-        pressStrength,
-        active);
+    return Color{ brightness, brightness, brightness, 1.0f };
 }
 
 Color ResolvePlayIconColor(float hoverAnim, float pressStrength, bool active) {
-    Color play = ResolveColor(ColorToken::Success);
-    if (active) {
-        return ResolveColor(ColorToken::TextPrimary);
+    // Same lighting model — play glyph keeps its authored green.
+    return ResolveIconColor(hoverAnim, pressStrength, active);
+}
+
+[[nodiscard]] bool IsAuthoredColorIcon(WindIconRef icon) {
+    if (!icon.IsValid() || icon.stem == nullptr) {
+        return false;
     }
-    Color hover = ResolveColor(ColorToken::TextPrimary);
-    Color result = Color::Pick(play, hover, std::clamp(hoverAnim, 0.0f, 1.0f) * 0.35f);
-    return Color::Pick(result, hover, std::clamp(pressStrength, 0.0f, 1.0f) * 0.45f);
+    const std::string_view stem(icon.stem);
+    return stem == "folder"
+        || stem == "folder-open"
+        || stem == "folder-mask"
+        || stem == "folder-open-mask"
+        || stem == "content-folder"
+        || stem == "folder-create";
+}
+
+void PaintFloatingIcon(
+    PaintContext& context,
+    WindIconRef icon,
+    const Rect& controlBounds,
+    float glyphPx,
+    float hoverAnim,
+    float pressStrength,
+    bool active)
+{
+    if (!icon.IsValid() || controlBounds.width < 1.0f || controlBounds.height < 1.0f) {
+        return;
+    }
+
+    // Authored-color icons (e.g. folder): never recolor — only optional soft glow on hover.
+    const bool preserveColor = IsAuthoredColorIcon(icon);
+    const float hover = std::clamp(hoverAnim, 0.0f, 1.0f);
+    const float light = std::max(hover, active ? 0.55f : 0.0f);
+
+    if (light > 0.01f) {
+        const float glowPx = glyphPx + 2.0f;
+        Color glow{ 1.18f, 1.18f, 1.18f, (preserveColor ? 0.10f : 0.14f) * light };
+        IconPainter::Draw(
+            context,
+            icon,
+            controlBounds,
+            static_cast<uint32_t>(glowPx),
+            glow);
+    }
+
+    const Color tint = preserveColor
+        ? Color::White()
+        : ResolveIconColor(hoverAnim, pressStrength, active);
+    IconPainter::Draw(
+        context,
+        icon,
+        controlBounds,
+        static_cast<uint32_t>(glyphPx),
+        tint);
 }
 
 namespace {
@@ -136,6 +185,7 @@ void PaintToolbarButtonSurface(
     float activeAnim,
     float uiScale)
 {
+    // Chip / labeled surfaces only — icon-only controls use PaintFloatingIcon instead.
     PaintSubtleToolbarFill(
         context,
         rect,
@@ -155,7 +205,14 @@ void PaintIconButton(
     float activeAnim,
     float uiScale)
 {
-    PaintToolbarButtonSurface(context, rect, hoverAnim, pressStrength, active, activeAnim, uiScale);
+    // Standalone floating icons: no background, border, pill, or hover box.
+    (void)context;
+    (void)rect;
+    (void)hoverAnim;
+    (void)pressStrength;
+    (void)active;
+    (void)activeAnim;
+    (void)uiScale;
 }
 
 void PaintActiveIndicator(
@@ -242,7 +299,12 @@ void PaintViewportChip(
     float pressStrength,
     float uiScale)
 {
-    PaintInlineDropdown(context, rect, hoverAnim, pressStrength, uiScale);
+    // Viewport controls are floating icons/labels — no rounded hover/active fill.
+    (void)context;
+    (void)rect;
+    (void)hoverAnim;
+    (void)pressStrength;
+    (void)uiScale;
 }
 
 } // namespace we::runtime::kindui::ToolbarButtonChrome

@@ -122,7 +122,8 @@ void EditorModeSelector::Paint(PaintContext& context) {
     float currentX = m_Geometry.x + padH;
     if (m_Icon.IsValid()) {
         const Rect iconBand{ currentX, centerY - iconSize * 0.5f, iconSize, iconSize };
-        we::runtime::kindui::IconPainter::Draw(context, m_Icon, ToolbarButtonChrome::PlaceIconInControl(iconBand, iconSize));
+        ToolbarButtonChrome::PaintFloatingIcon(
+            context, m_Icon, iconBand, iconSize, m_HoverAnim, pressStrength, false);
         currentX += iconSize + iconGap;
     }
 
@@ -138,8 +139,14 @@ void EditorModeSelector::Paint(PaintContext& context) {
     }
 
     const float chevX = m_Geometry.x + m_Geometry.width - padH - chevSize;
-    we::runtime::kindui::IconPainter::Draw(
-        context, we::runtime::kindui::WindIcons::ChevronDownV212, we::runtime::kindui::IconMetrics::CompactGlyphBand(m_Geometry, chevX));
+    ToolbarButtonChrome::PaintFloatingIcon(
+        context,
+        we::runtime::kindui::WindIcons::ChevronDownV212,
+        we::runtime::kindui::IconMetrics::CompactGlyphBand(m_Geometry, chevX),
+        chevSize,
+        m_HoverAnim,
+        pressStrength,
+        false);
 }
 
 void EditorModeSelector::OnMouseDown(const MouseEvent& event) {

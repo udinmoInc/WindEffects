@@ -411,15 +411,10 @@ void PaintBorderlessIconButton(
     PaintContext& context,
     const Rect& rect,
     const InteractionState& state) {
-    const Color fill = ResolveInteractiveBackground(
-        state.hoverAnim,
-        state.pressAnim,
-        false,
-        ColorToken::PanelBackground);
-    if (fill.a > 0.001f) {
-        const float radius = ResolveMetric(MetricToken::IconButtonRadius);
-        context.DrawRoundedRect(rect, fill, radius);
-    }
+    // Floating icons: no hover/press fill — glyph lighting is handled by the caller.
+    (void)context;
+    (void)rect;
+    (void)state;
 }
 
 void PaintInputFrame(

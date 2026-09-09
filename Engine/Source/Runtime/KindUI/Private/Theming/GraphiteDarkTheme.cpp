@@ -575,12 +575,12 @@ ResolvedStyle StyleResolver::Resolve(StyleRole role) const {
         style.cornerRadius = Scaled(theme.ResolveMetric(MetricToken::IconButtonRadius));
         break;
     case StyleRole::IconButtonHover:
-        style.background = ResolveColor(ColorToken::HoverBackground);
+        style.background = Color::Transparent();
         style.icon = ResolveColor(ColorToken::IconHover);
         style.border = Color::Transparent();
         break;
     case StyleRole::IconButtonPressed:
-        style.background = ResolveColor(ColorToken::PressedBackground);
+        style.background = Color::Transparent();
         style.icon = ResolveColor(ColorToken::IconActive);
         break;
     case StyleRole::NavigationButton:

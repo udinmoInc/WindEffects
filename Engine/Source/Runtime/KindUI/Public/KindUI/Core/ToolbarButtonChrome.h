@@ -2,6 +2,7 @@
 
 #include "KindUI/Export.h"
 #include "KindUI/Core/Geometry.h"
+#include "KindUI/Core/WindIcon.h"
 
 namespace we::runtime::kindui {
 
@@ -28,10 +29,21 @@ KINDUI_API float ItemGap(float uiScale);
 
 KINDUI_API Rect PlaceIconInControl(const Rect& controlBounds, float glyphTierPx);
 
+/// Grayscale multiply tint: muted at rest, brighter on hover/active (preserves authored hue).
 KINDUI_API Color ResolveIconColor(float hoverAnim, float pressStrength, bool active);
 KINDUI_API Color ResolvePlayIconColor(float hoverAnim, float pressStrength, bool active);
 
-/// Neutral icon button: transparent at rest, hover/press/active via tokens only.
+/// Standalone floating toolbar icon — no hit-box fill. Hover only brightens the glyph (+ soft glow).
+KINDUI_API void PaintFloatingIcon(
+    PaintContext& context,
+    WindIconRef icon,
+    const Rect& controlBounds,
+    float glyphPx,
+    float hoverAnim,
+    float pressStrength = 0.0f,
+    bool active = false);
+
+/// Icon-only controls: no background/border/pill. Kept for call-site compatibility (no-op).
 KINDUI_API void PaintIconButton(
     PaintContext& context,
     const Rect& rect,

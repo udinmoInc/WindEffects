@@ -304,30 +304,28 @@ void ToolButton::Paint(PaintContext& context) {
     const bool isNormal        = (m_ButtonStyle == ToolButtonStyle::Normal);
 
     if (isWindowControl) {
-        if (m_HoverAnim > 0.01f) {
-            const Color base = ThemeColor(ColorToken::WindowBackground);
-            const Color hover = (m_ButtonStyle == ToolButtonStyle::WindowClose)
-                ? ThemeColor(ColorToken::CloseButtonHover)
-                : ThemeColor(ColorToken::HoverBackground);
-            context.DrawRect(renderRect, Color::Pick(base, hover, m_HoverAnim));
-        }
-
+        // Window controls: icon lights up only — no hover fill box.
+        // Close uses a warmer hover brightness via the shared floating painter.
         const float iconSize = WindowControlIconSize(uiScale);
-        IconPainter::Draw(context, m_Icon, renderRect, static_cast<uint32_t>(iconSize));
+        PaintFloatingIcon(
+            context,
+            m_Icon,
+            renderRect,
+            iconSize,
+            m_HoverAnim,
+            pressStrength,
+            false);
         return;
     }
 
     if (m_ButtonStyle == ToolButtonStyle::TitleBarTool) {
-        PaintIconButton(context, renderRect, m_HoverAnim, pressStrength, m_Active, m_ActiveAnim, uiScale);
         const float iconSize = IconSize(uiScale);
-        const Color iconColor = ToolbarButtonChrome::ResolveIconColor(m_HoverAnim, pressStrength, m_Active);
-        IconPainter::Draw(context, m_Icon, PlaceIconInControl(renderRect, iconSize), iconColor);
+        PaintFloatingIcon(
+            context, m_Icon, renderRect, iconSize, m_HoverAnim, pressStrength, m_Active);
         return;
     }
 
     if (isLabeled) {
-        PaintIconButton(context, renderRect, m_HoverAnim, pressStrength, m_Active, m_ActiveAnim, uiScale);
-
         const float iconSize = PrimaryIconSize(uiScale);
         const float textSize = ThemeMetric(MetricToken::TextSizeCaption) * uiScale;
         const float labelGap = 2.0f * uiScale;
@@ -336,8 +334,8 @@ void ToolButton::Paint(PaintContext& context) {
         const float labelW = LabelWidth(m_Label, textSize, m_CachedLabelWidthTextSize, m_CachedLabelWidth);
 
         Rect iconBand{ renderRect.x, topY, renderRect.width, iconSize };
-        const Color iconColor = ToolbarButtonChrome::ResolveIconColor(m_HoverAnim, pressStrength, m_Active);
-        IconPainter::Draw(context, m_Icon, PlaceIconInControl(iconBand, iconSize), iconColor);
+        PaintFloatingIcon(
+            context, m_Icon, iconBand, iconSize, m_HoverAnim, pressStrength, m_Active);
 
         if (!m_Label.empty()) {
             const float labelX = renderRect.x + (renderRect.width - labelW) * 0.5f;
@@ -370,7 +368,8 @@ void ToolButton::Paint(PaintContext& context) {
 
         if (m_Icon.IsValid()) {
             Rect iconBand{ currentX, centerY - iconSize * 0.5f, iconSize, iconSize };
-            IconPainter::Draw(context, m_Icon, PlaceIconInControl(iconBand, iconSize));
+            PaintFloatingIcon(
+                context, m_Icon, iconBand, iconSize, m_HoverAnim, pressStrength, m_Active);
             currentX += iconSize + iconGap;
         }
 
@@ -397,8 +396,6 @@ void ToolButton::Paint(PaintContext& context) {
     if (isInline) {
         if (!m_Chromeless) {
             PaintInlineDropdown(context, renderRect, m_HoverAnim, pressStrength, uiScale);
-        } else {
-            PaintIconButton(context, renderRect, m_HoverAnim, pressStrength, m_Active, m_ActiveAnim, uiScale);
         }
 
         const float iconSize  = m_Icon.IsValid() ? static_cast<float>(m_Icon.sizePx) : IconSize(uiScale);
@@ -410,7 +407,13 @@ void ToolButton::Paint(PaintContext& context) {
         float currentX = renderRect.x + padH;
         if (m_Icon.IsValid()) {
             Rect iconBand{ currentX, centerY - iconSize * 0.5f, iconSize, iconSize };
-            IconPainter::Draw(context, m_Icon, PlaceIconInControl(iconBand, iconSize));
+            if (m_Chromeless) {
+                PaintFloatingIcon(
+                    context, m_Icon, iconBand, iconSize, m_HoverAnim, pressStrength, m_Active);
+            } else {
+                PaintFloatingIcon(
+                    context, m_Icon, iconBand, iconSize, m_HoverAnim, pressStrength, false);
+            }
             currentX += iconSize + iconGap;
         }
 
@@ -428,14 +431,20 @@ void ToolButton::Paint(PaintContext& context) {
 
         if (m_IsDropdown) {
             currentX += chevGap;
-            IconPainter::Draw(context, WindIcons::ChevronDownV212, IconMetrics::CompactGlyphBand(renderRect, currentX));
+            PaintFloatingIcon(
+                context,
+                WindIcons::ChevronDownV212,
+                IconMetrics::CompactGlyphBand(renderRect, currentX),
+                16.0f,
+                m_HoverAnim,
+                pressStrength,
+                false);
         }
         return;
     }
 
     if (isViewportChip) {
-        PaintViewportChip(context, renderRect, m_HoverAnim, pressStrength, uiScale);
-
+        // No rounded fill — floating icons / text only.
         const float iconSize  = m_Icon.IsValid() ? static_cast<float>(m_Icon.sizePx) : IconSize(uiScale);
         const float textSize  = ThemeMetric(MetricToken::TextSizeToolbar) * uiScale;
         const float iconGap   = IconGapPx(uiScale);
@@ -445,8 +454,8 @@ void ToolButton::Paint(PaintContext& context) {
         float currentX = renderRect.x + padH;
         if (m_Icon.IsValid()) {
             Rect iconBand{ currentX, centerY - iconSize * 0.5f, iconSize, iconSize };
-            const Color iconColor = ToolbarButtonChrome::ResolveIconColor(m_HoverAnim, pressStrength, m_Active);
-            IconPainter::Draw(context, m_Icon, PlaceIconInControl(iconBand, iconSize), iconColor);
+            PaintFloatingIcon(
+                context, m_Icon, iconBand, iconSize, m_HoverAnim, pressStrength, m_Active);
             currentX += iconSize + iconGap;
         }
 
@@ -464,42 +473,48 @@ void ToolButton::Paint(PaintContext& context) {
 
         if (m_IsDropdown) {
             currentX += chevGap;
-            const Color chevColor = ToolbarButtonChrome::ResolveIconColor(m_HoverAnim, pressStrength, m_Active);
-            IconPainter::Draw(context, WindIcons::ChevronDownV212, IconMetrics::CompactGlyphBand(renderRect, currentX), chevColor);
+            PaintFloatingIcon(
+                context,
+                WindIcons::ChevronDownV212,
+                IconMetrics::CompactGlyphBand(renderRect, currentX),
+                16.0f,
+                m_HoverAnim,
+                pressStrength,
+                m_Active);
         }
         return;
     }
 
     if (isToolbarIcon) {
-        PaintIconButton(context, renderRect, m_HoverAnim, pressStrength, m_Active, m_ActiveAnim, uiScale);
-
-        const bool isTransport = (m_ButtonStyle == ToolButtonStyle::TransportButton
-            || m_ButtonStyle == ToolButtonStyle::PlayButton);
-        const float iconSize = isTransport ? PrimaryIconSize(uiScale) : IconSize(uiScale);
-        const Color iconColor = (m_ButtonStyle == ToolButtonStyle::PlayButton)
-            ? ToolbarButtonChrome::ResolvePlayIconColor(m_HoverAnim, pressStrength, m_Active)
-            : ToolbarButtonChrome::ResolveIconColor(m_HoverAnim, pressStrength, m_Active);
-        IconPainter::Draw(context, m_Icon, PlaceIconInControl(renderRect, iconSize), iconColor);
+        // Always draw transport / play / settings glyphs at the 16px toolbar icon size.
+        const float iconSize = IconSize(uiScale);
+        PaintFloatingIcon(
+            context, m_Icon, renderRect, iconSize, m_HoverAnim, pressStrength, m_Active);
         return;
     }
 
     if (isNormal) {
-        PaintInlineDropdown(context, renderRect, m_HoverAnim, pressStrength, uiScale);
+        const bool iconOnly = m_Label.empty() && !m_IsDropdown;
+        if (!iconOnly) {
+            PaintInlineDropdown(context, renderRect, m_HoverAnim, pressStrength, uiScale);
+        }
 
         const float iconSize = IconSize(uiScale);
         float currentX = renderRect.x + ThemeMetric(MetricToken::ButtonPaddingHorizontal) * uiScale;
-        const Color iconColor = ToolbarButtonChrome::ResolveIconColor(m_HoverAnim, pressStrength, m_Active);
 
         if (m_Icon.IsValid()) {
-            if (m_Label.empty() && !m_IsDropdown) {
-                IconPainter::Draw(context, m_Icon, PlaceIconInControl(renderRect, iconSize), iconColor);
+            if (iconOnly) {
+                PaintFloatingIcon(
+                    context, m_Icon, renderRect, iconSize, m_HoverAnim, pressStrength, m_Active);
             } else if (m_Label.empty() && m_IsDropdown) {
                 currentX = renderRect.x + ChipHorizontalPad(uiScale);
                 Rect iconBand{ currentX, centerY - iconSize * 0.5f, iconSize, iconSize };
-                IconPainter::Draw(context, m_Icon, PlaceIconInControl(iconBand, iconSize), iconColor);
+                PaintFloatingIcon(
+                    context, m_Icon, iconBand, iconSize, m_HoverAnim, pressStrength, m_Active);
             } else {
                 Rect iconBand{ currentX, centerY - iconSize * 0.5f, iconSize, iconSize };
-                IconPainter::Draw(context, m_Icon, PlaceIconInControl(iconBand, iconSize), iconColor);
+                PaintFloatingIcon(
+                    context, m_Icon, iconBand, iconSize, m_HoverAnim, pressStrength, m_Active);
                 currentX += iconSize + IconGapPx(uiScale);
             }
         } else {
@@ -508,7 +523,7 @@ void ToolButton::Paint(PaintContext& context) {
 
         if (!m_Label.empty()) {
             const float textSize = ThemeMetric(MetricToken::TextSizeToolbar) * uiScale;
-            Color textColor = ToolbarButtonChrome::ResolveIconColor(m_HoverAnim, pressStrength, m_Active);
+            Color textColor = ResolveInteractiveTextColor(m_HoverAnim, pressStrength, m_Active);
             context.DrawText(
                 m_Label,
                 Point{ currentX, LayoutMetrics::AlignTextTopAtCenterY(centerY, textSize) },
@@ -519,7 +534,14 @@ void ToolButton::Paint(PaintContext& context) {
 
         if (m_IsDropdown) {
             const float chevronX = renderRect.x + renderRect.width - ChipHorizontalPad(uiScale) - kChevronSlotPx;
-            IconPainter::Draw(context, WindIcons::ChevronDownV212, IconMetrics::CompactGlyphBand(renderRect, chevronX));
+            PaintFloatingIcon(
+                context,
+                WindIcons::ChevronDownV212,
+                IconMetrics::CompactGlyphBand(renderRect, chevronX),
+                16.0f,
+                m_HoverAnim,
+                pressStrength,
+                m_Active);
         }
     }
 
